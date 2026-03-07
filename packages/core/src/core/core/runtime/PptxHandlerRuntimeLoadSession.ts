@@ -66,6 +66,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     this.signatureDetection = null;
     this.customXmlParts = [];
     this.isStrictOoxml = false;
+    this.restoreOriginalParser();
     this.compatibilityService.resetWarnings();
   }
 
@@ -186,8 +187,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     this.presentationData = this.parser.parse(presentationXml);
 
     // Detect Strict Open XML conformance from the presentation root element.
-    // If detected, all subsequent parseXml() calls will auto-normalize
-    // Strict namespace URIs to Transitional equivalents.
+    // If detected, this normalizes the already-parsed presentation data in
+    // place and wraps this.parser with a Proxy so that all subsequent
+    // this.parser.parse() calls auto-normalize Strict namespace URIs to
+    // their Transitional equivalents (covering all 50+ call sites).
     this.detectAndSetStrictConformance(this.presentationData);
 
     await this.loadThemeData();
@@ -203,6 +206,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     const sldSz = (presentationNode?.["p:sldSz"] || {}) as XmlObject;
     this.rawSlideWidthEmu = parseInt(String(sldSz["@_cx"])) || 0;
     this.rawSlideHeightEmu = parseInt(String(sldSz["@_cy"])) || 0;
+    const sldSzType = sldSz["@_type"] as string | undefined;
+    if (sldSzType) {
+      this.rawSlideSizeType = sldSzType;
+    }
     const notesSz = (presentationNode?.["p:notesSz"] || {}) as XmlObject;
     const notesWidthEmu = parseInt(String(notesSz["@_cx"])) || 0;
     const notesHeightEmu = parseInt(String(notesSz["@_cy"])) || 0;
@@ -286,6 +293,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         this.getSmartArtDataForGraphicFrame(slidePath, graphicFrame),
       parseSlideCustomerData: (slideXml, slidePath) =>
         this.parseSlideCustomerData(slideXml, slidePath),
+      parseSlideActiveXControls: (slideXml) =>
+        this.parseSlideActiveXControls(slideXml),
     });
   }
 }

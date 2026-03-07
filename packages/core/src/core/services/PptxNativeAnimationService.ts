@@ -28,6 +28,7 @@ import {
   extractTextTarget,
   extractIterate,
   extractCommand,
+  extractOleChartBuilds,
 } from "./native-animation-extended-helpers";
 
 /**
@@ -79,6 +80,17 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 
       // Parse p:bldLst to attach text build info to animations
       applyBuildList(timing as XmlObject, animations);
+
+      // Parse p:bldOleChart entries and attach OLE chart build info
+      const bldLst = (timing as XmlObject)["p:bldLst"] as XmlObject | undefined;
+      const oleChartBuilds = extractOleChartBuilds(bldLst);
+      for (const entry of oleChartBuilds) {
+        for (const anim of animations) {
+          if (anim.targetId === entry.spid) {
+            anim.groupId = entry.grpId;
+          }
+        }
+      }
 
       return animations.length > 0 ? animations : undefined;
     } catch (error) {

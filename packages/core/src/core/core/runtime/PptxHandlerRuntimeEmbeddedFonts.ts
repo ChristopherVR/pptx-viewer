@@ -145,6 +145,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
   }
 
   public getLayoutOptions(): PptxLayoutOption[] {
-    return this.layoutOptions.map((layout) => ({ ...layout }));
+    const options: PptxLayoutOption[] = [];
+    for (const [path, xmlObj] of this.layoutXmlMap.entries()) {
+      const sldLayout = (xmlObj as XmlObject)["p:sldLayout"] as XmlObject | undefined;
+      const name = String(sldLayout?.["p:cSld"]?.["@_name"] || "").trim() || path;
+      const type = sldLayout?.["@_type"] != null
+        ? String(sldLayout["@_type"]).trim()
+        : undefined;
+      options.push({ path, name, ...(type ? { type } : {}) });
+    }
+    return options;
   }
 }

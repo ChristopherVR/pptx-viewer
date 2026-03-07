@@ -99,6 +99,7 @@ export function cloneElement(element: PptxElement): PptxElement {
     case "ink":
     case "zoom":
     case "contentPart":
+    case "model3d":
     case "unknown":
       return { ...element };
   }

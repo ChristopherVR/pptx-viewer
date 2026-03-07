@@ -19,6 +19,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     "p:grpSp",
     "p:cxnSp",
     "p:contentPart",
+    "p16:model3D",
     ...VML_SHAPE_TAGS,
   ]);
 
@@ -302,6 +303,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       "p:grpSp",
       "p:cxnSp",
       "p:contentPart",
+      "p16:model3D",
       ...VML_SHAPE_TAGS,
     ];
     for (const tag of tags) {
@@ -373,6 +375,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         return this.parseContentPart(
           node,
           `${idPrefix}contentPart-${indexInType}`,
+          slidePath,
+        );
+      case "p16:model3D":
+        return this.parseModel3DElement(
+          node,
+          `${idPrefix}model3d-${indexInType}`,
           slidePath,
         );
       default:

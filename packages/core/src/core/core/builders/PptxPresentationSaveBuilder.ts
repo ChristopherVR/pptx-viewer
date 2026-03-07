@@ -2,6 +2,7 @@ import type { IPptxXmlLookupService } from "../../services";
 import type {
   PptxCustomShow,
   PptxHeaderFooter,
+  PptxKinsoku,
   PptxModifyVerifier,
   PptxPhotoAlbum,
   PptxPresentationProperties,
@@ -15,6 +16,7 @@ export interface PptxPresentationSaveBuilderOptions {
   customShows?: PptxCustomShow[];
   sections?: PptxSection[];
   photoAlbum?: PptxPhotoAlbum;
+  kinsoku?: PptxKinsoku;
   modifyVerifier?: PptxModifyVerifier | null;
 }
 
@@ -23,6 +25,7 @@ export interface PptxPresentationSaveBuildInput {
   options?: PptxPresentationSaveBuilderOptions;
   rawSlideWidthEmu: number;
   rawSlideHeightEmu: number;
+  rawSlideSizeType?: string;
   xmlLookupService: IPptxXmlLookupService;
 }
 
@@ -42,6 +45,7 @@ export class PptxPresentationSaveBuilder implements IPptxPresentationSaveBuilder
       presentation,
       init.rawSlideWidthEmu,
       init.rawSlideHeightEmu,
+      init.rawSlideSizeType,
     );
     this.applyCustomShows(presentation, init.options?.customShows);
     this.applySections(
@@ -50,6 +54,7 @@ export class PptxPresentationSaveBuilder implements IPptxPresentationSaveBuilder
       init.xmlLookupService,
     );
     this.applyPhotoAlbum(presentation, init.options?.photoAlbum);
+    this.applyKinsoku(presentation, init.options?.kinsoku);
     this.applyModifyVerifier(presentation, init.options?.modifyVerifier);
 
     init.presentationData["p:presentation"] = presentation;
@@ -90,6 +95,7 @@ export class PptxPresentationSaveBuilder implements IPptxPresentationSaveBuilder
     presentation: XmlObject,
     rawSlideWidthEmu: number,
     rawSlideHeightEmu: number,
+    rawSlideSizeType?: string,
   ): void {
     const slideSize = presentation["p:sldSz"] as XmlObject | undefined;
     if (!slideSize) return;
@@ -100,6 +106,9 @@ export class PptxPresentationSaveBuilder implements IPptxPresentationSaveBuilder
     }
     if (rawSlideHeightEmu > 0) {
       slideSize["@_cy"] = String(rawSlideHeightEmu);
+    }
+    if (rawSlideSizeType) {
+      slideSize["@_type"] = rawSlideSizeType;
     }
 
     // Preserve p:notesSz (already present in presentation XML from load)
@@ -213,6 +222,27 @@ export class PptxPresentationSaveBuilder implements IPptxPresentationSaveBuilder
     }
 
     presentation["p:photoAlbum"] = pa;
+  }
+
+  private applyKinsoku(
+    presentation: XmlObject,
+    kinsoku: PptxKinsoku | undefined,
+  ): void {
+    if (!kinsoku) return;
+    const k: XmlObject =
+      (presentation["p:kinsoku"] as XmlObject) || {};
+
+    if (kinsoku.lang !== undefined) {
+      k["@_lang"] = kinsoku.lang;
+    }
+    if (kinsoku.invalStChars !== undefined) {
+      k["@_invalStChars"] = kinsoku.invalStChars;
+    }
+    if (kinsoku.invalEndChars !== undefined) {
+      k["@_invalEndChars"] = kinsoku.invalEndChars;
+    }
+
+    presentation["p:kinsoku"] = k;
   }
 
   private applyModifyVerifier(

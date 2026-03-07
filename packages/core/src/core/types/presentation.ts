@@ -51,6 +51,25 @@ export interface PptxCustomerData {
 }
 
 /**
+ * An ActiveX control reference from `p:controls / p:control`.
+ *
+ * ActiveX form controls (buttons, text boxes, check boxes, combo boxes, etc.)
+ * are embedded via OLE parts and referenced by relationship ID in the slide XML.
+ *
+ * @see ECMA-376 Part 1, §19.3.1.3 (controls), §19.3.1.2 (control)
+ */
+export interface PptxActiveXControl {
+  /** Relationship ID referencing the ActiveX binary part. */
+  relId: string;
+  /** Control name from @name attribute. */
+  name?: string;
+  /** Shape ID this control is linked to (from @spid). */
+  shapeId?: string;
+  /** Raw XML for round-trip preservation. */
+  rawXml?: XmlObject;
+}
+
+/**
  * A single slide in a parsed PPTX presentation.
  *
  * Contains the element tree, background settings, notes, comments,
@@ -107,6 +126,8 @@ export interface PptxSlide {
   isDirty?: boolean;
   /** Customer data references from `p:custDataLst` on this slide. */
   customerData?: PptxCustomerData[];
+  /** ActiveX control references from `p:controls` on this slide. */
+  activeXControls?: PptxActiveXControl[];
 }
 
 /**
@@ -126,6 +147,8 @@ export interface PptxSlide {
 export interface PptxLayoutOption {
   path: string;
   name: string;
+  /** Standard layout type from `p:sldLayout/@type` (e.g. "obj", "twoColTx", "blank"). */
+  type?: string;
 }
 
 /**
@@ -320,6 +343,23 @@ export interface PptxPhotoAlbum {
 }
 
 /**
+ * East Asian line-break (kinsoku) settings from `p:kinsoku` in `presentation.xml`.
+ *
+ * Defines forbidden start/end characters for a given language so that
+ * line-breaking follows East Asian typographic rules.
+ *
+ * @see ECMA-376 Part 1, §19.2.1.17
+ */
+export interface PptxKinsoku {
+  /** Language code (e.g. "ja-JP", "zh-CN"). */
+  lang?: string;
+  /** Characters that cannot begin a line. */
+  invalStChars?: string;
+  /** Characters that cannot end a line. */
+  invalEndChars?: string;
+}
+
+/**
  * Root data structure returned by {@link PptxHandlerCore.load}.
  *
  * Contains every slide, canvas dimensions, theme data, layout options,
@@ -341,6 +381,8 @@ export interface PptxData {
   widthEmu?: number;
   /** Slide height in EMU (for save round-trip). */
   heightEmu?: number;
+  /** Slide size type from `p:sldSz/@type` (e.g. "screen4x3", "screen16x9", "custom"). */
+  slideSizeType?: string;
   /** Notes page width in EMU (from `p:notesSz`). */
   notesWidthEmu?: number;
   /** Notes page height in EMU (from `p:notesSz`). */
@@ -396,6 +438,8 @@ export interface PptxData {
   modifyVerifier?: PptxModifyVerifier;
   /** Photo album metadata from `p:photoAlbum` in `presentation.xml`. */
   photoAlbum?: PptxPhotoAlbum;
+  /** East Asian line-break settings from `p:kinsoku` in `presentation.xml`. */
+  kinsoku?: PptxKinsoku;
   /** Custom XML data parts from `customXml/` in the OPC package. */
   customXmlParts?: PptxCustomXmlPart[];
   /** Customer data references from `p:custDataLst` in `presentation.xml`. */

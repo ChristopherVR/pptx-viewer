@@ -212,6 +212,9 @@ export class PptxHandlerRuntime {
   /** Slide height in EMU as read from `p:sldSz/@_cy`. */
   protected rawSlideHeightEmu = 0;
 
+  /** Slide size type as read from `p:sldSz/@_type` (e.g. "screen4x3", "custom"). */
+  protected rawSlideSizeType: string | undefined;
+
   // ── Builders and codecs ────────────────────────────────────────────
 
   /** Builder for creating new element XML (shapes, connectors, pictures). */
@@ -291,32 +294,55 @@ export class PptxHandlerRuntime {
    */
   protected isStrictOoxml = false;
 
+  /** The original (unwrapped) XML parser, preserved for restore on next load. */
+  private _originalParser: XMLParser | null = null;
+
   /**
-   * Parse an XML string and automatically normalize Strict Open XML namespace
-   * URIs to Transitional equivalents when the loaded file uses Strict conformance.
-   *
-   * This should be used instead of `this.parser.parse()` for all XML content
-   * read from the OPC package during load, so that downstream code always sees
-   * Transitional namespace URIs regardless of the source file's conformance class.
+   * Detect Strict Open XML conformance from a parsed XML object.
+   * If detected, normalizes the already-parsed object in place and wraps
+   * `this.parser` with a Proxy that auto-normalizes all future `parse()`
+   * results. This ensures the entire codebase — all 50+ `this.parser.parse()`
+   * call sites — transparently receives Transitional namespace URIs.
    */
-  protected parseXml(xmlString: string): XmlObject {
-    const parsed = this.parser.parse(xmlString) as XmlObject;
-    if (this.isStrictOoxml) {
-      normalizeStrictXml(parsed as Record<string, unknown>);
+  protected detectAndSetStrictConformance(xmlObj: XmlObject): void {
+    if (!detectStrictConformance(xmlObj as Record<string, unknown>)) {
+      return;
     }
-    return parsed;
+
+    this.isStrictOoxml = true;
+
+    // Normalize the already-parsed presentation XML in place
+    normalizeStrictXml(xmlObj as Record<string, unknown>);
+
+    // Wrap this.parser so every subsequent parse() call auto-normalizes
+    if (!this._originalParser) {
+      this._originalParser = this.parser;
+      const original = this.parser;
+      this.parser = new Proxy(original, {
+        get(target, prop, receiver) {
+          if (prop === "parse") {
+            return function (xmlData: string, validationOption?: boolean) {
+              const result = target.parse(xmlData, validationOption);
+              if (typeof result === "object" && result !== null) {
+                normalizeStrictXml(result as Record<string, unknown>);
+              }
+              return result;
+            };
+          }
+          return Reflect.get(target, prop, receiver);
+        },
+      });
+    }
   }
 
   /**
-   * Detect Strict Open XML conformance from a parsed XML object and set the
-   * `isStrictOoxml` flag accordingly. Should be called once, on the first
-   * significant XML part loaded (typically `ppt/presentation.xml`).
+   * Restore the original (unwrapped) parser. Called during
+   * `initializeLoadSession` to reset state for the next load.
    */
-  protected detectAndSetStrictConformance(xmlObj: XmlObject): void {
-    if (detectStrictConformance(xmlObj as Record<string, unknown>)) {
-      this.isStrictOoxml = true;
-      // Normalize the already-parsed object in place
-      normalizeStrictXml(xmlObj as Record<string, unknown>);
+  protected restoreOriginalParser(): void {
+    if (this._originalParser) {
+      this.parser = this._originalParser;
+      this._originalParser = null;
     }
   }
 }

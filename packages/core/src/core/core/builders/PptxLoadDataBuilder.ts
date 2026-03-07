@@ -7,6 +7,7 @@ import type {
   PptxCustomXmlPart,
   PptxCustomerData,
   PptxData,
+  PptxKinsoku,
   PptxModifyVerifier,
   PptxPhotoAlbum,
   PptxDrawingGuide,
@@ -89,9 +90,13 @@ export class PptxLoadDataBuilder {
 
   private photoAlbum: PptxPhotoAlbum | undefined;
 
+  private kinsoku: PptxKinsoku | undefined;
+
   private modifyVerifier: PptxModifyVerifier | undefined;
 
   private customerData: PptxCustomerData[] | undefined;
+
+  private slideSizeType: string | undefined;
 
   public withDimensions(
     width: number,
@@ -263,6 +268,11 @@ export class PptxLoadDataBuilder {
     return this;
   }
 
+  public withKinsoku(kinsoku: PptxKinsoku | undefined): this {
+    this.kinsoku = kinsoku;
+    return this;
+  }
+
   public withModifyVerifier(modifyVerifier: PptxModifyVerifier | undefined): this {
     this.modifyVerifier = modifyVerifier;
     return this;
@@ -273,12 +283,18 @@ export class PptxLoadDataBuilder {
     return this;
   }
 
+  public withSlideSizeType(slideSizeType: string | undefined): this {
+    this.slideSizeType = slideSizeType;
+    return this;
+  }
+
   public build(): PptxData {
     return {
       width: this.width,
       height: this.height,
       widthEmu: this.widthEmu,
       heightEmu: this.heightEmu,
+      slideSizeType: this.slideSizeType,
       notesWidthEmu: this.notesWidthEmu > 0 ? this.notesWidthEmu : undefined,
       notesHeightEmu: this.notesHeightEmu > 0 ? this.notesHeightEmu : undefined,
       slides: this.slides,
@@ -306,6 +322,7 @@ export class PptxLoadDataBuilder {
       digitalSignatureCount: this.digitalSignatureCount,
       presentationGuides: this.presentationGuides,
       photoAlbum: this.photoAlbum,
+      kinsoku: this.kinsoku,
       modifyVerifier: this.modifyVerifier,
       customXmlParts: this.customXmlParts,
       customerData: this.customerData,

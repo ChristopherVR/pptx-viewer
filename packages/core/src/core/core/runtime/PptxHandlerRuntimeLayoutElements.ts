@@ -56,6 +56,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         return [];
       }
 
+      // Unwrap mc:AlternateContent blocks before accessing element arrays
+      this.unwrapAlternateContent(spTree as Record<string, unknown>);
+
       // First pass: extract placeholder defaults from shapes (before
       // document-order iteration) so that the inheritance chain is fully
       // populated regardless of element order.

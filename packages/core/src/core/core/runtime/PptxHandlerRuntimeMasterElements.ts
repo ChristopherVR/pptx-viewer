@@ -88,6 +88,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         return [];
       }
 
+      // Unwrap mc:AlternateContent blocks before accessing element arrays
+      this.unwrapAlternateContent(spTree as Record<string, unknown>);
+
       // First pass: extract placeholder defaults from shapes
       const shapes = this.ensureArray(spTree["p:sp"]);
       const placeholderShapeIndices = new Set<number>();

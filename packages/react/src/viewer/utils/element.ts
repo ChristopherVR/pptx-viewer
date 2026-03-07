@@ -88,6 +88,7 @@ export function getElementLabel(element: PptxElement): string {
   if (element.type === "media") return "Media";
   if (element.type === "ink") return "Drawing";
   if (element.type === "contentPart") return "Content Part";
+  if (element.type === "model3d") return "3D Model";
   if (element.type === "group")
     return `Group (${(element as GroupPptxElement).children?.length ?? 0})`;
   return "Shape";

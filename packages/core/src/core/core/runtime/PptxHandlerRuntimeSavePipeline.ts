@@ -119,10 +119,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
           customShows: options?.customShows,
           sections: options?.sections,
           photoAlbum: options?.photoAlbum,
+          kinsoku: options?.kinsoku,
           modifyVerifier: options?.modifyVerifier,
         },
         rawSlideWidthEmu: this.rawSlideWidthEmu,
         rawSlideHeightEmu: this.rawSlideHeightEmu,
+        rawSlideSizeType: this.rawSlideSizeType,
         xmlLookupService: this.xmlLookupService,
       });
       this.deduplicateExtensionLists(this.presentationData);

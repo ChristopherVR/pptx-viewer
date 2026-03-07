@@ -23,6 +23,7 @@ export interface SlideShapeCollectors {
   readonly connectors: XmlObject[];
   readonly graphicFrames: XmlObject[];
   readonly groups: XmlObject[];
+  readonly model3ds: XmlObject[];
 }
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -149,6 +150,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       collectors.pics.push(shape);
     } else if (el.type === "connector") {
       collectors.connectors.push(shape);
+    } else if (el.type === "model3d") {
+      collectors.model3ds.push(shape);
     } else if (this.isGraphicFrameShape(shape)) {
       collectors.graphicFrames.push(shape);
     } else {

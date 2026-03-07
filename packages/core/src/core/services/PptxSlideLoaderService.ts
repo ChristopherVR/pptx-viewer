@@ -233,6 +233,9 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
         path,
       );
 
+      const activeXControls =
+        params.parseSlideActiveXControls(slideXmlObj);
+
       return {
         id: path,
         rId,
@@ -257,6 +260,8 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
         showMasterShapes: showMasterShapes ?? undefined,
         guides: drawingGuides.length > 0 ? drawingGuides : undefined,
         customerData: customerData.length > 0 ? customerData : undefined,
+        activeXControls:
+          activeXControls.length > 0 ? activeXControls : undefined,
       };
     } finally {
       if (restoreThemeOverride) {

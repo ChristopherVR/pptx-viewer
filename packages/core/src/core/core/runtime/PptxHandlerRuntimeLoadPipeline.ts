@@ -40,6 +40,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       : [];
     const photoAlbum = this.extractPhotoAlbum();
     const modifyVerifier = this.extractModifyVerifier();
+    const kinsoku = this.extractKinsoku();
     const customerData = await this.parsePresentationCustomerData();
 
     return new PptxLoadDataBuilder()
@@ -93,6 +94,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         presentationGuides.length > 0 ? presentationGuides : undefined,
       )
       .withPhotoAlbum(photoAlbum)
+      .withKinsoku(kinsoku)
       .withModifyVerifier(modifyVerifier)
       .withCustomXmlParts(
         this.customXmlParts.length > 0 ? this.customXmlParts : undefined,
@@ -100,6 +102,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       .withCustomerData(
         customerData.length > 0 ? customerData : undefined,
       )
+      .withSlideSizeType(this.rawSlideSizeType)
       .build();
   }
 

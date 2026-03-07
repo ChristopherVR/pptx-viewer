@@ -3,6 +3,7 @@ import {
   XmlObject,
   type ContentPartPptxElement,
   type MediaPptxElement,
+  type Model3DPptxElement,
   type PptxTableData,
 } from "../../types";
 import { type PlaceholderInfo } from "./PptxHandlerRuntimeTypes";
@@ -125,6 +126,126 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       } as ContentPartPptxElement;
     } catch (e) {
       console.warn("Skipping malformed content part:", e);
+      return null;
+    }
+  }
+
+  /**
+   * Parse a `p16:model3D` element — a 3D model object embedded via
+   * mc:AlternateContent in PowerPoint 365+. Extracts transform, model
+   * relationship, and poster/fallback image for display.
+   */
+  protected async parseModel3DElement(
+    model3d: XmlObject,
+    id: string,
+    slidePath?: string,
+  ): Promise<PptxElement | null> {
+    try {
+      const spPr = (model3d["p16:spPr"] ?? model3d["p:spPr"]) as
+        | XmlObject
+        | undefined;
+      const xfrm = spPr?.["a:xfrm"] as XmlObject | undefined;
+      const off = xfrm?.["a:off"] as XmlObject | undefined;
+      const ext = xfrm?.["a:ext"] as XmlObject | undefined;
+
+      const rawX = parseInt(String(off?.["@_x"] ?? "0"), 10);
+      const rawY = parseInt(String(off?.["@_y"] ?? "0"), 10);
+      const rawCx = parseInt(String(ext?.["@_cx"] ?? "0"), 10);
+      const rawCy = parseInt(String(ext?.["@_cy"] ?? "0"), 10);
+
+      const x = Number.isFinite(rawX)
+        ? rawX / PptxHandlerRuntime.EMU_PER_PX
+        : 0;
+      const y = Number.isFinite(rawY)
+        ? rawY / PptxHandlerRuntime.EMU_PER_PX
+        : 0;
+      const width =
+        Number.isFinite(rawCx) && rawCx > 0
+          ? rawCx / PptxHandlerRuntime.EMU_PER_PX
+          : 120;
+      const height =
+        Number.isFinite(rawCy) && rawCy > 0
+          ? rawCy / PptxHandlerRuntime.EMU_PER_PX
+          : 80;
+      const rotation = xfrm?.["@_rot"]
+        ? parseInt(String(xfrm["@_rot"])) / 60000
+        : undefined;
+
+      let modelPath: string | undefined;
+      let modelMimeType: string | undefined;
+      let posterImage: string | undefined;
+      let imagePath: string | undefined;
+      let imageData: string | undefined;
+
+      if (slidePath) {
+        const relsMap = this.slideRelsMap.get(slidePath);
+
+        // Resolve the 3D model binary from relationship
+        const modelRId = String(
+          model3d["p16:model3Drel"]?.["@_r:id"] ??
+            model3d["@_r:embed"] ??
+            "",
+        ).trim();
+        if (modelRId && relsMap) {
+          const modelTarget = relsMap.get(modelRId);
+          if (modelTarget) {
+            modelPath = this.resolveImagePath(slidePath, modelTarget);
+            const ext = modelPath.split(".").pop()?.toLowerCase();
+            if (ext === "glb") modelMimeType = "model/gltf-binary";
+            else if (ext === "gltf") modelMimeType = "model/gltf+json";
+          }
+        }
+
+        // Extract poster/preview image from p16:posterImage or blipFill
+        const posterNode = model3d["p16:posterImage"] as
+          | XmlObject
+          | undefined;
+        const posterRId = String(
+          posterNode?.["@_r:embed"] ?? posterNode?.["@_r:link"] ?? "",
+        ).trim();
+        if (posterRId && relsMap) {
+          const posterTarget = relsMap.get(posterRId);
+          if (posterTarget) {
+            if (
+              posterTarget.startsWith("http://") ||
+              posterTarget.startsWith("https://") ||
+              posterTarget.startsWith("data:")
+            ) {
+              posterImage = posterTarget;
+              imagePath = posterTarget;
+              imageData = posterTarget;
+            } else {
+              const resolvedPoster = this.resolveImagePath(
+                slidePath,
+                posterTarget,
+              );
+              posterImage = resolvedPoster;
+              imagePath = resolvedPoster;
+              if (this.eagerDecodeImages && resolvedPoster) {
+                imageData = await this.getImageData(resolvedPoster);
+              }
+            }
+          }
+        }
+      }
+
+      return {
+        id,
+        type: "model3d",
+        x,
+        y,
+        width,
+        height,
+        rotation,
+        modelPath,
+        modelMimeType,
+        posterImage,
+        imagePath,
+        imageData,
+        rawXml: model3d,
+      } as Model3DPptxElement;
+    } catch (e) {
+      console.warn("Skipping malformed model3D element:", e);
       return null;
     }
   }

@@ -11,6 +11,7 @@ import type {
   PptxLayoutOption,
   PptxData,
   PptxHeaderFooter,
+  PptxKinsoku,
   PptxModifyVerifier,
   PptxNotesMaster,
   PptxPhotoAlbum,
@@ -48,6 +49,8 @@ export interface PptxHandlerSaveOptions {
   tags?: PptxTagCollection[];
   /** Photo album metadata to save back to `p:photoAlbum`. */
   photoAlbum?: PptxPhotoAlbum;
+  /** East Asian line-break settings to save back to `p:kinsoku`. */
+  kinsoku?: PptxKinsoku;
   /** Write-protection verifier. Set to `null` to remove, `undefined` to preserve existing. */
   modifyVerifier?: PptxModifyVerifier | null;
   /** View properties to save back to ppt/viewProps.xml. */

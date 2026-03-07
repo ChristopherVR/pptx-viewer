@@ -127,6 +127,7 @@ const SHAPE_TREE_ELEMENT_TAGS = new Set([
   "p:grpSp",
   "p:cxnSp",
   "p:contentPart",
+  "p16:model3D",
   ...VML_SHAPE_TAGS,
 ]);
 

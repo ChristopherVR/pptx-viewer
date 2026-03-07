@@ -167,6 +167,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       connectors: [],
       graphicFrames: [],
       groups: [],
+      model3ds: [],
     };
 
     const ctx: SaveSlideContext = {
@@ -198,6 +199,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       spTree["p:grpSp"] = collectors.groups;
     } else {
       delete spTree["p:grpSp"];
+    }
+    if (collectors.model3ds.length > 0) {
+      spTree["p16:model3D"] = collectors.model3ds;
+    } else {
+      delete spTree["p16:model3D"];
     }
 
     // Validate and deduplicate shape IDs to prevent MS Office corruption

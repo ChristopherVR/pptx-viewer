@@ -7,6 +7,7 @@
 import type { XMLParser } from "fast-xml-parser";
 import type JSZip from "jszip";
 import type {
+  PptxActiveXControl,
   PptxComment,
   PptxCustomerData,
   PptxElement,
@@ -181,6 +182,8 @@ export interface PptxSlideLoaderParams {
     slideXml: XmlObject,
     slidePath: string,
   ) => Promise<PptxCustomerData[]>;
+  /** Parse ActiveX control references from a slide's `p:controls`. */
+  parseSlideActiveXControls: (slideXml: XmlObject) => PptxActiveXControl[];
 }
 
 /**

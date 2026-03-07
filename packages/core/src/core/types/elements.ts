@@ -396,6 +396,26 @@ export interface ZoomPptxElement extends PptxElementBase, PptxImageProperties {
   targetSectionId?: string;
 }
 
+/**
+ * A 3D model object embedded via `p16:model3D` inside an
+ * `mc:AlternateContent` block (PowerPoint 365+).
+ *
+ * The element carries the path to the `.glb`/`.gltf` binary inside
+ * the ZIP and a poster/fallback image for rendering in viewers that
+ * do not support interactive 3D.
+ */
+export interface Model3DPptxElement extends PptxElementBase, PptxImageProperties {
+  type: "model3d";
+  /** Path to the 3D model file inside the ZIP. */
+  modelPath?: string;
+  /** Base64 data URL of the 3D model binary. */
+  modelData?: string;
+  /** MIME type of the model (e.g. "model/gltf-binary"). */
+  modelMimeType?: string;
+  /** Poster/preview image shown when 3D rendering is unavailable. */
+  posterImage?: string;
+}
+
 /** An element whose type is not recognised by the parser. */
 export interface UnknownPptxElement extends PptxElementBase {
   type: "unknown";
@@ -427,6 +447,7 @@ export type PptxElement =
   | InkPptxElement
   | ContentPartPptxElement
   | ZoomPptxElement
+  | Model3DPptxElement
   | UnknownPptxElement;
 
 // ==========================================================================
