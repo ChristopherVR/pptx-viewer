@@ -6,35 +6,12 @@
 	<title>PPTX Viewer Demo</title>
 	<style>
 		* { box-sizing: border-box; margin: 0; padding: 0; }
-		body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f5; }
-		.header { padding: 16px 24px; background: #1a1a2e; color: white; display: flex; align-items: center; gap: 16px; }
-		.header h1 { font-size: 18px; font-weight: 600; }
-		.drop-zone {
-			margin: 24px auto;
-			max-width: 900px;
-			border: 2px dashed #94a3b8;
-			border-radius: 12px;
-			padding: 48px;
-			text-align: center;
-			cursor: pointer;
-			transition: border-color 0.2s;
-			background: white;
-		}
-		.drop-zone:hover, .drop-zone.dragging { border-color: #3b82f6; background: #eff6ff; }
-		.drop-zone p { color: #64748b; margin-bottom: 12px; }
-		.drop-zone .hint { font-size: 13px; color: #94a3b8; }
-		#viewer-container { margin: 0 auto; max-width: 1200px; min-height: 600px; background: white; }
-		.hidden { display: none; }
+		html, body, #app-root { height: 100%; width: 100%; }
+		body { font-family: system-ui, -apple-system, sans-serif; }
 	</style>
 </head>
 <body>
-	<div class="header">
-		<h1>pptx-viewer demo</h1>
-		<span id="file-name" style="opacity: 0.7; font-size: 14px;"></span>
-	</div>
-
-	<div id="viewer-container" class="hidden"></div>
-
+	<div id="app-root"></div>
 	<script type="module" src="./main.tsx"></script>
 </body>
 </html>

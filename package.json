@@ -2,9 +2,11 @@
 	"name": "pptx-viewer-monorepo",
 	"private": true,
 	"workspaces": [
-		"packages/*"
+		"packages/*",
+		"demo"
 	],
 	"scripts": {
+		"demo": "bun run --filter pptx-viewer-demo dev",
 		"build": "bun run --filter '*' build",
 		"typecheck": "bun run --filter '*' typecheck",
 		"test": "bun run --filter '*' test",

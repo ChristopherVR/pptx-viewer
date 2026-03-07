@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@source "../packages/react/src/**/*.{ts,tsx}";
+
+/*
+ * PPTX Viewer theme CSS custom properties.
+ * These map to the ViewerThemeColors tokens used by the React components.
+ */
+:root {
+  --pptx-background: #030712;
+  --pptx-foreground: #f3f4f6;
+  --pptx-card: #111827;
+  --pptx-card-foreground: #f3f4f6;
+  --pptx-popover: #111827;
+  --pptx-popover-foreground: #f3f4f6;
+  --pptx-primary: #6366f1;
+  --pptx-primary-foreground: #ffffff;
+  --pptx-secondary: #1f2937;
+  --pptx-secondary-foreground: #f3f4f6;
+  --pptx-muted: #1f2937;
+  --pptx-muted-foreground: #9ca3af;
+  --pptx-accent: #1f2937;
+  --pptx-accent-foreground: #f3f4f6;
+  --pptx-destructive: #ef4444;
+  --pptx-destructive-foreground: #ffffff;
+  --pptx-border: #374151;
+  --pptx-input: #374151;
+  --pptx-ring: #6366f1;
+  --pptx-radius: 0.5rem;
+}

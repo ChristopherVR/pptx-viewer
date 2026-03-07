@@ -1,0 +1,34 @@
+{
+	"name": "pptx-viewer-demo",
+	"private": true,
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"preview": "vite preview"
+	},
+	"dependencies": {
+		"pptx-viewer-core": "workspace:*",
+		"pptx-viewer": "workspace:*",
+		"emf-converter": "workspace:*",
+		"react": "^19.2.4",
+		"react-dom": "^19.2.4",
+		"fast-xml-parser": "^5.4.2",
+		"framer-motion": "^12.35.1",
+		"html2canvas": "^1.4.1",
+		"i18next": "^25.8.14",
+		"jszip": "^3.10.1",
+		"jspdf": "^4.2.0",
+		"lucide-react": "^0.577.0",
+		"react-i18next": "^16.5.6",
+		"react-icons": "^5.6.0"
+	},
+	"devDependencies": {
+		"@tailwindcss/vite": "^4.2.1",
+		"@types/react": "^19.2.14",
+		"@types/react-dom": "^19.2.3",
+		"@vitejs/plugin-react": "^5.1.4",
+		"tailwindcss": "^4.2.1",
+		"typescript": "^5.9.3",
+		"vite": "^7.3.1"
+	}
+}

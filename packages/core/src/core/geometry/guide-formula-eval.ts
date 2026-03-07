@@ -18,7 +18,7 @@
 export interface GeometryGuide {
   /** Guide variable name (e.g. `"adj"`, `"g0"`, `"x1"`). */
   name: string;
-  /** Raw formula string (e.g. `"*/ w adj 100000"`). */
+  // Raw formula string, e.g. "*/ w adj 100000"
   formula: string;
 }
 
@@ -36,7 +36,7 @@ export interface GeometryContext {
  * or variable references).
  */
 interface ParsedFormula {
-  /** The operator mnemonic (e.g. `"*/"`, `"+-"`, `"sin"`, `"val"`). */
+  // The operator mnemonic (e.g. "*/", "+-", "sin", "val").
   op: string;
   /** Operand tokens — numeric literal strings or variable names. */
   args: string[];
@@ -73,7 +73,7 @@ export function angleToRadians(ooxmlAngle: number): number {
  *
  * Formula strings are whitespace-separated tokens where the first token
  * is the operator and the rest are operands. For example:
- * `"*/ w adj 100000"` parses to `{ op: "*/", args: ["w", "adj", "100000"] }`.
+ * `"*\/ w adj 100000"` parses to `{ op: "*\/", args: ["w", "adj", "100000"] }`.
  *
  * @param fmla - The raw formula string from the `@_fmla` XML attribute.
  * @returns The parsed formula with operator and argument tokens.
@@ -124,7 +124,7 @@ export function resolveOperand(
  * Evaluate a single parsed formula against the current variable context.
  *
  * Implements all OOXML DrawingML formula operators as defined in
- * ISO/IEC 29500-1 section 20.1.9.11, including arithmetic (`+-`, `*/`, `+/`),
+ * ISO/IEC 29500-1 section 20.1.9.11, including arithmetic (`+-`, `*\/`, `+/`),
  * trigonometric (`sin`, `cos`, `tan`, `atan`, `at2`), conditional (`?:`),
  * clamping (`pin`), modulus (`mod`), and combined trig functions (`cat2`, `sat2`).
  *

@@ -48,13 +48,12 @@ export function extractGuidFromPartName(partName: string): string | null {
 /**
  * Convert a GUID string to a 16-byte XOR key.
  *
- * Per the OOXML spec, the GUID is converted to its binary representation
- * using standard little-endian GUID byte ordering:
- *   - Group 1 (4 bytes): reversed
- *   - Group 2 (2 bytes): reversed
- *   - Group 3 (2 bytes): reversed
- *   - Group 4 (2 bytes): not reversed (big-endian)
- *   - Group 5 (6 bytes): not reversed (big-endian)
+ * Per ECMA-376 Part 2 §14.2.1, the key is formed by:
+ *   1. Removing '{', '}', and '-' from the GUID string.
+ *   2. Converting consecutive pairs of hex characters to bytes.
+ *
+ * No byte-order reversal is performed — the hex pairs are converted
+ * sequentially to produce 16 key bytes.
  */
 export function guidToKey(guid: string): Uint8Array {
   const stripped = guid.replace(/[-{}]/g, "");
@@ -64,50 +63,9 @@ export function guidToKey(guid: string): Uint8Array {
     );
   }
 
-  const hexBytes = (hex: string): number[] => {
-    const bytes: number[] = [];
-    for (let i = 0; i < hex.length; i += 2) {
-      bytes.push(parseInt(hex.substring(i, i + 2), 16));
-    }
-    return bytes;
-  };
-
-  // Split GUID into standard groups: 8-4-4-4-12 hex chars
-  const g1 = stripped.substring(0, 8);
-  const g2 = stripped.substring(8, 12);
-  const g3 = stripped.substring(12, 16);
-  const g4 = stripped.substring(16, 20);
-  const g5 = stripped.substring(20, 32);
-
   const key = new Uint8Array(KEY_LENGTH);
-  let offset = 0;
-
-  // Group 1: 4 bytes, little-endian (reversed)
-  const b1 = hexBytes(g1);
-  key[offset++] = b1[3];
-  key[offset++] = b1[2];
-  key[offset++] = b1[1];
-  key[offset++] = b1[0];
-
-  // Group 2: 2 bytes, little-endian (reversed)
-  const b2 = hexBytes(g2);
-  key[offset++] = b2[1];
-  key[offset++] = b2[0];
-
-  // Group 3: 2 bytes, little-endian (reversed)
-  const b3 = hexBytes(g3);
-  key[offset++] = b3[1];
-  key[offset++] = b3[0];
-
-  // Group 4: 2 bytes, big-endian (not reversed)
-  const b4 = hexBytes(g4);
-  key[offset++] = b4[0];
-  key[offset++] = b4[1];
-
-  // Group 5: 6 bytes, big-endian (not reversed)
-  const b5 = hexBytes(g5);
-  for (const byte of b5) {
-    key[offset++] = byte;
+  for (let i = 0; i < KEY_LENGTH; i++) {
+    key[i] = parseInt(stripped.substring(i * 2, i * 2 + 2), 16);
   }
 
   return key;

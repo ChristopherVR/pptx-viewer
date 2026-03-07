@@ -8,6 +8,11 @@ import {
   detectFontFormat,
   extractGuidFromPartName,
 } from "../../utils/font-deobfuscation";
+import {
+  isEotFormat,
+  extractFontFromEot,
+  parseEotHeader,
+} from "../../utils/eot-parser";
 
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from "./PptxHandlerRuntimePresentationStructure";
 
@@ -47,12 +52,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         const rId = String(variantEl["@_r:id"] || "").trim();
         if (!rId) continue;
 
+        // Per ECMA-376 Part 2 §14.2.1, the obfuscation GUID is in the fontKey attribute
+        const fontKey = String(variantEl["@_fontKey"] || "").trim() || undefined;
+
         const font = await this.extractEmbeddedFontVariant(
           typeface,
           rId,
           variant.bold,
           variant.italic,
           relsMap,
+          fontKey,
         );
         if (font) results.push(font);
       }
@@ -99,6 +108,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     bold: boolean,
     italic: boolean,
     relsMap: Map<string, string>,
+    fontKey?: string,
   ): Promise<PptxEmbeddedFont | null> {
     const fontPath = relsMap.get(rId);
     if (!fontPath) return null;
@@ -107,12 +117,75 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       const fontBinary = await this.zip.file(fontPath)?.async("uint8array");
       if (!fontBinary || fontBinary.length === 0) return null;
 
-      // Attempt de-obfuscation if GUID is present in the file name
-      const guid = extractGuidFromPartName(fontPath);
-      const fontData = guid ? deobfuscateFont(fontBinary, guid) : fontBinary;
-      const format = detectFontFormat(fontData);
+      let fontData: Uint8Array;
 
-      // Convert to base64 data URL
+      // ── Strategy 1: EOT (Embedded OpenType) container ──────────
+      // Some PPTX producers (e.g. Google Slides) embed fonts in EOT
+      // format rather than using simple OOXML XOR obfuscation.
+      if (isEotFormat(fontBinary)) {
+        const extracted = extractFontFromEot(fontBinary);
+        if (extracted) {
+          fontData = extracted.fontData;
+        } else {
+          // EOT with MTX/BSGP compression — can't decompress.
+          // Return null so the Google Fonts / system font fallback is used.
+          const header = parseEotHeader(fontBinary);
+          console.info(
+            `[pptx-viewer] Embedded font "${typeface}" uses EOT format` +
+              (header?.isCompressed ? " with MTX compression" : "") +
+              ` — will use web font fallback`,
+          );
+          return null;
+        }
+      } else {
+        // ── Strategy 2: OOXML XOR obfuscation (ECMA-376 Part 2 §14.2.1) ──
+        const guidFromKey = fontKey
+          ? (extractGuidFromPartName(fontKey) ??
+            fontKey.replace(/[{}]/g, "").trim())
+          : null;
+        const guidFromPath = extractGuidFromPartName(fontPath);
+        const guid = guidFromKey || guidFromPath;
+
+        if (guid) {
+          fontData = deobfuscateFont(fontBinary, guid);
+        } else {
+          // No GUID available — can't deobfuscate
+          console.warn(
+            `[pptx-viewer] Embedded font "${typeface}" at "${fontPath}" ` +
+              `has no fontKey attribute and no GUID in filename — skipping`,
+          );
+          return null;
+        }
+      }
+
+      // ── Validate sfnt header ──────────────────────────────────────
+      if (fontData.length < 4) return null;
+      const v0 = fontData[0],
+        v1 = fontData[1],
+        v2 = fontData[2],
+        v3 = fontData[3];
+      const isTrueType =
+        v0 === 0x00 && v1 === 0x01 && v2 === 0x00 && v3 === 0x00;
+      const isOTTO =
+        v0 === 0x4f && v1 === 0x54 && v2 === 0x54 && v3 === 0x4f;
+      const isTTC =
+        v0 === 0x74 && v1 === 0x74 && v2 === 0x63 && v3 === 0x66;
+      const isWOFF =
+        v0 === 0x77 &&
+        v1 === 0x4f &&
+        v2 === 0x46 &&
+        (v3 === 0x46 || v3 === 0x32);
+      if (!(isTrueType || isOTTO || isTTC || isWOFF)) {
+        console.warn(
+          `[pptx-viewer] Embedded font "${typeface}" has invalid sfnt header ` +
+            `[${v0.toString(16)},${v1.toString(16)},${v2.toString(16)},${v3.toString(16)}] ` +
+            `after processing — skipping (web font fallback will be used)`,
+        );
+        return null;
+      }
+
+      // ── Build data URL ────────────────────────────────────────────
+      const format = detectFontFormat(fontData);
       const mimeType =
         format === "woff2"
           ? "font/woff2"
