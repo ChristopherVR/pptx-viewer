@@ -10,6 +10,8 @@ import type {
   XmlObject,
 } from "../../types";
 
+import { applyKinsokuToXml } from "../../utils/kinsoku-parser";
+
 export interface PptxPresentationSaveBuilderOptions {
   headerFooter?: PptxHeaderFooter;
   presentationProperties?: PptxPresentationProperties;
@@ -228,21 +230,7 @@ export class PptxPresentationSaveBuilder implements IPptxPresentationSaveBuilder
     presentation: XmlObject,
     kinsoku: PptxKinsoku | undefined,
   ): void {
-    if (!kinsoku) return;
-    const k: XmlObject =
-      (presentation["p:kinsoku"] as XmlObject) || {};
-
-    if (kinsoku.lang !== undefined) {
-      k["@_lang"] = kinsoku.lang;
-    }
-    if (kinsoku.invalStChars !== undefined) {
-      k["@_invalStChars"] = kinsoku.invalStChars;
-    }
-    if (kinsoku.invalEndChars !== undefined) {
-      k["@_invalEndChars"] = kinsoku.invalEndChars;
-    }
-
-    presentation["p:kinsoku"] = k;
+    applyKinsokuToXml(presentation, kinsoku);
   }
 
   private applyModifyVerifier(

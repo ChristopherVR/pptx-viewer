@@ -1,4 +1,5 @@
 import { XmlObject, type PptxElementWithText } from "../../types";
+import { writeBodyPrBooleanAttrs } from "../../utils/body-properties-parser";
 
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from "./PptxHandlerRuntimeSaveEffectsWriter";
 
@@ -91,14 +92,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     }
 
     // Additional bodyPr boolean attributes
-    if (el.textStyle?.compatibleLineSpacing !== undefined)
-      bodyPr["@_compatLnSpc"] = el.textStyle.compatibleLineSpacing ? "1" : "0";
-    if (el.textStyle?.forceAntiAlias !== undefined)
-      bodyPr["@_forceAA"] = el.textStyle.forceAntiAlias ? "1" : "0";
-    if (el.textStyle?.upright !== undefined)
-      bodyPr["@_upright"] = el.textStyle.upright ? "1" : "0";
-    if (el.textStyle?.fromWordArt !== undefined)
-      bodyPr["@_fromWordArt"] = el.textStyle.fromWordArt ? "1" : "0";
+    writeBodyPrBooleanAttrs(bodyPr, el.textStyle);
 
     // Text warp preset
     if (el.textStyle?.textWarpPreset) {

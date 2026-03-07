@@ -120,7 +120,7 @@ function resolveNestedAlternateContent(branch: XmlObject): XmlObject {
 /**
  * Element tag names that represent renderable shapes/objects in a shape tree.
  */
-const SHAPE_TREE_ELEMENT_TAGS = new Set([
+export const SHAPE_TREE_ELEMENT_TAGS = new Set([
   "p:sp",
   "p:pic",
   "p:graphicFrame",

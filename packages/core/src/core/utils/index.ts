@@ -135,7 +135,14 @@ export {
   areNamespacesSupported,
   isNamespaceSupported,
   getSupportedNamespaces,
+  SHAPE_TREE_ELEMENT_TAGS,
 } from "./alternate-content";
+
+export {
+  extractModel3DTransform,
+  resolveModel3DMimeType,
+  type Model3DTransform,
+} from "./model3d-parser";
 
 export {
   normalizeNamespaceUri,
@@ -149,3 +156,12 @@ export {
   parseVmlElement,
   parseVmlElements,
 } from "./vml-parser";
+
+export { parseActiveXControlsFromSlide } from "./activex-parser";
+
+export { parseKinsoku, applyKinsokuToXml } from "./kinsoku-parser";
+
+export {
+  parseBodyPrBooleanAttrs,
+  writeBodyPrBooleanAttrs,
+} from "./body-properties-parser";

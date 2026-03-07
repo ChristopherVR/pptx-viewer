@@ -9,6 +9,8 @@ import {
   type PptxKinsoku,
 } from "../../types";
 
+import { parseKinsoku as parseKinsokuUtil } from "../../utils/kinsoku-parser";
+
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from "./PptxHandlerRuntimeChartParsing";
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -337,38 +339,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
    * Extract East Asian line-break settings from `p:kinsoku` in presentation XML.
    */
   protected extractKinsoku(): PptxKinsoku | undefined {
-    const pres = this.presentationData?.["p:presentation"] as
-      | XmlObject
-      | undefined;
-    if (!pres) return undefined;
-
-    const kinsoku = pres["p:kinsoku"] as XmlObject | undefined;
-    if (!kinsoku) return undefined;
-
-    const result: PptxKinsoku = {};
-    let hasProps = false;
-
-    const lang = kinsoku["@_lang"];
-    if (lang !== undefined) {
-      const langStr = String(lang).trim();
-      if (langStr.length > 0) {
-        result.lang = langStr;
-        hasProps = true;
-      }
-    }
-
-    const invalStChars = kinsoku["@_invalStChars"];
-    if (invalStChars !== undefined) {
-      result.invalStChars = String(invalStChars);
-      hasProps = true;
-    }
-
-    const invalEndChars = kinsoku["@_invalEndChars"];
-    if (invalEndChars !== undefined) {
-      result.invalEndChars = String(invalEndChars);
-      hasProps = true;
-    }
-
-    return hasProps ? result : {};
+    return parseKinsokuUtil(this.presentationData);
   }
 }

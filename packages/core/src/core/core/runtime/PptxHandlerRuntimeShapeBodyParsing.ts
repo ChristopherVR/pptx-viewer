@@ -8,6 +8,7 @@ import {
   type MaterialPresetType,
 } from "../../types";
 import { selectAlternateContentBranch as selectACBranch } from "../../utils/alternate-content";
+import { parseBodyPrBooleanAttrs } from "../../utils/body-properties-parser";
 
 import type { BodyPropertiesResult } from "./PptxHandlerRuntimeTypes";
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from "./PptxHandlerRuntimeBulletParsing";
@@ -237,24 +238,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     if (bIns !== undefined) textStyle.bodyInsetBottom = bIns;
 
     // Additional bodyPr boolean attributes
-    const parseBoolAttr = (attr: string): boolean | undefined => {
-      const raw = bodyPr[attr];
-      if (raw === undefined) return undefined;
-      const val = String(raw).trim().toLowerCase();
-      return val === "1" || val === "true";
-    };
-
-    const compatLnSpc = parseBoolAttr("@_compatLnSpc");
-    if (compatLnSpc !== undefined) textStyle.compatibleLineSpacing = compatLnSpc;
-
-    const forceAA = parseBoolAttr("@_forceAA");
-    if (forceAA !== undefined) textStyle.forceAntiAlias = forceAA;
-
-    const upright = parseBoolAttr("@_upright");
-    if (upright !== undefined) textStyle.upright = upright;
-
-    const fromWordArt = parseBoolAttr("@_fromWordArt");
-    if (fromWordArt !== undefined) textStyle.fromWordArt = fromWordArt;
+    parseBodyPrBooleanAttrs(bodyPr, textStyle);
 
     return result;
   }
