@@ -9,6 +9,7 @@ import {
   EMR_POLYBEZIER,
   EMR_POLYBEZIERTO,
   EMR_POLYLINETO,
+  EMR_POLYPOLYLINE,
   EMR_POLYLINE16,
   EMR_POLYGON16,
   EMR_POLYBEZIER16,
@@ -28,6 +29,7 @@ import { applyPen, applyBrush } from "./emf-canvas-helpers";
 import { gmx, gmy } from "./emf-gdi-coord";
 import {
   handlePolyPolygon32,
+  handlePolyPolyline32,
   handlePolyPolygon16,
 } from "./emf-gdi-polypolygon-helpers";
 
@@ -202,7 +204,10 @@ export function handleEmfGdiPolyPathRecord(
     case EMR_POLYLINETO16:
       return handlePoly16(rCtx, recType, offset, dataOff, recSize);
 
-    // ---- polypolygon ----
+    // ---- polypolyline / polypolygon ----
+    case EMR_POLYPOLYLINE:
+      if (recSize >= 28) handlePolyPolyline32(rCtx, offset, dataOff, recSize);
+      return true;
     case EMR_POLYPOLYGON:
       if (recSize >= 28) handlePolyPolygon32(rCtx, offset, dataOff, recSize);
       return true;

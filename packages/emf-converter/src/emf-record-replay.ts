@@ -19,11 +19,11 @@ import {
   EMR_EOF,
   EMR_COMMENT,
   EMR_SETBRUSHORGEX,
-  EMR_EXTSELECTCLIPRGN,
   EMR_SETMETARGN,
   EMR_SETICMMODE,
   EMR_SETLAYOUT,
   EMFPLUS_SIGNATURE,
+  EMR_COMMENT_PUBLIC_SIGNATURE,
 } from "./emf-constants";
 import { emfLog } from "./emf-logging";
 import { replayEmfPlusRecords } from "./emf-plus-replay";
@@ -116,7 +116,7 @@ export function replayEmfRecords(
 
   let offset = 0;
   const maxOffset = view.byteLength;
-  const maxRecords = 50000;
+  const maxRecords = 200000;
   let recordCount = 0;
   let emfPlusCommentCount = 0;
   const gdiRecordTypes = new Map<number, number>();
@@ -153,6 +153,11 @@ export function replayEmfRecords(
             `replayEmfRecords: EMF+ comment #${emfPlusCommentCount} returned ${deferred.length} deferred images`,
           );
           allDeferredImages.push(...deferred);
+        } else if (sig === EMR_COMMENT_PUBLIC_SIGNATURE) {
+          emfLog(`replayEmfRecords: EMR_COMMENT_PUBLIC at offset 0x${offset.toString(16)}, size=${commentDataSize}`);
+        } else {
+          // Could be spool or other comment type
+          emfLog(`replayEmfRecords: EMR_COMMENT (sig=0x${sig.toString(16).padStart(8, '0')}) at offset 0x${offset.toString(16)}, size=${commentDataSize}`);
         }
       }
       offset += recSize;
@@ -175,7 +180,6 @@ export function replayEmfRecords(
     // Ignored records — safe to skip
     if (
       recType === EMR_SETBRUSHORGEX ||
-      recType === EMR_EXTSELECTCLIPRGN ||
       recType === EMR_SETMETARGN ||
       recType === EMR_SETICMMODE ||
       recType === EMR_SETLAYOUT ||
@@ -196,6 +200,10 @@ export function replayEmfRecords(
     }
 
     offset += recSize;
+  }
+
+  if (recordCount >= maxRecords) {
+    console.warn(`[emf-converter] EMF record limit reached (${maxRecords}). Output may be incomplete.`);
   }
 
   return allDeferredImages;

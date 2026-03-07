@@ -115,5 +115,5 @@ export function decodeRleBitmap(
       }
     }
   }
-  return new ImageData(out as Uint8ClampedArray<ArrayBuffer>, width, height);
+  return new ImageData(out as unknown as Uint8ClampedArray, width, height);
 }

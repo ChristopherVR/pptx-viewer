@@ -7,6 +7,7 @@ import type { EmfGdiReplayCtx } from "./emf-types";
 import {
   EMR_MOVETOEX,
   EMR_LINETO,
+  EMR_SETPIXELV,
   EMR_RECTANGLE,
   EMR_ROUNDRECT,
   EMR_ELLIPSE,
@@ -15,12 +16,29 @@ import {
   EMR_CHORD,
   EMR_PIE,
 } from "./emf-constants";
+import { readColorRef } from "./emf-color-helpers";
 import { applyPen, applyBrush } from "./emf-canvas-helpers";
 import { gmx, gmy, gmw, gmh } from "./emf-gdi-coord";
 
 // ---------------------------------------------------------------------------
 // Individual shape handlers
 // ---------------------------------------------------------------------------
+
+function handleSetPixelV(
+  rCtx: EmfGdiReplayCtx,
+  dataOff: number,
+  recSize: number,
+): boolean {
+  const { ctx, view } = rCtx;
+  if (recSize >= 20) {
+    const x = view.getInt32(dataOff, true);
+    const y = view.getInt32(dataOff + 4, true);
+    const color = readColorRef(view, dataOff + 8);
+    ctx.fillStyle = color;
+    ctx.fillRect(gmx(rCtx, x), gmy(rCtx, y), 1, 1);
+  }
+  return true;
+}
 
 function handleMoveToEx(
   rCtx: EmfGdiReplayCtx,
@@ -237,6 +255,8 @@ export function handleEmfGdiShapeRecord(
   recSize: number,
 ): boolean {
   switch (recType) {
+    case EMR_SETPIXELV:
+      return handleSetPixelV(rCtx, dataOff, recSize);
     case EMR_MOVETOEX:
       return handleMoveToEx(rCtx, dataOff, recSize);
     case EMR_LINETO:

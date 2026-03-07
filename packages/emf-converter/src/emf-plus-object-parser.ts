@@ -4,7 +4,7 @@
  * Handles the EMFPLUS_OBJECT record by delegating to type-specific parsers.
  */
 
-import type { EmfPlusReplayCtx } from "./emf-types";
+import type { EmfPlusReplayCtx, EmfPlusRegionNode } from "./emf-types";
 import {
   EMFPLUS_OBJECTTYPE_BRUSH,
   EMFPLUS_OBJECTTYPE_PEN,
@@ -13,6 +13,7 @@ import {
   EMFPLUS_OBJECTTYPE_STRINGFORMAT,
   EMFPLUS_OBJECTTYPE_IMAGE,
   EMFPLUS_OBJECTTYPE_IMAGEATTRIBUTES,
+  EMFPLUS_OBJECTTYPE_REGION,
   EMFPLUS_BRUSHTYPE_SOLID,
   EMFPLUS_BRUSHTYPE_HATCHFILL,
   EMFPLUS_BRUSHTYPE_LINEARGRADIENT,
@@ -154,10 +155,140 @@ export function handleEmfPlusObjectRecord(
       break;
     }
 
+    // ---------------------------------------------------------------
+    // Region
+    // ---------------------------------------------------------------
+    case EMFPLUS_OBJECTTYPE_REGION: {
+      const region = parseEmfPlusRegionObject(view, dataOff, recDataSize);
+      if (region) {
+        objectTable.set(objectId, region);
+        emfLog(`replayEmfPlusRecords: Stored Region object id=${objectId}`);
+      }
+      break;
+    }
+
     default:
       emfWarn(
         `replayEmfPlusRecords: Unknown EMF+ object type: ${objectType}, id=${objectId}`,
       );
       break;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Region object parser
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse a region node tree recursively from a DataView.
+ * Returns the parsed node and the number of bytes consumed.
+ */
+function parseRegionNode(
+  view: DataView,
+  off: number,
+  endOff: number,
+): { node: EmfPlusRegionNode; bytesRead: number } | null {
+  if (off + 4 > endOff) return null;
+
+  const nodeType = view.getUint32(off, true);
+  let cursor = off + 4;
+
+  // Combine node types: 0=And(Intersect), 1=Or(Union), 2=Xor, 3=Exclude, 4=Complement
+  if (nodeType <= 4) {
+    const leftResult = parseRegionNode(view, cursor, endOff);
+    if (!leftResult) return null;
+    cursor += leftResult.bytesRead;
+
+    const rightResult = parseRegionNode(view, cursor, endOff);
+    if (!rightResult) return null;
+    cursor += rightResult.bytesRead;
+
+    return {
+      node: {
+        type: "combine",
+        combineMode: nodeType,
+        left: leftResult.node,
+        right: rightResult.node,
+      },
+      bytesRead: cursor - off,
+    };
+  }
+
+  // Rect leaf: 0x10000000
+  if (nodeType === 0x10000000) {
+    if (cursor + 16 > endOff) return null;
+    const x = view.getFloat32(cursor, true);
+    const y = view.getFloat32(cursor + 4, true);
+    const w = view.getFloat32(cursor + 8, true);
+    const h = view.getFloat32(cursor + 12, true);
+    return {
+      node: { type: "rect", x, y, width: w, height: h },
+      bytesRead: cursor + 16 - off,
+    };
+  }
+
+  // Path leaf: 0x10000001
+  if (nodeType === 0x10000001) {
+    if (cursor + 4 > endOff) return null;
+    const pathDataSize = view.getInt32(cursor, true);
+    cursor += 4;
+    if (pathDataSize <= 0 || cursor + pathDataSize > endOff) return null;
+    const path = parseEmfPlusPath(view, cursor, pathDataSize);
+    return {
+      node: path
+        ? { type: "path", path }
+        : { type: "empty" },
+      bytesRead: cursor + pathDataSize - off,
+    };
+  }
+
+  // Empty leaf: 0x10000002
+  if (nodeType === 0x10000002) {
+    return { node: { type: "empty" }, bytesRead: 4 };
+  }
+
+  // Infinite leaf: 0x10000003
+  if (nodeType === 0x10000003) {
+    return { node: { type: "infinite" }, bytesRead: 4 };
+  }
+
+  // Unknown node type — treat as empty
+  emfWarn(`parseRegionNode: unknown node type 0x${nodeType.toString(16)}`);
+  return { node: { type: "empty" }, bytesRead: 4 };
+}
+
+/**
+ * Parse an EMF+ Region object (object type 0x08) from binary data.
+ *
+ * Binary layout (MS-EMFPLUS 2.2.1.8):
+ * - Uint32: Version (0xDBC01002)
+ * - Uint32: RegionNodeCount
+ * - Region node tree (recursive)
+ */
+function parseEmfPlusRegionObject(
+  view: DataView,
+  off: number,
+  maxLen: number,
+): { kind: "plus-region"; nodes: EmfPlusRegionNode[] } | null {
+  if (maxLen < 8) return null;
+
+  const _version = view.getUint32(off, true);
+  const regionNodeCount = view.getUint32(off + 4, true);
+
+  if (regionNodeCount === 0 || regionNodeCount > 100000) {
+    emfWarn(`parseEmfPlusRegionObject: invalid node count ${regionNodeCount}`);
+    return null;
+  }
+
+  const endOff = off + maxLen;
+  const result = parseRegionNode(view, off + 8, endOff);
+  if (!result) {
+    emfWarn(`parseEmfPlusRegionObject: failed to parse region node tree`);
+    return null;
+  }
+
+  return {
+    kind: "plus-region",
+    nodes: [result.node],
+  };
 }

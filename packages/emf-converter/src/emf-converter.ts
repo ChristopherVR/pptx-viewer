@@ -58,11 +58,8 @@ async function processDeferredImages(
       // Copy to a plain ArrayBuffer — SharedArrayBuffer is not accepted
       // as a BlobPart by the Blob constructor in TypeScript 5.x strict mode.
       const plainBuffer = new ArrayBuffer(img.imageData.byteLength);
-      const srcView = new DataView(img.imageData);
       const dstBytes = new Uint8Array(plainBuffer);
-      for (let i = 0; i < plainBuffer.byteLength; i++) {
-        dstBytes[i] = srcView.getUint8(i);
-      }
+      dstBytes.set(new Uint8Array(img.imageData));
 
       // Restore the affine transform that was active when the image draw was
       // originally encountered, so the bitmap is placed correctly on canvas.
@@ -305,7 +302,9 @@ export async function convertWmfToDataUrl(
 
     const { canvas, ctx } = setup;
 
+    ctx.save();
     replayWmfRecords(view, ctx, header, canvas.width, canvas.height);
+    ctx.restore();
 
     const result = await exportCanvasToPngDataUrl(canvas);
     emfLog(

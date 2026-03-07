@@ -20,6 +20,7 @@ export const EMR_POLYGON = 3;
 export const EMR_POLYLINE = 4;
 export const EMR_POLYBEZIERTO = 5;
 export const EMR_POLYLINETO = 6;
+export const EMR_POLYPOLYLINE = 7;
 export const EMR_POLYPOLYGON = 8;
 export const EMR_SETWINDOWEXTEX = 9;
 export const EMR_SETWINDOWORGEX = 10;
@@ -27,6 +28,7 @@ export const EMR_SETVIEWPORTEXTEX = 11;
 export const EMR_SETVIEWPORTORGEX = 12;
 export const EMR_SETBRUSHORGEX = 13;
 export const EMR_EOF = 14;
+export const EMR_SETPIXELV = 15;
 export const EMR_SETMAPMODE = 17;
 export const EMR_SETBKMODE = 18;
 export const EMR_SETPOLYFILLMODE = 19;
@@ -35,8 +37,10 @@ export const EMR_SETSTRETCHBLTMODE = 21;
 export const EMR_SETTEXTALIGN = 22;
 export const EMR_SETTEXTCOLOR = 24;
 export const EMR_SETBKCOLOR = 25;
+export const EMR_OFFSETCLIPRGN = 26;
 export const EMR_MOVETOEX = 27;
 export const EMR_SETMETARGN = 28;
+export const EMR_EXCLUDECLIPRECT = 29;
 export const EMR_INTERSECTCLIPRECT = 30;
 export const EMR_SCALEVIEWPORTEXTEX = 31;
 export const EMR_SCALEWINDOWEXTEX = 32;
@@ -93,6 +97,19 @@ export const STOCK_OBJECT_BASE = 0x80000000;
  */
 export const EMFPLUS_SIGNATURE = 0x2b464d45;
 
+/** Signature for EMR_COMMENT_PUBLIC records. */
+export const EMR_COMMENT_PUBLIC_SIGNATURE = 0x43494447; // "GDIC" in ASCII
+
+/** Signature found in EMR_COMMENT_EMFSPOOL records. */
+export const EMR_COMMENT_EMFSPOOL_SIGNATURE = 0x00000000;
+
+/** Identifier for EMR_COMMENT_WINDOWS_METAFILE records. */
+export const EMR_COMMENT_BEGINGROUP = 0x00000002;
+export const EMR_COMMENT_ENDGROUP = 0x00000003;
+export const EMR_COMMENT_MULTIFORMATS = 0x40000004;
+export const EMR_COMMENT_UNICODE_STRING = 0x00000040;
+export const EMR_COMMENT_UNICODE_END = 0x00000080;
+
 // ---------------------------------------------------------------------------
 // EMF+ record type constants
 // ---------------------------------------------------------------------------
@@ -136,6 +153,13 @@ export const EMFPLUS_SETCLIPRECT = 0x4032;
 export const EMFPLUS_SETCLIPPATH = 0x4033;
 export const EMFPLUS_SETCLIPREGION = 0x4034;
 export const EMFPLUS_DRAWDRIVERSTRING = 0x4036;
+export const EMFPLUS_OFFSETCLIP = 0x4035;
+export const EMFPLUS_FILLCLOSEDCURVE = 0x4016;
+export const EMFPLUS_DRAWCLOSEDCURVE = 0x4017;
+export const EMFPLUS_DRAWCURVE = 0x4018;
+export const EMFPLUS_DRAWBEZIERS = 0x4019;
+export const EMFPLUS_BEGINCONTAINER = 0x4027;
+export const EMFPLUS_COMMENT = 0x4003;
 
 // EMF+ object types (used in EMFPLUS_OBJECT record)
 export const EMFPLUS_OBJECTTYPE_BRUSH = 0x01;
@@ -145,6 +169,8 @@ export const EMFPLUS_OBJECTTYPE_IMAGEATTRIBUTES = 0x04;
 export const EMFPLUS_OBJECTTYPE_IMAGE = 0x05;
 export const EMFPLUS_OBJECTTYPE_FONT = 0x06;
 export const EMFPLUS_OBJECTTYPE_STRINGFORMAT = 0x07;
+export const EMFPLUS_OBJECTTYPE_REGION = 0x08;
+export const EMFPLUS_OBJECTTYPE_CUSTOMLINECAP = 0x09;
 
 // EMF+ brush types
 export const EMFPLUS_BRUSHTYPE_SOLID = 0;

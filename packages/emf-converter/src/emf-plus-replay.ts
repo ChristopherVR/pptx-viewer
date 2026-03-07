@@ -52,6 +52,9 @@ const EMFPLUS_REC_NAMES: Record<number, string> = {
   0x4030: "SetPageTransform",
   0x4031: "ResetClip",
   0x4032: "SetClipRect",
+  0x4033: "SetClipPath",
+  0x4034: "SetClipRegion",
+  0x4035: "OffsetClip",
   0x4025: "Save",
   0x4026: "Restore",
   0x4028: "BeginContainerNoParams",
@@ -82,10 +85,18 @@ export function replayEmfPlusRecords(
     saveIdMap: s.saveIdMap,
     totalImageObjects: 0,
     totalDrawImageCalls: 0,
+    clipSaveDepth: 0,
+    pageUnit: 2,
+    pageScale: 1,
+    continuationBuffer: null,
+    continuationObjectId: -1,
+    continuationObjectType: 0,
+    continuationTotalSize: 0,
+    continuationOffset: 0,
   };
 
   const end = offset + length;
-  const maxRecords = 100000;
+  const maxRecords = 500000;
   let recordCount = 0;
   const emfPlusRecordTypes = new Map<number, number>();
 
@@ -123,9 +134,81 @@ export function replayEmfPlusRecords(
       case EMFPLUS_GETDC:
         break;
 
-      case EMFPLUS_OBJECT:
-        handleEmfPlusObjectRecord(rCtx, recFlags, dataOff, recDataSize);
+      case EMFPLUS_OBJECT: {
+        const isContinuation = (recFlags & 0x8000) !== 0;
+        const objectId = recFlags & 0xff;
+
+        if (isContinuation) {
+          // Start or continue accumulating data
+          if (rCtx.continuationBuffer === null) {
+            // First continuation record — has totalObjectSize (UINT32) at start
+            if (recDataSize >= 4) {
+              const totalSize = view.getUint32(dataOff, true);
+              const objectType = (recFlags >> 8) & 0x7f;
+              rCtx.continuationTotalSize = totalSize;
+              rCtx.continuationObjectId = objectId;
+              rCtx.continuationObjectType = objectType;
+              rCtx.continuationBuffer = new Uint8Array(totalSize);
+              const chunkSize = recDataSize - 4;
+              const chunk = new Uint8Array(
+                view.buffer,
+                view.byteOffset + dataOff + 4,
+                Math.min(chunkSize, totalSize),
+              );
+              rCtx.continuationBuffer.set(chunk, 0);
+              rCtx.continuationOffset = chunk.length;
+            }
+          } else {
+            // Subsequent continuation record — append raw data
+            const remaining = rCtx.continuationTotalSize - rCtx.continuationOffset;
+            const chunk = new Uint8Array(
+              view.buffer,
+              view.byteOffset + dataOff,
+              Math.min(recDataSize, remaining),
+            );
+            rCtx.continuationBuffer.set(chunk, rCtx.continuationOffset);
+            rCtx.continuationOffset += chunk.length;
+          }
+        } else if (
+          rCtx.continuationBuffer !== null &&
+          objectId === rCtx.continuationObjectId
+        ) {
+          // Final record of a continuation sequence — append last chunk & parse
+          const remaining = rCtx.continuationTotalSize - rCtx.continuationOffset;
+          const chunk = new Uint8Array(
+            view.buffer,
+            view.byteOffset + dataOff,
+            Math.min(recDataSize, remaining),
+          );
+          rCtx.continuationBuffer.set(chunk, rCtx.continuationOffset);
+
+          // Parse the fully-assembled object
+          const completeView = new DataView(
+            rCtx.continuationBuffer.buffer,
+            rCtx.continuationBuffer.byteOffset,
+            rCtx.continuationBuffer.byteLength,
+          );
+          const assembledFlags =
+            (rCtx.continuationObjectType << 8) | objectId;
+          handleEmfPlusObjectRecord(
+            { ...rCtx, view: completeView },
+            assembledFlags,
+            0,
+            rCtx.continuationTotalSize,
+          );
+
+          // Reset continuation state
+          rCtx.continuationBuffer = null;
+          rCtx.continuationObjectId = -1;
+          rCtx.continuationObjectType = 0;
+          rCtx.continuationTotalSize = 0;
+          rCtx.continuationOffset = 0;
+        } else {
+          // Normal non-continuation record
+          handleEmfPlusObjectRecord(rCtx, recFlags, dataOff, recDataSize);
+        }
         break;
+      }
 
       default: {
         const handled =
@@ -160,6 +243,10 @@ export function replayEmfPlusRecords(
     }
 
     offset += recSize;
+  }
+
+  if (recordCount >= maxRecords) {
+    console.warn(`[emf-converter] EMF+ record limit reached (${maxRecords}). Output may be incomplete.`);
   }
 
   // Log summary

@@ -5,7 +5,7 @@
  * FillPie, DrawPie, DrawArc, DrawLines, FillPolygon.
  */
 
-import type { EmfPlusReplayCtx } from "./emf-types";
+import type { CanvasContext, EmfPlusReplayCtx } from "./emf-types";
 import {
   EMFPLUS_FILLRECTS,
   EMFPLUS_DRAWRECTS,
@@ -22,6 +22,25 @@ import {
   applyPlusWorldTransform,
 } from "./emf-plus-state-handlers";
 import { readRectFromView, readPointFromView } from "./emf-plus-read-helpers";
+
+/**
+ * Apply an EMF+ pen to the canvas context (stroke colour, line width, dash pattern).
+ */
+function applyEmfPlusPen(
+  ctx: CanvasContext,
+  pen: { color: string; width: number; dashStyle: number },
+): void {
+  ctx.strokeStyle = pen.color;
+  ctx.lineWidth = pen.width;
+  const w = pen.width || 1;
+  switch (pen.dashStyle) {
+    case 1: ctx.setLineDash([w * 3, w * 1]); break;                             // Dash
+    case 2: ctx.setLineDash([w * 1, w * 1]); break;                             // Dot
+    case 3: ctx.setLineDash([w * 3, w * 1, w * 1, w * 1]); break;              // DashDot
+    case 4: ctx.setLineDash([w * 3, w * 1, w * 1, w * 1, w * 1, w * 1]); break; // DashDotDot
+    default: ctx.setLineDash([]); break;                                        // Solid or Custom
+  }
+}
 
 export function handleEmfPlusDrawRecord(
   rCtx: EmfPlusReplayCtx,
@@ -63,8 +82,7 @@ export function handleEmfPlusDrawRecord(
         const compressed = (recFlags & 0x4000) !== 0;
         const rectSize = compressed ? 8 : 16;
         if (pen && pen.kind === "plus-pen") {
-          ctx.strokeStyle = pen.color;
-          ctx.lineWidth = pen.width;
+          applyEmfPlusPen(ctx, pen);
         }
         applyPlusWorldTransform(rCtx);
         let rOff = dataOff + 4;
@@ -134,8 +152,7 @@ export function handleEmfPlusDrawRecord(
         return true;
       }
       if (pen && pen.kind === "plus-pen") {
-        ctx.strokeStyle = pen.color;
-        ctx.lineWidth = pen.width;
+        applyEmfPlusPen(ctx, pen);
       }
       applyPlusWorldTransform(rCtx);
       ctx.beginPath();
@@ -189,8 +206,7 @@ export function handleEmfPlusDrawRecord(
         const penId = recFlags & 0xff;
         const pen = objectTable.get(penId);
         if (pen && pen.kind === "plus-pen") {
-          ctx.strokeStyle = pen.color;
-          ctx.lineWidth = pen.width;
+          applyEmfPlusPen(ctx, pen);
         }
       }
 
@@ -228,8 +244,7 @@ export function handleEmfPlusDrawRecord(
         const compressed = (recFlags & 0x4000) !== 0;
         const ptSize = compressed ? 4 : 8;
         if (pen && pen.kind === "plus-pen") {
-          ctx.strokeStyle = pen.color;
-          ctx.lineWidth = pen.width;
+          applyEmfPlusPen(ctx, pen);
         }
         applyPlusWorldTransform(rCtx);
         ctx.beginPath();

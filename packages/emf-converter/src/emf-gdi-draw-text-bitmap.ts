@@ -9,10 +9,14 @@ import {
   EMR_BITBLT,
   EMR_STRETCHDIBITS,
   EMR_INTERSECTCLIPRECT,
+  EMR_EXTSELECTCLIPRGN,
+  EMR_EXCLUDECLIPRECT,
+  EMR_OFFSETCLIPRGN,
 } from "./emf-constants";
 import { applyFont, readUtf16LE, createTempCanvas } from "./emf-canvas-helpers";
 import { decodeDibToImageData } from "./emf-dib-decoder";
 import { gmx, gmy, gmw, gmh } from "./emf-gdi-coord";
+import { emfLog } from "./emf-logging";
 
 // ---------------------------------------------------------------------------
 // Text
@@ -187,6 +191,129 @@ function handleIntersectClipRect(
 }
 
 // ---------------------------------------------------------------------------
+// EMR_EXTSELECTCLIPRGN (record type 75)
+// ---------------------------------------------------------------------------
+
+function handleExtSelectClipRgn(
+  rCtx: EmfGdiReplayCtx,
+  dataOff: number,
+  recSize: number,
+): boolean {
+  const { ctx, view } = rCtx;
+  if (recSize < 16) return true;
+
+  const cbRgnData = view.getUint32(dataOff, true);
+  const iMode = view.getUint32(dataOff + 4, true);
+
+  // RGN_COPY = 5: replace clip with region
+  if (iMode === 5) {
+    if (cbRgnData === 0) {
+      // Reset clip — unwind any saved clip states
+      while (rCtx.clipSaveDepth > 0) {
+        ctx.restore();
+        rCtx.clipSaveDepth--;
+      }
+      emfLog("EMR_EXTSELECTCLIPRGN: RGN_COPY with empty region — clip reset");
+      return true;
+    }
+
+    // Parse RGNDATAHEADER (32 bytes)
+    const rgnStart = dataOff + 8;
+    if (cbRgnData < 32) return true;
+
+    // const dwSize = view.getUint32(rgnStart, true);      // 32
+    // const iType = view.getUint32(rgnStart + 4, true);    // 1 = RDH_RECTANGLES
+    const nCount = view.getUint32(rgnStart + 8, true);
+    // const nRgnSize = view.getUint32(rgnStart + 12, true);
+    // rcBound: rgnStart+16..rgnStart+31
+
+    if (nCount === 0) return true;
+
+    // Unwind previous clip before applying new one
+    while (rCtx.clipSaveDepth > 0) {
+      ctx.restore();
+      rCtx.clipSaveDepth--;
+    }
+
+    ctx.save();
+    rCtx.clipSaveDepth++;
+    ctx.beginPath();
+
+    const rectsStart = rgnStart + 32;
+    for (let i = 0; i < nCount; i++) {
+      const rOff = rectsStart + i * 16;
+      if (rOff + 16 > dataOff + 8 + cbRgnData) break;
+      const left = view.getInt32(rOff, true);
+      const top = view.getInt32(rOff + 4, true);
+      const right = view.getInt32(rOff + 8, true);
+      const bottom = view.getInt32(rOff + 12, true);
+      ctx.rect(
+        gmx(rCtx, left),
+        gmy(rCtx, top),
+        gmw(rCtx, right - left),
+        gmh(rCtx, bottom - top),
+      );
+    }
+
+    try {
+      ctx.clip();
+    } catch {
+      /* ignore clip errors */
+    }
+
+    emfLog(
+      `EMR_EXTSELECTCLIPRGN: RGN_COPY with ${nCount} rect(s)`,
+    );
+  } else {
+    emfLog(
+      `EMR_EXTSELECTCLIPRGN: mode=${iMode} not implemented (only RGN_COPY=5 supported)`,
+    );
+  }
+
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// EMR_EXCLUDECLIPRECT (record type 29) — stub
+// ---------------------------------------------------------------------------
+
+function handleExcludeClipRect(
+  rCtx: EmfGdiReplayCtx,
+  dataOff: number,
+  recSize: number,
+): boolean {
+  if (recSize >= 24) {
+    const left = rCtx.view.getInt32(dataOff, true);
+    const top = rCtx.view.getInt32(dataOff + 4, true);
+    const right = rCtx.view.getInt32(dataOff + 8, true);
+    const bottom = rCtx.view.getInt32(dataOff + 12, true);
+    emfLog(
+      `EMR_EXCLUDECLIPRECT: rect=(${left},${top})→(${right},${bottom}) — not implemented (Canvas API limitation)`,
+    );
+  }
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// EMR_OFFSETCLIPRGN (record type 26) — stub
+// ---------------------------------------------------------------------------
+
+function handleOffsetClipRgn(
+  rCtx: EmfGdiReplayCtx,
+  dataOff: number,
+  recSize: number,
+): boolean {
+  if (recSize >= 16) {
+    const dx = rCtx.view.getInt32(dataOff, true);
+    const dy = rCtx.view.getInt32(dataOff + 4, true);
+    emfLog(
+      `EMR_OFFSETCLIPRGN: offset=(${dx},${dy}) — not implemented`,
+    );
+  }
+  return true;
+}
+
+// ---------------------------------------------------------------------------
 // Dispatcher
 // ---------------------------------------------------------------------------
 
@@ -206,6 +333,12 @@ export function handleEmfGdiTextBitmapRecord(
       return handleStretchDibits(rCtx, offset, dataOff, recSize);
     case EMR_INTERSECTCLIPRECT:
       return handleIntersectClipRect(rCtx, dataOff, recSize);
+    case EMR_EXTSELECTCLIPRGN:
+      return handleExtSelectClipRgn(rCtx, dataOff, recSize);
+    case EMR_EXCLUDECLIPRECT:
+      return handleExcludeClipRect(rCtx, dataOff, recSize);
+    case EMR_OFFSETCLIPRGN:
+      return handleOffsetClipRgn(rCtx, dataOff, recSize);
     default:
       return false;
   }

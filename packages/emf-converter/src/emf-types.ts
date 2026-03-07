@@ -266,6 +266,32 @@ export interface EmfPlusImageAttributes {
 }
 
 /**
+ * An EMF+ Region object representing a complex clipping region.
+ * Regions can be built from rectangles, paths, or combined from other regions
+ * using boolean operations (Intersect, Union, Xor, Exclude, Complement).
+ */
+export interface EmfPlusRegion {
+  kind: "plus-region";
+  /** The region node tree - a recursive structure. */
+  nodes: EmfPlusRegionNode[];
+}
+
+/**
+ * A node in the EMF+ region tree. Each node is either:
+ * - A rectangle leaf (type "rect")
+ * - A path leaf (type "path") referencing an EmfPlusPath
+ * - An infinite region (type "infinite")
+ * - An empty region (type "empty")
+ * - A combination node (type "combine") with a CombineMode and two children
+ */
+export type EmfPlusRegionNode =
+  | { type: "rect"; x: number; y: number; width: number; height: number }
+  | { type: "path"; path: EmfPlusPath }
+  | { type: "infinite" }
+  | { type: "empty" }
+  | { type: "combine"; combineMode: number; left: EmfPlusRegionNode; right: EmfPlusRegionNode };
+
+/**
  * Discriminated union of all EMF+ object types stored in the per-file
  * object table (indexed 0-63). The `kind` field acts as the discriminator.
  */
@@ -276,7 +302,8 @@ export type EmfPlusObject =
   | EmfPlusPath
   | EmfPlusImage
   | EmfPlusStringFormat
-  | EmfPlusImageAttributes;
+  | EmfPlusImageAttributes
+  | EmfPlusRegion;
 
 // ---------------------------------------------------------------------------
 // Deferred image draw (resolved asynchronously after sync replay)
@@ -437,6 +464,22 @@ export interface EmfPlusReplayCtx {
   totalImageObjects: number;
   /** Running count of DrawImage / DrawImagePoints calls (for diagnostics). */
   totalDrawImageCalls: number;
+  /** Number of ctx.save() calls made specifically for clip management. */
+  clipSaveDepth: number;
+  /** Current page unit (0=World, 2=Pixel, 3=Point, 4=Inch, 5=Document, 6=Millimeter). */
+  pageUnit: number;
+  /** Current page scale factor. */
+  pageScale: number;
+  /** Buffer for accumulating continuation object data. */
+  continuationBuffer: Uint8Array | null;
+  /** The object ID of the current continuation sequence. */
+  continuationObjectId: number;
+  /** The object type of the current continuation sequence. */
+  continuationObjectType: number;
+  /** Total size expected for the continuation object. */
+  continuationTotalSize: number;
+  /** Byte offset into continuationBuffer for the next chunk. */
+  continuationOffset: number;
 }
 
 // ---------------------------------------------------------------------------

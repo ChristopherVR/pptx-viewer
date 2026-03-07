@@ -79,7 +79,7 @@ export function replayWmfRecords(
 
   let offset = header.headerSize;
   const maxOffset = view.byteLength;
-  const maxRecords = 50000;
+  const maxRecords = 200000;
   let recordCount = 0;
 
   while (offset + 6 <= maxOffset && recordCount < maxRecords) {
@@ -209,5 +209,9 @@ export function replayWmfRecords(
     }
 
     offset += recSize;
+  }
+
+  if (recordCount >= maxRecords) {
+    console.warn(`[emf-converter] WMF record limit reached (${maxRecords}). Output may be incomplete.`);
   }
 }

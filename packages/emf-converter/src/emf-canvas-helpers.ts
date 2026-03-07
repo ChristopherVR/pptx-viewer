@@ -34,14 +34,19 @@ export function createCanvas(
   }
   if (maxHeight && h > maxHeight) {
     const factor = maxHeight / h;
+    w = Math.round(w * factor);
     h = maxHeight;
-    w = Math.round((w / scaleY) * factor * scaleX);
     scaleX *= factor;
     scaleY *= factor;
   }
 
-  w = Math.max(1, Math.min(w, 4096));
-  h = Math.max(1, Math.min(h, 4096));
+  const clampedW = Math.max(1, Math.min(w, 8192));
+  const clampedH = Math.max(1, Math.min(h, 8192));
+  if (clampedW !== w || clampedH !== h) {
+    console.warn(`[emf-converter] Canvas size clamped from ${w}×${h} to ${clampedW}×${clampedH}. Output may lose detail.`);
+  }
+  w = clampedW;
+  h = clampedH;
 
   try {
     if (typeof OffscreenCanvas !== "undefined") {
