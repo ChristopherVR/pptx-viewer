@@ -2,7 +2,13 @@
  * OOXML drawing colour transforms — all 26 transform operations.
  *
  * Applies structural, shade/tint, HSL, and direct RGB channel transforms
- * to a base colour as specified in the OOXML spec.
+ * to a base colour as specified in the OOXML spec (ECMA-376 Part 1, 20.1.2.3).
+ *
+ * The transforms are applied in a specific order to match PowerPoint's
+ * rendering behaviour. Each transform reads its value from a child
+ * element of the colour node (e.g. `<a:shade val="50000"/>`).
+ *
+ * @module color-transforms
  */
 
 import type { XmlObject } from "../types";
@@ -25,12 +31,16 @@ import {
  * Apply every OOXML colour transform found on {@link colorNode} to
  * {@link baseColor} and return the resulting `#RRGGBB` hex string.
  *
- * Transform application order:
- *   1. Structural — `comp`, `inv`, `gray`
- *   2. RGB‑space mixing — `shade`, `tint`
+ * Transform application order (matches PowerPoint behaviour):
+ *   1. Structural — `comp` (complement), `inv` (inverse), `gray` (greyscale)
+ *   2. RGB-space mixing — `shade` (darken toward black), `tint` (lighten toward white)
  *   3. HSL transforms — `hue`/`hueMod`/`hueOff`, `sat`/`satMod`/`satOff`,
- *      `lum`/`lumMod`/`lumOff`  (single RGB↔HSL round‑trip)
- *   4. Direct RGB channels — `red`/`redMod`/`redOff`, `green`/…, `blue`/…
+ *      `lum`/`lumMod`/`lumOff` (single RGB-to-HSL round-trip)
+ *   4. Direct RGB channels — `red`/`redMod`/`redOff`, `green`/..., `blue`/...
+ *
+ * @param baseColor - The starting `#RRGGBB` hex colour string.
+ * @param colorNode - The OOXML colour XML node containing transform child elements.
+ * @returns The transformed `#RRGGBB` hex colour string.
  */
 export function applyDrawingColorTransforms(
   baseColor: string,
@@ -49,6 +59,7 @@ export function applyDrawingColorTransforms(
 
   // ── 1. Structural transforms ─────────────────────────────────────────
 
+  // Complement: rotate hue by 180 degrees (opposite on the colour wheel)
   if (colorNode["a:comp"] !== undefined) {
     const hsl = rgbToHsl(r, g, b);
     hsl.h = (hsl.h + 180) % 360;
@@ -58,12 +69,14 @@ export function applyDrawingColorTransforms(
     b = out.b;
   }
 
+  // Inverse: negate each RGB channel (255 - value)
   if (colorNode["a:inv"] !== undefined) {
     r = 255 - r;
     g = 255 - g;
     b = 255 - b;
   }
 
+  // Greyscale: convert to luminance using ITU-R BT.601 coefficients
   if (colorNode["a:gray"] !== undefined) {
     const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
     r = gray;
@@ -71,8 +84,10 @@ export function applyDrawingColorTransforms(
     b = gray;
   }
 
-  // ── 2. Shade & tint (RGB‑space mixing with black / white) ────────────
+  // ── 2. Shade & tint (RGB-space mixing with black / white) ────────────
 
+  // Shade: mix toward black by multiplying each channel by the shade fraction.
+  // shade=0 → pure black, shade=1 → unchanged.
   const shade = parseDrawingPercent(getVal("a:shade"));
   if (shade !== undefined) {
     r *= shade;
@@ -80,6 +95,8 @@ export function applyDrawingColorTransforms(
     b *= shade;
   }
 
+  // Tint: mix toward white by linear interpolation from current toward 255.
+  // tint=0 → unchanged, tint=1 → pure white.
   const tint = parseDrawingPercent(getVal("a:tint"));
   if (tint !== undefined) {
     r = r + (255 - r) * tint;
@@ -87,7 +104,9 @@ export function applyDrawingColorTransforms(
     b = b + (255 - b) * tint;
   }
 
-  // ── 3. HSL transforms (single conversion round‑trip) ─────────────────
+  // ── 3. HSL transforms (single conversion round-trip) ─────────────────
+  // All HSL transforms are batched into a single RGB->HSL->RGB round-trip
+  // to avoid cumulative rounding errors from multiple conversions.
 
   const hslKeys = [
     "a:hue",

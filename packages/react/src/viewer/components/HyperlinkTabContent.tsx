@@ -6,6 +6,12 @@ import type {
   HyperlinkActionVerb,
 } from "./hyperlink-edit-types";
 
+/**
+ * Props for the {@link HyperlinkTabContent} component.
+ *
+ * All field values and setters are lifted from the parent
+ * {@link HyperlinkEditDialog} to keep the tab body stateless.
+ */
 export interface HyperlinkTabContentProps {
   targetType: HyperlinkTargetType;
   url: string;
@@ -28,6 +34,17 @@ export interface HyperlinkTabContentProps {
   onEnterConfirm: () => void;
 }
 
+/**
+ * Renders the body content for the active hyperlink tab.
+ *
+ * Conditionally shows the appropriate input fields for the selected
+ * `targetType` (URL input, email + subject fields, slide number picker,
+ * file path input, or action verb dropdown). A shared tooltip field
+ * is always rendered at the bottom.
+ *
+ * @param props - {@link HyperlinkTabContentProps}
+ * @returns The rendered tab content.
+ */
 export function HyperlinkTabContent({
   targetType,
   url,

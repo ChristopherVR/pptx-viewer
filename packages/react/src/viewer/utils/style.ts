@@ -1,13 +1,21 @@
 ﻿/**
  * Style utilities for the PowerPoint viewer/editor.
  *
- * Barrel re-export - transition styles extracted to `style-transitions`.
+ * Provides stroke dash normalization, compound-line box-shadow generation,
+ * SVG dasharray computation, element transform strings, and drawing-unit parsing.
+ * Transition styles are re-exported from `style-transitions`.
  */
 import type { StrokeDashType, PptxElement } from "pptx-viewer-core";
 import { clampUnitInterval } from "./color";
 
 export { getPresentationTransitionStyle } from "./style-transitions";
 
+/**
+ * Normalizes a raw stroke dash type string to a valid `StrokeDashType` enum value.
+ * Performs case-insensitive matching against all OOXML dash types.
+ * @param value - Raw dash type string (e.g. "lgDash", "SysDot").
+ * @returns The canonical `StrokeDashType`, or `undefined` if unrecognized.
+ */
 export function normalizeStrokeDashType(
   value: StrokeDashType | string | undefined,
 ): StrokeDashType | undefined {
@@ -33,6 +41,14 @@ export function normalizeStrokeDashType(
   return dashMap[normalized];
 }
 
+/**
+ * Maps an OOXML stroke dash type to a CSS `border-style` value.
+ * For compound lines (dbl, thickThin, etc.) returns "solid" because the
+ * compound effect is rendered via box-shadow instead.
+ * @param dashType - The normalized dash type.
+ * @param compoundLine - Optional compound line type (e.g. "dbl", "tri").
+ * @returns A CSS border-style value ("solid", "dotted", "dashed"), or `undefined`.
+ */
 export function getCssBorderDashStyle(
   dashType: StrokeDashType | undefined,
   compoundLine?: string,
@@ -115,6 +131,15 @@ export function getCompoundLineBoxShadow(
   }
 }
 
+/**
+ * Computes an SVG `stroke-dasharray` value for a given dash type and stroke width.
+ * For custom dash types with parsed segments, segment values are expressed in
+ * 1/1000 of the line width (per OOXML spec) and converted to pixel multiples.
+ * @param dashType - The OOXML dash type.
+ * @param strokeWidth - Stroke width in pixels (minimum 1).
+ * @param customDashSegments - Optional array of `{dash, space}` segments for custom dashes.
+ * @returns A space-separated dasharray string, or `undefined` for solid strokes.
+ */
 export function getSvgStrokeDasharray(
   dashType: StrokeDashType | undefined,
   strokeWidth: number,
@@ -163,6 +188,12 @@ export function getSvgStrokeDasharray(
   }
 }
 
+/**
+ * Builds a CSS `transform` string combining flip and rotation transforms for an element.
+ * Flips are expressed as `scaleX(-1)` / `scaleY(-1)`, rotation as `rotate(Ndeg)`.
+ * @param element - The element whose transforms are read.
+ * @returns A CSS transform string, or `undefined` if no transforms apply.
+ */
 export function getElementTransform(element: PptxElement): string | undefined {
   const transforms: string[] = [];
   if (element.flipHorizontal) transforms.push("scaleX(-1)");
@@ -171,6 +202,13 @@ export function getElementTransform(element: PptxElement): string | undefined {
   return transforms.length > 0 ? transforms.join(" ") : undefined;
 }
 
+/**
+ * Builds a CSS transform that compensates for element flips so that text
+ * inside a flipped shape renders in its natural reading direction.
+ * Only includes `scaleX(-1)` / `scaleY(-1)`; rotation is not compensated.
+ * @param element - The element whose flips are checked.
+ * @returns A CSS transform string, or `undefined` if no flips are active.
+ */
 export function getTextCompensationTransform(
   element: PptxElement,
 ): string | undefined {
@@ -180,6 +218,12 @@ export function getTextCompensationTransform(
   return transforms.length > 0 ? transforms.join(" ") : undefined;
 }
 
+/**
+ * Parses an OOXML "drawing percent" value (expressed as hundredths-of-a-percent,
+ * i.e. 100000 = 100%) into a 0-1 unit interval.
+ * @param value - Raw value from OOXML (e.g. 50000 for 50%).
+ * @returns A number between 0 and 1, or `undefined` if the value is not finite.
+ */
 export function parseDrawingPercent(value: unknown): number | undefined {
   const parsed = Number.parseFloat(String(value ?? "").trim());
   if (!Number.isFinite(parsed)) return undefined;

@@ -1,3 +1,14 @@
+/**
+ * Service for parsing and writing editor-level animation metadata stored in
+ * custom PPTX extension elements.
+ *
+ * Editor animations are a simplified animation model stored in a custom XML
+ * extension (`p:extLst`) on each slide. They provide a higher-level abstraction
+ * over native OOXML timing trees, making it easier to manage animations in
+ * the editor UI.
+ *
+ * @module PptxEditorAnimationService
+ */
 import type { PptxElementAnimation, XmlObject } from "../types";
 import type { IPptxXmlLookupService } from "./PptxXmlLookupService";
 import {
@@ -10,22 +21,46 @@ import {
   normalizeAfterAnimation,
 } from "./editor-animation-normalizers";
 
+/**
+ * Configuration options for creating a {@link PptxEditorAnimationService}.
+ */
 export interface PptxEditorAnimationServiceOptions {
+  /** Service for namespace-aware XML child lookups. */
   xmlLookupService: IPptxXmlLookupService;
+  /** URI used in the `@uri` attribute of the extension element. */
   editorMetaExtensionUri: string;
+  /** XML namespace URI for the editor metadata elements. */
   editorMetaNamespaceUri: string;
 }
 
+/**
+ * Interface for parsing and writing editor-level animation definitions.
+ */
 export interface IPptxEditorAnimationService {
+  /**
+   * Parse editor animation metadata from a slide's extension list.
+   * @param slideXml - The full slide XML object.
+   * @returns Array of parsed animations, empty array if extension exists but has
+   *          no animations, or `undefined` if the extension is absent.
+   */
   parseEditorAnimations(
     slideXml: XmlObject | undefined,
   ): PptxElementAnimation[] | undefined;
+  /**
+   * Serialize editor animations back into the slide's extension list.
+   * @param slideNode - The root slide XML node (e.g., the `p:sld` element).
+   * @param animations - The animations to write.
+   */
   applyEditorAnimations(
     slideNode: XmlObject,
     animations: PptxElementAnimation[],
   ): void;
 }
 
+/**
+ * Concrete implementation that reads/writes editor animation metadata
+ * from/to the custom `fuzor:editorMeta` extension element in slide XML.
+ */
 export class PptxEditorAnimationService implements IPptxEditorAnimationService {
   private readonly xmlLookupService: IPptxXmlLookupService;
 
@@ -33,15 +68,30 @@ export class PptxEditorAnimationService implements IPptxEditorAnimationService {
 
   private readonly editorMetaNamespaceUri: string;
 
+  /**
+   * @param options - Service configuration with XML lookup and extension URIs.
+   */
   public constructor(options: PptxEditorAnimationServiceOptions) {
     this.xmlLookupService = options.xmlLookupService;
     this.editorMetaExtensionUri = options.editorMetaExtensionUri;
     this.editorMetaNamespaceUri = options.editorMetaNamespaceUri;
   }
 
+  /**
+   * Parse editor animation metadata from a slide XML object.
+   *
+   * Traverses the slide's `p:extLst` to find the editor meta extension,
+   * then extracts each `fuzor:animation` node and normalizes its attributes
+   * into typed {@link PptxElementAnimation} objects.
+   *
+   * @param slideXml - The full slide XML object.
+   * @returns Sorted array of animations, empty array if no animations found,
+   *          or `undefined` if the editor extension is not present.
+   */
   public parseEditorAnimations(
     slideXml: XmlObject | undefined,
   ): PptxElementAnimation[] | undefined {
+    // Navigate to the slide root -> extLst -> matching extension
     const slideRoot = this.xmlLookupService.getChildByLocalName(
       slideXml,
       "sld",
@@ -77,15 +127,19 @@ export class PptxEditorAnimationService implements IPptxEditorAnimationService {
       return [];
     }
 
+    // Parse each animation node into a typed PptxElementAnimation
     const parsedAnimations: PptxElementAnimation[] = [];
     animationNodes.forEach((animationNode) => {
+      // Skip nodes without a valid element ID
       const elementId = String(animationNode?.["@_elementId"] || "").trim();
       if (elementId.length === 0) return;
 
+      // Normalize preset names (entrance, exit, emphasis) to canonical form
       const entrance = normalizeAnimationPreset(animationNode?.["@_entrance"]);
       const exit = normalizeAnimationPreset(animationNode?.["@_exit"]);
       const emphasis = normalizeAnimationPreset(animationNode?.["@_emphasis"]);
 
+      // Parse numeric attributes with validation
       const durationRaw = Number.parseInt(
         String(animationNode?.["@_durationMs"] || ""),
         10,
@@ -103,6 +157,7 @@ export class PptxEditorAnimationService implements IPptxEditorAnimationService {
         10,
       );
 
+      // Normalize enum-like string attributes to their typed equivalents
       const trigger = normalizeTrigger(animationNode?.["@_trigger"]);
       const timingCurve = normalizeTimingCurve(
         animationNode?.["@_timingCurve"],
@@ -147,15 +202,27 @@ export class PptxEditorAnimationService implements IPptxEditorAnimationService {
       });
     });
 
+    // Sort by animation order for consistent playback sequencing
     return parsedAnimations.sort(
       (left, right) => (left.order || 0) - (right.order || 0),
     );
   }
 
+  /**
+   * Serialize editor animations into the slide's XML extension list.
+   *
+   * Sanitizes and validates each animation entry, removes any existing editor
+   * meta extension, then writes the new animations into a `fuzor:editorMeta`
+   * extension element. If no valid animations remain, the extension is removed.
+   *
+   * @param slideNode - The root slide XML node to modify.
+   * @param animations - Editor animations to serialize.
+   */
   public applyEditorAnimations(
     slideNode: XmlObject,
     animations: PptxElementAnimation[],
   ): void {
+    // Validate, sanitize, and convert each animation to XML attribute format
     const sanitizedAnimations = animations
       .map((animation) => {
         const elementId = String(animation.elementId || "").trim();
@@ -219,6 +286,7 @@ export class PptxEditorAnimationService implements IPptxEditorAnimationService {
         return leftOrder - rightOrder;
       });
 
+    // Collect existing extensions, excluding the old editor meta extension
     const existingExtensionList =
       this.xmlLookupService.getChildByLocalName(slideNode, "extLst") || {};
     const extensionEntries = this.xmlLookupService.getChildrenArrayByLocalName(
@@ -230,6 +298,7 @@ export class PptxEditorAnimationService implements IPptxEditorAnimationService {
         String(entry?.["@_uri"] || "").trim() !== this.editorMetaExtensionUri,
     );
 
+    // If no animations remain, clean up the extension list
     if (sanitizedAnimations.length === 0) {
       if (retainedExtensions.length > 0) {
         slideNode["p:extLst"] = {
@@ -241,6 +310,7 @@ export class PptxEditorAnimationService implements IPptxEditorAnimationService {
       return;
     }
 
+    // Declare the custom namespace and append the new editor meta extension
     slideNode["@_xmlns:fuzor"] = this.editorMetaNamespaceUri;
     retainedExtensions.push({
       "@_uri": this.editorMetaExtensionUri,

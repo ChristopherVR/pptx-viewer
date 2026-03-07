@@ -24,10 +24,17 @@ import { AnimationTimelineSection } from "./AnimationTimelineSection";
 // Props
 // ==========================================================================
 
+/**
+ * Props for the {@link AnimationPanel} component.
+ */
 export interface AnimationPanelProps {
+  /** The element whose animation settings are being edited. */
   selectedElement: PptxElement;
+  /** The slide containing the selected element (animations are stored per-slide). */
   activeSlide: PptxSlide;
+  /** Whether editing controls should be enabled. */
   canEdit: boolean;
+  /** Callback to apply partial updates to the active slide (for animation changes). */
   onUpdateSlide: (updates: Partial<PptxSlide>) => void;
 }
 
@@ -35,6 +42,20 @@ export interface AnimationPanelProps {
 // Component
 // ==========================================================================
 
+/**
+ * Animation editing panel for configuring element entrance, emphasis, and exit effects.
+ *
+ * Provides preset selectors for each animation phase, effect direction/sequence
+ * options, and timing controls (trigger, duration, delay, easing curve, repeat).
+ * When an animation is active, also displays the animation timeline section
+ * for visual sequencing.
+ *
+ * All animation handlers are delegated to the {@link useAnimationHandlers} hook
+ * which manages the slide-level animation array updates.
+ *
+ * @param props - {@link AnimationPanelProps}
+ * @returns The animation inspector panel.
+ */
 export function AnimationPanel({
   selectedElement,
   activeSlide,

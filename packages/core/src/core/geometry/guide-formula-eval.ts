@@ -9,11 +9,16 @@
 // Types
 // ---------------------------------------------------------------------------
 
-/** A single guide definition parsed from `a:gd`. */
+/**
+ * A single guide definition parsed from an `a:gd` XML element.
+ *
+ * Guides are named variables whose values are computed by evaluating
+ * a formula expression against the current variable context.
+ */
 export interface GeometryGuide {
-  /** Guide variable name (e.g. "adj", "g0", "x1"). */
+  /** Guide variable name (e.g. `"adj"`, `"g0"`, `"x1"`). */
   name: string;
-  // Raw formula string (e.g. "*/  w adj 100000").
+  /** Raw formula string (e.g. `"*/ w adj 100000"`). */
   formula: string;
 }
 
@@ -25,9 +30,15 @@ export interface GeometryContext {
   h: number;
 }
 
-/** Parsed formula token: operator + operands. */
+/**
+ * Internal representation of a parsed formula: an operator token
+ * followed by zero or more operand tokens (either numeric literals
+ * or variable references).
+ */
 interface ParsedFormula {
+  /** The operator mnemonic (e.g. `"*/"`, `"+-"`, `"sin"`, `"val"`). */
   op: string;
+  /** Operand tokens — numeric literal strings or variable names. */
   args: string[];
 }
 
@@ -35,11 +46,21 @@ interface ParsedFormula {
 // Constants
 // ---------------------------------------------------------------------------
 
-/** OOXML angle unit = 60 000ths of a degree. */
+/**
+ * OOXML angle unit scale factor.
+ *
+ * OOXML represents angles in 60,000ths of a degree (e.g. 5400000 = 90 degrees).
+ */
 export const ANGLE_SCALE = 60000;
 
-/** Convert an OOXML angle value (60 000ths of a degree) to radians. */
+/**
+ * Convert an OOXML angle value (in 60,000ths of a degree) to radians.
+ *
+ * @param ooxmlAngle - Angle in OOXML units (60,000ths of a degree).
+ * @returns The equivalent angle in radians.
+ */
 export function angleToRadians(ooxmlAngle: number): number {
+  // ooxmlAngle / 60000 => degrees, then * (PI / 180) => radians
   return (ooxmlAngle / ANGLE_SCALE) * (Math.PI / 180);
 }
 
@@ -47,7 +68,16 @@ export function angleToRadians(ooxmlAngle: number): number {
 // Formula parser
 // ---------------------------------------------------------------------------
 
-/** Parse a raw formula string into operator + arguments. */
+/**
+ * Parse a raw formula string into its operator and argument tokens.
+ *
+ * Formula strings are whitespace-separated tokens where the first token
+ * is the operator and the rest are operands. For example:
+ * `"*/ w adj 100000"` parses to `{ op: "*/", args: ["w", "adj", "100000"] }`.
+ *
+ * @param fmla - The raw formula string from the `@_fmla` XML attribute.
+ * @returns The parsed formula with operator and argument tokens.
+ */
 export function parseFormula(fmla: string): ParsedFormula {
   const parts = fmla.trim().split(/\s+/);
   const op = parts[0] ?? "";
@@ -59,6 +89,17 @@ export function parseFormula(fmla: string): ParsedFormula {
 // Resolve a single operand (may be a number literal or a variable name)
 // ---------------------------------------------------------------------------
 
+/**
+ * Resolve a single operand token to a numeric value.
+ *
+ * The token is first tested as a numeric literal. If that fails,
+ * it is looked up as a variable name in the provided context.
+ * Unknown variables resolve to 0 defensively.
+ *
+ * @param token - A numeric literal string or variable name.
+ * @param variables - The current variable context.
+ * @returns The resolved numeric value.
+ */
 export function resolveOperand(
   token: string,
   variables: Map<string, number>,
@@ -79,10 +120,23 @@ export function resolveOperand(
 // Evaluate a single formula
 // ---------------------------------------------------------------------------
 
+/**
+ * Evaluate a single parsed formula against the current variable context.
+ *
+ * Implements all OOXML DrawingML formula operators as defined in
+ * ISO/IEC 29500-1 section 20.1.9.11, including arithmetic (`+-`, `*/`, `+/`),
+ * trigonometric (`sin`, `cos`, `tan`, `atan`, `at2`), conditional (`?:`),
+ * clamping (`pin`), modulus (`mod`), and combined trig functions (`cat2`, `sat2`).
+ *
+ * @param parsed - The parsed formula (operator + argument tokens).
+ * @param vars - The current variable context (guide names mapped to values).
+ * @returns The computed numeric result.
+ */
 export function evaluateFormula(
   parsed: ParsedFormula,
   vars: Map<string, number>,
 ): number {
+  /** Shorthand: resolve the operand at position `idx`, defaulting to "0". */
   const r = (idx: number): number =>
     resolveOperand(parsed.args[idx] ?? "0", vars);
 
@@ -172,23 +226,28 @@ export function evaluateFormula(
     // x is a ratio scaled by the shape coordinate space
     case "atan": {
       const radians = Math.atan(r(0));
+      // Convert radians back to OOXML angle units: rad * (180/PI) * 60000
       return (radians * 180 * ANGLE_SCALE) / Math.PI;
     }
 
     // at2 y x — atan2(y, x) result in OOXML angle units (OOXML spec name)
+    // Note: OOXML parameter order is (y, x), matching Math.atan2(y, x)
     case "at2":
     case "atan2": {
       const radians = Math.atan2(r(0), r(1));
+      // Convert radians back to OOXML angle units
       return (radians * 180 * ANGLE_SCALE) / Math.PI;
     }
 
     // cat2 x y z — x * cos(atan2(z, y))
+    // Computes the cosine-component of a vector scaled by x
     case "cat2": {
       const angle = Math.atan2(r(2), r(1));
       return r(0) * Math.cos(angle);
     }
 
     // sat2 x y z — x * sin(atan2(z, y))
+    // Computes the sine-component of a vector scaled by x
     case "sat2": {
       const angle = Math.atan2(r(2), r(1));
       return r(0) * Math.sin(angle);

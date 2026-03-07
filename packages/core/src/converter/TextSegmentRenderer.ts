@@ -1,23 +1,45 @@
 ﻿import type { TextSegment } from '../core';
 
+/** Extracted bullet information type, guaranteed non-null. */
 type SegmentBulletInfo = NonNullable<TextSegment['bulletInfo']>;
 
+/**
+ * Groups text segments that belong to the same paragraph.
+ * Paragraph breaks split segments into consecutive groups.
+ */
 interface ParagraphGroup {
+	/** Zero-based paragraph index within the text body. */
 	index: number;
+	/** Non-break segments belonging to this paragraph. */
 	segments: TextSegment[];
 }
 
+/**
+ * Result of rendering a single paragraph, including the formatted
+ * text and whether it was rendered as a list item.
+ */
 interface ParagraphRenderResult {
+	/** The rendered text (Markdown or HTML). */
 	text: string;
+	/** True if this paragraph was rendered as a bullet or numbered list item. */
 	isListItem: boolean;
 }
 
+/**
+ * Options controlling how text segments are rendered into Markdown or HTML.
+ */
 export interface TextSegmentRenderOptions {
+	/** Per-paragraph indent/margin data for computing list nesting levels. */
 	paragraphIndents?: Array<{ marginLeft?: number; indent?: number }>;
+	/** Current slide number, used to resolve `slidenum` field placeholders. */
 	slideNumber?: number;
+	/** Date/time string for resolving `datetime` field placeholders. */
 	dateTimeText?: string;
+	/** When true, paragraphs are joined with `<br />` instead of double newlines. */
 	inlineMode?: boolean;
+	/** When true, bullet/numbered list rendering is suppressed. */
 	disableLists?: boolean;
+	/** When true, `<p align="...">` wrappers are suppressed for non-left-aligned text. */
 	disableAlignment?: boolean;
 	/**
 	 * When true, emit HTML formatting tags (`<strong>`, `<em>`, `<a>`, etc.)
@@ -25,7 +47,7 @@ export interface TextSegmentRenderOptions {
 	 * inside an HTML block element (e.g. a positioned `<div>`) where
 	 * Markdown syntax would be rendered literally.
 	 *
-	 * This does NOT add inline font-family / font-size / colour styles –
+	 * This does NOT add inline font-family / font-size / colour styles --
 	 * it only converts formatting tokens.
 	 */
 	htmlFormatting?: boolean;

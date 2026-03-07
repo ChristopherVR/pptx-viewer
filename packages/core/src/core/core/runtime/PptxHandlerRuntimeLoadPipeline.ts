@@ -38,6 +38,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     const presentationGuides = this.presentationData
       ? parsePresentationDrawingGuides(this.presentationData)
       : [];
+    const photoAlbum = this.extractPhotoAlbum();
+    const modifyVerifier = this.extractModifyVerifier();
+    const customerData = await this.parsePresentationCustomerData();
 
     return new PptxLoadDataBuilder()
       .withDimensions(
@@ -88,6 +91,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       )
       .withPresentationGuides(
         presentationGuides.length > 0 ? presentationGuides : undefined,
+      )
+      .withPhotoAlbum(photoAlbum)
+      .withModifyVerifier(modifyVerifier)
+      .withCustomXmlParts(
+        this.customXmlParts.length > 0 ? this.customXmlParts : undefined,
+      )
+      .withCustomerData(
+        customerData.length > 0 ? customerData : undefined,
       )
       .build();
   }
@@ -146,6 +157,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     await this.initializeLoadSession(data, options);
     await this.detectAndPreserveVbaProject();
     this.detectDigitalSignatureParts();
+    await this.parseCustomXmlParts();
     const presentationState = await this.loadPresentationState();
     const slides = await this.loadSlidesForPresentation(
       presentationState.sectionBySlideId,

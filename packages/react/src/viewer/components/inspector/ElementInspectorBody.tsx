@@ -32,15 +32,27 @@ import { MediaPropertiesPanel } from "./MediaPropertiesPanel";
 // Types
 // ---------------------------------------------------------------------------
 
+/**
+ * Props for the {@link ElementInspectorBody} component.
+ */
 interface ElementInspectorBodyProps {
+  /** The currently selected element to inspect and edit. */
   selectedElement: PptxElement;
+  /** Whether editing controls should be enabled. */
   canEdit: boolean;
+  /** All slides in the presentation (used by ActionSettingsPanel for hyperlink targets). */
   slides: PptxSlide[];
+  /** Active table cell editing state, if a table cell is being edited. */
   tableEditorState?: TableCellEditorState | null;
+  /** Map of media relationship IDs to data URLs for media preview. */
   mediaDataUrls?: Map<string, string>;
+  /** Callback to apply partial updates to the selected element. */
   onUpdateElement: (updates: Partial<PptxElement>) => void;
+  /** Callback to apply partial updates to the element's shape style. */
   onUpdateElementStyle: (patch: Partial<ShapeStyle>) => void;
+  /** Callback to apply partial updates to the element's text style. */
   onUpdateTextStyle: (patch: Partial<TextStyle>) => void;
+  /** Callback to move the element forward or backward in z-order. */
   onMoveLayer: (direction: "forward" | "backward") => void;
 }
 
@@ -48,6 +60,23 @@ interface ElementInspectorBodyProps {
 // Component
 // ---------------------------------------------------------------------------
 
+/**
+ * Main body of the element inspector panel. Renders type-specific sub-panels
+ * based on the selected element type:
+ * - Transform controls (position, size, rotation) for all elements
+ * - Table properties for table elements
+ * - Chart data editing for chart elements
+ * - SmartArt properties for SmartArt elements
+ * - Image properties for picture/image elements
+ * - Media playback controls for media elements
+ * - Connector settings for connector elements
+ * - Shape text and style panels for shape/text elements
+ * - Action settings (hyperlinks, click actions) for actionable elements
+ * - Layer ordering controls for all elements
+ *
+ * @param props - {@link ElementInspectorBodyProps}
+ * @returns The composed element inspector body with type-appropriate panels.
+ */
 export function ElementInspectorBody({
   selectedElement,
   canEdit,

@@ -1,4 +1,4 @@
-import { XmlObject, type PptxChartData } from "../../types";
+import { XmlObject, type PptxChartData, type PptxExternalData } from "../../types";
 import {
   parseSeriesTrendlines,
   parseSeriesErrBars,
@@ -153,6 +153,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         )
       : {};
 
+    // Parse external data source (c:externalData)
+    const externalData = await this.parseChartExternalData(
+      chartSpace,
+      chartPart.partPath,
+    );
+
     return {
       chartType,
       categories,
@@ -169,6 +175,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       ...(surfaces.floor ? { floor: surfaces.floor } : {}),
       ...(surfaces.sideWall ? { sideWall: surfaces.sideWall } : {}),
       ...(surfaces.backWall ? { backWall: surfaces.backWall } : {}),
+      ...(externalData ? { externalData } : {}),
     };
   }
 
@@ -265,14 +272,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
   /**
    * Parse a cx: namespace (Office 2016+) chart using the utility parser.
    */
-  private parseCxChart(
+  private async parseCxChart(
     plotArea: XmlObject,
     chartType: PptxChartData["chartType"],
     chartSpace: XmlObject | undefined,
     chartRoot: XmlObject | undefined,
     chartPartPath: string,
     chartRelationshipId: string,
-  ): PptxChartData | undefined {
+  ): Promise<PptxChartData | undefined> {
     const result = parseCxChartSeries(plotArea, this.xmlLookupService);
     if (!result) return undefined;
 
@@ -284,6 +291,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     this.collectLocalTextValues(titleNode, "t", titleTextValues);
     const chartStyle = this.extractChartStyle(chartSpace, chartRoot);
 
+    // Parse external data source (c:externalData)
+    const externalData = await this.parseChartExternalData(
+      chartSpace,
+      chartPartPath,
+    );
+
     return {
       chartType,
       categories: result.categories,
@@ -292,6 +305,78 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       style: chartStyle,
       chartPartPath,
       chartRelationshipId,
+      ...(externalData ? { externalData } : {}),
     };
+  }
+
+  /**
+   * Parse `c:externalData` from the chart's `c:chartSpace` and resolve
+   * the external relationship target from the chart part's .rels file.
+   *
+   * In OOXML, `c:externalData` contains `@r:id` referencing a relationship
+   * in the chart part's own .rels file with `TargetMode="External"`, typically
+   * pointing to an external Excel workbook.
+   */
+  private async parseChartExternalData(
+    chartSpace: XmlObject | undefined,
+    chartPartPath: string,
+  ): Promise<PptxExternalData | undefined> {
+    if (!chartSpace) return undefined;
+
+    const externalDataNode = this.xmlLookupService.getChildByLocalName(
+      chartSpace,
+      "externalData",
+    );
+    if (!externalDataNode) return undefined;
+
+    const relId = String(
+      externalDataNode["@_r:id"] || externalDataNode["@_id"] || "",
+    ).trim();
+    if (relId.length === 0) return undefined;
+
+    const autoUpdateNode = this.xmlLookupService.getChildByLocalName(
+      externalDataNode,
+      "autoUpdate",
+    );
+    const autoUpdate = autoUpdateNode?.["@_val"] === "1" ||
+      autoUpdateNode?.["@_val"] === "true" ||
+      false;
+
+    // Resolve the external target from the chart part's .rels file
+    let targetPath: string | undefined;
+    try {
+      const chartDir = chartPartPath.substring(
+        0,
+        chartPartPath.lastIndexOf("/") + 1,
+      );
+      const chartFileName = chartPartPath.substring(
+        chartPartPath.lastIndexOf("/") + 1,
+      );
+      const chartRelsPath = `${chartDir}_rels/${chartFileName}.rels`;
+      const chartRelsXml = await this.zip
+        .file(chartRelsPath)
+        ?.async("string");
+      if (chartRelsXml) {
+        const chartRelsData = this.parser.parse(chartRelsXml) as XmlObject;
+        const relsContainer = chartRelsData?.Relationships as
+          | XmlObject
+          | undefined;
+        if (relsContainer?.Relationship) {
+          const rels = Array.isArray(relsContainer.Relationship)
+            ? relsContainer.Relationship
+            : [relsContainer.Relationship];
+          for (const rel of rels) {
+            if (String(rel?.["@_Id"] || "") === relId) {
+              targetPath = String(rel?.["@_Target"] || "").trim() || undefined;
+              break;
+            }
+          }
+        }
+      }
+    } catch {
+      // Chart rels file may not exist; that's fine
+    }
+
+    return { relId, targetPath, autoUpdate };
   }
 }

@@ -12,10 +12,17 @@ import { useTranslation } from "react-i18next";
 // Types
 // ---------------------------------------------------------------------------
 
+/**
+ * Props for the {@link DigitalSignaturesDialog} component.
+ */
 export interface DigitalSignaturesDialogProps {
+  /** Whether the dialog is visible. */
   isOpen: boolean;
+  /** Callback invoked when the dialog is dismissed. */
   onClose: () => void;
+  /** Whether the presentation contains digital signatures. */
   hasSignatures: boolean;
+  /** Number of digital signatures present in the file. */
   signatureCount: number;
 }
 
@@ -23,6 +30,16 @@ export interface DigitalSignaturesDialogProps {
 // Component
 // ---------------------------------------------------------------------------
 
+/**
+ * Modal dialog that displays the digital signature status of a PPTX file.
+ *
+ * When signatures are present the dialog shows a signed-status banner with
+ * the signature count and a warning that editing will invalidate signatures.
+ * When no signatures are found, an informational notice is displayed instead.
+ *
+ * @param props - {@link DigitalSignaturesDialogProps}
+ * @returns The dialog element, or `null` when `isOpen` is `false`.
+ */
 export function DigitalSignaturesDialog({
   isOpen,
   onClose,

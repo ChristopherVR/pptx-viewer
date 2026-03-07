@@ -15,6 +15,7 @@ export interface PptxGraphicFrameParserContext {
   emuPerPx: number;
   getOrderedSlidePaths: () => string[];
   slideRelsMap: Map<string, Map<string, string>>;
+  externalRelsMap: Map<string, Set<string>>;
   readFlipState: (xfrm: XmlObject | undefined) => {
     flipHorizontal?: boolean;
     flipVertical?: boolean;
@@ -127,9 +128,17 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
         const oleRelationshipId = String(
           oleObject?.["@_r:id"] || oleObject?.["@_id"] || "",
         ).trim();
+        let externalPath: string | undefined;
         if (oleRelationshipId && slidePath) {
           const relsMap = this.context.slideRelsMap.get(slidePath);
           oleTarget = relsMap?.get(oleRelationshipId);
+          // Detect external path for linked OLE objects
+          if (isLinked) {
+            const externalIds = this.context.externalRelsMap.get(slidePath);
+            if (externalIds?.has(oleRelationshipId)) {
+              externalPath = oleTarget;
+            }
+          }
         }
 
         const olePicture = oleObject?.["p:pic"] as XmlObject | undefined;
@@ -170,6 +179,7 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
           oleObjectType,
           oleFileExtension,
           isLinked,
+          externalPath,
           oleTarget,
           previewImage,
           actionClick,

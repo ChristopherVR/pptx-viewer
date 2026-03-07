@@ -12,8 +12,13 @@ import { useTranslation } from "react-i18next";
 // Props
 // ---------------------------------------------------------------------------
 
+/**
+ * Props for the {@link BroadcastDialog} component.
+ */
 export interface BroadcastDialogProps {
+  /** Whether the dialog is currently visible. */
   open: boolean;
+  /** Callback invoked when the user dismisses the dialog. */
   onClose: () => void;
 }
 
@@ -21,6 +26,17 @@ export interface BroadcastDialogProps {
 // Component
 // ---------------------------------------------------------------------------
 
+/**
+ * Placeholder modal dialog for the "Present Online" broadcast feature.
+ *
+ * The "Start Broadcast" button is intentionally disabled because the
+ * underlying WebRTC / WebSocket server infrastructure is not yet
+ * implemented. This dialog exists to surface the feature in the UI and
+ * inform the user of its planned availability.
+ *
+ * @param props - {@link BroadcastDialogProps}
+ * @returns The dialog element, or `null` when `open` is `false`.
+ */
 export function BroadcastDialog({
   open,
   onClose,

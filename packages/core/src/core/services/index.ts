@@ -1,3 +1,14 @@
+/**
+ * Barrel export for the PPTX services layer.
+ *
+ * Re-exports all public service classes, interfaces, and supporting types
+ * used by the core PPTX handler for slide loading, animation parsing/writing,
+ * transitions, compatibility inspection, XML lookup, document properties,
+ * and template backgrounds.
+ *
+ * @module services
+ */
+
 export {
   PptxCompatibilityService,
   type CompatibilityWarningInput,

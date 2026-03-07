@@ -301,6 +301,33 @@ export interface PptxChartStyle {
 }
 
 /**
+ * External data source reference for a chart (c:externalData).
+ *
+ * Charts can reference an external Excel workbook via a relationship ID
+ * that points to an external file (TargetMode="External"). The
+ * `autoUpdate` flag indicates whether the chart should refresh its
+ * cached data from the external source on open.
+ *
+ * @example
+ * ```ts
+ * const ext: PptxExternalData = {
+ *   relId: "rId2",
+ *   targetPath: "file:///C:/Data/budget.xlsx",
+ *   autoUpdate: true,
+ * };
+ * // => satisfies PptxExternalData
+ * ```
+ */
+export interface PptxExternalData {
+  /** Relationship ID referencing the external data source in the chart .rels. */
+  relId: string;
+  /** Resolved external file path or URL from the relationship target. */
+  targetPath?: string;
+  /** Whether to auto-update data from the external source on open. */
+  autoUpdate?: boolean;
+}
+
+/**
  * Complete parsed chart data for a {@link ChartPptxElement}.
  *
  * @example
@@ -338,4 +365,6 @@ export interface PptxChartData {
   floor?: PptxChart3DSurface;
   sideWall?: PptxChart3DSurface;
   backWall?: PptxChart3DSurface;
+  /** External data source reference (c:externalData) linking to an external workbook. */
+  externalData?: PptxExternalData;
 }

@@ -1,8 +1,21 @@
 /**
- * Primary shape definitions: Basic, Rectangles, Stars & Banners, Math, and Other.
+ * Primary shape definitions: Basic, Rectangles, Stars and Banners, Math, and Other.
+ *
+ * Each entry in the array is a {@link PresetShapeDefinition} with:
+ * - `name` — The canonical OOXML preset geometry name (camelCase).
+ * - `label` — A human-readable display label for the shape picker UI.
+ * - `category` — The {@link PresetShapeCategory} grouping.
+ *
+ * This file contains the first half of shape definitions. The second
+ * half (arrows, callouts, flowchart, action buttons) lives in
+ * `shape-definitions-extended.ts`.
  */
 import type { PresetShapeDefinition } from "./preset-shape-types";
 
+/**
+ * Shape definitions for basic shapes, rectangle variants, stars and banners,
+ * math operators, and other miscellaneous shapes.
+ */
 export const PRIMARY_SHAPE_DEFINITIONS: PresetShapeDefinition[] = [
   // ── Basic Shapes ──────────────────────────────────────────────────────
   { name: "rect", label: "Rectangle", category: "basic" },

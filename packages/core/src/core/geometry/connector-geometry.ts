@@ -10,11 +10,22 @@ import { clampUnitInterval } from "../color/color-utils";
 // Types
 // ---------------------------------------------------------------------------
 
+/**
+ * Result of computing a connector's SVG path geometry.
+ *
+ * Contains the SVG `d` attribute path data and the absolute start/end
+ * coordinates within the element's local coordinate space.
+ */
 export interface ConnectorPathGeometry {
+  /** SVG path data string (e.g. `"M 0 0 L 100 100"`). */
   pathData: string;
+  /** X coordinate of the path starting point. */
   startX: number;
+  /** Y coordinate of the path starting point. */
   startY: number;
+  /** X coordinate of the path ending point. */
   endX: number;
+  /** Y coordinate of the path ending point. */
   endY: number;
 }
 
@@ -22,6 +33,18 @@ export interface ConnectorPathGeometry {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Read a connector adjustment value from an element, normalizing it to [0, 1].
+ *
+ * OOXML stores connector adjustments in units of 1/100000 (e.g. 50000 = 50%).
+ * This function looks up the named key in `shapeAdjustments`, falling back to
+ * the generic `adj` key, and finally to the provided `fallback` value.
+ *
+ * @param element - The connector element whose adjustments are read.
+ * @param key - The specific adjustment key (e.g. `"adj1"`, `"adj2"`).
+ * @param fallback - Default value in the [0, 1] range if no adjustment is found.
+ * @returns A clamped value in the [0, 1] range.
+ */
 export function getConnectorAdjustment(
   element: PptxElementWithShapeStyle,
   key: string,
@@ -44,12 +67,34 @@ export function getConnectorAdjustment(
 // Main path calculation
 // ---------------------------------------------------------------------------
 
+/**
+ * Compute the SVG path geometry for a connector element.
+ *
+ * Supports the following OOXML connector types:
+ * - **bentConnector2** (L-shape, 1 segment)
+ * - **bentConnector3** (Z-shape, 2 segments with 1 adjustment)
+ * - **bentConnector4** (3 segments with 2 adjustments)
+ * - **bentConnector5** (4 segments with 3 adjustments)
+ * - **curvedConnector2** (quadratic Bezier L-curve)
+ * - **curvedConnector3** (2-segment cubic Bezier)
+ * - **curvedConnector4** (3-segment cubic Bezier)
+ * - **curvedConnector5** (4-segment cubic Bezier)
+ * - **straightConnector1** / default (straight line)
+ *
+ * Adjustment values (adj1, adj2, adj3) control the midpoint positions
+ * of the intermediate segments as fractions of width or height.
+ *
+ * @param element - The connector element with `shapeType`, `width`, `height`, and `shapeAdjustments`.
+ * @returns The computed {@link ConnectorPathGeometry} with SVG path data.
+ */
 export function getConnectorPathGeometry(
   element: PptxElementWithShapeStyle,
 ): ConnectorPathGeometry {
+  // Ensure minimum dimensions of 1px to avoid degenerate geometry
   const width = Math.max(element.width, 1);
   const height = Math.max(element.height, 1);
   const normalizedType = (element.shapeType || "").toLowerCase();
+  /** Format a coordinate pair, rounding to integers for clean SVG output. */
   const point = (x: number, y: number) => `${Math.round(x)} ${Math.round(y)}`;
   const startX = 0;
   const startY = 0;

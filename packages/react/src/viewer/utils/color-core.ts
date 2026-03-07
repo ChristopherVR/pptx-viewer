@@ -1,15 +1,31 @@
 /**
  * Core color utility functions for the PowerPoint viewer/editor.
+ *
+ * Provides low-level primitives for hex-colour normalisation, opacity blending,
+ * clamping, and CSS shadow generation from OOXML shape styles.
  */
 import type { ShapeStyle } from "pptx-viewer-core";
 import { DEFAULT_TEXT_COLOR } from "../constants";
 
+/**
+ * Creates a detached copy of a `Uint8Array` as an `ArrayBuffer`.
+ * Useful for transferring binary data without shared-memory side-effects.
+ * @param bytes - The source byte array.
+ * @returns A new `ArrayBuffer` containing a copy of the data.
+ */
 export function createArrayBufferCopy(bytes: Uint8Array): ArrayBuffer {
   const copy = new Uint8Array(bytes.byteLength);
   copy.set(bytes);
   return copy.buffer;
 }
 
+/**
+ * Normalizes an arbitrary colour string to a 6-digit hex value (`#RRGGBB`).
+ * Returns the fallback colour when the input is missing, "transparent", or invalid.
+ * @param value - Raw colour string (with or without leading `#`).
+ * @param fallback - Fallback hex colour (defaults to `DEFAULT_TEXT_COLOR`).
+ * @returns A valid 7-character hex colour string.
+ */
 export function normalizeHexColor(
   value: string | undefined,
   fallback: string = DEFAULT_TEXT_COLOR,
@@ -21,10 +37,20 @@ export function normalizeHexColor(
   return /^#[0-9A-Fa-f]{6}$/.test(candidate) ? candidate : fallback;
 }
 
+/**
+ * Clamps a numeric value to the [0, 1] range.
+ * @param value - The number to clamp.
+ * @returns A value between 0 and 1 inclusive.
+ */
 export function clampUnitInterval(value: number): number {
   return Math.min(1, Math.max(0, value));
 }
 
+/**
+ * Parses a 6-digit hex colour string into its individual R, G, B channels (0-255).
+ * @param color - A hex colour string (e.g. "#FF8800" or "FF8800").
+ * @returns An object with `r`, `g`, `b` properties, or `null` if parsing fails.
+ */
 export function hexToRgbChannels(
   color: string,
 ): { r: number; g: number; b: number } | null {
@@ -37,6 +63,13 @@ export function hexToRgbChannels(
   };
 }
 
+/**
+ * Converts a hex colour to an `rgba()` CSS string with the given opacity.
+ * If `opacity` is `undefined`, the original hex colour is returned unchanged.
+ * @param color - A hex colour string.
+ * @param opacity - Opacity value (0-1), or `undefined` to skip blending.
+ * @returns A CSS colour string (hex or `rgba()`).
+ */
 export function colorWithOpacity(
   color: string,
   opacity: number | undefined,
@@ -47,6 +80,13 @@ export function colorWithOpacity(
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${clampUnitInterval(opacity)})`;
 }
 
+/**
+ * Clamps an image crop value (fractional 0-1) to a safe range.
+ * Returns 0 for non-finite or missing values, and caps at 0.95 to
+ * prevent the image from being fully cropped away.
+ * @param value - The crop fraction.
+ * @returns A clamped crop value between 0 and 0.95.
+ */
 export function clampCropValue(value: number | undefined): number {
   if (typeof value !== "number" || !Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(0.95, value));
@@ -56,6 +96,13 @@ export function clampCropValue(value: number | undefined): number {
 /*  Shadow CSS builders                                                */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Builds a CSS `box-shadow` string from the outer shadow properties on a ShapeStyle.
+ * Supports both angle/distance and direct x/y offset modes.
+ * Returns `undefined` if no shadow is defined.
+ * @param style - The shape style containing shadow properties.
+ * @returns A CSS box-shadow value string, or `undefined`.
+ */
 export function buildShadowCssFromShapeStyle(
   style: ShapeStyle | undefined,
 ): string | undefined {

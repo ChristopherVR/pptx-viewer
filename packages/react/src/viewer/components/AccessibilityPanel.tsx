@@ -3,12 +3,28 @@ import React from "react";
 import { cn } from "../utils";
 import type { AccessibilityIssue } from "../types";
 
+/**
+ * Props for the {@link AccessibilityPanel} component.
+ */
 interface AccessibilityPanelProps {
+  /** Whether the panel is visible. */
   isOpen: boolean;
+  /** List of accessibility issues detected in the presentation. */
   issues: AccessibilityIssue[];
+  /** Callback invoked when the user closes the panel. */
   onClose: () => void;
 }
 
+/**
+ * Floating panel that displays accessibility checker results.
+ *
+ * Each issue is rendered with a severity-based colour indicator
+ * (error = red dot, warning = amber triangle, info = info icon).
+ * When there are no issues, a success message is shown instead.
+ *
+ * @param props - {@link AccessibilityPanelProps}
+ * @returns The rendered panel, or `null` when `isOpen` is `false`.
+ */
 export function AccessibilityPanel({
   isOpen,
   issues,
@@ -18,6 +34,7 @@ export function AccessibilityPanel({
 
   return (
     <div className="absolute top-14 right-3 z-40 w-[min(28rem,calc(100%-1.5rem))] rounded border border-border bg-popover shadow-2xl">
+      {/* Panel header with issue count and close button */}
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <span className="text-xs uppercase tracking-wide text-foreground">
           Accessibility Checker
@@ -36,6 +53,7 @@ export function AccessibilityPanel({
           </button>
         </div>
       </div>
+      {/* Scrollable issue list */}
       <div className="max-h-72 overflow-y-auto p-2 space-y-1">
         {issues.length === 0 ? (
           <div className="text-center text-xs text-muted-foreground py-4">
@@ -47,6 +65,7 @@ export function AccessibilityPanel({
               key={idx}
               className={cn(
                 "flex items-start gap-2 rounded px-2 py-1.5 text-xs",
+                /* Severity-based background and text colouring */
                 issue.severity === "error"
                   ? "bg-red-900/30 text-red-300"
                   : issue.severity === "warning"
@@ -54,6 +73,7 @@ export function AccessibilityPanel({
                     : "bg-muted/50 text-muted-foreground",
               )}
             >
+              {/* Severity indicator icon */}
               <span className="shrink-0 mt-0.5">
                 {issue.severity === "error"
                   ? "●"

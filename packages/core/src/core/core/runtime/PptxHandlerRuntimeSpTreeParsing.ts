@@ -1,4 +1,9 @@
 import { XmlObject, PptxElement } from "../../types";
+import {
+  unwrapAlternateContent as unwrapAC,
+  areNamespacesSupported,
+} from "../../utils/alternate-content";
+import { VML_SHAPE_TAGS, parseVmlElement } from "../../utils/vml-parser";
 
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from "./PptxHandlerRuntimePictureParsing";
 
@@ -14,6 +19,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     "p:grpSp",
     "p:cxnSp",
     "p:contentPart",
+    ...VML_SHAPE_TAGS,
   ]);
 
   /**
@@ -38,6 +44,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
   /**
    * Scan the raw XML to find direct child element tags of the first
    * occurrence of `containerTag`.
+   *
+   * Also handles `mc:AlternateContent` blocks: when one is found at
+   * depth 0, the scanner resolves the selected branch (Choice or
+   * Fallback) and includes element tags from that branch in the
+   * document-order sequence.
    */
   private scanDirectChildElements(
     xmlStr: string,
@@ -89,6 +100,29 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       const tagName =
         spaceIdx === -1 ? tagFragment : tagFragment.slice(0, spaceIdx);
 
+      // When we encounter mc:AlternateContent at depth 0, resolve its
+      // branch and extract element tags in document order.
+      if (depth === 0 && tagName === "mc:AlternateContent" && !isSelfClosing) {
+        const acEnd = PptxHandlerRuntime.findClosingTag(
+          xmlStr,
+          "mc:AlternateContent",
+          gtIdx + 1,
+        );
+        if (acEnd !== -1) {
+          const acInner = xmlStr.slice(gtIdx + 1, acEnd);
+          const branchElements =
+            PptxHandlerRuntime.scanAlternateContentBranch(acInner);
+          for (const tag of branchElements) {
+            const idx = counters[tag] ?? 0;
+            counters[tag] = idx + 1;
+            order.push({ tag, indexInType: idx });
+          }
+          const acCloseEnd = xmlStr.indexOf(">", acEnd);
+          pos = acCloseEnd === -1 ? acEnd : acCloseEnd + 1;
+          continue;
+        }
+      }
+
       if (depth === 0 && PptxHandlerRuntime.ELEMENT_TAGS.has(tagName)) {
         const idx = counters[tagName] ?? 0;
         counters[tagName] = idx + 1;
@@ -100,6 +134,157 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     }
 
     return order;
+  }
+
+  /**
+   * Find the position of a closing tag `</tagName>` in `xmlStr` starting
+   * from `startPos`, properly handling nesting of the same tag.
+   * Returns the index of the `<` of the closing tag, or -1 if not found.
+   */
+  private static findClosingTag(
+    xmlStr: string,
+    tagName: string,
+    startPos: number,
+  ): number {
+    let pos = startPos;
+    let nesting = 1;
+
+    while (pos < xmlStr.length && nesting > 0) {
+      const ltIdx = xmlStr.indexOf("<", pos);
+      if (ltIdx === -1) break;
+
+      if (xmlStr[ltIdx + 1] === "/") {
+        const closeEnd = xmlStr.indexOf(">", ltIdx + 2);
+        if (closeEnd === -1) break;
+        const closeName = xmlStr.slice(ltIdx + 2, closeEnd).trim();
+        if (closeName === tagName) {
+          nesting--;
+          if (nesting === 0) return ltIdx;
+        }
+        pos = closeEnd + 1;
+        continue;
+      }
+
+      if (xmlStr[ltIdx + 1] === "!" || xmlStr[ltIdx + 1] === "?") {
+        const skipEnd = xmlStr.indexOf(">", ltIdx + 2);
+        pos = skipEnd === -1 ? xmlStr.length : skipEnd + 1;
+        continue;
+      }
+
+      const gtIdx = xmlStr.indexOf(">", ltIdx + 1);
+      if (gtIdx === -1) break;
+      const isSelfClosing = xmlStr[gtIdx - 1] === "/";
+
+      const fragment = xmlStr.slice(ltIdx + 1, gtIdx);
+      const spIdx = fragment.search(/[\s/]/);
+      const name = spIdx === -1 ? fragment : fragment.slice(0, spIdx);
+
+      if (name === tagName && !isSelfClosing) {
+        nesting++;
+      }
+
+      pos = gtIdx + 1;
+    }
+
+    return -1;
+  }
+
+  /**
+   * Given the inner content of an mc:AlternateContent block, determine
+   * which branch (Choice or Fallback) to use and return the element
+   * tags found in that branch.
+   */
+  private static scanAlternateContentBranch(acInner: string): string[] {
+    const choiceRegex = /<mc:Choice\b([^>]*)>/g;
+    let choiceMatch: RegExpExecArray | null;
+
+    while ((choiceMatch = choiceRegex.exec(acInner)) !== null) {
+      const attrs = choiceMatch[1];
+      const requiresMatch = /Requires\s*=\s*"([^"]*)"/.exec(attrs);
+      const requires = requiresMatch ? requiresMatch[1] : "";
+
+      const choiceBodyStart = choiceMatch.index + choiceMatch[0].length;
+      const choiceEnd = PptxHandlerRuntime.findClosingTag(
+        acInner,
+        "mc:Choice",
+        choiceBodyStart,
+      );
+      if (choiceEnd === -1) continue;
+
+      if (areNamespacesSupported(requires)) {
+        const branchContent = acInner.slice(choiceBodyStart, choiceEnd);
+        return PptxHandlerRuntime.extractElementTagsFromBranch(branchContent);
+      }
+    }
+
+    // Fall back to mc:Fallback
+    const fallbackMatch = /<mc:Fallback\b[^>]*>/.exec(acInner);
+    if (fallbackMatch) {
+      const fallbackBodyStart =
+        fallbackMatch.index + fallbackMatch[0].length;
+      const fallbackEnd = PptxHandlerRuntime.findClosingTag(
+        acInner,
+        "mc:Fallback",
+        fallbackBodyStart,
+      );
+      if (fallbackEnd !== -1) {
+        const branchContent = acInner.slice(fallbackBodyStart, fallbackEnd);
+        return PptxHandlerRuntime.extractElementTagsFromBranch(branchContent);
+      }
+    }
+
+    return [];
+  }
+
+  /**
+   * Extract direct child element tag names from a branch content string.
+   * Only looks at depth-0 children that match known element tags.
+   */
+  private static extractElementTagsFromBranch(
+    branchContent: string,
+  ): string[] {
+    const tags: string[] = [];
+    let pos = 0;
+    let depth = 0;
+
+    while (pos < branchContent.length) {
+      const ltIdx = branchContent.indexOf("<", pos);
+      if (ltIdx === -1) break;
+
+      if (branchContent[ltIdx + 1] === "/") {
+        const closeEnd = branchContent.indexOf(">", ltIdx + 2);
+        if (closeEnd === -1) break;
+        if (depth > 0) depth--;
+        pos = closeEnd + 1;
+        continue;
+      }
+
+      if (
+        branchContent[ltIdx + 1] === "!" ||
+        branchContent[ltIdx + 1] === "?"
+      ) {
+        const skipEnd = branchContent.indexOf(">", ltIdx + 2);
+        pos = skipEnd === -1 ? branchContent.length : skipEnd + 1;
+        continue;
+      }
+
+      const gtIdx = branchContent.indexOf(">", ltIdx + 1);
+      if (gtIdx === -1) break;
+      const isSelfClosing = branchContent[gtIdx - 1] === "/";
+
+      const fragment = branchContent.slice(ltIdx + 1, gtIdx);
+      const spIdx = fragment.search(/[\s/]/);
+      const tag = spIdx === -1 ? fragment : fragment.slice(0, spIdx);
+
+      if (depth === 0 && PptxHandlerRuntime.ELEMENT_TAGS.has(tag)) {
+        tags.push(tag);
+      }
+
+      if (!isSelfClosing) depth++;
+      pos = gtIdx + 1;
+    }
+
+    return tags;
   }
 
   /**
@@ -117,6 +302,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       "p:grpSp",
       "p:cxnSp",
       "p:contentPart",
+      ...VML_SHAPE_TAGS,
     ];
     for (const tag of tags) {
       const arr = this.ensureArray(spTree[tag]);
@@ -190,6 +376,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
           slidePath,
         );
       default:
+        // Handle VML legacy shape tags
+        if (VML_SHAPE_TAGS.has(tag)) {
+          return parseVmlElement(
+            tag,
+            node as XmlObject,
+            idPrefix,
+            indexInType,
+          );
+        }
         return null;
     }
   }
@@ -226,30 +421,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
   /**
    * Unwrap mc:AlternateContent elements within a shape tree (or group),
    * merging selected branch children into the parent element arrays.
+   * Delegates to the standalone alternate-content utility.
    */
   protected unwrapAlternateContent(container: Record<string, unknown>): void {
-    const altContents = this.ensureArray(container["mc:AlternateContent"]);
-    if (altContents.length === 0) return;
-
-    const elementTypes = [
-      "p:sp",
-      "p:pic",
-      "p:graphicFrame",
-      "p:grpSp",
-      "p:cxnSp",
-      "p:contentPart",
-    ] as const;
-
-    for (const ac of altContents) {
-      const branch = this.selectAlternateContentBranch(ac as XmlObject);
-      if (!branch) continue;
-      for (const tag of elementTypes) {
-        const children = this.ensureArray(branch[tag]);
-        if (children.length > 0) {
-          container[tag] = [...this.ensureArray(container[tag]), ...children];
-        }
-      }
-    }
+    unwrapAC(container);
   }
 
   /**

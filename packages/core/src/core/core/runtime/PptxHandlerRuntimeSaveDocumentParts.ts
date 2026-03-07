@@ -236,6 +236,22 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
   }
 
   /**
+   * Write custom XML data parts back to the ZIP package for round-trip
+   * preservation. Each part writes `customXml/item{id}.xml` and, when
+   * present, `customXml/itemProps{id}.xml`.
+   */
+  protected applyCustomXmlPartsPreservation(): void {
+    if (this.customXmlParts.length === 0) return;
+
+    for (const part of this.customXmlParts) {
+      this.zip.file(`customXml/item${part.id}.xml`, part.data);
+      if (part.properties) {
+        this.zip.file(`customXml/itemProps${part.id}.xml`, part.properties);
+      }
+    }
+  }
+
+  /**
    * Preserve VBA macro project binary for .pptm round-trip.
    */
   protected async applyVbaProjectPreservation(): Promise<void> {

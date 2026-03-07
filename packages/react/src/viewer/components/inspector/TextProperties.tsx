@@ -30,6 +30,26 @@ import { Text3DProperties } from "./properties/Text3DProperties";
 
 export type { TextPropertiesProps };
 
+/**
+ * Comprehensive text editing panel for elements with text content.
+ *
+ * Renders controls for:
+ * - Text content editing (textarea with writing mode/RTL support)
+ * - Font size, color, and family selection
+ * - Hyperlink editing
+ * - Style toggles (bold, italic, underline, strikethrough, etc.)
+ * - Text alignment buttons
+ * - List mode, line spacing, paragraph spacing, text direction
+ * - Advanced formatting (letter spacing, baseline, etc.)
+ * - Text warp effects gallery
+ * - Text shadow/glow/reflection effects
+ * - 3D text properties
+ *
+ * Returns null if the selected element does not support text properties.
+ *
+ * @param props - {@link TextPropertiesProps}
+ * @returns The text properties panel, or null for non-text elements.
+ */
 export function TextProperties({
   selectedElement,
   selectedTextStyle,
@@ -46,10 +66,13 @@ export function TextProperties({
   onApplyListMode,
   onSetTextAlignment,
 }: TextPropertiesProps): React.ReactElement | null {
+  // Only render for elements that have text properties (shapes, text boxes, etc.)
   if (!hasTextProperties(selectedElement)) return null;
   const ts = selectedTextStyle;
+  // Convert OOXML text direction to CSS writing-mode (e.g. "eaVert" -> "vertical-rl")
   const writingMode = toCssWritingMode(ts?.textDirection);
 
+  // Factory for numeric input onChange handlers that clamp and dispatch text style updates
   const numChange = createNumericChangeHandler(onUpdateTextStyle);
 
   return (

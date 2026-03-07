@@ -1,3 +1,12 @@
+/**
+ * Service responsible for loading and assembling all slides from a PPTX archive.
+ *
+ * Orchestrates the full slide-loading pipeline: resolving slide paths from the
+ * presentation relationship list, parsing each slide's XML, extracting backgrounds,
+ * notes, comments, transitions, animations, and enriching SmartArt data.
+ *
+ * @module PptxSlideLoaderService
+ */
 import type { PptxSlide, XmlObject } from "../types";
 import { parseSlideDrawingGuides } from "../utils/guide-utils";
 export type {
@@ -13,7 +22,20 @@ import type {
   PptxSlideLoaderParams,
 } from "./slide-loader-types";
 
+/**
+ * Concrete implementation of the slide loader service.
+ *
+ * Reads the presentation's `p:sldIdLst` to determine slide ordering, then
+ * processes each slide sequentially to preserve layout and theme override
+ * state across slides.
+ */
 export class PptxSlideLoaderService implements IPptxSlideLoaderService {
+  /**
+   * Load all slides from the PPTX archive in presentation order.
+   *
+   * @param params - Aggregated dependencies and extraction callbacks.
+   * @returns Array of fully assembled {@link PptxSlide} objects.
+   */
   public async loadSlides(params: PptxSlideLoaderParams): Promise<PptxSlide[]> {
     const presentation = params.presentationData["p:presentation"] as
       | XmlObject
@@ -21,12 +43,16 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
     const sldIdLst = presentation?.["p:sldIdLst"] as XmlObject | undefined;
     const sldIds = this.toXmlObjectArray(sldIdLst?.["p:sldId"]);
 
+    // No slides in this presentation
     if (sldIds.length === 0) {
       params.setOrderedSlidePaths([]);
       return [];
     }
 
+    // Load the presentation-level relationship map (rId -> target path)
     const relsMap = await this.loadPresentationSlideRels(params);
+
+    // Build ordered slide paths by mapping each slide ID's relationship to a file path
     const orderedSlidePaths: string[] = [];
     for (const sldId of sldIds) {
       const sRId = String(sldId["@_r:id"] || "").trim();
@@ -39,6 +65,7 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
     }
     params.setOrderedSlidePaths(orderedSlidePaths);
 
+    // Load each slide sequentially (order matters for theme override state)
     const slides: PptxSlide[] = [];
     for (let index = 0; index < sldIds.length; index++) {
       const slide = await this.loadSingleSlide(
@@ -50,10 +77,18 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
       if (slide) slides.push(slide);
     }
 
+    // Post-process: enrich SmartArt elements with diagram data
     await this.enrichSmartArtData(slides, params);
     return slides;
   }
 
+  /**
+   * Load the presentation-level relationships XML and build a map
+   * from relationship IDs to their target file paths.
+   *
+   * @param params - Loader params providing the zip archive and parser.
+   * @returns Map of relationship ID to target path string.
+   */
   private async loadPresentationSlideRels(
     params: PptxSlideLoaderParams,
   ): Promise<Map<string, string>> {
@@ -79,6 +114,19 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
     return relsMap;
   }
 
+  /**
+   * Load and assemble a single slide from the archive.
+   *
+   * Resolves the slide file path, parses its XML, loads relationships,
+   * applies theme overrides, extracts elements/backgrounds/notes/comments/
+   * transitions/animations, and builds the final {@link PptxSlide} object.
+   *
+   * @param params - Loader params with all extraction callbacks.
+   * @param slideIdNode - The `p:sldId` XML node for this slide.
+   * @param slideIndex - Zero-based index of this slide in presentation order.
+   * @param relsMap - Presentation-level relationship ID to target path map.
+   * @returns The assembled slide, or `undefined` if the slide could not be loaded.
+   */
   private async loadSingleSlide(
     params: PptxSlideLoaderParams,
     slideIdNode: XmlObject,
@@ -114,8 +162,10 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
     const clrMapOverride = params.parseSlideClrMapOverride(slideXmlObj);
     params.setCurrentSlideClrMapOverride(clrMapOverride);
 
+    // Use try/finally to ensure theme override state is always restored
     let restoreThemeOverride: (() => void) | undefined;
     try {
+      // Apply layout-level theme overrides if present
       const layoutPathForOverride = params.findLayoutPathForSlide(path);
       if (layoutPathForOverride) {
         const themeOverride = await params.loadThemeOverride(
@@ -137,6 +187,7 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
         );
       }
 
+      // Merge layout elements (behind) with slide elements (on top)
       const elements = [...layoutElements, ...slideElements];
       const backgroundColor =
         params.extractBackgroundColor(slideXmlObj) ||
@@ -154,9 +205,11 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
         backgroundImage = await params.getLayoutBackgroundImage(path);
       }
 
+      // Extract notes, comments (both legacy and modern formats)
       const notesResult = await params.extractSlideNotes(path);
       const legacyComments = await params.extractSlideComments(path);
       const modernComments = await params.extractModernSlideComments(path);
+      // Merge modern and legacy comments; prefer separate lists when both exist
       const comments =
         modernComments.length > 0
           ? [...legacyComments, ...modernComments]
@@ -174,6 +227,11 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
       ] as XmlObject | undefined;
 
       const drawingGuides = parseSlideDrawingGuides(slideXmlObj);
+
+      const customerData = await params.parseSlideCustomerData(
+        slideXmlObj,
+        path,
+      );
 
       return {
         id: path,
@@ -198,6 +256,7 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
         backgroundShowAnimation: backgroundShowAnimation ?? undefined,
         showMasterShapes: showMasterShapes ?? undefined,
         guides: drawingGuides.length > 0 ? drawingGuides : undefined,
+        customerData: customerData.length > 0 ? customerData : undefined,
       };
     } finally {
       if (restoreThemeOverride) {
@@ -207,6 +266,16 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
     }
   }
 
+  /**
+   * Post-process loaded slides to enrich SmartArt elements with diagram data.
+   *
+   * Iterates all elements in all slides, and for any SmartArt element that
+   * lacks diagram data, attempts to resolve it from the graphic frame XML.
+   * Failures are silently caught since SmartArt enrichment is non-critical.
+   *
+   * @param slides - Array of loaded slides to enrich.
+   * @param params - Loader params providing the SmartArt extraction callback.
+   */
   private async enrichSmartArtData(
     slides: PptxSlide[],
     params: PptxSlideLoaderParams,
@@ -229,6 +298,14 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
     }
   }
 
+  /**
+   * Normalize a value into an array of XmlObject entries.
+   * Handles the common OOXML pattern where a single child is an object
+   * but multiple children are an array.
+   *
+   * @param value - Raw XML value (object, array, or undefined).
+   * @returns Array of XmlObject entries (may be empty).
+   */
   private toXmlObjectArray(value: unknown): XmlObject[] {
     if (Array.isArray(value)) {
       return value.filter((entry): entry is XmlObject =>
@@ -241,6 +318,12 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
     return [];
   }
 
+  /**
+   * Type guard to check if a value is a non-null, non-array object (XmlObject).
+   *
+   * @param value - Value to check.
+   * @returns `true` if the value is an XmlObject.
+   */
   private isXmlObject(value: unknown): value is XmlObject {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }

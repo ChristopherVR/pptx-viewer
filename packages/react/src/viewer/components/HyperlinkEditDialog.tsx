@@ -23,6 +23,9 @@ export type {
 } from "./hyperlink-edit-types";
 export { resolveHyperlinkEditResult } from "./hyperlink-edit-utils";
 
+/**
+ * Props for the {@link HyperlinkEditDialog} component.
+ */
 interface HyperlinkEditDialogProps {
   open: boolean;
   initialUrl?: string;
@@ -42,6 +45,19 @@ interface HyperlinkEditDialogProps {
   onCancel: () => void;
 }
 
+/**
+ * Tabbed modal dialog for creating or editing hyperlinks.
+ *
+ * Supports five target types via tabs: URL, Email, Slide, File, and
+ * Action (navigation verbs like next/previous slide). The initial tab
+ * is auto-detected from the provided `initialUrl` / `initialAction`.
+ *
+ * All field state is managed locally and emitted as a single object
+ * through `onConfirm` when the user applies the changes.
+ *
+ * @param props - {@link HyperlinkEditDialogProps}
+ * @returns The dialog element, or `null` when `open` is `false`.
+ */
 export function HyperlinkEditDialog({
   open,
   initialUrl,

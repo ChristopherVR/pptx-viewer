@@ -14,12 +14,21 @@ import { DocumentPropertiesStatisticsTab } from "./DocumentPropertiesStatisticsT
 // Types
 // ---------------------------------------------------------------------------
 
+/**
+ * Props for the {@link DocumentPropertiesDialog} component.
+ */
 export interface DocumentPropertiesDialogProps {
+  /** Whether the dialog is visible. */
   isOpen: boolean;
+  /** Core document metadata (title, author, keywords, etc.). */
   coreProperties: PptxCoreProperties;
+  /** User-defined custom properties attached to the presentation. */
   customProperties: PptxCustomProperty[];
+  /** Application-level metadata (company, version, etc.). */
   appProperties?: PptxAppProperties;
+  /** Callback invoked when the dialog is dismissed without saving. */
   onClose: () => void;
+  /** Callback invoked with updated property values when the user saves. */
   onSave: (
     core: PptxCoreProperties,
     custom: PptxCustomProperty[],
@@ -27,12 +36,14 @@ export interface DocumentPropertiesDialogProps {
   ) => void;
 }
 
+/** Identifies the active tab inside the Document Properties dialog. */
 type TabId = "summary" | "custom" | "statistics";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
+/** Field definitions for the Summary tab — maps core property keys to i18n labels. */
 const SUMMARY_FIELDS: Array<{
   key: keyof PptxCoreProperties;
   labelKey: string;
@@ -54,6 +65,20 @@ const SUMMARY_FIELDS: Array<{
 // Component
 // ---------------------------------------------------------------------------
 
+/**
+ * Tabbed modal dialog for viewing and editing document properties.
+ *
+ * Contains three tabs:
+ * - **Summary** -- core metadata fields (title, author, keywords, etc.)
+ * - **Custom** -- user-defined key/value properties
+ * - **Statistics** -- read-only app metadata plus editable company/manager
+ *
+ * Draft state is maintained locally and only committed via `onSave` when
+ * the user clicks Save. A dirty-check prevents no-op saves.
+ *
+ * @param props - {@link DocumentPropertiesDialogProps}
+ * @returns The dialog element, or `null` when `isOpen` is `false`.
+ */
 export function DocumentPropertiesDialog({
   isOpen,
   coreProperties,

@@ -1,8 +1,22 @@
 /**
  * Core preset clip-paths: basic shapes, rectangle variants, and arrows.
+ *
  * Split from the full OOXML preset geometry map for file-size compliance.
+ * Each entry maps a lowercase OOXML preset geometry name to a CSS
+ * `clip-path` value (a `polygon(...)`, `ellipse(...)`, `circle(...)`,
+ * or `inset(...)` expression). Entries with `undefined` values indicate
+ * shapes that are handled by other means (e.g. `border-radius` for
+ * rounded rectangles, or special-case rendering for cylinders).
+ *
+ * Format: `lowercaseOoxmlName: "css-clip-path-value" | undefined`
  */
 
+/**
+ * Core clip-path lookup for basic shapes, rectangle variants, and arrows.
+ *
+ * Merged into the master `PRESET_SHAPE_CLIP_PATHS` record by
+ * `preset-shape-clip-paths.ts`.
+ */
 export const CLIP_PATHS_CORE: Record<string, string | undefined> = {
   // ── Basic Shapes ──────────────────────────────────────────────────────
   rect: undefined, // no clip needed — full rectangle

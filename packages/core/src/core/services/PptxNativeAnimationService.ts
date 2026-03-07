@@ -1,3 +1,13 @@
+/**
+ * Service for parsing native OOXML animation timing trees from slide XML.
+ *
+ * Native animations follow the full OOXML timing model (ISO/IEC 29500-1 S19.5),
+ * with nested `p:par`, `p:seq`, and `p:excl` containers forming a tree of
+ * timed animation effects. This service walks that tree and extracts a flat
+ * list of {@link PptxNativeAnimation} objects suitable for playback.
+ *
+ * @module PptxNativeAnimationService
+ */
 import type {
   PptxAnimationTrigger,
   PptxNativeAnimation,
@@ -20,11 +30,34 @@ import {
   extractCommand,
 } from "./native-animation-extended-helpers";
 
+/**
+ * Interface for parsing native OOXML animation data from slide XML.
+ */
 export interface IPptxNativeAnimationService {
+  /**
+   * Parse the native OOXML timing tree from a slide XML object.
+   * @param slideXml - The full slide XML object.
+   * @returns Array of native animations, or `undefined` if no timing data exists.
+   */
   parseNativeAnimations(slideXml: XmlObject): PptxNativeAnimation[] | undefined;
 }
 
+/**
+ * Concrete implementation that recursively walks the OOXML `p:timing` tree
+ * and extracts animation effect data into a flat array.
+ */
 export class PptxNativeAnimationService implements IPptxNativeAnimationService {
+  /**
+   * Parse native OOXML animations from a slide's timing tree.
+   *
+   * Extracts the `p:timing/p:tnLst` structure, recursively walks the nested
+   * `p:par`/`p:seq`/`p:excl` containers, parses interactive sequences, and
+   * applies build list metadata to the resulting animations.
+   *
+   * @param slideXml - The full slide XML object.
+   * @returns Array of native animations, or `undefined` if the slide has no
+   *          timing data or parsing fails.
+   */
   public parseNativeAnimations(
     slideXml: XmlObject,
   ): PptxNativeAnimation[] | undefined {
@@ -54,6 +87,18 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
     }
   }
 
+  /**
+   * Recursively walk a timing tree node, extracting animation effects.
+   *
+   * At each `p:cTn` node, determines the trigger type from the nodeType
+   * attribute and start conditions, extracts motion/rotation/scale/color
+   * data, and collects sound and text-target information. Then recurses
+   * into `p:childTnLst` and direct child containers.
+   *
+   * @param node - Current XML node in the timing tree.
+   * @param animations - Mutable array to collect discovered animations.
+   * @param currentTrigger - Inherited trigger type from parent context.
+   */
   private walkTimingTree(
     node: XmlObject,
     animations: PptxNativeAnimation[],
@@ -75,6 +120,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
         ? Number.parseInt(String(cTn["@_delay"]), 10)
         : undefined;
 
+      // Determine trigger from nodeType attribute, falling back to inherited trigger
       let trigger = currentTrigger;
       if (nodeType === "afterPrevious" || nodeType === "afterPrev") {
         trigger = "afterPrevious";
@@ -86,6 +132,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
         trigger = "onHover";
       }
 
+      // Check start conditions for afterDelay triggers (positive delay value)
       const stCondList = cTn["p:stCondLst"] as XmlObject | undefined;
       if (stCondList) {
         const conditions = ensureArray(stCondList["p:cond"]);
@@ -106,8 +153,10 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
       // Preserve p:endCondLst for lossless round-trip
       const rawEndCondLst = cTn["p:endCondLst"] as XmlObject | undefined;
 
+      // Extract the target shape ID from child behavior nodes
       const targetId = extractAnimationTargetId(cTn);
       if (presetClass && targetId) {
+        // Validate preset class against known OOXML preset classes
         const validPresetClass = (
           ["entr", "exit", "emph", "path"].includes(presetClass)
             ? presetClass
@@ -148,6 +197,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
         });
       }
 
+      // Recurse into child containers (parallel, sequence, exclusive)
       const childTnList = cTn["p:childTnLst"] as XmlObject | undefined;
       if (childTnList) {
         const parallels = ensureArray(childTnList["p:par"]);
@@ -159,6 +209,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
         for (const sequence of sequences) {
           this.walkTimingTree(sequence, animations, trigger);
         }
+        // Exclusive containers: animations are mutually exclusive at runtime
         for (const excl of exclusives) {
           const exclAnims: PptxNativeAnimation[] = [];
           this.walkTimingTree(excl, exclAnims, trigger);
@@ -170,6 +221,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
       }
     }
 
+    // Also walk direct child p:par/p:seq nodes (not wrapped in p:cTn)
     const directParallels = ensureArray(node["p:par"]);
     const directSequences = ensureArray(node["p:seq"]);
     for (const parallel of directParallels) {
@@ -180,6 +232,16 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
     }
   }
 
+  /**
+   * Extract text-level animation target (character or paragraph range)
+   * from a `p:cTn` node's child animation behavior elements.
+   *
+   * Checks `p:animEffect`, `p:anim`, and `p:set` nodes for `p:spTgt/p:txEl`
+   * sub-elements that specify text-level targeting.
+   *
+   * @param cTn - The common timing node to inspect.
+   * @returns Text animation target with range info, or `undefined`.
+   */
   private extractTextTargetFromCTn(
     cTn: XmlObject,
   ): PptxTextAnimationTarget | undefined {

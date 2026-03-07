@@ -4,6 +4,8 @@ import {
   type PptxSlideTransition,
   type PptxSection,
   PptxHeaderFooter,
+  type PptxModifyVerifier,
+  type PptxPhotoAlbum,
 } from "../../types";
 
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from "./PptxHandlerRuntimeChartParsing";
@@ -203,6 +205,128 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     if (dtFmt) {
       result.dateFormat = String(dtFmt);
       result.dateTimeAuto = true;
+    }
+
+    return result;
+  }
+
+  /**
+   * Extract photo album metadata from `p:photoAlbum` in presentation XML.
+   */
+  protected extractPhotoAlbum(): PptxPhotoAlbum | undefined {
+    const pres = this.presentationData?.["p:presentation"] as
+      | XmlObject
+      | undefined;
+    if (!pres) return undefined;
+
+    const photoAlbum = pres["p:photoAlbum"] as XmlObject | undefined;
+    if (!photoAlbum) return undefined;
+
+    const result: PptxPhotoAlbum = {};
+    let hasProps = false;
+
+    const bwRaw = photoAlbum["@_bw"];
+    if (bwRaw !== undefined) {
+      result.bw = String(bwRaw) === "1" || String(bwRaw) === "true";
+      hasProps = true;
+    }
+
+    const showCaptionsRaw = photoAlbum["@_showCaptions"];
+    if (showCaptionsRaw !== undefined) {
+      result.showCaptions =
+        String(showCaptionsRaw) === "1" || String(showCaptionsRaw) === "true";
+      hasProps = true;
+    }
+
+    const layout = photoAlbum["@_layout"];
+    if (layout !== undefined) {
+      const layoutStr = String(layout).trim();
+      if (layoutStr.length > 0) {
+        result.layout = layoutStr;
+        hasProps = true;
+      }
+    }
+
+    const frame = photoAlbum["@_frame"];
+    if (frame !== undefined) {
+      const frameStr = String(frame).trim();
+      if (frameStr.length > 0) {
+        result.frame = frameStr;
+        hasProps = true;
+      }
+    }
+
+    return hasProps ? result : {};
+  }
+
+  /**
+   * Extract write-protection verifier from `p:modifyVerifier` in presentation XML.
+   */
+  protected extractModifyVerifier(): PptxModifyVerifier | undefined {
+    const pres = this.presentationData?.["p:presentation"] as
+      | XmlObject
+      | undefined;
+    if (!pres) return undefined;
+
+    const mv = pres["p:modifyVerifier"] as XmlObject | undefined;
+    if (!mv) return undefined;
+
+    const result: PptxModifyVerifier = {};
+
+    const algorithmName = mv["@_algorithmName"] ?? mv["@_algIdExt"];
+    if (algorithmName !== undefined) {
+      result.algorithmName = String(algorithmName);
+    }
+
+    const hashData = mv["@_hashData"];
+    if (hashData !== undefined) {
+      result.hashData = String(hashData);
+    }
+
+    const saltData = mv["@_saltData"];
+    if (saltData !== undefined) {
+      result.saltData = String(saltData);
+    }
+
+    const spinValue = mv["@_spinValue"] ?? mv["@_spinCount"];
+    if (spinValue !== undefined) {
+      const parsed = parseInt(String(spinValue), 10);
+      if (Number.isFinite(parsed)) {
+        result.spinValue = parsed;
+      }
+    }
+
+    const algIdExt = mv["@_algIdExt"];
+    if (algIdExt !== undefined) {
+      result.algIdExt = String(algIdExt);
+    }
+
+    const cryptAlgorithmSid = mv["@_cryptAlgorithmSid"];
+    if (cryptAlgorithmSid !== undefined) {
+      const parsed = parseInt(String(cryptAlgorithmSid), 10);
+      if (Number.isFinite(parsed)) {
+        result.cryptAlgorithmSid = parsed;
+      }
+    }
+
+    const cryptAlgorithmType = mv["@_cryptAlgorithmType"];
+    if (cryptAlgorithmType !== undefined) {
+      result.cryptAlgorithmType = String(cryptAlgorithmType);
+    }
+
+    const cryptProvider = mv["@_cryptProvider"];
+    if (cryptProvider !== undefined) {
+      result.cryptProvider = String(cryptProvider);
+    }
+
+    const cryptProviderType = mv["@_cryptProviderType"];
+    if (cryptProviderType !== undefined) {
+      result.cryptProviderType = String(cryptProviderType);
+    }
+
+    const cryptAlgorithmClass = mv["@_cryptAlgorithmClass"];
+    if (cryptAlgorithmClass !== undefined) {
+      result.cryptAlgorithmClass = String(cryptAlgorithmClass);
     }
 
     return result;

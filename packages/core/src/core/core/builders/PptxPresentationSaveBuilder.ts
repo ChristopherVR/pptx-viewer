@@ -2,6 +2,8 @@ import type { IPptxXmlLookupService } from "../../services";
 import type {
   PptxCustomShow,
   PptxHeaderFooter,
+  PptxModifyVerifier,
+  PptxPhotoAlbum,
   PptxPresentationProperties,
   PptxSection,
   XmlObject,
@@ -12,6 +14,8 @@ export interface PptxPresentationSaveBuilderOptions {
   presentationProperties?: PptxPresentationProperties;
   customShows?: PptxCustomShow[];
   sections?: PptxSection[];
+  photoAlbum?: PptxPhotoAlbum;
+  modifyVerifier?: PptxModifyVerifier | null;
 }
 
 export interface PptxPresentationSaveBuildInput {
@@ -45,6 +49,8 @@ export class PptxPresentationSaveBuilder implements IPptxPresentationSaveBuilder
       init.options?.sections,
       init.xmlLookupService,
     );
+    this.applyPhotoAlbum(presentation, init.options?.photoAlbum);
+    this.applyModifyVerifier(presentation, init.options?.modifyVerifier);
 
     init.presentationData["p:presentation"] = presentation;
     return init.presentationData;
@@ -183,5 +189,75 @@ export class PptxPresentationSaveBuilder implements IPptxPresentationSaveBuilder
 
     (presentation as Record<string, unknown>)[directSectionKey] =
       sectionListXml;
+  }
+
+  private applyPhotoAlbum(
+    presentation: XmlObject,
+    photoAlbum: PptxPhotoAlbum | undefined,
+  ): void {
+    if (!photoAlbum) return;
+    const pa: XmlObject =
+      (presentation["p:photoAlbum"] as XmlObject) || {};
+
+    if (photoAlbum.bw !== undefined) {
+      pa["@_bw"] = photoAlbum.bw ? "1" : "0";
+    }
+    if (photoAlbum.showCaptions !== undefined) {
+      pa["@_showCaptions"] = photoAlbum.showCaptions ? "1" : "0";
+    }
+    if (photoAlbum.layout !== undefined) {
+      pa["@_layout"] = photoAlbum.layout;
+    }
+    if (photoAlbum.frame !== undefined) {
+      pa["@_frame"] = photoAlbum.frame;
+    }
+
+    presentation["p:photoAlbum"] = pa;
+  }
+
+  private applyModifyVerifier(
+    presentation: XmlObject,
+    modifyVerifier: PptxModifyVerifier | null | undefined,
+  ): void {
+    // null means explicitly remove the verifier
+    if (modifyVerifier === null) {
+      delete presentation["p:modifyVerifier"];
+      return;
+    }
+    // undefined means no change — preserve whatever is in the XML tree
+    if (!modifyVerifier) return;
+
+    const mv: XmlObject = {};
+    if (modifyVerifier.algorithmName !== undefined) {
+      mv["@_algorithmName"] = modifyVerifier.algorithmName;
+    }
+    if (modifyVerifier.hashData !== undefined) {
+      mv["@_hashData"] = modifyVerifier.hashData;
+    }
+    if (modifyVerifier.saltData !== undefined) {
+      mv["@_saltData"] = modifyVerifier.saltData;
+    }
+    if (modifyVerifier.spinValue !== undefined) {
+      mv["@_spinValue"] = String(modifyVerifier.spinValue);
+    }
+    if (modifyVerifier.algIdExt !== undefined) {
+      mv["@_algIdExt"] = modifyVerifier.algIdExt;
+    }
+    if (modifyVerifier.cryptAlgorithmSid !== undefined) {
+      mv["@_cryptAlgorithmSid"] = String(modifyVerifier.cryptAlgorithmSid);
+    }
+    if (modifyVerifier.cryptAlgorithmType !== undefined) {
+      mv["@_cryptAlgorithmType"] = modifyVerifier.cryptAlgorithmType;
+    }
+    if (modifyVerifier.cryptProvider !== undefined) {
+      mv["@_cryptProvider"] = modifyVerifier.cryptProvider;
+    }
+    if (modifyVerifier.cryptProviderType !== undefined) {
+      mv["@_cryptProviderType"] = modifyVerifier.cryptProviderType;
+    }
+    if (modifyVerifier.cryptAlgorithmClass !== undefined) {
+      mv["@_cryptAlgorithmClass"] = modifyVerifier.cryptAlgorithmClass;
+    }
+    presentation["p:modifyVerifier"] = mv;
   }
 }

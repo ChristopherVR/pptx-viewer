@@ -20,6 +20,19 @@ export type { FillStrokePropertiesProps };
 // Main component
 // ---------------------------------------------------------------------------
 
+/**
+ * Inspector panel for editing the fill and stroke properties of shapes and text elements.
+ *
+ * Supports multiple fill modes (solid, gradient, pattern, image, none) and manages
+ * the transitions between them. Renders sub-sections for:
+ * - Quick style presets (for shapes/text)
+ * - Fill mode selector and color picker
+ * - Advanced gradient, pattern, and image fill controls
+ * - Stroke color, width, line join/cap, and effects
+ *
+ * @param props - {@link FillStrokePropertiesProps}
+ * @returns The fill/stroke inspector panel.
+ */
 export function FillStrokeProperties({
   selectedElement,
   selectedShapeStyle,
@@ -30,10 +43,15 @@ export function FillStrokeProperties({
   onSetFillColor,
   onSetStrokeColor,
 }: FillStrokePropertiesProps): React.ReactElement {
+  // Lines (and line-like shapes) have fill disabled since they have no area to fill
   const line = isLineish(selectedElement, selectedShapeType);
   const style = selectedShapeStyle;
 
-  // --- Fill mode change handler ----
+  /**
+   * Handles fill mode transitions. Each mode requires specific default
+   * properties to be set: gradient needs stops, pattern needs preset/background,
+   * image needs a stretch mode, and "none" sets transparent fill.
+   */
   const handleFillModeChange = (nextMode: string): void => {
     if (nextMode === "none") {
       onUpdateShapeStyle({ fillMode: "none", fillColor: "transparent" });
@@ -79,6 +97,8 @@ export function FillStrokeProperties({
     onUpdateShapeStyle({ fillMode: "solid" });
   };
 
+  // Fall back to a two-stop default gradient (primary fill color to white)
+  // when no gradient stops have been configured yet
   const gradientStops: GradientStop[] =
     selectedGradientStops.length > 0
       ? selectedGradientStops

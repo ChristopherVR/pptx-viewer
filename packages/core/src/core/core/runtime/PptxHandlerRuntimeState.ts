@@ -1,3 +1,21 @@
+/**
+ * @fileoverview Base state class for the PptxHandlerRuntime mixin chain.
+ *
+ * This file defines the root of the runtime class hierarchy. It holds all
+ * shared, mutable state — caches, ZIP handle, XML parser/builder, theme
+ * data, relationship maps, and references to injected services/builders.
+ *
+ * Every other runtime mixin file extends this class (directly or
+ * transitively) and adds methods that read from or write to these
+ * protected fields.
+ *
+ * **Design rationale**: Concentrating state in a single base class makes
+ * it easy to audit what is shared, avoids duplicated field declarations
+ * across mixins, and keeps the constructor (in
+ * {@link PptxHandlerRuntimeImplementation}) as the sole place where
+ * services are wired up.
+ */
+
 import JSZip from "jszip";
 import { XMLBuilder, XMLParser } from "fast-xml-parser";
 import {
@@ -5,6 +23,7 @@ import {
   PptxElement,
   PptxLayoutOption,
   XmlObject,
+  type PptxCustomXmlPart,
   type PptxThemeFormatScheme,
 } from "../../types";
 import { PptxElementXmlBuilder } from "../../builders/PptxElementXmlBuilder";
@@ -38,34 +57,64 @@ import {
   type IPptxTableDataParser,
 } from "../builders";
 import { type IPptxRuntimeDependencyFactory } from "../factories";
-import { SignatureDetectionResult } from "../../utils";
+import {
+  SignatureDetectionResult,
+  normalizeStrictXml,
+  detectStrictConformance,
+} from "../../utils";
 
+/**
+ * Root state class for the PptxHandlerRuntime mixin chain.
+ *
+ * Contains all protected fields that are shared across the runtime's
+ * parsing, saving, and editing methods. No business logic lives here —
+ * only field declarations, default values, and constants.
+ *
+ * Fields annotated with `!` (definite assignment) are initialised in
+ * the constructor of the final concrete class
+ * ({@link PptxHandlerRuntimeImplementation}).
+ */
 export class PptxHandlerRuntime {
+  /** The in-memory ZIP archive representing the OPC (.pptx) package. */
   protected zip!: JSZip;
 
+  /** fast-xml-parser instance used to parse XML strings into JS objects. */
   protected parser!: XMLParser;
 
+  /** fast-xml-parser builder used to serialize JS objects back to XML strings. */
   protected builder!: XMLBuilder;
 
+  /** Parsed `ppt/presentation.xml` root object. `null` before load. */
   protected presentationData: XmlObject | null = null;
 
+  /** Cached slide XML objects keyed by slide archive path (e.g. "ppt/slides/slide1.xml"). */
   protected slideMap: Map<string, XmlObject> = new Map();
 
+  /** Per-slide relationship maps: slide path -> (rId -> target path). */
   protected slideRelsMap: Map<string, Map<string, string>> = new Map();
 
+  /** Tracks relationship IDs with TargetMode="External" per slide/part path. */
+  protected externalRelsMap: Map<string, Set<string>> = new Map();
+
+  /** Cached parsed layout elements keyed by layout archive path. */
   protected layoutCache: Map<string, PptxElement[]> = new Map();
 
+  /** Cached parsed master elements keyed by master archive path. */
   protected masterCache: Map<string, PptxElement[]> = new Map();
 
+  /** Raw parsed layout XML objects keyed by layout archive path. */
   protected layoutXmlMap: Map<string, XmlObject> = new Map();
 
+  /** Raw parsed master XML objects keyed by master archive path. */
   protected masterXmlMap: Map<string, XmlObject> = new Map();
 
+  /** Placeholder defaults from layouts, keyed by layout path -> placeholder key. */
   protected layoutPlaceholderDefaultsCache: Map<
     string,
     Map<string, PlaceholderDefaults>
   > = new Map();
 
+  /** Placeholder defaults from masters, keyed by master path -> placeholder key. */
   protected masterPlaceholderDefaultsCache: Map<
     string,
     Map<string, PlaceholderDefaults>
@@ -74,15 +123,19 @@ export class PptxHandlerRuntime {
   /** Presentation-level default text style (`p:defaultTextStyle`) fallback. */
   protected presentationDefaultTextStyle: PlaceholderDefaults | undefined;
 
+  /** Cache of decoded image data URIs keyed by image archive path. */
   protected imageDataCache: Map<string, string> = new Map();
 
+  /** When true, images are decoded to base64 data URIs eagerly during load. */
   protected eagerDecodeImages = true;
 
   /** Ordered slide file paths (populated during load for action target resolution). */
   protected orderedSlidePaths: string[] = [];
 
+  /** Theme colour scheme map: scheme key (e.g. "dk1", "accent1") -> hex colour value. */
   protected themeColorMap: Record<string, string> = {};
 
+  /** Theme font map: font slot key (e.g. "mj-lt", "mn-ea") -> typeface name. */
   protected themeFontMap: Record<string, string> = {};
 
   /** Parsed format scheme from `a:fmtScheme` — fill, line and effect style matrices. */
@@ -113,68 +166,114 @@ export class PptxHandlerRuntime {
   /** Detected digital signature information (populated during load). */
   protected signatureDetection: SignatureDetectionResult | null = null;
 
+  /** Custom XML data parts parsed from `customXml/` in the OPC package. */
+  protected customXmlParts: PptxCustomXmlPart[] = [];
+
+  /** Map of comment author IDs to display names (from `ppt/commentAuthors.xml`). */
   protected commentAuthorMap: Map<string, string> = new Map();
 
+  /** Available slide layout options collected during load. */
   protected layoutOptions: PptxLayoutOption[] = [];
 
+  // ── Injected services ──────────────────────────────────────────────
+
+  /** Service for tracking and reporting compatibility warnings. */
   protected compatibilityService!: IPptxCompatibilityService;
 
+  /** Service for loading individual slides from the ZIP archive. */
   protected slideLoaderService!: IPptxSlideLoaderService;
 
+  /** Service for parsing slide transition definitions. */
   protected slideTransitionService!: IPptxSlideTransitionService;
 
+  /** Service for parsing editor-authored animation definitions. */
   protected editorAnimationService!: IPptxEditorAnimationService;
 
+  /** Service for parsing native PowerPoint animation timing XML. */
   protected nativeAnimationService!: IPptxNativeAnimationService;
 
+  /** Service for writing animation XML back into slides during save. */
   protected animationWriteService!: IPptxAnimationWriteService;
 
+  /** Service for managing template (layout/master) background colours. */
   protected templateBackgroundService!: IPptxTemplateBackgroundService;
 
+  /** Service for XML element lookups and namespace-aware queries. */
   protected xmlLookupService!: IPptxXmlLookupService;
 
+  /** Factory for creating runtime dependency instances (parser, builder, services). */
   protected dependencyFactory!: IPptxRuntimeDependencyFactory;
 
+  // ── Presentation dimensions ────────────────────────────────────────
+
+  /** Slide width in EMU as read from `p:sldSz/@_cx`. */
   protected rawSlideWidthEmu = 0;
 
+  /** Slide height in EMU as read from `p:sldSz/@_cy`. */
   protected rawSlideHeightEmu = 0;
 
+  // ── Builders and codecs ────────────────────────────────────────────
+
+  /** Builder for creating new element XML (shapes, connectors, pictures). */
   protected elementXmlBuilder!: PptxElementXmlBuilder;
 
+  /** Builder for updating `[Content_Types].xml` entries. */
   protected contentTypesBuilder!: IPptxContentTypesBuilder;
 
+  /** Updater that applies position/size/rotation transforms to element XML. */
   protected elementTransformUpdater!: IPptxElementTransformUpdater;
 
+  /** Builder that applies save-time options to the presentation XML. */
   protected presentationSaveBuilder!: IPptxPresentationSaveBuilder;
 
+  /** Reconciler that synchronises the slide list in presentation XML during save. */
   protected presentationSlidesReconciler!: IPptxPresentationSlidesReconciler;
 
+  /** Builder for slide background XML nodes. */
   protected slideBackgroundBuilder!: IPptxSlideBackgroundBuilder;
 
+  /** Writer for legacy comment parts (`ppt/comments/commentN.xml`). */
   protected slideCommentPartWriter!: IPptxSlideCommentPartWriter;
 
+  /** Builder for media relationship entries in slide .rels files. */
   protected slideMediaRelationshipBuilder!: IPptxSlideMediaRelationshipBuilder;
 
+  /** Updater for slide notes parts (`ppt/notesSlides/`). */
   protected slideNotesPartUpdater!: IPptxSlideNotesPartUpdater;
 
+  /** Factory for creating slide comment XML elements. */
   protected slideCommentsXmlFactory!: IPptxSlideCommentsXmlFactory;
 
+  /** Factory for creating comment author XML elements. */
   protected commentAuthorsXmlFactory!: IPptxCommentAuthorsXmlFactory;
 
+  /** Codec for reading/writing colour style XML (solid, gradient, pattern fills). */
   protected colorStyleCodec!: IPptxColorStyleCodec;
 
+  /** Parser for connector shape XML (`p:cxnSp`). */
   protected connectorParser!: IPptxConnectorParser;
 
+  /** Extractor for shape style properties (fill, stroke, effects). */
   protected shapeStyleExtractor!: IPptxShapeStyleExtractor;
 
+  /** Parser for table data from `a:tbl` graphic frames. */
   protected tableDataParser!: IPptxTableDataParser;
 
+  /** Parser for media data (audio/video) from graphic frames. */
   protected mediaDataParser!: IPptxMediaDataParser;
 
+  /** Parser for generic graphic frames (tables, charts, OLE, media). */
   protected graphicFrameParser!: IPptxGraphicFrameParser;
 
+  /** Updater for OPC core/app/custom document property parts. */
   protected documentPropertiesUpdater!: PptxDocumentPropertiesUpdater;
 
+  // ── Constants ──────────────────────────────────────────────────────
+
+  /**
+   * Conversion factor: English Metric Units per CSS pixel.
+   * 1 inch = 914400 EMU = 96 px, so 1 px = 9525 EMU.
+   */
   protected static EMU_PER_PX = 9525;
 
   /** URI used as the `@_uri` attribute for our custom editor-meta extension in `p:extLst`. */
@@ -184,4 +283,40 @@ export class PptxHandlerRuntime {
   /** XML namespace URI for the `fuzor:` prefix in the slide XML. */
   protected static EDITOR_META_NAMESPACE_URI =
     "http://schemas.fuzor.ai/pptx/editor-meta";
+
+  /**
+   * Whether the loaded file uses Strict Open XML conformance class.
+   * When true, all parsed XML is automatically normalized to Transitional
+   * namespace URIs so the rest of the codebase needs no changes.
+   */
+  protected isStrictOoxml = false;
+
+  /**
+   * Parse an XML string and automatically normalize Strict Open XML namespace
+   * URIs to Transitional equivalents when the loaded file uses Strict conformance.
+   *
+   * This should be used instead of `this.parser.parse()` for all XML content
+   * read from the OPC package during load, so that downstream code always sees
+   * Transitional namespace URIs regardless of the source file's conformance class.
+   */
+  protected parseXml(xmlString: string): XmlObject {
+    const parsed = this.parser.parse(xmlString) as XmlObject;
+    if (this.isStrictOoxml) {
+      normalizeStrictXml(parsed as Record<string, unknown>);
+    }
+    return parsed;
+  }
+
+  /**
+   * Detect Strict Open XML conformance from a parsed XML object and set the
+   * `isStrictOoxml` flag accordingly. Should be called once, on the first
+   * significant XML part loaded (typically `ppt/presentation.xml`).
+   */
+  protected detectAndSetStrictConformance(xmlObj: XmlObject): void {
+    if (detectStrictConformance(xmlObj as Record<string, unknown>)) {
+      this.isStrictOoxml = true;
+      // Normalize the already-parsed object in place
+      normalizeStrictXml(xmlObj as Record<string, unknown>);
+    }
+  }
 }

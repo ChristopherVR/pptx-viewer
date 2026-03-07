@@ -7,6 +7,7 @@ import {
   type BevelPresetType,
   type MaterialPresetType,
 } from "../../types";
+import { selectAlternateContentBranch as selectACBranch } from "../../utils/alternate-content";
 
 import type { BodyPropertiesResult } from "./PptxHandlerRuntimeTypes";
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from "./PptxHandlerRuntimeBulletParsing";
@@ -239,37 +240,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
   }
 
   /**
-   * Set of OOXML namespace prefixes that this editor supports for
-   * mc:AlternateContent/@_Requires selection.
-   */
-  private static readonly SUPPORTED_MC_NAMESPACES = new Set([
-    "p14", // PowerPoint 2010 extensions
-    "p15", // PowerPoint 2013 extensions
-    "a14", // Drawing 2010 extensions
-    "a16", // Drawing 2016 extensions
-    "asvg", // SVG blip extension
-  ]);
-
-  /**
    * Select the appropriate branch from an mc:AlternateContent element.
-   * Checks mc:Choice/@_Requires against supported namespaces; falls
-   * back to mc:Fallback when the required namespace is not supported.
+   * Delegates to the standalone alternate-content utility which checks
+   * mc:Choice/@_Requires against the full set of supported namespaces
+   * and handles nested AlternateContent blocks.
    */
   protected selectAlternateContentBranch(ac: XmlObject): XmlObject | undefined {
-    const choices = this.ensureArray(ac["mc:Choice"]);
-    for (const choice of choices) {
-      const requires = String(choice?.["@_Requires"] ?? "").trim();
-      if (requires.length === 0) {
-        return choice as XmlObject;
-      }
-      const requiredNamespaces = requires.split(/\s+/);
-      const allSupported = requiredNamespaces.every((ns: string) =>
-        PptxHandlerRuntime.SUPPORTED_MC_NAMESPACES.has(ns),
-      );
-      if (allSupported) {
-        return choice as XmlObject;
-      }
-    }
-    return ac["mc:Fallback"] as XmlObject | undefined;
+    return selectACBranch(ac);
   }
 }

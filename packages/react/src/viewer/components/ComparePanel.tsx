@@ -10,13 +10,23 @@ import { SlideDiffRow } from "./SlideDiffRow";
 // Props
 // ---------------------------------------------------------------------------
 
+/**
+ * Props for the {@link ComparePanel} component.
+ */
 export interface ComparePanelProps {
+  /** Whether the panel is visible. */
   isOpen: boolean;
+  /** The comparison result containing slide diffs, or `null` if none. */
   compareResult: CompareResult | null;
+  /** Current canvas dimensions used to render diff thumbnails. */
   canvasSize: CanvasSize;
+  /** Callback to close the panel. */
   onClose: () => void;
+  /** Callback to accept a single diff by its index. */
   onAcceptSlide: (diffIndex: number) => void;
+  /** Callback to reject a single diff by its index. */
   onRejectSlide: (diffIndex: number) => void;
+  /** Callback to accept all non-trivial diffs at once. */
   onAcceptAll: () => void;
 }
 
@@ -24,6 +34,17 @@ export interface ComparePanelProps {
 // Main panel
 // ---------------------------------------------------------------------------
 
+/**
+ * Side panel that displays slide-level diffs between two presentations.
+ *
+ * Users can accept or reject individual slide changes, or accept all
+ * at once. Accepted / rejected states are tracked locally via `useState`
+ * and propagated to the parent through the `onAcceptSlide` / `onRejectSlide`
+ * callbacks.
+ *
+ * @param props - {@link ComparePanelProps}
+ * @returns The rendered panel, or `null` when hidden or no result is available.
+ */
 export function ComparePanel({
   isOpen,
   compareResult,
@@ -34,9 +55,12 @@ export function ComparePanel({
   onAcceptAll,
 }: ComparePanelProps): React.ReactElement | null {
   const { t } = useTranslation();
+  /** Map of diff indices the user has accepted. */
   const [accepted, setAccepted] = useState<Record<number, boolean>>({});
+  /** Map of diff indices the user has rejected. */
   const [rejected, setRejected] = useState<Record<number, boolean>>({});
 
+  /** Accept a diff: mark it accepted, un-reject if previously rejected, then notify parent. */
   const handleAccept = useCallback(
     (index: number) => {
       setAccepted((p) => ({ ...p, [index]: true }));
@@ -50,6 +74,7 @@ export function ComparePanel({
     [onAcceptSlide],
   );
 
+  /** Reject a diff: mark it rejected, un-accept if previously accepted, then notify parent. */
   const handleReject = useCallback(
     (index: number) => {
       setRejected((p) => ({ ...p, [index]: true }));
@@ -63,6 +88,7 @@ export function ComparePanel({
     [onRejectSlide],
   );
 
+  /** Accept every non-unchanged diff in a single action. */
   const handleAcceptAll = useCallback(() => {
     if (!compareResult) return;
     const acc: Record<number, boolean> = {};

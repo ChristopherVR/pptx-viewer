@@ -1,3 +1,13 @@
+/**
+ * Geometry module barrel export.
+ *
+ * Re-exports all public APIs for shape geometry resolution, connector path
+ * generation, element transforms, preset shape clip-paths / definitions,
+ * and the OOXML DrawingML guide formula evaluator.
+ *
+ * @module geometry
+ */
+
 export {
   getShapeType,
   getShapeClipPath,

@@ -1,5 +1,15 @@
 /**
- * Action ↔ PptxAction conversion helpers for element click/hover actions.
+ * Action conversion helpers for element click/hover actions.
+ *
+ * Converts between the low-level {@link PptxAction} (which mirrors
+ * the OOXML `ppaction://` URI scheme) and the high-level
+ * {@link ElementAction} (which the editor UI works with).
+ *
+ * OOXML action URIs follow the pattern:
+ *   `ppaction://hlinksldjump`   — navigate to a specific slide
+ *   `ppaction://hlinkshowjump?jump=<verb>` — navigate first/last/next/prev/end
+ *
+ * @module element-actions
  */
 
 import type {
@@ -13,7 +23,10 @@ import type {
 // Action ↔ PptxAction conversion helpers
 // ---------------------------------------------------------------------------
 
-/** OOXML ppaction:// jump verbs mapped to ElementActionType. */
+/**
+ * Maps OOXML `hlinkshowjump` verb strings (lowercase) to their
+ * corresponding high-level {@link ElementActionType} values.
+ */
 const JUMP_VERB_MAP: Record<string, ElementActionType> = {
   nextslide: "nextSlide",
   previousslide: "prevSlide",
@@ -23,7 +36,13 @@ const JUMP_VERB_MAP: Record<string, ElementActionType> = {
 };
 
 /**
- * Derive a high-level `ElementAction` from a low-level `PptxAction`.
+ * Derive a high-level {@link ElementAction} from a low-level
+ * {@link PptxAction}. Inspects the `action` URI string to determine
+ * the action type (slide jump, show jump, or external URL).
+ *
+ * @param pptxAction - The low-level PPTX action from the XML model.
+ * @param trigger - Whether this action fires on `"click"` or `"hover"`.
+ * @returns A high-level {@link ElementAction} for the editor UI.
  */
 export function pptxActionToElementAction(
   pptxAction: PptxAction,
@@ -31,7 +50,7 @@ export function pptxActionToElementAction(
 ): ElementAction {
   const actionStr = (pptxAction.action ?? "").toLowerCase();
 
-  // Slide jump via ppaction://hlinksldjump
+  // Slide jump via ppaction://hlinksldjump — navigates to a specific slide
   if (
     actionStr.includes("hlinksldjump") &&
     typeof pptxAction.targetSlideIndex === "number"
@@ -39,7 +58,7 @@ export function pptxActionToElementAction(
     return { trigger, type: "slide", slideIndex: pptxAction.targetSlideIndex };
   }
 
-  // Show-jump verbs (ppaction://hlinkshowjump?jump=<verb>)
+  // Show-jump verbs (ppaction://hlinkshowjump?jump=<verb>) — navigational actions
   if (actionStr.includes("hlinkshowjump")) {
     for (const [verb, actionType] of Object.entries(JUMP_VERB_MAP)) {
       if (actionStr.includes(verb)) {
@@ -48,7 +67,7 @@ export function pptxActionToElementAction(
     }
   }
 
-  // External URL
+  // External URL (only when not a slide jump to avoid false positives)
   if (pptxAction.url && !actionStr.includes("hlinksldjump")) {
     return { trigger, type: "url", url: pptxAction.url };
   }
@@ -57,8 +76,13 @@ export function pptxActionToElementAction(
 }
 
 /**
- * Convert a high-level `ElementAction` to a low-level `PptxAction`.
- * Returns `undefined` when the action type is `'none'`.
+ * Convert a high-level {@link ElementAction} back to a low-level
+ * {@link PptxAction} for serialisation into OOXML.
+ *
+ * Returns `undefined` when the action type is `"none"` (no action configured).
+ *
+ * @param ea - The high-level element action.
+ * @returns A {@link PptxAction} for XML serialisation, or `undefined`.
  */
 export function elementActionToPptxAction(
   ea: ElementAction,
@@ -98,7 +122,11 @@ export function elementActionToPptxAction(
 }
 
 /**
- * Check if an element has any configured action (click or hover).
+ * Check if an element has any configured interactive action
+ * (either click or hover).
+ *
+ * @param element - The element to check.
+ * @returns `true` if the element has a click or hover action.
  */
 export function elementHasAction(element: PptxElement): boolean {
   return Boolean(element.actionClick || element.actionHover);

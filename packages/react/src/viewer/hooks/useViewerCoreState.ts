@@ -1,9 +1,17 @@
 /**
  * useViewerCoreState — Core state declarations for PowerPointViewer.
  *
- * Contains refs and core useState values. Derived state is computed by
- * useDerivedElementState; types live in viewer-core-state-types.
- * UI panel state lives in useViewerUIState.
+ * This hook owns every piece of "document-level" React state: slides,
+ * elements, selection, canvas dimensions, presentation metadata
+ * (masters, theme, sections, custom shows, etc.), and the mutable refs
+ * used by pointer-interaction handlers.
+ *
+ * Derived values (activeSlide, elementLookup, selectedElement, master view
+ * elements) are computed by {@link useDerivedElementState} and spread into
+ * the return value. Type definitions live in `viewer-core-state-types.ts`.
+ * UI panel state lives in {@link useViewerUIState}.
+ *
+ * @module useViewerCoreState
  */
 import { useRef, useState } from "react";
 
@@ -52,16 +60,34 @@ export type {
 /*  Hook                                                              */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Initializes and returns the core viewer state (refs, useState values,
+ * and derived element/master state).
+ *
+ * @param _input - Content and edit-mode flag (used by upstream wiring; the
+ *   hook itself does not consume them directly — they flow through
+ *   useContentLifecycle).
+ * @returns A {@link ViewerCoreState} object containing every ref, state
+ *   value, setter, and derived field.
+ */
 export function useViewerCoreState(
   _input: UseViewerCoreStateInput,
 ): ViewerCoreState {
   // ── Refs ──────────────────────────────────────────────────────────
+  // Stable refs that persist across renders without causing re-renders.
+
+  /** Root container div — used for ResizeObserver, focus management, and coordinate calculations. */
   const containerRef = useRef<HTMLDivElement>(null);
+  /** Hidden file input for image insertion. */
   const imageInputRef = useRef<HTMLInputElement>(null);
+  /** Hidden file input for media (audio/video) insertion. */
   const mediaInputRef = useRef<HTMLInputElement>(null);
+  /** Mirror of activeSlideIndex for use in event handlers to avoid stale closures. */
   const activeSlideIndexRef = useRef(0);
 
-  // Pointer interaction refs
+  // Pointer interaction refs — mutable refs used by pointer-move/up handlers
+  // to track ongoing drag, resize, adjustment, and marquee operations without
+  // triggering React re-renders on every mousemove event.
   const dragStateRef = useRef<DragState | null>(null);
   const resizeStateRef = useRef<ResizeState | null>(null);
   const shapeAdjustmentDragStateRef = useRef<ShapeAdjustmentDragState | null>(

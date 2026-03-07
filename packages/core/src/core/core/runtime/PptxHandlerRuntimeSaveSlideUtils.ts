@@ -82,6 +82,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
     const relsData = this.parser.parse(relsXml);
     const relsMap = new Map<string, string>();
+    const externalIds = new Set<string>();
 
     if (relsData?.Relationships?.Relationship) {
       const rels = Array.isArray(relsData.Relationships.Relationship)
@@ -90,12 +91,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
       rels.forEach((r: XmlObject) => {
         if (r["@_Id"] && r["@_Target"]) {
-          relsMap.set(String(r["@_Id"]), String(r["@_Target"]));
+          const relId = String(r["@_Id"]);
+          relsMap.set(relId, String(r["@_Target"]));
+          if (String(r["@_TargetMode"] || "").toLowerCase() === "external") {
+            externalIds.add(relId);
+          }
         }
       });
     }
 
     this.slideRelsMap.set(slidePath, relsMap);
+    if (externalIds.size > 0) {
+      this.externalRelsMap.set(slidePath, externalIds);
+    }
   }
 
   protected async reconcilePresentationSlidesForSave(params: {

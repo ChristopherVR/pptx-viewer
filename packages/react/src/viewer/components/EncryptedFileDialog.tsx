@@ -6,8 +6,13 @@ import { useTranslation } from "react-i18next";
 // Types
 // ---------------------------------------------------------------------------
 
+/**
+ * Props for the {@link EncryptedFileDialog} component.
+ */
 export interface EncryptedFileDialogProps {
+  /** Whether the dialog is visible. */
   isOpen: boolean;
+  /** Callback invoked when the user dismisses the dialog. */
   onClose: () => void;
 }
 
@@ -15,6 +20,15 @@ export interface EncryptedFileDialogProps {
 // Component
 // ---------------------------------------------------------------------------
 
+/**
+ * Modal dialog shown when the viewer detects an encrypted PPTX file.
+ *
+ * Displays a prominent warning explaining that the file is encrypted
+ * and cannot be opened, along with instructions for the user.
+ *
+ * @param props - {@link EncryptedFileDialogProps}
+ * @returns The dialog element, or `null` when `isOpen` is `false`.
+ */
 export function EncryptedFileDialog({
   isOpen,
   onClose,

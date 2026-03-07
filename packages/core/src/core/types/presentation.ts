@@ -33,6 +33,24 @@ import type {
 import type { ParsedTableStyleMap } from "./table";
 
 /**
+ * A customer data reference from `p:custDataLst / p:custData`.
+ *
+ * Enterprise add-ins and integrations store custom data parts in the
+ * package and reference them via relationship IDs in the slide or
+ * presentation XML.
+ *
+ * @see ECMA-376 Part 1, §19.2.1.3 (custDataLst), §19.3.1.6 (custData)
+ */
+export interface PptxCustomerData {
+  /** Resolved part path inside the package (e.g. `ppt/customerData/item1.xml`). */
+  id: string;
+  /** Relationship ID referencing the custom data part. */
+  relId: string;
+  /** Raw string content of the custom data part (if resolvable). */
+  data?: string;
+}
+
+/**
  * A single slide in a parsed PPTX presentation.
  *
  * Contains the element tree, background settings, notes, comments,
@@ -87,6 +105,8 @@ export interface PptxSlide {
   guides?: PptxDrawingGuide[];
   /** When explicitly `false`, the slide is unmodified and save can skip re-serialization. */
   isDirty?: boolean;
+  /** Customer data references from `p:custDataLst` on this slide. */
+  customerData?: PptxCustomerData[];
 }
 
 /**
@@ -241,6 +261,65 @@ export interface PptxSection {
 }
 
 /**
+ * Write-protection hash data parsed from `p:modifyVerifier` in `presentation.xml`.
+ *
+ * When present, the presentation is marked as "read-only recommended" or
+ * write-protected with a password hash.  The hash parameters follow the
+ * ECMA-376 Part 1, section 19.2.1.22 specification.
+ *
+ * @example
+ * ```ts
+ * const verifier: PptxModifyVerifier = {
+ *   algorithmName: "SHA-512",
+ *   hashData: "base64EncodedHash==",
+ *   saltData: "base64EncodedSalt==",
+ *   spinValue: 100000,
+ * };
+ * // => satisfies PptxModifyVerifier
+ * ```
+ */
+export interface PptxModifyVerifier {
+  /** Hash algorithm name (e.g. "SHA-512", "SHA-1"). */
+  algorithmName?: string;
+  /** Base64-encoded hash value. */
+  hashData?: string;
+  /** Base64-encoded salt value. */
+  saltData?: string;
+  /** Number of hash iterations (spin count). */
+  spinValue?: number;
+  /** Legacy algorithm ID extension. */
+  algIdExt?: string;
+  /** Legacy algorithm ID. */
+  cryptAlgorithmSid?: number;
+  /** Cryptographic algorithm type (e.g. "typeAny"). */
+  cryptAlgorithmType?: string;
+  /** Cryptographic provider name. */
+  cryptProvider?: string;
+  /** Cryptographic provider type (e.g. "providerTypeRsaFull"). */
+  cryptProviderType?: string;
+  /** Cryptographic algorithm class (e.g. "hash"). */
+  cryptAlgorithmClass?: string;
+}
+
+/**
+ * Photo album metadata from `p:photoAlbum` in `presentation.xml`.
+ *
+ * Stores settings for presentations created via Insert > Photo Album.
+ *
+ * @see ECMA-376 Part 1, §19.2.1.27
+ */
+export interface PptxPhotoAlbum {
+  /** Whether photos are displayed in black-and-white. */
+  bw?: boolean;
+  /** Whether captions are shown below each photo. */
+  showCaptions?: boolean;
+  /** Photo album layout (e.g. "1pic", "2pic", "4pic", "fitToSlide"). */
+  layout?: string;
+  /** Frame style applied to each photo (e.g. "frameStyle1"). */
+  frame?: string;
+}
+
+/**
  * Root data structure returned by {@link PptxHandlerCore.load}.
  *
  * Contains every slide, canvas dimensions, theme data, layout options,
@@ -313,6 +392,14 @@ export interface PptxData {
   presentationGuides?: PptxDrawingGuide[];
   /** View properties from `ppt/viewProps.xml`. */
   viewProperties?: PptxViewProperties;
+  /** Write-protection verifier from `p:modifyVerifier` in `presentation.xml`. */
+  modifyVerifier?: PptxModifyVerifier;
+  /** Photo album metadata from `p:photoAlbum` in `presentation.xml`. */
+  photoAlbum?: PptxPhotoAlbum;
+  /** Custom XML data parts from `customXml/` in the OPC package. */
+  customXmlParts?: PptxCustomXmlPart[];
+  /** Customer data references from `p:custDataLst` in `presentation.xml`. */
+  customerData?: PptxCustomerData[];
 }
 
 // ==========================================================================
@@ -368,6 +455,25 @@ export interface PptxExportOptions {
  * // => satisfies PptxEmbeddedFont
  * ```
  */
+/**
+ * A single Custom XML Data Part stored in `customXml/` within the OPC package.
+ *
+ * These parts are used by add-ins, data-binding, and enterprise templates
+ * to store structured data alongside the presentation.
+ *
+ * @see ECMA-376 Part 1, §15.2.5
+ */
+export interface PptxCustomXmlPart {
+  /** Item number (e.g. "1" for `customXml/item1.xml`). */
+  id: string;
+  /** Raw XML string content of the custom XML item. */
+  data: string;
+  /** Schema target namespace URI from `itemProps` (ds:schemaRef/@ds:uri). */
+  schemaUri?: string;
+  /** Raw XML string content of the associated `itemProps` file. */
+  properties?: string;
+}
+
 export interface PptxEmbeddedFont {
   name: string;
   dataUrl: string;

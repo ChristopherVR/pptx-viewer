@@ -6,13 +6,27 @@ import type {
   PptxBuilderFactoryContext,
 } from "./types";
 
+/**
+ * Factory that produces OpenXML `p:pic` (picture) XML objects.
+ *
+ * Generates picture XML including:
+ * - `p:nvPicPr` with a unique ID
+ * - `p:blipFill` referencing the image via an `r:embed` relationship
+ * - `p:spPr` with transform and rectangular preset geometry
+ */
 export class PictureXmlFactory implements IPictureXmlFactory {
   private readonly context: PptxBuilderFactoryContext;
 
+  /** @param context - Shared factory context providing ID generation and unit conversion. */
   public constructor(context: PptxBuilderFactoryContext) {
     this.context = context;
   }
 
+  /**
+   * Create a `p:pic` XML object from a picture element model.
+   * @param init - Initialization data containing the image element and its relationship ID.
+   * @returns A complete OpenXML picture XML object.
+   */
   public createXmlElement(init: PictureXmlFactoryInit): XmlObject {
     const { element, relationshipId } = init;
     const pictureId = this.context.getNextId();

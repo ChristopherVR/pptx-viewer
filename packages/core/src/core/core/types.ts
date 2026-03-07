@@ -11,7 +11,9 @@ import type {
   PptxLayoutOption,
   PptxData,
   PptxHeaderFooter,
+  PptxModifyVerifier,
   PptxNotesMaster,
+  PptxPhotoAlbum,
   PptxPresentationProperties,
   PptxSection,
   PptxSlide,
@@ -44,6 +46,10 @@ export interface PptxHandlerSaveOptions {
   handoutMaster?: PptxHandoutMaster;
   /** Updated tag collections to save back to ppt/tags/tag*.xml. */
   tags?: PptxTagCollection[];
+  /** Photo album metadata to save back to `p:photoAlbum`. */
+  photoAlbum?: PptxPhotoAlbum;
+  /** Write-protection verifier. Set to `null` to remove, `undefined` to preserve existing. */
+  modifyVerifier?: PptxModifyVerifier | null;
   /** View properties to save back to ppt/viewProps.xml. */
   viewProperties?: PptxViewProperties;
   /**

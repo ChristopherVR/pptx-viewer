@@ -6,6 +6,19 @@ import type { CommentsTabProps } from "./CommentsTabHelpers";
 
 export type { CommentsTabProps };
 
+/**
+ * Comments tab panel for viewing and managing slide-level comments.
+ *
+ * Displays all comments on the active slide in a scrollable list, with support
+ * for editing, replying, resolving, and deleting individual comments. When editing
+ * is enabled, an "Add comment" form is shown at the bottom, optionally anchored
+ * to the currently selected element.
+ *
+ * Shows an empty-state message when no slide is selected or no comments exist.
+ *
+ * @param props - {@link CommentsTabProps}
+ * @returns The comments tab panel.
+ */
 export function CommentsTab({
   slides,
   activeSlideIndex,

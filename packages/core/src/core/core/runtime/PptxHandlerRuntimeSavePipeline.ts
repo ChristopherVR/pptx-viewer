@@ -118,6 +118,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
           presentationProperties: options?.presentationProperties,
           customShows: options?.customShows,
           sections: options?.sections,
+          photoAlbum: options?.photoAlbum,
+          modifyVerifier: options?.modifyVerifier,
         },
         rawSlideWidthEmu: this.rawSlideWidthEmu,
         rawSlideHeightEmu: this.rawSlideHeightEmu,
@@ -140,6 +142,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     await this.applyHandoutMasterChanges(options?.handoutMaster);
     await this.processPendingChartUpdates();
     await this.processPendingSmartArtUpdates();
+    this.applyCustomXmlPartsPreservation();
     await this.applyVbaProjectPreservation();
     await this.stripDigitalSignatures();
 

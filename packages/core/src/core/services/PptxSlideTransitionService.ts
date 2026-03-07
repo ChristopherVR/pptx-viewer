@@ -1,3 +1,12 @@
+/**
+ * Service for parsing and building OOXML slide transition XML.
+ *
+ * Handles both standard OOXML transitions (fade, push, wipe, etc.) and
+ * Office 2010+ (p14 namespace) extended transitions (conveyor, doors,
+ * prism, etc.) stored in extension lists.
+ *
+ * @module PptxSlideTransitionService
+ */
 import type {
   PptxSlideTransition,
   PptxSplitOrientation,
@@ -11,6 +20,7 @@ import {
   P14_TRANSITION_TYPES,
 } from "./p14-transition-parser";
 
+/** Set of standard OOXML slide transition type names (ISO/IEC 29500-1). */
 const TRANSITION_TYPES: Set<string> = new Set([
   "fade",
   "push",
@@ -37,20 +47,45 @@ const TRANSITION_TYPES: Set<string> = new Set([
   "morph",
 ]);
 
+/**
+ * Configuration options for creating a {@link PptxSlideTransitionService}.
+ */
 export interface PptxSlideTransitionServiceOptions {
+  /** Service for namespace-aware XML child lookups. */
   xmlLookupService: IPptxXmlLookupService;
+  /** Utility to extract the local name portion from a namespaced XML key. */
   getXmlLocalName: (xmlKey: string) => string;
 }
 
+/**
+ * Interface for parsing and building slide transition XML.
+ */
 export interface IPptxSlideTransitionService {
+  /**
+   * Parse the `p:transition` element from a slide's XML.
+   * @param slideXml - The full slide XML object.
+   * @returns Parsed transition data, or `undefined` if no transition is defined.
+   */
   parseSlideTransition(
     slideXml: XmlObject | undefined,
   ): PptxSlideTransition | undefined;
+  /**
+   * Build a `p:transition` XML object from transition data.
+   * @param transition - Transition configuration to serialize.
+   * @returns XML object suitable for writing, or `undefined` for "none" transitions.
+   */
   buildSlideTransitionXml(
     transition: PptxSlideTransition,
   ): XmlObject | undefined;
 }
 
+/**
+ * Concrete service for parsing slide transition XML from OOXML presentations
+ * and serializing transition data back to XML.
+ *
+ * Supports both standard transitions and p14 (Office 2010+) extended
+ * transitions stored in extension lists.
+ */
 export class PptxSlideTransitionService implements IPptxSlideTransitionService {
   private readonly xmlLookupService: IPptxXmlLookupService;
 

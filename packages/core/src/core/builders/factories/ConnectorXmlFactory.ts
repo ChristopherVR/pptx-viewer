@@ -6,21 +6,38 @@ import type {
   PptxBuilderFactoryContext,
 } from "./types";
 
+/**
+ * Factory that produces OpenXML `p:cxnSp` (connection shape) XML objects.
+ *
+ * Generates the full connector shape tree including:
+ * - `p:nvCxnSpPr` (non-visual properties with unique ID)
+ * - `p:spPr` (shape properties with transform, geometry, and line style)
+ * - Start/end connection bindings (`a:stCxn` / `a:endCxn`)
+ * - Stroke color, width, dash pattern, and arrowheads
+ */
 export class ConnectorXmlFactory implements IConnectorXmlFactory {
   private readonly context: PptxBuilderFactoryContext;
 
+  /** @param context - Shared factory context providing ID generation and unit conversion. */
   public constructor(context: PptxBuilderFactoryContext) {
     this.context = context;
   }
 
+  /**
+   * Create a `p:cxnSp` XML object from a connector element model.
+   * @param init - Initialization data containing the connector element.
+   * @returns A complete OpenXML connector shape XML object.
+   */
   public createXmlElement(init: ConnectorXmlFactoryInit): XmlObject {
     const { element } = init;
+    // Default to straightConnector1 for line-type connectors; otherwise normalize geometry
     const geometry =
       element.shapeType && element.shapeType !== "line"
         ? this.context.normalizePresetGeometry(element.shapeType)
         : "straightConnector1";
     const strokeColor = element.shapeStyle?.strokeColor || "#1F2937";
     const strokeWidth = Math.max(1, element.shapeStyle?.strokeWidth || 1);
+    // Build the a:ln (line) node with width in EMU
     const lineNode: XmlObject = {
       "@_w": String(Math.round(strokeWidth * this.context.emuPerPx)),
     };
@@ -83,6 +100,7 @@ export class ConnectorXmlFactory implements IConnectorXmlFactory {
       };
     }
 
+    // Build connection site references (a:stCxn / a:endCxn) on the cNvCxnSpPr node
     const cNvCxnSpPr: XmlObject = {};
     if (element.shapeStyle?.connectorStartConnection?.shapeId) {
       cNvCxnSpPr["a:stCxn"] = {

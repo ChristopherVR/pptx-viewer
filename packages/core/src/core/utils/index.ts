@@ -128,3 +128,24 @@ export {
   switchSmartArtLayout,
   isSwitchableLayoutType,
 } from "./smartart-layout-switch";
+
+export {
+  selectAlternateContentBranch,
+  unwrapAlternateContent,
+  areNamespacesSupported,
+  isNamespaceSupported,
+  getSupportedNamespaces,
+} from "./alternate-content";
+
+export {
+  normalizeNamespaceUri,
+  isStrictNamespaceUri,
+  detectStrictConformance,
+  normalizeStrictXml,
+} from "./strict-namespace-map";
+
+export {
+  VML_SHAPE_TAGS,
+  parseVmlElement,
+  parseVmlElements,
+} from "./vml-parser";

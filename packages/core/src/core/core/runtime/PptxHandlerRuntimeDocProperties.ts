@@ -3,6 +3,7 @@ import {
   type PptxAppProperties,
   type PptxCoreProperties,
   type PptxCustomProperty,
+  type PptxCustomerData,
   type PptxTag,
   type PptxTagCollection,
 } from "../../types";
@@ -228,6 +229,124 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       console.warn("Failed to parse custom properties:", e);
     }
     return results;
+  }
+
+  /**
+   * Resolve a relative target path against the directory of a source part.
+   */
+  private resolvePartPath(sourcePart: string, relativeTarget: string): string {
+    if (relativeTarget.startsWith("/")) return relativeTarget.substring(1);
+    const dir = sourcePart.substring(0, sourcePart.lastIndexOf("/") + 1);
+    return dir + relativeTarget;
+  }
+
+  /**
+   * Parse `p:custDataLst` entries from a given XML container node and resolve
+   * their relationship targets + data content from the ZIP.
+   *
+   * @param containerNode - The XML node that may contain `p:custDataLst`.
+   * @param relsPath - Path to the `.rels` file for resolving relationship IDs.
+   * @param partPath - The owning part path (used to resolve relative targets).
+   */
+  protected async parseCustDataLst(
+    containerNode: XmlObject | undefined,
+    relsPath: string,
+    partPath: string,
+  ): Promise<PptxCustomerData[]> {
+    if (!containerNode) return [];
+    const custDataLst = containerNode["p:custDataLst"] as
+      | XmlObject
+      | undefined;
+    if (!custDataLst) return [];
+
+    const custDataEntries = this.ensureArray(
+      custDataLst["p:custData"],
+    ) as XmlObject[];
+    if (custDataEntries.length === 0) return [];
+
+    // Load the relationships file to resolve r:id targets
+    const relsFile = this.zip.file(relsPath);
+    if (!relsFile) return [];
+
+    const relsXml = await relsFile.async("string");
+    const relsData = this.parser.parse(relsXml) as XmlObject;
+    const relRoot = (relsData["Relationships"] || {}) as XmlObject;
+    const relationships = this.ensureArray(
+      relRoot["Relationship"],
+    ) as XmlObject[];
+
+    const relMap = new Map<string, string>();
+    for (const rel of relationships) {
+      const id = String(rel["@_Id"] || "").trim();
+      const target = String(rel["@_Target"] || "").trim();
+      if (id && target) relMap.set(id, target);
+    }
+
+    const results: PptxCustomerData[] = [];
+    for (const entry of custDataEntries) {
+      const relId = String(entry["@_r:id"] || "").trim();
+      if (!relId) continue;
+
+      const target = relMap.get(relId);
+      if (!target) continue;
+
+      const resolvedPath = this.resolvePartPath(partPath, target);
+
+      let data: string | undefined;
+      try {
+        const file = this.zip.file(resolvedPath);
+        if (file) {
+          data = await file.async("string");
+        }
+      } catch {
+        // Non-critical — data may not be resolvable
+      }
+
+      results.push({ id: resolvedPath, relId, data });
+    }
+
+    return results;
+  }
+
+  /**
+   * Parse presentation-level customer data from `p:custDataLst` in
+   * `presentation.xml`.
+   */
+  protected async parsePresentationCustomerData(): Promise<
+    PptxCustomerData[]
+  > {
+    try {
+      const presentation = this.presentationData?.["p:presentation"] as
+        | XmlObject
+        | undefined;
+      return await this.parseCustDataLst(
+        presentation,
+        "ppt/_rels/presentation.xml.rels",
+        "ppt/presentation.xml",
+      );
+    } catch (e) {
+      console.warn("Failed to parse presentation customer data:", e);
+      return [];
+    }
+  }
+
+  /**
+   * Parse slide-level customer data from `p:custDataLst` within `p:cSld`.
+   */
+  protected async parseSlideCustomerData(
+    slideXml: XmlObject,
+    slidePath: string,
+  ): Promise<PptxCustomerData[]> {
+    try {
+      const sld = slideXml["p:sld"] as XmlObject | undefined;
+      const cSld = sld?.["p:cSld"] as XmlObject | undefined;
+      const relsPath =
+        slidePath.replace("slides/", "slides/_rels/") + ".rels";
+      return await this.parseCustDataLst(cSld, relsPath, slidePath);
+    } catch (e) {
+      console.warn(`Failed to parse slide customer data for ${slidePath}:`, e);
+      return [];
+    }
   }
 
   /**

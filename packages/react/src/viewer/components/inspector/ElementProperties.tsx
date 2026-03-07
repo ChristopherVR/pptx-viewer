@@ -15,20 +15,35 @@ import { ShapeTypeSection } from "./ShapeTypeSection";
 import { ConnectorArrowsSection } from "./ConnectorArrowsSection";
 import { ImageCropSection } from "./ImageCropSection";
 
+/**
+ * Props for the {@link ElementProperties} component.
+ */
 interface ElementPropertiesProps {
+  /** The currently selected element whose properties are being edited. */
   selectedElement: PptxElement;
+  /** Resolved shape type (e.g. "rect", "roundRect") or undefined if not a shape. */
   selectedShapeType: string | undefined;
+  /** Current shape style (fill, stroke, etc.) of the selected element. */
   selectedShapeStyle: ShapeStyle | undefined;
+  /** Whether the element belongs to a layout or master template (restricts editing). */
   selectedElementIsTemplate: boolean;
+  /** Whether the element is an image or picture type. */
   selectedElementIsImage: boolean;
+  /** Whether editing is permitted in the current mode. */
   canEdit: boolean;
+  /** Callback to apply partial updates to the selected element. */
   onUpdateElement: (updates: Partial<PptxElement>) => void;
+  /** Callback to apply partial updates to the element's shape style. */
   onUpdateShapeStyle: (updates: Partial<ShapeStyle>) => void;
+  /** Callback to move the element forward or backward in the z-order stack. */
   onMoveLayer: (direction: "forward" | "backward") => void;
+  /** Callback to open the image picker dialog for replacing images. */
   onOpenImagePicker: () => void;
+  /** Marks the presentation as dirty (unsaved changes). */
   markDirty: () => void;
 }
 
+/** Label/field-key tuples for position and size numeric inputs. */
 const POS_SIZE_FIELDS = [
   ["X", "x"],
   ["Y", "y"],
@@ -36,6 +51,16 @@ const POS_SIZE_FIELDS = [
   ["Height", "height"],
 ] as const;
 
+/**
+ * Displays and edits core element properties: identity, shape type, position,
+ * size, rotation, flip toggles, layer ordering, connector arrows, and image cropping.
+ *
+ * This is the primary property panel shown when a single element is selected
+ * on the slide canvas.
+ *
+ * @param props - {@link ElementPropertiesProps}
+ * @returns The element properties inspector panel.
+ */
 export function ElementProperties({
   selectedElement,
   selectedShapeType,
@@ -48,12 +73,17 @@ export function ElementProperties({
   onOpenImagePicker,
   markDirty,
 }: ElementPropertiesProps): React.ReactElement {
+  // Template elements (from layout/master slides) cannot be mutated in normal editing mode
   const canMutate = canEdit && !selectedElementIsTemplate;
   const elType = selectedElement.type;
   const shapeType = hasShapeProperties(selectedElement)
     ? selectedElement.shapeType
     : undefined;
 
+  /**
+   * Applies an updater function to the element, stripping the `id` before
+   * dispatching the update so the element identity is preserved.
+   */
   const updateElement = (updater: (el: PptxElement) => PptxElement): void => {
     const updated = updater(selectedElement);
     if (updated !== selectedElement) {
@@ -63,6 +93,11 @@ export function ElementProperties({
     }
   };
 
+  /**
+   * Handles shape type dropdown changes. For connectors, simply updates the
+   * shapeType. For shapes/text, also adjusts fill defaults and shape
+   * adjustments (e.g. corner radius for roundRect, depth for cylinder/can).
+   */
   const handleShapeTypeChange = (
     event: React.ChangeEvent<HTMLSelectElement>,
   ): void => {
@@ -76,6 +111,8 @@ export function ElementProperties({
       ? { ...(selectedElement.shapeAdjustments || {}) }
       : {};
     const isLine = next === "line";
+    // Set default shape adjustment values: roundRect gets corner radius (16667 EMU),
+    // cylinder/can get depth (25000 EMU). Other shapes clear adjustments.
     const adj =
       next === "roundRect"
         ? {

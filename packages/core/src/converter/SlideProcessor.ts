@@ -7,40 +7,86 @@ import {
 	ElementProcessorRegistry,
 } from './elements/ElementProcessor';
 
+/**
+ * Lightweight shape mirroring the native animation fields used during
+ * markdown rendering. Avoids importing the full animation type from core.
+ */
 interface NativeAnimationLike {
+	/** Target element ID for the animation. */
 	targetId?: string;
+	/** Trigger type (e.g. `"onClick"`, `"afterPrevious"`). */
 	trigger?: string;
+	/** Animation preset class: `"entr"`, `"exit"`, `"emph"`, or `"path"`. */
 	presetClass?: string;
+	/** Numeric preset identifier within the class. */
 	presetId?: number;
+	/** Duration of the animation in milliseconds. */
 	durationMs?: number;
+	/** Delay before the animation starts in milliseconds. */
 	delayMs?: number;
+	/** SVG-like motion path string for path animations. */
 	motionPath?: string;
+	/** Rotation amount in degrees (for spin animations). */
 	rotationBy?: number;
+	/** Number of times the animation repeats. */
 	repeatCount?: number;
+	/** Whether the animation reverses after playing forward. */
 	autoReverse?: boolean;
+	/** Text build type (e.g. `"byParagraph"`). */
 	buildType?: string;
 }
 
+/**
+ * Represents a compatibility warning surfaced during slide parsing.
+ */
 interface CompatibilityWarningLike {
+	/** Human-readable warning message. */
 	message: string;
+	/** Severity level of the warning. */
 	severity: 'info' | 'warning';
 }
 
+/**
+ * Options controlling how a single slide is processed into Markdown.
+ */
 export interface SlideProcessorOptions {
+	/** Whether to include speaker notes below the slide content. */
 	includeSpeakerNotes: boolean;
+	/** Slide canvas width in CSS pixels (used for layout positioning). */
 	slideWidth: number;
+	/** Slide canvas height in CSS pixels (used for layout positioning). */
 	slideHeight: number;
 	/** When true, emit clean semantic markdown instead of positioned HTML. */
 	semanticMode?: boolean;
 }
 
+/**
+ * Converts a single {@link PptxSlide} into a Markdown section.
+ *
+ * Handles element sorting, layout (semantic vs. positioned HTML),
+ * background images, animations, comments, warnings, and speaker notes.
+ * Individual element types are delegated to the {@link ElementProcessorRegistry}.
+ */
 export class SlideProcessor {
+	/**
+	 * @param registry - Registry of element-type processors.
+	 * @param mediaContext - Shared media extraction context.
+	 * @param textRenderer - Renderer for rich-text segments.
+	 */
 	public constructor(
 		private readonly registry: ElementProcessorRegistry,
 		private readonly mediaContext: MediaContext,
 		private readonly textRenderer: TextSegmentRenderer
 	) {}
 
+	/**
+	 * Processes a slide into a complete Markdown section including heading,
+	 * element content, animations, warnings, comments, and speaker notes.
+	 *
+	 * @param slide - The slide to convert.
+	 * @param options - Processing options (notes, dimensions, semantic mode).
+	 * @returns The Markdown representation of the slide.
+	 */
 	public async processSlide(
 		slide: PptxSlide,
 		options: SlideProcessorOptions
@@ -121,6 +167,14 @@ export class SlideProcessor {
 		return parts.join('\n\n');
 	}
 
+	/**
+	 * Builds the Markdown heading line for a slide, including its number,
+	 * detected title text, and flags (hidden, layout name).
+	 *
+	 * @param slide - The slide being processed.
+	 * @param title - Optional detected title text for the slide.
+	 * @returns A level-2 Markdown heading string.
+	 */
 	private buildHeading(slide: PptxSlide, title?: string): string {
 		const flags: string[] = [];
 		if (slide.hidden) flags.push('hidden');
@@ -154,6 +208,14 @@ export class SlideProcessor {
 		}
 	}
 
+	/**
+	 * Attempts to detect the slide's title by first looking for placeholder
+	 * elements of type `title`, `ctrTitle`, or `subTitle`, then falling back
+	 * to the first text element in reading order. Truncates to 120 characters.
+	 *
+	 * @param slide - The slide whose title to detect.
+	 * @returns The detected title text, or `undefined` if none found.
+	 */
 	private detectTitle(slide: PptxSlide): string | undefined {
 		// First pass: look for placeholder types that indicate a title
 		for (const element of slide.elements) {
@@ -186,6 +248,14 @@ export class SlideProcessor {
 		return undefined;
 	}
 
+	/**
+	 * Extracts the placeholder type from an element, if present.
+	 * Uses an unsafe cast since `placeholderType` is not part of the
+	 * base `PptxElement` union discriminant.
+	 *
+	 * @param element - The element to inspect.
+	 * @returns The placeholder type string, or `undefined`.
+	 */
 	private getPlaceholderType(element: PptxElement): string | undefined {
 		const el = element as unknown as { placeholderType?: string };
 		return el.placeholderType;
@@ -279,6 +349,14 @@ export class SlideProcessor {
 		return [container];
 	}
 
+	/**
+	 * Sorts elements into natural reading order: top-to-bottom first,
+	 * then left-to-right for elements at roughly the same vertical position.
+	 * Elements within 8px vertical distance are treated as same-row.
+	 *
+	 * @param elements - The elements to sort (not mutated; a copy is returned).
+	 * @returns A new array sorted in reading order.
+	 */
 	private sortElementsByReadingOrder(elements: PptxElement[]): PptxElement[] {
 		return [...elements].sort((left, right) => {
 			const yDistance = (left.y ?? 0) - (right.y ?? 0);
@@ -287,6 +365,13 @@ export class SlideProcessor {
 		});
 	}
 
+	/**
+	 * Renders the slide's speaker notes as a Markdown blockquote.
+	 * Prefers rich-text segments over plain-text fallback.
+	 *
+	 * @param slide - The slide whose notes to render.
+	 * @returns A blockquote string, or an empty string if no notes exist.
+	 */
 	private renderNotes(slide: PptxSlide): string {
 		const notesFromSegments = slide.notesSegments
 			? this.textRenderer.render(slide.notesSegments)
@@ -300,6 +385,13 @@ export class SlideProcessor {
 		return `> **Speaker Notes**\n${quoted}`;
 	}
 
+	/**
+	 * Renders any review comments attached to the slide as a bulleted list
+	 * under a "Comments" heading.
+	 *
+	 * @param slide - The slide whose comments to render.
+	 * @returns A Markdown comments section, or an empty string if none exist.
+	 */
 	private renderComments(slide: PptxSlide): string {
 		if (!slide.comments || slide.comments.length === 0) return '';
 		const lines: string[] = ['### Comments'];
@@ -316,6 +408,14 @@ export class SlideProcessor {
 		return lines.join('\n');
 	}
 
+	/**
+	 * Renders the slide's animation effects as a summary list, grouped by
+	 * preset class (Entrance, Exit, Emphasis, Motion Path). Falls back to
+	 * legacy animation data if native animations are not available.
+	 *
+	 * @param slide - The slide whose animations to render.
+	 * @returns A Markdown animations section, or an empty string if none exist.
+	 */
 	private renderAnimations(slide: PptxSlide): string {
 		const native = slide.nativeAnimations as NativeAnimationLike[] | undefined;
 		const legacy = slide.animations;
@@ -349,6 +449,13 @@ export class SlideProcessor {
 		return lines.length > 1 ? lines.join('\n') : '';
 	}
 
+	/**
+	 * Converts legacy animation data (from older parsed format) into the
+	 * {@link NativeAnimationLike} shape used for rendering.
+	 *
+	 * @param legacy - Legacy animation array from the slide.
+	 * @returns Normalised animation objects.
+	 */
 	private mapLegacyAnimations(
 		legacy: PptxSlide['animations']
 	): NativeAnimationLike[] {
@@ -367,6 +474,13 @@ export class SlideProcessor {
 		});
 	}
 
+	/**
+	 * Produces a short human-readable summary of a single animation effect,
+	 * including its trigger and preset ID or path type.
+	 *
+	 * @param anim - The animation to summarise.
+	 * @returns A concise label like `"preset 5 on click"` or `"custom path, 500ms"`.
+	 */
 	private summariseAnimation(anim: NativeAnimationLike): string {
 		const trigger = anim.trigger ?? 'onClick';
 		const triggerLabel = trigger.replace(/([A-Z])/g, ' $1').trim().toLowerCase();
@@ -378,6 +492,13 @@ export class SlideProcessor {
 		return `${id} ${triggerLabel}`;
 	}
 
+	/**
+	 * Renders any compatibility warnings for the slide as a bulleted list
+	 * with severity-appropriate icons.
+	 *
+	 * @param slide - The slide whose warnings to render.
+	 * @returns A Markdown warnings section, or an empty string if none exist.
+	 */
 	private renderWarnings(slide: PptxSlide): string {
 		const raw = slide.warnings as CompatibilityWarningLike[] | undefined;
 		if (!raw || raw.length === 0) return '';

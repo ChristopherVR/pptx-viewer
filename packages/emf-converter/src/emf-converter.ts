@@ -1,8 +1,15 @@
 /**
  * Public API — the two entry points consumed by the rest of the application.
  *
- * convertEmfToDataUrl  — renders an EMF buffer to a PNG data URL
- * convertWmfToDataUrl  — renders a WMF buffer to a PNG data URL
+ * The conversion pipeline for both formats follows the same high-level steps:
+ * 1. Parse the file header to determine logical bounds and canvas dimensions.
+ * 2. Create an in-memory canvas (OffscreenCanvas preferred, HTMLCanvasElement fallback).
+ * 3. Replay every metafile record onto the canvas context in order.
+ * 4. Resolve "deferred images" — bitmap / embedded-metafile draws that require
+ *    async image decoding (via {@link createImageBitmap}).
+ * 5. Export the canvas contents as a `data:image/png;base64,…` URL.
+ *
+ * @module emf-converter
  */
 
 import { emfLog, emfWarn } from "./emf-logging";
@@ -20,6 +27,18 @@ import type { DeferredImageDraw } from "./emf-types";
 // Deferred-image post-processing
 // ---------------------------------------------------------------------------
 
+/**
+ * Processes images whose drawing was deferred during the synchronous record
+ * replay pass. Each entry may be a raster image (PNG/BMP bytes) or an
+ * embedded metafile that must be recursively converted before it can be drawn.
+ *
+ * The canvas transform is set per-image so the bitmap lands at the correct
+ * position, then reset to identity when all images have been drawn.
+ *
+ * @param ctx            - The 2D rendering context of the output canvas.
+ * @param deferredImages - The list of deferred image-draw descriptors
+ *                         accumulated during GDI / EMF+ record replay.
+ */
 async function processDeferredImages(
   ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
   deferredImages: DeferredImageDraw[],
@@ -36,7 +55,8 @@ async function processDeferredImages(
         `transform=[${img.transform.map((v) => v.toFixed(3)).join(",")}]`,
     );
     try {
-      // Copy to a plain ArrayBuffer — SharedArrayBuffer is not a valid BlobPart in TS 5.x
+      // Copy to a plain ArrayBuffer — SharedArrayBuffer is not accepted
+      // as a BlobPart by the Blob constructor in TypeScript 5.x strict mode.
       const plainBuffer = new ArrayBuffer(img.imageData.byteLength);
       const srcView = new DataView(img.imageData);
       const dstBytes = new Uint8Array(plainBuffer);
@@ -44,6 +64,8 @@ async function processDeferredImages(
         dstBytes[i] = srcView.getUint8(i);
       }
 
+      // Restore the affine transform that was active when the image draw was
+      // originally encountered, so the bitmap is placed correctly on canvas.
       ctx.setTransform(
         img.transform[0],
         img.transform[1],
@@ -54,6 +76,8 @@ async function processDeferredImages(
       );
 
       if (img.isMetafile) {
+        // Embedded metafiles must be recursively converted to a raster image
+        // before they can be drawn — try EMF first, then fall back to WMF.
         emfLog(
           `  Deferred image [${idx}]: recursively converting embedded metafile...`,
         );
@@ -61,6 +85,8 @@ async function processDeferredImages(
           (await convertEmfToDataUrl(plainBuffer)) ??
           (await convertWmfToDataUrl(plainBuffer));
         if (metafileDataUrl) {
+          // Decode the data-URL back to raw bytes so we can build a Blob
+          // and hand it to createImageBitmap for drawing.
           emfLog(
             `  Deferred image [${idx}]: metafile converted, dataUrl length=${metafileDataUrl.length}`,
           );
@@ -109,6 +135,7 @@ async function processDeferredImages(
       );
     }
   }
+  // Reset to identity so subsequent callers start with a clean transform.
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
@@ -117,11 +144,20 @@ async function processDeferredImages(
 // ---------------------------------------------------------------------------
 
 /**
- * Converts an EMF binary buffer to a PNG data URL by parsing EMF records
- * and replaying them onto a canvas.
+ * Converts an EMF (Enhanced Metafile) binary buffer to a PNG data-URL string
+ * by parsing the EMF header, iterating over all EMR records, and replaying
+ * them onto an in-memory canvas. Embedded EMF+ (GDI+) records found inside
+ * EMR_COMMENT payloads are handled transparently.
  *
- * Returns `null` if the buffer is not a valid EMF or if no canvas API
- * is available (e.g. in a test environment without DOM/canvas support).
+ * Returns `null` when:
+ * - The buffer does not begin with a valid EMR_HEADER record.
+ * - The logical bounds are zero-sized or negative.
+ * - No canvas API is available (e.g. headless test environment).
+ *
+ * @param buffer    - The raw EMF file bytes.
+ * @param maxWidth  - Optional cap on the output canvas width (pixels).
+ * @param maxHeight - Optional cap on the output canvas height (pixels).
+ * @returns A `data:image/png;base64,…` string, or `null` on failure.
  */
 export async function convertEmfToDataUrl(
   buffer: ArrayBuffer,
@@ -190,7 +226,8 @@ export async function convertEmfToDataUrl(
       `convertEmfToDataUrl: replayEmfRecords returned ${deferredImages.length} deferred images`,
     );
 
-    // Restore to clear any clipping regions set during GDI replay
+    // Restore the canvas state saved before replay — this clears any
+    // clipping regions that GDI record handlers may have installed.
     ctx.restore();
 
     await processDeferredImages(ctx, deferredImages);
@@ -222,11 +259,20 @@ export async function convertEmfToDataUrl(
 // ---------------------------------------------------------------------------
 
 /**
- * Converts a WMF binary buffer to a PNG data URL by parsing WMF records
- * and replaying them onto a canvas.
+ * Converts a WMF (Windows Metafile) binary buffer to a PNG data-URL string.
  *
- * Returns `null` if the buffer is not a valid WMF or if no canvas API is
- * available.
+ * WMF is the older 16-bit metafile format with simpler record types than EMF.
+ * This function parses the optional Aldus placeable header, the WMF header,
+ * and then replays all META_* records onto a canvas.
+ *
+ * Returns `null` when:
+ * - The header cannot be parsed or reports invalid dimensions.
+ * - No canvas API is available.
+ *
+ * @param buffer    - The raw WMF file bytes.
+ * @param maxWidth  - Optional cap on the output canvas width (pixels).
+ * @param maxHeight - Optional cap on the output canvas height (pixels).
+ * @returns A `data:image/png;base64,…` string, or `null` on failure.
  */
 export async function convertWmfToDataUrl(
   buffer: ArrayBuffer,

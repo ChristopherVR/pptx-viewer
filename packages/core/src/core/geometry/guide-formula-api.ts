@@ -20,9 +20,17 @@ import {
 /**
  * Seed the built-in variables for a shape of the given dimensions.
  *
- * Built-in variables per OOXML spec:
- *   w, h, l, t, r, b, hc, vc, wd2..wd12, hd2..hd12,
- *   ls (long side), ss (short side), ssd2..ssd8, etc.
+ * Built-in variables are defined by the OOXML spec (ISO/IEC 29500-1 section 20.1.9):
+ * - **Position/size:** `w`, `h`, `l`, `t`, `r`, `b`, `hc` (horizontal center), `vc` (vertical center)
+ * - **Width fractions:** `wd2` through `wd12` (width divided by N)
+ * - **Height fractions:** `hd2` through `hd12` (height divided by N)
+ * - **Short/long side:** `ss`, `ls`, `ssd2` through `ssd32`
+ * - **Angular constants:** `cd2` (180 degrees), `cd4` (90 degrees), `cd8` (45 degrees), etc.
+ *
+ * All angular values are in OOXML angle units (60,000ths of a degree).
+ *
+ * @param ctx - Shape dimensions (width and height).
+ * @returns A Map of built-in variable names to their computed values.
  */
 export function createBuiltinVariables(
   ctx: GeometryContext,
@@ -64,15 +72,16 @@ export function createBuiltinVariables(
     vars.set(`ssd${d}`, ss / d);
   }
 
-  // 3cd4 = 3/4 of a full circle in OOXML angle units
-  // cd2 = half circle, cd4 = quarter, cd8 = eighth, etc.
-  vars.set("cd2", 180 * ANGLE_SCALE); // 10800000
-  vars.set("cd4", 90 * ANGLE_SCALE); // 5400000
-  vars.set("cd8", 45 * ANGLE_SCALE); // 2700000
-  vars.set("3cd4", 270 * ANGLE_SCALE); // 16200000
-  vars.set("3cd8", 135 * ANGLE_SCALE); // 8100000
-  vars.set("5cd8", 225 * ANGLE_SCALE); // 13500000
-  vars.set("7cd8", 315 * ANGLE_SCALE); // 18900000
+  // Angular constants in OOXML units (60,000ths of a degree):
+  // cd2 = 180 degrees (half circle), cd4 = 90 degrees (quarter circle), etc.
+  // Fractional constants: 3cd4 = 270 degrees, 3cd8 = 135 degrees, etc.
+  vars.set("cd2", 180 * ANGLE_SCALE); // 10,800,000 = 180 degrees
+  vars.set("cd4", 90 * ANGLE_SCALE); //  5,400,000 =  90 degrees
+  vars.set("cd8", 45 * ANGLE_SCALE); //  2,700,000 =  45 degrees
+  vars.set("3cd4", 270 * ANGLE_SCALE); // 16,200,000 = 270 degrees
+  vars.set("3cd8", 135 * ANGLE_SCALE); //  8,100,000 = 135 degrees
+  vars.set("5cd8", 225 * ANGLE_SCALE); // 13,500,000 = 225 degrees
+  vars.set("7cd8", 315 * ANGLE_SCALE); // 18,900,000 = 315 degrees
 
   return vars;
 }

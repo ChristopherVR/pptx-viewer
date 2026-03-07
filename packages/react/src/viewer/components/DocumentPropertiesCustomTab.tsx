@@ -8,8 +8,13 @@ import type { PptxCustomProperty } from "pptx-viewer-core";
 // Types
 // ---------------------------------------------------------------------------
 
+/**
+ * Props for the {@link DocumentPropertiesCustomTab} component.
+ */
 export interface DocumentPropertiesCustomTabProps {
+  /** Current list of custom properties being edited. */
   customProperties: PptxCustomProperty[];
+  /** Callback invoked with the full updated list whenever a property is added, removed, or changed. */
   onUpdate: (next: PptxCustomProperty[]) => void;
 }
 
@@ -17,6 +22,7 @@ export interface DocumentPropertiesCustomTabProps {
 // Constants
 // ---------------------------------------------------------------------------
 
+/** Available custom property type options (text, number, date, yes/no). */
 const CUSTOM_PROPERTY_TYPES: Array<{ value: string; labelKey: string }> = [
   { value: "lpwstr", labelKey: "pptx.documentProperties.custom.typeText" },
   { value: "i4", labelKey: "pptx.documentProperties.custom.typeNumber" },
@@ -28,6 +34,16 @@ const CUSTOM_PROPERTY_TYPES: Array<{ value: string; labelKey: string }> = [
 // Component
 // ---------------------------------------------------------------------------
 
+/**
+ * Tab content for managing custom document properties.
+ *
+ * Renders an editable grid of name/value/type rows with add and delete
+ * controls. Boolean-typed properties render as a yes/no dropdown; all
+ * other types use a text or number input.
+ *
+ * @param props - {@link DocumentPropertiesCustomTabProps}
+ * @returns The rendered custom properties editor.
+ */
 export function DocumentPropertiesCustomTab({
   customProperties,
   onUpdate,

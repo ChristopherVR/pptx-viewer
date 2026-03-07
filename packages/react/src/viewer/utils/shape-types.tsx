@@ -1,5 +1,17 @@
+/**
+ * Shape type resolution and CSS clip-path generation utilities.
+ *
+ * Maps raw OOXML shape type strings to the viewer's internal `SupportedShapeType`
+ * enum, and generates CSS `clip-path` polygon/inset strings for non-rectangular shapes.
+ */
 import { SupportedShapeType } from "../types";
 
+/**
+ * Maps a raw OOXML shape type string to the viewer's `SupportedShapeType`.
+ * Performs case-insensitive matching. Defaults to `"rect"` for unknown/empty types.
+ * @param shapeType - The OOXML shape type string (e.g. "roundRect", "ellipse").
+ * @returns The canonical `SupportedShapeType` value.
+ */
 export function getShapeType(
   shapeType: string | undefined,
 ): SupportedShapeType {
@@ -39,6 +51,17 @@ export function getShapeType(
   return "rect";
 }
 
+/**
+ * Generates a CSS `clip-path` value for a given OOXML shape type.
+ * Uses polygon coordinates for complex shapes (arrows, stars, hearts, etc.)
+ * and `inset()` with rounded corners for rounded-rect variants.
+ * Returns `undefined` for shapes that do not need clipping (rect, cylinder).
+ * @param shapeType - The OOXML shape type string.
+ * @param adjustments - Optional shape adjustment values (e.g. corner radius for rounded rects).
+ * @param width - Element width in pixels (used for adjustment ratio calculations).
+ * @param height - Element height in pixels (used for adjustment ratio calculations).
+ * @returns A CSS clip-path string, or `undefined`.
+ */
 export function getShapeClipPath(
   shapeType: string | undefined,
   adjustments?: Record<string, number>,

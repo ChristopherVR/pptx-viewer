@@ -1,5 +1,9 @@
 /**
  * Gradient, pattern fill, and OOXML pattern preset utilities.
+ *
+ * Handles sanitization of gradient stop arrays, conversion to CSS gradient
+ * strings, and generation of SVG-based pattern fill backgrounds for OOXML
+ * pattern presets (a:pattFill).
  */
 import type { ShapeStyle } from "pptx-viewer-core";
 import { DEFAULT_FILL_COLOR } from "../constants";
@@ -10,6 +14,13 @@ import {
 } from "./color-core";
 import { getPatternSvg } from "./color-patterns";
 
+/**
+ * Validates, normalizes, and sorts an array of gradient stops.
+ * Filters out invalid entries (missing color/position), clamps positions
+ * to 0-100, normalizes colors, and sorts by ascending position.
+ * @param stops - Raw gradient stop array from shape style.
+ * @returns A sanitized, sorted array of gradient stops.
+ */
 export function sanitizeGradientStops(
   stops: ShapeStyle["fillGradientStops"] | undefined,
 ): NonNullable<ShapeStyle["fillGradientStops"]> {
@@ -33,6 +44,12 @@ export function sanitizeGradientStops(
     .sort((left, right) => left.position - right.position);
 }
 
+/**
+ * Converts a single gradient stop to a CSS gradient color-stop string.
+ * Applies opacity via `rgba()` if specified, and rounds the position to an integer percentage.
+ * @param stop - A gradient stop with color, position (0-100), and optional opacity.
+ * @returns A CSS string like `"#FF0000 50%"` or `"rgba(255,0,0,0.5) 50%"`.
+ */
 export function toCssGradientStop(stop: {
   color: string;
   position: number;
@@ -45,6 +62,13 @@ export function toCssGradientStop(stop: {
   return `${color} ${Math.round(Math.max(0, Math.min(100, stop.position)))}%`;
 }
 
+/**
+ * Builds a complete CSS `linear-gradient()` or `radial-gradient()` string
+ * from a ShapeStyle's gradient properties.
+ * Falls back to `style.fillGradient` if no valid stops are present.
+ * @param style - The shape style containing gradient configuration.
+ * @returns A CSS gradient string, or `undefined` if not a gradient fill.
+ */
 export function buildCssGradientFromShapeStyle(
   style: ShapeStyle | undefined,
 ): string | undefined {

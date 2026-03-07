@@ -234,6 +234,8 @@ export interface OlePptxElement extends PptxElementBase {
   fileName?: string;
   /** Whether this is a linked (vs. embedded) object. */
   isLinked?: boolean;
+  /** External file path for linked OLE objects (TargetMode="External"). */
+  externalPath?: string;
   /** Data-URL or path for the OLE preview image. */
   previewImage?: string;
   /** Decoded preview image as a data-URL. */

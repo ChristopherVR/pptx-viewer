@@ -131,6 +131,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       emuPerPx: PptxHandlerRuntime.EMU_PER_PX,
       getOrderedSlidePaths: () => this.orderedSlidePaths,
       slideRelsMap: this.slideRelsMap,
+      externalRelsMap: this.externalRelsMap,
       readFlipState: (xfrm) => this.readFlipState(xfrm),
       parseTableData: (graphicData) => this.parseTableData(graphicData),
       parseMediaData: (graphicData, slidePath) =>

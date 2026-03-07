@@ -1,9 +1,21 @@
 /**
  * Extended preset clip-paths: stars, callouts, flowchart, math, action
  * buttons, and miscellaneous shapes.
+ *
  * Split from the full OOXML preset geometry map for file-size compliance.
+ * Each entry maps a lowercase OOXML preset geometry name to a CSS
+ * `clip-path` value. See `preset-clip-paths-core.ts` for format details.
+ *
+ * Format: `lowercaseOoxmlName: "css-clip-path-value" | undefined`
  */
 
+/**
+ * Extended clip-path lookup for stars, callouts, flowchart, math,
+ * action buttons, and miscellaneous shapes.
+ *
+ * Merged into the master `PRESET_SHAPE_CLIP_PATHS` record by
+ * `preset-shape-clip-paths.ts`.
+ */
 export const CLIP_PATHS_EXTENDED: Record<string, string | undefined> = {
   // ── Stars & Banners ──────────────────────────────────────────────────
   star4:

@@ -1,3 +1,10 @@
+/**
+ * Element utility functions for the PowerPoint viewer/editor.
+ *
+ * Provides helpers for identifying element types (template, connector, text),
+ * generating labels, computing comment marker positions, and resolving
+ * connection-site coordinates.
+ */
 import type {
   PptxComment,
   PptxElement,
@@ -8,10 +15,21 @@ import type {
 import { hasShapeProperties } from "pptx-viewer-core";
 import { getShapeType } from "./shape-types";
 
+/**
+ * Checks whether an element originates from a slide layout or slide master.
+ * Template elements have IDs prefixed with "layout-" or "master-".
+ * @param element - The element to test.
+ * @returns `true` if the element belongs to a layout or master.
+ */
 export function isTemplateElement(element: PptxElement): boolean {
   return element.id.startsWith("layout-") || element.id.startsWith("master-");
 }
 
+/**
+ * Checks whether an element ID indicates a template (layout or master) element.
+ * @param elementId - The element ID string to test.
+ * @returns `true` if the ID starts with "layout-" or "master-".
+ */
 export function isTemplateElementId(elementId: string): boolean {
   return elementId.startsWith("layout-") || elementId.startsWith("master-");
 }
@@ -28,6 +46,13 @@ export function isConnectorOrLineElement(element: PptxElement): boolean {
   return st === "connector" || st === "line" || element.shapeType === "line";
 }
 
+/**
+ * Type-guard that returns `true` if the element can have its text edited inline.
+ * An element is considered editable if it is a "text" or "shape" element that
+ * contains text content (plain string or text segments).
+ * @param element - The element to test.
+ * @returns `true` if the element is a text-bearing element.
+ */
 export function isEditableTextElement(
   element: PptxElement,
 ): element is PptxElementWithText {
@@ -41,6 +66,12 @@ export function isEditableTextElement(
   );
 }
 
+/**
+ * Returns a human-readable label for a given element, suitable for display
+ * in the selection pane, accessibility tree, or tooltip.
+ * @param element - The element to label.
+ * @returns A descriptive string such as "Text", "Image", "Group (3)", etc.
+ */
 export function getElementLabel(element: PptxElement): string {
   if (element.type === "text") return "Text";
   if (element.type === "connector") return "Connector";
@@ -62,6 +93,12 @@ export function getElementLabel(element: PptxElement): string {
   return "Shape";
 }
 
+/**
+ * Formats a raw ISO/date-string timestamp into a short localized display format.
+ * Returns an empty string if the value is missing or cannot be parsed.
+ * @param value - An ISO-8601 date string or undefined.
+ * @returns A formatted string like "Mar 7, 10:30 AM", or "".
+ */
 export function formatCommentTimestamp(value: string | undefined): string {
   const normalized = String(value || "").trim();
   if (normalized.length === 0) return "";
@@ -76,12 +113,24 @@ export function formatCommentTimestamp(value: string | undefined): string {
   });
 }
 
+/**
+ * Computes the rendered position for a comment marker icon on the slide canvas.
+ * If the comment carries explicit x/y coordinates they are used (clamped to
+ * the slide area); otherwise a grid-based fallback position is computed from
+ * the comment's index so markers do not overlap.
+ * @param comment - The comment object (may contain x/y).
+ * @param index - Zero-based index of the comment on the slide.
+ * @param width - Slide width in pixels.
+ * @param height - Slide height in pixels.
+ * @returns An `{x, y}` position clamped within the visible slide area.
+ */
 export function getCommentMarkerPosition(
   comment: PptxComment,
   index: number,
   width: number,
   height: number,
 ): { x: number; y: number } {
+  // Distribute fallback positions on a 4-column grid
   const fallbackX = 18 + (index % 4) * 14;
   const fallbackY = 18 + Math.floor(index / 4) * 14;
   const rawX =

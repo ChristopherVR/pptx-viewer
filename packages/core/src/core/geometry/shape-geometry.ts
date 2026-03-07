@@ -15,6 +15,15 @@ import {
 // Shape type mapping
 // ---------------------------------------------------------------------------
 
+/**
+ * Map an OpenXML preset geometry name to a supported internal shape type.
+ *
+ * Unknown shapes that have a known clip-path in the preset library are
+ * mapped to `"rect"` so clip-path rendering handles their visual appearance.
+ *
+ * @param shapeType - The OpenXML `prst` attribute value (e.g. `"roundRect"`, `"ellipse"`).
+ * @returns The normalised {@link SupportedShapeType} to use for rendering.
+ */
 export function getShapeType(
   shapeType: string | undefined,
 ): SupportedShapeType {
@@ -42,6 +51,16 @@ export function getShapeType(
 // CSS clip-path for shapes — delegates to comprehensive preset library
 // ---------------------------------------------------------------------------
 
+/**
+ * Retrieve the CSS `clip-path` value for a given OpenXML preset geometry name.
+ *
+ * Delegates to the comprehensive preset library. Returns `undefined` when
+ * the shape does not require clipping (e.g. plain rectangles) or when the
+ * shape requires more complex SVG rendering.
+ *
+ * @param shapeType - The OpenXML preset geometry name.
+ * @returns A CSS `clip-path` string, or `undefined` if no clipping is needed.
+ */
 export function getShapeClipPath(
   shapeType: string | undefined,
 ): string | undefined {
@@ -52,14 +71,28 @@ export function getShapeClipPath(
 // Round-rect radius
 // ---------------------------------------------------------------------------
 
+/**
+ * Calculate the border-radius in pixels for a rounded-rectangle shape.
+ *
+ * The OOXML `adj` value ranges from 0 to 50000 (representing 0% to 100%
+ * of the maximum possible radius). The maximum radius is half the shorter
+ * side of the element. If no adjustment is specified, the default OOXML
+ * value of 16667/50000 (~1/3) is used.
+ *
+ * @param element - The element whose dimensions and `shapeAdjustments.adj` are read.
+ * @returns The border-radius in pixels.
+ */
 export function getRoundRectRadiusPx(
   element: PptxElementWithShapeStyle,
 ): number {
   const adjustment = element.shapeAdjustments?.adj;
+  // Normalize the adjustment: clamp to [0, 50000] then scale to [0, 1].
+  // Default OOXML rounded-rect adjustment is 16667 (~1/3 of 50000).
   const normalizedAdjustment =
     typeof adjustment === "number" && Number.isFinite(adjustment)
       ? Math.min(Math.max(adjustment, 0), 50000) / 50000
       : 16667 / 50000;
+  // Radius = half the shorter side * normalized adjustment factor
   return (
     Math.min(Math.max(element.width, 1), Math.max(element.height, 1)) *
     0.5 *
@@ -71,11 +104,29 @@ export function getRoundRectRadiusPx(
 // Image mask style (shape-based clipping for images)
 // ---------------------------------------------------------------------------
 
+/**
+ * CSS properties to apply shape-based clipping to an image element.
+ * Exactly one of `borderRadius` or `clipPath` will be set, depending
+ * on whether the shape is best expressed via border-radius or clip-path.
+ */
 export interface ImageMaskStyle {
+  /** CSS `border-radius` value (number in px or string like `"9999px"`). */
   borderRadius?: string | number;
+  /** CSS `clip-path` value (e.g. a `polygon(...)` expression). */
   clipPath?: string;
 }
 
+/**
+ * Determine the CSS mask style to apply shape-based clipping to an image.
+ *
+ * Rounded rectangles and similar variants use `border-radius`, ellipses
+ * and cylinders use predefined border-radius strings, and all other
+ * shapes delegate to the preset clip-path library.
+ *
+ * @param element - The element whose `shapeType` and dimensions are inspected.
+ * @returns An {@link ImageMaskStyle} with either `borderRadius` or `clipPath`,
+ *          or `undefined` if no masking is needed.
+ */
 export function getImageMaskStyle(
   element: PptxElementWithShapeStyle,
 ): ImageMaskStyle | undefined {

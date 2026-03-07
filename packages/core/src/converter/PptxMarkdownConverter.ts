@@ -19,11 +19,25 @@ import { SmartArtElementProcessor } from './elements/SmartArtElementProcessor';
 import { TableElementProcessor } from './elements/TableElementProcessor';
 import { TextElementProcessor } from './elements/TextElementProcessor';
 
+/**
+ * Options specific to PPTX-to-Markdown conversion, extending the base
+ * {@link ConversionOptions} with presentation-aware settings.
+ */
 export interface PptxConverterOptions extends ConversionOptions {
+	/** Human-readable name of the source file, used in front-matter metadata. */
 	sourceName: string;
+
+	/** Whether to append speaker notes (as blockquotes) below each slide. */
 	includeSpeakerNotes: boolean;
+
+	/**
+	 * Optional 1-based slide range to limit conversion to a subset of the deck.
+	 * Omit or leave fields undefined to convert all slides.
+	 */
 	slideRange?: {
+		/** First slide to include (1-based, default 1). */
 		start?: number;
+		/** Last slide to include (1-based, default = last slide). */
 		end?: number;
 	};
 	/**
@@ -33,13 +47,45 @@ export interface PptxConverterOptions extends ConversionOptions {
 	semanticMode?: boolean;
 }
 
+/**
+ * Converts a parsed {@link PptxData} presentation into a Markdown document.
+ *
+ * This is the primary entry point for PPTX-to-Markdown conversion. It
+ * orchestrates slide processing, media extraction, metadata generation,
+ * and output assembly. Each slide element type is handled by a dedicated
+ * {@link ElementProcessor} registered in the internal registry.
+ *
+ * @example
+ * ```ts
+ * const converter = new PptxMarkdownConverter('/output', {
+ *   sourceName: 'deck.pptx',
+ *   includeSpeakerNotes: true,
+ *   mediaFolderName: 'media',
+ *   includeMetadata: true,
+ * });
+ * const markdown = await converter.convert(pptxData);
+ * ```
+ */
 export class PptxMarkdownConverter extends DocumentConverter<PptxData> {
+	/** Renderer for rich-text segments (bold, italic, hyperlinks, etc.). */
 	private readonly textRenderer: TextSegmentRenderer;
+
+	/** Registry mapping element types to their dedicated processors. */
 	private readonly registry: ElementProcessorRegistry;
+
+	/** Delegate responsible for converting individual slides. */
 	private readonly slideProcessor: SlideProcessor;
+
+	/** Number of slides actually converted (after applying the slide range filter). */
 	private convertedSlides = 0;
+
+	/** Total number of slides in the source presentation. */
 	private totalSlides = 0;
 
+	/**
+	 * @param outputDir - Root directory for output files.
+	 * @param options - PPTX-specific conversion options.
+	 */
 	public constructor(outputDir: string, options: PptxConverterOptions) {
 		super(outputDir, options);
 		this.textRenderer = new TextSegmentRenderer();
@@ -52,24 +98,42 @@ export class PptxMarkdownConverter extends DocumentConverter<PptxData> {
 		);
 	}
 
+	/** Returns the number of images extracted and saved during conversion. */
 	public get imagesExtracted(): number {
 		return this.mediaContext.totalImages;
 	}
 
+	/** Returns the media directory path, or `null` if no images were extracted. */
 	public get mediaDir(): string | null {
 		return this.mediaContext.totalImages > 0
 			? this.mediaContext.mediaDir
 			: null;
 	}
 
+	/** Returns the number of slides that were actually converted. */
 	public get slidesConverted(): number {
 		return this.convertedSlides;
 	}
 
+	/** Returns the total number of slides in the source presentation. */
 	public get presentationSlides(): number {
 		return this.totalSlides;
 	}
 
+	/**
+	 * Converts the full PPTX presentation (or a slide subset) into Markdown.
+	 *
+	 * The conversion pipeline:
+	 * 1. Resolves the slide range and selects the target slides.
+	 * 2. Processes each slide through {@link SlideProcessor}, producing markdown sections.
+	 * 3. Inserts section headings when slides belong to named sections.
+	 * 4. Optionally prepends YAML front-matter with document metadata.
+	 * 5. Appends header/footer information if present.
+	 * 6. Writes the output file if an `outputPath` was configured.
+	 *
+	 * @param source - The parsed PPTX data structure.
+	 * @returns The complete Markdown string.
+	 */
 	public async convert(source: PptxData): Promise<string> {
 		this.totalSlides = source.slides.length;
 		const { start, end } = this.resolveRange(source.slides.length);
@@ -115,6 +179,11 @@ export class PptxMarkdownConverter extends DocumentConverter<PptxData> {
 		return markdown;
 	}
 
+	/**
+	 * Registers all element-type processors into the internal registry.
+	 * Each processor handles one or more {@link PptxElement} types
+	 * (text, image, table, chart, etc.).
+	 */
 	private registerProcessors(): void {
 		this.registry.register(new TextElementProcessor(this.textRenderer));
 		this.registry.register(new ImageElementProcessor());
@@ -128,6 +197,13 @@ export class PptxMarkdownConverter extends DocumentConverter<PptxData> {
 		this.registry.register(new FallbackElementProcessor());
 	}
 
+	/**
+	 * Assembles a YAML front-matter block containing presentation metadata
+	 * such as title, author, slide count, theme, dimensions, and more.
+	 *
+	 * @param source - The parsed PPTX data.
+	 * @returns A YAML front-matter string (including `---` delimiters).
+	 */
 	private buildPptxFrontMatter(source: PptxData): string {
 		const meta: Record<string, string | number> = {
 			source: this.getOptions().sourceName,
@@ -151,6 +227,12 @@ export class PptxMarkdownConverter extends DocumentConverter<PptxData> {
 		return this.buildFrontMatter(meta);
 	}
 
+	/**
+	 * Populates metadata entries from OPC core properties (title, author, subject, etc.).
+	 *
+	 * @param meta - The metadata dictionary to populate.
+	 * @param props - Core document properties from the PPTX file.
+	 */
 	private addCoreProperties(
 		meta: Record<string, string | number>,
 		props: PptxCoreProperties | undefined
@@ -165,6 +247,13 @@ export class PptxMarkdownConverter extends DocumentConverter<PptxData> {
 		if (props.revision) meta.revision = props.revision;
 	}
 
+	/**
+	 * Populates metadata entries from application-level properties
+	 * (application name, editing time, word/paragraph counts).
+	 *
+	 * @param meta - The metadata dictionary to populate.
+	 * @param props - Application properties from the PPTX file.
+	 */
 	private addAppProperties(
 		meta: Record<string, string | number>,
 		props: PptxAppProperties | undefined
@@ -178,6 +267,13 @@ export class PptxMarkdownConverter extends DocumentConverter<PptxData> {
 			meta.paragraphs = props.paragraphs;
 	}
 
+	/**
+	 * Adds presentation-level metadata (custom properties, show type, theme,
+	 * security warnings, embedded fonts, custom shows) to the front-matter dictionary.
+	 *
+	 * @param meta - The metadata dictionary to populate.
+	 * @param source - The full parsed PPTX data.
+	 */
 	private addPresentationMeta(
 		meta: Record<string, string | number>,
 		source: PptxData
@@ -216,6 +312,13 @@ export class PptxMarkdownConverter extends DocumentConverter<PptxData> {
 		}
 	}
 
+	/**
+	 * Renders the presentation-level header/footer settings (header text,
+	 * footer text, date/time, slide numbers) into a pipe-delimited markdown string.
+	 *
+	 * @param hf - Header/footer configuration from the presentation.
+	 * @returns A formatted string, or an empty string if no header/footer data is present.
+	 */
 	private renderHeaderFooter(
 		hf: PptxHeaderFooter | undefined
 	): string {
@@ -239,6 +342,13 @@ export class PptxMarkdownConverter extends DocumentConverter<PptxData> {
 		return parts.join(' | ');
 	}
 
+	/**
+	 * Resolves and clamps the user-specified slide range to valid bounds.
+	 * Defaults to the full deck if no range is configured.
+	 *
+	 * @param totalSlides - Total number of slides in the presentation.
+	 * @returns A 1-based `{ start, end }` range guaranteed to be within bounds.
+	 */
 	private resolveRange(totalSlides: number): { start: number; end: number } {
 		const range = this.getOptions().slideRange;
 		const start = Math.max(1, Math.min(range?.start ?? 1, totalSlides));
@@ -249,6 +359,7 @@ export class PptxMarkdownConverter extends DocumentConverter<PptxData> {
 		return { start, end };
 	}
 
+	/** Casts the base `options` to the PPTX-specific options type. */
 	private getOptions(): PptxConverterOptions {
 		return this.options as PptxConverterOptions;
 	}

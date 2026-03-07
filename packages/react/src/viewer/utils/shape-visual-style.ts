@@ -1,3 +1,11 @@
+/**
+ * Shape visual style computation.
+ *
+ * Assembles a complete `React.CSSProperties` object for rendering a shape element,
+ * combining fill (solid, gradient, pattern, image), stroke (dash, compound line),
+ * shadow/glow effects, 3-D transforms, DAG image adjustments, reflection, and
+ * clip-path / border-radius for non-rectangular shapes.
+ */
 import React from "react";
 
 import type { PptxElement } from "pptx-viewer-core";
@@ -25,6 +33,26 @@ import {
 import { apply3dEffects } from "./shape-visual-3d";
 import { getRoundRectRadiusPx } from "./shape-round-rect";
 
+/**
+ * Computes the full CSS style object for rendering a PPTX shape element.
+ *
+ * The returned style handles:
+ * - **Fill**: solid colour with opacity, CSS gradients, pattern SVG backgrounds, image fills
+ * - **Stroke**: border width/colour/dash style, compound line box-shadows
+ * - **Shadows**: outer shadow, inner shadow, line-level shadow
+ * - **Glow & soft-edge**: CSS filter drop-shadow and blur
+ * - **DAG effects**: grayscale, bi-level, brightness/contrast, hue/saturation, tint, duotone
+ * - **3-D**: perspective transforms, extrusion depth, bevel highlights
+ * - **Reflection**: Chromium `-webkit-box-reflect`
+ * - **Shape geometry**: clip-path polygons, border-radius for ellipses and round-rects
+ *
+ * @param element - The PPTX element to style.
+ * @param hasFill - Whether the shape has an active fill.
+ * @param fillColor - Resolved fill colour (hex).
+ * @param strokeWidth - Stroke width in pixels.
+ * @param strokeColor - Resolved stroke colour (hex).
+ * @returns A `React.CSSProperties` object ready to apply to the shape container.
+ */
 export function getShapeVisualStyle(
   element: PptxElement,
   hasFill: boolean,

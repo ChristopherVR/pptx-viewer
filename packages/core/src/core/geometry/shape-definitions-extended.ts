@@ -1,8 +1,20 @@
 /**
  * Extended shape definitions: Arrows, Callouts, Flowchart, and Action Buttons.
+ *
+ * Each entry in the array is a {@link PresetShapeDefinition} with:
+ * - `name` — The canonical OOXML preset geometry name (camelCase).
+ * - `label` — A human-readable display label for the shape picker UI.
+ * - `category` — The {@link PresetShapeCategory} grouping.
+ *
+ * This file contains the second half of shape definitions. The first
+ * half (basic, rectangles, stars, math, other) lives in
+ * `shape-definitions-primary.ts`.
  */
 import type { PresetShapeDefinition } from "./preset-shape-types";
 
+/**
+ * Shape definitions for arrows, callouts, flowchart symbols, and action buttons.
+ */
 export const EXTENDED_SHAPE_DEFINITIONS: PresetShapeDefinition[] = [
   // ── Arrows ────────────────────────────────────────────────────────────
   { name: "rightArrow", label: "Right Arrow", category: "arrows" },

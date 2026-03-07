@@ -30,20 +30,25 @@ export function evaluateGeometryPaths(
   ensureArray: (val: unknown) => unknown[],
 ): { pathData: string; pathWidth: number; pathHeight: number } | null {
   let fullPathData = "";
+  // Coordinate-space dimensions (from @_w / @_h on the first path that specifies them)
   let pathWidth = 0;
   let pathHeight = 0;
 
   for (const path of pathNodes) {
+    // Each path element may declare its own coordinate-space dimensions
     const w = Number.parseInt(String(path["@_w"] ?? "0"), 10);
     const h = Number.parseInt(String(path["@_h"] ?? "0"), 10);
 
+    // Use the first non-zero dimensions as the overall coordinate space
     if (pathWidth === 0 && w > 0) pathWidth = w;
     if (pathHeight === 0 && h > 0) pathHeight = h;
 
     const commands: string[] = [];
-    // Track current pen position for arcTo conversion
+    // Track current pen position for arcTo conversion (arcTo needs the
+    // current position to derive the implicit ellipse center)
     let penX = 0;
     let penY = 0;
+    // Track the most recent moveTo position for close commands
     let moveX = 0;
     let moveY = 0;
 
@@ -191,9 +196,15 @@ export function evaluateGeometryPaths(
 // OOXML arcTo → SVG arc conversion (exported for testing)
 // ---------------------------------------------------------------------------
 
+/**
+ * Result of converting an OOXML `a:arcTo` command to SVG arc notation.
+ */
 interface ArcToResult {
+  /** SVG arc path segment string (e.g. `"A 50 30 0 1 1 100 75"`). */
   svg: string;
+  /** X coordinate of the arc endpoint. */
   endX: number;
+  /** Y coordinate of the arc endpoint. */
   endY: number;
 }
 
@@ -219,24 +230,32 @@ export function ooxmlArcToSvg(
   penX: number,
   penY: number,
 ): ArcToResult | null {
+  // Degenerate arcs: zero radius or zero sweep produce no visible arc
   if (wR <= 0 || hR <= 0 || swAng === 0) return null;
 
+  // Convert OOXML angles (60,000ths of a degree) to radians
   const startRad = angleToRadians(stAng);
   const sweepRad = angleToRadians(swAng);
   const endRad = startRad + sweepRad;
 
-  // Implicit center: pen is at stAng on the ellipse
+  // Derive the implicit ellipse center from the current pen position.
+  // The pen sits on the ellipse at the start angle, so:
+  //   penX = cx + wR * cos(startRad)  =>  cx = penX - wR * cos(startRad)
+  //   penY = cy + hR * sin(startRad)  =>  cy = penY - hR * sin(startRad)
   const cx = penX - wR * Math.cos(startRad);
   const cy = penY - hR * Math.sin(startRad);
 
-  // Absolute endpoint on the ellipse at endAngle
+  // Compute the absolute endpoint on the ellipse at the end angle
   const endX = cx + wR * Math.cos(endRad);
   const endY = cy + hR * Math.sin(endRad);
 
-  // SVG arc flags
+  // SVG arc flags:
+  // - large-arc-flag: 1 if the arc spans more than 180 degrees
+  // - sweep-flag: 1 if the arc is drawn in the positive-angle direction
   const largeArc = Math.abs(sweepRad) > Math.PI ? 1 : 0;
   const sweep = sweepRad > 0 ? 1 : 0;
 
+  // Round to 3 decimal places for clean SVG output
   const rx = Math.round(wR * 1000) / 1000;
   const ry = Math.round(hR * 1000) / 1000;
   const ex = Math.round(endX * 1000) / 1000;

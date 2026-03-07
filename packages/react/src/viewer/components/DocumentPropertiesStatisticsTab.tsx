@@ -7,9 +7,15 @@ import type { PptxAppProperties } from "pptx-viewer-core";
 // Types
 // ---------------------------------------------------------------------------
 
+/**
+ * Props for the {@link DocumentPropertiesStatisticsTab} component.
+ */
 export interface DocumentPropertiesStatisticsTabProps {
+  /** Application-level metadata for the presentation. */
   appProperties: PptxAppProperties;
+  /** Callback to apply partial updates to editable app properties. */
   onUpdateAppProperties: (updates: Partial<PptxAppProperties>) => void;
+  /** Whether the editable fields (company, manager) are enabled. */
   canEdit: boolean;
 }
 
@@ -17,12 +23,17 @@ export interface DocumentPropertiesStatisticsTabProps {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/** Describes a single row in the statistics tab. */
 interface StatisticsField {
+  /** Property key on `PptxAppProperties`. */
   key: keyof PptxAppProperties;
+  /** i18n key for the field label. */
   labelKey: string;
+  /** Whether the field can be edited by the user. */
   editable: boolean;
 }
 
+/** Ordered list of statistics fields displayed in the tab. */
 const STATISTICS_FIELDS: StatisticsField[] = [
   {
     key: "application",
@@ -86,6 +97,13 @@ const STATISTICS_FIELDS: StatisticsField[] = [
   },
 ];
 
+/**
+ * Formats a total editing time in minutes as "X hours Y minutes".
+ *
+ * @param minutes - Total minutes, or `undefined` if not available.
+ * @param t - i18n translation function.
+ * @returns A human-readable duration string.
+ */
 function formatTotalTime(
   minutes: number | undefined,
   t: (key: string, opts?: Record<string, unknown>) => string,
@@ -101,6 +119,17 @@ function formatTotalTime(
   });
 }
 
+/**
+ * Formats a statistics field value for display.
+ *
+ * Handles the special `totalTime` key (delegates to {@link formatTotalTime})
+ * and falls back to "N/A" for `undefined`/`null` values.
+ *
+ * @param key - The property key being formatted.
+ * @param value - The raw value from `PptxAppProperties`.
+ * @param t - i18n translation function.
+ * @returns A formatted display string.
+ */
 function formatFieldValue(
   key: keyof PptxAppProperties,
   value: string | number | undefined,
@@ -119,6 +148,16 @@ function formatFieldValue(
 // Component
 // ---------------------------------------------------------------------------
 
+/**
+ * Tab content displaying read-only presentation statistics and editable
+ * company / manager fields.
+ *
+ * Non-editable fields (slides, words, paragraphs, etc.) are rendered as
+ * plain text; editable fields render as inputs when `canEdit` is `true`.
+ *
+ * @param props - {@link DocumentPropertiesStatisticsTabProps}
+ * @returns The rendered statistics tab.
+ */
 export function DocumentPropertiesStatisticsTab({
   appProperties,
   onUpdateAppProperties,

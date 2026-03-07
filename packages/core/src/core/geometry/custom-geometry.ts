@@ -14,11 +14,24 @@ import { ooxmlArcToSvg } from "./guide-formula-paths";
 // Structured paths -> SVG path data string
 // ---------------------------------------------------------------------------
 
-/** Convert structured custom geometry paths to a single SVG path data string. */
+/**
+ * Convert structured custom geometry paths to a single SVG path data string.
+ *
+ * Iterates through all paths and their segments, translating each segment
+ * type (moveTo, lineTo, cubicBezTo, quadBezTo, arcTo, close) into the
+ * corresponding SVG path command. Arc segments are converted via
+ * {@link ooxmlArcToSvg} which handles the OOXML-to-SVG arc parameter mapping.
+ *
+ * @param paths - Array of structured custom geometry paths.
+ * @returns A single SVG path data string combining all paths.
+ */
 export function customGeometryPathsToSvg(paths: CustomGeometryPath[]): string {
   const parts: string[] = [];
+  // Track pen position for arcTo conversion (needs current position
+  // to derive the implicit ellipse center)
   let penX = 0;
   let penY = 0;
+  // Track most recent moveTo for close commands
   let moveX = 0;
   let moveY = 0;
   for (const path of paths) {
@@ -76,14 +89,26 @@ export function customGeometryPathsToSvg(paths: CustomGeometryPath[]): string {
 // SVG path data string -> structured paths (basic parser)
 // ---------------------------------------------------------------------------
 
-/** Parse a simple SVG path data string into structured CustomGeometryPath. */
+/**
+ * Parse a simple SVG path data string into structured {@link CustomGeometryPath}.
+ *
+ * Supports absolute M, L, C, Q, and Z commands. Does not handle relative
+ * commands or the SVG A (arc) command, as the primary use case is round-tripping
+ * paths that were originally generated from structured data.
+ *
+ * @param pathData - An SVG path data string (e.g. `"M 0 0 L 100 100 Z"`).
+ * @param width - The coordinate-space width of the path.
+ * @param height - The coordinate-space height of the path.
+ * @returns An array containing a single {@link CustomGeometryPath} with the parsed segments.
+ */
 export function svgToCustomGeometryPaths(
   pathData: string,
   width: number,
   height: number,
 ): CustomGeometryPath[] {
   const segments: CustomGeometrySegment[] = [];
-  // Tokenise: split on command letters while keeping them
+  // Tokenize: split the path string on SVG command letters, keeping each
+  // letter attached to its subsequent coordinate data
   const tokens = pathData.match(/[MLCQZAmlcqza][^MLCQZAmlcqza]*/gi) ?? [];
   for (const token of tokens) {
     const cmd = token[0];
@@ -134,11 +159,29 @@ export function svgToCustomGeometryPaths(
 // Structured paths -> OOXML a:custGeom XML object
 // ---------------------------------------------------------------------------
 
+/**
+ * Convert a geometry point to an OOXML `a:pt` XML object.
+ *
+ * Coordinates are rounded to integers for clean XML output.
+ *
+ * @param pt - The point to serialize.
+ * @returns An XML object with `@_x` and `@_y` string attributes.
+ */
 function pointToXml(pt: CustomGeometryPoint): XmlObject {
   return { "@_x": String(Math.round(pt.x)), "@_y": String(Math.round(pt.y)) };
 }
 
-/** Serialize structured paths to an OOXML `a:custGeom` XML object. */
+/**
+ * Serialize structured custom geometry paths to an OOXML `a:custGeom` XML object.
+ *
+ * Produces a complete custom geometry XML structure including empty
+ * `a:avLst`, `a:gdLst`, `a:ahLst`, `a:cxnLst`, and a `a:rect`
+ * referencing the built-in position variables. The `a:pathLst`
+ * contains the serialized path segments.
+ *
+ * @param paths - Array of structured custom geometry paths to serialize.
+ * @returns An XML object representing the complete `a:custGeom` element.
+ */
 export function customGeometryPathsToXml(
   paths: CustomGeometryPath[],
 ): XmlObject {
@@ -234,7 +277,16 @@ export function customGeometryPathsToXml(
 // Compute bounding box of all points in structured paths
 // ---------------------------------------------------------------------------
 
-/** Get all explicit control/anchor points from structured paths. */
+/**
+ * Extract all explicit control and anchor points from structured paths.
+ *
+ * Collects points from moveTo, lineTo, cubicBezTo, and quadBezTo segments.
+ * ArcTo and close segments are excluded as they do not contribute explicit
+ * control points. This is useful for computing bounding boxes.
+ *
+ * @param paths - Array of structured custom geometry paths.
+ * @returns Flat array of all extracted points.
+ */
 export function getAllPointsFromPaths(
   paths: CustomGeometryPath[],
 ): CustomGeometryPoint[] {
@@ -258,7 +310,16 @@ export function getAllPointsFromPaths(
   return points;
 }
 
-/** Recalculate the coordinate-space dimensions to tightly fit all points. */
+/**
+ * Recalculate the coordinate-space dimensions to tightly fit all points.
+ *
+ * Finds the maximum X and Y values across all control/anchor points
+ * and returns dimensions that encompass them. Minimum dimensions are
+ * clamped to 1 to avoid degenerate geometry.
+ *
+ * @param paths - Array of structured custom geometry paths.
+ * @returns An object with `width` and `height` that tightly bound all points.
+ */
 export function recalculatePathBounds(paths: CustomGeometryPath[]): {
   width: number;
   height: number;

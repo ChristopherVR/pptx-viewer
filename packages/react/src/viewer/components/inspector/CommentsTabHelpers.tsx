@@ -21,25 +21,48 @@ import { formatCommentTimestamp, getElementLabel } from "../../utils";
 // Props for CommentsTab
 // ---------------------------------------------------------------------------
 
+/**
+ * Props for the {@link CommentsTab} component.
+ * Defines all state and callbacks needed for comment CRUD, editing, replying, and element selection.
+ */
 export interface CommentsTabProps {
+  /** All presentation slides (used to look up the active slide). */
   slides: PptxSlide[];
+  /** Index of the currently active slide. */
   activeSlideIndex: number;
+  /** Currently selected element, used to anchor new comments. */
   selectedElement: PptxElement | null;
+  /** Whether comment editing is permitted. */
   canEdit: boolean;
+  /** Whether spellcheck is enabled for comment text areas. */
   spellCheckEnabled: boolean;
+  /** Draft text for new comments, keyed by slide ID. */
   commentDraftBySlideId: Record<string, string>;
+  /** ID of the comment currently being edited, keyed by slide ID. */
   editingCommentIdBySlideId: Record<string, string | null>;
+  /** Draft text for comment edits, keyed by comment ID. */
   commentEditDraftByCommentId: Record<string, string>;
+  /** Toggle the resolved status of a comment. */
   onToggleCommentResolved: (commentId: string) => void;
+  /** Delete a comment by ID. */
   onDeleteComment: (commentId: string) => void;
+  /** Enter edit mode for a specific comment. */
   onStartCommentEdit: (commentId: string) => void;
+  /** Save the edited text for a specific comment. */
   onSaveCommentEdit: (commentId: string) => void;
+  /** Cancel editing a specific comment. */
   onCancelCommentEdit: (commentId: string) => void;
+  /** Start replying to a specific comment. */
   onReplyToComment: (commentId: string) => void;
+  /** Update the new-comment draft text for the active slide. */
   onCommentDraftChange: (text: string) => void;
+  /** Submit the new comment draft. */
   onAddComment: () => void;
+  /** Update the edit draft text for a specific comment. */
   onEditDraftChange: (commentId: string, text: string) => void;
+  /** Set the single selected element by ID (or null to deselect). */
   setSelectedElementId: (id: string | null) => void;
+  /** Set multiple selected element IDs. */
   setSelectedElementIds: (ids: string[]) => void;
 }
 
@@ -47,24 +70,52 @@ export interface CommentsTabProps {
 // Sub-component: single comment item
 // ---------------------------------------------------------------------------
 
+/**
+ * Props for a single comment row in the comments tab.
+ */
 interface CommentItemProps {
+  /** The comment data to display. */
   comment: PptxComment;
+  /** Whether this comment is in edit mode. */
   isEditing: boolean;
+  /** Current draft text if editing. */
   editDraft: string;
+  /** Whether editing actions are available. */
   canEdit: boolean;
+  /** Whether spellcheck is enabled for the edit textarea. */
   spellCheckEnabled: boolean;
+  /** The slide containing this comment (used to resolve element references). */
   activeSlide: PptxSlide;
+  /** Toggle the resolved status of this comment. */
   onToggleCommentResolved: (commentId: string) => void;
+  /** Delete this comment. */
   onDeleteComment: (commentId: string) => void;
+  /** Enter edit mode for this comment. */
   onStartCommentEdit: (commentId: string) => void;
+  /** Save the edited comment text. */
   onSaveCommentEdit: (commentId: string) => void;
+  /** Cancel editing and revert changes. */
   onCancelCommentEdit: (commentId: string) => void;
+  /** Start a reply to this comment. */
   onReplyToComment: (commentId: string) => void;
+  /** Update the edit draft text for this comment. */
   onEditDraftChange: (commentId: string, text: string) => void;
+  /** Select an element by ID on the canvas. */
   setSelectedElementId: (id: string | null) => void;
+  /** Set multiple selected element IDs on the canvas. */
   setSelectedElementIds: (ids: string[]) => void;
 }
 
+/**
+ * Renders a single comment item with author, timestamp, text, and action buttons.
+ *
+ * Supports inline editing mode with save/cancel buttons, element anchor badges
+ * that select the referenced element on click, and action buttons for edit,
+ * reply, resolve/unresolve, and delete operations.
+ *
+ * @param props - {@link CommentItemProps}
+ * @returns A comment card with contextual controls.
+ */
 export function CommentItem({
   comment,
   isEditing,

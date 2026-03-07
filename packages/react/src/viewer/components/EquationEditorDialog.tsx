@@ -15,12 +15,17 @@ import type { OmmlNode } from "../utils/omml-to-mathml";
 
 // ── Equation templates ────────────────────────────────────────────────────
 
+/** Describes a pre-built equation template shown in the template gallery. */
 interface EquationTemplate {
+  /** Human-readable label (English fallback). */
   label: string;
+  /** LaTeX source for the template equation. */
   latex: string;
+  /** i18n translation key for the template name. */
   i18nKey: string;
 }
 
+/** Pre-defined equation templates covering common mathematical formulas. */
 const TEMPLATES: EquationTemplate[] = [
   {
     label: "Fraction",
@@ -84,7 +89,7 @@ const TEMPLATES: EquationTemplate[] = [
   },
 ];
 
-// Pre-compute MathML for each template once (static data — no hook needed)
+/** Pre-computed MathML strings for each template (computed once at module load). */
 const TEMPLATE_MATHML: string[] = TEMPLATES.map((tmpl) => {
   try {
     const tmplOmml = convertLatexToOmml(tmpl.latex);
@@ -96,6 +101,14 @@ const TEMPLATE_MATHML: string[] = TEMPLATES.map((tmpl) => {
 
 // ── MathML preview renderer ──────────────────────────────────────────────
 
+/**
+ * Renders a MathML string into the DOM via `innerHTML`.
+ *
+ * Uses a ref-based approach because React cannot render MathML natively.
+ * The container is updated whenever the `mathml` prop changes.
+ *
+ * @param props.mathml - The MathML markup string to render.
+ */
 function MathMlPreview({ mathml }: { mathml: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -119,6 +132,9 @@ function MathMlPreview({ mathml }: { mathml: string }) {
 
 // ── Dialog ───────────────────────────────────────────────────────────────
 
+/**
+ * Props for the {@link EquationEditorDialog} component.
+ */
 export interface EquationEditorDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -128,6 +144,22 @@ export interface EquationEditorDialogProps {
   existingOmml?: Record<string, unknown> | null;
 }
 
+/**
+ * Modal dialog for inserting or editing LaTeX-based equations.
+ *
+ * The dialog provides:
+ * - A live MathML preview rendered from the LaTeX input.
+ * - A textarea for entering / editing LaTeX source.
+ * - A grid of clickable equation templates.
+ * - Keyboard shortcut support (Ctrl+Enter to insert, Escape to close).
+ *
+ * Internally converts LaTeX to OMML (Office Math Markup Language) and
+ * then to MathML for the live preview. The final OMML object is passed
+ * to the parent via `onInsert`.
+ *
+ * @param props - {@link EquationEditorDialogProps}
+ * @returns The dialog element, or `null` when `isOpen` is `false`.
+ */
 export function EquationEditorDialog({
   isOpen,
   onClose,

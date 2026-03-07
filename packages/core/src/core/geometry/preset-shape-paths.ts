@@ -1,8 +1,11 @@
 /**
- * Comprehensive OOXML preset geometry - CSS clip-path mapping.
+ * Comprehensive OOXML preset geometry -- CSS clip-path mapping.
  *
- * This barrel re-exports all types, clip-path lookups, and shape
- * definitions from their dedicated sub-modules.
+ * This barrel module re-exports all types, clip-path lookups, and shape
+ * definitions from their dedicated sub-modules, providing a single
+ * import point for consumers that need preset shape data.
+ *
+ * @module preset-shape-paths
  */
 export {
   type PresetShapeDefinition,

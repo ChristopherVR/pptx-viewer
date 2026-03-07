@@ -1,4 +1,4 @@
-import { type PptxSection, XmlObject } from "../../types";
+import { type PptxSection, type PptxCustomXmlPart, XmlObject } from "../../types";
 import JSZip from "jszip";
 import { type PptxHandlerLoadOptions } from "../types";
 import { detectDigitalSignatures } from "../../utils/signature-detection";
@@ -50,6 +50,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     }
 
     this.slideRelsMap.clear();
+    this.externalRelsMap.clear();
     this.slideMap.clear();
     this.layoutCache.clear();
     this.masterCache.clear();
@@ -63,6 +64,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     this.vbaProjectBin = null;
     this.vbaRelatedParts.clear();
     this.signatureDetection = null;
+    this.customXmlParts = [];
+    this.isStrictOoxml = false;
     this.compatibilityService.resetWarnings();
   }
 
@@ -106,6 +109,65 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     this.signatureDetection = detectDigitalSignatures(entryPaths);
   }
 
+  /**
+   * Scan ZIP entries for `customXml/item*.xml` parts and their associated
+   * `itemProps*.xml` property files. Parsed parts are stored in
+   * `this.customXmlParts` for round-trip preservation.
+   */
+  protected async parseCustomXmlParts(): Promise<void> {
+    const parts: PptxCustomXmlPart[] = [];
+    const itemPattern = /^customXml\/item(\d+)\.xml$/i;
+
+    const entries: string[] = [];
+    this.zip.forEach((relativePath) => {
+      entries.push(relativePath);
+    });
+
+    for (const entry of entries) {
+      const match = entry.match(itemPattern);
+      if (!match) continue;
+
+      const itemId = match[1];
+      const file = this.zip.file(entry);
+      if (!file) continue;
+
+      const data = await file.async("string");
+
+      // Try to read associated itemProps file
+      const propsPath = `customXml/itemProps${itemId}.xml`;
+      const propsFile = this.zip.file(propsPath);
+      let properties: string | undefined;
+      let schemaUri: string | undefined;
+
+      if (propsFile) {
+        properties = await propsFile.async("string");
+        // Extract schema URI from ds:schemaRef if present
+        try {
+          const propsData = this.parser.parse(properties) as XmlObject;
+          const schemaRefs =
+            propsData?.["ds:datastoreItem"]?.["ds:schemaRefs"]?.[
+              "ds:schemaRef"
+            ];
+          if (schemaRefs) {
+            const refs = Array.isArray(schemaRefs) ? schemaRefs : [schemaRefs];
+            const ref = refs[0] as XmlObject | undefined;
+            if (ref?.["@_ds:uri"]) {
+              schemaUri = String(ref["@_ds:uri"]);
+            } else if (ref?.["@_uri"]) {
+              schemaUri = String(ref["@_uri"]);
+            }
+          }
+        } catch {
+          // Ignore schema parse errors — properties string is still preserved
+        }
+      }
+
+      parts.push({ id: itemId, data, schemaUri, properties });
+    }
+
+    this.customXmlParts = parts;
+  }
+
   protected async loadPresentationState(): Promise<{
     width: number;
     height: number;
@@ -122,6 +184,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     }
 
     this.presentationData = this.parser.parse(presentationXml);
+
+    // Detect Strict Open XML conformance from the presentation root element.
+    // If detected, all subsequent parseXml() calls will auto-normalize
+    // Strict namespace URIs to Transitional equivalents.
+    this.detectAndSetStrictConformance(this.presentationData);
+
     await this.loadThemeData();
     this.parsePresentationDefaultTextStyle();
     await this.loadCommentAuthors();
@@ -216,6 +284,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       parseNativeAnimations: (slideXml) => this.parseNativeAnimations(slideXml),
       getSmartArtDataForGraphicFrame: (slidePath, graphicFrame) =>
         this.getSmartArtDataForGraphicFrame(slidePath, graphicFrame),
+      parseSlideCustomerData: (slideXml, slidePath) =>
+        this.parseSlideCustomerData(slideXml, slidePath),
     });
   }
 }

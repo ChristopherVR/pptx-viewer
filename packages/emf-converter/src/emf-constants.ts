@@ -1,11 +1,19 @@
 /**
  * EMF / EMF+ / WMF record-type constants and related numeric definitions.
+ *
+ * These constants mirror the record-type identifiers defined in the
+ * Microsoft EMF (MS-EMF), EMF+ (MS-EMFPLUS), and WMF (MS-WMF) specifications.
+ * They are used by the record-replay loops to dispatch each record to the
+ * correct handler function.
+ *
+ * @module emf-constants
  */
 
 // ---------------------------------------------------------------------------
-// EMF record type constants
+// EMF record type constants (32-bit, from [MS-EMF] section 2.1.1)
 // ---------------------------------------------------------------------------
 
+/** EMR_HEADER — the mandatory first record of every EMF file. */
 export const EMR_HEADER = 1;
 export const EMR_POLYBEZIER = 2;
 export const EMR_POLYGON = 3;
@@ -72,11 +80,18 @@ export const EMR_EXTCREATEPEN = 95;
 export const EMR_SETICMMODE = 98;
 export const EMR_SETLAYOUT = 115;
 
-// Stock object base index
+/**
+ * Base index for GDI stock objects. Object handles >= this value refer to
+ * built-in stock objects (WHITE_BRUSH, BLACK_PEN, etc.) rather than
+ * user-created objects in the metafile's object table.
+ */
 export const STOCK_OBJECT_BASE = 0x80000000;
 
-// EMF+ signature inside EMR_COMMENT data
-export const EMFPLUS_SIGNATURE = 0x2b464d45; // "EMF+" little-endian
+/**
+ * Magic signature found at the start of EMF+ data inside an EMR_COMMENT
+ * record payload. The bytes spell "EMF+" in ASCII (little-endian: 0x2B464D45).
+ */
+export const EMFPLUS_SIGNATURE = 0x2b464d45;
 
 // ---------------------------------------------------------------------------
 // EMF+ record type constants

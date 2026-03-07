@@ -1,8 +1,22 @@
 /**
- * PowerPoint Viewer Plugin — Orchestrator Component
+ * PowerPoint Viewer Plugin — Top-level Orchestrator Component.
  *
- * Handles PowerPoint (.pptx) files with preview and editing support.
- * Delegates rendering to sub-components and logic to hooks.
+ * This is the main entry point for rendering and editing PowerPoint (.pptx) files.
+ * It composes the full viewer UI from sub-components (toolbar, canvas, dialogs,
+ * overlays, presentation layer) and delegates business logic to a collection of
+ * custom hooks:
+ *
+ * - `useViewerState` -- all mutable editor state (slides, selection, mode, etc.)
+ * - `useDerivedSlideState` -- computed values derived from state (visible indexes, sections)
+ * - `useZoomViewport` -- zoom level and viewport DOM ref management
+ * - `useEditorHistory` -- undo/redo snapshot stack
+ * - `usePresentationSetup` -- slideshow mode + annotation handling
+ * - `useViewerDialogs` -- dialog open/close state and callbacks
+ * - `useEditorOperations` -- element manipulation, insert, canvas, find/replace
+ * - `useViewerIntegration` -- I/O, export, print, pointers, clipboard, lifecycle
+ *
+ * The component exposes a `PowerPointViewerHandle` via `forwardRef` so host
+ * applications can call `getContent()` to retrieve the current file bytes.
  */
 import { forwardRef, useCallback, useEffect, useState } from "react";
 
@@ -36,6 +50,15 @@ import { ViewerPresentationLayer } from "./components/ViewerPresentationLayer";
 /*  Component                                                         */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Root React component for the PowerPoint viewer/editor.
+ *
+ * Accepts binary `.pptx` content and renders a full-featured editor with
+ * slide canvas, toolbar, inspector panels, presentation mode, and more.
+ *
+ * Uses `forwardRef` to expose a `PowerPointViewerHandle` for imperative
+ * access (e.g. serialising the current content for saving).
+ */
 export const PowerPointViewer = forwardRef<
   PowerPointViewerHandle,
   PowerPointViewerProps
@@ -49,9 +72,11 @@ export const PowerPointViewer = forwardRef<
     onActiveSlideChange,
   } = props;
 
+  // Local content state -- synced from incoming prop but may diverge during editing.
   const [content, setContent] = useState<ArrayBuffer | Uint8Array | null>(
     incomingContent,
   );
+  // Re-sync when the parent provides a new content buffer (e.g. file reload).
   useEffect(() => {
     setContent(incomingContent);
   }, [incomingContent]);
@@ -91,6 +116,9 @@ export const PowerPointViewer = forwardRef<
   });
 
   // ── Core hooks ────────────────────────────────────────────────
+  // Returns true when a drag, resize, marquee, adjustment, or drawing
+  // interaction is in progress. Used by the history hook to defer
+  // snapshot capture until the interaction completes.
   const hasActivePointerInteraction = useCallback(
     () =>
       !!(

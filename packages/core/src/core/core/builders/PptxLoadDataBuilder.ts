@@ -4,7 +4,11 @@ import type {
   PptxCoreProperties,
   PptxCustomProperty,
   PptxCustomShow,
+  PptxCustomXmlPart,
+  PptxCustomerData,
   PptxData,
+  PptxModifyVerifier,
+  PptxPhotoAlbum,
   PptxDrawingGuide,
   PptxEmbeddedFont,
   PptxHandoutMaster,
@@ -80,6 +84,14 @@ export class PptxLoadDataBuilder {
   private digitalSignatureCount: number | undefined;
 
   private presentationGuides: PptxDrawingGuide[] | undefined;
+
+  private customXmlParts: PptxCustomXmlPart[] | undefined;
+
+  private photoAlbum: PptxPhotoAlbum | undefined;
+
+  private modifyVerifier: PptxModifyVerifier | undefined;
+
+  private customerData: PptxCustomerData[] | undefined;
 
   public withDimensions(
     width: number,
@@ -239,6 +251,28 @@ export class PptxLoadDataBuilder {
     return this;
   }
 
+  public withCustomXmlParts(
+    customXmlParts: PptxCustomXmlPart[] | undefined,
+  ): this {
+    this.customXmlParts = customXmlParts;
+    return this;
+  }
+
+  public withPhotoAlbum(photoAlbum: PptxPhotoAlbum | undefined): this {
+    this.photoAlbum = photoAlbum;
+    return this;
+  }
+
+  public withModifyVerifier(modifyVerifier: PptxModifyVerifier | undefined): this {
+    this.modifyVerifier = modifyVerifier;
+    return this;
+  }
+
+  public withCustomerData(customerData: PptxCustomerData[] | undefined): this {
+    this.customerData = customerData;
+    return this;
+  }
+
   public build(): PptxData {
     return {
       width: this.width,
@@ -271,6 +305,10 @@ export class PptxLoadDataBuilder {
       hasDigitalSignatures: this.hasDigitalSignatures,
       digitalSignatureCount: this.digitalSignatureCount,
       presentationGuides: this.presentationGuides,
+      photoAlbum: this.photoAlbum,
+      modifyVerifier: this.modifyVerifier,
+      customXmlParts: this.customXmlParts,
+      customerData: this.customerData,
     };
   }
 }
