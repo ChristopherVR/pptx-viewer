@@ -1,0 +1,22 @@
+import { defineConfig } from "tsup";
+
+export default defineConfig((options) => ({
+	entry: [
+		"src/index.ts",
+		"src/converter/index.ts",
+	],
+	format: ["esm", "cjs"],
+	dts: true,
+	splitting: false,
+	sourcemap: false,
+	clean: !options.watch,
+	external: [
+		"jszip",
+		"fast-xml-parser",
+	],
+	noExternal: [
+		"emf-converter",
+	],
+	treeshake: true,
+	platform: "neutral",
+}));

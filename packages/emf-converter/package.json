@@ -1,0 +1,42 @@
+{
+	"name": "emf-converter",
+	"version": "1.0.0",
+	"description": "Convert EMF/WMF metafile binaries to PNG data URLs using Canvas",
+	"main": "dist/index.js",
+	"module": "dist/index.mjs",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.js"
+		}
+	},
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"typecheck": "tsc --noEmit --pretty",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"pack": "bun run build && bun pm pack"
+	},
+	"devDependencies": {
+		"tsup": "^8.5.1",
+		"typescript": "^5.9.3",
+		"vitest": "^3.2.4"
+	},
+	"files": [
+		"dist/",
+		"README.md"
+	],
+	"keywords": [
+		"emf",
+		"wmf",
+		"metafile",
+		"converter",
+		"canvas",
+		"png",
+		"windows-metafile"
+	],
+	"license": "MIT"
+}

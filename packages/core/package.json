@@ -1,0 +1,52 @@
+{
+	"name": "pptx-viewer-core",
+	"version": "1.0.0",
+	"description": "Core PPTX engine — parse, edit, serialize, and convert PowerPoint files.",
+	"main": "dist/index.mjs",
+	"module": "dist/index.mjs",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.js"
+		},
+		"./converter": {
+			"types": "./dist/converter/index.d.ts",
+			"import": "./dist/converter/index.mjs",
+			"require": "./dist/converter/index.js"
+		}
+	},
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"typecheck": "tsc --noEmit --pretty",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"pack": "bun run build && bun pm pack"
+	},
+	"peerDependencies": {
+		"jszip": "^3.10.1",
+		"fast-xml-parser": "^5.3.7"
+	},
+	"devDependencies": {
+		"emf-converter": "workspace:*",
+		"tsup": "^8.5.1",
+		"typescript": "^5.9.3",
+		"vitest": "^3.2.4"
+	},
+	"files": [
+		"dist/",
+		"README.md"
+	],
+	"keywords": [
+		"pptx",
+		"powerpoint",
+		"openxml",
+		"parser",
+		"sdk",
+		"converter",
+		"markdown"
+	],
+	"license": "MIT"
+}
