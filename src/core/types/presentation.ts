@@ -1,0 +1,378 @@
+/**
+ * Top-level presentation types: slides, canvas dimensions, export options,
+ * and the root {@link PptxData} structure returned by `PptxHandlerCore.load()`.
+ *
+ * @module pptx-types/presentation
+ */
+
+// ==========================================================================
+// Slide, presentation data, and export types
+// ==========================================================================
+
+import type { XmlObject, PptxDrawingGuide } from "./common";
+import type { TextSegment } from "./text";
+import type { PptxElement } from "./elements";
+import type { PptxSlideTransition } from "./transition";
+import type { PptxElementAnimation, PptxNativeAnimation } from "./animation";
+import type {
+  PptxComment,
+  PptxCompatibilityWarning,
+  PptxTagCollection,
+  PptxCustomProperty,
+  PptxCoreProperties,
+  PptxAppProperties,
+} from "./metadata";
+import type { PptxViewProperties } from "./view-properties";
+import type { PptxTheme } from "./theme";
+import type {
+  PptxThemeOption,
+  PptxNotesMaster,
+  PptxHandoutMaster,
+  PptxSlideMaster,
+} from "./masters";
+import type { ParsedTableStyleMap } from "./table";
+
+/**
+ * A single slide in a parsed PPTX presentation.
+ *
+ * Contains the element tree, background settings, notes, comments,
+ * transition / animation data, and metadata like layout path and section.
+ *
+ * @example
+ * ```ts
+ * const slide: PptxSlide = {
+ *   id: "slide1",
+ *   rId: "rId2",
+ *   slideNumber: 1,
+ *   elements: [titleTextBox, subtitleTextBox],
+ *   backgroundColor: "#FFFFFF",
+ *   notes: "Remember to mention quarterly goals.",
+ * };
+ * // => satisfies PptxSlide
+ * ```
+ */
+export interface PptxSlide {
+  id: string;
+  rId: string; // Relationship ID
+  sourceSlideId?: string; // Optional source slide path when creating new slides
+  layoutPath?: string;
+  layoutName?: string;
+  slideNumber: number;
+  hidden?: boolean; // Hidden slides are skipped in presentation mode
+  sectionName?: string;
+  sectionId?: string;
+  elements: PptxElement[];
+  backgroundColor?: string;
+  backgroundImage?: string; // base64 data URL for background image
+  backgroundGradient?: string; // CSS gradient string for background
+  transition?: PptxSlideTransition;
+  animations?: PptxElementAnimation[];
+  /** Native OOXML animation data parsed from `p:timing`. */
+  nativeAnimations?: PptxNativeAnimation[];
+  /** Preserved raw `p:timing` XML for lossless round-trip of native animations. */
+  rawTiming?: XmlObject;
+  notes?: string;
+  /** Rich text segments for the slide notes (preserves formatting). */
+  notesSegments?: TextSegment[];
+  comments?: PptxComment[];
+  warnings?: PptxCompatibilityWarning[];
+  rawXml?: XmlObject;
+  /** Per-slide colour map override parsed from `p:clrMapOvr`. */
+  clrMapOverride?: Record<string, string>;
+  /** Whether background animations should play (`p:bg/@showAnimation`). */
+  backgroundShowAnimation?: boolean;
+  /** Whether master slide shapes should be shown on this slide (`p:sld/@showMasterSp`). */
+  showMasterShapes?: boolean;
+  /** Drawing guides parsed from slide extension list. */
+  guides?: PptxDrawingGuide[];
+  /** When explicitly `false`, the slide is unmodified and save can skip re-serialization. */
+  isDirty?: boolean;
+}
+
+/**
+ * A slide layout available in the loaded presentation.
+ *
+ * Each entry maps to a `<p:sldLayout>` inside `ppt/slideLayouts/`.
+ *
+ * @example
+ * ```ts
+ * const layout: PptxLayoutOption = {
+ *   path: "ppt/slideLayouts/slideLayout2.xml",
+ *   name: "Title and Content",
+ * };
+ * // => satisfies PptxLayoutOption
+ * ```
+ */
+export interface PptxLayoutOption {
+  path: string;
+  name: string;
+}
+
+/**
+ * Header, footer, date-time, and slide-number placeholders.
+ *
+ * Parsed from `ppt/presProps.xml` and individual slide layouts.
+ *
+ * @example
+ * ```ts
+ * const hf: PptxHeaderFooter = {
+ *   hasFooter: true,
+ *   footerText: "Confidential",
+ *   hasSlideNumber: true,
+ * };
+ * // => satisfies PptxHeaderFooter
+ * ```
+ */
+export interface PptxHeaderFooter {
+  hasHeader?: boolean;
+  headerText?: string;
+  hasFooter?: boolean;
+  footerText?: string;
+  hasDateTime?: boolean;
+  dateTimeText?: string;
+  dateTimeAuto?: boolean;
+  /** OOXML date format pattern (e.g. "M/d/yyyy", "dddd, MMMM dd, yyyy"). */
+  dateFormat?: string;
+  hasSlideNumber?: boolean;
+}
+
+/**
+ * Presentation-level properties parsed from `presentationPr.xml`.
+ *
+ * Controls slideshow behaviour, print settings, custom colours, and grid.
+ *
+ * @example
+ * ```ts
+ * const props: PptxPresentationProperties = {
+ *   showType: "presented",
+ *   loopContinuously: false,
+ *   advanceMode: "useTimings",
+ * };
+ * // => satisfies PptxPresentationProperties
+ * ```
+ */
+export interface PptxPresentationProperties {
+  /** Show type: presented, browsed, kiosk. */
+  showType?: "presented" | "browsed" | "kiosk";
+  /** Whether to loop the slideshow continuously. */
+  loopContinuously?: boolean;
+  /** Whether to show without narration. */
+  showWithNarration?: boolean;
+  /** Whether to show without animation. */
+  showWithAnimation?: boolean;
+  /** Advance slides mode: manual click or use stored timings. */
+  advanceMode?: "manual" | "useTimings";
+  /** Show slides: 'all', a custom show id, or a from-to range. */
+  showSlidesMode?: "all" | "customShow" | "range";
+  /** Custom show id to use when showSlidesMode is 'customShow'. */
+  showSlidesCustomShowId?: string;
+  /** Slide range start (1-based) when showSlidesMode is 'range'. */
+  showSlidesFrom?: number;
+  /** Slide range end (1-based) when showSlidesMode is 'range'. */
+  showSlidesTo?: number;
+  /** Whether to show subtitles/captions during presentation mode. */
+  showSubtitles?: boolean;
+  /** Print settings: slides per page. */
+  printSlidesPerPage?: number;
+  /** Print settings: frame slides. */
+  printFrameSlides?: boolean;
+  /** Print settings: colour mode (from `p:prnPr/@clrMode`). */
+  printColorMode?: "clr" | "gray" | "bw";
+  /** Most-recently-used colours from the presentation palette. */
+  mruColors?: string[];
+  /** Grid spacing in EMUs (cx, cy). Default is 914400 / 8 = 114300. */
+  gridSpacing?: { cx: number; cy: number };
+  /** Pen colour for presentation mode annotations (from `p:showPr/p:penClr`). */
+  penColor?: string;
+}
+
+/**
+ * A named custom slide show (`p:custShowLst / p:custShow`).
+ *
+ * Custom shows define ordered subsets of slides that can be presented
+ * independently of the full deck.
+ *
+ * @example
+ * ```ts
+ * const show: PptxCustomShow = {
+ *   name: "Executive Summary",
+ *   id: "0",
+ *   slideRIds: ["rId2", "rId5", "rId8"],
+ * };
+ * // => satisfies PptxCustomShow
+ * ```
+ */
+export interface PptxCustomShow {
+  /** Custom show name. */
+  name: string;
+  /** Custom show id. */
+  id: string;
+  /** Ordered list of slide relationship IDs included in this custom show. */
+  slideRIds: string[];
+}
+
+/**
+ * An ordered section in the presentation (from `p:sectionLst` / `p14:sectionLst`).
+ *
+ * Sections group consecutive slides under a named heading (visible
+ * in the PowerPoint slide sorter).
+ *
+ * @example
+ * ```ts
+ * const section: PptxSection = {
+ *   id: "sec_1",
+ *   name: "Introduction",
+ *   slideIds: ["256", "257"],
+ * };
+ * // => satisfies PptxSection
+ * ```
+ */
+export interface PptxSection {
+  /** Section unique identifier (GUID or synthetic). */
+  id: string;
+  /** Human-readable section name. */
+  name: string;
+  /** Ordered list of numeric slide IDs that belong to this section. */
+  slideIds: string[];
+  /** Whether the section is collapsed in the slide sorter (from p15:sectionPr). */
+  collapsed?: boolean;
+  /** Section highlight color hex (from p15:sectionPr/@clr). */
+  color?: string;
+}
+
+/**
+ * Root data structure returned by {@link PptxHandlerCore.load}.
+ *
+ * Contains every slide, canvas dimensions, theme data, layout options,
+ * metadata, and optional features (custom shows, sections, macros,
+ * digital signatures, embedded fonts).
+ *
+ * @example
+ * ```ts
+ * const data: PptxData = await handler.load(buffer);
+ * console.log(`${data.slides.length} slides, ${data.width}×${data.height}`);
+ * // => e.g. "24 slides, 960×540"
+ * ```
+ */
+export interface PptxData {
+  slides: PptxSlide[];
+  width: number; // Presentation width in pixels (approx)
+  height: number;
+  /** Slide width in EMU (for save round-trip). */
+  widthEmu?: number;
+  /** Slide height in EMU (for save round-trip). */
+  heightEmu?: number;
+  /** Notes page width in EMU (from `p:notesSz`). */
+  notesWidthEmu?: number;
+  /** Notes page height in EMU (from `p:notesSz`). */
+  notesHeightEmu?: number;
+  layoutOptions?: PptxLayoutOption[];
+  headerFooter?: PptxHeaderFooter;
+  /** Presentation-level properties parsed from `presentationPr.xml`. */
+  presentationProperties?: PptxPresentationProperties;
+  /** Named custom slide shows from `p:custShowLst`. */
+  customShows?: PptxCustomShow[];
+  /** Ordered presentation sections from `p:sectionLst` / `p14:sectionLst`. */
+  sections?: PptxSection[];
+  warnings?: PptxCompatibilityWarning[];
+  /** Map of theme colour scheme keys to resolved hex values. */
+  themeColorMap?: Record<string, string>;
+  /** Full parsed theme object with colours, fonts, and name. */
+  theme?: PptxTheme;
+  /** Available theme parts discovered in `ppt/theme/`. */
+  themeOptions?: PptxThemeOption[];
+  /** Parsed table style definitions from `ppt/tableStyles.xml`. */
+  tableStyleMap?: ParsedTableStyleMap;
+  /** Whether the presentation is password-protected. */
+  isPasswordProtected?: boolean;
+  /** Embedded font data (name + binary data URL) extracted from the presentation. */
+  embeddedFonts?: PptxEmbeddedFont[];
+  /** Most-recently-used colour list from presentation properties. */
+  mruColors?: string[];
+  /** Parsed notes master data if present in the PPTX. */
+  notesMaster?: PptxNotesMaster;
+  /** Parsed handout master data if present in the PPTX. */
+  handoutMaster?: PptxHandoutMaster;
+  /** Structured slide master data for each master in the presentation. */
+  slideMasters?: PptxSlideMaster[];
+  /** Parsed tag collections attached to the presentation or slides. */
+  tags?: PptxTagCollection[];
+  /** Custom document properties from `docProps/custom.xml`. */
+  customProperties?: PptxCustomProperty[];
+  /** Core document properties from `docProps/core.xml`. */
+  coreProperties?: PptxCoreProperties;
+  /** Extended (application) properties from `docProps/app.xml`. */
+  appProperties?: PptxAppProperties;
+  /** Whether the presentation contains VBA macros (is a .pptm file). */
+  hasMacros?: boolean;
+  /** Whether the presentation contains digital signatures (`_xmlsignatures/` parts). */
+  hasDigitalSignatures?: boolean;
+  /** Number of digital signatures found. */
+  digitalSignatureCount?: number;
+  /** Presentation-level drawing guides from `p:extLst`. */
+  presentationGuides?: PptxDrawingGuide[];
+  /** View properties from `ppt/viewProps.xml`. */
+  viewProperties?: PptxViewProperties;
+}
+
+// ==========================================================================
+// Export options (GAP-20 — stubs for future PDF/PNG export)
+// ==========================================================================
+
+/**
+ * Target format for slide export.
+ *
+ * @see {@link PptxExportOptions}
+ */
+export type PptxExportFormat = "pdf" | "png" | "svg";
+
+/**
+ * Options controlling slide export to raster or vector formats.
+ *
+ * @example
+ * ```ts
+ * const opts: PptxExportOptions = {
+ *   format: "png",
+ *   slideIndices: [0, 2, 4],
+ *   dpi: 300,
+ * };
+ * // => satisfies PptxExportOptions
+ * ```
+ */
+export interface PptxExportOptions {
+  /** Target format. */
+  format: PptxExportFormat;
+  /** Slide indices to export (0-based). If omitted, all slides are exported. */
+  slideIndices?: number[];
+  /** Output width in pixels (for PNG). Height is derived from aspect ratio. */
+  width?: number;
+  /** DPI for raster export (default 150). */
+  dpi?: number;
+  /** Whether to include hidden slides. */
+  includeHidden?: boolean;
+}
+
+/**
+ * Embedded font data extracted from a PPTX file.
+ *
+ * Used to register `@font-face` rules so the renderer can display
+ * the correct typeface even when the system font is missing.
+ *
+ * @example
+ * ```ts
+ * const font: PptxEmbeddedFont = {
+ *   name: "CustomSans",
+ *   dataUrl: "data:font/truetype;base64,AAEAK...",
+ *   format: "truetype",
+ * };
+ * // => satisfies PptxEmbeddedFont
+ * ```
+ */
+export interface PptxEmbeddedFont {
+  name: string;
+  dataUrl: string;
+  bold?: boolean;
+  italic?: boolean;
+  /** CSS font format hint (e.g. "truetype", "opentype"). */
+  format?: "truetype" | "opentype" | "woff" | "woff2";
+}

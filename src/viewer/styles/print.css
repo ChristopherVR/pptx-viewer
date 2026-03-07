@@ -1,0 +1,182 @@
+/**
+ * Print-specific CSS for PowerPoint handout layouts.
+ *
+ * When the user invokes window.print() from the main viewer,
+ * these rules hide the application chrome and show only the
+ * handout pages, each separated by a page break.
+ */
+
+/* ─── Screen: hide print-only elements ─────────────────────────────── */
+.pptx-print-only {
+  display: none;
+}
+
+/* ─── Print Media ──────────────────────────────────────────────────── */
+@media print {
+  /* ---------- Hide all application UI ---------- */
+  .pptx-toolbar,
+  .pptx-inspector,
+  .pptx-sidebar,
+  .pptx-status-bar,
+  .pptx-notes-panel,
+  .pptx-find-replace-panel,
+  .pptx-context-menu,
+  .pptx-slide-sorter,
+  .pptx-presenter-view,
+  .pptx-shortcut-panel,
+  .pptx-accessibility-panel,
+  .pptx-overlay,
+  .pptx-modal-backdrop,
+  .pptx-export-modal,
+  .pptx-no-print,
+  nav,
+  header,
+  footer,
+  aside {
+    display: none !important;
+  }
+
+  /* ---------- Body reset ---------- */
+  body {
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ---------- Show print-only content ---------- */
+  .pptx-print-only {
+    display: block !important;
+  }
+
+  /* ---------- Handout page ---------- */
+  .pptx-handout-page {
+    page-break-after: always;
+    page-break-inside: avoid;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 8mm;
+  }
+
+  .pptx-handout-page:last-child {
+    page-break-after: auto;
+  }
+
+  /* ---------- Handout grid ---------- */
+  .pptx-handout-grid {
+    display: grid;
+    gap: 3mm;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Grid template variants */
+  .pptx-handout-grid--1 {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+  }
+
+  .pptx-handout-grid--2 {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(2, 1fr);
+  }
+
+  .pptx-handout-grid--3 {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(3, 1fr);
+  }
+
+  .pptx-handout-grid--4 {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+  }
+
+  .pptx-handout-grid--6 {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+  }
+
+  .pptx-handout-grid--9 {
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+  }
+
+  /* ---------- Handout cell ---------- */
+  .pptx-handout-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #fff;
+    border-radius: 2px;
+  }
+
+  .pptx-handout-cell--framed {
+    border: 2px solid #000;
+  }
+
+  .pptx-handout-cell img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  /* ---------- 3-per-page with note lines ---------- */
+  .pptx-handout-row-3 {
+    display: flex;
+    gap: 4mm;
+    flex: 1;
+  }
+
+  .pptx-handout-row-3 .pptx-handout-cell {
+    flex: 0 0 45%;
+  }
+
+  .pptx-handout-note-lines {
+    flex: 1;
+    position: relative;
+    border-left: 1px solid #d1d5db;
+    padding-left: 3mm;
+  }
+
+  .pptx-handout-note-line {
+    position: absolute;
+    left: 3mm;
+    right: 0;
+    height: 0;
+    border-bottom: 1px solid #d1d5db;
+  }
+
+  /* ---------- Page orientation ---------- */
+  @page {
+    margin: 8mm;
+  }
+
+  .pptx-handout-page--portrait {
+    size: portrait;
+  }
+
+  .pptx-handout-page--landscape {
+    size: landscape;
+  }
+
+  /* ---------- Colour filters ---------- */
+  .pptx-print-grayscale {
+    filter: grayscale(1);
+  }
+
+  .pptx-print-bw {
+    filter: grayscale(1) contrast(2);
+  }
+
+  /* ---------- Remove scrollbars ---------- */
+  *::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  * {
+    scrollbar-width: none !important;
+  }
+}

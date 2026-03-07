@@ -1,0 +1,79 @@
+{
+	"name": "pptx-viewer",
+	"version": "1.0.0",
+	"description": "Standalone PPTX viewer, editor, and converter — parse, render, edit, and serialize PowerPoint files",
+	"main": "dist/index.mjs",
+	"module": "dist/index.mjs",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.js"
+		},
+		"./core": {
+			"types": "./dist/core/index.d.ts",
+			"import": "./dist/core/index.mjs",
+			"require": "./dist/core/index.js"
+		},
+		"./viewer": {
+			"types": "./dist/viewer/index.d.ts",
+			"import": "./dist/viewer/index.mjs",
+			"require": "./dist/viewer/index.js"
+		},
+		"./converter": {
+			"types": "./dist/converter/index.d.ts",
+			"import": "./dist/converter/index.mjs",
+			"require": "./dist/converter/index.js"
+		}
+	},
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"typecheck": "tsc --noEmit --pretty",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"demo": "cd demo && bunx vite",
+		"pack": "bun run build && bun pack"
+	},
+	"dependencies": {
+		"clsx": "^2.1.1",
+		"tailwind-merge": "^3.5.0"
+	},
+	"peerDependencies": {
+		"fast-xml-parser": "^5.3.7",
+		"framer-motion": "^12.34.3",
+		"html2canvas": "^1.4.1",
+		"i18next": "^25.8.7",
+		"jszip": "^3.10.1",
+		"jspdf": "^4.2.0",
+		"lucide-react": "^0.575.0",
+		"react": "^19.2.4",
+		"react-dom": "^19.2.4",
+		"react-i18next": "^16.5.4",
+		"react-icons": "^5.5.0"
+	},
+	"devDependencies": {
+		"@types/react": "^19.2.14",
+		"@types/react-dom": "^19.2.3",
+		"tsup": "^8.5.1",
+		"typescript": "^5.9.3",
+		"vite": "^6.3.5",
+		"vitest": "^3.2.4"
+	},
+	"files": [
+		"dist/",
+		"README.md"
+	],
+	"keywords": [
+		"pptx",
+		"powerpoint",
+		"viewer",
+		"editor",
+		"openxml",
+		"presentation",
+		"converter",
+		"markdown"
+	],
+	"license": "MIT"
+}
