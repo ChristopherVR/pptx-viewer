@@ -4,7 +4,7 @@
 	PptxCoreProperties,
 	PptxAppProperties,
 } from '../core';
-import { ConversionOptions, DocumentConverter } from './base';
+import { ConversionOptions, DocumentConverter, type FileSystemAdapter } from './base';
 import { SlideProcessor } from './SlideProcessor';
 import { TextSegmentRenderer } from './TextSegmentRenderer';
 import { ChartElementProcessor } from './elements/ChartElementProcessor';
@@ -85,9 +85,10 @@ export class PptxMarkdownConverter extends DocumentConverter<PptxData> {
 	/**
 	 * @param outputDir - Root directory for output files.
 	 * @param options - PPTX-specific conversion options.
+	 * @param fs - Optional file system adapter for writing media to disk.
 	 */
-	public constructor(outputDir: string, options: PptxConverterOptions) {
-		super(outputDir, options);
+	public constructor(outputDir: string, options: PptxConverterOptions, fs?: FileSystemAdapter) {
+		super(outputDir, options, fs);
 		this.textRenderer = new TextSegmentRenderer();
 		this.registry = new ElementProcessorRegistry();
 		this.registerProcessors();

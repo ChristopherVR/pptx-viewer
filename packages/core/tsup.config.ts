@@ -16,6 +16,7 @@ export default defineConfig((options) => ({
 	],
 	noExternal: [
 		"emf-converter",
+		"mtx-decompressor",
 	],
 	treeshake: true,
 	platform: "neutral",

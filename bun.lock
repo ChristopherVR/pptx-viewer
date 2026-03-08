@@ -78,6 +78,7 @@
       "dependencies": {
         "clsx": "^2.1.1",
         "emf-converter": "workspace:*",
+        "mtx-decompressor": "workspace:*",
         "pptx-viewer-core": "workspace:*",
         "tailwind-merge": "^3.5.0",
       },
