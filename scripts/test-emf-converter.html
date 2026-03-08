@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>EMF Converter Test — Fuzor vs EMFJS (rtf.js)</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: system-ui, sans-serif;
+        background: #1e1e2e;
+        color: #cdd6f4;
+        padding: 24px;
+      }
+      h1 {
+        font-size: 1.4rem;
+        margin-bottom: 16px;
+        color: #89b4fa;
+      }
+      h2 {
+        font-size: 1.1rem;
+        margin-bottom: 8px;
+        color: #a6adc8;
+      }
+      .controls {
+        margin-bottom: 20px;
+        display: flex;
+        gap: 16px;
+        align-items: center;
+      }
+      .controls label {
+        font-size: 0.9rem;
+        color: #bac2de;
+      }
+      .controls input[type="file"] {
+        color: #cdd6f4;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-bottom: 24px;
+      }
+      .panel {
+        background: #313244;
+        border-radius: 12px;
+        padding: 16px;
+      }
+      .panel h2 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .panel h2 .badge {
+        font-size: 0.7rem;
+        background: #45475a;
+        padding: 2px 8px;
+        border-radius: 4px;
+      }
+      .render-area {
+        background: #fff;
+        border-radius: 8px;
+        min-height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        margin-top: 8px;
+        overflow: hidden;
+      }
+      .render-area img,
+      .render-area svg {
+        max-width: 100%;
+        height: auto;
+      }
+      .status {
+        font-size: 0.8rem;
+        margin-top: 6px;
+        color: #a6adc8;
+      }
+      .status.ok {
+        color: #a6e3a1;
+      }
+      .status.err {
+        color: #f38ba8;
+      }
+      .log-area {
+        background: #181825;
+        border-radius: 8px;
+        padding: 12px;
+        font-family: "Cascadia Code", "Fira Code", monospace;
+        font-size: 0.75rem;
+        max-height: 400px;
+        overflow: auto;
+        white-space: pre-wrap;
+        color: #a6adc8;
+        margin-top: 16px;
+        line-height: 1.5;
+      }
+      .log-area .warn {
+        color: #f9e2af;
+      }
+      .log-area .error {
+        color: #f38ba8;
+      }
+      .log-area .info {
+        color: #89b4fa;
+      }
+      .log-area .success {
+        color: #a6e3a1;
+      }
+      .timing {
+        color: #f9e2af;
+        font-weight: 600;
+      }
+      button {
+        background: #89b4fa;
+        color: #1e1e2e;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.85rem;
+      }
+      button:hover {
+        background: #74c7ec;
+      }
+      .full-width {
+        grid-column: 1 / -1;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>EMF Converter Test Bench</h1>
+
+    <div class="controls">
+      <label
+        >EMF file: <input type="file" id="fileInput" accept=".emf,.wmf"
+      /></label>
+      <button id="loadDefault">Load Picture1.emf</button>
+      <button id="loadImage2">Load image2.emf</button>
+      <span id="fileInfo" style="font-size: 0.8rem; color: #a6adc8"></span>
+    </div>
+
+    <div class="grid">
+      <div class="panel">
+        <h2>Fuzor Converter <span class="badge">Canvas → PNG</span></h2>
+        <div class="render-area" id="fuzorOutput"></div>
+        <div class="status" id="fuzorStatus">Waiting for file…</div>
+      </div>
+      <div class="panel">
+        <h2>EMFJS (rtf.js) <span class="badge">GDI → SVG</span></h2>
+        <div class="render-area" id="emfjsOutput"></div>
+        <div class="status" id="emfjsStatus">Waiting for file…</div>
+      </div>
+      <div class="panel full-width">
+        <h2>Diagnostic Log</h2>
+        <div class="log-area" id="logArea"></div>
+      </div>
+    </div>
+
+    <!-- EMFJS from rtf.js via CDN -->
+    <script src="https://unpkg.com/rtf.js@3.0.9/dist/EMFJS.bundle.js"></script>
+
+    <!-- Our converter (bundled by the serve script into /emf-converter-bundle.js) -->
+    <script type="module">
+      // Import our converter from the bundle served by the test server
+      import {
+        convertEmfToDataUrl,
+        convertWmfToDataUrl,
+      } from "/emf-converter-bundle.js";
+
+      const logArea = document.getElementById("logArea");
+      const fuzorOutput = document.getElementById("fuzorOutput");
+      const fuzorStatus = document.getElementById("fuzorStatus");
+      const emfjsOutput = document.getElementById("emfjsOutput");
+      const emfjsStatus = document.getElementById("emfjsStatus");
+      const fileInfo = document.getElementById("fileInfo");
+
+      function log(msg, cls = "") {
+        const line = document.createElement("div");
+        if (cls) line.className = cls;
+        line.textContent = msg;
+        logArea.appendChild(line);
+        logArea.scrollTop = logArea.scrollHeight;
+      }
+
+      function clearLog() {
+        logArea.innerHTML = "";
+      }
+
+      // ── EMF header parser (lightweight, for diagnostics) ──
+
+      function parseEmfHeaderDiag(view) {
+        if (view.byteLength < 88) return null;
+        const recType = view.getUint32(0, true);
+        if (recType !== 1) return null; // EMR_HEADER
+
+        const boundsL = view.getInt32(8, true);
+        const boundsT = view.getInt32(12, true);
+        const boundsR = view.getInt32(16, true);
+        const boundsB = view.getInt32(20, true);
+        const frameL = view.getInt32(24, true);
+        const frameT = view.getInt32(28, true);
+        const frameR = view.getInt32(32, true);
+        const frameB = view.getInt32(36, true);
+
+        return {
+          bounds: {
+            left: boundsL,
+            top: boundsT,
+            right: boundsR,
+            bottom: boundsB,
+          },
+          boundsW: boundsR - boundsL,
+          boundsH: boundsB - boundsT,
+          frame: { left: frameL, top: frameT, right: frameR, bottom: frameB },
+          frameW: frameR - frameL,
+          frameH: frameB - frameT,
+        };
+      }
+
+      function countRecords(view) {
+        let offset = 0;
+        let count = 0;
+        const gdiRecords = [];
+        const emfPlusComments = [];
+
+        while (offset + 8 <= view.byteLength) {
+          const recType = view.getUint32(offset, true);
+          const recSize = view.getUint32(offset + 4, true);
+          if (recSize < 8 || offset + recSize > view.byteLength) break;
+          count++;
+
+          if (recType === 70 && recSize >= 16) {
+            // EMR_COMMENT
+            const commentSize = view.getUint32(offset + 8, true);
+            if (commentSize >= 4) {
+              const sig = view.getUint32(offset + 12, true);
+              if (sig === 0x2b464d45) {
+                // "EMF+"
+                emfPlusComments.push({
+                  offset,
+                  size: recSize,
+                  dataSize: commentSize,
+                });
+              }
+            }
+          } else {
+            gdiRecords.push({ type: recType, offset, size: recSize });
+          }
+
+          if (recType === 14) break; // EMR_EOF
+          offset += recSize;
+        }
+        return { count, gdiRecords, emfPlusComments };
+      }
+
+      function analyzeEmfPlus(view, commentOffset, commentSize) {
+        const start = commentOffset + 16; // skip EMR_COMMENT header (8) + commentSize (4) + sig (4)
+        const end = commentOffset + commentSize + 8; // account for rec header
+        let off = start;
+        const records = [];
+
+        while (off + 12 <= end) {
+          const recType = view.getUint16(off, true);
+          const recFlags = view.getUint16(off + 2, true);
+          const recSize = view.getUint32(off + 4, true);
+          const recDataSize = view.getUint32(off + 8, true);
+          if (recSize < 12 || off + recSize > end) break;
+
+          const rec = {
+            type: recType,
+            flags: recFlags,
+            size: recSize,
+            dataSize: recDataSize,
+            offset: off,
+          };
+
+          // Decode object creation for images
+          if (recType === 0x4008) {
+            // EMFPLUS_OBJECT
+            const objectId = recFlags & 0xff;
+            const objectType = (recFlags >> 8) & 0x7f;
+            rec.objectId = objectId;
+            rec.objectType = objectType;
+            const OBJECT_NAMES = {
+              1: "Brush",
+              2: "Pen",
+              3: "Path",
+              4: "Region",
+              5: "Image",
+              6: "Font",
+              7: "StringFormat",
+              8: "ImageAttributes",
+            };
+            rec.objectTypeName =
+              OBJECT_NAMES[objectType] || `Unknown(${objectType})`;
+
+            if (objectType === 5 && recDataSize >= 8) {
+              // Image
+              const dataOff = off + 12;
+              const imgType = view.getUint32(dataOff + 4, true);
+              rec.imgType = imgType;
+              rec.imgTypeName =
+                imgType === 1
+                  ? "Bitmap"
+                  : imgType === 2
+                    ? "Metafile"
+                    : `Unknown(${imgType})`;
+
+              if (imgType === 1 && recDataSize >= 28) {
+                rec.bmpW = view.getInt32(dataOff + 8, true);
+                rec.bmpH = view.getInt32(dataOff + 12, true);
+                rec.bmpStride = view.getInt32(dataOff + 16, true);
+                rec.pixelFormat =
+                  "0x" +
+                  view
+                    .getUint32(dataOff + 20, true)
+                    .toString(16)
+                    .padStart(8, "0");
+                rec.bmpType = view.getUint32(dataOff + 24, true);
+                rec.bmpTypeName =
+                  rec.bmpType === 1
+                    ? "Pixel"
+                    : rec.bmpType === 2
+                      ? "Compressed"
+                      : `Unknown(${rec.bmpType})`;
+              } else if (imgType === 2 && recDataSize >= 12) {
+                const mfType = view.getUint32(dataOff + 8, true);
+                const mfDataSize = view.getUint32(dataOff + 12, true);
+                const MF_TYPES = {
+                  1: "WMF",
+                  2: "WMF+Placeable",
+                  3: "EMF",
+                  4: "EMF+Only",
+                  5: "EMF+Dual",
+                };
+                rec.mfType = mfType;
+                rec.mfTypeName = MF_TYPES[mfType] || `Unknown(${mfType})`;
+                rec.mfDataSize = mfDataSize;
+
+                // Check if embedded metafile starts with EMR_HEADER
+                const mfStart = dataOff + 16;
+                if (mfStart + 8 <= view.byteLength) {
+                  const firstRecType = view.getUint32(mfStart, true);
+                  rec.embeddedFirstRecType = firstRecType;
+                  rec.embeddedIsEmf = firstRecType === 1;
+
+                  if (firstRecType === 1 && mfStart + 88 <= view.byteLength) {
+                    const embView = new DataView(
+                      view.buffer,
+                      view.byteOffset + mfStart,
+                      mfDataSize,
+                    );
+                    const embHeader = parseEmfHeaderDiag(embView);
+                    if (embHeader) {
+                      rec.embeddedHeader = embHeader;
+                      const embRecords = countRecords(embView);
+                      rec.embeddedRecordCount = embRecords.count;
+                      rec.embeddedGdiCount = embRecords.gdiRecords.length;
+                      rec.embeddedEmfPlusCount =
+                        embRecords.emfPlusComments.length;
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          const REC_NAMES = {
+            0x4001: "Header",
+            0x4002: "EndOfFile",
+            0x4004: "GetDC",
+            0x4008: "Object",
+            0x400a: "FillRects",
+            0x400b: "DrawRects",
+            0x400c: "FillPolygon",
+            0x400d: "DrawLines",
+            0x400e: "FillEllipse",
+            0x400f: "DrawEllipse",
+            0x4010: "FillPie",
+            0x4011: "DrawPie",
+            0x4012: "DrawArc",
+            0x4014: "FillPath",
+            0x4015: "DrawPath",
+            0x401a: "DrawImage",
+            0x401b: "DrawImagePoints",
+            0x401c: "DrawString",
+            0x4036: "DrawDriverString",
+            0x401e: "SetAntiAliasMode",
+            0x401f: "SetTextRenderingHint",
+            0x4021: "SetInterpolationMode",
+            0x4022: "SetPixelOffsetMode",
+            0x4024: "SetCompositingQuality",
+            0x4025: "SetWorldTransform",
+            0x4026: "ResetWorldTransform",
+            0x4027: "MultiplyWorldTransform",
+            0x4028: "TranslateWorldTransform",
+            0x4029: "ScaleWorldTransform",
+            0x402a: "RotateWorldTransform",
+            0x402b: "SetPageTransform",
+            0x402c: "ResetClip",
+            0x402d: "SetClipRect",
+            0x402e: "SetClipPath",
+            0x402f: "SetClipRegion",
+            0x4030: "OffsetClip",
+            0x4031: "DrawDriverString",
+            0x4033: "SetSmoothingMode",
+            0x4034: "SetRenderingOrigin",
+            0x4035: "Save",
+            0x4036: "Restore",
+          };
+          rec.typeName = REC_NAMES[recType] || `0x${recType.toString(16)}`;
+          records.push(rec);
+          off += recSize;
+        }
+        return records;
+      }
+
+      // ── Main conversion logic ──
+
+      async function processEmf(buffer) {
+        clearLog();
+        fuzorOutput.innerHTML = "";
+        emfjsOutput.innerHTML = "";
+        fuzorStatus.textContent = "Processing…";
+        fuzorStatus.className = "status";
+        emfjsStatus.textContent = "Processing…";
+        emfjsStatus.className = "status";
+
+        const view = new DataView(buffer);
+        log(`File size: ${buffer.byteLength} bytes`, "info");
+
+        // ── Diagnostics ──
+        const header = parseEmfHeaderDiag(view);
+        if (header) {
+          log(`EMF Header found`, "success");
+          log(
+            `  Bounds: (${header.bounds.left}, ${header.bounds.top}) → (${header.bounds.right}, ${header.bounds.bottom})  [${header.boundsW} × ${header.boundsH}]`,
+          );
+          log(
+            `  Frame:  (${header.frame.left}, ${header.frame.top}) → (${header.frame.right}, ${header.frame.bottom})  [${header.frameW} × ${header.frameH}]`,
+          );
+        } else {
+          log("⚠ No valid EMF header found!", "error");
+        }
+
+        const records = countRecords(view);
+        log(
+          `Total records: ${records.count}  (GDI: ${records.gdiRecords.length}, EMF+ comments: ${records.emfPlusComments.length})`,
+          "info",
+        );
+
+        // Analyze EMF+ records
+        for (let ci = 0; ci < records.emfPlusComments.length; ci++) {
+          const comment = records.emfPlusComments[ci];
+          log(
+            `\n── EMF+ Comment #${ci + 1} (offset 0x${comment.offset.toString(16)}, ${comment.dataSize} bytes) ──`,
+            "info",
+          );
+          const plusRecs = analyzeEmfPlus(
+            view,
+            comment.offset,
+            comment.dataSize,
+          );
+          for (const rec of plusRecs) {
+            let line = `  ${rec.typeName}`;
+            if (rec.objectTypeName)
+              line += ` [${rec.objectTypeName} id=${rec.objectId}]`;
+            if (rec.imgTypeName) line += ` imgType=${rec.imgTypeName}`;
+            if (rec.bmpW)
+              line += ` ${rec.bmpW}×${rec.bmpH} stride=${rec.bmpStride} fmt=${rec.pixelFormat} ${rec.bmpTypeName}`;
+            if (rec.mfTypeName)
+              line += ` mfType=${rec.mfTypeName} dataSize=${rec.mfDataSize}`;
+            if (rec.embeddedIsEmf) {
+              line += ` [embedded EMF]`;
+              if (rec.embeddedHeader) {
+                line += ` bounds=${rec.embeddedHeader.boundsW}×${rec.embeddedHeader.boundsH}`;
+                line += ` frame=${rec.embeddedHeader.frameW}×${rec.embeddedHeader.frameH}`;
+                line += ` recs=${rec.embeddedRecordCount} (GDI:${rec.embeddedGdiCount} EMF+:${rec.embeddedEmfPlusCount})`;
+              }
+            }
+            log(line);
+          }
+        }
+
+        // Log some GDI record types
+        const gdiTypeCounts = {};
+        const GDI_REC_NAMES = {
+          1: "EMR_HEADER",
+          2: "EMR_POLYBEZIER",
+          3: "EMR_POLYGON",
+          4: "EMR_POLYLINE",
+          5: "EMR_POLYBEZIERTO",
+          6: "EMR_POLYLINETO",
+          14: "EMR_EOF",
+          27: "EMR_MOVETOEX",
+          37: "EMR_SELECTOBJECT",
+          38: "EMR_CREATEPEN",
+          39: "EMR_CREATEBRUSHINDIRECT",
+          40: "EMR_DELETEOBJECT",
+          42: "EMR_ELLIPSE",
+          43: "EMR_RECTANGLE",
+          45: "EMR_ARC",
+          46: "EMR_CHORD",
+          47: "EMR_PIE",
+          54: "EMR_LINETO",
+          55: "EMR_ARCTO",
+          59: "EMR_BEGINPATH",
+          60: "EMR_ENDPATH",
+          61: "EMR_CLOSEFIGURE",
+          62: "EMR_FILLPATH",
+          63: "EMR_STROKEANDFILLPATH",
+          64: "EMR_STROKEPATH",
+          85: "EMR_POLYBEZIER16",
+          86: "EMR_POLYGON16",
+          87: "EMR_POLYLINE16",
+          88: "EMR_POLYBEZIERTO16",
+          89: "EMR_POLYLINETO16",
+        };
+        for (const rec of records.gdiRecords) {
+          const name = GDI_REC_NAMES[rec.type] || `0x${rec.type.toString(16)}`;
+          gdiTypeCounts[name] = (gdiTypeCounts[name] || 0) + 1;
+        }
+        log(`\n── GDI Record Summary ──`, "info");
+        for (const [name, count] of Object.entries(gdiTypeCounts)) {
+          log(`  ${name}: ${count}`);
+        }
+
+        // ── Run Fuzor converter ──
+        log(`\n${"═".repeat(60)}`, "info");
+        log(`Running Fuzor convertEmfToDataUrl()…`, "info");
+
+        // Intercept console.warn to capture converter diagnostics
+        const origWarn = console.warn;
+        console.warn = (...args) => {
+          log(`  [converter warn] ${args.join(" ")}`, "warn");
+          origWarn.apply(console, args);
+        };
+
+        try {
+          const t0 = performance.now();
+          const dataUrl = await convertEmfToDataUrl(buffer.slice(0));
+          const elapsed = (performance.now() - t0).toFixed(1);
+
+          if (dataUrl) {
+            log(`✓ Fuzor converter succeeded in ${elapsed}ms`, "success");
+            log(`  Data URL length: ${dataUrl.length} chars`);
+
+            // Show the image
+            const img = document.createElement("img");
+            img.src = dataUrl;
+            img.style.maxWidth = "100%";
+            fuzorOutput.appendChild(img);
+            fuzorStatus.textContent = `Rendered in ${elapsed}ms — ${dataUrl.length} chars`;
+            fuzorStatus.className = "status ok";
+
+            // Also try to decode to see pixel content
+            img.onload = () => {
+              log(
+                `  Image dimensions: ${img.naturalWidth} × ${img.naturalHeight}`,
+              );
+              // Check if image is blank
+              const testCanvas = document.createElement("canvas");
+              testCanvas.width = img.naturalWidth;
+              testCanvas.height = img.naturalHeight;
+              const tctx = testCanvas.getContext("2d");
+              tctx.drawImage(img, 0, 0);
+              const imageData = tctx.getImageData(
+                0,
+                0,
+                testCanvas.width,
+                testCanvas.height,
+              );
+              let nonWhitePixels = 0;
+              let totalPixels = imageData.width * imageData.height;
+              for (let i = 0; i < imageData.data.length; i += 4) {
+                const r = imageData.data[i],
+                  g = imageData.data[i + 1],
+                  b = imageData.data[i + 2];
+                if (r < 250 || g < 250 || b < 250) nonWhitePixels++;
+              }
+              const pct = ((nonWhitePixels / totalPixels) * 100).toFixed(1);
+              if (nonWhitePixels === 0) {
+                log(`  ⚠ Image is completely white/blank!`, "error");
+              } else {
+                log(
+                  `  Non-white pixels: ${nonWhitePixels}/${totalPixels} (${pct}%)`,
+                  "success",
+                );
+              }
+            };
+          } else {
+            log(`✗ Fuzor converter returned null in ${elapsed}ms`, "error");
+            fuzorStatus.textContent = `Failed — returned null (${elapsed}ms)`;
+            fuzorStatus.className = "status err";
+          }
+        } catch (err) {
+          log(`✗ Fuzor converter threw: ${err.message}`, "error");
+          log(`  Stack: ${err.stack}`, "error");
+          fuzorStatus.textContent = `Error: ${err.message}`;
+          fuzorStatus.className = "status err";
+        }
+        console.warn = origWarn;
+
+        // ── Run EMFJS (rtf.js) ──
+        log(`\n${"═".repeat(60)}`, "info");
+        log(`Running EMFJS (rtf.js) Renderer…`, "info");
+        log(`  Note: EMFJS only handles GDI records, NOT EMF+ records`, "warn");
+
+        try {
+          if (typeof EMFJS === "undefined") {
+            throw new Error("EMFJS not loaded — CDN may be blocked");
+          }
+
+          EMFJS.loggingEnabled(false);
+          const t0 = performance.now();
+
+          const renderer = new EMFJS.Renderer(buffer.slice(0));
+          const elapsed1 = (performance.now() - t0).toFixed(1);
+          log(`  Parsed in ${elapsed1}ms`, "success");
+
+          // Render with reasonable defaults
+          const settings = {
+            width: "600px",
+            height: "400px",
+            wExt: header ? header.boundsW || header.frameW : 1000,
+            hExt: header ? header.boundsH || header.frameH : 1000,
+            xExt: header ? header.boundsW || header.frameW : 1000,
+            yExt: header ? header.boundsH || header.frameH : 1000,
+            mapMode: 8, // MM_ANISOTROPIC
+          };
+
+          const svgElement = renderer.render(settings);
+          const elapsed2 = (performance.now() - t0).toFixed(1);
+          log(`  Rendered in ${elapsed2}ms`, "success");
+
+          emfjsOutput.appendChild(svgElement);
+          emfjsStatus.textContent = `Rendered in ${elapsed2}ms`;
+          emfjsStatus.className = "status ok";
+
+          // Check if SVG has content
+          const childCount = svgElement.childElementCount;
+          log(`  SVG child elements: ${childCount}`);
+          if (childCount === 0) {
+            log(`  ⚠ SVG is empty — no GDI records were rendered`, "warn");
+          }
+        } catch (err) {
+          log(`✗ EMFJS threw: ${err.message}`, "error");
+          if (err.stack) log(`  Stack: ${err.stack}`, "error");
+          emfjsStatus.textContent = `Error: ${err.message}`;
+          emfjsStatus.className = "status err";
+        }
+
+        log(`\n${"═".repeat(60)}`, "info");
+        log(`Done.`, "info");
+      }
+
+      // ── File loading ──
+
+      document
+        .getElementById("fileInput")
+        .addEventListener("change", async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          fileInfo.textContent = `${file.name} (${file.size} bytes)`;
+          const buffer = await file.arrayBuffer();
+          processEmf(buffer);
+        });
+
+      document
+        .getElementById("loadDefault")
+        .addEventListener("click", async () => {
+          fileInfo.textContent = "Loading Picture1.emf…";
+          try {
+            const resp = await fetch("/Picture1.emf");
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const buffer = await resp.arrayBuffer();
+            fileInfo.textContent = `Picture1.emf (${buffer.byteLength} bytes) — EMF+ dual-mode, right-click saved`;
+            processEmf(buffer);
+          } catch (err) {
+            fileInfo.textContent = `Failed to load: ${err.message}`;
+            log(`Failed to load Picture1.emf: ${err.message}`, "error");
+          }
+        });
+
+      document
+        .getElementById("loadImage2")
+        .addEventListener("click", async () => {
+          fileInfo.textContent = "Loading image2.emf…";
+          try {
+            const resp = await fetch("/image2.emf");
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const buffer = await resp.arrayBuffer();
+            fileInfo.textContent = `image2.emf (${buffer.byteLength} bytes) — Pure GDI EMF, from PPTX bundle`;
+            processEmf(buffer);
+          } catch (err) {
+            fileInfo.textContent = `Failed to load: ${err.message}`;
+            log(`Failed to load image2.emf: ${err.message}`, "error");
+          }
+        });
+
+      // Auto-load on page ready
+      window.addEventListener("DOMContentLoaded", () => {
+        document.getElementById("loadDefault").click();
+      });
+      // Also trigger if DOM already loaded
+      if (document.readyState !== "loading") {
+        document.getElementById("loadDefault").click();
+      }
+    </script>
+  </body>
+</html>
