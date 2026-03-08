@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build all packages
+        run: bun run build
+
+      - name: Run tests
+        run: bun run test
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build all packages
+        run: bun run build
+
+      - name: Pack emf-converter
+        run: cd packages/emf-converter && bun pm pack
+
+      - name: Pack mtx-decompressor
+        run: cd packages/mtx-decompressor && bun pm pack
+
+      - name: Pack pptx-viewer-core
+        run: cd packages/core && bun pm pack
+
+      - name: Pack pptx-viewer
+        run: cd packages/react && bun pm pack
+
+      - name: Generate release tag
+        id: tag
+        run: echo "tag=v$(date +'%Y%m%d.%H%M%S')" >> "$GITHUB_OUTPUT"
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: Release ${{ steps.tag.outputs.tag }}
+          generate_release_notes: true
+          files: |
+            packages/emf-converter/*.tgz
+            packages/mtx-decompressor/*.tgz
+            packages/core/*.tgz
+            packages/react/*.tgz

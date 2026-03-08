@@ -17,7 +17,8 @@
 		"dev": "tsup --watch",
 		"typecheck": "tsc --noEmit --pretty",
 		"test": "vitest run",
-		"test:watch": "vitest"
+		"test:watch": "vitest",
+		"pack": "bun run build && bun pm pack"
 	},
 	"devDependencies": {
 		"tsup": "^8.5.1",

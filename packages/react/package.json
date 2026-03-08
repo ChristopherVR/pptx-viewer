@@ -31,9 +31,15 @@
 	"dependencies": {
 		"pptx-viewer-core": "workspace:*",
 		"emf-converter": "workspace:*",
+		"mtx-decompressor": "workspace:*",
 		"clsx": "^2.1.1",
 		"tailwind-merge": "^3.5.0"
 	},
+	"bundledDependencies": [
+		"pptx-viewer-core",
+		"emf-converter",
+		"mtx-decompressor"
+	],
 	"peerDependencies": {
 		"fast-xml-parser": "^5.3.7",
 		"framer-motion": "^12.34.3",

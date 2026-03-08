@@ -309,7 +309,7 @@ export class TableElementProcessor implements ElementProcessor {
 
 		for (let ri = 0; ri < rows.length; ri++) {
 			const cells = rows[ri].cells.map((cell) => {
-				const text = this.getCellPlainText(cell);
+				const text = this.getCellFormattedText(cell);
 				return this.escapeMarkdownTableCell(text);
 			});
 			// Pad to column count
@@ -347,13 +347,34 @@ export class TableElementProcessor implements ElementProcessor {
 		return mdRows.join('\n');
 	}
 
-	private getCellPlainText(cell: PptxTableCell): string {
+	/** Gets cell text with basic markdown formatting (bold/italic). */
+	private getCellFormattedText(cell: PptxTableCell): string {
 		const segments = this.getCellSegments(cell);
 		if (segments.length === 0) return cell.text ?? '';
-		return segments
-			.map((s) => (s.isParagraphBreak ? ' ' : s.text))
-			.join('')
-			.trim();
+		const parts: string[] = [];
+		for (const seg of segments) {
+			if (seg.isParagraphBreak) {
+				parts.push(' ');
+				continue;
+			}
+			let text = seg.text;
+			if (!text) continue;
+			if (seg.style.bold && seg.style.italic) {
+				text = `***${text}***`;
+			} else if (seg.style.bold) {
+				text = `**${text}**`;
+			} else if (seg.style.italic) {
+				text = `*${text}*`;
+			}
+			if (seg.style.strikethrough) {
+				text = `~~${text}~~`;
+			}
+			if (seg.style.hyperlink) {
+				text = `[${text}](${seg.style.hyperlink})`;
+			}
+			parts.push(text);
+		}
+		return parts.join('').trim();
 	}
 
 	private escapeMarkdownTableCell(text: string): string {

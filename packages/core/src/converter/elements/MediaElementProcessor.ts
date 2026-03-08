@@ -92,9 +92,12 @@ export class MediaElementProcessor implements ElementProcessor {
 
 	private buildDetails(mediaElement: MediaLikeElement): string[] {
 		const details: string[] = [];
+		if (mediaElement.mediaPath) {
+			details.push(`Path: ${mediaElement.mediaPath}`);
+		}
 		if (typeof mediaElement.metadata?.duration === 'number') {
 			details.push(
-				`Duration ${this.formatDuration(mediaElement.metadata.duration)}`
+				`Duration: ${this.formatDuration(mediaElement.metadata.duration)}`
 			);
 		}
 		if (
@@ -102,14 +105,14 @@ export class MediaElementProcessor implements ElementProcessor {
 			typeof mediaElement.metadata?.videoHeight === 'number'
 		) {
 			details.push(
-				`Resolution ${mediaElement.metadata.videoWidth}x${mediaElement.metadata.videoHeight}`
+				`Resolution: ${mediaElement.metadata.videoWidth}x${mediaElement.metadata.videoHeight}`
 			);
 		}
 		if (mediaElement.loop) details.push('Looping');
 		if (mediaElement.autoPlay) details.push('Auto-play');
 		if (mediaElement.playAcrossSlides) details.push('Plays across slides');
 		if (mediaElement.mediaMimeType)
-			details.push(`MIME ${mediaElement.mediaMimeType}`);
+			details.push(`MIME: ${mediaElement.mediaMimeType}`);
 		return details;
 	}
 
