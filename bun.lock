@@ -40,11 +40,9 @@
     "packages/core": {
       "name": "pptx-viewer-core",
       "version": "1.0.0",
-      "dependencies": {
-        "mtx-decompressor": "workspace:*",
-      },
       "devDependencies": {
         "emf-converter": "workspace:*",
+        "mtx-decompressor": "workspace:*",
         "tsup": "^8.5.1",
         "typescript": "^5.9.3",
         "vitest": "^3.2.4",
