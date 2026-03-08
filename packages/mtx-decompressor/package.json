@@ -1,0 +1,36 @@
+{
+	"name": "mtx-decompressor",
+	"version": "1.0.0",
+	"description": "MicroType Express (MTX) font decompressor — extracts TTF/OTF from compressed EOT containers.",
+	"main": "dist/index.mjs",
+	"module": "dist/index.mjs",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.js"
+		}
+	},
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"typecheck": "tsc --noEmit --pretty",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"devDependencies": {
+		"tsup": "^8.5.1",
+		"typescript": "^5.9.3",
+		"vitest": "^3.2.4"
+	},
+	"files": [
+		"dist/",
+		"README.md"
+	],
+	"license": "MPL-2.0",
+	"repository": {
+		"type": "git",
+		"directory": "packages/mtx-decompressor"
+	}
+}

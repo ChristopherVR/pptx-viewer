@@ -12,6 +12,13 @@ A full-featured **React** component for viewing, editing, and presenting PowerPo
     - [`PowerPointViewer` Component](#powerpointviewer-component)
     - [`PowerPointViewerHandle` (imperative API)](#powerpointviewerhandle-imperative-api)
     - [`renderToCanvas`](#rendertocanvas)
+  - [Styling & Theming](#styling--theming)
+    - [Mode 1: Tailwind CSS project](#mode-1-tailwind-css-project-no-extra-setup)
+    - [Mode 2: Bundled stylesheet](#mode-2-no-tailwind--use-the-bundled-stylesheet)
+    - [Mode 3: CSS custom properties](#mode-3-css-custom-properties-only)
+    - [`ViewerTheme` reference](#viewertheme-reference)
+    - [Theme utilities](#theme-utilities)
+    - [Light theme example](#light-theme-example)
   - [Architecture](#architecture)
     - [High-Level Component Tree](#high-level-component-tree)
     - [Hook Composition](#hook-composition)
@@ -61,6 +68,9 @@ This package provides a drop-in React component that turns raw `.pptx` bytes int
 import { PowerPointViewer } from "pptx-viewer";
 import type { PowerPointViewerHandle } from "pptx-viewer";
 import { useRef, useEffect, useState } from "react";
+
+// If your project does NOT use Tailwind CSS, import the bundled stylesheet:
+import "pptx-viewer/styles";
 
 function App() {
   const viewerRef = useRef<PowerPointViewerHandle>(null);
@@ -116,6 +126,7 @@ The main React component. Uses `forwardRef` to expose an imperative handle.
 | `onContentChange` | `(dirty: boolean) => void` | — | Called when content changes |
 | `onDirtyChange` | `(isDirty: boolean) => void` | — | Called when dirty state changes |
 | `onActiveSlideChange` | `(index: number) => void` | — | Called when active slide changes |
+| `theme` | `ViewerTheme` | — | Theme configuration for customising colours, radius, and CSS vars |
 
 ### `PowerPointViewerHandle` (imperative API)
 
@@ -134,6 +145,143 @@ import { renderToCanvas } from "pptx-viewer";
 
 const canvas = await renderToCanvas(element, options);
 // => HTMLCanvasElement with the rendered content
+```
+
+---
+
+## Styling & Theming
+
+The viewer's UI is built with utility CSS classes that reference **CSS custom properties** for all visual tokens (colours, border-radius, etc.). This means it works in three modes:
+
+### Mode 1: Tailwind CSS project (no extra setup)
+
+If your project already uses **Tailwind CSS v4** with semantic colour tokens (the shadcn/ui convention), the viewer classes will resolve through your existing Tailwind configuration. No additional CSS import is needed.
+
+If you want to override specific values, pass a `theme` prop:
+
+```tsx
+<PowerPointViewer
+  content={bytes}
+  theme={{
+    colors: { primary: "#6366f1", background: "#0f172a" },
+  }}
+/>
+```
+
+### Mode 2: No Tailwind — use the bundled stylesheet
+
+Import the self-contained CSS file that ships with the package. It includes all the utility classes the viewer needs plus sensible dark-theme defaults:
+
+```tsx
+// Import once at your app's entry point
+import "pptx-viewer/styles";
+// or: import "pptx-viewer/styles.css";
+```
+
+Then optionally customise with the `theme` prop or by setting CSS custom properties in your own stylesheet.
+
+### Mode 3: CSS custom properties only
+
+If you want full control, define the `--pptx-*` custom properties yourself and skip both the bundled CSS and the `theme` prop:
+
+```css
+:root {
+  --pptx-background: #0f172a;
+  --pptx-foreground: #f8fafc;
+  --pptx-primary: #6366f1;
+  --pptx-primary-foreground: #ffffff;
+  --pptx-muted: #1e293b;
+  --pptx-muted-foreground: #94a3b8;
+  --pptx-accent: #1e293b;
+  --pptx-accent-foreground: #f8fafc;
+  --pptx-card: #1e293b;
+  --pptx-card-foreground: #f8fafc;
+  --pptx-popover: #1e293b;
+  --pptx-popover-foreground: #f8fafc;
+  --pptx-border: #334155;
+  --pptx-destructive: #ef4444;
+  --pptx-destructive-foreground: #ffffff;
+  --pptx-input: #334155;
+  --pptx-ring: #6366f1;
+  --pptx-radius: 0.5rem;
+}
+```
+
+### `ViewerTheme` reference
+
+```typescript
+import type { ViewerTheme } from "pptx-viewer";
+
+const myTheme: ViewerTheme = {
+  colors: {
+    // All properties are optional — only override what you need.
+    background: "#0f172a",       // Page / root background
+    foreground: "#f8fafc",       // Default text colour
+    card: "#1e293b",             // Card / panel surface
+    cardForeground: "#f8fafc",   // Text on card surfaces
+    popover: "#1e293b",          // Popover / dropdown surface
+    popoverForeground: "#f8fafc",// Text inside popovers
+    primary: "#6366f1",          // Primary action colour
+    primaryForeground: "#ffffff",// Text on primary backgrounds
+    secondary: "#334155",        // Secondary action colour
+    secondaryForeground: "#f8fafc",
+    muted: "#1e293b",            // Muted / disabled surface
+    mutedForeground: "#94a3b8",  // Secondary text colour
+    accent: "#1e293b",           // Hover-highlight surface
+    accentForeground: "#f8fafc", // Text on accent surfaces
+    destructive: "#ef4444",      // Danger / delete colour
+    destructiveForeground: "#ffffff",
+    border: "#334155",           // Default border colour
+    input: "#334155",            // Input field border
+    ring: "#6366f1",             // Focus ring colour
+  },
+  radius: "0.5rem",             // Base border-radius
+
+  // Escape hatch for arbitrary CSS custom properties
+  cssVars: {
+    "--my-custom-shadow": "0 4px 12px rgba(0,0,0,0.5)",
+  },
+};
+```
+
+### Theme utilities
+
+```typescript
+import {
+  defaultThemeColors,  // Full set of default colour values
+  defaultRadius,       // Default border-radius ("0.5rem")
+  themeToCssVars,      // Convert a ViewerTheme → Record<string, string> of CSS vars
+  defaultCssVars,      // Get all default --pptx-* CSS vars
+  ViewerThemeProvider, // React context provider (advanced)
+  useViewerTheme,      // Hook to read current theme from context
+} from "pptx-viewer";
+```
+
+### Light theme example
+
+```tsx
+<PowerPointViewer
+  content={bytes}
+  theme={{
+    colors: {
+      background: "#ffffff",
+      foreground: "#0f172a",
+      card: "#f8fafc",
+      cardForeground: "#0f172a",
+      popover: "#ffffff",
+      popoverForeground: "#0f172a",
+      primary: "#4f46e5",
+      primaryForeground: "#ffffff",
+      muted: "#f1f5f9",
+      mutedForeground: "#64748b",
+      accent: "#f1f5f9",
+      accentForeground: "#0f172a",
+      border: "#e2e8f0",
+      destructive: "#dc2626",
+      destructiveForeground: "#ffffff",
+    },
+  }}
+/>
 ```
 
 ---

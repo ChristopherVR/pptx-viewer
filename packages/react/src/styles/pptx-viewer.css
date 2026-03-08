@@ -1,0 +1,74 @@
+/*
+ * pptx-viewer — self-contained stylesheet
+ *
+ * Import this file if your project does NOT already provide Tailwind CSS
+ * with the semantic color tokens (background, foreground, primary, etc.).
+ *
+ *   import "pptx-viewer/styles";
+ *
+ * All colors reference --pptx-* CSS custom properties so you can override
+ * them via the `theme` prop on <PowerPointViewer> or by setting the
+ * properties in your own CSS.
+ *
+ * If your project already uses Tailwind CSS with shadcn/ui-style tokens,
+ * you do NOT need to import this file — just pass a `theme` prop if you
+ * want to override specific values.
+ */
+
+@import "tailwindcss";
+
+/*
+ * Tell Tailwind where to scan for utility classes.
+ * Paths are relative to this CSS file.
+ */
+@source "../viewer/**/*.tsx";
+@source "../viewer/**/*.ts";
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Theme tokens
+ *
+ * Each --color-* variable references a --pptx-* custom property with a
+ * fallback to the default dark-theme value. This means:
+ *
+ *   1. Out-of-the-box: the viewer renders with a dark theme.
+ *   2. Via `theme` prop: the <PowerPointViewer> component sets --pptx-*
+ *      properties on its root element, overriding the defaults.
+ *   3. Via CSS: users can set --pptx-* in their own stylesheet.
+ * ────────────────────────────────────────────────────────────────────── */
+
+@theme {
+	/* ── Semantic colors ─────────────────────────────────────────────── */
+	--color-background: var(--pptx-background, #030712);
+	--color-foreground: var(--pptx-foreground, #f3f4f6);
+
+	--color-card: var(--pptx-card, #111827);
+	--color-card-foreground: var(--pptx-card-foreground, #f3f4f6);
+
+	--color-popover: var(--pptx-popover, #111827);
+	--color-popover-foreground: var(--pptx-popover-foreground, #f3f4f6);
+
+	--color-primary: var(--pptx-primary, #6366f1);
+	--color-primary-foreground: var(--pptx-primary-foreground, #ffffff);
+
+	--color-secondary: var(--pptx-secondary, #1f2937);
+	--color-secondary-foreground: var(--pptx-secondary-foreground, #f3f4f6);
+
+	--color-muted: var(--pptx-muted, #1f2937);
+	--color-muted-foreground: var(--pptx-muted-foreground, #9ca3af);
+
+	--color-accent: var(--pptx-accent, #1f2937);
+	--color-accent-foreground: var(--pptx-accent-foreground, #f3f4f6);
+
+	--color-destructive: var(--pptx-destructive, #ef4444);
+	--color-destructive-foreground: var(--pptx-destructive-foreground, #ffffff);
+
+	--color-border: var(--pptx-border, #374151);
+	--color-input: var(--pptx-input, #374151);
+	--color-ring: var(--pptx-ring, #6366f1);
+
+	/* ── Radius ──────────────────────────────────────────────────────── */
+	--radius-sm: calc(var(--pptx-radius, 0.5rem) - 4px);
+	--radius-md: calc(var(--pptx-radius, 0.5rem) - 2px);
+	--radius-lg: var(--pptx-radius, 0.5rem);
+	--radius-xl: calc(var(--pptx-radius, 0.5rem) + 4px);
+}

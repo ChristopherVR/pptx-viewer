@@ -15,10 +15,13 @@
 			"types": "./dist/viewer/index.d.ts",
 			"import": "./dist/viewer/index.mjs",
 			"require": "./dist/viewer/index.js"
-		}
+		},
+		"./styles": "./dist/pptx-viewer.css",
+		"./styles.css": "./dist/pptx-viewer.css"
 	},
 	"scripts": {
-		"build": "tsup",
+		"build": "tsup && npx @tailwindcss/cli -i src/styles/pptx-viewer.css -o dist/pptx-viewer.css --minify",
+		"build:css": "npx @tailwindcss/cli -i src/styles/pptx-viewer.css -o dist/pptx-viewer.css --minify",
 		"dev": "tsup --watch",
 		"typecheck": "tsc --noEmit --pretty",
 		"test": "vitest run",
@@ -26,6 +29,8 @@
 		"pack": "bun run build && bun pm pack"
 	},
 	"dependencies": {
+		"pptx-viewer-core": "workspace:*",
+		"emf-converter": "workspace:*",
 		"clsx": "^2.1.1",
 		"tailwind-merge": "^3.5.0"
 	},
@@ -43,8 +48,10 @@
 		"react-icons": "^5.5.0"
 	},
 	"devDependencies": {
+		"@tailwindcss/cli": "^4.1.0",
 		"@types/react": "^19.2.14",
 		"@types/react-dom": "^19.2.3",
+		"tailwindcss": "^4.1.0",
 		"tsup": "^8.5.1",
 		"typescript": "^5.9.3",
 		"vitest": "^3.2.4"

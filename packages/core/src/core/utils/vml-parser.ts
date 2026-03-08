@@ -420,7 +420,7 @@ function extractVmlText(node: XmlObject): {
   // Check textbox style for writing direction
   const tbStyle = parseVmlStyle(String(textbox["@_style"] || ""));
   if (tbStyle["layout-flow"] === "vertical") {
-    textStyle.writingMode = "vertical";
+    textStyle.textDirection = "vertical";
   }
 
   // Build segments from the text content

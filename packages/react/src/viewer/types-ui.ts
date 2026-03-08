@@ -255,6 +255,28 @@ export interface PowerPointViewerProps {
   canEdit?: boolean;
   /** Optional class name */
   className?: string;
+
+  /**
+   * Theme configuration for customising the viewer's appearance.
+   *
+   * Accepts partial color overrides, a custom border-radius, and
+   * arbitrary CSS custom properties. Unset values fall back to the
+   * built-in dark theme.
+   *
+   * @example
+   * ```tsx
+   * <PowerPointViewer
+   *   content={bytes}
+   *   theme={{
+   *     colors: { primary: "#6366f1", background: "#0f172a" },
+   *     radius: "0.75rem",
+   *   }}
+   * />
+   * ```
+   *
+   * @see {@link ViewerTheme} for the full type definition.
+   */
+  theme?: import("../theme").ViewerTheme;
 }
 
 export interface PowerPointViewerHandle extends FileViewerHandle {

@@ -127,13 +127,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         if (extracted) {
           fontData = extracted.fontData;
         } else {
-          // EOT with MTX/BSGP compression — can't decompress.
-          // Return null so the Google Fonts / system font fallback is used.
+          // EOT extraction/decompression failed — fall back to web fonts.
           const header = parseEotHeader(fontBinary);
           console.info(
             `[pptx-viewer] Embedded font "${typeface}" uses EOT format` +
               (header?.isCompressed ? " with MTX compression" : "") +
-              ` — will use web font fallback`,
+              ` — extraction failed, will use web font fallback`,
           );
           return null;
         }

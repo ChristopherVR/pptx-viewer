@@ -111,7 +111,12 @@ export function cloneElement(element: PptxElement): PptxElement {
     case "zoom":
     case "contentPart":
     case "unknown":
+    case "model3d":
       return { ...element };
+    default: {
+      const _exhaustive: never = element;
+      return _exhaustive;
+    }
   }
 }
 

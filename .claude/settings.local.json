@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(bun install:*)",
+      "Bash(npx:*)"
     ]
   }
 }

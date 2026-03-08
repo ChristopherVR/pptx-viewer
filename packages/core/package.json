@@ -48,5 +48,8 @@
 		"converter",
 		"markdown"
 	],
-	"license": "MIT"
+	"license": "MIT",
+	"dependencies": {
+		"mtx-decompressor": "workspace:*"
+	}
 }

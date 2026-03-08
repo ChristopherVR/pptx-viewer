@@ -24,6 +24,8 @@ import type { PowerPointViewerProps, PowerPointViewerHandle } from "./types";
 export type { PowerPointViewerProps, PowerPointViewerHandle } from "./types";
 export { getAnimationInitialStyle } from "./utils/animation";
 
+import { ViewerThemeProvider, useThemeStyle } from "../theme";
+
 // Hooks
 import { useViewerState } from "./hooks/useViewerState";
 import { useEditorHistory } from "./hooks/useEditorHistory";
@@ -70,7 +72,10 @@ export const PowerPointViewer = forwardRef<
     onContentChange,
     onDirtyChange,
     onActiveSlideChange,
+    theme,
   } = props;
+
+  const themeStyle = useThemeStyle(theme);
 
   // Local content state -- synced from incoming prop but may diverge during editing.
   const [content, setContent] = useState<ArrayBuffer | Uint8Array | null>(
@@ -289,9 +294,11 @@ export const PowerPointViewer = forwardRef<
 
   // ── JSX ───────────────────────────────────────────────────────
   return (
+    <ViewerThemeProvider theme={theme}>
     <div
       ref={containerRef}
       tabIndex={0}
+      style={themeStyle}
       className="h-full w-full bg-gray-950 text-gray-100 flex flex-col relative overflow-hidden outline-none"
     >
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/3 to-transparent z-0" />
@@ -419,6 +426,7 @@ export const PowerPointViewer = forwardRef<
         onExitPresentation={() => handleSetMode("edit")}
       />
     </div>
+    </ViewerThemeProvider>
   );
 });
 

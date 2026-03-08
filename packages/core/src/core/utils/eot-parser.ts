@@ -9,6 +9,8 @@
  * rather than using the simple OOXML XOR obfuscation.
  */
 
+import { decompressEotFont } from "mtx-decompressor";
+
 /* ------------------------------------------------------------------ */
 /*  Constants                                                         */
 /* ------------------------------------------------------------------ */
@@ -20,13 +22,10 @@ const EOT_MAGIC_OFFSET = 34;
 const EOT_MAGIC = 0x504c;
 
 /** Flag: font data is MicroType Express (MTX / BSGP) compressed. */
-const TTEMBED_TTCOMPRESSED = 0x0001;
+const TTEMBED_TTCOMPRESSED = 0x0004;
 
 /** Flag: font data is XOR-encrypted using the embedding page URL. */
-const TTEMBED_XORENCRYPTDATA = 0x0004;
-
-/** MicroType Express / BSGP signature bytes. */
-const BSGP_SIGNATURE = [0x42, 0x53, 0x47, 0x50]; // 'BSGP'
+const TTEMBED_XORENCRYPTDATA = 0x10000000;
 
 /* ------------------------------------------------------------------ */
 /*  Binary read helpers                                               */
@@ -184,10 +183,10 @@ export function parseEotHeader(data: Uint8Array): EotHeader | null {
  * Extract the raw font binary (TrueType / OpenType) from an EOT container.
  *
  * - If the embedded font data is **uncompressed**, returns the raw TTF/OTF.
- * - If the font data is **MTX/BSGP compressed**, returns `null` — the
- *   MicroType Express decompression algorithm is not implemented.
+ * - If the font data is **MTX/BSGP compressed**, decompresses it using
+ *   the MicroType Express decompressor and returns the reconstructed TTF.
  *
- * @returns An object with the extracted `fontData` and parsed `familyName`,
+ * @returns An object with the extracted `fontData` and parsed `header`,
  *          or `null` if extraction is not possible.
  */
 export function extractFontFromEot(
@@ -205,16 +204,22 @@ export function extractFontFromEot(
 
   const fontData = data.slice(fontDataOffset, fontDataOffset + fontDataSize);
 
-  // Check for BSGP (MicroType Express) compression signature
-  if (
-    fontData.length >= 4 &&
-    fontData[0] === BSGP_SIGNATURE[0] &&
-    fontData[1] === BSGP_SIGNATURE[1] &&
-    fontData[2] === BSGP_SIGNATURE[2] &&
-    fontData[3] === BSGP_SIGNATURE[3]
-  ) {
-    // MTX-compressed — cannot currently decompress
-    return null;
+  // Use the EOT header flags to determine if data is compressed
+  if (header.isCompressed) {
+    try {
+      const decompressed = decompressEotFont(
+        fontData,
+        /* compressed */ true,
+        /* encrypted */ header.isXorEncrypted,
+      );
+      return { fontData: decompressed, header };
+    } catch (e) {
+      console.warn(
+        `[pptx-viewer] MTX decompression failed for font "${header.familyName}":`,
+        e,
+      );
+      return null;
+    }
   }
 
   return { fontData, header };

@@ -191,7 +191,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     // place and wraps this.parser with a Proxy so that all subsequent
     // this.parser.parse() calls auto-normalize Strict namespace URIs to
     // their Transitional equivalents (covering all 50+ call sites).
-    this.detectAndSetStrictConformance(this.presentationData);
+    this.detectAndSetStrictConformance(this.presentationData!);
 
     await this.loadThemeData();
     this.parsePresentationDefaultTextStyle();

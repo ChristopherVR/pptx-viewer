@@ -339,6 +339,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
    * Extract East Asian line-break settings from `p:kinsoku` in presentation XML.
    */
   protected extractKinsoku(): PptxKinsoku | undefined {
-    return parseKinsokuUtil(this.presentationData);
+    return parseKinsokuUtil(this.presentationData ?? undefined);
   }
 }
