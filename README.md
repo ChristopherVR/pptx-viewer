@@ -2,6 +2,8 @@
 
 A comprehensive TypeScript monorepo for parsing, editing, rendering, and converting Microsoft PowerPoint (`.pptx`) files in the browser and Node.js.
 
+**Note: I'm developing this with Claude Code using Opus 4.6**
+
 ## Table of Contents
 
 - [Overview](#overview)
