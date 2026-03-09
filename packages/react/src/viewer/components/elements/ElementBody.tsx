@@ -76,6 +76,7 @@ export function renderBody(
           rtl={txtSE?.rtl}
           textDirection={txtSE?.textDirection}
           textStyle={txtS}
+          textStyleRaw={txtSE}
           layoutStyle={getTextLayoutStyle(el)}
           element={el}
           onCommit={onCommit}

@@ -6,7 +6,7 @@
 		"demo"
 	],
 	"scripts": {
-		"demo": "bun run --filter pptx-viewer-demo dev",
+		"demo": "cd demo && npx vite",
 		"build": "bun run --filter '*' build",
 		"typecheck": "bun run --filter '*' typecheck",
 		"test": "bun run --filter '*' test",
