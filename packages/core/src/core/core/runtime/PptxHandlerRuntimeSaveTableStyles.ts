@@ -67,7 +67,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// Text direction (vertical text)
 		if (style.textDirection) {
-			tcPr['@_vert'] = style.textDirection === 'vertical' ? 'vert' : 'vert270';
+			const vertMap: Record<string, string> = {
+				vertical: 'vert',
+				vertical270: 'vert270',
+				eaVert: 'eaVert',
+				wordArtVert: 'wordArtVert',
+				wordArtVertRtl: 'wordArtVertRtl',
+				mongolianVert: 'mongolianVert',
+			};
+			tcPr['@_vert'] = vertMap[style.textDirection] || 'vert';
 		}
 
 		// Text alignment — set in first paragraph's pPr

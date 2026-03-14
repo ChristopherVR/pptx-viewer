@@ -201,4 +201,69 @@ describe('expandTextBuildAnimations', () => {
 			expect(r.buildType).toBeUndefined();
 		}
 	});
+
+	it('should set byWord delay to 50ms for subsequent words', () => {
+		const anim = { ...baseAnim, buildType: 'byWord' as const };
+		const result = expandTextBuildAnimations([anim], segmentCounts);
+		// First word uses baseAnim.delayMs (0), subsequent use 50ms
+		expect(result[0].delayMs).toBe(0);
+		expect(result[1].delayMs).toBe(50);
+		expect(result[2].delayMs).toBe(50);
+	});
+
+	it('should set byChar delay to 20ms for subsequent characters', () => {
+		const anim = { ...baseAnim, buildType: 'byChar' as const };
+		const result = expandTextBuildAnimations([anim], segmentCounts);
+		// First char uses baseAnim.delayMs (0), subsequent use 20ms
+		expect(result[0].delayMs).toBe(0);
+		expect(result[1].delayMs).toBe(20);
+	});
+
+	it('should enforce minimum 50ms for char duration', () => {
+		const anim = { ...baseAnim, durationMs: 100, buildType: 'byChar' as const };
+		const result = expandTextBuildAnimations([anim], segmentCounts);
+		expect(result[0].durationMs).toBe(50); // max(50, 100/4=25) = 50
+	});
+
+	it('should pass through unknown buildType as original animation', () => {
+		const anim = { ...baseAnim, buildType: 'unknownType' as any };
+		const result = expandTextBuildAnimations([anim], segmentCounts);
+		expect(result).toHaveLength(1);
+		expect(result[0]).toBe(anim);
+	});
+
+	it('should handle multiple animations in sequence with mixed build types', () => {
+		const anim1 = { ...baseAnim, buildType: 'byParagraph' as const };
+		const anim2 = { ...baseAnim, targetId: 'shape1', buildType: undefined };
+		const result = expandTextBuildAnimations([anim1, anim2], segmentCounts);
+		// 3 paragraphs from anim1 + 1 passthrough for anim2
+		expect(result).toHaveLength(4);
+		expect(result[3].targetId).toBe('shape1');
+	});
+
+	it('should use original delayMs for first word in byWord', () => {
+		const anim = { ...baseAnim, delayMs: 200, buildType: 'byWord' as const };
+		const result = expandTextBuildAnimations([anim], segmentCounts);
+		expect(result[0].delayMs).toBe(200);
+		expect(result[1].delayMs).toBe(50);
+	});
+
+	it('should generate correct targetIds for byChar across paragraphs', () => {
+		const smallCounts = new Map([
+			['shape1', {
+				paragraphCount: 2,
+				wordCounts: [1, 1],
+				charCounts: [2, 3],
+			}],
+		]);
+		const anim = { ...baseAnim, buildType: 'byChar' as const };
+		const result = expandTextBuildAnimations([anim], smallCounts);
+		// 2 + 3 = 5 characters total
+		expect(result).toHaveLength(5);
+		expect(result[0].targetId).toBe('shape1::c0-0');
+		expect(result[1].targetId).toBe('shape1::c0-1');
+		expect(result[2].targetId).toBe('shape1::c1-0');
+		expect(result[3].targetId).toBe('shape1::c1-1');
+		expect(result[4].targetId).toBe('shape1::c1-2');
+	});
 });

@@ -6,6 +6,7 @@
 	TablePptxElement,
 	TextSegment,
 } from '../../core';
+import { getSubstituteFontFamily } from '../../core';
 import type {
 	ElementProcessor,
 	ElementProcessorContext,
@@ -217,7 +218,7 @@ export class TableElementProcessor implements ElementProcessor {
 		const rules: string[] = [];
 
 		if (s.fontFamily) {
-			rules.push(`font-family:"${s.fontFamily}",sans-serif`);
+			rules.push(`font-family:${getSubstituteFontFamily(s.fontFamily)}`);
 		}
 		// Only emit run-level font-size if it differs from the cell default.
 		if (s.fontSize && s.fontSize !== cellStyle?.fontSize) {

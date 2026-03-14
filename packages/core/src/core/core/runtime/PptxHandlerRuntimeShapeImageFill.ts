@@ -55,6 +55,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       const rotation = xfrm["@_rot"]
         ? parseInt(xfrm["@_rot"]) / 60000
         : undefined;
+      const skewX = xfrm["@_skewX"]
+        ? parseInt(String(xfrm["@_skewX"]), 10) / 60000
+        : undefined;
+      const skewY = xfrm["@_skewY"]
+        ? parseInt(String(xfrm["@_skewY"]), 10) / 60000
+        : undefined;
       const { flipHorizontal, flipVertical } = this.readFlipState(xfrm);
 
       const prstGeom = effectiveSpPr?.["a:prstGeom"]?.["@_prst"];
@@ -197,6 +203,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         pathHeight,
         shapeStyle: this.extractShapeStyle(effectiveSpPr, styleNode),
         rotation,
+        skewX,
+        skewY,
         flipHorizontal,
         flipVertical,
         rawXml: shape,
@@ -230,17 +238,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       .trim()
       .toLowerCase();
     if (normalized.length === 0 || normalized === "horz") return undefined;
-    if (normalized === "vert270" || normalized === "wordartvertrtl") {
-      return "vertical270";
-    }
-    if (
-      normalized === "vert" ||
-      normalized === "eavert" ||
-      normalized === "mongolianvert" ||
-      normalized === "wordartvert"
-    ) {
-      return "vertical";
-    }
+    if (normalized === "vert") return "vertical";
+    if (normalized === "vert270") return "vertical270";
+    if (normalized === "eavert") return "eaVert";
+    if (normalized === "wordartvert") return "wordArtVert";
+    if (normalized === "wordartvertrtl") return "wordArtVertRtl";
+    if (normalized === "mongolianvert") return "mongolianVert";
     return undefined;
   }
 }

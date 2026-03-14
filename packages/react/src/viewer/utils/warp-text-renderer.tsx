@@ -12,7 +12,7 @@ import type {
   TextSegment,
   TextStyle,
 } from "pptx-viewer-core";
-import { hasTextProperties } from "pptx-viewer-core";
+import { hasTextProperties, getSubstituteFontFamily } from "pptx-viewer-core";
 import {
   DEFAULT_TEXT_FONT_SIZE,
   DEFAULT_FONT_FAMILY,
@@ -116,8 +116,9 @@ function getSegmentTspanProps(
       DEFAULT_TEXT_FONT_SIZE) as number | undefined,
     fontWeight: s.bold ? 700 : 400,
     fontStyle: s.italic ? "italic" : undefined,
-    fontFamily:
-      s.fontFamily || element.textStyle?.fontFamily || DEFAULT_FONT_FAMILY,
+    fontFamily: (s.fontFamily || element.textStyle?.fontFamily)
+      ? getSubstituteFontFamily(s.fontFamily || element.textStyle?.fontFamily || "")
+      : DEFAULT_FONT_FAMILY,
     textDecoration: decos.length > 0 ? decos.join(" ") : undefined,
   };
 }
@@ -166,7 +167,9 @@ export function WarpedText({
   // Base font properties from element-level text style
   const baseFontSize = (textEl.textStyle?.fontSize ??
     DEFAULT_TEXT_FONT_SIZE) as number;
-  const baseFontFamily = textEl.textStyle?.fontFamily ?? DEFAULT_FONT_FAMILY;
+  const baseFontFamily = textEl.textStyle?.fontFamily
+    ? getSubstituteFontFamily(textEl.textStyle.fontFamily)
+    : DEFAULT_FONT_FAMILY;
   const baseFill = normalizeHexColor(textEl.textStyle?.color, fallbackColor);
 
   return (

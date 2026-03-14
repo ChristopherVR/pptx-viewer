@@ -10,6 +10,8 @@ import {
   detectFileFormat,
   EncryptedFileError,
 } from "./utils/encryption-detection";
+import { decryptPptx, encryptPptx } from "./utils/ooxml-crypto";
+import type { EncryptionOptions } from "./utils/ooxml-crypto";
 import type {
   PptxChartData,
   PptxCompatibilityWarning,
@@ -275,18 +277,22 @@ export class PptxHandlerCore {
   /**
    * Parse a PPTX file from an `ArrayBuffer` and return structured data.
    *
-   * Throws {@link EncryptedFileError} if the file is password-protected.
+   * If the file is encrypted and a `password` is provided in `options`,
+   * the file will be decrypted before parsing. If no password is provided
+   * for an encrypted file, throws {@link EncryptedFileError}.
    *
-   * @param data    - Raw bytes of the `.pptx` file.
-   * @param options - Optional load-time settings.
+   * @param data    - Raw bytes of the `.pptx` file (may be encrypted OLE2).
+   * @param options - Optional load-time settings, including `password`.
    * @returns Parsed {@link PptxData} containing slides, theme, layouts, etc.
    *
    * @example
    * ```ts
-   * const buf  = await fs.readFile("deck.pptx");
+   * // Load an unencrypted file:
    * const pptx = await handler.load(buf.buffer);
+   *
+   * // Load a password-protected file:
+   * const pptx = await handler.load(buf.buffer, { password: "secret" });
    * console.log(`${pptx.slides.length} slides loaded`);
-   * // => e.g. "24 slides loaded"
    * ```
    */
   public async load(
@@ -294,11 +300,23 @@ export class PptxHandlerCore {
     options: PptxHandlerLoadOptions = {},
   ): Promise<PptxData> {
     const detection = detectFileFormat(data);
+
     if (detection.encrypted) {
-      throw new EncryptedFileError(
-        "This presentation is encrypted and cannot be opened. Please remove encryption in Microsoft PowerPoint first.",
-      );
+      if (!options.password) {
+        throw new EncryptedFileError(
+          "This presentation is encrypted. Provide a password via options.password to open it.",
+        );
+      }
+
+      // Decrypt the OLE2 container to get the actual PPTX ZIP
+      const decryptedData = await decryptPptx(data, options.password);
+
+      // Parse the decrypted data
+      const result = await this.runtime.load(decryptedData, options);
+      result.isPasswordProtected = true;
+      return result;
     }
+
     return this.runtime.load(data, options);
   }
 
@@ -370,6 +388,39 @@ export class PptxHandlerCore {
     options?: PptxHandlerSaveOptions,
   ): Promise<Uint8Array> {
     return this.runtime.save(slides, options);
+  }
+
+  /**
+   * Serialise slides and then encrypt the output with a password.
+   *
+   * This is a convenience method that calls {@link save} followed by
+   * {@link encryptPptx}. The result is an OLE2 container suitable for
+   * opening in Microsoft PowerPoint with a password prompt.
+   *
+   * @param slides   - The (possibly mutated) slide array.
+   * @param password - The password to encrypt with.
+   * @param options  - Optional save-time and encryption settings.
+   * @returns `Uint8Array` of the encrypted OLE2 file.
+   *
+   * @example
+   * ```ts
+   * const bytes = await handler.saveEncrypted(data.slides, "secret");
+   * await fs.writeFile("protected.pptx", Buffer.from(bytes));
+   * // => Encrypted OLE2 file requiring password to open
+   * ```
+   */
+  public async saveEncrypted(
+    slides: PptxSlide[],
+    password: string,
+    options?: PptxHandlerSaveOptions & { encryption?: EncryptionOptions },
+  ): Promise<Uint8Array> {
+    const pptxBytes = await this.runtime.save(slides, options);
+    const encryptedBuffer = await encryptPptx(
+      pptxBytes.buffer,
+      password,
+      options?.encryption,
+    );
+    return new Uint8Array(encryptedBuffer);
   }
 
   /**

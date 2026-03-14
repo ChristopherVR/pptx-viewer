@@ -219,6 +219,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
   ): string | undefined {
     if (value === "vertical") return "vert";
     if (value === "vertical270") return "vert270";
+    if (value === "eaVert") return "eaVert";
+    if (value === "wordArtVert") return "wordArtVert";
+    if (value === "wordArtVertRtl") return "wordArtVertRtl";
+    if (value === "mongolianVert") return "mongolianVert";
     return undefined;
   }
 

@@ -7,7 +7,12 @@ import {
   seriesColor,
   formatAxisValue,
 } from "./chart-helpers";
-import { computeLayout } from "./chart-layout";
+import {
+  computeLayout,
+  computeLayoutOptions,
+  splitSeriesByAxis,
+  getSecondaryValueAxis,
+} from "./chart-layout";
 import { renderChrome, renderOverlays } from "./chart-chrome";
 import { renderChartDataTable } from "./chart-data-table";
 
@@ -131,14 +136,31 @@ export function renderComboChart(
 ): React.ReactNode {
   const style = chartData.style;
   const legendPos = style?.legendPosition || "b";
-  const range = computeValueRange(chartData.series);
+
+  // Compute layout with secondary axis & data table awareness
+  const layoutOpts = computeLayoutOptions(
+    chartData.axes,
+    chartData.dataTable,
+    chartData.series.length,
+  );
   const layout = computeLayout(
     element.width,
     element.height,
     style,
     true,
     legendPos,
+    layoutOpts,
   );
+
+  // Split series by axis
+  const { primary, secondary } = splitSeriesByAxis(chartData.series, chartData.axes);
+  const primarySeries = primary.length > 0 ? primary.map((e) => e.series) : chartData.series;
+  const secondarySeries = secondary.map((e) => e.series);
+
+  const range = computeValueRange(primarySeries);
+  const secondaryRange = secondarySeries.length > 0 ? computeValueRange(secondarySeries) : undefined;
+  const secondaryAxisFmt = getSecondaryValueAxis(chartData.axes);
+
   const catCount = Math.max(categoryLabels.length, 1);
   const barSeriesCount = 1;
   const barGroupWidth = layout.plotWidth / catCount;
@@ -153,10 +175,13 @@ export function renderComboChart(
   const dlElements: React.ReactNode[] = [];
 
   if (barSeries) {
+    const isBarSecondary = secondary.some((e) => e.index === 0);
+    const barRange = isBarSecondary && secondaryRange ? secondaryRange : range;
+
     barSeries.values.forEach((val, vi) => {
       const x = layout.plotLeft + barGroupWidth * vi + barOffset;
-      const zeroY = valueToY(0, range, layout.plotTop, layout.plotBottom);
-      const valY = valueToY(val, range, layout.plotTop, layout.plotBottom);
+      const zeroY = valueToY(0, barRange, layout.plotTop, layout.plotBottom);
+      const valY = valueToY(val, barRange, layout.plotTop, layout.plotBottom);
       const y = Math.min(zeroY, valY);
       const h = Math.max(Math.abs(zeroY - valY), 1);
       barElements.push(
@@ -190,9 +215,12 @@ export function renderComboChart(
   lineSeries.forEach((series, si) => {
     if (series.values.length === 0) return;
     const seriesIdx = si + barSeriesCount;
+    const isSecondary = secondary.some((e) => e.index === seriesIdx);
+    const activeRange = isSecondary && secondaryRange ? secondaryRange : range;
+
     const points = series.values.map((val, vi) => {
       const x = layout.plotLeft + barGroupWidth * vi + barGroupWidth / 2;
-      const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
+      const y = valueToY(val, activeRange, layout.plotTop, layout.plotBottom);
       return { x, y, val };
     });
     const c = seriesColor(series, seriesIdx);
@@ -246,9 +274,17 @@ export function renderComboChart(
           height={layout.svgHeight}
           fill="#0f172a11"
         />
-        {renderChrome(element.id, chartData, layout, range, categoryLabels, {
-          categoryAxisStyle: "bar",
-        })}
+        {renderChrome(
+          element.id,
+          chartData,
+          layout,
+          range,
+          categoryLabels,
+          { categoryAxisStyle: "bar" },
+          secondaryRange
+            ? { secondaryRange, secondaryAxisFormatting: secondaryAxisFmt }
+            : undefined,
+        )}
         {barElements}
         {lineElements}
         {dlElements}

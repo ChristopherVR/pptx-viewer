@@ -1,6 +1,6 @@
 /**
- * useGroupAlignLayerHandlers — Group/ungroup, flip, alignment, and
- * layer-order handlers extracted from useElementManipulation.
+ * useGroupAlignLayerHandlers — Group/ungroup, flip, alignment,
+ * layer-order, and merge shapes handlers extracted from useElementManipulation.
  */
 import type {
   PptxElement,
@@ -11,6 +11,7 @@ import { generateElementId } from "../utils/generate-id";
 import type { ElementOperations } from "./useElementOperations";
 import type { EditorHistoryResult } from "./useEditorHistory";
 import type { GroupAlignLayerHandlers } from "./element-manipulation-types";
+import { useMergeShapesHandler } from "./useMergeShapesHandler";
 
 interface GroupAlignLayerInput {
   activeSlide: PptxSlide | undefined;
@@ -214,6 +215,16 @@ export function useGroupAlignLayerHandlers(
     history.markDirty();
   };
 
+  const { handleMergeShapes, canMergeShapes } = useMergeShapesHandler({
+    activeSlide,
+    activeSlideIndex,
+    selectedElements,
+    effectiveSelectedIds,
+    setSelectedElementIds,
+    ops,
+    history,
+  });
+
   return {
     handleGroupElements,
     handleUngroupElement,
@@ -221,5 +232,7 @@ export function useGroupAlignLayerHandlers(
     handleAlignElements,
     handleMoveLayer,
     handleMoveLayerToEdge,
+    handleMergeShapes,
+    canMergeShapes,
   };
 }

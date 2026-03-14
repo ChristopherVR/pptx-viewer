@@ -445,6 +445,22 @@ export function reflowSmartArtLayout(
       return reflowMatrix(nodes, bounds);
     case "pyramid":
       return reflowPyramid(nodes, bounds);
+    case "funnel":
+      return reflowFunnel(nodes, bounds);
+    case "target":
+      return reflowTarget(nodes, bounds);
+    case "gear":
+      return reflowGear(nodes, bounds);
+    case "venn":
+      return reflowVenn(nodes, bounds);
+    case "timeline":
+      return reflowTimeline(nodes, bounds);
+    case "relationship":
+      return reflowRelationship(nodes, bounds);
+    case "chevron":
+      return reflowChevron(nodes, bounds);
+    case "bending":
+      return reflowBending(nodes, bounds);
     default:
       // For unknown layout types, fall back to list
       return reflowList(nodes, bounds);
@@ -690,6 +706,437 @@ function reflowPyramid(
   });
 }
 
+/**
+ * Funnel layout reflow: nodes stacked vertically with decreasing width
+ * (widest at top, narrowest at bottom).
+ */
+function reflowFunnel(
+  nodes: PptxSmartArtNode[],
+  bounds: ContainerBounds,
+): PptxSmartArtDrawingShape[] {
+  const padding = 8;
+  const gap = 4;
+  const usableH = bounds.height - padding * 2;
+  const bandH = (usableH - gap * (nodes.length - 1)) / nodes.length;
+  const maxW = bounds.width - padding * 2;
+
+  return nodes.map((node, i) => {
+    // Top band is widest, bottom is narrowest (inverse of pyramid)
+    const widthFraction =
+      1.0 - (i / Math.max(nodes.length - 1, 1)) * 0.7;
+    const w = maxW * widthFraction;
+    const x = bounds.x + (bounds.width - w) / 2;
+    const y = bounds.y + padding + i * (bandH + gap);
+
+    return {
+      id: `reflow-funnel-${node.id}`,
+      shapeType: "rect",
+      x,
+      y,
+      width: w,
+      height: bandH,
+      text: node.text,
+      fontSize: Math.max(8, Math.min(11, bandH * 0.4)),
+    };
+  });
+}
+
+/**
+ * Target / Bullseye layout reflow: concentric rings with nodes.
+ * Outermost ring is the first node, innermost is the last.
+ */
+function reflowTarget(
+  nodes: PptxSmartArtNode[],
+  bounds: ContainerBounds,
+): PptxSmartArtDrawingShape[] {
+  const cx = bounds.x + bounds.width / 2;
+  const cy = bounds.y + bounds.height / 2;
+  const size = Math.min(bounds.width, bounds.height);
+  const maxRadius = size * 0.45;
+
+  return nodes.map((node, i) => {
+    // Outermost ring first, innermost last
+    const radiusFraction = 1.0 - (i / nodes.length);
+    const r = maxRadius * radiusFraction;
+    const diameter = r * 2;
+
+    return {
+      id: `reflow-target-${node.id}`,
+      shapeType: "ellipse",
+      x: cx - r,
+      y: cy - r,
+      width: diameter,
+      height: diameter,
+      text: node.text,
+      fontSize: Math.max(7, Math.min(10, r * 0.15)),
+    };
+  });
+}
+
+/**
+ * Gear layout reflow: interlocking gear shapes in a triangular arrangement.
+ * Up to 3 main gears with extra nodes listed to the side.
+ */
+function reflowGear(
+  nodes: PptxSmartArtNode[],
+  bounds: ContainerBounds,
+): PptxSmartArtDrawingShape[] {
+  const gearNodes = nodes.slice(0, 3);
+  const extraNodes = nodes.slice(3);
+  const gearAreaW = extraNodes.length > 0 ? bounds.width * 0.7 : bounds.width;
+  const gearAreaH = bounds.height;
+  const cx = bounds.x + gearAreaW / 2;
+  const cy = bounds.y + gearAreaH / 2;
+  const spacing = gearAreaW / (gearNodes.length + 1);
+  const gearR = Math.min(spacing * 0.4, gearAreaH * 0.35);
+  const gearDiameter = gearR * 2;
+
+  const shapes: PptxSmartArtDrawingShape[] = [];
+
+  gearNodes.forEach((node, i) => {
+    // Position gears: first and third at same height, second shifted down
+    const gx = bounds.x + spacing * (i + 1);
+    const gy = cy + (i % 2 === 0 ? 0 : gearR * 0.35);
+
+    shapes.push({
+      id: `reflow-gear-${node.id}`,
+      shapeType: "ellipse",
+      x: gx - gearR,
+      y: gy - gearR,
+      width: gearDiameter,
+      height: gearDiameter,
+      text: node.text,
+      fontSize: Math.max(7, Math.min(10, gearR * 0.15)),
+    });
+  });
+
+  // Extra nodes as small labels to the right
+  const labelH = 20;
+  const labelGap = 6;
+  const labelW = bounds.width - gearAreaW - 16;
+  const labelStartX = bounds.x + gearAreaW + 8;
+  const labelStartY =
+    bounds.y + (bounds.height - extraNodes.length * (labelH + labelGap)) / 2;
+
+  extraNodes.forEach((node, i) => {
+    shapes.push({
+      id: `reflow-gear-extra-${node.id}`,
+      shapeType: "roundRect",
+      x: labelStartX,
+      y: labelStartY + i * (labelH + labelGap),
+      width: Math.max(labelW, 30),
+      height: labelH,
+      text: node.text,
+      fontSize: Math.max(7, Math.min(10, 10)),
+    });
+  });
+
+  return shapes;
+}
+
+/**
+ * Venn layout reflow: overlapping circles for 2-4 nodes,
+ * horizontal row for 5+.
+ */
+function reflowVenn(
+  nodes: PptxSmartArtNode[],
+  bounds: ContainerBounds,
+): PptxSmartArtDrawingShape[] {
+  const cx = bounds.x + bounds.width / 2;
+  const cy = bounds.y + bounds.height / 2;
+  const size = Math.min(bounds.width, bounds.height);
+
+  if (nodes.length <= 4) {
+    const r = size * 0.22;
+    const spread = r * 0.6;
+
+    return nodes.map((node, i) => {
+      const angle = (i / nodes.length) * Math.PI * 2 - Math.PI / 2;
+      const nx = cx + spread * Math.cos(angle) - r;
+      const ny = cy + spread * Math.sin(angle) - r;
+
+      return {
+        id: `reflow-venn-${node.id}`,
+        shapeType: "ellipse",
+        x: nx,
+        y: ny,
+        width: r * 2,
+        height: r * 2,
+        text: node.text,
+        fontSize: Math.max(7, Math.min(10, r * 0.1)),
+      };
+    });
+  }
+
+  // Horizontal row of circles for 5+ nodes
+  const r = Math.min(size * 0.15, bounds.width / (nodes.length * 1.5));
+  const totalW = nodes.length * r * 2;
+  const startX = cx - totalW / 2 + r;
+
+  return nodes.map((node, i) => ({
+    id: `reflow-venn-${node.id}`,
+    shapeType: "ellipse",
+    x: startX + i * r * 2 - r,
+    y: cy - r,
+    width: r * 2,
+    height: r * 2,
+    text: node.text,
+    fontSize: Math.max(6, Math.min(9, r * 0.1)),
+  }));
+}
+
+/**
+ * Timeline layout reflow: nodes along a horizontal line with
+ * alternating above/below placement.
+ */
+function reflowTimeline(
+  nodes: PptxSmartArtNode[],
+  bounds: ContainerBounds,
+): PptxSmartArtDrawingShape[] {
+  const padding = 24;
+  const lineY = bounds.y + bounds.height / 2;
+  const lineStartX = bounds.x + padding;
+  const lineEndX = bounds.x + bounds.width - padding;
+  const lineLen = lineEndX - lineStartX;
+  const nodeW = Math.max(40, Math.min(80, lineLen / (nodes.length * 1.2)));
+  const nodeH = nodeW * 0.5;
+  const labelOffset = Math.min(bounds.height * 0.28, 40);
+
+  const shapes: PptxSmartArtDrawingShape[] = [];
+
+  // Add the timeline bar as a thin rectangle
+  shapes.push({
+    id: "reflow-timeline-bar",
+    shapeType: "rect",
+    x: lineStartX,
+    y: lineY - 2,
+    width: lineLen,
+    height: 4,
+    fillColor: "#94a3b8",
+  });
+
+  nodes.forEach((node, i) => {
+    const x =
+      nodes.length === 1
+        ? (lineStartX + lineEndX) / 2
+        : lineStartX + (i / (nodes.length - 1)) * lineLen;
+    const above = i % 2 === 0;
+    const ny = above ? lineY - labelOffset - nodeH / 2 : lineY + labelOffset - nodeH / 2;
+
+    shapes.push({
+      id: `reflow-timeline-${node.id}`,
+      shapeType: "roundRect",
+      x: x - nodeW / 2,
+      y: ny,
+      width: nodeW,
+      height: nodeH,
+      text: node.text,
+      fontSize: Math.max(6, Math.min(10, nodeW * 0.1)),
+    });
+  });
+
+  return shapes;
+}
+
+/**
+ * Relationship layout reflow: nodes with bidirectional arrows.
+ * For 2 nodes: side-by-side with double-headed arrow.
+ * For 3+: arranged in a circle with connectors.
+ */
+function reflowRelationship(
+  nodes: PptxSmartArtNode[],
+  bounds: ContainerBounds,
+): PptxSmartArtDrawingShape[] {
+  const shapes: PptxSmartArtDrawingShape[] = [];
+
+  if (nodes.length <= 2) {
+    // Side by side with bidirectional arrow
+    const padding = 16;
+    const arrowGap = 24;
+    const usableW = bounds.width - padding * 2 - arrowGap;
+    const nodeW = usableW / nodes.length;
+    const nodeH = bounds.height * 0.5;
+    const yOffset = bounds.y + (bounds.height - nodeH) / 2;
+
+    nodes.forEach((node, i) => {
+      shapes.push({
+        id: `reflow-rel-${node.id}`,
+        shapeType: "roundRect",
+        x: bounds.x + padding + i * (nodeW + arrowGap),
+        y: yOffset,
+        width: nodeW,
+        height: nodeH,
+        text: node.text,
+        fontSize: Math.max(8, Math.min(11, nodeW * 0.1)),
+      });
+    });
+
+    // Add arrow between nodes
+    if (nodes.length === 2) {
+      const arrowX = bounds.x + padding + nodeW;
+      const arrowY = yOffset + nodeH / 2 - 6;
+      shapes.push({
+        id: "reflow-rel-arrow",
+        shapeType: "leftRightArrow",
+        x: arrowX,
+        y: arrowY,
+        width: arrowGap,
+        height: 12,
+        fillColor: "#94a3b8",
+      });
+    }
+  } else {
+    // Circle arrangement with connectors
+    const size = Math.min(bounds.width, bounds.height);
+    const cx = bounds.x + bounds.width / 2;
+    const cy = bounds.y + bounds.height / 2;
+    const radius = size * 0.3;
+    const nodeW = Math.max(
+      size * 0.16,
+      Math.min(size * 0.24, 250 / nodes.length),
+    );
+    const nodeH = nodeW * 0.6;
+
+    nodes.forEach((node, i) => {
+      const angle = (i / nodes.length) * Math.PI * 2 - Math.PI / 2;
+      const nx = cx + radius * Math.cos(angle) - nodeW / 2;
+      const ny = cy + radius * Math.sin(angle) - nodeH / 2;
+
+      shapes.push({
+        id: `reflow-rel-${node.id}`,
+        shapeType: "roundRect",
+        x: nx,
+        y: ny,
+        width: nodeW,
+        height: nodeH,
+        text: node.text,
+        fontSize: Math.max(7, Math.min(10, nodeW * 0.1)),
+      });
+    });
+  }
+
+  return shapes;
+}
+
+/**
+ * Chevron layout reflow: arrow-shaped nodes flowing horizontally.
+ * Each node is a chevron/arrow shape pointing right.
+ */
+function reflowChevron(
+  nodes: PptxSmartArtNode[],
+  bounds: ContainerBounds,
+): PptxSmartArtDrawingShape[] {
+  const padding = 8;
+  const gap = 4;
+  const usableW = bounds.width - padding * 2;
+  const itemW = (usableW - gap * (nodes.length - 1)) / nodes.length;
+  const itemH = Math.min(bounds.height - padding * 2, 60);
+  const yOffset = bounds.y + (bounds.height - itemH) / 2;
+
+  return nodes.map((node, i) => {
+    const x = bounds.x + padding + i * (itemW + gap);
+
+    return {
+      id: `reflow-chevron-${node.id}`,
+      shapeType: "chevron",
+      x,
+      y: yOffset,
+      width: itemW,
+      height: itemH,
+      text: node.text,
+      fontSize: Math.max(7, Math.min(11, itemW * 0.1)),
+    };
+  });
+}
+
+/**
+ * Bending / Snake layout reflow: nodes in a serpentine path.
+ * Nodes flow left-to-right, then right-to-left on the next row, etc.
+ */
+function reflowBending(
+  nodes: PptxSmartArtNode[],
+  bounds: ContainerBounds,
+): PptxSmartArtDrawingShape[] {
+  const COLS = 4;
+  const padding = 8;
+  const gap = 6;
+  const rows = Math.ceil(nodes.length / COLS);
+  const usableW = bounds.width - padding * 2;
+  const usableH = bounds.height - padding * 2;
+  const cellW = (usableW - gap * (COLS - 1)) / COLS;
+  const cellH = (usableH - gap * (rows - 1)) / Math.max(rows, 1);
+  const boxW = cellW * 0.85;
+  const boxH = Math.min(cellH * 0.7, 40);
+
+  const shapes: PptxSmartArtDrawingShape[] = [];
+
+  nodes.forEach((node, i) => {
+    const row = Math.floor(i / COLS);
+    const colInRow = i % COLS;
+    // Reverse direction on odd rows (serpentine)
+    const col = row % 2 === 0 ? colInRow : COLS - 1 - colInRow;
+
+    const nodeCx =
+      bounds.x + padding + col * (cellW + gap) + cellW / 2;
+    const nodeCy =
+      bounds.y + padding + row * (cellH + gap) + cellH / 2;
+
+    shapes.push({
+      id: `reflow-bending-${node.id}`,
+      shapeType: "roundRect",
+      x: nodeCx - boxW / 2,
+      y: nodeCy - boxH / 2,
+      width: boxW,
+      height: boxH,
+      text: node.text,
+      fontSize: Math.max(7, Math.min(10, boxW * 0.1)),
+    });
+
+    // Add arrow connector to next node
+    if (i < nodes.length - 1) {
+      const nextRow = Math.floor((i + 1) / COLS);
+      const nextColInRow = (i + 1) % COLS;
+      const nextCol =
+        nextRow % 2 === 0 ? nextColInRow : COLS - 1 - nextColInRow;
+      const nextCx =
+        bounds.x + padding + nextCol * (cellW + gap) + cellW / 2;
+      const nextCy =
+        bounds.y + padding + nextRow * (cellH + gap) + cellH / 2;
+
+      if (nextRow === row) {
+        // Horizontal arrow
+        const dir = nextCx > nodeCx ? 1 : -1;
+        const arrowX = dir > 0 ? nodeCx + boxW / 2 : nextCx + boxW / 2;
+        const arrowW = Math.abs(nextCx - nodeCx) - boxW;
+        shapes.push({
+          id: `reflow-bending-arrow-${node.id}`,
+          shapeType: dir > 0 ? "rightArrow" : "leftArrow",
+          x: arrowX,
+          y: nodeCy - 4,
+          width: Math.max(arrowW, 4),
+          height: 8,
+          fillColor: "#94a3b8",
+        });
+      } else {
+        // Vertical arrow (row transition)
+        const arrowY = nodeCy + boxH / 2;
+        const arrowH = Math.abs(nextCy - nodeCy) - boxH;
+        shapes.push({
+          id: `reflow-bending-arrow-${node.id}`,
+          shapeType: "downArrow",
+          x: nodeCx - 4,
+          y: arrowY,
+          width: 8,
+          height: Math.max(arrowH, 4),
+          fillColor: "#94a3b8",
+        });
+      }
+    }
+  });
+
+  return shapes;
+}
+
 // ── Internal helpers ────────────────────────────────────────────────────
 
 /**
@@ -703,9 +1150,16 @@ function resolveLayoutCategory(
 
   if (lower.includes("hierarchy") || lower.includes("org")) return "hierarchy";
   if (lower.includes("cycle") || lower.includes("radial")) return "cycle";
+  if (lower.includes("funnel")) return "funnel";
+  if (lower.includes("target") || lower.includes("bullseye")) return "target";
+  if (lower.includes("gear") || lower.includes("interlock")) return "gear";
+  if (lower.includes("venn")) return "venn";
+  if (lower.includes("timeline")) return "timeline";
+  if (lower.includes("bending") || lower.includes("snake") || lower.includes("zigzag")) return "bending";
+  if (lower.includes("chevron")) return "chevron";
+  if (lower.includes("relationship")) return "relationship";
   if (
     lower.includes("process") ||
-    lower.includes("chevron") ||
     lower.includes("arrow")
   )
     return "process";

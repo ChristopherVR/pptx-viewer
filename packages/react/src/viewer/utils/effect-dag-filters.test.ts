@@ -293,6 +293,20 @@ describe("getDuotoneSvgFilterMarkup", () => {
     // Verify it parses as valid XML-like structure
     expect(markup).toMatch(/<svg.*<\/svg>/);
   });
+
+  it("uses BT.601 luminance weights in grayscale matrix", () => {
+    const markup = getDuotoneSvgFilterMarkup("lum", "#000000", "#FFFFFF");
+    // BT.601 weights: 0.2126, 0.7152, 0.0722
+    expect(markup).toContain("0.2126");
+    expect(markup).toContain("0.7152");
+    expect(markup).toContain("0.0722");
+  });
+
+  it("generates zero slopes for identical shadow and highlight", () => {
+    const markup = getDuotoneSvgFilterMarkup("mono", "#808080", "#808080");
+    // slope should be 0 since color1 === color2
+    expect(markup).toContain('slope="0"');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -320,6 +334,22 @@ describe("hasEffectDagProperties", () => {
     expect(hasEffectDagProperties({ dagLumBrightness: 10 })).toBe(true);
   });
 
+  it("returns true when dagLumContrast is set", () => {
+    expect(hasEffectDagProperties({ dagLumContrast: -30 })).toBe(true);
+  });
+
+  it("returns true when dagHslHue is set", () => {
+    expect(hasEffectDagProperties({ dagHslHue: 90 })).toBe(true);
+  });
+
+  it("returns true when dagHslSaturation is set", () => {
+    expect(hasEffectDagProperties({ dagHslSaturation: 200 })).toBe(true);
+  });
+
+  it("returns true when dagHslLuminance is set", () => {
+    expect(hasEffectDagProperties({ dagHslLuminance: -20 })).toBe(true);
+  });
+
   it("returns true when dagDuotone is set", () => {
     expect(
       hasEffectDagProperties({
@@ -340,7 +370,17 @@ describe("hasEffectDagProperties", () => {
     expect(hasEffectDagProperties({ dagTintHue: 180 })).toBe(true);
   });
 
-  it("returns true when dagHslSaturation is set", () => {
-    expect(hasEffectDagProperties({ dagHslSaturation: 200 })).toBe(true);
+  it("returns true when dagTintAmount is set", () => {
+    expect(hasEffectDagProperties({ dagTintAmount: 60 })).toBe(true);
+  });
+
+  it("returns false when only non-DAG properties are set", () => {
+    expect(
+      hasEffectDagProperties({
+        fillColor: "#FF0000",
+        strokeWidth: 2,
+        shadowBlur: 5,
+      }),
+    ).toBe(false);
   });
 });

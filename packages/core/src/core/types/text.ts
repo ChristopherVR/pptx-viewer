@@ -120,8 +120,18 @@ export interface TextStyle {
   vAlign?: "top" | "middle" | "bottom";
   /** Right-to-left paragraph/run direction (`a:pPr/@rtl`, `a:rPr/@rtl`). */
   rtl?: boolean;
-  /** Body text direction (`a:bodyPr/@vert`). */
-  textDirection?: "horizontal" | "vertical" | "vertical270";
+  /** Body text direction (`a:bodyPr/@vert`).
+   *
+   * Values map to OOXML `a:bodyPr/@vert` attribute values:
+   * - `"horizontal"` — default horizontal text (`horz`)
+   * - `"vertical"` — standard vertical text, right-to-left columns (`vert`)
+   * - `"vertical270"` — text rotated 270 degrees (`vert270`)
+   * - `"eaVert"` — East Asian vertical text with CJK glyphs upright (`eaVert`)
+   * - `"wordArtVert"` — WordArt vertical, each character upright stacked (`wordArtVert`)
+   * - `"wordArtVertRtl"` — WordArt vertical, right-to-left direction (`wordArtVertRtl`)
+   * - `"mongolianVert"` — Mongolian vertical text, left-to-right columns (`mongolianVert`)
+   */
+  textDirection?: "horizontal" | "vertical" | "vertical270" | "eaVert" | "wordArtVert" | "wordArtVertRtl" | "mongolianVert";
   /** Body column count (`a:bodyPr/@numCol`). */
   columnCount?: number;
   /** Column spacing in px (`a:bodyPr/@spcCol` in EMU). */
@@ -390,4 +400,29 @@ export interface TextSegment {
   isParagraphBreak?: boolean;
   /** Structured bullet info for the first segment of a paragraph. */
   bulletInfo?: BulletInfo;
+
+  // ── Ruby text (phonetic guides) ──
+
+  /**
+   * Phonetic annotation text from `a:ruby > a:rt` (e.g. furigana, pinyin).
+   * When present, the renderer should wrap the base text with an HTML `<ruby>` tag.
+   */
+  rubyText?: string;
+  /**
+   * Ruby text alignment from `a:rubyPr > @val` attribute.
+   * Values: "ctr" (center), "l" (left), "r" (right), "dist" (distribute), "distCat", "distLetter".
+   * @default "ctr"
+   */
+  rubyAlignment?: string;
+  /**
+   * Ruby text font size as a percentage of the base text font size
+   * from `a:rubyPr/@hps` (half-point size) or inferred from rt run font size.
+   * Stored in **points** for consistency with `TextStyle.fontSize`.
+   */
+  rubyFontSize?: number;
+  /**
+   * Style for the ruby (phonetic) text run, parsed from `a:rt > a:r > a:rPr`.
+   * Used by the renderer to apply font family, colour, etc. to the `<rt>` element.
+   */
+  rubyStyle?: TextStyle;
 }

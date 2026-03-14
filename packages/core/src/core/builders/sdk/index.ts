@@ -22,6 +22,69 @@ export {
 	resetIdCounter,
 } from "./ElementFactory";
 
+// Slide operations
+export {
+	duplicateSlide,
+	duplicateElement,
+	resetCloneIdCounter,
+} from "./slide-operations";
+
+// Text operations
+export {
+	findText,
+	replaceText,
+	replaceTextInSlide,
+} from "./text-operations";
+export type { FindResult } from "./text-operations";
+
+// Chart operations
+export {
+	setChartType,
+	addChartSeries,
+	removeChartSeries,
+	setChartCategories,
+	updateChartSeriesValues,
+	setChartTitle,
+	setChartGrouping,
+} from "./chart-operations";
+
+// Layout operations
+export {
+	createLayout,
+	createLayouts,
+	findLayoutByName,
+	findLayoutByType,
+	generateLayoutXml,
+} from "./layout-operations";
+export type {
+	LayoutDefinition,
+	PlaceholderDefinition,
+	LayoutCreationResult,
+} from "./layout-operations";
+
+// Section operations
+export {
+	addSection,
+	removeSection,
+	reorderSections,
+	getSectionForSlide,
+	moveSlidesToSection,
+	resetSectionIdCounter,
+} from "./section-operations";
+
+// Merge operations
+export { mergePresentation } from "./merge-operations";
+export type { MergeOptions } from "./merge-operations";
+
+// Diff operations
+export { diffPresentations, diffSlides } from "./diff-operations";
+export type {
+	PresentationDiff,
+	SlideDiff,
+	ElementDiff,
+	PropertyChange,
+} from "./diff-operations";
+
 export type {
 	ElementPosition,
 	FillInput,

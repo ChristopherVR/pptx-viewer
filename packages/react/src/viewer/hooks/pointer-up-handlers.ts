@@ -6,6 +6,65 @@ import type { PptxElement } from "pptx-viewer-core";
 import { MIN_ELEMENT_SIZE } from "../constants";
 import type { UsePointerHandlersInput } from "./pointer-handler-types";
 
+// ---------------------------------------------------------------------------
+// Pure helper functions (exported for testing)
+// ---------------------------------------------------------------------------
+
+export interface MarqueeRect {
+  startX: number;
+  startY: number;
+  currentX: number;
+  currentY: number;
+}
+
+export interface ElementRect {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Compute which element IDs are hit by a marquee selection rectangle.
+ * Returns empty array if the marquee is too small (< 3px in both dimensions).
+ */
+export function computeMarqueeHitIds(
+  marquee: MarqueeRect,
+  elements: ElementRect[],
+): string[] {
+  const minX = Math.min(marquee.startX, marquee.currentX);
+  const minY = Math.min(marquee.startY, marquee.currentY);
+  const maxX = Math.max(marquee.startX, marquee.currentX);
+  const maxY = Math.max(marquee.startY, marquee.currentY);
+  const w = maxX - minX,
+    h = maxY - minY;
+  if (w <= 3 && h <= 3) return [];
+  return elements
+    .filter((el) => {
+      const eMinX = el.x,
+        eMinY = el.y;
+      const eMaxX = el.x + Math.max(el.width, MIN_ELEMENT_SIZE);
+      const eMaxY = el.y + Math.max(el.height, MIN_ELEMENT_SIZE);
+      return !(eMaxX < minX || eMinX > maxX || eMaxY < minY || eMinY > maxY);
+    })
+    .map((el) => el.id);
+}
+
+/**
+ * Merge additive (shift-click) marquee selections with newly hit IDs.
+ */
+export function mergeAdditiveSelection(
+  baseSelectionIds: string[] | undefined,
+  hitIds: string[],
+): string[] {
+  return Array.from(new Set([...(baseSelectionIds ?? []), ...hitIds]));
+}
+
+// ---------------------------------------------------------------------------
+// Main pointer-up processor
+// ---------------------------------------------------------------------------
+
 export function processPointerUp(input: UsePointerHandlersInput): void {
   const {
     editTemplateMode,
@@ -90,36 +149,12 @@ function commitMarquee(
   applySelection: UsePointerHandlersInput["applySelection"],
   clearSelection: UsePointerHandlersInput["clearSelection"],
 ): void {
-  const minX = Math.min(marquee.startX, marquee.currentX);
-  const minY = Math.min(marquee.startY, marquee.currentY);
-  const maxX = Math.max(marquee.startX, marquee.currentX);
-  const maxY = Math.max(marquee.startY, marquee.currentY);
-  const w = maxX - minX,
-    h = maxY - minY;
   const sourceElements = editTemplateMode
     ? templateElements
     : (activeSlide?.elements ?? []);
-  const hitIds =
-    w > 3 || h > 3
-      ? sourceElements
-          .filter((el) => {
-            const eMinX = el.x,
-              eMinY = el.y;
-            const eMaxX = el.x + Math.max(el.width, MIN_ELEMENT_SIZE);
-            const eMaxY = el.y + Math.max(el.height, MIN_ELEMENT_SIZE);
-            return !(
-              eMaxX < minX ||
-              eMinX > maxX ||
-              eMaxY < minY ||
-              eMinY > maxY
-            );
-          })
-          .map((el) => el.id)
-      : [];
+  const hitIds = computeMarqueeHitIds(marquee, sourceElements);
   if (marquee.additive) {
-    const merged = Array.from(
-      new Set([...(marquee.baseSelectionIds ?? []), ...hitIds]),
-    );
+    const merged = mergeAdditiveSelection(marquee.baseSelectionIds, hitIds);
     if (merged.length > 0) applySelection(merged[0], merged);
     else clearSelection();
   } else if (hitIds.length > 0) {

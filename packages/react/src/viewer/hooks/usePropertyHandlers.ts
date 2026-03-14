@@ -11,9 +11,10 @@ import type {
   PptxCustomProperty,
   TextSegment,
 } from "pptx-viewer-core";
-import { hasTextProperties, PptxHandler } from "pptx-viewer-core";
+import { PptxHandler } from "pptx-viewer-core";
 import { comparePresentation } from "../utils/compare";
 import type { CompareResult } from "../utils/compare";
+import { collectUsedFonts, applyAcceptSlide, applyAcceptAllSlides } from "./usePropertyHandlers-helpers";
 import type { CanvasSize } from "../types";
 import type { ElementOperations } from "./useElementOperations";
 import type { EditorHistoryResult } from "./useEditorHistory";
@@ -172,22 +173,7 @@ export function usePropertyHandlers(
       if (!compareResult) return;
       const diff = compareResult.diffs[di];
       if (!diff || diff.status === "unchanged") return;
-      setSlides((prev) => {
-        const n = [...prev];
-        if (diff.status === "added" && diff.compareSlide)
-          n.splice(Math.min(diff.compareIndex, n.length), 0, {
-            ...diff.compareSlide,
-          });
-        else if (
-          diff.status === "changed" &&
-          diff.compareSlide &&
-          diff.baseIndex >= 0
-        )
-          n[diff.baseIndex] = { ...diff.compareSlide };
-        else if (diff.status === "removed" && diff.baseIndex >= 0)
-          n.splice(diff.baseIndex, 1);
-        return n;
-      });
+      setSlides((prev) => applyAcceptSlide(prev, diff));
       setIsDirty(true);
     },
     [compareResult, setSlides, setIsDirty],
@@ -199,54 +185,11 @@ export function usePropertyHandlers(
 
   const handleAcceptAllSlides = useCallback(() => {
     if (!compareResult) return;
-    setSlides((prev) => {
-      const n = [...prev];
-      const dd = [...compareResult.diffs];
-      for (let i = dd.length - 1; i >= 0; i--) {
-        const x = dd[i];
-        if (
-          x.status === "removed" &&
-          x.baseIndex >= 0 &&
-          x.baseIndex < n.length
-        )
-          n.splice(x.baseIndex, 1);
-      }
-      for (const x of dd) {
-        if (
-          x.status === "changed" &&
-          x.compareSlide &&
-          x.baseIndex >= 0 &&
-          x.baseIndex < n.length
-        )
-          n[x.baseIndex] = { ...x.compareSlide };
-      }
-      for (const x of dd) {
-        if (x.status === "added" && x.compareSlide)
-          n.splice(Math.min(x.compareIndex, n.length), 0, {
-            ...x.compareSlide,
-          });
-      }
-      return n;
-    });
+    setSlides((prev) => applyAcceptAllSlides(prev, compareResult));
     setIsDirty(true);
   }, [compareResult, setSlides, setIsDirty]);
 
-  const usedFontFamilies = useMemo(() => {
-    const fonts = new Set<string>();
-    for (const slide of slides) {
-      for (const el of slide.elements ?? []) {
-        if (hasTextProperties(el)) {
-          if (el.textStyle?.fontFamily) fonts.add(el.textStyle.fontFamily);
-          if (el.textSegments) {
-            for (const seg of el.textSegments) {
-              if (seg.style?.fontFamily) fonts.add(seg.style.fontFamily);
-            }
-          }
-        }
-      }
-    }
-    return Array.from(fonts).sort();
-  }, [slides]);
+  const usedFontFamilies = useMemo(() => collectUsedFonts(slides), [slides]);
 
   return {
     handleUpdateNotes,

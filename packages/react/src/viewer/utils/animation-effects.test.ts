@@ -125,12 +125,67 @@ describe('getInitialStyleForEffect', () => {
 		const style = getInitialStyleForEffect('unknownEffect' as EffectName);
 		expect(style).toEqual({ opacity: 0 });
 	});
+
+	it('should return clip-path based style for "randomBarsIn"', () => {
+		const style = getInitialStyleForEffect('randomBarsIn');
+		expect(style).toEqual({ clipPath: 'inset(0 100% 0 0)', opacity: 1 });
+	});
 });
 
 describe('getAnimationInitialStyle', () => {
 	it('should return empty object for undefined preset and no native animation', () => {
 		const style = getAnimationInitialStyle(undefined);
 		expect(style).toEqual({});
+	});
+
+	it('should return initial style when nativeAnimation is an entrance effect', () => {
+		const style = getAnimationInitialStyle(undefined, {
+			targetId: 'el-1',
+			presetClass: 'entr',
+			presetId: 10, // fadeIn
+			trigger: 'onClick',
+		} as any);
+		expect(style).toEqual({ opacity: 0 });
+	});
+
+	it('should return empty object when nativeAnimation is an exit effect', () => {
+		const style = getAnimationInitialStyle(undefined, {
+			targetId: 'el-1',
+			presetClass: 'exit',
+			presetId: 10, // fadeOut
+			trigger: 'onClick',
+		} as any);
+		expect(style).toEqual({});
+	});
+
+	it('should return empty object when nativeAnimation is an emphasis effect', () => {
+		const style = getAnimationInitialStyle(undefined, {
+			targetId: 'el-1',
+			presetClass: 'emph',
+			presetId: 26, // pulse
+			trigger: 'onClick',
+		} as any);
+		expect(style).toEqual({});
+	});
+
+	it('should return empty object when nativeAnimation has unresolvable presetId', () => {
+		const style = getAnimationInitialStyle(undefined, {
+			targetId: 'el-1',
+			presetClass: 'entr',
+			presetId: 99999,
+			trigger: 'onClick',
+		} as any);
+		expect(style).toEqual({});
+	});
+
+	it('should return transform style for flyInBottom entrance via nativeAnimation', () => {
+		const style = getAnimationInitialStyle(undefined, {
+			targetId: 'el-1',
+			presetClass: 'entr',
+			presetId: 2, // flyInBottom
+			trigger: 'onClick',
+		} as any);
+		expect(style).toEqual({ opacity: 0, transform: 'translateY(100%)' });
 	});
 
 	it('should return opacity 0 for "fadeIn" preset', () => {

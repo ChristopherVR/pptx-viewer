@@ -42,9 +42,16 @@ export function parseBodyAnchor(
 /**
  * Map `a:bodyPr/@vert` to a {@link TextStyle.textDirection} value.
  *
+ * Each distinct OOXML value is preserved so the renderer can apply the
+ * correct CSS `writing-mode` and `text-orientation` for each variant:
+ *
  * - `horz` (or absent): undefined (horizontal, the default)
- * - `vert`, `eaVert`, `mongolianVert`, `wordArtVert`: `"vertical"`
- * - `vert270`, `wordArtVertRtl`: `"vertical270"`
+ * - `vert`: `"vertical"` — standard vertical, right-to-left columns
+ * - `eaVert`: `"eaVert"` — East Asian vertical (CJK upright, Latin rotated)
+ * - `wordArtVert`: `"wordArtVert"` — WordArt vertical (all glyphs upright)
+ * - `mongolianVert`: `"mongolianVert"` — Mongolian vertical, left-to-right columns
+ * - `vert270`: `"vertical270"` — text rotated 270 degrees
+ * - `wordArtVertRtl`: `"wordArtVertRtl"` — WordArt vertical, RTL direction
  */
 export function parseBodyTextDirection(
   value: unknown,
@@ -53,17 +60,12 @@ export function parseBodyTextDirection(
     .trim()
     .toLowerCase();
   if (normalized.length === 0 || normalized === "horz") return undefined;
-  if (normalized === "vert270" || normalized === "wordartvertrtl") {
-    return "vertical270";
-  }
-  if (
-    normalized === "vert" ||
-    normalized === "eavert" ||
-    normalized === "mongolianvert" ||
-    normalized === "wordartvert"
-  ) {
-    return "vertical";
-  }
+  if (normalized === "vert") return "vertical";
+  if (normalized === "vert270") return "vertical270";
+  if (normalized === "eavert") return "eaVert";
+  if (normalized === "wordartvert") return "wordArtVert";
+  if (normalized === "wordartvertrtl") return "wordArtVertRtl";
+  if (normalized === "mongolianvert") return "mongolianVert";
   return undefined;
 }
 

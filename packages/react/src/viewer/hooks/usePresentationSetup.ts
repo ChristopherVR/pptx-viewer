@@ -9,6 +9,7 @@ import type { PptxHandler, PptxSlide } from "pptx-viewer-core";
 import type { ViewerMode } from "../types-core";
 import { stopAnimationSound } from "../utils/animation-sound";
 import { stopAllPersistentAudio } from "../utils/media";
+import { shouldLoopContinuously, applyRehearsalTimings } from "./usePresentationSetup-helpers";
 import {
   usePresentationAnnotations,
   type UsePresentationAnnotationsResult,
@@ -141,25 +142,10 @@ export function usePresentationSetup(
     onToggleToolbar: () =>
       annotations.setToolbarVisible(!annotations.toolbarVisible),
     onSaveRehearsalTimings: (timings: Record<number, number>) => {
-      setSlides((prev) =>
-        prev.map((slide, idx) => {
-          const ms = timings[idx];
-          if (typeof ms !== "number") return slide;
-          return {
-            ...slide,
-            transition: {
-              ...slide.transition,
-              type: slide.transition?.type ?? "none",
-              advanceAfterMs: ms,
-            },
-          };
-        }),
-      );
+      setSlides((prev) => applyRehearsalTimings(prev, timings));
       history.markDirty();
     },
-    loopContinuously:
-      Boolean(presentationProperties.loopContinuously) ||
-      presentationProperties.showType === "kiosk",
+    loopContinuously: shouldLoopContinuously(presentationProperties),
   });
 
   return { presentation, annotations, actionSoundHandlerRef };

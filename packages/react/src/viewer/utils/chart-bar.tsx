@@ -9,7 +9,12 @@ import {
   formatAxisValue,
   seriesColor,
 } from "./chart-helpers";
-import { computeLayout } from "./chart-layout";
+import {
+  computeLayout,
+  computeLayoutOptions,
+  splitSeriesByAxis,
+  getSecondaryValueAxis,
+} from "./chart-layout";
 import { renderChrome, renderOverlays } from "./chart-chrome";
 import { renderChartDataTable } from "./chart-data-table";
 
@@ -166,14 +171,31 @@ export function renderDefaultBarChart(
 ): React.ReactNode {
   const style = chartData.style;
   const legendPos = style?.legendPosition || "b";
-  const range = computeValueRange(chartData.series);
+
+  // Compute layout with secondary axis & data table awareness
+  const layoutOpts = computeLayoutOptions(
+    chartData.axes,
+    chartData.dataTable,
+    chartData.series.length,
+  );
   const layout = computeLayout(
     element.width,
     element.height,
     style,
     true,
     legendPos,
+    layoutOpts,
   );
+
+  // Split series by axis for primary/secondary range computation
+  const { primary, secondary } = splitSeriesByAxis(chartData.series, chartData.axes);
+  const primarySeries = primary.length > 0 ? primary.map((e) => e.series) : chartData.series;
+  const secondarySeries = secondary.map((e) => e.series);
+
+  const range = computeValueRange(primarySeries);
+  const secondaryRange = secondarySeries.length > 0 ? computeValueRange(secondarySeries) : undefined;
+  const secondaryAxisFmt = getSecondaryValueAxis(chartData.axes);
+
   const catCount = Math.max(categoryLabels.length, 1);
   const seriesCount = chartData.series.length;
   const barGroupWidth = layout.plotWidth / catCount;
@@ -191,8 +213,13 @@ export function renderDefaultBarChart(
         barGroupWidth * ci +
         groupOffset +
         singleBarWidth * si;
-      const zeroY = valueToY(0, range, layout.plotTop, layout.plotBottom);
-      const valY = valueToY(val, range, layout.plotTop, layout.plotBottom);
+
+      // Use the correct range for this series (primary vs secondary)
+      const isSecondary = secondary.some((e) => e.index === si);
+      const activeRange = isSecondary && secondaryRange ? secondaryRange : range;
+
+      const zeroY = valueToY(0, activeRange, layout.plotTop, layout.plotBottom);
+      const valY = valueToY(val, activeRange, layout.plotTop, layout.plotBottom);
       const barY = Math.min(zeroY, valY);
       const barH = Math.max(Math.abs(zeroY - valY), 1);
 
@@ -239,9 +266,17 @@ export function renderDefaultBarChart(
           height={layout.svgHeight}
           fill="#0f172a11"
         />
-        {renderChrome(element.id, chartData, layout, range, categoryLabels, {
-          categoryAxisStyle: "bar",
-        })}
+        {renderChrome(
+          element.id,
+          chartData,
+          layout,
+          range,
+          categoryLabels,
+          { categoryAxisStyle: "bar" },
+          secondaryRange
+            ? { secondaryRange, secondaryAxisFormatting: secondaryAxisFmt }
+            : undefined,
+        )}
         {bars}
         {dlElements}
         {renderOverlays(element.id, chartData, layout, range, "bar")}

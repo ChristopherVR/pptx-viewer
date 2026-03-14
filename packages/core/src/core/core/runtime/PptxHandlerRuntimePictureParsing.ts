@@ -44,6 +44,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       const rotation = xfrm["@_rot"]
         ? parseInt(xfrm["@_rot"]) / 60000
         : undefined;
+      const skewX = xfrm["@_skewX"]
+        ? parseInt(String(xfrm["@_skewX"]), 10) / 60000
+        : undefined;
+      const skewY = xfrm["@_skewY"]
+        ? parseInt(String(xfrm["@_skewY"]), 10) / 60000
+        : undefined;
       const { flipHorizontal, flipVertical } = this.readFlipState(xfrm);
 
       // ── Check if this picture is actually a video/audio placeholder ──
@@ -103,6 +109,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
           width,
           height,
           rotation,
+          skewX,
+          skewY,
           flipHorizontal,
           flipVertical,
           mediaType: isVideo ? "video" : "audio",
@@ -290,6 +298,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         pathHeight,
         shapeStyle: this.extractShapeStyle(effectiveSpPr, styleNode),
         rotation,
+        skewX,
+        skewY,
         flipHorizontal,
         flipVertical,
         rawXml: pic,

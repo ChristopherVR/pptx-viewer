@@ -31,6 +31,9 @@ export type SmartArtLayoutType =
   | "gear"
   | "target"
   | "timeline"
+  | "venn"
+  | "chevron"
+  | "bending"
   | "unknown";
 
 /**
@@ -174,6 +177,10 @@ export interface PptxSmartArtDrawingShape {
   height: number;
   /** Rotation in degrees. */
   rotation?: number;
+  /** Skew along the X axis in degrees. */
+  skewX?: number;
+  /** Skew along the Y axis in degrees. */
+  skewY?: number;
   /** Solid fill colour (hex). */
   fillColor?: string;
   /** Stroke colour (hex). */

@@ -12,6 +12,7 @@ import {
 import {
   createUniformTextSegments,
   toCssWritingMode,
+  toCssTextOrientation,
   normalizeHexColor,
 } from "../../utils";
 import {
@@ -71,6 +72,7 @@ export function TextProperties({
   const ts = selectedTextStyle;
   // Convert OOXML text direction to CSS writing-mode (e.g. "eaVert" -> "vertical-rl")
   const writingMode = toCssWritingMode(ts?.textDirection);
+  const textOrientation = toCssTextOrientation(ts?.textDirection);
 
   // Factory for numeric input onChange handlers that clamp and dispatch text style updates
   const numChange = createNumericChangeHandler(onUpdateTextStyle);
@@ -96,7 +98,7 @@ export function TextProperties({
           rows={5}
           style={{
             writingMode: writingMode || undefined,
-            textOrientation: writingMode ? "mixed" : undefined,
+            textOrientation: textOrientation || undefined,
           }}
           className={`${INPUT_CLS} resize-y`}
         />

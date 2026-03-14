@@ -289,6 +289,126 @@ describe("AnimationSequencer", () => {
       expect(timeline.length).toBe(0);
     });
 
+    it("should handle afterDelay trigger", () => {
+      const seq = new AnimationSequencer(
+        makeSlide([
+          {
+            targetId: "el-1",
+            presetClass: "entr",
+            presetId: 1,
+            trigger: "onClick",
+            durationMs: 500,
+            delayMs: 0,
+          },
+          {
+            targetId: "el-2",
+            presetClass: "entr",
+            presetId: 10,
+            trigger: "afterDelay",
+            durationMs: 300,
+            delayMs: 200,
+          },
+        ]),
+      );
+      const timeline = seq.buildTimeline();
+      expect(timeline.length).toBe(2);
+      // afterDelay should use cumulative + animDelay
+      expect(timeline[1].delayMs).toBe(200);
+    });
+
+    it("should handle onHover trigger by resetting cumulative time", () => {
+      const seq = new AnimationSequencer(
+        makeSlide([
+          {
+            targetId: "el-1",
+            presetClass: "entr",
+            presetId: 1,
+            trigger: "onClick",
+            durationMs: 500,
+            delayMs: 0,
+          },
+          {
+            targetId: "el-2",
+            presetClass: "entr",
+            presetId: 10,
+            trigger: "onHover",
+            durationMs: 300,
+            delayMs: 50,
+          },
+        ]),
+      );
+      const timeline = seq.buildTimeline();
+      expect(timeline.length).toBe(2);
+      // onHover resets cumulative like onClick
+      expect(timeline[1].delayMs).toBe(50);
+    });
+
+    it("should use default duration when durationMs is not specified", () => {
+      const seq = new AnimationSequencer(
+        makeSlide([
+          {
+            targetId: "el-1",
+            presetClass: "entr",
+            presetId: 1,
+            trigger: "onClick",
+            // no durationMs — should default to 500 for entr
+          },
+        ]),
+      );
+      const timeline = seq.buildTimeline();
+      expect(timeline[0].durationMs).toBe(500);
+    });
+
+    it("should use default duration of 800 for emphasis animations", () => {
+      const seq = new AnimationSequencer(
+        makeSlide([
+          {
+            targetId: "el-1",
+            presetClass: "emph",
+            presetId: 26, // pulse
+            trigger: "onClick",
+          },
+        ]),
+      );
+      const timeline = seq.buildTimeline();
+      expect(timeline[0].durationMs).toBe(800);
+    });
+
+    it("should handle withPrevious as first animation (no previous step)", () => {
+      const seq = new AnimationSequencer(
+        makeSlide([
+          {
+            targetId: "el-1",
+            presetClass: "entr",
+            presetId: 1,
+            trigger: "withPrevious",
+            durationMs: 500,
+            delayMs: 100,
+          },
+        ]),
+      );
+      const timeline = seq.buildTimeline();
+      expect(timeline[0].delayMs).toBe(100);
+    });
+
+    it("should handle triggerDelayMs in addition to delayMs", () => {
+      const seq = new AnimationSequencer(
+        makeSlide([
+          {
+            targetId: "el-1",
+            presetClass: "entr",
+            presetId: 1,
+            trigger: "onClick",
+            durationMs: 500,
+            delayMs: 100,
+            triggerDelayMs: 50,
+          },
+        ]),
+      );
+      const timeline = seq.buildTimeline();
+      expect(timeline[0].delayMs).toBe(150); // 100 + 50
+    });
+
     it("should handle repeat count and auto-reverse", () => {
       const seq = new AnimationSequencer(
         makeSlide([

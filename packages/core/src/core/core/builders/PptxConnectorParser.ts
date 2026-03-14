@@ -82,6 +82,12 @@ export class PptxConnectorParser implements IPptxConnectorParser {
       const rotation = transform["@_rot"]
         ? parseInt(String(transform["@_rot"]), 10) / 60000
         : undefined;
+      const skewX = transform["@_skewX"]
+        ? parseInt(String(transform["@_skewX"]), 10) / 60000
+        : undefined;
+      const skewY = transform["@_skewY"]
+        ? parseInt(String(transform["@_skewY"]), 10) / 60000
+        : undefined;
       const { flipHorizontal, flipVertical } =
         this.context.readFlipState(transform);
 
@@ -170,6 +176,8 @@ export class PptxConnectorParser implements IPptxConnectorParser {
         shapeType,
         shapeAdjustments,
         rotation,
+        skewX,
+        skewY,
         flipHorizontal,
         flipVertical,
         shapeStyle,

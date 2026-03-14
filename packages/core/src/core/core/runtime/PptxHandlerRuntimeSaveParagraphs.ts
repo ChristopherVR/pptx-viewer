@@ -72,6 +72,50 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       "a:t": runText,
     });
 
+    /**
+     * Create a run with `a:ruby` containing phonetic annotation.
+     * Produces the OOXML `a:r > a:ruby > { a:rubyPr, a:rt, a:rubyBase }` structure.
+     */
+    const createRubyRun = (segment: TextSegment, style: TextStyle) => {
+      const rubyPr: XmlObject = {};
+      if (segment.rubyAlignment) {
+        rubyPr["@_algn"] = segment.rubyAlignment;
+      }
+      if (segment.rubyFontSize !== undefined) {
+        // Store as half-point size (hps)
+        rubyPr["@_hps"] = String(Math.round(segment.rubyFontSize * 2));
+      }
+      // Ruby text run (phonetic annotation)
+      const rtRunProps = this.createRunPropertiesFromTextStyle(
+        segment.rubyStyle ?? style,
+        resolveHyperlinkRelationshipId,
+      );
+      const rtRun = {
+        "a:rPr": rtRunProps,
+        "a:t": segment.rubyText ?? "",
+      };
+      // Base text run
+      const baseRunProps = this.createRunPropertiesFromTextStyle(
+        style,
+        resolveHyperlinkRelationshipId,
+      );
+      const baseRun = {
+        "a:rPr": baseRunProps,
+        "a:t": segment.text,
+      };
+      return {
+        "a:rPr": this.createRunPropertiesFromTextStyle(
+          style,
+          resolveHyperlinkRelationshipId,
+        ),
+        "a:ruby": {
+          "a:rubyPr": rubyPr,
+          "a:rt": { "a:r": rtRun },
+          "a:rubyBase": { "a:r": baseRun },
+        },
+      };
+    };
+
     const paragraphs: XmlObject[] = [];
     let currentRuns: XmlObject[] = [];
     let currentBulletInfo: BulletInfo | undefined;
@@ -105,7 +149,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         }
 
         lineParts.forEach((linePart, lineIndex) => {
-          if (segment.fieldType) {
+          if (segment.rubyText !== undefined) {
+            // Ruby segment — emit as a:ruby structure
+            const rubySeg = { ...segment, text: linePart };
+            currentRuns.push(createRubyRun(rubySeg, segmentStyle));
+          } else if (segment.fieldType) {
             const fieldRun = createFieldRun(
               linePart,
               segmentStyle,

@@ -4,6 +4,7 @@ export default defineConfig((options) => ({
 	entry: [
 		"src/index.ts",
 		"src/converter/index.ts",
+		"src/cli/index.ts",
 	],
 	format: ["esm", "cjs"],
 	dts: true,

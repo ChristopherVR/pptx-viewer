@@ -49,3 +49,37 @@
 	--radius-lg: var(--pptx-radius, 0.5rem);
 	--radius-xl: calc(var(--pptx-radius, 0.5rem) + 4px);
 }
+
+/* ── Reduced motion ──────────────────────────────────────────────────
+ * When the OS prefers-reduced-motion OR the user manually enables it
+ * via the .pptx-reduced-motion class, disable all CSS animations and
+ * transitions throughout the viewer.
+ */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}
+
+.pptx-reduced-motion *,
+.pptx-reduced-motion *::before,
+.pptx-reduced-motion *::after {
+	animation-duration: 0.01ms !important;
+	animation-iteration-count: 1 !important;
+	transition-duration: 0.01ms !important;
+	scroll-behavior: auto !important;
+}
+
+/* ── Focus indicators ────────────────────────────────────────────────
+ * Ensure keyboard focus is visible on interactive slide elements.
+ */
+[data-pptx-element]:focus-visible {
+	outline: 2px solid var(--pptx-ring, #6366f1);
+	outline-offset: 2px;
+	z-index: 999;
+}

@@ -1,106 +1,158 @@
-import { describe, it, expect } from 'vitest';
-import type { TextSegment, TextStyle } from 'pptx-viewer-core';
-import { remapTextToSegments } from './remap-text';
+/**
+ * Tests for the remapTextToSegments utility.
+ *
+ * This function maps edited plain-text back onto rich-text segments,
+ * preserving per-segment styles.
+ */
+import { describe, it, expect } from "vitest";
 
-describe('remapTextToSegments', () => {
-	it('should return fallback segment when originalSegments is undefined', () => {
-		const result = remapTextToSegments('Hello', undefined, undefined);
-		expect(result.length).toBe(1);
-		expect(result[0].text).toBe('Hello');
-	});
+import { remapTextToSegments } from "./remap-text";
+import type { TextSegment, TextStyle } from "pptx-viewer-core";
 
-	it('should return fallback segment when originalSegments is empty', () => {
-		const result = remapTextToSegments('Hello', [], undefined);
-		expect(result.length).toBe(1);
-		expect(result[0].text).toBe('Hello');
-	});
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-	it('should preserve style from original segment for single-segment text', () => {
-		const style: TextStyle = { bold: true, fontSize: 24 };
-		const original: TextSegment[] = [{ text: 'Hello', style }];
-		const result = remapTextToSegments('World', original, undefined);
-		expect(result.length).toBe(1);
-		expect(result[0].text).toBe('World');
-		expect(result[0].style.bold).toBe(true);
-		expect(result[0].style.fontSize).toBe(24);
-	});
+function seg(text: string, style: TextStyle = {}): TextSegment {
+  return { text, style };
+}
 
-	it('should distribute new text proportionally across multiple segments', () => {
-		const original: TextSegment[] = [
-			{ text: 'AB', style: { bold: true } },
-			{ text: 'CD', style: { italic: true } },
-		];
-		const result = remapTextToSegments('1234', original, undefined);
-		// 'AB' has length 2, 'CD' has length 2
-		// New text '1234' should split: '12' gets bold style, '34' gets italic style
-		expect(result.length).toBe(2);
-		expect(result[0].text).toBe('12');
-		expect(result[0].style.bold).toBe(true);
-		expect(result[1].text).toBe('34');
-		expect(result[1].style.italic).toBe(true);
-	});
+function breakSeg(style: TextStyle = {}): TextSegment {
+  return { text: "\n", style, isParagraphBreak: true };
+}
 
-	it('should put extra characters on the last segment', () => {
-		const original: TextSegment[] = [
-			{ text: 'A', style: { bold: true } },
-			{ text: 'B', style: { italic: true } },
-		];
-		const result = remapTextToSegments('XYZW', original, undefined);
-		// First segment gets 1 char ('X'), last segment gets the rest ('YZW')
-		expect(result[0].text).toBe('X');
-		expect(result[1].text).toBe('YZW');
-	});
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
 
-	it('should handle multi-paragraph text with newlines', () => {
-		const original: TextSegment[] = [
-			{ text: 'Line1', style: { bold: true } },
-			{ text: '\n', style: {}, isParagraphBreak: true },
-			{ text: 'Line2', style: { italic: true } },
-		];
-		const result = remapTextToSegments('AAA\nBBB', original, undefined);
+describe("remapTextToSegments", () => {
+  describe("fallback behaviour", () => {
+    it("should return single segment with fallback style when no original segments", () => {
+      const result = remapTextToSegments("Hello", undefined, { bold: true });
+      expect(result).toHaveLength(1);
+      expect(result[0].text).toBe("Hello");
+      expect(result[0].style.bold).toBe(true);
+    });
 
-		// Should produce segments for first paragraph, a break, and second paragraph
-		const breaks = result.filter((s) => s.isParagraphBreak);
-		expect(breaks.length).toBe(1);
+    it("should return single segment when original segments array is empty", () => {
+      const result = remapTextToSegments("Hello", [], { italic: true });
+      expect(result).toHaveLength(1);
+      expect(result[0].text).toBe("Hello");
+      expect(result[0].style.italic).toBe(true);
+    });
 
-		const nonBreaks = result.filter((s) => !s.isParagraphBreak);
-		expect(nonBreaks[0].text).toBe('AAA');
-		expect(nonBreaks[0].style.bold).toBe(true);
-	});
+    it("should use empty style when no elementTextStyle provided", () => {
+      const result = remapTextToSegments("Hello", undefined, undefined);
+      expect(result).toHaveLength(1);
+      expect(result[0].text).toBe("Hello");
+    });
+  });
 
-	it('should handle empty new text', () => {
-		const original: TextSegment[] = [
-			{ text: 'Hello', style: { bold: true } },
-		];
-		const result = remapTextToSegments('', original, undefined);
-		expect(result.length).toBeGreaterThanOrEqual(1);
-		expect(result[0].text).toBe('');
-	});
+  describe("single paragraph remapping", () => {
+    it("should preserve styles from original segments", () => {
+      const original = [
+        seg("Hello", { bold: true }),
+        seg(" World", { italic: true }),
+      ];
+      const result = remapTextToSegments("Hello World", original, {});
+      expect(result).toHaveLength(2);
+      expect(result[0].style.bold).toBe(true);
+      expect(result[1].style.italic).toBe(true);
+    });
 
-	it('should inherit element text style as fallback', () => {
-		const elementStyle: TextStyle = { fontSize: 18, color: '#FF0000' };
-		const result = remapTextToSegments('Test', undefined, elementStyle);
-		expect(result[0].style.fontSize).toBe(18);
-		expect(result[0].style.color).toBe('#FF0000');
-	});
+    it("should distribute text proportionally across segments", () => {
+      const original = [
+        seg("AB", { bold: true }),
+        seg("CDE", { italic: true }),
+      ];
+      // New text is the same length
+      const result = remapTextToSegments("XYZWQ", original, {});
+      // First segment gets 2 chars (same as original), last gets rest
+      expect(result[0].text).toBe("XY");
+      expect(result[1].text).toBe("ZWQ");
+    });
 
-	it('should handle adding a new paragraph beyond original paragraphs', () => {
-		const original: TextSegment[] = [
-			{ text: 'Only', style: { bold: true } },
-		];
-		const result = remapTextToSegments('Line1\nLine2\nLine3', original, undefined);
+    it("should handle shorter new text", () => {
+      const original = [
+        seg("Hello", { bold: true }),
+        seg(" World", { italic: true }),
+      ];
+      const result = remapTextToSegments("Hi", original, {});
+      // "Hi" is only 2 chars; first orig is 5, so we get all in first segment
+      expect(result.length).toBeGreaterThanOrEqual(1);
+      expect(result[0].text).toBe("Hi");
+      expect(result[0].style.bold).toBe(true);
+    });
 
-		const breaks = result.filter((s) => s.isParagraphBreak);
-		expect(breaks.length).toBe(2);
-	});
+    it("should handle empty new text", () => {
+      const original = [seg("Hello", { bold: true })];
+      const result = remapTextToSegments("", original, {});
+      expect(result).toHaveLength(1);
+      expect(result[0].text).toBe("");
+    });
 
-	it('should preserve bulletInfo on first segment of each paragraph', () => {
-		const bulletInfo = { level: 0, char: '\u2022' };
-		const original: TextSegment[] = [
-			{ text: 'Item 1', style: { bold: true }, bulletInfo },
-		];
-		const result = remapTextToSegments('New text', original, undefined);
-		expect(result[0].bulletInfo).toBeDefined();
-		expect(result[0].bulletInfo?.char).toBe('\u2022');
-	});
+    it("should handle original segments with empty text", () => {
+      const original = [seg("", { bold: true })];
+      const result = remapTextToSegments("New text", original, {});
+      expect(result).toHaveLength(1);
+      expect(result[0].text).toBe("New text");
+      expect(result[0].style.bold).toBe(true);
+    });
+  });
+
+  describe("multi-paragraph remapping", () => {
+    it("should split new text by newlines and remap each paragraph", () => {
+      const original = [
+        seg("Line 1", { bold: true }),
+        breakSeg(),
+        seg("Line 2", { italic: true }),
+      ];
+      const result = remapTextToSegments("AAA\nBBB", original, {});
+      // Should have segments for paragraph 1, a break, and paragraph 2
+      const texts = result.map((s) => s.text);
+      expect(texts).toContain("\n");
+      // First paragraph
+      expect(result[0].text).toBe("AAA");
+      expect(result[0].style.bold).toBe(true);
+      // Break
+      expect(result[1].isParagraphBreak).toBe(true);
+      // Second paragraph
+      expect(result[2].text).toBe("BBB");
+      expect(result[2].style.italic).toBe(true);
+    });
+
+    it("should handle more new paragraphs than original", () => {
+      const original = [seg("One", { bold: true })];
+      const result = remapTextToSegments("A\nB\nC", original, {});
+      // Should produce 3 paragraphs with breaks in between
+      const breaks = result.filter((s) => s.isParagraphBreak);
+      expect(breaks).toHaveLength(2);
+    });
+
+    it("should handle fewer new paragraphs than original", () => {
+      const original = [
+        seg("P1", { bold: true }),
+        breakSeg(),
+        seg("P2", { italic: true }),
+        breakSeg(),
+        seg("P3", {}),
+      ];
+      const result = remapTextToSegments("OnlyOne", original, {});
+      // No breaks since only 1 paragraph
+      const breaks = result.filter((s) => s.isParagraphBreak);
+      expect(breaks).toHaveLength(0);
+      expect(result[0].text).toBe("OnlyOne");
+    });
+  });
+
+  describe("bullet info preservation", () => {
+    it("should preserve bulletInfo on the first segment of a paragraph", () => {
+      const bulletInfo = { type: "numbered" };
+      const original: TextSegment[] = [
+        { text: "Item 1", style: { bold: true }, bulletInfo },
+      ];
+      const result = remapTextToSegments("New item", original, {});
+      expect(result[0].bulletInfo).toEqual(bulletInfo);
+    });
+  });
 });

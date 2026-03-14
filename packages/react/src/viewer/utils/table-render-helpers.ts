@@ -55,9 +55,31 @@ export function cellStyleToCss(
   }
   if (style.align) css.textAlign = style.align;
   if (style.vAlign) css.verticalAlign = style.vAlign;
-  if (style.textDirection === "vertical") css.writingMode = "vertical-rl";
-  else if (style.textDirection === "vertical270")
-    css.writingMode = "vertical-lr";
+  // Vertical text direction — map all variants to CSS writing-mode + text-orientation
+  if (style.textDirection) {
+    switch (style.textDirection) {
+      case "vertical":
+      case "eaVert":
+      case "wordArtVert":
+      case "wordArtVertRtl":
+        css.writingMode = "vertical-rl";
+        break;
+      case "vertical270":
+      case "mongolianVert":
+        css.writingMode = "vertical-lr";
+        break;
+    }
+    // text-orientation: wordArtVert uses upright; others use mixed
+    if (style.textDirection === "wordArtVert") {
+      css.textOrientation = "upright";
+    } else if (css.writingMode) {
+      css.textOrientation = "mixed";
+    }
+    // wordArtVertRtl needs explicit RTL direction
+    if (style.textDirection === "wordArtVertRtl") {
+      css.direction = "rtl";
+    }
+  }
 
   // Per-edge borders (width, color, dash style)
   const borderEdges = [

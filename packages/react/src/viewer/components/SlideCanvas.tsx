@@ -178,6 +178,9 @@ export function SlideCanvas({
         />
         <div
           ref={zoom.canvasStageRef}
+          role="region"
+          aria-label={`Slide ${(activeSlideIndex ?? 0) + 1}`}
+          aria-roledescription="slide"
           className="relative shadow-2xl"
           style={{
             width: canvasSize.width,

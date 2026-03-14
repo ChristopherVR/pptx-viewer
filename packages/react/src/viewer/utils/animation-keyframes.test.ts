@@ -127,4 +127,105 @@ describe('getEffectKeyframes', () => {
 		expect(kf).toContain('@keyframes fuzor-flyOutBottom');
 		expect(kf).toContain('translateY(100%)');
 	});
+
+	it('should return keyframes for "flyInTop"', () => {
+		const kf = getEffectKeyframes('flyInTop');
+		expect(kf).toContain('@keyframes fuzor-flyInTop');
+		expect(kf).toContain('translateY(-100%)');
+		expect(kf).toContain('translateY(0)');
+	});
+
+	it('should return keyframes for "flyInBottom"', () => {
+		const kf = getEffectKeyframes('flyInBottom');
+		expect(kf).toContain('@keyframes fuzor-flyInBottom');
+		expect(kf).toContain('translateY(100%)');
+		expect(kf).toContain('translateY(0)');
+	});
+
+	it('should return keyframes for "flyOutLeft"', () => {
+		const kf = getEffectKeyframes('flyOutLeft');
+		expect(kf).toContain('@keyframes fuzor-flyOutLeft');
+		expect(kf).toContain('translateX(-100%)');
+	});
+
+	it('should return keyframes for "flyOutRight"', () => {
+		const kf = getEffectKeyframes('flyOutRight');
+		expect(kf).toContain('@keyframes fuzor-flyOutRight');
+		expect(kf).toContain('translateX(100%)');
+	});
+
+	it('should return keyframes for "flyOutTop"', () => {
+		const kf = getEffectKeyframes('flyOutTop');
+		expect(kf).toContain('@keyframes fuzor-flyOutTop');
+		expect(kf).toContain('translateY(-100%)');
+	});
+
+	it('should return keyframes for "bounceOut"', () => {
+		const kf = getEffectKeyframes('bounceOut');
+		expect(kf).toContain('@keyframes fuzor-bounceOut');
+		expect(kf).toContain('scale(0.3)');
+	});
+
+	it('should return keyframes for "shrinkOut"', () => {
+		const kf = getEffectKeyframes('shrinkOut');
+		expect(kf).toContain('@keyframes fuzor-shrinkOut');
+		expect(kf).toContain('scale(0)');
+	});
+
+	it('should return keyframes for "wipeOut"', () => {
+		const kf = getEffectKeyframes('wipeOut');
+		expect(kf).toContain('@keyframes fuzor-wipeOut');
+		expect(kf).toContain('clip-path');
+	});
+
+	it('should return keyframes for "dissolveOut"', () => {
+		const kf = getEffectKeyframes('dissolveOut');
+		expect(kf).toContain('@keyframes fuzor-dissolveOut');
+		expect(kf).toContain('blur(8px)');
+	});
+
+	it('should return keyframes for "growShrink"', () => {
+		const kf = getEffectKeyframes('growShrink');
+		expect(kf).toContain('@keyframes fuzor-growShrink');
+		expect(kf).toContain('scale(1.25)');
+	});
+
+	it('should return keyframes for "transparency"', () => {
+		const kf = getEffectKeyframes('transparency');
+		expect(kf).toContain('@keyframes fuzor-transparency');
+		expect(kf).toContain('opacity: 0.4');
+	});
+
+	it('should return keyframes for "colorWave"', () => {
+		const kf = getEffectKeyframes('colorWave');
+		expect(kf).toContain('@keyframes fuzor-colorWave');
+		expect(kf).toContain('hue-rotate');
+	});
+
+	it('should return keyframes for "bounce"', () => {
+		const kf = getEffectKeyframes('bounce');
+		expect(kf).toContain('@keyframes fuzor-bounce');
+		expect(kf).toContain('translateY(-20px)');
+	});
+
+	it('should return keyframes for "flash"', () => {
+		const kf = getEffectKeyframes('flash');
+		expect(kf).toContain('@keyframes fuzor-flash');
+		expect(kf).toContain('opacity: 0');
+		expect(kf).toContain('opacity: 1');
+	});
+
+	it('should return keyframes with from/to structure for entrance effects', () => {
+		const kf = getEffectKeyframes('appear');
+		expect(kf).toContain('from');
+		expect(kf).toContain('to');
+	});
+
+	it('should return keyframes for all exit effects', () => {
+		const exitEffects = ['disappear', 'fadeOut', 'flyOutLeft', 'flyOutRight', 'flyOutTop', 'flyOutBottom', 'zoomOut', 'bounceOut', 'wipeOut', 'shrinkOut', 'dissolveOut'] as const;
+		for (const effect of exitEffects) {
+			const kf = getEffectKeyframes(effect);
+			expect(kf).toContain(`@keyframes fuzor-${effect}`);
+		}
+	});
 });

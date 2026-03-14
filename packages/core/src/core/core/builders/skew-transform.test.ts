@@ -277,3 +277,200 @@ describe("PptxGraphicFrameParser – skew parsing", () => {
     expect(result!.skewY).toBeUndefined();
   });
 });
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Additional skew tests – edge cases, round-trip, type safety
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+describe("PptxElementTransformUpdater – skew edge cases", () => {
+  const updater = new PptxElementTransformUpdater();
+
+  it("handles zero skewX (0 degrees)", () => {
+    const shape = makeShapeXml();
+    const element = makeElement({ skewX: 0 });
+    updater.applyTransform(shape, element, EMU_PER_PX);
+
+    const xfrm = (shape["p:spPr"] as XmlObject)["a:xfrm"] as XmlObject;
+    // 0 * 60000 = 0, but 0 is falsy in JS so skewX=0 should still be written
+    expect(xfrm["@_skewX"]).toBe("0");
+  });
+
+  it("handles zero skewY (0 degrees)", () => {
+    const shape = makeShapeXml();
+    const element = makeElement({ skewY: 0 });
+    updater.applyTransform(shape, element, EMU_PER_PX);
+
+    const xfrm = (shape["p:spPr"] as XmlObject)["a:xfrm"] as XmlObject;
+    expect(xfrm["@_skewY"]).toBe("0");
+  });
+
+  it("handles very large skew values (85 degrees)", () => {
+    const shape = makeShapeXml();
+    const element = makeElement({ skewX: 85 });
+    updater.applyTransform(shape, element, EMU_PER_PX);
+
+    const xfrm = (shape["p:spPr"] as XmlObject)["a:xfrm"] as XmlObject;
+    // 85 * 60000 = 5100000
+    expect(xfrm["@_skewX"]).toBe("5100000");
+  });
+
+  it("preserves position and size when skew is applied", () => {
+    const shape = makeShapeXml();
+    const element = makeElement({ x: 50, y: 75, width: 200, height: 150, skewX: 10 });
+    updater.applyTransform(shape, element, EMU_PER_PX);
+
+    const xfrm = (shape["p:spPr"] as XmlObject)["a:xfrm"] as XmlObject;
+    expect((xfrm["a:off"] as XmlObject)["@_x"]).toBe(String(50 * EMU_PER_PX));
+    expect((xfrm["a:off"] as XmlObject)["@_y"]).toBe(String(75 * EMU_PER_PX));
+    expect((xfrm["a:ext"] as XmlObject)["@_cx"]).toBe(String(200 * EMU_PER_PX));
+    expect((xfrm["a:ext"] as XmlObject)["@_cy"]).toBe(String(150 * EMU_PER_PX));
+    expect(xfrm["@_skewX"]).toBe("600000");
+  });
+
+  it("writes skewY to group transform (p:xfrm)", () => {
+    const shape = makeShapeXml({ useGroupTransform: true });
+    const element = makeElement({ skewY: 30 });
+    updater.applyTransform(shape, element, EMU_PER_PX);
+
+    const xfrm = shape["p:xfrm"] as XmlObject;
+    expect(xfrm["@_skewY"]).toBe("1800000"); // 30 * 60000
+  });
+
+  it("handles very small fractional skew (0.001 degrees)", () => {
+    const shape = makeShapeXml();
+    const element = makeElement({ skewX: 0.001 });
+    updater.applyTransform(shape, element, EMU_PER_PX);
+
+    const xfrm = (shape["p:spPr"] as XmlObject)["a:xfrm"] as XmlObject;
+    // 0.001 * 60000 = 60 (Math.round)
+    expect(xfrm["@_skewX"]).toBe("60");
+  });
+});
+
+describe("Skew round-trip – save then parse", () => {
+  const updater = new PptxElementTransformUpdater();
+
+  it("round-trips skewX through save and parse via connector parser", () => {
+    // Save: element with skewX=25 -> writes @_skewX="1500000"
+    const shape = makeShapeXml();
+    const element = makeElement({ skewX: 25 });
+    updater.applyTransform(shape, element, EMU_PER_PX);
+
+    const xfrm = (shape["p:spPr"] as XmlObject)["a:xfrm"] as XmlObject;
+    const savedSkewX = xfrm["@_skewX"] as string;
+    expect(savedSkewX).toBe("1500000");
+
+    // Parse: use the saved value and verify it parses back to 25
+    const parsedDegrees = parseInt(savedSkewX, 10) / 60000;
+    expect(parsedDegrees).toBe(25);
+  });
+
+  it("round-trips negative skewY through save and parse", () => {
+    const shape = makeShapeXml();
+    const element = makeElement({ skewY: -12.5 });
+    updater.applyTransform(shape, element, EMU_PER_PX);
+
+    const xfrm = (shape["p:spPr"] as XmlObject)["a:xfrm"] as XmlObject;
+    const savedSkewY = xfrm["@_skewY"] as string;
+    // -12.5 * 60000 = -750000
+    expect(savedSkewY).toBe("-750000");
+
+    const parsedDegrees = parseInt(savedSkewY, 10) / 60000;
+    expect(parsedDegrees).toBe(-12.5);
+  });
+
+  it("round-trips both skew axes with all other transforms", () => {
+    const shape = makeShapeXml();
+    const element = makeElement({
+      x: 100,
+      y: 200,
+      width: 300,
+      height: 150,
+      rotation: 45,
+      skewX: 15,
+      skewY: -10,
+      flipHorizontal: true,
+      flipVertical: true,
+    });
+    updater.applyTransform(shape, element, EMU_PER_PX);
+
+    const xfrm = (shape["p:spPr"] as XmlObject)["a:xfrm"] as XmlObject;
+    expect(xfrm["@_rot"]).toBe("2700000");
+    expect(xfrm["@_skewX"]).toBe("900000");
+    expect(xfrm["@_skewY"]).toBe("-600000");
+    expect(xfrm["@_flipH"]).toBe("1");
+    expect(xfrm["@_flipV"]).toBe("1");
+    expect((xfrm["a:off"] as XmlObject)["@_x"]).toBe(String(100 * EMU_PER_PX));
+    expect((xfrm["a:off"] as XmlObject)["@_y"]).toBe(String(200 * EMU_PER_PX));
+  });
+});
+
+describe("PptxConnectorParser – skew edge cases", () => {
+  function makeConnectorContext() {
+    return {
+      emuPerPx: EMU_PER_PX,
+      getOrderedSlidePaths: () => ["ppt/slides/slide1.xml"],
+      slideRelsMap: new Map(),
+      parseGeometryAdjustments: () => undefined,
+      readFlipState: () => ({}),
+      extractShapeStyle: () => ({}) as ShapeStyle,
+      parseShapeLocks: () => undefined,
+      parseElementActions: () => ({}),
+    };
+  }
+
+  function makeConnectorXml(skewX?: string, skewY?: string): XmlObject {
+    const xfrm: XmlObject = {
+      "a:off": { "@_x": "0", "@_y": "0" },
+      "a:ext": {
+        "@_cx": String(100 * EMU_PER_PX),
+        "@_cy": String(50 * EMU_PER_PX),
+      },
+    };
+    if (skewX) xfrm["@_skewX"] = skewX;
+    if (skewY) xfrm["@_skewY"] = skewY;
+
+    return {
+      "p:nvCxnSpPr": {
+        "p:cNvPr": { "@_id": "1", "@_name": "Connector 1" },
+        "p:cNvCxnSpPr": {},
+        "p:nvPr": {},
+      },
+      "p:spPr": {
+        "a:xfrm": xfrm,
+        "a:prstGeom": { "@_prst": "straightConnector1" },
+      },
+    };
+  }
+
+  it("parses negative skewX from connector", () => {
+    const parser = new PptxConnectorParser(makeConnectorContext());
+    const xml = makeConnectorXml("-900000"); // -15 degrees
+    const result = parser.parseConnector(xml, "c1");
+    expect(result).not.toBeNull();
+    expect(result!.skewX).toBe(-15);
+  });
+
+  it("parses both skewX and skewY from connector simultaneously", () => {
+    const parser = new PptxConnectorParser(makeConnectorContext());
+    const xml = makeConnectorXml("300000", "1200000"); // 5 and 20 degrees
+    const result = parser.parseConnector(xml, "c1");
+    expect(result).not.toBeNull();
+    expect(result!.skewX).toBe(5);
+    expect(result!.skewY).toBe(20);
+  });
+});
+
+describe("PptxElementBase type – skew properties", () => {
+  it("skewX and skewY are optional on PptxElement", () => {
+    const element = makeElement({});
+    expect(element.skewX).toBeUndefined();
+    expect(element.skewY).toBeUndefined();
+  });
+
+  it("skewX and skewY can be set on PptxElement", () => {
+    const element = makeElement({ skewX: 10, skewY: 20 });
+    expect(element.skewX).toBe(10);
+    expect(element.skewY).toBe(20);
+  });
+});

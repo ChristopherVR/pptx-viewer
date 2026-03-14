@@ -272,6 +272,8 @@ export function getElementTransform(element: PptxElement): string | undefined {
   if (element.flipHorizontal) transforms.push("scaleX(-1)");
   if (element.flipVertical) transforms.push("scaleY(-1)");
   if (element.rotation) transforms.push(`rotate(${element.rotation}deg)`);
+  if (element.skewX) transforms.push(`skewX(${element.skewX}deg)`);
+  if (element.skewY) transforms.push(`skewY(${element.skewY}deg)`);
   return transforms.length > 0 ? transforms.join(" ") : undefined;
 }
 

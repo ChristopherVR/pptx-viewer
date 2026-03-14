@@ -11,6 +11,7 @@ import {
   TEXT_BUILD_ID_SEP,
 } from "../../utils/animation-timeline";
 import { applyAnimationGroupSteps } from "./animation-helpers";
+import { computeEntranceAnimationDelay } from "../usePresentationSetup-helpers";
 
 // ---------------------------------------------------------------------------
 // Sub-hook interface
@@ -210,7 +211,7 @@ export function useAnimationPlayback(
       );
 
       entranceAnimations.forEach((animation, animationIndex) => {
-        const delay = Math.max(0, animation.delayMs || 0) + animationIndex * 60;
+        const delay = computeEntranceAnimationDelay(animation.delayMs, animationIndex);
         const timer = window.setTimeout(() => {
           setPresentationAnimations((previousAnimations) =>
             previousAnimations.map((entry) =>

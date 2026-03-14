@@ -123,6 +123,16 @@ export function getTextStyleForElement(
   const textOrientation = toCssTextOrientation(
     element.textStyle?.textDirection,
   );
+  const verticalDirection = toCssVerticalDirection(
+    element.textStyle?.textDirection,
+  );
+
+  // Direction: vertical RTL modes (e.g. wordArtVertRtl) take priority,
+  // then paragraph-level RTL, then default LTR.
+  const resolvedDirection: React.CSSProperties["direction"] =
+    verticalDirection || (isRtl ? "rtl" : "ltr");
+  const resolvedUnicodeBidi: React.CSSProperties["unicodeBidi"] =
+    isRtl ? "plaintext" : undefined;
 
   return {
     color: resolvedTextColor,
@@ -131,8 +141,8 @@ export function getTextStyleForElement(
       if (a === "justLow" || a === "dist" || a === "thaiDist") return "justify";
       return a || (isRtl ? "right" : "left");
     })(),
-    direction: isRtl ? "rtl" : "ltr",
-    unicodeBidi: isRtl ? "plaintext" : undefined,
+    direction: resolvedDirection,
+    unicodeBidi: resolvedUnicodeBidi,
     fontSize: element.textStyle?.fontSize || DEFAULT_TEXT_FONT_SIZE,
     fontWeight: element.textStyle?.bold ? 700 : 400,
     fontStyle: element.textStyle?.italic ? "italic" : "normal",
@@ -214,29 +224,98 @@ export function getTextStyleForElement(
   };
 }
 
+/**
+ * Map a parsed `textDirection` value to the corresponding CSS `writing-mode`.
+ *
+ * | textDirection     | CSS writing-mode |
+ * |-------------------|------------------|
+ * | `"vertical"`      | `vertical-rl`    |
+ * | `"eaVert"`        | `vertical-rl`    |
+ * | `"wordArtVert"`   | `vertical-rl`    |
+ * | `"wordArtVertRtl"`| `vertical-rl`    |
+ * | `"vertical270"`   | `vertical-lr`    |
+ * | `"mongolianVert"` | `vertical-lr`    |
+ * | `"horizontal"`    | undefined        |
+ */
 export function toCssWritingMode(
   textDirection: TextStyle["textDirection"] | undefined,
 ): React.CSSProperties["writingMode"] | undefined {
-  if (textDirection === "vertical") return "vertical-rl";
-  if (textDirection === "vertical270") return "vertical-lr";
-  return undefined;
+  switch (textDirection) {
+    case "vertical":
+    case "eaVert":
+    case "wordArtVert":
+    case "wordArtVertRtl":
+      return "vertical-rl";
+    case "vertical270":
+    case "mongolianVert":
+      return "vertical-lr";
+    default:
+      return undefined;
+  }
 }
 
 /**
  * Resolve CSS `text-orientation` for vertical writing modes.
  *
- * - `"vertical"` (East Asian vertical text): uses `"mixed"` so CJK glyphs
- *   stay upright while Latin glyphs are rotated.
- * - `"vertical270"` (Western text rotated 270 degrees): uses `"sideways"` so
- *   all glyphs are uniformly rotated sideways.
- * - Horizontal text: returns `undefined` (no text-orientation override needed).
+ * | textDirection     | CSS text-orientation |
+ * |-------------------|----------------------|
+ * | `"vertical"`      | `mixed`              |
+ * | `"eaVert"`        | `mixed`              |
+ * | `"vertical270"`   | `mixed`              |
+ * | `"wordArtVert"`   | `upright`            |
+ * | `"wordArtVertRtl"`| `mixed`              |
+ * | `"mongolianVert"` | `mixed`              |
+ * | `"horizontal"`    | undefined            |
+ *
+ * - `"vertical"` / `"eaVert"`: CJK glyphs stay upright, Latin rotated (`mixed`).
+ * - `"vertical270"`: text rotated 270deg — all glyphs rotated (`mixed`).
+ * - `"wordArtVert"`: all glyphs rendered upright, stacked vertically (`upright`).
+ * - `"wordArtVertRtl"`: same as vertical-rl with RTL direction (`mixed`).
+ * - `"mongolianVert"`: Mongolian vertical, left-to-right columns (`mixed`).
  */
 export function toCssTextOrientation(
   textDirection: TextStyle["textDirection"] | undefined,
 ): React.CSSProperties["textOrientation"] | undefined {
-  if (textDirection === "vertical") return "mixed";
-  if (textDirection === "vertical270") return "sideways";
+  switch (textDirection) {
+    case "vertical":
+    case "eaVert":
+    case "vertical270":
+    case "wordArtVertRtl":
+    case "mongolianVert":
+      return "mixed";
+    case "wordArtVert":
+      return "upright";
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Resolve CSS `direction` override for vertical text modes that require RTL.
+ *
+ * Only `"wordArtVertRtl"` requires explicit `direction: rtl`.
+ */
+export function toCssVerticalDirection(
+  textDirection: TextStyle["textDirection"] | undefined,
+): React.CSSProperties["direction"] | undefined {
+  if (textDirection === "wordArtVertRtl") return "rtl";
   return undefined;
+}
+
+/**
+ * Check whether a textDirection value represents any vertical writing mode.
+ */
+export function isVerticalTextDirection(
+  textDirection: TextStyle["textDirection"] | undefined,
+): boolean {
+  return (
+    textDirection === "vertical" ||
+    textDirection === "vertical270" ||
+    textDirection === "eaVert" ||
+    textDirection === "wordArtVert" ||
+    textDirection === "wordArtVertRtl" ||
+    textDirection === "mongolianVert"
+  );
 }
 
 /**

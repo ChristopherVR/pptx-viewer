@@ -23,6 +23,7 @@ import {
   normalizeHexColor,
   renderVectorShape,
 } from "../utils";
+import { getAriaRole, getAriaLabel } from "../utils/accessibility";
 import { ConnectorElementRenderer } from "./elements/ConnectorElementRenderer";
 import { renderBody } from "./elements/ElementBody";
 import { ResizeHandles } from "./elements/ResizeHandles";
@@ -48,6 +49,7 @@ export function shapeParams(el: PptxElement) {
 export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
   function ElementRendererInner({
     element: el,
+    activeSlide,
     isSelected,
     isInlineEditing,
     inlineEditingText,
@@ -168,12 +170,21 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
       isPresentationPassive &&
       isMediaPlaying;
 
+    // Accessibility attributes
+    const ariaRole = getAriaRole(el);
+    const ariaLabel = getAriaLabel(el);
+
     return (
       <div
         data-pptx-element="true"
         data-element-id={el.id}
+        role={ariaRole}
+        aria-label={ariaLabel}
+        aria-selected={isSelected ? true : undefined}
+        tabIndex={effectiveCanInteract || isActionable ? 0 : -1}
         className={cn(
           "absolute border",
+          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500",
           cur,
           effectiveCanInteract || isActionable ? "" : "pointer-events-none",
           isFullscreenMedia ? "pointer-events-auto" : "",
@@ -188,6 +199,25 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
           animationState,
           shapeVisualStyle: ss,
         })}
+        onKeyDown={(e) => {
+          if (
+            e.key === "Enter" &&
+            isTxt &&
+            effectiveCanInteract &&
+            !effectiveIsInlineEditing
+          ) {
+            // Start inline editing on Enter
+            e.preventDefault();
+            e.stopPropagation();
+            const dblClickEvt = new MouseEvent("dblclick", { bubbles: true });
+            e.currentTarget.dispatchEvent(dblClickEvt);
+          } else if (e.key === "Escape" && effectiveIsInlineEditing) {
+            // Exit inline editing on Escape
+            e.preventDefault();
+            e.stopPropagation();
+            onInlineEditCancel();
+          }
+        }}
         onClick={(e) => {
           if (!effectiveCanInteract && el.actionClick && onActionClick) {
             e.stopPropagation();
@@ -262,6 +292,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
           isPresentationPassive,
           handleMediaPlayStateChange,
           presentationElementStates,
+          activeSlide?.elements,
         )}
         {(el.actionClick || el.actionHover) && canInteract && (
           <ActionIndicator

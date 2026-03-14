@@ -230,6 +230,10 @@ export interface PptxChartAxisFormatting {
   axisType: 'catAx' | 'valAx' | 'dateAx' | 'serAx';
   /** Axis position: "b" (bottom), "l" (left), "r" (right), "t" (top). */
   axPos?: 'b' | 'l' | 'r' | 't';
+  /** Unique axis identifier (c:axId/@val) used to link series to axes. */
+  axisId?: number;
+  /** Cross-axis identifier — the axis this axis crosses. */
+  crossAxisId?: number;
   numFmt?: PptxChartAxisNumFmt;
   titleText?: string;
   spPr?: PptxChartShapeProps;
@@ -239,6 +243,12 @@ export interface PptxChartAxisFormatting {
   fontColor?: string;
   majorGridlinesSpPr?: PptxChartShapeProps;
   minorGridlinesSpPr?: PptxChartShapeProps;
+  /** Minimum axis value override (c:min/@val). */
+  min?: number;
+  /** Maximum axis value override (c:max/@val). */
+  max?: number;
+  /** Whether the axis is deleted/hidden (c:delete/@val). */
+  deleted?: boolean;
 }
 
 /** 3D wall or floor element formatting. */
@@ -271,6 +281,8 @@ export interface PptxChartSeries {
   marker?: PptxChartMarker;
   dataLabels?: PptxChartDataLabel[];
   explosion?: number;
+  /** Axis ID this series is plotted against (links to PptxChartAxisFormatting.axisId). */
+  axisId?: number;
 }
 
 /**

@@ -34,6 +34,8 @@ export function useElementManipulation(
     handleAlignElements,
     handleMoveLayer,
     handleMoveLayerToEdge,
+    handleMergeShapes,
+    canMergeShapes,
   } = useGroupAlignLayerHandlers(input);
 
   const handleContextMenuAction = (action: ElementContextMenuAction) => {

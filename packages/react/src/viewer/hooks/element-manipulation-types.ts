@@ -1,7 +1,7 @@
 /**
  * Shared types for the useElementManipulation hook and its sub-hooks.
  */
-import type { PptxElement, PptxSlide } from "pptx-viewer-core";
+import type { PptxElement, PptxSlide, MergeShapeOperation } from "pptx-viewer-core";
 import type { ElementContextMenuAction } from "../types";
 import type { ElementOperations } from "./useElementOperations";
 import type { EditorHistoryResult } from "./useEditorHistory";
@@ -42,6 +42,8 @@ export interface ElementManipulationHandlers {
   handleAlignElements: (align: string) => void;
   handleMoveLayer: (direction: string) => void;
   handleMoveLayerToEdge: (direction: string) => void;
+  handleMergeShapes: (operation: MergeShapeOperation) => void;
+  canMergeShapes: boolean;
   handleContextMenuAction: (action: ElementContextMenuAction) => void;
 }
 
@@ -60,4 +62,6 @@ export interface GroupAlignLayerHandlers {
   handleAlignElements: (align: string) => void;
   handleMoveLayer: (direction: string) => void;
   handleMoveLayerToEdge: (direction: string) => void;
+  handleMergeShapes: (operation: MergeShapeOperation) => void;
+  canMergeShapes: boolean;
 }

@@ -10,6 +10,94 @@ import type {
   PointerFrameTracker,
 } from "./pointer-handler-types";
 
+// ---------------------------------------------------------------------------
+// Pure helper functions (exported for testing)
+// ---------------------------------------------------------------------------
+
+export interface ResizeGeometry {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** Compute new resize geometry from a delta and handle position. */
+export function computeResizeGeometry(
+  handle: "nw" | "ne" | "sw" | "se",
+  startX: number,
+  startY: number,
+  startWidth: number,
+  startHeight: number,
+  dx: number,
+  dy: number,
+  snapToGrid: boolean,
+  gridSpacingPx: number,
+): ResizeGeometry {
+  let newX = startX,
+    newY = startY,
+    newW = startWidth,
+    newH = startHeight;
+  switch (handle) {
+    case "se":
+      newW = Math.max(MIN_ELEMENT_SIZE, startWidth + dx);
+      newH = Math.max(MIN_ELEMENT_SIZE, startHeight + dy);
+      break;
+    case "sw":
+      newX = startX + dx;
+      newW = Math.max(MIN_ELEMENT_SIZE, startWidth - dx);
+      newH = Math.max(MIN_ELEMENT_SIZE, startHeight + dy);
+      break;
+    case "ne":
+      newY = startY + dy;
+      newW = Math.max(MIN_ELEMENT_SIZE, startWidth + dx);
+      newH = Math.max(MIN_ELEMENT_SIZE, startHeight - dy);
+      break;
+    case "nw":
+      newX = startX + dx;
+      newY = startY + dy;
+      newW = Math.max(MIN_ELEMENT_SIZE, startWidth - dx);
+      newH = Math.max(MIN_ELEMENT_SIZE, startHeight - dy);
+      break;
+  }
+  if (snapToGrid) {
+    const gs = gridSpacingPx;
+    if (handle === "se" || handle === "ne") {
+      const right = Math.round((newX + newW) / gs) * gs;
+      newW = Math.max(MIN_ELEMENT_SIZE, right - newX);
+    }
+    if (handle === "sw" || handle === "nw") {
+      const snappedX = Math.round(newX / gs) * gs;
+      newW = Math.max(MIN_ELEMENT_SIZE, newW + (newX - snappedX));
+      newX = snappedX;
+    }
+    if (handle === "se" || handle === "sw") {
+      const bottom = Math.round((newY + newH) / gs) * gs;
+      newH = Math.max(MIN_ELEMENT_SIZE, bottom - newY);
+    }
+    if (handle === "ne" || handle === "nw") {
+      const snappedY = Math.round(newY / gs) * gs;
+      newH = Math.max(MIN_ELEMENT_SIZE, newH + (newY - snappedY));
+      newY = snappedY;
+    }
+  }
+  return { x: newX, y: newY, width: newW, height: newH };
+}
+
+/** Compute new shape adjustment value from pointer delta. */
+export function computeAdjustmentValue(
+  startAdjustment: number,
+  dx: number,
+  startWidth: number,
+): number {
+  const range = startWidth || 200;
+  const delta = dx / range;
+  return Math.max(0, Math.min(1, startAdjustment + delta));
+}
+
+// ---------------------------------------------------------------------------
+// Main pointer-move processor
+// ---------------------------------------------------------------------------
+
 export function processPointerMove(
   e: PointerEvent,
   input: UsePointerHandlersInput,
@@ -206,62 +294,26 @@ function processResizeMove(
   if (!rs.moved && (Math.abs(dx) > 2 || Math.abs(dy) > 2)) rs.moved = true;
   if (!rs.moved) return;
 
-  let newX = rs.startX,
-    newY = rs.startY,
-    newW = rs.startWidth,
-    newH = rs.startHeight;
-  switch (rs.handle) {
-    case "se":
-      newW = Math.max(MIN_ELEMENT_SIZE, rs.startWidth + dx);
-      newH = Math.max(MIN_ELEMENT_SIZE, rs.startHeight + dy);
-      break;
-    case "sw":
-      newX = rs.startX + dx;
-      newW = Math.max(MIN_ELEMENT_SIZE, rs.startWidth - dx);
-      newH = Math.max(MIN_ELEMENT_SIZE, rs.startHeight + dy);
-      break;
-    case "ne":
-      newY = rs.startY + dy;
-      newW = Math.max(MIN_ELEMENT_SIZE, rs.startWidth + dx);
-      newH = Math.max(MIN_ELEMENT_SIZE, rs.startHeight - dy);
-      break;
-    case "nw":
-      newX = rs.startX + dx;
-      newY = rs.startY + dy;
-      newW = Math.max(MIN_ELEMENT_SIZE, rs.startWidth - dx);
-      newH = Math.max(MIN_ELEMENT_SIZE, rs.startHeight - dy);
-      break;
-  }
-  if (snapToGrid) {
-    const gs = gridSpacingPx;
-    if (rs.handle === "se" || rs.handle === "ne") {
-      const right = Math.round((newX + newW) / gs) * gs;
-      newW = Math.max(MIN_ELEMENT_SIZE, right - newX);
-    }
-    if (rs.handle === "sw" || rs.handle === "nw") {
-      const snappedX = Math.round(newX / gs) * gs;
-      newW = Math.max(MIN_ELEMENT_SIZE, newW + (newX - snappedX));
-      newX = snappedX;
-    }
-    if (rs.handle === "se" || rs.handle === "sw") {
-      const bottom = Math.round((newY + newH) / gs) * gs;
-      newH = Math.max(MIN_ELEMENT_SIZE, bottom - newY);
-    }
-    if (rs.handle === "ne" || rs.handle === "nw") {
-      const snappedY = Math.round(newY / gs) * gs;
-      newH = Math.max(MIN_ELEMENT_SIZE, newH + (newY - snappedY));
-      newY = snappedY;
-    }
-  }
-  rs.lastX = newX;
-  rs.lastY = newY;
-  rs.lastWidth = newW;
-  rs.lastHeight = newH;
+  const geo = computeResizeGeometry(
+    rs.handle,
+    rs.startX,
+    rs.startY,
+    rs.startWidth,
+    rs.startHeight,
+    dx,
+    dy,
+    snapToGrid,
+    gridSpacingPx,
+  );
+  rs.lastX = geo.x;
+  rs.lastY = geo.y;
+  rs.lastWidth = geo.width;
+  rs.lastHeight = geo.height;
   if (rs.domEl) {
-    rs.domEl.style.left = `${newX}px`;
-    rs.domEl.style.top = `${newY}px`;
-    rs.domEl.style.width = `${Math.max(newW, MIN_ELEMENT_SIZE)}px`;
-    rs.domEl.style.height = `${Math.max(newH, MIN_ELEMENT_SIZE)}px`;
+    rs.domEl.style.left = `${geo.x}px`;
+    rs.domEl.style.top = `${geo.y}px`;
+    rs.domEl.style.width = `${Math.max(geo.width, MIN_ELEMENT_SIZE)}px`;
+    rs.domEl.style.height = `${Math.max(geo.height, MIN_ELEMENT_SIZE)}px`;
   }
 }
 
@@ -276,9 +328,7 @@ function processAdjustmentMove(
   updateElementById: UsePointerHandlersInput["updateElementById"],
 ): void {
   const dx = (e.clientX - adj.startClientX) / editorScale;
-  const range = adj.startWidth || 200;
-  const delta = dx / range;
-  const newValue = Math.max(0, Math.min(1, adj.startAdjustment + delta));
+  const newValue = computeAdjustmentValue(adj.startAdjustment, dx, adj.startWidth);
   if (!adj.moved && Math.abs(dx) > 2) adj.moved = true;
   if (adj.moved) {
     updateElementById(adj.elementId, {

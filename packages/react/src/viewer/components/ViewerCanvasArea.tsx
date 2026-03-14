@@ -102,7 +102,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
       : templateElements;
 
   return (
-    <main className="flex-1 min-w-0 relative flex flex-col">
+    <main aria-label="Slide editor" className="flex-1 min-w-0 relative flex flex-col">
       {findReplace.findReplaceOpen && (
         <FindReplacePanel
           findQuery={findReplace.findQuery}

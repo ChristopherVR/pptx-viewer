@@ -198,4 +198,44 @@ describe("getTextLayoutStyle", () => {
     expect(style.display).toBe("flex");
     expect(style.justifyContent).toBe("center");
   });
+
+  // ── Kinsoku line-breaking (CJK) ─────────────────────────────
+  it("applies lineBreak=normal and wordBreak=break-all when eaLineBreak is true", () => {
+    const el = makeTextElement({ eaLineBreak: true });
+    const style = getTextLayoutStyle(el);
+    expect(style.lineBreak).toBe("normal");
+    expect(style.wordBreak).toBe("break-all");
+    expect(style.overflowWrap).toBe("break-word");
+  });
+
+  it("applies lineBreak=strict when eaLineBreak is false", () => {
+    const el = makeTextElement({ eaLineBreak: false });
+    const style = getTextLayoutStyle(el);
+    expect(style.lineBreak).toBe("strict");
+    expect(style.overflowWrap).toBe("break-word");
+  });
+
+  it("applies hangingPunctuation=last when hangingPunctuation is true", () => {
+    const el = makeTextElement({ hangingPunctuation: true });
+    const style = getTextLayoutStyle(el);
+    expect(style.hangingPunctuation).toBe("last");
+  });
+
+  it("does not set kinsoku styles when no flags are present", () => {
+    const el = makeTextElement({});
+    const style = getTextLayoutStyle(el);
+    expect(style.lineBreak).toBeUndefined();
+    expect(style.wordBreak).toBeUndefined();
+    expect(style.overflowWrap).toBeUndefined();
+    expect(style.hangingPunctuation).toBeUndefined();
+  });
+
+  it("applies kinsoku styles in multi-column layout", () => {
+    const el = makeTextElement({ columnCount: 2, eaLineBreak: true, hangingPunctuation: true });
+    const style = getTextLayoutStyle(el);
+    expect(style.display).toBe("block");
+    expect(style.lineBreak).toBe("normal");
+    expect(style.wordBreak).toBe("break-all");
+    expect(style.hangingPunctuation).toBe("last");
+  });
 });

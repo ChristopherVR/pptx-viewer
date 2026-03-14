@@ -223,18 +223,28 @@ export function extractTableCellStyle(
     else cellStyle.verticalAlign = "top";
   }
 
-  // Text direction from `vert` attribute
+  // Text direction from `vert` attribute — apply CSS writing-mode + text-orientation
   if (cellProperties?.["@_vert"]) {
     const vert = String(cellProperties["@_vert"]);
-    if (
-      vert === "vert" ||
-      vert === "eaVert" ||
-      vert === "wordArtVert" ||
-      vert === "mongolianVert"
-    ) {
-      cellStyle.writingMode = "vertical-rl";
-    } else if (vert === "vert270" || vert === "wordArtVertRtl") {
-      cellStyle.writingMode = "vertical-lr";
+    switch (vert) {
+      case "vert":
+      case "eaVert":
+      case "wordArtVert":
+      case "wordArtVertRtl":
+        cellStyle.writingMode = "vertical-rl";
+        break;
+      case "vert270":
+      case "mongolianVert":
+        cellStyle.writingMode = "vertical-lr";
+        break;
+    }
+    if (vert === "wordArtVert") {
+      cellStyle.textOrientation = "upright";
+    } else if (cellStyle.writingMode) {
+      cellStyle.textOrientation = "mixed";
+    }
+    if (vert === "wordArtVertRtl") {
+      cellStyle.direction = "rtl";
     }
   }
 

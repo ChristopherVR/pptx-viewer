@@ -38,6 +38,12 @@ export class PptxElementTransformUpdater implements IPptxElementTransformUpdater
     if (element.rotation !== undefined) {
       transform["@_rot"] = String(Math.round(element.rotation * 60000));
     }
+    if (element.skewX !== undefined) {
+      transform["@_skewX"] = String(Math.round(element.skewX * 60000));
+    }
+    if (element.skewY !== undefined) {
+      transform["@_skewY"] = String(Math.round(element.skewY * 60000));
+    }
     if (element.flipHorizontal) {
       transform["@_flipH"] = "1";
     } else {

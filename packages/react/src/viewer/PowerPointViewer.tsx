@@ -35,6 +35,7 @@ import { useDerivedSlideState } from "./hooks/useDerivedSlideState";
 import { usePresentationSetup } from "./hooks/usePresentationSetup";
 import { useEditorOperations } from "./hooks/useEditorOperations";
 import { useViewerIntegration } from "./hooks/useViewerIntegration";
+import { useReducedMotion } from "./hooks/useReducedMotion";
 
 // Components
 import {
@@ -85,6 +86,12 @@ export const PowerPointViewer = forwardRef<
   useEffect(() => {
     setContent(incomingContent);
   }, [incomingContent]);
+
+  // ── Reduced motion ──────────────────────────────────────────
+  const {
+    reducedMotion,
+    toggleReducedMotion,
+  } = useReducedMotion();
 
   // ── All state via custom hook ─────────────────────────────────
   const state = useViewerState({ content, canEdit });
@@ -415,6 +422,8 @@ export const PowerPointViewer = forwardRef<
         onDuplicateSlides={editorOps.slideOps.handleDuplicateSlides}
         onToggleHideSlides={editorOps.slideOps.handleToggleHideSlides}
         onCloseSorter={() => state.setShowSlideSorter(false)}
+        reducedMotion={reducedMotion}
+        onToggleReducedMotion={toggleReducedMotion}
       />
 
       <ViewerPresentationLayer

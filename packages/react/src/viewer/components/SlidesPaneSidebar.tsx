@@ -82,7 +82,11 @@ export function SlidesPaneSidebar({
 
   // ── Render ──
   return (
-    <aside className="flex h-full flex-col border-r border-border bg-background/70 backdrop-blur-sm">
+    <aside
+      role="navigation"
+      aria-label="Slides"
+      className="flex h-full flex-col border-r border-border bg-background/70 backdrop-blur-sm"
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2">
         <span className="text-xs uppercase tracking-wide text-muted-foreground">

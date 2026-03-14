@@ -36,6 +36,10 @@ export interface ViewerOverlaysProps {
   onDuplicateSlides: (indexes: number[]) => void;
   onToggleHideSlides: (indexes: number[]) => void;
   onCloseSorter: () => void;
+  /** Whether reduced motion mode is active. */
+  reducedMotion?: boolean;
+  /** Toggle reduced motion mode on/off. */
+  onToggleReducedMotion?: () => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -60,6 +64,8 @@ export function ViewerOverlays({
   onDuplicateSlides,
   onToggleHideSlides,
   onCloseSorter,
+  reducedMotion,
+  onToggleReducedMotion,
 }: ViewerOverlaysProps): React.ReactElement | null {
   const hasOverlay =
     isShortcutHelpOpen || isAccessibilityPanelOpen || showSlideSorter;
@@ -75,6 +81,8 @@ export function ViewerOverlays({
           isOpen={isAccessibilityPanelOpen}
           issues={accessibilityIssues}
           onClose={onCloseAccessibility}
+          reducedMotion={reducedMotion}
+          onToggleReducedMotion={onToggleReducedMotion}
         />
       )}
       {showSlideSorter && (

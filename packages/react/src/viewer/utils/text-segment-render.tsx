@@ -4,6 +4,7 @@ import {
   type PptxElement,
   type TextStyle,
   type BulletInfo,
+  getSubstituteFontFamily,
 } from "pptx-viewer-core";
 import {
   DEFAULT_TEXT_FONT_SIZE,
@@ -62,6 +63,10 @@ export function renderSingleSegment(
     bulletInfo?: BulletInfo;
     fieldType?: string;
     equationXml?: Record<string, unknown>;
+    rubyText?: string;
+    rubyAlignment?: string;
+    rubyFontSize?: number;
+    rubyStyle?: TextStyle;
   },
   segmentIndex: number,
   fallbackColor: string,
@@ -153,10 +158,13 @@ export function renderSingleSegment(
       ? element.textStyle.autoFitFontScale
       : 1;
   const baseFontSize = rawFontSize * autoFitScale;
-  const baseFontFamily =
+  const rawFontFamily =
     segmentStyle.fontFamily ||
-    element.textStyle?.fontFamily ||
-    DEFAULT_FONT_FAMILY;
+    element.textStyle?.fontFamily;
+  // Apply PANOSE-based font substitution with fallback chain
+  const baseFontFamily = rawFontFamily
+    ? getSubstituteFontFamily(rawFontFamily)
+    : DEFAULT_FONT_FAMILY;
 
   // Per-script font info for Unicode font fallback
   const scriptFonts = {
@@ -249,18 +257,59 @@ export function renderSingleSegment(
   // Resolve the hyperlink URL
   const hyperlinkUrl = segmentStyle.hyperlink || segment.hyperlink;
 
+  // ── Ruby text (phonetic guide) rendering ──
+  const rubyText = segment.rubyText;
+  const hasRuby = typeof rubyText === "string" && rubyText.length > 0;
+
+  const baseContent = renderSegmentContent(
+    element.id,
+    segmentIndex,
+    textValue,
+    lines,
+    needsScriptFonts,
+    scriptFonts,
+    baseFontFamily,
+    findHighlights,
+  );
+
+  let innerContent: React.ReactNode;
+  if (hasRuby) {
+    // Resolve ruby annotation font size: use explicit rubyFontSize,
+    // fall back to 50% of the base font size (common default).
+    const rubyFs = segment.rubyFontSize ?? baseFontSize * 0.5;
+    const rubyStyle: React.CSSProperties = {
+      fontSize: rubyFs,
+      fontFamily: segment.rubyStyle?.fontFamily ?? baseFontFamily,
+      textAlign:
+        segment.rubyAlignment === "l"
+          ? "left"
+          : segment.rubyAlignment === "r"
+            ? "right"
+            : segment.rubyAlignment === "dist" ||
+                segment.rubyAlignment === "distCat" ||
+                segment.rubyAlignment === "distLetter"
+              ? "justify"
+              : "center",
+    };
+    if (segment.rubyStyle?.color) {
+      rubyStyle.color = normalizeHexColor(segment.rubyStyle.color, resolvedSegmentColor);
+    }
+
+    innerContent = (
+      <ruby>
+        {baseContent}
+        <rp>(</rp>
+        <rt style={rubyStyle}>{rubyText}</rt>
+        <rp>)</rp>
+      </ruby>
+    );
+  } else {
+    innerContent = baseContent;
+  }
+
   const spanNode = (
     <span key={`${element.id}-seg-${segmentIndex}`} style={spanStyle}>
-      {renderSegmentContent(
-        element.id,
-        segmentIndex,
-        textValue,
-        lines,
-        needsScriptFonts,
-        scriptFonts,
-        baseFontFamily,
-        findHighlights,
-      )}
+      {innerContent}
     </span>
   );
 

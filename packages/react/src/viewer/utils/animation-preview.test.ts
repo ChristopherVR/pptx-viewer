@@ -146,6 +146,62 @@ describe('buildPreviewAnimation', () => {
 		expect(result).toBeDefined();
 		expect(result!.keyframeName).toBe('fuzor-flyInBottom');
 	});
+
+	it('should default flyOut without direction to flyOutBottom', () => {
+		const result = buildPreviewAnimation('flyOut');
+		expect(result).toBeDefined();
+		expect(result!.keyframeName).toBe('fuzor-flyOutBottom');
+	});
+
+	it('should resolve flyIn fromBottom direction', () => {
+		const result = buildPreviewAnimation('flyIn', { direction: 'fromBottom' });
+		expect(result).toBeDefined();
+		expect(result!.keyframeName).toBe('fuzor-flyInBottom');
+	});
+
+	it('should resolve flyOut fromRight direction', () => {
+		const result = buildPreviewAnimation('flyOut', { direction: 'fromRight' });
+		expect(result).toBeDefined();
+		expect(result!.keyframeName).toBe('fuzor-flyOutRight');
+	});
+
+	it('should resolve flyIn fromTopLeft as flyInTop', () => {
+		const result = buildPreviewAnimation('flyIn', { direction: 'fromTopLeft' });
+		expect(result).toBeDefined();
+		expect(result!.keyframeName).toBe('fuzor-flyInTop');
+	});
+
+	it('should resolve flyIn fromBottomRight as flyInBottom', () => {
+		const result = buildPreviewAnimation('flyIn', { direction: 'fromBottomRight' });
+		expect(result).toBeDefined();
+		expect(result!.keyframeName).toBe('fuzor-flyInBottom');
+	});
+
+	it('should use cubicBezier option when provided', () => {
+		const result = buildPreviewAnimation('fadeIn', {
+			cubicBezier: '0.42,0,0.58,1',
+		});
+		expect(result).toBeDefined();
+		expect(result!.cssAnimation).toContain('cubic-bezier(0.42, 0, 0.58, 1)');
+	});
+
+	it('should return descriptor for "colorWave" preset', () => {
+		const result = buildPreviewAnimation('colorWave');
+		expect(result).toBeDefined();
+		expect(result!.keyframeName).toBe('fuzor-colorWave');
+	});
+
+	it('should return descriptor for "bounce" preset', () => {
+		const result = buildPreviewAnimation('bounce');
+		expect(result).toBeDefined();
+		expect(result!.keyframeName).toBe('fuzor-bounce');
+	});
+
+	it('should return descriptor for "flash" preset', () => {
+		const result = buildPreviewAnimation('flash');
+		expect(result).toBeDefined();
+		expect(result!.keyframeName).toBe('fuzor-flash');
+	});
 });
 
 describe('parseOoxmlBezierCurve', () => {

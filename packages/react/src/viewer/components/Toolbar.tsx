@@ -36,7 +36,11 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
   const sViw = toolbarSection === "view";
 
   return (
-    <div className="relative z-20 px-2 py-1.5 border-b border-border bg-background shadow-[0_4px_12px_rgba(0,0,0,0.3)] overflow-visible">
+    <div
+      role="toolbar"
+      aria-label="Presentation toolbar"
+      className="relative z-20 px-2 py-1.5 border-b border-border bg-background shadow-[0_4px_12px_rgba(0,0,0,0.3)] overflow-visible"
+    >
       {/* Primary Row */}
       <ToolbarPrimaryRow {...p} />
 

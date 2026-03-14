@@ -114,5 +114,96 @@ describe('PRESET_ID_TO_EFFECT', () => {
 				expect(typeof value).toBe('string');
 			}
 		});
+
+		it('should have all emphasis effects as strings', () => {
+			for (const [, value] of Object.entries(PRESET_ID_TO_EFFECT.emph)) {
+				expect(typeof value).toBe('string');
+			}
+		});
+
+		it('should not have overlapping effect names between entr and exit for same preset ID', () => {
+			// IDs present in both entr and exit should have different effect names
+			const entrIds = Object.keys(PRESET_ID_TO_EFFECT.entr).map(Number);
+			const exitIds = new Set(Object.keys(PRESET_ID_TO_EFFECT.exit).map(Number));
+			for (const id of entrIds) {
+				if (exitIds.has(id)) {
+					expect(PRESET_ID_TO_EFFECT.entr[id]).not.toBe(PRESET_ID_TO_EFFECT.exit[id]);
+				}
+			}
+		});
+	});
+
+	describe('additional entrance presets', () => {
+		it('should map preset ID 6 to "expandIn"', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[6]).toBe('expandIn');
+		});
+
+		it('should map preset ID 9 to "dissolveIn"', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[9]).toBe('dissolveIn');
+		});
+
+		it('should map preset ID 12 to "flashIn"', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[12]).toBe('flashIn');
+		});
+
+		it('should map preset ID 16 to "peekIn"', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[16]).toBe('peekIn');
+		});
+
+		it('should map preset ID 17 to "randomBarsIn"', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[17]).toBe('randomBarsIn');
+		});
+
+		it('should map preset ID 21 to "wheelIn"', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[21]).toBe('wheelIn');
+		});
+
+		it('should map preset ID 26 to "riseUp"', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[26]).toBe('riseUp');
+		});
+
+		it('should map preset ID 31 to "expandIn"', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[31]).toBe('expandIn');
+		});
+
+		it('should map preset ID 42 to "floatIn"', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[42]).toBe('floatIn');
+		});
+
+		it('should map preset ID 47 to "swivel"', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[47]).toBe('swivel');
+		});
+
+		it('should map preset ID 49 to "spinnerIn"', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[49]).toBe('spinnerIn');
+		});
+
+		it('should map preset ID 53 to "growTurnIn"', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[53]).toBe('growTurnIn');
+		});
+	});
+
+	describe('additional exit presets', () => {
+		it('should map preset ID 6 to "shrinkOut"', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[6]).toBe('shrinkOut');
+		});
+
+		it('should map preset ID 9 to "dissolveOut"', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[9]).toBe('dissolveOut');
+		});
+
+		it('should map preset ID 22 to "wipeOut"', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[22]).toBe('wipeOut');
+		});
+	});
+
+	describe('additional emphasis presets', () => {
+		it('should map preset ID 2 to "wave"', () => {
+			expect(PRESET_ID_TO_EFFECT.emph[2]).toBe('wave');
+		});
+
+		it('should map preset ID 9 to "transparency"', () => {
+			expect(PRESET_ID_TO_EFFECT.emph[9]).toBe('transparency');
+		});
 	});
 });

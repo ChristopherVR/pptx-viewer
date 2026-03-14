@@ -2,7 +2,8 @@ import React from "react";
 
 import { type PptxElement, hasTextProperties } from "pptx-viewer-core";
 import { DEFAULT_BODY_INSET_TB_PX } from "../constants";
-import { toCssWritingMode, toCssTextOrientation } from "./text-utils";
+import { toCssWritingMode, toCssTextOrientation, toCssVerticalDirection } from "./text-utils";
+import { getKinsokuLineBreakStyles } from "./kinsoku-styles";
 
 // ── Tab-size helper ──────────────────────────────────────────────────────
 
@@ -48,6 +49,9 @@ export function getTextLayoutStyle(element: PptxElement): React.CSSProperties {
   const verticalAlign = element.textStyle?.vAlign || "top";
   const writingMode = toCssWritingMode(element.textStyle?.textDirection);
   const textOrientation = toCssTextOrientation(
+    element.textStyle?.textDirection,
+  );
+  const verticalDirection = toCssVerticalDirection(
     element.textStyle?.textDirection,
   );
   const parsedColumnCount = Number(element.textStyle?.columnCount);
@@ -100,6 +104,9 @@ export function getTextLayoutStyle(element: PptxElement): React.CSSProperties {
       ? `${parsedColumnSpacing}px`
       : "0.75em";
 
+  // Kinsoku (East Asian line-breaking) CSS rules from element-level textStyle
+  const kinsokuStyles = getKinsokuLineBreakStyles(element.textStyle);
+
   if (hasColumns) {
     return {
       display: "block",
@@ -110,9 +117,11 @@ export function getTextLayoutStyle(element: PptxElement): React.CSSProperties {
         bodyBottom + (element.textStyle?.paragraphSpacingAfter || 0),
       writingMode,
       textOrientation,
+      direction: verticalDirection,
       tabSize: tabSize as string | undefined,
       marginLeft,
       textIndent,
+      ...kinsokuStyles,
       ...(textWrapNone
         ? {
             whiteSpace: "nowrap" as const,
@@ -129,9 +138,11 @@ export function getTextLayoutStyle(element: PptxElement): React.CSSProperties {
     paddingBottom: bodyBottom + (element.textStyle?.paragraphSpacingAfter || 0),
     writingMode,
     textOrientation,
+    direction: verticalDirection,
     tabSize: tabSize as string | undefined,
     marginLeft,
     textIndent,
+    ...kinsokuStyles,
     ...(textWrapNone
       ? {
           whiteSpace: "nowrap" as const,

@@ -26,16 +26,23 @@ export function applyCellAlignmentStyle(
 
   if (cellProperties["@_vert"]) {
     const vertical = String(cellProperties["@_vert"]);
-    if (
-      vertical === "vert" ||
-      vertical === "eaVert" ||
-      vertical === "wordArtVert" ||
-      vertical === "mongolianVert"
-    ) {
+    if (vertical === "vert") {
       style.textDirection = "vertical";
       hasStyle = true;
-    } else if (vertical === "vert270" || vertical === "wordArtVertRtl") {
+    } else if (vertical === "eaVert") {
+      style.textDirection = "eaVert";
+      hasStyle = true;
+    } else if (vertical === "wordArtVert") {
+      style.textDirection = "wordArtVert";
+      hasStyle = true;
+    } else if (vertical === "mongolianVert") {
+      style.textDirection = "mongolianVert";
+      hasStyle = true;
+    } else if (vertical === "vert270") {
       style.textDirection = "vertical270";
+      hasStyle = true;
+    } else if (vertical === "wordArtVertRtl") {
+      style.textDirection = "wordArtVertRtl";
       hasStyle = true;
     }
   }

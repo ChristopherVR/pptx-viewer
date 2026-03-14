@@ -4,6 +4,7 @@ import type {
   PptxChartData,
   PptxChartSeries,
   PptxChartStyle,
+  PptxChartAxisFormatting,
 } from "pptx-viewer-core";
 import {
   renderTrendlines,
@@ -260,9 +261,129 @@ export function renderZeroLine(
   );
 }
 
+// ── Secondary value axis ─────────────────────────────────────────
+
+/** Render a secondary (right-side) value axis with its own scale. */
+export function renderSecondaryValueAxis(
+  id: string,
+  range: ValueRange,
+  layout: PlotLayout,
+  axisFormatting?: PptxChartAxisFormatting,
+): React.ReactNode {
+  const steps = 4;
+  const labels: React.ReactNode[] = [];
+  const fontSize = axisFormatting?.fontSize ?? 8;
+  const fontColor = axisFormatting?.fontColor ?? "#64748b";
+  const fontFamily = axisFormatting?.fontFamily;
+  const fontWeight = axisFormatting?.fontBold ? 700 : undefined;
+
+  for (let i = 0; i <= steps; i++) {
+    const val = range.min + (range.span * i) / steps;
+    const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
+    labels.push(
+      <text
+        key={`${id}-sec-vaxis-${i}`}
+        x={layout.plotRight + 4}
+        y={y + 3}
+        textAnchor="start"
+        fontSize={fontSize}
+        fontFamily={fontFamily}
+        fontWeight={fontWeight}
+        fill={fontColor}
+      >
+        {formatAxisValue(val)}
+      </text>,
+    );
+  }
+
+  // Secondary axis title (if present)
+  if (axisFormatting?.titleText) {
+    labels.push(
+      <text
+        key={`${id}-sec-vaxis-title`}
+        x={layout.plotRight + 36}
+        y={(layout.plotTop + layout.plotBottom) / 2}
+        textAnchor="middle"
+        fontSize={9}
+        fill={fontColor}
+        transform={`rotate(-90, ${layout.plotRight + 36}, ${(layout.plotTop + layout.plotBottom) / 2})`}
+      >
+        {axisFormatting.titleText}
+      </text>,
+    );
+  }
+
+  return <g key={`${id}-sec-vaxis`}>{labels}</g>;
+}
+
+/** Render tick marks on the right side for the secondary value axis. */
+export function renderSecondaryAxisTicks(
+  id: string,
+  range: ValueRange,
+  layout: PlotLayout,
+): React.ReactNode {
+  const steps = 4;
+  const ticks: React.ReactNode[] = [];
+  for (let i = 0; i <= steps; i++) {
+    const val = range.min + (range.span * i) / steps;
+    const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
+    ticks.push(
+      <line
+        key={`${id}-sec-tick-${i}`}
+        x1={layout.plotRight}
+        y1={y}
+        x2={layout.plotRight + 4}
+        y2={y}
+        stroke="#94a3b8"
+        strokeWidth={0.7}
+      />,
+    );
+  }
+  return <g key={`${id}-sec-ticks`}>{ticks}</g>;
+}
+
+/** Render minor gridlines from the secondary value axis (dashed, lighter). */
+export function renderSecondaryGridlines(
+  id: string,
+  range: ValueRange,
+  layout: PlotLayout,
+  axisFormatting?: PptxChartAxisFormatting,
+): React.ReactNode {
+  if (!axisFormatting?.minorGridlinesSpPr && !axisFormatting?.majorGridlinesSpPr) {
+    return null;
+  }
+  const steps = 4;
+  const lines: React.ReactNode[] = [];
+  const gridColor = axisFormatting.majorGridlinesSpPr?.strokeColor ?? "#e2e8f0";
+  for (let i = 0; i <= steps; i++) {
+    const val = range.min + (range.span * i) / steps;
+    const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
+    lines.push(
+      <line
+        key={`${id}-sec-grid-${i}`}
+        x1={layout.plotLeft}
+        y1={y}
+        x2={layout.plotRight}
+        y2={y}
+        stroke={gridColor}
+        strokeWidth={0.5}
+        strokeDasharray="2 3"
+        opacity={0.5}
+      />,
+    );
+  }
+  return <g key={`${id}-sec-gridlines`}>{lines}</g>;
+}
+
 // ── Combined chrome ──────────────────────────────────────────────
 
-/** Wrap all common chrome (title, legend, gridlines, value axis, zero line). */
+/** Options for secondary axis rendering within the chrome. */
+export interface ChromeSecondaryAxisOptions {
+  secondaryRange?: ValueRange;
+  secondaryAxisFormatting?: PptxChartAxisFormatting;
+}
+
+/** Wrap all common chrome (title, legend, gridlines, value axis, zero line, secondary axis). */
 export function renderChrome(
   id: string,
   chartData: PptxChartData,
@@ -270,6 +391,7 @@ export function renderChrome(
   range: ValueRange,
   categories: ReadonlyArray<string>,
   options: { categoryAxisStyle: "bar" | "line" },
+  secondaryOptions?: ChromeSecondaryAxisOptions,
 ): React.ReactNode[] {
   const style = chartData.style;
   const chrome: React.ReactNode[] = [];
@@ -283,6 +405,30 @@ export function renderChrome(
     chrome.push(renderCategoryAxisForLine(id, categories, layout));
   }
   chrome.push(renderLegend(id, style, chartData.series, layout));
+
+  // Secondary value axis
+  if (secondaryOptions?.secondaryRange) {
+    chrome.push(
+      renderSecondaryValueAxis(
+        id,
+        secondaryOptions.secondaryRange,
+        layout,
+        secondaryOptions.secondaryAxisFormatting,
+      ),
+    );
+    chrome.push(
+      renderSecondaryAxisTicks(id, secondaryOptions.secondaryRange, layout),
+    );
+    chrome.push(
+      renderSecondaryGridlines(
+        id,
+        secondaryOptions.secondaryRange,
+        layout,
+        secondaryOptions.secondaryAxisFormatting,
+      ),
+    );
+  }
+
   return chrome;
 }
 

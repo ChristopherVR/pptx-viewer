@@ -20,23 +20,21 @@ import type { ShapeStyle } from "pptx-viewer-core";
  * Build a CSS `filter` string from effect DAG properties on a {@link ShapeStyle}.
  *
  * Each DAG property maps to one or more CSS filter functions:
- * - `dagGrayscale` -> `grayscale(1)`
- * - `dagBiLevel`   -> `contrast(999) brightness(N%)`
+ * - `dagGrayscale`   -> `grayscale(1)`
+ * - `dagBiLevel`     -> `contrast(1000)` (threshold > 50) or `contrast(0.01)` (threshold <= 50)
  * - `dagLumBrightness` / `dagLumContrast` -> `brightness()` / `contrast()`
- * - `dagHslHue`    -> `hue-rotate(Ndeg)`
+ * - `dagHslHue`      -> `hue-rotate(Ndeg)`
  * - `dagHslSaturation` -> `saturate(N)`
  * - `dagHslLuminance` -> `brightness(N)` (approximation)
+ * - `dagAlphaModFix`  -> `opacity(N)`
  * - `dagTintHue` / `dagTintAmount` -> `sepia(N) hue-rotate(Ndeg)`
- * - `dagDuotone`   -> `url(#dag-duotone-ID)` (requires companion SVG filter)
- *
- * `dagAlphaModFix` is handled separately via {@link getEffectDagOpacity} since
- * CSS `opacity` is a separate property, not part of `filter`.
+ * - `dagDuotone`     -> `url(#dag-duotone-ID)` (requires companion SVG filter)
  *
  * @param style - The shape style containing DAG properties.
  * @param elementId - Element ID used for SVG filter URL references (duotone).
  * @returns A CSS filter string, or `undefined` if no DAG filters apply.
  */
-export function getEffectDagFilter(
+export function getEffectDagCssFilter(
   style: ShapeStyle | undefined,
   elementId?: string,
 ): string | undefined {
@@ -50,9 +48,15 @@ export function getEffectDagFilter(
   }
 
   // Bi-level: 1-bit black/white threshold
+  // Values > 50 push everything to white (extreme contrast),
+  // values <= 50 push everything to black (near-zero contrast).
   if (typeof style.dagBiLevel === "number") {
     const thresh = Math.max(0, Math.min(100, style.dagBiLevel));
-    filters.push(`contrast(999) brightness(${thresh}%)`);
+    if (thresh > 50) {
+      filters.push("contrast(1000)");
+    } else {
+      filters.push("contrast(0.01)");
+    }
   }
 
   // Luminance: brightness and contrast adjustments
@@ -88,6 +92,12 @@ export function getEffectDagFilter(
     filters.push(`brightness(${1 + style.dagHslLuminance / 100})`);
   }
 
+  // Alpha modulation: rendered as CSS opacity() filter function
+  if (typeof style.dagAlphaModFix === "number") {
+    const alpha = Math.max(0, Math.min(1, style.dagAlphaModFix / 100));
+    filters.push(`opacity(${alpha})`);
+  }
+
   // Tint: sepia desaturation then hue-rotate to target hue
   if (
     typeof style.dagTintHue === "number" ||
@@ -105,6 +115,14 @@ export function getEffectDagFilter(
 
   return filters.length > 0 ? filters.join(" ") : undefined;
 }
+
+/**
+ * Alias for {@link getEffectDagCssFilter}.
+ *
+ * Preserved for backward compatibility. The original `getEffectDagFilter`
+ * is now identical to the more descriptively named `getEffectDagCssFilter`.
+ */
+export const getEffectDagFilter = getEffectDagCssFilter;
 
 // ── Opacity ─────────────────────────────────────────────────────────────
 

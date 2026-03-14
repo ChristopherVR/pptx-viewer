@@ -39,3 +39,4 @@ export {
 } from "./text-segment-helpers";
 export { renderSingleSegment } from "./text-segment-render";
 export { renderTextSegments } from "./text-paragraph-render";
+export { getKinsokuLineBreakStyles } from "./kinsoku-styles";

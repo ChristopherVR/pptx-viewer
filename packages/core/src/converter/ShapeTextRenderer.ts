@@ -1,4 +1,5 @@
 import type { TextSegment, TextStyle } from '../core';
+import { getSubstituteFontFamily } from '../core';
 
 /** Default font size in CSS px when none specified. */
 const DEFAULT_FONT_SIZE = 18;
@@ -215,6 +216,8 @@ function buildFont(style: TextStyle, scaleFactor: number): string {
 	const size = (style.fontSize ?? DEFAULT_FONT_SIZE) * scaleFactor;
 	const weight = style.bold ? 'bold' : 'normal';
 	const slant = style.italic ? 'italic' : 'normal';
-	const family = style.fontFamily ?? 'sans-serif';
-	return `${slant} ${weight} ${size}px "${family}", sans-serif`;
+	const family = style.fontFamily
+		? getSubstituteFontFamily(style.fontFamily)
+		: 'sans-serif';
+	return `${slant} ${weight} ${size}px ${family}`;
 }

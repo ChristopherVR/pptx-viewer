@@ -14,6 +14,7 @@ import {
   type ParagraphEntry,
   wrapWithTextBuildAnimation,
 } from "./text-animation";
+import { getKinsokuLineBreakStyles } from "./kinsoku-styles";
 
 /**
  * Resolve per-paragraph RTL direction from segment styles.
@@ -40,6 +41,10 @@ function groupSegmentsIntoParagraphs(
     bulletInfo?: BulletInfo;
     fieldType?: string;
     equationXml?: Record<string, unknown>;
+    rubyText?: string;
+    rubyAlignment?: string;
+    rubyFontSize?: number;
+    rubyStyle?: TextStyle;
   }>,
 ): Array<Array<ParagraphEntry>> {
   const paragraphs: Array<Array<ParagraphEntry>> = [];
@@ -70,9 +75,14 @@ export function renderTextSegments(
   fieldContext?: FieldSubstitutionContext,
   /** Per-sub-element animation states for text build animations. */
   subElementAnimStates?: ReadonlyMap<string, ElementAnimationState>,
+  /** When provided, these segments replace element.textSegments for rendering (used by linked text box overflow). */
+  segmentOverrides?: ReadonlyArray<{ text: string; style: TextStyle; bulletInfo?: BulletInfo; fieldType?: string; equationXml?: Record<string, unknown>; isParagraphBreak?: boolean; rubyText?: string; rubyAlignment?: string; rubyFontSize?: number; rubyStyle?: TextStyle }>,
 ): React.ReactNode {
   if (!hasTextProperties(element)) return emptyFallback || null;
-  if (!element.textSegments || element.textSegments.length === 0) {
+
+  const effectiveSegments = segmentOverrides ?? element.textSegments;
+
+  if (!effectiveSegments || effectiveSegments.length === 0) {
     if (!element.text && element.promptText) {
       return (
         <span
@@ -89,7 +99,7 @@ export function renderTextSegments(
     return element.text || emptyFallback || "";
   }
 
-  const paragraphs = groupSegmentsIntoParagraphs(element.textSegments);
+  const paragraphs = groupSegmentsIntoParagraphs(effectiveSegments);
   const paragraphIndents = hasTextProperties(element)
     ? element.paragraphIndents
     : undefined;
@@ -113,7 +123,15 @@ export function renderTextSegments(
     const hasBullet = bulletInfo && !bulletInfo.none;
     const paraRtl = resolveParagraphRtl(paraSegments, elementRtl);
 
-    const paraStyle: React.CSSProperties = {};
+    // Per-paragraph kinsoku line-breaking styles from the first segment's style.
+    // Paragraph-level properties (eaLineBreak, hangingPunctuation, latinLineBreak)
+    // are stored on the TextStyle of paragraph segments.
+    const paraKinsokuStyle = getKinsokuLineBreakStyles(firstSeg?.segment.style);
+    const hasParaKinsoku = Object.keys(paraKinsokuStyle).length > 0;
+
+    const paraStyle: React.CSSProperties = {
+      ...paraKinsokuStyle,
+    };
     if (paraMarginLeft !== undefined) {
       paraStyle.marginLeft = paraMarginLeft;
     }
@@ -129,7 +147,8 @@ export function renderTextSegments(
       paraMarginLeft !== undefined ||
       paraTextIndent !== undefined ||
       hasBullet ||
-      paraRtl !== undefined;
+      paraRtl !== undefined ||
+      hasParaKinsoku;
 
     const renderedSegments = paraSegments.map(({ segment, globalIndex }) =>
       renderSingleSegment(

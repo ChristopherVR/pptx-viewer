@@ -47,6 +47,49 @@ export interface DerivedElementState {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Pure helper functions (exported for testing)                       */
+/* ------------------------------------------------------------------ */
+
+/** Build a lookup map from template + slide elements. Slide elements override template elements with the same id. */
+export function buildElementLookup(
+  templateElements: PptxElement[],
+  slideElements: PptxElement[],
+): Map<string, PptxElement> {
+  const map = new Map<string, PptxElement>();
+  for (const el of templateElements) map.set(el.id, el);
+  for (const el of slideElements) map.set(el.id, el);
+  return map;
+}
+
+/** Compute the effective list of selected element IDs. */
+export function computeEffectiveSelectedIds(
+  selectedElementId: string | null,
+  selectedElementIds: string[],
+): string[] {
+  if (selectedElementIds.length > 0) return selectedElementIds;
+  return selectedElementId ? [selectedElementId] : [];
+}
+
+/** Resolve the active layout from a master and layout index. */
+export function resolveActiveLayout(
+  activeMaster: PptxSlideMaster | undefined,
+  activeLayoutIndex: number | null,
+): PptxSlideLayout | undefined {
+  if (activeLayoutIndex === null || !activeMaster?.layouts) return undefined;
+  return activeMaster.layouts[activeLayoutIndex];
+}
+
+/** Compute elements for master view rendering. Layout elements take priority over master elements. */
+export function computeMasterViewElements(
+  activeMaster: PptxSlideMaster | undefined,
+  activeLayout: PptxSlideLayout | undefined,
+): PptxElement[] {
+  if (activeLayout) return activeLayout.elements ?? [];
+  if (activeMaster) return activeMaster.elements ?? [];
+  return [];
+}
+
+/* ------------------------------------------------------------------ */
 /*  Hook                                                              */
 /* ------------------------------------------------------------------ */
 
@@ -74,12 +117,10 @@ export function useDerivedElementState(
     return templateElementsBySlideId[activeSlide.id] ?? [];
   }, [activeSlide, templateElementsBySlideId]);
 
-  const elementLookup = useMemo(() => {
-    const map = new Map<string, PptxElement>();
-    for (const el of templateElements) map.set(el.id, el);
-    for (const el of activeSlide?.elements ?? []) map.set(el.id, el);
-    return map;
-  }, [activeSlide, templateElements]);
+  const elementLookup = useMemo(
+    () => buildElementLookup(templateElements, activeSlide?.elements ?? []),
+    [activeSlide, templateElements],
+  );
 
   // ── Selection derived state ─────────────────────────────────────
   const selectedElement = useMemo(() => {
@@ -87,10 +128,10 @@ export function useDerivedElementState(
     return elementLookup.get(selectedElementId) ?? null;
   }, [elementLookup, selectedElementId]);
 
-  const effectiveSelectedIds = useMemo(() => {
-    if (selectedElementIds.length > 0) return selectedElementIds;
-    return selectedElementId ? [selectedElementId] : [];
-  }, [selectedElementId, selectedElementIds]);
+  const effectiveSelectedIds = useMemo(
+    () => computeEffectiveSelectedIds(selectedElementId, selectedElementIds),
+    [selectedElementId, selectedElementIds],
+  );
 
   const selectedElementIdSet = useMemo(
     () => new Set(effectiveSelectedIds),
@@ -108,16 +149,15 @@ export function useDerivedElementState(
   // ── Master View derived state ───────────────────────────────────
   const activeMaster = slideMasters[activeMasterIndex];
 
-  const activeLayout = useMemo(() => {
-    if (activeLayoutIndex === null || !activeMaster?.layouts) return undefined;
-    return activeMaster.layouts[activeLayoutIndex];
-  }, [activeMaster, activeLayoutIndex]);
+  const activeLayout = useMemo(
+    () => resolveActiveLayout(activeMaster, activeLayoutIndex),
+    [activeMaster, activeLayoutIndex],
+  );
 
-  const masterViewElements = useMemo(() => {
-    if (activeLayout) return activeLayout.elements ?? [];
-    if (activeMaster) return activeMaster.elements ?? [];
-    return [];
-  }, [activeMaster, activeLayout]);
+  const masterViewElements = useMemo(
+    () => computeMasterViewElements(activeMaster, activeLayout),
+    [activeMaster, activeLayout],
+  );
 
   const notesMasterElements = useMemo(
     () => notesMaster?.elements ?? [],

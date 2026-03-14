@@ -99,6 +99,12 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
         rotation: transform?.["@_rot"]
           ? parseInt(String(transform["@_rot"]), 10) / 60000
           : undefined,
+        skewX: transform?.["@_skewX"]
+          ? parseInt(String(transform["@_skewX"]), 10) / 60000
+          : undefined,
+        skewY: transform?.["@_skewY"]
+          ? parseInt(String(transform["@_skewY"]), 10) / 60000
+          : undefined,
         flipHorizontal,
         flipVertical,
         rawXml: frame,

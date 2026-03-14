@@ -97,9 +97,14 @@ export class TextSegmentRenderer {
 		const rendered = paragraphs
 			.map((group) =>
 				group.segments
-					.map((segment) =>
-						this.resolvePlainSegmentText(segment, options)
-					)
+					.map((segment) => {
+						const base = this.resolvePlainSegmentText(segment, options);
+						// Append ruby annotation in parentheses for plain text output
+						if (segment.rubyText) {
+							return `${base}(${segment.rubyText})`;
+						}
+						return base;
+					})
 					.join('')
 					.trim()
 			)
@@ -219,6 +224,19 @@ export class TextSegmentRenderer {
 		let text = useHtml
 			? this.escapeHtml(plain)
 			: this.escapeMarkdown(plain);
+
+		// Ruby text (phonetic guide): wrap with <ruby> in HTML mode,
+		// or append in parentheses in Markdown mode
+		if (segment.rubyText) {
+			const rt = useHtml
+				? this.escapeHtml(segment.rubyText)
+				: segment.rubyText;
+			if (useHtml) {
+				text = `<ruby>${text}<rp>(</rp><rt>${rt}</rt><rp>)</rp></ruby>`;
+			} else {
+				text = `${text}(${rt})`;
+			}
+		}
 
 		if (segment.style.textCaps === 'all') {
 			text = text.toUpperCase();

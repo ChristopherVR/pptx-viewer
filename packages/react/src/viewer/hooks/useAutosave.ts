@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { computeAutosaveIntervalMs, DEFAULT_AUTOSAVE_INTERVAL_SECONDS } from "./useAutosave-helpers";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -64,14 +65,12 @@ function getElectronApi(): PptxRecoveryElectronApi | undefined {
 // Hook
 // ---------------------------------------------------------------------------
 
-const DEFAULT_INTERVAL = 120; // seconds
-
 export function useAutosave(input: UseAutosaveInput): UseAutosaveResult {
   const {
     isDirty,
     filePath,
     serializeSlides,
-    intervalSeconds = DEFAULT_INTERVAL,
+    intervalSeconds = DEFAULT_AUTOSAVE_INTERVAL_SECONDS,
     enabled = true,
   } = input;
 
@@ -138,7 +137,7 @@ export function useAutosave(input: UseAutosaveInput): UseAutosaveResult {
   useEffect(() => {
     if (!enabled || !filePath) return;
 
-    const ms = Math.max(intervalSeconds, 10) * 1000;
+    const ms = computeAutosaveIntervalMs(intervalSeconds);
     const id = setInterval(() => {
       void doAutosave();
     }, ms);

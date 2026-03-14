@@ -84,6 +84,30 @@ export {
 } from "./encryption-detection";
 
 export {
+  decryptPptx,
+  encryptPptx,
+  verifyPassword,
+  IncorrectPasswordError,
+  type EncryptionInfo,
+  type StandardEncryptionInfo,
+  type EncryptionAlgorithm,
+  type EncryptionOptions,
+} from "./ooxml-crypto";
+
+export {
+  parseOle2,
+  buildOle2,
+  Ole2ParseError,
+  type Ole2File,
+  type Ole2DirectoryEntry,
+} from "./ole2-parser";
+
+export {
+  verifyModifyPassword,
+  createModifyVerifier,
+} from "./modify-verifier";
+
+export {
   detectDigitalSignatures,
   getSignaturePathsToStrip,
   DIGITAL_SIGNATURE_ORIGIN_REL_TYPE,
@@ -169,3 +193,29 @@ export {
   parseBodyPrBooleanAttrs,
   writeBodyPrBooleanAttrs,
 } from "./body-properties-parser";
+
+export {
+  buildLinkedTextBoxChains,
+  estimateTextBoxCapacity,
+  distributeSegmentsAcrossChain,
+  getLinkedTextBoxSegments,
+  type LinkedTextBoxChainMember,
+  type LinkedTextBoxChain,
+  type LinkedTextBoxSegmentMap,
+} from "./linked-text-box-utils";
+
+export {
+  FONT_SUBSTITUTION_MAP,
+  PANOSE_FAMILY_MAP,
+  PANOSE_SANS_SERIF_STYLES,
+  PANOSE_MONOSPACE_PROPORTION,
+  PANOSE_WEIGHT_MAP,
+  parsePanoseString,
+  parsePanoseBytes,
+  classifyPanose,
+  getPanoseWeight,
+  getSubstituteFontFamily,
+  getSubstituteFonts,
+  hasDirectSubstitution,
+  buildFontFamilyString,
+} from "./font-substitution";

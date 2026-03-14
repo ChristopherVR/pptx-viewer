@@ -1,4 +1,4 @@
-import type { PptxChartStyle, PptxChartAxisFormatting, PptxChartDataTable } from "pptx-viewer-core";
+import type { PptxChartStyle, PptxChartAxisFormatting, PptxChartDataTable, PptxChartSeries } from "pptx-viewer-core";
 
 // ── Layout computation ───────────────────────────────────────────
 
@@ -125,4 +125,80 @@ export function computeLayoutOptions(
     hasDataTable: !!dataTable,
     dataTableRowCount: dataTable ? seriesCount : undefined,
   };
+}
+
+// ── Series-to-axis mapping ────────────────────────────────────────
+
+/** Get the axis ID of the secondary value axis, if present. */
+export function getSecondaryValueAxisId(
+  axes: PptxChartAxisFormatting[] | undefined,
+): number | undefined {
+  const ax = getSecondaryValueAxis(axes);
+  return ax?.axisId;
+}
+
+/** Get the axis ID of the primary value axis (position "l" or first valAx). */
+export function getPrimaryValueAxisId(
+  axes: PptxChartAxisFormatting[] | undefined,
+): number | undefined {
+  if (!axes) return undefined;
+  const primary = axes.find((a) => a.axisType === "valAx" && a.axPos === "l");
+  return primary?.axisId ?? axes.find((a) => a.axisType === "valAx")?.axisId;
+}
+
+/**
+ * Determine whether a series is mapped to the secondary axis.
+ *
+ * A series is secondary if:
+ * 1. It has an `axisId` that matches the secondary value axis ID, OR
+ * 2. No axis IDs are set on series, but we use a heuristic: in a combo chart,
+ *    the second half of series often belong to the secondary axis.
+ */
+export function isSeriesOnSecondaryAxis(
+  series: PptxChartSeries,
+  axes: PptxChartAxisFormatting[] | undefined,
+): boolean {
+  if (!axes) return false;
+  const secAxisId = getSecondaryValueAxisId(axes);
+  if (secAxisId === undefined) return false;
+
+  // If the series has an explicit axis ID, check against secondary
+  if (series.axisId !== undefined) {
+    return series.axisId === secAxisId;
+  }
+
+  return false;
+}
+
+/**
+ * Split chart series into primary and secondary groups based on axis mapping.
+ *
+ * Returns `{ primary, secondary }` where each entry preserves the original index.
+ */
+export function splitSeriesByAxis(
+  series: ReadonlyArray<PptxChartSeries>,
+  axes: PptxChartAxisFormatting[] | undefined,
+): { primary: { series: PptxChartSeries; index: number }[]; secondary: { series: PptxChartSeries; index: number }[] } {
+  const primary: { series: PptxChartSeries; index: number }[] = [];
+  const secondary: { series: PptxChartSeries; index: number }[] = [];
+
+  for (let i = 0; i < series.length; i++) {
+    if (isSeriesOnSecondaryAxis(series[i], axes)) {
+      secondary.push({ series: series[i], index: i });
+    } else {
+      primary.push({ series: series[i], index: i });
+    }
+  }
+
+  return { primary, secondary };
+}
+
+/** Height occupied by data table rows. */
+export function computeDataTableHeight(
+  dataTable: PptxChartDataTable | undefined,
+  seriesCount: number,
+): number {
+  if (!dataTable) return 0;
+  const rowCount = Math.max(seriesCount, 1);
+  return 14 + rowCount * 14;
 }

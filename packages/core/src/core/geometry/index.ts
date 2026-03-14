@@ -48,3 +48,15 @@ export {
   ooxmlArcToSvg,
 } from "./guide-formula";
 export type { GeometryGuide, GeometryContext } from "./guide-formula";
+
+export {
+  unionShapes,
+  intersectShapes,
+  subtractShapes,
+  fragmentShapes,
+  combineShapes,
+  mergeShapes,
+  svgPathToPolygons,
+  polygonsToSvgPath,
+} from "./shape-boolean";
+export type { Vec2, MergeShapeOperation } from "./shape-boolean";

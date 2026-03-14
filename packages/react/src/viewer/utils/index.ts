@@ -22,3 +22,6 @@ export * from "./format-painter";
 export * from "./animation-preview";
 export * from "./image-effects";
 export * from "./handout-layout-utils";
+export * from "./linked-text-box-overflow";
+export * from "./ink-rendering";
+export * from "./accessibility";

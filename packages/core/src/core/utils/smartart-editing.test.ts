@@ -739,13 +739,446 @@ describe("reflowSmartArtLayout — pyramid", () => {
 });
 
 // ===========================================================================
+// reflowSmartArtLayout — Funnel
+// ===========================================================================
+
+describe("reflowSmartArtLayout — funnel", () => {
+  it("returns correct number of shapes", () => {
+    const data = makeData(["Wide", "Medium", "Narrow"], "funnel");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes).toHaveLength(3);
+  });
+
+  it("top band is wider than bottom band", () => {
+    const data = makeData(["Top", "Bottom"], "funnel");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes[0].width).toBeGreaterThan(shapes[1].width);
+  });
+
+  it("stacks bands vertically", () => {
+    const data = makeData(["A", "B", "C"], "funnel");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    for (let i = 1; i < shapes.length; i++) {
+      expect(shapes[i].y).toBeGreaterThan(shapes[i - 1].y);
+    }
+  });
+
+  it("centers bands horizontally (narrower bands have larger x)", () => {
+    const data = makeData(["A", "B", "C"], "funnel");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    // Last (narrowest) should have greater x than first (widest)
+    expect(shapes[2].x).toBeGreaterThan(shapes[0].x);
+  });
+
+  it("uses rect shape type", () => {
+    const data = makeData(["A"], "funnel");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes[0].shapeType).toBe("rect");
+  });
+
+  it("handles single node", () => {
+    const data = makeData(["Only"], "funnel");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes).toHaveLength(1);
+    expect(shapes[0].text).toBe("Only");
+  });
+});
+
+// ===========================================================================
+// reflowSmartArtLayout — Target
+// ===========================================================================
+
+describe("reflowSmartArtLayout — target", () => {
+  it("returns correct number of shapes", () => {
+    const data = makeData(["Outer", "Middle", "Inner"], "target");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes).toHaveLength(3);
+  });
+
+  it("outermost ring (first node) is larger than inner ring (last node)", () => {
+    const data = makeData(["Outer", "Inner"], "target");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes[0].width).toBeGreaterThan(shapes[1].width);
+    expect(shapes[0].height).toBeGreaterThan(shapes[1].height);
+  });
+
+  it("all rings are centered on the same point", () => {
+    const data = makeData(["A", "B", "C"], "target");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    // Center of each ring = x + width/2
+    const centers = shapes.map((s) => Math.round(s.x + s.width / 2));
+    expect(new Set(centers).size).toBe(1);
+  });
+
+  it("uses ellipse shape type", () => {
+    const data = makeData(["A"], "target");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes[0].shapeType).toBe("ellipse");
+  });
+
+  it("handles single node", () => {
+    const data = makeData(["Bull"], "target");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes).toHaveLength(1);
+  });
+});
+
+// ===========================================================================
+// reflowSmartArtLayout — Gear
+// ===========================================================================
+
+describe("reflowSmartArtLayout — gear", () => {
+  it("creates gear shapes for up to 3 nodes", () => {
+    const data = makeData(["A", "B", "C"], "gear");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes).toHaveLength(3);
+    shapes.forEach((s) => expect(s.shapeType).toBe("ellipse"));
+  });
+
+  it("extra nodes beyond 3 are placed as side labels", () => {
+    const data = makeData(["A", "B", "C", "D", "E"], "gear");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes).toHaveLength(5);
+    // First 3 are gear ellipses
+    expect(shapes[0].shapeType).toBe("ellipse");
+    expect(shapes[1].shapeType).toBe("ellipse");
+    expect(shapes[2].shapeType).toBe("ellipse");
+    // Extra are roundRect labels
+    expect(shapes[3].shapeType).toBe("roundRect");
+    expect(shapes[4].shapeType).toBe("roundRect");
+  });
+
+  it("alternates gear vertical positions (even/odd offset)", () => {
+    const data = makeData(["A", "B", "C"], "gear");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    // Odd-indexed gear (B) should be offset vertically from even-indexed (A, C)
+    const yA = shapes[0].y + shapes[0].height / 2;
+    const yB = shapes[1].y + shapes[1].height / 2;
+    expect(yB).not.toBe(yA);
+  });
+
+  it("handles single node", () => {
+    const data = makeData(["Solo"], "gear");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes).toHaveLength(1);
+  });
+});
+
+// ===========================================================================
+// reflowSmartArtLayout — Venn
+// ===========================================================================
+
+describe("reflowSmartArtLayout — venn", () => {
+  it("creates overlapping circles for 2-4 nodes", () => {
+    const data = makeData(["A", "B", "C"], "venn");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes).toHaveLength(3);
+    shapes.forEach((s) => expect(s.shapeType).toBe("ellipse"));
+  });
+
+  it("circles are equal in size for small sets", () => {
+    const data = makeData(["A", "B", "C"], "venn");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    const widths = shapes.map((s) => s.width);
+    expect(new Set(widths).size).toBe(1);
+  });
+
+  it("uses row layout for 5+ nodes", () => {
+    const data = makeData(["A", "B", "C", "D", "E"], "venn");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes).toHaveLength(5);
+    // All should be at the same vertical center
+    const yPositions = shapes.map((s) => s.y);
+    expect(new Set(yPositions).size).toBe(1);
+  });
+
+  it("all shapes use ellipse type", () => {
+    const data = makeData(["A", "B", "C", "D", "E", "F"], "venn");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    shapes.forEach((s) => expect(s.shapeType).toBe("ellipse"));
+  });
+
+  it("handles single node", () => {
+    const data = makeData(["Solo"], "venn");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes).toHaveLength(1);
+  });
+});
+
+// ===========================================================================
+// reflowSmartArtLayout — Timeline
+// ===========================================================================
+
+describe("reflowSmartArtLayout — timeline", () => {
+  it("creates shapes for nodes plus a timeline bar", () => {
+    const data = makeData(["Jan", "Feb", "Mar"], "timeline");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    // 3 node shapes + 1 bar shape
+    expect(shapes).toHaveLength(4);
+  });
+
+  it("includes a timeline bar as first shape", () => {
+    const data = makeData(["A", "B"], "timeline");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    const bar = shapes.find((s) => s.id === "reflow-timeline-bar");
+    expect(bar).toBeDefined();
+    expect(bar!.shapeType).toBe("rect");
+  });
+
+  it("alternates nodes above and below the timeline", () => {
+    const data = makeData(["A", "B", "C", "D"], "timeline");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    const nodeShapes = shapes.filter((s) => s.id !== "reflow-timeline-bar");
+    const midY = bounds.y + bounds.height / 2;
+    // Even-indexed nodes (A, C) should be above the midline
+    expect(nodeShapes[0].y + nodeShapes[0].height / 2).toBeLessThan(midY);
+    // Odd-indexed nodes (B, D) should be below the midline
+    expect(nodeShapes[1].y + nodeShapes[1].height / 2).toBeGreaterThan(midY);
+  });
+
+  it("distributes nodes along horizontal axis", () => {
+    const data = makeData(["A", "B", "C"], "timeline");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    const nodeShapes = shapes.filter((s) => s.id !== "reflow-timeline-bar");
+    for (let i = 1; i < nodeShapes.length; i++) {
+      expect(nodeShapes[i].x).toBeGreaterThan(nodeShapes[i - 1].x);
+    }
+  });
+
+  it("handles single node", () => {
+    const data = makeData(["Event"], "timeline");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    // 1 bar + 1 node
+    expect(shapes).toHaveLength(2);
+  });
+});
+
+// ===========================================================================
+// reflowSmartArtLayout — Relationship
+// ===========================================================================
+
+describe("reflowSmartArtLayout — relationship", () => {
+  it("positions 2 nodes side by side with an arrow", () => {
+    const data = makeData(["A", "B"], "relationship");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    // 2 nodes + 1 arrow
+    expect(shapes).toHaveLength(3);
+    const arrow = shapes.find((s) => s.shapeType === "leftRightArrow");
+    expect(arrow).toBeDefined();
+  });
+
+  it("uses circle arrangement for 3+ nodes", () => {
+    const data = makeData(["A", "B", "C", "D"], "relationship");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes).toHaveLength(4);
+    // All different positions
+    const positions = shapes.map((s) => `${Math.round(s.x)},${Math.round(s.y)}`);
+    expect(new Set(positions).size).toBe(4);
+  });
+
+  it("uses roundRect shape for all nodes", () => {
+    const data = makeData(["A", "B", "C"], "relationship");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    shapes.forEach((s) => expect(s.shapeType).toBe("roundRect"));
+  });
+
+  it("handles single node", () => {
+    const data = makeData(["Solo"], "relationship");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes).toHaveLength(1);
+  });
+});
+
+// ===========================================================================
+// reflowSmartArtLayout — Chevron
+// ===========================================================================
+
+describe("reflowSmartArtLayout — chevron", () => {
+  it("creates chevron shapes for each node", () => {
+    const data = makeData(["A", "B", "C"], "chevron");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes).toHaveLength(3);
+    shapes.forEach((s) => expect(s.shapeType).toBe("chevron"));
+  });
+
+  it("positions chevrons left to right", () => {
+    const data = makeData(["A", "B", "C"], "chevron");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    for (let i = 1; i < shapes.length; i++) {
+      expect(shapes[i].x).toBeGreaterThan(shapes[i - 1].x);
+    }
+  });
+
+  it("all chevrons are at the same vertical position", () => {
+    const data = makeData(["A", "B", "C"], "chevron");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    const yPositions = shapes.map((s) => s.y);
+    expect(new Set(yPositions).size).toBe(1);
+  });
+
+  it("assigns correct text to each chevron", () => {
+    const data = makeData(["Step 1", "Step 2", "Step 3"], "chevron");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes[0].text).toBe("Step 1");
+    expect(shapes[1].text).toBe("Step 2");
+    expect(shapes[2].text).toBe("Step 3");
+  });
+
+  it("handles single node", () => {
+    const data = makeData(["Only"], "chevron");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes).toHaveLength(1);
+  });
+});
+
+// ===========================================================================
+// reflowSmartArtLayout — Bending / Snake
+// ===========================================================================
+
+describe("reflowSmartArtLayout — bending", () => {
+  it("creates node shapes plus arrow connectors", () => {
+    const data = makeData(["A", "B", "C", "D"], "bending");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    const nodeShapes = shapes.filter((s) => s.shapeType === "roundRect");
+    expect(nodeShapes).toHaveLength(4);
+  });
+
+  it("includes arrows between consecutive nodes", () => {
+    const data = makeData(["A", "B", "C", "D"], "bending");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    const arrows = shapes.filter(
+      (s) => s.shapeType === "rightArrow" || s.shapeType === "leftArrow" || s.shapeType === "downArrow",
+    );
+    // 3 arrows for 4 nodes
+    expect(arrows).toHaveLength(3);
+  });
+
+  it("reverses direction on odd rows (serpentine pattern)", () => {
+    // With 8 nodes and COLS=4, row 0 is L-R, row 1 is R-L
+    const texts = Array.from({ length: 8 }, (_, i) => `N${i}`);
+    const data = makeData(texts, "bending");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    const nodeShapes = shapes.filter((s) => s.shapeType === "roundRect");
+
+    // Row 0 (first 4): should go left to right
+    expect(nodeShapes[0].x).toBeLessThan(nodeShapes[3].x);
+    // Row 1 (next 4): should go right to left
+    expect(nodeShapes[4].x).toBeGreaterThan(nodeShapes[7].x);
+  });
+
+  it("wraps to a new row after COLS items", () => {
+    const texts = Array.from({ length: 6 }, (_, i) => `N${i}`);
+    const data = makeData(texts, "bending");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    const nodeShapes = shapes.filter((s) => s.shapeType === "roundRect");
+
+    // Node 4 should be on the second row (higher y)
+    expect(nodeShapes[4].y).toBeGreaterThan(nodeShapes[0].y);
+  });
+
+  it("handles single node without arrows", () => {
+    const data = makeData(["Solo"], "bending");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    const nodeShapes = shapes.filter((s) => s.shapeType === "roundRect");
+    const arrows = shapes.filter(
+      (s) => s.shapeType === "rightArrow" || s.shapeType === "leftArrow" || s.shapeType === "downArrow",
+    );
+    expect(nodeShapes).toHaveLength(1);
+    expect(arrows).toHaveLength(0);
+  });
+
+  it("handles large node count (12 nodes = 3 rows)", () => {
+    const texts = Array.from({ length: 12 }, (_, i) => `Item ${i}`);
+    const data = makeData(texts, "bending");
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    const nodeShapes = shapes.filter((s) => s.shapeType === "roundRect");
+    expect(nodeShapes).toHaveLength(12);
+  });
+});
+
+// ===========================================================================
+// resolveLayoutCategory — raw string resolution for new types
+// ===========================================================================
+
+describe("resolveLayoutCategory via reflowSmartArtLayout", () => {
+  it("resolves 'basicFunnel' string to funnel layout", () => {
+    const data: PptxSmartArtData = {
+      layoutType: "basicFunnel",
+      nodes: [{ id: "1", text: "A" }, { id: "2", text: "B" }],
+    };
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    // Funnel: top wider than bottom
+    expect(shapes[0].width).toBeGreaterThan(shapes[1].width);
+  });
+
+  it("resolves 'basicTarget' string to target layout", () => {
+    const data: PptxSmartArtData = {
+      layoutType: "basicTarget",
+      nodes: [{ id: "1", text: "A" }, { id: "2", text: "B" }],
+    };
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes[0].shapeType).toBe("ellipse");
+    expect(shapes[0].width).toBeGreaterThan(shapes[1].width);
+  });
+
+  it("resolves 'interlockingGears' string to gear layout", () => {
+    const data: PptxSmartArtData = {
+      layoutType: "interlockingGears",
+      nodes: [{ id: "1", text: "A" }, { id: "2", text: "B" }],
+    };
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes[0].shapeType).toBe("ellipse");
+  });
+
+  it("resolves 'basicVenn' string to venn layout", () => {
+    const data: PptxSmartArtData = {
+      layoutType: "basicVenn",
+      nodes: [{ id: "1", text: "A" }, { id: "2", text: "B" }, { id: "3", text: "C" }],
+    };
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    expect(shapes).toHaveLength(3);
+    shapes.forEach((s) => expect(s.shapeType).toBe("ellipse"));
+  });
+
+  it("resolves 'basicTimeline' string to timeline layout", () => {
+    const data: PptxSmartArtData = {
+      layoutType: "basicTimeline",
+      nodes: [{ id: "1", text: "A" }, { id: "2", text: "B" }],
+    };
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    const bar = shapes.find((s) => s.id === "reflow-timeline-bar");
+    expect(bar).toBeDefined();
+  });
+
+  it("resolves 'bendingProcess' string to bending layout", () => {
+    const data: PptxSmartArtData = {
+      layoutType: "bendingProcess",
+      nodes: [{ id: "1", text: "A" }, { id: "2", text: "B" }],
+    };
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    const nodeShapes = shapes.filter((s) => s.shapeType === "roundRect");
+    expect(nodeShapes).toHaveLength(2);
+  });
+
+  it("resolves 'snakeProcess' string to bending layout", () => {
+    const data: PptxSmartArtData = {
+      layoutType: "snakeProcess",
+      nodes: [{ id: "1", text: "A" }, { id: "2", text: "B" }],
+    };
+    const shapes = reflowSmartArtLayout(data, bounds)!;
+    const nodeShapes = shapes.filter((s) => s.shapeType === "roundRect");
+    expect(nodeShapes).toHaveLength(2);
+  });
+});
+
+// ===========================================================================
 // reflowSmartArtLayout — Unknown / fallback
 // ===========================================================================
 
 describe("reflowSmartArtLayout — unknown layout type", () => {
-  it("falls back to list layout for unknown types", () => {
+  it("falls back to list layout for truly unknown types", () => {
     const data: PptxSmartArtData = {
-      resolvedLayoutType: "funnel",
+      resolvedLayoutType: "unknown",
       nodes: [
         { id: "1", text: "A" },
         { id: "2", text: "B" },
@@ -766,9 +1199,8 @@ describe("reflowSmartArtLayout — unknown layout type", () => {
     };
     const shapes = reflowSmartArtLayout(data, bounds);
     expect(shapes).toBeDefined();
-    // Process should include arrow shapes
-    const arrows = shapes!.filter((s) => s.shapeType === "rightArrow");
-    expect(arrows.length).toBeGreaterThan(0);
+    // Chevron layout should produce chevron shapes
+    expect(shapes!.length).toBe(2);
   });
 });
 
@@ -857,7 +1289,11 @@ describe("edge cases", () => {
   });
 
   it("single node SmartArt works for all layout types", () => {
-    const layouts = ["list", "process", "cycle", "hierarchy", "matrix", "pyramid"];
+    const layouts = [
+      "list", "process", "cycle", "hierarchy", "matrix", "pyramid",
+      "funnel", "target", "gear", "venn", "timeline", "relationship",
+      "chevron", "bending",
+    ];
     for (const layout of layouts) {
       const data = makeData(["Only"], layout);
       const shapes = reflowSmartArtLayout(data, bounds);

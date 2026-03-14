@@ -80,6 +80,10 @@ export const TEXT_DIRECTIONS: Array<[string, string]> = [
   ["horizontal", "Horizontal"],
   ["vertical", "Vertical"],
   ["vertical270", "Vertical 270"],
+  ["eaVert", "East Asian Vertical"],
+  ["wordArtVert", "WordArt Vertical"],
+  ["wordArtVertRtl", "WordArt Vertical RTL"],
+  ["mongolianVert", "Mongolian Vertical"],
 ];
 
 export const BASELINE_TOGGLES: Array<[string, number]> = [

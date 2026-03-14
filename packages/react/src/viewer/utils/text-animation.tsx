@@ -15,6 +15,10 @@ export interface ParagraphEntry {
     bulletInfo?: BulletInfo;
     fieldType?: string;
     equationXml?: Record<string, unknown>;
+    rubyText?: string;
+    rubyAlignment?: string;
+    rubyFontSize?: number;
+    rubyStyle?: TextStyle;
   };
   globalIndex: number;
 }

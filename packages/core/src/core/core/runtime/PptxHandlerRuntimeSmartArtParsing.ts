@@ -128,6 +128,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     const rotation = xfrm?.["@_rot"]
       ? parseInt(String(xfrm["@_rot"]), 10) / 60000
       : undefined;
+    const skewX = xfrm?.["@_skewX"]
+      ? parseInt(String(xfrm["@_skewX"]), 10) / 60000
+      : undefined;
+    const skewY = xfrm?.["@_skewY"]
+      ? parseInt(String(xfrm["@_skewY"]), 10) / 60000
+      : undefined;
 
     const prstGeom = this.xmlLookupService.getChildByLocalName(
       spPr,
@@ -175,6 +181,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       width,
       height,
       rotation,
+      skewX,
+      skewY,
       fillColor: fillColor ?? undefined,
       strokeColor: strokeColor ?? undefined,
       strokeWidth,

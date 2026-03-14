@@ -17,28 +17,132 @@ import {
   renderTextSegments,
   renderVectorShape,
 } from "../../utils";
+import {
+  extractPathPoints,
+  generatePressureCircles,
+  hasPressureVariation,
+  getInkReplayStyles,
+  getContentPartReplayStyles,
+  resolveInkColor,
+  resolveInkWidth,
+  resolveInkOpacity,
+  INK_REPLAY_KEYFRAMES,
+  type InkReplayConfig,
+} from "../../utils/ink-rendering";
 import { shapeParams } from "../ElementRenderer";
 
-export function renderInk(el: InkPptxElement) {
+/**
+ * Options for ink rendering.
+ */
+export interface InkRenderOptions {
+  /** When true, animate strokes sequentially (ink replay). */
+  replay?: boolean;
+  /** Configuration for replay animation timing. */
+  replayConfig?: InkReplayConfig;
+  /** When true, render pressure-sensitive variable-width strokes. */
+  pressureSensitive?: boolean;
+}
+
+/**
+ * Render pressure-sensitive circles for a single ink stroke.
+ * This produces a series of SVG `<circle>` elements with varying radii
+ * to simulate pressure variation along the stroke.
+ */
+function renderPressureStroke(
+  pathD: string,
+  widths: number[],
+  baseWidth: number,
+  color: string,
+  opacity: number,
+  keyPrefix: string,
+) {
+  const points = extractPathPoints(pathD);
+  const circles = generatePressureCircles(points, widths, {
+    baseWidth,
+    minRadius: 0.5,
+    maxRadius: baseWidth * 1.5,
+  });
+
+  return (
+    <g opacity={opacity}>
+      {circles.map((c, j) => (
+        <circle
+          key={`${keyPrefix}-pc-${j}`}
+          cx={c.cx}
+          cy={c.cy}
+          r={c.r}
+          fill={color}
+        />
+      ))}
+    </g>
+  );
+}
+
+export function renderInk(el: InkPptxElement, options?: InkRenderOptions) {
+  const replay = options?.replay ?? false;
+  const pressureSensitive = options?.pressureSensitive ?? false;
+  const replayStyles = replay ? getInkReplayStyles(el, options?.replayConfig) : null;
+
   return (
     <svg
       className="w-full h-full pointer-events-none"
       viewBox={`0 0 ${Math.max(el.width, 1)} ${Math.max(el.height, 1)}`}
       preserveAspectRatio="none"
     >
-      {el.inkPaths.map((d, i) => (
-        <path
-          key={`${el.id}-ink-${i}`}
-          d={d}
-          fill="none"
-          stroke={el.inkColors?.[i] ?? "#000"}
-          strokeWidth={el.inkWidths?.[i] ?? 3}
-          strokeOpacity={el.inkOpacities?.[i] ?? 1}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          vectorEffect="non-scaling-stroke"
-        />
-      ))}
+      {replay && <style>{INK_REPLAY_KEYFRAMES}</style>}
+      {el.inkPaths.map((d, i) => {
+        const color = resolveInkColor(el.inkColors, i);
+        const width = resolveInkWidth(el.inkWidths, i);
+        const opacity = resolveInkOpacity(el.inkOpacities, i);
+
+        // Pressure-sensitive rendering: if the element has per-point
+        // width data with variation, render circles instead of a single path.
+        if (
+          pressureSensitive &&
+          el.inkWidths &&
+          el.inkWidths.length > 1 &&
+          hasPressureVariation(el.inkWidths)
+        ) {
+          return (
+            <g key={`${el.id}-ink-${i}`}>
+              {renderPressureStroke(
+                d,
+                el.inkWidths,
+                width,
+                color,
+                opacity,
+                `${el.id}-ink-${i}`,
+              )}
+            </g>
+          );
+        }
+
+        // Standard or replay-animated path rendering.
+        const replayStyle = replayStyles?.[i];
+        return (
+          <path
+            key={`${el.id}-ink-${i}`}
+            d={d}
+            fill="none"
+            stroke={color}
+            strokeWidth={width}
+            strokeOpacity={opacity}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+            {...(replayStyle
+              ? {
+                  strokeDasharray: replayStyle.strokeDasharray,
+                  strokeDashoffset: replayStyle.strokeDashoffset,
+                  style: {
+                    animation: replayStyle.animation,
+                    ["--ink-path-length" as string]: replayStyle.pathLength,
+                  },
+                }
+              : {})}
+          />
+        );
+      })}
     </svg>
   );
 }
@@ -115,27 +219,49 @@ export function renderGroup(children: PptxElement[]) {
   );
 }
 
-export function renderContentPart(el: ContentPartPptxElement) {
+export function renderContentPart(
+  el: ContentPartPptxElement,
+  options?: InkRenderOptions,
+) {
   if (el.inkStrokes && el.inkStrokes.length > 0) {
+    const replay = options?.replay ?? false;
+    const replayStyles = replay
+      ? getContentPartReplayStyles(el.inkStrokes, options?.replayConfig)
+      : null;
+
     return (
       <svg
         className="w-full h-full pointer-events-none"
         viewBox={`0 0 ${Math.max(el.width, 1)} ${Math.max(el.height, 1)}`}
         preserveAspectRatio="none"
       >
-        {el.inkStrokes.map((stroke, i) => (
-          <path
-            key={`${el.id}-cp-ink-${i}`}
-            d={stroke.path}
-            fill="none"
-            stroke={stroke.color}
-            strokeWidth={stroke.width}
-            strokeOpacity={stroke.opacity}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            vectorEffect="non-scaling-stroke"
-          />
-        ))}
+        {replay && <style>{INK_REPLAY_KEYFRAMES}</style>}
+        {el.inkStrokes.map((stroke, i) => {
+          const replayStyle = replayStyles?.[i];
+          return (
+            <path
+              key={`${el.id}-cp-ink-${i}`}
+              d={stroke.path}
+              fill="none"
+              stroke={stroke.color}
+              strokeWidth={stroke.width}
+              strokeOpacity={stroke.opacity}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+              {...(replayStyle
+                ? {
+                    strokeDasharray: replayStyle.strokeDasharray,
+                    strokeDashoffset: replayStyle.strokeDashoffset,
+                    style: {
+                      animation: replayStyle.animation,
+                      ["--ink-path-length" as string]: replayStyle.pathLength,
+                    },
+                  }
+                : {})}
+            />
+          );
+        })}
       </svg>
     );
   }

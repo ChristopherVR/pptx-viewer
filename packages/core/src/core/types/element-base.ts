@@ -46,6 +46,10 @@ export interface PptxElementBase {
   width: number;
   height: number;
   rotation?: number;
+  /** Skew along the X axis in degrees (parsed from `@_skewX` in 1/60000ths of a degree). */
+  skewX?: number;
+  /** Skew along the Y axis in degrees (parsed from `@_skewY` in 1/60000ths of a degree). */
+  skewY?: number;
   flipHorizontal?: boolean;
   flipVertical?: boolean;
   /** Whether this element is hidden (used by the Elements Panel visibility toggle). */

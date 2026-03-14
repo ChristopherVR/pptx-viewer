@@ -170,6 +170,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       const rotation = xfrm?.["@_rot"]
         ? parseInt(String(xfrm["@_rot"])) / 60000
         : undefined;
+      const skewX = xfrm?.["@_skewX"]
+        ? parseInt(String(xfrm["@_skewX"]), 10) / 60000
+        : undefined;
+      const skewY = xfrm?.["@_skewY"]
+        ? parseInt(String(xfrm["@_skewY"]), 10) / 60000
+        : undefined;
 
       let modelPath: string | undefined;
       let modelMimeType: string | undefined;
@@ -237,6 +243,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         width,
         height,
         rotation,
+        skewX,
+        skewY,
         modelPath,
         modelMimeType,
         posterImage,

@@ -3,6 +3,7 @@
  * and opens the version-history panel if a recovery file exists.
  */
 import { useEffect, useRef } from "react";
+import { shouldCheckRecovery, hasRecentRecoveryVersion } from "./useRecoveryDetection-helpers";
 
 // ---------------------------------------------------------------------------
 // Input
@@ -26,11 +27,13 @@ export function useRecoveryDetection(input: UseRecoveryDetectionInput): void {
 
   useEffect(() => {
     if (
-      recoveryCheckedRef.current ||
-      !filePath ||
-      loading ||
-      error ||
-      slideCount === 0
+      !shouldCheckRecovery({
+        alreadyChecked: recoveryCheckedRef.current,
+        filePath,
+        loading,
+        error,
+        slideCount,
+      })
     ) {
       return;
     }
@@ -52,12 +55,9 @@ export function useRecoveryDetection(input: UseRecoveryDetectionInput): void {
 
     void (async () => {
       try {
-        const versions = await recoveryApi.getVersions(filePath);
-        if (versions.length > 0) {
-          const latest = versions[0];
-          if (Date.now() - latest.timestamp < 24 * 60 * 60 * 1000) {
-            openVersionHistory();
-          }
+        const versions = await recoveryApi.getVersions(filePath!);
+        if (hasRecentRecoveryVersion(versions, Date.now())) {
+          openVersionHistory();
         }
       } catch {
         // Silently ignore recovery check errors

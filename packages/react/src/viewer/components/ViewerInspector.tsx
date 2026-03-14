@@ -141,6 +141,7 @@ export function ViewerInspector({
   const editingCommentId = comments.editingCommentIdBySlideId[slideId] ?? null;
 
   return (
+    <div role="complementary" aria-label="Properties">
     <InspectorPane
       isOpen={isOpen}
       canEdit={canEdit}
@@ -224,5 +225,6 @@ export function ViewerInspector({
       mediaDataUrls={mediaDataUrls}
       theme={theme}
     />
+    </div>
   );
 }

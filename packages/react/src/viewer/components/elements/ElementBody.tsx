@@ -7,7 +7,7 @@ import type {
   PptxElement,
   TextStyle,
 } from "pptx-viewer-core";
-import { hasTextProperties, isInkElement } from "pptx-viewer-core";
+import { hasTextProperties, isInkElement, getLinkedTextBoxSegments } from "pptx-viewer-core";
 import { Model3DRenderer } from "./Model3DRenderer";
 import { cn } from "../../utils";
 import { DEFAULT_TEXT_COLOR } from "../../constants";
@@ -68,6 +68,8 @@ export function renderBody(
   isPresentationPassive?: boolean,
   handleMediaPlayStateChange?: (isPlaying: boolean) => void,
   presentationElementStates?: ReadonlyMap<string, ElementAnimationState>,
+  /** All elements on the current slide, used for linked text box overflow distribution. */
+  slideElements?: readonly PptxElement[],
 ): React.ReactNode {
   if (el.type === "model3d") {
     return (
@@ -137,6 +139,16 @@ export function renderBody(
     ? { overflow: "hidden" }
     : {};
 
+  // Compute distributed text segments for linked text box chains.
+  // When an element belongs to a chain, getLinkedTextBoxSegments returns the
+  // slice of text that should render in this particular box after overflow
+  // distribution. For non-linked elements this is undefined and rendering
+  // falls back to the element's own textSegments.
+  const linkedSegments =
+    isLinkedTxbx && slideElements
+      ? getLinkedTextBoxSegments(el, slideElements)
+      : undefined;
+
   // Determine if the element should use SVG textPath-based warp rendering.
   const warpPreset = hasTextProperties(el) ? el.textStyle?.textWarpPreset : undefined;
   const useSvgWarp = shouldUseSvgWarp(warpPreset);
@@ -189,6 +201,7 @@ export function renderBody(
               onHyperlinkClick,
               undefined,
               presentationElementStates,
+              linkedSegments ?? undefined,
             )}
           </div>
         )
@@ -237,6 +250,7 @@ export function renderBody(
               onHyperlinkClick,
               undefined,
               presentationElementStates,
+              linkedSegments ?? undefined,
             )}
           </div>
         )

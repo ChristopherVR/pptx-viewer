@@ -53,7 +53,7 @@ export interface PptxTableCellStyle {
   align?: "left" | "center" | "right" | "justify";
   vAlign?: "top" | "middle" | "bottom";
   /** Text direction from `a:tcPr/@vert`. */
-  textDirection?: "vertical" | "vertical270";
+  textDirection?: "vertical" | "vertical270" | "eaVert" | "wordArtVert" | "wordArtVertRtl" | "mongolianVert";
   /** Cell left margin in px (from a:tcPr > a:tcMar > a:marL). */
   marginLeft?: number;
   /** Cell right margin in px. */

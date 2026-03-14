@@ -7,7 +7,12 @@ import {
   seriesColor,
   formatAxisValue,
 } from "./chart-helpers";
-import { computeLayout } from "./chart-layout";
+import {
+  computeLayout,
+  computeLayoutOptions,
+  splitSeriesByAxis,
+  getSecondaryValueAxis,
+} from "./chart-layout";
 import { renderChrome, renderOverlays } from "./chart-chrome";
 import { renderChartDataTable } from "./chart-data-table";
 
@@ -114,14 +119,31 @@ export function renderLineChart(
 ): React.ReactNode {
   const style = chartData.style;
   const legendPos = style?.legendPosition || "b";
-  const range = computeValueRange(chartData.series);
+
+  // Compute layout with secondary axis & data table awareness
+  const layoutOpts = computeLayoutOptions(
+    chartData.axes,
+    chartData.dataTable,
+    chartData.series.length,
+  );
   const layout = computeLayout(
     element.width,
     element.height,
     style,
     true,
     legendPos,
+    layoutOpts,
   );
+
+  // Split series by axis
+  const { primary, secondary } = splitSeriesByAxis(chartData.series, chartData.axes);
+  const primarySeries = primary.length > 0 ? primary.map((e) => e.series) : chartData.series;
+  const secondarySeries = secondary.map((e) => e.series);
+
+  const range = computeValueRange(primarySeries);
+  const secondaryRange = secondarySeries.length > 0 ? computeValueRange(secondarySeries) : undefined;
+  const secondaryAxisFmt = getSecondaryValueAxis(chartData.axes);
+
   const catCount = Math.max(categoryLabels.length, 2);
 
   return (
@@ -138,15 +160,26 @@ export function renderLineChart(
           height={layout.svgHeight}
           fill="#0f172a22"
         />
-        {renderChrome(element.id, chartData, layout, range, categoryLabels, {
-          categoryAxisStyle: "line",
-        })}
+        {renderChrome(
+          element.id,
+          chartData,
+          layout,
+          range,
+          categoryLabels,
+          { categoryAxisStyle: "line" },
+          secondaryRange
+            ? { secondaryRange, secondaryAxisFormatting: secondaryAxisFmt }
+            : undefined,
+        )}
         {chartData.series.map((series, seriesIndex) => {
           if (series.values.length === 0) return null;
+          const isSecondary = secondary.some((e) => e.index === seriesIndex);
+          const activeRange = isSecondary && secondaryRange ? secondaryRange : range;
+
           const points = series.values.map((value, valueIndex) => {
             const normalizedX = catCount > 1 ? valueIndex / (catCount - 1) : 0;
             const x = layout.plotLeft + layout.plotWidth * normalizedX;
-            const y = valueToY(value, range, layout.plotTop, layout.plotBottom);
+            const y = valueToY(value, activeRange, layout.plotTop, layout.plotBottom);
             return { x, y, value };
           });
           const c = seriesColor(series, seriesIndex);

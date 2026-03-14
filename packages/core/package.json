@@ -5,6 +5,9 @@
 	"main": "dist/index.mjs",
 	"module": "dist/index.mjs",
 	"types": "dist/index.d.ts",
+	"bin": {
+		"pptx": "./dist/cli/index.mjs"
+	},
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -15,6 +18,11 @@
 			"types": "./dist/converter/index.d.ts",
 			"import": "./dist/converter/index.mjs",
 			"require": "./dist/converter/index.js"
+		},
+		"./cli": {
+			"types": "./dist/cli/index.d.ts",
+			"import": "./dist/cli/index.mjs",
+			"require": "./dist/cli/index.js"
 		}
 	},
 	"scripts": {

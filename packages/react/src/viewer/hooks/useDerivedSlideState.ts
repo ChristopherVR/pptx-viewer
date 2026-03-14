@@ -46,6 +46,136 @@ export interface DerivedSlideState {
 }
 
 // ---------------------------------------------------------------------------
+// Pure helper functions (exported for testing)
+// ---------------------------------------------------------------------------
+
+/** Compute grid spacing in pixels from presentation grid spacing in EMU. */
+export function computeGridSpacingPx(
+  presentationGridSpacing: { cx: number } | undefined,
+): number {
+  if (presentationGridSpacing) {
+    const px = Math.round(presentationGridSpacing.cx / EMU_PER_PX);
+    if (px > 0) return px;
+  }
+  return GRID_SIZE;
+}
+
+/** Compute visible slide indexes based on custom show or hidden state. */
+export function computeVisibleSlideIndexes(
+  slides: PptxSlide[],
+  activeCustomShowId: string | null,
+  customShows: Array<{ id: string; name: string; slideRIds: string[] }>,
+): number[] {
+  if (activeCustomShowId) {
+    const show = customShows.find((s) => s.id === activeCustomShowId);
+    if (show) {
+      const rIdToIndex = new Map<string, number>();
+      slides.forEach((s, i) => rIdToIndex.set(s.rId, i));
+      return show.slideRIds
+        .map((rId) => rIdToIndex.get(rId))
+        .filter((i): i is number => i !== undefined);
+    }
+  }
+  return slides.map((_, i) => i).filter((i) => !slides[i]?.hidden);
+}
+
+/** Compute slide section groups for the slides pane sidebar. */
+export function computeSlideSectionGroups(
+  slides: PptxSlide[],
+  sections: Array<{
+    id: string;
+    name: string;
+    collapsed?: boolean;
+    color?: string;
+  }>,
+): SlideSectionGroup[] {
+  if (slides.length === 0) return [];
+
+  if (sections.length > 0) {
+    const sectionSlideMap = new Map<string, number[]>();
+    const ungroupedIndexes: number[] = [];
+    for (let i = 0; i < slides.length; i++) {
+      const sid = slides[i].sectionId;
+      if (sid) {
+        const arr = sectionSlideMap.get(sid);
+        if (arr) arr.push(i);
+        else sectionSlideMap.set(sid, [i]);
+      } else {
+        ungroupedIndexes.push(i);
+      }
+    }
+
+    const groups: SlideSectionGroup[] = sections
+      .map((sec) => ({
+        id: sec.id,
+        label: sec.name,
+        slideIndexes: sectionSlideMap.get(sec.id) ?? [],
+        color: sec.color,
+        defaultCollapsed: sec.collapsed,
+      }))
+      .filter((g) => g.slideIndexes.length > 0);
+
+    if (ungroupedIndexes.length > 0) {
+      groups.push({
+        id: UNGROUPED_SECTION_ID,
+        label: "Ungrouped Slides",
+        slideIndexes: ungroupedIndexes,
+      });
+    }
+
+    return groups.length > 0
+      ? groups
+      : [
+          {
+            id: "default",
+            label: "Slides",
+            slideIndexes: slides.map((_s, i) => i),
+          },
+        ];
+  }
+
+  return [
+    {
+      id: "default",
+      label: "Slides",
+      slideIndexes: slides.map((_s, i) => i),
+    },
+  ];
+}
+
+/** Compute a pseudo-slide for master / layout canvas rendering. */
+export function computeMasterPseudoSlide(
+  mode: ViewerMode,
+  activeLayout: PptxSlideLayout | undefined,
+  activeMaster: PptxSlideMaster | undefined,
+): PptxSlide | undefined {
+  if (mode !== "master") return undefined;
+  if (activeLayout) {
+    return {
+      id: activeLayout.path,
+      rId: "",
+      slideNumber: 0,
+      elements: activeLayout.elements ?? [],
+      backgroundColor:
+        activeLayout.backgroundColor ?? activeMaster?.backgroundColor,
+      backgroundImage:
+        activeLayout.backgroundImage ?? activeMaster?.backgroundImage,
+    };
+  }
+  if (activeMaster) {
+    return {
+      id: activeMaster.path,
+      rId: "",
+      slideNumber: 0,
+      elements: activeMaster.elements ?? [],
+      backgroundColor: activeMaster.backgroundColor,
+      backgroundImage: activeMaster.backgroundImage,
+    };
+  }
+  return undefined;
+}
+
+// ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
 
@@ -64,112 +194,28 @@ export function useDerivedSlideState(
   } = input;
 
   // Grid spacing in pixels
-  const gridSpacingPx = useMemo(() => {
-    if (presentationGridSpacing) {
-      const px = Math.round(presentationGridSpacing.cx / EMU_PER_PX);
-      if (px > 0) return px;
-    }
-    return GRID_SIZE;
-  }, [presentationGridSpacing]);
+  const gridSpacingPx = useMemo(
+    () => computeGridSpacingPx(presentationGridSpacing),
+    [presentationGridSpacing],
+  );
 
   // Slide indexes visible in the current custom show (or all non-hidden)
-  const visibleSlideIndexes = useMemo(() => {
-    if (activeCustomShowId) {
-      const show = customShows.find((s) => s.id === activeCustomShowId);
-      if (show) {
-        const rIdToIndex = new Map<string, number>();
-        slides.forEach((s, i) => rIdToIndex.set(s.rId, i));
-        return show.slideRIds
-          .map((rId) => rIdToIndex.get(rId))
-          .filter((i): i is number => i !== undefined);
-      }
-    }
-    return slides.map((_, i) => i).filter((i) => !slides[i]?.hidden);
-  }, [slides, activeCustomShowId, customShows]);
+  const visibleSlideIndexes = useMemo(
+    () => computeVisibleSlideIndexes(slides, activeCustomShowId, customShows),
+    [slides, activeCustomShowId, customShows],
+  );
 
   // Slide section groups for the slides pane sidebar
-  const slideSectionGroups: SlideSectionGroup[] = useMemo(() => {
-    if (slides.length === 0) return [];
-
-    if (sections.length > 0) {
-      const sectionSlideMap = new Map<string, number[]>();
-      const ungroupedIndexes: number[] = [];
-      for (let i = 0; i < slides.length; i++) {
-        const sid = slides[i].sectionId;
-        if (sid) {
-          const arr = sectionSlideMap.get(sid);
-          if (arr) arr.push(i);
-          else sectionSlideMap.set(sid, [i]);
-        } else {
-          ungroupedIndexes.push(i);
-        }
-      }
-
-      const groups: SlideSectionGroup[] = sections
-        .map((sec) => ({
-          id: sec.id,
-          label: sec.name,
-          slideIndexes: sectionSlideMap.get(sec.id) ?? [],
-          color: sec.color,
-          defaultCollapsed: sec.collapsed,
-        }))
-        .filter((g) => g.slideIndexes.length > 0);
-
-      if (ungroupedIndexes.length > 0) {
-        groups.push({
-          id: UNGROUPED_SECTION_ID,
-          label: "Ungrouped Slides",
-          slideIndexes: ungroupedIndexes,
-        });
-      }
-
-      return groups.length > 0
-        ? groups
-        : [
-            {
-              id: "default",
-              label: "Slides",
-              slideIndexes: slides.map((_s, i) => i),
-            },
-          ];
-    }
-
-    return [
-      {
-        id: "default",
-        label: "Slides",
-        slideIndexes: slides.map((_s, i) => i),
-      },
-    ];
-  }, [slides, sections]);
+  const slideSectionGroups: SlideSectionGroup[] = useMemo(
+    () => computeSlideSectionGroups(slides, sections),
+    [slides, sections],
+  );
 
   // Pseudo-slide for master / layout canvas rendering
-  const masterPseudoSlide = useMemo((): PptxSlide | undefined => {
-    if (mode !== "master") return undefined;
-    if (activeLayout) {
-      return {
-        id: activeLayout.path,
-        rId: "",
-        slideNumber: 0,
-        elements: activeLayout.elements ?? [],
-        backgroundColor:
-          activeLayout.backgroundColor ?? activeMaster?.backgroundColor,
-        backgroundImage:
-          activeLayout.backgroundImage ?? activeMaster?.backgroundImage,
-      };
-    }
-    if (activeMaster) {
-      return {
-        id: activeMaster.path,
-        rId: "",
-        slideNumber: 0,
-        elements: activeMaster.elements ?? [],
-        backgroundColor: activeMaster.backgroundColor,
-        backgroundImage: activeMaster.backgroundImage,
-      };
-    }
-    return undefined;
-  }, [mode, activeLayout, activeMaster]);
+  const masterPseudoSlide = useMemo(
+    () => computeMasterPseudoSlide(mode, activeLayout, activeMaster),
+    [mode, activeLayout, activeMaster],
+  );
 
   return {
     gridSpacingPx,

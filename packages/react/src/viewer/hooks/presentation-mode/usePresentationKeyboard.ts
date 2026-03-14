@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 
 import type { ViewerMode } from "../../types";
+import { mapKeyToPresentationAction } from "./keyboard-helpers";
 
 // ---------------------------------------------------------------------------
 // Sub-hook interface
@@ -49,49 +50,37 @@ export function usePresentationKeyboard(
     if (mode !== "present") return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        if (rehearsing) {
-          recordCurrentSlideTime(presentationSlideIndex);
-          setShowRehearsalSummary(true);
-        }
-        onSetMode("edit");
-        return;
-      }
-      if (
-        event.key === "ArrowRight" ||
-        event.key === "PageDown" ||
-        event.key === " "
-      ) {
-        event.preventDefault();
-        movePresentationSlide(1);
-        return;
-      }
-      if (event.key === "ArrowLeft" || event.key === "PageUp") {
-        event.preventDefault();
-        movePresentationSlide(-1);
-        return;
-      }
-      // Annotation tool shortcuts
-      if (event.key === "l" || event.key === "L") {
-        event.preventDefault();
-        onToggleLaser?.();
-        return;
-      }
-      if (event.key === "p" || event.key === "P") {
-        event.preventDefault();
-        onTogglePen?.();
-        return;
-      }
-      if (event.key === "e" || event.key === "E") {
-        event.preventDefault();
-        onToggleEraser?.();
-        return;
-      }
-      if (event.key === "m" && event.ctrlKey) {
-        event.preventDefault();
-        onToggleToolbar?.();
-        return;
+      const mapped = mapKeyToPresentationAction(event.key, event.ctrlKey);
+      if (mapped.action === "none") return;
+
+      event.preventDefault();
+
+      switch (mapped.action) {
+        case "exit":
+          if (rehearsing) {
+            recordCurrentSlideTime(presentationSlideIndex);
+            setShowRehearsalSummary(true);
+          }
+          onSetMode("edit");
+          return;
+        case "next":
+          movePresentationSlide(1);
+          return;
+        case "prev":
+          movePresentationSlide(-1);
+          return;
+        case "toggleLaser":
+          onToggleLaser?.();
+          return;
+        case "togglePen":
+          onTogglePen?.();
+          return;
+        case "toggleEraser":
+          onToggleEraser?.();
+          return;
+        case "toggleToolbar":
+          onToggleToolbar?.();
+          return;
       }
     };
 
