@@ -78,6 +78,8 @@ export interface TextStyle {
   textOutlineWidth?: number;
   /** Text outline colour as hex string (`a:rPr > a:ln > a:solidFill`). */
   textOutlineColor?: string;
+  /** When true, the text body has no fill (`a:rPr > a:noFill`), producing hollow/outline-only text. */
+  textFillNone?: boolean;
   /** Superscript/subscript baseline shift as percentage (`a:rPr/@baseline`). Positive = super, negative = sub. */
   baseline?: number;
   /** Character spacing in hundredths of a point (`a:rPr/@spc`). */

@@ -69,6 +69,17 @@ export const EXTENDED_SHAPE_DEFINITIONS: PresetShapeDefinition[] = [
   { name: "curvedDownArrow", label: "Curved Down Arrow", category: "arrows" },
   { name: "swooshArrow", label: "Swoosh Arrow", category: "arrows" },
   { name: "leftUpArrow", label: "Left-Up Arrow", category: "arrows" },
+  { name: "circularArrow", label: "Circular Arrow", category: "arrows" },
+  {
+    name: "leftCircularArrow",
+    label: "Left Circular Arrow",
+    category: "arrows",
+  },
+  {
+    name: "leftRightCircularArrow",
+    label: "Left-Right Circular Arrow",
+    category: "arrows",
+  },
 
   // ── Callouts ──────────────────────────────────────────────────────────
   {
@@ -207,6 +218,11 @@ export const EXTENDED_SHAPE_DEFINITIONS: PresetShapeDefinition[] = [
   {
     name: "flowChartSequentialAccessStorage",
     label: "Sequential Access",
+    category: "flowchart",
+  },
+  {
+    name: "flowChartStoredData",
+    label: "Stored Data",
     category: "flowchart",
   },
 

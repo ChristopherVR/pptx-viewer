@@ -37,6 +37,12 @@ export function resolveListMarker(
 		return formatAutoNumber(value, bulletInfo.autoNumType);
 	}
 
+	// Picture bullets: use a standard bullet character in Markdown output
+	// since images cannot be rendered inline as list markers.
+	if (bulletInfo.imageRelId || bulletInfo.imageDataUrl) {
+		return '-';
+	}
+
 	if (bulletInfo.char) {
 		const marker = bulletInfo.char.trim();
 		if (/^[-*+>]$/.test(marker)) {

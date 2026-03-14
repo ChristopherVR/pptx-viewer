@@ -197,6 +197,11 @@ export function renderEquationSegment(
 
 /**
  * Render a picture bullet as an `<img>` element.
+ *
+ * When `bulletInfo.imageDataUrl` is available, renders an `<img>` sized to
+ * match the bullet/font size. When only `imageRelId` is set (image not yet
+ * resolved), falls back to a default character bullet so the user never sees
+ * a broken image icon.
  */
 export function renderPictureBullet(
   elementId: string,
@@ -210,10 +215,32 @@ export function renderPictureBullet(
       : typeof bulletInfo.sizePercent === "number"
         ? baseFontSize * (bulletInfo.sizePercent / 100)
         : baseFontSize;
+
+  // Fallback: when no resolved image data URL is available, render a
+  // default character bullet instead of a broken <img>.
+  if (!bulletInfo.imageDataUrl) {
+    return (
+      <span
+        key={`${elementId}-seg-${segmentIndex}-bullet-fallback`}
+        style={{
+          fontSize: bulletSize,
+          display: "inline-block",
+          verticalAlign: "middle",
+          marginRight: 4,
+          color: bulletInfo.color || undefined,
+          fontFamily: bulletInfo.fontFamily || undefined,
+        }}
+        aria-label="Bullet"
+      >
+        {"\u2022 "}
+      </span>
+    );
+  }
+
   return (
     <img
       key={`${elementId}-seg-${segmentIndex}-bullet-img`}
-      src={bulletInfo.imageDataUrl || ""}
+      src={bulletInfo.imageDataUrl}
       alt="Bullet"
       style={{
         width: bulletSize,

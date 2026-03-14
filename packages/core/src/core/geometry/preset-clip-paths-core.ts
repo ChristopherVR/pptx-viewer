@@ -18,6 +18,10 @@
  * `preset-shape-clip-paths.ts`.
  */
 export const CLIP_PATHS_CORE: Record<string, string | undefined> = {
+  // ── Lines ─────────────────────────────────────────────────────────────
+  line: undefined, // rendered as a line element, not clipped
+  lineinv: undefined, // inverse line — rendered as a line element
+
   // ── Basic Shapes ──────────────────────────────────────────────────────
   rect: undefined, // no clip needed — full rectangle
   roundrect: undefined, // handled by border-radius
@@ -69,6 +73,7 @@ export const CLIP_PATHS_CORE: Record<string, string | undefined> = {
   funnel: "polygon(0% 0%, 100% 0%, 60% 40%, 60% 100%, 40% 100%, 40% 40%)",
   teardrop: "polygon(50% 0%, 100% 50%, 50% 100%, 15% 85%, 0% 50%)",
   plaque: "inset(0 round 18px)",
+  arc: "polygon(50% 0%, 67% 2%, 81% 10%, 92% 22%, 98% 38%, 100% 50%, 98% 62%, 92% 78%, 81% 90%, 67% 98%, 50% 100%, 50% 75%, 58% 74%, 66% 70%, 72% 64%, 76% 56%, 78% 50%, 76% 44%, 72% 36%, 66% 30%, 58% 26%, 50% 25%)",
   wave: "polygon(0% 20%, 25% 0%, 75% 20%, 100% 0%, 100% 80%, 75% 100%, 25% 80%, 0% 100%)",
   doublewave:
     "polygon(0% 15%, 25% 0%, 50% 15%, 75% 0%, 100% 15%, 100% 85%, 75% 100%, 50% 85%, 25% 100%, 0% 85%)",

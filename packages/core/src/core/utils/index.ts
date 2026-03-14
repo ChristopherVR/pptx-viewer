@@ -49,12 +49,16 @@ export {
 
 export {
   addSmartArtNode,
+  addSmartArtNodeAsChild,
   removeSmartArtNode,
   updateSmartArtNodeText,
   reorderSmartArtNode,
+  reorderSmartArtNodeToIndex,
   promoteSmartArtNode,
   demoteSmartArtNode,
   resetSmartArtEditCounter,
+  reflowSmartArtLayout,
+  type ReflowedNodePosition,
 } from "./smartart-editing";
 
 export {

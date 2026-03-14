@@ -81,6 +81,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         }
       }
     }
+    // No fill on text run (a:rPr > a:noFill) — hollow/outline-only text
+    if (runProperties["a:noFill"] !== undefined) {
+      style.textFillNone = true;
+    }
     // Superscript / subscript baseline shift (percentage)
     if (runProperties["@_baseline"] !== undefined) {
       const baselineVal = Number.parseInt(

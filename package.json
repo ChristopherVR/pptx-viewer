@@ -16,6 +16,13 @@
 		"pack:react": "cd packages/react && bun run pack"
 	},
 	"devDependencies": {
+		"@types/three": "^0.183.1",
+		"pptx-viewer": "workspace:*",
 		"typescript": "^5.9.3"
+	},
+	"optionalDependencies": {
+		"@react-three/drei": "^10.7.7",
+		"@react-three/fiber": "^9.5.0",
+		"three": "^0.183.2"
 	}
 }

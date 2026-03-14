@@ -8,6 +8,11 @@ import type {
   SmartArtColorScheme,
   SmartArtStyle,
 } from "pptx-viewer-core";
+import {
+  addSmartArtNodeAsChild,
+  removeSmartArtNode,
+  updateSmartArtNodeText,
+} from "pptx-viewer-core";
 import { HEADING, CARD, INPUT, BTN } from "./inspector-pane-constants";
 import { SmartArtLayoutSwitcher } from "./SmartArtLayoutSwitcher";
 
@@ -53,44 +58,28 @@ export function SmartArtPropertiesPanel({
     } as Partial<PptxElement>);
   };
 
-  const updateNodeText = (nodeId: string, text: string) => {
-    updateSmartArt({
-      nodes: nodes.map((n) => (n.id === nodeId ? { ...n, text } : n)),
-    });
+  const applySmartArtData = (newData: PptxSmartArtData) => {
+    onUpdateElement({
+      smartArtData: newData,
+    } as Partial<PptxElement>);
+  };
+
+  const handleUpdateNodeText = (nodeId: string, text: string) => {
+    applySmartArtData(updateSmartArtNodeText(smartArtData, nodeId, text));
   };
 
   const addNode = () => {
-    updateSmartArt({
-      nodes: [
-        ...nodes,
-        {
-          id: `node-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          text: `Item ${nodes.length + 1}`,
-        },
-      ],
-    });
+    applySmartArtData(addSmartArtNodeAsChild(smartArtData));
   };
 
   const addSubItem = (parentId: string) => {
-    updateSmartArt({
-      nodes: [
-        ...nodes,
-        {
-          id: `node-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          text: "Sub-item",
-          parentId,
-        },
-      ],
-    });
+    applySmartArtData(
+      addSmartArtNodeAsChild(smartArtData, parentId, "Sub-item"),
+    );
   };
 
   const removeNode = (nodeId: string) => {
-    const filtered = nodes.filter((n) => n.id !== nodeId);
-    updateSmartArt({
-      nodes: filtered.map((n) =>
-        n.parentId === nodeId ? { ...n, parentId: undefined } : n,
-      ),
-    });
+    applySmartArtData(removeSmartArtNode(smartArtData, nodeId));
   };
 
   const promoteNode = (nodeId: string) => {
@@ -98,6 +87,7 @@ export function SmartArtPropertiesPanel({
       nodes: nodes.map((n) =>
         n.id === nodeId ? { ...n, parentId: undefined } : n,
       ),
+      drawingShapes: undefined,
     });
   };
 
@@ -108,6 +98,7 @@ export function SmartArtPropertiesPanel({
       const parentId = topLevel[idx - 1].id;
       updateSmartArt({
         nodes: nodes.map((n) => (n.id === nodeId ? { ...n, parentId } : n)),
+        drawingShapes: undefined,
       });
     }
   };
@@ -212,7 +203,7 @@ export function SmartArtPropertiesPanel({
                     disabled={!canEdit}
                     className={cn(INPUT, "flex-1 text-[11px] py-0.5")}
                     value={node.text}
-                    onChange={(e) => updateNodeText(node.id, e.target.value)}
+                    onChange={(e) => handleUpdateNodeText(node.id, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(e, node.id)}
                     placeholder={t("pptx.smartart.typePlaceholder")}
                   />

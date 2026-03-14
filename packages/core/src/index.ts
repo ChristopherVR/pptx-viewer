@@ -36,3 +36,7 @@ export type {
 	ConversionOptions,
 	ConversionResult,
 } from "./converter";
+
+// ── Headless SVG exporter ──
+export { SvgExporter } from "./converter";
+export type { SvgExportOptions } from "./converter";

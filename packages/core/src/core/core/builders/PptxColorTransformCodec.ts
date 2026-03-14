@@ -1,6 +1,7 @@
 import type { XmlObject } from "../../types";
 import { PRESET_COLOR_MAP, SYSTEM_COLOR_MAP } from "../../constants";
 import { hslToRgb, parseDrawingHueDegrees } from "../../color/color-utils";
+import { applyDrawingColorTransforms } from "../../color/color-transforms";
 
 export interface PptxColorTransformCodecContext {
   resolveThemeColor: (schemeKey: string) => string | undefined;
@@ -153,50 +154,7 @@ export class PptxColorTransformCodec implements IPptxColorTransformCodec {
   }
 
   public applyColorTransforms(baseColor: string, colorNode: XmlObject): string {
-    const rgb = this.hexToRgb(baseColor);
-    if (!rgb) return baseColor;
-
-    let r = rgb.r;
-    let g = rgb.g;
-    let b = rgb.b;
-
-    const shade = this.percentAttrToUnit(
-      (colorNode["a:shade"] as XmlObject | undefined)?.["@_val"],
-    );
-    if (shade !== undefined) {
-      r *= shade;
-      g *= shade;
-      b *= shade;
-    }
-
-    const tint = this.percentAttrToUnit(
-      (colorNode["a:tint"] as XmlObject | undefined)?.["@_val"],
-    );
-    if (tint !== undefined) {
-      r = r + (255 - r) * tint;
-      g = g + (255 - g) * tint;
-      b = b + (255 - b) * tint;
-    }
-
-    const lumMod = this.percentAttrToUnit(
-      (colorNode["a:lumMod"] as XmlObject | undefined)?.["@_val"],
-    );
-    if (lumMod !== undefined) {
-      r *= lumMod;
-      g *= lumMod;
-      b *= lumMod;
-    }
-
-    const lumOff = this.percentAttrToUnit(
-      (colorNode["a:lumOff"] as XmlObject | undefined)?.["@_val"],
-    );
-    if (lumOff !== undefined) {
-      r += 255 * lumOff;
-      g += 255 * lumOff;
-      b += 255 * lumOff;
-    }
-
-    return this.rgbToHex(r, g, b);
+    return applyDrawingColorTransforms(baseColor, colorNode);
   }
 
   private clampColorChannel(value: number): number {

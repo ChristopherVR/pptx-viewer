@@ -22,14 +22,18 @@ import {
   normalizeStrokeDashType,
   getCssBorderDashStyle,
   getCompoundLineBoxShadow,
+  getCompoundLineBorderWidth,
 } from "./style";
 import { getShapeType, getShapeClipPath } from "./shape-types";
 import {
   buildLineShadowCss,
   buildLineGlowFilter,
-  mapDagBlendModeToCss,
-  getDagDuotoneFilterId,
 } from "./shape-visual-filters";
+import {
+  getEffectDagFilter,
+  getEffectDagOpacity,
+  getEffectDagBlendMode,
+} from "./effect-dag-filters";
 import { apply3dEffects } from "./shape-visual-3d";
 import { getRoundRectRadiusPx } from "./shape-round-rect";
 
@@ -118,49 +122,10 @@ export function getShapeVisualStyle(
     filterParts.push(lineGlowCss);
   }
 
-  // ── DAG-specific CSS filters ──
-  if (ss?.dagGrayscale) {
-    filterParts.push("grayscale(1)");
-  }
-  if (typeof ss?.dagBiLevel === "number") {
-    const thresh = Math.max(0, Math.min(100, ss.dagBiLevel));
-    filterParts.push(`contrast(999) brightness(${thresh}%)`);
-  }
-  if (
-    typeof ss?.dagLumBrightness === "number" ||
-    typeof ss?.dagLumContrast === "number"
-  ) {
-    const bright = ss.dagLumBrightness ?? 0;
-    const contrast = ss.dagLumContrast ?? 0;
-    filterParts.push(`brightness(${1 + bright / 100})`);
-    filterParts.push(`contrast(${1 + contrast / 100})`);
-  }
-  if (
-    typeof ss?.dagHslHue === "number" ||
-    typeof ss?.dagHslSaturation === "number"
-  ) {
-    if (typeof ss?.dagHslHue === "number" && ss.dagHslHue !== 0) {
-      filterParts.push(`hue-rotate(${ss.dagHslHue}deg)`);
-    }
-    if (
-      typeof ss?.dagHslSaturation === "number" &&
-      ss.dagHslSaturation !== 100
-    ) {
-      filterParts.push(`saturate(${ss.dagHslSaturation / 100})`);
-    }
-  }
-  // DAG tint: apply sepia desaturation then hue-rotate to target hue
-  if (
-    typeof ss?.dagTintHue === "number" ||
-    typeof ss?.dagTintAmount === "number"
-  ) {
-    const hue = ss?.dagTintHue ?? 0;
-    const amt = Math.max(0, Math.min(100, ss?.dagTintAmount ?? 50));
-    filterParts.push(`sepia(${amt / 100}) hue-rotate(${hue}deg)`);
-  }
-  if (ss?.dagDuotone) {
-    const dagDuotoneId = getDagDuotoneFilterId(element.id);
-    filterParts.push(`url(#${dagDuotoneId})`);
+  // ── DAG-specific CSS filters (centralised in effect-dag-filters.ts) ──
+  const dagFilter = getEffectDagFilter(ss, element.id);
+  if (dagFilter) {
+    filterParts.push(dagFilter);
   }
 
   // Line join → CSS lineJoin (only relevant for SVG; stored for serialisation)
@@ -247,7 +212,9 @@ export function getShapeVisualStyle(
         ? Math.max(0, Math.min(1, ss.dagAlphaModFix / 100))
         : undefined,
     mixBlendMode: mapDagBlendModeToCss(ss?.dagFillOverlayBlend),
-    borderWidth: strokeWidth > 0 ? strokeWidth : undefined,
+    borderWidth: strokeWidth > 0
+      ? getCompoundLineBorderWidth(ss?.compoundLine, strokeWidth)
+      : undefined,
     borderColor: strokeWidth > 0 ? resolvedStrokeColor : undefined,
     borderStyle:
       strokeWidth > 0

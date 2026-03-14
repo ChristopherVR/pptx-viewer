@@ -10,6 +10,8 @@ export {
 	deriveOutputPath,
 } from './base';
 export { MediaContext, dataUrlToMediaBytes, generateMediaFilename } from './media-context';
+export { SvgExporter } from './SvgExporter';
+export type { SvgExportOptions } from './SvgExporter';
 export type {
 	FileSystemAdapter,
 	ConversionOptions,

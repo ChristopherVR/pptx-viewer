@@ -3,6 +3,7 @@ import type {
   PptxTableData,
   XmlObject,
 } from "pptx-viewer-core";
+import { EMU_PER_PX } from "pptx-viewer-core";
 import { ensureArrayValue } from "./geometry";
 
 // ── Cell text update ─────────────────────────────────────────────────────
@@ -208,6 +209,135 @@ export function updateMergeAttrsInRawXml(
       }
     }
   }
+
+  return newRawXml;
+}
+
+// ── Structural XML synchronisation ────────────────────────────────────────
+
+/** Default row height in EMU for new XML rows. */
+const DEFAULT_ROW_HEIGHT_EMU = 40 * EMU_PER_PX;
+
+/** Create a default XML cell element (<a:tc>). */
+function createDefaultXmlCell(): XmlObject {
+  return {
+    "a:txBody": {
+      "a:bodyPr": {},
+      "a:lstStyle": {},
+      "a:p": {
+        "a:endParaRPr": { "@_lang": "en-US" },
+      },
+    },
+    "a:tcPr": {},
+  };
+}
+
+/**
+ * Deep-clone an element's rawXml and rebuild the table XML structure to match
+ * the given `PptxTableData`. This handles adding/removing rows and columns
+ * by rebuilding `<a:tblGrid>` and `<a:tr>` elements.
+ *
+ * Used when structural table operations (insert/delete row/column) change
+ * the dimensions of the table.
+ *
+ * Returns the new rawXml object, or `undefined` if the element doesn't contain
+ * an XML-based table.
+ */
+export function rebuildTableStructureInRawXml(
+  element: PptxElement,
+  tableData: PptxTableData,
+): XmlObject | undefined {
+  if (!element.rawXml) return undefined;
+
+  const newRawXml = structuredClone(element.rawXml) as XmlObject;
+
+  const graphicData = (newRawXml["a:graphic"] as XmlObject | undefined)?.[
+    "a:graphicData"
+  ] as XmlObject | undefined;
+  const table = graphicData?.["a:tbl"] as XmlObject | undefined;
+  if (!table) return undefined;
+
+  // ── Compute total table width from existing grid ──
+  const existingGridCols = ensureArrayValue(
+    (table["a:tblGrid"] as XmlObject | undefined)?.["a:gridCol"] as
+      | XmlObject
+      | XmlObject[]
+      | undefined,
+  );
+  const totalWidthEmu =
+    existingGridCols.reduce((sum, col) => {
+      return sum + (parseInt(String(col?.["@_w"] || "0"), 10) || 0);
+    }, 0) || 9144000; // fallback: ~960px
+
+  // ── Rebuild a:tblGrid ──
+  const newGridCols: XmlObject[] = tableData.columnWidths.map((w) => ({
+    "@_w": String(Math.round(w * totalWidthEmu)),
+  }));
+  if (!table["a:tblGrid"]) table["a:tblGrid"] = {};
+  (table["a:tblGrid"] as XmlObject)["a:gridCol"] =
+    newGridCols.length === 1 ? newGridCols[0] : newGridCols;
+
+  // ── Rebuild a:tr ──
+  const existingXmlRows = ensureArrayValue(
+    table["a:tr"] as XmlObject | XmlObject[] | undefined,
+  );
+
+  const newXmlRows: XmlObject[] = tableData.rows.map((dataRow, ri) => {
+    const existingRow =
+      ri < existingXmlRows.length ? existingXmlRows[ri] : undefined;
+    const existingCells = existingRow
+      ? ensureArrayValue(
+          existingRow["a:tc"] as XmlObject | XmlObject[] | undefined,
+        )
+      : [];
+
+    const heightEmu = dataRow.height
+      ? Math.round(dataRow.height * EMU_PER_PX)
+      : existingRow?.["@_h"]
+        ? parseInt(String(existingRow["@_h"]), 10)
+        : DEFAULT_ROW_HEIGHT_EMU;
+
+    const newXmlCells: XmlObject[] = dataRow.cells.map((cell, ci) => {
+      // Try to reuse existing cell XML for preserved cells
+      let xmlCell: XmlObject;
+      if (ci < existingCells.length) {
+        xmlCell = structuredClone(existingCells[ci]) as XmlObject;
+      } else {
+        xmlCell = createDefaultXmlCell();
+      }
+
+      // Update merge attributes
+      if (cell.gridSpan !== undefined && cell.gridSpan > 1) {
+        xmlCell["@_gridSpan"] = String(cell.gridSpan);
+      } else {
+        delete xmlCell["@_gridSpan"];
+      }
+      if (cell.rowSpan !== undefined && cell.rowSpan > 1) {
+        xmlCell["@_rowSpan"] = String(cell.rowSpan);
+      } else {
+        delete xmlCell["@_rowSpan"];
+      }
+      if (cell.hMerge) {
+        xmlCell["@_hMerge"] = "1";
+      } else {
+        delete xmlCell["@_hMerge"];
+      }
+      if (cell.vMerge) {
+        xmlCell["@_vMerge"] = "1";
+      } else {
+        delete xmlCell["@_vMerge"];
+      }
+
+      return xmlCell;
+    });
+
+    return {
+      "@_h": String(heightEmu),
+      "a:tc": newXmlCells.length === 1 ? newXmlCells[0] : newXmlCells,
+    } as XmlObject;
+  });
+
+  table["a:tr"] = newXmlRows.length === 1 ? newXmlRows[0] : newXmlRows;
 
   return newRawXml;
 }

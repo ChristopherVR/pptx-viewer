@@ -50,6 +50,15 @@ export const CLIP_PATHS_EXTENDED: Record<string, string | undefined> = {
     "polygon(40% 0%, 65% 15%, 85% 5%, 80% 30%, 100% 35%, 90% 55%, 100% 70%, 75% 75%, 65% 100%, 45% 80%, 20% 95%, 25% 65%, 0% 60%, 15% 40%, 5% 20%, 30% 25%)",
   irregularseal2:
     "polygon(50% 0%, 60% 10%, 75% 5%, 70% 20%, 95% 15%, 85% 35%, 100% 40%, 90% 55%, 100% 65%, 80% 70%, 85% 90%, 60% 80%, 50% 100%, 40% 85%, 20% 90%, 25% 70%, 0% 65%, 15% 50%, 5% 35%, 20% 30%, 5% 15%, 30% 15%)",
+  // Aliases for irregularSeal (used as explosion1/2 in some implementations)
+  explosion1:
+    "polygon(40% 0%, 65% 15%, 85% 5%, 80% 30%, 100% 35%, 90% 55%, 100% 70%, 75% 75%, 65% 100%, 45% 80%, 20% 95%, 25% 65%, 0% 60%, 15% 40%, 5% 20%, 30% 25%)",
+  explosion2:
+    "polygon(50% 0%, 60% 10%, 75% 5%, 70% 20%, 95% 15%, 85% 35%, 100% 40%, 90% 55%, 100% 65%, 80% 70%, 85% 90%, 60% 80%, 50% 100%, 40% 85%, 20% 90%, 25% 70%, 0% 65%, 15% 50%, 5% 35%, 20% 30%, 5% 15%, 30% 15%)",
+  ellipseribbon:
+    "polygon(0% 60%, 5% 50%, 15% 45%, 50% 40%, 85% 45%, 95% 50%, 100% 60%, 100% 100%, 85% 90%, 50% 85%, 15% 90%, 0% 100%)",
+  ellipseribbon2:
+    "polygon(0% 0%, 15% 10%, 50% 15%, 85% 10%, 100% 0%, 100% 40%, 95% 50%, 85% 55%, 50% 60%, 15% 55%, 5% 50%, 0% 40%)",
   leftbrace:
     "polygon(80% 0%, 50% 5%, 45% 15%, 45% 35%, 0% 50%, 45% 65%, 45% 85%, 50% 95%, 80% 100%)",
   rightbrace:
@@ -140,7 +149,9 @@ export const CLIP_PATHS_EXTENDED: Record<string, string | undefined> = {
   actionbuttonhelp: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
   actionbuttoninformation: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
   actionbuttonbackorprevious: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+  actionbuttonbackprevious: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
   actionbuttonforwardornext: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+  actionbuttonforwardnext: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
   actionbuttonbeginning: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
   actionbuttonend: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
   actionbuttonreturn: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
@@ -153,12 +164,38 @@ export const CLIP_PATHS_EXTENDED: Record<string, string | undefined> = {
   flowchartdirectdata:
     "polygon(0% 0%, 90% 0%, 100% 15%, 100% 85%, 90% 100%, 0% 100%)",
   flowchartsequentialaccessstorage: "ellipse(50% 50% at 50% 50%)",
+  flowchartstoreddata:
+    "polygon(15% 0%, 100% 0%, 100% 100%, 15% 100%, 0% 85%, 8% 50%, 0% 15%)",
 
   // ── Additional Arrows ──────────────────────────────────────────────
   swoosharrow:
     "polygon(0% 80%, 30% 40%, 20% 40%, 60% 0%, 100% 40%, 70% 40%, 45% 80%)",
   leftuparrow:
     "polygon(50% 0%, 75% 25%, 60% 25%, 60% 60%, 25% 60%, 25% 75%, 0% 50%, 25% 25%, 25% 40%, 40% 40%, 40% 25%)",
+
+  // ── Connector shapes ──────────────────────────────────────────────────
+  // Connectors are rendered by the connector geometry engine, not clip-path
+  straightconnector1: undefined,
+  bentconnector2: undefined,
+  bentconnector3: undefined,
+  bentconnector4: undefined,
+  bentconnector5: undefined,
+  curvedconnector2: undefined,
+  curvedconnector3: undefined,
+  curvedconnector4: undefined,
+  curvedconnector5: undefined,
+
+  // ── Chart Markers ───────────────────────────────────────────────────
+  chartx:
+    "polygon(20% 5%, 50% 35%, 80% 5%, 95% 20%, 65% 50%, 95% 80%, 80% 95%, 50% 65%, 20% 95%, 5% 80%, 35% 50%, 5% 20%)",
+  chartstar:
+    "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)",
+  chartplus:
+    "polygon(33% 0%, 67% 0%, 67% 33%, 100% 33%, 100% 67%, 67% 67%, 67% 100%, 33% 100%, 33% 67%, 0% 67%, 0% 33%, 33% 33%)",
+
+  // ── Corner Tabs ─────────────────────────────────────────────────────
+  cornertabs:
+    "polygon(0% 0%, 15% 0%, 0% 15%, 0% 0%, 85% 0%, 100% 0%, 100% 15%, 85% 0%, 100% 85%, 100% 100%, 85% 100%, 100% 85%, 0% 85%, 0% 100%, 15% 100%, 0% 85%)",
 
   // ── Misc shapes not in the above categories ──────────────────────────
   gear6:

@@ -147,6 +147,28 @@ describe('resolveListMarker', () => {
 		};
 		expect(resolveListMarker(bullet, 0)).toBe('aa.');
 	});
+
+	it('should return "-" for picture bullets with imageRelId', () => {
+		const bullet: SegmentBulletInfo = {
+			imageRelId: 'rId5',
+		};
+		expect(resolveListMarker(bullet, 0)).toBe('-');
+	});
+
+	it('should return "-" for picture bullets with imageDataUrl', () => {
+		const bullet: SegmentBulletInfo = {
+			imageDataUrl: 'data:image/png;base64,iVBOR',
+		};
+		expect(resolveListMarker(bullet, 0)).toBe('-');
+	});
+
+	it('should return "-" for picture bullets with both imageRelId and imageDataUrl', () => {
+		const bullet: SegmentBulletInfo = {
+			imageRelId: 'rId5',
+			imageDataUrl: 'data:image/png;base64,iVBOR',
+		};
+		expect(resolveListMarker(bullet, 0)).toBe('-');
+	});
 });
 
 describe('resolveListLevel', () => {

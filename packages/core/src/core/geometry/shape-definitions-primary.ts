@@ -53,6 +53,8 @@ export const PRIMARY_SHAPE_DEFINITIONS: PresetShapeDefinition[] = [
   { name: "funnel", label: "Funnel", category: "basic" },
   { name: "teardrop", label: "Teardrop", category: "basic" },
   { name: "plaque", label: "Plaque", category: "basic" },
+  { name: "arc", label: "Arc", category: "basic" },
+  { name: "chord", label: "Chord", category: "basic" },
   { name: "wave", label: "Wave", category: "basic" },
   { name: "doubleWave", label: "Double Wave", category: "basic" },
 
@@ -107,6 +109,8 @@ export const PRIMARY_SHAPE_DEFINITIONS: PresetShapeDefinition[] = [
   { name: "horizontalScroll", label: "Horizontal Scroll", category: "stars" },
   { name: "irregularSeal1", label: "Explosion 1", category: "stars" },
   { name: "irregularSeal2", label: "Explosion 2", category: "stars" },
+  { name: "ellipseRibbon", label: "Ellipse Ribbon", category: "stars" },
+  { name: "ellipseRibbon2", label: "Ellipse Ribbon 2", category: "stars" },
 
   // ── Math ──────────────────────────────────────────────────────────────
   { name: "mathDivide", label: "Division", category: "math" },
@@ -128,4 +132,8 @@ export const PRIMARY_SHAPE_DEFINITIONS: PresetShapeDefinition[] = [
   { name: "rightBracket", label: "Right Bracket", category: "other" },
   { name: "bracePair", label: "Brace Pair", category: "other" },
   { name: "bracketPair", label: "Bracket Pair", category: "other" },
+  { name: "cornerTabs", label: "Corner Tabs", category: "other" },
+  { name: "chartX", label: "Chart X", category: "other" },
+  { name: "chartStar", label: "Chart Star", category: "other" },
+  { name: "chartPlus", label: "Chart Plus", category: "other" },
 ];

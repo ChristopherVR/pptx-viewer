@@ -38,7 +38,7 @@ export function shouldRenderFallbackLabel(
   if (element.type === "table") return false;
   if (element.type === "media") return false; // media has dedicated renderer
   if (element.type === "contentPart") return false; // content part has dedicated renderer
-  if (element.type === "model3d") return false; // rendered as poster image
+  if (element.type === "model3d") return false; // rendered via Model3DRenderer (Three.js or poster fallback)
   if (element.type === "ole") {
     // OLE elements with a preview image are rendered as images, not fallback labels
     const previewData =

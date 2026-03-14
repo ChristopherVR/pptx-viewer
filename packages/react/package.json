@@ -54,6 +54,11 @@
 		"react-i18next": "^16.5.4",
 		"react-icons": "^5.5.0"
 	},
+	"optionalDependencies": {
+		"three": ">=0.160.0",
+		"@react-three/fiber": ">=8.0.0",
+		"@react-three/drei": ">=9.0.0"
+	},
 	"devDependencies": {
 		"@tailwindcss/cli": "^4.1.0",
 		"@types/react": "^19.2.14",

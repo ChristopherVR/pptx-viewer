@@ -3,6 +3,8 @@ import {
 	normalizeStrokeDashType,
 	getCssBorderDashStyle,
 	getCompoundLineBoxShadow,
+	getCompoundLineBorderWidth,
+	getCompoundLineStyle,
 	getSvgStrokeDasharray,
 	getElementTransform,
 	getTextCompensationTransform,
@@ -105,34 +107,165 @@ describe('getCompoundLineBoxShadow', () => {
 		expect(result).toBeDefined();
 		expect(result).toContain('inset');
 		expect(result).toContain('#FF0000');
+		// Double line uses transparent gap + colored inner line
+		expect(result).toContain('transparent');
 	});
 
 	it('should return box-shadow string for thickThin', () => {
 		const result = getCompoundLineBoxShadow('thickThin', 10, '#000');
 		expect(result).toBeDefined();
 		expect(result).toContain('inset');
+		expect(result).toContain('transparent');
 	});
 
 	it('should return box-shadow string for thinThick', () => {
 		const result = getCompoundLineBoxShadow('thinThick', 10, '#000');
 		expect(result).toBeDefined();
 		expect(result).toContain('inset');
+		expect(result).toContain('transparent');
 	});
 
 	it('should return box-shadow string for tri (triple line)', () => {
 		const result = getCompoundLineBoxShadow('tri', 10, '#000');
 		expect(result).toBeDefined();
 		expect(result).toContain('inset');
+		// Triple line has two transparent gaps and two colored inner lines
+		const parts = result!.split(',');
+		expect(parts.length).toBe(4); // 2 transparent gaps + 2 colored lines
 	});
 
 	it('should return undefined for unknown compound type', () => {
 		expect(getCompoundLineBoxShadow('quad', 10, '#000')).toBeUndefined();
 	});
 
-	it('should use minimum stroke width of 1', () => {
+	it('should return undefined for negative stroke width', () => {
 		const result = getCompoundLineBoxShadow('dbl', -5, '#000');
-		// Negative stroke returns undefined
 		expect(result).toBeUndefined();
+	});
+
+	it('should handle small stroke widths with minimum 1px lines', () => {
+		const result = getCompoundLineBoxShadow('dbl', 2, '#000');
+		expect(result).toBeDefined();
+		expect(result).toContain('inset');
+	});
+
+	it('should use default color when empty string provided', () => {
+		const result = getCompoundLineBoxShadow('dbl', 10, '');
+		expect(result).toBeDefined();
+		expect(result).toContain('#000000');
+	});
+});
+
+describe('getCompoundLineBorderWidth', () => {
+	it('should return original strokeWidth for undefined compound line', () => {
+		expect(getCompoundLineBorderWidth(undefined, 10)).toBe(10);
+	});
+
+	it('should return original strokeWidth for single line type', () => {
+		expect(getCompoundLineBorderWidth('sng', 10)).toBe(10);
+	});
+
+	it('should return original strokeWidth for zero width', () => {
+		expect(getCompoundLineBorderWidth('dbl', 0)).toBe(0);
+	});
+
+	it('should return original strokeWidth for negative width', () => {
+		expect(getCompoundLineBorderWidth('dbl', -5)).toBe(-5);
+	});
+
+	it('should return ~35% for double line outer border', () => {
+		const result = getCompoundLineBorderWidth('dbl', 10);
+		expect(result).toBe(4); // Math.round(10 * 0.35) = 4
+	});
+
+	it('should return ~50% for thickThin outer border (thick)', () => {
+		const result = getCompoundLineBorderWidth('thickThin', 10);
+		expect(result).toBe(5); // Math.round(10 * 0.5) = 5
+	});
+
+	it('should return ~25% for thinThick outer border (thin)', () => {
+		const result = getCompoundLineBorderWidth('thinThick', 10);
+		expect(result).toBe(3); // Math.round(10 * 0.25) = 3
+	});
+
+	it('should return ~22% for triple line outer border', () => {
+		const result = getCompoundLineBorderWidth('tri', 10);
+		expect(result).toBe(2); // Math.round(10 * 0.22) = 2
+	});
+
+	it('should enforce minimum border width of 1 for dbl', () => {
+		expect(getCompoundLineBorderWidth('dbl', 1)).toBeGreaterThanOrEqual(1);
+	});
+
+	it('should enforce minimum border width of 2 for thickThin', () => {
+		expect(getCompoundLineBorderWidth('thickThin', 1)).toBeGreaterThanOrEqual(2);
+	});
+
+	it('should return original strokeWidth for unknown compound type', () => {
+		expect(getCompoundLineBorderWidth('quad', 10)).toBe(10);
+	});
+});
+
+describe('getCompoundLineStyle', () => {
+	it('should return empty object for undefined compound line', () => {
+		expect(getCompoundLineStyle(undefined, '#000', 10)).toEqual({});
+	});
+
+	it('should return empty object for single line type', () => {
+		expect(getCompoundLineStyle('sng', '#000', 10)).toEqual({});
+	});
+
+	it('should return empty object for zero stroke width', () => {
+		expect(getCompoundLineStyle('dbl', '#000', 0)).toEqual({});
+	});
+
+	it('should return empty object for negative stroke width', () => {
+		expect(getCompoundLineStyle('dbl', '#000', -5)).toEqual({});
+	});
+
+	it('should return border and boxShadow for double line', () => {
+		const result = getCompoundLineStyle('dbl', '#FF0000', 10);
+		expect(result.borderWidth).toBeDefined();
+		expect(result.borderColor).toBe('#FF0000');
+		expect(result.borderStyle).toBe('solid');
+		expect(result.boxShadow).toBeDefined();
+		expect(result.boxShadow).toContain('inset');
+	});
+
+	it('should return border and boxShadow for thickThin', () => {
+		const result = getCompoundLineStyle('thickThin', '#0000FF', 10);
+		expect(result.borderWidth).toBeDefined();
+		expect(result.borderColor).toBe('#0000FF');
+		expect(result.borderStyle).toBe('solid');
+		expect(result.boxShadow).toBeDefined();
+	});
+
+	it('should return border and boxShadow for thinThick', () => {
+		const result = getCompoundLineStyle('thinThick', '#00FF00', 10);
+		expect(result.borderWidth).toBeDefined();
+		expect(result.borderColor).toBe('#00FF00');
+		expect(result.borderStyle).toBe('solid');
+		expect(result.boxShadow).toBeDefined();
+	});
+
+	it('should return border and boxShadow for triple line', () => {
+		const result = getCompoundLineStyle('tri', '#000', 10);
+		expect(result.borderWidth).toBeDefined();
+		expect(result.borderStyle).toBe('solid');
+		expect(result.boxShadow).toBeDefined();
+	});
+
+	it('thickThin should have larger borderWidth than thinThick', () => {
+		const thickThin = getCompoundLineStyle('thickThin', '#000', 10);
+		const thinThick = getCompoundLineStyle('thinThick', '#000', 10);
+		expect(thickThin.borderWidth).toBeGreaterThan(thinThick.borderWidth!);
+	});
+
+	it('double line should have two equal-width lines', () => {
+		const result = getCompoundLineStyle('dbl', '#000', 10);
+		// outer border width same as the inner line width
+		const outerW = result.borderWidth as number;
+		expect(outerW).toBe(getCompoundLineBorderWidth('dbl', 10));
 	});
 });
 

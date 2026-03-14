@@ -42,6 +42,19 @@ export const SVG_WARP_PRESETS: ReadonlySet<string> = new Set([
   "textInflateTop",
   "textDeflateBottom",
   "textDeflateTop",
+  // Priority 4 – slant, fade, pour, and compound deflate/inflate
+  "textSlantUp",
+  "textSlantDown",
+  "textFadeRight",
+  "textFadeLeft",
+  "textFadeUp",
+  "textFadeDown",
+  "textArchUpPour",
+  "textArchDownPour",
+  "textCirclePour",
+  "textButtonPour",
+  "textDeflateInflate",
+  "textDeflateInflateDeflate",
 ]);
 
 // ── Priority 1 path generators ─────────────────────────────────────────
@@ -266,6 +279,117 @@ function deflateTopPath(w: number, h: number, t: number): string {
   return `M 0,${yBase} Q ${w / 2},${yBase + pinch} ${w},${yBase}`;
 }
 
+// ── Priority 4 path generators ─────────────────────────────────────────
+
+/** Slant up — baseline rises from left to right. */
+function slantUpPath(w: number, h: number, t: number): string {
+  const yStart = h * (0.3 + t * 0.55);
+  const yEnd = h * (0.05 + t * 0.55);
+  return `M 0,${yStart} L ${w},${yEnd}`;
+}
+
+/** Slant down — baseline falls from left to right. */
+function slantDownPath(w: number, h: number, t: number): string {
+  const yStart = h * (0.05 + t * 0.55);
+  const yEnd = h * (0.3 + t * 0.55);
+  return `M 0,${yStart} L ${w},${yEnd}`;
+}
+
+/** Fade right — text narrows towards the right (trapezoid). */
+function fadeRightPath(w: number, h: number, t: number): string {
+  const yLeft = h * (0.1 + t * 0.8);
+  const squeeze = 0.35 * (1 - 2 * t);
+  const yRight = h * (0.5 + squeeze * 0.4);
+  return `M 0,${yLeft} L ${w},${yRight}`;
+}
+
+/** Fade left — text narrows towards the left (trapezoid). */
+function fadeLeftPath(w: number, h: number, t: number): string {
+  const squeeze = 0.35 * (1 - 2 * t);
+  const yLeft = h * (0.5 + squeeze * 0.4);
+  const yRight = h * (0.1 + t * 0.8);
+  return `M 0,${yLeft} L ${w},${yRight}`;
+}
+
+/** Fade up — text narrows towards the top. */
+function fadeUpPath(w: number, h: number, t: number): string {
+  const narrowW = w * 0.3;
+  const lineW = narrowW + t * (w - narrowW);
+  const xStart = (w - lineW) / 2;
+  const yBase = h * (0.1 + t * 0.8);
+  return `M ${xStart},${yBase} L ${xStart + lineW},${yBase}`;
+}
+
+/** Fade down — text narrows towards the bottom. */
+function fadeDownPath(w: number, h: number, t: number): string {
+  const narrowW = w * 0.3;
+  const lineW = w - t * (w - narrowW);
+  const xStart = (w - lineW) / 2;
+  const yBase = h * (0.1 + t * 0.8);
+  return `M ${xStart},${yBase} L ${xStart + lineW},${yBase}`;
+}
+
+/** Arch up pour — hollowed arch upward (like archUp but with inner hole). */
+function archUpPourPath(w: number, h: number, t: number): string {
+  const archH = h * (0.7 - t * 0.5);
+  if (archH < 1) return `M 0,${h} L ${w},${h}`;
+  return `M 0,${h} A ${w / 2},${archH} 0 0,1 ${w},${h}`;
+}
+
+/** Arch down pour — hollowed arch downward. */
+function archDownPourPath(w: number, h: number, t: number): string {
+  const archH = h * (0.2 + t * 0.5);
+  if (archH < 1) return `M 0,0 L ${w},0`;
+  return `M 0,0 A ${w / 2},${archH} 0 0,0 ${w},0`;
+}
+
+/** Circle pour — concentric ellipses (like circle but with an inner gap). */
+function circlePourPath(w: number, h: number, t: number): string {
+  const cx = w / 2;
+  const cy = h / 2;
+  const scale = 0.85 - t * 0.45;
+  const rx = Math.max(1, (w / 2) * scale);
+  const ry = Math.max(1, (h / 2) * scale);
+  return (
+    `M ${cx},${cy - ry} ` +
+    `A ${rx},${ry} 0 1,1 ${cx},${cy + ry} ` +
+    `A ${rx},${ry} 0 1,1 ${cx},${cy - ry}`
+  );
+}
+
+/** Button pour — convex top / concave bottom with larger margins. */
+function buttonPourPath(w: number, h: number, t: number): string {
+  const yBase = h * (0.15 + t * 0.7);
+  const bulge = h * 0.12 * (1 - 2 * t);
+  return `M 0,${yBase} Q ${w / 2},${yBase - bulge} ${w},${yBase}`;
+}
+
+/** Deflate-inflate — pinched in centre top/bottom, expanded at edges. */
+function deflateInflatePath(w: number, h: number, t: number): string {
+  const yBase = h * (0.15 + t * 0.7);
+  const factor = Math.sin(t * Math.PI);
+  const bulge = h * 0.2 * (factor - 0.5);
+  return `M 0,${yBase} Q ${w / 2},${yBase - bulge} ${w},${yBase}`;
+}
+
+/** Deflate-inflate-deflate — triple oscillation. */
+function deflateInflateDeflatePath(
+  w: number,
+  h: number,
+  t: number,
+): string {
+  const yBase = h * (0.15 + t * 0.7);
+  const factor = Math.sin(t * Math.PI * 2);
+  const bulge = h * 0.15 * factor;
+  const q1 = w / 3;
+  const q2 = (2 * w) / 3;
+  return (
+    `M 0,${yBase} ` +
+    `Q ${q1},${yBase - bulge} ${w / 2},${yBase} ` +
+    `Q ${q2},${yBase + bulge} ${w},${yBase}`
+  );
+}
+
 // ── Generator look-up table ────────────────────────────────────────────
 
 export const WARP_PATH_GENERATORS: Readonly<Record<string, WarpPathGenerator>> =
@@ -297,6 +421,18 @@ export const WARP_PATH_GENERATORS: Readonly<Record<string, WarpPathGenerator>> =
     textInflateTop: inflateTopPath,
     textDeflateBottom: deflateBottomPath,
     textDeflateTop: deflateTopPath,
+    textSlantUp: slantUpPath,
+    textSlantDown: slantDownPath,
+    textFadeRight: fadeRightPath,
+    textFadeLeft: fadeLeftPath,
+    textFadeUp: fadeUpPath,
+    textFadeDown: fadeDownPath,
+    textArchUpPour: archUpPourPath,
+    textArchDownPour: archDownPourPath,
+    textCirclePour: circlePourPath,
+    textButtonPour: buttonPourPath,
+    textDeflateInflate: deflateInflatePath,
+    textDeflateInflateDeflate: deflateInflateDeflatePath,
   };
 
 // ── Public API ─────────────────────────────────────────────────────────

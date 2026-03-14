@@ -200,4 +200,35 @@ describe('TextSegmentRenderer', () => {
 			expect(result).toContain('font-variant:small-caps');
 		});
 	});
+
+	describe('picture bullets', () => {
+		it('should use default "-" marker for picture bullets with imageDataUrl', () => {
+			const segments: TextSegment[] = [
+				{
+					text: 'Item with picture bullet',
+					style: {},
+					bulletInfo: {
+						imageRelId: 'rId5',
+						imageDataUrl: 'data:image/png;base64,iVBOR',
+					},
+				},
+			];
+			const result = renderer.render(segments);
+			expect(result).toBe('- Item with picture bullet');
+		});
+
+		it('should use default "-" marker for picture bullets with only imageRelId', () => {
+			const segments: TextSegment[] = [
+				{
+					text: 'Item with picture bullet',
+					style: {},
+					bulletInfo: {
+						imageRelId: 'rId5',
+					},
+				},
+			];
+			const result = renderer.render(segments);
+			expect(result).toBe('- Item with picture bullet');
+		});
+	});
 });

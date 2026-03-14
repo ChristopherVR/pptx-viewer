@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   ensureArrayValue,
   snapToGridValue,
+  shouldRenderFallbackLabel,
 } from "./geometry-image";
+import type { PptxElement } from "pptx-viewer-core";
 import { GRID_SIZE } from "../constants";
 
 describe("ensureArrayValue", () => {
@@ -78,5 +80,81 @@ describe("snapToGridValue", () => {
   it("snaps values just above grid point down", () => {
     // 9: Math.round(9/8)*8 = Math.round(1.125)*8 = 1*8 = 8
     expect(snapToGridValue(9, true)).toBe(8);
+  });
+});
+
+function makeEl(type: string, extras: Record<string, unknown> = {}): PptxElement {
+  return {
+    id: "test-1",
+    type,
+    x: 0,
+    y: 0,
+    width: 100,
+    height: 100,
+    ...extras,
+  } as unknown as PptxElement;
+}
+
+describe("shouldRenderFallbackLabel", () => {
+  it("returns false when element is a text element", () => {
+    expect(shouldRenderFallbackLabel(makeEl("text"), true)).toBe(false);
+  });
+
+  it("returns false for shape elements", () => {
+    expect(shouldRenderFallbackLabel(makeEl("shape"), false)).toBe(false);
+  });
+
+  it("returns false for connector elements", () => {
+    expect(shouldRenderFallbackLabel(makeEl("connector"), false)).toBe(false);
+  });
+
+  it("returns false for picture elements", () => {
+    expect(shouldRenderFallbackLabel(makeEl("picture"), false)).toBe(false);
+  });
+
+  it("returns false for image elements", () => {
+    expect(shouldRenderFallbackLabel(makeEl("image"), false)).toBe(false);
+  });
+
+  it("returns false for table elements", () => {
+    expect(shouldRenderFallbackLabel(makeEl("table"), false)).toBe(false);
+  });
+
+  it("returns false for media elements", () => {
+    expect(shouldRenderFallbackLabel(makeEl("media"), false)).toBe(false);
+  });
+
+  it("returns false for contentPart elements", () => {
+    expect(shouldRenderFallbackLabel(makeEl("contentPart"), false)).toBe(false);
+  });
+
+  it("returns false for model3d elements", () => {
+    expect(shouldRenderFallbackLabel(makeEl("model3d"), false)).toBe(false);
+  });
+
+  it("returns true for chart elements", () => {
+    expect(shouldRenderFallbackLabel(makeEl("chart"), false)).toBe(true);
+  });
+
+  it("returns true for smartArt elements", () => {
+    expect(shouldRenderFallbackLabel(makeEl("smartArt"), false)).toBe(true);
+  });
+
+  it("returns true for unknown elements", () => {
+    expect(shouldRenderFallbackLabel(makeEl("unknown"), false)).toBe(true);
+  });
+
+  it("returns true for OLE element without preview image", () => {
+    expect(shouldRenderFallbackLabel(makeEl("ole"), false)).toBe(true);
+  });
+
+  it("returns false for OLE element with previewImageData", () => {
+    const el = makeEl("ole", { previewImageData: "data:image/png;base64,..." });
+    expect(shouldRenderFallbackLabel(el, false)).toBe(false);
+  });
+
+  it("returns false for OLE element with previewImage", () => {
+    const el = makeEl("ole", { previewImage: "data:image/png;base64,..." });
+    expect(shouldRenderFallbackLabel(el, false)).toBe(false);
   });
 });

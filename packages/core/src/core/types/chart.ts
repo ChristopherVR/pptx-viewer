@@ -228,6 +228,8 @@ export interface PptxChartAxisNumFmt {
 /** Axis formatting for category, value, or date axes. */
 export interface PptxChartAxisFormatting {
   axisType: 'catAx' | 'valAx' | 'dateAx' | 'serAx';
+  /** Axis position: "b" (bottom), "l" (left), "r" (right), "t" (top). */
+  axPos?: 'b' | 'l' | 'r' | 't';
   numFmt?: PptxChartAxisNumFmt;
   titleText?: string;
   spPr?: PptxChartShapeProps;

@@ -2,11 +2,13 @@ import React from "react";
 import type {
   ContentPartPptxElement,
   GroupPptxElement,
+  Model3DPptxElement,
   OlePptxElement,
   PptxElement,
   TextStyle,
 } from "pptx-viewer-core";
 import { hasTextProperties, isInkElement } from "pptx-viewer-core";
+import { Model3DRenderer } from "./Model3DRenderer";
 import { cn } from "../../utils";
 import { DEFAULT_TEXT_COLOR } from "../../constants";
 import type { TableCellEditorState } from "../../types";
@@ -24,6 +26,8 @@ import {
 } from "../../utils";
 import type { ElementFindHighlights } from "../../utils/text-render";
 import type { ElementAnimationState } from "../../utils/animation-timeline";
+import { shouldUseSvgWarp } from "../../utils/text-warp";
+import { WarpedText } from "../../utils/text-warp";
 import { renderImg } from "./ImageRenderer";
 import { InlineTextEditor } from "./InlineTextEditor";
 import {
@@ -65,6 +69,16 @@ export function renderBody(
   handleMediaPlayStateChange?: (isPlaying: boolean) => void,
   presentationElementStates?: ReadonlyMap<string, ElementAnimationState>,
 ): React.ReactNode {
+  if (el.type === "model3d") {
+    return (
+      <Model3DRenderer
+        element={el as Model3DPptxElement}
+        width={el.width}
+        height={el.height}
+        interactive={!isPresentationPassive}
+      />
+    );
+  }
   if (isImg) return renderImg(el, imgStyle, imgFilter, imgAlt, imgOpacity);
   if (isEditing)
     return (
@@ -123,59 +137,109 @@ export function renderBody(
     ? { overflow: "hidden" }
     : {};
 
+  // Determine if the element should use SVG textPath-based warp rendering.
+  const warpPreset = hasTextProperties(el) ? el.textStyle?.textWarpPreset : undefined;
+  const useSvgWarp = shouldUseSvgWarp(warpPreset);
+
   return (
     <>
       {vecShape}
       {isTxtEl ? (
-        <div
-          className={cn(
-            "relative z-10 w-full h-full whitespace-pre-wrap break-words leading-[1.3]",
-            onHyperlinkClick ? "" : "pointer-events-none",
-          )}
-          style={{
-            ...getTextLayoutStyle(el),
-            ...txtS,
-            ...getTextWarpStyle(txtSE),
-            transform: getTextCompensationTransform(el),
-            transformOrigin: "center",
-            ...linkedOverflowCss,
-          }}
-        >
-          {renderTextSegments(
-            el,
-            DEFAULT_TEXT_COLOR,
-            undefined,
-            findHl,
-            onHyperlinkClick,
-            undefined,
-            presentationElementStates,
-          )}
-        </div>
+        useSvgWarp ? (
+          <div
+            className={cn(
+              "relative z-10 w-full h-full",
+              onHyperlinkClick ? "" : "pointer-events-none",
+            )}
+            style={{
+              ...getTextLayoutStyle(el),
+              transform: getTextCompensationTransform(el),
+              transformOrigin: "center",
+              ...linkedOverflowCss,
+            }}
+          >
+            <WarpedText
+              element={el}
+              width={el.width}
+              height={el.height}
+              fallbackColor={DEFAULT_TEXT_COLOR}
+              findHighlights={findHl}
+            />
+          </div>
+        ) : (
+          <div
+            className={cn(
+              "relative z-10 w-full h-full whitespace-pre-wrap break-words leading-[1.3]",
+              onHyperlinkClick ? "" : "pointer-events-none",
+            )}
+            style={{
+              ...getTextLayoutStyle(el),
+              ...txtS,
+              ...getTextWarpStyle(txtSE),
+              transform: getTextCompensationTransform(el),
+              transformOrigin: "center",
+              ...linkedOverflowCss,
+            }}
+          >
+            {renderTextSegments(
+              el,
+              DEFAULT_TEXT_COLOR,
+              undefined,
+              findHl,
+              onHyperlinkClick,
+              undefined,
+              presentationElementStates,
+            )}
+          </div>
+        )
       ) : hasTextProperties(el) && el.promptText ? (
-        <div
-          className={cn(
-            "relative z-10 w-full h-full whitespace-pre-wrap break-words leading-[1.3]",
-            onHyperlinkClick ? "" : "pointer-events-none",
-          )}
-          style={{
-            ...getTextLayoutStyle(el),
-            ...txtS,
-            ...getTextWarpStyle(txtSE),
-            transform: getTextCompensationTransform(el),
-            transformOrigin: "center",
-            ...linkedOverflowCss,
-          }}
-        >
-          {renderTextSegments(
-            el,
-            DEFAULT_TEXT_COLOR,
-            undefined,
-            findHl,
-            onHyperlinkClick,
-            undefined,
-            presentationElementStates,
-          )}
-        </div>
+        useSvgWarp ? (
+          <div
+            className={cn(
+              "relative z-10 w-full h-full",
+              onHyperlinkClick ? "" : "pointer-events-none",
+            )}
+            style={{
+              ...getTextLayoutStyle(el),
+              transform: getTextCompensationTransform(el),
+              transformOrigin: "center",
+              ...linkedOverflowCss,
+            }}
+          >
+            <WarpedText
+              element={el}
+              width={el.width}
+              height={el.height}
+              fallbackColor={DEFAULT_TEXT_COLOR}
+              findHighlights={findHl}
+            />
+          </div>
+        ) : (
+          <div
+            className={cn(
+              "relative z-10 w-full h-full whitespace-pre-wrap break-words leading-[1.3]",
+              onHyperlinkClick ? "" : "pointer-events-none",
+            )}
+            style={{
+              ...getTextLayoutStyle(el),
+              ...txtS,
+              ...getTextWarpStyle(txtSE),
+              transform: getTextCompensationTransform(el),
+              transformOrigin: "center",
+              ...linkedOverflowCss,
+            }}
+          >
+            {renderTextSegments(
+              el,
+              DEFAULT_TEXT_COLOR,
+              undefined,
+              findHl,
+              onHyperlinkClick,
+              undefined,
+              presentationElementStates,
+            )}
+          </div>
+        )
       ) : null}
     </>
   );

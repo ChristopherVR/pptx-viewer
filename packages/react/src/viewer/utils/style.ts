@@ -72,8 +72,9 @@ export function getCssBorderDashStyle(
  * Generate box-shadow approximation for compound line types.
  * Returns a box-shadow string that can be combined with other shadows.
  *
- * This provides a better visual approximation than CSS "double" or "ridge"
- * for all compound line types.
+ * Uses concentric inset box-shadows with spread to create parallel border
+ * lines on all four sides of the shape. The element's CSS border is set to
+ * the outermost line, and inner lines are rendered as inset box-shadows.
  */
 export function getCompoundLineBoxShadow(
   compoundLine: string | undefined,
@@ -89,46 +90,118 @@ export function getCompoundLineBoxShadow(
 
   switch (compoundLine) {
     case "dbl": {
-      // Double line - two equal parallel lines
-      const lineWidth = Math.max(1, Math.ceil(width * 0.35));
-      const gap = Math.max(1, Math.ceil(width * 0.3));
-      const offset = lineWidth + gap;
-      // Inset shadow to create inner line, outset shadow for outer line
-      return `inset 0 ${offset}px 0 ${-lineWidth}px ${color}, inset 0 ${-offset}px 0 ${-lineWidth}px ${color}`;
+      // Double line: outer line is the CSS border, inner line via inset box-shadow.
+      // Outer border width = ~35% of total, gap = ~30%, inner = ~35%
+      const outerW = Math.max(1, Math.round(width * 0.35));
+      const gap = Math.max(1, Math.round(width * 0.3));
+      const innerW = Math.max(1, Math.round(width * 0.35));
+      // Inset shadow: offset inward past outer border + gap, spread = inner line width
+      const inset = outerW + gap;
+      return `inset 0 0 0 ${inset}px transparent, inset 0 0 0 ${inset + innerW}px ${color}`;
     }
 
     case "thickThin": {
-      // Thick line on one side, thin line on the other
-      const thickWidth = Math.max(2, Math.ceil(width * 0.55));
-      const thinWidth = Math.max(1, Math.ceil(width * 0.25));
-      const gap = Math.max(1, Math.ceil(width * 0.2));
-      const thickOffset = thickWidth / 2 + gap;
-      const thinOffset = thickWidth / 2 + gap + thinWidth;
-      return `inset 0 ${thickOffset}px 0 ${-thickWidth}px ${color}, inset 0 ${-thinOffset}px 0 ${-thinWidth}px ${color}`;
+      // Outer thick + inner thin with gap
+      const outerW = Math.max(2, Math.round(width * 0.5));
+      const gap = Math.max(1, Math.round(width * 0.25));
+      const innerW = Math.max(1, Math.round(width * 0.25));
+      const inset = outerW + gap;
+      return `inset 0 0 0 ${inset}px transparent, inset 0 0 0 ${inset + innerW}px ${color}`;
     }
 
     case "thinThick": {
-      // Thin line on one side, thick line on the other
-      const thinWidth = Math.max(1, Math.ceil(width * 0.25));
-      const thickWidth = Math.max(2, Math.ceil(width * 0.55));
-      const gap = Math.max(1, Math.ceil(width * 0.2));
-      const thinOffset = thickWidth / 2 + gap;
-      const thickOffset = thickWidth / 2 + gap + thinWidth;
-      return `inset 0 ${thinOffset}px 0 ${-thinWidth}px ${color}, inset 0 ${-thickOffset}px 0 ${-thickWidth}px ${color}`;
+      // Outer thin + inner thick with gap
+      const outerW = Math.max(1, Math.round(width * 0.25));
+      const gap = Math.max(1, Math.round(width * 0.25));
+      const innerW = Math.max(2, Math.round(width * 0.5));
+      const inset = outerW + gap;
+      return `inset 0 0 0 ${inset}px transparent, inset 0 0 0 ${inset + innerW}px ${color}`;
     }
 
     case "tri": {
-      // Triple line - three equal parallel lines
-      const lineWidth = Math.max(1, Math.ceil(width * 0.25));
-      const gap = Math.max(1, Math.ceil(width * 0.15));
-      const offset1 = lineWidth + gap;
-      const offset2 = (lineWidth + gap) * 2;
-      return `inset 0 0 0 ${-lineWidth}px ${color}, inset 0 ${offset1}px 0 ${-lineWidth}px ${color}, inset 0 ${-offset2}px 0 ${-lineWidth}px ${color}`;
+      // Three parallel lines: outer border, middle inset, inner inset
+      const lineW = Math.max(1, Math.round(width * 0.22));
+      const gap = Math.max(1, Math.round(width * 0.17));
+      const inset1 = lineW + gap;
+      const inset2 = inset1 + lineW + gap;
+      return [
+        `inset 0 0 0 ${inset1}px transparent`,
+        `inset 0 0 0 ${inset1 + lineW}px ${color}`,
+        `inset 0 0 0 ${inset2}px transparent`,
+        `inset 0 0 0 ${inset2 + lineW}px ${color}`,
+      ].join(", ");
     }
 
     default:
       return undefined;
   }
+}
+
+/**
+ * Computes the CSS border width for the outermost line of a compound line style.
+ *
+ * For compound types the CSS border renders the outer line, while inner lines
+ * are rendered via `getCompoundLineBoxShadow`. This function returns the
+ * correct outer border width for each compound type.
+ *
+ * @param compoundLine - The compound line type (e.g. "dbl", "tri").
+ * @param strokeWidth - Total stroke width in pixels.
+ * @returns The outer border width in pixels, or the original strokeWidth for "sng"/undefined.
+ */
+export function getCompoundLineBorderWidth(
+  compoundLine: string | undefined,
+  strokeWidth: number,
+): number {
+  if (!compoundLine || compoundLine === "sng" || strokeWidth <= 0) {
+    return strokeWidth;
+  }
+
+  const width = Math.max(1, strokeWidth);
+
+  switch (compoundLine) {
+    case "dbl":
+      return Math.max(1, Math.round(width * 0.35));
+    case "thickThin":
+      return Math.max(2, Math.round(width * 0.5));
+    case "thinThick":
+      return Math.max(1, Math.round(width * 0.25));
+    case "tri":
+      return Math.max(1, Math.round(width * 0.22));
+    default:
+      return strokeWidth;
+  }
+}
+
+/**
+ * Computes a complete set of CSS properties for rendering compound line borders.
+ *
+ * For single or undefined compound types, returns standard border properties.
+ * For double, thickThin, thinThick, and triple types, returns border properties
+ * for the outer line plus box-shadow for inner parallel lines.
+ *
+ * @param compoundLine - The compound line type from `a:ln/@cmpd`.
+ * @param strokeColor - Resolved stroke colour (with opacity applied).
+ * @param strokeWidth - Total stroke width in pixels.
+ * @returns CSS properties to apply to the shape container element.
+ */
+export function getCompoundLineStyle(
+  compoundLine: string | undefined,
+  strokeColor: string,
+  strokeWidth: number,
+): React.CSSProperties {
+  if (!compoundLine || compoundLine === "sng" || strokeWidth <= 0) {
+    return {};
+  }
+
+  const borderWidth = getCompoundLineBorderWidth(compoundLine, strokeWidth);
+  const boxShadow = getCompoundLineBoxShadow(compoundLine, strokeWidth, strokeColor);
+
+  return {
+    borderWidth,
+    borderColor: strokeColor,
+    borderStyle: "solid",
+    ...(boxShadow ? { boxShadow } : {}),
+  };
 }
 
 /**

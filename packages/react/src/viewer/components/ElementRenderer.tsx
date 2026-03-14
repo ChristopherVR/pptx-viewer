@@ -103,7 +103,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
     const ss = getShapeVisualStyle(el, hf, fc, sw, sc);
     const ts = getTextStyleForElement(el, DEFAULT_TEXT_COLOR);
     const vs = renderVectorShape(el, hf, fc, sw, sc);
-    const isImg = el.type === "picture" || el.type === "image" || el.type === "model3d";
+    const isImg = el.type === "picture" || el.type === "image";
+    const isModel3D = el.type === "model3d";
     const isConn = isConnectorOrLineElement(el);
 
     // ── Full-screen media play state tracking ──
@@ -181,7 +182,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
         style={getContainerStyle({
           el,
           isFullscreenMedia,
-          isImg,
+          isImg: isImg || isModel3D,
           zIndex,
           opacity,
           animationState,

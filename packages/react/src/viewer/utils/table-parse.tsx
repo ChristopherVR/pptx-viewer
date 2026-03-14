@@ -27,4 +27,5 @@ export {
 export {
   updateCellTextInRawXml,
   updateMergeAttrsInRawXml,
+  rebuildTableStructureInRawXml,
 } from "./table-xml-ops";

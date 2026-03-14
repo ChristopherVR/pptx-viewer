@@ -6,15 +6,17 @@ import {
   serializeCellMergeAttributes,
   serializeTablePropertyFlags,
 } from "./save-table-merge-helpers";
+import { rebuildTableXmlFromData } from "./table-structural-ops";
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
   /**
    * Serialise modified `PptxTableData` back into the graphic frame's
    * raw XML so that the round-tripped file preserves edits.
    *
-   * For each row/cell the method updates text content (via a:txBody)
-   * and basic cell properties (fill, alignment). Missing rows or
-   * cells are left untouched to avoid corrupting the XML.
+   * When the number of rows or columns in `PptxTableData` differs from the
+   * existing XML (i.e. structural changes were made), the `<a:tblGrid>` and
+   * `<a:tr>` elements are rebuilt from scratch. Otherwise, the method
+   * updates cells in place, preserving the original XML structure.
    */
   protected serializeTableDataToXml(
     shape: XmlObject,
@@ -30,8 +32,51 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       // ── Serialize table-level properties (tblPr) ──────────────
       serializeTablePropertyFlags(tbl as XmlObject, tableData);
 
+      // ── Detect structural changes (row/column count mismatch) ──
       const xmlRows = this.ensureArray(tbl["a:tr"]);
+      const xmlColCount = this.ensureArray(
+        (tbl as XmlObject)["a:tblGrid"]?.["a:gridCol"],
+      ).length;
+      const dataRowCount = tableData.rows.length;
+      const dataColCount = tableData.columnWidths.length;
 
+      const structureChanged =
+        dataRowCount !== xmlRows.length || dataColCount !== xmlColCount;
+
+      if (structureChanged) {
+        // Rebuild the entire table grid and rows from PptxTableData
+        rebuildTableXmlFromData(
+          tbl as XmlObject,
+          tableData,
+          PptxHandlerRuntime.EMU_PER_PX,
+          this.ensureArray.bind(this),
+        );
+
+        // After rebuilding, apply text and style to all cells
+        const rebuiltRows = this.ensureArray((tbl as XmlObject)["a:tr"]);
+        for (let rIdx = 0; rIdx < tableData.rows.length; rIdx++) {
+          const dataRow = tableData.rows[rIdx];
+          const xmlRow = rebuiltRows[rIdx] as XmlObject | undefined;
+          if (!xmlRow) continue;
+
+          const xmlCells = this.ensureArray(xmlRow["a:tc"]);
+          for (let cIdx = 0; cIdx < dataRow.cells.length; cIdx++) {
+            const cell = dataRow.cells[cIdx];
+            const xmlCell = xmlCells[cIdx] as XmlObject | undefined;
+            if (!xmlCell) continue;
+
+            if (cell.text !== undefined) {
+              this.writeTableCellText(xmlCell, cell.text);
+            }
+            if (cell.style) {
+              this.writeTableCellStyle(xmlCell, cell.style);
+            }
+          }
+        }
+        return;
+      }
+
+      // ── No structural change: update cells in place ──
       for (
         let rIdx = 0;
         rIdx < Math.min(tableData.rows.length, xmlRows.length);

@@ -75,6 +75,15 @@ function parseSingleAxis(
 ): PptxChartAxisFormatting | undefined {
 	const result: PptxChartAxisFormatting = { axisType };
 
+	// Axis position (c:axPos/@val)
+	const axPosNode = xmlLookup.getChildByLocalName(axisNode, 'axPos');
+	if (axPosNode) {
+		const posVal = String(axPosNode['@_val'] || '').trim();
+		if (posVal === 'b' || posVal === 'l' || posVal === 'r' || posVal === 't') {
+			result.axPos = posVal;
+		}
+	}
+
 	// Number format
 	const numFmtNode = xmlLookup.getChildByLocalName(axisNode, 'numFmt');
 	if (numFmtNode) {
