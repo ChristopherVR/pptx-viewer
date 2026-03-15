@@ -211,3 +211,22 @@ export type {
   VirtualizedSlidesResult,
   VirtualizedRange,
 } from "./useVirtualizedSlides";
+
+// Mobile / responsive
+export { useIsMobile } from "./useIsMobile";
+export type {
+  UseIsMobileInput,
+  UseIsMobileResult,
+  DeviceOrientation,
+} from "./useIsMobile";
+export {
+  MOBILE_BREAKPOINT,
+  TABLET_BREAKPOINT,
+  MIN_TOUCH_TARGET,
+} from "./useIsMobile";
+
+export { useTouchGestures } from "./useTouchGestures";
+export type {
+  UseTouchGesturesInput,
+  TouchGestureCallbacks,
+} from "./useTouchGestures";

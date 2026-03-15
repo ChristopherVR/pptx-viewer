@@ -41,13 +41,13 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
   } = p;
 
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="flex items-center gap-1.5 max-md:gap-0.5 flex-wrap">
       {mode !== "present" && (
         <button
           type="button"
           onClick={onToggleSidebar}
           className={cn(
-            "p-1.5 rounded transition-colors",
+            "p-1.5 max-md:p-2.5 max-md:min-h-[44px] max-md:min-w-[44px] rounded transition-colors",
             !isSidebarCollapsed
               ? "bg-primary/80 text-primary-foreground"
               : "bg-muted hover:bg-accent",
@@ -61,7 +61,7 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
       {sep}
       <button
         onClick={onZoomOut}
-        className="p-1.5 rounded bg-muted hover:bg-accent transition-colors"
+        className="p-1.5 max-md:p-2.5 max-md:min-h-[44px] max-md:min-w-[44px] rounded bg-muted hover:bg-accent transition-colors"
         title="Zoom out"
         aria-label="Zoom out"
       >
@@ -69,14 +69,14 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
       </button>
       <button
         onClick={onZoomToFit}
-        className="px-1.5 py-1 rounded bg-muted hover:bg-accent text-[11px] text-muted-foreground tabular-nums min-w-[3rem] text-center transition-colors"
+        className="px-1.5 py-1 max-md:min-h-[44px] rounded bg-muted hover:bg-accent text-[11px] text-muted-foreground tabular-nums min-w-[3rem] text-center transition-colors"
         title="Zoom to fit"
       >
         {Math.round(scale * 100)}%
       </button>
       <button
         onClick={onZoomIn}
-        className="p-1.5 rounded bg-muted hover:bg-accent transition-colors"
+        className="p-1.5 max-md:p-2.5 max-md:min-h-[44px] max-md:min-w-[44px] rounded bg-muted hover:bg-accent transition-colors"
         title="Zoom in"
         aria-label="Zoom in"
       >
@@ -105,12 +105,13 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
           <LuRedo className={ics} />
         </button>
       </div>
+      {/* Hide Find & Replace on mobile to save space — available via overflow menu */}
       {(mode === "edit" || mode === "master") && (
         <button
           type="button"
           onClick={onToggleFindReplace}
           className={cn(
-            "p-1.5 rounded transition-colors",
+            "p-1.5 max-md:p-2.5 max-md:min-h-[44px] max-md:min-w-[44px] rounded transition-colors max-md:hidden",
             findReplaceOpen
               ? "bg-primary/80 text-primary-foreground"
               : "bg-muted hover:bg-accent",
@@ -121,7 +122,7 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
           <LuSearch className={ics} />
         </button>
       )}
-      <div className="flex-1 min-w-2" />
+      <div className="flex-1 min-w-2 max-md:min-w-1" />
       <ModeSwitcher
         mode={p.mode}
         onSetMode={p.onSetMode}
@@ -151,7 +152,7 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
           type="button"
           onClick={onToggleInspector}
           className={cn(
-            "p-1.5 rounded transition-colors",
+            "p-1.5 max-md:p-2.5 max-md:min-h-[44px] max-md:min-w-[44px] rounded transition-colors",
             isInspectorPaneOpen
               ? "bg-primary/80 text-primary-foreground"
               : "bg-muted hover:bg-accent",
