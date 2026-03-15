@@ -41,6 +41,7 @@ import type {
 	ShadowInput,
 	TextStyleInput,
 } from "./types";
+import { svgToCustomGeometryPaths } from "../../geometry/custom-geometry";
 
 // ---------------------------------------------------------------------------
 // ID generation
@@ -564,4 +565,60 @@ export function createGroupElement(
 		rotation: options?.rotation,
 		children,
 	};
+}
+
+/**
+ * Create a freeform shape element from SVG path data.
+ *
+ * Uses a custom geometry (a:custGeom) shape with the provided path data.
+ * The path is parsed into structured {@link CustomGeometryPath} segments
+ * for round-tripping through OOXML serialization.
+ *
+ * @param pathData - An SVG path data string (e.g. `"M 0 0 L 100 50 L 50 100 Z"`).
+ * @param options - Optional position, styling, and size overrides.
+ * @returns A valid {@link ShapePptxElement} with custom geometry.
+ *
+ * @example
+ * ```ts
+ * const el = createFreeformElement("M 0 0 C 33 0 66 100 100 100", {
+ *   stroke: { color: "#FF0000", width: 2 },
+ * });
+ * ```
+ */
+export function createFreeformElement(
+	pathData: string,
+	options?: ShapeOptions,
+): ShapePptxElement {
+	const p = pos("shape", options);
+	const pathWidth = options?.width ?? p.width;
+	const pathHeight = options?.height ?? p.height;
+	const customGeometryPaths = svgToCustomGeometryPaths(
+		pathData,
+		pathWidth,
+		pathHeight,
+	);
+
+	const el: ShapePptxElement = {
+		type: "shape",
+		id: generateId("frm"),
+		...p,
+		rotation: options?.rotation,
+		opacity: options?.opacity,
+		shapeType: "custom",
+		pathData,
+		pathWidth,
+		pathHeight,
+		customGeometryPaths,
+		shapeStyle: buildShapeStyle({
+			fill: options?.fill ?? { type: "none" },
+			stroke: options?.stroke ?? { color: "#000000", width: 2 },
+			shadow: options?.shadow,
+		}),
+	};
+	if (options?.text) {
+		el.text = options.text;
+		el.textStyle = mapTextStyleInput(options.textStyle) as TextStyle;
+		el.textSegments = buildTextSegments(options.text, options.textStyle);
+	}
+	return el;
 }

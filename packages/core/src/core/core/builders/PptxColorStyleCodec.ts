@@ -74,6 +74,9 @@ export interface IPptxColorStyleCodec {
   extractGradientFocalPoint(
     gradFill: XmlObject,
   ): ShapeStyle["fillGradientFocalPoint"];
+  extractGradientFillToRect(
+    gradFill: XmlObject,
+  ): ShapeStyle["fillGradientFillToRect"];
 }
 
 export class PptxColorStyleCodec implements IPptxColorStyleCodec {
@@ -316,5 +319,11 @@ export class PptxColorStyleCodec implements IPptxColorStyleCodec {
     gradFill: XmlObject,
   ): ShapeStyle["fillGradientFocalPoint"] {
     return this.gradientStyleCodec.extractGradientFocalPoint(gradFill);
+  }
+
+  public extractGradientFillToRect(
+    gradFill: XmlObject,
+  ): ShapeStyle["fillGradientFillToRect"] {
+    return this.gradientStyleCodec.extractGradientFillToRect(gradFill);
   }
 }

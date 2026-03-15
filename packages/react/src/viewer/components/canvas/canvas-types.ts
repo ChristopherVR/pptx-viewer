@@ -159,4 +159,12 @@ export interface SlideCanvasProps {
   connectorCreationMode?: boolean;
   /** Called when a new connector is created between two shapes. */
   onCreateConnector?: (connector: ConnectorPptxElement) => void;
+
+  /* ── Zoom element props ───────────────────────────────────────────── */
+  /** All slides in the presentation (for zoom element thumbnails). */
+  allSlides?: readonly PptxSlide[];
+  /** Callback fired when a zoom element is clicked in presentation mode. */
+  onZoomClick?: (targetSlideIndex: number, returnSlideIndex: number) => void;
+  /** Index of the current slide (for zoom return navigation). */
+  sourceSlideIndex?: number;
 }

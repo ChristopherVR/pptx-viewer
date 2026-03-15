@@ -8,6 +8,7 @@ import {
   valueToY,
   formatAxisValue,
   seriesColor,
+  paletteColor,
 } from "./chart-helpers";
 import {
   computeLayout,
@@ -121,7 +122,7 @@ export function renderBoxWhiskerChart(
         y={Math.min(yQ1, yQ3)}
         width={boxW}
         height={Math.abs(yQ1 - yQ3)}
-        fill={PALETTE[ci % PALETTE.length]}
+        fill={paletteColor(ci, chartData.style?.styleId)}
         stroke="#334155"
         strokeWidth={1}
         opacity={0.8}
@@ -230,7 +231,7 @@ export function renderDefaultBarChart(
           y={barY}
           width={singleBarWidth}
           height={barH}
-          fill={seriesColor(series, si)}
+          fill={seriesColor(series, si, chartData.style?.styleId)}
           rx={1}
         />,
       );

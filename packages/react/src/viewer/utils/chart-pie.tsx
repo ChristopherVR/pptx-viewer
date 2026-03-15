@@ -1,7 +1,7 @@
 import React from "react";
 
 import type { PptxElement, PptxChartData } from "pptx-viewer-core";
-import { PALETTE, formatAxisValue } from "./chart-helpers";
+import { PALETTE, formatAxisValue, paletteColor } from "./chart-helpers";
 
 /** Render a pie, doughnut, or 3D pie chart. */
 export function renderPieChart(
@@ -48,7 +48,7 @@ export function renderPieChart(
       <path
         key={`${element.id}-pie-${i}`}
         d={d}
-        fill={chartData.series[0]?.color || PALETTE[i % PALETTE.length]}
+        fill={chartData.series[0]?.color || paletteColor(i, chartData.style?.styleId)}
         stroke="white"
         strokeWidth={1.5}
       />
@@ -104,7 +104,7 @@ export function renderPieChart(
           width={10}
           height={10}
           rx={2}
-          fill={PALETTE[i % PALETTE.length]}
+          fill={paletteColor(i, chartData.style?.styleId)}
         />,
       );
       items.push(

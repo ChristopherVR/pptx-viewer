@@ -1,7 +1,7 @@
 import React from "react";
 
 import type { PptxElement, PptxChartData } from "pptx-viewer-core";
-import { PALETTE, formatAxisValue } from "./chart-helpers";
+import { formatAxisValue, paletteColor } from "./chart-helpers";
 import { computeLayout } from "./chart-layout";
 import { renderTitle, renderLegend } from "./chart-chrome";
 
@@ -52,7 +52,7 @@ export function renderSunburstChart(
         <path
           key={`${element.id}-sb-${si}-${vi}`}
           d={`M ${x1} ${y1} A ${oR} ${oR} 0 ${largeArc} 1 ${x2} ${y2} L ${x3} ${y3} A ${iR} ${iR} 0 ${largeArc} 0 ${x4} ${y4} Z`}
-          fill={PALETTE[vi % PALETTE.length]}
+          fill={paletteColor(vi, chartData.style?.styleId)}
           stroke="#fff"
           strokeWidth={1}
           opacity={0.9 - si * 0.1}
@@ -117,7 +117,7 @@ export function renderFunnelChart(
       <path
         key={`${element.id}-fn-${i}`}
         d={`M ${centerX - topW / 2} ${y} L ${centerX + topW / 2} ${y} L ${centerX + botW / 2} ${y + segH} L ${centerX - botW / 2} ${y + segH} Z`}
-        fill={PALETTE[i % PALETTE.length]}
+        fill={paletteColor(i, chartData.style?.styleId)}
         stroke="#fff"
         strokeWidth={1}
         opacity={0.85}

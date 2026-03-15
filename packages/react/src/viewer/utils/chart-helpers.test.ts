@@ -5,7 +5,9 @@ import {
 	valueToY,
 	formatAxisValue,
 	seriesColor,
+	paletteColor,
 } from './chart-helpers';
+import { getChartStylePalette } from './chart-style-palettes';
 import type { PptxChartSeries } from 'pptx-viewer-core';
 
 describe('computeValueRange', () => {
@@ -184,5 +186,48 @@ describe('seriesColor', () => {
 	it('should prefer series color over palette even at index 0', () => {
 		const series = { name: 'A', values: [], color: '#AABBCC' } as PptxChartSeries;
 		expect(seriesColor(series, 0)).toBe('#AABBCC');
+	});
+
+	it('should use style palette when styleId is provided', () => {
+		const series = { name: 'A', values: [] } as PptxChartSeries;
+		const stylePalette = getChartStylePalette(1);
+		expect(seriesColor(series, 0, 1)).toBe(stylePalette[0]);
+		expect(seriesColor(series, 1, 1)).toBe(stylePalette[1]);
+	});
+
+	it('should still prefer series color even when styleId is provided', () => {
+		const series = { name: 'A', values: [], color: '#FF0000' } as PptxChartSeries;
+		expect(seriesColor(series, 0, 1)).toBe('#FF0000');
+	});
+
+	it('should use default palette when styleId is undefined', () => {
+		const series = { name: 'A', values: [] } as PptxChartSeries;
+		expect(seriesColor(series, 0, undefined)).toBe(PALETTE[0]);
+	});
+
+	it('should return different colours for different styleIds', () => {
+		const series = { name: 'A', values: [] } as PptxChartSeries;
+		const color1 = seriesColor(series, 0, 1);
+		const color10 = seriesColor(series, 0, 10);
+		// Style 1 (colorful) and style 10 (monochromatic) should differ
+		expect(color1).not.toBe(color10);
+	});
+});
+
+describe('paletteColor', () => {
+	it('should return default palette colour when no styleId', () => {
+		expect(paletteColor(0)).toBe(PALETTE[0]);
+		expect(paletteColor(1)).toBe(PALETTE[1]);
+	});
+
+	it('should return style palette colour when styleId is provided', () => {
+		const stylePalette = getChartStylePalette(2);
+		expect(paletteColor(0, 2)).toBe(stylePalette[0]);
+		expect(paletteColor(1, 2)).toBe(stylePalette[1]);
+	});
+
+	it('should wrap around palette length', () => {
+		const stylePalette = getChartStylePalette(3);
+		expect(paletteColor(stylePalette.length, 3)).toBe(stylePalette[0]);
 	});
 });

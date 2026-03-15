@@ -166,31 +166,68 @@ export function renderSegmentContent(
 /**
  * Render an equation segment (inline MathML from OMML).
  * Returns a React node, or `null` if not an equation.
+ *
+ * When `equationNumber` is provided, the equation is rendered centered with
+ * the number right-aligned using a flexbox `justify-content: space-between`
+ * layout, matching the standard academic equation numbering convention.
  */
 export function renderEquationSegment(
   elementId: string,
   segmentIndex: number,
   equationXml: Record<string, unknown>,
+  equationNumber?: string,
 ): React.ReactNode {
   const mathml = convertOmmlToMathMl(equationXml as OmmlNode);
-  if (mathml) {
+
+  const equationContent = mathml ? (
+    <span
+      className="inline-block align-middle"
+      style={{
+        fontFamily: '"Cambria Math", "STIX Two Math", serif',
+      }}
+      dangerouslySetInnerHTML={{ __html: mathml }}
+    />
+  ) : (
+    <span className="inline-block px-1 py-0.5 rounded text-xs bg-gray-200/20 text-gray-400 italic">
+      Equation
+    </span>
+  );
+
+  // When an equation number is provided, wrap in a flex container:
+  // equation centered, number right-aligned.
+  if (equationNumber) {
     return (
       <span
         key={`${elementId}-seg-${segmentIndex}`}
-        className="inline-block align-middle"
         style={{
-          fontFamily: '"Cambria Math", "STIX Two Math", serif',
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          width: "100%",
         }}
-        dangerouslySetInnerHTML={{ __html: mathml }}
-      />
+      >
+        {/* Left spacer to balance the right-aligned number */}
+        <span style={{ visibility: "hidden", whiteSpace: "nowrap" }}>
+          ({equationNumber})
+        </span>
+        <span style={{ textAlign: "center", flex: 1 }}>
+          {equationContent}
+        </span>
+        <span
+          style={{
+            whiteSpace: "nowrap",
+            fontFamily: '"Cambria Math", "STIX Two Math", serif',
+          }}
+        >
+          ({equationNumber})
+        </span>
+      </span>
     );
   }
+
   return (
-    <span
-      key={`${elementId}-seg-${segmentIndex}`}
-      className="inline-block px-1 py-0.5 rounded text-xs bg-gray-200/20 text-gray-400 italic"
-    >
-      Equation
+    <span key={`${elementId}-seg-${segmentIndex}`}>
+      {equationContent}
     </span>
   );
 }
@@ -218,6 +255,8 @@ export function renderPictureBullet(
 
   // Fallback: when no resolved image data URL is available, render a
   // default character bullet instead of a broken <img>.
+  // Uses marginInlineEnd so that the spacing is correct in both LTR
+  // (margin appears on the right) and RTL (margin appears on the left).
   if (!bulletInfo.imageDataUrl) {
     return (
       <span
@@ -226,7 +265,7 @@ export function renderPictureBullet(
           fontSize: bulletSize,
           display: "inline-block",
           verticalAlign: "middle",
-          marginRight: 4,
+          marginInlineEnd: 4,
           color: bulletInfo.color || undefined,
           fontFamily: bulletInfo.fontFamily || undefined,
         }}
@@ -247,7 +286,7 @@ export function renderPictureBullet(
         height: bulletSize,
         display: "inline-block",
         verticalAlign: "middle",
-        marginRight: 4,
+        marginInlineEnd: 4,
         objectFit: "contain",
       }}
     />
@@ -255,25 +294,87 @@ export function renderPictureBullet(
 }
 
 /**
- * Resolve an OOXML underline / strikethrough style to a CSS
- * `text-decoration-style` value.
+ * CSS properties that fully describe the visual appearance of an underline
+ * or strikethrough decoration. Returned by {@link resolveUnderlineDecorationStyle}.
+ */
+export interface UnderlineDecorationCss {
+  textDecorationStyle?: React.CSSProperties["textDecorationStyle"];
+  textDecorationThickness?: string;
+  textUnderlineOffset?: string;
+}
+
+/**
+ * Resolve an OOXML underline / strikethrough style to a set of CSS
+ * text-decoration properties that make all 16 underline types visually
+ * distinct.
+ *
+ * CSS `text-decoration-style` only has 5 variants (solid, double, dotted,
+ * dashed, wavy), so we use `text-decoration-thickness` to differentiate
+ * heavy variants and `text-underline-offset` for additional visual
+ * separation where compound patterns (dotDash, dotDotDash, dashLong)
+ * share the same CSS base style.
  */
 export function resolveUnderlineDecorationStyle(
   isDoubleStrike: boolean,
   underlineStyle?: string,
-): React.CSSProperties["textDecorationStyle"] | undefined {
-  if (isDoubleStrike) return "double";
-  if (!underlineStyle) return undefined;
-  const u = underlineStyle;
-  if (u === "dbl" || u === "wavyDbl") return "double";
-  if (u === "wavy" || u === "wavyHeavy") return "wavy";
-  if (u === "dotted" || u === "dottedHeavy") return "dotted";
-  if (
-    u === "dash" ||
-    u === "dashHeavy" ||
-    u === "dashLong" ||
-    u === "dashLongHeavy"
-  )
-    return "dashed";
-  return undefined;
+): UnderlineDecorationCss | undefined {
+  if (isDoubleStrike) return { textDecorationStyle: "double" };
+  if (!underlineStyle || underlineStyle === "none") return undefined;
+
+  switch (underlineStyle) {
+    // ── Single / default ──
+    case "sng":
+      return { textDecorationStyle: "solid", textDecorationThickness: "1px" };
+
+    // ── Double ──
+    case "dbl":
+      return { textDecorationStyle: "double", textDecorationThickness: "1px" };
+
+    // ── Heavy (thick solid) ──
+    case "heavy":
+      return { textDecorationStyle: "solid", textDecorationThickness: "3px" };
+
+    // ── Dotted ──
+    case "dotted":
+      return { textDecorationStyle: "dotted", textDecorationThickness: "1px" };
+    case "dottedHeavy":
+      return { textDecorationStyle: "dotted", textDecorationThickness: "3px" };
+
+    // ── Dashed ──
+    case "dash":
+      return { textDecorationStyle: "dashed", textDecorationThickness: "1px" };
+    case "dashHeavy":
+      return { textDecorationStyle: "dashed", textDecorationThickness: "3px" };
+
+    // ── Long dashed (offset to distinguish from regular dash) ──
+    case "dashLong":
+      return { textDecorationStyle: "dashed", textDecorationThickness: "1px", textUnderlineOffset: "3px" };
+    case "dashLongHeavy":
+      return { textDecorationStyle: "dashed", textDecorationThickness: "3px", textUnderlineOffset: "3px" };
+
+    // ── Dot-dash (CSS closest: dashed with offset) ──
+    case "dotDash":
+      return { textDecorationStyle: "dashed", textDecorationThickness: "1px", textUnderlineOffset: "2px" };
+    case "dotDashHeavy":
+      return { textDecorationStyle: "dashed", textDecorationThickness: "3px", textUnderlineOffset: "2px" };
+
+    // ── Dot-dot-dash (CSS closest: dotted with offset) ──
+    case "dotDotDash":
+      return { textDecorationStyle: "dotted", textDecorationThickness: "1px", textUnderlineOffset: "3px" };
+    case "dotDotDashHeavy":
+      return { textDecorationStyle: "dotted", textDecorationThickness: "3px", textUnderlineOffset: "3px" };
+
+    // ── Wavy ──
+    case "wavy":
+      return { textDecorationStyle: "wavy", textDecorationThickness: "1px" };
+    case "wavyHeavy":
+      return { textDecorationStyle: "wavy", textDecorationThickness: "3px" };
+
+    // ── Wavy double (wavy + thicker as closest CSS approximation) ──
+    case "wavyDbl":
+      return { textDecorationStyle: "wavy", textDecorationThickness: "2px", textUnderlineOffset: "1px" };
+
+    default:
+      return undefined;
+  }
 }

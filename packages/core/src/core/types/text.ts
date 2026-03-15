@@ -396,6 +396,11 @@ export interface TextSegment {
   fieldGuid?: string;
   /** Raw OMML XML node for equation segments (from `a14:m` / `m:oMathPara`). */
   equationXml?: Record<string, unknown>;
+  /**
+   * Optional equation number for numbered equations (e.g. "(1)", "(2.3)").
+   * When present, the equation is rendered centered with the number right-aligned.
+   */
+  equationNumber?: string;
   /** Whether this segment represents a paragraph break rather than renderable text. */
   isParagraphBreak?: boolean;
   /** Structured bullet info for the first segment of a paragraph. */

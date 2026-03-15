@@ -109,6 +109,12 @@ export interface SlideCanvasProps {
   onCreateGuideFromRuler?: (axis: "h" | "v", positionPx: number) => void;
   connectorCreationMode?: boolean;
   onCreateConnector?: (connector: ConnectorPptxElement) => void;
+  /** All slides in the presentation (for zoom element thumbnails). */
+  allSlides?: readonly PptxSlide[];
+  /** Callback fired when a zoom element is clicked in presentation mode. */
+  onZoomClick?: (targetSlideIndex: number, returnSlideIndex: number) => void;
+  /** Index of the current slide (for zoom return navigation). */
+  sourceSlideIndex?: number;
 }
 
 export type {

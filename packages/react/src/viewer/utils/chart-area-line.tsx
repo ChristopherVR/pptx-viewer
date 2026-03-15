@@ -60,7 +60,7 @@ export function renderAreaChart(
             return { x, y };
           });
           const linePath = pts.map((p) => `${p.x},${p.y}`).join(" ");
-          const c = seriesColor(series, si);
+          const c = seriesColor(series, si, chartData.style?.styleId);
           const baselineY = valueToY(
             0,
             range,
@@ -182,7 +182,7 @@ export function renderLineChart(
             const y = valueToY(value, activeRange, layout.plotTop, layout.plotBottom);
             return { x, y, value };
           });
-          const c = seriesColor(series, seriesIndex);
+          const c = seriesColor(series, seriesIndex, chartData.style?.styleId);
           return (
             <g key={`${element.id}-line-g-${seriesIndex}`}>
               <polyline

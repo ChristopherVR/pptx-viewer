@@ -19,6 +19,8 @@ export {
   sanitizeGradientStops,
   toCssGradientStop,
   buildCssGradientFromShapeStyle,
+  buildRectPathGradient,
+  buildShapePathGradient,
   buildPatternFillCss,
   OOXML_PATTERN_PRESETS,
   type OoxmlPatternPreset,

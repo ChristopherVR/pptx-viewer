@@ -21,7 +21,7 @@ import { getKinsokuLineBreakStyles } from "./kinsoku-styles";
  * Returns `true` for RTL, `false` for explicit LTR, or `undefined` when
  * no explicit direction is set (inherits element-level default).
  */
-function resolveParagraphRtl(
+export function resolveParagraphRtl(
   paraSegments: ReadonlyArray<ParagraphEntry>,
   elementRtl: boolean | undefined,
 ): boolean | undefined {
@@ -34,6 +34,43 @@ function resolveParagraphRtl(
   return elementRtl;
 }
 
+/**
+ * Resolve per-paragraph explicit text alignment from segment styles.
+ * Returns the OOXML alignment value if any segment carries an explicit `align`
+ * property, or `undefined` when no explicit alignment is set.
+ */
+export function resolveParagraphAlign(
+  paraSegments: ReadonlyArray<ParagraphEntry>,
+  elementAlign: TextStyle["align"] | undefined,
+): TextStyle["align"] | undefined {
+  for (const entry of paraSegments) {
+    const segAlign = entry.segment.style?.align;
+    if (segAlign !== undefined) {
+      return segAlign;
+    }
+  }
+  return elementAlign;
+}
+
+/**
+ * Map OOXML alignment + RTL direction to a CSS `textAlign` value.
+ *
+ * When no explicit alignment is set and the paragraph is RTL, defaults to
+ * `"right"`. For LTR, defaults to `"left"`. Special OOXML alignment values
+ * (`justLow`, `dist`, `thaiDist`) map to CSS `"justify"`.
+ */
+export function resolveCssTextAlign(
+  align: TextStyle["align"] | undefined,
+  isRtl: boolean,
+): React.CSSProperties["textAlign"] | undefined {
+  if (align === "justLow" || align === "dist" || align === "thaiDist") {
+    return "justify";
+  }
+  if (align) return align as React.CSSProperties["textAlign"];
+  // Default: RTL paragraphs align right, LTR paragraphs align left
+  return isRtl ? "right" : undefined;
+}
+
 function groupSegmentsIntoParagraphs(
   segments: ReadonlyArray<{
     text: string;
@@ -41,6 +78,7 @@ function groupSegmentsIntoParagraphs(
     bulletInfo?: BulletInfo;
     fieldType?: string;
     equationXml?: Record<string, unknown>;
+    equationNumber?: string;
     rubyText?: string;
     rubyAlignment?: string;
     rubyFontSize?: number;
@@ -76,7 +114,7 @@ export function renderTextSegments(
   /** Per-sub-element animation states for text build animations. */
   subElementAnimStates?: ReadonlyMap<string, ElementAnimationState>,
   /** When provided, these segments replace element.textSegments for rendering (used by linked text box overflow). */
-  segmentOverrides?: ReadonlyArray<{ text: string; style: TextStyle; bulletInfo?: BulletInfo; fieldType?: string; equationXml?: Record<string, unknown>; isParagraphBreak?: boolean; rubyText?: string; rubyAlignment?: string; rubyFontSize?: number; rubyStyle?: TextStyle }>,
+  segmentOverrides?: ReadonlyArray<{ text: string; style: TextStyle; bulletInfo?: BulletInfo; fieldType?: string; equationXml?: Record<string, unknown>; equationNumber?: string; isParagraphBreak?: boolean; rubyText?: string; rubyAlignment?: string; rubyFontSize?: number; rubyStyle?: TextStyle }>,
 ): React.ReactNode {
   if (!hasTextProperties(element)) return emptyFallback || null;
 
@@ -107,13 +145,17 @@ export function renderTextSegments(
     ? element.textStyle?.rtl
     : undefined;
 
+  const elementAlign = hasTextProperties(element)
+    ? element.textStyle?.align
+    : undefined;
+
   return paragraphs.map((paraSegments, paraIndex) => {
     const paraIndent = paragraphIndents?.[paraIndex];
-    const paraMarginLeft =
+    const rawMarginLeft =
       typeof paraIndent?.marginLeft === "number" && paraIndent.marginLeft !== 0
         ? paraIndent.marginLeft
         : undefined;
-    const paraTextIndent =
+    const rawTextIndent =
       typeof paraIndent?.indent === "number" && paraIndent.indent !== 0
         ? paraIndent.indent
         : undefined;
@@ -122,6 +164,17 @@ export function renderTextSegments(
     const bulletInfo = firstSeg?.segment.bulletInfo;
     const hasBullet = bulletInfo && !bulletInfo.none;
     const paraRtl = resolveParagraphRtl(paraSegments, elementRtl);
+    const isRtlParagraph = paraRtl === true;
+
+    // Resolve explicit paragraph alignment from segment styles
+    const paraAlign = resolveParagraphAlign(paraSegments, elementAlign);
+    const cssTextAlign = resolveCssTextAlign(paraAlign, isRtlParagraph);
+
+    // For RTL paragraphs, swap marginLeft/textIndent to marginRight
+    // so bullets and indentation appear on the correct (right) side.
+    const paraMarginLeft = isRtlParagraph ? undefined : rawMarginLeft;
+    const paraMarginRight = isRtlParagraph ? rawMarginLeft : undefined;
+    const paraTextIndent = rawTextIndent;
 
     // Per-paragraph kinsoku line-breaking styles from the first segment's style.
     // Paragraph-level properties (eaLineBreak, hangingPunctuation, latinLineBreak)
@@ -135,19 +188,31 @@ export function renderTextSegments(
     if (paraMarginLeft !== undefined) {
       paraStyle.marginLeft = paraMarginLeft;
     }
+    if (paraMarginRight !== undefined) {
+      paraStyle.marginRight = paraMarginRight;
+    }
     if (paraTextIndent !== undefined) {
       paraStyle.textIndent = paraTextIndent;
     }
     if (paraRtl !== undefined) {
       paraStyle.direction = paraRtl ? "rtl" : "ltr";
-      paraStyle.unicodeBidi = "plaintext";
+      // Use 'embed' so the paragraph establishes a BiDi embedding level.
+      // This ensures numbers within RTL text render LTR naturally per the
+      // Unicode Bidi Algorithm, while 'plaintext' is used as a fallback
+      // only at the element/body level.
+      paraStyle.unicodeBidi = "embed";
+    }
+    if (cssTextAlign !== undefined) {
+      paraStyle.textAlign = cssTextAlign;
     }
 
     const needsWrapper =
       paraMarginLeft !== undefined ||
+      paraMarginRight !== undefined ||
       paraTextIndent !== undefined ||
       hasBullet ||
       paraRtl !== undefined ||
+      cssTextAlign !== undefined ||
       hasParaKinsoku;
 
     const renderedSegments = paraSegments.map(({ segment, globalIndex }) =>

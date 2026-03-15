@@ -109,6 +109,8 @@ export interface PptxTableCellStyle {
   gradientFillPathType?: "circle" | "rect" | "shape";
   /** Focal point for radial gradients (0–1 fractions). */
   gradientFillFocalPoint?: { x: number; y: number };
+  /** Raw fillToRect LTRB values (0–1 fractions) for gradient sizing. */
+  gradientFillFillToRect?: { l: number; t: number; r: number; b: number };
   /** Pre-computed CSS gradient string for rendering. */
   gradientFillCss?: string;
   /** Pattern fill preset name (e.g. "ltDnDiag"). */

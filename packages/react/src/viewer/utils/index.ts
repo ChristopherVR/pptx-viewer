@@ -25,3 +25,4 @@ export * from "./handout-layout-utils";
 export * from "./linked-text-box-overflow";
 export * from "./ink-rendering";
 export * from "./accessibility";
+export * from "./sparkline-renderer";

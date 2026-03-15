@@ -30,6 +30,9 @@ export interface PptxShapeStyleExtractorContext {
   extractGradientFocalPoint: (
     gradFill: XmlObject,
   ) => ShapeStyle["fillGradientFocalPoint"];
+  extractGradientFillToRect: (
+    gradFill: XmlObject,
+  ) => ShapeStyle["fillGradientFillToRect"];
   normalizeStrokeDashType: (value: unknown) => StrokeDashType | undefined;
   normalizeConnectorArrowType: (
     value: unknown,
@@ -90,6 +93,8 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
         this.context.extractGradientPathType(gradFill);
       style.fillGradientFocalPoint =
         this.context.extractGradientFocalPoint(gradFill);
+      style.fillGradientFillToRect =
+        this.context.extractGradientFillToRect(gradFill);
     } else if (pattFill) {
       style.fillMode = "pattern";
       style.fillColor =

@@ -84,4 +84,10 @@ export interface ElementRendererProps {
   animationState?: ElementAnimationState;
   /** Full animation states map for sub-element text-build animations. */
   presentationElementStates?: ReadonlyMap<string, ElementAnimationState>;
+  /** All slides in the presentation (for zoom element thumbnails). */
+  allSlides?: readonly PptxSlide[];
+  /** Callback fired when a zoom element is clicked in presentation mode. */
+  onZoomClick?: (targetSlideIndex: number, returnSlideIndex: number) => void;
+  /** Index of the slide that contains this element (for zoom return navigation). */
+  sourceSlideIndex?: number;
 }

@@ -22,6 +22,7 @@ import {
   applyBuildList,
   extractTriggerShapeId,
   ensureArray,
+  parseConditionList,
 } from "./native-animation-helpers";
 import {
   extractColorAnimation,
@@ -159,11 +160,16 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
         }
       }
 
+      // Parse structured conditions from stCondLst and endCondLst
+      const startConditions = parseConditionList(stCondList);
+      const endCondListXml = cTn["p:endCondLst"] as XmlObject | undefined;
+      const endConditions = parseConditionList(endCondListXml);
+
       // Extract sound actions from this timing node
       const soundInfo = extractSoundAction(cTn);
 
       // Preserve p:endCondLst for lossless round-trip
-      const rawEndCondLst = cTn["p:endCondLst"] as XmlObject | undefined;
+      const rawEndCondLst = endCondListXml;
 
       // Extract the target shape ID from child behavior nodes
       const targetId = extractAnimationTargetId(cTn);
@@ -200,6 +206,8 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
           autoReverse: repeatInfo.autoReverse,
           soundRId: soundInfo.soundRId,
           stopSound: soundInfo.stopSound,
+          startConditions: startConditions ?? undefined,
+          endConditions: endConditions ?? undefined,
           rawEndCondLst: rawEndCondLst ?? undefined,
           colorAnimation: colorAnimation ?? undefined,
           iterate: iterateInfo ?? undefined,

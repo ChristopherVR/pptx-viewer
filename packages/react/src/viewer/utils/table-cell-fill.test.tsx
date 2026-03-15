@@ -65,7 +65,7 @@ describe("parseGradientFillCss", () => {
     expect(result).toContain("radial-gradient(circle");
   });
 
-  it("produces a radial ellipse for a:path with rect", () => {
+  it("produces a sized radial gradient for a:path with rect", () => {
     const gradFill = {
       "a:gsLst": {
         "a:gs": {
@@ -77,7 +77,122 @@ describe("parseGradientFillCss", () => {
     };
     const result = parseGradientFillCss(gradFill);
     expect(result).toBeDefined();
-    expect(result).toContain("radial-gradient(ellipse");
+    // rect path gradient uses explicit percentage sizing instead of "ellipse"
+    expect(result).toContain("radial-gradient(");
+    expect(result).toContain("at 50% 50%");
+  });
+
+  it("uses fillToRect to position rect path gradient center", () => {
+    const gradFill = {
+      "a:gsLst": {
+        "a:gs": [
+          { "@_pos": "0", "a:srgbClr": { "@_val": "FFFFFF" } },
+          { "@_pos": "100000", "a:srgbClr": { "@_val": "000000" } },
+        ],
+      },
+      "a:path": {
+        "@_path": "rect",
+        "a:fillToRect": {
+          "@_l": "25000",  // 25%
+          "@_t": "25000",  // 25%
+          "@_r": "25000",  // 25%
+          "@_b": "25000",  // 25%
+        },
+      },
+    };
+    const result = parseGradientFillCss(gradFill);
+    expect(result).toBeDefined();
+    // Center at ((0.25 + (1-0.25))/2)*100 = 50%
+    expect(result).toContain("at 50% 50%");
+    // Semi-axes: max(50, 50) = 50
+    expect(result).toContain("50% 50% at");
+  });
+
+  it("uses fillToRect to offset rect path gradient to top-left", () => {
+    const gradFill = {
+      "a:gsLst": {
+        "a:gs": [
+          { "@_pos": "0", "a:srgbClr": { "@_val": "FFFFFF" } },
+          { "@_pos": "100000", "a:srgbClr": { "@_val": "000000" } },
+        ],
+      },
+      "a:path": {
+        "@_path": "rect",
+        "a:fillToRect": {
+          "@_l": "0",
+          "@_t": "0",
+          "@_r": "100000",  // 100%
+          "@_b": "100000",  // 100%
+        },
+      },
+    };
+    const result = parseGradientFillCss(gradFill);
+    expect(result).toBeDefined();
+    // Center at ((0 + (1-1))/2)*100 = 0%
+    expect(result).toContain("at 0% 0%");
+  });
+
+  it("produces farthest-side radial for a:path with shape", () => {
+    const gradFill = {
+      "a:gsLst": {
+        "a:gs": [
+          { "@_pos": "0", "a:srgbClr": { "@_val": "FF0000" } },
+          { "@_pos": "100000", "a:srgbClr": { "@_val": "0000FF" } },
+        ],
+      },
+      "a:path": { "@_path": "shape" },
+    };
+    const result = parseGradientFillCss(gradFill);
+    expect(result).toBeDefined();
+    expect(result).toContain("farthest-side");
+    expect(result).not.toContain("circle");
+  });
+
+  it("uses fillToRect for shape path gradient positioning", () => {
+    const gradFill = {
+      "a:gsLst": {
+        "a:gs": [
+          { "@_pos": "0", "a:srgbClr": { "@_val": "FF0000" } },
+          { "@_pos": "100000", "a:srgbClr": { "@_val": "0000FF" } },
+        ],
+      },
+      "a:path": {
+        "@_path": "shape",
+        "a:fillToRect": {
+          "@_l": "50000",
+          "@_t": "50000",
+          "@_r": "50000",
+          "@_b": "50000",
+        },
+      },
+    };
+    const result = parseGradientFillCss(gradFill);
+    expect(result).toBeDefined();
+    expect(result).toContain("farthest-side at 50% 50%");
+  });
+
+  it("uses fillToRect for circle path gradient positioning", () => {
+    const gradFill = {
+      "a:gsLst": {
+        "a:gs": [
+          { "@_pos": "0", "a:srgbClr": { "@_val": "FFFFFF" } },
+          { "@_pos": "100000", "a:srgbClr": { "@_val": "000000" } },
+        ],
+      },
+      "a:path": {
+        "@_path": "circle",
+        "a:fillToRect": {
+          "@_l": "25000",
+          "@_t": "75000",
+          "@_r": "25000",
+          "@_b": "75000",
+        },
+      },
+    };
+    const result = parseGradientFillCss(gradFill);
+    expect(result).toBeDefined();
+    // Center: ((0.25 + (1-0.25))/2)*100 = 50%, ((0.75 + (1-0.75))/2)*100 = 50%
+    expect(result).toContain("circle at 50% 50%");
   });
 
   it("defaults to 180deg linear when no a:lin or a:path", () => {

@@ -27,11 +27,16 @@ export interface IPptxGradientStyleCodec {
   extractGradientFocalPoint(
     gradFill: XmlObject,
   ): ShapeStyle["fillGradientFocalPoint"];
+  extractGradientFillToRect(
+    gradFill: XmlObject,
+  ): ShapeStyle["fillGradientFillToRect"];
   buildGradientCssFromStops(
     stops: NonNullable<ShapeStyle["fillGradientStops"]>,
     type: NonNullable<ShapeStyle["fillGradientType"]>,
     angle: number,
     focalPoint?: ShapeStyle["fillGradientFocalPoint"],
+    pathType?: ShapeStyle["fillGradientPathType"],
+    fillToRect?: ShapeStyle["fillGradientFillToRect"],
   ): string | undefined;
   extractGradientFillCss(gradFill: XmlObject): string | undefined;
   buildGradientFillXml(shapeStyle: ShapeStyle): XmlObject | undefined;
@@ -153,6 +158,27 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
     return { x, y };
   }
 
+  public extractGradientFillToRect(
+    gradFill: XmlObject,
+  ): ShapeStyle["fillGradientFillToRect"] {
+    const pathNode = gradFill["a:path"] as XmlObject | undefined;
+    if (!pathNode) return undefined;
+    const fillToRect = pathNode["a:fillToRect"] as XmlObject | undefined;
+    if (!fillToRect) return undefined;
+
+    const l = Number.parseInt(String(fillToRect["@_l"] || "0"), 10);
+    const t = Number.parseInt(String(fillToRect["@_t"] || "0"), 10);
+    const r = Number.parseInt(String(fillToRect["@_r"] || "0"), 10);
+    const b = Number.parseInt(String(fillToRect["@_b"] || "0"), 10);
+
+    return {
+      l: Number.isFinite(l) ? this.context.clampUnitInterval(l / 100000) : 0,
+      t: Number.isFinite(t) ? this.context.clampUnitInterval(t / 100000) : 0,
+      r: Number.isFinite(r) ? this.context.clampUnitInterval(r / 100000) : 0,
+      b: Number.isFinite(b) ? this.context.clampUnitInterval(b / 100000) : 0,
+    };
+  }
+
   public extractGradientAngle(gradFill: XmlObject): number {
     const angleRaw = Number.parseInt(
       String((gradFill["a:lin"] as XmlObject | undefined)?.["@_ang"] || ""),
@@ -168,6 +194,8 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
     type: NonNullable<ShapeStyle["fillGradientType"]>,
     angle: number,
     focalPoint?: ShapeStyle["fillGradientFocalPoint"],
+    pathType?: ShapeStyle["fillGradientPathType"],
+    fillToRect?: ShapeStyle["fillGradientFillToRect"],
   ): string | undefined {
     if (stops.length === 0) return undefined;
 
@@ -183,9 +211,33 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
     });
 
     if (type === "radial") {
-      const posX = focalPoint ? `${Math.round(focalPoint.x * 100)}%` : "center";
-      const posY = focalPoint ? `${Math.round(focalPoint.y * 100)}%` : "center";
-      return `radial-gradient(circle at ${posX} ${posY}, ${stopTokens.join(", ")})`;
+      const stopStr = stopTokens.join(", ");
+      const resolvedPathType = pathType || "circle";
+
+      // Compute center from fillToRect if available
+      let cx = 50;
+      let cy = 50;
+      if (fillToRect) {
+        cx = ((fillToRect.l + (1 - fillToRect.r)) / 2) * 100;
+        cy = ((fillToRect.t + (1 - fillToRect.b)) / 2) * 100;
+      } else if (focalPoint) {
+        cx = focalPoint.x * 100;
+        cy = focalPoint.y * 100;
+      }
+      const posX = `${Math.round(cx)}%`;
+      const posY = `${Math.round(cy)}%`;
+
+      if (resolvedPathType === "rect") {
+        const semiX = Math.max(cx, 100 - cx);
+        const semiY = Math.max(cy, 100 - cy);
+        return `radial-gradient(${Math.round(semiX)}% ${Math.round(semiY)}% at ${posX} ${posY}, ${stopStr})`;
+      }
+
+      if (resolvedPathType === "shape") {
+        return `radial-gradient(farthest-side at ${posX} ${posY}, ${stopStr})`;
+      }
+
+      return `radial-gradient(circle at ${posX} ${posY}, ${stopStr})`;
     }
     return `linear-gradient(${angle.toFixed(2)}deg, ${stopTokens.join(", ")})`;
   }
@@ -199,6 +251,8 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
       this.extractGradientType(gradFill),
       this.extractGradientAngle(gradFill),
       this.extractGradientFocalPoint(gradFill),
+      this.extractGradientPathType(gradFill),
+      this.extractGradientFillToRect(gradFill),
     );
   }
 
@@ -254,7 +308,15 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
       const pathXml: XmlObject = {
         "@_path": pathType,
       };
-      if (shapeStyle.fillGradientFocalPoint) {
+      if (shapeStyle.fillGradientFillToRect) {
+        const ftr = shapeStyle.fillGradientFillToRect;
+        pathXml["a:fillToRect"] = {
+          "@_l": String(Math.round(ftr.l * 100000)),
+          "@_t": String(Math.round(ftr.t * 100000)),
+          "@_r": String(Math.round(ftr.r * 100000)),
+          "@_b": String(Math.round(ftr.b * 100000)),
+        };
+      } else if (shapeStyle.fillGradientFocalPoint) {
         const fp = shapeStyle.fillGradientFocalPoint;
         // Convert focal point back to fillToRect LTRB values
         const l = Math.round(fp.x * 100000);

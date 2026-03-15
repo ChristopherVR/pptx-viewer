@@ -1,7 +1,7 @@
 import React from "react";
 
 import type { PptxElement, PptxChartData } from "pptx-viewer-core";
-import { PALETTE, computeValueRange } from "./chart-helpers";
+import { computeValueRange, paletteColor } from "./chart-helpers";
 import { computeLayout } from "./chart-layout";
 import { renderTitle, renderLegend, renderChrome } from "./chart-chrome";
 
@@ -110,7 +110,7 @@ export function renderTreemapChart(
         y={curY}
         width={Math.max(w - 1, 1)}
         height={Math.max(h - 1, 1)}
-        fill={PALETTE[item.index % PALETTE.length]}
+        fill={paletteColor(item.index, chartData.style?.styleId)}
         rx={2}
         opacity={0.85}
       />,

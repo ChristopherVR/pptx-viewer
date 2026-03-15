@@ -76,7 +76,7 @@ export function renderLegend(
           width={10}
           height={10}
           rx={2}
-          fill={seriesColor(s, i)}
+          fill={seriesColor(s, i, style?.styleId)}
         />,
       );
       items.push(
@@ -109,7 +109,7 @@ export function renderLegend(
               width={10}
               height={10}
               rx={2}
-              fill={seriesColor(s, i)}
+              fill={seriesColor(s, i, style?.styleId)}
             />
             <text x={x + 14} y={cy + 8} fontSize={9} fill="#475569">
               {s.name || `Series ${i + 1}`}

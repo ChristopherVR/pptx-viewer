@@ -5,7 +5,9 @@ import type {
   Model3DPptxElement,
   OlePptxElement,
   PptxElement,
+  PptxSlide,
   TextStyle,
+  ZoomPptxElement,
 } from "pptx-viewer-core";
 import { hasTextProperties, isInkElement, getLinkedTextBoxSegments } from "pptx-viewer-core";
 import { Model3DRenderer } from "./Model3DRenderer";
@@ -36,6 +38,7 @@ import {
   renderContentPart,
   renderOleElement,
 } from "./InkGroupRenderers";
+import { ZoomElementRenderer } from "./ZoomElementRenderer";
 
 export function renderBody(
   el: PptxElement,
@@ -70,6 +73,12 @@ export function renderBody(
   presentationElementStates?: ReadonlyMap<string, ElementAnimationState>,
   /** All elements on the current slide, used for linked text box overflow distribution. */
   slideElements?: readonly PptxElement[],
+  /** All slides in the presentation, used for zoom element thumbnails. */
+  allSlides?: readonly PptxSlide[],
+  /** Callback fired when a zoom element is clicked in presentation mode. */
+  onZoomClick?: (targetSlideIndex: number, returnSlideIndex: number) => void,
+  /** Index of the slide that contains the current element (for zoom return navigation). */
+  sourceSlideIndex?: number,
 ): React.ReactNode {
   if (el.type === "model3d") {
     return (
@@ -78,6 +87,17 @@ export function renderBody(
         width={el.width}
         height={el.height}
         interactive={!isPresentationPassive}
+      />
+    );
+  }
+  if (el.type === "zoom") {
+    return (
+      <ZoomElementRenderer
+        element={el as ZoomPptxElement}
+        slides={allSlides as PptxSlide[] | undefined}
+        isPresentationMode={isPresentationPassive}
+        onZoomClick={onZoomClick}
+        sourceSlideIndex={sourceSlideIndex}
       />
     );
   }
@@ -120,9 +140,15 @@ export function renderBody(
       onPlayStateChange: handleMediaPlayStateChange,
     });
   }
-  if (doInk && isInkElement(el)) return renderInk(el);
+  if (doInk && isInkElement(el))
+    return renderInk(el, {
+      replay: isPresentationPassive,
+      pressureSensitive: true,
+    });
   if (el.type === "contentPart")
-    return renderContentPart(el as ContentPartPptxElement);
+    return renderContentPart(el as ContentPartPptxElement, {
+      replay: isPresentationPassive,
+    });
   if (el.type === "ole") return renderOleElement(el as OlePptxElement);
   if (doGrp && el.type === "group" && (el as GroupPptxElement).children)
     return renderGroup((el as GroupPptxElement).children);

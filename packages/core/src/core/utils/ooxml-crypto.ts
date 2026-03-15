@@ -184,7 +184,7 @@ async function hash(
 ): Promise<Uint8Array> {
   const subtle = getSubtle();
   const webCryptoAlg = mapHashAlgorithm(algorithm);
-  const result = await subtle.digest(webCryptoAlg, data);
+  const result = await subtle.digest(webCryptoAlg, data as unknown as BufferSource);
   return new Uint8Array(result);
 }
 
@@ -228,6 +228,12 @@ function hashOutputSize(algorithm: string): number {
 
 /**
  * AES-CBC decrypt with the given key, IV, and no padding removal.
+ *
+ * Web Crypto's AES-CBC always expects valid PKCS7 padding. To perform raw
+ * (no-padding) decryption we encrypt a valid PKCS7 padding block using the
+ * last ciphertext block as the IV, then append it to the data. When the
+ * combined buffer is decrypted the padding block validates correctly and
+ * Web Crypto strips it, leaving exactly the original decrypted bytes.
  */
 async function aesCbcDecryptRaw(
   key: Uint8Array,
@@ -235,21 +241,10 @@ async function aesCbcDecryptRaw(
   data: Uint8Array,
 ): Promise<Uint8Array> {
   const subtle = getSubtle();
-  const cryptoKey = await subtle.importKey(
-    "raw",
-    key,
-    { name: "AES-CBC" },
-    false,
-    ["decrypt"],
-  );
-
-  // Web Crypto always expects PKCS7 padding. To decrypt without padding removal,
-  // we manually add a valid padding block and then strip it.
-  // For raw decryption, we add a full block of padding bytes to trick the API.
   const blockSize = 16;
+
   // Ensure data is block-aligned
   if (data.length % blockSize !== 0) {
-    // Pad to block alignment
     const padded = new Uint8Array(
       Math.ceil(data.length / blockSize) * blockSize,
     );
@@ -257,19 +252,46 @@ async function aesCbcDecryptRaw(
     data = padded;
   }
 
-  // Add a padding block (16 bytes of 0x10)
-  const paddedData = new Uint8Array(data.length + blockSize);
-  paddedData.set(data);
-  for (let i = data.length; i < paddedData.length; i++) {
-    paddedData[i] = blockSize;
+  if (data.length === 0) {
+    return new Uint8Array(0);
   }
 
+  const cryptoKey = await subtle.importKey(
+    "raw",
+    key as unknown as BufferSource,
+    { name: "AES-CBC" },
+    false,
+    ["encrypt", "decrypt"],
+  );
+
+  // The last ciphertext block acts as the IV for the next block in CBC mode.
+  // We encrypt a full PKCS7 padding block (16 bytes of 0x10) using that IV
+  // so that when it's appended and the whole buffer is decrypted, the padding
+  // block decrypts to valid PKCS7 padding.
+  const lastCiphertextBlock = data.subarray(data.length - blockSize);
+  const paddingPlaintext = new Uint8Array(blockSize);
+  paddingPlaintext.fill(blockSize);
+
+  const encryptedPadding = await subtle.encrypt(
+    { name: "AES-CBC", iv: lastCiphertextBlock as unknown as BufferSource },
+    cryptoKey,
+    paddingPlaintext as unknown as BufferSource,
+  );
+  // subtle.encrypt adds its own PKCS7 padding (producing 32 bytes), take only
+  // the first block which is the encrypted version of our padding plaintext.
+  const encPadBlock = new Uint8Array(encryptedPadding).subarray(0, blockSize);
+
+  // Concatenate original ciphertext + encrypted padding block
+  const paddedData = new Uint8Array(data.length + blockSize);
+  paddedData.set(data);
+  paddedData.set(encPadBlock, data.length);
+
   const result = await subtle.decrypt(
-    { name: "AES-CBC", iv },
+    { name: "AES-CBC", iv: iv as unknown as BufferSource },
     cryptoKey,
     paddedData,
   );
-  // The result will be data.length bytes (the padding block is removed by Web Crypto)
+  // Web Crypto removes the padding block, leaving data.length bytes of plaintext
   return new Uint8Array(result).subarray(0, data.length);
 }
 
@@ -284,15 +306,15 @@ async function aesCbcEncrypt(
   const subtle = getSubtle();
   const cryptoKey = await subtle.importKey(
     "raw",
-    key,
+    key as unknown as BufferSource,
     { name: "AES-CBC" },
     false,
     ["encrypt"],
   );
   const result = await subtle.encrypt(
-    { name: "AES-CBC", iv },
+    { name: "AES-CBC", iv: iv as unknown as BufferSource },
     cryptoKey,
-    data,
+    data as unknown as BufferSource,
   );
   return new Uint8Array(result);
 }
@@ -316,7 +338,7 @@ async function aesCbcEncryptNoPad(
   const subtle = getSubtle();
   const cryptoKey = await subtle.importKey(
     "raw",
-    key,
+    key as unknown as BufferSource,
     { name: "AES-CBC" },
     false,
     ["encrypt"],
@@ -324,9 +346,9 @@ async function aesCbcEncryptNoPad(
 
   // Encrypt using raw — Web Crypto adds PKCS7 padding, so output is data.length + 16
   const result = await subtle.encrypt(
-    { name: "AES-CBC", iv },
+    { name: "AES-CBC", iv: iv as unknown as BufferSource },
     cryptoKey,
-    data,
+    data as unknown as BufferSource,
   );
   // Trim off the extra padding block
   return new Uint8Array(result).subarray(0, data.length);
@@ -344,12 +366,12 @@ async function hmac(
   const webCryptoAlg = mapHashAlgorithm(algorithm);
   const cryptoKey = await subtle.importKey(
     "raw",
-    key,
+    key as unknown as BufferSource,
     { name: "HMAC", hash: webCryptoAlg },
     false,
     ["sign"],
   );
-  const result = await subtle.sign("HMAC", cryptoKey, data);
+  const result = await subtle.sign("HMAC", cryptoKey, data as unknown as BufferSource);
   return new Uint8Array(result);
 }
 
@@ -931,6 +953,84 @@ async function generateIV(
 }
 
 /**
+ * Verify the data integrity HMAC of an agile-encrypted package.
+ *
+ * [MS-OFFCRYPTO] 2.3.7.1 — The data integrity is verified by:
+ * 1. Decrypting the HMAC key from dataIntegrity.encryptedHmacKey
+ * 2. Decrypting the HMAC value from dataIntegrity.encryptedHmacValue
+ * 3. Computing HMAC of the encrypted package data (after the 8-byte size prefix)
+ * 4. Comparing the computed HMAC with the decrypted HMAC value
+ *
+ * @throws Error if the data integrity check fails (file may be corrupted or tampered).
+ */
+async function verifyAgileDataIntegrity(
+  info: EncryptionInfo,
+  key: Uint8Array,
+  encryptedPackage: Uint8Array,
+): Promise<void> {
+  const keyData = info.keyData;
+
+  // If no data integrity block is present, skip verification
+  if (!info.dataIntegrity) return;
+
+  // Decrypt the HMAC key
+  const hmacKeyIV = await generateIV(
+    keyData.hashAlgorithm,
+    keyData.saltValue,
+    BLOCK_KEYS.dataIntegrityHmacKey,
+    keyData.blockSize,
+  );
+  const decryptedHmacKey = await aesCbcDecryptRaw(
+    key,
+    hmacKeyIV,
+    info.dataIntegrity.encryptedHmacKey,
+  );
+  // Truncate to hash size
+  const hmacKey = decryptedHmacKey.subarray(0, keyData.hashSize);
+
+  // Decrypt the HMAC value
+  const hmacValueIV = await generateIV(
+    keyData.hashAlgorithm,
+    keyData.saltValue,
+    BLOCK_KEYS.dataIntegrityHmacValue,
+    keyData.blockSize,
+  );
+  const decryptedHmacValue = await aesCbcDecryptRaw(
+    key,
+    hmacValueIV,
+    info.dataIntegrity.encryptedHmacValue,
+  );
+  const expectedHmac = decryptedHmacValue.subarray(0, keyData.hashSize);
+
+  // Compute HMAC of the encrypted content (excluding the 8-byte size prefix)
+  const encryptedContent = encryptedPackage.subarray(8);
+  const computedHmac = await hmac(
+    keyData.hashAlgorithm,
+    hmacKey,
+    encryptedContent,
+  );
+
+  // Compare HMACs
+  let match = true;
+  if (computedHmac.length < keyData.hashSize) {
+    match = false;
+  } else {
+    for (let i = 0; i < keyData.hashSize; i++) {
+      if (computedHmac[i] !== expectedHmac[i]) {
+        match = false;
+        break;
+      }
+    }
+  }
+
+  if (!match) {
+    throw new DataIntegrityError(
+      "Data integrity check failed. The encrypted file may be corrupted or tampered with.",
+    );
+  }
+}
+
+/**
  * Decrypt the EncryptedPackage stream using the agile encryption key.
  *
  * The encrypted package uses segment-based encryption:
@@ -1010,7 +1110,7 @@ async function decryptStandardPackage(
   const iv = new Uint8Array(16); // All zeros for standard encryption
   const decrypted = await aesCbcDecryptRaw(key, iv, encryptedData);
 
-  return decrypted.subarray(0, originalSize).buffer;
+  return decrypted.subarray(0, originalSize).buffer as ArrayBuffer;
 }
 
 // ---------------------------------------------------------------------------
@@ -1147,6 +1247,22 @@ export class IncorrectPasswordError extends Error {
 }
 
 /**
+ * Error thrown when data integrity verification fails.
+ *
+ * This indicates the encrypted file may be corrupted or tampered with.
+ * The HMAC computed over the encrypted package data did not match
+ * the HMAC stored in the EncryptionInfo stream.
+ */
+export class DataIntegrityError extends Error {
+  public constructor(
+    message = "Data integrity check failed. The encrypted file may be corrupted or tampered with.",
+  ) {
+    super(message);
+    this.name = "DataIntegrityError";
+  }
+}
+
+/**
  * Decrypt a password-protected PPTX file.
  *
  * The input must be an OLE2 compound file containing EncryptionInfo
@@ -1195,6 +1311,9 @@ export async function decryptPptx(
   if (!key) {
     throw new IncorrectPasswordError();
   }
+
+  // Verify data integrity (HMAC) before decrypting the package
+  await verifyAgileDataIntegrity(agileInfo, key, encryptedPackage);
 
   return decryptAgilePackage(encryptedPackage, key, agileInfo);
 }
@@ -1474,4 +1593,6 @@ export {
   base64Encode as _base64Encode,
   encodePasswordUtf16LE as _encodePasswordUtf16LE,
   concatArrays as _concatArrays,
+  deriveAgileKey as _deriveAgileKey,
+  hash as _hash,
 };

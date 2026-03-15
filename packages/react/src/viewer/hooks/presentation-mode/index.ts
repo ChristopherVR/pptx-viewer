@@ -21,3 +21,8 @@ export {
   type UseSlideNavigationInput,
   type UseSlideNavigationResult,
 } from "./useSlideNavigation";
+export {
+  useZoomNavigation,
+  type UseZoomNavigationInput,
+  type UseZoomNavigationResult,
+} from "./useZoomNavigation";

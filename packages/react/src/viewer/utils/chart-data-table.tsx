@@ -1,21 +1,7 @@
 import React from "react";
 
-import type { PptxChartData, PptxChartSeries } from "pptx-viewer-core";
-
-const PALETTE = [
-  "#3b82f6",
-  "#22c55e",
-  "#f97316",
-  "#eab308",
-  "#a855f7",
-  "#ec4899",
-  "#14b8a6",
-  "#f43f5e",
-];
-
-function sColor(series: PptxChartSeries, idx: number): string {
-  return series.color || PALETTE[idx % PALETTE.length];
-}
+import type { PptxChartData } from "pptx-viewer-core";
+import { seriesColor } from "./chart-helpers";
 
 function formatValue(val: number): string {
   if (Math.abs(val) >= 1_000_000) return `${(val / 1_000_000).toFixed(1)}M`;
@@ -112,7 +98,7 @@ export function renderChartDataTable(
                       width: 8,
                       height: 8,
                       borderRadius: 2,
-                      backgroundColor: sColor(s, si),
+                      backgroundColor: seriesColor(s, si, chartData.style?.styleId),
                       marginRight: 4,
                       verticalAlign: "middle",
                     }}

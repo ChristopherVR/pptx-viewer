@@ -989,3 +989,124 @@ export function mergeShapes(
       return combineShapes(paths1, paths2);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Polygon array API (number[][] where each entry is [x, y])
+// ---------------------------------------------------------------------------
+
+/** Convert number[][] polygon to Vec2[]. */
+function toVec2(poly: number[][]): Vec2[] {
+  return poly.map(([x, y]) => ({ x, y }));
+}
+
+/** Convert Vec2[] polygon to number[][]. */
+function fromVec2(poly: Vec2[]): number[][] {
+  return poly.map((p) => [p.x, p.y]);
+}
+
+/**
+ * Compute the union of two polygons.
+ *
+ * Merges the outer boundaries of both polygons. For non-overlapping polygons,
+ * returns the concatenation of both polygon point arrays.
+ *
+ * @param poly1 - First polygon as array of [x, y] points.
+ * @param poly2 - Second polygon as array of [x, y] points.
+ * @returns Union polygon(s) as array of [x, y] points. When the union is a
+ *   single polygon it is the first (and only) element; disjoint polygons
+ *   produce multiple elements which are concatenated into a single flat array.
+ */
+export function unionPolygons(
+  poly1: number[][],
+  poly2: number[][],
+): number[][] {
+  const path1 = polygonsToSvgPath([toVec2(poly1)]);
+  const path2 = polygonsToSvgPath([toVec2(poly2)]);
+  const result = unionShapes(path1, path2);
+  if (!result) return [];
+  const polys = svgPathToPolygons(result);
+  // Flatten all result polygons into a single array of points
+  // When there is exactly one polygon, return its points directly
+  if (polys.length === 1) return fromVec2(polys[0]);
+  // For multiple polygons (disjoint), return each polygon's points
+  // as a flat array separated by the caller's convention
+  return polys.flatMap((p) => fromVec2(p));
+}
+
+/**
+ * Compute the intersection of two polygons.
+ *
+ * Keeps only the overlapping region of both polygons using
+ * Sutherland-Hodgman clipping.
+ *
+ * @param poly1 - First polygon as array of [x, y] points.
+ * @param poly2 - Second polygon as array of [x, y] points.
+ * @returns Intersection polygon as array of [x, y] points, or empty array
+ *   if no overlap.
+ */
+export function intersectPolygons(
+  poly1: number[][],
+  poly2: number[][],
+): number[][] {
+  const path1 = polygonsToSvgPath([toVec2(poly1)]);
+  const path2 = polygonsToSvgPath([toVec2(poly2)]);
+  const result = intersectShapes(path1, path2);
+  if (!result) return [];
+  const polys = svgPathToPolygons(result);
+  if (polys.length === 0) return [];
+  if (polys.length === 1) return fromVec2(polys[0]);
+  return polys.flatMap((p) => fromVec2(p));
+}
+
+/**
+ * Compute the subtraction of two polygons (poly1 - poly2).
+ *
+ * Removes the overlapping region of poly2 from poly1 using
+ * Sutherland-Hodgman clipping.
+ *
+ * @param poly1 - Subject polygon as array of [x, y] points.
+ * @param poly2 - Clip polygon to subtract as array of [x, y] points.
+ * @returns Difference polygon(s) as array of [x, y] points, or empty array
+ *   if nothing remains.
+ */
+export function subtractPolygons(
+  poly1: number[][],
+  poly2: number[][],
+): number[][] {
+  const path1 = polygonsToSvgPath([toVec2(poly1)]);
+  const path2 = polygonsToSvgPath([toVec2(poly2)]);
+  const result = subtractShapes(path1, path2);
+  if (!result) return [];
+  const polys = svgPathToPolygons(result);
+  if (polys.length === 0) return [];
+  if (polys.length === 1) return fromVec2(polys[0]);
+  return polys.flatMap((p) => fromVec2(p));
+}
+
+// ---------------------------------------------------------------------------
+// SVG path string aliases
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute the union of two SVG path strings.
+ * Alias for {@link unionShapes}.
+ */
+export function unionSvgPaths(path1: string, path2: string): string {
+  return unionShapes(path1, path2);
+}
+
+/**
+ * Compute the intersection of two SVG path strings.
+ * Alias for {@link intersectShapes}.
+ */
+export function intersectSvgPaths(path1: string, path2: string): string {
+  return intersectShapes(path1, path2);
+}
+
+/**
+ * Compute the subtraction of two SVG path strings (path1 - path2).
+ * Alias for {@link subtractShapes}.
+ */
+export function subtractSvgPaths(path1: string, path2: string): string {
+  return subtractShapes(path1, path2);
+}

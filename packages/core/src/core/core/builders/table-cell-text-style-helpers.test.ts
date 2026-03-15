@@ -76,22 +76,22 @@ describe("applyCellAlignmentStyle — text direction", () => {
     expect(style.textDirection).toBe("vertical");
   });
 
-  it("sets textDirection to vertical for 'eaVert'", () => {
+  it("sets textDirection to eaVert for 'eaVert'", () => {
     const style: PptxTableCellStyle = {};
     applyCellAlignmentStyle({ "@_vert": "eaVert" }, style);
-    expect(style.textDirection).toBe("vertical");
+    expect(style.textDirection).toBe("eaVert");
   });
 
-  it("sets textDirection to vertical for 'wordArtVert'", () => {
+  it("sets textDirection to wordArtVert for 'wordArtVert'", () => {
     const style: PptxTableCellStyle = {};
     applyCellAlignmentStyle({ "@_vert": "wordArtVert" }, style);
-    expect(style.textDirection).toBe("vertical");
+    expect(style.textDirection).toBe("wordArtVert");
   });
 
-  it("sets textDirection to vertical for 'mongolianVert'", () => {
+  it("sets textDirection to mongolianVert for 'mongolianVert'", () => {
     const style: PptxTableCellStyle = {};
     applyCellAlignmentStyle({ "@_vert": "mongolianVert" }, style);
-    expect(style.textDirection).toBe("vertical");
+    expect(style.textDirection).toBe("mongolianVert");
   });
 
   it("sets textDirection to vertical270 for 'vert270'", () => {
@@ -100,10 +100,10 @@ describe("applyCellAlignmentStyle — text direction", () => {
     expect(style.textDirection).toBe("vertical270");
   });
 
-  it("sets textDirection to vertical270 for 'wordArtVertRtl'", () => {
+  it("sets textDirection to wordArtVertRtl for 'wordArtVertRtl'", () => {
     const style: PptxTableCellStyle = {};
     applyCellAlignmentStyle({ "@_vert": "wordArtVertRtl" }, style);
-    expect(style.textDirection).toBe("vertical270");
+    expect(style.textDirection).toBe("wordArtVertRtl");
   });
 
   it("does not set textDirection for unrecognized vert value", () => {

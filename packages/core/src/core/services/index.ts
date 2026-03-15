@@ -53,3 +53,9 @@ export {
 } from "./PptxAnimationWriteService";
 export { PRESET_TO_OOXML } from "./animation-write-mappings";
 export { buildSingleEffectNode } from "./animation-write-node-builders";
+export {
+  parseCondition,
+  parseConditionList,
+  serializeCondition,
+  serializeConditionList,
+} from "./native-animation-helpers";

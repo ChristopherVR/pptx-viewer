@@ -2,6 +2,7 @@
  * Shared types and utility functions for chart overlay rendering.
  */
 import type { PptxChartSeries } from "pptx-viewer-core";
+import { PALETTE, seriesColor } from "./chart-helpers";
 
 // ── Shared layout types ────────────────────────────────────────────────
 
@@ -24,19 +25,10 @@ export interface ChartValueRange {
 
 // ── Palette & helpers ──────────────────────────────────────────────────
 
-export const PALETTE = [
-  "#3b82f6",
-  "#22c55e",
-  "#f97316",
-  "#eab308",
-  "#a855f7",
-  "#ec4899",
-  "#14b8a6",
-  "#f43f5e",
-];
+export { PALETTE };
 
 export function sColor(series: PptxChartSeries, idx: number): string {
-  return series.color || PALETTE[idx % PALETTE.length];
+  return seriesColor(series, idx);
 }
 
 export function valToY(

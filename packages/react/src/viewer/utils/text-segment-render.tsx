@@ -63,6 +63,7 @@ export function renderSingleSegment(
     bulletInfo?: BulletInfo;
     fieldType?: string;
     equationXml?: Record<string, unknown>;
+    equationNumber?: string;
     rubyText?: string;
     rubyAlignment?: string;
     rubyFontSize?: number;
@@ -79,7 +80,7 @@ export function renderSingleSegment(
 ): React.ReactNode {
   // ── Equation segments: render inline MathML ──
   if (segment.equationXml) {
-    return renderEquationSegment(element.id, segmentIndex, segment.equationXml);
+    return renderEquationSegment(element.id, segmentIndex, segment.equationXml, segment.equationNumber);
   }
 
   const segmentStyle = segment.style || {};
@@ -110,8 +111,8 @@ export function renderSingleSegment(
         fallbackColor,
       );
 
-  // Underline style variants → CSS text-decoration-style
-  const textDecorationStyle = resolveUnderlineDecorationStyle(
+  // Underline style variants → CSS text-decoration properties
+  const underlineDecoration = resolveUnderlineDecorationStyle(
     !!isDoubleStrike,
     segmentStyle.underlineStyle,
   );
@@ -191,7 +192,9 @@ export function renderSingleSegment(
     fontStyle: segmentStyle.italic ? "italic" : "normal",
     textDecorationLine:
       textDecorationTokens.length > 0 ? textDecorationTokens.join(" ") : "none",
-    textDecorationStyle,
+    textDecorationStyle: underlineDecoration?.textDecorationStyle,
+    textDecorationThickness: underlineDecoration?.textDecorationThickness as React.CSSProperties["textDecorationThickness"],
+    textUnderlineOffset: underlineDecoration?.textUnderlineOffset as React.CSSProperties["textUnderlineOffset"],
     fontFamily: baseFontFamily,
     verticalAlign: baselineShift,
     letterSpacing,
@@ -218,11 +221,20 @@ export function renderSingleSegment(
     WebkitBoxReflect: buildTextReflectionCss(segmentStyle),
   };
 
-  // Per-run BiDi isolation
+  // Per-run BiDi direction override
+  // When a text run's direction differs from the paragraph direction,
+  // use `bidi-override` to force all characters in the run to follow
+  // the specified direction. This handles mixed RTL/LTR runs correctly
+  // (e.g. an LTR brand name inside an RTL paragraph).
   const runRtl = segmentStyle.rtl;
   if (runRtl !== undefined && runRtl !== paragraphRtl) {
     spanStyle.direction = runRtl ? "rtl" : "ltr";
-    spanStyle.unicodeBidi = "isolate";
+    spanStyle.unicodeBidi = "bidi-override";
+  } else if (runRtl !== undefined && runRtl === paragraphRtl) {
+    // Run direction matches paragraph but is explicitly set — use embed
+    // to reinforce the embedding level for proper number rendering.
+    spanStyle.direction = runRtl ? "rtl" : "ltr";
+    spanStyle.unicodeBidi = "embed";
   }
 
   // Apply bullet-specific styling overrides

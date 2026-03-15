@@ -28,6 +28,7 @@ import type {
 
 export interface PptxHandlerLoadOptions {
   eagerDecodeImages?: boolean;
+  password?: string;
 }
 
 /** Output format for the save pipeline. */

@@ -67,7 +67,7 @@ export function renderScatterChart(
                 cx={px}
                 cy={py}
                 r={4}
-                fill={seriesColor(series, si)}
+                fill={seriesColor(series, si, chartData.style?.styleId)}
                 opacity={0.85}
               />
             );
@@ -166,9 +166,9 @@ export function renderBubbleChart(
               cx={px}
               cy={py}
               r={r}
-              fill={seriesColor(series, si)}
+              fill={seriesColor(series, si, chartData.style?.styleId)}
               opacity={0.6}
-              stroke={seriesColor(series, si)}
+              stroke={seriesColor(series, si, chartData.style?.styleId)}
               strokeWidth={1}
             />
           );

@@ -8,6 +8,12 @@ import {
   fragmentShapes,
   combineShapes,
   mergeShapes,
+  unionPolygons,
+  intersectPolygons,
+  subtractPolygons,
+  unionSvgPaths,
+  intersectSvgPaths,
+  subtractSvgPaths,
   type Vec2,
   type MergeShapeOperation,
 } from "./shape-boolean";
@@ -474,5 +480,195 @@ describe("edge cases", () => {
     const polys2 = svgPathToPolygons(r2);
     // They should be different
     expect(r1).not.toBe(r2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// unionPolygons / intersectPolygons / subtractPolygons (number[][] API)
+// ---------------------------------------------------------------------------
+
+/** Helper: rectangle as number[][] */
+function rectPoly(x: number, y: number, w: number, h: number): number[][] {
+  return [
+    [x, y],
+    [x + w, y],
+    [x + w, y + h],
+    [x, y + h],
+  ];
+}
+
+/** Helper: compute area from number[][] polygon */
+function polyArea(pts: number[][]): number {
+  let a = 0;
+  for (let i = 0, n = pts.length; i < n; i++) {
+    const j = (i + 1) % n;
+    a += pts[i][0] * pts[j][1];
+    a -= pts[j][0] * pts[i][1];
+  }
+  return Math.abs(a / 2);
+}
+
+describe("unionPolygons", () => {
+  it("returns combined points for disjoint polygons", () => {
+    const p1 = rectPoly(0, 0, 50, 50);
+    const p2 = rectPoly(100, 100, 50, 50);
+    const result = unionPolygons(p1, p2);
+    expect(result.length).toBeGreaterThanOrEqual(8); // 4 + 4 points from two disjoint rects
+  });
+
+  it("returns a merged polygon for overlapping polygons", () => {
+    const p1 = rectPoly(0, 0, 100, 100);
+    const p2 = rectPoly(50, 50, 100, 100);
+    const result = unionPolygons(p1, p2);
+    expect(result.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("returns the outer polygon when one contains the other", () => {
+    const outer = rectPoly(0, 0, 200, 200);
+    const inner = rectPoly(50, 50, 50, 50);
+    const result = unionPolygons(outer, inner);
+    expect(result).toHaveLength(4);
+    // Area should be the outer area
+    expect(polyArea(result)).toBeCloseTo(40000, 0);
+  });
+
+  it("returns empty for two empty polygons", () => {
+    const result = unionPolygons([], []);
+    expect(result).toHaveLength(0);
+  });
+});
+
+describe("intersectPolygons", () => {
+  it("returns the overlap region of two overlapping rectangles", () => {
+    const p1 = rectPoly(0, 0, 100, 100);
+    const p2 = rectPoly(50, 50, 100, 100);
+    const result = intersectPolygons(p1, p2);
+    expect(result.length).toBeGreaterThanOrEqual(4);
+    expect(polyArea(result)).toBeCloseTo(2500, 0);
+  });
+
+  it("returns empty for non-overlapping rectangles", () => {
+    const p1 = rectPoly(0, 0, 50, 50);
+    const p2 = rectPoly(200, 200, 50, 50);
+    const result = intersectPolygons(p1, p2);
+    expect(result).toHaveLength(0);
+  });
+
+  it("returns the inner polygon when one is fully contained", () => {
+    const outer = rectPoly(0, 0, 200, 200);
+    const inner = rectPoly(50, 50, 50, 50);
+    const result = intersectPolygons(outer, inner);
+    expect(result.length).toBeGreaterThanOrEqual(4);
+    expect(polyArea(result)).toBeCloseTo(2500, 0);
+  });
+
+  it("returns empty for empty input", () => {
+    expect(intersectPolygons([], rectPoly(0, 0, 50, 50))).toHaveLength(0);
+    expect(intersectPolygons(rectPoly(0, 0, 50, 50), [])).toHaveLength(0);
+  });
+});
+
+describe("subtractPolygons", () => {
+  it("returns original polygon when no overlap", () => {
+    const p1 = rectPoly(0, 0, 100, 100);
+    const p2 = rectPoly(200, 200, 50, 50);
+    const result = subtractPolygons(p1, p2);
+    expect(result.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("returns empty when clip fully covers subject", () => {
+    const inner = rectPoly(25, 25, 50, 50);
+    const outer = rectPoly(0, 0, 200, 200);
+    const result = subtractPolygons(inner, outer);
+    expect(result).toHaveLength(0);
+  });
+
+  it("produces result for partially overlapping rectangles", () => {
+    const p1 = rectPoly(0, 0, 100, 100);
+    const p2 = rectPoly(50, 50, 100, 100);
+    const result = subtractPolygons(p1, p2);
+    expect(result.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("returns empty for empty subject", () => {
+    expect(subtractPolygons([], rectPoly(0, 0, 50, 50))).toHaveLength(0);
+  });
+
+  it("returns original when clip is empty", () => {
+    const p1 = rectPoly(0, 0, 100, 100);
+    const result = subtractPolygons(p1, []);
+    expect(result.length).toBeGreaterThanOrEqual(4);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// unionSvgPaths / intersectSvgPaths / subtractSvgPaths
+// ---------------------------------------------------------------------------
+
+describe("unionSvgPaths", () => {
+  it("returns the same result as unionShapes", () => {
+    const r1 = rectPath(0, 0, 100, 100);
+    const r2 = rectPath(50, 50, 100, 100);
+    expect(unionSvgPaths(r1, r2)).toBe(unionShapes(r1, r2));
+  });
+
+  it("returns second path when first is empty", () => {
+    const rect = rectPath(0, 0, 100, 100);
+    expect(unionSvgPaths("", rect)).toBe(rect);
+  });
+
+  it("returns first path when second is empty", () => {
+    const rect = rectPath(0, 0, 100, 100);
+    expect(unionSvgPaths(rect, "")).toBe(rect);
+  });
+
+  it("keeps both disjoint paths", () => {
+    const r1 = rectPath(0, 0, 50, 50);
+    const r2 = rectPath(100, 100, 50, 50);
+    const result = unionSvgPaths(r1, r2);
+    const polys = svgPathToPolygons(result);
+    expect(polys).toHaveLength(2);
+  });
+});
+
+describe("intersectSvgPaths", () => {
+  it("returns the same result as intersectShapes", () => {
+    const r1 = rectPath(0, 0, 100, 100);
+    const r2 = rectPath(50, 50, 100, 100);
+    expect(intersectSvgPaths(r1, r2)).toBe(intersectShapes(r1, r2));
+  });
+
+  it("returns empty for non-overlapping rectangles", () => {
+    const r1 = rectPath(0, 0, 50, 50);
+    const r2 = rectPath(200, 200, 50, 50);
+    expect(intersectSvgPaths(r1, r2)).toBe("");
+  });
+
+  it("returns overlap area for partially overlapping rectangles", () => {
+    const r1 = rectPath(0, 0, 100, 100);
+    const r2 = rectPath(50, 50, 100, 100);
+    const result = intersectSvgPaths(r1, r2);
+    expect(result).not.toBe("");
+    expect(pathArea(result)).toBeCloseTo(2500, 0);
+  });
+});
+
+describe("subtractSvgPaths", () => {
+  it("returns the same result as subtractShapes", () => {
+    const r1 = rectPath(0, 0, 100, 100);
+    const r2 = rectPath(50, 50, 100, 100);
+    expect(subtractSvgPaths(r1, r2)).toBe(subtractShapes(r1, r2));
+  });
+
+  it("returns empty when clip fully covers subject", () => {
+    const inner = rectPath(25, 25, 50, 50);
+    const outer = rectPath(0, 0, 200, 200);
+    expect(subtractSvgPaths(inner, outer)).toBe("");
+  });
+
+  it("returns original when clip is empty", () => {
+    const rect = rectPath(0, 0, 100, 100);
+    const result = subtractSvgPaths(rect, "");
+    expect(result).not.toBe("");
   });
 });

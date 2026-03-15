@@ -191,7 +191,7 @@ export function renderComboChart(
           y={y}
           width={barWidth}
           height={h}
-          fill={seriesColor(barSeries, 0)}
+          fill={seriesColor(barSeries, 0, chartData.style?.styleId)}
           rx={1}
         />,
       );
@@ -223,7 +223,7 @@ export function renderComboChart(
       const y = valueToY(val, activeRange, layout.plotTop, layout.plotBottom);
       return { x, y, val };
     });
-    const c = seriesColor(series, seriesIdx);
+    const c = seriesColor(series, seriesIdx, chartData.style?.styleId);
     lineElements.push(
       <polyline
         key={`${element.id}-combo-line-${si}`}

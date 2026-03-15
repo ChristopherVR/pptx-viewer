@@ -58,5 +58,29 @@ export {
   mergeShapes,
   svgPathToPolygons,
   polygonsToSvgPath,
+  unionPolygons,
+  intersectPolygons,
+  subtractPolygons,
+  unionSvgPaths,
+  intersectSvgPaths,
+  subtractSvgPaths,
 } from "./shape-boolean";
 export type { Vec2, MergeShapeOperation } from "./shape-boolean";
+
+export {
+  FreeformPathBuilder,
+  douglasPeucker,
+  catmullRomToBezier,
+} from "./freeform-builder";
+
+export {
+  isCalloutShape,
+  getCalloutTier,
+  getCalloutLeaderLineGeometry,
+  buildCalloutLeaderLineSvgPath,
+  getCalloutViewBoxBounds,
+} from "./callout-geometry";
+export type {
+  CalloutPoint,
+  CalloutLeaderLineGeometry,
+} from "./callout-geometry";

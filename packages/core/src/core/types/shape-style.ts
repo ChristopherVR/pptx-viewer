@@ -99,6 +99,10 @@ export interface ShapeStyle {
   /** Focal point for path (radial) gradients, derived from `a:fillToRect`.
    *  Values are 0..1 fractions relative to shape bounds. */
   fillGradientFocalPoint?: { x: number; y: number };
+  /** Raw fillToRect LTRB values (0..1 fractions) from `a:fillToRect`.
+   *  Defines the inner rectangle where the gradient reaches its final stop.
+   *  l/t are insets from left/top edges; r/b are insets from right/bottom edges. */
+  fillGradientFillToRect?: { l: number; t: number; r: number; b: number };
   fillOpacity?: number;
   strokeColor?: string;
   strokeWidth?: number;

@@ -441,3 +441,120 @@ describe("INK_REPLAY_KEYFRAMES", () => {
     expect(INK_REPLAY_KEYFRAMES).toContain("to");
   });
 });
+
+// ==========================================================================
+// Replay timing: sequential stagger calculation
+// ==========================================================================
+
+describe("replay sequential stagger timing", () => {
+  it("should stagger stroke start times so they draw one after another", () => {
+    const el: InkPptxElement = {
+      type: "ink",
+      id: "ink-stagger",
+      x: 0,
+      y: 0,
+      width: 200,
+      height: 200,
+      inkPaths: [
+        "M 0 0 L 100 0",
+        "M 0 50 L 100 50",
+        "M 0 100 L 100 100",
+        "M 0 150 L 100 150",
+      ],
+    };
+    const styles = getInkReplayStyles(el);
+
+    // Verify each stroke starts after the previous one finishes
+    for (let i = 1; i < styles.length; i++) {
+      const prevDelay = parseInt(styles[i - 1].animationDelay);
+      const prevDuration = parseInt(styles[i - 1].animationDuration);
+      const curDelay = parseInt(styles[i].animationDelay);
+      // Current stroke's delay should be >= previous stroke's delay + duration
+      // (it can be equal or greater depending on the inter-stroke gap)
+      expect(curDelay).toBeGreaterThanOrEqual(prevDelay + prevDuration);
+    }
+  });
+
+  it("should produce total replay duration matching getTotalReplayDuration", () => {
+    const strokeCount = 5;
+    const config = { strokeDurationMs: 500, strokeDelayMs: 150 };
+    const el: InkPptxElement = {
+      type: "ink",
+      id: "ink-total",
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100,
+      inkPaths: Array(strokeCount).fill("M 0 0 L 50 50"),
+    };
+    const styles = getInkReplayStyles(el, config);
+    const lastStyle = styles[styles.length - 1];
+    const lastEndTime =
+      parseInt(lastStyle.animationDelay) + parseInt(lastStyle.animationDuration);
+
+    expect(lastEndTime).toBe(getTotalReplayDuration(strokeCount, config));
+  });
+
+  it("should assign monotonically increasing delays across strokes", () => {
+    const el: InkPptxElement = {
+      type: "ink",
+      id: "ink-mono",
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100,
+      inkPaths: [
+        "M 0 0 L 10 10",
+        "M 10 10 L 80 80",
+        "M 80 80 L 90 90",
+      ],
+    };
+    const styles = getInkReplayStyles(el);
+    const delays = styles.map((s) => parseInt(s.animationDelay));
+    for (let i = 1; i < delays.length; i++) {
+      expect(delays[i]).toBeGreaterThan(delays[i - 1]);
+    }
+  });
+});
+
+// ==========================================================================
+// Pressure rendering: auto-detection helpers
+// ==========================================================================
+
+describe("pressure rendering auto-detection", () => {
+  it("hasPressureVariation detects varying widths in realistic data", () => {
+    // Simulate stylus pressure data (typical range 0.1 to 1.0)
+    const pressureWidths = [1.2, 2.5, 3.8, 3.2, 2.1, 1.5, 2.8, 4.0, 3.5];
+    expect(hasPressureVariation(pressureWidths)).toBe(true);
+  });
+
+  it("hasPressureVariation rejects uniform pressure data", () => {
+    const uniformWidths = [3.0, 3.0, 3.0, 3.0, 3.0];
+    expect(hasPressureVariation(uniformWidths)).toBe(false);
+  });
+
+  it("generatePressureCircles produces circles at each extracted point", () => {
+    const pathD = "M 0 0 L 50 0 L 100 0";
+    const points = extractPathPoints(pathD);
+    const widths = [2, 4, 6];
+    const circles = generatePressureCircles(points, widths, { baseWidth: 3 });
+    expect(circles).toHaveLength(points.length);
+    // Verify coordinates match
+    circles.forEach((c, i) => {
+      expect(c.cx).toBe(points[i].x);
+      expect(c.cy).toBe(points[i].y);
+    });
+  });
+
+  it("pressure circles vary in radius when widths differ", () => {
+    const points = [
+      { x: 0, y: 0 },
+      { x: 50, y: 0 },
+      { x: 100, y: 0 },
+    ];
+    // Widths increasing from 1 to 5
+    const circles = generatePressureCircles(points, [1, 5], { baseWidth: 3 });
+    // The radius at the end (high width) should differ from the start (low width)
+    expect(circles[0].r).not.toEqual(circles[2].r);
+  });
+});

@@ -88,6 +88,7 @@ export {
   encryptPptx,
   verifyPassword,
   IncorrectPasswordError,
+  DataIntegrityError,
   type EncryptionInfo,
   type StandardEncryptionInfo,
   type EncryptionAlgorithm,
@@ -205,6 +206,15 @@ export {
 } from "./linked-text-box-utils";
 
 export {
+  isZoomElement as isZoomElementUtil,
+  getZoomElements,
+  isSummaryZoomSlide,
+  getZoomTargetSlideIndexes,
+  shouldReturnToZoomSlide,
+  getSectionSlideRange,
+} from "./zoom-utils";
+
+export {
   FONT_SUBSTITUTION_MAP,
   PANOSE_FAMILY_MAP,
   PANOSE_SANS_SERIF_STYLES,
@@ -219,3 +229,11 @@ export {
   hasDirectSubstitution,
   buildFontFamilyString,
 } from "./font-substitution";
+
+export {
+  validatePptx,
+  repairPptx,
+  type ValidationIssue,
+  type ValidationResult,
+  type RepairResult,
+} from "./pptx-validator";

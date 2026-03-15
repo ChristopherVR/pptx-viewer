@@ -33,6 +33,9 @@ export interface PptxTableDataParserContext {
   extractGradientFocalPoint?: (
     gradFill: XmlObject,
   ) => { x: number; y: number } | undefined;
+  extractGradientFillToRect?: (
+    gradFill: XmlObject,
+  ) => { l: number; t: number; r: number; b: number } | undefined;
 }
 
 export interface IPptxTableDataParser {

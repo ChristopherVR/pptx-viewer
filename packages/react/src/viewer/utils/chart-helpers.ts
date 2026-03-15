@@ -1,17 +1,12 @@
 import type { PptxChartSeries } from "pptx-viewer-core";
+import {
+  getChartStylePalette,
+  DEFAULT_CHART_PALETTE,
+} from "./chart-style-palettes";
 
 // ── Constants ────────────────────────────────────────────────────
 
-export const PALETTE = [
-  "#3b82f6",
-  "#22c55e",
-  "#f97316",
-  "#eab308",
-  "#a855f7",
-  "#ec4899",
-  "#14b8a6",
-  "#f43f5e",
-];
+export const PALETTE = DEFAULT_CHART_PALETTE;
 
 // ── Value range helpers ──────────────────────────────────────────
 
@@ -54,6 +49,22 @@ export function formatAxisValue(val: number): string {
   return val.toFixed(1);
 }
 
-export function seriesColor(series: PptxChartSeries, index: number): string {
-  return series.color || PALETTE[index % PALETTE.length];
+export function seriesColor(
+  series: PptxChartSeries,
+  index: number,
+  styleId?: number,
+): string {
+  if (series.color) return series.color;
+  const palette = getChartStylePalette(styleId);
+  return palette[index % palette.length];
+}
+
+/**
+ * Return the palette colour for an index given an optional chart style ID.
+ * Use this when there is no series object (e.g. per-category colouring in
+ * pie / funnel / treemap charts).
+ */
+export function paletteColor(index: number, styleId?: number): string {
+  const palette = getChartStylePalette(styleId);
+  return palette[index % palette.length];
 }

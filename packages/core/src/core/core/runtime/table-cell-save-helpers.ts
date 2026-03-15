@@ -37,7 +37,15 @@ export function writeCellFill(
 		if (gradType === 'radial') {
 			const pathType = style.gradientFillPathType || 'circle';
 			const pathXml: XmlObject = { '@_path': pathType };
-			if (style.gradientFillFocalPoint) {
+			if (style.gradientFillFillToRect) {
+				const ftr = style.gradientFillFillToRect;
+				pathXml['a:fillToRect'] = {
+					'@_l': String(Math.round(ftr.l * 100000)),
+					'@_t': String(Math.round(ftr.t * 100000)),
+					'@_r': String(Math.round(ftr.r * 100000)),
+					'@_b': String(Math.round(ftr.b * 100000)),
+				};
+			} else if (style.gradientFillFocalPoint) {
 				const fp = style.gradientFillFocalPoint;
 				pathXml['a:fillToRect'] = {
 					'@_l': String(Math.round(fp.x * 100000)),

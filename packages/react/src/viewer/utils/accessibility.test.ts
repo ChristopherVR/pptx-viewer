@@ -5,6 +5,7 @@ import {
   getAriaRole,
   getAriaLabel,
   prefersReducedMotion,
+  getReducedMotionStyles,
 } from "./accessibility";
 
 // ---------------------------------------------------------------------------
@@ -361,33 +362,93 @@ describe("getAriaLabel", () => {
 // ===========================================================================
 
 describe("prefersReducedMotion", () => {
-  let originalMatchMedia: typeof window.matchMedia;
+  // In the default vitest node environment `window` is not defined.
+  // We must define a minimal global `window` with `matchMedia` for these tests.
 
-  beforeEach(() => {
-    originalMatchMedia = window.matchMedia;
-  });
+  const originalWindow = globalThis.window;
 
   afterEach(() => {
-    window.matchMedia = originalMatchMedia;
+    if (originalWindow === undefined) {
+      // @ts-expect-error -- restore undefined state
+      delete globalThis.window;
+    } else {
+      globalThis.window = originalWindow;
+    }
+  });
+
+  it("returns false when window is undefined (SSR)", () => {
+    // Ensure there is no window
+    // @ts-expect-error -- intentionally removing window
+    delete globalThis.window;
+    expect(prefersReducedMotion()).toBe(false);
   });
 
   it("returns true when the media query matches", () => {
-    window.matchMedia = vi.fn().mockReturnValue({ matches: true });
+    const mockMatchMedia = vi.fn().mockReturnValue({ matches: true });
+    // @ts-expect-error -- providing minimal window for test
+    globalThis.window = { matchMedia: mockMatchMedia };
     expect(prefersReducedMotion()).toBe(true);
   });
 
   it("returns false when the media query does not match", () => {
-    window.matchMedia = vi.fn().mockReturnValue({ matches: false });
+    const mockMatchMedia = vi.fn().mockReturnValue({ matches: false });
+    // @ts-expect-error -- providing minimal window for test
+    globalThis.window = { matchMedia: mockMatchMedia };
     expect(prefersReducedMotion()).toBe(false);
   });
 
   it("queries the correct media query string", () => {
     const mockMatchMedia = vi.fn().mockReturnValue({ matches: false });
-    window.matchMedia = mockMatchMedia;
+    // @ts-expect-error -- providing minimal window for test
+    globalThis.window = { matchMedia: mockMatchMedia };
     prefersReducedMotion();
     expect(mockMatchMedia).toHaveBeenCalledWith(
       "(prefers-reduced-motion: reduce)",
     );
+  });
+});
+
+// ===========================================================================
+// getReducedMotionStyles
+// ===========================================================================
+
+describe("getReducedMotionStyles", () => {
+  const originalWindow = globalThis.window;
+
+  afterEach(() => {
+    if (originalWindow === undefined) {
+      // @ts-expect-error -- restore undefined state
+      delete globalThis.window;
+    } else {
+      globalThis.window = originalWindow;
+    }
+  });
+
+  it("returns empty object when reduced motion is not preferred", () => {
+    const mockMatchMedia = vi.fn().mockReturnValue({ matches: false });
+    // @ts-expect-error -- providing minimal window for test
+    globalThis.window = { matchMedia: mockMatchMedia };
+    const styles = getReducedMotionStyles();
+    expect(styles).toEqual({});
+  });
+
+  it("returns animation-disabling styles when reduced motion is preferred", () => {
+    const mockMatchMedia = vi.fn().mockReturnValue({ matches: true });
+    // @ts-expect-error -- providing minimal window for test
+    globalThis.window = { matchMedia: mockMatchMedia };
+    const styles = getReducedMotionStyles();
+    expect(styles.animationDuration).toBe("0.001ms");
+    expect(styles.animationIterationCount).toBe(1);
+    expect(styles.transitionDuration).toBe("0.001ms");
+    expect(styles.animationDelay).toBe("0ms");
+    expect(styles.transitionDelay).toBe("0ms");
+  });
+
+  it("returns empty object in SSR (no window)", () => {
+    // @ts-expect-error -- intentionally removing window
+    delete globalThis.window;
+    const styles = getReducedMotionStyles();
+    expect(styles).toEqual({});
   });
 });
 

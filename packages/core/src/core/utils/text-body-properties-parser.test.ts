@@ -97,24 +97,24 @@ describe("parseBodyTextDirection — text direction / vertical modes", () => {
     expect(parseBodyTextDirection("vert")).toBe("vertical");
   });
 
-  it('maps "eaVert" to "vertical"', () => {
-    expect(parseBodyTextDirection("eaVert")).toBe("vertical");
+  it('maps "eaVert" to "eaVert"', () => {
+    expect(parseBodyTextDirection("eaVert")).toBe("eaVert");
   });
 
-  it('maps "mongolianVert" to "vertical"', () => {
-    expect(parseBodyTextDirection("mongolianVert")).toBe("vertical");
+  it('maps "mongolianVert" to "mongolianVert"', () => {
+    expect(parseBodyTextDirection("mongolianVert")).toBe("mongolianVert");
   });
 
-  it('maps "wordArtVert" to "vertical"', () => {
-    expect(parseBodyTextDirection("wordArtVert")).toBe("vertical");
+  it('maps "wordArtVert" to "wordArtVert"', () => {
+    expect(parseBodyTextDirection("wordArtVert")).toBe("wordArtVert");
   });
 
   it('maps "vert270" to "vertical270"', () => {
     expect(parseBodyTextDirection("vert270")).toBe("vertical270");
   });
 
-  it('maps "wordArtVertRtl" to "vertical270"', () => {
-    expect(parseBodyTextDirection("wordArtVertRtl")).toBe("vertical270");
+  it('maps "wordArtVertRtl" to "wordArtVertRtl"', () => {
+    expect(parseBodyTextDirection("wordArtVertRtl")).toBe("wordArtVertRtl");
   });
 
   it("is case-insensitive", () => {

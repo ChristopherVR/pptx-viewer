@@ -108,7 +108,7 @@ async function hashDigest(
   data: Uint8Array,
 ): Promise<Uint8Array> {
   const subtle = getSubtle();
-  const result = await subtle.digest(mapHashAlgorithm(algorithm), data);
+  const result = await subtle.digest(mapHashAlgorithm(algorithm), data as unknown as BufferSource);
   return new Uint8Array(result);
 }
 

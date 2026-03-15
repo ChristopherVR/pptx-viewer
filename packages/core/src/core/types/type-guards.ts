@@ -14,6 +14,7 @@ import type {
   ShapePptxElement,
   ConnectorPptxElement,
   InkPptxElement,
+  ZoomPptxElement,
   PptxImageLikeElement,
   PptxElementWithText,
   PptxElementWithShapeStyle,
@@ -116,6 +117,26 @@ export function isImageLikeElement(
  */
 export function isInkElement(element: PptxElement): element is InkPptxElement {
   return element.type === "ink";
+}
+
+/**
+ * Narrows a {@link PptxElement} to {@link ZoomPptxElement}.
+ *
+ * @param element - Any PPTX element.
+ * @returns `true` when `element.type === "zoom"`.
+ *
+ * @example
+ * ```ts
+ * if (isZoomElement(el)) {
+ *   // => true when el.type === "zoom"
+ *   console.log(el.zoomType, el.targetSlideIndex);
+ * }
+ * ```
+ */
+export function isZoomElement(
+  element: PptxElement,
+): element is ZoomPptxElement {
+  return element.type === "zoom";
 }
 
 /**

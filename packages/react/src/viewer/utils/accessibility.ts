@@ -227,3 +227,24 @@ export function prefersReducedMotion(): boolean {
   if (typeof window === "undefined") return false;
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
+
+/**
+ * Returns a `React.CSSProperties`-compatible object that disables or tones
+ * down animations and transitions when the user's OS-level
+ * `prefers-reduced-motion: reduce` setting is active.
+ *
+ * When reduced motion is **not** preferred the function returns an empty
+ * object so it can always be spread into a style prop safely.
+ *
+ * @returns CSS properties that suppress animations when appropriate.
+ */
+export function getReducedMotionStyles(): Record<string, string | number> {
+  if (!prefersReducedMotion()) return {};
+  return {
+    animationDuration: "0.001ms",
+    animationIterationCount: 1,
+    transitionDuration: "0.001ms",
+    animationDelay: "0ms",
+    transitionDelay: "0ms",
+  };
+}

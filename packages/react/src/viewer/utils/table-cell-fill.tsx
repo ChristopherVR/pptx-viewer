@@ -45,14 +45,37 @@ export function parseGradientFillCss(
     return `linear-gradient(${angleDeg}deg, ${stopStrings})`;
   }
 
-  // Path gradient — map to radial
+  // Path gradient — map to radial with fillToRect positioning
   const path = gradFill["a:path"] as XmlObject | undefined;
   if (path) {
     const pathType = String(path["@_path"] || "circle");
-    if (pathType === "rect") {
-      return `radial-gradient(ellipse at center, ${stopStrings})`;
+    const fillToRect = path["a:fillToRect"] as XmlObject | undefined;
+
+    // Parse fillToRect LTRB values (1/100000 units -> 0-1 fractions)
+    let cx = 50;
+    let cy = 50;
+    if (fillToRect) {
+      const l = Number.parseInt(String(fillToRect["@_l"] || "0"), 10) / 100000;
+      const t = Number.parseInt(String(fillToRect["@_t"] || "0"), 10) / 100000;
+      const r = Number.parseInt(String(fillToRect["@_r"] || "0"), 10) / 100000;
+      const b = Number.parseInt(String(fillToRect["@_b"] || "0"), 10) / 100000;
+      cx = ((l + (1 - r)) / 2) * 100;
+      cy = ((t + (1 - b)) / 2) * 100;
     }
-    return `radial-gradient(circle at center, ${stopStrings})`;
+    const posX = `${Math.round(cx)}%`;
+    const posY = `${Math.round(cy)}%`;
+
+    if (pathType === "rect") {
+      // Rectangular gradient: use elliptical radial sized to reach shape edges
+      const semiX = Math.max(cx, 100 - cx);
+      const semiY = Math.max(cy, 100 - cy);
+      return `radial-gradient(${Math.round(semiX)}% ${Math.round(semiY)}% at ${posX} ${posY}, ${stopStrings})`;
+    }
+    if (pathType === "shape") {
+      // Shape-following gradient: use farthest-side sizing
+      return `radial-gradient(farthest-side at ${posX} ${posY}, ${stopStrings})`;
+    }
+    return `radial-gradient(circle at ${posX} ${posY}, ${stopStrings})`;
   }
 
   // Default to top-to-bottom linear

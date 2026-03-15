@@ -80,6 +80,9 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
     onHyperlinkClick,
     animationState,
     presentationElementStates,
+    allSlides,
+    onZoomClick,
+    sourceSlideIndex,
   }) {
     // Create element-scoped table cell select handler
     const cellSelectHandler = onTableCellSelect
@@ -146,7 +149,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
     const hasAction = Boolean(el.actionClick && onActionClick);
     const hasHoverAction = Boolean(el.actionHover);
     const hasHyperlinks = Boolean(onHyperlinkClick);
-    const isActionable = hasAction || hasHoverAction || hasHyperlinks;
+    const isZoom = el.type === "zoom" && Boolean(onZoomClick);
+    const isActionable = hasAction || hasHoverAction || hasHyperlinks || isZoom;
 
     const selB = isSelected
       ? `border-${selClr} ring-2 ring-${selClr}/50`
@@ -159,7 +163,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
         ? elementLocks?.noMove
           ? "cursor-default"
           : "cursor-move"
-        : hasAction
+        : hasAction || isZoom
           ? "cursor-pointer"
           : "";
 
@@ -293,6 +297,9 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
           handleMediaPlayStateChange,
           presentationElementStates,
           activeSlide?.elements,
+          allSlides,
+          onZoomClick,
+          sourceSlideIndex,
         )}
         {(el.actionClick || el.actionHover) && canInteract && (
           <ActionIndicator

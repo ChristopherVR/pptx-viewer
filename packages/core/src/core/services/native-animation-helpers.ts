@@ -3,6 +3,8 @@
  * Provides XML parsing utilities for animation timing trees.
  */
 import type {
+  AnimationCondition,
+  AnimationConditionEvent,
   PptxNativeAnimation,
   PptxTextBuildType,
   XmlObject,
@@ -237,4 +239,142 @@ export function ensureArray(value: unknown): XmlObject[] {
 
 export function isXmlObject(value: unknown): value is XmlObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** Known OOXML condition event values. */
+const VALID_CONDITION_EVENTS = new Set<string>([
+  "onBegin",
+  "onEnd",
+  "begin",
+  "end",
+  "onClick",
+  "onMouseOver",
+  "onMouseOut",
+  "onNext",
+  "onPrev",
+  "onStopAudio",
+]);
+
+/**
+ * Parse a single `p:cond` XML element into a structured {@link AnimationCondition}.
+ *
+ * Extracts the event type (`@_evt`), delay (`@_delay`), target time node
+ * (`@_tn`), and target element information (`p:tgtEl`).
+ */
+export function parseCondition(condXml: XmlObject): AnimationCondition {
+  const condition: AnimationCondition = {};
+
+  // Event type
+  const evt = condXml["@_evt"];
+  if (evt !== undefined) {
+    const evtStr = String(evt);
+    if (VALID_CONDITION_EVENTS.has(evtStr)) {
+      condition.event = evtStr as AnimationConditionEvent;
+    }
+  }
+
+  // Delay
+  const delay = condXml["@_delay"];
+  if (delay !== undefined) {
+    const delayStr = String(delay);
+    condition.delay =
+      delayStr === "indefinite" ? -1 : Number.parseInt(delayStr, 10);
+  }
+
+  // Target time node reference
+  const tn = condXml["@_tn"];
+  if (tn !== undefined) {
+    const tnNum = Number.parseInt(String(tn), 10);
+    if (!Number.isNaN(tnNum)) {
+      condition.targetTimeNodeId = tnNum;
+    }
+  }
+
+  // Target element
+  const tgtEl = condXml["p:tgtEl"] as XmlObject | undefined;
+  if (tgtEl) {
+    const spTgt = tgtEl["p:spTgt"] as XmlObject | undefined;
+    if (spTgt?.["@_spid"]) {
+      condition.targetShapeId = String(spTgt["@_spid"]);
+    }
+    if (tgtEl["p:sldTgt"] !== undefined) {
+      condition.targetSlide = true;
+    }
+  }
+
+  return condition;
+}
+
+/**
+ * Parse a `p:stCondLst` or `p:endCondLst` XML element into an array
+ * of structured {@link AnimationCondition} objects.
+ *
+ * Returns `undefined` if the condition list is missing or empty.
+ */
+export function parseConditionList(
+  condListXml: XmlObject | undefined,
+): AnimationCondition[] | undefined {
+  if (!condListXml) return undefined;
+
+  const conditions = ensureArray(condListXml["p:cond"]);
+  if (conditions.length === 0) return undefined;
+
+  const result: AnimationCondition[] = [];
+  for (const condXml of conditions) {
+    result.push(parseCondition(condXml));
+  }
+
+  return result.length > 0 ? result : undefined;
+}
+
+/**
+ * Serialize a single {@link AnimationCondition} back to an OOXML `p:cond`
+ * XML object for round-trip fidelity.
+ */
+export function serializeCondition(condition: AnimationCondition): XmlObject {
+  const condXml: XmlObject = {};
+
+  if (condition.event !== undefined) {
+    condXml["@_evt"] = condition.event;
+  }
+
+  if (condition.delay !== undefined) {
+    condXml["@_delay"] = condition.delay === -1 ? "indefinite" : String(condition.delay);
+  }
+
+  if (condition.targetTimeNodeId !== undefined) {
+    condXml["@_tn"] = String(condition.targetTimeNodeId);
+  }
+
+  // Target element
+  if (condition.targetShapeId || condition.targetSlide) {
+    const tgtEl: XmlObject = {};
+    if (condition.targetShapeId) {
+      tgtEl["p:spTgt"] = { "@_spid": condition.targetShapeId };
+    }
+    if (condition.targetSlide) {
+      tgtEl["p:sldTgt"] = {};
+    }
+    condXml["p:tgtEl"] = tgtEl;
+  }
+
+  return condXml;
+}
+
+/**
+ * Serialize an array of {@link AnimationCondition} objects back to an
+ * OOXML condition list XML object (`p:stCondLst` or `p:endCondLst`).
+ *
+ * Returns `undefined` if the array is empty or `undefined`.
+ */
+export function serializeConditionList(
+  conditions: AnimationCondition[] | undefined,
+): XmlObject | undefined {
+  if (!conditions || conditions.length === 0) return undefined;
+
+  const serialized = conditions.map(serializeCondition);
+
+  return {
+    "p:cond": serialized.length === 1 ? serialized[0] : serialized,
+  };
 }

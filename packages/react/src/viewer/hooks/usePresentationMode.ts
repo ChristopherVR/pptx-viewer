@@ -8,6 +8,7 @@ import { useAnimationPlayback } from "./presentation-mode/useAnimationPlayback";
 import { useRehearsalTimings } from "./presentation-mode/useRehearsalTimings";
 import { usePresentationKeyboard } from "./presentation-mode/usePresentationKeyboard";
 import { useSlideNavigation } from "./presentation-mode/useSlideNavigation";
+import { useZoomNavigation } from "./presentation-mode/useZoomNavigation";
 
 export type { UsePresentationModeInput, UsePresentationModeResult };
 
@@ -107,6 +108,13 @@ export function usePresentationMode(
     recordCurrentSlideTime,
     setShowRehearsalSummary,
   });
+
+  const {
+    handleZoomClick,
+    zoomReturnSlideIndex,
+    returnToZoomSlide,
+    clearZoomReturn,
+  } = useZoomNavigation({ navigateToSlide });
 
   // -----------------------------------------------------------------------
   // Enter present mode — call from a click handler so requestFullscreen works
@@ -256,5 +264,9 @@ export function usePresentationMode(
     saveRehearsalTimings,
     rehearsalPaused,
     toggleRehearsalPause,
+    handleZoomClick,
+    zoomReturnSlideIndex,
+    returnToZoomSlide,
+    clearZoomReturn,
   };
 }

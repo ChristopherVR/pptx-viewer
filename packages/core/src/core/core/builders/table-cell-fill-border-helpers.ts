@@ -19,6 +19,9 @@ export interface TableCellFillBorderContext {
   extractGradientFocalPoint?: (
     gradFill: XmlObject,
   ) => { x: number; y: number } | undefined;
+  extractGradientFillToRect?: (
+    gradFill: XmlObject,
+  ) => { l: number; t: number; r: number; b: number } | undefined;
 }
 
 /** Apply fill styles (solid, gradient, pattern) to a table cell style. */
@@ -59,6 +62,10 @@ export function applyCellFillStyle(
     if (context.extractGradientFocalPoint) {
       style.gradientFillFocalPoint =
         context.extractGradientFocalPoint(gradFill);
+    }
+    if (context.extractGradientFillToRect) {
+      style.gradientFillFillToRect =
+        context.extractGradientFillToRect(gradFill);
     }
     if (context.extractGradientFillCss) {
       style.gradientFillCss = context.extractGradientFillCss(gradFill);

@@ -37,6 +37,7 @@ function createExtractor() {
     extractGradientType: () => "linear",
     extractGradientPathType: () => undefined,
     extractGradientFocalPoint: () => undefined,
+    extractGradientFillToRect: () => undefined,
     normalizeStrokeDashType: (value: unknown) => {
       const valid = [
         "solid",

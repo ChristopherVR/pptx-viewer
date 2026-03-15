@@ -75,4 +75,13 @@ export interface UsePresentationModeResult {
   rehearsalPaused: boolean;
   /** Toggle the rehearsal timer pause state. */
   toggleRehearsalPause: () => void;
+  // --- Zoom Navigation ---
+  /** Handle a zoom element click in presentation mode. */
+  handleZoomClick: (targetSlideIndex: number, returnSlideIndex: number) => void;
+  /** Ref holding the slide index to return to after zoom navigation. */
+  zoomReturnSlideIndex: React.RefObject<number | null>;
+  /** Navigate back to the zoom summary slide. Returns true if navigation occurred. */
+  returnToZoomSlide: () => boolean;
+  /** Clear the stored zoom return index. */
+  clearZoomReturn: () => void;
 }

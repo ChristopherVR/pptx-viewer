@@ -85,6 +85,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         this.colorStyleCodec.extractGradientPathType(gradFill),
       extractGradientFocalPoint: (gradFill) =>
         this.colorStyleCodec.extractGradientFocalPoint(gradFill),
+      extractGradientFillToRect: (gradFill) =>
+        this.colorStyleCodec.extractGradientFillToRect(gradFill),
       normalizeStrokeDashType: (value) => this.normalizeStrokeDashType(value),
       normalizeConnectorArrowType: (value) =>
         this.normalizeConnectorArrowType(value),
@@ -121,6 +123,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         this.colorStyleCodec.extractGradientPathType(gradFill),
       extractGradientFocalPoint: (gradFill) =>
         this.colorStyleCodec.extractGradientFocalPoint(gradFill),
+      extractGradientFillToRect: (gradFill) =>
+        this.colorStyleCodec.extractGradientFillToRect(gradFill),
     });
     this.mediaDataParser = new PptxMediaDataParser({
       slideRelsMap: this.slideRelsMap,

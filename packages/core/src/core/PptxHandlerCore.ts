@@ -416,7 +416,7 @@ export class PptxHandlerCore {
   ): Promise<Uint8Array> {
     const pptxBytes = await this.runtime.save(slides, options);
     const encryptedBuffer = await encryptPptx(
-      pptxBytes.buffer,
+      pptxBytes.buffer as ArrayBuffer,
       password,
       options?.encryption,
     );

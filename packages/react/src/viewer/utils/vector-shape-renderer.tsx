@@ -1,6 +1,13 @@
 import React from "react";
 
-import { PptxElement, hasShapeProperties } from "pptx-viewer-core";
+import {
+  PptxElement,
+  hasShapeProperties,
+  isCalloutShape,
+  getCalloutLeaderLineGeometry,
+  buildCalloutLeaderLineSvgPath,
+  getCalloutViewBoxBounds,
+} from "pptx-viewer-core";
 import { colorWithOpacity } from "./color";
 import {
   getConnectorPathGeometry,
@@ -108,6 +115,65 @@ export function renderVectorShape(
         />
       </svg>
     );
+  }
+
+  // ── Callout leader lines ──────────────────────────────────────────────
+  if (isCalloutShape(normalizedType)) {
+    const width = Math.max(element.width, 1);
+    const height = Math.max(element.height, 1);
+    const geometry = getCalloutLeaderLineGeometry(
+      normalizedType,
+      width,
+      height,
+      element.shapeAdjustments,
+    );
+    if (geometry && geometry.points.length >= 2) {
+      const leaderPath = buildCalloutLeaderLineSvgPath(geometry);
+      const bounds = getCalloutViewBoxBounds(width, height, geometry);
+      const lineStroke = Math.max(strokeWidth, 1);
+      // Offset the SVG container so it covers the expanded viewBox area
+      const offsetLeft = bounds.minX;
+      const offsetTop = bounds.minY;
+      return (
+        <svg
+          viewBox={`${bounds.minX} ${bounds.minY} ${bounds.viewWidth} ${bounds.viewHeight}`}
+          className="pointer-events-none"
+          preserveAspectRatio="none"
+          style={{
+            position: "absolute",
+            left: offsetLeft,
+            top: offsetTop,
+            width: bounds.viewWidth,
+            height: bounds.viewHeight,
+            overflow: "visible",
+          }}
+        >
+          {/* Accent bar — horizontal line at top of shape */}
+          {geometry.hasAccent && (
+            <line
+              x1={0}
+              y1={0}
+              x2={width}
+              y2={0}
+              stroke={strokePaint}
+              strokeWidth={lineStroke}
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
+          {/* Leader line from shape edge to callout point */}
+          <path
+            d={leaderPath}
+            fill="none"
+            stroke={strokePaint}
+            strokeWidth={lineStroke}
+            strokeDasharray={dashArray}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+      );
+    }
   }
 
   if (

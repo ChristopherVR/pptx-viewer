@@ -80,7 +80,13 @@ function renderPressureStroke(
 
 export function renderInk(el: InkPptxElement, options?: InkRenderOptions) {
   const replay = options?.replay ?? false;
-  const pressureSensitive = options?.pressureSensitive ?? false;
+  // Enable pressure-sensitive rendering by default when the element has
+  // per-point width data with actual variation.
+  const hasPressure =
+    Boolean(el.inkWidths) &&
+    el.inkWidths!.length > 1 &&
+    hasPressureVariation(el.inkWidths!);
+  const pressureSensitive = options?.pressureSensitive ?? hasPressure;
   const replayStyles = replay ? getInkReplayStyles(el, options?.replayConfig) : null;
 
   return (

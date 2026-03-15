@@ -145,6 +145,10 @@ export interface PptxNativeAnimation {
   soundPath?: string;
   /** Whether to stop any currently playing sound (`p:endSnd`). */
   stopSound?: boolean;
+  /** Structured start conditions parsed from `p:stCondLst`. */
+  startConditions?: AnimationCondition[];
+  /** Structured end conditions parsed from `p:endCondLst`. */
+  endConditions?: AnimationCondition[];
   /** Preserved raw `p:endCondLst` XML node for lossless round-trip. */
   rawEndCondLst?: XmlObject;
   /** Color animation data from `p:animClr`. */
@@ -183,6 +187,53 @@ export interface PptxTextAnimationTarget {
   start: number;
   /** End index (exclusive). */
   end: number;
+}
+
+/**
+ * Event types for animation conditions from `p:cond/@evt`.
+ *
+ * These map directly to OOXML condition event attribute values
+ * (ISO/IEC 29500-1 S19.5.28 CT_TLTimeCondition).
+ */
+export type AnimationConditionEvent =
+  | "onBegin"
+  | "onEnd"
+  | "begin"
+  | "end"
+  | "onClick"
+  | "onMouseOver"
+  | "onMouseOut"
+  | "onNext"
+  | "onPrev"
+  | "onStopAudio";
+
+/**
+ * Structured representation of a single OOXML animation condition
+ * from `p:cond` elements inside `p:stCondLst` or `p:endCondLst`.
+ *
+ * Conditions control when an animation starts or ends, and can reference
+ * events, time delays, and target time node IDs.
+ *
+ * @example
+ * ```ts
+ * const cond: AnimationCondition = {
+ *   event: "onClick",
+ *   delay: 0,
+ *   targetShapeId: "shape_5",
+ * };
+ * ```
+ */
+export interface AnimationCondition {
+  /** Event that triggers the condition. */
+  event?: AnimationConditionEvent;
+  /** Delay in milliseconds (from `@_delay`). "indefinite" is represented as -1. */
+  delay?: number;
+  /** Target time node ID reference (from `@_tn`). */
+  targetTimeNodeId?: number;
+  /** Target shape ID from `p:tgtEl/p:spTgt/@spid`. */
+  targetShapeId?: string;
+  /** Whether the condition targets a slide (from `p:tgtEl/p:sldTgt`). */
+  targetSlide?: boolean;
 }
 
 /** Iteration configuration from `p:iterate`. */

@@ -131,13 +131,21 @@ describe("UNDERLINE_STYLES", () => {
 // ---------------------------------------------------------------------------
 
 describe("TEXT_DIRECTIONS", () => {
-  it("has exactly 3 items", () => {
-    expect(TEXT_DIRECTIONS).toHaveLength(3);
+  it("has exactly 7 items", () => {
+    expect(TEXT_DIRECTIONS).toHaveLength(7);
   });
 
-  it("contains horizontal, vertical, vertical270", () => {
+  it("contains all text direction values", () => {
     const values = TEXT_DIRECTIONS.map(([v]) => v);
-    expect(values).toEqual(["horizontal", "vertical", "vertical270"]);
+    expect(values).toEqual([
+      "horizontal",
+      "vertical",
+      "vertical270",
+      "eaVert",
+      "wordArtVert",
+      "wordArtVertRtl",
+      "mongolianVert",
+    ]);
   });
 
   it("every entry is a [value, label] tuple", () => {

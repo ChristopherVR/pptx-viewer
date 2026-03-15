@@ -93,7 +93,7 @@ export function renderStackedBarChart(
           y={y}
           width={barWidth}
           height={h}
-          fill={seriesColor(series, si)}
+          fill={seriesColor(series, si, chartData.style?.styleId)}
           rx={0}
         />,
       );

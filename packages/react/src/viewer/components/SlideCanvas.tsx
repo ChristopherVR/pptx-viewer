@@ -77,6 +77,9 @@ export function SlideCanvas({
   onCreateGuideFromRuler,
   connectorCreationMode = false,
   onCreateConnector,
+  allSlides,
+  onZoomClick,
+  sourceSlideIndex,
 }: SlideCanvasProps) {
   /* ── Stable callback refs ──────────────────────────────────────── */
   const {
@@ -262,6 +265,9 @@ export function SlideCanvas({
               onHyperlinkClick={onHyperlinkClick}
               animationState={presentationElementStates?.get(element.id)}
               presentationElementStates={presentationElementStates}
+              allSlides={allSlides}
+              onZoomClick={onZoomClick}
+              sourceSlideIndex={sourceSlideIndex}
             />
           ))}
 
@@ -308,6 +314,9 @@ export function SlideCanvas({
               onHyperlinkClick={onHyperlinkClick}
               animationState={presentationElementStates?.get(element.id)}
               presentationElementStates={presentationElementStates}
+              allSlides={allSlides}
+              onZoomClick={onZoomClick}
+              sourceSlideIndex={sourceSlideIndex}
             />
           ))}
 

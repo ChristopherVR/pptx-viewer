@@ -19,6 +19,7 @@ export {
 	createChartElement,
 	createMediaElement,
 	createGroupElement,
+	createFreeformElement,
 	resetIdCounter,
 } from "./ElementFactory";
 
@@ -76,6 +77,15 @@ export {
 export { mergePresentation } from "./merge-operations";
 export type { MergeOptions } from "./merge-operations";
 
+// Shape operations
+export {
+	replaceShapeGeometry,
+	replaceWithCustomGeometry,
+	interpolateShapeGeometry,
+	parseSvgPath,
+	serializeSvgPath,
+} from "./shape-operations";
+
 // Diff operations
 export { diffPresentations, diffSlides } from "./diff-operations";
 export type {
@@ -84,6 +94,14 @@ export type {
 	ElementDiff,
 	PropertyChange,
 } from "./diff-operations";
+
+// Template engine (mail merge)
+export {
+	applyTemplate,
+	findPlaceholders,
+	mailMerge,
+} from "./template-engine";
+export type { TemplateData } from "./template-engine";
 
 export type {
 	ElementPosition,
