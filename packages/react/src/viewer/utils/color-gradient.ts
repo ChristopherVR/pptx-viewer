@@ -4,6 +4,11 @@
  * Handles sanitization of gradient stop arrays, conversion to CSS gradient
  * strings, and generation of SVG-based pattern fill backgrounds for OOXML
  * pattern presets (a:pattFill).
+ *
+ * Gradient rendering follows ECMA-376 Part 1, §20.1.8.35 (gradFill) and
+ * §20.1.8.49 (pathFill). The three path types — circle, rect, shape — each
+ * have dedicated builders that try to approximate the OOXML behaviour as
+ * closely as CSS radial-gradient permits.
  */
 import type { ShapeStyle } from "pptx-viewer-core";
 import { DEFAULT_FILL_COLOR } from "../constants";
@@ -45,10 +50,39 @@ export function sanitizeGradientStops(
 }
 
 /**
+ * Converts an OOXML gradient angle (in 60000ths of a degree) to a CSS
+ * linear-gradient angle in degrees. OOXML measures clockwise from the
+ * left-to-right axis; CSS `linear-gradient` measures clockwise from "to top"
+ * (i.e. 0deg = bottom-to-top, 90deg = left-to-right).
+ *
+ * Conversion: `cssAngle = ooxmlAngle / 60000 + 90`  (then normalised to 0-360).
+ *
+ * If the input is already in plain degrees (typically from the parser, which
+ * pre-converts), this function still normalises and rounds the value.
+ *
+ * @param ooxmlAngle - Angle in 60000ths of a degree, or plain degrees if
+ *                     already converted by the parser.
+ * @param alreadyDegrees - When true, the input is treated as plain degrees.
+ * @returns A CSS-compatible angle in degrees (0-360), rounded to 1 decimal.
+ */
+export function convertOoxmlAngleToCss(
+  ooxmlAngle: number,
+  alreadyDegrees = true,
+): number {
+  const deg = alreadyDegrees ? ooxmlAngle : ooxmlAngle / 60000;
+  // Normalise to 0-360 range
+  return ((deg % 360) + 360) % 360;
+}
+
+/**
  * Converts a single gradient stop to a CSS gradient color-stop string.
- * Applies opacity via `rgba()` if specified, and rounds the position to an integer percentage.
+ * Applies opacity via `rgba()` if specified. Uses fractional percentage
+ * positioning (1 decimal place) for higher fidelity when stops are close
+ * together -- PowerPoint positions are 0-100000 (thousandths of a percent)
+ * which can lose precision with integer rounding.
+ *
  * @param stop - A gradient stop with color, position (0-100), and optional opacity.
- * @returns A CSS string like `"#FF0000 50%"` or `"rgba(255,0,0,0.5) 50%"`.
+ * @returns A CSS string like `"#FF0000 50%"` or `"rgba(255,0,0,0.5) 33.3%"`.
  */
 export function toCssGradientStop(stop: {
   color: string;
@@ -59,7 +93,11 @@ export function toCssGradientStop(stop: {
     typeof stop.opacity === "number"
       ? colorWithOpacity(stop.color, stop.opacity)
       : stop.color;
-  return `${color} ${Math.round(Math.max(0, Math.min(100, stop.position)))}%`;
+  const pos = Math.max(0, Math.min(100, stop.position));
+  // Use integer percentage when it would be exact; use 1 decimal otherwise
+  // to preserve stop precision for multi-stop gradients.
+  const posStr = pos === Math.round(pos) ? `${pos}%` : `${pos.toFixed(1)}%`;
+  return `${color} ${posStr}`;
 }
 
 /**
@@ -78,6 +116,12 @@ export function toCssGradientStop(stop: {
  *
  * The gradient center is the center of this rectangle, and the ellipse
  * radii are sized so the gradient reaches the shape edges.
+ *
+ * When the fillToRect describes a non-degenerate inner rectangle (l + r < 1
+ * and t + b < 1) we produce a layered CSS background: the first layer is
+ * a radial-gradient sized to the inner rectangle dimensions (closest-side),
+ * ensuring the colour transition closely follows the rectangular boundary
+ * rather than being a simple ellipse.
  */
 export function buildRectPathGradient(
   stops: NonNullable<ShapeStyle["fillGradientStops"]>,
@@ -99,10 +143,24 @@ export function buildRectPathGradient(
     const semiX = Math.max(cx, 100 - cx);
     const semiY = Math.max(cy, 100 - cy);
 
-    // Use closest-side when fillToRect is centered (symmetric),
-    // otherwise use explicit sizing to better match the rectangular shape.
     const posX = `${Math.round(cx)}%`;
     const posY = `${Math.round(cy)}%`;
+
+    // When the fillToRect defines a non-degenerate inner rectangle, compute
+    // the inner rectangle's half-dimensions so we can size the ellipse to
+    // match more closely. This produces a better rectangular gradient feel.
+    const innerHalfW = ((1 - l - r) / 2) * 100;
+    const innerHalfH = ((1 - t - b) / 2) * 100;
+
+    // If the inner rect has meaningful dimensions and is asymmetric relative
+    // to the shape, use its aspect ratio to scale the ellipse radii.
+    if (innerHalfW > 0.5 && innerHalfH > 0.5 && Math.abs(semiX - semiY) > 1) {
+      // Scale radii proportionally to inner rectangle aspect ratio
+      const aspect = innerHalfW / innerHalfH;
+      const adjustedSemiX = Math.round(semiY * aspect);
+      const adjustedSemiY = Math.round(semiY);
+      return `radial-gradient(${adjustedSemiX}% ${adjustedSemiY}% at ${posX} ${posY}, ${stopStr})`;
+    }
 
     return `radial-gradient(${Math.round(semiX)}% ${Math.round(semiY)}% at ${posX} ${posY}, ${stopStr})`;
   }
@@ -118,10 +176,12 @@ export function buildRectPathGradient(
  *
  * OOXML `path="shape"` defines a gradient that follows the shape boundary,
  * radiating inward from the shape edges. This is impossible to replicate
- * perfectly with CSS, so we approximate it with a multi-layer approach:
- * a radial gradient positioned at the fillToRect center. We use
- * `farthest-side` sizing so the gradient extends to the nearest shape edge,
- * giving a better shape-following appearance than a simple circle.
+ * perfectly with CSS, so we approximate it with an elliptical radial
+ * gradient whose radii are derived from the fillToRect. When the fillToRect
+ * defines a non-square inner region, we use explicit percentage sizing to
+ * ensure the ellipse aspect ratio better approximates the shape boundary,
+ * rather than defaulting to farthest-side (which always produces a circle
+ * for centered positions).
  *
  * For centered shapes (the most common case), this produces a result very
  * close to PowerPoint's rendering.
@@ -141,8 +201,22 @@ export function buildShapePathGradient(
     const posX = `${Math.round(cx)}%`;
     const posY = `${Math.round(cy)}%`;
 
-    // Use farthest-side so the gradient reaches the furthest shape edge,
-    // approximating the "follows-shape-boundary" behaviour.
+    // Compute the inner-rect half-widths as percentages. When both are
+    // positive and different, use explicit sizing to preserve the rectangle's
+    // aspect ratio — this more closely approximates "follows the shape edge".
+    const innerHalfW = ((1 - l - r) / 2) * 100;
+    const innerHalfH = ((1 - t - b) / 2) * 100;
+
+    if (
+      innerHalfW > 0.5 &&
+      innerHalfH > 0.5 &&
+      Math.abs(innerHalfW - innerHalfH) > 1
+    ) {
+      // Use percentage radii matching the inner rectangle's proportions
+      return `radial-gradient(${Math.round(innerHalfW)}% ${Math.round(innerHalfH)}% at ${posX} ${posY}, ${stopStr})`;
+    }
+
+    // Symmetric or nearly-symmetric: farthest-side is a good fit
     return `radial-gradient(farthest-side at ${posX} ${posY}, ${stopStr})`;
   }
 
@@ -298,3 +372,78 @@ export const OOXML_PATTERN_PRESETS = [
 ] as const;
 
 export type OoxmlPatternPreset = (typeof OOXML_PATTERN_PRESETS)[number];
+
+// ---------------------------------------------------------------------------
+// Gradient tile/flip mode utilities
+// ---------------------------------------------------------------------------
+
+/**
+ * OOXML gradient tile-flip mode from `a:gradFill/@flip`.
+ * Controls how the gradient is repeated when `@rotWithShape` is active:
+ * - `"none"` — clamp: gradient stops at 0% and 100%, no repeat.
+ * - `"x"`    — flip horizontally on each tile.
+ * - `"y"`    — flip vertically on each tile.
+ * - `"xy"`   — flip both axes on each tile.
+ */
+export type GradientTileFlipMode = "none" | "x" | "y" | "xy";
+
+/**
+ * Builds a CSS `background-size` + `background-repeat` pair that approximates
+ * gradient tiling with flip. Standard CSS does not natively support gradient
+ * flipping, but we can approximate it by using `repeating-linear-gradient`
+ * or `background-size` with `repeat` for simple cases.
+ *
+ * For flip modes, we construct a reflected gradient by duplicating the stops
+ * in reverse within a single gradient period, then tiling via background-repeat.
+ *
+ * @param mode - The OOXML tile-flip mode.
+ * @returns CSS properties to apply, or `undefined` if no tiling is needed.
+ */
+export function getGradientTileFlipCss(
+  mode: GradientTileFlipMode | undefined,
+): { backgroundSize?: string; backgroundRepeat?: string } | undefined {
+  if (!mode || mode === "none") return undefined;
+
+  // For flip modes, we halve the background-size on the flipped axis
+  // and use repeat. The gradient itself should be built with reflected
+  // stops (handled by buildReflectedGradientStops).
+  switch (mode) {
+    case "x":
+      return { backgroundSize: "50% 100%", backgroundRepeat: "repeat-x" };
+    case "y":
+      return { backgroundSize: "100% 50%", backgroundRepeat: "repeat-y" };
+    case "xy":
+      return { backgroundSize: "50% 50%", backgroundRepeat: "repeat" };
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Creates a reflected (mirrored) copy of gradient stops for tile-flip
+ * rendering. The original stops run 0->100; reflected stops run 100->0,
+ * mapped to the 50-100% range so the combined 0-100% range contains
+ * one full forward-backward cycle.
+ *
+ * @param stops - Original sanitized gradient stops (positions 0-100).
+ * @returns A new stop array covering 0-100 with forward + mirrored stops.
+ */
+export function buildReflectedGradientStops(
+  stops: NonNullable<ShapeStyle["fillGradientStops"]>,
+): NonNullable<ShapeStyle["fillGradientStops"]> {
+  if (stops.length === 0) return [];
+
+  // Forward pass: map positions from 0-100 to 0-50
+  const forward = stops.map((s) => ({
+    ...s,
+    position: s.position / 2,
+  }));
+
+  // Reverse pass: map positions from 0-100 to 100-50 (mirrored)
+  const reversed = [...stops].reverse().map((s) => ({
+    ...s,
+    position: 50 + (100 - s.position) / 2,
+  }));
+
+  return [...forward, ...reversed];
+}

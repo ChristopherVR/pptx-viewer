@@ -11,4 +11,9 @@
  *
  * @packageDocumentation
  */
-export { convertEmfToDataUrl, convertWmfToDataUrl } from "./emf-converter";
+export {
+  convertEmfToDataUrl,
+  convertWmfToDataUrl,
+  type EmfConvertOptions,
+} from "./emf-converter";
+export { DEFAULT_DPI_SCALE } from "./emf-canvas-helpers";

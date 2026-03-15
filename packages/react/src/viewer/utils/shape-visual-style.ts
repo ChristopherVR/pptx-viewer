@@ -16,6 +16,9 @@ import {
   buildCssGradientFromShapeStyle,
   buildShadowCssFromShapeStyle,
   buildInnerShadowCssFromShapeStyle,
+  buildMultiLayerShadowCss,
+  buildGlowBoxShadow,
+  buildReflectionCss,
   buildPatternFillCss,
 } from "./color";
 import {
@@ -79,10 +82,24 @@ export function getShapeVisualStyle(
   const resolvedFillColor = colorWithOpacity(fillColor, fillOpacity);
   const resolvedStrokeColor = colorWithOpacity(strokeColor, strokeOpacity);
 
-  // Combine outer, inner, and line shadow into a single boxShadow value
+  // Combine outer, inner, and line shadow into a single boxShadow value.
+  // Multi-layer shadows (from `shadows` array) take precedence over the
+  // single-shadow properties for outer shadows when present.
   const combinedShadowParts: string[] = [];
-  if (shadowCss) combinedShadowParts.push(shadowCss);
+  const multiLayerShadow = buildMultiLayerShadowCss(element.shapeStyle);
+  if (multiLayerShadow) {
+    combinedShadowParts.push(multiLayerShadow);
+  } else if (shadowCss) {
+    combinedShadowParts.push(shadowCss);
+  }
   if (innerShadowCss) combinedShadowParts.push(innerShadowCss);
+  // High-fidelity glow via layered box-shadows (supplements the filter-based glow)
+  const glowBoxShadow = buildGlowBoxShadow(
+    ss?.glowColor,
+    ss?.glowRadius,
+    ss?.glowOpacity,
+  );
+  if (glowBoxShadow) combinedShadowParts.push(glowBoxShadow);
   // Line-level shadow (from a:ln/a:effectLst/a:outerShdw)
   const lineShadow = buildLineShadowCss(element);
   if (lineShadow) combinedShadowParts.push(lineShadow);
@@ -155,7 +172,7 @@ export function getShapeVisualStyle(
       (typeof ss.reflectionBlurRadius === "number" &&
         ss.reflectionBlurRadius > 0);
     if (hasReflection) {
-      const distance = Math.round(ss.reflectionDistance ?? 0);
+      const distance = ss.reflectionDistance ?? 0;
       const startOpacity =
         typeof ss.reflectionStartOpacity === "number"
           ? ss.reflectionStartOpacity
@@ -170,7 +187,17 @@ export function getShapeVisualStyle(
         typeof ss.reflectionEndPosition === "number"
           ? Math.round(ss.reflectionEndPosition * Math.max(element.height, 1))
           : 100;
-      reflectCss = `below ${distance}px linear-gradient(to bottom, rgba(255,255,255,${startOpacity}), rgba(255,255,255,${endOpacity}) ${fadeLength}px)`;
+      const blurRadius =
+        typeof ss.reflectionBlurRadius === "number"
+          ? ss.reflectionBlurRadius
+          : 0;
+      reflectCss = buildReflectionCss(
+        distance,
+        startOpacity,
+        endOpacity,
+        fadeLength,
+        blurRadius,
+      );
     }
   }
 

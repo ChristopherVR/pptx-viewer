@@ -13,7 +13,11 @@
  */
 
 import { emfLog, emfWarn } from "./emf-logging";
-import { createCanvas, exportCanvasToPngDataUrl } from "./emf-canvas-helpers";
+import {
+  createCanvas,
+  exportCanvasToPngDataUrl,
+  DEFAULT_DPI_SCALE,
+} from "./emf-canvas-helpers";
 import {
   parseEmfHeader,
   getRenderableEmfBounds,
@@ -22,6 +26,22 @@ import {
 import { replayEmfRecords } from "./emf-record-replay";
 import { replayWmfRecords } from "./wmf-replay";
 import type { DeferredImageDraw } from "./emf-types";
+
+/**
+ * Configuration options for EMF/WMF conversion.
+ */
+export interface EmfConvertOptions {
+  /** Maximum output width in pixels. */
+  maxWidth?: number;
+  /** Maximum output height in pixels. */
+  maxHeight?: number;
+  /**
+   * DPI scale factor for higher-resolution output.
+   * Default is 2 (HiDPI). Set to 1 for 1:1 pixel mapping.
+   * Values above 4 are clamped to 4 to prevent excessive memory usage.
+   */
+  dpiScale?: number;
+}
 
 // ---------------------------------------------------------------------------
 // Deferred-image post-processing
@@ -146,6 +166,10 @@ async function processDeferredImages(
  * them onto an in-memory canvas. Embedded EMF+ (GDI+) records found inside
  * EMR_COMMENT payloads are handled transparently.
  *
+ * The canvas is rendered at a configurable DPI scale (default 2x) to produce
+ * sharper output when displayed at CSS logical-pixel sizes. This is important
+ * for presentations viewed on HiDPI/Retina displays.
+ *
  * Returns `null` when:
  * - The buffer does not begin with a valid EMR_HEADER record.
  * - The logical bounds are zero-sized or negative.
@@ -154,17 +178,29 @@ async function processDeferredImages(
  * @param buffer    - The raw EMF file bytes.
  * @param maxWidth  - Optional cap on the output canvas width (pixels).
  * @param maxHeight - Optional cap on the output canvas height (pixels).
+ * @param optionsOrDpiScale - Either an {@link EmfConvertOptions} object, or
+ *   a numeric DPI scale (for backward compatibility). Default DPI scale is 2.
  * @returns A `data:image/png;base64,…` string, or `null` on failure.
  */
 export async function convertEmfToDataUrl(
   buffer: ArrayBuffer,
   maxWidth?: number,
   maxHeight?: number,
+  optionsOrDpiScale?: EmfConvertOptions | number,
 ): Promise<string | null> {
+  // Parse the flexible options argument
+  const opts: EmfConvertOptions =
+    typeof optionsOrDpiScale === "number"
+      ? { dpiScale: optionsOrDpiScale }
+      : optionsOrDpiScale ?? {};
+  const dpiScale = opts.dpiScale ?? DEFAULT_DPI_SCALE;
+  const effectiveMaxWidth = maxWidth ?? opts.maxWidth;
+  const effectiveMaxHeight = maxHeight ?? opts.maxHeight;
+
   try {
     emfLog("=== convertEmfToDataUrl START ===");
     emfLog(
-      `Input buffer: ${buffer.byteLength} bytes, maxWidth=${maxWidth}, maxHeight=${maxHeight}`,
+      `Input buffer: ${buffer.byteLength} bytes, maxWidth=${effectiveMaxWidth}, maxHeight=${effectiveMaxHeight}, dpiScale=${dpiScale}`,
     );
 
     if (buffer.byteLength >= 16) {
@@ -196,7 +232,13 @@ export async function convertEmfToDataUrl(
     const logicalH = renderBounds.bottom - renderBounds.top;
     emfLog(`convertEmfToDataUrl: logicalSize=${logicalW}×${logicalH}`);
 
-    const setup = createCanvas(logicalW, logicalH, maxWidth, maxHeight);
+    const setup = createCanvas(
+      logicalW,
+      logicalH,
+      effectiveMaxWidth,
+      effectiveMaxHeight,
+      dpiScale,
+    );
     if (!setup) {
       emfLog(
         "convertEmfToDataUrl: createCanvas returned null — returning null",
@@ -206,7 +248,7 @@ export async function convertEmfToDataUrl(
 
     const { canvas, ctx } = setup;
     emfLog(
-      `convertEmfToDataUrl: canvas created ${canvas.width}×${canvas.height}`,
+      `convertEmfToDataUrl: canvas created ${canvas.width}×${canvas.height} (dpiScale=${dpiScale})`,
     );
 
     ctx.save();
@@ -262,6 +304,9 @@ export async function convertEmfToDataUrl(
  * This function parses the optional Aldus placeable header, the WMF header,
  * and then replays all META_* records onto a canvas.
  *
+ * The canvas is rendered at a configurable DPI scale (default 2x) for
+ * sharper output on HiDPI displays.
+ *
  * Returns `null` when:
  * - The header cannot be parsed or reports invalid dimensions.
  * - No canvas API is available.
@@ -269,17 +314,28 @@ export async function convertEmfToDataUrl(
  * @param buffer    - The raw WMF file bytes.
  * @param maxWidth  - Optional cap on the output canvas width (pixels).
  * @param maxHeight - Optional cap on the output canvas height (pixels).
+ * @param optionsOrDpiScale - Either an {@link EmfConvertOptions} object, or
+ *   a numeric DPI scale. Default DPI scale is 2.
  * @returns A `data:image/png;base64,…` string, or `null` on failure.
  */
 export async function convertWmfToDataUrl(
   buffer: ArrayBuffer,
   maxWidth?: number,
   maxHeight?: number,
+  optionsOrDpiScale?: EmfConvertOptions | number,
 ): Promise<string | null> {
+  const opts: EmfConvertOptions =
+    typeof optionsOrDpiScale === "number"
+      ? { dpiScale: optionsOrDpiScale }
+      : optionsOrDpiScale ?? {};
+  const dpiScale = opts.dpiScale ?? DEFAULT_DPI_SCALE;
+  const effectiveMaxWidth = maxWidth ?? opts.maxWidth;
+  const effectiveMaxHeight = maxHeight ?? opts.maxHeight;
+
   try {
     emfLog(
       "=== convertWmfToDataUrl START ===",
-      `buffer=${buffer.byteLength} bytes`,
+      `buffer=${buffer.byteLength} bytes, dpiScale=${dpiScale}`,
     );
     const view = new DataView(buffer);
     const header = parseWmfHeader(view);
@@ -297,7 +353,13 @@ export async function convertWmfToDataUrl(
       return null;
     }
 
-    const setup = createCanvas(logicalW, logicalH, maxWidth, maxHeight);
+    const setup = createCanvas(
+      logicalW,
+      logicalH,
+      effectiveMaxWidth,
+      effectiveMaxHeight,
+      dpiScale,
+    );
     if (!setup) return null;
 
     const { canvas, ctx } = setup;

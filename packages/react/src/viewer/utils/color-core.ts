@@ -186,3 +186,128 @@ export function buildInnerShadowCssFromShapeStyle(
     opacity,
   )}`;
 }
+
+/* ------------------------------------------------------------------ */
+/*  Multi-layer shadow & glow CSS builders                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Builds CSS `box-shadow` strings for all shadow layers in a ShapeStyle's
+ * `shadows` array. PowerPoint supports multiple simultaneous outer shadows
+ * (e.g. perspective shadows, or shadow + glow combined in one effect list).
+ *
+ * Each shadow layer is rendered as a separate comma-separated `box-shadow`
+ * value with its own offset, blur, and colour. This is more faithful than
+ * the single-shadow `buildShadowCssFromShapeStyle` for presentations that
+ * define compound shadow effects.
+ *
+ * @param style - The shape style containing the `shadows` array.
+ * @returns A CSS box-shadow string with all layers, or `undefined` if empty.
+ */
+export function buildMultiLayerShadowCss(
+  style: ShapeStyle | undefined,
+): string | undefined {
+  if (!style?.shadows || style.shadows.length === 0) return undefined;
+
+  const parts: string[] = [];
+  for (const shadow of style.shadows) {
+    if (!shadow.color || shadow.color === "transparent") continue;
+
+    const angleRad = ((shadow.angle ?? 0) * Math.PI) / 180;
+    const dist = shadow.distance ?? 0;
+    const offsetX = Math.round(Math.cos(angleRad) * dist);
+    const offsetY = Math.round(Math.sin(angleRad) * dist);
+    const blur = Math.round(Math.max(0, shadow.blur ?? 6));
+    const opacity = clampUnitInterval(shadow.opacity ?? 0.35);
+    const color = colorWithOpacity(
+      normalizeHexColor(shadow.color, "#000000"),
+      opacity,
+    );
+    parts.push(`${offsetX}px ${offsetY}px ${blur}px ${color}`);
+  }
+
+  return parts.length > 0 ? parts.join(", ") : undefined;
+}
+
+/**
+ * Builds a high-fidelity CSS `box-shadow` for a glow effect by using
+ * multiple layered shadows at increasing blur radii with decreasing
+ * opacity. This produces a softer, more diffused glow than a single
+ * `drop-shadow` filter and matches PowerPoint's rendering more closely.
+ *
+ * The glow is rendered as 3 concentric shadow layers:
+ * 1. Inner layer: 33% of radius, full opacity
+ * 2. Middle layer: 66% of radius, 60% opacity
+ * 3. Outer layer: full radius, 30% opacity
+ *
+ * @param color   - Glow colour (hex).
+ * @param radius  - Glow radius in pixels.
+ * @param opacity - Glow opacity (0-1).
+ * @returns A CSS box-shadow string with layered glow, or `undefined`.
+ */
+export function buildGlowBoxShadow(
+  color: string | undefined,
+  radius: number | undefined,
+  opacity: number | undefined,
+): string | undefined {
+  if (!color || color === "transparent" || !radius || radius <= 0) {
+    return undefined;
+  }
+
+  const baseOpacity = typeof opacity === "number" ? clampUnitInterval(opacity) : 0.75;
+  const normalizedColor = normalizeHexColor(color, "#ffff00");
+
+  // Layer 1: tight inner glow
+  const r1 = Math.round(radius * 0.33);
+  const c1 = colorWithOpacity(normalizedColor, baseOpacity);
+
+  // Layer 2: mid glow
+  const r2 = Math.round(radius * 0.66);
+  const c2 = colorWithOpacity(normalizedColor, baseOpacity * 0.6);
+
+  // Layer 3: outer diffuse glow
+  const r3 = Math.round(radius);
+  const c3 = colorWithOpacity(normalizedColor, baseOpacity * 0.3);
+
+  return `0 0 ${r1}px ${c1}, 0 0 ${r2}px ${c2}, 0 0 ${r3}px ${c3}`;
+}
+
+/**
+ * Builds a CSS reflection string with blur support. PowerPoint reflections
+ * include a blur radius that softens the reflected image. We include the
+ * blur as part of the `-webkit-box-reflect` gradient mask — the blur
+ * effectively reduces the mask sharpness by widening the fade zone.
+ *
+ * @param distance      - Gap between shape bottom and reflection top, in px.
+ * @param startOpacity  - Opacity at the top of the reflection (0-1).
+ * @param endOpacity    - Opacity at the bottom of the reflection (0-1).
+ * @param fadeLength    - Length of the fade zone in px.
+ * @param blurRadius    - Reflection blur radius in px (default 0).
+ * @returns A CSS value for `-webkit-box-reflect`, or `undefined`.
+ */
+export function buildReflectionCss(
+  distance: number,
+  startOpacity: number,
+  endOpacity: number,
+  fadeLength: number,
+  blurRadius: number = 0,
+): string {
+  // The blur extends the fade zone — we widen the gradient to compensate
+  const effectiveFadeLength = fadeLength + blurRadius * 2;
+  // Midpoint opacity accounts for blur diffusion
+  const midOpacity = (startOpacity + endOpacity) / 2;
+  const midPoint = Math.round(effectiveFadeLength * 0.5);
+
+  if (blurRadius > 0) {
+    // Three-stop gradient for a smoother blur-like fade
+    return (
+      `below ${Math.round(distance)}px linear-gradient(to bottom, ` +
+      `rgba(255,255,255,${startOpacity}), ` +
+      `rgba(255,255,255,${midOpacity}) ${midPoint}px, ` +
+      `rgba(255,255,255,${endOpacity}) ${effectiveFadeLength}px)`
+    );
+  }
+
+  // Standard two-stop gradient (no blur)
+  return `below ${Math.round(distance)}px linear-gradient(to bottom, rgba(255,255,255,${startOpacity}), rgba(255,255,255,${endOpacity}) ${fadeLength}px)`;
+}

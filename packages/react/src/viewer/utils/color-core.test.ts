@@ -7,6 +7,9 @@ import {
 	clampCropValue,
 	buildShadowCssFromShapeStyle,
 	buildInnerShadowCssFromShapeStyle,
+	buildMultiLayerShadowCss,
+	buildGlowBoxShadow,
+	buildReflectionCss,
 	createArrayBufferCopy,
 } from './color-core';
 
@@ -296,5 +299,160 @@ describe('createArrayBufferCopy', () => {
 		const original = new Uint8Array(0);
 		const copy = createArrayBufferCopy(original);
 		expect(copy.byteLength).toBe(0);
+	});
+});
+
+describe('buildMultiLayerShadowCss', () => {
+	it('should return undefined for undefined style', () => {
+		expect(buildMultiLayerShadowCss(undefined)).toBeUndefined();
+	});
+
+	it('should return undefined when shadows array is empty', () => {
+		expect(buildMultiLayerShadowCss({ shadows: [] })).toBeUndefined();
+	});
+
+	it('should return undefined when shadows is not present', () => {
+		expect(buildMultiLayerShadowCss({})).toBeUndefined();
+	});
+
+	it('should build a single shadow layer', () => {
+		const result = buildMultiLayerShadowCss({
+			shadows: [
+				{ color: '#000000', opacity: 0.5, blur: 10, angle: 0, distance: 5 },
+			],
+		});
+		expect(result).toBeDefined();
+		expect(result).toContain('5px');
+		expect(result).toContain('0px');
+		expect(result).toContain('10px');
+		expect(result).toContain('rgba(0, 0, 0, 0.5)');
+	});
+
+	it('should build multiple shadow layers separated by commas', () => {
+		const result = buildMultiLayerShadowCss({
+			shadows: [
+				{ color: '#000000', opacity: 0.5, blur: 10, angle: 0, distance: 5 },
+				{ color: '#FF0000', opacity: 0.3, blur: 4, angle: 90, distance: 3 },
+			],
+		});
+		expect(result).toBeDefined();
+		// Both shadow colors should be present
+		expect(result).toContain('rgba(0, 0, 0, 0.5)');
+		expect(result).toContain('rgba(255, 0, 0, 0.3)');
+		// Count shadow segments by matching the "px rgba" pattern
+		const shadowCount = (result!.match(/px rgba/g) || []).length;
+		expect(shadowCount).toBe(2);
+	});
+
+	it('should compute offsets from angle and distance', () => {
+		const result = buildMultiLayerShadowCss({
+			shadows: [
+				{ color: '#000000', opacity: 1, blur: 0, angle: 90, distance: 10 },
+			],
+		});
+		expect(result).toBeDefined();
+		// cos(90) ~= 0, sin(90) = 1 => offset 0, 10
+		expect(result).toContain('0px 10px 0px');
+	});
+
+	it('should skip transparent shadow entries', () => {
+		const result = buildMultiLayerShadowCss({
+			shadows: [
+				{
+					color: 'transparent',
+					opacity: 0.5,
+					blur: 10,
+					angle: 0,
+					distance: 5,
+				},
+				{ color: '#000000', opacity: 0.5, blur: 10, angle: 0, distance: 5 },
+			],
+		});
+		expect(result).toBeDefined();
+		// Should only contain the non-transparent shadow (1 "px rgba" occurrence)
+		const shadowCount = (result!.match(/px rgba/g) || []).length;
+		expect(shadowCount).toBe(1);
+	});
+});
+
+describe('buildGlowBoxShadow', () => {
+	it('should return undefined for undefined color', () => {
+		expect(buildGlowBoxShadow(undefined, 10, 0.75)).toBeUndefined();
+	});
+
+	it('should return undefined for transparent color', () => {
+		expect(buildGlowBoxShadow('transparent', 10, 0.75)).toBeUndefined();
+	});
+
+	it('should return undefined for zero radius', () => {
+		expect(buildGlowBoxShadow('#FF0000', 0, 0.75)).toBeUndefined();
+	});
+
+	it('should return undefined for undefined radius', () => {
+		expect(buildGlowBoxShadow('#FF0000', undefined, 0.75)).toBeUndefined();
+	});
+
+	it('should produce 3 layered shadows', () => {
+		const result = buildGlowBoxShadow('#FF0000', 30, 0.75);
+		expect(result).toBeDefined();
+		// Should have 3 "0 0 Npx" occurrences (3 layered shadows)
+		const shadowCount = (result!.match(/0 0 \d+px/g) || []).length;
+		expect(shadowCount).toBe(3);
+	});
+
+	it('should use decreasing opacity across layers', () => {
+		const result = buildGlowBoxShadow('#FF0000', 30, 1);
+		expect(result).toBeDefined();
+		// The three layers use full, 60%, and 30% of base opacity
+		expect(result).toContain('rgba(255, 0, 0, 1)');
+		expect(result).toContain('rgba(255, 0, 0, 0.6)');
+		expect(result).toContain('rgba(255, 0, 0, 0.3)');
+	});
+
+	it('should use increasing blur radius across layers', () => {
+		const result = buildGlowBoxShadow('#FF0000', 30, 0.75);
+		expect(result).toBeDefined();
+		// r1 = 10, r2 = 20, r3 = 30
+		expect(result).toContain('0 0 10px');
+		expect(result).toContain('0 0 20px');
+		expect(result).toContain('0 0 30px');
+	});
+
+	it('should default opacity to 0.75 when undefined', () => {
+		const result = buildGlowBoxShadow('#00FF00', 30, undefined);
+		expect(result).toBeDefined();
+		expect(result).toContain('rgba(0, 255, 0, 0.75)');
+	});
+});
+
+describe('buildReflectionCss', () => {
+	it('should produce a two-stop gradient with no blur', () => {
+		const result = buildReflectionCss(5, 0.5, 0, 100, 0);
+		expect(result).toContain('below 5px');
+		expect(result).toContain('linear-gradient(to bottom');
+		expect(result).toContain('rgba(255,255,255,0.5)');
+		expect(result).toContain('rgba(255,255,255,0) 100px)');
+	});
+
+	it('should produce a three-stop gradient with blur', () => {
+		const result = buildReflectionCss(10, 0.5, 0, 100, 5);
+		expect(result).toContain('below 10px');
+		expect(result).toContain('linear-gradient(to bottom');
+		// Should have 3 stops for blur
+		expect(result).toContain('rgba(255,255,255,0.5)');
+		expect(result).toContain('rgba(255,255,255,0.25)'); // mid opacity
+		// Effective fade length = 100 + 5*2 = 110
+		expect(result).toContain('110px)');
+	});
+
+	it('should handle zero distance', () => {
+		const result = buildReflectionCss(0, 0.5, 0, 100, 0);
+		expect(result).toContain('below 0px');
+	});
+
+	it('should handle full opacity start', () => {
+		const result = buildReflectionCss(0, 1, 0, 50, 0);
+		expect(result).toContain('rgba(255,255,255,1)');
+		expect(result).toContain('rgba(255,255,255,0) 50px)');
 	});
 });
