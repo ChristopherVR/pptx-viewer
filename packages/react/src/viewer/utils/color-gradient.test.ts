@@ -3,9 +3,12 @@ import type { ShapeStyle } from 'pptx-viewer-core';
 import {
 	sanitizeGradientStops,
 	toCssGradientStop,
+	convertOoxmlAngleToCss,
 	buildCssGradientFromShapeStyle,
 	buildRectPathGradient,
 	buildShapePathGradient,
+	getGradientTileFlipCss,
+	buildReflectedGradientStops,
 	OOXML_PATTERN_PRESETS,
 } from './color-gradient';
 
@@ -100,9 +103,14 @@ describe('toCssGradientStop', () => {
 		expect(result).toContain('25%');
 	});
 
-	it('should round position to nearest integer', () => {
+	it('should preserve fractional positions for higher precision', () => {
 		const result = toCssGradientStop({ color: '#000000', position: 33.7 });
-		expect(result).toBe('#000000 34%');
+		expect(result).toBe('#000000 33.7%');
+	});
+
+	it('should use integer percentage for whole-number positions', () => {
+		const result = toCssGradientStop({ color: '#000000', position: 50 });
+		expect(result).toBe('#000000 50%');
 	});
 
 	it('should clamp position to 0-100', () => {
@@ -481,5 +489,223 @@ describe('OOXML_PATTERN_PRESETS', () => {
 	it('should not contain duplicates', () => {
 		const uniqueSet = new Set(OOXML_PATTERN_PRESETS);
 		expect(uniqueSet.size).toBe(OOXML_PATTERN_PRESETS.length);
+	});
+});
+
+describe('convertOoxmlAngleToCss', () => {
+	it('should pass through 0 degrees unchanged', () => {
+		expect(convertOoxmlAngleToCss(0)).toBe(0);
+	});
+
+	it('should pass through 90 degrees unchanged', () => {
+		expect(convertOoxmlAngleToCss(90)).toBe(90);
+	});
+
+	it('should pass through 180 degrees unchanged', () => {
+		expect(convertOoxmlAngleToCss(180)).toBe(180);
+	});
+
+	it('should pass through 270 degrees unchanged', () => {
+		expect(convertOoxmlAngleToCss(270)).toBe(270);
+	});
+
+	it('should normalise negative angles to 0-360', () => {
+		expect(convertOoxmlAngleToCss(-90)).toBe(270);
+		expect(convertOoxmlAngleToCss(-180)).toBe(180);
+	});
+
+	it('should normalise angles above 360 degrees', () => {
+		expect(convertOoxmlAngleToCss(450)).toBe(90);
+		expect(convertOoxmlAngleToCss(720)).toBe(0);
+	});
+
+	it('should convert from 60000ths when alreadyDegrees is false', () => {
+		// 5400000 / 60000 = 90 degrees
+		expect(convertOoxmlAngleToCss(5400000, false)).toBe(90);
+		// 0 => 0 degrees
+		expect(convertOoxmlAngleToCss(0, false)).toBe(0);
+		// 10800000 / 60000 = 180 degrees
+		expect(convertOoxmlAngleToCss(10800000, false)).toBe(180);
+	});
+
+	it('should handle fractional degree conversion from 60000ths', () => {
+		// 2700000 / 60000 = 45 degrees
+		expect(convertOoxmlAngleToCss(2700000, false)).toBe(45);
+	});
+});
+
+describe('toCssGradientStop - fractional precision', () => {
+	it('should render 1 decimal for non-integer positions', () => {
+		const result = toCssGradientStop({ color: '#FF0000', position: 33.3 });
+		expect(result).toBe('#FF0000 33.3%');
+	});
+
+	it('should render integer for whole-number positions', () => {
+		const result = toCssGradientStop({ color: '#FF0000', position: 50 });
+		expect(result).toBe('#FF0000 50%');
+	});
+
+	it('should handle very small fractional positions', () => {
+		const result = toCssGradientStop({ color: '#FF0000', position: 0.5 });
+		expect(result).toBe('#FF0000 0.5%');
+	});
+});
+
+describe('buildShapePathGradient - aspect ratio aware', () => {
+	const stops: NonNullable<ShapeStyle['fillGradientStops']> = [
+		{ color: '#FF0000', position: 0 },
+		{ color: '#0000FF', position: 100 },
+	];
+
+	it('should use explicit percentage radii for non-square fillToRect', () => {
+		// Inner rect: halfW = (1 - 0.1 - 0.1)/2 * 100 = 40%, halfH = (1 - 0.3 - 0.3)/2 * 100 = 20%
+		const result = buildShapePathGradient(stops, undefined, {
+			l: 0.1,
+			t: 0.3,
+			r: 0.1,
+			b: 0.3,
+		});
+		// Should use explicit radii instead of farthest-side
+		expect(result).toContain('radial-gradient(');
+		expect(result).toContain('at 50% 50%');
+		// Should contain percentage-based sizing, not farthest-side
+		expect(result).toContain('40% 20% at');
+	});
+
+	it('should use farthest-side for square/near-square fillToRect', () => {
+		const result = buildShapePathGradient(stops, undefined, {
+			l: 0.25,
+			t: 0.25,
+			r: 0.25,
+			b: 0.25,
+		});
+		expect(result).toContain('farthest-side');
+	});
+
+	it('should use farthest-side when fillToRect is degenerate (zero inner area)', () => {
+		const result = buildShapePathGradient(stops, undefined, {
+			l: 0.5,
+			t: 0.5,
+			r: 0.5,
+			b: 0.5,
+		});
+		// Inner half-widths are 0 => should use farthest-side fallback
+		expect(result).toContain('farthest-side');
+	});
+});
+
+describe('buildRectPathGradient - aspect ratio aware', () => {
+	const stops: NonNullable<ShapeStyle['fillGradientStops']> = [
+		{ color: '#FFFFFF', position: 0 },
+		{ color: '#000000', position: 100 },
+	];
+
+	it('should use aspect-adjusted radii for non-square asymmetric fillToRect', () => {
+		// fillToRect with wide inner rect: l=0.1, t=0.3, r=0.1, b=0.3
+		// cx = 50%, cy = 50%, semiX = 50, semiY = 50
+		// innerHalfW = 40, innerHalfH = 20 => aspect = 2
+		// adjustedSemiX = 50 * 2 = 100, adjustedSemiY = 50
+		const result = buildRectPathGradient(stops, undefined, {
+			l: 0.1,
+			t: 0.3,
+			r: 0.1,
+			b: 0.3,
+		});
+		expect(result).toContain('radial-gradient(');
+		expect(result).toContain('at 50% 50%');
+	});
+});
+
+describe('getGradientTileFlipCss', () => {
+	it('should return undefined for "none" mode', () => {
+		expect(getGradientTileFlipCss('none')).toBeUndefined();
+	});
+
+	it('should return undefined for undefined mode', () => {
+		expect(getGradientTileFlipCss(undefined)).toBeUndefined();
+	});
+
+	it('should return horizontal repeat for "x" mode', () => {
+		const result = getGradientTileFlipCss('x');
+		expect(result).toBeDefined();
+		expect(result!.backgroundSize).toBe('50% 100%');
+		expect(result!.backgroundRepeat).toBe('repeat-x');
+	});
+
+	it('should return vertical repeat for "y" mode', () => {
+		const result = getGradientTileFlipCss('y');
+		expect(result).toBeDefined();
+		expect(result!.backgroundSize).toBe('100% 50%');
+		expect(result!.backgroundRepeat).toBe('repeat-y');
+	});
+
+	it('should return full repeat for "xy" mode', () => {
+		const result = getGradientTileFlipCss('xy');
+		expect(result).toBeDefined();
+		expect(result!.backgroundSize).toBe('50% 50%');
+		expect(result!.backgroundRepeat).toBe('repeat');
+	});
+});
+
+describe('buildReflectedGradientStops', () => {
+	it('should return empty array for empty input', () => {
+		expect(buildReflectedGradientStops([])).toEqual([]);
+	});
+
+	it('should produce forward + reversed stops', () => {
+		const stops: NonNullable<ShapeStyle['fillGradientStops']> = [
+			{ color: '#FF0000', position: 0 },
+			{ color: '#0000FF', position: 100 },
+		];
+		const reflected = buildReflectedGradientStops(stops);
+
+		// Should have 4 stops: 2 forward + 2 reversed
+		expect(reflected.length).toBe(4);
+
+		// Forward: 0->0, 100->50
+		expect(reflected[0].position).toBe(0);
+		expect(reflected[0].color).toBe('#FF0000');
+		expect(reflected[1].position).toBe(50);
+		expect(reflected[1].color).toBe('#0000FF');
+
+		// Reversed: 100->50, 0->100
+		expect(reflected[2].position).toBe(50);
+		expect(reflected[2].color).toBe('#0000FF');
+		expect(reflected[3].position).toBe(100);
+		expect(reflected[3].color).toBe('#FF0000');
+	});
+
+	it('should handle three-stop gradient', () => {
+		const stops: NonNullable<ShapeStyle['fillGradientStops']> = [
+			{ color: '#FF0000', position: 0 },
+			{ color: '#00FF00', position: 50 },
+			{ color: '#0000FF', position: 100 },
+		];
+		const reflected = buildReflectedGradientStops(stops);
+
+		// 3 forward + 3 reversed = 6
+		expect(reflected.length).toBe(6);
+
+		// Forward half: 0, 25, 50
+		expect(reflected[0].position).toBe(0);
+		expect(reflected[1].position).toBe(25);
+		expect(reflected[2].position).toBe(50);
+
+		// Reversed half: 50, 75, 100
+		expect(reflected[3].position).toBe(50);
+		expect(reflected[4].position).toBe(75);
+		expect(reflected[5].position).toBe(100);
+	});
+
+	it('should preserve opacity on reflected stops', () => {
+		const stops: NonNullable<ShapeStyle['fillGradientStops']> = [
+			{ color: '#FF0000', position: 0, opacity: 0.5 },
+			{ color: '#0000FF', position: 100, opacity: 1 },
+		];
+		const reflected = buildReflectedGradientStops(stops);
+		expect(reflected[0].opacity).toBe(0.5);
+		expect(reflected[1].opacity).toBe(1);
+		expect(reflected[2].opacity).toBe(1);
+		expect(reflected[3].opacity).toBe(0.5);
 	});
 });

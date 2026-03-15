@@ -13,17 +13,24 @@ export {
   clampCropValue,
   buildShadowCssFromShapeStyle,
   buildInnerShadowCssFromShapeStyle,
+  buildMultiLayerShadowCss,
+  buildGlowBoxShadow,
+  buildReflectionCss,
 } from "./color-core";
 
 export {
   sanitizeGradientStops,
   toCssGradientStop,
+  convertOoxmlAngleToCss,
   buildCssGradientFromShapeStyle,
   buildRectPathGradient,
   buildShapePathGradient,
   buildPatternFillCss,
+  getGradientTileFlipCss,
+  buildReflectedGradientStops,
   OOXML_PATTERN_PRESETS,
   type OoxmlPatternPreset,
+  type GradientTileFlipMode,
 } from "./color-gradient";
 
 export { getPatternSvg } from "./color-patterns";

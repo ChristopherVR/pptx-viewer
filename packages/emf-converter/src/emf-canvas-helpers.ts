@@ -9,28 +9,43 @@ import { emfLog, emfWarn } from "./emf-logging";
 // Canvas setup
 // ---------------------------------------------------------------------------
 
+/**
+ * The default DPI scale factor used for EMF/WMF rendering. A value of 2
+ * produces a 2x resolution output (HiDPI), which significantly improves
+ * visual quality for metafile images displayed in CSS-based viewers where
+ * the logical pixel size may be smaller than the display pixel size.
+ *
+ * Set to 1 for 1:1 rendering (lower quality, smaller output).
+ */
+export const DEFAULT_DPI_SCALE = 2;
+
 export function createCanvas(
   width: number,
   height: number,
   maxWidth?: number,
   maxHeight?: number,
+  dpiScale: number = DEFAULT_DPI_SCALE,
 ): {
   canvas: OffscreenCanvas | HTMLCanvasElement;
   ctx: CanvasContext;
   scaleX: number;
   scaleY: number;
 } | null {
-  let w = width;
-  let h = height;
-  let scaleX = 1;
-  let scaleY = 1;
+  // Apply DPI scale factor — the canvas is created at a larger pixel
+  // size so the rasterised output has more detail when displayed at
+  // the element's logical CSS size.
+  const effectiveScale = Math.max(1, Math.min(dpiScale, 4));
+  let w = Math.round(width * effectiveScale);
+  let h = Math.round(height * effectiveScale);
+  let scaleX = effectiveScale;
+  let scaleY = effectiveScale;
 
   if (maxWidth && w > maxWidth) {
     const factor = maxWidth / w;
     w = maxWidth;
     h = Math.round(h * factor);
-    scaleX = factor;
-    scaleY = factor;
+    scaleX *= factor;
+    scaleY *= factor;
   }
   if (maxHeight && h > maxHeight) {
     const factor = maxHeight / h;
