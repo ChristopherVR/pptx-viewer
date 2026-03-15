@@ -2,11 +2,16 @@ import {
   XmlObject,
   PptxElement,
   type SmartArtPptxElement,
+  type PptxEmbeddedFont,
   type PptxNotesMaster,
   type PptxHandoutMaster,
   type PptxTagCollection,
 } from "../../types";
 import { type PptxSaveFormat } from "../types";
+import {
+  obfuscateFont,
+  generateFontGuid,
+} from "../../utils/font-deobfuscation";
 
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from "./PptxHandlerRuntimeSaveDataSerialization";
 import {
@@ -323,6 +328,181 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     // For PPTM, ensure the VBA relationship exists in presentation.xml.rels
     if (format === "pptm" && hasVba) {
       await this.ensureVbaRelationship();
+    }
+  }
+
+  // ── Font re-embedding ─────────────────────────────────────────────
+
+  /** Relationship type URI for embedded fonts. */
+  private static readonly FONT_REL_TYPE =
+    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/font";
+
+  /** Content type for .fntdata font parts. */
+  private static readonly FNTDATA_CONTENT_TYPE =
+    "application/x-fontdata";
+
+  /**
+   * Re-embed fonts into the PPTX package during save.
+   *
+   * For each font that has `rawFontData` populated:
+   *  1. Obfuscate the clear-text font data using the GUID.
+   *  2. Write the `.fntdata` file to `ppt/fonts/{GUID}.fntdata`.
+   *  3. Add a relationship in `ppt/_rels/presentation.xml.rels`.
+   *  4. Add/update the `p:embeddedFontLst` in `presentation.xml`.
+   *  5. Ensure `[Content_Types].xml` has a Default for `fntdata`.
+   *
+   * @param explicitFonts - Fonts from save options, or undefined for auto.
+   */
+  protected async applyEmbeddedFontPreservation(
+    explicitFonts?: PptxEmbeddedFont[],
+  ): Promise<void> {
+    // Determine which fonts to embed:
+    // - explicit list from save options takes priority
+    // - fallback: fonts loaded from the original PPTX
+    const fonts = explicitFonts ?? this.loadedEmbeddedFonts;
+    const fontsWithData = fonts.filter(
+      (f) => f.rawFontData && f.rawFontData.length > 0,
+    );
+    if (fontsWithData.length === 0) return;
+
+    // ── 1. Group fonts by typeface name ───────────────────────────
+    const fontsByName = new Map<string, PptxEmbeddedFont[]>();
+    for (const font of fontsWithData) {
+      const existing = fontsByName.get(font.name) ?? [];
+      existing.push(font);
+      fontsByName.set(font.name, existing);
+    }
+
+    // ── 2. Load presentation rels ─────────────────────────────────
+    const relsPath = "ppt/_rels/presentation.xml.rels";
+    const relsXml = await this.zip.file(relsPath)?.async("string");
+    if (!relsXml || !this.presentationData) return;
+
+    const relsData = this.parser.parse(relsXml) as XmlObject;
+    const relsRoot = (relsData?.Relationships ?? {}) as XmlObject;
+    const relationships = this.ensureArray(
+      relsRoot.Relationship,
+    ) as XmlObject[];
+
+    // Find max rId currently in use
+    let maxId = 0;
+    for (const rel of relationships) {
+      const id = String(rel?.["@_Id"] || "");
+      const num = parseInt(id.replace(/^rId/, ""), 10);
+      if (Number.isFinite(num) && num > maxId) maxId = num;
+    }
+
+    // Build set of existing font file targets for dedup
+    const existingFontTargets = new Set<string>();
+    for (const rel of relationships) {
+      const relType = String(rel?.["@_Type"] || "");
+      if (relType.includes("/font")) {
+        existingFontTargets.add(String(rel?.["@_Target"] || ""));
+      }
+    }
+
+    // ── 3. Process each font family ──────────────────────────────
+    const embeddedFontEntries: XmlObject[] = [];
+
+    for (const [typeface, variants] of fontsByName) {
+      const entry: XmlObject = {
+        "p:font": { "@_typeface": typeface },
+      };
+
+      for (const variant of variants) {
+        const fontData = variant.rawFontData!;
+
+        // Determine GUID: reuse existing or generate new
+        const guid = variant.fontGuid ?? generateFontGuid();
+
+        // Determine file path
+        const fileName = `{${guid}}.fntdata`;
+        const fontPartPath = `ppt/fonts/${fileName}`;
+        const relativeTarget = `fonts/${fileName}`;
+
+        // Obfuscate and write the font file
+        const obfuscated = obfuscateFont(fontData, guid);
+        this.zip.file(fontPartPath, obfuscated);
+
+        // Add relationship if not already present
+        let rId: string;
+        const existingRel = relationships.find(
+          (r) => String(r?.["@_Target"] || "") === relativeTarget,
+        );
+        if (existingRel) {
+          rId = String(existingRel["@_Id"]);
+        } else {
+          maxId++;
+          rId = `rId${maxId}`;
+          relationships.push({
+            "@_Id": rId,
+            "@_Type": PptxHandlerRuntime.FONT_REL_TYPE,
+            "@_Target": relativeTarget,
+          });
+        }
+
+        // Determine variant key
+        const variantKey = variant.bold && variant.italic
+          ? "p:boldItalic"
+          : variant.bold
+            ? "p:bold"
+            : variant.italic
+              ? "p:italic"
+              : "p:regular";
+
+        entry[variantKey] = {
+          "@_r:id": rId,
+          "@_fontKey": `{${guid}}`,
+        };
+      }
+
+      embeddedFontEntries.push(entry);
+    }
+
+    // ── 4. Update presentation.xml.rels ──────────────────────────
+    relsRoot.Relationship = relationships;
+    relsData.Relationships = relsRoot;
+    this.zip.file(relsPath, this.builder.build(relsData));
+
+    // ── 5. Update p:embeddedFontLst in presentation.xml ──────────
+    const presentationNode = this.presentationData["p:presentation"] as
+      | XmlObject
+      | undefined;
+    if (presentationNode) {
+      presentationNode["p:embeddedFontLst"] = {
+        "p:embeddedFont": embeddedFontEntries.length === 1
+          ? embeddedFontEntries[0]
+          : embeddedFontEntries,
+      };
+    }
+
+    // ── 6. Ensure [Content_Types].xml has fntdata extension ──────
+    const ctXml = await this.zip
+      .file("[Content_Types].xml")
+      ?.async("string");
+    if (ctXml) {
+      const ctData = this.parser.parse(ctXml) as XmlObject;
+      const typesRoot = (ctData["Types"] || {}) as XmlObject;
+      const defaults = Array.isArray(typesRoot["Default"])
+        ? (typesRoot["Default"] as XmlObject[])
+        : typesRoot["Default"]
+          ? [typesRoot["Default"] as XmlObject]
+          : [];
+
+      const hasFntdata = defaults.some(
+        (d) =>
+          String(d?.["@_Extension"] || "").toLowerCase() === "fntdata",
+      );
+      if (!hasFntdata) {
+        defaults.push({
+          "@_Extension": "fntdata",
+          "@_ContentType": PptxHandlerRuntime.FNTDATA_CONTENT_TYPE,
+        });
+      }
+
+      typesRoot["Default"] = defaults;
+      ctData["Types"] = typesRoot;
+      this.zip.file("[Content_Types].xml", this.builder.build(ctData));
     }
   }
 

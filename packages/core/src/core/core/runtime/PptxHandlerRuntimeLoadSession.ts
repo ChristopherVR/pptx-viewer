@@ -67,6 +67,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     this.vbaRelatedParts.clear();
     this.signatureDetection = null;
     this.customXmlParts = [];
+    this.loadedEmbeddedFonts = [];
     this.isStrictOoxml = false;
     this.restoreOriginalParser();
     this.compatibilityService.resetWarnings();

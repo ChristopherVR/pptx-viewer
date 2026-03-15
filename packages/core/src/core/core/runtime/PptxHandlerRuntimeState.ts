@@ -25,6 +25,7 @@ import {
   XmlObject,
   type PptxCommentAuthor,
   type PptxCustomXmlPart,
+  type PptxEmbeddedFont,
   type PptxThemeFormatScheme,
 } from "../../types";
 import { PptxElementXmlBuilder } from "../../builders/PptxElementXmlBuilder";
@@ -172,6 +173,9 @@ export class PptxHandlerRuntime {
 
   /** Custom XML data parts parsed from `customXml/` in the OPC package. */
   protected customXmlParts: PptxCustomXmlPart[] = [];
+
+  /** Embedded fonts extracted during load, preserved for automatic re-embedding on save. */
+  protected loadedEmbeddedFonts: PptxEmbeddedFont[] = [];
 
   /** Map of comment author IDs to display names (from `ppt/commentAuthors.xml`). */
   protected commentAuthorMap: Map<string, string> = new Map();

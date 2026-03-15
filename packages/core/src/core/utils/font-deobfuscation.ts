@@ -1,9 +1,13 @@
 /**
- * OOXML Embedded Font De-obfuscation
+ * OOXML Embedded Font Obfuscation / De-obfuscation
  *
- * Implements the font de-obfuscation algorithm from ISO/IEC 29500-2 §14.2.1.
+ * Implements the font obfuscation algorithm from ISO/IEC 29500-2 §14.2.1.
  * Embedded fonts in OOXML packages are XOR-obfuscated using a GUID key derived
  * from the font part's file name.
+ *
+ * Because the algorithm is XOR-based, obfuscation and de-obfuscation are the
+ * same operation (XOR is self-inverse). Both {@link obfuscateFont} and
+ * {@link deobfuscateFont} are provided for clarity of intent.
  */
 
 /* ------------------------------------------------------------------ */
@@ -103,6 +107,69 @@ export function deobfuscateFont(
   }
 
   return result;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Obfuscation (re-embedding)                                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Obfuscate a font binary for embedding in an OOXML package.
+ *
+ * The algorithm is identical to {@link deobfuscateFont} because XOR is
+ * self-inverse: `obfuscate(deobfuscate(data, guid), guid) === data`.
+ *
+ * @param fontData - The clear-text font binary (TTF/OTF).
+ * @param guid - The GUID that will be used as the font part file name.
+ * @returns A new `Uint8Array` containing the obfuscated font data.
+ */
+export function obfuscateFont(
+  fontData: Uint8Array,
+  guid: string,
+): Uint8Array {
+  // XOR is self-inverse, so obfuscation === de-obfuscation
+  return deobfuscateFont(fontData, guid);
+}
+
+/* ------------------------------------------------------------------ */
+/*  GUID Generation                                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Generate a random GUID string suitable for use as a font part name.
+ *
+ * The format follows the standard 8-4-4-4-12 hex GUID pattern:
+ * `XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX`
+ *
+ * Uses `crypto.getRandomValues` when available, otherwise falls back
+ * to `Math.random`.
+ */
+export function generateFontGuid(): string {
+  const bytes = new Uint8Array(16);
+
+  if (
+    typeof globalThis !== "undefined" &&
+    globalThis.crypto &&
+    typeof globalThis.crypto.getRandomValues === "function"
+  ) {
+    globalThis.crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < 16; i++) {
+      bytes[i] = Math.floor(Math.random() * 256);
+    }
+  }
+
+  const hex = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0").toUpperCase())
+    .join("");
+
+  return [
+    hex.substring(0, 8),
+    hex.substring(8, 12),
+    hex.substring(12, 16),
+    hex.substring(16, 20),
+    hex.substring(20, 32),
+  ].join("-");
 }
 
 /* ------------------------------------------------------------------ */

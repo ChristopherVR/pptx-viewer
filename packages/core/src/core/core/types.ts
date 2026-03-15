@@ -6,6 +6,7 @@ import type {
   PptxChartData,
   PptxCompatibilityWarning,
   PptxCustomShow,
+  PptxEmbeddedFont,
   PptxExportOptions,
   PptxHandoutMaster,
   PptxLayoutOption,
@@ -63,6 +64,18 @@ export interface PptxHandlerSaveOptions {
    * - `'pptm'`: Macro-enabled presentation (requires VBA data).
    */
   outputFormat?: PptxSaveFormat;
+  /**
+   * Embedded fonts to write back (or add) to the saved PPTX.
+   *
+   * Pass the `embeddedFonts` array from `PptxData` to preserve existing
+   * embedded fonts during save. You can also add new fonts by including
+   * entries with `rawFontData` populated.
+   *
+   * When omitted, the save pipeline will automatically re-embed any
+   * fonts that were loaded from the original PPTX and have `rawFontData`
+   * preserved (i.e. the default is lossless round-trip).
+   */
+  embeddedFonts?: PptxEmbeddedFont[];
 }
 
 export interface IPptxHandlerRuntime {
