@@ -293,6 +293,20 @@ export function buildText3DShadowCss(style: TextStyle): string | undefined {
       layers.push(
         `${-dx}px ${-dy}px ${material.specularBlur}px ${highlightColor}`,
       );
+      // Secondary wider specular bloom for metallic materials
+      if (material.specularOpacity > 0.5) {
+        const bloomColor = lightenHex(baseColor, material.specularOpacity * 0.4);
+        layers.push(
+          `${-dx * 2}px ${-dy * 2}px ${material.specularBlur + 2}px ${bloomColor}`,
+        );
+      }
+    }
+
+    // Ambient occlusion shadow at base of extrusion — subtle ground contact shadow
+    if (depthPx >= 3) {
+      layers.push(
+        `${dx * (depthPx + 2)}px ${dy * (depthPx + 2)}px ${Math.max(3, Math.round(depthPx * 0.6))}px rgba(0,0,0,0.12)`,
+      );
     }
   }
 

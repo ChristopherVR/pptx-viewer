@@ -289,6 +289,154 @@ describe("buildText3DShadowCss", () => {
     // Should have at least 3 extrusion layers due to MIN_EXTRUSION_LAYERS
     expect(result).toContain("3px 3px 0");
   });
+
+  // ── Ambient occlusion tests ──────────────────────────────────────────
+
+  it("adds ambient occlusion shadow for deep extrusions (>= 3px)", () => {
+    const style: TextStyle = {
+      text3d: {
+        extrusionHeight: 9525 * 5, // 5px depth
+        extrusionColor: "#888888",
+      },
+    };
+    const result = buildText3DShadowCss(style);
+    expect(result).toBeDefined();
+    // Ambient occlusion: offset = depthPx + 2 = 7, blur = max(3, round(5 * 0.6)) = 3
+    expect(result).toContain("7px 7px 3px rgba(0,0,0,0.12)");
+  });
+
+  it("does not add ambient occlusion for shallow extrusions (< 3px)", () => {
+    const style: TextStyle = {
+      text3d: {
+        extrusionHeight: 9525 * 2, // raw 2px, but MIN_EXTRUSION_LAYERS rounds up
+        extrusionColor: "#888888",
+      },
+    };
+    const result = buildText3DShadowCss(style);
+    expect(result).toBeDefined();
+    // MIN_EXTRUSION_LAYERS = 3, so depthPx = 3 which qualifies for AO
+    // AO: offset = 3 + 2 = 5, blur = max(3, round(3*0.6)) = 3
+    expect(result).toContain("5px 5px 3px rgba(0,0,0,0.12)");
+  });
+
+  // ── Specular bloom tests ──────────────────────────────────────────────
+
+  it("metal material adds specular bloom (secondary highlight)", () => {
+    const style: TextStyle = {
+      color: "#AAAAAA",
+      text3d: {
+        extrusionHeight: 9525 * 5,
+        presetMaterial: "metal",
+      },
+    };
+    const result = buildText3DShadowCss(style);
+    expect(result).toBeDefined();
+    // Metal has specularOpacity = 0.70 (> 0.5), so bloom is added
+    // Bloom at -2px -2px with blur = specularBlur + 2 = 2
+    expect(result).toContain("-2px -2px 2px");
+  });
+
+  it("plastic material adds specular bloom (specularOpacity = 0.55 > 0.5)", () => {
+    const style: TextStyle = {
+      color: "#4488CC",
+      text3d: {
+        extrusionHeight: 9525 * 5,
+        presetMaterial: "plastic",
+      },
+    };
+    const result = buildText3DShadowCss(style);
+    expect(result).toBeDefined();
+    // Plastic has specularOpacity = 0.55 > 0.5, so bloom at -2px -2px
+    expect(result).toContain("-2px -2px");
+  });
+
+  it("softEdge material does not add specular bloom (specularOpacity = 0.30 < 0.5)", () => {
+    const style: TextStyle = {
+      color: "#4488CC",
+      text3d: {
+        extrusionHeight: 9525 * 5,
+        presetMaterial: "softEdge",
+      },
+    };
+    const result = buildText3DShadowCss(style);
+    expect(result).toBeDefined();
+    // softEdge specularOpacity = 0.30 (< 0.5), no bloom
+    // Should have -1px -1px (specular) but no -2px -2px (bloom)
+    expect(result).toContain("-1px -1px");
+    // Count occurrences of "-2px -2px" — should be zero
+    const bloomMatches = (result!.match(/-2px -2px/g) ?? []).length;
+    expect(bloomMatches).toBe(0);
+  });
+
+  // ── Light rig shadow with scene3d ──────────────────────────────────
+
+  it("adds light rig shadow when textBodyScene3d has lightRigType", () => {
+    const style: TextStyle = {
+      text3d: {
+        extrusionHeight: 9525 * 3,
+        extrusionColor: "#888888",
+      },
+      textBodyScene3d: {
+        lightRigType: "threePt",
+        lightRigDirection: "tl",
+      },
+    };
+    const result = buildText3DShadowCss(style);
+    expect(result).toBeDefined();
+    // light rig shadow at the end: cos/sin of 135deg * 2
+    expect(result).toContain("3px rgba(0,0,0,0.15)");
+  });
+
+  it("does not add light rig shadow for flat lighting", () => {
+    const style: TextStyle = {
+      text3d: {
+        extrusionHeight: 9525 * 3,
+        extrusionColor: "#888888",
+      },
+      textBodyScene3d: {
+        lightRigType: "flat",
+      },
+    };
+    const result = buildText3DShadowCss(style);
+    expect(result).toBeDefined();
+    // flat lighting should not add the light rig shadow layer
+    expect(result).not.toContain("rgba(0,0,0,0.15)");
+  });
+
+  // ── Scene3d extrusion direction tests ────────────────────────────────
+
+  it("adjusts extrusion direction based on camera preset (Left)", () => {
+    const style: TextStyle = {
+      text3d: {
+        extrusionHeight: 9525 * 3,
+        extrusionColor: "#888888",
+      },
+      textBodyScene3d: {
+        cameraPreset: "perspectiveLeft",
+      },
+    };
+    const result = buildText3DShadowCss(style);
+    expect(result).toBeDefined();
+    // "Left" in preset name → dx = -1, so layers should be negative X
+    expect(result).toContain("-1px 1px 0");
+    expect(result).toContain("-2px 2px 0");
+  });
+
+  it("adjusts extrusion direction for camera from below", () => {
+    const style: TextStyle = {
+      text3d: {
+        extrusionHeight: 9525 * 3,
+        extrusionColor: "#888888",
+      },
+      textBodyScene3d: {
+        cameraPreset: "perspectiveBelow",
+      },
+    };
+    const result = buildText3DShadowCss(style);
+    expect(result).toBeDefined();
+    // "Below" → dy = -1, so Y offsets should be negative
+    expect(result).toContain("1px -1px 0");
+  });
 });
 
 // ── buildTextShadowCss ────────────────────────────────────────────────
