@@ -201,3 +201,13 @@ export type {
   UseLayoutSwitchingInput,
   LayoutSwitchingResult,
 } from "./useLayoutSwitching";
+
+export {
+  useVirtualizedSlides,
+  computeVirtualRange,
+} from "./useVirtualizedSlides";
+export type {
+  VirtualizedSlidesOptions,
+  VirtualizedSlidesResult,
+  VirtualizedRange,
+} from "./useVirtualizedSlides";

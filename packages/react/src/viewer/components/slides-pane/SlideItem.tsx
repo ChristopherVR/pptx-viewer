@@ -5,14 +5,15 @@ import { LuEyeOff, LuMessageSquare } from "react-icons/lu";
 import type { PptxSlide } from "pptx-viewer-core";
 import { cn } from "../../utils";
 import type { CanvasSize } from "../../types";
-import { SlideThumbnail } from "../SlideThumbnail";
+import { LazyThumbnail } from "./LazyThumbnail";
+import { SLIDE_NAV_THUMBNAIL_WIDTH } from "../../constants";
 import { formatTimingMs } from "./utils";
 
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
 
-interface SlideItemProps {
+export interface SlideItemProps {
   slide: PptxSlide;
   slideIndex: number;
   isActive: boolean;
@@ -33,7 +34,7 @@ interface SlideItemProps {
 // Component
 // ---------------------------------------------------------------------------
 
-export function SlideItem({
+function SlideItemInner({
   slide,
   slideIndex,
   isActive,
@@ -64,6 +65,12 @@ export function SlideItem({
     [canEdit, onAddSection, onOpenSlideCtxMenu, onSlideContextMenu, slideIndex],
   );
 
+  // Pre-compute the thumbnail height for the placeholder
+  const safeCanvasWidth = Math.max(canvasSize.width, 1);
+  const safeCanvasHeight = Math.max(canvasSize.height, 1);
+  const scale = SLIDE_NAV_THUMBNAIL_WIDTH / safeCanvasWidth;
+  const previewHeight = Math.max(56, Math.round(safeCanvasHeight * scale));
+
   return (
     <div
       ref={slideRef}
@@ -86,12 +93,12 @@ export function SlideItem({
         <div className="absolute inset-0 rounded-lg pointer-events-none bg-[repeating-linear-gradient(135deg,transparent,transparent_4px,rgba(255,255,255,0.04)_4px,rgba(255,255,255,0.04)_8px)]" />
       )}
 
-      {/* Thumbnail */}
+      {/* Thumbnail (lazy-loaded) */}
       <div className="relative overflow-hidden rounded bg-white">
-        <SlideThumbnail
+        <LazyThumbnail
           slide={slide}
-          templateElements={[]}
           canvasSize={canvasSize}
+          previewHeight={previewHeight}
         />
         {(slide.comments?.length ?? 0) > 0 && (
           <div className="absolute top-0.5 right-0.5 flex items-center gap-0.5 rounded bg-amber-500/90 px-1 py-0.5 text-[8px] font-medium text-white leading-none">
@@ -124,3 +131,11 @@ export function SlideItem({
     </div>
   );
 }
+
+/**
+ * Memoized slide item to prevent unnecessary re-renders when other
+ * slides change. The shallow comparison on props is sufficient because
+ * the parent passes stable callbacks and only changes `isActive` for
+ * the previously-active and newly-active slides.
+ */
+export const SlideItem = React.memo(SlideItemInner);
