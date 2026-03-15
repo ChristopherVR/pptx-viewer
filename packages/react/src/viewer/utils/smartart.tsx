@@ -21,6 +21,18 @@ import {
 } from "./smartart-shapes";
 import { renderGear } from "./smartart-gear";
 import { renderTimeline, renderBendingProcess } from "./smartart-misc";
+import {
+  renderStepDownProcess,
+  renderAlternatingFlow,
+  renderDescendingProcess,
+  renderPictureAccentList,
+  renderVerticalBlockList,
+  renderGroupedList,
+  renderPyramidList,
+  renderHorizontalPictureList,
+  renderAccentProcess,
+  renderVerticalChevronList,
+} from "./smartart-layouts-extra";
 
 /**
  * Main entry point for SmartArt rendering.
@@ -123,6 +135,56 @@ export function renderSmartArtElement(element: PptxElement): React.ReactNode {
       chrome,
       renderBendingProcess(element, nodes, palette, style),
     );
+  }
+
+  // ── Step-Down Process
+  if (layoutType.includes("stepdown")) {
+    return withChrome(chrome, renderStepDownProcess(element, nodes, palette, style));
+  }
+
+  // ── Alternating Flow
+  if (layoutType.includes("alternatingflow") || layoutType.includes("alternating")) {
+    return withChrome(chrome, renderAlternatingFlow(element, nodes, palette, style));
+  }
+
+  // ── Descending Process
+  if (layoutType.includes("descending")) {
+    return withChrome(chrome, renderDescendingProcess(element, nodes, palette, style));
+  }
+
+  // ── Picture Accent List
+  if (layoutType.includes("pictureaccent")) {
+    return withChrome(chrome, renderPictureAccentList(element, nodes, palette, style));
+  }
+
+  // ── Vertical Block List
+  if (layoutType.includes("verticalblock")) {
+    return withChrome(chrome, renderVerticalBlockList(element, nodes, palette, style));
+  }
+
+  // ── Grouped List
+  if (layoutType.includes("grouped")) {
+    return withChrome(chrome, renderGroupedList(element, nodes, palette, style));
+  }
+
+  // ── Pyramid List
+  if (layoutType.includes("pyramidlist")) {
+    return withChrome(chrome, renderPyramidList(element, nodes, palette, style));
+  }
+
+  // ── Horizontal Picture List
+  if (layoutType.includes("horizontalpicture")) {
+    return withChrome(chrome, renderHorizontalPictureList(element, nodes, palette, style));
+  }
+
+  // ── Accent Process
+  if (layoutType.includes("accentprocess")) {
+    return withChrome(chrome, renderAccentProcess(element, nodes, palette, style));
+  }
+
+  // ── Vertical Chevron List
+  if (layoutType.includes("verticalchevron")) {
+    return withChrome(chrome, renderVerticalChevronList(element, nodes, palette, style));
   }
 
   // ── Default list layout
