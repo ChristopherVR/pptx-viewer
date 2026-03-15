@@ -50,3 +50,24 @@ export {
   exportAllSlidesToSvg,
   exportAllSlidesToSvgBlobs,
 } from "./export-svg";
+
+export type {
+  SvgPrintOptions,
+  SvgPrintResult,
+} from "./svg-print-serializer";
+export {
+  serializeElementToSvg,
+  buildPrintDocument,
+  buildPrintStyleSheet,
+  svgToBlob,
+  svgToDataUrl,
+  escapeXml,
+} from "./svg-print-serializer";
+
+export type { CssPreprocessingOptions } from "./css-preprocessing";
+export {
+  preprocessCssForCapture,
+  parseBlurValue,
+  has3dTransform,
+  flatten3dTransform,
+} from "./css-preprocessing";

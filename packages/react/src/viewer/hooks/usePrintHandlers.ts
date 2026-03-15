@@ -1,26 +1,52 @@
 /**
- * usePrintHandlers — Print dialog and print-with-settings logic for
+ * usePrintHandlers -- Print dialog and print-with-settings logic for
  * slides, notes, handouts, and outline layouts.
+ *
+ * Supports two print paths:
+ * 1. **Raster path** (default): Captures each slide via html2canvas as a PNG
+ *    data URL, then builds an HTML print document with `<img>` tags.
+ *    Good compatibility but limited by html2canvas CSS support.
+ *
+ * 2. **SVG vector path**: Serializes each slide's DOM to SVG via
+ *    `<foreignObject>`, producing resolution-independent print output
+ *    that stays sharp at any DPI. Falls back to raster on error.
  */
 import { useState, type RefObject } from "react";
-import type { PptxSlide } from "pptx-viewer-core";
+import type { PptxSlide, PptxData } from "pptx-viewer-core";
 import { captureAllSlidesAsPngDataUrls } from "../utils/export";
+import {
+  exportAllSlidesToSvg,
+} from "../utils/export-svg";
+import {
+  buildPrintDocument,
+} from "../utils/svg-print-serializer";
 import { escapeHtml } from "../utils/electron-files";
 import type { PrintSettings } from "../components/PrintDialog";
+
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
 
 export interface UsePrintHandlersInput {
   slides: PptxSlide[];
   activeSlideIndex: number;
   canvasStageRef: RefObject<HTMLDivElement | null>;
   setActiveSlideIndex: React.Dispatch<React.SetStateAction<number>>;
+  /** Parsed PPTX data (needed for SVG print path). Optional for backward compat. */
+  pptxData?: PptxData;
 }
 
 export interface PrintHandlersResult {
   handlePrint: () => void;
   handlePrintWithSettings: (settings: PrintSettings) => Promise<void>;
+  handlePrintSvg: (settings: PrintSettings) => Promise<void>;
   isPrintDialogOpen: boolean;
   setIsPrintDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
+
+/* ------------------------------------------------------------------ */
+/*  Print Window Builder                                               */
+/* ------------------------------------------------------------------ */
 
 function openPrintWindow(
   title: string,
@@ -63,7 +89,19 @@ function openPrintWindow(
       .outline-page h2 { font-size: 14px; margin: 12px 0 4px; color: #374151; }
       .outline-page p { font-size: 12px; margin: 2px 0 2px 16px; color: #4b5563; }
       @page { size: ${orientation}; margin: 8mm; }
-      @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+      @media print {
+        body {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+          color-adjust: exact;
+        }
+        * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          color-adjust: exact !important;
+        }
+        img { break-inside: avoid; }
+      }
       ${frameStyle}
     </style>
   </head>
@@ -77,16 +115,97 @@ function openPrintWindow(
   return true;
 }
 
+/**
+ * Open a print window with a full HTML document string.
+ * Used for the SVG print path which builds its own document.
+ */
+function openPrintWindowWithDocument(htmlDocument: string): boolean {
+  const printWindow = window.open("", "_blank", "noopener,noreferrer");
+  if (!printWindow) return false;
+  printWindow.document.open();
+  printWindow.document.write(htmlDocument);
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => {
+    printWindow.print();
+  }, 300);
+  return true;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Hook                                                               */
+/* ------------------------------------------------------------------ */
+
 export function usePrintHandlers(
   input: UsePrintHandlersInput,
 ): PrintHandlersResult {
-  const { slides, activeSlideIndex, canvasStageRef, setActiveSlideIndex } =
+  const { slides, activeSlideIndex, canvasStageRef, setActiveSlideIndex, pptxData } =
     input;
   const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
 
   const handlePrint = () => {
     setIsPrintDialogOpen(true);
   };
+
+  /* ---------------------------------------------------------------- */
+  /*  SVG-based print path (vector, DPI-independent)                   */
+  /* ---------------------------------------------------------------- */
+
+  const handlePrintSvg = async (settings: PrintSettings) => {
+    setIsPrintDialogOpen(false);
+
+    if (!pptxData || settings.printWhat !== "slides") {
+      // SVG path only supports direct slide printing when pptxData is available.
+      // Fall back to raster path for notes/handouts/outline or when no data.
+      return handlePrintWithSettings(settings);
+    }
+
+    const colorFilter = (() => {
+      if (settings.colorMode === "grayscale") return "filter: grayscale(1);";
+      if (settings.colorMode === "blackAndWhite")
+        return "filter: grayscale(1) contrast(2);";
+      return "";
+    })();
+
+    const slideIndices: number[] = (() => {
+      if (settings.slideRange === "current") return [activeSlideIndex];
+      if (settings.slideRange === "custom") {
+        const from = Math.max(0, settings.customRangeFrom - 1);
+        const to = Math.min(slides.length - 1, settings.customRangeTo - 1);
+        return Array.from({ length: to - from + 1 }, (_, i) => from + i);
+      }
+      return Array.from({ length: slides.length }, (_, i) => i);
+    })();
+
+    try {
+      // Export slides to SVG using the core SVG exporter
+      const svgs = exportAllSlidesToSvg(pptxData, {
+        slideIndices,
+      });
+
+      if (svgs.length === 0) return;
+
+      // Build the print document
+      const printDoc = buildPrintDocument(svgs, pptxData.width, pptxData.height, {
+        title: "Slides (Vector)",
+        orientation: settings.orientation,
+        colorFilter,
+      });
+
+      openPrintWindowWithDocument(printDoc);
+    } catch (err) {
+      console.warn(
+        "[PowerPointViewer] SVG print path failed, falling back to raster:",
+        err,
+      );
+      // Fall back to the raster path
+      return handlePrintWithSettings(settings);
+    }
+  };
+
+  /* ---------------------------------------------------------------- */
+  /*  Raster-based print path (html2canvas, original)                  */
+  /* ---------------------------------------------------------------- */
 
   const handlePrintWithSettings = async (settings: PrintSettings) => {
     setIsPrintDialogOpen(false);
@@ -136,7 +255,7 @@ export function usePrintHandlers(
         slides.length,
         setActiveSlideIndex,
         activeSlideIndex,
-        { scale: 2 },
+        { scale: 3 },
       );
       if (allImages.length === 0) return;
       const slideImages = slideIndices
@@ -243,6 +362,7 @@ export function usePrintHandlers(
   return {
     handlePrint,
     handlePrintWithSettings,
+    handlePrintSvg,
     isPrintDialogOpen,
     setIsPrintDialogOpen,
   };

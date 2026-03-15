@@ -1,5 +1,13 @@
 /**
- * Print-specific CSS for PowerPoint handout layouts.
+ * Print-specific CSS for PowerPoint viewer.
+ *
+ * Provides comprehensive @media print rules that:
+ * - Hide all application UI chrome
+ * - Force background colours/images to print
+ * - Set exact page dimensions matching slide aspect ratio
+ * - Support handout, notes, and outline print layouts
+ * - Remove scrollbars and interactive overlays
+ * - Handle page breaks cleanly
  *
  * When the user invokes window.print() from the main viewer,
  * these rules hide the application chrome and show only the
@@ -29,6 +37,16 @@
   .pptx-modal-backdrop,
   .pptx-export-modal,
   .pptx-no-print,
+  .pptx-selection-overlay,
+  .pptx-snap-lines,
+  .pptx-ruler,
+  .pptx-zoom-controls,
+  .pptx-breadcrumb,
+  .pptx-toast,
+  .pptx-tooltip,
+  .pptx-drag-handle,
+  .pptx-resize-handle,
+  [data-export-ignore="true"],
   nav,
   header,
   footer,
@@ -40,14 +58,51 @@
   body {
     margin: 0;
     padding: 0;
-    background: #fff;
+    background: #fff !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    color-adjust: exact;
+  }
+
+  /* ---------- Force all backgrounds to print ---------- */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 
   /* ---------- Show print-only content ---------- */
   .pptx-print-only {
     display: block !important;
+  }
+
+  /* ---------- Slide page (single slide per page) ---------- */
+  .pptx-slide-print-page {
+    page-break-after: always;
+    page-break-inside: avoid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100vh;
+    padding: 5mm;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .pptx-slide-print-page:last-child {
+    page-break-after: auto;
+  }
+
+  .pptx-slide-print-page img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+
+  .pptx-slide-print-page svg {
+    max-width: 100%;
+    max-height: 100%;
   }
 
   /* ---------- Handout page ---------- */
@@ -149,6 +204,64 @@
     border-bottom: 1px solid #d1d5db;
   }
 
+  /* ---------- Notes page ---------- */
+  .pptx-notes-print-page {
+    page-break-after: always;
+    page-break-inside: avoid;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 8mm;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 4mm;
+    min-height: 100vh;
+  }
+
+  .pptx-notes-print-page:last-child {
+    page-break-after: auto;
+  }
+
+  .pptx-notes-print-slide {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    object-fit: contain;
+  }
+
+  .pptx-notes-print-text {
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 3mm;
+    white-space: pre-wrap;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #374151;
+    overflow: hidden;
+  }
+
+  /* ---------- Outline page ---------- */
+  .pptx-outline-print-page {
+    page-break-after: always;
+    page-break-inside: avoid;
+    padding: 10mm;
+  }
+
+  .pptx-outline-print-page:last-child {
+    page-break-after: auto;
+  }
+
+  .pptx-outline-print-page h2 {
+    font-size: 14px;
+    margin: 12px 0 4px;
+    color: #374151;
+  }
+
+  .pptx-outline-print-page p {
+    font-size: 12px;
+    margin: 2px 0 2px 16px;
+    color: #4b5563;
+  }
+
   /* ---------- Page orientation ---------- */
   @page {
     margin: 8mm;
@@ -178,5 +291,35 @@
 
   * {
     scrollbar-width: none !important;
+  }
+
+  /* ---------- Remove shadows and decorative effects ---------- */
+  .pptx-viewer-container {
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* ---------- Ensure images print ---------- */
+  img {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* ---------- Remove animations ---------- */
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* ---------- Ensure SVG elements are visible ---------- */
+  svg {
+    overflow: visible !important;
+  }
+
+  /* ---------- Slide content container ---------- */
+  .pptx-slide-stage {
+    overflow: visible !important;
+    transform: none !important;
+    box-shadow: none !important;
   }
 }
