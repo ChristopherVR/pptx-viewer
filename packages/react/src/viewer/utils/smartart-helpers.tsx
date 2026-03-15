@@ -158,6 +158,16 @@ export function layoutToCategory(layout?: SmartArtLayout): string {
     basicPyramid: "pyramid",
     invertedPyramid: "pyramid",
     bendingProcess: "process",
+    stepDownProcess: "stepdown",
+    alternatingFlow: "alternatingflow",
+    descendingProcess: "descending",
+    pictureAccentList: "pictureaccent",
+    verticalBlockList: "verticalblock",
+    groupedList: "grouped",
+    pyramidList: "pyramidlist",
+    horizontalPictureList: "horizontalpicture",
+    accentProcess: "accentprocess",
+    verticalChevronList: "verticalchevron",
   };
   return map[layout] ?? "list";
 }

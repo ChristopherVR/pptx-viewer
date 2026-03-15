@@ -127,6 +127,68 @@ export const PRESETS: SmartArtPreset[] = [
     category: "relationship",
     defaultItems: ["Level 1", "Level 2", "Level 3"],
   },
+  // Additional List layouts
+  {
+    layout: "pictureAccentList",
+    label: "Picture Accent List",
+    category: "list",
+    defaultItems: ["Feature 1", "Feature 2", "Feature 3"],
+  },
+  {
+    layout: "verticalBlockList",
+    label: "Vertical Block List",
+    category: "list",
+    defaultItems: ["Block 1", "Block 2", "Block 3"],
+  },
+  {
+    layout: "groupedList",
+    label: "Grouped List",
+    category: "list",
+    defaultItems: ["Item A", "Item B", "Item C", "Item D"],
+  },
+  {
+    layout: "horizontalPictureList",
+    label: "Horizontal Picture List",
+    category: "list",
+    defaultItems: ["Photo 1", "Photo 2", "Photo 3"],
+  },
+  {
+    layout: "verticalChevronList",
+    label: "Vertical Chevron List",
+    category: "list",
+    defaultItems: ["Priority 1", "Priority 2", "Priority 3"],
+  },
+  {
+    layout: "pyramidList",
+    label: "Pyramid List",
+    category: "list",
+    defaultItems: ["Level 1", "Level 2", "Level 3"],
+  },
+  // Additional Process layouts
+  {
+    layout: "stepDownProcess",
+    label: "Step Down Process",
+    category: "process",
+    defaultItems: ["Step 1", "Step 2", "Step 3"],
+  },
+  {
+    layout: "alternatingFlow",
+    label: "Alternating Flow",
+    category: "process",
+    defaultItems: ["Stage 1", "Stage 2", "Stage 3", "Stage 4"],
+  },
+  {
+    layout: "descendingProcess",
+    label: "Descending Process",
+    category: "process",
+    defaultItems: ["Top", "Middle", "Bottom"],
+  },
+  {
+    layout: "accentProcess",
+    label: "Accent Process",
+    category: "process",
+    defaultItems: ["Phase 1", "Phase 2", "Phase 3"],
+  },
 ];
 
 // ── Category sidebar entries ─────────────────────────────────────────────────

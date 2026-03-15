@@ -21,6 +21,18 @@ import {
   layoutToCategory,
   type TreeNode,
 } from "../../utils/smartart-helpers";
+import {
+  renderStepDownProcess,
+  renderAlternatingFlow,
+  renderDescendingProcess,
+  renderPictureAccentList,
+  renderVerticalBlockList,
+  renderGroupedList,
+  renderPyramidList,
+  renderHorizontalPictureList,
+  renderAccentProcess,
+  renderVerticalChevronList,
+} from "../../utils/smartart-layouts-extra";
 
 /**
  * SmartArtRenderer — Phase 2 Implementation
@@ -262,6 +274,37 @@ function renderLayout(
         style={style}
       />
     );
+  }
+  // ── New layout types ──────────────────────────────────────────────────
+  if (layoutType.includes("stepdown")) {
+    return <>{renderStepDownProcess(element, nodes, palette, style)}</>;
+  }
+  if (layoutType.includes("alternatingflow") || layoutType.includes("alternating")) {
+    return <>{renderAlternatingFlow(element, nodes, palette, style)}</>;
+  }
+  if (layoutType.includes("descending")) {
+    return <>{renderDescendingProcess(element, nodes, palette, style)}</>;
+  }
+  if (layoutType.includes("pictureaccent")) {
+    return <>{renderPictureAccentList(element, nodes, palette, style)}</>;
+  }
+  if (layoutType.includes("verticalblock")) {
+    return <>{renderVerticalBlockList(element, nodes, palette, style)}</>;
+  }
+  if (layoutType.includes("grouped")) {
+    return <>{renderGroupedList(element, nodes, palette, style)}</>;
+  }
+  if (layoutType.includes("pyramidlist")) {
+    return <>{renderPyramidList(element, nodes, palette, style)}</>;
+  }
+  if (layoutType.includes("horizontalpicture")) {
+    return <>{renderHorizontalPictureList(element, nodes, palette, style)}</>;
+  }
+  if (layoutType.includes("accentprocess")) {
+    return <>{renderAccentProcess(element, nodes, palette, style)}</>;
+  }
+  if (layoutType.includes("verticalchevron")) {
+    return <>{renderVerticalChevronList(element, nodes, palette, style)}</>;
   }
   // Default: list layout
   return (

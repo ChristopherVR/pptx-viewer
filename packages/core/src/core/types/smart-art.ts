@@ -70,7 +70,17 @@ export type SmartArtLayout =
   | "basicMatrix"
   | "basicPyramid"
   | "invertedPyramid"
-  | "bendingProcess";
+  | "bendingProcess"
+  | "stepDownProcess"
+  | "alternatingFlow"
+  | "descendingProcess"
+  | "pictureAccentList"
+  | "verticalBlockList"
+  | "groupedList"
+  | "pyramidList"
+  | "horizontalPictureList"
+  | "accentProcess"
+  | "verticalChevronList";
 
 /**
  * SmartArt colour scheme presets.

@@ -36,6 +36,18 @@ import {
 } from "./smartart-layouts";
 import { layoutHierarchy, layoutRelationship } from "./smartart-layouts-tree";
 import {
+  layoutStepDownProcess,
+  layoutAlternatingFlow,
+  layoutDescendingProcess,
+  layoutPictureAccentList,
+  layoutVerticalBlockList,
+  layoutGroupedList,
+  layoutPyramidList,
+  layoutHorizontalPictureList,
+  layoutAccentProcess,
+  layoutVerticalChevronList,
+} from "./smartart-layouts-extra";
+import {
   computeSmartArtLayout,
   layoutEngineShapesToDrawingShapes,
   type ParsedLayoutDef,
@@ -203,6 +215,19 @@ export function decomposeSmartArt(
     smartArtData.resolvedLayoutType ??
     resolveLayoutFromRawType(smartArtData.layoutType);
 
+  // Check for specific named layouts that have their own algorithm,
+  // before falling through to the general category dispatch.
+  const namedLayout = smartArtData.layout;
+  if (namedLayout) {
+    const namedResult = dispatchNamedLayout(
+      namedLayout,
+      nodes,
+      containerBounds,
+      effectiveThemeMap,
+    );
+    if (namedResult) return namedResult;
+  }
+
   switch (layoutType) {
     case "list":
       return layoutList(nodes, containerBounds, effectiveThemeMap);
@@ -263,11 +288,50 @@ function layoutWithHeuristic(
     return layoutHierarchy(contentNodes, bounds, themeColorMap);
   }
 
-  // Small number of nodes → list, larger → process
+  // Small number of nodes → list, larger → matrix grid for better visual
   if (contentNodes.length <= 4) {
     return layoutList(contentNodes, bounds, themeColorMap);
   }
+  if (contentNodes.length <= 9) {
+    return layoutMatrix(contentNodes, bounds, themeColorMap);
+  }
   return layoutProcess(contentNodes, bounds, themeColorMap);
+}
+
+/**
+ * Dispatch to a specific named layout algorithm when the SmartArt has
+ * a concrete `layout` preset string.
+ */
+function dispatchNamedLayout(
+  namedLayout: string,
+  nodes: PptxSmartArtNode[],
+  bounds: DrawingBounds,
+  themeColorMap?: Record<string, string>,
+): PptxElement[] | undefined {
+  switch (namedLayout) {
+    case "stepDownProcess":
+      return layoutStepDownProcess(nodes, bounds, themeColorMap);
+    case "alternatingFlow":
+      return layoutAlternatingFlow(nodes, bounds, themeColorMap);
+    case "descendingProcess":
+      return layoutDescendingProcess(nodes, bounds, themeColorMap);
+    case "pictureAccentList":
+      return layoutPictureAccentList(nodes, bounds, themeColorMap);
+    case "verticalBlockList":
+      return layoutVerticalBlockList(nodes, bounds, themeColorMap);
+    case "groupedList":
+      return layoutGroupedList(nodes, bounds, themeColorMap);
+    case "pyramidList":
+      return layoutPyramidList(nodes, bounds, themeColorMap);
+    case "horizontalPictureList":
+      return layoutHorizontalPictureList(nodes, bounds, themeColorMap);
+    case "accentProcess":
+      return layoutAccentProcess(nodes, bounds, themeColorMap);
+    case "verticalChevronList":
+      return layoutVerticalChevronList(nodes, bounds, themeColorMap);
+    default:
+      return undefined;
+  }
 }
 
 /**
@@ -286,14 +350,28 @@ function resolveLayoutFromRawType(
   if (
     lower.includes("process") ||
     lower.includes("chevron") ||
-    lower.includes("arrow")
+    lower.includes("arrow") ||
+    lower.includes("stepdown") ||
+    lower.includes("descend") ||
+    lower.includes("accent")
   )
     return "process";
   if (lower.includes("venn")) return "relationship";
   if (lower.includes("matrix")) return "matrix";
   if (lower.includes("pyramid")) return "pyramid";
-  if (lower.includes("list") || lower.includes("block")) return "list";
+  if (lower.includes("funnel")) return "funnel";
+  if (lower.includes("target") || lower.includes("bullseye")) return "target";
+  if (lower.includes("gear")) return "gear";
+  if (lower.includes("timeline")) return "timeline";
+  if (
+    lower.includes("list") ||
+    lower.includes("block") ||
+    lower.includes("grouped") ||
+    lower.includes("picture")
+  )
+    return "list";
   if (lower.includes("relationship")) return "relationship";
+  if (lower.includes("bending") || lower.includes("snake")) return "bending";
 
   return "unknown";
 }
