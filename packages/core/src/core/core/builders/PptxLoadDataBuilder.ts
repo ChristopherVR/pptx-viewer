@@ -103,6 +103,8 @@ export class PptxLoadDataBuilder {
 
   private commentAuthors: PptxCommentAuthor[] | undefined;
 
+  private conformance: "strict" | "transitional" | undefined;
+
   public withDimensions(
     width: number,
     height: number,
@@ -303,6 +305,11 @@ export class PptxLoadDataBuilder {
     return this;
   }
 
+  public withConformance(conformance: "strict" | "transitional" | undefined): this {
+    this.conformance = conformance;
+    return this;
+  }
+
   public build(): PptxData {
     return {
       width: this.width,
@@ -343,6 +350,7 @@ export class PptxLoadDataBuilder {
       customerData: this.customerData,
       thumbnailData: this.thumbnailData,
       commentAuthors: this.commentAuthors,
+      conformance: this.conformance,
     };
   }
 }

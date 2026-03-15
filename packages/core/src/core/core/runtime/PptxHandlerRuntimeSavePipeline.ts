@@ -2,15 +2,33 @@ import { XmlObject, PptxSlide } from "../../types";
 import { PptxSaveStateBuilder } from "../builders";
 import { createPptxSaveConstants } from "../factories";
 import { type PptxHandlerSaveOptions } from "../types";
+import { type OoxmlConformanceClass } from "../../utils";
 
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from "./PptxHandlerRuntimeSaveSlideWriter";
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
+  /**
+   * Resolve the effective conformance class for this save operation.
+   *
+   * - `'preserve'` (default): use the conformance detected at load time
+   * - `'strict'` / `'transitional'`: force that conformance class
+   */
+  private resolveEffectiveConformance(
+    option: "strict" | "transitional" | "preserve" | undefined,
+  ): OoxmlConformanceClass {
+    if (option === "strict" || option === "transitional") return option;
+    // 'preserve' or undefined → use source conformance
+    return this.isStrictOoxml ? "strict" : "transitional";
+  }
+
   async save(
     slides: PptxSlide[],
     options?: PptxHandlerSaveOptions,
   ): Promise<Uint8Array> {
-    const saveConstants = createPptxSaveConstants();
+    const effectiveConformance = this.resolveEffectiveConformance(
+      options?.conformance,
+    );
+    const saveConstants = createPptxSaveConstants(effectiveConformance);
     const {
       slideRelationshipType,
       slideLayoutRelationshipType,
@@ -177,6 +195,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
     const outputFormat = options?.outputFormat ?? "pptx";
     await this.applyOutputFormatOverrides(outputFormat);
+
+    // ── Strict conformance conversion ────────────────────────
+    // If the effective conformance is Strict, we need to convert all
+    // the XML parts in the ZIP from Transitional namespace URIs back
+    // to Strict URIs before generating the final output.
+    if (effectiveConformance === "strict") {
+      await this.convertZipToStrictConformance();
+    }
 
     return await this.zip.generateAsync({ type: "uint8array" });
   }

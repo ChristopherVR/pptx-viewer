@@ -12,6 +12,7 @@ import {
   obfuscateFont,
   generateFontGuid,
 } from "../../utils/font-deobfuscation";
+import { convertXmlToStrict } from "../../utils";
 
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from "./PptxHandlerRuntimeSaveDataSerialization";
 import {
@@ -545,5 +546,57 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     relsRoot.Relationship = relationships;
     relsData.Relationships = relsRoot;
     this.zip.file(relsPath, this.builder.build(relsData));
+  }
+
+  /**
+   * Convert all XML parts in the ZIP archive from Transitional namespace URIs
+   * to Strict namespace URIs.
+   *
+   * This is the final step in the save pipeline when the effective conformance
+   * class is `'strict'`. It re-parses each XML entry, applies
+   * `convertXmlToStrict` in-place, and writes the converted XML back.
+   *
+   * The `p:presentation` root element receives `conformance="strict"` to
+   * satisfy the ISO/IEC 29500 Strict schema.
+   */
+  protected async convertZipToStrictConformance(): Promise<void> {
+    const xmlPaths: string[] = [];
+    this.zip.forEach((relativePath) => {
+      if (relativePath.endsWith(".xml") || relativePath.endsWith(".rels")) {
+        xmlPaths.push(relativePath);
+      }
+    });
+
+    // Use the original (unwrapped) parser for this conversion — the Proxy
+    // wrapper would auto-normalize Strict→Transitional which is the opposite
+    // of what we want.
+    const rawParser = (this as unknown as { _originalParser?: unknown })
+      ._originalParser || this.parser;
+    const parse =
+      typeof (rawParser as { parse?: unknown }).parse === "function"
+        ? (rawParser as { parse(s: string): unknown }).parse.bind(rawParser)
+        : this.parser.parse.bind(this.parser);
+
+    for (const path of xmlPaths) {
+      const file = this.zip.file(path);
+      if (!file) continue;
+
+      const xmlText = await file.async("string");
+      if (!xmlText.trim()) continue;
+
+      try {
+        const parsed = parse(xmlText) as Record<string, unknown>;
+        if (typeof parsed !== "object" || parsed === null) continue;
+
+        // presentation.xml gets the conformance="strict" attribute
+        const isPresentationXml = path === "ppt/presentation.xml";
+        convertXmlToStrict(parsed, isPresentationXml);
+
+        this.zip.file(path, this.builder.build(parsed));
+      } catch {
+        // If a part fails to parse (binary content with .xml extension, etc.)
+        // leave it unchanged — this is a best-effort conversion.
+      }
+    }
   }
 }

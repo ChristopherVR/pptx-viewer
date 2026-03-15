@@ -1,25 +1,29 @@
 /**
- * Strict OOXML Conformance - Namespace Normalization
+ * Strict OOXML Conformance - Namespace Normalization & Round-Trip
  *
  * Office 365 can save files in "Strict Open XML" mode (ISO/IEC 29500 Strict)
  * which uses different namespace URIs than Transitional (ECMA-376).
  *
- * This module maps Strict namespace URIs to their Transitional equivalents
- * so the rest of the codebase can work with a single set of namespace URIs.
+ * This module provides bidirectional mapping between Strict and Transitional
+ * namespace URIs, enabling:
+ *  - Load: normalize Strict URIs to Transitional for internal processing
+ *  - Save: convert Transitional URIs back to Strict for round-trip fidelity
  *
  * Reference: ECMA-376 5th Edition, Part 1, Annex A & B.
  */
 
+/** OOXML conformance class. */
+export type OoxmlConformanceClass = "strict" | "transitional";
+
 // ---------------------------------------------------------------------------
-// Strict → Transitional namespace URI mappings
+// Strict ↔ Transitional namespace URI mappings
 // ---------------------------------------------------------------------------
 
 /**
- * Comprehensive map of Strict Open XML namespace URIs to their Transitional
- * equivalents. Covers PresentationML, DrawingML, Relationships, OfficeDocument,
- * SpreadsheetML (for embedded charts), and WordprocessingML.
+ * Bidirectional namespace mapping entries.
+ * Each pair is [Strict URI, Transitional URI].
  */
-const STRICT_TO_TRANSITIONAL_NS: ReadonlyMap<string, string> = new Map([
+const NAMESPACE_PAIRS: ReadonlyArray<[string, string]> = [
   // -- PresentationML --
   [
     "http://purl.oclc.org/ooxml/presentationml/main",
@@ -235,7 +239,24 @@ const STRICT_TO_TRANSITIONAL_NS: ReadonlyMap<string, string> = new Map([
     "http://purl.oclc.org/ooxml/markup-compatibility/2006",
     "http://schemas.openxmlformats.org/markup-compatibility/2006",
   ],
-]);
+];
+
+/**
+ * Comprehensive map of Strict Open XML namespace URIs to their Transitional
+ * equivalents. Covers PresentationML, DrawingML, Relationships, OfficeDocument,
+ * SpreadsheetML (for embedded charts), and WordprocessingML.
+ */
+const STRICT_TO_TRANSITIONAL_NS: ReadonlyMap<string, string> = new Map(
+  NAMESPACE_PAIRS,
+);
+
+/**
+ * Reverse map: Transitional namespace URIs → Strict equivalents.
+ * Used during save to convert back to Strict conformance.
+ */
+const TRANSITIONAL_TO_STRICT_NS: ReadonlyMap<string, string> = new Map(
+  NAMESPACE_PAIRS.map(([strict, transitional]) => [transitional, strict]),
+);
 
 
 // ---------------------------------------------------------------------------
@@ -342,6 +363,101 @@ export function normalizeStrictXml(
       }
     } else if (typeof value === "object" && value !== null) {
       normalizeStrictXml(value as Record<string, unknown>);
+    }
+  }
+
+  return node;
+}
+
+/**
+ * Convert a Transitional Open XML namespace URI to its Strict equivalent.
+ * If the URI is already Strict (or unknown), it is returned unchanged.
+ */
+export function toStrictNamespaceUri(uri: string): string {
+  return TRANSITIONAL_TO_STRICT_NS.get(uri) ?? uri;
+}
+
+/**
+ * Check whether a URI belongs to the Transitional Open XML namespace family.
+ */
+export function isTransitionalNamespaceUri(uri: string): boolean {
+  return TRANSITIONAL_TO_STRICT_NS.has(uri);
+}
+
+/**
+ * Recursively convert all Transitional namespace URIs within a parsed XML
+ * object tree to their Strict equivalents.
+ *
+ * Converts:
+ *  - `@_xmlns` and `@_xmlns:*` attribute values (namespace declarations)
+ *  - `@_Type` attribute values on Relationship elements (relationship type URIs)
+ *  - `@_uri` attribute values (extension URIs)
+ *
+ * Also sets `conformance="strict"` on the root `p:presentation` element
+ * when `setConformance` is true.
+ *
+ * The transformation is performed **in-place** for efficiency.
+ */
+export function convertXmlToStrict(
+  node: Record<string, unknown>,
+  setConformance = false,
+): Record<string, unknown> {
+  if (typeof node !== "object" || node === null || Array.isArray(node)) {
+    return node;
+  }
+
+  // Optionally set conformance attribute on p:presentation root
+  if (setConformance && "p:presentation" in node) {
+    const presentation = node["p:presentation"] as Record<string, unknown>;
+    if (typeof presentation === "object" && presentation !== null) {
+      presentation["@_conformance"] = "strict";
+    }
+  }
+
+  for (const key of Object.keys(node)) {
+    const value = node[key];
+
+    // Convert namespace declaration attribute values
+    if (key.startsWith("@_xmlns")) {
+      if (typeof value === "string") {
+        const mapped = TRANSITIONAL_TO_STRICT_NS.get(value);
+        if (mapped) {
+          node[key] = mapped;
+        }
+      }
+      continue;
+    }
+
+    // Convert relationship type attribute values
+    if (key === "@_Type" && typeof value === "string") {
+      const mapped = TRANSITIONAL_TO_STRICT_NS.get(value);
+      if (mapped) {
+        node[key] = mapped;
+      }
+      continue;
+    }
+
+    // Convert @_uri attribute values
+    if (key === "@_uri" && typeof value === "string") {
+      const mapped = TRANSITIONAL_TO_STRICT_NS.get(value);
+      if (mapped) {
+        node[key] = mapped;
+      }
+      continue;
+    }
+
+    // Skip other scalar attributes
+    if (key.startsWith("@_")) continue;
+
+    // Recurse into child objects
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (typeof item === "object" && item !== null) {
+          convertXmlToStrict(item as Record<string, unknown>);
+        }
+      }
+    } else if (typeof value === "object" && value !== null) {
+      convertXmlToStrict(value as Record<string, unknown>);
     }
   }
 
