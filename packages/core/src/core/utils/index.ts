@@ -186,6 +186,10 @@ export {
   isStrictNamespaceUri,
   detectStrictConformance,
   normalizeStrictXml,
+  toStrictNamespaceUri,
+  isTransitionalNamespaceUri,
+  convertXmlToStrict,
+  type OoxmlConformanceClass,
 } from "./strict-namespace-map";
 
 export {

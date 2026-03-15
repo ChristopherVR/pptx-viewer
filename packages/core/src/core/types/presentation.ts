@@ -451,6 +451,15 @@ export interface PptxData {
   thumbnailData?: Uint8Array;
   /** Comment authors parsed from `ppt/commentAuthors.xml` for round-trip preservation. */
   commentAuthors?: PptxCommentAuthor[];
+  /**
+   * OOXML conformance class of the loaded file.
+   * - `'strict'` -- ISO/IEC 29500 Strict (uses `purl.oclc.org` namespace URIs)
+   * - `'transitional'` -- ECMA-376 Transitional (uses `schemas.openxmlformats.org` URIs)
+   *
+   * When saving, if the save option `conformance` is `'preserve'` (default),
+   * the file will be saved using the same conformance class as the original.
+   */
+  conformance?: "strict" | "transitional";
 }
 
 // ==========================================================================

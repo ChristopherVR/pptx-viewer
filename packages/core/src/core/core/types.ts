@@ -63,6 +63,13 @@ export interface PptxHandlerSaveOptions {
    * - `'pptm'`: Macro-enabled presentation (requires VBA data).
    */
   outputFormat?: PptxSaveFormat;
+  /**
+   * OOXML conformance class for the saved output.
+   * - `'preserve'` (default): use the same conformance as the loaded file.
+   * - `'strict'`: force Strict Open XML (ISO/IEC 29500) namespace URIs.
+   * - `'transitional'`: force Transitional (ECMA-376) namespace URIs.
+   */
+  conformance?: "strict" | "transitional" | "preserve";
 }
 
 export interface IPptxHandlerRuntime {
