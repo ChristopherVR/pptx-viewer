@@ -6,6 +6,15 @@ import type {
   PptxChartData,
   PptxChartSeries,
   PptxChartStyle,
+  PptxChartType,
+} from "pptx-viewer-core";
+import {
+  chartDataAddSeries,
+  chartDataRemoveSeries,
+  chartDataUpdatePoint,
+  chartDataChangeType,
+  chartDataAddCategory,
+  chartDataRemoveCategory,
 } from "pptx-viewer-core";
 import { ChartDataGrid } from "./ChartDataGrid";
 import { ChartDisplayOptions } from "./ChartDisplayOptions";
@@ -34,13 +43,33 @@ export function ChartDataPanel({
   const { title, chartType, categories, series, style, grouping } = chartData;
 
   // ── Helpers ──────────────────────────────────────────────────
+
+  /** Push a complete new `PptxChartData` through the update pipeline. */
+  const replaceChartData = useCallback(
+    (newData: PptxChartData) => {
+      onUpdateElement({
+        chartData: newData,
+      } as Partial<PptxElement>);
+    },
+    [onUpdateElement],
+  );
+
   const updateChartData = useCallback(
     (patch: Partial<PptxChartData>) => {
+      // For chart type changes, use the smart utility that handles
+      // grouping cleanup and category format adaptation.
+      if (patch.chartType && patch.chartType !== chartData.chartType) {
+        const adapted = chartDataChangeType(chartData, patch.chartType as PptxChartType);
+        // Merge any other fields from the patch (e.g. title changes)
+        const { chartType: _ct, ...rest } = patch;
+        replaceChartData({ ...adapted, ...rest });
+        return;
+      }
       onUpdateElement({
         chartData: { ...chartData, ...patch },
       } as Partial<PptxElement>);
     },
-    [chartData, onUpdateElement],
+    [chartData, onUpdateElement, replaceChartData],
   );
 
   const updateStyle = useCallback(
@@ -77,56 +106,41 @@ export function ChartDataPanel({
     (seriesIndex: number, catIndex: number, raw: string) => {
       const num = Number.parseFloat(raw);
       if (!Number.isFinite(num)) return;
-      const updated = series.map((s, si) => {
-        if (si !== seriesIndex) return s;
-        const vals = [...s.values];
-        vals[catIndex] = num;
-        return { ...s, values: vals };
-      });
-      updateChartData({ series: updated });
+      replaceChartData(chartDataUpdatePoint(chartData, seriesIndex, catIndex, num));
     },
-    [series, updateChartData],
+    [chartData, replaceChartData],
   );
 
   // ── Add / Remove helpers ────────────────────────────────────
   const addCategory = useCallback(() => {
-    const newCats = [...categories, `Cat ${categories.length + 1}`];
-    const newSeries = series.map((s) => ({
-      ...s,
-      values: [...s.values, 0],
-    }));
-    updateChartData({ categories: newCats, series: newSeries });
-  }, [categories, series, updateChartData]);
+    replaceChartData(
+      chartDataAddCategory(chartData, `Cat ${categories.length + 1}`),
+    );
+  }, [chartData, categories.length, replaceChartData]);
 
   const removeCategory = useCallback(
     (catIndex: number) => {
       if (categories.length <= 1) return;
-      const newCats = categories.filter((_, i) => i !== catIndex);
-      const newSeries = series.map((s) => ({
-        ...s,
-        values: s.values.filter((_, i) => i !== catIndex),
-      }));
-      updateChartData({ categories: newCats, series: newSeries });
+      replaceChartData(chartDataRemoveCategory(chartData, catIndex));
     },
-    [categories, series, updateChartData],
+    [chartData, categories.length, replaceChartData],
   );
 
   const addSeries = useCallback(() => {
-    const newSeries: PptxChartSeries = {
-      name: `Series ${series.length + 1}`,
-      values: categories.map(() => 0),
-    };
-    updateChartData({ series: [...series, newSeries] });
-  }, [categories, series, updateChartData]);
+    replaceChartData(
+      chartDataAddSeries(chartData, {
+        name: `Series ${series.length + 1}`,
+        values: categories.map(() => 0),
+      }),
+    );
+  }, [chartData, categories, series.length, replaceChartData]);
 
   const removeSeries = useCallback(
     (seriesIndex: number) => {
       if (series.length <= 1) return;
-      updateChartData({
-        series: series.filter((_, i) => i !== seriesIndex),
-      });
+      replaceChartData(chartDataRemoveSeries(chartData, seriesIndex));
     },
-    [series, updateChartData],
+    [chartData, series.length, replaceChartData],
   );
 
   // ── Render ──────────────────────────────────────────────────

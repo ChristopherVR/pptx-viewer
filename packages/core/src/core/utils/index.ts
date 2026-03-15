@@ -146,6 +146,15 @@ export { parseCxChartSeries } from "./chart-cx-parser";
 export { parseEmbeddedXlsx } from "./chart-xlsx-parser";
 
 export {
+  chartDataAddSeries,
+  chartDataRemoveSeries,
+  chartDataUpdatePoint,
+  chartDataChangeType,
+  chartDataAddCategory,
+  chartDataRemoveCategory,
+} from "./chart-data-utils";
+
+export {
   parseSlideDrawingGuides,
   parsePresentationDrawingGuides,
   guideEmuToPx,

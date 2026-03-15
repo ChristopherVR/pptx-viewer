@@ -47,6 +47,9 @@ export {
 	updateChartSeriesValues,
 	setChartTitle,
 	setChartGrouping,
+	updateChartDataPoint,
+	addChartCategory,
+	removeChartCategory,
 } from "./chart-operations";
 
 // Layout operations
