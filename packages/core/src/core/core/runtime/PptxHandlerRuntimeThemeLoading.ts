@@ -68,6 +68,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
   }
 
   /**
+   * Public API — scan the in-memory ZIP for `ppt/theme/theme*.xml` parts
+   * and return their paths and display names.  Delegates to the
+   * protected {@link parseThemeOptions}.
+   */
+  public async getAvailableThemes(): Promise<PptxThemeOption[]> {
+    return this.parseThemeOptions();
+  }
+
+  /**
    * Build a structured PptxTheme object from the already-parsed
    * themeColorMap and themeFontMap for consumption by renderers / UI.
    */

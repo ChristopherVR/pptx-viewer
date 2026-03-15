@@ -199,6 +199,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
           triggerDelayMs: trigger === "afterDelay" ? delayMs : undefined,
           motionPath: childMotion.motionPath,
           motionOrigin: childMotion.motionOrigin,
+          motionPathRotateAuto: childMotion.motionPathRotateAuto,
           rotationBy: childMotion.rotationBy,
           scaleByX: childMotion.scaleByX,
           scaleByY: childMotion.scaleByY,

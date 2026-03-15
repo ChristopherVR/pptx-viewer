@@ -112,7 +112,9 @@ export function SlideThumbnail({
             Boolean(
               buildCssGradientFromShapeStyle(elShapeStyle) ||
               elShapeStyle?.fillGradient,
-            );
+            ) ||
+            (elShapeStyle?.fillMode === "pattern" &&
+              Boolean(elShapeStyle.fillPatternPreset));
           const fillColor = normalizeHexColor(
             elShapeStyle?.fillColor,
             DEFAULT_FILL_COLOR,

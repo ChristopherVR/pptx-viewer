@@ -50,6 +50,30 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     if (effectDef.softEdgeRadius && !style.softEdgeRadius) {
       style.softEdgeRadius = effectDef.softEdgeRadius;
     }
+
+    // Apply reflection (only if no explicit reflection was already set)
+    if (
+      effectDef.reflectionBlurRadius !== undefined &&
+      style.reflectionBlurRadius === undefined
+    ) {
+      style.reflectionBlurRadius = effectDef.reflectionBlurRadius;
+      style.reflectionStartOpacity = effectDef.reflectionStartOpacity;
+      style.reflectionEndOpacity = effectDef.reflectionEndOpacity;
+      style.reflectionEndPosition = effectDef.reflectionEndPosition;
+      style.reflectionDirection = effectDef.reflectionDirection;
+      style.reflectionRotation = effectDef.reflectionRotation;
+      style.reflectionDistance = effectDef.reflectionDistance;
+    }
+
+    // Apply 3D scene (only if no explicit scene3d was already set)
+    if (effectDef.scene3d && !style.scene3d) {
+      style.scene3d = effectDef.scene3d;
+    }
+
+    // Apply 3D shape extrusion/bevel (only if no explicit shape3d was already set)
+    if (effectDef.shape3d && !style.shape3d) {
+      style.shape3d = effectDef.shape3d;
+    }
   }
 
   /**

@@ -35,6 +35,15 @@ interface ShapeStyle {
   glowRadius?: number;
   glowOpacity?: number;
   softEdgeRadius?: number;
+  reflectionBlurRadius?: number;
+  reflectionStartOpacity?: number;
+  reflectionEndOpacity?: number;
+  reflectionEndPosition?: number;
+  reflectionDirection?: number;
+  reflectionRotation?: number;
+  reflectionDistance?: number;
+  scene3d?: Record<string, unknown>;
+  shape3d?: Record<string, unknown>;
 }
 
 interface EffectStyleDef {
@@ -52,6 +61,15 @@ interface EffectStyleDef {
   glowRadius?: number;
   glowOpacity?: number;
   softEdgeRadius?: number;
+  reflectionBlurRadius?: number;
+  reflectionStartOpacity?: number;
+  reflectionEndOpacity?: number;
+  reflectionEndPosition?: number;
+  reflectionDirection?: number;
+  reflectionRotation?: number;
+  reflectionDistance?: number;
+  scene3d?: Record<string, unknown>;
+  shape3d?: Record<string, unknown>;
 }
 
 interface LineStyleDef {
@@ -128,6 +146,27 @@ function resolveThemeEffectRef(
 
   if (effectDef.softEdgeRadius && !style.softEdgeRadius) {
     style.softEdgeRadius = effectDef.softEdgeRadius;
+  }
+
+  if (
+    effectDef.reflectionBlurRadius !== undefined &&
+    style.reflectionBlurRadius === undefined
+  ) {
+    style.reflectionBlurRadius = effectDef.reflectionBlurRadius;
+    style.reflectionStartOpacity = effectDef.reflectionStartOpacity;
+    style.reflectionEndOpacity = effectDef.reflectionEndOpacity;
+    style.reflectionEndPosition = effectDef.reflectionEndPosition;
+    style.reflectionDirection = effectDef.reflectionDirection;
+    style.reflectionRotation = effectDef.reflectionRotation;
+    style.reflectionDistance = effectDef.reflectionDistance;
+  }
+
+  if (effectDef.scene3d && !style.scene3d) {
+    style.scene3d = effectDef.scene3d;
+  }
+
+  if (effectDef.shape3d && !style.shape3d) {
+    style.shape3d = effectDef.shape3d;
   }
 }
 
@@ -259,6 +298,15 @@ describe("resolveThemeEffectRef", () => {
       { shadowColor: "#000", shadowBlur: 4, shadowOffsetX: 2, shadowOffsetY: 2, shadowOpacity: 0.5 },
       { glowColor: "#ff0", glowRadius: 8, glowOpacity: 0.7 },
       { softEdgeRadius: 5 },
+      {
+        reflectionBlurRadius: 0.5,
+        reflectionStartOpacity: 0.5,
+        reflectionEndOpacity: 0,
+        reflectionEndPosition: 0.65,
+        reflectionDirection: 90,
+        reflectionRotation: 0,
+        reflectionDistance: 1,
+      },
     ],
     lineStyles: [],
     fillStyles: [],
@@ -331,10 +379,119 @@ describe("resolveThemeEffectRef", () => {
     expect(style.softEdgeRadius).toBe(10);
   });
 
+  it("should apply reflection from effect style 4 (idx=4)", () => {
+    const style: ShapeStyle = {};
+    resolveThemeEffectRef(4, style, scheme);
+    expect(style.reflectionBlurRadius).toBe(0.5);
+    expect(style.reflectionStartOpacity).toBe(0.5);
+    expect(style.reflectionEndOpacity).toBe(0);
+    expect(style.reflectionEndPosition).toBe(0.65);
+    expect(style.reflectionDirection).toBe(90);
+    expect(style.reflectionRotation).toBe(0);
+    expect(style.reflectionDistance).toBe(1);
+  });
+
+  it("should not override existing reflection", () => {
+    const style: ShapeStyle = { reflectionBlurRadius: 3 };
+    resolveThemeEffectRef(4, style, scheme);
+    expect(style.reflectionBlurRadius).toBe(3);
+    expect(style.reflectionStartOpacity).toBeUndefined();
+  });
+
   it("should handle NaN idx", () => {
     const style: ShapeStyle = {};
     resolveThemeEffectRef(NaN, style, scheme);
     expect(style).toEqual({});
+  });
+
+  // --- Inner shadow tests ---
+  it("should apply inner shadow from effect style", () => {
+    const schemeWithInner: ThemeFormatScheme = {
+      effectStyles: [
+        { innerShadowColor: "#333", innerShadowBlur: 3, innerShadowOffsetX: 1, innerShadowOffsetY: 1, innerShadowOpacity: 0.6 },
+      ],
+      lineStyles: [],
+      fillStyles: [],
+      backgroundFillStyles: [],
+    };
+    const style: ShapeStyle = {};
+    resolveThemeEffectRef(1, style, schemeWithInner);
+    expect(style.innerShadowColor).toBe("#333");
+    expect(style.innerShadowBlur).toBe(3);
+    expect(style.innerShadowOffsetX).toBe(1);
+    expect(style.innerShadowOffsetY).toBe(1);
+    expect(style.innerShadowOpacity).toBe(0.6);
+  });
+
+  it("should not override existing inner shadow", () => {
+    const schemeWithInner: ThemeFormatScheme = {
+      effectStyles: [
+        { innerShadowColor: "#333", innerShadowBlur: 3 },
+      ],
+      lineStyles: [],
+      fillStyles: [],
+      backgroundFillStyles: [],
+    };
+    const style: ShapeStyle = { innerShadowColor: "#existing" };
+    resolveThemeEffectRef(1, style, schemeWithInner);
+    expect(style.innerShadowColor).toBe("#existing");
+  });
+
+  // --- 3D scene/shape tests ---
+  it("should apply scene3d from effect style", () => {
+    const schemeWith3d: ThemeFormatScheme = {
+      effectStyles: [
+        { scene3d: { cameraPreset: "orthographicFront", lightRigType: "threePt", lightRigDirection: "t" } },
+      ],
+      lineStyles: [],
+      fillStyles: [],
+      backgroundFillStyles: [],
+    };
+    const style: ShapeStyle = {};
+    resolveThemeEffectRef(1, style, schemeWith3d);
+    expect(style.scene3d).toEqual({ cameraPreset: "orthographicFront", lightRigType: "threePt", lightRigDirection: "t" });
+  });
+
+  it("should not override existing scene3d", () => {
+    const schemeWith3d: ThemeFormatScheme = {
+      effectStyles: [
+        { scene3d: { cameraPreset: "orthographicFront" } },
+      ],
+      lineStyles: [],
+      fillStyles: [],
+      backgroundFillStyles: [],
+    };
+    const style: ShapeStyle = { scene3d: { cameraPreset: "perspectiveFront" } };
+    resolveThemeEffectRef(1, style, schemeWith3d);
+    expect(style.scene3d).toEqual({ cameraPreset: "perspectiveFront" });
+  });
+
+  it("should apply shape3d from effect style", () => {
+    const schemeWith3d: ThemeFormatScheme = {
+      effectStyles: [
+        { shape3d: { extrusionHeight: 76200, presetMaterial: "metal", bevelTopType: "circle" } },
+      ],
+      lineStyles: [],
+      fillStyles: [],
+      backgroundFillStyles: [],
+    };
+    const style: ShapeStyle = {};
+    resolveThemeEffectRef(1, style, schemeWith3d);
+    expect(style.shape3d).toEqual({ extrusionHeight: 76200, presetMaterial: "metal", bevelTopType: "circle" });
+  });
+
+  it("should not override existing shape3d", () => {
+    const schemeWith3d: ThemeFormatScheme = {
+      effectStyles: [
+        { shape3d: { extrusionHeight: 76200 } },
+      ],
+      lineStyles: [],
+      fillStyles: [],
+      backgroundFillStyles: [],
+    };
+    const style: ShapeStyle = { shape3d: { extrusionHeight: 50000 } };
+    resolveThemeEffectRef(1, style, schemeWith3d);
+    expect(style.shape3d).toEqual({ extrusionHeight: 50000 });
   });
 });
 

@@ -61,6 +61,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     this.themeFontMap = {};
     this.presentationDefaultTextStyle = undefined;
     this.commentAuthorMap.clear();
+    this.thumbnailData = null;
     this.vbaProjectBin = null;
     this.vbaRelatedParts.clear();
     this.signatureDetection = null;
@@ -163,7 +164,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         }
       }
 
-      parts.push({ id: itemId, data, schemaUri, properties });
+      // Try to read associated relationship file
+      const relsPath = `customXml/_rels/item${itemId}.xml.rels`;
+      const relsFile = this.zip.file(relsPath);
+      let rels: string | undefined;
+      if (relsFile) {
+        rels = await relsFile.async("string");
+      }
+
+      parts.push({ id: itemId, data, schemaUri, properties, rels });
     }
 
     this.customXmlParts = parts;

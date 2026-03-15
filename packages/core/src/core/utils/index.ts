@@ -143,6 +143,8 @@ export {
 
 export { parseCxChartSeries } from "./chart-cx-parser";
 
+export { parseEmbeddedXlsx } from "./chart-xlsx-parser";
+
 export {
   parseSlideDrawingGuides,
   parsePresentationDrawingGuides,

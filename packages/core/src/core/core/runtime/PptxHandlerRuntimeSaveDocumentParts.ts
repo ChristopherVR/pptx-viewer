@@ -238,7 +238,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
   /**
    * Write custom XML data parts back to the ZIP package for round-trip
    * preservation. Each part writes `customXml/item{id}.xml` and, when
-   * present, `customXml/itemProps{id}.xml`.
+   * present, `customXml/itemProps{id}.xml` and
+   * `customXml/_rels/item{id}.xml.rels`.
    */
   protected applyCustomXmlPartsPreservation(): void {
     if (this.customXmlParts.length === 0) return;
@@ -248,7 +249,37 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       if (part.properties) {
         this.zip.file(`customXml/itemProps${part.id}.xml`, part.properties);
       }
+      if (part.rels) {
+        this.zip.file(`customXml/_rels/item${part.id}.xml.rels`, part.rels);
+      }
     }
+  }
+
+  /**
+   * Write the preserved thumbnail image back into the ZIP package.
+   *
+   * Looks for an existing thumbnail entry to determine the correct
+   * file path (`.jpeg`, `.jpg`, `.png`, `.emf`). If none exists,
+   * defaults to `docProps/thumbnail.jpeg`.
+   */
+  protected applyThumbnailPreservation(): void {
+    if (!this.thumbnailData) return;
+
+    const candidates = [
+      "docProps/thumbnail.jpeg",
+      "docProps/thumbnail.jpg",
+      "docProps/thumbnail.png",
+      "docProps/thumbnail.emf",
+    ];
+    let targetPath = "docProps/thumbnail.jpeg";
+    for (const path of candidates) {
+      if (this.zip.file(path)) {
+        targetPath = path;
+        break;
+      }
+    }
+
+    this.zip.file(targetPath, this.thumbnailData);
   }
 
   /**

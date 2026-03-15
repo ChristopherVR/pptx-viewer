@@ -80,11 +80,11 @@ const extensionByResponseMime: Record<string, string> = {
 };
 
 /**
- * Resolve a media source URL (fuzor-resource://, blob:, http(s)://) to raw
+ * Resolve a media source URL (pptx-resource://, blob:, http(s)://) to raw
  * bytes by fetching it. Returns null on failure.
  *
  * This is used during PPTX save to embed media that was streamed from disk
- * (via fuzor-resource:// URLs) rather than stored as base64 data URLs.
+ * (via pptx-resource:// URLs) rather than stored as base64 data URLs.
  */
 export async function fetchUrlToBytes(
   url: string,

@@ -463,6 +463,130 @@ describe("PptxContentTypesBuilder", () => {
     });
   });
 
+  // ── applyCustomXmlUpdates ────────────────────────────────────────────
+
+  describe("applyCustomXmlUpdates", () => {
+    const CUSTOM_XML_PROPS_CT =
+      "application/vnd.openxmlformats-officedocument.customXmlProperties+xml";
+
+    it("adds override entries for custom XML properties parts", () => {
+      const contentTypes: XmlObject = {
+        Types: { Default: [], Override: [] },
+      };
+      builder.applyCustomXmlUpdates({
+        contentTypesData: contentTypes,
+        customXmlParts: [
+          { id: "1", data: "<root/>", properties: "<ds:datastoreItem/>" },
+          { id: "2", data: "<data/>", properties: "<ds:datastoreItem/>" },
+        ],
+      });
+      const overrides = (contentTypes["Types"] as XmlObject)[
+        "Override"
+      ] as any[];
+      const customXmlOverrides = overrides.filter(
+        (o: any) => o["@_ContentType"] === CUSTOM_XML_PROPS_CT,
+      );
+      expect(customXmlOverrides).toHaveLength(2);
+      expect(customXmlOverrides[0]["@_PartName"]).toBe(
+        "/customXml/itemProps1.xml",
+      );
+      expect(customXmlOverrides[1]["@_PartName"]).toBe(
+        "/customXml/itemProps2.xml",
+      );
+    });
+
+    it("does not add overrides for parts without properties", () => {
+      const contentTypes: XmlObject = {
+        Types: { Default: [], Override: [] },
+      };
+      builder.applyCustomXmlUpdates({
+        contentTypesData: contentTypes,
+        customXmlParts: [
+          { id: "1", data: "<root/>" },
+        ],
+      });
+      const overrides = (contentTypes["Types"] as XmlObject)[
+        "Override"
+      ] as any[];
+      expect(overrides).toHaveLength(0);
+    });
+
+    it("does not duplicate existing custom XML overrides", () => {
+      const contentTypes: XmlObject = {
+        Types: {
+          Default: [],
+          Override: [
+            {
+              "@_PartName": "/customXml/itemProps1.xml",
+              "@_ContentType": CUSTOM_XML_PROPS_CT,
+            },
+          ],
+        },
+      };
+      builder.applyCustomXmlUpdates({
+        contentTypesData: contentTypes,
+        customXmlParts: [
+          { id: "1", data: "<root/>", properties: "<ds:datastoreItem/>" },
+        ],
+      });
+      const overrides = (contentTypes["Types"] as XmlObject)[
+        "Override"
+      ] as any[];
+      const customXmlOverrides = overrides.filter(
+        (o: any) => o["@_ContentType"] === CUSTOM_XML_PROPS_CT,
+      );
+      expect(customXmlOverrides).toHaveLength(1);
+    });
+
+    it("does nothing when customXmlParts is empty", () => {
+      const contentTypes: XmlObject = {
+        Types: {
+          Default: [],
+          Override: [
+            {
+              "@_PartName": "/ppt/presentation.xml",
+              "@_ContentType": "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml",
+            },
+          ],
+        },
+      };
+      builder.applyCustomXmlUpdates({
+        contentTypesData: contentTypes,
+        customXmlParts: [],
+      });
+      const overrides = (contentTypes["Types"] as XmlObject)[
+        "Override"
+      ] as any[];
+      expect(overrides).toHaveLength(1);
+    });
+
+    it("preserves existing non-custom-xml overrides", () => {
+      const contentTypes: XmlObject = {
+        Types: {
+          Default: [],
+          Override: [
+            {
+              "@_PartName": "/ppt/presentation.xml",
+              "@_ContentType": "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml",
+            },
+          ],
+        },
+      };
+      builder.applyCustomXmlUpdates({
+        contentTypesData: contentTypes,
+        customXmlParts: [
+          { id: "1", data: "<root/>", properties: "<ds:datastoreItem/>" },
+        ],
+      });
+      const overrides = (contentTypes["Types"] as XmlObject)[
+        "Override"
+      ] as any[];
+      expect(overrides).toHaveLength(2);
+      expect(overrides[0]["@_PartName"]).toBe("/ppt/presentation.xml");
+      expect(overrides[1]["@_PartName"]).toBe("/customXml/itemProps1.xml");
+    });
+  });
+
   // ── normalizePartName edge cases ─────────────────────────────────────
 
   describe("part name normalization", () => {

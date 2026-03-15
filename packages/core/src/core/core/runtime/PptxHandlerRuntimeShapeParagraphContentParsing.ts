@@ -80,9 +80,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       maybeSeed(runStyle);
     };
 
-    const runs = this.ensureArray(p["a:r"]);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    runs.forEach((r: any) => {
+    const processRun = (r: any) => {
       if (!r) return;
 
       // ── Ruby (phonetic guide) support ──
@@ -110,10 +109,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
             ? String(r["a:t"])
             : "";
       appendRun(runText, r["a:rPr"]);
-    });
+    };
 
-    const fields = this.ensureArray(p["a:fld"]);
-    fields.forEach((field: XmlObject | undefined) => {
+    const processField = (field: XmlObject | undefined) => {
       if (!field) return;
       const fieldText =
         typeof field["a:t"] === "string"
@@ -140,20 +138,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         fieldGuid: fldGuid,
       });
       maybeSeed(fieldRunStyle);
-    });
+    };
 
-    if (p["a:t"] !== undefined) {
-      const directText =
-        typeof p["a:t"] === "string" ? p["a:t"] : String(p["a:t"]);
-      appendRun(directText, p["a:rPr"]);
-    }
-
-    // ── OMML equation segments (a14:m / m:oMathPara) ────────
-    const mathElements = this.ensureArray(
-      p["a14:m"] ?? p["m:oMathPara"] ?? p["m:oMath"],
-    );
-    for (const mathEl of mathElements) {
-      if (!mathEl) continue;
+    const processMathElement = (mathEl: unknown) => {
+      if (!mathEl) return;
       const eqText = "[Equation]";
       parts.push(eqText);
       segments.push({
@@ -161,30 +149,68 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         style: { ...mergedDefaultRunStyle },
         equationXml: mathEl as Record<string, unknown>,
       });
-    }
-    // Also check mc:AlternateContent wrapping math
-    const mathAltContents = this.ensureArray(p["mc:AlternateContent"]);
-    for (const ac of mathAltContents) {
+    };
+
+    const processAlternateContent = (ac: unknown) => {
       const choice = this.selectAlternateContentBranch(ac as XmlObject);
-      if (!choice) continue;
+      if (!choice) return;
       const innerMath =
         choice["a14:m"] ?? choice["m:oMathPara"] ?? choice["m:oMath"];
-      if (!innerMath) continue;
-      const eqText = "[Equation]";
-      parts.push(eqText);
-      segments.push({
-        text: eqText,
-        style: { ...mergedDefaultRunStyle },
-        equationXml: innerMath as Record<string, unknown>,
-      });
-    }
+      if (innerMath) {
+        // mc:AlternateContent wrapping inline math
+        processMathElement(innerMath);
+        return;
+      }
+      // mc:AlternateContent may contain non-math content (runs, fields)
+      const innerRuns = this.ensureArray(choice["a:r"]);
+      for (const r of innerRuns) { processRun(r); }
+      const innerFields = this.ensureArray(choice["a:fld"]);
+      for (const f of innerFields) { processField(f as XmlObject); }
+    };
 
-    const lineBreaks = this.ensureArray(p["a:br"]);
-    if (lineBreaks.length > 0) {
-      lineBreaks.forEach(() => {
-        parts.push("\n");
-        segments.push({ text: "\n", style: { ...mergedDefaultRunStyle } });
-      });
+    // ── Process paragraph children in document order ──
+    // Iterate over object keys to preserve the interleaving order of
+    // runs (a:r), fields (a:fld), inline math (a14:m / m:oMathPara /
+    // m:oMath), mc:AlternateContent, line breaks (a:br), and direct
+    // text (a:t). Each key's array items are consumed sequentially,
+    // maintaining the positions of inline math relative to text runs.
+    const contentTagSet = new Set([
+      "a:r", "a:fld", "a:t", "a14:m", "m:oMathPara", "m:oMath",
+      "mc:AlternateContent", "a:br",
+    ]);
+
+    for (const key of Object.keys(p)) {
+      if (!contentTagSet.has(key)) continue;
+
+      const items = this.ensureArray(p[key]);
+      for (const item of items) {
+        switch (key) {
+          case "a:r":
+            processRun(item);
+            break;
+          case "a:fld":
+            processField(item as XmlObject);
+            break;
+          case "a:t": {
+            const directText =
+              typeof item === "string" ? item : item !== undefined ? String(item) : "";
+            appendRun(directText, p["a:rPr"]);
+            break;
+          }
+          case "a14:m":
+          case "m:oMathPara":
+          case "m:oMath":
+            processMathElement(item);
+            break;
+          case "mc:AlternateContent":
+            processAlternateContent(item);
+            break;
+          case "a:br":
+            parts.push("\n");
+            segments.push({ text: "\n", style: { ...mergedDefaultRunStyle } });
+            break;
+        }
+      }
     }
 
     if (pIdx < paraCount - 1) {

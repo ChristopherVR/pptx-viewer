@@ -138,6 +138,7 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
       <ViewerCanvasArea
         mode={mode}
         canEdit={canEdit}
+        slides={slides}
         activeSlide={activeSlide}
         masterPseudoSlide={masterPseudoSlide}
         templateElements={state.templateElements}

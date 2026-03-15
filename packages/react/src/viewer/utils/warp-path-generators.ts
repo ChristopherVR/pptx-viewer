@@ -7,8 +7,9 @@
 import type { PptxTextWarpPreset } from "pptx-viewer-core";
 import { cascadeUpPath, cascadeDownPath } from "./warp-path-cascade";
 
-/** Produces an SVG path `d` attribute for a single text line. */
-export type WarpPathGenerator = (w: number, h: number, t: number) => string;
+/** Produces an SVG path `d` attribute for a single text line.
+ *  Optional adj/adj2 are OOXML adjustment values (raw 1/60000th units). */
+export type WarpPathGenerator = (w: number, h: number, t: number, adj?: number, adj2?: number) => string;
 
 /** Presets that require SVG textPath rendering (all others fall back to CSS). */
 export const SVG_WARP_PRESETS: ReadonlySet<string> = new Set([
@@ -59,25 +60,37 @@ export const SVG_WARP_PRESETS: ReadonlySet<string> = new Set([
 
 // ── Priority 1 path generators ─────────────────────────────────────────
 
-/** Concentric upward arcs from (0, h) → (w, h).  t=0 is the tallest arch. */
-function archUpPath(w: number, h: number, t: number): string {
-  const archH = h * (0.85 - t * 0.7);
+/** Concentric upward arcs from (0, h) → (w, h).  t=0 is the tallest arch.
+ *  adj (default 10800000) controls the arch height — higher values = taller arch. */
+function archUpPath(w: number, h: number, t: number, adj?: number): string {
+  // adj is in 60000ths of a degree; default ~10800000 (180 degrees).
+  // Normalise to 0..1 where 0.5 is default (half-circle).
+  const adjNorm = adj !== undefined ? Math.max(0, Math.min(adj / 21600000, 1)) : 0.5;
+  const maxArch = 0.85 * adjNorm / 0.5;
+  const archH = h * Math.max(0, maxArch - t * 0.7);
   if (archH < 1) return `M 0,${h} L ${w},${h}`;
   return `M 0,${h} A ${w / 2},${archH} 0 0,1 ${w},${h}`;
 }
 
-/** Concentric downward arcs from (0, 0) → (w, 0).  t=1 is the deepest. */
-function archDownPath(w: number, h: number, t: number): string {
-  const archH = h * (0.15 + t * 0.7);
+/** Concentric downward arcs from (0, 0) → (w, 0).  t=1 is the deepest.
+ *  adj (default 10800000) controls the arch depth. */
+function archDownPath(w: number, h: number, t: number, adj?: number): string {
+  const adjNorm = adj !== undefined ? Math.max(0, Math.min(adj / 21600000, 1)) : 0.5;
+  const baseDepth = 0.15 * adjNorm / 0.5;
+  const archH = h * (baseDepth + t * 0.7);
   if (archH < 1) return `M 0,0 L ${w},0`;
   return `M 0,0 A ${w / 2},${archH} 0 0,0 ${w},0`;
 }
 
-/** Full ellipse - concentric ellipses shrink towards centre. */
-function circlePath(w: number, h: number, t: number): string {
+/** Full ellipse - concentric ellipses shrink towards centre.
+ *  adj (default 10800000) controls the arc span angle in 60000ths of a degree. */
+function circlePath(w: number, h: number, t: number, adj?: number): string {
   const cx = w / 2;
   const cy = h / 2;
-  const scale = 1 - t * 0.55;
+  // adj controls how much of the circle is used; default 10800000 = 180 degrees
+  const adjNorm = adj !== undefined ? Math.max(0, Math.min(adj / 21600000, 1)) : 0.5;
+  const baseScale = 0.45 + adjNorm * 1.1; // range ~0.45..1.55, default ~1.0
+  const scale = Math.min(1, baseScale) - t * 0.55;
   const rx = Math.max(1, (w / 2) * scale);
   const ry = Math.max(1, (h / 2) * scale);
   return (
@@ -87,106 +100,150 @@ function circlePath(w: number, h: number, t: number): string {
   );
 }
 
-/** Single sine-wave from left to right using a cubic Bézier. */
-function wave1Path(w: number, h: number, t: number): string {
+/** Single sine-wave from left to right using a cubic Bézier.
+ *  adj (default 12500) controls wave amplitude.
+ *  adj2 (default 0) controls horizontal phase shift. */
+function wave1Path(w: number, h: number, t: number, adj?: number, adj2?: number): string {
   const yMid = h * (0.25 + t * 0.5);
-  const amp = h * 0.2;
+  // adj default is 12500 (out of 100000); normalise to a proportion.
+  const adjFactor = adj !== undefined ? adj / 12500 : 1;
+  const amp = h * 0.2 * Math.max(0, Math.min(adjFactor, 4));
+  // adj2 shifts control points horizontally; default 0 means no shift.
+  // adj2 range is -100000..100000; normalise to -1..1
+  const hShift = adj2 !== undefined ? (adj2 / 100000) * w * 0.3 : 0;
+  const cp1x = w / 3 + hShift;
+  const cp2x = (2 * w) / 3 + hShift;
   return (
     `M 0,${yMid} ` +
-    `C ${w / 3},${yMid - amp} ${(2 * w) / 3},${yMid + amp} ${w},${yMid}`
+    `C ${cp1x},${yMid - amp} ${cp2x},${yMid + amp} ${w},${yMid}`
   );
 }
 
-/** Inflate - top lines bow upward, bottom lines bow downward. */
-function inflatePath(w: number, h: number, t: number): string {
+/** Inflate - top lines bow upward, bottom lines bow downward.
+ *  adj (default 18750) controls bulge amount. */
+function inflatePath(w: number, h: number, t: number, adj?: number): string {
   const yBase = h * (0.15 + t * 0.7);
-  const bulge = h * 0.3 * (1 - 2 * t);
+  // adj default is 18750 (out of 100000); normalise to a proportion of the default bulge.
+  const adjFactor = adj !== undefined ? adj / 18750 : 1;
+  const bulge = h * 0.3 * (1 - 2 * t) * Math.max(0, Math.min(adjFactor, 4));
   return `M 0,${yBase} Q ${w / 2},${yBase - bulge} ${w},${yBase}`;
 }
 
-/** Deflate - opposite of inflate. */
-function deflatePath(w: number, h: number, t: number): string {
+/** Deflate - opposite of inflate.
+ *  adj (default 18750) controls pinch amount. */
+function deflatePath(w: number, h: number, t: number, adj?: number): string {
   const yBase = h * (0.15 + t * 0.7);
-  const pinch = h * 0.3 * (2 * t - 1);
+  const adjFactor = adj !== undefined ? adj / 18750 : 1;
+  const pinch = h * 0.3 * (2 * t - 1) * Math.max(0, Math.min(adjFactor, 4));
   return `M 0,${yBase} Q ${w / 2},${yBase - pinch} ${w},${yBase}`;
 }
 
-/** Gentle upward curve. */
-function curveUpPath(w: number, h: number, t: number): string {
+/** Gentle upward curve.
+ *  adj (default 45977) controls curve height. */
+function curveUpPath(w: number, h: number, t: number, adj?: number): string {
   const yBase = h * (0.35 + t * 0.55);
-  const curve = h * 0.4 * (1 - t * 0.3);
+  const adjFactor = adj !== undefined ? adj / 45977 : 1;
+  const curve = h * 0.4 * (1 - t * 0.3) * Math.max(0, Math.min(adjFactor, 4));
   return `M 0,${yBase} Q ${w / 2},${yBase - curve} ${w},${yBase}`;
 }
 
-/** Gentle downward curve. */
-function curveDownPath(w: number, h: number, t: number): string {
+/** Gentle downward curve.
+ *  adj (default 45977) controls curve depth. */
+function curveDownPath(w: number, h: number, t: number, adj?: number): string {
   const yBase = h * (0.1 + t * 0.55);
-  const curve = h * 0.4 * (1 - (1 - t) * 0.3);
+  const adjFactor = adj !== undefined ? adj / 45977 : 1;
+  const curve = h * 0.4 * (1 - (1 - t) * 0.3) * Math.max(0, Math.min(adjFactor, 4));
   return `M 0,${yBase} Q ${w / 2},${yBase + curve} ${w},${yBase}`;
 }
 
 // ── Priority 2 path generators ─────────────────────────────────────────
 
-/** Inverted single wave (phase-shifted wave1). */
-function wave2Path(w: number, h: number, t: number): string {
+/** Inverted single wave (phase-shifted wave1).
+ *  adj (default 12500) controls wave amplitude.
+ *  adj2 (default 0) controls horizontal phase shift. */
+function wave2Path(w: number, h: number, t: number, adj?: number, adj2?: number): string {
   const yMid = h * (0.25 + t * 0.5);
-  const amp = h * 0.2;
+  const adjFactor = adj !== undefined ? adj / 12500 : 1;
+  const amp = h * 0.2 * Math.max(0, Math.min(adjFactor, 4));
+  const hShift = adj2 !== undefined ? (adj2 / 100000) * w * 0.3 : 0;
+  const cp1x = w / 3 + hShift;
+  const cp2x = (2 * w) / 3 + hShift;
   return (
     `M 0,${yMid} ` +
-    `C ${w / 3},${yMid + amp} ${(2 * w) / 3},${yMid - amp} ${w},${yMid}`
+    `C ${cp1x},${yMid + amp} ${cp2x},${yMid - amp} ${w},${yMid}`
   );
 }
 
-/** Double wave - two full wave cycles across the width. */
-function wave4Path(w: number, h: number, t: number): string {
+/** Double wave - two full wave cycles across the width.
+ *  adj (default 12500) controls wave amplitude.
+ *  adj2 (default 0) controls horizontal phase shift. */
+function wave4Path(w: number, h: number, t: number, adj?: number, adj2?: number): string {
   const yMid = h * (0.25 + t * 0.5);
-  const amp = h * 0.15;
+  const adjFactor = adj !== undefined ? adj / 12500 : 1;
+  const amp = h * 0.15 * Math.max(0, Math.min(adjFactor, 4));
+  const hShift = adj2 !== undefined ? (adj2 / 100000) * w * 0.15 : 0;
   const q = w / 4;
   return (
     `M 0,${yMid} ` +
-    `C ${q},${yMid - amp} ${2 * q},${yMid + amp} ${w / 2},${yMid} ` +
-    `C ${w / 2 + q},${yMid - amp} ${w - q},${yMid + amp} ${w},${yMid}`
+    `C ${q + hShift},${yMid - amp} ${2 * q + hShift},${yMid + amp} ${w / 2},${yMid} ` +
+    `C ${w / 2 + q + hShift},${yMid - amp} ${w - q + hShift},${yMid + amp} ${w},${yMid}`
   );
 }
 
-/** Double wave with alternating rhythm. */
-function doubleWave1Path(w: number, h: number, t: number): string {
+/** Double wave with alternating rhythm.
+ *  adj (default 6250) controls wave amplitude.
+ *  adj2 (default 0) controls horizontal phase shift. */
+function doubleWave1Path(w: number, h: number, t: number, adj?: number, adj2?: number): string {
   const yMid = h * (0.25 + t * 0.5);
-  const amp = h * 0.18;
+  const adjFactor = adj !== undefined ? adj / 6250 : 1;
+  const amp = h * 0.18 * Math.max(0, Math.min(adjFactor, 4));
+  const hShift = adj2 !== undefined ? (adj2 / 100000) * w * 0.15 : 0;
   const q = w / 4;
   return (
     `M 0,${yMid} ` +
-    `C ${q},${yMid - amp} ${2 * q},${yMid + amp} ${w / 2},${yMid} ` +
-    `C ${w / 2 + q},${yMid + amp} ${w - q},${yMid - amp} ${w},${yMid}`
+    `C ${q + hShift},${yMid - amp} ${2 * q + hShift},${yMid + amp} ${w / 2},${yMid} ` +
+    `C ${w / 2 + q + hShift},${yMid + amp} ${w - q + hShift},${yMid - amp} ${w},${yMid}`
   );
 }
 
-/** Cylindrical text - upward. */
-function canUpPath(w: number, h: number, t: number): string {
-  const archH = h * (0.35 - t * 0.25);
+/** Cylindrical text - upward.
+ *  adj (default 18750) controls the cylinder curvature. */
+function canUpPath(w: number, h: number, t: number, adj?: number): string {
+  const adjFactor = adj !== undefined ? adj / 18750 : 1;
+  const curvature = Math.max(0, Math.min(adjFactor, 4));
+  const archH = h * (0.35 - t * 0.25) * curvature;
   if (archH < 1) return `M 0,${h} L ${w},${h}`;
   return `M 0,${h} A ${w / 2},${archH} 0 0,1 ${w},${h}`;
 }
 
-/** Cylindrical text - downward. */
-function canDownPath(w: number, h: number, t: number): string {
-  const archH = h * (0.1 + t * 0.25);
+/** Cylindrical text - downward.
+ *  adj (default 18750) controls the cylinder curvature. */
+function canDownPath(w: number, h: number, t: number, adj?: number): string {
+  const adjFactor = adj !== undefined ? adj / 18750 : 1;
+  const curvature = Math.max(0, Math.min(adjFactor, 4));
+  const archH = h * (0.1 + t * 0.25) * curvature;
   if (archH < 1) return `M 0,0 L ${w},0`;
   return `M 0,0 A ${w / 2},${archH} 0 0,0 ${w},0`;
 }
 
-/** Button shape - convex top / concave bottom. */
-function buttonPath(w: number, h: number, t: number): string {
+/** Button shape - convex top / concave bottom.
+ *  adj (default 18750) controls the curve amount. */
+function buttonPath(w: number, h: number, t: number, adj?: number): string {
   const yBase = h * (0.1 + t * 0.8);
-  const bulge = h * 0.15 * (1 - 2 * t);
+  const adjFactor = adj !== undefined ? adj / 18750 : 1;
+  const bulge = h * 0.15 * (1 - 2 * t) * Math.max(0, Math.min(adjFactor, 4));
   return `M 0,${yBase} Q ${w / 2},${yBase - bulge} ${w},${yBase}`;
 }
 
-/** Ring inside - concentric ellipses scaled inward. */
-function ringInsidePath(w: number, h: number, t: number): string {
+/** Ring inside - concentric ellipses scaled inward.
+ *  adj (default 18750) controls ring thickness. */
+function ringInsidePath(w: number, h: number, t: number, adj?: number): string {
   const cx = w / 2;
   const cy = h / 2;
-  const scale = 0.7 - t * 0.35;
+  // adj controls thickness of the ring; higher = thicker band, shrinks inner radius more
+  const adjFactor = adj !== undefined ? adj / 18750 : 1;
+  const thickness = 0.35 * Math.max(0, Math.min(adjFactor, 4));
+  const scale = 0.7 - t * thickness;
   const rx = Math.max(1, (w / 2) * scale);
   const ry = Math.max(1, (h / 2) * scale);
   return (
@@ -196,11 +253,14 @@ function ringInsidePath(w: number, h: number, t: number): string {
   );
 }
 
-/** Ring outside - concentric ellipses scaled outward. */
-function ringOutsidePath(w: number, h: number, t: number): string {
+/** Ring outside - concentric ellipses scaled outward.
+ *  adj (default 18750) controls ring thickness. */
+function ringOutsidePath(w: number, h: number, t: number, adj?: number): string {
   const cx = w / 2;
   const cy = h / 2;
-  const scale = 1 - t * 0.35;
+  const adjFactor = adj !== undefined ? adj / 18750 : 1;
+  const thickness = 0.35 * Math.max(0, Math.min(adjFactor, 4));
+  const scale = 1 - t * thickness;
   const rx = Math.max(1, (w / 2) * scale);
   const ry = Math.max(1, (h / 2) * scale);
   return (
@@ -212,142 +272,193 @@ function ringOutsidePath(w: number, h: number, t: number): string {
 
 // ── Priority 3 path generators ─────────────────────────────────────────
 
-/** Triangle / trapezoid - top line narrow, bottom line full width. */
-function trianglePath(w: number, h: number, t: number): string {
-  const narrowW = w * 0.15;
+/** Triangle / trapezoid - top line narrow, bottom line full width.
+ *  adj (default 50000) controls the narrowness at the top (0 = point, 100000 = full width). */
+function trianglePath(w: number, h: number, t: number, adj?: number): string {
+  // adj default 50000 maps to narrowW = w * 0.15 at default; scale with adj
+  const adjRatio = adj !== undefined ? adj / 100000 : 0.5;
+  const narrowW = w * (1 - Math.max(0, Math.min(adjRatio, 1))) * 0.3;
   const lineW = narrowW + t * (w - narrowW);
   const xStart = (w - lineW) / 2;
   const yBase = h * (0.1 + t * 0.8);
   return `M ${xStart},${yBase} L ${xStart + lineW},${yBase}`;
 }
 
-/** Inverted triangle - top line full width, bottom line narrow. */
-function triangleInvertedPath(w: number, h: number, t: number): string {
-  const narrowW = w * 0.15;
+/** Inverted triangle - top line full width, bottom line narrow.
+ *  adj (default 50000) controls the narrowness at the bottom. */
+function triangleInvertedPath(w: number, h: number, t: number, adj?: number): string {
+  const adjRatio = adj !== undefined ? adj / 100000 : 0.5;
+  const narrowW = w * (1 - Math.max(0, Math.min(adjRatio, 1))) * 0.3;
   const lineW = w - t * (w - narrowW);
   const xStart = (w - lineW) / 2;
   const yBase = h * (0.1 + t * 0.8);
   return `M ${xStart},${yBase} L ${xStart + lineW},${yBase}`;
 }
 
-/** Stop / octagon - lines narrow at top and bottom, widest in centre. */
-function stopPath(w: number, h: number, t: number): string {
-  const inset = w * 0.15 * (1 - Math.pow(1 - 2 * Math.abs(t - 0.5), 2));
+/** Stop / octagon - lines narrow at top and bottom, widest in centre.
+ *  adj (default 25000) controls the amount of corner inset. */
+function stopPath(w: number, h: number, t: number, adj?: number): string {
+  const adjFactor = adj !== undefined ? adj / 25000 : 1;
+  const insetScale = Math.max(0, Math.min(adjFactor, 4));
+  const inset = w * 0.15 * (1 - Math.pow(1 - 2 * Math.abs(t - 0.5), 2)) * insetScale;
   const yBase = h * (0.1 + t * 0.8);
   return `M ${inset},${yBase} L ${w - inset},${yBase}`;
 }
 
-/** Chevron - V-shape pointing down. */
-function chevronPath(w: number, h: number, t: number): string {
+/** Chevron - V-shape pointing down.
+ *  adj (default 25000) controls chevron point height. */
+function chevronPath(w: number, h: number, t: number, adj?: number): string {
   const yBase = h * (0.15 + t * 0.7);
-  const dip = h * 0.2 * (1 - t);
+  const adjFactor = adj !== undefined ? adj / 25000 : 1;
+  const dip = h * 0.2 * (1 - t) * Math.max(0, Math.min(adjFactor, 4));
   return `M 0,${yBase} L ${w / 2},${yBase + dip} L ${w},${yBase}`;
 }
 
-/** Inverted chevron - V-shape pointing up. */
-function chevronInvertedPath(w: number, h: number, t: number): string {
+/** Inverted chevron - V-shape pointing up.
+ *  adj (default 25000) controls chevron point height. */
+function chevronInvertedPath(w: number, h: number, t: number, adj?: number): string {
   const yBase = h * (0.15 + t * 0.7);
-  const rise = h * 0.2 * t;
+  const adjFactor = adj !== undefined ? adj / 25000 : 1;
+  const rise = h * 0.2 * t * Math.max(0, Math.min(adjFactor, 4));
   return `M 0,${yBase} L ${w / 2},${yBase - rise} L ${w},${yBase}`;
 }
 
-/** Inflate bottom only. */
-function inflateBottomPath(w: number, h: number, t: number): string {
+/** Inflate bottom only.
+ *  adj (default 18750) controls bulge amount. */
+function inflateBottomPath(w: number, h: number, t: number, adj?: number): string {
   const yBase = h * (0.15 + t * 0.7);
-  const bulge = t > 0.4 ? h * 0.25 * ((t - 0.4) / 0.6) : 0;
+  const adjFactor = adj !== undefined ? adj / 18750 : 1;
+  const bulge = t > 0.4 ? h * 0.25 * ((t - 0.4) / 0.6) * Math.max(0, Math.min(adjFactor, 4)) : 0;
   return `M 0,${yBase} Q ${w / 2},${yBase + bulge} ${w},${yBase}`;
 }
 
-/** Inflate top only. */
-function inflateTopPath(w: number, h: number, t: number): string {
+/** Inflate top only.
+ *  adj (default 18750) controls bulge amount. */
+function inflateTopPath(w: number, h: number, t: number, adj?: number): string {
   const yBase = h * (0.15 + t * 0.7);
-  const bulge = t < 0.6 ? h * 0.25 * ((0.6 - t) / 0.6) : 0;
+  const adjFactor = adj !== undefined ? adj / 18750 : 1;
+  const bulge = t < 0.6 ? h * 0.25 * ((0.6 - t) / 0.6) * Math.max(0, Math.min(adjFactor, 4)) : 0;
   return `M 0,${yBase} Q ${w / 2},${yBase - bulge} ${w},${yBase}`;
 }
 
-/** Deflate bottom only. */
-function deflateBottomPath(w: number, h: number, t: number): string {
+/** Deflate bottom only.
+ *  adj (default 18750) controls pinch amount. */
+function deflateBottomPath(w: number, h: number, t: number, adj?: number): string {
   const yBase = h * (0.15 + t * 0.7);
-  const pinch = t > 0.4 ? h * 0.2 * ((t - 0.4) / 0.6) : 0;
+  const adjFactor = adj !== undefined ? adj / 18750 : 1;
+  const pinch = t > 0.4 ? h * 0.2 * ((t - 0.4) / 0.6) * Math.max(0, Math.min(adjFactor, 4)) : 0;
   return `M 0,${yBase} Q ${w / 2},${yBase - pinch} ${w},${yBase}`;
 }
 
-/** Deflate top only. */
-function deflateTopPath(w: number, h: number, t: number): string {
+/** Deflate top only.
+ *  adj (default 18750) controls pinch amount. */
+function deflateTopPath(w: number, h: number, t: number, adj?: number): string {
   const yBase = h * (0.15 + t * 0.7);
-  const pinch = t < 0.6 ? h * 0.2 * ((0.6 - t) / 0.6) : 0;
+  const adjFactor = adj !== undefined ? adj / 18750 : 1;
+  const pinch = t < 0.6 ? h * 0.2 * ((0.6 - t) / 0.6) * Math.max(0, Math.min(adjFactor, 4)) : 0;
   return `M 0,${yBase} Q ${w / 2},${yBase + pinch} ${w},${yBase}`;
 }
 
 // ── Priority 4 path generators ─────────────────────────────────────────
 
-/** Slant up — baseline rises from left to right. */
-function slantUpPath(w: number, h: number, t: number): string {
-  const yStart = h * (0.3 + t * 0.55);
-  const yEnd = h * (0.05 + t * 0.55);
+/** Slant up — baseline rises from left to right.
+ *  adj (default 55000) controls the slant angle. */
+function slantUpPath(w: number, h: number, t: number, adj?: number): string {
+  const adjFactor = adj !== undefined ? adj / 55000 : 1;
+  const slant = 0.25 * Math.max(0, Math.min(adjFactor, 4));
+  const yMid = h * (0.175 + t * 0.55);
+  const yStart = yMid + h * slant / 2;
+  const yEnd = yMid - h * slant / 2;
   return `M 0,${yStart} L ${w},${yEnd}`;
 }
 
-/** Slant down — baseline falls from left to right. */
-function slantDownPath(w: number, h: number, t: number): string {
-  const yStart = h * (0.05 + t * 0.55);
-  const yEnd = h * (0.3 + t * 0.55);
+/** Slant down — baseline falls from left to right.
+ *  adj (default 55000) controls the slant angle. */
+function slantDownPath(w: number, h: number, t: number, adj?: number): string {
+  const adjFactor = adj !== undefined ? adj / 55000 : 1;
+  const slant = 0.25 * Math.max(0, Math.min(adjFactor, 4));
+  const yMid = h * (0.175 + t * 0.55);
+  const yStart = yMid - h * slant / 2;
+  const yEnd = yMid + h * slant / 2;
   return `M 0,${yStart} L ${w},${yEnd}`;
 }
 
-/** Fade right — text narrows towards the right (trapezoid). */
-function fadeRightPath(w: number, h: number, t: number): string {
+/** Fade right — text narrows towards the right (trapezoid).
+ *  adj (default 50000) controls the fade/squeeze amount. */
+function fadeRightPath(w: number, h: number, t: number, adj?: number): string {
+  const adjFactor = adj !== undefined ? adj / 50000 : 1;
+  const squeezeScale = Math.max(0, Math.min(adjFactor, 4));
   const yLeft = h * (0.1 + t * 0.8);
-  const squeeze = 0.35 * (1 - 2 * t);
+  const squeeze = 0.35 * (1 - 2 * t) * squeezeScale;
   const yRight = h * (0.5 + squeeze * 0.4);
   return `M 0,${yLeft} L ${w},${yRight}`;
 }
 
-/** Fade left — text narrows towards the left (trapezoid). */
-function fadeLeftPath(w: number, h: number, t: number): string {
-  const squeeze = 0.35 * (1 - 2 * t);
+/** Fade left — text narrows towards the left (trapezoid).
+ *  adj (default 50000) controls the fade/squeeze amount. */
+function fadeLeftPath(w: number, h: number, t: number, adj?: number): string {
+  const adjFactor = adj !== undefined ? adj / 50000 : 1;
+  const squeezeScale = Math.max(0, Math.min(adjFactor, 4));
+  const squeeze = 0.35 * (1 - 2 * t) * squeezeScale;
   const yLeft = h * (0.5 + squeeze * 0.4);
   const yRight = h * (0.1 + t * 0.8);
   return `M 0,${yLeft} L ${w},${yRight}`;
 }
 
-/** Fade up — text narrows towards the top. */
-function fadeUpPath(w: number, h: number, t: number): string {
-  const narrowW = w * 0.3;
+/** Fade up — text narrows towards the top.
+ *  adj (default 50000) controls the fade/taper amount. */
+function fadeUpPath(w: number, h: number, t: number, adj?: number): string {
+  const adjFactor = adj !== undefined ? adj / 50000 : 1;
+  const taperScale = Math.max(0, Math.min(adjFactor, 4));
+  const narrowFraction = 1 - 0.7 * taperScale; // default: 0.3
+  const narrowW = w * Math.max(0, narrowFraction);
   const lineW = narrowW + t * (w - narrowW);
   const xStart = (w - lineW) / 2;
   const yBase = h * (0.1 + t * 0.8);
   return `M ${xStart},${yBase} L ${xStart + lineW},${yBase}`;
 }
 
-/** Fade down — text narrows towards the bottom. */
-function fadeDownPath(w: number, h: number, t: number): string {
-  const narrowW = w * 0.3;
+/** Fade down — text narrows towards the bottom.
+ *  adj (default 50000) controls the fade/taper amount. */
+function fadeDownPath(w: number, h: number, t: number, adj?: number): string {
+  const adjFactor = adj !== undefined ? adj / 50000 : 1;
+  const taperScale = Math.max(0, Math.min(adjFactor, 4));
+  const narrowFraction = 1 - 0.7 * taperScale; // default: 0.3
+  const narrowW = w * Math.max(0, narrowFraction);
   const lineW = w - t * (w - narrowW);
   const xStart = (w - lineW) / 2;
   const yBase = h * (0.1 + t * 0.8);
   return `M ${xStart},${yBase} L ${xStart + lineW},${yBase}`;
 }
 
-/** Arch up pour — hollowed arch upward (like archUp but with inner hole). */
-function archUpPourPath(w: number, h: number, t: number): string {
-  const archH = h * (0.7 - t * 0.5);
+/** Arch up pour — hollowed arch upward (like archUp but with inner hole).
+ *  adj (default 10800000) controls the arch height in 60000ths of a degree. */
+function archUpPourPath(w: number, h: number, t: number, adj?: number): string {
+  const adjNorm = adj !== undefined ? Math.max(0, Math.min(adj / 21600000, 1)) : 0.5;
+  const maxArch = 0.7 * adjNorm / 0.5;
+  const archH = h * Math.max(0, maxArch - t * 0.5);
   if (archH < 1) return `M 0,${h} L ${w},${h}`;
   return `M 0,${h} A ${w / 2},${archH} 0 0,1 ${w},${h}`;
 }
 
-/** Arch down pour — hollowed arch downward. */
-function archDownPourPath(w: number, h: number, t: number): string {
-  const archH = h * (0.2 + t * 0.5);
+/** Arch down pour — hollowed arch downward.
+ *  adj (default 10800000) controls the arch depth in 60000ths of a degree. */
+function archDownPourPath(w: number, h: number, t: number, adj?: number): string {
+  const adjNorm = adj !== undefined ? Math.max(0, Math.min(adj / 21600000, 1)) : 0.5;
+  const baseDepth = 0.2 * adjNorm / 0.5;
+  const archH = h * (baseDepth + t * 0.5);
   if (archH < 1) return `M 0,0 L ${w},0`;
   return `M 0,0 A ${w / 2},${archH} 0 0,0 ${w},0`;
 }
 
-/** Circle pour — concentric ellipses (like circle but with an inner gap). */
-function circlePourPath(w: number, h: number, t: number): string {
+/** Circle pour — concentric ellipses (like circle but with an inner gap).
+ *  adj (default 10800000) controls the arc span angle in 60000ths of a degree. */
+function circlePourPath(w: number, h: number, t: number, adj?: number): string {
   const cx = w / 2;
   const cy = h / 2;
-  const scale = 0.85 - t * 0.45;
+  const adjNorm = adj !== undefined ? Math.max(0, Math.min(adj / 21600000, 1)) : 0.5;
+  const baseScale = 0.35 + adjNorm * 1.0; // range ~0.35..1.35, default ~0.85
+  const scale = Math.min(1, baseScale) - t * 0.45;
   const rx = Math.max(1, (w / 2) * scale);
   const ry = Math.max(1, (h / 2) * scale);
   return (
@@ -357,30 +468,38 @@ function circlePourPath(w: number, h: number, t: number): string {
   );
 }
 
-/** Button pour — convex top / concave bottom with larger margins. */
-function buttonPourPath(w: number, h: number, t: number): string {
+/** Button pour — convex top / concave bottom with larger margins.
+ *  adj (default 18750) controls the curve amount. */
+function buttonPourPath(w: number, h: number, t: number, adj?: number): string {
   const yBase = h * (0.15 + t * 0.7);
-  const bulge = h * 0.12 * (1 - 2 * t);
+  const adjFactor = adj !== undefined ? adj / 18750 : 1;
+  const bulge = h * 0.12 * (1 - 2 * t) * Math.max(0, Math.min(adjFactor, 4));
   return `M 0,${yBase} Q ${w / 2},${yBase - bulge} ${w},${yBase}`;
 }
 
-/** Deflate-inflate — pinched in centre top/bottom, expanded at edges. */
-function deflateInflatePath(w: number, h: number, t: number): string {
+/** Deflate-inflate — pinched in centre top/bottom, expanded at edges.
+ *  adj (default 18750) controls the oscillation amplitude. */
+function deflateInflatePath(w: number, h: number, t: number, adj?: number): string {
   const yBase = h * (0.15 + t * 0.7);
+  const adjFactor = adj !== undefined ? adj / 18750 : 1;
   const factor = Math.sin(t * Math.PI);
-  const bulge = h * 0.2 * (factor - 0.5);
+  const bulge = h * 0.2 * (factor - 0.5) * Math.max(0, Math.min(adjFactor, 4));
   return `M 0,${yBase} Q ${w / 2},${yBase - bulge} ${w},${yBase}`;
 }
 
-/** Deflate-inflate-deflate — triple oscillation. */
+/** Deflate-inflate-deflate — triple oscillation.
+ *  adj (default 18750) controls the oscillation amplitude. */
 function deflateInflateDeflatePath(
   w: number,
   h: number,
   t: number,
+  adj?: number,
 ): string {
   const yBase = h * (0.15 + t * 0.7);
+  const adjFactor = adj !== undefined ? adj / 18750 : 1;
+  const ampScale = Math.max(0, Math.min(adjFactor, 4));
   const factor = Math.sin(t * Math.PI * 2);
-  const bulge = h * 0.15 * factor;
+  const bulge = h * 0.15 * factor * ampScale;
   const q1 = w / 3;
   const q2 = (2 * w) / 3;
   return (
@@ -447,18 +566,21 @@ export function shouldUseSvgWarp(
   return SVG_WARP_PRESETS.has(preset);
 }
 
-/** Generate an SVG path `d` attribute for a warp preset at a given line position. */
+/** Generate an SVG path `d` attribute for a warp preset at a given line position.
+ *  Optional adj/adj2 are raw OOXML adjustment values (1/60000th units). */
 export function getWarpPath(
   preset: PptxTextWarpPreset,
   width: number,
   height: number,
   lineIndex: number,
   lineCount: number,
+  adj?: number,
+  adj2?: number,
 ): string {
   const t = lineCount <= 1 ? 0.5 : lineIndex / (lineCount - 1);
   const generator = WARP_PATH_GENERATORS[preset];
   if (generator) {
-    return generator(width, height, t);
+    return generator(width, height, t, adj, adj2);
   }
   const y = height * (0.2 + t * 0.6);
   return `M 0,${y} L ${width},${y}`;

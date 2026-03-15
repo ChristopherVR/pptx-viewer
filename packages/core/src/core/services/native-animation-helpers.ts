@@ -55,18 +55,20 @@ export function extractSoundAction(cTn: XmlObject): {
 export function extractChildMotionValues(childTnList: XmlObject | undefined): {
   motionPath?: string;
   motionOrigin?: string;
+  motionPathRotateAuto?: boolean;
   rotationBy?: number;
   scaleByX?: number;
   scaleByY?: number;
 } {
   let motionPath: string | undefined;
   let motionOrigin: string | undefined;
+  let motionPathRotateAuto: boolean | undefined;
   let rotationBy: number | undefined;
   let scaleByX: number | undefined;
   let scaleByY: number | undefined;
 
   if (!childTnList) {
-    return { motionPath, motionOrigin, rotationBy, scaleByX, scaleByY };
+    return { motionPath, motionOrigin, motionPathRotateAuto, rotationBy, scaleByX, scaleByY };
   }
 
   const motionNodes = ensureArray(childTnList["p:animMotion"]);
@@ -76,6 +78,14 @@ export function extractChildMotionValues(childTnList: XmlObject | undefined): {
       motionOrigin = motionNode["@_origin"]
         ? String(motionNode["@_origin"])
         : undefined;
+      // p:animMotion/@rAng = "0" means the element auto-rotates to follow the
+      // path tangent direction (equivalent to CSS offset-rotate: auto).
+      if (motionNode["@_rAng"] !== undefined) {
+        const rAng = String(motionNode["@_rAng"]);
+        if (rAng === "0") {
+          motionPathRotateAuto = true;
+        }
+      }
     }
   }
 
@@ -98,7 +108,7 @@ export function extractChildMotionValues(childTnList: XmlObject | undefined): {
     }
   }
 
-  return { motionPath, motionOrigin, rotationBy, scaleByX, scaleByY };
+  return { motionPath, motionOrigin, motionPathRotateAuto, rotationBy, scaleByX, scaleByY };
 }
 
 export function extractRepeatInfo(cTn: XmlObject): {

@@ -5,6 +5,7 @@ import type { ValueRange } from "./chart-helpers";
 import {
   PALETTE,
   computeValueRange,
+  computeValueRangeForChart,
   valueToY,
   formatAxisValue,
   seriesColor,
@@ -179,7 +180,7 @@ export function renderHistogramChart(
     legendPos,
   );
   const values = chartData.series[0]?.values ?? [];
-  const range = computeValueRange(chartData.series);
+  const range = computeValueRangeForChart(chartData.series, chartData.axes);
   const catCount = Math.max(categoryLabels.length, values.length, 1);
   const barWidth = layout.plotWidth / catCount;
 
@@ -478,7 +479,7 @@ export function renderDefaultBarChart(
   const primarySeries = primary.length > 0 ? primary.map((e) => e.series) : chartData.series;
   const secondarySeries = secondary.map((e) => e.series);
 
-  const range = computeValueRange(primarySeries);
+  const range = computeValueRangeForChart(primarySeries, chartData.axes);
   const secondaryRange = secondarySeries.length > 0 ? computeValueRange(secondarySeries) : undefined;
   const secondaryAxisFmt = getSecondaryValueAxis(chartData.axes);
 
@@ -516,7 +517,7 @@ export function renderDefaultBarChart(
           y={barY}
           width={singleBarWidth}
           height={barH}
-          fill={seriesColor(series, si)}
+          fill={seriesColor(series, si, chartData.style?.styleId, chartData.colorPalette)}
           rx={1}
         />,
       );

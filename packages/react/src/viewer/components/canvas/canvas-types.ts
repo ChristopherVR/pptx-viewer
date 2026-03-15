@@ -9,6 +9,7 @@ import type {
   ShapePptxElement,
 } from "pptx-viewer-core";
 import type { ElementAnimationState } from "../../utils/animation-timeline";
+import type { FieldSubstitutionContext } from "../../utils/text-field-substitution";
 import type {
   CanvasSize,
   MarqueeSelectionState,
@@ -167,4 +168,12 @@ export interface SlideCanvasProps {
   onZoomClick?: (targetSlideIndex: number, returnSlideIndex: number) => void;
   /** Index of the current slide (for zoom return navigation). */
   sourceSlideIndex?: number;
+
+  /* ── Text field substitution ──────────────────────────────────────── */
+  /** Context for text field placeholder substitution (slide number, header/footer, etc.). */
+  fieldContext?: FieldSubstitutionContext;
+
+  /* ── Collaboration overlay ────────────────────────────────────────── */
+  /** Optional collaboration cursor overlay rendered on top of the canvas. */
+  collaborationOverlay?: React.ReactNode;
 }

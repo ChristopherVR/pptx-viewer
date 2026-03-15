@@ -133,7 +133,7 @@ describe("ink replay in presentation mode", () => {
     });
     const styles = getInkReplayStyles(el);
 
-    expect(styles[0].animation).toContain("fuzor-ink-replay");
+    expect(styles[0].animation).toContain("pptx-ink-replay");
     expect(styles[0].animation).toContain("forwards");
   });
 

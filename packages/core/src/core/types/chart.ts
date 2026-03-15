@@ -250,6 +250,29 @@ export interface PptxChartAxisFormatting {
   max?: number;
   /** Whether the axis is deleted/hidden (c:delete/@val). */
   deleted?: boolean;
+  /**
+   * Display units for value axis (c:dispUnits/c:builtInUnit/@val).
+   * When set to 'custom', the actual divisor is in {@link displayUnitsValue}.
+   */
+  displayUnits?:
+    | 'hundreds'
+    | 'thousands'
+    | 'tenThousands'
+    | 'hundredThousands'
+    | 'millions'
+    | 'tenMillions'
+    | 'hundredMillions'
+    | 'billions'
+    | 'trillions'
+    | 'custom';
+  /** Custom display unit divisor value (c:dispUnits/c:custUnit/@val). Only used when displayUnits is 'custom'. */
+  displayUnitsValue?: number;
+  /** Display units label text (c:dispUnits/c:dispUnitsLbl). Overrides the built-in default label when present. */
+  displayUnitsLabel?: string;
+  /** Whether logarithmic scaling is enabled (presence of c:scaling/c:logBase). */
+  logScale?: boolean;
+  /** Logarithmic base value (c:scaling/c:logBase/@val), typically 10 or e. */
+  logBase?: number;
 }
 
 /** 3D wall or floor element formatting. */
@@ -340,6 +363,16 @@ export interface PptxExternalData {
   targetPath?: string;
   /** Whether to auto-update data from the external source on open. */
   autoUpdate?: boolean;
+  /** Raw binary data of the embedded xlsx workbook (from ppt/embeddings/). */
+  embeddedWorkbookData?: Uint8Array;
+}
+
+/** Parsed data extracted from an embedded xlsx workbook. */
+export interface PptxEmbeddedWorkbookData {
+  /** Category labels from the first column/row. */
+  categories: string[];
+  /** Data series extracted from worksheet cells. */
+  series: Array<{ name: string; values: number[] }>;
 }
 
 /**
@@ -382,4 +415,28 @@ export interface PptxChartData {
   backWall?: PptxChart3DSurface;
   /** External data source reference (c:externalData) linking to an external workbook. */
   externalData?: PptxExternalData;
+  /**
+   * Whether only visible cells are plotted (c:plotVisOnly).
+   * When `true` (the default), hidden cells are excluded from the chart.
+   * When `false`, hidden data IS plotted.
+   */
+  plotVisibleOnly?: boolean;
+
+  /**
+   * Color palette extracted from the chart's Office 2013+ color style part
+   * (`chartColorStyle*.xml`). When present, this palette takes priority over
+   * the `c:style/@val`-derived palette in `getChartStylePalette`.
+   *
+   * Each entry is a resolved hex colour string (e.g. `"#4472C4"`).
+   */
+  colorPalette?: string[];
+
+  /**
+   * Color cycling method from the chart color style part's `meth` attribute.
+   *
+   * - `"cycle"` — repeat the palette colours in order (default)
+   * - `"withinLinear"` — gradient within each series
+   * - `"acrossLinear"` — gradient across series
+   */
+  colorMethod?: 'cycle' | 'withinLinear' | 'acrossLinear';
 }

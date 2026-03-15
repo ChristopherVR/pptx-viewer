@@ -328,6 +328,11 @@ describe("parseRunPropertyAttributes — scalar attributes", () => {
     expect(style.spellingError).toBe(true);
   });
 
+  it('parses @_kumimoji="1" as kumimoji=true', () => {
+    const style = parseRunPropertyAttributes({ "@_kumimoji": "1" });
+    expect(style.kumimoji).toBe(true);
+  });
+
   it('parses @_normalizeH="1" as normalizeHeight=true', () => {
     const style = parseRunPropertyAttributes({ "@_normalizeH": "1" });
     expect(style.normalizeHeight).toBe(true);

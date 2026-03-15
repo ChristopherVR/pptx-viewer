@@ -116,6 +116,7 @@ describe('buildParagraphPropertiesXml — paragraph extras', () => {
 describe('TextStyle — new text property fields', () => {
 	it('should accept run metadata fields', () => {
 		const style: TextStyle = {
+			kumimoji: true,
 			normalizeHeight: true,
 			noProof: false,
 			dirty: true,
@@ -123,6 +124,7 @@ describe('TextStyle — new text property fields', () => {
 			smartTagClean: true,
 			bookmark: 'slide3',
 		};
+		expect(style.kumimoji).toBe(true);
 		expect(style.normalizeHeight).toBe(true);
 		expect(style.noProof).toBe(false);
 		expect(style.dirty).toBe(true);

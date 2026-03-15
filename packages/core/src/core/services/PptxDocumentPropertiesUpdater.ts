@@ -75,7 +75,7 @@ export class PptxDocumentPropertiesUpdater {
             coreProps["cp:lastModifiedBy"],
           );
           if (!lastModifiedBy) {
-            coreProps["cp:lastModifiedBy"] = "Fuzor";
+            coreProps["cp:lastModifiedBy"] = "pptx";
           }
 
           coreData["cp:coreProperties"] = coreProps;

@@ -52,7 +52,7 @@ export function renderSunburstChart(
         <path
           key={`${element.id}-sb-${si}-${vi}`}
           d={`M ${x1} ${y1} A ${oR} ${oR} 0 ${largeArc} 1 ${x2} ${y2} L ${x3} ${y3} A ${iR} ${iR} 0 ${largeArc} 0 ${x4} ${y4} Z`}
-          fill={paletteColor(vi, chartData.style?.styleId)}
+          fill={paletteColor(vi, chartData.style?.styleId, chartData.colorPalette)}
           stroke="#fff"
           strokeWidth={1}
           opacity={0.9 - si * 0.1}
@@ -117,7 +117,7 @@ export function renderFunnelChart(
       <path
         key={`${element.id}-fn-${i}`}
         d={`M ${centerX - topW / 2} ${y} L ${centerX + topW / 2} ${y} L ${centerX + botW / 2} ${y + segH} L ${centerX - botW / 2} ${y + segH} Z`}
-        fill={paletteColor(i, chartData.style?.styleId)}
+        fill={paletteColor(i, chartData.style?.styleId, chartData.colorPalette)}
         stroke="#fff"
         strokeWidth={1}
         opacity={0.85}

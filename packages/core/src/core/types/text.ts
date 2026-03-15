@@ -172,6 +172,12 @@ export interface TextStyle {
   textWrap?: "square" | "none";
   /** Preset text warp type from `a:bodyPr/a:prstTxWarp`. */
   textWarpPreset?: PptxTextWarpPreset;
+  /** Primary adjustment value for text warp (from `a:prstTxWarp/a:avLst/a:gd` with name "adj").
+   *  Stored as raw OOXML 1/60000th units (e.g. 50000 = default for many presets). */
+  textWarpAdj?: number;
+  /** Secondary adjustment value for text warp (from `a:prstTxWarp/a:avLst/a:gd` with name "adj2").
+   *  Stored as raw OOXML 1/60000th units. */
+  textWarpAdj2?: number;
   /** Text capitalization style from `a:rPr/@cap`. */
   textCaps?: "all" | "small" | "none";
   /** Symbol font family from `a:sym`. */
@@ -197,6 +203,8 @@ export interface TextStyle {
 
   // ── Text run metadata (from `a:rPr` attributes) ──
 
+  /** Kumimoji (ideographic text combining) flag for vertical CJK text (`a:rPr/@kumimoji`). */
+  kumimoji?: boolean;
   /** Normalize height flag (`a:rPr/@normalizeH`). */
   normalizeHeight?: boolean;
   /** No proofing flag (`a:rPr/@noProof`). */

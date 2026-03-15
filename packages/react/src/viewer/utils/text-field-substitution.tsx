@@ -1,9 +1,19 @@
-/** Context for substituting field placeholders (slide number, date/time). */
+/** Context for substituting field placeholders (slide number, date/time, header/footer, etc.). */
 export interface FieldSubstitutionContext {
   slideNumber?: number;
   dateTimeText?: string;
   /** OOXML date-format pattern from header/footer settings (e.g. "M/d/yyyy"). */
   dateFormat?: string;
+  /** Footer text from PptxHeaderFooter settings. */
+  footerText?: string;
+  /** Header text from PptxHeaderFooter settings. */
+  headerText?: string;
+  /** Custom document properties for `docproperty` field substitution (keyed by property name). */
+  customProperties?: ReadonlyArray<{ name: string; value: string }>;
+  /** Locale string for date/time formatting (e.g. "en-US"). Falls back to browser default. */
+  locale?: string;
+  /** Title text extracted from the first title placeholder on the slide. */
+  slideTitle?: string;
 }
 
 /**
@@ -146,6 +156,41 @@ export function substituteFieldText(
   if (fl.startsWith("datetime")) {
     // Use format-aware date text (prefer explicit dateFormat, then field type mapping)
     return resolveFieldDateText(fl, ctx.dateFormat);
+  }
+  // Footer field → resolve from header/footer settings
+  if (fl === "footer" && ctx.footerText != null) {
+    return ctx.footerText;
+  }
+  // Header field → resolve from header/footer settings
+  if (fl === "header" && ctx.headerText != null) {
+    return ctx.headerText;
+  }
+  // Current date → system date formatted with locale
+  if (fl === "currentdate") {
+    return new Date().toLocaleDateString(ctx.locale);
+  }
+  // Current time → system time formatted with locale
+  if (fl === "currenttime") {
+    return new Date().toLocaleTimeString(ctx.locale);
+  }
+  // Slide title → resolved from the first title placeholder on the slide
+  if (fl === "slidetitle" && ctx.slideTitle != null) {
+    return ctx.slideTitle;
+  }
+  // Document property → look up by name from custom properties
+  if (fl.startsWith("docproperty") && ctx.customProperties) {
+    // Field type format: "docproperty" or "docproperty.PropertyName"
+    const dotIdx = fieldType.indexOf(".");
+    const propName =
+      dotIdx >= 0 ? fieldType.substring(dotIdx + 1).trim() : "";
+    if (propName) {
+      const prop = ctx.customProperties.find(
+        (p) => p.name.toLowerCase() === propName.toLowerCase(),
+      );
+      if (prop) {
+        return prop.value;
+      }
+    }
   }
   return segmentText;
 }

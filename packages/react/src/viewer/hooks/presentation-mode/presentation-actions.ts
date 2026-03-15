@@ -1,5 +1,6 @@
 import type { PptxAction } from "pptx-viewer-core";
 import type { ViewerMode } from "../../types";
+import { isUrlSafe } from "../../utils/hyperlink-security";
 
 // ---------------------------------------------------------------------------
 // Presentation action handler
@@ -28,7 +29,14 @@ export function handlePresentationActionImpl(
 
   // Internal slide jump via targetSlideIndex
   if (typeof action.targetSlideIndex === "number") {
-    deps.navigateToSlide(action.targetSlideIndex);
+    // Clamp to valid range
+    const clamped = Math.max(
+      0,
+      Math.min(deps.slidesLength - 1, Math.floor(action.targetSlideIndex)),
+    );
+    if (deps.slidesLength > 0) {
+      deps.navigateToSlide(clamped);
+    }
     return;
   }
 
@@ -56,9 +64,11 @@ export function handlePresentationActionImpl(
     return;
   }
 
-  // External URL — open in a new tab/window
+  // External URL — open in a new tab/window (with security validation)
   if (action.url && !actionStr.includes("hlinksldjump")) {
-    window.open(action.url, "_blank", "noopener,noreferrer");
+    if (isUrlSafe(action.url)) {
+      window.open(action.url, "_blank", "noopener,noreferrer");
+    }
     return;
   }
 }

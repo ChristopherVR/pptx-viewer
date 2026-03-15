@@ -362,6 +362,33 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
   }
 
   /**
+   * Read the package thumbnail image from `docProps/thumbnail.jpeg`.
+   *
+   * The thumbnail is a binary image stored in the OPC package and is
+   * preserved as raw bytes for lossless round-trip. Checks common
+   * extension variants (.jpeg, .jpg, .png, .emf).
+   */
+  protected async parseThumbnail(): Promise<Uint8Array | null> {
+    const candidates = [
+      "docProps/thumbnail.jpeg",
+      "docProps/thumbnail.jpg",
+      "docProps/thumbnail.png",
+      "docProps/thumbnail.emf",
+    ];
+    for (const path of candidates) {
+      const file = this.zip.file(path);
+      if (file) {
+        try {
+          return await file.async("uint8array");
+        } catch {
+          // Non-critical — skip if unreadable
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
    * Parse all tag collections from `ppt/tags/tag*.xml`.
    */
   protected async parseTags(): Promise<PptxTagCollection[]> {

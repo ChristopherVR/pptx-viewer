@@ -42,7 +42,8 @@ export function shapeParams(el: PptxElement) {
   const fc = normalizeHexColor(ss?.fillColor, DEFAULT_FILL_COLOR);
   const hf =
     (ss?.fillColor !== undefined && ss?.fillColor !== "transparent") ||
-    Boolean(buildCssGradientFromShapeStyle(ss) || ss?.fillGradient);
+    Boolean(buildCssGradientFromShapeStyle(ss) || ss?.fillGradient) ||
+    (ss?.fillMode === "pattern" && Boolean(ss.fillPatternPreset));
   return { hf, fc, sw, sc } as const;
 }
 
@@ -83,6 +84,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
     allSlides,
     onZoomClick,
     sourceSlideIndex,
+    fieldContext,
   }) {
     // Create element-scoped table cell select handler
     const cellSelectHandler = onTableCellSelect
@@ -303,6 +305,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
           allSlides,
           onZoomClick,
           sourceSlideIndex,
+          fieldContext,
         )}
         {(el.actionClick || el.actionHover) && canInteract && (
           <ActionIndicator

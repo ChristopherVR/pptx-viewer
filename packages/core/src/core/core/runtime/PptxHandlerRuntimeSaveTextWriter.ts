@@ -96,9 +96,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
     // Text warp preset
     if (el.textStyle?.textWarpPreset) {
-      bodyPr["a:prstTxWarp"] = {
+      const prstTxWarpNode: XmlObject = {
         "@_prst": el.textStyle.textWarpPreset,
       };
+      // Round-trip adjustment values (adj / adj2)
+      const adjGds: XmlObject[] = [];
+      if (el.textStyle.textWarpAdj !== undefined && Number.isFinite(el.textStyle.textWarpAdj)) {
+        adjGds.push({
+          "@_name": "adj",
+          "@_fmla": `val ${el.textStyle.textWarpAdj}`,
+        });
+      }
+      if (el.textStyle.textWarpAdj2 !== undefined && Number.isFinite(el.textStyle.textWarpAdj2)) {
+        adjGds.push({
+          "@_name": "adj2",
+          "@_fmla": `val ${el.textStyle.textWarpAdj2}`,
+        });
+      }
+      if (adjGds.length > 0) {
+        prstTxWarpNode["a:avLst"] = { "a:gd": adjGds.length === 1 ? adjGds[0] : adjGds };
+      }
+      bodyPr["a:prstTxWarp"] = prstTxWarpNode;
     } else {
       delete bodyPr["a:prstTxWarp"];
     }

@@ -1,8 +1,14 @@
 /**
  * SVG pattern generation for OOXML pattern fill presets.
  *
- * Each preset maps to a tiled inline SVG data URI.
- * Reference: ECMA-376 §20.1.10.33 (ST_PresetPatternVal)
+ * Each preset maps to a tiled inline SVG data URI that closely approximates
+ * the corresponding ECMA-376 pattern (ST_PresetPatternVal). Patterns use
+ * two colours: foreground (`fg`) drawn on top of a background (`bg`) fill.
+ *
+ * Tile sizes are kept small (4-16 px) for performance when used as CSS
+ * `background-image` data URIs.
+ *
+ * Reference: ECMA-376 Part 1, section 20.1.10.33 (ST_PresetPatternVal)
  */
 export function getPatternSvg(
   preset: string,
@@ -390,28 +396,40 @@ export function getPatternSvg(
       );
 
     // ── Sphere ───────────────────────────────────────────────────────
-    case "sphere":
+    // Uses a radial gradient to simulate the 3D sphere highlight effect.
+    case "sphere": {
+      const defs =
+        `<defs><radialGradient id="sph" cx="35%" cy="35%" r="60%">` +
+        `<stop offset="0%" stop-color="${bg}" stop-opacity="0.8"/>` +
+        `<stop offset="100%" stop-color="${fg}" stop-opacity="1"/>` +
+        `</radialGradient></defs>`;
       return svg(
         s,
         s,
-        bgRect(s, s) + circle(4, 4, 3, fg) + circle(3, 3, 1.5, bg),
+        bgRect(s, s) + defs + `<circle cx="4" cy="4" r="3.5" fill="url(#sph)"/>`,
       );
+    }
 
     // ── Weave ────────────────────────────────────────────────────────
+    // Approximates a basket-weave pattern with interlacing diagonal stripes.
     case "weave":
       return svg(
         s,
         s,
         bgRect(s, s) +
-          line(0, 0, 4, 4, fg, 1) +
-          line(4, 4, 0, s, fg, 1) +
-          line(s, 0, 4, 4, fg, 1) +
-          line(4, 4, s, s, fg, 1) +
-          line(4, 0, s, 4, fg, 1) +
-          line(0, 4, 4, s, fg, 1),
+          // top-left to center diagonals
+          line(0, 0, 4, 4, fg, 1.5) +
+          line(4, 4, 0, s, fg, 1.5) +
+          // top-right to center diagonals
+          line(s, 0, 4, 4, fg, 1.5) +
+          line(4, 4, s, s, fg, 1.5) +
+          // cross-hatching to create woven appearance
+          line(4, 0, s, 4, fg, 1.5) +
+          line(0, 4, 4, s, fg, 1.5),
       );
 
     // ── Divot ────────────────────────────────────────────────────────
+    // Small plus/cross marks scattered across the tile.
     case "divot":
       return svg(
         s,
@@ -424,6 +442,7 @@ export function getPatternSvg(
       );
 
     // ── Shingle ──────────────────────────────────────────────────────
+    // Overlapping diagonal roof-tile pattern with a horizontal baseline.
     case "shingle":
       return svg(
         s,
@@ -435,12 +454,14 @@ export function getPatternSvg(
       );
 
     // ── Wave ─────────────────────────────────────────────────────────
+    // Repeating sine-wave curves filling the tile vertically.
     case "wave":
       return svg(
         s,
         s,
         bgRect(s, s) +
-          `<path d="M0,4 Q2,2 4,4 Q6,6 8,4" stroke="${fg}" stroke-width="1" fill="none"/>`,
+          `<path d="M0,2 Q2,0 4,2 Q6,4 8,2" stroke="${fg}" stroke-width="1" fill="none"/>` +
+          `<path d="M0,6 Q2,4 4,6 Q6,8 8,6" stroke="${fg}" stroke-width="1" fill="none"/>`,
       );
 
     // ── Trellis ──────────────────────────────────────────────────────

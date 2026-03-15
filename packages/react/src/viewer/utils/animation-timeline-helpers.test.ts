@@ -10,29 +10,29 @@ import type { PptxNativeAnimation } from "pptx-viewer-core";
 import type { TimelineStep } from "./animation-timeline-types";
 
 describe("cssKeyframeName", () => {
-  it("prefixes effect name with fuzor-", () => {
-    expect(cssKeyframeName("fadeIn")).toBe("fuzor-fadeIn");
+  it("prefixes effect name with pptx-", () => {
+    expect(cssKeyframeName("fadeIn")).toBe("pptx-fadeIn");
   });
 
   it("handles multi-word effects", () => {
-    expect(cssKeyframeName("flyIn")).toBe("fuzor-flyIn");
+    expect(cssKeyframeName("flyIn")).toBe("pptx-flyIn");
   });
 
   it("handles empty string", () => {
-    expect(cssKeyframeName("")).toBe("fuzor-");
+    expect(cssKeyframeName("")).toBe("pptx-");
   });
 
   it("handles special characters", () => {
-    expect(cssKeyframeName("zoom-in")).toBe("fuzor-zoom-in");
+    expect(cssKeyframeName("zoom-in")).toBe("pptx-zoom-in");
   });
 
   it("preserves case", () => {
-    expect(cssKeyframeName("FadeOut")).toBe("fuzor-FadeOut");
+    expect(cssKeyframeName("FadeOut")).toBe("pptx-FadeOut");
   });
 
   it("handles long effect names", () => {
     const name = "superLongEffectNameThatGoesOnAndOn";
-    expect(cssKeyframeName(name)).toBe(`fuzor-${name}`);
+    expect(cssKeyframeName(name)).toBe(`pptx-${name}`);
   });
 });
 
@@ -148,8 +148,8 @@ describe("buildDynamicKeyframe", () => {
     } as unknown as PptxNativeAnimation;
     const result = buildDynamicKeyframe(anim, 42);
     expect(result).toBeDefined();
-    expect(result!.keyframeName).toBe("fuzor-tl-motion-42");
-    expect(result!.css).toContain("@keyframes fuzor-tl-motion-42");
+    expect(result!.keyframeName).toBe("pptx-tl-motion-42");
+    expect(result!.css).toContain("@keyframes pptx-tl-motion-42");
     expect(result!.css).toContain("translate(");
   });
 
@@ -159,7 +159,7 @@ describe("buildDynamicKeyframe", () => {
     } as unknown as PptxNativeAnimation;
     const result = buildDynamicKeyframe(anim, 7);
     expect(result).toBeDefined();
-    expect(result!.keyframeName).toBe("fuzor-tl-rotate-7");
+    expect(result!.keyframeName).toBe("pptx-tl-rotate-7");
     expect(result!.css).toContain("rotate(360deg)");
   });
 
@@ -170,7 +170,7 @@ describe("buildDynamicKeyframe", () => {
     } as unknown as PptxNativeAnimation;
     const result = buildDynamicKeyframe(anim, 3);
     expect(result).toBeDefined();
-    expect(result!.keyframeName).toBe("fuzor-tl-scale-3");
+    expect(result!.keyframeName).toBe("pptx-tl-scale-3");
     expect(result!.css).toContain("scale(1.5, 2)");
   });
 
@@ -194,5 +194,51 @@ describe("buildDynamicKeyframe", () => {
     const result = buildDynamicKeyframe(anim, 5);
     expect(result).toBeDefined();
     expect(result!.css).toContain("scale(2, 1)");
+  });
+
+  it("adds rotate() to motion path keyframes when motionPathRotateAuto is true", () => {
+    const anim = {
+      motionPath: "M 0,0 L 1,0 L 1,1",
+      motionPathRotateAuto: true,
+    } as unknown as PptxNativeAnimation;
+    const result = buildDynamicKeyframe(anim, 10);
+    expect(result).toBeDefined();
+    expect(result!.css).toContain("rotate(");
+    // First point (0,0) → next (100,0): angle = 0 degrees (moving right)
+    expect(result!.css).toContain("translate(0.00%, 0.00%) rotate(0.00deg)");
+    // Second point (100,0) → next (100,100): angle = 90 degrees (moving down)
+    expect(result!.css).toContain("translate(100.00%, 0.00%) rotate(90.00deg)");
+    // Last point (100,100) uses direction from previous: same as prev→current = 90 degrees
+    expect(result!.css).toContain("translate(100.00%, 100.00%) rotate(90.00deg)");
+  });
+
+  it("does not add rotate() to motion path keyframes when motionPathRotateAuto is false", () => {
+    const anim = {
+      motionPath: "M 0,0 L 1,0 L 1,1",
+      motionPathRotateAuto: false,
+    } as unknown as PptxNativeAnimation;
+    const result = buildDynamicKeyframe(anim, 11);
+    expect(result).toBeDefined();
+    expect(result!.css).not.toContain("rotate(");
+  });
+
+  it("does not add rotate() to motion path keyframes when motionPathRotateAuto is undefined", () => {
+    const anim = {
+      motionPath: "M 0,0 L 1,0 L 1,1",
+    } as unknown as PptxNativeAnimation;
+    const result = buildDynamicKeyframe(anim, 12);
+    expect(result).toBeDefined();
+    expect(result!.css).not.toContain("rotate(");
+  });
+
+  it("computes correct angle for diagonal motion path with auto-rotate", () => {
+    const anim = {
+      motionPath: "M 0,0 L 1,1",
+      motionPathRotateAuto: true,
+    } as unknown as PptxNativeAnimation;
+    const result = buildDynamicKeyframe(anim, 13);
+    expect(result).toBeDefined();
+    // Diagonal (1,1) direction = 45 degrees
+    expect(result!.css).toContain("rotate(45.00deg)");
   });
 });

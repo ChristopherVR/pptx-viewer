@@ -179,7 +179,7 @@ describe("buildTimeline", () => {
       }),
     ]);
     const step = result.clickGroups[0].steps[0];
-    expect(step.cssAnimation).toContain("fuzor-fadeIn");
+    expect(step.cssAnimation).toContain("pptx-fadeIn");
     expect(step.cssAnimation).toContain("1000ms");
     expect(step.cssAnimation).toContain("ease");
     expect(step.cssAnimation).toContain("both");
@@ -213,7 +213,7 @@ describe("buildTimeline", () => {
   it("generates keyframesCss for known effects", () => {
     const result = buildTimeline([makeAnim({ presetId: 10 })]);
     expect(result.keyframesCss).toContain("@keyframes");
-    expect(result.keyframesCss).toContain("fuzor-fadeIn");
+    expect(result.keyframesCss).toContain("pptx-fadeIn");
   });
 
   it("generates unique keyframes CSS without duplicates", () => {
@@ -221,7 +221,7 @@ describe("buildTimeline", () => {
       makeAnim({ targetId: "el1", presetId: 10 }),
       makeAnim({ targetId: "el2", presetId: 10, trigger: "onClick" }),
     ]);
-    const matches = result.keyframesCss.match(/@keyframes fuzor-fadeIn/g);
+    const matches = result.keyframesCss.match(/@keyframes pptx-fadeIn/g);
     // Should only have one definition even though two animations use it
     expect(matches).toHaveLength(1);
   });
@@ -318,7 +318,7 @@ describe("buildTimeline", () => {
         motionPath: "M 0 0 L 1 1",
       } as PptxNativeAnimation),
     ]);
-    expect(result.keyframesCss).toContain("@keyframes fuzor-tl-motion-");
+    expect(result.keyframesCss).toContain("@keyframes pptx-tl-motion-");
     expect(result.keyframesCss).toContain("translate(");
   });
 
@@ -332,7 +332,7 @@ describe("buildTimeline", () => {
         rotationBy: 360,
       } as PptxNativeAnimation),
     ]);
-    expect(result.keyframesCss).toContain("@keyframes fuzor-tl-rotate-");
+    expect(result.keyframesCss).toContain("@keyframes pptx-tl-rotate-");
     expect(result.keyframesCss).toContain("rotate(360deg)");
   });
 

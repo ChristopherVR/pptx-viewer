@@ -104,7 +104,7 @@ export function createFileHandlers(deps: FileHandlerDeps): FileHandlers {
     if (elFilePath) {
       let normalized = elFilePath.replace(/\\/g, "/");
       if (!normalized.startsWith("/")) normalized = `/${normalized}`;
-      const mediaUrl = `fuzor-resource://media${encodeURI(normalized)}`;
+      const mediaUrl = `pptx-resource://media${encodeURI(normalized)}`;
       if (mediaType === "audio") {
         insertMediaElement(mediaUrl, 420, 64);
         return;

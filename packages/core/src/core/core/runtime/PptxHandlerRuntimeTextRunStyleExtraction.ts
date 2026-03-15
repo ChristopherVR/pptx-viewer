@@ -202,6 +202,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     }
 
     // Run metadata attributes
+    const kumimoji = this.parseOptionalBooleanAttr(runProperties["@_kumimoji"]);
+    if (kumimoji !== undefined) style.kumimoji = kumimoji;
     const normalizeH = this.parseOptionalBooleanAttr(runProperties["@_normalizeH"]);
     if (normalizeH !== undefined) style.normalizeHeight = normalizeH;
     const noProof = this.parseOptionalBooleanAttr(runProperties["@_noProof"]);

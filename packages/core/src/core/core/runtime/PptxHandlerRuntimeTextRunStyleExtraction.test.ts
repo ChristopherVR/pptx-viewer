@@ -177,6 +177,8 @@ function extractTextRunStyle(
   }
 
   // Metadata attributes
+  const kumimoji = parseOptionalBooleanAttr(runProperties["@_kumimoji"]);
+  if (kumimoji !== undefined) style.kumimoji = kumimoji;
   const normalizeH = parseOptionalBooleanAttr(runProperties["@_normalizeH"]);
   if (normalizeH !== undefined) style.normalizeHeight = normalizeH;
   const noProof = parseOptionalBooleanAttr(runProperties["@_noProof"]);
@@ -523,6 +525,14 @@ describe("extractTextRunStyle", () => {
         "left",
       );
       expect(result.normalizeHeight).toBe(true);
+    });
+
+    it("should parse kumimoji flag", () => {
+      const result = extractTextRunStyle(
+        { "@_kumimoji": "1" },
+        "left",
+      );
+      expect(result.kumimoji).toBe(true);
     });
   });
 

@@ -248,6 +248,100 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         }
       }
 
+      // Reflection (a:reflection)
+      const reflection = effectLst["a:reflection"] as XmlObject | undefined;
+      if (reflection) {
+        const blurRad = parseInt(String(reflection["@_blurRad"] || "0"));
+        if (Number.isFinite(blurRad) && blurRad >= 0) {
+          result.reflectionBlurRadius =
+            blurRad / PptxHandlerRuntime.EMU_PER_PX;
+        }
+        const stA = parseInt(String(reflection["@_stA"] || ""));
+        if (Number.isFinite(stA)) {
+          result.reflectionStartOpacity = stA / 100000;
+        }
+        const endA = parseInt(String(reflection["@_endA"] || ""));
+        if (Number.isFinite(endA)) {
+          result.reflectionEndOpacity = endA / 100000;
+        }
+        const endPos = parseInt(String(reflection["@_endPos"] || ""));
+        if (Number.isFinite(endPos)) {
+          result.reflectionEndPosition = endPos / 100000;
+        }
+        const dir = parseInt(String(reflection["@_dir"] || ""));
+        if (Number.isFinite(dir)) {
+          result.reflectionDirection = dir / 60000;
+        }
+        const rot = parseInt(String(reflection["@_rot"] || ""));
+        if (Number.isFinite(rot)) {
+          result.reflectionRotation = rot / 60000;
+        }
+        const dist = parseInt(String(reflection["@_dist"] || "0"));
+        if (Number.isFinite(dist) && dist >= 0) {
+          result.reflectionDistance = dist / PptxHandlerRuntime.EMU_PER_PX;
+        }
+      }
+
+      // 3D scene (a:scene3d) — sits on the effectStyle node, not effectLst
+      const scene3dNode = es["a:scene3d"] as XmlObject | undefined;
+      if (scene3dNode) {
+        const camera = scene3dNode["a:camera"] as XmlObject | undefined;
+        const lightRig = scene3dNode["a:lightRig"] as XmlObject | undefined;
+        result.scene3d = {
+          cameraPreset: String(camera?.["@_prst"] || "").trim() || undefined,
+          lightRigType: String(lightRig?.["@_rig"] || "").trim() || undefined,
+          lightRigDirection:
+            String(lightRig?.["@_dir"] || "").trim() || undefined,
+        };
+      }
+
+      // 3D shape extrusion/bevel (a:sp3d) — sits on the effectStyle node
+      const sp3dNode = es["a:sp3d"] as XmlObject | undefined;
+      if (sp3dNode) {
+        const bevelTop = sp3dNode["a:bevelT"] as XmlObject | undefined;
+        const bevelBottom = sp3dNode["a:bevelB"] as XmlObject | undefined;
+        result.shape3d = {
+          extrusionHeight:
+            sp3dNode["@_extrusionH"] != null
+              ? parseInt(String(sp3dNode["@_extrusionH"]), 10)
+              : undefined,
+          extrusionColor: this.parseColor(
+            sp3dNode["a:extrusionClr"] as XmlObject | undefined,
+          ),
+          contourWidth:
+            sp3dNode["@_contourW"] != null
+              ? parseInt(String(sp3dNode["@_contourW"]), 10)
+              : undefined,
+          contourColor: this.parseColor(
+            sp3dNode["a:contourClr"] as XmlObject | undefined,
+          ),
+          presetMaterial:
+            String(sp3dNode["@_prstMaterial"] || "").trim() || undefined,
+          bevelTopType: bevelTop
+            ? String(bevelTop["@_prst"] || "circle").trim()
+            : undefined,
+          bevelTopWidth:
+            bevelTop?.["@_w"] != null
+              ? parseInt(String(bevelTop["@_w"]), 10)
+              : undefined,
+          bevelTopHeight:
+            bevelTop?.["@_h"] != null
+              ? parseInt(String(bevelTop["@_h"]), 10)
+              : undefined,
+          bevelBottomType: bevelBottom
+            ? String(bevelBottom["@_prst"] || "circle").trim()
+            : undefined,
+          bevelBottomWidth:
+            bevelBottom?.["@_w"] != null
+              ? parseInt(String(bevelBottom["@_w"]), 10)
+              : undefined,
+          bevelBottomHeight:
+            bevelBottom?.["@_h"] != null
+              ? parseInt(String(bevelBottom["@_h"]), 10)
+              : undefined,
+        };
+      }
+
       return result;
     });
   }

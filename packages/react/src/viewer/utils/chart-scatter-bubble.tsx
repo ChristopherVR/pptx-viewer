@@ -3,6 +3,7 @@ import React from "react";
 import type { PptxElement, PptxChartData } from "pptx-viewer-core";
 import {
   computeValueRange,
+  computeValueRangeForChart,
   valueToY,
   seriesColor,
   formatAxisValue,
@@ -26,7 +27,7 @@ export function renderScatterChart(
 ): React.ReactNode {
   const style = chartData.style;
   const legendPos = style?.legendPosition || "b";
-  const range = computeValueRange(chartData.series);
+  const range = computeValueRangeForChart(chartData.series, chartData.axes);
   const layout = computeLayout(
     element.width,
     element.height,
@@ -67,7 +68,7 @@ export function renderScatterChart(
                 cx={px}
                 cy={py}
                 r={4}
-                fill={seriesColor(series, si, chartData.style?.styleId)}
+                fill={seriesColor(series, si, chartData.style?.styleId, chartData.colorPalette)}
                 opacity={0.85}
               />
             );
@@ -113,7 +114,7 @@ export function renderBubbleChart(
 ): React.ReactNode {
   const style = chartData.style;
   const legendPos = style?.legendPosition || "b";
-  const range = computeValueRange(chartData.series);
+  const range = computeValueRangeForChart(chartData.series, chartData.axes);
   const layout = computeLayout(
     element.width,
     element.height,
@@ -166,9 +167,9 @@ export function renderBubbleChart(
               cx={px}
               cy={py}
               r={r}
-              fill={seriesColor(series, si, chartData.style?.styleId)}
+              fill={seriesColor(series, si, chartData.style?.styleId, chartData.colorPalette)}
               opacity={0.6}
-              stroke={seriesColor(series, si, chartData.style?.styleId)}
+              stroke={seriesColor(series, si, chartData.style?.styleId, chartData.colorPalette)}
               strokeWidth={1}
             />
           );

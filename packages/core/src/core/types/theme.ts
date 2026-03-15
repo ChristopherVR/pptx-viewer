@@ -218,6 +218,17 @@ export interface PptxThemeEffectStyle {
   innerShadowBlur?: number;
   innerShadowOffsetX?: number;
   innerShadowOffsetY?: number;
+  reflectionBlurRadius?: number;
+  reflectionStartOpacity?: number;
+  reflectionEndOpacity?: number;
+  reflectionEndPosition?: number;
+  reflectionDirection?: number;
+  reflectionRotation?: number;
+  reflectionDistance?: number;
+  /** 3D scene/camera from `a:scene3d` on the effect style (idx 3 typically). */
+  scene3d?: import("./three-d").Pptx3DScene;
+  /** 3D shape extrusion/bevel from `a:sp3d` on the effect style (idx 3 typically). */
+  shape3d?: import("./three-d").Pptx3DShape;
   /** Raw XML node preserved for `phClr` re-resolution. */
   rawNode?: unknown;
 }

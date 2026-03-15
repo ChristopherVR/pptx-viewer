@@ -3,10 +3,12 @@
  */
 import React from "react";
 
-import { buildPdfFromCanvases } from "./pdf-builder";
+import { buildPdfFromCanvases, buildNotesPdf } from "./pdf-builder";
+import type { NotesPageInput } from "./pdf-builder";
 import type {
   PngExportOptions,
   PdfExportOptions,
+  NotesPdfExportOptions,
   SlideCaptureOptions,
 } from "./export-helpers";
 import {
@@ -186,6 +188,74 @@ export async function captureAllSlidesAsPngDataUrls(
   onProgress?.(totalSlides, totalSlides);
   setActiveSlide(currentSlideIndex);
   return dataUrls;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Notes PDF Export                                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Export all slides as a notes-page PDF: each page contains the slide image
+ * in the upper 2/3 and speaker notes text in the lower 1/3.
+ *
+ * Uses portrait US Letter layout (8.5" x 11") matching PowerPoint's
+ * "Notes Pages" print layout.
+ *
+ * @param slideStageRef     - React ref to the slide stage element.
+ * @param totalSlides       - Total number of slides.
+ * @param setActiveSlide    - Callback to switch the viewer to slide `i`.
+ * @param currentSlideIndex - The slide index to restore after export.
+ * @param slideNotes        - Array of plain-text notes, one per slide (index-aligned).
+ * @param filename          - Downloaded filename (default: "presentation-notes.pdf").
+ * @param options           - Scale and progress callback.
+ */
+export async function exportAllSlidesAsNotesPdf(
+  slideStageRef: React.RefObject<HTMLElement | null>,
+  totalSlides: number,
+  setActiveSlide: (index: number) => void,
+  currentSlideIndex: number,
+  slideNotes: (string | undefined)[],
+  filename: string = "presentation-notes.pdf",
+  options: NotesPdfExportOptions = {},
+): Promise<void> {
+  const { scale = 2, onProgress } = options;
+  const pages: NotesPageInput[] = [];
+
+  for (let i = 0; i < totalSlides; i++) {
+    onProgress?.(i, totalSlides);
+
+    // Switch to slide i
+    setActiveSlide(i);
+    await waitForRender(150);
+
+    const stageEl = slideStageRef.current;
+    if (!stageEl) {
+      console.warn(
+        `[export] Could not find slide stage element for slide ${i}`,
+      );
+      continue;
+    }
+
+    const canvas = await renderElementToCanvas(stageEl, scale);
+    pages.push({
+      canvas,
+      notes: slideNotes[i],
+      slideNumber: i + 1,
+    });
+  }
+
+  onProgress?.(totalSlides, totalSlides);
+
+  // Restore the user's original slide
+  setActiveSlide(currentSlideIndex);
+
+  if (pages.length === 0) {
+    throw new Error("No slides were captured for notes PDF export");
+  }
+
+  // Build notes PDF and trigger download
+  const pdfDataUrl = buildNotesPdf(pages);
+  downloadDataUrl(pdfDataUrl, filename);
 }
 
 /**

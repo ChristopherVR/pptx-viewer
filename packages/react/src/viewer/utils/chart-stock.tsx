@@ -1,7 +1,7 @@
 import React from "react";
 
 import type { PptxElement, PptxChartData } from "pptx-viewer-core";
-import { computeValueRange, valueToY, formatAxisValue } from "./chart-helpers";
+import { computeValueRange, computeValueRangeForChart, valueToY, formatAxisValue } from "./chart-helpers";
 import { computeLayout } from "./chart-layout";
 import { renderChrome, renderOverlays } from "./chart-chrome";
 import { renderChartDataTable } from "./chart-data-table";
@@ -14,7 +14,7 @@ export function renderStockChart(
 ): React.ReactNode {
   const style = chartData.style;
   const legendPos = style?.legendPosition || "b";
-  const range = computeValueRange(chartData.series);
+  const range = computeValueRangeForChart(chartData.series, chartData.axes);
   const layout = computeLayout(
     element.width,
     element.height,

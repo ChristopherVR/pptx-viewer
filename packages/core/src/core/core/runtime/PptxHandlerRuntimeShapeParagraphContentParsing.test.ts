@@ -37,48 +37,90 @@ function extractFieldInfo(
 }
 
 // --- Extracted: content collection from a paragraph node ---
+// Mirrors the document-order processing in collectShapeParagraphContent:
+// iterates over object keys so that interleaved elements (runs, fields,
+// math, mc:AlternateContent, line breaks) appear in the order they were
+// parsed from the XML.
 function collectParagraphTextParts(
   p: Record<string, unknown>,
   pIdx: number,
   paraCount: number,
 ): { parts: string[]; runCount: number; fieldCount: number; lineBreakCount: number; hasMathElements: boolean } {
   const parts: string[] = [];
+  let runCount = 0;
+  let fieldCount = 0;
+  let lineBreakCount = 0;
+  let hasMathElements = false;
 
-  // Runs
-  const runs = ensureArray(p["a:r"]);
-  runs.forEach((r) => {
-    if (!r) return;
-    parts.push(extractRunText(r as Record<string, unknown>));
-  });
+  const contentTagSet = new Set([
+    "a:r", "a:fld", "a:t", "a14:m", "m:oMathPara", "m:oMath",
+    "mc:AlternateContent", "a:br",
+  ]);
 
-  // Fields
-  const fields = ensureArray(p["a:fld"]);
-  fields.forEach((field) => {
-    if (!field) return;
-    const info = extractFieldInfo(field as Record<string, unknown>);
-    parts.push(info.text);
-  });
+  for (const key of Object.keys(p)) {
+    if (!contentTagSet.has(key)) continue;
 
-  // Direct text
-  if (p["a:t"] !== undefined) {
-    const directText = typeof p["a:t"] === "string" ? p["a:t"] : String(p["a:t"]);
-    parts.push(directText);
+    const items = ensureArray(p[key]);
+    for (const item of items) {
+      switch (key) {
+        case "a:r":
+          if (!item) break;
+          parts.push(extractRunText(item as Record<string, unknown>));
+          runCount++;
+          break;
+        case "a:fld":
+          if (!item) break;
+          parts.push(extractFieldInfo(item as Record<string, unknown>).text);
+          fieldCount++;
+          break;
+        case "a:t": {
+          const directText = typeof item === "string" ? item : item !== undefined ? String(item) : "";
+          parts.push(directText);
+          break;
+        }
+        case "a14:m":
+        case "m:oMathPara":
+        case "m:oMath":
+          if (!item) break;
+          parts.push("[Equation]");
+          hasMathElements = true;
+          break;
+        case "mc:AlternateContent": {
+          // Simplified: check for a14:m inside mc:Choice
+          const acObj = item as Record<string, unknown>;
+          const choices = ensureArray(acObj["mc:Choice"]);
+          let handled = false;
+          for (const choice of choices) {
+            const ch = choice as Record<string, unknown>;
+            const innerMath = ch["a14:m"] ?? ch["m:oMathPara"] ?? ch["m:oMath"];
+            if (innerMath) {
+              parts.push("[Equation]");
+              hasMathElements = true;
+              handled = true;
+              break;
+            }
+          }
+          if (!handled) {
+            // Fallback: check for runs in the fallback branch
+            const fallback = acObj["mc:Fallback"] as Record<string, unknown> | undefined;
+            if (fallback) {
+              const fbRuns = ensureArray(fallback["a:r"]);
+              for (const r of fbRuns) {
+                if (!r) continue;
+                parts.push(extractRunText(r as Record<string, unknown>));
+                runCount++;
+              }
+            }
+          }
+          break;
+        }
+        case "a:br":
+          parts.push("\n");
+          lineBreakCount++;
+          break;
+      }
+    }
   }
-
-  // Math elements
-  const mathElements = ensureArray(
-    p["a14:m"] ?? p["m:oMathPara"] ?? p["m:oMath"],
-  );
-  for (const mathEl of mathElements) {
-    if (!mathEl) continue;
-    parts.push("[Equation]");
-  }
-
-  // Line breaks
-  const lineBreaks = ensureArray(p["a:br"]);
-  lineBreaks.forEach(() => {
-    parts.push("\n");
-  });
 
   // Inter-paragraph newline
   if (pIdx < paraCount - 1) {
@@ -87,10 +129,10 @@ function collectParagraphTextParts(
 
   return {
     parts,
-    runCount: runs.filter(Boolean).length,
-    fieldCount: fields.filter(Boolean).length,
-    lineBreakCount: lineBreaks.length,
-    hasMathElements: mathElements.filter(Boolean).length > 0,
+    runCount,
+    fieldCount,
+    lineBreakCount,
+    hasMathElements,
   };
 }
 
@@ -324,6 +366,95 @@ describe("collectParagraphTextParts", () => {
     expect(result.runCount).toBe(2);
     expect(result.fieldCount).toBe(1);
     expect(result.lineBreakCount).toBe(1);
+  });
+
+  it("should process mc:AlternateContent containing a14:m as inline math", () => {
+    // Simulates: <a:r>text</a:r><mc:AlternateContent><mc:Choice Requires="a14"><a14:m>...</a14:m></mc:Choice></mc:AlternateContent>
+    const result = collectParagraphTextParts(
+      {
+        "a:r": { "a:t": "The formula is " },
+        "mc:AlternateContent": {
+          "mc:Choice": {
+            "@_Requires": "a14",
+            "a14:m": { "m:oMathPara": { "m:oMath": { "m:r": { "m:t": "x=1" } } } },
+          },
+          "mc:Fallback": {
+            "a:r": { "a:t": "x=1" },
+          },
+        },
+      },
+      0,
+      1,
+    );
+    expect(result.parts).toEqual(["The formula is ", "[Equation]"]);
+    expect(result.hasMathElements).toBe(true);
+    expect(result.runCount).toBe(1);
+  });
+
+  it("should preserve document order: run, inline math, run", () => {
+    // When fast-xml-parser groups same-tag siblings, the key order
+    // determines processing order. This test verifies that when
+    // a:r appears before mc:AlternateContent in key order, both
+    // runs process first, then the math — matching the grouped
+    // object structure produced by the parser.
+    const result = collectParagraphTextParts(
+      {
+        "a:r": [
+          { "a:t": "Before " },
+          { "a:t": " after" },
+        ],
+        "mc:AlternateContent": {
+          "mc:Choice": {
+            "@_Requires": "a14",
+            "a14:m": { "m:oMath": {} },
+          },
+          "mc:Fallback": {
+            "a:r": { "a:t": "E=mc2" },
+          },
+        },
+      },
+      0,
+      1,
+    );
+    // a:r key comes first, so both runs are processed, then mc:AlternateContent
+    expect(result.parts).toEqual(["Before ", " after", "[Equation]"]);
+    expect(result.hasMathElements).toBe(true);
+  });
+
+  it("should handle standalone a14:m inline math (no mc:AlternateContent wrapper)", () => {
+    const result = collectParagraphTextParts(
+      {
+        "a:r": { "a:t": "See: " },
+        "a14:m": { "m:oMathPara": { "m:oMath": { "m:r": { "m:t": "a+b" } } } },
+      },
+      0,
+      1,
+    );
+    expect(result.parts).toEqual(["See: ", "[Equation]"]);
+    expect(result.hasMathElements).toBe(true);
+  });
+
+  it("should handle mc:AlternateContent with non-math content as fallback", () => {
+    // When mc:Choice does not contain math, and there is no a14:m,
+    // the fallback text runs should be used.
+    const result = collectParagraphTextParts(
+      {
+        "a:r": { "a:t": "Before " },
+        "mc:AlternateContent": {
+          "mc:Choice": {
+            "@_Requires": "xyz_unsupported",
+            "p:newFeature": {},
+          },
+          "mc:Fallback": {
+            "a:r": { "a:t": "fallback text" },
+          },
+        },
+      },
+      0,
+      1,
+    );
+    expect(result.parts).toEqual(["Before ", "fallback text"]);
+    expect(result.hasMathElements).toBe(false);
   });
 });
 

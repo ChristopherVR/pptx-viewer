@@ -27,3 +27,5 @@ export * from "./ink-rendering";
 export * from "./accessibility";
 export * from "./sparkline-renderer";
 export * from "./connector-reroute";
+export * from "./hyperlink-security";
+export * from "./chart-map";

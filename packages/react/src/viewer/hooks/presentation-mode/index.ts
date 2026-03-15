@@ -26,3 +26,14 @@ export {
   type UseZoomNavigationInput,
   type UseZoomNavigationResult,
 } from "./useZoomNavigation";
+export {
+  usePresenterWindow,
+  type UsePresenterWindowInput,
+  type UsePresenterWindowResult,
+  type PresenterMessage,
+  type PresenterSlideChangeMessage,
+  type PresenterExitMessage,
+  PRESENTER_MSG_ORIGIN,
+  isPresenterMessage,
+  buildAudienceWindowHtml,
+} from "./usePresenterWindow";

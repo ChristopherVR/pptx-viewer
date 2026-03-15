@@ -24,6 +24,8 @@ export interface ViewerBottomPanelsProps {
   autosaveStatus?: AutosaveStatus;
   onToggleNotes: () => void;
   onUpdateNotes: (text: string, segments?: TextSegment[]) => void;
+  /** Optional collaboration status indicator rendered in the status bar row. */
+  collaborationSlot?: React.ReactNode;
 }
 
 /* ------------------------------------------------------------------ */
@@ -41,6 +43,7 @@ export function ViewerBottomPanels({
   autosaveStatus,
   onToggleNotes,
   onUpdateNotes,
+  collaborationSlot,
 }: ViewerBottomPanelsProps): React.ReactElement {
   return (
     <>
@@ -52,12 +55,15 @@ export function ViewerBottomPanels({
         onToggle={onToggleNotes}
         onUpdateNotes={onUpdateNotes}
       />
-      <StatusBar
-        slideCount={slideCount}
-        activeSlideIndex={activeSlideIndex}
-        isDirty={isDirty}
-        autosaveStatus={autosaveStatus}
-      />
+      <div className="flex items-center justify-between">
+        <StatusBar
+          slideCount={slideCount}
+          activeSlideIndex={activeSlideIndex}
+          isDirty={isDirty}
+          autosaveStatus={autosaveStatus}
+        />
+        {collaborationSlot}
+      </div>
     </>
   );
 }

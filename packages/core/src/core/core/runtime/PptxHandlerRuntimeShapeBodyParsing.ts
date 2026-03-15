@@ -140,6 +140,28 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       if (warpPreset.length > 0 && warpPreset !== "textNoShape") {
         textStyle.textWarpPreset = warpPreset as PptxTextWarpPreset;
       }
+
+      // Extract adjustment values from a:avLst/a:gd
+      const avLst = prstTxWarp["a:avLst"] as XmlObject | undefined;
+      if (avLst) {
+        const gdRaw = avLst["a:gd"];
+        const gdArr = Array.isArray(gdRaw) ? gdRaw : gdRaw ? [gdRaw] : [];
+        for (const gd of gdArr) {
+          const gdObj = gd as XmlObject;
+          const name = String(gdObj["@_name"] || "").trim();
+          const fmla = String(gdObj["@_fmla"] || "").trim();
+          // Formula is typically "val <number>"
+          const valMatch = fmla.match(/^val\s+(-?\d+)$/);
+          if (!valMatch) continue;
+          const val = parseInt(valMatch[1], 10);
+          if (!Number.isFinite(val)) continue;
+          if (name === "adj") {
+            textStyle.textWarpAdj = val;
+          } else if (name === "adj2") {
+            textStyle.textWarpAdj2 = val;
+          }
+        }
+      }
     }
 
     // 3D text body properties (a:bodyPr/a:sp3d)

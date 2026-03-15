@@ -47,6 +47,9 @@ export function ViewerPresentationLayer(props: ViewerPresentationLayerProps) {
           presentationStartTime={presentation.presentationStartTime}
           onMovePresentationSlide={presentation.movePresentationSlide}
           onExit={onExitPresentation}
+          onOpenAudienceWindow={presentation.openAudienceWindow}
+          onCloseAudienceWindow={presentation.closeAudienceWindow}
+          isAudienceWindowOpen={presentation.isAudienceWindowOpen()}
         />
       )}
 

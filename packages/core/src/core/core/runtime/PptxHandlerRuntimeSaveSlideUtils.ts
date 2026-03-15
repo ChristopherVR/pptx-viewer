@@ -173,7 +173,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
   /**
    * Resolve media data to bytes from any source:
    * - `data:...;base64,...` — decoded synchronously
-   * - `fuzor-resource://...`, `blob:...`, `http(s)://...` — fetched
+   * - `pptx-resource://...`, `blob:...`, `http(s)://...` — fetched
    */
   protected async resolveMediaToBytes(
     mediaUrl: string,
@@ -182,7 +182,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     const dataResult = parseDataUrlToBytes(mediaUrl);
     if (dataResult) return dataResult;
 
-    // Fall back to fetching the URL (fuzor-resource://, blob:, http(s)://)
+    // Fall back to fetching the URL (pptx-resource://, blob:, http(s)://)
     return fetchUrlToBytes(mediaUrl);
   }
 

@@ -35,7 +35,7 @@ export function getShapeType(
   if (normalized === "cylinder" || normalized === "can") return "cylinder";
   if (normalized === "triangle") return "triangle";
   if (normalized === "diamond") return "diamond";
-  if (normalized === "line") return "line";
+  if (normalized === "line" || normalized === "lineinv") return "line";
   if (normalized === "rtarrow" || normalized === "rightarrow") return "rtArrow";
   if (normalized === "leftarrow") return "leftArrow";
   if (normalized === "uparrow") return "upArrow";

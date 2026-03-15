@@ -1,7 +1,7 @@
 /**
  * EMF Converter Test Server
  *
- * Bundles the Fuzor EMF converter and serves a test page that compares
+ * Bundles the pptx EMF converter and serves a test page that compares
  * our converter output with EMFJS (from rtf.js).
  *
  * Usage:  bun scripts/test-emf-converter.ts

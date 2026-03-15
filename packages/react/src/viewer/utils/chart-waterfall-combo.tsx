@@ -3,6 +3,7 @@ import React from "react";
 import type { PptxElement, PptxChartData } from "pptx-viewer-core";
 import {
   computeValueRange,
+  computeValueRangeForChart,
   valueToY,
   seriesColor,
   formatAxisValue,
@@ -25,7 +26,7 @@ export function renderWaterfallChart(
   const style = chartData.style;
   const legendPos = style?.legendPosition || "b";
   const values = chartData.series[0]?.values ?? [];
-  const range = computeValueRange(chartData.series);
+  const range = computeValueRangeForChart(chartData.series, chartData.axes);
   const layout = computeLayout(
     element.width,
     element.height,
@@ -157,7 +158,7 @@ export function renderComboChart(
   const primarySeries = primary.length > 0 ? primary.map((e) => e.series) : chartData.series;
   const secondarySeries = secondary.map((e) => e.series);
 
-  const range = computeValueRange(primarySeries);
+  const range = computeValueRangeForChart(primarySeries, chartData.axes);
   const secondaryRange = secondarySeries.length > 0 ? computeValueRange(secondarySeries) : undefined;
   const secondaryAxisFmt = getSecondaryValueAxis(chartData.axes);
 
@@ -191,7 +192,7 @@ export function renderComboChart(
           y={y}
           width={barWidth}
           height={h}
-          fill={seriesColor(barSeries, 0, chartData.style?.styleId)}
+          fill={seriesColor(barSeries, 0, chartData.style?.styleId, chartData.colorPalette)}
           rx={1}
         />,
       );
@@ -223,7 +224,7 @@ export function renderComboChart(
       const y = valueToY(val, activeRange, layout.plotTop, layout.plotBottom);
       return { x, y, val };
     });
-    const c = seriesColor(series, seriesIdx, chartData.style?.styleId);
+    const c = seriesColor(series, seriesIdx, chartData.style?.styleId, chartData.colorPalette);
     lineElements.push(
       <polyline
         key={`${element.id}-combo-line-${si}`}

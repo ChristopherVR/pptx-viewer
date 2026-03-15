@@ -285,3 +285,162 @@ describe("Theme Operations", () => {
 		expect(data3.themeColorMap?.accent2?.toUpperCase()).toBe("#BEEF00");
 	});
 });
+
+// ---------------------------------------------------------------------------
+// Tests: Theme Switching (GAP-E3)
+// ---------------------------------------------------------------------------
+
+describe("Theme Switching (GAP-E3)", () => {
+	it("should list available themes via getAvailableThemes", async () => {
+		const { handler, data, createSlide } = await createAndLoad({
+			theme: { name: "My Theme" },
+		});
+
+		data.slides.push(
+			createSlide("Blank")
+				.addText("Available themes test", { x: 50, y: 50, width: 400, height: 50 })
+				.build(),
+		);
+
+		// Save so the ZIP state is established
+		await handler.save(data.slides);
+
+		const themes = await handler.getAvailableThemes();
+		expect(themes).toBeDefined();
+		expect(themes.length).toBeGreaterThanOrEqual(1);
+		expect(themes[0].path).toMatch(/^ppt\/theme\/theme\d+\.xml$/);
+		expect(themes[0].name).toBe("My Theme");
+	});
+
+	it("should return empty array from getAvailableThemes on fresh handler before load", async () => {
+		const handler = new PptxHandler();
+		const themes = await handler.getAvailableThemes();
+		expect(themes).toEqual([]);
+	});
+
+	it("should switch presentation theme via setPresentationTheme", async () => {
+		const { handler, data, createSlide } = await createAndLoad({
+			theme: {
+				name: "Original Theme",
+				colors: { accent1: "#FF0000" },
+			},
+		});
+
+		data.slides.push(
+			createSlide("Blank")
+				.addText("Theme switch test", { x: 50, y: 50, width: 400, height: 50 })
+				.build(),
+		);
+
+		await handler.save(data.slides);
+
+		const themes = await handler.getAvailableThemes();
+		expect(themes.length).toBeGreaterThanOrEqual(1);
+
+		// Switch to the same theme (single-theme presentations only have one)
+		// This validates the setPresentationTheme call doesn't throw
+		await handler.setPresentationTheme(themes[0].path, true);
+
+		// Verify we can still save and reload
+		const { data: reloaded } = await saveAndReload(handler, data.slides);
+		expect(reloaded.themeOptions).toBeDefined();
+		expect(reloaded.themeOptions!.length).toBeGreaterThanOrEqual(1);
+	});
+
+	it("should preserve theme options through round-trip after switching", async () => {
+		const { handler, data, createSlide } = await createAndLoad({
+			theme: { name: "Switchable Theme", colors: { accent1: "#AABBCC" } },
+		});
+
+		data.slides.push(
+			createSlide("Blank")
+				.addText("Round-trip switch", { x: 50, y: 50, width: 400, height: 50 })
+				.build(),
+		);
+
+		await handler.save(data.slides);
+
+		const themes = await handler.getAvailableThemes();
+		expect(themes[0].name).toBe("Switchable Theme");
+
+		// Switch theme
+		await handler.setPresentationTheme(themes[0].path, true);
+
+		// Save and reload
+		const { handler: handler2, data: data2 } = await saveAndReload(handler, data.slides);
+
+		// getAvailableThemes should still work on the reloaded handler
+		const themes2 = await handler2.getAvailableThemes();
+		expect(themes2.length).toBeGreaterThanOrEqual(1);
+		expect(themes2[0].name).toBe("Switchable Theme");
+
+		// Color scheme should survive
+		expect(data2.themeColorMap?.accent1?.toUpperCase()).toBe("#AABBCC");
+	});
+
+	it("should reject invalid theme paths gracefully", async () => {
+		const { handler, data, createSlide } = await createAndLoad();
+
+		data.slides.push(
+			createSlide("Blank")
+				.addText("Invalid path test", { x: 50, y: 50, width: 400, height: 50 })
+				.build(),
+		);
+
+		await handler.save(data.slides);
+
+		// Setting a path that doesn't start with ppt/theme/ should be a no-op
+		await handler.setPresentationTheme("invalid/path.xml", true);
+
+		// Should still be able to save and reload without errors
+		const { data: reloaded } = await saveAndReload(handler, data.slides);
+		expect(reloaded.slides.length).toBeGreaterThanOrEqual(1);
+	});
+
+	it("should apply theme to all masters when applyToAllMasters is true", async () => {
+		const { handler, data, createSlide } = await createAndLoad({
+			theme: { name: "All Masters Theme" },
+		});
+
+		data.slides.push(
+			createSlide("Blank")
+				.addText("All masters test", { x: 50, y: 50, width: 400, height: 50 })
+				.build(),
+		);
+
+		await handler.save(data.slides);
+
+		const themes = await handler.getAvailableThemes();
+		await handler.setPresentationTheme(themes[0].path, true);
+
+		const { data: reloaded } = await saveAndReload(handler, data.slides);
+		expect(reloaded.slideMasters).toBeDefined();
+		if (reloaded.slideMasters && reloaded.slideMasters.length > 0) {
+			expect(reloaded.slideMasters[0].themePath).toBe(themes[0].path);
+		}
+	});
+
+	it("should handle getAvailableThemes returning theme options matching PptxData.themeOptions", async () => {
+		const { handler, data, createSlide } = await createAndLoad({
+			theme: { name: "Consistency Check" },
+		});
+
+		data.slides.push(
+			createSlide("Blank")
+				.addText("Consistency test", { x: 50, y: 50, width: 400, height: 50 })
+				.build(),
+		);
+
+		await handler.save(data.slides);
+
+		const dynamicThemes = await handler.getAvailableThemes();
+		const loadedThemes = data.themeOptions;
+
+		expect(loadedThemes).toBeDefined();
+		expect(dynamicThemes.length).toBe(loadedThemes!.length);
+		for (let i = 0; i < dynamicThemes.length; i++) {
+			expect(dynamicThemes[i].path).toBe(loadedThemes![i].path);
+			expect(dynamicThemes[i].name).toBe(loadedThemes![i].name);
+		}
+	});
+});

@@ -122,6 +122,51 @@ function parseSingleAxis(
 		result,
 	);
 
+	// Axis ID and cross-axis ID
+	const axIdNode = xmlLookup.getChildByLocalName(axisNode, 'axId');
+	if (axIdNode) {
+		const axId = safeInt(axIdNode['@_val']);
+		if (axId !== undefined) result.axisId = axId;
+	}
+
+	const crossAxNode = xmlLookup.getChildByLocalName(axisNode, 'crossAx');
+	if (crossAxNode) {
+		const crossId = safeInt(crossAxNode['@_val']);
+		if (crossId !== undefined) result.crossAxisId = crossId;
+	}
+
+	// Deleted/hidden axis (c:delete/@val)
+	const deleteNode = xmlLookup.getChildByLocalName(axisNode, 'delete');
+	if (deleteNode) {
+		const delVal = deleteNode['@_val'];
+		if (delVal === '1' || delVal === true) {
+			result.deleted = true;
+		}
+	}
+
+	// Scaling: min, max, logBase (c:scaling/c:min/@val, c:scaling/c:max/@val, c:scaling/c:logBase/@val)
+	const scalingNode = xmlLookup.getChildByLocalName(axisNode, 'scaling');
+	if (scalingNode) {
+		const minNode = xmlLookup.getChildByLocalName(scalingNode, 'min');
+		if (minNode) {
+			const minVal = parseFloat(String(minNode['@_val']));
+			if (Number.isFinite(minVal)) result.min = minVal;
+		}
+		const maxNode = xmlLookup.getChildByLocalName(scalingNode, 'max');
+		if (maxNode) {
+			const maxVal = parseFloat(String(maxNode['@_val']));
+			if (Number.isFinite(maxVal)) result.max = maxVal;
+		}
+		const logBaseNode = xmlLookup.getChildByLocalName(scalingNode, 'logBase');
+		if (logBaseNode) {
+			const logBaseVal = parseFloat(String(logBaseNode['@_val']));
+			if (Number.isFinite(logBaseVal) && logBaseVal > 0) {
+				result.logScale = true;
+				result.logBase = logBaseVal;
+			}
+		}
+	}
+
 	// Gridlines
 	const majorGrid = xmlLookup.getChildByLocalName(
 		axisNode,
@@ -147,7 +192,50 @@ function parseSingleAxis(
 		);
 	}
 
+	// Display units (c:dispUnits) — applies to value axes
+	const dispUnitsNode = xmlLookup.getChildByLocalName(axisNode, 'dispUnits');
+	if (dispUnitsNode) {
+		parseDisplayUnits(dispUnitsNode, xmlLookup, result);
+	}
+
 	return result;
+}
+
+const VALID_DISPLAY_UNITS = new Set([
+	'hundreds', 'thousands', 'tenThousands', 'hundredThousands',
+	'millions', 'tenMillions', 'hundredMillions', 'billions', 'trillions',
+]);
+
+function parseDisplayUnits(
+	dispUnitsNode: XmlObject,
+	xmlLookup: XmlLookupLike,
+	target: PptxChartAxisFormatting,
+): void {
+	const builtInNode = xmlLookup.getChildByLocalName(dispUnitsNode, 'builtInUnit');
+	if (builtInNode) {
+		const unitVal = String(builtInNode['@_val'] ?? '').trim();
+		if (VALID_DISPLAY_UNITS.has(unitVal)) {
+			target.displayUnits = unitVal as PptxChartAxisFormatting['displayUnits'];
+		}
+	}
+
+	const custUnitNode = xmlLookup.getChildByLocalName(dispUnitsNode, 'custUnit');
+	if (custUnitNode) {
+		const custVal = parseFloat(String(custUnitNode['@_val'] ?? ''));
+		if (Number.isFinite(custVal) && custVal !== 0) {
+			target.displayUnits = 'custom';
+			target.displayUnitsValue = custVal;
+		}
+	}
+
+	const lblNode = xmlLookup.getChildByLocalName(dispUnitsNode, 'dispUnitsLbl');
+	if (lblNode) {
+		const texts: string[] = [];
+		collectAxisTextValues(lblNode, texts);
+		if (texts.length > 0) {
+			target.displayUnitsLabel = texts.join('');
+		}
+	}
 }
 
 function parseTxPr(

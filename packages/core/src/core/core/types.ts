@@ -110,4 +110,37 @@ export interface IPptxHandlerRuntime {
     slides: PptxSlide[],
     options: PptxExportOptions,
   ): Promise<Map<number, Uint8Array>>;
+  /**
+   * Get the available slide layouts for a specific slide, based on the
+   * slide's master. Scans the slide master's relationships to find all
+   * layouts that belong to it.
+   *
+   * @param slideIndex - Zero-based slide index.
+   * @param slides - Current slides array.
+   * @returns Array of layout options belonging to the same slide master.
+   */
+  getAvailableLayoutsForSlide(
+    slideIndex: number,
+    slides: PptxSlide[],
+  ): Promise<PptxLayoutOption[]>;
+  /**
+   * Scan the loaded PPTX archive for all theme parts.
+   */
+  getAvailableThemes(): Promise<Array<{ path: string; name?: string }>>;
+  /**
+   * Apply a different layout to an existing slide by updating the slide's
+   * relationship to point to the new layout and re-parsing layout
+   * placeholders / background.
+   *
+   * @param slideIndex - Zero-based slide index.
+   * @param layoutPath - Archive path of the target layout
+   *                     (e.g. `ppt/slideLayouts/slideLayout2.xml`).
+   * @param slides - Current slides array.
+   * @returns The updated slide with new layout path, name, and background.
+   */
+  applyLayoutToSlide(
+    slideIndex: number,
+    layoutPath: string,
+    slides: PptxSlide[],
+  ): Promise<PptxSlide>;
 }

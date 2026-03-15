@@ -57,7 +57,9 @@
 	"optionalDependencies": {
 		"three": ">=0.160.0",
 		"@react-three/fiber": ">=8.0.0",
-		"@react-three/drei": ">=9.0.0"
+		"@react-three/drei": ">=9.0.0",
+		"yjs": ">=13.0.0",
+		"y-websocket": ">=2.0.0"
 	},
 	"devDependencies": {
 		"@tailwindcss/cli": "^4.1.0",
@@ -66,7 +68,9 @@
 		"tailwindcss": "^4.1.0",
 		"tsup": "^8.5.1",
 		"typescript": "^5.9.3",
-		"vitest": "^3.2.4"
+		"vitest": "^3.2.4",
+		"yjs": "^13.6.0",
+		"y-websocket": "^2.1.0"
 	},
 	"files": [
 		"dist/",

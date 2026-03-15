@@ -444,6 +444,8 @@ export interface PptxData {
   customXmlParts?: PptxCustomXmlPart[];
   /** Customer data references from `p:custDataLst` in `presentation.xml`. */
   customerData?: PptxCustomerData[];
+  /** Thumbnail image binary data from `docProps/thumbnail.{jpeg,png}`. */
+  thumbnailData?: Uint8Array;
 }
 
 // ==========================================================================
@@ -516,6 +518,8 @@ export interface PptxCustomXmlPart {
   schemaUri?: string;
   /** Raw XML string content of the associated `itemProps` file. */
   properties?: string;
+  /** Raw XML string content of the OPC relationship file (`customXml/_rels/item{id}.xml.rels`). */
+  rels?: string;
 }
 
 export interface PptxEmbeddedFont {

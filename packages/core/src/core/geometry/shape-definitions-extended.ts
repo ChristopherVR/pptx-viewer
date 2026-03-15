@@ -16,6 +16,11 @@ import type { PresetShapeDefinition } from "./preset-shape-types";
  * Shape definitions for arrows, callouts, flowchart symbols, and action buttons.
  */
 export const EXTENDED_SHAPE_DEFINITIONS: PresetShapeDefinition[] = [
+  // ── Lines & Connectors ─────────────────────────────────────────────────
+  { name: "line", label: "Line", category: "other" },
+  { name: "lineInv", label: "Line Inverse", category: "other" },
+  { name: "straightConnector1", label: "Straight Connector", category: "other" },
+
   // ── Arrows ────────────────────────────────────────────────────────────
   { name: "rightArrow", label: "Right Arrow", category: "arrows" },
   { name: "leftArrow", label: "Left Arrow", category: "arrows" },
@@ -259,4 +264,14 @@ export const EXTENDED_SHAPE_DEFINITIONS: PresetShapeDefinition[] = [
   },
   { name: "actionButtonSound", label: "Action: Sound", category: "action" },
   { name: "actionButtonMovie", label: "Action: Movie", category: "action" },
+  {
+    name: "actionButtonBackPrevious",
+    label: "Action: Back",
+    category: "action",
+  },
+  {
+    name: "actionButtonForwardNext",
+    label: "Action: Forward",
+    category: "action",
+  },
 ];

@@ -119,6 +119,102 @@ describe('parseChartAxes', () => {
 		const result = parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName);
 		expect(result).toEqual([]);
 	});
+
+	it('should parse logarithmic scale from c:scaling/c:logBase', () => {
+		const plotArea: XmlObject = {
+			'c:valAx': {
+				'c:scaling': {
+					'c:logBase': { '@_val': '10' },
+					'c:min': { '@_val': '1' },
+					'c:max': { '@_val': '10000' },
+				},
+			},
+		};
+
+		const result = parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName);
+		expect(result).toHaveLength(1);
+
+		const valAx = result[0];
+		expect(valAx.axisType).toBe('valAx');
+		expect(valAx.logScale).toBe(true);
+		expect(valAx.logBase).toBe(10);
+		expect(valAx.min).toBe(1);
+		expect(valAx.max).toBe(10000);
+	});
+
+	it('should parse log base 2', () => {
+		const plotArea: XmlObject = {
+			'c:valAx': {
+				'c:scaling': {
+					'c:logBase': { '@_val': '2' },
+				},
+			},
+		};
+
+		const result = parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName);
+		const valAx = result[0];
+		expect(valAx.logScale).toBe(true);
+		expect(valAx.logBase).toBe(2);
+	});
+
+	it('should not set logScale when scaling has no logBase', () => {
+		const plotArea: XmlObject = {
+			'c:valAx': {
+				'c:scaling': {
+					'c:min': { '@_val': '0' },
+					'c:max': { '@_val': '100' },
+				},
+			},
+		};
+
+		const result = parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName);
+		const valAx = result[0];
+		expect(valAx.logScale).toBeUndefined();
+		expect(valAx.logBase).toBeUndefined();
+		expect(valAx.min).toBe(0);
+		expect(valAx.max).toBe(100);
+	});
+
+	it('should parse axisId and crossAxisId', () => {
+		const plotArea: XmlObject = {
+			'c:valAx': {
+				'c:axId': { '@_val': '123456' },
+				'c:crossAx': { '@_val': '789012' },
+			},
+		};
+
+		const result = parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName);
+		const valAx = result[0];
+		expect(valAx.axisId).toBe(123456);
+		expect(valAx.crossAxisId).toBe(789012);
+	});
+
+	it('should parse deleted axis', () => {
+		const plotArea: XmlObject = {
+			'c:valAx': {
+				'c:delete': { '@_val': '1' },
+			},
+		};
+
+		const result = parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName);
+		const valAx = result[0];
+		expect(valAx.deleted).toBe(true);
+	});
+
+	it('should ignore invalid logBase values', () => {
+		const plotArea: XmlObject = {
+			'c:valAx': {
+				'c:scaling': {
+					'c:logBase': { '@_val': 'invalid' },
+				},
+			},
+		};
+
+		const result = parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName);
+		const valAx = result[0];
+		expect(valAx.logScale).toBeUndefined();
+		expect(valAx.logBase).toBeUndefined();
+	});
 });
 
 describe('parseChart3DSurfaces', () => {

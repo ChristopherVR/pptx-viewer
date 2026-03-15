@@ -54,6 +54,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       runProps["@_rtl"] = style.rtl ? "1" : "0";
     }
     // Run metadata
+    if (style.kumimoji !== undefined) {
+      runProps["@_kumimoji"] = style.kumimoji ? "1" : "0";
+    }
     if (style.normalizeHeight !== undefined) {
       runProps["@_normalizeH"] = style.normalizeHeight ? "1" : "0";
     }

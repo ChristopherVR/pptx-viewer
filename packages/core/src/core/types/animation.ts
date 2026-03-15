@@ -123,6 +123,8 @@ export interface PptxNativeAnimation {
   motionPath?: string;
   /** Motion origin: "layout" or "parent". */
   motionOrigin?: string;
+  /** Whether the element auto-rotates to follow the motion path tangent (`p:animMotion/@rAng` = "0"). */
+  motionPathRotateAuto?: boolean;
   /** Rotation angle in degrees for `p:animRot` (converted from 60000ths). */
   rotationBy?: number;
   /** X scale factor (percentage / 100) for `p:animScale`. */
@@ -177,6 +179,11 @@ export interface PptxColorAnimation {
   toColor?: string;
   /** Color delta (for "by" animations) as hex string. */
   byColor?: string;
+  /**
+   * Target attribute from `p:attrNameLst` (e.g. "fillcolor", "style.color",
+   * "stroke.color"). Used to determine which CSS property to animate.
+   */
+  targetAttribute?: string;
 }
 
 /** Text-level animation target from `p:txEl`. */

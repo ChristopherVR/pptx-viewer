@@ -49,6 +49,14 @@ import { ViewerMainContent } from "./components/ViewerMainContent";
 import { ViewerDialogGroup } from "./components/ViewerDialogGroup";
 import { ViewerPresentationLayer } from "./components/ViewerPresentationLayer";
 
+// Collaboration
+import {
+  CollaborationProvider,
+  useCollaboration,
+  UserAvatarBar,
+  CollaborationStatusIndicator,
+} from "./components/collaboration";
+
 /* ------------------------------------------------------------------ */
 /*  Component                                                         */
 /* ------------------------------------------------------------------ */
@@ -74,6 +82,7 @@ export const PowerPointViewer = forwardRef<
     onDirtyChange,
     onActiveSlideChange,
     theme,
+    collaboration,
   } = props;
 
   const themeStyle = useThemeStyle(theme);
@@ -300,8 +309,7 @@ export const PowerPointViewer = forwardRef<
   const showMasterPane = mode === "master" && state.isSlidesPaneOpen;
 
   // ── JSX ───────────────────────────────────────────────────────
-  return (
-    <ViewerThemeProvider theme={theme}>
+  const viewerContent = (
     <div
       ref={containerRef}
       tabIndex={0}
@@ -311,27 +319,32 @@ export const PowerPointViewer = forwardRef<
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/3 to-transparent z-0" />
 
       {mode !== "present" && (
-        <ViewerToolbarSection
-          mode={mode}
-          canEdit={canEdit}
-          state={state}
-          selectedElement={selectedElement}
-          activeSlide={activeSlide}
-          zoom={zoom}
-          history={history}
-          findReplace={editorOps.findReplace}
-          manipulation={editorOps.manipulation}
-          insertHandlers={editorOps.insertHandlers}
-          exportHandlers={exportHandlers}
-          printHandlers={printHandlers}
-          propertyHandlers={propertyHandlers}
-          dialogs={dialogs}
-          slideOps={editorOps.slideOps}
-          ops={editorOps.ops}
-          onSetMode={handleSetMode}
-          onEnterPresenterView={handleEnterPresenterView}
-          onEnterRehearsalMode={handleEnterRehearsalMode}
-        />
+        <>
+          <ViewerToolbarSection
+            mode={mode}
+            canEdit={canEdit}
+            state={state}
+            selectedElement={selectedElement}
+            activeSlide={activeSlide}
+            zoom={zoom}
+            history={history}
+            findReplace={editorOps.findReplace}
+            manipulation={editorOps.manipulation}
+            insertHandlers={editorOps.insertHandlers}
+            exportHandlers={exportHandlers}
+            printHandlers={printHandlers}
+            propertyHandlers={propertyHandlers}
+            dialogs={dialogs}
+            slideOps={editorOps.slideOps}
+            ops={editorOps.ops}
+            onSetMode={handleSetMode}
+            onEnterPresenterView={handleEnterPresenterView}
+            onEnterRehearsalMode={handleEnterRehearsalMode}
+          />
+          {collaboration && (
+            <CollaborationToolbarStrip collaboration={collaboration} />
+          )}
+        </>
       )}
 
       <ViewerMainContent
@@ -371,6 +384,9 @@ export const PowerPointViewer = forwardRef<
           autosaveStatus={autosaveStatus}
           onToggleNotes={() => state.setIsSlideNotesCollapsed((p) => !p)}
           onUpdateNotes={propertyHandlers.handleUpdateNotes}
+          collaborationSlot={
+            collaboration ? <CollaborationStatusStrip /> : undefined
+          }
         />
       )}
 
@@ -435,8 +451,66 @@ export const PowerPointViewer = forwardRef<
         onExitPresentation={() => handleSetMode("edit")}
       />
     </div>
+  );
+
+  return (
+    <ViewerThemeProvider theme={theme}>
+      {collaboration ? (
+        <CollaborationProvider
+          config={collaboration}
+          canvasWidth={canvasSize.width}
+          canvasHeight={canvasSize.height}
+        >
+          {viewerContent}
+        </CollaborationProvider>
+      ) : (
+        viewerContent
+      )}
     </ViewerThemeProvider>
   );
 });
 
 PowerPointViewer.displayName = "PowerPointViewer";
+
+/* ------------------------------------------------------------------ */
+/*  Collaboration sub-components (only rendered when collab is active) */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Renders the `UserAvatarBar` in the toolbar area. Must be rendered
+ * inside a `CollaborationProvider`.
+ */
+function CollaborationToolbarStrip({
+  collaboration,
+}: {
+  collaboration: import("./hooks/collaboration/types").CollaborationConfig;
+}) {
+  const collab = useCollaboration();
+  if (!collab) return null;
+  return (
+    <div className="flex items-center justify-end px-2 py-0.5 border-b border-border bg-background/30 z-10">
+      <UserAvatarBar
+        remoteUsers={collab.remoteUsers}
+        localUserName={collaboration.userName}
+        localUserColor={collab.config.userColor ?? "#6366f1"}
+        localUserAvatar={collaboration.userAvatar}
+        status={collab.status}
+      />
+    </div>
+  );
+}
+
+/**
+ * Renders the `CollaborationStatusIndicator` for the status bar.
+ * Must be rendered inside a `CollaborationProvider`.
+ */
+function CollaborationStatusStrip() {
+  const collab = useCollaboration();
+  if (!collab) return null;
+  return (
+    <CollaborationStatusIndicator
+      status={collab.status}
+      connectedCount={collab.connectedCount}
+    />
+  );
+}

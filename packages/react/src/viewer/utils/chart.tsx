@@ -19,7 +19,8 @@ import {
   renderSunburstChart,
   renderFunnelChart,
 } from "./chart-sunburst-funnel";
-import { renderBoxWhiskerChart, renderHistogramChart, renderMapChartFallback, renderDefaultBarChart } from "./chart-bar";
+import { renderBoxWhiskerChart, renderHistogramChart, renderDefaultBarChart } from "./chart-bar";
+import { renderMapChart } from "./chart-map";
 
 /**
  * Main entry point for chart rendering.
@@ -99,9 +100,9 @@ export function renderChartElement(element: PptxElement): React.ReactNode {
   if (chartType === "histogram")
     return renderHistogramChart(element, chartData, categoryLabels);
 
-  // Geographic map charts don't have projection rendering — show data as table fallback
+  // Geographic map charts — render as SVG choropleth
   if (chartType === "regionMap") {
-    return renderMapChartFallback(element, chartData, categoryLabels);
+    return renderMapChart(element, chartData, categoryLabels);
   }
 
   return renderDefaultBarChart(element, chartData, categoryLabels);

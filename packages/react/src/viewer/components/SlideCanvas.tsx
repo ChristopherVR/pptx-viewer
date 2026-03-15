@@ -80,6 +80,8 @@ export function SlideCanvas({
   allSlides,
   onZoomClick,
   sourceSlideIndex,
+  fieldContext,
+  collaborationOverlay,
 }: SlideCanvasProps) {
   /* ── Stable callback refs ──────────────────────────────────────── */
   const {
@@ -268,6 +270,7 @@ export function SlideCanvas({
               allSlides={allSlides}
               onZoomClick={onZoomClick}
               sourceSlideIndex={sourceSlideIndex}
+              fieldContext={fieldContext}
             />
           ))}
 
@@ -317,6 +320,7 @@ export function SlideCanvas({
               allSlides={allSlides}
               onZoomClick={onZoomClick}
               sourceSlideIndex={sourceSlideIndex}
+              fieldContext={fieldContext}
             />
           ))}
 
@@ -358,6 +362,9 @@ export function SlideCanvas({
               onPointerUp={handleDrawPointerUp}
             />
           )}
+
+          {/* Collaboration remote cursors overlay */}
+          {collaborationOverlay}
         </div>
       </div>
     </div>

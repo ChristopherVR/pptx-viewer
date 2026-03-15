@@ -140,6 +140,62 @@ describe("handlePresentationActionImpl", () => {
     );
   });
 
+  // -- URL security -----------------------------------------------------------
+
+  it("should block javascript: URLs", () => {
+    const action: PptxAction = {
+      url: "javascript:alert(1)",
+      action: "",
+    };
+    handlePresentationActionImpl(action, deps);
+    expect(window.open).not.toHaveBeenCalled();
+  });
+
+  it("should block data: URLs", () => {
+    const action: PptxAction = {
+      url: "data:text/html,<script>alert(1)</script>",
+      action: "",
+    };
+    handlePresentationActionImpl(action, deps);
+    expect(window.open).not.toHaveBeenCalled();
+  });
+
+  it("should block vbscript: URLs", () => {
+    const action: PptxAction = {
+      url: "vbscript:MsgBox('XSS')",
+      action: "",
+    };
+    handlePresentationActionImpl(action, deps);
+    expect(window.open).not.toHaveBeenCalled();
+  });
+
+  // -- Slide index clamping ---------------------------------------------------
+
+  it("should clamp targetSlideIndex beyond range to last slide", () => {
+    const action: PptxAction = { targetSlideIndex: 100 };
+    handlePresentationActionImpl(action, deps);
+    expect(deps.navigateToSlide).toHaveBeenCalledWith(9); // slidesLength - 1 = 9
+  });
+
+  it("should clamp negative targetSlideIndex to 0", () => {
+    const action: PptxAction = { targetSlideIndex: -5 };
+    handlePresentationActionImpl(action, deps);
+    expect(deps.navigateToSlide).toHaveBeenCalledWith(0);
+  });
+
+  it("should floor fractional targetSlideIndex", () => {
+    const action: PptxAction = { targetSlideIndex: 3.7 };
+    handlePresentationActionImpl(action, deps);
+    expect(deps.navigateToSlide).toHaveBeenCalledWith(3);
+  });
+
+  it("should not navigate when slidesLength is 0", () => {
+    deps = createMockDeps({ slidesLength: 0 });
+    const action: PptxAction = { targetSlideIndex: 5 };
+    handlePresentationActionImpl(action, deps);
+    expect(deps.navigateToSlide).not.toHaveBeenCalled();
+  });
+
   // -- Combined: sound + action -----------------------------------------------
 
   it("should play sound AND navigate when both are present", () => {

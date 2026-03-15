@@ -57,6 +57,9 @@ function createRunPropertiesFromTextStyle(
   if (style.rtl !== undefined) {
     runProps["@_rtl"] = style.rtl ? "1" : "0";
   }
+  if (style.kumimoji !== undefined) {
+    runProps["@_kumimoji"] = style.kumimoji ? "1" : "0";
+  }
   if (style.normalizeHeight !== undefined) {
     runProps["@_normalizeH"] = style.normalizeHeight ? "1" : "0";
   }
@@ -361,8 +364,9 @@ describe("createRunPropertiesFromTextStyle", () => {
     ).toBe("333333");
   });
 
-  it("should set metadata flags: normalizeHeight, noProof, dirty, spellingError, smartTagClean, bookmark", () => {
+  it("should set metadata flags: kumimoji, normalizeHeight, noProof, dirty, spellingError, smartTagClean, bookmark", () => {
     const result = createRunPropertiesFromTextStyle({
+      kumimoji: true,
       normalizeHeight: true,
       noProof: true,
       dirty: true,
@@ -370,6 +374,7 @@ describe("createRunPropertiesFromTextStyle", () => {
       smartTagClean: true,
       bookmark: "bm1",
     });
+    expect(result["@_kumimoji"]).toBe("1");
     expect(result["@_normalizeH"]).toBe("1");
     expect(result["@_noProof"]).toBe("1");
     expect(result["@_dirty"]).toBe("1");

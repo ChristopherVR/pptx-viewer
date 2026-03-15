@@ -145,6 +145,28 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     await this.processPendingChartUpdates();
     await this.processPendingSmartArtUpdates();
     this.applyCustomXmlPartsPreservation();
+
+    // Update content types for custom XML parts
+    if (this.customXmlParts.length > 0) {
+      const contentTypesXmlForCustomXml = await this.zip
+        .file("[Content_Types].xml")
+        ?.async("string");
+      if (contentTypesXmlForCustomXml) {
+        const contentTypesData = this.parser.parse(
+          contentTypesXmlForCustomXml,
+        ) as XmlObject;
+        this.contentTypesBuilder.applyCustomXmlUpdates({
+          contentTypesData,
+          customXmlParts: this.customXmlParts,
+        });
+        this.zip.file(
+          "[Content_Types].xml",
+          this.builder.build(contentTypesData),
+        );
+      }
+    }
+
+    this.applyThumbnailPreservation();
     await this.applyVbaProjectPreservation();
     await this.stripDigitalSignatures();
 

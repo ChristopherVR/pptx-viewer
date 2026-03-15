@@ -169,3 +169,29 @@ export type {
 
 export { useReducedMotion } from "./useReducedMotion";
 export type { UseReducedMotionResult } from "./useReducedMotion";
+
+// Collaboration
+export type {
+  CollaborationConfig,
+  ConnectionStatus,
+  UserPresence,
+  CollaborationContextValue,
+} from "./collaboration";
+export { useCollaborativeState } from "./collaboration";
+export type { UseCollaborativeStateInput } from "./collaboration";
+export { usePresenceTracking } from "./collaboration";
+export type {
+  UsePresenceTrackingInput,
+  UsePresenceTrackingResult,
+} from "./collaboration";
+export { useCollaborativeHistory } from "./collaboration";
+export type {
+  UseCollaborativeHistoryInput,
+  UseCollaborativeHistoryResult,
+} from "./collaboration";
+
+export { useLayoutSwitching } from "./useLayoutSwitching";
+export type {
+  UseLayoutSwitchingInput,
+  LayoutSwitchingResult,
+} from "./useLayoutSwitching";

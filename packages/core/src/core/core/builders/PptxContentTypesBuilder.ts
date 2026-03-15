@@ -1,4 +1,4 @@
-import type { XmlObject } from "../../types";
+import type { XmlObject, PptxCustomXmlPart } from "../../types";
 import type { PptxSaveFormat } from "../types";
 
 export interface PptxContentTypesSlideMediaBuildInput {
@@ -17,11 +17,17 @@ export interface PptxContentTypesCommentBuildInput {
   commentAuthorsPartName: string;
 }
 
+export interface PptxContentTypesCustomXmlBuildInput {
+  contentTypesData: XmlObject;
+  customXmlParts: PptxCustomXmlPart[];
+}
+
 export interface IPptxContentTypesBuilder {
   applySlideAndMediaUpdates(
     init: PptxContentTypesSlideMediaBuildInput,
   ): XmlObject;
   applyCommentUpdates(init: PptxContentTypesCommentBuildInput): XmlObject;
+  applyCustomXmlUpdates(init: PptxContentTypesCustomXmlBuildInput): void;
   applyOutputFormatOverride(
     contentTypesData: XmlObject,
     format: PptxSaveFormat,
@@ -208,6 +214,52 @@ export class PptxContentTypesBuilder implements IPptxContentTypesBuilder {
 
   private normalizePartName(partName: string): string {
     return partName.startsWith("/") ? partName : `/${partName}`;
+  }
+
+  /** Standard content type for custom XML item data parts. */
+  private static readonly CUSTOM_XML_CONTENT_TYPE =
+    "application/vnd.openxmlformats-officedocument.customXmlProperties+xml";
+
+  /**
+   * Ensure `[Content_Types].xml` contains Override entries for each
+   * custom XML properties part (`customXml/itemProps{id}.xml`).
+   *
+   * The custom XML item files themselves are covered by a Default
+   * extension entry for `.xml`, so only the itemProps overrides need
+   * explicit registration.
+   */
+  public applyCustomXmlUpdates(
+    init: PptxContentTypesCustomXmlBuildInput,
+  ): void {
+    if (init.customXmlParts.length === 0) return;
+
+    const typesRoot = this.ensureTypesRoot(init.contentTypesData);
+    const overrides = this.ensureArray(typesRoot["Override"]);
+
+    const existingOverrides = new Set<string>();
+    for (const entry of overrides) {
+      const partName = entry?.["@_PartName"];
+      if (typeof partName === "string") {
+        existingOverrides.add(this.normalizePartName(partName));
+      }
+    }
+
+    for (const part of init.customXmlParts) {
+      if (!part.properties) continue;
+      const partName = this.normalizePartName(
+        `customXml/itemProps${part.id}.xml`,
+      );
+      if (existingOverrides.has(partName)) continue;
+      overrides.push({
+        "@_PartName": partName,
+        "@_ContentType":
+          PptxContentTypesBuilder.CUSTOM_XML_CONTENT_TYPE,
+      });
+      existingOverrides.add(partName);
+    }
+
+    typesRoot["Override"] = overrides;
+    init.contentTypesData["Types"] = typesRoot;
   }
 
   /** Content type for the main presentation part keyed by output format. */

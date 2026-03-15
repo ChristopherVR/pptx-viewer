@@ -2,7 +2,9 @@ import {
   PptxData,
   PptxSlide,
   type PptxSection,
+  type PptxLayoutOption,
   PptxCompatibilityWarning,
+  XmlObject,
 } from "../../types";
 import { PptxLoadDataBuilder } from "../builders";
 import { type PptxHandlerLoadOptions } from "../types";
@@ -42,6 +44,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     const modifyVerifier = this.extractModifyVerifier();
     const kinsoku = this.extractKinsoku();
     const customerData = await this.parsePresentationCustomerData();
+    this.thumbnailData = (await this.parseThumbnail()) ?? null;
 
     return new PptxLoadDataBuilder()
       .withDimensions(
@@ -103,6 +106,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         customerData.length > 0 ? customerData : undefined,
       )
       .withSlideSizeType(this.rawSlideSizeType)
+      .withThumbnailData(this.thumbnailData ?? undefined)
       .build();
   }
 
@@ -216,5 +220,241 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
   getCompatibilityWarnings(): PptxCompatibilityWarning[] {
     return this.compatibilityService.getWarnings();
+  }
+
+  // ── Layout switching (GAP-E4) ──────────────────────────────────────
+
+  /**
+   * Find the master path that a given layout belongs to by scanning
+   * the layout's own `.rels` file for a `slideMaster` relationship.
+   */
+  private findMasterPathForLayout(layoutPath: string): string | undefined {
+    const layoutRels = this.slideRelsMap.get(layoutPath);
+    if (!layoutRels) return undefined;
+    for (const [, target] of layoutRels.entries()) {
+      if (target.includes("slideMaster")) {
+        const layoutDir = layoutPath.substring(
+          0,
+          layoutPath.lastIndexOf("/") + 1,
+        );
+        return target.startsWith("..")
+          ? this.resolvePath(layoutDir, target)
+          : "ppt/" + target.replace("../", "");
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Find the master path for a slide by walking: slide -> layout -> master.
+   */
+  private findMasterPathForSlide(slidePath: string): string | undefined {
+    const layoutPath = this.findLayoutPathForSlide(slidePath);
+    if (!layoutPath) return undefined;
+    return this.findMasterPathForLayout(layoutPath);
+  }
+
+  /**
+   * Get layouts available for a specific slide, scoped to that slide's
+   * master. If the slide's master cannot be determined, returns all
+   * known layouts.
+   */
+  async getAvailableLayoutsForSlide(
+    slideIndex: number,
+    slides: PptxSlide[],
+  ): Promise<PptxLayoutOption[]> {
+    const slide = slides[slideIndex];
+    if (!slide) return [];
+
+    const slidePath = slide.id;
+    const masterPath = this.findMasterPathForSlide(slidePath);
+
+    if (!masterPath) {
+      // Fallback: return all layout options
+      return this.getLayoutOptions();
+    }
+
+    // Scan the master's .rels for all slideLayout relationships
+    const masterRels = this.slideRelsMap.get(masterPath);
+    if (!masterRels) {
+      return this.getLayoutOptions();
+    }
+
+    const masterLayoutPaths = new Set<string>();
+    for (const [, target] of masterRels.entries()) {
+      if (target.includes("slideLayout")) {
+        const masterDir = masterPath.substring(
+          0,
+          masterPath.lastIndexOf("/") + 1,
+        );
+        const resolved = target.startsWith("..")
+          ? this.resolvePath(masterDir, target)
+          : "ppt/" + target.replace("../", "");
+        masterLayoutPaths.add(resolved);
+      }
+    }
+
+    // Build layout options from the filtered set
+    const options: PptxLayoutOption[] = [];
+    for (const lp of masterLayoutPaths) {
+      const xmlObj = this.layoutXmlMap.get(lp);
+      if (xmlObj) {
+        const sldLayout = (xmlObj as XmlObject)["p:sldLayout"] as
+          | XmlObject
+          | undefined;
+        const name =
+          String(sldLayout?.["p:cSld"]?.["@_name"] || "").trim() || lp;
+        const type =
+          sldLayout?.["@_type"] != null
+            ? String(sldLayout["@_type"]).trim()
+            : undefined;
+        options.push({ path: lp, name, ...(type ? { type } : {}) });
+      } else {
+        // Layout not yet in cache -- try to load from ZIP
+        try {
+          const layoutXmlStr = await this.zip.file(lp)?.async("string");
+          if (layoutXmlStr) {
+            const layoutXmlObj = this.parser.parse(layoutXmlStr) as XmlObject;
+            this.layoutXmlMap.set(lp, layoutXmlObj);
+            const sldLayout = layoutXmlObj["p:sldLayout"] as
+              | XmlObject
+              | undefined;
+            const name =
+              String(sldLayout?.["p:cSld"]?.["@_name"] || "").trim() || lp;
+            const type =
+              sldLayout?.["@_type"] != null
+                ? String(sldLayout["@_type"]).trim()
+                : undefined;
+            options.push({ path: lp, name, ...(type ? { type } : {}) });
+          }
+        } catch {
+          // Skip unreadable layouts
+        }
+      }
+    }
+    return options;
+  }
+
+  /**
+   * Apply a different layout to an existing slide.
+   *
+   * This updates the slide's `.rels` file in the in-memory ZIP so the
+   * `slideLayout` relationship points to the new layout, then refreshes
+   * the slide's layout-derived properties (background, layoutPath,
+   * layoutName).
+   */
+  async applyLayoutToSlide(
+    slideIndex: number,
+    layoutPath: string,
+    slides: PptxSlide[],
+  ): Promise<PptxSlide> {
+    const slide = slides[slideIndex];
+    if (!slide) {
+      throw new Error(`Slide index ${slideIndex} out of range`);
+    }
+
+    // Verify the target layout exists
+    let layoutXml = this.layoutXmlMap.get(layoutPath);
+    if (!layoutXml) {
+      const layoutXmlStr = await this.zip.file(layoutPath)?.async("string");
+      if (!layoutXmlStr) {
+        throw new Error(`Layout not found: ${layoutPath}`);
+      }
+      layoutXml = this.parser.parse(layoutXmlStr) as XmlObject;
+      this.layoutXmlMap.set(layoutPath, layoutXml);
+    }
+
+    const slidePath = slide.id;
+
+    // ── 1. Update the slide's .rels to point to the new layout ──────
+    const slideRelsPath =
+      slidePath.replace("slides/", "slides/_rels/") + ".rels";
+    const relsXml = await this.zip.file(slideRelsPath)?.async("string");
+
+    if (relsXml) {
+      const relsData = this.parser.parse(relsXml);
+      const rels = Array.isArray(relsData?.Relationships?.Relationship)
+        ? relsData.Relationships.Relationship
+        : relsData?.Relationships?.Relationship
+          ? [relsData.Relationships.Relationship]
+          : [];
+
+      // Compute relative target from slide path to layout path
+      const relativeTarget = "../slideLayouts/" + layoutPath.split("/").pop();
+
+      let found = false;
+      for (const r of rels) {
+        const relType = String(r["@_Type"] || "");
+        if (relType.includes("/slideLayout")) {
+          r["@_Target"] = relativeTarget;
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) {
+        // No existing layout rel -- add one
+        const maxRId = rels.reduce((max: number, r: XmlObject) => {
+          const id = parseInt(String(r["@_Id"] || "rId0").replace("rId", ""), 10);
+          return Number.isFinite(id) && id > max ? id : max;
+        }, 0);
+        rels.push({
+          "@_Id": `rId${maxRId + 1}`,
+          "@_Type":
+            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout",
+          "@_Target": relativeTarget,
+        });
+      }
+
+      relsData.Relationships.Relationship =
+        rels.length === 1 ? rels[0] : rels;
+      const updatedRelsXml = this.builder.build(relsData);
+      this.zip.file(slideRelsPath, updatedRelsXml);
+
+      // Update the in-memory relationship map
+      const relsMap = this.slideRelsMap.get(slidePath);
+      if (relsMap) {
+        for (const [rId, target] of relsMap.entries()) {
+          if (target.includes("slideLayout")) {
+            relsMap.set(rId, relativeTarget);
+            break;
+          }
+        }
+      }
+    }
+
+    // ── 2. Invalidate layout element cache for the old layout ───────
+    this.layoutCache.delete(layoutPath);
+
+    // ── 3. Resolve layout name and background ───────────────────────
+    const sldLayout = (layoutXml as XmlObject)["p:sldLayout"] as
+      | XmlObject
+      | undefined;
+    const layoutName =
+      String(sldLayout?.["p:cSld"]?.["@_name"] || "").trim() || layoutPath;
+
+    // Try to resolve background from the new layout
+    const layoutBgColor = this.extractBackgroundColor(
+      layoutXml,
+      "p:sldLayout",
+    );
+
+    // ── 4. Update the slide object ──────────────────────────────────
+    const updated: PptxSlide = {
+      ...slide,
+      layoutPath,
+      layoutName,
+      isDirty: true,
+    };
+
+    // Apply layout background if slide doesn't have its own
+    if (!slide.rawXml || !this.extractBackgroundColor(slide.rawXml)) {
+      if (layoutBgColor) {
+        updated.backgroundColor = layoutBgColor;
+      }
+    }
+
+    slides[slideIndex] = updated;
+    return updated;
   }
 }

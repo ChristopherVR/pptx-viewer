@@ -33,18 +33,32 @@ export function extractColorAnimation(
 	const toColor = extractColorValue(node["p:to"] as XmlObject | undefined);
 	const byColor = extractColorValue(node["p:by"] as XmlObject | undefined);
 
+	// Extract target attribute from p:cBhvr/p:attrNameLst/p:attrName
+	let targetAttribute: string | undefined;
+	const cBhvr = node["p:cBhvr"] as XmlObject | undefined;
+	if (cBhvr) {
+		const attrNameLst = cBhvr["p:attrNameLst"] as XmlObject | undefined;
+		if (attrNameLst) {
+			const attrNames = ensureArray(attrNameLst["p:attrName"]);
+			if (attrNames.length > 0) {
+				targetAttribute = String(attrNames[0]).toLowerCase().trim();
+			}
+		}
+	}
+
 	return {
 		colorSpace,
 		direction,
 		fromColor,
 		toColor,
 		byColor,
+		targetAttribute,
 	};
 }
 
 /**
  * Extract a hex color string from a color container node.
- * Handles `a:srgbClr/@val` and `a:schemeClr/@val`.
+ * Handles `a:srgbClr/@val`, `a:schemeClr/@val`, and `a:hslClr`.
  */
 function extractColorValue(
 	colorContainer: XmlObject | undefined,
@@ -61,7 +75,61 @@ function extractColorValue(
 		return String(scheme["@_val"]);
 	}
 
+	// HSL colour: hue in 60000ths of a degree, sat/lum in 1000ths of a percent
+	const hslNode = colorContainer["a:hslClr"] as XmlObject | undefined;
+	if (hslNode) {
+		const hueRaw = Number(hslNode["@_hue"] ?? 0);
+		const satRaw = Number(hslNode["@_sat"] ?? 0);
+		const lumRaw = Number(hslNode["@_lum"] ?? 0);
+		// Convert OOXML units: hue is in 60000ths of a degree, sat/lum in 1000ths of percent
+		const hue = hueRaw / 60000; // degrees 0-360
+		const sat = satRaw / 1000;  // percent 0-100
+		const lum = lumRaw / 1000;  // percent 0-100
+		const rgb = hslToRgbSimple(hue, sat, lum);
+		return `#${toHex2(rgb.r)}${toHex2(rgb.g)}${toHex2(rgb.b)}`;
+	}
+
 	return undefined;
+}
+
+/** Convert HSL (h: 0-360, s: 0-100, l: 0-100) to RGB (0-255). */
+function hslToRgbSimple(
+	h: number,
+	s: number,
+	l: number,
+): { r: number; g: number; b: number } {
+	const sn = s / 100;
+	const ln = l / 100;
+
+	if (sn === 0) {
+		const v = Math.round(ln * 255);
+		return { r: v, g: v, b: v };
+	}
+
+	const hueToRgb = (p: number, q: number, t: number): number => {
+		let tn = t;
+		if (tn < 0) tn += 1;
+		if (tn > 1) tn -= 1;
+		if (tn < 1 / 6) return p + (q - p) * 6 * tn;
+		if (tn < 1 / 2) return q;
+		if (tn < 2 / 3) return p + (q - p) * (2 / 3 - tn) * 6;
+		return p;
+	};
+
+	const q = ln < 0.5 ? ln * (1 + sn) : ln + sn - ln * sn;
+	const p = 2 * ln - q;
+	const hn = h / 360;
+
+	return {
+		r: Math.round(hueToRgb(p, q, hn + 1 / 3) * 255),
+		g: Math.round(hueToRgb(p, q, hn) * 255),
+		b: Math.round(hueToRgb(p, q, hn - 1 / 3) * 255),
+	};
+}
+
+/** Format a number (0-255) as a two-digit hex string. */
+function toHex2(n: number): string {
+	return Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0");
 }
 
 /**

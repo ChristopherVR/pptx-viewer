@@ -115,7 +115,7 @@ export interface PptxTagCollection {
  * ```ts
  * const prop: PptxCustomProperty = {
  *   name: "Project",
- *   value: "Fuzor",
+ *   value: "pptx",
  *   type: "lpwstr",
  * };
  * // => satisfies PptxCustomProperty

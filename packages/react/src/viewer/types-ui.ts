@@ -16,6 +16,7 @@ import type {
   StrokeDashType,
   XmlObject,
 } from "pptx-viewer-core";
+import type { CollaborationConfig } from "./hooks/collaboration/types";
 /**
  * Base handle interface for file viewer components.
  * Defined locally to avoid dependency on external file-viewer plugin packages.
@@ -277,6 +278,28 @@ export interface PowerPointViewerProps {
    * @see {@link ViewerTheme} for the full type definition.
    */
   theme?: import("../theme").ViewerTheme;
+
+  /**
+   * Optional real-time collaboration configuration.
+   *
+   * When provided, the viewer enables collaborative editing with live
+   * cursors, user presence indicators, and CRDT-based state sync via Yjs.
+   * Requires `yjs` and `y-websocket` peer dependencies.
+   *
+   * @example
+   * ```tsx
+   * <PowerPointViewer
+   *   content={bytes}
+   *   collaboration={{
+   *     roomId: "my-room-123",
+   *     serverUrl: "wss://collab.example.com",
+   *     userName: "Alice",
+   *     userColor: "#6366f1",
+   *   }}
+   * />
+   * ```
+   */
+  collaboration?: CollaborationConfig;
 }
 
 export interface PowerPointViewerHandle extends FileViewerHandle {

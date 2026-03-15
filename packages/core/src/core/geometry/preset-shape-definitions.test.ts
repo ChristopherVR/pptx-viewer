@@ -67,6 +67,10 @@ describe("PRESET_SHAPE_DEFINITIONS", () => {
     expect(names.has("diamond")).toBe(true);
   });
 
+  it("contains all 187 ECMA-376 preset shape definitions", () => {
+    expect(PRESET_SHAPE_DEFINITIONS.length).toBe(187);
+  });
+
   it("clip-path values are either undefined or non-empty strings", () => {
     for (const def of PRESET_SHAPE_DEFINITIONS) {
       if (def.clipPath !== undefined) {
@@ -155,5 +159,102 @@ describe("PRESET_SHAPE_CATEGORY_LABELS", () => {
     for (const cat of usedCategories) {
       expect(PRESET_SHAPE_CATEGORY_LABELS[cat]).toBeDefined();
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ECMA-376 completeness: newly added shapes
+// ---------------------------------------------------------------------------
+
+describe("ECMA-376 completeness", () => {
+  const names = new Set(PRESET_SHAPE_DEFINITIONS.map((d) => d.name));
+
+  it("includes line shapes", () => {
+    expect(names.has("line")).toBe(true);
+    expect(names.has("lineInv")).toBe(true);
+  });
+
+  it("includes straightConnector1", () => {
+    expect(names.has("straightConnector1")).toBe(true);
+  });
+
+  it("includes plus shape (ECMA-376 alias of cross)", () => {
+    expect(names.has("plus")).toBe(true);
+    expect(names.has("cross")).toBe(true);
+  });
+
+  it("includes rightTriangle (ECMA-376 alias of rtTriangle)", () => {
+    expect(names.has("rightTriangle")).toBe(true);
+    expect(names.has("rtTriangle")).toBe(true);
+  });
+
+  it("includes squareTabs and plaqueTabs", () => {
+    expect(names.has("squareTabs")).toBe(true);
+    expect(names.has("plaqueTabs")).toBe(true);
+  });
+
+  it("includes actionButtonBackPrevious and actionButtonForwardNext", () => {
+    expect(names.has("actionButtonBackPrevious")).toBe(true);
+    expect(names.has("actionButtonForwardNext")).toBe(true);
+  });
+
+  it("covers all ECMA-376 preset geometry names", () => {
+    const ecmaShapes = [
+      "actionButtonBackPrevious", "actionButtonBeginning", "actionButtonBlank",
+      "actionButtonDocument", "actionButtonEnd", "actionButtonForwardNext",
+      "actionButtonHelp", "actionButtonHome", "actionButtonInformation",
+      "actionButtonMovie", "actionButtonReturn", "actionButtonSound",
+      "arc", "bentArrow", "bentUpArrow", "bevel", "blockArc",
+      "borderCallout1", "borderCallout2", "borderCallout3",
+      "bracePair", "bracketPair", "callout1", "callout2", "callout3",
+      "can", "chevron", "chord", "circularArrow", "cloud", "cloudCallout",
+      "corner", "cornerTabs", "cube", "curvedDownArrow", "curvedLeftArrow",
+      "curvedRightArrow", "curvedUpArrow", "decagon", "diagStripe", "diamond",
+      "dodecagon", "donut", "doubleWave", "downArrow", "downArrowCallout",
+      "ellipse", "ellipseRibbon", "ellipseRibbon2",
+      "flowChartAlternateProcess", "flowChartCollate", "flowChartConnector",
+      "flowChartDecision", "flowChartDelay", "flowChartDisplay",
+      "flowChartDocument", "flowChartExtract", "flowChartInputOutput",
+      "flowChartInternalStorage", "flowChartMagneticDisk",
+      "flowChartMagneticDrum", "flowChartMagneticTape",
+      "flowChartManualInput", "flowChartManualOperation", "flowChartMerge",
+      "flowChartMultidocument", "flowChartOfflineStorage",
+      "flowChartOffpageConnector", "flowChartOnlineStorage", "flowChartOr",
+      "flowChartPredefinedProcess", "flowChartPreparation", "flowChartProcess",
+      "flowChartPunchedCard", "flowChartPunchedTape", "flowChartSort",
+      "flowChartSummingJunction", "flowChartTerminator",
+      "foldedCorner", "frame", "funnel", "gear6", "gear9",
+      "halfFrame", "heart", "heptagon", "hexagon", "homePlate",
+      "horizontalScroll", "irregularSeal1", "irregularSeal2",
+      "leftArrow", "leftArrowCallout", "leftBrace", "leftBracket",
+      "leftCircularArrow", "leftRightArrow", "leftRightArrowCallout",
+      "leftRightCircularArrow", "leftRightRibbon", "leftRightUpArrow",
+      "leftUpArrow", "lightningBolt", "line", "lineInv",
+      "mathDivide", "mathEqual", "mathMinus", "mathMultiply",
+      "mathNotEqual", "mathPlus", "moon", "noSmoking",
+      "nonIsoscelesTrapezoid", "notchedRightArrow", "octagon",
+      "parallelogram", "pentagon", "pie", "pieWedge", "plaque",
+      "plaqueTabs", "plus", "quadArrow", "quadArrowCallout", "rect",
+      "ribbon", "ribbon2", "rightArrow", "rightArrowCallout",
+      "rightBrace", "rightBracket", "rightTriangle", "round1Rect",
+      "round2DiagRect", "round2SameRect", "roundRect", "rtTriangle",
+      "smileyFace", "snip1Rect", "snip2DiagRect", "snip2SameRect",
+      "snipRoundRect", "squareTabs", "star10", "star12", "star16",
+      "star24", "star32", "star4", "star5", "star6", "star7", "star8",
+      "straightConnector1", "stripedRightArrow", "sun", "swooshArrow",
+      "teardrop", "trapezoid", "triangle", "upArrow", "upArrowCallout",
+      "upDownArrow", "upDownArrowCallout", "uturnArrow", "verticalScroll",
+      "wave", "wedgeEllipseCallout", "wedgeRectCallout", "wedgeRoundRectCallout",
+    ];
+    const missing: string[] = [];
+    for (const shape of ecmaShapes) {
+      if (!names.has(shape)) {
+        missing.push(shape);
+      }
+    }
+    expect(
+      missing,
+      `Missing ECMA-376 shapes from definitions: ${missing.join(", ")}`,
+    ).toEqual([]);
   });
 });

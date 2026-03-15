@@ -143,6 +143,149 @@ exports[`CSS Style Computation Snapshots > getContainerStyle with visual style o
 }
 `;
 
+exports[`CSS Style Computation Snapshots getContainerStyle for a basic shape 1`] = `
+{
+  "animation": undefined,
+  "background": undefined,
+  "borderColor": undefined,
+  "clipPath": undefined,
+  "height": 150,
+  "left": 100,
+  "opacity": 1,
+  "overflow": undefined,
+  "top": 200,
+  "transform": undefined,
+  "transformOrigin": "center",
+  "transition": undefined,
+  "visibility": "visible",
+  "width": 300,
+  "zIndex": 5,
+}
+`;
+
+exports[`CSS Style Computation Snapshots getContainerStyle for an image element 1`] = `
+{
+  "animation": undefined,
+  "background": undefined,
+  "borderColor": undefined,
+  "clipPath": undefined,
+  "height": 300,
+  "left": 50,
+  "opacity": 0.9,
+  "overflow": "hidden",
+  "top": 75,
+  "transform": undefined,
+  "transformOrigin": "center",
+  "transition": undefined,
+  "visibility": "visible",
+  "width": 400,
+  "zIndex": 3,
+}
+`;
+
+exports[`CSS Style Computation Snapshots getContainerStyle for fullscreen media 1`] = `
+{
+  "animation": undefined,
+  "background": "#000",
+  "borderColor": "transparent",
+  "clipPath": undefined,
+  "height": "100%",
+  "left": 0,
+  "opacity": 1,
+  "overflow": undefined,
+  "top": 0,
+  "transform": "none",
+  "transformOrigin": "center",
+  "transition": "left 0.3s ease, top 0.3s ease, width 0.3s ease, height 0.3s ease",
+  "visibility": "visible",
+  "width": "100%",
+  "zIndex": 20,
+}
+`;
+
+exports[`CSS Style Computation Snapshots getContainerStyle with animation state hidden 1`] = `
+{
+  "animation": undefined,
+  "background": undefined,
+  "borderColor": undefined,
+  "clipPath": undefined,
+  "height": 150,
+  "left": 100,
+  "opacity": 1,
+  "overflow": undefined,
+  "top": 200,
+  "transform": undefined,
+  "transformOrigin": "center",
+  "transition": undefined,
+  "visibility": "hidden",
+  "width": 300,
+  "zIndex": 2,
+}
+`;
+
+exports[`CSS Style Computation Snapshots getContainerStyle with flips 1`] = `
+{
+  "animation": undefined,
+  "background": undefined,
+  "borderColor": undefined,
+  "clipPath": undefined,
+  "height": 150,
+  "left": 100,
+  "opacity": 1,
+  "overflow": undefined,
+  "top": 200,
+  "transform": "scaleX(-1) scaleY(-1)",
+  "transformOrigin": "center",
+  "transition": undefined,
+  "visibility": "visible",
+  "width": 300,
+  "zIndex": 1,
+}
+`;
+
+exports[`CSS Style Computation Snapshots getContainerStyle with rotation 1`] = `
+{
+  "animation": undefined,
+  "background": undefined,
+  "borderColor": undefined,
+  "clipPath": undefined,
+  "height": 150,
+  "left": 100,
+  "opacity": 1,
+  "overflow": undefined,
+  "top": 200,
+  "transform": "rotate(45deg)",
+  "transformOrigin": "center",
+  "transition": undefined,
+  "visibility": "visible",
+  "width": 300,
+  "zIndex": 1,
+}
+`;
+
+exports[`CSS Style Computation Snapshots getContainerStyle with visual style overrides 1`] = `
+{
+  "animation": undefined,
+  "background": "linear-gradient(to bottom, #fff, #eee)",
+  "border": "2px solid #4472C4",
+  "borderColor": undefined,
+  "borderRadius": "8px",
+  "boxShadow": "0 2px 8px rgba(0,0,0,0.15)",
+  "clipPath": undefined,
+  "height": 150,
+  "left": 100,
+  "opacity": 1,
+  "overflow": undefined,
+  "top": 200,
+  "transform": undefined,
+  "transformOrigin": "center",
+  "transition": undefined,
+  "visibility": "visible",
+  "width": 300,
+  "zIndex": 3,
+}
+`;
+
 exports[`Element Transform Snapshots > flip horizontal 1`] = `"scaleX(-1)"`;
 
 exports[`Element Transform Snapshots > flip vertical 1`] = `"scaleY(-1)"`;
@@ -157,6 +300,20 @@ exports[`Element Transform Snapshots > text compensation returns undefined with 
 
 exports[`Element Transform Snapshots > text compensation transform with both flips 1`] = `"scaleX(-1) scaleY(-1)"`;
 
+exports[`Element Transform Snapshots flip horizontal 1`] = `"scaleX(-1)"`;
+
+exports[`Element Transform Snapshots flip vertical 1`] = `"scaleY(-1)"`;
+
+exports[`Element Transform Snapshots no transform for default element 1`] = `undefined`;
+
+exports[`Element Transform Snapshots rotation transform 1`] = `"rotate(90deg)"`;
+
+exports[`Element Transform Snapshots rotation with both flips 1`] = `"scaleX(-1) scaleY(-1) rotate(45deg)"`;
+
+exports[`Element Transform Snapshots text compensation returns undefined with no flips 1`] = `undefined`;
+
+exports[`Element Transform Snapshots text compensation transform with both flips 1`] = `"scaleX(-1) scaleY(-1)"`;
+
 exports[`React Render Snapshots - SVG Proxy > comparison layout with two columns 1`] = `"<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 960 540" width="960" height="540"><rect width="960" height="540" fill="#FFFFFF" /><g transform="translate(30,90)"><rect fill="#E8F0FE" stroke="#4472C4" stroke-width="2" width="430" height="380" rx="38" /></g><g transform="translate(500,90)"><rect fill="#FFF3E0" stroke="#ED7D31" stroke-width="2" width="430" height="380" rx="38" /></g><g transform="translate(30,30)"><rect fill="none" stroke="none" width="430" height="50" /><text x="215" text-anchor="middle" font-family="Arial" font-size="28" fill="#4472C4"><tspan x="215" dy="33.6" font-weight="bold">Option A</tspan></text></g><g transform="translate(500,30)"><rect fill="none" stroke="none" width="430" height="50" /><text x="215" text-anchor="middle" font-family="Arial" font-size="28" fill="#ED7D31"><tspan x="215" dy="33.6" font-weight="bold">Option B</tspan></text></g><g transform="translate(475,30)"><line x1="0" y1="0" x2="0" y2="480" stroke="#CCCCCC" stroke-width="1" /></g></svg>"`;
 
 exports[`React Render Snapshots - SVG Proxy > content slide with bullet points and image 1`] = `"<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 960 540" width="960" height="540"><rect width="960" height="540" fill="#FFFFFF" /><g transform="translate(50,30)"><rect fill="none" stroke="none" width="860" height="60" /><text x="4" text-anchor="start" font-family="Arial" font-size="32" fill="#2B2D42"><tspan x="4" dy="38.4" font-weight="bold">Key Findings</tspan></text></g><g transform="translate(50,110)"><rect fill="none" stroke="none" width="450" height="300" /><text x="4" text-anchor="start" font-family="Arial" font-size="18" fill="#333333"><tspan x="4" dy="21.599999999999998">First finding</tspan><tspan x="4" dy="21.599999999999998">Second finding</tspan><tspan x="4" dy="21.599999999999998">Third finding</tspan></text></g><g transform="translate(520,110)"><image width="380" height="300" preserveAspectRatio="none" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==" /></g></svg>"`;
@@ -170,6 +327,20 @@ exports[`React Render Snapshots - SVG Proxy > slide with grouped elements 1`] = 
 exports[`React Render Snapshots - SVG Proxy > slide with rich formatted text 1`] = `"<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 960 540" width="960" height="540"><rect width="960" height="540" fill="#FFFFFF" /><g transform="translate(50,200)"><rect fill="none" stroke="none" width="800" height="60" /><text x="4" text-anchor="start" font-family="Arial" font-size="18" fill="#000000"><tspan x="4" dy="21.599999999999998" font-size="20" fill="#CC0000" font-weight="bold">Important: </tspan><tspan>This is a </tspan><tspan font-style="italic" text-decoration="underline">critical</tspan><tspan> update.</tspan></text></g></svg>"`;
 
 exports[`React Render Snapshots - SVG Proxy > title slide layout 1`] = `"<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 960 540" width="960" height="540"><rect width="960" height="540" fill="#FFFFFF" /><g transform="translate(80,180)"><rect fill="none" stroke="none" width="800" height="80" /><text x="400" text-anchor="middle" font-family="Arial" font-size="44" fill="#1A1A2E"><tspan x="400" dy="52.8" font-weight="bold">Presentation Title</tspan></text></g><g transform="translate(160,280)"><rect fill="none" stroke="none" width="640" height="50" /><text x="320" text-anchor="middle" font-family="Arial" font-size="24" fill="#666666"><tspan x="320" dy="28.799999999999997">Subtitle goes here</tspan></text></g></svg>"`;
+
+exports[`React Render Snapshots - SVG Proxy comparison layout with two columns 1`] = `"<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 960 540" width="960" height="540"><rect width="960" height="540" fill="#FFFFFF" /><g transform="translate(30,90)"><rect fill="#E8F0FE" stroke="#4472C4" stroke-width="2" width="430" height="380" rx="38" /></g><g transform="translate(500,90)"><rect fill="#FFF3E0" stroke="#ED7D31" stroke-width="2" width="430" height="380" rx="38" /></g><g transform="translate(30,30)"><rect fill="none" stroke="none" width="430" height="50" /><text x="215" text-anchor="middle" font-family="Arial" font-size="28" fill="#4472C4"><tspan x="215" dy="33.6" font-weight="bold">Option A</tspan></text></g><g transform="translate(500,30)"><rect fill="none" stroke="none" width="430" height="50" /><text x="215" text-anchor="middle" font-family="Arial" font-size="28" fill="#ED7D31"><tspan x="215" dy="33.6" font-weight="bold">Option B</tspan></text></g><g transform="translate(475,30)"><line x1="0" y1="0" x2="0" y2="480" stroke="#CCCCCC" stroke-width="1" /></g></svg>"`;
+
+exports[`React Render Snapshots - SVG Proxy content slide with bullet points and image 1`] = `"<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 960 540" width="960" height="540"><rect width="960" height="540" fill="#FFFFFF" /><g transform="translate(50,30)"><rect fill="none" stroke="none" width="860" height="60" /><text x="4" text-anchor="start" font-family="Arial" font-size="32" fill="#2B2D42"><tspan x="4" dy="38.4" font-weight="bold">Key Findings</tspan></text></g><g transform="translate(50,110)"><rect fill="none" stroke="none" width="450" height="300" /><text x="4" text-anchor="start" font-family="Arial" font-size="18" fill="#333333"><tspan x="4" dy="21.599999999999998">First finding</tspan><tspan x="4" dy="21.599999999999998">Second finding</tspan><tspan x="4" dy="21.599999999999998">Third finding</tspan></text></g><g transform="translate(520,110)"><image width="380" height="300" preserveAspectRatio="none" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==" /></g></svg>"`;
+
+exports[`React Render Snapshots - SVG Proxy dashboard slide with shapes, table, and chart 1`] = `"<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 960 540" width="960" height="540"><rect width="960" height="540" fill="#F5F5F5" /><g transform="translate(30,10)"><rect fill="none" stroke="none" width="900" height="50" /><text x="450" text-anchor="middle" font-family="Arial" font-size="30" fill="#000000"><tspan x="450" dy="36" font-weight="bold">Dashboard</tspan></text></g><g transform="translate(30,70)"><rect fill="#4472C4" stroke="none" width="200" height="100" rx="10" /><text x="4" text-anchor="start" font-family="Arial" font-size="16" fill="#FFFFFF"><tspan x="4" dy="19.2" font-weight="bold">Users</tspan><tspan x="4" dy="19.2" font-weight="bold">1,234</tspan></text></g><g transform="translate(250,70)"><rect fill="#70AD47" stroke="none" width="200" height="100" rx="10" /><text x="4" text-anchor="start" font-family="Arial" font-size="16" fill="#FFFFFF"><tspan x="4" dy="19.2" font-weight="bold">Revenue</tspan><tspan x="4" dy="19.2" font-weight="bold">$45K</tspan></text></g><g transform="translate(470,70)"><rect fill="#ED7D31" stroke="none" width="200" height="100" rx="10" /><text x="4" text-anchor="start" font-family="Arial" font-size="16" fill="#FFFFFF"><tspan x="4" dy="19.2" font-weight="bold">Growth</tspan><tspan x="4" dy="19.2" font-weight="bold">+12%</tspan></text></g><g transform="translate(710,70)"><ellipse fill="#FFC000" stroke="none" cx="50" cy="50" rx="50" ry="50" /><text x="4" text-anchor="start" font-family="Arial" font-size="24" fill="#333333"><tspan x="4" dy="28.799999999999997" font-weight="bold">A+</tspan></text></g><g transform="translate(30,200)"><rect x="0" y="0" width="150" height="50" fill="none" stroke="#CCCCCC" stroke-width="0.5" /><text x="4" y="25" dominant-baseline="central" font-family="Arial" font-size="18" fill="#000000" font-weight="bold">Region</text><rect x="150" y="0" width="150" height="50" fill="none" stroke="#CCCCCC" stroke-width="0.5" /><text x="154" y="25" dominant-baseline="central" font-family="Arial" font-size="18" fill="#000000" font-weight="bold">Q3</text><rect x="300" y="0" width="150" height="50" fill="none" stroke="#CCCCCC" stroke-width="0.5" /><text x="304" y="25" dominant-baseline="central" font-family="Arial" font-size="18" fill="#000000" font-weight="bold">Q4</text><rect x="0" y="50" width="150" height="50" fill="none" stroke="#CCCCCC" stroke-width="0.5" /><text x="4" y="75" dominant-baseline="central" font-family="Arial" font-size="18" fill="#000000">North</text><rect x="150" y="50" width="150" height="50" fill="none" stroke="#CCCCCC" stroke-width="0.5" /><text x="154" y="75" dominant-baseline="central" font-family="Arial" font-size="18" fill="#000000">$120K</text><rect x="300" y="50" width="150" height="50" fill="none" stroke="#CCCCCC" stroke-width="0.5" /><text x="304" y="75" dominant-baseline="central" font-family="Arial" font-size="18" fill="#000000">$145K</text><rect x="0" y="100" width="150" height="50" fill="none" stroke="#CCCCCC" stroke-width="0.5" /><text x="4" y="125" dominant-baseline="central" font-family="Arial" font-size="18" fill="#000000">South</text><rect x="150" y="100" width="150" height="50" fill="none" stroke="#CCCCCC" stroke-width="0.5" /><text x="154" y="125" dominant-baseline="central" font-family="Arial" font-size="18" fill="#000000">$95K</text><rect x="300" y="100" width="150" height="50" fill="none" stroke="#CCCCCC" stroke-width="0.5" /><text x="304" y="125" dominant-baseline="central" font-family="Arial" font-size="18" fill="#000000">$110K</text><rect x="0" y="150" width="150" height="50" fill="none" stroke="#CCCCCC" stroke-width="0.5" /><text x="4" y="175" dominant-baseline="central" font-family="Arial" font-size="18" fill="#000000">East</text><rect x="150" y="150" width="150" height="50" fill="none" stroke="#CCCCCC" stroke-width="0.5" /><text x="154" y="175" dominant-baseline="central" font-family="Arial" font-size="18" fill="#000000">$80K</text><rect x="300" y="150" width="150" height="50" fill="none" stroke="#CCCCCC" stroke-width="0.5" /><text x="304" y="175" dominant-baseline="central" font-family="Arial" font-size="18" fill="#000000">$92K</text></g><g transform="translate(500,200)"><rect width="420" height="300" fill="#F5F5F5" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="4 2" /><text x="210" y="150" text-anchor="middle" dominant-baseline="central" font-family="Arial" font-size="11" fill="#999999">chart</text></g></svg>"`;
+
+exports[`React Render Snapshots - SVG Proxy slide with connectors and arrows (process flow) 1`] = `"<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 960 540" width="960" height="540"><defs><marker id="arrow_1" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto" markerUnits="strokeWidth"><polygon points="0 0, 10 3.5, 0 7" fill="#555555" /></marker><marker id="arrow_2" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto" markerUnits="strokeWidth"><polygon points="0 0, 10 3.5, 0 7" fill="#555555" /></marker><marker id="arrow_3" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto" markerUnits="strokeWidth"><polygon points="0 0, 10 3.5, 0 7" fill="#555555" /></marker></defs><rect width="960" height="540" fill="#FFFFFF" /><g transform="translate(30,220)"><rect fill="#4472C4" stroke="none" width="150" height="70" /><text x="4" text-anchor="start" font-family="Arial" font-size="14" fill="#FFFFFF"><tspan x="4" dy="16.8">Step 1</tspan></text></g><g transform="translate(250,220)"><rect fill="#70AD47" stroke="none" width="150" height="70" /><text x="4" text-anchor="start" font-family="Arial" font-size="14" fill="#FFFFFF"><tspan x="4" dy="16.8">Step 2</tspan></text></g><g transform="translate(470,220)"><rect fill="#ED7D31" stroke="none" width="150" height="70" /><text x="4" text-anchor="start" font-family="Arial" font-size="14" fill="#FFFFFF"><tspan x="4" dy="16.8">Step 3</tspan></text></g><g transform="translate(690,220)"><rect fill="#FFC000" stroke="none" width="150" height="70" rx="7" /><text x="4" text-anchor="start" font-family="Arial" font-size="14" fill="#333333"><tspan x="4" dy="16.8" font-weight="bold">Done</tspan></text></g><g transform="translate(180,255)"><line x1="0" y1="0" x2="70" y2="0" stroke="#555555" stroke-width="2" marker-end="url(#arrow_1)" /></g><g transform="translate(400,255)"><line x1="0" y1="0" x2="70" y2="0" stroke="#555555" stroke-width="2" marker-end="url(#arrow_2)" /></g><g transform="translate(620,255)"><line x1="0" y1="0" x2="70" y2="0" stroke="#555555" stroke-width="2" marker-end="url(#arrow_3)" /></g></svg>"`;
+
+exports[`React Render Snapshots - SVG Proxy slide with grouped elements 1`] = `"<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 960 540" width="960" height="540"><rect width="960" height="540" fill="#FFFFFF" /><g transform="translate(30,100)"><g transform="translate(0,0)"><rect fill="#F0F4FF" stroke="#4472C4" stroke-width="1" width="250" height="120" /></g><g transform="translate(15,20)"><ellipse fill="#4472C4" stroke="none" cx="30" cy="30" rx="30" ry="30" /></g><g transform="translate(85,25)"><rect fill="none" stroke="none" width="150" height="30" /><text x="4" text-anchor="start" font-family="Arial" font-size="16" fill="#1A1A2E"><tspan x="4" dy="19.2" font-weight="bold">Feature Card</tspan></text></g><g transform="translate(85,55)"><rect fill="none" stroke="none" width="150" height="40" /><text x="4" text-anchor="start" font-family="Arial" font-size="12" fill="#666666"><tspan x="4" dy="14.399999999999999">Short description here</tspan></text></g></g><g transform="translate(350,100)"><g transform="translate(0,0)"><rect fill="#F0F4FF" stroke="#4472C4" stroke-width="1" width="250" height="120" /></g><g transform="translate(15,20)"><ellipse fill="#4472C4" stroke="none" cx="30" cy="30" rx="30" ry="30" /></g><g transform="translate(85,25)"><rect fill="none" stroke="none" width="150" height="30" /><text x="4" text-anchor="start" font-family="Arial" font-size="16" fill="#1A1A2E"><tspan x="4" dy="19.2" font-weight="bold">Feature Card</tspan></text></g><g transform="translate(85,55)"><rect fill="none" stroke="none" width="150" height="40" /><text x="4" text-anchor="start" font-family="Arial" font-size="12" fill="#666666"><tspan x="4" dy="14.399999999999999">Short description here</tspan></text></g></g><g transform="translate(670,100)"><g transform="translate(0,0)"><rect fill="#F0F4FF" stroke="#4472C4" stroke-width="1" width="250" height="120" /></g><g transform="translate(15,20)"><ellipse fill="#4472C4" stroke="none" cx="30" cy="30" rx="30" ry="30" /></g><g transform="translate(85,25)"><rect fill="none" stroke="none" width="150" height="30" /><text x="4" text-anchor="start" font-family="Arial" font-size="16" fill="#1A1A2E"><tspan x="4" dy="19.2" font-weight="bold">Feature Card</tspan></text></g><g transform="translate(85,55)"><rect fill="none" stroke="none" width="150" height="40" /><text x="4" text-anchor="start" font-family="Arial" font-size="12" fill="#666666"><tspan x="4" dy="14.399999999999999">Short description here</tspan></text></g></g></svg>"`;
+
+exports[`React Render Snapshots - SVG Proxy slide with rich formatted text 1`] = `"<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 960 540" width="960" height="540"><rect width="960" height="540" fill="#FFFFFF" /><g transform="translate(50,200)"><rect fill="none" stroke="none" width="800" height="60" /><text x="4" text-anchor="start" font-family="Arial" font-size="18" fill="#000000"><tspan x="4" dy="21.599999999999998" font-size="20" fill="#CC0000" font-weight="bold">Important: </tspan><tspan>This is a </tspan><tspan font-style="italic" text-decoration="underline">critical</tspan><tspan> update.</tspan></text></g></svg>"`;
+
+exports[`React Render Snapshots - SVG Proxy title slide layout 1`] = `"<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 960 540" width="960" height="540"><rect width="960" height="540" fill="#FFFFFF" /><g transform="translate(80,180)"><rect fill="none" stroke="none" width="800" height="80" /><text x="400" text-anchor="middle" font-family="Arial" font-size="44" fill="#1A1A2E"><tspan x="400" dy="52.8" font-weight="bold">Presentation Title</tspan></text></g><g transform="translate(160,280)"><rect fill="none" stroke="none" width="640" height="50" /><text x="320" text-anchor="middle" font-family="Arial" font-size="24" fill="#666666"><tspan x="320" dy="28.799999999999997">Subtitle goes here</tspan></text></g></svg>"`;
 
 exports[`Stroke Style Snapshots > CSS border dash style for compound double line 1`] = `"solid"`;
 
@@ -200,3 +371,33 @@ exports[`Stroke Style Snapshots > compound line box-shadow for double 1`] = `"in
 exports[`Stroke Style Snapshots > compound line box-shadow for thickThin 1`] = `"inset 0 0 0 5px transparent, inset 0 0 0 7px #333333"`;
 
 exports[`Stroke Style Snapshots > compound line box-shadow returns undefined for single 1`] = `undefined`;
+
+exports[`Stroke Style Snapshots CSS border dash style for compound double line 1`] = `"solid"`;
+
+exports[`Stroke Style Snapshots CSS border dash style for dash 1`] = `"dashed"`;
+
+exports[`Stroke Style Snapshots CSS border dash style for dot 1`] = `"dotted"`;
+
+exports[`Stroke Style Snapshots CSS border dash style for solid 1`] = `"solid"`;
+
+exports[`Stroke Style Snapshots SVG dasharray for dash 1`] = `"8 4"`;
+
+exports[`Stroke Style Snapshots SVG dasharray for dashDot 1`] = `"8 4 2 4"`;
+
+exports[`Stroke Style Snapshots SVG dasharray for dot 1`] = `"2 4"`;
+
+exports[`Stroke Style Snapshots SVG dasharray for lgDash 1`] = `"21 7.5"`;
+
+exports[`Stroke Style Snapshots SVG dasharray for solid 1`] = `undefined`;
+
+exports[`Stroke Style Snapshots SVG dasharray for sysDot 1`] = `"1 2"`;
+
+exports[`Stroke Style Snapshots compound line border width for double 1`] = `1`;
+
+exports[`Stroke Style Snapshots compound line border width for single 1`] = `2`;
+
+exports[`Stroke Style Snapshots compound line box-shadow for double 1`] = `"inset 0 0 0 2px transparent, inset 0 0 0 3px #000000"`;
+
+exports[`Stroke Style Snapshots compound line box-shadow for thickThin 1`] = `"inset 0 0 0 5px transparent, inset 0 0 0 7px #333333"`;
+
+exports[`Stroke Style Snapshots compound line box-shadow returns undefined for single 1`] = `undefined`;

@@ -424,6 +424,74 @@ export class PptxHandlerCore {
   }
 
   /**
+   * Get the slide layouts available for a specific slide.
+   *
+   * Returns layouts belonging to the same slide master as the given slide.
+   * This is useful for building a layout picker UI scoped to the current
+   * slide's master.
+   *
+   * @param slideIndex - Zero-based slide index.
+   * @param slides     - Current slides array.
+   * @returns Array of {@link PptxLayoutOption} entries for the slide's master.
+   *
+   * @example
+   * ```ts
+   * const layouts = await handler.getAvailableLayoutsForSlide(0, data.slides);
+   * console.log(layouts.map(l => l.name));
+   * // => ["Title Slide", "Title and Content", "Blank", ...]
+   * ```
+   */
+  public async getAvailableLayoutsForSlide(
+    slideIndex: number,
+    slides: PptxSlide[],
+  ): Promise<PptxLayoutOption[]> {
+    return this.runtime.getAvailableLayoutsForSlide(slideIndex, slides);
+  }
+
+  /**
+   * Apply a different layout to an existing slide.
+   *
+   * Updates the slide's relationship to point to the new layout and
+   * refreshes layout-derived properties (background, layout name).
+   * The slide's own content elements are preserved.
+   *
+   * @param slideIndex - Zero-based slide index.
+   * @param layoutPath - Archive path of the target layout
+   *                     (e.g. `ppt/slideLayouts/slideLayout2.xml`).
+   * @param slides     - Current slides array (the slide at `slideIndex`
+   *                     is replaced in-place).
+   * @returns The updated {@link PptxSlide} with new layout metadata.
+   *
+   * @example
+   * ```ts
+   * const updated = await handler.applyLayoutToSlide(
+   *   0,
+   *   "ppt/slideLayouts/slideLayout3.xml",
+   *   data.slides,
+   * );
+   * console.log(updated.layoutName);
+   * // => "Two Content"
+   * ```
+   */
+  public async applyLayoutToSlide(
+    slideIndex: number,
+    layoutPath: string,
+    slides: PptxSlide[],
+  ): Promise<PptxSlide> {
+    return this.runtime.applyLayoutToSlide(slideIndex, layoutPath, slides);
+  }
+
+  /**
+   * Scan the loaded PPTX archive for all theme parts (`ppt/theme/theme*.xml`)
+   * and return their paths and display names.
+   */
+  public async getAvailableThemes(): Promise<
+    Array<{ path: string; name?: string }>
+  > {
+    return this.runtime.getAvailableThemes();
+  }
+
+  /**
    * Export selected slides as individual PPTX files.
    *
    * Each entry in the returned map is keyed by slide index and contains a

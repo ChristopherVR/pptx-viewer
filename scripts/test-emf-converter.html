@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>EMF Converter Test — Fuzor vs EMFJS (rtf.js)</title>
+    <title>EMF Converter Test — pptx vs EMFJS (rtf.js)</title>
     <style>
       * {
         box-sizing: border-box;
@@ -148,9 +148,9 @@
 
     <div class="grid">
       <div class="panel">
-        <h2>Fuzor Converter <span class="badge">Canvas → PNG</span></h2>
-        <div class="render-area" id="fuzorOutput"></div>
-        <div class="status" id="fuzorStatus">Waiting for file…</div>
+        <h2>pptx Converter <span class="badge">Canvas → PNG</span></h2>
+        <div class="render-area" id="ppttxOutput"></div>
+        <div class="status" id="ppttxStatus">Waiting for file…</div>
       </div>
       <div class="panel">
         <h2>EMFJS (rtf.js) <span class="badge">GDI → SVG</span></h2>
@@ -175,8 +175,8 @@
       } from "/emf-converter-bundle.js";
 
       const logArea = document.getElementById("logArea");
-      const fuzorOutput = document.getElementById("fuzorOutput");
-      const fuzorStatus = document.getElementById("fuzorStatus");
+      const ppttxOutput = document.getElementById("ppttxOutput");
+      const ppttxStatus = document.getElementById("ppttxStatus");
       const emfjsOutput = document.getElementById("emfjsOutput");
       const emfjsStatus = document.getElementById("emfjsStatus");
       const fileInfo = document.getElementById("fileInfo");
@@ -426,10 +426,10 @@
 
       async function processEmf(buffer) {
         clearLog();
-        fuzorOutput.innerHTML = "";
+        ppttxOutput.innerHTML = "";
         emfjsOutput.innerHTML = "";
-        fuzorStatus.textContent = "Processing…";
-        fuzorStatus.className = "status";
+        ppttxStatus.textContent = "Processing…";
+        ppttxStatus.className = "status";
         emfjsStatus.textContent = "Processing…";
         emfjsStatus.className = "status";
 
@@ -532,9 +532,9 @@
           log(`  ${name}: ${count}`);
         }
 
-        // ── Run Fuzor converter ──
+        // ── Run pptx converter ──
         log(`\n${"═".repeat(60)}`, "info");
-        log(`Running Fuzor convertEmfToDataUrl()…`, "info");
+        log(`Running pptx convertEmfToDataUrl()…`, "info");
 
         // Intercept console.warn to capture converter diagnostics
         const origWarn = console.warn;
@@ -549,16 +549,16 @@
           const elapsed = (performance.now() - t0).toFixed(1);
 
           if (dataUrl) {
-            log(`✓ Fuzor converter succeeded in ${elapsed}ms`, "success");
+            log(`✓ pptx converter succeeded in ${elapsed}ms`, "success");
             log(`  Data URL length: ${dataUrl.length} chars`);
 
             // Show the image
             const img = document.createElement("img");
             img.src = dataUrl;
             img.style.maxWidth = "100%";
-            fuzorOutput.appendChild(img);
-            fuzorStatus.textContent = `Rendered in ${elapsed}ms — ${dataUrl.length} chars`;
-            fuzorStatus.className = "status ok";
+            ppttxOutput.appendChild(img);
+            ppttxStatus.textContent = `Rendered in ${elapsed}ms — ${dataUrl.length} chars`;
+            ppttxStatus.className = "status ok";
 
             // Also try to decode to see pixel content
             img.onload = () => {
@@ -596,15 +596,15 @@
               }
             };
           } else {
-            log(`✗ Fuzor converter returned null in ${elapsed}ms`, "error");
-            fuzorStatus.textContent = `Failed — returned null (${elapsed}ms)`;
-            fuzorStatus.className = "status err";
+            log(`✗ pptx converter returned null in ${elapsed}ms`, "error");
+            ppttxStatus.textContent = `Failed — returned null (${elapsed}ms)`;
+            ppttxStatus.className = "status err";
           }
         } catch (err) {
-          log(`✗ Fuzor converter threw: ${err.message}`, "error");
+          log(`✗ pptx converter threw: ${err.message}`, "error");
           log(`  Stack: ${err.stack}`, "error");
-          fuzorStatus.textContent = `Error: ${err.message}`;
-          fuzorStatus.className = "status err";
+          ppttxStatus.textContent = `Error: ${err.message}`;
+          ppttxStatus.className = "status err";
         }
         console.warn = origWarn;
 

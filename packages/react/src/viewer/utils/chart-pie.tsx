@@ -48,7 +48,7 @@ export function renderPieChart(
       <path
         key={`${element.id}-pie-${i}`}
         d={d}
-        fill={chartData.series[0]?.color || paletteColor(i, chartData.style?.styleId)}
+        fill={chartData.series[0]?.color || paletteColor(i, chartData.style?.styleId, chartData.colorPalette)}
         stroke="white"
         strokeWidth={1.5}
       />
@@ -104,7 +104,7 @@ export function renderPieChart(
           width={10}
           height={10}
           rx={2}
-          fill={paletteColor(i, chartData.style?.styleId)}
+          fill={paletteColor(i, chartData.style?.styleId, chartData.colorPalette)}
         />,
       );
       items.push(

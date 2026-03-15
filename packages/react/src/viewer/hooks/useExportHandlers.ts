@@ -9,6 +9,7 @@ import { useState, useRef, useCallback } from "react";
 import {
   exportSlideAsPng,
   exportAllSlidesAsPdf,
+  exportAllSlidesAsNotesPdf,
   copySlideToClipboard,
   exportAllSlidesAsVideo,
   exportAllSlidesAsGif,
@@ -115,6 +116,24 @@ export function useExportHandlers(
       );
     } catch (err) {
       console.error("[PowerPointViewer] PDF export failed:", err);
+    }
+  };
+
+  const handleExportNotesPdf = async () => {
+    if (!canvasStageRef.current) return;
+    try {
+      const slideNotes = slides.map((s) => s.notes);
+      await exportAllSlidesAsNotesPdf(
+        canvasStageRef,
+        slides.length,
+        setActiveSlideIndex,
+        activeSlideIndex,
+        slideNotes,
+        "presentation-notes.pdf",
+        { scale: 2 },
+      );
+    } catch (err) {
+      console.error("[PowerPointViewer] Notes PDF export failed:", err);
     }
   };
 
@@ -228,6 +247,7 @@ export function useExportHandlers(
   return {
     handleExportPng,
     handleExportPdf,
+    handleExportNotesPdf,
     handleCopySlideAsImage,
     handleExportVideo,
     handleExportGif,

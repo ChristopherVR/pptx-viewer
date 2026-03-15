@@ -29,6 +29,7 @@ export const CLIP_PATHS_CORE: Record<string, string | undefined> = {
   oval: "ellipse(50% 50% at 50% 50%)",
   triangle: "polygon(50% 0%, 0% 100%, 100% 100%)",
   rttriangle: "polygon(0% 0%, 100% 100%, 0% 100%)",
+  righttriangle: "polygon(0% 0%, 100% 100%, 0% 100%)",
   diamond: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)",
   parallelogram: "polygon(20% 0%, 100% 0%, 80% 100%, 0% 100%)",
   trapezoid: "polygon(18% 0%, 82% 0%, 100% 100%, 0% 100%)",

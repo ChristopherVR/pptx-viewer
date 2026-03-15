@@ -59,7 +59,7 @@ export interface IPptxEditorAnimationService {
 
 /**
  * Concrete implementation that reads/writes editor animation metadata
- * from/to the custom `fuzor:editorMeta` extension element in slide XML.
+ * from/to the custom `pptx:editorMeta` extension element in slide XML.
  */
 export class PptxEditorAnimationService implements IPptxEditorAnimationService {
   private readonly xmlLookupService: IPptxXmlLookupService;
@@ -81,7 +81,7 @@ export class PptxEditorAnimationService implements IPptxEditorAnimationService {
    * Parse editor animation metadata from a slide XML object.
    *
    * Traverses the slide's `p:extLst` to find the editor meta extension,
-   * then extracts each `fuzor:animation` node and normalizes its attributes
+   * then extracts each `pptx:animation` node and normalizes its attributes
    * into typed {@link PptxElementAnimation} objects.
    *
    * @param slideXml - The full slide XML object.
@@ -212,7 +212,7 @@ export class PptxEditorAnimationService implements IPptxEditorAnimationService {
    * Serialize editor animations into the slide's XML extension list.
    *
    * Sanitizes and validates each animation entry, removes any existing editor
-   * meta extension, then writes the new animations into a `fuzor:editorMeta`
+   * meta extension, then writes the new animations into a `pptx:editorMeta`
    * extension element. If no valid animations remain, the extension is removed.
    *
    * @param slideNode - The root slide XML node to modify.
@@ -311,12 +311,12 @@ export class PptxEditorAnimationService implements IPptxEditorAnimationService {
     }
 
     // Declare the custom namespace and append the new editor meta extension
-    slideNode["@_xmlns:fuzor"] = this.editorMetaNamespaceUri;
+    slideNode["@_xmlns:pptx"] = this.editorMetaNamespaceUri;
     retainedExtensions.push({
       "@_uri": this.editorMetaExtensionUri,
-      "fuzor:editorMeta": {
-        "fuzor:animations": {
-          "fuzor:animation": sanitizedAnimations,
+      "pptx:editorMeta": {
+        "pptx:animations": {
+          "pptx:animation": sanitizedAnimations,
         },
       },
     });

@@ -8,6 +8,7 @@ import type {
   TableCellEditorState,
 } from "../../types";
 import type { ElementFindHighlights } from "../../utils/text-render";
+import type { FieldSubstitutionContext } from "../../utils/text-field-substitution";
 import type { ElementAnimationState } from "../../utils/animation-timeline";
 
 export interface ConnectorRendererProps {
@@ -90,4 +91,6 @@ export interface ElementRendererProps {
   onZoomClick?: (targetSlideIndex: number, returnSlideIndex: number) => void;
   /** Index of the slide that contains this element (for zoom return navigation). */
   sourceSlideIndex?: number;
+  /** Context for text field placeholder substitution (slide number, header/footer, etc.). */
+  fieldContext?: FieldSubstitutionContext;
 }

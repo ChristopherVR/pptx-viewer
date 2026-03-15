@@ -4,7 +4,7 @@ import { PptxEditorAnimationService } from "./PptxEditorAnimationService";
 import { PptxXmlLookupService } from "./PptxXmlLookupService";
 
 const EDITOR_META_URI = "http://example.com/editorMeta";
-const EDITOR_META_NS = "http://example.com/ns/fuzor";
+const EDITOR_META_NS = "http://example.com/ns/pptx";
 
 function createService(): PptxEditorAnimationService {
 	return new PptxEditorAnimationService({
@@ -25,9 +25,9 @@ function buildSlideXmlWithAnimations(
 			"p:extLst": {
 				"p:ext": {
 					"@_uri": EDITOR_META_URI,
-					"fuzor:editorMeta": {
-						"fuzor:animations": {
-							"fuzor:animation":
+					"pptx:editorMeta": {
+						"pptx:animations": {
+							"pptx:animation":
 								animationNodes.length === 1
 									? animationNodes[0]
 									: animationNodes,
@@ -80,8 +80,8 @@ describe("PptxEditorAnimationService", () => {
 					"p:extLst": {
 						"p:ext": {
 							"@_uri": EDITOR_META_URI,
-							"fuzor:editorMeta": {
-								"fuzor:animations": {},
+							"pptx:editorMeta": {
+								"pptx:animations": {},
 							},
 						},
 					},
@@ -336,9 +336,9 @@ describe("PptxEditorAnimationService", () => {
 							},
 							{
 								"@_uri": EDITOR_META_URI,
-								"fuzor:editorMeta": {
-									"fuzor:animations": {
-										"fuzor:animation": {
+								"pptx:editorMeta": {
+									"pptx:animations": {
+										"pptx:animation": {
 											"@_elementId": "found",
 											"@_entrance": "fadeIn",
 										},
@@ -374,9 +374,9 @@ describe("PptxEditorAnimationService", () => {
 			(e) => e["@_uri"] === EDITOR_META_URI,
 		);
 		if (!editorExt) return undefined;
-		const meta = editorExt["fuzor:editorMeta"] as XmlObject;
-		const anims = meta["fuzor:animations"] as XmlObject;
-		const animData = anims["fuzor:animation"];
+		const meta = editorExt["pptx:editorMeta"] as XmlObject;
+		const anims = meta["pptx:animations"] as XmlObject;
+		const animData = anims["pptx:animation"];
 		if (Array.isArray(animData)) return animData[0] as XmlObject;
 		return animData as XmlObject;
 	}
@@ -391,9 +391,9 @@ describe("PptxEditorAnimationService", () => {
 			(e) => e["@_uri"] === EDITOR_META_URI,
 		);
 		if (!editorExt) return [];
-		const meta = editorExt["fuzor:editorMeta"] as XmlObject;
-		const anims = meta["fuzor:animations"] as XmlObject;
-		const animData = anims["fuzor:animation"];
+		const meta = editorExt["pptx:editorMeta"] as XmlObject;
+		const anims = meta["pptx:animations"] as XmlObject;
+		const animData = anims["pptx:animation"];
 		if (Array.isArray(animData)) return animData as XmlObject[];
 		return [animData as XmlObject];
 	}
@@ -430,7 +430,7 @@ describe("PptxEditorAnimationService", () => {
 				},
 			];
 			service.applyEditorAnimations(slideNode, animations);
-			expect(slideNode["@_xmlns:fuzor"]).toBe(EDITOR_META_NS);
+			expect(slideNode["@_xmlns:pptx"]).toBe(EDITOR_META_NS);
 		});
 
 		it("serializes animation attributes correctly", () => {
@@ -482,7 +482,7 @@ describe("PptxEditorAnimationService", () => {
 				"p:extLst": {
 					"p:ext": {
 						"@_uri": EDITOR_META_URI,
-						"fuzor:editorMeta": {},
+						"pptx:editorMeta": {},
 					},
 				},
 			};
@@ -506,7 +506,7 @@ describe("PptxEditorAnimationService", () => {
 						},
 						{
 							"@_uri": EDITOR_META_URI,
-							"fuzor:editorMeta": {},
+							"pptx:editorMeta": {},
 						},
 					],
 				},
@@ -590,9 +590,9 @@ describe("PptxEditorAnimationService", () => {
 				"p:extLst": {
 					"p:ext": {
 						"@_uri": EDITOR_META_URI,
-						"fuzor:editorMeta": {
-							"fuzor:animations": {
-								"fuzor:animation": {
+						"pptx:editorMeta": {
+							"pptx:animations": {
+								"pptx:animation": {
 									"@_elementId": "old",
 									"@_entrance": "appear",
 								},

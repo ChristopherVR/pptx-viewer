@@ -45,6 +45,7 @@ export interface UseExportHandlersInput {
 export interface ExportHandlersResult {
   handleExportPng: () => Promise<void>;
   handleExportPdf: () => Promise<void>;
+  handleExportNotesPdf: () => Promise<void>;
   handleCopySlideAsImage: () => Promise<void>;
   handleExportVideo: () => Promise<void>;
   handleExportGif: () => Promise<void>;

@@ -33,8 +33,8 @@ function parseBoolAttr(value: unknown): boolean | undefined {
  * Parse scalar run-level attributes from an `a:rPr` XML object.
  *
  * Handles: `@_sz`, `@_b`, `@_i`, `@_u`, `@_strike`, `@_cap`, `@_baseline`,
- * `@_kern`, `@_spc`, `@_lang`, `@_rtl`, `@_normalizeH`, `@_noProof`,
- * `@_dirty`, `@_err`, `@_smtClean`, `@_bmk`.
+ * `@_kern`, `@_spc`, `@_lang`, `@_rtl`, `@_kumimoji`, `@_normalizeH`,
+ * `@_noProof`, `@_dirty`, `@_err`, `@_smtClean`, `@_bmk`.
  */
 export function parseRunPropertyAttributes(
   rPr: XmlObject | undefined,
@@ -139,6 +139,8 @@ export function parseRunPropertyAttributes(
   }
 
   // Metadata flags
+  const kumimoji = parseBoolAttr(rPr["@_kumimoji"]);
+  if (kumimoji !== undefined) style.kumimoji = kumimoji;
   const normalizeH = parseBoolAttr(rPr["@_normalizeH"]);
   if (normalizeH !== undefined) style.normalizeHeight = normalizeH;
   const noProof = parseBoolAttr(rPr["@_noProof"]);

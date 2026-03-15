@@ -4,9 +4,19 @@
  *
  * Rendered as an absolute overlay when presenterMode is active during
  * presentation mode. Uses ScaledSlidePreview for slide rendering.
+ *
+ * Supports opening an audience window via `window.open()` for dual-screen
+ * presenter workflows. The audience window receives slide changes via
+ * `postMessage()` cross-window communication.
  */
 import React, { useEffect, useState } from "react";
-import { LuChevronLeft, LuChevronRight, LuX } from "react-icons/lu";
+import {
+  LuChevronLeft,
+  LuChevronRight,
+  LuX,
+  LuMonitor,
+  LuMonitorOff,
+} from "react-icons/lu";
 import { useTranslation } from "react-i18next";
 
 import type { PptxElement, PptxSlide } from "pptx-viewer-core";
@@ -30,6 +40,12 @@ export interface PresenterViewProps {
   presentationStartTime: number | null;
   onMovePresentationSlide: (direction: 1 | -1) => void;
   onExit: () => void;
+  /** Open the audience display in a separate browser window. */
+  onOpenAudienceWindow?: () => boolean;
+  /** Close the audience display window. */
+  onCloseAudienceWindow?: () => void;
+  /** Whether the audience window is currently open. */
+  isAudienceWindowOpen?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -44,6 +60,9 @@ export function PresenterView({
   presentationStartTime,
   onMovePresentationSlide,
   onExit,
+  onOpenAudienceWindow,
+  onCloseAudienceWindow,
+  isAudienceWindowOpen,
 }: PresenterViewProps): React.ReactElement {
   const { t } = useTranslation();
 
@@ -98,8 +117,17 @@ export function PresenterView({
     );
   }
 
+  // -- Timer progress (5-minute segments) ------------------------------------
+  const TIMER_SEGMENT_MS = 5 * 60 * 1000; // 5 minutes per bar fill
+  const timerProgress = Math.min(
+    100,
+    ((elapsed % TIMER_SEGMENT_MS) / TIMER_SEGMENT_MS) * 100,
+  );
+  const timerSegment = Math.floor(elapsed / TIMER_SEGMENT_MS);
+
   return (
-    <div className="absolute inset-0 z-50 flex bg-card text-foreground">
+    <div className="absolute inset-0 z-50 flex flex-col bg-card text-foreground">
+      <div className="flex flex-1 min-h-0">
       {/* Left panel -- current slide (70%) */}
       <div className="flex-[7] flex items-center justify-center bg-black p-6 min-w-0">
         <ScaledSlidePreview
@@ -129,15 +157,46 @@ export function PresenterView({
               {formatElapsed(elapsed)}
             </span>
           </div>
-          <button
-            type="button"
-            onClick={onExit}
-            className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-            title={t("pptx.presenter.endPresentation")}
-            aria-label={t("pptx.presenter.endPresentation")}
-          >
-            <LuX className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            {onOpenAudienceWindow && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (isAudienceWindowOpen) {
+                    onCloseAudienceWindow?.();
+                  } else {
+                    onOpenAudienceWindow();
+                  }
+                }}
+                className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                title={
+                  isAudienceWindowOpen
+                    ? t("pptx.presenter.closeAudienceWindow")
+                    : t("pptx.presenter.openAudienceWindow")
+                }
+                aria-label={
+                  isAudienceWindowOpen
+                    ? t("pptx.presenter.closeAudienceWindow")
+                    : t("pptx.presenter.openAudienceWindow")
+                }
+              >
+                {isAudienceWindowOpen ? (
+                  <LuMonitorOff className="w-5 h-5" />
+                ) : (
+                  <LuMonitor className="w-5 h-5" />
+                )}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onExit}
+              className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+              title={t("pptx.presenter.endPresentation")}
+              aria-label={t("pptx.presenter.endPresentation")}
+            >
+              <LuX className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Navigation controls */}
@@ -202,6 +261,23 @@ export function PresenterView({
             )}
           </div>
         </div>
+      </div>
+      </div>
+
+      {/* Timer progress bar */}
+      <div
+        className="h-1.5 w-full bg-muted/60 flex-shrink-0"
+        role="progressbar"
+        aria-valuenow={Math.round(timerProgress)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={t("pptx.presenter.timerProgress")}
+        title={`${formatElapsed(elapsed)} (segment ${timerSegment + 1})`}
+      >
+        <div
+          className="h-full bg-primary transition-[width] duration-1000 ease-linear"
+          style={{ width: `${timerProgress}%` }}
+        />
       </div>
     </div>
   );

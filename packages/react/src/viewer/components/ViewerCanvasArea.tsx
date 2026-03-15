@@ -2,7 +2,8 @@
  * ViewerCanvasArea — The `<main>` element containing the slide canvas,
  * find/replace panel, and presentation annotation / toolbar overlays.
  */
-import type { PptxElement, PptxSlide } from "pptx-viewer-core";
+import { useCallback, useMemo } from "react";
+import type { PptxAction, PptxElement, PptxSlide } from "pptx-viewer-core";
 import type { CanvasSize, TableCellEditorState } from "../types";
 import type { ViewerMode } from "../types-core";
 import type { CanvasInteractionHandlers } from "../hooks/useCanvasInteractions";
@@ -12,6 +13,8 @@ import type { UsePresentationAnnotationsResult } from "../hooks/usePresentationA
 import type { UsePresentationModeResult } from "../hooks/usePresentationMode";
 import type { ViewerState } from "../hooks/useViewerState";
 import type { UseZoomViewportResult } from "../hooks/useZoomViewport";
+import { safeOpenUrl, isPpactionUrl, parsePpactionUrl } from "../utils/hyperlink-security";
+import type { FieldSubstitutionContext } from "../utils/text-field-substitution";
 
 import {
   FindReplacePanel,
@@ -30,6 +33,7 @@ import {
 export interface ViewerCanvasAreaProps {
   mode: ViewerMode;
   canEdit: boolean;
+  slides: PptxSlide[];
   activeSlide: PptxSlide | undefined;
   masterPseudoSlide: PptxSlide | undefined;
   templateElements: PptxElement[];
@@ -76,6 +80,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
   const {
     mode,
     canEdit,
+    slides,
     activeSlide,
     masterPseudoSlide,
     templateElements,
@@ -100,6 +105,65 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
         ? (s.activeMaster?.elements ?? [])
         : []
       : templateElements;
+
+  // ── Field substitution context ──────────────────────────────────────
+  const fieldContext = useMemo<FieldSubstitutionContext>(() => {
+    const hf = s.headerFooter;
+    // Extract slide title from first title/ctrTitle placeholder
+    let slideTitle: string | undefined;
+    if (activeSlide) {
+      for (const el of activeSlide.elements) {
+        const phType = (el as unknown as { placeholderType?: string }).placeholderType;
+        if (phType === "title" || phType === "ctrTitle") {
+          const txt = (el as unknown as { text?: string }).text;
+          if (txt) {
+            slideTitle = txt;
+            break;
+          }
+        }
+      }
+    }
+    return {
+      slideNumber: activeSlide?.slideNumber,
+      dateTimeText: hf.dateTimeText,
+      dateFormat: hf.dateFormat,
+      footerText: hf.footerText,
+      headerText: hf.headerText,
+      slideTitle,
+      customProperties: s.customProperties.map((p) => ({
+        name: p.name,
+        value: p.value,
+      })),
+    };
+  }, [s.headerFooter, s.customProperties, activeSlide]);
+
+  // ── Action / hyperlink handlers for presentation mode ──────────────
+  const handleActionClick = useCallback(
+    (_elementId: string, action: PptxAction) => {
+      presentation.handlePresentationAction(action);
+    },
+    [presentation.handlePresentationAction],
+  );
+
+  const handleHyperlinkClick = useCallback(
+    (url: string) => {
+      // Internal ppaction:// URLs (slide jumps, show jumps) are routed
+      // through the presentation action handler instead of opening a tab.
+      if (isPpactionUrl(url)) {
+        const parsed = parsePpactionUrl(url);
+        if (parsed) {
+          const action: PptxAction = {
+            action: parsed.action,
+            targetSlideIndex: parsed.targetSlideIndex,
+          };
+          presentation.handlePresentationAction(action);
+        }
+        return;
+      }
+      safeOpenUrl(url);
+    },
+    [presentation.handlePresentationAction],
+  );
 
   return (
     <main aria-label="Slide editor" className="flex-1 min-w-0 relative flex flex-col">
@@ -192,12 +256,20 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
           isDrawingRef={s.isDrawingRef}
           onAddInkElement={insertHandlers.handleAddInkElement}
           onAddFreeformShape={insertHandlers.handleAddFreeformShape}
-          onHyperlinkClick={
-            mode === "present"
-              ? (url: string) =>
-                  window.open(url, "_blank", "noopener,noreferrer")
-              : undefined
+          onActionClick={
+            mode === "present" ? handleActionClick : undefined
           }
+          onHyperlinkClick={
+            mode === "present" ? handleHyperlinkClick : undefined
+          }
+          allSlides={mode === "present" ? slides : undefined}
+          onZoomClick={
+            mode === "present" ? presentation.handleZoomClick : undefined
+          }
+          sourceSlideIndex={
+            mode === "present" ? activeSlideIndex : undefined
+          }
+          fieldContext={fieldContext}
           comments={activeSlide?.comments}
           showCommentMarkers={s.sidebarPanelMode === "comments"}
           onCommentMarkerClick={() => s.setSidebarPanelMode("comments")}

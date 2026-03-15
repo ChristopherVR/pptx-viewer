@@ -68,7 +68,7 @@ describe('buildDynamicKeyframes', () => {
 		} as PptxNativeAnimation;
 		const result = buildDynamicKeyframes(anim, 42);
 		expect(result).toBeDefined();
-		expect(result!.keyframeName).toBe('fuzor-motionPath-42');
+		expect(result!.keyframeName).toBe('pptx-motionPath-42');
 		expect(result!.css).toContain('@keyframes');
 		expect(result!.css).toContain('translate');
 	});
@@ -79,7 +79,7 @@ describe('buildDynamicKeyframes', () => {
 		} as PptxNativeAnimation;
 		const result = buildDynamicKeyframes(anim, 5);
 		expect(result).toBeDefined();
-		expect(result!.keyframeName).toBe('fuzor-rotateBy-5');
+		expect(result!.keyframeName).toBe('pptx-rotateBy-5');
 		expect(result!.css).toContain('rotate(360deg)');
 	});
 
@@ -90,7 +90,7 @@ describe('buildDynamicKeyframes', () => {
 		} as PptxNativeAnimation;
 		const result = buildDynamicKeyframes(anim, 10);
 		expect(result).toBeDefined();
-		expect(result!.keyframeName).toBe('fuzor-scaleBy-10');
+		expect(result!.keyframeName).toBe('pptx-scaleBy-10');
 		expect(result!.css).toContain('scale(2, 1.5)');
 	});
 
@@ -134,13 +134,13 @@ describe('buildDynamicKeyframes', () => {
 });
 
 describe('cssKeyframeName', () => {
-	it('should prefix effect name with "fuzor-"', () => {
-		expect(cssKeyframeName('appear' as any)).toBe('fuzor-appear');
-		expect(cssKeyframeName('fadeIn' as any)).toBe('fuzor-fadeIn');
+	it('should prefix effect name with "pptx-"', () => {
+		expect(cssKeyframeName('appear' as any)).toBe('pptx-appear');
+		expect(cssKeyframeName('fadeIn' as any)).toBe('pptx-fadeIn');
 	});
 
 	it('should work with any string', () => {
-		expect(cssKeyframeName('customEffect' as any)).toBe('fuzor-customEffect');
+		expect(cssKeyframeName('customEffect' as any)).toBe('pptx-customEffect');
 	});
 });
 

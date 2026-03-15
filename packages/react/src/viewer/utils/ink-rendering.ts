@@ -192,7 +192,7 @@ export function estimatePathLength(points: PathPoint[]): number {
 /**
  * Name for the CSS @keyframes rule used by ink replay.
  */
-export const INK_REPLAY_KEYFRAME_NAME = "fuzor-ink-replay";
+export const INK_REPLAY_KEYFRAME_NAME = "pptx-ink-replay";
 
 /**
  * CSS @keyframes definition for ink stroke replay.

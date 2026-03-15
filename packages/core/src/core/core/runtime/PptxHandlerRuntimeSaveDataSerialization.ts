@@ -277,6 +277,105 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
           }
         }
 
+        // Update external data autoUpdate attribute (c:externalData / c:autoUpdate)
+        if (chartData.externalData?.autoUpdate !== undefined) {
+          const externalDataNode =
+            this.xmlLookupService.getChildByLocalName(
+              chartSpace,
+              "externalData",
+            );
+          if (externalDataNode) {
+            // Update child element form: <c:autoUpdate val="0|1"/>
+            const autoUpdateNode =
+              this.xmlLookupService.getChildByLocalName(
+                externalDataNode,
+                "autoUpdate",
+              );
+            if (autoUpdateNode) {
+              autoUpdateNode["@_val"] = chartData.externalData.autoUpdate
+                ? "1"
+                : "0";
+            }
+            // Also update direct attribute form if present
+            if (externalDataNode["@_autoUpdate"] !== undefined) {
+              externalDataNode["@_autoUpdate"] =
+                chartData.externalData.autoUpdate ? "1" : "0";
+            }
+          }
+        }
+
+        // Update plotVisOnly (c:plotVisOnly)
+        if (chartData.plotVisibleOnly !== undefined) {
+          const plotVisOnlyNode =
+            this.xmlLookupService.getChildByLocalName(
+              chartRoot,
+              "plotVisOnly",
+            );
+          const val = chartData.plotVisibleOnly ? "1" : "0";
+          if (plotVisOnlyNode) {
+            plotVisOnlyNode["@_val"] = val;
+          } else {
+            // Insert new c:plotVisOnly element into chartRoot
+            (chartRoot as XmlObject)["c:plotVisOnly"] = { "@_val": val };
+          }
+        }
+
+        // Update axis logBase (c:scaling/c:logBase)
+        if (chartData.axes) {
+          const axisTypeNames = ["valAx", "catAx", "dateAx", "serAx"] as const;
+          for (const axisTypeName of axisTypeNames) {
+            const axisNodes =
+              this.xmlLookupService.getChildrenArrayByLocalName(
+                plotArea,
+                axisTypeName,
+              );
+            for (const axisNode of axisNodes) {
+              const axIdNode = this.xmlLookupService.getChildByLocalName(
+                axisNode,
+                "axId",
+              );
+              const xmlAxisId = axIdNode
+                ? parseInt(String(axIdNode["@_val"]), 10)
+                : undefined;
+              const matchingAxis = chartData.axes.find(
+                (a) => a.axisId !== undefined && a.axisId === xmlAxisId,
+              );
+              if (!matchingAxis) continue;
+
+              const scalingNode = this.xmlLookupService.getChildByLocalName(
+                axisNode,
+                "scaling",
+              );
+              if (!scalingNode) continue;
+
+              if (matchingAxis.logBase !== undefined && matchingAxis.logBase > 0) {
+                // Set or update logBase
+                const logBaseKey = Object.keys(scalingNode).find(
+                  (k) =>
+                    this.compatibilityService.getXmlLocalName(k) === "logBase",
+                );
+                if (logBaseKey) {
+                  (scalingNode[logBaseKey] as XmlObject)["@_val"] =
+                    String(matchingAxis.logBase);
+                } else {
+                  (scalingNode as XmlObject)["c:logBase"] = {
+                    "@_val": String(matchingAxis.logBase),
+                  };
+                }
+              } else if (matchingAxis.logScale === false) {
+                // Remove logBase if log scale was explicitly disabled
+                const logBaseKey = Object.keys(scalingNode).find(
+                  (k) =>
+                    this.compatibilityService.getXmlLocalName(k) === "logBase",
+                );
+                if (logBaseKey) {
+                  delete scalingNode[logBaseKey];
+                }
+              }
+            }
+          }
+        }
+
         // Write updated chart XML back
         this.zip.file(chartPartPath, this.builder.build(chartXmlData));
       } catch (e) {

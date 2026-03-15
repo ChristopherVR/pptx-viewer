@@ -26,6 +26,14 @@ export interface PdfExportOptions {
   onProgress?: ExportProgressCallback;
 }
 
+/** Options for notes-page PDF export. */
+export interface NotesPdfExportOptions {
+  /** Render scale multiplier for each slide capture (default 2). */
+  scale?: number;
+  /** Progress callback: (currentSlide, totalSlides). */
+  onProgress?: ExportProgressCallback;
+}
+
 /** Options for multi-slide image capture. */
 export interface SlideCaptureOptions {
   /** Render scale multiplier for each slide capture (default 2). */

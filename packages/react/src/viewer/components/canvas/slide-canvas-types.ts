@@ -21,6 +21,7 @@ import type {
 } from "../../types";
 import type { DrawingTool } from "../../types-ui";
 import type { ElementFindHighlights } from "../../utils/text-render";
+import type { FieldSubstitutionContext } from "../../utils/text-field-substitution";
 import type { RulerUnit } from "./Ruler";
 
 export interface ZoomViewport {
@@ -115,6 +116,8 @@ export interface SlideCanvasProps {
   onZoomClick?: (targetSlideIndex: number, returnSlideIndex: number) => void;
   /** Index of the current slide (for zoom return navigation). */
   sourceSlideIndex?: number;
+  /** Context for text field placeholder substitution (slide number, header/footer, etc.). */
+  fieldContext?: FieldSubstitutionContext;
 }
 
 export type {

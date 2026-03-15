@@ -505,3 +505,221 @@ describe("parseOverflow", () => {
     expect(parseOverflow({ "@_vertOverflow": "unknown" })).toEqual({});
   });
 });
+
+// ---------------------------------------------------------------------------
+// parseTextWarpAdjustments — extracted from applyBodyProperties (prstTxWarp)
+// ---------------------------------------------------------------------------
+
+/**
+ * Extracted logic for parsing adjustment values from a:prstTxWarp/a:avLst/a:gd.
+ */
+function parseTextWarpAdjustments(
+  prstTxWarp: Record<string, unknown> | undefined,
+): Pick<TextStyle, "textWarpPreset" | "textWarpAdj" | "textWarpAdj2"> {
+  const result: Pick<TextStyle, "textWarpPreset" | "textWarpAdj" | "textWarpAdj2"> = {};
+  if (!prstTxWarp) return result;
+
+  const warpPreset = String(prstTxWarp["@_prst"] || "").trim();
+  if (warpPreset.length > 0 && warpPreset !== "textNoShape") {
+    result.textWarpPreset = warpPreset as TextStyle["textWarpPreset"];
+  }
+
+  const avLst = prstTxWarp["a:avLst"] as Record<string, unknown> | undefined;
+  if (avLst) {
+    const gdRaw = avLst["a:gd"];
+    const gdArr = Array.isArray(gdRaw) ? gdRaw : gdRaw ? [gdRaw] : [];
+    for (const gd of gdArr) {
+      const gdObj = gd as Record<string, unknown>;
+      const name = String(gdObj["@_name"] || "").trim();
+      const fmla = String(gdObj["@_fmla"] || "").trim();
+      const valMatch = fmla.match(/^val\s+(-?\d+)$/);
+      if (!valMatch) continue;
+      const val = parseInt(valMatch[1], 10);
+      if (!Number.isFinite(val)) continue;
+      if (name === "adj") {
+        result.textWarpAdj = val;
+      } else if (name === "adj2") {
+        result.textWarpAdj2 = val;
+      }
+    }
+  }
+  return result;
+}
+
+/**
+ * Extracted logic for serialising textWarp adj values back to XML node structure.
+ */
+function buildTextWarpXmlNode(
+  textStyle: Pick<TextStyle, "textWarpPreset" | "textWarpAdj" | "textWarpAdj2">,
+): Record<string, unknown> | undefined {
+  if (!textStyle.textWarpPreset) return undefined;
+  const node: Record<string, unknown> = {
+    "@_prst": textStyle.textWarpPreset,
+  };
+  const adjGds: Record<string, unknown>[] = [];
+  if (textStyle.textWarpAdj !== undefined && Number.isFinite(textStyle.textWarpAdj)) {
+    adjGds.push({ "@_name": "adj", "@_fmla": `val ${textStyle.textWarpAdj}` });
+  }
+  if (textStyle.textWarpAdj2 !== undefined && Number.isFinite(textStyle.textWarpAdj2)) {
+    adjGds.push({ "@_name": "adj2", "@_fmla": `val ${textStyle.textWarpAdj2}` });
+  }
+  if (adjGds.length > 0) {
+    node["a:avLst"] = { "a:gd": adjGds.length === 1 ? adjGds[0] : adjGds };
+  }
+  return node;
+}
+
+describe("parseTextWarpAdjustments", () => {
+  it("should return empty object when prstTxWarp is undefined", () => {
+    expect(parseTextWarpAdjustments(undefined)).toEqual({});
+  });
+
+  it("should parse preset name without adjustment values", () => {
+    const result = parseTextWarpAdjustments({ "@_prst": "textArchUp" });
+    expect(result).toEqual({ textWarpPreset: "textArchUp" });
+  });
+
+  it("should skip textNoShape preset", () => {
+    const result = parseTextWarpAdjustments({ "@_prst": "textNoShape" });
+    expect(result).toEqual({});
+  });
+
+  it("should parse single adj value", () => {
+    const result = parseTextWarpAdjustments({
+      "@_prst": "textInflate",
+      "a:avLst": {
+        "a:gd": { "@_name": "adj", "@_fmla": "val 25000" },
+      },
+    });
+    expect(result).toEqual({
+      textWarpPreset: "textInflate",
+      textWarpAdj: 25000,
+    });
+  });
+
+  it("should parse both adj and adj2 values", () => {
+    const result = parseTextWarpAdjustments({
+      "@_prst": "textWave1",
+      "a:avLst": {
+        "a:gd": [
+          { "@_name": "adj", "@_fmla": "val 12500" },
+          { "@_name": "adj2", "@_fmla": "val 0" },
+        ],
+      },
+    });
+    expect(result).toEqual({
+      textWarpPreset: "textWave1",
+      textWarpAdj: 12500,
+      textWarpAdj2: 0,
+    });
+  });
+
+  it("should handle negative adjustment values", () => {
+    const result = parseTextWarpAdjustments({
+      "@_prst": "textCurveUp",
+      "a:avLst": {
+        "a:gd": { "@_name": "adj", "@_fmla": "val -10000" },
+      },
+    });
+    expect(result).toEqual({
+      textWarpPreset: "textCurveUp",
+      textWarpAdj: -10000,
+    });
+  });
+
+  it("should skip guide definitions with non-val formulas", () => {
+    const result = parseTextWarpAdjustments({
+      "@_prst": "textArchUp",
+      "a:avLst": {
+        "a:gd": { "@_name": "adj", "@_fmla": "*/adj 100 200" },
+      },
+    });
+    expect(result).toEqual({ textWarpPreset: "textArchUp" });
+  });
+
+  it("should handle empty avLst", () => {
+    const result = parseTextWarpAdjustments({
+      "@_prst": "textDeflate",
+      "a:avLst": {},
+    });
+    expect(result).toEqual({ textWarpPreset: "textDeflate" });
+  });
+
+  it("should ignore guide definitions with unknown names", () => {
+    const result = parseTextWarpAdjustments({
+      "@_prst": "textCircle",
+      "a:avLst": {
+        "a:gd": { "@_name": "adj3", "@_fmla": "val 50000" },
+      },
+    });
+    expect(result).toEqual({ textWarpPreset: "textCircle" });
+  });
+});
+
+describe("buildTextWarpXmlNode (save round-trip)", () => {
+  it("should return undefined when no preset is set", () => {
+    expect(buildTextWarpXmlNode({})).toBeUndefined();
+  });
+
+  it("should build node with preset only when no adj values", () => {
+    const node = buildTextWarpXmlNode({ textWarpPreset: "textArchUp" });
+    expect(node).toEqual({ "@_prst": "textArchUp" });
+  });
+
+  it("should include adj in avLst", () => {
+    const node = buildTextWarpXmlNode({
+      textWarpPreset: "textInflate",
+      textWarpAdj: 25000,
+    });
+    expect(node).toEqual({
+      "@_prst": "textInflate",
+      "a:avLst": {
+        "a:gd": { "@_name": "adj", "@_fmla": "val 25000" },
+      },
+    });
+  });
+
+  it("should include both adj and adj2 in avLst as array", () => {
+    const node = buildTextWarpXmlNode({
+      textWarpPreset: "textWave1",
+      textWarpAdj: 12500,
+      textWarpAdj2: 0,
+    });
+    expect(node).toEqual({
+      "@_prst": "textWave1",
+      "a:avLst": {
+        "a:gd": [
+          { "@_name": "adj", "@_fmla": "val 12500" },
+          { "@_name": "adj2", "@_fmla": "val 0" },
+        ],
+      },
+    });
+  });
+
+  it("round-trip: parse → build produces equivalent structure", () => {
+    const input = {
+      "@_prst": "textWave1",
+      "a:avLst": {
+        "a:gd": [
+          { "@_name": "adj", "@_fmla": "val 12500" },
+          { "@_name": "adj2", "@_fmla": "val 0" },
+        ],
+      },
+    };
+    const parsed = parseTextWarpAdjustments(input);
+    const rebuilt = buildTextWarpXmlNode(parsed);
+    expect(rebuilt).toEqual(input);
+  });
+
+  it("round-trip: single adj value", () => {
+    const input = {
+      "@_prst": "textInflate",
+      "a:avLst": {
+        "a:gd": { "@_name": "adj", "@_fmla": "val 37500" },
+      },
+    };
+    const parsed = parseTextWarpAdjustments(input);
+    const rebuilt = buildTextWarpXmlNode(parsed);
+    expect(rebuilt).toEqual(input);
+  });
+});

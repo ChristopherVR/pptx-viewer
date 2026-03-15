@@ -98,6 +98,8 @@ export class PptxLoadDataBuilder {
 
   private slideSizeType: string | undefined;
 
+  private thumbnailData: Uint8Array | undefined;
+
   public withDimensions(
     width: number,
     height: number,
@@ -288,6 +290,11 @@ export class PptxLoadDataBuilder {
     return this;
   }
 
+  public withThumbnailData(thumbnailData: Uint8Array | undefined): this {
+    this.thumbnailData = thumbnailData;
+    return this;
+  }
+
   public build(): PptxData {
     return {
       width: this.width,
@@ -326,6 +333,7 @@ export class PptxLoadDataBuilder {
       modifyVerifier: this.modifyVerifier,
       customXmlParts: this.customXmlParts,
       customerData: this.customerData,
+      thumbnailData: this.thumbnailData,
     };
   }
 }

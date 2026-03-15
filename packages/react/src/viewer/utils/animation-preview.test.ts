@@ -64,10 +64,10 @@ describe('buildPreviewAnimation', () => {
 	it('should return a descriptor for "fadeIn" preset', () => {
 		const result = buildPreviewAnimation('fadeIn');
 		expect(result).toBeDefined();
-		expect(result!.keyframeName).toBe('fuzor-fadeIn');
+		expect(result!.keyframeName).toBe('pptx-fadeIn');
 		expect(result!.keyframesCss).toContain('@keyframes');
 		expect(result!.durationMs).toBe(600);
-		expect(result!.cssAnimation).toContain('fuzor-fadeIn');
+		expect(result!.cssAnimation).toContain('pptx-fadeIn');
 	});
 
 	it('should use custom duration when provided', () => {
@@ -91,13 +91,13 @@ describe('buildPreviewAnimation', () => {
 	it('should return descriptor for "pulse" emphasis preset', () => {
 		const result = buildPreviewAnimation('pulse');
 		expect(result).toBeDefined();
-		expect(result!.keyframeName).toBe('fuzor-pulse');
+		expect(result!.keyframeName).toBe('pptx-pulse');
 	});
 
 	it('should return descriptor for "spin" emphasis preset', () => {
 		const result = buildPreviewAnimation('spin');
 		expect(result).toBeDefined();
-		expect(result!.keyframeName).toBe('fuzor-spin');
+		expect(result!.keyframeName).toBe('pptx-spin');
 	});
 
 	it('should return undefined for an unknown preset', () => {
@@ -108,25 +108,25 @@ describe('buildPreviewAnimation', () => {
 	it('should resolve direction-based flyIn to correct effect', () => {
 		const result = buildPreviewAnimation('flyIn', { direction: 'fromLeft' });
 		expect(result).toBeDefined();
-		expect(result!.keyframeName).toBe('fuzor-flyInLeft');
+		expect(result!.keyframeName).toBe('pptx-flyInLeft');
 	});
 
 	it('should resolve direction-based flyIn fromRight', () => {
 		const result = buildPreviewAnimation('flyIn', { direction: 'fromRight' });
 		expect(result).toBeDefined();
-		expect(result!.keyframeName).toBe('fuzor-flyInRight');
+		expect(result!.keyframeName).toBe('pptx-flyInRight');
 	});
 
 	it('should resolve direction-based flyIn fromTop', () => {
 		const result = buildPreviewAnimation('flyIn', { direction: 'fromTop' });
 		expect(result).toBeDefined();
-		expect(result!.keyframeName).toBe('fuzor-flyInTop');
+		expect(result!.keyframeName).toBe('pptx-flyInTop');
 	});
 
 	it('should resolve direction-based flyOut fromLeft to flyOutLeft', () => {
 		const result = buildPreviewAnimation('flyOut', { direction: 'fromLeft' });
 		expect(result).toBeDefined();
-		expect(result!.keyframeName).toBe('fuzor-flyOutLeft');
+		expect(result!.keyframeName).toBe('pptx-flyOutLeft');
 	});
 
 	it('should include cssAnimation with correct structure', () => {
@@ -135,7 +135,7 @@ describe('buildPreviewAnimation', () => {
 			timingCurve: 'ease-out',
 		});
 		expect(result).toBeDefined();
-		expect(result!.cssAnimation).toContain('fuzor-zoomIn');
+		expect(result!.cssAnimation).toContain('pptx-zoomIn');
 		expect(result!.cssAnimation).toContain('800ms');
 		expect(result!.cssAnimation).toContain('ease-out');
 		expect(result!.cssAnimation).toContain('both');
@@ -144,37 +144,37 @@ describe('buildPreviewAnimation', () => {
 	it('should default flyIn without direction to flyInBottom', () => {
 		const result = buildPreviewAnimation('flyIn');
 		expect(result).toBeDefined();
-		expect(result!.keyframeName).toBe('fuzor-flyInBottom');
+		expect(result!.keyframeName).toBe('pptx-flyInBottom');
 	});
 
 	it('should default flyOut without direction to flyOutBottom', () => {
 		const result = buildPreviewAnimation('flyOut');
 		expect(result).toBeDefined();
-		expect(result!.keyframeName).toBe('fuzor-flyOutBottom');
+		expect(result!.keyframeName).toBe('pptx-flyOutBottom');
 	});
 
 	it('should resolve flyIn fromBottom direction', () => {
 		const result = buildPreviewAnimation('flyIn', { direction: 'fromBottom' });
 		expect(result).toBeDefined();
-		expect(result!.keyframeName).toBe('fuzor-flyInBottom');
+		expect(result!.keyframeName).toBe('pptx-flyInBottom');
 	});
 
 	it('should resolve flyOut fromRight direction', () => {
 		const result = buildPreviewAnimation('flyOut', { direction: 'fromRight' });
 		expect(result).toBeDefined();
-		expect(result!.keyframeName).toBe('fuzor-flyOutRight');
+		expect(result!.keyframeName).toBe('pptx-flyOutRight');
 	});
 
 	it('should resolve flyIn fromTopLeft as flyInTop', () => {
 		const result = buildPreviewAnimation('flyIn', { direction: 'fromTopLeft' });
 		expect(result).toBeDefined();
-		expect(result!.keyframeName).toBe('fuzor-flyInTop');
+		expect(result!.keyframeName).toBe('pptx-flyInTop');
 	});
 
 	it('should resolve flyIn fromBottomRight as flyInBottom', () => {
 		const result = buildPreviewAnimation('flyIn', { direction: 'fromBottomRight' });
 		expect(result).toBeDefined();
-		expect(result!.keyframeName).toBe('fuzor-flyInBottom');
+		expect(result!.keyframeName).toBe('pptx-flyInBottom');
 	});
 
 	it('should use cubicBezier option when provided', () => {
@@ -188,19 +188,19 @@ describe('buildPreviewAnimation', () => {
 	it('should return descriptor for "colorWave" preset', () => {
 		const result = buildPreviewAnimation('colorWave');
 		expect(result).toBeDefined();
-		expect(result!.keyframeName).toBe('fuzor-colorWave');
+		expect(result!.keyframeName).toBe('pptx-colorWave');
 	});
 
 	it('should return descriptor for "bounce" preset', () => {
 		const result = buildPreviewAnimation('bounce');
 		expect(result).toBeDefined();
-		expect(result!.keyframeName).toBe('fuzor-bounce');
+		expect(result!.keyframeName).toBe('pptx-bounce');
 	});
 
 	it('should return descriptor for "flash" preset', () => {
 		const result = buildPreviewAnimation('flash');
 		expect(result).toBeDefined();
-		expect(result!.keyframeName).toBe('fuzor-flash');
+		expect(result!.keyframeName).toBe('pptx-flash');
 	});
 });
 

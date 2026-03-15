@@ -126,7 +126,7 @@ export function buildPreviewAnimation(
   const effectName = resolvePreviewEffect(preset, options?.direction);
   if (!effectName) return undefined;
 
-  const keyframeName = `fuzor-${effectName}`;
+  const keyframeName = `pptx-${effectName}`;
   const keyframesCss = getEffectKeyframes(
     effectName as Parameters<typeof getEffectKeyframes>[0],
   );

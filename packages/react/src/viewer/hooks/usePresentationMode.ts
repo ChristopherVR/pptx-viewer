@@ -9,6 +9,7 @@ import { useRehearsalTimings } from "./presentation-mode/useRehearsalTimings";
 import { usePresentationKeyboard } from "./presentation-mode/usePresentationKeyboard";
 import { useSlideNavigation } from "./presentation-mode/useSlideNavigation";
 import { useZoomNavigation } from "./presentation-mode/useZoomNavigation";
+import { usePresenterWindow } from "./presentation-mode/usePresenterWindow";
 
 export type { UsePresentationModeInput, UsePresentationModeResult };
 
@@ -115,6 +116,16 @@ export function usePresentationMode(
     returnToZoomSlide,
     clearZoomReturn,
   } = useZoomNavigation({ navigateToSlide });
+
+  const {
+    openAudienceWindow,
+    closeAudienceWindow,
+    isAudienceWindowOpen,
+    syncSlideToAudience,
+  } = usePresenterWindow({
+    currentSlideIndex: presentationSlideIndex,
+    isPresenterMode: presenterMode,
+  });
 
   // -----------------------------------------------------------------------
   // Enter present mode — call from a click handler so requestFullscreen works
@@ -268,5 +279,9 @@ export function usePresentationMode(
     zoomReturnSlideIndex,
     returnToZoomSlide,
     clearZoomReturn,
+    openAudienceWindow,
+    closeAudienceWindow,
+    isAudienceWindowOpen,
+    syncSlideToAudience,
   };
 }

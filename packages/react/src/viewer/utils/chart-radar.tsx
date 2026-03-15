@@ -88,7 +88,7 @@ export function renderRadarChart(
         return `${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`;
       })
       .join(" ");
-    const c = seriesColor(series, si, chartData.style?.styleId);
+    const c = seriesColor(series, si, chartData.style?.styleId, chartData.colorPalette);
     return (
       <g key={`${element.id}-radar-s-${si}`}>
         <polygon

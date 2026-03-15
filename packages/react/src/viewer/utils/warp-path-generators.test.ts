@@ -293,3 +293,243 @@ describe('Priority 4 path generators', () => {
 		expect(large).toContain('400,');
 	});
 });
+
+describe('Adjustment values (adj/adj2)', () => {
+	it('textInflate: adj=0 should produce a straight line (no bulge)', () => {
+		const gen = WARP_PATH_GENERATORS['textInflate'];
+		const path = gen(200, 100, 0.5, 0);
+		// With adj=0 the bulge factor is 0, so Q control point matches the endpoints' y
+		// The path should still be valid
+		expect(path).toMatch(/^M/);
+		expect(path).toContain('Q');
+	});
+
+	it('textInflate: larger adj should produce more bulge', () => {
+		const gen = WARP_PATH_GENERATORS['textInflate'];
+		const pathDefault = gen(200, 100, 0);     // no adj = default
+		const pathLarge = gen(200, 100, 0, 37500); // double the default adj
+		// Both should be valid paths
+		expect(pathDefault).toMatch(/^M/);
+		expect(pathLarge).toMatch(/^M/);
+		// With a larger adj the control point y should differ
+		expect(pathDefault).not.toBe(pathLarge);
+	});
+
+	it('textWave1: adj controls amplitude', () => {
+		const gen = WARP_PATH_GENERATORS['textWave1'];
+		const pathSmall = gen(200, 100, 0.5, 5000);
+		const pathLarge = gen(200, 100, 0.5, 25000);
+		expect(pathSmall).not.toBe(pathLarge);
+	});
+
+	it('textArchUp: adj controls arch height', () => {
+		const gen = WARP_PATH_GENERATORS['textArchUp'];
+		const pathDefault = gen(200, 100, 0);
+		const pathSmall = gen(200, 100, 0, 5400000);
+		expect(pathDefault).not.toBe(pathSmall);
+	});
+
+	it('textDeflate: adj controls pinch amount', () => {
+		const gen = WARP_PATH_GENERATORS['textDeflate'];
+		// Use t=0.2 (not 0.5 which produces zero pinch at midpoint)
+		const pathDefault = gen(200, 100, 0.2);
+		const pathLarge = gen(200, 100, 0.2, 37500);
+		expect(pathDefault).not.toBe(pathLarge);
+	});
+
+	it('textTriangle: adj controls narrowness', () => {
+		const gen = WARP_PATH_GENERATORS['textTriangle'];
+		const pathNarrow = gen(200, 100, 0, 10000);
+		const pathWide = gen(200, 100, 0, 90000);
+		// With wider adj the top line should be wider
+		expect(pathNarrow).not.toBe(pathWide);
+	});
+
+	it('textCurveUp: adj controls curve height', () => {
+		const gen = WARP_PATH_GENERATORS['textCurveUp'];
+		const pathDefault = gen(200, 100, 0.5);
+		const pathHigh = gen(200, 100, 0.5, 91954);
+		expect(pathDefault).not.toBe(pathHigh);
+	});
+
+	it('textButton: adj controls curve amount', () => {
+		const gen = WARP_PATH_GENERATORS['textButton'];
+		const pathDefault = gen(200, 100, 0.3);
+		const pathLarge = gen(200, 100, 0.3, 37500);
+		expect(pathDefault).not.toBe(pathLarge);
+	});
+
+	it('textButton: adj=0 flattens the curve', () => {
+		const gen = WARP_PATH_GENERATORS['textButton'];
+		const path = gen(200, 100, 0.3, 0);
+		expect(path).toMatch(/^M/);
+		expect(path).toContain('Q');
+	});
+
+	it('textChevron: adj controls point height', () => {
+		const gen = WARP_PATH_GENERATORS['textChevron'];
+		const pathSmall = gen(200, 100, 0.3, 10000);
+		const pathLarge = gen(200, 100, 0.3, 50000);
+		expect(pathSmall).not.toBe(pathLarge);
+	});
+
+	it('textChevronInverted: adj controls point height', () => {
+		const gen = WARP_PATH_GENERATORS['textChevronInverted'];
+		const pathSmall = gen(200, 100, 0.7, 10000);
+		const pathLarge = gen(200, 100, 0.7, 50000);
+		expect(pathSmall).not.toBe(pathLarge);
+	});
+
+	it('textCanUp: adj controls curvature', () => {
+		const gen = WARP_PATH_GENERATORS['textCanUp'];
+		const pathDefault = gen(200, 100, 0.3);
+		const pathLarge = gen(200, 100, 0.3, 37500);
+		expect(pathDefault).not.toBe(pathLarge);
+	});
+
+	it('textCanDown: adj controls curvature', () => {
+		const gen = WARP_PATH_GENERATORS['textCanDown'];
+		const pathDefault = gen(200, 100, 0.5);
+		const pathLarge = gen(200, 100, 0.5, 37500);
+		expect(pathDefault).not.toBe(pathLarge);
+	});
+
+	it('textRingInside: adj controls ring thickness', () => {
+		const gen = WARP_PATH_GENERATORS['textRingInside'];
+		const pathDefault = gen(200, 100, 0.5);
+		const pathLarge = gen(200, 100, 0.5, 37500);
+		expect(pathDefault).not.toBe(pathLarge);
+	});
+
+	it('textRingOutside: adj controls ring thickness', () => {
+		const gen = WARP_PATH_GENERATORS['textRingOutside'];
+		const pathDefault = gen(200, 100, 0.5);
+		const pathLarge = gen(200, 100, 0.5, 37500);
+		expect(pathDefault).not.toBe(pathLarge);
+	});
+
+	it('textStop: adj controls corner inset', () => {
+		const gen = WARP_PATH_GENERATORS['textStop'];
+		const pathDefault = gen(200, 100, 0.3);
+		const pathLarge = gen(200, 100, 0.3, 50000);
+		expect(pathDefault).not.toBe(pathLarge);
+	});
+
+	it('textSlantUp: adj controls slant angle', () => {
+		const gen = WARP_PATH_GENERATORS['textSlantUp'];
+		const pathDefault = gen(200, 100, 0.5);
+		const pathLarge = gen(200, 100, 0.5, 110000);
+		expect(pathDefault).not.toBe(pathLarge);
+	});
+
+	it('textSlantDown: adj controls slant angle', () => {
+		const gen = WARP_PATH_GENERATORS['textSlantDown'];
+		const pathDefault = gen(200, 100, 0.5);
+		const pathLarge = gen(200, 100, 0.5, 110000);
+		expect(pathDefault).not.toBe(pathLarge);
+	});
+
+	it('textFadeRight: adj controls fade amount', () => {
+		const gen = WARP_PATH_GENERATORS['textFadeRight'];
+		const pathDefault = gen(200, 100, 0.3);
+		const pathLarge = gen(200, 100, 0.3, 100000);
+		expect(pathDefault).not.toBe(pathLarge);
+	});
+
+	it('textFadeUp: adj controls taper', () => {
+		const gen = WARP_PATH_GENERATORS['textFadeUp'];
+		const pathDefault = gen(200, 100, 0);
+		const pathLarge = gen(200, 100, 0, 100000);
+		expect(pathDefault).not.toBe(pathLarge);
+	});
+
+	it('textInflateBottom: adj controls bulge', () => {
+		const gen = WARP_PATH_GENERATORS['textInflateBottom'];
+		const pathDefault = gen(200, 100, 0.8);
+		const pathLarge = gen(200, 100, 0.8, 37500);
+		expect(pathDefault).not.toBe(pathLarge);
+	});
+
+	it('textDeflateTop: adj controls pinch', () => {
+		const gen = WARP_PATH_GENERATORS['textDeflateTop'];
+		const pathDefault = gen(200, 100, 0.2);
+		const pathLarge = gen(200, 100, 0.2, 37500);
+		expect(pathDefault).not.toBe(pathLarge);
+	});
+
+	it('textArchUpPour: adj controls arch height', () => {
+		const gen = WARP_PATH_GENERATORS['textArchUpPour'];
+		const pathDefault = gen(200, 100, 0);
+		const pathSmall = gen(200, 100, 0, 5400000);
+		expect(pathDefault).not.toBe(pathSmall);
+	});
+
+	it('textCirclePour: adj controls ellipse scale', () => {
+		const gen = WARP_PATH_GENERATORS['textCirclePour'];
+		const pathDefault = gen(200, 100, 0.3);
+		const pathSmall = gen(200, 100, 0.3, 5400000);
+		expect(pathDefault).not.toBe(pathSmall);
+	});
+
+	it('textButtonPour: adj controls curve amount', () => {
+		const gen = WARP_PATH_GENERATORS['textButtonPour'];
+		const pathDefault = gen(200, 100, 0.3);
+		const pathLarge = gen(200, 100, 0.3, 37500);
+		expect(pathDefault).not.toBe(pathLarge);
+	});
+
+	it('textDeflateInflate: adj controls oscillation', () => {
+		const gen = WARP_PATH_GENERATORS['textDeflateInflate'];
+		const pathDefault = gen(200, 100, 0.3);
+		const pathLarge = gen(200, 100, 0.3, 37500);
+		expect(pathDefault).not.toBe(pathLarge);
+	});
+
+	it('textDeflateInflateDeflate: adj controls oscillation', () => {
+		const gen = WARP_PATH_GENERATORS['textDeflateInflateDeflate'];
+		const pathDefault = gen(200, 100, 0.3);
+		const pathLarge = gen(200, 100, 0.3, 37500);
+		expect(pathDefault).not.toBe(pathLarge);
+	});
+
+	it('textWave1: adj2 controls horizontal shift', () => {
+		const gen = WARP_PATH_GENERATORS['textWave1'];
+		const pathNoShift = gen(200, 100, 0.5, 12500, 0);
+		const pathShifted = gen(200, 100, 0.5, 12500, 50000);
+		expect(pathNoShift).not.toBe(pathShifted);
+	});
+
+	it('textWave2: adj2 controls horizontal shift', () => {
+		const gen = WARP_PATH_GENERATORS['textWave2'];
+		const pathNoShift = gen(200, 100, 0.5, 12500, 0);
+		const pathShifted = gen(200, 100, 0.5, 12500, 50000);
+		expect(pathNoShift).not.toBe(pathShifted);
+	});
+
+	it('textCircle: adj controls arc span', () => {
+		const gen = WARP_PATH_GENERATORS['textCircle'];
+		const pathDefault = gen(200, 100, 0.3);
+		const pathSmall = gen(200, 100, 0.3, 5400000);
+		expect(pathDefault).not.toBe(pathSmall);
+	});
+
+	it('all generators accept adj without error', () => {
+		for (const [name, gen] of Object.entries(WARP_PATH_GENERATORS)) {
+			const path = gen(200, 100, 0.5, 50000, 25000);
+			expect(path).toMatch(/^M/);
+		}
+	});
+
+	it('getWarpPath passes adj/adj2 through to generator', () => {
+		const gen = WARP_PATH_GENERATORS['textInflate'];
+		const expected = gen(200, 100, 0.5, 37500, undefined);
+		const result = getWarpPath('textInflate', 200, 100, 0, 1, 37500);
+		expect(result).toBe(expected);
+	});
+
+	it('getWarpPath with adj produces different result from without', () => {
+		const withoutAdj = getWarpPath('textWave1', 200, 100, 0, 1);
+		const withAdj = getWarpPath('textWave1', 200, 100, 0, 1, 25000);
+		expect(withoutAdj).not.toBe(withAdj);
+	});
+});

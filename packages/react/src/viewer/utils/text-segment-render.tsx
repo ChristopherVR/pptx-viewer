@@ -266,8 +266,19 @@ export function renderSingleSegment(
     );
   }
 
-  // Resolve the hyperlink URL
-  const hyperlinkUrl = segmentStyle.hyperlink || segment.hyperlink;
+  // Resolve the hyperlink URL.
+  // For internal slide-jump actions (ppaction://hlinksldjump), encode the
+  // target slide index as a query parameter so it can travel through the
+  // `onHyperlinkClick(url)` callback without changing its signature.
+  let hyperlinkUrl = segmentStyle.hyperlink || segment.hyperlink;
+  if (
+    hyperlinkUrl &&
+    typeof segmentStyle.hyperlinkTargetSlideIndex === "number" &&
+    hyperlinkUrl.toLowerCase().startsWith("ppaction://")
+  ) {
+    const separator = hyperlinkUrl.includes("?") ? "&" : "?";
+    hyperlinkUrl = `${hyperlinkUrl}${separator}slideIndex=${segmentStyle.hyperlinkTargetSlideIndex}`;
+  }
 
   // ── Ruby text (phonetic guide) rendering ──
   const rubyText = segment.rubyText;

@@ -11,6 +11,7 @@ import type {
 } from "pptx-viewer-core";
 import { hasTextProperties, isInkElement, getLinkedTextBoxSegments } from "pptx-viewer-core";
 import { Model3DRenderer } from "./Model3DRenderer";
+import { SmartArtRenderer } from "./SmartArtRenderer";
 import { cn } from "../../utils";
 import { DEFAULT_TEXT_COLOR } from "../../constants";
 import type { TableCellEditorState } from "../../types";
@@ -20,13 +21,13 @@ import {
   getTextWarpStyle,
   renderChartElement,
   renderMediaElement,
-  renderSmartArtElement,
   renderTableElement,
   renderTextSegments,
   shouldRenderFallbackLabel,
   getElementLabel,
 } from "../../utils";
 import type { ElementFindHighlights } from "../../utils/text-render";
+import type { FieldSubstitutionContext } from "../../utils/text-field-substitution";
 import type { ElementAnimationState } from "../../utils/animation-timeline";
 import { shouldUseSvgWarp } from "../../utils/text-warp";
 import { WarpedText } from "../../utils/text-warp";
@@ -79,6 +80,8 @@ export function renderBody(
   onZoomClick?: (targetSlideIndex: number, returnSlideIndex: number) => void,
   /** Index of the slide that contains the current element (for zoom return navigation). */
   sourceSlideIndex?: number,
+  /** Context for text field placeholder substitution (slide number, header/footer, etc.). */
+  fieldContext?: FieldSubstitutionContext,
 ): React.ReactNode {
   if (el.type === "model3d") {
     return (
@@ -131,7 +134,7 @@ export function renderBody(
       onResizeRow: onRowResize,
     });
   if (el.type === "chart") return renderChartElement(el);
-  if (el.type === "smartArt") return renderSmartArtElement(el);
+  if (el.type === "smartArt") return <SmartArtRenderer element={el} />;
   if (el.type === "media") {
     return renderMediaElement(el, media, {
       autoPlay: isPresentationPassive,
@@ -202,6 +205,7 @@ export function renderBody(
               height={el.height}
               fallbackColor={DEFAULT_TEXT_COLOR}
               findHighlights={findHl}
+              fieldContext={fieldContext}
             />
           </div>
         ) : (
@@ -225,7 +229,7 @@ export function renderBody(
               undefined,
               findHl,
               onHyperlinkClick,
-              undefined,
+              fieldContext,
               presentationElementStates,
               linkedSegments ?? undefined,
             )}
@@ -251,6 +255,7 @@ export function renderBody(
               height={el.height}
               fallbackColor={DEFAULT_TEXT_COLOR}
               findHighlights={findHl}
+              fieldContext={fieldContext}
             />
           </div>
         ) : (
@@ -274,7 +279,7 @@ export function renderBody(
               undefined,
               findHl,
               onHyperlinkClick,
-              undefined,
+              fieldContext,
               presentationElementStates,
               linkedSegments ?? undefined,
             )}

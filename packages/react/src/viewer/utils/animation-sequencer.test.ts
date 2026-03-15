@@ -236,7 +236,7 @@ describe("AnimationSequencer", () => {
       );
       const timeline = seq.buildTimeline();
       expect(timeline.length).toBe(1);
-      expect(timeline[0].cssKeyframes).toContain("fuzor-motionPath");
+      expect(timeline[0].cssKeyframes).toContain("pptx-motionPath");
     });
 
     it("should handle rotation animations", () => {
@@ -253,7 +253,7 @@ describe("AnimationSequencer", () => {
       );
       const timeline = seq.buildTimeline();
       expect(timeline.length).toBe(1);
-      expect(timeline[0].cssKeyframes).toContain("fuzor-rotateBy");
+      expect(timeline[0].cssKeyframes).toContain("pptx-rotateBy");
     });
 
     it("should handle scale animations", () => {
@@ -271,7 +271,7 @@ describe("AnimationSequencer", () => {
       );
       const timeline = seq.buildTimeline();
       expect(timeline.length).toBe(1);
-      expect(timeline[0].cssKeyframes).toContain("fuzor-scaleBy");
+      expect(timeline[0].cssKeyframes).toContain("pptx-scaleBy");
     });
 
     it("should skip unresolvable animations", () => {

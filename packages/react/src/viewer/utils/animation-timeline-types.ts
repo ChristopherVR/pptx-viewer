@@ -8,9 +8,9 @@ import type { PptxAnimationTrigger } from "pptx-viewer-core";
 export interface TimelineStep {
   /** Target element ID. */
   elementId: string;
-  /** CSS animation shorthand to apply (e.g. "fuzor-fadeIn 500ms ease 0ms 1 both"). */
+  /** CSS animation shorthand to apply (e.g. "pptx-fadeIn 500ms ease 0ms 1 both"). */
   cssAnimation: string;
-  /** Name of the CSS @keyframes rule (e.g. "fuzor-fadeIn"). */
+  /** Name of the CSS @keyframes rule (e.g. "pptx-fadeIn"). */
   keyframeName: string;
   /** Trigger that produced this step. */
   trigger: PptxAnimationTrigger;

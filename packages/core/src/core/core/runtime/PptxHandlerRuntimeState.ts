@@ -157,6 +157,9 @@ export class PptxHandlerRuntime {
    */
   protected currentSlideClrMapOverride: Record<string, string> | null = null;
 
+  /** Thumbnail image data from `docProps/thumbnail.jpeg` preserved for round-trip. */
+  protected thumbnailData: Uint8Array | null = null;
+
   /** Raw VBA project binary preserved for macro-enabled (.pptm) round-trip. */
   protected vbaProjectBin: Uint8Array | null = null;
 
@@ -283,9 +286,9 @@ export class PptxHandlerRuntime {
   protected static EDITOR_META_EXTENSION_URI =
     "{A6F62C1B-B45C-4E8A-8B0A-1B3E5F8C8D4A}";
 
-  /** XML namespace URI for the `fuzor:` prefix in the slide XML. */
+  /** XML namespace URI for the `pptx:` prefix in the slide XML. */
   protected static EDITOR_META_NAMESPACE_URI =
-    "http://schemas.fuzor.ai/pptx/editor-meta";
+    "http://schemas.pptx.ai/pptx/editor-meta";
 
   /**
    * Whether the loaded file uses Strict Open XML conformance class.

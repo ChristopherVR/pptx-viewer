@@ -160,6 +160,10 @@ export function WarpedText({
   const lineCount = paragraphs.length;
   const pathIdPrefix = `warp-${element.id}`;
 
+  // Warp adjustment values
+  const warpAdj = textEl.textStyle?.textWarpAdj;
+  const warpAdj2 = textEl.textStyle?.textWarpAdj2;
+
   // Alignment
   const align = textEl.textStyle?.align ?? "center";
   const { startOffset, textAnchor } = getAlignmentProps(align);
@@ -191,7 +195,7 @@ export function WarpedText({
           <path
             key={`${pathIdPrefix}-def-${i}`}
             id={`${pathIdPrefix}-${i}`}
-            d={getWarpPath(preset, width, height, i, lineCount)}
+            d={getWarpPath(preset, width, height, i, lineCount, warpAdj, warpAdj2)}
             fill="none"
           />
         ))}

@@ -6,6 +6,7 @@ import type { RefObject } from "react";
 import type {
   PptxThemeColorScheme,
   PptxThemeFontScheme,
+  PptxThemeOption,
 } from "pptx-viewer-core";
 import type { PptxHandler } from "pptx-viewer-core";
 import type { EditorHistoryResult } from "./useEditorHistory";
@@ -50,6 +51,13 @@ export interface ThemeHandlersResult {
     backgroundColor: string | undefined,
   ) => void;
   handleGetTemplateBackgroundColor: (path: string) => string | undefined;
+  /** Return theme parts discovered in the loaded PPTX archive. */
+  handleGetAvailableThemes: () => Promise<PptxThemeOption[]>;
+  /**
+   * Switch the presentation to an existing theme by its archive path,
+   * update all slide masters, and refresh the serialised content.
+   */
+  handleSwitchTheme: (themePath: string) => Promise<void>;
 }
 
 export function useThemeHandlers(
@@ -169,6 +177,23 @@ export function useThemeHandlers(
     return handler.getTemplateBackgroundColor(path);
   };
 
+  const handleGetAvailableThemes = async (): Promise<PptxThemeOption[]> => {
+    const handler = handlerRef.current;
+    if (!handler) return [];
+    return handler.getAvailableThemes();
+  };
+
+  const handleSwitchTheme = async (themePath: string): Promise<void> => {
+    const handler = handlerRef.current;
+    if (!handler) return;
+    // Update all slide master relationships to point to the new theme
+    await handler.setPresentationTheme(themePath, true);
+    setSlideMasters((prev) =>
+      prev.map((master) => ({ ...master, themePath })),
+    );
+    await refreshContentAfterThemeChange();
+  };
+
   return {
     handleApplyTheme,
     handleUpdateThemeColorScheme,
@@ -178,5 +203,7 @@ export function useThemeHandlers(
     handleApplyThemeData,
     handleSetTemplateBackground,
     handleGetTemplateBackgroundColor,
+    handleGetAvailableThemes,
+    handleSwitchTheme,
   };
 }

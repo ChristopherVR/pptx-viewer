@@ -1,4 +1,4 @@
-import { XmlObject, type PptxChartData, type PptxExternalData } from "../../types";
+import { XmlObject, type PptxChartData, type PptxExternalData, type PptxEmbeddedWorkbookData } from "../../types";
 import {
   parseSeriesTrendlines,
   parseSeriesErrBars,
@@ -16,6 +16,7 @@ import {
   parseChart3DSurfaces,
 } from "../../utils/chart-axis-parser";
 import { parseCxChartSeries } from "../../utils/chart-cx-parser";
+import { parseEmbeddedXlsx } from "../../utils/chart-xlsx-parser";
 
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from "./PptxHandlerRuntimeChartDetection";
 
@@ -153,11 +154,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         )
       : {};
 
+    // Parse plotVisOnly (c:plotVisOnly) — defaults to true when absent
+    const plotVisibleOnly = this.parsePlotVisOnly(chartRoot);
+
     // Parse external data source (c:externalData)
     const externalData = await this.parseChartExternalData(
       chartSpace,
       chartPart.partPath,
     );
+
+    // Parse embedded xlsx workbook if available
+    const embeddedWorkbookData = await this.parseEmbeddedWorkbook(externalData);
+
+    // Parse Office 2013+ chart color style (chartColorStyle*.xml)
+    const chartColorStyle = await this.parseChartColorStyle(chartPartPath);
 
     return {
       chartType,
@@ -176,6 +186,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       ...(surfaces.sideWall ? { sideWall: surfaces.sideWall } : {}),
       ...(surfaces.backWall ? { backWall: surfaces.backWall } : {}),
       ...(externalData ? { externalData } : {}),
+      ...(embeddedWorkbookData ? { embeddedWorkbookData } : {}),
+      ...(plotVisibleOnly !== undefined ? { plotVisibleOnly } : {}),
+      ...(chartColorStyle?.palette
+        ? { colorPalette: chartColorStyle.palette }
+        : {}),
+      ...(chartColorStyle?.method
+        ? { colorMethod: chartColorStyle.method }
+        : {}),
     };
   }
 
@@ -296,11 +314,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       chartStyle.hasDataLabels = true;
     }
 
+    // Parse plotVisOnly (c:plotVisOnly) — defaults to true when absent
+    const plotVisibleOnly = this.parsePlotVisOnly(chartRoot);
+
     // Parse external data source (c:externalData)
     const externalData = await this.parseChartExternalData(
       chartSpace,
       chartPartPath,
     );
+
+    // Parse embedded xlsx workbook if available
+    const embeddedWorkbookData = await this.parseEmbeddedWorkbook(externalData);
+
+    // Parse Office 2013+ chart color style (chartColorStyle*.xml)
+    const chartColorStyle = await this.parseChartColorStyle(chartPartPath);
 
     return {
       chartType,
@@ -311,7 +338,40 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       chartPartPath,
       chartRelationshipId,
       ...(externalData ? { externalData } : {}),
+      ...(embeddedWorkbookData ? { embeddedWorkbookData } : {}),
+      ...(plotVisibleOnly !== undefined ? { plotVisibleOnly } : {}),
+      ...(chartColorStyle?.palette
+        ? { colorPalette: chartColorStyle.palette }
+        : {}),
+      ...(chartColorStyle?.method
+        ? { colorMethod: chartColorStyle.method }
+        : {}),
     };
+  }
+
+  /**
+   * Parse `c:plotVisOnly` from the chart root element.
+   *
+   * The `c:plotVisOnly` element controls whether hidden cells are plotted.
+   * - `val="1"` or `val="true"` or absent → only visible data is plotted (returns `true`)
+   * - `val="0"` or `val="false"` → hidden data IS plotted (returns `false`)
+   *
+   * Returns `undefined` when the element is absent (caller defaults to `true`).
+   */
+  private parsePlotVisOnly(
+    chartRoot: XmlObject | undefined,
+  ): boolean | undefined {
+    if (!chartRoot) return undefined;
+
+    const plotVisOnlyNode = this.xmlLookupService.getChildByLocalName(
+      chartRoot,
+      "plotVisOnly",
+    );
+    if (!plotVisOnlyNode) return undefined;
+
+    const val = plotVisOnlyNode["@_val"];
+    if (val === "0" || val === "false" || val === false) return false;
+    return true;
   }
 
   /**
@@ -339,12 +399,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     ).trim();
     if (relId.length === 0) return undefined;
 
+    // autoUpdate can appear as a child element <c:autoUpdate val="1"/> or as
+    // a direct attribute autoUpdate="1" on the c:externalData element itself.
     const autoUpdateNode = this.xmlLookupService.getChildByLocalName(
       externalDataNode,
       "autoUpdate",
     );
+    const autoUpdateAttr = externalDataNode["@_autoUpdate"];
     const autoUpdate = autoUpdateNode?.["@_val"] === "1" ||
       autoUpdateNode?.["@_val"] === "true" ||
+      autoUpdateAttr === "1" ||
+      autoUpdateAttr === "true" ||
       false;
 
     // Resolve the external target from the chart part's .rels file
@@ -382,6 +447,231 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       // Chart rels file may not exist; that's fine
     }
 
-    return { relId, targetPath, autoUpdate };
+    // Attempt to read embedded xlsx workbook from the ZIP archive
+    let embeddedWorkbookData: Uint8Array | undefined;
+    if (targetPath) {
+      try {
+        const embeddingPath = this.resolveImagePath(chartPartPath, targetPath);
+        if (embeddingPath.includes("embeddings/") && embeddingPath.endsWith(".xlsx")) {
+          const xlsxBinary = await this.zip
+            .file(embeddingPath)
+            ?.async("uint8array");
+          if (xlsxBinary) {
+            embeddedWorkbookData = xlsxBinary;
+          }
+        }
+      } catch {
+        // Embedded workbook may not be accessible; continue without it
+      }
+    }
+
+    return {
+      relId,
+      targetPath,
+      autoUpdate,
+      ...(embeddedWorkbookData ? { embeddedWorkbookData } : {}),
+    };
+  }
+
+  /**
+   * Read and parse the embedded xlsx workbook referenced by chart external data.
+   *
+   * When an embedded xlsx binary is available in the external data reference,
+   * this method uses the chart-xlsx-parser utility to extract structured
+   * categories and series from the first worksheet.
+   */
+  private async parseEmbeddedWorkbook(
+    externalData: PptxExternalData | undefined,
+  ): Promise<PptxEmbeddedWorkbookData | undefined> {
+    if (!externalData?.embeddedWorkbookData) return undefined;
+    try {
+      return await parseEmbeddedXlsx(externalData.embeddedWorkbookData);
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Read the chart part's `.rels` file and return all relationships as an
+   * array of `{ id, type, target }` objects.
+   */
+  private async readChartRels(
+    chartPartPath: string,
+  ): Promise<Array<{ id: string; type: string; target: string }>> {
+    try {
+      const chartDir = chartPartPath.substring(
+        0,
+        chartPartPath.lastIndexOf("/") + 1,
+      );
+      const chartFileName = chartPartPath.substring(
+        chartPartPath.lastIndexOf("/") + 1,
+      );
+      const chartRelsPath = `${chartDir}_rels/${chartFileName}.rels`;
+      const chartRelsXml = await this.zip
+        .file(chartRelsPath)
+        ?.async("string");
+      if (!chartRelsXml) return [];
+
+      const chartRelsData = this.parser.parse(chartRelsXml) as XmlObject;
+      const relsContainer = chartRelsData?.Relationships as
+        | XmlObject
+        | undefined;
+      if (!relsContainer?.Relationship) return [];
+
+      const rels = Array.isArray(relsContainer.Relationship)
+        ? relsContainer.Relationship
+        : [relsContainer.Relationship];
+
+      return rels
+        .filter((rel): rel is XmlObject => Boolean(rel))
+        .map((rel) => ({
+          id: String(rel["@_Id"] || "").trim(),
+          type: String(rel["@_Type"] || "").trim(),
+          target: String(rel["@_Target"] || "").trim(),
+        }));
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Parse the Office 2013+ chart color style part (`chartColorStyle*.xml`)
+   * referenced from the chart's relationships.
+   *
+   * The color style XML contains `<cs:colorStyle meth="cycle" id="10">` with
+   * child `<a:schemeClr val="accent1"/>` elements that define the ordered
+   * color palette.
+   *
+   * Returns `{ palette, method }` where `palette` is an array of resolved hex
+   * colors, or `undefined` when no color style is found.
+   */
+  private async parseChartColorStyle(
+    chartPartPath: string,
+  ): Promise<
+    | {
+        palette: string[];
+        method: PptxChartData["colorMethod"];
+      }
+    | undefined
+  > {
+    try {
+      const rels = await this.readChartRels(chartPartPath);
+
+      // Find the chartColorStyle relationship
+      // Type URIs seen in the wild:
+      //   http://schemas.microsoft.com/office/2014/relationships/chartColorStyle
+      //   http://schemas.microsoft.com/office/2011/relationships/chartColorStyle
+      const colorStyleRel = rels.find(
+        (r) =>
+          r.type.includes("chartColorStyle") ||
+          r.type.includes("chartColor"),
+      );
+      if (!colorStyleRel) return undefined;
+
+      // Resolve the color style XML path relative to the chart part
+      const colorStylePath = this.resolveImagePath(
+        chartPartPath,
+        colorStyleRel.target,
+      );
+      const colorStyleXml = await this.zip
+        .file(colorStylePath)
+        ?.async("string");
+      if (!colorStyleXml) return undefined;
+
+      const parsed = this.parser.parse(colorStyleXml) as XmlObject;
+
+      // The root element is <cs:colorStyle> (may appear with or without
+      // namespace prefix)
+      const colorStyle =
+        this.xmlLookupService.getChildByLocalName(parsed, "colorStyle") ??
+        parsed;
+
+      // Read the method attribute: "cycle" | "withinLinear" | "acrossLinear"
+      const methodStr = String(
+        colorStyle["@_meth"] || "cycle",
+      ).trim() as PptxChartData["colorMethod"];
+      const method: PptxChartData["colorMethod"] =
+        methodStr === "withinLinear" || methodStr === "acrossLinear"
+          ? methodStr
+          : "cycle";
+
+      // Collect all scheme color and explicit color children
+      const palette: string[] = [];
+      this.collectColorStylePalette(colorStyle, palette);
+
+      if (palette.length === 0) return undefined;
+
+      return { palette, method };
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Traverse a `<cs:colorStyle>` element and extract ordered palette colors.
+   *
+   * Child elements can be:
+   * - `<a:schemeClr val="accent1"/>` — resolved via theme color map
+   * - `<a:srgbClr val="4472C4"/>` — explicit RGB
+   */
+  private collectColorStylePalette(
+    node: XmlObject | undefined,
+    output: string[],
+  ): void {
+    if (!node) return;
+
+    for (const [key, value] of Object.entries(node)) {
+      if (key.startsWith("@_")) continue;
+      const localName = this.compatibilityService.getXmlLocalName(key);
+
+      if (localName === "schemeClr") {
+        const items = Array.isArray(value) ? value : [value];
+        for (const item of items) {
+          const resolved = this.resolveChartSchemeColor(item);
+          if (resolved) output.push(resolved);
+        }
+      } else if (localName === "srgbClr") {
+        const items = Array.isArray(value) ? value : [value];
+        for (const item of items) {
+          const hex = String(
+            typeof item === "object" && item !== null
+              ? (item as XmlObject)["@_val"]
+              : item ?? "",
+          ).trim();
+          if (hex.length > 0) {
+            output.push(hex.startsWith("#") ? hex : `#${hex}`);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Resolve a scheme color reference (`<a:schemeClr val="accent1"/>`) to a
+   * concrete hex color using the presentation theme color map.
+   */
+  private resolveChartSchemeColor(
+    schemeClrNode: unknown,
+  ): string | undefined {
+    if (!schemeClrNode) return undefined;
+
+    let val: string;
+    if (typeof schemeClrNode === "string") {
+      val = schemeClrNode;
+    } else if (typeof schemeClrNode === "object" && schemeClrNode !== null) {
+      val = String(
+        (schemeClrNode as XmlObject)["@_val"] || "",
+      ).trim();
+    } else {
+      return undefined;
+    }
+
+    if (val.length === 0) return undefined;
+
+    // Look up in theme color map (same mechanism as SmartArt color resolution)
+    const mapped = this.themeColorMap[val];
+    if (mapped) return mapped.startsWith("#") ? mapped : `#${mapped}`;
+
+    return undefined;
   }
 }

@@ -98,7 +98,7 @@ export function renderChartDataTable(
                       width: 8,
                       height: 8,
                       borderRadius: 2,
-                      backgroundColor: seriesColor(s, si, chartData.style?.styleId),
+                      backgroundColor: seriesColor(s, si, chartData.style?.styleId, chartData.colorPalette),
                       marginRight: 4,
                       verticalAlign: "middle",
                     }}

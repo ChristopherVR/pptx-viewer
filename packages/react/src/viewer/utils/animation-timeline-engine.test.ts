@@ -9,8 +9,8 @@ import type {
 function makeStep(overrides: Partial<TimelineStep> = {}): TimelineStep {
   return {
     elementId: "el-1",
-    cssAnimation: "fuzor-fadeIn 500ms ease 0ms 1 normal both",
-    keyframeName: "fuzor-fadeIn",
+    cssAnimation: "pptx-fadeIn 500ms ease 0ms 1 normal both",
+    keyframeName: "pptx-fadeIn",
     trigger: "onClick",
     delayMs: 0,
     durationMs: 500,
@@ -132,7 +132,7 @@ describe("TimelineEngine", () => {
     it("should store cssAnimation for the element", () => {
       const step = makeStep({
         elementId: "el-1",
-        cssAnimation: "fuzor-fadeIn 500ms ease",
+        cssAnimation: "pptx-fadeIn 500ms ease",
       });
       const engine = new TimelineEngine(
         makeTimeline({ clickGroups: [makeGroup([step])] }),
@@ -140,7 +140,7 @@ describe("TimelineEngine", () => {
 
       expect(engine.getElementAnimation("el-1")).toBeUndefined();
       engine.advance();
-      expect(engine.getElementAnimation("el-1")).toBe("fuzor-fadeIn 500ms ease");
+      expect(engine.getElementAnimation("el-1")).toBe("pptx-fadeIn 500ms ease");
     });
   });
 
@@ -228,7 +228,7 @@ describe("TimelineEngine", () => {
       const step = makeStep({
         elementId: "el-1",
         presetClass: "entr",
-        cssAnimation: "fuzor-fadeIn 500ms ease",
+        cssAnimation: "pptx-fadeIn 500ms ease",
       });
       const engine = new TimelineEngine(
         makeTimeline({
@@ -240,7 +240,7 @@ describe("TimelineEngine", () => {
 
       const states = engine.getElementStates(["el-1"]);
       expect(states.get("el-1")!.visible).toBe(true);
-      expect(states.get("el-1")!.cssAnimation).toBe("fuzor-fadeIn 500ms ease");
+      expect(states.get("el-1")!.cssAnimation).toBe("pptx-fadeIn 500ms ease");
     });
   });
 

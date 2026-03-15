@@ -84,4 +84,13 @@ export interface UsePresentationModeResult {
   returnToZoomSlide: () => boolean;
   /** Clear the stored zoom return index. */
   clearZoomReturn: () => void;
+  // --- Audience Window ---
+  /** Open the audience display in a separate browser window. Returns `true` if successful. */
+  openAudienceWindow: () => boolean;
+  /** Close the audience display window. */
+  closeAudienceWindow: () => void;
+  /** Whether the audience window is currently open. */
+  isAudienceWindowOpen: () => boolean;
+  /** Send a slide index to the audience window explicitly. */
+  syncSlideToAudience: (slideIndex: number) => void;
 }

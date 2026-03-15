@@ -119,3 +119,39 @@ describe("cascadeDownPath", () => {
     expect(path).toBeDefined();
   });
 });
+
+describe("cascade adjustment values", () => {
+  it("cascadeUpPath: adj controls tilt amount", () => {
+    const pathDefault = cascadeUpPath(200, 100, 0.5);
+    const pathLarge = cascadeUpPath(200, 100, 0.5, 88888);
+    expect(pathDefault).not.toBe(pathLarge);
+  });
+
+  it("cascadeDownPath: adj controls tilt amount", () => {
+    const pathDefault = cascadeDownPath(200, 100, 0.5);
+    const pathLarge = cascadeDownPath(200, 100, 0.5, 88888);
+    expect(pathDefault).not.toBe(pathLarge);
+  });
+
+  it("cascadeUpPath: adj=0 produces a flat line", () => {
+    const path = cascadeUpPath(200, 100, 0.5, 0);
+    const match = path.match(
+      /M 0,(\d+\.?\d*)\s+L\s+\d+\.?\d*,(\d+\.?\d*)/,
+    );
+    expect(match).not.toBeNull();
+    const yStart = parseFloat(match![1]);
+    const yEnd = parseFloat(match![2]);
+    expect(yStart).toBeCloseTo(yEnd, 5);
+  });
+
+  it("cascadeDownPath: adj=0 produces a flat line", () => {
+    const path = cascadeDownPath(200, 100, 0.5, 0);
+    const match = path.match(
+      /M 0,(\d+\.?\d*)\s+L\s+\d+\.?\d*,(\d+\.?\d*)/,
+    );
+    expect(match).not.toBeNull();
+    const yStart = parseFloat(match![1]);
+    const yEnd = parseFloat(match![2]);
+    expect(yStart).toBeCloseTo(yEnd, 5);
+  });
+});

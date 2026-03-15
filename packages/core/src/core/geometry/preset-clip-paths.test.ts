@@ -34,6 +34,7 @@ const OOXML_PRESET_SHAPE_NAMES = [
   "ellipse",
   "triangle",
   "rtTriangle",
+  "rightTriangle",
   "diamond",
   "parallelogram",
   "trapezoid",
@@ -287,6 +288,8 @@ describe("OOXML spec coverage", () => {
     // explosion aliases
     expect("explosion1" in PRESET_SHAPE_CLIP_PATHS).toBe(true);
     expect("explosion2" in PRESET_SHAPE_CLIP_PATHS).toBe(true);
+    // rightTriangle alias for rtTriangle
+    expect("righttriangle" in PRESET_SHAPE_CLIP_PATHS).toBe(true);
   });
 });
 
@@ -586,5 +589,48 @@ describe("shape definitions coverage", () => {
     const ct = PRESET_SHAPE_DEFINITIONS.find((d) => d.name === "cornerTabs");
     expect(ct).toBeDefined();
     expect(ct!.category).toBe("other");
+  });
+
+  it("includes line shapes in shape definitions", () => {
+    const line = PRESET_SHAPE_DEFINITIONS.find((d) => d.name === "line");
+    const lineInv = PRESET_SHAPE_DEFINITIONS.find((d) => d.name === "lineInv");
+    expect(line).toBeDefined();
+    expect(lineInv).toBeDefined();
+  });
+
+  it("includes squareTabs and plaqueTabs in shape definitions", () => {
+    const sq = PRESET_SHAPE_DEFINITIONS.find((d) => d.name === "squareTabs");
+    const pl = PRESET_SHAPE_DEFINITIONS.find((d) => d.name === "plaqueTabs");
+    expect(sq).toBeDefined();
+    expect(pl).toBeDefined();
+  });
+
+  it("includes plus and rightTriangle in shape definitions", () => {
+    const plus = PRESET_SHAPE_DEFINITIONS.find((d) => d.name === "plus");
+    const rt = PRESET_SHAPE_DEFINITIONS.find(
+      (d) => d.name === "rightTriangle",
+    );
+    expect(plus).toBeDefined();
+    expect(rt).toBeDefined();
+  });
+
+  it("includes straightConnector1 in shape definitions", () => {
+    const sc = PRESET_SHAPE_DEFINITIONS.find(
+      (d) => d.name === "straightConnector1",
+    );
+    expect(sc).toBeDefined();
+  });
+
+  it("includes actionButtonBackPrevious and actionButtonForwardNext", () => {
+    const back = PRESET_SHAPE_DEFINITIONS.find(
+      (d) => d.name === "actionButtonBackPrevious",
+    );
+    const fwd = PRESET_SHAPE_DEFINITIONS.find(
+      (d) => d.name === "actionButtonForwardNext",
+    );
+    expect(back).toBeDefined();
+    expect(fwd).toBeDefined();
+    expect(back!.category).toBe("action");
+    expect(fwd!.category).toBe("action");
   });
 });

@@ -2,7 +2,12 @@
  * PresentationToolbar
  *
  * Floating bottom toolbar shown during presentation mode.
- * Appears on mouse movement and fades out after 3 seconds of inactivity.
+ * Contains: prev/next navigation, slide counter (X/Y), elapsed timer,
+ * annotation tool toggles (laser/pen/highlighter/eraser), and an
+ * end-presentation button.
+ *
+ * Auto-hides after 3 seconds of no mouse movement. Re-appears when
+ * the mouse moves near the bottom of the screen.
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -12,9 +17,19 @@ import {
   LuEraser,
   LuTrash2,
   LuMousePointer2,
+  LuChevronLeft,
+  LuChevronRight,
+  LuTimer,
+  LuX,
 } from "react-icons/lu";
 
 import type { PresentationTool } from "../hooks/usePresentationAnnotations";
+import { formatElapsed } from "./presenter-view-utils";
+import {
+  AUTO_HIDE_DELAY_MS,
+  isInBottomTriggerZone,
+  formatSlideCounter,
+} from "./presentation-toolbar-utils";
 
 // ---------------------------------------------------------------------------
 // Color picker presets
@@ -47,6 +62,7 @@ const HIGHLIGHTER_COLORS = [
 // ---------------------------------------------------------------------------
 
 export interface PresentationToolbarProps {
+  /** Current annotation tool. */
   presentationTool: PresentationTool;
   penColor: string;
   highlighterColor: string;
@@ -55,6 +71,18 @@ export interface PresentationToolbarProps {
   onSetPenColor: (color: string) => void;
   onSetHighlighterColor: (color: string) => void;
   onClearAnnotations: () => void;
+
+  // --- Navigation props ---
+  /** Zero-based index of the current presentation slide. */
+  currentSlideIndex: number;
+  /** Total number of slides in the presentation. */
+  totalSlides: number;
+  /** Navigate to next (1) or previous (-1) slide. */
+  onMovePresentationSlide: (direction: 1 | -1) => void;
+  /** Timestamp (ms) when the presentation started. */
+  presentationStartTime: number | null;
+  /** End the current presentation. */
+  onEndPresentation: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -70,13 +98,29 @@ export function PresentationToolbar({
   onSetPenColor,
   onSetHighlighterColor,
   onClearAnnotations,
+  currentSlideIndex,
+  totalSlides,
+  onMovePresentationSlide,
+  presentationStartTime,
+  onEndPresentation,
 }: PresentationToolbarProps): React.ReactElement {
   const { t } = useTranslation();
   const [showPenColors, setShowPenColors] = useState(false);
   const [showHighlighterColors, setShowHighlighterColors] = useState(false);
   const toolbarRef = useRef<HTMLDivElement>(null);
 
-  // Close color pickers when clicking outside
+  // -- Elapsed timer ----------------------------------------------------------
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    if (!presentationStartTime) return;
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, [presentationStartTime]);
+
+  const elapsed = presentationStartTime ? now - presentationStartTime : 0;
+
+  // -- Close color pickers when clicking outside ------------------------------
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (
@@ -119,12 +163,59 @@ export function PresentationToolbar({
         : "text-white/70 hover:text-white hover:bg-white/10"
     }`;
 
+  const navBtnClass =
+    "flex items-center justify-center w-9 h-9 rounded-md transition-colors text-white/70 hover:text-white hover:bg-white/10 disabled:text-white/20 disabled:cursor-not-allowed";
+
   return (
     <div
       ref={toolbarRef}
       className="flex items-center gap-1 px-3 py-2 rounded-xl bg-background/80 backdrop-blur-sm border border-white/10 shadow-2xl"
       onClick={(e) => e.stopPropagation()}
     >
+      {/* Previous slide */}
+      <button
+        type="button"
+        className={navBtnClass}
+        onClick={() => onMovePresentationSlide(-1)}
+        disabled={currentSlideIndex === 0}
+        title={t("pptx.presenter.previousSlide")}
+        aria-label={t("pptx.presenter.previousSlide")}
+      >
+        <LuChevronLeft size={18} />
+      </button>
+
+      {/* Slide counter */}
+      <span className="text-xs font-mono tabular-nums text-white/80 px-1.5 select-none min-w-[48px] text-center">
+        {formatSlideCounter(currentSlideIndex, totalSlides)}
+      </span>
+
+      {/* Next slide */}
+      <button
+        type="button"
+        className={navBtnClass}
+        onClick={() => onMovePresentationSlide(1)}
+        disabled={currentSlideIndex >= totalSlides - 1}
+        title={t("pptx.presenter.nextSlide")}
+        aria-label={t("pptx.presenter.nextSlide")}
+      >
+        <LuChevronRight size={18} />
+      </button>
+
+      {/* Divider */}
+      <div className="w-px h-6 bg-white/20 mx-1" />
+
+      {/* Elapsed timer */}
+      <div
+        className="flex items-center gap-1.5 text-xs font-mono tabular-nums text-white/60 px-1 select-none"
+        title={t("pptx.presenter.elapsed")}
+      >
+        <LuTimer size={14} />
+        <span>{formatElapsed(elapsed)}</span>
+      </div>
+
+      {/* Divider */}
+      <div className="w-px h-6 bg-white/20 mx-1" />
+
       {/* Laser pointer */}
       <button
         type="button"
@@ -220,9 +311,6 @@ export function PresentationToolbar({
         <LuEraser size={18} />
       </button>
 
-      {/* Divider */}
-      <div className="w-px h-6 bg-white/20 mx-1" />
-
       {/* Clear all */}
       <button
         type="button"
@@ -237,6 +325,87 @@ export function PresentationToolbar({
       >
         <LuTrash2 size={18} />
       </button>
+
+      {/* Divider */}
+      <div className="w-px h-6 bg-white/20 mx-1" />
+
+      {/* End presentation */}
+      <button
+        type="button"
+        className="flex items-center justify-center w-9 h-9 rounded-md transition-colors text-white/70 hover:text-red-400 hover:bg-white/10"
+        onClick={onEndPresentation}
+        title={t("pptx.presenter.endPresentation")}
+        aria-label={t("pptx.presenter.endPresentation")}
+      >
+        <LuX size={18} />
+      </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Auto-hide wrapper — renders PresentationToolbar with show/hide behavior.
+// ---------------------------------------------------------------------------
+
+export interface PresentationToolbarWrapperProps
+  extends PresentationToolbarProps {
+  /** Ref to the container element used for bottom-zone hit testing. */
+  containerRef?: React.RefObject<HTMLElement | null>;
+}
+
+/**
+ * Wraps `PresentationToolbar` with auto-hide logic:
+ * - Shows on any mouse movement
+ * - Hides after `AUTO_HIDE_DELAY_MS` (3 s) of no movement
+ * - Always shows when the mouse is in the bottom trigger zone
+ */
+export function PresentationToolbarWrapper({
+  containerRef,
+  ...toolbarProps
+}: PresentationToolbarWrapperProps): React.ReactElement | null {
+  const [visible, setVisible] = useState(false);
+  const hideTimerRef = useRef<number | null>(null);
+
+  const resetHideTimer = useCallback(() => {
+    if (hideTimerRef.current !== null) {
+      window.clearTimeout(hideTimerRef.current);
+    }
+    hideTimerRef.current = window.setTimeout(() => {
+      setVisible(false);
+    }, AUTO_HIDE_DELAY_MS);
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const container = containerRef?.current;
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        if (isInBottomTriggerZone(e.clientY, rect.height, rect.top)) {
+          setVisible(true);
+          resetHideTimer();
+          return;
+        }
+      }
+
+      // Any movement shows the toolbar, then starts auto-hide countdown
+      setVisible(true);
+      resetHideTimer();
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      if (hideTimerRef.current !== null) {
+        window.clearTimeout(hideTimerRef.current);
+      }
+    };
+  }, [containerRef, resetHideTimer]);
+
+  if (!visible) return null;
+
+  return (
+    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[80] transition-opacity duration-300">
+      <PresentationToolbar {...toolbarProps} />
     </div>
   );
 }

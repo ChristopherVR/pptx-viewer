@@ -18,7 +18,10 @@ import {
   type ValueRange,
   valueToY,
   formatAxisValue,
+  formatAxisValueWithUnits,
+  getDisplayUnitLabel,
   seriesColor,
+  generateLogTicks,
 } from "./chart-helpers";
 import type { PlotLayout } from "./chart-layout";
 
@@ -53,6 +56,7 @@ export function renderLegend(
   style: PptxChartStyle | undefined,
   series: ReadonlyArray<PptxChartSeries>,
   layout: PlotLayout,
+  colorPalette?: string[],
 ): React.ReactNode {
   if (!style?.hasLegend || series.length === 0) return null;
   const pos = style.legendPosition || "b";
@@ -76,7 +80,7 @@ export function renderLegend(
           width={10}
           height={10}
           rx={2}
-          fill={seriesColor(s, i, style?.styleId)}
+          fill={seriesColor(s, i, style?.styleId, colorPalette)}
         />,
       );
       items.push(
@@ -109,7 +113,7 @@ export function renderLegend(
               width={10}
               height={10}
               rx={2}
-              fill={seriesColor(s, i, style?.styleId)}
+              fill={seriesColor(s, i, style?.styleId, colorPalette)}
             />
             <text x={x + 14} y={cy + 8} fontSize={9} fill="#475569">
               {s.name || `Series ${i + 1}`}
@@ -130,24 +134,46 @@ export function renderGridlines(
   layout: PlotLayout,
 ): React.ReactNode {
   if (!style?.hasGridlines) return null;
-  const steps = 4;
   const lines: React.ReactNode[] = [];
-  for (let i = 0; i <= steps; i++) {
-    const val = range.min + (range.span * i) / steps;
-    const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
-    lines.push(
-      <line
-        key={`${id}-grid-${i}`}
-        x1={layout.plotLeft}
-        y1={y}
-        x2={layout.plotRight}
-        y2={y}
-        stroke="#cbd5e1"
-        strokeWidth={0.7}
-        strokeDasharray="4 3"
-      />,
-    );
+
+  if (range.logScale && range.logBase) {
+    // Logarithmic gridlines at each power of the base
+    const ticks = generateLogTicks(range);
+    ticks.forEach((tickVal, i) => {
+      const y = valueToY(tickVal, range, layout.plotTop, layout.plotBottom);
+      lines.push(
+        <line
+          key={`${id}-grid-log-${i}`}
+          x1={layout.plotLeft}
+          y1={y}
+          x2={layout.plotRight}
+          y2={y}
+          stroke="#cbd5e1"
+          strokeWidth={0.7}
+          strokeDasharray="4 3"
+        />,
+      );
+    });
+  } else {
+    const steps = 4;
+    for (let i = 0; i <= steps; i++) {
+      const val = range.min + (range.span * i) / steps;
+      const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
+      lines.push(
+        <line
+          key={`${id}-grid-${i}`}
+          x1={layout.plotLeft}
+          y1={y}
+          x2={layout.plotRight}
+          y2={y}
+          stroke="#cbd5e1"
+          strokeWidth={0.7}
+          strokeDasharray="4 3"
+        />,
+      );
+    }
   }
+
   return <g key={`${id}-gridlines`}>{lines}</g>;
 }
 
@@ -157,25 +183,77 @@ export function renderValueAxis(
   id: string,
   range: ValueRange,
   layout: PlotLayout,
+  axisFormatting?: PptxChartAxisFormatting,
 ): React.ReactNode {
-  const steps = 4;
   const labels: React.ReactNode[] = [];
-  for (let i = 0; i <= steps; i++) {
-    const val = range.min + (range.span * i) / steps;
-    const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
-    labels.push(
-      <text
-        key={`${id}-vaxis-${i}`}
-        x={layout.plotLeft - 4}
-        y={y + 3}
-        textAnchor="end"
-        fontSize={8}
-        fill="#64748b"
-      >
-        {formatAxisValue(val)}
-      </text>,
-    );
+  const hasDisplayUnits = !!axisFormatting?.displayUnits;
+
+  if (range.logScale && range.logBase) {
+    // Logarithmic axis labels at each power of the base
+    const ticks = generateLogTicks(range);
+    ticks.forEach((tickVal, i) => {
+      const y = valueToY(tickVal, range, layout.plotTop, layout.plotBottom);
+      labels.push(
+        <text
+          key={`${id}-vaxis-log-${i}`}
+          x={layout.plotLeft - 4}
+          y={y + 3}
+          textAnchor="end"
+          fontSize={8}
+          fill="#64748b"
+        >
+          {hasDisplayUnits
+            ? formatAxisValueWithUnits(tickVal, axisFormatting)
+            : formatAxisValue(tickVal)}
+        </text>,
+      );
+    });
+  } else {
+    const steps = 4;
+    for (let i = 0; i <= steps; i++) {
+      const val = range.min + (range.span * i) / steps;
+      const y = valueToY(val, range, layout.plotTop, layout.plotBottom);
+      labels.push(
+        <text
+          key={`${id}-vaxis-${i}`}
+          x={layout.plotLeft - 4}
+          y={y + 3}
+          textAnchor="end"
+          fontSize={8}
+          fill="#64748b"
+        >
+          {hasDisplayUnits
+            ? formatAxisValueWithUnits(val, axisFormatting)
+            : formatAxisValue(val)}
+        </text>,
+      );
+    }
   }
+
+  // Display units label (e.g. "Thousands", "Millions")
+  if (hasDisplayUnits) {
+    const unitLabel = getDisplayUnitLabel(
+      axisFormatting!.displayUnits,
+      axisFormatting!.displayUnitsLabel,
+    );
+    if (unitLabel) {
+      const midY = (layout.plotTop + layout.plotBottom) / 2;
+      labels.push(
+        <text
+          key={`${id}-vaxis-dispunit`}
+          x={layout.plotLeft - 36}
+          y={midY}
+          textAnchor="middle"
+          fontSize={9}
+          fill="#64748b"
+          transform={`rotate(-90, ${layout.plotLeft - 36}, ${midY})`}
+        >
+          {unitLabel}
+        </text>,
+      );
+    }
+  }
+
   return <g key={`${id}-vaxis`}>{labels}</g>;
 }
 
@@ -246,6 +324,8 @@ export function renderZeroLine(
   range: ValueRange,
   layout: PlotLayout,
 ): React.ReactNode {
+  // No zero line for log scale (log(0) is undefined)
+  if (range.logScale) return null;
   if (range.min >= 0) return null;
   const y = valueToY(0, range, layout.plotTop, layout.plotBottom);
   return (
@@ -276,6 +356,7 @@ export function renderSecondaryValueAxis(
   const fontColor = axisFormatting?.fontColor ?? "#64748b";
   const fontFamily = axisFormatting?.fontFamily;
   const fontWeight = axisFormatting?.fontBold ? 700 : undefined;
+  const hasDisplayUnits = !!axisFormatting?.displayUnits;
 
   for (let i = 0; i <= steps; i++) {
     const val = range.min + (range.span * i) / steps;
@@ -291,7 +372,9 @@ export function renderSecondaryValueAxis(
         fontWeight={fontWeight}
         fill={fontColor}
       >
-        {formatAxisValue(val)}
+        {hasDisplayUnits
+          ? formatAxisValueWithUnits(val, axisFormatting)
+          : formatAxisValue(val)}
       </text>,
     );
   }
@@ -311,6 +394,31 @@ export function renderSecondaryValueAxis(
         {axisFormatting.titleText}
       </text>,
     );
+  }
+
+  // Display units label for secondary axis
+  if (hasDisplayUnits) {
+    const unitLabel = getDisplayUnitLabel(
+      axisFormatting!.displayUnits,
+      axisFormatting!.displayUnitsLabel,
+    );
+    if (unitLabel) {
+      const labelX = layout.plotRight + (axisFormatting?.titleText ? 52 : 36);
+      const midY = (layout.plotTop + layout.plotBottom) / 2;
+      labels.push(
+        <text
+          key={`${id}-sec-vaxis-dispunit`}
+          x={labelX}
+          y={midY}
+          textAnchor="middle"
+          fontSize={9}
+          fill={fontColor}
+          transform={`rotate(-90, ${labelX}, ${midY})`}
+        >
+          {unitLabel}
+        </text>,
+      );
+    }
   }
 
   return <g key={`${id}-sec-vaxis`}>{labels}</g>;
@@ -395,16 +503,20 @@ export function renderChrome(
 ): React.ReactNode[] {
   const style = chartData.style;
   const chrome: React.ReactNode[] = [];
+  // Find the primary value axis formatting for display units
+  const primaryValueAxis = chartData.axes?.find(
+    (a) => a.axisType === "valAx" && a.axPos !== "r",
+  ) ?? chartData.axes?.find((a) => a.axisType === "valAx");
   chrome.push(renderTitle(id, style, chartData.title, layout.svgWidth));
   chrome.push(renderGridlines(id, style, range, layout));
-  chrome.push(renderValueAxis(id, range, layout));
+  chrome.push(renderValueAxis(id, range, layout, primaryValueAxis));
   chrome.push(renderZeroLine(id, range, layout));
   if (options.categoryAxisStyle === "bar") {
     chrome.push(renderCategoryAxis(id, categories, layout));
   } else {
     chrome.push(renderCategoryAxisForLine(id, categories, layout));
   }
-  chrome.push(renderLegend(id, style, chartData.series, layout));
+  chrome.push(renderLegend(id, style, chartData.series, layout, chartData.colorPalette));
 
   // Secondary value axis
   if (secondaryOptions?.secondaryRange) {

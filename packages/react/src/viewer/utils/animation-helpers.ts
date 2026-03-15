@@ -1,6 +1,7 @@
 import type { PptxNativeAnimation } from "pptx-viewer-core";
 import type { EffectName, AnimationStep } from "./animation-types";
 import { PRESET_ID_TO_EFFECT } from "./animation-presets";
+import { buildColorAnimationKeyframes } from "./animation-timeline-helpers";
 
 // ==========================================================================
 // Internal helpers shared by animation-effects and animation-sequencer
@@ -39,7 +40,7 @@ export function buildDynamicKeyframes(
   if (anim.motionPath) {
     // OOXML motion paths use coordinates where 1.0 = slide/element width.
     // Convert to percentage-based translate offsets via 100% multiplier.
-    const name = `fuzor-motionPath-${uid}`;
+    const name = `pptx-motionPath-${uid}`;
     // Parse simple M→L SVG paths into translate waypoints.
     const cmds = anim.motionPath
       .replace(/\s+/g, " ")
@@ -75,7 +76,7 @@ export function buildDynamicKeyframes(
 
   // Rotation animation
   if (anim.rotationBy !== undefined) {
-    const name = `fuzor-rotateBy-${uid}`;
+    const name = `pptx-rotateBy-${uid}`;
     const deg = anim.rotationBy;
     return {
       keyframeName: name,
@@ -85,7 +86,7 @@ export function buildDynamicKeyframes(
 
   // Scale animation
   if (anim.scaleByX !== undefined || anim.scaleByY !== undefined) {
-    const name = `fuzor-scaleBy-${uid}`;
+    const name = `pptx-scaleBy-${uid}`;
     const sx = anim.scaleByX ?? 1;
     const sy = anim.scaleByY ?? 1;
     return {
@@ -94,11 +95,20 @@ export function buildDynamicKeyframes(
     };
   }
 
+  // Color animation (p:animClr)
+  if (anim.colorAnimation) {
+    const name = `pptx-color-${uid}`;
+    const css = buildColorAnimationKeyframes(anim.colorAnimation, name);
+    if (css) {
+      return { keyframeName: name, css };
+    }
+  }
+
   return undefined;
 }
 
 export function cssKeyframeName(effect: EffectName): string {
-  return `fuzor-${effect}`;
+  return `pptx-${effect}`;
 }
 
 export function defaultDuration(
