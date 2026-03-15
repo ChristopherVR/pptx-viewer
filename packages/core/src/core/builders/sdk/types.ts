@@ -257,6 +257,11 @@ export interface PresentationOptions {
 	title?: string;
 	/** Presentation author. */
 	creator?: string;
+	/**
+	 * Number of blank slides to include in the initial presentation.
+	 * Default: 0 (no slides). Slides use the "Blank" layout.
+	 */
+	initialSlideCount?: number;
 }
 
 export interface PresentationThemeInput {

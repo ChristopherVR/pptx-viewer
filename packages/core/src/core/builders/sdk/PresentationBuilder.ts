@@ -86,11 +86,17 @@ const STANDARD_LAYOUTS = [
 // XML generation
 // ---------------------------------------------------------------------------
 
-function contentTypesXml(layoutCount: number): string {
+function contentTypesXml(layoutCount: number, slideCount: number): string {
 	const layoutOverrides = Array.from(
 		{ length: layoutCount },
 		(_, i) =>
 			`  <Override PartName="/ppt/slideLayouts/slideLayout${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>`,
+	).join("\n");
+
+	const slideOverrides = Array.from(
+		{ length: slideCount },
+		(_, i) =>
+			`  <Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`,
 	).join("\n");
 
 	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -100,6 +106,7 @@ function contentTypesXml(layoutCount: number): string {
   <Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>
   <Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>
 ${layoutOverrides}
+${slideOverrides}
   <Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>
   <Override PartName="/ppt/presProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presProps+xml"/>
   <Override PartName="/ppt/viewProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.viewProps+xml"/>
@@ -118,7 +125,25 @@ function rootRelsXml(): string {
 </Relationships>`;
 }
 
-function presentationXml(width: number, height: number): string {
+function presentationXml(
+	width: number,
+	height: number,
+	slideCount: number,
+): string {
+	// Slide rIds start after the fixed relationships:
+	// rId1 = slideMaster, rId2 = theme, rId3 = presProps, rId4 = viewProps, rId5 = tableStyles
+	const slideIdBase = 256; // slide IDs (distinct from rIds)
+	const slideRIdBase = 6; // rIds for slides start at rId6
+
+	const sldIdLst =
+		slideCount > 0
+			? `  <p:sldIdLst>\n${Array.from(
+					{ length: slideCount },
+					(_, i) =>
+						`    <p:sldId id="${slideIdBase + i}" r:id="rId${slideRIdBase + i}"/>`,
+				).join("\n")}\n  </p:sldIdLst>`
+			: "";
+
 	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
   xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
@@ -127,6 +152,7 @@ function presentationXml(width: number, height: number): string {
   <p:sldMasterIdLst>
     <p:sldMasterId id="2147483648" r:id="rId1"/>
   </p:sldMasterIdLst>
+${sldIdLst}
   <p:sldSz cx="${width}" cy="${height}"/>
   <p:notesSz cx="${height}" cy="${width}"/>
   <p:defaultTextStyle>
@@ -138,16 +164,27 @@ function presentationXml(width: number, height: number): string {
 </p:presentation>`;
 }
 
-function presentationRelsXml(layoutCount: number): string {
-	// rId1 = slideMaster1, rId2 = theme1, rId3+ = presProps, viewProps, tableStyles
-	const baseRid = 3;
+function presentationRelsXml(
+	_layoutCount: number,
+	slideCount: number,
+): string {
+	// rId1 = slideMaster, rId2 = theme, rId3 = presProps, rId4 = viewProps, rId5 = tableStyles
+	// rId6+ = slides
+	const slideRIdBase = 6;
+	const slideRels = Array.from(
+		{ length: slideCount },
+		(_, i) =>
+			`  <Relationship Id="rId${slideRIdBase + i}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide${i + 1}.xml"/>`,
+	).join("\n");
+
 	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>
   <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/>
-  <Relationship Id="rId${baseRid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/presProps" Target="presProps.xml"/>
-  <Relationship Id="rId${baseRid + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/viewProps" Target="viewProps.xml"/>
-  <Relationship Id="rId${baseRid + 2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/tableStyles" Target="tableStyles.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/presProps" Target="presProps.xml"/>
+  <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/viewProps" Target="viewProps.xml"/>
+  <Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/tableStyles" Target="tableStyles.xml"/>
+${slideRels}
 </Relationships>`;
 }
 
@@ -228,6 +265,28 @@ function slideLayoutRelsXml(): string {
 	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/>
+</Relationships>`;
+}
+
+function slideXml(): string {
+	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+  xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+  <p:cSld>
+    <p:spTree>
+      <p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>
+      <p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>
+    </p:spTree>
+  </p:cSld>
+  <p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>
+</p:sld>`;
+}
+
+function slideRelsXml(layoutIndex: number): string {
+	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout${layoutIndex}.xml"/>
 </Relationships>`;
 }
 
@@ -325,12 +384,12 @@ function corePropsXml(title?: string, creator?: string): string {
 </cp:coreProperties>`;
 }
 
-function appPropsXml(): string {
+function appPropsXml(slideCount: number): string {
 	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"
   xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
   <Application>pptx-viewer-sdk</Application>
-  <Slides>0</Slides>
+  <Slides>${slideCount}</Slides>
   <ScaleCrop>false</ScaleCrop>
   <LinksUpToDate>false</LinksUpToDate>
   <SharedDoc>false</SharedDoc>
@@ -392,16 +451,27 @@ export class PresentationBuilder {
 		const majorFont = options?.theme?.fonts?.majorFont ?? DEFAULT_MAJOR_FONT;
 		const minorFont = options?.theme?.fonts?.minorFont ?? DEFAULT_MINOR_FONT;
 		const layoutCount = STANDARD_LAYOUTS.length;
+		const initialSlideCount = Math.max(0, options?.initialSlideCount ?? 0);
+
+		// The "Blank" layout is index 7 (1-based) in STANDARD_LAYOUTS
+		const blankLayoutIdx =
+			STANDARD_LAYOUTS.findIndex((l) => l.type === "blank") + 1 || 7;
 
 		// Build the ZIP
 		const zip = new JSZip();
 
-		zip.file("[Content_Types].xml", contentTypesXml(layoutCount));
+		zip.file(
+			"[Content_Types].xml",
+			contentTypesXml(layoutCount, initialSlideCount),
+		);
 		zip.file("_rels/.rels", rootRelsXml());
-		zip.file("ppt/presentation.xml", presentationXml(width, height));
+		zip.file(
+			"ppt/presentation.xml",
+			presentationXml(width, height, initialSlideCount),
+		);
 		zip.file(
 			"ppt/_rels/presentation.xml.rels",
-			presentationRelsXml(layoutCount),
+			presentationRelsXml(layoutCount, initialSlideCount),
 		);
 		zip.file("ppt/slideMasters/slideMaster1.xml", slideMasterXml(layoutCount));
 		zip.file(
@@ -421,6 +491,15 @@ export class PresentationBuilder {
 			);
 		}
 
+		// Add initial slides (all use the "Blank" layout)
+		for (let i = 0; i < initialSlideCount; i++) {
+			zip.file(`ppt/slides/slide${i + 1}.xml`, slideXml());
+			zip.file(
+				`ppt/slides/_rels/slide${i + 1}.xml.rels`,
+				slideRelsXml(blankLayoutIdx),
+			);
+		}
+
 		zip.file(
 			"ppt/theme/theme1.xml",
 			themeXml(themeName, colors, majorFont, minorFont),
@@ -432,7 +511,7 @@ export class PresentationBuilder {
 			"docProps/core.xml",
 			corePropsXml(options?.title, options?.creator),
 		);
-		zip.file("docProps/app.xml", appPropsXml());
+		zip.file("docProps/app.xml", appPropsXml(initialSlideCount));
 
 		// Generate the buffer and load it
 		const buffer = await zip.generateAsync({ type: "arraybuffer" });
