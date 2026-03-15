@@ -353,7 +353,9 @@ describe("getLightRigCss", () => {
   it("returns brightness filter for flood rig", () => {
     const result = getLightRigCss("flood", undefined);
     expect(result.filter).toContain("brightness");
-    expect(result.backgroundImage).toBeUndefined();
+    // Flood now includes a subtle wash gradient for even illumination
+    expect(result.backgroundImage).toBeDefined();
+    expect(result.backgroundImage).toContain("linear-gradient");
   });
 
   it("returns empty for flat rig", () => {
@@ -840,5 +842,305 @@ describe("build3DExtrusionData", () => {
     // rotateY = 45: showRight = false, showLeft = true
     expect(sides).toContain("left");
     expect(sides).not.toContain("right");
+  });
+
+  it("uses direction-aware gradients on side panels based on camera angle", () => {
+    // Camera from above-left: bottom and right panels should be lit
+    const result = build3DExtrusionData(
+      { extrusionHeight: 95250 }, // 10px
+      { cameraPreset: "perspectiveAboveLeftFacing" }, // rotateX = -20, rotateY = 25
+      "#888888",
+      200,
+      100,
+    );
+    // Bottom panel should have the lighter gradient (camera from above => lit from top)
+    const bottom = result.panels.find((p) => p.side === "bottom");
+    expect(bottom).toBeDefined();
+    expect(bottom!.style.background).toBeDefined();
+    const bottomBg = bottom!.style.background as string;
+    expect(bottomBg).toContain("linear-gradient");
+
+    // Left panel is visible (rotateY >= -5 => yes since rotateY = 25)
+    const left = result.panels.find((p) => p.side === "left");
+    expect(left).toBeDefined();
+  });
+
+  it("applies camera-aware material gradient overlay", () => {
+    // With camera rotation, the material gradient angle should shift
+    const resultFront = build3DExtrusionData(
+      { extrusionHeight: 95250, presetMaterial: "metal" },
+      { cameraPreset: "perspectiveFront" }, // rotateX = 0, rotateY = 0
+      "#888",
+      200,
+      100,
+    );
+    expect(resultFront.materialOverlay).toBeDefined();
+    expect(resultFront.materialOverlay).toContain("135deg"); // default angle
+
+    const resultRight = build3DExtrusionData(
+      { extrusionHeight: 95250, presetMaterial: "metal" },
+      { cameraPreset: "perspectiveRight" }, // rotateY = -20
+      "#888",
+      200,
+      100,
+    );
+    expect(resultRight.materialOverlay).toBeDefined();
+    // Camera right (rotateY = -20) should shift highlight angle
+    expect(resultRight.materialOverlay).not.toContain("135deg");
+  });
+
+  it("includes softEdge material gradient overlay", () => {
+    const result = build3DExtrusionData(
+      { extrusionHeight: 95250, presetMaterial: "softEdge" },
+      undefined,
+      "#888",
+      200,
+      100,
+    );
+    expect(result.materialOverlay).toBeDefined();
+    expect(result.materialOverlay).toContain("radial-gradient");
+  });
+});
+
+// ── Enhanced lighting (multi-gradient rigs) ───────────────────────────────
+
+describe("getLightRigCss (enhanced multi-gradient)", () => {
+  it("threePt rig produces multi-layer gradient", () => {
+    const result = getLightRigCss("threePt", undefined);
+    expect(result.backgroundImage).toBeDefined();
+    // Should have multiple gradient layers (key, fill, back)
+    const layers = result.backgroundImage!.split("linear-gradient");
+    expect(layers.length).toBeGreaterThanOrEqual(3); // 3 linear-gradients
+  });
+
+  it("contrasting rig produces key and fill gradients", () => {
+    const result = getLightRigCss("contrasting", undefined);
+    expect(result.backgroundImage).toBeDefined();
+    const layers = result.backgroundImage!.split("linear-gradient");
+    expect(layers.length).toBeGreaterThanOrEqual(2);
+    expect(result.filter).toContain("contrast");
+  });
+
+  it("balanced rig produces soft multi-directional gradients", () => {
+    const result = getLightRigCss("balanced", undefined);
+    expect(result.backgroundImage).toBeDefined();
+    // 3 directional gradients: top, bottom, left
+    const layers = result.backgroundImage!.split("linear-gradient");
+    expect(layers.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("sunrise rig includes both linear and radial gradients", () => {
+    const result = getLightRigCss("sunrise", undefined);
+    expect(result.backgroundImage).toBeDefined();
+    expect(result.backgroundImage).toContain("linear-gradient");
+    expect(result.backgroundImage).toContain("radial-gradient");
+  });
+
+  it("rotates all gradient angles when direction is specified", () => {
+    // Default threePt has angles 135, 315, 0 deg
+    const resultDefault = getLightRigCss("threePt", undefined);
+    const resultRight = getLightRigCss("threePt", "r");
+
+    expect(resultDefault.backgroundImage).toBeDefined();
+    expect(resultRight.backgroundImage).toBeDefined();
+
+    // "r" direction = 270deg, default is 135deg, delta = +135
+    // 135 + 135 = 270, 315 + 135 = 90, 0 + 135 = 135
+    expect(resultRight.backgroundImage).toContain("270deg");
+    expect(resultRight.backgroundImage).toContain("90deg");
+  });
+
+  it("does not rotate radial gradients in mixed layers", () => {
+    // sunrise has radial-gradient + linear-gradient
+    const resultTop = getLightRigCss("sunrise", "t");
+    expect(resultTop.backgroundImage).toBeDefined();
+    // radial-gradient should remain untouched
+    expect(resultTop.backgroundImage).toContain("radial-gradient(ellipse at 20% 80%");
+  });
+
+  it("legacy harsh rigs use multi-layer gradients", () => {
+    const result = getLightRigCss("legacyHarsh1", undefined);
+    expect(result.backgroundImage).toBeDefined();
+    expect(result.filter).toContain("contrast");
+    // Should have both highlight and shadow gradients
+    const layers = result.backgroundImage!.split("linear-gradient");
+    expect(layers.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+// ── Enhanced bevel rendering ─────────────────────────────────────────────
+
+describe("get3DBevelShadow (enhanced multi-layer)", () => {
+  it("circle bevel produces 4 shadow layers (highlight + inner glow + shadow + inner shadow)", () => {
+    const result = get3DBevelShadow({
+      bevelTopType: "circle",
+      bevelTopWidth: 19050, // 2px
+      bevelTopHeight: 19050, // 2px
+    });
+    expect(result).toBeDefined();
+    // circle bevel now has 4 layers
+    const layers = result!.split(", inset");
+    expect(layers.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("relaxedInset bevel includes ambient shadow layer", () => {
+    const result = get3DBevelShadow({
+      bevelTopType: "relaxedInset",
+      bevelTopWidth: 19050,
+      bevelTopHeight: 19050,
+    });
+    expect(result).toBeDefined();
+    // relaxedInset has 3 layers (highlight, shadow, ambient)
+    const layers = result!.split(", inset");
+    expect(layers.length).toBeGreaterThanOrEqual(3);
+    // Should contain an ambient shadow (0 0 Npx)
+    expect(result).toContain("inset 0 0");
+  });
+
+  it("hardEdge bevel includes secondary highlight layer", () => {
+    const result = get3DBevelShadow({
+      bevelTopType: "hardEdge",
+      bevelTopWidth: 19050,
+      bevelTopHeight: 19050,
+    });
+    expect(result).toBeDefined();
+    // hardEdge now has 3 layers (primary highlight, primary shadow, secondary highlight)
+    const layers = result!.split(", inset");
+    expect(layers.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("artDeco bevel produces 5 layers with geometric nesting", () => {
+    const result = get3DBevelShadow({
+      bevelTopType: "artDeco",
+      bevelTopWidth: 19050,
+      bevelTopHeight: 19050,
+    });
+    expect(result).toBeDefined();
+    // artDeco: 3 highlight layers (1x, 2x, 3x offset) + 2 shadow layers
+    const layers = result!.split(", inset");
+    expect(layers.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it("convex bevel includes central glow and edge shadow", () => {
+    const result = get3DBevelShadow({
+      bevelTopType: "convex",
+      bevelTopWidth: 19050,
+      bevelTopHeight: 19050,
+    });
+    expect(result).toBeDefined();
+    // convex: central glow + directional highlight + directional shadow + deep shadow
+    const layers = result!.split(", inset");
+    expect(layers.length).toBeGreaterThanOrEqual(4);
+    // Central glow has 0 offset
+    expect(result).toContain("inset 0 0");
+  });
+
+  it("riblet bevel has 4 layers with alternating ridges", () => {
+    const result = get3DBevelShadow({
+      bevelTopType: "riblet",
+      bevelTopWidth: 19050,
+      bevelTopHeight: 19050,
+    });
+    expect(result).toBeDefined();
+    // riblet: highlight ridge + shadow ridge + 2nd highlight + 2nd shadow
+    const layers = result!.split(", inset");
+    expect(layers.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("coolSlant bevel has asymmetric highlight with 3 layers", () => {
+    const result = get3DBevelShadow({
+      bevelTopType: "coolSlant",
+      bevelTopWidth: 19050,
+      bevelTopHeight: 19050,
+    });
+    expect(result).toBeDefined();
+    const layers = result!.split(", inset");
+    expect(layers.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("divot bevel includes ambient shadow at center", () => {
+    const result = get3DBevelShadow({
+      bevelTopType: "divot",
+      bevelTopWidth: 19050,
+      bevelTopHeight: 19050,
+    });
+    expect(result).toBeDefined();
+    // divot: reversed highlight + shadow + ambient
+    expect(result).toContain("inset 0 0");
+  });
+});
+
+// ── Material backgroundImage integration in apply3dEffects ──────────────
+
+describe("apply3dEffects (material backgroundImage)", () => {
+  it("applies material backgroundImage for plastic material", () => {
+    const base: React.CSSProperties = {};
+    apply3dEffects(base, undefined, { presetMaterial: "plastic" });
+    expect(base.backgroundImage).toBeDefined();
+    expect(base.backgroundImage).toContain("radial-gradient");
+  });
+
+  it("applies material backgroundImage for metal material", () => {
+    const base: React.CSSProperties = {};
+    apply3dEffects(base, undefined, { presetMaterial: "metal" });
+    expect(base.backgroundImage).toBeDefined();
+    expect(base.backgroundImage).toContain("linear-gradient");
+  });
+
+  it("layers material backgroundImage with light rig gradient", () => {
+    const base: React.CSSProperties = {};
+    apply3dEffects(
+      base,
+      { lightRigType: "threePt" },
+      { presetMaterial: "plastic" },
+    );
+    expect(base.backgroundImage).toBeDefined();
+    // Should contain both material radial-gradient and light rig linear-gradient
+    expect(base.backgroundImage).toContain("radial-gradient");
+    expect(base.backgroundImage).toContain("linear-gradient");
+  });
+
+  it("layers material backgroundImage on top of existing background", () => {
+    const base: React.CSSProperties = {
+      backgroundImage: "url(existing.png)",
+    };
+    apply3dEffects(base, undefined, { presetMaterial: "matte" });
+    expect(base.backgroundImage).toContain("url(existing.png)");
+    expect(base.backgroundImage).toContain("linear-gradient");
+  });
+
+  it("does not add backgroundImage for flat material", () => {
+    const base: React.CSSProperties = {};
+    apply3dEffects(base, undefined, { presetMaterial: "flat" });
+    expect(base.backgroundImage).toBeUndefined();
+  });
+
+  it("applies dkEdge material with darkened edge box-shadow", () => {
+    const base: React.CSSProperties = {};
+    apply3dEffects(base, undefined, { presetMaterial: "dkEdge" });
+    expect(base.filter).toContain("brightness(0.85)");
+    expect(base.boxShadow).toBeDefined();
+    expect(base.boxShadow).toContain("inset");
+    expect(base.backgroundImage).toBeDefined();
+    expect(base.backgroundImage).toContain("radial-gradient");
+  });
+
+  it("applies clear material with opacity and backgroundImage", () => {
+    const base: React.CSSProperties = {};
+    apply3dEffects(base, undefined, { presetMaterial: "clear" });
+    expect(base.opacity).toBe(0.7);
+    expect(base.backgroundImage).toBeDefined();
+    expect(base.backgroundImage).toContain("linear-gradient");
+    expect(base.boxShadow).toBeDefined();
+  });
+
+  it("applies softmetal material with specular and gradient", () => {
+    const base: React.CSSProperties = {};
+    apply3dEffects(base, undefined, { presetMaterial: "softmetal" });
+    expect(base.filter).toContain("brightness(1.05)");
+    expect(base.filter).toContain("contrast(1.08)");
+    expect(base.boxShadow).toContain("inset");
+    expect(base.backgroundImage).toBeDefined();
+    expect(base.backgroundImage).toContain("linear-gradient");
   });
 });

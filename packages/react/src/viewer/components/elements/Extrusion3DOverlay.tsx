@@ -11,6 +11,9 @@
  * offset applied through inline styles so it sits at the front of the
  * extrusion volume.
  *
+ * A material overlay gradient is rendered on the front face to simulate
+ * specular highlights and environment reflections based on the material preset.
+ *
  * This is purely visual — no interactivity on the panels.
  */
 import React from "react";
@@ -45,7 +48,7 @@ export const Extrusion3DOverlay: React.FC<Extrusion3DOverlayProps> = React.memo(
         {data.panels.map((panel: ExtrusionPanel) => (
           <div
             key={panel.side}
-            className="extrusion-3d-panel"
+            className={`extrusion-3d-panel extrusion-3d-panel--${panel.side}`}
             style={panel.style}
           />
         ))}
@@ -61,6 +64,7 @@ export const Extrusion3DOverlay: React.FC<Extrusion3DOverlayProps> = React.memo(
               transform: data.frontFaceStyle.transform,
               transformStyle: "preserve-3d",
               backfaceVisibility: "hidden",
+              mixBlendMode: "normal",
             }}
           />
         )}

@@ -39,6 +39,12 @@ interface Shape3dParams {
  */
 const MAX_EXTRUSION_LAYERS = 40;
 
+/**
+ * Maximum cap on rendered extrusion depth (in px) for side-panel 3D mode.
+ * Prevents excessively tall panels from breaking layout.
+ */
+const MAX_EXTRUSION_DEPTH_PX = 80;
+
 // ── Camera Preset Mapping ────────────────────────────────────────────────
 
 /**
@@ -374,81 +380,109 @@ interface LightRigCssConfig {
 }
 
 const LIGHT_RIG_MAP: Record<string, LightRigCssConfig> = {
-  // 3-point lighting: highlight top-left, fill right, back bottom
+  // 3-point lighting: key light top-left, fill right, back bottom — the most common setup
   threePt: {
-    backgroundImage:
-      "linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 40%, rgba(0,0,0,0.06) 100%)",
+    backgroundImage: [
+      "linear-gradient(135deg, rgba(255,255,255,0.14) 0%, transparent 35%)",
+      "linear-gradient(315deg, rgba(255,255,255,0.05) 0%, transparent 25%)",
+      "linear-gradient(0deg, rgba(0,0,0,0.06) 0%, transparent 20%)",
+    ].join(", "),
   },
-  // Balanced: even soft illumination
+  // Balanced: even soft illumination from multiple directions
   balanced: {
-    backgroundImage:
-      "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 50%, rgba(0,0,0,0.04) 100%)",
+    backgroundImage: [
+      "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%)",
+      "linear-gradient(0deg, rgba(255,255,255,0.03) 0%, transparent 30%)",
+      "linear-gradient(90deg, rgba(255,255,255,0.02) 0%, transparent 20%)",
+    ].join(", "),
   },
-  // Harsh: strong directional with deep shadows
+  // Harsh: strong directional with deep shadows, high-contrast drama
   harsh: {
-    backgroundImage:
-      "linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 30%, rgba(0,0,0,0.15) 100%)",
+    backgroundImage: [
+      "linear-gradient(135deg, rgba(255,255,255,0.22) 0%, transparent 28%)",
+      "linear-gradient(315deg, rgba(0,0,0,0.12) 0%, transparent 40%)",
+    ].join(", "),
     filter: "contrast(1.08)",
   },
-  // Flat: no directional light
+  // Flat: no directional light — uniform ambient
   flat: {},
-  // Flood: bright, even illumination
+  // Flood: bright, even illumination — washes out shadows
   flood: {
+    backgroundImage:
+      "linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.03) 50%, transparent 100%)",
     filter: "brightness(1.08)",
   },
-  // Contrasting: strong key and fill
+  // Contrasting: strong key and fill with visible shadow transition
   contrasting: {
-    backgroundImage:
-      "linear-gradient(120deg, rgba(255,255,255,0.18) 0%, transparent 35%, rgba(0,0,0,0.12) 100%)",
+    backgroundImage: [
+      "linear-gradient(120deg, rgba(255,255,255,0.2) 0%, transparent 30%)",
+      "linear-gradient(300deg, rgba(0,0,0,0.1) 0%, transparent 35%)",
+    ].join(", "),
     filter: "contrast(1.1)",
   },
   // Morning: warm, low-angle light from the left
   morning: {
-    backgroundImage:
-      "linear-gradient(90deg, rgba(255,240,200,0.15) 0%, transparent 50%, rgba(0,0,0,0.05) 100%)",
+    backgroundImage: [
+      "linear-gradient(90deg, rgba(255,240,200,0.16) 0%, transparent 45%)",
+      "linear-gradient(270deg, rgba(0,0,0,0.04) 0%, transparent 30%)",
+    ].join(", "),
   },
   // Sunrise: warm golden light from below-left
   sunrise: {
-    backgroundImage:
-      "linear-gradient(45deg, rgba(255,220,180,0.15) 0%, transparent 50%, rgba(0,0,0,0.06) 100%)",
+    backgroundImage: [
+      "linear-gradient(45deg, rgba(255,220,180,0.16) 0%, transparent 40%)",
+      "radial-gradient(ellipse at 20% 80%, rgba(255,200,140,0.08) 0%, transparent 50%)",
+    ].join(", "),
   },
   // Sunset: warm orange tint from the right
   sunset: {
-    backgroundImage:
-      "linear-gradient(270deg, rgba(255,180,100,0.12) 0%, transparent 50%, rgba(0,0,0,0.06) 100%)",
+    backgroundImage: [
+      "linear-gradient(270deg, rgba(255,180,100,0.14) 0%, transparent 45%)",
+      "radial-gradient(ellipse at 85% 50%, rgba(255,160,60,0.06) 0%, transparent 40%)",
+    ].join(", "),
   },
-  // Chilly: cool blue tint
+  // Chilly: cool blue tint — cold ambient
   chilly: {
-    backgroundImage:
-      "linear-gradient(180deg, rgba(180,200,255,0.1) 0%, transparent 50%, rgba(0,0,0,0.06) 100%)",
+    backgroundImage: [
+      "linear-gradient(180deg, rgba(180,200,255,0.1) 0%, transparent 50%)",
+      "radial-gradient(ellipse at center, rgba(200,220,255,0.04) 0%, transparent 60%)",
+    ].join(", "),
   },
-  // Freezing: strong cold tint
+  // Freezing: strong cold tint — icy environment
   freezing: {
-    backgroundImage:
-      "linear-gradient(180deg, rgba(160,190,255,0.15) 0%, transparent 40%, rgba(0,0,0,0.08) 100%)",
+    backgroundImage: [
+      "linear-gradient(180deg, rgba(160,190,255,0.16) 0%, transparent 40%)",
+      "linear-gradient(0deg, rgba(140,170,255,0.06) 0%, transparent 25%)",
+    ].join(", "),
     filter: "saturate(0.9)",
   },
-  // Glow: soft ambient glow
+  // Glow: soft ambient glow from center
   glow: {
     backgroundImage:
-      "radial-gradient(ellipse at center, rgba(255,255,255,0.1) 0%, transparent 70%)",
+      "radial-gradient(ellipse at center, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 40%, transparent 70%)",
   },
-  // Bright room: well-lit interior
+  // Bright room: well-lit interior — overhead and ambient
   brightRoom: {
-    backgroundImage:
-      "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 60%)",
+    backgroundImage: [
+      "linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 50%)",
+      "radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.06) 0%, transparent 60%)",
+    ].join(", "),
     filter: "brightness(1.05)",
   },
-  // Soft: diffused, low-contrast light
+  // Soft: diffused, low-contrast light — overcast feel
   soft: {
-    backgroundImage:
-      "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 50%)",
+    backgroundImage: [
+      "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 40%)",
+      "radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, transparent 60%)",
+    ].join(", "),
     filter: "contrast(0.95)",
   },
-  // Two-point: key from left, fill from right
+  // Two-point: key from left, fill from right — even bilateral lighting
   twoPt: {
-    backgroundImage:
-      "linear-gradient(90deg, rgba(255,255,255,0.1) 0%, transparent 40%, rgba(255,255,255,0.06) 100%)",
+    backgroundImage: [
+      "linear-gradient(90deg, rgba(255,255,255,0.12) 0%, transparent 35%)",
+      "linear-gradient(270deg, rgba(255,255,255,0.07) 0%, transparent 30%)",
+    ].join(", "),
   },
   // Legacy flat variants
   legacyFlat1: {},
@@ -474,23 +508,31 @@ const LIGHT_RIG_MAP: Record<string, LightRigCssConfig> = {
   },
   // Legacy harsh variants
   legacyHarsh1: {
-    backgroundImage:
-      "linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 30%, rgba(0,0,0,0.12) 100%)",
+    backgroundImage: [
+      "linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 28%)",
+      "linear-gradient(315deg, rgba(0,0,0,0.1) 0%, transparent 35%)",
+    ].join(", "),
     filter: "contrast(1.1)",
   },
   legacyHarsh2: {
-    backgroundImage:
-      "linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 30%, rgba(0,0,0,0.1) 100%)",
+    backgroundImage: [
+      "linear-gradient(135deg, rgba(255,255,255,0.16) 0%, transparent 28%)",
+      "linear-gradient(315deg, rgba(0,0,0,0.08) 0%, transparent 35%)",
+    ].join(", "),
     filter: "contrast(1.08)",
   },
   legacyHarsh3: {
-    backgroundImage:
-      "linear-gradient(120deg, rgba(255,255,255,0.18) 0%, transparent 30%, rgba(0,0,0,0.12) 100%)",
+    backgroundImage: [
+      "linear-gradient(120deg, rgba(255,255,255,0.2) 0%, transparent 28%)",
+      "linear-gradient(300deg, rgba(0,0,0,0.1) 0%, transparent 35%)",
+    ].join(", "),
     filter: "contrast(1.1)",
   },
   legacyHarsh4: {
-    backgroundImage:
-      "linear-gradient(150deg, rgba(255,255,255,0.18) 0%, transparent 30%, rgba(0,0,0,0.12) 100%)",
+    backgroundImage: [
+      "linear-gradient(150deg, rgba(255,255,255,0.2) 0%, transparent 28%)",
+      "linear-gradient(330deg, rgba(0,0,0,0.1) 0%, transparent 35%)",
+    ].join(", "),
     filter: "contrast(1.1)",
   },
 };
@@ -524,6 +566,25 @@ function getLightDirectionAngle(direction: string | undefined): number {
 }
 
 /**
+ * Rotate all linear-gradient angles in a background-image string by a
+ * given offset. Radial gradients are left untouched since they have no
+ * inherent direction. Each `linear-gradient(Ndeg` is shifted.
+ */
+function rotateGradientAngles(
+  backgroundImage: string,
+  angleDelta: number,
+): string {
+  if (angleDelta === 0) return backgroundImage;
+  return backgroundImage.replace(
+    /linear-gradient\((\d+)deg/g,
+    (_match, degStr) => {
+      const newAngle = (parseInt(degStr, 10) + angleDelta + 360) % 360;
+      return `linear-gradient(${newAngle}deg`;
+    },
+  );
+}
+
+/**
  * Get light rig CSS overrides for a given light rig type and direction.
  */
 export function getLightRigCss(
@@ -534,16 +595,16 @@ export function getLightRigCss(
   const config = LIGHT_RIG_MAP[lightRigType];
   if (!config) return {};
 
-  // If the config has a gradient and a custom direction, rotate the gradient
+  // If the config has gradients and a custom direction, rotate all gradient angles
   if (config.backgroundImage && lightRigDirection) {
-    const angle = getLightDirectionAngle(lightRigDirection);
-    // Replace the angle in the gradient — only for linear-gradient
-    if (config.backgroundImage.startsWith("linear-gradient(")) {
-      const withoutPrefix = config.backgroundImage.replace(
-        /^linear-gradient\(\d+deg/,
-        `linear-gradient(${angle}deg`,
-      );
-      return { ...config, backgroundImage: withoutPrefix };
+    const targetAngle = getLightDirectionAngle(lightRigDirection);
+    // Default direction is 135deg (top-left), so compute delta
+    const delta = targetAngle - 135;
+    if (delta !== 0) {
+      return {
+        ...config,
+        backgroundImage: rotateGradientAngles(config.backgroundImage, delta),
+      };
     }
   }
 
@@ -554,7 +615,14 @@ export function getLightRigCss(
 
 /**
  * Bevel CSS configuration per preset type. Returns the inset box-shadow
- * layers that approximate the bevel appearance.
+ * layers that approximate the bevel appearance. Each bevel type produces
+ * a distinct visual:
+ * - highlight layer(s) on the lit edge (top-left by default)
+ * - shadow layer(s) on the opposite edge
+ * - optional inner glow, ridge, or geometric accent layers
+ *
+ * The `isBottom` flag reverses the lighting direction so that bottom
+ * bevels appear lit from the opposite direction.
  */
 function getBevelShadow(
   bevelType: string,
@@ -567,102 +635,117 @@ function getBevelShadow(
   const shDir = isBottom ? 1 : -1;
   const hlOpacity = isBottom ? 0.2 : 0.3;
   const shOpacity = isBottom ? 0.3 : 0.2;
+  const maxDim = Math.max(bW, bH);
 
   switch (bevelType) {
     case "circle":
-      // Rounded smooth bevel — larger blur for soft edge
+      // Rounded smooth bevel — soft highlight edge with inner glow
       return [
-        `inset ${hlDir * bW}px ${hlDir * bH}px ${Math.max(bW, bH) + 2}px rgba(255,255,255,${hlOpacity + 0.1})`,
-        `inset ${shDir * bW}px ${shDir * bH}px ${Math.max(bW, bH) + 2}px rgba(0,0,0,${shOpacity + 0.05})`,
+        `inset ${hlDir * bW}px ${hlDir * bH}px ${maxDim + 2}px rgba(255,255,255,${hlOpacity + 0.12})`,
+        `inset ${hlDir * Math.round(bW * 0.5)}px ${hlDir * Math.round(bH * 0.5)}px ${maxDim + 4}px rgba(255,255,255,${hlOpacity * 0.4})`,
+        `inset ${shDir * bW}px ${shDir * bH}px ${maxDim + 2}px rgba(0,0,0,${shOpacity + 0.06})`,
+        `inset ${shDir * Math.round(bW * 0.5)}px ${shDir * Math.round(bH * 0.5)}px ${maxDim + 4}px rgba(0,0,0,${shOpacity * 0.3})`,
       ].join(", ");
 
     case "relaxedInset":
-      // Soft inset — subtle, low-contrast
+      // Soft inset — very subtle, low-contrast, wide blur
       return [
-        `inset ${hlDir * bW}px ${hlDir * bH}px ${Math.max(bW, bH) + 4}px rgba(255,255,255,${hlOpacity - 0.05})`,
-        `inset ${shDir * bW}px ${shDir * bH}px ${Math.max(bW, bH) + 4}px rgba(0,0,0,${shOpacity - 0.05})`,
+        `inset ${hlDir * bW}px ${hlDir * bH}px ${maxDim + 5}px rgba(255,255,255,${hlOpacity - 0.04})`,
+        `inset ${shDir * bW}px ${shDir * bH}px ${maxDim + 5}px rgba(0,0,0,${shOpacity - 0.04})`,
+        `inset 0 0 ${maxDim + 8}px rgba(0,0,0,${shOpacity * 0.15})`,
       ].join(", ");
 
     case "hardEdge":
-      // Sharp bevel — minimal blur, high contrast
+      // Sharp bevel — zero blur, crisp edge, high contrast
       return [
-        `inset ${hlDir * bW}px ${hlDir * bH}px 0 rgba(255,255,255,${hlOpacity + 0.15})`,
-        `inset ${shDir * bW}px ${shDir * bH}px 0 rgba(0,0,0,${shOpacity + 0.15})`,
+        `inset ${hlDir * bW}px ${hlDir * bH}px 0 rgba(255,255,255,${hlOpacity + 0.18})`,
+        `inset ${shDir * bW}px ${shDir * bH}px 0 rgba(0,0,0,${shOpacity + 0.18})`,
+        `inset ${hlDir * Math.round(bW * 0.4)}px ${hlDir * Math.round(bH * 0.4)}px 0 rgba(255,255,255,${hlOpacity * 0.3})`,
       ].join(", ");
 
     case "cross":
-      // Cross bevel — dual axis highlight/shadow
+      // Cross bevel — dual axis highlight/shadow creating a cross-hatch emboss
       return [
         `inset ${hlDir * bW}px 0 ${bW}px rgba(255,255,255,${hlOpacity})`,
         `inset 0 ${hlDir * bH}px ${bH}px rgba(255,255,255,${hlOpacity})`,
         `inset ${shDir * bW}px 0 ${bW}px rgba(0,0,0,${shOpacity})`,
         `inset 0 ${shDir * bH}px ${bH}px rgba(0,0,0,${shOpacity})`,
+        `inset 0 0 ${Math.round(maxDim * 0.5)}px rgba(0,0,0,${shOpacity * 0.2})`,
       ].join(", ");
 
     case "coolSlant":
-      // Slanted bevel — asymmetric highlight
+      // Slanted bevel — asymmetric highlight, creates a swept-back look
       return [
-        `inset ${hlDir * bW}px ${hlDir * Math.round(bH * 0.5)}px ${Math.max(bW, bH)}px rgba(255,255,255,${hlOpacity + 0.1})`,
-        `inset ${shDir * Math.round(bW * 0.5)}px ${shDir * bH}px ${Math.max(bW, bH)}px rgba(0,0,0,${shOpacity + 0.1})`,
+        `inset ${hlDir * bW}px ${hlDir * Math.round(bH * 0.4)}px ${maxDim}px rgba(255,255,255,${hlOpacity + 0.12})`,
+        `inset ${hlDir * Math.round(bW * 0.6)}px 0 ${Math.round(maxDim * 0.6)}px rgba(255,255,255,${hlOpacity * 0.4})`,
+        `inset ${shDir * Math.round(bW * 0.4)}px ${shDir * bH}px ${maxDim}px rgba(0,0,0,${shOpacity + 0.1})`,
       ].join(", ");
 
     case "angle":
-      // Diagonal highlight bevel
+      // Diagonal highlight bevel — strong directional cut
       return [
-        `inset ${hlDir * bW}px ${hlDir * bH}px ${Math.round(Math.max(bW, bH) * 0.5)}px rgba(255,255,255,${hlOpacity + 0.15})`,
-        `inset ${shDir * bW}px ${shDir * bH}px ${Math.round(Math.max(bW, bH) * 0.5)}px rgba(0,0,0,${shOpacity + 0.1})`,
+        `inset ${hlDir * bW}px ${hlDir * bH}px ${Math.round(maxDim * 0.4)}px rgba(255,255,255,${hlOpacity + 0.16})`,
+        `inset ${hlDir * Math.round(bW * 0.5)}px ${hlDir * Math.round(bH * 0.5)}px 0 rgba(255,255,255,${hlOpacity * 0.5})`,
+        `inset ${shDir * bW}px ${shDir * bH}px ${Math.round(maxDim * 0.4)}px rgba(0,0,0,${shOpacity + 0.12})`,
       ].join(", ");
 
     case "softRound":
-      // Very soft round bevel — large blur, low opacity
+      // Very soft round bevel — large blur, low opacity, pillow-like
       return [
-        `inset ${hlDir * bW}px ${hlDir * bH}px ${Math.max(bW, bH) + 6}px rgba(255,255,255,${hlOpacity})`,
-        `inset ${shDir * bW}px ${shDir * bH}px ${Math.max(bW, bH) + 6}px rgba(0,0,0,${shOpacity - 0.05})`,
+        `inset ${hlDir * bW}px ${hlDir * bH}px ${maxDim + 7}px rgba(255,255,255,${hlOpacity + 0.02})`,
+        `inset ${hlDir * Math.round(bW * 0.3)}px ${hlDir * Math.round(bH * 0.3)}px ${maxDim + 10}px rgba(255,255,255,${hlOpacity * 0.3})`,
+        `inset ${shDir * bW}px ${shDir * bH}px ${maxDim + 7}px rgba(0,0,0,${shOpacity - 0.04})`,
       ].join(", ");
 
     case "convex":
-      // Convex/pillow bevel — highlight in center, shadow on edges
+      // Convex/pillow bevel — central highlight, edge shadow, raised appearance
       return [
-        `inset 0 0 ${Math.max(bW, bH) + 3}px rgba(255,255,255,${hlOpacity + 0.05})`,
-        `inset ${hlDir * bW}px ${hlDir * bH}px ${Math.max(bW, bH)}px rgba(255,255,255,${hlOpacity})`,
-        `inset ${shDir * bW}px ${shDir * bH}px ${Math.max(bW, bH)}px rgba(0,0,0,${shOpacity})`,
+        `inset 0 0 ${maxDim + 4}px rgba(255,255,255,${hlOpacity + 0.06})`,
+        `inset ${hlDir * bW}px ${hlDir * bH}px ${maxDim}px rgba(255,255,255,${hlOpacity + 0.02})`,
+        `inset ${shDir * bW}px ${shDir * bH}px ${maxDim}px rgba(0,0,0,${shOpacity})`,
+        `inset ${shDir * Math.round(bW * 1.5)}px ${shDir * Math.round(bH * 1.5)}px ${maxDim + 2}px rgba(0,0,0,${shOpacity * 0.3})`,
       ].join(", ");
 
     case "slope":
-      // Slope bevel — gradual transition
+      // Slope bevel — gradual lit-to-shadow transition, wider spread
       return [
-        `inset ${hlDir * bW}px ${hlDir * bH}px ${Math.max(bW, bH) + 3}px rgba(255,255,255,${hlOpacity + 0.05})`,
-        `inset ${shDir * Math.round(bW * 0.7)}px ${shDir * Math.round(bH * 0.7)}px ${Math.max(bW, bH)}px rgba(0,0,0,${shOpacity})`,
+        `inset ${hlDir * bW}px ${hlDir * bH}px ${maxDim + 4}px rgba(255,255,255,${hlOpacity + 0.06})`,
+        `inset ${hlDir * Math.round(bW * 0.5)}px ${hlDir * Math.round(bH * 0.5)}px ${maxDim + 6}px rgba(255,255,255,${hlOpacity * 0.35})`,
+        `inset ${shDir * Math.round(bW * 0.7)}px ${shDir * Math.round(bH * 0.7)}px ${maxDim}px rgba(0,0,0,${shOpacity})`,
       ].join(", ");
 
     case "divot":
-      // Divot — small indentation, looks like a carved groove
+      // Divot — small indentation, carved groove effect (shadow on lit side)
       return [
-        `inset ${shDir * Math.round(bW * 0.5)}px ${shDir * Math.round(bH * 0.5)}px ${Math.round(Math.max(bW, bH) * 0.5)}px rgba(255,255,255,${hlOpacity + 0.05})`,
-        `inset ${hlDir * Math.round(bW * 0.5)}px ${hlDir * Math.round(bH * 0.5)}px ${Math.round(Math.max(bW, bH) * 0.5)}px rgba(0,0,0,${shOpacity + 0.1})`,
+        `inset ${shDir * Math.round(bW * 0.5)}px ${shDir * Math.round(bH * 0.5)}px ${Math.round(maxDim * 0.5)}px rgba(255,255,255,${hlOpacity + 0.06})`,
+        `inset ${hlDir * Math.round(bW * 0.5)}px ${hlDir * Math.round(bH * 0.5)}px ${Math.round(maxDim * 0.5)}px rgba(0,0,0,${shOpacity + 0.12})`,
+        `inset 0 0 ${Math.round(maxDim * 0.3)}px rgba(0,0,0,${shOpacity * 0.3})`,
       ].join(", ");
 
     case "riblet":
-      // Riblet — horizontal ridge lines
+      // Riblet — horizontal ridge lines with alternating highlight/shadow
       return [
-        `inset 0 ${hlDir * bH}px ${Math.round(bH * 0.5)}px rgba(255,255,255,${hlOpacity})`,
-        `inset 0 ${shDir * bH}px ${Math.round(bH * 0.5)}px rgba(0,0,0,${shOpacity})`,
-        `inset 0 ${hlDir * Math.round(bH * 2)}px ${bH}px rgba(255,255,255,${hlOpacity * 0.5})`,
+        `inset 0 ${hlDir * bH}px ${Math.round(bH * 0.4)}px rgba(255,255,255,${hlOpacity + 0.02})`,
+        `inset 0 ${shDir * bH}px ${Math.round(bH * 0.4)}px rgba(0,0,0,${shOpacity})`,
+        `inset 0 ${hlDir * Math.round(bH * 2)}px ${bH}px rgba(255,255,255,${hlOpacity * 0.45})`,
+        `inset 0 ${shDir * Math.round(bH * 2)}px ${bH}px rgba(0,0,0,${shOpacity * 0.25})`,
       ].join(", ");
 
     case "artDeco":
-      // Art deco — geometric, sharp, multiple layers
+      // Art deco — geometric, sharp, nested rectangular insets
       return [
-        `inset ${hlDir * bW}px ${hlDir * bH}px 0 rgba(255,255,255,${hlOpacity + 0.1})`,
-        `inset ${hlDir * Math.round(bW * 2)}px ${hlDir * Math.round(bH * 2)}px 0 rgba(255,255,255,${hlOpacity * 0.5})`,
-        `inset ${shDir * bW}px ${shDir * bH}px 0 rgba(0,0,0,${shOpacity + 0.1})`,
+        `inset ${hlDir * bW}px ${hlDir * bH}px 0 rgba(255,255,255,${hlOpacity + 0.12})`,
+        `inset ${hlDir * Math.round(bW * 2)}px ${hlDir * Math.round(bH * 2)}px 0 rgba(255,255,255,${hlOpacity * 0.45})`,
+        `inset ${hlDir * Math.round(bW * 3)}px ${hlDir * Math.round(bH * 3)}px 0 rgba(255,255,255,${hlOpacity * 0.2})`,
+        `inset ${shDir * bW}px ${shDir * bH}px 0 rgba(0,0,0,${shOpacity + 0.12})`,
+        `inset ${shDir * Math.round(bW * 2)}px ${shDir * Math.round(bH * 2)}px 0 rgba(0,0,0,${shOpacity * 0.4})`,
       ].join(", ");
 
     default:
-      // Generic fallback — same as old behaviour
+      // Generic fallback
       return [
-        `inset ${hlDir * bW}px ${hlDir * bH}px ${Math.max(bW, bH)}px rgba(255,255,255,${hlOpacity})`,
-        `inset ${shDir * bW}px ${shDir * bH}px ${Math.max(bW, bH)}px rgba(0,0,0,${shOpacity})`,
+        `inset ${hlDir * bW}px ${hlDir * bH}px ${maxDim}px rgba(255,255,255,${hlOpacity})`,
+        `inset ${shDir * bW}px ${shDir * bH}px ${maxDim}px rgba(0,0,0,${shOpacity})`,
       ].join(", ");
   }
 }
@@ -804,33 +887,61 @@ export interface Extrusion3DData {
 }
 
 /**
+ * Compute the lighting angle in CSS degrees based on camera rotation.
+ * When the camera rotates right (rotateY < 0), the specular highlight
+ * should shift left to remain consistent with the viewer's perspective.
+ * Returns a gradient angle in CSS degrees (0 = upward, 90 = rightward).
+ */
+function getLightAngleFromCamera(rotateX: number, rotateY: number): number {
+  // Base angle: 135deg = light from top-left
+  let angle = 135;
+  // Shift by camera Y rotation (yaw) — looking from right means highlight moves left
+  angle -= rotateY * 0.6;
+  // Shift by camera X rotation (pitch) — looking from above means highlight moves up
+  angle += rotateX * 0.4;
+  // Normalise to [0, 360)
+  return ((angle % 360) + 360) % 360;
+}
+
+/**
  * Map camera rotation to a gradient angle for material simulation.
  * This creates a directional light feel on the front face.
+ * The gradient direction adapts to the camera rotation so the specular
+ * highlight appears to track the light source relative to the viewer.
  */
 function getMaterialGradientOverlay(
   material: string | undefined,
-  _rotateX: number,
-  _rotateY: number,
+  rotateX: number,
+  rotateY: number,
 ): string | undefined {
   if (!material) return undefined;
+
+  const angle = Math.round(getLightAngleFromCamera(rotateX, rotateY));
+  const oppositeAngle = (angle + 180) % 360;
+
   switch (material) {
     case "plastic":
-      return "linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.05) 30%, transparent 60%, rgba(0,0,0,0.06) 100%)";
+      return `linear-gradient(${angle}deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.05) 30%, transparent 60%, rgba(0,0,0,0.06) 100%)`;
     case "metal":
-      return "linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 20%, transparent 50%, rgba(0,0,0,0.1) 80%, rgba(255,255,255,0.08) 100%)";
+      return [
+        `linear-gradient(${angle}deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 20%, transparent 50%, rgba(0,0,0,0.1) 80%, rgba(255,255,255,0.08) 100%)`,
+        `linear-gradient(${oppositeAngle}deg, rgba(255,255,255,0.06) 0%, transparent 30%)`,
+      ].join(", ");
     case "softmetal":
-      return "linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.06) 25%, transparent 55%, rgba(0,0,0,0.06) 100%)";
+      return `linear-gradient(${angle}deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.06) 25%, transparent 55%, rgba(0,0,0,0.06) 100%)`;
     case "warmMatte":
-      return "linear-gradient(180deg, rgba(255,240,220,0.08) 0%, transparent 60%, rgba(0,0,0,0.04) 100%)";
+      return `linear-gradient(${angle}deg, rgba(255,240,220,0.08) 0%, transparent 60%, rgba(0,0,0,0.04) 100%)`;
     case "matte":
-      return "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 50%, rgba(0,0,0,0.04) 100%)";
+      return `linear-gradient(${angle}deg, rgba(255,255,255,0.04) 0%, transparent 50%, rgba(0,0,0,0.04) 100%)`;
     case "dkEdge":
-      return "linear-gradient(135deg, transparent 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.15) 100%)";
+      return `linear-gradient(${angle}deg, transparent 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.15) 100%)`;
+    case "softEdge":
+      return `radial-gradient(ellipse at center, rgba(255,255,255,0.06) 0%, transparent 55%, rgba(0,0,0,0.04) 100%)`;
     case "clear":
     case "translucentPowder":
-      return "linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%, rgba(0,0,0,0.05) 100%)";
+      return `linear-gradient(${angle}deg, rgba(255,255,255,0.15) 0%, transparent 50%, rgba(0,0,0,0.05) 100%)`;
     case "powder":
-      return "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 60%)";
+      return `linear-gradient(${angle}deg, rgba(255,255,255,0.08) 0%, transparent 60%)`;
     default:
       return undefined;
   }
@@ -871,7 +982,7 @@ export function build3DExtrusionData(
 
   const depthPx = Math.max(1, Math.round(shape3d.extrusionHeight / EMU_PER_PX));
   // Cap depth for visual sanity — very deep extrusions can break layouts
-  const clampedDepth = Math.min(depthPx, 80);
+  const clampedDepth = Math.min(depthPx, MAX_EXTRUSION_DEPTH_PX);
 
   if (clampedDepth <= 0) return empty;
 
@@ -879,15 +990,11 @@ export function build3DExtrusionData(
 
   // Use extrusion colour or darken the fill colour for side faces
   const extColor = shape3d.extrusionColor || fillColor || "#888888";
-  const sideDarken = 0.7; // Side faces are darker than front
-  const sideColor = darkenColor(
-    extColor.startsWith("#") ? extColor : "#888888",
-    sideDarken,
-  );
-  const sideColorDeep = darkenColor(
-    extColor.startsWith("#") ? extColor : "#888888",
-    0.55,
-  );
+  const safeColor = extColor.startsWith("#") ? extColor : "#888888";
+  // Side faces are darker than the front — lit side vs shadowed side
+  const sideColorLit = darkenColor(safeColor, 0.75);
+  const sideColor = darkenColor(safeColor, 0.65);
+  const sideColorDeep = darkenColor(safeColor, 0.5);
 
   // Half-depth offset: front face is pushed forward by half the depth
   const halfDepth = clampedDepth / 2;
@@ -935,9 +1042,27 @@ export function build3DExtrusionData(
     transformStyle: "preserve-3d" as const,
   };
 
-  // Gradient direction for side faces: lighter at the front edge, darker at the back
-  const sideFaceGradient = `linear-gradient(to bottom, ${sideColor}, ${sideColorDeep})`;
-  const sideFaceGradientH = `linear-gradient(to right, ${sideColor}, ${sideColorDeep})`;
+  // Direction-aware gradients for side faces: panels facing the light
+  // source get a lighter gradient, those facing away get darker.
+  // For top-left default lighting, bottom and right panels are more lit.
+  const isLitFromTop = rotateX <= 0; // camera above → bottom panel lit
+  const isLitFromLeft = rotateY >= 0; // camera left → right panel lit
+
+  // Vertical panels (top/bottom): front edge → back edge gradient
+  const bottomGradient = isLitFromTop
+    ? `linear-gradient(to bottom, ${sideColorLit}, ${sideColor})`
+    : `linear-gradient(to bottom, ${sideColor}, ${sideColorDeep})`;
+  const topGradient = isLitFromTop
+    ? `linear-gradient(to bottom, ${sideColor}, ${sideColorDeep})`
+    : `linear-gradient(to bottom, ${sideColorLit}, ${sideColor})`;
+
+  // Horizontal panels (left/right): front edge → back edge gradient
+  const rightGradient = isLitFromLeft
+    ? `linear-gradient(to right, ${sideColor}, ${sideColorLit})`
+    : `linear-gradient(to right, ${sideColorLit}, ${sideColorDeep})`;
+  const leftGradient = isLitFromLeft
+    ? `linear-gradient(to right, ${sideColorDeep}, ${sideColor})`
+    : `linear-gradient(to right, ${sideColor}, ${sideColorLit})`;
 
   // ── Bottom panel ──
   // Positioned at the bottom edge of the shape, rotated 90deg around X axis
@@ -960,7 +1085,7 @@ export function build3DExtrusionData(
           "rotateX(-90deg)",
           `translateZ(${-halfDepth}px)`,
         ].join(" "),
-        background: sideFaceGradient,
+        background: bottomGradient,
       },
     });
   }
@@ -985,7 +1110,7 @@ export function build3DExtrusionData(
           "rotateX(90deg)",
           `translateZ(${-halfDepth}px)`,
         ].join(" "),
-        background: sideFaceGradient,
+        background: topGradient,
       },
     });
   }
@@ -1010,7 +1135,7 @@ export function build3DExtrusionData(
           "rotateY(90deg)",
           `translateZ(${-halfDepth}px)`,
         ].join(" "),
-        background: sideFaceGradientH,
+        background: rightGradient,
       },
     });
   }
@@ -1035,7 +1160,7 @@ export function build3DExtrusionData(
           "rotateY(-90deg)",
           `translateZ(${-halfDepth}px)`,
         ].join(" "),
-        background: sideFaceGradientH,
+        background: leftGradient,
       },
     });
   }
@@ -1233,7 +1358,7 @@ export function apply3dEffects(
       : backdropShadow;
   }
 
-  // ── Material preset → CSS filter/opacity ──
+  // ── Material preset → CSS filter/opacity/gradient ──
   if (shape3d?.presetMaterial) {
     const matOverrides = getMaterialCssOverrides(
       shape3d.presetMaterial as MaterialPresetType,
@@ -1250,6 +1375,12 @@ export function apply3dEffects(
       base.boxShadow = base.boxShadow
         ? `${base.boxShadow}, ${matOverrides.boxShadow}`
         : matOverrides.boxShadow;
+    }
+    // Material background gradient (specular/environment simulation)
+    if (matOverrides.backgroundImage) {
+      base.backgroundImage = base.backgroundImage
+        ? `${matOverrides.backgroundImage}, ${base.backgroundImage}`
+        : matOverrides.backgroundImage;
     }
   }
 
