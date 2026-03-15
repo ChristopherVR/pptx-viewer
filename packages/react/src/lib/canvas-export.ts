@@ -17,8 +17,15 @@
  * Additionally, Tailwind CSS v4 declares all colour tokens as oklch() custom
  * properties on :root, so we patch `<style>` elements in the cloned document
  * to replace those definitions as well.
+ *
+ * CSS preprocessing: Beyond colour conversion, the onclone callback also
+ * applies the full CSS preprocessing pipeline from css-preprocessing.ts
+ * to flatten backdrop-filter, mix-blend-mode, 3D transforms, and other
+ * CSS features that html2canvas cannot handle.
  */
 import html2canvas, { type Options as Html2CanvasOptions } from "html2canvas";
+
+import { preprocessCssForCapture } from "../viewer/utils/css-preprocessing";
 
 /* ------------------------------------------------------------------ */
 /*  Colour detection                                                  */
@@ -253,9 +260,14 @@ export async function renderToCanvas(
   return html2canvas(element, {
     ...options,
     onclone: (doc: Document, clonedEl: HTMLElement) => {
+      // Phase 1: Patch stylesheets and root custom properties (colour fix)
       patchStylesheets(doc);
       resolveRootCustomProperties(doc);
       resolveUnsupportedColours(clonedEl);
+
+      // Phase 2: CSS preprocessing — flatten backdrop-filter, mix-blend-mode,
+      // 3D transforms, and remove unsupported features
+      preprocessCssForCapture(clonedEl);
 
       // Honour any caller-provided onclone as well.
       if (typeof userOnClone === "function") {
