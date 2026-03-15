@@ -115,18 +115,18 @@ describe("getExtrusionShadow", () => {
     expect(layers.length).toBeGreaterThan(5);
   });
 
-  it("caps at 20 layers for large extrusion values", () => {
+  it("caps at 40 layers for large extrusion values", () => {
     const result = getExtrusionShadow({
-      extrusionHeight: 9525 * 100, // 100px → capped to 20
+      extrusionHeight: 9525 * 100, // 100px → capped to 40 layers with stepping
       extrusionColor: "#FF0000",
     });
     expect(result).toBeDefined();
-    // Count shadow entries by looking for "px" offset pairs followed by "0 " or blur
+    // Count shadow entries by looking for "px" offset pairs followed by spread or blur
     // Each shadow entry starts with a pixel offset like "1px 1px"
     const entryCount = (result!.match(/\d+px \-?\d+px/g) ?? []).length;
-    // 20 depth layers + 1 soft shadow = 21
-    expect(entryCount).toBeLessThanOrEqual(22);
-    expect(entryCount).toBeGreaterThanOrEqual(20);
+    // 40 depth layers + 1 soft shadow = 41
+    expect(entryCount).toBeLessThanOrEqual(42);
+    expect(entryCount).toBeGreaterThanOrEqual(30);
   });
 
   it("uses default color when extrusionColor is not set", () => {

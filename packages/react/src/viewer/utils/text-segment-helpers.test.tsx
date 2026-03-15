@@ -327,3 +327,66 @@ describe("resolveUnderlineDecorationStyle", () => {
     expect(unique.size).toBe(16);
   });
 });
+
+// ===========================================================================
+// renderPictureBullet
+// ===========================================================================
+
+import { renderPictureBullet } from "./text-segment-helpers";
+import type { BulletInfo } from "pptx-viewer-core";
+
+describe("renderPictureBullet", () => {
+  it("should render an <img> when imageDataUrl is provided", () => {
+    const bulletInfo: BulletInfo = {
+      imageDataUrl: "data:image/png;base64,iVBOR",
+    };
+    const result = renderPictureBullet("el-1", 0, bulletInfo, 14) as React.ReactElement;
+    expect(result.type).toBe("img");
+    expect(result.props.src).toBe("data:image/png;base64,iVBOR");
+  });
+
+  it("should size bullet by sizePts when provided", () => {
+    const bulletInfo: BulletInfo = {
+      imageDataUrl: "data:image/png;base64,abc",
+      sizePts: 20,
+    };
+    const result = renderPictureBullet("el-1", 0, bulletInfo, 14) as React.ReactElement;
+    expect(result.props.style.width).toBe(20);
+    expect(result.props.style.height).toBe(20);
+  });
+
+  it("should use marginInlineEnd on <img> for RTL compatibility", () => {
+    const bulletInfo: BulletInfo = {
+      imageDataUrl: "data:image/png;base64,abc",
+    };
+    const result = renderPictureBullet("el-1", 0, bulletInfo, 14) as React.ReactElement;
+    expect(result.props.style.marginInlineEnd).toBe(4);
+  });
+
+  it("should fall back to a character bullet when imageDataUrl is missing", () => {
+    const bulletInfo: BulletInfo = {
+      char: "•",
+    };
+    const result = renderPictureBullet("el-1", 0, bulletInfo, 14) as React.ReactElement;
+    expect(result.type).toBe("span");
+  });
+
+  it("should use sizePercent for sizing when sizePts is absent", () => {
+    const bulletInfo: BulletInfo = {
+      imageDataUrl: "data:image/png;base64,abc",
+      sizePercent: 150,
+    };
+    const result = renderPictureBullet("el-1", 0, bulletInfo, 10) as React.ReactElement;
+    expect(result.props.style.width).toBe(15);
+    expect(result.props.style.height).toBe(15);
+  });
+
+  it("should use baseFontSize as default when no size props", () => {
+    const bulletInfo: BulletInfo = {
+      imageDataUrl: "data:image/png;base64,abc",
+    };
+    const result = renderPictureBullet("el-1", 0, bulletInfo, 16) as React.ReactElement;
+    expect(result.props.style.width).toBe(16);
+    expect(result.props.style.height).toBe(16);
+  });
+});

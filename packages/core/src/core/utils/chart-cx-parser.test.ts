@@ -186,4 +186,101 @@ describe('parseCxChartSeries', () => {
 		expect(result).toBeDefined();
 		expect(result!.series[0].values).toEqual([0]);
 	});
+
+	it('should extract series color from spPr > solidFill > srgbClr', () => {
+		const plotArea: XmlObject = {
+			'cx:plotAreaRegion': {
+				'cx:series': {
+					'cx:tx': { 'cx:txData': { 'cx:v': 'Colored' } },
+					'cx:data': {
+						'cx:numDim': {
+							'@_type': 'val',
+							'cx:lvl': {
+								'cx:pt': [{ 'cx:v': '42' }],
+							},
+						},
+					},
+					'cx:spPr': {
+						'a:solidFill': {
+							'a:srgbClr': { '@_val': 'FF5733' },
+						},
+					},
+				},
+			},
+		};
+
+		const result = parseCxChartSeries(plotArea, xmlLookup);
+		expect(result).toBeDefined();
+		expect(result!.series[0].color).toBe('#FF5733');
+	});
+
+	it('should set hasDataLabels when dataLabels with visibility is present', () => {
+		const plotArea: XmlObject = {
+			'cx:plotAreaRegion': {
+				'cx:series': {
+					'cx:tx': { 'cx:txData': { 'cx:v': 'Labeled' } },
+					'cx:data': {
+						'cx:numDim': {
+							'cx:lvl': {
+								'cx:pt': [{ 'cx:v': '10' }],
+							},
+						},
+					},
+					'cx:dataLabels': {
+						'cx:visibility': {
+							'@_value': '1',
+							'@_categoryName': '1',
+						},
+					},
+				},
+			},
+		};
+
+		const result = parseCxChartSeries(plotArea, xmlLookup);
+		expect(result).toBeDefined();
+		expect(result!.hasDataLabels).toBe(true);
+	});
+
+	it('should not set hasDataLabels when no dataLabels present', () => {
+		const plotArea: XmlObject = {
+			'cx:plotAreaRegion': {
+				'cx:series': {
+					'cx:tx': { 'cx:txData': { 'cx:v': 'Plain' } },
+					'cx:data': {
+						'cx:numDim': {
+							'cx:lvl': {
+								'cx:pt': [{ 'cx:v': '5' }],
+							},
+						},
+					},
+				},
+			},
+		};
+
+		const result = parseCxChartSeries(plotArea, xmlLookup);
+		expect(result).toBeDefined();
+		expect(result!.hasDataLabels).toBeFalsy();
+	});
+
+	it('should handle multiple numDim elements with typed dimension', () => {
+		const plotArea: XmlObject = {
+			'cx:plotAreaRegion': {
+				'cx:series': {
+					'cx:tx': { 'cx:txData': { 'cx:v': 'Multi' } },
+					'cx:data': {
+						'cx:numDim': {
+							'@_type': 'val',
+							'cx:lvl': {
+								'cx:pt': [{ 'cx:v': '100' }, { 'cx:v': '200' }],
+							},
+						},
+					},
+				},
+			},
+		};
+
+		const result = parseCxChartSeries(plotArea, xmlLookup);
+		expect(result).toBeDefined();
+		expect(result!.series[0].values).toEqual([100, 200]);
+	});
 });

@@ -26,3 +26,4 @@ export * from "./linked-text-box-overflow";
 export * from "./ink-rendering";
 export * from "./accessibility";
 export * from "./sparkline-renderer";
+export * from "./connector-reroute";

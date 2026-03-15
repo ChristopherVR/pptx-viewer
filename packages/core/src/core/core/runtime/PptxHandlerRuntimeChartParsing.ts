@@ -291,6 +291,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     this.collectLocalTextValues(titleNode, "t", titleTextValues);
     const chartStyle = this.extractChartStyle(chartSpace, chartRoot);
 
+    // Merge hasDataLabels from cx: data labels parsing
+    if (result.hasDataLabels && chartStyle) {
+      chartStyle.hasDataLabels = true;
+    }
+
     // Parse external data source (c:externalData)
     const externalData = await this.parseChartExternalData(
       chartSpace,

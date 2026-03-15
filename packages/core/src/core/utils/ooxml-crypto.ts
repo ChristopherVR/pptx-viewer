@@ -961,7 +961,7 @@ async function generateIV(
  * 3. Computing HMAC of the encrypted package data (after the 8-byte size prefix)
  * 4. Comparing the computed HMAC with the decrypted HMAC value
  *
- * @throws Error if the data integrity check fails (file may be corrupted or tampered).
+ * @throws DataIntegrityError if the data integrity check fails.
  */
 async function verifyAgileDataIntegrity(
   info: EncryptionInfo,
@@ -1272,6 +1272,7 @@ export class DataIntegrityError extends Error {
  * @param password - The document password.
  * @returns The decrypted PPTX ZIP buffer.
  * @throws IncorrectPasswordError if the password is wrong.
+ * @throws DataIntegrityError if the encrypted data has been tampered with.
  * @throws Error if the file format is invalid.
  */
 export async function decryptPptx(

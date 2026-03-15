@@ -110,6 +110,73 @@ export function getImageEffectsFilter(
       case "sharpen":
         filters.push("contrast(160%) brightness(105%)");
         break;
+
+      // ── OOXML-prefixed aliases for the base effects ──────────────────
+      case "artisticBlur":
+        filters.push(`blur(${Math.min(radius, 20)}px)`);
+        break;
+      case "artisticLineDrawing":
+        filters.push("grayscale(100%) contrast(150%)");
+        break;
+      case "artisticPhotocopy":
+        filters.push("grayscale(100%) contrast(200%) brightness(120%)");
+        break;
+      case "artisticFilmGrain":
+        filters.push("contrast(110%) brightness(105%)");
+        break;
+      case "artisticMosaicBubbles":
+      case "artisticMosaic":
+        filters.push(`blur(${Math.min(radius, 12)}px)`);
+        break;
+      case "artisticPaintStrokes":
+        filters.push(`blur(${Math.min(radius, 8)}px) saturate(140%)`);
+        break;
+      case "artisticPencilGrayscale":
+      case "artisticPencilSketch":
+      case "grayPencil":
+        filters.push("grayscale(100%) contrast(150%)");
+        break;
+      case "artisticWatercolorSponge":
+        filters.push(`blur(${Math.min(radius, 8)}px) saturate(140%)`);
+        break;
+      case "artisticCement":
+        filters.push("grayscale(60%) contrast(120%)");
+        break;
+      case "artisticCutout":
+        filters.push("contrast(300%) brightness(120%)");
+        break;
+      case "artisticCrisscrossEtching":
+        filters.push("grayscale(60%) contrast(120%)");
+        break;
+      case "artisticPastelsSmooth":
+      case "pastels":
+        filters.push(`blur(${Math.min(radius, 6)}px) saturate(120%)`);
+        break;
+      case "artisticTexturizer":
+        filters.push("contrast(110%) brightness(105%)");
+        break;
+
+      // ── Additional OOXML effects ─────────────────────────────────────
+      case "mosaic":
+        // Pixelation approximation via heavy blur
+        filters.push(`blur(${Math.min(radius, 10)}px) contrast(105%)`);
+        break;
+      case "chalk":
+        filters.push("grayscale(70%) contrast(150%) brightness(105%)");
+        break;
+      case "glass":
+      case "artisticGlass":
+        filters.push(`blur(${Math.min(radius, 6)}px) brightness(110%)`);
+        break;
+      case "artisticPastels":
+        filters.push(`blur(${Math.min(radius, 6)}px) saturate(120%)`);
+        break;
+
+      // ── Catch-all for any unrecognized artistic effect ───────────────
+      // Apply a generic mild filter so nothing is a complete no-op
+      default:
+        filters.push("contrast(105%) saturate(105%)");
+        break;
     }
   }
 

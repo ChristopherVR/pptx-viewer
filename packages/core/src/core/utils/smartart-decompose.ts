@@ -7,6 +7,10 @@
  *
  * Layout algorithms live in `./smartart-layouts.ts` and
  * `./smartart-layouts-tree.ts`; shared helpers in `./smartart-helpers.ts`.
+ *
+ * When a parsed layout definition is available, the constraint-driven
+ * layout engine in `./smartart-layout-engine.ts` is used for more
+ * accurate positioning before falling back to the simpler heuristic layouts.
  */
 
 import type {
@@ -31,6 +35,11 @@ import {
   layoutPyramid,
 } from "./smartart-layouts";
 import { layoutHierarchy, layoutRelationship } from "./smartart-layouts-tree";
+import {
+  computeSmartArtLayout,
+  layoutEngineShapesToDrawingShapes,
+  type ParsedLayoutDef,
+} from "./smartart-layout-engine";
 
 // Re-export public API from helpers so existing consumers don't break.
 export { resetDecomposeCounter } from "./smartart-helpers";
@@ -133,12 +142,14 @@ function convertDrawingShapes(
  * @param smartArtData Parsed SmartArt data model from the PptxHandler.
  * @param containerBounds The bounding box of the SmartArt graphic frame on the slide.
  * @param themeColorMap Optional theme colour map (accent1-accent6 keys) for colour cycling.
+ * @param layoutDef Optional parsed layout definition for constraint-driven layout engine.
  * @returns An array of PptxElements (shapes + connectors), or `undefined` when decomposition is not possible.
  */
 export function decomposeSmartArt(
   smartArtData: PptxSmartArtData,
   containerBounds: DrawingBounds,
   themeColorMap?: Record<string, string>,
+  layoutDef?: ParsedLayoutDef,
 ): PptxElement[] | undefined {
   const nodes = smartArtData.nodes;
   if (!nodes || nodes.length === 0) return undefined;
@@ -153,6 +164,33 @@ export function decomposeSmartArt(
       colorFills,
       smartArtData.quickStyle,
     );
+  }
+
+  // When a parsed layout definition is available, use the constraint-driven
+  // layout engine for more accurate positioning.
+  if (layoutDef) {
+    const engineShapes = computeSmartArtLayout(
+      smartArtData,
+      containerBounds,
+      layoutDef,
+    );
+    if (engineShapes && engineShapes.length > 0) {
+      const layoutType: SmartArtLayoutType =
+        smartArtData.resolvedLayoutType ??
+        resolveLayoutFromRawType(smartArtData.layoutType);
+      const drawingShapes = layoutEngineShapesToDrawingShapes(
+        engineShapes,
+        nodes,
+        layoutType,
+      );
+      const colorFills = smartArtData.colorTransform?.fillColors;
+      return convertDrawingShapes(
+        drawingShapes,
+        containerBounds,
+        colorFills,
+        smartArtData.quickStyle,
+      );
+    }
   }
 
   // Apply colour-transform fill colours to the theme map when available

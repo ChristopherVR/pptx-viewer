@@ -8,7 +8,6 @@ import {
   valueToY,
   formatAxisValue,
   seriesColor,
-  paletteColor,
 } from "./chart-helpers";
 import {
   computeLayout,
@@ -122,7 +121,7 @@ export function renderBoxWhiskerChart(
         y={Math.min(yQ1, yQ3)}
         width={boxW}
         height={Math.abs(yQ1 - yQ3)}
-        fill={paletteColor(ci, chartData.style?.styleId)}
+        fill={PALETTE[ci % PALETTE.length]}
         stroke="#334155"
         strokeWidth={1}
         opacity={0.8}
@@ -160,6 +159,292 @@ export function renderBoxWhiskerChart(
         categoryAxisStyle: "bar",
       })}
       {boxes}
+    </svg>
+  );
+}
+
+/** Render a histogram chart — contiguous bars with no gaps. */
+export function renderHistogramChart(
+  element: PptxElement,
+  chartData: PptxChartData,
+  categoryLabels: ReadonlyArray<string>,
+): React.ReactNode {
+  const style = chartData.style;
+  const legendPos = style?.legendPosition || "b";
+  const layout = computeLayout(
+    element.width,
+    element.height,
+    style,
+    true,
+    legendPos,
+  );
+  const values = chartData.series[0]?.values ?? [];
+  const range = computeValueRange(chartData.series);
+  const catCount = Math.max(categoryLabels.length, values.length, 1);
+  const barWidth = layout.plotWidth / catCount;
+
+  const bars: React.ReactNode[] = [];
+  const dlElements: React.ReactNode[] = [];
+
+  values.forEach((val, i) => {
+    const x = layout.plotLeft + barWidth * i;
+    const zeroY = valueToY(0, range, layout.plotTop, layout.plotBottom);
+    const valY = valueToY(val, range, layout.plotTop, layout.plotBottom);
+    const y = Math.min(zeroY, valY);
+    const h = Math.max(Math.abs(zeroY - valY), 1);
+    const color = chartData.series[0]?.color || PALETTE[i % PALETTE.length];
+
+    bars.push(
+      <rect
+        key={`${element.id}-hist-${i}`}
+        x={x}
+        y={y}
+        width={Math.max(barWidth - 0.5, 1)}
+        height={h}
+        fill={color}
+        stroke="#fff"
+        strokeWidth={0.5}
+        opacity={0.85}
+      />,
+    );
+
+    if (style?.hasDataLabels) {
+      dlElements.push(
+        <text
+          key={`${element.id}-hist-dl-${i}`}
+          x={x + barWidth / 2}
+          y={y - 4}
+          textAnchor="middle"
+          fontSize={7}
+          fill="#334155"
+        >
+          {formatAxisValue(val)}
+        </text>,
+      );
+    }
+  });
+
+  return (
+    <svg
+      className="w-full h-full pointer-events-none"
+      viewBox={`0 0 ${layout.svgWidth} ${layout.svgHeight}`}
+      preserveAspectRatio="none"
+    >
+      <rect
+        x={0}
+        y={0}
+        width={layout.svgWidth}
+        height={layout.svgHeight}
+        fill="#0f172a11"
+      />
+      {renderChrome(element.id, chartData, layout, range, categoryLabels, {
+        categoryAxisStyle: "bar",
+      })}
+      {bars}
+      {dlElements}
+    </svg>
+  );
+}
+
+/** Render a geographic map chart fallback as a data table/legend. */
+export function renderMapChartFallback(
+  element: PptxElement,
+  chartData: PptxChartData,
+  categoryLabels: ReadonlyArray<string>,
+): React.ReactNode {
+  const style = chartData.style;
+  const series = chartData.series;
+  const categories = categoryLabels.length > 0 ? categoryLabels : chartData.categories;
+  const svgWidth = element.width;
+  const svgHeight = element.height;
+
+  const rowHeight = Math.min(18, svgHeight / Math.max(categories.length + 2, 3));
+  const fontSize = Math.min(10, rowHeight * 0.6);
+  const headerY = 30;
+  const tableX = 10;
+  const colWidth = Math.max((svgWidth - 20) / (series.length + 1), 60);
+
+  const elements: React.ReactNode[] = [];
+
+  // Title
+  if (chartData.title) {
+    elements.push(
+      <text
+        key={`${element.id}-map-title`}
+        x={svgWidth / 2}
+        y={16}
+        textAnchor="middle"
+        fontSize={12}
+        fontWeight={700}
+        fill="#334155"
+      >
+        {chartData.title}
+      </text>,
+    );
+  }
+
+  // Map icon placeholder
+  elements.push(
+    <text
+      key={`${element.id}-map-icon`}
+      x={svgWidth / 2}
+      y={headerY - 4}
+      textAnchor="middle"
+      fontSize={8}
+      fill="#94a3b8"
+    >
+      Geographic Map (data view)
+    </text>,
+  );
+
+  // Column headers
+  elements.push(
+    <text
+      key={`${element.id}-map-h-cat`}
+      x={tableX + 4}
+      y={headerY + rowHeight}
+      fontSize={fontSize}
+      fontWeight={700}
+      fill="#1e293b"
+    >
+      Region
+    </text>,
+  );
+  series.forEach((s, si) => {
+    elements.push(
+      <text
+        key={`${element.id}-map-h-${si}`}
+        x={tableX + colWidth * (si + 1) + 4}
+        y={headerY + rowHeight}
+        fontSize={fontSize}
+        fontWeight={700}
+        fill="#1e293b"
+      >
+        {s.name}
+      </text>,
+    );
+  });
+
+  // Header underline
+  elements.push(
+    <line
+      key={`${element.id}-map-hline`}
+      x1={tableX}
+      y1={headerY + rowHeight + 4}
+      x2={svgWidth - 10}
+      y2={headerY + rowHeight + 4}
+      stroke="#cbd5e1"
+      strokeWidth={1}
+    />,
+  );
+
+  // Data rows
+  categories.forEach((cat, ci) => {
+    const y = headerY + rowHeight * (ci + 2) + 4;
+    if (y + rowHeight > svgHeight) return;
+
+    // Alternating row background
+    if (ci % 2 === 0) {
+      elements.push(
+        <rect
+          key={`${element.id}-map-bg-${ci}`}
+          x={tableX}
+          y={y - rowHeight + 4}
+          width={svgWidth - 20}
+          height={rowHeight}
+          fill="#f1f5f9"
+          rx={2}
+        />,
+      );
+    }
+
+    elements.push(
+      <text
+        key={`${element.id}-map-cat-${ci}`}
+        x={tableX + 4}
+        y={y}
+        fontSize={fontSize}
+        fill="#334155"
+      >
+        {cat}
+      </text>,
+    );
+
+    series.forEach((s, si) => {
+      const val = s.values[ci];
+      elements.push(
+        <text
+          key={`${element.id}-map-v-${ci}-${si}`}
+          x={tableX + colWidth * (si + 1) + 4}
+          y={y}
+          fontSize={fontSize}
+          fill="#475569"
+        >
+          {val !== undefined ? formatAxisValue(val) : '—'}
+        </text>,
+      );
+    });
+  });
+
+  // Color legend bar
+  if (series.length > 0) {
+    const legendY = Math.min(headerY + rowHeight * (categories.length + 3), svgHeight - 20);
+    if (legendY < svgHeight - 10) {
+      const vals = series[0].values.filter((v) => Number.isFinite(v));
+      const minVal = Math.min(...vals, 0);
+      const maxVal = Math.max(...vals, 1);
+      const barW = Math.min(svgWidth * 0.5, 150);
+      const barX = (svgWidth - barW) / 2;
+
+      elements.push(
+        <defs key={`${element.id}-map-defs`}>
+          <linearGradient id={`${element.id}-map-grad`} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#dbeafe" />
+            <stop offset="50%" stopColor="#3b82f6" />
+            <stop offset="100%" stopColor="#1e3a5f" />
+          </linearGradient>
+        </defs>,
+        <rect
+          key={`${element.id}-map-bar`}
+          x={barX}
+          y={legendY}
+          width={barW}
+          height={8}
+          rx={4}
+          fill={`url(#${element.id}-map-grad)`}
+        />,
+        <text
+          key={`${element.id}-map-min`}
+          x={barX}
+          y={legendY + 18}
+          fontSize={7}
+          fill="#64748b"
+          textAnchor="middle"
+        >
+          {formatAxisValue(minVal)}
+        </text>,
+        <text
+          key={`${element.id}-map-max`}
+          x={barX + barW}
+          y={legendY + 18}
+          fontSize={7}
+          fill="#64748b"
+          textAnchor="middle"
+        >
+          {formatAxisValue(maxVal)}
+        </text>,
+      );
+    }
+  }
+
+  return (
+    <svg
+      className="w-full h-full pointer-events-none"
+      viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+      preserveAspectRatio="none"
+    >
+      <rect x={0} y={0} width={svgWidth} height={svgHeight} fill="#f8fafc" rx={4} />
+      {elements}
     </svg>
   );
 }
@@ -231,7 +516,7 @@ export function renderDefaultBarChart(
           y={barY}
           width={singleBarWidth}
           height={barH}
-          fill={seriesColor(series, si, chartData.style?.styleId)}
+          fill={seriesColor(series, si)}
           rx={1}
         />,
       );

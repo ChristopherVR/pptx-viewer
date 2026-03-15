@@ -111,8 +111,14 @@ export {
 export {
   detectDigitalSignatures,
   getSignaturePathsToStrip,
+  parseSignatureXml,
+  verifySignatureDigests,
   DIGITAL_SIGNATURE_ORIGIN_REL_TYPE,
   type SignatureDetectionResult,
+  type SignatureCertificateInfo,
+  type SignatureStatus,
+  type ParsedSignature,
+  type SignatureReference,
 } from "./signature-detection";
 
 export {
@@ -237,3 +243,20 @@ export {
   type ValidationResult,
   type RepairResult,
 } from "./pptx-validator";
+
+export {
+  computeSmartArtLayout,
+  computeSnakeLayout,
+  computeLinearLayout,
+  computeHierarchyLayout,
+  computeCycleLayout,
+  computePyramidLayout,
+  computeMatrixLayout,
+  parseLayoutDefinition,
+  layoutEngineShapesToDrawingShapes,
+  type LayoutEngineShape,
+  type LayoutConstraints,
+  type ParsedLayoutDef,
+  type LayoutAlgorithmType,
+  type LayoutRule,
+} from "./smartart-layout-engine";

@@ -4,6 +4,10 @@
  */
 import type { PptxElement } from "pptx-viewer-core";
 import { MIN_ELEMENT_SIZE } from "../constants";
+import {
+  rerouteConnectorsForMovedElements,
+  applyReroutedConnectors,
+} from "../utils/connector-reroute";
 import type { UsePointerHandlersInput } from "./pointer-handler-types";
 
 // ---------------------------------------------------------------------------
@@ -116,12 +120,28 @@ export function processPointerUp(input: UsePointerHandlersInput): void {
   }
 
   if (rs?.moved) {
-    updateElementById(rs.elementId, {
+    // Apply the resize and reroute any connectors attached to the resized element
+    const resizedId = rs.elementId;
+    const resizeUpdates = {
       x: rs.lastX,
       y: rs.lastY,
       width: rs.lastWidth,
       height: rs.lastHeight,
-    });
+    };
+    updateElementById(resizedId, resizeUpdates);
+    // Reroute connectors referencing the resized element
+    const movedIds = new Set([resizedId]);
+    updateSlides((prev) =>
+      prev.map((s, i) => {
+        if (i !== activeSlideIndex) return s;
+        const rerouted = rerouteConnectorsForMovedElements(s.elements, movedIds);
+        if (rerouted.length === 0) return s;
+        return {
+          ...s,
+          elements: applyReroutedConnectors(s.elements, rerouted),
+        };
+      }),
+    );
   }
 
   const wasMoved = drag?.moved || rs?.moved || adj?.moved;
@@ -177,33 +197,40 @@ function commitDrag(
   const dx = drag.lastDx,
     dy = drag.lastDy;
   if (editTemplateMode) {
+    const movedIds = new Set(Object.keys(drag.startPositionsById));
     setTemplateElementsBySlideId((prev: Record<string, PptxElement[]>) => {
       const slideId = activeSlide?.id;
       if (!slideId) return prev;
       const els = prev[slideId] ?? [];
+      const movedElements = els.map((el) => {
+        const start = drag.startPositionsById[el.id];
+        if (!start) return el;
+        return { ...el, x: start.x + dx, y: start.y + dy };
+      });
+      const rerouted = rerouteConnectorsForMovedElements(movedElements, movedIds);
       return {
         ...prev,
-        [slideId]: els.map((el) => {
-          const start = drag.startPositionsById[el.id];
-          if (!start) return el;
-          return { ...el, x: start.x + dx, y: start.y + dy };
-        }),
+        [slideId]: applyReroutedConnectors(movedElements, rerouted),
       };
     });
   } else {
+    const movedIds = new Set(Object.keys(drag.startPositionsById));
     updateSlides((prev) =>
-      prev.map((s, i) =>
-        i === activeSlideIndex
-          ? {
-              ...s,
-              elements: s.elements.map((el) => {
-                const start = drag.startPositionsById[el.id];
-                if (!start) return el;
-                return { ...el, x: start.x + dx, y: start.y + dy };
-              }),
-            }
-          : s,
-      ),
+      prev.map((s, i) => {
+        if (i !== activeSlideIndex) return s;
+        // First apply the drag positions
+        const movedElements = s.elements.map((el) => {
+          const start = drag.startPositionsById[el.id];
+          if (!start) return el;
+          return { ...el, x: start.x + dx, y: start.y + dy };
+        });
+        // Then reroute any connectors attached to the moved shapes
+        const rerouted = rerouteConnectorsForMovedElements(movedElements, movedIds);
+        return {
+          ...s,
+          elements: applyReroutedConnectors(movedElements, rerouted),
+        };
+      }),
     );
   }
 }

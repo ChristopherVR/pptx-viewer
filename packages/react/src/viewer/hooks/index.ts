@@ -166,3 +166,6 @@ export type {
   UseViewerIntegrationInput,
   ViewerIntegrationResult,
 } from "./useViewerIntegration";
+
+export { useReducedMotion } from "./useReducedMotion";
+export type { UseReducedMotionResult } from "./useReducedMotion";

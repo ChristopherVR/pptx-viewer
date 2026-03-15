@@ -39,6 +39,7 @@ export type PptxChartType =
   | "treemap"
   | "sunburst"
   | "boxWhisker"
+  | "regionMap"
   | "combo"
   | "unknown";
 

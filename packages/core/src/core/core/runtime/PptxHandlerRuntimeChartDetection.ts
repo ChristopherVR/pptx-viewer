@@ -61,6 +61,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
             return "boxWhisker";
           if (layoutRef.includes("histogram") || layoutRef.includes("pareto"))
             return "histogram";
+          if (layoutRef.includes("regionmap") || layoutRef.includes("map"))
+            return "regionMap";
         }
       }
     }

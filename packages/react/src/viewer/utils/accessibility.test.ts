@@ -4,6 +4,7 @@ import {
   computeReadingOrder,
   getAriaRole,
   getAriaLabel,
+  getAriaRoleDescription,
   prefersReducedMotion,
   getReducedMotionStyles,
 } from "./accessibility";
@@ -354,6 +355,92 @@ describe("getAriaLabel", () => {
     expect(
       getAriaLabel(makeElement({ id: "1", type: "image" })),
     ).toBe("Image");
+  });
+});
+
+// ===========================================================================
+// getAriaRoleDescription
+// ===========================================================================
+
+describe("getAriaRoleDescription", () => {
+  it('returns "shape" for shapes without shapeType', () => {
+    expect(
+      getAriaRoleDescription(makeElement({ id: "1", type: "shape" })),
+    ).toBe("shape");
+  });
+
+  it('returns "shape: rect" for shapes with shapeType', () => {
+    expect(
+      getAriaRoleDescription(
+        makeElement({ id: "1", type: "shape", shapeType: "rect" }),
+      ),
+    ).toBe("shape: rect");
+  });
+
+  it('returns "chart" for chart elements', () => {
+    expect(
+      getAriaRoleDescription(makeElement({ id: "1", type: "chart" })),
+    ).toBe("chart");
+  });
+
+  it('returns "connector line" for connector elements', () => {
+    expect(
+      getAriaRoleDescription(makeElement({ id: "1", type: "connector" })),
+    ).toBe("connector line");
+  });
+
+  it('returns "diagram" for smartArt elements', () => {
+    expect(
+      getAriaRoleDescription(makeElement({ id: "1", type: "smartArt" })),
+    ).toBe("diagram");
+  });
+
+  it('returns "image" for image elements', () => {
+    expect(
+      getAriaRoleDescription(makeElement({ id: "1", type: "image" })),
+    ).toBe("image");
+  });
+
+  it('returns "image" for picture elements', () => {
+    expect(
+      getAriaRoleDescription(makeElement({ id: "1", type: "picture" })),
+    ).toBe("image");
+  });
+
+  it('returns "data table" for table elements', () => {
+    expect(
+      getAriaRoleDescription(makeElement({ id: "1", type: "table" })),
+    ).toBe("data table");
+  });
+
+  it('returns "grouped elements" for group elements', () => {
+    expect(
+      getAriaRoleDescription(makeElement({ id: "1", type: "group" })),
+    ).toBe("grouped elements");
+  });
+
+  it('returns "media player" for media elements', () => {
+    expect(
+      getAriaRoleDescription(makeElement({ id: "1", type: "media" })),
+    ).toBe("media player");
+  });
+
+  it('returns "ink drawing" for ink elements', () => {
+    expect(
+      getAriaRoleDescription(makeElement({ id: "1", type: "ink" })),
+    ).toBe("ink drawing");
+  });
+
+  it('returns "3D model" for model3d elements', () => {
+    expect(
+      getAriaRoleDescription(makeElement({ id: "1", type: "model3d" })),
+    ).toBe("3D model");
+  });
+
+  it("returns undefined for text elements", () => {
+    expect(
+      getAriaRoleDescription(makeElement({ id: "1", type: "text" })),
+    ).toBeUndefined();
   });
 });
 

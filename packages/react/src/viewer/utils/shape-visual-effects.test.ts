@@ -201,6 +201,108 @@ describe("getImageEffectsFilter", () => {
     expect(result).toContain("brightness(100%)");
   });
 
+  // -- OOXML-prefixed aliases --
+
+  it("artisticBlur works as blur alias", () => {
+    const el = makeImageElement({ artisticEffect: "artisticBlur", artisticRadius: 8 });
+    expect(getImageEffectsFilter(el)).toContain("blur(8px)");
+  });
+
+  it("artisticLineDrawing works as lineDrawing alias", () => {
+    const el = makeImageElement({ artisticEffect: "artisticLineDrawing" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toContain("grayscale(100%)");
+    expect(result).toContain("contrast(150%)");
+  });
+
+  it("artisticPhotocopy works as photocopy alias", () => {
+    const el = makeImageElement({ artisticEffect: "artisticPhotocopy" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toContain("grayscale(100%)");
+    expect(result).toContain("contrast(200%)");
+  });
+
+  it("artisticPaint works as paint alias", () => {
+    const el = makeImageElement({ artisticEffect: "artisticPaint" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toContain("blur(");
+    expect(result).toContain("saturate(160%)");
+  });
+
+  it("artisticPlasticWrap works as plasticWrap alias", () => {
+    const el = makeImageElement({ artisticEffect: "artisticPlasticWrap" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toContain("contrast(150%)");
+    expect(result).toContain("brightness(115%)");
+  });
+
+  it("artisticGlowEdges works as glowEdges alias", () => {
+    const el = makeImageElement({ artisticEffect: "artisticGlowEdges" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toContain("invert(100%)");
+    expect(result).toContain("contrast(200%)");
+  });
+
+  it("artisticGlowDiffused works as glowDiffused alias", () => {
+    const el = makeImageElement({ artisticEffect: "artisticGlowDiffused" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toContain("blur(");
+    expect(result).toContain("brightness(120%)");
+  });
+
+  it("artisticLightScreen works as lightScreen alias", () => {
+    const el = makeImageElement({ artisticEffect: "artisticLightScreen" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toContain("brightness(130%)");
+    expect(result).toContain("contrast(80%)");
+  });
+
+  it("artisticSharpenEdges works as sharpen alias", () => {
+    const el = makeImageElement({ artisticEffect: "artisticSharpenEdges" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toContain("contrast(160%)");
+  });
+
+  it("artisticPencilGrayscale / grayPencil works", () => {
+    const el = makeImageElement({ artisticEffect: "grayPencil" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toContain("grayscale(100%)");
+    expect(result).toContain("contrast(150%)");
+  });
+
+  // -- Additional effects --
+
+  it("mosaic produces blur + contrast", () => {
+    const el = makeImageElement({ artisticEffect: "mosaic", artisticRadius: 7 });
+    const result = getImageEffectsFilter(el);
+    expect(result).toContain("blur(7px)");
+    expect(result).toContain("contrast(105%)");
+  });
+
+  it("chalk produces grayscale + contrast + brightness", () => {
+    const el = makeImageElement({ artisticEffect: "chalk" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toContain("grayscale(70%)");
+    expect(result).toContain("contrast(150%)");
+  });
+
+  it("pastels alias maps to pastelsSmooth filters", () => {
+    const el = makeImageElement({ artisticEffect: "pastels" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toContain("blur(");
+    expect(result).toContain("saturate(120%)");
+  });
+
+  // -- Catch-all default --
+
+  it("unknown effect name produces a generic filter (not no-op)", () => {
+    const el = makeImageElement({ artisticEffect: "someUnknownEffect" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toBeDefined();
+    expect(result).toContain("contrast(105%)");
+    expect(result).toContain("saturate(105%)");
+  });
+
   // -- Duotone --
 
   it("includes duotone filter reference by default", () => {

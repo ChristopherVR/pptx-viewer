@@ -23,7 +23,7 @@ import {
   normalizeHexColor,
   renderVectorShape,
 } from "../utils";
-import { getAriaRole, getAriaLabel } from "../utils/accessibility";
+import { getAriaRole, getAriaLabel, getAriaRoleDescription } from "../utils/accessibility";
 import { ConnectorElementRenderer } from "./elements/ConnectorElementRenderer";
 import { renderBody } from "./elements/ElementBody";
 import { ResizeHandles } from "./elements/ResizeHandles";
@@ -177,6 +177,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
     // Accessibility attributes
     const ariaRole = getAriaRole(el);
     const ariaLabel = getAriaLabel(el);
+    const ariaRoleDescription = getAriaRoleDescription(el);
+    const isFocusable = effectiveCanInteract || isActionable;
 
     return (
       <div
@@ -184,8 +186,9 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
         data-element-id={el.id}
         role={ariaRole}
         aria-label={ariaLabel}
+        aria-roledescription={ariaRoleDescription}
         aria-selected={isSelected ? true : undefined}
-        tabIndex={effectiveCanInteract || isActionable ? 0 : -1}
+        tabIndex={isFocusable ? 0 : -1}
         className={cn(
           "absolute border",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500",

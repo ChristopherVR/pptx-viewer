@@ -32,8 +32,12 @@ interface Shape3dParams {
 
 // ── Constants ────────────────────────────────────────────────────────────
 
-/** Maximum stacked shadow layers for extrusion (performance guard). */
-const MAX_EXTRUSION_LAYERS = 20;
+/**
+ * Maximum stacked shadow layers for extrusion (performance guard).
+ * Raised from 20 to 40 for better fidelity with large extrusion depths.
+ * Each layer is a single box-shadow, so 40 is still performant.
+ */
+const MAX_EXTRUSION_LAYERS = 40;
 
 // ── Camera Preset Mapping ────────────────────────────────────────────────
 
@@ -724,27 +728,33 @@ export function getExtrusionShadow(
     return undefined;
   }
 
-  const depthPx = Math.min(
-    Math.round(shape3d.extrusionHeight / EMU_PER_PX),
-    MAX_EXTRUSION_LAYERS,
-  );
-  if (depthPx <= 0) return undefined;
+  const rawDepthPx = Math.round(shape3d.extrusionHeight / EMU_PER_PX);
+  if (rawDepthPx <= 0) return undefined;
+
+  // For large depths, use stepping so we still render full depth
+  // but limit the total number of CSS box-shadow layers for performance.
+  const layerCount = Math.min(rawDepthPx, MAX_EXTRUSION_LAYERS);
+  const step = rawDepthPx / layerCount;
 
   const extColor = shape3d.extrusionColor || "#888888";
   const { dx, dy } = getExtrusionDirection(cameraRotX, cameraRotY);
   const depthShadows: string[] = [];
 
-  for (let i = 1; i <= depthPx; i++) {
+  for (let i = 1; i <= layerCount; i++) {
+    const offset = Math.round(i * step);
     // Gradually darken the colour for deeper layers
-    const darkenFactor = 1 - (i / depthPx) * 0.25;
+    const darkenFactor = 1 - (i / layerCount) * 0.25;
     const layerColor =
-      i > depthPx * 0.7 ? darkenColor(extColor, darkenFactor) : extColor;
-    depthShadows.push(`${dx * i}px ${dy * i}px 0 ${layerColor}`);
+      i > layerCount * 0.7 ? darkenColor(extColor, darkenFactor) : extColor;
+    // Use a slight spread for stepped layers to fill gaps
+    const spread = step > 1.5 ? Math.ceil(step / 2) : 0;
+    depthShadows.push(`${dx * offset}px ${dy * offset}px ${spread}px ${layerColor}`);
   }
 
   // Final soft shadow for depth perception
+  const finalOffset = rawDepthPx + 1;
   depthShadows.push(
-    `${dx * (depthPx + 1)}px ${dy * (depthPx + 1)}px ${Math.max(2, Math.round(depthPx / 2))}px rgba(0,0,0,0.2)`,
+    `${dx * finalOffset}px ${dy * finalOffset}px ${Math.max(2, Math.round(rawDepthPx / 3))}px rgba(0,0,0,0.2)`,
   );
 
   return depthShadows.join(", ");
@@ -887,6 +897,9 @@ export function apply3dEffects(
   // Performance hint for 3D-transformed elements
   if (hasRotation || perspective || shape3d) {
     base.willChange = "transform";
+    // Ensure 3D elements create a stacking context for proper z-index layering
+    // when multiple 3D shapes overlap on the same slide
+    base.transformStyle = "preserve-3d";
   }
 
   // ── Extrusion depth → stacked box-shadow ──

@@ -215,6 +215,54 @@ function getTypeFallbackLabel(type: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// ARIA role descriptions
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns an `aria-roledescription` string for an element, providing
+ * assistive-technology users with a more specific description of the
+ * element's purpose than the generic ARIA role alone.
+ *
+ * @param element - The element to describe.
+ * @returns A human-readable role description, or undefined when none is needed.
+ */
+export function getAriaRoleDescription(
+  element: PptxElement,
+): string | undefined {
+  switch (element.type) {
+    case "shape": {
+      const shapeType =
+        "shapeType" in element && typeof element.shapeType === "string"
+          ? element.shapeType
+          : undefined;
+      if (shapeType) return `shape: ${shapeType}`;
+      return "shape";
+    }
+    case "chart":
+      return "chart";
+    case "connector":
+      return "connector line";
+    case "smartArt":
+      return "diagram";
+    case "image":
+    case "picture":
+      return "image";
+    case "table":
+      return "data table";
+    case "group":
+      return "grouped elements";
+    case "media":
+      return "media player";
+    case "ink":
+      return "ink drawing";
+    case "model3d":
+      return "3D model";
+    default:
+      return undefined;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Reduced motion detection
 // ---------------------------------------------------------------------------
 
