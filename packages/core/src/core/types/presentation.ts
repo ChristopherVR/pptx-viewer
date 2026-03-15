@@ -534,4 +534,20 @@ export interface PptxEmbeddedFont {
   italic?: boolean;
   /** CSS font format hint (e.g. "truetype", "opentype"). */
   format?: "truetype" | "opentype" | "woff" | "woff2";
+  /**
+   * Deobfuscated (clear-text) font binary data preserved from load
+   * for round-trip re-embedding on save. When present, the save
+   * pipeline will re-obfuscate and write this data back into the ZIP.
+   */
+  rawFontData?: Uint8Array;
+  /**
+   * Original ZIP path of the font part (e.g. `ppt/fonts/{GUID}.fntdata`).
+   * Preserved from load for round-trip.
+   */
+  partPath?: string;
+  /**
+   * The GUID used for obfuscation, either from the `fontKey` attribute
+   * or extracted from the part path. Preserved from load for round-trip.
+   */
+  fontGuid?: string;
 }

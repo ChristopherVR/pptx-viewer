@@ -65,6 +65,8 @@ export {
   extractGuidFromPartName,
   guidToKey,
   deobfuscateFont,
+  obfuscateFont,
+  generateFontGuid,
   detectFontFormat,
 } from "./font-deobfuscation";
 

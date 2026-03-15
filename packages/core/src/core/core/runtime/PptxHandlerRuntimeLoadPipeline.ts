@@ -29,6 +29,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     const customShows = this.parseCustomShows();
     const tableStyleMap = await this.parseTableStyles();
     const embeddedFonts = await this.getEmbeddedFonts();
+    // Preserve for automatic re-embedding during save
+    this.loadedEmbeddedFonts = embeddedFonts;
     const themeOptions = await this.parseThemeOptions();
     const notesMaster = await this.parseNotesMaster();
     const handoutMaster = await this.parseHandoutMaster();

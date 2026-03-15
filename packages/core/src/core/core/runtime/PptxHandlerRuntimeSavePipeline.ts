@@ -110,6 +110,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       this.zip.file(masterPath, this.builder.build(masterXmlObj));
     }
 
+    // Re-embed fonts (must run before presentation XML is serialized
+    // because it modifies p:embeddedFontLst on presentationData)
+    await this.applyEmbeddedFontPreservation(options?.embeddedFonts);
+
     // Presentation save
     if (this.presentationData) {
       this.presentationSaveBuilder.applySaveOptions({

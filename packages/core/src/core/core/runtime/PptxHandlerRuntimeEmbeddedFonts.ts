@@ -118,6 +118,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       if (!fontBinary || fontBinary.length === 0) return null;
 
       let fontData: Uint8Array;
+      let resolvedGuid: string | undefined;
 
       // ── Strategy 1: EOT (Embedded OpenType) container ──────────
       // Some PPTX producers (e.g. Google Slides) embed fonts in EOT
@@ -147,6 +148,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
         if (guid) {
           fontData = deobfuscateFont(fontBinary, guid);
+          resolvedGuid = guid;
         } else {
           // No GUID available — can't deobfuscate
           console.warn(
@@ -197,7 +199,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       const base64 = this.uint8ArrayToBase64(fontData);
       const dataUrl = `data:${mimeType};base64,${base64}`;
 
-      return { name: typeface, dataUrl, bold, italic, format };
+      return {
+        name: typeface,
+        dataUrl,
+        bold,
+        italic,
+        format,
+        rawFontData: fontData,
+        partPath: fontPath,
+        fontGuid: resolvedGuid,
+      };
     } catch {
       return null;
     }
