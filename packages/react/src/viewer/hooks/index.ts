@@ -107,6 +107,12 @@ export type {
   ThemeHandlersResult,
 } from "./useThemeHandlers";
 
+export { useThemeSwitching } from "./useThemeSwitching";
+export type {
+  UseThemeSwitchingInput,
+  ThemeSwitchingResult,
+} from "./useThemeSwitching";
+
 export { usePropertyHandlers } from "./usePropertyHandlers";
 export type {
   UsePropertyHandlersInput,

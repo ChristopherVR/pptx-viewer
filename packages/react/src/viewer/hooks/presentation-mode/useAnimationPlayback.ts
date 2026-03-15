@@ -20,6 +20,8 @@ import { computeEntranceAnimationDelay } from "../usePresentationSetup-helpers";
 export interface UseAnimationPlaybackInput {
   slides: PptxSlide[];
   onPlayActionSound?: (soundPath: string) => void;
+  /** When false, all animations are skipped (elements shown immediately). */
+  showWithAnimation?: boolean;
 }
 
 export interface UseAnimationPlaybackResult {
@@ -42,7 +44,8 @@ export interface UseAnimationPlaybackResult {
 export function useAnimationPlayback(
   input: UseAnimationPlaybackInput,
 ): UseAnimationPlaybackResult {
-  const { slides, onPlayActionSound } = input;
+  const { slides, onPlayActionSound, showWithAnimation } = input;
+  const animationsEnabled = showWithAnimation !== false;
 
   // State
   const [presentationAnimations, setPresentationAnimations] = useState<
@@ -136,6 +139,7 @@ export function useAnimationPlayback(
   // -----------------------------------------------------------------------
 
   const playNextAnimationGroup = useCallback((): boolean => {
+    if (!animationsEnabled) return false;
     const engine = timelineEngineRef.current;
     if (!engine || !engine.hasMoreSteps()) return false;
 
@@ -150,7 +154,7 @@ export function useAnimationPlayback(
     );
 
     return true;
-  }, [onPlayActionSound]);
+  }, [animationsEnabled, onPlayActionSound]);
 
   // -----------------------------------------------------------------------
   // Interactive shape-click animation
@@ -183,6 +187,17 @@ export function useAnimationPlayback(
   const runPresentationEntranceAnimations = useCallback(
     (slideIndex: number) => {
       clearPresentationTimers();
+
+      // When animations are disabled, skip timeline and entrance animations
+      if (!animationsEnabled) {
+        timelineEngineRef.current = null;
+        setPresentationAnimations([]);
+        setPresentationElementStates(new Map());
+        setPresentationKeyframesCss("");
+        setInteractiveTriggerShapeIds(new Set());
+        return;
+      }
+
       resetSlideTimeline(slideIndex);
       const slide = slides[slideIndex];
       if (!slide) {
@@ -224,7 +239,7 @@ export function useAnimationPlayback(
         presentationTimersRef.current.push(timer);
       });
     },
-    [clearPresentationTimers, resetSlideTimeline, slides],
+    [animationsEnabled, clearPresentationTimers, resetSlideTimeline, slides],
   );
 
   return {

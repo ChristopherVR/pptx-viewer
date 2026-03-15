@@ -50,6 +50,9 @@ export function useDrawingOverlay({
   const [currentStrokePoints, setCurrentStrokePoints] = useState<
     Array<{ x: number; y: number }>
   >([]);
+  const [currentStrokePressures, setCurrentStrokePressures] = useState<
+    number[]
+  >([]);
   const [isStrokeActive, setIsStrokeActive] = useState(false);
 
   /** Convert pointer position to canvas-local coordinates. */
@@ -107,6 +110,7 @@ export function useDrawingOverlay({
       e.preventDefault();
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
       setCurrentStrokePoints([pt]);
+      setCurrentStrokePressures([e.pressure]);
       setIsStrokeActive(true);
       if (isDrawingRef) {
         (isDrawingRef as React.MutableRefObject<boolean>).current = true;
@@ -122,6 +126,7 @@ export function useDrawingOverlay({
       const pt = pointerToCanvasCoords(e);
       if (!pt) return;
       setCurrentStrokePoints((prev) => [...prev, pt]);
+      setCurrentStrokePressures((prev) => [...prev, e.pressure]);
     },
     [isStrokeActive, activeTool, pointerToCanvasCoords],
   );
@@ -197,6 +202,14 @@ export function useDrawingOverlay({
       } else {
         const pathD = buildPathD(relPoints);
         const isHighlighter = activeTool === "highlighter";
+        // Check if we have meaningful pressure variation from the stylus/pen.
+        // A uniform pressure of 0.5 (the default for mouse input) means no
+        // real pressure data was captured.
+        const hasPressure =
+          currentStrokePressures.length >= 2 &&
+          currentStrokePressures.some(
+            (p) => Math.abs(p - currentStrokePressures[0]) > 0.01,
+          );
         const ink: InkPptxElement = {
           id: `ink-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           type: "ink",
@@ -209,10 +222,14 @@ export function useDrawingOverlay({
           inkWidths: [drawingWidth],
           inkOpacities: [isHighlighter ? 0.4 : 1],
           inkTool: isHighlighter ? "highlighter" : "pen",
+          ...(hasPressure
+            ? { inkPointPressures: [currentStrokePressures] }
+            : {}),
         };
         onAddInkElement?.(ink);
       }
       setCurrentStrokePoints([]);
+      setCurrentStrokePressures([]);
     },
     [
       isStrokeActive,

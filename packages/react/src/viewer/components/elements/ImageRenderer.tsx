@@ -1,5 +1,6 @@
 import React from "react";
 import type { PptxElement } from "pptx-viewer-core";
+import { isImageLikeElement } from "pptx-viewer-core";
 import {
   getDuotoneColors,
   getImageEffectsFilter,
@@ -7,6 +8,7 @@ import {
   isImageTiled,
   renderDuotoneSvgFilter,
 } from "../../utils";
+import { renderArtisticEffectSvgFilter } from "../../utils/artistic-effects";
 import { ColorChangedImage } from "../ColorChangedImage";
 import { DuotoneImage } from "../DuotoneImage";
 
@@ -68,6 +70,15 @@ export function renderImg(
     ...(filter ? { filter } : {}),
     ...(opacity !== undefined ? { opacity } : {}),
   };
+
+  // Extract artistic effect info for SVG filter rendering
+  const artisticEffectName = isImageLikeElement(el)
+    ? el.imageEffects?.artisticEffect
+    : undefined;
+  const artisticRadius = isImageLikeElement(el)
+    ? el.imageEffects?.artisticRadius ?? 5
+    : 5;
+
   if (isImageTiled(el)) {
     const tileSrc = imgSrc(el);
     if (!tileSrc) {
@@ -86,6 +97,7 @@ export function renderImg(
             tileDuotoneColors.color1,
             tileDuotoneColors.color2,
           )}
+        {renderArtisticEffectSvgFilter(el.id, artisticEffectName, artisticRadius)}
         <div
           className="pointer-events-none select-none w-full h-full"
           style={{ ...getImageTilingStyle(el), ...effectStyles }}
@@ -132,7 +144,7 @@ export function renderImg(
   };
   return (
     <>
-      {/* SVG filter still needed for tiled images */}
+      {/* SVG duotone filter definition */}
       {duotoneColors &&
         !useDuotoneCanvas &&
         renderDuotoneSvgFilter(
@@ -140,6 +152,8 @@ export function renderImg(
           duotoneColors.color1,
           duotoneColors.color2,
         )}
+      {/* SVG artistic effect filter definition */}
+      {renderArtisticEffectSvgFilter(el.id, artisticEffectName, artisticRadius)}
       {useDuotoneCanvas && duotoneColors ? (
         <DuotoneImage
           src={src}

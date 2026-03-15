@@ -63,7 +63,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     if (properties.showType === "browsed") {
       showPr["p:browse"] = {};
     } else if (properties.showType === "kiosk") {
-      showPr["p:kiosk"] = {};
+      const kioskNode: XmlObject = {};
+      if (
+        properties.kioskRestartTime !== undefined &&
+        properties.kioskRestartTime > 0
+      ) {
+        kioskNode["@_restart"] = String(properties.kioskRestartTime);
+      }
+      showPr["p:kiosk"] = kioskNode;
     } else {
       showPr["p:present"] = {};
     }
@@ -89,6 +96,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     }
 
     // Slide range / custom show selection
+    delete showPr["p:sldAll"];
     delete showPr["p:sldRg"];
     delete showPr["p:custShow"];
     if (properties.showSlidesMode === "range") {
@@ -103,8 +111,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       showPr["p:custShow"] = {
         "@_id": properties.showSlidesCustomShowId,
       };
+    } else {
+      // Explicit p:sldAll element for better interoperability
+      showPr["p:sldAll"] = {};
     }
-    // 'all' => no child element needed (default)
 
     root["p:showPr"] = showPr;
 

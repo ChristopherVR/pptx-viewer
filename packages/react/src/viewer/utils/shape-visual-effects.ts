@@ -1,9 +1,23 @@
 import type { PptxElement } from "pptx-viewer-core";
 import { isImageLikeElement } from "pptx-viewer-core";
 import { getDuotoneFilterId } from "./shape-visual-filters";
+import {
+  needsSvgArtisticFilter,
+  getArtisticFilterId,
+} from "./artistic-effects";
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+
+/** Normalize a radius value (0–100) to a 0–1 float for proportional scaling. */
+function normalizeRadius01(radius: number): number {
+  return Math.max(0, Math.min(1, radius / 100));
+}
 
 // ── Image effects CSS filter ─────────────────────────────────────────────
 // Maps parsed PptxImageEffects to CSS filter strings.
+// For complex artistic effects (film grain, cutout, mosaic, etc.) the filter
+// string references an inline SVG `<filter>` definition that must be rendered
+// alongside the image via `renderArtisticEffectSvgFilter()`.
 export function getImageEffectsFilter(
   element: PptxElement,
   options?: { excludeDuotone?: boolean },
@@ -36,147 +50,141 @@ export function getImageEffectsFilter(
     const filterId = getDuotoneFilterId(element.id);
     filters.push(`url(#${filterId})`);
   }
-  // Artistic effects — CSS approximations
+  // Artistic effects
+  // For effects that need SVG filters, reference the inline SVG filter via url(#id).
+  // For simpler effects, use CSS filter functions directly.
   if (effects.artisticEffect) {
     const radius = effects.artisticRadius ?? 5;
-    switch (effects.artisticEffect) {
-      case "blur":
-      case "glassEffect":
-        filters.push(`blur(${Math.min(radius, 20)}px)`);
-        break;
-      case "pencilGrayscale":
-      case "pencilSketch":
-      case "lineDrawing":
-        filters.push("grayscale(100%) contrast(150%)");
-        break;
-      case "paintStrokes":
-      case "watercolorSponge":
-        filters.push(`blur(${Math.min(radius, 8)}px) saturate(140%)`);
-        break;
-      case "filmGrain":
-      case "texturizer":
-        filters.push("contrast(110%) brightness(105%)");
-        break;
-      case "cement":
-      case "crisscrossEtching":
-        filters.push("grayscale(60%) contrast(120%)");
-        break;
-      case "photocopy":
-        filters.push("grayscale(100%) contrast(200%) brightness(120%)");
-        break;
-      case "glow_edges":
-        filters.push("contrast(180%) brightness(110%)");
-        break;
-      case "cutout":
-        filters.push("contrast(300%) brightness(120%)");
-        break;
-      case "pastelsSmooth":
-        filters.push(`blur(${Math.min(radius, 6)}px) saturate(120%)`);
-        break;
-      case "mosaicBubbles":
-        filters.push(`blur(${Math.min(radius, 12)}px)`);
-        break;
-      case "artisticMarker":
-      case "marker":
-        filters.push("contrast(130%) saturate(130%)");
-        break;
-      case "artisticChalkSketch":
-      case "chalkSketch":
-        filters.push("grayscale(80%) contrast(140%) brightness(110%)");
-        break;
-      case "artisticPaint":
-      case "paint":
-        filters.push(
-          `blur(${Math.min(radius, 5)}px) saturate(160%) contrast(110%)`,
-        );
-        break;
-      case "artisticPlasticWrap":
-      case "plasticWrap":
-        filters.push("contrast(150%) brightness(115%) saturate(80%)");
-        break;
-      case "artisticLightScreen":
-      case "lightScreen":
-        filters.push("brightness(130%) contrast(80%)");
-        break;
-      case "artisticGlowDiffused":
-      case "glowDiffused":
-        filters.push(`blur(${Math.min(radius, 4)}px) brightness(120%)`);
-        break;
-      case "artisticGlowEdges":
-      case "glowEdges":
-        filters.push("invert(100%) contrast(200%) brightness(110%)");
-        break;
-      case "artisticSharpenEdges":
-      case "sharpen":
-        filters.push("contrast(160%) brightness(105%)");
-        break;
 
-      // ── OOXML-prefixed aliases for the base effects ──────────────────
-      case "artisticBlur":
-        filters.push(`blur(${Math.min(radius, 20)}px)`);
-        break;
-      case "artisticLineDrawing":
-        filters.push("grayscale(100%) contrast(150%)");
-        break;
-      case "artisticPhotocopy":
-        filters.push("grayscale(100%) contrast(200%) brightness(120%)");
-        break;
-      case "artisticFilmGrain":
-        filters.push("contrast(110%) brightness(105%)");
-        break;
-      case "artisticMosaicBubbles":
-      case "artisticMosaic":
-        filters.push(`blur(${Math.min(radius, 12)}px)`);
-        break;
-      case "artisticPaintStrokes":
-        filters.push(`blur(${Math.min(radius, 8)}px) saturate(140%)`);
-        break;
-      case "artisticPencilGrayscale":
-      case "artisticPencilSketch":
-      case "grayPencil":
-        filters.push("grayscale(100%) contrast(150%)");
-        break;
-      case "artisticWatercolorSponge":
-        filters.push(`blur(${Math.min(radius, 8)}px) saturate(140%)`);
-        break;
-      case "artisticCement":
-        filters.push("grayscale(60%) contrast(120%)");
-        break;
-      case "artisticCutout":
-        filters.push("contrast(300%) brightness(120%)");
-        break;
-      case "artisticCrisscrossEtching":
-        filters.push("grayscale(60%) contrast(120%)");
-        break;
-      case "artisticPastelsSmooth":
-      case "pastels":
-        filters.push(`blur(${Math.min(radius, 6)}px) saturate(120%)`);
-        break;
-      case "artisticTexturizer":
-        filters.push("contrast(110%) brightness(105%)");
-        break;
+    if (needsSvgArtisticFilter(effects.artisticEffect)) {
+      // Complex effect — reference the SVG filter that must be rendered by
+      // renderArtisticEffectSvgFilter() alongside the image element.
+      const filterId = getArtisticFilterId(element.id);
+      filters.push(`url(#${filterId})`);
+    } else {
+      // Simple effects — CSS-only approximations
+      switch (effects.artisticEffect) {
+        // ── Blur ─────────────────────────────────────────────────────────
+        case "blur":
+        case "glassEffect":
+          filters.push(`blur(${Math.min(radius, 20)}px)`);
+          break;
+        case "artisticBlur":
+          filters.push(`blur(${Math.min(radius, 20)}px)`);
+          break;
+        case "artisticGaussianBlur":
+          // Gaussian blur uses a wider radius mapping
+          filters.push(`blur(${Math.min(Math.round(radius * 1.2), 24)}px)`);
+          break;
 
-      // ── Additional OOXML effects ─────────────────────────────────────
-      case "mosaic":
-        // Pixelation approximation via heavy blur
-        filters.push(`blur(${Math.min(radius, 10)}px) contrast(105%)`);
-        break;
-      case "chalk":
-        filters.push("grayscale(70%) contrast(150%) brightness(105%)");
-        break;
-      case "glass":
-      case "artisticGlass":
-        filters.push(`blur(${Math.min(radius, 6)}px) brightness(110%)`);
-        break;
-      case "artisticPastels":
-        filters.push(`blur(${Math.min(radius, 6)}px) saturate(120%)`);
-        break;
+        // ── Line Drawing ─────────────────────────────────────────────────
+        case "lineDrawing":
+          filters.push("grayscale(100%) contrast(150%)");
+          break;
+        case "artisticLineDrawing":
+          filters.push("grayscale(100%) contrast(150%)");
+          break;
 
-      // ── Catch-all for any unrecognized artistic effect ───────────────
-      // Apply a generic mild filter so nothing is a complete no-op
-      default:
-        filters.push("contrast(105%) saturate(105%)");
-        break;
+        // ── Paint effects ────────────────────────────────────────────────
+        case "paintStrokes":
+        case "watercolorSponge":
+          filters.push(
+            `blur(${Math.min(radius, 8)}px) saturate(140%) brightness(105%)`,
+          );
+          break;
+        case "artisticPaintStrokes":
+          filters.push(
+            `blur(${Math.min(radius, 8)}px) saturate(140%) brightness(105%)`,
+          );
+          break;
+        case "artisticWatercolorSponge":
+          filters.push(
+            `blur(${Math.min(radius, 8)}px) saturate(150%) brightness(108%)`,
+          );
+          break;
+        case "artisticPaint":
+        case "paint":
+          filters.push(
+            `blur(${Math.min(radius, 5)}px) saturate(160%) contrast(110%)`,
+          );
+          break;
+        case "artisticPaintBrush":
+        case "paintBrush":
+          filters.push(
+            `blur(${Math.min(radius, 6)}px) saturate(130%)`,
+          );
+          break;
+
+        // ── Photocopy ────────────────────────────────────────────────────
+        case "photocopy":
+          filters.push("grayscale(100%) contrast(200%) brightness(120%)");
+          break;
+        case "artisticPhotocopy":
+          filters.push("grayscale(100%) contrast(200%) brightness(120%)");
+          break;
+
+        // ── Pastels ──────────────────────────────────────────────────────
+        case "pastelsSmooth":
+        case "pastels":
+          filters.push(
+            `blur(${Math.min(radius, 6)}px) saturate(85%) brightness(105%)`,
+          );
+          break;
+        case "artisticPastelsSmooth":
+        case "artisticPastels":
+          filters.push(
+            `blur(${Math.min(radius, 6)}px) saturate(85%) brightness(105%)`,
+          );
+          break;
+
+        // ── Marker ───────────────────────────────────────────────────────
+        case "artisticMarker":
+        case "marker":
+          filters.push("contrast(130%) saturate(150%)");
+          break;
+
+        // ── Plastic Wrap ─────────────────────────────────────────────────
+        case "artisticPlasticWrap":
+        case "plasticWrap":
+          filters.push("contrast(150%) brightness(115%) saturate(80%)");
+          break;
+
+        // ── Light Screen ─────────────────────────────────────────────────
+        case "artisticLightScreen":
+        case "lightScreen":
+          filters.push(
+            `brightness(${1.2 + normalizeRadius01(radius) * 0.3}) saturate(${Math.max(0.5, 0.8 - normalizeRadius01(radius) * 0.3)})`,
+          );
+          break;
+
+        // ── Glow Diffused ────────────────────────────────────────────────
+        case "artisticGlowDiffused":
+        case "glowDiffused":
+          filters.push(
+            `blur(${Math.min(radius, 6)}px) brightness(${1.15 + normalizeRadius01(radius) * 0.15})`,
+          );
+          break;
+
+        // ── Sharpen Edges ────────────────────────────────────────────────
+        case "artisticSharpenEdges":
+        case "sharpen":
+          filters.push("contrast(160%) brightness(105%)");
+          break;
+
+        // ── Glass ────────────────────────────────────────────────────────
+        case "glass":
+        case "artisticGlass":
+          filters.push(
+            `blur(${Math.min(radius, 6)}px) brightness(110%)`,
+          );
+          break;
+
+        // ── Catch-all for any unrecognized artistic effect ───────────────
+        // Apply a generic mild filter so nothing is a complete no-op
+        default:
+          filters.push("contrast(105%) saturate(105%)");
+          break;
+      }
     }
   }
 

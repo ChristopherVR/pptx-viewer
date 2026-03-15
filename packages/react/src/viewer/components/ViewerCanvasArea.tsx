@@ -2,7 +2,7 @@
  * ViewerCanvasArea — The `<main>` element containing the slide canvas,
  * find/replace panel, and presentation annotation / toolbar overlays.
  */
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import type { PptxAction, PptxElement, PptxSlide } from "pptx-viewer-core";
 import type { CanvasSize, TableCellEditorState } from "../types";
 import type { ViewerMode } from "../types-core";
@@ -48,6 +48,8 @@ export interface ViewerCanvasAreaProps {
   tableOps: TableOperationHandlers;
   annotations: UsePresentationAnnotationsResult;
   presentation: UsePresentationModeResult;
+  /** Called when the user clicks the "end presentation" button on the toolbar. */
+  onEndPresentation?: () => void;
   findReplace: {
     findReplaceOpen: boolean;
     findQuery: string;
@@ -95,6 +97,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
     tableOps,
     annotations,
     presentation,
+    onEndPresentation,
     findReplace,
   } = props;
 
@@ -164,6 +167,19 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
     },
     [presentation.handlePresentationAction],
   );
+
+  // ── Toolbar hover handling: keep toolbar visible while hovering ────
+  const toolbarHoveringRef = useRef(false);
+
+  const handleToolbarMouseEnter = useCallback(() => {
+    toolbarHoveringRef.current = true;
+    // Force toolbar visible while hovering
+    annotations.setToolbarVisible(true);
+  }, [annotations]);
+
+  const handleToolbarMouseLeave = useCallback(() => {
+    toolbarHoveringRef.current = false;
+  }, []);
 
   return (
     <main aria-label="Slide editor" className="flex-1 min-w-0 relative flex flex-col">
@@ -329,9 +345,17 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
         />
       )}
 
-      {/* Presentation floating toolbar */}
-      {mode === "present" && annotations.toolbarVisible && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[80]">
+      {/* Presentation floating toolbar with auto-hide */}
+      {mode === "present" && (
+        <div
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[80] transition-opacity duration-300"
+          style={{
+            opacity: annotations.toolbarVisible ? 1 : 0,
+            pointerEvents: annotations.toolbarVisible ? "auto" : "none",
+          }}
+          onMouseEnter={handleToolbarMouseEnter}
+          onMouseLeave={handleToolbarMouseLeave}
+        >
           <PresentationToolbar
             presentationTool={annotations.presentationTool}
             penColor={annotations.penColor}
@@ -341,6 +365,11 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
             onSetPenColor={annotations.setPenColor}
             onSetHighlighterColor={annotations.setHighlighterColor}
             onClearAnnotations={annotations.clearAnnotations}
+            currentSlideIndex={presentation.presentationSlideIndex}
+            totalSlides={slides.length}
+            onMovePresentationSlide={presentation.movePresentationSlide}
+            presentationStartTime={presentation.presentationStartTime}
+            onEndPresentation={onEndPresentation ?? (() => {})}
           />
         </div>
       )}

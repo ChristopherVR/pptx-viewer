@@ -34,6 +34,8 @@ export interface UsePresentationSetupInput {
   presentationProperties: {
     loopContinuously?: boolean;
     showType?: string;
+    showWithAnimation?: boolean;
+    advanceMode?: "manual" | "useTimings";
   };
   setMode: React.Dispatch<React.SetStateAction<ViewerMode>>;
   setActiveSlideIndex: React.Dispatch<React.SetStateAction<number>>;
@@ -146,6 +148,8 @@ export function usePresentationSetup(
       history.markDirty();
     },
     loopContinuously: shouldLoopContinuously(presentationProperties),
+    showWithAnimation: presentationProperties.showWithAnimation,
+    useTimings: presentationProperties.advanceMode !== "manual",
   });
 
   return { presentation, annotations, actionSoundHandlerRef };

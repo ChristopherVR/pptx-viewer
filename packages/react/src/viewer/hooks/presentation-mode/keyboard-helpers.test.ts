@@ -106,6 +106,19 @@ describe("mapKeyToPresentationAction", () => {
     });
   });
 
+  // Toggle presenter view (N key)
+  it("maps 'n' to togglePresenterView", () => {
+    expect(mapKeyToPresentationAction("n", false)).toEqual({
+      action: "togglePresenterView",
+    });
+  });
+
+  it("maps 'N' to togglePresenterView", () => {
+    expect(mapKeyToPresentationAction("N", false)).toEqual({
+      action: "togglePresenterView",
+    });
+  });
+
   // Unmapped keys
   it("returns none for unmapped keys", () => {
     expect(mapKeyToPresentationAction("a", false)).toEqual({

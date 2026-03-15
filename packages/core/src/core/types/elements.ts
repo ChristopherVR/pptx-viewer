@@ -346,6 +346,15 @@ export interface InkPptxElement extends PptxElementBase {
   inkOpacities?: number[];
   /** Drawing tool used: pen, highlighter, or eraser. */
   inkTool?: "pen" | "highlighter" | "eraser";
+  /**
+   * Per-path arrays of per-point pressure values (0-1).
+   *
+   * Each entry corresponds to the path at the same index in `inkPaths`.
+   * Each inner array contains one pressure value per sampled point along
+   * the stroke. When present, the renderer uses these values to produce
+   * variable-width strokes that reflect stylus/pen pressure.
+   */
+  inkPointPressures?: number[][];
 }
 
 /**
@@ -356,6 +365,13 @@ export interface ContentPartInkStroke {
   color: string;
   width: number;
   opacity: number;
+  /**
+   * Per-point pressure values (0-1) for this stroke.
+   *
+   * When present, the renderer uses these values to produce
+   * variable-width strokes that reflect stylus/pen pressure.
+   */
+  pressures?: number[];
 }
 
 /**

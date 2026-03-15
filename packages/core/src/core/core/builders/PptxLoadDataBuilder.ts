@@ -1,6 +1,7 @@
 import type {
   ParsedTableStyleMap,
   PptxAppProperties,
+  PptxCommentAuthor,
   PptxCoreProperties,
   PptxCustomProperty,
   PptxCustomShow,
@@ -99,6 +100,8 @@ export class PptxLoadDataBuilder {
   private slideSizeType: string | undefined;
 
   private thumbnailData: Uint8Array | undefined;
+
+  private commentAuthors: PptxCommentAuthor[] | undefined;
 
   public withDimensions(
     width: number,
@@ -295,6 +298,11 @@ export class PptxLoadDataBuilder {
     return this;
   }
 
+  public withCommentAuthors(commentAuthors: PptxCommentAuthor[] | undefined): this {
+    this.commentAuthors = commentAuthors;
+    return this;
+  }
+
   public build(): PptxData {
     return {
       width: this.width,
@@ -334,6 +342,7 @@ export class PptxLoadDataBuilder {
       customXmlParts: this.customXmlParts,
       customerData: this.customerData,
       thumbnailData: this.thumbnailData,
+      commentAuthors: this.commentAuthors,
     };
   }
 }

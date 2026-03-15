@@ -22,6 +22,7 @@ import {
   extractPathPoints,
   generatePressureCircles,
   hasPressureVariation,
+  pressuresToWidths,
   getInkReplayStyles,
   getContentPartReplayStyles,
   resolveInkColor,
@@ -82,11 +83,15 @@ function renderPressureStroke(
 export function renderInk(el: InkPptxElement, options?: InkRenderOptions) {
   const replay = options?.replay ?? false;
   // Enable pressure-sensitive rendering by default when the element has
-  // per-point width data with actual variation.
-  const hasPressure =
+  // per-point pressure data with actual variation, or legacy per-point
+  // width data with variation.
+  const hasPointPressures =
+    Boolean(el.inkPointPressures) && el.inkPointPressures!.length > 0;
+  const hasLegacyPressure =
     Boolean(el.inkWidths) &&
     el.inkWidths!.length > 1 &&
     hasPressureVariation(el.inkWidths!);
+  const hasPressure = hasPointPressures || hasLegacyPressure;
   const pressureSensitive = options?.pressureSensitive ?? hasPressure;
   const replayStyles = replay ? getInkReplayStyles(el, options?.replayConfig) : null;
 
@@ -102,26 +107,46 @@ export function renderInk(el: InkPptxElement, options?: InkRenderOptions) {
         const width = resolveInkWidth(el.inkWidths, i);
         const opacity = resolveInkOpacity(el.inkOpacities, i);
 
-        // Pressure-sensitive rendering: if the element has per-point
-        // width data with variation, render circles instead of a single path.
-        if (
-          pressureSensitive &&
-          el.inkWidths &&
-          el.inkWidths.length > 1 &&
-          hasPressureVariation(el.inkWidths)
-        ) {
-          return (
-            <g key={`${el.id}-ink-${i}`}>
-              {renderPressureStroke(
-                d,
-                el.inkWidths,
-                width,
-                color,
-                opacity,
-                `${el.id}-ink-${i}`,
-              )}
-            </g>
-          );
+        // Pressure-sensitive rendering using per-point pressure data.
+        if (pressureSensitive) {
+          // Prefer inkPointPressures (per-point pressure from stylus).
+          const pointPressures = el.inkPointPressures?.[i];
+          if (pointPressures && pointPressures.length > 1 && hasPressureVariation(pointPressures)) {
+            const pointWidths = pressuresToWidths(pointPressures, width);
+            return (
+              <g key={`${el.id}-ink-${i}`}>
+                {renderPressureStroke(
+                  d,
+                  pointWidths,
+                  width,
+                  color,
+                  opacity,
+                  `${el.id}-ink-${i}`,
+                )}
+              </g>
+            );
+          }
+
+          // Legacy fallback: use inkWidths array as per-point widths
+          // (when it has more entries than paths and shows variation).
+          if (
+            el.inkWidths &&
+            el.inkWidths.length > 1 &&
+            hasPressureVariation(el.inkWidths)
+          ) {
+            return (
+              <g key={`${el.id}-ink-${i}`}>
+                {renderPressureStroke(
+                  d,
+                  el.inkWidths,
+                  width,
+                  color,
+                  opacity,
+                  `${el.id}-ink-${i}`,
+                )}
+              </g>
+            );
+          }
         }
 
         // Standard or replay-animated path rendering.
@@ -232,6 +257,7 @@ export function renderContentPart(
 ) {
   if (el.inkStrokes && el.inkStrokes.length > 0) {
     const replay = options?.replay ?? false;
+    const pressureSensitive = options?.pressureSensitive ?? true;
     const replayStyles = replay
       ? getContentPartReplayStyles(el.inkStrokes, options?.replayConfig)
       : null;
@@ -244,6 +270,31 @@ export function renderContentPart(
       >
         {replay && <style>{INK_REPLAY_KEYFRAMES}</style>}
         {el.inkStrokes.map((stroke, i) => {
+          // Pressure-sensitive rendering for content part strokes
+          if (
+            pressureSensitive &&
+            stroke.pressures &&
+            stroke.pressures.length > 1 &&
+            hasPressureVariation(stroke.pressures)
+          ) {
+            const pointWidths = pressuresToWidths(
+              stroke.pressures,
+              stroke.width,
+            );
+            return (
+              <g key={`${el.id}-cp-ink-${i}`}>
+                {renderPressureStroke(
+                  stroke.path,
+                  pointWidths,
+                  stroke.width,
+                  stroke.color,
+                  stroke.opacity,
+                  `${el.id}-cp-ink-${i}`,
+                )}
+              </g>
+            );
+          }
+
           const replayStyle = replayStyles?.[i];
           return (
             <path

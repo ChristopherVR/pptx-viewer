@@ -37,6 +37,8 @@ export const NOTES_FONT_SIZE = 11;
 export const NOTES_LINE_HEIGHT = 1.4;
 /** Border width around the slide image in points. */
 export const NOTES_BORDER_WIDTH = 0.5;
+/** Font size for the continuation page header in points. */
+export const NOTES_CONTINUATION_HEADER_SIZE = 9;
 
 /* ------------------------------------------------------------------ */
 /*  Notes-page layout calculation (pure, testable)                    */
@@ -176,6 +178,22 @@ export function wrapNotesText(
 }
 
 /**
+ * Calculate the maximum number of notes text lines that fit on a
+ * continuation page (text-only, no slide image).
+ *
+ * Continuation pages use the same margins and font settings but the
+ * entire content area (minus a small header) is available for text.
+ */
+export function calculateContinuationPageMaxLines(): number {
+  const contentHeight = NOTES_PAGE_H - 2 * NOTES_MARGIN;
+  // Reserve space for the "Slide N (continued)" header + gap
+  const headerReserve = NOTES_CONTINUATION_HEADER_SIZE + NOTES_GAP;
+  const availableHeight = contentHeight - headerReserve;
+  const lineHeightPt = NOTES_FONT_SIZE * NOTES_LINE_HEIGHT;
+  return Math.floor(availableHeight / lineHeightPt);
+}
+
+/**
  * Escape special PDF text characters in a string for use in Tj operators.
  */
 function escapePdfText(text: string): string {
@@ -190,6 +208,52 @@ function escapePdfText(text: string): string {
 /* ------------------------------------------------------------------ */
 
 /**
+ * Build a content stream for notes text lines starting at the given Y position.
+ */
+function buildNotesTextStream(
+  lines: string[],
+  startY: number,
+): string {
+  if (lines.length === 0) return "";
+
+  const lineHeightPt = NOTES_FONT_SIZE * NOTES_LINE_HEIGHT;
+  let content = `BT /F1 ${NOTES_FONT_SIZE} Tf 0 0 0 rg `;
+  content += `${NOTES_MARGIN} ${startY.toFixed(2)} Td `;
+
+  for (let li = 0; li < lines.length; li++) {
+    const line = lines[li];
+    if (li === 0) {
+      content += `(${escapePdfText(line)}) Tj `;
+    } else {
+      content += `0 ${(-lineHeightPt).toFixed(2)} Td (${escapePdfText(line)}) Tj `;
+    }
+  }
+  content += "ET\n";
+  return content;
+}
+
+/**
+ * Internal descriptor for a PDF page to be emitted.
+ *
+ * - Primary pages carry a slide image + (partial) notes.
+ * - Continuation pages carry only overflow notes text.
+ */
+interface PdfPageDescriptor {
+  /** 'primary' has a slide image; 'continuation' is text-only. */
+  kind: "primary" | "continuation";
+  /** Index into the images array (only for primary pages). */
+  imageIndex?: number;
+  /** One-based slide number for the header. */
+  slideNumber: number;
+  /** Lines of notes text to render on this page. */
+  lines: string[];
+  /** Y position where notes text starts (PDF coords). */
+  notesStartY: number;
+  /** For primary pages: pre-computed layout. */
+  layout?: ReturnType<typeof calculateNotesPageLayout>;
+}
+
+/**
  * Build a PDF with notes pages: each page contains the slide image in the
  * upper 2/3 and speaker notes text in the lower 1/3.
  *
@@ -197,6 +261,10 @@ function escapePdfText(text: string): string {
  * - Portrait US Letter (8.5" x 11" / 612 x 792 pt)
  * - Slide image centered in upper portion with a thin border
  * - Notes text wrapped below with Helvetica font
+ *
+ * If notes text overflows the available space on the primary page,
+ * additional continuation pages are emitted with the remaining text
+ * and a "Slide N (continued)" header.
  *
  * @param pages - Array of slide canvas + notes pairs.
  * @returns Object URL pointing to the generated PDF blob.
@@ -213,19 +281,90 @@ export function buildNotesPdf(pages: NotesPageInput[]): string {
     images.push({ bytes, w: page.canvas.width, h: page.canvas.height });
   }
 
-  // --- Build PDF byte-stream ---
-  // Object layout per page:
-  //   obj 3 + i*3     = Image XObject
-  //   obj 3 + i*3 + 1 = Page
-  //   obj 3 + i*3 + 2 = Contents stream
-  // Plus: obj 1 = Catalog, obj 2 = Pages, obj (3 + pages*3) = Font
+  // --- Pass 1: Plan all PDF pages (primary + overflow continuation) ---
+  const pdfPages: PdfPageDescriptor[] = [];
+  const continuationMaxLines = calculateContinuationPageMaxLines();
+  const continuationTextStartY =
+    NOTES_PAGE_H - NOTES_MARGIN - NOTES_CONTINUATION_HEADER_SIZE - NOTES_GAP;
 
-  const fontObjId = 3 + pages.length * 3;
-  const objCount = 2 + pages.length * 3 + 1; // catalog + pages + 3 per page + font
-  const pageObjIds: number[] = [];
+  for (let i = 0; i < pages.length; i++) {
+    const img = images[i];
+    const page = pages[i];
+    const layout = calculateNotesPageLayout(img.w, img.h);
 
+    // Wrap notes text
+    const contentWidth = NOTES_PAGE_W - 2 * NOTES_MARGIN;
+    const wrappedLines =
+      page.notes && page.notes.trim().length > 0
+        ? wrapNotesText(page.notes, contentWidth, NOTES_FONT_SIZE)
+        : [];
+
+    // Primary page gets up to maxNotesLines
+    const primaryLines = wrappedLines.slice(0, layout.maxNotesLines);
+    pdfPages.push({
+      kind: "primary",
+      imageIndex: i,
+      slideNumber: page.slideNumber,
+      lines: primaryLines,
+      notesStartY: layout.notesTextY,
+      layout,
+    });
+
+    // Overflow lines go to continuation pages
+    let remaining = wrappedLines.slice(layout.maxNotesLines);
+    while (remaining.length > 0) {
+      const chunk = remaining.slice(0, continuationMaxLines);
+      remaining = remaining.slice(continuationMaxLines);
+      pdfPages.push({
+        kind: "continuation",
+        slideNumber: page.slideNumber,
+        lines: chunk,
+        notesStartY: continuationTextStartY,
+      });
+    }
+  }
+
+  // --- Pass 2: Assign object IDs ---
+  // Object layout:
+  //   obj 1 = Catalog
+  //   obj 2 = Pages (written last, before xref)
+  //   For each primary page (pageIdx p):
+  //     obj nextId     = Image XObject
+  //     obj nextId + 1 = Page
+  //     obj nextId + 2 = Contents stream
+  //   For each continuation page:
+  //     obj nextId     = Page
+  //     obj nextId + 1 = Contents stream
+  //   Last obj = Font (Helvetica)
+
+  let nextObjId = 3;
+  const pageEmitPlan: {
+    descriptor: PdfPageDescriptor;
+    imgObjId?: number;
+    pageObjId: number;
+    contObjId: number;
+  }[] = [];
+
+  for (const desc of pdfPages) {
+    if (desc.kind === "primary") {
+      const imgObjId = nextObjId++;
+      const pageObjId = nextObjId++;
+      const contObjId = nextObjId++;
+      pageEmitPlan.push({ descriptor: desc, imgObjId, pageObjId, contObjId });
+    } else {
+      const pageObjId = nextObjId++;
+      const contObjId = nextObjId++;
+      pageEmitPlan.push({ descriptor: desc, pageObjId, contObjId });
+    }
+  }
+
+  const fontObjId = nextObjId++;
+  const objCount = fontObjId; // total objects = fontObjId (1-based, so count == last id)
+  const pageObjIds: number[] = pageEmitPlan.map((p) => p.pageObjId);
+
+  // --- Pass 3: Emit PDF byte-stream ---
   const segments: (string | Uint8Array)[] = [];
-  const offsets: number[] = [];
+  const offsets: number[] = new Array(objCount).fill(0);
   let pos = 0;
 
   const emitStr = (s: string) => {
@@ -236,105 +375,119 @@ export function buildNotesPdf(pages: NotesPageInput[]): string {
     segments.push(b);
     pos += b.length;
   };
-  const markObj = () => {
-    offsets.push(pos);
+  const markObj = (objId: number) => {
+    offsets[objId - 1] = pos;
   };
 
   emitStr("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
 
   // Obj 1: Catalog
-  markObj();
+  markObj(1);
   emitStr("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
 
-  // Write per-page objects
-  for (let i = 0; i < pages.length; i++) {
-    const img = images[i];
-    const page = pages[i];
-    const imgObjId = 3 + i * 3;
-    const pageObjId = 3 + i * 3 + 1;
-    const contObjId = 3 + i * 3 + 2;
-    pageObjIds.push(pageObjId);
+  // Emit per-page objects
+  for (const plan of pageEmitPlan) {
+    const desc = plan.descriptor;
 
-    const layout = calculateNotesPageLayout(img.w, img.h);
+    if (desc.kind === "primary" && plan.imgObjId != null) {
+      const img = images[desc.imageIndex!];
+      const layout = desc.layout!;
 
-    // Image XObject
-    markObj();
-    const imgHeader =
-      `${imgObjId} 0 obj\n` +
-      `<< /Type /XObject /Subtype /Image /Width ${img.w} /Height ${img.h}` +
-      ` /ColorSpace /DeviceRGB /BitsPerComponent 8` +
-      ` /Filter /DCTDecode /Length ${img.bytes.length} >>\n` +
-      `stream\n`;
-    emitStr(imgHeader);
-    emitBin(img.bytes);
-    emitStr("\nendstream\nendobj\n");
+      // Image XObject
+      markObj(plan.imgObjId);
+      const imgHeader =
+        `${plan.imgObjId} 0 obj\n` +
+        `<< /Type /XObject /Subtype /Image /Width ${img.w} /Height ${img.h}` +
+        ` /ColorSpace /DeviceRGB /BitsPerComponent 8` +
+        ` /Filter /DCTDecode /Length ${img.bytes.length} >>\n` +
+        `stream\n`;
+      emitStr(imgHeader);
+      emitBin(img.bytes);
+      emitStr("\nendstream\nendobj\n");
 
-    // Build content stream: slide image + border + notes text
-    let content = "";
+      // Build content stream: slide image + border + header + notes text
+      let content = "";
 
-    // Draw slide image
-    content +=
-      `q ${layout.imageWidth.toFixed(2)} 0 0 ${layout.imageHeight.toFixed(2)} ` +
-      `${layout.imageX.toFixed(2)} ${layout.imageY.toFixed(2)} cm /Img${i} Do Q\n`;
+      // Draw slide image
+      content +=
+        `q ${layout.imageWidth.toFixed(2)} 0 0 ${layout.imageHeight.toFixed(2)} ` +
+        `${layout.imageX.toFixed(2)} ${layout.imageY.toFixed(2)} cm /Img Do Q\n`;
 
-    // Draw border around slide image
-    content +=
-      `q ${NOTES_BORDER_WIDTH} w 0.6 0.6 0.6 RG ` +
-      `${layout.imageX.toFixed(2)} ${layout.imageY.toFixed(2)} ` +
-      `${layout.imageWidth.toFixed(2)} ${layout.imageHeight.toFixed(2)} re S Q\n`;
+      // Draw border around slide image
+      content +=
+        `q ${NOTES_BORDER_WIDTH} w 0.6 0.6 0.6 RG ` +
+        `${layout.imageX.toFixed(2)} ${layout.imageY.toFixed(2)} ` +
+        `${layout.imageWidth.toFixed(2)} ${layout.imageHeight.toFixed(2)} re S Q\n`;
 
-    // Draw slide number header
-    content +=
-      `BT /F1 9 Tf 0.4 0.4 0.4 rg ` +
-      `${NOTES_MARGIN} ${(NOTES_PAGE_H - NOTES_MARGIN + 8).toFixed(2)} Td ` +
-      `(${escapePdfText(`Slide ${page.slideNumber}`)}) Tj ET\n`;
+      // Draw separator line between slide and notes
+      const separatorY = layout.imageY - NOTES_GAP / 2;
+      content +=
+        `q 0.5 w 0.75 0.75 0.75 RG ` +
+        `${NOTES_MARGIN} ${separatorY.toFixed(2)} m ` +
+        `${(NOTES_PAGE_W - NOTES_MARGIN).toFixed(2)} ${separatorY.toFixed(2)} l S Q\n`;
 
-    // Draw notes text
-    if (page.notes && page.notes.trim().length > 0) {
-      const wrappedLines = wrapNotesText(
-        page.notes,
-        layout.contentWidth,
-        NOTES_FONT_SIZE,
+      // Draw slide number header
+      content +=
+        `BT /F1 9 Tf 0.4 0.4 0.4 rg ` +
+        `${NOTES_MARGIN} ${(NOTES_PAGE_H - NOTES_MARGIN + 8).toFixed(2)} Td ` +
+        `(${escapePdfText(`Slide ${desc.slideNumber}`)}) Tj ET\n`;
+
+      // Draw notes text
+      content += buildNotesTextStream(desc.lines, desc.notesStartY);
+
+      // Page object
+      markObj(plan.pageObjId);
+      emitStr(
+        `${plan.pageObjId} 0 obj\n` +
+          `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${NOTES_PAGE_W} ${NOTES_PAGE_H}]` +
+          ` /Contents ${plan.contObjId} 0 R` +
+          ` /Resources << /XObject << /Img ${plan.imgObjId} 0 R >>` +
+          ` /Font << /F1 ${fontObjId} 0 R >> >> >>\n` +
+          `endobj\n`,
       );
-      const lineHeightPt = NOTES_FONT_SIZE * NOTES_LINE_HEIGHT;
-      const linesToRender = wrappedLines.slice(0, layout.maxNotesLines);
 
-      content += `BT /F1 ${NOTES_FONT_SIZE} Tf 0 0 0 rg `;
-      content += `${NOTES_MARGIN} ${layout.notesTextY.toFixed(2)} Td `;
+      // Contents stream
+      markObj(plan.contObjId);
+      emitStr(
+        `${plan.contObjId} 0 obj\n` +
+          `<< /Length ${content.length} >>\n` +
+          `stream\n${content}\nendstream\nendobj\n`,
+      );
+    } else {
+      // Continuation page (text-only, no slide image)
+      let content = "";
 
-      for (let li = 0; li < linesToRender.length; li++) {
-        const line = linesToRender[li];
-        if (li === 0) {
-          content += `(${escapePdfText(line)}) Tj `;
-        } else {
-          content += `0 ${(-lineHeightPt).toFixed(2)} Td (${escapePdfText(line)}) Tj `;
-        }
-      }
-      content += "ET\n";
+      // Draw "Slide N (continued)" header
+      content +=
+        `BT /F1 ${NOTES_CONTINUATION_HEADER_SIZE} Tf 0.4 0.4 0.4 rg ` +
+        `${NOTES_MARGIN} ${(NOTES_PAGE_H - NOTES_MARGIN + 8).toFixed(2)} Td ` +
+        `(${escapePdfText(`Slide ${desc.slideNumber} (continued)`)}) Tj ET\n`;
+
+      // Draw notes text
+      content += buildNotesTextStream(desc.lines, desc.notesStartY);
+
+      // Page object (no image resources needed)
+      markObj(plan.pageObjId);
+      emitStr(
+        `${plan.pageObjId} 0 obj\n` +
+          `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${NOTES_PAGE_W} ${NOTES_PAGE_H}]` +
+          ` /Contents ${plan.contObjId} 0 R` +
+          ` /Resources << /Font << /F1 ${fontObjId} 0 R >> >> >>\n` +
+          `endobj\n`,
+      );
+
+      // Contents stream
+      markObj(plan.contObjId);
+      emitStr(
+        `${plan.contObjId} 0 obj\n` +
+          `<< /Length ${content.length} >>\n` +
+          `stream\n${content}\nendstream\nendobj\n`,
+      );
     }
-
-    // Page object with font resource
-    markObj();
-    emitStr(
-      `${pageObjId} 0 obj\n` +
-        `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${NOTES_PAGE_W} ${NOTES_PAGE_H}]` +
-        ` /Contents ${contObjId} 0 R` +
-        ` /Resources << /XObject << /Img${i} ${imgObjId} 0 R >>` +
-        ` /Font << /F1 ${fontObjId} 0 R >> >> >>\n` +
-        `endobj\n`,
-    );
-
-    // Contents stream
-    markObj();
-    emitStr(
-      `${contObjId} 0 obj\n` +
-        `<< /Length ${content.length} >>\n` +
-        `stream\n${content}\nendstream\nendobj\n`,
-    );
   }
 
   // Font object (Helvetica — built-in, no embedding needed)
-  markObj();
+  markObj(fontObjId);
   emitStr(
     `${fontObjId} 0 obj\n` +
       `<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\n` +
@@ -343,14 +496,14 @@ export function buildNotesPdf(pages: NotesPageInput[]): string {
 
   // Obj 2: Pages
   const pagesKids = pageObjIds.map((id) => `${id} 0 R`).join(" ");
-  offsets.splice(1, 0, pos); // insert at index 1 for obj 2
+  markObj(2);
   emitStr(
-    `2 0 obj\n<< /Type /Pages /Kids [${pagesKids}] /Count ${pages.length} >>\nendobj\n`,
+    `2 0 obj\n<< /Type /Pages /Kids [${pagesKids}] /Count ${pdfPages.length} >>\nendobj\n`,
   );
 
   // Cross-reference table
   const xrefPos = pos;
-  const totalObjs = objCount + 1; // +1 for free entry
+  const totalObjs = objCount + 1; // +1 for free entry (obj 0)
   emitStr(`xref\n0 ${totalObjs}\n`);
   emitStr("0000000000 65535 f \n");
 

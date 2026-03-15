@@ -35,6 +35,8 @@ export function usePresentationMode(
     onToggleToolbar,
     onSaveRehearsalTimings,
     loopContinuously,
+    showWithAnimation,
+    useTimings,
   } = input;
 
   // -----------------------------------------------------------------------
@@ -63,7 +65,7 @@ export function usePresentationMode(
     handleInteractiveShapeClick,
     runPresentationEntranceAnimations,
     presentationTimersRef,
-  } = useAnimationPlayback({ slides, onPlayActionSound });
+  } = useAnimationPlayback({ slides, onPlayActionSound, showWithAnimation });
 
   const {
     rehearsing,
@@ -101,6 +103,7 @@ export function usePresentationMode(
     onSetActiveSlideIndex,
     onPlayActionSound,
     loopContinuously,
+    useTimings,
     playNextAnimationGroup,
     clearPresentationTimers,
     runPresentationEntranceAnimations,
@@ -156,6 +159,42 @@ export function usePresentationMode(
     onSetMode("present");
   }, [onSetMode, setRehearsing]);
 
+  /**
+   * Toggle between presenter view (split-screen with notes) and regular
+   * fullscreen presentation. Triggered by the `N` key during presentation.
+   */
+  const togglePresenterView = useCallback(() => {
+    if (!presenterMode) {
+      // Switch from fullscreen to presenter view — exit fullscreen first
+      try {
+        if (document.fullscreenElement) {
+          void document.exitFullscreen().catch(() => {
+            /* ignore */
+          });
+        }
+      } catch {
+        /* fullscreen not supported */
+      }
+      setPresenterMode(true);
+      if (!presentationStartTime) {
+        setPresentationStartTime(Date.now());
+      }
+    } else {
+      // Switch from presenter view to fullscreen
+      setPresenterMode(false);
+      try {
+        const wrapper = containerRef.current;
+        if (wrapper && typeof wrapper.requestFullscreen === "function") {
+          void wrapper.requestFullscreen().catch(() => {
+            /* ignore fullscreen errors */
+          });
+        }
+      } catch {
+        /* fullscreen not supported */
+      }
+    }
+  }, [presenterMode, presentationStartTime, containerRef]);
+
   // -----------------------------------------------------------------------
   // Keyboard navigation
   // -----------------------------------------------------------------------
@@ -168,6 +207,7 @@ export function usePresentationMode(
     onTogglePen,
     onToggleEraser,
     onToggleToolbar,
+    onTogglePresenterView: togglePresenterView,
     rehearsing,
     recordCurrentSlideTime,
     presentationSlideIndex,

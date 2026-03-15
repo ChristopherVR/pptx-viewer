@@ -27,6 +27,10 @@ export interface UsePresentationModeInput {
   onSaveRehearsalTimings?: (timings: Record<number, number>) => void;
   /** Whether to loop continuously (kiosk or explicit loop setting). */
   loopContinuously?: boolean;
+  /** Whether to play animations during the slide show (false = skip all animations). */
+  showWithAnimation?: boolean;
+  /** Whether to use rehearsed auto-advance timings (false = manual advance only). */
+  useTimings?: boolean;
 }
 
 export interface UsePresentationModeResult {

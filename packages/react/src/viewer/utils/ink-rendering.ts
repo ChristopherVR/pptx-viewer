@@ -137,6 +137,31 @@ export function hasPressureVariation(widths: number[]): boolean {
   return widths.some((w) => Math.abs(w - first) > 0.01);
 }
 
+/**
+ * Convert per-point pressure values (0-1 range from PointerEvent.pressure)
+ * to per-point width values suitable for {@link generatePressureCircles}.
+ *
+ * Each pressure value is scaled so that a pressure of 0 maps to
+ * `baseWidth * minScale` and a pressure of 1 maps to
+ * `baseWidth * maxScale`.
+ *
+ * @param pressures - Per-point pressure values in [0, 1].
+ * @param baseWidth - The nominal stroke width.
+ * @param minScale  - Width multiplier at zero pressure (default 0.3).
+ * @param maxScale  - Width multiplier at full pressure (default 1.8).
+ */
+export function pressuresToWidths(
+  pressures: number[],
+  baseWidth: number,
+  minScale = 0.3,
+  maxScale = 1.8,
+): number[] {
+  return pressures.map((p) => {
+    const clamped = Math.max(0, Math.min(1, p));
+    return baseWidth * (minScale + clamped * (maxScale - minScale));
+  });
+}
+
 // ==========================================================================
 // Ink replay animation
 // ==========================================================================

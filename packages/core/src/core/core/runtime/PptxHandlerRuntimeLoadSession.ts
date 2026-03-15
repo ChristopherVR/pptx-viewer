@@ -61,6 +61,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     this.themeFontMap = {};
     this.presentationDefaultTextStyle = undefined;
     this.commentAuthorMap.clear();
+    this.commentAuthorDetails.clear();
     this.thumbnailData = null;
     this.vbaProjectBin = null;
     this.vbaRelatedParts.clear();

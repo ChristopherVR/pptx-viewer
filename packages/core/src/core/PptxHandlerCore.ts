@@ -22,8 +22,10 @@ import type {
   PptxSmartArtData,
   PptxThemeColorScheme,
   PptxThemeFontScheme,
+  PptxThemePreset,
   XmlObject,
 } from "./types";
+import { applyThemeToData } from "./utils/theme-switching";
 
 /**
  * Dependency injection options for {@link PptxHandlerCore}.
@@ -272,6 +274,83 @@ export class PptxHandlerCore {
     themeName?: string,
   ): Promise<void> {
     await this.runtime.applyTheme(colorScheme, fontScheme, themeName);
+  }
+
+  /**
+   * Switch the presentation's theme, updating both the underlying XML and
+   * re-resolving all element colours in-place.
+   *
+   * This is the high-level API for theme switching: it updates the theme
+   * data in the ZIP, then patches all resolved colours in the provided
+   * `PptxData` so that elements immediately reflect the new colour scheme
+   * without requiring a re-parse.
+   *
+   * @param data - The current parsed presentation data (mutated in-place for
+   *   convenience, but a new `PptxData` object is also returned).
+   * @param colorScheme - New colour scheme (12 colours).
+   * @param fontScheme - Optional new font scheme.
+   * @param themeName - Optional theme display name.
+   * @returns The updated PptxData with re-resolved colours.
+   *
+   * @example
+   * ```ts
+   * import { THEME_PRESETS } from "pptx-viewer-core";
+   *
+   * const ion = THEME_PRESETS.find(p => p.id === "ion")!;
+   * const newData = await handler.switchTheme(
+   *   data,
+   *   ion.colorScheme,
+   *   ion.fontScheme,
+   *   ion.name,
+   * );
+   * // => PptxData with all colours updated to the Ion theme
+   * ```
+   */
+  public async switchTheme(
+    data: PptxData,
+    colorScheme: PptxThemeColorScheme,
+    fontScheme?: PptxThemeFontScheme,
+    themeName?: string,
+  ): Promise<PptxData> {
+    // 1. Update the theme in the in-memory ZIP (for save round-trip)
+    await this.runtime.applyTheme(
+      colorScheme,
+      fontScheme ?? {},
+      themeName,
+    );
+
+    // 2. Re-resolve all element colours in the parsed data
+    return applyThemeToData(data, colorScheme, fontScheme, themeName);
+  }
+
+  /**
+   * Apply a built-in theme preset to the presentation.
+   *
+   * Convenience wrapper around {@link switchTheme} that accepts a
+   * {@link PptxThemePreset} directly.
+   *
+   * @param data - The current parsed presentation data.
+   * @param preset - One of the built-in presets from {@link THEME_PRESETS}.
+   * @returns The updated PptxData.
+   *
+   * @example
+   * ```ts
+   * import { THEME_PRESETS } from "pptx-viewer-core";
+   *
+   * const preset = THEME_PRESETS.find(p => p.id === "facet")!;
+   * const newData = await handler.switchThemePreset(data, preset);
+   * ```
+   */
+  public async switchThemePreset(
+    data: PptxData,
+    preset: PptxThemePreset,
+  ): Promise<PptxData> {
+    return this.switchTheme(
+      data,
+      preset.colorScheme,
+      preset.fontScheme,
+      preset.name,
+    );
   }
 
   /**

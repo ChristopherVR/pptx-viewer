@@ -370,6 +370,7 @@ export const PowerPointViewer = forwardRef<
         history={history}
         comments={editorOps.comments}
         zoom={zoom}
+        onEndPresentation={() => handleSetMode("edit")}
       />
 
       {mode !== "present" && (

@@ -125,7 +125,7 @@ describe("getImageEffectsFilter", () => {
     expect(result).toContain("brightness(0)");
   });
 
-  // -- Artistic effects --
+  // -- CSS-only artistic effects --
 
   it("applies blur artistic effect", () => {
     const el = makeImageElement({
@@ -152,14 +152,7 @@ describe("getImageEffectsFilter", () => {
     expect(result).toContain("blur(5px)");
   });
 
-  it("applies pencilGrayscale artistic effect", () => {
-    const el = makeImageElement({ artisticEffect: "pencilGrayscale" });
-    const result = getImageEffectsFilter(el);
-    expect(result).toContain("grayscale(100%)");
-    expect(result).toContain("contrast(150%)");
-  });
-
-  it("applies paintStrokes artistic effect", () => {
+  it("applies paintStrokes artistic effect with CSS filters", () => {
     const el = makeImageElement({
       artisticEffect: "paintStrokes",
       artisticRadius: 6,
@@ -169,7 +162,7 @@ describe("getImageEffectsFilter", () => {
     expect(result).toContain("saturate(140%)");
   });
 
-  it("applies photocopy artistic effect", () => {
+  it("applies photocopy artistic effect with CSS filters", () => {
     const el = makeImageElement({ artisticEffect: "photocopy" });
     const result = getImageEffectsFilter(el);
     expect(result).toContain("grayscale(100%)");
@@ -177,11 +170,83 @@ describe("getImageEffectsFilter", () => {
     expect(result).toContain("brightness(120%)");
   });
 
-  it("applies cutout artistic effect", () => {
+  // -- SVG-filter artistic effects (reference SVG filter via url(#id)) --
+
+  it("pencilGrayscale now references SVG filter", () => {
+    const el = makeImageElement({ artisticEffect: "pencilGrayscale" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
+  });
+
+  it("cutout now references SVG filter", () => {
     const el = makeImageElement({ artisticEffect: "cutout" });
     const result = getImageEffectsFilter(el);
-    expect(result).toContain("contrast(300%)");
-    expect(result).toContain("brightness(120%)");
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
+  });
+
+  it("filmGrain now references SVG filter", () => {
+    const el = makeImageElement({ artisticEffect: "filmGrain" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
+  });
+
+  it("cement now references SVG filter", () => {
+    const el = makeImageElement({ artisticEffect: "cement" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
+  });
+
+  it("texturizer now references SVG filter", () => {
+    const el = makeImageElement({ artisticEffect: "texturizer" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
+  });
+
+  it("crisscrossEtching now references SVG filter", () => {
+    const el = makeImageElement({ artisticEffect: "crisscrossEtching" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
+  });
+
+  it("chalkSketch now references SVG filter", () => {
+    const el = makeImageElement({ artisticEffect: "chalkSketch" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
+  });
+
+  it("pencilSketch now references SVG filter", () => {
+    const el = makeImageElement({ artisticEffect: "pencilSketch" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
+  });
+
+  it("mosaic now references SVG filter", () => {
+    const el = makeImageElement({ artisticEffect: "mosaic", artisticRadius: 7 });
+    const result = getImageEffectsFilter(el);
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
+  });
+
+  it("chalk now references SVG filter", () => {
+    const el = makeImageElement({ artisticEffect: "chalk" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
+  });
+
+  it("mosaicBubbles now references SVG filter", () => {
+    const el = makeImageElement({ artisticEffect: "mosaicBubbles" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
   });
 
   // -- Bi-level effect --
@@ -236,25 +301,25 @@ describe("getImageEffectsFilter", () => {
     expect(result).toContain("brightness(115%)");
   });
 
-  it("artisticGlowEdges works as glowEdges alias", () => {
+  it("artisticGlowEdges references SVG filter", () => {
     const el = makeImageElement({ artisticEffect: "artisticGlowEdges" });
     const result = getImageEffectsFilter(el);
-    expect(result).toContain("invert(100%)");
-    expect(result).toContain("contrast(200%)");
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
   });
 
-  it("artisticGlowDiffused works as glowDiffused alias", () => {
+  it("artisticGlowDiffused applies CSS blur + brightness", () => {
     const el = makeImageElement({ artisticEffect: "artisticGlowDiffused" });
     const result = getImageEffectsFilter(el);
     expect(result).toContain("blur(");
-    expect(result).toContain("brightness(120%)");
+    expect(result).toContain("brightness(");
   });
 
-  it("artisticLightScreen works as lightScreen alias", () => {
+  it("artisticLightScreen applies CSS brightness + saturate", () => {
     const el = makeImageElement({ artisticEffect: "artisticLightScreen" });
     const result = getImageEffectsFilter(el);
-    expect(result).toContain("brightness(130%)");
-    expect(result).toContain("contrast(80%)");
+    expect(result).toContain("brightness(");
+    expect(result).toContain("saturate(");
   });
 
   it("artisticSharpenEdges works as sharpen alias", () => {
@@ -263,34 +328,85 @@ describe("getImageEffectsFilter", () => {
     expect(result).toContain("contrast(160%)");
   });
 
-  it("artisticPencilGrayscale / grayPencil works", () => {
+  it("grayPencil references SVG filter", () => {
     const el = makeImageElement({ artisticEffect: "grayPencil" });
     const result = getImageEffectsFilter(el);
-    expect(result).toContain("grayscale(100%)");
-    expect(result).toContain("contrast(150%)");
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
   });
 
-  // -- Additional effects --
+  // -- OOXML-prefixed SVG effects --
 
-  it("mosaic produces blur + contrast", () => {
-    const el = makeImageElement({ artisticEffect: "mosaic", artisticRadius: 7 });
+  it("artisticFilmGrain references SVG filter", () => {
+    const el = makeImageElement({ artisticEffect: "artisticFilmGrain" });
     const result = getImageEffectsFilter(el);
-    expect(result).toContain("blur(7px)");
-    expect(result).toContain("contrast(105%)");
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
   });
 
-  it("chalk produces grayscale + contrast + brightness", () => {
-    const el = makeImageElement({ artisticEffect: "chalk" });
+  it("artisticCutout references SVG filter", () => {
+    const el = makeImageElement({ artisticEffect: "artisticCutout" });
     const result = getImageEffectsFilter(el);
-    expect(result).toContain("grayscale(70%)");
-    expect(result).toContain("contrast(150%)");
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
   });
 
-  it("pastels alias maps to pastelsSmooth filters", () => {
+  it("artisticCement references SVG filter", () => {
+    const el = makeImageElement({ artisticEffect: "artisticCement" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
+  });
+
+  it("artisticTexturizer references SVG filter", () => {
+    const el = makeImageElement({ artisticEffect: "artisticTexturizer" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
+  });
+
+  it("artisticCrisscrossEtching references SVG filter", () => {
+    const el = makeImageElement({ artisticEffect: "artisticCrisscrossEtching" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
+  });
+
+  it("artisticMosaic references SVG filter", () => {
+    const el = makeImageElement({ artisticEffect: "artisticMosaic" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
+  });
+
+  it("artisticChalkSketch references SVG filter", () => {
+    const el = makeImageElement({ artisticEffect: "artisticChalkSketch" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
+  });
+
+  it("artisticPencilGrayscale references SVG filter", () => {
+    const el = makeImageElement({ artisticEffect: "artisticPencilGrayscale" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
+  });
+
+  it("artisticPencilSketch references SVG filter", () => {
+    const el = makeImageElement({ artisticEffect: "artisticPencilSketch" });
+    const result = getImageEffectsFilter(el);
+    expect(result).toBeDefined();
+    expect(result).toContain("url(#artistic-fx-test-img-1)");
+  });
+
+  // -- Pastels (CSS-only) --
+
+  it("pastels alias maps to pastelsSmooth CSS filters", () => {
     const el = makeImageElement({ artisticEffect: "pastels" });
     const result = getImageEffectsFilter(el);
     expect(result).toContain("blur(");
-    expect(result).toContain("saturate(120%)");
+    expect(result).toContain("saturate(");
   });
 
   // -- Catch-all default --
@@ -336,6 +452,25 @@ describe("getImageEffectsFilter", () => {
     } as PptxElement;
     const result = getImageEffectsFilter(el);
     expect(result).toContain("grayscale(100%)");
+  });
+
+  // -- Gaussian blur --
+
+  it("artisticGaussianBlur applies wider blur radius", () => {
+    const el = makeImageElement({ artisticEffect: "artisticGaussianBlur", artisticRadius: 10 });
+    const result = getImageEffectsFilter(el);
+    expect(result).toBeDefined();
+    expect(result).toContain("blur(12px)"); // 10 * 1.2 = 12
+  });
+
+  // -- Paint brush --
+
+  it("artisticPaintBrush applies blur + saturate", () => {
+    const el = makeImageElement({ artisticEffect: "artisticPaintBrush", artisticRadius: 4 });
+    const result = getImageEffectsFilter(el);
+    expect(result).toBeDefined();
+    expect(result).toContain("blur(4px)");
+    expect(result).toContain("saturate(130%)");
   });
 });
 

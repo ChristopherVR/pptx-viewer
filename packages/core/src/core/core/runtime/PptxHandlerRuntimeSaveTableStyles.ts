@@ -1,6 +1,6 @@
 import { XmlObject, type PptxTableCellStyle } from '../../types';
 
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTextEditing';
+import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeLayoutSwitching';
 import {
 	writeCellFill,
 	writeDiagonalBorders,

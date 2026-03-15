@@ -1,4 +1,4 @@
-import { PptxComment, XmlObject } from "../../types";
+import { PptxComment, PptxCommentAuthor, XmlObject } from "../../types";
 
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from "./PptxHandlerRuntimeThemeProcessing";
 
@@ -275,9 +275,35 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         const authorName =
           authorNameRaw.length > 0 ? authorNameRaw : `Author ${authorId}`;
         this.commentAuthorMap.set(authorId, authorName);
+
+        // Preserve full author details for round-trip
+        const initialsRaw = String(author?.["@_initials"] || "").trim();
+        const lastIdxRaw = Number.parseInt(String(author?.["@_lastIdx"] || "0"), 10);
+        const clrIdxRaw = Number.parseInt(String(author?.["@_clrIdx"] || "0"), 10);
+        const authorDetail: PptxCommentAuthor = {
+          id: authorId,
+          name: authorName,
+          initials: initialsRaw.length > 0 ? initialsRaw : this.toCommentInitials(authorName),
+          lastIdx: Number.isFinite(lastIdxRaw) ? lastIdxRaw : 0,
+          clrIdx: Number.isFinite(clrIdxRaw) ? clrIdxRaw : 0,
+        };
+        this.commentAuthorDetails.set(authorId, authorDetail);
       });
     } catch (error) {
       console.warn("Failed to parse PowerPoint comment authors:", error);
     }
+  }
+
+  /** Derive initials from an author name (first letter of up to 2 tokens). */
+  private toCommentInitials(authorName: string): string {
+    const tokens = authorName
+      .split(/\s+/)
+      .map((token) => token.trim())
+      .filter((token) => token.length > 0);
+    if (tokens.length === 0) return "U";
+    return tokens
+      .slice(0, 2)
+      .map((token) => token[0].toUpperCase())
+      .join("");
   }
 }

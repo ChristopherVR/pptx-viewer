@@ -26,6 +26,7 @@ import {
   shouldRenderFallbackLabel,
   getElementLabel,
 } from "../../utils";
+import { buildTextBody3DSceneStyle } from "../../utils/text-effects";
 import type { ElementFindHighlights } from "../../utils/text-render";
 import type { FieldSubstitutionContext } from "../../utils/text-field-substitution";
 import type { ElementAnimationState } from "../../utils/animation-timeline";
@@ -182,6 +183,25 @@ export function renderBody(
   const warpPreset = hasTextProperties(el) ? el.textStyle?.textWarpPreset : undefined;
   const useSvgWarp = shouldUseSvgWarp(warpPreset);
 
+  // Text body 3D scene style (perspective + rotation from a:bodyPr/a:scene3d)
+  const scene3dStyle = hasTextProperties(el)
+    ? buildTextBody3DSceneStyle(el.textStyle)
+    : undefined;
+
+  // Compose transforms: flip compensation + 3D scene rotation
+  const compensationTransform = getTextCompensationTransform(el);
+  const composedTransform = [compensationTransform, scene3dStyle?.transform]
+    .filter(Boolean)
+    .join(" ") || undefined;
+
+  // Scene3d CSS without the transform (perspective, transformStyle, etc.)
+  const scene3dNonTransform: React.CSSProperties | undefined = scene3dStyle
+    ? {
+        ...(scene3dStyle.perspective ? { perspective: scene3dStyle.perspective } : {}),
+        ...(scene3dStyle.transformStyle ? { transformStyle: scene3dStyle.transformStyle } : {}),
+      }
+    : undefined;
+
   return (
     <>
       {vecShape}
@@ -194,8 +214,9 @@ export function renderBody(
             )}
             style={{
               ...getTextLayoutStyle(el),
-              transform: getTextCompensationTransform(el),
+              transform: composedTransform,
               transformOrigin: "center",
+              ...scene3dNonTransform,
               ...linkedOverflowCss,
             }}
           >
@@ -218,8 +239,9 @@ export function renderBody(
               ...getTextLayoutStyle(el),
               ...txtS,
               ...getTextWarpStyle(txtSE),
-              transform: getTextCompensationTransform(el),
+              transform: composedTransform,
               transformOrigin: "center",
+              ...scene3dNonTransform,
               ...linkedOverflowCss,
             }}
           >
@@ -244,8 +266,9 @@ export function renderBody(
             )}
             style={{
               ...getTextLayoutStyle(el),
-              transform: getTextCompensationTransform(el),
+              transform: composedTransform,
               transformOrigin: "center",
+              ...scene3dNonTransform,
               ...linkedOverflowCss,
             }}
           >
@@ -268,8 +291,9 @@ export function renderBody(
               ...getTextLayoutStyle(el),
               ...txtS,
               ...getTextWarpStyle(txtSE),
-              transform: getTextCompensationTransform(el),
+              transform: composedTransform,
               transformOrigin: "center",
+              ...scene3dNonTransform,
               ...linkedOverflowCss,
             }}
           >

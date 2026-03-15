@@ -45,6 +45,39 @@ export interface PptxComment {
 }
 
 /**
+ * A comment author from `ppt/commentAuthors.xml`.
+ *
+ * Stores all attributes needed for lossless round-trip serialization
+ * of the `p:cmAuthor` element (id, name, initials, lastIdx, clrIdx).
+ *
+ * @see ECMA-376 Part 1, §19.4.2 (cmAuthor)
+ *
+ * @example
+ * ```ts
+ * const author: PptxCommentAuthor = {
+ *   id: "0",
+ *   name: "John Doe",
+ *   initials: "JD",
+ *   lastIdx: 3,
+ *   clrIdx: 0,
+ * };
+ * // => satisfies PptxCommentAuthor
+ * ```
+ */
+export interface PptxCommentAuthor {
+  /** Unique numeric author identifier (`@_id`). */
+  id: string;
+  /** Author display name (`@_name`). */
+  name: string;
+  /** Author initials (`@_initials`). */
+  initials: string;
+  /** Last comment index used by this author (`@_lastIdx`). */
+  lastIdx: number;
+  /** Colour index assigned to this author (`@_clrIdx`). */
+  clrIdx: number;
+}
+
+/**
  * A compatibility warning generated during parse or save when the
  * file uses features not fully supported by the editor.
  *

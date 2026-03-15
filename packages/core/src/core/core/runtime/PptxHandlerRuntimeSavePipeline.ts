@@ -24,6 +24,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     const saveSession = new PptxSaveStateBuilder()
       .withZip(this.zip)
       .withCommentAuthorMap(this.commentAuthorMap)
+      .withCommentAuthorDetails(this.commentAuthorDetails)
       .withEmuPerPx(PptxHandlerRuntime.EMU_PER_PX)
       .build();
     await this.reconcilePresentationSlidesForSave({

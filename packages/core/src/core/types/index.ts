@@ -31,6 +31,7 @@ export * from "./element-base";
 export * from "./elements";
 export * from "./type-guards";
 export * from "./theme";
+export * from "./theme-presets";
 export * from "./masters";
 export * from "./presentation";
 export * from "./view-properties";

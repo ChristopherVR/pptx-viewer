@@ -8,14 +8,20 @@
  * Supports opening an audience window via `window.open()` for dual-screen
  * presenter workflows. The audience window receives slide changes via
  * `postMessage()` cross-window communication.
+ *
+ * Keyboard navigation (arrows, space, escape) is handled by the parent
+ * `usePresentationKeyboard` hook — this component does NOT register its
+ * own keydown listener to avoid double-handling.
  */
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   LuChevronLeft,
   LuChevronRight,
   LuX,
   LuMonitor,
   LuMonitorOff,
+  LuMinus,
+  LuPlus,
 } from "react-icons/lu";
 import { useTranslation } from "react-i18next";
 
@@ -26,6 +32,11 @@ import {
   formatTime,
   formatElapsed,
   renderNotesSegments,
+  NOTES_FONT_SIZE_MIN,
+  NOTES_FONT_SIZE_MAX,
+  NOTES_FONT_SIZE_STEP,
+  NOTES_FONT_SIZE_DEFAULT,
+  clampNotesFontSize,
 } from "./presenter-view-utils";
 
 // ---------------------------------------------------------------------------
@@ -76,6 +87,21 @@ export function PresenterView({
 
   const elapsed = presentationStartTime ? now - presentationStartTime : 0;
 
+  // -- Notes font size -----------------------------------------------------
+  const [notesFontSize, setNotesFontSize] = useState(NOTES_FONT_SIZE_DEFAULT);
+
+  const increaseNotesFontSize = useCallback(() => {
+    setNotesFontSize((prev) =>
+      clampNotesFontSize(prev + NOTES_FONT_SIZE_STEP),
+    );
+  }, []);
+
+  const decreaseNotesFontSize = useCallback(() => {
+    setNotesFontSize((prev) =>
+      clampNotesFontSize(prev - NOTES_FONT_SIZE_STEP),
+    );
+  }, []);
+
   // -- Slide data ----------------------------------------------------------
   const currentSlide = slides[currentSlideIndex];
   const nextSlide =
@@ -86,28 +112,6 @@ export function PresenterView({
   const notesText = currentSlide?.notes ?? "";
   const notesSegments = currentSlide?.notesSegments;
   const hasRichNotes = notesSegments && notesSegments.length > 0;
-
-  // -- Keyboard navigation -------------------------------------------------
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onExit();
-        return;
-      }
-      if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
-        e.preventDefault();
-        onMovePresentationSlide(1);
-        return;
-      }
-      if (e.key === "ArrowLeft" || e.key === "PageUp") {
-        e.preventDefault();
-        onMovePresentationSlide(-1);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onExit, onMovePresentationSlide]);
 
   if (!currentSlide) {
     return (
@@ -129,12 +133,20 @@ export function PresenterView({
     <div className="absolute inset-0 z-50 flex flex-col bg-card text-foreground">
       <div className="flex flex-1 min-h-0">
       {/* Left panel -- current slide (70%) */}
-      <div className="flex-[7] flex items-center justify-center bg-black p-6 min-w-0">
+      <div className="flex-[7] flex flex-col items-center justify-center bg-black p-6 min-w-0">
         <ScaledSlidePreview
           slide={currentSlide}
           templateElements={templateElements}
           canvasSize={canvasSize}
         />
+        {/* Slide number badge */}
+        <div className="mt-3 text-xs font-mono tabular-nums text-white/50 select-none">
+          {t("pptx.presenter.slideLabel", {
+            current: currentSlideIndex + 1,
+            total: slides.length,
+            defaultValue: `Slide ${currentSlideIndex + 1} of ${slides.length}`,
+          })}
+        </div>
       </div>
 
       {/* Right panel -- controls (30%) */}
@@ -246,10 +258,41 @@ export function PresenterView({
 
         {/* Speaker notes */}
         <div className="flex-1 flex flex-col min-h-0 px-4 py-3">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
-            {t("pptx.presenter.speakerNotes")}
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              {t("pptx.presenter.speakerNotes")}
+            </div>
+            {/* Font size controls */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={decreaseNotesFontSize}
+                disabled={notesFontSize <= NOTES_FONT_SIZE_MIN}
+                className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                title={t("pptx.presenter.decreaseFontSize")}
+                aria-label={t("pptx.presenter.decreaseFontSize")}
+              >
+                <LuMinus className="w-3.5 h-3.5" />
+              </button>
+              <span className="text-[10px] font-mono tabular-nums text-muted-foreground min-w-[28px] text-center select-none">
+                {notesFontSize}px
+              </span>
+              <button
+                type="button"
+                onClick={increaseNotesFontSize}
+                disabled={notesFontSize >= NOTES_FONT_SIZE_MAX}
+                className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                title={t("pptx.presenter.increaseFontSize")}
+                aria-label={t("pptx.presenter.increaseFontSize")}
+              >
+                <LuPlus className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-          <div className="flex-1 overflow-y-auto rounded border border-border/30 bg-muted/40 px-3 py-2 text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+          <div
+            className="flex-1 overflow-y-auto rounded border border-border/30 bg-muted/40 px-3 py-2 text-foreground whitespace-pre-wrap leading-relaxed"
+            style={{ fontSize: `${notesFontSize}px` }}
+          >
             {hasRichNotes ? (
               renderNotesSegments(notesSegments)
             ) : notesText.trim().length > 0 ? (

@@ -14,6 +14,7 @@ export type PresentationKeyAction =
   | { action: "togglePen" }
   | { action: "toggleEraser" }
   | { action: "toggleToolbar" }
+  | { action: "togglePresenterView" }
   | { action: "none" };
 
 /**
@@ -39,6 +40,9 @@ export function mapKeyToPresentationAction(
   if (key === "e" || key === "E") return { action: "toggleEraser" };
 
   if (key === "m" && ctrlKey) return { action: "toggleToolbar" };
+
+  // Toggle presenter view (split-screen with notes) during presentation
+  if (key === "n" || key === "N") return { action: "togglePresenterView" };
 
   return { action: "none" };
 }

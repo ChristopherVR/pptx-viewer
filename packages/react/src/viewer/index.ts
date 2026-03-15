@@ -8,6 +8,13 @@ export type {
 } from "./PowerPointViewer";
 export * from "./types";
 
+// Theme switching (opt-in, tree-shakeable)
+export { useThemeSwitching } from "./hooks/useThemeSwitching";
+export type {
+	UseThemeSwitchingInput,
+	ThemeSwitchingResult,
+} from "./hooks/useThemeSwitching";
+
 // Collaboration (opt-in, tree-shakeable)
 export {
 	useCollaborativeState,

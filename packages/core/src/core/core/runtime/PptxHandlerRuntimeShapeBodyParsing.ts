@@ -4,6 +4,7 @@ import {
   TextStyle,
   type PptxTextWarpPreset,
   type Text3DStyle,
+  type Pptx3DScene,
   type BevelPresetType,
   type MaterialPresetType,
 } from "../../types";
@@ -198,6 +199,32 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
           t3d.bevelBottomHeight = parseInt(String(bevelB["@_h"]), 10);
       }
       if (Object.keys(t3d).length > 0) textStyle.text3d = t3d;
+    }
+
+    // 3D scene/camera on text body (a:bodyPr/a:scene3d)
+    const bodyScene3d = bodyPr["a:scene3d"] as XmlObject | undefined;
+    if (bodyScene3d) {
+      const camera = bodyScene3d["a:camera"] as XmlObject | undefined;
+      const lightRig = bodyScene3d["a:lightRig"] as XmlObject | undefined;
+      const scene: Pptx3DScene = {};
+      const camPreset = String(camera?.["@_prst"] || "").trim();
+      if (camPreset) scene.cameraPreset = camPreset;
+      if (camera) {
+        const rot = camera["a:rot"] as XmlObject | undefined;
+        if (rot) {
+          const lat = parseInt(String(rot["@_lat"] || ""), 10);
+          if (Number.isFinite(lat)) scene.cameraRotX = lat;
+          const lon = parseInt(String(rot["@_lon"] || ""), 10);
+          if (Number.isFinite(lon)) scene.cameraRotY = lon;
+          const rev = parseInt(String(rot["@_rev"] || ""), 10);
+          if (Number.isFinite(rev)) scene.cameraRotZ = rev;
+        }
+      }
+      const rigType = String(lightRig?.["@_rig"] || "").trim();
+      if (rigType) scene.lightRigType = rigType;
+      const rigDir = String(lightRig?.["@_dir"] || "").trim();
+      if (rigDir) scene.lightRigDirection = rigDir;
+      if (Object.keys(scene).length > 0) textStyle.textBodyScene3d = scene;
     }
 
     // Auto-fit

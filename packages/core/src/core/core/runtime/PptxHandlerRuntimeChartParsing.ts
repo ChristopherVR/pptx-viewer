@@ -166,13 +166,37 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     // Parse embedded xlsx workbook if available
     const embeddedWorkbookData = await this.parseEmbeddedWorkbook(externalData);
 
+    // Use embedded workbook data as fallback when chart XML data is insufficient
+    let finalCategories = categories;
+    let finalSeries = series;
+    if (embeddedWorkbookData) {
+      // Fall back to embedded workbook categories when chart XML has none
+      if (finalCategories.length === 0 && embeddedWorkbookData.categories.length > 0) {
+        finalCategories = embeddedWorkbookData.categories;
+      }
+      // Fall back to embedded workbook series when all chart XML series have empty values
+      const allSeriesEmpty = finalSeries.every((s) => s.values.length === 0);
+      if (allSeriesEmpty && embeddedWorkbookData.series.length > 0) {
+        finalSeries = finalSeries.map((s, i) => {
+          const wbSeries = embeddedWorkbookData.series[i];
+          if (wbSeries && wbSeries.values.length > 0) {
+            return { ...s, values: wbSeries.values };
+          }
+          return s;
+        });
+      }
+    }
+
+    // Parse pivot source (c:pivotSource)
+    const pivotSource = this.parsePivotSource(chartSpace);
+
     // Parse Office 2013+ chart color style (chartColorStyle*.xml)
     const chartColorStyle = await this.parseChartColorStyle(chartPartPath);
 
     return {
       chartType,
-      categories,
-      series,
+      categories: finalCategories,
+      series: finalSeries,
       title: titleTextValues[0],
       style: chartStyle,
       grouping,
@@ -188,6 +212,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       ...(externalData ? { externalData } : {}),
       ...(embeddedWorkbookData ? { embeddedWorkbookData } : {}),
       ...(plotVisibleOnly !== undefined ? { plotVisibleOnly } : {}),
+      ...(pivotSource ? { pivotSource } : {}),
       ...(chartColorStyle?.palette
         ? { colorPalette: chartColorStyle.palette }
         : {}),
@@ -326,6 +351,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     // Parse embedded xlsx workbook if available
     const embeddedWorkbookData = await this.parseEmbeddedWorkbook(externalData);
 
+    // Parse pivot source (c:pivotSource)
+    const pivotSource = this.parsePivotSource(chartSpace);
+
     // Parse Office 2013+ chart color style (chartColorStyle*.xml)
     const chartColorStyle = await this.parseChartColorStyle(chartPartPath);
 
@@ -340,6 +368,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       ...(externalData ? { externalData } : {}),
       ...(embeddedWorkbookData ? { embeddedWorkbookData } : {}),
       ...(plotVisibleOnly !== undefined ? { plotVisibleOnly } : {}),
+      ...(pivotSource ? { pivotSource } : {}),
       ...(chartColorStyle?.palette
         ? { colorPalette: chartColorStyle.palette }
         : {}),
@@ -372,6 +401,61 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     const val = plotVisOnlyNode["@_val"];
     if (val === "0" || val === "false" || val === false) return false;
     return true;
+  }
+
+  /**
+   * Parse `c:pivotSource` from the chart's `c:chartSpace`.
+   *
+   * The `c:pivotSource` element indicates the chart data originates from
+   * a PivotTable. It contains:
+   * - `c:name` — the pivot table reference (e.g. "[workbook.xlsx]Sheet1!PivotTable1")
+   * - `c:fmtId/@val` — an optional format identifier
+   *
+   * The chart still renders using its cached series data; the pivot source
+   * is metadata preserved for round-trip fidelity.
+   */
+  private parsePivotSource(
+    chartSpace: XmlObject | undefined,
+  ): PptxChartData["pivotSource"] {
+    if (!chartSpace) return undefined;
+
+    const pivotSourceNode = this.xmlLookupService.getChildByLocalName(
+      chartSpace,
+      "pivotSource",
+    );
+    if (!pivotSourceNode) return undefined;
+
+    // Extract pivot table name from c:name text content
+    const nameNode = this.xmlLookupService.getChildByLocalName(
+      pivotSourceNode,
+      "name",
+    );
+    const name = nameNode != null
+      ? String(
+          typeof nameNode === "object" && nameNode !== null
+            ? nameNode["#text"] ?? nameNode["_"] ?? nameNode["@_val"] ?? ""
+            : nameNode,
+        ).trim()
+      : "";
+    if (name.length === 0) return undefined;
+
+    // Extract format ID from c:fmtId/@val
+    const fmtIdNode = this.xmlLookupService.getChildByLocalName(
+      pivotSourceNode,
+      "fmtId",
+    );
+    const fmtIdVal = fmtIdNode?.["@_val"];
+    const formatId =
+      fmtIdVal !== undefined && fmtIdVal !== null
+        ? parseInt(String(fmtIdVal), 10)
+        : undefined;
+
+    return {
+      name,
+      ...(formatId !== undefined && Number.isFinite(formatId)
+        ? { formatId }
+        : {}),
+    };
   }
 
   /**

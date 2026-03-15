@@ -12,7 +12,18 @@ export function parseShowProperties(
   // Show type
   if (showPr["p:present"]) props.showType = "presented";
   else if (showPr["p:browse"]) props.showType = "browsed";
-  else if (showPr["p:kiosk"]) props.showType = "kiosk";
+  else if (showPr["p:kiosk"]) {
+    props.showType = "kiosk";
+    // Parse kiosk restart interval (in ms)
+    const kioskNode = showPr["p:kiosk"] as XmlObject;
+    const restartRaw = kioskNode?.["@_restart"];
+    if (restartRaw !== undefined) {
+      const restartMs = Number.parseInt(String(restartRaw), 10);
+      if (Number.isFinite(restartMs) && restartMs > 0) {
+        props.kioskRestartTime = restartMs;
+      }
+    }
+  }
 
   props.loopContinuously =
     showPr["@_loop"] === "1" || showPr["@_loop"] === true;

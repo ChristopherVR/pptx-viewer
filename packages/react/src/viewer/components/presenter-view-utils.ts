@@ -1,9 +1,37 @@
 /**
- * Utility functions for PresenterView — time formatting and notes rendering.
+ * Utility functions for PresenterView — time formatting, notes rendering,
+ * and font-size controls.
  */
 import React from "react";
 
 import type { TextSegment } from "pptx-viewer-core";
+
+// ---------------------------------------------------------------------------
+// Notes font-size constants
+// ---------------------------------------------------------------------------
+
+/** Minimum font size (px) for speaker notes in presenter view. */
+export const NOTES_FONT_SIZE_MIN = 10;
+
+/** Maximum font size (px) for speaker notes in presenter view. */
+export const NOTES_FONT_SIZE_MAX = 32;
+
+/** Step increment (px) when increasing/decreasing notes font size. */
+export const NOTES_FONT_SIZE_STEP = 2;
+
+/** Default font size (px) for speaker notes. */
+export const NOTES_FONT_SIZE_DEFAULT = 14;
+
+/**
+ * Clamp a notes font size value to the allowed range.
+ */
+export function clampNotesFontSize(size: number): number {
+  return Math.max(NOTES_FONT_SIZE_MIN, Math.min(NOTES_FONT_SIZE_MAX, size));
+}
+
+// ---------------------------------------------------------------------------
+// Time formatting
+// ---------------------------------------------------------------------------
 
 /**
  * Format a Date as a locale time string (HH:MM:SS).
@@ -17,14 +45,23 @@ export function formatTime(date: Date): string {
 }
 
 /**
- * Format a millisecond duration as MM:SS.
+ * Format a millisecond duration as MM:SS, or HH:MM:SS when the elapsed
+ * time is one hour or longer.
  */
 export function formatElapsed(elapsedMs: number): string {
   const totalSeconds = Math.floor(elapsedMs / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
+
+// ---------------------------------------------------------------------------
+// Rich-text notes rendering
+// ---------------------------------------------------------------------------
 
 /**
  * Render rich-text notes segments into React nodes.

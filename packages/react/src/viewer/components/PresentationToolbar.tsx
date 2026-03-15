@@ -357,23 +357,32 @@ export interface PresentationToolbarWrapperProps
  * Wraps `PresentationToolbar` with auto-hide logic:
  * - Shows on any mouse movement
  * - Hides after `AUTO_HIDE_DELAY_MS` (3 s) of no movement
- * - Always shows when the mouse is in the bottom trigger zone
+ * - Always shows when hovering over the toolbar itself
+ * - Uses CSS opacity transitions for smooth fade in/out
  */
 export function PresentationToolbarWrapper({
   containerRef,
   ...toolbarProps
-}: PresentationToolbarWrapperProps): React.ReactElement | null {
+}: PresentationToolbarWrapperProps): React.ReactElement {
   const [visible, setVisible] = useState(false);
   const hideTimerRef = useRef<number | null>(null);
+  const hoveringRef = useRef(false);
 
-  const resetHideTimer = useCallback(() => {
+  const clearHideTimer = useCallback(() => {
     if (hideTimerRef.current !== null) {
       window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
     }
-    hideTimerRef.current = window.setTimeout(() => {
-      setVisible(false);
-    }, AUTO_HIDE_DELAY_MS);
   }, []);
+
+  const resetHideTimer = useCallback(() => {
+    clearHideTimer();
+    hideTimerRef.current = window.setTimeout(() => {
+      if (!hoveringRef.current) {
+        setVisible(false);
+      }
+    }, AUTO_HIDE_DELAY_MS);
+  }, [clearHideTimer]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -395,16 +404,31 @@ export function PresentationToolbarWrapper({
     document.addEventListener("mousemove", handleMouseMove);
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
-      if (hideTimerRef.current !== null) {
-        window.clearTimeout(hideTimerRef.current);
-      }
+      clearHideTimer();
     };
-  }, [containerRef, resetHideTimer]);
+  }, [containerRef, resetHideTimer, clearHideTimer]);
 
-  if (!visible) return null;
+  const handleMouseEnter = useCallback(() => {
+    hoveringRef.current = true;
+    clearHideTimer();
+    setVisible(true);
+  }, [clearHideTimer]);
+
+  const handleMouseLeave = useCallback(() => {
+    hoveringRef.current = false;
+    resetHideTimer();
+  }, [resetHideTimer]);
 
   return (
-    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[80] transition-opacity duration-300">
+    <div
+      className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[80] transition-opacity duration-300"
+      style={{
+        opacity: visible ? 1 : 0,
+        pointerEvents: visible ? "auto" : "none",
+      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <PresentationToolbar {...toolbarProps} />
     </div>
   );

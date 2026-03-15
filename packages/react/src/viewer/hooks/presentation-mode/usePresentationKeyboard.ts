@@ -15,6 +15,8 @@ export interface UsePresentationKeyboardInput {
   onTogglePen?: () => void;
   onToggleEraser?: () => void;
   onToggleToolbar?: () => void;
+  /** Toggle between presenter view (split-screen with notes) and fullscreen. */
+  onTogglePresenterView?: () => void;
   rehearsing: boolean;
   recordCurrentSlideTime: (slideIndex: number) => void;
   presentationSlideIndex: number;
@@ -40,6 +42,7 @@ export function usePresentationKeyboard(
     onTogglePen,
     onToggleEraser,
     onToggleToolbar,
+    onTogglePresenterView,
     rehearsing,
     recordCurrentSlideTime,
     presentationSlideIndex,
@@ -81,6 +84,9 @@ export function usePresentationKeyboard(
         case "toggleToolbar":
           onToggleToolbar?.();
           return;
+        case "togglePresenterView":
+          onTogglePresenterView?.();
+          return;
       }
     };
 
@@ -96,6 +102,7 @@ export function usePresentationKeyboard(
     onTogglePen,
     onToggleEraser,
     onToggleToolbar,
+    onTogglePresenterView,
     rehearsing,
     recordCurrentSlideTime,
     presentationSlideIndex,

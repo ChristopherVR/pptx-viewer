@@ -47,6 +47,8 @@ export interface ViewerMainContentProps {
   history: EditorHistoryResult;
   comments: UseCommentsResult;
   zoom: UseZoomViewportResult;
+  /** Called when the user clicks "end presentation" in the slide show toolbar. */
+  onEndPresentation?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -77,6 +79,7 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
     history,
     comments,
     zoom,
+    onEndPresentation,
   } = props;
 
   const {
@@ -153,6 +156,7 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
         tableOps={tableOps}
         annotations={annotations}
         presentation={presentation}
+        onEndPresentation={onEndPresentation}
         findReplace={findReplace}
       />
 

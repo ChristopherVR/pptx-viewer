@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   calculateNotesPageLayout,
+  calculateContinuationPageMaxLines,
   wrapNotesText,
   NOTES_PAGE_W,
   NOTES_PAGE_H,
@@ -9,6 +10,7 @@ import {
   NOTES_GAP,
   NOTES_FONT_SIZE,
   NOTES_LINE_HEIGHT,
+  NOTES_CONTINUATION_HEADER_SIZE,
 } from "./pdf-builder";
 
 // ===========================================================================
@@ -243,5 +245,83 @@ describe("notes page layout integration", () => {
     const lines = wrapNotesText(typicalNotes, layout.contentWidth, NOTES_FONT_SIZE);
 
     expect(lines.length).toBeLessThanOrEqual(layout.maxNotesLines);
+  });
+});
+
+// ===========================================================================
+// calculateContinuationPageMaxLines
+// ===========================================================================
+
+describe("calculateContinuationPageMaxLines", () => {
+  it("returns a positive number of lines", () => {
+    const maxLines = calculateContinuationPageMaxLines();
+    expect(maxLines).toBeGreaterThan(0);
+  });
+
+  it("returns more lines than the primary page notes area", () => {
+    const layout = calculateNotesPageLayout(1920, 1080);
+    const continuationMaxLines = calculateContinuationPageMaxLines();
+    // Continuation pages have the full content area for text (minus a small
+    // header), so they should fit more lines than the primary page notes area.
+    expect(continuationMaxLines).toBeGreaterThan(layout.maxNotesLines);
+  });
+
+  it("matches the expected formula", () => {
+    const contentHeight = NOTES_PAGE_H - 2 * NOTES_MARGIN;
+    const headerReserve = NOTES_CONTINUATION_HEADER_SIZE + NOTES_GAP;
+    const availableHeight = contentHeight - headerReserve;
+    const lineHeightPt = NOTES_FONT_SIZE * NOTES_LINE_HEIGHT;
+    const expected = Math.floor(availableHeight / lineHeightPt);
+
+    expect(calculateContinuationPageMaxLines()).toBe(expected);
+  });
+});
+
+// ===========================================================================
+// Notes overflow pagination (unit-level checks)
+// ===========================================================================
+
+describe("notes overflow pagination planning", () => {
+  it("a short notes text fits entirely on the primary page", () => {
+    const layout = calculateNotesPageLayout(1920, 1080);
+    const contentWidth = NOTES_PAGE_W - 2 * NOTES_MARGIN;
+    const shortNotes = "Short speaker notes.";
+    const lines = wrapNotesText(shortNotes, contentWidth, NOTES_FONT_SIZE);
+
+    expect(lines.length).toBeLessThanOrEqual(layout.maxNotesLines);
+    // No continuation pages needed
+    const overflowLines = lines.slice(layout.maxNotesLines);
+    expect(overflowLines.length).toBe(0);
+  });
+
+  it("very long notes produce overflow lines that need continuation pages", () => {
+    const layout = calculateNotesPageLayout(1920, 1080);
+    const contentWidth = NOTES_PAGE_W - 2 * NOTES_MARGIN;
+    // Generate a very long notes text that exceeds primary page capacity
+    const longNotes = ("This is a sentence with many words for testing. ").repeat(200);
+    const lines = wrapNotesText(longNotes, contentWidth, NOTES_FONT_SIZE);
+
+    expect(lines.length).toBeGreaterThan(layout.maxNotesLines);
+
+    // Simulate the pagination logic
+    const primaryLines = lines.slice(0, layout.maxNotesLines);
+    const overflowLines = lines.slice(layout.maxNotesLines);
+    const continuationMaxLines = calculateContinuationPageMaxLines();
+    const continuationPages = Math.ceil(overflowLines.length / continuationMaxLines);
+
+    expect(primaryLines.length).toBe(layout.maxNotesLines);
+    expect(overflowLines.length).toBeGreaterThan(0);
+    expect(continuationPages).toBeGreaterThanOrEqual(1);
+
+    // Verify all lines are accounted for
+    let totalAccountedLines = primaryLines.length;
+    for (let p = 0; p < continuationPages; p++) {
+      const chunk = overflowLines.slice(
+        p * continuationMaxLines,
+        (p + 1) * continuationMaxLines,
+      );
+      totalAccountedLines += chunk.length;
+    }
+    expect(totalAccountedLines).toBe(lines.length);
   });
 });

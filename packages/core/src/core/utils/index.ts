@@ -247,6 +247,12 @@ export {
 } from "./pptx-validator";
 
 export {
+  reResolveSlideColors,
+  applyThemeToData,
+  buildThemeColorMap,
+} from "./theme-switching";
+
+export {
   computeSmartArtLayout,
   computeSnakeLayout,
   computeLinearLayout,

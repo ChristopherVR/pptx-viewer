@@ -5,6 +5,7 @@ import {
   interpolateWidth,
   generatePressureCircles,
   hasPressureVariation,
+  pressuresToWidths,
   estimatePathLength,
   getInkStrokeReplayStyle,
   getInkReplayStyles,
@@ -556,5 +557,55 @@ describe("pressure rendering auto-detection", () => {
     const circles = generatePressureCircles(points, [1, 5], { baseWidth: 3 });
     // The radius at the end (high width) should differ from the start (low width)
     expect(circles[0].r).not.toEqual(circles[2].r);
+  });
+});
+
+// ==========================================================================
+// pressuresToWidths
+// ==========================================================================
+
+describe("pressuresToWidths", () => {
+  it("should return baseWidth * minScale at zero pressure", () => {
+    const widths = pressuresToWidths([0], 10);
+    // Default minScale = 0.3 => 10 * 0.3 = 3
+    expect(widths[0]).toBeCloseTo(3);
+  });
+
+  it("should return baseWidth * maxScale at full pressure", () => {
+    const widths = pressuresToWidths([1], 10);
+    // Default maxScale = 1.8 => 10 * 1.8 = 18
+    expect(widths[0]).toBeCloseTo(18);
+  });
+
+  it("should linearly interpolate at mid pressure", () => {
+    const widths = pressuresToWidths([0.5], 10);
+    // 0.5 => 10 * (0.3 + 0.5 * 1.5) = 10 * 1.05 = 10.5
+    expect(widths[0]).toBeCloseTo(10.5);
+  });
+
+  it("should produce varying widths for varying pressures", () => {
+    const pressures = [0.1, 0.5, 0.9];
+    const widths = pressuresToWidths(pressures, 4);
+    expect(widths).toHaveLength(3);
+    // Each subsequent width should be larger
+    expect(widths[1]).toBeGreaterThan(widths[0]);
+    expect(widths[2]).toBeGreaterThan(widths[1]);
+  });
+
+  it("should accept custom min/max scale", () => {
+    const widths = pressuresToWidths([0, 1], 10, 0.5, 2.0);
+    expect(widths[0]).toBeCloseTo(5); // 10 * 0.5
+    expect(widths[1]).toBeCloseTo(20); // 10 * 2.0
+  });
+
+  it("should clamp pressure values outside [0, 1]", () => {
+    const widths = pressuresToWidths([-0.5, 1.5], 10);
+    // Clamped to 0 and 1
+    expect(widths[0]).toBeCloseTo(3); // 10 * 0.3
+    expect(widths[1]).toBeCloseTo(18); // 10 * 1.8
+  });
+
+  it("should return empty array for empty pressures", () => {
+    expect(pressuresToWidths([], 10)).toEqual([]);
   });
 });

@@ -23,6 +23,7 @@ import {
   PptxElement,
   PptxLayoutOption,
   XmlObject,
+  type PptxCommentAuthor,
   type PptxCustomXmlPart,
   type PptxThemeFormatScheme,
 } from "../../types";
@@ -174,6 +175,9 @@ export class PptxHandlerRuntime {
 
   /** Map of comment author IDs to display names (from `ppt/commentAuthors.xml`). */
   protected commentAuthorMap: Map<string, string> = new Map();
+
+  /** Full comment author details keyed by author ID, preserving initials/lastIdx/clrIdx for round-trip. */
+  protected commentAuthorDetails: Map<string, PptxCommentAuthor> = new Map();
 
   /** Available slide layout options collected during load. */
   protected layoutOptions: PptxLayoutOption[] = [];

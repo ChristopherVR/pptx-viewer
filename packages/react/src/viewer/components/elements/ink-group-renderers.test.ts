@@ -69,6 +69,24 @@ describe("pressure sensitivity auto-detection", () => {
       expect(c.r).toBeGreaterThan(0);
     });
   });
+
+  it("should detect per-point pressure via inkPointPressures", () => {
+    const el = makeInkElement({
+      inkPaths: ["M 0 0 L 50 0 L 100 0"],
+      inkWidths: [3],
+      inkPointPressures: [[0.2, 0.6, 0.9]],
+    });
+    expect(el.inkPointPressures).toBeDefined();
+    expect(el.inkPointPressures![0]).toHaveLength(3);
+    expect(hasPressureVariation(el.inkPointPressures![0])).toBe(true);
+  });
+
+  it("should not treat uniform inkPointPressures as having variation", () => {
+    const el = makeInkElement({
+      inkPointPressures: [[0.5, 0.5, 0.5]],
+    });
+    expect(hasPressureVariation(el.inkPointPressures![0])).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------

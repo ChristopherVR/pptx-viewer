@@ -112,9 +112,53 @@ describe('parseShowProperties', () => {
 		expect(result.showSlidesMode).toBe('all');
 	});
 
-	it('should handle a fully populated show properties object', () => {
+	it('should parse kioskRestartTime from p:kiosk @_restart', () => {
+		const result = parseShowProperties({
+			'p:kiosk': { '@_restart': '300000' },
+		});
+		expect(result.showType).toBe('kiosk');
+		expect(result.kioskRestartTime).toBe(300000);
+	});
+
+	it('should not set kioskRestartTime when restart attribute is absent', () => {
 		const result = parseShowProperties({
 			'p:kiosk': {},
+		});
+		expect(result.showType).toBe('kiosk');
+		expect(result.kioskRestartTime).toBeUndefined();
+	});
+
+	it('should not set kioskRestartTime for non-kiosk show types', () => {
+		const result = parseShowProperties({
+			'p:present': {},
+		});
+		expect(result.showType).toBe('presented');
+		expect(result.kioskRestartTime).toBeUndefined();
+	});
+
+	it('should ignore invalid kioskRestartTime values', () => {
+		const result = parseShowProperties({
+			'p:kiosk': { '@_restart': 'abc' },
+		});
+		expect(result.showType).toBe('kiosk');
+		expect(result.kioskRestartTime).toBeUndefined();
+	});
+
+	it('should ignore zero or negative kioskRestartTime', () => {
+		const result = parseShowProperties({
+			'p:kiosk': { '@_restart': '0' },
+		});
+		expect(result.kioskRestartTime).toBeUndefined();
+
+		const result2 = parseShowProperties({
+			'p:kiosk': { '@_restart': '-1000' },
+		});
+		expect(result2.kioskRestartTime).toBeUndefined();
+	});
+
+	it('should handle a fully populated show properties object', () => {
+		const result = parseShowProperties({
+			'p:kiosk': { '@_restart': '600000' },
 			'@_loop': '1',
 			'@_showNarration': '0',
 			'@_showAnimation': '0',
@@ -131,5 +175,6 @@ describe('parseShowProperties', () => {
 		expect(result.showSlidesMode).toBe('range');
 		expect(result.showSlidesFrom).toBe(1);
 		expect(result.showSlidesTo).toBe(10);
+		expect(result.kioskRestartTime).toBe(600000);
 	});
 });

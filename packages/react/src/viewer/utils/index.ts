@@ -29,3 +29,4 @@ export * from "./sparkline-renderer";
 export * from "./connector-reroute";
 export * from "./hyperlink-security";
 export * from "./chart-map";
+export * from "./artistic-effects";

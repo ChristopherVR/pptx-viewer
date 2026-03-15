@@ -107,6 +107,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       )
       .withSlideSizeType(this.rawSlideSizeType)
       .withThumbnailData(this.thumbnailData ?? undefined)
+      .withCommentAuthors(
+        this.commentAuthorDetails.size > 0
+          ? Array.from(this.commentAuthorDetails.values())
+          : undefined,
+      )
       .build();
   }
 
@@ -426,7 +431,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     // ── 2. Invalidate layout element cache for the old layout ───────
     this.layoutCache.delete(layoutPath);
 
-    // ── 3. Resolve layout name and background ───────────────────────
+    // ── 3. Remap placeholder elements to the new layout ─────────────
+    const remappedElements = this.remapElementsToNewLayout(
+      slide.elements,
+      layoutXml as XmlObject,
+      layoutPath,
+    );
+
+    // ── 4. Resolve layout name and background ───────────────────────
     const sldLayout = (layoutXml as XmlObject)["p:sldLayout"] as
       | XmlObject
       | undefined;
@@ -439,9 +451,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
       "p:sldLayout",
     );
 
-    // ── 4. Update the slide object ──────────────────────────────────
+    // ── 5. Update the slide object ──────────────────────────────────
     const updated: PptxSlide = {
       ...slide,
+      elements: remappedElements,
       layoutPath,
       layoutName,
       isDirty: true,

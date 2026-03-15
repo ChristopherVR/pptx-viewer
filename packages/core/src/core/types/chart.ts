@@ -415,6 +415,29 @@ export interface PptxChartData {
   backWall?: PptxChart3DSurface;
   /** External data source reference (c:externalData) linking to an external workbook. */
   externalData?: PptxExternalData;
+
+  /**
+   * Parsed data from the embedded xlsx workbook (from ppt/embeddings/).
+   *
+   * When a chart references an embedded Excel workbook via `c:externalData`,
+   * the xlsx is parsed to extract categories and series. This data serves as
+   * a fallback when the chart XML's cached series data is empty or incomplete.
+   */
+  embeddedWorkbookData?: PptxEmbeddedWorkbookData;
+
+  /**
+   * Pivot table data source reference (c:pivotSource).
+   *
+   * When present, the chart's data originates from a PivotTable.
+   * The chart still renders using its cached series data; this field
+   * is metadata about the data origin, preserved for round-trip fidelity.
+   */
+  pivotSource?: {
+    /** Pivot table reference name, e.g. "[workbook.xlsx]Sheet1!PivotTable1". */
+    name: string;
+    /** Format identifier from c:fmtId/@val. */
+    formatId?: number;
+  };
   /**
    * Whether only visible cells are plotted (c:plotVisOnly).
    * When `true` (the default), hidden cells are excluded from the chart.

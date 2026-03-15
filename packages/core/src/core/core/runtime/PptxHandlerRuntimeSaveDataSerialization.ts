@@ -304,6 +304,47 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
           }
         }
 
+        // Update pivotSource (c:pivotSource) — preserve or insert
+        if (chartData.pivotSource) {
+          const existingPivotSource =
+            this.xmlLookupService.getChildByLocalName(
+              chartSpace,
+              "pivotSource",
+            );
+          if (existingPivotSource) {
+            // Update name text
+            const nameNode = this.xmlLookupService.getChildByLocalName(
+              existingPivotSource,
+              "name",
+            );
+            if (nameNode) {
+              // Update text content — fast-xml-parser uses #text for text nodes
+              nameNode["#text"] = chartData.pivotSource.name;
+            }
+            // Update fmtId
+            if (chartData.pivotSource.formatId !== undefined) {
+              const fmtIdNode = this.xmlLookupService.getChildByLocalName(
+                existingPivotSource,
+                "fmtId",
+              );
+              if (fmtIdNode) {
+                fmtIdNode["@_val"] = String(chartData.pivotSource.formatId);
+              }
+            }
+          } else {
+            // Insert new c:pivotSource element into chartSpace
+            const pivotSourceXml: XmlObject = {
+              "c:name": { "#text": chartData.pivotSource.name },
+            };
+            if (chartData.pivotSource.formatId !== undefined) {
+              pivotSourceXml["c:fmtId"] = {
+                "@_val": String(chartData.pivotSource.formatId),
+              };
+            }
+            (chartSpace as XmlObject)["c:pivotSource"] = pivotSourceXml;
+          }
+        }
+
         // Update plotVisOnly (c:plotVisOnly)
         if (chartData.plotVisibleOnly !== undefined) {
           const plotVisOnlyNode =

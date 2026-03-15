@@ -19,6 +19,8 @@ export interface UseSlideNavigationInput {
   onSetActiveSlideIndex: (index: number) => void;
   onPlayActionSound?: (soundPath: string) => void;
   loopContinuously?: boolean;
+  /** Whether to use rehearsed auto-advance timings. When false, slides advance only on click. */
+  useTimings?: boolean;
   playNextAnimationGroup: () => boolean;
   clearPresentationTimers: () => void;
   runPresentationEntranceAnimations: (slideIndex: number) => void;
@@ -52,6 +54,7 @@ export function useSlideNavigation(
     onSetActiveSlideIndex,
     onPlayActionSound,
     loopContinuously,
+    useTimings,
     playNextAnimationGroup,
     clearPresentationTimers,
     runPresentationEntranceAnimations,
@@ -71,6 +74,9 @@ export function useSlideNavigation(
 
   const scheduleAutoAdvanceForSlide = useCallback(
     (slideIndex: number) => {
+      // When useTimings is explicitly false (manual advance mode), skip auto-advance
+      if (useTimings === false) return;
+
       const slide = slides[slideIndex];
       const advanceAfterMs = slide?.transition?.advanceAfterMs;
       if (
@@ -89,7 +95,7 @@ export function useSlideNavigation(
       );
       presentationTimersRef.current.push(timer);
     },
-    [slides, presentationTimersRef],
+    [slides, presentationTimersRef, useTimings],
   );
 
   // -----------------------------------------------------------------------

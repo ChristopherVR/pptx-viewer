@@ -12,7 +12,7 @@
 // ==========================================================================
 
 import type { UnderlineStyle } from "./common";
-import type { PptxTextWarpPreset, Text3DStyle } from "./three-d";
+import type { Pptx3DScene, PptxTextWarpPreset, Text3DStyle } from "./three-d";
 
 /**
  * Rich text style properties for a text run or paragraph.
@@ -324,10 +324,12 @@ export interface TextStyle {
   /** Text reflection offset distance in px. */
   textReflectionOffset?: number;
 
-  // ── 3D Text (from `a:bodyPr/a:sp3d`) ──
+  // ── 3D Text (from `a:bodyPr/a:sp3d` and `a:bodyPr/a:scene3d`) ──
 
   /** 3D extrusion/bevel settings on the text body. */
   text3d?: Text3DStyle;
+  /** 3D scene (camera + light rig) settings on the text body (`a:bodyPr/a:scene3d`). */
+  textBodyScene3d?: Pptx3DScene;
 }
 
 /**

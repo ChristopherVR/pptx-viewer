@@ -356,3 +356,139 @@ describe("parseAuthorNode", () => {
     expect(result).toEqual({ id: "4", name: "Author 4" });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Tests: parseAuthorNodeFull (with initials, lastIdx, clrIdx)
+// ---------------------------------------------------------------------------
+
+interface PptxCommentAuthorDetail {
+  id: string;
+  name: string;
+  initials: string;
+  lastIdx: number;
+  clrIdx: number;
+}
+
+/**
+ * Extracts full author detail including initials, lastIdx, and clrIdx
+ * for round-trip preservation. Mirrors the updated loadCommentAuthors logic.
+ */
+function parseAuthorNodeFull(
+  author: XmlObject,
+  index: number,
+): PptxCommentAuthorDetail | null {
+  const authorId = String(author?.["@_id"] || index).trim();
+  if (authorId.length === 0) return null;
+
+  const authorNameRaw = String(
+    author?.["@_name"] || author?.["@_initials"] || `Author ${authorId}`,
+  ).trim();
+  const authorName =
+    authorNameRaw.length > 0 ? authorNameRaw : `Author ${authorId}`;
+
+  const initialsRaw = String(author?.["@_initials"] || "").trim();
+  const lastIdxRaw = Number.parseInt(String(author?.["@_lastIdx"] || "0"), 10);
+  const clrIdxRaw = Number.parseInt(String(author?.["@_clrIdx"] || "0"), 10);
+
+  const toInitials = (name: string): string => {
+    const tokens = name
+      .split(/\s+/)
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+    if (tokens.length === 0) return "U";
+    return tokens.slice(0, 2).map((t) => t[0].toUpperCase()).join("");
+  };
+
+  return {
+    id: authorId,
+    name: authorName,
+    initials: initialsRaw.length > 0 ? initialsRaw : toInitials(authorName),
+    lastIdx: Number.isFinite(lastIdxRaw) ? lastIdxRaw : 0,
+    clrIdx: Number.isFinite(clrIdxRaw) ? clrIdxRaw : 0,
+  };
+}
+
+describe("parseAuthorNodeFull", () => {
+  it("should extract all author properties", () => {
+    const result = parseAuthorNodeFull({
+      "@_id": "0",
+      "@_name": "John Doe",
+      "@_initials": "JD",
+      "@_lastIdx": "3",
+      "@_clrIdx": "2",
+    }, 0);
+    expect(result).toEqual({
+      id: "0",
+      name: "John Doe",
+      initials: "JD",
+      lastIdx: 3,
+      clrIdx: 2,
+    });
+  });
+
+  it("should preserve original initials rather than deriving them", () => {
+    const result = parseAuthorNodeFull({
+      "@_id": "1",
+      "@_name": "Jane Smith",
+      "@_initials": "JS-custom",
+      "@_lastIdx": "0",
+      "@_clrIdx": "1",
+    }, 0);
+    expect(result?.initials).toBe("JS-custom");
+  });
+
+  it("should derive initials from name when initials are absent", () => {
+    const result = parseAuthorNodeFull({
+      "@_id": "2",
+      "@_name": "Alice Bob",
+      "@_lastIdx": "5",
+      "@_clrIdx": "3",
+    }, 0);
+    expect(result?.initials).toBe("AB");
+  });
+
+  it("should default lastIdx and clrIdx to 0 when absent", () => {
+    const result = parseAuthorNodeFull({
+      "@_id": "3",
+      "@_name": "Test",
+      "@_initials": "T",
+    }, 0);
+    expect(result?.lastIdx).toBe(0);
+    expect(result?.clrIdx).toBe(0);
+  });
+
+  it("should handle non-numeric lastIdx gracefully", () => {
+    const result = parseAuthorNodeFull({
+      "@_id": "4",
+      "@_name": "Test",
+      "@_initials": "T",
+      "@_lastIdx": "abc",
+      "@_clrIdx": "0",
+    }, 0);
+    expect(result?.lastIdx).toBe(0);
+  });
+
+  it("should preserve clrIdx values > 0", () => {
+    const result = parseAuthorNodeFull({
+      "@_id": "5",
+      "@_name": "User Five",
+      "@_initials": "UF",
+      "@_lastIdx": "10",
+      "@_clrIdx": "7",
+    }, 0);
+    expect(result?.clrIdx).toBe(7);
+    expect(result?.lastIdx).toBe(10);
+  });
+
+  it("should return null when id is empty string", () => {
+    const result = parseAuthorNodeFull({ "@_id": "", "@_name": "Test" }, 0);
+    // Note: empty @_id falls back to index (0), so it becomes "0"
+    expect(result).toEqual({
+      id: "0",
+      name: "Test",
+      initials: "T",
+      lastIdx: 0,
+      clrIdx: 0,
+    });
+  });
+});

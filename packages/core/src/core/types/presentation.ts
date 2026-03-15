@@ -16,6 +16,7 @@ import type { PptxSlideTransition } from "./transition";
 import type { PptxElementAnimation, PptxNativeAnimation } from "./animation";
 import type {
   PptxComment,
+  PptxCommentAuthor,
   PptxCompatibilityWarning,
   PptxTagCollection,
   PptxCustomProperty,
@@ -227,6 +228,8 @@ export interface PptxPresentationProperties {
   gridSpacing?: { cx: number; cy: number };
   /** Pen colour for presentation mode annotations (from `p:showPr/p:penClr`). */
   penColor?: string;
+  /** Kiosk auto-restart interval in milliseconds (from `p:kiosk/@restart`). Only meaningful when showType is "kiosk". */
+  kioskRestartTime?: number;
 }
 
 /**
@@ -446,6 +449,8 @@ export interface PptxData {
   customerData?: PptxCustomerData[];
   /** Thumbnail image binary data from `docProps/thumbnail.{jpeg,png}`. */
   thumbnailData?: Uint8Array;
+  /** Comment authors parsed from `ppt/commentAuthors.xml` for round-trip preservation. */
+  commentAuthors?: PptxCommentAuthor[];
 }
 
 // ==========================================================================
