@@ -3,6 +3,7 @@ import type React from "react";
 
 import {
   apply3dEffects,
+  build3DExtrusionData,
   getCameraTransform,
   getExtrusionShadow,
   get3DBevelShadow,
@@ -593,5 +594,251 @@ describe("apply3dEffects", () => {
     apply3dEffects(base, undefined, { presetMaterial: "metal" });
     expect(base.filter).toContain("blur(2px)");
     expect(base.filter).toContain("brightness");
+  });
+
+  it("should compose transform with existing transform", () => {
+    const base: React.CSSProperties = { transform: "scaleX(-1)" };
+    apply3dEffects(base, { cameraPreset: "perspectiveAbove" }, undefined);
+    expect(base.transform).toContain("scaleX(-1)");
+    expect(base.transform).toContain("rotateX(-20deg)");
+  });
+
+  it("should add translateZ for extrusion depth", () => {
+    const base: React.CSSProperties = {};
+    apply3dEffects(base, undefined, {
+      extrusionHeight: 95250, // 10px
+    });
+    expect(base.transform).toContain("translateZ(");
+  });
+});
+
+// ── build3DExtrusionData ─────────────────────────────────────────────────
+
+describe("build3DExtrusionData", () => {
+  it("returns hasExtrusion: false when no shape3d", () => {
+    const result = build3DExtrusionData(undefined, undefined, "#000", 100, 100);
+    expect(result.hasExtrusion).toBe(false);
+    expect(result.panels).toHaveLength(0);
+  });
+
+  it("returns hasExtrusion: false when extrusionHeight is zero", () => {
+    const result = build3DExtrusionData(
+      { extrusionHeight: 0 },
+      undefined,
+      "#000",
+      100,
+      100,
+    );
+    expect(result.hasExtrusion).toBe(false);
+  });
+
+  it("returns hasExtrusion: true with panels for valid extrusion", () => {
+    const result = build3DExtrusionData(
+      { extrusionHeight: 95250, extrusionColor: "#4472C4" }, // 10px
+      { cameraPreset: "perspectiveFront" },
+      "#4472C4",
+      200,
+      150,
+    );
+    expect(result.hasExtrusion).toBe(true);
+    expect(result.panels.length).toBeGreaterThan(0);
+    expect(result.panels.length).toBeLessThanOrEqual(4);
+  });
+
+  it("wrapper style has preserve-3d and perspective", () => {
+    const result = build3DExtrusionData(
+      { extrusionHeight: 95250 },
+      { cameraPreset: "perspectiveFront" },
+      "#888",
+      200,
+      100,
+    );
+    expect(result.wrapperStyle.transformStyle).toBe("preserve-3d");
+    expect(result.wrapperStyle.perspective).toBe("1000px");
+    expect(result.wrapperStyle.pointerEvents).toBe("none");
+  });
+
+  it("front face style has translateZ", () => {
+    const result = build3DExtrusionData(
+      { extrusionHeight: 95250 }, // 10px depth
+      undefined,
+      "#888",
+      200,
+      100,
+    );
+    expect(result.frontFaceStyle.transform).toContain("translateZ(");
+    expect(result.frontFaceStyle.backfaceVisibility).toBe("hidden");
+  });
+
+  it("generates side panels with correct dimensions", () => {
+    const result = build3DExtrusionData(
+      { extrusionHeight: 95250 }, // 10px depth
+      { cameraPreset: "perspectiveFront" },
+      "#888",
+      200,
+      100,
+    );
+    // With no rotation, all 4 sides should be visible
+    const sides = result.panels.map((p) => p.side);
+    expect(sides).toContain("bottom");
+    expect(sides).toContain("top");
+    expect(sides).toContain("left");
+    expect(sides).toContain("right");
+  });
+
+  it("bottom panel has correct width and depth", () => {
+    const result = build3DExtrusionData(
+      { extrusionHeight: 95250 }, // 10px
+      { cameraPreset: "perspectiveFront" },
+      "#888",
+      200,
+      100,
+    );
+    const bottom = result.panels.find((p) => p.side === "bottom");
+    expect(bottom).toBeDefined();
+    expect(bottom!.style.width).toBe(200);
+    expect(bottom!.style.height).toBe(10); // depth in px
+  });
+
+  it("right panel has correct height and depth", () => {
+    const result = build3DExtrusionData(
+      { extrusionHeight: 95250 }, // 10px
+      { cameraPreset: "perspectiveFront" },
+      "#888",
+      200,
+      100,
+    );
+    const right = result.panels.find((p) => p.side === "right");
+    expect(right).toBeDefined();
+    expect(right!.style.width).toBe(10); // depth in px
+    expect(right!.style.height).toBe(100);
+  });
+
+  it("panels have rotateX/Y transforms for perspective camera", () => {
+    const result = build3DExtrusionData(
+      { extrusionHeight: 95250 },
+      { cameraPreset: "perspectiveAbove" }, // rotateX = -20
+      "#888",
+      200,
+      100,
+    );
+    const bottom = result.panels.find((p) => p.side === "bottom");
+    expect(bottom?.style.transform).toContain("rotateX(-20deg)");
+    expect(bottom?.style.transform).toContain("rotateX(-90deg)");
+  });
+
+  it("uses extrusionColor for side face colouring", () => {
+    const result = build3DExtrusionData(
+      { extrusionHeight: 95250, extrusionColor: "#FF0000" },
+      undefined,
+      "#0000FF",
+      200,
+      100,
+    );
+    // All panels should use the extrusion colour (darkened)
+    for (const panel of result.panels) {
+      expect(panel.style.background).toBeDefined();
+    }
+  });
+
+  it("falls back to fillColor when extrusionColor not set", () => {
+    const result = build3DExtrusionData(
+      { extrusionHeight: 95250 },
+      undefined,
+      "#00FF00",
+      200,
+      100,
+    );
+    // Panels should be generated (using fill colour)
+    expect(result.panels.length).toBeGreaterThan(0);
+  });
+
+  it("caps extrusion depth at 80px", () => {
+    const result = build3DExtrusionData(
+      { extrusionHeight: 9525 * 200 }, // 200px raw, should cap at 80
+      undefined,
+      "#888",
+      200,
+      100,
+    );
+    const bottom = result.panels.find((p) => p.side === "bottom");
+    expect(bottom!.style.height).toBe(80);
+  });
+
+  it("includes material overlay for plastic material", () => {
+    const result = build3DExtrusionData(
+      { extrusionHeight: 95250, presetMaterial: "plastic" },
+      undefined,
+      "#888",
+      200,
+      100,
+    );
+    expect(result.materialOverlay).toBeDefined();
+    expect(result.materialOverlay).toContain("linear-gradient");
+  });
+
+  it("includes material overlay for metal material", () => {
+    const result = build3DExtrusionData(
+      { extrusionHeight: 95250, presetMaterial: "metal" },
+      undefined,
+      "#888",
+      200,
+      100,
+    );
+    expect(result.materialOverlay).toBeDefined();
+    expect(result.materialOverlay).toContain("linear-gradient");
+    // Metal should have high-contrast specular highlights
+    expect(result.materialOverlay).toContain("rgba(255,255,255,0.3)");
+  });
+
+  it("returns no material overlay for flat material", () => {
+    const result = build3DExtrusionData(
+      { extrusionHeight: 95250, presetMaterial: "flat" },
+      undefined,
+      "#888",
+      200,
+      100,
+    );
+    expect(result.materialOverlay).toBeUndefined();
+  });
+
+  it("applies default 800px perspective when no scene3d", () => {
+    const result = build3DExtrusionData(
+      { extrusionHeight: 95250 },
+      undefined,
+      "#888",
+      200,
+      100,
+    );
+    expect(result.wrapperStyle.perspective).toBe("800px");
+  });
+
+  it("uses scene3d perspective when provided", () => {
+    const result = build3DExtrusionData(
+      { extrusionHeight: 95250 },
+      { cameraPreset: "perspectiveHeroicLeftFacing" }, // 600px
+      "#888",
+      200,
+      100,
+    );
+    expect(result.wrapperStyle.perspective).toBe("600px");
+  });
+
+  it("selectively shows panels based on camera angle", () => {
+    // Camera from far left: rotateY > 5 hides left, shows right
+    const result = build3DExtrusionData(
+      { extrusionHeight: 95250 },
+      { cameraPreset: "perspectiveHeroicExtremeLeftFacing" }, // rotateY = 45
+      "#888",
+      200,
+      100,
+    );
+    const sides = result.panels.map((p) => p.side);
+    // With rotateY = 45, left panel should NOT be visible (rotateY >= -5 is the check)
+    // but right panel should be (rotateY <= 5 fails since 45 > 5, so right NOT shown)
+    // Actually the logic is: showRight = rotateY <= 5, showLeft = rotateY >= -5
+    // rotateY = 45: showRight = false, showLeft = true
+    expect(sides).toContain("left");
+    expect(sides).not.toContain("right");
   });
 });

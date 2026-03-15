@@ -4,6 +4,7 @@ import type { PptxElement, PptxChartData } from "pptx-viewer-core";
 import { computeValueRange, computeValueRangeForChart, paletteColor } from "./chart-helpers";
 import { computeLayout } from "./chart-layout";
 import { renderTitle, renderLegend, renderChrome } from "./chart-chrome";
+import { SurfaceChart3D } from "./SurfaceChart3D";
 
 // ── Isometric projection utilities ───────────────────────────────
 
@@ -306,13 +307,10 @@ export function renderFlatSurfaceChart(
 }
 
 /**
- * Render a surface chart.
- *
- * Uses an isometric 3D-like projection when the data grid is large enough
- * (at least 2 series and 2 categories). Falls back to the original flat
- * colour-mapped grid for smaller data sets.
+ * Render the SVG isometric surface chart (used as fallback when Three.js
+ * is not available, or for data grids that are too small for 3D).
  */
-export function renderSurfaceChart(
+export function renderIsometricSurfaceFallback(
   element: PptxElement,
   chartData: PptxChartData,
   categoryLabels: ReadonlyArray<string>,
@@ -323,6 +321,42 @@ export function renderSurfaceChart(
   if (seriesCount >= 2 && catCount >= 2) {
     return renderIsometricSurfaceChart(element, chartData, categoryLabels);
   }
+  return renderFlatSurfaceChart(element, chartData, categoryLabels);
+}
+
+/**
+ * Render a surface chart.
+ *
+ * Attempts to render an interactive 3D surface using Three.js when the
+ * data grid is large enough (at least 2 series and 2 categories).
+ * Falls back to the SVG isometric or flat renderer when Three.js is
+ * not available or the grid is too small.
+ */
+export function renderSurfaceChart(
+  element: PptxElement,
+  chartData: PptxChartData,
+  categoryLabels: ReadonlyArray<string>,
+): React.ReactNode {
+  const catCount = Math.max(categoryLabels.length, 1);
+  const seriesCount = chartData.series.length;
+
+  // For data grids large enough, attempt 3D rendering with isometric fallback.
+  if (seriesCount >= 2 && catCount >= 2) {
+    const svgFallback = renderIsometricSurfaceChart(
+      element,
+      chartData,
+      categoryLabels,
+    );
+    return (
+      <SurfaceChart3D
+        element={element}
+        chartData={chartData}
+        categoryLabels={categoryLabels}
+        fallback={svgFallback}
+      />
+    );
+  }
+
   return renderFlatSurfaceChart(element, chartData, categoryLabels);
 }
 

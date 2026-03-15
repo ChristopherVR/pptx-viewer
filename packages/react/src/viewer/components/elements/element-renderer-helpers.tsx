@@ -41,6 +41,8 @@ interface ContainerStyleParams {
   opacity: number | undefined;
   animationState: ElementAnimationState | undefined;
   shapeVisualStyle: CSSProperties;
+  /** Whether the element has active CSS 3D extrusion panels. */
+  has3DExtrusion?: boolean;
 }
 
 /** Builds the `style` object for the outermost element container `<div>`. */
@@ -52,7 +54,17 @@ export function getContainerStyle({
   opacity,
   animationState,
   shapeVisualStyle,
+  has3DExtrusion,
 }: ContainerStyleParams): CSSProperties {
+  // For 3D-extruded shapes the side panels extend beyond the element bounds,
+  // so overflow must be visible and the container needs `perspective` to
+  // establish a proper 3D rendering context.
+  const overflowValue = has3DExtrusion
+    ? ("visible" as const)
+    : isImg
+      ? ("hidden" as const)
+      : undefined;
+
   return {
     left: isFullscreenMedia ? 0 : el.x,
     top: isFullscreenMedia ? 0 : el.y,
@@ -60,8 +72,8 @@ export function getContainerStyle({
     height: isFullscreenMedia ? "100%" : Math.max(el.height, MIN_ELEMENT_SIZE),
     transform: isFullscreenMedia ? "none" : getElementTransform(el),
     transformOrigin: "center",
-    overflow: isImg ? "hidden" : undefined,
-    clipPath: isImg ? getCropShapeClipPath(el) : undefined,
+    overflow: overflowValue,
+    clipPath: isImg && !has3DExtrusion ? getCropShapeClipPath(el) : undefined,
     zIndex: isFullscreenMedia ? 20 : zIndex,
     opacity,
     visibility: animationState?.visible === false ? "hidden" : "visible",

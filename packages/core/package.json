@@ -35,14 +35,14 @@
 	},
 	"peerDependencies": {
 		"jszip": "^3.10.1",
-		"fast-xml-parser": "^5.3.7"
+		"fast-xml-parser": "^5.5.5"
 	},
 	"devDependencies": {
 		"emf-converter": "workspace:*",
 		"mtx-decompressor": "workspace:*",
 		"tsup": "^8.5.1",
 		"typescript": "^5.9.3",
-		"vitest": "^3.2.4"
+		"vitest": "^4.1.0"
 	},
 	"files": [
 		"dist/",

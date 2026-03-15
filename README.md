@@ -13,6 +13,7 @@ A comprehensive TypeScript monorepo for parsing, editing, rendering, and convert
 - [Core Package (`pptx-viewer-core`)](#core-package-pptx-viewer-core)
 - [React Package (`pptx-viewer`)](#react-package-pptx-viewer)
 - [EMF Converter Package (`emf-converter`)](#emf-converter-package-emf-converter)
+- [MTX Decompressor Package (`mtx-decompressor`)](#mtx-decompressor-package-mtx-decompressor)
 - [Data Flow](#data-flow)
 - [Key Concepts](#key-concepts)
 - [API Reference](#api-reference)
@@ -23,31 +24,37 @@ A comprehensive TypeScript monorepo for parsing, editing, rendering, and convert
 
 ## Overview
 
-`pptx-viewer` is a monorepo containing three packages that together provide a full-featured PowerPoint SDK:
+`pptx-viewer` is a monorepo containing four packages that together provide a full-featured PowerPoint SDK:
 
 1. **Parse** `.pptx` files from raw `ArrayBuffer` into a structured `PptxData` model
 2. **Render** slides as interactive React components with full visual fidelity
 3. **Edit** presentations programmatically or via the built-in WYSIWYG editor
 4. **Save** changes back to a valid `.pptx` file (round-trip safe)
 5. **Convert** presentations to Markdown with optional media extraction
-6. **Export** slides as images (PNG/JPEG), PDF, GIF, or video
+6. **Export** slides as images (PNG/JPEG), SVG, PDF, GIF, or video
+7. **Collaborate** in real-time via Yjs CRDT with presence tracking
+8. **Encrypt/Decrypt** password-protected PPTX files (AES-128/256)
 
-The codebase handles the full OpenXML specification including shapes, text, tables, charts, SmartArt, connectors, animations, transitions, themes, slide masters, embedded media, EMF/WMF metafiles, digital signatures, and more.
+The codebase handles the full OpenXML specification including 16 element types, 187+ preset shapes, 23 chart types, SmartArt (13 layouts), 3D models, animations (40+ presets), transitions (42 types including morph), themes, slide masters, embedded media, EMF/WMF metafiles, OLE objects, digital ink with pressure sensitivity, digital signatures, PPTX encryption, VBA macro preservation, OOXML Strict conformance, and more.
+
+**Test coverage:** 11,900+ passing tests across 419 test files.
 
 ## Packages
 
 ```
 packages/
-  core/           pptx-viewer-core    – Parse, edit, serialize PPTX files (framework-agnostic)
-  react/          pptx-viewer         – React-based viewer/editor component
-  emf-converter/  emf-converter       – EMF/WMF metafile to PNG converter
+  core/              pptx-viewer-core     – Parse, edit, serialize PPTX files (framework-agnostic)
+  react/             pptx-viewer          – React-based viewer/editor component
+  emf-converter/     emf-converter        – EMF/WMF metafile to PNG converter
+  mtx-decompressor/  mtx-decompressor     – MicroType Express font decompressor
 ```
 
 | Package | Description | Dependencies |
 |---------|-------------|--------------|
-| `pptx-viewer-core` | Core PPTX engine — parse, edit, serialize, and convert PowerPoint files | `jszip`, `fast-xml-parser` (peers) |
-| `pptx-viewer` | React-based PowerPoint viewer, editor, and canvas export | `pptx-viewer-core`, `react`, `framer-motion`, `lucide-react`, etc. (peers) |
+| `pptx-viewer-core` | Core PPTX engine -- parse, edit, serialize, and convert PowerPoint files | `jszip`, `fast-xml-parser` (peers) |
+| `pptx-viewer` | React-based PowerPoint viewer, editor, and canvas export | `pptx-viewer-core`, `react`, `framer-motion`, `lucide-react`, etc. (peers); optional: `three`, `@react-three/fiber`, `yjs` |
 | `emf-converter` | Convert EMF/WMF metafile binaries to PNG data URLs using Canvas | None |
+| `mtx-decompressor` | Decompress MicroType Express (MTX) compressed fonts from EOT containers into TrueType | None |
 
 ## Getting Started
 
@@ -66,7 +73,7 @@ cd pptx-viewer
 # Install dependencies
 bun install
 
-# Build all packages
+# Build all packages (order: emf-converter -> mtx-decompressor -> core -> react)
 bun run build
 
 # Run tests
@@ -155,182 +162,112 @@ function App() {
 ### High-Level Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     React Package (pptx-viewer)                 │
-│                                                                 │
-│  ┌──────────────┐  ┌──────────────┐  ┌───────────────────────┐  │
-│  │ PowerPoint   │  │  SlideCanvas │  │   Inspector/Toolbar   │  │
-│  │   Viewer     │──│  + Elements  │  │   + Dialogs           │  │
-│  │ (orchestrator│  │  Rendering   │  │   (editing UI)        │  │
-│  └──────┬───────┘  └──────────────┘  └───────────────────────┘  │
-│         │                                                       │
-│  ┌──────┴───────────────────────────────────────────────────┐   │
-│  │              Hooks Layer                                  │   │
-│  │  useViewerState, useEditorOperations, useLoadContent,     │   │
-│  │  usePresentationMode, useExportHandlers, ...              │   │
-│  └──────┬────────────────────────────────────────────────────┘   │
-│         │                                                       │
-│  ┌──────┴───────────────────────────────────────────────────┐   │
-│  │              Utils Layer                                  │   │
-│  │  Shape rendering, text layout, chart SVG, animation,      │   │
-│  │  color resolution, export (PDF/GIF/video), connectors     │   │
-│  └──────────────────────────────────────────────────────────┘   │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │ imports
-┌─────────────────────────┴───────────────────────────────────────┐
-│                   Core Package (pptx-viewer-core)               │
-│                                                                 │
-│  ┌──────────────┐  ┌────────────────┐  ┌─────────────────────┐  │
-│  │ PptxHandler  │  │   Converter    │  │    Services          │  │
-│  │ (public API) │  │ (PPTX → MD)   │  │ (animation, loader,  │  │
-│  └──────┬───────┘  └────────────────┘  │  transitions, etc.)  │  │
-│         │                              └─────────────────────┘  │
-│  ┌──────┴──────────────────────────────────────────────────┐    │
-│  │              Runtime Layer                               │    │
-│  │  PptxHandlerRuntime — 50+ mixin modules for parsing,     │    │
-│  │  serializing, theme resolution, element processing        │    │
-│  └──────┬──────────────────────────────────────────────────┘    │
-│         │                                                       │
-│  ┌──────┴──────────────────────────────────────────────────┐    │
-│  │  ┌─────────┐  ┌──────────┐  ┌─────────┐  ┌──────────┐  │    │
-│  │  │  Types  │  │ Geometry │  │  Color   │  │ Builders │  │    │
-│  │  │ System  │  │  Engine  │  │  Engine  │  │ (XML)    │  │    │
-│  │  └─────────┘  └──────────┘  └─────────┘  └──────────┘  │    │
-│  └─────────────────────────────────────────────────────────┘    │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │ imports
-┌─────────────────────────┴───────────────────────────────────────┐
-│               EMF Converter Package (emf-converter)             │
-│                                                                 │
-│  Binary EMF/WMF parsing → GDI record replay → Canvas → PNG     │
-└─────────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------------+
+|                     React Package (pptx-viewer)                    |
+|                                                                    |
+|  +----------------+  +--------------+  +------------------------+  |
+|  | PowerPoint     |  | SlideCanvas  |  |   Inspector/Toolbar    |  |
+|  |   Viewer       |--|  + Elements  |  |   + Dialogs            |  |
+|  | (orchestrator) |  |  Rendering   |  |   (editing UI)         |  |
+|  +-------+--------+  +--------------+  +------------------------+  |
+|          |                                                         |
+|  +-------+-----------------------------------------------------+  |
+|  |              Hooks Layer                                      |  |
+|  |  useViewerState, useEditorOperations, useLoadContent,         |  |
+|  |  usePresentationMode, useExportHandlers,                      |  |
+|  |  useCollaborativeState, usePresenceTracking, ...              |  |
+|  +-------+------------------------------------------------------+  |
+|          |                                                         |
+|  +-------+-----------------------------------------------------+  |
+|  |              Utils Layer                                      |  |
+|  |  Shape rendering, text layout, chart SVG, animation,          |  |
+|  |  color resolution, export (PDF/SVG/GIF/video), connectors,    |  |
+|  |  hyperlink security, 3D model rendering                       |  |
+|  +--------------------------------------------------------------+  |
++---------------------------+----------------------------------------+
+                            | imports
++---------------------------+----------------------------------------+
+|                   Core Package (pptx-viewer-core)                  |
+|                                                                    |
+|  +----------------+  +------------------+  +--------------------+  |
+|  | PptxHandler    |  |   Converter      |  |    Services         |  |
+|  | (public API)   |  | (PPTX -> MD)     |  | (animation, loader, |  |
+|  +-------+--------+  +------------------+  |  transitions,       |  |
+|          |                                  |  crypto, etc.)      |  |
+|  +-------+-------------------------------+ +--------------------+  |
+|  |              Runtime Layer             |                        |
+|  |  PptxHandlerRuntime -- 50+ mixin       |                        |
+|  |  modules for parsing, serializing,     |                        |
+|  |  theme resolution, element processing  |                        |
+|  +-------+-------------------------------+                         |
+|          |                                                         |
+|  +-------+-----------------------------------------------------+  |
+|  |  +---------+  +----------+  +---------+  +----------+        |  |
+|  |  |  Types  |  | Geometry |  |  Color   |  | Builders |       |  |
+|  |  | System  |  |  Engine  |  |  Engine  |  | (XML)    |       |  |
+|  |  +---------+  +----------+  +---------+  +----------+        |  |
+|  +--------------------------------------------------------------+  |
++---------------------------+----------------------------------------+
+                            | imports
++---------------------------+----------------------------------------+
+|          EMF Converter Package (emf-converter)                     |
+|  Binary EMF/WMF parsing -> GDI record replay -> Canvas -> PNG      |
++--------------------------------------------------------------------+
++--------------------------------------------------------------------+
+|       MTX Decompressor Package (mtx-decompressor)                  |
+|  EOT/MTX compressed fonts -> LZ decompression -> CTF -> TrueType   |
++--------------------------------------------------------------------+
 ```
 
 ### Package Dependency Graph
 
 ```
 pptx-viewer (React)
-  └── pptx-viewer-core
-        └── emf-converter
+  +-- pptx-viewer-core
+  |     +-- emf-converter
+  |     +-- mtx-decompressor
+  +-- emf-converter
+  +-- mtx-decompressor
 ```
 
 ## Core Package (`pptx-viewer-core`)
 
-The core package is framework-agnostic and handles all PPTX file operations.
+The core package is framework-agnostic and handles all PPTX file operations. See [packages/core/README.md](packages/core/README.md) for full documentation.
 
-### Module Structure
+### Key Capabilities
 
-```
-packages/core/src/
-├── index.ts                    # Main entry — re-exports core + converter
-├── core/
-│   ├── PptxHandler.ts          # Public facade (extends PptxHandlerCore)
-│   ├── PptxHandlerCore.ts      # Thin facade over the runtime
-│   ├── types/                  # Complete PPTX type system (~20 modules)
-│   │   ├── common.ts           # Shared enums and value types
-│   │   ├── text.ts             # Text styles, segments, paragraphs
-│   │   ├── elements.ts         # Element discriminated union (11 variants)
-│   │   ├── element-base.ts     # Base properties for all elements
-│   │   ├── shape-style.ts      # Fill, stroke, shadow, 3D effects
-│   │   ├── table.ts            # Table data and cell styles
-│   │   ├── chart.ts            # Chart data structures
-│   │   ├── smart-art.ts        # SmartArt diagram nodes
-│   │   ├── animation.ts        # Animation presets and native OOXML timing
-│   │   ├── transition.ts       # Slide transitions
-│   │   ├── media.ts            # Audio/video media types
-│   │   ├── theme.ts            # Theme color/font schemes
-│   │   ├── masters.ts          # Slide masters, layouts, notes/handout masters
-│   │   ├── presentation.ts     # PptxSlide and PptxData root type
-│   │   └── type-guards.ts      # Runtime type narrowing helpers
-│   ├── core/                   # Runtime implementation
-│   │   ├── PptxHandlerRuntime.ts       # Main runtime class (composed from mixins)
-│   │   ├── PptxHandlerRuntimeFactory.ts # Factory for runtime creation
-│   │   ├── runtime/            # 50+ mixin modules organized by concern
-│   │   │   ├── *LoadPipeline.ts        # PPTX ZIP → PptxData orchestration
-│   │   │   ├── *SavePipeline.ts        # PptxData → PPTX ZIP orchestration
-│   │   │   ├── *SlideParsing.ts        # Slide XML → PptxSlide
-│   │   │   ├── *ShapeParsing.ts        # Shape XML → PptxElement
-│   │   │   ├── *ThemeProcessing.ts     # Theme color/font resolution
-│   │   │   ├── *TextEditing.ts         # Text mutation helpers
-│   │   │   ├── *SaveElementWriter.ts   # Element → XML serialization
-│   │   │   ├── *SaveTextWriter.ts      # Text/paragraph → XML
-│   │   │   └── ... (40+ more modules)
-│   │   ├── builders/           # XML codec and builder classes
-│   │   │   ├── PptxColorStyleCodec.ts  # Color XML ↔ model codec
-│   │   │   ├── PptxShapeStyleExtractor.ts # Shape style parsing
-│   │   │   ├── PptxEffectDagExtractor.ts  # Effect DAG extraction
-│   │   │   └── PptxTableDataParser.ts  # Table structure parsing
-│   │   └── factories/          # Dependency injection factories
-│   ├── geometry/               # Shape geometry engine
-│   │   ├── shape-geometry.ts   # Clip paths and mask styles
-│   │   ├── connector-geometry.ts # Connector routing and path calculation
-│   │   ├── guide-formula.ts    # OpenXML geometry guide evaluation engine
-│   │   ├── preset-shape-*.ts   # 200+ preset shape definitions and clip paths
-│   │   └── transform-utils.ts  # Rotation, flip, and offset transforms
-│   ├── color/                  # Color parsing and transformation
-│   │   ├── color-utils.ts      # Hex/RGB/HSL conversion, theme color resolution
-│   │   ├── color-primitives.ts # Base color operations
-│   │   └── color-transforms.ts # OpenXML transforms (tint, shade, satMod, etc.)
-│   ├── builders/               # XML construction utilities
-│   │   ├── PptxElementXmlBuilder.ts    # Element → XML serialization
-│   │   ├── fluent/PptxXmlBuilder.ts    # Chainable XML builder API
-│   │   └── factories/          # Element-specific XML factories
-│   │       ├── TextShapeXmlFactory.ts
-│   │       ├── PictureXmlFactory.ts
-│   │       ├── ConnectorXmlFactory.ts
-│   │       └── MediaGraphicFrameXmlFactory.ts
-│   ├── services/               # Domain services
-│   │   ├── PptxSlideLoaderService.ts   # Slide loading with theme/master resolution
-│   │   ├── PptxEditorAnimationService.ts # High-level animation editing
-│   │   ├── PptxNativeAnimationService.ts # OOXML p:timing parsing
-│   │   ├── PptxSlideTransitionService.ts # Transition parsing/serialization
-│   │   ├── PptxAnimationWriteService.ts  # Animation → p:timing XML
-│   │   ├── PptxCompatibilityService.ts   # Feature compatibility detection
-│   │   └── PptxXmlLookupService.ts     # XML part lookups in the ZIP archive
-│   ├── utils/                  # Utility functions
-│   │   ├── clone-utils.ts      # Deep clone for slides, elements, styles
-│   │   ├── element-utils.ts    # Element helper functions (labels, text, actions)
-│   │   ├── encryption-detection.ts # OLE compound file / encrypted .pptx detection
-│   │   ├── signature-detection.ts  # Digital signature detection and stripping
-│   │   ├── font-deobfuscation.ts   # OOXML embedded font deobfuscation
-│   │   ├── smartart-*.ts       # SmartArt decomposition, editing, layout switching
-│   │   ├── chart-*.ts          # Chart data parsing (axes, series, trendlines)
-│   │   ├── stroke-utils.ts     # Dash patterns for borders and connectors
-│   │   └── theme-override-utils.ts # Theme color map override helpers
-│   ├── constants.ts            # EMU conversion factors, max dimensions
-│   └── constants-colors.ts     # Standard color names and theme color maps
-└── converter/                  # PPTX → Markdown converter
-    ├── PptxMarkdownConverter.ts # Main converter — orchestrates slide processing
-    ├── SlideProcessor.ts        # Slide → Markdown processing with element dispatch
-    ├── base.ts                  # Abstract DocumentConverter base class
-    ├── media-context.ts         # Media file extraction and naming
-    ├── types.ts                 # FileSystemAdapter, ConversionOptions interfaces
-    ├── TextSegmentRenderer.ts   # Rich text segments → Markdown inline formatting
-    ├── ShapeTextRenderer.ts     # Shape text content rendering
-    ├── ShapeImageRenderer.ts    # Shape-as-image fallback rendering
-    └── elements/                # Per-element-type Markdown processors
-        ├── ElementProcessor.ts  # Registry pattern — dispatches by element type
-        ├── TextElementProcessor.ts
-        ├── ImageElementProcessor.ts
-        ├── TableElementProcessor.ts
-        ├── ChartElementProcessor.ts
-        ├── SmartArtElementProcessor.ts
-        ├── GroupElementProcessor.ts
-        ├── MediaElementProcessor.ts
-        ├── OleElementProcessor.ts
-        ├── InkElementProcessor.ts
-        └── FallbackElementProcessor.ts
-```
+- **16 element types:** text, shape, connector, image, picture, table, chart, smartArt, OLE, media, group, ink, contentPart, zoom, model3D, unknown
+- **187+ preset shapes** with guide formula evaluation and adjustment handles
+- **23 chart types:** bar, column, line, area, pie, doughnut, scatter, bubble, radar, stock (OHLC), surface/3D, histogram, waterfall, funnel, treemap, sunburst, boxWhisker, regionMap, combo -- with display units, logarithmic axes, chart color styles, embedded Excel data, pivot sources
+- **42 slide transitions** including morph
+- **40+ animation presets** with color animations, motion path auto-rotation
+- **Full theme resolution chain** with 8 built-in theme presets and runtime theme switching
+- **Layout switching** with placeholder remapping
+- **SmartArt rendering** (13 layout types)
+- **48 pattern fill presets**, gradient fills, image fills
+- **Text warp** with adjustment values (24+ presets)
+- **Inline math** (OMML to MathML conversion)
+- **OOXML Strict conformance** support (namespace aliasing)
+- **PPTX encryption/decryption** (AES-128/256, Agile encryption)
+- **Password protection** (modify verifier with SHA crypto)
+- **Digital signature** detection and stripping
+- **VBA macro preservation** on save
+- **Embedded font deobfuscation**
+- **Custom XML parts** preservation
+- **Comment authors** with full round-trip
+- **Text field substitution** (slidenum, datetime, footer, header, slideTitle, docProperty)
+- **Kiosk mode**, custom shows, sections, tags
+- **Print settings**, photo album, guide lines
 
 ### Type System
 
 The core type system models the entire PPTX document structure as TypeScript interfaces:
 
-- **`PptxData`** — Root type returned by `handler.load()`. Contains slides, theme, masters, layouts, sections, document properties, view properties, and more.
-- **`PptxSlide`** — A single slide with its element tree, background, notes, comments, animations, transitions, and layout reference.
-- **`PptxElement`** — Discriminated union of 11 element types: `text`, `shape`, `image`, `table`, `chart`, `connector`, `group`, `smartArt`, `media`, `ink`, `ole`.
-- **`TextStyle`** / **`ShapeStyle`** — Rich styling for text formatting (font, size, color, effects) and shape appearance (fill, stroke, shadow, reflection, glow, 3D).
-- **`PptxTheme`** — Theme definition with color schemes (12 semantic colors), font schemes (major/minor), and format schemes.
+- **`PptxData`** -- Root type returned by `handler.load()`. Contains slides, theme, masters, layouts, sections, document properties, view properties, and more.
+- **`PptxSlide`** -- A single slide with its element tree, background, notes, comments, animations, transitions, and layout reference.
+- **`PptxElement`** -- Discriminated union of 16 element types: `text`, `shape`, `connector`, `image`, `picture`, `table`, `chart`, `smartArt`, `ole`, `media`, `group`, `ink`, `contentPart`, `zoom`, `model3d`, `unknown`.
+- **`TextStyle`** / **`ShapeStyle`** -- Rich styling for text formatting (font, size, color, effects) and shape appearance (fill, stroke, shadow, reflection, glow, 3D).
+- **`PptxTheme`** -- Theme definition with color schemes (12 semantic colors), font schemes (major/minor), and format schemes.
 
 ### Runtime Architecture
 
@@ -338,83 +275,108 @@ The runtime (`PptxHandlerRuntime`) is the heart of the core package. It uses a *
 
 - **Load Pipeline** (`*LoadPipeline.ts`, `*LoadSession.ts`): Decompresses the ZIP via JSZip, parses XML with fast-xml-parser, resolves themes/masters/layouts, and builds the `PptxData` tree.
 - **Save Pipeline** (`*SavePipeline.ts`, `*SaveSlideWriter.ts`): Walks the `PptxSlide[]` array, serializes each element back to OpenXML, rebuilds `[Content_Types].xml` and `.rels` files, and compresses back to a valid `.pptx`.
-- **Parsing Modules**: Each element type (shapes, pictures, tables, charts, SmartArt, connectors, media, ink) has dedicated parser modules.
-- **Theme Resolution** (`*ThemeProcessing.ts`, `*PlaceholderStyles.ts`): Resolves style inheritance through the element → placeholder → layout → master → theme chain.
+- **Parsing Modules**: Each element type (shapes, pictures, tables, charts, SmartArt, connectors, media, ink, OLE, 3D models, zoom) has dedicated parser modules.
+- **Theme Resolution** (`*ThemeProcessing.ts`, `*PlaceholderStyles.ts`): Resolves style inheritance through the element -> placeholder -> layout -> master -> theme chain.
 - **State Management** (`*State.ts`): Maintains the in-memory ZIP archive, parsed XML cache, relationship maps, and media data.
+- **Crypto** (`ooxml-crypto.ts`): Handles PPTX encryption and decryption using AES-128/256 with the Agile encryption scheme.
 
 ## React Package (`pptx-viewer`)
 
-The React package provides a full-featured PowerPoint viewer and editor component.
+The React package provides a full-featured PowerPoint viewer and editor component. See [packages/react/README.md](packages/react/README.md) for full documentation.
+
+### Key Capabilities
+
+- **CSS-based rendering** (not Canvas) for sharp text at any zoom, native accessibility, and DOM interactivity
+- **Full editing UI:** toolbar, inspector panels, inline text editing, drag/resize/rotate, context menus
+- **Presentation mode:** fullscreen slideshow with animations, transitions, speaker notes, presenter view (dual-screen with timer and N-key toggle), laser pointer/pen/highlighter tools, slide show toolbar with auto-hide
+- **23 chart types** rendered as custom inline SVG with axes, legends, data labels, trendlines, data tables
+- **3D model rendering** via Three.js (GLB/GLTF)
+- **3D surface chart rendering** via Three.js
+- **3D shape and text extrusion** using CSS 3D transforms
+- **23 artistic effects** on images (CSS + SVG filters)
+- **Real-time collaboration** via Yjs CRDT with presence tracking, remote cursors, and user avatar bar
+- **Export:** PNG, JPEG, SVG (vector), PDF (with notes pages and overflow pagination), GIF (animated), video (MP4/WebM), standalone per-slide PPTX
+- **Ink with pressure sensitivity** -- variable-width strokes from stylus pressure data
+- **Hyperlink security** -- URL sanitization for safe navigation
+- **Hyperlink slide jump navigation**
+- **Find and replace** across all slides with regex support
+- **Accessibility panel** with alt-text audit
+- **Keyboard shortcuts** for all major operations
+- **Auto-save** with configurable interval
+- **Theming** with CSS custom properties, Tailwind CSS 4 integration, or bundled stylesheet
 
 ### Component Hierarchy
 
 ```
-PowerPointViewer (orchestrator — forwardRef)
-├── ViewerToolbarSection
-│   ├── Toolbar (mode-aware primary toolbar)
-│   │   ├── TextSection — font, size, bold/italic/underline, alignment
-│   │   ├── InsertSection — shapes, images, tables, charts, media
-│   │   ├── DrawSection — freeform drawing tools
-│   │   ├── ArrangeSection — z-order, alignment, grouping
-│   │   ├── DesignTransitionsReviewSection — themes, transitions, review
-│   │   ├── ViewSection — zoom, grid, rulers, guides
-│   │   └── PresentDropdown — start presentation, rehearse timings
-│   └── PresentationSubtitleBar
-├── ViewerMainContent
-│   ├── SlidesPaneSidebar — left panel with slide thumbnails
-│   │   ├── SlideItem — individual thumbnail with drag reorder
-│   │   ├── SectionHeader — collapsible section groups
-│   │   └── SlideContextMenu / SectionContextMenu
-│   ├── ViewerCanvasArea — central slide editing area
-│   │   ├── SlideCanvas — main rendering surface (CSS-scaled)
-│   │   │   ├── ElementRenderer — per-element dispatch
-│   │   │   │   ├── ElementBody — shape visual (fill, stroke, clip path) + text
-│   │   │   │   ├── ImageRenderer — image elements with effects
-│   │   │   │   ├── ConnectorElementRenderer — SVG connector paths
-│   │   │   │   ├── SmartArtRenderer — SmartArt diagram rendering
-│   │   │   │   ├── InlineTextEditor — WYSIWYG text editing
-│   │   │   │   └── ResizeHandles — drag handles for resizing
-│   │   │   └── CanvasOverlays
-│   │   │       ├── GridOverlay / RulerStrips — visual guides
-│   │   │       ├── ConnectorOverlay — interactive connector creation
-│   │   │       ├── DrawingOverlaySvg — freeform drawing surface
-│   │   │       └── CommentMarkersOverlay — comment pin indicators
-│   │   └── ViewerInspector — right panel with property editors
-│   │       └── InspectorPane
-│   │           ├── ElementProperties — position, size, rotation
-│   │           ├── FillStrokeProperties — fill type, stroke, effects
-│   │           ├── TextProperties — font, paragraph, text effects
-│   │           ├── AnimationPanel — animation timeline editor
-│   │           ├── SlideProperties — background, layout, transition
-│   │           ├── TablePropertiesPanel — table formatting
-│   │           ├── ChartDataPanel — chart data editor
-│   │           ├── ImagePropertiesPanel — crop, adjustments, effects
-│   │           └── CommentsTab — comment thread management
-│   └── ViewerSidePanels — togglable side panels
-│       ├── FindReplacePanel, SelectionPane
-│       ├── AccessibilityPanel, VersionHistoryPanel
-│       ├── FontEmbeddingPanel, HandoutMasterPanel
-│       └── MasterViewSidebar — slide master editing
-├── ViewerBottomPanels
-│   └── SlideNotesPanel — speaker notes editor with rich text
-├── ViewerOverlays
-│   ├── SlideSorterOverlay — grid view for slide reordering
-│   └── ContextMenu — right-click context menus
-├── ViewerPresentationLayer — fullscreen slideshow mode
-│   ├── PresentationTransitionOverlay — slide transition animations
-│   ├── PresentationAnnotationOverlay — laser pointer / pen tools
-│   └── PresenterView — dual-screen presenter view
-└── ViewerDialogGroup — modal dialogs
-    ├── PrintDialog — print layout and preview
-    ├── ExportProgressModal — export progress indicator
-    ├── DocumentPropertiesDialog — metadata editing
-    ├── EquationEditorDialog — LaTeX equation insertion
-    ├── InsertSmartArtDialog — SmartArt layout picker
-    ├── SetUpSlideShowDialog — slideshow configuration
-    ├── EncryptedFileDialog — password prompt
-    ├── DigitalSignaturesDialog — signature management
-    ├── HyperlinkEditDialog — hyperlink editing
-    └── ... (more dialogs)
+PowerPointViewer (orchestrator -- forwardRef)
++-- ViewerToolbarSection
+|   +-- Toolbar (mode-aware primary toolbar)
+|   |   +-- TextSection -- font, size, bold/italic/underline, alignment
+|   |   +-- InsertSection -- shapes, images, tables, charts, media
+|   |   +-- DrawSection -- freeform drawing tools
+|   |   +-- ArrangeSection -- z-order, alignment, grouping
+|   |   +-- DesignTransitionsReviewSection -- themes, transitions, review
+|   |   +-- ViewSection -- zoom, grid, rulers, guides
+|   |   +-- PresentDropdown -- start presentation, rehearse timings
+|   +-- PresentationSubtitleBar
++-- ViewerMainContent
+|   +-- SlidesPaneSidebar -- left panel with slide thumbnails
+|   |   +-- SlideItem -- individual thumbnail with drag reorder
+|   |   +-- SectionHeader -- collapsible section groups
+|   |   +-- SlideContextMenu / SectionContextMenu
+|   +-- ViewerCanvasArea -- central slide editing area
+|   |   +-- SlideCanvas -- main rendering surface (CSS-scaled)
+|   |   |   +-- ElementRenderer -- per-element dispatch
+|   |   |   |   +-- ElementBody -- shape visual (fill, stroke, clip path) + text
+|   |   |   |   +-- ImageRenderer -- image elements with effects
+|   |   |   |   +-- ConnectorElementRenderer -- SVG connector paths
+|   |   |   |   +-- SmartArtRenderer -- SmartArt diagram rendering (13 layouts)
+|   |   |   |   +-- Model3DRenderer -- 3D model rendering (Three.js)
+|   |   |   |   +-- InkGroupRenderers -- ink strokes with pressure
+|   |   |   |   +-- InlineTextEditor -- WYSIWYG text editing
+|   |   |   |   +-- ResizeHandles -- drag handles for resizing
+|   |   |   +-- CanvasOverlays
+|   |   |       +-- GridOverlay / RulerStrips -- visual guides
+|   |   |       +-- ConnectorOverlay -- interactive connector creation
+|   |   |       +-- DrawingOverlaySvg -- freeform drawing surface
+|   |   |       +-- CommentMarkersOverlay -- comment pin indicators
+|   |   |       +-- CollaborationCursorOverlay -- remote user cursors
+|   |   +-- ViewerInspector -- right panel with property editors
+|   |       +-- InspectorPane
+|   |           +-- ElementProperties -- position, size, rotation
+|   |           +-- FillStrokeProperties -- fill type, stroke, effects
+|   |           +-- TextProperties -- font, paragraph, text effects
+|   |           +-- AnimationPanel -- animation timeline editor
+|   |           +-- SlideProperties -- background, layout, transition
+|   |           +-- TablePropertiesPanel -- table formatting
+|   |           +-- ChartDataPanel -- chart data editor
+|   |           +-- ImagePropertiesPanel -- crop, adjustments, artistic effects
+|   |           +-- CommentsTab -- comment thread management
+|   +-- ViewerSidePanels -- togglable side panels
+|       +-- FindReplacePanel, SelectionPane
+|       +-- AccessibilityPanel, VersionHistoryPanel
+|       +-- FontEmbeddingPanel, HandoutMasterPanel
+|       +-- MasterViewSidebar -- slide master editing
++-- ViewerBottomPanels
+|   +-- SlideNotesPanel -- speaker notes editor with rich text
++-- ViewerOverlays
+|   +-- SlideSorterOverlay -- grid view for slide reordering
+|   +-- ContextMenu -- right-click context menus
++-- ViewerPresentationLayer -- fullscreen slideshow mode
+|   +-- PresentationTransitionOverlay -- slide transition animations
+|   +-- PresentationAnnotationOverlay -- laser pointer / pen tools
+|   +-- PresenterView -- dual-screen presenter view with timer
++-- ViewerDialogGroup -- modal dialogs
+    +-- PrintDialog -- print layout and preview
+    +-- ExportProgressModal -- export progress indicator
+    +-- DocumentPropertiesDialog -- metadata editing
+    +-- EquationEditorDialog -- LaTeX equation insertion
+    +-- InsertSmartArtDialog -- SmartArt layout picker
+    +-- SetUpSlideShowDialog -- slideshow configuration
+    +-- EncryptedFileDialog -- password prompt
+    +-- DigitalSignaturesDialog -- signature management
+    +-- HyperlinkEditDialog -- hyperlink editing
+    +-- ... (more dialogs)
 ```
 
 ### Hooks System
@@ -424,7 +386,7 @@ The viewer delegates all logic to custom React hooks, keeping components purely 
 | Hook | Purpose |
 |------|---------|
 | **State Management** | |
-| `useViewerState` | Central state atom — slides, selection, mode, canvas size, all refs |
+| `useViewerState` | Central state atom -- slides, selection, mode, canvas size, all refs |
 | `useViewerCoreState` | Core state slice (loading, error, slides, active index) |
 | `useViewerUIState` | UI state slice (panels, dialogs, overlays) |
 | `useViewerDialogs` | Dialog open/close state for all modal dialogs |
@@ -441,9 +403,9 @@ The viewer delegates all logic to custom React hooks, keeping components purely 
 | `useGroupAlignLayerHandlers` | Group/ungroup, alignment, z-order operations |
 | `useClipboardHandlers` | Copy/cut/paste with element serialization |
 | **Loading & Saving** | |
-| `useLoadContent` | PPTX file loading lifecycle (ArrayBuffer → PptxData → state) |
+| `useLoadContent` | PPTX file loading lifecycle (ArrayBuffer -> PptxData -> state) |
 | `useContentLifecycle` | Content change detection and dirty state tracking |
-| `useSerialize` | State → PPTX serialization via PptxHandler.save() |
+| `useSerialize` | State -> PPTX serialization via PptxHandler.save() |
 | `useAutosave` | Periodic auto-save with configurable interval |
 | **Interaction** | |
 | `usePointerHandlers` | Mouse/touch event routing to interaction handlers |
@@ -455,9 +417,14 @@ The viewer delegates all logic to custom React hooks, keeping components purely 
 | `usePresentationSetup` | Presentation mode initialization and cleanup |
 | `usePresentationAnnotations` | Laser pointer, pen, highlighter overlays |
 | **Export** | |
-| `useExportHandlers` | Export to PNG, JPEG, PDF, GIF, video, PPTX |
+| `useExportHandlers` | Export to PNG, JPEG, SVG, PDF, GIF, video, PPTX |
 | `useExportSaveAs` | Save-as dialog with format selection |
 | `usePrintHandlers` | Print dialog and layout generation |
+| **Collaboration** | |
+| `useYjsProvider` | Yjs WebSocket provider lifecycle management |
+| `usePresenceTracking` | User presence, cursor positions, connection status |
+| `useCollaborativeState` | CRDT-backed shared document state |
+| `useCollaborativeHistory` | Collaborative undo/redo with operation transforms |
 | **Other** | |
 | `useComments` | Comment CRUD, threading, author management |
 | `useFindReplace` | Find and replace text across all slides |
@@ -473,13 +440,14 @@ Slides are rendered using a **CSS-based approach** (not Canvas) for the main edi
 
 1. **SlideCanvas** wraps all elements in a scaled container using CSS `transform: scale()` to fit the viewport while maintaining the slide's native coordinate system.
 2. **ElementRenderer** dispatches each `PptxElement` to the appropriate sub-renderer based on its `type` discriminant.
-3. **Shape rendering** (`shape-visual.tsx`, `shape.tsx`) uses CSS for fills (solid, gradient, pattern, image), borders, shadows, reflections, glow, and SVG `clip-path` for geometry (200+ preset shapes).
-4. **Text rendering** (`text.tsx`, `text-render.tsx`, `text-layout.tsx`) preserves OpenXML paragraph and run formatting using CSS — font families, sizes, colors, spacing, text effects (shadow, outline, glow, warp), and multi-column layout.
-5. **Charts** (`chart.tsx` and family) are rendered as inline SVG with full support for bar, line, area, pie, scatter, radar, stock, waterfall, sunburst, treemap, funnel, and combo charts.
+3. **Shape rendering** (`shape-visual.tsx`, `shape.tsx`) uses CSS for fills (solid, gradient, pattern, image), borders, shadows, reflections, glow, and SVG `clip-path` for geometry (187+ preset shapes).
+4. **Text rendering** (`text.tsx`, `text-render.tsx`, `text-layout.tsx`) preserves OpenXML paragraph and run formatting using CSS -- font families, sizes, colors, spacing, text effects (shadow, outline, glow, warp), and multi-column layout.
+5. **Charts** (`chart.tsx` and family) are rendered as inline SVG with full support for 23 chart types including bar, line, area, pie, scatter, radar, stock, waterfall, sunburst, treemap, funnel, histogram, boxWhisker, and combo charts.
 6. **Tables** (`table.tsx`, `table-render.tsx`) are rendered as HTML `<table>` elements with cell-level formatting, merge spans, diagonal borders, and banded styles.
 7. **Connectors** (`connector-path.tsx`) are rendered as SVG `<path>` elements with A* routing for bent connectors.
-8. **SmartArt** (`smartart.tsx` and family) decomposes diagram data into positioned shapes with layout-specific renderers (list, process, cycle, hierarchy, matrix, gear, etc.).
-9. **Animations** (`animation.tsx`, `animation-timeline.ts`) use CSS keyframes and the Web Animations API for entrance, emphasis, exit, and motion path effects.
+8. **SmartArt** (`smartart.tsx` and family) decomposes diagram data into positioned shapes with layout-specific renderers (list, process, cycle, hierarchy, matrix, gear, etc. -- 13 layouts).
+9. **3D Models** (`Model3DRenderer.tsx`) renders GLB/GLTF models via Three.js with `@react-three/fiber`.
+10. **Animations** (`animation.tsx`, `animation-timeline.ts`) use CSS keyframes and the Web Animations API for entrance, emphasis, exit, and motion path effects (40+ presets with color animations and motion path auto-rotation).
 
 ### Export System
 
@@ -488,65 +456,47 @@ The viewer supports multiple export formats:
 | Format | Implementation |
 |--------|---------------|
 | **PNG/JPEG** | `html2canvas` rasterization with oklch color space workaround (`canvas-export.ts`) |
-| **PDF** | `jsPDF` multi-page assembly from rasterized slides |
+| **SVG** | DOM to SVG serialization (`export-svg.ts`) |
+| **PDF** | `jsPDF` multi-page assembly from rasterized slides, with notes pages and overflow pagination |
 | **GIF** | Animated GIF from slide sequence using custom GIF encoder (`export-gif.ts`) |
 | **Video** | MP4/WebM via `MediaRecorder` API with frame-by-frame rendering |
-| **PPTX** | Round-trip save via `PptxHandler.save()` — preserves all formatting |
+| **PPTX** | Round-trip save via `PptxHandler.save()` -- preserves all formatting |
 | **Individual Slides** | Each slide exported as standalone `.pptx` via `PptxHandler.exportSlides()` |
 
 ## EMF Converter Package (`emf-converter`)
 
-Converts Windows Enhanced Metafile (EMF) and Windows Metafile (WMF) binary data to PNG data URLs. These legacy image formats are commonly embedded in PowerPoint files for clipart and diagrams.
+Converts Windows Enhanced Metafile (EMF) and Windows Metafile (WMF) binary data to PNG data URLs. These legacy image formats are commonly embedded in PowerPoint files for clipart and diagrams. See [packages/emf-converter/README.md](packages/emf-converter/README.md) for full documentation.
 
 ### Pipeline
 
 ```
 Binary EMF/WMF Buffer
-    ↓
-Header Parsing — bounds, DPI, version, record count
-    ↓
-GDI Record Replay — replays drawing commands onto Canvas 2D
-    ├── EMF Records (Enhanced Metafile)
-    │   ├── Drawing: LineTo, Rectangle, Ellipse, Polygon, PolyBezier, ArcTo
-    │   ├── Path: BeginPath, EndPath, StrokePath, FillPath, StrokeAndFillPath
-    │   ├── State: SaveDC, RestoreDC, SetWorldTransform, ModifyWorldTransform
-    │   ├── Clipping: SelectClipPath, IntersectClipRect, ExcludeClipRect
-    │   ├── Objects: CreatePen, CreateBrush, CreateFont, SelectObject, DeleteObject
-    │   ├── Text: ExtTextOutW with font rendering
-    │   └── Bitmap: StretchDIBits, BitBlt, StretchBlt
-    ├── EMF+ Records (GDI+ extensions)
-    │   ├── Anti-aliased drawing with alpha compositing
-    │   ├── Matrix transforms and gradient brushes
-    │   ├── Complex path objects with bezier curves
-    │   └── Image and text rendering with quality hints
-    └── WMF Records (legacy 16-bit Windows Metafile)
-        ├── Basic drawing primitives
-        ├── Object management (pens, brushes, fonts)
-        └── Bitmap operations
-    ↓
+    |
+Header Parsing -- bounds, DPI, version, record count
+    |
+GDI Record Replay -- replays drawing commands onto Canvas 2D
+    +-- EMF Records (Enhanced Metafile)
+    |   +-- Drawing: LineTo, Rectangle, Ellipse, Polygon, PolyBezier, ArcTo
+    |   +-- Path: BeginPath, EndPath, StrokePath, FillPath, StrokeAndFillPath
+    |   +-- State: SaveDC, RestoreDC, SetWorldTransform, ModifyWorldTransform
+    |   +-- Clipping: SelectClipPath, IntersectClipRect, ExcludeClipRect
+    |   +-- Objects: CreatePen, CreateBrush, CreateFont, SelectObject, DeleteObject
+    |   +-- Text: ExtTextOutW with font rendering
+    |   +-- Bitmap: StretchDIBits, BitBlt, StretchBlt
+    +-- EMF+ Records (GDI+ extensions)
+    |   +-- Anti-aliased drawing with alpha compositing
+    |   +-- Matrix transforms and gradient brushes
+    |   +-- Complex path objects with bezier curves
+    |   +-- Image and text rendering with quality hints
+    +-- WMF Records (legacy 16-bit Windows Metafile)
+        +-- Basic drawing primitives
+        +-- Object management (pens, brushes, fonts)
+        +-- Bitmap operations
+    |
 Canvas 2D API Rendering
-    ↓
+    |
 PNG Data URL Export (canvas.toDataURL / OffscreenCanvas)
 ```
-
-### Key Modules
-
-| Module | Description |
-|--------|-------------|
-| `emf-converter.ts` | Public API — `convertEmfToDataUrl()`, `convertWmfToDataUrl()` |
-| `emf-header-parser.ts` | EMF/WMF file header parsing and bounds calculation |
-| `emf-record-replay.ts` | Main EMF record dispatcher (300+ record types) |
-| `emf-gdi-draw-*.ts` | GDI drawing command implementations |
-| `emf-gdi-object-handlers.ts` | GDI object creation/selection/deletion |
-| `emf-gdi-state-handlers.ts` | DC state save/restore, clipping, mapping modes |
-| `emf-gdi-transform-handlers.ts` | World transform matrix operations |
-| `emf-plus-replay.ts` | EMF+ record dispatcher |
-| `emf-plus-draw-handlers.ts` | GDI+ drawing operations |
-| `emf-plus-object-parser.ts` | GDI+ object deserialization |
-| `emf-dib-decoder.ts` | Device-Independent Bitmap (DIB) decoding |
-| `emf-dib-rle-decoder.ts` | RLE-compressed bitmap decoding |
-| `wmf-replay.ts` | WMF record dispatcher |
-| `emf-types.ts` | Shared type definitions (GDI state, objects, records) |
 
 ### Usage
 
@@ -563,45 +513,65 @@ const wmfBuffer: ArrayBuffer = /* read from PPTX media part */;
 const wmfPngUrl = await convertWmfToDataUrl(wmfBuffer);
 ```
 
+## MTX Decompressor Package (`mtx-decompressor`)
+
+Decompresses MicroType Express (MTX) compressed font data found inside EOT (Embedded OpenType) containers, producing standard TrueType (.ttf) font binaries. Used by the core package to extract embedded fonts from PPTX files. See [packages/mtx-decompressor/README.md](packages/mtx-decompressor/README.md) for full documentation.
+
+### Usage
+
+```typescript
+import { decompressMtx, decompressEotFont } from "mtx-decompressor";
+
+// Decompress MTX-compressed font data
+const fontData: Uint8Array = /* extracted from EOT container */;
+const ttfBytes = decompressMtx(fontData, { encrypted: false, compressed: true });
+// => Uint8Array containing a valid TrueType font
+
+// Convenience wrapper with explicit boolean parameters
+const ttf = decompressEotFont(fontData, /* compressed */ true, /* encrypted */ false);
+```
+
 ## Data Flow
 
 ### Loading a PPTX File
 
 ```
 ArrayBuffer (.pptx ZIP archive)
-    ↓
-detectFileFormat() — check for OLE compound file (encrypted / legacy .ppt)
-    ↓
-JSZip.loadAsync() — decompress the ZIP, build in-memory file map
-    ↓
-Parse [Content_Types].xml — discover part MIME types and overrides
-    ↓
-Parse _rels/.rels — find the main presentation part
-    ↓
-Parse ppt/presentation.xml — slide list, slide size, default text styles
-    ↓
-Parse ppt/theme/theme1.xml — color scheme, font scheme, format scheme
-    ↓
-Parse ppt/slideMasters/*.xml — master slide elements and backgrounds
-    ↓
-Parse ppt/slideLayouts/*.xml — layout templates and placeholder mapping
-    ↓
+    |
+detectFileFormat() -- check for OLE compound file (encrypted / legacy .ppt)
+    |
+[If encrypted: decrypt via ooxml-crypto (AES-128/256)]
+    |
+JSZip.loadAsync() -- decompress the ZIP, build in-memory file map
+    |
+Parse [Content_Types].xml -- discover part MIME types and overrides
+    |
+Parse _rels/.rels -- find the main presentation part
+    |
+Parse ppt/presentation.xml -- slide list, slide size, default text styles
+    |
+Parse ppt/theme/theme1.xml -- color scheme, font scheme, format scheme
+    |
+Parse ppt/slideMasters/*.xml -- master slide elements and backgrounds
+    |
+Parse ppt/slideLayouts/*.xml -- layout templates and placeholder mapping
+    |
 For each slide:
-    ├── Parse ppt/slides/slideN.xml
-    │   ├── p:cSld/p:spTree — the shape tree (root element container)
-    │   │   ├── p:sp (shape/text) → TextPptxElement | ShapePptxElement
-    │   │   ├── p:pic (picture) → ImagePptxElement
-    │   │   ├── p:graphicFrame → TablePptxElement | ChartPptxElement
-    │   │   ├── p:grpSp (group) → GroupPptxElement (recursive)
-    │   │   ├── p:cxnSp (connector) → ConnectorPptxElement
-    │   │   └── mc:AlternateContent → SmartArt | Media | Ink | OLE
-    │   ├── p:cSld/p:bg — slide background (solid, gradient, image)
-    │   └── p:timing — animation sequences (native OOXML)
-    ├── Parse slide relationships (images, charts, media, hyperlinks)
-    ├── Parse ppt/notesSlides/notesSlideN.xml — speaker notes
-    ├── Parse ppt/comments/commentN.xml — slide comments
-    └── Merge placeholder styles from layout → master → theme
-    ↓
+    +-- Parse ppt/slides/slideN.xml
+    |   +-- p:cSld/p:spTree -- the shape tree (root element container)
+    |   |   +-- p:sp (shape/text) -> TextPptxElement | ShapePptxElement
+    |   |   +-- p:pic (picture) -> ImagePptxElement | PicturePptxElement
+    |   |   +-- p:graphicFrame -> TablePptxElement | ChartPptxElement
+    |   |   +-- p:grpSp (group) -> GroupPptxElement (recursive)
+    |   |   +-- p:cxnSp (connector) -> ConnectorPptxElement
+    |   |   +-- mc:AlternateContent -> SmartArt | Media | Ink | OLE | ContentPart | Zoom | Model3D
+    |   +-- p:cSld/p:bg -- slide background (solid, gradient, image)
+    |   +-- p:timing -- animation sequences (native OOXML)
+    +-- Parse slide relationships (images, charts, media, hyperlinks)
+    +-- Parse ppt/notesSlides/notesSlideN.xml -- speaker notes
+    +-- Parse ppt/comments/commentN.xml -- slide comments
+    +-- Merge placeholder styles from layout -> master -> theme
+    |
 PptxData {
     slides: PptxSlide[],
     theme: PptxTheme,
@@ -618,30 +588,34 @@ PptxData {
 
 ```
 PptxData.slides (modified slide array)
-    ↓
+    |
 For each slide:
-    ├── Serialize elements → OpenXML sp/pic/graphicFrame/cxnSp nodes
-    │   ├── Build p:spTree from element ordering
-    │   ├── Write a:xfrm (position, size, rotation, flip)
-    │   ├── Write a:prstGeom or a:custGeom (shape geometry)
-    │   ├── Write a:solidFill / a:gradFill / a:blipFill (fills)
-    │   ├── Write a:ln (stroke/line properties)
-    │   ├── Write a:effectLst (shadow, glow, reflection, blur)
-    │   ├── Write p:txBody with a:p/a:r (paragraphs and text runs)
-    │   └── Write element-specific properties (table cells, chart refs)
-    ├── Serialize background, transition, animation timing
-    ├── Update slide .rels (new/removed image/media relationships)
-    ├── Write notes and comments parts
-    └── Embed new media files into the ZIP
-    ↓
-Update [Content_Types].xml — add/remove content type entries
-    ↓
-Update ppt/presentation.xml — slide list, section definitions
-    ↓
+    +-- Serialize elements -> OpenXML sp/pic/graphicFrame/cxnSp nodes
+    |   +-- Build p:spTree from element ordering
+    |   +-- Write a:xfrm (position, size, rotation, flip)
+    |   +-- Write a:prstGeom or a:custGeom (shape geometry)
+    |   +-- Write a:solidFill / a:gradFill / a:blipFill / a:pattFill (fills)
+    |   +-- Write a:ln (stroke/line properties)
+    |   +-- Write a:effectLst (shadow, glow, reflection, blur)
+    |   +-- Write p:txBody with a:p/a:r (paragraphs and text runs)
+    |   +-- Write element-specific properties (table cells, chart refs, OLE objects)
+    +-- Serialize background, transition, animation timing
+    +-- Update slide .rels (new/removed image/media relationships)
+    +-- Write notes and comments parts
+    +-- Embed new media files into the ZIP
+    |
+Update [Content_Types].xml -- add/remove content type entries
+    |
+Update ppt/presentation.xml -- slide list, section definitions
+    |
 Reconcile slide masters, layouts (pass-through if unchanged)
-    ↓
+    |
+Preserve VBA macros, custom XML parts, digital signatures
+    |
+[If encryption requested: encrypt via ooxml-crypto]
+    |
 JSZip.generateAsync({ type: "uint8array", compression: "DEFLATE" })
-    ↓
+    |
 Uint8Array (valid .pptx file)
 ```
 
@@ -667,21 +641,26 @@ Slide dimensions in `PptxData` are in pixels (pre-converted from EMU).
 
 ### Element Discriminated Union
 
-All slide elements share a common base (`PptxElementBase` — id, x, y, width, height, rotation, etc.) and are discriminated by the `type` field:
+All slide elements share a common base (`PptxElementBase` -- id, x, y, width, height, rotation, etc.) and are discriminated by the `type` field:
 
 ```typescript
 type PptxElement =
-  | TextPptxElement      // type: "text"     — text box
-  | ShapePptxElement     // type: "shape"    — auto-shape with optional text
-  | ImagePptxElement     // type: "image"    — embedded or linked image
-  | TablePptxElement     // type: "table"    — table grid with cells
-  | ChartPptxElement     // type: "chart"    — chart (bar, line, pie, etc.)
-  | ConnectorPptxElement // type: "connector" — line connecting two shapes
-  | GroupPptxElement     // type: "group"    — group of elements (recursive)
-  | SmartArtPptxElement  // type: "smartArt" — SmartArt diagram
-  | MediaPptxElement     // type: "media"    — audio or video
-  | InkPptxElement       // type: "ink"      — digital ink strokes
-  | OlePptxElement       // type: "ole"      — embedded OLE object
+  | TextPptxElement         // type: "text"        -- text box
+  | ShapePptxElement        // type: "shape"       -- auto-shape with optional text
+  | ConnectorPptxElement    // type: "connector"   -- line connecting two shapes
+  | ImagePptxElement        // type: "image"       -- embedded or linked image
+  | PicturePptxElement      // type: "picture"     -- picture element (semantic variant)
+  | TablePptxElement        // type: "table"       -- table grid with cells
+  | ChartPptxElement        // type: "chart"       -- chart (bar, line, pie, etc.)
+  | SmartArtPptxElement     // type: "smartArt"    -- SmartArt diagram
+  | OlePptxElement          // type: "ole"         -- embedded OLE object
+  | MediaPptxElement        // type: "media"       -- audio or video
+  | GroupPptxElement        // type: "group"       -- group of elements (recursive)
+  | InkPptxElement          // type: "ink"         -- digital ink strokes
+  | ContentPartPptxElement  // type: "contentPart" -- modern ink content part
+  | ZoomPptxElement         // type: "zoom"        -- slide/section zoom
+  | Model3DPptxElement      // type: "model3d"     -- 3D model (GLB/GLTF)
+  | UnknownPptxElement      // type: "unknown"     -- unrecognised element
 
 // Narrow with the type discriminant:
 if (element.type === "image") {
@@ -695,13 +674,13 @@ Styles are resolved through a hierarchy mirroring PowerPoint's inheritance model
 
 ```
 Element inline style
-    ↓ (fallback)
+    | (fallback)
 Placeholder defaults (from layout)
-    ↓ (fallback)
+    | (fallback)
 Slide layout defaults
-    ↓ (fallback)
+    | (fallback)
 Slide master defaults
-    ↓ (fallback)
+    | (fallback)
 Theme defaults (defaultTextStyle, etc.)
 ```
 
@@ -725,10 +704,10 @@ const builder = handler.Builder(data);
 ```
 
 Element-specific XML factories handle the details of generating valid OpenXML:
-- `TextShapeXmlFactory` — Text boxes and auto-shapes
-- `PictureXmlFactory` — Image elements
-- `ConnectorXmlFactory` — Connector shapes
-- `MediaGraphicFrameXmlFactory` — Audio/video graphic frames
+- `TextShapeXmlFactory` -- Text boxes and auto-shapes
+- `PictureXmlFactory` -- Image elements
+- `ConnectorXmlFactory` -- Connector shapes
+- `MediaGraphicFrameXmlFactory` -- Audio/video graphic frames
 
 ## API Reference
 
@@ -758,15 +737,16 @@ Element-specific XML factories handle the details of generating valid OpenXML:
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `content` | `ArrayBuffer \| Uint8Array \| null` | — | PPTX file content to display |
-| `filePath` | `string?` | — | File path (display only) |
+| `content` | `ArrayBuffer \| Uint8Array \| null` | -- | PPTX file content to display |
+| `filePath` | `string?` | -- | File path (display only) |
 | `canEdit` | `boolean` | `false` | Enable editing mode |
-| `onContentChange` | `(content: Uint8Array) => void` | — | Called when presentation is saved |
-| `onDirtyChange` | `(dirty: boolean) => void` | — | Called when dirty state changes |
-| `onActiveSlideChange` | `(index: number) => void` | — | Called when active slide changes |
+| `onContentChange` | `(content: Uint8Array) => void` | -- | Called when presentation is saved |
+| `onDirtyChange` | `(dirty: boolean) => void` | -- | Called when dirty state changes |
+| `onActiveSlideChange` | `(index: number) => void` | -- | Called when active slide changes |
+| `theme` | `ViewerTheme` | -- | Theme configuration for customising colours, radius, and CSS vars |
 
 The component also exposes a `PowerPointViewerHandle` via `ref`:
-- `getContent(): Promise<string | Uint8Array>` — Get current content for external saving
+- `getContent(): Promise<string | Uint8Array>` -- Get current content for external saving
 
 ### `PptxMarkdownConverter`
 
@@ -785,7 +765,7 @@ const converter = new PptxMarkdownConverter(outputDir, options, fs?);
 
 | Property / Method | Description |
 |-------------------|-------------|
-| `convert(data)` | Convert `PptxData` → Markdown string |
+| `convert(data)` | Convert `PptxData` -> Markdown string |
 | `imagesExtracted` | Count of extracted images |
 | `mediaDir` | Path to media folder (null if no images) |
 | `slidesConverted` | Number of slides converted |
@@ -795,15 +775,23 @@ const converter = new PptxMarkdownConverter(outputDir, options, fs?);
 
 | Function | Description |
 |----------|-------------|
-| `convertEmfToDataUrl(buffer: ArrayBuffer)` | Convert EMF binary → PNG data URL string (or `undefined`) |
-| `convertWmfToDataUrl(buffer: ArrayBuffer)` | Convert WMF binary → PNG data URL string (or `undefined`) |
+| `convertEmfToDataUrl(buffer: ArrayBuffer)` | Convert EMF binary -> PNG data URL string (or `null`) |
+| `convertWmfToDataUrl(buffer: ArrayBuffer)` | Convert WMF binary -> PNG data URL string (or `null`) |
+
+### `mtx-decompressor`
+
+| Function | Description |
+|----------|-------------|
+| `decompressMtx(fontData, options?)` | Decompress MTX font data -> TrueType `Uint8Array` |
+| `decompressEotFont(fontData, compressed, encrypted)` | Convenience wrapper with explicit boolean parameters |
+| `unpackMtx(data, size)` | Low-level: unpack MTX blob into 3 decompressed streams |
 
 ## Development
 
 ### Workspace Commands
 
 ```bash
-# Build all packages (order: emf-converter → core → react)
+# Build all packages (order: emf-converter -> mtx-decompressor -> core -> react)
 bun run build
 
 # Build a specific package
@@ -818,8 +806,12 @@ bun run test
 # Type-check all packages
 bun run typecheck
 
+# Start demo app (Vite, port 4173)
+bun run demo
+
 # Pack for npm distribution
 bun run pack:emf     # packages/emf-converter
+bun run pack:mtx     # packages/mtx-decompressor
 bun run pack:core    # packages/core
 bun run pack:react   # packages/react
 ```
@@ -831,15 +823,29 @@ bun run pack:react   # packages/react
 | **Bun** | Package manager, workspace management, script runner |
 | **tsup** | Bundles each package to ESM (`.mjs`) and CJS (`.js`) with `.d.ts` declarations |
 | **vitest** | Test runner with TypeScript support |
-| **TypeScript** | Strict mode with project references for monorepo type-checking |
+| **TypeScript 5.9** | Strict mode with project references for monorepo type-checking |
+
+### Tech Stack
+
+| Category | Technologies |
+|----------|-------------|
+| **Language** | TypeScript 5.9 (strict mode) |
+| **Runtime** | Bun (package manager), Node.js 18+ |
+| **UI** | React 19, Framer Motion, Tailwind CSS 4, Lucide React |
+| **Parsing** | JSZip (ZIP), fast-xml-parser (XML) |
+| **Export** | html2canvas + jsPDF (PDF), custom GIF encoder, MediaRecorder (video) |
+| **3D** | Three.js, @react-three/fiber, @react-three/drei (optional) |
+| **Collaboration** | Yjs (CRDT), y-websocket (optional) |
+| **Crypto** | Web Crypto API (AES-128/256 for PPTX encryption) |
+| **Testing** | Vitest (11,900+ tests across 419 files) |
 
 ### Adding a New Element Type
 
-1. **Define the interface** in `packages/core/src/core/types/elements.ts` — extend `PptxElementBase` with type-specific properties
-2. **Add to the union** — add your type to the `PptxElement` discriminated union
+1. **Define the interface** in `packages/core/src/core/types/elements.ts` -- extend `PptxElementBase` with type-specific properties
+2. **Add to the union** -- add your type to the `PptxElement` discriminated union
 3. **Add a type guard** in `packages/core/src/core/types/type-guards.ts`
-4. **Add parsing** in the runtime — create or extend a `PptxHandlerRuntime*Parsing.ts` module
-5. **Add serialization** in the save pipeline — handle your type in `*SaveElementWriter.ts`
+4. **Add parsing** in the runtime -- create or extend a `PptxHandlerRuntime*Parsing.ts` module
+5. **Add serialization** in the save pipeline -- handle your type in `*SaveElementWriter.ts`
 6. **Add a React renderer** in `packages/react/src/viewer/components/elements/`
 7. **Add a converter processor** in `packages/core/src/converter/elements/` for Markdown output
 
@@ -847,7 +853,7 @@ bun run pack:react   # packages/react
 
 - **Mixin pattern**: Runtime capabilities are split into focused files (`PptxHandlerRuntime*.ts`) that are composed into the main runtime class. Each file handles one concern.
 - **Index barrels**: Every directory has an `index.ts` that re-exports its public API. Import from the barrel, not from individual files.
-- **Type-only modules**: The `types/` directory contains only interfaces and type aliases — no runtime code. This ensures tree-shaking removes them from production builds.
+- **Type-only modules**: The `types/` directory contains only interfaces and type aliases -- no runtime code. This ensures tree-shaking removes them from production builds.
 - **Service interfaces**: Services define an `I*` interface (e.g., `IPptxSlideLoaderService`) for testability and dependency injection.
 
 ## License

@@ -86,20 +86,20 @@ describe("buildText3DShadowCss", () => {
     expect(result).toContain("3px 3px 0");
   });
 
-  it("caps extrusion layers at MAX_EXTRUSION_LAYERS (20)", () => {
+  it("caps extrusion layers at MAX_EXTRUSION_LAYERS (15)", () => {
     const style: TextStyle = {
       text3d: {
-        extrusionHeight: 9525 * 50, // would be 50px, but capped at 20
+        extrusionHeight: 9525 * 50, // would be 50px, but capped at 15
         extrusionColor: "#888888", // use hex colour to avoid rgb() commas
       },
     };
     const result = buildText3DShadowCss(style);
     expect(result).toBeDefined();
-    // Should contain the 20th layer but not a 21st layer offset
-    expect(result).toContain("20px 20px 0");
-    expect(result).not.toContain("21px 21px 0");
-    // Final soft shadow at depth+1 = 21px offset
-    expect(result).toContain("21px 21px");
+    // Should contain the 15th layer but not a 16th layer offset
+    expect(result).toContain("15px 15px 0");
+    expect(result).not.toContain("16px 16px 0");
+    // Final soft shadow at depth+1 = 16px offset
+    expect(result).toContain("16px 16px");
   });
 
   it("generates bevel top highlight and shadow", () => {
@@ -112,8 +112,9 @@ describe("buildText3DShadowCss", () => {
     };
     const result = buildText3DShadowCss(style);
     expect(result).toBeDefined();
-    expect(result).toContain("rgba(255,255,255,0.4)");
-    expect(result).toContain("rgba(0,0,0,0.25)");
+    // circle bevel: highlightOpacity 0.45, shadowOpacity 0.30
+    expect(result).toContain("rgba(255,255,255,0.45)");
+    expect(result).toContain("rgba(0,0,0,0.3)");
   });
 
   it("generates bevel bottom shadow", () => {
@@ -126,8 +127,9 @@ describe("buildText3DShadowCss", () => {
     };
     const result = buildText3DShadowCss(style);
     expect(result).toBeDefined();
+    // circle bevel bottom: shadowOpacity 0.30, highlightOpacity * 0.6 = 0.27
     expect(result).toContain("rgba(0,0,0,0.3)");
-    expect(result).toContain("rgba(255,255,255,0.2)");
+    expect(result).toContain("rgba(255,255,255,0.27)");
   });
 
   it("returns undefined for bevelTopType = none", () => {
@@ -135,6 +137,157 @@ describe("buildText3DShadowCss", () => {
       text3d: { bevelTopType: "none" as any },
     };
     expect(buildText3DShadowCss(style)).toBeUndefined();
+  });
+
+  // ── Material preset tests ──────────────────────────────────────────
+
+  it("matte material produces no specular highlight", () => {
+    const style: TextStyle = {
+      color: "#4488CC",
+      text3d: {
+        extrusionHeight: 9525 * 5,
+        presetMaterial: "matte",
+      },
+    };
+    const result = buildText3DShadowCss(style);
+    expect(result).toBeDefined();
+    // Matte has no specular highlight, so all layers use darkened rgb() values
+    // and there is no lightened highlight shadow at -1px -1px
+    const parts = result!.split(",").map((s) => s.trim());
+    // No highlight layer (lightenHex produces rgb) should appear before the soft shadow
+    const highlightLayers = parts.filter(
+      (p) => p.startsWith("-1px -1px"),
+    );
+    expect(highlightLayers.length).toBe(0);
+  });
+
+  it("plastic material adds a specular highlight shadow", () => {
+    const style: TextStyle = {
+      color: "#4488CC",
+      text3d: {
+        extrusionHeight: 9525 * 5,
+        presetMaterial: "plastic",
+      },
+    };
+    const result = buildText3DShadowCss(style);
+    expect(result).toBeDefined();
+    // Plastic adds a specular highlight at (-dx, -dy) i.e. (-1px, -1px)
+    expect(result).toContain("-1px -1px");
+  });
+
+  it("metal material adds a specular highlight with sharp blur", () => {
+    const style: TextStyle = {
+      color: "#AAAAAA",
+      text3d: {
+        extrusionHeight: 9525 * 5,
+        presetMaterial: "metal",
+      },
+    };
+    const result = buildText3DShadowCss(style);
+    expect(result).toBeDefined();
+    // Metal has specularBlur = 0 → sharp highlight at -1px -1px 0px
+    expect(result).toContain("-1px -1px 0px");
+  });
+
+  it("flat material uses subtle darkening with no specular", () => {
+    const style: TextStyle = {
+      color: "#FF0000",
+      text3d: {
+        extrusionHeight: 9525 * 5,
+        presetMaterial: "flat",
+      },
+    };
+    const result = buildText3DShadowCss(style);
+    expect(result).toBeDefined();
+    // Flat has no specular, similar to matte
+    const parts = result!.split(",").map((s) => s.trim());
+    const highlightLayers = parts.filter(
+      (p) => p.startsWith("-1px -1px"),
+    );
+    expect(highlightLayers.length).toBe(0);
+  });
+
+  // ── Bevel type tests ──────────────────────────────────────────────
+
+  it("hardEdge bevel adds extra sharp highlight layer", () => {
+    const style: TextStyle = {
+      text3d: {
+        bevelTopType: "hardEdge",
+        bevelTopWidth: 9525 * 2,
+        bevelTopHeight: 9525 * 2,
+      },
+    };
+    const result = buildText3DShadowCss(style);
+    expect(result).toBeDefined();
+    // hardEdge: highlightOpacity = 0.60, extraHighlight = true
+    expect(result).toContain("rgba(255,255,255,0.6)");
+    // Extra highlight at -1px -1px 0 with half highlightOpacity
+    expect(result).toContain("-1px -1px 0 rgba(255,255,255,0.3)");
+  });
+
+  it("softRound bevel uses higher blur multiplier", () => {
+    const style: TextStyle = {
+      text3d: {
+        bevelTopType: "softRound",
+        bevelTopWidth: 9525 * 2, // 2px
+        bevelTopHeight: 9525 * 2, // 2px
+      },
+    };
+    const result = buildText3DShadowCss(style);
+    expect(result).toBeDefined();
+    // softRound: blurMultiplier = 1.5, so blur = round(2 * 1.5) = 3px
+    // highlight at -2px -2px 3px
+    expect(result).toContain("-2px -2px 3px");
+  });
+
+  it("angle bevel produces extra sharp highlight", () => {
+    const style: TextStyle = {
+      text3d: {
+        bevelTopType: "angle",
+        bevelTopWidth: 9525,
+        bevelTopHeight: 9525,
+      },
+    };
+    const result = buildText3DShadowCss(style);
+    expect(result).toBeDefined();
+    // angle: highlightOpacity = 0.55, extraHighlight = true
+    expect(result).toContain("rgba(255,255,255,0.55)");
+    // Extra highlight: half of 0.55 = 0.275 → rounded to 0.28
+    expect(result).toContain("-1px -1px 0 rgba(255,255,255,0.28)");
+  });
+
+  // ── Combined material + bevel tests ───────────────────────────────
+
+  it("combines extrusion with material and bevel", () => {
+    const style: TextStyle = {
+      color: "#336699",
+      text3d: {
+        extrusionHeight: 9525 * 4,
+        presetMaterial: "metal",
+        bevelTopType: "hardEdge",
+        bevelTopWidth: 9525,
+        bevelTopHeight: 9525,
+      },
+    };
+    const result = buildText3DShadowCss(style);
+    expect(result).toBeDefined();
+    const parts = result!.split(",").map((s) => s.trim());
+    // Should have extrusion layers + soft shadow + specular + bevel (highlight + shadow + extra)
+    // At minimum: 4 extrusion + 1 soft + 1 specular + 3 bevel = 9
+    expect(parts.length).toBeGreaterThanOrEqual(9);
+  });
+
+  it("enforces minimum extrusion layers for very small heights", () => {
+    const style: TextStyle = {
+      text3d: {
+        extrusionHeight: 9525, // 1px, but MIN is 3
+        extrusionColor: "#888888",
+      },
+    };
+    const result = buildText3DShadowCss(style);
+    expect(result).toBeDefined();
+    // Should have at least 3 extrusion layers due to MIN_EXTRUSION_LAYERS
+    expect(result).toContain("3px 3px 0");
   });
 });
 

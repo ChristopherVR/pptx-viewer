@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import type { PptxElement } from "pptx-viewer-core";
 import {
   hasShapeProperties,
@@ -23,8 +23,10 @@ import {
   normalizeHexColor,
   renderVectorShape,
 } from "../utils";
+import { build3DExtrusionData } from "../utils/shape-visual-3d";
 import { getAriaRole, getAriaLabel, getAriaRoleDescription } from "../utils/accessibility";
 import { ConnectorElementRenderer } from "./elements/ConnectorElementRenderer";
+import { Extrusion3DOverlay } from "./elements/Extrusion3DOverlay";
 import { renderBody } from "./elements/ElementBody";
 import { ResizeHandles } from "./elements/ResizeHandles";
 import {
@@ -113,6 +115,26 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
     const isImg = el.type === "picture" || el.type === "image";
     const isModel3D = el.type === "model3d";
     const isConn = isConnectorOrLineElement(el);
+
+    // ── 3D extrusion data ──
+    const shapeStyle3d = hasShapeProperties(el) ? el.shapeStyle : undefined;
+    const extrusionData = useMemo(
+      () =>
+        build3DExtrusionData(
+          shapeStyle3d?.shape3d,
+          shapeStyle3d?.scene3d,
+          fc,
+          el.width,
+          el.height,
+        ),
+      [
+        shapeStyle3d?.shape3d,
+        shapeStyle3d?.scene3d,
+        fc,
+        el.width,
+        el.height,
+      ],
+    );
 
     // ── Full-screen media play state tracking ──
     const [isMediaPlaying, setIsMediaPlaying] = useState(false);
@@ -207,6 +229,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
           opacity,
           animationState,
           shapeVisualStyle: ss,
+          has3DExtrusion: extrusionData.hasExtrusion,
         })}
         onKeyDown={(e) => {
           if (
@@ -270,6 +293,9 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
         title={el.actionClick?.tooltip || el.actionHover?.tooltip || undefined}
       >
         {renderDagDuotoneFilterForElement(el)}
+        {extrusionData.hasExtrusion && (
+          <Extrusion3DOverlay data={extrusionData} />
+        )}
         {renderBody(
           el,
           isImg,

@@ -773,6 +773,289 @@ function getContourShadow(shape3d: Shape3dParams | undefined): string | undefine
   return `0 0 0 ${widthPx}px ${color}`;
 }
 
+// ── 3D Extrusion Panel Data ──────────────────────────────────────────────
+
+/**
+ * Describes one side face (panel) of a CSS 3D extrusion.
+ * Each panel is a div positioned using CSS 3D transforms to form
+ * the sides of the extruded shape.
+ */
+export interface ExtrusionPanel {
+  /** Which side of the shape this panel represents. */
+  side: "top" | "bottom" | "left" | "right";
+  /** CSS styles for the panel (transform, width, height, background, etc.). */
+  style: React.CSSProperties;
+}
+
+/**
+ * Complete data for rendering a CSS 3D extrusion effect.
+ */
+export interface Extrusion3DData {
+  /** Whether extrusion should be rendered (has depth and is valid). */
+  hasExtrusion: boolean;
+  /** Styles to apply to the outer wrapper that establishes the 3D context. */
+  wrapperStyle: React.CSSProperties;
+  /** Styles to apply to the front face (the original shape content). */
+  frontFaceStyle: React.CSSProperties;
+  /** Side panels that form the extrusion depth. */
+  panels: ExtrusionPanel[];
+  /** Material gradient overlay for front face (CSS backgroundImage). */
+  materialOverlay?: string;
+}
+
+/**
+ * Map camera rotation to a gradient angle for material simulation.
+ * This creates a directional light feel on the front face.
+ */
+function getMaterialGradientOverlay(
+  material: string | undefined,
+  _rotateX: number,
+  _rotateY: number,
+): string | undefined {
+  if (!material) return undefined;
+  switch (material) {
+    case "plastic":
+      return "linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.05) 30%, transparent 60%, rgba(0,0,0,0.06) 100%)";
+    case "metal":
+      return "linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 20%, transparent 50%, rgba(0,0,0,0.1) 80%, rgba(255,255,255,0.08) 100%)";
+    case "softmetal":
+      return "linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.06) 25%, transparent 55%, rgba(0,0,0,0.06) 100%)";
+    case "warmMatte":
+      return "linear-gradient(180deg, rgba(255,240,220,0.08) 0%, transparent 60%, rgba(0,0,0,0.04) 100%)";
+    case "matte":
+      return "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 50%, rgba(0,0,0,0.04) 100%)";
+    case "dkEdge":
+      return "linear-gradient(135deg, transparent 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.15) 100%)";
+    case "clear":
+    case "translucentPowder":
+      return "linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%, rgba(0,0,0,0.05) 100%)";
+    case "powder":
+      return "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 60%)";
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Build complete 3D extrusion data for rendering side face panels.
+ *
+ * This generates CSS 3D transform data that creates real depth by positioning
+ * div elements along the sides of the shape in 3D space. The front face is
+ * translated forward by half the extrusion depth, and side panels connect
+ * the front face to the back face.
+ *
+ * @param shape3d - Shape 3D extrusion/bevel properties.
+ * @param scene3d - Scene camera/lighting properties.
+ * @param fillColor - The resolved fill colour of the shape (hex string).
+ * @param elementWidth - Width of the shape element in pixels.
+ * @param elementHeight - Height of the shape element in pixels.
+ * @returns Extrusion data including wrapper styles, front face styles, and panels.
+ */
+export function build3DExtrusionData(
+  shape3d: Shape3dParams | undefined,
+  scene3d: Scene3dParams | undefined,
+  fillColor: string | undefined,
+  elementWidth: number,
+  elementHeight: number,
+): Extrusion3DData {
+  const empty: Extrusion3DData = {
+    hasExtrusion: false,
+    wrapperStyle: {},
+    frontFaceStyle: {},
+    panels: [],
+  };
+
+  if (!shape3d?.extrusionHeight || shape3d.extrusionHeight <= 0) {
+    return empty;
+  }
+
+  const depthPx = Math.max(1, Math.round(shape3d.extrusionHeight / EMU_PER_PX));
+  // Cap depth for visual sanity — very deep extrusions can break layouts
+  const clampedDepth = Math.min(depthPx, 80);
+
+  if (clampedDepth <= 0) return empty;
+
+  const { perspective, rotateX, rotateY, rotateZ } = getCameraTransform(scene3d);
+
+  // Use extrusion colour or darken the fill colour for side faces
+  const extColor = shape3d.extrusionColor || fillColor || "#888888";
+  const sideDarken = 0.7; // Side faces are darker than front
+  const sideColor = darkenColor(
+    extColor.startsWith("#") ? extColor : "#888888",
+    sideDarken,
+  );
+  const sideColorDeep = darkenColor(
+    extColor.startsWith("#") ? extColor : "#888888",
+    0.55,
+  );
+
+  // Half-depth offset: front face is pushed forward by half the depth
+  const halfDepth = clampedDepth / 2;
+
+  // Wrapper style: establishes the 3D perspective context
+  const wrapperStyle: React.CSSProperties = {
+    position: "absolute" as const,
+    inset: 0,
+    transformStyle: "preserve-3d" as const,
+    perspective: perspective || "800px",
+    pointerEvents: "none" as const,
+  };
+
+  // Front face: translate forward in Z to sit at the front of the extrusion
+  const frontFaceTransforms: string[] = [`translateZ(${halfDepth}px)`];
+  if (rotateX !== 0) frontFaceTransforms.unshift(`rotateX(${rotateX}deg)`);
+  if (rotateY !== 0) frontFaceTransforms.unshift(`rotateY(${rotateY}deg)`);
+  if (rotateZ !== 0) frontFaceTransforms.unshift(`rotateZ(${rotateZ}deg)`);
+
+  const frontFaceStyle: React.CSSProperties = {
+    transform: frontFaceTransforms.join(" "),
+    transformStyle: "preserve-3d" as const,
+    backfaceVisibility: "hidden" as const,
+  };
+
+  // Build side panels
+  const panels: ExtrusionPanel[] = [];
+
+  // Determine which panels to show based on camera angle.
+  // When looking from above (rotateX < 0), the bottom panel is visible.
+  // When looking from below (rotateX > 0), the top panel is visible.
+  // When looking from the left (rotateY > 0), the right panel is visible.
+  // When looking from the right (rotateY < 0), the left panel is visible.
+  // We also show panels for straight-on views to give depth perception.
+
+  const showBottom = rotateX <= 2;
+  const showTop = rotateX >= -2;
+  const showRight = rotateY <= 5;
+  const showLeft = rotateY >= -5;
+
+  // Common side panel base styles
+  const panelBase: React.CSSProperties = {
+    position: "absolute" as const,
+    backfaceVisibility: "hidden" as const,
+    transformStyle: "preserve-3d" as const,
+  };
+
+  // Gradient direction for side faces: lighter at the front edge, darker at the back
+  const sideFaceGradient = `linear-gradient(to bottom, ${sideColor}, ${sideColorDeep})`;
+  const sideFaceGradientH = `linear-gradient(to right, ${sideColor}, ${sideColorDeep})`;
+
+  // ── Bottom panel ──
+  // Positioned at the bottom edge of the shape, rotated 90deg around X axis
+  if (showBottom) {
+    const rotations: string[] = [];
+    if (rotateX !== 0) rotations.push(`rotateX(${rotateX}deg)`);
+    if (rotateY !== 0) rotations.push(`rotateY(${rotateY}deg)`);
+    if (rotateZ !== 0) rotations.push(`rotateZ(${rotateZ}deg)`);
+    panels.push({
+      side: "bottom",
+      style: {
+        ...panelBase,
+        width: elementWidth,
+        height: clampedDepth,
+        left: 0,
+        top: elementHeight,
+        transformOrigin: "top center",
+        transform: [
+          ...rotations,
+          "rotateX(-90deg)",
+          `translateZ(${-halfDepth}px)`,
+        ].join(" "),
+        background: sideFaceGradient,
+      },
+    });
+  }
+
+  // ── Top panel ──
+  if (showTop) {
+    const rotations: string[] = [];
+    if (rotateX !== 0) rotations.push(`rotateX(${rotateX}deg)`);
+    if (rotateY !== 0) rotations.push(`rotateY(${rotateY}deg)`);
+    if (rotateZ !== 0) rotations.push(`rotateZ(${rotateZ}deg)`);
+    panels.push({
+      side: "top",
+      style: {
+        ...panelBase,
+        width: elementWidth,
+        height: clampedDepth,
+        left: 0,
+        top: 0,
+        transformOrigin: "bottom center",
+        transform: [
+          ...rotations,
+          "rotateX(90deg)",
+          `translateZ(${-halfDepth}px)`,
+        ].join(" "),
+        background: sideFaceGradient,
+      },
+    });
+  }
+
+  // ── Right panel ──
+  if (showRight) {
+    const rotations: string[] = [];
+    if (rotateX !== 0) rotations.push(`rotateX(${rotateX}deg)`);
+    if (rotateY !== 0) rotations.push(`rotateY(${rotateY}deg)`);
+    if (rotateZ !== 0) rotations.push(`rotateZ(${rotateZ}deg)`);
+    panels.push({
+      side: "right",
+      style: {
+        ...panelBase,
+        width: clampedDepth,
+        height: elementHeight,
+        left: elementWidth,
+        top: 0,
+        transformOrigin: "left center",
+        transform: [
+          ...rotations,
+          "rotateY(90deg)",
+          `translateZ(${-halfDepth}px)`,
+        ].join(" "),
+        background: sideFaceGradientH,
+      },
+    });
+  }
+
+  // ── Left panel ──
+  if (showLeft) {
+    const rotations: string[] = [];
+    if (rotateX !== 0) rotations.push(`rotateX(${rotateX}deg)`);
+    if (rotateY !== 0) rotations.push(`rotateY(${rotateY}deg)`);
+    if (rotateZ !== 0) rotations.push(`rotateZ(${rotateZ}deg)`);
+    panels.push({
+      side: "left",
+      style: {
+        ...panelBase,
+        width: clampedDepth,
+        height: elementHeight,
+        left: 0,
+        top: 0,
+        transformOrigin: "right center",
+        transform: [
+          ...rotations,
+          "rotateY(-90deg)",
+          `translateZ(${-halfDepth}px)`,
+        ].join(" "),
+        background: sideFaceGradientH,
+      },
+    });
+  }
+
+  // Material overlay for front face
+  const materialOverlay = getMaterialGradientOverlay(
+    shape3d.presetMaterial,
+    rotateX,
+    rotateY,
+  );
+
+  return {
+    hasExtrusion: true,
+    wrapperStyle,
+    frontFaceStyle,
+    panels,
+    materialOverlay,
+  };
+}
+
 // ── Public API ───────────────────────────────────────────────────────────
 
 /**
@@ -891,7 +1174,23 @@ export function apply3dEffects(
     if (rotateX !== 0) transforms.push(`rotateX(${rotateX}deg)`);
     if (rotateY !== 0) transforms.push(`rotateY(${rotateY}deg)`);
     if (rotateZ !== 0) transforms.push(`rotateZ(${rotateZ}deg)`);
-    base.transform = transforms.join(" ");
+    const rotation3d = transforms.join(" ");
+    // Compose with any existing transform (e.g. flip/rotation from getElementTransform)
+    base.transform = base.transform
+      ? `${base.transform} ${rotation3d}`
+      : rotation3d;
+  }
+
+  // When extrusion is active, push the front face forward in Z-space so the
+  // stacked box-shadow extrusion appears behind it.  This is a lightweight
+  // complement to the full Extrusion3DOverlay panel rendering.
+  if (shape3d?.extrusionHeight && shape3d.extrusionHeight > 0) {
+    const depthPx = Math.max(1, Math.round(shape3d.extrusionHeight / EMU_PER_PX));
+    const halfDepth = Math.min(depthPx, 80) / 2;
+    const zTranslate = `translateZ(${halfDepth}px)`;
+    base.transform = base.transform
+      ? `${base.transform} ${zTranslate}`
+      : zTranslate;
   }
 
   // Performance hint for 3D-transformed elements
