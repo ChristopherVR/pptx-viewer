@@ -164,7 +164,7 @@ export function SlideCanvas({
   const rulerOffset = showRulers ? RULER_THICKNESS : 0;
 
   return (
-    <div ref={zoom.canvasViewportRef} className="flex-1 overflow-auto relative">
+    <div ref={zoom.canvasViewportRef} className="flex-1 overflow-auto relative" style={{ touchAction: "pan-x pan-y" }}>
       <div
         ref={zoom.editWrapperRef}
         className="relative mx-auto my-4"

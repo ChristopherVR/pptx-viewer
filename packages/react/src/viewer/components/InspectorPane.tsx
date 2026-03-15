@@ -110,10 +110,17 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
   return (
     <div
       className={cn(
-        "absolute top-0 right-0 h-full w-72 bg-background border-l border-border",
-        "flex flex-col text-xs text-foreground shadow-xl z-20",
+        // Desktop/tablet: right-side panel
+        "absolute bg-background flex flex-col text-xs text-foreground shadow-xl z-20",
         "transition-transform duration-200 ease-in-out",
-        isOpen ? "translate-x-0" : "translate-x-full",
+        // Mobile: bottom sheet overlay (full width, max 60% height)
+        "max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:max-h-[60vh] max-md:rounded-t-xl max-md:border-t max-md:border-border",
+        // Tablet/desktop: side panel
+        "md:top-0 md:right-0 md:h-full md:w-72 md:border-l md:border-border",
+        // Show/hide transitions
+        isOpen
+          ? "translate-x-0 max-md:translate-y-0"
+          : "md:translate-x-full max-md:translate-y-full",
       )}
     >
       {/* Header */}

@@ -39,7 +39,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
     <div
       role="toolbar"
       aria-label="Presentation toolbar"
-      className="relative z-20 px-2 py-1.5 border-b border-border bg-background shadow-[0_4px_12px_rgba(0,0,0,0.3)] overflow-visible"
+      className="relative z-20 px-2 py-1.5 max-md:px-1 max-md:py-1 border-b border-border bg-background shadow-[0_4px_12px_rgba(0,0,0,0.3)] overflow-visible"
     >
       {/* Primary Row */}
       <ToolbarPrimaryRow {...p} />
@@ -52,14 +52,14 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
             isNarrowViewport && !isCompactToolbarOpen && "hidden",
           )}
         >
-          <div className="inline-flex items-center rounded-md border border-border/60 bg-muted/50 p-0.5 text-[11px]">
+          <div className="inline-flex items-center rounded-md border border-border/60 bg-muted/50 p-0.5 text-[11px] max-md:overflow-x-auto max-md:max-w-full max-md:scrollbar-none">
             {TOOLBAR_SECTIONS.map((s) => (
               <button
                 key={s.id}
                 type="button"
                 onClick={() => onSetToolbarSection(s.id)}
                 className={cn(
-                  "rounded px-2 py-0.5 transition-colors",
+                  "rounded px-2 py-0.5 transition-colors whitespace-nowrap max-md:min-h-[36px] max-md:px-3",
                   toolbarSection === s.id
                     ? "bg-primary text-primary-foreground"
                     : "text-foreground hover:bg-accent",

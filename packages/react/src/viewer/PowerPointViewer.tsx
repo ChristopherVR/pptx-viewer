@@ -36,6 +36,8 @@ import { usePresentationSetup } from "./hooks/usePresentationSetup";
 import { useEditorOperations } from "./hooks/useEditorOperations";
 import { useViewerIntegration } from "./hooks/useViewerIntegration";
 import { useReducedMotion } from "./hooks/useReducedMotion";
+import { useIsMobile } from "./hooks/useIsMobile";
+import { useTouchGestures } from "./hooks/useTouchGestures";
 
 // Components
 import {
@@ -102,6 +104,11 @@ export const PowerPointViewer = forwardRef<
     toggleReducedMotion,
   } = useReducedMotion();
 
+  // ── Mobile / responsive detection ──────────────────────────────
+  // Initialized early because `containerRef` comes from `state` below,
+  // but useIsMobile also works with a viewport-width fallback before
+  // the ref is attached. We re-create the hook input after state init.
+
   // ── All state via custom hook ─────────────────────────────────
   const state = useViewerState({ content, canEdit });
   const {
@@ -118,6 +125,10 @@ export const PowerPointViewer = forwardRef<
     activeSlide,
     selectedElement,
   } = state;
+
+  // ── Mobile / responsive ─────────────────────────────────────
+  const mobile = useIsMobile({ containerRef });
+  const { isMobile, isTouchDevice, isVirtualKeyboardOpen } = mobile;
 
   // ── Derived computed values ───────────────────────────────────
   const {
@@ -201,6 +212,29 @@ export const PowerPointViewer = forwardRef<
       setSlides: state.setSlides,
       history,
     });
+
+  // ── Touch gestures — pinch-to-zoom on canvas viewport ──────
+  useTouchGestures({
+    targetRef: zoom.canvasViewportRef,
+    currentScale: zoom.scale,
+    callbacks: {
+      onPinchZoom: (newScale) => zoom.setScale(newScale),
+      onSwipe:
+        mode === "present"
+          ? (direction) => presentation.movePresentationSlide(direction === 1 ? -1 : 1)
+          : undefined,
+      onLongPress: (clientX, clientY) => {
+        if (mode !== "edit" || !canEdit) return;
+        if (!state.selectedElementId) return;
+        state.setContextMenuState({
+          x: clientX,
+          y: clientY,
+          elementId: state.selectedElementId,
+        });
+      },
+    },
+    enabled: isTouchDevice,
+  });
 
   // ── Dialogs ───────────────────────────────────────────────────
   const dialogs = useViewerDialogs({
@@ -304,9 +338,14 @@ export const PowerPointViewer = forwardRef<
   if (loading) return <LoadingState />;
   if (error) return <ErrorState error={error} />;
 
+  // On mobile, the slides pane is hidden by default (shown as overlay via
+  // separate mobile UI). On tablet+, it follows the existing isNarrowViewport logic.
   const showSlidesPane =
-    mode === "edit" && !dialogs.isNarrowViewport && state.isSlidesPaneOpen;
-  const showMasterPane = mode === "master" && state.isSlidesPaneOpen;
+    mode === "edit" &&
+    !isMobile &&
+    !dialogs.isNarrowViewport &&
+    state.isSlidesPaneOpen;
+  const showMasterPane = mode === "master" && !isMobile && state.isSlidesPaneOpen;
 
   // ── JSX ───────────────────────────────────────────────────────
   const viewerContent = (
@@ -370,14 +409,16 @@ export const PowerPointViewer = forwardRef<
         history={history}
         comments={editorOps.comments}
         zoom={zoom}
+        isMobile={isMobile}
+        isTouchDevice={isTouchDevice}
         onEndPresentation={() => handleSetMode("edit")}
       />
 
-      {mode !== "present" && (
+      {mode !== "present" && !isVirtualKeyboardOpen && (
         <ViewerBottomPanels
           activeSlide={activeSlide}
           allSlides={slides}
-          isSlideNotesCollapsed={state.isSlideNotesCollapsed}
+          isSlideNotesCollapsed={isMobile || state.isSlideNotesCollapsed}
           canEdit={canEdit}
           slideCount={slides.length}
           activeSlideIndex={activeSlideIndex}

@@ -47,6 +47,10 @@ export interface ViewerMainContentProps {
   history: EditorHistoryResult;
   comments: UseCommentsResult;
   zoom: UseZoomViewportResult;
+  /** Whether the viewport is mobile-sized (<768px). */
+  isMobile?: boolean;
+  /** Whether the device supports touch input. */
+  isTouchDevice?: boolean;
   /** Called when the user clicks "end presentation" in the slide show toolbar. */
   onEndPresentation?: () => void;
 }
@@ -79,6 +83,8 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
     history,
     comments,
     zoom,
+    isMobile = false,
+    isTouchDevice = false,
     onEndPresentation,
   } = props;
 

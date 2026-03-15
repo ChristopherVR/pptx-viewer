@@ -119,7 +119,7 @@ export function ViewerSidePanels(props: ViewerSidePanelsProps) {
       />
 
       {s.isSelectionPaneOpen && (mode === "edit" || mode === "master") && (
-        <div className="absolute right-0 top-0 z-30 h-full">
+        <div className="absolute right-0 top-0 z-30 h-full max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:h-auto max-md:max-h-[50vh]">
           <SelectionPane
             slides={slides}
             activeSlideIndex={activeSlideIndex}
@@ -136,7 +136,7 @@ export function ViewerSidePanels(props: ViewerSidePanelsProps) {
       )}
 
       {s.isThemeEditorOpen && mode === "edit" && (
-        <div className="absolute right-0 top-0 z-30 h-full w-72 overflow-y-auto border-l border-gray-700 bg-gray-900 p-2.5 shadow-xl">
+        <div className="absolute right-0 top-0 z-30 h-full w-72 overflow-y-auto border-l border-gray-700 bg-gray-900 p-2.5 shadow-xl max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:h-auto max-md:max-h-[60vh] max-md:rounded-t-xl max-md:border-t max-md:border-l-0">
           <ThemeEditorPanel
             theme={s.theme}
             canEdit={canEdit}
