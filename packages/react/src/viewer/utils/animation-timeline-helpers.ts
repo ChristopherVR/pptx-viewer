@@ -379,11 +379,19 @@ export function fillModeForClass(
   }
 }
 
-export function finalizeClickGroup(steps: TimelineStep[]): TimelineClickGroup {
+export function finalizeClickGroup(
+  steps: TimelineStep[],
+  options?: { autoAdvance?: boolean; autoAdvanceDelayMs?: number },
+): TimelineClickGroup {
   let maxEnd = 0;
   for (const step of steps) {
     const end = step.delayMs + step.durationMs;
     if (end > maxEnd) maxEnd = end;
   }
-  return { steps, totalDurationMs: maxEnd };
+  const group: TimelineClickGroup = { steps, totalDurationMs: maxEnd };
+  if (options?.autoAdvance) {
+    group.autoAdvance = true;
+    group.autoAdvanceDelayMs = options.autoAdvanceDelayMs ?? 0;
+  }
+  return group;
 }

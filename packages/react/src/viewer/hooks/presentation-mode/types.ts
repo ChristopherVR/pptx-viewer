@@ -52,6 +52,12 @@ export interface UsePresentationModeResult {
   handleInteractiveShapeClick: (shapeId: string) => boolean;
   /** Set of shape IDs that are interactive sequence triggers on the current slide. */
   interactiveTriggerShapeIds: ReadonlySet<string>;
+  /** Set of shape IDs that are hover animation triggers on the current slide. */
+  hoverTriggerShapeIds: ReadonlySet<string>;
+  /** Handle hover start on a shape. If the shape has a hover sequence, play it. Returns `true` if handled. */
+  handleHoverStart: (shapeId: string) => boolean;
+  /** Handle hover end on a shape. Resets the hover sequence for replay. */
+  handleHoverEnd: (shapeId: string) => void;
   /** Must be called from a user-gesture handler (click) to satisfy browser fullscreen policy. */
   enterPresentMode: () => void;
   /** Whether presenter view (split-screen with notes) is active instead of fullscreen. */

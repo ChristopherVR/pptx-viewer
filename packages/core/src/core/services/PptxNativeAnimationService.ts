@@ -141,11 +141,15 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
         trigger = "withPrevious";
       } else if (nodeType === "clickEffect") {
         trigger = "onClick";
-      } else if (nodeType === "mouseOver" || nodeType === "onMouseOver") {
+      } else if (
+        nodeType === "mouseOver" ||
+        nodeType === "onMouseOver" ||
+        nodeType === "hoverEffect"
+      ) {
         trigger = "onHover";
       }
 
-      // Check start conditions for afterDelay triggers (positive delay value)
+      // Check start conditions for afterDelay triggers and hover events
       const stCondList = cTn["p:stCondLst"] as XmlObject | undefined;
       if (stCondList) {
         const conditions = ensureArray(stCondList["p:cond"]);
@@ -156,6 +160,11 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
             Number.parseInt(String(conditionDelay), 10) > 0
           ) {
             trigger = "afterDelay";
+          }
+          // Detect onMouseOver/onMouseOut events in start conditions
+          const condEvt = condition["@_evt"];
+          if (condEvt === "onMouseOver") {
+            trigger = "onHover";
           }
         }
       }
