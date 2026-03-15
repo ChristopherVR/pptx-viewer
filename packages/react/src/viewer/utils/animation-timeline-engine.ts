@@ -37,6 +37,11 @@ export class TimelineEngine {
    * (keyed by trigger shape ID).
    */
   private readonly interactiveGroupIndexes: Map<string, number>;
+  /**
+   * Tracks the current click-group index for each hover sequence
+   * (keyed by trigger shape ID).
+   */
+  private readonly hoverGroupIndexes: Map<string, number>;
 
   public constructor(timeline: AnimationTimeline) {
     this.timeline = timeline;
@@ -45,6 +50,7 @@ export class TimelineEngine {
     this.revealedElements = new Set();
     this.exitedElements = new Set();
     this.interactiveGroupIndexes = new Map();
+    this.hoverGroupIndexes = new Map();
   }
 
   /** Build a TimelineEngine from a slide's native animations. */
@@ -84,18 +90,38 @@ export class TimelineEngine {
     this.currentGroupIndex++;
     const group = this.timeline.clickGroups[this.currentGroupIndex];
 
-    for (const step of group.steps) {
-      this.activeAnimations.set(step.elementId, step.cssAnimation);
-
-      if (step.presetClass === "entr") {
-        this.revealedElements.add(step.elementId);
-      }
-      if (step.presetClass === "exit") {
-        this.exitedElements.add(step.elementId);
-      }
-    }
+    this.applyGroupSteps(group);
 
     return group;
+  }
+
+  /**
+   * Peek at the next click-group without advancing.
+   * Returns the next group or `null` if no more groups remain.
+   */
+  public peekNext(): TimelineClickGroup | null {
+    const nextIdx = this.currentGroupIndex + 1;
+    if (nextIdx >= this.timeline.clickGroups.length) return null;
+    return this.timeline.clickGroups[nextIdx];
+  }
+
+  /**
+   * Check if the next click-group should auto-advance (play automatically
+   * without requiring a click).
+   */
+  public shouldAutoAdvance(): boolean {
+    const next = this.peekNext();
+    return next?.autoAdvance === true;
+  }
+
+  /**
+   * Get the auto-advance delay for the next group (ms).
+   * Returns 0 if the next group is not auto-advance or doesn't exist.
+   */
+  public getAutoAdvanceDelay(): number {
+    const next = this.peekNext();
+    if (!next?.autoAdvance) return 0;
+    return next.autoAdvanceDelayMs ?? 0;
   }
 
   /**
@@ -162,6 +188,20 @@ export class TimelineEngine {
   }
 
   /**
+   * Check whether a shape ID is a trigger for a hover sequence.
+   */
+  public hasHoverSequence(shapeId: string): boolean {
+    return this.timeline.hoverSequences.has(shapeId);
+  }
+
+  /**
+   * Get all shape IDs that are hover sequence triggers.
+   */
+  public getHoverTriggerShapeIds(): ReadonlySet<string> {
+    return new Set(this.timeline.hoverSequences.keys());
+  }
+
+  /**
    * Advance the interactive sequence for a given trigger shape.
    * Returns the click-group to play, or `null` if no more groups remain.
    */
@@ -177,18 +217,38 @@ export class TimelineEngine {
     this.interactiveGroupIndexes.set(triggerShapeId, nextIdx);
     const group = groups[nextIdx];
 
-    for (const step of group.steps) {
-      this.activeAnimations.set(step.elementId, step.cssAnimation);
-
-      if (step.presetClass === "entr") {
-        this.revealedElements.add(step.elementId);
-      }
-      if (step.presetClass === "exit") {
-        this.exitedElements.add(step.elementId);
-      }
-    }
+    this.applyGroupSteps(group);
 
     return group;
+  }
+
+  /**
+   * Advance the hover sequence for a given trigger shape.
+   * Returns the click-group to play, or `null` if no more groups remain.
+   */
+  public advanceHover(triggerShapeId: string): TimelineClickGroup | null {
+    const groups = this.timeline.hoverSequences.get(triggerShapeId);
+    if (!groups || groups.length === 0) return null;
+
+    const currentIdx = this.hoverGroupIndexes.get(triggerShapeId) ?? -1;
+    const nextIdx = currentIdx + 1;
+
+    if (nextIdx >= groups.length) return null;
+
+    this.hoverGroupIndexes.set(triggerShapeId, nextIdx);
+    const group = groups[nextIdx];
+
+    this.applyGroupSteps(group);
+
+    return group;
+  }
+
+  /**
+   * Reset the hover sequence for a given trigger shape so it can replay
+   * on the next hover. Optionally clears the CSS animation on affected elements.
+   */
+  public resetHover(triggerShapeId: string): void {
+    this.hoverGroupIndexes.delete(triggerShapeId);
   }
 
   /**
@@ -200,5 +260,22 @@ export class TimelineEngine {
     this.revealedElements.clear();
     this.exitedElements.clear();
     this.interactiveGroupIndexes.clear();
+    this.hoverGroupIndexes.clear();
+  }
+
+  /**
+   * Apply a group's steps to the internal tracking state.
+   */
+  private applyGroupSteps(group: TimelineClickGroup): void {
+    for (const step of group.steps) {
+      this.activeAnimations.set(step.elementId, step.cssAnimation);
+
+      if (step.presetClass === "entr") {
+        this.revealedElements.add(step.elementId);
+      }
+      if (step.presetClass === "exit") {
+        this.exitedElements.add(step.elementId);
+      }
+    }
   }
 }

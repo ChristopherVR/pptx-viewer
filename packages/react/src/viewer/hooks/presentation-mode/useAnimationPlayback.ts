@@ -29,9 +29,12 @@ export interface UseAnimationPlaybackResult {
   presentationElementStates: Map<string, ElementAnimationState>;
   presentationKeyframesCss: string;
   interactiveTriggerShapeIds: ReadonlySet<string>;
+  hoverTriggerShapeIds: ReadonlySet<string>;
   clearPresentationTimers: () => void;
   playNextAnimationGroup: () => boolean;
   handleInteractiveShapeClick: (shapeId: string) => boolean;
+  handleHoverStart: (shapeId: string) => boolean;
+  handleHoverEnd: (shapeId: string) => void;
   runPresentationEntranceAnimations: (slideIndex: number) => void;
   /** Exposed so the orchestrator can schedule additional timers (e.g. auto-advance). */
   presentationTimersRef: React.RefObject<number[]>;
@@ -58,6 +61,9 @@ export function useAnimationPlayback(
   const [interactiveTriggerShapeIds, setInteractiveTriggerShapeIds] = useState<
     ReadonlySet<string>
   >(new Set());
+  const [hoverTriggerShapeIds, setHoverTriggerShapeIds] = useState<
+    ReadonlySet<string>
+  >(new Set());
 
   // Refs
   const presentationTimersRef = useRef<number[]>([]);
@@ -75,6 +81,47 @@ export function useAnimationPlayback(
   }, []);
 
   // -----------------------------------------------------------------------
+  // Auto-advance scheduling
+  // -----------------------------------------------------------------------
+
+  /**
+   * After playing a click-group, check if the next group should auto-advance
+   * and schedule it accordingly. This chains through consecutive auto-advance
+   * groups so sequences like onClick -> afterPrevious -> afterPrevious all
+   * play without additional clicks.
+   */
+  const scheduleAutoAdvanceChain = useCallback(
+    (engine: TimelineEngine) => {
+      if (!engine.shouldAutoAdvance()) return;
+
+      const delay = engine.getAutoAdvanceDelay();
+      const previousGroup = engine.peekNext();
+      if (!previousGroup) return;
+
+      const totalDelay =
+        delay + (previousGroup.autoAdvanceDelayMs ?? 0);
+
+      const timer = window.setTimeout(() => {
+        const group = engine.advance();
+        if (!group) return;
+
+        applyAnimationGroupSteps(
+          group,
+          onPlayActionSound,
+          setPresentationElementStates,
+          presentationTimersRef,
+        );
+
+        // Continue the chain if more auto-advance groups follow
+        scheduleAutoAdvanceChain(engine);
+      }, Math.max(0, totalDelay));
+
+      presentationTimersRef.current.push(timer);
+    },
+    [onPlayActionSound],
+  );
+
+  // -----------------------------------------------------------------------
   // Slide timeline reset
   // -----------------------------------------------------------------------
 
@@ -86,6 +133,7 @@ export function useAnimationPlayback(
         setPresentationElementStates(new Map());
         setPresentationKeyframesCss("");
         setInteractiveTriggerShapeIds(new Set());
+        setHoverTriggerShapeIds(new Set());
         return;
       }
 
@@ -119,8 +167,9 @@ export function useAnimationPlayback(
       timelineEngineRef.current = engine;
       setPresentationKeyframesCss(engine.getTimeline().keyframesCss);
 
-      // Expose interactive trigger shape IDs for cursor styling
+      // Expose interactive and hover trigger shape IDs for cursor styling
       setInteractiveTriggerShapeIds(engine.getInteractiveTriggerShapeIds());
+      setHoverTriggerShapeIds(engine.getHoverTriggerShapeIds());
 
       // Collect both element IDs and sub-element IDs for state tracking
       const allIds: string[] = slide.elements.map((element) => element.id);
@@ -153,8 +202,11 @@ export function useAnimationPlayback(
       presentationTimersRef,
     );
 
+    // Schedule auto-advance for consecutive non-click groups
+    scheduleAutoAdvanceChain(engine);
+
     return true;
-  }, [animationsEnabled, onPlayActionSound]);
+  }, [animationsEnabled, onPlayActionSound, scheduleAutoAdvanceChain]);
 
   // -----------------------------------------------------------------------
   // Interactive shape-click animation
@@ -181,6 +233,45 @@ export function useAnimationPlayback(
   );
 
   // -----------------------------------------------------------------------
+  // Hover animation
+  // -----------------------------------------------------------------------
+
+  const handleHoverStart = useCallback(
+    (shapeId: string): boolean => {
+      if (!animationsEnabled) return false;
+      const engine = timelineEngineRef.current;
+      if (!engine || !engine.hasHoverSequence(shapeId)) return false;
+
+      // Reset hover state so hovering again replays the animation
+      engine.resetHover(shapeId);
+
+      const group = engine.advanceHover(shapeId);
+      if (!group) return false;
+
+      applyAnimationGroupSteps(
+        group,
+        onPlayActionSound,
+        setPresentationElementStates,
+        presentationTimersRef,
+      );
+
+      return true;
+    },
+    [animationsEnabled, onPlayActionSound],
+  );
+
+  const handleHoverEnd = useCallback(
+    (shapeId: string): void => {
+      const engine = timelineEngineRef.current;
+      if (!engine || !engine.hasHoverSequence(shapeId)) return;
+
+      // Reset hover sequence so next hover replays from the start
+      engine.resetHover(shapeId);
+    },
+    [],
+  );
+
+  // -----------------------------------------------------------------------
   // Entrance animations (legacy animation[] array on a slide)
   // -----------------------------------------------------------------------
 
@@ -195,6 +286,7 @@ export function useAnimationPlayback(
         setPresentationElementStates(new Map());
         setPresentationKeyframesCss("");
         setInteractiveTriggerShapeIds(new Set());
+        setHoverTriggerShapeIds(new Set());
         return;
       }
 
@@ -203,6 +295,29 @@ export function useAnimationPlayback(
       if (!slide) {
         setPresentationAnimations([]);
         return;
+      }
+
+      // After resetting the timeline, check if the first group should auto-play
+      // (e.g. when the slide starts with withPrevious/afterPrevious animations)
+      const engine = timelineEngineRef.current;
+      if (engine && engine.hasMoreSteps()) {
+        const firstGroup = engine.peekNext();
+        if (firstGroup && firstGroup.autoAdvance) {
+          // Auto-play the first group after a brief delay
+          const timer = window.setTimeout(() => {
+            const group = engine.advance();
+            if (group) {
+              applyAnimationGroupSteps(
+                group,
+                onPlayActionSound,
+                setPresentationElementStates,
+                presentationTimersRef,
+              );
+              scheduleAutoAdvanceChain(engine);
+            }
+          }, firstGroup.autoAdvanceDelayMs ?? 0);
+          presentationTimersRef.current.push(timer);
+        }
       }
 
       const entranceAnimations = [...(slide.animations || [])]
@@ -239,7 +354,7 @@ export function useAnimationPlayback(
         presentationTimersRef.current.push(timer);
       });
     },
-    [animationsEnabled, clearPresentationTimers, resetSlideTimeline, slides],
+    [animationsEnabled, clearPresentationTimers, resetSlideTimeline, slides, onPlayActionSound, scheduleAutoAdvanceChain],
   );
 
   return {
@@ -247,9 +362,12 @@ export function useAnimationPlayback(
     presentationElementStates,
     presentationKeyframesCss,
     interactiveTriggerShapeIds,
+    hoverTriggerShapeIds,
     clearPresentationTimers,
     playNextAnimationGroup,
     handleInteractiveShapeClick,
+    handleHoverStart,
+    handleHoverEnd,
     runPresentationEntranceAnimations,
     presentationTimersRef,
   };

@@ -26,6 +26,7 @@ describe("buildTimeline", () => {
     expect(result.entranceElementIds.size).toBe(0);
     expect(result.keyframesCss).toBe("");
     expect(result.interactiveSequences.size).toBe(0);
+    expect(result.hoverSequences.size).toBe(0);
   });
 
   // -------------------------------------------------------------------
@@ -337,14 +338,16 @@ describe("buildTimeline", () => {
   });
 
   // -------------------------------------------------------------------
-  // onHover trigger starts a new click-group
+  // onHover trigger goes to hover sequences (not click-groups)
   // -------------------------------------------------------------------
-  it("treats onHover like onClick for click-group creation", () => {
+  it("separates onHover animations into hover sequences", () => {
     const result = buildTimeline([
       makeAnim({ targetId: "el1", trigger: "onClick" }),
       makeAnim({ targetId: "el2", trigger: "onHover" as any }),
     ]);
-    expect(result.clickGroups).toHaveLength(2);
+    // el1 in click-groups, el2 in hover sequences
+    expect(result.clickGroups).toHaveLength(1);
+    expect(result.hoverSequences.has("el2")).toBe(true);
   });
 
   // -------------------------------------------------------------------

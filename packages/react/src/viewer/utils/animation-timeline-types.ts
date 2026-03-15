@@ -37,6 +37,17 @@ export interface TimelineClickGroup {
    * within this click-group.
    */
   totalDurationMs: number;
+  /**
+   * Whether this group should auto-advance (play automatically without a click).
+   * True when the group consists entirely of afterPrevious/withPrevious/afterDelay
+   * animations that were folded into the previous click-group's timeline.
+   */
+  autoAdvance?: boolean;
+  /**
+   * Delay in ms before auto-advancing to this group (relative to
+   * the end of the preceding group). Only meaningful when `autoAdvance` is true.
+   */
+  autoAdvanceDelayMs?: number;
 }
 
 /** The full animation timeline for a slide. */
@@ -52,6 +63,12 @@ export interface AnimationTimeline {
    * When a shape is clicked, its click-groups play independently of the main timeline.
    */
   interactiveSequences: ReadonlyMap<string, TimelineClickGroup[]>;
+  /**
+   * Hover sequences keyed by trigger shape ID.
+   * When a shape is hovered over, its click-groups play.
+   * Supports both onMouseOver (start) and onMouseOut (reverse/stop).
+   */
+  hoverSequences: ReadonlyMap<string, TimelineClickGroup[]>;
 }
 
 // ==========================================================================

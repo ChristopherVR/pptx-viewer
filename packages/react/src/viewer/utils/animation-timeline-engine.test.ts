@@ -35,6 +35,7 @@ function makeTimeline(overrides: Partial<AnimationTimeline> = {}): AnimationTime
     entranceElementIds: new Set(),
     keyframesCss: "",
     interactiveSequences: new Map(),
+    hoverSequences: new Map(),
     ...overrides,
   };
 }
