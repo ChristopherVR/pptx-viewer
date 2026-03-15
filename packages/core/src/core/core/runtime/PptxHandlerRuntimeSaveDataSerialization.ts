@@ -1,4 +1,4 @@
-import { XmlObject, type PptxTableData, type PptxChartData } from "../../types";
+import { XmlObject, type PptxTableData, type PptxChartData, type PptxChartSeries } from "../../types";
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from "./PptxHandlerRuntimeSaveTableStyles";
 import {
   buildChartPoints,
@@ -177,41 +177,77 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
         if (!plotArea) continue;
 
         // Find the chart type container (e.g. c:barChart, c:lineChart)
-        const chartTypeKey = Object.keys(plotArea).find((key) =>
+        let chartTypeKey = Object.keys(plotArea).find((key) =>
           this.compatibilityService.getXmlLocalName(key).endsWith("Chart"),
         );
         if (!chartTypeKey) continue;
 
-        const chartTypeContainer = plotArea[chartTypeKey] as
+        let chartTypeContainer = plotArea[chartTypeKey] as
           | XmlObject
           | undefined;
         if (!chartTypeContainer) continue;
 
+        // ── Handle chart type change ──────────────────────────────
+        const expectedXmlTag = this.chartTypeToXmlTag(chartData.chartType);
+        const currentLocalName = this.compatibilityService.getXmlLocalName(chartTypeKey);
+        if (expectedXmlTag && currentLocalName !== expectedXmlTag) {
+          // Move the container to a new key under plotArea
+          const newKey = `c:${expectedXmlTag}`;
+          (plotArea as XmlObject)[newKey] = chartTypeContainer;
+          delete (plotArea as XmlObject)[chartTypeKey];
+          chartTypeKey = newKey;
+        }
+
         // Update grouping mode
+        const groupingKey = Object.keys(chartTypeContainer).find(
+          (key) =>
+            this.compatibilityService.getXmlLocalName(key) === "grouping",
+        );
         if (chartData.grouping) {
-          const groupingKey = Object.keys(chartTypeContainer).find(
-            (key) =>
-              this.compatibilityService.getXmlLocalName(key) === "grouping",
-          );
           if (groupingKey) {
             (chartTypeContainer[groupingKey] as XmlObject)["@_val"] =
               chartData.grouping;
+          } else {
+            // Insert grouping element if the chart type supports it
+            chartTypeContainer["c:grouping"] = { "@_val": chartData.grouping };
           }
+        } else if (groupingKey) {
+          // Remove grouping if it was cleared (e.g. switching to pie)
+          delete chartTypeContainer[groupingKey];
         }
 
-        // Update series data
+        // ── Update series data ────────────────────────────────────
         const seriesNodes = this.xmlLookupService.getChildrenArrayByLocalName(
           chartTypeContainer,
           "ser",
         );
 
-        for (
-          let si = 0;
-          si < Math.min(seriesNodes.length, chartData.series.length);
-          si++
-        ) {
+        // Find the key used for series elements in the XML
+        const seriesKey = Object.keys(chartTypeContainer).find(
+          (key) => this.compatibilityService.getXmlLocalName(key) === "ser",
+        ) ?? "c:ser";
+
+        // Update existing series that are present in both XML and data
+        const commonCount = Math.min(seriesNodes.length, chartData.series.length);
+        for (let si = 0; si < commonCount; si++) {
           const seriesNode = seriesNodes[si];
           const seriesData = chartData.series[si];
+
+          // Update series index
+          const idxNode = this.xmlLookupService.getChildByLocalName(
+            seriesNode,
+            "idx",
+          );
+          if (idxNode) {
+            idxNode["@_val"] = String(si);
+          }
+          const orderNode = this.xmlLookupService.getChildByLocalName(
+            seriesNode,
+            "order",
+          );
+          if (orderNode) {
+            orderNode["@_val"] = String(si);
+          }
 
           // Update series name
           const txNode = this.xmlLookupService.getChildByLocalName(
@@ -222,14 +258,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
             this.updateChartCacheValues(txNode, false, [seriesData.name]);
           }
 
-          // Update category labels (on first series only)
-          if (si === 0) {
-            const catNode =
-              this.xmlLookupService.getChildByLocalName(seriesNode, "cat") ||
-              this.xmlLookupService.getChildByLocalName(seriesNode, "xVal");
-            if (catNode) {
-              this.updateChartCacheValues(catNode, false, chartData.categories);
-            }
+          // Update category labels on every series (not just the first)
+          const catNode =
+            this.xmlLookupService.getChildByLocalName(seriesNode, "cat") ||
+            this.xmlLookupService.getChildByLocalName(seriesNode, "xVal");
+          if (catNode) {
+            this.updateChartCacheValues(catNode, false, chartData.categories);
           }
 
           // Update values
@@ -263,6 +297,57 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
                 };
               }
             }
+          }
+        }
+
+        // ── Add new series (when data has more series than XML) ───
+        if (chartData.series.length > seriesNodes.length) {
+          // Use the last existing series as a template, or build minimal
+          const templateSeries = seriesNodes.length > 0
+            ? seriesNodes[seriesNodes.length - 1]
+            : undefined;
+
+          const newSeriesXmlNodes: XmlObject[] = [];
+          for (let si = seriesNodes.length; si < chartData.series.length; si++) {
+            const seriesData = chartData.series[si];
+            const newNode = this.buildNewSeriesXml(
+              si,
+              seriesData,
+              chartData.categories,
+              templateSeries,
+            );
+            newSeriesXmlNodes.push(newNode);
+          }
+
+          // Append new series to the container
+          const existingSeriesArray = Array.isArray(chartTypeContainer[seriesKey])
+            ? (chartTypeContainer[seriesKey] as XmlObject[])
+            : chartTypeContainer[seriesKey]
+              ? [chartTypeContainer[seriesKey] as XmlObject]
+              : [];
+          chartTypeContainer[seriesKey] = [
+            ...existingSeriesArray,
+            ...newSeriesXmlNodes,
+          ];
+        }
+
+        // ── Remove excess series (when data has fewer series than XML)
+        if (chartData.series.length < seriesNodes.length) {
+          const existingSeriesArray = Array.isArray(chartTypeContainer[seriesKey])
+            ? (chartTypeContainer[seriesKey] as XmlObject[])
+            : chartTypeContainer[seriesKey]
+              ? [chartTypeContainer[seriesKey] as XmlObject]
+              : [];
+
+          chartTypeContainer[seriesKey] = existingSeriesArray.slice(
+            0,
+            chartData.series.length,
+          );
+          // If only one series remains, unwrap from array for XML builder
+          if (chartData.series.length === 1) {
+            chartTypeContainer[seriesKey] = (
+              chartTypeContainer[seriesKey] as XmlObject[]
+            )[0];
           }
         }
 
@@ -480,5 +565,154 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
     return replaceFirstTextValueInTree(node, localName, newValue, (key) =>
       this.compatibilityService.getXmlLocalName(key),
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Chart type / series helpers for save pipeline
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Map a {@link PptxChartType} to the OOXML element local name for the
+   * chart type container (e.g. `"bar"` &rarr; `"barChart"`).
+   *
+   * Returns `undefined` for types that cannot be expressed as a classic
+   * `c:*Chart` element (e.g. Office 2016+ cx: chart types).
+   */
+  protected chartTypeToXmlTag(
+    chartType: PptxChartData["chartType"],
+  ): string | undefined {
+    const map: Partial<Record<PptxChartData["chartType"], string>> = {
+      bar: "barChart",
+      bar3D: "bar3DChart",
+      line: "lineChart",
+      line3D: "line3DChart",
+      pie: "pieChart",
+      pie3D: "pie3DChart",
+      doughnut: "doughnutChart",
+      area: "areaChart",
+      area3D: "area3DChart",
+      scatter: "scatterChart",
+      bubble: "bubbleChart",
+      radar: "radarChart",
+      stock: "stockChart",
+      surface: "surfaceChart",
+    };
+    return map[chartType];
+  }
+
+  /**
+   * Build a minimal `<c:ser>` XML object for a newly-added series.
+   *
+   * If a `templateSeries` is provided, it is deep-cloned and its data is
+   * replaced with the new series data. Otherwise, a minimal structure is
+   * built from scratch.
+   */
+  protected buildNewSeriesXml(
+    seriesIndex: number,
+    seriesData: PptxChartSeries,
+    categories: string[],
+    templateSeries?: XmlObject,
+  ): XmlObject {
+    if (templateSeries) {
+      // Deep-clone the template
+      const clone = JSON.parse(JSON.stringify(templateSeries)) as XmlObject;
+
+      // Update idx / order
+      const idxNode = this.xmlLookupService.getChildByLocalName(clone, "idx");
+      if (idxNode) idxNode["@_val"] = String(seriesIndex);
+      const orderNode = this.xmlLookupService.getChildByLocalName(clone, "order");
+      if (orderNode) orderNode["@_val"] = String(seriesIndex);
+
+      // Update series name
+      const txNode = this.xmlLookupService.getChildByLocalName(clone, "tx");
+      if (txNode) {
+        this.updateChartCacheValues(txNode, false, [seriesData.name]);
+      }
+
+      // Update categories
+      const catNode =
+        this.xmlLookupService.getChildByLocalName(clone, "cat") ||
+        this.xmlLookupService.getChildByLocalName(clone, "xVal");
+      if (catNode) {
+        this.updateChartCacheValues(catNode, false, categories);
+      }
+
+      // Update values
+      const valNode =
+        this.xmlLookupService.getChildByLocalName(clone, "val") ||
+        this.xmlLookupService.getChildByLocalName(clone, "yVal");
+      if (valNode) {
+        this.updateChartCacheValues(
+          valNode,
+          true,
+          seriesData.values.map(String),
+        );
+      }
+
+      // Update colour
+      if (seriesData.color) {
+        const spPr = this.xmlLookupService.getChildByLocalName(clone, "spPr");
+        if (spPr) {
+          const solidFillKey = Object.keys(spPr).find(
+            (k) =>
+              this.compatibilityService.getXmlLocalName(k) === "solidFill",
+          );
+          if (solidFillKey) {
+            (spPr as XmlObject)[solidFillKey] = {
+              "a:srgbClr": {
+                "@_val": seriesData.color.replace("#", ""),
+              },
+            };
+          } else {
+            spPr["a:solidFill"] = {
+              "a:srgbClr": {
+                "@_val": seriesData.color.replace("#", ""),
+              },
+            };
+          }
+        }
+      }
+
+      return clone;
+    }
+
+    // Build minimal series XML from scratch
+    const colorHex = (seriesData.color || "#4472C4").replace("#", "");
+    const ser: XmlObject = {
+      "c:idx": { "@_val": String(seriesIndex) },
+      "c:order": { "@_val": String(seriesIndex) },
+      "c:tx": {
+        "c:strRef": {
+          "c:strCache": {
+            "c:ptCount": { "@_val": "1" },
+            "c:pt": { "@_idx": "0", "c:v": seriesData.name },
+          },
+        },
+      },
+      "c:spPr": {
+        "a:solidFill": {
+          "a:srgbClr": { "@_val": colorHex },
+        },
+      },
+      "c:cat": {
+        "c:strRef": {
+          "c:strCache": {
+            "c:ptCount": { "@_val": String(categories.length) },
+            "c:pt": buildChartPoints(categories),
+          },
+        },
+      },
+      "c:val": {
+        "c:numRef": {
+          "c:numCache": {
+            "c:formatCode": "General",
+            "c:ptCount": { "@_val": String(seriesData.values.length) },
+            "c:pt": buildChartPoints(seriesData.values.map(String)),
+          },
+        },
+      },
+    };
+
+    return ser;
   }
 }

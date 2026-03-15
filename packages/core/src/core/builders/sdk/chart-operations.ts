@@ -172,3 +172,85 @@ export function setChartGrouping(
 	ensureChartData(element);
 	element.chartData.grouping = grouping;
 }
+
+/**
+ * Update a single data point value in a chart series.
+ *
+ * @param element - The chart element to modify.
+ * @param seriesIndex - Zero-based index of the series.
+ * @param pointIndex - Zero-based index of the data point (category).
+ * @param value - The new numeric value.
+ * @throws {RangeError} If either index is out of bounds.
+ *
+ * @example
+ * ```ts
+ * updateChartDataPoint(chartEl, 0, 2, 42);
+ * ```
+ */
+export function updateChartDataPoint(
+	element: ChartPptxElement,
+	seriesIndex: number,
+	pointIndex: number,
+	value: number,
+): void {
+	validateSeriesIndex(element, seriesIndex);
+	const series = element.chartData!.series[seriesIndex];
+	if (pointIndex < 0 || pointIndex >= series.values.length) {
+		throw new RangeError(
+			`Point index ${pointIndex} is out of range. Series "${series.name}" has ${series.values.length} data points (indices 0\u2013${series.values.length - 1}).`,
+		);
+	}
+	series.values[pointIndex] = value;
+}
+
+/**
+ * Add a new category to the chart, appending a default value of `0`
+ * to every series so that data dimensions remain consistent.
+ *
+ * @param element - The chart element to modify.
+ * @param categoryName - The label for the new category.
+ *
+ * @example
+ * ```ts
+ * addChartCategory(chartEl, "Q4");
+ * ```
+ */
+export function addChartCategory(
+	element: ChartPptxElement,
+	categoryName: string,
+): void {
+	ensureChartData(element);
+	element.chartData.categories.push(categoryName);
+	for (const series of element.chartData.series) {
+		series.values.push(0);
+	}
+}
+
+/**
+ * Remove a category by index, also removing the corresponding value
+ * from every series.
+ *
+ * @param element - The chart element to modify.
+ * @param categoryIndex - Zero-based index of the category to remove.
+ * @throws {RangeError} If `categoryIndex` is out of bounds.
+ *
+ * @example
+ * ```ts
+ * removeChartCategory(chartEl, 0);
+ * ```
+ */
+export function removeChartCategory(
+	element: ChartPptxElement,
+	categoryIndex: number,
+): void {
+	ensureChartData(element);
+	if (categoryIndex < 0 || categoryIndex >= element.chartData.categories.length) {
+		throw new RangeError(
+			`Category index ${categoryIndex} is out of range. Chart has ${element.chartData.categories.length} categories (indices 0\u2013${element.chartData.categories.length - 1}).`,
+		);
+	}
+	element.chartData.categories.splice(categoryIndex, 1);
+	for (const series of element.chartData.series) {
+		series.values.splice(categoryIndex, 1);
+	}
+}

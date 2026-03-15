@@ -7,6 +7,9 @@ import {
 	updateChartSeriesValues,
 	setChartTitle,
 	setChartGrouping,
+	updateChartDataPoint,
+	addChartCategory,
+	removeChartCategory,
 } from "./chart-operations";
 import { createChartElement, resetIdCounter } from "./ElementFactory";
 import type { ChartPptxElement } from "../../types/elements";
@@ -464,5 +467,201 @@ describe("combined chart operations", () => {
 
 		expect(el.chartData?.chartPartPath).toBe("ppt/charts/chart1.xml");
 		expect(el.chartData?.chartRelationshipId).toBe("rId5");
+	});
+});
+
+// ===========================================================================
+// updateChartDataPoint
+// ===========================================================================
+
+describe("updateChartDataPoint", () => {
+	it("updates a single data point in the first series", () => {
+		const el = makeTestChart();
+		updateChartDataPoint(el, 0, 1, 999);
+		expect(el.chartData!.series[0].values).toEqual([100, 999, 300]);
+	});
+
+	it("updates a data point in the second series", () => {
+		const el = makeTestChart();
+		updateChartDataPoint(el, 1, 0, 42);
+		expect(el.chartData!.series[1].values[0]).toBe(42);
+	});
+
+	it("does not affect other series", () => {
+		const el = makeTestChart();
+		const secondBefore = [...el.chartData!.series[1].values];
+		updateChartDataPoint(el, 0, 0, 42);
+		expect(el.chartData!.series[1].values).toEqual(secondBefore);
+	});
+
+	it("does not affect other data points in the same series", () => {
+		const el = makeTestChart();
+		updateChartDataPoint(el, 0, 1, 777);
+		expect(el.chartData!.series[0].values[0]).toBe(100);
+		expect(el.chartData!.series[0].values[2]).toBe(300);
+	});
+
+	it("can set a value to zero", () => {
+		const el = makeTestChart();
+		updateChartDataPoint(el, 0, 0, 0);
+		expect(el.chartData!.series[0].values[0]).toBe(0);
+	});
+
+	it("can set a negative value", () => {
+		const el = makeTestChart();
+		updateChartDataPoint(el, 0, 0, -50);
+		expect(el.chartData!.series[0].values[0]).toBe(-50);
+	});
+
+	it("throws RangeError for invalid series index", () => {
+		const el = makeTestChart();
+		expect(() => updateChartDataPoint(el, -1, 0, 1)).toThrow(RangeError);
+		expect(() => updateChartDataPoint(el, 5, 0, 1)).toThrow(RangeError);
+	});
+
+	it("throws RangeError for invalid point index", () => {
+		const el = makeTestChart();
+		expect(() => updateChartDataPoint(el, 0, -1, 1)).toThrow(RangeError);
+		expect(() => updateChartDataPoint(el, 0, 10, 1)).toThrow(RangeError);
+	});
+
+	it("throws when chartData is missing", () => {
+		const el = makeEmptyChart();
+		expect(() => updateChartDataPoint(el, 0, 0, 1)).toThrow(/no chartData/);
+	});
+});
+
+// ===========================================================================
+// addChartCategory
+// ===========================================================================
+
+describe("addChartCategory", () => {
+	it("appends a category to the chart", () => {
+		const el = makeTestChart();
+		addChartCategory(el, "Q4");
+		expect(el.chartData!.categories).toEqual(["Q1", "Q2", "Q3", "Q4"]);
+	});
+
+	it("adds a zero value to every series", () => {
+		const el = makeTestChart();
+		addChartCategory(el, "Q4");
+		expect(el.chartData!.series[0].values).toEqual([100, 200, 300, 0]);
+		expect(el.chartData!.series[1].values).toEqual([80, 160, 240, 0]);
+	});
+
+	it("works with no existing categories", () => {
+		const el = makeTestChart({ categories: [] });
+		el.chartData!.series[0].values = [];
+		el.chartData!.series[1].values = [];
+		addChartCategory(el, "First");
+		expect(el.chartData!.categories).toEqual(["First"]);
+		expect(el.chartData!.series[0].values).toEqual([0]);
+		expect(el.chartData!.series[1].values).toEqual([0]);
+	});
+
+	it("can add multiple categories sequentially", () => {
+		const el = makeTestChart();
+		addChartCategory(el, "Q4");
+		addChartCategory(el, "Q5");
+		expect(el.chartData!.categories).toHaveLength(5);
+		expect(el.chartData!.series[0].values).toHaveLength(5);
+	});
+
+	it("throws when chartData is missing", () => {
+		const el = makeEmptyChart();
+		expect(() => addChartCategory(el, "X")).toThrow(/no chartData/);
+	});
+});
+
+// ===========================================================================
+// removeChartCategory
+// ===========================================================================
+
+describe("removeChartCategory", () => {
+	it("removes the first category", () => {
+		const el = makeTestChart();
+		removeChartCategory(el, 0);
+		expect(el.chartData!.categories).toEqual(["Q2", "Q3"]);
+		expect(el.chartData!.series[0].values).toEqual([200, 300]);
+		expect(el.chartData!.series[1].values).toEqual([160, 240]);
+	});
+
+	it("removes the last category", () => {
+		const el = makeTestChart();
+		removeChartCategory(el, 2);
+		expect(el.chartData!.categories).toEqual(["Q1", "Q2"]);
+		expect(el.chartData!.series[0].values).toEqual([100, 200]);
+	});
+
+	it("removes a middle category", () => {
+		const el = makeTestChart();
+		removeChartCategory(el, 1);
+		expect(el.chartData!.categories).toEqual(["Q1", "Q3"]);
+		expect(el.chartData!.series[0].values).toEqual([100, 300]);
+	});
+
+	it("throws RangeError for negative index", () => {
+		const el = makeTestChart();
+		expect(() => removeChartCategory(el, -1)).toThrow(RangeError);
+	});
+
+	it("throws RangeError for index equal to category count", () => {
+		const el = makeTestChart();
+		expect(() => removeChartCategory(el, 3)).toThrow(RangeError);
+	});
+
+	it("throws RangeError for index beyond category count", () => {
+		const el = makeTestChart();
+		expect(() => removeChartCategory(el, 100)).toThrow(RangeError);
+	});
+
+	it("throws when chartData is missing", () => {
+		const el = makeEmptyChart();
+		expect(() => removeChartCategory(el, 0)).toThrow(/no chartData/);
+	});
+
+	it("can remove all categories one by one", () => {
+		const el = makeTestChart();
+		removeChartCategory(el, 2);
+		removeChartCategory(el, 1);
+		removeChartCategory(el, 0);
+		expect(el.chartData!.categories).toHaveLength(0);
+		expect(el.chartData!.series[0].values).toHaveLength(0);
+	});
+});
+
+// ===========================================================================
+// Combined: new + existing operations
+// ===========================================================================
+
+describe("combined with new operations", () => {
+	it("add category then update the new data point", () => {
+		const el = makeTestChart();
+		addChartCategory(el, "Q4");
+		updateChartDataPoint(el, 0, 3, 400);
+		expect(el.chartData!.series[0].values).toEqual([100, 200, 300, 400]);
+	});
+
+	it("remove category then verify remaining data integrity", () => {
+		const el = makeTestChart();
+		removeChartCategory(el, 0); // remove Q1
+		expect(el.chartData!.categories).toEqual(["Q2", "Q3"]);
+		updateChartDataPoint(el, 0, 0, 999); // Q2 position is now [0]
+		expect(el.chartData!.series[0].values[0]).toBe(999);
+	});
+
+	it("full workflow: add series, add category, update point, remove", () => {
+		const el = makeTestChart();
+		addChartSeries(el, { name: "Extra", values: [10, 20, 30] });
+		addChartCategory(el, "Q4");
+		updateChartDataPoint(el, 2, 3, 40); // Extra series, Q4
+		expect(el.chartData!.series[2].values).toEqual([10, 20, 30, 40]);
+
+		removeChartCategory(el, 0); // remove Q1
+		expect(el.chartData!.categories).toEqual(["Q2", "Q3", "Q4"]);
+		expect(el.chartData!.series[2].values).toEqual([20, 30, 40]);
+
+		removeChartSeries(el, 2);
+		expect(el.chartData!.series).toHaveLength(2);
 	});
 });
