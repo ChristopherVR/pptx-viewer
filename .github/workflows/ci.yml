@@ -277,9 +277,10 @@ jobs:
             packages/react/*.tgz
 
   # ──────────────────────────────────────────────────────────────
-  # Publish to npm with provenance
-  # Requires NPM_TOKEN secret (automation token) for auth.
-  # OIDC id-token is still used to sign provenance statements.
+  # Publish to npm using Trusted Publishing (OIDC)
+  # No NPM_TOKEN secret required — each package must have its
+  # trusted publisher configured on npmjs.com to allow this
+  # GitHub repository + workflow.
   #
   # Package → registry mapping:
   #   emf-converter     → https://www.npmjs.com/package/emf-converter
@@ -294,9 +295,7 @@ jobs:
     environment: npm
     permissions:
       contents: read
-      id-token: write # Required for signing provenance statements
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      id-token: write # Required for npm Trusted Publishing (OIDC provenance)
     steps:
       - uses: actions/checkout@v6
         with:
