@@ -96,8 +96,31 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Test core
-        run: cd packages/core && bun vitest run --reporter=verbose --reporter=github-actions
+      - name: Test core (excluding crypto)
+        run: cd packages/core && bun vitest run --reporter=verbose --reporter=github-actions --exclude 'src/core/utils/ooxml-crypto.test.ts'
+
+  test-core-crypto:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Test core (ooxml-crypto)
+        run: cd packages/core && bun vitest run --reporter=verbose --reporter=github-actions src/core/utils/ooxml-crypto.test.ts
 
   test-react:
     needs: build
@@ -169,7 +192,7 @@ jobs:
         run: cd packages/mtx-decompressor && bun vitest run --reporter=verbose --reporter=github-actions --passWithNoTests
 
   release:
-    needs: [lint, typecheck, test-core, test-react, test-emf-converter, test-mtx-decompressor]
+    needs: [lint, typecheck, test-core, test-core-crypto, test-react, test-emf-converter, test-mtx-decompressor]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
