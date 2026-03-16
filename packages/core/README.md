@@ -1287,7 +1287,6 @@ src/
 
 ## Limitations
 
-- **No PPTX creation from scratch** -- The engine requires an existing .pptx file (or template) as a starting point; it cannot generate a presentation from nothing
 - **Embedded OLE objects** -- OLE objects (embedded Excel, Word, etc.) are recognised and their preview images displayed, but their internal content is not editable
 - **Complex SmartArt** -- SmartArt is decomposed into individual shapes for rendering; the live SmartArt engine is not replicated (13 layout types are supported)
 - **3D effects** -- Parsed into `ThreeDProperties`; rendering uses CSS 3D transforms in the viewer. 3D models require Three.js (GLB/GLTF).
