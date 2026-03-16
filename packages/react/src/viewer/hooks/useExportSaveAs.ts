@@ -145,7 +145,7 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 			: 'presentation';
 		try {
 			const data = await buildSaveAsData(handler, format);
-			const blob = new Blob([data], {
+			const blob = new Blob([data as BlobPart], {
 				type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 			});
 			downloadBlob(blob, `${baseName}.${ext}`);
