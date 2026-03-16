@@ -284,28 +284,36 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				const bevelBottom = sp3dNode['a:bevelB'] as XmlObject | undefined;
 				result.shape3d = {
 					extrusionHeight:
-						sp3dNode['@_extrusionH'] !== null
+						sp3dNode['@_extrusionH'] !== undefined
 							? parseInt(String(sp3dNode['@_extrusionH']), 10)
 							: undefined,
 					extrusionColor: this.parseColor(sp3dNode['a:extrusionClr'] as XmlObject | undefined),
 					contourWidth:
-						sp3dNode['@_contourW'] !== null
+						sp3dNode['@_contourW'] !== undefined
 							? parseInt(String(sp3dNode['@_contourW']), 10)
 							: undefined,
 					contourColor: this.parseColor(sp3dNode['a:contourClr'] as XmlObject | undefined),
 					presetMaterial: String(sp3dNode['@_prstMaterial'] || '').trim() || undefined,
 					bevelTopType: bevelTop ? String(bevelTop['@_prst'] || 'circle').trim() : undefined,
 					bevelTopWidth:
-						bevelTop?.['@_w'] !== null ? parseInt(String(bevelTop['@_w']), 10) : undefined,
+						bevelTop !== undefined && bevelTop['@_w'] !== undefined
+							? parseInt(String(bevelTop['@_w']), 10)
+							: undefined,
 					bevelTopHeight:
-						bevelTop?.['@_h'] !== null ? parseInt(String(bevelTop['@_h']), 10) : undefined,
+						bevelTop !== undefined && bevelTop['@_h'] !== undefined
+							? parseInt(String(bevelTop['@_h']), 10)
+							: undefined,
 					bevelBottomType: bevelBottom
 						? String(bevelBottom['@_prst'] || 'circle').trim()
 						: undefined,
 					bevelBottomWidth:
-						bevelBottom?.['@_w'] !== null ? parseInt(String(bevelBottom['@_w']), 10) : undefined,
+						bevelBottom !== undefined && bevelBottom['@_w'] !== undefined
+							? parseInt(String(bevelBottom['@_w']), 10)
+							: undefined,
 					bevelBottomHeight:
-						bevelBottom?.['@_h'] !== null ? parseInt(String(bevelBottom['@_h']), 10) : undefined,
+						bevelBottom !== undefined && bevelBottom['@_h'] !== undefined
+							? parseInt(String(bevelBottom['@_h']), 10)
+							: undefined,
 				};
 			}
 

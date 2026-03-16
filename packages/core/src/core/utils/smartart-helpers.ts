@@ -118,7 +118,10 @@ export function makeShapeElement(
 		height: Math.max(Math.round(height), 1),
 		rotation: opts?.rotation,
 		shapeType,
-		shapeAdjustments: opts?.cornerRadius !== null ? { adj: opts.cornerRadius } : undefined,
+		shapeAdjustments:
+			opts !== undefined && opts.cornerRadius !== undefined
+				? { adj: opts.cornerRadius }
+				: undefined,
 		shapeStyle,
 		text,
 		textStyle,

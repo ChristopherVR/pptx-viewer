@@ -13,20 +13,15 @@ export function applyScene3dStyle(shapeProps: XmlObject, style: ShapeStyle): voi
 
 	const camera = scene3dNode['a:camera'] as XmlObject | undefined;
 	const lightRig = scene3dNode['a:lightRig'] as XmlObject | undefined;
+	const cameraRot = camera?.['a:rot'] as XmlObject | undefined;
 	style.scene3d = {
 		cameraPreset: String(camera?.['@_prst'] || '').trim() || undefined,
 		cameraRotX:
-			camera?.['a:rot']?.['@_lat'] !== null
-				? parseInt(String((camera['a:rot'] as XmlObject)['@_lat']), 10)
-				: undefined,
+			cameraRot?.['@_lat'] !== undefined ? parseInt(String(cameraRot['@_lat']), 10) : undefined,
 		cameraRotY:
-			camera?.['a:rot']?.['@_lon'] !== null
-				? parseInt(String((camera['a:rot'] as XmlObject)['@_lon']), 10)
-				: undefined,
+			cameraRot?.['@_lon'] !== undefined ? parseInt(String(cameraRot['@_lon']), 10) : undefined,
 		cameraRotZ:
-			camera?.['a:rot']?.['@_rev'] !== null
-				? parseInt(String((camera['a:rot'] as XmlObject)['@_rev']), 10)
-				: undefined,
+			cameraRot?.['@_rev'] !== undefined ? parseInt(String(cameraRot['@_rev']), 10) : undefined,
 		lightRigType: String(lightRig?.['@_rig'] || '').trim() || undefined,
 		lightRigDirection: String(lightRig?.['@_dir'] || '').trim() || undefined,
 	};
@@ -59,23 +54,33 @@ export function applyShape3dStyle(
 	const bevelBottom = shape3dNode['a:bevelB'] as XmlObject | undefined;
 	style.shape3d = {
 		extrusionHeight:
-			shape3dNode['@_extrusionH'] !== null
+			shape3dNode['@_extrusionH'] !== undefined
 				? parseInt(String(shape3dNode['@_extrusionH']), 10)
 				: undefined,
 		extrusionColor: context.parseColor(shape3dNode['a:extrusionClr'] as XmlObject | undefined),
 		contourWidth:
-			shape3dNode['@_contourW'] !== null
+			shape3dNode['@_contourW'] !== undefined
 				? parseInt(String(shape3dNode['@_contourW']), 10)
 				: undefined,
 		contourColor: context.parseColor(shape3dNode['a:contourClr'] as XmlObject | undefined),
 		presetMaterial: String(shape3dNode['@_prstMaterial'] || '').trim() || undefined,
 		bevelTopType: bevelTop ? String(bevelTop['@_prst'] || 'circle').trim() : undefined,
-		bevelTopWidth: bevelTop?.['@_w'] !== null ? parseInt(String(bevelTop['@_w']), 10) : undefined,
-		bevelTopHeight: bevelTop?.['@_h'] !== null ? parseInt(String(bevelTop['@_h']), 10) : undefined,
+		bevelTopWidth:
+			bevelTop !== undefined && bevelTop['@_w'] !== undefined
+				? parseInt(String(bevelTop['@_w']), 10)
+				: undefined,
+		bevelTopHeight:
+			bevelTop !== undefined && bevelTop['@_h'] !== undefined
+				? parseInt(String(bevelTop['@_h']), 10)
+				: undefined,
 		bevelBottomType: bevelBottom ? String(bevelBottom['@_prst'] || 'circle').trim() : undefined,
 		bevelBottomWidth:
-			bevelBottom?.['@_w'] !== null ? parseInt(String(bevelBottom['@_w']), 10) : undefined,
+			bevelBottom !== undefined && bevelBottom['@_w'] !== undefined
+				? parseInt(String(bevelBottom['@_w']), 10)
+				: undefined,
 		bevelBottomHeight:
-			bevelBottom?.['@_h'] !== null ? parseInt(String(bevelBottom['@_h']), 10) : undefined,
+			bevelBottom !== undefined && bevelBottom['@_h'] !== undefined
+				? parseInt(String(bevelBottom['@_h']), 10)
+				: undefined,
 	};
 }
