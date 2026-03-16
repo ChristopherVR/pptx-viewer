@@ -192,7 +192,16 @@ jobs:
         run: cd packages/mtx-decompressor && bun vitest run --reporter=verbose --reporter=github-actions --passWithNoTests
 
   release:
-    needs: [lint, typecheck, test-core, test-core-crypto, test-react, test-emf-converter, test-mtx-decompressor]
+    needs:
+      [
+        lint,
+        typecheck,
+        test-core,
+        test-core-crypto,
+        test-react,
+        test-emf-converter,
+        test-mtx-decompressor,
+      ]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
