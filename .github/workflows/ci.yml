@@ -216,6 +216,11 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+
       - name: Determine next version
         id: version
         run: |
@@ -246,9 +251,6 @@ jobs:
 
       - name: Install dependencies
         run: bun install
-
-      - name: Build all packages
-        run: bun run build
 
       - name: Pack emf-converter
         run: cd packages/emf-converter && bun pm pack
@@ -306,6 +308,11 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+
       - name: Determine current version
         id: version
         run: |
@@ -328,9 +335,6 @@ jobs:
 
       - name: Install dependencies
         run: bun install
-
-      - name: Build all packages
-        run: bun run build
 
       - name: Prepare react package for publish
         # The react package is published as "pptx-react-viewer" on npm,
@@ -359,7 +363,7 @@ jobs:
               pkg_dir=$(dirname "$readme")
               github_link="${REPO_URL}/blob/main/${readme}"
               # Replace ```mermaid ... ``` blocks with a link to the GitHub README
-              perl -0777 -i -pe "s/\`\`\`mermaid\n.*?\`\`\`/_See the [architecture diagrams on GitHub](${github_link}) for visual representations._/gs" "$readme"
+              perl -0777 -i -pe "s|\`\`\`mermaid\n.*?\`\`\`|_See the [architecture diagrams on GitHub](${github_link}) for visual representations._|gs" "$readme"
               echo "Processed $readme"
             fi
           done
