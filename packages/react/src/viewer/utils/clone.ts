@@ -25,9 +25,9 @@ export function cloneShapeStyle(style?: ShapeStyle): ShapeStyle | undefined {
 	}
 	return {
 		...style,
-		fillGradientStops: style.fillGradientStops
-			? style.fillGradientStops.map((stop) => ({ ...stop }))
-			: undefined,
+		...(style.fillGradientStops
+			? { fillGradientStops: style.fillGradientStops.map((stop) => ({ ...stop })) }
+			: {}),
 	};
 }
 
@@ -76,23 +76,25 @@ export function cloneElement(element: PptxElement): PptxElement {
 		case 'shape':
 			return {
 				...element,
-				textStyle: cloneTextStyle(element.textStyle),
-				shapeStyle: cloneShapeStyle(element.shapeStyle),
-				shapeAdjustments: element.shapeAdjustments ? { ...element.shapeAdjustments } : undefined,
-				textSegments: element.textSegments
-					? element.textSegments.map((segment) => ({
-							...segment,
-							style: cloneTextStyle(segment.style) || {},
-						}))
-					: undefined,
+				...(element.textStyle ? { textStyle: cloneTextStyle(element.textStyle) } : {}),
+				...(element.shapeStyle ? { shapeStyle: cloneShapeStyle(element.shapeStyle) } : {}),
+				...(element.shapeAdjustments ? { shapeAdjustments: { ...element.shapeAdjustments } } : {}),
+				...(element.textSegments
+					? {
+							textSegments: element.textSegments.map((segment) => ({
+								...segment,
+								style: cloneTextStyle(segment.style) || {},
+							})),
+						}
+					: {}),
 			};
 		case 'connector':
 		case 'image':
 		case 'picture':
 			return {
 				...element,
-				shapeStyle: cloneShapeStyle(element.shapeStyle),
-				shapeAdjustments: element.shapeAdjustments ? { ...element.shapeAdjustments } : undefined,
+				...(element.shapeStyle ? { shapeStyle: cloneShapeStyle(element.shapeStyle) } : {}),
+				...(element.shapeAdjustments ? { shapeAdjustments: { ...element.shapeAdjustments } } : {}),
 			};
 		case 'table':
 			return { ...element };

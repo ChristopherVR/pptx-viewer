@@ -114,7 +114,7 @@ function parseLayoutOption(
 ): { path: string; name: string; type?: string } {
 	const sldLayout = (xmlObj as XmlObject)['p:sldLayout'] as XmlObject | undefined;
 	const name = String(sldLayout?.['p:cSld']?.['@_name'] || '').trim() || path;
-	const type = sldLayout?.['@_type'] !== null ? String(sldLayout!['@_type']).trim() : undefined;
+	const type = sldLayout?.['@_type'] !== undefined ? String(sldLayout['@_type']).trim() : undefined;
 	return { path, name, ...(type ? { type } : {}) };
 }
 

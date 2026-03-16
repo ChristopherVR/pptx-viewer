@@ -135,7 +135,7 @@ export function substituteFieldText(
 		return segmentText;
 	}
 	const fl = fieldType.toLowerCase();
-	if (fl === 'slidenum' && ctx.slideNumber !== null) {
+	if (fl === 'slidenum' && ctx.slideNumber !== undefined) {
 		return String(ctx.slideNumber);
 	}
 	if (fl.startsWith('datetime')) {

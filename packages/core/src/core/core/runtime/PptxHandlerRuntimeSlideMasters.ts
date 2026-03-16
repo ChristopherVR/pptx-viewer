@@ -45,7 +45,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				continue;
 			}
 			const type = String(ph['@_type'] || 'body').trim();
-			const idx = ph['@_idx'] !== null ? String(ph['@_idx']) : undefined;
+			const idx = ph['@_idx'] !== undefined ? String(ph['@_idx']) : undefined;
 			result.push({ type, idx });
 		}
 		return result;

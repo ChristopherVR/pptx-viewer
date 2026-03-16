@@ -80,15 +80,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				if (s3d.cameraPreset) {
 					cameraObj['@_prst'] = s3d.cameraPreset;
 				}
-				if (s3d.cameraRotX !== null || s3d.cameraRotY !== null || s3d.cameraRotZ !== null) {
+				if (
+					s3d.cameraRotX !== undefined ||
+					s3d.cameraRotY !== undefined ||
+					s3d.cameraRotZ !== undefined
+				) {
 					const rot: XmlObject = {};
-					if (s3d.cameraRotX !== null) {
+					if (s3d.cameraRotX !== undefined) {
 						rot['@_lat'] = s3d.cameraRotX;
 					}
-					if (s3d.cameraRotY !== null) {
+					if (s3d.cameraRotY !== undefined) {
 						rot['@_lon'] = s3d.cameraRotY;
 					}
-					if (s3d.cameraRotZ !== null) {
+					if (s3d.cameraRotZ !== undefined) {
 						rot['@_rev'] = s3d.cameraRotZ;
 					}
 					cameraObj['a:rot'] = rot;
@@ -108,9 +112,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				if (s3d.hasBackdrop) {
 					const backdropObj: XmlObject = {};
 					if (
-						s3d.backdropAnchorX !== null ||
-						s3d.backdropAnchorY !== null ||
-						s3d.backdropAnchorZ !== null
+						s3d.backdropAnchorX !== undefined ||
+						s3d.backdropAnchorY !== undefined ||
+						s3d.backdropAnchorZ !== undefined
 					) {
 						backdropObj['a:anchor'] = {
 							'@_x': s3d.backdropAnchorX ?? 0,
@@ -132,8 +136,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (shapeStyle.shape3d) {
 			const sh3d = shapeStyle.shape3d;
 			const hasData =
-				sh3d.extrusionHeight !== null ||
-				sh3d.contourWidth !== null ||
+				sh3d.extrusionHeight !== undefined ||
+				sh3d.contourWidth !== undefined ||
 				sh3d.presetMaterial ||
 				sh3d.bevelTopType ||
 				sh3d.bevelBottomType ||
@@ -141,10 +145,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				sh3d.contourColor;
 			if (hasData) {
 				const sp3dXml: XmlObject = {};
-				if (sh3d.extrusionHeight !== null) {
+				if (sh3d.extrusionHeight !== undefined) {
 					sp3dXml['@_extrusionH'] = sh3d.extrusionHeight;
 				}
-				if (sh3d.contourWidth !== null) {
+				if (sh3d.contourWidth !== undefined) {
 					sp3dXml['@_contourW'] = sh3d.contourWidth;
 				}
 				if (sh3d.presetMaterial) {
@@ -152,20 +156,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 				if (sh3d.bevelTopType) {
 					const bevelT: XmlObject = { '@_prst': sh3d.bevelTopType };
-					if (sh3d.bevelTopWidth !== null) {
+					if (sh3d.bevelTopWidth !== undefined) {
 						bevelT['@_w'] = sh3d.bevelTopWidth;
 					}
-					if (sh3d.bevelTopHeight !== null) {
+					if (sh3d.bevelTopHeight !== undefined) {
 						bevelT['@_h'] = sh3d.bevelTopHeight;
 					}
 					sp3dXml['a:bevelT'] = bevelT;
 				}
 				if (sh3d.bevelBottomType) {
 					const bevelB: XmlObject = { '@_prst': sh3d.bevelBottomType };
-					if (sh3d.bevelBottomWidth !== null) {
+					if (sh3d.bevelBottomWidth !== undefined) {
 						bevelB['@_w'] = sh3d.bevelBottomWidth;
 					}
-					if (sh3d.bevelBottomHeight !== null) {
+					if (sh3d.bevelBottomHeight !== undefined) {
 						bevelB['@_h'] = sh3d.bevelBottomHeight;
 					}
 					sp3dXml['a:bevelB'] = bevelB;

@@ -94,7 +94,7 @@ describe('cloneShapeStyle', () => {
 	it('handles empty style', () => {
 		const style = {} as ShapeStyle;
 		const cloned = cloneShapeStyle(style);
-		expect(cloned).toStrictEqual({ fillGradientStops: undefined });
+		expect(cloned).toStrictEqual({});
 	});
 });
 
