@@ -1,6 +1,16 @@
 {
 	"name": "pptx-viewer-monorepo",
 	"private": true,
+	"homepage": "https://github.com/ChristopherVR/pptx-viewer",
+	"bugs": {
+		"url": "https://github.com/ChristopherVR/pptx-viewer/issues"
+	},
+	"license": "MIT",
+	"author": "ChristopherVR",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ChristopherVR/pptx-viewer.git"
+	},
 	"workspaces": [
 		"packages/*",
 		"demo"

@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   build:
@@ -258,7 +259,7 @@ jobs:
       - name: Pack pptx-viewer-core
         run: cd packages/core && bun pm pack
 
-      - name: Pack pptx-viewer
+      - name: Pack pptx-react-viewer
         run: cd packages/react && bun pm pack
 
       - name: Create release
@@ -272,3 +273,113 @@ jobs:
             packages/mtx-decompressor/*.tgz
             packages/core/*.tgz
             packages/react/*.tgz
+
+  # ──────────────────────────────────────────────────────────────
+  # Publish to npm using Trusted Publishing (OIDC)
+  # No NPM_TOKEN secret required — each package must have its
+  # trusted publisher configured on npmjs.com to allow this
+  # GitHub repository + workflow.
+  #
+  # Package → registry mapping:
+  #   emf-converter     → https://www.npmjs.com/package/emf-converter
+  #   mtx-decompressor  → https://www.npmjs.com/package/mtx-decompressor
+  #   pptx-viewer-core  → https://www.npmjs.com/package/pptx-viewer-core
+  #   pptx-react-viewer → https://www.npmjs.com/package/pptx-react-viewer
+  # ──────────────────────────────────────────────────────────────
+  publish:
+    needs: release
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && vars.NPM_PUBLISH == 'true'
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write # Required for npm Trusted Publishing (OIDC provenance)
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Determine current version
+        id: version
+        run: |
+          VERSION=$(git tag --list 'v1.0.*' --sort=-version:refname | head -n 1 | sed 's/v//')
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Publishing version: ${VERSION}"
+
+      - name: Update package versions
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          for pkgdir in packages/emf-converter packages/mtx-decompressor packages/core packages/react; do
+            node -e "
+              const fs = require('fs');
+              const p = '${pkgdir}/package.json';
+              const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+              data.version = '${VERSION}';
+              fs.writeFileSync(p, JSON.stringify(data, null, '\t') + '\n');
+            "
+          done
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build all packages
+        run: bun run build
+
+      - name: Prepare react package for publish
+        # The react package is published as "pptx-react-viewer" on npm,
+        # but uses "pptx-viewer" locally for workspace resolution.
+        # Also replace workspace:* references with real version ranges.
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          node -e "
+            const fs = require('fs');
+            const p = 'packages/react/package.json';
+            const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+            data.name = 'pptx-react-viewer';
+            if (data.dependencies) {
+              for (const [k, v] of Object.entries(data.dependencies)) {
+                if (v === 'workspace:*') data.dependencies[k] = '^${VERSION}';
+              }
+            }
+            fs.writeFileSync(p, JSON.stringify(data, null, '\t') + '\n');
+          "
+
+      - name: Replace mermaid blocks with GitHub links in READMEs
+        run: |
+          REPO_URL="https://github.com/ChristopherVR/pptx-viewer"
+          for readme in packages/emf-converter/README.md packages/mtx-decompressor/README.md packages/core/README.md packages/react/README.md; do
+            if [ -f "$readme" ]; then
+              pkg_dir=$(dirname "$readme")
+              github_link="${REPO_URL}/blob/main/${readme}"
+              # Replace ```mermaid ... ``` blocks with a link to the GitHub README
+              perl -0777 -i -pe "s/\`\`\`mermaid\n.*?\`\`\`/_See the [architecture diagrams on GitHub](${github_link}) for visual representations._/gs" "$readme"
+              echo "Processed $readme"
+            fi
+          done
+
+      # https://www.npmjs.com/package/emf-converter
+      - name: Publish emf-converter
+        run: npm publish --provenance --access public
+        working-directory: packages/emf-converter
+
+      # https://www.npmjs.com/package/mtx-decompressor
+      - name: Publish mtx-decompressor
+        run: npm publish --provenance --access public
+        working-directory: packages/mtx-decompressor
+
+      # https://www.npmjs.com/package/pptx-viewer-core
+      - name: Publish pptx-viewer-core
+        run: npm publish --provenance --access public
+        working-directory: packages/core
+
+      # https://www.npmjs.com/package/pptx-react-viewer
+      - name: Publish pptx-react-viewer
+        run: npm publish --provenance --access public
+        working-directory: packages/react

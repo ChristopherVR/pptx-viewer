@@ -11,9 +11,20 @@
 		"windows-metafile",
 		"wmf"
 	],
+	"homepage": "https://github.com/ChristopherVR/pptx-viewer",
+	"bugs": {
+		"url": "https://github.com/ChristopherVR/pptx-viewer/issues"
+	},
 	"license": "MIT",
+	"author": "ChristopherVR",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ChristopherVR/pptx-viewer.git",
+		"directory": "packages/emf-converter"
+	},
 	"files": [
 		"dist/",
+		"LICENSE",
 		"README.md"
 	],
 	"main": "dist/index.js",

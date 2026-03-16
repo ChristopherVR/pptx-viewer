@@ -1,0 +1,104 @@
+Third-Party Licenses
+====================
+
+This file documents the licenses of notable third-party dependencies used
+by the pptx-viewer project.
+
+
+JSZip
+-----
+License: MIT (dual-licensed as MIT OR GPL-3.0-or-later; this project uses
+         JSZip under its MIT license)
+URL:     https://github.com/Stuk/jszip
+SPDX:    (MIT OR GPL-3.0-or-later)
+
+
+fast-xml-parser
+---------------
+License: MIT
+URL:     https://github.com/NaturalIntelligence/fast-xml-parser
+SPDX:    MIT
+
+
+html2canvas-pro
+---------------
+License: MIT
+URL:     https://github.com/nicbarker/html2canvas-pro
+SPDX:    MIT
+
+
+jsPDF
+-----
+License: MIT
+URL:     https://github.com/parallax/jsPDF
+SPDX:    MIT
+
+
+Framer Motion
+-------------
+License: MIT
+URL:     https://github.com/framer/motion
+SPDX:    MIT
+
+
+Lucide React
+-------------
+License: ISC
+URL:     https://github.com/lucide-icons/lucide
+SPDX:    ISC
+
+
+clsx
+----
+License: MIT
+URL:     https://github.com/lukeed/clsx
+SPDX:    MIT
+
+
+tailwind-merge
+--------------
+License: MIT
+URL:     https://github.com/dcastil/tailwind-merge
+SPDX:    MIT
+
+
+React
+-----
+License: MIT
+URL:     https://github.com/facebook/react
+SPDX:    MIT
+
+
+i18next / react-i18next
+------------------------
+License: MIT
+URL:     https://github.com/i18next/i18next
+SPDX:    MIT
+
+
+react-icons
+------------
+License: MIT
+URL:     https://github.com/react-icons/react-icons
+SPDX:    MIT
+
+
+pako
+----
+License: MIT AND Zlib
+URL:     https://github.com/nodeca/pako
+SPDX:    (MIT AND Zlib)
+
+
+Three.js / @react-three/fiber / @react-three/drei (optional)
+-------------------------------------------------------------
+License: MIT
+URL:     https://github.com/mrdoob/three.js
+SPDX:    MIT
+
+
+Yjs / y-websocket (optional)
+-----------------------------
+License: MIT
+URL:     https://github.com/yjs/yjs
+SPDX:    MIT

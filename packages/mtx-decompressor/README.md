@@ -266,6 +266,6 @@ src/
 
 ## Provenance
 
-This library is a TypeScript port of the MTX decompression code from [libeot](https://github.com/nicowilliams/libeot) by Brennan T. Vincent, which is licensed under the Mozilla Public License 2.0 (MPL-2.0).
+This library is a TypeScript port of the MTX decompression code from [libeot](https://github.com/umanwizard/libeot) by Brennan Vincent, which is licensed under the Mozilla Public License 2.0 (MPL-2.0).
 
 The original C implementation is based on the [MicroType Express specification](http://www.w3.org/Submission/MTX/) submitted to the W3C by Monotype Imaging.
