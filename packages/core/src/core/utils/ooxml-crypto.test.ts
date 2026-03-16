@@ -32,6 +32,9 @@ import {
 } from './ooxml-crypto';
 import type { EncryptionInfo, StandardEncryptionInfo } from './ooxml-crypto';
 
+/** Low spinCount for fast tests — production default is 100000. */
+const TEST_SPIN_COUNT = 100;
+
 // ---------------------------------------------------------------------------
 // Helper: build a minimal valid PPTX ZIP buffer
 // ---------------------------------------------------------------------------
@@ -394,7 +397,7 @@ describe('encryptPptx / decryptPptx round-trip', () => {
 		const originalData = createMinimalZipBuffer();
 		const password = 'test-password-123';
 
-		const encrypted = await encryptPptx(originalData, password);
+		const encrypted = await encryptPptx(originalData, password, { spinCount: TEST_SPIN_COUNT });
 
 		// Encrypted output should be an OLE2 container
 		const encBytes = new Uint8Array(encrypted);
@@ -410,7 +413,7 @@ describe('encryptPptx / decryptPptx round-trip', () => {
 		const result = new Uint8Array(decrypted);
 		expect(result).toHaveLength(original.length);
 		expect(result).toStrictEqual(original);
-	}, 120_000);
+	});
 
 	it('encrypts and decrypts with AES-128', async () => {
 		const originalData = createMinimalZipBuffer();
@@ -418,13 +421,14 @@ describe('encryptPptx / decryptPptx round-trip', () => {
 
 		const encrypted = await encryptPptx(originalData, password, {
 			algorithm: 'AES128',
+			spinCount: TEST_SPIN_COUNT,
 		});
 		const decrypted = await decryptPptx(encrypted, password);
 
 		const original = new Uint8Array(originalData);
 		const result = new Uint8Array(decrypted);
 		expect(result).toStrictEqual(original);
-	}, 120_000);
+	});
 
 	it('encrypts and decrypts with AES-256 (default)', async () => {
 		const originalData = createMinimalZipBuffer();
@@ -432,44 +436,47 @@ describe('encryptPptx / decryptPptx round-trip', () => {
 
 		const encrypted = await encryptPptx(originalData, password, {
 			algorithm: 'AES256',
+			spinCount: TEST_SPIN_COUNT,
 		});
 		const decrypted = await decryptPptx(encrypted, password);
 
 		const original = new Uint8Array(originalData);
 		const result = new Uint8Array(decrypted);
 		expect(result).toStrictEqual(original);
-	}, 120_000);
+	});
 
 	it('throws IncorrectPasswordError for wrong password on decrypt', async () => {
 		const originalData = createMinimalZipBuffer();
-		const encrypted = await encryptPptx(originalData, 'correct-password');
+		const encrypted = await encryptPptx(originalData, 'correct-password', {
+			spinCount: TEST_SPIN_COUNT,
+		});
 
 		await expect(decryptPptx(encrypted, 'wrong-password')).rejects.toThrow(IncorrectPasswordError);
-	}, 120_000);
+	});
 
 	it('handles empty password', async () => {
 		const originalData = createMinimalZipBuffer();
 		const password = '';
 
-		const encrypted = await encryptPptx(originalData, password);
+		const encrypted = await encryptPptx(originalData, password, { spinCount: TEST_SPIN_COUNT });
 		const decrypted = await decryptPptx(encrypted, password);
 
 		const original = new Uint8Array(originalData);
 		const result = new Uint8Array(decrypted);
 		expect(result).toStrictEqual(original);
-	}, 120_000);
+	});
 
 	it('handles unicode password', async () => {
 		const originalData = createMinimalZipBuffer();
 		const password = '\u00E9\u00E0\u00FC\u4E16\u754C';
 
-		const encrypted = await encryptPptx(originalData, password);
+		const encrypted = await encryptPptx(originalData, password, { spinCount: TEST_SPIN_COUNT });
 		const decrypted = await decryptPptx(encrypted, password);
 
 		const original = new Uint8Array(originalData);
 		const result = new Uint8Array(decrypted);
 		expect(result).toStrictEqual(original);
-	}, 120_000);
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -480,19 +487,19 @@ describe('verifyPassword', () => {
 	it('returns true for the correct password', async () => {
 		const originalData = createMinimalZipBuffer();
 		const password = 'verify-me';
-		const encrypted = await encryptPptx(originalData, password);
+		const encrypted = await encryptPptx(originalData, password, { spinCount: TEST_SPIN_COUNT });
 
 		const result = await verifyPassword(encrypted, password);
 		expect(result).toBeTruthy();
-	}, 120_000);
+	});
 
 	it('returns false for the wrong password', async () => {
 		const originalData = createMinimalZipBuffer();
-		const encrypted = await encryptPptx(originalData, 'correct');
+		const encrypted = await encryptPptx(originalData, 'correct', { spinCount: TEST_SPIN_COUNT });
 
 		const result = await verifyPassword(encrypted, 'incorrect');
 		expect(result).toBeFalsy();
-	}, 120_000);
+	});
 
 	it('returns false for a non-OLE2 buffer', async () => {
 		const randomData = new ArrayBuffer(100);
@@ -552,7 +559,7 @@ describe('decryptPptx error handling', () => {
 describe('oLE2 container integration', () => {
 	it('encrypted file contains EncryptionInfo and EncryptedPackage streams', async () => {
 		const originalData = createMinimalZipBuffer();
-		const encrypted = await encryptPptx(originalData, 'test123');
+		const encrypted = await encryptPptx(originalData, 'test123', { spinCount: TEST_SPIN_COUNT });
 
 		const ole2 = parseOle2(encrypted);
 		const encInfo = ole2.getStream('EncryptionInfo');
@@ -562,11 +569,11 @@ describe('oLE2 container integration', () => {
 		expect(encPkg).toBeDefined();
 		expect(encInfo!.length).toBeGreaterThan(0);
 		expect(encPkg!.length).toBeGreaterThan(0);
-	}, 120_000);
+	});
 
 	it('encryptionInfo stream starts with version 4.4 (agile)', async () => {
 		const originalData = createMinimalZipBuffer();
-		const encrypted = await encryptPptx(originalData, 'test');
+		const encrypted = await encryptPptx(originalData, 'test', { spinCount: TEST_SPIN_COUNT });
 
 		const ole2 = parseOle2(encrypted);
 		const encInfo = ole2.getStream('EncryptionInfo')!;
@@ -576,11 +583,11 @@ describe('oLE2 container integration', () => {
 
 		expect(major).toBe(4);
 		expect(minor).toBe(4);
-	}, 120_000);
+	});
 
 	it('encryptedPackage stream starts with 8-byte size prefix', async () => {
 		const originalData = createMinimalZipBuffer();
-		const encrypted = await encryptPptx(originalData, 'test');
+		const encrypted = await encryptPptx(originalData, 'test', { spinCount: TEST_SPIN_COUNT });
 
 		const ole2 = parseOle2(encrypted);
 		const encPkg = ole2.getStream('EncryptedPackage')!;
@@ -588,7 +595,7 @@ describe('oLE2 container integration', () => {
 		const sizeLow = view.getUint32(0, true);
 		// The stored size should match the original data length
 		expect(sizeLow).toBe(originalData.byteLength);
-	}, 120_000);
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -606,13 +613,13 @@ describe('large data encryption', () => {
 		}
 
 		const password = 'large-data-test';
-		const encrypted = await encryptPptx(largeBuffer, password);
+		const encrypted = await encryptPptx(largeBuffer, password, { spinCount: TEST_SPIN_COUNT });
 		const decrypted = await decryptPptx(encrypted, password);
 
 		const result = new Uint8Array(decrypted);
 		expect(result).toHaveLength(largeView.length);
 		expect(result).toStrictEqual(largeView);
-	}, 120_000);
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -881,7 +888,7 @@ describe('data integrity verification', () => {
 		const originalData = createMinimalZipBuffer();
 		const password = 'integrity-test';
 
-		const encrypted = await encryptPptx(originalData, password);
+		const encrypted = await encryptPptx(originalData, password, { spinCount: TEST_SPIN_COUNT });
 
 		// Tamper with the encrypted package data inside the OLE2 container
 		const ole2 = parseOle2(encrypted);
@@ -902,17 +909,17 @@ describe('data integrity verification', () => {
 
 		// Decrypting should throw DataIntegrityError
 		await expect(decryptPptx(tamperedOle2, password)).rejects.toThrow(DataIntegrityError);
-	}, 120_000);
+	});
 
 	it('does not throw for untampered data', async () => {
 		const originalData = createMinimalZipBuffer();
 		const password = 'no-tamper';
 
-		const encrypted = await encryptPptx(originalData, password);
+		const encrypted = await encryptPptx(originalData, password, { spinCount: TEST_SPIN_COUNT });
 		// Should not throw
 		const decrypted = await decryptPptx(encrypted, password);
 		expect(new Uint8Array(decrypted)).toStrictEqual(new Uint8Array(originalData));
-	}, 120_000);
+	});
 });
 
 // ---------------------------------------------------------------------------

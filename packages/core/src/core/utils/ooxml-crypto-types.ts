@@ -89,4 +89,6 @@ export interface StandardEncryptionInfo {
 export interface EncryptionOptions {
 	/** The encryption algorithm to use (defaults to AES256). */
 	algorithm?: EncryptionAlgorithm;
+	/** Number of hash iterations for key derivation (defaults to 100000). Lower values speed up tests. */
+	spinCount?: number;
 }

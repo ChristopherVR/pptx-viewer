@@ -152,7 +152,7 @@ export async function encryptPptx(
 	const hashAlgorithm = 'SHA-512';
 	const hashSize = 64;
 	const blockSize = 16;
-	const spinCount = 100000;
+	const spinCount = options?.spinCount ?? 100000;
 
 	// Derive password verification values
 	// 1. Generate verifier hash input (random)
