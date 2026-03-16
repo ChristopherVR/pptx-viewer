@@ -1,0 +1,399 @@
+import './i18n'; // Initialise i18next before any component renders
+import React, { useState, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { createRoot } from 'react-dom/client';
+
+import { themeToCssVars } from '../packages/react/src/theme';
+import type { ViewerTheme } from '../packages/react/src/theme';
+import { PowerPointViewer, isAudienceTab, loadAudienceContent } from '../packages/react/src/viewer';
+
+import './app.css';
+
+// ── Theme presets ──────────────────────────────────────────────────────────
+
+interface ThemePreset {
+	label: string;
+	theme: ViewerTheme;
+}
+
+const themes: Record<string, ThemePreset> = {
+	dark: {
+		label: 'Dark',
+		theme: {
+			colors: {
+				background: '#030712',
+				foreground: '#f3f4f6',
+				card: '#111827',
+				cardForeground: '#f3f4f6',
+				popover: '#111827',
+				popoverForeground: '#f3f4f6',
+				primary: '#6366f1',
+				primaryForeground: '#ffffff',
+				secondary: '#1f2937',
+				secondaryForeground: '#f3f4f6',
+				muted: '#1f2937',
+				mutedForeground: '#9ca3af',
+				accent: '#1f2937',
+				accentForeground: '#f3f4f6',
+				destructive: '#ef4444',
+				destructiveForeground: '#ffffff',
+				border: '#374151',
+				input: '#374151',
+				ring: '#6366f1',
+			},
+		},
+	},
+	light: {
+		label: 'Light',
+		theme: {
+			colors: {
+				background: '#f8fafc',
+				foreground: '#0f172a',
+				card: '#ffffff',
+				cardForeground: '#0f172a',
+				popover: '#ffffff',
+				popoverForeground: '#0f172a',
+				primary: '#4f46e5',
+				primaryForeground: '#ffffff',
+				secondary: '#f1f5f9',
+				secondaryForeground: '#0f172a',
+				muted: '#f1f5f9',
+				mutedForeground: '#64748b',
+				accent: '#f1f5f9',
+				accentForeground: '#0f172a',
+				destructive: '#dc2626',
+				destructiveForeground: '#ffffff',
+				border: '#e2e8f0',
+				input: '#e2e8f0',
+				ring: '#4f46e5',
+			},
+		},
+	},
+	midnight: {
+		label: 'Midnight Blue',
+		theme: {
+			colors: {
+				background: '#0c1222',
+				foreground: '#e2e8f0',
+				card: '#162032',
+				cardForeground: '#e2e8f0',
+				popover: '#162032',
+				popoverForeground: '#e2e8f0',
+				primary: '#38bdf8',
+				primaryForeground: '#0c1222',
+				secondary: '#1e3a5f',
+				secondaryForeground: '#e2e8f0',
+				muted: '#1e3a5f',
+				mutedForeground: '#7dd3fc',
+				accent: '#1e3a5f',
+				accentForeground: '#e2e8f0',
+				destructive: '#f87171',
+				destructiveForeground: '#ffffff',
+				border: '#1e3a5f',
+				input: '#1e3a5f',
+				ring: '#38bdf8',
+			},
+		},
+	},
+	sepia: {
+		label: 'Warm Sepia',
+		theme: {
+			colors: {
+				background: '#faf6f1',
+				foreground: '#292524',
+				card: '#ffffff',
+				cardForeground: '#292524',
+				popover: '#ffffff',
+				popoverForeground: '#292524',
+				primary: '#b45309',
+				primaryForeground: '#ffffff',
+				secondary: '#f5f0eb',
+				secondaryForeground: '#292524',
+				muted: '#f5f0eb',
+				mutedForeground: '#78716c',
+				accent: '#f5f0eb',
+				accentForeground: '#292524',
+				destructive: '#dc2626',
+				destructiveForeground: '#ffffff',
+				border: '#d6d3d1',
+				input: '#d6d3d1',
+				ring: '#b45309',
+			},
+		},
+	},
+};
+
+const themeKeys = Object.keys(themes);
+
+// ── Apply theme vars to :root ──────────────────────────────────────────────
+
+function useRootTheme(theme: ViewerTheme) {
+	useEffect(() => {
+		const vars = themeToCssVars(theme);
+		const root = document.documentElement;
+		const keys = Object.keys(vars);
+		for (const key of keys) {
+			root.style.setProperty(key, vars[key]);
+		}
+		return () => {
+			for (const key of keys) {
+				root.style.removeProperty(key);
+			}
+		};
+	}, [theme]);
+}
+
+// ── Theme picker (rendered via portal) ─────────────────────────────────────
+
+const pickerRoot = document.getElementById('theme-picker-root')!;
+
+function ThemePicker({ current, onChange }: { current: string; onChange: (key: string) => void }) {
+	const [open, setOpen] = useState(false);
+	const preset = themes[current];
+	const bg = preset.theme.colors?.card ?? '#111827';
+	const border = preset.theme.colors?.border ?? '#374151';
+	const fg = preset.theme.colors?.mutedForeground ?? '#9ca3af';
+	const primary = preset.theme.colors?.primary ?? '#6366f1';
+
+	const picker = (
+		<div
+			style={{
+				position: 'fixed',
+				bottom: 48,
+				right: 12,
+				zIndex: 99999,
+				fontFamily: 'system-ui, sans-serif',
+			}}
+		>
+			<button
+				onClick={() => setOpen(!open)}
+				title='Switch theme'
+				style={{
+					display: 'flex',
+					alignItems: 'center',
+					gap: 6,
+					padding: '6px 12px',
+					borderRadius: 9999,
+					border: `1px solid ${border}`,
+					background: bg,
+					color: fg,
+					cursor: 'pointer',
+					fontSize: 13,
+					fontWeight: 500,
+					boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+				}}
+			>
+				<svg
+					width='14'
+					height='14'
+					viewBox='0 0 24 24'
+					fill='none'
+					stroke='currentColor'
+					strokeWidth='2'
+					strokeLinecap='round'
+					strokeLinejoin='round'
+				>
+					<circle cx='12' cy='12' r='4' />
+					<path d='M12 2v2' />
+					<path d='M12 20v2' />
+					<path d='m4.93 4.93 1.41 1.41' />
+					<path d='m17.66 17.66 1.41 1.41' />
+					<path d='M2 12h2' />
+					<path d='M20 12h2' />
+					<path d='m6.34 17.66-1.41 1.41' />
+					<path d='m19.07 4.93-1.41 1.41' />
+				</svg>
+				{preset.label}
+			</button>
+			{open && (
+				<div
+					style={{
+						position: 'absolute',
+						bottom: '100%',
+						right: 0,
+						marginBottom: 4,
+						background: bg,
+						border: `1px solid ${border}`,
+						borderRadius: 8,
+						overflow: 'hidden',
+						boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+						minWidth: 150,
+					}}
+				>
+					{themeKeys.map((key) => {
+						const p = themes[key];
+						const isActive = key === current;
+						return (
+							<button
+								key={key}
+								onClick={() => {
+									onChange(key);
+									setOpen(false);
+								}}
+								style={{
+									display: 'flex',
+									alignItems: 'center',
+									gap: 8,
+									width: '100%',
+									padding: '8px 14px',
+									border: 'none',
+									background: isActive ? `${primary}22` : 'transparent',
+									color: isActive ? primary : fg,
+									cursor: 'pointer',
+									fontSize: 13,
+									fontWeight: isActive ? 600 : 400,
+									textAlign: 'left',
+								}}
+							>
+								<span
+									style={{
+										width: 14,
+										height: 14,
+										borderRadius: 9999,
+										background: p.theme.colors?.primary ?? '#6366f1',
+										border: `2px solid ${p.theme.colors?.border ?? '#374151'}`,
+										flexShrink: 0,
+									}}
+								/>
+								{p.label}
+							</button>
+						);
+					})}
+				</div>
+			)}
+		</div>
+	);
+
+	return createPortal(picker, pickerRoot);
+}
+
+// ── App ────────────────────────────────────────────────────────────────────
+
+function App() {
+	const [content, setContent] = useState<Uint8Array | null>(null);
+	const [fileName, setFileName] = useState<string>('');
+	const [themeKey, setThemeKey] = useState<string>(() => {
+		try {
+			return localStorage.getItem('pptx-demo-theme') ?? 'dark';
+		} catch {
+			return 'dark';
+		}
+	});
+
+	// When opened as an audience tab, load the PPTX content from IndexedDB
+	useEffect(() => {
+		if (!isAudienceTab()) {
+			return;
+		}
+		let cancelled = false;
+		void loadAudienceContent().then((bytes) => {
+			if (cancelled || !bytes) {
+				return undefined;
+			}
+			setContent(bytes);
+			setFileName('Audience View');
+			return undefined;
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, []);
+
+	const currentPreset = themes[themeKey] ?? themes.dark;
+
+	// Apply theme CSS vars to :root so Tailwind's @theme var() references resolve
+	useRootTheme(currentPreset.theme);
+
+	const handleThemeChange = useCallback((key: string) => {
+		setThemeKey(key);
+		try {
+			localStorage.setItem('pptx-demo-theme', key);
+		} catch {
+			/* ignore */
+		}
+	}, []);
+
+	const handleFile = useCallback((file: File) => {
+		setFileName(file.name);
+		const reader = new FileReader();
+		reader.onload = () => {
+			const bytes = new Uint8Array(reader.result as ArrayBuffer);
+			setContent(bytes);
+		};
+		reader.readAsArrayBuffer(file);
+	}, []);
+
+	const handleDrop = useCallback(
+		(e: React.DragEvent) => {
+			e.preventDefault();
+			const file = e.dataTransfer.files[0];
+			if (file?.name.endsWith('.pptx')) {
+				handleFile(file);
+			}
+		},
+		[handleFile],
+	);
+
+	const handleDragOver = useCallback((e: React.DragEvent) => {
+		e.preventDefault();
+	}, []);
+
+	const handleClick = useCallback(() => {
+		const input = document.getElementById('file-input') as HTMLInputElement;
+		input?.click();
+	}, []);
+
+	const handleInputChange = useCallback(
+		(e: React.ChangeEvent<HTMLInputElement>) => {
+			const file = e.target.files?.[0];
+			if (file) {
+				handleFile(file);
+			}
+		},
+		[handleFile],
+	);
+
+	if (content) {
+		return (
+			<div className='h-screen w-screen'>
+				<ThemePicker current={themeKey} onChange={handleThemeChange} />
+				<PowerPointViewer
+					content={content}
+					canEdit
+					onDirtyChange={(dirty) => {
+						document.title = dirty ? `* ${fileName} — PPTX Viewer` : `${fileName} — PPTX Viewer`;
+					}}
+				/>
+			</div>
+		);
+	}
+
+	return (
+		<div className='flex items-center justify-center h-screen w-screen bg-background text-foreground'>
+			<ThemePicker current={themeKey} onChange={handleThemeChange} />
+			<div
+				className='max-w-[900px] w-full border-2 border-dashed border-border rounded-xl p-12 text-center cursor-pointer transition-colors hover:border-primary hover:bg-accent'
+				onDrop={handleDrop}
+				onDragOver={handleDragOver}
+				onClick={handleClick}
+			>
+				<p className='text-muted-foreground mb-3'>Drop a .pptx file here or click to browse</p>
+				<p className='text-sm text-muted-foreground/60'>
+					The file is processed entirely in the browser
+				</p>
+				<input
+					type='file'
+					id='file-input'
+					accept='.pptx'
+					style={{ display: 'none' }}
+					onChange={handleInputChange}
+				/>
+			</div>
+		</div>
+	);
+}
+
+const rootEl = document.getElementById('app-root');
+if (rootEl) {
+	createRoot(rootEl).render(<App />);
+}

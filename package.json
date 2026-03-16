@@ -1,0 +1,46 @@
+{
+	"name": "pptx-viewer-monorepo",
+	"private": true,
+	"workspaces": [
+		"packages/*",
+		"demo"
+	],
+	"scripts": {
+		"install:all": "bun install",
+		"demo": "cd demo && npx vite",
+		"build": "bun run --filter 'emf-converter' build && bun run --filter 'mtx-decompressor' build && bun run --filter 'pptx-viewer-core' build && bun run --filter 'pptx-viewer' build && bun run --filter 'pptx-viewer-demo' build",
+		"typecheck": "bun run --filter '*' typecheck",
+		"test": "bash scripts/test-all.sh",
+		"fmt": "oxfmt",
+		"fmt:check": "oxfmt --check",
+		"lint": "oxlint",
+		"lint:fix": "oxlint --fix",
+		"pack:emf": "cd packages/emf-converter && bun run pack",
+		"pack:mtx": "cd packages/mtx-decompressor && bun run pack",
+		"pack:core": "cd packages/core && bun run pack",
+		"pack:react": "cd packages/react && bun run pack",
+		"outdated": "bun outdated --filter '*'",
+		"update": "bun update --latest",
+		"prepare": "husky"
+	},
+	"devDependencies": {
+		"@types/three": "^0.183.1",
+		"husky": "^9.1.7",
+		"lint-staged": "^16.4.0",
+		"oxfmt": "^0.40.0",
+		"oxlint": "^1.55.0",
+		"pptx-viewer": "workspace:*",
+		"typescript": "^5.9.3"
+	},
+	"optionalDependencies": {
+		"@react-three/drei": "^10.7.7",
+		"@react-three/fiber": "^9.5.0",
+		"three": "^0.183.2"
+	},
+	"lint-staged": {
+		"*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,css,scss,less,html,vue,yaml,toml,md,mdx,graphql}": [
+			"oxfmt --check",
+			"oxlint --deny-warnings"
+		]
+	}
+}

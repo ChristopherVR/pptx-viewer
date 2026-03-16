@@ -1,0 +1,325 @@
+/**
+ * Print-specific CSS for PowerPoint viewer.
+ *
+ * Provides comprehensive @media print rules that:
+ * - Hide all application UI chrome
+ * - Force background colours/images to print
+ * - Set exact page dimensions matching slide aspect ratio
+ * - Support handout, notes, and outline print layouts
+ * - Remove scrollbars and interactive overlays
+ * - Handle page breaks cleanly
+ *
+ * When the user invokes window.print() from the main viewer,
+ * these rules hide the application chrome and show only the
+ * handout pages, each separated by a page break.
+ */
+
+/* ─── Screen: hide print-only elements ─────────────────────────────── */
+.pptx-print-only {
+	display: none;
+}
+
+/* ─── Print Media ──────────────────────────────────────────────────── */
+@media print {
+	/* ---------- Hide all application UI ---------- */
+	.pptx-toolbar,
+	.pptx-inspector,
+	.pptx-sidebar,
+	.pptx-status-bar,
+	.pptx-notes-panel,
+	.pptx-find-replace-panel,
+	.pptx-context-menu,
+	.pptx-slide-sorter,
+	.pptx-presenter-view,
+	.pptx-shortcut-panel,
+	.pptx-accessibility-panel,
+	.pptx-overlay,
+	.pptx-modal-backdrop,
+	.pptx-export-modal,
+	.pptx-no-print,
+	.pptx-selection-overlay,
+	.pptx-snap-lines,
+	.pptx-ruler,
+	.pptx-zoom-controls,
+	.pptx-breadcrumb,
+	.pptx-toast,
+	.pptx-tooltip,
+	.pptx-drag-handle,
+	.pptx-resize-handle,
+	[data-export-ignore='true'],
+	nav,
+	header,
+	footer,
+	aside {
+		display: none !important;
+	}
+
+	/* ---------- Body reset ---------- */
+	body {
+		margin: 0;
+		padding: 0;
+		background: #fff !important;
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+		color-adjust: exact;
+	}
+
+	/* ---------- Force all backgrounds to print ---------- */
+	* {
+		-webkit-print-color-adjust: exact !important;
+		print-color-adjust: exact !important;
+		color-adjust: exact !important;
+	}
+
+	/* ---------- Show print-only content ---------- */
+	.pptx-print-only {
+		display: block !important;
+	}
+
+	/* ---------- Slide page (single slide per page) ---------- */
+	.pptx-slide-print-page {
+		page-break-after: always;
+		page-break-inside: avoid;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 100vh;
+		padding: 5mm;
+		box-sizing: border-box;
+		overflow: hidden;
+	}
+
+	.pptx-slide-print-page:last-child {
+		page-break-after: auto;
+	}
+
+	.pptx-slide-print-page img {
+		max-width: 100%;
+		max-height: 100%;
+		object-fit: contain;
+	}
+
+	.pptx-slide-print-page svg {
+		max-width: 100%;
+		max-height: 100%;
+	}
+
+	/* ---------- Handout page ---------- */
+	.pptx-handout-page {
+		page-break-after: always;
+		page-break-inside: avoid;
+		box-sizing: border-box;
+		width: 100%;
+		padding: 8mm;
+	}
+
+	.pptx-handout-page:last-child {
+		page-break-after: auto;
+	}
+
+	/* ---------- Handout grid ---------- */
+	.pptx-handout-grid {
+		display: grid;
+		gap: 3mm;
+		width: 100%;
+		height: 100%;
+	}
+
+	/* Grid template variants */
+	.pptx-handout-grid--1 {
+		grid-template-columns: 1fr;
+		grid-template-rows: 1fr;
+	}
+
+	.pptx-handout-grid--2 {
+		grid-template-columns: 1fr;
+		grid-template-rows: repeat(2, 1fr);
+	}
+
+	.pptx-handout-grid--3 {
+		grid-template-columns: 1fr;
+		grid-template-rows: repeat(3, 1fr);
+	}
+
+	.pptx-handout-grid--4 {
+		grid-template-columns: repeat(2, 1fr);
+		grid-template-rows: repeat(2, 1fr);
+	}
+
+	.pptx-handout-grid--6 {
+		grid-template-columns: repeat(2, 1fr);
+		grid-template-rows: repeat(3, 1fr);
+	}
+
+	.pptx-handout-grid--9 {
+		grid-template-columns: repeat(3, 1fr);
+		grid-template-rows: repeat(3, 1fr);
+	}
+
+	/* ---------- Handout cell ---------- */
+	.pptx-handout-cell {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		overflow: hidden;
+		background: #fff;
+		border-radius: 2px;
+	}
+
+	.pptx-handout-cell--framed {
+		border: 2px solid #000;
+	}
+
+	.pptx-handout-cell img {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		display: block;
+	}
+
+	/* ---------- 3-per-page with note lines ---------- */
+	.pptx-handout-row-3 {
+		display: flex;
+		gap: 4mm;
+		flex: 1;
+	}
+
+	.pptx-handout-row-3 .pptx-handout-cell {
+		flex: 0 0 45%;
+	}
+
+	.pptx-handout-note-lines {
+		flex: 1;
+		position: relative;
+		border-left: 1px solid #d1d5db;
+		padding-left: 3mm;
+	}
+
+	.pptx-handout-note-line {
+		position: absolute;
+		left: 3mm;
+		right: 0;
+		height: 0;
+		border-bottom: 1px solid #d1d5db;
+	}
+
+	/* ---------- Notes page ---------- */
+	.pptx-notes-print-page {
+		page-break-after: always;
+		page-break-inside: avoid;
+		box-sizing: border-box;
+		width: 100%;
+		padding: 8mm;
+		display: grid;
+		grid-template-rows: auto 1fr;
+		gap: 4mm;
+		min-height: 100vh;
+	}
+
+	.pptx-notes-print-page:last-child {
+		page-break-after: auto;
+	}
+
+	.pptx-notes-print-slide {
+		width: 100%;
+		border: 1px solid #d1d5db;
+		border-radius: 4px;
+		object-fit: contain;
+	}
+
+	.pptx-notes-print-text {
+		border: 1px solid #d1d5db;
+		border-radius: 4px;
+		padding: 3mm;
+		white-space: pre-wrap;
+		font-size: 12px;
+		line-height: 1.5;
+		color: #374151;
+		overflow: hidden;
+	}
+
+	/* ---------- Outline page ---------- */
+	.pptx-outline-print-page {
+		page-break-after: always;
+		page-break-inside: avoid;
+		padding: 10mm;
+	}
+
+	.pptx-outline-print-page:last-child {
+		page-break-after: auto;
+	}
+
+	.pptx-outline-print-page h2 {
+		font-size: 14px;
+		margin: 12px 0 4px;
+		color: #374151;
+	}
+
+	.pptx-outline-print-page p {
+		font-size: 12px;
+		margin: 2px 0 2px 16px;
+		color: #4b5563;
+	}
+
+	/* ---------- Page orientation ---------- */
+	@page {
+		margin: 8mm;
+	}
+
+	.pptx-handout-page--portrait {
+		size: portrait;
+	}
+
+	.pptx-handout-page--landscape {
+		size: landscape;
+	}
+
+	/* ---------- Colour filters ---------- */
+	.pptx-print-grayscale {
+		filter: grayscale(1);
+	}
+
+	.pptx-print-bw {
+		filter: grayscale(1) contrast(2);
+	}
+
+	/* ---------- Remove scrollbars ---------- */
+	*::-webkit-scrollbar {
+		display: none !important;
+	}
+
+	* {
+		scrollbar-width: none !important;
+	}
+
+	/* ---------- Remove shadows and decorative effects ---------- */
+	.pptx-viewer-container {
+		box-shadow: none !important;
+		border: none !important;
+	}
+
+	/* ---------- Ensure images print ---------- */
+	img {
+		break-inside: avoid;
+		page-break-inside: avoid;
+	}
+
+	/* ---------- Remove animations ---------- */
+	* {
+		animation: none !important;
+		transition: none !important;
+	}
+
+	/* ---------- Ensure SVG elements are visible ---------- */
+	svg {
+		overflow: visible !important;
+	}
+
+	/* ---------- Slide content container ---------- */
+	.pptx-slide-stage {
+		overflow: visible !important;
+		transform: none !important;
+		box-shadow: none !important;
+	}
+}

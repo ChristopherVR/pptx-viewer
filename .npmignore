@@ -1,0 +1,7 @@
+src/
+demo/
+tsup.config.ts
+tsconfig.json
+vitest.config.ts
+*.test.ts
+*.test.tsx

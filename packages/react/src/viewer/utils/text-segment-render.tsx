@@ -1,0 +1,361 @@
+import { getSubstituteFontFamily } from 'pptx-viewer-core';
+import type { PptxElement, TextStyle, BulletInfo } from 'pptx-viewer-core';
+import React from 'react';
+
+import { DEFAULT_TEXT_FONT_SIZE, DEFAULT_FONT_FAMILY, HYPERLINK_COLOR } from '../constants';
+import { normalizeHexColor } from './color';
+import {
+	buildTextFillCss,
+	buildTextShadowCss,
+	buildTextGlowFilter,
+	buildTextReflectionCss,
+	buildTextInnerShadowCss,
+	buildTextBlurFilter,
+	buildTextHslFilter,
+	getTextAlphaOpacity,
+} from './text-effects';
+import { substituteFieldText } from './text-field-substitution';
+import type { FieldSubstitutionContext } from './text-field-substitution';
+import {
+	renderSegmentContent,
+	renderEquationSegment,
+	renderPictureBullet,
+	resolveUnderlineDecorationStyle,
+} from './text-segment-helpers';
+import type { ElementFindHighlights } from './text-segment-helpers';
+import { hasDistinctScriptFonts } from './unicode-script-detection';
+
+/** Combine all text run CSS filter effects into a single chain. */
+function buildTextRunFilterChain(style: TextStyle): string | undefined {
+	const parts: string[] = [];
+	const glow = buildTextGlowFilter(style);
+	if (glow) {
+		parts.push(glow);
+	}
+	const innerShdw = buildTextInnerShadowCss(style);
+	if (innerShdw) {
+		parts.push(innerShdw);
+	}
+	const blur = buildTextBlurFilter(style);
+	if (blur) {
+		parts.push(blur);
+	}
+	const hsl = buildTextHslFilter(style);
+	if (hsl) {
+		parts.push(hsl);
+	}
+	return parts.length > 0 ? parts.join(' ') : undefined;
+}
+
+/**
+ * Render a single text segment as a styled `<span>`.
+ * When `bulletInfo` is provided, the bullet character/number is rendered with
+ * its own font family, size, and colour.
+ */
+export function renderSingleSegment(
+	element: PptxElement & Partial<{ textStyle: TextStyle }>,
+	segment: {
+		style?: TextStyle;
+		text?: string;
+		hyperlink?: string;
+		bulletInfo?: BulletInfo;
+		fieldType?: string;
+		equationXml?: Record<string, unknown>;
+		equationNumber?: string;
+		rubyText?: string;
+		rubyAlignment?: string;
+		rubyFontSize?: number;
+		rubyStyle?: TextStyle;
+	},
+	segmentIndex: number,
+	fallbackColor: string,
+	findHighlights: ElementFindHighlights | undefined,
+	bulletInfo: BulletInfo | undefined,
+	onHyperlinkClick?: (url: string) => void,
+	fieldContext?: FieldSubstitutionContext,
+	/** Resolved paragraph-level RTL direction for BiDi isolation. */
+	paragraphRtl?: boolean,
+	/** When true, hyperlinks require Ctrl+Click (editing mode). */
+	requireCtrlClick?: boolean,
+): React.ReactNode {
+	// ── Equation segments: render inline MathML ──
+	if (segment.equationXml) {
+		return renderEquationSegment(
+			element.id,
+			segmentIndex,
+			segment.equationXml,
+			segment.equationNumber,
+		);
+	}
+
+	const segmentStyle = segment.style || {};
+	const textValue = substituteFieldText(segment.text || '', segment.fieldType, fieldContext);
+	const lines = textValue.split('\n');
+	const textDecorationTokens: string[] = [];
+	if (segmentStyle.underline || segmentStyle.hyperlink) {
+		textDecorationTokens.push('underline');
+	}
+	if (segmentStyle.strikethrough) {
+		textDecorationTokens.push('line-through');
+	}
+
+	// Double strikethrough needs a different text-decoration-style
+	const isDoubleStrike = segmentStyle.strikethrough && segmentStyle.strikeType === 'dblStrike';
+	const resolvedSegmentColor = segmentStyle.hyperlink
+		? normalizeHexColor(segmentStyle.color || element.textStyle?.color, HYPERLINK_COLOR)
+		: normalizeHexColor(segmentStyle.color || element.textStyle?.color, fallbackColor);
+
+	// Underline style variants → CSS text-decoration properties
+	const underlineDecoration = resolveUnderlineDecorationStyle(
+		Boolean(isDoubleStrike),
+		segmentStyle.underlineStyle,
+	);
+
+	// Superscript / subscript via baseline shift
+	const baselineShift =
+		typeof segmentStyle.baseline === 'number' && segmentStyle.baseline !== 0
+			? segmentStyle.baseline > 0
+				? 'super'
+				: 'sub'
+			: undefined;
+	const baselineFontScale =
+		typeof segmentStyle.baseline === 'number' && segmentStyle.baseline !== 0 ? 0.65 : 1;
+
+	// Character spacing → CSS letter-spacing (hundredths of a point → px)
+	const letterSpacing =
+		typeof segmentStyle.characterSpacing === 'number' && segmentStyle.characterSpacing !== 0
+			? `${(segmentStyle.characterSpacing / 100) * (96 / 72)}px`
+			: undefined;
+
+	// Kerning → CSS font-kerning
+	const fontKerning: React.CSSProperties['fontKerning'] =
+		typeof segmentStyle.kerning === 'number'
+			? segmentStyle.kerning === 0
+				? 'none'
+				: 'normal'
+			: undefined;
+
+	// Text fill: gradient or pattern → CSS background-clip:text technique
+	const textFillStyles = buildTextFillCss(segmentStyle);
+
+	// Build the base text style
+	const rawFontSize = (segmentStyle.fontSize ||
+		element.textStyle?.fontSize ||
+		DEFAULT_TEXT_FONT_SIZE) as number;
+	// Apply normAutofit fontScale when present (e.g. 0.9 = 90%)
+	const autoFitScale =
+		element.textStyle?.autoFitFontScale !== undefined &&
+		element.textStyle.autoFitFontScale > 0 &&
+		element.textStyle.autoFitFontScale < 1
+			? element.textStyle.autoFitFontScale
+			: 1;
+	const baseFontSize = rawFontSize * autoFitScale;
+	const rawFontFamily = segmentStyle.fontFamily || element.textStyle?.fontFamily;
+	// Apply PANOSE-based font substitution with fallback chain
+	const baseFontFamily = rawFontFamily
+		? getSubstituteFontFamily(rawFontFamily)
+		: DEFAULT_FONT_FAMILY;
+
+	// Per-script font info for Unicode font fallback
+	const scriptFonts = {
+		latin: baseFontFamily,
+		eastAsia: segmentStyle.eastAsiaFont || element.textStyle?.eastAsiaFont || baseFontFamily,
+		complexScript:
+			segmentStyle.complexScriptFont || element.textStyle?.complexScriptFont || baseFontFamily,
+		symbol: segmentStyle.symbolFont || element.textStyle?.symbolFont || baseFontFamily,
+	};
+	const needsScriptFonts = hasDistinctScriptFonts(scriptFonts);
+
+	const spanStyle: React.CSSProperties = {
+		color: resolvedSegmentColor,
+		fontSize: baseFontSize * baselineFontScale,
+		fontWeight: segmentStyle.bold ? 700 : 400,
+		fontStyle: segmentStyle.italic ? 'italic' : 'normal',
+		textDecorationLine: textDecorationTokens.length > 0 ? textDecorationTokens.join(' ') : 'none',
+		textDecorationStyle: underlineDecoration?.textDecorationStyle,
+		textDecorationThickness:
+			underlineDecoration?.textDecorationThickness as React.CSSProperties['textDecorationThickness'],
+		textUnderlineOffset:
+			underlineDecoration?.textUnderlineOffset as React.CSSProperties['textUnderlineOffset'],
+		fontFamily: baseFontFamily,
+		verticalAlign: baselineShift,
+		letterSpacing,
+		fontKerning,
+		backgroundColor: textFillStyles
+			? undefined
+			: segmentStyle.highlightColor
+				? normalizeHexColor(segmentStyle.highlightColor, 'transparent')
+				: undefined,
+		...textFillStyles,
+		textDecorationColor: segmentStyle.underlineColor
+			? normalizeHexColor(segmentStyle.underlineColor, undefined)
+			: undefined,
+		WebkitTextStroke:
+			segmentStyle.textOutlineWidth && segmentStyle.textOutlineColor
+				? `${segmentStyle.textOutlineWidth}px ${normalizeHexColor(segmentStyle.textOutlineColor, '#000000')}`
+				: segmentStyle.textOutlineWidth
+					? `${segmentStyle.textOutlineWidth}px currentColor`
+					: undefined,
+		paintOrder: segmentStyle.textOutlineWidth ? 'stroke fill' : undefined,
+		textShadow: buildTextShadowCss(segmentStyle),
+		filter: buildTextRunFilterChain(segmentStyle),
+		opacity: getTextAlphaOpacity(segmentStyle),
+		WebkitBoxReflect: buildTextReflectionCss(segmentStyle),
+	};
+
+	// Per-run BiDi direction override
+	// When a text run's direction differs from the paragraph direction,
+	// use `bidi-override` to force all characters in the run to follow
+	// the specified direction. This handles mixed RTL/LTR runs correctly
+	// (e.g. an LTR brand name inside an RTL paragraph).
+	const runRtl = segmentStyle.rtl;
+	if (runRtl !== undefined && runRtl !== paragraphRtl) {
+		spanStyle.direction = runRtl ? 'rtl' : 'ltr';
+		spanStyle.unicodeBidi = 'bidi-override';
+	} else if (runRtl !== undefined && runRtl === paragraphRtl) {
+		// Run direction matches paragraph but is explicitly set — use embed
+		// to reinforce the embedding level for proper number rendering.
+		spanStyle.direction = runRtl ? 'rtl' : 'ltr';
+		spanStyle.unicodeBidi = 'embed';
+	}
+
+	// Apply bullet-specific styling overrides
+	if (bulletInfo) {
+		if (bulletInfo.fontFamily) {
+			spanStyle.fontFamily = bulletInfo.fontFamily;
+		}
+		if (typeof bulletInfo.sizePts === 'number') {
+			spanStyle.fontSize = bulletInfo.sizePts * baselineFontScale;
+		} else if (typeof bulletInfo.sizePercent === 'number') {
+			spanStyle.fontSize = baseFontSize * (bulletInfo.sizePercent / 100) * baselineFontScale;
+		}
+		if (bulletInfo.color) {
+			spanStyle.color = normalizeHexColor(bulletInfo.color, resolvedSegmentColor);
+		}
+	}
+
+	// Picture bullet: render as <img> instead of text
+	if (bulletInfo?.imageDataUrl || bulletInfo?.imageRelId) {
+		return renderPictureBullet(element.id, segmentIndex, bulletInfo, baseFontSize);
+	}
+
+	// Resolve the hyperlink URL.
+	// For internal slide-jump actions (ppaction://hlinksldjump), encode the
+	// target slide index as a query parameter so it can travel through the
+	// `onHyperlinkClick(url)` callback without changing its signature.
+	let hyperlinkUrl = segmentStyle.hyperlink || segment.hyperlink;
+	if (
+		hyperlinkUrl &&
+		typeof segmentStyle.hyperlinkTargetSlideIndex === 'number' &&
+		hyperlinkUrl.toLowerCase().startsWith('ppaction://')
+	) {
+		const separator = hyperlinkUrl.includes('?') ? '&' : '?';
+		hyperlinkUrl = `${hyperlinkUrl}${separator}slideIndex=${segmentStyle.hyperlinkTargetSlideIndex}`;
+	}
+
+	// ── Ruby text (phonetic guide) rendering ──
+	const rubyText = segment.rubyText;
+	const hasRuby = typeof rubyText === 'string' && rubyText.length > 0;
+
+	const baseContent = renderSegmentContent(
+		element.id,
+		segmentIndex,
+		textValue,
+		lines,
+		needsScriptFonts,
+		scriptFonts,
+		baseFontFamily,
+		findHighlights,
+	);
+
+	let innerContent: React.ReactNode;
+	if (hasRuby) {
+		// Resolve ruby annotation font size: use explicit rubyFontSize,
+		// fall back to 50% of the base font size (common default).
+		const rubyFs = segment.rubyFontSize ?? baseFontSize * 0.5;
+		const rubyStyle: React.CSSProperties = {
+			fontSize: rubyFs,
+			fontFamily: segment.rubyStyle?.fontFamily ?? baseFontFamily,
+			textAlign:
+				segment.rubyAlignment === 'l'
+					? 'left'
+					: segment.rubyAlignment === 'r'
+						? 'right'
+						: segment.rubyAlignment === 'dist' ||
+							  segment.rubyAlignment === 'distCat' ||
+							  segment.rubyAlignment === 'distLetter'
+							? 'justify'
+							: 'center',
+		};
+		if (segment.rubyStyle?.color) {
+			rubyStyle.color = normalizeHexColor(segment.rubyStyle.color, resolvedSegmentColor);
+		}
+
+		innerContent = (
+			<ruby>
+				{baseContent}
+				<rp>(</rp>
+				<rt style={rubyStyle}>{rubyText}</rt>
+				<rp>)</rp>
+			</ruby>
+		);
+	} else {
+		innerContent = baseContent;
+	}
+
+	const spanNode = (
+		<span key={`${element.id}-seg-${segmentIndex}`} data-seg-idx={segmentIndex} style={spanStyle}>
+			{innerContent}
+		</span>
+	);
+
+	// Wrap hyperlinked text in a clickable element when a handler is available
+	if (hyperlinkUrl && onHyperlinkClick) {
+		// Strip ppaction:// protocol for display; show clean URL to user
+		const displayUrl = hyperlinkUrl.startsWith('ppaction://')
+			? hyperlinkUrl.replace(/^ppaction:\/\//, '').split('?')[0]
+			: hyperlinkUrl;
+
+		return (
+			<span
+				key={`${element.id}-seg-${segmentIndex}-link`}
+				role='link'
+				tabIndex={0}
+				className={requireCtrlClick ? 'group/link relative' : undefined}
+				style={{ cursor: requireCtrlClick ? undefined : 'pointer', pointerEvents: 'auto' }}
+				onClick={(e) => {
+					if (requireCtrlClick && !e.ctrlKey && !e.metaKey) {
+						return;
+					}
+					e.stopPropagation();
+					e.preventDefault();
+					onHyperlinkClick(hyperlinkUrl);
+				}}
+				onKeyDown={(e) => {
+					if (e.key === 'Enter' || e.key === ' ') {
+						if (requireCtrlClick && !e.ctrlKey && !e.metaKey) {
+							return;
+						}
+						e.preventDefault();
+						e.stopPropagation();
+						onHyperlinkClick(hyperlinkUrl);
+					}
+				}}
+			>
+				{spanNode}
+				{requireCtrlClick && (
+					<span className='pointer-events-none absolute left-0 top-full z-[9999] mt-1 max-w-64 opacity-0 transition-opacity duration-150 group-hover/link:opacity-100'>
+						<span className='flex flex-col rounded border border-border bg-popover px-2.5 py-1.5 shadow-lg'>
+							<span className='truncate text-xs text-foreground'>{displayUrl}</span>
+							<span className='mt-0.5 text-[10px] text-muted-foreground'>
+								Ctrl+Click to follow link
+							</span>
+						</span>
+					</span>
+				)}
+			</span>
+		);
+	}
+
+	return spanNode;
+}

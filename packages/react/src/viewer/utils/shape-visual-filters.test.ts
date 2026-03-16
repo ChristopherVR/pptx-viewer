@@ -1,0 +1,393 @@
+import type { PptxElement } from 'pptx-viewer-core';
+import { describe, it, expect } from 'vitest';
+
+import {
+	getDuotoneFilterId,
+	hasDuotoneEffect,
+	getDuotoneColors,
+	buildLineShadowCss,
+	buildLineGlowFilter,
+	mapDagBlendModeToCss,
+	getDagDuotoneFilterId,
+	hasDagDuotoneEffect,
+} from './shape-visual-filters';
+
+// ---------------------------------------------------------------------------
+// getDuotoneFilterId
+// ---------------------------------------------------------------------------
+
+describe('getDuotoneFilterId', () => {
+	it("generates a filter ID prefixed with 'duotone-'", () => {
+		expect(getDuotoneFilterId('elem-1')).toBe('duotone-elem-1');
+	});
+
+	it('handles empty string', () => {
+		expect(getDuotoneFilterId('')).toBe('duotone-');
+	});
+
+	it('preserves special characters in the element ID', () => {
+		expect(getDuotoneFilterId('a-b_c.d')).toBe('duotone-a-b_c.d');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// getDagDuotoneFilterId
+// ---------------------------------------------------------------------------
+
+describe('getDagDuotoneFilterId', () => {
+	it("generates a filter ID prefixed with 'dag-duotone-'", () => {
+		expect(getDagDuotoneFilterId('elem-1')).toBe('dag-duotone-elem-1');
+	});
+
+	it('handles empty string', () => {
+		expect(getDagDuotoneFilterId('')).toBe('dag-duotone-');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// mapDagBlendModeToCss
+// ---------------------------------------------------------------------------
+
+describe('mapDagBlendModeToCss', () => {
+	it('returns undefined for undefined input', () => {
+		expect(mapDagBlendModeToCss(undefined)).toBeUndefined();
+	});
+
+	it("maps 'mult' to 'multiply'", () => {
+		expect(mapDagBlendModeToCss('mult')).toBe('multiply');
+	});
+
+	it("maps 'screen' to 'screen'", () => {
+		expect(mapDagBlendModeToCss('screen')).toBe('screen');
+	});
+
+	it("maps 'darken' to 'darken'", () => {
+		expect(mapDagBlendModeToCss('darken')).toBe('darken');
+	});
+
+	it("maps 'lighten' to 'lighten'", () => {
+		expect(mapDagBlendModeToCss('lighten')).toBe('lighten');
+	});
+
+	it("returns undefined for 'over' (normal blend)", () => {
+		expect(mapDagBlendModeToCss('over')).toBeUndefined();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// hasDuotoneEffect
+// ---------------------------------------------------------------------------
+
+describe('hasDuotoneEffect', () => {
+	it('returns false for a shape element (not image-like)', () => {
+		const el = {
+			id: 's1',
+			type: 'shape',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+		} as PptxElement;
+		expect(hasDuotoneEffect(el)).toBeFalsy();
+	});
+
+	it('returns false for an image without duotone effects', () => {
+		const el = {
+			id: 'i1',
+			type: 'image',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			imageUrl: 'data:image/png;base64,abc',
+		} as PptxElement;
+		expect(hasDuotoneEffect(el)).toBeFalsy();
+	});
+
+	it('returns true for an image with duotone effects', () => {
+		const el = {
+			id: 'i1',
+			type: 'image',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			imageUrl: 'data:image/png;base64,abc',
+			imageEffects: {
+				duotone: { color1: '#000000', color2: '#FFFFFF' },
+			},
+		} as PptxElement;
+		expect(hasDuotoneEffect(el)).toBeTruthy();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// getDuotoneColors
+// ---------------------------------------------------------------------------
+
+describe('getDuotoneColors', () => {
+	it('returns undefined for a non-image element', () => {
+		const el = {
+			id: 's1',
+			type: 'shape',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+		} as PptxElement;
+		expect(getDuotoneColors(el)).toBeUndefined();
+	});
+
+	it('returns undefined for an image without duotone', () => {
+		const el = {
+			id: 'i1',
+			type: 'image',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			imageUrl: 'data:image/png;base64,abc',
+		} as PptxElement;
+		expect(getDuotoneColors(el)).toBeUndefined();
+	});
+
+	it('returns the duotone colour pair for an image with duotone', () => {
+		const el = {
+			id: 'i1',
+			type: 'image',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			imageUrl: 'data:image/png;base64,abc',
+			imageEffects: {
+				duotone: { color1: '#112233', color2: '#AABBCC' },
+			},
+		} as PptxElement;
+		const result = getDuotoneColors(el);
+		expect(result).toStrictEqual({ color1: '#112233', color2: '#AABBCC' });
+	});
+});
+
+// ---------------------------------------------------------------------------
+// buildLineShadowCss
+// ---------------------------------------------------------------------------
+
+describe('buildLineShadowCss', () => {
+	it('returns undefined for elements without shape properties', () => {
+		const el = {
+			id: 'c1',
+			type: 'chart',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+		} as PptxElement;
+		expect(buildLineShadowCss(el)).toBeUndefined();
+	});
+
+	it('returns undefined when no line shadow colour is set', () => {
+		const el = {
+			id: 's1',
+			type: 'shape',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			shapeStyle: {},
+		} as PptxElement;
+		expect(buildLineShadowCss(el)).toBeUndefined();
+	});
+
+	it('returns undefined when line shadow colour is transparent', () => {
+		const el = {
+			id: 's1',
+			type: 'shape',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			shapeStyle: { lineShadowColor: 'transparent' },
+		} as PptxElement;
+		expect(buildLineShadowCss(el)).toBeUndefined();
+	});
+
+	it('returns a box-shadow string with default offsets when colour is set', () => {
+		const el = {
+			id: 's1',
+			type: 'shape',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			shapeStyle: { lineShadowColor: '#FF0000' },
+		} as PptxElement;
+		const result = buildLineShadowCss(el);
+		expect(result).toBeDefined();
+		// Default offsets are 2px 2px 4px
+		expect(result).toContain('2px 2px 4px');
+		expect(result).toContain('rgba(');
+	});
+
+	it('uses provided offset and blur values', () => {
+		const el = {
+			id: 's1',
+			type: 'shape',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			shapeStyle: {
+				lineShadowColor: '#000000',
+				lineShadowOffsetX: 5,
+				lineShadowOffsetY: 10,
+				lineShadowBlur: 8,
+				lineShadowOpacity: 0.5,
+			},
+		} as PptxElement;
+		const result = buildLineShadowCss(el);
+		expect(result).toBeDefined();
+		expect(result).toContain('5px 10px 8px');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// buildLineGlowFilter
+// ---------------------------------------------------------------------------
+
+describe('buildLineGlowFilter', () => {
+	it('returns undefined for elements without shape properties', () => {
+		const el = {
+			id: 'c1',
+			type: 'chart',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+		} as PptxElement;
+		expect(buildLineGlowFilter(el)).toBeUndefined();
+	});
+
+	it('returns undefined when no line glow is set', () => {
+		const el = {
+			id: 's1',
+			type: 'shape',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			shapeStyle: {},
+		} as PptxElement;
+		expect(buildLineGlowFilter(el)).toBeUndefined();
+	});
+
+	it('returns undefined when line glow colour is transparent', () => {
+		const el = {
+			id: 's1',
+			type: 'shape',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			shapeStyle: { lineGlowColor: 'transparent', lineGlowRadius: 10 },
+		} as PptxElement;
+		expect(buildLineGlowFilter(el)).toBeUndefined();
+	});
+
+	it('returns undefined when line glow radius is missing', () => {
+		const el = {
+			id: 's1',
+			type: 'shape',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			shapeStyle: { lineGlowColor: '#FFFF00' },
+		} as PptxElement;
+		expect(buildLineGlowFilter(el)).toBeUndefined();
+	});
+
+	it('returns a drop-shadow filter string when colour and radius are set', () => {
+		const el = {
+			id: 's1',
+			type: 'shape',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			shapeStyle: {
+				lineGlowColor: '#FFFF00',
+				lineGlowRadius: 10,
+				lineGlowOpacity: 0.8,
+			},
+		} as PptxElement;
+		const result = buildLineGlowFilter(el);
+		expect(result).toBeDefined();
+		expect(result).toContain('drop-shadow(');
+		expect(result).toContain('10px');
+	});
+
+	it('uses default opacity of 0.75 when not specified', () => {
+		const el = {
+			id: 's1',
+			type: 'shape',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			shapeStyle: {
+				lineGlowColor: '#00FF00',
+				lineGlowRadius: 5,
+			},
+		} as PptxElement;
+		const result = buildLineGlowFilter(el);
+		expect(result).toBeDefined();
+		expect(result).toContain('drop-shadow(');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// hasDagDuotoneEffect
+// ---------------------------------------------------------------------------
+
+describe('hasDagDuotoneEffect', () => {
+	it('returns false for elements without shape properties', () => {
+		const el = {
+			id: 'c1',
+			type: 'chart',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+		} as PptxElement;
+		expect(hasDagDuotoneEffect(el)).toBeFalsy();
+	});
+
+	it('returns false when no DAG duotone is set', () => {
+		const el = {
+			id: 's1',
+			type: 'shape',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			shapeStyle: {},
+		} as PptxElement;
+		expect(hasDagDuotoneEffect(el)).toBeFalsy();
+	});
+
+	it('returns true when DAG duotone is set', () => {
+		const el = {
+			id: 's1',
+			type: 'shape',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			shapeStyle: {
+				dagDuotone: { color1: '#000', color2: '#FFF' },
+			},
+		} as PptxElement;
+		expect(hasDagDuotoneEffect(el)).toBeTruthy();
+	});
+});

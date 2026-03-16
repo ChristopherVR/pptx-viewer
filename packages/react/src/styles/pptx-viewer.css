@@ -1,0 +1,27 @@
+/*
+ * pptx-viewer — self-contained stylesheet
+ *
+ * Import this file if your project does NOT already provide Tailwind CSS
+ * with the semantic color tokens (background, foreground, primary, etc.).
+ *
+ *   import "pptx-viewer/styles";
+ *
+ * All colors reference --pptx-* CSS custom properties so you can override
+ * them via the `theme` prop on <PowerPointViewer> or by setting the
+ * properties in your own CSS.
+ *
+ * If your project already uses Tailwind CSS with shadcn/ui-style tokens,
+ * you do NOT need to import this file — just pass a `theme` prop if you
+ * want to override specific values.
+ */
+
+@import 'tailwindcss';
+
+/*
+ * Tell Tailwind where to scan for utility classes.
+ * Paths are relative to this CSS file.
+ */
+@source "../viewer/**/*.tsx";
+@source "../viewer/**/*.ts";
+
+@import './theme.css';

@@ -1,0 +1,100 @@
+/**
+ * useAudienceMode — Detects when the viewer is running as an audience tab
+ * (opened by the presenter via the audience window button) and auto-enters
+ * fullscreen presentation mode, syncing slides via BroadcastChannel.
+ */
+import { useEffect, useRef } from 'react';
+
+import type { ViewerMode } from '../../types-core';
+import { clearAudienceContent } from './audience-content-store';
+import { PRESENTER_CHANNEL_NAME, PRESENTER_MSG_ORIGIN, isAudienceTab } from './usePresenterWindow';
+
+export interface UseAudienceModeInput {
+	mode: ViewerMode;
+	onSetMode: (mode: ViewerMode) => void;
+	onSetActiveSlideIndex: (index: number) => void;
+	containerRef: React.RefObject<HTMLElement | null>;
+}
+
+/**
+ * When the page was opened with the `#pptx-audience` hash, this hook:
+ * 1. Auto-enters fullscreen presentation mode after content loads
+ * 2. Listens on BroadcastChannel for slide-change messages from the presenter
+ * 3. Exits presentation mode when the presenter sends an exit signal
+ */
+export function useAudienceMode(input: UseAudienceModeInput): void {
+	const { mode: _mode, onSetMode, onSetActiveSlideIndex, containerRef } = input;
+	const initialised = useRef(false);
+
+	// Auto-enter presentation mode when this is an audience tab
+	useEffect(() => {
+		if (!isAudienceTab()) {
+			return;
+		}
+		if (initialised.current) {
+			return;
+		}
+		initialised.current = true;
+
+		// Wait for content to load, then enter present mode
+		const timer = window.setTimeout(() => {
+			// Enter fullscreen presentation
+			try {
+				const wrapper = containerRef.current;
+				if (wrapper && typeof wrapper.requestFullscreen === 'function') {
+					void wrapper.requestFullscreen().catch(() => {
+						/* ignore fullscreen errors */
+					});
+				}
+			} catch {
+				/* fullscreen not supported */
+			}
+			onSetMode('present');
+		}, 800);
+
+		return () => window.clearTimeout(timer);
+	}, [containerRef, onSetMode]);
+
+	// Listen for slide changes from the presenter tab
+	useEffect(() => {
+		if (!isAudienceTab()) {
+			return;
+		}
+
+		let channel: BroadcastChannel;
+		try {
+			channel = new BroadcastChannel(PRESENTER_CHANNEL_NAME);
+		} catch {
+			return; // BroadcastChannel not supported
+		}
+
+		channel.onmessage = (event: MessageEvent) => {
+			const data = event.data;
+			if (!data || data.origin !== PRESENTER_MSG_ORIGIN) {
+				return;
+			}
+
+			if (data.type === 'presenter-slide-change') {
+				onSetActiveSlideIndex(data.slideIndex);
+			}
+
+			if (data.type === 'presenter-exit') {
+				void clearAudienceContent();
+				onSetMode('edit');
+				try {
+					window.close();
+				} catch {
+					// Can't close — user will close manually
+				}
+			}
+		};
+
+		return () => {
+			try {
+				channel.close();
+			} catch {
+				// Ignore
+			}
+		};
+	}, [onSetMode, onSetActiveSlideIndex]);
+}
