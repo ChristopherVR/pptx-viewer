@@ -1,5 +1,5 @@
-import { isImageLikeElement } from '../../core';
 import type { ImagePptxElement, PicturePptxElement, PptxElement } from '../../core';
+import { isImageLikeElement } from '../../core/types/type-guards';
 import type { ElementProcessor, ElementProcessorContext } from './ElementProcessor';
 
 type ImageLikeElement = ImagePptxElement | PicturePptxElement;

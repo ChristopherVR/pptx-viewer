@@ -11,6 +11,9 @@ export default defineConfig({
 		port: 4173,
 		open: true,
 	},
+	build: {
+		chunkSizeWarningLimit: 2500,
+	},
 	resolve: {
 		alias: {
 			'pptx-viewer-core/converter': path.resolve(

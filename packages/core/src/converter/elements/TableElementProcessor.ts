@@ -6,7 +6,7 @@ import type {
 	TablePptxElement,
 	TextSegment,
 } from '../../core';
-import { getSubstituteFontFamily } from '../../core';
+import { getSubstituteFontFamily } from '../../core/utils/font-substitution';
 import type { ElementProcessor, ElementProcessorContext } from './ElementProcessor';
 
 export class TableElementProcessor implements ElementProcessor {

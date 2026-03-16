@@ -1,5 +1,5 @@
-import { hasTextProperties } from '../core';
 import type { PptxElement, PptxSlide } from '../core';
+import { hasTextProperties } from '../core/types/type-guards';
 import { ElementProcessorContext, ElementProcessorRegistry } from './elements/ElementProcessor';
 import { MediaContext } from './media-context';
 import { SlideMetadataRenderer } from './SlideMetadataRenderer';

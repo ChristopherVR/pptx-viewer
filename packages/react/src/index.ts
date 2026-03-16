@@ -1,6 +1,6 @@
 // ── React-based PowerPoint viewer/editor ──
-export { PowerPointViewer, getAnimationInitialStyle } from './viewer';
-export type { PowerPointViewerProps, PowerPointViewerHandle } from './viewer';
+export { PowerPointViewer, getAnimationInitialStyle } from './viewer/PowerPointViewer';
+export type { PowerPointViewerProps, PowerPointViewerHandle } from './viewer/PowerPointViewer';
 
 // ── Canvas export (html2canvas oklch wrapper) ──
 export { renderToCanvas } from './lib/canvas-export';

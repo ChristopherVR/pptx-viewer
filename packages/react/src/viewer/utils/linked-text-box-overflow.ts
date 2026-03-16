@@ -9,11 +9,7 @@
  */
 
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
-import {
-	hasTextProperties,
-	getLinkedTextBoxSegments,
-	buildLinkedTextBoxChains,
-} from 'pptx-viewer-core';
+import { hasTextProperties, getLinkedTextBoxSegments } from 'pptx-viewer-core';
 
 /**
  * Determine whether an element participates in a linked text box chain.
@@ -72,14 +68,11 @@ export function buildSlideOverflowMap(
 	slideElements: readonly PptxElement[],
 ): Map<string, TextSegment[]> {
 	const result = new Map<string, TextSegment[]>();
-	const chains = buildLinkedTextBoxChains(slideElements);
 
-	if (chains.size === 0) {
+	if (!slideElements.some((el) => isLinkedTextBox(el))) {
 		return result;
 	}
 
-	// Import distributeSegmentsAcrossChain inline to avoid circular deps
-	// Actually we can just use getLinkedTextBoxSegments per element
 	for (const el of slideElements) {
 		if (!isLinkedTextBox(el)) {
 			continue;

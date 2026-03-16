@@ -1,3 +1,4 @@
+import JSZip from 'jszip';
 import type { PptxSlide, PptxSaveFormat, PptxHandler } from 'pptx-viewer-core';
 import { guidePxToEmu } from 'pptx-viewer-core';
 /**
@@ -88,7 +89,6 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 		setExportProgress(0);
 		setExportModalOpen(true);
 		try {
-			const JSZip = (await import('jszip')).default;
 			const zip = new JSZip();
 			const pkgFolder = zip.folder('presentation-package')!;
 

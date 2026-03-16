@@ -1,5 +1,5 @@
 import type { TextSegment, TextStyle } from '../core';
-import { getSubstituteFontFamily } from '../core';
+import { getSubstituteFontFamily } from '../core/utils/font-substitution';
 
 /** Default font size in CSS px when none specified. */
 const DEFAULT_FONT_SIZE = 18;

@@ -1,4 +1,3 @@
-import { hasTextProperties } from '../../core';
 import type {
 	PptxElement,
 	PptxElementWithText,
@@ -6,6 +5,7 @@ import type {
 	TextSegment,
 	TextStyle,
 } from '../../core';
+import { hasTextProperties } from '../../core/types/type-guards';
 import { renderShapeToDataUrl } from '../ShapeImageRenderer';
 import { TextSegmentRenderer } from '../TextSegmentRenderer';
 import type { ElementProcessor, ElementProcessorContext } from './ElementProcessor';
