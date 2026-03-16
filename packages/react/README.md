@@ -969,14 +969,14 @@ src/
 
 ## Limitations
 
-- **CSS-based rendering** -- Slides are rendered with CSS, not Canvas. Some effects (complex gradients, EMF/WMF vector images) may differ from PowerPoint's native rendering
-- **Font availability** -- Text renders using fonts available in the browser. Missing fonts fall back to system defaults, which may affect layout fidelity. Embedded fonts are deobfuscated and injected when available.
-- **Embedded media** -- Audio/video playback depends on browser codec support. DRM-protected media will not play
-- **Complex animations** -- Most animation presets are supported (40+), but some advanced interactive triggers may be simplified
-- **Morph transitions** -- Morph computes element correspondences by ID matching, but complex morph effects (shape morphing, text morphing) are approximated
-- **Chart interactivity** -- Charts are rendered as static SVG. Hover tooltips are shown but charts are not directly editable via the chart surface
-- **SmartArt editing** -- SmartArt is decomposed into individual shapes for rendering (13 layout types). Layout-level editing (changing the SmartArt type) regenerates the shape tree
-- **Print fidelity** -- Print output goes through `html2canvas` -> PDF, which may lose some CSS effects
-- **Maximum export resolution** -- Canvas-based exports are limited by the browser's maximum canvas size (typically 16384x16384 or 32768x32768 pixels)
-- **Mobile support** -- Touch interactions are supported but the UI is optimised for desktop viewport sizes
-- **3D models** -- Require optional Three.js dependencies; fall back to poster image without them
+- **CSS-based rendering** -- Slides are rendered as HTML/CSS rather than Canvas, which gives sharp text at any zoom, native accessibility, and DOM interactivity. The tradeoff is that some visual effects are approximated: `backdrop-filter` is replaced with semi-transparent backgrounds, `mix-blend-mode` is mapped to opacity fallbacks, and CSS 3D transforms (rotateX/Y) are flattened to 2D. Path gradients are approximated as elliptical radials.
+- **Font availability** -- Text renders using fonts available in the browser. Missing fonts fall back to system defaults, which may affect text metrics and layout fidelity. Embedded fonts in the PPTX are deobfuscated and injected into the DOM when available.
+- **Embedded media** -- Audio/video playback depends on browser codec support (e.g. browsers may not support WMV or legacy codecs). DRM-protected media will not play.
+- **Animation triggers** -- 40+ animation presets are supported with `onClick`, `withPrevious`, `afterPrevious`, `afterDelay`, `onHover`, and `onShapeClick` triggers. Advanced OOXML timing tree conditions (compound triggers, multiple simultaneous conditions) are parsed but simplified for playback.
+- **Morph transitions** -- Morph matches elements across slides using three strategies: explicit `!!` naming convention, element ID matching, and proximity matching (within 300px). Position, size, opacity, rotation, and colour are interpolated. Shape geometry morphing (interpolating between different shape types) and intelligent text token morphing are not implemented -- unmatched elements crossfade.
+- **Chart interactivity** -- Charts are rendered as static SVG with hover tooltips. They are not directly editable via the chart surface -- use the inspector panel's chart data editor instead.
+- **SmartArt editing** -- SmartArt is decomposed into individual positioned shapes using PowerPoint's pre-computed drawing data (13 layout types). The shapes are fully editable, but there is no live reflow engine -- moving or reordering shapes won't automatically recalculate the SmartArt layout.
+- **Print and export fidelity** -- Raster exports (PNG/JPEG/PDF) go through `html2canvas`, which does not support `backdrop-filter`, CSS custom properties (`var()`), or CSS 3D transforms. The library preprocesses CSS to approximate these, but some fidelity is lost. An SVG export path is available as a vector alternative.
+- **Maximum export resolution** -- Canvas-based exports are constrained by the browser's maximum canvas size (typically 16384x16384 or 32768x32768 pixels depending on browser and GPU).
+- **Mobile support** -- Touch interactions (drag, pinch-zoom) are supported but the toolbar, inspector panels, and dialogs are designed for desktop viewport sizes.
+- **3D models** -- Rendering GLB/GLTF 3D models requires optional peer dependencies (`three`, `@react-three/fiber`, `@react-three/drei`). Without them, the element falls back to its poster image.

@@ -1287,10 +1287,8 @@ src/
 
 ## Limitations
 
-- **Embedded OLE objects** -- OLE objects (embedded Excel, Word, etc.) are recognised and their preview images displayed, but their internal content is not editable
-- **Complex SmartArt** -- SmartArt is decomposed into individual shapes for rendering; the live SmartArt engine is not replicated (13 layout types are supported)
-- **3D effects** -- Parsed into `ThreeDProperties`; rendering uses CSS 3D transforms in the viewer. 3D models require Three.js (GLB/GLTF).
-- **Chart editing** -- Chart data is parsed for display but chart-level editing (adding series, changing chart type) is limited
-- **Strict OOXML conformance** -- Strict namespace URIs are normalised to transitional; some strict-only features may not round-trip perfectly
-- **Font embedding** -- Embedded fonts are extracted and deobfuscated for display but cannot be re-embedded on save
-- **Maximum slide count** -- No hard limit, but performance may degrade with presentations exceeding ~500 slides
+- **Embedded OLE objects are read-only** -- OLE objects (embedded Excel, Word, etc.) are recognised and their preview images are displayed, but their internal content cannot be edited. OLE2 is an opaque binary container format -- deserialising and re-serialising the internal object structure (e.g. an embedded Excel workbook) would require embedding the full application runtime.
+- **SmartArt uses static shape decomposition** -- SmartArt diagrams are decomposed into individual positioned shapes using PowerPoint's own pre-computed drawing data (13 layout types). The shapes are fully editable, but there is no live SmartArt reflow engine -- moving or reordering shapes won't automatically recalculate the layout the way PowerPoint's built-in SmartArt engine does.
+- **3D effects** -- 3D properties are fully parsed into `ThreeDProperties` (extrusion, bevel, material, lighting). Rendering uses CSS 3D transforms in the React viewer. 3D model elements (GLB/GLTF) require Three.js as an optional peer dependency.
+- **Chart editing is data-level only** -- You can add/remove series, edit data points, add/remove categories, and change chart type. However, structural chart properties (axis formatting, legend placement, data labels, trendlines, error bars) are parsed for display but not exposed for programmatic editing.
+- **Strict OOXML conformance is normalised** -- Office 365 can save files in ISO/IEC 29500 Strict mode, which uses different namespace URIs than the more common Transitional (ECMA-376) format. The engine maps 46+ namespace URI pairs on load (Strict -> Transitional) and converts back on save. Features that rely on strict-only extensions outside these mapped namespaces may not round-trip.
