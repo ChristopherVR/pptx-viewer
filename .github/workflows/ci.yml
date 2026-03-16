@@ -97,7 +97,7 @@ jobs:
         run: bun install
 
       - name: Test core
-        run: cd packages/core && bun vitest run
+        run: cd packages/core && bun vitest run --reporter=verbose --reporter=github-actions
 
   test-react:
     needs: build
@@ -120,7 +120,7 @@ jobs:
         run: bun install
 
       - name: Test react
-        run: cd packages/react && bun vitest run
+        run: cd packages/react && bun vitest run --reporter=verbose --reporter=github-actions
 
   test-emf-converter:
     needs: build
@@ -143,7 +143,7 @@ jobs:
         run: bun install
 
       - name: Test emf-converter
-        run: cd packages/emf-converter && bun vitest run
+        run: cd packages/emf-converter && bun vitest run --reporter=verbose --reporter=github-actions
 
   test-mtx-decompressor:
     needs: build
@@ -166,7 +166,7 @@ jobs:
         run: bun install
 
       - name: Test mtx-decompressor
-        run: cd packages/mtx-decompressor && bun vitest run --passWithNoTests
+        run: cd packages/mtx-decompressor && bun vitest run --reporter=verbose --reporter=github-actions --passWithNoTests
 
   release:
     needs: [lint, typecheck, test-core, test-react, test-emf-converter, test-mtx-decompressor]
