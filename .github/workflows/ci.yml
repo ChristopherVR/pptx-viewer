@@ -278,8 +278,11 @@ jobs:
 
   # ──────────────────────────────────────────────────────────────
   # Publish to npm with provenance
-  # Requires NPM_TOKEN secret (automation token) for auth.
-  # OIDC id-token is used to sign provenance attestations.
+  # Auth: OIDC trusted publishing (default) or NPM_TOKEN secret.
+  #   - OIDC: requires Node 24+ (npm >= 11.5.1) and linked
+  #     publishers configured on npmjs.com for each package.
+  #   - Token fallback: set NPM_TOKEN secret in the "npm"
+  #     environment to use token auth instead.
   #
   # Package → registry mapping:
   #   emf-converter     → https://www.npmjs.com/package/emf-converter
@@ -294,7 +297,7 @@ jobs:
     environment: npm
     permissions:
       contents: read
-      id-token: write # Required for signing provenance attestations
+      id-token: write # Required for OIDC trusted publishing & provenance
     steps:
       - uses: actions/checkout@v6
         with:
@@ -302,7 +305,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           registry-url: https://registry.npmjs.org
 
       - uses: oven-sh/setup-bun@v2
