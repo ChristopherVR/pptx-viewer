@@ -1,2 +1,3 @@
-// Zod schemas — implemented in Task 4
-export {};
+export * from './slide-schemas.js';
+export * from './element-schemas.js';
+export * from './table-style-schemas.js';
