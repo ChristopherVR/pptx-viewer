@@ -94,9 +94,10 @@ export function getSignaturePathsToStrip(zipEntryPaths: string[]): string[] {
 /**
  * The OOXML relationship type used for digital signature origin.
  * This relationship appears in `_rels/.rels` pointing to `_xmlsignatures/origin.sigs`.
+ *
+ * @deprecated Import from `./signature-constants` instead.
  */
-export const DIGITAL_SIGNATURE_ORIGIN_REL_TYPE =
-	'http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin';
+export { DIGITAL_SIGNATURE_ORIGIN_REL_TYPE } from './signature-constants';
 
 // ── XML Signature Parsing ─────────────────────────────────────────────────
 

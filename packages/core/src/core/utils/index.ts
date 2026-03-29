@@ -122,6 +122,53 @@ export {
 } from './signature-detection';
 
 export {
+	DIGITAL_SIGNATURE_REL_TYPE,
+	MYCLAWASSIST_MANIFEST_NS,
+	XMLDSIG_NS,
+	OPC_RELATIONSHIP_TRANSFORM,
+	XML_TRANSFORM_ENVELOPED_SIGNATURE,
+	SUPPORTED_XML_CANON_TRANSFORMS,
+	ENTERPRISE_TRUST_ROOTS_FILE_ENV,
+	ENTERPRISE_TRUST_ROOTS_PEM_ENV,
+	ENTERPRISE_REQUIRE_REVOCATION_ENV,
+	ENTERPRISE_FAIL_ON_REVOCATION_UNKNOWN_ENV,
+	ENTERPRISE_REQUIRE_TIMESTAMP_ENV,
+	DIGEST_ALGORITHM_TO_HASH,
+	DIGEST_ALGORITHM_TO_WEB_CRYPTO,
+} from './signature-constants';
+
+export type {
+	CertificateRevocationStatus,
+	TimestampAuthorityStatus,
+	SignatureReferenceCheck,
+	SignatureCertificateInfo as SignatureNodeCertificateInfo,
+	SignatureDetailStatus,
+	SignatureDetail,
+	DigitalSignatureVerificationStatus,
+	DigitalSignatureReport,
+	SignOptions,
+	SignResult,
+	LoadedSigningMaterial,
+	ParsedReferenceTransform,
+	ReferenceTransformResult,
+	SignatureValidationPolicy,
+	OfficeSignatureReference,
+} from './signature-types';
+
+export {
+	escapeXmlAttr,
+	extractTagAttribute,
+	extractFirstTagText,
+	extractAllTagText,
+} from './signature-xml-utils';
+
+export { normalizePartPath, resolveReferenceUriToPart } from './signature-reference-utils';
+
+export { computeDigestBase64 as computeDigestBase64WebCrypto } from './signature-digest';
+
+export { computeDetailStatus, computeVerificationStatus } from './signature-inspection-status';
+
+export {
 	parseSeriesTrendlines,
 	parseSeriesErrBars,
 	parseDataTable,
