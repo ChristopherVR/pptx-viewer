@@ -1,23 +1,23 @@
-# @pptx-viewer/tools
+# pptx-viewer-mcp
 
 Pure tool functions, Zod schemas, a Y.Doc collaboration codec, and an MCP server for PPTX manipulation — all built on top of `pptx-viewer-core`.
 
 ## Installation
 
 ```sh
-npm install @pptx-viewer/tools pptx-viewer-core
+npm install pptx-viewer-mcp pptx-viewer-core
 # optional — required only for the collaboration codec
 npm install yjs
 ```
 
 ## Exports
 
-| Entry point                  | Contents                                                |
-| ---------------------------- | ------------------------------------------------------- |
-| `@pptx-viewer/tools`         | 24 tool functions + provider types + execution pipeline |
-| `@pptx-viewer/tools/schemas` | Zod schemas for every tool input                        |
-| `@pptx-viewer/tools/codec`   | `PptxCodec` — Y.Doc ↔ PPTX bytes codec                  |
-| `@pptx-viewer/tools/mcp`     | `createServer()` — programmatic MCP server factory      |
+| Entry point               | Contents                                                |
+| ------------------------- | ------------------------------------------------------- |
+| `pptx-viewer-mcp`         | 24 tool functions + provider types + execution pipeline |
+| `pptx-viewer-mcp/schemas` | Zod schemas for every tool input                        |
+| `pptx-viewer-mcp/codec`   | `PptxCodec` — Y.Doc ↔ PPTX bytes codec                  |
+| `pptx-viewer-mcp/mcp`     | `createServer()` — programmatic MCP server factory      |
 
 ## Tool reference
 
@@ -43,7 +43,7 @@ Every tool is a pure function — no file I/O, no framework dependencies.
 
 ```ts
 import { PptxHandler } from 'pptx-viewer-core';
-import { addSlide, getSlide } from '@pptx-viewer/tools';
+import { addSlide, getSlide } from 'pptx-viewer-mcp';
 
 // Load
 const handler = new PptxHandler();
@@ -74,7 +74,7 @@ Add to your MCP client configuration (Claude Desktop, Cursor, etc.):
 	"mcpServers": {
 		"pptx": {
 			"command": "npx",
-			"args": ["@pptx-viewer/tools"]
+			"args": ["pptx-viewer-mcp"]
 		}
 	}
 }
@@ -92,8 +92,8 @@ import {
 	type ExecutionContext,
 	type FileSystemProvider,
 	type CollaborationProvider,
-} from '@pptx-viewer/tools';
-import { replaceText } from '@pptx-viewer/tools';
+} from 'pptx-viewer-mcp';
+import { replaceText } from 'pptx-viewer-mcp';
 import { readFile, writeFile } from 'node:fs/promises';
 
 // Minimal file-system-only provider

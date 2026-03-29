@@ -317,7 +317,7 @@ jobs:
   #   mtx-decompressor  → https://www.npmjs.com/package/mtx-decompressor
   #   pptx-viewer-core  → https://www.npmjs.com/package/pptx-viewer-core
   #   pptx-react-viewer → https://www.npmjs.com/package/pptx-react-viewer
-  #   @pptx-viewer/tools → https://www.npmjs.com/package/@pptx-viewer/tools
+  #   pptx-viewer-mcp → https://www.npmjs.com/package/pptx-viewer-mcp
   # ──────────────────────────────────────────────────────────────
   publish:
     needs: release
@@ -448,8 +448,8 @@ jobs:
             fs.writeFileSync(p, JSON.stringify(data, null, '\t') + '\n');
           "
 
-      # https://www.npmjs.com/package/@pptx-viewer/tools
-      - name: Publish @pptx-viewer/tools
+      # https://www.npmjs.com/package/pptx-viewer-mcp
+      - name: Publish pptx-viewer-mcp
         run: npm publish --provenance --access public
         working-directory: packages/tools
         env:

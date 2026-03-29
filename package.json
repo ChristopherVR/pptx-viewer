@@ -18,7 +18,7 @@
 	"scripts": {
 		"install:all": "bun install",
 		"demo": "cd demo && npx vite",
-		"build": "bun run --filter 'emf-converter' build && bun run --filter 'mtx-decompressor' build && bun run --filter 'pptx-viewer-core' build && bun run --filter '@pptx-viewer/tools' build && bun run --filter 'pptx-viewer' build && bun run --filter 'pptx-viewer-demo' build",
+		"build": "bun run --filter 'emf-converter' build && bun run --filter 'mtx-decompressor' build && bun run --filter 'pptx-viewer-core' build && bun run --filter 'pptx-viewer-mcp' build && bun run --filter 'pptx-viewer' build && bun run --filter 'pptx-viewer-demo' build",
 		"typecheck": "bun run --filter '*' typecheck",
 		"test": "bash scripts/test-all.sh",
 		"fmt": "oxfmt",
