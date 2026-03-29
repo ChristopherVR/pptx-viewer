@@ -1,0 +1,87 @@
+{
+	"name": "@pptx-viewer/tools",
+	"version": "1.0.0",
+	"description": "PPTX manipulation tools, MCP server, and collaboration codec for pptx-viewer-core.",
+	"keywords": [
+		"ai",
+		"mcp",
+		"powerpoint",
+		"pptx",
+		"tools"
+	],
+	"homepage": "https://github.com/ChristopherVR/pptx-viewer",
+	"bugs": {
+		"url": "https://github.com/ChristopherVR/pptx-viewer/issues"
+	},
+	"license": "MIT",
+	"author": "ChristopherVR",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ChristopherVR/pptx-viewer.git",
+		"directory": "packages/tools"
+	},
+	"bin": {
+		"pptx-tools": "./dist/mcp/index.mjs"
+	},
+	"files": [
+		"dist/",
+		"LICENSE",
+		"README.md"
+	],
+	"main": "dist/index.mjs",
+	"module": "dist/index.mjs",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.js"
+		},
+		"./mcp": {
+			"types": "./dist/mcp/index.d.ts",
+			"import": "./dist/mcp/index.mjs",
+			"require": "./dist/mcp/index.js"
+		},
+		"./codec": {
+			"types": "./dist/codec/index.d.ts",
+			"import": "./dist/codec/index.mjs",
+			"require": "./dist/codec/index.js"
+		},
+		"./schemas": {
+			"types": "./dist/schemas/index.d.ts",
+			"import": "./dist/schemas/index.mjs",
+			"require": "./dist/schemas/index.js"
+		}
+	},
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"typecheck": "tsc --noEmit --pretty",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"pack": "bun run build && bun pm pack"
+	},
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.12.0",
+		"zod": "^3.24.0"
+	},
+	"devDependencies": {
+		"fast-xml-parser": "^5.5.5",
+		"jszip": "^3.10.1",
+		"pptx-viewer-core": "workspace:*",
+		"tsup": "^8.5.1",
+		"typescript": "^5.9.3",
+		"vitest": "^4.1.0",
+		"yjs": "^13.6.30"
+	},
+	"peerDependencies": {
+		"fast-xml-parser": "^5.5.0",
+		"jszip": "^3.10.0",
+		"pptx-viewer-core": ">=1.0.0"
+	},
+	"peerDependenciesMeta": {
+		"yjs": {
+			"optional": true
+		}
+	}
+}

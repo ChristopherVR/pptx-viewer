@@ -1,4 +1,8 @@
 {
 	"files": [],
-	"references": [{ "path": "packages/core" }, { "path": "packages/react" }]
+	"references": [
+		{ "path": "packages/core" },
+		{ "path": "packages/tools" },
+		{ "path": "packages/react" }
+	]
 }
