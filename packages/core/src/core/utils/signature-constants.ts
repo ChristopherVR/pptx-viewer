@@ -14,8 +14,8 @@ export const DIGITAL_SIGNATURE_ORIGIN_REL_TYPE =
 export const DIGITAL_SIGNATURE_REL_TYPE =
 	'http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/signature';
 
-/** Custom MyClawAssist manifest namespace for extended signature references. */
-export const MYCLAWASSIST_MANIFEST_NS = 'urn:myclawassist:ooxml-signature:v1';
+/** Custom pptx-viewer manifest namespace for extended signature references. */
+export const PPTX_VIEWER_MANIFEST_NS = 'urn:pptx-viewer:ooxml-signature:v1';
 
 /** W3C XML Digital Signature namespace. */
 export const XMLDSIG_NS = 'http://www.w3.org/2000/09/xmldsig#';
@@ -38,20 +38,19 @@ export const SUPPORTED_XML_CANON_TRANSFORMS = new Set<string>([
 ]);
 
 /** Environment variable: path to file containing enterprise trust root PEM certificates. */
-export const ENTERPRISE_TRUST_ROOTS_FILE_ENV = 'MYCLAWASSIST_PPTX_TRUST_ROOTS_FILE';
+export const ENTERPRISE_TRUST_ROOTS_FILE_ENV = 'PPTX_VIEWER_TRUST_ROOTS_FILE';
 
 /** Environment variable: inline PEM trust roots. */
-export const ENTERPRISE_TRUST_ROOTS_PEM_ENV = 'MYCLAWASSIST_PPTX_TRUST_ROOTS_PEM';
+export const ENTERPRISE_TRUST_ROOTS_PEM_ENV = 'PPTX_VIEWER_TRUST_ROOTS_PEM';
 
 /** Environment variable: require revocation check. */
-export const ENTERPRISE_REQUIRE_REVOCATION_ENV = 'MYCLAWASSIST_PPTX_REQUIRE_REVOCATION_CHECK';
+export const ENTERPRISE_REQUIRE_REVOCATION_ENV = 'PPTX_VIEWER_REQUIRE_REVOCATION_CHECK';
 
 /** Environment variable: fail on unknown revocation status. */
-export const ENTERPRISE_FAIL_ON_REVOCATION_UNKNOWN_ENV =
-	'MYCLAWASSIST_PPTX_FAIL_ON_REVOCATION_UNKNOWN';
+export const ENTERPRISE_FAIL_ON_REVOCATION_UNKNOWN_ENV = 'PPTX_VIEWER_FAIL_ON_REVOCATION_UNKNOWN';
 
 /** Environment variable: require timestamp authority. */
-export const ENTERPRISE_REQUIRE_TIMESTAMP_ENV = 'MYCLAWASSIST_PPTX_REQUIRE_TIMESTAMP';
+export const ENTERPRISE_REQUIRE_TIMESTAMP_ENV = 'PPTX_VIEWER_REQUIRE_TIMESTAMP';
 
 /**
  * Mapping from XML Digital Signature digest algorithm URIs to hash function names.

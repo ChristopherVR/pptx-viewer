@@ -100,7 +100,7 @@ export { extractReferenceTransforms, applyReferenceTransforms } from './referenc
 export {
 	computeDigestBase64,
 	buildReferenceChecksFromSignatureXml,
-	buildReferenceChecksFromMyClawAssistManifest,
+	buildReferenceChecksFromPptxViewerManifest,
 } from './reference-checks';
 
 export { signPptxWithCertificate } from './signing';

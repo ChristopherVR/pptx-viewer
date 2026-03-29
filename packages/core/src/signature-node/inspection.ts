@@ -32,7 +32,7 @@ import {
 	evaluateTimestampAuthority,
 } from './pki-validation';
 import {
-	buildReferenceChecksFromMyClawAssistManifest,
+	buildReferenceChecksFromPptxViewerManifest,
 	buildReferenceChecksFromSignatureXml,
 } from './reference-checks';
 
@@ -40,7 +40,7 @@ import {
  * Inspect all digital signatures in a PPTX package.
  *
  * Performs full cryptographic verification including:
- * - Reference digest checks (standard XML-DSig + MyClawAssist manifest)
+ * - Reference digest checks (standard XML-DSig + PptxViewer manifest)
  * - Signature value verification (RSA-SHA256/384/512)
  * - Certificate chain validation against system + enterprise trust roots
  * - OCSP revocation checking
@@ -75,7 +75,7 @@ export async function inspectPptxDigitalSignatures(
 		const details: SignatureDetail[] = [];
 		for (const signaturePath of signaturePaths) {
 			const signatureXml = (await zip.file(signaturePath)?.async('string')) ?? '';
-			const manifestChecks = await buildReferenceChecksFromMyClawAssistManifest(zip, signatureXml);
+			const manifestChecks = await buildReferenceChecksFromPptxViewerManifest(zip, signatureXml);
 			const referenceChecks =
 				manifestChecks.length > 0
 					? manifestChecks

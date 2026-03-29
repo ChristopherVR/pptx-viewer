@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	DIGITAL_SIGNATURE_ORIGIN_REL_TYPE,
 	DIGITAL_SIGNATURE_REL_TYPE,
-	MYCLAWASSIST_MANIFEST_NS,
+	PPTX_VIEWER_MANIFEST_NS,
 	XMLDSIG_NS,
 	OPC_RELATIONSHIP_TRANSFORM,
 	XML_TRANSFORM_ENVELOPED_SIGNATURE,
@@ -31,8 +31,8 @@ describe('signature-constants', () => {
 	});
 
 	describe('namespace constants', () => {
-		it('mYCLAWASSIST_MANIFEST_NS is the expected URN', () => {
-			expect(MYCLAWASSIST_MANIFEST_NS).toBe('urn:myclawassist:ooxml-signature:v1');
+		it('pPTX_VIEWER_MANIFEST_NS is the expected URN', () => {
+			expect(PPTX_VIEWER_MANIFEST_NS).toBe('urn:pptx-viewer:ooxml-signature:v1');
 		});
 
 		it('xMLDSIG_NS is the W3C XML Digital Signature namespace', () => {

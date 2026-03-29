@@ -12,7 +12,7 @@ import type JSZip from 'jszip';
 
 import {
 	DIGEST_ALGORITHM_TO_HASH,
-	MYCLAWASSIST_MANIFEST_NS,
+	PPTX_VIEWER_MANIFEST_NS,
 	XMLDSIG_NS,
 } from '../core/utils/signature-constants';
 import { resolveReferenceUriToPart } from '../core/utils/signature-reference-utils';
@@ -136,15 +136,15 @@ export async function buildReferenceChecksFromSignatureXml(
 }
 
 /**
- * Verify references from a MyClawAssist manifest extension in the signature XML.
+ * Verify references from a PptxViewer manifest extension in the signature XML.
  */
-export async function buildReferenceChecksFromMyClawAssistManifest(
+export async function buildReferenceChecksFromPptxViewerManifest(
 	zip: JSZip,
 	signatureXml: string,
 ): Promise<SignatureReferenceCheck[]> {
 	const parser = new DOMParser();
 	const doc = parser.parseFromString(signatureXml, 'text/xml');
-	const partNodes = Array.from(doc.getElementsByTagNameNS(MYCLAWASSIST_MANIFEST_NS, 'Part'));
+	const partNodes = Array.from(doc.getElementsByTagNameNS(PPTX_VIEWER_MANIFEST_NS, 'Part'));
 	const checks: SignatureReferenceCheck[] = [];
 	for (const partNode of partNodes) {
 		const rawName = partNode.getAttribute('Name') || '';
