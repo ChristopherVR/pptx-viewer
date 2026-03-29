@@ -7,7 +7,7 @@ import * as elementTools from '../tools/element-tools.js';
 import * as slideTools from '../tools/slide-tools.js';
 import * as styleTools from '../tools/style-tools.js';
 import * as tableTools from '../tools/table-tools.js';
-import { runMutatingTool } from './handlers.js';
+import { runMcpTool as runMutatingTool } from './handlers.js';
 
 export function createServer(): McpServer {
 	const server = new McpServer({
