@@ -69,7 +69,7 @@ export const ArrangeElementsSchema = z.object({
 	slideIndex: z.number().int().min(0),
 	action: z.enum(['align', 'reorderLayer']),
 	elementIds: z.array(z.string()).optional().describe('Element IDs (for align)'),
-	alignment: z.enum(['left', 'center', 'right', 'top', 'middle', 'bottom']).optional(),
+	alignment: z.enum(['left', 'right', 'top', 'bottom', 'centerH', 'centerV']).optional(),
 	elementId: z.string().optional().describe('Element ID (for reorderLayer)'),
 	layerAction: z.enum(['bringForward', 'sendBackward', 'bringToFront', 'sendToBack']).optional(),
 });

@@ -21,35 +21,72 @@ export function createServer(): McpServer {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
 			slideTools.getSlide(ctx, { slideIndex: params.slideIndex }),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	server.tool('add_slide', schemas.AddSlideSchema.shape, async (params) => {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
 			slideTools.addSlide(ctx, params),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	server.tool('delete_slides', schemas.DeleteSlidesSchema.shape, async (params) => {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
-			slideTools.deleteSlides(ctx, { slideIndexes: params.slideIndexes }),
+			slideTools.deleteSlides(ctx, {
+				slideIndexes: params.slideIndexes,
+			}),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	server.tool('reorder_slides', schemas.ReorderSlidesSchema.shape, async (params) => {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
 			slideTools.reorderSlides(ctx, { newOrder: params.newOrder }),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	server.tool('duplicate_slide', schemas.DuplicateSlideSchema.shape, async (params) => {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
 			slideTools.duplicateSlide(ctx, params),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	server.tool(
@@ -59,7 +96,14 @@ export function createServer(): McpServer {
 			const result = await runMutatingTool(params.filePath, (ctx) =>
 				slideTools.updateSlideProperties(ctx, params),
 			);
-			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+			return {
+				content: [
+					{
+						type: 'text' as const,
+						text: JSON.stringify(result, null, 2),
+					},
+				],
+			};
 		},
 	);
 
@@ -67,14 +111,28 @@ export function createServer(): McpServer {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
 			slideTools.setSlideTransition(ctx, params),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	server.tool('set_canvas_size', schemas.SetCanvasSizeSchema.shape, async (params) => {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
 			slideTools.setCanvasSize(ctx, params),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	// ── Element tools ───────────────────────────────────────────────────────
@@ -83,63 +141,126 @@ export function createServer(): McpServer {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
 			elementTools.addElement(ctx, params),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	server.tool('update_element', schemas.UpdateElementSchema.shape, async (params) => {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
 			elementTools.updateElement(ctx, params),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	server.tool('delete_elements', schemas.DeleteElementsSchema.shape, async (params) => {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
 			elementTools.deleteElements(ctx, params),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	server.tool('arrange_elements', schemas.ArrangeElementsSchema.shape, async (params) => {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
 			elementTools.arrangeElements(ctx, params),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	server.tool('clone_element', schemas.CloneElementSchema.shape, async (params) => {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
 			elementTools.cloneElement(ctx, params),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	server.tool('set_element_animation', schemas.SetElementAnimationSchema.shape, async (params) => {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
 			elementTools.setElementAnimation(ctx, params),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	server.tool('group_elements', schemas.GroupElementsSchema.shape, async (params) => {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
 			elementTools.groupElements(ctx, params),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	server.tool('ungroup_elements', schemas.UngroupElementsSchema.shape, async (params) => {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
 			elementTools.ungroupElements(ctx, params),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	server.tool('batch_update_elements', schemas.BatchUpdateElementsSchema.shape, async (params) => {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
 			elementTools.batchUpdateElements(ctx, params),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	// ── Table tools ─────────────────────────────────────────────────────────
@@ -148,7 +269,14 @@ export function createServer(): McpServer {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
 			tableTools.updateTableCells(ctx, params),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	server.tool(
@@ -158,7 +286,14 @@ export function createServer(): McpServer {
 			const result = await runMutatingTool(params.filePath, (ctx) =>
 				tableTools.manageTableStructure(ctx, params),
 			);
-			return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+			return {
+				content: [
+					{
+						type: 'text' as const,
+						text: JSON.stringify(result, null, 2),
+					},
+				],
+			};
 		},
 	);
 
@@ -166,16 +301,30 @@ export function createServer(): McpServer {
 
 	server.tool('update_element_style', schemas.UpdateElementStyleSchema.shape, async (params) => {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
-			styleTools.updateElementStyle(ctx, params),
+			styleTools.updateElementStyle(ctx, params as styleTools.UpdateElementStyleParams),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	server.tool('run_accessibility_check', schemas.AccessibilityCheckSchema.shape, async (params) => {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
 			styleTools.runAccessibilityCheck(ctx),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	// ── Content tools ───────────────────────────────────────────────────────
@@ -184,21 +333,42 @@ export function createServer(): McpServer {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
 			contentTools.findText(ctx, params),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	server.tool('replace_text', schemas.ReplaceTextSchema.shape, async (params) => {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
 			contentTools.replaceText(ctx, params),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	server.tool('manage_comments', schemas.ManageCommentsSchema.shape, async (params) => {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
 			contentTools.manageComments(ctx, params),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	// ── Conversion tools ────────────────────────────────────────────────────
@@ -207,7 +377,14 @@ export function createServer(): McpServer {
 		const result = await runMutatingTool(params.filePath, (ctx) =>
 			conversionTools.convertToMarkdown(ctx, params),
 		);
-		return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+		return {
+			content: [
+				{
+					type: 'text' as const,
+					text: JSON.stringify(result, null, 2),
+				},
+			],
+		};
 	});
 
 	return server;

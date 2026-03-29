@@ -21,7 +21,7 @@ export const ManageTableStructureSchema = z.object({
 	slideIndex: z.number().int().min(0),
 	elementId: z.string().describe('Table element ID'),
 	action: z.enum(['insertRow', 'deleteRow', 'insertColumn', 'deleteColumn']),
-	position: z.enum(['above', 'below', 'left', 'right']).optional(),
+	position: z.number().int().min(0).optional().describe('Insertion position index'),
 	referenceIndex: z.number().int().min(0).optional(),
 	cellTexts: z.array(z.string()).optional(),
 });
