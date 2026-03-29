@@ -192,6 +192,29 @@ jobs:
       - name: Test mtx-decompressor
         run: cd packages/mtx-decompressor && bun vitest run --reporter=verbose --reporter=github-actions --passWithNoTests
 
+  test-tools:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Test tools
+        run: cd packages/tools && bun vitest run --reporter=verbose --reporter=github-actions
+
   release:
     needs:
       [
@@ -202,6 +225,7 @@ jobs:
         test-react,
         test-emf-converter,
         test-mtx-decompressor,
+        test-tools,
       ]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -239,7 +263,7 @@ jobs:
       - name: Update package versions
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          for pkgdir in packages/emf-converter packages/mtx-decompressor packages/core packages/react; do
+          for pkgdir in packages/emf-converter packages/mtx-decompressor packages/core packages/react packages/tools; do
             node -e "
               const fs = require('fs');
               const p = '${pkgdir}/package.json';
@@ -264,6 +288,9 @@ jobs:
       - name: Pack pptx-react-viewer
         run: cd packages/react && bun pm pack
 
+      - name: Pack pptx-viewer-tools
+        run: cd packages/tools && bun pm pack
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
@@ -275,6 +302,7 @@ jobs:
             packages/mtx-decompressor/*.tgz
             packages/core/*.tgz
             packages/react/*.tgz
+            packages/tools/*.tgz
 
   # ──────────────────────────────────────────────────────────────
   # Publish to npm with provenance
@@ -289,6 +317,7 @@ jobs:
   #   mtx-decompressor  → https://www.npmjs.com/package/mtx-decompressor
   #   pptx-viewer-core  → https://www.npmjs.com/package/pptx-viewer-core
   #   pptx-react-viewer → https://www.npmjs.com/package/pptx-react-viewer
+  #   @pptx-viewer/tools → https://www.npmjs.com/package/@pptx-viewer/tools
   # ──────────────────────────────────────────────────────────────
   publish:
     needs: release
@@ -325,7 +354,7 @@ jobs:
       - name: Update package versions
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          for pkgdir in packages/emf-converter packages/mtx-decompressor packages/core packages/react; do
+          for pkgdir in packages/emf-converter packages/mtx-decompressor packages/core packages/react packages/tools; do
             node -e "
               const fs = require('fs');
               const p = '${pkgdir}/package.json';
@@ -360,7 +389,7 @@ jobs:
       - name: Replace mermaid blocks with GitHub links in READMEs
         run: |
           REPO_URL="https://github.com/ChristopherVR/pptx-viewer"
-          for readme in packages/emf-converter/README.md packages/mtx-decompressor/README.md packages/core/README.md packages/react/README.md; do
+          for readme in packages/emf-converter/README.md packages/mtx-decompressor/README.md packages/core/README.md packages/react/README.md packages/tools/README.md; do
             if [ -f "$readme" ]; then
               pkg_dir=$(dirname "$readme")
               github_link="${REPO_URL}/blob/main/${readme}"
@@ -395,5 +424,33 @@ jobs:
       - name: Publish pptx-react-viewer
         run: npm publish --provenance --access public
         working-directory: packages/react
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Prepare tools package for publish
+        # Replace workspace:* references with real version ranges.
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          node -e "
+            const fs = require('fs');
+            const p = 'packages/tools/package.json';
+            const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+            if (data.peerDependencies) {
+              for (const [k, v] of Object.entries(data.peerDependencies)) {
+                if (v === 'workspace:*') data.peerDependencies[k] = '^${VERSION}';
+              }
+            }
+            if (data.devDependencies) {
+              for (const [k, v] of Object.entries(data.devDependencies)) {
+                if (v === 'workspace:*') data.devDependencies[k] = '^${VERSION}';
+              }
+            }
+            fs.writeFileSync(p, JSON.stringify(data, null, '\t') + '\n');
+          "
+
+      # https://www.npmjs.com/package/@pptx-viewer/tools
+      - name: Publish @pptx-viewer/tools
+        run: npm publish --provenance --access public
+        working-directory: packages/tools
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
