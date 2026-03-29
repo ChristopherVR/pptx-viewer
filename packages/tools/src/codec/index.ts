@@ -1,2 +1,2 @@
-// Collaboration codec — implemented in Task 5
-export {};
+export { PptxCodec, ORIGIN_FILE_LOAD } from './pptx-codec.js';
+export type { FormatCodec } from './pptx-codec.js';
