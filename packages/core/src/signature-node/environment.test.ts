@@ -55,9 +55,9 @@ describe('extractPemCertificatesFromText', () => {
 
 describe('getSignatureValidationPolicy', () => {
 	const envKeys = [
-		'MYCLAWASSIST_PPTX_REQUIRE_REVOCATION_CHECK',
-		'MYCLAWASSIST_PPTX_FAIL_ON_REVOCATION_UNKNOWN',
-		'MYCLAWASSIST_PPTX_REQUIRE_TIMESTAMP',
+		'PPTX_VIEWER_REQUIRE_REVOCATION_CHECK',
+		'PPTX_VIEWER_FAIL_ON_REVOCATION_UNKNOWN',
+		'PPTX_VIEWER_REQUIRE_TIMESTAMP',
 	] as const;
 
 	const savedEnv: Record<string, string | undefined> = {};
@@ -87,9 +87,9 @@ describe('getSignatureValidationPolicy', () => {
 	});
 
 	it('returns true when env vars are set to "1"', () => {
-		process.env['MYCLAWASSIST_PPTX_REQUIRE_REVOCATION_CHECK'] = '1';
-		process.env['MYCLAWASSIST_PPTX_FAIL_ON_REVOCATION_UNKNOWN'] = 'true';
-		process.env['MYCLAWASSIST_PPTX_REQUIRE_TIMESTAMP'] = 'yes';
+		process.env['PPTX_VIEWER_REQUIRE_REVOCATION_CHECK'] = '1';
+		process.env['PPTX_VIEWER_FAIL_ON_REVOCATION_UNKNOWN'] = 'true';
+		process.env['PPTX_VIEWER_REQUIRE_TIMESTAMP'] = 'yes';
 		const policy = getSignatureValidationPolicy();
 		expect(policy.requireRevocationCheck).toBeTruthy();
 		expect(policy.failOnRevocationUnknown).toBeTruthy();
@@ -102,10 +102,7 @@ describe('getSignatureValidationPolicy', () => {
 // ---------------------------------------------------------------------------
 
 describe('loadEnterpriseTrustRoots', () => {
-	const envKeys = [
-		'MYCLAWASSIST_PPTX_TRUST_ROOTS_PEM',
-		'MYCLAWASSIST_PPTX_TRUST_ROOTS_FILE',
-	] as const;
+	const envKeys = ['PPTX_VIEWER_TRUST_ROOTS_PEM', 'PPTX_VIEWER_TRUST_ROOTS_FILE'] as const;
 
 	const savedEnv: Record<string, string | undefined> = {};
 
@@ -132,13 +129,13 @@ describe('loadEnterpriseTrustRoots', () => {
 	});
 
 	it('returns empty array when file path points to non-existent file', async () => {
-		process.env['MYCLAWASSIST_PPTX_TRUST_ROOTS_FILE'] = '/nonexistent/path/to/roots.pem';
+		process.env['PPTX_VIEWER_TRUST_ROOTS_FILE'] = '/nonexistent/path/to/roots.pem';
 		const roots = await loadEnterpriseTrustRoots();
 		expect(roots).toStrictEqual([]);
 	});
 
 	it('extracts certs from inline PEM env var', async () => {
-		process.env['MYCLAWASSIST_PPTX_TRUST_ROOTS_PEM'] = [
+		process.env['PPTX_VIEWER_TRUST_ROOTS_PEM'] = [
 			'-----BEGIN CERTIFICATE-----',
 			'INLINE_DATA',
 			'-----END CERTIFICATE-----',

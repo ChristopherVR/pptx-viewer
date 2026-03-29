@@ -1,6 +1,6 @@
 {
 	"name": "emf-converter",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "Convert EMF/WMF metafile binaries to PNG data URLs using Canvas",
 	"keywords": [
 		"canvas",

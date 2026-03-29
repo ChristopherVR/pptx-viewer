@@ -43,8 +43,8 @@ function parseListEnv(envValue: string | undefined): string[] {
 /**
  * Load enterprise trust root certificates from environment-configured sources.
  *
- * Checks `MYCLAWASSIST_PPTX_TRUST_ROOTS_PEM` for inline PEM data and
- * `MYCLAWASSIST_PPTX_TRUST_ROOTS_FILE` for file paths (semicolon/comma-separated).
+ * Checks `PPTX_VIEWER_TRUST_ROOTS_PEM` for inline PEM data and
+ * `PPTX_VIEWER_TRUST_ROOTS_FILE` for file paths (semicolon/comma-separated).
  */
 export async function loadEnterpriseTrustRoots(): Promise<string[]> {
 	const roots: string[] = [];
