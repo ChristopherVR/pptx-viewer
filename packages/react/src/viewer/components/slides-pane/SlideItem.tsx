@@ -74,10 +74,9 @@ function SlideItemInner({
 		<div
 			ref={slideRef}
 			className={cn(
-				'group relative cursor-pointer rounded-lg border-2 p-1 transition-all',
-				isActive
-					? 'border-primary bg-primary/10'
-					: 'border-border bg-background/40 hover:border-muted-foreground',
+				'group relative flex items-center gap-1 cursor-pointer py-0.5 px-1 transition-all',
+				isActive &&
+					'bg-accent/40 before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[3px] before:bg-primary before:rounded-r',
 				isHidden && 'opacity-50',
 			)}
 			draggable={canEdit}
@@ -87,35 +86,46 @@ function SlideItemInner({
 			onDragOver={onDragOver}
 			onDrop={(e) => onDrop(e, slideIndex)}
 		>
-			{/* Hidden-slide indicator stripe */}
-			{isHidden && (
-				<div className='absolute inset-0 rounded-lg pointer-events-none bg-[repeating-linear-gradient(135deg,transparent,transparent_4px,rgba(255,255,255,0.04)_4px,rgba(255,255,255,0.04)_8px)]' />
-			)}
+			{/* Slide number — left of thumbnail */}
+			<span
+				className={cn(
+					'text-[10px] tabular-nums w-5 text-right shrink-0 select-none',
+					isActive ? 'text-primary font-medium' : 'text-muted-foreground',
+				)}
+			>
+				{slideIndex + 1}
+			</span>
 
-			{/* Thumbnail (lazy-loaded) */}
-			<div className='relative overflow-hidden rounded bg-white'>
+			{/* Thumbnail */}
+			<div
+				className={cn(
+					'relative flex-1 overflow-hidden border transition-colors bg-white',
+					isActive ? 'border-primary/60' : 'border-transparent group-hover:border-border/40',
+				)}
+			>
+				{/* Hidden-slide indicator stripe */}
+				{isHidden && (
+					<div className='absolute inset-0 pointer-events-none z-10 bg-[repeating-linear-gradient(135deg,transparent,transparent_4px,rgba(255,255,255,0.04)_4px,rgba(255,255,255,0.04)_8px)]' />
+				)}
 				<LazyThumbnail slide={slide} canvasSize={canvasSize} previewHeight={previewHeight} />
 				{(slide.comments?.length ?? 0) > 0 && (
-					<div className='absolute top-0.5 right-0.5 flex items-center gap-0.5 rounded bg-amber-500/90 px-1 py-0.5 text-[8px] font-medium text-white leading-none'>
+					<div className='absolute top-0.5 right-0.5 flex items-center gap-0.5 rounded bg-amber-500/90 px-1 py-0.5 text-[8px] font-medium text-white leading-none z-10'>
 						<LuMessageSquare className='w-2 h-2' />
 						{slide.comments?.length}
 					</div>
 				)}
-			</div>
-
-			{/* Footer: slide number + timing + hidden icon */}
-			<div className='mt-1 flex items-center justify-between px-1'>
-				<span className={cn('text-[10px]', isActive ? 'text-primary' : 'text-muted-foreground')}>
-					{slideIndex + 1}
-				</span>
-				<div className='flex items-center gap-1'>
-					{rehearsalTimings && typeof rehearsalTimings[slideIndex] === 'number' && (
-						<span className='text-[9px] font-mono text-amber-400/80 tabular-nums'>
+				{isHidden && (
+					<div className='absolute bottom-0.5 right-0.5 z-10'>
+						<LuEyeOff className='w-3 h-3 text-muted-foreground' />
+					</div>
+				)}
+				{rehearsalTimings && typeof rehearsalTimings[slideIndex] === 'number' && (
+					<div className='absolute bottom-0.5 left-0.5 z-10'>
+						<span className='text-[8px] font-mono text-amber-400/80 tabular-nums bg-black/50 px-0.5 rounded'>
 							{formatTimingMs(rehearsalTimings[slideIndex])}
 						</span>
-					)}
-					{isHidden && <LuEyeOff className='w-3 h-3 text-muted-foreground' />}
-				</div>
+					</div>
+				)}
 			</div>
 		</div>
 	);

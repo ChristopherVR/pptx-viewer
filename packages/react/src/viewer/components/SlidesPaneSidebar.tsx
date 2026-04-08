@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuPanelLeftClose, LuPlus } from 'react-icons/lu';
+import { LuPlus } from 'react-icons/lu';
 
 import { useVirtualizedSlides } from '../hooks/useVirtualizedSlides';
 import { SectionContextMenu } from './slides-pane/SectionContextMenu';
@@ -35,7 +35,7 @@ export function SlidesPaneSidebar({
 	onSlideContextMenu,
 	onMoveSlide,
 	onAddSlide,
-	onCollapse,
+	onCollapse: _onCollapse,
 	onAddSection,
 	onRenameSection,
 	onDeleteSection,
@@ -281,49 +281,26 @@ export function SlidesPaneSidebar({
 		<aside
 			role='navigation'
 			aria-label='Slides'
-			className='flex h-full flex-col border-r border-border bg-background/70 backdrop-blur-sm'
+			className='flex h-full flex-col border-r border-border bg-secondary/30'
 			style={panelWidth ? { width: panelWidth, flexShrink: 0 } : undefined}
 		>
-			{/* Header */}
-			<div className='flex items-center justify-between px-3 py-2'>
-				<span className='text-xs uppercase tracking-wide text-muted-foreground'>
-					{t('pptx.sections.slides')}
-				</span>
-				<button
-					type='button'
-					className='rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground'
-					title={t('pptx.sections.collapsePane')}
-					onClick={onCollapse}
-				>
-					<LuPanelLeftClose className='h-3.5 w-3.5' />
-				</button>
-			</div>
-
 			{/* Scrollable list — virtualized for large decks */}
 			{shouldVirtualize ? renderVirtualized() : renderNonVirtualized()}
 
-			{/* Bottom buttons */}
-			<div className='border-t border-border/60 px-3 py-2 space-y-1'>
-				<button
-					type='button'
-					className='flex w-full items-center justify-center gap-1 rounded bg-muted/80 px-2 py-1.5 text-xs text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40'
-					disabled={!canEdit}
-					onClick={onAddSlide}
-				>
-					<LuPlus className='h-3.5 w-3.5' />
-					{t('pptx.sections.addSlide')}
-				</button>
-				{canEdit && onAddSection && (
+			{/* Bottom: Add Slide button */}
+			{canEdit && (
+				<div className='border-t border-border/60 px-2 py-1.5'>
 					<button
 						type='button'
-						className='flex w-full items-center justify-center gap-1 rounded bg-muted/50 px-2 py-1 text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground'
-						onClick={() => onAddSection(t('pptx.sections.defaultName'), activeSlideIndex)}
+						className='flex w-full items-center justify-center gap-1 rounded-sm px-2 py-1 text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-40'
+						disabled={!canEdit}
+						onClick={onAddSlide}
 					>
 						<LuPlus className='h-3 w-3' />
-						{t('pptx.sections.addSection')}
+						{t('pptx.sections.addSlide')}
 					</button>
-				)}
-			</div>
+				</div>
+			)}
 
 			{/* Context menus */}
 			{sectionContextMenu && (

@@ -75,6 +75,48 @@
 	scroll-behavior: auto !important;
 }
 
+/* ── Custom scrollbar styling ───────────────────────────────────────
+ * Thin, subtle scrollbars that match the dark theme. Uses both the
+ * WebKit pseudo-elements and the standard scrollbar-* properties.
+ */
+:where([data-pptx-viewer]) {
+	scrollbar-width: thin;
+	scrollbar-color: var(--pptx-border, #374151) transparent;
+}
+
+:where([data-pptx-viewer]) ::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+:where([data-pptx-viewer]) ::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+:where([data-pptx-viewer]) ::-webkit-scrollbar-thumb {
+	background-color: var(--pptx-border, #374151);
+	border-radius: 3px;
+}
+
+:where([data-pptx-viewer]) ::-webkit-scrollbar-thumb:hover {
+	background-color: var(--pptx-muted-foreground, #9ca3af);
+}
+
+:where([data-pptx-viewer]) ::-webkit-scrollbar-corner {
+	background: transparent;
+}
+
+/* ── Button press feedback ──────────────────────────────────────────
+ * Subtle scale-down on press for all interactive elements in the
+ * toolbar and status bar areas.
+ */
+[data-pptx-viewer] [role='toolbar'] button,
+[data-pptx-viewer] [role='toolbar'] [role='button'] {
+	transition:
+		transform 0.1s ease,
+		opacity 0.1s ease;
+}
+
 /* ── Focus indicators ────────────────────────────────────────────────
  * Ensure keyboard focus is visible on interactive slide elements.
  */

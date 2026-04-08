@@ -94,7 +94,7 @@ export function useViewerUIState(): ViewerUIState {
 	const [isCompactToolbarOpen, setIsCompactToolbarOpen] = useState(false);
 	const [toolbarSection, setToolbarSection] = useState<ToolbarSection>('home');
 	const [isSlidesPaneOpen, setIsSlidesPaneOpen] = useState(true);
-	const [isInspectorPaneOpen, setIsInspectorPaneOpen] = useState(true);
+	const [isInspectorPaneOpen, setIsInspectorPaneOpen] = useState(false);
 	const [isSlideNotesCollapsed, setIsSlideNotesCollapsed] = useState(true);
 	const [isOverflowMenuOpen, setIsOverflowMenuOpen] = useState(false);
 	const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
