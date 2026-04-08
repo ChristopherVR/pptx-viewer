@@ -31,16 +31,20 @@
 		"pack:react": "cd packages/react && bun run pack",
 		"outdated": "bun outdated --filter '*'",
 		"update": "bun update --latest",
+		"collab": "bun demo/collab-server.mjs",
 		"prepare": "husky"
 	},
 	"devDependencies": {
 		"@types/three": "^0.183.1",
 		"husky": "^9.1.7",
+		"lib0": "^0.2.117",
 		"lint-staged": "^16.4.0",
 		"oxfmt": "^0.40.0",
 		"oxlint": "^1.55.0",
 		"pptx-viewer": "workspace:*",
-		"typescript": "^5.9.3"
+		"typescript": "^5.9.3",
+		"y-protocols": "^1.0.7",
+		"yjs": "^13.6.30"
 	},
 	"optionalDependencies": {
 		"@react-three/drei": "^10.7.7",

@@ -7,11 +7,14 @@
       "devDependencies": {
         "@types/three": "^0.183.1",
         "husky": "^9.1.7",
+        "lib0": "^0.2.117",
         "lint-staged": "^16.4.0",
         "oxfmt": "^0.40.0",
         "oxlint": "^1.55.0",
         "pptx-viewer": "workspace:*",
         "typescript": "^5.9.3",
+        "y-protocols": "^1.0.7",
+        "yjs": "^13.6.30",
       },
       "optionalDependencies": {
         "@react-three/drei": "^10.7.7",
@@ -50,7 +53,7 @@
     },
     "packages/core": {
       "name": "pptx-viewer-core",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "bin": {
         "pptx": "./dist/cli/index.mjs",
       },
@@ -80,7 +83,7 @@
     },
     "packages/emf-converter": {
       "name": "emf-converter",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "devDependencies": {
         "tsup": "^8.5.1",
         "typescript": "^5.9.3",
@@ -89,7 +92,7 @@
     },
     "packages/mtx-decompressor": {
       "name": "mtx-decompressor",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "devDependencies": {
         "tsup": "^8.5.1",
         "typescript": "^5.9.3",
@@ -98,7 +101,7 @@
     },
     "packages/react": {
       "name": "pptx-viewer",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "dependencies": {
         "clsx": "^2.1.1",
         "emf-converter": "workspace:*",
@@ -139,8 +142,8 @@
       },
     },
     "packages/tools": {
-      "name": "@pptx-viewer/tools",
-      "version": "1.0.0",
+      "name": "pptx-viewer-mcp",
+      "version": "1.1.0",
       "bin": {
         "pptx-tools": "./dist/mcp/index.mjs",
       },
@@ -354,8 +357,6 @@
     "@parcel/watcher-win32-ia32": ["@parcel/watcher-win32-ia32@2.5.6", "", { "os": "win32", "cpu": "ia32" }, "sha512-k35yLp1ZMwwee3Ez/pxBi5cf4AoBKYXj00CZ80jUz5h8prpiaQsiRPKQMxoLstNuqe2vR4RNPEAEcjEFzhEz/g=="],
 
     "@parcel/watcher-win32-x64": ["@parcel/watcher-win32-x64@2.5.6", "", { "os": "win32", "cpu": "x64" }, "sha512-hbQlYcCq5dlAX9Qx+kFb0FHue6vbjlf0FrNzSKdYK2APUf7tGfGxQCk2ihEREmbR6ZMc0MVAD5RIX/41gpUzTw=="],
-
-    "@pptx-viewer/tools": ["@pptx-viewer/tools@workspace:packages/tools"],
 
     "@react-three/drei": ["@react-three/drei@10.7.7", "", { "dependencies": { "@babel/runtime": "^7.26.0", "@mediapipe/tasks-vision": "0.10.17", "@monogrid/gainmap-js": "^3.0.6", "@use-gesture/react": "^10.3.1", "camera-controls": "^3.1.0", "cross-env": "^7.0.3", "detect-gpu": "^5.0.56", "glsl-noise": "^0.0.0", "hls.js": "^1.5.17", "maath": "^0.10.8", "meshline": "^3.3.1", "stats-gl": "^2.2.8", "stats.js": "^0.17.0", "suspend-react": "^0.1.3", "three-mesh-bvh": "^0.8.3", "three-stdlib": "^2.35.6", "troika-three-text": "^0.52.4", "tunnel-rat": "^0.1.2", "use-sync-external-store": "^1.4.0", "utility-types": "^3.11.0", "zustand": "^5.0.1" }, "peerDependencies": { "@react-three/fiber": "^9.0.0", "react": "^19", "react-dom": "^19", "three": ">=0.159" }, "optionalPeers": ["react-dom"] }, "sha512-ff+J5iloR0k4tC++QtD/j9u3w5fzfgFAWDtAGQah9pF2B1YgOq/5JxqY0/aVoQG5r3xSZz0cv5tk2YuBob4xEQ=="],
 
@@ -916,6 +917,8 @@
     "pptx-viewer-core": ["pptx-viewer-core@workspace:packages/core"],
 
     "pptx-viewer-demo": ["pptx-viewer-demo@workspace:demo"],
+
+    "pptx-viewer-mcp": ["pptx-viewer-mcp@workspace:packages/tools"],
 
     "process-nextick-args": ["process-nextick-args@2.0.1", "", {}, "sha512-3ouUOpQhtgrbOa17J7+uxOTpITYWaGP7/AhoR3+A+/1e9skrzelGi/dXzEYyvbxubEF6Wn2ypscTKiKJFFn1ag=="],
 

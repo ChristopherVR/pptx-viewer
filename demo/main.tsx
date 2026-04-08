@@ -1,11 +1,13 @@
 import './i18n'; // Initialise i18next before any component renders
-import React, { useState, useCallback, useEffect } from 'react';
+import { PptxHandler } from 'pptx-viewer-core';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 
 import { themeToCssVars } from '../packages/react/src/theme';
 import type { ViewerTheme } from '../packages/react/src/theme';
 import { PowerPointViewer, isAudienceTab, loadAudienceContent } from '../packages/react/src/viewer';
+import type { CollaborationConfig } from '../packages/react/src/viewer';
 
 import './app.css';
 
@@ -280,6 +282,140 @@ function App() {
 		}
 	});
 
+	// ── URL-based collaboration join ─────────────────────────────────────
+	const urlParams = useMemo(() => new URLSearchParams(window.location.search), []);
+	const urlRoom = urlParams.get('room');
+	const urlServer = urlParams.get('server') ?? 'ws://localhost:1234';
+	const urlName = urlParams.get('name');
+
+	// Generate stable defaults for the Share dialog — these are demo-specific
+	const autoRoomId = useMemo(() => {
+		const stored = sessionStorage.getItem('pptx-demo-room-id');
+		if (stored) {
+			return stored;
+		}
+		const id = `session-${Math.random().toString(36).slice(2, 10)}`;
+		sessionStorage.setItem('pptx-demo-room-id', id);
+		return id;
+	}, []);
+
+	const autoName = useMemo(() => {
+		const ua = navigator.userAgent;
+		let platform = 'User';
+		if (ua.includes('Win')) {
+			platform = 'Windows';
+		} else if (ua.includes('Mac')) {
+			platform = 'Mac';
+		} else if (ua.includes('Linux')) {
+			platform = 'Linux';
+		}
+		const id = Math.random().toString(36).slice(2, 6);
+		return `${platform}-${id}`;
+	}, []);
+
+	const defaultServerUrl = 'ws://localhost:1234';
+
+	// ── Collaboration ────────────────────────────────────────────────────
+	const [collaborationConfig, setCollaborationConfig] = useState<CollaborationConfig | null>(null);
+
+	// Auto-connect if room is in URL
+	useEffect(() => {
+		if (urlRoom && !collaborationConfig) {
+			setCollaborationConfig({
+				roomId: urlRoom,
+				serverUrl: urlServer,
+				userName: urlName ?? autoName,
+				userColor: `#${Math.floor(Math.random() * 0xffffff)
+					.toString(16)
+					.padStart(6, '0')}`,
+			});
+		}
+	}, [urlRoom, urlServer, urlName, autoName, collaborationConfig]);
+
+	const handleStartCollaboration = useCallback(
+		(config: CollaborationConfig) => {
+			setCollaborationConfig(config);
+			// Update URL with room info for sharing
+			const url = new URL(window.location.href);
+			url.searchParams.set('room', config.roomId);
+			url.searchParams.set('server', config.serverUrl);
+			window.history.replaceState({}, '', url.toString());
+			// Upload PPTX content to the collab server so joiners can download it
+			if (content) {
+				const httpUrl = config.serverUrl.replace(/^ws/, 'http');
+				void fetch(`${httpUrl}/file/${encodeURIComponent(config.roomId)}`, {
+					method: 'POST',
+					body: content,
+				}).catch(() => {
+					/* server may not support file storage — fall back silently */
+				});
+			}
+		},
+		[content],
+	);
+
+	const handleStopCollaboration = useCallback(() => {
+		setCollaborationConfig(null);
+		// Remove room from URL
+		const url = new URL(window.location.href);
+		url.searchParams.delete('room');
+		url.searchParams.delete('server');
+		url.searchParams.delete('name');
+		window.history.replaceState({}, '', url.toString());
+	}, []);
+
+	// When joining via URL with a room param, download PPTX from the collab server
+	useEffect(() => {
+		if (!urlRoom || content) {
+			return;
+		}
+		let cancelled = false;
+		const httpUrl = urlServer.replace(/^ws/, 'http');
+		void fetch(`${httpUrl}/file/${encodeURIComponent(urlRoom)}`)
+			.then((res) => {
+				if (!res.ok) {
+					throw new Error('Not found');
+				}
+				return res.arrayBuffer();
+			})
+			.then((buf) => {
+				if (cancelled) {
+					return undefined;
+				}
+				setContent(new Uint8Array(buf));
+				setFileName('Collaboration Session');
+				return undefined;
+			})
+			.catch(() => {
+				// File not available on server — user will need to load manually
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [urlRoom, urlServer, content]);
+
+	// Fallback: try IndexedDB if server download didn't work (same-browser tabs)
+	useEffect(() => {
+		if (!urlRoom || content) {
+			return;
+		}
+		let cancelled = false;
+		const timer = setTimeout(() => {
+			void loadAudienceContent().then((bytes) => {
+				if (cancelled || !bytes) {
+					return undefined;
+				}
+				setContent(bytes);
+				setFileName('Collaboration Session');
+				return undefined;
+			});
+		}, 1500);
+		return () => {
+			cancelled = true;
+			clearTimeout(timer);
+		};
+	}, [urlRoom, content]);
+
 	// When opened as an audience tab, load the PPTX content from IndexedDB
 	useEffect(() => {
 		if (!isAudienceTab()) {
@@ -298,6 +434,13 @@ function App() {
 			cancelled = true;
 		};
 	}, []);
+
+	// Update document title when in collaboration mode
+	useEffect(() => {
+		if (collaborationConfig && content) {
+			document.title = `[Collab] ${fileName} — PPTX Viewer`;
+		}
+	}, [collaborationConfig, content, fileName]);
 
 	const currentPreset = themes[themeKey] ?? themes.dark;
 
@@ -321,6 +464,16 @@ function App() {
 			setContent(bytes);
 		};
 		reader.readAsArrayBuffer(file);
+	}, []);
+
+	const handleNewPresentation = useCallback(async () => {
+		const { handler, data } = await PptxHandler.createBlank({
+			title: 'Untitled Presentation',
+			initialSlideCount: 1,
+		});
+		const bytes = await handler.save(data.slides);
+		setContent(bytes);
+		setFileName('Untitled Presentation');
 	}, []);
 
 	const handleDrop = useCallback(
@@ -360,6 +513,14 @@ function App() {
 				<PowerPointViewer
 					content={content}
 					canEdit
+					collaboration={collaborationConfig ?? undefined}
+					onStartCollaboration={handleStartCollaboration}
+					onStopCollaboration={handleStopCollaboration}
+					shareDefaults={{
+						roomId: autoRoomId,
+						userName: autoName,
+						serverUrl: defaultServerUrl,
+					}}
 					onDirtyChange={(dirty) => {
 						document.title = dirty ? `* ${fileName} — PPTX Viewer` : `${fileName} — PPTX Viewer`;
 					}}
@@ -377,10 +538,33 @@ function App() {
 				onDragOver={handleDragOver}
 				onClick={handleClick}
 			>
-				<p className='text-muted-foreground mb-3'>Drop a .pptx file here or click to browse</p>
+				{urlRoom ? (
+					<>
+						<p className='text-foreground mb-2 font-medium'>
+							Joining collaboration session:{' '}
+							<code className='px-1.5 py-0.5 rounded bg-muted text-primary text-sm font-mono'>
+								{urlRoom}
+							</code>
+						</p>
+						<p className='text-muted-foreground mb-3'>
+							Drop a .pptx file here or click to browse to start collaborating
+						</p>
+					</>
+				) : (
+					<p className='text-muted-foreground mb-3'>Drop a .pptx file here or click to browse</p>
+				)}
 				<p className='text-sm text-muted-foreground/60'>
 					The file is processed entirely in the browser
 				</p>
+				<button
+					onClick={(e) => {
+						e.stopPropagation();
+						void handleNewPresentation();
+					}}
+					className='mt-4 px-4 py-2 rounded-lg border border-border bg-muted hover:bg-accent text-foreground text-sm transition-colors'
+				>
+					or create a New Presentation
+				</button>
 				<input
 					type='file'
 					id='file-input'
