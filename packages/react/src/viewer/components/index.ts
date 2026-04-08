@@ -61,6 +61,9 @@ export { HandoutLayout, PrintPreview } from './print';
 export { SetUpSlideShowDialog } from './SetUpSlideShowDialog';
 export { BroadcastDialog } from './BroadcastDialog';
 
+// Collaboration
+export { ShareDialog } from './ShareDialog';
+
 // Hyperlink
 export { HyperlinkEditDialog } from './HyperlinkEditDialog';
 
