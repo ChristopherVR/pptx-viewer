@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { AccessibilityIssue } from '../types';
 import { cn } from '../utils';
@@ -37,6 +38,8 @@ export function AccessibilityPanel({
 	reducedMotion,
 	onToggleReducedMotion,
 }: AccessibilityPanelProps): React.ReactElement | null {
+	const { t } = useTranslation();
+
 	if (!isOpen) {
 		return null;
 	}
@@ -44,26 +47,25 @@ export function AccessibilityPanel({
 	return (
 		<div
 			role='dialog'
-			aria-label='Accessibility Checker'
+			aria-label={t('pptx.accessibility.title')}
 			className='absolute top-14 right-3 z-40 w-[min(28rem,calc(100%-1.5rem))] rounded border border-border bg-popover shadow-2xl'
 		>
 			{/* Panel header with issue count and close button */}
 			<div className='flex items-center justify-between border-b border-border px-3 py-2'>
 				<span className='text-xs uppercase tracking-wide text-foreground'>
-					Accessibility Checker
+					{t('pptx.accessibility.title')}
 				</span>
 				<div className='flex items-center gap-2'>
 					<span className='text-[10px] text-muted-foreground'>
-						{issues.length} issue
-						{issues.length !== 1 ? 's' : ''}
+						{t('pptx.accessibility.issueCount', { count: issues.length })}
 					</span>
 					<button
 						type='button'
 						onClick={onClose}
-						aria-label='Close accessibility panel'
+						aria-label={t('pptx.accessibility.closePanel')}
 						className='rounded px-2 py-1 text-[11px] text-foreground hover:bg-muted hover:text-foreground'
 					>
-						Close
+						{t('pptx.accessibility.close')}
 					</button>
 				</div>
 			</div>
@@ -72,7 +74,7 @@ export function AccessibilityPanel({
 			{onToggleReducedMotion !== undefined && (
 				<div className='flex items-center justify-between border-b border-border px-3 py-2'>
 					<label htmlFor='reduced-motion-toggle' className='text-xs text-foreground'>
-						Reduce motion
+						{t('pptx.accessibility.reduceMotion')}
 					</label>
 					<button
 						id='reduced-motion-toggle'
@@ -98,12 +100,12 @@ export function AccessibilityPanel({
 			{/* Scrollable issue list */}
 			<div
 				role='list'
-				aria-label='Accessibility issues'
+				aria-label={t('pptx.accessibility.issuesList')}
 				className='max-h-72 overflow-y-auto p-2 space-y-1'
 			>
 				{issues.length === 0 ? (
 					<div role='listitem' className='text-center text-xs text-muted-foreground py-4'>
-						No accessibility issues found.
+						{t('pptx.accessibility.noIssues')}
 					</div>
 				) : (
 					issues.map((issue, idx) => (
@@ -126,10 +128,10 @@ export function AccessibilityPanel({
 							</span>
 							<span>
 								{issue.severity === 'error'
-									? 'Error: '
+									? t('pptx.accessibility.error')
 									: issue.severity === 'warning'
-										? 'Warning: '
-										: 'Info: '}
+										? t('pptx.accessibility.warning')
+										: t('pptx.accessibility.info')}
 								{issue.message}
 							</span>
 						</div>

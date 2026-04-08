@@ -336,6 +336,7 @@ function ActiveSessionView({
 	onCopyRoomId: () => void;
 	onStopCollaboration?: () => void;
 }) {
+	const { t } = useTranslation();
 	const statusColor =
 		collab.status === 'connected'
 			? 'text-green-400'
@@ -358,13 +359,15 @@ function ActiveSessionView({
 				<span className='text-[13px] font-medium text-foreground capitalize'>{collab.status}</span>
 				<span className='text-[12px] text-muted-foreground ml-auto flex items-center gap-1'>
 					<LuUsers className='w-3.5 h-3.5' />
-					{collab.connectedCount} user{collab.connectedCount !== 1 ? 's' : ''}
+					{t('pptx.collaboration.userCount', { count: collab.connectedCount })}
 				</span>
 			</div>
 
 			{/* Share URL */}
 			<div className='space-y-1.5'>
-				<label className='block text-[12px] font-medium text-foreground'>Share Link</label>
+				<label className='block text-[12px] font-medium text-foreground'>
+					{t('pptx.share.shareLink')}
+				</label>
 				<div className='flex items-center gap-2'>
 					<div className='flex-1 px-3 py-1.5 rounded border border-border bg-background text-[11px] text-foreground select-all font-mono truncate'>
 						{typeof window !== 'undefined'
@@ -375,40 +378,42 @@ function ActiveSessionView({
 						type='button'
 						onClick={onCopyRoomId}
 						className='flex items-center gap-1 px-2.5 py-1.5 rounded border border-border bg-muted hover:bg-accent text-[12px] text-foreground transition-colors shrink-0'
-						title='Copy share link'
+						title={t('pptx.share.copyLink')}
 					>
 						{copied ? (
 							<>
 								<LuCheck className='w-3.5 h-3.5 text-green-400' />
-								<span>Copied</span>
+								<span>{t('pptx.share.copied')}</span>
 							</>
 						) : (
 							<>
 								<LuCopy className='w-3.5 h-3.5' />
-								<span>Copy URL</span>
+								<span>{t('pptx.share.copyUrl')}</span>
 							</>
 						)}
 					</button>
 				</div>
-				<p className='text-[11px] text-muted-foreground'>
-					Share this URL with others so they can join the session.
-				</p>
+				<p className='text-[11px] text-muted-foreground'>{t('pptx.share.shareHint')}</p>
 			</div>
 
 			{/* Session details */}
 			<div className='flex items-center gap-3 text-[11px] text-muted-foreground'>
 				<span>
-					Room: <code className='font-mono text-foreground'>{collab.config.roomId}</code>
+					{t('pptx.share.room')}{' '}
+					<code className='font-mono text-foreground'>{collab.config.roomId}</code>
 				</span>
 				<span>
-					Server: <code className='font-mono text-foreground'>{collab.config.serverUrl}</code>
+					{t('pptx.share.server')}{' '}
+					<code className='font-mono text-foreground'>{collab.config.serverUrl}</code>
 				</span>
 			</div>
 
 			{/* Connected users list */}
 			{collab.remoteUsers.length > 0 && (
 				<div className='space-y-1.5'>
-					<label className='block text-[12px] font-medium text-foreground'>Connected Users</label>
+					<label className='block text-[12px] font-medium text-foreground'>
+						{t('pptx.share.connectedUsers')}
+					</label>
 					<div className='rounded border border-border bg-background divide-y divide-border max-h-[140px] overflow-y-auto'>
 						{/* Local user */}
 						<div className='flex items-center gap-2 px-3 py-2'>
@@ -421,7 +426,9 @@ function ActiveSessionView({
 							<span className='text-[12px] text-foreground truncate'>
 								{activeCollaboration?.userName ?? collab.config.userName}
 							</span>
-							<span className='text-[10px] text-muted-foreground ml-auto'>(you)</span>
+							<span className='text-[10px] text-muted-foreground ml-auto'>
+								{t('pptx.share.you')}
+							</span>
 						</div>
 						{/* Remote users */}
 						{collab.remoteUsers.map((user) => (
@@ -457,7 +464,7 @@ function ActiveSessionView({
 					onClick={onStopCollaboration}
 					className='w-full px-3 py-2 rounded border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-[12px] text-red-400 font-medium transition-colors'
 				>
-					Stop Sharing
+					{t('pptx.share.stopSharing')}
 				</button>
 			)}
 		</div>

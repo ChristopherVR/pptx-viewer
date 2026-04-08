@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuSettings, LuX } from 'react-icons/lu';
 
 import { SHORTCUT_REFERENCE_ITEMS } from '../constants';
@@ -83,6 +84,7 @@ export function SettingsDialog({
 }: SettingsDialogProps): React.ReactElement | null {
 	const [activeTab, setActiveTab] = useState<SettingsTab>('general');
 	const [autoSave, setAutoSave] = useState(true);
+	const { t } = useTranslation();
 
 	// Close on Escape
 	const handleKeyDown = useCallback(
@@ -106,8 +108,8 @@ export function SettingsDialog({
 	}
 
 	const tabs: Array<{ id: SettingsTab; label: string }> = [
-		{ id: 'general', label: 'General' },
-		{ id: 'shortcuts', label: 'Keyboard Shortcuts' },
+		{ id: 'general', label: t('pptx.settings.general') },
+		{ id: 'shortcuts', label: t('pptx.settings.keyboardShortcuts') },
 	];
 
 	return (
@@ -116,7 +118,7 @@ export function SettingsDialog({
 			<button
 				type='button'
 				className='fixed inset-0 z-50 bg-black/60'
-				aria-label='Close settings'
+				aria-label={t('pptx.settings.closeSettings')}
 				onClick={onClose}
 			/>
 			{/* Dialog */}
@@ -126,13 +128,13 @@ export function SettingsDialog({
 					<div className='flex items-center justify-between px-5 py-4 border-b border-border/60'>
 						<div className='flex items-center gap-2'>
 							<LuSettings className='w-5 h-5 text-primary' />
-							<h2 className='text-sm font-semibold text-foreground'>Settings</h2>
+							<h2 className='text-sm font-semibold text-foreground'>{t('pptx.settings.title')}</h2>
 						</div>
 						<button
 							type='button'
 							onClick={onClose}
 							className='p-1 rounded hover:bg-accent transition-colors'
-							aria-label='Close'
+							aria-label={t('pptx.settings.close')}
 						>
 							<LuX className='w-4 h-4 text-muted-foreground' />
 						</button>
@@ -165,32 +167,32 @@ export function SettingsDialog({
 						{activeTab === 'general' && (
 							<div className='space-y-0.5'>
 								<ToggleSwitch
-									label='Auto-save'
+									label={t('pptx.settings.autoSave')}
 									enabled={autoSave}
 									onToggle={() => setAutoSave(!autoSave)}
 								/>
 								<ToggleSwitch
-									label='Spell check'
+									label={t('pptx.settings.spellCheck')}
 									enabled={spellCheckEnabled}
 									onToggle={() => onSetSpellCheckEnabled?.(!spellCheckEnabled)}
 								/>
 								<ToggleSwitch
-									label='Show grid'
+									label={t('pptx.settings.showGrid')}
 									enabled={showGrid}
 									onToggle={() => onSetShowGrid?.(!showGrid)}
 								/>
 								<ToggleSwitch
-									label='Show rulers'
+									label={t('pptx.settings.showRulers')}
 									enabled={showRulers}
 									onToggle={() => onSetShowRulers?.(!showRulers)}
 								/>
 								<ToggleSwitch
-									label='Snap to grid'
+									label={t('pptx.settings.snapToGrid')}
 									enabled={snapToGrid}
 									onToggle={() => onSetSnapToGrid?.(!snapToGrid)}
 								/>
 								<ToggleSwitch
-									label='Reduced motion'
+									label={t('pptx.settings.reducedMotion')}
 									enabled={reducedMotion}
 									onToggle={() => onToggleReducedMotion?.()}
 								/>
