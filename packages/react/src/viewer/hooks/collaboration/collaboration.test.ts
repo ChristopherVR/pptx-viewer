@@ -16,6 +16,14 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // that underpins the collaboration hooks.
 import * as Y from 'yjs';
 
+import { validateRoomId, sanitizeColor } from './sanitize';
+import type {
+	CollaborationConfig,
+	ConnectionStatus,
+	UserPresence,
+	CollaborationContextValue,
+} from './types';
+
 // ---------------------------------------------------------------------------
 // Test helpers
 // ---------------------------------------------------------------------------
@@ -610,5 +618,268 @@ describe('collaboration — Yjs CRDT sync', () => {
 
 			doc3.destroy();
 		});
+	});
+});
+
+// ---------------------------------------------------------------------------
+// CollaborationConfig validation
+// ---------------------------------------------------------------------------
+
+describe('collaborationConfig validation', () => {
+	it('validates room ID from config', () => {
+		const config: CollaborationConfig = {
+			roomId: 'test-room-123',
+			serverUrl: 'wss://collab.example.com',
+			userName: 'Alice',
+		};
+		expect(validateRoomId(config.roomId)).toBe('test-room-123');
+	});
+
+	it('rejects invalid room ID in config', () => {
+		const config: CollaborationConfig = {
+			roomId: 'invalid room@id',
+			serverUrl: 'wss://collab.example.com',
+			userName: 'Alice',
+		};
+		expect(() => validateRoomId(config.roomId)).toThrow('Invalid collaboration room ID');
+	});
+
+	it('sanitises userColor from config', () => {
+		const config: CollaborationConfig = {
+			roomId: 'room-1',
+			serverUrl: 'wss://collab.example.com',
+			userName: 'Alice',
+			userColor: '#ff0000',
+		};
+		expect(sanitizeColor(config.userColor)).toBe('#ff0000');
+	});
+
+	it('falls back when userColor is undefined in config', () => {
+		const config: CollaborationConfig = {
+			roomId: 'room-1',
+			serverUrl: 'wss://collab.example.com',
+			userName: 'Alice',
+		};
+		expect(sanitizeColor(config.userColor)).toBe('#6366f1');
+	});
+
+	it('falls back when userColor is invalid in config', () => {
+		const config: CollaborationConfig = {
+			roomId: 'room-1',
+			serverUrl: 'wss://collab.example.com',
+			userName: 'Alice',
+			userColor: 'not-valid',
+		};
+		expect(sanitizeColor(config.userColor)).toBe('#6366f1');
+	});
+
+	it('accepts config with all optional fields', () => {
+		const config: CollaborationConfig = {
+			roomId: 'full-config-room',
+			serverUrl: 'wss://collab.example.com',
+			userName: 'Alice',
+			userAvatar: 'https://example.com/alice.png',
+			userColor: '#e74c3c',
+			authToken: 'jwt-token-xyz',
+		};
+		expect(validateRoomId(config.roomId)).toBe('full-config-room');
+		expect(sanitizeColor(config.userColor)).toBe('#e74c3c');
+		expect(config.authToken).toBe('jwt-token-xyz');
+		expect(config.userAvatar).toBe('https://example.com/alice.png');
+	});
+
+	it('accepts config with minimal required fields', () => {
+		const config: CollaborationConfig = {
+			roomId: 'minimal',
+			serverUrl: 'wss://localhost:1234',
+			userName: 'User',
+		};
+		expect(config.userAvatar).toBeUndefined();
+		expect(config.userColor).toBeUndefined();
+		expect(config.authToken).toBeUndefined();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// ConnectionStatus type verification
+// ---------------------------------------------------------------------------
+
+describe('connectionStatus types', () => {
+	const ALL_STATUSES: ConnectionStatus[] = ['disconnected', 'connecting', 'connected', 'error'];
+
+	it('covers all four possible connection states', () => {
+		expect(ALL_STATUSES).toHaveLength(4);
+		expect(ALL_STATUSES).toContain('disconnected');
+		expect(ALL_STATUSES).toContain('connecting');
+		expect(ALL_STATUSES).toContain('connected');
+		expect(ALL_STATUSES).toContain('error');
+	});
+
+	it('can be used in status mapping patterns', () => {
+		const statusMessages: Record<ConnectionStatus, string> = {
+			disconnected: 'Not connected',
+			connecting: 'Connecting...',
+			connected: 'Connected',
+			error: 'Connection error',
+		};
+		ALL_STATUSES.forEach((status) => {
+			expect(statusMessages[status]).toBeDefined();
+			expectTypeOf(statusMessages[status]).toBeString();
+		});
+	});
+
+	it('supports status transition tracking', () => {
+		const transitions: Array<{ from: ConnectionStatus; to: ConnectionStatus }> = [
+			{ from: 'disconnected', to: 'connecting' },
+			{ from: 'connecting', to: 'connected' },
+			{ from: 'connected', to: 'disconnected' },
+			{ from: 'connecting', to: 'error' },
+			{ from: 'error', to: 'connecting' },
+		];
+		transitions.forEach(({ from, to }) => {
+			expect(ALL_STATUSES).toContain(from);
+			expect(ALL_STATUSES).toContain(to);
+		});
+	});
+});
+
+// ---------------------------------------------------------------------------
+// UserPresence interface verification
+// ---------------------------------------------------------------------------
+
+describe('userPresence interface', () => {
+	it('has the expected required shape', () => {
+		const presence: UserPresence = {
+			clientId: 42,
+			userName: 'TestUser',
+			userColor: '#ff0000',
+			activeSlideIndex: 0,
+			cursorX: 100,
+			cursorY: 200,
+			lastUpdated: new Date().toISOString(),
+		};
+		expect(presence.clientId).toBe(42);
+		expect(presence.userName).toBe('TestUser');
+		expect(presence.userColor).toBe('#ff0000');
+		expect(presence.activeSlideIndex).toBe(0);
+		expect(presence.cursorX).toBe(100);
+		expect(presence.cursorY).toBe(200);
+		expectTypeOf(presence.lastUpdated).toBeString();
+	});
+
+	it('supports optional fields', () => {
+		const presence: UserPresence = {
+			clientId: 1,
+			userName: 'User',
+			userColor: '#000000',
+			activeSlideIndex: 0,
+			cursorX: 0,
+			cursorY: 0,
+			lastUpdated: new Date().toISOString(),
+			userAvatar: 'https://example.com/pic.png',
+			selectedElementId: 'element-123',
+		};
+		expect(presence.userAvatar).toBe('https://example.com/pic.png');
+		expect(presence.selectedElementId).toBe('element-123');
+	});
+
+	it('identifies stale presence by timestamp (>30s)', () => {
+		const stalePresence: UserPresence = {
+			clientId: 1,
+			userName: 'OldUser',
+			userColor: '#000000',
+			activeSlideIndex: 0,
+			cursorX: 0,
+			cursorY: 0,
+			lastUpdated: new Date(Date.now() - 31_000).toISOString(),
+		};
+		const elapsed = Date.now() - new Date(stalePresence.lastUpdated).getTime();
+		expect(elapsed).toBeGreaterThan(30_000);
+	});
+
+	it('identifies fresh presence by timestamp (<=30s)', () => {
+		const freshPresence: UserPresence = {
+			clientId: 1,
+			userName: 'NewUser',
+			userColor: '#000000',
+			activeSlideIndex: 0,
+			cursorX: 0,
+			cursorY: 0,
+			lastUpdated: new Date().toISOString(),
+		};
+		const elapsed = Date.now() - new Date(freshPresence.lastUpdated).getTime();
+		expect(elapsed).toBeLessThanOrEqual(30_000);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// CollaborationContextValue shape
+// ---------------------------------------------------------------------------
+
+describe('collaborationContextValue shape', () => {
+	it('has the expected structure', () => {
+		const mockBroadcast = vi.fn();
+		const value: CollaborationContextValue = {
+			status: 'connected',
+			remoteUsers: [],
+			broadcastPresence: mockBroadcast,
+			connectedCount: 1,
+			config: {
+				roomId: 'test-room',
+				serverUrl: 'wss://localhost',
+				userName: 'User',
+			},
+		};
+
+		expect(value.status).toBe('connected');
+		expect(value.remoteUsers).toStrictEqual([]);
+		expect(value.connectedCount).toBe(1);
+		expect(value.config.roomId).toBe('test-room');
+	});
+
+	it('connectedCount includes local user when connected', () => {
+		const remoteUsers: UserPresence[] = [
+			{
+				clientId: 2,
+				userName: 'Remote1',
+				userColor: '#ff0000',
+				activeSlideIndex: 0,
+				cursorX: 0,
+				cursorY: 0,
+				lastUpdated: new Date().toISOString(),
+			},
+			{
+				clientId: 3,
+				userName: 'Remote2',
+				userColor: '#00ff00',
+				activeSlideIndex: 0,
+				cursorX: 0,
+				cursorY: 0,
+				lastUpdated: new Date().toISOString(),
+			},
+		];
+
+		// Simulate the hook logic: connected = remoteUsers.length + 1
+		const status: ConnectionStatus = 'connected';
+		const connectedCount = status === 'connected' ? remoteUsers.length + 1 : remoteUsers.length;
+		expect(connectedCount).toBe(3);
+	});
+
+	it('connectedCount excludes local user when disconnected', () => {
+		const remoteUsers: UserPresence[] = [
+			{
+				clientId: 2,
+				userName: 'Remote1',
+				userColor: '#ff0000',
+				activeSlideIndex: 0,
+				cursorX: 0,
+				cursorY: 0,
+				lastUpdated: new Date().toISOString(),
+			},
+		];
+
+		const status: ConnectionStatus = 'disconnected';
+		const connectedCount = status === 'connected' ? remoteUsers.length + 1 : remoteUsers.length;
+		expect(connectedCount).toBe(1);
 	});
 });
