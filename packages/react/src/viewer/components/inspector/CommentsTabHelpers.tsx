@@ -1,5 +1,6 @@
 import type { PptxComment, PptxElement, PptxSlide } from 'pptx-viewer-core';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuCheck, LuMessageSquare, LuPencil, LuReply, LuTrash2, LuType } from 'react-icons/lu';
 
 import { cn, formatCommentTimestamp, getElementLabel } from '../../utils';
@@ -120,17 +121,18 @@ export function CommentItem({
 	setSelectedElementId,
 	setSelectedElementIds,
 }: CommentItemProps): React.ReactElement {
+	const { t } = useTranslation();
 	return (
 		<div className='rounded border border-border bg-card p-2'>
 			<div className='flex items-center justify-between gap-2'>
 				<div className='flex items-center gap-1.5 min-w-0'>
 					<span className='text-[11px] font-medium text-foreground truncate'>
-						{comment.author || 'Author'}
+						{comment.author || t('pptx.comments.author')}
 					</span>
 					{comment.resolved && (
 						<span className='inline-flex items-center gap-0.5 rounded-full bg-green-900/40 px-1.5 py-0.5 text-[9px] font-medium text-green-300 flex-shrink-0'>
 							<LuCheck className='h-2.5 w-2.5' />
-							Resolved
+							{t('pptx.comments.resolved')}
 						</span>
 					)}
 				</div>
@@ -145,7 +147,7 @@ export function CommentItem({
 						<button
 							type='button'
 							className='mt-1 inline-flex items-center gap-1 rounded bg-primary/20 px-1.5 py-0.5 text-[10px] text-primary hover:bg-primary/30 transition-colors'
-							title='Click to select element'
+							title={t('pptx.comments.clickToSelect')}
 							onClick={() => {
 								setSelectedElementId(targetEl.id);
 								setSelectedElementIds([targetEl.id]);
@@ -156,7 +158,7 @@ export function CommentItem({
 						</button>
 					) : (
 						<span className='mt-1 inline-flex items-center gap-1 rounded bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground'>
-							Deleted element
+							{t('pptx.comments.deletedElement')}
 						</span>
 					);
 				})()}
@@ -179,14 +181,14 @@ export function CommentItem({
 							onClick={() => onSaveCommentEdit(comment.id)}
 							disabled={String(editDraft).trim().length === 0}
 						>
-							Save
+							{t('pptx.comments.save')}
 						</button>
 						<button
 							type='button'
 							className='inline-flex items-center gap-1 rounded bg-muted px-2 py-1 text-[11px] text-foreground hover:bg-accent'
 							onClick={() => onCancelCommentEdit(comment.id)}
 						>
-							Cancel
+							{t('pptx.comments.cancel')}
 						</button>
 					</div>
 				</div>
@@ -201,7 +203,7 @@ export function CommentItem({
 								type='button'
 								className='inline-flex items-center justify-center p-1.5 hover:bg-accent text-foreground hover:text-foreground transition-colors'
 								onClick={() => onStartCommentEdit(comment.id)}
-								title='Edit'
+								title={t('pptx.comments.edit')}
 							>
 								<LuPencil className='h-3 w-3' />
 							</button>
@@ -209,7 +211,7 @@ export function CommentItem({
 								type='button'
 								className='inline-flex items-center justify-center p-1.5 border-l border-border hover:bg-accent text-foreground hover:text-foreground transition-colors'
 								onClick={() => onReplyToComment(comment.id)}
-								title='Reply'
+								title={t('pptx.comments.reply')}
 							>
 								<LuReply className='h-3 w-3' />
 							</button>
@@ -222,7 +224,7 @@ export function CommentItem({
 										: 'hover:bg-accent text-foreground hover:text-foreground',
 								)}
 								onClick={() => onToggleCommentResolved(comment.id)}
-								title={comment.resolved ? 'Unresolve' : 'Resolve'}
+								title={comment.resolved ? t('pptx.comments.unresolve') : t('pptx.comments.resolve')}
 							>
 								<LuCheck className='h-3 w-3' />
 							</button>
@@ -230,7 +232,7 @@ export function CommentItem({
 								type='button'
 								className='inline-flex items-center justify-center p-1.5 border-l border-border hover:bg-red-900/40 text-muted-foreground hover:text-red-300 transition-colors'
 								onClick={() => onDeleteComment(comment.id)}
-								title='Delete'
+								title={t('pptx.comments.delete')}
 							>
 								<LuTrash2 className='h-3 w-3' />
 							</button>
@@ -261,12 +263,13 @@ export function AddCommentForm({
 	onDraftChange,
 	onAdd,
 }: AddCommentFormProps): React.ReactElement {
+	const { t } = useTranslation();
 	return (
 		<div className='space-y-1.5'>
 			{selectedElement && (
 				<div className='inline-flex items-center gap-1 rounded bg-primary/20 px-1.5 py-0.5 text-[10px] text-primary'>
 					<LuType className='h-2.5 w-2.5' />
-					Commenting on: {getElementLabel(selectedElement)}
+					{t('pptx.comments.commentingOn')} {getElementLabel(selectedElement)}
 				</div>
 			)}
 			<textarea
@@ -281,7 +284,9 @@ export function AddCommentForm({
 				}}
 				rows={3}
 				placeholder={
-					selectedElement ? `Comment on ${getElementLabel(selectedElement)}...` : 'Add a comment...'
+					selectedElement
+						? t('pptx.comments.commentOnElement', { element: getElementLabel(selectedElement) })
+						: t('pptx.comments.addCommentPlaceholder')
 				}
 				className='w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-primary resize-y'
 			/>
@@ -292,7 +297,7 @@ export function AddCommentForm({
 				disabled={String(draft).trim().length === 0}
 			>
 				<LuMessageSquare className='w-3.5 h-3.5' />
-				Add comment
+				{t('pptx.comments.addComment')}
 			</button>
 		</div>
 	);

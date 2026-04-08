@@ -1,5 +1,6 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
 	LuChevronDown,
 	LuChevronUp,
@@ -31,6 +32,7 @@ export interface ArrangeSectionProps {
 }
 
 export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
+	const { t } = useTranslation();
 	const hasSel = Boolean(p.selectedElement);
 	const canMut = hasSel && p.canEdit;
 
@@ -44,24 +46,24 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 						onClick={() => p.onAlignElements(a.k)}
 						disabled={!canMut}
 						className={i < arr.length - 1 ? gB : gL}
-						title={`Align ${a.k}`}
+						title={t('pptx.arrange.align', { direction: a.k })}
 					>
 						{a.el}
 					</button>
 				))}
 			</div>
 			<div className={grp}>
-				<button onClick={p.onCopy} disabled={!hasSel} className={gB} title='Copy'>
+				<button onClick={p.onCopy} disabled={!hasSel} className={gB} title={t('pptx.arrange.copy')}>
 					<LuCopy className={ic} />
 				</button>
-				<button onClick={p.onCut} disabled={!canMut} className={gB} title='Cut'>
-					Cut
+				<button onClick={p.onCut} disabled={!canMut} className={gB} title={t('pptx.arrange.cut')}>
+					{t('pptx.arrange.cut')}
 				</button>
 				<button
 					onClick={p.onPaste}
 					disabled={!p.clipboardPayload || !p.canEdit}
 					className={gL}
-					title='Paste'
+					title={t('pptx.arrange.paste')}
 				>
 					<LuClipboardPaste className={ic} />
 				</button>
@@ -75,10 +77,10 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 						pill,
 						p.formatPainterActive ? 'bg-amber-600 hover:bg-amber-500 text-amber-50' : '',
 					)}
-					title='Format Painter'
+					title={t('pptx.arrange.formatPainter')}
 				>
 					<LuPaintbrush className={ic} />
-					Format
+					{t('pptx.arrange.format')}
 				</button>
 			)}
 			<div className={grp}>
@@ -87,18 +89,18 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 					onClick={() => p.onFlip('horizontal')}
 					disabled={!canMut}
 					className={gB}
-					title='Flip horizontally'
+					title={t('pptx.arrange.flipHorizontally')}
 				>
-					Flip H
+					{t('pptx.arrange.flipH')}
 				</button>
 				<button
 					type='button'
 					onClick={() => p.onFlip('vertical')}
 					disabled={!canMut}
 					className={gL}
-					title='Flip vertically'
+					title={t('pptx.arrange.flipVertically')}
 				>
-					Flip V
+					{t('pptx.arrange.flipV')}
 				</button>
 			</div>
 			<div className={grp}>
@@ -106,7 +108,7 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 					onClick={() => p.onMoveLayer('backward')}
 					disabled={!canMut}
 					className={gB}
-					title='Send backward'
+					title={t('pptx.arrange.sendBackward')}
 				>
 					<LuChevronDown className={ic} />
 				</button>
@@ -114,7 +116,7 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 					onClick={() => p.onMoveLayer('forward')}
 					disabled={!canMut}
 					className={gB}
-					title='Bring forward'
+					title={t('pptx.arrange.bringForward')}
 				>
 					<LuChevronUp className={ic} />
 				</button>
@@ -122,31 +124,36 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 					onClick={() => p.onMoveLayerToEdge('back')}
 					disabled={!canMut}
 					className={gB}
-					title='Send to back'
+					title={t('pptx.arrange.sendToBack')}
 				>
-					Back
+					{t('pptx.arrange.back')}
 				</button>
 				<button
 					onClick={() => p.onMoveLayerToEdge('front')}
 					disabled={!canMut}
 					className={gL}
-					title='Bring to front'
+					title={t('pptx.arrange.bringToFront')}
 				>
-					Front
+					{t('pptx.arrange.front')}
 				</button>
 			</div>
-			<button onClick={p.onDuplicate} disabled={!canMut} className={pill} title='Duplicate'>
+			<button
+				onClick={p.onDuplicate}
+				disabled={!canMut}
+				className={pill}
+				title={t('pptx.arrange.duplicate')}
+			>
 				<LuCopy className={ic} />
-				Duplicate
+				{t('pptx.arrange.duplicate')}
 			</button>
 			<button
 				onClick={p.onDelete}
 				disabled={!canMut}
 				className='inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-red-700/80 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-xs transition-colors'
-				title='Delete'
+				title={t('pptx.arrange.delete')}
 			>
 				<LuTrash2 className={ic} />
-				Delete
+				{t('pptx.arrange.delete')}
 			</button>
 		</>
 	);

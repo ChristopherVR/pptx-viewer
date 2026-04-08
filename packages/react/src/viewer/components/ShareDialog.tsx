@@ -10,6 +10,7 @@
  * @module ShareDialog
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuCopy, LuCheck, LuUsers, LuWifi, LuWifiOff } from 'react-icons/lu';
 
 import type { CollaborationConfig } from '../hooks/collaboration/types';
@@ -74,6 +75,7 @@ export function ShareDialog({
 }: ShareDialogProps): React.ReactElement | null {
 	const collab = useCollaboration();
 	const isActive = collab !== null && collab.status !== 'disconnected' && collab.status !== 'error';
+	const { t } = useTranslation();
 
 	// Form state for starting a new session — all defaults come from host app
 	const [roomId, setRoomId] = useState(defaultRoomId ?? '');
@@ -149,7 +151,7 @@ export function ShareDialog({
 			<button
 				type='button'
 				className='fixed inset-0 z-[200] bg-black/50'
-				aria-label='Close dialog'
+				aria-label={t('pptx.share.closeDialog')}
 				onClick={onClose}
 			/>
 
@@ -159,20 +161,20 @@ export function ShareDialog({
 					ref={dialogRef}
 					role='dialog'
 					aria-modal='true'
-					aria-label='Share presentation'
+					aria-label={t('pptx.share.title')}
 					tabIndex={-1}
 					className='pointer-events-auto w-full max-w-md rounded-xl border border-border bg-popover text-foreground shadow-2xl outline-none'
 				>
 					{/* Header */}
 					<div className='flex items-center justify-between px-5 py-3 border-b border-border'>
 						<h2 className='text-sm font-semibold text-foreground'>
-							{isActive ? 'Collaboration Active' : 'Share Presentation'}
+							{isActive ? t('pptx.share.collaborationActive') : t('pptx.share.title')}
 						</h2>
 						<button
 							type='button'
 							onClick={onClose}
 							className='text-muted-foreground hover:text-foreground text-lg leading-none'
-							aria-label='Close'
+							aria-label={t('pptx.share.close')}
 						>
 							&times;
 						</button>
@@ -208,7 +210,7 @@ export function ShareDialog({
 							onClick={onClose}
 							className='px-3 py-1.5 rounded bg-muted hover:bg-accent text-[12px] text-foreground transition-colors'
 						>
-							{isActive ? 'Close' : 'Cancel'}
+							{isActive ? t('pptx.share.close') : t('pptx.share.cancel')}
 						</button>
 						{!isActive && (
 							<button
@@ -217,7 +219,7 @@ export function ShareDialog({
 								onClick={handleStartSharing}
 								className='px-3 py-1.5 rounded bg-primary hover:bg-primary/90 text-[12px] text-primary-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
 							>
-								Start Sharing
+								{t('pptx.share.startSharing')}
 							</button>
 						)}
 					</div>
@@ -249,20 +251,19 @@ function StartSessionForm({
 	onServerUrlChange: (v: string) => void;
 	preconfigured?: boolean;
 }) {
+	const { t } = useTranslation();
 	const inputReadOnlyClass = preconfigured ? ' opacity-70 cursor-not-allowed' : '';
 
 	return (
 		<div className='space-y-4'>
 			<p className='text-[13px] text-muted-foreground leading-relaxed'>
-				{preconfigured
-					? 'Your administrator has configured collaboration settings.'
-					: 'Share this presentation for real-time collaboration. Other users can join using the session name to edit together with live cursors and synchronized changes.'}
+				{preconfigured ? t('pptx.share.preconfiguredDescription') : t('pptx.share.description')}
 			</p>
 
 			{/* Room / Session Name */}
 			<div className='space-y-1.5'>
 				<label htmlFor='share-room-id' className='block text-[12px] font-medium text-foreground'>
-					Session Name
+					{t('pptx.share.sessionName')}
 				</label>
 				<input
 					id='share-room-id'
@@ -270,18 +271,16 @@ function StartSessionForm({
 					value={roomId}
 					onChange={(e) => onRoomIdChange(e.target.value)}
 					readOnly={preconfigured}
-					placeholder='e.g. session-abc123'
+					placeholder={t('pptx.share.sessionPlaceholder')}
 					className={`w-full px-3 py-1.5 rounded border border-border bg-background text-foreground text-[13px] placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary${inputReadOnlyClass}`}
 				/>
-				<p className='text-[11px] text-muted-foreground'>
-					Alphanumeric, hyphens, and underscores only. Share this name with collaborators.
-				</p>
+				<p className='text-[11px] text-muted-foreground'>{t('pptx.share.sessionHint')}</p>
 			</div>
 
 			{/* User Display Name */}
 			<div className='space-y-1.5'>
 				<label htmlFor='share-user-name' className='block text-[12px] font-medium text-foreground'>
-					Your Display Name
+					{t('pptx.share.displayName')}
 				</label>
 				<input
 					id='share-user-name'
@@ -289,7 +288,7 @@ function StartSessionForm({
 					value={userName}
 					onChange={(e) => onUserNameChange(e.target.value)}
 					readOnly={preconfigured}
-					placeholder='e.g. Alice'
+					placeholder={t('pptx.share.namePlaceholder')}
 					className={`w-full px-3 py-1.5 rounded border border-border bg-background text-foreground text-[13px] placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary${inputReadOnlyClass}`}
 				/>
 			</div>
@@ -297,7 +296,7 @@ function StartSessionForm({
 			{/* Server URL */}
 			<div className='space-y-1.5'>
 				<label htmlFor='share-server-url' className='block text-[12px] font-medium text-foreground'>
-					Collaboration Server
+					{t('pptx.share.serverLabel')}
 				</label>
 				<input
 					id='share-server-url'
@@ -305,7 +304,7 @@ function StartSessionForm({
 					value={serverUrl}
 					onChange={(e) => onServerUrlChange(e.target.value)}
 					readOnly={preconfigured}
-					placeholder='wss://collab.example.com'
+					placeholder={t('pptx.share.serverPlaceholder')}
 					className={`w-full px-3 py-1.5 rounded border border-border bg-background text-foreground text-[13px] placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary${inputReadOnlyClass}`}
 				/>
 			</div>

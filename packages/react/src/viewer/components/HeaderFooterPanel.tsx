@@ -1,4 +1,5 @@
 import React, { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuCalendarDays, LuCheck, LuHash, LuText, LuX } from 'react-icons/lu';
 
 /* ------------------------------------------------------------------ */
@@ -73,17 +74,19 @@ export const HeaderFooterPanel: React.FC<HeaderFooterPanelProps> = ({
 		[onSetFooterText],
 	);
 
+	const { t } = useTranslation();
+
 	return (
 		<div className='absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm'>
 			<div className='w-full max-w-sm rounded-lg border border-border bg-background shadow-2xl'>
 				{/* ── Header ── */}
 				<div className='flex items-center justify-between border-b border-border px-4 py-3'>
-					<h2 className='text-sm font-semibold text-foreground'>Header &amp; Footer</h2>
+					<h2 className='text-sm font-semibold text-foreground'>{t('pptx.headerFooter.title')}</h2>
 					<button
 						type='button'
 						onClick={onClose}
 						className='rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors'
-						aria-label='Close'
+						aria-label={t('pptx.headerFooter.close')}
 					>
 						<LuX className='w-4 h-4' />
 					</button>
@@ -96,7 +99,7 @@ export const HeaderFooterPanel: React.FC<HeaderFooterPanelProps> = ({
 						checked={showDateTime}
 						onChange={onSetShowDateTime}
 						icon={<LuCalendarDays className='w-3.5 h-3.5' />}
-						label='Date and time'
+						label={t('pptx.headerFooter.dateAndTime')}
 					/>
 
 					{/* Toggle: Slide number */}
@@ -104,7 +107,7 @@ export const HeaderFooterPanel: React.FC<HeaderFooterPanelProps> = ({
 						checked={showSlideNumber}
 						onChange={onSetShowSlideNumber}
 						icon={<LuHash className='w-3.5 h-3.5' />}
-						label='Slide number'
+						label={t('pptx.headerFooter.slideNumber')}
 					/>
 
 					{/* Toggle: Footer */}
@@ -112,7 +115,7 @@ export const HeaderFooterPanel: React.FC<HeaderFooterPanelProps> = ({
 						checked={showFooter}
 						onChange={onSetShowFooter}
 						icon={<LuText className='w-3.5 h-3.5' />}
-						label='Footer'
+						label={t('pptx.headerFooter.footer')}
 					/>
 
 					{/* Footer text input — only visible when footer is enabled */}
@@ -122,7 +125,7 @@ export const HeaderFooterPanel: React.FC<HeaderFooterPanelProps> = ({
 								type='text'
 								value={footerText}
 								onChange={handleFooterTextChange}
-								placeholder='Enter footer text…'
+								placeholder={t('pptx.headerFooter.footerPlaceholder')}
 								className='w-full rounded border border-border bg-muted px-2.5 py-1.5 text-xs text-foreground placeholder-muted-foreground outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary/30'
 							/>
 						</div>
@@ -136,14 +139,14 @@ export const HeaderFooterPanel: React.FC<HeaderFooterPanelProps> = ({
 						onClick={onApplyToAll}
 						className='rounded bg-accent px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent/80 transition-colors'
 					>
-						Apply to All
+						{t('pptx.headerFooter.applyToAll')}
 					</button>
 					<button
 						type='button'
 						onClick={onApplyToCurrent}
 						className='rounded bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/80 transition-colors'
 					>
-						Apply to Current
+						{t('pptx.headerFooter.applyToCurrent')}
 					</button>
 				</div>
 			</div>

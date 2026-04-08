@@ -8,6 +8,7 @@
  * @module collaboration/UserAvatarBar
  */
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { UserPresence, ConnectionStatus } from '../../hooks/collaboration/types';
 
@@ -57,8 +58,9 @@ function AvatarCircle({
 	avatar?: string;
 	isLocal?: boolean;
 }) {
+	const { t } = useTranslation();
 	const initials = getInitials(name);
-	const title = isLocal ? `${name} (you)` : name;
+	const title = isLocal ? t('pptx.collaboration.youLabel', { name }) : name;
 
 	return (
 		<div
@@ -99,6 +101,7 @@ export function UserAvatarBar({
 	status,
 	maxVisible = 5,
 }: UserAvatarBarProps): React.ReactElement | null {
+	const { t } = useTranslation();
 	if (status === 'disconnected' || status === 'error') {
 		return null;
 	}
@@ -120,7 +123,7 @@ export function UserAvatarBar({
 		<div
 			data-testid='user-avatar-bar'
 			className='flex items-center px-2'
-			aria-label={`${allUsers.length} user${allUsers.length !== 1 ? 's' : ''} connected`}
+			aria-label={t('pptx.collaboration.usersConnected', { count: allUsers.length })}
 		>
 			{visible.map((user, i) => (
 				<AvatarCircle
@@ -134,7 +137,7 @@ export function UserAvatarBar({
 			{overflow > 0 && (
 				<div
 					className='w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold text-gray-300 bg-gray-700 border-2 border-gray-600 -ml-1'
-					title={`${overflow} more user${overflow !== 1 ? 's' : ''}`}
+					title={t('pptx.collaboration.moreUsers', { count: overflow })}
 				>
 					+{overflow}
 				</div>

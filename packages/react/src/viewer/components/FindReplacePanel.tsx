@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
 	LuSearch,
 	LuReplace,
@@ -51,6 +52,7 @@ export function FindReplacePanel({
 	onReplaceAll,
 	onClose,
 }: FindReplacePanelProps): React.ReactElement {
+	const { t } = useTranslation();
 	const searchInputRef = useRef<HTMLInputElement>(null);
 
 	/* Auto-focus on mount */
@@ -92,9 +94,9 @@ export function FindReplacePanel({
 
 	const hasResults = findResults.length > 0;
 	const matchCountLabel = hasResults
-		? `${findResultIndex + 1} of ${findResults.length}`
+		? t('pptx.findReplace.matchCount', { current: findResultIndex + 1, total: findResults.length })
 		: findQuery.length > 0
-			? 'No matches'
+			? t('pptx.findReplace.noMatches')
 			: '';
 
 	return (
@@ -103,14 +105,14 @@ export function FindReplacePanel({
 			<div className='flex items-center justify-between mb-2'>
 				<span className='font-semibold text-sm inline-flex items-center gap-1.5'>
 					<LuSearch className={ic} />
-					Find & Replace
+					{t('pptx.findReplace.title')}
 				</span>
 				<button
 					type='button'
 					className={btnGhost}
 					onClick={onClose}
-					title='Close (Escape)'
-					aria-label='Close find and replace'
+					title={t('pptx.findReplace.closeEscape')}
+					aria-label={t('pptx.findReplace.closeAriaLabel')}
 				>
 					<LuX className={ic} />
 				</button>
@@ -125,9 +127,9 @@ export function FindReplacePanel({
 						value={findQuery}
 						onChange={(e) => onSetFindQuery(e.target.value)}
 						onKeyDown={handleSearchKeyDown}
-						placeholder='Find…'
+						placeholder={t('pptx.findReplace.findPlaceholder')}
 						className='w-full bg-muted border border-border rounded px-2 py-1 pr-7 text-xs text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none'
-						aria-label='Search text'
+						aria-label={t('pptx.findReplace.searchText')}
 					/>
 					<button
 						type='button'
@@ -137,8 +139,8 @@ export function FindReplacePanel({
 								: 'text-muted-foreground hover:text-foreground hover:bg-accent'
 						}`}
 						onClick={() => onSetFindMatchCase(!findMatchCase)}
-						title='Match case'
-						aria-label='Toggle match case'
+						title={t('pptx.findReplace.matchCase')}
+						aria-label={t('pptx.findReplace.toggleMatchCase')}
 						aria-pressed={findMatchCase}
 					>
 						<LuCaseSensitive className={ic} />
@@ -149,8 +151,8 @@ export function FindReplacePanel({
 					className={btnGhost}
 					onClick={() => onNavigateResult(-1)}
 					disabled={!hasResults}
-					title='Previous match (Shift+Enter)'
-					aria-label='Previous match'
+					title={t('pptx.findReplace.previousMatch')}
+					aria-label={t('pptx.findReplace.previousMatch')}
 				>
 					<LuChevronUp className={ic} />
 				</button>
@@ -159,8 +161,8 @@ export function FindReplacePanel({
 					className={btnGhost}
 					onClick={() => onNavigateResult(1)}
 					disabled={!hasResults}
-					title='Next match (Enter)'
-					aria-label='Next match'
+					title={t('pptx.findReplace.nextMatch')}
+					aria-label={t('pptx.findReplace.nextMatch')}
 				>
 					<LuChevronDown className={ic} />
 				</button>
@@ -182,9 +184,9 @@ export function FindReplacePanel({
 						value={replaceQuery}
 						onChange={(e) => onSetReplaceQuery(e.target.value)}
 						onKeyDown={handleReplaceKeyDown}
-						placeholder='Replace with…'
+						placeholder={t('pptx.findReplace.replacePlaceholder')}
 						className='w-full bg-muted border border-border rounded pl-7 pr-2 py-1 text-xs text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none'
-						aria-label='Replacement text'
+						aria-label={t('pptx.findReplace.replacementText')}
 					/>
 				</div>
 			</div>
@@ -196,18 +198,18 @@ export function FindReplacePanel({
 					className={btnAction}
 					onClick={onReplace}
 					disabled={!hasResults}
-					title='Replace current match'
+					title={t('pptx.findReplace.replaceCurrent')}
 				>
-					Replace
+					{t('pptx.findReplace.replace')}
 				</button>
 				<button
 					type='button'
 					className={btnAction}
 					onClick={onReplaceAll}
 					disabled={!hasResults}
-					title='Replace all matches'
+					title={t('pptx.findReplace.replaceAllMatches')}
 				>
-					Replace All
+					{t('pptx.findReplace.replaceAll')}
 				</button>
 			</div>
 		</div>

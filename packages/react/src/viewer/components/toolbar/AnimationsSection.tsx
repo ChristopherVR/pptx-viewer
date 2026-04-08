@@ -1,5 +1,6 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuChevronDown, LuPanelRight, LuPlay, LuSparkles, LuTrash2 } from 'react-icons/lu';
 
 import { cn } from '../../utils';
@@ -39,6 +40,7 @@ const ANIMATION_PRESETS = [
 ] as const;
 
 export function AnimationsSection(p: AnimationsSectionProps): React.ReactElement {
+	const { t } = useTranslation();
 	const [previewActive, setPreviewActive] = useState(false);
 	const hasElement = p.selectedElement !== null;
 	const disabled = !p.canEdit || !hasElement;
@@ -63,10 +65,10 @@ export function AnimationsSection(p: AnimationsSectionProps): React.ReactElement
 					pill,
 					previewActive ? 'bg-primary hover:bg-primary/80 text-primary-foreground' : '',
 				)}
-				title='Preview animation on selected element'
+				title={t('pptx.animations.previewTooltip')}
 			>
 				<LuPlay className={ic} />
-				Preview
+				{t('pptx.animations.preview')}
 			</button>
 
 			{sep}
@@ -77,10 +79,10 @@ export function AnimationsSection(p: AnimationsSectionProps): React.ReactElement
 					type='button'
 					disabled={disabled}
 					className={pill}
-					title='Add animation to selected element'
+					title={t('pptx.animations.addTooltip')}
 				>
 					<LuSparkles className={ic} />
-					Add Animation
+					{t('pptx.animations.addAnimation')}
 					<LuChevronDown className='w-3 h-3' />
 				</button>
 				<div className='absolute left-0 top-full z-50 hidden group-hover:flex flex-col w-44 pt-1'>
@@ -88,7 +90,7 @@ export function AnimationsSection(p: AnimationsSectionProps): React.ReactElement
 						{ANIMATION_PRESETS.map((group) => (
 							<React.Fragment key={group.group}>
 								<div className='px-3 pt-1.5 pb-0.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider'>
-									{group.group}
+									{t(`pptx.animations.group.${group.group.toLowerCase()}`)}
 								</div>
 								{group.items.map((item) => (
 									<button
@@ -96,9 +98,11 @@ export function AnimationsSection(p: AnimationsSectionProps): React.ReactElement
 										type='button'
 										disabled={disabled}
 										className='flex items-center gap-2 w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
-										title={`Apply ${item.label} animation`}
+										title={t('pptx.animations.applyAnimation', {
+											name: t(`pptx.animations.preset.${item.value}`),
+										})}
 									>
-										{item.label}
+										{t(`pptx.animations.preset.${item.value}`)}
 									</button>
 								))}
 							</React.Fragment>
@@ -114,10 +118,10 @@ export function AnimationsSection(p: AnimationsSectionProps): React.ReactElement
 				type='button'
 				disabled={disabled}
 				className={pill}
-				title='Remove animation from selected element'
+				title={t('pptx.animations.removeTooltip')}
 			>
 				<LuTrash2 className={ic} />
-				Remove
+				{t('pptx.animations.remove')}
 			</button>
 
 			{sep}
@@ -130,10 +134,10 @@ export function AnimationsSection(p: AnimationsSectionProps): React.ReactElement
 					pill,
 					p.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-primary-foreground' : '',
 				)}
-				title='Open Animation Panel in Inspector'
+				title={t('pptx.animations.openPanelTooltip')}
 			>
 				<LuPanelRight className={ic} />
-				Animation Panel
+				{t('pptx.animations.animationPanel')}
 			</button>
 		</>
 	);

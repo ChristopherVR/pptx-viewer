@@ -213,8 +213,8 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 					type='button'
 					onClick={onToggleInspector}
 					className={cn(qab, isInspectorPaneOpen ? 'text-foreground' : 'text-muted-foreground')}
-					title='Toggle inspector panel'
-					aria-label='Toggle inspector panel'
+					title={t('pptx.toolbar.toggleInspector')}
+					aria-label={t('pptx.toolbar.toggleInspector')}
 				>
 					<LuPanelRight className={ic} />
 				</button>
@@ -225,15 +225,15 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 				type='button'
 				onClick={p.onOpenSettings ?? p.onToggleShortcuts}
 				className={cn(qab, 'text-muted-foreground')}
-				title='Settings & Shortcuts'
-				aria-label='Settings'
+				title={t('pptx.toolbar.settingsShortcuts')}
+				aria-label={t('pptx.toolbar.settings')}
 			>
 				<LuSettings className={ics} />
 			</button>
 
 			{!canEdit && (
 				<span className='inline-flex items-center px-2 py-0.5 rounded-sm bg-amber-600/90 text-[10px] text-amber-50'>
-					Read-only
+					{t('pptx.toolbar.readOnly')}
 				</span>
 			)}
 			<OverflowMenu {...p} />

@@ -40,6 +40,9 @@ A full-featured **React** component for viewing, editing, and presenting PowerPo
   - [Hooks Reference](#hooks-reference)
   - [Utility Modules Reference](#utility-modules-reference)
   - [File Structure Reference](#file-structure-reference)
+  - [Localization (i18n)](#localization-i18n)
+    - [Setup](#setup)
+    - [How it works](#how-it-works)
   - [Limitations](#limitations)
 
 ---
@@ -964,6 +967,71 @@ src/
     +-- styles/
         +-- print.css                           # Print-specific CSS
 ```
+
+---
+
+## Localization (i18n)
+
+The viewer uses [i18next](https://www.i18next.com/) with [react-i18next](https://react.i18next.com/) for UI labels. Components call `useTranslation()` and look up dotted keys such as `t('pptx.statusBar.allSaved')`.
+
+### Setup
+
+Initialise an i18next instance with your translations and wrap your app in the `I18nextProvider` (or call `i18next.init()` before rendering). The demo app (`demo/i18n.ts`) shows a minimal configuration:
+
+```ts
+import { createInstance } from 'i18next';
+import { initReactI18next } from 'react-i18next';
+
+const i18n = createInstance();
+
+i18n.use(initReactI18next).init({
+	resources: {
+		en: {
+			translation: {
+				'pptx.statusBar.allSaved': 'All saved',
+				'pptx.sections.addSlide': 'Add Slide',
+				'pptx.notes.clickToAddNotes': 'Click to add notes',
+				// ... see demo/i18n.ts for the full key list
+			},
+		},
+	},
+	lng: 'en',
+	fallbackLng: 'en',
+	interpolation: { escapeValue: false },
+	// Optional: derive display text from dotted keys for undefined keys
+	parseMissingKeyHandler: (key) => {
+		const last = key.split('.').pop() ?? key;
+		return last.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
+	},
+});
+```
+
+To add a new language, add a resource bundle under its language code (e.g. `fr`, `de`) and set `lng` accordingly.
+
+### How it works
+
+Translation keys follow the pattern `pptx.<area>.<label>` (e.g. `pptx.slideSorter.zoomIn`, `pptx.comments.addComment`). The demo configures a `parseMissingKeyHandler` that converts any undefined key into a Title Case label automatically, so components can reference keys that are not explicitly listed and still render sensible English text.
+
+Key namespaces currently in use:
+
+| Namespace               | Examples                                       |
+| ----------------------- | ---------------------------------------------- |
+| `pptx.statusBar.*`      | `allSaved`, `unsavedChanges`                   |
+| `pptx.autosave.*`       | `saving`, `saved`, `error`                     |
+| `pptx.sections.*`       | `addSlide`, `addSection`, `rename`, `delete`   |
+| `pptx.notes.*`          | `slideN`, `clickToAddNotes`, `noNotes`         |
+| `pptx.slideSorter.*`    | `zoomIn`, `zoomOut`, `close`                   |
+| `pptx.grid.*`           | `toggleGrid`, `snapToGrid`                     |
+| `pptx.field.*`          | `insertField`, `slideNumber`, `dateTime`       |
+| `pptx.master.*`         | `layout`, `noMasters`                          |
+| `pptx.export.*`         | `processing`, `cancel`                         |
+| `pptx.versionHistory.*` | `restore`, `noVersions`                        |
+| `pptx.presenter.*`      | `speakerNotes`, `nextSlidePreview`             |
+| `pptx.presentation.*`   | `pen`, `highlighter`, `eraser`, `laserPointer` |
+| `pptx.selectionPane.*`  | `show`, `hide`, `close`                        |
+| `pptx.inspector.*`      | `element`, `noSlideSelected`                   |
+| `pptx.comments.*`       | `addComment`, `noComments`                     |
+| `pptx.encryptedFile.*`  | `title`, `message`, `instructions`             |
 
 ---
 

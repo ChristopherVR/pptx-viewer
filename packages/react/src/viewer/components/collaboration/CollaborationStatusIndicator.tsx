@@ -7,6 +7,7 @@
  * @module collaboration/CollaborationStatusIndicator
  */
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { ConnectionStatus } from '../../hooks/collaboration/types';
 
@@ -56,19 +57,23 @@ export function CollaborationStatusIndicator({
 	status,
 	connectedCount,
 }: CollaborationStatusIndicatorProps): React.ReactElement {
+	const { t } = useTranslation();
 	const style = STATUS_STYLES[status];
 
 	return (
 		<div
 			data-testid='collaboration-status'
 			className='flex items-center gap-1.5'
-			aria-label={`Collaboration: ${style.label}. ${connectedCount} user${connectedCount !== 1 ? 's' : ''} connected.`}
+			aria-label={t('pptx.collaboration.statusAriaLabel', {
+				status: t(`pptx.collaboration.status.${status}`),
+				count: connectedCount,
+			})}
 		>
 			<span className={`inline-block w-2 h-2 rounded-full ${style.dot}`} aria-hidden='true' />
 			<span className={`text-[10px] ${style.text}`}>
 				{status === 'connected'
-					? `${connectedCount} user${connectedCount !== 1 ? 's' : ''}`
-					: style.label}
+					? t('pptx.collaboration.userCount', { count: connectedCount })
+					: t(`pptx.collaboration.status.${status}`)}
 			</span>
 		</div>
 	);
