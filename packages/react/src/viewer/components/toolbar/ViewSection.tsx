@@ -25,6 +25,8 @@ export interface ViewSectionProps {
 	onToggleSelectionPane?: () => void;
 	eyedropperActive?: boolean;
 	onToggleEyedropper?: () => void;
+	onToggleSlideSorter?: () => void;
+	onZoomToFit?: () => void;
 }
 
 export function ViewSection(p: ViewSectionProps): React.ReactElement {
@@ -32,6 +34,58 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 
 	return (
 		<>
+			{/* Presentation Views group */}
+			<div className='flex flex-col items-center gap-0.5'>
+				<div className='flex items-center gap-0.5'>
+					<button className={pill} title='Normal view'>
+						Normal
+					</button>
+					{p.onToggleSlideSorter ? (
+						<button className={pill} onClick={p.onToggleSlideSorter} title='Slide Sorter view'>
+							Slide Sorter
+						</button>
+					) : (
+						<button className={pill} title='Slide Sorter view'>
+							Slide Sorter
+						</button>
+					)}
+					<button className={pill} title='Reading View'>
+						Reading View
+					</button>
+				</div>
+				<span className='text-[9px] text-muted-foreground leading-none'>Presentation Views</span>
+			</div>
+			{sep}
+
+			{/* Master Views group */}
+			<div className='flex flex-col items-center gap-0.5'>
+				<div className='flex items-center gap-0.5'>
+					<button
+						onClick={p.onEnterMasterView}
+						disabled={!p.canEdit}
+						className={pill}
+						title='Edit slide masters and layouts'
+					>
+						Slide Master
+					</button>
+				</div>
+				<span className='text-[9px] text-muted-foreground leading-none'>Master Views</span>
+			</div>
+			{sep}
+
+			{/* Zoom group */}
+			<div className='flex flex-col items-center gap-0.5'>
+				<div className='flex items-center gap-0.5'>
+					{p.onZoomToFit && (
+						<button className={pill} onClick={p.onZoomToFit} title='Zoom to fit slide in window'>
+							Zoom to Fit
+						</button>
+					)}
+				</div>
+				<span className='text-[9px] text-muted-foreground leading-none'>Zoom</span>
+			</div>
+			{sep}
+
 			<button
 				onClick={() => p.onSetEditTemplateMode(!p.editTemplateMode)}
 				disabled={!p.canEdit}
@@ -112,15 +166,6 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 				title='Toggle spell check'
 			>
 				Spell
-			</button>
-			{sep}
-			<button
-				onClick={p.onEnterMasterView}
-				disabled={!p.canEdit}
-				className={pill}
-				title='Edit slide masters and layouts'
-			>
-				Slide Master
 			</button>
 		</>
 	);

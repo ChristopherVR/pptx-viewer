@@ -225,6 +225,15 @@ export interface TextStyle {
 	/** Bookmark link target (`a:rPr/@bmk`). */
 	bookmark?: string;
 
+	// ── List / bullet style ──
+
+	/** Paragraph list type for toggling bullet / numbered lists via the toolbar.
+	 * - `'bullet'` — character bullet (default "•")
+	 * - `'numbered'` — auto-numbered list (arabicPeriod)
+	 * - `'none'` — explicitly no list
+	 */
+	listType?: 'bullet' | 'numbered' | 'none';
+
 	// ── Paragraph properties (additional) ──
 
 	/** Default tab size in px (`a:pPr/@defTabSz` in EMU). */
