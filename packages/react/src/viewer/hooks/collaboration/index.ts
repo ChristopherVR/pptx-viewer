@@ -25,6 +25,9 @@ export type {
 	UseCollaborativeHistoryResult,
 } from './useCollaborativeHistory';
 
+export { useYjsDocumentSync } from './useYjsDocumentSync';
+export type { UseYjsDocumentSyncInput } from './useYjsDocumentSync';
+
 export {
 	validateRoomId,
 	sanitizeUserName,

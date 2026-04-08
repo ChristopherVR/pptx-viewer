@@ -84,4 +84,6 @@ export interface CollaborationContextValue {
 	connectedCount: number;
 	/** The collaboration config that was provided. */
 	config: CollaborationConfig;
+	/** The Yjs document (for document sync). */
+	doc: unknown | null;
 }

@@ -119,6 +119,23 @@ export function usePresenceTracking({
 		[awareness, userName, userColor, userAvatar],
 	);
 
+	// ── Announce presence immediately when connected ────────────────
+	useEffect(() => {
+		if (!awareness) {
+			return;
+		}
+		// Broadcast initial presence so other clients know we exist
+		awareness.setLocalStateField('presence', {
+			userName,
+			userColor,
+			userAvatar,
+			activeSlideIndex: 0,
+			cursorX: 0,
+			cursorY: 0,
+			lastUpdated: new Date().toISOString(),
+		});
+	}, [awareness, userName, userColor, userAvatar]);
+
 	// ── Listen for awareness changes ─────────────────────────────────
 	useEffect(() => {
 		if (!awareness || localClientId === null) {
@@ -159,14 +176,34 @@ export function usePresenceTracking({
 		};
 
 		awareness.on('change', handleChange);
+		// Also listen for 'update' events which fire on awareness state changes
+		awareness.on('update', handleChange);
 
 		// Initial read
 		handleChange();
 
 		return () => {
 			awareness.off('change', handleChange);
+			awareness.off('update', handleChange);
 		};
 	}, [awareness, localClientId, canvasWidth, canvasHeight]);
+
+	// ── Heartbeat — keep presence fresh so stale filter doesn't expire us
+	useEffect(() => {
+		if (!awareness) {
+			return;
+		}
+		const interval = setInterval(() => {
+			awareness.setLocalStateField('presence', {
+				...latestLocalState.current,
+				userName,
+				userColor,
+				userAvatar,
+				lastUpdated: new Date().toISOString(),
+			});
+		}, 10_000); // Every 10 seconds
+		return () => clearInterval(interval);
+	}, [awareness, userName, userColor, userAvatar]);
 
 	// Cleanup pending timeout on unmount
 	useEffect(() => {

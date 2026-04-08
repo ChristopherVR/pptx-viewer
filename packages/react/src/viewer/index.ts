@@ -6,6 +6,7 @@ export * from './types';
 export {
 	isAudienceTab,
 	loadAudienceContent,
+	storeAudienceContent,
 	clearAudienceContent,
 } from './hooks/presentation-mode';
 

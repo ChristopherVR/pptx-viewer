@@ -1,3 +1,4 @@
+import type { PptxSlide } from 'pptx-viewer-core';
 /**
  * PowerPoint Viewer Plugin — Top-level Orchestrator Component.
  *
@@ -22,18 +23,25 @@ import { forwardRef, useCallback, useEffect, useState } from 'react';
 
 import { ViewerThemeProvider, useThemeStyle } from '../theme';
 // Components
-import { LoadingState, ErrorState, ViewerOverlays, ViewerBottomPanels } from './components';
+import {
+	LoadingState,
+	ErrorState,
+	ViewerOverlays,
+	ViewerBottomPanels,
+	ShareDialog,
+} from './components';
 // Collaboration
 import {
 	CollaborationProvider,
 	useCollaboration,
-	UserAvatarBar,
 	CollaborationStatusIndicator,
 } from './components/collaboration';
+import { SettingsDialog } from './components/SettingsDialog';
 import { ViewerDialogGroup } from './components/ViewerDialogGroup';
 import { ViewerMainContent } from './components/ViewerMainContent';
 import { ViewerPresentationLayer } from './components/ViewerPresentationLayer';
 import { ViewerToolbarSection } from './components/ViewerToolbarSection';
+import { useYjsDocumentSync } from './hooks/collaboration';
 import { useDerivedSlideState } from './hooks/useDerivedSlideState';
 import { useEditorHistory } from './hooks/useEditorHistory';
 import { useEditorOperations } from './hooks/useEditorOperations';
@@ -75,6 +83,9 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			onActiveSlideChange,
 			theme,
 			collaboration,
+			onStartCollaboration,
+			onStopCollaboration,
+			shareDefaults,
 		} = props;
 
 		const themeStyle = useThemeStyle(theme);
@@ -85,6 +96,14 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		useEffect(() => {
 			setContent(incomingContent);
 		}, [incomingContent]);
+
+		// ── Settings dialog ─────────────────────────────────────────
+		const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+		// ── Share dialog ────────────────────────────────────────────
+		const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+
+		// ── Share dialog defaults (provided by host app via shareDefaults prop) ──
 
 		// ── Reduced motion ──────────────────────────────────────────
 		const { reducedMotion, toggleReducedMotion } = useReducedMotion();
@@ -349,35 +368,35 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 				ref={containerRef}
 				tabIndex={0}
 				style={themeStyle}
+				data-pptx-viewer=''
 				className='h-full w-full bg-background text-foreground flex flex-col relative overflow-hidden outline-none'
 			>
-				<div className='pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/3 to-transparent z-0' />
+				{/* Clean background — no decorative gradient */}
 
 				{mode !== 'present' && (
-					<>
-						<ViewerToolbarSection
-							mode={mode}
-							canEdit={canEdit}
-							state={state}
-							selectedElement={selectedElement}
-							activeSlide={activeSlide}
-							zoom={zoom}
-							history={history}
-							findReplace={editorOps.findReplace}
-							manipulation={editorOps.manipulation}
-							insertHandlers={editorOps.insertHandlers}
-							exportHandlers={exportHandlers}
-							printHandlers={printHandlers}
-							propertyHandlers={propertyHandlers}
-							dialogs={dialogs}
-							slideOps={editorOps.slideOps}
-							ops={editorOps.ops}
-							onSetMode={handleSetMode}
-							onEnterPresenterView={handleEnterPresenterView}
-							onEnterRehearsalMode={handleEnterRehearsalMode}
-						/>
-						{collaboration && <CollaborationToolbarStrip collaboration={collaboration} />}
-					</>
+					<ViewerToolbarSection
+						mode={mode}
+						canEdit={canEdit}
+						state={state}
+						selectedElement={selectedElement}
+						activeSlide={activeSlide}
+						zoom={zoom}
+						history={history}
+						findReplace={editorOps.findReplace}
+						manipulation={editorOps.manipulation}
+						insertHandlers={editorOps.insertHandlers}
+						exportHandlers={exportHandlers}
+						printHandlers={printHandlers}
+						propertyHandlers={propertyHandlers}
+						dialogs={dialogs}
+						slideOps={editorOps.slideOps}
+						ops={editorOps.ops}
+						onSetMode={handleSetMode}
+						onEnterPresenterView={handleEnterPresenterView}
+						onEnterRehearsalMode={handleEnterRehearsalMode}
+						onOpenSettings={() => setIsSettingsOpen(true)}
+						onOpenShareDialog={() => setIsShareDialogOpen(true)}
+					/>
 				)}
 
 				<ViewerMainContent
@@ -427,6 +446,13 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 						collaborationSlot={collaboration ? <CollaborationStatusStrip /> : undefined}
 						notesPanelHeight={isMobile ? undefined : resizablePanels.bottomHeight}
 						onResizeBottom={isMobile ? undefined : resizablePanels.onResizeBottom}
+						scale={zoom.scale}
+						onZoomIn={zoom.handleZoomIn}
+						onZoomOut={zoom.handleZoomOut}
+						onZoomToFit={zoom.handleZoomToFit}
+						mode={mode}
+						onSetMode={handleSetMode}
+						onToggleSlideSorter={() => state.setShowSlideSorter((p) => !p)}
 					/>
 				)}
 
@@ -455,6 +481,33 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					showKeepAnnotationsDialog={showKeepAnnotationsDialog}
 					onKeepAnnotations={handleKeepAnnotations}
 					onDiscardAnnotations={handleDiscardAnnotations}
+				/>
+
+				<SettingsDialog
+					isOpen={isSettingsOpen}
+					onClose={() => setIsSettingsOpen(false)}
+					spellCheckEnabled={state.spellCheckEnabled}
+					onSetSpellCheckEnabled={state.setSpellCheckEnabled}
+					showGrid={state.showGrid}
+					onSetShowGrid={state.setShowGrid}
+					showRulers={state.showRulers}
+					onSetShowRulers={state.setShowRulers}
+					snapToGrid={state.snapToGrid}
+					onSetSnapToGrid={state.setSnapToGrid}
+					reducedMotion={reducedMotion}
+					onToggleReducedMotion={toggleReducedMotion}
+				/>
+
+				<ShareDialog
+					open={isShareDialogOpen}
+					onClose={() => setIsShareDialogOpen(false)}
+					activeCollaboration={collaboration}
+					onStartCollaboration={onStartCollaboration}
+					onStopCollaboration={onStopCollaboration}
+					preconfigured={Boolean(collaboration)}
+					defaultRoomId={shareDefaults?.roomId}
+					defaultUserName={shareDefaults?.userName}
+					defaultServerUrl={shareDefaults?.serverUrl}
 				/>
 
 				<ViewerOverlays
@@ -501,6 +554,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 						canvasWidth={canvasSize.width}
 						canvasHeight={canvasSize.height}
 					>
+						<CollaborationDocumentSync slides={slides} setSlides={state.setSlides} />
 						{viewerContent}
 					</CollaborationProvider>
 				) : (
@@ -518,32 +572,6 @@ PowerPointViewer.displayName = 'PowerPointViewer';
 /* ------------------------------------------------------------------ */
 
 /**
- * Renders the `UserAvatarBar` in the toolbar area. Must be rendered
- * inside a `CollaborationProvider`.
- */
-function CollaborationToolbarStrip({
-	collaboration,
-}: {
-	collaboration: import('./hooks/collaboration/types').CollaborationConfig;
-}) {
-	const collab = useCollaboration();
-	if (!collab) {
-		return null;
-	}
-	return (
-		<div className='flex items-center justify-end px-2 py-0.5 border-b border-border bg-background/30 z-10'>
-			<UserAvatarBar
-				remoteUsers={collab.remoteUsers}
-				localUserName={collaboration.userName}
-				localUserColor={collab.config.userColor ?? '#6366f1'}
-				localUserAvatar={collaboration.userAvatar}
-				status={collab.status}
-			/>
-		</div>
-	);
-}
-
-/**
  * Renders the `CollaborationStatusIndicator` for the status bar.
  * Must be rendered inside a `CollaborationProvider`.
  */
@@ -555,4 +583,25 @@ function CollaborationStatusStrip() {
 	return (
 		<CollaborationStatusIndicator status={collab.status} connectedCount={collab.connectedCount} />
 	);
+}
+
+/**
+ * Handles syncing slide state with the Yjs document when collaboration is active.
+ * Must be rendered inside a `CollaborationProvider`.
+ */
+function CollaborationDocumentSync({
+	slides,
+	setSlides,
+}: {
+	slides: PptxSlide[];
+	setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
+}) {
+	const collab = useCollaboration();
+	useYjsDocumentSync({
+		doc: collab?.doc ?? null,
+		slides,
+		setSlides,
+		isConnected: collab?.status === 'connected',
+	});
+	return null;
 }
