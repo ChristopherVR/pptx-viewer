@@ -7,6 +7,7 @@
 import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
 
 import type { AutosaveStatus } from '../hooks/useAutosave';
+import type { ViewerMode } from '../types-core';
 import { ResizeHandle } from './ResizeHandle';
 import { SlideNotesPanel } from './SlideNotesPanel';
 import { StatusBar } from './StatusBar';
@@ -32,6 +33,20 @@ export interface ViewerBottomPanelsProps {
 	notesPanelHeight?: number;
 	/** Callback to resize the bottom panel. */
 	onResizeBottom?: (delta: number) => void;
+	/** Current zoom scale. */
+	scale?: number;
+	/** Zoom in callback. */
+	onZoomIn?: () => void;
+	/** Zoom out callback. */
+	onZoomOut?: () => void;
+	/** Zoom to fit callback. */
+	onZoomToFit?: () => void;
+	/** Current viewer mode. */
+	mode?: ViewerMode;
+	/** Switch viewer mode. */
+	onSetMode?: (mode: ViewerMode) => void;
+	/** Toggle slide sorter view. */
+	onToggleSlideSorter?: () => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -52,6 +67,13 @@ export function ViewerBottomPanels({
 	collaborationSlot,
 	notesPanelHeight,
 	onResizeBottom,
+	scale,
+	onZoomIn,
+	onZoomOut,
+	onZoomToFit,
+	mode,
+	onSetMode,
+	onToggleSlideSorter,
 }: ViewerBottomPanelsProps): React.ReactElement {
 	return (
 		<>
@@ -67,15 +89,22 @@ export function ViewerBottomPanels({
 				onUpdateNotes={onUpdateNotes}
 				panelHeight={notesPanelHeight}
 			/>
-			<div className='flex items-center justify-between'>
-				<StatusBar
-					slideCount={slideCount}
-					activeSlideIndex={activeSlideIndex}
-					isDirty={isDirty}
-					autosaveStatus={autosaveStatus}
-				/>
-				{collaborationSlot}
-			</div>
+			<StatusBar
+				slideCount={slideCount}
+				activeSlideIndex={activeSlideIndex}
+				isDirty={isDirty}
+				autosaveStatus={autosaveStatus}
+				scale={scale}
+				onZoomIn={onZoomIn}
+				onZoomOut={onZoomOut}
+				onZoomToFit={onZoomToFit}
+				isNotesExpanded={!isSlideNotesCollapsed}
+				onToggleNotes={onToggleNotes}
+				mode={mode}
+				onSetMode={onSetMode as ((mode: 'edit' | 'present') => void) | undefined}
+				onToggleSlideSorter={onToggleSlideSorter}
+				collaborationSlot={collaborationSlot}
+			/>
 		</>
 	);
 }

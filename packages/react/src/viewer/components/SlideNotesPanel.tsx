@@ -1,7 +1,6 @@
 import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuChevronDown, LuChevronUp, LuStickyNote } from 'react-icons/lu';
 
 import { renderRichNotesSegments } from './notes/notes-html';
 import { EXPANDED_MAX_HEIGHT } from './notes/notes-utils';
@@ -79,30 +78,19 @@ export const SlideNotesPanel: React.FC<SlideNotesPanelProps> = ({
 		: t('pptx.notes.noSlide');
 
 	return (
-		<div className='flex flex-col border-t border-border/60 bg-background/80 select-none'>
+		<div className='flex flex-col border-t border-border/60 bg-background select-none'>
 			<button
 				type='button'
 				onClick={onToggle}
-				className='flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors w-full text-left shrink-0'
+				className='flex items-center gap-1.5 px-3 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors w-full text-left shrink-0'
 				aria-expanded={isExpanded}
 				aria-controls='slide-notes-content'
 			>
-				<LuStickyNote className='w-3.5 h-3.5 shrink-0' />
-				<span className='font-medium tracking-wide uppercase'>{t('pptx.notes.title')}</span>
+				Notes
 				{!isExpanded && hasNotes && (
-					<span className='ml-1 truncate max-w-[240px] text-muted-foreground font-normal normal-case'>
-						- {draft.trim().split('\n')[0]}
-					</span>
+					<span className='text-muted-foreground/50 text-[10px]'>(has notes)</span>
 				)}
-				<span className='ml-auto shrink-0'>
-					{isExpanded ? (
-						<LuChevronDown className='w-3.5 h-3.5' />
-					) : (
-						<LuChevronUp className='w-3.5 h-3.5' />
-					)}
-				</span>
 			</button>
-
 			{isExpanded && (
 				<div
 					id='slide-notes-content'
