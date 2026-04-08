@@ -79,12 +79,14 @@ export interface ToolbarProps {
 	onExportVideo: () => void;
 	onExportGif: () => void;
 	onPackageForSharing: () => void;
+	onOpenShareDialog?: () => void;
 	onSaveAsPpsx: () => void;
 	onSaveAsPptm: () => void;
 	hasMacros: boolean;
 	onCopySlideAsImage: () => void;
 	onPrint: () => void;
 	onToggleShortcuts: () => void;
+	onOpenSettings?: () => void;
 	onRunAccessibilityCheck: () => void;
 	onToggleSlideSorter: () => void;
 	onUpdateTextStyle: (updates: Partial<TextStyle>) => void;

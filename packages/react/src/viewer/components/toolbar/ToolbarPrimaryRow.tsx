@@ -1,30 +1,31 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
+	LuMessageSquare,
 	LuPanelLeft,
 	LuPanelRight,
 	LuRedo,
 	LuSearch,
+	LuSettings,
+	LuShare2,
 	LuUndo,
-	LuZoomIn,
-	LuZoomOut,
 } from 'react-icons/lu';
 
 import { cn } from '../../utils';
+import { useCollaboration } from '../collaboration';
 import { CustomShowsControls } from './CustomShowsControls';
 import { ModeSwitcher } from './ModeSwitcher';
 import { OverflowMenu } from './OverflowMenu';
-import { gB, gL, grp, ic, ics, sep } from './toolbar-constants';
+import { ic, ics, sep } from './toolbar-constants';
 import type { ToolbarProps } from './toolbar-types';
 
 export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
+	const { t } = useTranslation();
 	const {
 		mode,
 		canEdit,
-		isNarrowViewport,
 		isSidebarCollapsed,
 		isInspectorPaneOpen,
-		isCompactToolbarOpen,
-		scale,
 		canUndo,
 		canRedo,
 		undoLabel,
@@ -32,96 +33,127 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 		findReplaceOpen,
 		onToggleSidebar,
 		onToggleInspector,
-		onToggleCompactToolbar,
-		onZoomIn,
-		onZoomOut,
-		onZoomToFit,
 		onUndo,
 		onRedo,
 		onToggleFindReplace,
 	} = p;
 
+	const collab = useCollaboration();
+
+	const qab =
+		'p-1 max-md:p-2 max-md:min-h-[40px] max-md:min-w-[40px] rounded-sm transition-colors hover:bg-accent/60 disabled:opacity-40 disabled:cursor-not-allowed active:scale-90 active:opacity-70';
+
 	return (
-		<div className='flex items-center gap-1.5 max-md:gap-0.5 flex-wrap'>
+		<div className='flex items-center gap-0.5 max-md:gap-0 px-1.5 py-0.5 max-md:px-1'>
+			{/* Left: Slides pane toggle + Undo/Redo + Find */}
 			{mode !== 'present' && (
 				<button
 					type='button'
 					onClick={onToggleSidebar}
-					className={cn(
-						'p-1.5 max-md:p-2.5 max-md:min-h-[44px] max-md:min-w-[44px] rounded transition-colors',
-						!isSidebarCollapsed
-							? 'bg-primary/80 text-primary-foreground'
-							: 'bg-muted hover:bg-accent',
-					)}
-					title='Toggle slides panel'
-					aria-label='Toggle slides panel'
+					className={cn(qab, !isSidebarCollapsed ? 'text-foreground' : 'text-muted-foreground')}
+					title={t('pptx.toolbar.toggleSlidesPanel')}
+					aria-label={t('pptx.toolbar.toggleSlidesPanel')}
 				>
 					<LuPanelLeft className={ic} />
 				</button>
 			)}
 			{sep}
 			<button
-				onClick={onZoomOut}
-				className='p-1.5 max-md:p-2.5 max-md:min-h-[44px] max-md:min-w-[44px] rounded bg-muted hover:bg-accent transition-colors'
-				title='Zoom out'
-				aria-label='Zoom out'
+				type='button'
+				onClick={onUndo}
+				disabled={!canEdit || !canUndo}
+				className={cn(qab, 'text-muted-foreground')}
+				title={
+					undoLabel ? t('pptx.toolbar.undoAction', { action: undoLabel }) : t('pptx.toolbar.undo')
+				}
+				aria-label={t('pptx.toolbar.undo')}
 			>
-				<LuZoomOut className={ics} />
+				<LuUndo className={ics} />
 			</button>
 			<button
-				onClick={onZoomToFit}
-				className='px-1.5 py-1 max-md:min-h-[44px] rounded bg-muted hover:bg-accent text-[11px] text-muted-foreground tabular-nums min-w-[3rem] text-center transition-colors'
-				title='Zoom to fit'
+				type='button'
+				onClick={onRedo}
+				disabled={!canEdit || !canRedo}
+				className={cn(qab, 'text-muted-foreground')}
+				title={
+					redoLabel ? t('pptx.toolbar.redoAction', { action: redoLabel }) : t('pptx.toolbar.redo')
+				}
+				aria-label={t('pptx.toolbar.redo')}
 			>
-				{Math.round(scale * 100)}%
+				<LuRedo className={ics} />
 			</button>
-			<button
-				onClick={onZoomIn}
-				className='p-1.5 max-md:p-2.5 max-md:min-h-[44px] max-md:min-w-[44px] rounded bg-muted hover:bg-accent transition-colors'
-				title='Zoom in'
-				aria-label='Zoom in'
-			>
-				<LuZoomIn className={ics} />
-			</button>
-			{sep}
-			<div className={grp}>
-				<button
-					type='button'
-					onClick={onUndo}
-					disabled={!canEdit || !canUndo}
-					className={gB}
-					title={undoLabel ? `Undo: ${undoLabel}` : 'Undo'}
-					aria-label='Undo'
-				>
-					<LuUndo className={ics} />
-				</button>
-				<button
-					type='button'
-					onClick={onRedo}
-					disabled={!canEdit || !canRedo}
-					className={gL}
-					title={redoLabel ? `Redo: ${redoLabel}` : 'Redo'}
-					aria-label='Redo'
-				>
-					<LuRedo className={ics} />
-				</button>
-			</div>
-			{/* Hide Find & Replace on mobile to save space — available via overflow menu */}
 			{(mode === 'edit' || mode === 'master') && (
 				<button
 					type='button'
 					onClick={onToggleFindReplace}
 					className={cn(
-						'p-1.5 max-md:p-2.5 max-md:min-h-[44px] max-md:min-w-[44px] rounded transition-colors max-md:hidden',
-						findReplaceOpen ? 'bg-primary/80 text-primary-foreground' : 'bg-muted hover:bg-accent',
+						qab,
+						'max-md:hidden',
+						findReplaceOpen ? 'text-foreground' : 'text-muted-foreground',
 					)}
-					title='Find & Replace'
-					aria-label='Find and Replace'
+					title={t('pptx.findReplace.title')}
+					aria-label={t('pptx.findReplace.title')}
 				>
 					<LuSearch className={ics} />
 				</button>
 			)}
+
+			{/* Center spacer */}
 			<div className='flex-1 min-w-2 max-md:min-w-1' />
+
+			{/* Right: Comments + Present + Share + Inspector + Settings + Overflow */}
+			{(mode === 'edit' || mode === 'master') && (
+				<button
+					type='button'
+					onClick={p.onToggleComments}
+					className={cn(
+						qab,
+						'max-md:hidden',
+						p.isCommentsPanelOpen ? 'text-foreground' : 'text-muted-foreground',
+					)}
+					title={t('pptx.toolbar.comments')}
+					aria-label={t('pptx.toolbar.comments')}
+				>
+					<LuMessageSquare className={ics} />
+					{(p.slideCommentCount ?? 0) > 0 && (
+						<span className='absolute -top-0.5 -right-0.5 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-primary text-[8px] text-primary-foreground leading-none'>
+							{p.slideCommentCount}
+						</span>
+					)}
+				</button>
+			)}
+
+			{/* Collaboration user avatars (inline, PowerPoint-style) */}
+			{collab &&
+				(collab.status === 'connected' || collab.status === 'connecting') &&
+				collab.remoteUsers.length > 0 && (
+					<div className='flex items-center -space-x-1.5 mx-1'>
+						{collab.remoteUsers.slice(0, 4).map((user) => (
+							<div
+								key={user.clientId}
+								className='w-6 h-6 rounded-full border-2 border-background flex items-center justify-center text-[8px] font-semibold text-white shrink-0'
+								style={{ backgroundColor: user.userColor }}
+								title={user.userName}
+							>
+								{user.userAvatar ? (
+									<img
+										src={user.userAvatar}
+										alt={user.userName}
+										className='w-full h-full rounded-full object-cover'
+									/>
+								) : (
+									user.userName.slice(0, 2).toUpperCase()
+								)}
+							</div>
+						))}
+						{collab.remoteUsers.length > 4 && (
+							<div className='w-6 h-6 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[8px] text-muted-foreground shrink-0'>
+								+{collab.remoteUsers.length - 4}
+							</div>
+						)}
+					</div>
+				)}
+
 			<ModeSwitcher
 				mode={p.mode}
 				onSetMode={p.onSetMode}
@@ -134,6 +166,7 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 				onToggleSubtitles={p.onToggleSubtitles}
 				showSubtitles={p.showSubtitles}
 			/>
+
 			<CustomShowsControls
 				customShows={p.customShows}
 				activeCustomShowId={p.activeCustomShowId}
@@ -145,44 +178,65 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 				onDeleteActiveCustomShow={p.onDeleteActiveCustomShow}
 				onToggleCurrentSlideInActiveShow={p.onToggleCurrentSlideInActiveShow}
 			/>
+
 			{sep}
+
+			{/* Share button — shows user count when collaborating */}
+			{(mode === 'edit' || mode === 'master') && (
+				<button
+					type='button'
+					onClick={p.onOpenShareDialog ?? p.onPackageForSharing}
+					className={cn(
+						'relative inline-flex items-center gap-1 px-2.5 py-1 rounded-sm text-[11px] font-medium transition-colors',
+						collab && collab.status === 'connected'
+							? 'bg-green-600 hover:bg-green-500 text-white'
+							: 'bg-primary hover:bg-primary/90 text-primary-foreground',
+					)}
+					title={
+						collab && collab.status === 'connected'
+							? t('pptx.toolbar.sharingUsers', { count: collab.connectedCount })
+							: t('pptx.toolbar.share')
+					}
+					aria-label={t('pptx.toolbar.share')}
+				>
+					<LuShare2 className='w-3 h-3' />
+					<span className='max-md:hidden'>
+						{collab && collab.status === 'connected'
+							? t('pptx.toolbar.sharingCount', { count: collab.connectedCount })
+							: t('pptx.toolbar.share')}
+					</span>
+				</button>
+			)}
+
 			{(mode === 'edit' || mode === 'master') && (
 				<button
 					type='button'
 					onClick={onToggleInspector}
-					className={cn(
-						'p-1.5 max-md:p-2.5 max-md:min-h-[44px] max-md:min-w-[44px] rounded transition-colors',
-						isInspectorPaneOpen
-							? 'bg-primary/80 text-primary-foreground'
-							: 'bg-muted hover:bg-accent',
-					)}
+					className={cn(qab, isInspectorPaneOpen ? 'text-foreground' : 'text-muted-foreground')}
 					title='Toggle inspector panel'
 					aria-label='Toggle inspector panel'
 				>
 					<LuPanelRight className={ic} />
 				</button>
 			)}
+
+			{/* Settings */}
+			<button
+				type='button'
+				onClick={p.onOpenSettings ?? p.onToggleShortcuts}
+				className={cn(qab, 'text-muted-foreground')}
+				title='Settings & Shortcuts'
+				aria-label='Settings'
+			>
+				<LuSettings className={ics} />
+			</button>
+
 			{!canEdit && (
-				<span className='inline-flex items-center px-2 py-1 rounded bg-amber-600/90 text-[11px] text-amber-50'>
+				<span className='inline-flex items-center px-2 py-0.5 rounded-sm bg-amber-600/90 text-[10px] text-amber-50'>
 					Read-only
 				</span>
 			)}
 			<OverflowMenu {...p} />
-			{isNarrowViewport && (mode === 'edit' || mode === 'master') && (
-				<button
-					type='button'
-					onClick={onToggleCompactToolbar}
-					className={cn(
-						'p-1.5 rounded text-[11px] transition-colors',
-						isCompactToolbarOpen
-							? 'bg-primary/80 text-primary-foreground'
-							: 'bg-muted hover:bg-accent',
-					)}
-					title='Toggle editing tools'
-				>
-					{isCompactToolbarOpen ? 'Less' : 'Tools'}
-				</button>
-			)}
 		</div>
 	);
 }

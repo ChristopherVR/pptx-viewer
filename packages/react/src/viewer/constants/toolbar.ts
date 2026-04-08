@@ -5,6 +5,7 @@
 import type { ShortcutReferenceItem, ToolbarSection } from '../types';
 
 export const TOOLBAR_SECTIONS: Array<{ id: ToolbarSection; label: string }> = [
+	{ id: 'file', label: 'File' },
 	{ id: 'home', label: 'Home' },
 	{ id: 'insert', label: 'Insert' },
 	{ id: 'text', label: 'Text' },
@@ -12,8 +13,11 @@ export const TOOLBAR_SECTIONS: Array<{ id: ToolbarSection; label: string }> = [
 	{ id: 'arrange', label: 'Arrange' },
 	{ id: 'design', label: 'Design' },
 	{ id: 'transitions', label: 'Transitions' },
+	{ id: 'animations', label: 'Animations' },
+	{ id: 'slideShow', label: 'Slide Show' },
 	{ id: 'review', label: 'Review' },
 	{ id: 'view', label: 'View' },
+	{ id: 'help', label: 'Help' },
 ];
 
 export const SHORTCUT_REFERENCE_ITEMS: ShortcutReferenceItem[] = [

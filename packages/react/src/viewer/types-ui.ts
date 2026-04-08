@@ -161,6 +161,7 @@ export type SlideAlignment = 'left' | 'center' | 'right' | 'top' | 'middle' | 'b
 
 /** Identifies one of the ribbon-style toolbar tabs (home, insert, text, etc.). */
 export type ToolbarSection =
+	| 'file'
 	| 'home'
 	| 'insert'
 	| 'text'
@@ -168,8 +169,11 @@ export type ToolbarSection =
 	| 'draw'
 	| 'design'
 	| 'transitions'
+	| 'animations'
+	| 'slideShow'
 	| 'review'
-	| 'view';
+	| 'view'
+	| 'help';
 
 /** The active drawing/inking tool selected in the Draw toolbar tab. */
 export type DrawingTool = 'select' | 'pen' | 'highlighter' | 'eraser' | 'freeform';
@@ -289,6 +293,41 @@ export interface PowerPointViewerProps {
 	 * ```
 	 */
 	collaboration?: CollaborationConfig;
+
+	/**
+	 * Callback invoked when the user starts a collaboration session from the
+	 * Share dialog. The host app should use this to set the `collaboration`
+	 * prop with the returned config.
+	 */
+	onStartCollaboration?: (config: CollaborationConfig) => void;
+
+	/**
+	 * Callback invoked when the user stops a collaboration session from the
+	 * Share dialog. The host app should clear the `collaboration` prop.
+	 */
+	onStopCollaboration?: () => void;
+
+	/**
+	 * Default values for the Share dialog fields. The host app should provide
+	 * these to control the session name, user display name, and server URL.
+	 * If omitted, the Share dialog fields will be empty and require user input.
+	 *
+	 * @example
+	 * ```tsx
+	 * <PowerPointViewer
+	 *   shareDefaults={{
+	 *     roomId: "session-abc123",
+	 *     userName: "Alice",
+	 *     serverUrl: "ws://localhost:1234",
+	 *   }}
+	 * />
+	 * ```
+	 */
+	shareDefaults?: {
+		roomId?: string;
+		userName?: string;
+		serverUrl?: string;
+	};
 }
 
 export interface PowerPointViewerHandle extends FileViewerHandle {

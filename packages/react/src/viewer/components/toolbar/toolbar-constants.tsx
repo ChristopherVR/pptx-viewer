@@ -39,13 +39,13 @@ import type { DrawingTool, ViewerMode } from '../../types';
  * Since Tailwind CSS 4 doesn't include a built-in `touch:` variant, we use
  * responsive `max-md:` prefixes as a proxy (mobile viewports are touch). */
 export const _b =
-	'inline-flex items-center justify-center px-2.5 py-1.5 max-md:min-h-[44px] max-md:min-w-[44px]';
+	'inline-flex items-center justify-center px-2.5 py-1.5 max-md:min-h-[44px] max-md:min-w-[44px] active:scale-95 active:opacity-80';
 export const gB = `${_b} border-r border-border hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed`;
 export const gL = `${_b} hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed`;
 export const grp = 'inline-flex items-center rounded bg-muted text-xs overflow-hidden';
 export const pill =
-	'inline-flex items-center gap-1.5 px-2.5 py-1.5 max-md:min-h-[44px] rounded bg-muted hover:bg-accent text-xs transition-colors';
-export const sep = <div className='w-px h-5 bg-border/60 mx-0.5 max-md:hidden' />;
+	'inline-flex items-center gap-1.5 px-2.5 py-1.5 max-md:min-h-[44px] rounded bg-muted hover:bg-accent text-xs transition-colors active:scale-95 active:opacity-80';
+export const sep = <div className='w-px self-stretch bg-border/40 mx-1 max-md:hidden' />;
 export const ic = 'w-4 h-4';
 export const ics = 'w-3.5 h-3.5';
 

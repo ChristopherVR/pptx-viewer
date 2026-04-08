@@ -80,6 +80,8 @@ export interface ViewerToolbarSectionProps {
 		digitalSignatureCount: number;
 		imageInputRef: React.RefObject<HTMLInputElement | null>;
 		mediaInputRef: React.RefObject<HTMLInputElement | null>;
+		sidebarPanelMode: string;
+		setSidebarPanelMode: React.Dispatch<React.SetStateAction<string>>;
 	};
 	selectedElement: PptxElement | null;
 	activeSlide: PptxSlide | undefined;
@@ -105,6 +107,8 @@ export interface ViewerToolbarSectionProps {
 	onSetMode: (mode: ViewerMode) => void;
 	onEnterPresenterView: () => void;
 	onEnterRehearsalMode: () => void;
+	onOpenSettings?: () => void;
+	onOpenShareDialog?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -132,6 +136,8 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		onSetMode,
 		onEnterPresenterView,
 		onEnterRehearsalMode,
+		onOpenSettings,
+		onOpenShareDialog,
 	} = props;
 
 	return (
@@ -210,12 +216,14 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onExportVideo={exportHandlers.handleExportVideo}
 				onExportGif={exportHandlers.handleExportGif}
 				onPackageForSharing={exportHandlers.handlePackageForSharing}
+				onOpenShareDialog={onOpenShareDialog}
 				onSaveAsPpsx={exportHandlers.handleSaveAsPpsx}
 				onSaveAsPptm={exportHandlers.handleSaveAsPptm}
 				hasMacros={s.hasMacros}
 				onCopySlideAsImage={exportHandlers.handleCopySlideAsImage}
 				onPrint={printHandlers.handlePrint}
 				onToggleShortcuts={() => s.setIsShortcutHelpOpen((p) => !p)}
+				onOpenSettings={onOpenSettings}
 				onRunAccessibilityCheck={dialogs.handleRunAccessibilityCheck}
 				onToggleSlideSorter={() => s.setShowSlideSorter((p) => !p)}
 				onUpdateTextStyle={ops.updateSelectedTextStyle}
@@ -245,7 +253,12 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onToggleThemeGallery={() => s.setIsThemeGalleryOpen((p) => !p)}
 				isThemeGalleryOpen={s.isThemeGalleryOpen}
 				onCompare={propertyHandlers.handleCompare}
-				onToggleComments={() => s.setIsInspectorPaneOpen((p) => !p)}
+				onToggleComments={() => {
+					s.setSidebarPanelMode('comments');
+					if (!s.isInspectorPaneOpen) {
+						s.setIsInspectorPaneOpen(true);
+					}
+				}}
 				isCommentsPanelOpen={s.isInspectorPaneOpen}
 				slideCommentCount={activeSlide?.comments?.length ?? 0}
 				formatPainterActive={s.formatPainterActive}
