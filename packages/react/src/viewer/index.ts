@@ -25,6 +25,7 @@ export { CollaborationProvider } from './components/collaboration';
 export type {
 	UserPresence,
 	CollaborationConfig,
+	CollaborationRole,
 	CollaborationContextValue,
 	ConnectionStatus,
 	UsePresenceTrackingResult,

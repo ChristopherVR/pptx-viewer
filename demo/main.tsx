@@ -282,11 +282,17 @@ function App() {
 		}
 	});
 
-	// ── URL-based collaboration join ─────────────────────────────────────
-	const urlParams = useMemo(() => new URLSearchParams(window.location.search), []);
-	const urlRoom = urlParams.get('room');
-	const urlServer = urlParams.get('server') ?? 'ws://localhost:1234';
-	const urlName = urlParams.get('name');
+	// ── URL-based collaboration / broadcast join ────────────────────────
+	const [urlRoom, setUrlRoom] = useState(() =>
+		new URLSearchParams(window.location.search).get('room'),
+	);
+	const [urlBroadcast, setUrlBroadcast] = useState(() =>
+		new URLSearchParams(window.location.search).get('broadcast'),
+	);
+	const [urlServer] = useState(
+		() => new URLSearchParams(window.location.search).get('server') ?? 'ws://localhost:1234',
+	);
+	const [urlName] = useState(() => new URLSearchParams(window.location.search).get('name'));
 
 	// Generate stable defaults for the Share dialog — these are demo-specific
 	const autoRoomId = useMemo(() => {
@@ -318,7 +324,7 @@ function App() {
 	// ── Collaboration ────────────────────────────────────────────────────
 	const [collaborationConfig, setCollaborationConfig] = useState<CollaborationConfig | null>(null);
 
-	// Auto-connect if room is in URL
+	// Auto-connect if room is in URL (collaboration mode)
 	useEffect(() => {
 		if (urlRoom && !collaborationConfig) {
 			setCollaborationConfig({
@@ -332,12 +338,31 @@ function App() {
 		}
 	}, [urlRoom, urlServer, urlName, autoName, collaborationConfig]);
 
+	// Auto-connect if broadcast is in URL (viewer mode)
+	useEffect(() => {
+		if (urlBroadcast && !collaborationConfig) {
+			setCollaborationConfig({
+				roomId: urlBroadcast,
+				serverUrl: urlServer,
+				userName: urlName ?? autoName,
+				userColor: `#${Math.floor(Math.random() * 0xffffff)
+					.toString(16)
+					.padStart(6, '0')}`,
+				role: 'viewer',
+			});
+		}
+	}, [urlBroadcast, urlServer, urlName, autoName, collaborationConfig]);
+
 	const handleStartCollaboration = useCallback(
 		(config: CollaborationConfig) => {
 			setCollaborationConfig(config);
-			// Update URL with room info for sharing
+			// Update URL with room/broadcast info for sharing
 			const url = new URL(window.location.href);
-			url.searchParams.set('room', config.roomId);
+			if (config.role === 'broadcaster') {
+				url.searchParams.set('broadcast', config.roomId);
+			} else {
+				url.searchParams.set('room', config.roomId);
+			}
 			url.searchParams.set('server', config.serverUrl);
 			window.history.replaceState({}, '', url.toString());
 			// Upload PPTX content to the collab server so joiners can download it
@@ -356,22 +381,26 @@ function App() {
 
 	const handleStopCollaboration = useCallback(() => {
 		setCollaborationConfig(null);
-		// Remove room from URL
+		setUrlRoom(null);
+		setUrlBroadcast(null);
+		// Remove room/broadcast from URL
 		const url = new URL(window.location.href);
 		url.searchParams.delete('room');
+		url.searchParams.delete('broadcast');
 		url.searchParams.delete('server');
 		url.searchParams.delete('name');
 		window.history.replaceState({}, '', url.toString());
 	}, []);
 
-	// When joining via URL with a room param, download PPTX from the collab server
+	// When joining via URL with a room/broadcast param, download PPTX from the collab server
+	const joinRoomId = urlRoom ?? urlBroadcast;
 	useEffect(() => {
-		if (!urlRoom || content) {
+		if (!joinRoomId || content) {
 			return;
 		}
 		let cancelled = false;
 		const httpUrl = urlServer.replace(/^ws/, 'http');
-		void fetch(`${httpUrl}/file/${encodeURIComponent(urlRoom)}`)
+		void fetch(`${httpUrl}/file/${encodeURIComponent(joinRoomId)}`)
 			.then((res) => {
 				if (!res.ok) {
 					throw new Error('Not found');
@@ -383,7 +412,7 @@ function App() {
 					return undefined;
 				}
 				setContent(new Uint8Array(buf));
-				setFileName('Collaboration Session');
+				setFileName(urlBroadcast ? 'Broadcast Session' : 'Collaboration Session');
 				return undefined;
 			})
 			.catch(() => {
@@ -392,11 +421,11 @@ function App() {
 		return () => {
 			cancelled = true;
 		};
-	}, [urlRoom, urlServer, content]);
+	}, [joinRoomId, urlServer, content, urlBroadcast]);
 
 	// Fallback: try IndexedDB if server download didn't work (same-browser tabs)
 	useEffect(() => {
-		if (!urlRoom || content) {
+		if (!joinRoomId || content) {
 			return;
 		}
 		let cancelled = false;
@@ -414,7 +443,7 @@ function App() {
 			cancelled = true;
 			clearTimeout(timer);
 		};
-	}, [urlRoom, content]);
+	}, [joinRoomId, content]);
 
 	// When opened as an audience tab, load the PPTX content from IndexedDB
 	useEffect(() => {
@@ -435,10 +464,16 @@ function App() {
 		};
 	}, []);
 
-	// Update document title when in collaboration mode
+	// Update document title when in collaboration/broadcast mode
 	useEffect(() => {
 		if (collaborationConfig && content) {
-			document.title = `[Collab] ${fileName} — PPTX Viewer`;
+			const prefix =
+				collaborationConfig.role === 'broadcaster'
+					? '[Broadcasting]'
+					: collaborationConfig.role === 'viewer'
+						? '[Watching]'
+						: '[Collab]';
+			document.title = `${prefix} ${fileName} — PPTX Viewer`;
 		}
 	}, [collaborationConfig, content, fileName]);
 
@@ -513,6 +548,7 @@ function App() {
 				<PowerPointViewer
 					content={content}
 					canEdit
+					authorName={collaborationConfig?.userName ?? autoName}
 					collaboration={collaborationConfig ?? undefined}
 					onStartCollaboration={handleStartCollaboration}
 					onStopCollaboration={handleStopCollaboration}
@@ -538,7 +574,17 @@ function App() {
 				onDragOver={handleDragOver}
 				onClick={handleClick}
 			>
-				{urlRoom ? (
+				{urlBroadcast ? (
+					<>
+						<p className='text-foreground mb-2 font-medium'>
+							Joining broadcast:{' '}
+							<code className='px-1.5 py-0.5 rounded bg-muted text-primary text-sm font-mono'>
+								{urlBroadcast}
+							</code>
+						</p>
+						<p className='text-muted-foreground mb-3'>Loading presentation from broadcaster…</p>
+					</>
+				) : urlRoom ? (
 					<>
 						<p className='text-foreground mb-2 font-medium'>
 							Joining collaboration session:{' '}

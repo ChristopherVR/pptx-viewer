@@ -122,6 +122,7 @@ export interface RawPresenceData {
 	cursorY?: unknown;
 	lastUpdated?: unknown;
 	selectedElementId?: unknown;
+	role?: unknown;
 }
 
 export interface SanitizedPresence {
@@ -134,6 +135,7 @@ export interface SanitizedPresence {
 	cursorY: number;
 	lastUpdated: string;
 	selectedElementId?: string;
+	role?: 'collaborator' | 'broadcaster' | 'viewer';
 }
 
 /**
@@ -160,5 +162,9 @@ export function sanitizePresence(
 		lastUpdated: typeof raw.lastUpdated === 'string' ? raw.lastUpdated : new Date().toISOString(),
 		selectedElementId:
 			typeof raw.selectedElementId === 'string' ? raw.selectedElementId.slice(0, 128) : undefined,
+		role:
+			raw.role === 'broadcaster' || raw.role === 'viewer' || raw.role === 'collaborator'
+				? raw.role
+				: undefined,
 	};
 }

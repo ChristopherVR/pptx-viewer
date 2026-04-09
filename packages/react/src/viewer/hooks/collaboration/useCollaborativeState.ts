@@ -44,6 +44,7 @@ export function useCollaborativeState({
 		userName: config.userName,
 		userColor,
 		userAvatar: config.userAvatar,
+		role: config.role,
 		canvasWidth,
 		canvasHeight,
 	});

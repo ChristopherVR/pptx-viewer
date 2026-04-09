@@ -1,12 +1,18 @@
 /**
- * BroadcastDialog
+ * BroadcastDialog — Modal dialog for starting / managing a live broadcast.
  *
- * Placeholder dialog for "Present Online" / broadcast feature.
- * The actual broadcast requires WebRTC/WebSocket server infrastructure
- * which is not implemented in the MVP.
+ * A broadcast is a collaboration session where the presenter (broadcaster)
+ * shares their slide navigation and cursor with viewers in real-time.
+ * Reuses the existing Yjs + WebSocket collaboration infrastructure.
+ *
+ * @module BroadcastDialog
  */
-import React from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { LuCast, LuCheck, LuCopy, LuUsers, LuWifi, LuWifiOff } from 'react-icons/lu';
+
+import type { CollaborationConfig } from '../hooks/collaboration/types';
+import { useCollaboration } from './collaboration';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -20,28 +26,120 @@ export interface BroadcastDialogProps {
 	open: boolean;
 	/** Callback invoked when the user dismisses the dialog. */
 	onClose: () => void;
+	/** Callback to start a broadcast (creates a collaboration session). */
+	onStartBroadcast?: (config: CollaborationConfig) => void;
+	/** Callback to stop the active broadcast. */
+	onStopBroadcast?: () => void;
+	/** Callback to enter presentation mode after broadcast starts. */
+	onStartPresenting?: () => void;
+	/** Default room ID for the broadcast. */
+	defaultRoomId?: string;
+	/** Default user name. */
+	defaultUserName?: string;
+	/** Default server URL. */
+	defaultServerUrl?: string;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-/**
- * Placeholder modal dialog for the "Present Online" broadcast feature.
- *
- * The "Start Broadcast" button is intentionally disabled because the
- * underlying WebRTC / WebSocket server infrastructure is not yet
- * implemented. This dialog exists to surface the feature in the UI and
- * inform the user of its planned availability.
- *
- * @param props - {@link BroadcastDialogProps}
- * @returns The dialog element, or `null` when `open` is `false`.
- */
 export function BroadcastDialog({
 	open,
 	onClose,
+	onStartBroadcast,
+	onStopBroadcast,
+	onStartPresenting,
+	defaultRoomId,
+	defaultUserName,
+	defaultServerUrl,
 }: BroadcastDialogProps): React.ReactElement | null {
 	const { t } = useTranslation();
+	const collab = useCollaboration();
+	const isBroadcasting =
+		collab !== null &&
+		collab.status !== 'disconnected' &&
+		collab.status !== 'error' &&
+		collab.config.role === 'broadcaster';
+
+	// Form state
+	const [roomId, setRoomId] = useState('');
+	const [userName, setUserName] = useState('');
+	const [serverUrl, setServerUrl] = useState('');
+	const [copied, setCopied] = useState(false);
+	const dialogRef = useRef<HTMLDivElement>(null);
+
+	// Sync defaults on open
+	useEffect(() => {
+		if (open && !isBroadcasting) {
+			// Generate a broadcast-specific room ID
+			const broadcastRoom = defaultRoomId
+				? `broadcast-${defaultRoomId}`
+				: `broadcast-${Math.random().toString(36).slice(2, 10)}`;
+			setRoomId(broadcastRoom);
+			setUserName(defaultUserName ?? '');
+			setServerUrl(defaultServerUrl ?? 'ws://localhost:1234');
+		}
+	}, [open, isBroadcasting, defaultRoomId, defaultUserName, defaultServerUrl]);
+
+	// Close on Escape
+	useEffect(() => {
+		if (!open) {
+			return;
+		}
+		function handleKeyDown(e: KeyboardEvent) {
+			if (e.key === 'Escape') {
+				onClose();
+			}
+		}
+		document.addEventListener('keydown', handleKeyDown);
+		return () => document.removeEventListener('keydown', handleKeyDown);
+	}, [open, onClose]);
+
+	// Focus dialog on open
+	useEffect(() => {
+		if (open && dialogRef.current) {
+			dialogRef.current.focus();
+		}
+	}, [open]);
+
+	const broadcastUrl =
+		typeof window !== 'undefined'
+			? `${window.location.origin}${window.location.pathname}?broadcast=${encodeURIComponent(isBroadcasting ? collab.config.roomId : roomId)}&server=${encodeURIComponent(isBroadcasting ? collab.config.serverUrl : serverUrl)}`
+			: roomId;
+
+	const handleCopyUrl = useCallback(() => {
+		void navigator.clipboard.writeText(broadcastUrl).then(() => {
+			setCopied(true);
+			setTimeout(() => setCopied(false), 2000);
+			return undefined;
+		});
+	}, [broadcastUrl]);
+
+	const handleStartBroadcast = useCallback(() => {
+		if (!roomId.trim() || !userName.trim()) {
+			return;
+		}
+		onStartBroadcast?.({
+			roomId: roomId.trim(),
+			serverUrl: serverUrl.trim(),
+			userName: userName.trim(),
+			role: 'broadcaster',
+		});
+		// Enter presentation mode after a short delay for connection
+		setTimeout(() => {
+			onStartPresenting?.();
+		}, 100);
+		onClose();
+	}, [roomId, userName, serverUrl, onStartBroadcast, onStartPresenting, onClose]);
+
+	const handleStopBroadcast = useCallback(() => {
+		onStopBroadcast?.();
+		onClose();
+	}, [onStopBroadcast, onClose]);
+
+	const canStart =
+		roomId.trim().length > 0 && userName.trim().length > 0 && serverUrl.trim().length > 0;
 
 	if (!open) {
 		return null;
@@ -59,10 +157,20 @@ export function BroadcastDialog({
 
 			{/* Dialog */}
 			<div className='fixed inset-0 z-[201] flex items-center justify-center pointer-events-none'>
-				<div className='pointer-events-auto w-[380px] rounded-xl border border-border bg-background shadow-2xl'>
+				<div
+					ref={dialogRef}
+					role='dialog'
+					aria-modal='true'
+					aria-label={t('pptx.broadcast.title')}
+					tabIndex={-1}
+					className='pointer-events-auto w-full max-w-md rounded-xl border border-border bg-popover text-foreground shadow-2xl outline-none'
+				>
 					{/* Header */}
 					<div className='flex items-center justify-between px-5 py-3 border-b border-border'>
-						<h2 className='text-sm font-semibold text-foreground'>{t('pptx.broadcast.title')}</h2>
+						<h2 className='text-sm font-semibold text-foreground flex items-center gap-2'>
+							<LuCast className='w-4 h-4' />
+							{isBroadcasting ? t('pptx.broadcast.broadcasting') : t('pptx.broadcast.title')}
+						</h2>
 						<button
 							type='button'
 							onClick={onClose}
@@ -74,31 +182,247 @@ export function BroadcastDialog({
 					</div>
 
 					{/* Body */}
-					<div className='px-5 py-6 text-center'>
-						<p className='text-[13px] text-muted-foreground leading-relaxed'>
-							{t('pptx.broadcast.description')}
-						</p>
+					<div className='px-5 py-4'>
+						{isBroadcasting ? (
+							<ActiveBroadcastView
+								collab={collab}
+								broadcastUrl={broadcastUrl}
+								copied={copied}
+								onCopyUrl={handleCopyUrl}
+								onStopBroadcast={handleStopBroadcast}
+							/>
+						) : (
+							<StartBroadcastForm
+								roomId={roomId}
+								userName={userName}
+								serverUrl={serverUrl}
+								onRoomIdChange={setRoomId}
+								onUserNameChange={setUserName}
+								onServerUrlChange={setServerUrl}
+							/>
+						)}
 					</div>
 
 					{/* Footer */}
-					<div className='flex justify-end gap-2 px-5 py-3 border-t border-border'>
-						<button
-							type='button'
-							onClick={onClose}
-							className='px-3 py-1.5 rounded bg-muted hover:bg-accent text-[12px] text-foreground transition-colors'
-						>
-							{t('common.close')}
-						</button>
-						<button
-							type='button'
-							disabled
-							className='px-3 py-1.5 rounded bg-primary/40 text-[12px] text-white/50 cursor-not-allowed'
-						>
-							{t('pptx.broadcast.startBroadcast')}
-						</button>
-					</div>
+					{!isBroadcasting && (
+						<div className='flex justify-end gap-2 px-5 py-3 border-t border-border'>
+							<button
+								type='button'
+								onClick={onClose}
+								className='px-3 py-1.5 rounded bg-muted hover:bg-accent text-[12px] text-foreground transition-colors'
+							>
+								{t('common.close')}
+							</button>
+							<button
+								type='button'
+								disabled={!canStart}
+								onClick={handleStartBroadcast}
+								className='px-3 py-1.5 rounded bg-primary hover:bg-primary/90 text-[12px] text-primary-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
+							>
+								{t('pptx.broadcast.startBroadcast')}
+							</button>
+						</div>
+					)}
 				</div>
 			</div>
 		</>
+	);
+}
+
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
+
+function StartBroadcastForm({
+	roomId,
+	userName,
+	serverUrl,
+	onRoomIdChange,
+	onUserNameChange,
+	onServerUrlChange,
+}: {
+	roomId: string;
+	userName: string;
+	serverUrl: string;
+	onRoomIdChange: (v: string) => void;
+	onUserNameChange: (v: string) => void;
+	onServerUrlChange: (v: string) => void;
+}) {
+	const { t } = useTranslation();
+
+	return (
+		<div className='space-y-4'>
+			<p className='text-[13px] text-muted-foreground leading-relaxed'>
+				{t('pptx.broadcast.description')}
+			</p>
+
+			{/* Broadcast Room */}
+			<div className='space-y-1.5'>
+				<label
+					htmlFor='broadcast-room-id'
+					className='block text-[12px] font-medium text-foreground'
+				>
+					{t('pptx.broadcast.sessionName')}
+				</label>
+				<input
+					id='broadcast-room-id'
+					type='text'
+					value={roomId}
+					onChange={(e) => onRoomIdChange(e.target.value)}
+					placeholder='broadcast-abc123'
+					className='w-full px-3 py-1.5 rounded border border-border bg-background text-foreground text-[13px] placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary'
+				/>
+			</div>
+
+			{/* User Display Name */}
+			<div className='space-y-1.5'>
+				<label
+					htmlFor='broadcast-user-name'
+					className='block text-[12px] font-medium text-foreground'
+				>
+					{t('pptx.broadcast.displayName')}
+				</label>
+				<input
+					id='broadcast-user-name'
+					type='text'
+					value={userName}
+					onChange={(e) => onUserNameChange(e.target.value)}
+					placeholder='Presenter'
+					className='w-full px-3 py-1.5 rounded border border-border bg-background text-foreground text-[13px] placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary'
+				/>
+			</div>
+
+			{/* Server URL */}
+			<div className='space-y-1.5'>
+				<label
+					htmlFor='broadcast-server-url'
+					className='block text-[12px] font-medium text-foreground'
+				>
+					{t('pptx.broadcast.serverLabel')}
+				</label>
+				<input
+					id='broadcast-server-url'
+					type='text'
+					value={serverUrl}
+					onChange={(e) => onServerUrlChange(e.target.value)}
+					placeholder='ws://localhost:1234'
+					className='w-full px-3 py-1.5 rounded border border-border bg-background text-foreground text-[13px] placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary'
+				/>
+			</div>
+
+			<p className='text-[11px] text-muted-foreground/70 leading-relaxed'>
+				{t('pptx.broadcast.hint')}
+			</p>
+		</div>
+	);
+}
+
+function ActiveBroadcastView({
+	collab,
+	broadcastUrl,
+	copied,
+	onCopyUrl,
+	onStopBroadcast,
+}: {
+	collab: NonNullable<ReturnType<typeof useCollaboration>>;
+	broadcastUrl: string;
+	copied: boolean;
+	onCopyUrl: () => void;
+	onStopBroadcast: () => void;
+}) {
+	const { t } = useTranslation();
+	const statusColor =
+		collab.status === 'connected'
+			? 'text-green-400'
+			: collab.status === 'connecting'
+				? 'text-yellow-400'
+				: 'text-red-400';
+
+	const statusIcon =
+		collab.status === 'connected' || collab.status === 'connecting' ? (
+			<LuWifi className='w-4 h-4' />
+		) : (
+			<LuWifiOff className='w-4 h-4' />
+		);
+
+	const viewerCount = collab.remoteUsers.filter((u) => u.role === 'viewer').length;
+
+	return (
+		<div className='space-y-4'>
+			{/* Status */}
+			<div className='flex items-center gap-2'>
+				<span className={statusColor}>{statusIcon}</span>
+				<span className='text-[13px] font-medium text-foreground capitalize'>{collab.status}</span>
+				<span className='text-[12px] text-muted-foreground ml-auto flex items-center gap-1'>
+					<LuUsers className='w-3.5 h-3.5' />
+					{t('pptx.broadcast.viewerCount', { count: viewerCount })}
+				</span>
+			</div>
+
+			{/* Share URL */}
+			<div className='space-y-1.5'>
+				<label className='block text-[12px] font-medium text-foreground'>
+					{t('pptx.broadcast.viewerLink')}
+				</label>
+				<div className='flex items-center gap-2'>
+					<div className='flex-1 px-3 py-1.5 rounded border border-border bg-background text-[11px] text-foreground select-all font-mono truncate'>
+						{broadcastUrl}
+					</div>
+					<button
+						type='button'
+						onClick={onCopyUrl}
+						className='flex items-center gap-1 px-2.5 py-1.5 rounded border border-border bg-muted hover:bg-accent text-[12px] text-foreground transition-colors shrink-0'
+						title={t('pptx.broadcast.copyLink')}
+					>
+						{copied ? (
+							<>
+								<LuCheck className='w-3.5 h-3.5 text-green-400' />
+								<span>{t('pptx.share.copied')}</span>
+							</>
+						) : (
+							<>
+								<LuCopy className='w-3.5 h-3.5' />
+								<span>{t('pptx.share.copyUrl')}</span>
+							</>
+						)}
+					</button>
+				</div>
+				<p className='text-[11px] text-muted-foreground'>{t('pptx.broadcast.shareHint')}</p>
+			</div>
+
+			{/* Viewer list */}
+			{collab.remoteUsers.length > 0 && (
+				<div className='space-y-1.5'>
+					<label className='block text-[12px] font-medium text-foreground'>
+						{t('pptx.broadcast.viewers')}
+					</label>
+					<div className='rounded border border-border bg-background divide-y divide-border max-h-[120px] overflow-y-auto'>
+						{collab.remoteUsers.map((user) => (
+							<div key={user.clientId} className='flex items-center gap-2 px-3 py-2'>
+								<div
+									className='w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-semibold text-white shrink-0'
+									style={{ backgroundColor: user.userColor }}
+								>
+									{user.userName.slice(0, 2).toUpperCase()}
+								</div>
+								<span className='text-[12px] text-foreground truncate'>{user.userName}</span>
+								<span className='text-[10px] text-muted-foreground ml-auto'>
+									Slide {user.activeSlideIndex + 1}
+								</span>
+							</div>
+						))}
+					</div>
+				</div>
+			)}
+
+			{/* Stop broadcast */}
+			<button
+				type='button'
+				onClick={onStopBroadcast}
+				className='w-full px-3 py-2 rounded border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-[12px] text-red-400 font-medium transition-colors'
+			>
+				{t('pptx.broadcast.stopBroadcast')}
+			</button>
+		</div>
 	);
 }

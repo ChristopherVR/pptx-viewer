@@ -5,6 +5,7 @@
  */
 export type {
 	CollaborationConfig,
+	CollaborationRole,
 	ConnectionStatus,
 	UserPresence,
 	CollaborationContextValue,
@@ -27,6 +28,9 @@ export type {
 
 export { useYjsDocumentSync } from './useYjsDocumentSync';
 export type { UseYjsDocumentSyncInput } from './useYjsDocumentSync';
+
+export { useBroadcastFollower } from './useBroadcastFollower';
+export type { UseBroadcastFollowerInput } from './useBroadcastFollower';
 
 export {
 	validateRoomId,

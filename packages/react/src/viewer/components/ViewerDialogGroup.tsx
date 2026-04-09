@@ -21,7 +21,6 @@ import {
 	ExportProgressModal,
 	KeepAnnotationsDialog,
 	SetUpSlideShowDialog,
-	BroadcastDialog,
 	PrintDialog,
 } from '.';
 import type { ExportHandlersResult } from '../hooks/useExportHandlers';
@@ -209,11 +208,6 @@ export function ViewerDialogGroup(props: ViewerDialogGroupProps) {
 				onSave={dialogs.handleSaveSlideShowSettings}
 				customShows={customShows}
 				slideCount={slides.length}
-			/>
-
-			<BroadcastDialog
-				open={dialogs.isBroadcastDialogOpen}
-				onClose={() => dialogs.setIsBroadcastDialogOpen(false)}
 			/>
 
 			<PrintDialog

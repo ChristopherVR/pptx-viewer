@@ -35,6 +35,8 @@ export interface UsePresenceTrackingInput {
 	userName: string;
 	userColor: string;
 	userAvatar?: string;
+	/** Role in the session (broadcaster, viewer, or collaborator). */
+	role?: string;
 	canvasWidth: number;
 	canvasHeight: number;
 }
@@ -66,6 +68,7 @@ export function usePresenceTracking({
 	userName,
 	userColor,
 	userAvatar,
+	role,
 	canvasWidth,
 	canvasHeight,
 }: UsePresenceTrackingInput): UsePresenceTrackingResult {
@@ -95,6 +98,7 @@ export function usePresenceTracking({
 					userName,
 					userColor,
 					userAvatar,
+					role,
 					lastUpdated: new Date().toISOString(),
 				};
 				awareness.setLocalStateField('presence', state);
@@ -116,7 +120,7 @@ export function usePresenceTracking({
 				}, BROADCAST_THROTTLE_MS - elapsed);
 			}
 		},
-		[awareness, userName, userColor, userAvatar],
+		[awareness, userName, userColor, userAvatar, role],
 	);
 
 	// ── Announce presence immediately when connected ────────────────
@@ -129,12 +133,13 @@ export function usePresenceTracking({
 			userName,
 			userColor,
 			userAvatar,
+			role,
 			activeSlideIndex: 0,
 			cursorX: 0,
 			cursorY: 0,
 			lastUpdated: new Date().toISOString(),
 		});
-	}, [awareness, userName, userColor, userAvatar]);
+	}, [awareness, userName, userColor, userAvatar, role]);
 
 	// ── Listen for awareness changes ─────────────────────────────────
 	useEffect(() => {
@@ -199,11 +204,12 @@ export function usePresenceTracking({
 				userName,
 				userColor,
 				userAvatar,
+				role,
 				lastUpdated: new Date().toISOString(),
 			});
 		}, 10_000); // Every 10 seconds
 		return () => clearInterval(interval);
-	}, [awareness, userName, userColor, userAvatar]);
+	}, [awareness, userName, userColor, userAvatar, role]);
 
 	// Cleanup pending timeout on unmount
 	useEffect(() => {

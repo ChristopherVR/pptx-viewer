@@ -304,6 +304,24 @@ const en = {
 		'pptx.inspector.element': 'Element',
 		'pptx.inspector.noSlideSelected': 'No slide selected',
 
+		// Broadcast
+		'pptx.broadcast.title': 'Broadcast Slide Show',
+		'pptx.broadcast.broadcasting': 'Broadcasting Live',
+		'pptx.broadcast.description':
+			'Start a live broadcast so viewers can follow your presentation in real-time. Viewers will automatically see the slide you are presenting.',
+		'pptx.broadcast.sessionName': 'Broadcast Session',
+		'pptx.broadcast.displayName': 'Presenter Name',
+		'pptx.broadcast.serverLabel': 'Collaboration Server',
+		'pptx.broadcast.hint':
+			'Viewers can join using the link shown after starting. They will follow your slides automatically.',
+		'pptx.broadcast.startBroadcast': 'Start Broadcast',
+		'pptx.broadcast.stopBroadcast': 'Stop Broadcast',
+		'pptx.broadcast.viewerLink': 'Viewer Link',
+		'pptx.broadcast.copyLink': 'Copy viewer link',
+		'pptx.broadcast.shareHint': 'Share this URL with your audience so they can follow along.',
+		'pptx.broadcast.viewers': 'Viewers',
+		'pptx.broadcast.viewerCount': '{{count}} viewer(s)',
+
 		// Encrypted
 		'pptx.encryptedFile.title': 'Encrypted File',
 		'pptx.encryptedFile.message': 'This file is encrypted.',

@@ -17,6 +17,9 @@
  * `CollaborationProvider` and wires up presence tracking, remote cursors,
  * and CRDT-based state synchronisation.
  */
+/** Role of a user within a collaboration or broadcast session. */
+export type CollaborationRole = 'collaborator' | 'broadcaster' | 'viewer';
+
 export interface CollaborationConfig {
 	/** Unique identifier for the collaboration room (alphanumeric, hyphens, underscores). */
 	roomId: string;
@@ -30,6 +33,8 @@ export interface CollaborationConfig {
 	userColor?: string;
 	/** Optional authentication token sent with the WebSocket handshake. */
 	authToken?: string;
+	/** Role in the session — defaults to `'collaborator'`. */
+	role?: CollaborationRole;
 }
 
 // ---------------------------------------------------------------------------
@@ -66,6 +71,8 @@ export interface UserPresence {
 	lastUpdated: string;
 	/** Optional currently selected element ID. */
 	selectedElementId?: string;
+	/** Role in the session (broadcaster, viewer, or collaborator). */
+	role?: CollaborationRole;
 }
 
 // ---------------------------------------------------------------------------

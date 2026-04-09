@@ -29,6 +29,7 @@ import {
 	ViewerOverlays,
 	ViewerBottomPanels,
 	ShareDialog,
+	BroadcastDialog,
 } from './components';
 // Collaboration
 import {
@@ -41,7 +42,7 @@ import { ViewerDialogGroup } from './components/ViewerDialogGroup';
 import { ViewerMainContent } from './components/ViewerMainContent';
 import { ViewerPresentationLayer } from './components/ViewerPresentationLayer';
 import { ViewerToolbarSection } from './components/ViewerToolbarSection';
-import { useYjsDocumentSync } from './hooks/collaboration';
+import { useYjsDocumentSync, useBroadcastFollower } from './hooks/collaboration';
 import { useDerivedSlideState } from './hooks/useDerivedSlideState';
 import { useEditorHistory } from './hooks/useEditorHistory';
 import { useEditorOperations } from './hooks/useEditorOperations';
@@ -82,6 +83,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			onDirtyChange,
 			onActiveSlideChange,
 			theme,
+			authorName,
 			collaboration,
 			onStartCollaboration,
 			onStopCollaboration,
@@ -304,6 +306,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			canvasSize,
 			dialogs,
 			presentation,
+			userName: authorName ?? collaboration?.userName,
 		});
 
 		// ── Integration (pointers, lifecycle, I/O, annotations, etc.) ─
@@ -510,6 +513,17 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					defaultServerUrl={shareDefaults?.serverUrl}
 				/>
 
+				<BroadcastDialog
+					open={dialogs.isBroadcastDialogOpen}
+					onClose={() => dialogs.setIsBroadcastDialogOpen(false)}
+					onStartBroadcast={onStartCollaboration}
+					onStopBroadcast={onStopCollaboration}
+					onStartPresenting={() => handleSetMode('present')}
+					defaultRoomId={shareDefaults?.roomId}
+					defaultUserName={shareDefaults?.userName}
+					defaultServerUrl={shareDefaults?.serverUrl}
+				/>
+
 				<ViewerOverlays
 					isShortcutHelpOpen={state.isShortcutHelpOpen}
 					isAccessibilityPanelOpen={state.isAccessibilityPanelOpen}
@@ -555,6 +569,11 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 						canvasHeight={canvasSize.height}
 					>
 						<CollaborationDocumentSync slides={slides} setSlides={state.setSlides} />
+						<BroadcastFollowerSync
+							activeSlideIndex={activeSlideIndex}
+							setActiveSlideIndex={state.setActiveSlideIndex}
+							slideCount={slides.length}
+						/>
 						{viewerContent}
 					</CollaborationProvider>
 				) : (
@@ -602,6 +621,29 @@ function CollaborationDocumentSync({
 		slides,
 		setSlides,
 		isConnected: collab?.status === 'connected',
+	});
+	return null;
+}
+
+/**
+ * Auto-follows the broadcaster's active slide when the local user is a viewer.
+ * Must be rendered inside a `CollaborationProvider`.
+ */
+function BroadcastFollowerSync({
+	activeSlideIndex,
+	setActiveSlideIndex,
+	slideCount,
+}: {
+	activeSlideIndex: number;
+	setActiveSlideIndex: (index: number) => void;
+	slideCount: number;
+}) {
+	const collab = useCollaboration();
+	useBroadcastFollower({
+		collab,
+		activeSlideIndex,
+		setActiveSlideIndex,
+		slideCount,
 	});
 	return null;
 }
