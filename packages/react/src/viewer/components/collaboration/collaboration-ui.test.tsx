@@ -6,12 +6,43 @@ import React from 'react';
  * structure validation, and renderToStaticMarkup for HTML output assertions.
  */
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
-import type { UserPresence } from '../../hooks/collaboration/types';
-import { CollaborationStatusIndicator } from './CollaborationStatusIndicator';
-import { RemoteUserCursors } from './RemoteUserCursors';
-import { UserAvatarBar } from './UserAvatarBar';
+import type { ConnectionStatus, UserPresence } from '../../hooks/collaboration/types';
+
+// ---------------------------------------------------------------------------
+// Mock react-i18next before importing components
+// ---------------------------------------------------------------------------
+
+vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
+	useTranslation: () => ({
+		t: (key: string, opts?: Record<string, unknown>) => {
+			const translations: Record<string, string | ((o: Record<string, unknown>) => string)> = {
+				'pptx.collaboration.youLabel': (o: Record<string, unknown>) => `${o.name} (you)`,
+				'pptx.collaboration.usersConnected': (o: Record<string, unknown>) =>
+					`${o.count} ${Number(o.count) === 1 ? 'user' : 'users'} connected`,
+				'pptx.collaboration.moreUsers': (o: Record<string, unknown>) => `${o.count} more users`,
+				'pptx.collaboration.userCount': (o: Record<string, unknown>) =>
+					`${o.count} ${Number(o.count) === 1 ? 'user' : 'users'}`,
+				'pptx.collaboration.statusAriaLabel': (o: Record<string, unknown>) =>
+					`${o.status}: ${o.count} ${Number(o.count) === 1 ? 'user' : 'users'} connected`,
+				'pptx.collaboration.status.connected': 'Connected',
+				'pptx.collaboration.status.connecting': 'Connecting...',
+				'pptx.collaboration.status.disconnected': 'Disconnected',
+				'pptx.collaboration.status.error': 'Connection error',
+			};
+			const v = translations[key];
+			if (typeof v === 'function') {
+				return v(opts ?? {});
+			}
+			return v ?? key;
+		},
+	}),
+}));
+
+const { CollaborationStatusIndicator } = await import('./CollaborationStatusIndicator');
+const { RemoteUserCursors } = await import('./RemoteUserCursors');
+const { UserAvatarBar } = await import('./UserAvatarBar');
 
 // ---------------------------------------------------------------------------
 // Helper

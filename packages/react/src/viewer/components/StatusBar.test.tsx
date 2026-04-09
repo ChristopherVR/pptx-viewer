@@ -14,16 +14,33 @@ import type { StatusBarProps } from './StatusBar';
 vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 	useTranslation: () => ({
 		t: (key: string, opts?: Record<string, unknown>) => {
-			const translations: Record<string, string> = {
+			const translations: Record<string, string | ((o: Record<string, unknown>) => string)> = {
 				'pptx.autosave.saving': 'Saving...',
 				'pptx.autosave.error': 'Autosave error',
+				'pptx.autosave.justNow': 'just now',
+				'pptx.autosave.oneMinAgo': '1 minute ago',
+				'pptx.autosave.minutesAgo': (o: Record<string, unknown>) => `${o.count} minutes ago`,
+				'pptx.autosave.saved': (o: Record<string, unknown>) => `Saved ${o.time ?? ''}`,
 				'pptx.statusBar.unsavedChanges': 'Unsaved changes',
 				'pptx.statusBar.allSaved': 'All changes saved',
+				'pptx.statusBar.slideOf': (o: Record<string, unknown>) =>
+					`Slide ${o.current} of ${o.total}`,
+				'pptx.statusBar.noSlides': 'No slides',
+				'pptx.statusBar.language': 'English (U.S.)',
+				'pptx.statusBar.toggleNotes': 'Toggle notes',
+				'pptx.notes.title': 'Notes',
+				'pptx.statusBar.normalView': 'Normal view',
+				'pptx.statusBar.slideSorter': 'Slide sorter',
+				'pptx.statusBar.slideShow': 'Slide show',
+				'pptx.statusBar.zoomIn': 'Zoom in',
+				'pptx.statusBar.zoomOut': 'Zoom out',
+				'pptx.statusBar.zoomToFit': 'Zoom to fit',
 			};
-			if (key === 'pptx.autosave.saved') {
-				return `Saved ${(opts as Record<string, string>)?.time ?? ''}`;
+			const v = translations[key];
+			if (typeof v === 'function') {
+				return v(opts ?? {});
 			}
-			return translations[key] ?? key;
+			return v ?? key;
 		},
 	}),
 }));

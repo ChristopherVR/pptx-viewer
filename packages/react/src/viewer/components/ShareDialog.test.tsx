@@ -15,6 +15,53 @@ import type { CollaborationContextValue } from '../hooks/collaboration/types';
 import type { ShareDialogProps } from './ShareDialog';
 
 // ---------------------------------------------------------------------------
+// Mock react-i18next
+// ---------------------------------------------------------------------------
+
+vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
+	useTranslation: () => ({
+		t: (key: string, opts?: Record<string, unknown>) => {
+			const translations: Record<string, string | ((o: Record<string, unknown>) => string)> = {
+				'pptx.share.title': 'Share Presentation',
+				'pptx.share.collaborationActive': 'Collaboration Active',
+				'pptx.share.close': 'Close',
+				'pptx.share.closeDialog': 'Close dialog',
+				'pptx.share.cancel': 'Cancel',
+				'pptx.share.startSharing': 'Start Sharing',
+				'pptx.share.stopSharing': 'Stop Sharing',
+				'pptx.share.description':
+					'Start a real-time collaboration session. Share the link with others to collaborate.',
+				'pptx.share.preconfiguredDescription':
+					'Your administrator has configured the collaboration settings below.',
+				'pptx.share.sessionName': 'Session Name',
+				'pptx.share.sessionPlaceholder': 'e.g. session-abc123',
+				'pptx.share.sessionHint': 'A unique name for your session.',
+				'pptx.share.displayName': 'Your Display Name',
+				'pptx.share.namePlaceholder': 'e.g. Alice',
+				'pptx.share.serverLabel': 'Collaboration Server',
+				'pptx.share.serverPlaceholder': 'wss://collab.example.com',
+				'pptx.share.shareLink': 'Share Link',
+				'pptx.share.copyUrl': 'Copy URL',
+				'pptx.share.copyLink': 'Copy link to clipboard',
+				'pptx.share.copied': 'Copied!',
+				'pptx.share.shareHint': 'Share this link with others to join.',
+				'pptx.share.room': 'Room:',
+				'pptx.share.server': 'Server:',
+				'pptx.share.connectedUsers': 'Connected Users',
+				'pptx.share.you': '(you)',
+				'pptx.collaboration.userCount': (o: Record<string, unknown>) =>
+					`${o.count} ${Number(o.count) === 1 ? 'user' : 'users'}`,
+			};
+			const v = translations[key];
+			if (typeof v === 'function') {
+				return v(opts ?? {});
+			}
+			return v ?? key;
+		},
+	}),
+}));
+
+// ---------------------------------------------------------------------------
 // Mock useCollaboration
 // ---------------------------------------------------------------------------
 
@@ -359,7 +406,7 @@ describe('shareDialog — accessibility', () => {
 
 	it('has aria-label for the dialog', () => {
 		const html = render(React.createElement(ShareDialog, createProps()));
-		expect(html).toContain('aria-label="Share presentation"');
+		expect(html).toContain('aria-label="Share Presentation"');
 	});
 });
 

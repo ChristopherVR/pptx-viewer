@@ -13,11 +13,70 @@ import type { ToolbarProps } from './toolbar-types';
 // Mock react-i18next since some sub-components use useTranslation
 vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 	useTranslation: () => ({
-		t: (key: string, fallback?: string) => {
-			if (typeof fallback === 'string') {
-				return fallback;
+		t: (key: string, opts?: Record<string, unknown>) => {
+			const translations: Record<string, string | ((o: Record<string, unknown>) => string)> = {
+				// ToolbarPrimaryRow
+				'pptx.toolbar.toggleSlidesPanel': 'Toggle slides panel',
+				'pptx.toolbar.undo': 'Undo',
+				'pptx.toolbar.undoAction': (o: Record<string, unknown>) => `Undo: ${o.action}`,
+				'pptx.toolbar.redo': 'Redo',
+				'pptx.toolbar.redoAction': (o: Record<string, unknown>) => `Redo: ${o.action}`,
+				'pptx.findReplace.title': 'Find and Replace',
+				'pptx.toolbar.comments': 'Comments',
+				'pptx.toolbar.share': 'Share',
+				'pptx.toolbar.sharingUsers': (o: Record<string, unknown>) =>
+					`Sharing with ${o.count} users`,
+				'pptx.toolbar.sharingCount': (o: Record<string, unknown>) => `${o.count}`,
+				'pptx.toolbar.toggleInspector': 'Toggle inspector panel',
+				'pptx.toolbar.settingsShortcuts': 'Settings & Shortcuts',
+				'pptx.toolbar.settings': 'Settings',
+				'pptx.toolbar.readOnly': 'Read-only',
+				// AnimationsSection
+				'pptx.animations.previewTooltip': 'Preview animation on selected element',
+				'pptx.animations.preview': 'Preview',
+				'pptx.animations.addTooltip': 'Add animation to selected element',
+				'pptx.animations.addAnimation': 'Add Animation',
+				'pptx.animations.removeTooltip': 'Remove animation from selected element',
+				'pptx.animations.remove': 'Remove',
+				'pptx.animations.openPanelTooltip': 'Open Animation Panel in Inspector',
+				'pptx.animations.animationPanel': 'Animation Panel',
+				'pptx.animations.applyAnimation': (o: Record<string, unknown>) =>
+					`Apply ${o.name} animation`,
+				'pptx.animations.group.entrance': 'Entrance',
+				'pptx.animations.group.emphasis': 'Emphasis',
+				'pptx.animations.group.exit': 'Exit',
+				'pptx.animations.preset.appear': 'Appear',
+				'pptx.animations.preset.fadeIn': 'Fade In',
+				'pptx.animations.preset.flyIn': 'Fly In',
+				'pptx.animations.preset.pulse': 'Pulse',
+				'pptx.animations.preset.spin': 'Spin',
+				'pptx.animations.preset.disappear': 'Disappear',
+				'pptx.animations.preset.fadeOut': 'Fade Out',
+				// ArrangeSection
+				'pptx.arrange.align': (o: Record<string, unknown>) => `Align ${o.direction}`,
+				'pptx.arrange.copy': 'Copy',
+				'pptx.arrange.cut': 'Cut',
+				'pptx.arrange.paste': 'Paste',
+				'pptx.arrange.formatPainter': 'Format Painter',
+				'pptx.arrange.format': 'Format',
+				'pptx.arrange.flipHorizontally': 'Flip horizontally',
+				'pptx.arrange.flipH': 'Flip H',
+				'pptx.arrange.flipVertically': 'Flip vertically',
+				'pptx.arrange.flipV': 'Flip V',
+				'pptx.arrange.sendBackward': 'Send backward',
+				'pptx.arrange.bringForward': 'Bring forward',
+				'pptx.arrange.sendToBack': 'Send to back',
+				'pptx.arrange.back': 'Back',
+				'pptx.arrange.bringToFront': 'Bring to front',
+				'pptx.arrange.front': 'Front',
+				'pptx.arrange.duplicate': 'Duplicate',
+				'pptx.arrange.delete': 'Delete',
+			};
+			const v = translations[key];
+			if (typeof v === 'function') {
+				return v(opts ?? {});
 			}
-			return key;
+			return v ?? key;
 		},
 	}),
 }));
