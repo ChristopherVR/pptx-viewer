@@ -67,16 +67,31 @@ export const DRAW_TOOLS: Array<{
 	t: string;
 	ac?: string;
 }> = [
-	{ id: 'select', icon: <LuMoveRight className={ic} />, t: 'Select' },
-	{ id: 'pen', icon: <LuPencil className={ic} />, t: 'Pen' },
+	{
+		id: 'select',
+		icon: <LuMoveRight className={ic} />,
+		t: 'Select',
+		ac: 'bg-primary text-primary-foreground',
+	},
+	{
+		id: 'pen',
+		icon: <LuPencil className={ic} />,
+		t: 'Pen',
+		ac: 'bg-primary text-primary-foreground',
+	},
 	{
 		id: 'highlighter',
 		icon: <LuType className={ic} />,
 		t: 'Highlighter',
 		ac: 'bg-yellow-600 text-white',
 	},
-	{ id: 'eraser', icon: <LuMinus className={ic} />, t: 'Eraser' },
-	{ id: 'freeform', icon: <LuSpline className={ic} />, t: 'Freeform' },
+	{ id: 'eraser', icon: <LuMinus className={ic} />, t: 'Eraser', ac: 'bg-red-600 text-white' },
+	{
+		id: 'freeform',
+		icon: <LuSpline className={ic} />,
+		t: 'Freeform',
+		ac: 'bg-primary text-primary-foreground',
+	},
 ];
 
 export const OV: Array<{ l: string; i: React.ReactNode; k: string }> = [

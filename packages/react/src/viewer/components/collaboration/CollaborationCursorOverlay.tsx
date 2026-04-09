@@ -8,7 +8,7 @@
  *
  * @module collaboration/CollaborationCursorOverlay
  */
-import React, { useCallback } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 import { useCollaboration } from './CollaborationProvider';
 import { RemoteUserCursors } from './RemoteUserCursors';
@@ -21,6 +21,8 @@ export interface CollaborationCursorOverlayProps {
 	activeSlideIndex: number;
 	canvasWidth: number;
 	canvasHeight: number;
+	/** Currently selected element ID (broadcast to remote users). */
+	selectedElementId?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -31,15 +33,36 @@ export function CollaborationCursorOverlay({
 	activeSlideIndex,
 	canvasWidth,
 	canvasHeight,
+	selectedElementId,
 }: CollaborationCursorOverlayProps): React.ReactElement | null {
 	const collab = useCollaboration();
+	const containerRef = useRef<HTMLDivElement>(null);
 
-	const handlePointerMove = useCallback(
-		(e: React.PointerEvent<HTMLDivElement>) => {
-			if (!collab) {
-				return;
-			}
-			const rect = e.currentTarget.getBoundingClientRect();
+	// Broadcast selectedElementId changes to remote users
+	const prevSelectionRef = useRef<string | null | undefined>(selectedElementId);
+	useEffect(() => {
+		if (!collab || selectedElementId === prevSelectionRef.current) {
+			return;
+		}
+		prevSelectionRef.current = selectedElementId;
+		collab.broadcastPresence({
+			selectedElementId: selectedElementId ?? undefined,
+			activeSlideIndex,
+		});
+	}, [collab, selectedElementId, activeSlideIndex]);
+
+	// Attach pointermove listener to the parent canvas element so we can
+	// track cursor position without blocking clicks, drags, or other events.
+	useEffect(() => {
+		if (!collab) {
+			return;
+		}
+		const parent = containerRef.current?.parentElement;
+		if (!parent) {
+			return;
+		}
+		const handler = (e: PointerEvent) => {
+			const rect = parent.getBoundingClientRect();
 			const x = ((e.clientX - rect.left) / rect.width) * canvasWidth;
 			const y = ((e.clientY - rect.top) / rect.height) * canvasHeight;
 			collab.broadcastPresence({
@@ -47,30 +70,29 @@ export function CollaborationCursorOverlay({
 				cursorY: y,
 				activeSlideIndex,
 			});
-		},
-		[collab, canvasWidth, canvasHeight, activeSlideIndex],
-	);
+		};
+		parent.addEventListener('pointermove', handler);
+		return () => parent.removeEventListener('pointermove', handler);
+	}, [collab, canvasWidth, canvasHeight, activeSlideIndex]);
 
 	if (!collab) {
 		return null;
 	}
 
 	return (
-		<>
-			{/* Invisible pointer-tracking layer */}
-			<div
-				data-testid='collab-pointer-tracker'
-				className='absolute inset-0'
-				style={{ zIndex: 9998, pointerEvents: 'auto' }}
-				onPointerMove={handlePointerMove}
-			/>
-			{/* Remote cursor SVG overlay */}
+		<div
+			ref={containerRef}
+			data-testid='collab-pointer-tracker'
+			data-export-ignore='true'
+			style={{ display: 'contents' }}
+		>
+			{/* Remote cursor SVG overlay — pointer-events: none so it doesn't block interactions */}
 			<RemoteUserCursors
 				remoteUsers={collab.remoteUsers}
 				activeSlideIndex={activeSlideIndex}
 				canvasWidth={canvasWidth}
 				canvasHeight={canvasHeight}
 			/>
-		</>
+		</div>
 	);
 }

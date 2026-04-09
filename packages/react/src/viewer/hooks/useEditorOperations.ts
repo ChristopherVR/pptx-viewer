@@ -51,6 +51,8 @@ export interface UseEditorOperationsInput {
 	canvasSize: CanvasSize;
 	dialogs: ViewerDialogsResult;
 	presentation: UsePresentationModeResult;
+	/** Display name for comment authoring. */
+	userName?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -89,6 +91,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		canvasSize,
 		dialogs,
 		presentation,
+		userName,
 	} = input;
 
 	const ops = useElementOperations({
@@ -128,6 +131,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		slides,
 		activeSlideIndex,
 		canEdit,
+		userName,
 		selectedElementId: state.selectedElementId,
 		onUpdateSlides: ops.updateSlides,
 		onMarkDirty: history.markDirty,

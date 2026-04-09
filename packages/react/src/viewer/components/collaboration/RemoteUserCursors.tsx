@@ -47,6 +47,7 @@ export function RemoteUserCursors({
 	return (
 		<svg
 			data-testid='remote-user-cursors'
+			data-export-ignore='true'
 			className='absolute inset-0 pointer-events-none'
 			style={{ zIndex: 9999 }}
 			width={canvasWidth}

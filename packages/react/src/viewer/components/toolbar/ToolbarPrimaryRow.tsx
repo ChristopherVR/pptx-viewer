@@ -127,7 +127,12 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 			{collab &&
 				(collab.status === 'connected' || collab.status === 'connecting') &&
 				collab.remoteUsers.length > 0 && (
-					<div className='flex items-center -space-x-1.5 mx-1'>
+					<button
+						type='button'
+						onClick={p.onOpenShareDialog}
+						className='flex items-center -space-x-1.5 mx-1 rounded-sm px-1 py-0.5 hover:bg-accent/60 transition-colors cursor-pointer'
+						title={t('pptx.toolbar.sharingUsers', { count: collab.connectedCount })}
+					>
 						{collab.remoteUsers.slice(0, 4).map((user) => (
 							<div
 								key={user.clientId}
@@ -151,7 +156,7 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 								+{collab.remoteUsers.length - 4}
 							</div>
 						)}
-					</div>
+					</button>
 				)}
 
 			<ModeSwitcher

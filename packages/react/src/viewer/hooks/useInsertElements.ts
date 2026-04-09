@@ -42,6 +42,7 @@ export interface InsertElementHandlers {
 	handleAddActionButton: (shapeType: string) => void;
 	handleAddInkElement: (ink: InkPptxElement) => void;
 	handleAddFreeformShape: (shape: ShapePptxElement) => void;
+	handleEraseInkElement: (elementId: string) => void;
 	handleImageFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 	handleMediaFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
@@ -160,6 +161,20 @@ export function useInsertElements(input: UseInsertElementsInput): InsertElementH
 		addElement(shape);
 	};
 
+	const handleEraseInkElement = (elementId: string) => {
+		if (!activeSlide) {
+			return;
+		}
+		ops.updateSlides((prev) =>
+			prev.map((s, i) =>
+				i === activeSlideIndex
+					? { ...s, elements: s.elements.filter((el) => el.id !== elementId) }
+					: s,
+			),
+		);
+		history.markDirty();
+	};
+
 	return {
 		handleAddTextBox,
 		handleAddShape,
@@ -167,6 +182,7 @@ export function useInsertElements(input: UseInsertElementsInput): InsertElementH
 		...structured,
 		handleAddInkElement,
 		handleAddFreeformShape,
+		handleEraseInkElement,
 		...fileHandlers,
 	};
 }

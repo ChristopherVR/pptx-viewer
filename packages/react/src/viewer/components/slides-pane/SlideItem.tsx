@@ -12,6 +12,12 @@ import { formatTimingMs } from './utils';
 // Props
 // ---------------------------------------------------------------------------
 
+/** A remote user viewing this slide (for presence dots). */
+export interface SlidePresenceUser {
+	userName: string;
+	userColor: string;
+}
+
 export interface SlideItemProps {
 	slide: PptxSlide;
 	slideIndex: number;
@@ -19,6 +25,8 @@ export interface SlideItemProps {
 	canvasSize: CanvasSize;
 	canEdit: boolean;
 	rehearsalTimings?: Record<number, number>;
+	/** Remote users currently viewing this slide. */
+	presenceUsers?: SlidePresenceUser[];
 	onSelectSlide: (index: number) => void;
 	onSlideContextMenu: (e: React.MouseEvent, index: number) => void;
 	onAddSection?: (name: string, afterSlideIndex: number) => void;
@@ -40,6 +48,7 @@ function SlideItemInner({
 	canvasSize,
 	canEdit,
 	rehearsalTimings,
+	presenceUsers,
 	onSelectSlide,
 	onSlideContextMenu,
 	onAddSection,
@@ -86,15 +95,29 @@ function SlideItemInner({
 			onDragOver={onDragOver}
 			onDrop={(e) => onDrop(e, slideIndex)}
 		>
-			{/* Slide number — left of thumbnail */}
-			<span
-				className={cn(
-					'text-[10px] tabular-nums w-5 text-right shrink-0 select-none',
-					isActive ? 'text-primary font-medium' : 'text-muted-foreground',
+			{/* Slide number + presence dots — left of thumbnail */}
+			<div className='flex flex-col items-center gap-0.5 w-5 shrink-0'>
+				<span
+					className={cn(
+						'text-[10px] tabular-nums text-right select-none w-full',
+						isActive ? 'text-primary font-medium' : 'text-muted-foreground',
+					)}
+				>
+					{slideIndex + 1}
+				</span>
+				{presenceUsers && presenceUsers.length > 0 && (
+					<div className='flex flex-wrap justify-center gap-px'>
+						{presenceUsers.slice(0, 4).map((u, i) => (
+							<span
+								key={i}
+								className='w-[6px] h-[6px] rounded-full'
+								style={{ backgroundColor: u.userColor }}
+								title={u.userName}
+							/>
+						))}
+					</div>
 				)}
-			>
-				{slideIndex + 1}
-			</span>
+			</div>
 
 			{/* Thumbnail */}
 			<div

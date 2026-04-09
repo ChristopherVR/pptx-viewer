@@ -36,6 +36,7 @@ export function useDrawingOverlay({
 	isDrawingRef,
 	onAddInkElement,
 	onAddFreeformShape,
+	onEraseInkElement,
 }: {
 	activeTool: DrawingTool;
 	activeSlide: PptxSlide | undefined;
@@ -45,6 +46,7 @@ export function useDrawingOverlay({
 	isDrawingRef?: React.RefObject<boolean>;
 	onAddInkElement?: (ink: InkPptxElement) => void;
 	onAddFreeformShape?: (shape: ShapePptxElement) => void;
+	onEraseInkElement?: (elementId: string) => void;
 }): DrawingOverlayState {
 	const isDrawing = activeTool !== 'select';
 	const [currentStrokePoints, setCurrentStrokePoints] = useState<Array<{ x: number; y: number }>>(
@@ -104,6 +106,7 @@ export function useDrawingOverlay({
 						pt.y >= el.y - HIT_RADIUS &&
 						pt.y <= el.y + el.height + HIT_RADIUS
 					) {
+						onEraseInkElement?.(el.id);
 						break;
 					}
 				}
@@ -123,7 +126,7 @@ export function useDrawingOverlay({
 				(isDrawingRef as React.MutableRefObject<boolean>).current = true;
 			}
 		},
-		[activeTool, activeSlide, pointerToCanvasCoords, isDrawingRef],
+		[activeTool, activeSlide, pointerToCanvasCoords, isDrawingRef, onEraseInkElement],
 	);
 
 	const handleDrawPointerMove = useCallback(
@@ -200,6 +203,10 @@ export function useDrawingOverlay({
 						i === 0 ? { type: 'moveTo', pt: scaledPt } : { type: 'lineTo', pt: scaledPt },
 					);
 				}
+				// Close the path for a proper freeform polygon
+				if (segments.length > 2) {
+					segments.push({ type: 'close' });
+				}
 				const freeformShape: ShapePptxElement = {
 					id: `shape-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
 					type: 'shape',
@@ -209,7 +216,7 @@ export function useDrawingOverlay({
 					height: h,
 					shapeType: 'custom',
 					shapeStyle: {
-						fillColor: drawingColor,
+						fillColor: 'transparent',
 						strokeColor: drawingColor,
 						strokeWidth: drawingWidth,
 					},

@@ -251,6 +251,12 @@ export interface PowerPointViewerProps {
 	className?: string;
 
 	/**
+	 * Display name used as the author for comments and annotations.
+	 * Falls back to `collaboration.userName` when collaborating, or `'You'`.
+	 */
+	authorName?: string;
+
+	/**
 	 * Theme configuration for customising the viewer's appearance.
 	 *
 	 * Accepts partial color overrides, a custom border-radius, and

@@ -26,6 +26,7 @@ import type { ViewerMode } from '../types-core';
 import { safeOpenUrl, isPpactionUrl, parsePpactionUrl } from '../utils/hyperlink-security';
 import type { TableStyleContext } from '../utils/table-parse';
 import type { FieldSubstitutionContext } from '../utils/text-field-substitution';
+import { CollaborationCursorOverlay, RemoteSelectionOverlay } from './collaboration';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -279,6 +280,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 					isDrawingRef={s.isDrawingRef}
 					onAddInkElement={insertHandlers.handleAddInkElement}
 					onAddFreeformShape={insertHandlers.handleAddFreeformShape}
+					onEraseInkElement={insertHandlers.handleEraseInkElement}
 					onActionClick={handleActionClick}
 					onHyperlinkClick={handleHyperlinkClick}
 					allSlides={mode === 'present' ? slides : undefined}
@@ -286,6 +288,20 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 					sourceSlideIndex={mode === 'present' ? activeSlideIndex : undefined}
 					fieldContext={fieldContext}
 					tableStyleContext={tableStyleContext}
+					collaborationOverlay={
+						<>
+							<RemoteSelectionOverlay
+								elements={effectiveSlide?.elements ?? []}
+								activeSlideIndex={activeSlideIndex}
+							/>
+							<CollaborationCursorOverlay
+								activeSlideIndex={activeSlideIndex}
+								canvasWidth={canvasSize.width}
+								canvasHeight={canvasSize.height}
+								selectedElementId={s.selectedElementId}
+							/>
+						</>
+					}
 					comments={activeSlide?.comments}
 					showCommentMarkers={s.sidebarPanelMode === 'comments'}
 					onCommentMarkerClick={() => s.setSidebarPanelMode('comments')}

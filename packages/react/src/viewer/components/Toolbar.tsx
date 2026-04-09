@@ -215,6 +215,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							selectedElement={p.selectedElement}
 							isInspectorPaneOpen={p.isInspectorPaneOpen}
 							onToggleInspector={p.onToggleInspector}
+							onOpenAnimationPanel={p.onOpenAnimationPanel}
 						/>
 					)}
 

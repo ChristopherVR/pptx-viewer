@@ -68,6 +68,7 @@ export function SlideCanvas({
 	isDrawingRef,
 	onAddInkElement,
 	onAddFreeformShape,
+	onEraseInkElement,
 	onActionClick,
 	onHyperlinkClick,
 	comments,
@@ -161,6 +162,7 @@ export function SlideCanvas({
 		isDrawingRef,
 		onAddInkElement,
 		onAddFreeformShape,
+		onEraseInkElement,
 	});
 
 	const rulerOffset = showRulers ? RULER_THICKNESS : 0;

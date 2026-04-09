@@ -140,9 +140,15 @@ describe('dRAW_TOOLS', () => {
 		expect(highlighter?.ac).toContain('bg-yellow-600');
 	});
 
-	it('select tool does not have a custom active class', () => {
-		const select = DRAW_TOOLS.find((d) => d.id === 'select');
-		expect(select?.ac).toBeUndefined();
+	it('all draw tools have an active class', () => {
+		for (const tool of DRAW_TOOLS) {
+			expect(tool.ac).toBeDefined();
+		}
+	});
+
+	it('eraser has a red active class', () => {
+		const eraser = DRAW_TOOLS.find((d) => d.id === 'eraser');
+		expect(eraser?.ac).toContain('bg-red-600');
 	});
 });
 

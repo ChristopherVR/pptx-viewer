@@ -126,6 +126,8 @@ export interface SlideCanvasProps {
 	onAddInkElement?: (ink: InkPptxElement) => void;
 	/** Called when a freeform drawing stroke should be added as a shape element. */
 	onAddFreeformShape?: (shape: ShapePptxElement) => void;
+	/** Called when the eraser tool removes an ink element. */
+	onEraseInkElement?: (elementId: string) => void;
 
 	/* ── Action / hyperlink props ───────────────────────────────────── */
 	/** Called when a shape-level action is clicked (e.g. slide jump, URL). */

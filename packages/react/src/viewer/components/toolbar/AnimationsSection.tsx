@@ -11,6 +11,8 @@ export interface AnimationsSectionProps {
 	selectedElement: PptxElement | null;
 	isInspectorPaneOpen: boolean;
 	onToggleInspector: () => void;
+	/** Opens the inspector and switches to properties tab to show the animation panel. */
+	onOpenAnimationPanel?: () => void;
 }
 
 /* Preset categories shown in the "Add Animation" dropdown. */
@@ -129,7 +131,7 @@ export function AnimationsSection(p: AnimationsSectionProps): React.ReactElement
 			{/* Animation Panel toggle */}
 			<button
 				type='button'
-				onClick={p.onToggleInspector}
+				onClick={p.onOpenAnimationPanel ?? p.onToggleInspector}
 				className={cn(
 					pill,
 					p.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-primary-foreground' : '',

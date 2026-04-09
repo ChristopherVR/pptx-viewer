@@ -32,6 +32,8 @@ export interface ToolbarProps {
 	onSetMode: (mode: ViewerMode) => void;
 	onToggleSidebar: () => void;
 	onToggleInspector: () => void;
+	/** Opens the inspector pane and switches to the properties tab (for animation panel). */
+	onOpenAnimationPanel: () => void;
 	onToggleCompactToolbar: () => void;
 	onSetToolbarSection: (section: ToolbarSection) => void;
 	onZoomIn: () => void;

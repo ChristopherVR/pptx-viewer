@@ -3,10 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { LuPlus } from 'react-icons/lu';
 
 import { useVirtualizedSlides } from '../hooks/useVirtualizedSlides';
+import { useCollaboration } from './collaboration';
 import { SectionContextMenu } from './slides-pane/SectionContextMenu';
 import { SectionHeader } from './slides-pane/SectionHeader';
 import { SlideContextMenu } from './slides-pane/SlideContextMenu';
 import { SlideItem } from './slides-pane/SlideItem';
+import type { SlidePresenceUser } from './slides-pane/SlideItem';
 import type { SlidesPaneSidebarProps } from './slides-pane/types';
 import { useSlidePaneCallbacks } from './slides-pane/useSlidePaneCallbacks';
 import { buildFlatPaneItems, estimateSlideItemHeight } from './slides-pane/utils';
@@ -45,8 +47,28 @@ export function SlidesPaneSidebar({
 	panelWidth,
 }: SlidesPaneSidebarProps): React.ReactElement | null {
 	const { t } = useTranslation();
+	const collab = useCollaboration();
 	const slideRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 	const renameInputRef = useRef<HTMLInputElement>(null);
+
+	// Build per-slide presence map from remote users
+	const slidePresenceMap = useMemo(() => {
+		if (!collab || collab.remoteUsers.length === 0) {
+			return undefined;
+		}
+		const map = new Map<number, SlidePresenceUser[]>();
+		for (const user of collab.remoteUsers) {
+			const idx = user.activeSlideIndex;
+			const existing = map.get(idx);
+			const entry: SlidePresenceUser = { userName: user.userName, userColor: user.userColor };
+			if (existing) {
+				existing.push(entry);
+			} else {
+				map.set(idx, [entry]);
+			}
+		}
+		return map;
+	}, [collab]);
 
 	// Compute a more accurate item height based on canvas aspect ratio
 	const estimatedItemHeight = useMemo(
@@ -197,6 +219,7 @@ export function SlidesPaneSidebar({
 										canvasSize={canvasSize}
 										canEdit={canEdit}
 										rehearsalTimings={rehearsalTimings}
+										presenceUsers={slidePresenceMap?.get(item.slideIndex)}
 										onSelectSlide={onSelectSlide}
 										onSlideContextMenu={onSlideContextMenu}
 										onAddSection={onAddSection}
@@ -259,6 +282,7 @@ export function SlidesPaneSidebar({
 										canvasSize={canvasSize}
 										canEdit={canEdit}
 										rehearsalTimings={rehearsalTimings}
+										presenceUsers={slidePresenceMap?.get(idx)}
 										onSelectSlide={onSelectSlide}
 										onSlideContextMenu={onSlideContextMenu}
 										onAddSection={onAddSection}

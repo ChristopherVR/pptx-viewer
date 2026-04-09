@@ -166,6 +166,10 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onSetMode={onSetMode}
 				onToggleSidebar={() => s.setIsSlidesPaneOpen((p) => !p)}
 				onToggleInspector={() => s.setIsInspectorPaneOpen((p) => !p)}
+				onOpenAnimationPanel={() => {
+					s.setIsInspectorPaneOpen(true);
+					s.setSidebarPanelMode('properties');
+				}}
 				onToggleCompactToolbar={() => s.setIsCompactToolbarOpen((p) => !p)}
 				onSetToolbarSection={s.setToolbarSection}
 				onZoomIn={zoom.handleZoomIn}

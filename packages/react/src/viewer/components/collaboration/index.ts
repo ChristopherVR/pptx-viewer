@@ -17,3 +17,6 @@ export type { CollaborationStatusIndicatorProps } from './CollaborationStatusInd
 
 export { CollaborationCursorOverlay } from './CollaborationCursorOverlay';
 export type { CollaborationCursorOverlayProps } from './CollaborationCursorOverlay';
+
+export { RemoteSelectionOverlay } from './RemoteSelectionOverlay';
+export type { RemoteSelectionOverlayProps } from './RemoteSelectionOverlay';
