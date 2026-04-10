@@ -248,14 +248,41 @@ jobs:
       - name: Determine next version
         id: version
         run: |
-          # Find the highest existing v1.0.x tag
-          LATEST_PATCH=$(git tag --list 'v1.0.*' --sort=-version:refname | head -n 1 | sed 's/v1\.0\.//')
-          if [ -z "$LATEST_PATCH" ]; then
-            NEXT_PATCH=1
+          # Find the highest existing semver tag (not just v1.0.*)
+          LATEST_TAG=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | head -n 1)
+          if [ -z "$LATEST_TAG" ]; then
+            LATEST_TAG_VER="0.0.0"
           else
-            NEXT_PATCH=$((LATEST_PATCH + 1))
+            LATEST_TAG_VER=$(echo "$LATEST_TAG" | sed 's/^v//')
           fi
-          VERSION="1.0.${NEXT_PATCH}"
+          echo "Highest git tag version: ${LATEST_TAG_VER}"
+
+          # Check npm for the highest published version across all packages
+          NPM_MAX="0.0.0"
+          for pkg in emf-converter mtx-decompressor pptx-viewer-core pptx-react-viewer pptx-viewer-mcp; do
+            NPM_VER=$(npm view "$pkg" version 2>/dev/null || echo "0.0.0")
+            echo "  $pkg npm version: $NPM_VER"
+            if [ "$(printf '%s\n%s' "$NPM_MAX" "$NPM_VER" | sort -V | tail -1)" = "$NPM_VER" ]; then
+              NPM_MAX="$NPM_VER"
+            fi
+          done
+          echo "Highest npm version: ${NPM_MAX}"
+
+          # Use the higher of git tag vs npm as baseline
+          if [ "$(printf '%s\n%s' "$LATEST_TAG_VER" "$NPM_MAX" | sort -V | tail -1)" = "$NPM_MAX" ]; then
+            BASELINE="$NPM_MAX"
+          else
+            BASELINE="$LATEST_TAG_VER"
+          fi
+          echo "Baseline version: ${BASELINE}"
+
+          # Increment patch version from baseline
+          MAJOR=$(echo "$BASELINE" | cut -d. -f1)
+          MINOR=$(echo "$BASELINE" | cut -d. -f2)
+          PATCH=$(echo "$BASELINE" | cut -d. -f3)
+          NEXT_PATCH=$((PATCH + 1))
+          VERSION="${MAJOR}.${MINOR}.${NEXT_PATCH}"
+
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Next version: ${VERSION}"
@@ -347,7 +374,7 @@ jobs:
       - name: Determine current version
         id: version
         run: |
-          VERSION=$(git tag --list 'v1.0.*' --sort=-version:refname | head -n 1 | sed 's/v//')
+          VERSION=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | head -n 1 | sed 's/^v//')
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Publishing version: ${VERSION}"
 
@@ -401,28 +428,56 @@ jobs:
 
       # https://www.npmjs.com/package/emf-converter
       - name: Publish emf-converter
-        run: npm publish --provenance --access public
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          EXISTING=$(npm view emf-converter@"$VERSION" version 2>/dev/null || echo "")
+          if [ "$EXISTING" = "$VERSION" ]; then
+            echo "emf-converter@$VERSION already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
         working-directory: packages/emf-converter
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # https://www.npmjs.com/package/mtx-decompressor
       - name: Publish mtx-decompressor
-        run: npm publish --provenance --access public
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          EXISTING=$(npm view mtx-decompressor@"$VERSION" version 2>/dev/null || echo "")
+          if [ "$EXISTING" = "$VERSION" ]; then
+            echo "mtx-decompressor@$VERSION already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
         working-directory: packages/mtx-decompressor
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # https://www.npmjs.com/package/pptx-viewer-core
       - name: Publish pptx-viewer-core
-        run: npm publish --provenance --access public
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          EXISTING=$(npm view pptx-viewer-core@"$VERSION" version 2>/dev/null || echo "")
+          if [ "$EXISTING" = "$VERSION" ]; then
+            echo "pptx-viewer-core@$VERSION already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
         working-directory: packages/core
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # https://www.npmjs.com/package/pptx-react-viewer
       - name: Publish pptx-react-viewer
-        run: npm publish --provenance --access public
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          EXISTING=$(npm view pptx-react-viewer@"$VERSION" version 2>/dev/null || echo "")
+          if [ "$EXISTING" = "$VERSION" ]; then
+            echo "pptx-react-viewer@$VERSION already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
         working-directory: packages/react
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -450,7 +505,14 @@ jobs:
 
       # https://www.npmjs.com/package/pptx-viewer-mcp
       - name: Publish pptx-viewer-mcp
-        run: npm publish --provenance --access public
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          EXISTING=$(npm view pptx-viewer-mcp@"$VERSION" version 2>/dev/null || echo "")
+          if [ "$EXISTING" = "$VERSION" ]; then
+            echo "pptx-viewer-mcp@$VERSION already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
         working-directory: packages/tools
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
