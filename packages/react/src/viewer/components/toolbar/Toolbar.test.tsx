@@ -11,6 +11,7 @@ import { describe, it, expect, vi } from 'vitest';
 import type { ToolbarProps } from './toolbar-types';
 
 // Mock react-i18next since some sub-components use useTranslation
+// oxlint-disable-next-line prefer-ending-with-an-expect
 vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 	useTranslation: () => ({
 		t: (key: string, opts?: Record<string, unknown>) => {
@@ -116,104 +117,105 @@ function createMockToolbarProps(overrides: Partial<ToolbarProps> = {}): ToolbarP
 		drawingColor: '#000000',
 		drawingWidth: 2,
 		clipboardPayload: null,
-		onSetMode: vi.fn(),
-		onToggleSidebar: vi.fn(),
-		onToggleInspector: vi.fn(),
-		onToggleCompactToolbar: vi.fn(),
-		onSetToolbarSection: vi.fn(),
-		onZoomIn: vi.fn(),
-		onZoomOut: vi.fn(),
-		onZoomToFit: vi.fn(),
-		onUndo: vi.fn(),
-		onRedo: vi.fn(),
-		onToggleFindReplace: vi.fn(),
-		onSetNewShapeType: vi.fn(),
-		onAddTextBox: vi.fn(),
-		onAddShape: vi.fn(),
-		onAddTable: vi.fn(),
-		onAddSmartArt: vi.fn(),
-		onAddEquation: vi.fn(),
-		onAddActionButton: vi.fn(),
-		onInsertField: vi.fn(),
-		onOpenImagePicker: vi.fn(),
-		onOpenMediaPicker: vi.fn(),
-		onSetActiveTool: vi.fn(),
-		onSetDrawingColor: vi.fn(),
-		onSetDrawingWidth: vi.fn(),
-		onSetEditTemplateMode: vi.fn(),
+		onSetMode: vi.fn<() => void>(),
+		onToggleSidebar: vi.fn<() => void>(),
+		onToggleInspector: vi.fn<() => void>(),
+		onToggleCompactToolbar: vi.fn<() => void>(),
+		onSetToolbarSection: vi.fn<() => void>(),
+		onZoomIn: vi.fn<() => void>(),
+		onZoomOut: vi.fn<() => void>(),
+		onZoomToFit: vi.fn<() => void>(),
+		onUndo: vi.fn<() => void>(),
+		onRedo: vi.fn<() => void>(),
+		onToggleFindReplace: vi.fn<() => void>(),
+		onSetNewShapeType: vi.fn<() => void>(),
+		onAddTextBox: vi.fn<() => void>(),
+		onAddShape: vi.fn<() => void>(),
+		onAddTable: vi.fn<() => void>(),
+		onAddSmartArt: vi.fn<() => void>(),
+		onAddEquation: vi.fn<() => void>(),
+		onAddActionButton: vi.fn<() => void>(),
+		onInsertField: vi.fn<() => void>(),
+		onOpenImagePicker: vi.fn<() => void>(),
+		onOpenMediaPicker: vi.fn<() => void>(),
+		onSetActiveTool: vi.fn<() => void>(),
+		onSetDrawingColor: vi.fn<() => void>(),
+		onSetDrawingWidth: vi.fn<() => void>(),
+		onSetEditTemplateMode: vi.fn<() => void>(),
 		spellCheckEnabled: false,
 		showGrid: false,
 		showRulers: false,
 		snapToGrid: false,
 		snapToShape: false,
-		onSetSpellCheckEnabled: vi.fn(),
-		onSetShowGrid: vi.fn(),
-		onSetShowRulers: vi.fn(),
-		onSetSnapToGrid: vi.fn(),
-		onSetSnapToShape: vi.fn(),
-		onAddGuide: vi.fn(),
-		onAlignElements: vi.fn(),
-		onCopy: vi.fn(),
-		onCut: vi.fn(),
-		onPaste: vi.fn(),
-		onFlip: vi.fn(),
-		onMoveLayer: vi.fn(),
-		onMoveLayerToEdge: vi.fn(),
-		onDuplicate: vi.fn(),
-		onDelete: vi.fn(),
-		onExportPng: vi.fn(),
-		onExportPdf: vi.fn(),
-		onExportVideo: vi.fn(),
-		onExportGif: vi.fn(),
-		onPackageForSharing: vi.fn(),
-		onSaveAsPpsx: vi.fn(),
-		onSaveAsPptm: vi.fn(),
+		onSetSpellCheckEnabled: vi.fn<() => void>(),
+		onSetShowGrid: vi.fn<() => void>(),
+		onSetShowRulers: vi.fn<() => void>(),
+		onSetSnapToGrid: vi.fn<() => void>(),
+		onSetSnapToShape: vi.fn<() => void>(),
+		onAddGuide: vi.fn<() => void>(),
+		onAlignElements: vi.fn<() => void>(),
+		onCopy: vi.fn<() => void>(),
+		onCut: vi.fn<() => void>(),
+		onPaste: vi.fn<() => void>(),
+		onFlip: vi.fn<() => void>(),
+		onMoveLayer: vi.fn<() => void>(),
+		onMoveLayerToEdge: vi.fn<() => void>(),
+		onDuplicate: vi.fn<() => void>(),
+		onDelete: vi.fn<() => void>(),
+		onExportPng: vi.fn<() => void>(),
+		onExportPdf: vi.fn<() => void>(),
+		onExportVideo: vi.fn<() => void>(),
+		onExportGif: vi.fn<() => void>(),
+		onPackageForSharing: vi.fn<() => void>(),
+		onSaveAsPptx: vi.fn<() => void>(),
+		onSaveAsPpsx: vi.fn<() => void>(),
+		onSaveAsPptm: vi.fn<() => void>(),
 		hasMacros: false,
-		onCopySlideAsImage: vi.fn(),
-		onPrint: vi.fn(),
-		onToggleShortcuts: vi.fn(),
-		onRunAccessibilityCheck: vi.fn(),
-		onToggleSlideSorter: vi.fn(),
-		onUpdateTextStyle: vi.fn(),
+		onCopySlideAsImage: vi.fn<() => void>(),
+		onPrint: vi.fn<() => void>(),
+		onToggleShortcuts: vi.fn<() => void>(),
+		onRunAccessibilityCheck: vi.fn<() => void>(),
+		onToggleSlideSorter: vi.fn<() => void>(),
+		onUpdateTextStyle: vi.fn<() => void>(),
 		isOverflowMenuOpen: false,
-		onSetOverflowMenuOpen: vi.fn(),
+		onSetOverflowMenuOpen: vi.fn<() => void>(),
 		layoutOptions: [{ path: 'layout1', name: 'Title Slide' }],
-		onInsertSlideFromLayout: vi.fn(),
+		onInsertSlideFromLayout: vi.fn<() => void>(),
 		customShows: [],
 		activeCustomShowId: null,
-		onSetActiveCustomShowId: vi.fn(),
-		onCreateCustomShow: vi.fn(),
-		onRenameActiveCustomShow: vi.fn(),
-		onDeleteActiveCustomShow: vi.fn(),
-		onToggleCurrentSlideInActiveShow: vi.fn(),
+		onSetActiveCustomShowId: vi.fn<() => void>(),
+		onCreateCustomShow: vi.fn<() => void>(),
+		onRenameActiveCustomShow: vi.fn<() => void>(),
+		onDeleteActiveCustomShow: vi.fn<() => void>(),
+		onToggleCurrentSlideInActiveShow: vi.fn<() => void>(),
 		isCurrentSlideInActiveShow: false,
-		onToggleVersionHistory: vi.fn(),
-		onOpenPasswordProtection: vi.fn(),
-		onOpenDocumentProperties: vi.fn(),
-		onOpenFontEmbedding: vi.fn(),
-		onOpenDigitalSignatures: vi.fn(),
-		onEnterMasterView: vi.fn(),
-		onCloseMasterView: vi.fn(),
-		onEnterPresenterView: vi.fn(),
-		onEnterRehearsalMode: vi.fn(),
-		onToggleThemeEditor: vi.fn(),
+		onToggleVersionHistory: vi.fn<() => void>(),
+		onOpenPasswordProtection: vi.fn<() => void>(),
+		onOpenDocumentProperties: vi.fn<() => void>(),
+		onOpenFontEmbedding: vi.fn<() => void>(),
+		onOpenDigitalSignatures: vi.fn<() => void>(),
+		onEnterMasterView: vi.fn<() => void>(),
+		onCloseMasterView: vi.fn<() => void>(),
+		onEnterPresenterView: vi.fn<() => void>(),
+		onEnterRehearsalMode: vi.fn<() => void>(),
+		onToggleThemeEditor: vi.fn<() => void>(),
 		isThemeEditorOpen: false,
-		onToggleThemeGallery: vi.fn(),
+		onToggleThemeGallery: vi.fn<() => void>(),
 		isThemeGalleryOpen: false,
-		onCompare: vi.fn(),
-		onToggleComments: vi.fn(),
+		onCompare: vi.fn<() => void>(),
+		onToggleComments: vi.fn<() => void>(),
 		isCommentsPanelOpen: false,
 		spellCheckActive: false,
 		slideCommentCount: 0,
 		formatPainterActive: false,
-		onToggleFormatPainter: vi.fn(),
+		onToggleFormatPainter: vi.fn<() => void>(),
 		isSelectionPaneOpen: false,
-		onToggleSelectionPane: vi.fn(),
+		onToggleSelectionPane: vi.fn<() => void>(),
 		eyedropperActive: false,
-		onToggleEyedropper: vi.fn(),
-		onOpenSetUpSlideShow: vi.fn(),
-		onOpenBroadcastDialog: vi.fn(),
-		onToggleSubtitles: vi.fn(),
+		onToggleEyedropper: vi.fn<() => void>(),
+		onOpenSetUpSlideShow: vi.fn<() => void>(),
+		onOpenBroadcastDialog: vi.fn<() => void>(),
+		onToggleSubtitles: vi.fn<() => void>(),
 		showSubtitles: false,
 		...overrides,
 	};
@@ -264,6 +266,7 @@ describe('toolbar — tab navigation', () => {
 		for (const label of expectedLabels) {
 			expect(html, `Tab "${label}" should be rendered`).toContain(`>${label}</button>`);
 		}
+		expect(expectedLabels).toHaveLength(12);
 	});
 
 	it('does not render tabs when mode is present', () => {
@@ -314,14 +317,14 @@ describe('toolbar — Home tab', () => {
 				canEdit: true,
 				clipboardPayload: null,
 				formatPainterActive: false,
-				onCopy: vi.fn(),
-				onCut: vi.fn(),
-				onPaste: vi.fn(),
-				onToggleFormatPainter: vi.fn(),
+				onCopy: vi.fn<() => void>(),
+				onCut: vi.fn<() => void>(),
+				onPaste: vi.fn<() => void>(),
+				onToggleFormatPainter: vi.fn<() => void>(),
 				layoutOptions: [{ path: 'l1', name: 'Title' }],
-				onInsertSlideFromLayout: vi.fn(),
+				onInsertSlideFromLayout: vi.fn<() => void>(),
 				selectedElement: null,
-				onUpdateTextStyle: vi.fn(),
+				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('title="Paste"');
@@ -335,13 +338,13 @@ describe('toolbar — Home tab', () => {
 			React.createElement(HomeSection, {
 				canEdit: true,
 				clipboardPayload: null,
-				onCopy: vi.fn(),
-				onCut: vi.fn(),
-				onPaste: vi.fn(),
+				onCopy: vi.fn<() => void>(),
+				onCut: vi.fn<() => void>(),
+				onPaste: vi.fn<() => void>(),
 				layoutOptions: [],
-				onInsertSlideFromLayout: vi.fn(),
+				onInsertSlideFromLayout: vi.fn<() => void>(),
 				selectedElement: null,
-				onUpdateTextStyle: vi.fn(),
+				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('Clipboard');
@@ -352,13 +355,13 @@ describe('toolbar — Home tab', () => {
 			React.createElement(HomeSection, {
 				canEdit: true,
 				clipboardPayload: null,
-				onCopy: vi.fn(),
-				onCut: vi.fn(),
-				onPaste: vi.fn(),
+				onCopy: vi.fn<() => void>(),
+				onCut: vi.fn<() => void>(),
+				onPaste: vi.fn<() => void>(),
 				layoutOptions: [{ path: 'l1', name: 'Title' }],
-				onInsertSlideFromLayout: vi.fn(),
+				onInsertSlideFromLayout: vi.fn<() => void>(),
 				selectedElement: null,
-				onUpdateTextStyle: vi.fn(),
+				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('title="New Slide"');
@@ -370,13 +373,13 @@ describe('toolbar — Home tab', () => {
 			React.createElement(HomeSection, {
 				canEdit: true,
 				clipboardPayload: null,
-				onCopy: vi.fn(),
-				onCut: vi.fn(),
-				onPaste: vi.fn(),
+				onCopy: vi.fn<() => void>(),
+				onCut: vi.fn<() => void>(),
+				onPaste: vi.fn<() => void>(),
 				layoutOptions: [],
-				onInsertSlideFromLayout: vi.fn(),
+				onInsertSlideFromLayout: vi.fn<() => void>(),
 				selectedElement: null,
-				onUpdateTextStyle: vi.fn(),
+				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('Segoe UI');
@@ -387,13 +390,13 @@ describe('toolbar — Home tab', () => {
 			React.createElement(HomeSection, {
 				canEdit: true,
 				clipboardPayload: null,
-				onCopy: vi.fn(),
-				onCut: vi.fn(),
-				onPaste: vi.fn(),
+				onCopy: vi.fn<() => void>(),
+				onCut: vi.fn<() => void>(),
+				onPaste: vi.fn<() => void>(),
 				layoutOptions: [],
-				onInsertSlideFromLayout: vi.fn(),
+				onInsertSlideFromLayout: vi.fn<() => void>(),
 				selectedElement: null,
-				onUpdateTextStyle: vi.fn(),
+				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('>24</span>');
@@ -404,13 +407,13 @@ describe('toolbar — Home tab', () => {
 			React.createElement(HomeSection, {
 				canEdit: true,
 				clipboardPayload: null,
-				onCopy: vi.fn(),
-				onCut: vi.fn(),
-				onPaste: vi.fn(),
+				onCopy: vi.fn<() => void>(),
+				onCut: vi.fn<() => void>(),
+				onPaste: vi.fn<() => void>(),
 				layoutOptions: [],
-				onInsertSlideFromLayout: vi.fn(),
+				onInsertSlideFromLayout: vi.fn<() => void>(),
 				selectedElement: null,
-				onUpdateTextStyle: vi.fn(),
+				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toMatch(/disabled[^>]*title="Paste"/);
@@ -421,13 +424,13 @@ describe('toolbar — Home tab', () => {
 			React.createElement(HomeSection, {
 				canEdit: true,
 				clipboardPayload: null,
-				onCopy: vi.fn(),
-				onCut: vi.fn(),
-				onPaste: vi.fn(),
+				onCopy: vi.fn<() => void>(),
+				onCut: vi.fn<() => void>(),
+				onPaste: vi.fn<() => void>(),
 				layoutOptions: [],
-				onInsertSlideFromLayout: vi.fn(),
+				onInsertSlideFromLayout: vi.fn<() => void>(),
 				selectedElement: null,
-				onUpdateTextStyle: vi.fn(),
+				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('>Font</span>');
@@ -440,20 +443,20 @@ describe('toolbar — Home tab', () => {
 
 describe('toolbar — File tab', () => {
 	const createFileProps = (overrides = {}) => ({
-		onExportPng: vi.fn(),
-		onExportPdf: vi.fn(),
-		onExportVideo: vi.fn(),
-		onExportGif: vi.fn(),
-		onPackageForSharing: vi.fn(),
-		onSaveAsPpsx: vi.fn(),
-		onSaveAsPptm: vi.fn(),
+		onExportPng: vi.fn<() => void>(),
+		onExportPdf: vi.fn<() => void>(),
+		onExportVideo: vi.fn<() => void>(),
+		onExportGif: vi.fn<() => void>(),
+		onPackageForSharing: vi.fn<() => void>(),
+		onSaveAsPpsx: vi.fn<() => void>(),
+		onSaveAsPptm: vi.fn<() => void>(),
 		hasMacros: false,
-		onCopySlideAsImage: vi.fn(),
-		onPrint: vi.fn(),
-		onOpenDocumentProperties: vi.fn(),
-		onOpenPasswordProtection: vi.fn(),
-		onOpenFontEmbedding: vi.fn(),
-		onOpenDigitalSignatures: vi.fn(),
+		onCopySlideAsImage: vi.fn<() => void>(),
+		onPrint: vi.fn<() => void>(),
+		onOpenDocumentProperties: vi.fn<() => void>(),
+		onOpenPasswordProtection: vi.fn<() => void>(),
+		onOpenFontEmbedding: vi.fn<() => void>(),
+		onOpenDigitalSignatures: vi.fn<() => void>(),
 		...overrides,
 	});
 
@@ -531,16 +534,16 @@ describe('toolbar — Insert tab', () => {
 	const createInsertProps = (overrides = {}) => ({
 		canEdit: true,
 		newShapeType: 'rect' as const,
-		onSetNewShapeType: vi.fn(),
-		onAddTextBox: vi.fn(),
-		onAddShape: vi.fn(),
-		onAddTable: vi.fn(),
-		onAddSmartArt: vi.fn(),
-		onAddEquation: vi.fn(),
-		onAddActionButton: vi.fn(),
-		onInsertField: vi.fn(),
-		onOpenImagePicker: vi.fn(),
-		onOpenMediaPicker: vi.fn(),
+		onSetNewShapeType: vi.fn<() => void>(),
+		onAddTextBox: vi.fn<() => void>(),
+		onAddShape: vi.fn<() => void>(),
+		onAddTable: vi.fn<() => void>(),
+		onAddSmartArt: vi.fn<() => void>(),
+		onAddEquation: vi.fn<() => void>(),
+		onAddActionButton: vi.fn<() => void>(),
+		onInsertField: vi.fn<() => void>(),
+		onOpenImagePicker: vi.fn<() => void>(),
+		onOpenMediaPicker: vi.fn<() => void>(),
 		...overrides,
 	});
 
@@ -567,7 +570,7 @@ describe('toolbar — Insert tab', () => {
 
 	it('renders Field button when onInsertField is provided', () => {
 		const html = render(
-			React.createElement(InsertSection, createInsertProps({ onInsertField: vi.fn() })),
+			React.createElement(InsertSection, createInsertProps({ onInsertField: vi.fn<() => void>() })),
 		);
 		// The field button title uses the i18n key
 		expect(html).toContain('pptx.field.insertField');
@@ -597,9 +600,9 @@ describe('toolbar — Draw tab', () => {
 				activeTool: 'select',
 				drawingColor: '#000000',
 				drawingWidth: 2,
-				onSetActiveTool: vi.fn(),
-				onSetDrawingColor: vi.fn(),
-				onSetDrawingWidth: vi.fn(),
+				onSetActiveTool: vi.fn<() => void>(),
+				onSetDrawingColor: vi.fn<() => void>(),
+				onSetDrawingWidth: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('title="Select"');
@@ -615,9 +618,9 @@ describe('toolbar — Draw tab', () => {
 				activeTool: 'pen',
 				drawingColor: '#000000',
 				drawingWidth: 2,
-				onSetActiveTool: vi.fn(),
-				onSetDrawingColor: vi.fn(),
-				onSetDrawingWidth: vi.fn(),
+				onSetActiveTool: vi.fn<() => void>(),
+				onSetDrawingColor: vi.fn<() => void>(),
+				onSetDrawingWidth: vi.fn<() => void>(),
 			}),
 		);
 		// The pen button should have bg-accent class since pen is active
@@ -630,9 +633,9 @@ describe('toolbar — Draw tab', () => {
 				activeTool: 'select',
 				drawingColor: '#ff0000',
 				drawingWidth: 2,
-				onSetActiveTool: vi.fn(),
-				onSetDrawingColor: vi.fn(),
-				onSetDrawingWidth: vi.fn(),
+				onSetActiveTool: vi.fn<() => void>(),
+				onSetDrawingColor: vi.fn<() => void>(),
+				onSetDrawingWidth: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('type="color"');
@@ -645,9 +648,9 @@ describe('toolbar — Draw tab', () => {
 				activeTool: 'select',
 				drawingColor: '#000000',
 				drawingWidth: 5,
-				onSetActiveTool: vi.fn(),
-				onSetDrawingColor: vi.fn(),
-				onSetDrawingWidth: vi.fn(),
+				onSetActiveTool: vi.fn<() => void>(),
+				onSetDrawingColor: vi.fn<() => void>(),
+				onSetDrawingWidth: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('type="range"');
@@ -660,9 +663,9 @@ describe('toolbar — Draw tab', () => {
 				activeTool: 'select',
 				drawingColor: '#000000',
 				drawingWidth: 2,
-				onSetActiveTool: vi.fn(),
-				onSetDrawingColor: vi.fn(),
-				onSetDrawingWidth: vi.fn(),
+				onSetActiveTool: vi.fn<() => void>(),
+				onSetDrawingColor: vi.fn<() => void>(),
+				onSetDrawingWidth: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('Colour');
@@ -679,12 +682,12 @@ describe('toolbar — Design tab', () => {
 		const html = render(
 			React.createElement(DesignSection, {
 				canEdit: true,
-				onToggleThemeGallery: vi.fn(),
+				onToggleThemeGallery: vi.fn<() => void>(),
 				isThemeGalleryOpen: false,
-				onToggleThemeEditor: vi.fn(),
+				onToggleThemeEditor: vi.fn<() => void>(),
 				isThemeEditorOpen: false,
-				onOpenDocumentProperties: vi.fn(),
-				onToggleInspector: vi.fn(),
+				onOpenDocumentProperties: vi.fn<() => void>(),
+				onToggleInspector: vi.fn<() => void>(),
 				isInspectorPaneOpen: false,
 			}),
 		);
@@ -695,9 +698,9 @@ describe('toolbar — Design tab', () => {
 		const html = render(
 			React.createElement(DesignSection, {
 				canEdit: true,
-				onToggleThemeGallery: vi.fn(),
+				onToggleThemeGallery: vi.fn<() => void>(),
 				isThemeGalleryOpen: false,
-				onToggleThemeEditor: vi.fn(),
+				onToggleThemeEditor: vi.fn<() => void>(),
 				isThemeEditorOpen: false,
 			}),
 		);
@@ -708,11 +711,11 @@ describe('toolbar — Design tab', () => {
 		const html = render(
 			React.createElement(DesignSection, {
 				canEdit: true,
-				onToggleThemeGallery: vi.fn(),
+				onToggleThemeGallery: vi.fn<() => void>(),
 				isThemeGalleryOpen: false,
-				onToggleThemeEditor: vi.fn(),
+				onToggleThemeEditor: vi.fn<() => void>(),
 				isThemeEditorOpen: false,
-				onOpenDocumentProperties: vi.fn(),
+				onOpenDocumentProperties: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('Slide Size');
@@ -722,11 +725,11 @@ describe('toolbar — Design tab', () => {
 		const html = render(
 			React.createElement(DesignSection, {
 				canEdit: true,
-				onToggleThemeGallery: vi.fn(),
+				onToggleThemeGallery: vi.fn<() => void>(),
 				isThemeGalleryOpen: false,
-				onToggleThemeEditor: vi.fn(),
+				onToggleThemeEditor: vi.fn<() => void>(),
 				isThemeEditorOpen: false,
-				onToggleInspector: vi.fn(),
+				onToggleInspector: vi.fn<() => void>(),
 				isInspectorPaneOpen: false,
 			}),
 		);
@@ -737,9 +740,9 @@ describe('toolbar — Design tab', () => {
 		const html = render(
 			React.createElement(DesignSection, {
 				canEdit: true,
-				onToggleThemeGallery: vi.fn(),
+				onToggleThemeGallery: vi.fn<() => void>(),
 				isThemeGalleryOpen: true,
-				onToggleThemeEditor: vi.fn(),
+				onToggleThemeEditor: vi.fn<() => void>(),
 				isThemeEditorOpen: false,
 			}),
 		);
@@ -751,9 +754,9 @@ describe('toolbar — Design tab', () => {
 		const html = render(
 			React.createElement(DesignSection, {
 				canEdit: true,
-				onToggleThemeGallery: vi.fn(),
+				onToggleThemeGallery: vi.fn<() => void>(),
 				isThemeGalleryOpen: false,
-				onToggleThemeEditor: vi.fn(),
+				onToggleThemeEditor: vi.fn<() => void>(),
 				isThemeEditorOpen: false,
 			}),
 		);
@@ -770,7 +773,7 @@ describe('toolbar — Transitions tab', () => {
 		const html = render(
 			React.createElement(TransitionsSection, {
 				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn(),
+				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('title="Preview transition"');
@@ -781,29 +784,21 @@ describe('toolbar — Transitions tab', () => {
 		const html = render(
 			React.createElement(TransitionsSection, {
 				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn(),
+				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
-		for (const preset of [
-			'None',
-			'Fade',
-			'Push',
-			'Wipe',
-			'Split',
-			'Reveal',
-			'Cut',
-			'Cover',
-			'Uncover',
-		]) {
+		const presets = ['None', 'Fade', 'Push', 'Wipe', 'Split', 'Reveal', 'Cut', 'Cover', 'Uncover'];
+		for (const preset of presets) {
 			expect(html, `Preset "${preset}" should be rendered`).toContain(`>${preset}</button>`);
 		}
+		expect(presets).toHaveLength(9);
 	});
 
 	it('renders Duration input', () => {
 		const html = render(
 			React.createElement(TransitionsSection, {
 				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn(),
+				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('Duration:');
@@ -814,7 +809,7 @@ describe('toolbar — Transitions tab', () => {
 		const html = render(
 			React.createElement(TransitionsSection, {
 				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn(),
+				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('title="Apply transition to all slides"');
@@ -825,7 +820,7 @@ describe('toolbar — Transitions tab', () => {
 		const html = render(
 			React.createElement(TransitionsSection, {
 				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn(),
+				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('title="Open Inspector for full transition options"');
@@ -836,7 +831,7 @@ describe('toolbar — Transitions tab', () => {
 		const html = render(
 			React.createElement(TransitionsSection, {
 				isInspectorPaneOpen: true,
-				onToggleInspector: vi.fn(),
+				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="Open Inspector for full transition options"/);
@@ -854,7 +849,7 @@ describe('toolbar — Animations tab', () => {
 				canEdit: true,
 				selectedElement: null,
 				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn(),
+				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('title="Preview animation on selected element"');
@@ -867,7 +862,7 @@ describe('toolbar — Animations tab', () => {
 				canEdit: true,
 				selectedElement: null,
 				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn(),
+				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('title="Add animation to selected element"');
@@ -880,7 +875,7 @@ describe('toolbar — Animations tab', () => {
 				canEdit: true,
 				selectedElement: null,
 				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn(),
+				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('title="Remove animation from selected element"');
@@ -893,7 +888,7 @@ describe('toolbar — Animations tab', () => {
 				canEdit: true,
 				selectedElement: null,
 				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn(),
+				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('title="Open Animation Panel in Inspector"');
@@ -906,7 +901,7 @@ describe('toolbar — Animations tab', () => {
 				canEdit: true,
 				selectedElement: null,
 				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn(),
+				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toMatch(/disabled[^>]*title="Preview animation on selected element"/);
@@ -920,7 +915,7 @@ describe('toolbar — Animations tab', () => {
 				canEdit: true,
 				selectedElement: null,
 				isInspectorPaneOpen: true,
-				onToggleInspector: vi.fn(),
+				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="Open Animation Panel in Inspector"/);
@@ -932,7 +927,7 @@ describe('toolbar — Animations tab', () => {
 				canEdit: true,
 				selectedElement: null,
 				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn(),
+				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('Entrance');
@@ -947,13 +942,13 @@ describe('toolbar — Animations tab', () => {
 
 describe('toolbar — Slide Show tab', () => {
 	const createSlideShowProps = () => ({
-		onPresent: vi.fn(),
-		onSetMode: vi.fn() as (mode: 'edit' | 'present' | 'preview' | 'master') => void,
-		onEnterPresenterView: vi.fn(),
-		onEnterRehearsalMode: vi.fn(),
-		onOpenSetUpSlideShow: vi.fn(),
-		onOpenBroadcastDialog: vi.fn(),
-		onToggleSubtitles: vi.fn(),
+		onPresent: vi.fn<() => void>(),
+		onSetMode: vi.fn<() => void>() as (mode: 'edit' | 'present' | 'preview' | 'master') => void,
+		onEnterPresenterView: vi.fn<() => void>(),
+		onEnterRehearsalMode: vi.fn<() => void>(),
+		onOpenSetUpSlideShow: vi.fn<() => void>(),
+		onOpenBroadcastDialog: vi.fn<() => void>(),
+		onToggleSubtitles: vi.fn<() => void>(),
 		showSubtitles: false,
 	});
 
@@ -1017,11 +1012,11 @@ describe('toolbar — Review tab', () => {
 			React.createElement(ReviewSection, {
 				canEdit: true,
 				spellCheckEnabled: false,
-				onSetSpellCheckEnabled: vi.fn(),
-				onToggleComments: vi.fn(),
+				onSetSpellCheckEnabled: vi.fn<() => void>(),
+				onToggleComments: vi.fn<() => void>(),
 				isCommentsPanelOpen: false,
 				slideCommentCount: 0,
-				onCompare: vi.fn(),
+				onCompare: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('title="Toggle comments panel"');
@@ -1033,10 +1028,10 @@ describe('toolbar — Review tab', () => {
 			React.createElement(ReviewSection, {
 				canEdit: true,
 				spellCheckEnabled: false,
-				onSetSpellCheckEnabled: vi.fn(),
-				onToggleComments: vi.fn(),
+				onSetSpellCheckEnabled: vi.fn<() => void>(),
+				onToggleComments: vi.fn<() => void>(),
 				isCommentsPanelOpen: false,
-				onCompare: vi.fn(),
+				onCompare: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('title="Toggle spell check"');
@@ -1048,8 +1043,8 @@ describe('toolbar — Review tab', () => {
 			React.createElement(ReviewSection, {
 				canEdit: true,
 				spellCheckEnabled: false,
-				onSetSpellCheckEnabled: vi.fn(),
-				onCompare: vi.fn(),
+				onSetSpellCheckEnabled: vi.fn<() => void>(),
+				onCompare: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('title="Compare with another presentation"');
@@ -1061,8 +1056,8 @@ describe('toolbar — Review tab', () => {
 			React.createElement(ReviewSection, {
 				canEdit: true,
 				spellCheckEnabled: false,
-				onSetSpellCheckEnabled: vi.fn(),
-				onToggleComments: vi.fn(),
+				onSetSpellCheckEnabled: vi.fn<() => void>(),
+				onToggleComments: vi.fn<() => void>(),
 				isCommentsPanelOpen: false,
 				slideCommentCount: 5,
 			}),
@@ -1075,8 +1070,8 @@ describe('toolbar — Review tab', () => {
 			React.createElement(ReviewSection, {
 				canEdit: true,
 				spellCheckEnabled: false,
-				onSetSpellCheckEnabled: vi.fn(),
-				onToggleComments: vi.fn(),
+				onSetSpellCheckEnabled: vi.fn<() => void>(),
+				onToggleComments: vi.fn<() => void>(),
 				isCommentsPanelOpen: false,
 				slideCommentCount: 0,
 			}),
@@ -1090,8 +1085,8 @@ describe('toolbar — Review tab', () => {
 			React.createElement(ReviewSection, {
 				canEdit: true,
 				spellCheckEnabled: false,
-				onSetSpellCheckEnabled: vi.fn(),
-				onToggleComments: vi.fn(),
+				onSetSpellCheckEnabled: vi.fn<() => void>(),
+				onToggleComments: vi.fn<() => void>(),
 				isCommentsPanelOpen: true,
 			}),
 		);
@@ -1103,7 +1098,7 @@ describe('toolbar — Review tab', () => {
 			React.createElement(ReviewSection, {
 				canEdit: true,
 				spellCheckEnabled: true,
-				onSetSpellCheckEnabled: vi.fn(),
+				onSetSpellCheckEnabled: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="Toggle spell check"/);
@@ -1114,7 +1109,7 @@ describe('toolbar — Review tab', () => {
 			React.createElement(ReviewSection, {
 				canEdit: true,
 				spellCheckEnabled: false,
-				onSetSpellCheckEnabled: vi.fn(),
+				onSetSpellCheckEnabled: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).not.toContain('title="Toggle comments panel"');
@@ -1125,7 +1120,7 @@ describe('toolbar — Review tab', () => {
 			React.createElement(ReviewSection, {
 				canEdit: true,
 				spellCheckEnabled: false,
-				onSetSpellCheckEnabled: vi.fn(),
+				onSetSpellCheckEnabled: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).not.toContain('title="Compare with another presentation"');
@@ -1140,25 +1135,25 @@ describe('toolbar — View tab', () => {
 	const createViewProps = (overrides = {}) => ({
 		canEdit: true,
 		editTemplateMode: false,
-		onSetEditTemplateMode: vi.fn(),
+		onSetEditTemplateMode: vi.fn<() => void>(),
 		spellCheckEnabled: false,
-		onSetSpellCheckEnabled: vi.fn(),
+		onSetSpellCheckEnabled: vi.fn<() => void>(),
 		showGrid: false,
 		showRulers: false,
 		snapToGrid: false,
 		snapToShape: false,
-		onSetShowGrid: vi.fn(),
-		onSetShowRulers: vi.fn(),
-		onSetSnapToGrid: vi.fn(),
-		onSetSnapToShape: vi.fn(),
-		onAddGuide: vi.fn(),
-		onEnterMasterView: vi.fn(),
+		onSetShowGrid: vi.fn<() => void>(),
+		onSetShowRulers: vi.fn<() => void>(),
+		onSetSnapToGrid: vi.fn<() => void>(),
+		onSetSnapToShape: vi.fn<() => void>(),
+		onAddGuide: vi.fn<() => void>(),
+		onEnterMasterView: vi.fn<() => void>(),
 		isSelectionPaneOpen: false,
-		onToggleSelectionPane: vi.fn(),
+		onToggleSelectionPane: vi.fn<() => void>(),
 		eyedropperActive: false,
-		onToggleEyedropper: vi.fn(),
-		onToggleSlideSorter: vi.fn(),
-		onZoomToFit: vi.fn(),
+		onToggleEyedropper: vi.fn<() => void>(),
+		onToggleSlideSorter: vi.fn<() => void>(),
+		onZoomToFit: vi.fn<() => void>(),
 		...overrides,
 	});
 
@@ -1206,7 +1201,10 @@ describe('toolbar — View tab', () => {
 
 	it('renders Selection pane button', () => {
 		const html = render(
-			React.createElement(ViewSection, createViewProps({ onToggleSelectionPane: vi.fn() })),
+			React.createElement(
+				ViewSection,
+				createViewProps({ onToggleSelectionPane: vi.fn<() => void>() }),
+			),
 		);
 		expect(html).toContain('title="Selection Pane"');
 		expect(html).toContain('Selection');
@@ -1214,14 +1212,17 @@ describe('toolbar — View tab', () => {
 
 	it('renders Eyedropper button', () => {
 		const html = render(
-			React.createElement(ViewSection, createViewProps({ onToggleEyedropper: vi.fn() })),
+			React.createElement(
+				ViewSection,
+				createViewProps({ onToggleEyedropper: vi.fn<() => void>() }),
+			),
 		);
 		expect(html).toContain('Eyedropper');
 	});
 
 	it('renders Zoom to Fit button', () => {
 		const html = render(
-			React.createElement(ViewSection, createViewProps({ onZoomToFit: vi.fn() })),
+			React.createElement(ViewSection, createViewProps({ onZoomToFit: vi.fn<() => void>() })),
 		);
 		expect(html).toContain('Zoom to Fit');
 	});
@@ -1331,17 +1332,17 @@ describe('toolbar — Arrange tab', () => {
 		canEdit: true,
 		selectedElement: { type: 'shape', id: 'test', x: 0, y: 0, width: 100, height: 100 } as never,
 		clipboardPayload: null,
-		onAlignElements: vi.fn(),
-		onCopy: vi.fn(),
-		onCut: vi.fn(),
-		onPaste: vi.fn(),
-		onFlip: vi.fn(),
-		onMoveLayer: vi.fn(),
-		onMoveLayerToEdge: vi.fn(),
-		onDuplicate: vi.fn(),
-		onDelete: vi.fn(),
+		onAlignElements: vi.fn<() => void>(),
+		onCopy: vi.fn<() => void>(),
+		onCut: vi.fn<() => void>(),
+		onPaste: vi.fn<() => void>(),
+		onFlip: vi.fn<() => void>(),
+		onMoveLayer: vi.fn<() => void>(),
+		onMoveLayerToEdge: vi.fn<() => void>(),
+		onDuplicate: vi.fn<() => void>(),
+		onDelete: vi.fn<() => void>(),
 		formatPainterActive: false,
-		onToggleFormatPainter: vi.fn(),
+		onToggleFormatPainter: vi.fn<() => void>(),
 		...overrides,
 	});
 
@@ -1410,7 +1411,7 @@ describe('toolbar — Text tab', () => {
 			React.createElement(TextSection, {
 				canEdit: true,
 				selectedElement: null,
-				onUpdateTextStyle: vi.fn(),
+				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('title="Bold"');
@@ -1424,7 +1425,7 @@ describe('toolbar — Text tab', () => {
 			React.createElement(TextSection, {
 				canEdit: true,
 				selectedElement: null,
-				onUpdateTextStyle: vi.fn(),
+				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('title="Align left"');
@@ -1438,7 +1439,7 @@ describe('toolbar — Text tab', () => {
 			React.createElement(TextSection, {
 				canEdit: true,
 				selectedElement: null,
-				onUpdateTextStyle: vi.fn(),
+				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toContain('title="Font Color"');
@@ -1449,7 +1450,7 @@ describe('toolbar — Text tab', () => {
 			React.createElement(TextSection, {
 				canEdit: true,
 				selectedElement: null,
-				onUpdateTextStyle: vi.fn(),
+				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
 		expect(html).toMatch(/disabled[^>]*title="Bold"/);
