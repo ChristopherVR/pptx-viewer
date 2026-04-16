@@ -41,6 +41,8 @@ import type { TextStyle, TextSegment } from './text';
  */
 export interface PptxElementBase {
 	id: string;
+	/** Element name from `cNvPr/@name`. Used for morph transition matching via the `!!` naming convention. */
+	name?: string;
 	x: number;
 	y: number;
 	width: number;

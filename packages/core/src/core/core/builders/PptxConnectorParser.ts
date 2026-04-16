@@ -122,6 +122,9 @@ export class PptxConnectorParser implements IPptxConnectorParser {
 				this.context.getOrderedSlidePaths(),
 			);
 
+			// Extract element name from cNvPr/@name (used for morph !! matching)
+			const connElementName = cNvPr?.['@_name'] ? String(cNvPr['@_name']).trim() : undefined;
+
 			const locks = this.context.parseShapeLocks(
 				(cNvConnectionShapeProperties?.['a:cxnSpLocks'] ??
 					cNvConnectionShapeProperties?.['a:spLocks']) as XmlObject | undefined,
@@ -133,6 +136,7 @@ export class PptxConnectorParser implements IPptxConnectorParser {
 
 			return {
 				id,
+				name: connElementName || undefined,
 				type: 'connector',
 				x: Math.round(parseInt(String(offset['@_x'] || '0'), 10) / this.context.emuPerPx),
 				y: Math.round(parseInt(String(offset['@_y'] || '0'), 10) / this.context.emuPerPx),

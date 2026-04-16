@@ -20,6 +20,14 @@ export const EXTENDED_SHAPE_DEFINITIONS: PresetShapeDefinition[] = [
 	{ name: 'line', label: 'Line', category: 'other' },
 	{ name: 'lineInv', label: 'Line Inverse', category: 'other' },
 	{ name: 'straightConnector1', label: 'Straight Connector', category: 'other' },
+	{ name: 'bentConnector2', label: 'Elbow Connector (L)', category: 'other' },
+	{ name: 'bentConnector3', label: 'Elbow Connector (Z)', category: 'other' },
+	{ name: 'bentConnector4', label: 'Elbow Connector (3-Segment)', category: 'other' },
+	{ name: 'bentConnector5', label: 'Elbow Connector (4-Segment)', category: 'other' },
+	{ name: 'curvedConnector2', label: 'Curved Connector (L)', category: 'other' },
+	{ name: 'curvedConnector3', label: 'Curved Connector (2-Segment)', category: 'other' },
+	{ name: 'curvedConnector4', label: 'Curved Connector (3-Segment)', category: 'other' },
+	{ name: 'curvedConnector5', label: 'Curved Connector (4-Segment)', category: 'other' },
 
 	// ── Arrows ────────────────────────────────────────────────────────────
 	{ name: 'rightArrow', label: 'Right Arrow', category: 'arrows' },

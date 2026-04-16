@@ -209,6 +209,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				this.orderedSlidePaths,
 			);
 
+			// Extract element name from cNvPr/@name (used for morph !! matching)
+			const elementName = cNvPrForActions?.['@_name']
+				? String(cNvPrForActions['@_name']).trim()
+				: undefined;
+
 			// Parse shape lock attributes with inheritance
 			const cNvSpPr = shape?.['p:nvSpPr']?.['p:cNvSpPr'] as XmlObject | undefined;
 			const spLocksNode = cNvSpPr?.['a:spLocks'] as XmlObject | undefined;
@@ -224,6 +229,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 			const commonProps = {
 				id,
+				name: elementName || undefined,
 				x,
 				y,
 				width,

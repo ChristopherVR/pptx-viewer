@@ -195,9 +195,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			this.orderedSlidePaths,
 		);
 
+		// Extract element name from cNvPr/@name (used for morph !! matching)
+		const grpElementName = grpCNvPr?.['@_name'] ? String(grpCNvPr['@_name']).trim() : undefined;
+
 		const groupElement: GroupPptxElement = {
 			type: 'group',
 			id: baseId,
+			name: grpElementName || undefined,
 			x: parentX,
 			y: parentY,
 			width: parentW || Math.max(...children.map((c) => c.x + c.width)),

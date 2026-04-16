@@ -241,6 +241,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				this.orderedSlidePaths,
 			);
 
+			// Extract element name from cNvPr/@name (used for morph !! matching)
+			const picElementName = picCNvPr?.['@_name'] ? String(picCNvPr['@_name']).trim() : undefined;
+
 			// Parse locks from p:nvPicPr/p:cNvPicPr/a:picLocks
 			const picCNvPicPr = pic?.['p:nvPicPr']?.['p:cNvPicPr'] as XmlObject | undefined;
 			const picLocks = this.parseShapeLocks(
@@ -249,6 +252,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 			return {
 				id,
+				name: picElementName || undefined,
 				type: 'picture',
 				x,
 				y,

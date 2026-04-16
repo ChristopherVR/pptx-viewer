@@ -311,3 +311,54 @@ export {
 	type LayoutAlgorithmType,
 	type LayoutRule,
 } from './smartart-layout-engine';
+
+export {
+	checkPresentation,
+	checkMissingAltText,
+	checkMissingSlideTitle,
+	checkLowContrast,
+	checkComplexTables,
+	checkDuplicateTitles,
+	checkBlankSlide,
+	computeContrastRatio,
+	parseHexColor,
+	relativeLuminance,
+	type AccessibilityIssue,
+	type AccessibilityIssueType,
+	type AccessibilityIssueSeverity,
+	type AccessibilityCheckOptions,
+} from './accessibility-checker';
+
+export {
+	findCustomShow,
+	resolveCustomShowSlideIndices,
+	getCustomShowNames,
+	navigateCustomShow,
+	getCustomShowPositionLabel,
+} from './custom-show-utils';
+
+export {
+	resolveTableCellStyle,
+	mergeStyleParts,
+	type ParsedTableStylePart,
+	type ParsedTableStyle,
+	type TableStyleFlags,
+	type TableStylePartFill,
+	type TableStylePartBorders,
+	type TableStylePartBorder,
+	type TableStylePartText,
+} from './table-style-resolver';
+
+export {
+	ENTRANCE_PRESETS,
+	EXIT_PRESETS,
+	EMPHASIS_PRESETS,
+	MOTION_PATH_PRESETS,
+	ALL_ANIMATION_PRESETS,
+	getAnimationPresetInfo,
+	getPresetsByCategory,
+	type AnimationCategory,
+	type AnimationPresetInfo,
+} from './animation-preset-catalog';
+
+export { relayoutSmartArt } from './smartart-relayout';

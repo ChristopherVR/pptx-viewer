@@ -21,14 +21,25 @@ import { PROXIMITY_THRESHOLD } from './morph-types';
  * Extract the morph-matching name from an element.
  *
  * Priority:
- * 1. Text starting with "!!" (explicit morph name convention)
- * 2. (Future: element.name property from cNvPr/@name when available)
+ * 1. Element name property from `cNvPr/@name` starting with "!!"
+ * 2. Text content starting with "!!" (explicit morph name convention)
+ *
+ * PowerPoint matches elements across slides when their Selection Pane name
+ * (i.e. `cNvPr/@name`) starts with `!!`. Elements with identical `!!`-prefixed
+ * names are paired for morph animation regardless of type or position.
  *
  * @param element - The element to extract a morph name from.
  * @returns The morph name string, or undefined if none found.
  */
 export function getElementMorphName(element: PptxElement): string | undefined {
-	// Check !! naming convention in text content
+	// Check !! naming convention on element name (cNvPr/@name) — primary source
+	if (element.name) {
+		const name = element.name.trim();
+		if (name.startsWith('!!')) {
+			return name;
+		}
+	}
+	// Check !! naming convention in text content — fallback
 	if (hasTextProperties(element) && element.text) {
 		const text = element.text.trim();
 		if (text.startsWith('!!')) {
@@ -46,7 +57,7 @@ export function getElementMorphName(element: PptxElement): string | undefined {
  * Match elements between two consecutive slides for morph transition.
  *
  * Matching passes (in priority order):
- *   1. Explicit !! naming convention (text content starting with "!!")
+ *   1. Explicit !! naming convention (element name from cNvPr/@name, or text content)
  *   2. Element ID matching (same `id` on both slides)
  *   3. Type + proximity matching (same type within 300px euclidean distance)
  *

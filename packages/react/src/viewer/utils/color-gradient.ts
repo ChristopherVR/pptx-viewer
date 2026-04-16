@@ -95,6 +95,87 @@ export function toCssGradientStop(stop: {
 }
 
 /**
+ * Computes the gradient center position (as percentages) from a fillToRect
+ * and an optional focalPoint offset. The fillToRect defines an inner
+ * rectangle; the gradient center defaults to the center of that rectangle.
+ * When a focalPoint is also provided, it offsets the center within the
+ * fillToRect bounds.
+ *
+ * @param fillToRect - LTRB fractions (0-1) defining the inner rectangle.
+ * @param focalPoint - Optional focal point offset (0-1 fractions).
+ * @returns `{ cx, cy }` as percentages (0-100).
+ */
+export function computeGradientCenter(
+	fillToRect?: ShapeStyle['fillGradientFillToRect'],
+	focalPoint?: ShapeStyle['fillGradientFocalPoint'],
+): { cx: number; cy: number } {
+	if (fillToRect) {
+		const { l, t, r, b } = fillToRect;
+		// Base center is midpoint of the inner rectangle
+		let cx = ((l + (1 - r)) / 2) * 100;
+		let cy = ((t + (1 - b)) / 2) * 100;
+
+		// When a focal point is also provided, blend it into the center.
+		// The focal point (0-1) acts as a position within the shape, so we
+		// interpolate between the fillToRect center and the focal point.
+		if (focalPoint) {
+			const fpX = focalPoint.x * 100;
+			const fpY = focalPoint.y * 100;
+			// Use the focal point to shift the center — average the two
+			// to avoid extreme shifts while still honouring the offset.
+			cx = (cx + fpX) / 2;
+			cy = (cy + fpY) / 2;
+		}
+
+		return { cx, cy };
+	}
+
+	// No fillToRect: use focal point directly, or default to center (50%)
+	if (focalPoint) {
+		return { cx: focalPoint.x * 100, cy: focalPoint.y * 100 };
+	}
+	return { cx: 50, cy: 50 };
+}
+
+/**
+ * Builds a CSS radial-gradient for `path="circle"` gradients.
+ *
+ * OOXML `path="circle"` defines a circular radial gradient. The gradient
+ * radiates as a circle from the focal point. When a fillToRect is provided,
+ * the gradient center is derived from the fillToRect center, optionally
+ * offset by the focalPoint. The circle radius is sized to reach the
+ * farthest edge of the shape.
+ *
+ * @param stops - Sanitized gradient stops.
+ * @param focalPoint - Optional focal point (0-1 fractions).
+ * @param fillToRect - Optional fillToRect LTRB insets (0-1 fractions).
+ * @returns A CSS `radial-gradient(circle ...)` string.
+ */
+export function buildCirclePathGradient(
+	stops: NonNullable<ShapeStyle['fillGradientStops']>,
+	focalPoint?: ShapeStyle['fillGradientFocalPoint'],
+	fillToRect?: ShapeStyle['fillGradientFillToRect'],
+): string {
+	const stopStr = stops.map(toCssGradientStop).join(', ');
+	const { cx, cy } = computeGradientCenter(fillToRect, focalPoint);
+
+	// Format position — use 'center' only when both axes are exactly 50%
+	// and no explicit positioning was requested
+	const posX =
+		Math.round(cx) === 50 && !focalPoint && !fillToRect ? 'center' : `${Math.round(cx)}%`;
+	const posY =
+		Math.round(cy) === 50 && !focalPoint && !fillToRect ? 'center' : `${Math.round(cy)}%`;
+
+	if (fillToRect) {
+		// Compute the radius as the farthest distance from center to shape edge
+		const radius = Math.max(cx, 100 - cx, cy, 100 - cy);
+		return `radial-gradient(circle ${Math.round(radius)}% at ${posX} ${posY}, ${stopStr})`;
+	}
+
+	return `radial-gradient(circle at ${posX} ${posY}, ${stopStr})`;
+}
+
+/**
  * Builds a CSS radial-gradient for `path="rect"` gradients.
  *
  * OOXML `path="rect"` defines a rectangular gradient that radiates from the
@@ -108,14 +189,14 @@ export function toCssGradientStop(stop: {
  * - right edge at `1-r` fraction from left
  * - bottom edge at `1-b` fraction from top
  *
- * The gradient center is the center of this rectangle, and the ellipse
- * radii are sized so the gradient reaches the shape edges.
+ * The gradient center is the center of this rectangle (optionally offset by
+ * the focalPoint), and the ellipse radii are sized so the gradient reaches
+ * the shape edges.
  *
  * When the fillToRect describes a non-degenerate inner rectangle (l + r < 1
- * and t + b < 1) we produce a layered CSS background: the first layer is
- * a radial-gradient sized to the inner rectangle dimensions (closest-side),
- * ensuring the colour transition closely follows the rectangular boundary
- * rather than being a simple ellipse.
+ * and t + b < 1) we size the ellipse radii proportionally to the inner
+ * rectangle's aspect ratio, ensuring the colour transition closely follows
+ * the rectangular boundary rather than being a simple circle.
  */
 export function buildRectPathGradient(
 	stops: NonNullable<ShapeStyle['fillGradientStops']>,
@@ -126,9 +207,7 @@ export function buildRectPathGradient(
 
 	if (fillToRect) {
 		const { l, t, r, b } = fillToRect;
-		// Center of the fillToRect
-		const cx = ((l + (1 - r)) / 2) * 100;
-		const cy = ((t + (1 - b)) / 2) * 100;
+		const { cx, cy } = computeGradientCenter(fillToRect, focalPoint);
 
 		// The gradient extends from the fillToRect edges to the shape boundary.
 		// The ellipse semi-axis = max distance from center to shape edge.
@@ -171,11 +250,18 @@ export function buildRectPathGradient(
  * OOXML `path="shape"` defines a gradient that follows the shape boundary,
  * radiating inward from the shape edges. This is impossible to replicate
  * perfectly with CSS, so we approximate it with an elliptical radial
- * gradient whose radii are derived from the fillToRect. When the fillToRect
- * defines a non-square inner region, we use explicit percentage sizing to
- * ensure the ellipse aspect ratio better approximates the shape boundary,
- * rather than defaulting to farthest-side (which always produces a circle
- * for centered positions).
+ * gradient sized to the bounding box.
+ *
+ * The approach:
+ * 1. When fillToRect is provided, the gradient center is the center of the
+ *    inner rectangle (optionally offset by focalPoint). The ellipse radii
+ *    are set to the maximum distance from center to each shape edge, so
+ *    the gradient fully covers the bounding box.
+ * 2. When the fillToRect defines a non-square inner region, explicit
+ *    percentage sizing preserves the aspect ratio, better approximating
+ *    a gradient that follows the shape boundary.
+ * 3. Without fillToRect, `farthest-side` provides a reasonable default
+ *    that adapts to the element's aspect ratio.
  *
  * For centered shapes (the most common case), this produces a result very
  * close to PowerPoint's rendering.
@@ -189,11 +275,16 @@ export function buildShapePathGradient(
 
 	if (fillToRect) {
 		const { l, t, r, b } = fillToRect;
-		const cx = ((l + (1 - r)) / 2) * 100;
-		const cy = ((t + (1 - b)) / 2) * 100;
+		const { cx, cy } = computeGradientCenter(fillToRect, focalPoint);
 
 		const posX = `${Math.round(cx)}%`;
 		const posY = `${Math.round(cy)}%`;
+
+		// Compute the ellipse radii that cover the full bounding box from the
+		// computed center. This ensures the shape-conforming gradient extends
+		// all the way to the edges.
+		const semiX = Math.max(cx, 100 - cx);
+		const semiY = Math.max(cy, 100 - cy);
 
 		// Compute the inner-rect half-widths as percentages. When both are
 		// positive and different, use explicit sizing to preserve the rectangle's
@@ -202,16 +293,26 @@ export function buildShapePathGradient(
 		const innerHalfH = ((1 - t - b) / 2) * 100;
 
 		if (innerHalfW > 0.5 && innerHalfH > 0.5 && Math.abs(innerHalfW - innerHalfH) > 1) {
-			// Use percentage radii matching the inner rectangle's proportions
-			return `radial-gradient(${Math.round(innerHalfW)}% ${Math.round(innerHalfH)}% at ${posX} ${posY}, ${stopStr})`;
+			// Scale the bounding-box radii proportionally to the inner rectangle's
+			// aspect ratio for a shape-conforming feel.
+			const aspect = innerHalfW / innerHalfH;
+			const adjustedSemiX = Math.round(Math.max(semiX, semiY * aspect));
+			const adjustedSemiY = Math.round(Math.max(semiY, semiX / aspect));
+			return `radial-gradient(${adjustedSemiX}% ${adjustedSemiY}% at ${posX} ${posY}, ${stopStr})`;
+		}
+
+		// Degenerate inner rect (zero area) or symmetric: use bounding-box radii
+		if (semiX > 0.5 || semiY > 0.5) {
+			return `radial-gradient(${Math.round(semiX)}% ${Math.round(semiY)}% at ${posX} ${posY}, ${stopStr})`;
 		}
 
 		// Symmetric or nearly-symmetric: farthest-side is a good fit
 		return `radial-gradient(farthest-side at ${posX} ${posY}, ${stopStr})`;
 	}
 
-	const posX = focalPoint ? `${Math.round(focalPoint.x * 100)}%` : 'center';
-	const posY = focalPoint ? `${Math.round(focalPoint.y * 100)}%` : 'center';
+	const { cx, cy } = computeGradientCenter(undefined, focalPoint);
+	const posX = focalPoint ? `${Math.round(cx)}%` : 'center';
+	const posY = focalPoint ? `${Math.round(cy)}%` : 'center';
 	return `radial-gradient(farthest-side at ${posX} ${posY}, ${stopStr})`;
 }
 
@@ -255,9 +356,7 @@ export function buildCssGradientFromShapeStyle(style: ShapeStyle | undefined): s
 		}
 
 		// Default: circle path type
-		const posX = fp ? `${Math.round(fp.x * 100)}%` : 'center';
-		const posY = fp ? `${Math.round(fp.y * 100)}%` : 'center';
-		return `radial-gradient(circle at ${posX} ${posY}, ${stops.map(toCssGradientStop).join(', ')})`;
+		return buildCirclePathGradient(stops, fp, ftr);
 	}
 
 	const normalizedAngle =
