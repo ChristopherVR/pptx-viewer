@@ -60,25 +60,30 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		exportAbortRef,
 	};
 
-	const { handlePackageForSharing, handleSaveAsFormat, handleSaveAsPpsx, handleSaveAsPptm } =
-		useExportSaveAs({
-			slides,
-			filePath,
-			handlerRef,
-			serializeSlides,
-			headerFooter,
-			presentationProperties,
-			customShows,
-			sections,
-			coreProperties,
-			appProperties,
-			customProperties,
-			notesMaster,
-			handoutMaster,
-			guides,
-			activeSlideIndexForGuides,
-			modalControls,
-		});
+	const {
+		handlePackageForSharing,
+		handleSaveAsFormat,
+		handleSaveAsPptx,
+		handleSaveAsPpsx,
+		handleSaveAsPptm,
+	} = useExportSaveAs({
+		slides,
+		filePath,
+		handlerRef,
+		serializeSlides,
+		headerFooter,
+		presentationProperties,
+		customShows,
+		sections,
+		coreProperties,
+		appProperties,
+		customProperties,
+		notesMaster,
+		handoutMaster,
+		guides,
+		activeSlideIndexForGuides,
+		modalControls,
+	});
 
 	const handleExportPng = async () => {
 		const stageEl = canvasStageRef.current;
@@ -296,6 +301,7 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		handleExportGif,
 		handlePackageForSharing,
 		handleSaveAsFormat,
+		handleSaveAsPptx,
 		handleSaveAsPpsx,
 		handleSaveAsPptm,
 		handleCancelExport,

@@ -22,6 +22,7 @@ export interface FileSectionProps {
 	onExportVideo: () => void;
 	onExportGif: () => void;
 	onPackageForSharing: () => void;
+	onSaveAsPptx: () => void;
 	onSaveAsPpsx: () => void;
 	onSaveAsPptm: () => void;
 	hasMacros: boolean;
@@ -37,6 +38,10 @@ export function FileSection(p: FileSectionProps): React.ReactElement {
 	return (
 		<>
 			{/* Save & Export */}
+			<button onClick={p.onSaveAsPptx} className={pill} title='Save as Presentation (.pptx)'>
+				<LuDownload className={ic} />
+				Save .pptx
+			</button>
 			<button onClick={p.onSaveAsPpsx} className={pill} title='Save as Slide Show (.ppsx)'>
 				<LuPlay className={ic} />
 				Save .ppsx

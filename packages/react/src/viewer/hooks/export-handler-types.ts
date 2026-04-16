@@ -41,6 +41,7 @@ export interface ExportHandlersResult {
 	handleExportGif: () => Promise<void>;
 	handlePackageForSharing: () => Promise<void>;
 	handleSaveAsFormat: (format: PptxSaveFormat) => Promise<void>;
+	handleSaveAsPptx: () => void;
 	handleSaveAsPpsx: () => void;
 	handleSaveAsPptm: () => void;
 	handleCancelExport: () => void;

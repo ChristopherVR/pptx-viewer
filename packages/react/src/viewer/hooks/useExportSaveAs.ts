@@ -36,6 +36,7 @@ export interface UseExportSaveAsInput {
 export interface ExportSaveAsResult {
 	handlePackageForSharing: () => Promise<void>;
 	handleSaveAsFormat: (format: PptxSaveFormat) => Promise<void>;
+	handleSaveAsPptx: () => void;
 	handleSaveAsPpsx: () => void;
 	handleSaveAsPptm: () => void;
 }
@@ -187,6 +188,9 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 		return handler.save(slidesWithGuides, saveOptions as Parameters<typeof handler.save>[1]);
 	};
 
+	const handleSaveAsPptx = () => {
+		void handleSaveAsFormat('pptx');
+	};
 	const handleSaveAsPpsx = () => {
 		void handleSaveAsFormat('ppsx');
 	};
@@ -197,6 +201,7 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 	return {
 		handlePackageForSharing,
 		handleSaveAsFormat,
+		handleSaveAsPptx,
 		handleSaveAsPpsx,
 		handleSaveAsPptm,
 	};

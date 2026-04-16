@@ -121,6 +121,11 @@ export const OV: Array<{ l: string; i: React.ReactNode; k: string }> = [
 		i: <LuFolderOpen className={`${ics} text-muted-foreground`} />,
 	},
 	{
+		k: 'pptx',
+		l: 'Save as Presentation (.pptx)',
+		i: <LuDownload className={`${ics} text-muted-foreground`} />,
+	},
+	{
 		k: 'ppsx',
 		l: 'Save as Slide Show (.ppsx)',
 		i: <LuPlay className={`${ics} text-muted-foreground`} />,

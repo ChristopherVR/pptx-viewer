@@ -11,6 +11,7 @@ type OverflowKeys =
 	| 'onExportVideo'
 	| 'onExportGif'
 	| 'onPackageForSharing'
+	| 'onSaveAsPptx'
 	| 'onSaveAsPpsx'
 	| 'onSaveAsPptm'
 	| 'onPrint'
@@ -38,6 +39,7 @@ export function OverflowMenu(p: OverflowMenuProps): React.ReactElement {
 				video: p.onExportVideo,
 				gif: p.onExportGif,
 				package: p.onPackageForSharing,
+				pptx: p.onSaveAsPptx,
 				ppsx: p.onSaveAsPpsx,
 				pptm: p.onSaveAsPptm,
 				print: p.onPrint,
