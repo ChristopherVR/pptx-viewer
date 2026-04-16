@@ -167,9 +167,26 @@ export function parseEotHeader(data: Uint8Array): EotHeader | null {
 	const versionName = readNameString();
 	const fullName = readNameString();
 
-	// Version 0x00020002+ has an additional RootString
+	// Version 0x00020002+ has additional fields after the four name strings.
+	// Per W3C EOT spec: RootString, RootStringChecksum, EUDCCodePage,
+	// Padding4+SignatureSize+Signature, EUDCFlags, EUDCFontSize+EUDCFontData.
 	if (version >= 0x00020002) {
 		readNameString(); // RootString — not used
+
+		// RootStringChecksum (4 bytes) + EUDCCodePage (4 bytes)
+		offset += 8;
+
+		// Padding4 (2 bytes) + SignatureSize (2 bytes)
+		if (offset + 4 <= data.length) {
+			const signatureSize = readUint16LE(data, offset + 2);
+			offset += 4 + signatureSize;
+		}
+
+		// EUDCFlags (4 bytes) + EUDCFontSize (4 bytes)
+		if (offset + 8 <= data.length) {
+			const eudcFontSize = readUint32LE(data, offset + 4);
+			offset += 8 + eudcFontSize;
+		}
 	}
 
 	return {

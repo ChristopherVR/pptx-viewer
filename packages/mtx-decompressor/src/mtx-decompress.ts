@@ -34,7 +34,8 @@ const ENCRYPTION_KEY = 0x50;
  * The data following the header is split into three contiguous
  * compressed blocks whose boundaries are determined by the offsets.
  *
- * @param data  Raw (possibly decrypted) MTX data.
+ * @param data  Raw MTX data (BSGP header must already be stripped and
+ *              offsets adjusted before calling this function).
  * @param size  Total byte length of `data`.
  * @returns An object containing the three decompressed byte arrays and
  *          their respective sizes.
@@ -53,7 +54,7 @@ export function unpackMtx(
 
 	// Block boundaries
 	const offsets = [10, offset2, offset3];
-	const sizes = [offset2 - 10, offset3 - offset2, size - offset3];
+	const blockSizes = [offset2 - 10, offset3 - offset2, size - offset3];
 
 	// Decompress each block
 	const streams: Uint8Array[] = [];
@@ -61,7 +62,7 @@ export function unpackMtx(
 
 	for (let i = 0; i < 3; i++) {
 		const block = data.subarray(offsets[i]);
-		const decompressed = lzcompDecompress(block, sizes[i], versionMagic);
+		const decompressed = lzcompDecompress(block, blockSizes[i], versionMagic);
 		streams.push(decompressed);
 		decompressedSizes.push(decompressed.length);
 	}

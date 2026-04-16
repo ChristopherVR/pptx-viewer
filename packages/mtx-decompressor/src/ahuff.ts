@@ -65,9 +65,12 @@ export class AHuff {
 		this.range = range;
 
 		// Derive bit widths --------------------------------------------------
+		// Matches C: bitCount2 is non-zero only for range 257..511
 		this.bitCount = bitsUsed(range - 1);
-		// bitCount2 is non-zero only when range > 256 (i.e. needs > 8 bits)
-		this.bitCount2 = this.bitCount > 8 ? this.bitCount - 8 : 0;
+		this.bitCount2 = 0;
+		if (range > 256 && range < 512) {
+			this.bitCount2 = bitsUsed(range - 256 - 1) + 1;
+		}
 
 		const treeSize = 2 * range; // indices 0 .. 2*range-1
 
@@ -77,9 +80,11 @@ export class AHuff {
 			this.tree[i] = { up: 0, left: 0, right: 0, code: -1, weight: 0 };
 		}
 
-		// Build parent pointers: every node i (2..2*range-1) has up = floor(i/2)
+		// Build parent pointers and set initial weight = 1 for all non-root
+		// nodes (matching the C code which initializes weight=1 for i in 2..limit-1)
 		for (let i = 2; i < treeSize; i++) {
 			this.tree[i].up = i >> 1;
+			this.tree[i].weight = 1;
 		}
 
 		// Internal nodes (1 .. range-1): set children, code = -1
@@ -89,12 +94,14 @@ export class AHuff {
 			this.tree[i].code = -1;
 		}
 
-		// Leaf nodes (range .. 2*range-1): code = symbol index, weight = 1
+		// Leaf nodes (range .. 2*range-1): code = symbol index
+		// C code sets left=-1, right=-1 for leaves (distinguishes from
+		// internal nodes which have left/right >= 0 in SwapNodes)
 		for (let i = 0; i < range; i++) {
 			const leafIdx = range + i;
 			this.tree[leafIdx].code = i;
-			this.tree[leafIdx].weight = 1;
-			// Leaves have no children (left/right remain 0)
+			this.tree[leafIdx].left = -1;
+			this.tree[leafIdx].right = -1;
 		}
 
 		// Build symbolIndex: symbol i -> leaf index (range + i)
@@ -148,20 +155,18 @@ export class AHuff {
 	 */
 	readSymbol(): number {
 		let a = AHuff.ROOT;
+		let symbol: number;
 
-		// Traverse internal nodes until we hit a leaf
-		while (this.tree[a].code < 0) {
-			if (this.bio.inputBit()) {
-				a = this.tree[a].right;
-			} else {
-				a = this.tree[a].left;
-			}
-		}
+		// Traverse tree from ROOT to leaf (matches C do-while)
+		do {
+			a = this.bio.inputBit() ? this.tree[a].right : this.tree[a].left;
+			symbol = this.tree[a].code;
+		} while (symbol < 0);
 
 		// Update adaptive weights for the decoded leaf
 		this.updateWeight(a);
 
-		return this.tree[a].code;
+		return symbol;
 	}
 
 	// --------------------------------------------------------------------
@@ -188,19 +193,23 @@ export class AHuff {
 		const tree = this.tree;
 
 		for (; a !== AHuff.ROOT; a = tree[a].up) {
+			const weightA = tree[a].weight;
 			let b = a - 1;
-			if (b > 0 && tree[b].weight === tree[a].weight) {
-				// Scan back to find the first (lowest-index) node with this weight
-				while (b > AHuff.ROOT && tree[b - 1].weight === tree[a].weight) {
+
+			// C reference: scan backward while tree[b].weight == weightA,
+			// then b++ to land on the first node with that weight.
+			if (tree[b].weight === weightA) {
+				do {
 					b--;
-				}
-				// Only swap if b is past ROOT and b isn't the same node
-				if (b > AHuff.ROOT && b !== a) {
+				} while (tree[b].weight === weightA);
+				b++;
+				if (b > AHuff.ROOT) {
 					this.swapNodes(a, b);
-					a = b; // continue from the swapped position
+					a = b;
 				}
 			}
-			tree[a].weight++;
+
+			tree[a].weight = weightA + 1;
 		}
 
 		// Increment ROOT weight
@@ -223,48 +232,37 @@ export class AHuff {
 	 */
 	private swapNodes(a: number, b: number): void {
 		const tree = this.tree;
-		const na = tree[a];
-		const nb = tree[b];
 
-		// Swap content fields ------------------------------------------------
-		let tmp: number;
+		// Save parent pointers (these are position-specific, not content)
+		const upa = tree[a].up;
+		const upb = tree[b].up;
 
-		tmp = na.left;
-		na.left = nb.left;
-		nb.left = tmp;
-		tmp = na.right;
-		na.right = nb.right;
-		nb.right = tmp;
-		tmp = na.code;
-		na.code = nb.code;
-		nb.code = tmp;
-		tmp = na.weight;
-		na.weight = nb.weight;
-		nb.weight = tmp;
+		// Swap the entire node content (matches C: tNode = tree[a]; tree[a] = tree[b]; tree[b] = tNode)
+		const tmp = tree[a];
+		tree[a] = tree[b];
+		tree[b] = tmp;
 
-		// Fix children's up-pointers -----------------------------------------
-		// Node a's new children should point up to a
-		if (na.left) {
-			tree[na.left].up = a;
-		}
-		if (na.right) {
-			tree[na.right].up = a;
+		// Restore parent pointers to their original positions
+		tree[a].up = upa;
+		tree[b].up = upb;
+
+		// Fix children's up-pointers and symbolIndex -------------------------
+		let code = tree[a].code;
+		if (code < 0) {
+			// Internal node: fix children's parent pointers
+			tree[tree[a].left].up = a;
+			tree[tree[a].right].up = a;
+		} else {
+			// Leaf node: fix symbolIndex
+			this.symbolIndex[code] = a;
 		}
 
-		// Node b's new children should point up to b
-		if (nb.left) {
-			tree[nb.left].up = b;
-		}
-		if (nb.right) {
-			tree[nb.right].up = b;
-		}
-
-		// Fix symbolIndex for leaves -----------------------------------------
-		if (na.code >= 0) {
-			this.symbolIndex[na.code] = a;
-		}
-		if (nb.code >= 0) {
-			this.symbolIndex[nb.code] = b;
+		code = tree[b].code;
+		if (code < 0) {
+			tree[tree[b].left].up = b;
+			tree[tree[b].right].up = b;
+		} else {
+			this.symbolIndex[code] = b;
 		}
 	}
 

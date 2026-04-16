@@ -109,7 +109,7 @@ export const TRIPLET_ENCODINGS: TripletEncoding[] = [
 	{ byteCount: 2, xBits: 4, yBits: 4, deltaX: 49, deltaY: 49, xSign: 1, ySign: -1 },
 	{ byteCount: 2, xBits: 4, yBits: 4, deltaX: 49, deltaY: 49, xSign: -1, ySign: 1 },
 	{ byteCount: 2, xBits: 4, yBits: 4, deltaX: 49, deltaY: 49, xSign: 1, ySign: 1 },
-	// Indices 84-107: 8-bit X + 8-bit Y (3 bytes total)
+	// Indices 84-119: 8-bit X + 8-bit Y (3 bytes total)
 	{ byteCount: 3, xBits: 8, yBits: 8, deltaX: 1, deltaY: 1, xSign: -1, ySign: -1 },
 	{ byteCount: 3, xBits: 8, yBits: 8, deltaX: 1, deltaY: 1, xSign: 1, ySign: -1 },
 	{ byteCount: 3, xBits: 8, yBits: 8, deltaX: 1, deltaY: 1, xSign: -1, ySign: 1 },
@@ -146,12 +146,12 @@ export const TRIPLET_ENCODINGS: TripletEncoding[] = [
 	{ byteCount: 3, xBits: 8, yBits: 8, deltaX: 513, deltaY: 513, xSign: 1, ySign: -1 },
 	{ byteCount: 3, xBits: 8, yBits: 8, deltaX: 513, deltaY: 513, xSign: -1, ySign: 1 },
 	{ byteCount: 3, xBits: 8, yBits: 8, deltaX: 513, deltaY: 513, xSign: 1, ySign: 1 },
-	// Indices 108-111: 12-bit X + 12-bit Y (4 bytes total)
+	// Indices 120-123: 12-bit X + 12-bit Y (4 bytes total)
 	{ byteCount: 4, xBits: 12, yBits: 12, deltaX: 0, deltaY: 0, xSign: -1, ySign: -1 },
 	{ byteCount: 4, xBits: 12, yBits: 12, deltaX: 0, deltaY: 0, xSign: 1, ySign: -1 },
 	{ byteCount: 4, xBits: 12, yBits: 12, deltaX: 0, deltaY: 0, xSign: -1, ySign: 1 },
 	{ byteCount: 4, xBits: 12, yBits: 12, deltaX: 0, deltaY: 0, xSign: 1, ySign: 1 },
-	// Indices 112-115: 16-bit X + 16-bit Y (5 bytes total)
+	// Indices 124-127: 16-bit X + 16-bit Y (5 bytes total)
 	{ byteCount: 5, xBits: 16, yBits: 16, deltaX: 0, deltaY: 0, xSign: -1, ySign: -1 },
 	{ byteCount: 5, xBits: 16, yBits: 16, deltaX: 0, deltaY: 0, xSign: 1, ySign: -1 },
 	{ byteCount: 5, xBits: 16, yBits: 16, deltaX: 0, deltaY: 0, xSign: -1, ySign: 1 },

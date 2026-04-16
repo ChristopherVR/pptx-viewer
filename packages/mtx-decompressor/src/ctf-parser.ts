@@ -213,18 +213,20 @@ function decodePushInstructions(sIn: Stream, sOut: Stream, pushCount: number): v
 		return;
 	}
 
-	// Temporary buffer for accumulated values before a flush
-	const values: number[] = [];
-	let isShort = false; // true if current run contains SHORT values
+	// Accumulator for decoded push values (matches C: data[] array)
+	const data: number[] = [];
 	let remaining = pushCount;
 
-	/** Flush accumulated values with the appropriate PUSH opcode. */
+	// Current run state for flushing PUSHB/PUSHW instructions
+	let isShort = false;
+	const runValues: number[] = [];
+
+	/** Flush accumulated run values with the appropriate PUSH opcode. */
 	function flush(): void {
-		if (values.length === 0) {
+		if (runValues.length === 0) {
 			return;
 		}
-		const count = values.length;
-
+		const count = runValues.length;
 		if (isShort) {
 			if (count < 8) {
 				sOut.writeU8(PUSHW + (count - 1));
@@ -232,7 +234,7 @@ function decodePushInstructions(sIn: Stream, sOut: Stream, pushCount: number): v
 				sOut.writeU8(NPUSHW);
 				sOut.writeU8(count);
 			}
-			for (const v of values) {
+			for (const v of runValues) {
 				sOut.writeS16(v);
 			}
 		} else {
@@ -242,63 +244,59 @@ function decodePushInstructions(sIn: Stream, sOut: Stream, pushCount: number): v
 				sOut.writeU8(NPUSHB);
 				sOut.writeU8(count);
 			}
-			for (const v of values) {
+			for (const v of runValues) {
 				sOut.writeU8(v & 0xff);
 			}
 		}
-		values.length = 0;
+		runValues.length = 0;
 	}
 
-	/** Add a single value, flushing if a type change or overflow occurs. */
-	function addValue(v: number): void {
+	/** Add a single value to the run, flushing on type change or overflow. */
+	function put(v: number): void {
+		data.push(v);
 		const needsShort = v < 0 || v > 255;
-		if (values.length > 0 && needsShort !== isShort) {
+		if (runValues.length > 0 && needsShort !== isShort) {
 			flush();
 		}
-		if (values.length === 0) {
+		if (runValues.length === 0) {
 			isShort = needsShort;
 		}
-		values.push(v);
-		if (values.length >= 255) {
+		runValues.push(v);
+		if (runValues.length >= 255) {
 			flush();
 		}
 	}
 
 	while (remaining > 0) {
-		const code = sIn.readU8();
+		// Peek at next byte to check for hop codes
+		const code = sIn.peekU8();
 
-		if (code === 0xfb && remaining >= 4) {
-			// hop3: A B → A B A C A  (we already have A from prior addValue)
-			// Read the first two values, then expand
-			const a = read255Short(sIn);
-			const b = read255Short(sIn);
+		if (code === 0xfb && remaining >= 3 && data.length >= 2) {
+			// hop3: A B 0xFB C → A B A C A
+			// A is data[dataIndex - 2] (the value 2 back in decoded output)
+			sIn.readU8(); // consume the 0xFB
+			const prev = data[data.length - 2];
+			put(prev);
+			const val = read255Short(sIn);
+			put(val);
+			put(prev);
+			remaining -= 3;
+		} else if (code === 0xfc && remaining >= 5 && data.length >= 2) {
+			// hop4: A B 0xFC C D → A B A C A D A
+			sIn.readU8(); // consume the 0xFC
+			const prev = data[data.length - 2];
+			put(prev);
 			const c = read255Short(sIn);
-			addValue(a);
-			addValue(b);
-			addValue(a);
-			addValue(c);
-			addValue(a);
-			remaining -= 5;
-		} else if (code === 0xfc && remaining >= 6) {
-			// hop4: A B → A B A C A D A
-			const a = read255Short(sIn);
-			const b = read255Short(sIn);
-			const c = read255Short(sIn);
+			put(c);
+			put(prev);
 			const d = read255Short(sIn);
-			addValue(a);
-			addValue(b);
-			addValue(a);
-			addValue(c);
-			addValue(a);
-			addValue(d);
-			addValue(a);
-			remaining -= 7;
+			put(d);
+			put(prev);
+			remaining -= 5;
 		} else {
-			// Default: the code byte is part of the 255Short encoding — put it
-			// back and read via read255Short.
-			sIn.seekRelative(-1);
+			// Default: read one value via read255Short
 			const v = read255Short(sIn);
-			addValue(v);
+			put(v);
 			remaining -= 1;
 		}
 	}
@@ -375,6 +373,15 @@ function decodeSimpleGlyph(
 	maxX: number,
 	maxY: number,
 ): void {
+	// C reference: numContours == 0 means an empty glyph (e.g. .notdef,
+	// unused code points).  Return immediately without reading from streams
+	// or writing to output.  Missing this guard causes the decoder to read
+	// pushCount/codeSize from stream 0 for every empty glyph, accumulating
+	// extra byte consumption that exhausts the stream.
+	if (numContours === 0) {
+		return;
+	}
+
 	const sGlyph = streams[0];
 
 	// --- Write numberOfContours (S16) --------------------------------------
@@ -400,20 +407,22 @@ function decodeSimpleGlyph(
 	}
 
 	// --- endPtsOfContours --------------------------------------------------
+	// C reference starts totalPoints at 1 for the first contour, then
+	// adds pointsInContour for each.  This extra point is part of the
+	// CTF format and is included in the flag/coordinate data in the stream.
 	let totalPoints = 0;
 	for (let c = 0; c < numContours; c++) {
-		const pointsInContour = read255UShort(sGlyph);
-		// First contour starts at point index 0; subsequent contours accumulate
-		totalPoints += pointsInContour;
 		if (c === 0) {
-			// endPtsOfContours[0] = pointsInContour - 1
-			out.writeU16(pointsInContour - 1);
-		} else {
-			out.writeU16(totalPoints - 1);
+			totalPoints = 1;
 		}
+		const pointsInContour = read255UShort(sGlyph);
+		totalPoints += pointsInContour;
+		out.writeU16(totalPoints - 1);
 	}
 
 	// --- Read per-point flag bytes from the glyph stream -------------------
+	// Per the W3C MTX spec and the libeot reference (parseCTF.c), flags
+	// are read in a first pass, then coordinate data in a second pass.
 	const flagBytes = new Uint8Array(totalPoints);
 	for (let i = 0; i < totalPoints; i++) {
 		flagBytes[i] = sGlyph.readU8();
@@ -429,7 +438,7 @@ function decodeSimpleGlyph(
 
 	for (let i = 0; i < totalPoints; i++) {
 		const flag = flagBytes[i];
-		onCurve[i] = flag >> 7; // high bit = on-curve
+		onCurve[i] = flag & 0x80 ? 0 : 1; // C reference: !(flags[i] & 0x80)
 
 		const enc = TRIPLET_ENCODINGS[flag & 0x7f];
 
