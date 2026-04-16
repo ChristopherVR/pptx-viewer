@@ -106,6 +106,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							onExportVideo={p.onExportVideo}
 							onExportGif={p.onExportGif}
 							onPackageForSharing={p.onPackageForSharing}
+							onSaveAsPptx={p.onSaveAsPptx}
 							onSaveAsPpsx={p.onSaveAsPpsx}
 							onSaveAsPptm={p.onSaveAsPptm}
 							hasMacros={p.hasMacros}
@@ -204,6 +205,9 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 
 					{sTrn && (
 						<TransitionsSection
+							activeSlide={p.activeSlide}
+							onTransitionChange={p.onTransitionChange}
+							onApplyTransitionToAll={p.onApplyTransitionToAll}
 							isInspectorPaneOpen={p.isInspectorPaneOpen}
 							onToggleInspector={p.onToggleInspector}
 						/>
@@ -216,6 +220,8 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							isInspectorPaneOpen={p.isInspectorPaneOpen}
 							onToggleInspector={p.onToggleInspector}
 							onOpenAnimationPanel={p.onOpenAnimationPanel}
+							onAddAnimation={p.onAddAnimation}
+							onRemoveAnimation={p.onRemoveAnimation}
 						/>
 					)}
 

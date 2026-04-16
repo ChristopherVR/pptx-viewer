@@ -1,9 +1,15 @@
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type {
+	PptxElement,
+	PptxSlide,
+	PptxSlideTransition,
+	PptxElementAnimation,
+	PptxAnimationPreset,
+} from 'pptx-viewer-core';
 /**
  * ViewerToolbarSection — Renders the top toolbar, signature badge,
  * and hidden file-input elements.
  */
-import type React from 'react';
+import React, { useCallback } from 'react';
 
 import { Toolbar, SignatureStatusBadge } from '.';
 import type { EditorHistoryResult } from '../hooks/useEditorHistory';
@@ -109,6 +115,7 @@ export interface ViewerToolbarSectionProps {
 	onEnterRehearsalMode: () => void;
 	onOpenSettings?: () => void;
 	onOpenShareDialog?: () => void;
+	onToggleFormatPainter?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -138,7 +145,64 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		onEnterRehearsalMode,
 		onOpenSettings,
 		onOpenShareDialog,
+		onToggleFormatPainter: onToggleFormatPainterProp,
 	} = props;
+
+	const handleAddAnimation = useCallback(
+		(preset: string, group: 'entrance' | 'emphasis' | 'exit') => {
+			if (!selectedElement || !activeSlide) {
+				return;
+			}
+			const current = activeSlide.animations ?? [];
+			const existing = current.find((a) => a.elementId === selectedElement.id);
+			const presetValue = preset as PptxAnimationPreset;
+			if (existing) {
+				const updated = current.map((a) =>
+					a.elementId === selectedElement.id ? { ...a, [group]: presetValue } : a,
+				);
+				propertyHandlers.handleUpdateSlide({ animations: updated });
+			} else {
+				const newAnim: PptxElementAnimation = {
+					elementId: selectedElement.id,
+					[group]: presetValue,
+					durationMs: 500,
+					order: current.length,
+					trigger: 'onClick',
+				};
+				propertyHandlers.handleUpdateSlide({ animations: [...current, newAnim] });
+			}
+		},
+		[selectedElement, activeSlide, propertyHandlers],
+	);
+
+	const handleRemoveAnimation = useCallback(() => {
+		if (!selectedElement || !activeSlide) {
+			return;
+		}
+		const current = activeSlide.animations ?? [];
+		const filtered = current.filter((a) => a.elementId !== selectedElement.id);
+		propertyHandlers.handleUpdateSlide({ animations: filtered });
+	}, [selectedElement, activeSlide, propertyHandlers]);
+
+	const handleTransitionChange = useCallback(
+		(updates: Partial<PptxSlideTransition>) => {
+			if (!activeSlide) {
+				return;
+			}
+			const current = activeSlide.transition ?? { type: 'none' as const };
+			propertyHandlers.handleUpdateSlide({ transition: { ...current, ...updates } });
+		},
+		[activeSlide, propertyHandlers],
+	);
+
+	const handleApplyTransitionToAll = useCallback(() => {
+		const transition = activeSlide?.transition;
+		if (!transition) {
+			return;
+		}
+		ops.updateSlides((prev) => prev.map((sl) => ({ ...sl, transition })));
+		history.markDirty();
+	}, [activeSlide, ops, history]);
 
 	return (
 		<>
@@ -170,6 +234,8 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 					s.setIsInspectorPaneOpen(true);
 					s.setSidebarPanelMode('properties');
 				}}
+				onAddAnimation={handleAddAnimation}
+				onRemoveAnimation={handleRemoveAnimation}
 				onToggleCompactToolbar={() => s.setIsCompactToolbarOpen((p) => !p)}
 				onSetToolbarSection={s.setToolbarSection}
 				onZoomIn={zoom.handleZoomIn}
@@ -221,6 +287,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onExportGif={exportHandlers.handleExportGif}
 				onPackageForSharing={exportHandlers.handlePackageForSharing}
 				onOpenShareDialog={onOpenShareDialog}
+				onSaveAsPptx={exportHandlers.handleSaveAsPptx}
 				onSaveAsPpsx={exportHandlers.handleSaveAsPpsx}
 				onSaveAsPptm={exportHandlers.handleSaveAsPptm}
 				hasMacros={s.hasMacros}
@@ -266,7 +333,9 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				isCommentsPanelOpen={s.isInspectorPaneOpen}
 				slideCommentCount={activeSlide?.comments?.length ?? 0}
 				formatPainterActive={s.formatPainterActive}
-				onToggleFormatPainter={() => s.setFormatPainterActive((p) => !p)}
+				onToggleFormatPainter={
+					onToggleFormatPainterProp ?? (() => s.setFormatPainterActive((p) => !p))
+				}
 				isSelectionPaneOpen={s.isSelectionPaneOpen}
 				onToggleSelectionPane={() => s.setIsSelectionPaneOpen((p) => !p)}
 				eyedropperActive={s.eyedropperActive}
@@ -275,6 +344,9 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onOpenBroadcastDialog={() => dialogs.setIsBroadcastDialogOpen(true)}
 				onToggleSubtitles={dialogs.handleToggleSubtitles}
 				showSubtitles={Boolean(s.presentationProperties.showSubtitles)}
+				activeSlide={activeSlide}
+				onTransitionChange={handleTransitionChange}
+				onApplyTransitionToAll={handleApplyTransitionToAll}
 			/>
 
 			{/* Signature status badge */}

@@ -1,4 +1,10 @@
-import type { PptxElement, TextStyle, PptxCustomShow } from 'pptx-viewer-core';
+import type {
+	PptxElement,
+	PptxSlide,
+	PptxSlideTransition,
+	TextStyle,
+	PptxCustomShow,
+} from 'pptx-viewer-core';
 
 import type {
 	DrawingTool,
@@ -34,6 +40,10 @@ export interface ToolbarProps {
 	onToggleInspector: () => void;
 	/** Opens the inspector pane and switches to the properties tab (for animation panel). */
 	onOpenAnimationPanel: () => void;
+	/** Adds an animation preset to the selected element. */
+	onAddAnimation?: (preset: string, group: 'entrance' | 'emphasis' | 'exit') => void;
+	/** Removes all animations from the selected element. */
+	onRemoveAnimation?: () => void;
 	onToggleCompactToolbar: () => void;
 	onSetToolbarSection: (section: ToolbarSection) => void;
 	onZoomIn: () => void;
@@ -82,6 +92,7 @@ export interface ToolbarProps {
 	onExportGif: () => void;
 	onPackageForSharing: () => void;
 	onOpenShareDialog?: () => void;
+	onSaveAsPptx: () => void;
 	onSaveAsPpsx: () => void;
 	onSaveAsPptm: () => void;
 	hasMacros: boolean;
@@ -132,4 +143,7 @@ export interface ToolbarProps {
 	onOpenBroadcastDialog?: () => void;
 	onToggleSubtitles?: () => void;
 	showSubtitles?: boolean;
+	activeSlide?: PptxSlide;
+	onTransitionChange: (updates: Partial<PptxSlideTransition>) => void;
+	onApplyTransitionToAll: () => void;
 }

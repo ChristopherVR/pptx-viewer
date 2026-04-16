@@ -13,6 +13,10 @@ export interface AnimationsSectionProps {
 	onToggleInspector: () => void;
 	/** Opens the inspector and switches to properties tab to show the animation panel. */
 	onOpenAnimationPanel?: () => void;
+	/** Adds an animation preset to the selected element. */
+	onAddAnimation?: (preset: string, group: 'entrance' | 'emphasis' | 'exit') => void;
+	/** Removes all animations from the selected element. */
+	onRemoveAnimation?: () => void;
 }
 
 /* Preset categories shown in the "Add Animation" dropdown. */
@@ -99,6 +103,12 @@ export function AnimationsSection(p: AnimationsSectionProps): React.ReactElement
 										key={item.value}
 										type='button'
 										disabled={disabled}
+										onClick={() =>
+											p.onAddAnimation?.(
+												item.value,
+												group.group.toLowerCase() as 'entrance' | 'emphasis' | 'exit',
+											)
+										}
 										className='flex items-center gap-2 w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
 										title={t('pptx.animations.applyAnimation', {
 											name: t(`pptx.animations.preset.${item.value}`),
@@ -119,6 +129,7 @@ export function AnimationsSection(p: AnimationsSectionProps): React.ReactElement
 			<button
 				type='button'
 				disabled={disabled}
+				onClick={p.onRemoveAnimation}
 				className={pill}
 				title={t('pptx.animations.removeTooltip')}
 			>
