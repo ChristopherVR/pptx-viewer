@@ -20,6 +20,8 @@ export interface CollaborationStatusIndicatorProps {
 	status: ConnectionStatus;
 	/** Number of connected users (including local). */
 	connectedCount: number;
+	/** Callback to retry the connection (shown for error state). */
+	onRetry?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -56,6 +58,7 @@ const STATUS_STYLES: Record<ConnectionStatus, { dot: string; text: string; label
 export function CollaborationStatusIndicator({
 	status,
 	connectedCount,
+	onRetry,
 }: CollaborationStatusIndicatorProps): React.ReactElement {
 	const { t } = useTranslation();
 	const style = STATUS_STYLES[status];
@@ -75,6 +78,16 @@ export function CollaborationStatusIndicator({
 					? t('pptx.collaboration.userCount', { count: connectedCount })
 					: t(`pptx.collaboration.status.${status}`)}
 			</span>
+			{status === 'error' && onRetry && (
+				<button
+					type='button'
+					onClick={onRetry}
+					className='text-[10px] text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors'
+					aria-label={t('pptx.collaboration.retry')}
+				>
+					{t('pptx.collaboration.retry')}
+				</button>
+			)}
 		</div>
 	);
 }

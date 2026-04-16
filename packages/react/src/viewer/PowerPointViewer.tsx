@@ -369,6 +369,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		const viewerContent = (
 			<div
 				ref={containerRef}
+				// oxlint-disable-next-line no-noninteractive-tabindex
 				tabIndex={0}
 				style={themeStyle}
 				data-pptx-viewer=''
@@ -600,7 +601,11 @@ function CollaborationStatusStrip() {
 		return null;
 	}
 	return (
-		<CollaborationStatusIndicator status={collab.status} connectedCount={collab.connectedCount} />
+		<CollaborationStatusIndicator
+			status={collab.status}
+			connectedCount={collab.connectedCount}
+			onRetry={collab.retry}
+		/>
 	);
 }
 

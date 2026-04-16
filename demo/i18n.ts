@@ -173,6 +173,7 @@ const en = {
 		'pptx.collaboration.youLabel': '{{name}} (you)',
 		'pptx.collaboration.usersConnected': '{{count}} user(s) connected',
 		'pptx.collaboration.moreUsers': '{{count}} more user(s)',
+		'pptx.collaboration.retry': 'Retry',
 
 		// Share dialog
 		'pptx.share.title': 'Share Presentation',

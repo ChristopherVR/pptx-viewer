@@ -14,6 +14,7 @@ import type { ConnectionStatus, UserPresence } from '../../hooks/collaboration/t
 // Mock react-i18next before importing components
 // ---------------------------------------------------------------------------
 
+// oxlint-disable-next-line prefer-ending-with-an-expect
 vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 	useTranslation: () => ({
 		t: (key: string, opts?: Record<string, unknown>) => {
@@ -555,6 +556,7 @@ describe('collaborationStatusIndicator — extended', () => {
 			const html = render(<CollaborationStatusIndicator status={status} connectedCount={0} />);
 			expect(html).toContain('data-testid="collaboration-status"');
 		});
+		expect(statuses).toHaveLength(4);
 	});
 
 	it('includes status dot with color classes', () => {
@@ -571,5 +573,25 @@ describe('collaborationStatusIndicator — extended', () => {
 	it('shows red dot for error status', () => {
 		const html = render(<CollaborationStatusIndicator status='error' connectedCount={0} />);
 		expect(html).toContain('bg-red-400');
+	});
+
+	it('renders retry button when error status and onRetry provided', () => {
+		const html = render(
+			<CollaborationStatusIndicator status='error' connectedCount={0} onRetry={() => {}} />,
+		);
+		expect(html).toContain('pptx.collaboration.retry');
+		expect(html).toContain('<button');
+	});
+
+	it('does not render retry button when connected', () => {
+		const html = render(
+			<CollaborationStatusIndicator status='connected' connectedCount={2} onRetry={() => {}} />,
+		);
+		expect(html).not.toContain('<button');
+	});
+
+	it('does not render retry button when error but no onRetry', () => {
+		const html = render(<CollaborationStatusIndicator status='error' connectedCount={0} />);
+		expect(html).not.toContain('<button');
 	});
 });

@@ -36,7 +36,7 @@ export function useCollaborativeState({
 }: UseCollaborativeStateInput): CollaborationContextValue {
 	const userColor = sanitizeColor(config.userColor, '#6366f1');
 
-	const { status, awareness, doc, clientId } = useYjsProvider({ config });
+	const { status, awareness, doc, clientId, retry } = useYjsProvider({ config });
 
 	const { remoteUsers, broadcastPresence } = usePresenceTracking({
 		awareness,
@@ -59,5 +59,6 @@ export function useCollaborativeState({
 		connectedCount,
 		config,
 		doc,
+		retry,
 	};
 }

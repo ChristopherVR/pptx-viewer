@@ -45,6 +45,13 @@ interface YWebSocketProvider {
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** Maximum time (ms) to wait for an initial WebSocket connection before giving up. */
+const CONNECTION_TIMEOUT_MS = 30_000;
+
+// ---------------------------------------------------------------------------
 // Hook input / output
 // ---------------------------------------------------------------------------
 
@@ -61,6 +68,8 @@ export interface UseYjsProviderResult {
 	doc: YDoc | null;
 	/** Local awareness client ID. */
 	clientId: number | null;
+	/** Manually retry the connection after a timeout or error. */
+	retry: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -70,6 +79,10 @@ export interface UseYjsProviderResult {
 /**
  * Lazily loads `yjs` and `y-websocket`, creates a Y.Doc and
  * WebSocketProvider, and tracks the connection lifecycle.
+ *
+ * If the connection does not succeed within {@link CONNECTION_TIMEOUT_MS},
+ * the provider is torn down and status moves to `'error'`. The consumer
+ * can call `retry()` to attempt a fresh connection.
  *
  * The Yjs packages are dynamically imported so they are fully
  * tree-shaken when collaboration is not enabled.
@@ -82,8 +95,21 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 
 	// Keep a ref to cleanup functions so we can teardown on unmount or config change
 	const cleanupRef = useRef<(() => void) | null>(null);
+	const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	const teardown = useCallback(() => {
+		if (timeoutRef.current) {
+			clearTimeout(timeoutRef.current);
+			timeoutRef.current = null;
+		}
+		cleanupRef.current?.();
+		cleanupRef.current = null;
+	}, []);
 
 	const init = useCallback(async () => {
+		// Clean up any previous connection before starting a new one
+		teardown();
+
 		// Validate room ID before connecting
 		const roomId = validateRoomId(config.roomId);
 
@@ -103,8 +129,16 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 				},
 			) as unknown as YWebSocketProvider;
 
+			let connected = false;
+
 			const handleStatus = (event: { status: string }) => {
 				if (event.status === 'connected') {
+					connected = true;
+					// Clear timeout — we connected successfully
+					if (timeoutRef.current) {
+						clearTimeout(timeoutRef.current);
+						timeoutRef.current = null;
+					}
 					setStatus('connected');
 				} else if (event.status === 'disconnected') {
 					setStatus('disconnected');
@@ -114,7 +148,26 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 			provider.on('status', handleStatus);
 
 			if (provider.wsconnected) {
+				connected = true;
 				setStatus('connected');
+			}
+
+			// Start connection timeout — if we don't connect within the limit,
+			// tear down the provider and surface an error so the user can retry.
+			if (!connected) {
+				timeoutRef.current = setTimeout(() => {
+					timeoutRef.current = null;
+					if (!connected) {
+						provider.off('status', handleStatus);
+						provider.destroy();
+						yDoc.destroy();
+						setDoc(null);
+						setAwareness(null);
+						setClientId(null);
+						cleanupRef.current = null;
+						setStatus('error');
+					}
+				}, CONNECTION_TIMEOUT_MS);
 			}
 
 			setDoc(yDoc);
@@ -139,15 +192,16 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 			);
 			setStatus('error');
 		}
-	}, [config.roomId, config.serverUrl, config.authToken]);
+	}, [config.roomId, config.serverUrl, config.authToken, teardown]);
 
 	useEffect(() => {
 		init();
-		return () => {
-			cleanupRef.current?.();
-			cleanupRef.current = null;
-		};
+		return teardown;
+	}, [init, teardown]);
+
+	const retry = useCallback(() => {
+		init();
 	}, [init]);
 
-	return { status, awareness, doc, clientId };
+	return { status, awareness, doc, clientId, retry };
 }

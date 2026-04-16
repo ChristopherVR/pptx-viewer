@@ -93,4 +93,6 @@ export interface CollaborationContextValue {
 	config: CollaborationConfig;
 	/** The Yjs document (for document sync). */
 	doc: unknown | null;
+	/** Manually retry the WebSocket connection after a timeout or error. */
+	retry: () => void;
 }
