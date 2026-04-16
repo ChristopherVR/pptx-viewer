@@ -77,7 +77,7 @@ describe('computePageCells', () => {
 		const page = computePageCells(0, 4, 10, 0);
 		expect(page.cells).toHaveLength(4);
 		expect(page.pageIndex).toBe(0);
-		expect(page.hasNoteLines).toBeFalsy();
+		expect(page.hasNoteLines).toBe(false);
 	});
 
 	it('should mark empty slots with slideIndex -1', () => {
@@ -90,7 +90,7 @@ describe('computePageCells', () => {
 
 	it('should set hasNoteLines for 3 slides per page', () => {
 		const page = computePageCells(0, 3, 3, 0);
-		expect(page.hasNoteLines).toBeTruthy();
+		expect(page.hasNoteLines).toBe(true);
 		expect(page.cells).toHaveLength(3);
 	});
 

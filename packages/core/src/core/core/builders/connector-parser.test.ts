@@ -384,8 +384,8 @@ describe('pptxConnectorParser — position and rotation', () => {
 		const result = parser.parseConnector(xml, 'cxn_44');
 
 		expect(result).not.toBeNull();
-		expect(result!.flipHorizontal).toBeTruthy();
-		expect(result!.flipVertical).toBeFalsy();
+		expect(result!.flipHorizontal).toBe(true);
+		expect(result!.flipVertical).toBe(false);
 	});
 
 	it('parses connector text body when parseConnectorTextBody is provided', () => {

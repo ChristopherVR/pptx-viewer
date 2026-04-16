@@ -32,7 +32,7 @@ describe('computeMergeCellRight', () => {
 		const result = computeMergeCellRight(table, 0, 0);
 		expect(result).not.toBeNull();
 		expect(result![0].cells[0].gridSpan).toBe(2);
-		expect(result![0].cells[1].hMerge).toBeTruthy();
+		expect(result![0].cells[1].hMerge).toBe(true);
 		expect(result![0].cells[1].text).toBe('');
 	});
 
@@ -72,7 +72,7 @@ describe('computeMergeCellRight', () => {
 		const result = computeMergeCellRight(table, 0, 0);
 		expect(result).not.toBeNull();
 		expect(result![0].cells[0].gridSpan).toBe(3);
-		expect(result![0].cells[2].hMerge).toBeTruthy();
+		expect(result![0].cells[2].hMerge).toBe(true);
 	});
 });
 
@@ -82,7 +82,7 @@ describe('computeMergeCellDown', () => {
 		const result = computeMergeCellDown(table, 0, 0);
 		expect(result).not.toBeNull();
 		expect(result![0].cells[0].rowSpan).toBe(2);
-		expect(result![1].cells[0].vMerge).toBeTruthy();
+		expect(result![1].cells[0].vMerge).toBe(true);
 		expect(result![1].cells[0].text).toBe('');
 	});
 
@@ -119,7 +119,7 @@ describe('computeMergeCellDown', () => {
 		const result = computeMergeCellDown(table, 0, 0);
 		expect(result).not.toBeNull();
 		expect(result![0].cells[0].rowSpan).toBe(3);
-		expect(result![2].cells[0].vMerge).toBeTruthy();
+		expect(result![2].cells[0].vMerge).toBe(true);
 	});
 });
 

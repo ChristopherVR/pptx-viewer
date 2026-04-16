@@ -53,9 +53,9 @@ describe('savePresentation', () => {
 		const { pptxData, rawBytes } = await loadPresentation('/test.pptx', ctx);
 
 		const result = await savePresentation('/output.pptx', pptxData, rawBytes, ctx);
-		expect(result.savedToDisk).toBeTruthy();
-		expect(result.routedThroughCollaboration).toBeFalsy();
-		expect(files.has('/output.pptx')).toBeTruthy();
+		expect(result.savedToDisk).toBe(true);
+		expect(result.routedThroughCollaboration).toBe(false);
+		expect(files.has('/output.pptx')).toBe(true);
 		expect(files.get('/output.pptx')!.length).toBeGreaterThan(0);
 	});
 
@@ -133,9 +133,9 @@ describe('executeToolWithContext', () => {
 			},
 		);
 
-		expect(result.added).toBeTruthy();
-		expect(result.savedToDisk).toBeTruthy();
-		expect(result.routedThroughCollaboration).toBeFalsy();
+		expect(result.added).toBe(true);
+		expect(result.savedToDisk).toBe(true);
+		expect(result.routedThroughCollaboration).toBe(false);
 	});
 
 	it('returns tool result fields correctly', async () => {

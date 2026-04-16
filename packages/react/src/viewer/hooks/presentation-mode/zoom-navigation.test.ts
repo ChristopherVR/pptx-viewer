@@ -68,14 +68,14 @@ describe('zoom navigation logic', () => {
 
 		const returned = nav.returnToZoomSlide();
 
-		expect(returned).toBeTruthy();
+		expect(returned).toBe(true);
 		expect(navigateToSlide).toHaveBeenCalledWith(2);
 		expect(nav.zoomReturnSlideIndex).toBeNull();
 	});
 
 	it('returnToZoomSlide returns false when no return index is set', () => {
 		const returned = nav.returnToZoomSlide();
-		expect(returned).toBeFalsy();
+		expect(returned).toBe(false);
 		expect(navigateToSlide).not.toHaveBeenCalled();
 	});
 
@@ -107,7 +107,7 @@ describe('zoom navigation logic', () => {
 
 		// Second return does nothing
 		const returned = nav.returnToZoomSlide();
-		expect(returned).toBeFalsy();
+		expect(returned).toBe(false);
 		expect(navigateToSlide).not.toHaveBeenCalled();
 	});
 
@@ -123,7 +123,7 @@ describe('zoom navigation logic', () => {
 
 		const returned = nav.returnToZoomSlide();
 
-		expect(returned).toBeTruthy();
+		expect(returned).toBe(true);
 		expect(navigateToSlide).toHaveBeenCalledWith(0);
 	});
 

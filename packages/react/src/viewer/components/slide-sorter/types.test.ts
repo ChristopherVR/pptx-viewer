@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { MIN_ZOOM, MAX_ZOOM, DEFAULT_ZOOM, ZOOM_STEP } from './types';
 

@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { expectTypeOf, test } from '@jest/globals';
+import { describe, it, expect, test, expectTypeOf } from 'vitest';
 
 import {
 	COMPOUND_LINE_OPTIONS,
@@ -18,14 +19,14 @@ import {
 function assertOptionArray(options: ReadonlyArray<{ value: string; label: string }>, name: string) {
 	test(`${name}: every item has a non-empty value`, () => {
 		for (const opt of options) {
-			expect(opt.value).toBeTruthy();
+			expect(opt.value).toBe(true);
 			expectTypeOf(opt.value).toBeString();
 		}
 	});
 
 	test(`${name}: every item has a non-empty label`, () => {
 		for (const opt of options) {
-			expect(opt.label).toBeTruthy();
+			expect(opt.label).toBe(true);
 			expectTypeOf(opt.label).toBeString();
 		}
 	});

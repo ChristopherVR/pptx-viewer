@@ -133,13 +133,13 @@ describe('estimateSlideItemHeight', () => {
 		const h = estimateSlideItemHeight(0, 720);
 		expect(h).toBeGreaterThan(0);
 		// Should not throw or return NaN/Infinity
-		expect(Number.isFinite(h)).toBeTruthy();
+		expect(Number.isFinite(h)).toBe(true);
 	});
 
 	it('clamps canvas height to min 1', () => {
 		const h = estimateSlideItemHeight(1280, 0);
 		expect(h).toBeGreaterThan(0);
-		expect(Number.isFinite(h)).toBeTruthy();
+		expect(Number.isFinite(h)).toBe(true);
 	});
 
 	it('taller canvas aspect ratio produces taller item height', () => {

@@ -57,7 +57,7 @@ describe('timelineEngine', () => {
 
 		it('should report hasMoreSteps as false for empty timeline', () => {
 			const engine = new TimelineEngine(makeTimeline());
-			expect(engine.hasMoreSteps()).toBeFalsy();
+			expect(engine.hasMoreSteps()).toBe(false);
 		});
 
 		it('should return the timeline via getTimeline', () => {
@@ -115,9 +115,9 @@ describe('timelineEngine', () => {
 				}),
 			);
 
-			expect(engine.isElementVisible('el-1')).toBeFalsy();
+			expect(engine.isElementVisible('el-1')).toBe(false);
 			engine.advance();
-			expect(engine.isElementVisible('el-1')).toBeTruthy();
+			expect(engine.isElementVisible('el-1')).toBe(true);
 		});
 
 		it('should track exit animations after advance', () => {
@@ -128,9 +128,9 @@ describe('timelineEngine', () => {
 				}),
 			);
 
-			expect(engine.isElementVisible('el-1')).toBeTruthy();
+			expect(engine.isElementVisible('el-1')).toBe(true);
 			engine.advance();
-			expect(engine.isElementVisible('el-1')).toBeFalsy();
+			expect(engine.isElementVisible('el-1')).toBe(false);
 		});
 
 		it('should store cssAnimation for the element', () => {
@@ -151,23 +151,23 @@ describe('timelineEngine', () => {
 			const engine = new TimelineEngine(
 				makeTimeline({ clickGroups: [makeGroup([makeStep()]), makeGroup([makeStep()])] }),
 			);
-			expect(engine.hasMoreSteps()).toBeTruthy();
+			expect(engine.hasMoreSteps()).toBe(true);
 			engine.advance();
-			expect(engine.hasMoreSteps()).toBeTruthy();
+			expect(engine.hasMoreSteps()).toBe(true);
 			engine.advance();
-			expect(engine.hasMoreSteps()).toBeFalsy();
+			expect(engine.hasMoreSteps()).toBe(false);
 		});
 	});
 
 	describe('isElementVisible', () => {
 		it('should return true for elements without entrance animations', () => {
 			const engine = new TimelineEngine(makeTimeline());
-			expect(engine.isElementVisible('no-anim-element')).toBeTruthy();
+			expect(engine.isElementVisible('no-anim-element')).toBe(true);
 		});
 
 		it("should return false for entrance elements that haven't played", () => {
 			const engine = new TimelineEngine(makeTimeline({ entranceElementIds: new Set(['el-1']) }));
-			expect(engine.isElementVisible('el-1')).toBeFalsy();
+			expect(engine.isElementVisible('el-1')).toBe(false);
 		});
 
 		it('should return true for entrance elements after their group plays', () => {
@@ -179,14 +179,14 @@ describe('timelineEngine', () => {
 				}),
 			);
 			engine.advance();
-			expect(engine.isElementVisible('el-1')).toBeTruthy();
+			expect(engine.isElementVisible('el-1')).toBe(true);
 		});
 
 		it('should return false for exited elements even without entrance tracking', () => {
 			const step = makeStep({ elementId: 'el-1', presetClass: 'exit' });
 			const engine = new TimelineEngine(makeTimeline({ clickGroups: [makeGroup([step])] }));
 			engine.advance();
-			expect(engine.isElementVisible('el-1')).toBeFalsy();
+			expect(engine.isElementVisible('el-1')).toBe(false);
 		});
 
 		it('should prioritize exit over entrance', () => {
@@ -200,11 +200,11 @@ describe('timelineEngine', () => {
 				}),
 			);
 
-			expect(engine.isElementVisible('el-1')).toBeFalsy(); // entrance not played
+			expect(engine.isElementVisible('el-1')).toBe(false); // entrance not played
 			engine.advance(); // entrance
-			expect(engine.isElementVisible('el-1')).toBeTruthy();
+			expect(engine.isElementVisible('el-1')).toBe(true);
 			engine.advance(); // exit
-			expect(engine.isElementVisible('el-1')).toBeFalsy();
+			expect(engine.isElementVisible('el-1')).toBe(false);
 		});
 	});
 
@@ -214,9 +214,9 @@ describe('timelineEngine', () => {
 
 			const states = engine.getElementStates(['el-1', 'el-2']);
 			expect(states.size).toBe(2);
-			expect(states.get('el-1')!.visible).toBeFalsy();
+			expect(states.get('el-1')!.visible).toBe(false);
 			expect(states.get('el-1')!.cssAnimation).toBeUndefined();
-			expect(states.get('el-2')!.visible).toBeTruthy();
+			expect(states.get('el-2')!.visible).toBe(true);
 			expect(states.get('el-2')!.cssAnimation).toBeUndefined();
 		});
 
@@ -235,7 +235,7 @@ describe('timelineEngine', () => {
 			engine.advance();
 
 			const states = engine.getElementStates(['el-1']);
-			expect(states.get('el-1')!.visible).toBeTruthy();
+			expect(states.get('el-1')!.visible).toBe(true);
 			expect(states.get('el-1')!.cssAnimation).toBe('pptx-fadeIn 500ms ease');
 		});
 	});
@@ -247,8 +247,8 @@ describe('timelineEngine', () => {
 
 			const engine = new TimelineEngine(makeTimeline({ interactiveSequences }));
 
-			expect(engine.hasInteractiveSequence('shape-1')).toBeTruthy();
-			expect(engine.hasInteractiveSequence('shape-2')).toBeFalsy();
+			expect(engine.hasInteractiveSequence('shape-1')).toBe(true);
+			expect(engine.hasInteractiveSequence('shape-2')).toBe(false);
 		});
 
 		it('should return interactive trigger shape IDs', () => {
@@ -259,8 +259,8 @@ describe('timelineEngine', () => {
 			const engine = new TimelineEngine(makeTimeline({ interactiveSequences }));
 
 			const ids = engine.getInteractiveTriggerShapeIds();
-			expect(ids.has('shape-1')).toBeTruthy();
-			expect(ids.has('shape-2')).toBeTruthy();
+			expect(ids.has('shape-1')).toBe(true);
+			expect(ids.has('shape-2')).toBe(true);
 			expect(ids.size).toBe(2);
 		});
 
@@ -277,15 +277,15 @@ describe('timelineEngine', () => {
 				}),
 			);
 
-			expect(engine.isElementVisible('i-el-1')).toBeFalsy();
+			expect(engine.isElementVisible('i-el-1')).toBe(false);
 			const g1 = engine.advanceInteractive('btn');
 			expect(g1).not.toBeNull();
-			expect(engine.isElementVisible('i-el-1')).toBeTruthy();
-			expect(engine.isElementVisible('i-el-2')).toBeFalsy();
+			expect(engine.isElementVisible('i-el-1')).toBe(true);
+			expect(engine.isElementVisible('i-el-2')).toBe(false);
 
 			const g2 = engine.advanceInteractive('btn');
 			expect(g2).not.toBeNull();
-			expect(engine.isElementVisible('i-el-2')).toBeTruthy();
+			expect(engine.isElementVisible('i-el-2')).toBe(true);
 
 			// No more groups
 			expect(engine.advanceInteractive('btn')).toBeNull();
@@ -309,14 +309,14 @@ describe('timelineEngine', () => {
 
 			engine.advance();
 			expect(engine.currentGroup).toBe(0);
-			expect(engine.isElementVisible('el-1')).toBeTruthy();
+			expect(engine.isElementVisible('el-1')).toBe(true);
 			expect(engine.getElementAnimation('el-1')).toBeDefined();
 
 			engine.reset();
 			expect(engine.currentGroup).toBe(-1);
-			expect(engine.isElementVisible('el-1')).toBeFalsy();
+			expect(engine.isElementVisible('el-1')).toBe(false);
 			expect(engine.getElementAnimation('el-1')).toBeUndefined();
-			expect(engine.hasMoreSteps()).toBeTruthy();
+			expect(engine.hasMoreSteps()).toBe(true);
 		});
 
 		it('should allow re-advancing after reset', () => {
@@ -324,10 +324,10 @@ describe('timelineEngine', () => {
 			const engine = new TimelineEngine(makeTimeline({ clickGroups: [g] }));
 
 			engine.advance();
-			expect(engine.hasMoreSteps()).toBeFalsy();
+			expect(engine.hasMoreSteps()).toBe(false);
 
 			engine.reset();
-			expect(engine.hasMoreSteps()).toBeTruthy();
+			expect(engine.hasMoreSteps()).toBe(true);
 			expect(engine.advance()).toBe(g);
 		});
 
@@ -344,11 +344,11 @@ describe('timelineEngine', () => {
 			);
 
 			engine.advanceInteractive('btn');
-			expect(engine.isElementVisible('i-el')).toBeTruthy();
+			expect(engine.isElementVisible('i-el')).toBe(true);
 			expect(engine.advanceInteractive('btn')).toBeNull();
 
 			engine.reset();
-			expect(engine.isElementVisible('i-el')).toBeFalsy();
+			expect(engine.isElementVisible('i-el')).toBe(false);
 			// Can advance again
 			expect(engine.advanceInteractive('btn')).not.toBeNull();
 		});

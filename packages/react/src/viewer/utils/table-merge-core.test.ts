@@ -99,8 +99,8 @@ describe('computeBoundingRect', () => {
 describe('canMergeCells', () => {
 	it('should return false for fewer than 2 cells', () => {
 		const table = makeTable(3, 3);
-		expect(canMergeCells([{ row: 0, col: 0 }], table)).toBeFalsy();
-		expect(canMergeCells([], table)).toBeFalsy();
+		expect(canMergeCells([{ row: 0, col: 0 }], table)).toBe(false);
+		expect(canMergeCells([], table)).toBe(false);
 	});
 
 	it('should return true for valid rectangular selection of 2+ cells', () => {
@@ -113,7 +113,7 @@ describe('canMergeCells', () => {
 				],
 				table,
 			),
-		).toBeTruthy();
+		).toBe(true);
 	});
 
 	it('should return true for 2x2 block selection', () => {
@@ -128,7 +128,7 @@ describe('canMergeCells', () => {
 				],
 				table,
 			),
-		).toBeTruthy();
+		).toBe(true);
 	});
 
 	it('should return false when bounding rect is a single cell', () => {
@@ -142,7 +142,7 @@ describe('canMergeCells', () => {
 				],
 				table,
 			),
-		).toBeFalsy();
+		).toBe(false);
 	});
 
 	it('should handle tables where cells at the boundary exist', () => {
@@ -155,38 +155,38 @@ describe('canMergeCells', () => {
 				],
 				table,
 			),
-		).toBeTruthy();
+		).toBe(true);
 	});
 });
 
 describe('canSplitCell', () => {
 	it('should return false for a normal unmerged cell', () => {
 		const table = makeTable(3, 3);
-		expect(canSplitCell(0, 0, table)).toBeFalsy();
+		expect(canSplitCell(0, 0, table)).toBe(false);
 	});
 
 	it('should return true for a cell with gridSpan > 1', () => {
 		const table = makeTable(3, 3);
 		(table.rows[0].cells[0] as any).gridSpan = 2;
-		expect(canSplitCell(0, 0, table)).toBeTruthy();
+		expect(canSplitCell(0, 0, table)).toBe(true);
 	});
 
 	it('should return true for a cell with rowSpan > 1', () => {
 		const table = makeTable(3, 3);
 		(table.rows[0].cells[0] as any).rowSpan = 3;
-		expect(canSplitCell(0, 0, table)).toBeTruthy();
+		expect(canSplitCell(0, 0, table)).toBe(true);
 	});
 
 	it('should return false for out-of-bounds cell', () => {
 		const table = makeTable(3, 3);
-		expect(canSplitCell(10, 10, table)).toBeFalsy();
+		expect(canSplitCell(10, 10, table)).toBe(false);
 	});
 
 	it('should return false for cell with gridSpan and rowSpan both 1', () => {
 		const table = makeTable(3, 3);
 		(table.rows[0].cells[0] as any).gridSpan = 1;
 		(table.rows[0].cells[0] as any).rowSpan = 1;
-		expect(canSplitCell(0, 0, table)).toBeFalsy();
+		expect(canSplitCell(0, 0, table)).toBe(false);
 	});
 });
 
@@ -202,8 +202,8 @@ describe('mergeCells', () => {
 			table,
 		);
 		expect(result.rows[0].cells[0].gridSpan).toBe(3);
-		expect(result.rows[0].cells[1].hMerge).toBeTruthy();
-		expect(result.rows[0].cells[2].hMerge).toBeTruthy();
+		expect(result.rows[0].cells[1].hMerge).toBe(true);
+		expect(result.rows[0].cells[2].hMerge).toBe(true);
 	});
 
 	it('should set rowSpan on anchor cell for vertical merge', () => {
@@ -217,8 +217,8 @@ describe('mergeCells', () => {
 			table,
 		);
 		expect(result.rows[0].cells[0].rowSpan).toBe(3);
-		expect(result.rows[1].cells[0].vMerge).toBeTruthy();
-		expect(result.rows[2].cells[0].vMerge).toBeTruthy();
+		expect(result.rows[1].cells[0].vMerge).toBe(true);
+		expect(result.rows[2].cells[0].vMerge).toBe(true);
 	});
 
 	it('should combine text from merged cells', () => {
@@ -354,28 +354,28 @@ describe('isCellInRect', () => {
 	const rect = { startRow: 1, startCol: 1, endRow: 3, endCol: 3 };
 
 	it('should return true for cell inside the rect', () => {
-		expect(isCellInRect(2, 2, rect)).toBeTruthy();
+		expect(isCellInRect(2, 2, rect)).toBe(true);
 	});
 
 	it('should return true for cell on the boundary', () => {
-		expect(isCellInRect(1, 1, rect)).toBeTruthy();
-		expect(isCellInRect(3, 3, rect)).toBeTruthy();
+		expect(isCellInRect(1, 1, rect)).toBe(true);
+		expect(isCellInRect(3, 3, rect)).toBe(true);
 	});
 
 	it('should return false for cell outside the rect', () => {
-		expect(isCellInRect(0, 0, rect)).toBeFalsy();
-		expect(isCellInRect(4, 4, rect)).toBeFalsy();
+		expect(isCellInRect(0, 0, rect)).toBe(false);
+		expect(isCellInRect(4, 4, rect)).toBe(false);
 	});
 
 	it('should return false for undefined rect', () => {
-		expect(isCellInRect(0, 0, undefined)).toBeFalsy();
+		expect(isCellInRect(0, 0, undefined)).toBe(false);
 	});
 
 	it('should return false when row is outside but col is inside', () => {
-		expect(isCellInRect(0, 2, rect)).toBeFalsy();
+		expect(isCellInRect(0, 2, rect)).toBe(false);
 	});
 
 	it('should return false when col is outside but row is inside', () => {
-		expect(isCellInRect(2, 0, rect)).toBeFalsy();
+		expect(isCellInRect(2, 0, rect)).toBe(false);
 	});
 });

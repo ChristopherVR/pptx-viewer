@@ -35,7 +35,7 @@ describe('cloneTextStyle', () => {
 		const style: TextStyle = { italic: true } as TextStyle;
 		const cloned = cloneTextStyle(style)!;
 		(cloned as Record<string, unknown>).italic = false;
-		expect((style as Record<string, unknown>).italic).toBeTruthy();
+		expect((style as Record<string, unknown>).italic).toBe(true);
 	});
 
 	it('preserves all properties', () => {

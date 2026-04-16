@@ -70,9 +70,9 @@ describe('createPlainNotesSegments', () => {
 		// line "A" → segment, then break, line "" → segment, then break, line "B" → segment
 		expect(segments).toHaveLength(5);
 		expect(segments[0].text).toBe('A');
-		expect(segments[1].isParagraphBreak).toBeTruthy();
+		expect(segments[1].isParagraphBreak).toBe(true);
 		expect(segments[2].text).toBe('');
-		expect(segments[3].isParagraphBreak).toBeTruthy();
+		expect(segments[3].isParagraphBreak).toBe(true);
 		expect(segments[4].text).toBe('B');
 	});
 
@@ -162,7 +162,7 @@ describe('normalizeSegments', () => {
 			{ text: 'B', style: {} },
 		]);
 		expect(result).toHaveLength(3);
-		expect(result[1].isParagraphBreak).toBeTruthy();
+		expect(result[1].isParagraphBreak).toBe(true);
 	});
 
 	it('removes multiple trailing breaks', () => {
@@ -277,7 +277,7 @@ describe('paragraphsToSegments', () => {
 		const paragraphs = segmentsToParagraphs(segments);
 		const result = paragraphsToSegments(paragraphs);
 		expect(result[0].text).toBe('Hello');
-		expect(result[1].isParagraphBreak).toBeTruthy();
+		expect(result[1].isParagraphBreak).toBe(true);
 		expect(result[2].text).toBe('World');
 	});
 
@@ -347,6 +347,6 @@ describe('paragraphsToSegments', () => {
 			},
 		]);
 		expect(result).toHaveLength(3);
-		expect(result[1].isParagraphBreak).toBeTruthy();
+		expect(result[1].isParagraphBreak).toBe(true);
 	});
 });

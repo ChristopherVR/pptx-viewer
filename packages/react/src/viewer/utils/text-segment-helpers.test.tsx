@@ -21,7 +21,7 @@ describe('renderPictureBullet', () => {
 			baseFontSize,
 		) as React.ReactElement;
 
-		expect(result).toBeTruthy();
+		expect(result).toBe(true);
 		expect(result.type).toBe('img');
 		expect(result.props.src).toBe('data:image/png;base64,iVBOR');
 		expect(result.props.alt).toBe('Bullet');
@@ -42,7 +42,7 @@ describe('renderPictureBullet', () => {
 			baseFontSize,
 		) as React.ReactElement;
 
-		expect(result).toBeTruthy();
+		expect(result).toBe(true);
 		expect(result.type).toBe('span');
 		// Should contain the bullet character
 		expect(result.props.children).toContain('\u2022');

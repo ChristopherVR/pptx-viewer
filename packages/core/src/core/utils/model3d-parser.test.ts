@@ -233,6 +233,6 @@ describe('type definitions', () => {
 
 describe('sHAPE_TREE_ELEMENT_TAGS integration', () => {
 	it('includes "p16:model3D" in the shape tree element tags', () => {
-		expect(SHAPE_TREE_ELEMENT_TAGS.has('p16:model3D')).toBeTruthy();
+		expect(SHAPE_TREE_ELEMENT_TAGS.has('p16:model3D')).toBe(true);
 	});
 });

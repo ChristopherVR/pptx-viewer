@@ -82,7 +82,7 @@ describe('buildTimeline - hover sequences', () => {
 		expect(result.clickGroups[0].steps[0].elementId).toBe('el1');
 		expect(result.hoverSequences.size).toBe(1);
 		// el2 is keyed by its targetId (the element that has the hover animation)
-		expect(result.hoverSequences.has('el2')).toBeTruthy();
+		expect(result.hoverSequences.has('el2')).toBe(true);
 	});
 
 	it('groups multiple onHover animations for the same target', () => {
@@ -100,7 +100,7 @@ describe('buildTimeline - hover sequences', () => {
 				presetId: 8, // spin
 			}),
 		]);
-		expect(result.hoverSequences.has('el1')).toBeTruthy();
+		expect(result.hoverSequences.has('el1')).toBe(true);
 		const seqGroups = result.hoverSequences.get('el1')!;
 		const totalSteps = seqGroups.reduce((sum, g) => sum + g.steps.length, 0);
 		expect(totalSteps).toBe(2);
@@ -115,7 +115,7 @@ describe('buildTimeline - hover sequences', () => {
 				presetId: 10,
 			}),
 		]);
-		expect(result.entranceElementIds.has('el1')).toBeTruthy();
+		expect(result.entranceElementIds.has('el1')).toBe(true);
 	});
 
 	it('generates keyframes CSS for hover animations', () => {
@@ -147,8 +147,8 @@ describe('timelineEngine - hover sequences', () => {
 
 		const engine = new TimelineEngine(makeTimeline({ hoverSequences }));
 
-		expect(engine.hasHoverSequence('shape-hover')).toBeTruthy();
-		expect(engine.hasHoverSequence('shape-other')).toBeFalsy();
+		expect(engine.hasHoverSequence('shape-hover')).toBe(true);
+		expect(engine.hasHoverSequence('shape-other')).toBe(false);
 	});
 
 	it('should return hover trigger shape IDs', () => {
@@ -159,8 +159,8 @@ describe('timelineEngine - hover sequences', () => {
 		const engine = new TimelineEngine(makeTimeline({ hoverSequences }));
 
 		const ids = engine.getHoverTriggerShapeIds();
-		expect(ids.has('shape-1')).toBeTruthy();
-		expect(ids.has('shape-2')).toBeTruthy();
+		expect(ids.has('shape-1')).toBe(true);
+		expect(ids.has('shape-2')).toBe(true);
 		expect(ids.size).toBe(2);
 	});
 
@@ -223,9 +223,9 @@ describe('timelineEngine - hover sequences', () => {
 			}),
 		);
 
-		expect(engine.isElementVisible('h-el')).toBeFalsy();
+		expect(engine.isElementVisible('h-el')).toBe(false);
 		engine.advanceHover('btn');
-		expect(engine.isElementVisible('h-el')).toBeTruthy();
+		expect(engine.isElementVisible('h-el')).toBe(true);
 	});
 });
 
@@ -301,14 +301,14 @@ describe('buildTimeline - auto-advance groups', () => {
 describe('timelineEngine - auto-advance', () => {
 	it('shouldAutoAdvance returns false for empty timeline', () => {
 		const engine = new TimelineEngine(makeTimeline());
-		expect(engine.shouldAutoAdvance()).toBeFalsy();
+		expect(engine.shouldAutoAdvance()).toBe(false);
 	});
 
 	it('shouldAutoAdvance returns false when next group is a click group', () => {
 		const g1 = makeGroup([makeStep({ elementId: 'a' })]);
 		const g2 = makeGroup([makeStep({ elementId: 'b' })]);
 		const engine = new TimelineEngine(makeTimeline({ clickGroups: [g1, g2] }));
-		expect(engine.shouldAutoAdvance()).toBeFalsy();
+		expect(engine.shouldAutoAdvance()).toBe(false);
 	});
 
 	it('shouldAutoAdvance returns true when next group has autoAdvance', () => {
@@ -319,10 +319,10 @@ describe('timelineEngine - auto-advance', () => {
 		});
 		const engine = new TimelineEngine(makeTimeline({ clickGroups: [g1, g2] }));
 		// Before advancing, next is g1 which is not auto-advance
-		expect(engine.shouldAutoAdvance()).toBeFalsy();
+		expect(engine.shouldAutoAdvance()).toBe(false);
 		// Advance to g1, now next is g2 which is auto-advance
 		engine.advance();
-		expect(engine.shouldAutoAdvance()).toBeTruthy();
+		expect(engine.shouldAutoAdvance()).toBe(true);
 	});
 
 	it('getAutoAdvanceDelay returns the delay from next auto-advance group', () => {
@@ -553,8 +553,8 @@ describe('buildTimeline - complex sequences', () => {
 		]);
 
 		expect(result.clickGroups).toHaveLength(1);
-		expect(result.interactiveSequences.has('btn1')).toBeTruthy();
-		expect(result.hoverSequences.has('el3')).toBeTruthy();
+		expect(result.interactiveSequences.has('btn1')).toBe(true);
+		expect(result.hoverSequences.has('el3')).toBe(true);
 	});
 });
 
@@ -726,8 +726,8 @@ describe('timelineEngine.fromAnimations - integration', () => {
 		]);
 
 		expect(engine.totalGroups).toBe(1);
-		expect(engine.hasHoverSequence('el2')).toBeTruthy();
-		expect(engine.hasInteractiveSequence('el2')).toBeFalsy();
+		expect(engine.hasHoverSequence('el2')).toBe(true);
+		expect(engine.hasInteractiveSequence('el2')).toBe(false);
 	});
 
 	it('builds engine with interactive and hover sequences', () => {
@@ -745,7 +745,7 @@ describe('timelineEngine.fromAnimations - integration', () => {
 			}),
 		]);
 
-		expect(engine.hasInteractiveSequence('btn1')).toBeTruthy();
-		expect(engine.hasHoverSequence('el2')).toBeTruthy();
+		expect(engine.hasInteractiveSequence('btn1')).toBe(true);
+		expect(engine.hasHoverSequence('el2')).toBe(true);
 	});
 });

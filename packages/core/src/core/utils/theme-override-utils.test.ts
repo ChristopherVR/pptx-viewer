@@ -142,36 +142,36 @@ describe('mergeThemeColorOverride', () => {
 
 describe('hasNonTrivialOverride', () => {
 	it('returns false for null', () => {
-		expect(hasNonTrivialOverride(null)).toBeFalsy();
+		expect(hasNonTrivialOverride(null)).toBe(false);
 	});
 
 	it('returns false for undefined', () => {
-		expect(hasNonTrivialOverride(undefined)).toBeFalsy();
+		expect(hasNonTrivialOverride(undefined)).toBe(false);
 	});
 
 	it('returns false for the default identity mapping', () => {
 		// The default mapping maps each alias to its canonical slot
-		expect(hasNonTrivialOverride({ ...DEFAULT_COLOR_MAP })).toBeFalsy();
+		expect(hasNonTrivialOverride({ ...DEFAULT_COLOR_MAP })).toBe(false);
 	});
 
 	it('returns true when at least one alias is remapped', () => {
 		const override = { ...DEFAULT_COLOR_MAP, bg1: 'dk1' };
-		expect(hasNonTrivialOverride(override)).toBeTruthy();
+		expect(hasNonTrivialOverride(override)).toBe(true);
 	});
 
 	it('returns true for a single non-default mapping', () => {
-		expect(hasNonTrivialOverride({ accent1: 'accent6' })).toBeTruthy();
+		expect(hasNonTrivialOverride({ accent1: 'accent6' })).toBe(true);
 	});
 
 	it('returns false for empty object', () => {
-		expect(hasNonTrivialOverride({})).toBeFalsy();
+		expect(hasNonTrivialOverride({})).toBe(false);
 	});
 
 	it('returns false when overrides match defaults for the given keys', () => {
-		expect(hasNonTrivialOverride({ bg1: 'lt1', tx1: 'dk1' })).toBeFalsy();
+		expect(hasNonTrivialOverride({ bg1: 'lt1', tx1: 'dk1' })).toBe(false);
 	});
 
 	it('returns true when hlink is remapped', () => {
-		expect(hasNonTrivialOverride({ hlink: 'accent1' })).toBeTruthy();
+		expect(hasNonTrivialOverride({ hlink: 'accent1' })).toBe(true);
 	});
 });

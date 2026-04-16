@@ -85,7 +85,7 @@ describe('computeReadingOrder', () => {
 			makeElement({ id: 'hidden', type: 'text', y: 50, x: 50, hidden: true }),
 		];
 		const order = computeReadingOrder(elements);
-		expect(order.has('hidden')).toBeFalsy();
+		expect(order.has('hidden')).toBe(false);
 		expect(order.get('visible')).toBe(1);
 		expect(order.size).toBe(1);
 	});
@@ -220,7 +220,7 @@ describe('getAriaLabel', () => {
 		const longText = 'A'.repeat(200);
 		const label = getAriaLabel(makeElement({ id: '1', type: 'text', text: longText }));
 		expect(label).toHaveLength(120);
-		expect(label.endsWith('...')).toBeTruthy();
+		expect(label.endsWith('...')).toBe(true);
 	});
 
 	it('returns text content for shapes with text', () => {
@@ -398,21 +398,21 @@ describe('prefersReducedMotion', () => {
 		// Ensure there is no window
 		// @ts-expect-error -- intentionally removing window
 		delete globalThis.window;
-		expect(prefersReducedMotion()).toBeFalsy();
+		expect(prefersReducedMotion()).toBe(false);
 	});
 
 	it('returns true when the media query matches', () => {
 		const mockMatchMedia = vi.fn().mockReturnValue({ matches: true });
 		// @ts-expect-error -- providing minimal window for test
 		globalThis.window = { matchMedia: mockMatchMedia };
-		expect(prefersReducedMotion()).toBeTruthy();
+		expect(prefersReducedMotion()).toBe(true);
 	});
 
 	it('returns false when the media query does not match', () => {
 		const mockMatchMedia = vi.fn().mockReturnValue({ matches: false });
 		// @ts-expect-error -- providing minimal window for test
 		globalThis.window = { matchMedia: mockMatchMedia };
-		expect(prefersReducedMotion()).toBeFalsy();
+		expect(prefersReducedMotion()).toBe(false);
 	});
 
 	it('queries the correct media query string', () => {

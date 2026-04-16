@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { ACTION_VERB_MAP, ACTION_VERB_TO_PPACTION } from './hyperlink-edit-types';
 import type { HyperlinkActionVerb } from './hyperlink-edit-types';
@@ -39,7 +40,7 @@ describe('aCTION_VERB_MAP', () => {
 
 	it('all keys start with ppaction://', () => {
 		for (const key of Object.keys(ACTION_VERB_MAP)) {
-			expect(key.startsWith('ppaction://')).toBeTruthy();
+			expect(key.startsWith('ppaction://')).toBe(true);
 		}
 	});
 
@@ -52,7 +53,7 @@ describe('aCTION_VERB_MAP', () => {
 			'endShow',
 		]);
 		for (const verb of Object.values(ACTION_VERB_MAP)) {
-			expect(validVerbs.has(verb)).toBeTruthy();
+			expect(validVerbs.has(verb)).toBe(true);
 		}
 	});
 });
@@ -93,7 +94,7 @@ describe('aCTION_VERB_TO_PPACTION', () => {
 
 	it('all values start with ppaction://', () => {
 		for (const value of Object.values(ACTION_VERB_TO_PPACTION)) {
-			expect(value.startsWith('ppaction://')).toBeTruthy();
+			expect(value.startsWith('ppaction://')).toBe(true);
 		}
 	});
 

@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import {
 	EMR_EXTTEXTOUTW,
@@ -87,7 +88,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 
 		it('returns false for unrecognized record type', () => {
 			const rCtx = makeRCtx();
-			expect(handleEmfGdiTextBitmapRecord(rCtx, 0xffff, 0, 8, 8)).toBeFalsy();
+			expect(handleEmfGdiTextBitmapRecord(rCtx, 0xffff, 0, 8, 8)).toBe(false);
 		});
 
 		// -----------------------------------------------------------------------
@@ -97,7 +98,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 		describe('eMR_EXTTEXTOUTW', () => {
 			it('returns true even for small recSize', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_EXTTEXTOUTW, 0, 8, 8)).toBeTruthy();
+				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_EXTTEXTOUTW, 0, 8, 8)).toBe(true);
 			});
 
 			it('draws text when recSize is large enough and string data is valid', () => {
@@ -117,7 +118,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 				rCtx.view.setUint16(offset + 78, 105, true); // 'i'
 
 				const result = handleEmfGdiTextBitmapRecord(rCtx, EMR_EXTTEXTOUTW, offset, dataOff, 80);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				const ctx = rCtx.ctx as unknown as Record<string, { mock: { calls: unknown[][] } }>;
 				expect(ctx.fillText).toHaveBeenCalledOnce();
 				expect(ctx.fillText.mock.calls[0][0]).toBe('Hi');
@@ -177,7 +178,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 		describe('eMR_BITBLT', () => {
 			it('returns true even for small recSize', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_BITBLT, 0, 8, 8)).toBeTruthy();
+				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_BITBLT, 0, 8, 8)).toBe(true);
 			});
 
 			it('returns true for valid recSize but no bitmap data', () => {
@@ -186,7 +187,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 				// Set offBmiSrc=0 (no bitmap)
 				rCtx.view.setUint32(dataOff + 76, 0, true); // offBmiSrc = 0
 
-				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_BITBLT, 0, dataOff, 96)).toBeTruthy();
+				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_BITBLT, 0, dataOff, 96)).toBe(true);
 			});
 		});
 
@@ -197,7 +198,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 		describe('eMR_STRETCHDIBITS', () => {
 			it('returns true even for small recSize', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_STRETCHDIBITS, 0, 8, 8)).toBeTruthy();
+				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_STRETCHDIBITS, 0, 8, 8)).toBe(true);
 			});
 
 			it('returns true for valid recSize but no bitmap data', () => {
@@ -205,7 +206,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 				const dataOff = 8;
 				rCtx.view.setUint32(dataOff + 40, 0, true); // offBmiSrc = 0
 
-				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_STRETCHDIBITS, 0, dataOff, 80)).toBeTruthy();
+				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_STRETCHDIBITS, 0, dataOff, 80)).toBe(true);
 			});
 		});
 
@@ -223,7 +224,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 				rCtx.view.setInt32(dataOff + 12, 300, true); // bottom
 
 				const result = handleEmfGdiTextBitmapRecord(rCtx, EMR_INTERSECTCLIPRECT, 0, dataOff, 24);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				expect(rCtx.clipSaveDepth).toBe(1);
 				const ctx = rCtx.ctx as unknown as Record<string, { mock: { calls: unknown[][] } }>;
 				expect(ctx.save).toHaveBeenCalledOnce();
@@ -234,7 +235,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 			it('returns true for small recSize (< 24)', () => {
 				const rCtx = makeRCtx();
 				const result = handleEmfGdiTextBitmapRecord(rCtx, EMR_INTERSECTCLIPRECT, 0, 8, 16);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				expect(rCtx.clipSaveDepth).toBe(0); // no clip applied
 			});
 		});
@@ -246,7 +247,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 		describe('eMR_EXTSELECTCLIPRGN', () => {
 			it('returns true for small recSize', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_EXTSELECTCLIPRGN, 0, 8, 8)).toBeTruthy();
+				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_EXTSELECTCLIPRGN, 0, 8, 8)).toBe(true);
 			});
 
 			it('resets clip with RGN_COPY and cbRgnData=0', () => {
@@ -316,9 +317,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 				rCtx.view.setInt32(dataOff + 8, 100, true);
 				rCtx.view.setInt32(dataOff + 12, 100, true);
 
-				expect(
-					handleEmfGdiTextBitmapRecord(rCtx, EMR_EXCLUDECLIPRECT, 0, dataOff, 24),
-				).toBeTruthy();
+				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_EXCLUDECLIPRECT, 0, dataOff, 24)).toBe(true);
 			});
 		});
 
@@ -333,7 +332,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 				rCtx.view.setInt32(dataOff, 5, true); // dx
 				rCtx.view.setInt32(dataOff + 4, 10, true); // dy
 
-				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_OFFSETCLIPRGN, 0, dataOff, 16)).toBeTruthy();
+				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_OFFSETCLIPRGN, 0, dataOff, 16)).toBe(true);
 			});
 		});
 	});

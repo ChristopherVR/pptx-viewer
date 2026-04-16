@@ -1,5 +1,6 @@
+import { expectTypeOf } from '@jest/globals';
 import type { PptxSlide } from 'pptx-viewer-core';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import { escapeHtml } from '../utils/dom-helpers';
 import type { PrintHandlersResult } from './usePrintHandlers';
@@ -282,7 +283,7 @@ describe('printHandlersResult type', () => {
 			isPrintDialogOpen: false,
 			setIsPrintDialogOpen: vi.fn(),
 		};
-		expect(result.isPrintDialogOpen).toBeFalsy();
+		expect(result.isPrintDialogOpen).toBe(false);
 		expectTypeOf(result.handlePrint).toBeFunction();
 		expectTypeOf(result.handlePrintWithSettings).toBeFunction();
 		expectTypeOf(result.handlePrintSvg).toBeFunction();

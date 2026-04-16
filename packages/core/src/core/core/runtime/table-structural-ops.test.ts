@@ -169,7 +169,7 @@ describe('addTableRow', () => {
 		// Anchor cell should now have rowSpan 4
 		expect(result.tableData.rows[0].cells[0].rowSpan).toBe(4);
 		// New row's first cell should be vMerge
-		expect(result.tableData.rows[1].cells[0].vMerge).toBeTruthy();
+		expect(result.tableData.rows[1].cells[0].vMerge).toBe(true);
 		// New row's second cell should be normal
 		expect(result.tableData.rows[1].cells[1].text).toBe('');
 		expect(result.tableData.rows[1].cells[1].vMerge).toBeUndefined();
@@ -364,7 +364,7 @@ describe('addTableColumn', () => {
 		// Anchor's gridSpan should increase to 4
 		expect(result.tableData.rows[0].cells[0].gridSpan).toBe(4);
 		// New cell should be hMerge continuation
-		expect(result.tableData.rows[0].cells[1].hMerge).toBeTruthy();
+		expect(result.tableData.rows[0].cells[1].hMerge).toBe(true);
 		// Row 1 cells should be normal
 		expect(result.tableData.rows[1].cells[1].text).toBe('');
 		expect(result.tableData.rows[1].cells[1].hMerge).toBeUndefined();

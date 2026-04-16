@@ -111,7 +111,7 @@ describe('useLayoutSwitching logic', () => {
 			const result = simulateApplyLayout(slides[0], 'ppt/slideLayouts/slideLayout3.xml', 'Blank');
 			expect(result.layoutPath).toBe('ppt/slideLayouts/slideLayout3.xml');
 			expect(result.layoutName).toBe('Blank');
-			expect(result.isDirty).toBeTruthy();
+			expect(result.isDirty).toBe(true);
 		});
 
 		it('preserves existing slide properties', () => {
@@ -122,7 +122,7 @@ describe('useLayoutSwitching logic', () => {
 			});
 			const result = simulateApplyLayout(slide, 'ppt/slideLayouts/slideLayout2.xml', 'Content');
 			expect(result.notes).toBe('Speaker notes');
-			expect(result.hidden).toBeFalsy();
+			expect(result.hidden).toBe(false);
 			expect(result.id).toBe('ppt/slides/slide1.xml');
 		});
 

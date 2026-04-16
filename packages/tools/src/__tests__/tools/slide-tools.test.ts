@@ -45,7 +45,7 @@ function ctx(pptxData?: PptxData): ToolContext {
 describe('getSlide', () => {
 	it('returns slide info and elements', () => {
 		const result = getSlide(ctx(), { slideIndex: 0 });
-		expect(result.dirty).toBeFalsy();
+		expect(result.dirty).toBe(false);
 		expect(result.result.slideNumber).toBe(1);
 		expect(result.result.elements).toHaveLength(1);
 		expect(result.result.notes).toBe('Notes for slide 1');
@@ -59,7 +59,7 @@ describe('getSlide', () => {
 describe('addSlide', () => {
 	it('adds a slide at the end by default', () => {
 		const result = addSlide(ctx(), {});
-		expect(result.dirty).toBeTruthy();
+		expect(result.dirty).toBe(true);
 		expect(result.result.newSlideIndex).toBe(3);
 		expect(result.result.slideCount).toBe(4);
 	});
@@ -74,7 +74,7 @@ describe('addSlide', () => {
 describe('deleteSlides', () => {
 	it('deletes specified slides', () => {
 		const result = deleteSlides(ctx(), { slideIndexes: [1] });
-		expect(result.dirty).toBeTruthy();
+		expect(result.dirty).toBe(true);
 		expect(result.result.deletedCount).toBe(1);
 		expect(result.result.slideCount).toBe(2);
 	});
@@ -93,7 +93,7 @@ describe('reorderSlides', () => {
 		const c = ctx();
 		const originalFirstId = c.pptxData.slides[0].id;
 		const result = reorderSlides(c, { newOrder: [2, 0, 1] });
-		expect(result.dirty).toBeTruthy();
+		expect(result.dirty).toBe(true);
 		expect(result.pptxData.slides[1].id).toBe(originalFirstId);
 	});
 
@@ -105,7 +105,7 @@ describe('reorderSlides', () => {
 describe('duplicateSlide', () => {
 	it('duplicates a slide after the original', () => {
 		const result = duplicateSlide(ctx(), { slideIndex: 0 });
-		expect(result.dirty).toBeTruthy();
+		expect(result.dirty).toBe(true);
 		expect(result.result.newSlideIndex).toBe(1);
 		expect(result.result.slideCount).toBe(4);
 		expect(result.pptxData.slides[1].id).not.toBe(result.pptxData.slides[0].id);
@@ -125,7 +125,7 @@ describe('updateSlideProperties', () => {
 			backgroundColor: '#ff0000',
 			notes: 'Updated notes',
 		});
-		expect(result.dirty).toBeTruthy();
+		expect(result.dirty).toBe(true);
 		expect(result.pptxData.slides[0].backgroundColor).toBe('#ff0000');
 		expect(result.pptxData.slides[0].notes).toBe('Updated notes');
 	});
@@ -138,7 +138,7 @@ describe('setSlideTransition', () => {
 			type: 'fade',
 			durationMs: 500,
 		});
-		expect(result.dirty).toBeTruthy();
+		expect(result.dirty).toBe(true);
 		expect(result.pptxData.slides[0].transition?.type).toBe('fade');
 		expect(result.pptxData.slides[0].transition?.durationMs).toBe(500);
 	});
@@ -154,7 +154,7 @@ describe('setSlideTransition', () => {
 describe('setCanvasSize', () => {
 	it('updates canvas dimensions', () => {
 		const result = setCanvasSize(ctx(), { width: 1920, height: 1080 });
-		expect(result.dirty).toBeTruthy();
+		expect(result.dirty).toBe(true);
 		expect(result.pptxData.width).toBe(1920);
 		expect(result.pptxData.height).toBe(1080);
 	});

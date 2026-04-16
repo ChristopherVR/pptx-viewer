@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import {
 	HEADING,
@@ -18,27 +19,27 @@ import {
 
 describe('cSS class strings', () => {
 	it('hEADING is a non-empty string', () => {
-		expect(HEADING).toBeTruthy();
+		expect(HEADING).toBe(true);
 		expectTypeOf(HEADING).toBeString();
 	});
 
 	it('cARD is a non-empty string', () => {
-		expect(CARD).toBeTruthy();
+		expect(CARD).toBe(true);
 		expectTypeOf(CARD).toBeString();
 	});
 
 	it('iNPUT is a non-empty string', () => {
-		expect(INPUT).toBeTruthy();
+		expect(INPUT).toBe(true);
 		expectTypeOf(INPUT).toBeString();
 	});
 
 	it('bTN is a non-empty string', () => {
-		expect(BTN).toBeTruthy();
+		expect(BTN).toBe(true);
 		expectTypeOf(BTN).toBeString();
 	});
 
 	it('cELL_INPUT is a non-empty string', () => {
-		expect(CELL_INPUT).toBeTruthy();
+		expect(CELL_INPUT).toBe(true);
 		expectTypeOf(CELL_INPUT).toBeString();
 	});
 });
@@ -68,8 +69,8 @@ describe('cHART_TYPE_OPTIONS', () => {
 
 	it('every item has a non-empty value and labelKey', () => {
 		for (const opt of CHART_TYPE_OPTIONS) {
-			expect(opt.value).toBeTruthy();
-			expect(opt.labelKey).toBeTruthy();
+			expect(opt.value).toBe(true);
+			expect(opt.labelKey).toBe(true);
 			expectTypeOf(opt.labelKey).toBeString();
 		}
 	});
@@ -98,7 +99,7 @@ describe('gROUPING_OPTIONS', () => {
 
 	it('every item has a non-empty labelKey', () => {
 		for (const opt of GROUPING_OPTIONS) {
-			expect(opt.labelKey).toBeTruthy();
+			expect(opt.labelKey).toBe(true);
 		}
 	});
 
@@ -127,7 +128,7 @@ describe('lEGEND_POSITION_OPTIONS', () => {
 
 	it('every item has a non-empty labelKey', () => {
 		for (const opt of LEGEND_POSITION_OPTIONS) {
-			expect(opt.labelKey).toBeTruthy();
+			expect(opt.labelKey).toBe(true);
 		}
 	});
 
@@ -147,14 +148,14 @@ describe('gROUPING_SUPPORTED_TYPES', () => {
 	});
 
 	it('contains bar, line, area', () => {
-		expect(GROUPING_SUPPORTED_TYPES.has('bar')).toBeTruthy();
-		expect(GROUPING_SUPPORTED_TYPES.has('line')).toBeTruthy();
-		expect(GROUPING_SUPPORTED_TYPES.has('area')).toBeTruthy();
+		expect(GROUPING_SUPPORTED_TYPES.has('bar')).toBe(true);
+		expect(GROUPING_SUPPORTED_TYPES.has('line')).toBe(true);
+		expect(GROUPING_SUPPORTED_TYPES.has('area')).toBe(true);
 	});
 
 	it('does not contain pie or scatter', () => {
-		expect(GROUPING_SUPPORTED_TYPES.has('pie' as any)).toBeFalsy();
-		expect(GROUPING_SUPPORTED_TYPES.has('scatter' as any)).toBeFalsy();
+		expect(GROUPING_SUPPORTED_TYPES.has('pie' as any)).toBe(false);
+		expect(GROUPING_SUPPORTED_TYPES.has('scatter' as any)).toBe(false);
 	});
 
 	it('has exactly 3 entries', () => {

@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import type { UseRecoveryDetectionInput } from './useRecoveryDetection';
 import {
@@ -68,7 +69,7 @@ describe('simulateRecoveryFlow', () => {
 			versions: [{ timestamp: now - 1000 }],
 			now,
 		});
-		expect(result.shouldOpen).toBeTruthy();
+		expect(result.shouldOpen).toBe(true);
 		expect(result.reason).toBe('recent_recovery_found');
 	});
 
@@ -83,7 +84,7 @@ describe('simulateRecoveryFlow', () => {
 			versions: [{ timestamp: now - 1000 }],
 			now,
 		});
-		expect(result.shouldOpen).toBeFalsy();
+		expect(result.shouldOpen).toBe(false);
 		expect(result.reason).toBe('precondition_failed');
 	});
 
@@ -98,7 +99,7 @@ describe('simulateRecoveryFlow', () => {
 			versions: [{ timestamp: now - 1000 }],
 			now,
 		});
-		expect(result.shouldOpen).toBeFalsy();
+		expect(result.shouldOpen).toBe(false);
 		expect(result.reason).toBe('no_electron_api');
 	});
 
@@ -113,7 +114,7 @@ describe('simulateRecoveryFlow', () => {
 			versions: [{ timestamp: now - RECOVERY_WINDOW_MS - 1000 }],
 			now,
 		});
-		expect(result.shouldOpen).toBeFalsy();
+		expect(result.shouldOpen).toBe(false);
 		expect(result.reason).toBe('no_recent_recovery');
 	});
 
@@ -128,7 +129,7 @@ describe('simulateRecoveryFlow', () => {
 			versions: [],
 			now,
 		});
-		expect(result.shouldOpen).toBeFalsy();
+		expect(result.shouldOpen).toBe(false);
 		expect(result.reason).toBe('no_recent_recovery');
 	});
 
@@ -143,7 +144,7 @@ describe('simulateRecoveryFlow', () => {
 			versions: [{ timestamp: now - 1000 }],
 			now,
 		});
-		expect(result.shouldOpen).toBeFalsy();
+		expect(result.shouldOpen).toBe(false);
 		expect(result.reason).toBe('precondition_failed');
 	});
 
@@ -158,7 +159,7 @@ describe('simulateRecoveryFlow', () => {
 			versions: [{ timestamp: now - 1000 }],
 			now,
 		});
-		expect(result.shouldOpen).toBeFalsy();
+		expect(result.shouldOpen).toBe(false);
 		expect(result.reason).toBe('precondition_failed');
 	});
 
@@ -173,7 +174,7 @@ describe('simulateRecoveryFlow', () => {
 			versions: [{ timestamp: now - 1000 }],
 			now,
 		});
-		expect(result.shouldOpen).toBeFalsy();
+		expect(result.shouldOpen).toBe(false);
 		expect(result.reason).toBe('precondition_failed');
 	});
 });
@@ -203,7 +204,7 @@ describe('useRecoveryDetectionInput type', () => {
 			openVersionHistory: vi.fn(),
 		};
 		expect(input.filePath).toBe('/test.pptx');
-		expect(input.loading).toBeFalsy();
+		expect(input.loading).toBe(false);
 		expect(input.error).toBeNull();
 		expect(input.slideCount).toBe(3);
 		expectTypeOf(input.openVersionHistory).toBeFunction();

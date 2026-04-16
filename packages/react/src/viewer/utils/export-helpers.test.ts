@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 // export-helpers.ts mostly contains DOM-dependent functions (downloadBlob,
 // downloadDataUrl, renderElementToCanvas, waitForRender).
 // We test the module's types and the shape of its exports to ensure
@@ -23,7 +24,7 @@ describe('export-helpers types', () => {
 		};
 		cb(1, 10);
 		// If this compiles and runs, the type is correct
-		expect(true).toBeTruthy();
+		expect(true).toBe(true);
 	});
 
 	it('pngExportOptions should accept scale and backgroundColor', () => {

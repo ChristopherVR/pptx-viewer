@@ -139,31 +139,31 @@ describe('flip state parsing', () => {
 	}
 
 	it("@_flipH='1' => flipHorizontal=true", () => {
-		expect(parseBooleanAttr('1')).toBeTruthy();
+		expect(parseBooleanAttr('1')).toBe(true);
 	});
 
 	it("@_flipH='0' => flipHorizontal=false", () => {
-		expect(parseBooleanAttr('0')).toBeFalsy();
+		expect(parseBooleanAttr('0')).toBe(false);
 	});
 
 	it("@_flipH='true' => flipHorizontal=true", () => {
-		expect(parseBooleanAttr('true')).toBeTruthy();
+		expect(parseBooleanAttr('true')).toBe(true);
 	});
 
 	it("@_flipH='false' => flipHorizontal=false", () => {
-		expect(parseBooleanAttr('false')).toBeFalsy();
+		expect(parseBooleanAttr('false')).toBe(false);
 	});
 
 	it('undefined @_flipH => flipHorizontal=false (default)', () => {
-		expect(parseBooleanAttr(undefined)).toBeFalsy();
+		expect(parseBooleanAttr(undefined)).toBe(false);
 	});
 
 	it("@_flipV='1' => flipVertical=true", () => {
-		expect(parseBooleanAttr('1')).toBeTruthy();
+		expect(parseBooleanAttr('1')).toBe(true);
 	});
 
 	it('undefined @_flipV => flipVertical=false (default)', () => {
-		expect(parseBooleanAttr(undefined)).toBeFalsy();
+		expect(parseBooleanAttr(undefined)).toBe(false);
 	});
 });
 

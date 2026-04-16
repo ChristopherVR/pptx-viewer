@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import {
 	EMFPLUS_FILLRECTS,
@@ -82,7 +83,7 @@ describe('emf-plus-draw-handlers', () => {
 
 		it('returns false for unrecognized record type', () => {
 			const rCtx = makeRCtx();
-			expect(handleEmfPlusDrawRecord(rCtx, 0xffff, 0, 8, 8)).toBeFalsy();
+			expect(handleEmfPlusDrawRecord(rCtx, 0xffff, 0, 8, 8)).toBe(false);
 		});
 
 		// -- FILLRECTS --
@@ -99,7 +100,7 @@ describe('emf-plus-draw-handlers', () => {
 				rCtx.view.setInt16(d + 14, 60, true);
 				const flags = 0x8000 | 0x4000; // inline brush + compressed
 				const result = handleEmfPlusDrawRecord(rCtx, EMFPLUS_FILLRECTS, flags, d, 16);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				const ctx = rCtx.ctx as unknown as Record<string, { mock: { calls: unknown[][] } }>;
 				expect(ctx.fillRect).toHaveBeenCalledOnce();
 				expect(ctx.fillRect.mock.calls[0]).toStrictEqual([10, 20, 50, 60]);
@@ -140,7 +141,7 @@ describe('emf-plus-draw-handlers', () => {
 			it('ignores if recDataSize < 8', () => {
 				const rCtx = makeRCtx();
 				const result = handleEmfPlusDrawRecord(rCtx, EMFPLUS_FILLRECTS, 0, 8, 4);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 			});
 		});
 
@@ -210,7 +211,7 @@ describe('emf-plus-draw-handlers', () => {
 			it('returns early if data too small for uncompressed', () => {
 				const rCtx = makeRCtx();
 				const result = handleEmfPlusDrawRecord(rCtx, EMFPLUS_DRAWELLIPSE, 0, 8, 8);
-				expect(result).toBeTruthy(); // returns early but true
+				expect(result).toBe(true); // returns early but true
 			});
 		});
 
@@ -234,7 +235,7 @@ describe('emf-plus-draw-handlers', () => {
 
 			it('returns early if data too small', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfPlusDrawRecord(rCtx, EMFPLUS_FILLPIE, 0, 8, 4)).toBeTruthy();
+				expect(handleEmfPlusDrawRecord(rCtx, EMFPLUS_FILLPIE, 0, 8, 4)).toBe(true);
 			});
 		});
 

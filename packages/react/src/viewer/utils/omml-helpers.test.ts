@@ -165,71 +165,71 @@ describe('escapeXml', () => {
 
 describe('isOperator', () => {
 	it('recognizes +', () => {
-		expect(isOperator('+')).toBeTruthy();
+		expect(isOperator('+')).toBe(true);
 	});
 
 	it('recognizes -', () => {
-		expect(isOperator('-')).toBeTruthy();
+		expect(isOperator('-')).toBe(true);
 	});
 
 	it('recognizes ×', () => {
-		expect(isOperator('×')).toBeTruthy();
+		expect(isOperator('×')).toBe(true);
 	});
 
 	it('recognizes ÷', () => {
-		expect(isOperator('÷')).toBeTruthy();
+		expect(isOperator('÷')).toBe(true);
 	});
 
 	it('recognizes =', () => {
-		expect(isOperator('=')).toBeTruthy();
+		expect(isOperator('=')).toBe(true);
 	});
 
 	it('recognizes ≤', () => {
-		expect(isOperator('≤')).toBeTruthy();
+		expect(isOperator('≤')).toBe(true);
 	});
 
 	it('recognizes ≥', () => {
-		expect(isOperator('≥')).toBeTruthy();
+		expect(isOperator('≥')).toBe(true);
 	});
 
 	it('recognizes ∈', () => {
-		expect(isOperator('∈')).toBeTruthy();
+		expect(isOperator('∈')).toBe(true);
 	});
 
 	it('recognizes comma', () => {
-		expect(isOperator(',')).toBeTruthy();
+		expect(isOperator(',')).toBe(true);
 	});
 
 	it('recognizes parentheses as operators', () => {
-		expect(isOperator('(')).toBeTruthy();
-		expect(isOperator(')')).toBeTruthy();
+		expect(isOperator('(')).toBe(true);
+		expect(isOperator(')')).toBe(true);
 	});
 
 	it('recognizes brackets as operators', () => {
-		expect(isOperator('[')).toBeTruthy();
-		expect(isOperator(']')).toBeTruthy();
+		expect(isOperator('[')).toBe(true);
+		expect(isOperator(']')).toBe(true);
 	});
 
 	it('recognizes pipe', () => {
-		expect(isOperator('|')).toBeTruthy();
+		expect(isOperator('|')).toBe(true);
 	});
 
 	it('rejects letters', () => {
-		expect(isOperator('x')).toBeFalsy();
-		expect(isOperator('a')).toBeFalsy();
+		expect(isOperator('x')).toBe(false);
+		expect(isOperator('a')).toBe(false);
 	});
 
 	it('rejects digits', () => {
-		expect(isOperator('0')).toBeFalsy();
-		expect(isOperator('9')).toBeFalsy();
+		expect(isOperator('0')).toBe(false);
+		expect(isOperator('9')).toBe(false);
 	});
 
 	it('handles whitespace trimming', () => {
-		expect(isOperator(' + ')).toBeTruthy();
+		expect(isOperator(' + ')).toBe(true);
 	});
 
 	it('rejects empty string', () => {
-		expect(isOperator('')).toBeFalsy();
+		expect(isOperator('')).toBe(false);
 	});
 });
 
@@ -237,43 +237,43 @@ describe('isOperator', () => {
 
 describe('isNumeric', () => {
 	it('recognizes integer', () => {
-		expect(isNumeric('123')).toBeTruthy();
+		expect(isNumeric('123')).toBe(true);
 	});
 
 	it('recognizes decimal number', () => {
-		expect(isNumeric('3.14')).toBeTruthy();
+		expect(isNumeric('3.14')).toBe(true);
 	});
 
 	it('recognizes comma-separated number', () => {
-		expect(isNumeric('1,000')).toBeTruthy();
+		expect(isNumeric('1,000')).toBe(true);
 	});
 
 	it('rejects alphabetic text', () => {
-		expect(isNumeric('abc')).toBeFalsy();
+		expect(isNumeric('abc')).toBe(false);
 	});
 
 	it('rejects mixed alphanumeric', () => {
-		expect(isNumeric('12a')).toBeFalsy();
+		expect(isNumeric('12a')).toBe(false);
 	});
 
 	it('recognizes single digit', () => {
-		expect(isNumeric('0')).toBeTruthy();
+		expect(isNumeric('0')).toBe(true);
 	});
 
 	it('rejects empty string', () => {
-		expect(isNumeric('')).toBeFalsy();
+		expect(isNumeric('')).toBe(false);
 	});
 
 	it('trims whitespace before testing', () => {
-		expect(isNumeric(' 42 ')).toBeTruthy();
+		expect(isNumeric(' 42 ')).toBe(true);
 	});
 
 	it('rejects a dot alone', () => {
-		expect(isNumeric('.')).toBeFalsy();
+		expect(isNumeric('.')).toBe(false);
 	});
 
 	it('rejects negative numbers (minus sign not in regex)', () => {
-		expect(isNumeric('-5')).toBeFalsy();
+		expect(isNumeric('-5')).toBe(false);
 	});
 });
 

@@ -1,3 +1,4 @@
+import { expectTypeOf } from '@jest/globals';
 /**
  * Tests for CSS preprocessing utilities.
  *
@@ -7,7 +8,7 @@
  * flattenMixBlendMode, flatten3dTransforms, removeUnsupportedFeatures,
  * preprocessCssForCapture) using lightweight mock DOM objects.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, expectTypeOf } from 'vitest';
 
 import {
 	parseBlurValue,
@@ -149,68 +150,68 @@ describe('parseBlurValue', () => {
 
 describe('has3dTransform', () => {
 	it('returns false for empty string', () => {
-		expect(has3dTransform('')).toBeFalsy();
+		expect(has3dTransform('')).toBe(false);
 	});
 
 	it("returns false for 'none'", () => {
-		expect(has3dTransform('none')).toBeFalsy();
+		expect(has3dTransform('none')).toBe(false);
 	});
 
 	it('returns false for 2D transforms', () => {
-		expect(has3dTransform('translate(10px, 20px)')).toBeFalsy();
-		expect(has3dTransform('rotate(45deg)')).toBeFalsy();
-		expect(has3dTransform('scale(2)')).toBeFalsy();
-		expect(has3dTransform('matrix(1, 0, 0, 1, 0, 0)')).toBeFalsy();
-		expect(has3dTransform('skew(10deg)')).toBeFalsy();
-		expect(has3dTransform('translateX(10px)')).toBeFalsy();
-		expect(has3dTransform('translateY(20px)')).toBeFalsy();
+		expect(has3dTransform('translate(10px, 20px)')).toBe(false);
+		expect(has3dTransform('rotate(45deg)')).toBe(false);
+		expect(has3dTransform('scale(2)')).toBe(false);
+		expect(has3dTransform('matrix(1, 0, 0, 1, 0, 0)')).toBe(false);
+		expect(has3dTransform('skew(10deg)')).toBe(false);
+		expect(has3dTransform('translateX(10px)')).toBe(false);
+		expect(has3dTransform('translateY(20px)')).toBe(false);
 	});
 
 	it('returns true for translate3d', () => {
-		expect(has3dTransform('translate3d(10px, 20px, 30px)')).toBeTruthy();
+		expect(has3dTransform('translate3d(10px, 20px, 30px)')).toBe(true);
 	});
 
 	it('returns true for translateZ', () => {
-		expect(has3dTransform('translateZ(50px)')).toBeTruthy();
+		expect(has3dTransform('translateZ(50px)')).toBe(true);
 	});
 
 	it('returns true for rotateX', () => {
-		expect(has3dTransform('rotateX(45deg)')).toBeTruthy();
+		expect(has3dTransform('rotateX(45deg)')).toBe(true);
 	});
 
 	it('returns true for rotateY', () => {
-		expect(has3dTransform('rotateY(45deg)')).toBeTruthy();
+		expect(has3dTransform('rotateY(45deg)')).toBe(true);
 	});
 
 	it('returns true for rotate3d', () => {
-		expect(has3dTransform('rotate3d(1, 0, 0, 45deg)')).toBeTruthy();
+		expect(has3dTransform('rotate3d(1, 0, 0, 45deg)')).toBe(true);
 	});
 
 	it('returns true for scale3d', () => {
-		expect(has3dTransform('scale3d(1, 1, 1)')).toBeTruthy();
+		expect(has3dTransform('scale3d(1, 1, 1)')).toBe(true);
 	});
 
 	it('returns true for scaleZ', () => {
-		expect(has3dTransform('scaleZ(2)')).toBeTruthy();
+		expect(has3dTransform('scaleZ(2)')).toBe(true);
 	});
 
 	it('returns true for perspective', () => {
-		expect(has3dTransform('perspective(500px)')).toBeTruthy();
+		expect(has3dTransform('perspective(500px)')).toBe(true);
 	});
 
 	it('returns true for matrix3d', () => {
-		expect(has3dTransform('matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)')).toBeTruthy();
+		expect(has3dTransform('matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)')).toBe(true);
 	});
 
 	it('returns true when 3D transform is mixed with 2D', () => {
-		expect(has3dTransform('rotate(45deg) translateZ(10px)')).toBeTruthy();
+		expect(has3dTransform('rotate(45deg) translateZ(10px)')).toBe(true);
 	});
 
 	it('handles consecutive calls correctly (no stale global state)', () => {
-		expect(has3dTransform('translateZ(10px)')).toBeTruthy();
-		expect(has3dTransform('translate(10px, 20px)')).toBeFalsy();
-		expect(has3dTransform('perspective(100px)')).toBeTruthy();
-		expect(has3dTransform('rotate(45deg)')).toBeFalsy();
+		expect(has3dTransform('translateZ(10px)')).toBe(true);
+		expect(has3dTransform('translate(10px, 20px)')).toBe(false);
+		expect(has3dTransform('perspective(100px)')).toBe(true);
+		expect(has3dTransform('rotate(45deg)')).toBe(false);
 	});
 });
 
@@ -349,11 +350,11 @@ describe('cssPreprocessingOptions', () => {
 			flatten3dTransforms: false,
 			removeUnsupportedFeatures: true,
 		};
-		expect(opts.resolveCustomProperties).toBeTruthy();
-		expect(opts.flattenBackdropFilter).toBeFalsy();
-		expect(opts.flattenMixBlendMode).toBeTruthy();
-		expect(opts.flatten3dTransforms).toBeFalsy();
-		expect(opts.removeUnsupportedFeatures).toBeTruthy();
+		expect(opts.resolveCustomProperties).toBe(true);
+		expect(opts.flattenBackdropFilter).toBe(false);
+		expect(opts.flattenMixBlendMode).toBe(true);
+		expect(opts.flatten3dTransforms).toBe(false);
+		expect(opts.removeUnsupportedFeatures).toBe(true);
 	});
 });
 
@@ -504,7 +505,7 @@ describe('resolveCustomProperties', () => {
 		resolveCustomProperties(root);
 
 		// Nothing should be set because there was no var() in inline styles
-		expect(hasInlineStyle(child, 'color')).toBeFalsy();
+		expect(hasInlineStyle(child, 'color')).toBe(false);
 	});
 });
 
@@ -570,7 +571,7 @@ describe('flattenBackdropFilter', () => {
 
 		expect(readInlineStyle(child, 'backdrop-filter')).toBe('none');
 		// background-color should not have been replaced
-		expect(hasInlineStyle(child, 'background-color')).toBeFalsy();
+		expect(hasInlineStyle(child, 'background-color')).toBe(false);
 	});
 
 	it('skips elements with backdrop-filter: none', () => {
@@ -579,7 +580,7 @@ describe('flattenBackdropFilter', () => {
 
 		flattenBackdropFilter(root);
 
-		expect(hasInlineStyle(child, 'backdrop-filter')).toBeFalsy();
+		expect(hasInlineStyle(child, 'backdrop-filter')).toBe(false);
 	});
 
 	it('skips elements with no backdrop-filter', () => {
@@ -588,7 +589,7 @@ describe('flattenBackdropFilter', () => {
 
 		flattenBackdropFilter(root);
 
-		expect(hasInlineStyle(child, 'backdrop-filter')).toBeFalsy();
+		expect(hasInlineStyle(child, 'backdrop-filter')).toBe(false);
 	});
 
 	it('handles non-blur backdrop-filter (e.g. brightness) without adding background', () => {
@@ -602,7 +603,7 @@ describe('flattenBackdropFilter', () => {
 
 		expect(readInlineStyle(child, 'backdrop-filter')).toBe('none');
 		// blur is 0, so no background should be added
-		expect(hasInlineStyle(child, 'background-color')).toBeFalsy();
+		expect(hasInlineStyle(child, 'background-color')).toBe(false);
 	});
 
 	it('calculates opacity proportional to blur size, capped at 0.85', () => {
@@ -686,7 +687,7 @@ describe('flattenBackdropFilter', () => {
 
 		expect(readInlineStyle(child, 'backdrop-filter')).toBe('none');
 		// blur is 0, so no background
-		expect(hasInlineStyle(child, 'background-color')).toBeFalsy();
+		expect(hasInlineStyle(child, 'background-color')).toBe(false);
 	});
 });
 
@@ -709,7 +710,7 @@ describe('flattenMixBlendMode', () => {
 
 		flattenMixBlendMode(root);
 
-		expect(hasInlineStyle(child, 'mix-blend-mode')).toBeFalsy();
+		expect(hasInlineStyle(child, 'mix-blend-mode')).toBe(false);
 	});
 
 	it('skips elements with no mix-blend-mode', () => {
@@ -718,7 +719,7 @@ describe('flattenMixBlendMode', () => {
 
 		flattenMixBlendMode(root);
 
-		expect(hasInlineStyle(child, 'mix-blend-mode')).toBeFalsy();
+		expect(hasInlineStyle(child, 'mix-blend-mode')).toBe(false);
 	});
 
 	it('resets blend mode to normal and applies opacity for multiply', () => {
@@ -785,7 +786,7 @@ describe('flattenMixBlendMode', () => {
 
 		expect(readInlineStyle(child, 'mix-blend-mode')).toBe('normal');
 		// unknown maps to 1 via ??, 1 * 1 = 1, not < 1, so opacity not set
-		expect(hasInlineStyle(child, 'opacity')).toBeFalsy();
+		expect(hasInlineStyle(child, 'opacity')).toBe(false);
 	});
 
 	it('handles all known blend modes', () => {
@@ -872,7 +873,7 @@ describe('flatten3dTransforms', () => {
 		flatten3dTransforms(root);
 
 		// 2D-only, no 3D match, so setProperty should not be called
-		expect(hasInlineStyle(child, 'transform')).toBeFalsy();
+		expect(hasInlineStyle(child, 'transform')).toBe(false);
 	});
 
 	it('skips elements with transform: none', () => {
@@ -881,7 +882,7 @@ describe('flatten3dTransforms', () => {
 
 		flatten3dTransforms(root);
 
-		expect(hasInlineStyle(child, 'transform')).toBeFalsy();
+		expect(hasInlineStyle(child, 'transform')).toBe(false);
 	});
 
 	it('skips elements with no transform', () => {
@@ -890,7 +891,7 @@ describe('flatten3dTransforms', () => {
 
 		flatten3dTransforms(root);
 
-		expect(hasInlineStyle(child, 'transform')).toBeFalsy();
+		expect(hasInlineStyle(child, 'transform')).toBe(false);
 	});
 
 	it('processes the root element', () => {
@@ -915,7 +916,7 @@ describe('flatten3dTransforms', () => {
 		expect(t1).not.toContain('translateZ');
 
 		// child2 has only 2D, should be untouched
-		expect(hasInlineStyle(child2, 'transform')).toBeFalsy();
+		expect(hasInlineStyle(child2, 'transform')).toBe(false);
 	});
 });
 
@@ -949,7 +950,7 @@ describe('removeUnsupportedFeatures', () => {
 		removeUnsupportedFeatures(root);
 
 		// Should not set mask-image to "none"
-		expect(hasInlineStyle(child, 'mask-image')).toBeFalsy();
+		expect(hasInlineStyle(child, 'mask-image')).toBe(false);
 	});
 
 	it('keeps mask-image: none (no processing needed)', () => {
@@ -958,7 +959,7 @@ describe('removeUnsupportedFeatures', () => {
 
 		removeUnsupportedFeatures(root);
 
-		expect(hasInlineStyle(child, 'mask-image')).toBeFalsy();
+		expect(hasInlineStyle(child, 'mask-image')).toBe(false);
 	});
 
 	it('keeps simple gradient masks (no url())', () => {
@@ -969,7 +970,7 @@ describe('removeUnsupportedFeatures', () => {
 
 		removeUnsupportedFeatures(root);
 
-		expect(hasInlineStyle(child, 'mask-image')).toBeFalsy();
+		expect(hasInlineStyle(child, 'mask-image')).toBe(false);
 	});
 
 	it('removes mask-image via -webkit-mask-image fallback', () => {
@@ -1029,8 +1030,8 @@ describe('removeUnsupportedFeatures', () => {
 
 		removeUnsupportedFeatures(root);
 
-		expect(hasInlineStyle(child, '-webkit-text-stroke')).toBeFalsy();
-		expect(hasInlineStyle(child, 'text-shadow')).toBeFalsy();
+		expect(hasInlineStyle(child, '-webkit-text-stroke')).toBe(false);
+		expect(hasInlineStyle(child, 'text-shadow')).toBe(false);
 	});
 
 	it("skips text-stroke of '0px rgb(0, 0, 0)'", () => {
@@ -1039,7 +1040,7 @@ describe('removeUnsupportedFeatures', () => {
 
 		removeUnsupportedFeatures(root);
 
-		expect(hasInlineStyle(child, '-webkit-text-stroke')).toBeFalsy();
+		expect(hasInlineStyle(child, '-webkit-text-stroke')).toBe(false);
 	});
 
 	it('handles decimal text-stroke widths', () => {
@@ -1071,9 +1072,9 @@ describe('removeUnsupportedFeatures', () => {
 		removeUnsupportedFeatures(root);
 
 		// Nothing should have been set
-		expect(hasInlineStyle(child, 'mask-image')).toBeFalsy();
-		expect(hasInlineStyle(child, '-webkit-text-stroke')).toBeFalsy();
-		expect(hasInlineStyle(child, 'text-shadow')).toBeFalsy();
+		expect(hasInlineStyle(child, 'mask-image')).toBe(false);
+		expect(hasInlineStyle(child, '-webkit-text-stroke')).toBe(false);
+		expect(hasInlineStyle(child, 'text-shadow')).toBe(false);
 	});
 });
 
@@ -1138,9 +1139,9 @@ describe('preprocessCssForCapture', () => {
 		});
 
 		// Nothing should have been modified
-		expect(hasInlineStyle(child, 'backdrop-filter')).toBeFalsy();
-		expect(hasInlineStyle(child, 'mix-blend-mode')).toBeFalsy();
-		expect(hasInlineStyle(child, 'transform')).toBeFalsy();
+		expect(hasInlineStyle(child, 'backdrop-filter')).toBe(false);
+		expect(hasInlineStyle(child, 'mix-blend-mode')).toBe(false);
+		expect(hasInlineStyle(child, 'transform')).toBe(false);
 	});
 
 	it('selectively applies only enabled steps', () => {
@@ -1164,9 +1165,9 @@ describe('preprocessCssForCapture', () => {
 		// backdrop filter should be processed
 		expect(readInlineStyle(child, 'backdrop-filter')).toBe('none');
 		// mix-blend-mode should NOT be processed
-		expect(hasInlineStyle(child, 'mix-blend-mode')).toBeFalsy();
+		expect(hasInlineStyle(child, 'mix-blend-mode')).toBe(false);
 		// transform should NOT be processed
-		expect(hasInlineStyle(child, 'transform')).toBeFalsy();
+		expect(hasInlineStyle(child, 'transform')).toBe(false);
 	});
 
 	it('applies only flatten3dTransforms when specified', () => {
@@ -1187,7 +1188,7 @@ describe('preprocessCssForCapture', () => {
 
 		expect(readInlineStyle(child, 'transform')).toBe('translate(1px, 2px)');
 		// backdrop should be untouched
-		expect(hasInlineStyle(child, 'backdrop-filter')).toBeFalsy();
+		expect(hasInlineStyle(child, 'backdrop-filter')).toBe(false);
 	});
 
 	it('applies only removeUnsupportedFeatures when specified', () => {
@@ -1208,7 +1209,7 @@ describe('preprocessCssForCapture', () => {
 
 		expect(readInlineStyle(child, 'mask-image')).toBe('none');
 		// blend mode should not be touched
-		expect(hasInlineStyle(child, 'mix-blend-mode')).toBeFalsy();
+		expect(hasInlineStyle(child, 'mix-blend-mode')).toBe(false);
 	});
 
 	it('uses default options (all true) when empty options object is given', () => {

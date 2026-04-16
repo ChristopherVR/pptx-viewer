@@ -1,6 +1,7 @@
+import { expectTypeOf } from '@jest/globals';
 import { THEME_PRESETS } from 'pptx-viewer-core';
 import type { PptxThemePreset, PptxThemeColorScheme } from 'pptx-viewer-core';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 /**
  * Unit tests for the theme switching hook.
@@ -10,7 +11,7 @@ import { describe, it, expect } from 'vitest';
 
 describe('tHEME_PRESETS (used by useThemeSwitching)', () => {
 	it('exports a non-empty readonly array', () => {
-		expect(Array.isArray(THEME_PRESETS)).toBeTruthy();
+		expect(Array.isArray(THEME_PRESETS)).toBe(true);
 		expect(THEME_PRESETS.length).toBeGreaterThan(0);
 	});
 

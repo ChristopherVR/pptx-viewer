@@ -33,7 +33,7 @@ describe('cloneTextStyle', () => {
 		const style: TextStyle = { bold: true, fontSize: 18 };
 		const cloned = cloneTextStyle(style)!;
 		cloned.bold = false;
-		expect(style.bold).toBeTruthy();
+		expect(style.bold).toBe(true);
 	});
 });
 

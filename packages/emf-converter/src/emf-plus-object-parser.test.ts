@@ -142,7 +142,7 @@ describe('emf-plus-object-parser', () => {
 		it('ignores brush with recDataSize < 8', () => {
 			const rCtx = makeRCtx();
 			handleEmfPlusObjectRecord(rCtx, makeFlags(EMFPLUS_OBJECTTYPE_BRUSH, 0), 0, 4);
-			expect(rCtx.objectTable.has(0)).toBeFalsy();
+			expect(rCtx.objectTable.has(0)).toBe(false);
 		});
 
 		it('defaults to black for unknown brush type', () => {
@@ -245,7 +245,7 @@ describe('emf-plus-object-parser', () => {
 		it('ignores font with recDataSize < 28', () => {
 			const rCtx = makeRCtx();
 			handleEmfPlusObjectRecord(rCtx, makeFlags(EMFPLUS_OBJECTTYPE_FONT, 0), 0, 20);
-			expect(rCtx.objectTable.has(0)).toBeFalsy();
+			expect(rCtx.objectTable.has(0)).toBe(false);
 		});
 	});
 
@@ -276,7 +276,7 @@ describe('emf-plus-object-parser', () => {
 		it('ignores string format with recDataSize < 16', () => {
 			const rCtx = makeRCtx();
 			handleEmfPlusObjectRecord(rCtx, makeFlags(EMFPLUS_OBJECTTYPE_STRINGFORMAT, 0), 0, 12);
-			expect(rCtx.objectTable.has(0)).toBeFalsy();
+			expect(rCtx.objectTable.has(0)).toBe(false);
 		});
 	});
 
@@ -465,7 +465,7 @@ describe('emf-plus-object-parser', () => {
 		it('returns null for region with maxLen < 8', () => {
 			const rCtx = makeRCtx();
 			handleEmfPlusObjectRecord(rCtx, makeFlags(EMFPLUS_OBJECTTYPE_REGION, 0), 0, 4);
-			expect(rCtx.objectTable.has(0)).toBeFalsy();
+			expect(rCtx.objectTable.has(0)).toBe(false);
 		});
 
 		it('returns null for region with zero node count', () => {
@@ -475,7 +475,7 @@ describe('emf-plus-object-parser', () => {
 			rCtx.view.setUint32(d + 4, 0, true); // 0 nodes — invalid
 
 			handleEmfPlusObjectRecord(rCtx, makeFlags(EMFPLUS_OBJECTTYPE_REGION, 0), d, 8);
-			expect(rCtx.objectTable.has(0)).toBeFalsy();
+			expect(rCtx.objectTable.has(0)).toBe(false);
 		});
 	});
 
@@ -487,7 +487,7 @@ describe('emf-plus-object-parser', () => {
 		it('does not crash and does not store anything', () => {
 			const rCtx = makeRCtx();
 			handleEmfPlusObjectRecord(rCtx, makeFlags(0x7f, 0), 0, 8);
-			expect(rCtx.objectTable.has(0)).toBeFalsy();
+			expect(rCtx.objectTable.has(0)).toBe(false);
 		});
 	});
 
@@ -503,7 +503,7 @@ describe('emf-plus-object-parser', () => {
 			rCtx.view.setUint32(d + 4, 0xff000000, true);
 
 			handleEmfPlusObjectRecord(rCtx, makeFlags(EMFPLUS_OBJECTTYPE_BRUSH, 42), d, 8);
-			expect(rCtx.objectTable.has(42)).toBeTruthy();
+			expect(rCtx.objectTable.has(42)).toBe(true);
 		});
 	});
 });

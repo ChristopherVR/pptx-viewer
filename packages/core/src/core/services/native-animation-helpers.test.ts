@@ -15,30 +15,30 @@ import {
 
 describe('isXmlObject', () => {
 	it('returns true for a plain object', () => {
-		expect(isXmlObject({})).toBeTruthy();
+		expect(isXmlObject({})).toBe(true);
 	});
 
 	it('returns true for an object with properties', () => {
-		expect(isXmlObject({ foo: 'bar' })).toBeTruthy();
+		expect(isXmlObject({ foo: 'bar' })).toBe(true);
 	});
 
 	it('returns false for null', () => {
-		expect(isXmlObject(null)).toBeFalsy();
+		expect(isXmlObject(null)).toBe(false);
 	});
 
 	it('returns false for undefined', () => {
-		expect(isXmlObject(undefined)).toBeFalsy();
+		expect(isXmlObject(undefined)).toBe(false);
 	});
 
 	it('returns false for arrays', () => {
-		expect(isXmlObject([])).toBeFalsy();
-		expect(isXmlObject([1, 2])).toBeFalsy();
+		expect(isXmlObject([])).toBe(false);
+		expect(isXmlObject([1, 2])).toBe(false);
 	});
 
 	it('returns false for primitives', () => {
-		expect(isXmlObject('string')).toBeFalsy();
-		expect(isXmlObject(42)).toBeFalsy();
-		expect(isXmlObject(true)).toBeFalsy();
+		expect(isXmlObject('string')).toBe(false);
+		expect(isXmlObject(42)).toBe(false);
+		expect(isXmlObject(true)).toBe(false);
 	});
 });
 
@@ -262,12 +262,12 @@ describe('extractRepeatInfo', () => {
 
 	it("detects autoReverse when @_autoRev is '1'", () => {
 		const result = extractRepeatInfo({ '@_autoRev': '1' });
-		expect(result.autoReverse).toBeTruthy();
+		expect(result.autoReverse).toBe(true);
 	});
 
 	it('detects autoReverse when @_autoRev is boolean true', () => {
 		const result = extractRepeatInfo({ '@_autoRev': true });
-		expect(result.autoReverse).toBeTruthy();
+		expect(result.autoReverse).toBe(true);
 	});
 
 	it("does not set autoReverse when @_autoRev is '0'", () => {
@@ -281,7 +281,7 @@ describe('extractRepeatInfo', () => {
 			'@_autoRev': '1',
 		});
 		expect(result.repeatCount).toBe(5);
-		expect(result.autoReverse).toBeTruthy();
+		expect(result.autoReverse).toBe(true);
 	});
 
 	it('returns single repeat count for 1000', () => {

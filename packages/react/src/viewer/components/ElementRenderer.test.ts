@@ -39,7 +39,7 @@ describe('shapeParams', () => {
 			shapeStyle: { strokeWidth: 1, strokeColor: '#000000' },
 		} as Partial<PptxElement>);
 		const result = shapeParams(el);
-		expect(result.hf).toBeFalsy();
+		expect(result.hf).toBe(false);
 	});
 
 	it('returns hasFill=false when fillColor is transparent', () => {
@@ -48,7 +48,7 @@ describe('shapeParams', () => {
 			shapeStyle: { fillColor: 'transparent' },
 		} as Partial<PptxElement>);
 		const result = shapeParams(el);
-		expect(result.hf).toBeFalsy();
+		expect(result.hf).toBe(false);
 	});
 
 	it('returns hasFill=true when fillColor is a solid colour', () => {
@@ -57,7 +57,7 @@ describe('shapeParams', () => {
 			shapeStyle: { fillColor: '#ff0000' },
 		} as Partial<PptxElement>);
 		const result = shapeParams(el);
-		expect(result.hf).toBeTruthy();
+		expect(result.hf).toBe(true);
 	});
 
 	it('returns strokeWidth clamped to 0 when negative or undefined', () => {
@@ -93,6 +93,6 @@ describe('shapeParams', () => {
 		const result = shapeParams(el);
 		// Should use defaults since hasShapeProperties returns false for image
 		expect(result.sw).toBe(0);
-		expect(result.hf).toBeFalsy();
+		expect(result.hf).toBe(false);
 	});
 });

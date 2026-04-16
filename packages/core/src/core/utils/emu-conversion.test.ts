@@ -151,7 +151,7 @@ describe('pixels to EMU conversion', () => {
 
 	it('rounds fractional pixel to nearest EMU integer', () => {
 		const result = guidePxToEmu(1.5);
-		expect(Number.isInteger(result)).toBeTruthy();
+		expect(Number.isInteger(result)).toBe(true);
 		expect(result).toBe(Math.round(1.5 * 9525));
 	});
 });

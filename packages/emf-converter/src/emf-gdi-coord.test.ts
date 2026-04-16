@@ -181,13 +181,13 @@ describe('emf-gdi-coord', () => {
 		it('sets useMappingMode to true', () => {
 			const r = makeCtx({ useMappingMode: false });
 			activateGdiMappingMode(r);
-			expect(r.useMappingMode).toBeTruthy();
+			expect(r.useMappingMode).toBe(true);
 		});
 
 		it('remains true if already activated', () => {
 			const r = makeCtx({ useMappingMode: true });
 			activateGdiMappingMode(r);
-			expect(r.useMappingMode).toBeTruthy();
+			expect(r.useMappingMode).toBe(true);
 		});
 	});
 });

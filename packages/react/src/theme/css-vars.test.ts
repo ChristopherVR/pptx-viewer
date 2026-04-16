@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { themeToCssVars, defaultCssVars } from './css-vars';
 import { defaultThemeColors, defaultRadius } from './defaults';
@@ -127,7 +128,7 @@ describe('defaultCssVars', () => {
 	it('should only produce keys prefixed with --pptx-', () => {
 		const vars = defaultCssVars();
 		for (const key of Object.keys(vars)) {
-			expect(key.startsWith('--pptx-')).toBeTruthy();
+			expect(key.startsWith('--pptx-')).toBe(true);
 		}
 	});
 

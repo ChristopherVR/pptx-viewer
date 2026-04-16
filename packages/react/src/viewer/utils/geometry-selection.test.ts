@@ -132,7 +132,7 @@ describe('intersectsBounds', () => {
 				{ minX: 0, minY: 0, maxX: 50, maxY: 50 },
 				{ minX: 25, minY: 25, maxX: 75, maxY: 75 },
 			),
-		).toBeTruthy();
+		).toBe(true);
 	});
 
 	it('returns false for non-overlapping rectangles (left right)', () => {
@@ -141,7 +141,7 @@ describe('intersectsBounds', () => {
 				{ minX: 0, minY: 0, maxX: 10, maxY: 10 },
 				{ minX: 20, minY: 0, maxX: 30, maxY: 10 },
 			),
-		).toBeFalsy();
+		).toBe(false);
 	});
 
 	it('returns false for non-overlapping rectangles (top bottom)', () => {
@@ -150,7 +150,7 @@ describe('intersectsBounds', () => {
 				{ minX: 0, minY: 0, maxX: 10, maxY: 10 },
 				{ minX: 0, minY: 20, maxX: 10, maxY: 30 },
 			),
-		).toBeFalsy();
+		).toBe(false);
 	});
 
 	it('returns true for touching edges', () => {
@@ -159,7 +159,7 @@ describe('intersectsBounds', () => {
 				{ minX: 0, minY: 0, maxX: 10, maxY: 10 },
 				{ minX: 10, minY: 0, maxX: 20, maxY: 10 },
 			),
-		).toBeTruthy();
+		).toBe(true);
 	});
 
 	it('returns true when one contains the other', () => {
@@ -168,7 +168,7 @@ describe('intersectsBounds', () => {
 				{ minX: 0, minY: 0, maxX: 100, maxY: 100 },
 				{ minX: 25, minY: 25, maxX: 75, maxY: 75 },
 			),
-		).toBeTruthy();
+		).toBe(true);
 	});
 
 	it('returns true for identical bounds', () => {
@@ -177,7 +177,7 @@ describe('intersectsBounds', () => {
 				{ minX: 10, minY: 10, maxX: 50, maxY: 50 },
 				{ minX: 10, minY: 10, maxX: 50, maxY: 50 },
 			),
-		).toBeTruthy();
+		).toBe(true);
 	});
 });
 
@@ -270,6 +270,6 @@ describe('computeSnapToShapeResult', () => {
 		const siblings = [{ x: 100, y: 200, width: 50, height: 50, id: 'sib-1' }];
 		const result = computeSnapToShapeResult(100, 100, 50, 50, siblings, new Set(), []);
 		expect(result.lines.length).toBeGreaterThan(0);
-		expect(result.lines.some((l) => l.axis === 'v')).toBeTruthy();
+		expect(result.lines.some((l) => l.axis === 'v')).toBe(true);
 	});
 });

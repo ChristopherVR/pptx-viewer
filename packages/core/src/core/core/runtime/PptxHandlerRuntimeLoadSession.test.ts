@@ -68,59 +68,59 @@ function validateLoadInput(data: ArrayBuffer): { valid: true } | { valid: false;
 // ---------------------------------------------------------------------------
 describe('isZipContainer', () => {
 	it('should return false for empty buffer', () => {
-		expect(isZipContainer(new ArrayBuffer(0))).toBeFalsy();
+		expect(isZipContainer(new ArrayBuffer(0))).toBe(false);
 	});
 
 	it('should return false for buffer smaller than 4 bytes', () => {
 		const buf = new Uint8Array([0x50, 0x4b, 0x03]).buffer;
-		expect(isZipContainer(buf)).toBeFalsy();
+		expect(isZipContainer(buf)).toBe(false);
 	});
 
 	it('should detect standard ZIP local file header (PK\\x03\\x04)', () => {
 		const buf = new Uint8Array([0x50, 0x4b, 0x03, 0x04]).buffer;
-		expect(isZipContainer(buf)).toBeTruthy();
+		expect(isZipContainer(buf)).toBe(true);
 	});
 
 	it('should detect empty archive signature (PK\\x05\\x06)', () => {
 		const buf = new Uint8Array([0x50, 0x4b, 0x05, 0x06]).buffer;
-		expect(isZipContainer(buf)).toBeTruthy();
+		expect(isZipContainer(buf)).toBe(true);
 	});
 
 	it('should detect spanned archive signature (PK\\x07\\x08)', () => {
 		const buf = new Uint8Array([0x50, 0x4b, 0x07, 0x08]).buffer;
-		expect(isZipContainer(buf)).toBeTruthy();
+		expect(isZipContainer(buf)).toBe(true);
 	});
 
 	it('should return false for non-ZIP data', () => {
 		const buf = new Uint8Array([0x00, 0x01, 0x02, 0x03]).buffer;
-		expect(isZipContainer(buf)).toBeFalsy();
+		expect(isZipContainer(buf)).toBe(false);
 	});
 
 	it('should return false for PDF magic number', () => {
 		// %PDF
 		const buf = new Uint8Array([0x25, 0x50, 0x44, 0x46]).buffer;
-		expect(isZipContainer(buf)).toBeFalsy();
+		expect(isZipContainer(buf)).toBe(false);
 	});
 
 	it('should return false for legacy .ppt (OLE2) magic number', () => {
 		// D0 CF 11 E0 (OLE compound file)
 		const buf = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0]).buffer;
-		expect(isZipContainer(buf)).toBeFalsy();
+		expect(isZipContainer(buf)).toBe(false);
 	});
 
 	it('should return false for PK with wrong third/fourth byte', () => {
 		const buf = new Uint8Array([0x50, 0x4b, 0x01, 0x02]).buffer;
-		expect(isZipContainer(buf)).toBeFalsy();
+		expect(isZipContainer(buf)).toBe(false);
 	});
 
 	it('should handle larger buffers that start with ZIP header', () => {
 		const buf = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0xff, 0xff, 0xff, 0xff]).buffer;
-		expect(isZipContainer(buf)).toBeTruthy();
+		expect(isZipContainer(buf)).toBe(true);
 	});
 
 	it('should return false for buffer with only PK prefix', () => {
 		const buf = new Uint8Array([0x50, 0x4b, 0x00, 0x00]).buffer;
-		expect(isZipContainer(buf)).toBeFalsy();
+		expect(isZipContainer(buf)).toBe(false);
 	});
 });
 
@@ -175,23 +175,23 @@ describe('matchCustomXmlItem', () => {
 // ---------------------------------------------------------------------------
 describe('isSignaturePart', () => {
 	it('should detect _xmlsignatures directory entries', () => {
-		expect(isSignaturePart('_xmlsignatures/sig1.xml')).toBeTruthy();
+		expect(isSignaturePart('_xmlsignatures/sig1.xml')).toBe(true);
 	});
 
 	it('should detect nested signature paths', () => {
-		expect(isSignaturePart('docProps/_xmlsignatures/origin.sigs')).toBeTruthy();
+		expect(isSignaturePart('docProps/_xmlsignatures/origin.sigs')).toBe(true);
 	});
 
 	it('should return false for regular paths', () => {
-		expect(isSignaturePart('ppt/slides/slide1.xml')).toBeFalsy();
+		expect(isSignaturePart('ppt/slides/slide1.xml')).toBe(false);
 	});
 
 	it('should return false for empty string', () => {
-		expect(isSignaturePart('')).toBeFalsy();
+		expect(isSignaturePart('')).toBe(false);
 	});
 
 	it('should detect paths with just the folder prefix', () => {
-		expect(isSignaturePart('_xmlsignatures/')).toBeTruthy();
+		expect(isSignaturePart('_xmlsignatures/')).toBe(true);
 	});
 });
 
@@ -201,7 +201,7 @@ describe('isSignaturePart', () => {
 describe('validateLoadInput', () => {
 	it('should reject empty buffer', () => {
 		const result = validateLoadInput(new ArrayBuffer(0));
-		expect(result.valid).toBeFalsy();
+		expect(result.valid).toBe(false);
 		if (!result.valid) {
 			expect(result.error).toContain('empty or truncated');
 		}
@@ -209,7 +209,7 @@ describe('validateLoadInput', () => {
 
 	it('should reject buffer smaller than 4 bytes', () => {
 		const result = validateLoadInput(new Uint8Array([0x50]).buffer);
-		expect(result.valid).toBeFalsy();
+		expect(result.valid).toBe(false);
 		if (!result.valid) {
 			expect(result.error).toContain('empty or truncated');
 		}
@@ -218,7 +218,7 @@ describe('validateLoadInput', () => {
 	it('should reject non-ZIP data', () => {
 		const buf = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0]).buffer;
 		const result = validateLoadInput(buf);
-		expect(result.valid).toBeFalsy();
+		expect(result.valid).toBe(false);
 		if (!result.valid) {
 			expect(result.error).toContain('not a ZIP/OpenXML file');
 			expect(result.error).toContain('Legacy .ppt');
@@ -228,19 +228,19 @@ describe('validateLoadInput', () => {
 	it('should accept valid ZIP data', () => {
 		const buf = new Uint8Array([0x50, 0x4b, 0x03, 0x04]).buffer;
 		const result = validateLoadInput(buf);
-		expect(result.valid).toBeTruthy();
+		expect(result.valid).toBe(true);
 	});
 
 	it('should accept valid empty ZIP archive', () => {
 		const buf = new Uint8Array([0x50, 0x4b, 0x05, 0x06]).buffer;
 		const result = validateLoadInput(buf);
-		expect(result.valid).toBeTruthy();
+		expect(result.valid).toBe(true);
 	});
 
 	it('should reject exactly 4 bytes that are not ZIP', () => {
 		const buf = new Uint8Array([0x00, 0x00, 0x00, 0x00]).buffer;
 		const result = validateLoadInput(buf);
-		expect(result.valid).toBeFalsy();
+		expect(result.valid).toBe(false);
 	});
 });
 
@@ -294,6 +294,6 @@ describe('initializeLoadSession state clearing logic', () => {
 		expect(presentationDefaultTextStyle).toBeUndefined();
 		expect(thumbnailData).toBeNull();
 		expect(vbaProjectBin).toBeNull();
-		expect(isStrictOoxml).toBeFalsy();
+		expect(isStrictOoxml).toBe(false);
 	});
 });

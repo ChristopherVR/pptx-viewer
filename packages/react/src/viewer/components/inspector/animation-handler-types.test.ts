@@ -12,11 +12,11 @@ describe('dIRECTIONAL_PRESETS', () => {
 	});
 
 	it('contains flyIn', () => {
-		expect(DIRECTIONAL_PRESETS.has('flyIn')).toBeTruthy();
+		expect(DIRECTIONAL_PRESETS.has('flyIn')).toBe(true);
 	});
 
 	it('contains flyOut', () => {
-		expect(DIRECTIONAL_PRESETS.has('flyOut')).toBeTruthy();
+		expect(DIRECTIONAL_PRESETS.has('flyOut')).toBe(true);
 	});
 
 	it('has exactly 2 entries', () => {
@@ -24,9 +24,9 @@ describe('dIRECTIONAL_PRESETS', () => {
 	});
 
 	it('does not contain non-directional presets', () => {
-		expect(DIRECTIONAL_PRESETS.has('fadeIn')).toBeFalsy();
-		expect(DIRECTIONAL_PRESETS.has('fadeOut')).toBeFalsy();
-		expect(DIRECTIONAL_PRESETS.has('spin')).toBeFalsy();
-		expect(DIRECTIONAL_PRESETS.has('zoomIn')).toBeFalsy();
+		expect(DIRECTIONAL_PRESETS.has('fadeIn')).toBe(false);
+		expect(DIRECTIONAL_PRESETS.has('fadeOut')).toBe(false);
+		expect(DIRECTIONAL_PRESETS.has('spin')).toBe(false);
+		expect(DIRECTIONAL_PRESETS.has('zoomIn')).toBe(false);
 	});
 });

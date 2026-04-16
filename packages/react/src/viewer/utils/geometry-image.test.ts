@@ -94,64 +94,64 @@ function makeEl(type: string, extras: Record<string, unknown> = {}): PptxElement
 
 describe('shouldRenderFallbackLabel', () => {
 	it('returns false when element is a text element', () => {
-		expect(shouldRenderFallbackLabel(makeEl('text'), true)).toBeFalsy();
+		expect(shouldRenderFallbackLabel(makeEl('text'), true)).toBe(false);
 	});
 
 	it('returns false for shape elements', () => {
-		expect(shouldRenderFallbackLabel(makeEl('shape'), false)).toBeFalsy();
+		expect(shouldRenderFallbackLabel(makeEl('shape'), false)).toBe(false);
 	});
 
 	it('returns false for connector elements', () => {
-		expect(shouldRenderFallbackLabel(makeEl('connector'), false)).toBeFalsy();
+		expect(shouldRenderFallbackLabel(makeEl('connector'), false)).toBe(false);
 	});
 
 	it('returns false for picture elements', () => {
-		expect(shouldRenderFallbackLabel(makeEl('picture'), false)).toBeFalsy();
+		expect(shouldRenderFallbackLabel(makeEl('picture'), false)).toBe(false);
 	});
 
 	it('returns false for image elements', () => {
-		expect(shouldRenderFallbackLabel(makeEl('image'), false)).toBeFalsy();
+		expect(shouldRenderFallbackLabel(makeEl('image'), false)).toBe(false);
 	});
 
 	it('returns false for table elements', () => {
-		expect(shouldRenderFallbackLabel(makeEl('table'), false)).toBeFalsy();
+		expect(shouldRenderFallbackLabel(makeEl('table'), false)).toBe(false);
 	});
 
 	it('returns false for media elements', () => {
-		expect(shouldRenderFallbackLabel(makeEl('media'), false)).toBeFalsy();
+		expect(shouldRenderFallbackLabel(makeEl('media'), false)).toBe(false);
 	});
 
 	it('returns false for contentPart elements', () => {
-		expect(shouldRenderFallbackLabel(makeEl('contentPart'), false)).toBeFalsy();
+		expect(shouldRenderFallbackLabel(makeEl('contentPart'), false)).toBe(false);
 	});
 
 	it('returns false for model3d elements', () => {
-		expect(shouldRenderFallbackLabel(makeEl('model3d'), false)).toBeFalsy();
+		expect(shouldRenderFallbackLabel(makeEl('model3d'), false)).toBe(false);
 	});
 
 	it('returns true for chart elements', () => {
-		expect(shouldRenderFallbackLabel(makeEl('chart'), false)).toBeTruthy();
+		expect(shouldRenderFallbackLabel(makeEl('chart'), false)).toBe(true);
 	});
 
 	it('returns true for smartArt elements', () => {
-		expect(shouldRenderFallbackLabel(makeEl('smartArt'), false)).toBeTruthy();
+		expect(shouldRenderFallbackLabel(makeEl('smartArt'), false)).toBe(true);
 	});
 
 	it('returns true for unknown elements', () => {
-		expect(shouldRenderFallbackLabel(makeEl('unknown'), false)).toBeTruthy();
+		expect(shouldRenderFallbackLabel(makeEl('unknown'), false)).toBe(true);
 	});
 
 	it('returns true for OLE element without preview image', () => {
-		expect(shouldRenderFallbackLabel(makeEl('ole'), false)).toBeTruthy();
+		expect(shouldRenderFallbackLabel(makeEl('ole'), false)).toBe(true);
 	});
 
 	it('returns false for OLE element with previewImageData', () => {
 		const el = makeEl('ole', { previewImageData: 'data:image/png;base64,...' });
-		expect(shouldRenderFallbackLabel(el, false)).toBeFalsy();
+		expect(shouldRenderFallbackLabel(el, false)).toBe(false);
 	});
 
 	it('returns false for OLE element with previewImage', () => {
 		const el = makeEl('ole', { previewImage: 'data:image/png;base64,...' });
-		expect(shouldRenderFallbackLabel(el, false)).toBeFalsy();
+		expect(shouldRenderFallbackLabel(el, false)).toBe(false);
 	});
 });

@@ -116,7 +116,7 @@ describe('pptxSlideTransitionService.parseSlideTransition', () => {
 			},
 		};
 		const result = service.parseSlideTransition(slideXml);
-		expect(result!.advanceOnClick).toBeFalsy();
+		expect(result!.advanceOnClick).toBe(false);
 	});
 
 	it('parses advanceAfterMs attribute', () => {
@@ -155,7 +155,7 @@ describe('pptxSlideTransitionService.parseSlideTransition', () => {
 		};
 		const result = service.parseSlideTransition(slideXml);
 		expect(result!.type).toBe('blinds');
-		expect(result!.thruBlk).toBeTruthy();
+		expect(result!.thruBlk).toBe(true);
 	});
 
 	it('defaults to cut when no transition type element is present', () => {

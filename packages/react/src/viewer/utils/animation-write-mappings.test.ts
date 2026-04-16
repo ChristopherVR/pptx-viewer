@@ -45,7 +45,7 @@ describe('pRESET_TO_OOXML', () => {
 	it('should have valid preset IDs (positive integers)', () => {
 		for (const [name, mapping] of Object.entries(PRESET_TO_OOXML)) {
 			expect(mapping.presetId, `${name} presetId should be positive`).toBeGreaterThan(0);
-			expect(Number.isInteger(mapping.presetId), `${name} presetId should be integer`).toBeTruthy();
+			expect(Number.isInteger(mapping.presetId), `${name} presetId should be integer`).toBe(true);
 		}
 	});
 

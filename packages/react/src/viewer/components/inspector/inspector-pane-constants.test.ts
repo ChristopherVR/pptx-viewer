@@ -1,11 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { INSPECTOR_TABS, HEADING, CARD, INPUT, BTN, POS_FIELDS } from './inspector-pane-constants';
 
 describe('inspector-pane-constants', () => {
 	describe('iNSPECTOR_TABS', () => {
 		it('is a non-empty array', () => {
-			expect(Array.isArray(INSPECTOR_TABS)).toBeTruthy();
+			expect(Array.isArray(INSPECTOR_TABS)).toBe(true);
 			expect(INSPECTOR_TABS.length).toBeGreaterThan(0);
 		});
 

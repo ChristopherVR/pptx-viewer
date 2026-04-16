@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import {
 	EMFPLUS_HEADER,
@@ -149,7 +150,7 @@ describe('emf-plus-replay', () => {
 			replayEmfPlusRecords(view, 0, off + 12, ctx, 500, 500, state);
 
 			// Brush should be stored in object table at id 3
-			expect(state.objectTable.has(3)).toBeTruthy();
+			expect(state.objectTable.has(3)).toBe(true);
 			const brush = state.objectTable.get(3)!;
 			expect(brush.kind).toBe('plus-brush');
 		});
@@ -251,7 +252,7 @@ describe('emf-plus-replay', () => {
 			replayEmfPlusRecords(view, 0, off + 12, ctx, 500, 500, state);
 
 			// The continuation should have been assembled and stored
-			expect(state.objectTable.has(objectId)).toBeTruthy();
+			expect(state.objectTable.has(objectId)).toBe(true);
 		});
 
 		it('stops at EMFPLUS_ENDOFFILE', () => {

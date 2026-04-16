@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { signPptxWithCertificate } from './signing';
 
@@ -15,7 +16,7 @@ describe('signPptxWithCertificate', () => {
 		const result = await signPptxWithCertificate(new Uint8Array([0]), new Uint8Array([0]), {
 			certificatePath: 'test.pem',
 		});
-		expect(result.success).toBeFalsy();
+		expect(result.success).toBe(false);
 		expect(result.report.verificationStatus).toBe('error');
 	});
 
@@ -23,7 +24,7 @@ describe('signPptxWithCertificate', () => {
 		const result = await signPptxWithCertificate(new Uint8Array([]), new Uint8Array([]), {
 			certificatePath: 'test.pfx',
 		});
-		expect(result.success).toBeFalsy();
+		expect(result.success).toBe(false);
 		expect(result.report.verificationStatus).toBe('error');
 		expect(result.error).toBeDefined();
 	});

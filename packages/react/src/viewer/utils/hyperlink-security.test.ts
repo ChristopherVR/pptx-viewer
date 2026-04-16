@@ -16,86 +16,86 @@ import {
 describe('isUrlSafe', () => {
 	// --- Safe URLs ---
 	it('should accept https URLs', () => {
-		expect(isUrlSafe('https://example.com')).toBeTruthy();
+		expect(isUrlSafe('https://example.com')).toBe(true);
 	});
 
 	it('should accept http URLs', () => {
-		expect(isUrlSafe('http://example.com')).toBeTruthy();
+		expect(isUrlSafe('http://example.com')).toBe(true);
 	});
 
 	it('should accept mailto URLs', () => {
-		expect(isUrlSafe('mailto:user@example.com')).toBeTruthy();
+		expect(isUrlSafe('mailto:user@example.com')).toBe(true);
 	});
 
 	it('should accept tel URLs', () => {
-		expect(isUrlSafe('tel:+1234567890')).toBeTruthy();
+		expect(isUrlSafe('tel:+1234567890')).toBe(true);
 	});
 
 	it('should accept ftp URLs', () => {
-		expect(isUrlSafe('ftp://files.example.com')).toBeTruthy();
+		expect(isUrlSafe('ftp://files.example.com')).toBe(true);
 	});
 
 	it('should accept relative URLs', () => {
-		expect(isUrlSafe('/page/about')).toBeTruthy();
+		expect(isUrlSafe('/page/about')).toBe(true);
 	});
 
 	it('should accept hash-only URLs', () => {
-		expect(isUrlSafe('#section')).toBeTruthy();
+		expect(isUrlSafe('#section')).toBe(true);
 	});
 
 	// --- Blocked protocols ---
 	it('should block javascript: protocol', () => {
-		expect(isUrlSafe(`${'javascript'}:alert(1)`)).toBeFalsy();
+		expect(isUrlSafe(`${'javascript'}:alert(1)`)).toBe(false);
 	});
 
 	it('should block JAVASCRIPT: (case-insensitive)', () => {
-		expect(isUrlSafe(`${'JAVASCRIPT'}:alert(1)`)).toBeFalsy();
+		expect(isUrlSafe(`${'JAVASCRIPT'}:alert(1)`)).toBe(false);
 	});
 
 	it('should block JaVaScRiPt: mixed case', () => {
-		expect(isUrlSafe(`${'JaVaScRiPt'}:alert(1)`)).toBeFalsy();
+		expect(isUrlSafe(`${'JaVaScRiPt'}:alert(1)`)).toBe(false);
 	});
 
 	it('should block data: protocol', () => {
-		expect(isUrlSafe('data:text/html,<h1>XSS</h1>')).toBeFalsy();
+		expect(isUrlSafe('data:text/html,<h1>XSS</h1>')).toBe(false);
 	});
 
 	it('should block vbscript: protocol', () => {
-		expect(isUrlSafe("vbscript:MsgBox('XSS')")).toBeFalsy();
+		expect(isUrlSafe("vbscript:MsgBox('XSS')")).toBe(false);
 	});
 
 	it('should block mhtml: protocol', () => {
-		expect(isUrlSafe('mhtml:file://C:/test.mht')).toBeFalsy();
+		expect(isUrlSafe('mhtml:file://C:/test.mht')).toBe(false);
 	});
 
 	it('should block javascript: with whitespace bypass', () => {
-		expect(isUrlSafe('  javascript:alert(1)')).toBeFalsy();
+		expect(isUrlSafe('  javascript:alert(1)')).toBe(false);
 	});
 
 	it('should block javascript: with zero-width spaces', () => {
-		expect(isUrlSafe('java\u200bscript:alert(1)')).toBeFalsy();
+		expect(isUrlSafe('java\u200bscript:alert(1)')).toBe(false);
 	});
 
 	it('should block javascript: with null bytes', () => {
-		expect(isUrlSafe('java\0script:alert(1)')).toBeFalsy();
+		expect(isUrlSafe('java\0script:alert(1)')).toBe(false);
 	});
 
 	// --- Edge cases ---
 	it('should reject empty string', () => {
-		expect(isUrlSafe('')).toBeFalsy();
+		expect(isUrlSafe('')).toBe(false);
 	});
 
 	it('should reject whitespace-only string', () => {
-		expect(isUrlSafe('   ')).toBeFalsy();
+		expect(isUrlSafe('   ')).toBe(false);
 	});
 
 	it('should reject null-ish values', () => {
-		expect(isUrlSafe(null as unknown as string)).toBeFalsy();
-		expect(isUrlSafe(undefined as unknown as string)).toBeFalsy();
+		expect(isUrlSafe(null as unknown as string)).toBe(false);
+		expect(isUrlSafe(undefined as unknown as string)).toBe(false);
 	});
 
 	it("should accept URL that contains 'javascript' in path (not protocol)", () => {
-		expect(isUrlSafe('https://example.com/javascript/docs')).toBeTruthy();
+		expect(isUrlSafe('https://example.com/javascript/docs')).toBe(true);
 	});
 });
 
@@ -116,7 +116,7 @@ describe('safeOpenUrl', () => {
 
 	it('should open safe URL and return true', () => {
 		const result = safeOpenUrl('https://example.com');
-		expect(result).toBeTruthy();
+		expect(result).toBe(true);
 		expect(window.open).toHaveBeenCalledWith(
 			'https://example.com',
 			'_blank',
@@ -126,13 +126,13 @@ describe('safeOpenUrl', () => {
 
 	it('should block javascript: URL and return false', () => {
 		const result = safeOpenUrl(`${'javascript'}:alert(1)`);
-		expect(result).toBeFalsy();
+		expect(result).toBe(false);
 		expect(window.open).not.toHaveBeenCalled();
 	});
 
 	it('should block data: URL and return false', () => {
 		const result = safeOpenUrl('data:text/html,<script>alert(1)</script>');
-		expect(result).toBeFalsy();
+		expect(result).toBe(false);
 		expect(window.open).not.toHaveBeenCalled();
 	});
 });
@@ -243,29 +243,29 @@ describe('resolveSlideJump', () => {
 
 describe('isPpactionUrl', () => {
 	it('should return true for ppaction://hlinksldjump', () => {
-		expect(isPpactionUrl('ppaction://hlinksldjump')).toBeTruthy();
+		expect(isPpactionUrl('ppaction://hlinksldjump')).toBe(true);
 	});
 
 	it('should return true for ppaction://hlinkshowjump?jump=nextslide', () => {
-		expect(isPpactionUrl('ppaction://hlinkshowjump?jump=nextslide')).toBeTruthy();
+		expect(isPpactionUrl('ppaction://hlinkshowjump?jump=nextslide')).toBe(true);
 	});
 
 	it('should be case-insensitive', () => {
-		expect(isPpactionUrl('PPACTION://hlinksldjump')).toBeTruthy();
-		expect(isPpactionUrl('Ppaction://HLINKSLDJUMP')).toBeTruthy();
+		expect(isPpactionUrl('PPACTION://hlinksldjump')).toBe(true);
+		expect(isPpactionUrl('Ppaction://HLINKSLDJUMP')).toBe(true);
 	});
 
 	it('should return false for http URLs', () => {
-		expect(isPpactionUrl('https://example.com')).toBeFalsy();
+		expect(isPpactionUrl('https://example.com')).toBe(false);
 	});
 
 	it('should return false for empty string', () => {
-		expect(isPpactionUrl('')).toBeFalsy();
+		expect(isPpactionUrl('')).toBe(false);
 	});
 
 	it('should return false for null/undefined', () => {
-		expect(isPpactionUrl(null as unknown as string)).toBeFalsy();
-		expect(isPpactionUrl(undefined as unknown as string)).toBeFalsy();
+		expect(isPpactionUrl(null as unknown as string)).toBe(false);
+		expect(isPpactionUrl(undefined as unknown as string)).toBe(false);
 	});
 });
 

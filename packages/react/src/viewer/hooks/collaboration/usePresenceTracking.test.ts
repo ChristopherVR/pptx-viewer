@@ -202,7 +202,7 @@ describe('usePresenceTracking (logic)', () => {
 		it('throttle interval is 50ms', () => {
 			// This is a documentation test — the constant is 50ms per the module
 			// The actual throttling is tested via the hook, which requires React
-			expect(true).toBeTruthy();
+			expect(true).toBe(true);
 		});
 	});
 });

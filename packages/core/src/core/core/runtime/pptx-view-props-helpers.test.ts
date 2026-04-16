@@ -69,22 +69,22 @@ describe('parseViewProperties', () => {
 	describe('@_showComments', () => {
 		it('should parse showComments true when value is true', () => {
 			const result = parseViewProperties({ '@_showComments': true });
-			expect(result.showComments).toBeTruthy();
+			expect(result.showComments).toBe(true);
 		});
 
 		it('should parse showComments true when value is "1"', () => {
 			const result = parseViewProperties({ '@_showComments': '1' });
-			expect(result.showComments).toBeTruthy();
+			expect(result.showComments).toBe(true);
 		});
 
 		it('should parse showComments false when value is false', () => {
 			const result = parseViewProperties({ '@_showComments': false });
-			expect(result.showComments).toBeFalsy();
+			expect(result.showComments).toBe(false);
 		});
 
 		it('should parse showComments false when value is "0"', () => {
 			const result = parseViewProperties({ '@_showComments': '0' });
-			expect(result.showComments).toBeFalsy();
+			expect(result.showComments).toBe(false);
 		});
 
 		it('should leave showComments undefined when attribute is absent', () => {
@@ -133,21 +133,21 @@ describe('parseViewProperties', () => {
 			const result = parseViewProperties({
 				'p:normalViewPr': { '@_showOutlineIcons': '1' },
 			});
-			expect(result.normalViewPr!.showOutlineIcons).toBeTruthy();
+			expect(result.normalViewPr!.showOutlineIcons).toBe(true);
 		});
 
 		it('should parse showOutlineIcons false for "0"', () => {
 			const result = parseViewProperties({
 				'p:normalViewPr': { '@_showOutlineIcons': '0' },
 			});
-			expect(result.normalViewPr!.showOutlineIcons).toBeFalsy();
+			expect(result.normalViewPr!.showOutlineIcons).toBe(false);
 		});
 
 		it('should parse snapVertSplitter', () => {
 			const result = parseViewProperties({
 				'p:normalViewPr': { '@_snapVertSplitter': '1' },
 			});
-			expect(result.normalViewPr!.snapVertSplitter).toBeTruthy();
+			expect(result.normalViewPr!.snapVertSplitter).toBe(true);
 		});
 
 		it('should parse vertBarState and horzBarState', () => {
@@ -165,7 +165,7 @@ describe('parseViewProperties', () => {
 			const result = parseViewProperties({
 				'p:normalViewPr': { '@_preferSingleView': true },
 			});
-			expect(result.normalViewPr!.preferSingleView).toBeTruthy();
+			expect(result.normalViewPr!.preferSingleView).toBe(true);
 		});
 
 		it('should parse both restoredLeft and restoredTop', () => {
@@ -200,7 +200,7 @@ describe('parseViewProperties', () => {
 				},
 			});
 			expect(result.slideViewPr).toBeDefined();
-			expect(result.slideViewPr!.snapToGrid).toBeFalsy();
+			expect(result.slideViewPr!.snapToGrid).toBe(false);
 		});
 
 		it('should parse snapToObjects', () => {
@@ -209,7 +209,7 @@ describe('parseViewProperties', () => {
 					'p:cSldViewPr': { '@_snapToObjects': '1' },
 				},
 			});
-			expect(result.slideViewPr!.snapToObjects).toBeTruthy();
+			expect(result.slideViewPr!.snapToObjects).toBe(true);
 		});
 
 		it('should parse showGuides', () => {
@@ -218,7 +218,7 @@ describe('parseViewProperties', () => {
 					'p:cSldViewPr': { '@_showGuides': '1' },
 				},
 			});
-			expect(result.slideViewPr!.showGuides).toBeTruthy();
+			expect(result.slideViewPr!.showGuides).toBe(true);
 		});
 
 		it('should parse origin x and y', () => {
@@ -249,7 +249,7 @@ describe('parseViewProperties', () => {
 				},
 			});
 			expect(result.outlineViewPr).toBeDefined();
-			expect(result.outlineViewPr!.snapToGrid).toBeTruthy();
+			expect(result.outlineViewPr!.snapToGrid).toBe(true);
 		});
 
 		it('should omit outlineViewPr when p:cSldViewPr is missing', () => {
@@ -269,7 +269,7 @@ describe('parseViewProperties', () => {
 				},
 			});
 			expect(result.notesTextViewPr).toBeDefined();
-			expect(result.notesTextViewPr!.showGuides).toBeFalsy();
+			expect(result.notesTextViewPr!.showGuides).toBe(false);
 		});
 
 		it('should omit notesTextViewPr when p:cSldViewPr is missing', () => {
@@ -327,7 +327,7 @@ describe('parseViewProperties', () => {
 				},
 			});
 			expect(result.notesViewPr).toBeDefined();
-			expect(result.notesViewPr!.snapToGrid).toBeTruthy();
+			expect(result.notesViewPr!.snapToGrid).toBe(true);
 			expect(result.notesViewPr!.origin).toStrictEqual({ x: 0, y: 0 });
 		});
 
@@ -431,13 +431,13 @@ describe('parseViewProperties', () => {
 			const result = parseViewProperties(fullRoot);
 
 			expect(result.lastView).toBe('sldView');
-			expect(result.showComments).toBeTruthy();
-			expect(result.normalViewPr!.showOutlineIcons).toBeFalsy();
+			expect(result.showComments).toBe(true);
+			expect(result.normalViewPr!.showOutlineIcons).toBe(false);
 			expect(result.normalViewPr!.vertBarState).toBe('restored');
 			expect(result.normalViewPr!.horzBarState).toBe('maximized');
 			expect(result.normalViewPr!.restoredLeft).toStrictEqual({ sz: 15620, autoAdjust: false });
 			expect(result.normalViewPr!.restoredTop).toStrictEqual({ sz: 94660, autoAdjust: undefined });
-			expect(result.slideViewPr!.snapToGrid).toBeFalsy();
+			expect(result.slideViewPr!.snapToGrid).toBe(false);
 			expect(result.slideViewPr!.origin).toStrictEqual({ x: -1392, y: -96 });
 			expect(result.slideViewPr!.scale).toStrictEqual({ n: 110, d: 100 });
 		});

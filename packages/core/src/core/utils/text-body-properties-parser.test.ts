@@ -272,7 +272,7 @@ describe('parseBodyAutofit — autofit modes', () => {
 		// XML: <a:bodyPr><a:spAutoFit/></a:bodyPr>
 		const bodyPr: XmlObject = { 'a:spAutoFit': {} };
 		const result = parseBodyAutofit(bodyPr);
-		expect(result.autoFit).toBeTruthy();
+		expect(result.autoFit).toBe(true);
 		expect(result.autoFitMode).toBe('shrink');
 	});
 
@@ -280,7 +280,7 @@ describe('parseBodyAutofit — autofit modes', () => {
 		// XML: <a:bodyPr><a:noAutofit/></a:bodyPr>
 		const bodyPr: XmlObject = { 'a:noAutofit': {} };
 		const result = parseBodyAutofit(bodyPr);
-		expect(result.autoFit).toBeFalsy();
+		expect(result.autoFit).toBe(false);
 		expect(result.autoFitMode).toBe('none');
 	});
 
@@ -288,7 +288,7 @@ describe('parseBodyAutofit — autofit modes', () => {
 		// XML: <a:bodyPr><a:normAutofit/></a:bodyPr>
 		const bodyPr: XmlObject = { 'a:normAutofit': {} };
 		const result = parseBodyAutofit(bodyPr);
-		expect(result.autoFit).toBeTruthy();
+		expect(result.autoFit).toBe(true);
 		expect(result.autoFitMode).toBe('normal');
 	});
 
@@ -298,7 +298,7 @@ describe('parseBodyAutofit — autofit modes', () => {
 			'a:normAutofit': { '@_fontScale': '90000' },
 		};
 		const result = parseBodyAutofit(bodyPr);
-		expect(result.autoFit).toBeTruthy();
+		expect(result.autoFit).toBe(true);
 		expect(result.autoFitMode).toBe('normal');
 		expect(result.autoFitFontScale).toBeCloseTo(0.9, 5);
 	});
@@ -456,7 +456,7 @@ describe('combined bodyPr parsing — realistic structure', () => {
 
 		// Autofit
 		const autofit = parseBodyAutofit(bodyPr);
-		expect(autofit.autoFit).toBeTruthy();
+		expect(autofit.autoFit).toBe(true);
 		expect(autofit.autoFitMode).toBe('normal');
 		expect(autofit.autoFitFontScale).toBeCloseTo(0.9, 5);
 

@@ -235,7 +235,7 @@ describe('parseCxChartSeries', () => {
 
 		const result = parseCxChartSeries(plotArea, xmlLookup);
 		expect(result).toBeDefined();
-		expect(result!.hasDataLabels).toBeTruthy();
+		expect(result!.hasDataLabels).toBe(true);
 	});
 
 	it('should not set hasDataLabels when no dataLabels present', () => {
@@ -256,7 +256,7 @@ describe('parseCxChartSeries', () => {
 
 		const result = parseCxChartSeries(plotArea, xmlLookup);
 		expect(result).toBeDefined();
-		expect(result!.hasDataLabels).toBeFalsy();
+		expect(result!.hasDataLabels).toBe(false);
 	});
 
 	it('should handle multiple numDim elements with typed dimension', () => {

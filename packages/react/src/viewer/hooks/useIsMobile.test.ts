@@ -129,22 +129,22 @@ describe('virtual keyboard detection logic', () => {
 	}
 
 	it('detects keyboard open when viewport shrinks by more than 30%', () => {
-		expect(isVirtualKeyboardOpen(800, 400)).toBeTruthy();
-		expect(isVirtualKeyboardOpen(800, 300)).toBeTruthy();
+		expect(isVirtualKeyboardOpen(800, 400)).toBe(true);
+		expect(isVirtualKeyboardOpen(800, 300)).toBe(true);
 	});
 
 	it('does not detect keyboard when viewport barely shrinks', () => {
-		expect(isVirtualKeyboardOpen(800, 700)).toBeFalsy();
-		expect(isVirtualKeyboardOpen(800, 800)).toBeFalsy();
+		expect(isVirtualKeyboardOpen(800, 700)).toBe(false);
+		expect(isVirtualKeyboardOpen(800, 800)).toBe(false);
 	});
 
 	it('edge case: exactly 70% ratio is not open', () => {
 		// 560 / 800 = 0.7 — not less than 0.7
-		expect(isVirtualKeyboardOpen(800, 560)).toBeFalsy();
+		expect(isVirtualKeyboardOpen(800, 560)).toBe(false);
 	});
 
 	it('edge case: just below 70% ratio is open', () => {
-		expect(isVirtualKeyboardOpen(800, 559)).toBeTruthy();
+		expect(isVirtualKeyboardOpen(800, 559)).toBe(true);
 	});
 });
 

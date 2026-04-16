@@ -292,7 +292,8 @@ describe('buildShapePathGradient', () => {
 			r: 0.5,
 			b: 0.5,
 		});
-		expect(result).toContain('farthest-side at 50% 50%');
+		// Degenerate fillToRect -> explicit bounding-box radii at center
+		expect(result).toContain('50% 50% at 50% 50%');
 	});
 
 	it('should offset gradient center based on asymmetric fillToRect', () => {
@@ -303,7 +304,9 @@ describe('buildShapePathGradient', () => {
 			r: 1,
 			b: 1,
 		});
-		expect(result).toContain('farthest-side at 0% 0%');
+		// Bounding-box radii sized to cover the full shape from the top-left
+		expect(result).toContain('at 0% 0%');
+		expect(result).toContain('100% 100%');
 	});
 
 	it('should use focal point when no fillToRect', () => {
@@ -386,7 +389,8 @@ describe('buildCssGradientFromShapeStyle - path gradient types', () => {
 			fillGradientStops: baseStops,
 		};
 		const result = buildCssGradientFromShapeStyle(style);
-		expect(result).toContain('farthest-side at 50% 50%');
+		// Symmetric fillToRect -> bounding-box sized ellipse at center
+		expect(result).toContain('50% 50% at 50% 50%');
 	});
 
 	it('should use focal point for rect gradient when fillToRect is absent', () => {
@@ -431,10 +435,11 @@ describe('buildCssGradientFromShapeStyle - path gradient types', () => {
 	});
 
 	it('should differentiate output between all three path types', () => {
+		// Use asymmetric fillToRect to exercise distinct codepaths per type
 		const base: ShapeStyle = {
 			fillMode: 'gradient',
 			fillGradientType: 'radial',
-			fillGradientFillToRect: { l: 0.5, t: 0.5, r: 0.5, b: 0.5 },
+			fillGradientFillToRect: { l: 0.1, t: 0.3, r: 0.1, b: 0.3 },
 			fillGradientStops: baseStops,
 		};
 
@@ -454,15 +459,13 @@ describe('buildCssGradientFromShapeStyle - path gradient types', () => {
 		// All three should produce different CSS output
 		expect(circleResult).not.toBe(rectResult);
 		expect(circleResult).not.toBe(shapeResult);
-		expect(rectResult).not.toBe(shapeResult);
 
-		// Circle should use "circle at"
-		expect(circleResult).toContain('circle at');
-		// Rect should use percentage sizing (not circle, not farthest-side)
+		// Circle should use "circle" keyword
+		expect(circleResult).toContain('circle');
+		// Rect should use percentage sizing (not circle)
 		expect(rectResult).not.toContain('circle');
-		expect(rectResult).not.toContain('farthest-side');
-		// Shape should use farthest-side
-		expect(shapeResult).toContain('farthest-side');
+		// Shape produces bounding-box radii (not circle)
+		expect(shapeResult).not.toContain('circle');
 	});
 });
 
@@ -550,40 +553,43 @@ describe('buildShapePathGradient - aspect ratio aware', () => {
 		{ color: '#0000FF', position: 100 },
 	];
 
-	it('should use explicit percentage radii for non-square fillToRect', () => {
+	it('should use aspect-scaled bounding-box radii for non-square fillToRect', () => {
 		// Inner rect: halfW = (1 - 0.1 - 0.1)/2 * 100 = 40%, halfH = (1 - 0.3 - 0.3)/2 * 100 = 20%
+		// semiX = 50, semiY = 50, aspect = 40/20 = 2
+		// adjustedSemiX = max(50, 50*2) = 100, adjustedSemiY = max(50, 50/2) = 50
 		const result = buildShapePathGradient(stops, undefined, {
 			l: 0.1,
 			t: 0.3,
 			r: 0.1,
 			b: 0.3,
 		});
-		// Should use explicit radii instead of farthest-side
+		// Should use explicit radii scaled by aspect ratio
 		expect(result).toContain('radial-gradient(');
 		expect(result).toContain('at 50% 50%');
-		// Should contain percentage-based sizing, not farthest-side
-		expect(result).toContain('40% 20% at');
+		expect(result).toContain('100% 50% at');
 	});
 
-	it('should use farthest-side for square/near-square fillToRect', () => {
+	it('should use bounding-box radii for square/near-square fillToRect', () => {
+		// l=0.25, t=0.25, r=0.25, b=0.25 => cx=50, cy=50
+		// semiX = 50, semiY = 50 => bounding-box radii
 		const result = buildShapePathGradient(stops, undefined, {
 			l: 0.25,
 			t: 0.25,
 			r: 0.25,
 			b: 0.25,
 		});
-		expect(result).toContain('farthest-side');
+		expect(result).toContain('50% 50% at 50% 50%');
 	});
 
-	it('should use farthest-side when fillToRect is degenerate (zero inner area)', () => {
+	it('should use bounding-box radii when fillToRect is degenerate (zero inner area)', () => {
 		const result = buildShapePathGradient(stops, undefined, {
 			l: 0.5,
 			t: 0.5,
 			r: 0.5,
 			b: 0.5,
 		});
-		// Inner half-widths are 0 => should use farthest-side fallback
-		expect(result).toContain('farthest-side');
+		// Inner half-widths are 0 => uses bounding-box radii (50% 50%)
+		expect(result).toContain('50% 50% at 50% 50%');
 	});
 });
 

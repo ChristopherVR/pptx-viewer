@@ -258,9 +258,9 @@ describe('pptxTableDataParser — cell merge detection', () => {
 		const result = parser.parseTableData(graphicData);
 
 		expect(result!.rows[0].cells[0].gridSpan).toBe(2);
-		expect(result!.rows[0].cells[1].hMerge).toBeTruthy();
+		expect(result!.rows[0].cells[1].hMerge).toBe(true);
 		expect(result!.rows[0].cells[2].gridSpan).toBeUndefined();
-		expect(result!.rows[0].cells[2].hMerge).toBeFalsy();
+		expect(result!.rows[0].cells[2].hMerge).toBe(false);
 	});
 
 	it('parses rowSpan and vMerge for vertical merge', () => {
@@ -275,8 +275,8 @@ describe('pptxTableDataParser — cell merge detection', () => {
 		const result = parser.parseTableData(graphicData);
 
 		expect(result!.rows[0].cells[0].rowSpan).toBe(2);
-		expect(result!.rows[0].cells[0].vMerge).toBeFalsy();
-		expect(result!.rows[1].cells[0].vMerge).toBeTruthy();
+		expect(result!.rows[0].cells[0].vMerge).toBe(false);
+		expect(result!.rows[1].cells[0].vMerge).toBe(true);
 	});
 
 	it('detects vMerge with boolean true value', () => {
@@ -290,7 +290,7 @@ describe('pptxTableDataParser — cell merge detection', () => {
 		const parser = new PptxTableDataParser(makeContext());
 		const result = parser.parseTableData(graphicData);
 
-		expect(result!.rows[1].cells[0].vMerge).toBeTruthy();
+		expect(result!.rows[1].cells[0].vMerge).toBe(true);
 	});
 
 	it('detects hMerge with boolean true value', () => {
@@ -309,7 +309,7 @@ describe('pptxTableDataParser — cell merge detection', () => {
 		const parser = new PptxTableDataParser(makeContext());
 		const result = parser.parseTableData(graphicData);
 
-		expect(result!.rows[0].cells[1].hMerge).toBeTruthy();
+		expect(result!.rows[0].cells[1].hMerge).toBe(true);
 	});
 });
 
@@ -334,12 +334,12 @@ describe('pptxTableDataParser — table style properties', () => {
 		const parser = new PptxTableDataParser(makeContext());
 		const result = parser.parseTableData(graphicData);
 
-		expect(result!.firstRowHeader).toBeTruthy();
-		expect(result!.bandedRows).toBeTruthy();
-		expect(result!.bandedColumns).toBeTruthy();
-		expect(result!.lastRow).toBeFalsy();
-		expect(result!.firstCol).toBeFalsy();
-		expect(result!.lastCol).toBeFalsy();
+		expect(result!.firstRowHeader).toBe(true);
+		expect(result!.bandedRows).toBe(true);
+		expect(result!.bandedColumns).toBe(true);
+		expect(result!.lastRow).toBe(false);
+		expect(result!.firstCol).toBe(false);
+		expect(result!.lastCol).toBe(false);
 	});
 
 	it('parses boolean true values for table property flags', () => {
@@ -358,12 +358,12 @@ describe('pptxTableDataParser — table style properties', () => {
 		const parser = new PptxTableDataParser(makeContext());
 		const result = parser.parseTableData(graphicData);
 
-		expect(result!.firstRowHeader).toBeTruthy();
-		expect(result!.lastRow).toBeTruthy();
-		expect(result!.firstCol).toBeTruthy();
-		expect(result!.lastCol).toBeTruthy();
-		expect(result!.bandedRows).toBeTruthy();
-		expect(result!.bandedColumns).toBeTruthy();
+		expect(result!.firstRowHeader).toBe(true);
+		expect(result!.lastRow).toBe(true);
+		expect(result!.firstCol).toBe(true);
+		expect(result!.lastCol).toBe(true);
+		expect(result!.bandedRows).toBe(true);
+		expect(result!.bandedColumns).toBe(true);
 	});
 
 	it('parses table style ID from a:tblStyle/@val', () => {

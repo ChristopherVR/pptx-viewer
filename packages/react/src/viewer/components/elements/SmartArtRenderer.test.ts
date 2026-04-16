@@ -1,3 +1,4 @@
+import { expectTypeOf } from '@jest/globals';
 import type {
 	PptxElement,
 	PptxSmartArtNode,
@@ -5,7 +6,7 @@ import type {
 	PptxSmartArtDrawingShape,
 	SmartArtPptxElement,
 } from 'pptx-viewer-core';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { fitFontSize, chevronPoints } from './SmartArtRenderer';
 

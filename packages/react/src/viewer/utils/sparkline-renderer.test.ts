@@ -33,7 +33,7 @@ describe('renderSparklineSvg — line type', () => {
 		const data: SparklineData = { values: [1, 3, 2, 5, 4], type: 'line' };
 		const svg = renderSparklineSvg(data);
 		const info = parseSvg(svg);
-		expect(info.hasPolyline).toBeTruthy();
+		expect(info.hasPolyline).toBe(true);
 		expect(info.rectCount).toBe(0);
 	});
 
@@ -72,7 +72,7 @@ describe('renderSparklineSvg — line type', () => {
 		expect(svg).toContain('<polyline');
 		// Single point should still produce valid SVG
 		const info = parseSvg(svg);
-		expect(info.points).toBeTruthy();
+		expect(info.points).toBe(true);
 	});
 
 	it('should handle all-equal values (flat line)', () => {
@@ -113,7 +113,7 @@ describe('renderSparklineSvg — bar type', () => {
 		const data: SparklineData = { values: [1, 3, 2, 5], type: 'bar' };
 		const info = parseSvg(renderSparklineSvg(data));
 		expect(info.rectCount).toBe(4);
-		expect(info.hasPolyline).toBeFalsy();
+		expect(info.hasPolyline).toBe(false);
 	});
 
 	it('should use positive color for positive values', () => {
@@ -124,7 +124,7 @@ describe('renderSparklineSvg — bar type', () => {
 		};
 		const info = parseSvg(renderSparklineSvg(data));
 		// All fills should be the positive color
-		expect(info.fills.every((f) => f === '#00ff00' || f === 'none')).toBeTruthy();
+		expect(info.fills.every((f) => f === '#00ff00' || f === 'none')).toBe(true);
 		expect(info.fills.filter((f) => f === '#00ff00')).toHaveLength(3);
 	});
 
@@ -232,7 +232,7 @@ describe('renderSparklineSvg — winLoss type', () => {
 		};
 		const svg = renderSparklineSvg(data);
 		const yMatch = svg.match(/<rect[^>]*y="([^"]*)"/);
-		expect(yMatch).toBeTruthy();
+		expect(yMatch).toBe(true);
 		const y = parseFloat(yMatch![1]);
 		// With padding=2 and height=20, the positive bar should start at PADDING (2)
 		expect(y).toBe(2);
@@ -246,7 +246,7 @@ describe('renderSparklineSvg — winLoss type', () => {
 		};
 		const svg = renderSparklineSvg(data);
 		const yMatch = svg.match(/<rect[^>]*y="([^"]*)"/);
-		expect(yMatch).toBeTruthy();
+		expect(yMatch).toBe(true);
 		const y = parseFloat(yMatch![1]);
 		// With padding=2 and height=20, halfH = 8, negative bar at PADDING + halfH = 10
 		expect(y).toBe(10);

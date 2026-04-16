@@ -43,17 +43,17 @@ function makeTextElement(
 describe('resolveParagraphRtl', () => {
 	it('returns segment-level RTL when a segment explicitly sets rtl=true', () => {
 		const entries = [makeParagraphEntry({ rtl: true })];
-		expect(resolveParagraphRtl(entries, undefined)).toBeTruthy();
+		expect(resolveParagraphRtl(entries, undefined)).toBe(true);
 	});
 
 	it('returns segment-level LTR when a segment explicitly sets rtl=false', () => {
 		const entries = [makeParagraphEntry({ rtl: false })];
-		expect(resolveParagraphRtl(entries, undefined)).toBeFalsy();
+		expect(resolveParagraphRtl(entries, undefined)).toBe(false);
 	});
 
 	it('falls back to element-level RTL when no segment sets direction', () => {
 		const entries = [makeParagraphEntry({})];
-		expect(resolveParagraphRtl(entries, true)).toBeTruthy();
+		expect(resolveParagraphRtl(entries, true)).toBe(true);
 	});
 
 	it('returns undefined when neither segments nor element set direction', () => {
@@ -65,7 +65,7 @@ describe('resolveParagraphRtl', () => {
 		const entries = [makeParagraphEntry({ rtl: true }), makeParagraphEntry({ rtl: false })];
 		// Second entry should get globalIndex = 1 for realistic data
 		entries[1].globalIndex = 1;
-		expect(resolveParagraphRtl(entries, undefined)).toBeTruthy();
+		expect(resolveParagraphRtl(entries, undefined)).toBe(true);
 	});
 });
 

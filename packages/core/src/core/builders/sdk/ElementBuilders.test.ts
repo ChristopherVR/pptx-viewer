@@ -46,32 +46,32 @@ describe('textBuilder', () => {
 
 	it('bold() defaults to true', () => {
 		const el = TextBuilder.create('Hi').bold().build();
-		expect(el.textStyle?.bold).toBeTruthy();
+		expect(el.textStyle?.bold).toBe(true);
 	});
 
 	it('bold(false) sets false', () => {
 		const el = TextBuilder.create('Hi').bold(false).build();
-		expect(el.textStyle?.bold).toBeFalsy();
+		expect(el.textStyle?.bold).toBe(false);
 	});
 
 	it('italic() defaults to true', () => {
 		const el = TextBuilder.create('Hi').italic().build();
-		expect(el.textStyle?.italic).toBeTruthy();
+		expect(el.textStyle?.italic).toBe(true);
 	});
 
 	it('italic(false) sets false', () => {
 		const el = TextBuilder.create('Hi').italic(false).build();
-		expect(el.textStyle?.italic).toBeFalsy();
+		expect(el.textStyle?.italic).toBe(false);
 	});
 
 	it('underline() defaults to true', () => {
 		const el = TextBuilder.create('Hi').underline().build();
-		expect(el.textStyle?.underline).toBeTruthy();
+		expect(el.textStyle?.underline).toBe(true);
 	});
 
 	it('underline(false) sets false', () => {
 		const el = TextBuilder.create('Hi').underline(false).build();
-		expect(el.textStyle?.underline).toBeFalsy();
+		expect(el.textStyle?.underline).toBe(false);
 	});
 
 	it('sets color', () => {
@@ -156,7 +156,7 @@ describe('textBuilder', () => {
 		expect(el.text).toBe('Bold Normal');
 		expect(el.textSegments).toHaveLength(2);
 		expect(el.textSegments![0].text).toBe('Bold');
-		expect(el.textSegments![0].style?.bold).toBeTruthy();
+		expect(el.textSegments![0].style?.bold).toBe(true);
 		expect(el.textSegments![1].text).toBe(' Normal');
 	});
 
@@ -184,9 +184,9 @@ describe('textBuilder', () => {
 		expect(el.text).toBe('Full chain');
 		expect(el.textStyle?.fontSize).toBe(24);
 		expect(el.textStyle?.fontFamily).toBe('Calibri');
-		expect(el.textStyle?.bold).toBeTruthy();
-		expect(el.textStyle?.italic).toBeTruthy();
-		expect(el.textStyle?.underline).toBeTruthy();
+		expect(el.textStyle?.bold).toBe(true);
+		expect(el.textStyle?.italic).toBe(true);
+		expect(el.textStyle?.underline).toBe(true);
 		expect(el.textStyle?.color).toBe('#112233');
 		expect(el.textStyle?.align).toBe('right');
 		expect(el.textStyle?.vAlign).toBe('bottom');
@@ -282,7 +282,7 @@ describe('shapeBuilder', () => {
 			.textStyle({ fontSize: 18, bold: true, color: '#FFFFFF' })
 			.build();
 		expect(el.textStyle?.fontSize).toBe(18);
-		expect(el.textStyle?.bold).toBeTruthy();
+		expect(el.textStyle?.bold).toBe(true);
 		expect(el.textStyle?.color).toBe('#FFFFFF');
 	});
 
@@ -434,7 +434,7 @@ describe('tableBuilder', () => {
 
 	it('headerRow sets firstRow flag and adds the row', () => {
 		const el = TableBuilder.create().headerRow(['Name', 'Score']).addRow(['Alice', '95']).build();
-		expect(el.tableData.firstRowHeader).toBeTruthy();
+		expect(el.tableData.firstRowHeader).toBe(true);
 		expect(el.tableData.rows).toHaveLength(2);
 		expect(el.tableData.rows[0].cells[0].text).toBe('Name');
 		expect(el.tableData.rows[0].cells[1].text).toBe('Score');
@@ -451,7 +451,7 @@ describe('tableBuilder', () => {
 			.addRow([{ text: 'Styled', style: { bold: true, fontSize: 14 } }, { text: 'Normal' }])
 			.build();
 		expect(el.tableData.rows[0].cells[0].text).toBe('Styled');
-		expect(el.tableData.rows[0].cells[0].style?.bold).toBeTruthy();
+		expect(el.tableData.rows[0].cells[0].style?.bold).toBe(true);
 		expect(el.tableData.rows[0].cells[0].style?.fontSize).toBe(14);
 		expect(el.tableData.rows[0].cells[1].text).toBe('Normal');
 	});
@@ -478,22 +478,22 @@ describe('tableBuilder', () => {
 
 	it('sets bandRows', () => {
 		const el = TableBuilder.create().addRow(['A']).bandRows().build();
-		expect(el.tableData.bandedRows).toBeTruthy();
+		expect(el.tableData.bandedRows).toBe(true);
 	});
 
 	it('bandRows(false) disables banding', () => {
 		const el = TableBuilder.create().addRow(['A']).bandRows(false).build();
-		expect(el.tableData.bandedRows).toBeFalsy();
+		expect(el.tableData.bandedRows).toBe(false);
 	});
 
 	it('sets bandColumns', () => {
 		const el = TableBuilder.create().addRow(['A']).bandColumns().build();
-		expect(el.tableData.bandedColumns).toBeTruthy();
+		expect(el.tableData.bandedColumns).toBe(true);
 	});
 
 	it('bandColumns(false) disables banding', () => {
 		const el = TableBuilder.create().addRow(['A']).bandColumns(false).build();
-		expect(el.tableData.bandedColumns).toBeFalsy();
+		expect(el.tableData.bandedColumns).toBe(false);
 	});
 
 	it('sets style', () => {
@@ -588,7 +588,7 @@ describe('chartBuilder', () => {
 			.addSeries('S', [1])
 			.legend(true, 'b')
 			.build();
-		expect(el.chartData.style?.hasLegend).toBeTruthy();
+		expect(el.chartData.style?.hasLegend).toBe(true);
 		expect(el.chartData.style?.legendPosition).toBe('b');
 	});
 
@@ -598,7 +598,7 @@ describe('chartBuilder', () => {
 			.addSeries('S', [1])
 			.legend(false)
 			.build();
-		expect(el.chartData.style?.hasLegend).toBeFalsy();
+		expect(el.chartData.style?.hasLegend).toBe(false);
 	});
 
 	it('legend without position only sets visibility', () => {
@@ -607,7 +607,7 @@ describe('chartBuilder', () => {
 			.addSeries('S', [1])
 			.legend(true)
 			.build();
-		expect(el.chartData.style?.hasLegend).toBeTruthy();
+		expect(el.chartData.style?.hasLegend).toBe(true);
 		expect(el.chartData.style?.legendPosition).toBeUndefined();
 	});
 

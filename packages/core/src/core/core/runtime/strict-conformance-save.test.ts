@@ -26,24 +26,24 @@ describe('save constants with strict conformance', () => {
 		const strictConstants = createPptxSaveConstants('strict');
 
 		// All relationship type URIs should be Strict (purl.oclc.org)
-		expect(isStrictNamespaceUri(strictConstants.slideRelationshipType)).toBeTruthy();
-		expect(isStrictNamespaceUri(strictConstants.slideLayoutRelationshipType)).toBeTruthy();
-		expect(isStrictNamespaceUri(strictConstants.slideImageRelationshipType)).toBeTruthy();
-		expect(isStrictNamespaceUri(strictConstants.slideMediaRelationshipType)).toBeTruthy();
-		expect(isStrictNamespaceUri(strictConstants.slideVideoRelationshipType)).toBeTruthy();
-		expect(isStrictNamespaceUri(strictConstants.slideAudioRelationshipType)).toBeTruthy();
-		expect(isStrictNamespaceUri(strictConstants.slideCommentRelationshipType)).toBeTruthy();
-		expect(isStrictNamespaceUri(strictConstants.slideNotesRelationshipType)).toBeTruthy();
-		expect(isStrictNamespaceUri(strictConstants.relationshipsNamespace)).toBeTruthy();
+		expect(isStrictNamespaceUri(strictConstants.slideRelationshipType)).toBe(true);
+		expect(isStrictNamespaceUri(strictConstants.slideLayoutRelationshipType)).toBe(true);
+		expect(isStrictNamespaceUri(strictConstants.slideImageRelationshipType)).toBe(true);
+		expect(isStrictNamespaceUri(strictConstants.slideMediaRelationshipType)).toBe(true);
+		expect(isStrictNamespaceUri(strictConstants.slideVideoRelationshipType)).toBe(true);
+		expect(isStrictNamespaceUri(strictConstants.slideAudioRelationshipType)).toBe(true);
+		expect(isStrictNamespaceUri(strictConstants.slideCommentRelationshipType)).toBe(true);
+		expect(isStrictNamespaceUri(strictConstants.slideNotesRelationshipType)).toBe(true);
+		expect(isStrictNamespaceUri(strictConstants.relationshipsNamespace)).toBe(true);
 	});
 
 	it('transitional constants have no strict URIs', () => {
 		const transitionalConstants = createPptxSaveConstants('transitional');
 
-		expect(isStrictNamespaceUri(transitionalConstants.slideRelationshipType)).toBeFalsy();
-		expect(isStrictNamespaceUri(transitionalConstants.slideLayoutRelationshipType)).toBeFalsy();
-		expect(isStrictNamespaceUri(transitionalConstants.slideImageRelationshipType)).toBeFalsy();
-		expect(isStrictNamespaceUri(transitionalConstants.relationshipsNamespace)).toBeFalsy();
+		expect(isStrictNamespaceUri(transitionalConstants.slideRelationshipType)).toBe(false);
+		expect(isStrictNamespaceUri(transitionalConstants.slideLayoutRelationshipType)).toBe(false);
+		expect(isStrictNamespaceUri(transitionalConstants.slideImageRelationshipType)).toBe(false);
+		expect(isStrictNamespaceUri(transitionalConstants.relationshipsNamespace)).toBe(false);
 	});
 });
 
@@ -83,7 +83,7 @@ describe('simulated strict OOXML round-trip', () => {
 		};
 
 		// Step 1: Detect strict conformance
-		expect(detectStrictConformance(parsedPresentation)).toBeTruthy();
+		expect(detectStrictConformance(parsedPresentation)).toBe(true);
 
 		// Step 2: Normalize to transitional (what happens during load)
 		normalizeStrictXml(parsedPresentation);

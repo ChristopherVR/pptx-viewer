@@ -155,13 +155,13 @@ describe('validatePptx', () => {
 		const garbage = new ArrayBuffer(64);
 		new Uint8Array(garbage).fill(0xff);
 		const result = await validatePptx(garbage);
-		expect(result.valid).toBeFalsy();
+		expect(result.valid).toBe(false);
 		expect(issuesByCode(result, 'INVALID_ZIP')).toHaveLength(1);
 	});
 
 	it('reports error for empty buffer', async () => {
 		const result = await validatePptx(new ArrayBuffer(0));
-		expect(result.valid).toBeFalsy();
+		expect(result.valid).toBe(false);
 		expect(issuesByCode(result, 'INVALID_ZIP')).toHaveLength(1);
 	});
 
@@ -174,9 +174,9 @@ describe('validatePptx', () => {
 		const buf = await zip.generateAsync({ type: 'arraybuffer' });
 
 		const result = await validatePptx(buf);
-		expect(result.valid).toBeFalsy();
+		expect(result.valid).toBe(false);
 		const issues = issuesByCode(result, 'MISSING_REQUIRED_FILE');
-		expect(issues.some((i) => i.path === '[Content_Types].xml')).toBeTruthy();
+		expect(issues.some((i) => i.path === '[Content_Types].xml')).toBe(true);
 	});
 
 	it('reports missing _rels/.rels', async () => {
@@ -186,9 +186,9 @@ describe('validatePptx', () => {
 		const buf = await zip.generateAsync({ type: 'arraybuffer' });
 
 		const result = await validatePptx(buf);
-		expect(result.valid).toBeFalsy();
+		expect(result.valid).toBe(false);
 		const issues = issuesByCode(result, 'MISSING_REQUIRED_FILE');
-		expect(issues.some((i) => i.path === '_rels/.rels')).toBeTruthy();
+		expect(issues.some((i) => i.path === '_rels/.rels')).toBe(true);
 	});
 
 	it('reports missing ppt/presentation.xml', async () => {
@@ -198,9 +198,9 @@ describe('validatePptx', () => {
 		const buf = await zip.generateAsync({ type: 'arraybuffer' });
 
 		const result = await validatePptx(buf);
-		expect(result.valid).toBeFalsy();
+		expect(result.valid).toBe(false);
 		const issues = issuesByCode(result, 'MISSING_REQUIRED_FILE');
-		expect(issues.some((i) => i.path === 'ppt/presentation.xml')).toBeTruthy();
+		expect(issues.some((i) => i.path === 'ppt/presentation.xml')).toBe(true);
 	});
 
 	it('reports all three missing required files for an empty ZIP', async () => {
@@ -208,7 +208,7 @@ describe('validatePptx', () => {
 		const buf = await zip.generateAsync({ type: 'arraybuffer' });
 
 		const result = await validatePptx(buf);
-		expect(result.valid).toBeFalsy();
+		expect(result.valid).toBe(false);
 		const issues = issuesByCode(result, 'MISSING_REQUIRED_FILE');
 		expect(issues).toHaveLength(3);
 	});
@@ -223,7 +223,7 @@ describe('validatePptx', () => {
 		const buf = await zip.generateAsync({ type: 'arraybuffer' });
 
 		const result = await validatePptx(buf);
-		expect(result.valid).toBeFalsy();
+		expect(result.valid).toBe(false);
 		const issues = issuesByCode(result, 'MALFORMED_CONTENT_TYPES');
 		expect(issues).toHaveLength(1);
 	});
@@ -236,7 +236,7 @@ describe('validatePptx', () => {
 		const buf = await zip.generateAsync({ type: 'arraybuffer' });
 
 		const result = await validatePptx(buf);
-		expect(result.valid).toBeFalsy();
+		expect(result.valid).toBe(false);
 		const issues = issuesByCode(result, 'INVALID_CONTENT_TYPES');
 		expect(issues).toHaveLength(1);
 	});
@@ -258,7 +258,7 @@ describe('validatePptx', () => {
 		const result = await validatePptx(buf);
 		const issues = issuesByCode(result, 'CONTENT_TYPE_MISSING_PART');
 		expect(issues.length).toBeGreaterThanOrEqual(1);
-		expect(issues.some((i) => i.message.includes('slide99'))).toBeTruthy();
+		expect(issues.some((i) => i.message.includes('slide99'))).toBe(true);
 	});
 
 	it('reports info for file with no content type coverage', async () => {
@@ -273,7 +273,7 @@ describe('validatePptx', () => {
 
 		const result = await validatePptx(buf);
 		const issues = issuesByCode(result, 'UNCOVERED_CONTENT_TYPE');
-		expect(issues.some((i) => i.path === 'ppt/custom/data.xyz')).toBeTruthy();
+		expect(issues.some((i) => i.path === 'ppt/custom/data.xyz')).toBe(true);
 	});
 
 	// ---- 4. Relationship consistency -----------------------------------------
@@ -297,7 +297,7 @@ describe('validatePptx', () => {
 
 		const result = await validatePptx(buf);
 		const issues = issuesByCode(result, 'DANGLING_RELATIONSHIP');
-		expect(issues.some((i) => i.message.includes('slideMaster1'))).toBeTruthy();
+		expect(issues.some((i) => i.message.includes('slideMaster1'))).toBe(true);
 	});
 
 	it('reports malformed .rels file', async () => {
@@ -309,7 +309,7 @@ describe('validatePptx', () => {
 		const buf = await zip.generateAsync({ type: 'arraybuffer' });
 
 		const result = await validatePptx(buf);
-		expect(result.valid).toBeFalsy();
+		expect(result.valid).toBe(false);
 		const issues = issuesByCode(result, 'MALFORMED_RELS');
 		expect(issues).toHaveLength(1);
 	});
@@ -332,7 +332,7 @@ describe('validatePptx', () => {
 		const result = await validatePptx(buf);
 		const issues = issuesByCode(result, 'DANGLING_RELATIONSHIP');
 		// rId2 should NOT be flagged because it's an external URL
-		expect(issues.some((i) => i.message.includes('rId2'))).toBeFalsy();
+		expect(issues.some((i) => i.message.includes('rId2'))).toBe(false);
 	});
 
 	// ---- 5. Slide XML well-formedness ----------------------------------------
@@ -473,7 +473,7 @@ describe('validatePptx', () => {
 		// Should have no errors (may have warnings/info)
 		const errors = result.issues.filter((i) => i.severity === 'error');
 		expect(errors).toHaveLength(0);
-		expect(result.valid).toBeTruthy();
+		expect(result.valid).toBe(true);
 	});
 
 	it('passes validation for a PPTX with a slide', async () => {
@@ -481,7 +481,7 @@ describe('validatePptx', () => {
 		const result = await validatePptx(buf);
 		const errors = result.issues.filter((i) => i.severity === 'error');
 		expect(errors).toHaveLength(0);
-		expect(result.valid).toBeTruthy();
+		expect(result.valid).toBe(true);
 	});
 });
 
@@ -506,7 +506,7 @@ describe('repairPptx', () => {
 		const buf = await zip.generateAsync({ type: 'arraybuffer' });
 
 		const { repaired, repairs } = await repairPptx(buf);
-		expect(repairs.some((r) => r.includes('[Content_Types].xml'))).toBeTruthy();
+		expect(repairs.some((r) => r.includes('[Content_Types].xml'))).toBe(true);
 
 		// Verify the repaired file is valid
 		const repairedZip = await JSZip.loadAsync(repaired);
@@ -526,7 +526,7 @@ describe('repairPptx', () => {
 		const buf = await zip.generateAsync({ type: 'arraybuffer' });
 
 		const { repaired, repairs } = await repairPptx(buf);
-		expect(repairs.some((r) => r.includes('[Content_Types].xml'))).toBeTruthy();
+		expect(repairs.some((r) => r.includes('[Content_Types].xml'))).toBe(true);
 
 		const repairedZip = await JSZip.loadAsync(repaired);
 		const ct = await repairedZip.file('[Content_Types].xml')!.async('string');
@@ -554,7 +554,7 @@ describe('repairPptx', () => {
 		const buf = await zip.generateAsync({ type: 'arraybuffer' });
 
 		const { repaired, repairs } = await repairPptx(buf);
-		expect(repairs.some((r) => r.includes('dangling') && r.includes('rId1'))).toBeTruthy();
+		expect(repairs.some((r) => r.includes('dangling') && r.includes('rId1'))).toBe(true);
 
 		// Verify the dangling ref was removed
 		const repairedZip = await JSZip.loadAsync(repaired);
@@ -602,7 +602,7 @@ describe('repairPptx', () => {
 		const buf = await zip.generateAsync({ type: 'arraybuffer' });
 
 		const { repaired, repairs } = await repairPptx(buf);
-		expect(repairs.some((r) => r.includes('_rels/.rels'))).toBeTruthy();
+		expect(repairs.some((r) => r.includes('_rels/.rels'))).toBe(true);
 
 		const repairedZip = await JSZip.loadAsync(repaired);
 		const rootRels = repairedZip.file('_rels/.rels');
@@ -633,7 +633,7 @@ describe('repairPptx', () => {
 		const buf = await zip.generateAsync({ type: 'arraybuffer' });
 
 		const { repaired, repairs } = await repairPptx(buf);
-		expect(repairs.some((r) => r.includes('officeDocument'))).toBeTruthy();
+		expect(repairs.some((r) => r.includes('officeDocument'))).toBe(true);
 
 		const repairedZip = await JSZip.loadAsync(repaired);
 		const content = await repairedZip.file('_rels/.rels')!.async('string');
@@ -670,7 +670,7 @@ describe('repairPptx', () => {
 		const buf = await zip.generateAsync({ type: 'arraybuffer' });
 
 		const { repaired, repairs } = await repairPptx(buf);
-		expect(repairs.some((r) => r.includes('malformed XML'))).toBeTruthy();
+		expect(repairs.some((r) => r.includes('malformed XML'))).toBe(true);
 
 		const repairedZip = await JSZip.loadAsync(repaired);
 		const slideXml = await repairedZip.file('ppt/slides/slide1.xml')!.async('string');
@@ -692,7 +692,7 @@ describe('repairPptx', () => {
 
 		// Should fail validation
 		const beforeResult = await validatePptx(buf);
-		expect(beforeResult.valid).toBeFalsy();
+		expect(beforeResult.valid).toBe(false);
 
 		// Repair
 		const { repaired } = await repairPptx(buf);
@@ -701,7 +701,7 @@ describe('repairPptx', () => {
 		const afterResult = await validatePptx(repaired);
 		const errors = afterResult.issues.filter((i) => i.severity === 'error');
 		expect(errors).toHaveLength(0);
-		expect(afterResult.valid).toBeTruthy();
+		expect(afterResult.valid).toBe(true);
 	});
 
 	it('returns empty repairs array when nothing needs fixing', async () => {

@@ -33,8 +33,8 @@ describe('tHEME_PRESETS', () => {
 	it.each(THEME_PRESETS.map((p) => [p.id, p] as [string, PptxThemePreset]))(
 		'preset %s has font scheme with latin fonts',
 		(_id, preset) => {
-			expect(preset.fontScheme.majorFont?.latin).toBeTruthy();
-			expect(preset.fontScheme.minorFont?.latin).toBeTruthy();
+			expect(preset.fontScheme.majorFont?.latin).toBe(true);
+			expect(preset.fontScheme.minorFont?.latin).toBe(true);
 		},
 	);
 

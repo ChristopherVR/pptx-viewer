@@ -267,7 +267,7 @@ describe('parseDrawingColorChoice — spec-accurate XML structures', () => {
 			};
 			const result = parseDrawingColorChoice(node);
 			// folHlink may not have a built-in fallback, so it may be undefined without a theme
-			expect(result === undefined || typeof result === 'string').toBeTruthy();
+			expect(result === undefined || typeof result === 'string').toBe(true);
 		});
 	});
 

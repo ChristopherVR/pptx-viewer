@@ -199,7 +199,7 @@ describe('writeTableCellText', () => {
 		writeTableCellText(cell, 'Hello');
 		const txBody = cell['a:txBody'] as XmlObject;
 		const p = txBody['a:p'] as XmlObject;
-		expect(Array.isArray(p)).toBeFalsy();
+		expect(Array.isArray(p)).toBe(false);
 		expect((p['a:r'] as XmlObject)['a:t']).toBe('Hello');
 	});
 

@@ -10,7 +10,7 @@ describe('presentationBuilder', () => {
 		expect(handler).toBeInstanceOf(PptxHandler);
 		expect(data).toBeDefined();
 		expect(data.slides).toBeDefined();
-		expect(Array.isArray(data.slides)).toBeTruthy();
+		expect(Array.isArray(data.slides)).toBe(true);
 		// Blank presentation starts with 0 slides
 		expect(data.slides).toHaveLength(0);
 		// Default 16:9 dimensions

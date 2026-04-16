@@ -255,51 +255,51 @@ describe('extractTextRunStyle', () => {
 	describe('bold and italic', () => {
 		it("should set bold to true for @_b='1'", () => {
 			const result = extractTextRunStyle({ '@_b': '1' }, 'left');
-			expect(result.bold).toBeTruthy();
+			expect(result.bold).toBe(true);
 		});
 
 		it("should set bold to false for @_b='0'", () => {
 			const result = extractTextRunStyle({ '@_b': '0' }, 'left');
-			expect(result.bold).toBeFalsy();
+			expect(result.bold).toBe(false);
 		});
 
 		it("should set italic to true for @_i='1'", () => {
 			const result = extractTextRunStyle({ '@_i': '1' }, 'left');
-			expect(result.italic).toBeTruthy();
+			expect(result.italic).toBe(true);
 		});
 
 		it("should set italic to false for @_i='0'", () => {
 			const result = extractTextRunStyle({ '@_i': '0' }, 'left');
-			expect(result.italic).toBeFalsy();
+			expect(result.italic).toBe(false);
 		});
 	});
 
 	describe('underline', () => {
 		it("should set underline to true for 'sng'", () => {
 			const result = extractTextRunStyle({ '@_u': 'sng' }, 'left');
-			expect(result.underline).toBeTruthy();
+			expect(result.underline).toBe(true);
 			expect(result.underlineStyle).toBe('sng');
 		});
 
 		it("should set underline to true for 'dbl'", () => {
 			const result = extractTextRunStyle({ '@_u': 'dbl' }, 'left');
-			expect(result.underline).toBeTruthy();
+			expect(result.underline).toBe(true);
 			expect(result.underlineStyle).toBe('dbl');
 		});
 
 		it("should set underline to false for 'none'", () => {
 			const result = extractTextRunStyle({ '@_u': 'none' }, 'left');
-			expect(result.underline).toBeFalsy();
+			expect(result.underline).toBe(false);
 		});
 
 		it("should set underline to false for '0'", () => {
 			const result = extractTextRunStyle({ '@_u': '0' }, 'left');
-			expect(result.underline).toBeFalsy();
+			expect(result.underline).toBe(false);
 		});
 
 		it("should set underline to false for 'false'", () => {
 			const result = extractTextRunStyle({ '@_u': 'false' }, 'left');
-			expect(result.underline).toBeFalsy();
+			expect(result.underline).toBe(false);
 		});
 
 		it('should parse underline color from a:uFill', () => {
@@ -336,19 +336,19 @@ describe('extractTextRunStyle', () => {
 	describe('strikethrough', () => {
 		it('should set strikethrough and strikeType for sngStrike', () => {
 			const result = extractTextRunStyle({ '@_strike': 'sngStrike' }, 'left');
-			expect(result.strikethrough).toBeTruthy();
+			expect(result.strikethrough).toBe(true);
 			expect(result.strikeType).toBe('sngStrike');
 		});
 
 		it('should set strikeType to dblStrike for dblStrike', () => {
 			const result = extractTextRunStyle({ '@_strike': 'dblStrike' }, 'left');
-			expect(result.strikethrough).toBeTruthy();
+			expect(result.strikethrough).toBe(true);
 			expect(result.strikeType).toBe('dblStrike');
 		});
 
 		it('should not set strikethrough for noStrike', () => {
 			const result = extractTextRunStyle({ '@_strike': 'noStrike' }, 'left');
-			expect(result.strikethrough).toBeFalsy();
+			expect(result.strikethrough).toBe(false);
 		});
 	});
 
@@ -370,7 +370,7 @@ describe('extractTextRunStyle', () => {
 	describe('text fill none', () => {
 		it('should set textFillNone when a:noFill is present', () => {
 			const result = extractTextRunStyle({ 'a:noFill': {} }, 'left');
-			expect(result.textFillNone).toBeTruthy();
+			expect(result.textFillNone).toBe(true);
 		});
 	});
 
@@ -456,22 +456,22 @@ describe('extractTextRunStyle', () => {
 	describe('metadata attributes', () => {
 		it('should parse noProof flag', () => {
 			const result = extractTextRunStyle({ '@_noProof': '1' }, 'left');
-			expect(result.noProof).toBeTruthy();
+			expect(result.noProof).toBe(true);
 		});
 
 		it('should parse dirty flag', () => {
 			const result = extractTextRunStyle({ '@_dirty': '0' }, 'left');
-			expect(result.dirty).toBeFalsy();
+			expect(result.dirty).toBe(false);
 		});
 
 		it('should parse spelling error flag', () => {
 			const result = extractTextRunStyle({ '@_err': '1' }, 'left');
-			expect(result.spellingError).toBeTruthy();
+			expect(result.spellingError).toBe(true);
 		});
 
 		it('should parse smartTagClean flag', () => {
 			const result = extractTextRunStyle({ '@_smtClean': 'true' }, 'left');
-			expect(result.smartTagClean).toBeTruthy();
+			expect(result.smartTagClean).toBe(true);
 		});
 
 		it('should parse bookmark attribute', () => {
@@ -481,24 +481,24 @@ describe('extractTextRunStyle', () => {
 
 		it('should parse normalizeHeight flag', () => {
 			const result = extractTextRunStyle({ '@_normalizeH': '1' }, 'left');
-			expect(result.normalizeHeight).toBeTruthy();
+			expect(result.normalizeHeight).toBe(true);
 		});
 
 		it('should parse kumimoji flag', () => {
 			const result = extractTextRunStyle({ '@_kumimoji': '1' }, 'left');
-			expect(result.kumimoji).toBeTruthy();
+			expect(result.kumimoji).toBe(true);
 		});
 	});
 
 	describe('rTL', () => {
 		it('should parse rtl=1 as true', () => {
 			const result = extractTextRunStyle({ '@_rtl': '1' }, 'left');
-			expect(result.rtl).toBeTruthy();
+			expect(result.rtl).toBe(true);
 		});
 
 		it('should parse rtl=0 as false', () => {
 			const result = extractTextRunStyle({ '@_rtl': '0' }, 'left');
-			expect(result.rtl).toBeFalsy();
+			expect(result.rtl).toBe(false);
 		});
 	});
 });

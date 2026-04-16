@@ -145,23 +145,23 @@ describe('generatePressureCircles', () => {
 
 describe('hasPressureVariation', () => {
 	it('should return false for empty array', () => {
-		expect(hasPressureVariation([])).toBeFalsy();
+		expect(hasPressureVariation([])).toBe(false);
 	});
 
 	it('should return false for single element', () => {
-		expect(hasPressureVariation([3])).toBeFalsy();
+		expect(hasPressureVariation([3])).toBe(false);
 	});
 
 	it('should return false for uniform widths', () => {
-		expect(hasPressureVariation([3, 3, 3, 3])).toBeFalsy();
+		expect(hasPressureVariation([3, 3, 3, 3])).toBe(false);
 	});
 
 	it('should return true when widths vary', () => {
-		expect(hasPressureVariation([2, 4, 6])).toBeTruthy();
+		expect(hasPressureVariation([2, 4, 6])).toBe(true);
 	});
 
 	it('should treat very small differences as uniform', () => {
-		expect(hasPressureVariation([3.0, 3.005, 3.001])).toBeFalsy();
+		expect(hasPressureVariation([3.0, 3.005, 3.001])).toBe(false);
 	});
 });
 
@@ -501,12 +501,12 @@ describe('pressure rendering auto-detection', () => {
 	it('hasPressureVariation detects varying widths in realistic data', () => {
 		// Simulate stylus pressure data (typical range 0.1 to 1.0)
 		const pressureWidths = [1.2, 2.5, 3.8, 3.2, 2.1, 1.5, 2.8, 4.0, 3.5];
-		expect(hasPressureVariation(pressureWidths)).toBeTruthy();
+		expect(hasPressureVariation(pressureWidths)).toBe(true);
 	});
 
 	it('hasPressureVariation rejects uniform pressure data', () => {
 		const uniformWidths = [3.0, 3.0, 3.0, 3.0, 3.0];
-		expect(hasPressureVariation(uniformWidths)).toBeFalsy();
+		expect(hasPressureVariation(uniformWidths)).toBe(false);
 	});
 
 	it('generatePressureCircles produces circles at each extracted point', () => {

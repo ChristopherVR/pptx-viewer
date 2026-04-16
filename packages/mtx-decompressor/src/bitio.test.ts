@@ -22,10 +22,10 @@ describe('bitIO', () => {
 			// 0xFF = 11111111, 0x00 = 00000000
 			const bio = new BitIO(new Uint8Array([0xff, 0x00]));
 			for (let i = 0; i < 8; i++) {
-				expect(bio.inputBit()).toBeTruthy();
+				expect(bio.inputBit()).toBe(true);
 			}
 			for (let i = 0; i < 8; i++) {
-				expect(bio.inputBit()).toBeFalsy();
+				expect(bio.inputBit()).toBe(false);
 			}
 		});
 
@@ -42,7 +42,7 @@ describe('bitIO', () => {
 			// buf = [0x00, 0xFF], offset=1 -> starts reading from 0xFF
 			const bio = new BitIO(new Uint8Array([0x00, 0xff]), 1);
 			for (let i = 0; i < 8; i++) {
-				expect(bio.inputBit()).toBeTruthy();
+				expect(bio.inputBit()).toBe(true);
 			}
 		});
 
@@ -130,8 +130,8 @@ describe('bitIO', () => {
 			// 0b10101010 = 0xAA
 			const bio = new BitIO(new Uint8Array([0xaa]));
 			for (let i = 0; i < 4; i++) {
-				expect(bio.inputBit()).toBeTruthy();
-				expect(bio.inputBit()).toBeFalsy();
+				expect(bio.inputBit()).toBe(true);
+				expect(bio.inputBit()).toBe(false);
 			}
 		});
 
@@ -148,7 +148,7 @@ describe('bitIO', () => {
 			// 0b11001100 = 0xCC
 			const bio = new BitIO(new Uint8Array([0xcc]));
 			// Read 1 bit: 1
-			expect(bio.inputBit()).toBeTruthy();
+			expect(bio.inputBit()).toBe(true);
 			// Read 3 bits: 100 -> 4
 			expect(bio.readValue(3)).toBe(4);
 			// Read 4 bits: 1100 -> 12

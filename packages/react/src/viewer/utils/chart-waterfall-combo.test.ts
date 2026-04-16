@@ -47,7 +47,7 @@ describe('waterfall chart: running total computation', () => {
 	it('should treat last bar as total (starting from zero)', () => {
 		const result = computeWaterfallRunning([100, -30, -20, 50]);
 		const last = result[result.length - 1];
-		expect(last.isLast).toBeTruthy();
+		expect(last.isLast).toBe(true);
 		expect(last.startVal).toBe(0);
 		// Running before last = 100-30-20 = 50, then endVal = 50+50 = 100
 		expect(last.endVal).toBe(100);
@@ -65,7 +65,7 @@ describe('waterfall chart: running total computation', () => {
 	it('should handle single value', () => {
 		const result = computeWaterfallRunning([42]);
 		// Single value is also last
-		expect(result[0].isLast).toBeTruthy();
+		expect(result[0].isLast).toBe(true);
 		expect(result[0].startVal).toBe(0);
 		expect(result[0].endVal).toBe(42);
 	});

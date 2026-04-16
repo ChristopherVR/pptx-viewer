@@ -1,3 +1,4 @@
+import { expectTypeOf } from '@jest/globals';
 /**
  * Tests for NEW methods added to the Presentation class.
  *
@@ -20,8 +21,7 @@
  * - width getter
  * - height getter
  */
-
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { PptxXmlBuilder } from '../fluent/PptxXmlBuilder';
 import { Presentation } from './Presentation';
@@ -280,7 +280,7 @@ describe('presentation.forEachSlide()', () => {
 		pptx.forEachSlide(() => {
 			called = true;
 		});
-		expect(called).toBeFalsy();
+		expect(called).toBe(false);
 	});
 
 	it('allows mutation of slide properties inside callback', async () => {
@@ -361,7 +361,7 @@ describe('presentation.replaceTextOnSlide()', () => {
 		const remaining = pptx.findText('Hello');
 		// Slide 1 should still have "Hello"
 		expect(remaining.length).toBeGreaterThanOrEqual(1);
-		expect(remaining.every((r) => r.slideIndex === 1)).toBeTruthy();
+		expect(remaining.every((r) => r.slideIndex === 1)).toBe(true);
 	});
 
 	it('returns the replacement count', async () => {
@@ -534,7 +534,7 @@ describe('presentation.moveSlidesToSection()', () => {
 		const sB = pptx.addSection('B', [2, 3]);
 
 		const result = pptx.moveSlidesToSection([0], sB.id);
-		expect(result).toBeTruthy();
+		expect(result).toBe(true);
 
 		// Slide 0 should now be in section B
 		expect(pptx.getSlide(0).sectionId).toBe(sB.id);
@@ -550,13 +550,13 @@ describe('presentation.moveSlidesToSection()', () => {
 		pptx.addSection('A', [0]);
 
 		const result = pptx.moveSlidesToSection([0], 'nonexistent');
-		expect(result).toBeFalsy();
+		expect(result).toBe(false);
 	});
 
 	it('returns false when no sections exist', async () => {
 		const pptx = await createWithSlides(2);
 		const result = pptx.moveSlidesToSection([0], 'any_id');
-		expect(result).toBeFalsy();
+		expect(result).toBe(false);
 	});
 
 	it('skips out-of-range slide indices', async () => {
@@ -565,7 +565,7 @@ describe('presentation.moveSlidesToSection()', () => {
 
 		// Include both valid (1) and invalid (-1, 10) indices
 		const result = pptx.moveSlidesToSection([-1, 1, 10], section.id);
-		expect(result).toBeTruthy();
+		expect(result).toBe(true);
 
 		// Only slide 1 should be moved
 		expect(pptx.getSlide(1).sectionId).toBe(section.id);
@@ -577,7 +577,7 @@ describe('presentation.moveSlidesToSection()', () => {
 
 		// Move slide 0 to section A (where it already belongs)
 		const result = pptx.moveSlidesToSection([0], section.id);
-		expect(result).toBeTruthy();
+		expect(result).toBe(true);
 
 		const slideId = pptx.getSlide(0).id;
 		const count = section.slideIds.filter((id) => id === slideId).length;
@@ -723,7 +723,7 @@ describe('presentation.diff()', () => {
 		// Since slides have different IDs, all of b's slides are "added"
 		// and all of a's slides are "removed"
 		expect(result.summary.added).toBeGreaterThanOrEqual(1);
-		expect(result.slideChanges.some((sc) => sc.type === 'added')).toBeTruthy();
+		expect(result.slideChanges.some((sc) => sc.type === 'added')).toBe(true);
 	});
 
 	it('detects removed slides', async () => {
@@ -734,7 +734,7 @@ describe('presentation.diff()', () => {
 
 		// a has slides not in b => "removed"
 		expect(result.summary.removed).toBeGreaterThanOrEqual(1);
-		expect(result.slideChanges.some((sc) => sc.type === 'removed')).toBeTruthy();
+		expect(result.slideChanges.some((sc) => sc.type === 'removed')).toBe(true);
 	});
 
 	it('returns a PresentationDiff structure', async () => {
@@ -748,7 +748,7 @@ describe('presentation.diff()', () => {
 		expect(result).toHaveProperty('metadataChanges');
 		expect(result).toHaveProperty('summary');
 		expectTypeOf(result.themeChanged).toBeBoolean();
-		expect(Array.isArray(result.metadataChanges)).toBeTruthy();
+		expect(Array.isArray(result.metadataChanges)).toBe(true);
 	});
 
 	it('detects theme differences between presentations', async () => {
@@ -763,7 +763,7 @@ describe('presentation.diff()', () => {
 		b.addSlide('Blank');
 
 		const result = a.diff(b);
-		expect(result.themeChanged).toBeTruthy();
+		expect(result.themeChanged).toBe(true);
 	});
 
 	it('compares two empty presentations without error', async () => {

@@ -117,17 +117,17 @@ describe('shouldEnterInlineEdit', () => {
 
 	it('returns true when element is selected and has text', () => {
 		const lookup = new Map<string, PptxElement>([['el1', makeTextEl('el1')]]);
-		expect(shouldEnterInlineEdit('el1', new Set(['el1']), null, lookup)).toBeTruthy();
+		expect(shouldEnterInlineEdit('el1', new Set(['el1']), null, lookup)).toBe(true);
 	});
 
 	it('returns false when element is not selected', () => {
 		const lookup = new Map<string, PptxElement>([['el1', makeTextEl('el1')]]);
-		expect(shouldEnterInlineEdit('el1', new Set(), null, lookup)).toBeFalsy();
+		expect(shouldEnterInlineEdit('el1', new Set(), null, lookup)).toBe(false);
 	});
 
 	it('returns false when already inline editing', () => {
 		const lookup = new Map<string, PptxElement>([['el1', makeTextEl('el1')]]);
-		expect(shouldEnterInlineEdit('el1', new Set(['el1']), 'el1', lookup)).toBeFalsy();
+		expect(shouldEnterInlineEdit('el1', new Set(['el1']), 'el1', lookup)).toBe(false);
 	});
 
 	it('returns false for non-text element types', () => {
@@ -140,17 +140,17 @@ describe('shouldEnterInlineEdit', () => {
 			height: 100,
 		} as unknown as PptxElement;
 		const lookup = new Map<string, PptxElement>([['img1', imageEl]]);
-		expect(shouldEnterInlineEdit('img1', new Set(['img1']), null, lookup)).toBeFalsy();
+		expect(shouldEnterInlineEdit('img1', new Set(['img1']), null, lookup)).toBe(false);
 	});
 
 	it('returns false when noTextEdit lock is set', () => {
 		const lookup = new Map<string, PptxElement>([['el1', makeTextEl('el1', { noTextEdit: true })]]);
-		expect(shouldEnterInlineEdit('el1', new Set(['el1']), null, lookup)).toBeFalsy();
+		expect(shouldEnterInlineEdit('el1', new Set(['el1']), null, lookup)).toBe(false);
 	});
 
 	it('returns false when element not found in lookup', () => {
 		const lookup = new Map<string, PptxElement>();
-		expect(shouldEnterInlineEdit('missing', new Set(['missing']), null, lookup)).toBeFalsy();
+		expect(shouldEnterInlineEdit('missing', new Set(['missing']), null, lookup)).toBe(false);
 	});
 });
 
@@ -261,7 +261,7 @@ describe('buildResizeState', () => {
 		expect(state.startWidth).toBe(200);
 		expect(state.startHeight).toBe(150);
 		expect(state.handle).toBe('se');
-		expect(state.moved).toBeFalsy();
+		expect(state.moved).toBe(false);
 	});
 
 	it('sets last values to initial element position', () => {

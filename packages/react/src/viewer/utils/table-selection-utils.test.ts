@@ -49,7 +49,7 @@ describe('rectToCells', () => {
 			endCol: 4,
 		});
 		expect(cells).toHaveLength(5);
-		expect(cells.every((c) => c.row === 2)).toBeTruthy();
+		expect(cells.every((c) => c.row === 2)).toBe(true);
 	});
 
 	it('returns a full column', () => {
@@ -60,7 +60,7 @@ describe('rectToCells', () => {
 			endCol: 3,
 		});
 		expect(cells).toHaveLength(4);
-		expect(cells.every((c) => c.col === 3)).toBeTruthy();
+		expect(cells.every((c) => c.col === 3)).toBe(true);
 	});
 
 	it('handles 3x3 rect', () => {
@@ -78,34 +78,34 @@ describe('isCellInRect', () => {
 	const rect = { startRow: 1, startCol: 1, endRow: 3, endCol: 3 };
 
 	it('returns true for cell inside the rect', () => {
-		expect(isCellInRect(2, 2, rect)).toBeTruthy();
+		expect(isCellInRect(2, 2, rect)).toBe(true);
 	});
 
 	it('returns true for cell at top-left corner', () => {
-		expect(isCellInRect(1, 1, rect)).toBeTruthy();
+		expect(isCellInRect(1, 1, rect)).toBe(true);
 	});
 
 	it('returns true for cell at bottom-right corner', () => {
-		expect(isCellInRect(3, 3, rect)).toBeTruthy();
+		expect(isCellInRect(3, 3, rect)).toBe(true);
 	});
 
 	it('returns false for cell above the rect', () => {
-		expect(isCellInRect(0, 2, rect)).toBeFalsy();
+		expect(isCellInRect(0, 2, rect)).toBe(false);
 	});
 
 	it('returns false for cell below the rect', () => {
-		expect(isCellInRect(4, 2, rect)).toBeFalsy();
+		expect(isCellInRect(4, 2, rect)).toBe(false);
 	});
 
 	it('returns false for cell to the left', () => {
-		expect(isCellInRect(2, 0, rect)).toBeFalsy();
+		expect(isCellInRect(2, 0, rect)).toBe(false);
 	});
 
 	it('returns false for cell to the right', () => {
-		expect(isCellInRect(2, 4, rect)).toBeFalsy();
+		expect(isCellInRect(2, 4, rect)).toBe(false);
 	});
 
 	it('returns false for undefined rect', () => {
-		expect(isCellInRect(0, 0, undefined)).toBeFalsy();
+		expect(isCellInRect(0, 0, undefined)).toBe(false);
 	});
 });

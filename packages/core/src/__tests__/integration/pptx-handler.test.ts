@@ -271,7 +271,7 @@ describe('pptxHandler Integration', () => {
 				}
 				return false;
 			});
-			expect(hasText).toBeTruthy();
+			expect(hasText).toBe(true);
 		});
 
 		it('should preserve element positions through load -> save -> load', async () => {
@@ -397,8 +397,8 @@ describe('pptxHandler Integration', () => {
 			// exportSlides returns a Map keyed by slide index
 			expect(exported).toBeInstanceOf(Map);
 			expect(exported.size).toBe(2);
-			expect(exported.has(0)).toBeTruthy();
-			expect(exported.has(1)).toBeTruthy();
+			expect(exported.has(0)).toBe(true);
+			expect(exported.has(1)).toBe(true);
 
 			// Each entry is a Uint8Array (may be empty when no export backend is configured)
 			const slide0Bytes = exported.get(0);
@@ -423,8 +423,8 @@ describe('pptxHandler Integration', () => {
 
 			// Only index 0 is valid; out-of-range indices are skipped
 			expect(exported.size).toBe(1);
-			expect(exported.has(0)).toBeTruthy();
-			expect(exported.has(5)).toBeFalsy();
+			expect(exported.has(0)).toBe(true);
+			expect(exported.has(5)).toBe(false);
 		});
 	});
 

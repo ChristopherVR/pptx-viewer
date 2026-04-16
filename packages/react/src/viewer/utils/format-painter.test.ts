@@ -72,8 +72,8 @@ describe('copyFormatFromElement', () => {
 		expect(format.textStyle).toBeDefined();
 		expect(format.textStyle!.fontFamily).toBe('Helvetica');
 		expect(format.textStyle!.fontSize).toBe(18);
-		expect(format.textStyle!.bold).toBeTruthy();
-		expect(format.textStyle!.italic).toBeTruthy();
+		expect(format.textStyle!.bold).toBe(true);
+		expect(format.textStyle!.italic).toBe(true);
 		expect(format.textStyle!.color).toBe('#ABCDEF');
 	});
 
@@ -138,9 +138,9 @@ describe('copyFormatFromElement', () => {
 			strikethrough: true,
 		});
 		const format = copyFormatFromElement(element);
-		expect(format.textStyle!.underline).toBeTruthy();
+		expect(format.textStyle!.underline).toBe(true);
 		expect(format.textStyle!.underlineStyle).toBe('single');
-		expect(format.textStyle!.strikethrough).toBeTruthy();
+		expect(format.textStyle!.strikethrough).toBe(true);
 	});
 });
 
@@ -169,7 +169,7 @@ describe('applyFormatToElement', () => {
 		};
 		const result = applyFormatToElement(target, format);
 		expect((result as any).textStyle.fontSize).toBe(36);
-		expect((result as any).textStyle.bold).toBeTruthy();
+		expect((result as any).textStyle.bold).toBe(true);
 	});
 
 	it('should not modify the original element', () => {

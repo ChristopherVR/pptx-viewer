@@ -65,7 +65,7 @@ describe('pptxMarkdownConverter', () => {
 		const result = await converter.convert(data);
 
 		expect(result).toContain('## Slide 1');
-		expect(result.endsWith('\n')).toBeTruthy();
+		expect(result.endsWith('\n')).toBe(true);
 	});
 
 	it('should convert multiple slides separated by horizontal rules', async () => {
@@ -569,7 +569,7 @@ describe('pptxMarkdownConverter', () => {
 		const data = makeData([makeSlide()]);
 		const result = await converter.convert(data);
 
-		expect(result.endsWith('\n')).toBeTruthy();
+		expect(result.endsWith('\n')).toBe(true);
 	});
 
 	// ── Edge case: empty presentation ──
@@ -581,6 +581,6 @@ describe('pptxMarkdownConverter', () => {
 
 		expect(converter.slidesConverted).toBe(0);
 		expect(converter.presentationSlides).toBe(0);
-		expect(result.endsWith('\n')).toBeTruthy();
+		expect(result.endsWith('\n')).toBe(true);
 	});
 });

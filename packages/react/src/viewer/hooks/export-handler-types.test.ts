@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import type {
 	UseExportHandlersInput,
@@ -105,7 +106,7 @@ describe('exportModalControls type', () => {
 			exportAbortRef: { current: controller },
 		};
 		expect(controls.exportAbortRef.current).toBe(controller);
-		expect(controls.exportAbortRef.current!.signal.aborted).toBeFalsy();
+		expect(controls.exportAbortRef.current!.signal.aborted).toBe(false);
 	});
 });
 
@@ -133,7 +134,7 @@ describe('exportHandlersResult type', () => {
 			exportStatusMessage: '',
 		};
 
-		expect(mockResult.exportModalOpen).toBeFalsy();
+		expect(mockResult.exportModalOpen).toBe(false);
 		expect(mockResult.exportModalTitle).toBe('');
 		expect(mockResult.exportProgress).toBe(0);
 		expect(mockResult.exportStatusMessage).toBe('');

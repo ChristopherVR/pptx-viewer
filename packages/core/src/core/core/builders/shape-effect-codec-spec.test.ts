@@ -297,7 +297,7 @@ describe('pptxShapeEffectXmlCodec', () => {
 			};
 			const result = codec.extractBlurStyle(shapeProps);
 			expect(result.blurRadius).toBeCloseTo(50800 / EMU_PER_PX, 1);
-			expect(result.blurGrow).toBeTruthy();
+			expect(result.blurGrow).toBe(true);
 		});
 
 		it('should return undefined blurGrow when grow is 0', () => {
@@ -486,7 +486,7 @@ describe('pptxShapeEffectXmlCodec', () => {
 				},
 			};
 			const result = codec.extractEffectDagStyle(shapeProps);
-			expect(result.dagGrayscale).toBeTruthy();
+			expect(result.dagGrayscale).toBe(true);
 		});
 
 		it('should extract biLevel threshold from effectDag', () => {

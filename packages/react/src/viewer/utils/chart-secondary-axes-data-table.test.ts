@@ -58,28 +58,28 @@ function makeSeries(name: string, values: number[], axisId?: number): PptxChartS
 
 describe('hasSecondaryValueAxis', () => {
 	it('returns false when axes is undefined or has only primary axes', () => {
-		expect(hasSecondaryValueAxis(undefined)).toBeFalsy();
-		expect(hasSecondaryValueAxis([makePrimaryValueAxis()])).toBeFalsy();
+		expect(hasSecondaryValueAxis(undefined)).toBe(false);
+		expect(hasSecondaryValueAxis([makePrimaryValueAxis()])).toBe(false);
 	});
 
 	it("returns true when a valAx has position 'r'", () => {
-		expect(hasSecondaryValueAxis([makePrimaryValueAxis(), makeSecondaryValueAxis()])).toBeTruthy();
+		expect(hasSecondaryValueAxis([makePrimaryValueAxis(), makeSecondaryValueAxis()])).toBe(true);
 	});
 
 	it("does not treat catAx at position 'r' as secondary value axis", () => {
-		expect(hasSecondaryValueAxis([{ axisType: 'catAx', axPos: 'r' }])).toBeFalsy();
+		expect(hasSecondaryValueAxis([{ axisType: 'catAx', axPos: 'r' }])).toBe(false);
 	});
 });
 
 describe('hasSecondaryCategoryAxis', () => {
 	it('returns false with only bottom category axis', () => {
-		expect(hasSecondaryCategoryAxis(undefined)).toBeFalsy();
-		expect(hasSecondaryCategoryAxis([makePrimaryCategoryAxis()])).toBeFalsy();
+		expect(hasSecondaryCategoryAxis(undefined)).toBe(false);
+		expect(hasSecondaryCategoryAxis([makePrimaryCategoryAxis()])).toBe(false);
 	});
 
 	it("returns true for catAx or dateAx at position 't'", () => {
-		expect(hasSecondaryCategoryAxis([makeSecondaryCategoryAxis()])).toBeTruthy();
-		expect(hasSecondaryCategoryAxis([{ axisType: 'dateAx', axPos: 't' }])).toBeTruthy();
+		expect(hasSecondaryCategoryAxis([makeSecondaryCategoryAxis()])).toBe(true);
+		expect(hasSecondaryCategoryAxis([{ axisType: 'dateAx', axPos: 't' }])).toBe(true);
 	});
 });
 
@@ -126,20 +126,20 @@ describe('getSecondaryValueAxis and axis ID helpers', () => {
 
 describe('isSeriesOnSecondaryAxis', () => {
 	it('returns false when no secondary axis or no axisId', () => {
-		expect(isSeriesOnSecondaryAxis(makeSeries('A', [1]), undefined)).toBeFalsy();
-		expect(isSeriesOnSecondaryAxis(makeSeries('A', [1]), [makePrimaryValueAxis()])).toBeFalsy();
+		expect(isSeriesOnSecondaryAxis(makeSeries('A', [1]), undefined)).toBe(false);
+		expect(isSeriesOnSecondaryAxis(makeSeries('A', [1]), [makePrimaryValueAxis()])).toBe(false);
 		expect(
 			isSeriesOnSecondaryAxis(makeSeries('A', [1]), [
 				makePrimaryValueAxis(),
 				makeSecondaryValueAxis(),
 			]),
-		).toBeFalsy();
+		).toBe(false);
 	});
 
 	it('returns true when series axisId matches secondary axis', () => {
 		const axes = [makePrimaryValueAxis(), makeSecondaryValueAxis({ axisId: 200 })];
-		expect(isSeriesOnSecondaryAxis(makeSeries('A', [1], 200), axes)).toBeTruthy();
-		expect(isSeriesOnSecondaryAxis(makeSeries('B', [2], 100), axes)).toBeFalsy();
+		expect(isSeriesOnSecondaryAxis(makeSeries('A', [1], 200), axes)).toBe(true);
+		expect(isSeriesOnSecondaryAxis(makeSeries('B', [2], 100), axes)).toBe(false);
 	});
 });
 
@@ -242,18 +242,18 @@ describe('computeLayout with secondary axes', () => {
 describe('computeLayoutOptions', () => {
 	it('returns all false when no secondary axes or data table', () => {
 		const opts = computeLayoutOptions(undefined, undefined, 2);
-		expect(opts.hasSecondaryValueAxis).toBeFalsy();
-		expect(opts.hasSecondaryCategoryAxis).toBeFalsy();
-		expect(opts.hasDataTable).toBeFalsy();
+		expect(opts.hasSecondaryValueAxis).toBe(false);
+		expect(opts.hasSecondaryCategoryAxis).toBe(false);
+		expect(opts.hasDataTable).toBe(false);
 	});
 
 	it('detects secondary axes and data table from chart data', () => {
 		const axes = [makeSecondaryValueAxis(), makeSecondaryCategoryAxis()];
 		const dt: PptxChartDataTable = {};
 		const opts = computeLayoutOptions(axes, dt, 4);
-		expect(opts.hasSecondaryValueAxis).toBeTruthy();
-		expect(opts.hasSecondaryCategoryAxis).toBeTruthy();
-		expect(opts.hasDataTable).toBeTruthy();
+		expect(opts.hasSecondaryValueAxis).toBe(true);
+		expect(opts.hasSecondaryCategoryAxis).toBe(true);
+		expect(opts.hasDataTable).toBe(true);
 		expect(opts.dataTableRowCount).toBe(4);
 	});
 });
@@ -315,8 +315,8 @@ describe('data table border configuration', () => {
 			showOutline: true,
 			showKeys: false,
 		};
-		expect(custom.showHorzBorder).toBeFalsy();
-		expect(custom.showKeys).toBeFalsy();
+		expect(custom.showHorzBorder).toBe(false);
+		expect(custom.showKeys).toBe(false);
 
 		const defaults: PptxChartDataTable = {};
 		expect(defaults.showHorzBorder).toBeUndefined();
@@ -376,7 +376,7 @@ describe('axis formatting properties for secondary axes', () => {
 		});
 		expect(axis.min).toBe(0);
 		expect(axis.max).toBe(100);
-		expect(axis.deleted).toBeFalsy();
+		expect(axis.deleted).toBe(false);
 		expect(axis.fontFamily).toBe('Arial');
 	});
 

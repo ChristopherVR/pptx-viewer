@@ -25,7 +25,7 @@ describe('verifyModifyPassword', () => {
 			saltData: 'c2FsdA==',
 			spinValue: 100,
 		};
-		await expect(verifyModifyPassword(verifier, 'password')).resolves.toBeFalsy();
+		await expect(verifyModifyPassword(verifier, 'password')).resolves.toBe(false);
 	});
 
 	it('returns false when hashData is missing', async () => {
@@ -34,7 +34,7 @@ describe('verifyModifyPassword', () => {
 			saltData: 'c2FsdA==',
 			spinValue: 100,
 		};
-		await expect(verifyModifyPassword(verifier, 'password')).resolves.toBeFalsy();
+		await expect(verifyModifyPassword(verifier, 'password')).resolves.toBe(false);
 	});
 
 	it('returns false when saltData is missing', async () => {
@@ -43,12 +43,12 @@ describe('verifyModifyPassword', () => {
 			hashData: 'dGVzdA==',
 			spinValue: 100,
 		};
-		await expect(verifyModifyPassword(verifier, 'password')).resolves.toBeFalsy();
+		await expect(verifyModifyPassword(verifier, 'password')).resolves.toBe(false);
 	});
 
 	it('returns false when all required fields are missing', async () => {
 		const verifier: PptxModifyVerifier = {};
-		await expect(verifyModifyPassword(verifier, 'password')).resolves.toBeFalsy();
+		await expect(verifyModifyPassword(verifier, 'password')).resolves.toBe(false);
 	});
 
 	it('returns false for wrong password against a created verifier', async () => {
@@ -58,7 +58,7 @@ describe('verifyModifyPassword', () => {
 			algorithmName: 'SHA-256',
 		});
 		const result = await verifyModifyPassword(verifier, 'wrong-password');
-		expect(result).toBeFalsy();
+		expect(result).toBe(false);
 	});
 
 	it('returns true for correct password against a created verifier (SHA-256)', async () => {
@@ -67,7 +67,7 @@ describe('verifyModifyPassword', () => {
 			algorithmName: 'SHA-256',
 		});
 		const result = await verifyModifyPassword(verifier, 'test-pass-123');
-		expect(result).toBeTruthy();
+		expect(result).toBe(true);
 	});
 
 	it('returns true for correct password against a created verifier (SHA-512)', async () => {
@@ -76,7 +76,7 @@ describe('verifyModifyPassword', () => {
 			algorithmName: 'SHA-512',
 		});
 		const result = await verifyModifyPassword(verifier, 'my-secret');
-		expect(result).toBeTruthy();
+		expect(result).toBe(true);
 	});
 
 	it('returns true for correct password against a created verifier (SHA-1)', async () => {
@@ -85,7 +85,7 @@ describe('verifyModifyPassword', () => {
 			algorithmName: 'SHA-1',
 		});
 		const result = await verifyModifyPassword(verifier, 'legacy-pw');
-		expect(result).toBeTruthy();
+		expect(result).toBe(true);
 	});
 
 	it('uses default spinValue of 100000 when not specified', async () => {
@@ -104,8 +104,8 @@ describe('verifyModifyPassword', () => {
 		});
 		const matchEmpty = await verifyModifyPassword(verifier, '');
 		const matchNonEmpty = await verifyModifyPassword(verifier, 'something');
-		expect(matchEmpty).toBeTruthy();
-		expect(matchNonEmpty).toBeFalsy();
+		expect(matchEmpty).toBe(true);
+		expect(matchNonEmpty).toBe(false);
 	});
 
 	it('handles unicode passwords', async () => {
@@ -115,8 +115,8 @@ describe('verifyModifyPassword', () => {
 		});
 		const match = await verifyModifyPassword(verifier, '\u00E9\u00E0\u00FC');
 		const noMatch = await verifyModifyPassword(verifier, 'eau');
-		expect(match).toBeTruthy();
-		expect(noMatch).toBeFalsy();
+		expect(match).toBe(true);
+		expect(noMatch).toBe(false);
 	});
 });
 
@@ -209,7 +209,7 @@ describe('createModifyVerifier', () => {
 			spinCount: 10,
 			algorithmName: 'SHA-256',
 		});
-		await expect(verifyModifyPassword(verifier, password)).resolves.toBeTruthy();
-		await expect(verifyModifyPassword(verifier, 'wrong')).resolves.toBeFalsy();
+		await expect(verifyModifyPassword(verifier, password)).resolves.toBe(true);
+		await expect(verifyModifyPassword(verifier, 'wrong')).resolves.toBe(false);
 	});
 });

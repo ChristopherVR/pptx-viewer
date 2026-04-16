@@ -181,7 +181,7 @@ describe('computeSlideSectionGroups', () => {
 		const sections = [{ id: 'sec1', name: 'Colored', color: '#FF0000', collapsed: true }];
 		const result = computeSlideSectionGroups(slides, sections);
 		expect(result[0].color).toBe('#FF0000');
-		expect(result[0].defaultCollapsed).toBeTruthy();
+		expect(result[0].defaultCollapsed).toBe(true);
 	});
 
 	it('filters out sections with no slides', () => {

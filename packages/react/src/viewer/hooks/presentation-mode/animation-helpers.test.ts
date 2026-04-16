@@ -121,7 +121,7 @@ describe('applyAnimationGroupSteps', () => {
 		applyAnimationGroupSteps(group, undefined, stateSetter, presentationTimersRef);
 		expect(capturedState).toBeDefined();
 		const state = capturedState!.get('el-1');
-		expect(state?.visible).toBeTruthy();
+		expect(state?.visible).toBe(true);
 		expect(state?.cssAnimation).toBe('fadeIn 0.5s ease');
 	});
 
@@ -150,7 +150,7 @@ describe('applyAnimationGroupSteps', () => {
 		applyAnimationGroupSteps(group, undefined, stateSetter, presentationTimersRef);
 		const state = capturedState!.get('el-1');
 		// Exit keeps current visible state during animation
-		expect(state?.visible).toBeTruthy();
+		expect(state?.visible).toBe(true);
 		expect(state?.cssAnimation).toBe('fadeOut 0.5s ease');
 	});
 
@@ -186,7 +186,7 @@ describe('applyAnimationGroupSteps', () => {
 		// The cleanup timer should have fired
 		expect(stateSetter).toHaveBeenCalledTimes(2); // once for initial, once for cleanup
 		const state = capturedCleanupState!.get('el-1');
-		expect(state?.visible).toBeFalsy();
+		expect(state?.visible).toBe(false);
 		expect(state?.cssAnimation).toBeUndefined();
 	});
 

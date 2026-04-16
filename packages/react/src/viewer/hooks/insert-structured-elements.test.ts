@@ -149,7 +149,7 @@ describe('handleInsertField', () => {
 		expect(el.type).toBe('shape');
 		expect(el.text).toBe('3'); // slideIndex 2 + 1
 		expect(el.textSegments[0].fieldType).toBe('slidenum');
-		expect(el.textSegments[0].fieldGuid).toBeTruthy();
+		expect(el.textSegments[0].fieldGuid).toBe(true);
 	});
 
 	it('creates a shape element for header field with default text', () => {

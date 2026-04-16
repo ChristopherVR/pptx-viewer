@@ -86,29 +86,29 @@ function updateTemplateElementUpdater(
 
 describe('isTemplateElementId', () => {
 	it('should return true for layout element IDs', () => {
-		expect(isTemplateElementId('layout-123')).toBeTruthy();
+		expect(isTemplateElementId('layout-123')).toBe(true);
 	});
 
 	it('should return true for master element IDs', () => {
-		expect(isTemplateElementId('master-456')).toBeTruthy();
+		expect(isTemplateElementId('master-456')).toBe(true);
 	});
 
 	it('should return false for regular element IDs', () => {
-		expect(isTemplateElementId('el-789')).toBeFalsy();
+		expect(isTemplateElementId('el-789')).toBe(false);
 	});
 
 	it('should return false for empty string', () => {
-		expect(isTemplateElementId('')).toBeFalsy();
+		expect(isTemplateElementId('')).toBe(false);
 	});
 
 	it('should return false for partial matches', () => {
-		expect(isTemplateElementId('my-layout-thing')).toBeFalsy();
-		expect(isTemplateElementId('masterpiece')).toBeFalsy();
+		expect(isTemplateElementId('my-layout-thing')).toBe(false);
+		expect(isTemplateElementId('masterpiece')).toBe(false);
 	});
 
 	it('should be case-sensitive (Layout- is not a match)', () => {
-		expect(isTemplateElementId('Layout-123')).toBeFalsy();
-		expect(isTemplateElementId('Master-456')).toBeFalsy();
+		expect(isTemplateElementId('Layout-123')).toBe(false);
+		expect(isTemplateElementId('Master-456')).toBe(false);
 	});
 });
 

@@ -85,7 +85,7 @@ describe('replaceShapeGeometry', () => {
 		const shape = makeTestShape('rect');
 		replaceShapeGeometry(shape, 'star5');
 		expect(shape.textStyle?.fontSize).toBe(18);
-		expect(shape.textStyle?.bold).toBeTruthy();
+		expect(shape.textStyle?.bold).toBe(true);
 	});
 
 	it('should preserve position and size', () => {

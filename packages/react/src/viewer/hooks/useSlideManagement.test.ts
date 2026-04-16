@@ -262,14 +262,14 @@ describe('toggleHideSlidesUpdater', () => {
 	it('should toggle hidden from undefined to true', () => {
 		const slides = [makeSlide({ id: 's1' }), makeSlide({ id: 's2' })];
 		const result = toggleHideSlidesUpdater(slides, [0]);
-		expect(result[0].hidden).toBeTruthy();
+		expect(result[0].hidden).toBe(true);
 		expect(result[1].hidden).toBeUndefined();
 	});
 
 	it('should toggle hidden from true to false', () => {
 		const slides = [makeSlide({ id: 's1', hidden: true }), makeSlide({ id: 's2' })];
 		const result = toggleHideSlidesUpdater(slides, [0]);
-		expect(result[0].hidden).toBeFalsy();
+		expect(result[0].hidden).toBe(false);
 	});
 
 	it('should toggle multiple slides', () => {
@@ -279,9 +279,9 @@ describe('toggleHideSlidesUpdater', () => {
 			makeSlide({ id: 's3' }),
 		];
 		const result = toggleHideSlidesUpdater(slides, [0, 1, 2]);
-		expect(result[0].hidden).toBeTruthy();
-		expect(result[1].hidden).toBeFalsy();
-		expect(result[2].hidden).toBeTruthy();
+		expect(result[0].hidden).toBe(true);
+		expect(result[1].hidden).toBe(false);
+		expect(result[2].hidden).toBe(true);
 	});
 
 	it('should return same slides when indexes is empty', () => {

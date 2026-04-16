@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Extracted logic from PptxHandlerRuntimeThemeLoading

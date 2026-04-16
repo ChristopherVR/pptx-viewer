@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import {
 	EMR_SETPIXELV,
@@ -89,7 +90,7 @@ describe('emf-gdi-draw-shapes', () => {
 
 		it('returns false for unrecognized record type', () => {
 			const rCtx = makeRCtx();
-			expect(handleEmfGdiShapeRecord(rCtx, 0xffff, 8, 8)).toBeFalsy();
+			expect(handleEmfGdiShapeRecord(rCtx, 0xffff, 8, 8)).toBe(false);
 		});
 
 		// -----------------------------------------------------------------------
@@ -108,7 +109,7 @@ describe('emf-gdi-draw-shapes', () => {
 				rCtx.view.setUint8(d + 10, 0x00); // B
 
 				const result = handleEmfGdiShapeRecord(rCtx, EMR_SETPIXELV, d, 20);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				const ctx = rCtx.ctx as unknown as Record<string, { mock: { calls: unknown[][] } }>;
 				expect(ctx.fillRect).toHaveBeenCalledOnce();
 				// fillRect(gmx(50), gmy(75), 1, 1) — gmx/gmy apply scaling
@@ -134,7 +135,7 @@ describe('emf-gdi-draw-shapes', () => {
 				rCtx.view.setInt32(d + 4, 200, true); // y
 
 				const result = handleEmfGdiShapeRecord(rCtx, EMR_MOVETOEX, d, 16);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				expect(rCtx.state.curX).toBe(100);
 				expect(rCtx.state.curY).toBe(200);
 			});
@@ -184,7 +185,7 @@ describe('emf-gdi-draw-shapes', () => {
 				rCtx.view.setInt32(d + 4, 200, true); // ly
 
 				const result = handleEmfGdiShapeRecord(rCtx, EMR_LINETO, d, 16);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				const ctx = rCtx.ctx as unknown as Record<string, { mock: { calls: unknown[][] } }>;
 				expect(ctx.beginPath).toHaveBeenCalledOnce();
 				expect(ctx.moveTo).toHaveBeenCalledOnce();
@@ -225,7 +226,7 @@ describe('emf-gdi-draw-shapes', () => {
 				rCtx.view.setInt32(d + 12, 200, true); // bottom
 
 				const result = handleEmfGdiShapeRecord(rCtx, EMR_RECTANGLE, d, 24);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				const ctx = rCtx.ctx as unknown as Record<string, { mock: { calls: unknown[][] } }>;
 				expect(ctx.fillRect).toHaveBeenCalledOnce();
 				expect(ctx.strokeRect).toHaveBeenCalledOnce();
@@ -270,7 +271,7 @@ describe('emf-gdi-draw-shapes', () => {
 				rCtx.view.setInt32(d + 20, 20, true); // corner height
 
 				const result = handleEmfGdiShapeRecord(rCtx, EMR_ROUNDRECT, d, 32);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				const ctx = rCtx.ctx as unknown as Record<string, { mock: { calls: unknown[][] } }>;
 				expect(ctx.beginPath).toHaveBeenCalledOnce();
 				expect(ctx.fill).toHaveBeenCalledOnce();
@@ -316,7 +317,7 @@ describe('emf-gdi-draw-shapes', () => {
 				rCtx.view.setInt32(d + 12, 80, true); // bottom
 
 				const result = handleEmfGdiShapeRecord(rCtx, EMR_ELLIPSE, d, 24);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				const ctx = rCtx.ctx as unknown as Record<string, { mock: { calls: unknown[][] } }>;
 				expect(ctx.beginPath).toHaveBeenCalledOnce();
 				expect(ctx.ellipse).toHaveBeenCalledOnce();
@@ -359,7 +360,7 @@ describe('emf-gdi-draw-shapes', () => {
 				rCtx.view.setInt32(d + 28, 100, true); // endY
 
 				const result = handleEmfGdiShapeRecord(rCtx, EMR_ARC, d, 40);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				const ctx = rCtx.ctx as unknown as Record<string, { mock: { calls: unknown[][] } }>;
 				expect(ctx.stroke).toHaveBeenCalledOnce();
 				expect(ctx.fill).not.toHaveBeenCalled(); // ARC does not fill
@@ -433,7 +434,7 @@ describe('emf-gdi-draw-shapes', () => {
 				rCtx.view.setInt32(d + 28, 50, true);
 
 				const result = handleEmfGdiShapeRecord(rCtx, EMR_CHORD, d, 40);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				const ctx = rCtx.ctx as unknown as Record<string, { mock: { calls: unknown[][] } }>;
 				expect(ctx.closePath).toHaveBeenCalledOnce();
 				expect(ctx.fill).toHaveBeenCalledOnce();
@@ -459,7 +460,7 @@ describe('emf-gdi-draw-shapes', () => {
 				rCtx.view.setInt32(d + 28, 50, true);
 
 				const result = handleEmfGdiShapeRecord(rCtx, EMR_PIE, d, 40);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				const ctx = rCtx.ctx as unknown as Record<string, { mock: { calls: unknown[][] } }>;
 				expect(ctx.moveTo).toHaveBeenCalledOnce(); // moveTo center
 				expect(ctx.closePath).toHaveBeenCalledOnce();

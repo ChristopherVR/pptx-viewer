@@ -103,10 +103,10 @@ describe('parseChartAxes', () => {
 		const catAx = result.find((a) => a.axisType === 'catAx');
 		expect(catAx).toBeDefined();
 		expect(catAx?.numFmt?.formatCode).toBe('General');
-		expect(catAx?.numFmt?.sourceLinked).toBeTruthy();
+		expect(catAx?.numFmt?.sourceLinked).toBe(true);
 		expect(catAx?.titleText).toBe('Categories');
 		expect(catAx?.fontSize).toBe(10);
-		expect(catAx?.fontBold).toBeTruthy();
+		expect(catAx?.fontBold).toBe(true);
 		expect(catAx?.fontFamily).toBe('Arial');
 		expect(catAx?.fontColor).toBe('#333333');
 
@@ -141,7 +141,7 @@ describe('parseChartAxes', () => {
 
 		const valAx = result[0];
 		expect(valAx.axisType).toBe('valAx');
-		expect(valAx.logScale).toBeTruthy();
+		expect(valAx.logScale).toBe(true);
 		expect(valAx.logBase).toBe(10);
 		expect(valAx.min).toBe(1);
 		expect(valAx.max).toBe(10000);
@@ -158,7 +158,7 @@ describe('parseChartAxes', () => {
 
 		const result = parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName);
 		const valAx = result[0];
-		expect(valAx.logScale).toBeTruthy();
+		expect(valAx.logScale).toBe(true);
 		expect(valAx.logBase).toBe(2);
 	});
 
@@ -203,7 +203,7 @@ describe('parseChartAxes', () => {
 
 		const result = parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName);
 		const valAx = result[0];
-		expect(valAx.deleted).toBeTruthy();
+		expect(valAx.deleted).toBe(true);
 	});
 
 	it('should ignore invalid logBase values', () => {

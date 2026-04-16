@@ -82,27 +82,27 @@ describe('isSlideInActiveShow', () => {
 	];
 
 	it('should return true when slide is in the active show', () => {
-		expect(isSlideInActiveShow('show1', 'rId1', shows)).toBeTruthy();
+		expect(isSlideInActiveShow('show1', 'rId1', shows)).toBe(true);
 	});
 
 	it('should return false when slide is not in the active show', () => {
-		expect(isSlideInActiveShow('show1', 'rId2', shows)).toBeFalsy();
+		expect(isSlideInActiveShow('show1', 'rId2', shows)).toBe(false);
 	});
 
 	it('should return false when no active show', () => {
-		expect(isSlideInActiveShow(null, 'rId1', shows)).toBeFalsy();
+		expect(isSlideInActiveShow(null, 'rId1', shows)).toBe(false);
 	});
 
 	it('should return false when no slide rId', () => {
-		expect(isSlideInActiveShow('show1', undefined, shows)).toBeFalsy();
+		expect(isSlideInActiveShow('show1', undefined, shows)).toBe(false);
 	});
 
 	it('should return false when active show not found', () => {
-		expect(isSlideInActiveShow('unknown', 'rId1', shows)).toBeFalsy();
+		expect(isSlideInActiveShow('unknown', 'rId1', shows)).toBe(false);
 	});
 
 	it('should return true for last element in slideRIds', () => {
-		expect(isSlideInActiveShow('show1', 'rId3', shows)).toBeTruthy();
+		expect(isSlideInActiveShow('show1', 'rId3', shows)).toBe(true);
 	});
 });
 

@@ -1,5 +1,6 @@
+import { expectTypeOf } from '@jest/globals';
 import type { ShapeStyle } from 'pptx-viewer-core';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import type { EffectToggleCfg } from './fill-stroke-effect-configs';
 import { VISUAL_EFFECT_CONFIGS } from './fill-stroke-visual-configs';
@@ -22,7 +23,7 @@ function findConfig(label: string): EffectToggleCfg {
 
 describe('vISUAL_EFFECT_CONFIGS structure', () => {
 	it('exports a non-empty array', () => {
-		expect(Array.isArray(VISUAL_EFFECT_CONFIGS)).toBeTruthy();
+		expect(Array.isArray(VISUAL_EFFECT_CONFIGS)).toBe(true);
 		expect(VISUAL_EFFECT_CONFIGS.length).toBeGreaterThan(0);
 	});
 
@@ -42,7 +43,7 @@ describe('vISUAL_EFFECT_CONFIGS structure', () => {
 			expectTypeOf(cfg.isOn).toBeFunction();
 			expectTypeOf(cfg.onEnable).toBeFunction();
 			expectTypeOf(cfg.onDisable).toBeFunction();
-			expect(Array.isArray(cfg.fields)).toBeTruthy();
+			expect(Array.isArray(cfg.fields)).toBe(true);
 			expect(cfg.fields.length).toBeGreaterThan(0);
 		}
 	});
@@ -58,7 +59,7 @@ describe('vISUAL_EFFECT_CONFIGS structure', () => {
 		const validTypes = new Set(['color', 'range', 'number', 'select', 'checkbox']);
 		for (const cfg of VISUAL_EFFECT_CONFIGS) {
 			for (const field of cfg.fields) {
-				expect(validTypes.has(field.type)).toBeTruthy();
+				expect(validTypes.has(field.type)).toBe(true);
 			}
 		}
 	});
@@ -72,15 +73,15 @@ describe('glow effect config', () => {
 	const cfg = findConfig('Glow');
 
 	it('isOn returns false for undefined style', () => {
-		expect(cfg.isOn(undefined)).toBeFalsy();
+		expect(cfg.isOn(undefined)).toBe(false);
 	});
 
 	it('isOn returns false when glowColor is transparent', () => {
-		expect(cfg.isOn({ glowColor: 'transparent' } as ShapeStyle)).toBeFalsy();
+		expect(cfg.isOn({ glowColor: 'transparent' } as ShapeStyle)).toBe(false);
 	});
 
 	it('isOn returns true when glowColor is set to a real color', () => {
-		expect(cfg.isOn({ glowColor: '#ffff00' } as ShapeStyle)).toBeTruthy();
+		expect(cfg.isOn({ glowColor: '#ffff00' } as ShapeStyle)).toBe(true);
 	});
 
 	it('onEnable provides default glow values', () => {
@@ -127,11 +128,11 @@ describe('soft Edge effect config', () => {
 	const cfg = findConfig('Soft Edge');
 
 	it('isOn returns false when softEdgeRadius is 0', () => {
-		expect(cfg.isOn({ softEdgeRadius: 0 } as ShapeStyle)).toBeFalsy();
+		expect(cfg.isOn({ softEdgeRadius: 0 } as ShapeStyle)).toBe(false);
 	});
 
 	it('isOn returns true when softEdgeRadius > 0', () => {
-		expect(cfg.isOn({ softEdgeRadius: 6 } as ShapeStyle)).toBeTruthy();
+		expect(cfg.isOn({ softEdgeRadius: 6 } as ShapeStyle)).toBe(true);
 	});
 
 	it('onEnable sets softEdgeRadius to 6', () => {
@@ -156,15 +157,15 @@ describe('reflection effect config', () => {
 	const cfg = findConfig('Reflection');
 
 	it('isOn returns false for undefined style', () => {
-		expect(cfg.isOn(undefined)).toBeFalsy();
+		expect(cfg.isOn(undefined)).toBe(false);
 	});
 
 	it('isOn returns true when reflectionBlurRadius > 0', () => {
-		expect(cfg.isOn({ reflectionBlurRadius: 3 } as ShapeStyle)).toBeTruthy();
+		expect(cfg.isOn({ reflectionBlurRadius: 3 } as ShapeStyle)).toBe(true);
 	});
 
 	it('isOn returns true when reflectionStartOpacity > 0', () => {
-		expect(cfg.isOn({ reflectionStartOpacity: 50 } as ShapeStyle)).toBeTruthy();
+		expect(cfg.isOn({ reflectionStartOpacity: 50 } as ShapeStyle)).toBe(true);
 	});
 
 	it('onEnable provides default reflection values', () => {
@@ -189,15 +190,15 @@ describe('blur effect config', () => {
 	const cfg = findConfig('Blur');
 
 	it('isOn returns false for undefined style', () => {
-		expect(cfg.isOn(undefined)).toBeFalsy();
+		expect(cfg.isOn(undefined)).toBe(false);
 	});
 
 	it('isOn returns false when blurRadius is 0', () => {
-		expect(cfg.isOn({ blurRadius: 0 } as ShapeStyle)).toBeFalsy();
+		expect(cfg.isOn({ blurRadius: 0 } as ShapeStyle)).toBe(false);
 	});
 
 	it('isOn returns true when blurRadius > 0', () => {
-		expect(cfg.isOn({ blurRadius: 4 } as ShapeStyle)).toBeTruthy();
+		expect(cfg.isOn({ blurRadius: 4 } as ShapeStyle)).toBe(true);
 	});
 
 	it('onEnable sets blurRadius to 4', () => {
@@ -222,15 +223,15 @@ describe('bevel / 3D effect config', () => {
 	const cfg = findConfig('Bevel / 3D');
 
 	it('isOn returns false for undefined style', () => {
-		expect(cfg.isOn(undefined)).toBeFalsy();
+		expect(cfg.isOn(undefined)).toBe(false);
 	});
 
 	it('isOn returns false when bevelTopType is none', () => {
-		expect(cfg.isOn({ shape3d: { bevelTopType: 'none' } } as ShapeStyle)).toBeFalsy();
+		expect(cfg.isOn({ shape3d: { bevelTopType: 'none' } } as ShapeStyle)).toBe(false);
 	});
 
 	it('isOn returns true when bevelTopType is circle', () => {
-		expect(cfg.isOn({ shape3d: { bevelTopType: 'circle' } } as ShapeStyle)).toBeTruthy();
+		expect(cfg.isOn({ shape3d: { bevelTopType: 'circle' } } as ShapeStyle)).toBe(true);
 	});
 
 	it('onEnable provides default bevel values', () => {

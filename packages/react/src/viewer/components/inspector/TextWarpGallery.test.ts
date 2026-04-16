@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { TEXT_WARP_PRESETS, warpPreviewPath } from './TextWarpGallery';
 
@@ -8,7 +9,7 @@ import { TEXT_WARP_PRESETS, warpPreviewPath } from './TextWarpGallery';
 
 describe('tEXT_WARP_PRESETS', () => {
 	it('is a non-empty array', () => {
-		expect(Array.isArray(TEXT_WARP_PRESETS)).toBeTruthy();
+		expect(Array.isArray(TEXT_WARP_PRESETS)).toBe(true);
 		expect(TEXT_WARP_PRESETS.length).toBeGreaterThan(0);
 	});
 
@@ -37,7 +38,7 @@ describe('tEXT_WARP_PRESETS', () => {
 
 	it("all values start with 'text'", () => {
 		for (const preset of TEXT_WARP_PRESETS) {
-			expect(preset.value.startsWith('text')).toBeTruthy();
+			expect(preset.value.startsWith('text')).toBe(true);
 		}
 	});
 

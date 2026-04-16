@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import {
 	DIGITAL_SIGNATURE_ORIGIN_REL_TYPE,
@@ -61,7 +62,7 @@ describe('signature-constants', () => {
 		it('includes the C14N 1.0 algorithm', () => {
 			expect(
 				SUPPORTED_XML_CANON_TRANSFORMS.has('http://www.w3.org/TR/2001/REC-xml-c14n-20010315'),
-			).toBeTruthy();
+			).toBe(true);
 		});
 
 		it('includes the C14N 1.0 with comments algorithm', () => {
@@ -69,23 +70,23 @@ describe('signature-constants', () => {
 				SUPPORTED_XML_CANON_TRANSFORMS.has(
 					'http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments',
 				),
-			).toBeTruthy();
+			).toBe(true);
 		});
 
 		it('includes the exclusive C14N algorithm', () => {
-			expect(
-				SUPPORTED_XML_CANON_TRANSFORMS.has('http://www.w3.org/2001/10/xml-exc-c14n#'),
-			).toBeTruthy();
+			expect(SUPPORTED_XML_CANON_TRANSFORMS.has('http://www.w3.org/2001/10/xml-exc-c14n#')).toBe(
+				true,
+			);
 		});
 
 		it('includes the exclusive C14N with comments algorithm', () => {
 			expect(
 				SUPPORTED_XML_CANON_TRANSFORMS.has('http://www.w3.org/2001/10/xml-exc-c14n#WithComments'),
-			).toBeTruthy();
+			).toBe(true);
 		});
 
 		it('includes the enveloped signature transform', () => {
-			expect(SUPPORTED_XML_CANON_TRANSFORMS.has(XML_TRANSFORM_ENVELOPED_SIGNATURE)).toBeTruthy();
+			expect(SUPPORTED_XML_CANON_TRANSFORMS.has(XML_TRANSFORM_ENVELOPED_SIGNATURE)).toBe(true);
 		});
 	});
 

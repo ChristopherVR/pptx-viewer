@@ -162,9 +162,10 @@
 		"jsx-a11y/no-access-key": "warn",
 		"jsx-a11y/no-aria-hidden-on-focusable": "warn",
 		"jsx-a11y/no-distracting-elements": "warn",
-		"jsx-a11y/no-interactive-element-to-noninteractive-role": "warn",
-		"jsx-a11y/no-noninteractive-element-interactions": "warn",
-		"jsx-a11y/no-noninteractive-element-to-interactive-role": "warn",
+		// Removed: these 3 rules are not yet available in the current oxlint version
+		// "jsx-a11y/no-interactive-element-to-noninteractive-role": "warn",
+		// "jsx-a11y/no-noninteractive-element-interactions": "warn",
+		// "jsx-a11y/no-noninteractive-element-to-interactive-role": "warn",
 		"jsx-a11y/no-noninteractive-tabindex": "warn",
 		"jsx-a11y/no-redundant-roles": "warn",
 		"jsx-a11y/role-has-required-aria-props": "warn",

@@ -212,67 +212,67 @@ describe('extractPlaceholderInfo', () => {
 // ---------------------------------------------------------------------------
 describe('placeholderMatches', () => {
 	it('should return true when both are null', () => {
-		expect(placeholderMatches(null, null)).toBeTruthy();
+		expect(placeholderMatches(null, null)).toBe(true);
 	});
 
 	it('should return false when target is null but source is not', () => {
-		expect(placeholderMatches({ type: 'title' }, null)).toBeFalsy();
+		expect(placeholderMatches({ type: 'title' }, null)).toBe(false);
 	});
 
 	it('should return true when source is null', () => {
-		expect(placeholderMatches(null, { type: 'title' })).toBeTruthy();
+		expect(placeholderMatches(null, { type: 'title' })).toBe(true);
 	});
 
 	it('should match by idx when both have idx', () => {
-		expect(placeholderMatches({ idx: '1', type: 'body' }, { idx: '1', type: 'body' })).toBeTruthy();
+		expect(placeholderMatches({ idx: '1', type: 'body' }, { idx: '1', type: 'body' })).toBe(true);
 	});
 
 	it('should not match when idx differs', () => {
-		expect(placeholderMatches({ idx: '1', type: 'body' }, { idx: '2', type: 'body' })).toBeFalsy();
+		expect(placeholderMatches({ idx: '1', type: 'body' }, { idx: '2', type: 'body' })).toBe(false);
 	});
 
 	it('should not match when idx matches but type differs', () => {
-		expect(placeholderMatches({ idx: '1', type: 'body' }, { idx: '1', type: 'title' })).toBeFalsy();
+		expect(placeholderMatches({ idx: '1', type: 'body' }, { idx: '1', type: 'title' })).toBe(false);
 	});
 
 	it('should match idx even when target has no type', () => {
-		expect(placeholderMatches({ idx: '1', type: 'body' }, { idx: '1' })).toBeTruthy();
+		expect(placeholderMatches({ idx: '1', type: 'body' }, { idx: '1' })).toBe(true);
 	});
 
 	it('should match singleton types when source has idx but target does not', () => {
-		expect(placeholderMatches({ idx: '0', type: 'title' }, { type: 'title' })).toBeTruthy();
+		expect(placeholderMatches({ idx: '0', type: 'title' }, { type: 'title' })).toBe(true);
 	});
 
 	it('should not match non-singleton types when source has idx but target does not', () => {
-		expect(placeholderMatches({ idx: '1', type: 'body' }, { type: 'body' })).toBeFalsy();
+		expect(placeholderMatches({ idx: '1', type: 'body' }, { type: 'body' })).toBe(false);
 	});
 
 	it('should match by type when neither has idx', () => {
-		expect(placeholderMatches({ type: 'title' }, { type: 'title' })).toBeTruthy();
+		expect(placeholderMatches({ type: 'title' }, { type: 'title' })).toBe(true);
 	});
 
 	it('should not match when types differ without idx', () => {
-		expect(placeholderMatches({ type: 'title' }, { type: 'body' })).toBeFalsy();
+		expect(placeholderMatches({ type: 'title' }, { type: 'body' })).toBe(false);
 	});
 
 	it('should not match when source has type but target does not', () => {
-		expect(placeholderMatches({ type: 'title' }, {})).toBeFalsy();
+		expect(placeholderMatches({ type: 'title' }, {})).toBe(false);
 	});
 
 	it('should match ctrtitle as singleton', () => {
-		expect(placeholderMatches({ idx: '0', type: 'ctrtitle' }, { type: 'ctrtitle' })).toBeTruthy();
+		expect(placeholderMatches({ idx: '0', type: 'ctrtitle' }, { type: 'ctrtitle' })).toBe(true);
 	});
 
 	it('should match dt as singleton', () => {
-		expect(placeholderMatches({ idx: '0', type: 'dt' }, { type: 'dt' })).toBeTruthy();
+		expect(placeholderMatches({ idx: '0', type: 'dt' }, { type: 'dt' })).toBe(true);
 	});
 
 	it('should match ftr as singleton', () => {
-		expect(placeholderMatches({ idx: '0', type: 'ftr' }, { type: 'ftr' })).toBeTruthy();
+		expect(placeholderMatches({ idx: '0', type: 'ftr' }, { type: 'ftr' })).toBe(true);
 	});
 
 	it('should match sldnum as singleton', () => {
-		expect(placeholderMatches({ idx: '0', type: 'sldnum' }, { type: 'sldnum' })).toBeTruthy();
+		expect(placeholderMatches({ idx: '0', type: 'sldnum' }, { type: 'sldnum' })).toBe(true);
 	});
 });
 
@@ -437,46 +437,46 @@ describe('buildPlaceholderDefaultsKey', () => {
 // ---------------------------------------------------------------------------
 describe('parseBooleanAttr', () => {
 	it("should return true for '1'", () => {
-		expect(parseBooleanAttr('1')).toBeTruthy();
+		expect(parseBooleanAttr('1')).toBe(true);
 	});
 
 	it("should return true for 'true'", () => {
-		expect(parseBooleanAttr('true')).toBeTruthy();
+		expect(parseBooleanAttr('true')).toBe(true);
 	});
 
 	it("should return true for 'TRUE'", () => {
-		expect(parseBooleanAttr('TRUE')).toBeTruthy();
+		expect(parseBooleanAttr('TRUE')).toBe(true);
 	});
 
 	it("should return true for 'True'", () => {
-		expect(parseBooleanAttr('True')).toBeTruthy();
+		expect(parseBooleanAttr('True')).toBe(true);
 	});
 
 	it("should return false for '0'", () => {
-		expect(parseBooleanAttr('0')).toBeFalsy();
+		expect(parseBooleanAttr('0')).toBe(false);
 	});
 
 	it("should return false for 'false'", () => {
-		expect(parseBooleanAttr('false')).toBeFalsy();
+		expect(parseBooleanAttr('false')).toBe(false);
 	});
 
 	it('should return false for undefined', () => {
-		expect(parseBooleanAttr(undefined)).toBeFalsy();
+		expect(parseBooleanAttr(undefined)).toBe(false);
 	});
 
 	it('should return false for null', () => {
-		expect(parseBooleanAttr(null)).toBeFalsy();
+		expect(parseBooleanAttr(null)).toBe(false);
 	});
 
 	it('should return false for empty string', () => {
-		expect(parseBooleanAttr('')).toBeFalsy();
+		expect(parseBooleanAttr('')).toBe(false);
 	});
 
 	it('should handle boolean true', () => {
-		expect(parseBooleanAttr(true)).toBeTruthy();
+		expect(parseBooleanAttr(true)).toBe(true);
 	});
 
 	it('should handle boolean false', () => {
-		expect(parseBooleanAttr(false)).toBeFalsy();
+		expect(parseBooleanAttr(false)).toBe(false);
 	});
 });

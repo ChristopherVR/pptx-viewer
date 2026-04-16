@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { ACTION_BUTTON_PRESETS, ACTION_BUTTON_DEFAULT_ACTIONS } from './action-buttons';
 

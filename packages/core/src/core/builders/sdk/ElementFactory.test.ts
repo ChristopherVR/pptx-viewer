@@ -21,7 +21,7 @@ describe('createTextElement', () => {
 		const el = createTextElement('Hello World');
 		expect(el.type).toBe('text');
 		expect(el.text).toBe('Hello World');
-		expect(el.id).toBeTruthy();
+		expect(el.id).toBe(true);
 		expect(el.x).toBe(100);
 		expect(el.y).toBe(100);
 		expect(el.width).toBe(600);
@@ -39,7 +39,7 @@ describe('createTextElement', () => {
 			alignment: 'center',
 		});
 		expect(el.textStyle?.fontSize).toBe(36);
-		expect(el.textStyle?.bold).toBeTruthy();
+		expect(el.textStyle?.bold).toBe(true);
 		expect(el.textStyle?.color).toBe('#FF0000');
 		expect(el.textStyle?.align).toBe('center');
 	});
@@ -61,14 +61,14 @@ describe('createTextElement', () => {
 		const el = createTextElement([{ text: 'Bold ', style: { bold: true } }, { text: 'normal' }]);
 		expect(el.textSegments?.length).toBe(2);
 		expect(el.textSegments?.[0].text).toBe('Bold ');
-		expect(el.textSegments?.[0].style.bold).toBeTruthy();
+		expect(el.textSegments?.[0].style.bold).toBe(true);
 		expect(el.textSegments?.[1].text).toBe('normal');
 	});
 
 	it('handles multiline text with paragraph breaks', () => {
 		const el = createTextElement('Line 1\nLine 2');
 		expect(el.textSegments?.length).toBe(3); // "Line 1", "\n" (break), "Line 2"
-		expect(el.textSegments?.[1].isParagraphBreak).toBeTruthy();
+		expect(el.textSegments?.[1].isParagraphBreak).toBe(true);
 	});
 
 	it('applies fill and stroke', () => {
@@ -228,8 +228,8 @@ describe('createTableElement', () => {
 			firstRow: true,
 			bandRows: true,
 		});
-		expect(el.tableData?.firstRowHeader).toBeTruthy();
-		expect(el.tableData?.bandedRows).toBeTruthy();
+		expect(el.tableData?.firstRowHeader).toBe(true);
+		expect(el.tableData?.bandedRows).toBe(true);
 	});
 
 	it('handles merge spans', () => {
@@ -272,8 +272,8 @@ describe('createMediaElement', () => {
 		});
 		expect(el.type).toBe('media');
 		expect(el.mediaType).toBe('video');
-		expect(el.autoPlay).toBeTruthy();
-		expect(el.loop).toBeTruthy();
+		expect(el.autoPlay).toBe(true);
+		expect(el.loop).toBe(true);
 	});
 
 	it('creates an audio element', () => {

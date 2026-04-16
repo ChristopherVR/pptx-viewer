@@ -572,7 +572,7 @@ describe('pptxNativeAnimationService', () => {
 			const result = service.parseNativeAnimations(slideXml);
 			expect(result).toBeDefined();
 			expect(result![0].repeatCount).toBe(3);
-			expect(result![0].autoReverse).toBeTruthy();
+			expect(result![0].autoReverse).toBe(true);
 		});
 
 		it('applies build list to matching animations', () => {
@@ -744,7 +744,7 @@ describe('pptxNativeAnimationService', () => {
 			});
 			const result = service.parseNativeAnimations(slideXml);
 			expect(result).toBeDefined();
-			expect(result![0].exclusive).toBeTruthy();
+			expect(result![0].exclusive).toBe(true);
 		});
 
 		it('extracts text target from p:animEffect with p:txEl', () => {
@@ -947,7 +947,7 @@ describe('pptxNativeAnimationService', () => {
 			expect(result).toBeDefined();
 			expect(result![0].iterate).toBeDefined();
 			expect(result![0].iterate!.type).toBe('lt');
-			expect(result![0].iterate!.backwards).toBeTruthy();
+			expect(result![0].iterate!.backwards).toBe(true);
 			expect(result![0].iterate!.tmPct).toBe(10000);
 		});
 	});

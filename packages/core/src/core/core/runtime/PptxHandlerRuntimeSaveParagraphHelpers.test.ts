@@ -276,7 +276,7 @@ describe('assembleParagraphXml', () => {
 		const f1: XmlObject = { __isField: true, '@_type': 'a' };
 		const f2: XmlObject = { __isField: true, '@_type': 'b' };
 		const result = assembleParagraphXml([f1, f2], {});
-		expect(Array.isArray(result['a:fld'])).toBeTruthy();
+		expect(Array.isArray(result['a:fld'])).toBe(true);
 		expect(result['a:fld'] as XmlObject[]).toHaveLength(2);
 	});
 
@@ -350,13 +350,13 @@ describe('computeUniformSegmentOverrides', () => {
 			{ text: 'b', style: { bold: true, italic: false } },
 		];
 		const result = computeUniformSegmentOverrides({ bold: false, italic: true }, segments);
-		expect(result.bold).toBeFalsy();
-		expect(result.italic).toBeTruthy();
+		expect(result.bold).toBe(false);
+		expect(result.italic).toBe(true);
 	});
 
 	it('should handle empty segments array', () => {
 		const result = computeUniformSegmentOverrides({ bold: true }, []);
 		// With empty segments, every(segment => ...) returns true vacuously
-		expect(result.bold).toBeTruthy();
+		expect(result.bold).toBe(true);
 	});
 });

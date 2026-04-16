@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import { handleEmfGdiDrawRecord } from './emf-gdi-draw-handlers';
 import type { EmfGdiReplayCtx } from './emf-types';
@@ -77,7 +78,7 @@ describe('emf-gdi-draw-handlers', () => {
 		it('returns false for an unrecognized record type', () => {
 			const rCtx = makeRCtx();
 			const result = handleEmfGdiDrawRecord(rCtx, 0xffff, 0, 8, 8);
-			expect(result).toBeFalsy();
+			expect(result).toBe(false);
 		});
 
 		it('returns true for EMR_RECTANGLE (43) with valid data', () => {
@@ -89,7 +90,7 @@ describe('emf-gdi-draw-handlers', () => {
 			rCtx.view.setInt32(dataOff + 8, 100, true); // right
 			rCtx.view.setInt32(dataOff + 12, 200, true); // bottom
 			const result = handleEmfGdiDrawRecord(rCtx, 43, 0, dataOff, 24);
-			expect(result).toBeTruthy();
+			expect(result).toBe(true);
 		});
 
 		it('returns true for EMR_ELLIPSE (42) with valid data', () => {
@@ -100,7 +101,7 @@ describe('emf-gdi-draw-handlers', () => {
 			rCtx.view.setInt32(dataOff + 8, 50, true);
 			rCtx.view.setInt32(dataOff + 12, 50, true);
 			const result = handleEmfGdiDrawRecord(rCtx, 42, 0, dataOff, 24);
-			expect(result).toBeTruthy();
+			expect(result).toBe(true);
 		});
 
 		it('returns true for EMR_LINETO (54) with valid data', () => {
@@ -109,7 +110,7 @@ describe('emf-gdi-draw-handlers', () => {
 			rCtx.view.setInt32(dataOff, 100, true); // x
 			rCtx.view.setInt32(dataOff + 4, 200, true); // y
 			const result = handleEmfGdiDrawRecord(rCtx, 54, 0, dataOff, 16);
-			expect(result).toBeTruthy();
+			expect(result).toBe(true);
 		});
 
 		it('returns true for EMR_MOVETOEX (27) with valid data', () => {
@@ -118,26 +119,26 @@ describe('emf-gdi-draw-handlers', () => {
 			rCtx.view.setInt32(dataOff, 50, true);
 			rCtx.view.setInt32(dataOff + 4, 75, true);
 			const result = handleEmfGdiDrawRecord(rCtx, 27, 0, dataOff, 16);
-			expect(result).toBeTruthy();
+			expect(result).toBe(true);
 		});
 
 		it('delegates EMR_EXTTEXTOUTW (84) to text/bitmap handler', () => {
 			const rCtx = makeRCtx(512);
 			// EMR_EXTTEXTOUTW = 84, needs complex setup but handler returns true
 			const result = handleEmfGdiDrawRecord(rCtx, 84, 0, 8, 8);
-			expect(result).toBeTruthy();
+			expect(result).toBe(true);
 		});
 
 		it('delegates EMR_BITBLT (76) to text/bitmap handler', () => {
 			const rCtx = makeRCtx(512);
 			const result = handleEmfGdiDrawRecord(rCtx, 76, 0, 8, 8);
-			expect(result).toBeTruthy();
+			expect(result).toBe(true);
 		});
 
 		it('delegates EMR_STRETCHDIBITS (81) to text/bitmap handler', () => {
 			const rCtx = makeRCtx(512);
 			const result = handleEmfGdiDrawRecord(rCtx, 81, 0, 8, 8);
-			expect(result).toBeTruthy();
+			expect(result).toBe(true);
 		});
 
 		it('delegates EMR_INTERSECTCLIPRECT (30) to text/bitmap handler', () => {
@@ -148,7 +149,7 @@ describe('emf-gdi-draw-handlers', () => {
 			rCtx.view.setInt32(dataOff + 8, 100, true);
 			rCtx.view.setInt32(dataOff + 12, 100, true);
 			const result = handleEmfGdiDrawRecord(rCtx, 30, 0, dataOff, 24);
-			expect(result).toBeTruthy();
+			expect(result).toBe(true);
 		});
 	});
 });

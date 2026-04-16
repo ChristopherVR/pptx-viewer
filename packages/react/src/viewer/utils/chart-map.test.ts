@@ -186,7 +186,7 @@ describe('wORLD_REGIONS', () => {
 		const codes = new Set(WORLD_REGIONS.map((r) => r.code));
 		const majors = ['US', 'CN', 'IN', 'GB', 'DE', 'FR', 'JP', 'BR', 'RU', 'AU', 'CA'];
 		for (const c of majors) {
-			expect(codes.has(c)).toBeTruthy();
+			expect(codes.has(c)).toBe(true);
 		}
 	});
 });
@@ -228,7 +228,7 @@ describe('region code to color pipeline', () => {
 		expect(regionMap.get('US')).toBe(100);
 		expect(regionMap.get('CN')).toBe(200);
 		expect(regionMap.get('FR')).toBe(150);
-		expect(regionMap.has('Narnia')).toBeFalsy();
+		expect(regionMap.has('Narnia')).toBe(false);
 		expect(unmatched).toStrictEqual(['Narnia']);
 	});
 });

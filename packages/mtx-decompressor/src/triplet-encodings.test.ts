@@ -25,7 +25,7 @@ describe('tRIPLET_ENCODINGS', () => {
 	it('byteCount is always 2, 3, 4, or 5', () => {
 		const validCounts = new Set([2, 3, 4, 5]);
 		for (const enc of TRIPLET_ENCODINGS) {
-			expect(validCounts.has(enc.byteCount)).toBeTruthy();
+			expect(validCounts.has(enc.byteCount)).toBe(true);
 		}
 	});
 
@@ -139,14 +139,14 @@ describe('tRIPLET_ENCODINGS', () => {
 		it('deltaX values are from the set {1, 17, 33, 49}', () => {
 			const validDeltaX = new Set([1, 17, 33, 49]);
 			for (let i = 20; i <= 83; i++) {
-				expect(validDeltaX.has(TRIPLET_ENCODINGS[i].deltaX)).toBeTruthy();
+				expect(validDeltaX.has(TRIPLET_ENCODINGS[i].deltaX)).toBe(true);
 			}
 		});
 
 		it('deltaY values are from the set {1, 17, 33, 49}', () => {
 			const validDeltaY = new Set([1, 17, 33, 49]);
 			for (let i = 20; i <= 83; i++) {
-				expect(validDeltaY.has(TRIPLET_ENCODINGS[i].deltaY)).toBeTruthy();
+				expect(validDeltaY.has(TRIPLET_ENCODINGS[i].deltaY)).toBe(true);
 			}
 		});
 	});
@@ -166,14 +166,14 @@ describe('tRIPLET_ENCODINGS', () => {
 		it('deltaX values are from the set {1, 257, 513}', () => {
 			const validDeltaX = new Set([1, 257, 513]);
 			for (let i = 84; i <= 119; i++) {
-				expect(validDeltaX.has(TRIPLET_ENCODINGS[i].deltaX)).toBeTruthy();
+				expect(validDeltaX.has(TRIPLET_ENCODINGS[i].deltaX)).toBe(true);
 			}
 		});
 
 		it('deltaY values are from the set {1, 257, 513}', () => {
 			const validDeltaY = new Set([1, 257, 513]);
 			for (let i = 84; i <= 119; i++) {
-				expect(validDeltaY.has(TRIPLET_ENCODINGS[i].deltaY)).toBeTruthy();
+				expect(validDeltaY.has(TRIPLET_ENCODINGS[i].deltaY)).toBe(true);
 			}
 		});
 	});

@@ -273,22 +273,22 @@ describe('oOXML spec coverage', () => {
 
 	it('covers the spec naming variants for action buttons', () => {
 		// The spec uses both "ForwardNext" and "ForwardOrNext" naming
-		expect('actionbuttonforwardnext' in PRESET_SHAPE_CLIP_PATHS).toBeTruthy();
-		expect('actionbuttonforwardornext' in PRESET_SHAPE_CLIP_PATHS).toBeTruthy();
-		expect('actionbuttonbackprevious' in PRESET_SHAPE_CLIP_PATHS).toBeTruthy();
-		expect('actionbuttonbackorprevious' in PRESET_SHAPE_CLIP_PATHS).toBeTruthy();
+		expect('actionbuttonforwardnext' in PRESET_SHAPE_CLIP_PATHS).toBe(true);
+		expect('actionbuttonforwardornext' in PRESET_SHAPE_CLIP_PATHS).toBe(true);
+		expect('actionbuttonbackprevious' in PRESET_SHAPE_CLIP_PATHS).toBe(true);
+		expect('actionbuttonbackorprevious' in PRESET_SHAPE_CLIP_PATHS).toBe(true);
 	});
 
 	it('has entries for common aliases', () => {
 		// "oval" is an alias for "ellipse"
-		expect('oval' in PRESET_SHAPE_CLIP_PATHS).toBeTruthy();
+		expect('oval' in PRESET_SHAPE_CLIP_PATHS).toBe(true);
 		// "rtarrow" is an alias for "rightarrow"
-		expect('rtarrow' in PRESET_SHAPE_CLIP_PATHS).toBeTruthy();
+		expect('rtarrow' in PRESET_SHAPE_CLIP_PATHS).toBe(true);
 		// explosion aliases
-		expect('explosion1' in PRESET_SHAPE_CLIP_PATHS).toBeTruthy();
-		expect('explosion2' in PRESET_SHAPE_CLIP_PATHS).toBeTruthy();
+		expect('explosion1' in PRESET_SHAPE_CLIP_PATHS).toBe(true);
+		expect('explosion2' in PRESET_SHAPE_CLIP_PATHS).toBe(true);
 		// rightTriangle alias for rtTriangle
-		expect('righttriangle' in PRESET_SHAPE_CLIP_PATHS).toBeTruthy();
+		expect('righttriangle' in PRESET_SHAPE_CLIP_PATHS).toBe(true);
 	});
 });
 
@@ -304,7 +304,7 @@ describe('clip-path syntax validation', () => {
 			.filter(([, value]) => value !== undefined)
 			.map(([name, value]) => [name, value!] as const),
 	)('%s has a syntactically valid clip-path', (name, value) => {
-		expect(isValidClipPath(value), `Invalid clip-path for "${name}": ${value}`).toBeTruthy();
+		expect(isValidClipPath(value), `Invalid clip-path for "${name}": ${value}`).toBe(true);
 	});
 
 	it('polygon entries use percentage coordinates', () => {
@@ -317,10 +317,9 @@ describe('clip-path syntax validation', () => {
 					const parts = coord.split(/\s+/);
 					for (const part of parts) {
 						if (part) {
-							expect(
-								part.endsWith('%'),
-								`Non-percentage coordinate in "${name}": ${part}`,
-							).toBeTruthy();
+							expect(part.endsWith('%'), `Non-percentage coordinate in "${name}": ${part}`).toBe(
+								true,
+							);
 						}
 					}
 				}
@@ -345,7 +344,7 @@ describe('core and extended maps', () => {
 			'arc',
 		];
 		for (const shape of basicShapes) {
-			expect(shape in CLIP_PATHS_CORE, `Basic shape "${shape}" missing from core map`).toBeTruthy();
+			expect(shape in CLIP_PATHS_CORE, `Basic shape "${shape}" missing from core map`).toBe(true);
 		}
 	});
 
@@ -361,7 +360,7 @@ describe('core and extended maps', () => {
 			'homeplate',
 		];
 		for (const arrow of arrows) {
-			expect(arrow in CLIP_PATHS_CORE, `Arrow "${arrow}" missing from core map`).toBeTruthy();
+			expect(arrow in CLIP_PATHS_CORE, `Arrow "${arrow}" missing from core map`).toBe(true);
 		}
 	});
 
@@ -378,7 +377,7 @@ describe('core and extended maps', () => {
 			'star32',
 		];
 		for (const star of stars) {
-			expect(star in CLIP_PATHS_EXTENDED, `Star "${star}" missing from extended map`).toBeTruthy();
+			expect(star in CLIP_PATHS_EXTENDED, `Star "${star}" missing from extended map`).toBe(true);
 		}
 	});
 
@@ -393,10 +392,9 @@ describe('core and extended maps', () => {
 			'flowchartstoreddata',
 		];
 		for (const fc of flowcharts) {
-			expect(
-				fc in CLIP_PATHS_EXTENDED,
-				`Flowchart shape "${fc}" missing from extended map`,
-			).toBeTruthy();
+			expect(fc in CLIP_PATHS_EXTENDED, `Flowchart shape "${fc}" missing from extended map`).toBe(
+				true,
+			);
 		}
 	});
 
@@ -414,23 +412,22 @@ describe('core and extended maps', () => {
 			'actionbuttonmovie',
 		];
 		for (const btn of buttons) {
-			expect(
-				btn in CLIP_PATHS_EXTENDED,
-				`Action button "${btn}" missing from extended map`,
-			).toBeTruthy();
+			expect(btn in CLIP_PATHS_EXTENDED, `Action button "${btn}" missing from extended map`).toBe(
+				true,
+			);
 		}
 	});
 
 	it('extended map has chart marker shapes', () => {
-		expect('chartx' in CLIP_PATHS_EXTENDED).toBeTruthy();
-		expect('chartstar' in CLIP_PATHS_EXTENDED).toBeTruthy();
-		expect('chartplus' in CLIP_PATHS_EXTENDED).toBeTruthy();
+		expect('chartx' in CLIP_PATHS_EXTENDED).toBe(true);
+		expect('chartstar' in CLIP_PATHS_EXTENDED).toBe(true);
+		expect('chartplus' in CLIP_PATHS_EXTENDED).toBe(true);
 	});
 
 	it('extended map has connector entries', () => {
-		expect('straightconnector1' in CLIP_PATHS_EXTENDED).toBeTruthy();
-		expect('bentconnector3' in CLIP_PATHS_EXTENDED).toBeTruthy();
-		expect('curvedconnector3' in CLIP_PATHS_EXTENDED).toBeTruthy();
+		expect('straightconnector1' in CLIP_PATHS_EXTENDED).toBe(true);
+		expect('bentconnector3' in CLIP_PATHS_EXTENDED).toBe(true);
+		expect('curvedconnector3' in CLIP_PATHS_EXTENDED).toBe(true);
 	});
 
 	it('core and extended do not have overlapping keys', () => {
@@ -462,13 +459,13 @@ describe('getPresetShapeClipPath', () => {
 	it('returns a clip-path for polygon shapes', () => {
 		const result = getPresetShapeClipPath('pentagon');
 		expect(result).toBeDefined();
-		expect(result!.startsWith('polygon(')).toBeTruthy();
+		expect(result!.startsWith('polygon(')).toBe(true);
 	});
 
 	it('returns an ellipse clip-path for ellipse shapes', () => {
 		const result = getPresetShapeClipPath('ellipse');
 		expect(result).toBeDefined();
-		expect(result!.startsWith('ellipse(')).toBeTruthy();
+		expect(result!.startsWith('ellipse(')).toBe(true);
 	});
 
 	it('returns undefined for rect (no clipping needed)', () => {

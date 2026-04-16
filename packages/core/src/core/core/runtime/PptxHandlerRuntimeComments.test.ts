@@ -279,7 +279,7 @@ describe('parseCommentNode', () => {
 
 	it('should detect resolved = true from @_done = 1', () => {
 		const result = parseCommentNode({ '@_idx': '1', '@_done': '1', 'p:text': 'test' }, 0, emptyMap);
-		expect(result.resolved).toBeTruthy();
+		expect(result.resolved).toBe(true);
 	});
 
 	it('should detect resolved = true from @_resolved = true', () => {
@@ -288,7 +288,7 @@ describe('parseCommentNode', () => {
 			0,
 			emptyMap,
 		);
-		expect(result.resolved).toBeTruthy();
+		expect(result.resolved).toBe(true);
 	});
 
 	it('should not set resolved when not done', () => {

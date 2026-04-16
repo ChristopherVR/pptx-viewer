@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import {
 	EMFPLUS_SETWORLDTRANSFORM,
@@ -242,7 +243,7 @@ describe('emf-plus-state-handlers', () => {
 
 		it('returns false for unrecognized record type', () => {
 			const rCtx = makeRCtx();
-			expect(handleEmfPlusStateRecord(rCtx, 0xffff, 0, 8, 8)).toBeFalsy();
+			expect(handleEmfPlusStateRecord(rCtx, 0xffff, 0, 8, 8)).toBe(false);
 		});
 
 		// -- SETWORLDTRANSFORM --
@@ -255,7 +256,7 @@ describe('emf-plus-state-handlers', () => {
 					rCtx.view.setFloat32(d + i * 4, vals[i], true);
 				}
 				const result = handleEmfPlusStateRecord(rCtx, EMFPLUS_SETWORLDTRANSFORM, 0, d, 24);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				expect(rCtx.worldTransform[0]).toBeCloseTo(2);
 				expect(rCtx.worldTransform[3]).toBeCloseTo(3);
 				expect(rCtx.worldTransform[4]).toBeCloseTo(10);
@@ -443,7 +444,7 @@ describe('emf-plus-state-handlers', () => {
 				const d = 8;
 				rCtx.view.setFloat32(d, 5, true);
 				rCtx.view.setFloat32(d + 4, 10, true);
-				expect(handleEmfPlusStateRecord(rCtx, EMFPLUS_OFFSETCLIP, 0, d, 8)).toBeTruthy();
+				expect(handleEmfPlusStateRecord(rCtx, EMFPLUS_OFFSETCLIP, 0, d, 8)).toBe(true);
 			});
 		});
 
@@ -457,7 +458,7 @@ describe('emf-plus-state-handlers', () => {
 				['SETCOMPOSITINGQUALITY', EMFPLUS_SETCOMPOSITINGQUALITY],
 			])('%s returns true', (_name, recType) => {
 				const rCtx = makeRCtx();
-				expect(handleEmfPlusStateRecord(rCtx, recType, 0, 8, 0)).toBeTruthy();
+				expect(handleEmfPlusStateRecord(rCtx, recType, 0, 8, 0)).toBe(true);
 			});
 		});
 	});

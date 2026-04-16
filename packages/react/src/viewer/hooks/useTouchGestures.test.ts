@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import {
 	getTouchDistance,
@@ -212,28 +213,26 @@ describe('long-press movement cancellation', () => {
 	}
 
 	it('no cancellation when finger stays still', () => {
-		expect(shouldCancelLongPress(100, 100, 100, 100)).toBeFalsy();
+		expect(shouldCancelLongPress(100, 100, 100, 100)).toBe(false);
 	});
 
 	it('no cancellation within tolerance', () => {
-		expect(shouldCancelLongPress(100, 100, 105, 105)).toBeFalsy();
+		expect(shouldCancelLongPress(100, 100, 105, 105)).toBe(false);
 	});
 
 	it('cancels when finger moves beyond tolerance horizontally', () => {
-		expect(shouldCancelLongPress(100, 100, 111, 100)).toBeTruthy();
+		expect(shouldCancelLongPress(100, 100, 111, 100)).toBe(true);
 	});
 
 	it('cancels when finger moves beyond tolerance vertically', () => {
-		expect(shouldCancelLongPress(100, 100, 100, 111)).toBeTruthy();
+		expect(shouldCancelLongPress(100, 100, 100, 111)).toBe(true);
 	});
 
 	it('exactly at tolerance is not cancelled', () => {
-		expect(shouldCancelLongPress(100, 100, 100 + LONG_PRESS_MOVE_TOLERANCE_PX, 100)).toBeFalsy();
+		expect(shouldCancelLongPress(100, 100, 100 + LONG_PRESS_MOVE_TOLERANCE_PX, 100)).toBe(false);
 	});
 
 	it('just beyond tolerance is cancelled', () => {
-		expect(
-			shouldCancelLongPress(100, 100, 100 + LONG_PRESS_MOVE_TOLERANCE_PX + 1, 100),
-		).toBeTruthy();
+		expect(shouldCancelLongPress(100, 100, 100 + LONG_PRESS_MOVE_TOLERANCE_PX + 1, 100)).toBe(true);
 	});
 });

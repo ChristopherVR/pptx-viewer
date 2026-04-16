@@ -368,8 +368,8 @@ describe('ooxmlArcToSvg', () => {
 		expect(result).not.toBeNull();
 		expect(result!.svg).toMatch(/^A /);
 		// The endpoint should be a finite number
-		expect(Number.isFinite(result!.endX)).toBeTruthy();
-		expect(Number.isFinite(result!.endY)).toBeTruthy();
+		expect(Number.isFinite(result!.endX)).toBe(true);
+		expect(Number.isFinite(result!.endY)).toBe(true);
 	});
 
 	it('sets large-arc flag for sweeps > 180 degrees', () => {

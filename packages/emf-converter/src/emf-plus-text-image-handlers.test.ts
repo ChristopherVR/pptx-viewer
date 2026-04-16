@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import {
 	EMFPLUS_FILLPATH,
@@ -80,7 +81,7 @@ describe('emf-plus-text-image-handlers', () => {
 
 		it('returns false for unrecognized record type', () => {
 			const rCtx = makeRCtx();
-			expect(handleEmfPlusTextImageRecord(rCtx, 0xffff, 0, 8, 8)).toBeFalsy();
+			expect(handleEmfPlusTextImageRecord(rCtx, 0xffff, 0, 8, 8)).toBe(false);
 		});
 
 		// -- FILLPATH --
@@ -100,7 +101,7 @@ describe('emf-plus-text-image-handlers', () => {
 				rCtx.view.setUint32(d, 0xff000000, true); // brush (black)
 				const flags = 0x8000 | 5; // inline brush, pathId=5
 				const result = handleEmfPlusTextImageRecord(rCtx, EMFPLUS_FILLPATH, flags, d, 4);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				const ctx = rCtx.ctx as unknown as Record<string, { mock: { calls: unknown[][] } }>;
 				expect(ctx.fill).toHaveBeenCalledOnce();
 			});
@@ -116,7 +117,7 @@ describe('emf-plus-text-image-handlers', () => {
 
 			it('returns true if recDataSize < 4', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfPlusTextImageRecord(rCtx, EMFPLUS_FILLPATH, 0, 8, 2)).toBeTruthy();
+				expect(handleEmfPlusTextImageRecord(rCtx, EMFPLUS_FILLPATH, 0, 8, 2)).toBe(true);
 			});
 		});
 
@@ -201,7 +202,7 @@ describe('emf-plus-text-image-handlers', () => {
 
 			it('ignores if recDataSize < 28', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfPlusTextImageRecord(rCtx, EMFPLUS_DRAWSTRING, 0, 8, 20)).toBeTruthy();
+				expect(handleEmfPlusTextImageRecord(rCtx, EMFPLUS_DRAWSTRING, 0, 8, 20)).toBe(true);
 			});
 
 			it('applies bold/italic from font flags', () => {
@@ -259,7 +260,7 @@ describe('emf-plus-text-image-handlers', () => {
 
 			it('ignores if recDataSize < 16', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfPlusTextImageRecord(rCtx, EMFPLUS_DRAWDRIVERSTRING, 0, 8, 8)).toBeTruthy();
+				expect(handleEmfPlusTextImageRecord(rCtx, EMFPLUS_DRAWDRIVERSTRING, 0, 8, 8)).toBe(true);
 			});
 		});
 
@@ -316,12 +317,12 @@ describe('emf-plus-text-image-handlers', () => {
 				rCtx.view.setInt16(d + 28, 50, true);
 				rCtx.view.setInt16(d + 30, 50, true);
 				handleEmfPlusTextImageRecord(rCtx, EMFPLUS_DRAWIMAGE, 0x4000, d, 32);
-				expect(rCtx.deferredImages[0].isMetafile).toBeTruthy();
+				expect(rCtx.deferredImages[0].isMetafile).toBe(true);
 			});
 
 			it('ignores if recDataSize < 24', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfPlusTextImageRecord(rCtx, EMFPLUS_DRAWIMAGE, 0, 8, 16)).toBeTruthy();
+				expect(handleEmfPlusTextImageRecord(rCtx, EMFPLUS_DRAWIMAGE, 0, 8, 16)).toBe(true);
 			});
 		});
 
@@ -366,7 +367,7 @@ describe('emf-plus-text-image-handlers', () => {
 
 			it('ignores if recDataSize < 28', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfPlusTextImageRecord(rCtx, EMFPLUS_DRAWIMAGEPOINTS, 0, 8, 20)).toBeTruthy();
+				expect(handleEmfPlusTextImageRecord(rCtx, EMFPLUS_DRAWIMAGEPOINTS, 0, 8, 20)).toBe(true);
 			});
 		});
 	});

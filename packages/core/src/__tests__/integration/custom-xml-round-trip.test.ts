@@ -220,7 +220,7 @@ describe('custom XML Parts Round-Trip (GAP-S5)', () => {
 		const data2 = await handler2.load(bytes.buffer as ArrayBuffer);
 
 		// Should be empty or undefined
-		expect(!data2.customXmlParts || data2.customXmlParts.length === 0).toBeTruthy();
+		expect(!data2.customXmlParts || data2.customXmlParts.length === 0).toBe(true);
 	});
 
 	it('preserves custom XML files in ZIP output', async () => {

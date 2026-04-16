@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import {
 	svgPathToPolygons,
@@ -405,7 +406,7 @@ describe('mergeShapes', () => {
 
 	it('dispatches fragment operation', () => {
 		const result = mergeShapes('fragment', rect1, rect2);
-		expect(Array.isArray(result)).toBeTruthy();
+		expect(Array.isArray(result)).toBe(true);
 	});
 
 	it('dispatches combine operation', () => {

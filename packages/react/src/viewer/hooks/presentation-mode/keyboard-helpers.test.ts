@@ -147,20 +147,20 @@ describe('mapKeyToPresentationAction', () => {
 describe('isNavigationKey', () => {
 	it('returns true for all next-slide keys', () => {
 		for (const key of NEXT_SLIDE_KEYS) {
-			expect(isNavigationKey(key)).toBeTruthy();
+			expect(isNavigationKey(key)).toBe(true);
 		}
 	});
 
 	it('returns true for all prev-slide keys', () => {
 		for (const key of PREV_SLIDE_KEYS) {
-			expect(isNavigationKey(key)).toBeTruthy();
+			expect(isNavigationKey(key)).toBe(true);
 		}
 	});
 
 	it('returns false for non-navigation keys', () => {
-		expect(isNavigationKey('Escape')).toBeFalsy();
-		expect(isNavigationKey('l')).toBeFalsy();
-		expect(isNavigationKey('Enter')).toBeFalsy();
+		expect(isNavigationKey('Escape')).toBe(false);
+		expect(isNavigationKey('l')).toBe(false);
+		expect(isNavigationKey('Enter')).toBe(false);
 	});
 });
 

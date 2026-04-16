@@ -1,3 +1,4 @@
+import { expectTypeOf } from '@jest/globals';
 /**
  * Comprehensive tests for creating PPTX presentations from scratch.
  *
@@ -11,9 +12,8 @@
  * - Adding content to generated presentations
  * - Edge cases and error conditions
  */
-
 import JSZip from 'jszip';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { PptxHandler } from '../../PptxHandler';
 import type { PptxSlide } from '../../types/presentation';
@@ -49,7 +49,7 @@ describe('pptxHandler static factory methods', () => {
 		expect(handler).toBeInstanceOf(PptxHandler);
 		expect(data).toBeDefined();
 		expect(data.slides).toBeDefined();
-		expect(Array.isArray(data.slides)).toBeTruthy();
+		expect(Array.isArray(data.slides)).toBe(true);
 		expectTypeOf(createSlide).toBeFunction();
 	});
 
@@ -150,7 +150,7 @@ describe('initialSlideCount', () => {
 			// Each initial slide should be a valid parsed slide with an id
 			expect(slide.id).toBeDefined();
 			expect(slide.slideNumber).toBeGreaterThan(0);
-			expect(Array.isArray(slide.elements)).toBeTruthy();
+			expect(Array.isArray(slide.elements)).toBe(true);
 		}
 	});
 });
@@ -538,7 +538,7 @@ describe('adding content to presentations created from scratch', () => {
 
 		data.slides.push(slide);
 		expect(slide.backgroundColor).toBe('#F5F5F5');
-		expect(slide.hidden).toBeTruthy();
+		expect(slide.hidden).toBe(true);
 		expect(slide.sectionName).toBe('Introduction');
 	});
 

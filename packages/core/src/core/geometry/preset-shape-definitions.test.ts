@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import {
 	PRESET_SHAPE_DEFINITIONS,
@@ -14,7 +14,7 @@ import type { PresetShapeCategory } from './preset-shape-types';
 
 describe('pRESET_SHAPE_DEFINITIONS', () => {
 	it('is a non-empty array', () => {
-		expect(Array.isArray(PRESET_SHAPE_DEFINITIONS)).toBeTruthy();
+		expect(Array.isArray(PRESET_SHAPE_DEFINITIONS)).toBe(true);
 		expect(PRESET_SHAPE_DEFINITIONS.length).toBeGreaterThan(0);
 	});
 
@@ -61,15 +61,15 @@ describe('pRESET_SHAPE_DEFINITIONS', () => {
 
 	it('contains the fundamental shape types', () => {
 		const names = new Set(PRESET_SHAPE_DEFINITIONS.map((d) => d.name));
-		expect(names.has('rect')).toBeTruthy();
-		expect(names.has('roundRect')).toBeTruthy();
-		expect(names.has('ellipse')).toBeTruthy();
-		expect(names.has('triangle')).toBeTruthy();
-		expect(names.has('diamond')).toBeTruthy();
+		expect(names.has('rect')).toBe(true);
+		expect(names.has('roundRect')).toBe(true);
+		expect(names.has('ellipse')).toBe(true);
+		expect(names.has('triangle')).toBe(true);
+		expect(names.has('diamond')).toBe(true);
 	});
 
-	it('contains all 187 ECMA-376 preset shape definitions', () => {
-		expect(PRESET_SHAPE_DEFINITIONS).toHaveLength(187);
+	it('contains all 195 ECMA-376 preset shape definitions', () => {
+		expect(PRESET_SHAPE_DEFINITIONS).toHaveLength(195);
 	});
 
 	it('clip-path values are either undefined or non-empty strings', () => {
@@ -93,9 +93,9 @@ describe('pRIMARY_SHAPE_DEFINITIONS', () => {
 
 	it('contains basic shapes', () => {
 		const names = new Set(PRIMARY_SHAPE_DEFINITIONS.map((d) => d.name));
-		expect(names.has('rect')).toBeTruthy();
-		expect(names.has('ellipse')).toBeTruthy();
-		expect(names.has('triangle')).toBeTruthy();
+		expect(names.has('rect')).toBe(true);
+		expect(names.has('ellipse')).toBe(true);
+		expect(names.has('triangle')).toBe(true);
 	});
 });
 
@@ -110,8 +110,8 @@ describe('eXTENDED_SHAPE_DEFINITIONS', () => {
 
 	it('contains arrow and callout shapes', () => {
 		const categories = new Set(EXTENDED_SHAPE_DEFINITIONS.map((d) => d.category));
-		expect(categories.has('arrows')).toBeTruthy();
-		expect(categories.has('callouts')).toBeTruthy();
+		expect(categories.has('arrows')).toBe(true);
+		expect(categories.has('callouts')).toBe(true);
 	});
 });
 
@@ -167,32 +167,32 @@ describe('eCMA-376 completeness', () => {
 	const names = new Set(PRESET_SHAPE_DEFINITIONS.map((d) => d.name));
 
 	it('includes line shapes', () => {
-		expect(names.has('line')).toBeTruthy();
-		expect(names.has('lineInv')).toBeTruthy();
+		expect(names.has('line')).toBe(true);
+		expect(names.has('lineInv')).toBe(true);
 	});
 
 	it('includes straightConnector1', () => {
-		expect(names.has('straightConnector1')).toBeTruthy();
+		expect(names.has('straightConnector1')).toBe(true);
 	});
 
 	it('includes plus shape (ECMA-376 alias of cross)', () => {
-		expect(names.has('plus')).toBeTruthy();
-		expect(names.has('cross')).toBeTruthy();
+		expect(names.has('plus')).toBe(true);
+		expect(names.has('cross')).toBe(true);
 	});
 
 	it('includes rightTriangle (ECMA-376 alias of rtTriangle)', () => {
-		expect(names.has('rightTriangle')).toBeTruthy();
-		expect(names.has('rtTriangle')).toBeTruthy();
+		expect(names.has('rightTriangle')).toBe(true);
+		expect(names.has('rtTriangle')).toBe(true);
 	});
 
 	it('includes squareTabs and plaqueTabs', () => {
-		expect(names.has('squareTabs')).toBeTruthy();
-		expect(names.has('plaqueTabs')).toBeTruthy();
+		expect(names.has('squareTabs')).toBe(true);
+		expect(names.has('plaqueTabs')).toBe(true);
 	});
 
 	it('includes actionButtonBackPrevious and actionButtonForwardNext', () => {
-		expect(names.has('actionButtonBackPrevious')).toBeTruthy();
-		expect(names.has('actionButtonForwardNext')).toBeTruthy();
+		expect(names.has('actionButtonBackPrevious')).toBe(true);
+		expect(names.has('actionButtonForwardNext')).toBe(true);
 	});
 
 	it('covers all ECMA-376 preset geometry names', () => {

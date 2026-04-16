@@ -128,6 +128,6 @@ describe('iNSTANT sentinel', () => {
 	});
 
 	it('should set outgoingOnTop to true', () => {
-		expect(INSTANT.outgoingOnTop).toBeTruthy();
+		expect(INSTANT.outgoingOnTop).toBe(true);
 	});
 });

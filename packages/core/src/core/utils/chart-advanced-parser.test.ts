@@ -133,8 +133,8 @@ describe('parseSeriesTrendlines', () => {
 			},
 		};
 		const result = parseSeriesTrendlines(seriesNode, xmlLookup, colorParser);
-		expect(result[0].displayRSq).toBeTruthy();
-		expect(result[0].displayEq).toBeTruthy();
+		expect(result[0].displayRSq).toBe(true);
+		expect(result[0].displayEq).toBe(true);
 	});
 
 	it('skips trendlines with unknown type', () => {
@@ -326,8 +326,8 @@ describe('parseDataTable', () => {
 			},
 		};
 		const result = parseDataTable(plotArea, xmlLookup);
-		expect(result!.showHorzBorder).toBeTruthy();
-		expect(result!.showKeys).toBeTruthy();
+		expect(result!.showHorzBorder).toBe(true);
+		expect(result!.showKeys).toBe(true);
 	});
 });
 

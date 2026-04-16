@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import {
 	EMR_SAVEDC,
@@ -88,7 +89,7 @@ describe('emf-gdi-state-handlers', () => {
 
 		it('returns false for an unrecognized record type', () => {
 			const rCtx = makeRCtx();
-			expect(handleEmfGdiStateRecord(rCtx, 0xffff, 0, 8, 8)).toBeFalsy();
+			expect(handleEmfGdiStateRecord(rCtx, 0xffff, 0, 8, 8)).toBe(false);
 		});
 
 		// -- EMR_SAVEDC / EMR_RESTOREDC --
@@ -97,7 +98,7 @@ describe('emf-gdi-state-handlers', () => {
 				const rCtx = makeRCtx();
 				rCtx.state.penColor = '#aabbcc';
 				const result = handleEmfGdiStateRecord(rCtx, EMR_SAVEDC, 0, 8, 8);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				expect(rCtx.stateStack).toHaveLength(1);
 				expect(rCtx.stateStack[0].penColor).toBe('#aabbcc');
 				expect((rCtx.ctx as unknown as Record<string, unknown>).save).toHaveBeenCalled();
@@ -152,7 +153,7 @@ describe('emf-gdi-state-handlers', () => {
 				rCtx.view.setUint8(dataOff + 1, 0x80);
 				rCtx.view.setUint8(dataOff + 2, 0x00);
 				const result = handleEmfGdiStateRecord(rCtx, EMR_SETTEXTCOLOR, 0, dataOff, 12);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				expect(rCtx.state.textColor).toBe('#ff8000');
 			});
 
@@ -220,17 +221,17 @@ describe('emf-gdi-state-handlers', () => {
 		describe('eMR_SETROP2 / EMR_SETSTRETCHBLTMODE / EMR_SETMITERLIMIT', () => {
 			it('returns true for EMR_SETROP2 (accepted, no visible state change)', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfGdiStateRecord(rCtx, EMR_SETROP2, 0, 8, 12)).toBeTruthy();
+				expect(handleEmfGdiStateRecord(rCtx, EMR_SETROP2, 0, 8, 12)).toBe(true);
 			});
 
 			it('returns true for EMR_SETSTRETCHBLTMODE', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfGdiStateRecord(rCtx, EMR_SETSTRETCHBLTMODE, 0, 8, 12)).toBeTruthy();
+				expect(handleEmfGdiStateRecord(rCtx, EMR_SETSTRETCHBLTMODE, 0, 8, 12)).toBe(true);
 			});
 
 			it('returns true for EMR_SETMITERLIMIT', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfGdiStateRecord(rCtx, EMR_SETMITERLIMIT, 0, 8, 12)).toBeTruthy();
+				expect(handleEmfGdiStateRecord(rCtx, EMR_SETMITERLIMIT, 0, 8, 12)).toBe(true);
 			});
 		});
 
@@ -242,7 +243,7 @@ describe('emf-gdi-state-handlers', () => {
 				rCtx.view.setInt32(dataOff, 2000, true);
 				rCtx.view.setInt32(dataOff + 4, 1500, true);
 				const result = handleEmfGdiStateRecord(rCtx, 9, 0, dataOff, 16);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				expect(rCtx.windowExt.cx).toBe(2000);
 				expect(rCtx.windowExt.cy).toBe(1500);
 			});
@@ -257,8 +258,8 @@ describe('emf-gdi-state-handlers', () => {
 				rCtx.view.setUint8(dataOff + 17, 0);
 				rCtx.view.setUint8(dataOff + 18, 0);
 				const result = handleEmfGdiStateRecord(rCtx, 38, 0, dataOff, 28);
-				expect(result).toBeTruthy();
-				expect(rCtx.objectTable.has(1)).toBeTruthy();
+				expect(result).toBe(true);
+				expect(rCtx.objectTable.has(1)).toBe(true);
 			});
 		});
 	});

@@ -130,7 +130,7 @@ describe('detectAndSetStrictConformance', () => {
 			},
 		};
 		harness.detectAndSetStrictConformance(xmlObj);
-		expect(harness.isStrictOoxml).toBeFalsy();
+		expect(harness.isStrictOoxml).toBe(false);
 	});
 
 	it('should set isStrictOoxml for strict XML', () => {
@@ -141,7 +141,7 @@ describe('detectAndSetStrictConformance', () => {
 			},
 		};
 		harness.detectAndSetStrictConformance(xmlObj);
-		expect(harness.isStrictOoxml).toBeTruthy();
+		expect(harness.isStrictOoxml).toBe(true);
 	});
 
 	it('should normalize strict namespace URIs in the input object', () => {
@@ -233,7 +233,7 @@ describe('restoreOriginalParser', () => {
 			data: 'http://purl.oclc.org/ooxml/test2',
 		});
 		expect(harness.parser).not.toBe(originalParser);
-		expect(harness.isStrictOoxml).toBeTruthy();
+		expect(harness.isStrictOoxml).toBe(true);
 	});
 });
 
@@ -260,12 +260,12 @@ describe('pptxHandlerRuntimeState default field values', () => {
 
 	it('should default eagerDecodeImages to true', () => {
 		const eagerDecodeImages = true;
-		expect(eagerDecodeImages).toBeTruthy();
+		expect(eagerDecodeImages).toBe(true);
 	});
 
 	it('should default isStrictOoxml to false', () => {
 		const isStrictOoxml = false;
-		expect(isStrictOoxml).toBeFalsy();
+		expect(isStrictOoxml).toBe(false);
 	});
 
 	it('should default rawSlideWidthEmu and rawSlideHeightEmu to 0', () => {

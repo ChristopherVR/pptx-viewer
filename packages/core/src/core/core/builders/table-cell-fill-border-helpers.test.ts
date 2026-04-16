@@ -50,7 +50,7 @@ describe('applyCellFillStyle — solid fill', () => {
 		};
 		const style: PptxTableCellStyle = {};
 		const result = applyCellFillStyle(cellProps, style, makeContext());
-		expect(result).toBeTruthy();
+		expect(result).toBe(true);
 		expect(style.fillMode).toBe('solid');
 		expect(style.backgroundColor).toBe('#FF0000');
 	});
@@ -58,7 +58,7 @@ describe('applyCellFillStyle — solid fill', () => {
 	it('returns false when no fill is present', () => {
 		const style: PptxTableCellStyle = {};
 		const result = applyCellFillStyle({}, style, makeContext());
-		expect(result).toBeFalsy();
+		expect(result).toBe(false);
 		expect(style.fillMode).toBeUndefined();
 	});
 
@@ -69,13 +69,13 @@ describe('applyCellFillStyle — solid fill', () => {
 		const style: PptxTableCellStyle = {};
 		// Our simple parseColor doesn't handle scheme colors
 		const result = applyCellFillStyle(cellProps, style, makeContext());
-		expect(result).toBeFalsy();
+		expect(result).toBe(false);
 	});
 
 	it('handles undefined cellProperties', () => {
 		const style: PptxTableCellStyle = {};
 		const result = applyCellFillStyle(undefined, style, makeContext());
-		expect(result).toBeFalsy();
+		expect(result).toBe(false);
 	});
 });
 
@@ -103,7 +103,7 @@ describe('applyCellFillStyle — gradient fill', () => {
 		};
 		const style: PptxTableCellStyle = {};
 		const result = applyCellFillStyle(cellProps, style, makeContext());
-		expect(result).toBeTruthy();
+		expect(result).toBe(true);
 		expect(style.fillMode).toBe('gradient');
 		// Falls back to first stop color for backgroundColor
 		expect(style.backgroundColor).toBe('#FF0000');
@@ -149,7 +149,7 @@ describe('applyCellFillStyle — pattern fill', () => {
 		};
 		const style: PptxTableCellStyle = {};
 		const result = applyCellFillStyle(cellProps, style, makeContext());
-		expect(result).toBeTruthy();
+		expect(result).toBe(true);
 		expect(style.fillMode).toBe('pattern');
 		expect(style.patternFillPreset).toBe('ltDnDiag');
 		expect(style.patternFillForeground).toBe('#FF0000');
@@ -163,7 +163,7 @@ describe('applyCellFillStyle — pattern fill', () => {
 		};
 		const style: PptxTableCellStyle = {};
 		const result = applyCellFillStyle(cellProps, style, makeContext());
-		expect(result).toBeTruthy();
+		expect(result).toBe(true);
 		expect(style.fillMode).toBe('pattern');
 		expect(style.patternFillPreset).toBe('dnDiag');
 	});
@@ -174,7 +174,7 @@ describe('applyCellFillStyle — pattern fill', () => {
 		};
 		const style: PptxTableCellStyle = {};
 		const result = applyCellFillStyle(cellProps, style, makeContext());
-		expect(result).toBeFalsy();
+		expect(result).toBe(false);
 	});
 });
 
@@ -185,7 +185,7 @@ describe('applyCellFillStyle — pattern fill', () => {
 describe('applyCellBorderStyle', () => {
 	it('returns false for undefined cellProperties', () => {
 		const style: PptxTableCellStyle = {};
-		expect(applyCellBorderStyle(undefined, style, makeContext())).toBeFalsy();
+		expect(applyCellBorderStyle(undefined, style, makeContext())).toBe(false);
 	});
 
 	it('applies top border width and color', () => {
@@ -197,7 +197,7 @@ describe('applyCellBorderStyle', () => {
 		};
 		const style: PptxTableCellStyle = {};
 		const result = applyCellBorderStyle(cellProps, style, makeContext());
-		expect(result).toBeTruthy();
+		expect(result).toBe(true);
 		// 12700 / 9525 ≈ 1.33 → Math.round = 1
 		expect(style.borderTopWidth).toBe(1);
 		expect(style.borderTopColor).toBe('#000000');
@@ -252,7 +252,7 @@ describe('applyCellBorderStyle', () => {
 		};
 		const style: PptxTableCellStyle = {};
 		const result = applyCellBorderStyle(cellProps, style, makeContext());
-		expect(result).toBeTruthy();
+		expect(result).toBe(true);
 		expect(style.borderDiagDownColor).toBe('#FF0000');
 		expect(style.borderDiagDownWidth).toBe(2);
 		expect(style.borderDiagUpColor).toBe('#0000FF');
@@ -264,7 +264,7 @@ describe('applyCellBorderStyle', () => {
 			'a:lnT': { '@_w': '0' },
 		};
 		const style: PptxTableCellStyle = {};
-		expect(applyCellBorderStyle(cellProps, style, makeContext())).toBeFalsy();
+		expect(applyCellBorderStyle(cellProps, style, makeContext())).toBe(false);
 	});
 });
 
@@ -275,7 +275,7 @@ describe('applyCellBorderStyle', () => {
 describe('applyCellMarginStyle', () => {
 	it('returns false for undefined cellProperties', () => {
 		const style: PptxTableCellStyle = {};
-		expect(applyCellMarginStyle(undefined, style, makeContext())).toBeFalsy();
+		expect(applyCellMarginStyle(undefined, style, makeContext())).toBe(false);
 	});
 
 	it('applies margins from a:tcMar', () => {
@@ -289,7 +289,7 @@ describe('applyCellMarginStyle', () => {
 		};
 		const style: PptxTableCellStyle = {};
 		const result = applyCellMarginStyle(cellProps, style, makeContext());
-		expect(result).toBeTruthy();
+		expect(result).toBe(true);
 		// 91440 / 9525 ≈ 9.6 → Math.round = 10
 		expect(style.marginLeft).toBe(10);
 		expect(style.marginRight).toBe(10);
@@ -305,7 +305,7 @@ describe('applyCellMarginStyle', () => {
 		};
 		const style: PptxTableCellStyle = {};
 		const result = applyCellMarginStyle(cellProps, style, makeContext());
-		expect(result).toBeTruthy();
+		expect(result).toBe(true);
 		// 95250 / 9525 = 10
 		expect(style.marginLeft).toBe(10);
 		// 47625 / 9525 = 5
@@ -332,6 +332,6 @@ describe('applyCellMarginStyle', () => {
 			},
 		};
 		const style: PptxTableCellStyle = {};
-		expect(applyCellMarginStyle(cellProps, style, makeContext())).toBeFalsy();
+		expect(applyCellMarginStyle(cellProps, style, makeContext())).toBe(false);
 	});
 });

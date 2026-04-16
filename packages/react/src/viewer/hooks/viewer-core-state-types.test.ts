@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../constants';
 import type { UseViewerCoreStateInput, ViewerCoreState } from './viewer-core-state-types';
@@ -87,7 +88,7 @@ describe('viewerCoreState defaults', () => {
 		};
 		expect(mockState.containerRef!.current).toBeNull();
 		expect(mockState.activeSlideIndexRef!.current).toBe(0);
-		expect(mockState.isDrawingRef!.current).toBeFalsy();
+		expect(mockState.isDrawingRef!.current).toBe(false);
 	});
 
 	it('viewerCoreState shape has expected primitive defaults', () => {
@@ -109,11 +110,11 @@ describe('viewerCoreState defaults', () => {
 			digitalSignatureCount: 0,
 		};
 		expect(mockState.mode).toBe('edit');
-		expect(mockState.loading).toBeTruthy();
+		expect(mockState.loading).toBe(true);
 		expect(mockState.error).toBeNull();
 		expect(mockState.slides).toStrictEqual([]);
 		expect(mockState.selectedElementId).toBeNull();
-		expect(mockState.isDirty).toBeFalsy();
+		expect(mockState.isDirty).toBe(false);
 		expect(mockState.digitalSignatureCount).toBe(0);
 	});
 

@@ -110,9 +110,9 @@ describe('isometric projection: surfaceColor', () => {
 		// Values at any t should be integer
 		for (const t of [0, 0.1, 0.33, 0.5, 0.67, 0.9, 1]) {
 			const c = surfaceColor(t);
-			expect(Number.isInteger(c.r)).toBeTruthy();
-			expect(Number.isInteger(c.g)).toBeTruthy();
-			expect(Number.isInteger(c.b)).toBeTruthy();
+			expect(Number.isInteger(c.r)).toBe(true);
+			expect(Number.isInteger(c.g)).toBe(true);
+			expect(Number.isInteger(c.b)).toBe(true);
 		}
 	});
 });

@@ -71,7 +71,7 @@ describe('comparePresentation', () => {
 		);
 		expect(result.changedCount).toBe(1);
 		const changes = result.diffs[0].changes;
-		expect(changes.some((c) => c.kind === 'added' && c.elementId === 'e2')).toBeTruthy();
+		expect(changes.some((c) => c.kind === 'added' && c.elementId === 'e2')).toBe(true);
 	});
 
 	it('should detect element removals within a slide', () => {
@@ -83,7 +83,7 @@ describe('comparePresentation', () => {
 		);
 		expect(result.changedCount).toBe(1);
 		const changes = result.diffs[0].changes;
-		expect(changes.some((c) => c.kind === 'removed' && c.elementId === 'e2')).toBeTruthy();
+		expect(changes.some((c) => c.kind === 'removed' && c.elementId === 'e2')).toBe(true);
 	});
 
 	it('should detect element moved', () => {
@@ -95,7 +95,7 @@ describe('comparePresentation', () => {
 		);
 		expect(result.changedCount).toBe(1);
 		const changes = result.diffs[0].changes;
-		expect(changes.some((c) => c.kind === 'moved')).toBeTruthy();
+		expect(changes.some((c) => c.kind === 'moved')).toBe(true);
 	});
 
 	it('should not detect moved when position change is within threshold (2px)', () => {
@@ -117,7 +117,7 @@ describe('comparePresentation', () => {
 		);
 		expect(result.changedCount).toBe(1);
 		const changes = result.diffs[0].changes;
-		expect(changes.some((c) => c.kind === 'resized')).toBeTruthy();
+		expect(changes.some((c) => c.kind === 'resized')).toBe(true);
 	});
 
 	it('should detect background color changes', () => {
@@ -128,7 +128,7 @@ describe('comparePresentation', () => {
 		);
 		expect(result.changedCount).toBe(1);
 		const changes = result.diffs[0].changes;
-		expect(changes.some((c) => c.elementId === '__background__')).toBeTruthy();
+		expect(changes.some((c) => c.elementId === '__background__')).toBe(true);
 	});
 
 	it('should detect speaker notes changes', () => {
@@ -139,7 +139,7 @@ describe('comparePresentation', () => {
 		);
 		expect(result.changedCount).toBe(1);
 		const changes = result.diffs[0].changes;
-		expect(changes.some((c) => c.elementId === '__notes__')).toBeTruthy();
+		expect(changes.some((c) => c.elementId === '__notes__')).toBe(true);
 	});
 
 	it('should report correct slide counts', () => {

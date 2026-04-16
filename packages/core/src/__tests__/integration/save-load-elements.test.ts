@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, beforeEach, expectTypeOf } from 'vitest';
 
 import {
 	createTextElement,
@@ -76,7 +77,7 @@ describe('text element round-trip', () => {
 
 		const { data: reloaded } = await saveAndReload(handler, data.slides);
 		expect(reloaded.slides).toHaveLength(1);
-		expect(slideContainsText(reloaded.slides[0], 'Hello Integration')).toBeTruthy();
+		expect(slideContainsText(reloaded.slides[0], 'Hello Integration')).toBe(true);
 	});
 
 	it('text with bold/italic styling survives round-trip', async () => {
@@ -97,7 +98,7 @@ describe('text element round-trip', () => {
 
 		const { data: reloaded } = await saveAndReload(handler, data.slides);
 		expect(reloaded.slides).toHaveLength(1);
-		expect(slideContainsText(reloaded.slides[0], 'Styled Text')).toBeTruthy();
+		expect(slideContainsText(reloaded.slides[0], 'Styled Text')).toBe(true);
 	});
 
 	it('rich text with multiple segments survives round-trip', async () => {
@@ -119,7 +120,7 @@ describe('text element round-trip', () => {
 		const hasAny =
 			slideContainsText(reloaded.slides[0], 'Bold Part') ||
 			slideContainsText(reloaded.slides[0], 'Normal Part');
-		expect(hasAny).toBeTruthy();
+		expect(hasAny).toBe(true);
 	});
 });
 
@@ -312,7 +313,7 @@ describe('multiple elements round-trip', () => {
 
 		const loadedTypes = new Set(shapes.map((s) => s.shapeType));
 		for (const st of shapeTypes) {
-			expect(loadedTypes.has(st)).toBeTruthy();
+			expect(loadedTypes.has(st)).toBe(true);
 		}
 	});
 });
@@ -418,7 +419,7 @@ describe('modify text content round-trip', () => {
 		}
 
 		const { data: reloaded } = await saveAndReload(handler, data.slides);
-		expect(slideContainsText(reloaded.slides[0], 'Changed Text')).toBeTruthy();
+		expect(slideContainsText(reloaded.slides[0], 'Changed Text')).toBe(true);
 	});
 
 	it('appending text to an existing element is preserved', async () => {
@@ -440,7 +441,7 @@ describe('modify text content round-trip', () => {
 		}
 
 		const { data: reloaded } = await saveAndReload(handler, data.slides);
-		expect(slideContainsText(reloaded.slides[0], 'Base Extended')).toBeTruthy();
+		expect(slideContainsText(reloaded.slides[0], 'Base Extended')).toBe(true);
 	});
 });
 
@@ -466,7 +467,7 @@ describe('add element then remove it round-trip', () => {
 		// Should have 2 text elements, not 3
 		expect(reloaded.slides[0].elements.length).toBeGreaterThanOrEqual(2);
 		// "Remove Me" should be absent
-		expect(slideContainsText(reloaded.slides[0], 'Remove Me')).toBeFalsy();
+		expect(slideContainsText(reloaded.slides[0], 'Remove Me')).toBe(false);
 	});
 
 	it('clearing all elements results in empty slide after reload', async () => {
@@ -483,7 +484,7 @@ describe('add element then remove it round-trip', () => {
 		const { data: reloaded } = await saveAndReload(handler, data.slides);
 		expect(reloaded.slides).toHaveLength(1);
 		// Elements should be empty or only contain layout-inherited ones
-		expect(slideContainsText(reloaded.slides[0], 'Gone')).toBeFalsy();
+		expect(slideContainsText(reloaded.slides[0], 'Gone')).toBe(false);
 	});
 });
 
@@ -571,9 +572,9 @@ describe('multiple slides round-trip', () => {
 		);
 
 		const { data: reloaded } = await saveAndReload(handler, data.slides);
-		expect(slideContainsText(reloaded.slides[0], 'Alpha')).toBeTruthy();
-		expect(slideContainsText(reloaded.slides[1], 'Bravo')).toBeTruthy();
-		expect(slideContainsText(reloaded.slides[2], 'Charlie')).toBeTruthy();
+		expect(slideContainsText(reloaded.slides[0], 'Alpha')).toBe(true);
+		expect(slideContainsText(reloaded.slides[1], 'Bravo')).toBe(true);
+		expect(slideContainsText(reloaded.slides[2], 'Charlie')).toBe(true);
 	});
 
 	it('slide numbers are sequential after reload with 3 slides', async () => {
@@ -616,7 +617,7 @@ describe('same element type on multiple slides', () => {
 		const { data: reloaded } = await saveAndReload(handler, data.slides);
 		expect(reloaded.slides).toHaveLength(3);
 		for (let i = 0; i < 3; i++) {
-			expect(slideContainsText(reloaded.slides[i], `TextOnSlide${i + 1}`)).toBeTruthy();
+			expect(slideContainsText(reloaded.slides[i], `TextOnSlide${i + 1}`)).toBe(true);
 		}
 	});
 
@@ -720,7 +721,7 @@ describe('pptxHandler.createBlank()', () => {
 
 		const { data: reloaded } = await saveAndReload(handler, data.slides);
 		expect(reloaded.slides).toHaveLength(1);
-		expect(slideContainsText(reloaded.slides[0], 'Via createBlank')).toBeTruthy();
+		expect(slideContainsText(reloaded.slides[0], 'Via createBlank')).toBe(true);
 	});
 
 	it('createBlank with custom theme colors works', async () => {
@@ -810,7 +811,7 @@ describe('additional round-trip scenarios', () => {
 		const hasLabel =
 			(shape?.text && shape.text.includes('Button Label')) ||
 			(shape?.textSegments && shape.textSegments.some((s) => s.text.includes('Button Label')));
-		expect(hasLabel).toBeTruthy();
+		expect(hasLabel).toBe(true);
 	});
 
 	it('empty text box survives round-trip', async () => {
@@ -884,7 +885,7 @@ describe('additional round-trip scenarios', () => {
 			.addText('Hidden slide', { x: 10, y: 10, width: 200, height: 40 })
 			.build();
 		data.slides.push(slide);
-		expect(slide.hidden).toBeTruthy();
+		expect(slide.hidden).toBe(true);
 	});
 
 	it('transition is set correctly on slide data', async () => {

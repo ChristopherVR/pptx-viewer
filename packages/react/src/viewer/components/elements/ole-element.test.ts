@@ -240,8 +240,8 @@ describe('oLE helper consistency', () => {
 		for (const t of types) {
 			const color = getOleTypeColor(t);
 			const label = getOleTypeLabel(t);
-			expect(color).toBeTruthy();
-			expect(label).toBeTruthy();
+			expect(color).toBe(true);
+			expect(label).toBe(true);
 		}
 	});
 

@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { BEVEL_TYPE_OPTIONS } from './bevel-type-options';
 
@@ -36,14 +37,14 @@ describe('bEVEL_TYPE_OPTIONS', () => {
 
 	it('every item has a non-empty value', () => {
 		for (const opt of BEVEL_TYPE_OPTIONS) {
-			expect(opt.value).toBeTruthy();
+			expect(opt.value).toBe(true);
 			expectTypeOf(opt.value).toBeString();
 		}
 	});
 
 	it('every item has a non-empty label', () => {
 		for (const opt of BEVEL_TYPE_OPTIONS) {
-			expect(opt.label).toBeTruthy();
+			expect(opt.label).toBe(true);
 			expectTypeOf(opt.label).toBeString();
 		}
 	});
@@ -74,7 +75,7 @@ describe('bEVEL_TYPE_OPTIONS', () => {
 			'softRound',
 		]);
 		for (const opt of BEVEL_TYPE_OPTIONS) {
-			expect(validBevelTypes.has(opt.value)).toBeTruthy();
+			expect(validBevelTypes.has(opt.value)).toBe(true);
 		}
 	});
 });

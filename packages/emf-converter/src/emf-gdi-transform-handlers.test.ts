@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import {
 	EMR_SETWINDOWEXTEX,
@@ -72,7 +73,7 @@ describe('emf-gdi-transform-handlers', () => {
 
 		it('returns false for unrecognized record type', () => {
 			const rCtx = makeRCtx();
-			expect(handleEmfTransformRecord(rCtx, 0xffff, 8, 16)).toBeFalsy();
+			expect(handleEmfTransformRecord(rCtx, 0xffff, 8, 16)).toBe(false);
 		});
 
 		// -- EMR_SETWINDOWEXTEX --
@@ -83,10 +84,10 @@ describe('emf-gdi-transform-handlers', () => {
 				rCtx.view.setInt32(d, 2000, true);
 				rCtx.view.setInt32(d + 4, 1500, true);
 				const result = handleEmfTransformRecord(rCtx, EMR_SETWINDOWEXTEX, d, 16);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				expect(rCtx.windowExt.cx).toBe(2000);
 				expect(rCtx.windowExt.cy).toBe(1500);
-				expect(rCtx.useMappingMode).toBeTruthy();
+				expect(rCtx.useMappingMode).toBe(true);
 			});
 
 			it('ignores if recSize < 16', () => {
@@ -141,12 +142,12 @@ describe('emf-gdi-transform-handlers', () => {
 				const rCtx = makeRCtx();
 				const d = 8;
 				rCtx.view.setUint32(d, 8, true); // MM_ISOTROPIC
-				expect(handleEmfTransformRecord(rCtx, EMR_SETMAPMODE, d, 12)).toBeTruthy();
+				expect(handleEmfTransformRecord(rCtx, EMR_SETMAPMODE, d, 12)).toBe(true);
 			});
 
 			it('ignores if recSize < 12', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfTransformRecord(rCtx, EMR_SETMAPMODE, 8, 8)).toBeTruthy();
+				expect(handleEmfTransformRecord(rCtx, EMR_SETMAPMODE, 8, 8)).toBe(true);
 			});
 		});
 

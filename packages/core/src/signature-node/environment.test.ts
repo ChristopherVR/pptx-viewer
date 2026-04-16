@@ -81,9 +81,9 @@ describe('getSignatureValidationPolicy', () => {
 
 	it('returns default false values when env vars not set', () => {
 		const policy = getSignatureValidationPolicy();
-		expect(policy.requireRevocationCheck).toBeFalsy();
-		expect(policy.failOnRevocationUnknown).toBeFalsy();
-		expect(policy.requireTimestamp).toBeFalsy();
+		expect(policy.requireRevocationCheck).toBe(false);
+		expect(policy.failOnRevocationUnknown).toBe(false);
+		expect(policy.requireTimestamp).toBe(false);
 	});
 
 	it('returns true when env vars are set to "1"', () => {
@@ -91,9 +91,9 @@ describe('getSignatureValidationPolicy', () => {
 		process.env['PPTX_VIEWER_FAIL_ON_REVOCATION_UNKNOWN'] = 'true';
 		process.env['PPTX_VIEWER_REQUIRE_TIMESTAMP'] = 'yes';
 		const policy = getSignatureValidationPolicy();
-		expect(policy.requireRevocationCheck).toBeTruthy();
-		expect(policy.failOnRevocationUnknown).toBeTruthy();
-		expect(policy.requireTimestamp).toBeTruthy();
+		expect(policy.requireRevocationCheck).toBe(true);
+		expect(policy.failOnRevocationUnknown).toBe(true);
+		expect(policy.requireTimestamp).toBe(true);
 	});
 });
 

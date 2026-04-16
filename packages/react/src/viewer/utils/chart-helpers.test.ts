@@ -134,7 +134,7 @@ describe('computeLogValueRange', () => {
 		expect(result.min).toBe(1);
 		expect(result.max).toBe(10);
 		expect(result.span).toBe(1);
-		expect(result.logScale).toBeTruthy();
+		expect(result.logScale).toBe(true);
 		expect(result.logBase).toBe(10);
 	});
 
@@ -143,7 +143,7 @@ describe('computeLogValueRange', () => {
 		const result = computeLogValueRange(series, 10);
 		expect(result.min).toBe(1);
 		expect(result.max).toBe(10);
-		expect(result.logScale).toBeTruthy();
+		expect(result.logScale).toBe(true);
 	});
 
 	it('should snap to power-of-base boundaries for base 10', () => {
@@ -154,7 +154,7 @@ describe('computeLogValueRange', () => {
 		expect(result.min).toBe(1);
 		expect(result.max).toBe(1000);
 		expect(result.span).toBeCloseTo(3, 10); // log10(1000) - log10(1) = 3
-		expect(result.logScale).toBeTruthy();
+		expect(result.logScale).toBe(true);
 		expect(result.logBase).toBe(10);
 	});
 
@@ -165,7 +165,7 @@ describe('computeLogValueRange', () => {
 		// 50 -> ceil(log2(50)) = 6, so max = 2^6 = 64
 		expect(result.min).toBe(2);
 		expect(result.max).toBe(64);
-		expect(result.logScale).toBeTruthy();
+		expect(result.logScale).toBe(true);
 		expect(result.logBase).toBe(2);
 	});
 
@@ -313,7 +313,7 @@ describe('findLogAxis', () => {
 		const result = findLogAxis(axes);
 		expect(result).toBeDefined();
 		expect(result?.axisType).toBe('valAx');
-		expect(result?.logScale).toBeTruthy();
+		expect(result?.logScale).toBe(true);
 		expect(result?.logBase).toBe(10);
 	});
 
@@ -359,7 +359,7 @@ describe('computeValueRangeForChart', () => {
 			{ axisType: 'valAx', logScale: true, logBase: 10 },
 		];
 		const result = computeValueRangeForChart(series, axes);
-		expect(result.logScale).toBeTruthy();
+		expect(result.logScale).toBe(true);
 		expect(result.logBase).toBe(10);
 		expect(result.min).toBe(1);
 		expect(result.max).toBe(1000);
@@ -369,7 +369,7 @@ describe('computeValueRangeForChart', () => {
 		const series: PptxChartSeries[] = [{ name: 'A', values: [3, 12, 50] }];
 		const axes: PptxChartAxisFormatting[] = [{ axisType: 'valAx', logScale: true, logBase: 2 }];
 		const result = computeValueRangeForChart(series, axes);
-		expect(result.logScale).toBeTruthy();
+		expect(result.logScale).toBe(true);
 		expect(result.logBase).toBe(2);
 		expect(result.min).toBe(2);
 		expect(result.max).toBe(64);

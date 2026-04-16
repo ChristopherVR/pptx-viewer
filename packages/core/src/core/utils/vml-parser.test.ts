@@ -9,27 +9,27 @@ import { VML_SHAPE_TAGS, parseVmlElement, parseVmlElements } from './vml-parser'
 
 describe('vML_SHAPE_TAGS', () => {
 	it('contains v:shape', () => {
-		expect(VML_SHAPE_TAGS.has('v:shape')).toBeTruthy();
+		expect(VML_SHAPE_TAGS.has('v:shape')).toBe(true);
 	});
 
 	it('contains v:rect', () => {
-		expect(VML_SHAPE_TAGS.has('v:rect')).toBeTruthy();
+		expect(VML_SHAPE_TAGS.has('v:rect')).toBe(true);
 	});
 
 	it('contains v:oval', () => {
-		expect(VML_SHAPE_TAGS.has('v:oval')).toBeTruthy();
+		expect(VML_SHAPE_TAGS.has('v:oval')).toBe(true);
 	});
 
 	it('contains v:line', () => {
-		expect(VML_SHAPE_TAGS.has('v:line')).toBeTruthy();
+		expect(VML_SHAPE_TAGS.has('v:line')).toBe(true);
 	});
 
 	it('contains v:roundrect', () => {
-		expect(VML_SHAPE_TAGS.has('v:roundrect')).toBeTruthy();
+		expect(VML_SHAPE_TAGS.has('v:roundrect')).toBe(true);
 	});
 
 	it('contains v:group', () => {
-		expect(VML_SHAPE_TAGS.has('v:group')).toBeTruthy();
+		expect(VML_SHAPE_TAGS.has('v:group')).toBe(true);
 	});
 });
 
@@ -191,7 +191,7 @@ describe('parseVmlElement - rotation and flip', () => {
 		};
 		const el = parseVmlElement('v:rect', node, 'test-', 0);
 		expect(el).not.toBeNull();
-		expect(el!.flipHorizontal).toBeTruthy();
+		expect(el!.flipHorizontal).toBe(true);
 	});
 
 	it('extracts vertical flip from style', () => {
@@ -200,7 +200,7 @@ describe('parseVmlElement - rotation and flip', () => {
 		};
 		const el = parseVmlElement('v:rect', node, 'test-', 0);
 		expect(el).not.toBeNull();
-		expect(el!.flipVertical).toBeTruthy();
+		expect(el!.flipVertical).toBe(true);
 	});
 });
 

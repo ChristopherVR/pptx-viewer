@@ -414,7 +414,7 @@ describe('pptxXmlBuilder Integration', () => {
 			const segments = data.slides[0].notesSegments!;
 			expect(segments).toHaveLength(5); // "Line A", \n, "Line B", \n, "Line C"
 			expect(segments[0].text).toBe('Line A');
-			expect(segments[1].isParagraphBreak).toBeTruthy();
+			expect(segments[1].isParagraphBreak).toBe(true);
 			expect(segments[2].text).toBe('Line B');
 		});
 	});

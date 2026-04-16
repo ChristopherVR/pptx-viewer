@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { HANDOUT_OPTIONS, radioClass } from './print-dialog-types';
 
@@ -17,7 +18,7 @@ describe('hANDOUT_OPTIONS', () => {
 
 	it('contains only positive integers', () => {
 		for (const opt of HANDOUT_OPTIONS) {
-			expect(Number.isInteger(opt)).toBeTruthy();
+			expect(Number.isInteger(opt)).toBe(true);
 			expect(opt).toBeGreaterThan(0);
 		}
 	});

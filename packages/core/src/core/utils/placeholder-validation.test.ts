@@ -31,7 +31,7 @@ describe('isValidPlaceholderType', () => {
 			'title',
 		];
 		for (const t of coreTypes) {
-			expect(isValidPlaceholderType(t)).toBeTruthy();
+			expect(isValidPlaceholderType(t)).toBe(true);
 		}
 	});
 
@@ -55,20 +55,20 @@ describe('isValidPlaceholderType', () => {
 			'fourObj',
 		];
 		for (const t of extendedTypes) {
-			expect(isValidPlaceholderType(t)).toBeTruthy();
+			expect(isValidPlaceholderType(t)).toBe(true);
 		}
 	});
 
 	it('returns false for invalid placeholder types', () => {
-		expect(isValidPlaceholderType('unknown')).toBeFalsy();
-		expect(isValidPlaceholderType('')).toBeFalsy();
-		expect(isValidPlaceholderType('header')).toBeFalsy();
-		expect(isValidPlaceholderType('TITLE')).toBeFalsy(); // case-sensitive
+		expect(isValidPlaceholderType('unknown')).toBe(false);
+		expect(isValidPlaceholderType('')).toBe(false);
+		expect(isValidPlaceholderType('header')).toBe(false);
+		expect(isValidPlaceholderType('TITLE')).toBe(false); // case-sensitive
 	});
 
 	it('returns false for undefined-like strings', () => {
-		expect(isValidPlaceholderType('undefined')).toBeFalsy();
-		expect(isValidPlaceholderType('null')).toBeFalsy();
+		expect(isValidPlaceholderType('undefined')).toBe(false);
+		expect(isValidPlaceholderType('null')).toBe(false);
 	});
 });
 
@@ -116,9 +116,9 @@ describe('getValidPlaceholderTypes', () => {
 
 	it('contains core types', () => {
 		const types = getValidPlaceholderTypes();
-		expect(types.has('title')).toBeTruthy();
-		expect(types.has('body')).toBeTruthy();
-		expect(types.has('sldNum')).toBeTruthy();
+		expect(types.has('title')).toBe(true);
+		expect(types.has('body')).toBe(true);
+		expect(types.has('sldNum')).toBe(true);
 	});
 
 	it('returns the same set on multiple calls (immutable)', () => {

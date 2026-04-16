@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, vi, afterEach, expectTypeOf } from 'vitest';
 
 import { dataUrlToBlobUrl } from './Model3DRenderer';
 

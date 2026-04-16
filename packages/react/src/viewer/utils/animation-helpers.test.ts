@@ -38,7 +38,7 @@ describe('resolveEffect', () => {
 		const result = resolveEffect(anim);
 		// May or may not have preset id 1 mapped for emph
 		// The test verifies it doesn't crash
-		expect(result === undefined || typeof result === 'string').toBeTruthy();
+		expect(result === undefined || typeof result === 'string').toBe(true);
 	});
 
 	it('should return undefined for path presetClass', () => {

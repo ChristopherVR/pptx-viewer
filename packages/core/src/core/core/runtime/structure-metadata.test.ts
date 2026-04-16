@@ -21,17 +21,17 @@ import { buildParagraphPropertiesXml, EMU_PER_PX } from './PptxHandlerRuntimeSav
 
 describe('placeholder-validation', () => {
 	it('should accept standard placeholder types', () => {
-		expect(isValidPlaceholderType('title')).toBeTruthy();
-		expect(isValidPlaceholderType('body')).toBeTruthy();
-		expect(isValidPlaceholderType('ctrTitle')).toBeTruthy();
-		expect(isValidPlaceholderType('sldNum')).toBeTruthy();
-		expect(isValidPlaceholderType('pic')).toBeTruthy();
+		expect(isValidPlaceholderType('title')).toBe(true);
+		expect(isValidPlaceholderType('body')).toBe(true);
+		expect(isValidPlaceholderType('ctrTitle')).toBe(true);
+		expect(isValidPlaceholderType('sldNum')).toBe(true);
+		expect(isValidPlaceholderType('pic')).toBe(true);
 	});
 
 	it('should reject invalid placeholder types', () => {
-		expect(isValidPlaceholderType('invalid')).toBeFalsy();
-		expect(isValidPlaceholderType('')).toBeFalsy();
-		expect(isValidPlaceholderType('TITLE')).toBeFalsy();
+		expect(isValidPlaceholderType('invalid')).toBe(false);
+		expect(isValidPlaceholderType('')).toBe(false);
+		expect(isValidPlaceholderType('TITLE')).toBe(false);
 	});
 
 	it('should normalize empty/undefined to body', () => {
@@ -48,8 +48,8 @@ describe('placeholder-validation', () => {
 	it('should return a complete set of valid types', () => {
 		const types = getValidPlaceholderTypes();
 		expect(types.size).toBeGreaterThan(15);
-		expect(types.has('title')).toBeTruthy();
-		expect(types.has('twoObj')).toBeTruthy();
+		expect(types.has('title')).toBe(true);
+		expect(types.has('twoObj')).toBe(true);
 	});
 });
 
@@ -121,12 +121,12 @@ describe('textStyle — new text property fields', () => {
 			smartTagClean: true,
 			bookmark: 'slide3',
 		};
-		expect(style.kumimoji).toBeTruthy();
-		expect(style.normalizeHeight).toBeTruthy();
-		expect(style.noProof).toBeFalsy();
-		expect(style.dirty).toBeTruthy();
-		expect(style.spellingError).toBeFalsy();
-		expect(style.smartTagClean).toBeTruthy();
+		expect(style.kumimoji).toBe(true);
+		expect(style.normalizeHeight).toBe(true);
+		expect(style.noProof).toBe(false);
+		expect(style.dirty).toBe(true);
+		expect(style.spellingError).toBe(false);
+		expect(style.smartTagClean).toBe(true);
 		expect(style.bookmark).toBe('slide3');
 	});
 
@@ -140,9 +140,9 @@ describe('textStyle — new text property fields', () => {
 		};
 		expect(style.hyperlinkInvalidUrl).toBe('https://broken.test');
 		expect(style.hyperlinkTargetFrame).toBe('_blank');
-		expect(style.hyperlinkHistory).toBeTruthy();
-		expect(style.hyperlinkHighlightClick).toBeFalsy();
-		expect(style.hyperlinkEndSound).toBeTruthy();
+		expect(style.hyperlinkHistory).toBe(true);
+		expect(style.hyperlinkHighlightClick).toBe(false);
+		expect(style.hyperlinkEndSound).toBe(true);
 	});
 
 	it('should accept paragraph extra fields', () => {
@@ -154,10 +154,10 @@ describe('textStyle — new text property fields', () => {
 			hangingPunctuation: true,
 		};
 		expect(style.defaultTabSize).toBe(72);
-		expect(style.eaLineBreak).toBeTruthy();
-		expect(style.latinLineBreak).toBeFalsy();
+		expect(style.eaLineBreak).toBe(true);
+		expect(style.latinLineBreak).toBe(false);
 		expect(style.fontAlignment).toBe('base');
-		expect(style.hangingPunctuation).toBeTruthy();
+		expect(style.hangingPunctuation).toBe(true);
 	});
 
 	it('should accept body extra fields', () => {
@@ -170,13 +170,13 @@ describe('textStyle — new text property fields', () => {
 			upright: false,
 			compatibleLineSpacing: true,
 		};
-		expect(style.spaceFirstLastParagraph).toBeTruthy();
-		expect(style.rtlColumns).toBeFalsy();
-		expect(style.fromWordArt).toBeTruthy();
-		expect(style.anchorCenter).toBeFalsy();
-		expect(style.forceAntiAlias).toBeTruthy();
-		expect(style.upright).toBeFalsy();
-		expect(style.compatibleLineSpacing).toBeTruthy();
+		expect(style.spaceFirstLastParagraph).toBe(true);
+		expect(style.rtlColumns).toBe(false);
+		expect(style.fromWordArt).toBe(true);
+		expect(style.anchorCenter).toBe(false);
+		expect(style.forceAntiAlias).toBe(true);
+		expect(style.upright).toBe(false);
+		expect(style.compatibleLineSpacing).toBe(true);
 	});
 
 	it('should accept extended align types', () => {

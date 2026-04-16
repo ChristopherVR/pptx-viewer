@@ -1,5 +1,6 @@
+import { expectTypeOf } from '@jest/globals';
 import { DOMParser } from '@xmldom/xmldom';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import {
 	getNodeLocalName,

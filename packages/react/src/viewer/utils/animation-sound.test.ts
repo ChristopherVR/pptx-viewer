@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, vi, beforeEach, expectTypeOf } from 'vitest';
 
 import { playAnimationSound, stopAnimationSound } from './animation-sound';
 

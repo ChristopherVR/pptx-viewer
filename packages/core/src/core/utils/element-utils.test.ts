@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import type { PptxElement } from '../types';
 import {
@@ -29,7 +30,7 @@ describe('isTemplateElement', () => {
 			width: 100,
 			height: 50,
 		} as PptxElement;
-		expect(isTemplateElement(el)).toBeTruthy();
+		expect(isTemplateElement(el)).toBe(true);
 	});
 
 	it('returns true for master-prefixed IDs', () => {
@@ -41,7 +42,7 @@ describe('isTemplateElement', () => {
 			width: 100,
 			height: 50,
 		} as PptxElement;
-		expect(isTemplateElement(el)).toBeTruthy();
+		expect(isTemplateElement(el)).toBe(true);
 	});
 
 	it('returns false for regular element IDs', () => {
@@ -53,12 +54,12 @@ describe('isTemplateElement', () => {
 			width: 100,
 			height: 50,
 		} as PptxElement;
-		expect(isTemplateElement(el)).toBeFalsy();
+		expect(isTemplateElement(el)).toBe(false);
 	});
 
 	it('returns false for empty IDs', () => {
 		const el = { id: '', type: 'shape', x: 0, y: 0, width: 100, height: 50 } as PptxElement;
-		expect(isTemplateElement(el)).toBeFalsy();
+		expect(isTemplateElement(el)).toBe(false);
 	});
 });
 
@@ -69,7 +70,7 @@ describe('isTemplateElement', () => {
 describe('isEditableTextElement', () => {
 	it('returns true for text elements', () => {
 		const el = { id: 't1', type: 'text', x: 0, y: 0, width: 100, height: 50 } as PptxElement;
-		expect(isEditableTextElement(el)).toBeTruthy();
+		expect(isEditableTextElement(el)).toBe(true);
 	});
 
 	it('returns true for shapes with text', () => {
@@ -82,7 +83,7 @@ describe('isEditableTextElement', () => {
 			height: 50,
 			text: 'Hello',
 		} as PptxElement;
-		expect(isEditableTextElement(el)).toBeTruthy();
+		expect(isEditableTextElement(el)).toBe(true);
 	});
 
 	it('returns true for shapes with textSegments', () => {
@@ -95,22 +96,22 @@ describe('isEditableTextElement', () => {
 			height: 50,
 			textSegments: [{ text: 'Hi', style: {} }],
 		} as PptxElement;
-		expect(isEditableTextElement(el)).toBeTruthy();
+		expect(isEditableTextElement(el)).toBe(true);
 	});
 
 	it('returns false for image elements', () => {
 		const el = { id: 'img1', type: 'image', x: 0, y: 0, width: 100, height: 50 } as PptxElement;
-		expect(isEditableTextElement(el)).toBeFalsy();
+		expect(isEditableTextElement(el)).toBe(false);
 	});
 
 	it('returns false for chart elements', () => {
 		const el = { id: 'ch1', type: 'chart', x: 0, y: 0, width: 100, height: 50 } as PptxElement;
-		expect(isEditableTextElement(el)).toBeFalsy();
+		expect(isEditableTextElement(el)).toBe(false);
 	});
 
 	it('returns false for connector elements', () => {
 		const el = { id: 'c1', type: 'connector', x: 0, y: 0, width: 100, height: 50 } as PptxElement;
-		expect(isEditableTextElement(el)).toBeFalsy();
+		expect(isEditableTextElement(el)).toBe(false);
 	});
 });
 
@@ -167,52 +168,52 @@ describe('getElementLabel', () => {
 describe('shouldRenderFallbackLabel', () => {
 	it('returns false for text elements', () => {
 		const el = { type: 'text' } as PptxElement;
-		expect(shouldRenderFallbackLabel(el, true)).toBeFalsy();
+		expect(shouldRenderFallbackLabel(el, true)).toBe(false);
 	});
 
 	it('returns false for shapes', () => {
 		const el = { type: 'shape' } as PptxElement;
-		expect(shouldRenderFallbackLabel(el, false)).toBeFalsy();
+		expect(shouldRenderFallbackLabel(el, false)).toBe(false);
 	});
 
 	it('returns false for connectors', () => {
 		const el = { type: 'connector' } as PptxElement;
-		expect(shouldRenderFallbackLabel(el, false)).toBeFalsy();
+		expect(shouldRenderFallbackLabel(el, false)).toBe(false);
 	});
 
 	it('returns false for images', () => {
 		const el = { type: 'image' } as PptxElement;
-		expect(shouldRenderFallbackLabel(el, false)).toBeFalsy();
+		expect(shouldRenderFallbackLabel(el, false)).toBe(false);
 	});
 
 	it('returns false for tables', () => {
 		const el = { type: 'table' } as PptxElement;
-		expect(shouldRenderFallbackLabel(el, false)).toBeFalsy();
+		expect(shouldRenderFallbackLabel(el, false)).toBe(false);
 	});
 
 	it('returns true for charts', () => {
 		const el = { type: 'chart' } as PptxElement;
-		expect(shouldRenderFallbackLabel(el, false)).toBeTruthy();
+		expect(shouldRenderFallbackLabel(el, false)).toBe(true);
 	});
 
 	it('returns true for smartArt', () => {
 		const el = { type: 'smartArt' } as PptxElement;
-		expect(shouldRenderFallbackLabel(el, false)).toBeTruthy();
+		expect(shouldRenderFallbackLabel(el, false)).toBe(true);
 	});
 
 	it('returns true for ole', () => {
 		const el = { type: 'ole' } as PptxElement;
-		expect(shouldRenderFallbackLabel(el, false)).toBeTruthy();
+		expect(shouldRenderFallbackLabel(el, false)).toBe(true);
 	});
 
 	it('returns true for media', () => {
 		const el = { type: 'media' } as PptxElement;
-		expect(shouldRenderFallbackLabel(el, false)).toBeTruthy();
+		expect(shouldRenderFallbackLabel(el, false)).toBe(true);
 	});
 
 	it('returns true for unknown elements', () => {
 		const el = { type: 'unknown' } as PptxElement;
-		expect(shouldRenderFallbackLabel(el, false)).toBeTruthy();
+		expect(shouldRenderFallbackLabel(el, false)).toBe(true);
 	});
 });
 
@@ -284,7 +285,7 @@ describe('createUniformTextSegments', () => {
 		const style = { bold: true, fontSize: 18 };
 		const segments = createUniformTextSegments('X', style);
 		segments[0].style.bold = false;
-		expect(style.bold).toBeTruthy();
+		expect(style.bold).toBe(true);
 	});
 
 	it('provides an empty style object when style is undefined', () => {
@@ -301,7 +302,7 @@ describe('createUniformTextSegments', () => {
 describe('createEditorId', () => {
 	it('starts with the given prefix', () => {
 		const id = createEditorId('shape');
-		expect(id.startsWith('shape-')).toBeTruthy();
+		expect(id.startsWith('shape-')).toBe(true);
 	});
 
 	it('generates unique IDs on successive calls', () => {
@@ -315,7 +316,7 @@ describe('createEditorId', () => {
 		const parts = id.split('-');
 		expect(parts.length).toBeGreaterThanOrEqual(3);
 		const timestamp = Number(parts[1]);
-		expect(Number.isFinite(timestamp)).toBeTruthy();
+		expect(Number.isFinite(timestamp)).toBe(true);
 		expect(timestamp).toBeGreaterThan(0);
 	});
 });
@@ -434,14 +435,14 @@ describe('getCommentMarkerPosition', () => {
 
 	it('handles NaN coordinates by using fallback', () => {
 		const pos = getCommentMarkerPosition({ x: NaN, y: NaN }, 0, 1280, 720);
-		expect(Number.isFinite(pos.x)).toBeTruthy();
-		expect(Number.isFinite(pos.y)).toBeTruthy();
+		expect(Number.isFinite(pos.x)).toBe(true);
+		expect(Number.isFinite(pos.y)).toBe(true);
 	});
 
 	it('handles Infinity coordinates by using fallback', () => {
 		const pos = getCommentMarkerPosition({ x: Infinity, y: -Infinity }, 0, 1280, 720);
-		expect(Number.isFinite(pos.x)).toBeTruthy();
-		expect(Number.isFinite(pos.y)).toBeTruthy();
+		expect(Number.isFinite(pos.x)).toBe(true);
+		expect(Number.isFinite(pos.y)).toBe(true);
 	});
 
 	it('wraps to next row after 4 columns', () => {

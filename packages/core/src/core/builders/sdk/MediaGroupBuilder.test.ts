@@ -75,22 +75,22 @@ describe('mediaBuilder', () => {
 
 	it('.autoPlay() defaults to true', () => {
 		const el = MediaBuilder.video(VIDEO_DATA_URL).autoPlay().build();
-		expect(el.autoPlay).toBeTruthy();
+		expect(el.autoPlay).toBe(true);
 	});
 
 	it('.autoPlay(false) sets false', () => {
 		const el = MediaBuilder.video(VIDEO_DATA_URL).autoPlay(false).build();
-		expect(el.autoPlay).toBeFalsy();
+		expect(el.autoPlay).toBe(false);
 	});
 
 	it('.loop() defaults to true', () => {
 		const el = MediaBuilder.audio(AUDIO_DATA_URL).loop().build();
-		expect(el.loop).toBeTruthy();
+		expect(el.loop).toBe(true);
 	});
 
 	it('.loop(false) sets false', () => {
 		const el = MediaBuilder.audio(AUDIO_DATA_URL).loop(false).build();
-		expect(el.loop).toBeFalsy();
+		expect(el.loop).toBe(false);
 	});
 
 	it('.volume(0.5) sets volume', () => {
@@ -168,8 +168,8 @@ describe('mediaBuilder', () => {
 		expect(el.width).toBe(640);
 		expect(el.height).toBe(360);
 		expect(el.rotation).toBe(15);
-		expect(el.autoPlay).toBeTruthy();
-		expect(el.loop).toBeTruthy();
+		expect(el.autoPlay).toBe(true);
+		expect(el.loop).toBe(true);
 		expect(el.volume).toBe(0.8);
 		expect(el.trimStartMs).toBe(500);
 		expect(el.trimEndMs).toBe(10000);
@@ -299,12 +299,12 @@ describe('groupBuilder', () => {
 describe('textBuilder.strikethrough', () => {
 	it('.strikethrough() defaults to true', () => {
 		const el = TextBuilder.create('Deprecated').strikethrough().build();
-		expect(el.textStyle?.strikethrough).toBeTruthy();
+		expect(el.textStyle?.strikethrough).toBe(true);
 	});
 
 	it('.strikethrough(false) sets false', () => {
 		const el = TextBuilder.create('Active').strikethrough(false).build();
-		expect(el.textStyle?.strikethrough).toBeFalsy();
+		expect(el.textStyle?.strikethrough).toBe(false);
 	});
 
 	it('appears in the built element and chains with other styles', () => {
@@ -313,7 +313,7 @@ describe('textBuilder.strikethrough', () => {
 			.strikethrough()
 			.color('#999999')
 			.build();
-		expect(el.textStyle?.strikethrough).toBeTruthy();
+		expect(el.textStyle?.strikethrough).toBe(true);
 		expect(el.textStyle?.fontSize).toBe(16);
 		expect(el.textStyle?.color).toBe('#999999');
 	});
@@ -373,22 +373,22 @@ describe('shapeBuilder convenience fills', () => {
 describe('tableBuilder row/col highlighting', () => {
 	it('.lastRow() defaults to true', () => {
 		const el = TableBuilder.create().addRow(['Total', '100']).lastRow().build();
-		expect(el.tableData.lastRow).toBeTruthy();
+		expect(el.tableData.lastRow).toBe(true);
 	});
 
 	it('.firstCol() defaults to true', () => {
 		const el = TableBuilder.create().addRow(['Category', 'Value']).firstCol().build();
-		expect(el.tableData.firstCol).toBeTruthy();
+		expect(el.tableData.firstCol).toBe(true);
 	});
 
 	it('.lastCol() defaults to true', () => {
 		const el = TableBuilder.create().addRow(['Name', 'Total']).lastCol().build();
-		expect(el.tableData.lastCol).toBeTruthy();
+		expect(el.tableData.lastCol).toBe(true);
 	});
 
 	it('.lastRow(false) sets false', () => {
 		const el = TableBuilder.create().addRow(['A', 'B']).lastRow(false).build();
-		expect(el.tableData.lastRow).toBeFalsy();
+		expect(el.tableData.lastRow).toBe(false);
 	});
 
 	it('all highlighting flags can be combined', () => {
@@ -400,9 +400,9 @@ describe('tableBuilder row/col highlighting', () => {
 			.firstCol()
 			.lastCol()
 			.build();
-		expect(el.tableData.firstRowHeader).toBeTruthy();
-		expect(el.tableData.lastRow).toBeTruthy();
-		expect(el.tableData.firstCol).toBeTruthy();
-		expect(el.tableData.lastCol).toBeTruthy();
+		expect(el.tableData.firstRowHeader).toBe(true);
+		expect(el.tableData.lastRow).toBe(true);
+		expect(el.tableData.firstCol).toBe(true);
+		expect(el.tableData.lastCol).toBe(true);
 	});
 });

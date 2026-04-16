@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, beforeEach, expectTypeOf } from 'vitest';
 
 import type { CustomGeometryPoint } from '../types';
 import { FreeformPathBuilder, douglasPeucker, catmullRomToBezier } from './freeform-builder';
@@ -213,12 +214,12 @@ describe('freeformPathBuilder', () => {
 	// -- close / isClosed ----------------------------------------------------
 
 	it('is not closed by default', () => {
-		expect(builder.isClosed()).toBeFalsy();
+		expect(builder.isClosed()).toBe(false);
 	});
 
 	it('close() marks the path as closed', () => {
 		builder.close();
-		expect(builder.isClosed()).toBeTruthy();
+		expect(builder.isClosed()).toBe(true);
 	});
 
 	it('close() returns this for chaining', () => {
@@ -264,16 +265,16 @@ describe('freeformPathBuilder', () => {
 
 	it('isSmoothed() reflects smooth state', () => {
 		builder.addPoint(0, 0).addPoint(10, 10);
-		expect(builder.isSmoothed()).toBeFalsy();
+		expect(builder.isSmoothed()).toBe(false);
 		builder.smooth();
-		expect(builder.isSmoothed()).toBeTruthy();
+		expect(builder.isSmoothed()).toBe(true);
 	});
 
 	it('adding a point after smooth invalidates smoothed state', () => {
 		builder.addPoint(0, 0).addPoint(10, 10).smooth();
-		expect(builder.isSmoothed()).toBeTruthy();
+		expect(builder.isSmoothed()).toBe(true);
 		builder.addPoint(20, 20);
-		expect(builder.isSmoothed()).toBeFalsy();
+		expect(builder.isSmoothed()).toBe(false);
 		// Should fall back to L commands
 		expect(builder.toSvgPath()).toMatch(/L /);
 	});
@@ -322,9 +323,9 @@ describe('freeformPathBuilder', () => {
 
 	it('simplify invalidates smoothed state', () => {
 		builder.addPoint(0, 0).addPoint(50, 100).addPoint(100, 0).smooth();
-		expect(builder.isSmoothed()).toBeTruthy();
+		expect(builder.isSmoothed()).toBe(true);
 		builder.simplify(1);
-		expect(builder.isSmoothed()).toBeFalsy();
+		expect(builder.isSmoothed()).toBe(false);
 	});
 
 	// -- toCustomGeometryPaths (polyline mode) --------------------------------

@@ -1,3 +1,4 @@
+import { expectTypeOf } from '@jest/globals';
 /**
  * Tests for SVG print serializer utilities.
  *
@@ -6,7 +7,7 @@
  * (collectInlineStyles, collectImageUrls, serializeElementToSvg) require
  * a browser/jsdom environment and are validated via their pure sub-functions.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import {
 	escapeXml,
@@ -326,8 +327,8 @@ describe('svgPrintOptions type', () => {
 			customCss: '.test { color: red; }',
 		};
 		expect(opts.backgroundColor).toBe('#FFFFFF');
-		expect(opts.inlineStyles).toBeTruthy();
-		expect(opts.embedImages).toBeTruthy();
+		expect(opts.inlineStyles).toBe(true);
+		expect(opts.embedImages).toBe(true);
 		expect(opts.customCss).toBe('.test { color: red; }');
 	});
 

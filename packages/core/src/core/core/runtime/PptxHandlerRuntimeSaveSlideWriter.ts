@@ -104,7 +104,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.slideCommentPartWriter.writeComments({
 			slide,
 			saveState: saveSession,
-			existingCommentRelationship: existingCommentRelationship,
+			existingCommentRelationship,
 			relationshipRegistry: slideRelationshipRegistry,
 			slideCommentRelationshipType: constants.slideCommentRelationshipType,
 			zip: this.zip,

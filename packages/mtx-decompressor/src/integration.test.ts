@@ -14,7 +14,8 @@
  */
 import { describe, it, expect } from 'vitest';
 
-import { parseCTF, type SFNTContainer } from './ctf-parser';
+import { parseCTF } from './ctf-parser';
+import type { SFNTContainer } from './ctf-parser';
 import { decompressMtx, decompressEotFont } from './mtx-decompress';
 import { dumpContainer } from './sfnt-builder';
 import { Stream } from './stream';
@@ -34,7 +35,9 @@ function writeTag(s: Stream, tag: string): void {
 /** Largest power of 2 <= n. */
 function maxPow2(n: number): number {
 	let ret = 0;
-	while (1 << (ret + 1) <= n) ret++;
+	while (1 << (ret + 1) <= n) {
+		ret++;
+	}
 	return 1 << ret;
 }
 
@@ -433,7 +436,7 @@ function runCTFPipeline(
 // Tests
 // ===================================================================
 
-describe('CTF integration — simple glyph (triangle)', () => {
+describe('cTF integration — simple glyph (triangle)', () => {
 	const { data: glyphData, expectedDeltas } = buildTriangleGlyphData();
 	const head = buildHeadTable(0); // short loca
 	const maxp = buildMaxpTable(1, 3, 1);
@@ -562,7 +565,7 @@ describe('CTF integration — simple glyph (triangle)', () => {
 	});
 });
 
-describe('CTF integration — rectangle glyph (mixed triplet encodings)', () => {
+describe('cTF integration — rectangle glyph (mixed triplet encodings)', () => {
 	const { data: glyphData, expectedDeltas } = buildRectangleGlyphData();
 	const head = buildHeadTable(0);
 	const maxp = buildMaxpTable(1, 4, 1);
@@ -616,7 +619,7 @@ describe('CTF integration — rectangle glyph (mixed triplet encodings)', () => 
 	});
 });
 
-describe('CTF integration — multiple glyphs', () => {
+describe('cTF integration — multiple glyphs', () => {
 	const glyphData = buildMultiGlyphData();
 	const head = buildHeadTable(1); // long loca format
 	const maxp = buildMaxpTable(2, 3, 1);
@@ -676,7 +679,7 @@ describe('CTF integration — multiple glyphs', () => {
 	});
 });
 
-describe('CTF integration — composite glyph', () => {
+describe('cTF integration — composite glyph', () => {
 	const glyphData = buildCompositeGlyphData();
 	const head = buildHeadTable(0);
 	const maxp = buildMaxpTable(2, 3, 1, 0, 1);
@@ -727,7 +730,7 @@ describe('CTF integration — composite glyph', () => {
 	});
 });
 
-describe('CTF integration — explicit bbox glyph (0x7FFF)', () => {
+describe('cTF integration — explicit bbox glyph (0x7FFF)', () => {
 	const glyphData = buildExplicitBboxGlyphData();
 	const head = buildHeadTable(0);
 	const maxp = buildMaxpTable(1, 2, 1);
@@ -755,7 +758,7 @@ describe('CTF integration — explicit bbox glyph (0x7FFF)', () => {
 	});
 });
 
-describe('CTF integration — full TrueType validation', () => {
+describe('cTF integration — full TrueType validation', () => {
 	const { data: glyphData } = buildTriangleGlyphData();
 	const head = buildHeadTable(0);
 	const maxp = buildMaxpTable(1, 3, 1);
@@ -792,7 +795,7 @@ describe('CTF integration — full TrueType validation', () => {
 					ttfOutput[dirOff + 15]) >>>
 				0;
 
-			expect(tag.length).toBe(4);
+			expect(tag).toHaveLength(4);
 			expect(offset).toBeGreaterThanOrEqual(12 + numTables * 16);
 			expect(offset + size).toBeLessThanOrEqual(ttfOutput.length + 4); // allow padding
 		}
@@ -810,7 +813,9 @@ describe('CTF integration — full TrueType validation', () => {
 				ttfOutput[dirOff + 2],
 				ttfOutput[dirOff + 3],
 			);
-			if (tag !== 'head') continue;
+			if (tag !== 'head') {
+				continue;
+			}
 
 			const offset =
 				((ttfOutput[dirOff + 8] << 24) |
@@ -842,7 +847,9 @@ describe('CTF integration — full TrueType validation', () => {
 				ttfOutput[dirOff + 2],
 				ttfOutput[dirOff + 3],
 			);
-			if (tag !== 'maxp') continue;
+			if (tag !== 'maxp') {
+				continue;
+			}
 
 			const offset =
 				((ttfOutput[dirOff + 8] << 24) |
@@ -858,7 +865,7 @@ describe('CTF integration — full TrueType validation', () => {
 	});
 });
 
-describe('CTF integration — CVT table delta decoding', () => {
+describe('cTF integration — CVT table delta decoding', () => {
 	it('decodes delta-encoded CVT entries correctly', () => {
 		// Build a CVT table with delta encoding
 		const cvtEncoded = new Stream(null, 0);
@@ -907,7 +914,7 @@ describe('CTF integration — CVT table delta decoding', () => {
 	});
 });
 
-describe('CTF integration — triplet encoding coverage', () => {
+describe('cTF integration — triplet encoding coverage', () => {
 	it('handles all triplet encoding byte counts (2, 3, 4, 5)', () => {
 		const s = new Stream(null, 0);
 		s.reserve(256);
@@ -988,9 +995,9 @@ describe('decompressEotFont — parameter delegation', () => {
 	});
 });
 
-describe('Triplet encoding table integrity', () => {
+describe('triplet encoding table integrity', () => {
 	it('has exactly 128 entries covering all 7-bit flag values', () => {
-		expect(TRIPLET_ENCODINGS.length).toBe(128);
+		expect(TRIPLET_ENCODINGS).toHaveLength(128);
 	});
 
 	it('every entry has valid byteCount (2-5)', () => {

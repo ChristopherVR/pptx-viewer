@@ -145,7 +145,7 @@ describe('buildBuildListXml', () => {
 		];
 		const result = buildBuildListXml(animations)!;
 		const bldP = result['p:bldP'] as XmlObject[];
-		expect(Array.isArray(bldP)).toBeTruthy();
+		expect(Array.isArray(bldP)).toBe(true);
 		expect(bldP).toHaveLength(2);
 		expect((bldP[0] as XmlObject)['@_build']).toBe('p');
 		expect((bldP[1] as XmlObject)['@_build']).toBe('word');

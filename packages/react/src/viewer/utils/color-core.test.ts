@@ -29,7 +29,7 @@ describe('normalizeHexColor', () => {
 	it('should return the fallback for undefined input', () => {
 		const result = normalizeHexColor(undefined);
 		expect(result).toBeDefined();
-		expect(result.startsWith('#')).toBeTruthy();
+		expect(result.startsWith('#')).toBe(true);
 	});
 
 	it('should return the fallback for empty string', () => {
@@ -258,7 +258,7 @@ describe('buildInnerShadowCssFromShapeStyle', () => {
 			innerShadowOpacity: 0.6,
 		});
 		expect(result).toBeDefined();
-		expect(result!.startsWith('inset ')).toBeTruthy();
+		expect(result!.startsWith('inset ')).toBe(true);
 		expect(result).toContain('2px');
 		expect(result).toContain('3px');
 		expect(result).toContain('5px');
@@ -270,7 +270,7 @@ describe('buildInnerShadowCssFromShapeStyle', () => {
 			innerShadowColor: '#000000',
 		});
 		expect(result).toBeDefined();
-		expect(result!.startsWith('inset ')).toBeTruthy();
+		expect(result!.startsWith('inset ')).toBe(true);
 		// Defaults: offset 0, 0, blur 6, opacity 0.5
 		expect(result).toContain('0px 0px 6px');
 	});

@@ -125,17 +125,17 @@ describe('export error handling', () => {
 
 	it('detects AbortError by name', () => {
 		const err = new DOMException('The operation was aborted.', 'AbortError');
-		expect(isAbortError(err)).toBeTruthy();
+		expect(isAbortError(err)).toBe(true);
 	});
 
 	it('does not flag regular errors as AbortError', () => {
 		const err = new Error('Network failure');
-		expect(isAbortError(err)).toBeFalsy();
+		expect(isAbortError(err)).toBe(false);
 	});
 
 	it('does not flag TypeError as AbortError', () => {
 		const err = new TypeError('Cannot read property of null');
-		expect(isAbortError(err)).toBeFalsy();
+		expect(isAbortError(err)).toBe(false);
 	});
 });
 
@@ -176,7 +176,7 @@ describe('exportHandlersResult shape', () => {
 			exportStatusMessage: '',
 		};
 
-		expect(result.exportModalOpen).toBeFalsy();
+		expect(result.exportModalOpen).toBe(false);
 		expect(result.exportModalTitle).toBe('');
 		expect(result.exportProgress).toBe(0);
 		expect(result.exportStatusMessage).toBe('');

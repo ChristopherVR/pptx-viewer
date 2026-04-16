@@ -212,27 +212,27 @@ describe('clampActiveSlideIndex', () => {
 
 describe('shouldSkipHistoryTracking', () => {
 	it('should skip when loading', () => {
-		expect(shouldSkipHistoryTracking(true, null, false, false)).toBeTruthy();
+		expect(shouldSkipHistoryTracking(true, null, false, false)).toBe(true);
 	});
 
 	it('should skip when error exists', () => {
-		expect(shouldSkipHistoryTracking(false, 'error', false, false)).toBeTruthy();
+		expect(shouldSkipHistoryTracking(false, 'error', false, false)).toBe(true);
 	});
 
 	it('should skip when applying history', () => {
-		expect(shouldSkipHistoryTracking(false, null, true, false)).toBeTruthy();
+		expect(shouldSkipHistoryTracking(false, null, true, false)).toBe(true);
 	});
 
 	it('should skip when pointer interaction is active', () => {
-		expect(shouldSkipHistoryTracking(false, null, false, true)).toBeTruthy();
+		expect(shouldSkipHistoryTracking(false, null, false, true)).toBe(true);
 	});
 
 	it('should not skip when all conditions are false', () => {
-		expect(shouldSkipHistoryTracking(false, null, false, false)).toBeFalsy();
+		expect(shouldSkipHistoryTracking(false, null, false, false)).toBe(false);
 	});
 
 	it('should skip when multiple conditions are true', () => {
-		expect(shouldSkipHistoryTracking(true, 'error', true, true)).toBeTruthy();
+		expect(shouldSkipHistoryTracking(true, 'error', true, true)).toBe(true);
 	});
 });
 
@@ -242,18 +242,18 @@ describe('shouldSkipHistoryTracking', () => {
 
 describe('hasSnapshotChanged', () => {
 	it('should return true when serialized strings differ', () => {
-		expect(hasSnapshotChanged('{"a":1}', '{"a":2}')).toBeTruthy();
+		expect(hasSnapshotChanged('{"a":1}', '{"a":2}')).toBe(true);
 	});
 
 	it('should return false when serialized strings are identical', () => {
-		expect(hasSnapshotChanged('{"a":1}', '{"a":1}')).toBeFalsy();
+		expect(hasSnapshotChanged('{"a":1}', '{"a":1}')).toBe(false);
 	});
 
 	it('should return true comparing against empty string', () => {
-		expect(hasSnapshotChanged('{"a":1}', '')).toBeTruthy();
+		expect(hasSnapshotChanged('{"a":1}', '')).toBe(true);
 	});
 
 	it('should return false for two empty strings', () => {
-		expect(hasSnapshotChanged('', '')).toBeFalsy();
+		expect(hasSnapshotChanged('', '')).toBe(false);
 	});
 });

@@ -231,7 +231,7 @@ describe('pptxNativeAnimationService.parseNativeAnimations', () => {
 		expect(result).toBeDefined();
 		const anim = result!.find((a) => a.targetId === 'shape1');
 		expect(anim).toBeDefined();
-		expect(anim!.autoReverse).toBeTruthy();
+		expect(anim!.autoReverse).toBe(true);
 	});
 
 	it('parses afterDelay trigger from positive delay in start conditions', () => {

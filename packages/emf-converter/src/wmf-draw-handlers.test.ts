@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import {
 	META_MOVETO,
@@ -82,7 +83,7 @@ describe('wmf-draw-handlers', () => {
 
 		it('returns false for unrecognized record type', () => {
 			const wCtx = makeWCtx();
-			expect(handleWmfDrawRecord(wCtx, 0xffff, 0, 8, 8)).toBeFalsy();
+			expect(handleWmfDrawRecord(wCtx, 0xffff, 0, 8, 8)).toBe(false);
 		});
 
 		// -- META_MOVETO --
@@ -93,7 +94,7 @@ describe('wmf-draw-handlers', () => {
 				wCtx.view.setInt16(d, 200, true); // y
 				wCtx.view.setInt16(d + 2, 100, true); // x
 				const result = handleWmfDrawRecord(wCtx, META_MOVETO, 0, d, 10);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				expect(wCtx.state.curX).toBe(100);
 				expect(wCtx.state.curY).toBe(200);
 			});

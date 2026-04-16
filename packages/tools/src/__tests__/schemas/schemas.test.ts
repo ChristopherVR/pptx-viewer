@@ -31,29 +31,29 @@ describe('slide schemas', () => {
 	describe('getSlideSchema', () => {
 		it('accepts valid input', () => {
 			const result = GetSlideSchema.safeParse({ filePath: '/test.pptx', slideIndex: 0 });
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('rejects missing filePath', () => {
 			const result = GetSlideSchema.safeParse({ slideIndex: 0 });
-			expect(result.success).toBeFalsy();
+			expect(result.success).toBe(false);
 		});
 
 		it('rejects negative slideIndex', () => {
 			const result = GetSlideSchema.safeParse({ filePath: '/test.pptx', slideIndex: -1 });
-			expect(result.success).toBeFalsy();
+			expect(result.success).toBe(false);
 		});
 
 		it('rejects non-integer slideIndex', () => {
 			const result = GetSlideSchema.safeParse({ filePath: '/test.pptx', slideIndex: 1.5 });
-			expect(result.success).toBeFalsy();
+			expect(result.success).toBe(false);
 		});
 	});
 
 	describe('addSlideSchema', () => {
 		it('accepts minimal input', () => {
 			const result = AddSlideSchema.safeParse({ filePath: '/test.pptx' });
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('accepts all options', () => {
@@ -62,7 +62,7 @@ describe('slide schemas', () => {
 				insertAfterIndex: 2,
 				backgroundColor: '#ff0000',
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 	});
 
@@ -72,7 +72,7 @@ describe('slide schemas', () => {
 				filePath: '/test.pptx',
 				slideIndexes: [0, 1],
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('rejects empty slideIndexes array', () => {
@@ -80,7 +80,7 @@ describe('slide schemas', () => {
 				filePath: '/test.pptx',
 				slideIndexes: [],
 			});
-			expect(result.success).toBeFalsy();
+			expect(result.success).toBe(false);
 		});
 	});
 
@@ -91,7 +91,7 @@ describe('slide schemas', () => {
 				width: 1920,
 				height: 1080,
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('rejects non-positive width', () => {
@@ -100,7 +100,7 @@ describe('slide schemas', () => {
 				width: 0,
 				height: 1080,
 			});
-			expect(result.success).toBeFalsy();
+			expect(result.success).toBe(false);
 		});
 
 		it('rejects negative height', () => {
@@ -109,7 +109,7 @@ describe('slide schemas', () => {
 				width: 1920,
 				height: -10,
 			});
-			expect(result.success).toBeFalsy();
+			expect(result.success).toBe(false);
 		});
 	});
 
@@ -121,7 +121,7 @@ describe('slide schemas', () => {
 				type: 'fade',
 				durationMs: 500,
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('accepts minimal transition', () => {
@@ -130,19 +130,19 @@ describe('slide schemas', () => {
 				slideIndex: 0,
 				type: 'none',
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 	});
 
 	describe('accessibilityCheckSchema', () => {
 		it('accepts only filePath', () => {
 			const result = AccessibilityCheckSchema.safeParse({ filePath: '/test.pptx' });
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('rejects missing filePath', () => {
 			const result = AccessibilityCheckSchema.safeParse({});
-			expect(result.success).toBeFalsy();
+			expect(result.success).toBe(false);
 		});
 	});
 });
@@ -159,7 +159,7 @@ describe('element schemas', () => {
 				text: 'Hello',
 				fontSize: 24,
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('accepts shape element', () => {
@@ -170,7 +170,7 @@ describe('element schemas', () => {
 				shapeType: 'rect',
 				fillColor: '#ff0000',
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('accepts table element', () => {
@@ -181,7 +181,7 @@ describe('element schemas', () => {
 				rows: 3,
 				columns: 4,
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('accepts connector element', () => {
@@ -191,7 +191,7 @@ describe('element schemas', () => {
 				type: 'connector',
 				endArrow: 'triangle',
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('rejects invalid element type', () => {
@@ -200,7 +200,7 @@ describe('element schemas', () => {
 				slideIndex: 0,
 				type: 'invalid',
 			});
-			expect(result.success).toBeFalsy();
+			expect(result.success).toBe(false);
 		});
 
 		it('rejects missing slideIndex', () => {
@@ -208,7 +208,7 @@ describe('element schemas', () => {
 				filePath: '/test.pptx',
 				type: 'text',
 			});
-			expect(result.success).toBeFalsy();
+			expect(result.success).toBe(false);
 		});
 	});
 
@@ -221,7 +221,7 @@ describe('element schemas', () => {
 				x: 100,
 				y: 200,
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('accepts opacity within range', () => {
@@ -231,7 +231,7 @@ describe('element schemas', () => {
 				elementId: 'el-0',
 				opacity: 0.5,
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('rejects opacity above 1', () => {
@@ -241,7 +241,7 @@ describe('element schemas', () => {
 				elementId: 'el-0',
 				opacity: 1.5,
 			});
-			expect(result.success).toBeFalsy();
+			expect(result.success).toBe(false);
 		});
 
 		it('rejects opacity below 0', () => {
@@ -251,7 +251,7 @@ describe('element schemas', () => {
 				elementId: 'el-0',
 				opacity: -0.1,
 			});
-			expect(result.success).toBeFalsy();
+			expect(result.success).toBe(false);
 		});
 	});
 
@@ -262,7 +262,7 @@ describe('element schemas', () => {
 				slideIndex: 0,
 				elementIds: ['el-0', 'el-1'],
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('rejects empty elementIds', () => {
@@ -271,7 +271,7 @@ describe('element schemas', () => {
 				slideIndex: 0,
 				elementIds: [],
 			});
-			expect(result.success).toBeFalsy();
+			expect(result.success).toBe(false);
 		});
 	});
 
@@ -282,7 +282,7 @@ describe('element schemas', () => {
 				slideIndex: 0,
 				elementIds: ['el-0', 'el-1'],
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('rejects fewer than 2 element IDs', () => {
@@ -291,7 +291,7 @@ describe('element schemas', () => {
 				slideIndex: 0,
 				elementIds: ['el-0'],
 			});
-			expect(result.success).toBeFalsy();
+			expect(result.success).toBe(false);
 		});
 	});
 
@@ -304,7 +304,7 @@ describe('element schemas', () => {
 				opacity: 0.5,
 				hidden: true,
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 	});
 });
@@ -320,7 +320,7 @@ describe('table and style schemas', () => {
 				elementId: 'tbl-0',
 				cells: [{ row: 0, col: 0, text: 'Hello' }],
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('rejects empty cells array', () => {
@@ -330,7 +330,7 @@ describe('table and style schemas', () => {
 				elementId: 'tbl-0',
 				cells: [],
 			});
-			expect(result.success).toBeFalsy();
+			expect(result.success).toBe(false);
 		});
 
 		it('rejects negative row index', () => {
@@ -340,7 +340,7 @@ describe('table and style schemas', () => {
 				elementId: 'tbl-0',
 				cells: [{ row: -1, col: 0, text: 'x' }],
 			});
-			expect(result.success).toBeFalsy();
+			expect(result.success).toBe(false);
 		});
 	});
 
@@ -353,7 +353,7 @@ describe('table and style schemas', () => {
 				action: 'insertRow',
 				position: 1,
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('accepts deleteColumn', () => {
@@ -364,7 +364,7 @@ describe('table and style schemas', () => {
 				action: 'deleteColumn',
 				referenceIndex: 0,
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('rejects invalid action', () => {
@@ -374,7 +374,7 @@ describe('table and style schemas', () => {
 				elementId: 'tbl-0',
 				action: 'dropTable',
 			});
-			expect(result.success).toBeFalsy();
+			expect(result.success).toBe(false);
 		});
 	});
 
@@ -388,7 +388,7 @@ describe('table and style schemas', () => {
 				strokeColor: '#0000ff',
 				strokeWidth: 2,
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('accepts gradient stops', () => {
@@ -401,7 +401,7 @@ describe('table and style schemas', () => {
 					{ color: '#0000ff', position: 1 },
 				],
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('accepts image effects', () => {
@@ -414,7 +414,7 @@ describe('table and style schemas', () => {
 				grayscale: true,
 				altText: 'Photo of sunset',
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 	});
 });
@@ -426,7 +426,7 @@ describe('content schemas', () => {
 				filePath: '/test.pptx',
 				query: 'hello',
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('accepts all options', () => {
@@ -437,12 +437,12 @@ describe('content schemas', () => {
 				caseSensitive: true,
 				slideIndexes: [0, 1],
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('rejects missing query', () => {
 			const result = FindTextSchema.safeParse({ filePath: '/test.pptx' });
-			expect(result.success).toBeFalsy();
+			expect(result.success).toBe(false);
 		});
 	});
 
@@ -453,7 +453,7 @@ describe('content schemas', () => {
 				query: 'old',
 				replacement: 'new',
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('rejects missing replacement', () => {
@@ -461,7 +461,7 @@ describe('content schemas', () => {
 				filePath: '/test.pptx',
 				query: 'old',
 			});
-			expect(result.success).toBeFalsy();
+			expect(result.success).toBe(false);
 		});
 	});
 
@@ -471,7 +471,7 @@ describe('content schemas', () => {
 				filePath: '/test.pptx',
 				action: 'list',
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('accepts add action with text', () => {
@@ -482,7 +482,7 @@ describe('content schemas', () => {
 				text: 'A comment',
 				author: 'Alice',
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('accepts delete action', () => {
@@ -491,7 +491,7 @@ describe('content schemas', () => {
 				action: 'delete',
 				commentId: 'c-123',
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('accepts resolve action', () => {
@@ -501,7 +501,7 @@ describe('content schemas', () => {
 				commentId: 'c-123',
 				resolved: true,
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('rejects invalid action', () => {
@@ -509,14 +509,14 @@ describe('content schemas', () => {
 				filePath: '/test.pptx',
 				action: 'edit',
 			});
-			expect(result.success).toBeFalsy();
+			expect(result.success).toBe(false);
 		});
 	});
 
 	describe('convertToMarkdownSchema', () => {
 		it('accepts minimal input', () => {
 			const result = ConvertToMarkdownSchema.safeParse({ filePath: '/test.pptx' });
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 
 		it('accepts all options', () => {
@@ -529,7 +529,7 @@ describe('content schemas', () => {
 				includeSpeakerNotes: true,
 				semanticMode: true,
 			});
-			expect(result.success).toBeTruthy();
+			expect(result.success).toBe(true);
 		});
 	});
 });

@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { expectTypeOf } from '@jest/globals';
+import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import {
 	EMR_POLYLINE,
@@ -119,7 +120,7 @@ describe('emf-gdi-poly-path-handlers', () => {
 
 		it('returns false for unrecognized record type', () => {
 			const rCtx = makeRCtx();
-			expect(handleEmfGdiPolyPathRecord(rCtx, 0xffff, 0, 8, 8)).toBeFalsy();
+			expect(handleEmfGdiPolyPathRecord(rCtx, 0xffff, 0, 8, 8)).toBe(false);
 		});
 
 		// -- 32-bit polys --
@@ -136,7 +137,7 @@ describe('emf-gdi-poly-path-handlers', () => {
 				writePoly32(rCtx.view, dataOff, pts);
 				const recSize = 28 + pts.length * 8;
 				const result = handleEmfGdiPolyPathRecord(rCtx, EMR_POLYLINE, offset, dataOff, recSize);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				const ctx = rCtx.ctx as unknown as Record<string, { mock: { calls: unknown[][] } }>;
 				expect(ctx.beginPath.mock.calls.length).toBeGreaterThanOrEqual(1);
 				expect(ctx.stroke.mock.calls.length).toBeGreaterThanOrEqual(1);
@@ -160,7 +161,7 @@ describe('emf-gdi-poly-path-handlers', () => {
 				const dataOff = 8;
 				writePoly32(rCtx.view, dataOff, []);
 				const result = handleEmfGdiPolyPathRecord(rCtx, EMR_POLYLINE, 0, dataOff, 28);
-				expect(result).toBeTruthy(); // returns early, no throw
+				expect(result).toBe(true); // returns early, no throw
 			});
 		});
 
@@ -213,7 +214,7 @@ describe('emf-gdi-poly-path-handlers', () => {
 				writePoly16(rCtx.view, dataOff, pts);
 				const recSize = 28 + pts.length * 4;
 				const result = handleEmfGdiPolyPathRecord(rCtx, EMR_POLYLINE16, 0, dataOff, recSize);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 				const ctx = rCtx.ctx as unknown as Record<string, { mock: { calls: unknown[][] } }>;
 				expect(ctx.stroke.mock.calls.length).toBeGreaterThanOrEqual(1);
 			});
@@ -308,13 +309,13 @@ describe('emf-gdi-poly-path-handlers', () => {
 			it('returns true but does nothing for 32-bit poly with recSize < 28', () => {
 				const rCtx = makeRCtx();
 				const result = handleEmfGdiPolyPathRecord(rCtx, EMR_POLYLINE, 0, 8, 20);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 			});
 
 			it('returns true but does nothing for 16-bit poly with recSize < 28', () => {
 				const rCtx = makeRCtx();
 				const result = handleEmfGdiPolyPathRecord(rCtx, EMR_POLYLINE16, 0, 8, 20);
-				expect(result).toBeTruthy();
+				expect(result).toBe(true);
 			});
 		});
 
@@ -323,8 +324,8 @@ describe('emf-gdi-poly-path-handlers', () => {
 			it('sets inPath to true and calls ctx.beginPath', () => {
 				const rCtx = makeRCtx();
 				const result = handleEmfGdiPolyPathRecord(rCtx, EMR_BEGINPATH, 0, 8, 8);
-				expect(result).toBeTruthy();
-				expect(rCtx.inPath).toBeTruthy();
+				expect(result).toBe(true);
+				expect(rCtx.inPath).toBe(true);
 				const ctx = rCtx.ctx as unknown as Record<string, { mock: { calls: unknown[][] } }>;
 				expect(ctx.beginPath).toHaveBeenCalledOnce();
 			});
@@ -335,7 +336,7 @@ describe('emf-gdi-poly-path-handlers', () => {
 				const rCtx = makeRCtx();
 				rCtx.inPath = true;
 				handleEmfGdiPolyPathRecord(rCtx, EMR_ENDPATH, 0, 8, 8);
-				expect(rCtx.inPath).toBeFalsy();
+				expect(rCtx.inPath).toBe(false);
 			});
 		});
 

@@ -1,3 +1,4 @@
+import { expectTypeOf } from '@jest/globals';
 /**
  * Tests for CLI command handlers.
  *
@@ -7,8 +8,7 @@
  *
  * @module cli/commands.test
  */
-
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, expectTypeOf } from 'vitest';
 
 import { PresentationBuilder } from '../core/builders/sdk/PresentationBuilder';
 import {
@@ -116,7 +116,7 @@ describe('handleInfo', () => {
 	it('returns layout information', async () => {
 		const info = await handleInfo(singleSlideBytes);
 		expect(info.layoutCount).toBeGreaterThanOrEqual(0);
-		expect(Array.isArray(info.layouts)).toBeTruthy();
+		expect(Array.isArray(info.layouts)).toBe(true);
 	});
 
 	it('returns boolean flags for macros and signatures', async () => {
@@ -349,7 +349,7 @@ describe('handleCreate', () => {
 describe('handleDiff', () => {
 	it('reports identical presentations as matching', async () => {
 		const result = await handleDiff(singleSlideBytes, singleSlideBytes);
-		expect(result.dimensionsMatch).toBeTruthy();
+		expect(result.dimensionsMatch).toBe(true);
 		expect(result.slideCountA).toBe(result.slideCountB);
 	});
 
@@ -391,6 +391,6 @@ describe('handleDiff', () => {
 
 	it('dimensions match for presentations built with same options', async () => {
 		const result = await handleDiff(multiSlideBytes, multiSlideBytes);
-		expect(result.dimensionsMatch).toBeTruthy();
+		expect(result.dimensionsMatch).toBe(true);
 	});
 });

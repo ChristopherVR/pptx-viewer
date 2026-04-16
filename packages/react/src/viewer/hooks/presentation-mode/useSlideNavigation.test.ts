@@ -115,13 +115,13 @@ describe('computeNextSlidePosition', () => {
 	it('should advance to next slide', () => {
 		const result = computeNextSlidePosition(allIndexes, 2, 1);
 		expect(result.nextSlideIndex).toBe(3);
-		expect(result.endRehearsal).toBeFalsy();
+		expect(result.endRehearsal).toBe(false);
 	});
 
 	it('should go to previous slide', () => {
 		const result = computeNextSlidePosition(allIndexes, 2, -1);
 		expect(result.nextSlideIndex).toBe(1);
-		expect(result.endRehearsal).toBeFalsy();
+		expect(result.endRehearsal).toBe(false);
 	});
 
 	it('should clamp at the last slide when no loop', () => {
@@ -153,14 +153,14 @@ describe('computeNextSlidePosition', () => {
 			rehearsing: true,
 		});
 		expect(result.nextSlideIndex).toBeNull();
-		expect(result.endRehearsal).toBeTruthy();
+		expect(result.endRehearsal).toBe(true);
 	});
 
 	it('should not end rehearsal when going backward', () => {
 		const result = computeNextSlidePosition(allIndexes, 0, -1, {
 			rehearsing: true,
 		});
-		expect(result.endRehearsal).toBeFalsy();
+		expect(result.endRehearsal).toBe(false);
 	});
 
 	it('should return null for empty available indexes', () => {
@@ -187,7 +187,7 @@ describe('computeNextSlidePosition', () => {
 			loopContinuously: true,
 		});
 		// rehearsing takes priority: should end rehearsal, not loop
-		expect(result.endRehearsal).toBeTruthy();
+		expect(result.endRehearsal).toBe(true);
 		expect(result.nextSlideIndex).toBeNull();
 	});
 });
@@ -198,27 +198,27 @@ describe('computeNextSlidePosition', () => {
 
 describe('isValidNavigationTarget', () => {
 	it('should return true for valid different index', () => {
-		expect(isValidNavigationTarget(3, 10, 5)).toBeTruthy();
+		expect(isValidNavigationTarget(3, 10, 5)).toBe(true);
 	});
 
 	it('should return false for negative index', () => {
-		expect(isValidNavigationTarget(-1, 10, 5)).toBeFalsy();
+		expect(isValidNavigationTarget(-1, 10, 5)).toBe(false);
 	});
 
 	it('should return false for index beyond slides', () => {
-		expect(isValidNavigationTarget(10, 10, 5)).toBeFalsy();
+		expect(isValidNavigationTarget(10, 10, 5)).toBe(false);
 	});
 
 	it('should return false for same index as current', () => {
-		expect(isValidNavigationTarget(5, 10, 5)).toBeFalsy();
+		expect(isValidNavigationTarget(5, 10, 5)).toBe(false);
 	});
 
 	it('should return true for first slide', () => {
-		expect(isValidNavigationTarget(0, 10, 5)).toBeTruthy();
+		expect(isValidNavigationTarget(0, 10, 5)).toBe(true);
 	});
 
 	it('should return true for last slide', () => {
-		expect(isValidNavigationTarget(9, 10, 5)).toBeTruthy();
+		expect(isValidNavigationTarget(9, 10, 5)).toBe(true);
 	});
 });
 
@@ -228,30 +228,30 @@ describe('isValidNavigationTarget', () => {
 
 describe('shouldScheduleAutoAdvance', () => {
 	it('should return true for positive number', () => {
-		expect(shouldScheduleAutoAdvance(5000)).toBeTruthy();
+		expect(shouldScheduleAutoAdvance(5000)).toBe(true);
 	});
 
 	it('should return true for zero', () => {
-		expect(shouldScheduleAutoAdvance(0)).toBeTruthy();
+		expect(shouldScheduleAutoAdvance(0)).toBe(true);
 	});
 
 	it('should return false for undefined', () => {
-		expect(shouldScheduleAutoAdvance(undefined)).toBeFalsy();
+		expect(shouldScheduleAutoAdvance(undefined)).toBe(false);
 	});
 
 	it('should return false for null', () => {
-		expect(shouldScheduleAutoAdvance(null)).toBeFalsy();
+		expect(shouldScheduleAutoAdvance(null)).toBe(false);
 	});
 
 	it('should return false for NaN', () => {
-		expect(shouldScheduleAutoAdvance(NaN)).toBeFalsy();
+		expect(shouldScheduleAutoAdvance(NaN)).toBe(false);
 	});
 
 	it('should return false for Infinity', () => {
-		expect(shouldScheduleAutoAdvance(Infinity)).toBeFalsy();
+		expect(shouldScheduleAutoAdvance(Infinity)).toBe(false);
 	});
 
 	it('should return false for negative number', () => {
-		expect(shouldScheduleAutoAdvance(-100)).toBeFalsy();
+		expect(shouldScheduleAutoAdvance(-100)).toBe(false);
 	});
 });

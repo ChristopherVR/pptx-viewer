@@ -225,7 +225,7 @@ describe('save Pipeline', () => {
 			}
 			return false;
 		});
-		expect(found).toBeTruthy();
+		expect(found).toBe(true);
 	});
 
 	it('element ordering is preserved after save-reload', async () => {
@@ -583,7 +583,7 @@ describe('document Parts', () => {
 			.addText('Hidden', { x: 10, y: 10, width: 200, height: 40 })
 			.build();
 		data.slides.push(slide);
-		expect(slide.hidden).toBeTruthy();
+		expect(slide.hidden).toBe(true);
 	});
 
 	it('section metadata is set on the data model', async () => {
@@ -688,7 +688,7 @@ describe('error Handling', () => {
 			expect(data.slides).toHaveLength(0);
 		} catch {
 			// Expected - missing presentation.xml
-			expect(true).toBeTruthy();
+			expect(true).toBe(true);
 		}
 	});
 
@@ -892,7 +892,7 @@ describe('edge Cases', () => {
 			}
 			return false;
 		});
-		expect(found).toBeTruthy();
+		expect(found).toBe(true);
 	});
 
 	it('unicode text survives round-trip', async () => {
@@ -912,7 +912,7 @@ describe('edge Cases', () => {
 			}
 			return false;
 		});
-		expect(found).toBeTruthy();
+		expect(found).toBe(true);
 	});
 
 	it('double round-trip preserves data integrity', async () => {
@@ -1270,7 +1270,7 @@ describe('shape Variants', () => {
 		const hasText =
 			(s?.text && s.text.includes('Inside Shape')) ||
 			(s?.textSegments && s.textSegments.some((seg) => seg.text.includes('Inside Shape')));
-		expect(hasText).toBeTruthy();
+		expect(hasText).toBe(true);
 	});
 
 	it('shape with gradient fill saves without error', async () => {
@@ -1559,8 +1559,8 @@ describe('table Variants', () => {
 		const tbl = slide.elements.find((e) => e.type === 'table') as TablePptxElement | undefined;
 		expect(tbl).toBeDefined();
 		expect(tbl!.tableData!.rows).toHaveLength(3);
-		expect(tbl!.tableData!.bandedRows).toBeTruthy();
-		expect(tbl!.tableData!.firstRowHeader).toBeTruthy();
+		expect(tbl!.tableData!.bandedRows).toBe(true);
+		expect(tbl!.tableData!.firstRowHeader).toBe(true);
 
 		// Save should not crash
 		const bytes = await handler.save(data.slides);
@@ -1625,7 +1625,7 @@ describe('additional Scenarios', () => {
 	it('getCompatibilityWarnings returns an array', async () => {
 		const { handler } = await createBlank();
 		const warnings = handler.getCompatibilityWarnings();
-		expect(Array.isArray(warnings)).toBeTruthy();
+		expect(Array.isArray(warnings)).toBe(true);
 	});
 
 	it('multiple separate presentations can coexist', async () => {

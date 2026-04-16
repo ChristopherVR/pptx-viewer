@@ -1,3 +1,4 @@
+import { expectTypeOf } from '@jest/globals';
 import type { PptxSlide, PptxData } from 'pptx-viewer-core';
 /**
  * Tests for SVG vector export utilities in export-svg.ts.
@@ -7,7 +8,7 @@ import type { PptxSlide, PptxData } from 'pptx-viewer-core';
  * wrapper behaviour: font embedding, blob creation, multi-slide export
  * with progress tracking, and option pass-through.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import {
 	exportSlideToSvg,
@@ -414,7 +415,7 @@ describe('export-svg types', () => {
 			includeHidden: false,
 			slideIndices: [0],
 		};
-		expect(opts.embedFonts).toBeTruthy();
+		expect(opts.embedFonts).toBe(true);
 		expect(opts.fontFaces).toHaveLength(1);
 	});
 

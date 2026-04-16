@@ -196,6 +196,6 @@ describe('getDraggedShapeAdjustmentValue', () => {
 		const state = makeDragState({ startWidth: 1, startHeight: 1 });
 		// Should not crash or return NaN
 		const result = getDraggedShapeAdjustmentValue(state, 5);
-		expect(Number.isFinite(result)).toBeTruthy();
+		expect(Number.isFinite(result)).toBe(true);
 	});
 });

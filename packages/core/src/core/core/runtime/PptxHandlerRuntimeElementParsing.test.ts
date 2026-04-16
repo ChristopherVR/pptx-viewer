@@ -196,97 +196,97 @@ describe('extractPlaceholderInfo', () => {
 // ---------------------------------------------------------------------------
 describe('placeholderMatches', () => {
 	it('should return true when both are null', () => {
-		expect(placeholderMatches(null, null)).toBeTruthy();
+		expect(placeholderMatches(null, null)).toBe(true);
 	});
 
 	it('should return false when target is null', () => {
-		expect(placeholderMatches({ idx: '1' }, null)).toBeFalsy();
+		expect(placeholderMatches({ idx: '1' }, null)).toBe(false);
 	});
 
 	it('should return true when source is null', () => {
-		expect(placeholderMatches(null, { idx: '1' })).toBeTruthy();
+		expect(placeholderMatches(null, { idx: '1' })).toBe(true);
 	});
 
 	it('should match when both have the same idx', () => {
-		expect(placeholderMatches({ idx: '1' }, { idx: '1' })).toBeTruthy();
+		expect(placeholderMatches({ idx: '1' }, { idx: '1' })).toBe(true);
 	});
 
 	it('should not match when idx differs', () => {
-		expect(placeholderMatches({ idx: '1' }, { idx: '2' })).toBeFalsy();
+		expect(placeholderMatches({ idx: '1' }, { idx: '2' })).toBe(false);
 	});
 
 	it('should match when idx matches and both types match', () => {
-		expect(placeholderMatches({ idx: '1', type: 'body' }, { idx: '1', type: 'body' })).toBeTruthy();
+		expect(placeholderMatches({ idx: '1', type: 'body' }, { idx: '1', type: 'body' })).toBe(true);
 	});
 
 	it('should not match when idx matches but types differ', () => {
-		expect(placeholderMatches({ idx: '1', type: 'body' }, { idx: '1', type: 'title' })).toBeFalsy();
+		expect(placeholderMatches({ idx: '1', type: 'body' }, { idx: '1', type: 'title' })).toBe(false);
 	});
 
 	it('should match when idx matches and only source has type', () => {
-		expect(placeholderMatches({ idx: '1', type: 'body' }, { idx: '1' })).toBeTruthy();
+		expect(placeholderMatches({ idx: '1', type: 'body' }, { idx: '1' })).toBe(true);
 	});
 
 	it('should match when idx matches and only target has type', () => {
-		expect(placeholderMatches({ idx: '1' }, { idx: '1', type: 'body' })).toBeTruthy();
+		expect(placeholderMatches({ idx: '1' }, { idx: '1', type: 'body' })).toBe(true);
 	});
 
 	// Source has idx, target does not — singleton type matching
 	it("should match singleton type 'title' when source has idx but target does not", () => {
-		expect(placeholderMatches({ idx: '0', type: 'title' }, { type: 'title' })).toBeTruthy();
+		expect(placeholderMatches({ idx: '0', type: 'title' }, { type: 'title' })).toBe(true);
 	});
 
 	it("should match singleton type 'ctrtitle'", () => {
-		expect(placeholderMatches({ idx: '0', type: 'ctrtitle' }, { type: 'ctrtitle' })).toBeTruthy();
+		expect(placeholderMatches({ idx: '0', type: 'ctrtitle' }, { type: 'ctrtitle' })).toBe(true);
 	});
 
 	it("should match singleton type 'subtitle'", () => {
-		expect(placeholderMatches({ idx: '0', type: 'subtitle' }, { type: 'subtitle' })).toBeTruthy();
+		expect(placeholderMatches({ idx: '0', type: 'subtitle' }, { type: 'subtitle' })).toBe(true);
 	});
 
 	it("should match singleton type 'dt'", () => {
-		expect(placeholderMatches({ idx: '0', type: 'dt' }, { type: 'dt' })).toBeTruthy();
+		expect(placeholderMatches({ idx: '0', type: 'dt' }, { type: 'dt' })).toBe(true);
 	});
 
 	it("should match singleton type 'ftr'", () => {
-		expect(placeholderMatches({ idx: '0', type: 'ftr' }, { type: 'ftr' })).toBeTruthy();
+		expect(placeholderMatches({ idx: '0', type: 'ftr' }, { type: 'ftr' })).toBe(true);
 	});
 
 	it("should match singleton type 'sldnum'", () => {
-		expect(placeholderMatches({ idx: '0', type: 'sldnum' }, { type: 'sldnum' })).toBeTruthy();
+		expect(placeholderMatches({ idx: '0', type: 'sldnum' }, { type: 'sldnum' })).toBe(true);
 	});
 
 	it("should NOT match non-singleton type 'body' when idx vs no-idx", () => {
-		expect(placeholderMatches({ idx: '1', type: 'body' }, { type: 'body' })).toBeFalsy();
+		expect(placeholderMatches({ idx: '1', type: 'body' }, { type: 'body' })).toBe(false);
 	});
 
 	it("should NOT match non-singleton type 'obj' when idx vs no-idx", () => {
-		expect(placeholderMatches({ idx: '1', type: 'obj' }, { type: 'obj' })).toBeFalsy();
+		expect(placeholderMatches({ idx: '1', type: 'obj' }, { type: 'obj' })).toBe(false);
 	});
 
 	it('should not match singleton type when target type differs', () => {
-		expect(placeholderMatches({ idx: '0', type: 'title' }, { type: 'subtitle' })).toBeFalsy();
+		expect(placeholderMatches({ idx: '0', type: 'title' }, { type: 'subtitle' })).toBe(false);
 	});
 
 	// Neither has idx — type-based matching
 	it('should match when both have same type and no idx', () => {
-		expect(placeholderMatches({ type: 'title' }, { type: 'title' })).toBeTruthy();
+		expect(placeholderMatches({ type: 'title' }, { type: 'title' })).toBe(true);
 	});
 
 	it('should not match when types differ and no idx', () => {
-		expect(placeholderMatches({ type: 'title' }, { type: 'body' })).toBeFalsy();
+		expect(placeholderMatches({ type: 'title' }, { type: 'body' })).toBe(false);
 	});
 
 	it('should not match when source has type but target does not', () => {
-		expect(placeholderMatches({ type: 'title' }, {})).toBeFalsy();
+		expect(placeholderMatches({ type: 'title' }, {})).toBe(false);
 	});
 
 	it('should match when neither has type or idx', () => {
-		expect(placeholderMatches({}, {})).toBeTruthy();
+		expect(placeholderMatches({}, {})).toBe(true);
 	});
 
 	it('should match when target has type but source does not', () => {
-		expect(placeholderMatches({}, { type: 'title' })).toBeTruthy();
+		expect(placeholderMatches({}, { type: 'title' })).toBe(true);
 	});
 });
 

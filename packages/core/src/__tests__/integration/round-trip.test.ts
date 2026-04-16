@@ -125,7 +125,7 @@ describe('round-Trip Fidelity', () => {
 			const hasText =
 				(shapeEl.text && shapeEl.text.includes('Shape Label')) ||
 				(shapeEl.textSegments && shapeEl.textSegments.some((s) => s.text.includes('Shape Label')));
-			expect(hasText).toBeTruthy();
+			expect(hasText).toBe(true);
 		}
 	});
 
