@@ -61,6 +61,15 @@ export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFacto
 			ignoreAttributes: false,
 			attributeNamePrefix: '@_',
 			parseAttributeValue: false,
+			// Keep element text as strings. When true (the fast-xml-parser
+			// default), `<AppVersion>16.0000</AppVersion>` is coerced to the
+			// JS number 16, losing the trailing zeros. On save we write back
+			// "16", which fails PowerPoint's strict `[0-9]+\.[0-9]{4}` match
+			// on AppVersion — the loader rejects the package with HRESULT
+			// 0x80070570 (ERROR_FILE_CORRUPT) and shows the repair dialog.
+			// More generally, OOXML element text is always an untyped string;
+			// downstream callers coerce where needed.
+			parseTagValue: false,
 		});
 	}
 
