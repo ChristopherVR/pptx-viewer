@@ -191,6 +191,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			await this.convertZipToStrictConformance();
 		}
 
+		// Strip ZIP directory/folder entries. JSZip auto-creates a `dir: true`
+		// entry for every intermediate path segment whenever `.file('a/b/c', …)`
+		// is called, but ISO/IEC 29500-2 §10.1.1 states that a ZIP item
+		// representing an OPC part must map one-to-one to a part URI — folder
+		// entries are not parts. PowerPoint's OPC loader rejects them and
+		// triggers the file-corruption / repair dialog on open, even though
+		// schema validation passes (validators iterate logical parts, so they
+		// never see directory entries).
+		for (const name of Object.keys(this.zip.files)) {
+			if (this.zip.files[name].dir) {
+				delete this.zip.files[name];
+			}
+		}
+
 		return await this.zip.generateAsync({ type: 'uint8array' });
 	}
 
