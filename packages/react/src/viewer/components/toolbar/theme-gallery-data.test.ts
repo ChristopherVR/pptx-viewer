@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { BUILT_IN_THEMES } from './theme-gallery-data';
@@ -31,7 +30,7 @@ const COLOR_SCHEME_KEYS = [
 describe('theme-gallery-data', () => {
 	describe('bUILT_IN_THEMES', () => {
 		it('is a non-empty array', () => {
-			expect(Array.isArray(BUILT_IN_THEMES)).toBe(true);
+			expect(Array.isArray(BUILT_IN_THEMES)).toBeTruthy();
 			expect(BUILT_IN_THEMES.length).toBeGreaterThan(0);
 		});
 

@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { PRESET_SHADOW_BLUR_MAP, PRESET_SHADOW_OPACITY_MAP } from './effect-style-preset-maps';
@@ -75,7 +74,7 @@ describe('effect-style-preset-maps', () => {
 
 		it('opacity values are finite numbers', () => {
 			for (const key of Object.keys(PRESET_SHADOW_OPACITY_MAP)) {
-				expect(Number.isFinite(PRESET_SHADOW_OPACITY_MAP[key])).toBe(true);
+				expect(Number.isFinite(PRESET_SHADOW_OPACITY_MAP[key])).toBeTruthy();
 			}
 		});
 	});

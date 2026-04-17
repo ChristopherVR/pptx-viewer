@@ -227,43 +227,43 @@ describe('parseCtnMediaTiming', () => {
 	it('should detect loop from repeatCount=indefinite', () => {
 		const cTn: XmlObject = { '@_repeatCount': 'indefinite' };
 		const result = parseCtnMediaTiming(cTn, 'p:video');
-		expect(result.loop).toBe(true);
+		expect(result.loop).toBeTruthy();
 	});
 
 	it('should not set loop for finite repeatCount', () => {
 		const cTn: XmlObject = { '@_repeatCount': '3000' };
 		const result = parseCtnMediaTiming(cTn, 'p:video');
-		expect(result.loop).toBe(false);
+		expect(result.loop).toBeFalsy();
 	});
 
 	it('should detect autoPlay from nodeType=1 (string)', () => {
 		const cTn: XmlObject = { '@_nodeType': '1' };
 		const result = parseCtnMediaTiming(cTn, 'p:video');
-		expect(result.autoPlay).toBe(true);
+		expect(result.autoPlay).toBeTruthy();
 	});
 
 	it('should detect autoPlay from nodeType=2 (number)', () => {
 		const cTn: XmlObject = { '@_nodeType': 2 };
 		const result = parseCtnMediaTiming(cTn, 'p:video');
-		expect(result.autoPlay).toBe(true);
+		expect(result.autoPlay).toBeTruthy();
 	});
 
 	it('should not set autoPlay for nodeType=0', () => {
 		const cTn: XmlObject = { '@_nodeType': '0' };
 		const result = parseCtnMediaTiming(cTn, 'p:video');
-		expect(result.autoPlay).toBe(false);
+		expect(result.autoPlay).toBeFalsy();
 	});
 
 	it('should detect playAcrossSlides for audio with dur=indefinite', () => {
 		const cTn: XmlObject = { '@_dur': 'indefinite' };
 		const result = parseCtnMediaTiming(cTn, 'p:audio');
-		expect(result.playAcrossSlides).toBe(true);
+		expect(result.playAcrossSlides).toBeTruthy();
 	});
 
 	it('should not set playAcrossSlides for video even with dur=indefinite', () => {
 		const cTn: XmlObject = { '@_dur': 'indefinite' };
 		const result = parseCtnMediaTiming(cTn, 'p:video');
-		expect(result.playAcrossSlides).toBe(false);
+		expect(result.playAcrossSlides).toBeFalsy();
 	});
 
 	it('should handle all properties simultaneously', () => {
@@ -277,9 +277,9 @@ describe('parseCtnMediaTiming', () => {
 		const result = parseCtnMediaTiming(cTn, 'p:audio');
 		expect(result.trimStartMs).toBe(1000);
 		expect(result.trimEndMs).toBe(60000);
-		expect(result.loop).toBe(true);
-		expect(result.autoPlay).toBe(true);
-		expect(result.playAcrossSlides).toBe(true);
+		expect(result.loop).toBeTruthy();
+		expect(result.autoPlay).toBeTruthy();
+		expect(result.playAcrossSlides).toBeTruthy();
 	});
 });
 

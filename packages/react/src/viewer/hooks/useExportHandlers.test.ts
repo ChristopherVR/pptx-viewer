@@ -125,17 +125,17 @@ describe('export error handling', () => {
 
 	it('detects AbortError by name', () => {
 		const err = new DOMException('The operation was aborted.', 'AbortError');
-		expect(isAbortError(err)).toBe(true);
+		expect(isAbortError(err)).toBeTruthy();
 	});
 
 	it('does not flag regular errors as AbortError', () => {
 		const err = new Error('Network failure');
-		expect(isAbortError(err)).toBe(false);
+		expect(isAbortError(err)).toBeFalsy();
 	});
 
 	it('does not flag TypeError as AbortError', () => {
 		const err = new TypeError('Cannot read property of null');
-		expect(isAbortError(err)).toBe(false);
+		expect(isAbortError(err)).toBeFalsy();
 	});
 });
 
@@ -146,17 +146,17 @@ describe('export error handling', () => {
 describe('exportHandlersResult shape', () => {
 	it('has all expected handler functions', () => {
 		const result: ExportHandlersResult = {
-			handleExportPng: vi.fn(),
-			handleExportPdf: vi.fn(),
-			handleExportNotesPdf: vi.fn(),
-			handleCopySlideAsImage: vi.fn(),
-			handleExportVideo: vi.fn(),
-			handleExportGif: vi.fn(),
-			handlePackageForSharing: vi.fn(),
-			handleSaveAsFormat: vi.fn(),
-			handleSaveAsPpsx: vi.fn(),
-			handleSaveAsPptm: vi.fn(),
-			handleCancelExport: vi.fn(),
+			handleExportPng: vi.fn<() => void>(),
+			handleExportPdf: vi.fn<() => void>(),
+			handleExportNotesPdf: vi.fn<() => void>(),
+			handleCopySlideAsImage: vi.fn<() => void>(),
+			handleExportVideo: vi.fn<() => void>(),
+			handleExportGif: vi.fn<() => void>(),
+			handlePackageForSharing: vi.fn<() => void>(),
+			handleSaveAsFormat: vi.fn<() => void>(),
+			handleSaveAsPpsx: vi.fn<() => void>(),
+			handleSaveAsPptm: vi.fn<() => void>(),
+			handleCancelExport: vi.fn<() => void>(),
 			exportModalOpen: false,
 			exportModalTitle: '',
 			exportProgress: 0,
@@ -176,7 +176,7 @@ describe('exportHandlersResult shape', () => {
 			exportStatusMessage: '',
 		};
 
-		expect(result.exportModalOpen).toBe(false);
+		expect(result.exportModalOpen).toBeFalsy();
 		expect(result.exportModalTitle).toBe('');
 		expect(result.exportProgress).toBe(0);
 		expect(result.exportStatusMessage).toBe('');

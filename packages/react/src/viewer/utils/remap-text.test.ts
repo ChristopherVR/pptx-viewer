@@ -31,14 +31,14 @@ describe('remapTextToSegments', () => {
 			const result = remapTextToSegments('Hello', undefined, { bold: true });
 			expect(result).toHaveLength(1);
 			expect(result[0].text).toBe('Hello');
-			expect(result[0].style.bold).toBe(true);
+			expect(result[0].style.bold).toBeTruthy();
 		});
 
 		it('should return single segment when original segments array is empty', () => {
 			const result = remapTextToSegments('Hello', [], { italic: true });
 			expect(result).toHaveLength(1);
 			expect(result[0].text).toBe('Hello');
-			expect(result[0].style.italic).toBe(true);
+			expect(result[0].style.italic).toBeTruthy();
 		});
 
 		it('should use empty style when no elementTextStyle provided', () => {
@@ -53,8 +53,8 @@ describe('remapTextToSegments', () => {
 			const original = [seg('Hello', { bold: true }), seg(' World', { italic: true })];
 			const result = remapTextToSegments('Hello World', original, {});
 			expect(result).toHaveLength(2);
-			expect(result[0].style.bold).toBe(true);
-			expect(result[1].style.italic).toBe(true);
+			expect(result[0].style.bold).toBeTruthy();
+			expect(result[1].style.italic).toBeTruthy();
 		});
 
 		it('should distribute text proportionally across segments', () => {
@@ -72,7 +72,7 @@ describe('remapTextToSegments', () => {
 			// "Hi" is only 2 chars; first orig is 5, so we get all in first segment
 			expect(result.length).toBeGreaterThanOrEqual(1);
 			expect(result[0].text).toBe('Hi');
-			expect(result[0].style.bold).toBe(true);
+			expect(result[0].style.bold).toBeTruthy();
 		});
 
 		it('should handle empty new text', () => {
@@ -87,7 +87,7 @@ describe('remapTextToSegments', () => {
 			const result = remapTextToSegments('New text', original, {});
 			expect(result).toHaveLength(1);
 			expect(result[0].text).toBe('New text');
-			expect(result[0].style.bold).toBe(true);
+			expect(result[0].style.bold).toBeTruthy();
 		});
 	});
 
@@ -100,12 +100,12 @@ describe('remapTextToSegments', () => {
 			expect(texts).toContain('\n');
 			// First paragraph
 			expect(result[0].text).toBe('AAA');
-			expect(result[0].style.bold).toBe(true);
+			expect(result[0].style.bold).toBeTruthy();
 			// Break
-			expect(result[1].isParagraphBreak).toBe(true);
+			expect(result[1].isParagraphBreak).toBeTruthy();
 			// Second paragraph
 			expect(result[2].text).toBe('BBB');
-			expect(result[2].style.italic).toBe(true);
+			expect(result[2].style.italic).toBeTruthy();
 		});
 
 		it('should handle more new paragraphs than original', () => {

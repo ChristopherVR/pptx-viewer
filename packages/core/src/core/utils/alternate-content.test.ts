@@ -10,45 +10,45 @@ import {
 
 describe('areNamespacesSupported', () => {
 	it('returns true for empty or whitespace requires', () => {
-		expect(areNamespacesSupported('')).toBe(true);
-		expect(areNamespacesSupported('  ')).toBe(true);
+		expect(areNamespacesSupported('')).toBeTruthy();
+		expect(areNamespacesSupported('  ')).toBeTruthy();
 	});
 
 	it('returns true for known namespaces', () => {
-		expect(areNamespacesSupported('p14')).toBe(true);
-		expect(areNamespacesSupported('p15')).toBe(true);
-		expect(areNamespacesSupported('a14')).toBe(true);
-		expect(areNamespacesSupported('asvg')).toBe(true);
+		expect(areNamespacesSupported('p14')).toBeTruthy();
+		expect(areNamespacesSupported('p15')).toBeTruthy();
+		expect(areNamespacesSupported('a14')).toBeTruthy();
+		expect(areNamespacesSupported('asvg')).toBeTruthy();
 	});
 
 	it('returns true for multiple known namespaces', () => {
-		expect(areNamespacesSupported('p14 a14')).toBe(true);
-		expect(areNamespacesSupported('p15 a16 asvg')).toBe(true);
+		expect(areNamespacesSupported('p14 a14')).toBeTruthy();
+		expect(areNamespacesSupported('p15 a16 asvg')).toBeTruthy();
 	});
 
 	it('returns false when any namespace is unknown', () => {
-		expect(areNamespacesSupported('p99')).toBe(false);
-		expect(areNamespacesSupported('p14 unknownNs')).toBe(false);
+		expect(areNamespacesSupported('p99')).toBeFalsy();
+		expect(areNamespacesSupported('p14 unknownNs')).toBeFalsy();
 	});
 });
 
 describe('isNamespaceSupported', () => {
 	it('returns true for supported namespaces', () => {
-		expect(isNamespaceSupported('p14')).toBe(true);
-		expect(isNamespaceSupported('p16r3')).toBe(true);
+		expect(isNamespaceSupported('p14')).toBeTruthy();
+		expect(isNamespaceSupported('p16r3')).toBeTruthy();
 	});
 
 	it('returns false for unsupported namespaces', () => {
-		expect(isNamespaceSupported('p99')).toBe(false);
+		expect(isNamespaceSupported('p99')).toBeFalsy();
 	});
 });
 
 describe('getSupportedNamespaces', () => {
 	it('returns a set containing known namespaces', () => {
 		const ns = getSupportedNamespaces();
-		expect(ns.has('p14')).toBe(true);
-		expect(ns.has('a14')).toBe(true);
-		expect(ns.has('p16r3')).toBe(true);
+		expect(ns.has('p14')).toBeTruthy();
+		expect(ns.has('a14')).toBeTruthy();
+		expect(ns.has('p16r3')).toBeTruthy();
 	});
 });
 

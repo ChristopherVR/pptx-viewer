@@ -94,12 +94,12 @@ function buildEotBuffer(
 describe('isEotFormat', () => {
 	it('returns true for valid EOT data with magic at offset 34', () => {
 		const data = buildEotBuffer();
-		expect(isEotFormat(data)).toBe(true);
+		expect(isEotFormat(data)).toBeTruthy();
 	});
 
 	it('returns false for buffer shorter than 36 bytes', () => {
 		const data = new Uint8Array(35);
-		expect(isEotFormat(data)).toBe(false);
+		expect(isEotFormat(data)).toBeFalsy();
 	});
 
 	it('returns false when magic does not match', () => {
@@ -107,11 +107,11 @@ describe('isEotFormat', () => {
 		// Corrupt the magic
 		data[34] = 0;
 		data[35] = 0;
-		expect(isEotFormat(data)).toBe(false);
+		expect(isEotFormat(data)).toBeFalsy();
 	});
 
 	it('returns false for an empty buffer', () => {
-		expect(isEotFormat(new Uint8Array(0))).toBe(false);
+		expect(isEotFormat(new Uint8Array(0))).toBeFalsy();
 	});
 
 	it('returns false for random data without magic', () => {
@@ -119,14 +119,14 @@ describe('isEotFormat', () => {
 		for (let i = 0; i < 100; i++) {
 			data[i] = i;
 		}
-		expect(isEotFormat(data)).toBe(false);
+		expect(isEotFormat(data)).toBeFalsy();
 	});
 
 	it('returns true regardless of other header fields if magic is correct', () => {
 		const data = new Uint8Array(40);
 		const view = new DataView(data.buffer);
 		view.setUint16(34, 0x504c, true);
-		expect(isEotFormat(data)).toBe(true);
+		expect(isEotFormat(data)).toBeTruthy();
 	});
 });
 
@@ -172,16 +172,16 @@ describe('parseEotHeader', () => {
 		const data = buildEotBuffer({ flags: 0x0004 });
 		const header = parseEotHeader(data);
 		expect(header).not.toBeNull();
-		expect(header!.isCompressed).toBe(true);
-		expect(header!.isXorEncrypted).toBe(false);
+		expect(header!.isCompressed).toBeTruthy();
+		expect(header!.isXorEncrypted).toBeFalsy();
 	});
 
 	it('detects XOR encrypted flag', () => {
 		const data = buildEotBuffer({ flags: 0x10000000 });
 		const header = parseEotHeader(data);
 		expect(header).not.toBeNull();
-		expect(header!.isXorEncrypted).toBe(true);
-		expect(header!.isCompressed).toBe(false);
+		expect(header!.isXorEncrypted).toBeTruthy();
+		expect(header!.isCompressed).toBeFalsy();
 	});
 
 	it('fontDataOffset points past the name strings', () => {

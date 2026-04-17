@@ -67,7 +67,7 @@ describe('addElement', () => {
 			fontSize: 24,
 			bold: true,
 		});
-		expect(result.dirty).toBe(true);
+		expect(result.dirty).toBeTruthy();
 		expect(result.result.slideIndex).toBe(0);
 		const added = c.pptxData.slides[0].elements.find((e) => e.id === result.result.elementId);
 		expect(added).toBeDefined();
@@ -86,7 +86,7 @@ describe('addElement', () => {
 			width: 150,
 			height: 150,
 		});
-		expect(result.dirty).toBe(true);
+		expect(result.dirty).toBeTruthy();
 		const added = c.pptxData.slides[0].elements.find((e) => e.id === result.result.elementId);
 		expect(added?.type).toBe('shape');
 	});
@@ -99,7 +99,7 @@ describe('addElement', () => {
 			rows: 3,
 			columns: 2,
 		});
-		expect(result.dirty).toBe(true);
+		expect(result.dirty).toBeTruthy();
 		const added = c.pptxData.slides[0].elements.find((e) => e.id === result.result.elementId);
 		expect(added?.type).toBe('table');
 	});
@@ -111,7 +111,7 @@ describe('addElement', () => {
 			type: 'connector',
 			endArrow: 'triangle',
 		});
-		expect(result.dirty).toBe(true);
+		expect(result.dirty).toBeTruthy();
 		const added = c.pptxData.slides[0].elements.find((e) => e.id === result.result.elementId);
 		expect(added?.type).toBe('connector');
 	});
@@ -141,7 +141,7 @@ describe('updateElement', () => {
 			x: 50,
 			y: 75,
 		});
-		expect(result.dirty).toBe(true);
+		expect(result.dirty).toBeTruthy();
 		const el = c.pptxData.slides[0].elements.find((e) => e.id === 'el-0');
 		expect(el?.x).toBe(50);
 		expect(el?.y).toBe(75);
@@ -185,7 +185,7 @@ describe('deleteElements', () => {
 			slideIndex: 0,
 			elementIds: ['el-0'],
 		});
-		expect(result.dirty).toBe(true);
+		expect(result.dirty).toBeTruthy();
 		expect(result.result.deletedCount).toBe(1);
 		expect(c.pptxData.slides[0].elements.find((e) => e.id === 'el-0')).toBeUndefined();
 	});
@@ -272,7 +272,7 @@ describe('cloneElement', () => {
 			offsetX: 30,
 			offsetY: 30,
 		});
-		expect(result.dirty).toBe(true);
+		expect(result.dirty).toBeTruthy();
 		expect(result.result.clonedIds).toHaveLength(1);
 		const cloned = c.pptxData.slides[0].elements.find((e) => e.id === result.result.clonedIds[0]);
 		expect(cloned).toBeDefined();
@@ -297,8 +297,8 @@ describe('groupElements', () => {
 			slideIndex: 0,
 			elementIds: ['el-0', 'el-1'],
 		});
-		expect(result.dirty).toBe(true);
-		expect(result.result.groupId).toBe(true);
+		expect(result.dirty).toBeTruthy();
+		expect(result.result.groupId).toBeTruthy();
 		// original elements should be gone
 		expect(c.pptxData.slides[0].elements.find((e) => e.id === 'el-0')).toBeUndefined();
 		expect(c.pptxData.slides[0].elements.find((e) => e.id === 'el-1')).toBeUndefined();
@@ -325,7 +325,7 @@ describe('ungroupElements', () => {
 			slideIndex: 0,
 			groupElementId: groupResult.result.groupId,
 		});
-		expect(ungroupResult.dirty).toBe(true);
+		expect(ungroupResult.dirty).toBeTruthy();
 		expect(ungroupResult.result.restoredIds).toHaveLength(2);
 		// group should be gone
 		expect(
@@ -351,7 +351,7 @@ describe('setElementAnimation', () => {
 			entrance: 'fadeIn',
 			durationMs: 500,
 		});
-		expect(result.dirty).toBe(true);
+		expect(result.dirty).toBeTruthy();
 		const slide = c.pptxData.slides[0];
 		const anim = (
 			slide as unknown as {
@@ -374,7 +374,7 @@ describe('batchUpdateElements', () => {
 			elementIds: ['el-0', 'el-1'],
 			opacity: 0.5,
 		});
-		expect(result.dirty).toBe(true);
+		expect(result.dirty).toBeTruthy();
 		expect(result.result.updatedCount).toBe(2);
 		expect(c.pptxData.slides[0].elements[0].opacity).toBe(0.5);
 		expect(c.pptxData.slides[0].elements[1].opacity).toBe(0.5);

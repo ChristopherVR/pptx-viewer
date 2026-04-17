@@ -95,7 +95,7 @@ function ctx(pptxData?: PptxData): ToolContext {
 describe('findText', () => {
 	it('finds text across all slides (case-insensitive by default)', () => {
 		const result = findText(ctx(), { query: 'foo' });
-		expect(result.dirty).toBe(false);
+		expect(result.dirty).toBeFalsy();
 		// should find in el-0 text, el-1 text, table cell, and notes
 		expect(result.result.matchCount).toBeGreaterThanOrEqual(4);
 	});
@@ -137,7 +137,7 @@ describe('replaceText', () => {
 	it('replaces text in elements', () => {
 		const c = ctx();
 		const result = replaceText(c, { query: 'Hello World', replacement: 'Goodbye' });
-		expect(result.dirty).toBe(true);
+		expect(result.dirty).toBeTruthy();
 		expect(result.result.replacementCount).toBeGreaterThan(0);
 		const el = c.pptxData.slides[0].elements.find((e) => e.id === 'el-0');
 		expect((el as { text?: string }).text).toContain('Goodbye');
@@ -155,7 +155,7 @@ describe('replaceText', () => {
 
 	it('returns dirty=false when no replacements', () => {
 		const result = replaceText(ctx(), { query: 'nonexistent_xyz', replacement: 'something' });
-		expect(result.dirty).toBe(false);
+		expect(result.dirty).toBeFalsy();
 		expect(result.result.replacementCount).toBe(0);
 	});
 
@@ -179,7 +179,7 @@ describe('replaceText', () => {
 describe('manageComments', () => {
 	it('lists comments (excludes resolved by default)', () => {
 		const result = manageComments(ctx(), { action: 'list' });
-		expect(result.dirty).toBe(false);
+		expect(result.dirty).toBeFalsy();
 		expect(result.result.comments).toBeDefined();
 		// only unresolved by default
 		const resolved = result.result.comments?.filter((c) => c.resolved);
@@ -208,8 +208,8 @@ describe('manageComments', () => {
 			text: 'New comment from test',
 			author: 'Tester',
 		});
-		expect(result.dirty).toBe(true);
-		expect(result.result.commentId).toBe(true);
+		expect(result.dirty).toBeTruthy();
+		expect(result.result.commentId).toBeTruthy();
 		const found = c.pptxData.slides[0].comments?.find((cm) => cm.id === result.result.commentId);
 		expect(found?.text).toBe('New comment from test');
 		expect(found?.author).toBe('Tester');
@@ -218,7 +218,7 @@ describe('manageComments', () => {
 	it('deletes a comment', () => {
 		const c = ctx();
 		const result = manageComments(c, { action: 'delete', commentId: 'c1' });
-		expect(result.dirty).toBe(true);
+		expect(result.dirty).toBeTruthy();
 		expect(c.pptxData.slides[0].comments?.find((cm) => cm.id === 'c1')).toBeUndefined();
 	});
 
@@ -226,7 +226,7 @@ describe('manageComments', () => {
 		const c = ctx();
 		manageComments(c, { action: 'resolve', commentId: 'c1' });
 		const found = c.pptxData.slides[0].comments?.find((cm) => cm.id === 'c1');
-		expect(found?.resolved).toBe(true);
+		expect(found?.resolved).toBeTruthy();
 	});
 
 	it('throws when adding without slideIndex', () => {

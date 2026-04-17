@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import type {
@@ -83,10 +82,10 @@ describe('buildElectronDialogConfig', () => {
 describe('exportModalControls type', () => {
 	it('has expected properties', () => {
 		const controls: ExportModalControls = {
-			setExportModalOpen: vi.fn(),
-			setExportModalTitle: vi.fn(),
-			setExportProgress: vi.fn(),
-			setExportStatusMessage: vi.fn(),
+			setExportModalOpen: vi.fn<() => void>(),
+			setExportModalTitle: vi.fn<() => void>(),
+			setExportProgress: vi.fn<() => void>(),
+			setExportStatusMessage: vi.fn<() => void>(),
 			exportAbortRef: { current: null },
 		};
 		expect(controls.setExportModalOpen).toBeDefined();
@@ -99,14 +98,14 @@ describe('exportModalControls type', () => {
 	it('abort ref can hold an AbortController', () => {
 		const controller = new AbortController();
 		const controls: ExportModalControls = {
-			setExportModalOpen: vi.fn(),
-			setExportModalTitle: vi.fn(),
-			setExportProgress: vi.fn(),
-			setExportStatusMessage: vi.fn(),
+			setExportModalOpen: vi.fn<() => void>(),
+			setExportModalTitle: vi.fn<() => void>(),
+			setExportProgress: vi.fn<() => void>(),
+			setExportStatusMessage: vi.fn<() => void>(),
 			exportAbortRef: { current: controller },
 		};
 		expect(controls.exportAbortRef.current).toBe(controller);
-		expect(controls.exportAbortRef.current!.signal.aborted).toBe(false);
+		expect(controls.exportAbortRef.current!.signal.aborted).toBeFalsy();
 	});
 });
 
@@ -117,24 +116,24 @@ describe('exportModalControls type', () => {
 describe('exportHandlersResult type', () => {
 	it('has all expected handler functions and state properties', () => {
 		const mockResult: ExportHandlersResult = {
-			handleExportPng: vi.fn(),
-			handleExportPdf: vi.fn(),
-			handleExportNotesPdf: vi.fn(),
-			handleCopySlideAsImage: vi.fn(),
-			handleExportVideo: vi.fn(),
-			handleExportGif: vi.fn(),
-			handlePackageForSharing: vi.fn(),
-			handleSaveAsFormat: vi.fn(),
-			handleSaveAsPpsx: vi.fn(),
-			handleSaveAsPptm: vi.fn(),
-			handleCancelExport: vi.fn(),
+			handleExportPng: vi.fn<() => void>(),
+			handleExportPdf: vi.fn<() => void>(),
+			handleExportNotesPdf: vi.fn<() => void>(),
+			handleCopySlideAsImage: vi.fn<() => void>(),
+			handleExportVideo: vi.fn<() => void>(),
+			handleExportGif: vi.fn<() => void>(),
+			handlePackageForSharing: vi.fn<() => void>(),
+			handleSaveAsFormat: vi.fn<() => void>(),
+			handleSaveAsPpsx: vi.fn<() => void>(),
+			handleSaveAsPptm: vi.fn<() => void>(),
+			handleCancelExport: vi.fn<() => void>(),
 			exportModalOpen: false,
 			exportModalTitle: '',
 			exportProgress: 0,
 			exportStatusMessage: '',
 		};
 
-		expect(mockResult.exportModalOpen).toBe(false);
+		expect(mockResult.exportModalOpen).toBeFalsy();
 		expect(mockResult.exportModalTitle).toBe('');
 		expect(mockResult.exportProgress).toBe(0);
 		expect(mockResult.exportStatusMessage).toBe('');
@@ -142,17 +141,17 @@ describe('exportHandlersResult type', () => {
 
 	it('handler functions are callable', () => {
 		const mockResult: ExportHandlersResult = {
-			handleExportPng: vi.fn().mockResolvedValue(undefined),
-			handleExportPdf: vi.fn().mockResolvedValue(undefined),
-			handleExportNotesPdf: vi.fn().mockResolvedValue(undefined),
-			handleCopySlideAsImage: vi.fn().mockResolvedValue(undefined),
-			handleExportVideo: vi.fn().mockResolvedValue(undefined),
-			handleExportGif: vi.fn().mockResolvedValue(undefined),
-			handlePackageForSharing: vi.fn().mockResolvedValue(undefined),
-			handleSaveAsFormat: vi.fn().mockResolvedValue(undefined),
-			handleSaveAsPpsx: vi.fn(),
-			handleSaveAsPptm: vi.fn(),
-			handleCancelExport: vi.fn(),
+			handleExportPng: vi.fn<() => void>().mockResolvedValue(undefined),
+			handleExportPdf: vi.fn<() => void>().mockResolvedValue(undefined),
+			handleExportNotesPdf: vi.fn<() => void>().mockResolvedValue(undefined),
+			handleCopySlideAsImage: vi.fn<() => void>().mockResolvedValue(undefined),
+			handleExportVideo: vi.fn<() => void>().mockResolvedValue(undefined),
+			handleExportGif: vi.fn<() => void>().mockResolvedValue(undefined),
+			handlePackageForSharing: vi.fn<() => void>().mockResolvedValue(undefined),
+			handleSaveAsFormat: vi.fn<() => void>().mockResolvedValue(undefined),
+			handleSaveAsPpsx: vi.fn<() => void>(),
+			handleSaveAsPptm: vi.fn<() => void>(),
+			handleCancelExport: vi.fn<() => void>(),
 			exportModalOpen: false,
 			exportModalTitle: '',
 			exportProgress: 0,

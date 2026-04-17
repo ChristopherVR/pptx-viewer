@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, vi, beforeEach, expectTypeOf } from 'vitest';
 
 import { playAnimationSound, stopAnimationSound } from './animation-sound';
@@ -24,8 +23,8 @@ function createMockAudio(src: string): MockAudio {
 	const audio: MockAudio = {
 		src,
 		currentTime: 0,
-		play: vi.fn().mockResolvedValue(undefined),
-		pause: vi.fn(),
+		play: vi.fn<() => void>().mockResolvedValue(undefined),
+		pause: vi.fn<() => void>(),
 	};
 	lastCreatedAudio = audio;
 	return audio;
@@ -39,7 +38,7 @@ beforeEach(() => {
 	// Install mock Audio constructor — vitest 4 requires `function` for `new`
 	vi.stubGlobal(
 		'Audio',
-		vi.fn(function (src: string) {
+		vi.fn<(...args: any[]) => any>(function (src: string) {
 			return createMockAudio(src);
 		}),
 	);
@@ -74,12 +73,12 @@ describe('playAnimationSound', () => {
 	it('handles play() rejection gracefully (autoplay restrictions)', () => {
 		vi.stubGlobal(
 			'Audio',
-			vi.fn(function (src: string) {
+			vi.fn<(...args: any[]) => any>(function (src: string) {
 				const audio: MockAudio = {
 					src,
 					currentTime: 0,
-					play: vi.fn().mockRejectedValue(new Error('Autoplay blocked')),
-					pause: vi.fn(),
+					play: vi.fn<() => void>().mockRejectedValue(new Error('Autoplay blocked')),
+					pause: vi.fn<() => void>(),
 				};
 				lastCreatedAudio = audio;
 				return audio;

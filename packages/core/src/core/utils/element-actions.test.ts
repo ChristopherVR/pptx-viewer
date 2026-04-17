@@ -182,22 +182,22 @@ describe('elementHasAction', () => {
 		const element = {
 			actionClick: { action: 'ppaction://hlinksldjump' },
 		} as unknown as PptxElement;
-		expect(elementHasAction(element)).toBe(true);
+		expect(elementHasAction(element)).toBeTruthy();
 	});
 
 	it('returns true when element has actionHover', () => {
 		const element = { actionHover: { url: 'https://example.com' } } as unknown as PptxElement;
-		expect(elementHasAction(element)).toBe(true);
+		expect(elementHasAction(element)).toBeTruthy();
 	});
 
 	it('returns false when element has no actions', () => {
 		const element = {} as unknown as PptxElement;
-		expect(elementHasAction(element)).toBe(false);
+		expect(elementHasAction(element)).toBeFalsy();
 	});
 
 	it('returns false when actions are undefined', () => {
 		const element = { actionClick: undefined, actionHover: undefined } as unknown as PptxElement;
-		expect(elementHasAction(element)).toBe(false);
+		expect(elementHasAction(element)).toBeFalsy();
 	});
 
 	it('returns true when both click and hover actions exist', () => {
@@ -205,11 +205,11 @@ describe('elementHasAction', () => {
 			actionClick: { action: 'ppaction://hlinksldjump' },
 			actionHover: { url: 'https://example.com' },
 		} as unknown as PptxElement;
-		expect(elementHasAction(element)).toBe(true);
+		expect(elementHasAction(element)).toBeTruthy();
 	});
 
 	it('returns false for null-ish action values', () => {
 		const element = { actionClick: null, actionHover: null } as unknown as PptxElement;
-		expect(elementHasAction(element)).toBe(false);
+		expect(elementHasAction(element)).toBeFalsy();
 	});
 });

@@ -11,7 +11,7 @@ describe('inspectPptxDigitalSignatures', () => {
 	it('returns "invalid-package" for non-ZIP data', async () => {
 		const result = await inspectPptxDigitalSignatures(new Uint8Array([0x00, 0x01, 0x02, 0x03]));
 		expect(result.verificationStatus).toBe('invalid-package');
-		expect(result.hasSignature).toBe(false);
+		expect(result.hasSignature).toBeFalsy();
 		expect(result.signatureCount).toBe(0);
 		expect(result.error).toBeDefined();
 	});
@@ -28,10 +28,10 @@ describe('inspectPptxDigitalSignatures', () => {
 		const result = await inspectPptxDigitalSignatures(data);
 
 		expect(result.verificationStatus).toBe('unsigned');
-		expect(result.hasSignature).toBe(false);
+		expect(result.hasSignature).toBeFalsy();
 		expect(result.signatureCount).toBe(0);
 		expect(result.signaturePaths).toStrictEqual([]);
-		expect(result.supported).toBe(true);
+		expect(result.supported).toBeTruthy();
 	});
 
 	it('returns "unsigned" for a ZIP with non-signature XML files', async () => {
@@ -42,6 +42,6 @@ describe('inspectPptxDigitalSignatures', () => {
 		const result = await inspectPptxDigitalSignatures(data);
 
 		expect(result.verificationStatus).toBe('unsigned');
-		expect(result.hasSignature).toBe(false);
+		expect(result.hasSignature).toBeFalsy();
 	});
 });

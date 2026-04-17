@@ -492,7 +492,7 @@ describe('mergePresentation', () => {
 		mergePresentation(target, source);
 		// The merged slides (last 3) should be marked dirty
 		for (let i = 2; i < target.slides.length; i++) {
-			expect(target.slides[i].isDirty).toBe(true);
+			expect(target.slides[i].isDirty).toBeTruthy();
 		}
 	});
 
@@ -534,7 +534,7 @@ describe('mergePresentation', () => {
 		]);
 		mergePresentation(target, src);
 		const mergedSlide = target.slides[target.slides.length - 1];
-		expect(mergedSlide.hidden).toBe(true);
+		expect(mergedSlide.hidden).toBeTruthy();
 	});
 
 	it('preserves layoutPath and layoutName', () => {

@@ -149,7 +149,7 @@ describe('slide properties', () => {
 		};
 		const showValue = String((slideXml['p:sld'] as XmlObject)?.['@_show'] ?? '').toLowerCase();
 		const hidden = showValue === '0' || showValue === 'false';
-		expect(hidden).toBe(true);
+		expect(hidden).toBeTruthy();
 	});
 
 	it('slide is visible when @_show is absent (default)', () => {
@@ -158,7 +158,7 @@ describe('slide properties', () => {
 		};
 		const showValue = String((slideXml['p:sld'] as XmlObject)?.['@_show'] ?? '').toLowerCase();
 		const hidden = showValue === '0' || showValue === 'false';
-		expect(hidden).toBe(false);
+		expect(hidden).toBeFalsy();
 	});
 
 	it("slide is visible when @_show='1'", () => {
@@ -167,7 +167,7 @@ describe('slide properties', () => {
 		};
 		const showValue = String((slideXml['p:sld'] as XmlObject)?.['@_show'] ?? '').toLowerCase();
 		const hidden = showValue === '0' || showValue === 'false';
-		expect(hidden).toBe(false);
+		expect(hidden).toBeFalsy();
 	});
 
 	it('showMasterShapes defaults to true when attribute absent', () => {
@@ -189,7 +189,7 @@ describe('slide properties', () => {
 		const rawVal = sld['@_showMasterSp'];
 		const normalized = String(rawVal).trim().toLowerCase();
 		const showMaster = normalized !== '0' && normalized !== 'false';
-		expect(showMaster).toBe(false);
+		expect(showMaster).toBeFalsy();
 	});
 });
 
@@ -228,7 +228,7 @@ describe('colour map override', () => {
 	});
 
 	it('hasNonTrivialOverride returns false for null', () => {
-		expect(hasNonTrivialOverride(null)).toBe(false);
+		expect(hasNonTrivialOverride(null)).toBeFalsy();
 	});
 
 	it('hasNonTrivialOverride returns false for identity mapping', () => {
@@ -237,16 +237,16 @@ describe('colour map override', () => {
 		for (const key of COLOR_MAP_ALIAS_KEYS) {
 			identity[key] = DEFAULT_COLOR_MAP[key];
 		}
-		expect(hasNonTrivialOverride(identity)).toBe(false);
+		expect(hasNonTrivialOverride(identity)).toBeFalsy();
 	});
 
 	it('hasNonTrivialOverride returns true when bg1 maps to dk1', () => {
 		const override = { bg1: 'dk1' }; // Default is lt1, so this is non-trivial
-		expect(hasNonTrivialOverride(override)).toBe(true);
+		expect(hasNonTrivialOverride(override)).toBeTruthy();
 	});
 
 	it('hasNonTrivialOverride returns false for empty object', () => {
-		expect(hasNonTrivialOverride({})).toBe(false);
+		expect(hasNonTrivialOverride({})).toBeFalsy();
 	});
 });
 

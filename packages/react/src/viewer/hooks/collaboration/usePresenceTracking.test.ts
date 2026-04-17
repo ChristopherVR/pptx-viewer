@@ -202,7 +202,7 @@ describe('usePresenceTracking (logic)', () => {
 		it('throttle interval is 50ms', () => {
 			// This is a documentation test — the constant is 50ms per the module
 			// The actual throttling is tested via the hook, which requires React
-			expect(true).toBe(true);
+			expect(true).toBeTruthy();
 		});
 	});
 });
@@ -369,7 +369,7 @@ describe('usePresenceTracking — mock awareness', () => {
 	});
 
 	it('registers and unregisters event listeners correctly', () => {
-		const cb = vi.fn();
+		const cb = vi.fn<() => void>();
 
 		awareness.on('change', cb);
 		expect(awareness._getListenerCount('change')).toBe(1);
@@ -385,7 +385,7 @@ describe('usePresenceTracking — mock awareness', () => {
 	});
 
 	it('setLocalStateField updates the local state and emits change', () => {
-		const cb = vi.fn();
+		const cb = vi.fn<() => void>();
 		awareness.on('change', cb);
 
 		awareness.setLocalStateField('presence', {

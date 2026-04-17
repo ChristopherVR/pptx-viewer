@@ -142,7 +142,7 @@ describe('canUpdateNotesXml', () => {
 				},
 			},
 		};
-		expect(canUpdateNotesXml(xml)).toBe(true);
+		expect(canUpdateNotesXml(xml)).toBeTruthy();
 	});
 
 	it('should return true when spTree has array of shapes', () => {
@@ -155,18 +155,18 @@ describe('canUpdateNotesXml', () => {
 				},
 			},
 		};
-		expect(canUpdateNotesXml(xml)).toBe(true);
+		expect(canUpdateNotesXml(xml)).toBeTruthy();
 	});
 
 	it('should return false when p:notes is missing', () => {
-		expect(canUpdateNotesXml({})).toBe(false);
+		expect(canUpdateNotesXml({})).toBeFalsy();
 	});
 
 	it('should return false when spTree is missing', () => {
 		const xml: XmlObject = {
 			'p:notes': { 'p:cSld': {} },
 		};
-		expect(canUpdateNotesXml(xml)).toBe(false);
+		expect(canUpdateNotesXml(xml)).toBeFalsy();
 	});
 
 	it('should return false when spTree has no shapes', () => {
@@ -177,6 +177,6 @@ describe('canUpdateNotesXml', () => {
 				},
 			},
 		};
-		expect(canUpdateNotesXml(xml)).toBe(false);
+		expect(canUpdateNotesXml(xml)).toBeFalsy();
 	});
 });

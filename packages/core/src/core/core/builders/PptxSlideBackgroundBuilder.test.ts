@@ -22,18 +22,18 @@ function createInput(
 			...slide,
 		} as PptxSlide,
 		zip: {
-			file: vi.fn(),
+			file: vi.fn<() => void>(),
 		} as any,
 		saveState: {
-			nextMediaPath: vi.fn().mockReturnValue('ppt/media/image1.png'),
+			nextMediaPath: vi.fn<() => void>().mockReturnValue('ppt/media/image1.png'),
 		} as any,
 		relationshipRegistry: {
-			nextRelationshipId: vi.fn().mockReturnValue('rId10'),
-			upsertRelationship: vi.fn(),
+			nextRelationshipId: vi.fn<() => void>().mockReturnValue('rId10'),
+			upsertRelationship: vi.fn<() => void>(),
 		} as any,
 		slideImageRelationshipType:
 			'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image',
-		parseDataUrlToBytes: vi.fn().mockReturnValue({
+		parseDataUrlToBytes: vi.fn<() => void>().mockReturnValue({
 			bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
 			extension: 'png',
 		}),
@@ -198,5 +198,29 @@ describe('pptxSlideBackgroundBuilder', () => {
 		expect(bgPr['a:solidFill']).toBeUndefined();
 		// effectLst is always present in bgPr
 		expect(bgPr['a:effectLst']).toStrictEqual({});
+	});
+
+	// ── Schema child order ────────────────────────────────────────────────
+
+	it('places p:bg before p:spTree in p:cSld when adding a background', () => {
+		// OOXML CT_CommonSlideData schema requires child order: bg, spTree,
+		// custDataLst, controls, extLst. fast-xml-parser serialises keys in
+		// insertion order, so p:bg MUST be the first key in p:cSld when
+		// p:spTree is already present. Emitting spTree first produces a
+		// Sch_UnexpectedElementContentExpectingComplex violation.
+		const slideNode: XmlObject = {
+			'p:cSld': {
+				'p:spTree': { 'p:sp': [] },
+			},
+		};
+		const input = createInput({ backgroundColor: '#FFFFFF' }, slideNode);
+		builder.applyBackground(input);
+
+		const cSld = slideNode['p:cSld'] as XmlObject;
+		const keys = Object.keys(cSld).filter((k) => !k.startsWith('@_'));
+		const bgIdx = keys.indexOf('p:bg');
+		const spTreeIdx = keys.indexOf('p:spTree');
+		expect(bgIdx).toBeGreaterThanOrEqual(0);
+		expect(spTreeIdx).toBeGreaterThan(bgIdx);
 	});
 });

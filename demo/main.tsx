@@ -289,9 +289,12 @@ function App() {
 	const [urlBroadcast, setUrlBroadcast] = useState(() =>
 		new URLSearchParams(window.location.search).get('broadcast'),
 	);
+	// URL params captured once on mount; setters not needed.
+	// eslint-disable-next-line react/hook-use-state
 	const [urlServer] = useState(
 		() => new URLSearchParams(window.location.search).get('server') ?? 'ws://localhost:1234',
 	);
+	// eslint-disable-next-line react/hook-use-state
 	const [urlName] = useState(() => new URLSearchParams(window.location.search).get('name'));
 
 	// Generate stable defaults for the Share dialog — these are demo-specific

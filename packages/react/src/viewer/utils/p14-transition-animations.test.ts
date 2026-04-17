@@ -13,7 +13,7 @@ describe('getP14TransitionAnimations', () => {
 		expect(result).toBeDefined();
 		expect(result!.outgoing).toContain('pptx-tr-conveyor-out-to-left');
 		expect(result!.incoming).toContain('pptx-tr-conveyor-in-from-right');
-		expect(result!.outgoingOnTop).toBe(false);
+		expect(result!.outgoingOnTop).toBeFalsy();
 	});
 
 	it('should return conveyor animations with right direction', () => {
@@ -52,7 +52,7 @@ describe('getP14TransitionAnimations', () => {
 	it('should return flash animation with outgoingOnTop true', () => {
 		const result = getP14TransitionAnimations('flash', 600, undefined);
 		expect(result).toBeDefined();
-		expect(result!.outgoingOnTop).toBe(true);
+		expect(result!.outgoingOnTop).toBeTruthy();
 		expect(result!.outgoing).toContain('pptx-tr-flash-white');
 		expect(result!.incoming).toContain('pptx-tr-flash-in');
 	});
@@ -62,7 +62,7 @@ describe('getP14TransitionAnimations', () => {
 		expect(result).toBeDefined();
 		expect(result!.outgoing).toContain('pptx-tr-flythrough-out');
 		expect(result!.incoming).toContain('pptx-tr-flythrough-in');
-		expect(result!.outgoingOnTop).toBe(true);
+		expect(result!.outgoingOnTop).toBeTruthy();
 	});
 
 	it('should return flythrough reverse animation when direction is "out"', () => {
@@ -82,7 +82,7 @@ describe('getP14TransitionAnimations', () => {
 	it('should return glitter animation', () => {
 		const result = getP14TransitionAnimations('glitter', 600, undefined);
 		expect(result).toBeDefined();
-		expect(result!.outgoingOnTop).toBe(true);
+		expect(result!.outgoingOnTop).toBeTruthy();
 		expect(result!.incoming).toContain('pptx-tr-glitter-in');
 	});
 
@@ -118,7 +118,7 @@ describe('getP14TransitionAnimations', () => {
 		const result = getP14TransitionAnimations('reveal', 800, 'l');
 		expect(result).toBeDefined();
 		expect(result!.outgoing).toContain('pptx-tr-reveal-out-to-left');
-		expect(result!.outgoingOnTop).toBe(true);
+		expect(result!.outgoingOnTop).toBeTruthy();
 	});
 
 	it('should return ripple animation with no outgoing', () => {
@@ -152,7 +152,7 @@ describe('getP14TransitionAnimations', () => {
 		expect(result).toBeDefined();
 		expect(result!.outgoing).toContain('pptx-tr-vortex-out');
 		expect(result!.incoming).toContain('pptx-tr-vortex-in');
-		expect(result!.outgoingOnTop).toBe(true);
+		expect(result!.outgoingOnTop).toBeTruthy();
 	});
 
 	it('should return warp forward animation', () => {

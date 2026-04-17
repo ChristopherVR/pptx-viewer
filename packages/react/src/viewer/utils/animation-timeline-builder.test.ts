@@ -40,17 +40,17 @@ describe('buildTimeline', () => {
 
 	it('tracks entrance element IDs', () => {
 		const result = buildTimeline([makeAnim({ presetClass: 'entr' })]);
-		expect(result.entranceElementIds.has('el1')).toBe(true);
+		expect(result.entranceElementIds.has('el1')).toBeTruthy();
 	});
 
 	it('does not track exit elements as entrance', () => {
 		const result = buildTimeline([makeAnim({ presetClass: 'exit', presetId: 10 })]);
-		expect(result.entranceElementIds.has('el1')).toBe(false);
+		expect(result.entranceElementIds.has('el1')).toBeFalsy();
 	});
 
 	it('does not track emphasis elements as entrance', () => {
 		const result = buildTimeline([makeAnim({ presetClass: 'emph', presetId: 26 })]);
-		expect(result.entranceElementIds.has('el1')).toBe(false);
+		expect(result.entranceElementIds.has('el1')).toBeFalsy();
 	});
 
 	// -------------------------------------------------------------------
@@ -266,7 +266,7 @@ describe('buildTimeline', () => {
 			} as PptxNativeAnimation),
 		]);
 		expect(result.clickGroups).toHaveLength(1);
-		expect(result.interactiveSequences.has('shape1')).toBe(true);
+		expect(result.interactiveSequences.has('shape1')).toBeTruthy();
 		const seqGroups = result.interactiveSequences.get('shape1')!;
 		expect(seqGroups.length).toBeGreaterThanOrEqual(1);
 		expect(seqGroups[0].steps[0].elementId).toBe('el2');
@@ -285,7 +285,7 @@ describe('buildTimeline', () => {
 				triggerShapeId: 'btn1',
 			} as PptxNativeAnimation),
 		]);
-		expect(result.interactiveSequences.has('btn1')).toBe(true);
+		expect(result.interactiveSequences.has('btn1')).toBeTruthy();
 		const seqGroups = result.interactiveSequences.get('btn1')!;
 		// Both animations should be in the same sequence
 		const totalSteps = seqGroups.reduce((sum, g) => sum + g.steps.length, 0);
@@ -333,7 +333,7 @@ describe('buildTimeline', () => {
 		]);
 		// el1 in click-groups, el2 in hover sequences
 		expect(result.clickGroups).toHaveLength(1);
-		expect(result.hoverSequences.has('el2')).toBe(true);
+		expect(result.hoverSequences.has('el2')).toBeTruthy();
 	});
 
 	// -------------------------------------------------------------------
@@ -349,7 +349,7 @@ describe('buildTimeline', () => {
 		]);
 		const step = result.clickGroups[0].steps[0];
 		expect(step.soundPath).toBe('media/click.wav');
-		expect(step.stopSound).toBe(true);
+		expect(step.stopSound).toBeTruthy();
 	});
 
 	// -------------------------------------------------------------------

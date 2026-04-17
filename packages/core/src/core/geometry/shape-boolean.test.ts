@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import {
@@ -406,7 +405,7 @@ describe('mergeShapes', () => {
 
 	it('dispatches fragment operation', () => {
 		const result = mergeShapes('fragment', rect1, rect2);
-		expect(Array.isArray(result)).toBe(true);
+		expect(Array.isArray(result)).toBeTruthy();
 	});
 
 	it('dispatches combine operation', () => {

@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import {
@@ -21,22 +20,22 @@ import type { EmfPlusReplayCtx, TransformMatrix } from './emf-types';
 
 function makeCtxStub(): Record<string, unknown> {
 	return {
-		save: vi.fn(),
-		restore: vi.fn(),
-		beginPath: vi.fn(),
-		closePath: vi.fn(),
-		rect: vi.fn(),
-		clip: vi.fn(),
-		setTransform: vi.fn(),
-		fill: vi.fn(),
-		stroke: vi.fn(),
-		fillRect: vi.fn(),
-		strokeRect: vi.fn(),
-		setLineDash: vi.fn(),
-		ellipse: vi.fn(),
-		moveTo: vi.fn(),
-		lineTo: vi.fn(),
-		fillText: vi.fn(),
+		save: vi.fn<() => void>(),
+		restore: vi.fn<() => void>(),
+		beginPath: vi.fn<() => void>(),
+		closePath: vi.fn<() => void>(),
+		rect: vi.fn<() => void>(),
+		clip: vi.fn<() => void>(),
+		setTransform: vi.fn<() => void>(),
+		fill: vi.fn<() => void>(),
+		stroke: vi.fn<() => void>(),
+		fillRect: vi.fn<() => void>(),
+		strokeRect: vi.fn<() => void>(),
+		setLineDash: vi.fn<() => void>(),
+		ellipse: vi.fn<() => void>(),
+		moveTo: vi.fn<() => void>(),
+		lineTo: vi.fn<() => void>(),
+		fillText: vi.fn<() => void>(),
 		strokeStyle: '#000',
 		fillStyle: '#fff',
 		lineWidth: 1,
@@ -83,7 +82,7 @@ describe('emf-plus-draw-handlers', () => {
 
 		it('returns false for unrecognized record type', () => {
 			const rCtx = makeRCtx();
-			expect(handleEmfPlusDrawRecord(rCtx, 0xffff, 0, 8, 8)).toBe(false);
+			expect(handleEmfPlusDrawRecord(rCtx, 0xffff, 0, 8, 8)).toBeFalsy();
 		});
 
 		// -- FILLRECTS --
@@ -100,7 +99,7 @@ describe('emf-plus-draw-handlers', () => {
 				rCtx.view.setInt16(d + 14, 60, true);
 				const flags = 0x8000 | 0x4000; // inline brush + compressed
 				const result = handleEmfPlusDrawRecord(rCtx, EMFPLUS_FILLRECTS, flags, d, 16);
-				expect(result).toBe(true);
+				expect(result).toBeTruthy();
 				const ctx = rCtx.ctx as unknown as Record<string, { mock: { calls: unknown[][] } }>;
 				expect(ctx.fillRect).toHaveBeenCalledOnce();
 				expect(ctx.fillRect.mock.calls[0]).toStrictEqual([10, 20, 50, 60]);
@@ -141,7 +140,7 @@ describe('emf-plus-draw-handlers', () => {
 			it('ignores if recDataSize < 8', () => {
 				const rCtx = makeRCtx();
 				const result = handleEmfPlusDrawRecord(rCtx, EMFPLUS_FILLRECTS, 0, 8, 4);
-				expect(result).toBe(true);
+				expect(result).toBeTruthy();
 			});
 		});
 
@@ -211,7 +210,7 @@ describe('emf-plus-draw-handlers', () => {
 			it('returns early if data too small for uncompressed', () => {
 				const rCtx = makeRCtx();
 				const result = handleEmfPlusDrawRecord(rCtx, EMFPLUS_DRAWELLIPSE, 0, 8, 8);
-				expect(result).toBe(true); // returns early but true
+				expect(result).toBeTruthy(); // returns early but true
 			});
 		});
 
@@ -235,7 +234,7 @@ describe('emf-plus-draw-handlers', () => {
 
 			it('returns early if data too small', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfPlusDrawRecord(rCtx, EMFPLUS_FILLPIE, 0, 8, 4)).toBe(true);
+				expect(handleEmfPlusDrawRecord(rCtx, EMFPLUS_FILLPIE, 0, 8, 4)).toBeTruthy();
 			});
 		});
 

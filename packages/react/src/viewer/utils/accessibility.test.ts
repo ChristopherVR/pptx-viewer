@@ -85,7 +85,7 @@ describe('computeReadingOrder', () => {
 			makeElement({ id: 'hidden', type: 'text', y: 50, x: 50, hidden: true }),
 		];
 		const order = computeReadingOrder(elements);
-		expect(order.has('hidden')).toBe(false);
+		expect(order.has('hidden')).toBeFalsy();
 		expect(order.get('visible')).toBe(1);
 		expect(order.size).toBe(1);
 	});
@@ -220,7 +220,7 @@ describe('getAriaLabel', () => {
 		const longText = 'A'.repeat(200);
 		const label = getAriaLabel(makeElement({ id: '1', type: 'text', text: longText }));
 		expect(label).toHaveLength(120);
-		expect(label.endsWith('...')).toBe(true);
+		expect(label.endsWith('...')).toBeTruthy();
 	});
 
 	it('returns text content for shapes with text', () => {
@@ -398,25 +398,25 @@ describe('prefersReducedMotion', () => {
 		// Ensure there is no window
 		// @ts-expect-error -- intentionally removing window
 		delete globalThis.window;
-		expect(prefersReducedMotion()).toBe(false);
+		expect(prefersReducedMotion()).toBeFalsy();
 	});
 
 	it('returns true when the media query matches', () => {
-		const mockMatchMedia = vi.fn().mockReturnValue({ matches: true });
+		const mockMatchMedia = vi.fn<() => void>().mockReturnValue({ matches: true });
 		// @ts-expect-error -- providing minimal window for test
 		globalThis.window = { matchMedia: mockMatchMedia };
-		expect(prefersReducedMotion()).toBe(true);
+		expect(prefersReducedMotion()).toBeTruthy();
 	});
 
 	it('returns false when the media query does not match', () => {
-		const mockMatchMedia = vi.fn().mockReturnValue({ matches: false });
+		const mockMatchMedia = vi.fn<() => void>().mockReturnValue({ matches: false });
 		// @ts-expect-error -- providing minimal window for test
 		globalThis.window = { matchMedia: mockMatchMedia };
-		expect(prefersReducedMotion()).toBe(false);
+		expect(prefersReducedMotion()).toBeFalsy();
 	});
 
 	it('queries the correct media query string', () => {
-		const mockMatchMedia = vi.fn().mockReturnValue({ matches: false });
+		const mockMatchMedia = vi.fn<() => void>().mockReturnValue({ matches: false });
 		// @ts-expect-error -- providing minimal window for test
 		globalThis.window = { matchMedia: mockMatchMedia };
 		prefersReducedMotion();
@@ -441,7 +441,7 @@ describe('getReducedMotionStyles', () => {
 	});
 
 	it('returns empty object when reduced motion is not preferred', () => {
-		const mockMatchMedia = vi.fn().mockReturnValue({ matches: false });
+		const mockMatchMedia = vi.fn<() => void>().mockReturnValue({ matches: false });
 		// @ts-expect-error -- providing minimal window for test
 		globalThis.window = { matchMedia: mockMatchMedia };
 		const styles = getReducedMotionStyles();
@@ -449,7 +449,7 @@ describe('getReducedMotionStyles', () => {
 	});
 
 	it('returns animation-disabling styles when reduced motion is preferred', () => {
-		const mockMatchMedia = vi.fn().mockReturnValue({ matches: true });
+		const mockMatchMedia = vi.fn<() => void>().mockReturnValue({ matches: true });
 		// @ts-expect-error -- providing minimal window for test
 		globalThis.window = { matchMedia: mockMatchMedia };
 		const styles = getReducedMotionStyles();

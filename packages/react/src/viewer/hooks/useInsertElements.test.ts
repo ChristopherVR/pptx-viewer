@@ -208,7 +208,7 @@ describe('activeSlide guard', () => {
 		// The hook's handlers check `if (!activeSlide) return;`
 		// We verify the guard logic pattern
 		const activeSlide: PptxSlide | undefined = undefined;
-		const addElementCalled = vi.fn();
+		const addElementCalled = vi.fn<() => void>();
 
 		// Simulating the guard
 		if (activeSlide) {
@@ -220,7 +220,7 @@ describe('activeSlide guard', () => {
 
 	it('handlers should proceed when activeSlide is defined', () => {
 		const activeSlide: PptxSlide | undefined = makeSlide('s1');
-		const addElementCalled = vi.fn();
+		const addElementCalled = vi.fn<() => void>();
 
 		if (activeSlide) {
 			addElementCalled();
@@ -237,18 +237,18 @@ describe('activeSlide guard', () => {
 describe('insertElementHandlers type', () => {
 	it('has all expected handler functions', () => {
 		const handlers: InsertElementHandlers = {
-			handleAddTextBox: vi.fn(),
-			handleAddShape: vi.fn(),
-			handleAddTable: vi.fn(),
-			handleInsertSmartArt: vi.fn(),
-			handleInsertEquation: vi.fn(),
-			handleHyperlinkConfirm: vi.fn(),
-			handleInsertField: vi.fn(),
-			handleAddActionButton: vi.fn(),
-			handleAddInkElement: vi.fn(),
-			handleAddFreeformShape: vi.fn(),
-			handleImageFileChange: vi.fn(),
-			handleMediaFileChange: vi.fn(),
+			handleAddTextBox: vi.fn<() => void>(),
+			handleAddShape: vi.fn<() => void>(),
+			handleAddTable: vi.fn<() => void>(),
+			handleInsertSmartArt: vi.fn<() => void>(),
+			handleInsertEquation: vi.fn<() => void>(),
+			handleHyperlinkConfirm: vi.fn<() => void>(),
+			handleInsertField: vi.fn<() => void>(),
+			handleAddActionButton: vi.fn<() => void>(),
+			handleAddInkElement: vi.fn<() => void>(),
+			handleAddFreeformShape: vi.fn<() => void>(),
+			handleImageFileChange: vi.fn<() => void>(),
+			handleMediaFileChange: vi.fn<() => void>(),
 		};
 		expect(Object.keys(handlers)).toHaveLength(12);
 	});

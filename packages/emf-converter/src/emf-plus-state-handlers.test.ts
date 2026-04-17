@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import {
@@ -37,22 +36,22 @@ import type { EmfPlusReplayCtx, TransformMatrix } from './emf-types';
 
 function makeCtxStub(): Record<string, unknown> {
 	return {
-		save: vi.fn(),
-		restore: vi.fn(),
-		beginPath: vi.fn(),
-		closePath: vi.fn(),
-		rect: vi.fn(),
-		clip: vi.fn(),
-		setTransform: vi.fn(),
-		fill: vi.fn(),
-		stroke: vi.fn(),
-		fillRect: vi.fn(),
-		strokeRect: vi.fn(),
-		setLineDash: vi.fn(),
-		ellipse: vi.fn(),
-		moveTo: vi.fn(),
-		lineTo: vi.fn(),
-		fillText: vi.fn(),
+		save: vi.fn<() => void>(),
+		restore: vi.fn<() => void>(),
+		beginPath: vi.fn<() => void>(),
+		closePath: vi.fn<() => void>(),
+		rect: vi.fn<() => void>(),
+		clip: vi.fn<() => void>(),
+		setTransform: vi.fn<() => void>(),
+		fill: vi.fn<() => void>(),
+		stroke: vi.fn<() => void>(),
+		fillRect: vi.fn<() => void>(),
+		strokeRect: vi.fn<() => void>(),
+		setLineDash: vi.fn<() => void>(),
+		ellipse: vi.fn<() => void>(),
+		moveTo: vi.fn<() => void>(),
+		lineTo: vi.fn<() => void>(),
+		fillText: vi.fn<() => void>(),
 		strokeStyle: '#000',
 		fillStyle: '#fff',
 		lineWidth: 1,
@@ -243,7 +242,7 @@ describe('emf-plus-state-handlers', () => {
 
 		it('returns false for unrecognized record type', () => {
 			const rCtx = makeRCtx();
-			expect(handleEmfPlusStateRecord(rCtx, 0xffff, 0, 8, 8)).toBe(false);
+			expect(handleEmfPlusStateRecord(rCtx, 0xffff, 0, 8, 8)).toBeFalsy();
 		});
 
 		// -- SETWORLDTRANSFORM --
@@ -256,7 +255,7 @@ describe('emf-plus-state-handlers', () => {
 					rCtx.view.setFloat32(d + i * 4, vals[i], true);
 				}
 				const result = handleEmfPlusStateRecord(rCtx, EMFPLUS_SETWORLDTRANSFORM, 0, d, 24);
-				expect(result).toBe(true);
+				expect(result).toBeTruthy();
 				expect(rCtx.worldTransform[0]).toBeCloseTo(2);
 				expect(rCtx.worldTransform[3]).toBeCloseTo(3);
 				expect(rCtx.worldTransform[4]).toBeCloseTo(10);
@@ -444,7 +443,7 @@ describe('emf-plus-state-handlers', () => {
 				const d = 8;
 				rCtx.view.setFloat32(d, 5, true);
 				rCtx.view.setFloat32(d + 4, 10, true);
-				expect(handleEmfPlusStateRecord(rCtx, EMFPLUS_OFFSETCLIP, 0, d, 8)).toBe(true);
+				expect(handleEmfPlusStateRecord(rCtx, EMFPLUS_OFFSETCLIP, 0, d, 8)).toBeTruthy();
 			});
 		});
 
@@ -458,7 +457,7 @@ describe('emf-plus-state-handlers', () => {
 				['SETCOMPOSITINGQUALITY', EMFPLUS_SETCOMPOSITINGQUALITY],
 			])('%s returns true', (_name, recType) => {
 				const rCtx = makeRCtx();
-				expect(handleEmfPlusStateRecord(rCtx, recType, 0, 8, 0)).toBe(true);
+				expect(handleEmfPlusStateRecord(rCtx, recType, 0, 8, 0)).toBeTruthy();
 			});
 		});
 	});

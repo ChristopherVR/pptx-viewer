@@ -24,14 +24,20 @@ function mockCtx() {
 	const calls: Array<{ method: string; args: any[] }> = [];
 	return {
 		calls,
-		beginPath: vi.fn(() => calls.push({ method: 'beginPath', args: [] })),
-		moveTo: vi.fn((x: number, y: number) => calls.push({ method: 'moveTo', args: [x, y] })),
-		lineTo: vi.fn((x: number, y: number) => calls.push({ method: 'lineTo', args: [x, y] })),
-		closePath: vi.fn(() => calls.push({ method: 'closePath', args: [] })),
-		fill: vi.fn((rule?: string) => calls.push({ method: 'fill', args: [rule] })),
-		stroke: vi.fn(() => calls.push({ method: 'stroke', args: [] })),
+		beginPath: vi.fn<(...args: any[]) => any>(() => calls.push({ method: 'beginPath', args: [] })),
+		moveTo: vi.fn<(...args: any[]) => any>((x: number, y: number) =>
+			calls.push({ method: 'moveTo', args: [x, y] }),
+		),
+		lineTo: vi.fn<(...args: any[]) => any>((x: number, y: number) =>
+			calls.push({ method: 'lineTo', args: [x, y] }),
+		),
+		closePath: vi.fn<(...args: any[]) => any>(() => calls.push({ method: 'closePath', args: [] })),
+		fill: vi.fn<(...args: any[]) => any>((rule?: string) =>
+			calls.push({ method: 'fill', args: [rule] }),
+		),
+		stroke: vi.fn<(...args: any[]) => any>(() => calls.push({ method: 'stroke', args: [] })),
 		// Stubs needed by applyPen / applyBrush
-		setLineDash: vi.fn(),
+		setLineDash: vi.fn<() => void>(),
 		lineWidth: 1,
 		strokeStyle: '',
 		fillStyle: '',

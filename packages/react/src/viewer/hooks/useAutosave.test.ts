@@ -103,7 +103,7 @@ describe('useAutosave integration (pure logic)', () => {
 				isSaving: false,
 				hasElectronApi: true,
 			}),
-		).toBe(false);
+		).toBeFalsy();
 	});
 
 	it('canAutosave returns true with all conditions met', () => {
@@ -115,7 +115,7 @@ describe('useAutosave integration (pure logic)', () => {
 				isSaving: false,
 				hasElectronApi: true,
 			}),
-		).toBe(true);
+		).toBeTruthy();
 	});
 
 	it('canAutosave returns false while a save is in progress', () => {
@@ -127,7 +127,7 @@ describe('useAutosave integration (pure logic)', () => {
 				isSaving: true,
 				hasElectronApi: true,
 			}),
-		).toBe(false);
+		).toBeFalsy();
 	});
 
 	it('canAutosave returns false when document is clean', () => {
@@ -139,6 +139,6 @@ describe('useAutosave integration (pure logic)', () => {
 				isSaving: false,
 				hasElectronApi: true,
 			}),
-		).toBe(false);
+		).toBeFalsy();
 	});
 });

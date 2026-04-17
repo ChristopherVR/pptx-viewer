@@ -24,7 +24,7 @@ describe('applyStyleToSelectedSegments', () => {
 		const { newSegments } = applyStyleToSelectedSegments(segments, selection, { bold: true });
 		expect(newSegments).toHaveLength(1);
 		expect(newSegments[0].text).toBe('Hello');
-		expect(newSegments[0].style.bold).toBe(true);
+		expect(newSegments[0].style.bold).toBeTruthy();
 	});
 
 	it('should split a single segment when partially selected at start', () => {
@@ -38,7 +38,7 @@ describe('applyStyleToSelectedSegments', () => {
 		const { newSegments } = applyStyleToSelectedSegments(segments, selection, { bold: true });
 		expect(newSegments).toHaveLength(2);
 		expect(newSegments[0].text).toBe('Hello');
-		expect(newSegments[0].style.bold).toBe(true);
+		expect(newSegments[0].style.bold).toBeTruthy();
 		expect(newSegments[1].text).toBe(' World');
 		expect(newSegments[1].style.bold).toBeUndefined();
 	});
@@ -56,7 +56,7 @@ describe('applyStyleToSelectedSegments', () => {
 		expect(newSegments[0].text).toBe('Hello ');
 		expect(newSegments[0].style.italic).toBeUndefined();
 		expect(newSegments[1].text).toBe('World');
-		expect(newSegments[1].style.italic).toBe(true);
+		expect(newSegments[1].style.italic).toBeTruthy();
 		expect(newSegments[2].text).toBe('!');
 		expect(newSegments[2].style.italic).toBeUndefined();
 	});
@@ -71,9 +71,9 @@ describe('applyStyleToSelectedSegments', () => {
 		};
 		const { newSegments } = applyStyleToSelectedSegments(segments, selection, { underline: true });
 		expect(newSegments).toHaveLength(3);
-		expect(newSegments[0].style.underline).toBe(true);
-		expect(newSegments[1].style.underline).toBe(true);
-		expect(newSegments[2].style.underline).toBe(true);
+		expect(newSegments[0].style.underline).toBeTruthy();
+		expect(newSegments[1].style.underline).toBeTruthy();
+		expect(newSegments[2].style.underline).toBeTruthy();
 	});
 
 	it('should split start and end segments when selection is partial', () => {
@@ -90,11 +90,11 @@ describe('applyStyleToSelectedSegments', () => {
 		expect(newSegments[0].text).toBe('A');
 		expect(newSegments[0].style.bold).toBeUndefined();
 		expect(newSegments[1].text).toBe('AA');
-		expect(newSegments[1].style.bold).toBe(true);
+		expect(newSegments[1].style.bold).toBeTruthy();
 		expect(newSegments[2].text).toBe('BBB');
-		expect(newSegments[2].style.bold).toBe(true);
+		expect(newSegments[2].style.bold).toBeTruthy();
 		expect(newSegments[3].text).toBe('CC');
-		expect(newSegments[3].style.bold).toBe(true);
+		expect(newSegments[3].style.bold).toBeTruthy();
 		expect(newSegments[4].text).toBe('C');
 		expect(newSegments[4].style.bold).toBeUndefined();
 	});
@@ -109,10 +109,10 @@ describe('applyStyleToSelectedSegments', () => {
 		};
 		const { newSegments } = applyStyleToSelectedSegments(segments, selection, { bold: true });
 		expect(newSegments).toHaveLength(3);
-		expect(newSegments[0].style.bold).toBe(true);
-		expect(newSegments[1].isParagraphBreak).toBe(true);
+		expect(newSegments[0].style.bold).toBeTruthy();
+		expect(newSegments[1].isParagraphBreak).toBeTruthy();
 		expect(newSegments[1].style.bold).toBeUndefined();
-		expect(newSegments[2].style.bold).toBe(true);
+		expect(newSegments[2].style.bold).toBeTruthy();
 	});
 
 	it('should not modify segments outside the selection range', () => {
@@ -129,10 +129,10 @@ describe('applyStyleToSelectedSegments', () => {
 		};
 		const { newSegments } = applyStyleToSelectedSegments(segments, selection, { bold: true });
 		expect(newSegments).toHaveLength(3);
-		expect(newSegments[0].style.italic).toBe(true);
+		expect(newSegments[0].style.italic).toBeTruthy();
 		expect(newSegments[0].style.bold).toBeUndefined();
-		expect(newSegments[1].style.bold).toBe(true);
-		expect(newSegments[2].style.italic).toBe(true);
+		expect(newSegments[1].style.bold).toBeTruthy();
+		expect(newSegments[2].style.italic).toBeTruthy();
 		expect(newSegments[2].style.bold).toBeUndefined();
 	});
 
@@ -145,8 +145,8 @@ describe('applyStyleToSelectedSegments', () => {
 			endOffset: 9,
 		};
 		const { newSegments } = applyStyleToSelectedSegments(segments, selection, { italic: true });
-		expect(newSegments[0].style.bold).toBe(true);
-		expect(newSegments[0].style.italic).toBe(true);
+		expect(newSegments[0].style.bold).toBeTruthy();
+		expect(newSegments[0].style.italic).toBeTruthy();
 		expect(newSegments[0].style.fontSize).toBe(24);
 	});
 

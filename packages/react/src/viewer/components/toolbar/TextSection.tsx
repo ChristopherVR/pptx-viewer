@@ -12,7 +12,37 @@ import {
 	LuRemoveFormatting,
 } from 'react-icons/lu';
 
+import type { TableCellEditorState } from '../../types';
 import { gB, gL, grp, FMT, ATXT, pill, ic, sep } from './toolbar-constants';
+
+/**
+ * Returns the text style currently in effect for toolbar toggles:
+ * - For text/shape/connector elements, the element's own `textStyle`.
+ * - For tables with a focused cell, that cell's style (a superset of the
+ *   relevant `TextStyle` fields like `bold`/`italic`/`underline`/`fontSize`).
+ * - `undefined` otherwise.
+ *
+ * Without this lookup, table-cell toggles always read `undefined` (since
+ * `hasTextProperties` is false for tables) and `!undefined === true`, so
+ * re-clicking Bold/Italic/Underline never turns the formatting off.
+ */
+function getEffectiveTextStyle(
+	element: PptxElement | null,
+	tableEditorState: TableCellEditorState | null | undefined,
+): Partial<TextStyle> | undefined {
+	if (!element) {
+		return undefined;
+	}
+	if (hasTextProperties(element)) {
+		return element.textStyle;
+	}
+	if (element.type === 'table' && tableEditorState && element.tableData) {
+		const cell =
+			element.tableData.rows[tableEditorState.rowIndex]?.cells[tableEditorState.columnIndex];
+		return cell?.style as Partial<TextStyle> | undefined;
+	}
+	return undefined;
+}
 
 const FONT_COLOR_PRESETS = [
 	'#000000',
@@ -43,6 +73,7 @@ const HIGHLIGHT_COLOR_PRESETS = [
 export interface TextSectionProps {
 	canEdit: boolean;
 	selectedElement: PptxElement | null;
+	tableEditorState?: TableCellEditorState | null;
 	onUpdateTextStyle: (updates: Partial<TextStyle>) => void;
 }
 
@@ -53,13 +84,14 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 	const isTable = hasSel && p.selectedElement?.type === 'table';
 	// Enable formatting for text elements AND table cells
 	const canFormat = isTextEl || isTable;
+	const effectiveTs = getEffectiveTextStyle(p.selectedElement, p.tableEditorState);
 
 	const currentColor =
 		isTextEl && p.selectedElement && hasTextProperties(p.selectedElement)
 			? (p.selectedElement.textSegments?.[0]?.style?.color ??
 				p.selectedElement.textStyle?.color ??
 				'#000000')
-			: '#000000';
+			: (effectiveTs?.color ?? '#000000');
 
 	const currentHighlight =
 		isTextEl && p.selectedElement && hasTextProperties(p.selectedElement)
@@ -100,9 +132,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 								if (!canFormat || !p.selectedElement) {
 									return;
 								}
-								const ts = hasTextProperties(p.selectedElement)
-									? p.selectedElement.textStyle
-									: undefined;
+								const ts = effectiveTs;
 								switch (b.t) {
 									case 'Bold':
 										p.onUpdateTextStyle({ bold: !ts?.bold });
@@ -148,10 +178,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 								if (!canFormat || !p.selectedElement) {
 									return;
 								}
-								const ts = hasTextProperties(p.selectedElement)
-									? p.selectedElement.textStyle
-									: undefined;
-								const current = ts?.fontSize ?? 18;
+								const current = effectiveTs?.fontSize ?? 18;
 								p.onUpdateTextStyle({ fontSize: current + 2 });
 							}}
 							className={gB}
@@ -167,10 +194,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 								if (!canFormat || !p.selectedElement) {
 									return;
 								}
-								const ts = hasTextProperties(p.selectedElement)
-									? p.selectedElement.textStyle
-									: undefined;
-								const current = ts?.fontSize ?? 18;
+								const current = effectiveTs?.fontSize ?? 18;
 								p.onUpdateTextStyle({ fontSize: Math.max(1, current - 2) });
 							}}
 							className={gB}
@@ -333,11 +357,8 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 								if (!canFormat || !p.selectedElement) {
 									return;
 								}
-								const ts = hasTextProperties(p.selectedElement)
-									? p.selectedElement.textStyle
-									: undefined;
 								p.onUpdateTextStyle({
-									listType: ts?.listType === 'bullet' ? 'none' : 'bullet',
+									listType: effectiveTs?.listType === 'bullet' ? 'none' : 'bullet',
 								});
 							}}
 							className={gB}
@@ -353,11 +374,8 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 								if (!canFormat || !p.selectedElement) {
 									return;
 								}
-								const ts = hasTextProperties(p.selectedElement)
-									? p.selectedElement.textStyle
-									: undefined;
 								p.onUpdateTextStyle({
-									listType: ts?.listType === 'numbered' ? 'none' : 'numbered',
+									listType: effectiveTs?.listType === 'numbered' ? 'none' : 'numbered',
 								});
 							}}
 							className={gL}
@@ -377,10 +395,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 								if (!canFormat || !p.selectedElement) {
 									return;
 								}
-								const ts = hasTextProperties(p.selectedElement)
-									? p.selectedElement.textStyle
-									: undefined;
-								const current = ts?.paragraphMarginLeft ?? 0;
+								const current = effectiveTs?.paragraphMarginLeft ?? 0;
 								p.onUpdateTextStyle({
 									paragraphMarginLeft: Math.max(0, current - 24),
 								});
@@ -398,10 +413,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 								if (!canFormat || !p.selectedElement) {
 									return;
 								}
-								const ts = hasTextProperties(p.selectedElement)
-									? p.selectedElement.textStyle
-									: undefined;
-								const current = ts?.paragraphMarginLeft ?? 0;
+								const current = effectiveTs?.paragraphMarginLeft ?? 0;
 								p.onUpdateTextStyle({
 									paragraphMarginLeft: current + 24,
 								});

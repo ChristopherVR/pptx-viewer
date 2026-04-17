@@ -62,14 +62,14 @@ function createMockStatusBarProps(overrides: Partial<StatusBarProps> = {}): Stat
 		isDirty: false,
 		autosaveStatus: undefined,
 		scale: 1.0,
-		onZoomIn: vi.fn(),
-		onZoomOut: vi.fn(),
-		onZoomToFit: vi.fn(),
+		onZoomIn: vi.fn<() => void>(),
+		onZoomOut: vi.fn<() => void>(),
+		onZoomToFit: vi.fn<() => void>(),
 		isNotesExpanded: false,
-		onToggleNotes: vi.fn(),
+		onToggleNotes: vi.fn<() => void>(),
 		mode: 'edit',
-		onSetMode: vi.fn(),
-		onToggleSlideSorter: vi.fn(),
+		onSetMode: vi.fn<() => void>(),
+		onToggleSlideSorter: vi.fn<() => void>(),
 		...overrides,
 	};
 }
@@ -221,7 +221,10 @@ describe('statusBar — autosave status', () => {
 describe('statusBar — notes toggle', () => {
 	it('renders notes toggle button when handler is provided', () => {
 		const html = render(
-			React.createElement(StatusBar, createMockStatusBarProps({ onToggleNotes: vi.fn() })),
+			React.createElement(
+				StatusBar,
+				createMockStatusBarProps({ onToggleNotes: vi.fn<() => void>() }),
+			),
 		);
 		expect(html).toContain('aria-label="Toggle notes"');
 	});
@@ -235,7 +238,10 @@ describe('statusBar — notes toggle', () => {
 
 	it('notes button shows "Notes" text', () => {
 		const html = render(
-			React.createElement(StatusBar, createMockStatusBarProps({ onToggleNotes: vi.fn() })),
+			React.createElement(
+				StatusBar,
+				createMockStatusBarProps({ onToggleNotes: vi.fn<() => void>() }),
+			),
 		);
 		expect(html).toContain('>Notes</span>');
 	});
@@ -244,7 +250,7 @@ describe('statusBar — notes toggle', () => {
 		const html = render(
 			React.createElement(
 				StatusBar,
-				createMockStatusBarProps({ onToggleNotes: vi.fn(), isNotesExpanded: true }),
+				createMockStatusBarProps({ onToggleNotes: vi.fn<() => void>(), isNotesExpanded: true }),
 			),
 		);
 		expect(html).toMatch(/text-primary[^"]*"[^>]*title="Toggle notes"/);
@@ -263,7 +269,10 @@ describe('statusBar — view mode buttons', () => {
 
 	it('renders Slide sorter button', () => {
 		const html = render(
-			React.createElement(StatusBar, createMockStatusBarProps({ onToggleSlideSorter: vi.fn() })),
+			React.createElement(
+				StatusBar,
+				createMockStatusBarProps({ onToggleSlideSorter: vi.fn<() => void>() }),
+			),
 		);
 		expect(html).toContain('aria-label="Slide sorter"');
 	});
@@ -300,14 +309,20 @@ describe('statusBar — view mode buttons', () => {
 describe('statusBar — zoom controls', () => {
 	it('renders zoom out button', () => {
 		const html = render(
-			React.createElement(StatusBar, createMockStatusBarProps({ scale: 1.0, onZoomOut: vi.fn() })),
+			React.createElement(
+				StatusBar,
+				createMockStatusBarProps({ scale: 1.0, onZoomOut: vi.fn<() => void>() }),
+			),
 		);
 		expect(html).toContain('aria-label="Zoom out"');
 	});
 
 	it('renders zoom in button', () => {
 		const html = render(
-			React.createElement(StatusBar, createMockStatusBarProps({ scale: 1.0, onZoomIn: vi.fn() })),
+			React.createElement(
+				StatusBar,
+				createMockStatusBarProps({ scale: 1.0, onZoomIn: vi.fn<() => void>() }),
+			),
 		);
 		expect(html).toContain('aria-label="Zoom in"');
 	});

@@ -167,9 +167,9 @@ describe('remapEditedTextToExistingStyles', () => {
 		const result = remapEditedTextToExistingStyles(existing, 'Hello World', undefined);
 		expect(result).toHaveLength(2);
 		expect(result[0].text).toBe('Hello');
-		expect(result[0].style?.bold).toBe(true);
+		expect(result[0].style?.bold).toBeTruthy();
 		expect(result[1].text).toBe(' World');
-		expect(result[1].style?.italic).toBe(true);
+		expect(result[1].style?.italic).toBeTruthy();
 	});
 
 	it('should use prefix style for inserted text in the middle', () => {
@@ -184,7 +184,7 @@ describe('remapEditedTextToExistingStyles', () => {
 		expect(texts).toBe('ABXCD');
 		// The inserted X should have the bold style from the prefix
 		const xSegment = result.find((s) => s.text.includes('X'));
-		expect(xSegment?.style?.bold).toBe(true);
+		expect(xSegment?.style?.bold).toBeTruthy();
 	});
 
 	it('should return empty text segment when next text is empty', () => {
@@ -192,7 +192,7 @@ describe('remapEditedTextToExistingStyles', () => {
 		const result = remapEditedTextToExistingStyles(existing, '', undefined);
 		expect(result).toHaveLength(1);
 		expect(result[0].text).toBe('');
-		expect(result[0].style?.bold).toBe(true);
+		expect(result[0].style?.bold).toBeTruthy();
 	});
 
 	it('should use fallback style when existing segments are empty', () => {

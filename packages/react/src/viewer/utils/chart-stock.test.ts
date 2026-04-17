@@ -68,21 +68,21 @@ describe('stock chart: candlestick body geometry', () => {
 		const open = 100;
 		const close = 110;
 		const isUp = close >= open;
-		expect(isUp).toBe(true);
+		expect(isUp).toBeTruthy();
 	});
 
 	it('should determine down candle (red) when close < open', () => {
 		const open = 110;
 		const close = 100;
 		const isUp = close >= open;
-		expect(isUp).toBe(false);
+		expect(isUp).toBeFalsy();
 	});
 
 	it('should consider equal open/close as up (green)', () => {
 		const close = 100;
 		const open = 100;
 		const isUp = close >= open;
-		expect(isUp).toBe(true);
+		expect(isUp).toBeTruthy();
 	});
 
 	it('should compute body Y bounds correctly for up candle', () => {

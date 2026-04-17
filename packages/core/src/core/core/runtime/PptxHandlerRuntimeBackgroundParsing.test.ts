@@ -254,7 +254,7 @@ describe('extractBackgroundColor', () => {
 // ---------------------------------------------------------------------------
 describe('hasBackgroundGradient', () => {
 	it('should return false when no background is present', () => {
-		expect(hasBackgroundGradient({ 'p:sld': { 'p:cSld': {} } })).toBe(false);
+		expect(hasBackgroundGradient({ 'p:sld': { 'p:cSld': {} } })).toBeFalsy();
 	});
 
 	it('should return true when bgPr contains gradFill', () => {
@@ -272,7 +272,7 @@ describe('hasBackgroundGradient', () => {
 					},
 				},
 			}),
-		).toBe(true);
+		).toBeTruthy();
 	});
 
 	it('should return false when bgPr contains solidFill instead', () => {
@@ -288,6 +288,6 @@ describe('hasBackgroundGradient', () => {
 					},
 				},
 			}),
-		).toBe(false);
+		).toBeFalsy();
 	});
 });

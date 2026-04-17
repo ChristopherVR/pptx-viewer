@@ -71,31 +71,31 @@ describe('canAutosave', () => {
 	};
 
 	it('returns true when all conditions are met', () => {
-		expect(canAutosave(base)).toBe(true);
+		expect(canAutosave(base)).toBeTruthy();
 	});
 
 	it('returns false when not enabled', () => {
-		expect(canAutosave({ ...base, enabled: false })).toBe(false);
+		expect(canAutosave({ ...base, enabled: false })).toBeFalsy();
 	});
 
 	it('returns false when filePath is undefined', () => {
-		expect(canAutosave({ ...base, filePath: undefined })).toBe(false);
+		expect(canAutosave({ ...base, filePath: undefined })).toBeFalsy();
 	});
 
 	it('returns false when filePath is empty string', () => {
-		expect(canAutosave({ ...base, filePath: '' })).toBe(false);
+		expect(canAutosave({ ...base, filePath: '' })).toBeFalsy();
 	});
 
 	it('returns false when not dirty', () => {
-		expect(canAutosave({ ...base, isDirty: false })).toBe(false);
+		expect(canAutosave({ ...base, isDirty: false })).toBeFalsy();
 	});
 
 	it('returns false when already saving', () => {
-		expect(canAutosave({ ...base, isSaving: true })).toBe(false);
+		expect(canAutosave({ ...base, isSaving: true })).toBeFalsy();
 	});
 
 	it('returns false when Electron API is not available', () => {
-		expect(canAutosave({ ...base, hasElectronApi: false })).toBe(false);
+		expect(canAutosave({ ...base, hasElectronApi: false })).toBeFalsy();
 	});
 });
 

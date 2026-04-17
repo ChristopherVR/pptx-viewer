@@ -88,7 +88,7 @@ describe('hasDuotoneEffect', () => {
 			width: 100,
 			height: 100,
 		} as PptxElement;
-		expect(hasDuotoneEffect(el)).toBe(false);
+		expect(hasDuotoneEffect(el)).toBeFalsy();
 	});
 
 	it('returns false for an image without duotone effects', () => {
@@ -101,7 +101,7 @@ describe('hasDuotoneEffect', () => {
 			height: 100,
 			imageUrl: 'data:image/png;base64,abc',
 		} as PptxElement;
-		expect(hasDuotoneEffect(el)).toBe(false);
+		expect(hasDuotoneEffect(el)).toBeFalsy();
 	});
 
 	it('returns true for an image with duotone effects', () => {
@@ -117,7 +117,7 @@ describe('hasDuotoneEffect', () => {
 				duotone: { color1: '#000000', color2: '#FFFFFF' },
 			},
 		} as PptxElement;
-		expect(hasDuotoneEffect(el)).toBe(true);
+		expect(hasDuotoneEffect(el)).toBeTruthy();
 	});
 });
 
@@ -360,7 +360,7 @@ describe('hasDagDuotoneEffect', () => {
 			width: 100,
 			height: 100,
 		} as PptxElement;
-		expect(hasDagDuotoneEffect(el)).toBe(false);
+		expect(hasDagDuotoneEffect(el)).toBeFalsy();
 	});
 
 	it('returns false when no DAG duotone is set', () => {
@@ -373,7 +373,7 @@ describe('hasDagDuotoneEffect', () => {
 			height: 100,
 			shapeStyle: {},
 		} as PptxElement;
-		expect(hasDagDuotoneEffect(el)).toBe(false);
+		expect(hasDagDuotoneEffect(el)).toBeFalsy();
 	});
 
 	it('returns true when DAG duotone is set', () => {
@@ -388,6 +388,6 @@ describe('hasDagDuotoneEffect', () => {
 				dagDuotone: { color1: '#000', color2: '#FFF' },
 			},
 		} as PptxElement;
-		expect(hasDagDuotoneEffect(el)).toBe(true);
+		expect(hasDagDuotoneEffect(el)).toBeTruthy();
 	});
 });

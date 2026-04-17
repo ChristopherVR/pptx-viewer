@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { PRESET_ID_TO_EFFECT } from './animation-presets';

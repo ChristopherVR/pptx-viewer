@@ -48,7 +48,7 @@ describe('extractDagGrayscale', () => {
 		const dag: XmlObject = { 'a:grayscl': {} };
 		const style: Partial<ShapeStyle> = {};
 		extractDagGrayscale(dag, style);
-		expect(style.dagGrayscale).toBe(true);
+		expect(style.dagGrayscale).toBeTruthy();
 	});
 
 	it('does not set dagGrayscale when a:grayscl is absent', () => {
@@ -63,7 +63,7 @@ describe('extractDagGrayscale', () => {
 		const style: Partial<ShapeStyle> = {};
 		extractDagGrayscale(dag, style);
 		// "" is not undefined, so the check passes
-		expect(style.dagGrayscale).toBe(true);
+		expect(style.dagGrayscale).toBeTruthy();
 	});
 });
 

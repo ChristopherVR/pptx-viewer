@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import {
@@ -191,7 +190,7 @@ describe('bASELINE_TOGGLES', () => {
 
 describe('createNumericChangeHandler', () => {
 	it('calls onUpdateTextStyle with the result of fn when value is finite', () => {
-		const onUpdate = vi.fn();
+		const onUpdate = vi.fn<() => void>();
 		const handler = createNumericChangeHandler(onUpdate);
 		const changeHandler = handler((v) => ({ characterSpacing: v }));
 
@@ -203,7 +202,7 @@ describe('createNumericChangeHandler', () => {
 	});
 
 	it('does not call onUpdateTextStyle when value is NaN', () => {
-		const onUpdate = vi.fn();
+		const onUpdate = vi.fn<() => void>();
 		const handler = createNumericChangeHandler(onUpdate);
 		const changeHandler = handler((v) => ({ characterSpacing: v }));
 
@@ -215,7 +214,7 @@ describe('createNumericChangeHandler', () => {
 	});
 
 	it('handles zero as a valid finite number', () => {
-		const onUpdate = vi.fn();
+		const onUpdate = vi.fn<() => void>();
 		const handler = createNumericChangeHandler(onUpdate);
 		const changeHandler = handler((v) => ({ fontSize: v }));
 
@@ -227,7 +226,7 @@ describe('createNumericChangeHandler', () => {
 	});
 
 	it('handles negative numbers', () => {
-		const onUpdate = vi.fn();
+		const onUpdate = vi.fn<() => void>();
 		const handler = createNumericChangeHandler(onUpdate);
 		const changeHandler = handler((v) => ({ paragraphIndent: v }));
 
@@ -239,7 +238,7 @@ describe('createNumericChangeHandler', () => {
 	});
 
 	it('handles float values', () => {
-		const onUpdate = vi.fn();
+		const onUpdate = vi.fn<() => void>();
 		const handler = createNumericChangeHandler(onUpdate);
 		const changeHandler = handler((v) => ({ characterSpacing: v }));
 
@@ -251,7 +250,7 @@ describe('createNumericChangeHandler', () => {
 	});
 
 	it('does not call onUpdateTextStyle for Infinity', () => {
-		const onUpdate = vi.fn();
+		const onUpdate = vi.fn<() => void>();
 		const handler = createNumericChangeHandler(onUpdate);
 		const changeHandler = handler((v) => ({ characterSpacing: v }));
 

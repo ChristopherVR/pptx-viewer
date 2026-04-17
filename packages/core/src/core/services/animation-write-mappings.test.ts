@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import {
@@ -201,7 +200,7 @@ describe('pRESET_TO_OOXML', () => {
 				expect(
 					validClasses.has(mapping.presetClass),
 					`${key} has invalid presetClass: ${mapping.presetClass}`,
-				).toBe(true);
+				).toBeTruthy();
 			}
 		});
 
@@ -210,7 +209,7 @@ describe('pRESET_TO_OOXML', () => {
 				expect(
 					Number.isInteger(mapping.presetId) && mapping.presetId > 0,
 					`${key} has invalid presetId: ${mapping.presetId}`,
-				).toBe(true);
+				).toBeTruthy();
 			}
 		});
 
@@ -219,7 +218,7 @@ describe('pRESET_TO_OOXML', () => {
 				expect(
 					typeof mapping.defaultSubtype === 'number',
 					`${key} has invalid defaultSubtype: ${mapping.defaultSubtype}`,
-				).toBe(true);
+				).toBeTruthy();
 			}
 		});
 
@@ -228,7 +227,7 @@ describe('pRESET_TO_OOXML', () => {
 				expect(
 					Number.isInteger(mapping.defaultSubtype) && mapping.defaultSubtype >= 0,
 					`${key} has invalid defaultSubtype: ${mapping.defaultSubtype}`,
-				).toBe(true);
+				).toBeTruthy();
 			}
 		});
 
@@ -289,7 +288,10 @@ describe('dIRECTION_TO_SUBTYPE', () => {
 
 	it('should have all values as positive integers', () => {
 		for (const [key, value] of Object.entries(DIRECTION_TO_SUBTYPE)) {
-			expect(Number.isInteger(value) && value > 0, `${key} has invalid value: ${value}`).toBe(true);
+			expect(
+				Number.isInteger(value) && value > 0,
+				`${key} has invalid value: ${value}`,
+			).toBeTruthy();
 		}
 	});
 

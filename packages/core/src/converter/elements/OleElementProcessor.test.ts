@@ -12,12 +12,12 @@ import { OleElementProcessor } from './OleElementProcessor';
 function makeCtx(overrides: Partial<ElementProcessorContext> = {}): ElementProcessorContext {
 	return {
 		mediaContext: {
-			saveImage: vi.fn(async () => './media/slide1-ole-image-001.png'),
+			saveImage: vi.fn<(...args: any[]) => any>(async () => './media/slide1-ole-image-001.png'),
 		} as unknown as MediaContext,
 		slideNumber: 1,
 		slideWidth: 960,
 		slideHeight: 540,
-		processElements: vi.fn(async () => []),
+		processElements: vi.fn<(...args: any[]) => any>(async () => []),
 		...overrides,
 	};
 }
@@ -164,7 +164,7 @@ describe('oleElementProcessor', () => {
 		});
 		const ctx = makeCtx({
 			mediaContext: {
-				saveImage: vi.fn(async () => {
+				saveImage: vi.fn<(...args: any[]) => any>(async () => {
 					throw new Error('Save failed');
 				}),
 			} as unknown as MediaContext,

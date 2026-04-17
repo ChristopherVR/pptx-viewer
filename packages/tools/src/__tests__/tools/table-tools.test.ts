@@ -23,7 +23,7 @@ describe('updateTableCells', () => {
 			elementId: 'tbl-0',
 			cells: [{ row: 0, col: 0, text: 'Updated Header' }],
 		});
-		expect(result.dirty).toBe(true);
+		expect(result.dirty).toBeTruthy();
 		expect(result.result.updatedCount).toBe(1);
 		expect(getTable(c).tableData!.rows[0].cells[0].text).toBe('Updated Header');
 	});
@@ -107,7 +107,7 @@ describe('manageTableStructure', () => {
 				elementId: 'tbl-0',
 				action: 'insertRow',
 			});
-			expect(result.dirty).toBe(true);
+			expect(result.dirty).toBeTruthy();
 			expect(result.result.rowCount).toBe(4);
 			expect(result.result.columnCount).toBe(3);
 			// new row should have 3 empty cells
@@ -151,7 +151,7 @@ describe('manageTableStructure', () => {
 				elementId: 'tbl-0',
 				action: 'deleteRow',
 			});
-			expect(result.dirty).toBe(true);
+			expect(result.dirty).toBeTruthy();
 			expect(result.result.rowCount).toBe(2);
 		});
 

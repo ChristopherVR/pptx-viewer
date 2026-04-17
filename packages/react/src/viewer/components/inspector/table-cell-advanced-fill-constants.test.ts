@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import {
@@ -36,7 +35,7 @@ describe('table-cell-advanced-fill-constants', () => {
 
 	describe('fILL_MODE_OPTIONS', () => {
 		it('is a non-empty array', () => {
-			expect(Array.isArray(FILL_MODE_OPTIONS)).toBe(true);
+			expect(Array.isArray(FILL_MODE_OPTIONS)).toBeTruthy();
 			expect(FILL_MODE_OPTIONS.length).toBeGreaterThan(0);
 		});
 
@@ -70,7 +69,7 @@ describe('table-cell-advanced-fill-constants', () => {
 
 	describe('gRADIENT_TYPE_OPTIONS', () => {
 		it('is a non-empty array', () => {
-			expect(Array.isArray(GRADIENT_TYPE_OPTIONS)).toBe(true);
+			expect(Array.isArray(GRADIENT_TYPE_OPTIONS)).toBeTruthy();
 			expect(GRADIENT_TYPE_OPTIONS.length).toBeGreaterThan(0);
 		});
 
@@ -95,7 +94,7 @@ describe('table-cell-advanced-fill-constants', () => {
 
 	describe('pATTERN_OPTIONS', () => {
 		it('is an array with at most 20 items', () => {
-			expect(Array.isArray(PATTERN_OPTIONS)).toBe(true);
+			expect(Array.isArray(PATTERN_OPTIONS)).toBeTruthy();
 			expect(PATTERN_OPTIONS.length).toBeLessThanOrEqual(20);
 		});
 

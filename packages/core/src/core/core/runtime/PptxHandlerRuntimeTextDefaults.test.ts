@@ -348,14 +348,14 @@ describe('applyPlaceholderBodyDefaults', () => {
 		const textStyle: TextStyle = {};
 		const defaults: PlaceholderDefaults = { autoFit: true };
 		applyPlaceholderBodyDefaults(textStyle, defaults);
-		expect(textStyle.autoFit).toBe(true);
+		expect(textStyle.autoFit).toBeTruthy();
 	});
 
 	it('should not overwrite existing autoFit', () => {
 		const textStyle: TextStyle = { autoFit: false };
 		const defaults: PlaceholderDefaults = { autoFit: true };
 		applyPlaceholderBodyDefaults(textStyle, defaults);
-		expect(textStyle.autoFit).toBe(false);
+		expect(textStyle.autoFit).toBeFalsy();
 	});
 
 	it('should apply textWrap as fallback', () => {
@@ -397,8 +397,8 @@ describe('applyPlaceholderLevelDefaults', () => {
 	it('should apply bold and italic as fallback', () => {
 		const textStyle: TextStyle = {};
 		applyPlaceholderLevelDefaults(textStyle, { bold: true, italic: true });
-		expect(textStyle.bold).toBe(true);
-		expect(textStyle.italic).toBe(true);
+		expect(textStyle.bold).toBeTruthy();
+		expect(textStyle.italic).toBeTruthy();
 	});
 
 	it('should apply color as fallback', () => {

@@ -1,21 +1,20 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { SELECT_CLS, NUMBER_CLS, BTN_CLS } from './element-properties-constants';
 
 describe('element-properties-constants CSS classes', () => {
 	it('sELECT_CLS is a non-empty string', () => {
-		expect(SELECT_CLS).toBe(true);
+		expect(SELECT_CLS).toBeTruthy();
 		expectTypeOf(SELECT_CLS).toBeString();
 	});
 
 	it('nUMBER_CLS is a non-empty string', () => {
-		expect(NUMBER_CLS).toBe(true);
+		expect(NUMBER_CLS).toBeTruthy();
 		expectTypeOf(NUMBER_CLS).toBeString();
 	});
 
 	it('bTN_CLS is a non-empty string', () => {
-		expect(BTN_CLS).toBe(true);
+		expect(BTN_CLS).toBeTruthy();
 		expectTypeOf(BTN_CLS).toBeString();
 	});
 

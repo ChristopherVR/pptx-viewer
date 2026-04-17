@@ -20,7 +20,7 @@ describe('getSlideTransitionAnimations', () => {
 		expect(result.outgoing).toContain('pptx-tr-fade-out');
 		expect(result.incoming).toContain('pptx-tr-fade-in');
 		expect(result.outgoing).toContain('1000ms');
-		expect(result.outgoingOnTop).toBe(true);
+		expect(result.outgoingOnTop).toBeTruthy();
 	});
 
 	it('should produce push animations with correct direction', () => {
@@ -52,7 +52,7 @@ describe('getSlideTransitionAnimations', () => {
 		const result = getSlideTransitionAnimations('uncover', 500, 'l');
 		expect(result.outgoing).toContain('uncover-to-left');
 		expect(result.incoming).toBe('none');
-		expect(result.outgoingOnTop).toBe(true);
+		expect(result.outgoingOnTop).toBeTruthy();
 	});
 
 	it('should handle split with orientation', () => {
@@ -110,7 +110,7 @@ describe('getSlideTransitionAnimations', () => {
 	it('should produce an animation for "random" type', () => {
 		const result = getSlideTransitionAnimations('random', 500, undefined);
 		// random picks from eligible types, all of which produce non-instant results
-		expect(result.outgoing !== 'none' || result.incoming !== 'none').toBe(true);
+		expect(result.outgoing !== 'none' || result.incoming !== 'none').toBeTruthy();
 	});
 
 	it('should handle unknown type with fade fallback', () => {

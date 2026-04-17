@@ -140,7 +140,7 @@ describe('font re-embedding (save pipeline)', () => {
 		// Should write one .fntdata file
 		expect(result.writtenFiles.size).toBe(1);
 		const writtenPath = `ppt/fonts/{${guid}}.fntdata`;
-		expect(result.writtenFiles.has(writtenPath)).toBe(true);
+		expect(result.writtenFiles.has(writtenPath)).toBeTruthy();
 
 		// Written data should be obfuscated (deobfuscating should give back clear text)
 		const writtenData = result.writtenFiles.get(writtenPath)!;
@@ -483,6 +483,6 @@ describe('font re-embedding data integrity', () => {
 			}
 		}
 		// With non-zero key and non-zero data, they should differ
-		expect(allSame).toBe(false);
+		expect(allSame).toBeFalsy();
 	});
 });

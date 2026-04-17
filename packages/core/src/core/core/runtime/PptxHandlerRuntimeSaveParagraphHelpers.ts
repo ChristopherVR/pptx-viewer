@@ -28,15 +28,9 @@ export function buildParagraphPropertiesXml(
 		paragraphProps['@_rtl'] = textStyle.rtl ? '1' : '0';
 	}
 
-	// Spacing before / after
-	if (spacing.spacingBefore) {
-		paragraphProps['a:spcBef'] = spacing.spacingBefore;
-	}
-	if (spacing.spacingAfter) {
-		paragraphProps['a:spcAft'] = spacing.spacingAfter;
-	}
-
-	// Line spacing
+	// Spacing: CT_TextParagraphProperties child order is lnSpc, spcBef, spcAft.
+	// fast-xml-parser serialises keys in insertion order, so assign in this
+	// exact sequence — otherwise PowerPoint flags the file as corrupted.
 	if (spacing.lineSpacing) {
 		paragraphProps['a:lnSpc'] = spacing.lineSpacing;
 	} else if (
@@ -48,6 +42,12 @@ export function buildParagraphPropertiesXml(
 				'@_val': String(Math.round(spacing.lineSpacingExactPt * 100)),
 			},
 		};
+	}
+	if (spacing.spacingBefore) {
+		paragraphProps['a:spcBef'] = spacing.spacingBefore;
+	}
+	if (spacing.spacingAfter) {
+		paragraphProps['a:spcAft'] = spacing.spacingAfter;
 	}
 
 	// Paragraph indentation (marL, marR, indent — stored in px, written as EMU)
@@ -115,13 +115,19 @@ export function buildParagraphPropertiesXml(
 
 /** Apply bullet-related XML attributes from {@link BulletInfo} into `paragraphProps`. */
 export function applyBulletProperties(paragraphProps: XmlObject, bulletInfo: BulletInfo): void {
+	// CT_TextParagraphProperties bullet-group schema order:
+	//   buClr (color), buSzPct/buSzPts (size), buFont (typeface),
+	//   buNone/buAutoNum/buChar/buBlip (type). fast-xml-parser serialises
+	//   keys in insertion order, so assign in this exact sequence or
+	//   PowerPoint's validator rejects the run.
 	if (bulletInfo.none) {
 		paragraphProps['a:buNone'] = {};
 		return;
 	}
-	if (bulletInfo.fontFamily) {
-		paragraphProps['a:buFont'] = {
-			'@_typeface': bulletInfo.fontFamily,
+	if (bulletInfo.color) {
+		const colorHex = bulletInfo.color.replace('#', '');
+		paragraphProps['a:buClr'] = {
+			'a:srgbClr': { '@_val': colorHex },
 		};
 	}
 	if (bulletInfo.sizePercent !== undefined) {
@@ -134,10 +140,9 @@ export function applyBulletProperties(paragraphProps: XmlObject, bulletInfo: Bul
 			'@_val': String(Math.round(bulletInfo.sizePts * 100)),
 		};
 	}
-	if (bulletInfo.color) {
-		const colorHex = bulletInfo.color.replace('#', '');
-		paragraphProps['a:buClr'] = {
-			'a:srgbClr': { '@_val': colorHex },
+	if (bulletInfo.fontFamily) {
+		paragraphProps['a:buFont'] = {
+			'@_typeface': bulletInfo.fontFamily,
 		};
 	}
 	if (bulletInfo.char) {
@@ -161,10 +166,12 @@ export function applyBulletProperties(paragraphProps: XmlObject, bulletInfo: Bul
 
 /** Assemble a paragraph XML object from runs and pre-built paragraph properties. */
 export function assembleParagraphXml(runs: XmlObject[], paragraphProps: XmlObject): XmlObject {
+	// OOXML CT_TextParagraph requires child order: pPr?, (r|br|fld)*, endParaRPr?.
+	// Since fast-xml-parser serialises keys in insertion order, build the
+	// object in that exact sequence.
 	const paragraph: XmlObject = {
-		'a:endParaRPr': { '@_lang': 'en-US' },
+		'a:pPr': paragraphProps,
 	};
-	paragraph['a:pPr'] = paragraphProps;
 
 	// Separate regular runs from field runs
 	const regularRuns = runs.filter((r) => !r.__isField);
@@ -190,6 +197,8 @@ export function assembleParagraphXml(runs: XmlObject[], paragraphProps: XmlObjec
 	if (cleanRegularRuns.length === 0 && fieldRuns.length === 0) {
 		paragraph['a:r'] = runs.length > 1 ? runs : runs[0];
 	}
+
+	paragraph['a:endParaRPr'] = { '@_lang': 'en-US' };
 
 	return paragraph;
 }

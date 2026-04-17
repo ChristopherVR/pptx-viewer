@@ -461,7 +461,7 @@ describe('shapeParams hasFill for pattern fills', () => {
 			},
 		} as Partial<PptxElement>);
 		const result = shapeParams(el);
-		expect(result.hf).toBe(true);
+		expect(result.hf).toBeTruthy();
 	});
 
 	it('returns hasFill=true for pattern fill even without fillColor', () => {
@@ -473,7 +473,7 @@ describe('shapeParams hasFill for pattern fills', () => {
 			},
 		} as Partial<PptxElement>);
 		const result = shapeParams(el);
-		expect(result.hf).toBe(true);
+		expect(result.hf).toBeTruthy();
 	});
 
 	it('returns hasFill=false when fillMode is pattern but no preset', () => {
@@ -484,6 +484,6 @@ describe('shapeParams hasFill for pattern fills', () => {
 			},
 		} as Partial<PptxElement>);
 		const result = shapeParams(el);
-		expect(result.hf).toBe(false);
+		expect(result.hf).toBeFalsy();
 	});
 });

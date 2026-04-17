@@ -127,7 +127,7 @@ describe('slideBuilder', () => {
 
 	it('sets hidden', () => {
 		const slide = new SlideBuilder(1).setHidden(true).build();
-		expect(slide.hidden).toBe(true);
+		expect(slide.hidden).toBeTruthy();
 	});
 
 	it('sets section', () => {

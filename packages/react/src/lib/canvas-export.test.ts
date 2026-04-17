@@ -71,7 +71,7 @@ describe('uNSUPPORTED_COLOR_RE', () => {
 			'color(srgb 0.5 0.5 0.5)',
 			'color(rec2020 0.4 0.3 0.2 / 0.9)',
 		])('matches %s', (value) => {
-			expect(UNSUPPORTED_COLOR_RE.test(value)).toBe(true);
+			expect(UNSUPPORTED_COLOR_RE.test(value)).toBeTruthy();
 		});
 	});
 
@@ -83,7 +83,7 @@ describe('uNSUPPORTED_COLOR_RE', () => {
 			'LAB(50 20 -30)',
 			'Color(display-p3 1 0 0)',
 		])('matches %s', (value) => {
-			expect(UNSUPPORTED_COLOR_RE.test(value)).toBe(true);
+			expect(UNSUPPORTED_COLOR_RE.test(value)).toBeTruthy();
 		});
 	});
 
@@ -95,7 +95,7 @@ describe('uNSUPPORTED_COLOR_RE', () => {
 			'border: 1px solid lch(50 30 270)',
 			'background: color(display-p3 1 0 0)',
 		])('matches in: %s', (value) => {
-			expect(UNSUPPORTED_COLOR_RE.test(value)).toBe(true);
+			expect(UNSUPPORTED_COLOR_RE.test(value)).toBeTruthy();
 		});
 	});
 
@@ -113,24 +113,24 @@ describe('uNSUPPORTED_COLOR_RE', () => {
 			'inherit',
 			'',
 		])('does not match %s', (value) => {
-			expect(UNSUPPORTED_COLOR_RE.test(value)).toBe(false);
+			expect(UNSUPPORTED_COLOR_RE.test(value)).toBeFalsy();
 		});
 	});
 
 	it("should not match 'lab' or 'lch' as substrings without parentheses", () => {
 		// "label" contains "lab" but should not match because the regex
 		// requires `lab(` (with the opening paren).
-		expect(UNSUPPORTED_COLOR_RE.test('label')).toBe(false);
-		expect(UNSUPPORTED_COLOR_RE.test('latch')).toBe(false);
-		expect(UNSUPPORTED_COLOR_RE.test('collab')).toBe(false);
+		expect(UNSUPPORTED_COLOR_RE.test('label')).toBeFalsy();
+		expect(UNSUPPORTED_COLOR_RE.test('latch')).toBeFalsy();
+		expect(UNSUPPORTED_COLOR_RE.test('collab')).toBeFalsy();
 	});
 
 	it("should match 'oklch' and 'oklab' even without parentheses", () => {
 		// The regex matches the bare words oklch/oklab (without requiring `(`),
 		// because these are distinctive enough to not appear as substrings
 		// of normal English words.
-		expect(UNSUPPORTED_COLOR_RE.test('oklch')).toBe(true);
-		expect(UNSUPPORTED_COLOR_RE.test('oklab')).toBe(true);
+		expect(UNSUPPORTED_COLOR_RE.test('oklch')).toBeTruthy();
+		expect(UNSUPPORTED_COLOR_RE.test('oklab')).toBeTruthy();
 	});
 });
 
@@ -965,11 +965,11 @@ describe('regex stateful /g flag edge cases', () => {
 	it('uNSUPPORTED_COLOR_RE does not have /g flag (no state issue)', () => {
 		// The detection regex should not be global, so it's safe for
 		// repeated .test() calls.
-		expect(UNSUPPORTED_COLOR_RE.global).toBe(false);
+		expect(UNSUPPORTED_COLOR_RE.global).toBeFalsy();
 	});
 
 	it('uNSUPPORTED_COLOR_FN_RE has /g flag for replaceAll behavior', () => {
-		expect(UNSUPPORTED_COLOR_FN_RE.global).toBe(true);
+		expect(UNSUPPORTED_COLOR_FN_RE.global).toBeTruthy();
 	});
 });
 
@@ -1094,7 +1094,7 @@ describe('detection + extraction regex consistency', () => {
 	];
 
 	it.each(validCases)('detection and extraction both match: %s', (value) => {
-		expect(UNSUPPORTED_COLOR_RE.test(value)).toBe(true);
+		expect(UNSUPPORTED_COLOR_RE.test(value)).toBeTruthy();
 		const matches = value.match(UNSUPPORTED_COLOR_FN_RE);
 		expect(matches).not.toBeNull();
 		expect(matches).toHaveLength(1);
@@ -1112,7 +1112,7 @@ describe('detection + extraction regex consistency', () => {
 	];
 
 	it.each(negativeCases)('neither regex matches supported value: %s', (value) => {
-		expect(UNSUPPORTED_COLOR_RE.test(value)).toBe(false);
+		expect(UNSUPPORTED_COLOR_RE.test(value)).toBeFalsy();
 		expect(value.match(UNSUPPORTED_COLOR_FN_RE)).toBeNull();
 	});
 });
@@ -1143,7 +1143,7 @@ describe('scratch context lifecycle', () => {
 		// After reset, next call to getScratchCtx will try document.createElement
 		// which doesn't exist in this test environment — but the reset itself
 		// should not throw.
-		expect(true).toBe(true);
+		expect(true).toBeTruthy();
 	});
 });
 
@@ -1211,38 +1211,38 @@ describe('complex CSS value replacement', () => {
 
 describe('false positive guarding', () => {
 	it("'lab' alone does not trigger detection (requires opening paren)", () => {
-		expect(UNSUPPORTED_COLOR_RE.test('lab')).toBe(false);
+		expect(UNSUPPORTED_COLOR_RE.test('lab')).toBeFalsy();
 	});
 
 	it("'lch' alone does not trigger detection (requires opening paren)", () => {
-		expect(UNSUPPORTED_COLOR_RE.test('lch')).toBe(false);
+		expect(UNSUPPORTED_COLOR_RE.test('lch')).toBeFalsy();
 	});
 
 	it("'color' alone does not trigger detection (requires opening paren)", () => {
-		expect(UNSUPPORTED_COLOR_RE.test('color')).toBe(false);
+		expect(UNSUPPORTED_COLOR_RE.test('color')).toBeFalsy();
 	});
 
 	it("'oklch' triggers detection even without paren (distinctive word)", () => {
-		expect(UNSUPPORTED_COLOR_RE.test('oklch')).toBe(true);
+		expect(UNSUPPORTED_COLOR_RE.test('oklch')).toBeTruthy();
 	});
 
 	it("'oklab' triggers detection even without paren (distinctive word)", () => {
-		expect(UNSUPPORTED_COLOR_RE.test('oklab')).toBe(true);
+		expect(UNSUPPORTED_COLOR_RE.test('oklab')).toBeTruthy();
 	});
 
 	it("'laboratory' does not trigger detection", () => {
-		expect(UNSUPPORTED_COLOR_RE.test('laboratory')).toBe(false);
+		expect(UNSUPPORTED_COLOR_RE.test('laboratory')).toBeFalsy();
 	});
 
 	it("'colorful' does not trigger detection", () => {
-		expect(UNSUPPORTED_COLOR_RE.test('colorful')).toBe(false);
+		expect(UNSUPPORTED_COLOR_RE.test('colorful')).toBeFalsy();
 	});
 
 	it("'collab' does not trigger detection", () => {
-		expect(UNSUPPORTED_COLOR_RE.test('collab')).toBe(false);
+		expect(UNSUPPORTED_COLOR_RE.test('collab')).toBeFalsy();
 	});
 
 	it("'launch' does not trigger detection", () => {
-		expect(UNSUPPORTED_COLOR_RE.test('launch')).toBe(false);
+		expect(UNSUPPORTED_COLOR_RE.test('launch')).toBeFalsy();
 	});
 });

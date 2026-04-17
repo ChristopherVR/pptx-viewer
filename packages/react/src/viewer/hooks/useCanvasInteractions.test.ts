@@ -117,17 +117,17 @@ describe('shouldEnterInlineEdit', () => {
 
 	it('returns true when element is selected and has text', () => {
 		const lookup = new Map<string, PptxElement>([['el1', makeTextEl('el1')]]);
-		expect(shouldEnterInlineEdit('el1', new Set(['el1']), null, lookup)).toBe(true);
+		expect(shouldEnterInlineEdit('el1', new Set(['el1']), null, lookup)).toBeTruthy();
 	});
 
 	it('returns false when element is not selected', () => {
 		const lookup = new Map<string, PptxElement>([['el1', makeTextEl('el1')]]);
-		expect(shouldEnterInlineEdit('el1', new Set(), null, lookup)).toBe(false);
+		expect(shouldEnterInlineEdit('el1', new Set(), null, lookup)).toBeFalsy();
 	});
 
 	it('returns false when already inline editing', () => {
 		const lookup = new Map<string, PptxElement>([['el1', makeTextEl('el1')]]);
-		expect(shouldEnterInlineEdit('el1', new Set(['el1']), 'el1', lookup)).toBe(false);
+		expect(shouldEnterInlineEdit('el1', new Set(['el1']), 'el1', lookup)).toBeFalsy();
 	});
 
 	it('returns false for non-text element types', () => {
@@ -140,17 +140,17 @@ describe('shouldEnterInlineEdit', () => {
 			height: 100,
 		} as unknown as PptxElement;
 		const lookup = new Map<string, PptxElement>([['img1', imageEl]]);
-		expect(shouldEnterInlineEdit('img1', new Set(['img1']), null, lookup)).toBe(false);
+		expect(shouldEnterInlineEdit('img1', new Set(['img1']), null, lookup)).toBeFalsy();
 	});
 
 	it('returns false when noTextEdit lock is set', () => {
 		const lookup = new Map<string, PptxElement>([['el1', makeTextEl('el1', { noTextEdit: true })]]);
-		expect(shouldEnterInlineEdit('el1', new Set(['el1']), null, lookup)).toBe(false);
+		expect(shouldEnterInlineEdit('el1', new Set(['el1']), null, lookup)).toBeFalsy();
 	});
 
 	it('returns false when element not found in lookup', () => {
 		const lookup = new Map<string, PptxElement>();
-		expect(shouldEnterInlineEdit('missing', new Set(['missing']), null, lookup)).toBe(false);
+		expect(shouldEnterInlineEdit('missing', new Set(['missing']), null, lookup)).toBeFalsy();
 	});
 });
 
@@ -261,7 +261,7 @@ describe('buildResizeState', () => {
 		expect(state.startWidth).toBe(200);
 		expect(state.startHeight).toBe(150);
 		expect(state.handle).toBe('se');
-		expect(state.moved).toBe(false);
+		expect(state.moved).toBeFalsy();
 	});
 
 	it('sets last values to initial element position', () => {
@@ -291,14 +291,14 @@ describe('buildResizeState', () => {
 describe('canvasInteractionHandlers type', () => {
 	it('has all expected handler keys', () => {
 		const handlers: CanvasInteractionHandlers = {
-			handleElementClick: vi.fn(),
-			handleElementDoubleClick: vi.fn(),
-			handleElementMouseDown: vi.fn(),
-			handleElementContextMenu: vi.fn(),
-			handleCanvasMouseDown: vi.fn(),
-			handleResizePointerDown: vi.fn(),
-			handleAdjustmentPointerDown: vi.fn(),
-			handleInlineEditCommit: vi.fn(),
+			handleElementClick: vi.fn<() => void>(),
+			handleElementDoubleClick: vi.fn<() => void>(),
+			handleElementMouseDown: vi.fn<() => void>(),
+			handleElementContextMenu: vi.fn<() => void>(),
+			handleCanvasMouseDown: vi.fn<() => void>(),
+			handleResizePointerDown: vi.fn<() => void>(),
+			handleAdjustmentPointerDown: vi.fn<() => void>(),
+			handleInlineEditCommit: vi.fn<() => void>(),
 		};
 		expect(Object.keys(handlers)).toHaveLength(8);
 	});

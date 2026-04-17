@@ -21,7 +21,7 @@ describe('renderEquationSegment — equation numbering', () => {
 	it('should render equation without number when equationNumber is undefined', () => {
 		const result = renderEquationSegment(elementId, segmentIndex, validOmml) as React.ReactElement;
 
-		expect(result).toBe(true);
+		expect(result).toBeTruthy();
 		expect(result.type).toBe('span');
 		// Should not have a flex layout
 		expect(result.props.style?.display).not.toBe('flex');
@@ -35,7 +35,7 @@ describe('renderEquationSegment — equation numbering', () => {
 			'1',
 		) as React.ReactElement;
 
-		expect(result).toBe(true);
+		expect(result).toBeTruthy();
 		expect(result.type).toBe('span');
 		expect(result.props.style.display).toBe('flex');
 		expect(result.props.style.justifyContent).toBe('space-between');
@@ -126,7 +126,7 @@ describe('renderEquationSegment — equation numbering', () => {
 			invalidOmml,
 		) as React.ReactElement;
 
-		expect(result).toBe(true);
+		expect(result).toBeTruthy();
 		// Should not have flex layout
 		expect(result.props.style?.display).not.toBe('flex');
 	});

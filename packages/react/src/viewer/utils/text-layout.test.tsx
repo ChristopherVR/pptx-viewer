@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import type { PptxElement } from 'pptx-viewer-core';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 

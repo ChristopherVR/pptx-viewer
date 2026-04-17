@@ -147,7 +147,7 @@ describe('diffPresentations', () => {
 		const diff = diffPresentations(a, b);
 
 		expect(diff.slideChanges).toStrictEqual([]);
-		expect(diff.themeChanged).toBe(false);
+		expect(diff.themeChanged).toBeFalsy();
 		expect(diff.metadataChanges).toStrictEqual([]);
 		expect(diff.summary).toStrictEqual({ added: 0, removed: 0, modified: 0 });
 	});
@@ -495,7 +495,7 @@ describe('diffPresentations', () => {
 		const b = makePptxData([]);
 		const diff = diffPresentations(a, b);
 
-		expect(diff.themeChanged).toBe(false);
+		expect(diff.themeChanged).toBeFalsy();
 	});
 
 	it('detects theme added', () => {
@@ -503,7 +503,7 @@ describe('diffPresentations', () => {
 		const b = makePptxData([], { theme: makeTheme() });
 		const diff = diffPresentations(a, b);
 
-		expect(diff.themeChanged).toBe(true);
+		expect(diff.themeChanged).toBeTruthy();
 	});
 
 	it('detects theme removed', () => {
@@ -511,7 +511,7 @@ describe('diffPresentations', () => {
 		const b = makePptxData([]);
 		const diff = diffPresentations(a, b);
 
-		expect(diff.themeChanged).toBe(true);
+		expect(diff.themeChanged).toBeTruthy();
 	});
 
 	it('detects theme name change', () => {
@@ -519,7 +519,7 @@ describe('diffPresentations', () => {
 		const b = makePptxData([], { theme: makeTheme({ name: 'Dark' }) });
 		const diff = diffPresentations(a, b);
 
-		expect(diff.themeChanged).toBe(true);
+		expect(diff.themeChanged).toBeTruthy();
 		const nameChange = diff.themeChanges!.find((c) => c.property === 'theme.name');
 		expect(nameChange).toBeDefined();
 		expect(nameChange!.oldValue).toBe('Light');
@@ -534,7 +534,7 @@ describe('diffPresentations', () => {
 		const b = makePptxData([], { theme: themeB });
 		const diff = diffPresentations(a, b);
 
-		expect(diff.themeChanged).toBe(true);
+		expect(diff.themeChanged).toBeTruthy();
 		const colorChange = diff.themeChanges!.find((c) => c.property === 'theme.colorScheme.accent1');
 		expect(colorChange).toBeDefined();
 		expect(colorChange!.oldValue).toBe('#4F81BD');
@@ -553,7 +553,7 @@ describe('diffPresentations', () => {
 		const b = makePptxData([], { theme: themeB });
 		const diff = diffPresentations(a, b);
 
-		expect(diff.themeChanged).toBe(true);
+		expect(diff.themeChanged).toBeTruthy();
 		const fontChange = diff.themeChanges!.find((c) => c.property === 'theme.fontScheme.majorFont');
 		expect(fontChange).toBeDefined();
 	});
@@ -563,7 +563,7 @@ describe('diffPresentations', () => {
 		const b = makePptxData([], { theme: makeTheme() });
 		const diff = diffPresentations(a, b);
 
-		expect(diff.themeChanged).toBe(false);
+		expect(diff.themeChanged).toBeFalsy();
 	});
 
 	// -----------------------------------------------------------------------

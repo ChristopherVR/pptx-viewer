@@ -137,30 +137,30 @@ describe('hasSlideShapeTree', () => {
 				},
 			},
 		};
-		expect(hasSlideShapeTree(slideXml)).toBe(true);
+		expect(hasSlideShapeTree(slideXml)).toBeTruthy();
 	});
 
 	it('should return false when p:sld is missing', () => {
-		expect(hasSlideShapeTree({})).toBe(false);
+		expect(hasSlideShapeTree({})).toBeFalsy();
 	});
 
 	it('should return false when p:cSld is missing', () => {
 		const slideXml: XmlObject = { 'p:sld': {} };
-		expect(hasSlideShapeTree(slideXml)).toBe(false);
+		expect(hasSlideShapeTree(slideXml)).toBeFalsy();
 	});
 
 	it('should return false when p:spTree is missing', () => {
 		const slideXml: XmlObject = {
 			'p:sld': { 'p:cSld': {} },
 		};
-		expect(hasSlideShapeTree(slideXml)).toBe(false);
+		expect(hasSlideShapeTree(slideXml)).toBeFalsy();
 	});
 
 	it('should return true for empty spTree', () => {
 		const slideXml: XmlObject = {
 			'p:sld': { 'p:cSld': { 'p:spTree': {} } },
 		};
-		expect(hasSlideShapeTree(slideXml)).toBe(true);
+		expect(hasSlideShapeTree(slideXml)).toBeTruthy();
 	});
 });
 
@@ -290,23 +290,23 @@ describe('extractRunText', () => {
 // ---------------------------------------------------------------------------
 describe('hasNonEmptyText', () => {
 	it('should return false for empty parts array', () => {
-		expect(hasNonEmptyText([])).toBe(false);
+		expect(hasNonEmptyText([])).toBeFalsy();
 	});
 
 	it('should return false for parts with only whitespace', () => {
-		expect(hasNonEmptyText(['   ', '\n', '\t'])).toBe(false);
+		expect(hasNonEmptyText(['   ', '\n', '\t'])).toBeFalsy();
 	});
 
 	it('should return true for parts with text', () => {
-		expect(hasNonEmptyText(['Hello'])).toBe(true);
+		expect(hasNonEmptyText(['Hello'])).toBeTruthy();
 	});
 
 	it('should return true when text is spread across parts', () => {
-		expect(hasNonEmptyText(['', ' ', 'X', ''])).toBe(true);
+		expect(hasNonEmptyText(['', ' ', 'X', ''])).toBeTruthy();
 	});
 
 	it('should return false for parts with only empty strings', () => {
-		expect(hasNonEmptyText(['', '', ''])).toBe(false);
+		expect(hasNonEmptyText(['', '', ''])).toBeFalsy();
 	});
 });
 
@@ -315,39 +315,39 @@ describe('hasNonEmptyText', () => {
 // ---------------------------------------------------------------------------
 describe('isSlideHidden', () => {
 	it('should return false for visible slides (default)', () => {
-		expect(isSlideHidden({ 'p:sld': {} }, undefined)).toBe(false);
+		expect(isSlideHidden({ 'p:sld': {} }, undefined)).toBeFalsy();
 	});
 
 	it("should detect hidden slide from p:sld/@show='0'", () => {
-		expect(isSlideHidden({ 'p:sld': { '@_show': '0' } }, undefined)).toBe(true);
+		expect(isSlideHidden({ 'p:sld': { '@_show': '0' } }, undefined)).toBeTruthy();
 	});
 
 	it("should detect hidden slide from p:sld/@show='false'", () => {
-		expect(isSlideHidden({ 'p:sld': { '@_show': 'false' } }, undefined)).toBe(true);
+		expect(isSlideHidden({ 'p:sld': { '@_show': 'false' } }, undefined)).toBeTruthy();
 	});
 
 	it("should detect hidden from slideIdEntry/@show='0'", () => {
-		expect(isSlideHidden({ 'p:sld': {} }, { '@_show': '0' })).toBe(true);
+		expect(isSlideHidden({ 'p:sld': {} }, { '@_show': '0' })).toBeTruthy();
 	});
 
 	it("should detect hidden from slideIdEntry/@show='false'", () => {
-		expect(isSlideHidden({ 'p:sld': {} }, { '@_show': 'false' })).toBe(true);
+		expect(isSlideHidden({ 'p:sld': {} }, { '@_show': 'false' })).toBeTruthy();
 	});
 
 	it('should be case-insensitive', () => {
-		expect(isSlideHidden({ 'p:sld': { '@_show': 'FALSE' } }, undefined)).toBe(true);
+		expect(isSlideHidden({ 'p:sld': { '@_show': 'FALSE' } }, undefined)).toBeTruthy();
 	});
 
 	it("should not hide when show='1'", () => {
-		expect(isSlideHidden({ 'p:sld': { '@_show': '1' } }, undefined)).toBe(false);
+		expect(isSlideHidden({ 'p:sld': { '@_show': '1' } }, undefined)).toBeFalsy();
 	});
 
 	it("should not hide when show='true'", () => {
-		expect(isSlideHidden({ 'p:sld': { '@_show': 'true' } }, undefined)).toBe(false);
+		expect(isSlideHidden({ 'p:sld': { '@_show': 'true' } }, undefined)).toBeFalsy();
 	});
 
 	it('should handle missing p:sld', () => {
-		expect(isSlideHidden({}, undefined)).toBe(false);
+		expect(isSlideHidden({}, undefined)).toBeFalsy();
 	});
 });
 
@@ -364,19 +364,19 @@ describe('extractShowMasterShapes', () => {
 	});
 
 	it("should return false when showMasterSp is '0'", () => {
-		expect(extractShowMasterShapes({ 'p:sld': { '@_showMasterSp': '0' } })).toBe(false);
+		expect(extractShowMasterShapes({ 'p:sld': { '@_showMasterSp': '0' } })).toBeFalsy();
 	});
 
 	it("should return false when showMasterSp is 'false'", () => {
-		expect(extractShowMasterShapes({ 'p:sld': { '@_showMasterSp': 'false' } })).toBe(false);
+		expect(extractShowMasterShapes({ 'p:sld': { '@_showMasterSp': 'false' } })).toBeFalsy();
 	});
 
 	it("should return true when showMasterSp is '1'", () => {
-		expect(extractShowMasterShapes({ 'p:sld': { '@_showMasterSp': '1' } })).toBe(true);
+		expect(extractShowMasterShapes({ 'p:sld': { '@_showMasterSp': '1' } })).toBeTruthy();
 	});
 
 	it("should return true when showMasterSp is 'true'", () => {
-		expect(extractShowMasterShapes({ 'p:sld': { '@_showMasterSp': 'true' } })).toBe(true);
+		expect(extractShowMasterShapes({ 'p:sld': { '@_showMasterSp': 'true' } })).toBeTruthy();
 	});
 });
 
@@ -405,7 +405,7 @@ describe('extractBackgroundShowAnimation', () => {
 			extractBackgroundShowAnimation({
 				'p:sld': { 'p:cSld': { 'p:bg': { '@_showAnimation': '0' } } },
 			}),
-		).toBe(false);
+		).toBeFalsy();
 	});
 
 	it("should return false when showAnimation is 'false'", () => {
@@ -413,7 +413,7 @@ describe('extractBackgroundShowAnimation', () => {
 			extractBackgroundShowAnimation({
 				'p:sld': { 'p:cSld': { 'p:bg': { '@_showAnimation': 'false' } } },
 			}),
-		).toBe(false);
+		).toBeFalsy();
 	});
 
 	it("should return true when showAnimation is '1'", () => {
@@ -421,7 +421,7 @@ describe('extractBackgroundShowAnimation', () => {
 			extractBackgroundShowAnimation({
 				'p:sld': { 'p:cSld': { 'p:bg': { '@_showAnimation': '1' } } },
 			}),
-		).toBe(true);
+		).toBeTruthy();
 	});
 
 	it("should return true when showAnimation is 'true'", () => {
@@ -429,6 +429,6 @@ describe('extractBackgroundShowAnimation', () => {
 			extractBackgroundShowAnimation({
 				'p:sld': { 'p:cSld': { 'p:bg': { '@_showAnimation': 'true' } } },
 			}),
-		).toBe(true);
+		).toBeTruthy();
 	});
 });

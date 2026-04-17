@@ -6,8 +6,8 @@ import { createTableStructHandlers } from './table-struct-handlers';
 
 // Mock the table-parse utilities so we don't depend on XML parsing
 vi.mock<typeof import('../utils/table-parse')>(import('../utils/table-parse'), () => ({
-	updateCellTextInRawXml: vi.fn(() => '<new-xml/>'),
-	rebuildTableStructureInRawXml: vi.fn(() => '<rebuilt-xml/>'),
+	updateCellTextInRawXml: vi.fn<(...args: any[]) => any>(() => '<new-xml/>'),
+	rebuildTableStructureInRawXml: vi.fn<(...args: any[]) => any>(() => '<rebuilt-xml/>'),
 }));
 
 function createTableElement(tableData: PptxTableData, id = 'table-1'): TablePptxElement {
@@ -45,13 +45,13 @@ function createMockInput(
 		selectedElement: tableEl,
 		tableEditorState: { rowIndex: 1, columnIndex: 1 },
 		elementLookup: lookup,
-		setTableEditorState: vi.fn(),
+		setTableEditorState: vi.fn<() => void>(),
 		ops: {
-			updateElementById: vi.fn(),
-			updateSelectedElement: vi.fn(),
+			updateElementById: vi.fn<() => void>(),
+			updateSelectedElement: vi.fn<() => void>(),
 		} as unknown as UseTableOperationsInput['ops'],
 		history: {
-			markDirty: vi.fn(),
+			markDirty: vi.fn<() => void>(),
 		} as unknown as UseTableOperationsInput['history'],
 		...overrides,
 	};

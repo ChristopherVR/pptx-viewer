@@ -603,13 +603,13 @@ describe('apply3dEffects', () => {
 describe('build3DExtrusionData', () => {
 	it('returns hasExtrusion: false when no shape3d', () => {
 		const result = build3DExtrusionData(undefined, undefined, '#000', 100, 100);
-		expect(result.hasExtrusion).toBe(false);
+		expect(result.hasExtrusion).toBeFalsy();
 		expect(result.panels).toHaveLength(0);
 	});
 
 	it('returns hasExtrusion: false when extrusionHeight is zero', () => {
 		const result = build3DExtrusionData({ extrusionHeight: 0 }, undefined, '#000', 100, 100);
-		expect(result.hasExtrusion).toBe(false);
+		expect(result.hasExtrusion).toBeFalsy();
 	});
 
 	it('returns hasExtrusion: true with panels for valid extrusion', () => {
@@ -620,7 +620,7 @@ describe('build3DExtrusionData', () => {
 			200,
 			150,
 		);
-		expect(result.hasExtrusion).toBe(true);
+		expect(result.hasExtrusion).toBeTruthy();
 		expect(result.panels.length).toBeGreaterThan(0);
 		expect(result.panels.length).toBeLessThanOrEqual(4);
 	});

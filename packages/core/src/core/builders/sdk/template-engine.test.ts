@@ -706,7 +706,7 @@ describe('applyTemplate — edge cases', () => {
 describe('mailMerge', () => {
 	it('should generate one presentation per record', async () => {
 		const mockHandler = {
-			save: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
+			save: vi.fn<() => void>().mockResolvedValue(new Uint8Array([1, 2, 3])),
 		} as unknown as import('../../PptxHandler').PptxHandler;
 
 		const data = makeData([makeSlide('s1', [makeTextElement('t1', 'Hello {{name}}')])]);
@@ -723,7 +723,7 @@ describe('mailMerge', () => {
 
 	it('should not mutate the original data', async () => {
 		const mockHandler = {
-			save: vi.fn().mockResolvedValue(new Uint8Array([0])),
+			save: vi.fn<() => void>().mockResolvedValue(new Uint8Array([0])),
 		} as unknown as import('../../PptxHandler').PptxHandler;
 
 		const data = makeData([makeSlide('s1', [makeTextElement('t1', 'Hello {{name}}')])]);
@@ -739,7 +739,7 @@ describe('mailMerge', () => {
 
 	it('should return empty array for empty records', async () => {
 		const mockHandler = {
-			save: vi.fn(),
+			save: vi.fn<() => void>(),
 		} as unknown as import('../../PptxHandler').PptxHandler;
 
 		const data = makeData([makeSlide('s1', [makeTextElement('t1', '{{name}}')])]);
@@ -752,7 +752,7 @@ describe('mailMerge', () => {
 	it('should pass replaced slides to handler.save', async () => {
 		let capturedSlides: PptxSlide[] | null = null;
 		const mockHandler = {
-			save: vi.fn().mockImplementation((slides: PptxSlide[]) => {
+			save: vi.fn<() => void>().mockImplementation((slides: PptxSlide[]) => {
 				capturedSlides = slides;
 				return Promise.resolve(new Uint8Array([0]));
 			}),

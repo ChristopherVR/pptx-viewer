@@ -188,54 +188,54 @@ describe('nARY_MAP', () => {
 
 describe('fUNC_NAMES', () => {
 	it('contains trigonometric functions', () => {
-		expect(FUNC_NAMES.has('sin')).toBe(true);
-		expect(FUNC_NAMES.has('cos')).toBe(true);
-		expect(FUNC_NAMES.has('tan')).toBe(true);
-		expect(FUNC_NAMES.has('cot')).toBe(true);
-		expect(FUNC_NAMES.has('sec')).toBe(true);
-		expect(FUNC_NAMES.has('csc')).toBe(true);
+		expect(FUNC_NAMES.has('sin')).toBeTruthy();
+		expect(FUNC_NAMES.has('cos')).toBeTruthy();
+		expect(FUNC_NAMES.has('tan')).toBeTruthy();
+		expect(FUNC_NAMES.has('cot')).toBeTruthy();
+		expect(FUNC_NAMES.has('sec')).toBeTruthy();
+		expect(FUNC_NAMES.has('csc')).toBeTruthy();
 	});
 
 	it('contains inverse trig functions', () => {
-		expect(FUNC_NAMES.has('arcsin')).toBe(true);
-		expect(FUNC_NAMES.has('arccos')).toBe(true);
-		expect(FUNC_NAMES.has('arctan')).toBe(true);
+		expect(FUNC_NAMES.has('arcsin')).toBeTruthy();
+		expect(FUNC_NAMES.has('arccos')).toBeTruthy();
+		expect(FUNC_NAMES.has('arctan')).toBeTruthy();
 	});
 
 	it('contains hyperbolic functions', () => {
-		expect(FUNC_NAMES.has('sinh')).toBe(true);
-		expect(FUNC_NAMES.has('cosh')).toBe(true);
-		expect(FUNC_NAMES.has('tanh')).toBe(true);
+		expect(FUNC_NAMES.has('sinh')).toBeTruthy();
+		expect(FUNC_NAMES.has('cosh')).toBeTruthy();
+		expect(FUNC_NAMES.has('tanh')).toBeTruthy();
 	});
 
 	it('contains logarithmic functions', () => {
-		expect(FUNC_NAMES.has('log')).toBe(true);
-		expect(FUNC_NAMES.has('ln')).toBe(true);
-		expect(FUNC_NAMES.has('exp')).toBe(true);
+		expect(FUNC_NAMES.has('log')).toBeTruthy();
+		expect(FUNC_NAMES.has('ln')).toBeTruthy();
+		expect(FUNC_NAMES.has('exp')).toBeTruthy();
 	});
 
 	it('contains limit-related functions', () => {
-		expect(FUNC_NAMES.has('lim')).toBe(true);
-		expect(FUNC_NAMES.has('min')).toBe(true);
-		expect(FUNC_NAMES.has('max')).toBe(true);
-		expect(FUNC_NAMES.has('sup')).toBe(true);
-		expect(FUNC_NAMES.has('inf')).toBe(true);
+		expect(FUNC_NAMES.has('lim')).toBeTruthy();
+		expect(FUNC_NAMES.has('min')).toBeTruthy();
+		expect(FUNC_NAMES.has('max')).toBeTruthy();
+		expect(FUNC_NAMES.has('sup')).toBeTruthy();
+		expect(FUNC_NAMES.has('inf')).toBeTruthy();
 	});
 
 	it('contains algebraic functions', () => {
-		expect(FUNC_NAMES.has('det')).toBe(true);
-		expect(FUNC_NAMES.has('dim')).toBe(true);
-		expect(FUNC_NAMES.has('gcd')).toBe(true);
-		expect(FUNC_NAMES.has('mod')).toBe(true);
-		expect(FUNC_NAMES.has('ker')).toBe(true);
-		expect(FUNC_NAMES.has('hom')).toBe(true);
-		expect(FUNC_NAMES.has('deg')).toBe(true);
+		expect(FUNC_NAMES.has('det')).toBeTruthy();
+		expect(FUNC_NAMES.has('dim')).toBeTruthy();
+		expect(FUNC_NAMES.has('gcd')).toBeTruthy();
+		expect(FUNC_NAMES.has('mod')).toBeTruthy();
+		expect(FUNC_NAMES.has('ker')).toBeTruthy();
+		expect(FUNC_NAMES.has('hom')).toBeTruthy();
+		expect(FUNC_NAMES.has('deg')).toBeTruthy();
 	});
 
 	it('does not contain non-function names', () => {
-		expect(FUNC_NAMES.has('frac')).toBe(false);
-		expect(FUNC_NAMES.has('sqrt')).toBe(false);
-		expect(FUNC_NAMES.has('alpha')).toBe(false);
+		expect(FUNC_NAMES.has('frac')).toBeFalsy();
+		expect(FUNC_NAMES.has('sqrt')).toBeFalsy();
+		expect(FUNC_NAMES.has('alpha')).toBeFalsy();
 	});
 });
 

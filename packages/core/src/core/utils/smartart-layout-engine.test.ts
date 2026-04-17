@@ -1025,10 +1025,10 @@ describe('edge cases', () => {
 		for (const alg of algorithms) {
 			const shapes = alg();
 			for (const s of shapes) {
-				expect(Number.isInteger(s.x)).toBe(true);
-				expect(Number.isInteger(s.y)).toBe(true);
-				expect(Number.isInteger(s.width)).toBe(true);
-				expect(Number.isInteger(s.height)).toBe(true);
+				expect(Number.isInteger(s.x)).toBeTruthy();
+				expect(Number.isInteger(s.y)).toBeTruthy();
+				expect(Number.isInteger(s.width)).toBeTruthy();
+				expect(Number.isInteger(s.height)).toBeTruthy();
 			}
 		}
 	});

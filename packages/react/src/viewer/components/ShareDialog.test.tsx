@@ -85,7 +85,7 @@ function render(el: React.ReactElement): string {
 function createProps(overrides: Partial<ShareDialogProps> = {}): ShareDialogProps {
 	return {
 		open: true,
-		onClose: vi.fn(),
+		onClose: vi.fn<() => void>(),
 		...overrides,
 	};
 }
@@ -96,7 +96,7 @@ function createConnectedCollab(
 	return {
 		status: 'connected',
 		remoteUsers: [],
-		broadcastPresence: vi.fn(),
+		broadcastPresence: vi.fn<() => void>(),
 		connectedCount: 1,
 		config: {
 			roomId: 'test-room',
@@ -205,7 +205,7 @@ describe('shareDialog — active session view', () => {
 	it('shows Stop Sharing button when onStopCollaboration is provided', () => {
 		mockCollabValue = createConnectedCollab();
 		const html = render(
-			React.createElement(ShareDialog, createProps({ onStopCollaboration: vi.fn() })),
+			React.createElement(ShareDialog, createProps({ onStopCollaboration: vi.fn<() => void>() })),
 		);
 		expect(html).toContain('Stop Sharing');
 	});

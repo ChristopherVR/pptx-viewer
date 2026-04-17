@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, vi, afterEach, expectTypeOf } from 'vitest';
 
 import { dataUrlToBlobUrl } from './Model3DRenderer';
@@ -79,7 +78,7 @@ describe('dataUrlToBlobUrl', () => {
 describe('blob URL lifecycle', () => {
 	it('uRL.revokeObjectURL is called for cleanup', () => {
 		const fakeUrl = 'blob:http://localhost/cleanup-test';
-		const revokeSpy = vi.fn();
+		const revokeSpy = vi.fn<() => void>();
 		globalThis.URL.revokeObjectURL = revokeSpy;
 
 		// Simulate cleanup: the component calls URL.revokeObjectURL in an

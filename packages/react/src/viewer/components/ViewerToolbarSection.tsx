@@ -23,7 +23,7 @@ import type { SlideManagementHandlers } from '../hooks/useSlideManagement';
 import type { ViewerDialogsResult } from '../hooks/useViewerDialogs';
 import type { SupportedShapeType, ViewerMode } from '../types';
 import type { ElementClipboardPayload } from '../types-core';
-import type { DrawingTool, ToolbarSection } from '../types-ui';
+import type { DrawingTool, TableCellEditorState, ToolbarSection } from '../types-ui';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -50,6 +50,7 @@ export interface ViewerToolbarSectionProps {
 		drawingWidth: number;
 		setDrawingWidth: React.Dispatch<React.SetStateAction<number>>;
 		clipboardPayload: ElementClipboardPayload | null;
+		tableEditorState: TableCellEditorState | null;
 		editTemplateMode: boolean;
 		setEditTemplateMode: React.Dispatch<React.SetStateAction<boolean>>;
 		spellCheckEnabled: boolean;
@@ -221,6 +222,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				redoLabel={history.redoLabel}
 				findReplaceOpen={findReplace.findReplaceOpen}
 				selectedElement={selectedElement}
+				tableEditorState={s.tableEditorState}
 				editTemplateMode={s.editTemplateMode}
 				newShapeType={s.newShapeType}
 				activeTool={s.activeTool}

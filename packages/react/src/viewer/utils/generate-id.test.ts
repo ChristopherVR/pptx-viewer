@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { generateElementId } from './generate-id';
@@ -11,7 +10,7 @@ describe('generateElementId', () => {
 
 	it('should start with "el-" prefix', () => {
 		const id = generateElementId();
-		expect(id.startsWith('el-')).toBe(true);
+		expect(id.startsWith('el-')).toBeTruthy();
 	});
 
 	it('should contain a timestamp component', () => {
@@ -44,6 +43,6 @@ describe('generateElementId', () => {
 	it('should have the format el-<timestamp>-<random>', () => {
 		const id = generateElementId();
 		const match = /^el-\d+-[a-z0-9]+$/.test(id);
-		expect(match).toBe(true);
+		expect(match).toBeTruthy();
 	});
 });

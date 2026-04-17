@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import {
@@ -26,25 +25,25 @@ import { handleWmfDrawRecord } from './wmf-draw-handlers';
 
 function makeCtxStub(): Record<string, unknown> {
 	return {
-		save: vi.fn(),
-		restore: vi.fn(),
-		beginPath: vi.fn(),
-		closePath: vi.fn(),
-		moveTo: vi.fn(),
-		lineTo: vi.fn(),
-		bezierCurveTo: vi.fn(),
-		arc: vi.fn(),
-		arcTo: vi.fn(),
-		ellipse: vi.fn(),
-		rect: vi.fn(),
-		fill: vi.fn(),
-		stroke: vi.fn(),
-		fillRect: vi.fn(),
-		strokeRect: vi.fn(),
-		clip: vi.fn(),
-		setTransform: vi.fn(),
-		setLineDash: vi.fn(),
-		fillText: vi.fn(),
+		save: vi.fn<() => void>(),
+		restore: vi.fn<() => void>(),
+		beginPath: vi.fn<() => void>(),
+		closePath: vi.fn<() => void>(),
+		moveTo: vi.fn<() => void>(),
+		lineTo: vi.fn<() => void>(),
+		bezierCurveTo: vi.fn<() => void>(),
+		arc: vi.fn<() => void>(),
+		arcTo: vi.fn<() => void>(),
+		ellipse: vi.fn<() => void>(),
+		rect: vi.fn<() => void>(),
+		fill: vi.fn<() => void>(),
+		stroke: vi.fn<() => void>(),
+		fillRect: vi.fn<() => void>(),
+		strokeRect: vi.fn<() => void>(),
+		clip: vi.fn<() => void>(),
+		setTransform: vi.fn<() => void>(),
+		setLineDash: vi.fn<() => void>(),
+		fillText: vi.fn<() => void>(),
 		strokeStyle: '#000',
 		fillStyle: '#fff',
 		lineWidth: 1,
@@ -83,7 +82,7 @@ describe('wmf-draw-handlers', () => {
 
 		it('returns false for unrecognized record type', () => {
 			const wCtx = makeWCtx();
-			expect(handleWmfDrawRecord(wCtx, 0xffff, 0, 8, 8)).toBe(false);
+			expect(handleWmfDrawRecord(wCtx, 0xffff, 0, 8, 8)).toBeFalsy();
 		});
 
 		// -- META_MOVETO --
@@ -94,7 +93,7 @@ describe('wmf-draw-handlers', () => {
 				wCtx.view.setInt16(d, 200, true); // y
 				wCtx.view.setInt16(d + 2, 100, true); // x
 				const result = handleWmfDrawRecord(wCtx, META_MOVETO, 0, d, 10);
-				expect(result).toBe(true);
+				expect(result).toBeTruthy();
 				expect(wCtx.state.curX).toBe(100);
 				expect(wCtx.state.curY).toBe(200);
 			});

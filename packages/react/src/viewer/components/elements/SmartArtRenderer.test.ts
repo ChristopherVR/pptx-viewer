@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import type {
 	PptxElement,
 	PptxSmartArtNode,

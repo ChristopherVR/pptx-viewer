@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, vi, beforeEach, afterEach, expectTypeOf } from 'vitest';
 
 import {
@@ -31,7 +30,7 @@ describe('isPresenterMessage', () => {
 			type: 'presenter-slide-change',
 			slideIndex: 3,
 		};
-		expect(isPresenterMessage(msg)).toBe(true);
+		expect(isPresenterMessage(msg)).toBeTruthy();
 	});
 
 	it('accepts a valid exit message', () => {
@@ -39,23 +38,23 @@ describe('isPresenterMessage', () => {
 			origin: PRESENTER_MSG_ORIGIN,
 			type: 'presenter-exit',
 		};
-		expect(isPresenterMessage(msg)).toBe(true);
+		expect(isPresenterMessage(msg)).toBeTruthy();
 	});
 
 	it('rejects null', () => {
-		expect(isPresenterMessage(null)).toBe(false);
+		expect(isPresenterMessage(null)).toBeFalsy();
 	});
 
 	it('rejects undefined', () => {
-		expect(isPresenterMessage(undefined)).toBe(false);
+		expect(isPresenterMessage(undefined)).toBeFalsy();
 	});
 
 	it('rejects a string', () => {
-		expect(isPresenterMessage('hello')).toBe(false);
+		expect(isPresenterMessage('hello')).toBeFalsy();
 	});
 
 	it('rejects a number', () => {
-		expect(isPresenterMessage(42)).toBe(false);
+		expect(isPresenterMessage(42)).toBeFalsy();
 	});
 
 	it('rejects an object with wrong origin', () => {
@@ -65,7 +64,7 @@ describe('isPresenterMessage', () => {
 				type: 'presenter-slide-change',
 				slideIndex: 0,
 			}),
-		).toBe(false);
+		).toBeFalsy();
 	});
 
 	it('rejects an object with unknown type', () => {
@@ -74,15 +73,15 @@ describe('isPresenterMessage', () => {
 				origin: PRESENTER_MSG_ORIGIN,
 				type: 'unknown-type',
 			}),
-		).toBe(false);
+		).toBeFalsy();
 	});
 
 	it('rejects an empty object', () => {
-		expect(isPresenterMessage({})).toBe(false);
+		expect(isPresenterMessage({})).toBeFalsy();
 	});
 
 	it('rejects an object with only the origin', () => {
-		expect(isPresenterMessage({ origin: PRESENTER_MSG_ORIGIN })).toBe(false);
+		expect(isPresenterMessage({ origin: PRESENTER_MSG_ORIGIN })).toBeFalsy();
 	});
 });
 
@@ -118,12 +117,12 @@ interface MockWindow {
 function createMockWindow(): MockWindow {
 	return {
 		closed: false,
-		close: vi.fn(),
-		postMessage: vi.fn(),
+		close: vi.fn<() => void>(),
+		postMessage: vi.fn<() => void>(),
 		document: {
-			open: vi.fn(),
-			write: vi.fn(),
-			close: vi.fn(),
+			open: vi.fn<() => void>(),
+			write: vi.fn<() => void>(),
+			close: vi.fn<() => void>(),
 		},
 	};
 }
@@ -209,37 +208,37 @@ describe('presenterWindowManager', () => {
 	// -- isAudienceWindowOpen --------------------------------------------------
 
 	it('reports window not open when no window has been opened', () => {
-		expect(manager.isAudienceWindowOpen()).toBe(false);
+		expect(manager.isAudienceWindowOpen()).toBeFalsy();
 	});
 
 	it('reports window open after successful open', () => {
 		manager.openAudienceWindow(mockWin, 0);
-		expect(manager.isAudienceWindowOpen()).toBe(true);
+		expect(manager.isAudienceWindowOpen()).toBeTruthy();
 	});
 
 	it('reports window not open after close', () => {
 		manager.openAudienceWindow(mockWin, 0);
 		manager.closeAudienceWindow();
-		expect(manager.isAudienceWindowOpen()).toBe(false);
+		expect(manager.isAudienceWindowOpen()).toBeFalsy();
 	});
 
 	it('reports window not open when external close (win.closed = true)', () => {
 		manager.openAudienceWindow(mockWin, 0);
 		mockWin.closed = true;
-		expect(manager.isAudienceWindowOpen()).toBe(false);
+		expect(manager.isAudienceWindowOpen()).toBeFalsy();
 	});
 
 	// -- openAudienceWindow ----------------------------------------------------
 
 	it('returns false when window.open returns null', () => {
 		const result = manager.openAudienceWindow(null, 0);
-		expect(result).toBe(false);
-		expect(manager.isAudienceWindowOpen()).toBe(false);
+		expect(result).toBeFalsy();
+		expect(manager.isAudienceWindowOpen()).toBeFalsy();
 	});
 
 	it('returns true on successful open', () => {
 		const result = manager.openAudienceWindow(mockWin, 0);
-		expect(result).toBe(true);
+		expect(result).toBeTruthy();
 	});
 
 	it('sends initial slide index on open', () => {
@@ -257,7 +256,7 @@ describe('presenterWindowManager', () => {
 	it('closes existing window before opening a new one', () => {
 		const firstWin = createMockWindow();
 		manager.openAudienceWindow(firstWin, 0);
-		expect(manager.isAudienceWindowOpen()).toBe(true);
+		expect(manager.isAudienceWindowOpen()).toBeTruthy();
 
 		const secondWin = createMockWindow();
 		manager.openAudienceWindow(secondWin, 1);
@@ -270,7 +269,7 @@ describe('presenterWindowManager', () => {
 		expect(firstWin.close).toHaveBeenCalled();
 
 		// Second window should now be the active one
-		expect(manager.isAudienceWindowOpen()).toBe(true);
+		expect(manager.isAudienceWindowOpen()).toBeTruthy();
 	});
 
 	// -- syncSlideToAudience ---------------------------------------------------
@@ -385,7 +384,7 @@ describe('presenterWindowManager', () => {
 
 		const sentMessage = mockWin.postMessage.mock.calls[0][0] as PresenterMessage;
 		expect(sentMessage.origin).toBe(PRESENTER_MSG_ORIGIN);
-		expect(isPresenterMessage(sentMessage)).toBe(true);
+		expect(isPresenterMessage(sentMessage)).toBeTruthy();
 	});
 
 	it('exit messages include correct origin tag', () => {
@@ -396,6 +395,6 @@ describe('presenterWindowManager', () => {
 
 		const sentMessage = mockWin.postMessage.mock.calls[0][0] as PresenterMessage;
 		expect(sentMessage.origin).toBe(PRESENTER_MSG_ORIGIN);
-		expect(isPresenterMessage(sentMessage)).toBe(true);
+		expect(isPresenterMessage(sentMessage)).toBeTruthy();
 	});
 });

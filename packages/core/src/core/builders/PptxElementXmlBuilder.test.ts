@@ -143,18 +143,18 @@ describe('pptxElementXmlBuilder.normalizePresetGeometry', () => {
 describe('pptxElementXmlBuilder.resetIdCounter', () => {
 	it('resets the ID counter so that the next ID equals the given value', () => {
 		const mockTextFactory: ITextShapeXmlFactory = {
-			createXmlElement: vi.fn().mockReturnValue({}),
+			createXmlElement: vi.fn<() => void>().mockReturnValue({}),
 		};
 		const mockProvider: IPptxXmlFactoryProvider = {
 			createTextShapeFactory: () => mockTextFactory,
 			createConnectorFactory: () => ({
-				createXmlElement: vi.fn().mockReturnValue({}),
+				createXmlElement: vi.fn<() => void>().mockReturnValue({}),
 			}),
 			createPictureFactory: () => ({
-				createXmlElement: vi.fn().mockReturnValue({}),
+				createXmlElement: vi.fn<() => void>().mockReturnValue({}),
 			}),
 			createMediaGraphicFrameFactory: () => ({
-				createXmlElement: vi.fn().mockReturnValue({}),
+				createXmlElement: vi.fn<() => void>().mockReturnValue({}),
 			}),
 		};
 
@@ -181,16 +181,18 @@ describe('pptxElementXmlBuilder.resetIdCounter', () => {
 describe('pptxElementXmlBuilder delegation', () => {
 	function createMockProvider() {
 		const mockTextFactory: ITextShapeXmlFactory = {
-			createXmlElement: vi.fn().mockReturnValue({ 'p:sp': { type: 'text' } }),
+			createXmlElement: vi.fn<() => void>().mockReturnValue({ 'p:sp': { type: 'text' } }),
 		};
 		const mockConnectorFactory: IConnectorXmlFactory = {
-			createXmlElement: vi.fn().mockReturnValue({ 'p:cxnSp': { type: 'connector' } }),
+			createXmlElement: vi.fn<() => void>().mockReturnValue({ 'p:cxnSp': { type: 'connector' } }),
 		};
 		const mockPictureFactory: IPictureXmlFactory = {
-			createXmlElement: vi.fn().mockReturnValue({ 'p:pic': { type: 'picture' } }),
+			createXmlElement: vi.fn<() => void>().mockReturnValue({ 'p:pic': { type: 'picture' } }),
 		};
 		const mockMediaFactory: IMediaGraphicFrameXmlFactory = {
-			createXmlElement: vi.fn().mockReturnValue({ 'p:graphicFrame': { type: 'media' } }),
+			createXmlElement: vi
+				.fn<() => void>()
+				.mockReturnValue({ 'p:graphicFrame': { type: 'media' } }),
 		};
 
 		const provider: IPptxXmlFactoryProvider = {

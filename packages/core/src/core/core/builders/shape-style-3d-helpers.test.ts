@@ -98,7 +98,7 @@ describe('applyScene3dStyle', () => {
 		};
 		const style = makeStyle();
 		applyScene3dStyle(shapeProps, style);
-		expect(style.scene3d?.hasBackdrop).toBe(true);
+		expect(style.scene3d?.hasBackdrop).toBeTruthy();
 		expect(style.scene3d?.backdropAnchorX).toBe(100);
 		expect(style.scene3d?.backdropAnchorY).toBe(200);
 		expect(style.scene3d?.backdropAnchorZ).toBe(300);

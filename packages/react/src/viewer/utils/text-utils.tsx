@@ -134,8 +134,15 @@ export function getTextStyleForElement(
 		verticalDirection || (isRtl ? 'rtl' : 'ltr');
 	const resolvedUnicodeBidi: React.CSSProperties['unicodeBidi'] = isRtl ? 'plaintext' : undefined;
 
+	// Element-level highlight only applies as a fallback for segmentless text —
+	// with segments each run carries its own backgroundColor.
+	const hasSegments = (element.textSegments?.length ?? 0) > 0;
 	return {
 		color: resolvedTextColor,
+		backgroundColor:
+			!hasSegments && element.textStyle?.highlightColor
+				? normalizeHexColor(element.textStyle.highlightColor, undefined)
+				: undefined,
 		textAlign: ((): React.CSSProperties['textAlign'] => {
 			const a = element.textStyle?.align;
 			if (a === 'justLow' || a === 'dist' || a === 'thaiDist') {

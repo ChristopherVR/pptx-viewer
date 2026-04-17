@@ -39,7 +39,7 @@ function makeContext(
 describe('applyCellAlignmentStyle — vertical alignment', () => {
 	it('returns false for undefined cellProperties', () => {
 		const style: PptxTableCellStyle = {};
-		expect(applyCellAlignmentStyle(undefined, style)).toBe(false);
+		expect(applyCellAlignmentStyle(undefined, style)).toBeFalsy();
 	});
 
 	it("sets vAlign to top for anchor 't'", () => {
@@ -62,12 +62,12 @@ describe('applyCellAlignmentStyle — vertical alignment', () => {
 
 	it('returns true when anchor is set', () => {
 		const style: PptxTableCellStyle = {};
-		expect(applyCellAlignmentStyle({ '@_anchor': 'ctr' }, style)).toBe(true);
+		expect(applyCellAlignmentStyle({ '@_anchor': 'ctr' }, style)).toBeTruthy();
 	});
 
 	it('returns false when no relevant properties are present', () => {
 		const style: PptxTableCellStyle = {};
-		expect(applyCellAlignmentStyle({}, style)).toBe(false);
+		expect(applyCellAlignmentStyle({}, style)).toBeFalsy();
 	});
 });
 
@@ -166,7 +166,7 @@ describe('applyCellTextFormat — paragraph alignment', () => {
 	it('returns false when no paragraph is present', () => {
 		const tableCell: XmlObject = {};
 		const style: PptxTableCellStyle = {};
-		expect(applyCellTextFormat(tableCell, style, makeContext())).toBe(false);
+		expect(applyCellTextFormat(tableCell, style, makeContext())).toBeFalsy();
 	});
 });
 
@@ -188,7 +188,7 @@ describe('applyCellTextFormat — run properties', () => {
 		};
 		const style: PptxTableCellStyle = {};
 		applyCellTextFormat(tableCell, style, makeContext());
-		expect(style.bold).toBe(true);
+		expect(style.bold).toBeTruthy();
 	});
 
 	it('applies italic from run properties', () => {
@@ -204,7 +204,7 @@ describe('applyCellTextFormat — run properties', () => {
 		};
 		const style: PptxTableCellStyle = {};
 		applyCellTextFormat(tableCell, style, makeContext());
-		expect(style.italic).toBe(true);
+		expect(style.italic).toBeTruthy();
 	});
 
 	it('applies underline from run properties', () => {
@@ -220,7 +220,7 @@ describe('applyCellTextFormat — run properties', () => {
 		};
 		const style: PptxTableCellStyle = {};
 		applyCellTextFormat(tableCell, style, makeContext());
-		expect(style.underline).toBe(true);
+		expect(style.underline).toBeTruthy();
 	});
 
 	it("does not apply underline when value is 'none'", () => {
@@ -291,9 +291,9 @@ describe('applyCellTextFormat — run properties', () => {
 		};
 		const style: PptxTableCellStyle = {};
 		const result = applyCellTextFormat(tableCell, style, makeContext());
-		expect(result).toBe(true);
-		expect(style.bold).toBe(true);
-		expect(style.italic).toBe(true);
+		expect(result).toBeTruthy();
+		expect(style.bold).toBeTruthy();
+		expect(style.italic).toBeTruthy();
 		expect(style.fontSize).toBe(24);
 		expect(style.color).toBe('#0000FF');
 	});
@@ -368,6 +368,6 @@ describe('applyCellTextFormat — text effects', () => {
 			},
 		};
 		const style: PptxTableCellStyle = {};
-		expect(applyCellTextFormat(tableCell, style, makeContext())).toBe(false);
+		expect(applyCellTextFormat(tableCell, style, makeContext())).toBeFalsy();
 	});
 });

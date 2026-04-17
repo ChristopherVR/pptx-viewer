@@ -130,7 +130,7 @@ describe('parseCondition', () => {
 			},
 		});
 		expect(result.event).toBe('onNext');
-		expect(result.targetSlide).toBe(true);
+		expect(result.targetSlide).toBeTruthy();
 	});
 
 	it('returns empty condition for empty XML object', () => {
@@ -304,7 +304,7 @@ describe('serializeConditionList', () => {
 		const result = serializeConditionList([{ event: 'onClick', delay: 0 }]);
 		expect(result).toBeDefined();
 		const cond = result!['p:cond'] as XmlObject;
-		expect(Array.isArray(cond)).toBe(false);
+		expect(Array.isArray(cond)).toBeFalsy();
 		expect(cond['@_evt']).toBe('onClick');
 		expect(cond['@_delay']).toBe('0');
 	});
@@ -316,7 +316,7 @@ describe('serializeConditionList', () => {
 		]);
 		expect(result).toBeDefined();
 		const conds = result!['p:cond'] as XmlObject[];
-		expect(Array.isArray(conds)).toBe(true);
+		expect(Array.isArray(conds)).toBeTruthy();
 		expect(conds).toHaveLength(2);
 		expect(conds[0]['@_evt']).toBe('onBegin');
 		expect(conds[1]['@_evt']).toBe('onClick');

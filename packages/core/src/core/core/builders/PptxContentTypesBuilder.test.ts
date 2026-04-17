@@ -191,7 +191,7 @@ describe('pptxContentTypesBuilder', () => {
 				slideContentType: SLIDE_CT,
 			});
 			const overrides = (result['Types'] as XmlObject)['Override'] as any[];
-			expect(Array.isArray(overrides)).toBe(true);
+			expect(Array.isArray(overrides)).toBeTruthy();
 			expect(overrides.length).toBeGreaterThanOrEqual(2);
 		});
 	});

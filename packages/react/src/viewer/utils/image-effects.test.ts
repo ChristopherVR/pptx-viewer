@@ -209,7 +209,7 @@ describe('buildCacheKey', () => {
 	it('truncates long source strings to 64 chars', () => {
 		const longSrc = 'a'.repeat(200);
 		const key = buildCacheKey(longSrc, '#000', '#FFF', 10, true);
-		expect(key.startsWith('a'.repeat(64))).toBe(true);
+		expect(key.startsWith('a'.repeat(64))).toBeTruthy();
 		expect(key).not.toContain('a'.repeat(65));
 	});
 

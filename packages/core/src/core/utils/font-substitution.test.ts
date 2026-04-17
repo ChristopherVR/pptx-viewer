@@ -299,15 +299,15 @@ describe('getSubstituteFonts', () => {
 
 describe('hasDirectSubstitution', () => {
 	it('returns true for known fonts', () => {
-		expect(hasDirectSubstitution('Calibri')).toBe(true);
-		expect(hasDirectSubstitution('Arial')).toBe(true);
-		expect(hasDirectSubstitution('Consolas')).toBe(true);
-		expect(hasDirectSubstitution('Times New Roman')).toBe(true);
+		expect(hasDirectSubstitution('Calibri')).toBeTruthy();
+		expect(hasDirectSubstitution('Arial')).toBeTruthy();
+		expect(hasDirectSubstitution('Consolas')).toBeTruthy();
+		expect(hasDirectSubstitution('Times New Roman')).toBeTruthy();
 	});
 
 	it('returns false for unknown fonts', () => {
-		expect(hasDirectSubstitution('TotallyUnknown')).toBe(false);
-		expect(hasDirectSubstitution('')).toBe(false);
+		expect(hasDirectSubstitution('TotallyUnknown')).toBeFalsy();
+		expect(hasDirectSubstitution('')).toBeFalsy();
 	});
 });
 
@@ -374,7 +374,7 @@ describe('fONT_SUBSTITUTION_MAP', () => {
 		const genericFamilies = new Set(['serif', 'sans-serif', 'monospace', 'cursive', 'fantasy']);
 		for (const [_fontName, chain] of Object.entries(FONT_SUBSTITUTION_MAP)) {
 			const lastItem = chain[chain.length - 1];
-			expect(genericFamilies.has(lastItem)).toBe(true);
+			expect(genericFamilies.has(lastItem)).toBeTruthy();
 		}
 	});
 
@@ -414,11 +414,11 @@ describe('pANOSE constants', () => {
 	});
 
 	it('pANOSE_SANS_SERIF_STYLES contains expected values', () => {
-		expect(PANOSE_SANS_SERIF_STYLES.has(11)).toBe(true);
-		expect(PANOSE_SANS_SERIF_STYLES.has(12)).toBe(true);
-		expect(PANOSE_SANS_SERIF_STYLES.has(13)).toBe(true);
+		expect(PANOSE_SANS_SERIF_STYLES.has(11)).toBeTruthy();
+		expect(PANOSE_SANS_SERIF_STYLES.has(12)).toBeTruthy();
+		expect(PANOSE_SANS_SERIF_STYLES.has(13)).toBeTruthy();
 		// Value 2 is Cove — not sans-serif
-		expect(PANOSE_SANS_SERIF_STYLES.has(2)).toBe(false);
+		expect(PANOSE_SANS_SERIF_STYLES.has(2)).toBeFalsy();
 	});
 });
 

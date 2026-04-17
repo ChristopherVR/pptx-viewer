@@ -29,27 +29,27 @@ function makeSlide(id: string, transition?: { type: string; advanceAfterMs?: num
 
 describe('shouldLoopContinuously', () => {
 	it('returns false when both loopContinuously is falsy and showType is not kiosk', () => {
-		expect(shouldLoopContinuously({})).toBe(false);
+		expect(shouldLoopContinuously({})).toBeFalsy();
 	});
 
 	it('returns true when loopContinuously is true', () => {
-		expect(shouldLoopContinuously({ loopContinuously: true })).toBe(true);
+		expect(shouldLoopContinuously({ loopContinuously: true })).toBeTruthy();
 	});
 
 	it('returns true when showType is kiosk', () => {
-		expect(shouldLoopContinuously({ showType: 'kiosk' })).toBe(true);
+		expect(shouldLoopContinuously({ showType: 'kiosk' })).toBeTruthy();
 	});
 
 	it('returns true when both loopContinuously and kiosk', () => {
-		expect(shouldLoopContinuously({ loopContinuously: true, showType: 'kiosk' })).toBe(true);
+		expect(shouldLoopContinuously({ loopContinuously: true, showType: 'kiosk' })).toBeTruthy();
 	});
 
 	it('returns false when showType is browsed', () => {
-		expect(shouldLoopContinuously({ showType: 'browsed' })).toBe(false);
+		expect(shouldLoopContinuously({ showType: 'browsed' })).toBeFalsy();
 	});
 
 	it('returns false when loopContinuously is explicitly false', () => {
-		expect(shouldLoopContinuously({ loopContinuously: false })).toBe(false);
+		expect(shouldLoopContinuously({ loopContinuously: false })).toBeFalsy();
 	});
 });
 

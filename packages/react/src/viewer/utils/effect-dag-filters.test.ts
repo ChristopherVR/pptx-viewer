@@ -300,39 +300,39 @@ describe('getDuotoneSvgFilterMarkup', () => {
 
 describe('hasEffectDagProperties', () => {
 	it('returns false for undefined style', () => {
-		expect(hasEffectDagProperties(undefined)).toBe(false);
+		expect(hasEffectDagProperties(undefined)).toBeFalsy();
 	});
 
 	it('returns false for empty style', () => {
-		expect(hasEffectDagProperties({})).toBe(false);
+		expect(hasEffectDagProperties({})).toBeFalsy();
 	});
 
 	it('returns true when dagGrayscale is set', () => {
-		expect(hasEffectDagProperties({ dagGrayscale: true })).toBe(true);
+		expect(hasEffectDagProperties({ dagGrayscale: true })).toBeTruthy();
 	});
 
 	it('returns true when dagBiLevel is set', () => {
-		expect(hasEffectDagProperties({ dagBiLevel: 50 })).toBe(true);
+		expect(hasEffectDagProperties({ dagBiLevel: 50 })).toBeTruthy();
 	});
 
 	it('returns true when dagLumBrightness is set', () => {
-		expect(hasEffectDagProperties({ dagLumBrightness: 10 })).toBe(true);
+		expect(hasEffectDagProperties({ dagLumBrightness: 10 })).toBeTruthy();
 	});
 
 	it('returns true when dagLumContrast is set', () => {
-		expect(hasEffectDagProperties({ dagLumContrast: -30 })).toBe(true);
+		expect(hasEffectDagProperties({ dagLumContrast: -30 })).toBeTruthy();
 	});
 
 	it('returns true when dagHslHue is set', () => {
-		expect(hasEffectDagProperties({ dagHslHue: 90 })).toBe(true);
+		expect(hasEffectDagProperties({ dagHslHue: 90 })).toBeTruthy();
 	});
 
 	it('returns true when dagHslSaturation is set', () => {
-		expect(hasEffectDagProperties({ dagHslSaturation: 200 })).toBe(true);
+		expect(hasEffectDagProperties({ dagHslSaturation: 200 })).toBeTruthy();
 	});
 
 	it('returns true when dagHslLuminance is set', () => {
-		expect(hasEffectDagProperties({ dagHslLuminance: -20 })).toBe(true);
+		expect(hasEffectDagProperties({ dagHslLuminance: -20 })).toBeTruthy();
 	});
 
 	it('returns true when dagDuotone is set', () => {
@@ -340,23 +340,23 @@ describe('hasEffectDagProperties', () => {
 			hasEffectDagProperties({
 				dagDuotone: { color1: '#000', color2: '#fff' },
 			}),
-		).toBe(true);
+		).toBeTruthy();
 	});
 
 	it('returns true when dagFillOverlayBlend is set', () => {
-		expect(hasEffectDagProperties({ dagFillOverlayBlend: 'mult' })).toBe(true);
+		expect(hasEffectDagProperties({ dagFillOverlayBlend: 'mult' })).toBeTruthy();
 	});
 
 	it('returns true when dagAlphaModFix is set', () => {
-		expect(hasEffectDagProperties({ dagAlphaModFix: 75 })).toBe(true);
+		expect(hasEffectDagProperties({ dagAlphaModFix: 75 })).toBeTruthy();
 	});
 
 	it('returns true when dagTintHue is set', () => {
-		expect(hasEffectDagProperties({ dagTintHue: 180 })).toBe(true);
+		expect(hasEffectDagProperties({ dagTintHue: 180 })).toBeTruthy();
 	});
 
 	it('returns true when dagTintAmount is set', () => {
-		expect(hasEffectDagProperties({ dagTintAmount: 60 })).toBe(true);
+		expect(hasEffectDagProperties({ dagTintAmount: 60 })).toBeTruthy();
 	});
 
 	it('returns false when only non-DAG properties are set', () => {
@@ -366,6 +366,6 @@ describe('hasEffectDagProperties', () => {
 				strokeWidth: 2,
 				shadowBlur: 5,
 			}),
-		).toBe(false);
+		).toBeFalsy();
 	});
 });

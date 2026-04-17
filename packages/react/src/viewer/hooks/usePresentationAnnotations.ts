@@ -45,6 +45,8 @@ export function usePresentationAnnotations(
 ): UsePresentationAnnotationsResult {
 	const { isActive, activeSlideIndex } = input;
 
+	// Internal setter is wrapped below by a public `setPresentationTool` callback.
+	// eslint-disable-next-line react/hook-use-state
 	const [presentationTool, setPresentationToolState] = useState<PresentationTool>('none');
 	const [penColor, setPenColor] = useState('#ff0000');
 	const [highlighterColor, setHighlighterColor] = useState('#ffff00');

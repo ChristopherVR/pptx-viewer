@@ -156,6 +156,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 						<TextSection
 							canEdit={p.canEdit}
 							selectedElement={p.selectedElement}
+							tableEditorState={p.tableEditorState}
 							onUpdateTextStyle={p.onUpdateTextStyle}
 						/>
 					)}
@@ -205,9 +206,6 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 
 					{sTrn && (
 						<TransitionsSection
-							activeSlide={p.activeSlide}
-							onTransitionChange={p.onTransitionChange}
-							onApplyTransitionToAll={p.onApplyTransitionToAll}
 							isInspectorPaneOpen={p.isInspectorPaneOpen}
 							onToggleInspector={p.onToggleInspector}
 						/>

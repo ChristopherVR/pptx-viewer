@@ -301,7 +301,7 @@ describe('applyHyperlinkStyle', () => {
 		applyHyperlinkStyle(style, {
 			'a:hlinkClick': { '@_history': '1' },
 		});
-		expect(style.hyperlinkHistory).toBe(true);
+		expect(style.hyperlinkHistory).toBeTruthy();
 	});
 
 	it("should set hyperlinkHistory to false for '0'", () => {
@@ -309,7 +309,7 @@ describe('applyHyperlinkStyle', () => {
 		applyHyperlinkStyle(style, {
 			'a:hlinkClick': { '@_history': '0' },
 		});
-		expect(style.hyperlinkHistory).toBe(false);
+		expect(style.hyperlinkHistory).toBeFalsy();
 	});
 
 	it('should set hyperlinkHighlightClick', () => {
@@ -317,7 +317,7 @@ describe('applyHyperlinkStyle', () => {
 		applyHyperlinkStyle(style, {
 			'a:hlinkClick': { '@_highlightClick': 'true' },
 		});
-		expect(style.hyperlinkHighlightClick).toBe(true);
+		expect(style.hyperlinkHighlightClick).toBeTruthy();
 	});
 
 	it('should set hyperlinkEndSound', () => {
@@ -325,7 +325,7 @@ describe('applyHyperlinkStyle', () => {
 		applyHyperlinkStyle(style, {
 			'a:hlinkClick': { '@_endSnd': '1' },
 		});
-		expect(style.hyperlinkEndSound).toBe(true);
+		expect(style.hyperlinkEndSound).toBeTruthy();
 	});
 
 	it('should set hyperlinkAction and derive hyperlink for ppaction://', () => {
@@ -443,7 +443,7 @@ describe('applyTextRunEffects', () => {
 			applyTextRunEffects(style, {
 				'a:reflection': {},
 			});
-			expect(style.textReflection).toBe(true);
+			expect(style.textReflection).toBeTruthy();
 		});
 
 		it('should parse reflection opacities', () => {

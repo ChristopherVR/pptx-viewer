@@ -83,14 +83,14 @@ describe('extractOleChartBuilds', () => {
 		const bldLst = {
 			'p:bldOleChart': { '@_spid': '1', '@_animBg': '1' },
 		};
-		expect(extractOleChartBuilds(bldLst)[0].animBg).toBe(true);
+		expect(extractOleChartBuilds(bldLst)[0].animBg).toBeTruthy();
 	});
 
 	it('sets animBg to true when @_animBg is boolean true', () => {
 		const bldLst = {
 			'p:bldOleChart': { '@_spid': '1', '@_animBg': true },
 		};
-		expect(extractOleChartBuilds(bldLst)[0].animBg).toBe(true);
+		expect(extractOleChartBuilds(bldLst)[0].animBg).toBeTruthy();
 	});
 
 	it("sets animBg to undefined when @_animBg is not '1'", () => {
@@ -163,19 +163,19 @@ describe('extractGraphicBuilds', () => {
 
 describe('isExclusiveNode', () => {
 	it('returns false for undefined input', () => {
-		expect(isExclusiveNode(undefined)).toBe(false);
+		expect(isExclusiveNode(undefined)).toBeFalsy();
 	});
 
 	it('returns false when no p:excl children', () => {
-		expect(isExclusiveNode({})).toBe(false);
-		expect(isExclusiveNode({ 'p:par': {} })).toBe(false);
+		expect(isExclusiveNode({})).toBeFalsy();
+		expect(isExclusiveNode({ 'p:par': {} })).toBeFalsy();
 	});
 
 	it('returns true when p:excl exists', () => {
-		expect(isExclusiveNode({ 'p:excl': { 'p:cTn': {} } })).toBe(true);
+		expect(isExclusiveNode({ 'p:excl': { 'p:cTn': {} } })).toBeTruthy();
 	});
 
 	it('returns true when p:excl is an array', () => {
-		expect(isExclusiveNode({ 'p:excl': [{ 'p:cTn': {} }] })).toBe(true);
+		expect(isExclusiveNode({ 'p:excl': [{ 'p:cTn': {} }] })).toBeTruthy();
 	});
 });

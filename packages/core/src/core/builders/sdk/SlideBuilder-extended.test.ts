@@ -81,7 +81,7 @@ describe('slideBuilder.addBuilderElement', () => {
 		expect(slide.elements[0].type).toBe('text');
 		expect((slide.elements[0] as any).text).toBe('Hello');
 		expect((slide.elements[0] as any).textStyle?.fontSize).toBe(24);
-		expect((slide.elements[0] as any).textStyle?.bold).toBe(true);
+		expect((slide.elements[0] as any).textStyle?.bold).toBeTruthy();
 	});
 
 	it('works with ShapeBuilder', () => {

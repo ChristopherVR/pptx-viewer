@@ -412,7 +412,7 @@ describe('pptxEditorAnimationService', () => {
 			expect(slideNode['p:extLst']).toBeDefined();
 			const extLst = slideNode['p:extLst'] as XmlObject;
 			const exts = extLst['p:ext'] as XmlObject[];
-			expect(Array.isArray(exts)).toBe(true);
+			expect(Array.isArray(exts)).toBeTruthy();
 			const editorExt = exts.find((e) => e['@_uri'] === EDITOR_META_URI);
 			expect(editorExt).toBeDefined();
 		});

@@ -6,7 +6,7 @@ import { applyAnimationGroupSteps } from './animation-helpers';
 vi.mock<typeof import('../../utils/animation-sound')>(
 	import('../../utils/animation-sound'),
 	() => ({
-		stopAnimationSound: vi.fn(),
+		stopAnimationSound: vi.fn<() => void>(),
 	}),
 );
 
@@ -36,7 +36,7 @@ describe('applyAnimationGroupSteps', () => {
 			setTimeout: globalThis.setTimeout,
 			clearTimeout: globalThis.clearTimeout,
 		});
-		setPresentationElementStates = vi.fn((updater) => {
+		setPresentationElementStates = vi.fn<(...args: any[]) => any>((updater) => {
 			// Execute the updater to test its logic
 			if (typeof updater === 'function') {
 				updater(new Map());
@@ -73,7 +73,7 @@ describe('applyAnimationGroupSteps', () => {
 	});
 
 	it('should play sound when step has soundPath', () => {
-		const onPlayActionSound = vi.fn();
+		const onPlayActionSound = vi.fn<() => void>();
 		const group: TimelineClickGroup = {
 			totalDurationMs: 500,
 			steps: [createMockStep({ soundPath: 'click.wav' })],
@@ -105,7 +105,7 @@ describe('applyAnimationGroupSteps', () => {
 
 	it('should set visible=true for entrance animations', () => {
 		let capturedState: Map<string, { visible: boolean; cssAnimation?: string }> | undefined;
-		const stateSetter = vi.fn((updater: unknown) => {
+		const stateSetter = vi.fn<(...args: any[]) => any>((updater: unknown) => {
 			if (typeof updater === 'function') {
 				capturedState = (
 					updater as (
@@ -121,13 +121,13 @@ describe('applyAnimationGroupSteps', () => {
 		applyAnimationGroupSteps(group, undefined, stateSetter, presentationTimersRef);
 		expect(capturedState).toBeDefined();
 		const state = capturedState!.get('el-1');
-		expect(state?.visible).toBe(true);
+		expect(state?.visible).toBeTruthy();
 		expect(state?.cssAnimation).toBe('fadeIn 0.5s ease');
 	});
 
 	it('should keep current visibility for exit animations initially', () => {
 		let capturedState: Map<string, { visible: boolean; cssAnimation?: string }> | undefined;
-		const stateSetter = vi.fn((updater: unknown) => {
+		const stateSetter = vi.fn<(...args: any[]) => any>((updater: unknown) => {
 			if (typeof updater === 'function') {
 				const prev = new Map<string, { visible: boolean; cssAnimation?: string }>();
 				prev.set('el-1', { visible: true, cssAnimation: undefined });
@@ -150,13 +150,13 @@ describe('applyAnimationGroupSteps', () => {
 		applyAnimationGroupSteps(group, undefined, stateSetter, presentationTimersRef);
 		const state = capturedState!.get('el-1');
 		// Exit keeps current visible state during animation
-		expect(state?.visible).toBe(true);
+		expect(state?.visible).toBeTruthy();
 		expect(state?.cssAnimation).toBe('fadeOut 0.5s ease');
 	});
 
 	it('should clear CSS animation and set visible=false for exit after timer fires', () => {
 		let capturedCleanupState: Map<string, { visible: boolean; cssAnimation?: string }> | undefined;
-		const stateSetter = vi.fn((updater: unknown) => {
+		const stateSetter = vi.fn<(...args: any[]) => any>((updater: unknown) => {
 			if (typeof updater === 'function') {
 				const prev = new Map<string, { visible: boolean; cssAnimation?: string }>();
 				prev.set('el-1', { visible: true, cssAnimation: 'fadeOut 0.5s ease' });
@@ -186,7 +186,7 @@ describe('applyAnimationGroupSteps', () => {
 		// The cleanup timer should have fired
 		expect(stateSetter).toHaveBeenCalledTimes(2); // once for initial, once for cleanup
 		const state = capturedCleanupState!.get('el-1');
-		expect(state?.visible).toBe(false);
+		expect(state?.visible).toBeFalsy();
 		expect(state?.cssAnimation).toBeUndefined();
 	});
 

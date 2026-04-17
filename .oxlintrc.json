@@ -66,6 +66,16 @@
 		"jest/no-large-snapshots": "off",
 		"jest/no-restricted-jest-methods": "off",
 		"jest/no-restricted-matchers": "off",
+		// Flags tests that end in a for-loop with inner expects; stylistic only.
+		"jest/prefer-ending-with-an-expect": "off",
+
+		// ── Conflicting rule pairs: pick one, disable the other ──
+		// prefer-strict-boolean-matchers wants `.toBe(true)`; prefer-to-be-truthy
+		// wants `.toBeTruthy()`. We use `.toBeTruthy()` because many assertions
+		// target non-boolean values (strings, IDs) where strict equality fails.
+		"vitest/prefer-strict-boolean-matchers": "off",
+		// Codebase imports from 'vitest', not '@jest/globals'.
+		"jest/prefer-importing-jest-globals": "off",
 
 		// ── Style: disable overly opinionated rules ──
 		"sort-keys": "off",

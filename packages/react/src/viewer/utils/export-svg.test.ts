@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import type { PptxSlide, PptxData } from 'pptx-viewer-core';
 /**
  * Tests for SVG vector export utilities in export-svg.ts.
@@ -415,7 +414,7 @@ describe('export-svg types', () => {
 			includeHidden: false,
 			slideIndices: [0],
 		};
-		expect(opts.embedFonts).toBe(true);
+		expect(opts.embedFonts).toBeTruthy();
 		expect(opts.fontFaces).toHaveLength(1);
 	});
 

@@ -73,7 +73,7 @@ describe('mcp server tool registration', () => {
 	it('each tool has a description', async () => {
 		const result = await client.listTools();
 		for (const tool of result.tools) {
-			expect(tool.description).toBe(true);
+			expect(tool.description).toBeTruthy();
 			expect(tool.description!.length).toBeGreaterThan(5);
 		}
 	});

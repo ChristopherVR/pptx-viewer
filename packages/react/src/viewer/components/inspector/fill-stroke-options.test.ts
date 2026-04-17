@@ -1,4 +1,3 @@
-import { expectTypeOf, test } from '@jest/globals';
 import { describe, it, expect, test, expectTypeOf } from 'vitest';
 
 import {
@@ -19,14 +18,14 @@ import {
 function assertOptionArray(options: ReadonlyArray<{ value: string; label: string }>, name: string) {
 	test(`${name}: every item has a non-empty value`, () => {
 		for (const opt of options) {
-			expect(opt.value).toBe(true);
+			expect(opt.value).toBeTruthy();
 			expectTypeOf(opt.value).toBeString();
 		}
 	});
 
 	test(`${name}: every item has a non-empty label`, () => {
 		for (const opt of options) {
-			expect(opt.label).toBe(true);
+			expect(opt.label).toBeTruthy();
 			expectTypeOf(opt.label).toBeString();
 		}
 	});

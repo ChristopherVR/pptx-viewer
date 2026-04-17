@@ -57,7 +57,7 @@ describe('isSameShapeIdentity', () => {
 
 	it('should return true when both objects are the same reference', () => {
 		const shape: XmlObject = {};
-		expect(isSameShapeIdentity(key, shape, shape)).toBe(true);
+		expect(isSameShapeIdentity(key, shape, shape)).toBeTruthy();
 	});
 
 	it('should return true when id and name match', () => {
@@ -67,7 +67,7 @@ describe('isSameShapeIdentity', () => {
 		const right: XmlObject = {
 			'p:nvSpPr': { 'p:cNvPr': { '@_id': '5', '@_name': 'Title' } },
 		};
-		expect(isSameShapeIdentity(key, left, right)).toBe(true);
+		expect(isSameShapeIdentity(key, left, right)).toBeTruthy();
 	});
 
 	it('should return false when ids differ', () => {
@@ -77,7 +77,7 @@ describe('isSameShapeIdentity', () => {
 		const right: XmlObject = {
 			'p:nvSpPr': { 'p:cNvPr': { '@_id': '6', '@_name': 'Title' } },
 		};
-		expect(isSameShapeIdentity(key, left, right)).toBe(false);
+		expect(isSameShapeIdentity(key, left, right)).toBeFalsy();
 	});
 
 	it('should return true when ids match but names are empty', () => {
@@ -87,7 +87,7 @@ describe('isSameShapeIdentity', () => {
 		const right: XmlObject = {
 			'p:nvSpPr': { 'p:cNvPr': { '@_id': '5' } },
 		};
-		expect(isSameShapeIdentity(key, left, right)).toBe(true);
+		expect(isSameShapeIdentity(key, left, right)).toBeTruthy();
 	});
 
 	it('should return false when ids match but names differ', () => {
@@ -97,7 +97,7 @@ describe('isSameShapeIdentity', () => {
 		const right: XmlObject = {
 			'p:nvSpPr': { 'p:cNvPr': { '@_id': '5', '@_name': 'Subtitle' } },
 		};
-		expect(isSameShapeIdentity(key, left, right)).toBe(false);
+		expect(isSameShapeIdentity(key, left, right)).toBeFalsy();
 	});
 
 	it('should return false when left id is empty', () => {
@@ -107,13 +107,13 @@ describe('isSameShapeIdentity', () => {
 		const right: XmlObject = {
 			'p:nvSpPr': { 'p:cNvPr': { '@_id': '5' } },
 		};
-		expect(isSameShapeIdentity(key, left, right)).toBe(false);
+		expect(isSameShapeIdentity(key, left, right)).toBeFalsy();
 	});
 
 	it('should return false when nvPr nodes are missing', () => {
 		const left: XmlObject = {};
 		const right: XmlObject = {};
-		expect(isSameShapeIdentity(key, left, right)).toBe(false);
+		expect(isSameShapeIdentity(key, left, right)).toBeFalsy();
 	});
 });
 

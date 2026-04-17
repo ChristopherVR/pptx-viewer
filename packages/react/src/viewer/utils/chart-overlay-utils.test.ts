@@ -129,7 +129,7 @@ describe('xToPixel', () => {
 	it('should handle zero categories bar mode without dividing by zero', () => {
 		const result = xToPixel(0, 0, layout, 'bar');
 		// catCount is clamped to 1 by Math.max
-		expect(Number.isFinite(result)).toBe(true);
+		expect(Number.isFinite(result)).toBeTruthy();
 	});
 
 	it('should compute line position for first point', () => {

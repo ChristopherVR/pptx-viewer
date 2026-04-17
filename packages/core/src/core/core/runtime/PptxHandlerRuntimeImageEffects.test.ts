@@ -240,7 +240,7 @@ describe('extractImageEffects', () => {
 		const blip: XmlObject = { 'a:grayscl': {} };
 		const result = extractImageEffects(blip);
 		expect(result).not.toBeNull();
-		expect(result!.grayscale).toBe(true);
+		expect(result!.grayscale).toBeTruthy();
 	});
 
 	it('should parse alphaModFix amount', () => {
@@ -270,7 +270,7 @@ describe('extractImageEffects', () => {
 		expect(result!.clrChange).toBeDefined();
 		expect(result!.clrChange!.clrFrom).toBe('#FF0000');
 		expect(result!.clrChange!.clrTo).toBe('#00FF00');
-		expect(result!.clrChange!.clrToTransparent).toBe(false);
+		expect(result!.clrChange!.clrToTransparent).toBeFalsy();
 	});
 
 	it('should detect transparent color change target (alpha=0)', () => {
@@ -286,7 +286,7 @@ describe('extractImageEffects', () => {
 			},
 		};
 		const result = extractImageEffects(blip);
-		expect(result!.clrChange!.clrToTransparent).toBe(true);
+		expect(result!.clrChange!.clrToTransparent).toBeTruthy();
 	});
 
 	it('should parse duotone with two srgbClr colors', () => {
@@ -353,7 +353,7 @@ describe('extractImageEffects', () => {
 		const result = extractImageEffects(blip);
 		expect(result!.brightness).toBe(10);
 		expect(result!.contrast).toBe(20);
-		expect(result!.grayscale).toBe(true);
+		expect(result!.grayscale).toBeTruthy();
 	});
 });
 

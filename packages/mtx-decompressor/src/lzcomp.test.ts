@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { lzcompDecompress } from './lzcomp';
@@ -31,7 +30,7 @@ describe('lzcompDecompress', () => {
 		} catch {
 			threw = true;
 		}
-		expect(threw || result instanceof Uint8Array).toBe(true);
+		expect(threw || result instanceof Uint8Array).toBeTruthy();
 	});
 
 	it('version=1 skips the run-length flag bit', () => {
@@ -45,7 +44,7 @@ describe('lzcompDecompress', () => {
 		} catch {
 			threw = true;
 		}
-		expect(threw || result instanceof Uint8Array).toBe(true);
+		expect(threw || result instanceof Uint8Array).toBeTruthy();
 	});
 
 	it('version=2 reads the run-length flag bit', () => {
@@ -60,7 +59,7 @@ describe('lzcompDecompress', () => {
 			threw = true;
 		}
 		// Either throws or returns a Uint8Array — both are valid
-		expect(threw || result instanceof Uint8Array).toBe(true);
+		expect(threw || result instanceof Uint8Array).toBeTruthy();
 	});
 
 	it('returns a Uint8Array when given enough data to initialize', () => {
@@ -131,6 +130,6 @@ describe('lzcompDecompress', () => {
 			threw = true;
 		}
 		// Either throws or returns a Uint8Array — both are valid
-		expect(threw || result instanceof Uint8Array).toBe(true);
+		expect(threw || result instanceof Uint8Array).toBeTruthy();
 	});
 });

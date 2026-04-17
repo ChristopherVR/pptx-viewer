@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { readUtf16LE, getStockObject, createCanvas } from './emf-canvas-helpers';
@@ -84,7 +83,7 @@ describe('emf-types', () => {
 			const s = defaultState();
 			expect(s.fontHeight).toBe(12);
 			expect(s.fontWeight).toBe(400);
-			expect(s.fontItalic).toBe(false);
+			expect(s.fontItalic).toBeFalsy();
 			expect(s.fontFamily).toBe('sans-serif');
 		});
 
@@ -1286,7 +1285,7 @@ describe('emf-plus-object-parser (Region)', () => {
 		const rCtx = buildMinimalReplayCtx(view);
 		handleEmfPlusObjectRecord(rCtx, recFlags, 0, 4);
 
-		expect(rCtx.objectTable.has(1)).toBe(false);
+		expect(rCtx.objectTable.has(1)).toBeFalsy();
 	});
 });
 
@@ -1400,9 +1399,9 @@ describe('emf-gdi-coord', () => {
 	describe('activateGdiMappingMode()', () => {
 		it('sets useMappingMode to true', () => {
 			const r = makeCtx();
-			expect(r.useMappingMode).toBe(false);
+			expect(r.useMappingMode).toBeFalsy();
 			activateGdiMappingMode(r);
-			expect(r.useMappingMode).toBe(true);
+			expect(r.useMappingMode).toBeTruthy();
 		});
 
 		it('changes coordinate mapping behaviour', () => {

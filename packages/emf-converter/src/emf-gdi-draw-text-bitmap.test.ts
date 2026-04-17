@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import {
@@ -20,27 +19,27 @@ import type { EmfGdiReplayCtx } from './emf-types';
 
 function makeCtxStub(): Record<string, unknown> {
 	return {
-		save: vi.fn(),
-		restore: vi.fn(),
-		beginPath: vi.fn(),
-		closePath: vi.fn(),
-		moveTo: vi.fn(),
-		lineTo: vi.fn(),
-		bezierCurveTo: vi.fn(),
-		arc: vi.fn(),
-		ellipse: vi.fn(),
-		rect: vi.fn(),
-		fill: vi.fn(),
-		stroke: vi.fn(),
-		fillRect: vi.fn(),
-		strokeRect: vi.fn(),
-		clip: vi.fn(),
-		setTransform: vi.fn(),
-		setLineDash: vi.fn(),
-		fillText: vi.fn(),
-		drawImage: vi.fn(),
-		putImageData: vi.fn(),
-		measureText: vi.fn(() => ({ width: 50 })),
+		save: vi.fn<() => void>(),
+		restore: vi.fn<() => void>(),
+		beginPath: vi.fn<() => void>(),
+		closePath: vi.fn<() => void>(),
+		moveTo: vi.fn<() => void>(),
+		lineTo: vi.fn<() => void>(),
+		bezierCurveTo: vi.fn<() => void>(),
+		arc: vi.fn<() => void>(),
+		ellipse: vi.fn<() => void>(),
+		rect: vi.fn<() => void>(),
+		fill: vi.fn<() => void>(),
+		stroke: vi.fn<() => void>(),
+		fillRect: vi.fn<() => void>(),
+		strokeRect: vi.fn<() => void>(),
+		clip: vi.fn<() => void>(),
+		setTransform: vi.fn<() => void>(),
+		setLineDash: vi.fn<() => void>(),
+		fillText: vi.fn<() => void>(),
+		drawImage: vi.fn<() => void>(),
+		putImageData: vi.fn<() => void>(),
+		measureText: vi.fn<(...args: any[]) => any>(() => ({ width: 50 })),
 		strokeStyle: '#000000',
 		fillStyle: '#ffffff',
 		lineWidth: 1,
@@ -88,7 +87,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 
 		it('returns false for unrecognized record type', () => {
 			const rCtx = makeRCtx();
-			expect(handleEmfGdiTextBitmapRecord(rCtx, 0xffff, 0, 8, 8)).toBe(false);
+			expect(handleEmfGdiTextBitmapRecord(rCtx, 0xffff, 0, 8, 8)).toBeFalsy();
 		});
 
 		// -----------------------------------------------------------------------
@@ -98,7 +97,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 		describe('eMR_EXTTEXTOUTW', () => {
 			it('returns true even for small recSize', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_EXTTEXTOUTW, 0, 8, 8)).toBe(true);
+				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_EXTTEXTOUTW, 0, 8, 8)).toBeTruthy();
 			});
 
 			it('draws text when recSize is large enough and string data is valid', () => {
@@ -118,7 +117,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 				rCtx.view.setUint16(offset + 78, 105, true); // 'i'
 
 				const result = handleEmfGdiTextBitmapRecord(rCtx, EMR_EXTTEXTOUTW, offset, dataOff, 80);
-				expect(result).toBe(true);
+				expect(result).toBeTruthy();
 				const ctx = rCtx.ctx as unknown as Record<string, { mock: { calls: unknown[][] } }>;
 				expect(ctx.fillText).toHaveBeenCalledOnce();
 				expect(ctx.fillText.mock.calls[0][0]).toBe('Hi');
@@ -178,7 +177,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 		describe('eMR_BITBLT', () => {
 			it('returns true even for small recSize', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_BITBLT, 0, 8, 8)).toBe(true);
+				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_BITBLT, 0, 8, 8)).toBeTruthy();
 			});
 
 			it('returns true for valid recSize but no bitmap data', () => {
@@ -187,7 +186,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 				// Set offBmiSrc=0 (no bitmap)
 				rCtx.view.setUint32(dataOff + 76, 0, true); // offBmiSrc = 0
 
-				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_BITBLT, 0, dataOff, 96)).toBe(true);
+				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_BITBLT, 0, dataOff, 96)).toBeTruthy();
 			});
 		});
 
@@ -198,7 +197,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 		describe('eMR_STRETCHDIBITS', () => {
 			it('returns true even for small recSize', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_STRETCHDIBITS, 0, 8, 8)).toBe(true);
+				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_STRETCHDIBITS, 0, 8, 8)).toBeTruthy();
 			});
 
 			it('returns true for valid recSize but no bitmap data', () => {
@@ -206,7 +205,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 				const dataOff = 8;
 				rCtx.view.setUint32(dataOff + 40, 0, true); // offBmiSrc = 0
 
-				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_STRETCHDIBITS, 0, dataOff, 80)).toBe(true);
+				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_STRETCHDIBITS, 0, dataOff, 80)).toBeTruthy();
 			});
 		});
 
@@ -224,7 +223,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 				rCtx.view.setInt32(dataOff + 12, 300, true); // bottom
 
 				const result = handleEmfGdiTextBitmapRecord(rCtx, EMR_INTERSECTCLIPRECT, 0, dataOff, 24);
-				expect(result).toBe(true);
+				expect(result).toBeTruthy();
 				expect(rCtx.clipSaveDepth).toBe(1);
 				const ctx = rCtx.ctx as unknown as Record<string, { mock: { calls: unknown[][] } }>;
 				expect(ctx.save).toHaveBeenCalledOnce();
@@ -235,7 +234,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 			it('returns true for small recSize (< 24)', () => {
 				const rCtx = makeRCtx();
 				const result = handleEmfGdiTextBitmapRecord(rCtx, EMR_INTERSECTCLIPRECT, 0, 8, 16);
-				expect(result).toBe(true);
+				expect(result).toBeTruthy();
 				expect(rCtx.clipSaveDepth).toBe(0); // no clip applied
 			});
 		});
@@ -247,7 +246,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 		describe('eMR_EXTSELECTCLIPRGN', () => {
 			it('returns true for small recSize', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_EXTSELECTCLIPRGN, 0, 8, 8)).toBe(true);
+				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_EXTSELECTCLIPRGN, 0, 8, 8)).toBeTruthy();
 			});
 
 			it('resets clip with RGN_COPY and cbRgnData=0', () => {
@@ -317,7 +316,9 @@ describe('emf-gdi-draw-text-bitmap', () => {
 				rCtx.view.setInt32(dataOff + 8, 100, true);
 				rCtx.view.setInt32(dataOff + 12, 100, true);
 
-				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_EXCLUDECLIPRECT, 0, dataOff, 24)).toBe(true);
+				expect(
+					handleEmfGdiTextBitmapRecord(rCtx, EMR_EXCLUDECLIPRECT, 0, dataOff, 24),
+				).toBeTruthy();
 			});
 		});
 
@@ -332,7 +333,7 @@ describe('emf-gdi-draw-text-bitmap', () => {
 				rCtx.view.setInt32(dataOff, 5, true); // dx
 				rCtx.view.setInt32(dataOff + 4, 10, true); // dy
 
-				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_OFFSETCLIPRGN, 0, dataOff, 16)).toBe(true);
+				expect(handleEmfGdiTextBitmapRecord(rCtx, EMR_OFFSETCLIPRGN, 0, dataOff, 16)).toBeTruthy();
 			});
 		});
 	});

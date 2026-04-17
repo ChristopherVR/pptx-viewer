@@ -245,7 +245,7 @@ describe('customGeometryPathsToXml', () => {
 		const xml = customGeometryPathsToXml(paths);
 		const pathXml = xml['a:pathLst']['a:path'];
 		// Multiple lineTo segments should be an array
-		expect(Array.isArray(pathXml['a:lnTo'])).toBe(true);
+		expect(Array.isArray(pathXml['a:lnTo'])).toBeTruthy();
 		expect(pathXml['a:lnTo']).toHaveLength(2);
 	});
 

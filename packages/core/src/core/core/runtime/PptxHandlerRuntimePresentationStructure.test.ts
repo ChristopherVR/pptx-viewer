@@ -207,9 +207,9 @@ describe('extractHeaderFooter', () => {
 			},
 		};
 		const result = extractHeaderFooter(data)!;
-		expect(result.hasHeader).toBe(true);
-		expect(result.hasFooter).toBe(true);
-		expect(result.hasSlideNumber).toBe(false);
+		expect(result.hasHeader).toBeTruthy();
+		expect(result.hasFooter).toBeTruthy();
+		expect(result.hasSlideNumber).toBeFalsy();
 	});
 
 	it('should parse date/time flag', () => {
@@ -219,7 +219,7 @@ describe('extractHeaderFooter', () => {
 			},
 		};
 		const result = extractHeaderFooter(data)!;
-		expect(result.hasDateTime).toBe(true);
+		expect(result.hasDateTime).toBeTruthy();
 	});
 
 	it('should parse footer text', () => {
@@ -240,7 +240,7 @@ describe('extractHeaderFooter', () => {
 		};
 		const result = extractHeaderFooter(data)!;
 		expect(result.dateFormat).toBe('M/d/yyyy');
-		expect(result.dateTimeAuto).toBe(true);
+		expect(result.dateTimeAuto).toBeTruthy();
 	});
 
 	it('should treat 0 as false for boolean flags', () => {
@@ -250,9 +250,9 @@ describe('extractHeaderFooter', () => {
 			},
 		};
 		const result = extractHeaderFooter(data)!;
-		expect(result.hasHeader).toBe(false);
-		expect(result.hasFooter).toBe(false);
-		expect(result.hasDateTime).toBe(false);
+		expect(result.hasHeader).toBeFalsy();
+		expect(result.hasFooter).toBeFalsy();
+		expect(result.hasDateTime).toBeFalsy();
 	});
 });
 
@@ -280,7 +280,7 @@ describe('extractPhotoAlbum', () => {
 			'p:presentation': { 'p:photoAlbum': { '@_bw': '1' } },
 		};
 		const result = extractPhotoAlbum(data)!;
-		expect(result.bw).toBe(true);
+		expect(result.bw).toBeTruthy();
 	});
 
 	it('should parse showCaptions as false for 0', () => {
@@ -288,7 +288,7 @@ describe('extractPhotoAlbum', () => {
 			'p:presentation': { 'p:photoAlbum': { '@_showCaptions': '0' } },
 		};
 		const result = extractPhotoAlbum(data)!;
-		expect(result.showCaptions).toBe(false);
+		expect(result.showCaptions).toBeFalsy();
 	});
 
 	it('should parse layout string', () => {

@@ -17,38 +17,38 @@ describe('isInBottomTriggerZone', () => {
 	const containerTop = 0;
 
 	it('returns true when mouse is at the very bottom of the container', () => {
-		expect(isInBottomTriggerZone(999, containerHeight, containerTop)).toBe(true);
+		expect(isInBottomTriggerZone(999, containerHeight, containerTop)).toBeTruthy();
 	});
 
 	it('returns true when mouse is exactly at the trigger threshold', () => {
 		const threshold = containerHeight * (1 - BOTTOM_TRIGGER_FRACTION);
-		expect(isInBottomTriggerZone(threshold, containerHeight, containerTop)).toBe(true);
+		expect(isInBottomTriggerZone(threshold, containerHeight, containerTop)).toBeTruthy();
 	});
 
 	it('returns false when mouse is above the trigger zone', () => {
 		// With 15% trigger zone on a 1000px container, threshold is 850px
-		expect(isInBottomTriggerZone(500, containerHeight, containerTop)).toBe(false);
-		expect(isInBottomTriggerZone(0, containerHeight, containerTop)).toBe(false);
-		expect(isInBottomTriggerZone(849, containerHeight, containerTop)).toBe(false);
+		expect(isInBottomTriggerZone(500, containerHeight, containerTop)).toBeFalsy();
+		expect(isInBottomTriggerZone(0, containerHeight, containerTop)).toBeFalsy();
+		expect(isInBottomTriggerZone(849, containerHeight, containerTop)).toBeFalsy();
 	});
 
 	it('returns false when mouse is below the container', () => {
-		expect(isInBottomTriggerZone(1001, containerHeight, containerTop)).toBe(false);
+		expect(isInBottomTriggerZone(1001, containerHeight, containerTop)).toBeFalsy();
 	});
 
 	it('accounts for containerTop offset', () => {
 		const offset = 200;
 		// Mouse at 1100 with containerTop=200: relativeY = 900, which is >= 850
-		expect(isInBottomTriggerZone(1100, containerHeight, offset)).toBe(true);
+		expect(isInBottomTriggerZone(1100, containerHeight, offset)).toBeTruthy();
 		// Mouse at 800 with containerTop=200: relativeY = 600, which is < 850
-		expect(isInBottomTriggerZone(800, containerHeight, offset)).toBe(false);
+		expect(isInBottomTriggerZone(800, containerHeight, offset)).toBeFalsy();
 	});
 
 	it('handles small container heights', () => {
 		const smallHeight = 100;
 		// Threshold = 85px
-		expect(isInBottomTriggerZone(90, smallHeight, 0)).toBe(true);
-		expect(isInBottomTriggerZone(80, smallHeight, 0)).toBe(false);
+		expect(isInBottomTriggerZone(90, smallHeight, 0)).toBeTruthy();
+		expect(isInBottomTriggerZone(80, smallHeight, 0)).toBeFalsy();
 	});
 });
 
@@ -59,22 +59,22 @@ describe('isInBottomTriggerZone', () => {
 describe('shouldAutoHide', () => {
 	it('returns false when no time has elapsed', () => {
 		const now = Date.now();
-		expect(shouldAutoHide(now, now)).toBe(false);
+		expect(shouldAutoHide(now, now)).toBeFalsy();
 	});
 
 	it('returns false when less than AUTO_HIDE_DELAY_MS has passed', () => {
 		const now = Date.now();
-		expect(shouldAutoHide(now, now + AUTO_HIDE_DELAY_MS - 1)).toBe(false);
+		expect(shouldAutoHide(now, now + AUTO_HIDE_DELAY_MS - 1)).toBeFalsy();
 	});
 
 	it('returns true when exactly AUTO_HIDE_DELAY_MS has passed', () => {
 		const now = Date.now();
-		expect(shouldAutoHide(now, now + AUTO_HIDE_DELAY_MS)).toBe(true);
+		expect(shouldAutoHide(now, now + AUTO_HIDE_DELAY_MS)).toBeTruthy();
 	});
 
 	it('returns true when more than AUTO_HIDE_DELAY_MS has passed', () => {
 		const now = Date.now();
-		expect(shouldAutoHide(now, now + AUTO_HIDE_DELAY_MS + 5000)).toBe(true);
+		expect(shouldAutoHide(now, now + AUTO_HIDE_DELAY_MS + 5000)).toBeTruthy();
 	});
 
 	it('uses the correct delay constant of 3000ms', () => {

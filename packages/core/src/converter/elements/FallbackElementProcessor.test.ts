@@ -12,12 +12,12 @@ import { FallbackElementProcessor } from './FallbackElementProcessor';
 function makeCtx(overrides: Partial<ElementProcessorContext> = {}): ElementProcessorContext {
 	return {
 		mediaContext: {
-			saveImage: vi.fn(async () => './media/slide1-zoom-image-001.png'),
+			saveImage: vi.fn<(...args: any[]) => any>(async () => './media/slide1-zoom-image-001.png'),
 		} as unknown as MediaContext,
 		slideNumber: 1,
 		slideWidth: 960,
 		slideHeight: 540,
-		processElements: vi.fn(async () => []),
+		processElements: vi.fn<(...args: any[]) => any>(async () => []),
 		...overrides,
 	};
 }
@@ -183,7 +183,7 @@ describe('fallbackElementProcessor', () => {
 			} as unknown as PptxElement;
 			const ctx = makeCtx({
 				mediaContext: {
-					saveImage: vi.fn(async () => {
+					saveImage: vi.fn<(...args: any[]) => any>(async () => {
 						throw new Error('Failed');
 					}),
 				} as unknown as MediaContext,

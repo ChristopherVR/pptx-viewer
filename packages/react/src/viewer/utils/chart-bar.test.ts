@@ -53,7 +53,7 @@ describe('bar chart: grouped bar geometry', () => {
 	it('should protect against zero series count', () => {
 		const { singleBarWidth } = computeBarGeometry(300, 50, 3, 0);
 		// Math.max(seriesCount, 1) prevents division by zero
-		expect(Number.isFinite(singleBarWidth)).toBe(true);
+		expect(Number.isFinite(singleBarWidth)).toBeTruthy();
 		expect(singleBarWidth).toBe(100 * 0.7);
 	});
 

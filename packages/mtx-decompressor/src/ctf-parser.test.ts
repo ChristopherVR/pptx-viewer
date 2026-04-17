@@ -180,7 +180,7 @@ describe('parseCTF', () => {
 		const s0 = buildMinimalCTFStream0([{ tag: 'cmap', data: new Uint8Array(10) }]);
 		const container = parseCTF([s0, new Stream(null, 0), new Stream(null, 0)]);
 		expect(container).toHaveProperty('tables');
-		expect(Array.isArray(container.tables)).toBe(true);
+		expect(Array.isArray(container.tables)).toBeTruthy();
 	});
 
 	// -----------------------------------------------------------------------

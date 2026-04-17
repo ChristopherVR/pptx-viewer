@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import {
@@ -19,23 +18,23 @@ import { createEmfPlusState } from './emf-types';
 
 function makeCtxStub(): Record<string, unknown> {
 	return {
-		save: vi.fn(),
-		restore: vi.fn(),
-		beginPath: vi.fn(),
-		closePath: vi.fn(),
-		rect: vi.fn(),
-		clip: vi.fn(),
-		setTransform: vi.fn(),
-		fill: vi.fn(),
-		stroke: vi.fn(),
-		fillRect: vi.fn(),
-		strokeRect: vi.fn(),
-		setLineDash: vi.fn(),
-		ellipse: vi.fn(),
-		moveTo: vi.fn(),
-		lineTo: vi.fn(),
-		bezierCurveTo: vi.fn(),
-		fillText: vi.fn(),
+		save: vi.fn<() => void>(),
+		restore: vi.fn<() => void>(),
+		beginPath: vi.fn<() => void>(),
+		closePath: vi.fn<() => void>(),
+		rect: vi.fn<() => void>(),
+		clip: vi.fn<() => void>(),
+		setTransform: vi.fn<() => void>(),
+		fill: vi.fn<() => void>(),
+		stroke: vi.fn<() => void>(),
+		fillRect: vi.fn<() => void>(),
+		strokeRect: vi.fn<() => void>(),
+		setLineDash: vi.fn<() => void>(),
+		ellipse: vi.fn<() => void>(),
+		moveTo: vi.fn<() => void>(),
+		lineTo: vi.fn<() => void>(),
+		bezierCurveTo: vi.fn<() => void>(),
+		fillText: vi.fn<() => void>(),
 		strokeStyle: '#000',
 		fillStyle: '#fff',
 		lineWidth: 1,
@@ -150,7 +149,7 @@ describe('emf-plus-replay', () => {
 			replayEmfPlusRecords(view, 0, off + 12, ctx, 500, 500, state);
 
 			// Brush should be stored in object table at id 3
-			expect(state.objectTable.has(3)).toBe(true);
+			expect(state.objectTable.has(3)).toBeTruthy();
 			const brush = state.objectTable.get(3)!;
 			expect(brush.kind).toBe('plus-brush');
 		});
@@ -252,7 +251,7 @@ describe('emf-plus-replay', () => {
 			replayEmfPlusRecords(view, 0, off + 12, ctx, 500, 500, state);
 
 			// The continuation should have been assembled and stored
-			expect(state.objectTable.has(objectId)).toBe(true);
+			expect(state.objectTable.has(objectId)).toBeTruthy();
 		});
 
 		it('stops at EMFPLUS_ENDOFFILE', () => {

@@ -62,7 +62,17 @@ export class PptxSlideBackgroundBuilder implements IPptxSlideBackgroundBuilder {
 			};
 		}
 		backgroundProperties['a:effectLst'] = {};
-		cSld['p:bg'] = { 'p:bgPr': backgroundProperties };
-		init.slideNode['p:cSld'] = cSld;
+
+		// OOXML CT_CommonSlideData requires child order: bg, spTree,
+		// custDataLst, controls, extLst. Rebuild p:cSld with p:bg first
+		// so fast-xml-parser emits it before any other children.
+		const rebuiltCSld: XmlObject = { 'p:bg': { 'p:bgPr': backgroundProperties } };
+		for (const key of Object.keys(cSld)) {
+			if (key === 'p:bg') {
+				continue;
+			}
+			rebuiltCSld[key] = cSld[key];
+		}
+		init.slideNode['p:cSld'] = rebuiltCSld;
 	}
 }

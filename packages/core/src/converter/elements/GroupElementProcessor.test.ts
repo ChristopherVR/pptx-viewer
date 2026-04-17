@@ -15,7 +15,7 @@ function makeCtx(overrides: Partial<ElementProcessorContext> = {}): ElementProce
 		slideNumber: 1,
 		slideWidth: 960,
 		slideHeight: 540,
-		processElements: vi.fn(async () => []),
+		processElements: vi.fn<(...args: any[]) => any>(async () => []),
 		...overrides,
 	};
 }
@@ -81,7 +81,7 @@ describe('groupElementProcessor', () => {
 	it('delegates to processElements and joins results', async () => {
 		const children = [makeChildElement('c1'), makeChildElement('c2')];
 		const ctx = makeCtx({
-			processElements: vi.fn(async () => ['Content 1', 'Content 2']),
+			processElements: vi.fn<(...args: any[]) => any>(async () => ['Content 1', 'Content 2']),
 		});
 
 		const result = await processor.process(makeGroupElement(children), ctx);
@@ -92,7 +92,7 @@ describe('groupElementProcessor', () => {
 	it('returns null when processElements returns empty array', async () => {
 		const children = [makeChildElement('c1')];
 		const ctx = makeCtx({
-			processElements: vi.fn(async () => []),
+			processElements: vi.fn<(...args: any[]) => any>(async () => []),
 		});
 
 		const result = await processor.process(makeGroupElement(children), ctx);
@@ -102,7 +102,7 @@ describe('groupElementProcessor', () => {
 	it('handles single child', async () => {
 		const children = [makeChildElement('c1')];
 		const ctx = makeCtx({
-			processElements: vi.fn(async () => ['Only child']),
+			processElements: vi.fn<(...args: any[]) => any>(async () => ['Only child']),
 		});
 
 		const result = await processor.process(makeGroupElement(children), ctx);
@@ -112,7 +112,7 @@ describe('groupElementProcessor', () => {
 	it('handles multiple children with blank-line separation', async () => {
 		const children = [makeChildElement('a'), makeChildElement('b'), makeChildElement('c')];
 		const ctx = makeCtx({
-			processElements: vi.fn(async () => ['A', 'B', 'C']),
+			processElements: vi.fn<(...args: any[]) => any>(async () => ['A', 'B', 'C']),
 		});
 
 		const result = await processor.process(makeGroupElement(children), ctx);

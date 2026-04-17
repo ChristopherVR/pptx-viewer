@@ -20,49 +20,49 @@ describe('parseBodyPrBooleanAttrs', () => {
 	it('parses @_compatLnSpc = "1" as true', () => {
 		const textStyle: TextStyle = {};
 		parseBodyPrBooleanAttrs({ '@_compatLnSpc': '1' }, textStyle);
-		expect(textStyle.compatibleLineSpacing).toBe(true);
+		expect(textStyle.compatibleLineSpacing).toBeTruthy();
 	});
 
 	it('parses @_compatLnSpc = "0" as false', () => {
 		const textStyle: TextStyle = {};
 		parseBodyPrBooleanAttrs({ '@_compatLnSpc': '0' }, textStyle);
-		expect(textStyle.compatibleLineSpacing).toBe(false);
+		expect(textStyle.compatibleLineSpacing).toBeFalsy();
 	});
 
 	it('parses @_compatLnSpc = "true" as true', () => {
 		const textStyle: TextStyle = {};
 		parseBodyPrBooleanAttrs({ '@_compatLnSpc': 'true' }, textStyle);
-		expect(textStyle.compatibleLineSpacing).toBe(true);
+		expect(textStyle.compatibleLineSpacing).toBeTruthy();
 	});
 
 	it('parses @_forceAA = "1" as true', () => {
 		const textStyle: TextStyle = {};
 		parseBodyPrBooleanAttrs({ '@_forceAA': '1' }, textStyle);
-		expect(textStyle.forceAntiAlias).toBe(true);
+		expect(textStyle.forceAntiAlias).toBeTruthy();
 	});
 
 	it('parses @_forceAA = "0" as false', () => {
 		const textStyle: TextStyle = {};
 		parseBodyPrBooleanAttrs({ '@_forceAA': '0' }, textStyle);
-		expect(textStyle.forceAntiAlias).toBe(false);
+		expect(textStyle.forceAntiAlias).toBeFalsy();
 	});
 
 	it('parses @_upright = "1" as true', () => {
 		const textStyle: TextStyle = {};
 		parseBodyPrBooleanAttrs({ '@_upright': '1' }, textStyle);
-		expect(textStyle.upright).toBe(true);
+		expect(textStyle.upright).toBeTruthy();
 	});
 
 	it('parses @_upright = "0" as false', () => {
 		const textStyle: TextStyle = {};
 		parseBodyPrBooleanAttrs({ '@_upright': '0' }, textStyle);
-		expect(textStyle.upright).toBe(false);
+		expect(textStyle.upright).toBeFalsy();
 	});
 
 	it('parses @_fromWordArt = "1" as true', () => {
 		const textStyle: TextStyle = {};
 		parseBodyPrBooleanAttrs({ '@_fromWordArt': '1' }, textStyle);
-		expect(textStyle.fromWordArt).toBe(true);
+		expect(textStyle.fromWordArt).toBeTruthy();
 	});
 
 	it('handles all attributes set simultaneously', () => {
@@ -76,18 +76,18 @@ describe('parseBodyPrBooleanAttrs', () => {
 			},
 			textStyle,
 		);
-		expect(textStyle.compatibleLineSpacing).toBe(true);
-		expect(textStyle.forceAntiAlias).toBe(false);
-		expect(textStyle.upright).toBe(true);
-		expect(textStyle.fromWordArt).toBe(true);
+		expect(textStyle.compatibleLineSpacing).toBeTruthy();
+		expect(textStyle.forceAntiAlias).toBeFalsy();
+		expect(textStyle.upright).toBeTruthy();
+		expect(textStyle.fromWordArt).toBeTruthy();
 	});
 
 	it('ignores undefined attributes and does not set them to false', () => {
 		const textStyle: TextStyle = { compatibleLineSpacing: true };
 		parseBodyPrBooleanAttrs({ '@_forceAA': '1' }, textStyle);
 		// compatibleLineSpacing was already set and should remain unchanged
-		expect(textStyle.compatibleLineSpacing).toBe(true);
-		expect(textStyle.forceAntiAlias).toBe(true);
+		expect(textStyle.compatibleLineSpacing).toBeTruthy();
+		expect(textStyle.forceAntiAlias).toBeTruthy();
 		// These were never in bodyPr, so they must remain undefined
 		expect(textStyle.upright).toBeUndefined();
 		expect(textStyle.fromWordArt).toBeUndefined();

@@ -146,31 +146,31 @@ function applyTimingToElement(el: MockMediaElement, timing: MediaTimingData): vo
 // ---------------------------------------------------------------------------
 describe('isDirectReturnPath', () => {
 	it('should return true for http:// URLs', () => {
-		expect(isDirectReturnPath('http://example.com/image.png')).toBe(true);
+		expect(isDirectReturnPath('http://example.com/image.png')).toBeTruthy();
 	});
 
 	it('should return true for https:// URLs', () => {
-		expect(isDirectReturnPath('https://example.com/image.png')).toBe(true);
+		expect(isDirectReturnPath('https://example.com/image.png')).toBeTruthy();
 	});
 
 	it('should return true for data: URIs', () => {
-		expect(isDirectReturnPath('data:image/png;base64,abc123')).toBe(true);
+		expect(isDirectReturnPath('data:image/png;base64,abc123')).toBeTruthy();
 	});
 
 	it('should return false for archive paths', () => {
-		expect(isDirectReturnPath('ppt/media/image1.png')).toBe(false);
+		expect(isDirectReturnPath('ppt/media/image1.png')).toBeFalsy();
 	});
 
 	it('should return false for empty string', () => {
-		expect(isDirectReturnPath('')).toBe(false);
+		expect(isDirectReturnPath('')).toBeFalsy();
 	});
 
 	it('should return false for relative paths', () => {
-		expect(isDirectReturnPath('../media/image1.png')).toBe(false);
+		expect(isDirectReturnPath('../media/image1.png')).toBeFalsy();
 	});
 
 	it('should be case-sensitive (HTTP:// is not detected)', () => {
-		expect(isDirectReturnPath('HTTP://example.com/img.png')).toBe(false);
+		expect(isDirectReturnPath('HTTP://example.com/img.png')).toBeFalsy();
 	});
 });
 
@@ -270,13 +270,13 @@ describe('applyTimingToElement', () => {
 	it('should apply fullScreen flag', () => {
 		const el: MockMediaElement = { type: 'media' };
 		applyTimingToElement(el, { fullScreen: true });
-		expect(el.fullScreen).toBe(true);
+		expect(el.fullScreen).toBeTruthy();
 	});
 
 	it('should apply loop flag', () => {
 		const el: MockMediaElement = { type: 'media' };
 		applyTimingToElement(el, { loop: true });
-		expect(el.loop).toBe(true);
+		expect(el.loop).toBeTruthy();
 	});
 
 	it('should apply volume', () => {
@@ -295,19 +295,19 @@ describe('applyTimingToElement', () => {
 	it('should apply autoPlay', () => {
 		const el: MockMediaElement = { type: 'media' };
 		applyTimingToElement(el, { autoPlay: true });
-		expect(el.autoPlay).toBe(true);
+		expect(el.autoPlay).toBeTruthy();
 	});
 
 	it('should apply playAcrossSlides', () => {
 		const el: MockMediaElement = { type: 'media' };
 		applyTimingToElement(el, { playAcrossSlides: true });
-		expect(el.playAcrossSlides).toBe(true);
+		expect(el.playAcrossSlides).toBeTruthy();
 	});
 
 	it('should apply hideWhenNotPlaying', () => {
 		const el: MockMediaElement = { type: 'media' };
 		applyTimingToElement(el, { hideWhenNotPlaying: true });
-		expect(el.hideWhenNotPlaying).toBe(true);
+		expect(el.hideWhenNotPlaying).toBeTruthy();
 	});
 
 	it('should apply bookmarks when non-empty', () => {
@@ -366,14 +366,14 @@ describe('applyTimingToElement', () => {
 
 		expect(el.trimStartMs).toBe(0);
 		expect(el.trimEndMs).toBe(10000);
-		expect(el.fullScreen).toBe(false);
-		expect(el.loop).toBe(true);
+		expect(el.fullScreen).toBeFalsy();
+		expect(el.loop).toBeTruthy();
 		expect(el.volume).toBe(80);
 		expect(el.fadeInDuration).toBe(200);
 		expect(el.fadeOutDuration).toBe(300);
-		expect(el.autoPlay).toBe(true);
-		expect(el.playAcrossSlides).toBe(false);
-		expect(el.hideWhenNotPlaying).toBe(true);
+		expect(el.autoPlay).toBeTruthy();
+		expect(el.playAcrossSlides).toBeFalsy();
+		expect(el.hideWhenNotPlaying).toBeTruthy();
 		expect(el.bookmarks).toStrictEqual([{ name: 'B1', time: 500 }]);
 		expect(el.playbackSpeed).toBe(2);
 		expect(el.posterFramePath).toBe('ppt/media/poster.jpg');

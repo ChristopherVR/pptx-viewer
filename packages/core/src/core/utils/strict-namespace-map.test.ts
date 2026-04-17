@@ -68,22 +68,22 @@ describe('normalizeNamespaceUri', () => {
 
 describe('isStrictNamespaceUri', () => {
 	it('returns true for Strict namespace URIs', () => {
-		expect(isStrictNamespaceUri('http://purl.oclc.org/ooxml/presentationml/main')).toBe(true);
-		expect(isStrictNamespaceUri('http://purl.oclc.org/ooxml/drawingml/main')).toBe(true);
+		expect(isStrictNamespaceUri('http://purl.oclc.org/ooxml/presentationml/main')).toBeTruthy();
+		expect(isStrictNamespaceUri('http://purl.oclc.org/ooxml/drawingml/main')).toBeTruthy();
 	});
 
 	it('returns false for Transitional namespace URIs', () => {
-		expect(isStrictNamespaceUri('http://schemas.openxmlformats.org/presentationml/2006/main')).toBe(
-			false,
-		);
+		expect(
+			isStrictNamespaceUri('http://schemas.openxmlformats.org/presentationml/2006/main'),
+		).toBeFalsy();
 	});
 
 	it('returns false for arbitrary URIs', () => {
-		expect(isStrictNamespaceUri('http://example.com/ns')).toBe(false);
+		expect(isStrictNamespaceUri('http://example.com/ns')).toBeFalsy();
 	});
 
 	it('returns false for empty string', () => {
-		expect(isStrictNamespaceUri('')).toBe(false);
+		expect(isStrictNamespaceUri('')).toBeFalsy();
 	});
 });
 
@@ -98,7 +98,7 @@ describe('detectStrictConformance', () => {
 				'@_xmlns:p': 'http://purl.oclc.org/ooxml/presentationml/main',
 			},
 		};
-		expect(detectStrictConformance(xml)).toBe(true);
+		expect(detectStrictConformance(xml)).toBeTruthy();
 	});
 
 	it('returns false when root element has Transitional namespace', () => {
@@ -107,11 +107,11 @@ describe('detectStrictConformance', () => {
 				'@_xmlns:p': 'http://schemas.openxmlformats.org/presentationml/2006/main',
 			},
 		};
-		expect(detectStrictConformance(xml)).toBe(false);
+		expect(detectStrictConformance(xml)).toBeFalsy();
 	});
 
 	it('returns false for empty object', () => {
-		expect(detectStrictConformance({})).toBe(false);
+		expect(detectStrictConformance({})).toBeFalsy();
 	});
 
 	it('returns true when @_xmlns (default namespace) is Strict', () => {
@@ -120,7 +120,7 @@ describe('detectStrictConformance', () => {
 				'@_xmlns': 'http://purl.oclc.org/ooxml/presentationml/main',
 			},
 		};
-		expect(detectStrictConformance(xml)).toBe(true);
+		expect(detectStrictConformance(xml)).toBeTruthy();
 	});
 
 	it('ignores non-xmlns attributes', () => {
@@ -129,7 +129,7 @@ describe('detectStrictConformance', () => {
 				'@_id': 'http://purl.oclc.org/ooxml/drawingml/main',
 			},
 		};
-		expect(detectStrictConformance(xml)).toBe(false);
+		expect(detectStrictConformance(xml)).toBeFalsy();
 	});
 
 	it('detects Strict in any xmlns attribute', () => {
@@ -139,7 +139,7 @@ describe('detectStrictConformance', () => {
 				'@_xmlns:p': 'http://schemas.openxmlformats.org/presentationml/2006/main',
 			},
 		};
-		expect(detectStrictConformance(xml)).toBe(true);
+		expect(detectStrictConformance(xml)).toBeTruthy();
 	});
 
 	it('skips ?xml declaration and array children', () => {
@@ -149,7 +149,7 @@ describe('detectStrictConformance', () => {
 				'@_xmlns:p': 'http://schemas.openxmlformats.org/presentationml/2006/main',
 			},
 		};
-		expect(detectStrictConformance(xml)).toBe(false);
+		expect(detectStrictConformance(xml)).toBeFalsy();
 	});
 });
 
@@ -330,13 +330,13 @@ describe('isTransitionalNamespaceUri', () => {
 	it('returns true for Transitional PresentationML URI', () => {
 		expect(
 			isTransitionalNamespaceUri('http://schemas.openxmlformats.org/presentationml/2006/main'),
-		).toBe(true);
+		).toBeTruthy();
 	});
 
 	it('returns true for Transitional DrawingML URI', () => {
 		expect(
 			isTransitionalNamespaceUri('http://schemas.openxmlformats.org/drawingml/2006/main'),
-		).toBe(true);
+		).toBeTruthy();
 	});
 
 	it('returns true for Transitional relationships URI', () => {
@@ -344,28 +344,28 @@ describe('isTransitionalNamespaceUri', () => {
 			isTransitionalNamespaceUri(
 				'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
 			),
-		).toBe(true);
+		).toBeTruthy();
 	});
 
 	it('returns true for Transitional package relationships URI', () => {
 		expect(
 			isTransitionalNamespaceUri('http://schemas.openxmlformats.org/package/2006/relationships'),
-		).toBe(true);
+		).toBeTruthy();
 	});
 
 	it('returns false for Strict namespace URIs', () => {
-		expect(isTransitionalNamespaceUri('http://purl.oclc.org/ooxml/presentationml/main')).toBe(
-			false,
-		);
-		expect(isTransitionalNamespaceUri('http://purl.oclc.org/ooxml/drawingml/main')).toBe(false);
+		expect(
+			isTransitionalNamespaceUri('http://purl.oclc.org/ooxml/presentationml/main'),
+		).toBeFalsy();
+		expect(isTransitionalNamespaceUri('http://purl.oclc.org/ooxml/drawingml/main')).toBeFalsy();
 	});
 
 	it('returns false for arbitrary URIs', () => {
-		expect(isTransitionalNamespaceUri('http://example.com/ns')).toBe(false);
+		expect(isTransitionalNamespaceUri('http://example.com/ns')).toBeFalsy();
 	});
 
 	it('returns false for empty string', () => {
-		expect(isTransitionalNamespaceUri('')).toBe(false);
+		expect(isTransitionalNamespaceUri('')).toBeFalsy();
 	});
 
 	it('returns false for Microsoft-specific URIs not in the mapping', () => {
@@ -373,7 +373,7 @@ describe('isTransitionalNamespaceUri', () => {
 			isTransitionalNamespaceUri(
 				'http://schemas.microsoft.com/office/2006/relationships/vbaProject',
 			),
-		).toBe(false);
+		).toBeFalsy();
 	});
 });
 

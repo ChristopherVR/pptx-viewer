@@ -89,6 +89,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			);
 		} else {
 			this.zip.remove('ppt/commentAuthors.xml');
+			// Strip the matching Relationship from presentation.xml.rels; otherwise
+			// the dangling reference causes PowerPoint to flag the file as corrupted
+			// and prompt the user to repair it on open.
+			await this.stripPresentationCommentAuthorsRelationship();
 		}
 
 		// Update content types for comments
@@ -188,5 +192,36 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		return await this.zip.generateAsync({ type: 'uint8array' });
+	}
+
+	/**
+	 * Remove any Relationship in presentation.xml.rels whose Type matches either
+	 * the Transitional or Strict commentAuthors relationship URI.
+	 */
+	private async stripPresentationCommentAuthorsRelationship(): Promise<void> {
+		const relsPath = 'ppt/_rels/presentation.xml.rels';
+		const relsXml = await this.zip.file(relsPath)?.async('string');
+		if (!relsXml) {
+			return;
+		}
+		const relsData = this.parser.parse(relsXml) as XmlObject;
+		const root = relsData['Relationships'] as XmlObject | undefined;
+		if (!root) {
+			return;
+		}
+		const relationships = this.ensureArray(root['Relationship']) as XmlObject[];
+		const filtered = relationships.filter((relationship) => {
+			const type = String(relationship?.['@_Type'] ?? '');
+			return (
+				type !==
+					'http://schemas.openxmlformats.org/officeDocument/2006/relationships/commentAuthors' &&
+				type !== 'http://purl.oclc.org/ooxml/officeDocument/relationships/commentAuthors'
+			);
+		});
+		if (filtered.length === relationships.length) {
+			return;
+		}
+		root['Relationship'] = filtered;
+		this.zip.file(relsPath, this.builder.build(relsData));
 	}
 }

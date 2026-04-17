@@ -104,21 +104,21 @@ describe('getCropShapeClipPath', () => {
 
 describe('isImageTiled', () => {
 	it('returns false for non-image elements', () => {
-		expect(isImageTiled(makeShapeElement())).toBe(false);
+		expect(isImageTiled(makeShapeElement())).toBeFalsy();
 	});
 
 	it('returns false when no tile scale properties exist', () => {
-		expect(isImageTiled(makeImageElement())).toBe(false);
+		expect(isImageTiled(makeImageElement())).toBeFalsy();
 	});
 
 	it('returns true when tileScaleX is set', () => {
 		const el = makeImageElement({ tileScaleX: 1 } as Partial<PptxElement>);
-		expect(isImageTiled(el)).toBe(true);
+		expect(isImageTiled(el)).toBeTruthy();
 	});
 
 	it('returns true when tileScaleY is set', () => {
 		const el = makeImageElement({ tileScaleY: 0.5 } as Partial<PptxElement>);
-		expect(isImageTiled(el)).toBe(true);
+		expect(isImageTiled(el)).toBeTruthy();
 	});
 
 	it('returns true when both tile scales are set', () => {
@@ -126,7 +126,7 @@ describe('isImageTiled', () => {
 			tileScaleX: 1,
 			tileScaleY: 1,
 		} as Partial<PptxElement>);
-		expect(isImageTiled(el)).toBe(true);
+		expect(isImageTiled(el)).toBeTruthy();
 	});
 
 	it('returns false when tile scale is undefined', () => {
@@ -134,7 +134,7 @@ describe('isImageTiled', () => {
 			tileScaleX: undefined,
 			tileScaleY: undefined,
 		} as Partial<PptxElement>);
-		expect(isImageTiled(el)).toBe(false);
+		expect(isImageTiled(el)).toBeFalsy();
 	});
 });
 

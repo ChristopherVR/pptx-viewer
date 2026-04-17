@@ -276,13 +276,49 @@ describe('assembleParagraphXml', () => {
 		const f1: XmlObject = { __isField: true, '@_type': 'a' };
 		const f2: XmlObject = { __isField: true, '@_type': 'b' };
 		const result = assembleParagraphXml([f1, f2], {});
-		expect(Array.isArray(result['a:fld'])).toBe(true);
+		expect(Array.isArray(result['a:fld'])).toBeTruthy();
 		expect(result['a:fld'] as XmlObject[]).toHaveLength(2);
 	});
 
 	it('should fall back to a:r when no regular or field runs', () => {
 		const result = assembleParagraphXml([], {});
 		expect(result['a:r']).toBeUndefined();
+	});
+
+	it('buildParagraphPropertiesXml emits a:lnSpc before a:spcBef before a:spcAft', () => {
+		// CT_TextParagraphProperties schema order for spacing children:
+		//   lnSpc, spcBef, spcAft. Out-of-order emission yields
+		//   Sch_UnexpectedElementContentExpectingComplex when PowerPoint
+		//   or any schema validator reads the file.
+		const result = buildParagraphPropertiesXml(undefined, undefined, undefined, {
+			spacingBefore: { 'a:spcPct': { '@_val': '20000' } },
+			spacingAfter: { 'a:spcPct': { '@_val': '10000' } },
+			lineSpacing: { 'a:spcPct': { '@_val': '150000' } },
+			lineSpacingExactPt: undefined,
+		});
+		const keys = Object.keys(result).filter((k) => !k.startsWith('@_'));
+		const lnSpcIdx = keys.indexOf('a:lnSpc');
+		const spcBefIdx = keys.indexOf('a:spcBef');
+		const spcAftIdx = keys.indexOf('a:spcAft');
+		expect(lnSpcIdx).toBeGreaterThanOrEqual(0);
+		expect(spcBefIdx).toBeGreaterThan(lnSpcIdx);
+		expect(spcAftIdx).toBeGreaterThan(spcBefIdx);
+	});
+
+	it('should emit children in schema order: a:pPr, a:r/a:fld, a:endParaRPr', () => {
+		// OOXML CT_TextParagraph requires children in order:
+		//   pPr? , (r | br | fld)* , endParaRPr?
+		// fast-xml-parser serialises object keys in insertion order, so the
+		// key order of the returned paragraph object IS the emitted XML order.
+		const run: XmlObject = { 'a:rPr': { '@_lang': 'en-US' }, 'a:t': 'text' };
+		const result = assembleParagraphXml([run], { '@_algn': 'ctr' });
+		const keys = Object.keys(result).filter((k) => !k.startsWith('@_'));
+		const pPrIdx = keys.indexOf('a:pPr');
+		const runIdx = keys.indexOf('a:r');
+		const endIdx = keys.indexOf('a:endParaRPr');
+		expect(pPrIdx).toBeGreaterThanOrEqual(0);
+		expect(runIdx).toBeGreaterThan(pPrIdx);
+		expect(endIdx).toBeGreaterThan(runIdx);
 	});
 });
 
@@ -350,13 +386,13 @@ describe('computeUniformSegmentOverrides', () => {
 			{ text: 'b', style: { bold: true, italic: false } },
 		];
 		const result = computeUniformSegmentOverrides({ bold: false, italic: true }, segments);
-		expect(result.bold).toBe(false);
-		expect(result.italic).toBe(true);
+		expect(result.bold).toBeFalsy();
+		expect(result.italic).toBeTruthy();
 	});
 
 	it('should handle empty segments array', () => {
 		const result = computeUniformSegmentOverrides({ bold: true }, []);
 		// With empty segments, every(segment => ...) returns true vacuously
-		expect(result.bold).toBe(true);
+		expect(result.bold).toBeTruthy();
 	});
 });

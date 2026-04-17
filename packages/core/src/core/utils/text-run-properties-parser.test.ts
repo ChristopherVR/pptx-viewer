@@ -67,98 +67,98 @@ describe('parseRunPropertyAttributes — scalar attributes', () => {
 	it('parses @_b="1" as bold=true', () => {
 		const rPr: XmlObject = { '@_b': '1' };
 		const style = parseRunPropertyAttributes(rPr);
-		expect(style.bold).toBe(true);
+		expect(style.bold).toBeTruthy();
 	});
 
 	it('parses @_b="0" as bold=false', () => {
 		const rPr: XmlObject = { '@_b': '0' };
 		const style = parseRunPropertyAttributes(rPr);
-		expect(style.bold).toBe(false);
+		expect(style.bold).toBeFalsy();
 	});
 
 	it('parses @_i="1" as italic=true', () => {
 		const rPr: XmlObject = { '@_i': '1' };
 		const style = parseRunPropertyAttributes(rPr);
-		expect(style.italic).toBe(true);
+		expect(style.italic).toBeTruthy();
 	});
 
 	it('parses @_i="0" as italic=false', () => {
 		const rPr: XmlObject = { '@_i': '0' };
 		const style = parseRunPropertyAttributes(rPr);
-		expect(style.italic).toBe(false);
+		expect(style.italic).toBeFalsy();
 	});
 
 	// ── Underline (all 18 types per ST_TextUnderlineType) ────────────────────
 
 	it('parses @_u="sng" as underline=true, underlineStyle="sng"', () => {
 		const style = parseRunPropertyAttributes({ '@_u': 'sng' });
-		expect(style.underline).toBe(true);
+		expect(style.underline).toBeTruthy();
 		expect(style.underlineStyle).toBe('sng');
 	});
 
 	it('parses @_u="dbl" as underline=true, underlineStyle="dbl"', () => {
 		const style = parseRunPropertyAttributes({ '@_u': 'dbl' });
-		expect(style.underline).toBe(true);
+		expect(style.underline).toBeTruthy();
 		expect(style.underlineStyle).toBe('dbl');
 	});
 
 	it('parses @_u="heavy" as underline=true, underlineStyle="heavy"', () => {
 		const style = parseRunPropertyAttributes({ '@_u': 'heavy' });
-		expect(style.underline).toBe(true);
+		expect(style.underline).toBeTruthy();
 		expect(style.underlineStyle).toBe('heavy');
 	});
 
 	it('parses @_u="dotted"', () => {
 		const style = parseRunPropertyAttributes({ '@_u': 'dotted' });
-		expect(style.underline).toBe(true);
+		expect(style.underline).toBeTruthy();
 		expect(style.underlineStyle).toBe('dotted');
 	});
 
 	it('parses @_u="dottedHeavy"', () => {
 		const style = parseRunPropertyAttributes({ '@_u': 'dottedHeavy' });
-		expect(style.underline).toBe(true);
+		expect(style.underline).toBeTruthy();
 		expect(style.underlineStyle).toBe('dottedHeavy');
 	});
 
 	it('parses @_u="dash"', () => {
 		const style = parseRunPropertyAttributes({ '@_u': 'dash' });
-		expect(style.underline).toBe(true);
+		expect(style.underline).toBeTruthy();
 		expect(style.underlineStyle).toBe('dash');
 	});
 
 	it('parses @_u="dashHeavy"', () => {
 		const style = parseRunPropertyAttributes({ '@_u': 'dashHeavy' });
-		expect(style.underline).toBe(true);
+		expect(style.underline).toBeTruthy();
 		expect(style.underlineStyle).toBe('dashHeavy');
 	});
 
 	it('parses @_u="dashLong"', () => {
 		const style = parseRunPropertyAttributes({ '@_u': 'dashLong' });
-		expect(style.underline).toBe(true);
+		expect(style.underline).toBeTruthy();
 		expect(style.underlineStyle).toBe('dashLong');
 	});
 
 	it('parses @_u="dashLongHeavy"', () => {
 		const style = parseRunPropertyAttributes({ '@_u': 'dashLongHeavy' });
-		expect(style.underline).toBe(true);
+		expect(style.underline).toBeTruthy();
 		expect(style.underlineStyle).toBe('dashLongHeavy');
 	});
 
 	it('parses @_u="dotDash"', () => {
 		const style = parseRunPropertyAttributes({ '@_u': 'dotDash' });
-		expect(style.underline).toBe(true);
+		expect(style.underline).toBeTruthy();
 		expect(style.underlineStyle).toBe('dotDash');
 	});
 
 	it('parses @_u="dotDashHeavy"', () => {
 		const style = parseRunPropertyAttributes({ '@_u': 'dotDashHeavy' });
-		expect(style.underline).toBe(true);
+		expect(style.underline).toBeTruthy();
 		expect(style.underlineStyle).toBe('dotDashHeavy');
 	});
 
 	it('parses @_u="dotDotDash"', () => {
 		const style = parseRunPropertyAttributes({ '@_u': 'dotDotDash' });
-		expect(style.underline).toBe(true);
+		expect(style.underline).toBeTruthy();
 		expect(style.underlineStyle).toBe('dotDotDash');
 	});
 
@@ -166,31 +166,31 @@ describe('parseRunPropertyAttributes — scalar attributes', () => {
 		const style = parseRunPropertyAttributes({
 			'@_u': 'dotDotDashHeavy',
 		});
-		expect(style.underline).toBe(true);
+		expect(style.underline).toBeTruthy();
 		expect(style.underlineStyle).toBe('dotDotDashHeavy');
 	});
 
 	it('parses @_u="wavy"', () => {
 		const style = parseRunPropertyAttributes({ '@_u': 'wavy' });
-		expect(style.underline).toBe(true);
+		expect(style.underline).toBeTruthy();
 		expect(style.underlineStyle).toBe('wavy');
 	});
 
 	it('parses @_u="wavyHeavy"', () => {
 		const style = parseRunPropertyAttributes({ '@_u': 'wavyHeavy' });
-		expect(style.underline).toBe(true);
+		expect(style.underline).toBeTruthy();
 		expect(style.underlineStyle).toBe('wavyHeavy');
 	});
 
 	it('parses @_u="wavyDbl"', () => {
 		const style = parseRunPropertyAttributes({ '@_u': 'wavyDbl' });
-		expect(style.underline).toBe(true);
+		expect(style.underline).toBeTruthy();
 		expect(style.underlineStyle).toBe('wavyDbl');
 	});
 
 	it('parses @_u="none" as underline=false', () => {
 		const style = parseRunPropertyAttributes({ '@_u': 'none' });
-		expect(style.underline).toBe(false);
+		expect(style.underline).toBeFalsy();
 		expect(style.underlineStyle).toBeUndefined();
 	});
 
@@ -204,19 +204,19 @@ describe('parseRunPropertyAttributes — scalar attributes', () => {
 
 	it('parses @_strike="sngStrike" as strikethrough=true, strikeType="sngStrike"', () => {
 		const style = parseRunPropertyAttributes({ '@_strike': 'sngStrike' });
-		expect(style.strikethrough).toBe(true);
+		expect(style.strikethrough).toBeTruthy();
 		expect(style.strikeType).toBe('sngStrike');
 	});
 
 	it('parses @_strike="dblStrike" as strikethrough=true, strikeType="dblStrike"', () => {
 		const style = parseRunPropertyAttributes({ '@_strike': 'dblStrike' });
-		expect(style.strikethrough).toBe(true);
+		expect(style.strikethrough).toBeTruthy();
 		expect(style.strikeType).toBe('dblStrike');
 	});
 
 	it('parses @_strike="noStrike" as strikethrough=false', () => {
 		const style = parseRunPropertyAttributes({ '@_strike': 'noStrike' });
-		expect(style.strikethrough).toBe(false);
+		expect(style.strikethrough).toBeFalsy();
 		expect(style.strikeType).toBeUndefined();
 	});
 
@@ -299,44 +299,44 @@ describe('parseRunPropertyAttributes — scalar attributes', () => {
 
 	it('parses @_rtl="1" as rtl=true', () => {
 		const style = parseRunPropertyAttributes({ '@_rtl': '1' });
-		expect(style.rtl).toBe(true);
+		expect(style.rtl).toBeTruthy();
 	});
 
 	it('parses @_rtl="0" as rtl=false', () => {
 		const style = parseRunPropertyAttributes({ '@_rtl': '0' });
-		expect(style.rtl).toBe(false);
+		expect(style.rtl).toBeFalsy();
 	});
 
 	// ── Metadata flags ──────────────────────────────────────────────────────
 
 	it('parses @_dirty="1" as dirty=true', () => {
 		const style = parseRunPropertyAttributes({ '@_dirty': '1' });
-		expect(style.dirty).toBe(true);
+		expect(style.dirty).toBeTruthy();
 	});
 
 	it('parses @_noProof="1" as noProof=true', () => {
 		const style = parseRunPropertyAttributes({ '@_noProof': '1' });
-		expect(style.noProof).toBe(true);
+		expect(style.noProof).toBeTruthy();
 	});
 
 	it('parses @_smtClean="1" as smartTagClean=true', () => {
 		const style = parseRunPropertyAttributes({ '@_smtClean': '1' });
-		expect(style.smartTagClean).toBe(true);
+		expect(style.smartTagClean).toBeTruthy();
 	});
 
 	it('parses @_err="1" as spellingError=true', () => {
 		const style = parseRunPropertyAttributes({ '@_err': '1' });
-		expect(style.spellingError).toBe(true);
+		expect(style.spellingError).toBeTruthy();
 	});
 
 	it('parses @_kumimoji="1" as kumimoji=true', () => {
 		const style = parseRunPropertyAttributes({ '@_kumimoji': '1' });
-		expect(style.kumimoji).toBe(true);
+		expect(style.kumimoji).toBeTruthy();
 	});
 
 	it('parses @_normalizeH="1" as normalizeHeight=true', () => {
 		const style = parseRunPropertyAttributes({ '@_normalizeH': '1' });
-		expect(style.normalizeHeight).toBe(true);
+		expect(style.normalizeHeight).toBeTruthy();
 	});
 
 	it('parses @_bmk="slide3" as bookmark', () => {
@@ -365,11 +365,11 @@ describe('parseRunPropertyAttributes — scalar attributes', () => {
 		const style = parseRunPropertyAttributes(rPr);
 		expect(style.language).toBe('en-US');
 		expect(style.fontSize).toBeCloseTo(32, 1);
-		expect(style.bold).toBe(true);
-		expect(style.italic).toBe(true);
-		expect(style.underline).toBe(true);
+		expect(style.bold).toBeTruthy();
+		expect(style.italic).toBeTruthy();
+		expect(style.underline).toBeTruthy();
 		expect(style.underlineStyle).toBe('sng');
-		expect(style.strikethrough).toBe(true);
+		expect(style.strikethrough).toBeTruthy();
 		expect(style.strikeType).toBe('dblStrike');
 		expect(style.textCaps).toBe('all');
 		expect(style.baseline).toBe(30000);
@@ -566,9 +566,9 @@ describe('parseRunHyperlink', () => {
 		expect(result.hyperlinkAction).toBe('ppaction://hlinksldjump');
 		expect(result.hyperlinkInvalidUrl).toBe('bad://link');
 		expect(result.hyperlinkTargetFrame).toBe('_blank');
-		expect(result.hyperlinkHistory).toBe(true);
-		expect(result.hyperlinkHighlightClick).toBe(true);
-		expect(result.hyperlinkEndSound).toBe(false);
+		expect(result.hyperlinkHistory).toBeTruthy();
+		expect(result.hyperlinkHighlightClick).toBeTruthy();
+		expect(result.hyperlinkEndSound).toBeFalsy();
 	});
 });
 

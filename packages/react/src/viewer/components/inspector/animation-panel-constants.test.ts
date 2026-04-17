@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import {
@@ -21,14 +20,14 @@ import {
 
 describe('iNPUT_CLS', () => {
 	it('is a non-empty string', () => {
-		expect(INPUT_CLS).toBe(true);
+		expect(INPUT_CLS).toBeTruthy();
 		expectTypeOf(INPUT_CLS).toBeString();
 	});
 });
 
 describe('sELECT_CLS', () => {
 	it('is a non-empty string', () => {
-		expect(SELECT_CLS).toBe(true);
+		expect(SELECT_CLS).toBeTruthy();
 		expectTypeOf(SELECT_CLS).toBeString();
 	});
 });
@@ -39,15 +38,15 @@ describe('sELECT_CLS', () => {
 
 describe('eNTRANCE_PRESETS', () => {
 	it('contains fadeIn', () => {
-		expect(ENTRANCE_PRESETS.some((o) => o.value === 'fadeIn')).toBe(true);
+		expect(ENTRANCE_PRESETS.some((o) => o.value === 'fadeIn')).toBeTruthy();
 	});
 
 	it('contains flyIn', () => {
-		expect(ENTRANCE_PRESETS.some((o) => o.value === 'flyIn')).toBe(true);
+		expect(ENTRANCE_PRESETS.some((o) => o.value === 'flyIn')).toBeTruthy();
 	});
 
 	it('contains zoomIn', () => {
-		expect(ENTRANCE_PRESETS.some((o) => o.value === 'zoomIn')).toBe(true);
+		expect(ENTRANCE_PRESETS.some((o) => o.value === 'zoomIn')).toBeTruthy();
 	});
 
 	it('has exactly 3 items', () => {
@@ -56,8 +55,8 @@ describe('eNTRANCE_PRESETS', () => {
 
 	it('every item has a non-empty value and label', () => {
 		for (const opt of ENTRANCE_PRESETS) {
-			expect(opt.value).toBe(true);
-			expect(opt.label).toBe(true);
+			expect(opt.value).toBeTruthy();
+			expect(opt.label).toBeTruthy();
 		}
 	});
 
@@ -73,15 +72,15 @@ describe('eNTRANCE_PRESETS', () => {
 
 describe('eXIT_PRESETS', () => {
 	it('contains fadeOut', () => {
-		expect(EXIT_PRESETS.some((o) => o.value === 'fadeOut')).toBe(true);
+		expect(EXIT_PRESETS.some((o) => o.value === 'fadeOut')).toBeTruthy();
 	});
 
 	it('contains flyOut', () => {
-		expect(EXIT_PRESETS.some((o) => o.value === 'flyOut')).toBe(true);
+		expect(EXIT_PRESETS.some((o) => o.value === 'flyOut')).toBeTruthy();
 	});
 
 	it('contains zoomOut', () => {
-		expect(EXIT_PRESETS.some((o) => o.value === 'zoomOut')).toBe(true);
+		expect(EXIT_PRESETS.some((o) => o.value === 'zoomOut')).toBeTruthy();
 	});
 
 	it('has exactly 3 items', () => {
@@ -100,27 +99,27 @@ describe('eXIT_PRESETS', () => {
 
 describe('eMPHASIS_PRESETS', () => {
 	it('contains spin', () => {
-		expect(EMPHASIS_PRESETS.some((o) => o.value === 'spin')).toBe(true);
+		expect(EMPHASIS_PRESETS.some((o) => o.value === 'spin')).toBeTruthy();
 	});
 
 	it('contains pulse', () => {
-		expect(EMPHASIS_PRESETS.some((o) => o.value === 'pulse')).toBe(true);
+		expect(EMPHASIS_PRESETS.some((o) => o.value === 'pulse')).toBeTruthy();
 	});
 
 	it('contains bounce', () => {
-		expect(EMPHASIS_PRESETS.some((o) => o.value === 'bounce')).toBe(true);
+		expect(EMPHASIS_PRESETS.some((o) => o.value === 'bounce')).toBeTruthy();
 	});
 
 	it('contains flash', () => {
-		expect(EMPHASIS_PRESETS.some((o) => o.value === 'flash')).toBe(true);
+		expect(EMPHASIS_PRESETS.some((o) => o.value === 'flash')).toBeTruthy();
 	});
 
 	it('contains growShrink', () => {
-		expect(EMPHASIS_PRESETS.some((o) => o.value === 'growShrink')).toBe(true);
+		expect(EMPHASIS_PRESETS.some((o) => o.value === 'growShrink')).toBeTruthy();
 	});
 
 	it('contains teeter', () => {
-		expect(EMPHASIS_PRESETS.some((o) => o.value === 'teeter')).toBe(true);
+		expect(EMPHASIS_PRESETS.some((o) => o.value === 'teeter')).toBeTruthy();
 	});
 
 	it('has no duplicate values', () => {
@@ -130,7 +129,7 @@ describe('eMPHASIS_PRESETS', () => {
 
 	it('every item has a non-empty label', () => {
 		for (const opt of EMPHASIS_PRESETS) {
-			expect(opt.label).toBe(true);
+			expect(opt.label).toBeTruthy();
 		}
 	});
 });
@@ -155,8 +154,8 @@ describe('tRIGGER_OPTIONS', () => {
 
 	it('every item has a non-empty value and labelKey', () => {
 		for (const opt of TRIGGER_OPTIONS) {
-			expect(opt.value).toBe(true);
-			expect(opt.labelKey).toBe(true);
+			expect(opt.value).toBeTruthy();
+			expect(opt.labelKey).toBeTruthy();
 			expectTypeOf(opt.labelKey).toBeString();
 		}
 	});
@@ -186,7 +185,7 @@ describe('tIMING_CURVE_OPTIONS', () => {
 
 	it('every item has a non-empty labelKey', () => {
 		for (const opt of TIMING_CURVE_OPTIONS) {
-			expect(opt.labelKey).toBe(true);
+			expect(opt.labelKey).toBeTruthy();
 		}
 	});
 
@@ -206,20 +205,20 @@ describe('rEPEAT_MODE_OPTIONS', () => {
 	});
 
 	it('contains none', () => {
-		expect(REPEAT_MODE_OPTIONS.some((o) => o.value === 'none')).toBe(true);
+		expect(REPEAT_MODE_OPTIONS.some((o) => o.value === 'none')).toBeTruthy();
 	});
 
 	it('contains untilNextClick', () => {
-		expect(REPEAT_MODE_OPTIONS.some((o) => o.value === 'untilNextClick')).toBe(true);
+		expect(REPEAT_MODE_OPTIONS.some((o) => o.value === 'untilNextClick')).toBeTruthy();
 	});
 
 	it('contains untilEndOfSlide', () => {
-		expect(REPEAT_MODE_OPTIONS.some((o) => o.value === 'untilEndOfSlide')).toBe(true);
+		expect(REPEAT_MODE_OPTIONS.some((o) => o.value === 'untilEndOfSlide')).toBeTruthy();
 	});
 
 	it('every item has a non-empty labelKey', () => {
 		for (const opt of REPEAT_MODE_OPTIONS) {
-			expect(opt.labelKey).toBe(true);
+			expect(opt.labelKey).toBeTruthy();
 		}
 	});
 
@@ -292,8 +291,8 @@ describe('dIRECTIONAL_PRESETS', () => {
 	});
 
 	it('contains flyIn and flyOut', () => {
-		expect(DIRECTIONAL_PRESETS.has('flyIn')).toBe(true);
-		expect(DIRECTIONAL_PRESETS.has('flyOut')).toBe(true);
+		expect(DIRECTIONAL_PRESETS.has('flyIn')).toBeTruthy();
+		expect(DIRECTIONAL_PRESETS.has('flyOut')).toBeTruthy();
 	});
 
 	it('has exactly 2 entries', () => {

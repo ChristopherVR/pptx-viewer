@@ -25,37 +25,37 @@ describe('parseShowProperties', () => {
 
 	it('should parse loopContinuously when @_loop is "1"', () => {
 		const result = parseShowProperties({ '@_loop': '1' });
-		expect(result.loopContinuously).toBe(true);
+		expect(result.loopContinuously).toBeTruthy();
 	});
 
 	it('should parse loopContinuously when @_loop is boolean true', () => {
 		const result = parseShowProperties({ '@_loop': true });
-		expect(result.loopContinuously).toBe(true);
+		expect(result.loopContinuously).toBeTruthy();
 	});
 
 	it('should parse loopContinuously as false when @_loop is absent', () => {
 		const result = parseShowProperties({});
-		expect(result.loopContinuously).toBe(false);
+		expect(result.loopContinuously).toBeFalsy();
 	});
 
 	it('should default showWithNarration to true when @_showNarration is absent', () => {
 		const result = parseShowProperties({});
-		expect(result.showWithNarration).toBe(true);
+		expect(result.showWithNarration).toBeTruthy();
 	});
 
 	it('should parse showWithNarration as false when @_showNarration is "0"', () => {
 		const result = parseShowProperties({ '@_showNarration': '0' });
-		expect(result.showWithNarration).toBe(false);
+		expect(result.showWithNarration).toBeFalsy();
 	});
 
 	it('should default showWithAnimation to true when @_showAnimation is absent', () => {
 		const result = parseShowProperties({});
-		expect(result.showWithAnimation).toBe(true);
+		expect(result.showWithAnimation).toBeTruthy();
 	});
 
 	it('should parse showWithAnimation as false when @_showAnimation is "0"', () => {
 		const result = parseShowProperties({ '@_showAnimation': '0' });
-		expect(result.showWithAnimation).toBe(false);
+		expect(result.showWithAnimation).toBeFalsy();
 	});
 
 	it('should parse advanceMode as "manual" when @_useTimings is "0"', () => {
@@ -168,9 +168,9 @@ describe('parseShowProperties', () => {
 			'p:sldRg': { '@_st': '1', '@_end': '10' },
 		});
 		expect(result.showType).toBe('kiosk');
-		expect(result.loopContinuously).toBe(true);
-		expect(result.showWithNarration).toBe(false);
-		expect(result.showWithAnimation).toBe(false);
+		expect(result.loopContinuously).toBeTruthy();
+		expect(result.showWithNarration).toBeFalsy();
+		expect(result.showWithAnimation).toBeFalsy();
 		expect(result.advanceMode).toBe('manual');
 		expect(result.penColor).toBe('#00FF00');
 		expect(result.showSlidesMode).toBe('range');

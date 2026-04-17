@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { PRESETS, CATEGORIES } from './smart-art-presets';
@@ -21,12 +20,12 @@ describe('pRESETS', () => {
 		for (const preset of PRESETS) {
 			describe(`preset: ${preset.label}`, () => {
 				it('has a non-empty layout string', () => {
-					expect(preset.layout).toBe(true);
+					expect(preset.layout).toBeTruthy();
 					expectTypeOf(preset.layout).toBeString();
 				});
 
 				it('has a non-empty label string', () => {
-					expect(preset.label).toBe(true);
+					expect(preset.label).toBeTruthy();
 					expectTypeOf(preset.label).toBeString();
 				});
 
@@ -35,13 +34,13 @@ describe('pRESETS', () => {
 				});
 
 				it('has a non-empty defaultItems array', () => {
-					expect(Array.isArray(preset.defaultItems)).toBe(true);
+					expect(Array.isArray(preset.defaultItems)).toBeTruthy();
 					expect(preset.defaultItems.length).toBeGreaterThan(0);
 				});
 
 				it('defaultItems are all non-empty strings', () => {
 					for (const item of preset.defaultItems) {
-						expect(item).toBe(true);
+						expect(item).toBeTruthy();
 						expectTypeOf(item).toBeString();
 					}
 				});
@@ -57,28 +56,28 @@ describe('pRESETS', () => {
 	it('categories include all expected categories', () => {
 		const usedCategories = new Set(PRESETS.map((p) => p.category));
 		for (const cat of EXPECTED_CATEGORIES) {
-			expect(usedCategories.has(cat)).toBe(true);
+			expect(usedCategories.has(cat)).toBeTruthy();
 		}
 	});
 
 	it('contains "Basic Block List" preset', () => {
-		expect(PRESETS.some((p) => p.label === 'Basic Block List')).toBe(true);
+		expect(PRESETS.some((p) => p.label === 'Basic Block List')).toBeTruthy();
 	});
 
 	it('contains "Chevron Process" preset', () => {
-		expect(PRESETS.some((p) => p.label === 'Chevron Process')).toBe(true);
+		expect(PRESETS.some((p) => p.label === 'Chevron Process')).toBeTruthy();
 	});
 
 	it('contains "Basic Cycle" preset', () => {
-		expect(PRESETS.some((p) => p.label === 'Basic Cycle')).toBe(true);
+		expect(PRESETS.some((p) => p.label === 'Basic Cycle')).toBeTruthy();
 	});
 
 	it('contains "Hierarchy" preset', () => {
-		expect(PRESETS.some((p) => p.label === 'Hierarchy')).toBe(true);
+		expect(PRESETS.some((p) => p.label === 'Hierarchy')).toBeTruthy();
 	});
 
 	it('contains "Basic Venn" preset', () => {
-		expect(PRESETS.some((p) => p.label === 'Basic Venn')).toBe(true);
+		expect(PRESETS.some((p) => p.label === 'Basic Venn')).toBeTruthy();
 	});
 });
 
@@ -94,7 +93,7 @@ describe('cATEGORIES', () => {
 
 	it('every category has a non-empty label', () => {
 		for (const cat of CATEGORIES) {
-			expect(cat.label).toBe(true);
+			expect(cat.label).toBeTruthy();
 			expectTypeOf(cat.label).toBeString();
 		}
 	});

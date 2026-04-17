@@ -80,19 +80,19 @@ function getXmlLocalName(xmlKey: string): string {
 
 describe('p14_TRANSITION_TYPES', () => {
 	it('contains expected transition types', () => {
-		expect(P14_TRANSITION_TYPES.has('conveyor')).toBe(true);
-		expect(P14_TRANSITION_TYPES.has('doors')).toBe(true);
-		expect(P14_TRANSITION_TYPES.has('flash')).toBe(true);
-		expect(P14_TRANSITION_TYPES.has('honeycomb')).toBe(true);
-		expect(P14_TRANSITION_TYPES.has('vortex')).toBe(true);
-		expect(P14_TRANSITION_TYPES.has('ripple')).toBe(true);
-		expect(P14_TRANSITION_TYPES.has('wheelReverse')).toBe(true);
+		expect(P14_TRANSITION_TYPES.has('conveyor')).toBeTruthy();
+		expect(P14_TRANSITION_TYPES.has('doors')).toBeTruthy();
+		expect(P14_TRANSITION_TYPES.has('flash')).toBeTruthy();
+		expect(P14_TRANSITION_TYPES.has('honeycomb')).toBeTruthy();
+		expect(P14_TRANSITION_TYPES.has('vortex')).toBeTruthy();
+		expect(P14_TRANSITION_TYPES.has('ripple')).toBeTruthy();
+		expect(P14_TRANSITION_TYPES.has('wheelReverse')).toBeTruthy();
 	});
 
 	it('does not contain non-p14 transition types', () => {
-		expect(P14_TRANSITION_TYPES.has('fade')).toBe(false);
-		expect(P14_TRANSITION_TYPES.has('push')).toBe(false);
-		expect(P14_TRANSITION_TYPES.has('wipe')).toBe(false);
+		expect(P14_TRANSITION_TYPES.has('fade')).toBeFalsy();
+		expect(P14_TRANSITION_TYPES.has('push')).toBeFalsy();
+		expect(P14_TRANSITION_TYPES.has('wipe')).toBeFalsy();
 	});
 
 	it('has 18 entries', () => {
@@ -313,7 +313,7 @@ describe('buildP14ExtLst', () => {
 			getXmlLocalName,
 		);
 		const exts = result['p:ext'] as XmlObject[];
-		expect(Array.isArray(exts)).toBe(true);
+		expect(Array.isArray(exts)).toBeTruthy();
 		expect(exts).toHaveLength(2);
 		// First should be the new p14 transition ext
 		expect(exts[0]['p14:vortex']).toBeDefined();
@@ -344,7 +344,7 @@ describe('buildP14ExtLst', () => {
 			getXmlLocalName,
 		);
 		const exts = result['p:ext'] as XmlObject[];
-		expect(Array.isArray(exts)).toBe(true);
+		expect(Array.isArray(exts)).toBeTruthy();
 		expect(exts).toHaveLength(2);
 		// Old p14:flash should be gone, replaced by p14:vortex
 		expect(exts[0]['p14:vortex']).toBeDefined();

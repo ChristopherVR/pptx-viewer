@@ -37,14 +37,14 @@ describe('pressure sensitivity auto-detection', () => {
 		const el = makeInkElement({
 			inkWidths: [1, 3, 5, 2, 4],
 		});
-		expect(hasPressureVariation(el.inkWidths!)).toBe(true);
+		expect(hasPressureVariation(el.inkWidths!)).toBeTruthy();
 	});
 
 	it('should not detect pressure variation with uniform widths', () => {
 		const el = makeInkElement({
 			inkWidths: [3, 3, 3],
 		});
-		expect(hasPressureVariation(el.inkWidths!)).toBe(false);
+		expect(hasPressureVariation(el.inkWidths!)).toBeFalsy();
 	});
 
 	it('should not detect pressure for missing widths', () => {
@@ -77,14 +77,14 @@ describe('pressure sensitivity auto-detection', () => {
 		});
 		expect(el.inkPointPressures).toBeDefined();
 		expect(el.inkPointPressures![0]).toHaveLength(3);
-		expect(hasPressureVariation(el.inkPointPressures![0])).toBe(true);
+		expect(hasPressureVariation(el.inkPointPressures![0])).toBeTruthy();
 	});
 
 	it('should not treat uniform inkPointPressures as having variation', () => {
 		const el = makeInkElement({
 			inkPointPressures: [[0.5, 0.5, 0.5]],
 		});
-		expect(hasPressureVariation(el.inkPointPressures![0])).toBe(false);
+		expect(hasPressureVariation(el.inkPointPressures![0])).toBeFalsy();
 	});
 });
 
@@ -216,8 +216,8 @@ describe('inkRenderOptions', () => {
 			pressureSensitive: true,
 			replayConfig: { strokeDurationMs: 500 },
 		};
-		expect(opts.replay).toBe(true);
-		expect(opts.pressureSensitive).toBe(true);
+		expect(opts.replay).toBeTruthy();
+		expect(opts.pressureSensitive).toBeTruthy();
 		expect(opts.replayConfig?.strokeDurationMs).toBe(500);
 	});
 

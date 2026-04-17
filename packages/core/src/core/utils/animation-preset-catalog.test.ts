@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import {
 	ENTRANCE_PRESETS,
@@ -42,9 +42,9 @@ describe('animation preset catalog', () => {
 
 	it('all presets have required fields', () => {
 		for (const preset of ALL_ANIMATION_PRESETS) {
-			expect(preset.presetId).toBe(true);
-			expect(preset.label).toBe(true);
-			expect(preset.category).toBe(true);
+			expect(preset.presetId).toBeTruthy();
+			expect(preset.label).toBeTruthy();
+			expect(preset.category).toBeTruthy();
 			expectTypeOf(preset.defaultDurationMs).toBeNumber();
 			expectTypeOf(preset.hasDirection).toBeBoolean();
 			expectTypeOf(preset.hasTextBuild).toBeBoolean();

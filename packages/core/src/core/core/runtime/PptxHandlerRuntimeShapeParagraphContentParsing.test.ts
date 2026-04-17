@@ -304,19 +304,19 @@ describe('collectParagraphTextParts', () => {
 	it('should add [Equation] for math elements (a14:m)', () => {
 		const result = collectParagraphTextParts({ 'a14:m': { 'm:oMath': {} } }, 0, 1);
 		expect(result.parts).toContain('[Equation]');
-		expect(result.hasMathElements).toBe(true);
+		expect(result.hasMathElements).toBeTruthy();
 	});
 
 	it('should add [Equation] for m:oMathPara', () => {
 		const result = collectParagraphTextParts({ 'm:oMathPara': { 'm:oMath': {} } }, 0, 1);
 		expect(result.parts).toContain('[Equation]');
-		expect(result.hasMathElements).toBe(true);
+		expect(result.hasMathElements).toBeTruthy();
 	});
 
 	it('should add [Equation] for m:oMath', () => {
 		const result = collectParagraphTextParts({ 'm:oMath': {} }, 0, 1);
 		expect(result.parts).toContain('[Equation]');
-		expect(result.hasMathElements).toBe(true);
+		expect(result.hasMathElements).toBeTruthy();
 	});
 
 	it('should handle line breaks (a:br)', () => {
@@ -380,7 +380,7 @@ describe('collectParagraphTextParts', () => {
 			1,
 		);
 		expect(result.parts).toStrictEqual(['The formula is ', '[Equation]']);
-		expect(result.hasMathElements).toBe(true);
+		expect(result.hasMathElements).toBeTruthy();
 		expect(result.runCount).toBe(1);
 	});
 
@@ -408,7 +408,7 @@ describe('collectParagraphTextParts', () => {
 		);
 		// a:r key comes first, so both runs are processed, then mc:AlternateContent
 		expect(result.parts).toStrictEqual(['Before ', ' after', '[Equation]']);
-		expect(result.hasMathElements).toBe(true);
+		expect(result.hasMathElements).toBeTruthy();
 	});
 
 	it('should handle standalone a14:m inline math (no mc:AlternateContent wrapper)', () => {
@@ -421,7 +421,7 @@ describe('collectParagraphTextParts', () => {
 			1,
 		);
 		expect(result.parts).toStrictEqual(['See: ', '[Equation]']);
-		expect(result.hasMathElements).toBe(true);
+		expect(result.hasMathElements).toBeTruthy();
 	});
 
 	it('should handle mc:AlternateContent with non-math content as fallback', () => {
@@ -444,7 +444,7 @@ describe('collectParagraphTextParts', () => {
 			1,
 		);
 		expect(result.parts).toStrictEqual(['Before ', 'fallback text']);
-		expect(result.hasMathElements).toBe(false);
+		expect(result.hasMathElements).toBeFalsy();
 	});
 });
 

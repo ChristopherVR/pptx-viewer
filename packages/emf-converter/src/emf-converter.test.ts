@@ -13,23 +13,23 @@ import { replayWmfRecords } from './wmf-replay';
 // ---------------------------------------------------------------------------
 
 vi.mock<typeof import('./emf-header-parser')>(import('./emf-header-parser'), () => ({
-	parseEmfHeader: vi.fn(),
-	getRenderableEmfBounds: vi.fn(),
-	parseWmfHeader: vi.fn(),
+	parseEmfHeader: vi.fn<() => void>(),
+	getRenderableEmfBounds: vi.fn<() => void>(),
+	parseWmfHeader: vi.fn<() => void>(),
 }));
 
 vi.mock<typeof import('./emf-canvas-helpers')>(import('./emf-canvas-helpers'), () => ({
-	createCanvas: vi.fn(),
-	exportCanvasToPngDataUrl: vi.fn(),
+	createCanvas: vi.fn<() => void>(),
+	exportCanvasToPngDataUrl: vi.fn<() => void>(),
 	DEFAULT_DPI_SCALE: 2,
 }));
 
 vi.mock<typeof import('./emf-record-replay')>(import('./emf-record-replay'), () => ({
-	replayEmfRecords: vi.fn(),
+	replayEmfRecords: vi.fn<() => void>(),
 }));
 
 vi.mock<typeof import('./wmf-replay')>(import('./wmf-replay'), () => ({
-	replayWmfRecords: vi.fn(),
+	replayWmfRecords: vi.fn<() => void>(),
 }));
 
 // ---------------------------------------------------------------------------
@@ -38,10 +38,10 @@ vi.mock<typeof import('./wmf-replay')>(import('./wmf-replay'), () => ({
 
 function makeCtxStub() {
 	return {
-		save: vi.fn(),
-		restore: vi.fn(),
-		setTransform: vi.fn(),
-		drawImage: vi.fn(),
+		save: vi.fn<() => void>(),
+		restore: vi.fn<() => void>(),
+		setTransform: vi.fn<() => void>(),
+		drawImage: vi.fn<() => void>(),
 	};
 }
 

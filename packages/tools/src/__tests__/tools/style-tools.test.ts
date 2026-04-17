@@ -19,7 +19,7 @@ describe('updateElementStyle', () => {
 			elementId: 'shape-0',
 			fillColor: '#00ff00',
 		});
-		expect(result.dirty).toBe(true);
+		expect(result.dirty).toBeTruthy();
 		expect(result.result.elementId).toBe('shape-0');
 		const el = c.pptxData.slides[0].elements.find((e) => e.id === 'shape-0');
 		expect((el as { shapeStyle?: ShapeStyle }).shapeStyle?.fillColor).toBe('#00ff00');
@@ -142,7 +142,7 @@ describe('updateElementStyle', () => {
 		const el = c.pptxData.slides[0].elements.find((e) => e.id === 'img-0') as ImagePptxElement;
 		expect(el.imageEffects?.brightness).toBe(20);
 		expect(el.imageEffects?.contrast).toBe(-10);
-		expect(el.imageEffects?.grayscale).toBe(true);
+		expect(el.imageEffects?.grayscale).toBeTruthy();
 	});
 
 	it('throws on nonexistent element', () => {
@@ -171,7 +171,7 @@ describe('updateElementStyle', () => {
 describe('runAccessibilityCheck', () => {
 	it('returns non-dirty result', () => {
 		const result = runAccessibilityCheck(ctx());
-		expect(result.dirty).toBe(false);
+		expect(result.dirty).toBeFalsy();
 	});
 
 	it('reports slide count', () => {

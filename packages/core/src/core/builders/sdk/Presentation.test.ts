@@ -651,7 +651,7 @@ describe('presentation.removeSection()', () => {
 		const section = pptx.addSection('Introduction', [0, 1]);
 
 		const removed = pptx.removeSection(section.id);
-		expect(removed).toBe(true);
+		expect(removed).toBeTruthy();
 		expect(pptx.data.sections!).toHaveLength(0);
 	});
 
@@ -668,13 +668,13 @@ describe('presentation.removeSection()', () => {
 	it('returns false for nonexistent section ID', async () => {
 		const pptx = await createWithSlides(1);
 		const removed = pptx.removeSection('nonexistent');
-		expect(removed).toBe(false);
+		expect(removed).toBeFalsy();
 	});
 
 	it('returns false when no sections exist', async () => {
 		const pptx = await createWithSlides(1);
 		const removed = pptx.removeSection('any_id');
-		expect(removed).toBe(false);
+		expect(removed).toBeFalsy();
 	});
 });
 
@@ -886,7 +886,7 @@ describe('presentation getters', () => {
 		const pptx = await Presentation.create();
 		expect(pptx.data).toBeDefined();
 		expect(pptx.data.slides).toBeDefined();
-		expect(Array.isArray(pptx.data.slides)).toBe(true);
+		expect(Array.isArray(pptx.data.slides)).toBeTruthy();
 	});
 
 	it('slides returns a live reference to the slides array', async () => {

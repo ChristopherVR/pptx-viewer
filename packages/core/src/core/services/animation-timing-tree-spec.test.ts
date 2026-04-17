@@ -297,7 +297,7 @@ describe('animation timing tree: extractRepeatInfo', () => {
 		};
 
 		const result = extractRepeatInfo(cTn);
-		expect(result.autoReverse).toBe(true);
+		expect(result.autoReverse).toBeTruthy();
 	});
 
 	it('should detect autoReverse when @_autoRev is boolean true', () => {
@@ -308,7 +308,7 @@ describe('animation timing tree: extractRepeatInfo', () => {
 		};
 
 		const result = extractRepeatInfo(cTn);
-		expect(result.autoReverse).toBe(true);
+		expect(result.autoReverse).toBeTruthy();
 	});
 
 	it('should return no repeat info when attributes are absent', () => {
@@ -343,7 +343,7 @@ describe('animation timing tree: extractSoundAction', () => {
 		};
 
 		const result = extractSoundAction(cTn);
-		expect(result.stopSound).toBe(true);
+		expect(result.stopSound).toBeTruthy();
 		expect(result.soundRId).toBeUndefined();
 	});
 
@@ -543,11 +543,11 @@ describe('animation timing tree: ensureArray and isXmlObject', () => {
 	});
 
 	it('should correctly identify XmlObjects', () => {
-		expect(isXmlObject({ '@_id': '1' })).toBe(true);
-		expect(isXmlObject({})).toBe(true);
-		expect(isXmlObject(null)).toBe(false);
-		expect(isXmlObject([])).toBe(false);
-		expect(isXmlObject('string')).toBe(false);
-		expect(isXmlObject(42)).toBe(false);
+		expect(isXmlObject({ '@_id': '1' })).toBeTruthy();
+		expect(isXmlObject({})).toBeTruthy();
+		expect(isXmlObject(null)).toBeFalsy();
+		expect(isXmlObject([])).toBeFalsy();
+		expect(isXmlObject('string')).toBeFalsy();
+		expect(isXmlObject(42)).toBeFalsy();
 	});
 });

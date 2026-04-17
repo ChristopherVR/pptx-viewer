@@ -78,7 +78,7 @@ describe('applyLineProperties — noFill', () => {
 		const lineNode: XmlObject = { 'a:noFill': {} };
 		const style = makeStyle();
 		const result = applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
-		expect(result).toBe(true);
+		expect(result).toBeTruthy();
 		expect(style.strokeWidth).toBe(0);
 		expect(style.strokeColor).toBe('transparent');
 	});
@@ -91,7 +91,7 @@ describe('applyLineProperties — noFill', () => {
 			'a:solidFill': { 'a:srgbClr': { '@_val': 'FF0000' } },
 		};
 		const result = applyLineProperties(lineNode, {}, style, makeContext(), () => hiddenLineProps);
-		expect(result).toBe(true);
+		expect(result).toBeTruthy();
 		// 19050 / 9525 = 2
 		expect(style.strokeWidth).toBe(2);
 		expect(style.strokeColor).toBe('#FF0000');

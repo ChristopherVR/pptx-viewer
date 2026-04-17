@@ -12,48 +12,48 @@ function createMockParams(overrides?: Partial<PptxSlideLoaderParams>): PptxSlide
 	return {
 		presentationData: {},
 		parser: {
-			parse: vi.fn(() => ({})),
+			parse: vi.fn<(...args: any[]) => any>(() => ({})),
 		} as unknown as PptxSlideLoaderParams['parser'],
 		zip: {
-			file: vi.fn(() => null),
+			file: vi.fn<(...args: any[]) => any>(() => null),
 		} as unknown as PptxSlideLoaderParams['zip'],
 		slideMap: new Map(),
 		sectionBySlideId: new Map(),
 		compatibilityService: {
-			inspectSlideCompatibility: vi.fn(),
+			inspectSlideCompatibility: vi.fn<() => void>(),
 		} as unknown as PptxSlideLoaderParams['compatibilityService'],
-		setOrderedSlidePaths: vi.fn(),
-		loadSlideRelationships: vi.fn(async () => {}),
-		parseSlideClrMapOverride: vi.fn(() => null),
-		setCurrentSlideClrMapOverride: vi.fn(),
-		findLayoutPathForSlide: vi.fn(() => undefined),
-		loadThemeOverride: vi.fn(async () => undefined),
-		applyThemeOverrideState: vi.fn(() => () => {}),
-		getLayoutElements: vi.fn(async () => []),
-		parseSlide: vi.fn(async () => []),
-		extractMediaTimingMap: vi.fn(() => new Map()),
-		enrichMediaElementsWithTiming: vi.fn(async () => {}),
-		extractBackgroundColor: vi.fn(() => undefined),
-		getLayoutBackgroundColor: vi.fn(async () => undefined),
-		extractBackgroundGradient: vi.fn(() => undefined),
-		getLayoutBackgroundGradient: vi.fn(async () => undefined),
-		extractBackgroundImage: vi.fn(async () => undefined),
-		getLayoutBackgroundImage: vi.fn(async () => undefined),
-		extractSlideNotes: vi.fn(async () => ({
+		setOrderedSlidePaths: vi.fn<() => void>(),
+		loadSlideRelationships: vi.fn<(...args: any[]) => any>(async () => {}),
+		parseSlideClrMapOverride: vi.fn<(...args: any[]) => any>(() => null),
+		setCurrentSlideClrMapOverride: vi.fn<() => void>(),
+		findLayoutPathForSlide: vi.fn<(...args: any[]) => any>(() => undefined),
+		loadThemeOverride: vi.fn<(...args: any[]) => any>(async () => undefined),
+		applyThemeOverrideState: vi.fn<(...args: any[]) => any>(() => () => {}),
+		getLayoutElements: vi.fn<(...args: any[]) => any>(async () => []),
+		parseSlide: vi.fn<(...args: any[]) => any>(async () => []),
+		extractMediaTimingMap: vi.fn<(...args: any[]) => any>(() => new Map()),
+		enrichMediaElementsWithTiming: vi.fn<(...args: any[]) => any>(async () => {}),
+		extractBackgroundColor: vi.fn<(...args: any[]) => any>(() => undefined),
+		getLayoutBackgroundColor: vi.fn<(...args: any[]) => any>(async () => undefined),
+		extractBackgroundGradient: vi.fn<(...args: any[]) => any>(() => undefined),
+		getLayoutBackgroundGradient: vi.fn<(...args: any[]) => any>(async () => undefined),
+		extractBackgroundImage: vi.fn<(...args: any[]) => any>(async () => undefined),
+		getLayoutBackgroundImage: vi.fn<(...args: any[]) => any>(async () => undefined),
+		extractSlideNotes: vi.fn<(...args: any[]) => any>(async () => ({
 			notes: undefined,
 			notesSegments: undefined,
 		})),
-		extractSlideComments: vi.fn(async () => []),
-		extractModernSlideComments: vi.fn(async () => []),
-		isSlideHidden: vi.fn(() => false),
-		extractBackgroundShowAnimation: vi.fn(() => undefined),
-		extractShowMasterShapes: vi.fn(() => undefined),
-		parseSlideTransition: vi.fn(() => undefined),
-		parseEditorAnimations: vi.fn(() => undefined),
-		parseNativeAnimations: vi.fn(() => undefined),
-		getSmartArtDataForGraphicFrame: vi.fn(async () => undefined),
-		parseSlideCustomerData: vi.fn(async () => []),
-		parseSlideActiveXControls: vi.fn(() => []),
+		extractSlideComments: vi.fn<(...args: any[]) => any>(async () => []),
+		extractModernSlideComments: vi.fn<(...args: any[]) => any>(async () => []),
+		isSlideHidden: vi.fn<(...args: any[]) => any>(() => false),
+		extractBackgroundShowAnimation: vi.fn<(...args: any[]) => any>(() => undefined),
+		extractShowMasterShapes: vi.fn<(...args: any[]) => any>(() => undefined),
+		parseSlideTransition: vi.fn<(...args: any[]) => any>(() => undefined),
+		parseEditorAnimations: vi.fn<(...args: any[]) => any>(() => undefined),
+		parseNativeAnimations: vi.fn<(...args: any[]) => any>(() => undefined),
+		getSmartArtDataForGraphicFrame: vi.fn<(...args: any[]) => any>(async () => undefined),
+		parseSlideCustomerData: vi.fn<(...args: any[]) => any>(async () => []),
+		parseSlideActiveXControls: vi.fn<(...args: any[]) => any>(() => []),
 		...overrides,
 	} as PptxSlideLoaderParams;
 }
@@ -127,16 +127,16 @@ describe('pptxSlideLoaderService', () => {
 
 			const mockFile = (path: string) => {
 				if (path === 'ppt/_rels/presentation.xml.rels') {
-					return { async: vi.fn(async () => relsXml) };
+					return { async: vi.fn<(...args: any[]) => any>(async () => relsXml) };
 				}
 				if (path === 'ppt/slides/slide1.xml') {
-					return { async: vi.fn(async () => slideXml) };
+					return { async: vi.fn<(...args: any[]) => any>(async () => slideXml) };
 				}
 				return null;
 			};
 
 			const mockParser = {
-				parse: vi.fn((xml: string) => {
+				parse: vi.fn<(...args: any[]) => any>((xml: string) => {
 					if (xml === relsXml) {
 						return relsParsed;
 					}
@@ -159,7 +159,7 @@ describe('pptxSlideLoaderService', () => {
 					},
 				},
 				zip: {
-					file: vi.fn(mockFile),
+					file: vi.fn<(...args: any[]) => any>(mockFile),
 				} as unknown as PptxSlideLoaderParams['zip'],
 				parser: mockParser as unknown as PptxSlideLoaderParams['parser'],
 			});
@@ -189,18 +189,18 @@ describe('pptxSlideLoaderService', () => {
 
 			const mockFile = (path: string) => {
 				if (path === 'ppt/_rels/presentation.xml.rels') {
-					return { async: vi.fn(async () => relsXml) };
+					return { async: vi.fn<(...args: any[]) => any>(async () => relsXml) };
 				}
 				if (path === 'ppt/slides/slide1.xml' || path === 'ppt/slides/slide2.xml') {
 					return {
-						async: vi.fn(async () => '<p:sld></p:sld>'),
+						async: vi.fn<(...args: any[]) => any>(async () => '<p:sld></p:sld>'),
 					};
 				}
 				return null;
 			};
 
 			const mockParser = {
-				parse: vi.fn((xml: string) => {
+				parse: vi.fn<(...args: any[]) => any>((xml: string) => {
 					if (xml === relsXml) {
 						return relsParsed;
 					}
@@ -208,7 +208,7 @@ describe('pptxSlideLoaderService', () => {
 				}),
 			};
 
-			const setOrderedSlidePaths = vi.fn();
+			const setOrderedSlidePaths = vi.fn<() => void>();
 			const params = createMockParams({
 				presentationData: {
 					'p:presentation': {
@@ -221,7 +221,7 @@ describe('pptxSlideLoaderService', () => {
 					},
 				},
 				zip: {
-					file: vi.fn(mockFile),
+					file: vi.fn<(...args: any[]) => any>(mockFile),
 				} as unknown as PptxSlideLoaderParams['zip'],
 				parser: mockParser as unknown as PptxSlideLoaderParams['parser'],
 				setOrderedSlidePaths,
@@ -252,13 +252,13 @@ describe('pptxSlideLoaderService', () => {
 
 			const mockFile = (path: string) => {
 				if (path === 'ppt/_rels/presentation.xml.rels') {
-					return { async: vi.fn(async () => relsXml) };
+					return { async: vi.fn<(...args: any[]) => any>(async () => relsXml) };
 				}
 				return null;
 			};
 
 			const mockParser = {
-				parse: vi.fn(() => relsParsed),
+				parse: vi.fn<(...args: any[]) => any>(() => relsParsed),
 			};
 
 			const params = createMockParams({
@@ -273,7 +273,7 @@ describe('pptxSlideLoaderService', () => {
 					},
 				},
 				zip: {
-					file: vi.fn(mockFile),
+					file: vi.fn<(...args: any[]) => any>(mockFile),
 				} as unknown as PptxSlideLoaderParams['zip'],
 				parser: mockParser as unknown as PptxSlideLoaderParams['parser'],
 			});
@@ -295,17 +295,17 @@ describe('pptxSlideLoaderService', () => {
 
 			const mockFile = (path: string) => {
 				if (path === 'ppt/_rels/presentation.xml.rels') {
-					return { async: vi.fn(async () => relsXml) };
+					return { async: vi.fn<(...args: any[]) => any>(async () => relsXml) };
 				}
 				// Return file entry that yields null content
 				if (path === 'ppt/slides/slide1.xml') {
-					return { async: vi.fn(async () => undefined) };
+					return { async: vi.fn<(...args: any[]) => any>(async () => undefined) };
 				}
 				return null;
 			};
 
 			const mockParser = {
-				parse: vi.fn((xml: string) => {
+				parse: vi.fn<(...args: any[]) => any>((xml: string) => {
 					if (xml === relsXml) {
 						return relsParsed;
 					}
@@ -325,7 +325,7 @@ describe('pptxSlideLoaderService', () => {
 					},
 				},
 				zip: {
-					file: vi.fn(mockFile),
+					file: vi.fn<(...args: any[]) => any>(mockFile),
 				} as unknown as PptxSlideLoaderParams['zip'],
 				parser: mockParser as unknown as PptxSlideLoaderParams['parser'],
 			});
@@ -352,19 +352,19 @@ describe('pptxSlideLoaderService', () => {
 			const slideXml = '<p:sld></p:sld>';
 			const slideXmlParsed: XmlObject = { 'p:sld': {} };
 
-			const restoreFn = vi.fn();
+			const restoreFn = vi.fn<() => void>();
 			const mockFile = (path: string) => {
 				if (path === 'ppt/_rels/presentation.xml.rels') {
-					return { async: vi.fn(async () => relsXml) };
+					return { async: vi.fn<(...args: any[]) => any>(async () => relsXml) };
 				}
 				if (path === 'ppt/slides/slide1.xml') {
-					return { async: vi.fn(async () => slideXml) };
+					return { async: vi.fn<(...args: any[]) => any>(async () => slideXml) };
 				}
 				return null;
 			};
 
 			const mockParser = {
-				parse: vi.fn((xml: string) => {
+				parse: vi.fn<(...args: any[]) => any>((xml: string) => {
 					if (xml === relsXml) {
 						return relsParsed;
 					}
@@ -387,14 +387,16 @@ describe('pptxSlideLoaderService', () => {
 					},
 				},
 				zip: {
-					file: vi.fn(mockFile),
+					file: vi.fn<(...args: any[]) => any>(mockFile),
 				} as unknown as PptxSlideLoaderParams['zip'],
 				parser: mockParser as unknown as PptxSlideLoaderParams['parser'],
-				findLayoutPathForSlide: vi.fn(() => 'ppt/slideLayouts/slideLayout1.xml'),
-				loadThemeOverride: vi.fn(async () => ({
+				findLayoutPathForSlide: vi.fn<(...args: any[]) => any>(
+					() => 'ppt/slideLayouts/slideLayout1.xml',
+				),
+				loadThemeOverride: vi.fn<(...args: any[]) => any>(async () => ({
 					themeColors: {},
 				})),
-				applyThemeOverrideState: vi.fn(() => restoreFn),
+				applyThemeOverrideState: vi.fn<(...args: any[]) => any>(() => restoreFn),
 			});
 
 			await service.loadSlides(params);
@@ -414,19 +416,19 @@ describe('pptxSlideLoaderService', () => {
 			const slideXml = '<p:sld></p:sld>';
 			const slideXmlParsed: XmlObject = { 'p:sld': {} };
 
-			const setCurrentSlideClrMapOverride = vi.fn();
+			const setCurrentSlideClrMapOverride = vi.fn<() => void>();
 			const mockFile = (path: string) => {
 				if (path === 'ppt/_rels/presentation.xml.rels') {
-					return { async: vi.fn(async () => relsXml) };
+					return { async: vi.fn<(...args: any[]) => any>(async () => relsXml) };
 				}
 				if (path === 'ppt/slides/slide1.xml') {
-					return { async: vi.fn(async () => slideXml) };
+					return { async: vi.fn<(...args: any[]) => any>(async () => slideXml) };
 				}
 				return null;
 			};
 
 			const mockParser = {
-				parse: vi.fn((xml: string) => {
+				parse: vi.fn<(...args: any[]) => any>((xml: string) => {
 					if (xml === relsXml) {
 						return relsParsed;
 					}
@@ -449,7 +451,7 @@ describe('pptxSlideLoaderService', () => {
 					},
 				},
 				zip: {
-					file: vi.fn(mockFile),
+					file: vi.fn<(...args: any[]) => any>(mockFile),
 				} as unknown as PptxSlideLoaderParams['zip'],
 				parser: mockParser as unknown as PptxSlideLoaderParams['parser'],
 				setCurrentSlideClrMapOverride,
@@ -483,16 +485,16 @@ describe('pptxSlideLoaderService', () => {
 
 			const mockFile = (path: string) => {
 				if (path === 'ppt/_rels/presentation.xml.rels') {
-					return { async: vi.fn(async () => relsXml) };
+					return { async: vi.fn<(...args: any[]) => any>(async () => relsXml) };
 				}
 				if (path === 'ppt/slides/slide1.xml') {
-					return { async: vi.fn(async () => slideXml) };
+					return { async: vi.fn<(...args: any[]) => any>(async () => slideXml) };
 				}
 				return null;
 			};
 
 			const mockParser = {
-				parse: vi.fn((xml: string) => {
+				parse: vi.fn<(...args: any[]) => any>((xml: string) => {
 					if (xml === relsXml) {
 						return relsParsed;
 					}
@@ -515,7 +517,7 @@ describe('pptxSlideLoaderService', () => {
 					},
 				},
 				zip: {
-					file: vi.fn(mockFile),
+					file: vi.fn<(...args: any[]) => any>(mockFile),
 				} as unknown as PptxSlideLoaderParams['zip'],
 				parser: mockParser as unknown as PptxSlideLoaderParams['parser'],
 			});

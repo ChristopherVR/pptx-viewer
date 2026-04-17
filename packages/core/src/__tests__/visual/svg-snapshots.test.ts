@@ -1016,7 +1016,7 @@ describe('sVG Visual Snapshots', () => {
 		const svgs = SvgExporter.exportAll({ slides: [slide1, slide2], width: WIDTH, height: HEIGHT });
 
 		expect(svgs).toHaveLength(2);
-		expect(svgs[0]).toMatchSnapshot();
-		expect(svgs[1]).toMatchSnapshot();
+		expect(svgs[0]).toMatchSnapshot('slide1');
+		expect(svgs[1]).toMatchSnapshot('slide2');
 	});
 });

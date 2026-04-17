@@ -184,7 +184,7 @@ describe('resolveFontForScript', () => {
 
 describe('hasDistinctScriptFonts', () => {
 	it('should return false when no base latin font is set', () => {
-		expect(hasDistinctScriptFonts({})).toBe(false);
+		expect(hasDistinctScriptFonts({})).toBeFalsy();
 	});
 
 	it('should return false when all fonts match latin', () => {
@@ -195,7 +195,7 @@ describe('hasDistinctScriptFonts', () => {
 				complexScript: 'Arial',
 				symbol: 'Arial',
 			}),
-		).toBe(false);
+		).toBeFalsy();
 	});
 
 	it('should return true when eastAsia differs from latin', () => {
@@ -204,7 +204,7 @@ describe('hasDistinctScriptFonts', () => {
 				latin: 'Arial',
 				eastAsia: 'MS Mincho',
 			}),
-		).toBe(true);
+		).toBeTruthy();
 	});
 
 	it('should return true when complexScript differs from latin', () => {
@@ -213,7 +213,7 @@ describe('hasDistinctScriptFonts', () => {
 				latin: 'Arial',
 				complexScript: 'Tahoma',
 			}),
-		).toBe(true);
+		).toBeTruthy();
 	});
 
 	it('should return true when symbol differs from latin', () => {
@@ -222,10 +222,10 @@ describe('hasDistinctScriptFonts', () => {
 				latin: 'Arial',
 				symbol: 'Wingdings',
 			}),
-		).toBe(true);
+		).toBeTruthy();
 	});
 
 	it('should return false when only latin is set (no script-specific fonts)', () => {
-		expect(hasDistinctScriptFonts({ latin: 'Arial' })).toBe(false);
+		expect(hasDistinctScriptFonts({ latin: 'Arial' })).toBeFalsy();
 	});
 });

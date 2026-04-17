@@ -55,7 +55,7 @@ function makeSummaryZoomSlide(): PptxSlide {
 describe('isZoomElement', () => {
 	it('returns true for zoom elements', () => {
 		const el = makeZoomElement();
-		expect(isZoomElement(el)).toBe(true);
+		expect(isZoomElement(el)).toBeTruthy();
 	});
 
 	it('returns false for non-zoom elements', () => {
@@ -67,7 +67,7 @@ describe('isZoomElement', () => {
 			width: 100,
 			height: 100,
 		} as PptxElement;
-		expect(isZoomElement(el)).toBe(false);
+		expect(isZoomElement(el)).toBeFalsy();
 	});
 
 	it('returns false for image elements', () => {
@@ -79,7 +79,7 @@ describe('isZoomElement', () => {
 			width: 100,
 			height: 100,
 		} as PptxElement;
-		expect(isZoomElement(el)).toBe(false);
+		expect(isZoomElement(el)).toBeFalsy();
 	});
 });
 
@@ -127,14 +127,14 @@ describe('isSummaryZoomSlide', () => {
 		const slide = makeSlide({
 			elements: [{ id: 'txt_1', type: 'text', x: 0, y: 0, width: 100, height: 50 } as PptxElement],
 		});
-		expect(isSummaryZoomSlide(slide)).toBe(false);
+		expect(isSummaryZoomSlide(slide)).toBeFalsy();
 	});
 
 	it('returns false for a slide with only one zoom element', () => {
 		const slide = makeSlide({
 			elements: [makeZoomElement({ targetSlideIndex: 3 })],
 		});
-		expect(isSummaryZoomSlide(slide)).toBe(false);
+		expect(isSummaryZoomSlide(slide)).toBeFalsy();
 	});
 
 	it('returns false when multiple zoom elements target the same slide', () => {
@@ -144,12 +144,12 @@ describe('isSummaryZoomSlide', () => {
 				makeZoomElement({ id: 'zm_2', targetSlideIndex: 3 }),
 			],
 		});
-		expect(isSummaryZoomSlide(slide)).toBe(false);
+		expect(isSummaryZoomSlide(slide)).toBeFalsy();
 	});
 
 	it('returns true for a slide with multiple zoom elements targeting distinct slides', () => {
 		const slide = makeSummaryZoomSlide();
-		expect(isSummaryZoomSlide(slide)).toBe(true);
+		expect(isSummaryZoomSlide(slide)).toBeTruthy();
 	});
 
 	it('returns true for exactly two zoom elements targeting different slides', () => {
@@ -159,12 +159,12 @@ describe('isSummaryZoomSlide', () => {
 				makeZoomElement({ id: 'zm_2', targetSlideIndex: 4 }),
 			],
 		});
-		expect(isSummaryZoomSlide(slide)).toBe(true);
+		expect(isSummaryZoomSlide(slide)).toBeTruthy();
 	});
 
 	it('returns false for an empty slide', () => {
 		const slide = makeSlide({ elements: [] });
-		expect(isSummaryZoomSlide(slide)).toBe(false);
+		expect(isSummaryZoomSlide(slide)).toBeFalsy();
 	});
 });
 
@@ -213,7 +213,7 @@ describe('shouldReturnToZoomSlide', () => {
 			targetSlideIndex: 2,
 			targetSectionId: 'sec_1',
 		});
-		expect(shouldReturnToZoomSlide(sectionZoom, summarySlide)).toBe(true);
+		expect(shouldReturnToZoomSlide(sectionZoom, summarySlide)).toBeTruthy();
 	});
 
 	it('returns true for slide zoom on a summary slide', () => {
@@ -222,7 +222,7 @@ describe('shouldReturnToZoomSlide', () => {
 			zoomType: 'slide',
 			targetSlideIndex: 5,
 		});
-		expect(shouldReturnToZoomSlide(slideZoom, summarySlide)).toBe(true);
+		expect(shouldReturnToZoomSlide(slideZoom, summarySlide)).toBeTruthy();
 	});
 
 	it('returns false for zoom on a non-summary slide', () => {
@@ -230,7 +230,7 @@ describe('shouldReturnToZoomSlide', () => {
 			elements: [makeZoomElement({ targetSlideIndex: 3 })],
 		});
 		const zoom = makeZoomElement({ targetSlideIndex: 3 });
-		expect(shouldReturnToZoomSlide(zoom, normalSlide)).toBe(false);
+		expect(shouldReturnToZoomSlide(zoom, normalSlide)).toBeFalsy();
 	});
 });
 

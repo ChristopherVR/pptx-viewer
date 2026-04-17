@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import {
@@ -10,85 +9,85 @@ import {
 
 describe('sVG_WARP_PRESETS', () => {
 	it('should contain all priority 1 presets', () => {
-		expect(SVG_WARP_PRESETS.has('textArchUp')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textArchDown')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textCircle')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textWave1')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textInflate')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textDeflate')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textCurveUp')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textCurveDown')).toBe(true);
+		expect(SVG_WARP_PRESETS.has('textArchUp')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textArchDown')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textCircle')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textWave1')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textInflate')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textDeflate')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textCurveUp')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textCurveDown')).toBeTruthy();
 	});
 
 	it('should contain priority 2 presets', () => {
-		expect(SVG_WARP_PRESETS.has('textWave2')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textCascadeUp')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textCascadeDown')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textButton')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textRingInside')).toBe(true);
+		expect(SVG_WARP_PRESETS.has('textWave2')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textCascadeUp')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textCascadeDown')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textButton')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textRingInside')).toBeTruthy();
 	});
 
 	it('should contain priority 3 presets', () => {
-		expect(SVG_WARP_PRESETS.has('textTriangle')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textStop')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textChevron')).toBe(true);
+		expect(SVG_WARP_PRESETS.has('textTriangle')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textStop')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textChevron')).toBeTruthy();
 	});
 
 	it('should contain priority 4 presets (slant, fade, pour, compound)', () => {
-		expect(SVG_WARP_PRESETS.has('textSlantUp')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textSlantDown')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textFadeRight')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textFadeLeft')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textFadeUp')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textFadeDown')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textArchUpPour')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textArchDownPour')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textCirclePour')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textButtonPour')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textDeflateInflate')).toBe(true);
-		expect(SVG_WARP_PRESETS.has('textDeflateInflateDeflate')).toBe(true);
+		expect(SVG_WARP_PRESETS.has('textSlantUp')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textSlantDown')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textFadeRight')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textFadeLeft')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textFadeUp')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textFadeDown')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textArchUpPour')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textArchDownPour')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textCirclePour')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textButtonPour')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textDeflateInflate')).toBeTruthy();
+		expect(SVG_WARP_PRESETS.has('textDeflateInflateDeflate')).toBeTruthy();
 	});
 
 	it('should not contain plain text presets', () => {
-		expect(SVG_WARP_PRESETS.has('textNoShape')).toBe(false);
-		expect(SVG_WARP_PRESETS.has('textPlain')).toBe(false);
+		expect(SVG_WARP_PRESETS.has('textNoShape')).toBeFalsy();
+		expect(SVG_WARP_PRESETS.has('textPlain')).toBeFalsy();
 	});
 });
 
 describe('shouldUseSvgWarp', () => {
 	it('should return false for undefined preset', () => {
-		expect(shouldUseSvgWarp(undefined)).toBe(false);
+		expect(shouldUseSvgWarp(undefined)).toBeFalsy();
 	});
 
 	it('should return false for "textNoShape"', () => {
-		expect(shouldUseSvgWarp('textNoShape')).toBe(false);
+		expect(shouldUseSvgWarp('textNoShape')).toBeFalsy();
 	});
 
 	it('should return false for "textPlain"', () => {
-		expect(shouldUseSvgWarp('textPlain')).toBe(false);
+		expect(shouldUseSvgWarp('textPlain')).toBeFalsy();
 	});
 
 	it('should return true for known SVG warp presets', () => {
-		expect(shouldUseSvgWarp('textArchUp')).toBe(true);
-		expect(shouldUseSvgWarp('textCircle')).toBe(true);
-		expect(shouldUseSvgWarp('textWave1')).toBe(true);
-		expect(shouldUseSvgWarp('textTriangle')).toBe(true);
+		expect(shouldUseSvgWarp('textArchUp')).toBeTruthy();
+		expect(shouldUseSvgWarp('textCircle')).toBeTruthy();
+		expect(shouldUseSvgWarp('textWave1')).toBeTruthy();
+		expect(shouldUseSvgWarp('textTriangle')).toBeTruthy();
 	});
 
 	it('should return true for priority 4 presets', () => {
-		expect(shouldUseSvgWarp('textSlantUp')).toBe(true);
-		expect(shouldUseSvgWarp('textSlantDown')).toBe(true);
-		expect(shouldUseSvgWarp('textFadeRight')).toBe(true);
-		expect(shouldUseSvgWarp('textFadeLeft')).toBe(true);
-		expect(shouldUseSvgWarp('textFadeUp')).toBe(true);
-		expect(shouldUseSvgWarp('textFadeDown')).toBe(true);
-		expect(shouldUseSvgWarp('textArchUpPour')).toBe(true);
-		expect(shouldUseSvgWarp('textDeflateInflate')).toBe(true);
-		expect(shouldUseSvgWarp('textDeflateInflateDeflate')).toBe(true);
+		expect(shouldUseSvgWarp('textSlantUp')).toBeTruthy();
+		expect(shouldUseSvgWarp('textSlantDown')).toBeTruthy();
+		expect(shouldUseSvgWarp('textFadeRight')).toBeTruthy();
+		expect(shouldUseSvgWarp('textFadeLeft')).toBeTruthy();
+		expect(shouldUseSvgWarp('textFadeUp')).toBeTruthy();
+		expect(shouldUseSvgWarp('textFadeDown')).toBeTruthy();
+		expect(shouldUseSvgWarp('textArchUpPour')).toBeTruthy();
+		expect(shouldUseSvgWarp('textDeflateInflate')).toBeTruthy();
+		expect(shouldUseSvgWarp('textDeflateInflateDeflate')).toBeTruthy();
 	});
 
 	it('should return false for unknown preset strings', () => {
-		expect(shouldUseSvgWarp('textUnknownShape' as any)).toBe(false);
+		expect(shouldUseSvgWarp('textUnknownShape' as any)).toBeFalsy();
 	});
 });
 
@@ -121,7 +120,7 @@ describe('getWarpPath', () => {
 	it('should return a valid SVG path for a known preset', () => {
 		const path = getWarpPath('textArchUp', 200, 100, 0, 3);
 		expect(path).toBeDefined();
-		expect(path.startsWith('M')).toBe(true);
+		expect(path.startsWith('M')).toBeTruthy();
 	});
 
 	it('should use t=0.5 for single line', () => {

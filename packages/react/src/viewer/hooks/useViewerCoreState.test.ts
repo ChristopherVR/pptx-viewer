@@ -40,7 +40,7 @@ describe('useViewerCoreStateInput', () => {
 			content: new ArrayBuffer(8),
 			canEdit: true,
 		};
-		expect(input.canEdit).toBe(true);
+		expect(input.canEdit).toBeTruthy();
 		expect(input.content).toBeInstanceOf(ArrayBuffer);
 	});
 
@@ -50,7 +50,7 @@ describe('useViewerCoreStateInput', () => {
 			canEdit: false,
 		};
 		expect(input.content).toBeNull();
-		expect(input.canEdit).toBe(false);
+		expect(input.canEdit).toBeFalsy();
 	});
 
 	it('accepts Uint8Array content', () => {
@@ -127,7 +127,7 @@ describe('viewerCoreState expected defaults', () => {
 	});
 
 	it('loading defaults to true', () => {
-		expect(defaults.loading).toBe(true);
+		expect(defaults.loading).toBeTruthy();
 	});
 
 	it('error defaults to null', () => {
@@ -155,7 +155,7 @@ describe('viewerCoreState expected defaults', () => {
 	});
 
 	it('isDirty defaults to false', () => {
-		expect(defaults.isDirty).toBe(false);
+		expect(defaults.isDirty).toBeFalsy();
 	});
 
 	it("newShapeType defaults to 'rect'", () => {
@@ -171,11 +171,11 @@ describe('viewerCoreState expected defaults', () => {
 	});
 
 	it('hasMacros defaults to false', () => {
-		expect(defaults.hasMacros).toBe(false);
+		expect(defaults.hasMacros).toBeFalsy();
 	});
 
 	it('hasDigitalSignatures defaults to false', () => {
-		expect(defaults.hasDigitalSignatures).toBe(false);
+		expect(defaults.hasDigitalSignatures).toBeFalsy();
 	});
 
 	it('digitalSignatureCount defaults to 0', () => {
@@ -241,6 +241,6 @@ describe('ref initial values', () => {
 
 	it('isDrawingRef should start as false', () => {
 		const ref = { current: false };
-		expect(ref.current).toBe(false);
+		expect(ref.current).toBeFalsy();
 	});
 });

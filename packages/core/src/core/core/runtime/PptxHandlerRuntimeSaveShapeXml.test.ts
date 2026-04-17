@@ -293,7 +293,7 @@ describe('buildInkShapeXml', () => {
 		const custGeom = (result['p:spPr'] as XmlObject)['a:custGeom'] as XmlObject;
 		const pathLst = custGeom['a:pathLst'] as XmlObject;
 		// Single path should not be wrapped in an array
-		expect(Array.isArray(pathLst['a:path'])).toBe(false);
+		expect(Array.isArray(pathLst['a:path'])).toBeFalsy();
 	});
 
 	it('should keep array for multiple paths', () => {
@@ -307,7 +307,7 @@ describe('buildInkShapeXml', () => {
 		});
 		const custGeom = (result['p:spPr'] as XmlObject)['a:custGeom'] as XmlObject;
 		const pathLst = custGeom['a:pathLst'] as XmlObject;
-		expect(Array.isArray(pathLst['a:path'])).toBe(true);
+		expect(Array.isArray(pathLst['a:path'])).toBeTruthy();
 		expect(pathLst['a:path'] as XmlObject[]).toHaveLength(2);
 	});
 });

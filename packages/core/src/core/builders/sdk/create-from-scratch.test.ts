@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 /**
  * Comprehensive tests for creating PPTX presentations from scratch.
  *
@@ -49,7 +48,7 @@ describe('pptxHandler static factory methods', () => {
 		expect(handler).toBeInstanceOf(PptxHandler);
 		expect(data).toBeDefined();
 		expect(data.slides).toBeDefined();
-		expect(Array.isArray(data.slides)).toBe(true);
+		expect(Array.isArray(data.slides)).toBeTruthy();
 		expectTypeOf(createSlide).toBeFunction();
 	});
 
@@ -150,7 +149,7 @@ describe('initialSlideCount', () => {
 			// Each initial slide should be a valid parsed slide with an id
 			expect(slide.id).toBeDefined();
 			expect(slide.slideNumber).toBeGreaterThan(0);
-			expect(Array.isArray(slide.elements)).toBe(true);
+			expect(Array.isArray(slide.elements)).toBeTruthy();
 		}
 	});
 });
@@ -538,7 +537,7 @@ describe('adding content to presentations created from scratch', () => {
 
 		data.slides.push(slide);
 		expect(slide.backgroundColor).toBe('#F5F5F5');
-		expect(slide.hidden).toBe(true);
+		expect(slide.hidden).toBeTruthy();
 		expect(slide.sectionName).toBe('Introduction');
 	});
 

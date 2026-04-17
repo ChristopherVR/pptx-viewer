@@ -11,14 +11,14 @@ describe('detectFileFormat', () => {
 		const data = new ArrayBuffer(4);
 		const result = detectFileFormat(data);
 		expect(result.format).toBe('unknown');
-		expect(result.encrypted).toBe(false);
+		expect(result.encrypted).toBeFalsy();
 	});
 
 	it('returns { format: "unknown" } for empty buffer', () => {
 		const data = new ArrayBuffer(0);
 		const result = detectFileFormat(data);
 		expect(result.format).toBe('unknown');
-		expect(result.encrypted).toBe(false);
+		expect(result.encrypted).toBeFalsy();
 	});
 
 	it('detects ZIP format (normal PPTX)', () => {
@@ -29,7 +29,7 @@ describe('detectFileFormat', () => {
 		view[1] = 0x4b;
 		const result = detectFileFormat(data);
 		expect(result.format).toBe('zip');
-		expect(result.encrypted).toBe(false);
+		expect(result.encrypted).toBeFalsy();
 	});
 
 	it('detects OLE format (encrypted PPTX)', () => {
@@ -42,7 +42,7 @@ describe('detectFileFormat', () => {
 		});
 		const result = detectFileFormat(data);
 		expect(result.format).toBe('ole');
-		expect(result.encrypted).toBe(true);
+		expect(result.encrypted).toBeTruthy();
 	});
 
 	it('returns unknown for non-ZIP non-OLE data', () => {
@@ -55,7 +55,7 @@ describe('detectFileFormat', () => {
 		view[3] = 0x47; // PNG header
 		const result = detectFileFormat(data);
 		expect(result.format).toBe('unknown');
-		expect(result.encrypted).toBe(false);
+		expect(result.encrypted).toBeFalsy();
 	});
 
 	it('detects ZIP even with trailing garbage bytes', () => {
@@ -69,7 +69,7 @@ describe('detectFileFormat', () => {
 		}
 		const result = detectFileFormat(data);
 		expect(result.format).toBe('zip');
-		expect(result.encrypted).toBe(false);
+		expect(result.encrypted).toBeFalsy();
 	});
 
 	it('does not detect partial OLE magic as encrypted', () => {
@@ -87,14 +87,14 @@ describe('detectFileFormat', () => {
 		view[7] = 0x00;
 		const result = detectFileFormat(data);
 		expect(result.format).toBe('unknown');
-		expect(result.encrypted).toBe(false);
+		expect(result.encrypted).toBeFalsy();
 	});
 
 	it('handles exactly 8-byte buffer with all zeros', () => {
 		const data = new ArrayBuffer(8);
 		const result = detectFileFormat(data);
 		expect(result.format).toBe('unknown');
-		expect(result.encrypted).toBe(false);
+		expect(result.encrypted).toBeFalsy();
 	});
 
 	it('correctly identifies ZIP with version bytes', () => {
@@ -107,7 +107,7 @@ describe('detectFileFormat', () => {
 		view[3] = 0x04;
 		const result = detectFileFormat(data);
 		expect(result.format).toBe('zip');
-		expect(result.encrypted).toBe(false);
+		expect(result.encrypted).toBeFalsy();
 	});
 });
 
@@ -128,7 +128,7 @@ describe('encryptedFileError', () => {
 
 	it('has isEncrypted flag', () => {
 		const err = new EncryptedFileError('Test');
-		expect(err.isEncrypted).toBe(true);
+		expect(err.isEncrypted).toBeTruthy();
 	});
 
 	it('is instanceof Error', () => {

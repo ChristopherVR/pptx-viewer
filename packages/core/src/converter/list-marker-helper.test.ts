@@ -211,31 +211,31 @@ describe('isCodeLikeFont', () => {
 	});
 
 	it('should detect Courier as monospace', () => {
-		expect(isCodeLikeFont(makeSegment('Courier New'))).toBe(true);
+		expect(isCodeLikeFont(makeSegment('Courier New'))).toBeTruthy();
 	});
 
 	it('should detect Consolas as monospace', () => {
-		expect(isCodeLikeFont(makeSegment('Consolas'))).toBe(true);
+		expect(isCodeLikeFont(makeSegment('Consolas'))).toBeTruthy();
 	});
 
 	it('should detect Fira Code as monospace', () => {
-		expect(isCodeLikeFont(makeSegment('Fira Code'))).toBe(true);
+		expect(isCodeLikeFont(makeSegment('Fira Code'))).toBeTruthy();
 	});
 
 	it('should not detect Arial as monospace', () => {
-		expect(isCodeLikeFont(makeSegment('Arial'))).toBe(false);
+		expect(isCodeLikeFont(makeSegment('Arial'))).toBeFalsy();
 	});
 
 	it('should return false for hyperlink segments even with mono font', () => {
-		expect(isCodeLikeFont(makeSegment('Courier New', 'https://example.com'))).toBe(false);
+		expect(isCodeLikeFont(makeSegment('Courier New', 'https://example.com'))).toBeFalsy();
 	});
 
 	it('should return false when fontFamily is undefined', () => {
 		const segment: TextSegment = { text: 'x', style: {} };
-		expect(isCodeLikeFont(segment)).toBe(false);
+		expect(isCodeLikeFont(segment)).toBeFalsy();
 	});
 
 	it('should be case-insensitive', () => {
-		expect(isCodeLikeFont(makeSegment('CONSOLAS'))).toBe(true);
+		expect(isCodeLikeFont(makeSegment('CONSOLAS'))).toBeTruthy();
 	});
 });

@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 /**
  * Tests for SVG print serializer utilities.
  *
@@ -327,8 +326,8 @@ describe('svgPrintOptions type', () => {
 			customCss: '.test { color: red; }',
 		};
 		expect(opts.backgroundColor).toBe('#FFFFFF');
-		expect(opts.inlineStyles).toBe(true);
-		expect(opts.embedImages).toBe(true);
+		expect(opts.inlineStyles).toBeTruthy();
+		expect(opts.embedImages).toBeTruthy();
 		expect(opts.customCss).toBe('.test { color: red; }');
 	});
 

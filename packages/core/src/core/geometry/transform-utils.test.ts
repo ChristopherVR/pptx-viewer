@@ -339,6 +339,6 @@ describe('getElementTransform vs getTextCompensationTransform relationship', () 
 		// Text compensation should only have the flip
 		expect(textT).toBe('scaleX(-1)');
 		// The flip portion matches
-		expect(elementT.startsWith(textT)).toBe(true);
+		expect(elementT.startsWith(textT)).toBeTruthy();
 	});
 });

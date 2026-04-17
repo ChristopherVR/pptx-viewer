@@ -84,18 +84,18 @@ function dispatchContextMenuAction(action: ElementContextMenuAction, handlers: H
 
 function createMockHandlers(): Handlers {
 	return {
-		handleCopy: vi.fn(),
-		handleCut: vi.fn(),
-		handlePaste: vi.fn(),
-		handleDuplicate: vi.fn(),
-		handleDelete: vi.fn(),
-		handleMoveLayer: vi.fn(),
-		handleMoveLayerToEdge: vi.fn(),
-		setIsInspectorPaneOpen: vi.fn(),
-		setSidebarPanelMode: vi.fn(),
-		handleGroupElements: vi.fn(),
-		handleUngroupElement: vi.fn(),
-		onOpenHyperlinkDialog: vi.fn(),
+		handleCopy: vi.fn<() => void>(),
+		handleCut: vi.fn<() => void>(),
+		handlePaste: vi.fn<() => void>(),
+		handleDuplicate: vi.fn<() => void>(),
+		handleDelete: vi.fn<() => void>(),
+		handleMoveLayer: vi.fn<() => void>(),
+		handleMoveLayerToEdge: vi.fn<() => void>(),
+		setIsInspectorPaneOpen: vi.fn<() => void>(),
+		setSidebarPanelMode: vi.fn<() => void>(),
+		handleGroupElements: vi.fn<() => void>(),
+		handleUngroupElement: vi.fn<() => void>(),
+		onOpenHyperlinkDialog: vi.fn<() => void>(),
 	};
 }
 

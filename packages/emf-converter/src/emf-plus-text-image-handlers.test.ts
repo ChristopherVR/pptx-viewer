@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import {
@@ -18,23 +17,23 @@ import type { EmfPlusReplayCtx, TransformMatrix } from './emf-types';
 
 function makeCtxStub(): Record<string, unknown> {
 	return {
-		save: vi.fn(),
-		restore: vi.fn(),
-		beginPath: vi.fn(),
-		closePath: vi.fn(),
-		rect: vi.fn(),
-		clip: vi.fn(),
-		setTransform: vi.fn(),
-		fill: vi.fn(),
-		stroke: vi.fn(),
-		fillRect: vi.fn(),
-		strokeRect: vi.fn(),
-		setLineDash: vi.fn(),
-		ellipse: vi.fn(),
-		moveTo: vi.fn(),
-		lineTo: vi.fn(),
-		bezierCurveTo: vi.fn(),
-		fillText: vi.fn(),
+		save: vi.fn<() => void>(),
+		restore: vi.fn<() => void>(),
+		beginPath: vi.fn<() => void>(),
+		closePath: vi.fn<() => void>(),
+		rect: vi.fn<() => void>(),
+		clip: vi.fn<() => void>(),
+		setTransform: vi.fn<() => void>(),
+		fill: vi.fn<() => void>(),
+		stroke: vi.fn<() => void>(),
+		fillRect: vi.fn<() => void>(),
+		strokeRect: vi.fn<() => void>(),
+		setLineDash: vi.fn<() => void>(),
+		ellipse: vi.fn<() => void>(),
+		moveTo: vi.fn<() => void>(),
+		lineTo: vi.fn<() => void>(),
+		bezierCurveTo: vi.fn<() => void>(),
+		fillText: vi.fn<() => void>(),
 		strokeStyle: '#000',
 		fillStyle: '#fff',
 		lineWidth: 1,
@@ -81,7 +80,7 @@ describe('emf-plus-text-image-handlers', () => {
 
 		it('returns false for unrecognized record type', () => {
 			const rCtx = makeRCtx();
-			expect(handleEmfPlusTextImageRecord(rCtx, 0xffff, 0, 8, 8)).toBe(false);
+			expect(handleEmfPlusTextImageRecord(rCtx, 0xffff, 0, 8, 8)).toBeFalsy();
 		});
 
 		// -- FILLPATH --
@@ -101,7 +100,7 @@ describe('emf-plus-text-image-handlers', () => {
 				rCtx.view.setUint32(d, 0xff000000, true); // brush (black)
 				const flags = 0x8000 | 5; // inline brush, pathId=5
 				const result = handleEmfPlusTextImageRecord(rCtx, EMFPLUS_FILLPATH, flags, d, 4);
-				expect(result).toBe(true);
+				expect(result).toBeTruthy();
 				const ctx = rCtx.ctx as unknown as Record<string, { mock: { calls: unknown[][] } }>;
 				expect(ctx.fill).toHaveBeenCalledOnce();
 			});
@@ -117,7 +116,7 @@ describe('emf-plus-text-image-handlers', () => {
 
 			it('returns true if recDataSize < 4', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfPlusTextImageRecord(rCtx, EMFPLUS_FILLPATH, 0, 8, 2)).toBe(true);
+				expect(handleEmfPlusTextImageRecord(rCtx, EMFPLUS_FILLPATH, 0, 8, 2)).toBeTruthy();
 			});
 		});
 
@@ -202,7 +201,7 @@ describe('emf-plus-text-image-handlers', () => {
 
 			it('ignores if recDataSize < 28', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfPlusTextImageRecord(rCtx, EMFPLUS_DRAWSTRING, 0, 8, 20)).toBe(true);
+				expect(handleEmfPlusTextImageRecord(rCtx, EMFPLUS_DRAWSTRING, 0, 8, 20)).toBeTruthy();
 			});
 
 			it('applies bold/italic from font flags', () => {
@@ -260,7 +259,7 @@ describe('emf-plus-text-image-handlers', () => {
 
 			it('ignores if recDataSize < 16', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfPlusTextImageRecord(rCtx, EMFPLUS_DRAWDRIVERSTRING, 0, 8, 8)).toBe(true);
+				expect(handleEmfPlusTextImageRecord(rCtx, EMFPLUS_DRAWDRIVERSTRING, 0, 8, 8)).toBeTruthy();
 			});
 		});
 
@@ -317,12 +316,12 @@ describe('emf-plus-text-image-handlers', () => {
 				rCtx.view.setInt16(d + 28, 50, true);
 				rCtx.view.setInt16(d + 30, 50, true);
 				handleEmfPlusTextImageRecord(rCtx, EMFPLUS_DRAWIMAGE, 0x4000, d, 32);
-				expect(rCtx.deferredImages[0].isMetafile).toBe(true);
+				expect(rCtx.deferredImages[0].isMetafile).toBeTruthy();
 			});
 
 			it('ignores if recDataSize < 24', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfPlusTextImageRecord(rCtx, EMFPLUS_DRAWIMAGE, 0, 8, 16)).toBe(true);
+				expect(handleEmfPlusTextImageRecord(rCtx, EMFPLUS_DRAWIMAGE, 0, 8, 16)).toBeTruthy();
 			});
 		});
 
@@ -367,7 +366,7 @@ describe('emf-plus-text-image-handlers', () => {
 
 			it('ignores if recDataSize < 28', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfPlusTextImageRecord(rCtx, EMFPLUS_DRAWIMAGEPOINTS, 0, 8, 20)).toBe(true);
+				expect(handleEmfPlusTextImageRecord(rCtx, EMFPLUS_DRAWIMAGEPOINTS, 0, 8, 20)).toBeTruthy();
 			});
 		});
 	});

@@ -97,14 +97,14 @@ describe('removeCommentFromSlide', () => {
 	it('removes the specified comment and returns didDelete=true', () => {
 		const slides = [makeSlide('s1', [makeComment('c1', 'text')])];
 		const { slides: result, didDelete } = removeCommentFromSlide(slides, 0, 'c1');
-		expect(didDelete).toBe(true);
+		expect(didDelete).toBeTruthy();
 		expect(result[0].comments).toHaveLength(0);
 	});
 
 	it('returns didDelete=false when the comment does not exist', () => {
 		const slides = [makeSlide('s1', [makeComment('c1', 'text')])];
 		const { slides: result, didDelete } = removeCommentFromSlide(slides, 0, 'c-missing');
-		expect(didDelete).toBe(false);
+		expect(didDelete).toBeFalsy();
 		expect(result[0].comments).toHaveLength(1);
 	});
 
@@ -146,14 +146,14 @@ describe('editCommentInSlide', () => {
 	it('updates the comment text and returns didUpdate=true', () => {
 		const slides = [makeSlide('s1', [makeComment('c1', 'old')])];
 		const { slides: result, didUpdate } = editCommentInSlide(slides, 0, 'c1', 'new');
-		expect(didUpdate).toBe(true);
+		expect(didUpdate).toBeTruthy();
 		expect(result[0].comments![0].text).toBe('new');
 	});
 
 	it('returns didUpdate=false when comment not found', () => {
 		const slides = [makeSlide('s1', [makeComment('c1', 'old')])];
 		const { didUpdate } = editCommentInSlide(slides, 0, 'c-missing', 'new');
-		expect(didUpdate).toBe(false);
+		expect(didUpdate).toBeFalsy();
 	});
 
 	it('does not mutate the original slides array', () => {
@@ -172,7 +172,7 @@ describe('editCommentInSlide', () => {
 		const slides = [makeSlide('s1', [comment])];
 		const { slides: result } = editCommentInSlide(slides, 0, 'c1', 'new');
 		expect(result[0].comments![0].author).toBe('Alice');
-		expect(result[0].comments![0].resolved).toBe(true);
+		expect(result[0].comments![0].resolved).toBeTruthy();
 	});
 
 	it('does not modify other slides', () => {
@@ -199,33 +199,33 @@ describe('toggleResolvedInSlide', () => {
 	it('toggles resolved from false to true', () => {
 		const slides = [makeSlide('s1', [makeComment('c1', 'text', false)])];
 		const { slides: result, didUpdate } = toggleResolvedInSlide(slides, 0, 'c1');
-		expect(didUpdate).toBe(true);
-		expect(result[0].comments![0].resolved).toBe(true);
+		expect(didUpdate).toBeTruthy();
+		expect(result[0].comments![0].resolved).toBeTruthy();
 	});
 
 	it('toggles resolved from true to false', () => {
 		const slides = [makeSlide('s1', [makeComment('c1', 'text', true)])];
 		const { slides: result } = toggleResolvedInSlide(slides, 0, 'c1');
-		expect(result[0].comments![0].resolved).toBe(false);
+		expect(result[0].comments![0].resolved).toBeFalsy();
 	});
 
 	it('returns didUpdate=false when comment not found', () => {
 		const slides = [makeSlide('s1', [makeComment('c1', 'text')])];
 		const { didUpdate } = toggleResolvedInSlide(slides, 0, 'c-missing');
-		expect(didUpdate).toBe(false);
+		expect(didUpdate).toBeFalsy();
 	});
 
 	it('does not mutate the original slides', () => {
 		const slides = [makeSlide('s1', [makeComment('c1', 'text', false)])];
 		toggleResolvedInSlide(slides, 0, 'c1');
-		expect(slides[0].comments![0].resolved).toBe(false);
+		expect(slides[0].comments![0].resolved).toBeFalsy();
 	});
 
 	it('toggles resolved from undefined to true', () => {
 		const comment = { id: 'c1', text: 'text' } as PptxComment;
 		const slides = [makeSlide('s1', [comment])];
 		const { slides: result } = toggleResolvedInSlide(slides, 0, 'c1');
-		expect(result[0].comments![0].resolved).toBe(true);
+		expect(result[0].comments![0].resolved).toBeTruthy();
 	});
 });
 

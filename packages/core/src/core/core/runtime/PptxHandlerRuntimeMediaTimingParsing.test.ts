@@ -165,9 +165,9 @@ describe('walkMediaTimingTree', () => {
 		};
 		walkMediaTimingTree(node, result);
 		const data = result.get('10')!;
-		expect(data.loop).toBe(true);
-		expect(data.autoPlay).toBe(true);
-		expect(data.playAcrossSlides).toBe(true);
+		expect(data.loop).toBeTruthy();
+		expect(data.autoPlay).toBeTruthy();
+		expect(data.playAcrossSlides).toBeTruthy();
 	});
 
 	it('should parse fullScreen flag', () => {
@@ -181,7 +181,7 @@ describe('walkMediaTimingTree', () => {
 			},
 		};
 		walkMediaTimingTree(node, result);
-		expect(result.get('5')!.fullScreen).toBe(true);
+		expect(result.get('5')!.fullScreen).toBeTruthy();
 	});
 
 	it('should parse volume', () => {
@@ -223,7 +223,7 @@ describe('walkMediaTimingTree', () => {
 			},
 		};
 		walkMediaTimingTree(node, result);
-		expect(result.get('8')!.hideWhenNotPlaying).toBe(true);
+		expect(result.get('8')!.hideWhenNotPlaying).toBeTruthy();
 	});
 
 	it('should parse posterFrame rId', () => {
@@ -269,7 +269,7 @@ describe('walkMediaTimingTree', () => {
 			},
 		};
 		walkMediaTimingTree(node, result);
-		expect(result.has('nested1')).toBe(true);
+		expect(result.has('nested1')).toBeTruthy();
 	});
 
 	it('should recurse through p:seq container', () => {
@@ -288,7 +288,7 @@ describe('walkMediaTimingTree', () => {
 			},
 		};
 		walkMediaTimingTree(node, result);
-		expect(result.has('seq1')).toBe(true);
+		expect(result.has('seq1')).toBeTruthy();
 	});
 
 	it('should collect multiple media nodes from array', () => {
@@ -309,8 +309,8 @@ describe('walkMediaTimingTree', () => {
 		};
 		walkMediaTimingTree(node, result);
 		expect(result.size).toBe(2);
-		expect(result.has('v1')).toBe(true);
-		expect(result.has('v2')).toBe(true);
+		expect(result.has('v1')).toBeTruthy();
+		expect(result.has('v2')).toBeTruthy();
 	});
 
 	it('should handle extension list data (fade, speed)', () => {

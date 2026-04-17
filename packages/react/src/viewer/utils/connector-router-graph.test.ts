@@ -51,32 +51,32 @@ describe('pointInRect', () => {
 	const rect = { x: 0, y: 0, width: 100, height: 100 };
 
 	it('should return true for point inside rect', () => {
-		expect(pointInRect({ x: 50, y: 50 }, rect)).toBe(true);
+		expect(pointInRect({ x: 50, y: 50 }, rect)).toBeTruthy();
 	});
 
 	it('should return true for point on edge', () => {
-		expect(pointInRect({ x: 0, y: 0 }, rect)).toBe(true);
-		expect(pointInRect({ x: 100, y: 100 }, rect)).toBe(true);
-		expect(pointInRect({ x: 50, y: 0 }, rect)).toBe(true);
+		expect(pointInRect({ x: 0, y: 0 }, rect)).toBeTruthy();
+		expect(pointInRect({ x: 100, y: 100 }, rect)).toBeTruthy();
+		expect(pointInRect({ x: 50, y: 0 }, rect)).toBeTruthy();
 	});
 
 	it('should return false for point outside rect', () => {
-		expect(pointInRect({ x: -1, y: 50 }, rect)).toBe(false);
-		expect(pointInRect({ x: 101, y: 50 }, rect)).toBe(false);
-		expect(pointInRect({ x: 50, y: -1 }, rect)).toBe(false);
-		expect(pointInRect({ x: 50, y: 101 }, rect)).toBe(false);
+		expect(pointInRect({ x: -1, y: 50 }, rect)).toBeFalsy();
+		expect(pointInRect({ x: 101, y: 50 }, rect)).toBeFalsy();
+		expect(pointInRect({ x: 50, y: -1 }, rect)).toBeFalsy();
+		expect(pointInRect({ x: 50, y: 101 }, rect)).toBeFalsy();
 	});
 
 	it('should handle rect with offset position', () => {
 		const offsetRect = { x: 50, y: 50, width: 100, height: 100 };
-		expect(pointInRect({ x: 75, y: 75 }, offsetRect)).toBe(true);
-		expect(pointInRect({ x: 49, y: 75 }, offsetRect)).toBe(false);
+		expect(pointInRect({ x: 75, y: 75 }, offsetRect)).toBeTruthy();
+		expect(pointInRect({ x: 49, y: 75 }, offsetRect)).toBeFalsy();
 	});
 
 	it('should handle zero-sized rect (degenerate)', () => {
 		const zeroRect = { x: 50, y: 50, width: 0, height: 0 };
-		expect(pointInRect({ x: 50, y: 50 }, zeroRect)).toBe(true);
-		expect(pointInRect({ x: 51, y: 50 }, zeroRect)).toBe(false);
+		expect(pointInRect({ x: 50, y: 50 }, zeroRect)).toBeTruthy();
+		expect(pointInRect({ x: 51, y: 50 }, zeroRect)).toBeFalsy();
 	});
 });
 
@@ -84,51 +84,51 @@ describe('segmentIntersectsRect', () => {
 	const rect = { x: 20, y: 20, width: 60, height: 60 };
 
 	it('should return true for horizontal segment crossing rect', () => {
-		expect(segmentIntersectsRect({ x: 0, y: 50 }, { x: 100, y: 50 }, rect)).toBe(true);
+		expect(segmentIntersectsRect({ x: 0, y: 50 }, { x: 100, y: 50 }, rect)).toBeTruthy();
 	});
 
 	it('should return true for vertical segment crossing rect', () => {
-		expect(segmentIntersectsRect({ x: 50, y: 0 }, { x: 50, y: 100 }, rect)).toBe(true);
+		expect(segmentIntersectsRect({ x: 50, y: 0 }, { x: 50, y: 100 }, rect)).toBeTruthy();
 	});
 
 	it('should return false for segment completely above rect', () => {
-		expect(segmentIntersectsRect({ x: 0, y: 10 }, { x: 100, y: 10 }, rect)).toBe(false);
+		expect(segmentIntersectsRect({ x: 0, y: 10 }, { x: 100, y: 10 }, rect)).toBeFalsy();
 	});
 
 	it('should return false for segment completely below rect', () => {
-		expect(segmentIntersectsRect({ x: 0, y: 90 }, { x: 100, y: 90 }, rect)).toBe(false);
+		expect(segmentIntersectsRect({ x: 0, y: 90 }, { x: 100, y: 90 }, rect)).toBeFalsy();
 	});
 
 	it('should return false for segment completely to the left', () => {
-		expect(segmentIntersectsRect({ x: 10, y: 0 }, { x: 10, y: 100 }, rect)).toBe(false);
+		expect(segmentIntersectsRect({ x: 10, y: 0 }, { x: 10, y: 100 }, rect)).toBeFalsy();
 	});
 
 	it('should return false for segment completely to the right', () => {
-		expect(segmentIntersectsRect({ x: 90, y: 0 }, { x: 90, y: 100 }, rect)).toBe(false);
+		expect(segmentIntersectsRect({ x: 90, y: 0 }, { x: 90, y: 100 }, rect)).toBeFalsy();
 	});
 
 	it('should handle segment with start and end swapped', () => {
-		expect(segmentIntersectsRect({ x: 100, y: 50 }, { x: 0, y: 50 }, rect)).toBe(true);
+		expect(segmentIntersectsRect({ x: 100, y: 50 }, { x: 0, y: 50 }, rect)).toBeTruthy();
 	});
 
 	it('should return false when no overlap in X range', () => {
-		expect(segmentIntersectsRect({ x: 0, y: 50 }, { x: 15, y: 50 }, rect)).toBe(false);
+		expect(segmentIntersectsRect({ x: 0, y: 50 }, { x: 15, y: 50 }, rect)).toBeFalsy();
 	});
 });
 
 describe('directPathClear', () => {
 	it('should return true when there are no obstacles', () => {
-		expect(directPathClear({ x: 0, y: 0 }, { x: 100, y: 0 }, [])).toBe(true);
+		expect(directPathClear({ x: 0, y: 0 }, { x: 100, y: 0 }, [])).toBeTruthy();
 	});
 
 	it('should return true when path does not intersect any obstacle', () => {
 		const obstacles = [{ x: 50, y: 50, width: 20, height: 20 }];
-		expect(directPathClear({ x: 0, y: 0 }, { x: 100, y: 0 }, obstacles)).toBe(true);
+		expect(directPathClear({ x: 0, y: 0 }, { x: 100, y: 0 }, obstacles)).toBeTruthy();
 	});
 
 	it('should return false when path intersects an obstacle', () => {
 		const obstacles = [{ x: 40, y: 0, width: 20, height: 20 }];
-		expect(directPathClear({ x: 0, y: 10 }, { x: 100, y: 10 }, obstacles)).toBe(false);
+		expect(directPathClear({ x: 0, y: 10 }, { x: 100, y: 10 }, obstacles)).toBeFalsy();
 	});
 
 	it('should return false when path intersects any of multiple obstacles', () => {
@@ -136,7 +136,7 @@ describe('directPathClear', () => {
 			{ x: 10, y: 10, width: 5, height: 5 },
 			{ x: 50, y: 0, width: 20, height: 20 },
 		];
-		expect(directPathClear({ x: 0, y: 10 }, { x: 100, y: 10 }, obstacles)).toBe(false);
+		expect(directPathClear({ x: 0, y: 10 }, { x: 100, y: 10 }, obstacles)).toBeFalsy();
 	});
 });
 

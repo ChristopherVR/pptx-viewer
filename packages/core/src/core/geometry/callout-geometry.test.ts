@@ -25,16 +25,16 @@ describe('isCalloutShape', () => {
 			'accentBorderCallout3',
 		];
 		for (const name of names) {
-			expect(isCalloutShape(name)).toBe(true);
+			expect(isCalloutShape(name)).toBeTruthy();
 		}
 	});
 
 	it('returns false for non-callout shapes', () => {
-		expect(isCalloutShape('rect')).toBe(false);
-		expect(isCalloutShape('wedgeRectCallout')).toBe(false);
-		expect(isCalloutShape('cloudCallout')).toBe(false);
-		expect(isCalloutShape(undefined)).toBe(false);
-		expect(isCalloutShape('')).toBe(false);
+		expect(isCalloutShape('rect')).toBeFalsy();
+		expect(isCalloutShape('wedgeRectCallout')).toBeFalsy();
+		expect(isCalloutShape('cloudCallout')).toBeFalsy();
+		expect(isCalloutShape(undefined)).toBeFalsy();
+		expect(isCalloutShape('')).toBeFalsy();
 	});
 });
 
@@ -70,8 +70,8 @@ describe('getCalloutLeaderLineGeometry', () => {
 		const geo = getCalloutLeaderLineGeometry('callout1', width, height);
 		expect(geo).not.toBeNull();
 		expect(geo!.points).toHaveLength(2);
-		expect(geo!.hasBorder).toBe(false);
-		expect(geo!.hasAccent).toBe(false);
+		expect(geo!.hasBorder).toBeFalsy();
+		expect(geo!.hasAccent).toBeFalsy();
 		// adj1=18750 (y start) => 18750/100000 * 200 = 37.5
 		// adj2=-8333 (x start) => -8333/100000 * 400 = -33.332
 		expect(geo!.points[0].y).toBeCloseTo(37.5, 1);
@@ -109,20 +109,20 @@ describe('getCalloutLeaderLineGeometry', () => {
 
 	it('detects border flag for borderCallout variants', () => {
 		const geo = getCalloutLeaderLineGeometry('borderCallout1', width, height);
-		expect(geo!.hasBorder).toBe(true);
-		expect(geo!.hasAccent).toBe(false);
+		expect(geo!.hasBorder).toBeTruthy();
+		expect(geo!.hasAccent).toBeFalsy();
 	});
 
 	it('detects accent flag for accentCallout variants', () => {
 		const geo = getCalloutLeaderLineGeometry('accentCallout2', width, height);
-		expect(geo!.hasBorder).toBe(false);
-		expect(geo!.hasAccent).toBe(true);
+		expect(geo!.hasBorder).toBeFalsy();
+		expect(geo!.hasAccent).toBeTruthy();
 	});
 
 	it('detects both flags for accentBorderCallout variants', () => {
 		const geo = getCalloutLeaderLineGeometry('accentBorderCallout3', width, height);
-		expect(geo!.hasBorder).toBe(true);
-		expect(geo!.hasAccent).toBe(true);
+		expect(geo!.hasBorder).toBeTruthy();
+		expect(geo!.hasAccent).toBeTruthy();
 	});
 
 	it('computes callout2 with custom adjustments (3 points)', () => {

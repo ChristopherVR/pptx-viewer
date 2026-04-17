@@ -76,11 +76,11 @@ describe('parseParagraphRtl', () => {
 	});
 
 	it('parses @_rtl="1" as true', () => {
-		expect(parseParagraphRtl({ '@_rtl': '1' })).toBe(true);
+		expect(parseParagraphRtl({ '@_rtl': '1' })).toBeTruthy();
 	});
 
 	it('parses @_rtl="0" as false', () => {
-		expect(parseParagraphRtl({ '@_rtl': '0' })).toBe(false);
+		expect(parseParagraphRtl({ '@_rtl': '0' })).toBeFalsy();
 	});
 
 	it('returns undefined when @_rtl absent', () => {
@@ -387,12 +387,12 @@ describe('parseParagraphExtraAttributes', () => {
 
 	it('parses @_eaLnBrk="1" as eaLineBreak=true', () => {
 		const result = parseParagraphExtraAttributes({ '@_eaLnBrk': '1' });
-		expect(result.eaLineBreak).toBe(true);
+		expect(result.eaLineBreak).toBeTruthy();
 	});
 
 	it('parses @_latinLnBrk="0" as latinLineBreak=false', () => {
 		const result = parseParagraphExtraAttributes({ '@_latinLnBrk': '0' });
-		expect(result.latinLineBreak).toBe(false);
+		expect(result.latinLineBreak).toBeFalsy();
 	});
 
 	it('parses @_fontAlgn="base" as fontAlignment', () => {
@@ -402,7 +402,7 @@ describe('parseParagraphExtraAttributes', () => {
 
 	it('parses @_hangingPunct="1" as hangingPunctuation=true', () => {
 		const result = parseParagraphExtraAttributes({ '@_hangingPunct': '1' });
-		expect(result.hangingPunctuation).toBe(true);
+		expect(result.hangingPunctuation).toBeTruthy();
 	});
 });
 

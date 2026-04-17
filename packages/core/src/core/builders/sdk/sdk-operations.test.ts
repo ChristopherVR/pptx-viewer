@@ -221,7 +221,7 @@ describe('duplicateSlide', () => {
 		const original = makeSlide(1, [], { hidden: true });
 		const cloned = duplicateSlide(original, 2);
 
-		expect(cloned.hidden).toBe(true);
+		expect(cloned.hidden).toBeTruthy();
 	});
 
 	it('clones an empty slide', () => {
@@ -643,7 +643,7 @@ describe('removeSection', () => {
 		const section = addSection(data, 'ToRemove', [0]);
 
 		const removed = removeSection(data, section.id);
-		expect(removed).toBe(true);
+		expect(removed).toBeTruthy();
 		expect(data.sections!).toHaveLength(0);
 	});
 
@@ -662,14 +662,14 @@ describe('removeSection', () => {
 		addSection(data, 'Existing', [0]);
 
 		const removed = removeSection(data, 'non_existent_id');
-		expect(removed).toBe(false);
+		expect(removed).toBeFalsy();
 		expect(data.sections!).toHaveLength(1);
 	});
 
 	it('returns false when sections array is undefined', () => {
 		const data = makePptxData([makeSlide(1, [])]);
 		const removed = removeSection(data, 'any_id');
-		expect(removed).toBe(false);
+		expect(removed).toBeFalsy();
 	});
 
 	it('only removes the targeted section, leaving others intact', () => {
@@ -787,7 +787,7 @@ describe('moveSlidesToSection', () => {
 		const sec2 = addSection(data, 'Target', [2]);
 
 		const moved = moveSlidesToSection(data, [0], sec2.id);
-		expect(moved).toBe(true);
+		expect(moved).toBeTruthy();
 
 		// Slide 0 should now be in sec2
 		expect(data.slides[0].sectionId).toBe(sec2.id);
@@ -804,13 +804,13 @@ describe('moveSlidesToSection', () => {
 		addSection(data, 'Source', [0]);
 
 		const moved = moveSlidesToSection(data, [0], 'non_existent');
-		expect(moved).toBe(false);
+		expect(moved).toBeFalsy();
 	});
 
 	it('returns false when sections is undefined', () => {
 		const data = makePptxData([makeSlide(1, [])]);
 		const moved = moveSlidesToSection(data, [0], 'any_id');
-		expect(moved).toBe(false);
+		expect(moved).toBeFalsy();
 	});
 
 	it('skips out-of-range slide indices', () => {

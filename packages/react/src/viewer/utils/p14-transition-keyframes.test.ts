@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { P14_TRANSITION_KEYFRAMES } from './p14-transition-keyframes';

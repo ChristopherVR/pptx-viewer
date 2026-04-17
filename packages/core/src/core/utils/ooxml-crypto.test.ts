@@ -295,8 +295,8 @@ describe('parseEncryptionInfo', () => {
 	it('parses standard encryption info (version 2.2)', () => {
 		const info = buildStandardEncryptionInfoBytes(2, 2);
 		const parsed = parseEncryptionInfo(info);
-		expect('isStandard' in parsed && parsed.isStandard).toBe(true);
-		expect(parsed.isAgile).toBe(false);
+		expect('isStandard' in parsed && parsed.isStandard).toBeTruthy();
+		expect(parsed.isAgile).toBeFalsy();
 		expect(parsed.version.major).toBe(2);
 		expect(parsed.version.minor).toBe(2);
 	});
@@ -304,21 +304,21 @@ describe('parseEncryptionInfo', () => {
 	it('parses standard encryption info (version 3.2)', () => {
 		const info = buildStandardEncryptionInfoBytes(3, 2);
 		const parsed = parseEncryptionInfo(info);
-		expect('isStandard' in parsed && parsed.isStandard).toBe(true);
+		expect('isStandard' in parsed && parsed.isStandard).toBeTruthy();
 		expect(parsed.version.major).toBe(3);
 	});
 
 	it('parses standard encryption info (version 4.2)', () => {
 		const info = buildStandardEncryptionInfoBytes(4, 2);
 		const parsed = parseEncryptionInfo(info);
-		expect('isStandard' in parsed && parsed.isStandard).toBe(true);
+		expect('isStandard' in parsed && parsed.isStandard).toBeTruthy();
 		expect(parsed.version.major).toBe(4);
 	});
 
 	it('parses agile encryption info (version 4.4)', () => {
 		const info = buildAgileEncryptionInfoBytes();
 		const parsed = parseEncryptionInfo(info);
-		expect(parsed.isAgile).toBe(true);
+		expect(parsed.isAgile).toBeTruthy();
 		expect(parsed.version.major).toBe(4);
 		expect(parsed.version.minor).toBe(4);
 	});
@@ -490,7 +490,7 @@ describe('verifyPassword', () => {
 		const encrypted = await encryptPptx(originalData, password, { spinCount: TEST_SPIN_COUNT });
 
 		const result = await verifyPassword(encrypted, password);
-		expect(result).toBe(true);
+		expect(result).toBeTruthy();
 	});
 
 	it('returns false for the wrong password', async () => {
@@ -498,13 +498,13 @@ describe('verifyPassword', () => {
 		const encrypted = await encryptPptx(originalData, 'correct', { spinCount: TEST_SPIN_COUNT });
 
 		const result = await verifyPassword(encrypted, 'incorrect');
-		expect(result).toBe(false);
+		expect(result).toBeFalsy();
 	});
 
 	it('returns false for a non-OLE2 buffer', async () => {
 		const randomData = new ArrayBuffer(100);
 		const result = await verifyPassword(randomData, 'password');
-		expect(result).toBe(false);
+		expect(result).toBeFalsy();
 	});
 
 	it('returns false when EncryptionInfo stream is missing', async () => {
@@ -514,7 +514,7 @@ describe('verifyPassword', () => {
 		const ole2Buf = buildOle2(streams);
 
 		const result = await verifyPassword(ole2Buf, 'password');
-		expect(result).toBe(false);
+		expect(result).toBeFalsy();
 	});
 });
 

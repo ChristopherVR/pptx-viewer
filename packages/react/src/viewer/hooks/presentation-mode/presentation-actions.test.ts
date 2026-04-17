@@ -6,10 +6,10 @@ import type { PresentationActionDeps } from './presentation-actions';
 
 function createMockDeps(overrides: Partial<PresentationActionDeps> = {}): PresentationActionDeps {
 	return {
-		movePresentationSlide: vi.fn(),
-		navigateToSlide: vi.fn(),
-		onPlayActionSound: vi.fn(),
-		onSetMode: vi.fn(),
+		movePresentationSlide: vi.fn<() => void>(),
+		navigateToSlide: vi.fn<() => void>(),
+		onPlayActionSound: vi.fn<() => void>(),
+		onSetMode: vi.fn<() => void>(),
 		slidesLength: 10,
 		...overrides,
 	};
@@ -20,7 +20,7 @@ describe('handlePresentationActionImpl', () => {
 
 	beforeEach(() => {
 		vi.stubGlobal('window', {
-			open: vi.fn(),
+			open: vi.fn<() => void>(),
 		});
 		deps = createMockDeps();
 	});

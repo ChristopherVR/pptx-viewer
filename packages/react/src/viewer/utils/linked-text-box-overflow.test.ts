@@ -40,12 +40,12 @@ function makeParaBreak(): TextSegment {
 describe('isLinkedTextBox', () => {
 	it('returns true for elements with linkedTxbxId', () => {
 		const el = makeTextElement({ id: 't1', linkedTxbxId: 1, linkedTxbxSeq: 0 });
-		expect(isLinkedTextBox(el)).toBe(true);
+		expect(isLinkedTextBox(el)).toBeTruthy();
 	});
 
 	it('returns false for elements without linkedTxbxId', () => {
 		const el = makeTextElement({ id: 't1' });
-		expect(isLinkedTextBox(el)).toBe(false);
+		expect(isLinkedTextBox(el)).toBeFalsy();
 	});
 
 	it('returns false for non-text elements', () => {
@@ -57,7 +57,7 @@ describe('isLinkedTextBox', () => {
 			width: 100,
 			height: 100,
 		} as PptxElement;
-		expect(isLinkedTextBox(el)).toBe(false);
+		expect(isLinkedTextBox(el)).toBeFalsy();
 	});
 });
 
@@ -68,22 +68,22 @@ describe('isLinkedTextBox', () => {
 describe('isLinkedTextBoxHead', () => {
 	it('returns true for seq=0 elements', () => {
 		const el = makeTextElement({ id: 't1', linkedTxbxId: 1, linkedTxbxSeq: 0 });
-		expect(isLinkedTextBoxHead(el)).toBe(true);
+		expect(isLinkedTextBoxHead(el)).toBeTruthy();
 	});
 
 	it('returns true when linkedTxbxSeq is undefined (defaults to 0)', () => {
 		const el = makeTextElement({ id: 't1', linkedTxbxId: 1 });
-		expect(isLinkedTextBoxHead(el)).toBe(true);
+		expect(isLinkedTextBoxHead(el)).toBeTruthy();
 	});
 
 	it('returns false for seq > 0', () => {
 		const el = makeTextElement({ id: 't1', linkedTxbxId: 1, linkedTxbxSeq: 1 });
-		expect(isLinkedTextBoxHead(el)).toBe(false);
+		expect(isLinkedTextBoxHead(el)).toBeFalsy();
 	});
 
 	it('returns false for elements without linkedTxbxId', () => {
 		const el = makeTextElement({ id: 't1' });
-		expect(isLinkedTextBoxHead(el)).toBe(false);
+		expect(isLinkedTextBoxHead(el)).toBeFalsy();
 	});
 });
 
@@ -323,8 +323,8 @@ describe('buildSlideOverflowMap', () => {
 		const elements = [head, tail] as PptxElement[];
 		const map = buildSlideOverflowMap(elements);
 		expect(map.size).toBe(2);
-		expect(map.has('head')).toBe(true);
-		expect(map.has('tail')).toBe(true);
+		expect(map.has('head')).toBeTruthy();
+		expect(map.has('tail')).toBeTruthy();
 
 		// All text should be preserved
 		const headText = map
@@ -452,9 +452,9 @@ describe('buildSlideOverflowMap', () => {
 		const elements = [img, head, tail] as PptxElement[];
 		const map = buildSlideOverflowMap(elements);
 		// The chain has 2 members so we get distributions
-		expect(map.has('head')).toBe(true);
-		expect(map.has('tail')).toBe(true);
-		expect(map.has('img1')).toBe(false);
+		expect(map.has('head')).toBeTruthy();
+		expect(map.has('tail')).toBeTruthy();
+		expect(map.has('img1')).toBeFalsy();
 	});
 });
 
@@ -489,7 +489,7 @@ describe('renderTextSegments with segmentOverrides', () => {
 
 		const overrides = getOverflowSegments(head, [head, tail]);
 		expect(overrides).toBeDefined();
-		expect(Array.isArray(overrides)).toBe(true);
+		expect(Array.isArray(overrides)).toBeTruthy();
 		for (const seg of overrides!) {
 			expect(seg).toHaveProperty('text');
 			expect(seg).toHaveProperty('style');
@@ -525,6 +525,6 @@ describe('renderTextSegments with segmentOverrides', () => {
 		expect(allText).toBe('Bold text italic text');
 		// Style is preserved on the italic segment
 		const italicSeg = headOverrides!.find((s) => s.text.includes('italic'));
-		expect(italicSeg?.style?.italic).toBe(true);
+		expect(italicSeg?.style?.italic).toBeTruthy();
 	});
 });

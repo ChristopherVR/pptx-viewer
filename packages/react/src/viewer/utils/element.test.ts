@@ -12,41 +12,41 @@ import {
 
 describe('isTemplateElement', () => {
 	it('returns true for layout elements', () => {
-		expect(isTemplateElement({ id: 'layout-header-1' } as PptxElement)).toBe(true);
+		expect(isTemplateElement({ id: 'layout-header-1' } as PptxElement)).toBeTruthy();
 	});
 
 	it('returns true for master elements', () => {
-		expect(isTemplateElement({ id: 'master-bg-1' } as PptxElement)).toBe(true);
+		expect(isTemplateElement({ id: 'master-bg-1' } as PptxElement)).toBeTruthy();
 	});
 
 	it('returns false for normal elements', () => {
-		expect(isTemplateElement({ id: 'el-12345' } as PptxElement)).toBe(false);
+		expect(isTemplateElement({ id: 'el-12345' } as PptxElement)).toBeFalsy();
 	});
 
 	it('returns false for empty id', () => {
-		expect(isTemplateElement({ id: '' } as PptxElement)).toBe(false);
+		expect(isTemplateElement({ id: '' } as PptxElement)).toBeFalsy();
 	});
 
 	it('is case-sensitive (Layout- is not template)', () => {
-		expect(isTemplateElement({ id: 'Layout-1' } as PptxElement)).toBe(false);
+		expect(isTemplateElement({ id: 'Layout-1' } as PptxElement)).toBeFalsy();
 	});
 
 	it('returns false when id contains layout- mid-string', () => {
-		expect(isTemplateElement({ id: 'x-layout-1' } as PptxElement)).toBe(false);
+		expect(isTemplateElement({ id: 'x-layout-1' } as PptxElement)).toBeFalsy();
 	});
 });
 
 describe('isTemplateElementId', () => {
 	it('returns true for layout- prefix', () => {
-		expect(isTemplateElementId('layout-1')).toBe(true);
+		expect(isTemplateElementId('layout-1')).toBeTruthy();
 	});
 
 	it('returns true for master- prefix', () => {
-		expect(isTemplateElementId('master-1')).toBe(true);
+		expect(isTemplateElementId('master-1')).toBeTruthy();
 	});
 
 	it('returns false for normal ids', () => {
-		expect(isTemplateElementId('el-abc')).toBe(false);
+		expect(isTemplateElementId('el-abc')).toBeFalsy();
 	});
 });
 

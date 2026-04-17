@@ -262,7 +262,7 @@ describe('extractPlaceholderDefaultsFromShape', () => {
 				'a:bodyPr': { 'a:spAutoFit': {} },
 			},
 		});
-		expect(result!.autoFit).toBe(true);
+		expect(result!.autoFit).toBeTruthy();
 		expect(result!.autoFitMode).toBe('shrink');
 	});
 
@@ -275,7 +275,7 @@ describe('extractPlaceholderDefaultsFromShape', () => {
 				},
 			},
 		});
-		expect(result!.autoFit).toBe(true);
+		expect(result!.autoFit).toBeTruthy();
 		expect(result!.autoFitMode).toBe('normal');
 		expect(result!.autoFitFontScale).toBeCloseTo(0.9);
 		expect(result!.autoFitLineSpacingReduction).toBeCloseTo(0.2);
@@ -288,7 +288,7 @@ describe('extractPlaceholderDefaultsFromShape', () => {
 				'a:bodyPr': { 'a:noAutofit': {} },
 			},
 		});
-		expect(result!.autoFit).toBe(false);
+		expect(result!.autoFit).toBeFalsy();
 		expect(result!.autoFitMode).toBe('none');
 	});
 
@@ -388,7 +388,7 @@ describe('extractPlaceholderDefaultsFromShape', () => {
 				'a:bodyPr': { 'a:normAutofit': {} },
 			},
 		});
-		expect(result!.autoFit).toBe(true);
+		expect(result!.autoFit).toBeTruthy();
 		expect(result!.autoFitMode).toBe('normal');
 		expect(result!.autoFitFontScale).toBeUndefined();
 		expect(result!.autoFitLineSpacingReduction).toBeUndefined();

@@ -172,7 +172,7 @@ describe('pptxAnimationWriteService', () => {
 
 			// Should have two separate click groups (p:par)
 			const clickGroups = seqChildren['p:par'];
-			expect(Array.isArray(clickGroups)).toBe(true);
+			expect(Array.isArray(clickGroups)).toBeTruthy();
 			expect(clickGroups as XmlObject[]).toHaveLength(2);
 		});
 
@@ -205,12 +205,12 @@ describe('pptxAnimationWriteService', () => {
 
 			// Should be a single click group containing both animations
 			const clickGroup = seqChildren['p:par'] as XmlObject;
-			expect(Array.isArray(clickGroup)).toBe(false);
+			expect(Array.isArray(clickGroup)).toBeFalsy();
 			// The click group contains the inner p:par nodes
 			const clickCTn = clickGroup['p:cTn'] as XmlObject;
 			const innerChildren = clickCTn['p:childTnLst'] as XmlObject;
 			const innerPars = innerChildren['p:par'];
-			expect(Array.isArray(innerPars)).toBe(true);
+			expect(Array.isArray(innerPars)).toBeTruthy();
 			expect(innerPars as XmlObject[]).toHaveLength(2);
 		});
 
@@ -243,7 +243,7 @@ describe('pptxAnimationWriteService', () => {
 
 			// Single click group
 			const clickGroup = seqChildren['p:par'] as XmlObject;
-			expect(Array.isArray(clickGroup)).toBe(false);
+			expect(Array.isArray(clickGroup)).toBeFalsy();
 		});
 	});
 
@@ -278,7 +278,7 @@ describe('pptxAnimationWriteService', () => {
 
 			// Should have both main seq and interactive seq
 			const seqs = childTnLst['p:seq'] as XmlObject[];
-			expect(Array.isArray(seqs)).toBe(true);
+			expect(Array.isArray(seqs)).toBeTruthy();
 			expect(seqs).toHaveLength(2);
 
 			// First should be mainSeq
@@ -310,7 +310,7 @@ describe('pptxAnimationWriteService', () => {
 
 			// Should have both main seq (empty but present) and interactive seq
 			const seqs = childTnLst['p:seq'] as XmlObject[];
-			expect(Array.isArray(seqs)).toBe(true);
+			expect(Array.isArray(seqs)).toBeTruthy();
 		});
 	});
 
@@ -562,7 +562,7 @@ describe('pptxAnimationWriteService', () => {
 			const clickGroups = seqChildren['p:par'] as XmlObject[];
 
 			// Should have two click groups (both onClick)
-			expect(Array.isArray(clickGroups)).toBe(true);
+			expect(Array.isArray(clickGroups)).toBeTruthy();
 			expect(clickGroups).toHaveLength(2);
 		});
 

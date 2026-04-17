@@ -191,7 +191,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// Extract shape style + determine element type
 			const shapeStyle = this.extractShapeStyle(effectiveSpPr, styleNode);
 			const hasText = text.trim().length > 0;
-			const isPlainRect = !prstGeom || prstGeom === 'rect';
+			const isPlainRect = (!prstGeom || prstGeom === 'rect') && !custGeom;
 			const hasVisibleStyle =
 				(shapeStyle.fillColor && shapeStyle.fillColor !== 'transparent') ||
 				(shapeStyle.strokeWidth || 0) > 0;

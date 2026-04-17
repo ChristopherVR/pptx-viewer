@@ -214,7 +214,7 @@ describe('useYjsDocumentSync (logic)', () => {
 				isApplyingRemote: false,
 				lastSynced: '',
 			});
-			expect(result.written).toBe(false);
+			expect(result.written).toBeFalsy();
 		});
 	});
 
@@ -229,7 +229,7 @@ describe('useYjsDocumentSync (logic)', () => {
 				isApplyingRemote: false,
 				lastSynced: '',
 			});
-			expect(result.written).toBe(false);
+			expect(result.written).toBeFalsy();
 			expect(map.get('count')).toBeUndefined();
 		});
 
@@ -244,7 +244,7 @@ describe('useYjsDocumentSync (logic)', () => {
 			const isConnected = false;
 			if (!isConnected) {
 				// This mirrors the hook bail-out: no observer is registered.
-				expect(true).toBe(true);
+				expect(true).toBeTruthy();
 			}
 		});
 	});
@@ -261,7 +261,7 @@ describe('useYjsDocumentSync (logic)', () => {
 				lastSynced: '',
 			});
 
-			expect(result.written).toBe(true);
+			expect(result.written).toBeTruthy();
 			expect(map.get('count')).toBe(3);
 			for (let i = 0; i < 3; i++) {
 				const stored = JSON.parse(map.get(`slide-${i}`) as string) as PptxSlide;
@@ -298,7 +298,7 @@ describe('useYjsDocumentSync (logic)', () => {
 		});
 
 		it('calls setSlides with deserialized data', () => {
-			const setSlides = vi.fn();
+			const setSlides = vi.fn<() => void>();
 			const original = makeSlides(1);
 			map.set('count', 1);
 			map.set('slide-0', JSON.stringify(original[0]));
@@ -323,7 +323,7 @@ describe('useYjsDocumentSync (logic)', () => {
 				lastSynced: '',
 			});
 
-			expect(result.written).toBe(false);
+			expect(result.written).toBeFalsy();
 			expect(map.get('count')).toBeUndefined();
 		});
 
@@ -347,7 +347,7 @@ describe('useYjsDocumentSync (logic)', () => {
 				isApplyingRemote: false,
 				lastSynced,
 			});
-			expect(result.written).toBe(false);
+			expect(result.written).toBeFalsy();
 		});
 	});
 
@@ -361,7 +361,7 @@ describe('useYjsDocumentSync (logic)', () => {
 				isApplyingRemote: false,
 				lastSynced: '',
 			});
-			expect(result.written).toBe(false);
+			expect(result.written).toBeFalsy();
 			expect(map.get('count')).toBeUndefined();
 		});
 
@@ -434,7 +434,7 @@ describe('useYjsDocumentSync (logic)', () => {
 			});
 
 			expect(map.get('count')).toBe(4);
-			expect(map.has('slide-3')).toBe(true);
+			expect(map.has('slide-3')).toBeTruthy();
 
 			// Remove last 2 slides
 			const slides2 = slides4.slice(0, 2);
@@ -446,11 +446,11 @@ describe('useYjsDocumentSync (logic)', () => {
 
 			expect(map.get('count')).toBe(2);
 			// The old entries at index 2 and 3 should be deleted
-			expect(map.has('slide-2')).toBe(false);
-			expect(map.has('slide-3')).toBe(false);
+			expect(map.has('slide-2')).toBeFalsy();
+			expect(map.has('slide-3')).toBeFalsy();
 			// The first two should still exist
-			expect(map.has('slide-0')).toBe(true);
-			expect(map.has('slide-1')).toBe(true);
+			expect(map.has('slide-0')).toBeTruthy();
+			expect(map.has('slide-1')).toBeTruthy();
 		});
 
 		it('adds new entries when slides are added', () => {
@@ -471,8 +471,8 @@ describe('useYjsDocumentSync (logic)', () => {
 			});
 
 			expect(map.get('count')).toBe(4);
-			expect(map.has('slide-2')).toBe(true);
-			expect(map.has('slide-3')).toBe(true);
+			expect(map.has('slide-2')).toBeTruthy();
+			expect(map.has('slide-3')).toBeTruthy();
 		});
 
 		it('updates count in Y.Map when remote adds slides', () => {
@@ -547,7 +547,7 @@ describe('useYjsDocumentSync (logic)', () => {
 	// -----------------------------------------------------------------------
 	describe('y.Map observer management', () => {
 		it('can observe and unobserve the map', () => {
-			const handler = vi.fn();
+			const handler = vi.fn<() => void>();
 			map.observe(handler);
 			expect(map._observerCount()).toBe(1);
 
@@ -583,7 +583,7 @@ describe('useYjsDocumentSync (logic)', () => {
 			doc.transact(() => {
 				executed = true;
 			});
-			expect(executed).toBe(true);
+			expect(executed).toBeTruthy();
 		});
 	});
 
@@ -595,20 +595,20 @@ describe('useYjsDocumentSync (logic)', () => {
 			const nonObjDoc = 'not-an-object';
 			const d = nonObjDoc as any;
 			const result = typeof d === 'object' && d !== null && typeof d.getMap === 'function';
-			expect(result).toBe(false);
+			expect(result).toBeFalsy();
 		});
 
 		it('returns null for doc without getMap', () => {
 			const noMapDoc = { notGetMap: () => {} };
 			const d = noMapDoc as any;
 			const result = typeof d.getMap === 'function';
-			expect(result).toBe(false);
+			expect(result).toBeFalsy();
 		});
 
 		it('returns Y.Map for valid doc', () => {
 			const d = doc as any;
 			const result = typeof d.getMap === 'function';
-			expect(result).toBe(true);
+			expect(result).toBeTruthy();
 			const m = d.getMap('slides-data');
 			expect(m).toBeDefined();
 		});
@@ -637,7 +637,7 @@ describe('useYjsDocumentSync (logic)', () => {
 				isApplyingRemote: false,
 				lastSynced: '',
 			});
-			expect(writeResult.written).toBe(true);
+			expect(writeResult.written).toBeTruthy();
 
 			// Read back (with different lastSynced to ensure it is returned)
 			const readResult = readRemoteFromDoc(doc, '');
@@ -668,7 +668,7 @@ describe('useYjsDocumentSync (logic)', () => {
 				isApplyingRemote: false,
 				lastSynced: r1!.newLastSynced,
 			});
-			expect(w2.written).toBe(true);
+			expect(w2.written).toBeTruthy();
 
 			// Host reads update
 			const r2 = readRemoteFromDoc(doc, w1.newLastSynced);

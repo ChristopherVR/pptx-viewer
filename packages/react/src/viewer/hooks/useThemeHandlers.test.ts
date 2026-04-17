@@ -50,14 +50,14 @@ describe('useThemeHandlersInput contract', () => {
 	it('should accept all required input fields', () => {
 		const input: UseThemeHandlersInput = {
 			handlerRef: { current: null },
-			serializeSlides: vi.fn().mockResolvedValue(null),
-			setContent: vi.fn(),
+			serializeSlides: vi.fn<() => void>().mockResolvedValue(null),
+			setContent: vi.fn<() => void>(),
 			onContentChange: undefined,
-			setTheme: vi.fn(),
-			setSlideMasters: vi.fn(),
+			setTheme: vi.fn<() => void>(),
+			setSlideMasters: vi.fn<() => void>(),
 			slideMasters: [],
 			history: {
-				markDirty: vi.fn(),
+				markDirty: vi.fn<() => void>(),
 			} as unknown as UseThemeHandlersInput['history'],
 		};
 

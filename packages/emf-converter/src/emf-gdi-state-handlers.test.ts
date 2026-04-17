@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import {
@@ -23,26 +22,26 @@ import { defaultState } from './emf-types';
 
 function makeCtxStub(): Record<string, unknown> {
 	return {
-		save: vi.fn(),
-		restore: vi.fn(),
-		beginPath: vi.fn(),
-		closePath: vi.fn(),
-		moveTo: vi.fn(),
-		lineTo: vi.fn(),
-		stroke: vi.fn(),
-		fill: vi.fn(),
-		fillRect: vi.fn(),
-		strokeRect: vi.fn(),
-		clip: vi.fn(),
-		setTransform: vi.fn(),
-		setLineDash: vi.fn(),
-		fillText: vi.fn(),
-		ellipse: vi.fn(),
-		rect: vi.fn(),
-		arc: vi.fn(),
-		bezierCurveTo: vi.fn(),
-		arcTo: vi.fn(),
-		drawImage: vi.fn(),
+		save: vi.fn<() => void>(),
+		restore: vi.fn<() => void>(),
+		beginPath: vi.fn<() => void>(),
+		closePath: vi.fn<() => void>(),
+		moveTo: vi.fn<() => void>(),
+		lineTo: vi.fn<() => void>(),
+		stroke: vi.fn<() => void>(),
+		fill: vi.fn<() => void>(),
+		fillRect: vi.fn<() => void>(),
+		strokeRect: vi.fn<() => void>(),
+		clip: vi.fn<() => void>(),
+		setTransform: vi.fn<() => void>(),
+		setLineDash: vi.fn<() => void>(),
+		fillText: vi.fn<() => void>(),
+		ellipse: vi.fn<() => void>(),
+		rect: vi.fn<() => void>(),
+		arc: vi.fn<() => void>(),
+		bezierCurveTo: vi.fn<() => void>(),
+		arcTo: vi.fn<() => void>(),
+		drawImage: vi.fn<() => void>(),
 		strokeStyle: '#000000',
 		fillStyle: '#ffffff',
 		lineWidth: 1,
@@ -89,7 +88,7 @@ describe('emf-gdi-state-handlers', () => {
 
 		it('returns false for an unrecognized record type', () => {
 			const rCtx = makeRCtx();
-			expect(handleEmfGdiStateRecord(rCtx, 0xffff, 0, 8, 8)).toBe(false);
+			expect(handleEmfGdiStateRecord(rCtx, 0xffff, 0, 8, 8)).toBeFalsy();
 		});
 
 		// -- EMR_SAVEDC / EMR_RESTOREDC --
@@ -98,7 +97,7 @@ describe('emf-gdi-state-handlers', () => {
 				const rCtx = makeRCtx();
 				rCtx.state.penColor = '#aabbcc';
 				const result = handleEmfGdiStateRecord(rCtx, EMR_SAVEDC, 0, 8, 8);
-				expect(result).toBe(true);
+				expect(result).toBeTruthy();
 				expect(rCtx.stateStack).toHaveLength(1);
 				expect(rCtx.stateStack[0].penColor).toBe('#aabbcc');
 				expect((rCtx.ctx as unknown as Record<string, unknown>).save).toHaveBeenCalled();
@@ -153,7 +152,7 @@ describe('emf-gdi-state-handlers', () => {
 				rCtx.view.setUint8(dataOff + 1, 0x80);
 				rCtx.view.setUint8(dataOff + 2, 0x00);
 				const result = handleEmfGdiStateRecord(rCtx, EMR_SETTEXTCOLOR, 0, dataOff, 12);
-				expect(result).toBe(true);
+				expect(result).toBeTruthy();
 				expect(rCtx.state.textColor).toBe('#ff8000');
 			});
 
@@ -221,17 +220,17 @@ describe('emf-gdi-state-handlers', () => {
 		describe('eMR_SETROP2 / EMR_SETSTRETCHBLTMODE / EMR_SETMITERLIMIT', () => {
 			it('returns true for EMR_SETROP2 (accepted, no visible state change)', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfGdiStateRecord(rCtx, EMR_SETROP2, 0, 8, 12)).toBe(true);
+				expect(handleEmfGdiStateRecord(rCtx, EMR_SETROP2, 0, 8, 12)).toBeTruthy();
 			});
 
 			it('returns true for EMR_SETSTRETCHBLTMODE', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfGdiStateRecord(rCtx, EMR_SETSTRETCHBLTMODE, 0, 8, 12)).toBe(true);
+				expect(handleEmfGdiStateRecord(rCtx, EMR_SETSTRETCHBLTMODE, 0, 8, 12)).toBeTruthy();
 			});
 
 			it('returns true for EMR_SETMITERLIMIT', () => {
 				const rCtx = makeRCtx();
-				expect(handleEmfGdiStateRecord(rCtx, EMR_SETMITERLIMIT, 0, 8, 12)).toBe(true);
+				expect(handleEmfGdiStateRecord(rCtx, EMR_SETMITERLIMIT, 0, 8, 12)).toBeTruthy();
 			});
 		});
 
@@ -243,7 +242,7 @@ describe('emf-gdi-state-handlers', () => {
 				rCtx.view.setInt32(dataOff, 2000, true);
 				rCtx.view.setInt32(dataOff + 4, 1500, true);
 				const result = handleEmfGdiStateRecord(rCtx, 9, 0, dataOff, 16);
-				expect(result).toBe(true);
+				expect(result).toBeTruthy();
 				expect(rCtx.windowExt.cx).toBe(2000);
 				expect(rCtx.windowExt.cy).toBe(1500);
 			});
@@ -258,8 +257,8 @@ describe('emf-gdi-state-handlers', () => {
 				rCtx.view.setUint8(dataOff + 17, 0);
 				rCtx.view.setUint8(dataOff + 18, 0);
 				const result = handleEmfGdiStateRecord(rCtx, 38, 0, dataOff, 28);
-				expect(result).toBe(true);
-				expect(rCtx.objectTable.has(1)).toBe(true);
+				expect(result).toBeTruthy();
+				expect(rCtx.objectTable.has(1)).toBeTruthy();
 			});
 		});
 	});

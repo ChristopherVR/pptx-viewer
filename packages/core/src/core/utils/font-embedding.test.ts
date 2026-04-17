@@ -37,7 +37,7 @@ describe('obfuscateFont', () => {
 				break;
 			}
 		}
-		expect(firstBytesDiffer).toBe(true);
+		expect(firstBytesDiffer).toBeTruthy();
 
 		// Bytes beyond 32 should be unchanged
 		for (let i = 32; i < 128; i++) {
@@ -121,7 +121,7 @@ describe('obfuscateFont', () => {
 				break;
 			}
 		}
-		expect(anyDifferent).toBe(true);
+		expect(anyDifferent).toBeTruthy();
 	});
 });
 

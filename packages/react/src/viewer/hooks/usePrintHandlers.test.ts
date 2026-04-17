@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import type { PptxSlide } from 'pptx-viewer-core';
 import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
@@ -277,13 +276,13 @@ describe('escapeHtml in print context', () => {
 describe('printHandlersResult type', () => {
 	it('has all expected properties', () => {
 		const result: PrintHandlersResult = {
-			handlePrint: vi.fn(),
-			handlePrintWithSettings: vi.fn(),
-			handlePrintSvg: vi.fn(),
+			handlePrint: vi.fn<() => void>(),
+			handlePrintWithSettings: vi.fn<() => void>(),
+			handlePrintSvg: vi.fn<() => void>(),
 			isPrintDialogOpen: false,
-			setIsPrintDialogOpen: vi.fn(),
+			setIsPrintDialogOpen: vi.fn<() => void>(),
 		};
-		expect(result.isPrintDialogOpen).toBe(false);
+		expect(result.isPrintDialogOpen).toBeFalsy();
 		expectTypeOf(result.handlePrint).toBeFunction();
 		expectTypeOf(result.handlePrintWithSettings).toBeFunction();
 		expectTypeOf(result.handlePrintSvg).toBeFunction();

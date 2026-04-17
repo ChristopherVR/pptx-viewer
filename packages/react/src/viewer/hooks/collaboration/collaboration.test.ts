@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 /**
  * Tests for the real-time collaboration infrastructure.
  *
@@ -131,11 +130,11 @@ describe('collaboration — Yjs CRDT sync', () => {
 			elMap.set('id', 'el-to-delete');
 			map1.set('el-to-delete', elMap);
 
-			expect(map2.has('el-to-delete')).toBe(true);
+			expect(map2.has('el-to-delete')).toBeTruthy();
 
 			map1.delete('el-to-delete');
 
-			expect(map2.has('el-to-delete')).toBe(false);
+			expect(map2.has('el-to-delete')).toBeFalsy();
 		});
 	});
 
@@ -287,8 +286,8 @@ describe('collaboration — Yjs CRDT sync', () => {
 
 			const arr2 = doc2.getArray<string>('slidesOrder');
 			expect(arr2.toArray()).toStrictEqual(['s2']);
-			expect(map2.has('s1')).toBe(false);
-			expect(map2.has('s2')).toBe(true);
+			expect(map2.has('s1')).toBeFalsy();
+			expect(map2.has('s2')).toBeTruthy();
 		});
 
 		it('should sync slide metadata updates', () => {
@@ -349,16 +348,16 @@ describe('collaboration — Yjs CRDT sync', () => {
 			elMap2.set('el-b', el2);
 
 			// Both should see both
-			expect(elMap1.has('el-a')).toBe(true);
-			expect(elMap1.has('el-b')).toBe(true);
-			expect(elMap2.has('el-a')).toBe(true);
-			expect(elMap2.has('el-b')).toBe(true);
+			expect(elMap1.has('el-a')).toBeTruthy();
+			expect(elMap1.has('el-b')).toBeTruthy();
+			expect(elMap2.has('el-a')).toBeTruthy();
+			expect(elMap2.has('el-b')).toBeTruthy();
 
 			// Delete from doc1
 			elMap1.delete('el-a');
 
-			expect(elMap2.has('el-a')).toBe(false);
-			expect(elMap2.has('el-b')).toBe(true);
+			expect(elMap2.has('el-a')).toBeFalsy();
+			expect(elMap2.has('el-b')).toBeTruthy();
 		});
 	});
 
@@ -391,20 +390,20 @@ describe('collaboration — Yjs CRDT sync', () => {
 			}, doc2.clientID);
 
 			// Both elements should exist in both docs
-			expect(elMap1.has('user1-el')).toBe(true);
-			expect(elMap1.has('user2-el')).toBe(true);
+			expect(elMap1.has('user1-el')).toBeTruthy();
+			expect(elMap1.has('user2-el')).toBeTruthy();
 
 			// User 1 undoes — should only remove user1-el
 			um1.undo();
 
-			expect(elMap1.has('user1-el')).toBe(false);
-			expect(elMap1.has('user2-el')).toBe(true); // user2's element preserved
+			expect(elMap1.has('user1-el')).toBeFalsy();
+			expect(elMap1.has('user2-el')).toBeTruthy(); // user2's element preserved
 
 			// Redo should bring it back
 			um1.redo();
 
-			expect(elMap1.has('user1-el')).toBe(true);
-			expect(elMap1.has('user2-el')).toBe(true);
+			expect(elMap1.has('user1-el')).toBeTruthy();
+			expect(elMap1.has('user2-el')).toBeTruthy();
 
 			um1.destroy();
 		});
@@ -528,12 +527,12 @@ describe('collaboration — Yjs CRDT sync', () => {
 			user1.set('isActive', true);
 			presenceMap1.set('user-1', user1);
 
-			expect(presenceMap2.has('user-1')).toBe(true);
+			expect(presenceMap2.has('user-1')).toBeTruthy();
 
 			// User disconnects — remove presence
 			presenceMap1.delete('user-1');
 
-			expect(presenceMap2.has('user-1')).toBe(false);
+			expect(presenceMap2.has('user-1')).toBeFalsy();
 		});
 	});
 
@@ -544,7 +543,7 @@ describe('collaboration — Yjs CRDT sync', () => {
 			const { elements: elMap1 } = initDocStructure(doc1);
 			const { elements: elMap2 } = initDocStructure(doc2);
 
-			const updateCount = vi.fn();
+			const updateCount = vi.fn<() => void>();
 			doc2.on('update', updateCount);
 
 			doc1.transact(() => {
@@ -559,7 +558,7 @@ describe('collaboration — Yjs CRDT sync', () => {
 			// All 10 elements should be in doc2
 			expect(elMap2.size).toBe(10);
 			for (let i = 0; i < 10; i++) {
-				expect(elMap2.has(`batch-${i}`)).toBe(true);
+				expect(elMap2.has(`batch-${i}`)).toBeTruthy();
 			}
 
 			// Transaction should have fired as a single update
@@ -819,7 +818,7 @@ describe('userPresence interface', () => {
 
 describe('collaborationContextValue shape', () => {
 	it('has the expected structure', () => {
-		const mockBroadcast = vi.fn();
+		const mockBroadcast = vi.fn<() => void>();
 		const value: CollaborationContextValue = {
 			status: 'connected',
 			remoteUsers: [],

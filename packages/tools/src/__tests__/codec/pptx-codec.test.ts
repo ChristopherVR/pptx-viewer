@@ -28,7 +28,7 @@ describe('pptxCodec', () => {
 
 		// Trigger a change
 		ydoc.getMap('pptx:meta').set('test', 'value');
-		expect(called).toBe(true);
+		expect(called).toBeTruthy();
 
 		// Unsubscribe
 		unsub();
@@ -36,7 +36,7 @@ describe('pptxCodec', () => {
 		ydoc.getMap('pptx:meta').set('test2', 'value2');
 		// After unsubscribe, callback should not be called
 		// (Yjs observe is synchronous, so this check is valid)
-		expect(called).toBe(false);
+		expect(called).toBeFalsy();
 	});
 });
 
@@ -83,7 +83,7 @@ describe('pptxCodec hydrate', () => {
 		// Each slide map should have an id
 		for (let i = 0; i < slidesArray.length; i++) {
 			const slideMap = slidesArray.get(i) as { get(key: string): unknown };
-			expect(slideMap.get('id')).toBe(true);
+			expect(slideMap.get('id')).toBeTruthy();
 		}
 	});
 

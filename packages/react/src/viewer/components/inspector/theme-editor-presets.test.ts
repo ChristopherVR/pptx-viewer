@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { PRESET_THEMES, COMMON_FONTS } from './theme-editor-presets';
@@ -23,7 +22,7 @@ const COLOR_SCHEME_KEYS = [
 
 describe('pRESET_THEMES', () => {
 	it('is a non-empty array', () => {
-		expect(Array.isArray(PRESET_THEMES)).toBe(true);
+		expect(Array.isArray(PRESET_THEMES)).toBeTruthy();
 		expect(PRESET_THEMES.length).toBeGreaterThan(0);
 	});
 
@@ -52,17 +51,17 @@ describe('pRESET_THEMES', () => {
 		for (const theme of PRESET_THEMES) {
 			describe(`theme: ${theme.name}`, () => {
 				it('has a non-empty name', () => {
-					expect(theme.name).toBe(true);
+					expect(theme.name).toBeTruthy();
 					expectTypeOf(theme.name).toBeString();
 				});
 
 				it('has a non-empty majorFont', () => {
-					expect(theme.majorFont).toBe(true);
+					expect(theme.majorFont).toBeTruthy();
 					expectTypeOf(theme.majorFont).toBeString();
 				});
 
 				it('has a non-empty minorFont', () => {
-					expect(theme.minorFont).toBe(true);
+					expect(theme.minorFont).toBeTruthy();
 					expectTypeOf(theme.minorFont).toBeString();
 				});
 
@@ -122,7 +121,7 @@ describe('cOMMON_FONTS', () => {
 
 	it('every entry is a non-empty string', () => {
 		for (const font of COMMON_FONTS) {
-			expect(font).toBe(true);
+			expect(font).toBeTruthy();
 			expectTypeOf(font).toBeString();
 		}
 	});

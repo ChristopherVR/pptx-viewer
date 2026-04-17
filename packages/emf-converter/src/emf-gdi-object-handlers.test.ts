@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 
 import {
@@ -20,15 +19,15 @@ import { defaultState } from './emf-types';
 
 function makeCtxStub(): Record<string, unknown> {
 	return {
-		save: vi.fn(),
-		restore: vi.fn(),
-		beginPath: vi.fn(),
-		moveTo: vi.fn(),
-		lineTo: vi.fn(),
-		stroke: vi.fn(),
-		fill: vi.fn(),
-		setLineDash: vi.fn(),
-		setTransform: vi.fn(),
+		save: vi.fn<() => void>(),
+		restore: vi.fn<() => void>(),
+		beginPath: vi.fn<() => void>(),
+		moveTo: vi.fn<() => void>(),
+		lineTo: vi.fn<() => void>(),
+		stroke: vi.fn<() => void>(),
+		fill: vi.fn<() => void>(),
+		setLineDash: vi.fn<() => void>(),
+		setTransform: vi.fn<() => void>(),
 		strokeStyle: '#000000',
 		fillStyle: '#ffffff',
 		lineWidth: 1,
@@ -73,7 +72,7 @@ describe('emf-gdi-object-handlers', () => {
 
 		it('returns false for an unrecognized record type', () => {
 			const rCtx = makeRCtx();
-			expect(handleEmfObjectRecord(rCtx, 0xffff, 8, 8)).toBe(false);
+			expect(handleEmfObjectRecord(rCtx, 0xffff, 8, 8)).toBeFalsy();
 		});
 
 		// -- EMR_CREATEPEN --
@@ -94,7 +93,7 @@ describe('emf-gdi-object-handlers', () => {
 				rCtx.view.setUint8(dataOff + 18, 0x00); // B
 
 				const result = handleEmfObjectRecord(rCtx, EMR_CREATEPEN, dataOff, 28);
-				expect(result).toBe(true);
+				expect(result).toBeTruthy();
 				const pen = rCtx.objectTable.get(1);
 				expect(pen).toBeDefined();
 				expect(pen!.kind).toBe('pen');
@@ -108,7 +107,7 @@ describe('emf-gdi-object-handlers', () => {
 			it('ignores record if recSize < 28', () => {
 				const rCtx = makeRCtx();
 				const result = handleEmfObjectRecord(rCtx, EMR_CREATEPEN, 8, 20);
-				expect(result).toBe(true);
+				expect(result).toBeTruthy();
 				expect(rCtx.objectTable.size).toBe(0);
 			});
 		});
@@ -129,7 +128,7 @@ describe('emf-gdi-object-handlers', () => {
 				rCtx.view.setUint8(dataOff + 26, 0x00);
 
 				const result = handleEmfObjectRecord(rCtx, EMR_EXTCREATEPEN, dataOff, 52);
-				expect(result).toBe(true);
+				expect(result).toBeTruthy();
 				const pen = rCtx.objectTable.get(2);
 				expect(pen).toBeDefined();
 				expect(pen!.kind).toBe('pen');
@@ -143,7 +142,7 @@ describe('emf-gdi-object-handlers', () => {
 			it('ignores record if recSize < 52', () => {
 				const rCtx = makeRCtx();
 				const result = handleEmfObjectRecord(rCtx, EMR_EXTCREATEPEN, 8, 40);
-				expect(result).toBe(true);
+				expect(result).toBeTruthy();
 				expect(rCtx.objectTable.size).toBe(0);
 			});
 
@@ -178,7 +177,7 @@ describe('emf-gdi-object-handlers', () => {
 				rCtx.view.setUint8(dataOff + 10, 0xff);
 
 				const result = handleEmfObjectRecord(rCtx, EMR_CREATEBRUSHINDIRECT, dataOff, 24);
-				expect(result).toBe(true);
+				expect(result).toBeTruthy();
 				const brush = rCtx.objectTable.get(3);
 				expect(brush).toBeDefined();
 				expect(brush!.kind).toBe('brush');
@@ -191,7 +190,7 @@ describe('emf-gdi-object-handlers', () => {
 			it('ignores record if recSize < 24', () => {
 				const rCtx = makeRCtx();
 				const result = handleEmfObjectRecord(rCtx, EMR_CREATEBRUSHINDIRECT, 8, 16);
-				expect(result).toBe(true);
+				expect(result).toBeTruthy();
 				expect(rCtx.objectTable.size).toBe(0);
 			});
 		});
@@ -213,14 +212,14 @@ describe('emf-gdi-object-handlers', () => {
 				}
 
 				const result = handleEmfObjectRecord(rCtx, EMR_EXTCREATEFONTINDIRECTW, dataOff, 332);
-				expect(result).toBe(true);
+				expect(result).toBeTruthy();
 				const font = rCtx.objectTable.get(4);
 				expect(font).toBeDefined();
 				expect(font!.kind).toBe('font');
 				if (font!.kind === 'font') {
 					expect(font!.height).toBe(24); // abs(-24)
 					expect(font!.weight).toBe(700);
-					expect(font!.italic).toBe(true);
+					expect(font!.italic).toBeTruthy();
 					expect(font!.family).toBe('Arial');
 				}
 			});
@@ -245,7 +244,7 @@ describe('emf-gdi-object-handlers', () => {
 			it('ignores record if recSize < 332', () => {
 				const rCtx = makeRCtx();
 				const result = handleEmfObjectRecord(rCtx, EMR_EXTCREATEFONTINDIRECTW, 8, 200);
-				expect(result).toBe(true);
+				expect(result).toBeTruthy();
 				expect(rCtx.objectTable.size).toBe(0);
 			});
 		});
@@ -259,7 +258,7 @@ describe('emf-gdi-object-handlers', () => {
 				rCtx.view.setUint32(dataOff, 1, true); // ihObject = 1
 
 				const result = handleEmfObjectRecord(rCtx, EMR_SELECTOBJECT, dataOff, 12);
-				expect(result).toBe(true);
+				expect(result).toBeTruthy();
 				expect(rCtx.state.penStyle).toBe(1);
 				expect(rCtx.state.penWidth).toBe(5);
 				expect(rCtx.state.penColor).toBe('#abcdef');
@@ -291,7 +290,7 @@ describe('emf-gdi-object-handlers', () => {
 				handleEmfObjectRecord(rCtx, EMR_SELECTOBJECT, dataOff, 12);
 				expect(rCtx.state.fontHeight).toBe(18);
 				expect(rCtx.state.fontWeight).toBe(700);
-				expect(rCtx.state.fontItalic).toBe(true);
+				expect(rCtx.state.fontItalic).toBeTruthy();
 				expect(rCtx.state.fontFamily).toBe('Courier');
 			});
 
@@ -339,7 +338,7 @@ describe('emf-gdi-object-handlers', () => {
 				const dataOff = 8;
 				rCtx.view.setUint32(dataOff, 1, true);
 				const result = handleEmfObjectRecord(rCtx, EMR_DELETEOBJECT, dataOff, 12);
-				expect(result).toBe(true);
+				expect(result).toBeTruthy();
 				expect(rCtx.objectTable.size).toBe(0);
 			});
 

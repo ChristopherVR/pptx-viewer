@@ -157,14 +157,14 @@ describe('mergeRecordedTiming', () => {
 describe('togglePauseState', () => {
 	it('should start pausing when currently not paused', () => {
 		const result = togglePauseState(false, 0, null, 5000);
-		expect(result.paused).toBe(true);
+		expect(result.paused).toBeTruthy();
 		expect(result.pauseStartTime).toBe(5000);
 		expect(result.pauseAccumulated).toBe(0);
 	});
 
 	it('should resume when currently paused', () => {
 		const result = togglePauseState(true, 1000, 3000, 5000);
-		expect(result.paused).toBe(false);
+		expect(result.paused).toBeFalsy();
 		expect(result.pauseStartTime).toBeNull();
 		// accumulated = 1000 + (5000 - 3000) = 3000
 		expect(result.pauseAccumulated).toBe(3000);
@@ -172,7 +172,7 @@ describe('togglePauseState', () => {
 
 	it('should handle resume with null pauseStartTime', () => {
 		const result = togglePauseState(true, 1000, null, 5000);
-		expect(result.paused).toBe(false);
+		expect(result.paused).toBeFalsy();
 		expect(result.pauseAccumulated).toBe(1000); // no change
 	});
 

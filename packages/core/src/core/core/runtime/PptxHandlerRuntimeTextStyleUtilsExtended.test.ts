@@ -128,43 +128,43 @@ function compactTextSegments(
 // ---------------------------------------------------------------------------
 describe('textStylesEqual', () => {
 	it('should return true for two undefined styles', () => {
-		expect(textStylesEqual(undefined, undefined)).toBe(true);
+		expect(textStylesEqual(undefined, undefined)).toBeTruthy();
 	});
 
 	it('should return true for identical styles', () => {
 		const a: TextStyle = { fontFamily: 'Arial', fontSize: 16, bold: true };
 		const b: TextStyle = { fontFamily: 'Arial', fontSize: 16, bold: true };
-		expect(textStylesEqual(a, b)).toBe(true);
+		expect(textStylesEqual(a, b)).toBeTruthy();
 	});
 
 	it('should return false when fontFamily differs', () => {
 		const a: TextStyle = { fontFamily: 'Arial' };
 		const b: TextStyle = { fontFamily: 'Calibri' };
-		expect(textStylesEqual(a, b)).toBe(false);
+		expect(textStylesEqual(a, b)).toBeFalsy();
 	});
 
 	it('should return false when fontSize differs', () => {
 		const a: TextStyle = { fontSize: 12 };
 		const b: TextStyle = { fontSize: 14 };
-		expect(textStylesEqual(a, b)).toBe(false);
+		expect(textStylesEqual(a, b)).toBeFalsy();
 	});
 
 	it('should return false when bold differs', () => {
 		const a: TextStyle = { bold: true };
 		const b: TextStyle = { bold: false };
-		expect(textStylesEqual(a, b)).toBe(false);
+		expect(textStylesEqual(a, b)).toBeFalsy();
 	});
 
 	it('should ignore non-compared keys like textCaps', () => {
 		const a: TextStyle = { fontFamily: 'Arial', textCaps: 'all' };
 		const b: TextStyle = { fontFamily: 'Arial', textCaps: 'small' };
-		expect(textStylesEqual(a, b)).toBe(true);
+		expect(textStylesEqual(a, b)).toBeTruthy();
 	});
 
 	it('should compare color correctly', () => {
 		const a: TextStyle = { color: '#FF0000' };
 		const b: TextStyle = { color: '#00FF00' };
-		expect(textStylesEqual(a, b)).toBe(false);
+		expect(textStylesEqual(a, b)).toBeFalsy();
 	});
 });
 
@@ -173,11 +173,11 @@ describe('textStylesEqual', () => {
 // ---------------------------------------------------------------------------
 describe('hasMixedTextStyles', () => {
 	it('should return false for empty array', () => {
-		expect(hasMixedTextStyles([])).toBe(false);
+		expect(hasMixedTextStyles([])).toBeFalsy();
 	});
 
 	it('should return false for single segment', () => {
-		expect(hasMixedTextStyles([{ text: 'hello', style: { bold: true } }])).toBe(false);
+		expect(hasMixedTextStyles([{ text: 'hello', style: { bold: true } }])).toBeFalsy();
 	});
 
 	it('should return false when all segments have same style', () => {
@@ -186,7 +186,7 @@ describe('hasMixedTextStyles', () => {
 				{ text: 'a', style: { bold: true } },
 				{ text: 'b', style: { bold: true } },
 			]),
-		).toBe(false);
+		).toBeFalsy();
 	});
 
 	it('should return true when segments have different styles', () => {
@@ -195,7 +195,7 @@ describe('hasMixedTextStyles', () => {
 				{ text: 'a', style: { bold: true } },
 				{ text: 'b', style: { bold: false } },
 			]),
-		).toBe(true);
+		).toBeTruthy();
 	});
 });
 
@@ -204,11 +204,11 @@ describe('hasMixedTextStyles', () => {
 // ---------------------------------------------------------------------------
 describe('areTextSegmentsUniform', () => {
 	it('should return true for undefined segments', () => {
-		expect(areTextSegmentsUniform(undefined)).toBe(true);
+		expect(areTextSegmentsUniform(undefined)).toBeTruthy();
 	});
 
 	it('should return true for single segment', () => {
-		expect(areTextSegmentsUniform([{ text: 'hi', style: {} }])).toBe(true);
+		expect(areTextSegmentsUniform([{ text: 'hi', style: {} }])).toBeTruthy();
 	});
 
 	it('should return true when styles are uniform', () => {
@@ -217,7 +217,7 @@ describe('areTextSegmentsUniform', () => {
 				{ text: 'a', style: { italic: true } },
 				{ text: 'b', style: { italic: true } },
 			]),
-		).toBe(true);
+		).toBeTruthy();
 	});
 
 	it('should return false when styles differ', () => {
@@ -226,7 +226,7 @@ describe('areTextSegmentsUniform', () => {
 				{ text: 'a', style: { italic: true } },
 				{ text: 'b', style: { italic: false } },
 			]),
-		).toBe(false);
+		).toBeFalsy();
 	});
 });
 
@@ -235,37 +235,37 @@ describe('areTextSegmentsUniform', () => {
 // ---------------------------------------------------------------------------
 describe('parseBooleanAttr', () => {
 	it("should return true for '1'", () => {
-		expect(parseBooleanAttr('1')).toBe(true);
+		expect(parseBooleanAttr('1')).toBeTruthy();
 	});
 
 	it("should return true for 'true'", () => {
-		expect(parseBooleanAttr('true')).toBe(true);
+		expect(parseBooleanAttr('true')).toBeTruthy();
 	});
 
 	it("should return true for 'TRUE' (case insensitive)", () => {
-		expect(parseBooleanAttr('TRUE')).toBe(true);
+		expect(parseBooleanAttr('TRUE')).toBeTruthy();
 	});
 
 	it("should return false for '0'", () => {
-		expect(parseBooleanAttr('0')).toBe(false);
+		expect(parseBooleanAttr('0')).toBeFalsy();
 	});
 
 	it("should return false for 'false'", () => {
-		expect(parseBooleanAttr('false')).toBe(false);
+		expect(parseBooleanAttr('false')).toBeFalsy();
 	});
 
 	it('should return false for undefined/null', () => {
-		expect(parseBooleanAttr(undefined)).toBe(false);
-		expect(parseBooleanAttr(null)).toBe(false);
+		expect(parseBooleanAttr(undefined)).toBeFalsy();
+		expect(parseBooleanAttr(null)).toBeFalsy();
 	});
 
 	it('should return false for empty string', () => {
-		expect(parseBooleanAttr('')).toBe(false);
+		expect(parseBooleanAttr('')).toBeFalsy();
 	});
 
 	it('should handle whitespace', () => {
-		expect(parseBooleanAttr('  1  ')).toBe(true);
-		expect(parseBooleanAttr('  true  ')).toBe(true);
+		expect(parseBooleanAttr('  1  ')).toBeTruthy();
+		expect(parseBooleanAttr('  true  ')).toBeTruthy();
 	});
 });
 
@@ -286,15 +286,15 @@ describe('parseOptionalBooleanAttr', () => {
 	});
 
 	it("should return true for '1'", () => {
-		expect(parseOptionalBooleanAttr('1')).toBe(true);
+		expect(parseOptionalBooleanAttr('1')).toBeTruthy();
 	});
 
 	it("should return false for '0'", () => {
-		expect(parseOptionalBooleanAttr('0')).toBe(false);
+		expect(parseOptionalBooleanAttr('0')).toBeFalsy();
 	});
 
 	it("should return true for 'true'", () => {
-		expect(parseOptionalBooleanAttr('true')).toBe(true);
+		expect(parseOptionalBooleanAttr('true')).toBeTruthy();
 	});
 });
 

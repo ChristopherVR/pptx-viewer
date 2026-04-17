@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 /**
  * Tests for CLI command handlers.
  *
@@ -116,7 +115,7 @@ describe('handleInfo', () => {
 	it('returns layout information', async () => {
 		const info = await handleInfo(singleSlideBytes);
 		expect(info.layoutCount).toBeGreaterThanOrEqual(0);
-		expect(Array.isArray(info.layouts)).toBe(true);
+		expect(Array.isArray(info.layouts)).toBeTruthy();
 	});
 
 	it('returns boolean flags for macros and signatures', async () => {
@@ -349,7 +348,7 @@ describe('handleCreate', () => {
 describe('handleDiff', () => {
 	it('reports identical presentations as matching', async () => {
 		const result = await handleDiff(singleSlideBytes, singleSlideBytes);
-		expect(result.dimensionsMatch).toBe(true);
+		expect(result.dimensionsMatch).toBeTruthy();
 		expect(result.slideCountA).toBe(result.slideCountB);
 	});
 
@@ -391,6 +390,6 @@ describe('handleDiff', () => {
 
 	it('dimensions match for presentations built with same options', async () => {
 		const result = await handleDiff(multiSlideBytes, multiSlideBytes);
-		expect(result.dimensionsMatch).toBe(true);
+		expect(result.dimensionsMatch).toBeTruthy();
 	});
 });

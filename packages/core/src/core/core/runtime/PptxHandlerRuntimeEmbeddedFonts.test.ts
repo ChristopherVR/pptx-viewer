@@ -170,14 +170,14 @@ describe('parseEmbeddedFontEntries', () => {
 		};
 		const result = parseEmbeddedFontEntries(data);
 		expect(result[0].variants).toHaveLength(4);
-		expect(result[0].variants[0].bold).toBe(false);
-		expect(result[0].variants[0].italic).toBe(false);
-		expect(result[0].variants[1].bold).toBe(true);
-		expect(result[0].variants[1].italic).toBe(false);
-		expect(result[0].variants[2].bold).toBe(false);
-		expect(result[0].variants[2].italic).toBe(true);
-		expect(result[0].variants[3].bold).toBe(true);
-		expect(result[0].variants[3].italic).toBe(true);
+		expect(result[0].variants[0].bold).toBeFalsy();
+		expect(result[0].variants[0].italic).toBeFalsy();
+		expect(result[0].variants[1].bold).toBeTruthy();
+		expect(result[0].variants[1].italic).toBeFalsy();
+		expect(result[0].variants[2].bold).toBeFalsy();
+		expect(result[0].variants[2].italic).toBeTruthy();
+		expect(result[0].variants[3].bold).toBeTruthy();
+		expect(result[0].variants[3].italic).toBeTruthy();
 	});
 
 	it('should skip fonts without typeface', () => {

@@ -158,7 +158,7 @@ describe('shape adjustments', () => {
 describe('miscellaneous constants', () => {
 	it('rECENT_COLOR_LIMIT is a positive integer', () => {
 		expect(RECENT_COLOR_LIMIT).toBeGreaterThan(0);
-		expect(Number.isInteger(RECENT_COLOR_LIMIT)).toBe(true);
+		expect(Number.isInteger(RECENT_COLOR_LIMIT)).toBeTruthy();
 	});
 
 	it('dEFAULT_PRESENTATION_STEP_DURATION_MS is positive', () => {

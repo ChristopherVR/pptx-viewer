@@ -87,6 +87,9 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 	const [canRedo, setCanRedo] = useState(false);
 	const [undoLabel, setUndoLabel] = useState<string | undefined>(undefined);
 	const [redoLabel, setRedoLabel] = useState<string | undefined>(undefined);
+	// State value intentionally unread: setter is used solely to trigger
+	// re-renders via `markDirty` when history changes.
+	// eslint-disable-next-line react/hook-use-state
 	const [_isDirty, setIsDirty] = useState(false);
 
 	// -- Helpers ------------------------------------------------------------

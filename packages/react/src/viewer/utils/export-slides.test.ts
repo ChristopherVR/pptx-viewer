@@ -17,17 +17,17 @@ import { buildPdfFromImageData, buildNotesPdf } from './pdf-builder';
 
 // Mock export-helpers to avoid DOM/canvas dependencies
 vi.mock<typeof import('./export-helpers')>(import('./export-helpers'), () => ({
-	downloadBlob: vi.fn(),
-	downloadDataUrl: vi.fn(),
-	renderElementToCanvas: vi.fn(),
-	waitForRender: vi.fn(() => Promise.resolve()),
+	downloadBlob: vi.fn<() => void>(),
+	downloadDataUrl: vi.fn<() => void>(),
+	renderElementToCanvas: vi.fn<() => void>(),
+	waitForRender: vi.fn<(...args: any[]) => any>(() => Promise.resolve()),
 }));
 
 // Mock pdf-builder to avoid heavy PDF generation
 vi.mock<typeof import('./pdf-builder')>(import('./pdf-builder'), () => ({
-	buildPdfFromImageData: vi.fn(() => 'blob:mock-pdf-url'),
-	buildNotesPdf: vi.fn(() => 'blob:mock-notes-pdf-url'),
-	canvasToJpegData: vi.fn(() => ({
+	buildPdfFromImageData: vi.fn<(...args: any[]) => any>(() => 'blob:mock-pdf-url'),
+	buildNotesPdf: vi.fn<(...args: any[]) => any>(() => 'blob:mock-notes-pdf-url'),
+	canvasToJpegData: vi.fn<(...args: any[]) => any>(() => ({
 		width: 1920,
 		height: 1080,
 		dataUrl: 'data:image/jpeg;base64,abc',
@@ -42,10 +42,10 @@ function makeMockCanvas(): HTMLCanvasElement {
 	const canvas = {
 		width: 1920,
 		height: 1080,
-		toBlob: vi.fn((callback: BlobCallback, type?: string) => {
+		toBlob: vi.fn<(...args: any[]) => any>((callback: BlobCallback, type?: string) => {
 			callback(new Blob(['mock-png-data'], { type: type ?? 'image/png' }));
 		}),
-		toDataURL: vi.fn(() => 'data:image/png;base64,abc123'),
+		toDataURL: vi.fn<(...args: any[]) => any>(() => 'data:image/png;base64,abc123'),
 	} as unknown as HTMLCanvasElement;
 	return canvas;
 }
@@ -133,8 +133,8 @@ describe('exportAllSlidesAsPdf', () => {
 	it('iterates all slides, calls progress, and produces PDF', async () => {
 		const stageEl = makeMockElement();
 		const ref = { current: stageEl } as React.RefObject<HTMLElement | null>;
-		const setActive = vi.fn();
-		const onProgress = vi.fn();
+		const setActive = vi.fn<() => void>();
+		const onProgress = vi.fn<() => void>();
 
 		await exportAllSlidesAsPdf(ref, 3, setActive, 1, 'test.pdf', {
 			onProgress,
@@ -158,7 +158,7 @@ describe('exportAllSlidesAsPdf', () => {
 		const stageEl = makeMockElement();
 		const ref = { current: stageEl } as React.RefObject<HTMLElement | null>;
 
-		await exportAllSlidesAsPdf(ref, 1, vi.fn(), 0);
+		await exportAllSlidesAsPdf(ref, 1, vi.fn<() => void>(), 0);
 
 		expect(downloadDataUrl).toHaveBeenCalledWith(expect.any(String), 'presentation.pdf');
 	});
@@ -166,7 +166,7 @@ describe('exportAllSlidesAsPdf', () => {
 	it('throws when no slides are captured', async () => {
 		const ref = { current: null } as React.RefObject<HTMLElement | null>;
 
-		await expect(exportAllSlidesAsPdf(ref, 2, vi.fn(), 0)).rejects.toThrow(
+		await expect(exportAllSlidesAsPdf(ref, 2, vi.fn<() => void>(), 0)).rejects.toThrow(
 			'No slides were captured for PDF export',
 		);
 	});
@@ -174,7 +174,7 @@ describe('exportAllSlidesAsPdf', () => {
 	it('restores original slide index after export', async () => {
 		const stageEl = makeMockElement();
 		const ref = { current: stageEl } as React.RefObject<HTMLElement | null>;
-		const setActive = vi.fn();
+		const setActive = vi.fn<() => void>();
 
 		await exportAllSlidesAsPdf(ref, 3, setActive, 2);
 
@@ -192,7 +192,7 @@ describe('captureAllSlidesAsPngDataUrls', () => {
 		const stageEl = makeMockElement();
 		const ref = { current: stageEl } as React.RefObject<HTMLElement | null>;
 
-		const result = await captureAllSlidesAsPngDataUrls(ref, 3, vi.fn(), 0);
+		const result = await captureAllSlidesAsPngDataUrls(ref, 3, vi.fn<() => void>(), 0);
 
 		expect(result).toHaveLength(3);
 		for (const url of result) {
@@ -203,7 +203,7 @@ describe('captureAllSlidesAsPngDataUrls', () => {
 	it('calls setActiveSlide for each slide and restores original', async () => {
 		const stageEl = makeMockElement();
 		const ref = { current: stageEl } as React.RefObject<HTMLElement | null>;
-		const setActive = vi.fn();
+		const setActive = vi.fn<() => void>();
 
 		await captureAllSlidesAsPngDataUrls(ref, 2, setActive, 1);
 
@@ -216,9 +216,9 @@ describe('captureAllSlidesAsPngDataUrls', () => {
 	it('calls progress callback for each slide plus completion', async () => {
 		const stageEl = makeMockElement();
 		const ref = { current: stageEl } as React.RefObject<HTMLElement | null>;
-		const onProgress = vi.fn();
+		const onProgress = vi.fn<() => void>();
 
-		await captureAllSlidesAsPngDataUrls(ref, 2, vi.fn(), 0, { onProgress });
+		await captureAllSlidesAsPngDataUrls(ref, 2, vi.fn<() => void>(), 0, { onProgress });
 
 		expect(onProgress).toHaveBeenCalledWith(0, 2);
 		expect(onProgress).toHaveBeenCalledWith(1, 2);
@@ -228,7 +228,7 @@ describe('captureAllSlidesAsPngDataUrls', () => {
 	it('returns empty array when all refs are null', async () => {
 		const ref = { current: null } as React.RefObject<HTMLElement | null>;
 
-		const result = await captureAllSlidesAsPngDataUrls(ref, 2, vi.fn(), 0);
+		const result = await captureAllSlidesAsPngDataUrls(ref, 2, vi.fn<() => void>(), 0);
 
 		expect(result).toStrictEqual([]);
 	});
@@ -244,7 +244,7 @@ describe('exportAllSlidesAsNotesPdf', () => {
 		const ref = { current: stageEl } as React.RefObject<HTMLElement | null>;
 		const notes = ['Note for slide 1', undefined, 'Note for slide 3'];
 
-		await exportAllSlidesAsNotesPdf(ref, 3, vi.fn(), 0, notes);
+		await exportAllSlidesAsNotesPdf(ref, 3, vi.fn<() => void>(), 0, notes);
 
 		expect(buildNotesPdf).toHaveBeenCalledOnce();
 		const pages = vi.mocked(buildNotesPdf).mock.calls[0][0];
@@ -261,7 +261,7 @@ describe('exportAllSlidesAsNotesPdf', () => {
 		const stageEl = makeMockElement();
 		const ref = { current: stageEl } as React.RefObject<HTMLElement | null>;
 
-		await exportAllSlidesAsNotesPdf(ref, 1, vi.fn(), 0, []);
+		await exportAllSlidesAsNotesPdf(ref, 1, vi.fn<() => void>(), 0, []);
 
 		expect(downloadDataUrl).toHaveBeenCalledWith(expect.any(String), 'presentation-notes.pdf');
 	});
@@ -269,7 +269,7 @@ describe('exportAllSlidesAsNotesPdf', () => {
 	it('throws when no slides are captured', async () => {
 		const ref = { current: null } as React.RefObject<HTMLElement | null>;
 
-		await expect(exportAllSlidesAsNotesPdf(ref, 2, vi.fn(), 0, [])).rejects.toThrow(
+		await expect(exportAllSlidesAsNotesPdf(ref, 2, vi.fn<() => void>(), 0, [])).rejects.toThrow(
 			'No slides were captured for notes PDF export',
 		);
 	});
@@ -277,7 +277,7 @@ describe('exportAllSlidesAsNotesPdf', () => {
 	it('restores original slide index after export', async () => {
 		const stageEl = makeMockElement();
 		const ref = { current: stageEl } as React.RefObject<HTMLElement | null>;
-		const setActive = vi.fn();
+		const setActive = vi.fn<() => void>();
 
 		await exportAllSlidesAsNotesPdf(ref, 2, setActive, 1, []);
 

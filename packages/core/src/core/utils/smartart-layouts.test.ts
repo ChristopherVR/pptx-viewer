@@ -364,14 +364,14 @@ describe('switchSmartArtLayout', () => {
 describe('isSwitchableLayoutType', () => {
 	it('returns true for all SWITCHABLE_LAYOUT_TYPES', () => {
 		for (const t of SWITCHABLE_LAYOUT_TYPES) {
-			expect(isSwitchableLayoutType(t)).toBe(true);
+			expect(isSwitchableLayoutType(t)).toBeTruthy();
 		}
 	});
 
 	it('returns false for unsupported layout types', () => {
-		expect(isSwitchableLayoutType('unknown')).toBe(false);
-		expect(isSwitchableLayoutType('funnel')).toBe(false);
-		expect(isSwitchableLayoutType('gear')).toBe(false);
+		expect(isSwitchableLayoutType('unknown')).toBeFalsy();
+		expect(isSwitchableLayoutType('funnel')).toBeFalsy();
+		expect(isSwitchableLayoutType('gear')).toBeFalsy();
 	});
 });
 

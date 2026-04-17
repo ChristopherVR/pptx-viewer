@@ -18,9 +18,9 @@ function makeDeps(overrides: Partial<StructuredElementDeps> = {}): StructuredEle
 		} as PptxSlide,
 		activeSlideIndex: 0,
 		selectedElements: [],
-		ops: { updateElementById: vi.fn() } as any,
-		history: { markDirty: vi.fn() } as any,
-		addElement: vi.fn(),
+		ops: { updateElementById: vi.fn<() => void>() } as any,
+		history: { markDirty: vi.fn<() => void>() } as any,
+		addElement: vi.fn<() => void>(),
 		...overrides,
 	};
 }
@@ -149,7 +149,7 @@ describe('handleInsertField', () => {
 		expect(el.type).toBe('shape');
 		expect(el.text).toBe('3'); // slideIndex 2 + 1
 		expect(el.textSegments[0].fieldType).toBe('slidenum');
-		expect(el.textSegments[0].fieldGuid).toBe(true);
+		expect(el.textSegments[0].fieldGuid).toBeTruthy();
 	});
 
 	it('creates a shape element for header field with default text', () => {

@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 

@@ -143,7 +143,7 @@ describe('elementProcessorRegistry', () => {
 		expect(result).not.toBeNull();
 		expect(result).toContain('*[Hidden]*');
 		expect(result).toContain('Shape content');
-		expect(result!.startsWith('*[Hidden]* Shape content')).toBe(true);
+		expect(result!.startsWith('*[Hidden]* Shape content')).toBeTruthy();
 	});
 
 	it('should not prefix visible elements with *[Hidden]*', async () => {

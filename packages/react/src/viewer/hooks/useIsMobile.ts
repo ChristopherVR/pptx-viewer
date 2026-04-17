@@ -127,6 +127,8 @@ export function useIsMobile(input?: UseIsMobileInput): UseIsMobileResult {
 
 	// Virtual keyboard detection
 	const [isVirtualKeyboardOpen, setIsVirtualKeyboardOpen] = useState(false);
+	// Captured once on mount; no setter needed (viewport-shrink detection baseline).
+	// eslint-disable-next-line react/hook-use-state
 	const [initialViewportHeight] = useState(() =>
 		typeof window !== 'undefined' ? window.innerHeight : 800,
 	);

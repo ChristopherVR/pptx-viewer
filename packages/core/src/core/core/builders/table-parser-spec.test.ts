@@ -239,7 +239,7 @@ describe('pptxTableDataParser — table structure', () => {
 		expect(cells).toHaveLength(3);
 		expect(cells[0].gridSpan).toBe(2);
 		expect(cells[0].text).toBe('Merged Cell');
-		expect(cells[1].hMerge).toBe(true);
+		expect(cells[1].hMerge).toBeTruthy();
 		expect(cells[2].text).toBe('Single');
 		expect(cells[2].gridSpan).toBeUndefined();
 	});
@@ -294,9 +294,9 @@ describe('pptxTableDataParser — table structure', () => {
 		expect(result).toBeDefined();
 		expect(result!.rows).toHaveLength(3);
 		expect(result!.rows[0].cells[0].rowSpan).toBe(3);
-		expect(result!.rows[0].cells[0].vMerge).toBe(false);
-		expect(result!.rows[1].cells[0].vMerge).toBe(true);
-		expect(result!.rows[2].cells[0].vMerge).toBe(true);
+		expect(result!.rows[0].cells[0].vMerge).toBeFalsy();
+		expect(result!.rows[1].cells[0].vMerge).toBeTruthy();
+		expect(result!.rows[2].cells[0].vMerge).toBeTruthy();
 	});
 });
 
@@ -333,12 +333,12 @@ describe('pptxTableDataParser — table properties & style', () => {
 		const result = parser.parseTableData(graphicData);
 
 		expect(result).toBeDefined();
-		expect(result!.firstRowHeader).toBe(true);
-		expect(result!.bandedRows).toBe(true);
-		expect(result!.lastRow).toBe(false);
-		expect(result!.firstCol).toBe(false);
-		expect(result!.lastCol).toBe(false);
-		expect(result!.bandedColumns).toBe(false);
+		expect(result!.firstRowHeader).toBeTruthy();
+		expect(result!.bandedRows).toBeTruthy();
+		expect(result!.lastRow).toBeFalsy();
+		expect(result!.firstCol).toBeFalsy();
+		expect(result!.lastCol).toBeFalsy();
+		expect(result!.bandedColumns).toBeFalsy();
 	});
 
 	it('parses table style ID from a:tblStyle/@val', () => {
@@ -525,8 +525,8 @@ describe('pptxTableDataParser — table properties & style', () => {
 		expect(result!.rows[1].cells[0].text).toBe('A1');
 		expect(result!.rows[1].cells[1].text).toBe('B1');
 		expect(result!.rows[1].cells[2].text).toBe('C1');
-		expect(result!.firstRowHeader).toBe(true);
-		expect(result!.bandedRows).toBe(true);
+		expect(result!.firstRowHeader).toBeTruthy();
+		expect(result!.bandedRows).toBeTruthy();
 		expect(result!.tableStyleId).toBe('{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}');
 	});
 });

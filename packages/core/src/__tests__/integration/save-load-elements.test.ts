@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, beforeEach, expectTypeOf } from 'vitest';
 
 import {
@@ -14,6 +13,7 @@ import type {
 	ShapePptxElement,
 	ConnectorPptxElement,
 	GroupPptxElement,
+	InkPptxElement,
 	PptxElement,
 } from '../../core/types/elements';
 import type { PptxSlide } from '../../core/types/presentation';
@@ -77,7 +77,7 @@ describe('text element round-trip', () => {
 
 		const { data: reloaded } = await saveAndReload(handler, data.slides);
 		expect(reloaded.slides).toHaveLength(1);
-		expect(slideContainsText(reloaded.slides[0], 'Hello Integration')).toBe(true);
+		expect(slideContainsText(reloaded.slides[0], 'Hello Integration')).toBeTruthy();
 	});
 
 	it('text with bold/italic styling survives round-trip', async () => {
@@ -98,7 +98,7 @@ describe('text element round-trip', () => {
 
 		const { data: reloaded } = await saveAndReload(handler, data.slides);
 		expect(reloaded.slides).toHaveLength(1);
-		expect(slideContainsText(reloaded.slides[0], 'Styled Text')).toBe(true);
+		expect(slideContainsText(reloaded.slides[0], 'Styled Text')).toBeTruthy();
 	});
 
 	it('rich text with multiple segments survives round-trip', async () => {
@@ -120,7 +120,7 @@ describe('text element round-trip', () => {
 		const hasAny =
 			slideContainsText(reloaded.slides[0], 'Bold Part') ||
 			slideContainsText(reloaded.slides[0], 'Normal Part');
-		expect(hasAny).toBe(true);
+		expect(hasAny).toBeTruthy();
 	});
 });
 
@@ -313,7 +313,7 @@ describe('multiple elements round-trip', () => {
 
 		const loadedTypes = new Set(shapes.map((s) => s.shapeType));
 		for (const st of shapeTypes) {
-			expect(loadedTypes.has(st)).toBe(true);
+			expect(loadedTypes.has(st)).toBeTruthy();
 		}
 	});
 });
@@ -419,7 +419,7 @@ describe('modify text content round-trip', () => {
 		}
 
 		const { data: reloaded } = await saveAndReload(handler, data.slides);
-		expect(slideContainsText(reloaded.slides[0], 'Changed Text')).toBe(true);
+		expect(slideContainsText(reloaded.slides[0], 'Changed Text')).toBeTruthy();
 	});
 
 	it('appending text to an existing element is preserved', async () => {
@@ -441,7 +441,7 @@ describe('modify text content round-trip', () => {
 		}
 
 		const { data: reloaded } = await saveAndReload(handler, data.slides);
-		expect(slideContainsText(reloaded.slides[0], 'Base Extended')).toBe(true);
+		expect(slideContainsText(reloaded.slides[0], 'Base Extended')).toBeTruthy();
 	});
 });
 
@@ -467,7 +467,7 @@ describe('add element then remove it round-trip', () => {
 		// Should have 2 text elements, not 3
 		expect(reloaded.slides[0].elements.length).toBeGreaterThanOrEqual(2);
 		// "Remove Me" should be absent
-		expect(slideContainsText(reloaded.slides[0], 'Remove Me')).toBe(false);
+		expect(slideContainsText(reloaded.slides[0], 'Remove Me')).toBeFalsy();
 	});
 
 	it('clearing all elements results in empty slide after reload', async () => {
@@ -484,7 +484,7 @@ describe('add element then remove it round-trip', () => {
 		const { data: reloaded } = await saveAndReload(handler, data.slides);
 		expect(reloaded.slides).toHaveLength(1);
 		// Elements should be empty or only contain layout-inherited ones
-		expect(slideContainsText(reloaded.slides[0], 'Gone')).toBe(false);
+		expect(slideContainsText(reloaded.slides[0], 'Gone')).toBeFalsy();
 	});
 });
 
@@ -572,9 +572,9 @@ describe('multiple slides round-trip', () => {
 		);
 
 		const { data: reloaded } = await saveAndReload(handler, data.slides);
-		expect(slideContainsText(reloaded.slides[0], 'Alpha')).toBe(true);
-		expect(slideContainsText(reloaded.slides[1], 'Bravo')).toBe(true);
-		expect(slideContainsText(reloaded.slides[2], 'Charlie')).toBe(true);
+		expect(slideContainsText(reloaded.slides[0], 'Alpha')).toBeTruthy();
+		expect(slideContainsText(reloaded.slides[1], 'Bravo')).toBeTruthy();
+		expect(slideContainsText(reloaded.slides[2], 'Charlie')).toBeTruthy();
 	});
 
 	it('slide numbers are sequential after reload with 3 slides', async () => {
@@ -617,7 +617,7 @@ describe('same element type on multiple slides', () => {
 		const { data: reloaded } = await saveAndReload(handler, data.slides);
 		expect(reloaded.slides).toHaveLength(3);
 		for (let i = 0; i < 3; i++) {
-			expect(slideContainsText(reloaded.slides[i], `TextOnSlide${i + 1}`)).toBe(true);
+			expect(slideContainsText(reloaded.slides[i], `TextOnSlide${i + 1}`)).toBeTruthy();
 		}
 	});
 
@@ -721,7 +721,7 @@ describe('pptxHandler.createBlank()', () => {
 
 		const { data: reloaded } = await saveAndReload(handler, data.slides);
 		expect(reloaded.slides).toHaveLength(1);
-		expect(slideContainsText(reloaded.slides[0], 'Via createBlank')).toBe(true);
+		expect(slideContainsText(reloaded.slides[0], 'Via createBlank')).toBeTruthy();
 	});
 
 	it('createBlank with custom theme colors works', async () => {
@@ -811,7 +811,7 @@ describe('additional round-trip scenarios', () => {
 		const hasLabel =
 			(shape?.text && shape.text.includes('Button Label')) ||
 			(shape?.textSegments && shape.textSegments.some((s) => s.text.includes('Button Label')));
-		expect(hasLabel).toBe(true);
+		expect(hasLabel).toBeTruthy();
 	});
 
 	it('empty text box survives round-trip', async () => {
@@ -885,7 +885,7 @@ describe('additional round-trip scenarios', () => {
 			.addText('Hidden slide', { x: 10, y: 10, width: 200, height: 40 })
 			.build();
 		data.slides.push(slide);
-		expect(slide.hidden).toBe(true);
+		expect(slide.hidden).toBeTruthy();
 	});
 
 	it('transition is set correctly on slide data', async () => {
@@ -950,5 +950,95 @@ describe('additional round-trip scenarios', () => {
 
 		const { data: d3 } = await saveAndReload(h2, d2.slides);
 		expect(d3.slides).toHaveLength(2);
+	});
+});
+
+// ===========================================================================
+// Saved XML must conform to OOXML schema order (prevents PowerPoint
+// "file corrupted — do you want to repair?" dialogs on open)
+// ===========================================================================
+
+describe('saved slide XML conforms to schema order', () => {
+	async function saveSlideXml(slides: PptxSlide[], handler: PptxHandler): Promise<string> {
+		const bytes = await handler.save(slides);
+		const JSZip = (await import('jszip')).default;
+		const zip = await JSZip.loadAsync(bytes);
+		return zip.file('ppt/slides/slide1.xml')!.async('string');
+	}
+
+	it('a:rPr emits a:solidFill before a:latin/ea/cs/sym (CT_TextCharacterProperties order)', async () => {
+		const { handler, data, createSlide } = await createBlank();
+		data.slides.push(
+			createSlide('Blank')
+				.addText('Hello', {
+					x: 10,
+					y: 10,
+					width: 200,
+					height: 50,
+					fontFamily: 'Arial',
+					color: '#FF0000',
+				})
+				.build(),
+		);
+		const xml = await saveSlideXml(data.slides, handler);
+		const rPrMatch = xml.match(/<a:rPr\b[^>]*>[\s\S]*?<\/a:rPr>/);
+		expect(rPrMatch).not.toBeNull();
+		const rPr = rPrMatch![0];
+		const solidIdx = rPr.indexOf('<a:solidFill');
+		const latinIdx = rPr.indexOf('<a:latin');
+		expect(solidIdx).toBeGreaterThan(-1);
+		expect(latinIdx).toBeGreaterThan(-1);
+		expect(solidIdx).toBeLessThan(latinIdx);
+	});
+
+	it('a:rPr does not include the rtl attribute (only valid on a:pPr)', async () => {
+		const { handler, data, createSlide } = await createBlank();
+		data.slides.push(
+			createSlide('Blank')
+				.addText('Hello', { x: 10, y: 10, width: 200, height: 50, color: '#000000' })
+				.build(),
+		);
+		const xml = await saveSlideXml(data.slides, handler);
+		const rPrMatches = xml.match(/<a:rPr\b[^>]*>/g) ?? [];
+		expect(rPrMatches.length).toBeGreaterThan(0);
+		for (const tag of rPrMatches) {
+			expect(tag).not.toMatch(/\brtl=/);
+		}
+	});
+});
+
+// ===========================================================================
+// Ink element round-trip (custGeom preservation)
+// ===========================================================================
+
+describe('ink element round-trip', () => {
+	it('ink stroke saves as custGeom and reloads with shapeType="custom" (not demoted to rect)', async () => {
+		const { handler, data, createSlide } = await createBlank();
+		const ink: InkPptxElement = {
+			id: 'ink-test-1',
+			type: 'ink',
+			x: 50,
+			y: 60,
+			width: 120,
+			height: 80,
+			inkPaths: ['M 0 0 L 60 40 L 120 80'],
+			inkColors: ['#FF0000'],
+			inkWidths: [3],
+			inkOpacities: [1],
+		};
+		data.slides.push(createSlide('Blank').addElement(ink).build());
+
+		const { data: reloaded } = await saveAndReload(handler, data.slides);
+		expect(reloaded.slides).toHaveLength(1);
+
+		// Ink serialises as p:sp with custGeom, so it reloads as a shape.
+		// The shape MUST retain shapeType='custom' — if it gets demoted to 'rect',
+		// the renderer draws the bounding rectangle with the ink stroke colour,
+		// which is the bug we are guarding against.
+		const shape = reloaded.slides[0].elements.find((e) => e.type === 'shape') as
+			| ShapePptxElement
+			| undefined;
+		expect(shape).toBeDefined();
+		expect(shape!.shapeType).toBe('custom');
 	});
 });

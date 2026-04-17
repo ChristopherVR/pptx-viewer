@@ -46,9 +46,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (style.textCaps && style.textCaps !== 'none') {
 			runProps['@_cap'] = style.textCaps;
 		}
-		if (style.rtl !== undefined) {
-			runProps['@_rtl'] = style.rtl ? '1' : '0';
-		}
+		// NOTE: `rtl` is only valid on CT_TextParagraphProperties (a:pPr), not
+		// CT_TextCharacterProperties (a:rPr). Emitting it here produces a
+		// Sch_UndeclaredAttribute violation and triggers PowerPoint's file-
+		// corruption/repair dialog. Paragraph-level rtl is emitted by
+		// buildParagraphPropertiesXml.
 		// Run metadata
 		if (style.kumimoji !== undefined) {
 			runProps['@_kumimoji'] = style.kumimoji ? '1' : '0';
@@ -71,35 +73,38 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (style.bookmark) {
 			runProps['@_bmk'] = style.bookmark;
 		}
-		if (style.fontFamily) {
-			runProps['a:latin'] = { '@_typeface': style.fontFamily };
-			runProps['a:ea'] = {
-				'@_typeface': style.eastAsiaFont || style.fontFamily,
-			};
-			runProps['a:cs'] = {
-				'@_typeface': style.complexScriptFont || style.fontFamily,
-			};
+		// OOXML CT_TextCharacterProperties child element order (fast-xml-parser
+		// serialises keys in insertion order, so every child must be assigned
+		// in this exact sequence — any reversal triggers
+		// Sch_UnexpectedElementContentExpectingComplex and PowerPoint's
+		// file-corruption/repair dialog):
+		//   ln, (solidFill | gradFill | pattFill), effectLst, highlight,
+		//   uFill, latin, ea, cs, sym, hlinkClick, hlinkMouseOver.
+
+		// 1. a:ln (text outline)
+		if (style.textOutlineWidth || style.textOutlineColor) {
+			const lnObj: XmlObject = {};
+			if (typeof style.textOutlineWidth === 'number' && style.textOutlineWidth > 0) {
+				lnObj['@_w'] = String(Math.round(style.textOutlineWidth * PptxHandlerRuntime.EMU_PER_PX));
+			}
+			if (style.textOutlineColor) {
+				lnObj['a:solidFill'] = {
+					'a:srgbClr': {
+						'@_val': style.textOutlineColor.replace('#', ''),
+					},
+				};
+			}
+			runProps['a:ln'] = lnObj;
 		}
-		// Symbol font
-		if (style.symbolFont) {
-			runProps['a:sym'] = { '@_typeface': style.symbolFont };
-		}
+
+		// 2. fill (solidFill | gradFill | pattFill — schema allows at most one)
 		if (style.color) {
 			runProps['a:solidFill'] = {
 				'a:srgbClr': {
 					'@_val': style.color.replace('#', ''),
 				},
 			};
-		}
-		if (style.highlightColor) {
-			runProps['a:highlight'] = {
-				'a:srgbClr': {
-					'@_val': style.highlightColor.replace('#', ''),
-				},
-			};
-		}
-		// Text gradient fill round-trip from structured data
-		if (style.textFillGradientStops && style.textFillGradientStops.length > 0) {
+		} else if (style.textFillGradientStops && style.textFillGradientStops.length > 0) {
 			const gradStops = style.textFillGradientStops
 				.filter((stop) => Boolean(stop?.color))
 				.map((stop) => {
@@ -142,10 +147,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 				runProps['a:gradFill'] = gradFillXml;
 			}
-		}
-
-		// Text pattern fill
-		if (style.textFillPattern) {
+		} else if (style.textFillPattern) {
 			const pattFill: XmlObject = { '@_prst': style.textFillPattern };
 			if (style.textFillPatternForeground) {
 				pattFill['a:fgClr'] = {
@@ -163,7 +165,23 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 			runProps['a:pattFill'] = pattFill;
 		}
-		// Underline colour
+
+		// 3. a:effectLst (text run effects)
+		const textEffectLst = buildTextRunEffectListXml(style);
+		if (textEffectLst) {
+			runProps['a:effectLst'] = textEffectLst;
+		}
+
+		// 4. a:highlight
+		if (style.highlightColor) {
+			runProps['a:highlight'] = {
+				'a:srgbClr': {
+					'@_val': style.highlightColor.replace('#', ''),
+				},
+			};
+		}
+
+		// 5. a:uFill (underline fill)
 		if (style.underline && style.underlineColor) {
 			runProps['a:uFill'] = {
 				'a:solidFill': {
@@ -173,26 +191,22 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				},
 			};
 		}
-		// Text outline
-		if (style.textOutlineWidth || style.textOutlineColor) {
-			const lnObj: XmlObject = {};
-			if (typeof style.textOutlineWidth === 'number' && style.textOutlineWidth > 0) {
-				lnObj['@_w'] = String(Math.round(style.textOutlineWidth * PptxHandlerRuntime.EMU_PER_PX));
-			}
-			if (style.textOutlineColor) {
-				lnObj['a:solidFill'] = {
-					'a:srgbClr': {
-						'@_val': style.textOutlineColor.replace('#', ''),
-					},
-				};
-			}
-			runProps['a:ln'] = lnObj;
+
+		// 6. typefaces: latin, ea, cs, sym
+		if (style.fontFamily) {
+			runProps['a:latin'] = { '@_typeface': style.fontFamily };
+			runProps['a:ea'] = {
+				'@_typeface': style.eastAsiaFont || style.fontFamily,
+			};
+			runProps['a:cs'] = {
+				'@_typeface': style.complexScriptFont || style.fontFamily,
+			};
 		}
-		// Text run effects → a:effectLst
-		const textEffectLst = buildTextRunEffectListXml(style);
-		if (textEffectLst) {
-			runProps['a:effectLst'] = textEffectLst;
+		if (style.symbolFont) {
+			runProps['a:sym'] = { '@_typeface': style.symbolFont };
 		}
+
+		// 7. hlinkClick / hlinkMouseOver
 		if (style.hyperlink && resolveHyperlinkRelationshipId) {
 			const hyperlinkTarget = String(style.hyperlink).trim();
 			// Action hyperlinks (ppaction:// verbs) don't need relationship IDs

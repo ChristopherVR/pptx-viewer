@@ -8,7 +8,7 @@ describe('generateTicks', () => {
 		expect(ticks.length).toBeGreaterThan(0);
 		// First tick at position 0
 		expect(ticks[0].position).toBe(0);
-		expect(ticks[0].isMajor).toBe(true);
+		expect(ticks[0].isMajor).toBeTruthy();
 		expect(ticks[0].label).toBe('0');
 	});
 

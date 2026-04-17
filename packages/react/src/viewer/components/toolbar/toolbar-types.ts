@@ -10,6 +10,7 @@ import type {
 	DrawingTool,
 	ElementClipboardPayload,
 	SupportedShapeType,
+	TableCellEditorState,
 	ToolbarSection,
 	ViewerMode,
 } from '../../types';
@@ -29,6 +30,7 @@ export interface ToolbarProps {
 	redoLabel: string | undefined;
 	findReplaceOpen: boolean;
 	selectedElement: PptxElement | null;
+	tableEditorState?: TableCellEditorState | null;
 	editTemplateMode: boolean;
 	newShapeType: SupportedShapeType;
 	activeTool: DrawingTool;

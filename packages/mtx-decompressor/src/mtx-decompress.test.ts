@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { decompressMtx, decompressEotFont, unpackMtx } from './mtx-decompress';

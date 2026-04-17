@@ -81,8 +81,8 @@ function ctx(): ToolContext {
 describe('convertToMarkdown', () => {
 	it('converts presentation to markdown', async () => {
 		const result = await convertToMarkdown(ctx(), {});
-		expect(result.dirty).toBe(false);
-		expect(result.result.markdown).toBe(true);
+		expect(result.dirty).toBeFalsy();
+		expect(result.result.markdown).toBeTruthy();
 		expectTypeOf(result.result.markdown).toBeString();
 		expect(result.result.totalSlides).toBe(2);
 		expect(result.result.slidesConverted).toBe(2);
@@ -114,7 +114,7 @@ describe('convertToMarkdown', () => {
 
 	it('passes through sourceName option', async () => {
 		const result = await convertToMarkdown(ctx(), { sourceName: 'my-deck.pptx' });
-		expect(result.result.markdown).toBe(true);
+		expect(result.result.markdown).toBeTruthy();
 	});
 
 	it('does not mutate pptxData', async () => {

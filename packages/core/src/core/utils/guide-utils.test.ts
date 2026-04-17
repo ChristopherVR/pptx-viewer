@@ -52,7 +52,7 @@ describe('guidePxToEmu', () => {
 
 	it('rounds the result to nearest integer', () => {
 		const result = guidePxToEmu(1.5);
-		expect(Number.isInteger(result)).toBe(true);
+		expect(Number.isInteger(result)).toBeTruthy();
 		expect(result).toBe(Math.round(1.5 * 9525));
 	});
 
@@ -210,7 +210,7 @@ describe('buildGuideListExtension', () => {
 		const result = buildGuideListExtension(guides);
 		const guideList = result['p14:sldGuideLst'] as XmlObject;
 		const guideNodes = guideList['p14:guide'];
-		expect(Array.isArray(guideNodes)).toBe(true);
+		expect(Array.isArray(guideNodes)).toBeTruthy();
 		expect(guideNodes as XmlObject[]).toHaveLength(2);
 	});
 

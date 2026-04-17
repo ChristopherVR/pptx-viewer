@@ -437,7 +437,7 @@ function runCTFPipeline(
 // ===================================================================
 
 describe('cTF integration — simple glyph (triangle)', () => {
-	const { data: glyphData, expectedDeltas } = buildTriangleGlyphData();
+	const { data: glyphData } = buildTriangleGlyphData();
 	const head = buildHeadTable(0); // short loca
 	const maxp = buildMaxpTable(1, 3, 1);
 	const stream0 = buildCTFStream0({
@@ -566,7 +566,7 @@ describe('cTF integration — simple glyph (triangle)', () => {
 });
 
 describe('cTF integration — rectangle glyph (mixed triplet encodings)', () => {
-	const { data: glyphData, expectedDeltas } = buildRectangleGlyphData();
+	const { data: glyphData } = buildRectangleGlyphData();
 	const head = buildHeadTable(0);
 	const maxp = buildMaxpTable(1, 4, 1);
 	const stream0 = buildCTFStream0({

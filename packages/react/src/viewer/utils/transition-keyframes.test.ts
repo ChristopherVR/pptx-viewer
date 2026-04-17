@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { SLIDE_TRANSITION_KEYFRAMES } from './transition-keyframes';

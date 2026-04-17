@@ -1,4 +1,3 @@
-import { expectTypeOf } from '@jest/globals';
 import { describe, it, expect, beforeEach, expectTypeOf } from 'vitest';
 
 import type { CustomGeometryPoint } from '../types';
@@ -214,12 +213,12 @@ describe('freeformPathBuilder', () => {
 	// -- close / isClosed ----------------------------------------------------
 
 	it('is not closed by default', () => {
-		expect(builder.isClosed()).toBe(false);
+		expect(builder.isClosed()).toBeFalsy();
 	});
 
 	it('close() marks the path as closed', () => {
 		builder.close();
-		expect(builder.isClosed()).toBe(true);
+		expect(builder.isClosed()).toBeTruthy();
 	});
 
 	it('close() returns this for chaining', () => {
@@ -265,16 +264,16 @@ describe('freeformPathBuilder', () => {
 
 	it('isSmoothed() reflects smooth state', () => {
 		builder.addPoint(0, 0).addPoint(10, 10);
-		expect(builder.isSmoothed()).toBe(false);
+		expect(builder.isSmoothed()).toBeFalsy();
 		builder.smooth();
-		expect(builder.isSmoothed()).toBe(true);
+		expect(builder.isSmoothed()).toBeTruthy();
 	});
 
 	it('adding a point after smooth invalidates smoothed state', () => {
 		builder.addPoint(0, 0).addPoint(10, 10).smooth();
-		expect(builder.isSmoothed()).toBe(true);
+		expect(builder.isSmoothed()).toBeTruthy();
 		builder.addPoint(20, 20);
-		expect(builder.isSmoothed()).toBe(false);
+		expect(builder.isSmoothed()).toBeFalsy();
 		// Should fall back to L commands
 		expect(builder.toSvgPath()).toMatch(/L /);
 	});
@@ -323,9 +322,9 @@ describe('freeformPathBuilder', () => {
 
 	it('simplify invalidates smoothed state', () => {
 		builder.addPoint(0, 0).addPoint(50, 100).addPoint(100, 0).smooth();
-		expect(builder.isSmoothed()).toBe(true);
+		expect(builder.isSmoothed()).toBeTruthy();
 		builder.simplify(1);
-		expect(builder.isSmoothed()).toBe(false);
+		expect(builder.isSmoothed()).toBeFalsy();
 	});
 
 	// -- toCustomGeometryPaths (polyline mode) --------------------------------

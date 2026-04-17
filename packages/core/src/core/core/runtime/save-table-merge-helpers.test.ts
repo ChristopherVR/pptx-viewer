@@ -148,7 +148,7 @@ describe('replaceFirstTextValueInTree', () => {
 	it('should replace the first matching text value', () => {
 		const node = { 'a:t': 'Hello' };
 		const replaced = replaceFirstTextValueInTree(node, 't', 'World', getLocalName);
-		expect(replaced).toBe(true);
+		expect(replaced).toBeTruthy();
 		expect(node['a:t']).toBe('World');
 	});
 
@@ -161,26 +161,26 @@ describe('replaceFirstTextValueInTree', () => {
 			},
 		};
 		const replaced = replaceFirstTextValueInTree(node, 't', 'Replaced', getLocalName);
-		expect(replaced).toBe(true);
+		expect(replaced).toBeTruthy();
 		expect((node['a:p'] as any)['a:r']['a:t']).toBe('Replaced');
 	});
 
 	it('should return false when no match is found', () => {
 		const node = { 'a:r': { '@_lang': 'en' } };
 		const replaced = replaceFirstTextValueInTree(node, 't', 'X', getLocalName);
-		expect(replaced).toBe(false);
+		expect(replaced).toBeFalsy();
 	});
 
 	it('should search through arrays', () => {
 		const node = [{ 'a:x': 'skip' }, { 'a:t': 'Found' }];
 		const replaced = replaceFirstTextValueInTree(node, 't', 'New', getLocalName);
-		expect(replaced).toBe(true);
+		expect(replaced).toBeTruthy();
 		expect((node[1] as any)['a:t']).toBe('New');
 	});
 
 	it('should handle null/undefined gracefully', () => {
-		expect(replaceFirstTextValueInTree(null, 't', 'X', getLocalName)).toBe(false);
-		expect(replaceFirstTextValueInTree(undefined, 't', 'X', getLocalName)).toBe(false);
+		expect(replaceFirstTextValueInTree(null, 't', 'X', getLocalName)).toBeFalsy();
+		expect(replaceFirstTextValueInTree(undefined, 't', 'X', getLocalName)).toBeFalsy();
 	});
 
 	it('should only replace string/number values, not object values', () => {
@@ -188,7 +188,7 @@ describe('replaceFirstTextValueInTree', () => {
 		const replaced = replaceFirstTextValueInTree(node, 't', 'X', getLocalName);
 		// The key matches but the value is an object, so it should recurse into it
 		// and look for 't' inside the nested object instead.
-		expect(replaced).toBe(false);
+		expect(replaced).toBeFalsy();
 	});
 });
 
