@@ -126,7 +126,24 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				shape = this.createPictureXml(el, relationshipId);
 			}
 			if (targetImagePath) {
-				this.zip.file(targetImagePath, parsedImage.bytes);
+				// Never write bytes of one format into a file with a different
+				// extension. EMF/WMF parts are converted to PNG data URLs at
+				// load time so the browser can render them; if we blindly wrote
+				// those PNG bytes back to `image*.emf`, PowerPoint's GDI
+				// metafile parser would reject the PNG signature with
+				// ERROR_FILE_CORRUPT (0x80070570) and show the repair dialog.
+				// The original metafile bytes are still in the zip from load,
+				// so skipping the overwrite preserves them verbatim.
+				const targetExt = targetImagePath.toLowerCase().match(/\.([^./\\]+)$/)?.[1];
+				const parsedExt = parsedImage.extension.toLowerCase();
+				const extensionMismatch =
+					targetExt !== undefined &&
+					targetExt !== parsedExt &&
+					!(targetExt === 'jpg' && parsedExt === 'jpeg') &&
+					!(targetExt === 'jpeg' && parsedExt === 'jpg');
+				if (!extensionMismatch) {
+					this.zip.file(targetImagePath, parsedImage.bytes);
+				}
 			}
 		} else {
 			this.compatibilityService.reportWarning({
