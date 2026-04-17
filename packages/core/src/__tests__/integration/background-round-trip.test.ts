@@ -16,63 +16,70 @@ import { PptxHandler } from '../../core/PptxHandler';
  * schema-invalid (effectLst without a preceding fill).
  */
 describe('background round-trip with rId-referenced blipFill (V8-Updated.pptx)', () => {
-	it('preserves <a:blipFill> inside <p:bg> after save for slide2 and slide3', async () => {
-		// Fixture lives at the repo root; tests run from packages/core.
-		const fixturePath = path.resolve(__dirname, '../../../../../V8-Updated.pptx');
-		const fileBytes = fs.readFileSync(fixturePath);
-		const buffer = fileBytes.buffer.slice(
-			fileBytes.byteOffset,
-			fileBytes.byteOffset + fileBytes.byteLength,
-		) as ArrayBuffer;
+	// Fixture lives at the repo root; tests run from packages/core.
+	const fixturePath = path.resolve(__dirname, '../../../../../V8-Updated.pptx');
+	const hasFixture = fs.existsSync(fixturePath);
 
-		const handler = new PptxHandler();
-		const data = await handler.load(buffer);
-		expect(data.slides.length).toBeGreaterThanOrEqual(3);
+	it.skipIf(!hasFixture)(
+		'preserves <a:blipFill> inside <p:bg> after save for slide2 and slide3',
+		async () => {
+			const fileBytes = fs.readFileSync(fixturePath);
+			const buffer = fileBytes.buffer.slice(
+				fileBytes.byteOffset,
+				fileBytes.byteOffset + fileBytes.byteLength,
+			) as ArrayBuffer;
 
-		const saved = await handler.save(data.slides);
-		const zip = await JSZip.loadAsync(saved);
+			const handler = new PptxHandler();
+			const data = await handler.load(buffer);
+			expect(data.slides.length).toBeGreaterThanOrEqual(3);
 
-		for (const slideNumber of [2, 3] as const) {
-			const entry = zip.file(`ppt/slides/slide${slideNumber}.xml`);
-			expect(entry, `ppt/slides/slide${slideNumber}.xml missing from saved archive`).toBeTruthy();
-			const xml = await entry!.async('string');
+			const saved = await handler.save(data.slides);
+			const zip = await JSZip.loadAsync(saved);
 
-			// 1. A <p:bg> with a blipFill must survive the round-trip.
-			const bgMatch = xml.match(/<p:bg\b[^>]*>([\s\S]*?)<\/p:bg>/);
-			expect(bgMatch, `slide${slideNumber} has no <p:bg>`).toBeTruthy();
-			const bgInner = bgMatch![1];
-			expect(bgInner, `slide${slideNumber} <p:bg> lost its <a:blipFill>`).toContain('<a:blipFill');
+			for (const slideNumber of [2, 3] as const) {
+				const entry = zip.file(`ppt/slides/slide${slideNumber}.xml`);
+				expect(entry, `ppt/slides/slide${slideNumber}.xml missing from saved archive`).toBeTruthy();
+				const xml = await entry!.async('string');
 
-			// 2. Any <p:bgPr> emitted must be schema-valid: a fill child
-			//    (blipFill / solidFill / gradFill / pattFill / noFill / grpFill)
-			//    must precede any <a:effectLst>. No empty bgPr with only
-			//    effectLst.
-			const bgPrMatch = bgInner.match(/<p:bgPr\b[^>]*>([\s\S]*?)<\/p:bgPr>/);
-			if (bgPrMatch) {
-				const bgPrInner = bgPrMatch[1];
-				const fillIdx = [
+				// 1. A <p:bg> with a blipFill must survive the round-trip.
+				const bgMatch = xml.match(/<p:bg\b[^>]*>([\s\S]*?)<\/p:bg>/);
+				expect(bgMatch, `slide${slideNumber} has no <p:bg>`).toBeTruthy();
+				const bgInner = bgMatch![1];
+				expect(bgInner, `slide${slideNumber} <p:bg> lost its <a:blipFill>`).toContain(
 					'<a:blipFill',
-					'<a:solidFill',
-					'<a:gradFill',
-					'<a:pattFill',
-					'<a:noFill',
-					'<a:grpFill',
-				]
-					.map((token) => bgPrInner.indexOf(token))
-					.filter((i) => i >= 0)
-					.sort((a, b) => a - b)[0];
-				expect(
-					fillIdx,
-					`slide${slideNumber} <p:bgPr> has no fill child (schema-invalid)`,
-				).toBeGreaterThanOrEqual(0);
-				const effectIdx = bgPrInner.indexOf('<a:effectLst');
-				if (effectIdx >= 0) {
+				);
+
+				// 2. Any <p:bgPr> emitted must be schema-valid: a fill child
+				//    (blipFill / solidFill / gradFill / pattFill / noFill / grpFill)
+				//    must precede any <a:effectLst>. No empty bgPr with only
+				//    effectLst.
+				const bgPrMatch = bgInner.match(/<p:bgPr\b[^>]*>([\s\S]*?)<\/p:bgPr>/);
+				if (bgPrMatch) {
+					const bgPrInner = bgPrMatch[1];
+					const fillIdx = [
+						'<a:blipFill',
+						'<a:solidFill',
+						'<a:gradFill',
+						'<a:pattFill',
+						'<a:noFill',
+						'<a:grpFill',
+					]
+						.map((token) => bgPrInner.indexOf(token))
+						.filter((i) => i >= 0)
+						.sort((a, b) => a - b)[0];
 					expect(
 						fillIdx,
-						`slide${slideNumber} <p:bgPr> emits <a:effectLst> before the fill (schema-invalid order)`,
-					).toBeLessThan(effectIdx);
+						`slide${slideNumber} <p:bgPr> has no fill child (schema-invalid)`,
+					).toBeGreaterThanOrEqual(0);
+					const effectIdx = bgPrInner.indexOf('<a:effectLst');
+					if (effectIdx >= 0) {
+						expect(
+							fillIdx,
+							`slide${slideNumber} <p:bgPr> emits <a:effectLst> before the fill (schema-invalid order)`,
+						).toBeLessThan(effectIdx);
+					}
 				}
 			}
-		}
-	});
+		},
+	);
 });

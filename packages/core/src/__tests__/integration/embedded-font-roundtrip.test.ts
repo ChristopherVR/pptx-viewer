@@ -1,4 +1,4 @@
-import { promises as fs } from 'node:fs';
+import { existsSync, promises as fs } from 'node:fs';
 import path from 'node:path';
 
 import JSZip from 'jszip';
@@ -23,49 +23,53 @@ import { PptxHandler } from '../../core/PptxHandler';
  */
 describe('embedded font round-trip (V8-Updated.pptx fixture)', () => {
 	const fixturePath = path.resolve(__dirname, '../../../../../V8-Updated.pptx');
+	const hasFixture = existsSync(fixturePath);
 
-	it('load → save preserves exactly the original fntdata parts (no orphans, no duplicates)', async () => {
-		// Guard: skip if the fixture isn't present on this machine.
-		const buf = await fs.readFile(fixturePath);
+	it.skipIf(!hasFixture)(
+		'load → save preserves exactly the original fntdata parts (no orphans, no duplicates)',
+		async () => {
+			const buf = await fs.readFile(fixturePath);
 
-		const handler = new PptxHandler();
-		const data = await handler.load(
-			buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer,
-		);
+			const handler = new PptxHandler();
+			const data = await handler.load(
+				buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer,
+			);
 
-		const saved = await handler.save(data.slides);
-		const savedZip = await JSZip.loadAsync(saved);
+			const saved = await handler.save(data.slides);
+			const savedZip = await JSZip.loadAsync(saved);
 
-		// ── 1. Count fntdata parts ──────────────────────────────────────
-		const fntdataPaths = Object.keys(savedZip.files).filter(
-			(p) => p.endsWith('.fntdata') && !savedZip.files[p].dir,
-		);
-		expect(fntdataPaths).toHaveLength(18);
+			// ── 1. Count fntdata parts ──────────────────────────────────────
+			const fntdataPaths = Object.keys(savedZip.files).filter(
+				(p) => p.endsWith('.fntdata') && !savedZip.files[p].dir,
+			);
+			expect(fntdataPaths).toHaveLength(18);
 
-		// ── 2. Count font relationships in presentation.xml.rels ────────
-		// Match both `<Relationship .../>` (self-closing) and
-		// `<Relationship ...></Relationship>` (the fast-xml-parser style).
-		const relsXml = await savedZip.file('ppt/_rels/presentation.xml.rels')!.async('string');
-		const allRels = [...relsXml.matchAll(/<Relationship\b([^>]*)>/g)].map((m) => m[1]);
-		const fontRels = allRels.filter((attrs) => /\/font(?=["\s/])/.test(attrs));
-		expect(fontRels).toHaveLength(18);
+			// ── 2. Count font relationships in presentation.xml.rels ────────
+			// Match both `<Relationship .../>` (self-closing) and
+			// `<Relationship ...></Relationship>` (the fast-xml-parser style).
+			const relsXml = await savedZip.file('ppt/_rels/presentation.xml.rels')!.async('string');
+			const allRels = [...relsXml.matchAll(/<Relationship\b([^>]*)>/g)].map((m) => m[1]);
+			const fontRels = allRels.filter((attrs) => /\/font(?=["\s/])/.test(attrs));
+			expect(fontRels).toHaveLength(18);
 
-		// ── 3. No orphan rels (every Target resolves to an existing zip entry) ─
-		const allRelTargets = fontRels
-			.map((attrs) => attrs.match(/Target="([^"]+)"/)?.[1])
-			.filter((t): t is string => Boolean(t));
+			// ── 3. No orphan rels (every Target resolves to an existing zip entry) ─
+			const allRelTargets = fontRels
+				.map((attrs) => attrs.match(/Target="([^"]+)"/)?.[1])
+				.filter((t): t is string => Boolean(t));
 
-		const existing = new Set(Object.keys(savedZip.files));
-		for (const target of allRelTargets) {
-			const resolved = target.startsWith('/') ? target.substring(1) : `ppt/${target}`;
-			expect(existing.has(resolved), `orphan rel target: ${target} -> ${resolved}`).toBeTruthy();
-		}
+			const existing = new Set(Object.keys(savedZip.files));
+			for (const target of allRelTargets) {
+				const resolved = target.startsWith('/') ? target.substring(1) : `ppt/${target}`;
+				expect(existing.has(resolved), `orphan rel target: ${target} -> ${resolved}`).toBeTruthy();
+			}
 
-		// ── 4. Every fntdata file has exactly one rel pointing at it ───
-		for (const fntPath of fntdataPaths) {
-			const relativeTarget = fntPath.startsWith('ppt/') ? fntPath.substring(4) : fntPath;
-			const hits = allRelTargets.filter((t) => t === relativeTarget || t === `/${fntPath}`);
-			expect(hits, `expected exactly one rel for ${fntPath}, got ${hits.length}`).toHaveLength(1);
-		}
-	}, 30000);
+			// ── 4. Every fntdata file has exactly one rel pointing at it ───
+			for (const fntPath of fntdataPaths) {
+				const relativeTarget = fntPath.startsWith('ppt/') ? fntPath.substring(4) : fntPath;
+				const hits = allRelTargets.filter((t) => t === relativeTarget || t === `/${fntPath}`);
+				expect(hits, `expected exactly one rel for ${fntPath}, got ${hits.length}`).toHaveLength(1);
+			}
+		},
+		30000,
+	);
 });

@@ -60,34 +60,21 @@ export class PptxPresentationSaveBuilder implements IPptxPresentationSaveBuilder
 
 	private applyHeaderFooter(
 		presentation: XmlObject,
-		headerFooter: PptxHeaderFooter | undefined,
+		_headerFooter: PptxHeaderFooter | undefined,
 	): void {
-		if (!headerFooter) {
-			return;
+		// `<p:hf>` is not a valid child of `<p:presentation>` per the OOXML
+		// schema (ECMA-376 CT_Presentation) — it belongs on slide masters,
+		// notes masters, handout masters, and slides. Emitting it here
+		// produces `Sch_InvalidElementContentExpectingComplex` and triggers
+		// PowerPoint's file-corruption / repair dialog on open.
+		//
+		// Strip any existing `p:hf` that a prior (broken) save may have left
+		// at the presentation root. Header/footer settings applied through
+		// the UI are intentionally a no-op at the presentation level until
+		// proper slide-master-level support is implemented.
+		if (presentation['p:hf'] !== undefined) {
+			delete presentation['p:hf'];
 		}
-		const hf: XmlObject = (presentation['p:hf'] as XmlObject) || {};
-		if (headerFooter.hasHeader !== undefined) {
-			hf['@_hdr'] = headerFooter.hasHeader ? '1' : '0';
-		}
-		if (headerFooter.hasFooter !== undefined) {
-			hf['@_ftr'] = headerFooter.hasFooter ? '1' : '0';
-		}
-		if (headerFooter.hasDateTime !== undefined) {
-			hf['@_dt'] = headerFooter.hasDateTime ? '1' : '0';
-		}
-		if (headerFooter.hasSlideNumber !== undefined) {
-			hf['@_sldNum'] = headerFooter.hasSlideNumber ? '1' : '0';
-		}
-		if (headerFooter.footerText !== undefined) {
-			hf['@_ftrText'] = headerFooter.footerText;
-		}
-		if (headerFooter.dateTimeText !== undefined) {
-			hf['@_dtText'] = headerFooter.dateTimeText;
-		}
-		if (headerFooter.dateFormat !== undefined) {
-			hf['@_dtFmt'] = headerFooter.dateFormat;
-		}
-		presentation['p:hf'] = hf;
 	}
 
 	private applySlideDimensions(
