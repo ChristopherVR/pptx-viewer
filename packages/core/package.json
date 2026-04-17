@@ -1,6 +1,6 @@
 {
 	"name": "pptx-viewer-core",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"description": "Core PPTX engine — parse, edit, serialize, and convert PowerPoint files.",
 	"keywords": [
 		"converter",

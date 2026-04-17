@@ -100,4 +100,10 @@ public
 .temp
 dist/
 start-output.txt
+# Local test fixtures and demo save artifacts — never commit these
 V8-Updated.pptx
+V8 Updated.pptx
+presentation.pptx
+presentation (*).pptx
+*-saved.pptx
+_debug-*.pptx
