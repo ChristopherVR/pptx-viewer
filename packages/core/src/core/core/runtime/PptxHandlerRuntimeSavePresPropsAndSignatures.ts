@@ -48,60 +48,77 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		const root = (propsData['p:presentationPr'] || {}) as XmlObject;
 
-		const showPr = (root['p:showPr'] || {}) as XmlObject;
-		delete showPr['p:present'];
-		delete showPr['p:browse'];
-		delete showPr['p:kiosk'];
+		// Preserve any existing attributes and the `p:extLst` tail, but rebuild
+		// the child sequence in the exact OOXML CT_ShowProperties order:
+		//   attributes, (present|browse|kiosk)?, (sldAll|sldRg|custShow)?,
+		//   penClr?, extLst?
+		// fast-xml-parser serialises keys in insertion order, so any other
+		// order triggers Sch_UnexpectedElementContentExpectingComplex and
+		// PowerPoint's file-corruption / repair dialog on open.
+		const existingShowPr = (root['p:showPr'] || {}) as XmlObject;
+		const rebuiltShowPr: XmlObject = {};
+
+		// 1. Attributes (pass through any existing ones, override from options).
+		for (const key of Object.keys(existingShowPr)) {
+			if (key.startsWith('@_')) {
+				rebuiltShowPr[key] = existingShowPr[key];
+			}
+		}
+		if (properties.loopContinuously !== undefined) {
+			rebuiltShowPr['@_loop'] = properties.loopContinuously ? '1' : '0';
+		}
+		if (properties.showWithNarration !== undefined) {
+			rebuiltShowPr['@_showNarration'] = properties.showWithNarration ? '1' : '0';
+		}
+		if (properties.showWithAnimation !== undefined) {
+			rebuiltShowPr['@_showAnimation'] = properties.showWithAnimation ? '1' : '0';
+		}
+		if (properties.advanceMode !== undefined) {
+			rebuiltShowPr['@_useTimings'] = properties.advanceMode === 'useTimings' ? '1' : '0';
+		}
+
+		// 2. Show-mode choice: present | browse | kiosk.
 		if (properties.showType === 'browsed') {
-			showPr['p:browse'] = {};
+			rebuiltShowPr['p:browse'] = {};
 		} else if (properties.showType === 'kiosk') {
 			const kioskNode: XmlObject = {};
 			if (properties.kioskRestartTime !== undefined && properties.kioskRestartTime > 0) {
 				kioskNode['@_restart'] = String(properties.kioskRestartTime);
 			}
-			showPr['p:kiosk'] = kioskNode;
+			rebuiltShowPr['p:kiosk'] = kioskNode;
 		} else {
-			showPr['p:present'] = {};
-		}
-		if (properties.loopContinuously !== undefined) {
-			showPr['@_loop'] = properties.loopContinuously ? '1' : '0';
-		}
-		if (properties.showWithNarration !== undefined) {
-			showPr['@_showNarration'] = properties.showWithNarration ? '1' : '0';
-		}
-		if (properties.showWithAnimation !== undefined) {
-			showPr['@_showAnimation'] = properties.showWithAnimation ? '1' : '0';
-		}
-		if (properties.advanceMode !== undefined) {
-			showPr['@_useTimings'] = properties.advanceMode === 'useTimings' ? '1' : '0';
+			rebuiltShowPr['p:present'] = {};
 		}
 
-		// Pen colour
-		if (properties.penColor) {
-			showPr['p:penClr'] = {
-				'a:srgbClr': { '@_val': properties.penColor.replace('#', '') },
-			};
-		}
-
-		// Slide range / custom show selection
-		delete showPr['p:sldAll'];
-		delete showPr['p:sldRg'];
-		delete showPr['p:custShow'];
+		// 3. Slide-range choice: sldAll | sldRg | custShow.
 		if (properties.showSlidesMode === 'range') {
-			showPr['p:sldRg'] = {
+			rebuiltShowPr['p:sldRg'] = {
 				'@_st': String(properties.showSlidesFrom ?? 1),
 				'@_end': String(properties.showSlidesTo ?? 1),
 			};
 		} else if (properties.showSlidesMode === 'customShow' && properties.showSlidesCustomShowId) {
-			showPr['p:custShow'] = {
+			rebuiltShowPr['p:custShow'] = {
 				'@_id': properties.showSlidesCustomShowId,
 			};
 		} else {
-			// Explicit p:sldAll element for better interoperability
-			showPr['p:sldAll'] = {};
+			rebuiltShowPr['p:sldAll'] = {};
 		}
 
-		root['p:showPr'] = showPr;
+		// 4. Pen colour.
+		if (properties.penColor) {
+			rebuiltShowPr['p:penClr'] = {
+				'a:srgbClr': { '@_val': properties.penColor.replace('#', '') },
+			};
+		} else if (existingShowPr['p:penClr'] !== undefined) {
+			rebuiltShowPr['p:penClr'] = existingShowPr['p:penClr'];
+		}
+
+		// 5. Preserve any existing extLst at the tail.
+		if (existingShowPr['p:extLst'] !== undefined) {
+			rebuiltShowPr['p:extLst'] = existingShowPr['p:extLst'];
+		}
+
+		root['p:showPr'] = rebuiltShowPr;
 
 		if (
 			properties.printFrameSlides !== undefined ||
