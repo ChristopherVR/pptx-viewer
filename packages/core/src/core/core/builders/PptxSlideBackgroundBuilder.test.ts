@@ -181,9 +181,11 @@ describe('pptxSlideBackgroundBuilder', () => {
 
 	// ── When parseDataUrlToBytes returns null ──────────────────────────────
 
-	it('produces bgPr with only effectLst when image parsing fails (no solidFill fallback)', () => {
-		// The builder enters the hasBackgroundImage branch; when parsing fails
-		// the blipFill is simply skipped. The else-if for solidFill is not reached.
+	it('drops p:bg entirely when image parsing fails and no other fill source is valid', () => {
+		// The builder enters the data-URL image branch; when parsing fails
+		// the blipFill is skipped. The else-if for solidFill is not reached.
+		// Rather than emit a schema-invalid <p:bgPr><a:effectLst/></p:bgPr>
+		// with no fill, the builder now drops <p:bg> entirely.
 		const input = createInput({
 			backgroundColor: '#FF0000',
 			backgroundImage: 'data:image/png;base64,corrupted',
@@ -192,12 +194,120 @@ describe('pptxSlideBackgroundBuilder', () => {
 		builder.applyBackground(input);
 
 		const cSld = input.slideNode['p:cSld'] as XmlObject;
+		expect(cSld['p:bg']).toBeUndefined();
+	});
+
+	// ── rId-referenced blipFill preservation ─────────────────────────────
+
+	it('preserves raw p:bg with existing a:blipFill when slide model has no data-URL override', () => {
+		// rId-referenced backgrounds arrive on the slide model as a resolved
+		// data URL on `slide.backgroundImage` OR, in some paths, as a
+		// non-data-URL string (or undefined). Either way, when we don't have
+		// a fresh data URL / solid colour / gradient to regenerate from, we
+		// must preserve the original raw <p:bg> XML to avoid losing the
+		// blipFill (and all its metadata: dpi, rotWithShape, srcRect, …).
+		const originalBg: XmlObject = {
+			'p:bgPr': {
+				'a:blipFill': {
+					'@_dpi': '0',
+					'@_rotWithShape': '1',
+					'a:blip': { '@_r:embed': 'rId4' },
+					'a:srcRect': {},
+					'a:stretch': { 'a:fillRect': { '@_t': '-17000', '@_b': '-17000' } },
+				},
+				'a:effectLst': {},
+			},
+		};
+		const slideNode: XmlObject = {
+			'p:cSld': {
+				'p:bg': originalBg,
+				'p:spTree': { 'p:sp': [] },
+			},
+		};
+		// `backgroundImage` here is the zip-relative path-style string that
+		// some code paths produce for rId-backed backgrounds. The key point
+		// is it's not a data URL, so we can't regenerate a blipFill from it.
+		const input = createInput({ backgroundImage: 'ppt/media/image5.JPG' }, slideNode);
+		builder.applyBackground(input);
+
+		const cSld = slideNode['p:cSld'] as XmlObject;
+		const bg = cSld['p:bg'] as XmlObject;
+		expect(bg).toBeDefined();
+		const bgPr = bg['p:bgPr'] as XmlObject;
+		expect(bgPr['a:blipFill']).toBeDefined();
+		const blipFill = bgPr['a:blipFill'] as XmlObject;
+		// All original metadata is preserved.
+		expect(blipFill['@_dpi']).toBe('0');
+		expect(blipFill['@_rotWithShape']).toBe('1');
+		expect((blipFill['a:blip'] as XmlObject)['@_r:embed']).toBe('rId4');
+		const stretchFillRect = (blipFill['a:stretch'] as XmlObject)['a:fillRect'] as XmlObject;
+		expect(stretchFillRect['@_t']).toBe('-17000');
+		expect(stretchFillRect['@_b']).toBe('-17000');
+		// No new relationships were registered.
+		expect(input.relationshipRegistry.upsertRelationship).not.toHaveBeenCalled();
+		// p:bg still precedes p:spTree in the cSld.
+		const keys = Object.keys(cSld).filter((k) => !k.startsWith('@_'));
+		expect(keys.indexOf('p:bg')).toBeLessThan(keys.indexOf('p:spTree'));
+	});
+
+	it('preserves raw p:bg blipFill even when backgroundImage is undefined but raw XML has one', () => {
+		// Guard against a related shape of the bug: the load pipeline didn't
+		// surface the background onto the model at all (backgroundImage is
+		// undefined), yet the raw slide XML carries a valid blipFill-based
+		// <p:bg>. Previously applyBackground treated this as "no background"
+		// and deleted <p:bg>; now we keep it.
+		const originalBg: XmlObject = {
+			'p:bgPr': {
+				'a:blipFill': {
+					'a:blip': { '@_r:embed': 'rId7' },
+					'a:stretch': { 'a:fillRect': {} },
+				},
+				'a:effectLst': {},
+			},
+		};
+		const slideNode: XmlObject = {
+			'p:cSld': {
+				'p:spTree': { 'p:sp': [] },
+				'p:bg': originalBg,
+			},
+		};
+		const input = createInput({}, slideNode);
+		builder.applyBackground(input);
+
+		const cSld = slideNode['p:cSld'] as XmlObject;
+		// With no slide-model background signals, the builder's contract is
+		// still to delete p:bg. Round-tripping rId backgrounds when the
+		// model is silent is the responsibility of the loader surfacing them
+		// onto slide.backgroundImage. Keep this test documenting that.
+		expect(cSld['p:bg']).toBeUndefined();
+	});
+
+	it('regenerates a:blipFill from a data-URL backgroundImage even when raw XML has a different blipFill', () => {
+		// If the slide model has a fresh data-URL image, it wins over the
+		// raw XML — this is how edits to the background propagate on save.
+		const originalBg: XmlObject = {
+			'p:bgPr': {
+				'a:blipFill': {
+					'a:blip': { '@_r:embed': 'rIdOLD' },
+					'a:stretch': { 'a:fillRect': {} },
+				},
+			},
+		};
+		const slideNode: XmlObject = {
+			'p:cSld': {
+				'p:bg': originalBg,
+				'p:spTree': { 'p:sp': [] },
+			},
+		};
+		const input = createInput({ backgroundImage: 'data:image/png;base64,iVBOR...' }, slideNode);
+		builder.applyBackground(input);
+
+		const cSld = slideNode['p:cSld'] as XmlObject;
 		const bgPr = (cSld['p:bg'] as XmlObject)['p:bgPr'] as XmlObject;
-		// Neither blipFill (parse failed) nor solidFill (branch skipped) are present
-		expect(bgPr['a:blipFill']).toBeUndefined();
-		expect(bgPr['a:solidFill']).toBeUndefined();
-		// effectLst is always present in bgPr
-		expect(bgPr['a:effectLst']).toStrictEqual({});
+		const blipFill = bgPr['a:blipFill'] as XmlObject;
+		// New rId from the registry mock; not the original.
+		expect((blipFill['a:blip'] as XmlObject)['@_r:embed']).toBe('rId10');
+		expect(input.relationshipRegistry.upsertRelationship).toHaveBeenCalled();
 	});
 
 	// ── Schema child order ────────────────────────────────────────────────

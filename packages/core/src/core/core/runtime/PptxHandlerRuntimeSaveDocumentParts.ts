@@ -414,34 +414,74 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			for (const variant of variants) {
 				const fontData = variant.rawFontData!;
 
-				// Determine GUID: reuse existing or generate new
-				const guid = variant.fontGuid ?? generateFontGuid();
+				// Determine what we can reuse from the load side. A variant
+				// was loaded from an existing part when it has `originalRId`
+				// and `partPath`; when it also has a `fontGuid` we can
+				// re-obfuscate and overwrite the original part. When the
+				// loader couldn't resolve a GUID (e.g. EOT extraction path),
+				// we preserve the original bytes verbatim.
+				const hasOriginal = Boolean(variant.originalRId && variant.partPath);
+				const reuseObfuscation = hasOriginal && Boolean(variant.fontGuid);
+				const reuseVerbatim =
+					hasOriginal && !variant.fontGuid && Boolean(variant.originalPartBytes);
 
-				// Determine file path
-				const fileName = `{${guid}}.fntdata`;
-				const fontPartPath = `ppt/fonts/${fileName}`;
-				const relativeTarget = `fonts/${fileName}`;
-
-				// Obfuscate and write the font file
-				const obfuscated = obfuscateFont(fontData, guid);
-				this.zip.file(fontPartPath, obfuscated);
-
-				// Add relationship if not already present
+				let guid: string;
+				let fontPartPath: string;
+				let relativeTarget: string;
 				let rId: string;
-				const existingRel = relationships.find(
-					(r) => String(r?.['@_Target'] || '') === relativeTarget,
-				);
-				if (existingRel) {
-					rId = String(existingRel['@_Id']);
+				let bytesToWrite: Uint8Array;
+				let fontKeyForXml: string | undefined;
+
+				if (reuseObfuscation) {
+					guid = variant.fontGuid!;
+					fontPartPath = variant.partPath!;
+					relativeTarget = fontPartPath.startsWith('ppt/')
+						? fontPartPath.substring(4)
+						: fontPartPath;
+					rId = variant.originalRId!;
+					bytesToWrite = obfuscateFont(fontData, guid);
+					fontKeyForXml = `{${guid}}`;
+				} else if (reuseVerbatim) {
+					// No usable GUID: preserve original bytes + rel unchanged.
+					guid = '';
+					fontPartPath = variant.partPath!;
+					relativeTarget = fontPartPath.startsWith('ppt/')
+						? fontPartPath.substring(4)
+						: fontPartPath;
+					rId = variant.originalRId!;
+					bytesToWrite = variant.originalPartBytes!;
+					// fontKey attribute intentionally omitted — the source
+					// file didn't declare one and emitting a synthetic GUID
+					// would not match the opaque bytes on disk.
+					fontKeyForXml = undefined;
 				} else {
-					maxId++;
-					rId = `rId${maxId}`;
-					relationships.push({
-						'@_Id': rId,
-						'@_Type': PptxHandlerRuntime.FONT_REL_TYPE,
-						'@_Target': relativeTarget,
-					});
+					// New / externally-supplied font: mint a fresh GUID-named part.
+					guid = variant.fontGuid ?? generateFontGuid();
+					const fileName = `{${guid}}.fntdata`;
+					fontPartPath = `ppt/fonts/${fileName}`;
+					relativeTarget = `fonts/${fileName}`;
+					bytesToWrite = obfuscateFont(fontData, guid);
+					fontKeyForXml = `{${guid}}`;
+
+					// Reuse an existing rel pointing at the same target,
+					// otherwise allocate a new rId.
+					const existingRel = relationships.find(
+						(r) => String(r?.['@_Target'] || '') === relativeTarget,
+					);
+					if (existingRel) {
+						rId = String(existingRel['@_Id']);
+					} else {
+						maxId++;
+						rId = `rId${maxId}`;
+						relationships.push({
+							'@_Id': rId,
+							'@_Type': PptxHandlerRuntime.FONT_REL_TYPE,
+							'@_Target': relativeTarget,
+						});
+					}
 				}
+
+				this.zip.file(fontPartPath, bytesToWrite);
 
 				// Determine variant key
 				const variantKey =
@@ -453,10 +493,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 								? 'p:italic'
 								: 'p:regular';
 
-				entry[variantKey] = {
-					'@_r:id': rId,
-					'@_fontKey': `{${guid}}`,
-				};
+				const variantEntry: XmlObject = { '@_r:id': rId };
+				if (fontKeyForXml) {
+					variantEntry['@_fontKey'] = fontKeyForXml;
+				}
+				entry[variantKey] = variantEntry;
 			}
 
 			embeddedFontEntries.push(entry);

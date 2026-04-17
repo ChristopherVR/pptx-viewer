@@ -122,6 +122,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return null;
 			}
 
+			// Preserve the raw original bytes so the save pipeline can write
+			// them back verbatim when we can't re-obfuscate (e.g. EOT path).
+			const originalPartBytes = new Uint8Array(fontBinary);
+
 			let fontData: Uint8Array;
 			let resolvedGuid: string | undefined;
 
@@ -204,6 +208,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				rawFontData: fontData,
 				partPath: fontPath,
 				fontGuid: resolvedGuid,
+				originalRId: rId,
+				originalPartBytes,
 			};
 		} catch {
 			return null;

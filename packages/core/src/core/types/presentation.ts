@@ -559,4 +559,18 @@ export interface PptxEmbeddedFont {
 	 * or extracted from the part path. Preserved from load for round-trip.
 	 */
 	fontGuid?: string;
+	/**
+	 * Relationship ID (e.g. `rId21`) of the font part in
+	 * `ppt/_rels/presentation.xml.rels`. Preserved from load so the save
+	 * pipeline can reuse the original part/rel instead of minting a new
+	 * GUID-named copy alongside the stale original.
+	 */
+	originalRId?: string;
+	/**
+	 * Raw bytes of the original obfuscated font part exactly as they were
+	 * stored in the source ZIP. When the loader could not determine a
+	 * usable GUID (e.g. EOT extraction path), the save pipeline preserves
+	 * these bytes verbatim under the original path/rel.
+	 */
+	originalPartBytes?: Uint8Array;
 }
