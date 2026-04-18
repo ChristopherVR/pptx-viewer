@@ -116,16 +116,35 @@ describe('serializeTablePropertyFlags', () => {
 		expect(tblPr['@_lastCol']).toBe('1');
 	});
 
-	it('should write all flags as "0" when false or undefined', () => {
+	it('omits false/undefined flag attributes to match PowerPoint output', () => {
+		// PowerPoint's "Insert > Table" UI only writes the flag attribute
+		// when the flag is true (all of these default to `false` per
+		// CT_TableProperties). We previously emitted `="0"` which is
+		// behaviourally identical but adds noise and doesn't match what
+		// PowerPoint produces.
 		const tbl: XmlObject = {};
 		serializeTablePropertyFlags(tbl, {});
 		const tblPr = tbl['a:tblPr'] as XmlObject;
-		expect(tblPr['@_bandRow']).toBe('0');
-		expect(tblPr['@_bandCol']).toBe('0');
-		expect(tblPr['@_firstRow']).toBe('0');
-		expect(tblPr['@_lastRow']).toBe('0');
-		expect(tblPr['@_firstCol']).toBe('0');
-		expect(tblPr['@_lastCol']).toBe('0');
+		expect(tblPr['@_bandRow']).toBeUndefined();
+		expect(tblPr['@_bandCol']).toBeUndefined();
+		expect(tblPr['@_firstRow']).toBeUndefined();
+		expect(tblPr['@_lastRow']).toBeUndefined();
+		expect(tblPr['@_firstCol']).toBeUndefined();
+		expect(tblPr['@_lastCol']).toBeUndefined();
+	});
+
+	it('defaults to PowerPoint Medium Style 2 - Accent 1 when no tableStyleId given', () => {
+		const tbl: XmlObject = {};
+		serializeTablePropertyFlags(tbl, {});
+		const tblPr = tbl['a:tblPr'] as XmlObject;
+		expect(tblPr['a:tableStyleId']).toBe('{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}');
+	});
+
+	it('respects a caller-supplied tableStyleId', () => {
+		const tbl: XmlObject = {};
+		serializeTablePropertyFlags(tbl, { tableStyleId: '{AABB-CCDD}' });
+		const tblPr = tbl['a:tblPr'] as XmlObject;
+		expect(tblPr['a:tableStyleId']).toBe('{AABB-CCDD}');
 	});
 
 	it('should preserve existing a:tblPr properties', () => {

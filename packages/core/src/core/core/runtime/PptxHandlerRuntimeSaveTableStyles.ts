@@ -25,19 +25,34 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// Preserve first run properties for style continuity
 		const existingParagraphs = this.ensureArray(txBody['a:p']);
-		const firstRPr = this.ensureArray(existingParagraphs[0]?.['a:r'])[0]?.['a:rPr'];
-		const firstPPr = existingParagraphs[0]?.['a:pPr'];
+		const firstRPr = this.ensureArray(existingParagraphs[0]?.['a:r'])[0]?.['a:rPr'] as
+			| XmlObject
+			| undefined;
+		const firstPPr = existingParagraphs[0]?.['a:pPr'] as XmlObject | undefined;
+		const firstEndParaRPr = existingParagraphs[0]?.['a:endParaRPr'] as XmlObject | undefined;
+
+		// PowerPoint's "Insert Table" UI always emits `lang="en-US" dirty="0"`
+		// on the default run and paragraph-end run. Seed those defaults when
+		// the source cell didn't carry its own.
+		const rPrForRun: XmlObject = firstRPr ? { ...firstRPr } : { '@_lang': 'en-US', '@_dirty': '0' };
+		const endParaRPr: XmlObject = firstEndParaRPr
+			? { ...firstEndParaRPr }
+			: { '@_lang': 'en-US', '@_dirty': '0' };
 
 		const lines = text.split('\n');
 		const paragraphs = lines.map((line) => {
+			// OOXML CT_TextParagraph order: pPr?, (r|br|fld)*, endParaRPr?.
+			// Build the object in that exact key order — fast-xml-parser
+			// emits in insertion order, and PowerPoint is strict about it.
 			const paragraph: XmlObject = {};
 			if (firstPPr) {
 				paragraph['a:pPr'] = firstPPr;
 			}
 			paragraph['a:r'] = {
-				...(firstRPr ? { 'a:rPr': firstRPr } : {}),
+				'a:rPr': rPrForRun,
 				'a:t': line,
 			};
+			paragraph['a:endParaRPr'] = endParaRPr;
 			return paragraph;
 		});
 

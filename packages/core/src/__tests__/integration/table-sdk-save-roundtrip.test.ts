@@ -108,4 +108,47 @@ describe('sDK-created table survives save round-trip', () => {
 		}
 		expect(runsInspected).toBeGreaterThan(0);
 	});
+
+	it('replicates PowerPoint "Insert Table" defaults on SDK-created tables', async () => {
+		// Matches what PowerPoint's UI produces when you click Insert > Table
+		// without picking a style:
+		//  - <a:tblPr> with only the true flags as attributes (no `="0"` noise)
+		//  - <a:tableStyleId>{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}</a:tableStyleId>
+		//    (Medium Style 2 - Accent 1) when the caller didn't pick one
+		//  - <a:r> with <a:rPr lang="en-US" dirty="0"/> before <a:t>
+		//  - <a:endParaRPr lang="en-US" .../> after runs in each paragraph
+		const { handler, data, createSlide } = await PresentationBuilder.create();
+		data.slides.push(
+			createSlide('Blank')
+				.addTable(
+					{ rows: [{ cells: [{ text: 'hello' }] }] },
+					{ x: 10, y: 10, width: 200, height: 60 },
+				)
+				.build(),
+		);
+		const savedBytes = await handler.save(data.slides);
+		const zip = await JSZip.loadAsync(savedBytes);
+		const slideXml = await zip.file('ppt/slides/slide1.xml')!.async('string');
+
+		// Default table style must be applied — otherwise the table renders
+		// with no borders or fill in PowerPoint (unstyled-looking).
+		expect(slideXml).toContain(
+			'<a:tableStyleId>{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}</a:tableStyleId>',
+		);
+
+		// `<a:tblPr>` shouldn't carry noisy `="0"` defaults — PowerPoint only
+		// emits the attribute when the flag is true.
+		const tblPrMatch = slideXml.match(/<a:tblPr\b([^>]*)>/);
+		expect(tblPrMatch).not.toBeNull();
+		expect(tblPrMatch![1]).not.toMatch(/\blastRow="0"/);
+		expect(tblPrMatch![1]).not.toMatch(/\bbandCol="0"/);
+		expect(tblPrMatch![1]).not.toMatch(/\bfirstCol="0"/);
+
+		// Every run must declare lang + dirty like PowerPoint does.
+		expect(slideXml).toContain('<a:rPr lang="en-US" dirty="0">');
+
+		// Each paragraph in a cell must close with <a:endParaRPr> to match
+		// PowerPoint's output.
+		expect(slideXml).toContain('<a:endParaRPr');
+	});
 });

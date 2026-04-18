@@ -42,6 +42,17 @@ export function serializeCellMergeAttributes(xmlCell: XmlObject, cell: CellMerge
  * Write table-level property flags (`bandRow`, `bandCol`, etc.) onto
  * the `<a:tblPr>` XML object from the given table data.
  */
+/**
+ * Default table style GUID that PowerPoint's "Insert > Table" UI applies
+ * when the user hasn't picked a specific style. This is "Medium Style 2 -
+ * Accent 1" — a blue header row with banded white rows — and is defined
+ * in PowerPoint's built-in `ppt/tableStyles.xml`. Emitting a table with
+ * no `<a:tableStyleId>` produces an unstyled table (no borders, no fill)
+ * in PowerPoint, which doesn't match what users see when inserting a
+ * table through the UI.
+ */
+export const DEFAULT_POWERPOINT_TABLE_STYLE_ID = '{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}';
+
 export function serializeTablePropertyFlags(
 	tbl: XmlObject,
 	tableData: {
@@ -51,15 +62,35 @@ export function serializeTablePropertyFlags(
 		lastRow?: boolean;
 		firstCol?: boolean;
 		lastCol?: boolean;
+		tableStyleId?: string;
 	},
 ): void {
 	const tblPr = ((tbl as XmlObject)['a:tblPr'] ?? {}) as XmlObject;
-	tblPr['@_bandRow'] = tableData.bandedRows ? '1' : '0';
-	tblPr['@_bandCol'] = tableData.bandedColumns ? '1' : '0';
-	tblPr['@_firstRow'] = tableData.firstRowHeader ? '1' : '0';
-	tblPr['@_lastRow'] = tableData.lastRow ? '1' : '0';
-	tblPr['@_firstCol'] = tableData.firstCol ? '1' : '0';
-	tblPr['@_lastCol'] = tableData.lastCol ? '1' : '0';
+	// Match PowerPoint's convention: only emit the attribute when the flag
+	// is true. All of these default to `false` per CT_TableProperties, so
+	// emitting `="0"` is behaviorally identical but adds noise and doesn't
+	// match what "Insert > Table" produces.
+	const setOrDelete = (key: string, truthy: boolean | undefined): void => {
+		if (truthy) {
+			tblPr[key] = '1';
+		} else {
+			delete tblPr[key];
+		}
+	};
+	setOrDelete('@_bandRow', tableData.bandedRows);
+	setOrDelete('@_bandCol', tableData.bandedColumns);
+	setOrDelete('@_firstRow', tableData.firstRowHeader);
+	setOrDelete('@_lastRow', tableData.lastRow);
+	setOrDelete('@_firstCol', tableData.firstCol);
+	setOrDelete('@_lastCol', tableData.lastCol);
+	// Default to PowerPoint's Medium Style 2 - Accent 1 when the caller
+	// didn't pick a style. Without an `<a:tableStyleId>`, PowerPoint renders
+	// the table with no borders and no fill.
+	if (tableData.tableStyleId) {
+		tblPr['a:tableStyleId'] = tableData.tableStyleId;
+	} else if (!tblPr['a:tableStyleId']) {
+		tblPr['a:tableStyleId'] = DEFAULT_POWERPOINT_TABLE_STYLE_ID;
+	}
 	(tbl as XmlObject)['a:tblPr'] = tblPr;
 }
 
