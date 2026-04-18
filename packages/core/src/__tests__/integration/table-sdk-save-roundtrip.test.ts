@@ -148,7 +148,16 @@ describe('sDK-created table survives save round-trip', () => {
 		expect(slideXml).toContain('<a:rPr lang="en-US" dirty="0">');
 
 		// Each paragraph in a cell must close with <a:endParaRPr> to match
-		// PowerPoint's output.
-		expect(slideXml).toContain('<a:endParaRPr');
+		// PowerPoint's output, including the `dirty="0"` spell-check marker.
+		expect(slideXml).toMatch(/<a:endParaRPr\s[^>]*\bdirty="0"/);
+
+		// <a:gridCol> must include an <a:extLst> with the a16:colId
+		// tracking extension — PowerPoint emits this on every
+		// "Insert Table" column so future edits can identify columns
+		// across saves.
+		expect(slideXml).toContain('<a:ext uri="{9D8B030D-6E8A-4147-A177-3AD203B41FA5}">');
+		expect(slideXml).toMatch(
+			/<a16:colId\s+xmlns:a16="http:\/\/schemas\.microsoft\.com\/office\/drawing\/2014\/main"\s+val="\d+"/,
+		);
 	});
 });

@@ -59,7 +59,9 @@ export function createDefaultXmlCell(): XmlObject {
 			'a:bodyPr': {},
 			'a:lstStyle': {},
 			'a:p': {
-				'a:endParaRPr': { '@_lang': 'en-US' },
+				// Match PowerPoint's "Insert Table" default: every paragraph-end
+				// run carries `lang="en-US" dirty="0"`.
+				'a:endParaRPr': { '@_lang': 'en-US', '@_dirty': '0' },
 			},
 		},
 		'a:tcPr': {},
