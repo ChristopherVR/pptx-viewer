@@ -159,9 +159,52 @@ export class PptxPresentationSlidesReconciler implements IPptxPresentationSlides
 					'@_r:id': slide.rId,
 				};
 			});
-			presentation['p:sldIdLst'] = slideIdList;
-			input.presentationData['p:presentation'] = presentation;
+			// CT_Presentation requires child order:
+			//   sldMasterIdLst, notesMasterIdLst, handoutMasterIdLst, sldIdLst,
+			//   sldSz, notesSz, smartTags, embeddedFontLst, custShowLst,
+			//   photoAlbum, custDataLst, kinsoku, defaultTextStyle,
+			//   modifyVerifier, extLst.
+			// If `p:sldIdLst` wasn't already a key on the parsed presentation
+			// (which happens for templates generated without any slides),
+			// plain assignment would append it at the end and PowerPoint
+			// silently drops the slide list (opens as a blank deck, with no
+			// repair dialog). Rebuild the object so the key lands in the
+			// correct slot.
+			input.presentationData['p:presentation'] = this.insertSlideIdListInOrder(
+				presentation,
+				slideIdList,
+			);
 		}
+	}
+
+	/**
+	 * Return a new presentation XML object whose `p:sldIdLst` child sits in the
+	 * schema-mandated position (after `sldMasterIdLst` / `notesMasterIdLst` /
+	 * `handoutMasterIdLst`, before `sldSz`). Non-sldIdLst keys keep their
+	 * relative order; attribute keys (`@_...`) stay at the front.
+	 */
+	private insertSlideIdListInOrder(presentation: XmlObject, slideIdList: XmlObject): XmlObject {
+		const before: ReadonlySet<string> = new Set([
+			'p:sldMasterIdLst',
+			'p:notesMasterIdLst',
+			'p:handoutMasterIdLst',
+		]);
+		const rebuilt: XmlObject = {};
+		let inserted = false;
+		for (const key of Object.keys(presentation)) {
+			if (key === 'p:sldIdLst') {
+				continue;
+			}
+			if (!inserted && !key.startsWith('@_') && !before.has(key)) {
+				rebuilt['p:sldIdLst'] = slideIdList;
+				inserted = true;
+			}
+			rebuilt[key] = presentation[key];
+		}
+		if (!inserted) {
+			rebuilt['p:sldIdLst'] = slideIdList;
+		}
+		return rebuilt;
 	}
 
 	private async attachNewSlide(init: {

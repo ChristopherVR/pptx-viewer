@@ -70,7 +70,11 @@ function isoNow(): string {
 
 // Standard layout definitions
 const STANDARD_LAYOUTS = [
-	{ name: 'Title Slide', type: 'ctrTitle' },
+	// `type` is ST_SlideLayoutType per ECMA-376 §19.7.15. The Title Slide
+	// layout uses `title`; `ctrTitle` is a placeholder type (ST_PlaceholderType)
+	// and is not valid here — PowerPoint's OPC loader rejects the package
+	// with ERROR_FILE_CORRUPT (0x80070570) when it sees it.
+	{ name: 'Title Slide', type: 'title' },
 	{ name: 'Title and Content', type: 'obj' },
 	{ name: 'Section Header', type: 'secHead' },
 	{ name: 'Two Content', type: 'twoObj' },
@@ -113,7 +117,7 @@ ${slideOverrides}
   <Override PartName="/ppt/viewProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.viewProps+xml"/>
   <Override PartName="/ppt/tableStyles.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.tableStyles+xml"/>
   <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
-  <Override PartName="/docProps/app.xml" ContentType="application/vnd.ms-officedocument.extended-properties+xml"/>
+  <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
 </Types>`;
 }
 

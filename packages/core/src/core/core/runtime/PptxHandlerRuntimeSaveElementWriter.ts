@@ -6,6 +6,7 @@ import type {
 	InkPptxElement,
 	MediaPptxElement,
 	PptxImageLikeElement,
+	TablePptxElement,
 } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveElementEmbedding';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
@@ -72,6 +73,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		if (!shape && el.type === 'ink') {
 			shape = this.createInkShapeXml(el as InkPptxElement);
+		}
+		if (!shape && el.type === 'table') {
+			// SDK-created tables (via `SlideBuilder.addTable`) have no rawXml.
+			// Fabricate a graphic-frame skeleton so the downstream
+			// serializeTableDataToXml path can populate cells; without this,
+			// the element falls through to SAVE_ELEMENT_SKIPPED and the
+			// table is silently dropped from the saved slide.
+			shape = this.createTableGraphicFrameXml(el as TablePptxElement);
 		}
 
 		if (!shape) {

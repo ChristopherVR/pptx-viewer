@@ -461,9 +461,12 @@ describe('layout-operations', () => {
 
 	describe('findLayoutByType', () => {
 		it('finds a layout by OOXML type when layoutOptions populated', async () => {
-			// To populate layoutOptions, we need a slide that references the layout.
-			// The save pipeline defaults new slides to slideLayout1.xml which
-			// is "ctrTitle" type, so we search for that type after round-trip.
+			// To populate layoutOptions we need a slide that references the
+			// layout. The blank-presentation template's first slideLayout is
+			// the Title Slide, whose ST_SlideLayoutType is "title" (per
+			// ECMA-376 §19.7.15 — "ctrTitle" is a placeholder type, not a
+			// slide-layout type; using it makes PowerPoint reject the file
+			// as corrupted).
 			const { handler, data, createSlide } = await PresentationBuilder.create();
 			data.slides.push(createSlide('Title Slide').build());
 
@@ -472,7 +475,7 @@ describe('layout-operations', () => {
 			const h2 = new PptxHandler();
 			const d2 = await h2.load(bytes.buffer as ArrayBuffer);
 
-			const found = findLayoutByType(d2, 'ctrTitle');
+			const found = findLayoutByType(d2, 'title');
 			expect(found).toBeDefined();
 		});
 

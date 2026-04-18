@@ -1,0 +1,67 @@
+import JSZip from 'jszip';
+import { describe, it, expect } from 'vitest';
+
+import { PresentationBuilder } from '../../core/builders/sdk/PresentationBuilder';
+import { PptxHandler } from '../../core/PptxHandler';
+import type { TablePptxElement } from '../../core/types/elements';
+
+/**
+ * Regression test for SDK-created tables being silently dropped on save.
+ *
+ * Before the fix, `SlideBuilder.addTable(...)` produced a `TablePptxElement`
+ * with no `rawXml`. The save pipeline's `processSlideElement` only had
+ * fallback XML creators for `text`/`shape`/`connector`/`ink` — tables hit
+ * the "can't serialize" branch and were skipped entirely with a
+ * `SAVE_ELEMENT_SKIPPED` warning. The saved slide had an empty `p:spTree`.
+ */
+describe('sDK-created table survives save round-trip', () => {
+	it('addTable then save → reload preserves rows, columns, and cell text', async () => {
+		const { handler, data, createSlide } = await PresentationBuilder.create();
+		data.slides.push(
+			createSlide('Blank')
+				.addTable(
+					{
+						rows: [
+							{ cells: [{ text: 'Header A' }, { text: 'Header B' }] },
+							{ cells: [{ text: 'a1' }, { text: 'b1' }] },
+							{ cells: [{ text: 'a2' }, { text: 'b2' }] },
+						],
+						firstRow: true,
+					},
+					{ x: 50, y: 80, width: 500, height: 180 },
+				)
+				.build(),
+		);
+
+		const savedBytes = await handler.save(data.slides);
+
+		// 1. The saved slide XML must contain the table graphic frame.
+		const zip = await JSZip.loadAsync(savedBytes);
+		const slideXml = await zip.file('ppt/slides/slide1.xml')!.async('string');
+		expect(slideXml).toContain('<p:graphicFrame');
+		expect(slideXml).toContain('<a:tbl');
+		expect(slideXml).toContain('Header A');
+		expect(slideXml).toContain('b2');
+
+		// 2. Reloading the saved bytes must yield a 3×2 table element with
+		//    cell text preserved.
+		const reloader = new PptxHandler();
+		const reloaded = await reloader.load(savedBytes.buffer as ArrayBuffer);
+		expect(reloaded.slides).toHaveLength(1);
+
+		const tableEl = reloaded.slides[0].elements.find((e) => e.type === 'table') as
+			| TablePptxElement
+			| undefined;
+		expect(tableEl, 'reloaded slide is missing the table element').toBeDefined();
+		expect(tableEl!.tableData?.rows).toHaveLength(3);
+		expect(tableEl!.tableData?.rows[0].cells).toHaveLength(2);
+
+		const allText = tableEl!
+			.tableData!.rows.flatMap((r) => r.cells.map((c) => c.text ?? ''))
+			.join('|');
+		expect(allText).toContain('Header A');
+		expect(allText).toContain('Header B');
+		expect(allText).toContain('a1');
+		expect(allText).toContain('b2');
+	});
+});
