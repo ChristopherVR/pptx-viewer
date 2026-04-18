@@ -151,14 +151,20 @@ export function writeCellTextFormatting(
 	const paragraphs = ensureArray(xmlCell['a:txBody']?.['a:p']);
 	for (const paragraph of paragraphs) {
 		const runs = ensureArray(paragraph?.['a:r']);
+		const rebuiltRuns: XmlObject[] = [];
+		let runsChanged = false;
 		for (const run of runs) {
 			if (!run) {
+				rebuiltRuns.push(run);
 				continue;
 			}
-			if (!run['a:rPr']) {
-				run['a:rPr'] = {};
-			}
-			const rPr = run['a:rPr'] as XmlObject;
+			// OOXML CT_RegularTextRun schema order is `rPr?, t`. fast-xml-parser
+			// emits keys in insertion order, so if the run already has `a:t`
+			// but no `a:rPr`, simply assigning `run['a:rPr'] = {}` appends it
+			// *after* `a:t` and produces schema-invalid output. Rebuild the
+			// run object so `a:rPr` is always the first key.
+			const existingRPr = (run['a:rPr'] as XmlObject | undefined) ?? {};
+			const rPr: XmlObject = { ...existingRPr };
 			if (style.bold !== undefined) {
 				rPr['@_b'] = style.bold ? '1' : '0';
 			}
@@ -178,6 +184,20 @@ export function writeCellTextFormatting(
 					},
 				};
 			}
+			// Preserve every other run child (a:t, a:rtl, etc.) in its
+			// original relative order, but force a:rPr to come first.
+			const rebuilt: XmlObject = { 'a:rPr': rPr };
+			for (const key of Object.keys(run)) {
+				if (key === 'a:rPr') {
+					continue;
+				}
+				rebuilt[key] = run[key];
+			}
+			rebuiltRuns.push(rebuilt);
+			runsChanged = true;
+		}
+		if (runsChanged && rebuiltRuns.length > 0) {
+			paragraph['a:r'] = rebuiltRuns.length === 1 ? rebuiltRuns[0] : rebuiltRuns;
 		}
 	}
 }

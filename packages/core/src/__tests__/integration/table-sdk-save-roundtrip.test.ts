@@ -64,4 +64,48 @@ describe('sDK-created table survives save round-trip', () => {
 		expect(allText).toContain('a1');
 		expect(allText).toContain('b2');
 	});
+
+	it('styled cell runs emit <a:rPr> before <a:t> (CT_RegularTextRun schema order)', async () => {
+		// OOXML requires `a:rPr?, a:t` sequence. Before the fix,
+		// writeCellTextFormatting assigned `a:rPr` onto a run that already
+		// had `a:t`, producing `<a:r><a:t>…</a:t><a:rPr…/></a:r>` —
+		// schema-invalid.
+		const { handler, data, createSlide } = await PresentationBuilder.create();
+		data.slides.push(
+			createSlide('Blank')
+				.addTable(
+					{
+						rows: [
+							{
+								cells: [
+									{ text: 'Bold', style: { bold: true } },
+									{ text: 'Red', style: { color: '#FF0000' } },
+								],
+							},
+						],
+					},
+					{ x: 10, y: 10, width: 400, height: 80 },
+				)
+				.build(),
+		);
+		const savedBytes = await handler.save(data.slides);
+		const zip = await JSZip.loadAsync(savedBytes);
+		const slideXml = await zip.file('ppt/slides/slide1.xml')!.async('string');
+
+		// For every run in the saved slide, if it has both <a:rPr> and <a:t>,
+		// <a:rPr> must appear first.
+		const runRegex = /<a:r>[\s\S]*?<\/a:r>/g;
+		let match: RegExpExecArray | null;
+		let runsInspected = 0;
+		while ((match = runRegex.exec(slideXml)) !== null) {
+			const runContent = match[0];
+			const rPrIdx = runContent.indexOf('<a:rPr');
+			const tIdx = runContent.indexOf('<a:t');
+			if (rPrIdx >= 0 && tIdx >= 0) {
+				expect(rPrIdx, `run with <a:t> before <a:rPr>: ${runContent}`).toBeLessThan(tIdx);
+				runsInspected++;
+			}
+		}
+		expect(runsInspected).toBeGreaterThan(0);
+	});
 });
