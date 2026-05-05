@@ -1,6 +1,6 @@
 {
 	"name": "pptx-viewer-core",
-	"version": "1.3.0",
+	"version": "1.4.0",
 	"description": "Core PPTX engine — parse, edit, serialize, and convert PowerPoint files.",
 	"keywords": [
 		"converter",
@@ -69,15 +69,15 @@
 		"@xmldom/xmldom": "^0.8.11",
 		"emf-converter": "workspace:*",
 		"mtx-decompressor": "workspace:*",
-		"node-forge": "^1.3.3",
+		"node-forge": "^1.4.0",
 		"tsup": "^8.5.1",
-		"typescript": "^5.9.3",
-		"vitest": "^4.1.0",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.5",
 		"xml-crypto": "^6.1.2"
 	},
 	"peerDependencies": {
-		"@xmldom/xmldom": "^0.9.0",
-		"fast-xml-parser": "^5.5.5",
+		"@xmldom/xmldom": "^0.8.0",
+		"fast-xml-parser": "^5.7.3",
 		"jszip": "^3.10.1",
 		"node-forge": "^1.3.0",
 		"xml-crypto": "^6.0.0"

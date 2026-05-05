@@ -1,6 +1,6 @@
 {
 	"name": "mtx-decompressor",
-	"version": "1.3.0",
+	"version": "1.4.0",
 	"description": "MicroType Express (MTX) font decompressor — extracts TTF/OTF from compressed EOT containers.",
 	"homepage": "https://github.com/ChristopherVR/pptx-viewer",
 	"bugs": {
@@ -38,7 +38,7 @@
 	},
 	"devDependencies": {
 		"tsup": "^8.5.1",
-		"typescript": "^5.9.3",
-		"vitest": "^4.1.0"
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.5"
 	}
 }
