@@ -23,6 +23,7 @@ export interface IPptxShapeEffectXmlCodec {
 	extractBlurStyle(shapeProps: XmlObject): Partial<ShapeStyle>;
 	extractEffectDagStyle(shapeProps: XmlObject): Partial<ShapeStyle>;
 	buildOuterShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined;
+	buildPresetShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined;
 	buildInnerShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined;
 	buildGlowXml(shapeStyle: ShapeStyle): XmlObject | undefined;
 	buildSoftEdgeXml(shapeStyle: ShapeStyle): XmlObject | undefined;
@@ -86,6 +87,10 @@ export class PptxShapeEffectXmlCodec implements IPptxShapeEffectXmlCodec {
 
 	public buildOuterShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined {
 		return this.builder.buildOuterShadowXml(shapeStyle);
+	}
+
+	public buildPresetShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined {
+		return this.builder.buildPresetShadowXml(shapeStyle);
 	}
 
 	public buildInnerShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined {

@@ -7,6 +7,7 @@ export interface PptxShapeEffectXmlBuilderContext {
 
 export interface IPptxShapeEffectXmlBuilder {
 	buildOuterShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined;
+	buildPresetShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined;
 	buildInnerShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined;
 	buildGlowXml(shapeStyle: ShapeStyle): XmlObject | undefined;
 	buildSoftEdgeXml(shapeStyle: ShapeStyle): XmlObject | undefined;
@@ -76,12 +77,70 @@ export class PptxShapeEffectXmlBuilder implements IPptxShapeEffectXmlBuilder {
 			},
 		};
 
+		// CT_OuterShadowEffect §20.1.8.45: sx, sy, kx, ky, algn
+		if (typeof shapeStyle.shadowScaleX === 'number') {
+			xmlObj['@_sx'] = String(Math.round(shapeStyle.shadowScaleX));
+		}
+		if (typeof shapeStyle.shadowScaleY === 'number') {
+			xmlObj['@_sy'] = String(Math.round(shapeStyle.shadowScaleY));
+		}
+		if (typeof shapeStyle.shadowSkewX === 'number') {
+			xmlObj['@_kx'] = String(Math.round(shapeStyle.shadowSkewX));
+		}
+		if (typeof shapeStyle.shadowSkewY === 'number') {
+			xmlObj['@_ky'] = String(Math.round(shapeStyle.shadowSkewY));
+		}
+		if (shapeStyle.shadowAlignment) {
+			xmlObj['@_algn'] = shapeStyle.shadowAlignment;
+		}
+
 		// Add rotateWithShape if explicitly set
 		if (typeof shapeStyle.shadowRotateWithShape === 'boolean') {
 			xmlObj['@_rotWithShape'] = shapeStyle.shadowRotateWithShape ? '1' : '0';
 		}
 
 		return xmlObj;
+	}
+
+	public buildPresetShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined {
+		const preset = shapeStyle.presetShadowName;
+		if (!preset || preset.length === 0) {
+			return undefined;
+		}
+		const shadowColor = String(shapeStyle.shadowColor || '#000000').trim();
+
+		const shadowOpacity =
+			typeof shapeStyle.shadowOpacity === 'number' && Number.isFinite(shapeStyle.shadowOpacity)
+				? this.context.clampUnitInterval(shapeStyle.shadowOpacity)
+				: 0.5;
+
+		// Prefer stored angle/distance; fall back to derived from offsets.
+		let distance: number;
+		let directionDegrees: number;
+		if (
+			typeof shapeStyle.shadowAngle === 'number' &&
+			typeof shapeStyle.shadowDistance === 'number'
+		) {
+			directionDegrees = shapeStyle.shadowAngle;
+			distance = shapeStyle.shadowDistance;
+		} else {
+			const ox = typeof shapeStyle.shadowOffsetX === 'number' ? shapeStyle.shadowOffsetX : 0;
+			const oy = typeof shapeStyle.shadowOffsetY === 'number' ? shapeStyle.shadowOffsetY : 0;
+			distance = Math.sqrt(ox * ox + oy * oy);
+			directionDegrees = ((Math.atan2(oy, ox) * 180) / Math.PI + 360) % 360;
+		}
+
+		return {
+			'@_prst': preset,
+			'@_dist': String(Math.round(distance * this.context.emuPerPx)),
+			'@_dir': String(Math.round(directionDegrees * 60000)),
+			'a:srgbClr': {
+				'@_val': shadowColor.replace('#', ''),
+				'a:alpha': {
+					'@_val': String(Math.round(shadowOpacity * 100000)),
+				},
+			},
+		};
 	}
 
 	public buildInnerShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined {
@@ -113,7 +172,7 @@ export class PptxShapeEffectXmlBuilder implements IPptxShapeEffectXmlBuilder {
 		const distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
 		const directionDegrees = ((Math.atan2(offsetY, offsetX) * 180) / Math.PI + 360) % 360;
 
-		return {
+		const xmlObj: XmlObject = {
 			'@_blurRad': String(Math.round(blurValue * this.context.emuPerPx)),
 			'@_dist': String(Math.round(distance * this.context.emuPerPx)),
 			'@_dir': String(Math.round(directionDegrees * 60000)),
@@ -124,6 +183,12 @@ export class PptxShapeEffectXmlBuilder implements IPptxShapeEffectXmlBuilder {
 				},
 			},
 		};
+
+		if (typeof shapeStyle.innerShadowRotateWithShape === 'boolean') {
+			xmlObj['@_rotWithShape'] = shapeStyle.innerShadowRotateWithShape ? '1' : '0';
+		}
+
+		return xmlObj;
 	}
 
 	public buildGlowXml(shapeStyle: ShapeStyle): XmlObject | undefined {
@@ -212,6 +277,31 @@ export class PptxShapeEffectXmlBuilder implements IPptxShapeEffectXmlBuilder {
 			reflectionXml['@_dist'] = String(
 				Math.round(shapeStyle.reflectionDistance * this.context.emuPerPx),
 			);
+		}
+		// CT_ReflectionEffect §20.1.8.50: fadeDir, sx, sy, kx, ky, algn, rotWithShape, stPos
+		if (typeof shapeStyle.reflectionFadeDirection === 'number') {
+			reflectionXml['@_fadeDir'] = String(Math.round(shapeStyle.reflectionFadeDirection * 60000));
+		}
+		if (typeof shapeStyle.reflectionScaleX === 'number') {
+			reflectionXml['@_sx'] = String(Math.round(shapeStyle.reflectionScaleX));
+		}
+		if (typeof shapeStyle.reflectionScaleY === 'number') {
+			reflectionXml['@_sy'] = String(Math.round(shapeStyle.reflectionScaleY));
+		}
+		if (typeof shapeStyle.reflectionSkewX === 'number') {
+			reflectionXml['@_kx'] = String(Math.round(shapeStyle.reflectionSkewX));
+		}
+		if (typeof shapeStyle.reflectionSkewY === 'number') {
+			reflectionXml['@_ky'] = String(Math.round(shapeStyle.reflectionSkewY));
+		}
+		if (shapeStyle.reflectionAlignment) {
+			reflectionXml['@_algn'] = shapeStyle.reflectionAlignment;
+		}
+		if (typeof shapeStyle.reflectionRotateWithShape === 'boolean') {
+			reflectionXml['@_rotWithShape'] = shapeStyle.reflectionRotateWithShape ? '1' : '0';
+		}
+		if (typeof shapeStyle.reflectionStartPosition === 'number') {
+			reflectionXml['@_stPos'] = String(Math.round(shapeStyle.reflectionStartPosition * 100000));
 		}
 
 		return reflectionXml;

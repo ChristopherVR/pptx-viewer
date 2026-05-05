@@ -90,7 +90,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 	}
 
-	private parseDrawingShape(
+	protected parseDrawingShape(
 		sp: XmlObject,
 		index: number,
 		emuPerPx: number,

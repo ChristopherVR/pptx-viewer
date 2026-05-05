@@ -1,6 +1,34 @@
 import type { ShapeStyle, XmlObject } from '../../types';
 import { PRESET_SHADOW_BLUR_MAP, PRESET_SHADOW_OPACITY_MAP } from './effect-style-preset-maps';
 
+const VALID_ALIGNMENTS = new Set(['tl', 't', 'tr', 'l', 'ctr', 'r', 'bl', 'b', 'br']);
+
+function parseIntAttr(value: unknown): number | undefined {
+	if (value === undefined || value === null || value === '') {
+		return undefined;
+	}
+	const parsed = Number.parseInt(String(value), 10);
+	return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parseAlignmentAttr(value: unknown): ShapeStyle['shadowAlignment'] {
+	const v = String(value ?? '').trim();
+	return VALID_ALIGNMENTS.has(v) ? (v as ShapeStyle['shadowAlignment']) : undefined;
+}
+
+function parseBoolAttr(value: unknown): boolean | undefined {
+	if (typeof value === 'boolean') {
+		return value;
+	}
+	if (value === '1' || value === 'true') {
+		return true;
+	}
+	if (value === '0' || value === 'false') {
+		return false;
+	}
+	return undefined;
+}
+
 export interface PptxShapeEffectStyleExtractorContext {
 	emuPerPx: number;
 	parseColor: (colorNode: XmlObject | undefined, placeholderColor?: string) => string | undefined;
@@ -60,7 +88,16 @@ export class PptxShapeEffectStyleExtractor implements IPptxShapeEffectStyleExtra
 				? rotateWithShape
 				: rotateWithShape === '1' || rotateWithShape === 'true'
 					? true
-					: undefined;
+					: rotateWithShape === '0' || rotateWithShape === 'false'
+						? false
+						: undefined;
+
+		// CT_OuterShadowEffect §20.1.8.45: sx, sy, kx, ky, algn
+		const shadowScaleX = parseIntAttr(outerShadow['@_sx']);
+		const shadowScaleY = parseIntAttr(outerShadow['@_sy']);
+		const shadowSkewX = parseIntAttr(outerShadow['@_kx']);
+		const shadowSkewY = parseIntAttr(outerShadow['@_ky']);
+		const shadowAlignment = parseAlignmentAttr(outerShadow['@_algn']);
 
 		return {
 			shadowColor,
@@ -71,6 +108,11 @@ export class PptxShapeEffectStyleExtractor implements IPptxShapeEffectStyleExtra
 			shadowAngle: directionDegrees,
 			shadowDistance: distance,
 			shadowRotateWithShape,
+			shadowScaleX,
+			shadowScaleY,
+			shadowSkewX,
+			shadowSkewY,
+			shadowAlignment,
 		};
 	}
 
@@ -137,12 +179,15 @@ export class PptxShapeEffectStyleExtractor implements IPptxShapeEffectStyleExtra
 				? Math.round(Math.sin(directionRadians) * distance * 100) / 100
 				: undefined;
 
+		const innerShadowRotateWithShape = parseBoolAttr(innerShadow['@_rotWithShape']);
+
 		return {
 			innerShadowColor,
 			innerShadowOpacity,
 			innerShadowBlur,
 			innerShadowOffsetX,
 			innerShadowOffsetY,
+			innerShadowRotateWithShape,
 		};
 	}
 
@@ -220,6 +265,18 @@ export class PptxShapeEffectStyleExtractor implements IPptxShapeEffectStyleExtra
 				? distanceRaw / this.context.emuPerPx
 				: undefined;
 
+		// CT_ReflectionEffect §20.1.8.50: fadeDir, sx, sy, kx, ky, algn, rotWithShape, stPos
+		const fadeDirRaw = parseIntAttr(reflectionNode['@_fadeDir']);
+		const reflectionFadeDirection = fadeDirRaw !== undefined ? fadeDirRaw / 60000 : undefined;
+		const reflectionScaleX = parseIntAttr(reflectionNode['@_sx']);
+		const reflectionScaleY = parseIntAttr(reflectionNode['@_sy']);
+		const reflectionSkewX = parseIntAttr(reflectionNode['@_kx']);
+		const reflectionSkewY = parseIntAttr(reflectionNode['@_ky']);
+		const reflectionAlignment = parseAlignmentAttr(reflectionNode['@_algn']);
+		const reflectionRotateWithShape = parseBoolAttr(reflectionNode['@_rotWithShape']);
+		const stPosRaw = parseIntAttr(reflectionNode['@_stPos']);
+		const reflectionStartPosition = stPosRaw !== undefined ? stPosRaw / 100000 : undefined;
+
 		return {
 			reflectionBlurRadius,
 			reflectionStartOpacity,
@@ -228,6 +285,14 @@ export class PptxShapeEffectStyleExtractor implements IPptxShapeEffectStyleExtra
 			reflectionDirection,
 			reflectionRotation,
 			reflectionDistance,
+			reflectionFadeDirection,
+			reflectionScaleX,
+			reflectionScaleY,
+			reflectionSkewX,
+			reflectionSkewY,
+			reflectionAlignment,
+			reflectionRotateWithShape,
+			reflectionStartPosition,
 		};
 	}
 

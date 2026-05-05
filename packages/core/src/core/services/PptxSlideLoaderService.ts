@@ -157,6 +157,10 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 
 		const clrMapOverride = params.parseSlideClrMapOverride(slideXmlObj);
 		params.setCurrentSlideClrMapOverride(clrMapOverride);
+		// Switch active master state (clrMap + per-master theme) so multi-master
+		// decks resolve scheme colours against this slide's own master.
+		// Phase 2 Stream B / C-H4.
+		await params.setActiveMasterForSlide?.(path);
 
 		// Use try/finally to ensure theme override state is always restored
 		let restoreThemeOverride: (() => void) | undefined;

@@ -1,4 +1,5 @@
 import type { PptxTableCellStyle, XmlObject } from '../../types';
+import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
 
 export interface TableCellFillBorderContext {
 	emuPerPx: number;
@@ -26,10 +27,15 @@ export function applyCellFillStyle(
 	let hasStyle = false;
 
 	if (cellProperties?.['a:solidFill']) {
-		const fillColor = context.parseColor(cellProperties['a:solidFill'] as XmlObject);
+		const solidFillNode = cellProperties['a:solidFill'] as XmlObject;
+		const fillColor = context.parseColor(solidFillNode);
 		if (fillColor) {
 			style.fillMode = 'solid';
 			style.backgroundColor = fillColor;
+			const bgColorXml = extractColorChoiceXml(solidFillNode);
+			if (bgColorXml) {
+				style.backgroundColorXml = bgColorXml;
+			}
 			hasStyle = true;
 		}
 	}
@@ -67,6 +73,11 @@ export function applyCellFillStyle(
 				style.backgroundColor = firstStopColor;
 			}
 		}
+	}
+
+	if (cellProperties?.['a:noFill'] !== undefined) {
+		style.fillMode = 'none';
+		hasStyle = true;
 	}
 
 	if (cellProperties?.['a:pattFill']) {

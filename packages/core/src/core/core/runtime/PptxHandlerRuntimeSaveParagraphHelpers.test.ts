@@ -305,6 +305,67 @@ describe('assembleParagraphXml', () => {
 		expect(spcAftIdx).toBeGreaterThan(spcBefIdx);
 	});
 
+	it('preserves parsed endParaRPr verbatim when supplied', () => {
+		const parsedEnd: Record<string, unknown> = {
+			'@_lang': 'fr-FR',
+			'@_dirty': '0',
+			'a:solidFill': { 'a:srgbClr': { '@_val': 'FF0000' } },
+		};
+		const result = assembleParagraphXml([], {}, parsedEnd);
+		expect(result['a:endParaRPr']).toBe(parsedEnd);
+	});
+
+	it('falls back to en-US stub when no parsed endParaRPr supplied', () => {
+		const result = assembleParagraphXml([], {});
+		expect(result['a:endParaRPr']).toStrictEqual({ '@_lang': 'en-US' });
+	});
+
+	it('buildParagraphPropertiesXml emits @_lvl when level > 0', () => {
+		const result = buildParagraphPropertiesXml(
+			undefined,
+			undefined,
+			undefined,
+			{
+				spacingBefore: undefined,
+				spacingAfter: undefined,
+				lineSpacing: undefined,
+				lineSpacingExactPt: undefined,
+			},
+			3,
+		);
+		expect(result['@_lvl']).toBe('3');
+	});
+
+	it('buildParagraphPropertiesXml omits @_lvl when level is 0 or undefined', () => {
+		const spacing = {
+			spacingBefore: undefined,
+			spacingAfter: undefined,
+			lineSpacing: undefined,
+			lineSpacingExactPt: undefined,
+		};
+		const zeroLevel = buildParagraphPropertiesXml(undefined, undefined, undefined, spacing, 0);
+		expect(zeroLevel['@_lvl']).toBeUndefined();
+		const undefinedLevel = buildParagraphPropertiesXml(
+			undefined,
+			undefined,
+			undefined,
+			spacing,
+			undefined,
+		);
+		expect(undefinedLevel['@_lvl']).toBeUndefined();
+	});
+
+	it('buildParagraphPropertiesXml clamps level to [0, 8]', () => {
+		const spacing = {
+			spacingBefore: undefined,
+			spacingAfter: undefined,
+			lineSpacing: undefined,
+			lineSpacingExactPt: undefined,
+		};
+		const high = buildParagraphPropertiesXml(undefined, undefined, undefined, spacing, 99);
+		expect(high['@_lvl']).toBe('8');
+	});
+
 	it('should emit children in schema order: a:pPr, a:r/a:fld, a:endParaRPr', () => {
 		// OOXML CT_TextParagraph requires children in order:
 		//   pPr? , (r | br | fld)* , endParaRPr?

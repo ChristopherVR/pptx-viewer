@@ -17,6 +17,9 @@ export interface IPptxGradientStyleCodec {
 	extractGradientPathType(gradFill: XmlObject): ShapeStyle['fillGradientPathType'];
 	extractGradientFocalPoint(gradFill: XmlObject): ShapeStyle['fillGradientFocalPoint'];
 	extractGradientFillToRect(gradFill: XmlObject): ShapeStyle['fillGradientFillToRect'];
+	extractGradientFlip(gradFill: XmlObject): ShapeStyle['fillGradientFlip'];
+	extractGradientRotWithShape(gradFill: XmlObject): boolean | undefined;
+	extractGradientScaled(gradFill: XmlObject): boolean | undefined;
 	buildGradientCssFromStops(
 		stops: NonNullable<ShapeStyle['fillGradientStops']>,
 		type: NonNullable<ShapeStyle['fillGradientType']>,
@@ -172,6 +175,50 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 		};
 	}
 
+	public extractGradientFlip(gradFill: XmlObject): ShapeStyle['fillGradientFlip'] {
+		const flipRaw = String(gradFill['@_flip'] || '')
+			.trim()
+			.toLowerCase();
+		if (flipRaw === 'x' || flipRaw === 'y' || flipRaw === 'xy' || flipRaw === 'none') {
+			return flipRaw;
+		}
+		return undefined;
+	}
+
+	public extractGradientRotWithShape(gradFill: XmlObject): boolean | undefined {
+		const rot = gradFill['@_rotWithShape'];
+		if (rot === undefined || rot === null) {
+			return undefined;
+		}
+		const token = String(rot).trim().toLowerCase();
+		if (token === '1' || token === 'true') {
+			return true;
+		}
+		if (token === '0' || token === 'false') {
+			return false;
+		}
+		return undefined;
+	}
+
+	public extractGradientScaled(gradFill: XmlObject): boolean | undefined {
+		const lin = gradFill['a:lin'] as XmlObject | undefined;
+		if (!lin) {
+			return undefined;
+		}
+		const scaled = lin['@_scaled'];
+		if (scaled === undefined || scaled === null) {
+			return undefined;
+		}
+		const token = String(scaled).trim().toLowerCase();
+		if (token === '1' || token === 'true') {
+			return true;
+		}
+		if (token === '0' || token === 'false') {
+			return false;
+		}
+		return undefined;
+	}
+
 	public extractGradientAngle(gradFill: XmlObject): number {
 		const angleRaw = Number.parseInt(
 			String((gradFill['a:lin'] as XmlObject | undefined)?.['@_ang'] || ''),
@@ -289,11 +336,19 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 		}
 
 		const gradientType = shapeStyle.fillGradientType || 'linear';
-		const gradientXml: XmlObject = {
-			'a:gsLst': {
-				'a:gs': stops,
-			},
-		};
+		const gradientXml: XmlObject = {};
+		// `@flip` and `@rotWithShape` attach to the `<a:gradFill>` element
+		// and must be set before the child `<a:gsLst>` is inserted —
+		// fast-xml-parser preserves insertion order, but attributes always
+		// serialise on the parent regardless. We assign them up-front for
+		// readability.
+		if (shapeStyle.fillGradientFlip && shapeStyle.fillGradientFlip !== 'none') {
+			gradientXml['@_flip'] = shapeStyle.fillGradientFlip;
+		}
+		if (shapeStyle.fillGradientRotWithShape !== undefined) {
+			gradientXml['@_rotWithShape'] = shapeStyle.fillGradientRotWithShape ? '1' : '0';
+		}
+		gradientXml['a:gsLst'] = { 'a:gs': stops };
 		if (gradientType === 'radial') {
 			const pathType = shapeStyle.fillGradientPathType || 'circle';
 			const pathXml: XmlObject = {
@@ -328,10 +383,18 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 				Number.isFinite(shapeStyle.fillGradientAngle)
 					? shapeStyle.fillGradientAngle
 					: 90;
-			gradientXml['a:lin'] = {
+			const linNode: XmlObject = {
 				'@_ang': String(Math.round(normalizedAngle * 60000)),
-				'@_scaled': '1',
 			};
+			// `@scaled` defaults to "1" per the schema, but we only emit
+			// the explicit value the parser captured to avoid lying about
+			// what the source authored.
+			if (shapeStyle.fillGradientScaled !== undefined) {
+				linNode['@_scaled'] = shapeStyle.fillGradientScaled ? '1' : '0';
+			} else {
+				linNode['@_scaled'] = '1';
+			}
+			gradientXml['a:lin'] = linNode;
 		}
 		return gradientXml;
 	}

@@ -18,6 +18,7 @@ import {
 	parseRunTextOutline,
 	parseRunHyperlink,
 	parseRunSolidFillColor,
+	parseRunSolidFillColorXml,
 	parseRunSymbolFont,
 } from './text-run-properties-parser';
 
@@ -589,6 +590,50 @@ describe('parseRunSolidFillColor', () => {
 			},
 		};
 		expect(parseRunSolidFillColor(rPr)).toBe('FF5733');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// parseRunSolidFillColorXml — round-trip preservation
+// ---------------------------------------------------------------------------
+
+describe('parseRunSolidFillColorXml', () => {
+	it('returns undefined for absent rPr', () => {
+		expect(parseRunSolidFillColorXml(undefined)).toBeUndefined();
+	});
+
+	it('returns undefined for absent solidFill', () => {
+		expect(parseRunSolidFillColorXml({})).toBeUndefined();
+	});
+
+	it('returns the wrapped a:srgbClr child', () => {
+		const rPr: XmlObject = {
+			'a:solidFill': {
+				'a:srgbClr': { '@_val': 'FF5733' },
+			},
+		};
+		expect(parseRunSolidFillColorXml(rPr)).toStrictEqual({
+			'a:srgbClr': { '@_val': 'FF5733' },
+		});
+	});
+
+	it('preserves a:schemeClr with colour transforms', () => {
+		const rPr: XmlObject = {
+			'a:solidFill': {
+				'a:schemeClr': {
+					'@_val': 'accent1',
+					'a:lumMod': { '@_val': '75000' },
+					'a:lumOff': { '@_val': '25000' },
+				},
+			},
+		};
+		expect(parseRunSolidFillColorXml(rPr)).toStrictEqual({
+			'a:schemeClr': {
+				'@_val': 'accent1',
+				'a:lumMod': { '@_val': '75000' },
+				'a:lumOff': { '@_val': '25000' },
+			},
+		});
 	});
 });
 

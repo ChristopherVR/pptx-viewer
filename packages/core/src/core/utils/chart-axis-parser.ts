@@ -22,6 +22,32 @@ const AXIS_TYPE_MAP: Record<string, PptxChartAxisFormatting['axisType']> = {
 	serAx: 'serAx',
 };
 
+/**
+ * Upsert a `c:<localName>` child with `@_val` on an axis or scaling node.
+ * When `value` is undefined, removes any existing child of that local name.
+ * Used by chart write-back to round-trip min/max/majorUnit/tickLblPos
+ * regardless of namespace prefix.
+ */
+export function upsertChartAxisChild(
+	parent: XmlObject,
+	localName: string,
+	value: string | undefined,
+	getLocalName: (key: string) => string,
+): void {
+	const existingKey = Object.keys(parent).find((k) => getLocalName(k) === localName);
+	if (value === undefined) {
+		if (existingKey) {
+			delete parent[existingKey];
+		}
+		return;
+	}
+	if (existingKey) {
+		(parent[existingKey] as XmlObject)['@_val'] = value;
+	} else {
+		parent[`c:${localName}`] = { '@_val': value };
+	}
+}
+
 /** Parse all axes (c:catAx, c:valAx, c:dateAx, c:serAx) from plot area. */
 export function parseChartAxes(
 	plotArea: XmlObject,
@@ -178,6 +204,31 @@ function parseSingleAxis(
 	const dispUnitsNode = xmlLookup.getChildByLocalName(axisNode, 'dispUnits');
 	if (dispUnitsNode) {
 		parseDisplayUnits(dispUnitsNode, xmlLookup, result);
+	}
+
+	// Major/minor unit intervals (c:majorUnit/@val, c:minorUnit/@val)
+	const majorUnitNode = xmlLookup.getChildByLocalName(axisNode, 'majorUnit');
+	if (majorUnitNode) {
+		const majorVal = parseFloat(String(majorUnitNode['@_val']));
+		if (Number.isFinite(majorVal)) {
+			result.majorUnit = majorVal;
+		}
+	}
+	const minorUnitNode = xmlLookup.getChildByLocalName(axisNode, 'minorUnit');
+	if (minorUnitNode) {
+		const minorVal = parseFloat(String(minorUnitNode['@_val']));
+		if (Number.isFinite(minorVal)) {
+			result.minorUnit = minorVal;
+		}
+	}
+
+	// Tick label position (c:tickLblPos/@val)
+	const tickLblPosNode = xmlLookup.getChildByLocalName(axisNode, 'tickLblPos');
+	if (tickLblPosNode) {
+		const v = String(tickLblPosNode['@_val'] || '').trim();
+		if (v === 'high' || v === 'low' || v === 'nextTo' || v === 'none') {
+			result.tickLblPos = v;
+		}
 	}
 
 	return result;

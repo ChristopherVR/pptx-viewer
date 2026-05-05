@@ -90,6 +90,14 @@ export interface PptxThemeFontGroup {
 	latin?: string;
 	eastAsia?: string;
 	complexScript?: string;
+	/**
+	 * Per-script typeface overrides (`<a:font script="Hans|Hant|Arab|Hebr|
+	 * Thai|Beng|Gujr|Khmr|Knda|…"/>` per ECMA-376 §20.1.4.1.16). Keyed by
+	 * the four-letter ISO 15924 script tag from the `script` attribute.
+	 *
+	 * Phase 4 Stream A / M4.
+	 */
+	byScript?: Record<string, string>;
 }
 
 /**
@@ -294,4 +302,21 @@ export interface PptxTheme {
 	fontScheme?: PptxThemeFontScheme;
 	/** Format scheme — fill, line, effect and background fill style matrices. */
 	formatScheme?: PptxThemeFormatScheme;
+}
+
+/**
+ * Snapshot of `<a:objectDefaults>` (ECMA-376 §20.1.6.7). Each child
+ * (`spDef`, `lnDef`, `txDef`) carries `<a:spPr>`, `<a:bodyPr>`,
+ * `<a:lstStyle>`, `<a:style>`. We capture them as raw parser objects so
+ * round-trip is byte-stable regardless of schema-walking depth.
+ *
+ * Phase 4 Stream A / M5.
+ */
+export interface PptxThemeObjectDefaults {
+	/** Raw `<a:spDef>` parser object, or `undefined` if absent. */
+	spDef?: unknown;
+	/** Raw `<a:lnDef>` parser object, or `undefined` if absent. */
+	lnDef?: unknown;
+	/** Raw `<a:txDef>` parser object, or `undefined` if absent. */
+	txDef?: unknown;
 }

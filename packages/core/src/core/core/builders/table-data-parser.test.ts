@@ -396,6 +396,35 @@ describe('pptxTableDataParser — table style properties', () => {
 		expect(result!.tableStyleId).toBe('{D7AC3CCA-C797-4891-BE02-D94E43425B78}');
 	});
 
+	it('parses table style ID from spec-form <a:tableStyleId> child element', () => {
+		const graphicData = makeTableXml({
+			gridCols: ['9144000'],
+			rows: [{ height: '370840', cells: [makeCell('Styled')] }],
+			tblPrAttrs: {
+				'a:tableStyleId': '{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}',
+			},
+		});
+		const parser = new PptxTableDataParser(makeContext());
+		const result = parser.parseTableData(graphicData);
+
+		expect(result!.tableStyleId).toBe('{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}');
+	});
+
+	it('prefers <a:tableStyleId> over legacy <a:tblStyle@val> when both present', () => {
+		const graphicData = makeTableXml({
+			gridCols: ['9144000'],
+			rows: [{ height: '370840', cells: [makeCell('Styled')] }],
+			tblPrAttrs: {
+				'a:tableStyleId': '{NEW-GUID}',
+				'a:tblStyle': { '@_val': '{LEGACY-GUID}' },
+			},
+		});
+		const parser = new PptxTableDataParser(makeContext());
+		const result = parser.parseTableData(graphicData);
+
+		expect(result!.tableStyleId).toBe('{NEW-GUID}');
+	});
+
 	it('sets default band cycle values', () => {
 		const graphicData = makeTableXml({
 			gridCols: ['9144000'],

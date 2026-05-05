@@ -3,6 +3,7 @@ import type {
 	PptxTheme,
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
+	PptxThemeFormatScheme,
 	PptxThemeOption,
 } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeThemeRefResolution';
@@ -128,72 +129,112 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		};
 	}
 
-	protected async applySlideMasterColorMap(defaultMap: Record<string, string>): Promise<void> {
+	/**
+	 * Parse every slide master's `<p:clrMap>` element and store the alias
+	 * dictionaries on {@link masterClrMaps}. Do *not* mutate
+	 * {@link themeColorMap} — alias resolution happens at colour-lookup
+	 * time so that:
+	 *
+	 * 1. The raw theme scheme stays the source of truth (clrMap is a
+	 *    routing layer, not a colour table).
+	 * 2. Multi-master decks resolve each slide against its own master's
+	 *    clrMap rather than always against `masterFiles[0]`.
+	 * 3. Layout `clrMapOvr` semantics work correctly when a slide's master
+	 *    differs from the deck's first master.
+	 *
+	 * Phase 2 Stream B / C-H4.
+	 */
+	protected async applySlideMasterColorMap(_defaultMap: Record<string, string>): Promise<void> {
 		const masterFiles = this.zip.file(/^ppt\/slideMasters\/slideMaster\d+\.xml$/);
 		if (!masterFiles || masterFiles.length === 0) {
 			return;
 		}
 
-		try {
-			const masterXml = await masterFiles[0].async('string');
-			const masterData = this.parser.parse(masterXml) as XmlObject;
-			const clrMap = masterData?.['p:sldMaster']?.['p:clrMap'] as XmlObject | undefined;
-			if (!clrMap) {
-				return;
-			}
+		const aliasKeys = [
+			'bg1',
+			'tx1',
+			'bg2',
+			'tx2',
+			'accent1',
+			'accent2',
+			'accent3',
+			'accent4',
+			'accent5',
+			'accent6',
+			'hlink',
+			'folHlink',
+		];
 
-			const aliasKeys = [
-				'bg1',
-				'tx1',
-				'bg2',
-				'tx2',
-				'accent1',
-				'accent2',
-				'accent3',
-				'accent4',
-				'accent5',
-				'accent6',
-				'hlink',
-				'folHlink',
-			];
-
-			for (const aliasKey of aliasKeys) {
-				const mappedKey = String(clrMap[`@_${aliasKey}`] || '')
-					.trim()
-					.toLowerCase();
-				if (!mappedKey) {
+		for (const file of masterFiles) {
+			try {
+				// eslint-disable-next-line no-await-in-loop
+				const masterXml = await file.async('string');
+				const masterData = this.parser.parse(masterXml) as XmlObject;
+				const clrMap = masterData?.['p:sldMaster']?.['p:clrMap'] as XmlObject | undefined;
+				if (!clrMap) {
 					continue;
 				}
-				const mappedColor = this.themeColorMap[mappedKey] || defaultMap[mappedKey];
-				if (mappedColor) {
-					this.themeColorMap[aliasKey] = mappedColor;
+
+				const aliasMap: Record<string, string> = {};
+				for (const aliasKey of aliasKeys) {
+					const mappedKey = String(clrMap[`@_${aliasKey}`] || '')
+						.trim()
+						.toLowerCase();
+					if (mappedKey) {
+						aliasMap[aliasKey] = mappedKey;
+					}
 				}
+				if (Object.keys(aliasMap).length > 0) {
+					this.masterClrMaps.set(file.name, aliasMap);
+				}
+			} catch (error) {
+				console.warn(`Failed to parse slide master color map for ${file.name}:`, error);
 			}
-		} catch (error) {
-			console.warn('Failed to parse slide master color map:', error);
 		}
 	}
 
-	protected async loadThemeData(): Promise<void> {
-		const themeFiles = this.zip.file(/^ppt\/theme\/theme\d+\.xml$/);
-		if (!themeFiles || themeFiles.length === 0) {
-			return;
+	/**
+	 * Parse a single theme part into structured colour, font, and format
+	 * scheme dictionaries. Used both for the global default theme and for
+	 * each master's per-master theme (multi-master support).
+	 *
+	 * Phase 2 Stream B / C-H4.
+	 */
+	protected async parseThemePart(themePath: string): Promise<{
+		colorMap: Record<string, string>;
+		fontMap: Record<string, string>;
+		formatScheme: PptxThemeFormatScheme | undefined;
+	} | null> {
+		const themeFile = this.zip.file(themePath);
+		if (!themeFile) {
+			return null;
 		}
-
-		const preferredThemePath = await this.resolvePrimaryThemePath();
-		const preferredThemeFile = preferredThemePath
-			? themeFiles.find((file) => file.name === preferredThemePath)
-			: undefined;
-		const themeFile = preferredThemeFile ?? themeFiles[0];
 		const themeXml = await themeFile.async('string');
+		// Capture original XML for byte-stable passthrough on save (C-H3).
+		this.originalThemeXmlByPath.set(themePath, themeXml);
+
 		const themeData = this.parser.parse(themeXml) as XmlObject;
 		const themeRoot = themeData['a:theme'] as XmlObject | undefined;
 		const themeElements = themeRoot?.['a:themeElements'] as XmlObject | undefined;
 		const colorScheme = themeElements?.['a:clrScheme'] as XmlObject | undefined;
 		const fontScheme = themeElements?.['a:fontScheme'] as XmlObject | undefined;
+		const fmtScheme = themeElements?.['a:fmtScheme'] as XmlObject | undefined;
+
+		const themeName = String(themeRoot?.['@_name'] || '').trim();
+		if (themeName) {
+			this.masterThemeNames.set(themePath, themeName);
+		}
+		const colorSchemeName = String(colorScheme?.['@_name'] || '').trim();
+		if (colorSchemeName) {
+			this.masterThemeColorSchemeNames.set(themePath, colorSchemeName);
+		}
+		const fontSchemeName = String(fontScheme?.['@_name'] || '').trim();
+		if (fontSchemeName) {
+			this.masterThemeFontSchemeNames.set(themePath, fontSchemeName);
+		}
 
 		const defaultMap = this.getDefaultSchemeColorMap();
-		this.themeColorMap = { ...defaultMap };
+		const colorMap: Record<string, string> = { ...defaultMap };
 
 		if (colorScheme) {
 			const schemeKeys = [
@@ -214,45 +255,226 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				const colorNode = colorScheme[`a:${key}`] as XmlObject | undefined;
 				const parsed = this.parseColorChoice(colorNode);
 				if (parsed) {
-					this.themeColorMap[key] = parsed;
+					colorMap[key] = parsed;
 				}
 			}
 		}
 
 		// Theme aliases used throughout DrawingML map back to the main dark/light slots.
-		this.themeColorMap['tx1'] = this.themeColorMap['dk1'] || defaultMap['dk1'];
-		this.themeColorMap['bg1'] = this.themeColorMap['lt1'] || defaultMap['lt1'];
-		this.themeColorMap['tx2'] = this.themeColorMap['dk2'] || defaultMap['dk2'];
-		this.themeColorMap['bg2'] = this.themeColorMap['lt2'] || defaultMap['lt2'];
-		await this.applySlideMasterColorMap(defaultMap);
+		colorMap['tx1'] = colorMap['dk1'] || defaultMap['dk1'];
+		colorMap['bg1'] = colorMap['lt1'] || defaultMap['lt1'];
+		colorMap['tx2'] = colorMap['dk2'] || defaultMap['dk2'];
+		colorMap['bg2'] = colorMap['lt2'] || defaultMap['lt2'];
 
-		const majorLatin = (fontScheme?.['a:majorFont'] as XmlObject | undefined)?.['a:latin'] as
-			| XmlObject
-			| undefined;
-		const minorLatin = (fontScheme?.['a:minorFont'] as XmlObject | undefined)?.['a:latin'] as
-			| XmlObject
-			| undefined;
+		const majorFontNode = fontScheme?.['a:majorFont'] as XmlObject | undefined;
+		const minorFontNode = fontScheme?.['a:minorFont'] as XmlObject | undefined;
+		const majorLatin = majorFontNode?.['a:latin'] as XmlObject | undefined;
+		const minorLatin = minorFontNode?.['a:latin'] as XmlObject | undefined;
 
 		const majorFont = this.normalizeTypefaceToken(String(majorLatin?.['@_typeface'] || ''));
 		const minorFont = this.normalizeTypefaceToken(String(minorLatin?.['@_typeface'] || ''));
 
-		this.themeFontMap = {};
+		const fontMap: Record<string, string> = {};
 		if (majorFont) {
-			this.themeFontMap['mj-lt'] = majorFont;
-			this.themeFontMap['mj-ea'] = majorFont;
-			this.themeFontMap['mj-cs'] = majorFont;
+			fontMap['mj-lt'] = majorFont;
+			fontMap['mj-ea'] = majorFont;
+			fontMap['mj-cs'] = majorFont;
 		}
 		if (minorFont) {
-			this.themeFontMap['mn-lt'] = minorFont;
-			this.themeFontMap['mn-ea'] = minorFont;
-			this.themeFontMap['mn-cs'] = minorFont;
+			fontMap['mn-lt'] = minorFont;
+			fontMap['mn-ea'] = minorFont;
+			fontMap['mn-cs'] = minorFont;
 		}
 
-		// Parse the format scheme (fill styles, line styles, effect styles,
-		// background fill styles) from a:fmtScheme.
-		const fmtScheme = themeElements?.['a:fmtScheme'] as XmlObject | undefined;
-		if (fmtScheme) {
-			this.themeFormatScheme = this.parseFormatScheme(fmtScheme);
+		// Capture EA / CS font when explicitly specified; only override when
+		// the typeface is non-empty (the common Office layout has empty
+		// `typeface=""` placeholders we should not stomp the latin fallback).
+		const majorEa = this.normalizeTypefaceToken(
+			String((majorFontNode?.['a:ea'] as XmlObject | undefined)?.['@_typeface'] || ''),
+		);
+		if (majorEa) {
+			fontMap['mj-ea'] = majorEa;
 		}
+		const majorCs = this.normalizeTypefaceToken(
+			String((majorFontNode?.['a:cs'] as XmlObject | undefined)?.['@_typeface'] || ''),
+		);
+		if (majorCs) {
+			fontMap['mj-cs'] = majorCs;
+		}
+		const minorEa = this.normalizeTypefaceToken(
+			String((minorFontNode?.['a:ea'] as XmlObject | undefined)?.['@_typeface'] || ''),
+		);
+		if (minorEa) {
+			fontMap['mn-ea'] = minorEa;
+		}
+		const minorCs = this.normalizeTypefaceToken(
+			String((minorFontNode?.['a:cs'] as XmlObject | undefined)?.['@_typeface'] || ''),
+		);
+		if (minorCs) {
+			fontMap['mn-cs'] = minorCs;
+		}
+
+		// Per-script fonts (`<a:font script="Hans|Hant|Arab|…">`) — M4.
+		const majorScripts = this.collectFontScriptOverrides(majorFontNode);
+		if (Object.keys(majorScripts).length > 0) {
+			this.masterThemeMajorFontScripts.set(themePath, majorScripts);
+		}
+		const minorScripts = this.collectFontScriptOverrides(minorFontNode);
+		if (Object.keys(minorScripts).length > 0) {
+			this.masterThemeMinorFontScripts.set(themePath, minorScripts);
+		}
+
+		// objectDefaults — M5.
+		const objectDefaultsNode = themeRoot?.['a:objectDefaults'] as XmlObject | undefined;
+		if (objectDefaultsNode) {
+			const od = {
+				spDef: objectDefaultsNode['a:spDef'] as unknown,
+				lnDef: objectDefaultsNode['a:lnDef'] as unknown,
+				txDef: objectDefaultsNode['a:txDef'] as unknown,
+			};
+			if (od.spDef !== undefined || od.lnDef !== undefined || od.txDef !== undefined) {
+				this.masterThemeObjectDefaults.set(themePath, od);
+			}
+		}
+
+		// extraClrSchemeLst, custClrLst, theme-level extLst.
+		const extraClrSchemeLst = themeRoot?.['a:extraClrSchemeLst'] as unknown;
+		if (extraClrSchemeLst !== undefined) {
+			this.masterThemeExtraClrSchemeLst.set(themePath, extraClrSchemeLst);
+		}
+		const custClrLst = themeRoot?.['a:custClrLst'] as unknown;
+		if (custClrLst !== undefined) {
+			this.masterThemeCustClrLst.set(themePath, custClrLst);
+		}
+		const themeExtLst = themeRoot?.['a:extLst'] as unknown;
+		if (themeExtLst !== undefined) {
+			this.masterThemeExtLst.set(themePath, themeExtLst);
+		}
+
+		const formatScheme = fmtScheme ? this.parseFormatScheme(fmtScheme) : undefined;
+		return { colorMap, fontMap, formatScheme };
+	}
+
+	/**
+	 * Parse `<a:font script="…" typeface="…"/>` children of a major or
+	 * minor font node into a `script -> typeface` dictionary.
+	 *
+	 * fast-xml-parser collapses repeated tags into arrays, so iterate
+	 * over the array form regardless of how many siblings are present.
+	 *
+	 * Phase 4 Stream A / M4.
+	 */
+	protected collectFontScriptOverrides(fontNode: XmlObject | undefined): Record<string, string> {
+		const overrides: Record<string, string> = {};
+		if (!fontNode) {
+			return overrides;
+		}
+		const fontEntries = this.ensureArray(fontNode['a:font']) as XmlObject[];
+		for (const entry of fontEntries) {
+			const script = String(entry?.['@_script'] || '').trim();
+			const typeface = this.normalizeTypefaceToken(String(entry?.['@_typeface'] || ''));
+			if (script && typeface) {
+				overrides[script] = typeface;
+			}
+		}
+		return overrides;
+	}
+
+	/**
+	 * Resolve the theme file path referenced by a given master's `.rels`.
+	 * Returns `undefined` when the master has no theme relationship.
+	 */
+	protected async resolveThemePathForMaster(masterPath: string): Promise<string | undefined> {
+		const relsPath = masterPath.replace(
+			/ppt\/slideMasters\/(slideMaster\d+)\.xml/,
+			'ppt/slideMasters/_rels/$1.xml.rels',
+		);
+		const relsXml = this.zip.file(relsPath);
+		if (!relsXml) {
+			return undefined;
+		}
+		const relsData = this.parser.parse(await relsXml.async('string')) as XmlObject;
+		const relNodes = this.ensureArray(relsData?.Relationships?.Relationship) as XmlObject[];
+		for (const rel of relNodes) {
+			const target = String(rel['@_Target'] || '');
+			if (!target.includes('theme')) {
+				continue;
+			}
+			const themePath = target.startsWith('..')
+				? this.resolvePath(masterPath.substring(0, masterPath.lastIndexOf('/') + 1), target)
+				: target.startsWith('/')
+					? target.slice(1)
+					: `ppt/${target.replace(/^\.?\//, '')}`;
+			if (themePath.startsWith('ppt/theme/')) {
+				return themePath;
+			}
+		}
+		return undefined;
+	}
+
+	/**
+	 * Populate {@link masterThemeColorMaps}, {@link masterThemeFontMaps},
+	 * and {@link masterThemeFormatSchemes} for every slide master in the
+	 * deck. Multi-master support — Phase 2 Stream B / C-H4.
+	 */
+	protected async loadPerMasterThemes(): Promise<void> {
+		const masterFiles = this.zip.file(/^ppt\/slideMasters\/slideMaster\d+\.xml$/);
+		if (!masterFiles || masterFiles.length === 0) {
+			return;
+		}
+		for (const file of masterFiles) {
+			try {
+				// eslint-disable-next-line no-await-in-loop
+				const themePath = await this.resolveThemePathForMaster(file.name);
+				if (!themePath) {
+					continue;
+				}
+				this.masterThemePaths.set(file.name, themePath);
+				// eslint-disable-next-line no-await-in-loop
+				const parsed = await this.parseThemePart(themePath);
+				if (!parsed) {
+					continue;
+				}
+				this.masterThemeColorMaps.set(file.name, parsed.colorMap);
+				this.masterThemeFontMaps.set(file.name, parsed.fontMap);
+				if (parsed.formatScheme) {
+					this.masterThemeFormatSchemes.set(file.name, parsed.formatScheme);
+				}
+			} catch (error) {
+				console.warn(`Failed to load per-master theme for ${file.name}:`, error);
+			}
+		}
+	}
+
+	protected async loadThemeData(): Promise<void> {
+		const themeFiles = this.zip.file(/^ppt\/theme\/theme\d+\.xml$/);
+		if (!themeFiles || themeFiles.length === 0) {
+			return;
+		}
+
+		const preferredThemePath = await this.resolvePrimaryThemePath();
+		const themeFile = preferredThemePath
+			? (themeFiles.find((file) => file.name === preferredThemePath) ?? themeFiles[0])
+			: themeFiles[0];
+
+		const parsed = await this.parseThemePart(themeFile.name);
+		if (parsed) {
+			this.themeColorMap = parsed.colorMap;
+			this.themeFontMap = parsed.fontMap;
+			if (parsed.formatScheme) {
+				this.themeFormatScheme = parsed.formatScheme;
+			}
+		}
+		// Parse master clrMaps and per-master themes. These layer on top of
+		// {@link themeColorMap} during slide rendering rather than mutating it.
+		await this.applySlideMasterColorMap(this.getDefaultSchemeColorMap());
+		await this.loadPerMasterThemes();
+
+		// Snapshot the post-load global theme so per-slide master switching
+		// can restore it when a slide has no per-master entry. Phase 2
+		// Stream B / C-H4.
+		this.globalThemeColorMapSnapshot = { ...this.themeColorMap };
+		this.globalThemeFontMapSnapshot = { ...this.themeFontMap };
+		this.globalThemeFormatSchemeSnapshot = this.themeFormatScheme;
 	}
 }

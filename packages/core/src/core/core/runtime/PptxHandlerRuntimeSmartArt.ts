@@ -1,5 +1,9 @@
 import { XmlObject } from '../../types';
-import type { PptxSmartArtData, PptxSmartArtConnection } from '../../types';
+import type {
+	PptxSmartArtData,
+	PptxSmartArtConnection,
+	PptxSmartArtDrawingShape,
+} from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtParsing';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -81,13 +85,25 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// ── Parse background (dgm:bg) and outline (dgm:whole) ───────────
 		const chrome = this.parseSmartArtChrome(dataModel);
 
-		// ── Parse drawing shapes from ppt/diagrams/drawing*.xml ──────────
-		const drawingRelationshipId = String(relationshipIds['@_r:cs'] || '').trim();
-		const drawingShapes = await this.parseSmartArtDrawingShapes(slidePath, drawingRelationshipId);
-
 		// ── Parse color transform from ppt/diagrams/colors*.xml ──────────
+		// `<dgm:relIds>` carries `@r:cs` for the **colour spec** (per
+		// ECMA-376 §17.17.2.4). The drawing-shapes part (`drawing*.xml`)
+		// has no slot on `relIds` — it lives in the data model's own rels
+		// file via a `dsp:dataModelExt` extension. The legacy code reused
+		// `@r:cs` for both, which silently used the colour part as the
+		// drawing source. Now resolved separately.
 		const colorsRelationshipId = String(relationshipIds['@_r:cs'] || '').trim();
 		const colorTransform = await this.parseSmartArtColorTransform(slidePath, colorsRelationshipId);
+
+		// ── Parse drawing shapes from ppt/diagrams/drawing*.xml ──────────
+		const drawingResolution = await this.resolveSmartArtDrawingPart(
+			slidePath,
+			diagramDataRelationshipId,
+		);
+		const drawingShapes = drawingResolution
+			? await this.parseSmartArtDrawingShapesFromPath(drawingResolution.path)
+			: [];
+		const drawingRelationshipId = drawingResolution?.relId;
 
 		// ── Parse quick style from ppt/diagrams/quickStyles*.xml ─────────
 		const styleRelationshipId = String(relationshipIds['@_r:qs'] || '').trim();
@@ -102,10 +118,101 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			colorTransform,
 			quickStyle,
 			dataRelId: diagramDataRelationshipId,
-			drawingRelId: drawingRelationshipId.length > 0 ? drawingRelationshipId : undefined,
+			drawingRelId:
+				drawingRelationshipId && drawingRelationshipId.length > 0
+					? drawingRelationshipId
+					: undefined,
 			colorsRelId: colorsRelationshipId.length > 0 ? colorsRelationshipId : undefined,
 			styleRelId: styleRelationshipId.length > 0 ? styleRelationshipId : undefined,
 		};
+	}
+
+	/**
+	 * Resolve the SmartArt drawing-shapes part path + relationship id.
+	 *
+	 * Strategy:
+	 *  1. Locate the data-model part's rels file
+	 *     (`ppt/diagrams/_rels/data*.xml.rels`) via `slideRelsMap`.
+	 *  2. Find a relationship whose `Type` matches the `…/diagramDrawing`
+	 *     URI. PowerPoint emits this for any deck that has had its
+	 *     SmartArt rendered to drawing shapes.
+	 *  3. Return the matched part path (so the caller can load it
+	 *     directly) and the relationship id (for round-trip preservation).
+	 */
+	private async resolveSmartArtDrawingPart(
+		slidePath: string,
+		diagramDataRelationshipId: string,
+	): Promise<{ relId: string; path: string } | undefined> {
+		if (diagramDataRelationshipId.length === 0) {
+			return undefined;
+		}
+		const slideRels = this.slideRelsMap.get(slidePath);
+		const dataTarget = slideRels?.get(diagramDataRelationshipId);
+		if (!dataTarget) {
+			return undefined;
+		}
+		const dataPath = this.resolveImagePath(slidePath, dataTarget);
+		// Compute the rels file alongside the data part:
+		//   ppt/diagrams/data1.xml → ppt/diagrams/_rels/data1.xml.rels
+		const dataDir = dataPath.replace(/\/[^/]+$/, '');
+		const dataFile = dataPath.split('/').pop() ?? '';
+		const dataRelsPath = `${dataDir}/_rels/${dataFile}.rels`;
+
+		const relsXml = await this.zip.file(dataRelsPath)?.async('string');
+		if (!relsXml) {
+			return undefined;
+		}
+		try {
+			const parsed = this.parser.parse(relsXml) as XmlObject;
+			const relsRoot = parsed['Relationships'] as XmlObject | undefined;
+			if (!relsRoot) {
+				return undefined;
+			}
+			const rels = this.ensureArray(relsRoot['Relationship']) as XmlObject[];
+			const drawingRel = rels.find((rel) =>
+				String(rel?.['@_Type'] || '').endsWith('/diagramDrawing'),
+			);
+			const id = String(drawingRel?.['@_Id'] || '').trim();
+			const target = String(drawingRel?.['@_Target'] || '').trim();
+			if (id.length === 0 || target.length === 0) {
+				return undefined;
+			}
+			const drawingPath = this.resolveImagePath(dataPath, target);
+			return { relId: id, path: drawingPath };
+		} catch {
+			return undefined;
+		}
+	}
+
+	/**
+	 * Parse SmartArt drawing shapes given an absolute part path.
+	 *
+	 * Wraps `parseSmartArtDrawingShapes` (which expects a slide-relative
+	 * relationship id) with a path-based lookup so the resolution layer
+	 * can pull the part from anywhere in the package.
+	 */
+	private async parseSmartArtDrawingShapesFromPath(
+		drawingPath: string,
+	): Promise<PptxSmartArtDrawingShape[]> {
+		const xmlString = await this.zip.file(drawingPath)?.async('string');
+		if (!xmlString) {
+			return [];
+		}
+		try {
+			const xml = this.parser.parse(xmlString) as XmlObject;
+			const drawing = this.xmlLookupService.getChildByLocalName(xml, 'drawing');
+			const spTree = this.xmlLookupService.getChildByLocalName(drawing || xml, 'spTree');
+			if (!spTree) {
+				return [];
+			}
+			const shapes = this.xmlLookupService.getChildrenArrayByLocalName(spTree, 'sp');
+			const emuPerPx = PptxHandlerRuntime.EMU_PER_PX;
+			return shapes
+				.map((sp, index) => this.parseDrawingShape(sp, index, emuPerPx))
+				.filter((entry): entry is PptxSmartArtDrawingShape => entry !== null);
+		} catch {
+			return [];
+		}
 	}
 
 	private parseSmartArtConnections(dataModel: XmlObject | undefined): {

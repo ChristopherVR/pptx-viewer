@@ -90,6 +90,83 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
+	 * Find the master file path referenced by a layout via its relationships.
+	 */
+	protected findMasterPathForLayoutBase(layoutPath: string): string | undefined {
+		const layoutRels = this.slideRelsMap.get(layoutPath);
+		if (!layoutRels) {
+			return undefined;
+		}
+		for (const [, target] of layoutRels.entries()) {
+			if (target.includes('slideMaster')) {
+				const layoutDir = layoutPath.substring(0, layoutPath.lastIndexOf('/') + 1);
+				return target.startsWith('..')
+					? this.resolvePath(layoutDir, target)
+					: `ppt/${target.replace('../', '')}`;
+			}
+		}
+		return undefined;
+	}
+
+	/**
+	 * Switch the active master state (clrMap + theme color/font/format
+	 * scheme) so that scheme-colour resolution for the slide currently
+	 * being parsed walks through the correct master.
+	 *
+	 * Multi-master decks must resolve scheme colours against each slide's
+	 * own master rather than always against `masterFiles[0]`.
+	 *
+	 * Phase 2 Stream B / C-H4.
+	 */
+	protected async setActiveMasterForSlide(slidePath: string): Promise<void> {
+		const layoutPath = this.findLayoutPathForSlide(slidePath);
+		if (!layoutPath) {
+			this.currentMasterClrMap = null;
+			this.themeColorMap = { ...this.globalThemeColorMapSnapshot };
+			this.themeFontMap = { ...this.globalThemeFontMapSnapshot };
+			this.themeFormatScheme = this.globalThemeFormatSchemeSnapshot;
+			return;
+		}
+		// Ensure the layout's `.rels` are loaded so we can resolve the master.
+		if (!this.slideRelsMap.has(layoutPath)) {
+			const layoutRelsPath = `${layoutPath.replace('slideLayouts/', 'slideLayouts/_rels/')}.rels`;
+			try {
+				await this.loadSlideRelationships(layoutPath, layoutRelsPath);
+			} catch {
+				/* fall through — fallback below */
+			}
+		}
+		const masterPath = this.findMasterPathForLayoutBase(layoutPath);
+		if (!masterPath) {
+			this.currentMasterClrMap = null;
+			this.themeColorMap = { ...this.globalThemeColorMapSnapshot };
+			this.themeFontMap = { ...this.globalThemeFontMapSnapshot };
+			this.themeFormatScheme = this.globalThemeFormatSchemeSnapshot;
+			return;
+		}
+
+		// Master clrMap (alias routing layer).
+		this.currentMasterClrMap = this.masterClrMaps.get(masterPath) ?? null;
+
+		// Per-master theme switch. When the deck has multiple masters with
+		// distinct themes we need to restore from the post-load snapshot
+		// before applying so the previous slide's master state does not
+		// leak through.
+		const masterColorMap = this.masterThemeColorMaps.get(masterPath);
+		this.themeColorMap = masterColorMap
+			? { ...masterColorMap }
+			: { ...this.globalThemeColorMapSnapshot };
+
+		const masterFontMap = this.masterThemeFontMaps.get(masterPath);
+		this.themeFontMap = masterFontMap
+			? { ...masterFontMap }
+			: { ...this.globalThemeFontMapSnapshot };
+
+		const masterFormatScheme = this.masterThemeFormatSchemes.get(masterPath);
+		this.themeFormatScheme = masterFormatScheme ?? this.globalThemeFormatSchemeSnapshot;
+	}
+
+	/**
 	 * Extract the `p:bg/@showAnimation` flag from a slide's XML.
 	 * Returns `true` when the background should animate, `false` when
 	 * explicitly disabled, or `undefined` when the attribute is absent

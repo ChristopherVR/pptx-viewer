@@ -1,7 +1,19 @@
 import type { PptxTableCellStyle, XmlObject } from '../../types';
+import { serializeColorChoice } from '../../utils/color-xml-preservation';
+
+/**
+ * Optional callback to resolve a preserved colour-choice XML node back to a
+ * hex string (so the writer can compare against the in-memory colour and
+ * decide whether to re-emit the original or fall back to canonical srgb).
+ */
+export type ColorXmlResolver = (colorXml: XmlObject) => string | undefined;
 
 /** Write fill mode (solid, gradient, pattern, none) into tcPr. */
-export function writeCellFill(tcPr: XmlObject, style: PptxTableCellStyle): void {
+export function writeCellFill(
+	tcPr: XmlObject,
+	style: PptxTableCellStyle,
+	resolveColorXml?: ColorXmlResolver,
+): void {
 	if (
 		style.fillMode === 'gradient' &&
 		style.gradientFillStops &&
@@ -84,11 +96,15 @@ export function writeCellFill(tcPr: XmlObject, style: PptxTableCellStyle): void 
 	} else if (style.backgroundColor) {
 		delete tcPr['a:gradFill'];
 		delete tcPr['a:pattFill'];
-		tcPr['a:solidFill'] = {
-			'a:srgbClr': {
-				'@_val': style.backgroundColor.replace('#', ''),
-			},
-		};
+		const resolvedOriginal =
+			style.backgroundColorXml && resolveColorXml
+				? resolveColorXml(style.backgroundColorXml)
+				: undefined;
+		tcPr['a:solidFill'] = serializeColorChoice(
+			style.backgroundColorXml,
+			resolvedOriginal,
+			style.backgroundColor,
+		);
 	}
 }
 

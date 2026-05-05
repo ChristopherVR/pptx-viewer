@@ -25,6 +25,13 @@ export {
 export { createTemplateShapeRawXml, createTemplateConnectorRawXml } from './element-xml-builders';
 
 export {
+	extractColorChoiceXml,
+	colorsEqual,
+	buildSrgbColorChoice,
+	serializeColorChoice,
+} from './color-xml-preservation';
+
+export {
 	pptxActionToElementAction,
 	elementActionToPptxAction,
 	elementHasAction,
@@ -223,6 +230,7 @@ export {
 	isNamespaceSupported,
 	getSupportedNamespaces,
 	SHAPE_TREE_ELEMENT_TAGS,
+	type AlternateContentBlock,
 } from './alternate-content';
 
 export {
@@ -362,3 +370,11 @@ export {
 } from './animation-preset-catalog';
 
 export { relayoutSmartArt } from './smartart-relayout';
+
+export {
+	reorderObjectKeys,
+	EFFECT_LST_ORDER,
+	SP_PR_ORDER,
+	TC_PR_BORDERS_ORDER,
+	BLIP_FILL_ORDER,
+} from './xml-reorder';

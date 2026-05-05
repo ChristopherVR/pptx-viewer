@@ -1,6 +1,31 @@
 import { XmlObject, TextStyle } from '../../types';
+import { serializeColorChoice } from '../../utils/color-xml-preservation';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveSlideUtils';
 import { buildTextRunEffectListXml } from './text-run-effect-xml-builder';
+
+/**
+ * Augment a CT_TextFont node (`a:latin` / `a:ea` / `a:cs` / `a:sym`) with
+ * optional `@panose`, `@pitchFamily`, `@charset` attributes when the parsed
+ * model captured them. Mutates and returns the same node so the caller can
+ * use it inline at the OOXML-prescribed insertion point.
+ */
+function applyFontMetadata(
+	fontNode: XmlObject,
+	panose: string | undefined,
+	pitchFamily: number | undefined,
+	charset: number | undefined,
+): XmlObject {
+	if (panose && panose.length > 0) {
+		fontNode['@_panose'] = panose;
+	}
+	if (typeof pitchFamily === 'number' && Number.isFinite(pitchFamily)) {
+		fontNode['@_pitchFamily'] = String(pitchFamily);
+	}
+	if (typeof charset === 'number' && Number.isFinite(charset)) {
+		fontNode['@_charset'] = String(charset);
+	}
+	return fontNode;
+}
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected createRunPropertiesFromTextStyle(
@@ -73,6 +98,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (style.bookmark) {
 			runProps['@_bmk'] = style.bookmark;
 		}
+		// Alternative language and SmartTag id (CT_TextCharacterProperties).
+		if (style.altLanguage) {
+			runProps['@_altLang'] = style.altLanguage;
+		}
+		if (typeof style.smartTagId === 'number' && Number.isFinite(style.smartTagId)) {
+			runProps['@_smtId'] = String(style.smartTagId);
+		}
 		// OOXML CT_TextCharacterProperties child element order (fast-xml-parser
 		// serialises keys in insertion order, so every child must be assigned
 		// in this exact sequence — any reversal triggers
@@ -99,11 +131,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// 2. fill (solidFill | gradFill | pattFill — schema allows at most one)
 		if (style.color) {
-			runProps['a:solidFill'] = {
-				'a:srgbClr': {
-					'@_val': style.color.replace('#', ''),
-				},
-			};
+			const resolvedOriginalColor = style.colorXml ? this.parseColor(style.colorXml) : undefined;
+			runProps['a:solidFill'] = serializeColorChoice(
+				style.colorXml,
+				resolvedOriginalColor,
+				style.color,
+			);
 		} else if (style.textFillGradientStops && style.textFillGradientStops.length > 0) {
 			const gradStops = style.textFillGradientStops
 				.filter((stop) => Boolean(stop?.color))
@@ -192,18 +225,35 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			};
 		}
 
-		// 6. typefaces: latin, ea, cs, sym
+		// 6. typefaces: latin, ea, cs, sym (CT_TextFont — typeface plus
+		// optional @panose, @pitchFamily, @charset metadata).
 		if (style.fontFamily) {
-			runProps['a:latin'] = { '@_typeface': style.fontFamily };
-			runProps['a:ea'] = {
-				'@_typeface': style.eastAsiaFont || style.fontFamily,
-			};
-			runProps['a:cs'] = {
-				'@_typeface': style.complexScriptFont || style.fontFamily,
-			};
+			runProps['a:latin'] = applyFontMetadata(
+				{ '@_typeface': style.fontFamily },
+				style.latinFontPanose,
+				style.latinFontPitchFamily,
+				style.latinFontCharset,
+			);
+			runProps['a:ea'] = applyFontMetadata(
+				{ '@_typeface': style.eastAsiaFont || style.fontFamily },
+				style.eastAsiaFontPanose,
+				style.eastAsiaFontPitchFamily,
+				style.eastAsiaFontCharset,
+			);
+			runProps['a:cs'] = applyFontMetadata(
+				{ '@_typeface': style.complexScriptFont || style.fontFamily },
+				style.complexScriptFontPanose,
+				style.complexScriptFontPitchFamily,
+				style.complexScriptFontCharset,
+			);
 		}
 		if (style.symbolFont) {
-			runProps['a:sym'] = { '@_typeface': style.symbolFont };
+			runProps['a:sym'] = applyFontMetadata(
+				{ '@_typeface': style.symbolFont },
+				style.symbolFontPanose,
+				style.symbolFontPitchFamily,
+				style.symbolFontCharset,
+			);
 		}
 
 		// 7. hlinkClick / hlinkMouseOver

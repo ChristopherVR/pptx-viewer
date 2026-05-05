@@ -295,6 +295,15 @@ describe('applyLineProperties — join, cap, compound', () => {
 		const style = makeStyle();
 		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
 		expect(style.lineJoin).toBe('miter');
+		expect(style.miterLimit).toBeUndefined();
+	});
+
+	it('parses miter @_lim into miterLimit (E-H6)', () => {
+		const lineNode: XmlObject = { 'a:miter': { '@_lim': '500000' } };
+		const style = makeStyle();
+		applyLineProperties(lineNode, {}, style, makeContext(), noHiddenLine);
+		expect(style.lineJoin).toBe('miter');
+		expect(style.miterLimit).toBe(500000);
 	});
 
 	it("applies cap type 'rnd'", () => {

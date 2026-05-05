@@ -45,6 +45,9 @@ function createExtractor() {
 		extractGradientPathType: () => undefined,
 		extractGradientFocalPoint: () => undefined,
 		extractGradientFillToRect: () => undefined,
+		extractGradientFlip: () => undefined,
+		extractGradientRotWithShape: () => undefined,
+		extractGradientScaled: () => undefined,
 		normalizeStrokeDashType: (value: unknown) => {
 			const valid = [
 				'solid',

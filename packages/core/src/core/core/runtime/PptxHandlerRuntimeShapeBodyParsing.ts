@@ -127,7 +127,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			textStyle.columnSpacing = spcColRaw / PptxHandlerRuntime.EMU_PER_PX;
 		}
 
-		const hOverflow = String(bodyPr['@_hOverflow'] || '').trim();
+		const hOverflowRaw = bodyPr['@_horzOverflow'] ?? bodyPr['@_hOverflow'];
+		const hOverflow = String(hOverflowRaw || '').trim();
 		if (hOverflow === 'overflow' || hOverflow === 'clip') {
 			textStyle.hOverflow = hOverflow;
 		}

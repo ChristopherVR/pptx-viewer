@@ -54,6 +54,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			let pathData: string | undefined;
 			let pathWidth: number | undefined;
 			let pathHeight: number | undefined;
+			let customGeometryRawData: ReturnType<typeof this.extractCustomGeometryRawData>;
 
 			const custGeom = effectiveSpPr?.['a:custGeom'];
 			if (custGeom) {
@@ -67,6 +68,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					pathData = customPath.pathData;
 					pathWidth = customPath.pathWidth;
 					pathHeight = customPath.pathHeight;
+					customGeometryRawData = this.extractCustomGeometryRawData(custGeom as XmlObject);
 				}
 			}
 
@@ -266,6 +268,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				pathData,
 				pathWidth,
 				pathHeight,
+				customGeometryRawData,
 			};
 		} catch (e) {
 			console.warn(`[pptx] Skipping shape element (${id}):`, e);

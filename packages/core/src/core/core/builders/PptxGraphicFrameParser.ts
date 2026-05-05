@@ -187,6 +187,30 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 		) {
 			return 'media';
 		}
+		// Ink graphicFrame (Office 2010+ ink, namespace `aink`). The payload
+		// is typically wrapped in `mc:AlternateContent > mc:Choice
+		// Requires="aink"` with an `<aink:ink>` root; older files may carry
+		// `<aink:ink>` directly under `<a:graphicData>`. Detect via the URI,
+		// a direct `aink:ink` child, or a `Requires="aink"` Choice inside an
+		// AlternateContent envelope. Without this branch the element falls
+		// through to `'unknown'` and the slide loses the round-trip envelope.
+		if (graphicData['aink:ink'] || uri.includes('/2010/ink') || uri.includes('drawing/2010/ink')) {
+			return 'ink';
+		}
+		const alternateContent = graphicData['mc:AlternateContent'] as XmlObject | undefined;
+		if (alternateContent) {
+			const choices = Array.isArray(alternateContent['mc:Choice'])
+				? (alternateContent['mc:Choice'] as XmlObject[])
+				: alternateContent['mc:Choice']
+					? [alternateContent['mc:Choice'] as XmlObject]
+					: [];
+			for (const choice of choices) {
+				const requires = String(choice?.['@_Requires'] || '').toLowerCase();
+				if (requires.includes('aink') || choice?.['aink:ink']) {
+					return 'ink';
+				}
+			}
+		}
 		return 'unknown';
 	}
 }

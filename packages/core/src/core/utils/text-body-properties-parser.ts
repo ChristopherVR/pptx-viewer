@@ -249,7 +249,11 @@ export function parseBodyColumnSpacing(bodyPr: XmlObject | undefined): number | 
 // ---------------------------------------------------------------------------
 
 /**
- * Parse horizontal overflow from `a:bodyPr/@hOverflow`.
+ * Parse horizontal overflow from `a:bodyPr/@horzOverflow`.
+ *
+ * Per ECMA-376 §21.1.2.1.7 (CT_TextBodyProperties) the spec attribute name is
+ * `horzOverflow`. Older inputs from this library used the non-spec `hOverflow`,
+ * so we accept both with `horzOverflow` taking precedence.
  */
 export function parseBodyHOverflow(
 	bodyPr: XmlObject | undefined,
@@ -257,7 +261,8 @@ export function parseBodyHOverflow(
 	if (!bodyPr) {
 		return undefined;
 	}
-	const val = String(bodyPr['@_hOverflow'] || '').trim();
+	const raw = bodyPr['@_horzOverflow'] ?? bodyPr['@_hOverflow'];
+	const val = String(raw || '').trim();
 	if (val === 'overflow' || val === 'clip') {
 		return val;
 	}

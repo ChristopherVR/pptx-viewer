@@ -18,8 +18,15 @@ export function buildParagraphPropertiesXml(
 	paragraphAlign: string | undefined,
 	bulletInfo: BulletInfo | undefined,
 	spacing: ParagraphSpacingConfig,
+	level?: number,
 ): XmlObject {
 	const paragraphProps: XmlObject = {};
+
+	// CT_TextParagraphProperties: `lvl` is an attribute on `a:pPr`. Only emit
+	// when non-zero — PowerPoint omits the attribute for top-level paragraphs.
+	if (typeof level === 'number' && Number.isFinite(level) && level > 0) {
+		paragraphProps['@_lvl'] = String(Math.min(Math.max(Math.round(level), 0), 8));
+	}
 
 	if (paragraphAlign) {
 		paragraphProps['@_algn'] = paragraphAlign;
@@ -124,23 +131,32 @@ export function applyBulletProperties(paragraphProps: XmlObject, bulletInfo: Bul
 		paragraphProps['a:buNone'] = {};
 		return;
 	}
-	if (bulletInfo.color) {
+	// Inherit-from-text variants take precedence over the explicit
+	// `buClr` / `buSzPct|Pts` / `buFont` declarations: when both forms are
+	// present the schema only allows one. Emit `<a:buClrTx/>` etc. when the
+	// parsed model captured the marker.
+	if (bulletInfo.colorInherit) {
+		paragraphProps['a:buClrTx'] = {};
+	} else if (bulletInfo.color) {
 		const colorHex = bulletInfo.color.replace('#', '');
 		paragraphProps['a:buClr'] = {
 			'a:srgbClr': { '@_val': colorHex },
 		};
 	}
-	if (bulletInfo.sizePercent !== undefined) {
+	if (bulletInfo.sizeInherit) {
+		paragraphProps['a:buSzTx'] = {};
+	} else if (bulletInfo.sizePercent !== undefined) {
 		paragraphProps['a:buSzPct'] = {
 			'@_val': String(Math.round(bulletInfo.sizePercent * 1000)),
 		};
-	}
-	if (bulletInfo.sizePts !== undefined) {
+	} else if (bulletInfo.sizePts !== undefined) {
 		paragraphProps['a:buSzPts'] = {
 			'@_val': String(Math.round(bulletInfo.sizePts * 100)),
 		};
 	}
-	if (bulletInfo.fontFamily) {
+	if (bulletInfo.fontInherit) {
+		paragraphProps['a:buFontTx'] = {};
+	} else if (bulletInfo.fontFamily) {
 		paragraphProps['a:buFont'] = {
 			'@_typeface': bulletInfo.fontFamily,
 		};
@@ -165,7 +181,11 @@ export function applyBulletProperties(paragraphProps: XmlObject, bulletInfo: Bul
 }
 
 /** Assemble a paragraph XML object from runs and pre-built paragraph properties. */
-export function assembleParagraphXml(runs: XmlObject[], paragraphProps: XmlObject): XmlObject {
+export function assembleParagraphXml(
+	runs: XmlObject[],
+	paragraphProps: XmlObject,
+	endParaRunProperties?: Record<string, unknown>,
+): XmlObject {
 	// OOXML CT_TextParagraph requires child order: pPr?, (r|br|fld)*, endParaRPr?.
 	// Since fast-xml-parser serialises keys in insertion order, build the
 	// object in that exact sequence.
@@ -198,7 +218,14 @@ export function assembleParagraphXml(runs: XmlObject[], paragraphProps: XmlObjec
 		paragraph['a:r'] = runs.length > 1 ? runs : runs[0];
 	}
 
-	paragraph['a:endParaRPr'] = { '@_lang': 'en-US' };
+	// Re-emit parsed end-paragraph run properties verbatim. When none were
+	// captured (e.g. SDK-built paragraphs) fall back to the minimal
+	// `lang="en-US"` stub PowerPoint itself emits for new paragraphs.
+	if (endParaRunProperties && typeof endParaRunProperties === 'object') {
+		paragraph['a:endParaRPr'] = endParaRunProperties as XmlObject;
+	} else {
+		paragraph['a:endParaRPr'] = { '@_lang': 'en-US' };
+	}
 
 	return paragraph;
 }

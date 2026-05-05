@@ -129,6 +129,8 @@ export interface PptxSlide {
 	customerData?: PptxCustomerData[];
 	/** ActiveX control references from `p:controls` on this slide. */
 	activeXControls?: PptxActiveXControl[];
+	/** Per-slide header/footer flags from `<p:hf>` (P-H3). */
+	headerFooterFlags?: import('./masters').PptxHeaderFooterFlags;
 }
 
 /**

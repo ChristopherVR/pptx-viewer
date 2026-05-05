@@ -5,6 +5,7 @@
 import type {
 	CustomGeometryPath,
 	CustomGeometryPoint,
+	CustomGeometryRawData,
 	CustomGeometrySegment,
 	XmlObject,
 } from '../types';
@@ -178,12 +179,29 @@ function pointToXml(pt: CustomGeometryPoint): XmlObject {
  * @param paths - Array of structured custom geometry paths to serialize.
  * @returns An XML object representing the complete `a:custGeom` element.
  */
-export function customGeometryPathsToXml(paths: CustomGeometryPath[]): XmlObject {
+export function customGeometryPathsToXml(
+	paths: CustomGeometryPath[],
+	rawData?: CustomGeometryRawData,
+): XmlObject {
 	const xmlPaths: XmlObject[] = paths.map((path) => {
 		const pathXml: XmlObject = {
 			'@_w': String(Math.round(path.width)),
 			'@_h': String(Math.round(path.height)),
 		};
+		// G-H2: path-level attributes
+		if (path.fillMode) {
+			pathXml['@_fill'] = path.fillMode;
+		}
+		if (path.stroke === false) {
+			pathXml['@_stroke'] = '0';
+		} else if (path.stroke === true) {
+			pathXml['@_stroke'] = '1';
+		}
+		if (path.extrusionOk === true) {
+			pathXml['@_extrusionOk'] = '1';
+		} else if (path.extrusionOk === false) {
+			pathXml['@_extrusionOk'] = '0';
+		}
 
 		const moveToList: XmlObject[] = [];
 		const lnToList: XmlObject[] = [];
@@ -246,12 +264,12 @@ export function customGeometryPathsToXml(paths: CustomGeometryPath[]): XmlObject
 		return pathXml;
 	});
 
-	return {
+	const result: XmlObject = {
 		'a:avLst': {},
-		'a:gdLst': {},
-		'a:ahLst': {},
-		'a:cxnLst': {},
-		'a:rect': {
+		'a:gdLst': (rawData?.gdLstXml as XmlObject | undefined) ?? {},
+		'a:ahLst': (rawData?.ahLstXml as XmlObject | undefined) ?? {},
+		'a:cxnLst': (rawData?.cxnLstXml as XmlObject | undefined) ?? {},
+		'a:rect': (rawData?.rectXml as XmlObject | undefined) ?? {
 			'@_l': 'l',
 			'@_t': 't',
 			'@_r': 'r',
@@ -261,6 +279,7 @@ export function customGeometryPathsToXml(paths: CustomGeometryPath[]): XmlObject
 			'a:path': xmlPaths.length === 1 ? xmlPaths[0] : xmlPaths,
 		},
 	};
+	return result;
 }
 
 // ---------------------------------------------------------------------------

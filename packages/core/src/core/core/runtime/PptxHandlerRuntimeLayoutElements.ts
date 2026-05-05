@@ -158,9 +158,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// uncommon in layouts but could be added here if needed.
 			}
 
-			// Restore colour map override
-			this.currentSlideClrMapOverride = prevClrMapOverride;
-
 			// Check whether master shapes should be shown on this layout
 			// (p:sldLayout/@showMasterSp — defaults to true when absent)
 			const layoutShowMasterSp = (layoutXmlObj as XmlObject)['p:sldLayout']?.['@_showMasterSp'];
@@ -169,8 +166,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				(String(layoutShowMasterSp).trim().toLowerCase() !== '0' &&
 					String(layoutShowMasterSp).trim().toLowerCase() !== 'false');
 
-			// Also get master elements (only if the layout does not hide them)
+			// Get master elements while the layout's clrMapOvr is still active,
+			// so master shapes drawn through this layout resolve scheme colours
+			// against the layout's override (Phase 2 Stream B / C-H5).
 			const masterElements = showMasterSp ? await this.getMasterElements(layoutPath) : [];
+
+			// Restore colour map override only after master shapes have been parsed.
+			this.currentSlideClrMapOverride = prevClrMapOverride;
+
 			const allElements = [...masterElements, ...elements];
 
 			this.layoutCache.set(layoutPath, allElements);

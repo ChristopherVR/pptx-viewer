@@ -36,9 +36,12 @@ import type {
 	PptxCommentAuthor,
 	PptxCustomXmlPart,
 	PptxEmbeddedFont,
+	PptxMasterTextStyles,
 	PptxThemeFormatScheme,
+	PptxThemeObjectDefaults,
 } from '../../types';
 import { SignatureDetectionResult, normalizeStrictXml, detectStrictConformance } from '../../utils';
+import type { AlternateContentBlock } from '../../utils';
 import type {
 	IPptxColorStyleCodec,
 	IPptxCommentAuthorsXmlFactory,
@@ -159,6 +162,156 @@ export class PptxHandlerRuntime {
 	 */
 	protected currentSlideClrMapOverride: Record<string, string> | null = null;
 
+	/**
+	 * Per-master colour map alias dictionaries parsed from each master's
+	 * `<p:clrMap>` element (e.g. `bg1 → lt1`, `tx1 → dk1`, `accent1 → accent1`).
+	 *
+	 * `clrMap` is the *aliasing* layer between logical colour names used in
+	 * DrawingML and the raw theme scheme slots. Per ECMA-376 §19.3.1.7 it
+	 * lives on each `p:sldMaster`, and slide layouts/slides may further
+	 * override it via `p:clrMapOvr`. Resolution must happen at colour-lookup
+	 * time, *not* by baking it into {@link themeColorMap}.
+	 *
+	 * Phase 2 Stream B / C-H4.
+	 */
+	protected masterClrMaps: Map<string, Record<string, string>> = new Map();
+
+	/**
+	 * Per-master theme color maps. Each master may reference its own theme
+	 * file via `_rels/slideMasterN.xml.rels`. For multi-master decks, slides
+	 * must resolve scheme colours against their *own* master's theme.
+	 *
+	 * Falls back to {@link themeColorMap} when a master entry is missing.
+	 *
+	 * Phase 2 Stream B / C-H4.
+	 */
+	protected masterThemeColorMaps: Map<string, Record<string, string>> = new Map();
+
+	/**
+	 * Per-master theme font maps. Same rationale as
+	 * {@link masterThemeColorMaps}: multi-master decks may have one font
+	 * scheme per theme.
+	 */
+	protected masterThemeFontMaps: Map<string, Record<string, string>> = new Map();
+
+	/**
+	 * Per-master format schemes (fmtScheme). For multi-master decks each
+	 * master's slides should resolve fill/line/effect refs against the
+	 * matrix from that master's theme.
+	 */
+	protected masterThemeFormatSchemes: Map<string, PptxThemeFormatScheme> = new Map();
+
+	/**
+	 * Per-master mapping from slide-master path to the theme path it
+	 * references via `_rels/slideMasterN.xml.rels`. Populated by
+	 * {@link loadPerMasterThemes} during load. Used by the save-side
+	 * theme writer to know which themeN.xml to (re)emit for each master.
+	 *
+	 * Phase 4 Stream A / C-H3.
+	 */
+	protected masterThemePaths: Map<string, string> = new Map();
+
+	/**
+	 * Per-script font tables for major and minor fonts. Captured per master
+	 * theme. Keys are master paths; values map `mj`/`mn` -> script tag (e.g.
+	 * `Hans`, `Hant`, `Arab`, `Hebr`, `Thai`, `Beng`, …) -> typeface name.
+	 *
+	 * Phase 4 Stream A / M4.
+	 */
+	protected masterThemeMajorFontScripts: Map<string, Record<string, string>> = new Map();
+	protected masterThemeMinorFontScripts: Map<string, Record<string, string>> = new Map();
+
+	/**
+	 * Theme name attribute (`<a:theme @name>`) per master theme path.
+	 * Captured for byte-stable round-trip.
+	 */
+	protected masterThemeNames: Map<string, string> = new Map();
+	/**
+	 * `<a:fontScheme @name>` per master theme path.
+	 */
+	protected masterThemeFontSchemeNames: Map<string, string> = new Map();
+	/**
+	 * `<a:clrScheme @name>` per master theme path.
+	 */
+	protected masterThemeColorSchemeNames: Map<string, string> = new Map();
+
+	/**
+	 * Raw original theme XML keyed by theme path. Captured at load-time.
+	 * Used by the save pipeline to passthrough the full theme XML when no
+	 * in-memory mutation has occurred — preserving fillStyleLst /
+	 * lnStyleLst / effectStyleLst / bgFillStyleLst /
+	 * extraClrSchemeLst / objectDefaults / extLst exactly as written.
+	 *
+	 * Phase 4 Stream A / C-H3.
+	 */
+	protected originalThemeXmlByPath: Map<string, string> = new Map();
+
+	/**
+	 * Set of theme paths whose in-memory state has been mutated since
+	 * load. Saving a theme path that's NOT dirty is a no-op (the original
+	 * file already exists in the ZIP). Saving a dirty theme path
+	 * regenerates the part from in-memory state.
+	 *
+	 * Phase 4 Stream A / C-H3.
+	 */
+	protected dirtyThemePaths: Set<string> = new Set();
+
+	/**
+	 * Per-master parsed `<p:txStyles>` (titleStyle/bodyStyle/otherStyle).
+	 * Populated by {@link enrichSlideMastersWithTxStyles} during load so the
+	 * inheritance chain can find the master text-style cascade without
+	 * re-parsing master XML on every lookup. Phase 4 Stream B / P-H1.
+	 */
+	protected masterTxStylesCache: Map<string, PptxMasterTextStyles> = new Map();
+
+	/**
+	 * Captured `<a:objectDefaults>` snapshot per master theme path. The
+	 * full ECMA-376 inheritance chain (master / layout / placeholder /
+	 * objectDefaults) is non-trivial; we store the raw spDef/lnDef/txDef
+	 * subtrees and re-emit them verbatim for round-trip.
+	 *
+	 * Phase 4 Stream A / M5.
+	 */
+	protected masterThemeObjectDefaults: Map<string, PptxThemeObjectDefaults> = new Map();
+
+	/**
+	 * Captured `<a:extraClrSchemeLst>` raw subtree per master theme path
+	 * for verbatim round-trip.
+	 *
+	 * Phase 4 Stream A.
+	 */
+	protected masterThemeExtraClrSchemeLst: Map<string, unknown> = new Map();
+
+	/**
+	 * Captured `<a:custClrLst>` raw subtree per master theme path
+	 * for verbatim round-trip.
+	 *
+	 * Phase 4 Stream A.
+	 */
+	protected masterThemeCustClrLst: Map<string, unknown> = new Map();
+
+	/**
+	 * Captured theme-level `<a:extLst>` raw subtree per master theme path.
+	 */
+	protected masterThemeExtLst: Map<string, unknown> = new Map();
+
+	/**
+	 * Active master's clrMap for the slide currently being parsed.  Walked
+	 * after `currentSlideClrMapOverride` (slide and layout overrides take
+	 * precedence). `null` means "fall through to themeColorMap directly".
+	 */
+	protected currentMasterClrMap: Record<string, string> | null = null;
+
+	/**
+	 * Snapshot of the global theme state taken right after
+	 * {@link loadThemeData} completes. Used as the fallback when a slide's
+	 * master has no per-master theme entry, so per-slide multi-master
+	 * switching does not leak the previous slide's master state.
+	 */
+	protected globalThemeColorMapSnapshot: Record<string, string> = {};
+	protected globalThemeFontMapSnapshot: Record<string, string> = {};
+	protected globalThemeFormatSchemeSnapshot: PptxThemeFormatScheme | undefined;
+
 	/** Thumbnail image data from `docProps/thumbnail.jpeg` preserved for round-trip. */
 	protected thumbnailData: Uint8Array | null = null;
 
@@ -173,6 +326,21 @@ export class PptxHandlerRuntime {
 
 	/** Custom XML data parts parsed from `customXml/` in the OPC package. */
 	protected customXmlParts: PptxCustomXmlPart[] = [];
+
+	/**
+	 * Maps an element's `rawXml` reference to the `mc:AlternateContent`
+	 * envelope that originally wrapped it (CC-4).  Populated during slide
+	 * (and `p:grpSp`) parsing; consulted at save time to re-emit the
+	 * original `<mc:Choice>` / `<mc:Fallback>` shape so legacy renderers
+	 * keep their fallback content.
+	 *
+	 * Multiple sibling elements may share the same `AlternateContentBlock`
+	 * value (a single AC envelope often wraps several child shapes — e.g.
+	 * `p14:media` + its `p:pic` fallback nest one each).  WeakMap so AC
+	 * envelopes are GC'd if the parsed XmlObject is dropped.
+	 */
+	protected alternateContentBlockByRawXml: WeakMap<XmlObject, AlternateContentBlock> =
+		new WeakMap();
 
 	/** Embedded fonts extracted during load, preserved for automatic re-embedding on save. */
 	protected loadedEmbeddedFonts: PptxEmbeddedFont[] = [];

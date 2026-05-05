@@ -28,6 +28,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const notesMaster = await this.parseNotesMaster();
 		const handoutMaster = await this.parseHandoutMaster();
 		const slideMasters = await this.parseSlideMasters();
+		await this.enrichSlideMastersWithTxStyles(slideMasters);
 		const tags = await this.parseTags();
 		const customProperties = await this.parseCustomProperties();
 		const coreProperties = await this.parseCoreProperties();
@@ -259,7 +260,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * Find the master path that a given layout belongs to by scanning
 	 * the layout's own `.rels` file for a `slideMaster` relationship.
 	 */
-	private findMasterPathForLayout(layoutPath: string): string | undefined {
+	protected findMasterPathForLayout(layoutPath: string): string | undefined {
 		const layoutRels = this.slideRelsMap.get(layoutPath);
 		if (!layoutRels) {
 			return undefined;
@@ -278,7 +279,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
 	 * Find the master path for a slide by walking: slide -> layout -> master.
 	 */
-	private findMasterPathForSlide(slidePath: string): string | undefined {
+	protected findMasterPathForSlide(slidePath: string): string | undefined {
 		const layoutPath = this.findLayoutPathForSlide(slidePath);
 		if (!layoutPath) {
 			return undefined;

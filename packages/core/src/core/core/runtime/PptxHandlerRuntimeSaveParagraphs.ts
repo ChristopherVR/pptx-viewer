@@ -25,14 +25,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			lineSpacingExactPt: textStyle?.lineSpacingExactPt,
 		};
 
-		const createParagraph = (runs: XmlObject[], bulletInfo?: BulletInfo): XmlObject => {
+		const createParagraph = (
+			runs: XmlObject[],
+			bulletInfo?: BulletInfo,
+			level?: number,
+			endParaRunProperties?: Record<string, unknown>,
+		): XmlObject => {
 			const paragraphProps = buildParagraphPropertiesXml(
 				textStyle,
 				paragraphAlign,
 				bulletInfo,
 				spacing,
+				level,
 			);
-			return assembleParagraphXml(runs, paragraphProps);
+			return assembleParagraphXml(runs, paragraphProps, endParaRunProperties);
 		};
 
 		const createRun = (runText: string, style: TextStyle | undefined) => ({
@@ -96,13 +102,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const paragraphs: XmlObject[] = [];
 		let currentRuns: XmlObject[] = [];
 		let currentBulletInfo: BulletInfo | undefined;
+		let currentLevel: number | undefined;
+		let currentEndParaRunProperties: Record<string, unknown> | undefined;
 		const pushParagraph = (): void => {
 			if (currentRuns.length === 0) {
 				currentRuns.push(createRun('', textStyle));
 			}
-			paragraphs.push(createParagraph(currentRuns, currentBulletInfo));
+			paragraphs.push(
+				createParagraph(currentRuns, currentBulletInfo, currentLevel, currentEndParaRunProperties),
+			);
 			currentRuns = [];
 			currentBulletInfo = undefined;
+			currentLevel = undefined;
+			currentEndParaRunProperties = undefined;
 		};
 
 		if (textSegments && textSegments.length > 0) {
@@ -117,9 +129,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				const segmentText = String(segment.text ?? '');
 				const lineParts = segmentText.split('\n');
 
-				// Capture bullet info from the first segment of each paragraph
-				if (currentRuns.length === 0 && segment.bulletInfo) {
-					currentBulletInfo = segment.bulletInfo;
+				// Capture paragraph-level metadata from the first segment of each paragraph.
+				if (currentRuns.length === 0) {
+					if (segment.bulletInfo) {
+						currentBulletInfo = segment.bulletInfo;
+					}
+					if (segment.paragraphLevel !== undefined) {
+						currentLevel = segment.paragraphLevel;
+					}
+					if (segment.endParaRunProperties) {
+						currentEndParaRunProperties = segment.endParaRunProperties;
+					}
 				}
 
 				lineParts.forEach((linePart, lineIndex) => {

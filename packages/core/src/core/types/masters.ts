@@ -39,6 +39,8 @@ export interface PptxNotesMaster {
 	}>;
 	/** Editable elements on the notes master (header, footer, date, page number, slide image, notes body). */
 	elements?: PptxElement[];
+	/** Header/footer flags from `<p:hf>` on the notes master (P-H3). */
+	headerFooter?: PptxHeaderFooterFlags;
 }
 
 /**
@@ -69,6 +71,8 @@ export interface PptxHandoutMaster {
 	elements?: PptxElement[];
 	/** Number of slides per page for handout print layout (1, 2, 3, 4, 6, or 9). */
 	slidesPerPage?: number;
+	/** Header/footer flags from `<p:hf>` on the handout master (P-H3). */
+	headerFooter?: PptxHeaderFooterFlags;
 }
 
 /**
@@ -124,6 +128,8 @@ export interface PptxSlideMaster {
 	layouts?: PptxSlideLayout[];
 	/** Text styles from `p:txStyles` — title, body, and other text defaults. */
 	txStyles?: PptxMasterTextStyles;
+	/** Header/footer flags from `<p:hf>` on this master (P-H3). */
+	headerFooter?: PptxHeaderFooterFlags;
 }
 
 /**
@@ -143,6 +149,23 @@ export interface PptxMasterTextStyles {
 	bodyStyle?: PptxTextStyleLevels;
 	/** Other text style (`p:otherStyle`). */
 	otherStyle?: PptxTextStyleLevels;
+}
+
+/**
+ * Per-part header/footer flags from `<p:hf>` (CT_HeaderFooter, ECMA-376
+ * §19.3.1.21). Defaults are "all true" — fields are only set on the typed
+ * model when they were explicitly read, so callers can distinguish "unset"
+ * (preserve original XML) from "false" (override).
+ */
+export interface PptxHeaderFooterFlags {
+	/** `@hdr` — show header placeholder. Spec default: `true`. */
+	hasHeader?: boolean;
+	/** `@ftr` — show footer placeholder. Spec default: `true`. */
+	hasFooter?: boolean;
+	/** `@dt` — show date/time placeholder. Spec default: `true`. */
+	hasDateTime?: boolean;
+	/** `@sldNum` — show slide-number placeholder. Spec default: `true`. */
+	hasSlideNumber?: boolean;
 }
 
 /**
@@ -183,6 +206,8 @@ export interface PptxSlideLayout {
 	userDrawn?: boolean;
 	/** Colour map override from `p:clrMapOvr`. */
 	clrMapOverride?: Record<string, string>;
+	/** Header/footer flags from `<p:hf>` on this layout (P-H3). */
+	headerFooter?: PptxHeaderFooterFlags;
 }
 
 /**

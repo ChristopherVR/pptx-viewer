@@ -159,6 +159,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return this.colorStyleCodec.buildOuterShadowXml(shapeStyle);
 	}
 
+	protected buildPresetShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined {
+		return this.colorStyleCodec.buildPresetShadowXml(shapeStyle);
+	}
+
 	protected buildInnerShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined {
 		return this.colorStyleCodec.buildInnerShadowXml(shapeStyle);
 	}

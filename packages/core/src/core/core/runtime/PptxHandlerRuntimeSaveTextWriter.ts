@@ -68,7 +68,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// Overflow
 		if (el.textStyle?.hOverflow) {
-			bodyPr['@_hOverflow'] = el.textStyle.hOverflow;
+			bodyPr['@_horzOverflow'] = el.textStyle.hOverflow;
+			delete bodyPr['@_hOverflow'];
 		}
 		if (el.textStyle?.vertOverflow) {
 			bodyPr['@_vertOverflow'] = el.textStyle.vertOverflow;

@@ -424,9 +424,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * Unwrap mc:AlternateContent elements within a shape tree (or group),
 	 * merging selected branch children into the parent element arrays.
 	 * Delegates to the standalone alternate-content utility.
+	 *
+	 * Records each consumed AC envelope in {@link alternateContentBlockByRawXml}
+	 * so the save layer can re-emit the original `<mc:Choice>` /
+	 * `<mc:Fallback>` shape on dirty save (CC-4).
 	 */
 	protected unwrapAlternateContent(container: Record<string, unknown>): void {
-		unwrapAC(container);
+		const blocks = unwrapAC(container);
+		for (const block of blocks) {
+			for (const ref of block.childRefs) {
+				this.alternateContentBlockByRawXml.set(ref.node, block);
+			}
+		}
 	}
 
 	/**

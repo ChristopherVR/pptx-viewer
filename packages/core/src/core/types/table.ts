@@ -32,7 +32,20 @@ export interface PptxTableCellStyle {
 	italic?: boolean;
 	underline?: boolean;
 	color?: string;
+	/**
+	 * Raw XML colour-choice node preserved from `a:tc/a:txBody/.../a:rPr/a:solidFill`
+	 * for round-trip serialisation. Currently unused by the cell-level writer
+	 * (cell text colour falls through `writeCellTextFormatting`), reserved for
+	 * future expansion alongside the run-properties round-trip path.
+	 */
+	colorXml?: import('./common').XmlObject;
 	backgroundColor?: string;
+	/**
+	 * Raw XML colour-choice node preserved from cell `a:tcPr/a:solidFill` for
+	 * round-trip serialisation. Re-emitted verbatim when the resolved
+	 * {@link backgroundColor} still matches the original colour.
+	 */
+	backgroundColorXml?: import('./common').XmlObject;
 	borderColor?: string;
 	/** Top border width in px. */
 	borderTopWidth?: number;

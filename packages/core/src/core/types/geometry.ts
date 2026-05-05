@@ -118,6 +118,28 @@ export interface CustomGeometryPath {
 	height: number;
 	/** Ordered list of drawing segments. */
 	segments: CustomGeometrySegment[];
+	/** Path fill mode (`a:path/@fill`): norm, lighten, lightenLess, darken, darkenLess, none. */
+	fillMode?: 'norm' | 'lighten' | 'lightenLess' | 'darken' | 'darkenLess' | 'none';
+	/** Whether the path is stroked (`a:path/@stroke`). */
+	stroke?: boolean;
+	/** 3D extrusion compatibility (`a:path/@extrusionOk`). */
+	extrusionOk?: boolean;
+}
+
+/**
+ * Auxiliary raw XML preserved from `a:custGeom` for round-trip serialization.
+ * These are stored opaquely so adjustment guides, handles, connection sites,
+ * and the text rectangle are not lost when a custGeom is edited and saved.
+ */
+export interface CustomGeometryRawData {
+	/** Raw `a:gdLst` XML content (guide list). */
+	gdLstXml?: unknown;
+	/** Raw `a:ahLst` XML content (adjustment handles). */
+	ahLstXml?: unknown;
+	/** Raw `a:cxnLst` XML content (connection sites). */
+	cxnLstXml?: unknown;
+	/** Raw `a:rect` XML content (text rectangle). */
+	rectXml?: unknown;
 }
 
 /**
@@ -145,4 +167,6 @@ export interface PptxCustomPathProperties {
 	pathHeight?: number;
 	/** Structured custom geometry paths for editing (maps to a:custGeom/a:pathLst). */
 	customGeometryPaths?: CustomGeometryPath[];
+	/** Raw a:gdLst/a:ahLst/a:cxnLst/a:rect XML preserved for round-trip serialization. */
+	customGeometryRawData?: CustomGeometryRawData;
 }

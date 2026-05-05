@@ -3,7 +3,7 @@ import type { OoxmlConformanceClass } from '../../utils';
 import { PptxSaveStateBuilder } from '../builders';
 import { createPptxSaveConstants } from '../factories';
 import type { PptxHandlerSaveOptions } from '../types';
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveSlideWriter';
+import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveTheme';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -119,6 +119,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		for (const [masterPath, masterXmlObj] of this.masterXmlMap.entries()) {
 			this.zip.file(masterPath, this.builder.build(masterXmlObj));
 		}
+
+		// Theme parts. Re-emit dirty themes from in-memory state; clean themes
+		// remain at their original ZIP entries (passthrough). Phase 4 Stream A
+		// / C-H3.
+		await this.persistThemeParts();
 
 		// Re-embed fonts (must run before presentation XML is serialized
 		// because it modifies p:embeddedFontLst on presentationData)

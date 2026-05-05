@@ -57,10 +57,7 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 					: gridColumns.map(() => 1 / Math.max(gridColumns.length, 1));
 
 			const tableProperties = (tableNode['a:tblPr'] || {}) as XmlObject;
-			const tableStyleNode = tableProperties['a:tblStyle'] as XmlObject | undefined;
-			const tableStyleId =
-				String(tableStyleNode?.['@_val'] || tableProperties['@_tblStyle'] || '').trim() ||
-				undefined;
+			const tableStyleId = this.extractTableStyleId(tableProperties);
 
 			const xmlRows = this.context.ensureArray(tableNode['a:tr']) as XmlObject[];
 			const rows: PptxTableRow[] = xmlRows.map((rowNode) => {
@@ -103,6 +100,32 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 		} catch {
 			return undefined;
 		}
+	}
+
+	/**
+	 * Read the table style ID from `a:tblPr`.
+	 *
+	 * ECMA-376 §21.1.3.13 defines `<a:tableStyleId>{GUID}</a:tableStyleId>` as
+	 * a child element of `a:tblPr` carrying the GUID as element text. Older
+	 * inputs (and earlier versions of this library) used the legacy
+	 * `<a:tblStyle val="{GUID}"/>` child element or a `@_tblStyle` attribute.
+	 * Accept all three; the spec form takes precedence.
+	 */
+	private extractTableStyleId(tableProperties: XmlObject): string | undefined {
+		const tableStyleIdNode = tableProperties['a:tableStyleId'];
+		if (tableStyleIdNode !== undefined && tableStyleIdNode !== null) {
+			const direct =
+				typeof tableStyleIdNode === 'string' || typeof tableStyleIdNode === 'number'
+					? String(tableStyleIdNode)
+					: String((tableStyleIdNode as XmlObject)['#text'] ?? '');
+			const trimmed = direct.trim();
+			if (trimmed.length > 0) {
+				return trimmed;
+			}
+		}
+		const tableStyleNode = tableProperties['a:tblStyle'] as XmlObject | undefined;
+		const legacy = String(tableStyleNode?.['@_val'] || tableProperties['@_tblStyle'] || '').trim();
+		return legacy.length > 0 ? legacy : undefined;
 	}
 
 	private extractTableCellText(tableCell: XmlObject): string {

@@ -11,7 +11,7 @@
 // Text types: TextStyle, BulletInfo, TextSegment
 // ==========================================================================
 
-import type { UnderlineStyle } from './common';
+import type { UnderlineStyle, XmlObject } from './common';
 import type { Pptx3DScene, PptxTextWarpPreset, Text3DStyle } from './three-d';
 
 /**
@@ -116,6 +116,13 @@ export interface TextStyle {
 	/** Whether the hyperlink target is an internal slide jump (targetSlideIndex style). */
 	hyperlinkTargetSlideIndex?: number;
 	color?: string; // hex color
+	/**
+	 * Raw XML colour-choice node preserved from `a:rPr/a:solidFill` for
+	 * round-trip serialisation. Captures `a:schemeClr` / `a:sysClr` /
+	 * `a:prstClr` / `a:srgbClr` plus colour transforms. On save we re-emit
+	 * verbatim when the resolved {@link color} still matches this node.
+	 */
+	colorXml?: XmlObject;
 	align?: 'left' | 'center' | 'right' | 'justify' | 'justLow' | 'dist' | 'thaiDist';
 	vAlign?: 'top' | 'middle' | 'bottom';
 	/** Right-to-left paragraph/run direction (`a:pPr/@rtl`, `a:rPr/@rtl`). */
@@ -224,6 +231,38 @@ export interface TextStyle {
 	smartTagClean?: boolean;
 	/** Bookmark link target (`a:rPr/@bmk`). */
 	bookmark?: string;
+	/** Alternative language for the run (`a:rPr/@altLang`). Populated for runs
+	 *  authored in mixed-script documents (e.g. Asian/Latin combined). */
+	altLanguage?: string;
+	/** SmartTag (Office grammar tag) GUID id (`a:rPr/@smtId`). Round-tripped
+	 *  verbatim — the engine doesn't interpret it. */
+	smartTagId?: number;
+
+	// ── Per-script font metadata (CT_TextFont) ──
+	/** Latin font PANOSE classification string from `a:rPr > a:latin/@panose`. */
+	latinFontPanose?: string;
+	/** Latin font pitch + family flag from `a:rPr > a:latin/@pitchFamily`. */
+	latinFontPitchFamily?: number;
+	/** Latin font character set id from `a:rPr > a:latin/@charset`. */
+	latinFontCharset?: number;
+	/** East-Asian font PANOSE from `a:rPr > a:ea/@panose`. */
+	eastAsiaFontPanose?: string;
+	/** East-Asian font pitch + family flag from `a:rPr > a:ea/@pitchFamily`. */
+	eastAsiaFontPitchFamily?: number;
+	/** East-Asian font character set id from `a:rPr > a:ea/@charset`. */
+	eastAsiaFontCharset?: number;
+	/** Complex-script font PANOSE from `a:rPr > a:cs/@panose`. */
+	complexScriptFontPanose?: string;
+	/** Complex-script font pitch + family flag from `a:rPr > a:cs/@pitchFamily`. */
+	complexScriptFontPitchFamily?: number;
+	/** Complex-script font character set id from `a:rPr > a:cs/@charset`. */
+	complexScriptFontCharset?: number;
+	/** Symbol-font PANOSE from `a:rPr > a:sym/@panose`. */
+	symbolFontPanose?: string;
+	/** Symbol-font pitch + family flag from `a:rPr > a:sym/@pitchFamily`. */
+	symbolFontPitchFamily?: number;
+	/** Symbol-font character set id from `a:rPr > a:sym/@charset`. */
+	symbolFontCharset?: number;
 
 	// ── List / bullet style ──
 
@@ -393,6 +432,15 @@ export interface BulletInfo {
 	imageRelId?: string;
 	/** Picture bullet: data URL of the embedded image. */
 	imageDataUrl?: string;
+	/** When true, `<a:buFontTx/>` was specified — inherit the bullet font from
+	 *  the run text, not from a buFont declaration. */
+	fontInherit?: boolean;
+	/** When true, `<a:buClrTx/>` was specified — inherit the bullet colour from
+	 *  the run text. */
+	colorInherit?: boolean;
+	/** When true, `<a:buSzTx/>` was specified — inherit the bullet size from
+	 *  the run text font size. */
+	sizeInherit?: boolean;
 }
 
 /**
@@ -431,6 +479,22 @@ export interface TextSegment {
 	isParagraphBreak?: boolean;
 	/** Structured bullet info for the first segment of a paragraph. */
 	bulletInfo?: BulletInfo;
+	/**
+	 * Outline level for the paragraph this segment starts (`a:p/@lvl`).
+	 *
+	 * Only meaningful on the first segment of a paragraph (matching the
+	 * convention used for {@link bulletInfo}). Stored as the raw OOXML
+	 * value (0 = top level, 1-8 = nested) and serialised back when non-zero.
+	 */
+	paragraphLevel?: number;
+	/**
+	 * Raw `a:endParaRPr` XML node for the paragraph this segment starts.
+	 *
+	 * Captured verbatim on parse so attributes and child colours/fonts that
+	 * the typed model doesn't represent survive a round-trip. Only meaningful
+	 * on the first segment of a paragraph.
+	 */
+	endParaRunProperties?: Record<string, unknown>;
 
 	// ── Ruby text (phonetic guides) ──
 

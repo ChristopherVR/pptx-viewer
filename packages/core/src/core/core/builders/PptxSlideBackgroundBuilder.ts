@@ -1,6 +1,7 @@
 import type JSZip from 'jszip';
 
 import type { PptxSlide, XmlObject } from '../../types';
+import { BLIP_FILL_ORDER, reorderObjectKeys } from '../../utils/xml-reorder';
 import type { PptxSaveState } from './PptxSaveSessionBuilder';
 import type { IPptxSlideRelationshipRegistry } from './PptxSlideRelationshipRegistry';
 
@@ -76,10 +77,13 @@ export class PptxSlideBackgroundBuilder implements IPptxSlideBackgroundBuilder {
 					init.slideImageRelationshipType,
 					relativeBackgroundImagePath,
 				);
-				backgroundProperties['a:blipFill'] = {
-					'a:blip': { '@_r:embed': backgroundRelationshipId },
-					'a:stretch': { 'a:fillRect': {} },
-				};
+				backgroundProperties['a:blipFill'] = reorderObjectKeys(
+					{
+						'a:blip': { '@_r:embed': backgroundRelationshipId },
+						'a:stretch': { 'a:fillRect': {} },
+					},
+					BLIP_FILL_ORDER,
+				);
 			}
 		} else if (hasBackgroundColor && init.slide.backgroundColor) {
 			backgroundProperties['a:solidFill'] = {

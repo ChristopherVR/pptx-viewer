@@ -156,8 +156,11 @@ describe('sDK-created table survives save round-trip', () => {
 		// "Insert Table" column so future edits can identify columns
 		// across saves.
 		expect(slideXml).toContain('<a:ext uri="{9D8B030D-6E8A-4147-A177-3AD203B41FA5}">');
-		expect(slideXml).toMatch(
-			/<a16:colId\s+xmlns:a16="http:\/\/schemas\.microsoft\.com\/office\/drawing\/2014\/main"\s+val="\d+"/,
-		);
+		// PK-H2: `xmlns:a16` is declared on the slide root, not the leaf
+		// `<a16:colId>` element. The leaf carries only the `@val` attribute
+		// and the slide root carries `xmlns:a16` plus `mc:Ignorable="…a16…"`.
+		expect(slideXml).toMatch(/<a16:colId\s+val="\d+"/);
+		expect(slideXml).toContain('xmlns:a16="http://schemas.microsoft.com/office/drawing/2014/main"');
+		expect(slideXml).toMatch(/mc:Ignorable="[^"]*\ba16\b[^"]*"/);
 	});
 });

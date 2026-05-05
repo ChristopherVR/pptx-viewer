@@ -1,5 +1,6 @@
 import { XmlObject } from '../../types';
 import type { PptxTableData, PptxChartData, PptxChartSeries } from '../../types';
+import { upsertChartAxisChild } from '../../utils/chart-axis-parser';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveTableStyles';
 import {
 	buildChartPoints,
@@ -398,7 +399,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					}
 				}
 
-				// Update axis logBase (c:scaling/c:logBase)
+				// Update axis fields (Phase 5 Stream A item 4).
+				// Currently writes back: scaling.min/max, scaling.logBase,
+				// numFmt, majorUnit, tickLblPos. Other parsed-but-not-written
+				// chart fields (surfaces/dataTable/dropLines/hiLowLines/
+				// trendlines/errBars/marker/dataLabels/explosion/smooth/legend/
+				// colorPalette/colorMethod, axis title/txPr/axPos/minorUnit) are
+				// preserved via the original XML passthrough but lose any edits
+				// — see OPENXML_PARITY.md M-tier.
 				if (chartData.axes) {
 					const axisTypeNames = ['valAx', 'catAx', 'dateAx', 'serAx'] as const;
 					for (const axisTypeName of axisTypeNames) {
@@ -417,29 +425,74 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 							}
 
 							const scalingNode = this.xmlLookupService.getChildByLocalName(axisNode, 'scaling');
-							if (!scalingNode) {
-								continue;
+							if (scalingNode) {
+								if (matchingAxis.logBase !== undefined && matchingAxis.logBase > 0) {
+									// Set or update logBase
+									const logBaseKey = Object.keys(scalingNode).find(
+										(k) => this.compatibilityService.getXmlLocalName(k) === 'logBase',
+									);
+									if (logBaseKey) {
+										(scalingNode[logBaseKey] as XmlObject)['@_val'] = String(matchingAxis.logBase);
+									} else {
+										(scalingNode as XmlObject)['c:logBase'] = {
+											'@_val': String(matchingAxis.logBase),
+										};
+									}
+								} else if (matchingAxis.logScale === false) {
+									// Remove logBase if log scale was explicitly disabled
+									const logBaseKey = Object.keys(scalingNode).find(
+										(k) => this.compatibilityService.getXmlLocalName(k) === 'logBase',
+									);
+									if (logBaseKey) {
+										delete scalingNode[logBaseKey];
+									}
+								}
+
+								// scaling.min / scaling.max
+								this.upsertChartAxisChild(
+									scalingNode,
+									'min',
+									matchingAxis.min !== undefined ? String(matchingAxis.min) : undefined,
+								);
+								this.upsertChartAxisChild(
+									scalingNode,
+									'max',
+									matchingAxis.max !== undefined ? String(matchingAxis.max) : undefined,
+								);
 							}
 
-							if (matchingAxis.logBase !== undefined && matchingAxis.logBase > 0) {
-								// Set or update logBase
-								const logBaseKey = Object.keys(scalingNode).find(
-									(k) => this.compatibilityService.getXmlLocalName(k) === 'logBase',
+							// numFmt (formatCode + sourceLinked)
+							if (matchingAxis.numFmt) {
+								const numFmtKey = Object.keys(axisNode).find(
+									(k) => this.compatibilityService.getXmlLocalName(k) === 'numFmt',
 								);
-								if (logBaseKey) {
-									(scalingNode[logBaseKey] as XmlObject)['@_val'] = String(matchingAxis.logBase);
+								const numFmtAttrs: XmlObject = {
+									'@_formatCode': matchingAxis.numFmt.formatCode,
+									'@_sourceLinked': matchingAxis.numFmt.sourceLinked ? '1' : '0',
+								};
+								if (numFmtKey) {
+									axisNode[numFmtKey] = numFmtAttrs;
 								} else {
-									(scalingNode as XmlObject)['c:logBase'] = {
-										'@_val': String(matchingAxis.logBase),
-									};
+									axisNode['c:numFmt'] = numFmtAttrs;
 								}
-							} else if (matchingAxis.logScale === false) {
-								// Remove logBase if log scale was explicitly disabled
-								const logBaseKey = Object.keys(scalingNode).find(
-									(k) => this.compatibilityService.getXmlLocalName(k) === 'logBase',
+							}
+
+							// majorUnit
+							this.upsertChartAxisChild(
+								axisNode,
+								'majorUnit',
+								matchingAxis.majorUnit !== undefined ? String(matchingAxis.majorUnit) : undefined,
+							);
+
+							// tickLblPos
+							if (matchingAxis.tickLblPos !== undefined) {
+								const tickLblKey = Object.keys(axisNode).find(
+									(k) => this.compatibilityService.getXmlLocalName(k) === 'tickLblPos',
 								);
-								if (logBaseKey) {
-									delete scalingNode[logBaseKey];
+								if (tickLblKey) {
+									(axisNode[tickLblKey] as XmlObject)['@_val'] = matchingAxis.tickLblPos;
+								} else {
+									axisNode['c:tickLblPos'] = { '@_val': matchingAxis.tickLblPos };
 								}
 							}
 						}
@@ -454,6 +507,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		this.pendingChartUpdates = undefined;
+	}
+
+	/**
+	 * Upsert a `c:<localName>` child with `@_val` on an axis or scaling node.
+	 * When `value` is undefined, removes any existing child of that local name.
+	 */
+	protected upsertChartAxisChild(
+		parent: XmlObject,
+		localName: string,
+		value: string | undefined,
+	): void {
+		upsertChartAxisChild(parent, localName, value, (key) =>
+			this.compatibilityService.getXmlLocalName(key),
+		);
 	}
 
 	/**

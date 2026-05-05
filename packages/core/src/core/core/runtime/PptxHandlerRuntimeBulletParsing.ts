@@ -48,7 +48,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (candidate['a:buNone']) {
 				return { none: true };
 			}
-			if (candidate['a:buChar'] || candidate['a:buAutoNum'] || candidate['a:buBlip']) {
+			// Accept inherit-from-text bullet markers as a valid resolution
+			// even when no `buChar` / `buAutoNum` / `buBlip` is present.
+			if (
+				candidate['a:buChar'] ||
+				candidate['a:buAutoNum'] ||
+				candidate['a:buBlip'] ||
+				candidate['a:buFontTx'] !== undefined ||
+				candidate['a:buClrTx'] !== undefined ||
+				candidate['a:buSzTx'] !== undefined
+			) {
 				resolvedBulletProps = candidate;
 				break;
 			}
@@ -63,9 +72,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return null;
 		}
 
-		// Extract shared bullet styling properties
+		// Extract shared bullet styling properties.
+		//
+		// CT_TextParagraphProperties also defines three "inherit-from-text"
+		// markers — `<a:buFontTx/>`, `<a:buClrTx/>`, `<a:buSzTx/>` — that
+		// instruct PowerPoint to take the bullet's font / colour / size
+		// from the run text rather than from a `buFont` / `buClr` /
+		// `buSzPct|Pts` declaration. Capture those so save can re-emit the
+		// same Tx form (otherwise the bullet visually shifts on round-trip).
 		const buFont = resolvedBulletProps['a:buFont'] as XmlObject | undefined;
 		const fontFamily = buFont?.['@_typeface'] ? String(buFont['@_typeface']) : undefined;
+		const fontInherit = resolvedBulletProps['a:buFontTx'] !== undefined;
 
 		const buSzPct = resolvedBulletProps['a:buSzPct'] as XmlObject | undefined;
 		let sizePercent: number | undefined;
@@ -84,6 +101,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				sizePts = ptsRaw / 100;
 			}
 		}
+		const sizeInherit = resolvedBulletProps['a:buSzTx'] !== undefined;
 
 		const buClr = resolvedBulletProps['a:buClr'] as XmlObject | undefined;
 		let color: string | undefined;
@@ -93,6 +111,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				color = String(srgb['@_val']);
 			}
 		}
+		const colorInherit = resolvedBulletProps['a:buClrTx'] !== undefined;
 
 		// Character bullet
 		const bulletChar = String(
@@ -105,6 +124,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				sizePercent,
 				sizePts,
 				color,
+				...(fontInherit ? { fontInherit: true } : {}),
+				...(colorInherit ? { colorInherit: true } : {}),
+				...(sizeInherit ? { sizeInherit: true } : {}),
 			};
 		}
 
@@ -122,6 +144,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				sizePercent,
 				sizePts,
 				color,
+				...(fontInherit ? { fontInherit: true } : {}),
+				...(colorInherit ? { colorInherit: true } : {}),
+				...(sizeInherit ? { sizeInherit: true } : {}),
 			};
 		}
 

@@ -23,4 +23,8 @@ export { addTableRow, removeTableRow } from './table-row-ops';
 export { addTableColumn, removeTableColumn } from './table-column-ops';
 
 // XML rebuild
-export { rebuildTableXmlFromData } from './table-xml-rebuild';
+export {
+	rebuildTableXmlFromData,
+	ensureA16NamespaceOnSlideRoot,
+	slideContainsA16Element,
+} from './table-xml-rebuild';

@@ -77,7 +77,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const elWithPaths = el as ShapePptxElement | ImagePptxElement | PicturePptxElement;
 		if (elWithPaths.customGeometryPaths && elWithPaths.customGeometryPaths.length > 0) {
 			delete spPr['a:prstGeom'];
-			spPr['a:custGeom'] = customGeometryPathsToXml(elWithPaths.customGeometryPaths);
+			spPr['a:custGeom'] = customGeometryPathsToXml(
+				elWithPaths.customGeometryPaths,
+				elWithPaths.customGeometryRawData,
+			);
 		} else if (spPr['a:prstGeom']) {
 			const presetGeometry =
 				el.type === 'connector'

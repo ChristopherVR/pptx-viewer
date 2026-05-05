@@ -208,6 +208,7 @@ export class PptxDocumentPropertiesUpdater {
 			}));
 		if (sanitized.length === 0) {
 			this.context.zip.remove('docProps/custom.xml');
+			await this.removeCustomPropertiesPackagingArtifacts();
 			return;
 		}
 		const customXml: XmlObject = {
@@ -227,6 +228,145 @@ export class PptxDocumentPropertiesUpdater {
 			},
 		};
 		this.context.zip.file('docProps/custom.xml', this.context.builder.build(customXml));
+		await this.ensureCustomPropertiesPackagingArtifacts();
+	}
+
+	/**
+	 * Ensure `[Content_Types].xml` has an `Override` for `docProps/custom.xml`
+	 * and the root `_rels/.rels` references it (ECMA-376 §15.2.12.2 +
+	 * Part 2 §10.1.2.5). Without these, the package fails OPC validation
+	 * and Office strips the custom properties on next save.
+	 */
+	private async ensureCustomPropertiesPackagingArtifacts(): Promise<void> {
+		const customContentType = 'application/vnd.openxmlformats-officedocument.custom-properties+xml';
+		const customRelType =
+			'http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties';
+
+		// 1. [Content_Types].xml — add Override if missing
+		const ctFile = this.context.zip.file('[Content_Types].xml');
+		if (ctFile) {
+			try {
+				const ctXml = await ctFile.async('string');
+				const ctData = this.context.parser.parse(ctXml) as XmlObject;
+				const types = ctData['Types'] as XmlObject | undefined;
+				if (types) {
+					const overrides = Array.isArray(types['Override'])
+						? (types['Override'] as XmlObject[])
+						: types['Override']
+							? [types['Override'] as XmlObject]
+							: [];
+					const hasCustomOverride = overrides.some(
+						(o) => String(o?.['@_PartName'] || '') === '/docProps/custom.xml',
+					);
+					if (!hasCustomOverride) {
+						overrides.push({
+							'@_PartName': '/docProps/custom.xml',
+							'@_ContentType': customContentType,
+						});
+						types['Override'] = overrides.length === 1 ? overrides[0] : overrides;
+						this.context.zip.file('[Content_Types].xml', this.context.builder.build(ctData));
+					}
+				}
+			} catch (error) {
+				console.warn('Failed to update [Content_Types].xml for custom properties:', error);
+			}
+		}
+
+		// 2. _rels/.rels — add custom-properties relationship if missing
+		const relsFile = this.context.zip.file('_rels/.rels');
+		if (relsFile) {
+			try {
+				const relsXml = await relsFile.async('string');
+				const relsData = this.context.parser.parse(relsXml) as XmlObject;
+				const relationships = relsData['Relationships'] as XmlObject | undefined;
+				if (relationships) {
+					const rels = Array.isArray(relationships['Relationship'])
+						? (relationships['Relationship'] as XmlObject[])
+						: relationships['Relationship']
+							? [relationships['Relationship'] as XmlObject]
+							: [];
+					const hasCustomRel = rels.some((r) => String(r?.['@_Type'] || '') === customRelType);
+					if (!hasCustomRel) {
+						// Compute next free rId
+						let maxId = 0;
+						for (const rel of rels) {
+							const id = String(rel?.['@_Id'] || '');
+							const num = Number.parseInt(id.replace(/^rId/, ''), 10);
+							if (Number.isFinite(num) && num > maxId) {
+								maxId = num;
+							}
+						}
+						rels.push({
+							'@_Id': `rId${maxId + 1}`,
+							'@_Type': customRelType,
+							'@_Target': 'docProps/custom.xml',
+						});
+						relationships['Relationship'] = rels;
+						this.context.zip.file('_rels/.rels', this.context.builder.build(relsData));
+					}
+				}
+			} catch (error) {
+				console.warn('Failed to update _rels/.rels for custom properties:', error);
+			}
+		}
+	}
+
+	/**
+	 * Remove the Override + root rel for `docProps/custom.xml` when the
+	 * caller has emptied custom properties so the package doesn't keep an
+	 * orphan content-type entry referencing a deleted part.
+	 */
+	private async removeCustomPropertiesPackagingArtifacts(): Promise<void> {
+		const customRelType =
+			'http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties';
+
+		const ctFile = this.context.zip.file('[Content_Types].xml');
+		if (ctFile) {
+			try {
+				const ctXml = await ctFile.async('string');
+				const ctData = this.context.parser.parse(ctXml) as XmlObject;
+				const types = ctData['Types'] as XmlObject | undefined;
+				if (types) {
+					const overrides = Array.isArray(types['Override'])
+						? (types['Override'] as XmlObject[])
+						: types['Override']
+							? [types['Override'] as XmlObject]
+							: [];
+					const filtered = overrides.filter(
+						(o) => String(o?.['@_PartName'] || '') !== '/docProps/custom.xml',
+					);
+					if (filtered.length !== overrides.length) {
+						types['Override'] = filtered.length === 1 ? filtered[0] : filtered;
+						this.context.zip.file('[Content_Types].xml', this.context.builder.build(ctData));
+					}
+				}
+			} catch {
+				/* noop */
+			}
+		}
+
+		const relsFile = this.context.zip.file('_rels/.rels');
+		if (relsFile) {
+			try {
+				const relsXml = await relsFile.async('string');
+				const relsData = this.context.parser.parse(relsXml) as XmlObject;
+				const relationships = relsData['Relationships'] as XmlObject | undefined;
+				if (relationships) {
+					const rels = Array.isArray(relationships['Relationship'])
+						? (relationships['Relationship'] as XmlObject[])
+						: relationships['Relationship']
+							? [relationships['Relationship'] as XmlObject]
+							: [];
+					const filtered = rels.filter((r) => String(r?.['@_Type'] || '') !== customRelType);
+					if (filtered.length !== rels.length) {
+						relationships['Relationship'] = filtered;
+						this.context.zip.file('_rels/.rels', this.context.builder.build(relsData));
+					}
+				}
+			} catch {
+				/* noop */
+			}
+		}
 	}
 
 	private normalizeCustomPropertyType(type: string | undefined): string {

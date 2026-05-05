@@ -1,5 +1,6 @@
 import { XmlObject } from '../../types';
 import type { PptxTableCellStyle } from '../../types';
+import { TC_PR_BORDERS_ORDER, reorderObjectKeys } from '../../utils/xml-reorder';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeLayoutSwitching';
 import {
 	writeCellFill,
@@ -68,8 +69,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		const tcPr = xmlCell['a:tcPr'] as XmlObject;
 
-		// Background fill
-		writeCellFill(tcPr, style);
+		// Background fill — pass a resolver so preserved colour-choice XML
+		// can be re-emitted verbatim when the resolved hex still matches.
+		writeCellFill(tcPr, style, (colorXml) => this.parseColor(colorXml));
 
 		// Vertical alignment
 		if (style.vAlign) {
@@ -160,44 +162,40 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 
-		// Cell margins
-		if (
-			style.marginLeft !== undefined ||
-			style.marginRight !== undefined ||
-			style.marginTop !== undefined ||
-			style.marginBottom !== undefined
-		) {
-			const emuPerPx = PptxHandlerRuntime.EMU_PER_PX;
-			if (!tcPr['a:tcMar']) {
-				tcPr['a:tcMar'] = {};
-			}
-			const tcMar = tcPr['a:tcMar'] as XmlObject;
-			if (style.marginLeft !== undefined) {
-				tcMar['a:marL'] = {
-					'@_w': String(Math.round(style.marginLeft * emuPerPx)),
-				};
-			}
-			if (style.marginRight !== undefined) {
-				tcMar['a:marR'] = {
-					'@_w': String(Math.round(style.marginRight * emuPerPx)),
-				};
-			}
-			if (style.marginTop !== undefined) {
-				tcMar['a:marT'] = {
-					'@_w': String(Math.round(style.marginTop * emuPerPx)),
-				};
-			}
-			if (style.marginBottom !== undefined) {
-				tcMar['a:marB'] = {
-					'@_w': String(Math.round(style.marginBottom * emuPerPx)),
-				};
-			}
+		// Cell margins — direct attributes on a:tcPr (CT_TableCellProperties §21.1.4.2)
+		const emuPerPx = PptxHandlerRuntime.EMU_PER_PX;
+		if (style.marginLeft !== undefined) {
+			tcPr['@_marL'] = String(Math.round(style.marginLeft * emuPerPx));
 		}
+		if (style.marginRight !== undefined) {
+			tcPr['@_marR'] = String(Math.round(style.marginRight * emuPerPx));
+		}
+		if (style.marginTop !== undefined) {
+			tcPr['@_marT'] = String(Math.round(style.marginTop * emuPerPx));
+		}
+		if (style.marginBottom !== undefined) {
+			tcPr['@_marB'] = String(Math.round(style.marginBottom * emuPerPx));
+		}
+		// Strip any legacy `<a:tcMar>` wrapper (invented by an earlier writer
+		// version) so we don't emit conflicting margin sources.
+		delete tcPr['a:tcMar'];
 
 		// Diagonal borders
 		writeDiagonalBorders(tcPr, style, PptxHandlerRuntime.EMU_PER_PX);
 
 		// Font properties — update all runs across all paragraphs
 		writeCellTextFormatting(xmlCell, style, this.ensureArray.bind(this));
+
+		// Reorder tcPr children per CT_TableCellProperties §21.1.4.2 — borders
+		// must appear in lnL/lnR/lnT/lnB/lnTlToBr/lnBlToTr order before the
+		// fill choice and other children. Attributes (keys starting with `@_`)
+		// are unordered in XML and pass through unchanged.
+		const reordered = reorderObjectKeys(tcPr, TC_PR_BORDERS_ORDER);
+		for (const key of Object.keys(tcPr)) {
+			delete tcPr[key];
+		}
+		for (const key of Object.keys(reordered)) {
+			tcPr[key] = reordered[key];
+		}
 	}
 }

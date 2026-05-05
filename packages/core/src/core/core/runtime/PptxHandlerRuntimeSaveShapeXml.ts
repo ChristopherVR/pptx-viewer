@@ -1,6 +1,29 @@
 import { XmlObject } from '../../types';
-import type { InkPptxElement, GroupPptxElement, TablePptxElement } from '../../types';
+import type {
+	InkPptxElement,
+	GroupPptxElement,
+	OlePptxElement,
+	TablePptxElement,
+} from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveElements';
+
+/**
+ * Relationship type for embedded / linked OLE binary parts.
+ * (`http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject`).
+ */
+const OLE_OBJECT_RELATIONSHIP_TYPE =
+	'http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject';
+
+/**
+ * Relationship type for image parts (used for OLE preview blip).
+ */
+const IMAGE_RELATIONSHIP_TYPE =
+	'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image';
+
+/**
+ * URI for OLE objects in `<a:graphicData>`.
+ */
+const OLE_GRAPHIC_DATA_URI = 'http://schemas.openxmlformats.org/presentationml/2006/ole';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -54,6 +77,166 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			},
 		};
 	}
+	/**
+	 * Build a `p:graphicFrame` XML skeleton for an OLE object element.
+	 *
+	 * Used both for SDK-created OLE elements (no `rawXml`) and to refresh
+	 * a few key attributes on a loaded element when the typed fields have
+	 * been mutated. The output is the canonical
+	 * `p:graphicFrame > a:graphic > a:graphicData uri="…/ole" > p:oleObj`
+	 * shape per ECMA-376 §19.3.1.34 / §13.3.4.
+	 *
+	 * The caller (`processSlideElement`) is responsible for ensuring the
+	 * embed / preview-image relationships referenced from `r:id` / `r:embed`
+	 * exist in the slide's rels file. This method does not register them
+	 * itself because the typed model does not currently carry the binary
+	 * payload — the binary part must already be in the package (loaded from
+	 * the original file). A fully-fabricated SDK OLE element therefore
+	 * still requires the consumer to attach the binary out-of-band; this
+	 * method simply emits a schema-valid envelope referencing the
+	 * specified relationship ID.
+	 */
+	protected createOleGraphicFrameXml(el: OlePptxElement, embedRelationshipId: string): XmlObject {
+		const EMU = PptxHandlerRuntime.EMU_PER_PX;
+		const offX = String(Math.round(el.x * EMU));
+		const offY = String(Math.round(el.y * EMU));
+		const extCx = String(Math.round(Math.max(el.width, 1) * EMU));
+		const extCy = String(Math.round(Math.max(el.height, 1) * EMU));
+
+		const oleObj: XmlObject = {
+			'@_showAsIcon': '0',
+			'@_imgW': extCx,
+			'@_imgH': extCy,
+		};
+		if (el.oleProgId) {
+			oleObj['@_progId'] = el.oleProgId;
+		}
+		if (el.oleName) {
+			oleObj['@_name'] = el.oleName;
+		}
+		if (el.oleClsId) {
+			oleObj['@_classid'] = el.oleClsId;
+		}
+		if (embedRelationshipId) {
+			oleObj['@_r:id'] = embedRelationshipId;
+		}
+		// Choose embed vs link form per CT_OleObject.
+		if (el.isLinked) {
+			oleObj['p:link'] = {
+				'@_r:id': embedRelationshipId,
+				'@_updateAutomatic': '1',
+			};
+		} else {
+			oleObj['p:embed'] = {};
+		}
+
+		// Picture preview is required by PowerPoint; if no preview blip exists we
+		// emit an empty `p:pic` which PowerPoint accepts and replaces with a
+		// placeholder icon at first render.
+		oleObj['p:pic'] = {
+			'p:nvPicPr': {
+				'p:cNvPr': { '@_id': '0', '@_name': el.oleName || 'OleObject' },
+				'p:cNvPicPr': {},
+				'p:nvPr': {},
+			},
+			'p:blipFill': {
+				'a:blip': {},
+				'a:stretch': { 'a:fillRect': {} },
+			},
+			'p:spPr': {
+				'a:xfrm': {
+					'a:off': { '@_x': offX, '@_y': offY },
+					'a:ext': { '@_cx': extCx, '@_cy': extCy },
+				},
+				'a:prstGeom': { '@_prst': 'rect', 'a:avLst': {} },
+			},
+		};
+
+		return {
+			'p:nvGraphicFramePr': {
+				'p:cNvPr': { '@_id': '0', '@_name': el.oleName || el.fileName || 'OleObject' },
+				'p:cNvGraphicFramePr': {
+					'a:graphicFrameLocks': { '@_noChangeAspect': '1' },
+				},
+				'p:nvPr': {},
+			},
+			'p:xfrm': {
+				'a:off': { '@_x': offX, '@_y': offY },
+				'a:ext': { '@_cx': extCx, '@_cy': extCy },
+			},
+			'a:graphic': {
+				'a:graphicData': {
+					'@_uri': OLE_GRAPHIC_DATA_URI,
+					'p:oleObj': oleObj,
+				},
+			},
+		};
+	}
+
+	/**
+	 * Refresh editable typed-field attributes on a loaded OLE graphicFrame's
+	 * raw XML. Only attributes that round-trip through the typed model
+	 * (`progId`, `name`, `classid`) are touched so unknown extension data
+	 * passes through verbatim.
+	 */
+	protected applyOleTypedFieldUpdates(shape: XmlObject, el: OlePptxElement): void {
+		const oleObj = shape['a:graphic']?.['a:graphicData']?.['p:oleObj'] as XmlObject | undefined;
+		if (!oleObj) {
+			return;
+		}
+		if (el.oleProgId) {
+			oleObj['@_progId'] = el.oleProgId;
+		}
+		if (el.oleName !== undefined) {
+			if (el.oleName.length > 0) {
+				oleObj['@_name'] = el.oleName;
+			} else {
+				delete oleObj['@_name'];
+			}
+		}
+		if (el.oleClsId) {
+			oleObj['@_classid'] = el.oleClsId;
+		}
+	}
+
+	/** Look up the existing OLE binary relationship ID for this slide, if any. */
+	protected resolveOleEmbedRelationshipId(
+		slideRelationships: XmlObject[],
+		oleTarget: string | undefined,
+	): string | undefined {
+		if (!oleTarget) {
+			return undefined;
+		}
+		const normalisedTarget = oleTarget.replace(/^ppt\//, '../').replace(/^\/+/, '');
+		const lowerTarget = normalisedTarget.toLowerCase();
+		for (const rel of slideRelationships) {
+			const relType = String(rel?.['@_Type'] || '');
+			if (relType !== OLE_OBJECT_RELATIONSHIP_TYPE) {
+				continue;
+			}
+			const target = String(rel?.['@_Target'] || '')
+				.toLowerCase()
+				.trim();
+			if (target === lowerTarget || target.endsWith(lowerTarget) || lowerTarget.endsWith(target)) {
+				const relId = String(rel?.['@_Id'] || '').trim();
+				if (relId.length > 0) {
+					return relId;
+				}
+			}
+		}
+		// Fallback: first OLE relationship on the slide.
+		const fallback = slideRelationships.find(
+			(rel) => String(rel?.['@_Type'] || '') === OLE_OBJECT_RELATIONSHIP_TYPE,
+		);
+		const fallbackId = String(fallback?.['@_Id'] || '').trim();
+		return fallbackId.length > 0 ? fallbackId : undefined;
+	}
+
+	/** Constants are exposed so the element-writer mixin can reuse them. */
+	protected static readonly OLE_OBJECT_RELATIONSHIP_TYPE = OLE_OBJECT_RELATIONSHIP_TYPE;
+
+	protected static readonly OLE_IMAGE_RELATIONSHIP_TYPE = IMAGE_RELATIONSHIP_TYPE;
+
 	/**
 	 * Build a p:sp XML object for an ink annotation element.
 	 * Each ink path becomes a separate a:path within a:pathLst,

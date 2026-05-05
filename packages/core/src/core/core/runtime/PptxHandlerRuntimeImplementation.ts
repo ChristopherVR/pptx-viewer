@@ -75,6 +75,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				this.colorStyleCodec.extractGradientFocalPoint(gradFill),
 			extractGradientFillToRect: (gradFill) =>
 				this.colorStyleCodec.extractGradientFillToRect(gradFill),
+			extractGradientFlip: (gradFill) => this.colorStyleCodec.extractGradientFlip(gradFill),
+			extractGradientRotWithShape: (gradFill) =>
+				this.colorStyleCodec.extractGradientRotWithShape(gradFill),
+			extractGradientScaled: (gradFill) => this.colorStyleCodec.extractGradientScaled(gradFill),
 			normalizeStrokeDashType: (value) => this.normalizeStrokeDashType(value),
 			normalizeConnectorArrowType: (value) => this.normalizeConnectorArrowType(value),
 			ensureArray: (value) => this.ensureArray(value),

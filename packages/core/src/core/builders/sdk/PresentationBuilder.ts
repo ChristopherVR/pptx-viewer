@@ -148,6 +148,9 @@ function presentationXml(width: number, height: number, slideCount: number): str
 <p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
   xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
   xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:p14="http://schemas.microsoft.com/office/powerpoint/2010/main"
+  xmlns:p15="http://schemas.microsoft.com/office/powerpoint/2012/main"
   saveSubsetFonts="1">
   <p:sldMasterIdLst>
     <p:sldMasterId id="2147483648" r:id="rId1"/>

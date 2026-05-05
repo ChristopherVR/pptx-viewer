@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import type { XmlObject } from '../types';
-import { parseChartAxes, parseChart3DSurfaces } from './chart-axis-parser';
+import { parseChartAxes, parseChart3DSurfaces, upsertChartAxisChild } from './chart-axis-parser';
 
 const xmlLookup = {
 	getChildByLocalName(parent: XmlObject | undefined, name: string): XmlObject | undefined {
@@ -257,5 +257,68 @@ describe('parseChart3DSurfaces', () => {
 	it('should return empty object when no surfaces', () => {
 		const result = parseChart3DSurfaces({}, xmlLookup, colorParser);
 		expect(result).toStrictEqual({});
+	});
+});
+
+// Phase 5 Stream A item 4 — additional axis fields parsed for write-back.
+describe('parseChartAxes — majorUnit / minorUnit / tickLblPos', () => {
+	it('parses majorUnit, minorUnit, and tickLblPos from a value axis', () => {
+		const plotArea: XmlObject = {
+			'c:valAx': {
+				'c:axId': { '@_val': '111' },
+				'c:scaling': {
+					'c:min': { '@_val': '0' },
+					'c:max': { '@_val': '500' },
+				},
+				'c:majorUnit': { '@_val': '100' },
+				'c:minorUnit': { '@_val': '20' },
+				'c:tickLblPos': { '@_val': 'low' },
+			},
+		};
+		const axes = parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName);
+		expect(axes).toHaveLength(1);
+		expect(axes[0].axisId).toBe(111);
+		expect(axes[0].min).toBe(0);
+		expect(axes[0].max).toBe(500);
+		expect(axes[0].majorUnit).toBe(100);
+		expect(axes[0].minorUnit).toBe(20);
+		expect(axes[0].tickLblPos).toBe('low');
+	});
+
+	it('rejects invalid tickLblPos values', () => {
+		const plotArea: XmlObject = {
+			'c:valAx': {
+				'c:axId': { '@_val': '1' },
+				'c:tickLblPos': { '@_val': 'whatever' },
+			},
+		};
+		const axes = parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName);
+		expect(axes[0].tickLblPos).toBeUndefined();
+	});
+});
+
+describe('upsertChartAxisChild — chart axis write-back helper', () => {
+	it('inserts a new c:<name> child with @val when none exists', () => {
+		const parent: XmlObject = {};
+		upsertChartAxisChild(parent, 'min', '0', getLocalName);
+		expect(parent['c:min']).toStrictEqual({ '@_val': '0' });
+	});
+
+	it('updates @val on an existing child regardless of namespace prefix', () => {
+		const parent: XmlObject = { 'c:max': { '@_val': '100' } };
+		upsertChartAxisChild(parent, 'max', '500', getLocalName);
+		expect(parent['c:max']).toStrictEqual({ '@_val': '500' });
+	});
+
+	it('removes the existing child when value is undefined', () => {
+		const parent: XmlObject = { 'c:majorUnit': { '@_val': '50' } };
+		upsertChartAxisChild(parent, 'majorUnit', undefined, getLocalName);
+		expect(parent['c:majorUnit']).toBeUndefined();
+	});
+
+	it('is a no-op when value is undefined and no existing child', () => {
+		const parent: XmlObject = { 'c:other': { '@_val': '1' } };
+		upsertChartAxisChild(parent, 'majorUnit', undefined, getLocalName);
+		expect(parent).toStrictEqual({ 'c:other': { '@_val': '1' } });
 	});
 });

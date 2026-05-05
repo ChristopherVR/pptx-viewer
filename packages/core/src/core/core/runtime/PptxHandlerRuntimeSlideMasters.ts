@@ -7,6 +7,7 @@ import type {
 	PptxNotesMaster,
 } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeDocProperties';
+import { parseHeaderFooterFlags } from './PptxHandlerRuntimeMasterElements';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -194,7 +195,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const spTree = master['p:cSld']?.['p:spTree'] as XmlObject | undefined;
 			const placeholders = this.extractPlaceholderList(spTree);
 
-			return { path, backgroundColor: bgColor, placeholders };
+			const result: PptxHandoutMaster = { path, backgroundColor: bgColor, placeholders };
+			const hf = parseHeaderFooterFlags(master['p:hf'] as XmlObject | undefined);
+			if (hf) {
+				result.headerFooter = hf;
+			}
+			return result;
 		} catch (e) {
 			console.warn('Failed to parse handout master:', e);
 			return undefined;
@@ -225,7 +231,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const spTree = master['p:cSld']?.['p:spTree'] as XmlObject | undefined;
 			const placeholders = this.extractPlaceholderList(spTree);
 
-			return { path, backgroundColor: bgColor, placeholders };
+			const result: PptxNotesMaster = { path, backgroundColor: bgColor, placeholders };
+			const hf = parseHeaderFooterFlags(master['p:hf'] as XmlObject | undefined);
+			if (hf) {
+				result.headerFooter = hf;
+			}
+			return result;
 		} catch (e) {
 			console.warn('Failed to parse notes master:', e);
 			return undefined;
@@ -280,6 +291,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (userDrawn !== undefined) {
 				const uVal = String(userDrawn).trim().toLowerCase();
 				layout.userDrawn = uVal === '1' || uVal === 'true';
+			}
+
+			const hf = parseHeaderFooterFlags(sldLayout['p:hf'] as XmlObject | undefined);
+			if (hf) {
+				layout.headerFooter = hf;
 			}
 
 			// Colour map override (inline parse — parseClrMapOverrideNode is further in chain)

@@ -17,7 +17,81 @@ import { DEFAULT_ROW_HEIGHT_EMU, createDefaultXmlCell } from './table-structural
  * rendering but leaves the table visibly different from Office output.
  */
 const GRID_COL_ID_EXT_URI = '{9D8B030D-6E8A-4147-A177-3AD203B41FA5}';
-const A16_NAMESPACE = 'http://schemas.microsoft.com/office/drawing/2014/main';
+/**
+ * Microsoft Office 2014+ extension namespace, declared on the slide root
+ * (with `mc:Ignorable="a16"`) so that legacy renderers ignore the
+ * `<a16:colId>` element while modern PowerPoint reads the column id.
+ *
+ * Per ECMA-376 §17.17.2 the spec discourages declaring auxiliary
+ * namespaces on leaf elements; declarations belong on the part root.
+ */
+export const A16_NAMESPACE = 'http://schemas.microsoft.com/office/drawing/2014/main';
+
+/**
+ * Declare `xmlns:a16` on a slide root and append `a16` to `mc:Ignorable`.
+ *
+ * Call this on the `<p:sld>` (or `<p:sldLayout>` / `<p:sldMaster>`) node
+ * after any save step that may emit `<a16:colId>` (or other a16-namespaced
+ * elements). Idempotent — safe to call repeatedly.
+ *
+ * The legacy save path declared `xmlns:a16` on the leaf `<a16:colId>`
+ * which is technically valid XML but is rejected by some OOXML linters
+ * and disagrees with what PowerPoint emits.
+ */
+export function ensureA16NamespaceOnSlideRoot(slideRoot: XmlObject): void {
+	if (!slideRoot['@_xmlns:a16']) {
+		slideRoot['@_xmlns:a16'] = A16_NAMESPACE;
+	}
+	// `mc:Ignorable` lives in the Markup Compatibility namespace; if the
+	// slide root doesn't yet declare `xmlns:mc`, add it. Without this the
+	// XML serialiser emits an unprefixed-namespace attribute and Office
+	// flags the package as malformed.
+	if (!slideRoot['@_xmlns:mc']) {
+		slideRoot['@_xmlns:mc'] = 'http://schemas.openxmlformats.org/markup-compatibility/2006';
+	}
+	const existingIgnorable = String(slideRoot['@_mc:Ignorable'] || '').trim();
+	if (existingIgnorable.length === 0) {
+		slideRoot['@_mc:Ignorable'] = 'a16';
+		return;
+	}
+	const tokens = existingIgnorable.split(/\s+/).filter((token) => token.length > 0);
+	if (!tokens.includes('a16')) {
+		tokens.push('a16');
+		slideRoot['@_mc:Ignorable'] = tokens.join(' ');
+	}
+}
+
+/**
+ * Detect whether any element under `node` uses an `a16:` qualified name.
+ *
+ * Walks the parsed XML object tree (fast-xml-parser format). Bails out as
+ * soon as a match is found.
+ */
+export function slideContainsA16Element(node: unknown): boolean {
+	if (node === null || node === undefined) {
+		return false;
+	}
+	if (Array.isArray(node)) {
+		for (const entry of node) {
+			if (slideContainsA16Element(entry)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	if (typeof node !== 'object') {
+		return false;
+	}
+	for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+		if (key.startsWith('a16:')) {
+			return true;
+		}
+		if (slideContainsA16Element(value)) {
+			return true;
+		}
+	}
+	return false;
+}
 
 function randomColumnId(): string {
 	// PowerPoint emits unsigned-32-bit integers. Values only need to be
@@ -87,8 +161,10 @@ export function rebuildTableXmlFromData(
 		'a:extLst': {
 			'a:ext': {
 				'@_uri': GRID_COL_ID_EXT_URI,
+				// `xmlns:a16` is declared on the slide root by
+				// `ensureA16NamespaceOnSlideRoot`; emitting it here too is
+				// schema-redundant and PowerPoint flags it.
 				'a16:colId': {
-					'@_xmlns:a16': A16_NAMESPACE,
 					'@_val': existingColIds[i] || randomColumnId(),
 				},
 			},

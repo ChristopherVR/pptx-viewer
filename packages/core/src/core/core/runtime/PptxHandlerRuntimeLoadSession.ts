@@ -63,6 +63,23 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.imageDataCache.clear();
 		this.themeColorMap = {};
 		this.themeFontMap = {};
+		this.masterClrMaps.clear();
+		this.masterThemeColorMaps.clear();
+		this.masterThemeFontMaps.clear();
+		this.masterThemeFormatSchemes.clear();
+		this.masterThemePaths.clear();
+		this.masterThemeMajorFontScripts.clear();
+		this.masterThemeMinorFontScripts.clear();
+		this.masterThemeNames.clear();
+		this.masterThemeFontSchemeNames.clear();
+		this.masterThemeColorSchemeNames.clear();
+		this.originalThemeXmlByPath.clear();
+		this.dirtyThemePaths.clear();
+		this.masterThemeObjectDefaults.clear();
+		this.masterThemeExtraClrSchemeLst.clear();
+		this.masterThemeCustClrLst.clear();
+		this.masterThemeExtLst.clear();
+		this.currentMasterClrMap = null;
 		this.presentationDefaultTextStyle = undefined;
 		this.commentAuthorMap.clear();
 		this.commentAuthorDetails.clear();
@@ -260,6 +277,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			setCurrentSlideClrMapOverride: (override) => {
 				this.currentSlideClrMapOverride = override;
 			},
+			setActiveMasterForSlide: (slidePath) => this.setActiveMasterForSlide(slidePath),
 			findLayoutPathForSlide: (slidePath) => this.findLayoutPathForSlide(slidePath),
 			loadThemeOverride: (partBasePath) => this.loadThemeOverride(partBasePath),
 			applyThemeOverrideState: (override) => this.applyThemeOverrideState(override),

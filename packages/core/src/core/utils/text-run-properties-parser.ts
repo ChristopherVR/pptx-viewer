@@ -11,6 +11,7 @@
 
 import type { TextStyle, XmlObject } from '../types';
 import type { UnderlineStyle } from '../types/common';
+import { extractColorChoiceXml } from './color-xml-preservation';
 
 const EMU_PER_PX = 9525;
 
@@ -171,7 +172,53 @@ export function parseRunPropertyAttributes(rPr: XmlObject | undefined): TextStyl
 		style.bookmark = bmk;
 	}
 
+	// CT_TextCharacterProperties also defines `@altLang` (alternative
+	// language id) and `@smtId` (SmartTag id). Round-trip both verbatim
+	// even though we don't act on them.
+	const altLang = String(rPr['@_altLang'] || '').trim();
+	if (altLang) {
+		style.altLanguage = altLang;
+	}
+	if (rPr['@_smtId'] !== undefined) {
+		const smtIdRaw = Number.parseInt(String(rPr['@_smtId']), 10);
+		if (Number.isFinite(smtIdRaw)) {
+			style.smartTagId = smtIdRaw;
+		}
+	}
+
 	return style;
+}
+
+/**
+ * Parse CT_TextFont attribute values (`@panose`, `@pitchFamily`, `@charset`)
+ * from an `a:latin`, `a:ea`, `a:cs`, or `a:sym` child of `a:rPr`.
+ */
+function parseTextFontMetadata(node: XmlObject | undefined): {
+	panose?: string;
+	pitchFamily?: number;
+	charset?: number;
+} {
+	if (!node) {
+		return {};
+	}
+	const out: { panose?: string; pitchFamily?: number; charset?: number } = {};
+	const panose = String(node['@_panose'] || '').trim();
+	if (panose) {
+		out.panose = panose;
+	}
+	if (node['@_pitchFamily'] !== undefined) {
+		const pitchRaw = Number.parseInt(String(node['@_pitchFamily']), 10);
+		if (Number.isFinite(pitchRaw)) {
+			out.pitchFamily = pitchRaw;
+		}
+	}
+	if (node['@_charset'] !== undefined) {
+		const charsetRaw = Number.parseInt(String(node['@_charset']), 10);
+		if (Number.isFinite(charsetRaw)) {
+			out.charset = charsetRaw;
+		}
+	}
+	return out;
 }
 
 /**
@@ -182,15 +229,43 @@ export function parseRunPropertyAttributes(rPr: XmlObject | undefined): TextStyl
  */
 export function parseRunFontElements(
 	rPr: XmlObject | undefined,
-): Pick<TextStyle, 'fontFamily' | 'eastAsiaFont' | 'complexScriptFont'> {
-	const result: Pick<TextStyle, 'fontFamily' | 'eastAsiaFont' | 'complexScriptFont'> = {};
+): Pick<
+	TextStyle,
+	| 'fontFamily'
+	| 'eastAsiaFont'
+	| 'complexScriptFont'
+	| 'latinFontPanose'
+	| 'latinFontPitchFamily'
+	| 'latinFontCharset'
+	| 'eastAsiaFontPanose'
+	| 'eastAsiaFontPitchFamily'
+	| 'eastAsiaFontCharset'
+	| 'complexScriptFontPanose'
+	| 'complexScriptFontPitchFamily'
+	| 'complexScriptFontCharset'
+> {
+	const result: Pick<
+		TextStyle,
+		| 'fontFamily'
+		| 'eastAsiaFont'
+		| 'complexScriptFont'
+		| 'latinFontPanose'
+		| 'latinFontPitchFamily'
+		| 'latinFontCharset'
+		| 'eastAsiaFontPanose'
+		| 'eastAsiaFontPitchFamily'
+		| 'eastAsiaFontCharset'
+		| 'complexScriptFontPanose'
+		| 'complexScriptFontPitchFamily'
+		| 'complexScriptFontCharset'
+	> = {};
 	if (!rPr) {
 		return result;
 	}
 
-	const latin = rPr['a:latin'];
-	const eastAsian = rPr['a:ea'];
-	const complexScript = rPr['a:cs'];
+	const latin = rPr['a:latin'] as XmlObject | undefined;
+	const eastAsian = rPr['a:ea'] as XmlObject | undefined;
+	const complexScript = rPr['a:cs'] as XmlObject | undefined;
 
 	const chosenTypeface =
 		latin?.['@_typeface'] || eastAsian?.['@_typeface'] || complexScript?.['@_typeface'];
@@ -208,6 +283,38 @@ export function parseRunFontElements(
 		complexScript['@_typeface'].trim().length > 0
 	) {
 		result.complexScriptFont = complexScript['@_typeface'].trim();
+	}
+
+	// CT_TextFont metadata: panose, pitchFamily, charset.
+	const latinMeta = parseTextFontMetadata(latin);
+	if (latinMeta.panose !== undefined) {
+		result.latinFontPanose = latinMeta.panose;
+	}
+	if (latinMeta.pitchFamily !== undefined) {
+		result.latinFontPitchFamily = latinMeta.pitchFamily;
+	}
+	if (latinMeta.charset !== undefined) {
+		result.latinFontCharset = latinMeta.charset;
+	}
+	const eaMeta = parseTextFontMetadata(eastAsian);
+	if (eaMeta.panose !== undefined) {
+		result.eastAsiaFontPanose = eaMeta.panose;
+	}
+	if (eaMeta.pitchFamily !== undefined) {
+		result.eastAsiaFontPitchFamily = eaMeta.pitchFamily;
+	}
+	if (eaMeta.charset !== undefined) {
+		result.eastAsiaFontCharset = eaMeta.charset;
+	}
+	const csMeta = parseTextFontMetadata(complexScript);
+	if (csMeta.panose !== undefined) {
+		result.complexScriptFontPanose = csMeta.panose;
+	}
+	if (csMeta.pitchFamily !== undefined) {
+		result.complexScriptFontPitchFamily = csMeta.pitchFamily;
+	}
+	if (csMeta.charset !== undefined) {
+		result.complexScriptFontCharset = csMeta.charset;
 	}
 
 	return result;
@@ -375,6 +482,23 @@ export function parseRunSolidFillColor(rPr: XmlObject | undefined): string | und
 }
 
 /**
+ * Extract the raw colour-choice XML node from `a:rPr/a:solidFill` for
+ * round-trip preservation. Returns the wrapping single-key object (e.g.
+ * `{ 'a:schemeClr': {...} }`) so the save layer can re-emit it verbatim
+ * when the user did not edit the colour.
+ */
+export function parseRunSolidFillColorXml(rPr: XmlObject | undefined): XmlObject | undefined {
+	if (!rPr) {
+		return undefined;
+	}
+	const solidFill = rPr['a:solidFill'] as XmlObject | undefined;
+	if (!solidFill) {
+		return undefined;
+	}
+	return extractColorChoiceXml(solidFill);
+}
+
+/**
  * Parse symbol font from `a:sym` child element.
  */
 export function parseRunSymbolFont(rPr: XmlObject | undefined): string | undefined {
@@ -387,4 +511,33 @@ export function parseRunSymbolFont(rPr: XmlObject | undefined): string | undefin
 	}
 	const typeface = typeof symNode['@_typeface'] === 'string' ? symNode['@_typeface'].trim() : '';
 	return typeface.length > 0 ? typeface : undefined;
+}
+
+/**
+ * Parse `a:sym` font metadata (panose / pitchFamily / charset).
+ *
+ * Returned values are written back on save to keep the round-trip stable
+ * for fonts where these attributes were authored.
+ */
+export function parseRunSymbolFontMetadata(
+	rPr: XmlObject | undefined,
+): Pick<TextStyle, 'symbolFontPanose' | 'symbolFontPitchFamily' | 'symbolFontCharset'> {
+	const result: Pick<
+		TextStyle,
+		'symbolFontPanose' | 'symbolFontPitchFamily' | 'symbolFontCharset'
+	> = {};
+	if (!rPr) {
+		return result;
+	}
+	const meta = parseTextFontMetadata(rPr['a:sym'] as XmlObject | undefined);
+	if (meta.panose !== undefined) {
+		result.symbolFontPanose = meta.panose;
+	}
+	if (meta.pitchFamily !== undefined) {
+		result.symbolFontPitchFamily = meta.pitchFamily;
+	}
+	if (meta.charset !== undefined) {
+		result.symbolFontCharset = meta.charset;
+	}
+	return result;
 }

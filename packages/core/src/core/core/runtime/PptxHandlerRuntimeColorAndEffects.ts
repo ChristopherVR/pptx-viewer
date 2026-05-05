@@ -54,12 +54,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Placeholder colors in style refs typically map through accent1.
 		const resolvedKey = normalized === 'phclr' ? 'accent1' : normalized;
 
-		// When a per-slide colour map override is active, remap the logical
-		// colour name to the theme slot it points to before looking up the
-		// actual colour value.  For example the override may map "bg1" to
-		// "dk1" which swaps the background to a dark colour.
-		if (this.currentSlideClrMapOverride) {
-			const remapped = this.currentSlideClrMapOverride[resolvedKey];
+		// Resolve through the active clrMap layer:
+		//   1. Slide / layout `p:clrMapOvr` (highest precedence — when present
+		//      slides bypass the master entirely for the listed aliases).
+		//   2. The master's own `p:clrMap` (routing for aliases like
+		//      `bg1 → lt1`, `tx1 → dk1`, etc.).
+		//   3. Direct theme scheme slot.
+		//
+		// Per ECMA-376 §19.3.1.7 (CT_ColorMapping) clrMap is a routing
+		// layer, not a colour table; resolve it lazily at lookup time so
+		// multi-master decks and layout overrides work correctly.
+		// Phase 2 Stream B / C-H4 / C-H5.
+		const overrideMap = this.currentSlideClrMapOverride ?? this.currentMasterClrMap;
+		if (overrideMap) {
+			const remapped = overrideMap[resolvedKey];
 			if (remapped) {
 				return this.themeColorMap[remapped] || this.getDefaultSchemeColorMap()[remapped];
 			}

@@ -1,5 +1,7 @@
 import { XmlObject } from '../../types';
 import type { ShapeStyle } from '../../types';
+import { serializeColorChoice } from '../../utils/color-xml-preservation';
+import { reorderObjectKeys, SHAPE_STYLE_ORDER } from '../../utils/xml-reorder';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveXmlHelpers';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -61,21 +63,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				delete spPr['a:noFill'];
 				delete spPr['a:gradFill'];
 				delete spPr['a:blipFill'];
-				const solidFill: XmlObject = {
-					'a:srgbClr': {
-						'@_val': fillColor.replace('#', ''),
-					},
-				};
-				if (
-					typeof shapeStyle.fillOpacity === 'number' &&
-					shapeStyle.fillOpacity >= 0 &&
-					shapeStyle.fillOpacity < 1
-				) {
-					(solidFill['a:srgbClr'] as XmlObject)['a:alpha'] = {
-						'@_val': String(Math.round(this.clampUnitInterval(shapeStyle.fillOpacity) * 100000)),
-					};
-				}
-				spPr['a:solidFill'] = solidFill;
+				// Prefer the original colour-choice XML when the resolved
+				// hex still matches — preserves scheme/sys/prst identity and
+				// colour transforms (lumMod/lumOff/tint/shade/satMod/alpha).
+				const resolvedOriginal = shapeStyle.fillColorXml
+					? this.parseColor(shapeStyle.fillColorXml)
+					: undefined;
+				spPr['a:solidFill'] = serializeColorChoice(
+					shapeStyle.fillColorXml,
+					resolvedOriginal,
+					fillColor,
+					shapeStyle.fillOpacity,
+				);
 			}
 		}
 
@@ -92,21 +91,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				delete lineNode['a:solidFill'];
 			} else {
 				delete lineNode['a:noFill'];
-				const lineFill: XmlObject = {
-					'a:srgbClr': {
-						'@_val': shapeStyle.strokeColor.replace('#', ''),
-					},
-				};
-				if (
-					typeof shapeStyle.strokeOpacity === 'number' &&
-					shapeStyle.strokeOpacity >= 0 &&
-					shapeStyle.strokeOpacity < 1
-				) {
-					(lineFill['a:srgbClr'] as XmlObject)['a:alpha'] = {
-						'@_val': String(Math.round(this.clampUnitInterval(shapeStyle.strokeOpacity) * 100000)),
-					};
-				}
-				lineNode['a:solidFill'] = lineFill;
+				const resolvedStrokeOriginal = shapeStyle.strokeColorXml
+					? this.parseColor(shapeStyle.strokeColorXml)
+					: undefined;
+				lineNode['a:solidFill'] = serializeColorChoice(
+					shapeStyle.strokeColorXml,
+					resolvedStrokeOriginal,
+					shapeStyle.strokeColor,
+					shapeStyle.strokeOpacity,
+				);
 			}
 		}
 		if (shapeStyle.strokeDash !== undefined) {
@@ -197,7 +190,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			} else if (shapeStyle.lineJoin === 'bevel') {
 				lineNode['a:bevel'] = {};
 			} else if (shapeStyle.lineJoin === 'miter') {
-				lineNode['a:miter'] = { '@_lim': '800000' };
+				const miterNode: XmlObject = {};
+				if (
+					typeof shapeStyle.miterLimit === 'number' &&
+					Number.isFinite(shapeStyle.miterLimit) &&
+					shapeStyle.miterLimit !== 800000
+				) {
+					miterNode['@_lim'] = String(Math.round(shapeStyle.miterLimit));
+				}
+				lineNode['a:miter'] = miterNode;
 			}
 		}
 		// Line cap style
@@ -219,6 +220,102 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const lineEffectListXml = this.buildLineEffectListXml(shapeStyle);
 		if (lineEffectListXml && spPr['a:ln']) {
 			(spPr['a:ln'] as XmlObject)['a:effectLst'] = lineEffectListXml;
+		}
+	}
+
+	/**
+	 * Serialize the shape's `<p:style>` block (CT_ShapeStyle §20.1.2.2.36)
+	 * from the persisted ref indices/colour XML. Emits children in spec
+	 * order: `lnRef → fillRef → effectRef → fontRef`.
+	 *
+	 * When the original shape XML already contained a `<p:style>` we mutate
+	 * that node in place so any unmodelled attributes/children are preserved.
+	 * When it didn't, we create one. When the shape no longer has any ref
+	 * data we leave the existing `<p:style>` (if any) untouched — silently
+	 * dropping it would break round-tripping.
+	 *
+	 * Phase 2 Stream B / C-H2.
+	 */
+	protected applyShapeStyleRefs(shape: XmlObject, shapeStyle: ShapeStyle): void {
+		const hasAnyRef =
+			shapeStyle.lnRefIdx !== undefined ||
+			shapeStyle.fillRefIdx !== undefined ||
+			shapeStyle.effectRefIdx !== undefined ||
+			shapeStyle.fontRefIdx !== undefined;
+
+		if (!hasAnyRef) {
+			return;
+		}
+
+		const existing = shape['p:style'] as XmlObject | undefined;
+		const styleNode: XmlObject = existing ?? {};
+
+		// lnRef
+		if (shapeStyle.lnRefIdx !== undefined) {
+			const lnRef = (styleNode['a:lnRef'] as XmlObject | undefined) ?? {};
+			lnRef['@_idx'] = String(shapeStyle.lnRefIdx);
+			this.replaceRefColorChoice(lnRef, shapeStyle.lnRefColorXml);
+			styleNode['a:lnRef'] = lnRef;
+		}
+
+		// fillRef
+		if (shapeStyle.fillRefIdx !== undefined) {
+			const fillRef = (styleNode['a:fillRef'] as XmlObject | undefined) ?? {};
+			fillRef['@_idx'] = String(shapeStyle.fillRefIdx);
+			this.replaceRefColorChoice(fillRef, shapeStyle.fillRefColorXml);
+			styleNode['a:fillRef'] = fillRef;
+		}
+
+		// effectRef
+		if (shapeStyle.effectRefIdx !== undefined) {
+			const effectRef = (styleNode['a:effectRef'] as XmlObject | undefined) ?? {};
+			effectRef['@_idx'] = String(shapeStyle.effectRefIdx);
+			this.replaceRefColorChoice(effectRef, shapeStyle.effectRefColorXml);
+			styleNode['a:effectRef'] = effectRef;
+		}
+
+		// fontRef
+		if (shapeStyle.fontRefIdx !== undefined) {
+			const fontRef = (styleNode['a:fontRef'] as XmlObject | undefined) ?? {};
+			fontRef['@_idx'] = shapeStyle.fontRefIdx;
+			this.replaceRefColorChoice(fontRef, shapeStyle.fontRefColorXml);
+			styleNode['a:fontRef'] = fontRef;
+		}
+
+		// Reorder children to CT_ShapeStyle order.
+		const reordered = reorderObjectKeys(styleNode, SHAPE_STYLE_ORDER);
+		for (const key of Object.keys(styleNode)) {
+			delete styleNode[key];
+		}
+		for (const key of Object.keys(reordered)) {
+			styleNode[key] = reordered[key];
+		}
+
+		shape['p:style'] = styleNode;
+	}
+
+	/**
+	 * Replace any existing colour-choice child on a style-matrix-reference
+	 * element with the given preserved XML, or strip all colour children
+	 * when the override is undefined.
+	 */
+	private replaceRefColorChoice(refNode: XmlObject, colorXml: XmlObject | undefined): void {
+		// Strip any pre-existing color choice children.
+		for (const key of [
+			'a:scrgbClr',
+			'a:srgbClr',
+			'a:hslClr',
+			'a:sysClr',
+			'a:schemeClr',
+			'a:prstClr',
+		]) {
+			delete refNode[key];
+		}
+		if (!colorXml) {
+			return;
+		}
+		for (const [key, value] of Object.entries(colorXml)) {
+			refNode[key] = value;
 		}
 	}
 }

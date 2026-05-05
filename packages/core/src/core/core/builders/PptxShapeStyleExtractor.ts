@@ -1,4 +1,5 @@
 import type { ConnectorArrowType, ShapeStyle, StrokeDashType, XmlObject } from '../../types';
+import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
 import { applyScene3dStyle, applyShape3dStyle } from './shape-style-3d-helpers';
 import { applyLineProperties } from './shape-style-line-helpers';
 
@@ -15,6 +16,9 @@ export interface PptxShapeStyleExtractorContext {
 	extractGradientPathType: (gradFill: XmlObject) => ShapeStyle['fillGradientPathType'];
 	extractGradientFocalPoint: (gradFill: XmlObject) => ShapeStyle['fillGradientFocalPoint'];
 	extractGradientFillToRect: (gradFill: XmlObject) => ShapeStyle['fillGradientFillToRect'];
+	extractGradientFlip: (gradFill: XmlObject) => ShapeStyle['fillGradientFlip'];
+	extractGradientRotWithShape: (gradFill: XmlObject) => boolean | undefined;
+	extractGradientScaled: (gradFill: XmlObject) => boolean | undefined;
 	normalizeStrokeDashType: (value: unknown) => StrokeDashType | undefined;
 	normalizeConnectorArrowType: (value: unknown) => ConnectorArrowType | undefined;
 	ensureArray: (value: unknown) => unknown[];
@@ -55,6 +59,10 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
 			style.fillMode = 'solid';
 			style.fillColor = this.context.parseColor(solidFill);
 			style.fillOpacity = this.context.extractColorOpacity(solidFill);
+			const solidFillColorXml = extractColorChoiceXml(solidFill);
+			if (solidFillColorXml) {
+				style.fillColorXml = solidFillColorXml;
+			}
 		} else if (gradFill) {
 			style.fillMode = 'gradient';
 			style.fillColor = this.context.extractGradientFillColor(gradFill);
@@ -66,6 +74,18 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
 			style.fillGradientPathType = this.context.extractGradientPathType(gradFill);
 			style.fillGradientFocalPoint = this.context.extractGradientFocalPoint(gradFill);
 			style.fillGradientFillToRect = this.context.extractGradientFillToRect(gradFill);
+			const gradFlip = this.context.extractGradientFlip(gradFill);
+			if (gradFlip) {
+				style.fillGradientFlip = gradFlip;
+			}
+			const gradRot = this.context.extractGradientRotWithShape(gradFill);
+			if (gradRot !== undefined) {
+				style.fillGradientRotWithShape = gradRot;
+			}
+			const gradScaled = this.context.extractGradientScaled(gradFill);
+			if (gradScaled !== undefined) {
+				style.fillGradientScaled = gradScaled;
+			}
 		} else if (pattFill) {
 			style.fillMode = 'pattern';
 			style.fillColor =
@@ -155,10 +175,49 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
 			this.context.resolveThemeEffectRef(styleNode['a:effectRef'] as XmlObject, style);
 		}
 
+		// Persist `<a:fontRef>` indices and override-color XML so they can be
+		// re-emitted in `<p:style>` at save time (Phase 2 Stream B / C-H2).
+		const fontRef = styleNode?.['a:fontRef'] as XmlObject | undefined;
+		if (fontRef) {
+			const idxAttr = String(fontRef['@_idx'] || '').trim();
+			if (idxAttr.length > 0) {
+				style.fontRefIdx = idxAttr;
+			}
+			const overrideColorXml = this.extractFontRefColorXml(fontRef);
+			if (overrideColorXml) {
+				style.fontRefColorXml = overrideColorXml;
+			}
+		}
+
 		applyScene3dStyle(shapeProps, style);
 		applyShape3dStyle(shapeProps, style, this.context);
 
 		return style;
+	}
+
+	/**
+	 * Pull the verbatim colour-choice child out of an `a:fontRef` element,
+	 * preserving any contained colour transforms for round-trip.
+	 */
+	private extractFontRefColorXml(refNode: XmlObject | undefined): XmlObject | undefined {
+		if (!refNode) {
+			return undefined;
+		}
+		const keys = [
+			'a:scrgbClr',
+			'a:srgbClr',
+			'a:hslClr',
+			'a:sysClr',
+			'a:schemeClr',
+			'a:prstClr',
+		] as const;
+		for (const key of keys) {
+			const child = refNode[key];
+			if (child !== undefined) {
+				return { [key]: child } as XmlObject;
+			}
+		}
+		return undefined;
 	}
 
 	/**

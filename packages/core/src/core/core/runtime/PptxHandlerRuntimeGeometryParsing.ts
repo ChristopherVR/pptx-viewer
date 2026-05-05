@@ -1,3 +1,4 @@
+import { svgToCustomGeometryPaths } from '../../geometry/custom-geometry';
 import {
 	parseGuideDefinitions,
 	parseAdjustmentValues,
@@ -7,7 +8,12 @@ import {
 	createBuiltinVariables,
 } from '../../geometry/guide-formula';
 import { XmlObject, ShapeStyle } from '../../types';
-import type { PptxImageLikeElement, GeometryAdjustmentHandle } from '../../types';
+import type {
+	CustomGeometryPath,
+	CustomGeometryRawData,
+	PptxImageLikeElement,
+	GeometryAdjustmentHandle,
+} from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimePlaceholderLookup';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -145,6 +151,118 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		return handles.length > 0 ? handles : undefined;
+	}
+
+	/**
+	 * Extract `a:gdLst`/`a:ahLst`/`a:cxnLst`/`a:rect` raw XML from a `a:custGeom`
+	 * node so they can be re-emitted on save when the geometry is edited.
+	 * Returns `undefined` when none of these auxiliary children carry data.
+	 */
+	protected extractCustomGeometryRawData(
+		custGeom: XmlObject | undefined,
+	): CustomGeometryRawData | undefined {
+		if (!custGeom) {
+			return undefined;
+		}
+		const isNonEmpty = (node: unknown): boolean => {
+			if (node === undefined || node === null) {
+				return false;
+			}
+			if (typeof node !== 'object') {
+				return true;
+			}
+			return Object.keys(node as Record<string, unknown>).length > 0;
+		};
+		const result: CustomGeometryRawData = {};
+		const gdLst = custGeom['a:gdLst'];
+		if (isNonEmpty(gdLst)) {
+			result.gdLstXml = gdLst;
+		}
+		const ahLst = custGeom['a:ahLst'];
+		if (isNonEmpty(ahLst)) {
+			result.ahLstXml = ahLst;
+		}
+		const cxnLst = custGeom['a:cxnLst'];
+		if (isNonEmpty(cxnLst)) {
+			result.cxnLstXml = cxnLst;
+		}
+		const rect = custGeom['a:rect'];
+		if (isNonEmpty(rect)) {
+			result.rectXml = rect;
+		}
+		return Object.keys(result).length > 0 ? result : undefined;
+	}
+
+	/**
+	 * Build structured `CustomGeometryPath[]` from a parsed `a:custGeom` node,
+	 * including per-path `@fill`/`@stroke`/`@extrusionOk` attributes so they
+	 * survive a round-trip when the path list is later regenerated.
+	 *
+	 * Falls back to SVG → structured-path conversion when no structured path
+	 * info is otherwise available.
+	 */
+	protected buildStructuredCustomGeometryPaths(
+		custGeom: XmlObject | undefined,
+		pathData: string,
+		pathWidth: number,
+		pathHeight: number,
+	): CustomGeometryPath[] | undefined {
+		if (!custGeom) {
+			return undefined;
+		}
+		const pathLst = custGeom['a:pathLst'] as XmlObject | undefined;
+		if (!pathLst) {
+			return undefined;
+		}
+		const pathNodes = this.ensureArray(pathLst['a:path']) as XmlObject[];
+		if (pathNodes.length === 0) {
+			return undefined;
+		}
+		const segments = svgToCustomGeometryPaths(pathData, pathWidth, pathHeight);
+		if (segments.length === 0) {
+			return undefined;
+		}
+
+		const validFillModes = new Set([
+			'norm',
+			'lighten',
+			'lightenLess',
+			'darken',
+			'darkenLess',
+			'none',
+		]);
+		const parseBoolAttr = (value: unknown): boolean | undefined => {
+			if (value === undefined || value === null || value === '') {
+				return undefined;
+			}
+			if (value === '1' || value === 'true' || value === true) {
+				return true;
+			}
+			if (value === '0' || value === 'false' || value === false) {
+				return false;
+			}
+			return undefined;
+		};
+
+		// Apply path-level attributes from the first XML path to the (single)
+		// re-derived structured path. When the original had multiple paths but
+		// re-derivation collapsed them into one, we still preserve the first
+		// path's attributes so single-path documents (the common case) survive.
+		const target = segments[0];
+		const firstNode = pathNodes[0];
+		const fillAttr = String(firstNode['@_fill'] ?? '').trim();
+		if (validFillModes.has(fillAttr)) {
+			target.fillMode = fillAttr as CustomGeometryPath['fillMode'];
+		}
+		const strokeAttr = parseBoolAttr(firstNode['@_stroke']);
+		if (strokeAttr !== undefined) {
+			target.stroke = strokeAttr;
+		}
+		const extrusionAttr = parseBoolAttr(firstNode['@_extrusionOk']);
+		if (extrusionAttr !== undefined) {
+			target.extrusionOk = extrusionAttr;
+		}
+		return segments;
 	}
 
 	protected parseCustomGeometry(

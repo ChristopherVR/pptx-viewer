@@ -66,6 +66,15 @@ import type { Pptx3DScene, Pptx3DShape } from './three-d';
  */
 export interface ShapeStyle {
 	fillColor?: string;
+	/**
+	 * Raw XML colour-choice node preserved from `a:solidFill` for round-trip
+	 * serialisation. Captures `a:schemeClr` / `a:sysClr` / `a:prstClr` /
+	 * `a:srgbClr` plus colour transforms (`lumMod`, `lumOff`, `tint`,
+	 * `shade`, `satMod`, `alpha`, …). On save we re-emit verbatim when the
+	 * resolved {@link fillColor} still matches this node, otherwise we fall
+	 * back to canonical `<a:srgbClr>`.
+	 */
+	fillColorXml?: XmlObject;
 	fillGradient?: string;
 	fillMode?: 'solid' | 'gradient' | 'pattern' | 'none' | 'image' | 'theme' | 'group';
 	fillPatternPreset?: string;
@@ -96,13 +105,30 @@ export interface ShapeStyle {
 	 *  Defines the inner rectangle where the gradient reaches its final stop.
 	 *  l/t are insets from left/top edges; r/b are insets from right/bottom edges. */
 	fillGradientFillToRect?: { l: number; t: number; r: number; b: number };
+	/** Gradient tile flip mode (`a:gradFill/@flip`).
+	 *  `none` = no tiling flip (default), `x|y|xy` = mirror in the named axis. */
+	fillGradientFlip?: 'none' | 'x' | 'y' | 'xy';
+	/** Whether the gradient rotates with the shape (`a:gradFill/@rotWithShape`).
+	 *  Defaults to true per the schema; preserved for round-trip when the source
+	 *  authored the attribute explicitly. */
+	fillGradientRotWithShape?: boolean;
+	/** Whether the linear gradient is scaled to the shape (`a:lin/@scaled`).
+	 *  Defaults to true per the schema; preserved for round-trip. */
+	fillGradientScaled?: boolean;
 	fillOpacity?: number;
 	strokeColor?: string;
+	/**
+	 * Raw XML colour-choice node preserved from `a:ln/a:solidFill` for
+	 * round-trip serialisation. See {@link fillColorXml} for the rationale.
+	 */
+	strokeColorXml?: XmlObject;
 	strokeWidth?: number;
 	strokeOpacity?: number;
 	strokeDash?: StrokeDashType;
 	/** Line join style (`a:ln/@join`): round, bevel, or miter. */
 	lineJoin?: 'round' | 'bevel' | 'miter';
+	/** Miter limit (`a:miter/@lim`) in EMU-percent units (default 800000 = 8.0). Only meaningful when lineJoin is 'miter'. */
+	miterLimit?: number;
 	/** Line cap style (`a:ln/@cap`): flat, rnd, or sq. */
 	lineCap?: 'flat' | 'rnd' | 'sq';
 	/** Compound line type (`a:ln/@cmpd`). */
@@ -120,6 +146,34 @@ export interface ShapeStyle {
 	shadowDistance?: number;
 	/** Whether shadow rotates with shape. Parsed from `@_rotWithShape`. */
 	shadowRotateWithShape?: boolean;
+	/** Outer-shadow horizontal scaling (`a:outerShdw/@sx`) in 1000ths of a percent (default 100000 = 100%). */
+	shadowScaleX?: number;
+	/** Outer-shadow vertical scaling (`a:outerShdw/@sy`). */
+	shadowScaleY?: number;
+	/** Outer-shadow horizontal skew (`a:outerShdw/@kx`) in 60000ths of a degree. */
+	shadowSkewX?: number;
+	/** Outer-shadow vertical skew (`a:outerShdw/@ky`). */
+	shadowSkewY?: number;
+	/** Outer-shadow alignment (`a:outerShdw/@algn`). */
+	shadowAlignment?: 'tl' | 't' | 'tr' | 'l' | 'ctr' | 'r' | 'bl' | 'b' | 'br';
+	/** Inner-shadow rotateWithShape (`a:innerShdw/@rotWithShape`). */
+	innerShadowRotateWithShape?: boolean;
+	/** Reflection fade direction (`a:reflection/@fadeDir`) in 60000ths of a degree. */
+	reflectionFadeDirection?: number;
+	/** Reflection horizontal scaling (`a:reflection/@sx`). */
+	reflectionScaleX?: number;
+	/** Reflection vertical scaling (`a:reflection/@sy`). */
+	reflectionScaleY?: number;
+	/** Reflection horizontal skew (`a:reflection/@kx`). */
+	reflectionSkewX?: number;
+	/** Reflection vertical skew (`a:reflection/@ky`). */
+	reflectionSkewY?: number;
+	/** Reflection alignment (`a:reflection/@algn`). */
+	reflectionAlignment?: 'tl' | 't' | 'tr' | 'l' | 'ctr' | 'r' | 'bl' | 'b' | 'br';
+	/** Reflection rotateWithShape (`a:reflection/@rotWithShape`). */
+	reflectionRotateWithShape?: boolean;
+	/** Reflection start position (`a:reflection/@stPos`) as 0-1 fraction. */
+	reflectionStartPosition?: number;
 	/** Multiple shadow layers (for advanced effects). */
 	shadows?: ShadowEffect[];
 	glowColor?: string;
@@ -219,4 +273,27 @@ export interface ShapeStyle {
 	dagDuotone?: { color1: string; color2: string };
 	/** Fill overlay blend mode from effectDag `a:fillOverlay/@blend`. */
 	dagFillOverlayBlend?: 'over' | 'mult' | 'screen' | 'darken' | 'lighten';
+
+	// ── Style references (CT_ShapeStyle §20.1.2.2.36) ─────────────────────
+	// These mirror the `<p:style>` element on a shape. They preserve the
+	// theme matrix indices so PowerPoint's Recolor / Reset / Quick Style
+	// behaviour continues to work after a save round-trip. The override
+	// colour XML inside each ref is preserved verbatim for re-emission.
+
+	/** `<a:lnRef @idx>` — 1-based index into the theme's lnStyleLst. */
+	lnRefIdx?: number;
+	/** Raw XML colour child of `<a:lnRef>` (e.g. `<a:schemeClr>` with transforms). */
+	lnRefColorXml?: XmlObject;
+	/** `<a:fillRef @idx>` — 1-based index into fillStyleLst (1-3) or bgFillStyleLst (1001-1003). */
+	fillRefIdx?: number;
+	/** Raw XML colour child of `<a:fillRef>`. */
+	fillRefColorXml?: XmlObject;
+	/** `<a:effectRef @idx>` — 1-based index into the theme's effectStyleLst. */
+	effectRefIdx?: number;
+	/** Raw XML colour child of `<a:effectRef>`. */
+	effectRefColorXml?: XmlObject;
+	/** `<a:fontRef @idx>` — typically `major`, `minor`, or `none`. */
+	fontRefIdx?: string;
+	/** Raw XML colour child of `<a:fontRef>`. */
+	fontRefColorXml?: XmlObject;
 }

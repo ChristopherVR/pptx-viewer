@@ -45,6 +45,7 @@ export interface IPptxColorStyleCodec {
 	extractEffectDagStyle(shapeProps: XmlObject): Partial<ShapeStyle>;
 	buildGradientFillXml(shapeStyle: ShapeStyle): XmlObject | undefined;
 	buildOuterShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined;
+	buildPresetShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined;
 	buildInnerShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined;
 	buildGlowXml(shapeStyle: ShapeStyle): XmlObject | undefined;
 	buildSoftEdgeXml(shapeStyle: ShapeStyle): XmlObject | undefined;
@@ -55,6 +56,9 @@ export interface IPptxColorStyleCodec {
 	extractGradientPathType(gradFill: XmlObject): ShapeStyle['fillGradientPathType'];
 	extractGradientFocalPoint(gradFill: XmlObject): ShapeStyle['fillGradientFocalPoint'];
 	extractGradientFillToRect(gradFill: XmlObject): ShapeStyle['fillGradientFillToRect'];
+	extractGradientFlip(gradFill: XmlObject): ShapeStyle['fillGradientFlip'];
+	extractGradientRotWithShape(gradFill: XmlObject): boolean | undefined;
+	extractGradientScaled(gradFill: XmlObject): boolean | undefined;
 }
 
 export class PptxColorStyleCodec implements IPptxColorStyleCodec {
@@ -241,6 +245,10 @@ export class PptxColorStyleCodec implements IPptxColorStyleCodec {
 		return this.shapeEffectXmlCodec.buildOuterShadowXml(shapeStyle);
 	}
 
+	public buildPresetShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined {
+		return this.shapeEffectXmlCodec.buildPresetShadowXml(shapeStyle);
+	}
+
 	public buildInnerShadowXml(shapeStyle: ShapeStyle): XmlObject | undefined {
 		return this.shapeEffectXmlCodec.buildInnerShadowXml(shapeStyle);
 	}
@@ -267,6 +275,18 @@ export class PptxColorStyleCodec implements IPptxColorStyleCodec {
 
 	public extractGradientFillColor(gradFill: XmlObject): string | undefined {
 		return this.gradientStyleCodec.extractGradientFillColor(gradFill);
+	}
+
+	public extractGradientFlip(gradFill: XmlObject): ShapeStyle['fillGradientFlip'] {
+		return this.gradientStyleCodec.extractGradientFlip(gradFill);
+	}
+
+	public extractGradientRotWithShape(gradFill: XmlObject): boolean | undefined {
+		return this.gradientStyleCodec.extractGradientRotWithShape(gradFill);
+	}
+
+	public extractGradientScaled(gradFill: XmlObject): boolean | undefined {
+		return this.gradientStyleCodec.extractGradientScaled(gradFill);
 	}
 
 	public extractGradientPathType(gradFill: XmlObject): ShapeStyle['fillGradientPathType'] {

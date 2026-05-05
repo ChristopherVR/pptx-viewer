@@ -226,6 +226,30 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			segments.push({ text: '\n', style: { ...mergedDefaultRunStyle } });
 		}
 
+		// Attach paragraph-level metadata to the first segment of this
+		// paragraph so it survives a round-trip. Matches the existing
+		// convention used for `bulletInfo`.
+		const firstSegmentIndex = segments.length === 0 ? -1 : 0;
+		if (firstSegmentIndex >= 0) {
+			const pPrRaw = p['a:pPr'] as XmlObject | undefined;
+			const lvlRaw = pPrRaw?.['@_lvl'];
+			if (lvlRaw !== undefined) {
+				const lvlParsed = Number.parseInt(String(lvlRaw), 10);
+				if (Number.isFinite(lvlParsed) && lvlParsed > 0) {
+					segments[firstSegmentIndex].paragraphLevel = Math.min(Math.max(lvlParsed, 0), 8);
+				}
+			}
+			const endParaRPrRaw = p['a:endParaRPr'];
+			if (endParaRPrRaw && typeof endParaRPrRaw === 'object') {
+				// Shallow clone so later mutations on the writer side don't
+				// leak back into the parsed XML object that other parts of
+				// the load pipeline still hold a reference to.
+				segments[firstSegmentIndex].endParaRunProperties = {
+					...(endParaRPrRaw as Record<string, unknown>),
+				};
+			}
+		}
+
 		return { parts, segments, seedStyle };
 	}
 

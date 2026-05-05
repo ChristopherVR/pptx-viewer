@@ -140,6 +140,55 @@ export const SHAPE_TREE_ELEMENT_TAGS = new Set([
 ]);
 
 /**
+ * Record of a single `mc:AlternateContent` block resolved during parse.
+ *
+ * Captured by {@link unwrapAlternateContent} so the runtime can reproduce
+ * the original `<mc:Choice>` / `<mc:Fallback>` envelope on dirty save.
+ *
+ * `rawAc` is the parsed AC envelope object exactly as fast-xml-parser
+ * produced it (containing one or more `mc:Choice` children plus an
+ * optional `mc:Fallback`).  `selectedBranch` indicates which branch was
+ * merged into the spTree at parse time.  `choiceIndex` (when branch is
+ * `choice`) identifies which `mc:Choice` was selected — needed for
+ * AC blocks containing multiple Choices.  `childRefs` holds the actual
+ * XmlObject references that were appended to the parent container —
+ * used by the save layer to associate parsed elements with this block.
+ */
+export interface AlternateContentBlock {
+	rawAc: XmlObject;
+	selectedBranch: 'choice' | 'fallback';
+	choiceIndex?: number;
+	childRefs: Array<{ tag: string; node: XmlObject }>;
+}
+
+/**
+ * Internal: locate which Choice (by index) `selectAlternateContentBranch`
+ * picked, mirroring its iteration order.  Returns `{ branch, choiceIndex }`
+ * for Choice selection, or `{ branch: 'fallback' }` for fallback.
+ */
+function diagnoseSelection(
+	ac: XmlObject,
+):
+	| { branch: 'choice'; choiceIndex: number; resolved: XmlObject }
+	| { branch: 'fallback'; resolved: XmlObject }
+	| undefined {
+	const choices = ensureArray(ac['mc:Choice']);
+	for (let i = 0; i < choices.length; i++) {
+		const choice = choices[i];
+		const requires = String(choice?.['@_Requires'] ?? '').trim();
+		if (requires.length === 0 || areNamespacesSupported(requires)) {
+			const resolved = resolveNestedAlternateContent(choice as XmlObject);
+			return { branch: 'choice', choiceIndex: i, resolved };
+		}
+	}
+	const fallback = ac['mc:Fallback'] as XmlObject | undefined;
+	if (fallback) {
+		return { branch: 'fallback', resolved: resolveNestedAlternateContent(fallback) };
+	}
+	return undefined;
+}
+
+/**
  * Unwrap mc:AlternateContent elements within a shape tree (or group)
  * container, merging the selected branch's children into the parent
  * element arrays.
@@ -147,25 +196,51 @@ export const SHAPE_TREE_ELEMENT_TAGS = new Set([
  * This mutates the container in-place: mc:AlternateContent entries are
  * consumed, and their resolved element children (p:sp, p:pic, etc.) are
  * appended to the corresponding arrays on the container.
+ *
+ * Returns a list of `AlternateContentBlock` records — one per consumed AC
+ * envelope — so callers can preserve the original Choice/Fallback shape
+ * on save (CC-4).  The returned `childRefs` reference the same XmlObject
+ * instances that were merged into the container, so callers can identify
+ * them later via reference equality.
  */
-export function unwrapAlternateContent(container: Record<string, unknown>): void {
+export function unwrapAlternateContent(
+	container: Record<string, unknown>,
+): AlternateContentBlock[] {
 	const altContents = ensureArray(container['mc:AlternateContent']);
 	if (altContents.length === 0) {
-		return;
+		return [];
 	}
 
+	const blocks: AlternateContentBlock[] = [];
 	for (const ac of altContents) {
-		const branch = selectAlternateContentBranch(ac as XmlObject);
-		if (!branch) {
+		const diagnosis = diagnoseSelection(ac as XmlObject);
+		if (!diagnosis) {
 			continue;
 		}
+		const block: AlternateContentBlock = {
+			rawAc: ac as XmlObject,
+			selectedBranch: diagnosis.branch,
+			choiceIndex: diagnosis.branch === 'choice' ? diagnosis.choiceIndex : undefined,
+			childRefs: [],
+		};
+		const branch = diagnosis.resolved;
 		for (const tag of SHAPE_TREE_ELEMENT_TAGS) {
 			const children = ensureArray(branch[tag]);
 			if (children.length > 0) {
 				container[tag] = [...ensureArray(container[tag]), ...children];
+				for (const child of children) {
+					block.childRefs.push({ tag, node: child });
+				}
 			}
 		}
+		if (block.childRefs.length > 0) {
+			blocks.push(block);
+		}
 	}
+	// Drop the now-consumed AC envelopes so downstream document-order
+	// scanning doesn't double-process them.
+	delete container['mc:AlternateContent'];
+	return blocks;
 }
 
 /**

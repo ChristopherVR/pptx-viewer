@@ -431,3 +431,66 @@ describe('recalculatePathBounds', () => {
 		expect(bounds.height).toBe(150);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// customGeometryPathsToXml — Phase 5 Stream A item 5 (G-H1, G-H2)
+// ---------------------------------------------------------------------------
+
+describe('customGeometryPathsToXml — round-trip extension', () => {
+	it('preserves raw a:gdLst / a:ahLst / a:cxnLst / a:rect when provided', () => {
+		const paths: CustomGeometryPath[] = [
+			{
+				width: 100,
+				height: 100,
+				segments: [
+					{ type: 'moveTo', pt: { x: 0, y: 0 } },
+					{ type: 'lineTo', pt: { x: 100, y: 100 } },
+				],
+			},
+		];
+		const rawData = {
+			gdLstXml: { 'a:gd': [{ '@_name': 'g1', '@_fmla': 'val 21600' }] },
+			ahLstXml: { 'a:ahXY': { '@_gdRefX': 'adj1', 'a:pos': { '@_x': '50', '@_y': '50' } } },
+			cxnLstXml: { 'a:cxn': { '@_ang': '0', 'a:pos': { '@_x': '0', '@_y': '50' } } },
+			rectXml: { '@_l': 'g1', '@_t': '0', '@_r': '100', '@_b': '100' },
+		};
+		const xml = customGeometryPathsToXml(paths, rawData);
+		expect(xml['a:gdLst']).toBe(rawData.gdLstXml);
+		expect(xml['a:ahLst']).toBe(rawData.ahLstXml);
+		expect(xml['a:cxnLst']).toBe(rawData.cxnLstXml);
+		expect(xml['a:rect']).toBe(rawData.rectXml);
+	});
+
+	it('emits path-level @_fill, @_stroke, @_extrusionOk attributes (G-H2)', () => {
+		const paths: CustomGeometryPath[] = [
+			{
+				width: 100,
+				height: 100,
+				segments: [{ type: 'moveTo', pt: { x: 0, y: 0 } }],
+				fillMode: 'darken',
+				stroke: false,
+				extrusionOk: true,
+			},
+		];
+		const xml = customGeometryPathsToXml(paths);
+		const pathXml = xml['a:pathLst']['a:path'];
+		expect(pathXml['@_fill']).toBe('darken');
+		expect(pathXml['@_stroke']).toBe('0');
+		expect(pathXml['@_extrusionOk']).toBe('1');
+	});
+
+	it('omits path-level attributes when not specified', () => {
+		const paths: CustomGeometryPath[] = [
+			{
+				width: 100,
+				height: 100,
+				segments: [{ type: 'moveTo', pt: { x: 0, y: 0 } }],
+			},
+		];
+		const xml = customGeometryPathsToXml(paths);
+		const pathXml = xml['a:pathLst']['a:path'];
+		expect(pathXml['@_fill']).toBeUndefined();
+		expect(pathXml['@_stroke']).toBeUndefined();
+		expect(pathXml['@_extrusionOk']).toBeUndefined();
+	});
+});

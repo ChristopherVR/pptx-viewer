@@ -1,5 +1,39 @@
 import type { XmlObject } from '../../types';
 
+/**
+ * Detect whether a relationship `Target` requires `TargetMode="External"`.
+ *
+ * Per ECMA-376 §15.3, every non-relative target requires the External
+ * target mode. The OPC spec defines a relative reference as a path that
+ * does not begin with a URI scheme (RFC 3986 §3.1: `scheme = ALPHA *(
+ * ALPHA / DIGIT / "+" / "-" / "." )`). We therefore treat any target
+ * whose first component before `:` is a valid scheme as external —
+ * `https:`, `mailto:`, `tel:`, `ms-teams:`, `skype:`, custom URIs, etc.
+ *
+ * Anything that starts with `/`, `./`, `..`, or has no `:` (or the `:`
+ * appears after a `/` — meaning it's part of a fragment / query) is
+ * treated as an internal package-relative reference.
+ */
+export function isExternalTarget(target: string): boolean {
+	const normalized = target.trim();
+	if (normalized.length === 0) {
+		return false;
+	}
+	// Match a leading RFC 3986 scheme followed by ':'. The scheme cannot
+	// contain '/', so we look for the first ':' and check it appears
+	// before any '/'.
+	const colonIdx = normalized.indexOf(':');
+	if (colonIdx <= 0) {
+		return false;
+	}
+	const slashIdx = normalized.indexOf('/');
+	if (slashIdx !== -1 && slashIdx < colonIdx) {
+		return false;
+	}
+	const scheme = normalized.slice(0, colonIdx);
+	return /^[A-Za-z][A-Za-z0-9+\-.]*$/.test(scheme);
+}
+
 export interface PptxSlideCommentRelationshipInfo {
 	relationshipId: string;
 	target: string;
@@ -115,9 +149,7 @@ export class PptxSlideRelationshipRegistry implements IPptxSlideRelationshipRegi
 		}
 
 		const relationshipId = this.nextRelationshipId();
-		const targetMode = /^(https?:|mailto:|ftp:|file:)/i.test(normalizedTarget)
-			? 'External'
-			: undefined;
+		const targetMode = isExternalTarget(normalizedTarget) ? 'External' : undefined;
 		this.upsertRelationship(
 			relationshipId,
 			this.hyperlinkRelationshipType,

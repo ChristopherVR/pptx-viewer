@@ -374,16 +374,30 @@ describe('parseBodyHOverflow', () => {
 		expect(parseBodyHOverflow(undefined)).toBeUndefined();
 	});
 
-	it('parses "overflow"', () => {
+	it('parses spec-form "overflow"', () => {
+		expect(parseBodyHOverflow({ '@_horzOverflow': 'overflow' })).toBe('overflow');
+	});
+
+	it('parses spec-form "clip"', () => {
+		expect(parseBodyHOverflow({ '@_horzOverflow': 'clip' })).toBe('clip');
+	});
+
+	it('parses legacy "overflow" via fallback', () => {
 		expect(parseBodyHOverflow({ '@_hOverflow': 'overflow' })).toBe('overflow');
 	});
 
-	it('parses "clip"', () => {
+	it('parses legacy "clip" via fallback', () => {
 		expect(parseBodyHOverflow({ '@_hOverflow': 'clip' })).toBe('clip');
 	});
 
+	it('prefers spec-form over legacy when both present', () => {
+		expect(parseBodyHOverflow({ '@_horzOverflow': 'clip', '@_hOverflow': 'overflow' })).toBe(
+			'clip',
+		);
+	});
+
 	it('returns undefined for unknown value', () => {
-		expect(parseBodyHOverflow({ '@_hOverflow': 'wrap' })).toBeUndefined();
+		expect(parseBodyHOverflow({ '@_horzOverflow': 'wrap' })).toBeUndefined();
 	});
 });
 

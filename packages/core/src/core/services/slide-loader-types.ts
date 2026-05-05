@@ -94,6 +94,13 @@ export interface PptxSlideLoaderParams {
 	parseSlideClrMapOverride: (slideXml: XmlObject) => Record<string, string> | null;
 	/** Set the active color map override for the current slide being parsed. */
 	setCurrentSlideClrMapOverride: (override: Record<string, string> | null) => void;
+	/**
+	 * Set the master-level state (clrMap + theme color/font/format scheme)
+	 * for the slide currently being parsed. Implementations resolve the
+	 * slide → layout → master chain and switch the active per-master
+	 * theme state. Called once per slide load. Phase 2 Stream B / C-H4.
+	 */
+	setActiveMasterForSlide?: (slidePath: string) => void | Promise<void>;
 	/** Resolve the layout file path associated with a given slide path. */
 	findLayoutPathForSlide: (slidePath: string) => string | undefined;
 	/** Load theme override data from a layout or slide part. */

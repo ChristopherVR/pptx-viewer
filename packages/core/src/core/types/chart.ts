@@ -268,6 +268,12 @@ export interface PptxChartAxisFormatting {
 	logScale?: boolean;
 	/** Logarithmic base value (c:scaling/c:logBase/@val), typically 10 or e. */
 	logBase?: number;
+	/** Major-unit interval between primary tick marks (c:majorUnit/@val). */
+	majorUnit?: number;
+	/** Minor-unit interval between secondary tick marks (c:minorUnit/@val). */
+	minorUnit?: number;
+	/** Tick-label position (c:tickLblPos/@val): 'high', 'low', 'nextTo', or 'none'. */
+	tickLblPos?: 'high' | 'low' | 'nextTo' | 'none';
 }
 
 /** 3D wall or floor element formatting. */

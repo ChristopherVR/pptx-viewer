@@ -107,6 +107,10 @@ describe('pptxShapeEffectXmlCodec', () => {
 						'@_dir': '5400000',
 						'@_algn': 'tl',
 						'@_rotWithShape': '0',
+						'@_sx': '90000',
+						'@_sy': '90000',
+						'@_kx': '60000',
+						'@_ky': '60000',
 						'a:srgbClr': {
 							'@_val': '000000',
 							'a:alpha': { '@_val': '43000' },
@@ -115,7 +119,13 @@ describe('pptxShapeEffectXmlCodec', () => {
 				},
 			};
 			const result = codec.extractShadowStyle(shapeProps);
-			expect(result.shadowRotateWithShape).toBeUndefined();
+			// '@_rotWithShape': '0' parses to false (CT_OuterShadowEffect §20.1.8.45).
+			expect(result.shadowRotateWithShape).toBeFalsy();
+			expect(result.shadowAlignment).toBe('tl');
+			expect(result.shadowScaleX).toBe(90000);
+			expect(result.shadowScaleY).toBe(90000);
+			expect(result.shadowSkewX).toBe(60000);
+			expect(result.shadowSkewY).toBe(60000);
 		});
 
 		it('should compute shadowOffsetX/Y from distance and direction', () => {
@@ -527,6 +537,163 @@ describe('pptxShapeEffectXmlCodec', () => {
 
 		it('should return undefined when no line effects are defined', () => {
 			expect(codec.buildLineEffectListXml({} as ShapeStyle)).toBeUndefined();
+		});
+	});
+
+	// ---------------------------------------------------------------------
+	// Phase 5 Stream A item 1 — additional shadow/reflection attrs (E-H4)
+	// ---------------------------------------------------------------------
+	describe('shadow/reflection extra attributes (E-H4)', () => {
+		it('round-trips outerShdw sx/sy/kx/ky/algn', () => {
+			const shapeProps: XmlObject = {
+				'a:effectLst': {
+					'a:outerShdw': {
+						'@_blurRad': '50800',
+						'@_dist': '38100',
+						'@_dir': '0',
+						'@_sx': '90000',
+						'@_sy': '110000',
+						'@_kx': '60000',
+						'@_ky': '120000',
+						'@_algn': 'br',
+						'a:srgbClr': { '@_val': '000000' },
+					},
+				},
+			};
+			const parsed = codec.extractShadowStyle(shapeProps);
+			expect(parsed.shadowScaleX).toBe(90000);
+			expect(parsed.shadowScaleY).toBe(110000);
+			expect(parsed.shadowSkewX).toBe(60000);
+			expect(parsed.shadowSkewY).toBe(120000);
+			expect(parsed.shadowAlignment).toBe('br');
+
+			// Round-trip emit
+			const xml = codec.buildOuterShadowXml({
+				shadowColor: '#000000',
+				shadowAngle: 0,
+				shadowDistance: 4,
+				shadowScaleX: 90000,
+				shadowScaleY: 110000,
+				shadowSkewX: 60000,
+				shadowSkewY: 120000,
+				shadowAlignment: 'br',
+			} as ShapeStyle);
+			expect(xml).toBeDefined();
+			expect(xml!['@_sx']).toBe('90000');
+			expect(xml!['@_sy']).toBe('110000');
+			expect(xml!['@_kx']).toBe('60000');
+			expect(xml!['@_ky']).toBe('120000');
+			expect(xml!['@_algn']).toBe('br');
+		});
+
+		it('round-trips innerShdw rotWithShape', () => {
+			const shapeProps: XmlObject = {
+				'a:effectLst': {
+					'a:innerShdw': {
+						'@_blurRad': '50800',
+						'@_dist': '0',
+						'@_dir': '0',
+						'@_rotWithShape': '0',
+						'a:srgbClr': { '@_val': '000000' },
+					},
+				},
+			};
+			const parsed = codec.extractInnerShadowStyle(shapeProps);
+			expect(parsed.innerShadowRotateWithShape).toBeFalsy();
+
+			const xml = codec.buildInnerShadowXml({
+				innerShadowColor: '#000000',
+				innerShadowOffsetX: 0,
+				innerShadowOffsetY: 0,
+				innerShadowBlur: 6,
+				innerShadowOpacity: 0.5,
+				innerShadowRotateWithShape: false,
+			} as ShapeStyle);
+			expect(xml).toBeDefined();
+			expect(xml!['@_rotWithShape']).toBe('0');
+		});
+
+		it('round-trips reflection fadeDir/sx/sy/kx/ky/algn/rotWithShape/stPos', () => {
+			const shapeProps: XmlObject = {
+				'a:effectLst': {
+					'a:reflection': {
+						'@_blurRad': '6350',
+						'@_stA': '60000',
+						'@_endA': '300',
+						'@_endPos': '60000',
+						'@_dist': '5000',
+						'@_dir': '5400000',
+						'@_fadeDir': '5400000',
+						'@_sx': '100000',
+						'@_sy': '-100000',
+						'@_kx': '0',
+						'@_ky': '0',
+						'@_algn': 'bl',
+						'@_rotWithShape': '0',
+						'@_stPos': '0',
+					},
+				},
+			};
+			const parsed = codec.extractReflectionStyle(shapeProps);
+			expect(parsed.reflectionFadeDirection).toBe(90);
+			expect(parsed.reflectionScaleX).toBe(100000);
+			expect(parsed.reflectionScaleY).toBe(-100000);
+			expect(parsed.reflectionSkewX).toBe(0);
+			expect(parsed.reflectionSkewY).toBe(0);
+			expect(parsed.reflectionAlignment).toBe('bl');
+			expect(parsed.reflectionRotateWithShape).toBeFalsy();
+			expect(parsed.reflectionStartPosition).toBe(0);
+
+			const xml = codec.buildReflectionXml({
+				reflectionBlurRadius: 0.5,
+				reflectionStartOpacity: 0.6,
+				reflectionEndOpacity: 0.003,
+				reflectionEndPosition: 0.6,
+				reflectionDistance: 0.5,
+				reflectionDirection: 90,
+				reflectionFadeDirection: 90,
+				reflectionScaleX: 100000,
+				reflectionScaleY: -100000,
+				reflectionSkewX: 0,
+				reflectionSkewY: 0,
+				reflectionAlignment: 'bl',
+				reflectionRotateWithShape: false,
+				reflectionStartPosition: 0,
+			} as ShapeStyle);
+			expect(xml).toBeDefined();
+			expect(xml!['@_fadeDir']).toBe('5400000');
+			expect(xml!['@_sx']).toBe('100000');
+			expect(xml!['@_sy']).toBe('-100000');
+			expect(xml!['@_kx']).toBe('0');
+			expect(xml!['@_ky']).toBe('0');
+			expect(xml!['@_algn']).toBe('bl');
+			expect(xml!['@_rotWithShape']).toBe('0');
+			expect(xml!['@_stPos']).toBe('0');
+		});
+	});
+
+	// ---------------------------------------------------------------------
+	// Phase 5 Stream A item 2 — prstShdw writer (E-H5)
+	// ---------------------------------------------------------------------
+	describe('buildPresetShadowXml (E-H5)', () => {
+		it('emits a:prstShdw with @prst, @dist, @dir and color', () => {
+			const xml = codec.buildPresetShadowXml({
+				presetShadowName: 'shdw3',
+				shadowColor: '#FF0000',
+				shadowOpacity: 0.5,
+				shadowAngle: 90,
+				shadowDistance: 4,
+			} as ShapeStyle);
+			expect(xml).toBeDefined();
+			expect(xml!['@_prst']).toBe('shdw3');
+			expect(xml!['@_dir']).toBe('5400000');
+			expect(xml!['@_dist']).toBe('38100'); // 4 * 9525
+			const srgb = xml!['a:srgbClr'] as XmlObject;
+			expect(srgb['@_val']).toBe('FF0000');
+		});
+
+		it('returns undefined when presetShadowName is not set', () => {
+			expect(codec.buildPresetShadowXml({} as ShapeStyle)).toBeUndefined();
 		});
 	});
 });

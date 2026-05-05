@@ -96,10 +96,26 @@ export function getConnectorPathGeometry(
 	const normalizedType = (element.shapeType || '').toLowerCase();
 	/** Format a coordinate pair, rounding to integers for clean SVG output. */
 	const point = (x: number, y: number) => `${Math.round(x)} ${Math.round(y)}`;
-	const startX = 0;
-	const startY = 0;
-	const endX = width;
-	const endY = height;
+
+	// G-H3: connectors carry the same `flipH` / `flipV` semantics as
+	// other DrawingML shapes, but unlike a plain rect the flip changes
+	// which CORNER the start sits at. For straight / curved connectors
+	// the visual result is identical to a CSS flip of the same SVG
+	// path, but for elbow (`bentConnector*`) the routing geometry
+	// fundamentally depends on the start corner — an L-shape that bends
+	// right-then-down becomes left-then-down when flipH is applied.
+	//
+	// We model this by adjusting `startX` / `startY` / `endX` / `endY`:
+	//   - default:  start (0,0)         → end (W,H)
+	//   - flipH:    start (W,0)         → end (0,H)
+	//   - flipV:    start (0,H)         → end (W,0)
+	//   - flipH+V:  start (W,H)         → end (0,0)
+	const flipH = Boolean(element.flipHorizontal);
+	const flipV = Boolean(element.flipVertical);
+	const startX = flipH ? width : 0;
+	const startY = flipV ? height : 0;
+	const endX = flipH ? 0 : width;
+	const endY = flipV ? 0 : height;
 
 	// ── bentConnector5 — 4-segment elbow ──────────────────────────────
 	if (normalizedType.includes('bentconnector5')) {
@@ -114,7 +130,7 @@ export function getConnectorPathGeometry(
 			startY,
 			endX,
 			endY,
-			pathData: `M ${point(0, 0)} L ${point(x1, 0)} L ${point(x1, yMid)} L ${point(x2, yMid)} L ${point(x2, height)} L ${point(width, height)}`,
+			pathData: `M ${point(startX, startY)} L ${point(x1, startY)} L ${point(x1, yMid)} L ${point(x2, yMid)} L ${point(x2, endY)} L ${point(endX, endY)}`,
 		};
 	}
 
@@ -129,7 +145,7 @@ export function getConnectorPathGeometry(
 			startY,
 			endX,
 			endY,
-			pathData: `M ${point(0, 0)} L ${point(midX, 0)} L ${point(midX, midY)} L ${point(width, midY)} L ${point(width, height)}`,
+			pathData: `M ${point(startX, startY)} L ${point(midX, startY)} L ${point(midX, midY)} L ${point(endX, midY)} L ${point(endX, endY)}`,
 		};
 	}
 
@@ -142,7 +158,7 @@ export function getConnectorPathGeometry(
 			startY,
 			endX,
 			endY,
-			pathData: `M ${point(0, 0)} L ${point(midX, 0)} L ${point(midX, height)} L ${point(width, height)}`,
+			pathData: `M ${point(startX, startY)} L ${point(midX, startY)} L ${point(midX, endY)} L ${point(endX, endY)}`,
 		};
 	}
 
@@ -153,7 +169,7 @@ export function getConnectorPathGeometry(
 			startY,
 			endX,
 			endY,
-			pathData: `M ${point(0, 0)} L ${point(width, 0)} L ${point(width, height)}`,
+			pathData: `M ${point(startX, startY)} L ${point(endX, startY)} L ${point(endX, endY)}`,
 		};
 	}
 
@@ -165,12 +181,14 @@ export function getConnectorPathGeometry(
 		const x1 = width * adj1;
 		const yMid = height * adj2;
 		const x2 = width * adj3;
+		const yQuarter = startY + (yMid - startY) * 0.5;
+		const yThreeQ = yMid + (endY - yMid) * 0.5;
 		return {
 			startX,
 			startY,
 			endX,
 			endY,
-			pathData: `M ${point(0, 0)} C ${point(x1, 0)} ${point(x1, 0)} ${point(x1, yMid * 0.5)} C ${point(x1, yMid)} ${point(x1, yMid)} ${point((x1 + x2) / 2, yMid)} C ${point(x2, yMid)} ${point(x2, yMid)} ${point(x2, (yMid + height) / 2)} C ${point(x2, height)} ${point(x2, height)} ${point(width, height)}`,
+			pathData: `M ${point(startX, startY)} C ${point(x1, startY)} ${point(x1, startY)} ${point(x1, yQuarter)} C ${point(x1, yMid)} ${point(x1, yMid)} ${point((x1 + x2) / 2, yMid)} C ${point(x2, yMid)} ${point(x2, yMid)} ${point(x2, yThreeQ)} C ${point(x2, endY)} ${point(x2, endY)} ${point(endX, endY)}`,
 		};
 	}
 
@@ -180,12 +198,13 @@ export function getConnectorPathGeometry(
 		const adj2 = getConnectorAdjustment(element, 'adj2', 0.5);
 		const midX = width * adj1;
 		const midY = height * adj2;
+		const yQuarter = startY + (midY - startY) * 0.5;
 		return {
 			startX,
 			startY,
 			endX,
 			endY,
-			pathData: `M ${point(0, 0)} C ${point(midX, 0)} ${point(midX, 0)} ${point(midX, midY * 0.5)} C ${point(midX, midY)} ${point(midX, midY)} ${point((midX + width) / 2, midY)} C ${point(width, midY)} ${point(width, midY)} ${point(width, height)}`,
+			pathData: `M ${point(startX, startY)} C ${point(midX, startY)} ${point(midX, startY)} ${point(midX, yQuarter)} C ${point(midX, midY)} ${point(midX, midY)} ${point((midX + endX) / 2, midY)} C ${point(endX, midY)} ${point(endX, midY)} ${point(endX, endY)}`,
 		};
 	}
 
@@ -199,7 +218,7 @@ export function getConnectorPathGeometry(
 			startY,
 			endX,
 			endY,
-			pathData: `M ${point(0, 0)} C ${point(midX, 0)} ${point(midX, 0)} ${point(midX, midY)} C ${point(midX, height)} ${point(midX, height)} ${point(width, height)}`,
+			pathData: `M ${point(startX, startY)} C ${point(midX, startY)} ${point(midX, startY)} ${point(midX, midY)} C ${point(midX, endY)} ${point(midX, endY)} ${point(endX, endY)}`,
 		};
 	}
 
@@ -210,7 +229,7 @@ export function getConnectorPathGeometry(
 			startY,
 			endX,
 			endY,
-			pathData: `M ${point(0, 0)} Q ${point(width, 0)} ${point(width, height)}`,
+			pathData: `M ${point(startX, startY)} Q ${point(endX, startY)} ${point(endX, endY)}`,
 		};
 	}
 
@@ -220,6 +239,6 @@ export function getConnectorPathGeometry(
 		startY,
 		endX,
 		endY,
-		pathData: `M ${point(0, 0)} L ${point(width, height)}`,
+		pathData: `M ${point(startX, startY)} L ${point(endX, endY)}`,
 	};
 }

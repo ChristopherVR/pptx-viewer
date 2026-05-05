@@ -1,5 +1,6 @@
 import { XmlObject } from '../../types';
 import type { ShapeStyle } from '../../types';
+import { EFFECT_LST_ORDER, reorderObjectKeys } from '../../utils/xml-reorder';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveShapeStyleWriter';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -8,19 +9,35 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * effectDag, 3D scene, and 3D shape properties to the given spPr XML object.
 	 */
 	protected applyEffectsAndThreeD(spPr: XmlObject, shapeStyle: ShapeStyle): void {
+		// When the shape carries a preset-shadow name, prefer prstShdw over the
+		// generic outerShdw to preserve PowerPoint's preset-shadow semantics
+		// (CT_PresetShadowEffect §20.1.8.49).
+		const presetShadowXml = shapeStyle.presetShadowName
+			? this.buildPresetShadowXml(shapeStyle)
+			: undefined;
 		// Effects: shadow, inner shadow, glow, soft edge, reflection, blur
-		const outerShadowXml = this.buildOuterShadowXml(shapeStyle);
+		const outerShadowXml = presetShadowXml ? undefined : this.buildOuterShadowXml(shapeStyle);
 		const innerShadowXml = this.buildInnerShadowXml(shapeStyle);
 		const glowXml = this.buildGlowXml(shapeStyle);
 		const softEdgeXml = this.buildSoftEdgeXml(shapeStyle);
 		const reflectionXml = this.buildReflectionXml(shapeStyle);
 		const blurXml = this.buildBlurXml(shapeStyle);
 		const hasAnyEffect =
-			outerShadowXml || innerShadowXml || glowXml || softEdgeXml || reflectionXml || blurXml;
+			outerShadowXml ||
+			presetShadowXml ||
+			innerShadowXml ||
+			glowXml ||
+			softEdgeXml ||
+			reflectionXml ||
+			blurXml;
 		if (hasAnyEffect) {
 			const effectList = (spPr['a:effectLst'] || {}) as XmlObject;
-			if (outerShadowXml) {
+			if (presetShadowXml) {
+				effectList['a:prstShdw'] = presetShadowXml;
+				delete effectList['a:outerShdw'];
+			} else if (outerShadowXml) {
 				effectList['a:outerShdw'] = outerShadowXml;
+				delete effectList['a:prstShdw'];
 			}
 			if (innerShadowXml) {
 				effectList['a:innerShdw'] = innerShadowXml;
@@ -37,13 +54,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (blurXml) {
 				effectList['a:blur'] = blurXml;
 			}
-			spPr['a:effectLst'] = effectList;
+			spPr['a:effectLst'] = reorderObjectKeys(effectList, EFFECT_LST_ORDER);
 		} else {
 			// Clean up individual effects that were explicitly removed
 			const effectList = spPr['a:effectLst'] as XmlObject | undefined;
 			if (effectList) {
-				if (shapeStyle.shadowColor !== undefined && !outerShadowXml) {
+				if (shapeStyle.shadowColor !== undefined && !outerShadowXml && !presetShadowXml) {
 					delete effectList['a:outerShdw'];
+					delete effectList['a:prstShdw'];
 				}
 				if (shapeStyle.innerShadowColor !== undefined && !innerShadowXml) {
 					delete effectList['a:innerShdw'];
@@ -62,6 +80,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 				if (Object.keys(effectList).length === 0) {
 					delete spPr['a:effectLst'];
+				} else {
+					spPr['a:effectLst'] = reorderObjectKeys(effectList, EFFECT_LST_ORDER);
 				}
 			}
 		}

@@ -1,8 +1,135 @@
-import { XmlObject, PlaceholderTextLevelStyle, PptxElement } from '../../types';
+import {
+	XmlObject,
+	PlaceholderTextLevelStyle,
+	PptxElement,
+	PptxSlideMaster,
+	PptxMasterTextStyles,
+	PptxTextStyleLevels,
+	PptxHeaderFooterFlags,
+} from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimePlaceholderDefaults';
 import type { PlaceholderInfo } from './PptxHandlerRuntimeTypes';
 
+export function parseHeaderFooterFlags(
+	hf: XmlObject | undefined,
+): PptxHeaderFooterFlags | undefined {
+	if (!hf) {
+		return undefined;
+	}
+	const result: PptxHeaderFooterFlags = {};
+	if (hf['@_hdr'] !== undefined) {
+		result.hasHeader = String(hf['@_hdr']) !== '0';
+	}
+	if (hf['@_ftr'] !== undefined) {
+		result.hasFooter = String(hf['@_ftr']) !== '0';
+	}
+	if (hf['@_dt'] !== undefined) {
+		result.hasDateTime = String(hf['@_dt']) !== '0';
+	}
+	if (hf['@_sldNum'] !== undefined) {
+		result.hasSlideNumber = String(hf['@_sldNum']) !== '0';
+	}
+	return Object.keys(result).length > 0 ? result : undefined;
+}
+
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
+	/**
+	 * Parse a `CT_TextListStyle` node (`a:defPPr` + `a:lvl1pPr` … `a:lvl9pPr`)
+	 * into a level-keyed style map. Used for `<p:txStyles>` children
+	 * (`p:titleStyle`, `p:bodyStyle`, `p:otherStyle`) — see ECMA-376 §19.3.1.52.
+	 */
+	protected parseTextListStyle(node: XmlObject | undefined): PptxTextStyleLevels | undefined {
+		if (!node) {
+			return undefined;
+		}
+		const levels: Record<number, PlaceholderTextLevelStyle> = {};
+		const defParsed = this.parsePlaceholderLevelStyle(node['a:defPPr'] as XmlObject | undefined);
+		if (defParsed) {
+			levels[-1] = defParsed;
+		}
+		for (let lvl = 1; lvl <= 9; lvl++) {
+			const parsed = this.parsePlaceholderLevelStyle(
+				node[`a:lvl${lvl}pPr`] as XmlObject | undefined,
+			);
+			if (parsed) {
+				levels[lvl - 1] = parsed;
+			}
+		}
+		return Object.keys(levels).length > 0 ? levels : undefined;
+	}
+
+	/**
+	 * Parse `<p:txStyles>` from a slide-master XML object into a structured
+	 * {@link PptxMasterTextStyles}. Used to populate `PptxSlideMaster.txStyles`
+	 * so the title/body/other text-style cascade (P-H1) is visible on the
+	 * typed model.
+	 */
+	protected parseMasterTxStyles(
+		masterXml: XmlObject | undefined,
+	): PptxMasterTextStyles | undefined {
+		const txStyles = masterXml?.['p:txStyles'] as XmlObject | undefined;
+		if (!txStyles) {
+			return undefined;
+		}
+		const titleStyle = this.parseTextListStyle(txStyles['p:titleStyle'] as XmlObject | undefined);
+		const bodyStyle = this.parseTextListStyle(txStyles['p:bodyStyle'] as XmlObject | undefined);
+		const otherStyle = this.parseTextListStyle(txStyles['p:otherStyle'] as XmlObject | undefined);
+		if (!titleStyle && !bodyStyle && !otherStyle) {
+			return undefined;
+		}
+		const result: PptxMasterTextStyles = {};
+		if (titleStyle) {
+			result.titleStyle = titleStyle;
+		}
+		if (bodyStyle) {
+			result.bodyStyle = bodyStyle;
+		}
+		if (otherStyle) {
+			result.otherStyle = otherStyle;
+		}
+		return result;
+	}
+
+	/**
+	 * Enrich an array of {@link PptxSlideMaster} entries (already produced by
+	 * `parseSlideMasters`) with parsed `<p:txStyles>`. Loads each master's XML
+	 * once, parses, and caches it in `masterXmlMap` for downstream consumers.
+	 *
+	 * Also stores the parsed result on the per-master cache so that the
+	 * inheritance chain in `applyMasterTextStyleCascade` can find it without
+	 * re-parsing.
+	 */
+	protected async enrichSlideMastersWithTxStyles(slideMasters: PptxSlideMaster[]): Promise<void> {
+		for (const master of slideMasters) {
+			try {
+				let masterXmlObj = this.masterXmlMap.get(master.path);
+				if (!masterXmlObj) {
+					const xmlStr = await this.zip.file(master.path)?.async('string');
+					if (!xmlStr) {
+						continue;
+					}
+					masterXmlObj = this.parser.parse(xmlStr) as XmlObject;
+					this.masterXmlMap.set(master.path, masterXmlObj);
+				}
+				const sldMaster = masterXmlObj['p:sldMaster'] as XmlObject | undefined;
+				if (!sldMaster) {
+					continue;
+				}
+				const parsed = this.parseMasterTxStyles(sldMaster);
+				if (parsed) {
+					master.txStyles = parsed;
+					this.masterTxStylesCache.set(master.path, parsed);
+				}
+				const hf = parseHeaderFooterFlags(sldMaster['p:hf'] as XmlObject | undefined);
+				if (hf) {
+					master.headerFooter = hf;
+				}
+			} catch (e) {
+				console.warn('Failed to parse master txStyles:', e);
+			}
+		}
+	}
+
 	protected parsePresentationDefaultTextStyle(): void {
 		const presentation = this.presentationData?.['p:presentation'] as XmlObject | undefined;
 		const defaultTextStyle = presentation?.['p:defaultTextStyle'] as XmlObject | undefined;

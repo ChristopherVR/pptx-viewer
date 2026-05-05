@@ -218,7 +218,8 @@ function parseOverflow(
 	bodyPr: Record<string, unknown>,
 ): Pick<TextStyle, 'hOverflow' | 'vertOverflow'> {
 	const result: Pick<TextStyle, 'hOverflow' | 'vertOverflow'> = {};
-	const hOverflow = String(bodyPr['@_hOverflow'] || '').trim();
+	const hOverflowRaw = bodyPr['@_horzOverflow'] ?? bodyPr['@_hOverflow'];
+	const hOverflow = String(hOverflowRaw || '').trim();
 	if (hOverflow === 'overflow' || hOverflow === 'clip') {
 		result.hOverflow = hOverflow;
 	}

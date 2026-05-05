@@ -1,4 +1,5 @@
 import type { ConnectorArrowType, ShapeStyle, StrokeDashType, XmlObject } from '../../types';
+import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
 
 export interface ShapeLineStyleContext {
 	emuPerPx: number;
@@ -62,6 +63,10 @@ function applyStrokeColor(
 		const lineFill = lineNode['a:solidFill'] as XmlObject;
 		style.strokeColor = context.parseColor(lineFill);
 		style.strokeOpacity = context.extractColorOpacity(lineFill);
+		const strokeColorXml = extractColorChoiceXml(lineFill);
+		if (strokeColorXml) {
+			style.strokeColorXml = strokeColorXml;
+		}
 	} else if (lineNode['a:gradFill']) {
 		style.strokeColor = context.extractGradientFillColor(lineNode['a:gradFill'] as XmlObject);
 		style.strokeOpacity = context.extractGradientOpacity(lineNode['a:gradFill'] as XmlObject);
@@ -153,6 +158,14 @@ function applyJoinCapCompound(lineNode: XmlObject, style: ShapeStyle): void {
 		style.lineJoin = 'bevel';
 	} else if ('a:miter' in lineNode) {
 		style.lineJoin = 'miter';
+		const miterNode = lineNode['a:miter'] as XmlObject | undefined;
+		const limRaw = miterNode?.['@_lim'];
+		if (limRaw !== undefined && limRaw !== '') {
+			const parsed = parseInt(String(limRaw), 10);
+			if (Number.isFinite(parsed)) {
+				style.miterLimit = parsed;
+			}
+		}
 	}
 
 	const capValue = String(lineNode['@_cap'] || '')

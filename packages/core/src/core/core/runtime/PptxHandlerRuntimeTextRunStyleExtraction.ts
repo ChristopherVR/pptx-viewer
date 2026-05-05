@@ -1,4 +1,5 @@
 import { TextStyle, XmlObject } from '../../types';
+import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTextRunEffects';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -158,6 +159,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const solidFill = runProperties['a:solidFill'];
 		if (solidFill) {
 			style.color = this.parseColor(solidFill);
+			const colorXml = extractColorChoiceXml(solidFill as XmlObject);
+			if (colorXml) {
+				style.colorXml = colorXml;
+			}
 		}
 
 		// Hyperlinks (a:hlinkClick, a:hlinkMouseOver)
@@ -218,6 +223,24 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			style.bookmark = bmk;
 		}
 
+		// Alternative language and SmartTag id (CT_TextCharacterProperties).
+		const altLang = String(runProperties['@_altLang'] || '').trim();
+		if (altLang) {
+			style.altLanguage = altLang;
+		}
+		if (runProperties['@_smtId'] !== undefined) {
+			const smtIdRaw = Number.parseInt(String(runProperties['@_smtId']), 10);
+			if (Number.isFinite(smtIdRaw)) {
+				style.smartTagId = smtIdRaw;
+			}
+		}
+
+		// Per-script font metadata (CT_TextFont @panose, @pitchFamily, @charset).
+		this.applyTextFontMetadata(style, latin as XmlObject | undefined, 'latin');
+		this.applyTextFontMetadata(style, eastAsian as XmlObject | undefined, 'eastAsia');
+		this.applyTextFontMetadata(style, complexScript as XmlObject | undefined, 'complexScript');
+		this.applyTextFontMetadata(style, runProperties['a:sym'] as XmlObject | undefined, 'symbol');
+
 		// Text run effects (a:effectLst on a:rPr)
 		const runEffectList = runProperties['a:effectLst'] as XmlObject | undefined;
 		if (runEffectList) {
@@ -225,5 +248,79 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		return style;
+	}
+
+	/**
+	 * Copy `@panose` / `@pitchFamily` / `@charset` from a font child node
+	 * (`a:latin`, `a:ea`, `a:cs`, `a:sym`) onto the matching `*Font*`
+	 * fields of `style`.
+	 */
+	private applyTextFontMetadata(
+		style: TextStyle,
+		fontNode: XmlObject | undefined,
+		kind: 'latin' | 'eastAsia' | 'complexScript' | 'symbol',
+	): void {
+		if (!fontNode) {
+			return;
+		}
+		const panose = String(fontNode['@_panose'] || '').trim();
+		const pitchRaw = fontNode['@_pitchFamily'];
+		const charsetRaw = fontNode['@_charset'];
+
+		const pitch =
+			pitchRaw !== undefined && pitchRaw !== null
+				? Number.parseInt(String(pitchRaw), 10)
+				: undefined;
+		const charset =
+			charsetRaw !== undefined && charsetRaw !== null
+				? Number.parseInt(String(charsetRaw), 10)
+				: undefined;
+
+		if (kind === 'latin') {
+			if (panose) {
+				style.latinFontPanose = panose;
+			}
+			if (typeof pitch === 'number' && Number.isFinite(pitch)) {
+				style.latinFontPitchFamily = pitch;
+			}
+			if (typeof charset === 'number' && Number.isFinite(charset)) {
+				style.latinFontCharset = charset;
+			}
+			return;
+		}
+		if (kind === 'eastAsia') {
+			if (panose) {
+				style.eastAsiaFontPanose = panose;
+			}
+			if (typeof pitch === 'number' && Number.isFinite(pitch)) {
+				style.eastAsiaFontPitchFamily = pitch;
+			}
+			if (typeof charset === 'number' && Number.isFinite(charset)) {
+				style.eastAsiaFontCharset = charset;
+			}
+			return;
+		}
+		if (kind === 'complexScript') {
+			if (panose) {
+				style.complexScriptFontPanose = panose;
+			}
+			if (typeof pitch === 'number' && Number.isFinite(pitch)) {
+				style.complexScriptFontPitchFamily = pitch;
+			}
+			if (typeof charset === 'number' && Number.isFinite(charset)) {
+				style.complexScriptFontCharset = charset;
+			}
+			return;
+		}
+		// symbol
+		if (panose) {
+			style.symbolFontPanose = panose;
+		}
+		if (typeof pitch === 'number' && Number.isFinite(pitch)) {
+			style.symbolFontPitchFamily = pitch;
+		}
+		if (typeof charset === 'number' && Number.isFinite(charset)) {
+			style.symbolFontCharset = charset;
+		}
 	}
 }
