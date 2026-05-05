@@ -12,7 +12,7 @@
         "oxfmt": "^0.47.0",
         "oxlint": "^1.62.0",
         "pptx-viewer": "workspace:*",
-        "typescript": "^6.0.3",
+        "typescript": "^5.9.3",
         "y-protocols": "^1.0.7",
         "yjs": "^13.6.30",
       },
@@ -47,13 +47,13 @@
         "@types/react-dom": "^19.2.3",
         "@vitejs/plugin-react": "^6.0.1",
         "tailwindcss": "^4.2.4",
-        "typescript": "^6.0.3",
+        "typescript": "^5.9.3",
         "vite": "^8.0.10",
       },
     },
     "packages/core": {
       "name": "pptx-viewer-core",
-      "version": "1.3.0",
+      "version": "1.4.0",
       "bin": {
         "pptx": "./dist/cli/index.mjs",
       },
@@ -64,7 +64,7 @@
         "mtx-decompressor": "workspace:*",
         "node-forge": "^1.4.0",
         "tsup": "^8.5.1",
-        "typescript": "^6.0.3",
+        "typescript": "^5.9.3",
         "vitest": "^4.1.5",
         "xml-crypto": "^6.1.2",
       },
@@ -83,25 +83,25 @@
     },
     "packages/emf-converter": {
       "name": "emf-converter",
-      "version": "1.3.0",
+      "version": "1.4.0",
       "devDependencies": {
         "tsup": "^8.5.1",
-        "typescript": "^6.0.3",
+        "typescript": "^5.9.3",
         "vitest": "^4.1.5",
       },
     },
     "packages/mtx-decompressor": {
       "name": "mtx-decompressor",
-      "version": "1.3.0",
+      "version": "1.4.0",
       "devDependencies": {
         "tsup": "^8.5.1",
-        "typescript": "^6.0.3",
+        "typescript": "^5.9.3",
         "vitest": "^4.1.5",
       },
     },
     "packages/react": {
       "name": "pptx-viewer",
-      "version": "1.4.0",
+      "version": "1.5.0",
       "dependencies": {
         "clsx": "^2.1.1",
         "emf-converter": "workspace:*",
@@ -116,7 +116,7 @@
         "@types/react-dom": "^19.2.3",
         "tailwindcss": "^4.2.4",
         "tsup": "^8.5.1",
-        "typescript": "^6.0.3",
+        "typescript": "^5.9.3",
         "vitest": "^4.1.5",
         "y-websocket": "^3.0.0",
         "yjs": "^13.6.30",
@@ -143,7 +143,7 @@
     },
     "packages/tools": {
       "name": "pptx-viewer-mcp",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "bin": {
         "pptx-tools": "./dist/mcp/index.mjs",
       },
@@ -156,7 +156,7 @@
         "jszip": "^3.10.1",
         "pptx-viewer-core": "^1.1.3",
         "tsup": "^8.5.1",
-        "typescript": "^6.0.3",
+        "typescript": "^5.9.3",
         "vitest": "^4.1.5",
         "yjs": "^13.6.30",
       },
@@ -1080,7 +1080,7 @@
 
     "type-is": ["type-is@2.0.1", "", { "dependencies": { "content-type": "^1.0.5", "media-typer": "^1.1.0", "mime-types": "^3.0.0" } }, "sha512-OZs6gsjF4vMp32qrCbiVSkrFmXtG/AZhY3t0iAMrMBiAZyV9oALtXO8hsrHbMXF9x6L3grlFuwW2oAz7cav+Gw=="],
 
-    "typescript": ["typescript@6.0.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw=="],
+    "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "ufo": ["ufo@1.6.3", "", {}, "sha512-yDJTmhydvl5lJzBmy/hyOAA0d+aqCBuwl818haVdYCRrWV84o7YyeVm4QlVHStqNrrJSTb6jKuFAVqAFsr+K3Q=="],
 

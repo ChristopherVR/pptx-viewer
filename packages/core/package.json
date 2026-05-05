@@ -71,7 +71,7 @@
 		"mtx-decompressor": "workspace:*",
 		"node-forge": "^1.4.0",
 		"tsup": "^8.5.1",
-		"typescript": "^6.0.3",
+		"typescript": "^5.9.3",
 		"vitest": "^4.1.5",
 		"xml-crypto": "^6.1.2"
 	},

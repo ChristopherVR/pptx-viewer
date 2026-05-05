@@ -144,6 +144,21 @@
 		"vitest/prefer-called-times": "off",
 		"jest/prefer-called-with": "off",
 
+		// ── oxlint 1.62 introduced vitest/* counterparts of already-disabled jest/* rules ──
+		// Codebase doesn't use expect.hasAssertions(); these rules don't match our convention.
+		"jest/prefer-expect-assertions": "off",
+		"vitest/prefer-expect-assertions": "off",
+		"vitest/max-expects": "off",
+		"vitest/no-conditional-in-test": "off",
+		"vitest/no-conditional-expect": "off",
+		"vitest/no-hooks": "off",
+		"vitest/expect-expect": "off",
+		"vitest/require-top-level-describe": "off",
+		"vitest/max-nested-describe": "off",
+		"vitest/valid-title": "off",
+		// Codebase uses _-prefixed locals to mark intentionally unused values.
+		"no-underscore-dangle": "off",
+
 		// ── Accessibility: disable rules requiring significant UI changes ──
 		// These should be enabled incrementally as components are updated
 		"jsx-a11y/no-static-element-interactions": "off",

@@ -69,7 +69,7 @@
 		"@types/react-dom": "^19.2.3",
 		"tailwindcss": "^4.2.4",
 		"tsup": "^8.5.1",
-		"typescript": "^6.0.3",
+		"typescript": "^5.9.3",
 		"vitest": "^4.1.5",
 		"y-websocket": "^3.0.0",
 		"yjs": "^13.6.30"

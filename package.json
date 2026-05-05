@@ -42,7 +42,7 @@
 		"oxfmt": "^0.47.0",
 		"oxlint": "^1.62.0",
 		"pptx-viewer": "workspace:*",
-		"typescript": "^6.0.3",
+		"typescript": "^5.9.3",
 		"y-protocols": "^1.0.7",
 		"yjs": "^13.6.30"
 	},
