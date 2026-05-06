@@ -7,7 +7,12 @@ import { useEffect, useRef } from 'react';
 
 import type { ViewerMode } from '../../types-core';
 import { clearAudienceContent } from './audience-content-store';
-import { PRESENTER_CHANNEL_NAME, PRESENTER_MSG_ORIGIN, isAudienceTab } from './usePresenterWindow';
+import {
+	PRESENTER_CHANNEL_NAME,
+	PRESENTER_MSG_ORIGIN,
+	isAudienceTab,
+	parseAudienceNonce,
+} from './usePresenterWindow';
 
 export interface UseAudienceModeInput {
 	mode: ViewerMode;
@@ -61,6 +66,11 @@ export function useAudienceMode(input: UseAudienceModeInput): void {
 			return;
 		}
 
+		// Pin the session nonce that this audience tab was opened with. We
+		// reject any BroadcastChannel message whose sessionId does not match,
+		// so concurrent presenter sessions cannot drive each other's audiences.
+		const expectedSessionId = parseAudienceNonce();
+
 		let channel: BroadcastChannel;
 		try {
 			channel = new BroadcastChannel(PRESENTER_CHANNEL_NAME);
@@ -71,6 +81,10 @@ export function useAudienceMode(input: UseAudienceModeInput): void {
 		channel.onmessage = (event: MessageEvent) => {
 			const data = event.data;
 			if (!data || data.origin !== PRESENTER_MSG_ORIGIN) {
+				return;
+			}
+			// If we have a session nonce, require an exact match.
+			if (expectedSessionId && data.sessionId !== expectedSessionId) {
 				return;
 			}
 

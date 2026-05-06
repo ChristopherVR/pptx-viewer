@@ -2,6 +2,42 @@ import { XmlObject, PptxElement, hasShapeProperties, hasTextProperties } from '.
 import type { GroupPptxElement } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSpTreeParsing';
 
+/**
+ * Maximum nesting depth for `p:grpSp` recursion (Load H1).
+ *
+ * PowerPoint itself does not document a hard limit, but legitimate decks
+ * almost never nest more than a handful of levels (typical max < 10). A
+ * depth of 64 is well above any plausible authoring use while still
+ * preventing stack-overflow DoS from a maliciously deep group tree
+ * (`<p:grpSp><p:grpSp>...</p:grpSp></p:grpSp>` chain).
+ */
+const MAX_GROUP_DEPTH = 64;
+
+/** EMU values are int32 per ECMA-376 §22.1.2.4. Clamp parsed values to this range. */
+const INT32_MIN = -2_147_483_648;
+const INT32_MAX = 2_147_483_647;
+
+/**
+ * Parse a string as a base-10 integer with a finite-number guard and an
+ * int32 clamp. Used for attacker-controlled EMU values from XML attributes.
+ * Returns 0 for malformed/non-finite inputs (matching previous fallback
+ * behaviour from `parseInt(... || '0')` while rejecting `'1e308'` and
+ * similar finite-overflow values).
+ */
+function parseEmuInt(value: unknown): number {
+	const parsed = parseInt(String(value ?? ''), 10);
+	if (!Number.isFinite(parsed)) {
+		return 0;
+	}
+	if (parsed < INT32_MIN) {
+		return INT32_MIN;
+	}
+	if (parsed > INT32_MAX) {
+		return INT32_MAX;
+	}
+	return parsed;
+}
+
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected async parseGroupShape(
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -9,7 +45,22 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		baseId: string,
 		slidePath: string,
 		rawXmlStr?: string,
+		depth: number = 0,
 	): Promise<PptxElement[]> {
+		// Load H1: cap recursion depth to prevent stack-overflow DoS from a
+		// maliciously deep `<p:grpSp>` chain.
+		if (depth > MAX_GROUP_DEPTH) {
+			this.compatibilityService.reportWarning({
+				code: 'group-depth-exceeded',
+				severity: 'warning',
+				scope: 'element',
+				message: `Group nesting exceeded ${MAX_GROUP_DEPTH} levels; truncating subtree (baseId=${baseId})`,
+				slideId: slidePath,
+				elementId: baseId,
+			});
+			return [];
+		}
+
 		const grpSpPr = group['p:grpSpPr'];
 		const xfrm = grpSpPr?.['a:xfrm'];
 
@@ -24,24 +75,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		if (xfrm) {
 			if (xfrm['a:off']) {
-				parentX = Math.round(parseInt(xfrm['a:off']['@_x'] || '0') / PptxHandlerRuntime.EMU_PER_PX);
-				parentY = Math.round(parseInt(xfrm['a:off']['@_y'] || '0') / PptxHandlerRuntime.EMU_PER_PX);
+				parentX = Math.round(parseEmuInt(xfrm['a:off']['@_x']) / PptxHandlerRuntime.EMU_PER_PX);
+				parentY = Math.round(parseEmuInt(xfrm['a:off']['@_y']) / PptxHandlerRuntime.EMU_PER_PX);
 			}
 			if (xfrm['a:ext']) {
-				parentW = Math.round(
-					parseInt(xfrm['a:ext']['@_cx'] || '0') / PptxHandlerRuntime.EMU_PER_PX,
-				);
-				parentH = Math.round(
-					parseInt(xfrm['a:ext']['@_cy'] || '0') / PptxHandlerRuntime.EMU_PER_PX,
-				);
+				parentW = Math.round(parseEmuInt(xfrm['a:ext']['@_cx']) / PptxHandlerRuntime.EMU_PER_PX);
+				parentH = Math.round(parseEmuInt(xfrm['a:ext']['@_cy']) / PptxHandlerRuntime.EMU_PER_PX);
 			}
 			if (xfrm['a:chOff']) {
-				chX = Math.round(parseInt(xfrm['a:chOff']['@_x'] || '0') / PptxHandlerRuntime.EMU_PER_PX);
-				chY = Math.round(parseInt(xfrm['a:chOff']['@_y'] || '0') / PptxHandlerRuntime.EMU_PER_PX);
+				chX = Math.round(parseEmuInt(xfrm['a:chOff']['@_x']) / PptxHandlerRuntime.EMU_PER_PX);
+				chY = Math.round(parseEmuInt(xfrm['a:chOff']['@_y']) / PptxHandlerRuntime.EMU_PER_PX);
 			}
 			if (xfrm['a:chExt']) {
-				chW = Math.round(parseInt(xfrm['a:chExt']['@_cx'] || '0') / PptxHandlerRuntime.EMU_PER_PX);
-				chH = Math.round(parseInt(xfrm['a:chExt']['@_cy'] || '0') / PptxHandlerRuntime.EMU_PER_PX);
+				chW = Math.round(parseEmuInt(xfrm['a:chExt']['@_cx']) / PptxHandlerRuntime.EMU_PER_PX);
+				chH = Math.round(parseEmuInt(xfrm['a:chExt']['@_cy']) / PptxHandlerRuntime.EMU_PER_PX);
 			}
 		}
 
@@ -96,6 +143,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					`${baseId}-group-${entry.indexInType}`,
 					slidePath,
 					rawXmlStr,
+					depth + 1,
 				);
 				subElements.forEach((el) => transformElement(el));
 				elements.push(...subElements);
@@ -138,16 +186,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		if (xfrm) {
 			if (xfrm['a:off']) {
-				parentX = Math.round(parseInt(xfrm['a:off']['@_x'] || '0') / PptxHandlerRuntime.EMU_PER_PX);
-				parentY = Math.round(parseInt(xfrm['a:off']['@_y'] || '0') / PptxHandlerRuntime.EMU_PER_PX);
+				parentX = Math.round(parseEmuInt(xfrm['a:off']['@_x']) / PptxHandlerRuntime.EMU_PER_PX);
+				parentY = Math.round(parseEmuInt(xfrm['a:off']['@_y']) / PptxHandlerRuntime.EMU_PER_PX);
 			}
 			if (xfrm['a:ext']) {
-				parentW = Math.round(
-					parseInt(xfrm['a:ext']['@_cx'] || '0') / PptxHandlerRuntime.EMU_PER_PX,
-				);
-				parentH = Math.round(
-					parseInt(xfrm['a:ext']['@_cy'] || '0') / PptxHandlerRuntime.EMU_PER_PX,
-				);
+				parentW = Math.round(parseEmuInt(xfrm['a:ext']['@_cx']) / PptxHandlerRuntime.EMU_PER_PX);
+				parentH = Math.round(parseEmuInt(xfrm['a:ext']['@_cy']) / PptxHandlerRuntime.EMU_PER_PX);
 			}
 		}
 

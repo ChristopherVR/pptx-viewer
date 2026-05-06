@@ -52,6 +52,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return result;
 	}
 
+	/**
+	 * Allowed top-level OPC archive directories (Load M1).
+	 * After path resolution, the first segment must be one of these or the
+	 * path is rejected as a traversal attempt. PPTX archives only ever
+	 * legitimately reference parts under these roots.
+	 */
+	private static readonly ALLOWED_PATH_ROOTS: ReadonlySet<string> = new Set([
+		'ppt',
+		'customXml',
+		'docProps',
+		'_rels',
+	]);
+
 	protected resolvePath(base: string, relative: string): string {
 		const baseParts = base.split('/').filter(Boolean);
 		const relParts = relative.split('/');
@@ -63,22 +76,55 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		for (const part of relParts) {
 			if (part === '..') {
+				// Load M1: reject paths that traverse above the archive root.
+				// Without this check, `../../../etc/passwd`-style targets
+				// would resolve to whatever happens to be left after popping
+				// off the empty array. Returning '' makes downstream
+				// `zip.file('')` lookups fail safely.
+				if (baseParts.length === 0) {
+					return '';
+				}
 				baseParts.pop();
 			} else if (part !== '.') {
 				baseParts.push(part);
 			}
 		}
 
-		return baseParts.join('/');
+		const resolved = baseParts.join('/');
+		if (resolved.length === 0) {
+			return '';
+		}
+
+		// Load M1: enforce allowed-roots prefix. Any first segment outside
+		// the OPC-defined directories is treated as an escape attempt.
+		const firstSegment = baseParts[0];
+		if (!PptxHandlerRuntime.ALLOWED_PATH_ROOTS.has(firstSegment)) {
+			return '';
+		}
+
+		return resolved;
 	}
 
 	protected resolveImagePath(slidePath: string, target: string): string {
 		const slideDir = slidePath.substring(0, slidePath.lastIndexOf('/') + 1);
-		return target.startsWith('..')
+		const resolved = target.startsWith('..')
 			? this.resolvePath(slideDir, target)
 			: target.startsWith('/')
 				? target.substring(1)
 				: slideDir + target;
+
+		// Load M1: validate the post-resolution first segment is one of the
+		// permitted OPC roots. `resolvePath` already does this for the `..`
+		// branch, so we only need to check the other two.
+		if (resolved.length === 0) {
+			return '';
+		}
+		const firstSlash = resolved.indexOf('/');
+		const firstSegment = firstSlash === -1 ? resolved : resolved.substring(0, firstSlash);
+		if (!PptxHandlerRuntime.ALLOWED_PATH_ROOTS.has(firstSegment)) {
+			return '';
+		}
+		return resolved;
 	}
 
 	/**

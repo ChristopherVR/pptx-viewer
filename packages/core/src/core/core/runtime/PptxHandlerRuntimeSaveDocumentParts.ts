@@ -252,13 +252,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return;
 		}
 
+		// Reject part ids containing path-traversal or otherwise unsafe characters
+		// (e.g. "1/../../docProps/app") that would let a hostile input file
+		// overwrite arbitrary parts in the saved ZIP. Fall back to a safe
+		// sequential index for any rejected id.
+		const SAFE_ID = /^[A-Za-z0-9_-]+$/;
+		let fallbackIndex = 1;
 		for (const part of this.customXmlParts) {
-			this.zip.file(`customXml/item${part.id}.xml`, part.data);
+			const rawId = String(part.id);
+			const safeId = SAFE_ID.test(rawId) ? rawId : String(fallbackIndex++);
+			this.zip.file(`customXml/item${safeId}.xml`, part.data);
 			if (part.properties) {
-				this.zip.file(`customXml/itemProps${part.id}.xml`, part.properties);
+				this.zip.file(`customXml/itemProps${safeId}.xml`, part.properties);
 			}
 			if (part.rels) {
-				this.zip.file(`customXml/_rels/item${part.id}.xml.rels`, part.rels);
+				this.zip.file(`customXml/_rels/item${safeId}.xml.rels`, part.rels);
 			}
 		}
 	}

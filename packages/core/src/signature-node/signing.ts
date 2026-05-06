@@ -22,7 +22,7 @@ import type {
 	SignOptions,
 	SignResult,
 } from '../core/utils/signature-types';
-import { escapeXmlAttr } from '../core/utils/signature-xml-utils';
+import { escapeXmlAttr, escapeXmlText, isValidBase64 } from '../core/utils/signature-xml-utils';
 import { loadSigningMaterialFromBuffer, pemCertificateToBase64 } from './certificate-utils';
 import { inspectPptxDigitalSignatures } from './inspection';
 import { canonicalizeSignedInfoXml } from './xml-canonicalization';
@@ -119,7 +119,7 @@ function buildOfficeSignatureXml(
 			(reference) =>
 				`<Reference URI="${escapeXmlAttr(reference.uri)}">` +
 				`<DigestMethod Algorithm="${escapeXmlAttr(reference.digestMethod)}"/>` +
-				`<DigestValue>${escapeXmlAttr(reference.digestValue)}</DigestValue>` +
+				`<DigestValue>${escapeXmlText(reference.digestValue)}</DigestValue>` +
 				'</Reference>',
 		)
 		.join('');
@@ -135,8 +135,21 @@ function buildOfficeSignatureXml(
 	signer.end();
 	const signatureValueBase64 = signer.sign(privateKeyPem).toString('base64');
 	const certificateBase64 = pemCertificateToBase64(certificatePem);
+	if (!isValidBase64(signatureValueBase64)) {
+		throw new Error('Generated SignatureValue is not valid base64');
+	}
+	if (!isValidBase64(certificateBase64)) {
+		throw new Error('X.509 certificate is not valid base64');
+	}
 	const signingTime = new Date().toISOString();
-	return `<Signature xmlns="${XMLDSIG_NS}">${signedInfoXml}<SignatureValue>${signatureValueBase64}</SignatureValue><KeyInfo><X509Data><X509Certificate>${certificateBase64}</X509Certificate></X509Data></KeyInfo><Object><SignatureProperties><SignatureProperty><SigningTime>${escapeXmlAttr(signingTime)}</SigningTime></SignatureProperty></SignatureProperties></Object></Signature>`;
+	return (
+		`<Signature xmlns="${XMLDSIG_NS}">${signedInfoXml}` +
+		`<SignatureValue>${escapeXmlText(signatureValueBase64)}</SignatureValue>` +
+		`<KeyInfo><X509Data><X509Certificate>${escapeXmlText(certificateBase64)}</X509Certificate></X509Data></KeyInfo>` +
+		`<Object><SignatureProperties><SignatureProperty>` +
+		`<SigningTime>${escapeXmlText(signingTime)}</SigningTime>` +
+		`</SignatureProperty></SignatureProperties></Object></Signature>`
+	);
 }
 
 /**

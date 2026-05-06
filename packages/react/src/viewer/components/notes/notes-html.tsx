@@ -1,6 +1,7 @@
 import type { BulletInfo, TextSegment, TextStyle } from 'pptx-viewer-core';
 import React from 'react';
 
+import { isUrlSafe, safeOpenUrl } from '../../utils/hyperlink-security';
 import {
 	INDENT_PX,
 	escapeHtml,
@@ -8,6 +9,22 @@ import {
 	parsePt,
 	segmentsToParagraphs,
 } from './notes-utils';
+
+/**
+ * Whitelist of CSS values safe to inline into a `style` attribute that the
+ * browser will then parse for a contentEditable surface. Values from PPTX
+ * text styles flow through this gate before being interpolated; anything
+ * containing CSS-attribute control characters (semicolons, quotes, parens,
+ * angle brackets) is dropped to prevent CSS-injection or attribute-break-out.
+ */
+const CSS_VALUE_SAFE = /^[a-zA-Z0-9 _,.\-+#'%/]{1,100}$/;
+function isCssValueSafe(value: string | number | undefined | null): boolean {
+	if (value === undefined || value === null) {
+		return false;
+	}
+	const str = String(value);
+	return str.length > 0 && CSS_VALUE_SAFE.test(str);
+}
 
 /* ------------------------------------------------------------------ */
 /*  Style derivation from DOM elements                                 */
@@ -177,20 +194,22 @@ export function segmentsToEditorHtml(segments: TextSegment[]): string {
 					if (segment.style.strikethrough) {
 						inlineStyles.push('text-decoration:line-through');
 					}
-					if (segment.style.color) {
+					if (segment.style.color && isCssValueSafe(segment.style.color)) {
 						inlineStyles.push(`color:${segment.style.color}`);
 					}
-					if (segment.style.fontSize) {
-						inlineStyles.push(`font-size:${segment.style.fontSize}pt`);
+					if (segment.style.fontSize && Number.isFinite(Number(segment.style.fontSize))) {
+						inlineStyles.push(`font-size:${Number(segment.style.fontSize)}pt`);
 					}
-					if (segment.style.fontFamily) {
+					if (segment.style.fontFamily && isCssValueSafe(segment.style.fontFamily)) {
 						inlineStyles.push(`font-family:${segment.style.fontFamily}`);
 					}
 
 					const text = escapeHtml(segment.text);
 
-					// Render hyperlinks as anchor tags
-					if (segment.style.hyperlink) {
+					// Render hyperlinks as anchor tags — only when the URL passes the
+					// scheme allowlist. javascript:/data:/vbscript: etc. would otherwise
+					// execute when the user Ctrl+clicks the link in the notes editor.
+					if (segment.style.hyperlink && isUrlSafe(segment.style.hyperlink)) {
 						const href = escapeHtml(segment.style.hyperlink);
 						return `<a href="${href}" style="color:#4a9eff;text-decoration:underline;cursor:pointer" data-hyperlink="${href}">${text}</a>`;
 					}
@@ -294,18 +313,19 @@ export function renderRichNotesSegments(segments: TextSegment[]): React.ReactNod
 				style.fontFamily = segment.style.fontFamily;
 			}
 
-			if (segment.style.hyperlink) {
+			if (segment.style.hyperlink && isUrlSafe(segment.style.hyperlink)) {
+				const safeHref = segment.style.hyperlink;
 				style.color = '#4a9eff';
 				style.textDecoration = 'underline';
 				style.cursor = 'pointer';
 				children.push(
 					<a
 						key={`seg-${pIdx}-${sIdx}`}
-						href={segment.style.hyperlink}
+						href={safeHref}
 						style={style}
 						onClick={(e) => {
 							e.preventDefault();
-							window.open(segment.style.hyperlink, '_blank');
+							safeOpenUrl(safeHref);
 						}}
 					>
 						{segment.text}

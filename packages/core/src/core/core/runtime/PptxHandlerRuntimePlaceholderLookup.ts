@@ -68,7 +68,28 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected mergeXmlObjects(
 		base: XmlObject | undefined,
 		override: XmlObject | undefined,
+		depth: number = 0,
 	): XmlObject | undefined {
+		// Load H1: cap recursion depth on attacker-controlled XML structures
+		// to prevent stack-overflow DoS. 64 is well above any plausible
+		// placeholder property nesting (typical depth < 10).
+		const MAX_MERGE_DEPTH = 64;
+		if (depth > MAX_MERGE_DEPTH) {
+			// Beyond cap: shallow-merge override onto base without further
+			// recursion, preserving as much data as possible while bounding
+			// stack usage.
+			if (!base && !override) {
+				return undefined;
+			}
+			if (!base) {
+				return override ? { ...override } : undefined;
+			}
+			if (!override) {
+				return { ...base };
+			}
+			return { ...base, ...override };
+		}
+
 		if (!base && !override) {
 			return undefined;
 		}
@@ -90,7 +111,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				typeof existing === 'object' &&
 				!Array.isArray(existing)
 			) {
-				merged[key] = this.mergeXmlObjects(existing as XmlObject, value as XmlObject);
+				merged[key] = this.mergeXmlObjects(existing as XmlObject, value as XmlObject, depth + 1);
 			} else {
 				merged[key] = value;
 			}

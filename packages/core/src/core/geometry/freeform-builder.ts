@@ -43,11 +43,25 @@ function perpendicularDistance(
 }
 
 /**
+ * Maximum number of input points accepted by {@link douglasPeucker}.
+ *
+ * Beyond this size the recursive walk could push the call stack and run
+ * for a very long time. Pen/mouse input rarely exceeds a few thousand
+ * points, so 100k is a generous safety bound.
+ */
+const MAX_DOUGLAS_PEUCKER_POINTS = 100_000;
+
+/**
  * Douglas-Peucker polyline simplification.
  *
- * Recursively removes points that lie within `tolerance` of the line
+ * Iteratively removes points that lie within `tolerance` of the line
  * segment connecting their neighbours, preserving overall shape while
  * dramatically reducing point count for freeform drawing input.
+ *
+ * Implemented with an explicit stack of `[lo, hi]` index ranges (rather
+ * than recursion) so deep inputs cannot blow the JS call stack. Inputs
+ * larger than {@link MAX_DOUGLAS_PEUCKER_POINTS} are short-circuited to
+ * just the two endpoints.
  *
  * @param points - Input polyline points (at least 2).
  * @param tolerance - Maximum perpendicular distance for a point to be
@@ -58,34 +72,61 @@ export function douglasPeucker(
 	points: CustomGeometryPoint[],
 	tolerance: number,
 ): CustomGeometryPoint[] {
-	if (points.length <= 2) {
+	const n = points.length;
+	if (n <= 2) {
 		return [...points];
 	}
 
-	// Find the point farthest from the line between first and last
-	let maxDist = 0;
-	let maxIdx = 0;
-	const first = points[0];
-	const last = points[points.length - 1];
+	// Bound input — very large arrays would be expensive even iteratively
+	if (n > MAX_DOUGLAS_PEUCKER_POINTS) {
+		return [points[0], points[n - 1]];
+	}
 
-	for (let i = 1; i < points.length - 1; i++) {
-		const dist = perpendicularDistance(points[i], first, last);
-		if (dist > maxDist) {
-			maxDist = dist;
-			maxIdx = i;
+	// `keep[i]` indicates whether index `i` is retained in the output.
+	const keep = new Uint8Array(n);
+	keep[0] = 1;
+	keep[n - 1] = 1;
+
+	// Explicit stack of ranges to process, replacing recursion
+	const stack: Array<[number, number]> = [[0, n - 1]];
+
+	while (stack.length > 0) {
+		const range = stack.pop();
+		if (!range) {
+			break;
+		}
+		const [lo, hi] = range;
+		if (hi - lo < 2) {
+			continue;
+		}
+
+		const first = points[lo];
+		const last = points[hi];
+
+		let maxDist = 0;
+		let maxIdx = -1;
+		for (let i = lo + 1; i < hi; i++) {
+			const dist = perpendicularDistance(points[i], first, last);
+			if (dist > maxDist) {
+				maxDist = dist;
+				maxIdx = i;
+			}
+		}
+
+		if (maxIdx !== -1 && maxDist > tolerance) {
+			keep[maxIdx] = 1;
+			stack.push([lo, maxIdx]);
+			stack.push([maxIdx, hi]);
 		}
 	}
 
-	if (maxDist > tolerance) {
-		// Recursively simplify each half
-		const left = douglasPeucker(points.slice(0, maxIdx + 1), tolerance);
-		const right = douglasPeucker(points.slice(maxIdx), tolerance);
-		// Concatenate, removing duplicate junction point
-		return [...left.slice(0, -1), ...right];
+	const result: CustomGeometryPoint[] = [];
+	for (let i = 0; i < n; i++) {
+		if (keep[i]) {
+			result.push(points[i]);
+		}
 	}
-
-	// All intermediate points are within tolerance — keep only endpoints
-	return [first, last];
+	return result;
 }
 
 // ---------------------------------------------------------------------------

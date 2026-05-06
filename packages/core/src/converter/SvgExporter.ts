@@ -69,18 +69,39 @@ function resolveDefaults(opts?: SvgExportOptions) {
 }
 
 // ────────────────────────────────────────────────────────────────────
-// Arrow marker definitions
+// Per-export render context (markers, defs, counters)
 // ────────────────────────────────────────────────────────────────────
 
-let _markerIdCounter = 0;
+interface RenderContext {
+	defs: string[];
+	/** color → markerId, so duplicate-colored arrows reuse one <marker> def. */
+	markerCache: Map<string, string>;
+	markerIdCounter: number;
+}
 
-function arrowMarkerDef(color: string): { id: string; svg: string } {
-	const id = `arrow_${++_markerIdCounter}`;
+function createRenderContext(): RenderContext {
+	return { defs: [], markerCache: new Map(), markerIdCounter: 0 };
+}
+
+/**
+ * Get or create an arrow marker for `color`. Markers are memoized in the
+ * render context so that decks with hundreds of identically-colored
+ * connectors only emit one `<marker>` def per color.
+ */
+function getOrCreateArrowMarker(ctx: RenderContext, color: string): string {
+	const key = color;
+	const cached = ctx.markerCache.get(key);
+	if (cached) {
+		return cached;
+	}
+	const id = `arrow_${++ctx.markerIdCounter}`;
 	const svg =
 		`<marker id="${id}" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto" markerUnits="strokeWidth">` +
 		`<polygon points="0 0, 10 3.5, 0 7" fill="${escXml(color)}" />` +
 		`</marker>`;
-	return { id, svg };
+	ctx.defs.push(svg);
+	ctx.markerCache.set(key, id);
+	return id;
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -131,13 +152,16 @@ function renderText(el: PptxElement, defaults: ReturnType<typeof resolveDefaults
 
 	if (segments && segments.length > 0) {
 		// Render rich text with tspan per segment
-		let svg = `<text${attrs({
-			x: textX,
-			'text-anchor': textAnchor,
-			'font-family': fontFamily,
-			'font-size': fontSize,
-			fill: color,
-		})}>`;
+		const parts: string[] = [];
+		parts.push(
+			`<text${attrs({
+				x: textX,
+				'text-anchor': textAnchor,
+				'font-family': fontFamily,
+				'font-size': fontSize,
+				fill: color,
+			})}>`,
+		);
 
 		let dy = fontSize * 1.2; // initial line offset
 		let isFirstSegment = true;
@@ -180,11 +204,11 @@ function renderText(el: PptxElement, defaults: ReturnType<typeof resolveDefaults
 				segAttrs['text-decoration'] = 'underline';
 			}
 
-			svg += `<tspan${attrs(segAttrs)}>${escXml(seg.text)}</tspan>`;
+			parts.push(`<tspan${attrs(segAttrs)}>${escXml(seg.text)}</tspan>`);
 		}
 
-		svg += `</text>`;
-		return svg;
+		parts.push(`</text>`);
+		return parts.join('');
 	}
 
 	// Simple text (no segments)
@@ -192,25 +216,30 @@ function renderText(el: PptxElement, defaults: ReturnType<typeof resolveDefaults
 	const italic = style?.italic;
 	const lines = text.split('\n');
 
-	let svg = `<text${attrs({
-		x: textX,
-		'text-anchor': textAnchor,
-		'font-family': fontFamily,
-		'font-size': fontSize,
-		fill: color,
-		'font-weight': bold ? 'bold' : undefined,
-		'font-style': italic ? 'italic' : undefined,
-	})}>`;
+	const parts: string[] = [];
+	parts.push(
+		`<text${attrs({
+			x: textX,
+			'text-anchor': textAnchor,
+			'font-family': fontFamily,
+			'font-size': fontSize,
+			fill: color,
+			'font-weight': bold ? 'bold' : undefined,
+			'font-style': italic ? 'italic' : undefined,
+		})}>`,
+	);
 
 	for (let i = 0; i < lines.length; i++) {
-		svg += `<tspan${attrs({
-			x: textX,
-			dy: i === 0 ? fontSize * 1.2 : fontSize * 1.2,
-		})}>${escXml(lines[i])}</tspan>`;
+		parts.push(
+			`<tspan${attrs({
+				x: textX,
+				dy: i === 0 ? fontSize * 1.2 : fontSize * 1.2,
+			})}>${escXml(lines[i])}</tspan>`,
+		);
 	}
 
-	svg += `</text>`;
-	return svg;
+	parts.push(`</text>`);
+	return parts.join('');
 }
 
 function renderShapeBody(el: PptxElement): string {
@@ -307,7 +336,7 @@ function renderImageElement(el: PptxElement): string {
 	})} href="${escXml(imageData)}" />`;
 }
 
-function renderConnector(el: PptxElement, defs: string[]): string {
+function renderConnector(el: PptxElement, ctx: RenderContext): string {
 	if (el.type !== 'connector') {
 		return '';
 	}
@@ -320,14 +349,12 @@ function renderConnector(el: PptxElement, defs: string[]): string {
 	let markerEnd: string | undefined;
 
 	if (shapeStyle?.connectorStartArrow && shapeStyle.connectorStartArrow !== 'none') {
-		const m = arrowMarkerDef(strokeColor);
-		defs.push(m.svg);
-		markerStart = `url(#${m.id})`;
+		const id = getOrCreateArrowMarker(ctx, strokeColor);
+		markerStart = `url(#${id})`;
 	}
 	if (shapeStyle?.connectorEndArrow && shapeStyle.connectorEndArrow !== 'none') {
-		const m = arrowMarkerDef(strokeColor);
-		defs.push(m.svg);
-		markerEnd = `url(#${m.id})`;
+		const id = getOrCreateArrowMarker(ctx, strokeColor);
+		markerEnd = `url(#${id})`;
 	}
 
 	return `<line${attrs({
@@ -356,7 +383,7 @@ function renderTable(el: PptxElement, defaults: ReturnType<typeof resolveDefault
 	const numRows = tableData.rows.length;
 	const rowHeight = el.height / numRows;
 
-	let svg = '';
+	const parts: string[] = [];
 	let yOffset = 0;
 
 	for (const row of tableData.rows) {
@@ -377,26 +404,30 @@ function renderTable(el: PptxElement, defaults: ReturnType<typeof resolveDefault
 			const fontSize = cell.style?.fontSize ?? defaults.defaultFontSize;
 			const bold = cell.style?.bold;
 
-			svg += `<rect${attrs({
-				x: xOffset,
-				y: yOffset,
-				width: cellWidth,
-				height: h,
-				fill: bgColor,
-				stroke: borderColor,
-				'stroke-width': 0.5,
-			})} />`;
+			parts.push(
+				`<rect${attrs({
+					x: xOffset,
+					y: yOffset,
+					width: cellWidth,
+					height: h,
+					fill: bgColor,
+					stroke: borderColor,
+					'stroke-width': 0.5,
+				})} />`,
+			);
 
 			if (cell.text) {
-				svg += `<text${attrs({
-					x: xOffset + 4,
-					y: yOffset + h / 2,
-					'dominant-baseline': 'central',
-					'font-family': defaults.defaultFontFamily,
-					'font-size': fontSize,
-					fill: textColor,
-					'font-weight': bold ? 'bold' : undefined,
-				})}>${escXml(cell.text)}</text>`;
+				parts.push(
+					`<text${attrs({
+						x: xOffset + 4,
+						y: yOffset + h / 2,
+						'dominant-baseline': 'central',
+						'font-family': defaults.defaultFontFamily,
+						'font-size': fontSize,
+						fill: textColor,
+						'font-weight': bold ? 'bold' : undefined,
+					})}>${escXml(cell.text)}</text>`,
+				);
 			}
 
 			xOffset += cellWidth;
@@ -405,23 +436,23 @@ function renderTable(el: PptxElement, defaults: ReturnType<typeof resolveDefault
 		yOffset += h;
 	}
 
-	return svg;
+	return parts.join('');
 }
 
 function renderGroup(
 	el: PptxElement,
 	defaults: ReturnType<typeof resolveDefaults>,
-	defs: string[],
+	ctx: RenderContext,
 ): string {
 	if (el.type !== 'group') {
 		return '';
 	}
 
-	let inner = '';
+	const parts: string[] = [];
 	for (const child of el.children) {
-		inner += renderElement(child, defaults, defs);
+		parts.push(renderElement(child, defaults, ctx));
 	}
-	return inner;
+	return parts.join('');
 }
 
 function renderInk(el: PptxElement): string {
@@ -429,22 +460,24 @@ function renderInk(el: PptxElement): string {
 		return '';
 	}
 
-	let svg = '';
+	const parts: string[] = [];
 	for (let i = 0; i < el.inkPaths.length; i++) {
 		const path = el.inkPaths[i];
 		const color = el.inkColors?.[i] ?? '#000000';
 		const width = el.inkWidths?.[i] ?? 1;
 		const opacity = el.inkOpacities?.[i];
-		svg += `<path${attrs({
-			d: path,
-			fill: 'none',
-			stroke: color,
-			'stroke-width': width,
-			'stroke-opacity': opacity,
-			'stroke-linecap': 'round',
-		})} />`;
+		parts.push(
+			`<path${attrs({
+				d: path,
+				fill: 'none',
+				stroke: color,
+				'stroke-width': width,
+				'stroke-opacity': opacity,
+				'stroke-linecap': 'round',
+			})} />`,
+		);
 	}
-	return svg;
+	return parts.join('');
 }
 
 function renderPlaceholder(el: PptxElement): string {
@@ -476,7 +509,7 @@ function renderPlaceholder(el: PptxElement): string {
 function renderElement(
 	el: PptxElement,
 	defaults: ReturnType<typeof resolveDefaults>,
-	defs: string[],
+	ctx: RenderContext,
 ): string {
 	if (el.hidden) {
 		return '';
@@ -496,7 +529,7 @@ function renderElement(
 			break;
 
 		case 'connector':
-			inner = renderConnector(el, defs);
+			inner = renderConnector(el, ctx);
 			break;
 
 		case 'image':
@@ -509,7 +542,7 @@ function renderElement(
 			break;
 
 		case 'group':
-			inner = renderGroup(el, defaults, defs);
+			inner = renderGroup(el, defaults, ctx);
 			break;
 
 		case 'ink':
@@ -591,22 +624,17 @@ export class SvgExporter {
 		height: number,
 		options?: SvgExportOptions,
 	): string {
-		// Reset marker counter per slide to keep output deterministic in tests
-		_markerIdCounter = 0;
-
 		const defaults = resolveDefaults(options);
-		const defs: string[] = [];
+		const ctx = createRenderContext();
 
-		let body = renderBackground(slide, width, height);
+		const bodyParts: string[] = [];
+		bodyParts.push(renderBackground(slide, width, height));
 
 		for (const el of slide.elements) {
-			body += renderElement(el, defaults, defs);
+			bodyParts.push(renderElement(el, defaults, ctx));
 		}
 
-		let defsBlock = '';
-		if (defs.length) {
-			defsBlock = `<defs>${defs.join('')}</defs>`;
-		}
+		const defsBlock = ctx.defs.length ? `<defs>${ctx.defs.join('')}</defs>` : '';
 
 		return `<svg${attrs({
 			xmlns: SVG_NS,
@@ -614,7 +642,7 @@ export class SvgExporter {
 			viewBox: `0 0 ${width} ${height}`,
 			width,
 			height,
-		})}>${defsBlock}${body}</svg>`;
+		})}>${defsBlock}${bodyParts.join('')}</svg>`;
 	}
 
 	/**

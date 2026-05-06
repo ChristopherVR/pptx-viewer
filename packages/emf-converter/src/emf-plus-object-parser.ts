@@ -169,12 +169,19 @@ export function handleEmfPlusObjectRecord(
  * Parse a region node tree recursively from a DataView.
  * Returns the parsed node and the number of bytes consumed.
  */
+const MAX_REGION_NODE_DEPTH = 64;
+
 function parseRegionNode(
 	view: DataView,
 	off: number,
 	endOff: number,
+	depth: number = 0,
 ): { node: EmfPlusRegionNode; bytesRead: number } | null {
 	if (off + 4 > endOff) {
+		return null;
+	}
+	if (depth > MAX_REGION_NODE_DEPTH) {
+		emfWarn(`parseRegionNode: depth limit (${MAX_REGION_NODE_DEPTH}) exceeded`);
 		return null;
 	}
 
@@ -183,13 +190,13 @@ function parseRegionNode(
 
 	// Combine node types: 0=And(Intersect), 1=Or(Union), 2=Xor, 3=Exclude, 4=Complement
 	if (nodeType <= 4) {
-		const leftResult = parseRegionNode(view, cursor, endOff);
+		const leftResult = parseRegionNode(view, cursor, endOff, depth + 1);
 		if (!leftResult) {
 			return null;
 		}
 		cursor += leftResult.bytesRead;
 
-		const rightResult = parseRegionNode(view, cursor, endOff);
+		const rightResult = parseRegionNode(view, cursor, endOff, depth + 1);
 		if (!rightResult) {
 			return null;
 		}

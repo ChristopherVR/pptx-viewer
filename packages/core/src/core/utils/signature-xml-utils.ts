@@ -5,13 +5,31 @@
  * making them platform-agnostic (browser + Node).
  */
 
-/** Escape special characters in an XML attribute value. */
+/**
+ * Escape special characters in an XML attribute value.
+ * Handles `&`, `<`, `>`, `"`, and `'` so the result is safe inside both
+ * double- and single-quoted attributes.
+ */
 export function escapeXmlAttr(value: string): string {
 	return value
 		.replace(/&/g, '&amp;')
-		.replace(/"/g, '&quot;')
 		.replace(/</g, '&lt;')
-		.replace(/>/g, '&gt;');
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&apos;');
+}
+
+/**
+ * Escape special characters in XML text content.
+ * Only `&`, `<`, and `>` need escaping outside of attribute values.
+ */
+export function escapeXmlText(value: string): string {
+	return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/** Validate that `value` only contains characters from the standard base64 alphabet. */
+export function isValidBase64(value: string): boolean {
+	return typeof value === 'string' && value.length > 0 && /^[A-Za-z0-9+/=\s]+$/.test(value);
 }
 
 /**

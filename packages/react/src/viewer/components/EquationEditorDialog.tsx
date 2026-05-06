@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import DOMPurify from 'dompurify';
+import React, { useState, useMemo, useCallback, useRef, useEffect, useDeferredValue } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuX } from 'react-icons/lu';
 
@@ -6,6 +7,21 @@ import { cn } from '../utils';
 import { convertLatexToOmml, convertOmmlToLatex } from '../utils/latex-to-omml';
 import { convertOmmlToMathMl } from '../utils/omml-to-mathml';
 import type { OmmlNode } from '../utils/omml-to-mathml';
+
+/**
+ * Sanitize a MathML/SVG markup string. Falls back to the raw input when
+ * `DOMPurify.sanitize` is unavailable (e.g. node-based tests without jsdom);
+ * the XSS surface only matters in real browsers.
+ */
+function sanitizeMathMl(markup: string): string {
+	const purify = DOMPurify as unknown as {
+		sanitize?: (dirty: string, cfg?: Record<string, unknown>) => string;
+	};
+	if (typeof purify.sanitize !== 'function') {
+		return markup;
+	}
+	return purify.sanitize(markup, { USE_PROFILES: { mathMl: true, svg: true } });
+}
 
 // ── Equation templates ────────────────────────────────────────────────────
 
@@ -87,7 +103,8 @@ const TEMPLATES: EquationTemplate[] = [
 const TEMPLATE_MATHML: string[] = TEMPLATES.map((tmpl) => {
 	try {
 		const tmplOmml = convertLatexToOmml(tmpl.latex);
-		return convertOmmlToMathMl(tmplOmml as OmmlNode);
+		const raw = convertOmmlToMathMl(tmplOmml as OmmlNode);
+		return raw ? sanitizeMathMl(raw) : '';
 	} catch {
 		return '';
 	}
@@ -111,7 +128,7 @@ function MathMlPreview({ mathml }: { mathml: string }) {
 			return;
 		}
 		if (mathml) {
-			containerRef.current.innerHTML = mathml;
+			containerRef.current.innerHTML = sanitizeMathMl(mathml);
 		} else {
 			containerRef.current.innerHTML = '';
 		}
@@ -173,6 +190,9 @@ export function EquationEditorDialog({
 	}, [existingOmml]);
 
 	const [latex, setLatex] = useState(initialLatex);
+	// Defer the latex value used for the (relatively expensive) MathML compute
+	// path so rapid keystrokes stay responsive.
+	const deferredLatex = useDeferredValue(latex);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 
 	// Reset latex when the dialog opens with new OMML
@@ -186,17 +206,17 @@ export function EquationEditorDialog({
 
 	// Convert LaTeX -> OMML -> MathML for live preview
 	const { mathml, omml } = useMemo(() => {
-		if (!latex.trim()) {
+		if (!deferredLatex.trim()) {
 			return { mathml: '', omml: {} };
 		}
 		try {
-			const ommlObj = convertLatexToOmml(latex);
+			const ommlObj = convertLatexToOmml(deferredLatex);
 			const mathmlStr = convertOmmlToMathMl(ommlObj as OmmlNode);
 			return { mathml: mathmlStr, omml: ommlObj };
 		} catch {
 			return { mathml: '', omml: {} };
 		}
-	}, [latex]);
+	}, [deferredLatex]);
 
 	const handleInsert = useCallback(() => {
 		if (!latex.trim()) {

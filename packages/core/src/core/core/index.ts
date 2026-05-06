@@ -21,3 +21,4 @@ export type {
 	PptxHandlerSaveOptions,
 	PptxSaveFormat,
 } from './types';
+export { DEFAULT_MAX_UNCOMPRESSED_BYTES, MAX_ZIP_ENTRY_COUNT, ZipBombError } from './types';

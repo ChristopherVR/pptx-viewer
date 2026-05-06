@@ -23,12 +23,15 @@ import type {
 // isPresenterMessage
 // ---------------------------------------------------------------------------
 
+const TEST_SESSION_ID = '00000000-0000-0000-0000-000000000001';
+
 describe('isPresenterMessage', () => {
 	it('accepts a valid slide-change message', () => {
 		const msg: PresenterSlideChangeMessage = {
 			origin: PRESENTER_MSG_ORIGIN,
 			type: 'presenter-slide-change',
 			slideIndex: 3,
+			sessionId: TEST_SESSION_ID,
 		};
 		expect(isPresenterMessage(msg)).toBeTruthy();
 	});
@@ -37,6 +40,7 @@ describe('isPresenterMessage', () => {
 		const msg: PresenterExitMessage = {
 			origin: PRESENTER_MSG_ORIGIN,
 			type: 'presenter-exit',
+			sessionId: TEST_SESSION_ID,
 		};
 		expect(isPresenterMessage(msg)).toBeTruthy();
 	});
@@ -63,6 +67,7 @@ describe('isPresenterMessage', () => {
 				origin: 'wrong-origin',
 				type: 'presenter-slide-change',
 				slideIndex: 0,
+				sessionId: TEST_SESSION_ID,
 			}),
 		).toBeFalsy();
 	});
@@ -72,6 +77,17 @@ describe('isPresenterMessage', () => {
 			isPresenterMessage({
 				origin: PRESENTER_MSG_ORIGIN,
 				type: 'unknown-type',
+				sessionId: TEST_SESSION_ID,
+			}),
+		).toBeFalsy();
+	});
+
+	it('rejects a message missing the sessionId', () => {
+		expect(
+			isPresenterMessage({
+				origin: PRESENTER_MSG_ORIGIN,
+				type: 'presenter-slide-change',
+				slideIndex: 0,
 			}),
 		).toBeFalsy();
 	});
@@ -147,6 +163,7 @@ class PresenterWindowManager {
 			origin: PRESENTER_MSG_ORIGIN,
 			type: 'presenter-slide-change',
 			slideIndex,
+			sessionId: TEST_SESSION_ID,
 		};
 		win.postMessage(message, '*');
 	}
@@ -157,6 +174,7 @@ class PresenterWindowManager {
 			const exitMsg: PresenterExitMessage = {
 				origin: PRESENTER_MSG_ORIGIN,
 				type: 'presenter-exit',
+				sessionId: TEST_SESSION_ID,
 			};
 			try {
 				win.postMessage(exitMsg, '*');
@@ -248,6 +266,7 @@ describe('presenterWindowManager', () => {
 				origin: PRESENTER_MSG_ORIGIN,
 				type: 'presenter-slide-change',
 				slideIndex: 5,
+				sessionId: TEST_SESSION_ID,
 			},
 			'*',
 		);
@@ -285,6 +304,7 @@ describe('presenterWindowManager', () => {
 				origin: PRESENTER_MSG_ORIGIN,
 				type: 'presenter-slide-change',
 				slideIndex: 3,
+				sessionId: TEST_SESSION_ID,
 			},
 			'*',
 		);
@@ -328,6 +348,7 @@ describe('presenterWindowManager', () => {
 			{
 				origin: PRESENTER_MSG_ORIGIN,
 				type: 'presenter-exit',
+				sessionId: TEST_SESSION_ID,
 			},
 			'*',
 		);

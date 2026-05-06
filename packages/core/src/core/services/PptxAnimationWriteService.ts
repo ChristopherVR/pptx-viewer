@@ -42,7 +42,11 @@ export class PptxAnimationWriteService implements IPptxAnimationWriteService {
 		// When an existing timing tree is available, perform surgical updates
 		// to preserve complex structures (endCondLst, exclusive containers, etc.)
 		if (existingRawTiming) {
-			const cloned = JSON.parse(JSON.stringify(existingRawTiming)) as XmlObject;
+			const cloned = (
+				typeof structuredClone === 'function'
+					? structuredClone(existingRawTiming)
+					: JSON.parse(JSON.stringify(existingRawTiming))
+			) as XmlObject;
 			return surgicallyUpdateTimingTree(cloned, validAnimations);
 		}
 

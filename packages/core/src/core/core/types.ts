@@ -30,6 +30,60 @@ import type {
 export interface PptxHandlerLoadOptions {
 	eagerDecodeImages?: boolean;
 	password?: string;
+	/**
+	 * Maximum total uncompressed bytes accepted from the input ZIP archive.
+	 * Defaults to 500 MiB. When the sum of `_data.uncompressedSize` across
+	 * all archive entries exceeds this cap, `load()` rejects with a
+	 * {@link ZipBombError}. A hard cap of 65 536 archive entries also
+	 * applies.
+	 */
+	maxUncompressedBytes?: number;
+	/**
+	 * When `false` (default), relationship targets that resolve to
+	 * `http://` or `https://` URLs are dropped from rendered slides
+	 * (image, picture, background). Set to `true` to allow external image
+	 * URLs to flow through to `<img src>`.
+	 *
+	 * Disabled by default to mitigate SSRF / privacy-leak vectors in
+	 * server-side rendering and headless export pipelines.
+	 */
+	allowExternalImages?: boolean;
+}
+
+/**
+ * Default maximum uncompressed byte budget for {@link PptxHandlerLoadOptions.maxUncompressedBytes}.
+ * 500 MiB.
+ */
+export const DEFAULT_MAX_UNCOMPRESSED_BYTES = 500 * 1024 * 1024;
+
+/**
+ * Hard cap on archive entry count. Beyond this, the package is rejected.
+ */
+export const MAX_ZIP_ENTRY_COUNT = 65536;
+
+/**
+ * Thrown by the load pipeline when a ZIP archive exceeds the configured
+ * uncompressed-size budget or the entry-count limit.
+ */
+export class ZipBombError extends Error {
+	public readonly code = 'ZIP_BOMB';
+
+	public readonly uncompressedBytes: number | undefined;
+
+	public readonly limit: number;
+
+	public readonly entryCount: number | undefined;
+
+	constructor(
+		message: string,
+		details: { uncompressedBytes?: number; limit: number; entryCount?: number },
+	) {
+		super(message);
+		this.name = 'ZipBombError';
+		this.uncompressedBytes = details.uncompressedBytes;
+		this.limit = details.limit;
+		this.entryCount = details.entryCount;
+	}
 }
 
 /** Output format for the save pipeline. */

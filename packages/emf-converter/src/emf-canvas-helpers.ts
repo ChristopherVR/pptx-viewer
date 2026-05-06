@@ -106,6 +106,8 @@ export function createTempCanvas(
 	if (width <= 0 || height <= 0) {
 		return null;
 	}
+	width = Math.max(1, Math.min(Math.floor(width), 8192));
+	height = Math.max(1, Math.min(Math.floor(height), 8192));
 	if (typeof OffscreenCanvas !== 'undefined') {
 		const canvas = new OffscreenCanvas(width, height);
 		const ctx = canvas.getContext('2d');
@@ -178,18 +180,60 @@ export function applyFont(ctx: CanvasContext, state: DrawState): void {
 // ---------------------------------------------------------------------------
 
 export function readUtf16LE(view: DataView, offset: number, charCount: number): string {
-	const chars: string[] = [];
-	for (let i = 0; i < charCount; i++) {
-		if (offset + i * 2 + 1 >= view.byteLength) {
-			break;
-		}
-		const code = view.getUint16(offset + i * 2, true);
-		if (code === 0) {
-			break;
-		}
-		chars.push(String.fromCharCode(code));
+	if (charCount <= 0) {
+		return '';
 	}
-	return chars.join('');
+	const maxBytes = view.byteLength - offset;
+	if (maxBytes <= 0) {
+		return '';
+	}
+	const usableChars = Math.min(charCount, Math.floor(maxBytes / 2));
+	if (usableChars <= 0) {
+		return '';
+	}
+	let decoded: string;
+	try {
+		const bytes = new Uint8Array(view.buffer, view.byteOffset + offset, usableChars * 2);
+		decoded = new TextDecoder('utf-16le').decode(bytes);
+	} catch {
+		// Fallback if TextDecoder is unavailable or input rejected.
+		const chars: string[] = [];
+		for (let i = 0; i < usableChars; i++) {
+			const code = view.getUint16(offset + i * 2, true);
+			if (code === 0) {
+				return chars.join('');
+			}
+			chars.push(String.fromCharCode(code));
+		}
+		return chars.join('');
+	}
+	// Truncate at first NUL terminator, matching previous behaviour.
+	const nul = decoded.indexOf(String.fromCharCode(0));
+	return nul === -1 ? decoded : decoded.slice(0, nul);
+}
+
+// ---------------------------------------------------------------------------
+// Matrix sanitization
+// ---------------------------------------------------------------------------
+
+/**
+ * Replace any non-finite (NaN/Infinity) entries in an affine transform matrix
+ * with safe identity defaults. Returns a new array; does not mutate input.
+ *
+ * The identity matrix is [1, 0, 0, 1, 0, 0]. Translation (e, f) defaults to 0
+ * on non-finite, scale/skew (a, d) default to 1 on non-finite, and (b, c)
+ * default to 0 on non-finite.
+ */
+export function sanitizeMatrix(
+	m: ReadonlyArray<number>,
+): [number, number, number, number, number, number] {
+	const a = Number.isFinite(m[0]) ? m[0] : 1;
+	const b = Number.isFinite(m[1]) ? m[1] : 0;
+	const c = Number.isFinite(m[2]) ? m[2] : 0;
+	const d = Number.isFinite(m[3]) ? m[3] : 1;
+	const e = Number.isFinite(m[4]) ? m[4] : 0;
+	const f = Number.isFinite(m[5]) ? m[5] : 0;
+	return [a, b, c, d, e, f];
 }
 
 // ---------------------------------------------------------------------------

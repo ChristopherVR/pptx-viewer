@@ -1,5 +1,6 @@
 import { XmlObject } from '../../types';
 import type { PptxPresentationProperties } from '../../types';
+import { safeResolveZipPath } from '../../utils/safe-path';
 import {
 	getSignaturePathsToStrip,
 	DIGITAL_SIGNATURE_ORIGIN_REL_TYPE,
@@ -28,7 +29,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				if (relNode) {
 					const target = String(relNode['@_Target'] || '').trim();
 					if (target.length > 0) {
-						propsPath = target.startsWith('/') ? target.slice(1) : `ppt/${target}`;
+						const resolved = safeResolveZipPath('ppt', target);
+						if (resolved !== null) {
+							propsPath = resolved;
+						}
+						// On rejection, fall back to the safe default 'ppt/presProps.xml'
+						// rather than allowing a path-traversal target to overwrite an
+						// arbitrary part during save.
 					}
 				}
 			} catch {

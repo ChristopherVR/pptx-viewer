@@ -38,6 +38,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return undefined;
 		}
 		try {
+			if (typeof structuredClone === 'function') {
+				return structuredClone(value) as XmlObject;
+			}
 			return JSON.parse(JSON.stringify(value)) as XmlObject;
 		} catch {
 			return undefined;

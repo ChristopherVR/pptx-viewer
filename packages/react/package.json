@@ -57,6 +57,7 @@
 	},
 	"dependencies": {
 		"clsx": "^2.1.1",
+		"dompurify": "^3.4.2",
 		"emf-converter": "workspace:*",
 		"html2canvas-pro": "^2.0.2",
 		"mtx-decompressor": "workspace:*",
@@ -65,6 +66,7 @@
 	},
 	"devDependencies": {
 		"@tailwindcss/cli": "^4.2.4",
+		"@types/dompurify": "^3.2.0",
 		"@types/react": "^19.2.14",
 		"@types/react-dom": "^19.2.3",
 		"tailwindcss": "^4.2.4",

@@ -4,7 +4,18 @@ import { XmlObject } from '../../types';
 import type { PptxSection, PptxCustomXmlPart } from '../../types';
 import { detectDigitalSignatures } from '../../utils/signature-detection';
 import type { PptxHandlerLoadOptions } from '../types';
+import { DEFAULT_MAX_UNCOMPRESSED_BYTES, MAX_ZIP_ENTRY_COUNT, ZipBombError } from '../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeEmbeddedFonts';
+
+/**
+ * Minimal shape of JSZip's internal `_data` field that exposes the
+ * pre-decompression size header read off the central directory. JSZip
+ * does not include this in its public `.d.ts`, so we treat it as
+ * optional and clamp accordingly.
+ */
+interface JSZipFileWithDataSize {
+	_data?: { uncompressedSize?: number };
+}
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected isZipContainer(data: ArrayBuffer): boolean {
@@ -27,6 +38,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		options: PptxHandlerLoadOptions,
 	): Promise<void> {
 		this.eagerDecodeImages = options.eagerDecodeImages ?? false;
+		this.allowExternalImages = options.allowExternalImages === true;
 		if (data.byteLength < 4) {
 			throw new Error('Invalid PPTX binary: file is empty or truncated.');
 		}
@@ -44,6 +56,34 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		} catch (error) {
 			const message = error instanceof Error ? error.message : 'Unable to read zip container.';
 			throw new Error(`Invalid PPTX package: ${message}`, { cause: error });
+		}
+
+		// ── Zip-bomb / entry-count cap (H2) ────────────────────────────
+		const maxBytes =
+			typeof options.maxUncompressedBytes === 'number' && options.maxUncompressedBytes > 0
+				? options.maxUncompressedBytes
+				: DEFAULT_MAX_UNCOMPRESSED_BYTES;
+		let totalUncompressed = 0;
+		let entryCount = 0;
+		for (const filename of Object.keys(this.zip.files)) {
+			entryCount += 1;
+			if (entryCount > MAX_ZIP_ENTRY_COUNT) {
+				throw new ZipBombError(
+					`PPTX archive contains more than ${MAX_ZIP_ENTRY_COUNT} entries — refusing to load.`,
+					{ limit: MAX_ZIP_ENTRY_COUNT, entryCount },
+				);
+			}
+			const file = this.zip.files[filename] as unknown as JSZipFileWithDataSize | undefined;
+			const size = Number(file?._data?.uncompressedSize ?? 0);
+			if (Number.isFinite(size) && size > 0) {
+				totalUncompressed += size;
+				if (totalUncompressed > maxBytes) {
+					throw new ZipBombError(
+						`PPTX archive uncompressed size exceeds ${maxBytes} bytes (zip-bomb guard).`,
+						{ uncompressedBytes: totalUncompressed, limit: maxBytes },
+					);
+				}
+			}
 		}
 
 		this.slideRelsMap.clear();

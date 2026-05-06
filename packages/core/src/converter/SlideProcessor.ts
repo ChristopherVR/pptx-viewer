@@ -1,5 +1,6 @@
 import type { PptxElement, PptxSlide } from '../core';
 import { hasTextProperties } from '../core/types/type-guards';
+import { escapeHtml } from './base';
 import { ElementProcessorContext, ElementProcessorRegistry } from './elements/ElementProcessor';
 import { MediaContext } from './media-context';
 import { SlideMetadataRenderer } from './SlideMetadataRenderer';
@@ -149,7 +150,7 @@ export class SlideProcessor {
 				slide.backgroundImage,
 				`slide${slide.slideNumber}-bg`,
 			);
-			return `<img src="${path}" alt="Slide background" style="width:100%;height:100%;object-fit:cover">`;
+			return `<img src="${escapeHtml(path)}" alt="Slide background" style="width:100%;height:100%;object-fit:cover">`;
 		} catch {
 			return undefined;
 		}

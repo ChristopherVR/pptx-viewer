@@ -45,6 +45,8 @@ export {
 
 export {
 	escapeXmlAttr,
+	escapeXmlText,
+	isValidBase64,
 	extractTagAttribute,
 	extractFirstTagText,
 	extractAllTagText,

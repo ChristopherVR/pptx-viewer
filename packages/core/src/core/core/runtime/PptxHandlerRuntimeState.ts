@@ -134,6 +134,13 @@ export class PptxHandlerRuntime {
 	 */
 	protected eagerDecodeImages = false;
 
+	/**
+	 * When true, relationship targets pointing at `http://` / `https://`
+	 * URLs are passed through to `<img src>`. Default `false`. Mirrors the
+	 * `allowExternalImages` load option.
+	 */
+	protected allowExternalImages = false;
+
 	/** Ordered slide file paths (populated during load for action target resolution). */
 	protected orderedSlidePaths: string[] = [];
 

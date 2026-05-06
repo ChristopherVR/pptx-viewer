@@ -223,7 +223,15 @@ function applyClipCombineMode(
  * Intersect is natively supported by Canvas2D; others log a warning
  * and fall back to tracing just the left subtree.
  */
-function traceRegionNodePath(ctx: CanvasContext, node: EmfPlusRegionNode): void {
+const MAX_REGION_TRACE_DEPTH = 64;
+
+function traceRegionNodePath(ctx: CanvasContext, node: EmfPlusRegionNode, depth: number = 0): void {
+	if (depth > MAX_REGION_TRACE_DEPTH) {
+		emfWarn(`traceRegionNodePath: depth limit (${MAX_REGION_TRACE_DEPTH}) exceeded`);
+		// Safe default: trace zero-area rect, equivalent to empty region.
+		ctx.rect(0, 0, 0, 0);
+		return;
+	}
 	switch (node.type) {
 		case 'rect':
 			ctx.rect(node.x, node.y, node.width, node.height);
@@ -242,7 +250,7 @@ function traceRegionNodePath(ctx: CanvasContext, node: EmfPlusRegionNode): void 
 		case 'combine':
 			// Canvas2D only supports intersect natively via successive clip() calls.
 			// For other combine modes we trace the left subtree as a best-effort fallback.
-			traceRegionNodePath(ctx, node.left);
+			traceRegionNodePath(ctx, node.left, depth + 1);
 			if (node.combineMode !== 0 /* And/Intersect */) {
 				emfWarn(
 					`traceRegionNodePath: combine mode ${node.combineMode} not fully supported, using left subtree only`,
@@ -255,7 +263,7 @@ function traceRegionNodePath(ctx: CanvasContext, node: EmfPlusRegionNode): void 
 					/* ignore */
 				}
 				ctx.beginPath();
-				traceRegionNodePath(ctx, node.right);
+				traceRegionNodePath(ctx, node.right, depth + 1);
 			}
 			break;
 	}

@@ -326,23 +326,36 @@ export function serializeElementToSvg(
  * (which is in the live document) and writing them to the clone.
  */
 function inlineComputedStyles(original: HTMLElement, clone: HTMLElement): void {
-	const styleStr = collectInlineStyles(original);
-	if (styleStr) {
-		clone.setAttribute('style', styleStr);
-	}
-
 	const origChildren = original.querySelectorAll('*');
 	const cloneChildren = clone.querySelectorAll('*');
 
-	for (let i = 0; i < origChildren.length && i < cloneChildren.length; i++) {
+	// PHASE 1 — read pass.
+	// Walk the live tree once, collect every getComputedStyle() result into a
+	// Map keyed by element index. Doing all reads up-front avoids interleaving
+	// layout reads with the writes in phase 2 (which would otherwise force
+	// repeated style recalcs / forced reflows).
+	const styleMap = new Map<number, string>();
+	const rootStyle = collectInlineStyles(original);
+	for (let i = 0; i < origChildren.length; i++) {
 		const origEl = origChildren[i] as HTMLElement;
-		const cloneEl = cloneChildren[i] as HTMLElement;
-
-		if (!origEl.style || !cloneEl.setAttribute) {
+		if (!origEl.style) {
 			continue;
 		}
+		styleMap.set(i, collectInlineStyles(origEl));
+	}
 
-		const styles = collectInlineStyles(origEl);
+	// PHASE 2 — write pass.
+	// The clone is detached from the live document, so setAttribute calls
+	// here do not trigger layout on the original tree.
+	if (rootStyle) {
+		clone.setAttribute('style', rootStyle);
+	}
+	for (let i = 0; i < origChildren.length && i < cloneChildren.length; i++) {
+		const cloneEl = cloneChildren[i] as HTMLElement;
+		if (!cloneEl.setAttribute) {
+			continue;
+		}
+		const styles = styleMap.get(i);
 		if (styles) {
 			cloneEl.setAttribute('style', styles);
 		}

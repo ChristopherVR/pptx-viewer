@@ -24,6 +24,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					const target = slideRels?.get(rEmbed);
 
 					if (target) {
+						// Load H3: external URL gating. Refuse to pass through
+						// http(s):// background images unless allowExternalImages
+						// is explicitly enabled.
+						if (target.startsWith('http://') || target.startsWith('https://')) {
+							if (this.allowExternalImages !== true) {
+								return undefined;
+							}
+							return target;
+						}
 						const imagePath = this.resolveImagePath(slidePath, target);
 						return this.getImageData(imagePath);
 					}

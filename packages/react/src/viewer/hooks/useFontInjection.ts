@@ -97,6 +97,31 @@ export interface UseFontInjectionInput {
  *
  * Cleans up on unmount or when the font list changes.
  */
+// PPTX-supplied font names, dataUrls, and format identifiers flow into a
+// <style> textContent that the browser parses as CSS. Without validation,
+// a hostile PPTX can break out of the @font-face rule via `"; }` and inject
+// global selectors that exfiltrate data via `url()` or deface the page.
+const FONT_NAME_UNSAFE_CHARS = /["\\\n\r;}<>]/;
+const FONT_FORMAT_ALLOWED = new Set([
+	'truetype',
+	'opentype',
+	'woff',
+	'woff2',
+	'svg',
+	'embedded-opentype',
+]);
+const FONT_DATA_URL_PATTERN =
+	/^data:font\/[a-z0-9+.-]+(?:;charset=[a-z0-9-]+)?;base64,[A-Za-z0-9+/=]+$/i;
+function isFontDataUrlSafe(url: string): boolean {
+	if (typeof url !== 'string' || url.length === 0) {
+		return false;
+	}
+	if (url.startsWith('blob:')) {
+		return true;
+	}
+	return FONT_DATA_URL_PATTERN.test(url);
+}
+
 export function useFontInjection({ embeddedFonts, slides }: UseFontInjectionInput): void {
 	// ── Inject @font-face for embedded fonts ─────────────────────────
 	useEffect(() => {
@@ -108,17 +133,34 @@ export function useFontInjection({ embeddedFonts, slides }: UseFontInjectionInpu
 		styleEl.id = EMBEDDED_FONTS_STYLE_ID;
 
 		const cssRules = embeddedFonts
-			.map((font) => {
+			.flatMap((font) => {
+				// Reject fonts whose name, dataUrl, or format would let the value
+				// escape the @font-face block and inject arbitrary CSS rules.
+				if (
+					typeof font.name !== 'string' ||
+					font.name.length === 0 ||
+					FONT_NAME_UNSAFE_CHARS.test(font.name)
+				) {
+					return [];
+				}
+				if (!isFontDataUrlSafe(font.dataUrl)) {
+					return [];
+				}
+				const fontFormat = font.format ?? 'truetype';
+				if (!FONT_FORMAT_ALLOWED.has(fontFormat)) {
+					return [];
+				}
 				const fontWeight = font.bold ? '700' : '400';
 				const fontStyleCss = font.italic ? 'italic' : 'normal';
-				const fontFormat = font.format ?? 'truetype';
-				return `@font-face {
+				return [
+					`@font-face {
 	font-family: "${font.name}";
 	src: url("${font.dataUrl}") format("${fontFormat}");
 	font-weight: ${fontWeight};
 	font-style: ${fontStyleCss};
 	font-display: swap;
-}`;
+}`,
+				];
 			})
 			.join('\n');
 
@@ -159,7 +201,9 @@ export function useFontInjection({ embeddedFonts, slides }: UseFontInjectionInpu
 		const linkEl = document.createElement('link');
 		linkEl.id = GOOGLE_FONTS_LINK_ID;
 		linkEl.rel = 'stylesheet';
-		linkEl.href = `https://fonts.googleapis.com/css2?${googleFamilies.map((f) => `family=${GOOGLE_FONTS_AVAILABLE[f]}`).join('&')}&display=swap`;
+		linkEl.href = `https://fonts.googleapis.com/css2?${googleFamilies
+			.map((f) => `family=${encodeURIComponent(GOOGLE_FONTS_AVAILABLE[f])}`)
+			.join('&')}&display=swap`;
 		document.head.appendChild(linkEl);
 
 		return () => {
@@ -183,13 +227,21 @@ export function useFontInjection({ embeddedFonts, slides }: UseFontInjectionInpu
 		// On systems where these fonts aren't installed, the local()
 		// sources will miss and the browser uses its default sans.
 		const rules = neededSymbolFonts
-			.map(
-				(font) => `@font-face {
+			.flatMap((font) => {
+				// SYMBOL_FONT_FAMILIES is a hard-coded constant today, but defending
+				// the interpolation site means future additions sourced from PPTX
+				// can't sneak in a CSS-injection payload.
+				if (typeof font !== 'string' || FONT_NAME_UNSAFE_CHARS.test(font)) {
+					return [];
+				}
+				return [
+					`@font-face {
 \tfont-family: "${font}";
 \tsrc: local("${font}"), local("${font} Regular");
 \tfont-display: swap;
 }`,
-			)
+				];
+			})
 			.join('\n');
 
 		styleEl.textContent = rules;

@@ -103,12 +103,35 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * attribute on `p:cNvPr` / `p:cNvCxnSpPr` / `p:cNvPicPr` nodes.
 	 * This is used to seed the element builder's ID counter so that
 	 * new elements never collide with existing ones.
+	 *
+	 * Implementation note (Load H1): uses an explicit-stack iterative walk
+	 * instead of recursion to bound stack usage on attacker-supplied XML
+	 * with deeply nested nodes. Also caps total visited nodes at
+	 * MAX_NODES to bound CPU on pathological trees.
 	 */
 	protected findMaxElementId(slides: PptxSlide[]): number {
+		const MAX_NODES = 1_000_000;
 		let max = 0;
-		const visit = (node: unknown): void => {
+		const stack: unknown[] = [];
+		for (const slide of slides) {
+			stack.push(slide.rawXml);
+		}
+		let visited = 0;
+		while (stack.length > 0) {
+			if (visited++ > MAX_NODES) {
+				break;
+			}
+			const node = stack.pop();
 			if (node === null || node === undefined || typeof node !== 'object') {
-				return;
+				continue;
+			}
+			if (Array.isArray(node)) {
+				for (const item of node) {
+					if (item !== null && item !== undefined && typeof item === 'object') {
+						stack.push(item);
+					}
+				}
+				continue;
 			}
 			const obj = node as Record<string, unknown>;
 			if ('@_id' in obj) {
@@ -118,17 +141,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 			}
 			for (const value of Object.values(obj)) {
-				if (Array.isArray(value)) {
-					for (const item of value) {
-						visit(item);
-					}
-				} else if (typeof value === 'object' && value !== null) {
-					visit(value);
+				if (value === null || value === undefined) {
+					continue;
+				}
+				if (Array.isArray(value) || typeof value === 'object') {
+					stack.push(value);
 				}
 			}
-		};
-		for (const slide of slides) {
-			visit(slide.rawXml);
 		}
 		return max;
 	}

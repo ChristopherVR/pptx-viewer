@@ -1,5 +1,6 @@
 import { XmlObject, PptxSlide, PptxElement } from '../../types';
 import { buildGuideListExtension, P14_GUIDE_URI, P15_GUIDE_URI } from '../../utils/guide-utils';
+import { safeResolveZipPath } from '../../utils/safe-path';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveMediaTimingWrite';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -144,9 +145,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				continue;
 			}
 			const slideDir = slidePath.substring(0, slidePath.lastIndexOf('/') + 1);
-			return target.startsWith('..')
-				? this.resolvePath(slideDir, target)
-				: `ppt/${target.replace('../', '')}`;
+			const resolved = safeResolveZipPath(slideDir, target);
+			if (resolved !== null) {
+				return resolved;
+			}
 		}
 		return undefined;
 	}
@@ -162,9 +164,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				continue;
 			}
 			const layoutDir = layoutPath.substring(0, layoutPath.lastIndexOf('/') + 1);
-			return target.startsWith('..')
-				? this.resolvePath(layoutDir, target)
-				: `ppt/${target.replace('../', '')}`;
+			const resolved = safeResolveZipPath(layoutDir, target);
+			if (resolved !== null) {
+				return resolved;
+			}
 		}
 		return undefined;
 	}

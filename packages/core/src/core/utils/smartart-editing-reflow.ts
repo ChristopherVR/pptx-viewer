@@ -227,11 +227,17 @@ function reflowHierarchy(
 
 	const shapes: PptxSmartArtDrawingShape[] = [];
 
+	// Cap recursion to guard against pathological/malformed input
+	const MAX_WALK_DEPTH = 256;
+
 	function walkTree(
 		t: { node: PptxSmartArtNode; children: typeof roots },
 		xOffset: number,
 		level: number,
 	): number {
+		if (level >= MAX_WALK_DEPTH) {
+			return 1;
+		}
 		const w = treeWidth(t);
 		const cx = bounds.x + padding + (xOffset + w / 2) * cellW;
 		const cy = bounds.y + padding + level * cellH + cellH / 2;

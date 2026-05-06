@@ -78,6 +78,12 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 	const historyFutureRef = useRef<EditorHistorySnapshot[]>([]);
 	const lastHistorySnapshotRef = useRef<EditorHistorySnapshot | null>(null);
 	const lastHistorySerializedRef = useRef<string>('');
+	/**
+	 * Cheap structural hash so we can short-circuit the expensive
+	 * JSON.stringify when no slide-shape change has occurred. Only when the
+	 * cheap hash differs do we fall back to a full deep stringify comparison.
+	 */
+	const lastCheapHashRef = useRef<string>('');
 	const isApplyingHistoryRef = useRef(false);
 	const unlockHistoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -248,9 +254,21 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 			return;
 		}
 
+		// ── Cheap hash gate ────────────────────────────────────────────
+		// Skip the deep stringify when slide / element counts and ids
+		// match the previous snapshot. This catches the very common case
+		// where the effect re-runs but no real state shape changed.
+		const cheapHash = `${slides.length}|${activeSlideIndex}|${canvasSize.width}x${canvasSize.height}|${slides
+			.map((s) => `${s.id}:${s.elements.length}`)
+			.join('/')}`;
+		if (cheapHash === lastCheapHashRef.current) {
+			return;
+		}
+
 		const snapshot = buildHistorySnapshot();
 		const serialized = JSON.stringify(snapshot);
 		if (serialized === lastHistorySerializedRef.current) {
+			lastCheapHashRef.current = cheapHash;
 			return;
 		}
 
@@ -258,6 +276,7 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 		if (!previousSnapshot) {
 			lastHistorySnapshotRef.current = cloneHistorySnapshot(snapshot);
 			lastHistorySerializedRef.current = serialized;
+			lastCheapHashRef.current = cheapHash;
 			updateHistoryAvailability();
 			return;
 		}
@@ -269,13 +288,18 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 		historyFutureRef.current = [];
 		lastHistorySnapshotRef.current = cloneHistorySnapshot(snapshot);
 		lastHistorySerializedRef.current = serialized;
+		lastCheapHashRef.current = cheapHash;
 		updateHistoryAvailability();
 	}, [
+		activeSlideIndex,
 		buildHistorySnapshot,
+		canvasSize.height,
+		canvasSize.width,
 		error,
 		hasActivePointerInteraction,
 		loading,
 		pointerCommitNonce,
+		slides,
 		updateHistoryAvailability,
 	]);
 

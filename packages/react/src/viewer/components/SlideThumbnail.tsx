@@ -41,7 +41,7 @@ interface SlideThumbnailProps {
 	canvasSize: CanvasSize;
 }
 
-export function SlideThumbnail({
+function SlideThumbnailImpl({
 	slide,
 	templateElements,
 	canvasSize,
@@ -338,3 +338,44 @@ function ThumbnailTable({
 		</div>
 	);
 }
+
+/**
+ * Memo comparator: re-render only when the slide identity, dirty/hidden flags,
+ * underlying elements reference, template elements reference, or canvas size
+ * changes. Avoids burning frames on parent re-renders that don't change props.
+ */
+function arePropsEqual(prev: SlideThumbnailProps, next: SlideThumbnailProps): boolean {
+	if (prev.slide.id !== next.slide.id) {
+		return false;
+	}
+	if (prev.slide.isDirty !== next.slide.isDirty) {
+		return false;
+	}
+	if (prev.slide.hidden !== next.slide.hidden) {
+		return false;
+	}
+	if (prev.slide.elements !== next.slide.elements) {
+		return false;
+	}
+	if (prev.slide.backgroundColor !== next.slide.backgroundColor) {
+		return false;
+	}
+	if (prev.slide.backgroundImage !== next.slide.backgroundImage) {
+		return false;
+	}
+	if (prev.slide.backgroundGradient !== next.slide.backgroundGradient) {
+		return false;
+	}
+	if (prev.templateElements !== next.templateElements) {
+		return false;
+	}
+	if (
+		prev.canvasSize.width !== next.canvasSize.width ||
+		prev.canvasSize.height !== next.canvasSize.height
+	) {
+		return false;
+	}
+	return true;
+}
+
+export const SlideThumbnail = React.memo(SlideThumbnailImpl, arePropsEqual);

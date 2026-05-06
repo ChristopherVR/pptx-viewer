@@ -2,6 +2,28 @@ import { XmlObject, PptxElement } from '../../types';
 import type { MediaPptxElement } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeParsing';
 
+/** EMU values are int32 per ECMA-376 §22.1.2.4. Clamp parsed values to this range. */
+const INT32_MIN = -2_147_483_648;
+const INT32_MAX = 2_147_483_647;
+
+/**
+ * Parse a string as a base-10 integer with a finite-number guard and an
+ * int32 clamp. Used for attacker-controlled EMU values from XML attributes.
+ */
+function parseEmuInt(value: unknown): number {
+	const parsed = parseInt(String(value ?? ''), 10);
+	if (!Number.isFinite(parsed)) {
+		return 0;
+	}
+	if (parsed < INT32_MIN) {
+		return INT32_MIN;
+	}
+	if (parsed > INT32_MAX) {
+		return INT32_MAX;
+	}
+	return parsed;
+}
+
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected async parsePicture(
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -33,13 +55,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return null;
 			}
 
-			const x = Math.round(parseInt(off['@_x'] || '0') / PptxHandlerRuntime.EMU_PER_PX);
-			const y = Math.round(parseInt(off['@_y'] || '0') / PptxHandlerRuntime.EMU_PER_PX);
-			const width = Math.round(parseInt(ext['@_cx'] || '0') / PptxHandlerRuntime.EMU_PER_PX);
-			const height = Math.round(parseInt(ext['@_cy'] || '0') / PptxHandlerRuntime.EMU_PER_PX);
-			const rotation = xfrm['@_rot'] ? parseInt(xfrm['@_rot']) / 60000 : undefined;
-			const skewX = xfrm['@_skewX'] ? parseInt(String(xfrm['@_skewX']), 10) / 60000 : undefined;
-			const skewY = xfrm['@_skewY'] ? parseInt(String(xfrm['@_skewY']), 10) / 60000 : undefined;
+			const x = Math.round(parseEmuInt(off['@_x']) / PptxHandlerRuntime.EMU_PER_PX);
+			const y = Math.round(parseEmuInt(off['@_y']) / PptxHandlerRuntime.EMU_PER_PX);
+			const width = Math.round(parseEmuInt(ext['@_cx']) / PptxHandlerRuntime.EMU_PER_PX);
+			const height = Math.round(parseEmuInt(ext['@_cy']) / PptxHandlerRuntime.EMU_PER_PX);
+			const rotation = xfrm['@_rot'] ? parseEmuInt(xfrm['@_rot']) / 60000 : undefined;
+			const skewX = xfrm['@_skewX'] ? parseEmuInt(xfrm['@_skewX']) / 60000 : undefined;
+			const skewY = xfrm['@_skewY'] ? parseEmuInt(xfrm['@_skewY']) / 60000 : undefined;
 			const { flipHorizontal, flipVertical } = this.readFlipState(xfrm);
 
 			// ── Check if this picture is actually a video/audio placeholder ──
@@ -72,11 +94,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					const slideRels = this.slideRelsMap.get(slidePath);
 					const posterTarget = slideRels?.get(posterREmbed || posterRLink);
 					if (posterTarget) {
-						if (
-							posterTarget.startsWith('http://') ||
-							posterTarget.startsWith('https://') ||
-							posterTarget.startsWith('data:')
-						) {
+						const isExternal =
+							posterTarget.startsWith('http://') || posterTarget.startsWith('https://');
+						if (isExternal) {
+							// Load H3: external URL gating. Drop unless explicitly allowed.
+							if (this.allowExternalImages === true) {
+								posterFramePath = posterTarget;
+								posterFrameData = posterTarget;
+							}
+						} else if (posterTarget.startsWith('data:')) {
 							posterFramePath = posterTarget;
 							posterFrameData = posterTarget;
 						} else {
@@ -210,11 +236,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				const slideRels = this.slideRelsMap.get(slidePath);
 				const target = slideRels?.get(rEmbed || rLink);
 				if (target) {
-					if (
-						target.startsWith('http://') ||
-						target.startsWith('https://') ||
-						target.startsWith('data:')
-					) {
+					const isExternal = target.startsWith('http://') || target.startsWith('https://');
+					if (isExternal) {
+						// Load H3: external URL gating. Drop unless explicitly allowed.
+						if (this.allowExternalImages === true) {
+							imagePath = target;
+							imageData = target;
+						}
+					} else if (target.startsWith('data:')) {
 						imagePath = target;
 						imageData = target;
 					} else {

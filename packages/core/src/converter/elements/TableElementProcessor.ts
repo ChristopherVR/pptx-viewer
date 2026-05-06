@@ -7,7 +7,76 @@ import type {
 	TextSegment,
 } from '../../core';
 import { getSubstituteFontFamily } from '../../core/utils/font-substitution';
+import { escapeHtml as escapeHtmlAttr } from '../base';
 import type { ElementProcessor, ElementProcessorContext } from './ElementProcessor';
+
+/**
+ * Allowlist of CSS named colors permitted in inline `style="..."` output.
+ * Any value that is not a hex color (`#rgb`/`#rrggbb`/`#rrggbbaa`) or a
+ * member of this list is dropped — this prevents a hostile cell style from
+ * smuggling `; expression(...)` / quote-break characters into the attribute.
+ */
+const SAFE_CSS_NAMED_COLORS = new Set([
+	'black',
+	'silver',
+	'gray',
+	'white',
+	'maroon',
+	'red',
+	'purple',
+	'fuchsia',
+	'green',
+	'lime',
+	'olive',
+	'yellow',
+	'navy',
+	'blue',
+	'teal',
+	'aqua',
+	'orange',
+	'transparent',
+	'currentcolor',
+	'inherit',
+	'initial',
+	'unset',
+]);
+
+/** Returns the value untouched if it is a safe CSS color, otherwise undefined. */
+function cssColorSafe(value: string | undefined | null): string | undefined {
+	if (typeof value !== 'string') {
+		return undefined;
+	}
+	const trimmed = value.trim();
+	if (trimmed.length === 0) {
+		return undefined;
+	}
+	if (/^#[0-9a-f]{3,8}$/i.test(trimmed)) {
+		return trimmed;
+	}
+	if (SAFE_CSS_NAMED_COLORS.has(trimmed.toLowerCase())) {
+		return trimmed;
+	}
+	return undefined;
+}
+
+/**
+ * Returns the value untouched if it is a safe CSS font-family declaration,
+ * otherwise undefined. Permits letters, digits, spaces, common punctuation
+ * used in font stacks, and quote characters used to wrap multi-word names.
+ */
+function cssFontFamilySafe(value: string | undefined | null): string | undefined {
+	if (typeof value !== 'string') {
+		return undefined;
+	}
+	const trimmed = value.trim();
+	if (trimmed.length === 0) {
+		return undefined;
+	}
+	if (/^[a-zA-Z0-9 _\-,'"]{1,80}$/.test(trimmed)) {
+		return trimmed;
+	}
+	return undefined;
+}
 
 export class TableElementProcessor implements ElementProcessor {
 	public readonly supportedTypes = ['table'] as const;
@@ -91,7 +160,7 @@ export class TableElementProcessor implements ElementProcessor {
 
 		const css = this.buildCellCss(cell.style, isHeader);
 		if (css) {
-			parts.push(` style="${css}"`);
+			parts.push(` style="${escapeHtmlAttr(css)}"`);
 		}
 		return parts.join('');
 	}
@@ -99,20 +168,22 @@ export class TableElementProcessor implements ElementProcessor {
 	/** Converts PptxTableCellStyle to an inline CSS string. */
 	private buildCellCss(style: PptxTableCellStyle | undefined, isHeader: boolean): string {
 		const rules: string[] = [];
-		if (style?.backgroundColor) {
-			rules.push(`background:${style.backgroundColor}`);
+		const safeBackground = cssColorSafe(style?.backgroundColor);
+		if (safeBackground) {
+			rules.push(`background:${safeBackground}`);
 		}
-		if (style?.align) {
+		if (style?.align && /^[a-zA-Z]+$/.test(style.align)) {
 			rules.push(`text-align:${style.align}`);
 		}
-		if (style?.vAlign) {
+		if (style?.vAlign && /^[a-zA-Z]+$/.test(style.vAlign)) {
 			rules.push(`vertical-align:${style.vAlign}`);
 		}
 		if (style?.fontSize) {
 			rules.push(`font-size:${Math.round(style.fontSize)}px`);
 		}
-		if (style?.color) {
-			rules.push(`color:${style.color}`);
+		const safeColor = cssColorSafe(style?.color);
+		if (safeColor) {
+			rules.push(`color:${safeColor}`);
 		}
 		if (style?.bold || isHeader) {
 			rules.push('font-weight:bold');
@@ -142,20 +213,25 @@ export class TableElementProcessor implements ElementProcessor {
 			return '';
 		}
 		const edges: string[] = [];
-		if (style.borderTopWidth && style.borderTopColor) {
-			edges.push(`border-top:${style.borderTopWidth}px solid ${style.borderTopColor}`);
+		const topColor = cssColorSafe(style.borderTopColor);
+		if (style.borderTopWidth && topColor) {
+			edges.push(`border-top:${Math.round(style.borderTopWidth)}px solid ${topColor}`);
 		}
-		if (style.borderBottomWidth && style.borderBottomColor) {
-			edges.push(`border-bottom:${style.borderBottomWidth}px solid ${style.borderBottomColor}`);
+		const bottomColor = cssColorSafe(style.borderBottomColor);
+		if (style.borderBottomWidth && bottomColor) {
+			edges.push(`border-bottom:${Math.round(style.borderBottomWidth)}px solid ${bottomColor}`);
 		}
-		if (style.borderLeftWidth && style.borderLeftColor) {
-			edges.push(`border-left:${style.borderLeftWidth}px solid ${style.borderLeftColor}`);
+		const leftColor = cssColorSafe(style.borderLeftColor);
+		if (style.borderLeftWidth && leftColor) {
+			edges.push(`border-left:${Math.round(style.borderLeftWidth)}px solid ${leftColor}`);
 		}
-		if (style.borderRightWidth && style.borderRightColor) {
-			edges.push(`border-right:${style.borderRightWidth}px solid ${style.borderRightColor}`);
+		const rightColor = cssColorSafe(style.borderRightColor);
+		if (style.borderRightWidth && rightColor) {
+			edges.push(`border-right:${Math.round(style.borderRightWidth)}px solid ${rightColor}`);
 		}
-		if (edges.length === 0 && style.borderColor) {
-			return `border:1px solid ${style.borderColor}`;
+		const fallback = cssColorSafe(style.borderColor);
+		if (edges.length === 0 && fallback) {
+			return `border:1px solid ${fallback}`;
 		}
 		return edges.join(';');
 	}
@@ -198,7 +274,7 @@ export class TableElementProcessor implements ElementProcessor {
 
 			const css = this.buildRunCss(seg, cell.style);
 			if (css) {
-				parts.push(`<span style="${css}">${text}</span>`);
+				parts.push(`<span style="${escapeHtmlAttr(css)}">${text}</span>`);
 			} else {
 				parts.push(text);
 			}
@@ -213,14 +289,20 @@ export class TableElementProcessor implements ElementProcessor {
 		const rules: string[] = [];
 
 		if (s.fontFamily) {
-			rules.push(`font-family:${getSubstituteFontFamily(s.fontFamily)}`);
+			const safeFamily = cssFontFamilySafe(getSubstituteFontFamily(s.fontFamily));
+			if (safeFamily) {
+				rules.push(`font-family:${safeFamily}`);
+			}
 		}
 		// Only emit run-level font-size if it differs from the cell default.
 		if (s.fontSize && s.fontSize !== cellStyle?.fontSize) {
 			rules.push(`font-size:${Math.round(s.fontSize)}px`);
 		}
 		if (s.color && s.color !== cellStyle?.color) {
-			rules.push(`color:${s.color}`);
+			const safeColor = cssColorSafe(s.color);
+			if (safeColor) {
+				rules.push(`color:${safeColor}`);
+			}
 		}
 		if (s.bold && !cellStyle?.bold) {
 			rules.push('font-weight:bold');

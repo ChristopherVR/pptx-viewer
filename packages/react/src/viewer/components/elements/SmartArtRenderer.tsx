@@ -69,7 +69,7 @@ interface SmartArtRendererProps {
  * Renders SmartArt nodes using SVG with proper positioning, styling,
  * and connector lines based on the layout type.
  */
-export function SmartArtRenderer({
+function SmartArtRendererImpl({
 	element,
 	className = '',
 }: SmartArtRendererProps): React.ReactElement {
@@ -220,6 +220,40 @@ function renderLayout(
 	// Default: list layout
 	return <ListRenderer element={element} nodes={nodes} palette={palette} style={style} />;
 }
+
+// ── Memoized export ─────────────────────────────────────────────────────────
+
+/**
+ * Memo comparator: re-render only when the SmartArt element identity or its
+ * core data references change. SmartArt rendering is expensive (many SVG
+ * shapes, layout computations), so skipping no-op renders is a meaningful
+ * win for slides with multiple diagrams.
+ */
+function arePropsEqual(prev: SmartArtRendererProps, next: SmartArtRendererProps): boolean {
+	if (prev.className !== next.className) {
+		return false;
+	}
+	if (prev.element.id !== next.element.id) {
+		return false;
+	}
+	if (prev.element.type !== next.element.type) {
+		return false;
+	}
+	if (prev.element.width !== next.element.width || prev.element.height !== next.element.height) {
+		return false;
+	}
+	if (prev.element.x !== next.element.x || prev.element.y !== next.element.y) {
+		return false;
+	}
+	const prevData = prev.element.type === 'smartArt' ? prev.element.smartArtData : undefined;
+	const nextData = next.element.type === 'smartArt' ? next.element.smartArtData : undefined;
+	if (prevData !== nextData) {
+		return false;
+	}
+	return true;
+}
+
+export const SmartArtRenderer = React.memo(SmartArtRendererImpl, arePropsEqual);
 
 // ── Exported test utilities ─────────────────────────────────────────────────
 

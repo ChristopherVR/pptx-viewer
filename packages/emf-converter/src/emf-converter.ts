@@ -51,11 +51,16 @@ export interface EmfConvertOptions {
  * @param deferredImages - The list of deferred image-draw descriptors
  *                         accumulated during GDI / EMF+ record replay.
  */
+const MAX_METAFILE_RECURSION = 3;
+
 async function processDeferredImages(
 	ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
 	deferredImages: DeferredImageDraw[],
+	recursionDepth: number = 0,
 ): Promise<void> {
-	emfLog(`processDeferredImages: processing ${deferredImages.length} deferred images...`);
+	emfLog(
+		`processDeferredImages: processing ${deferredImages.length} deferred images (recursionDepth=${recursionDepth})...`,
+	);
 
 	for (let idx = 0; idx < deferredImages.length; idx++) {
 		const img = deferredImages[idx];
@@ -85,9 +90,28 @@ async function processDeferredImages(
 			if (img.isMetafile) {
 				// Embedded metafiles must be recursively converted to a raster image
 				// before they can be drawn — try EMF first, then fall back to WMF.
+				if (recursionDepth >= MAX_METAFILE_RECURSION) {
+					emfWarn(
+						`  Deferred image [${idx}]: skipping embedded metafile — recursion depth ${recursionDepth} >= ${MAX_METAFILE_RECURSION}`,
+					);
+					continue;
+				}
 				emfLog(`  Deferred image [${idx}]: recursively converting embedded metafile...`);
 				const metafileDataUrl =
-					(await convertEmfToDataUrl(plainBuffer)) ?? (await convertWmfToDataUrl(plainBuffer));
+					(await convertEmfToDataUrl(
+						plainBuffer,
+						undefined,
+						undefined,
+						undefined,
+						recursionDepth + 1,
+					)) ??
+					(await convertWmfToDataUrl(
+						plainBuffer,
+						undefined,
+						undefined,
+						undefined,
+						recursionDepth + 1,
+					));
 				if (metafileDataUrl) {
 					// Decode the data-URL back to raw bytes so we can build a Blob
 					// and hand it to createImageBitmap for drawing.
@@ -168,7 +192,14 @@ export async function convertEmfToDataUrl(
 	maxWidth?: number,
 	maxHeight?: number,
 	optionsOrDpiScale?: EmfConvertOptions | number,
+	recursionDepth: number = 0,
 ): Promise<string | null> {
+	if (recursionDepth > MAX_METAFILE_RECURSION) {
+		emfWarn(
+			`convertEmfToDataUrl: recursion depth ${recursionDepth} exceeds limit ${MAX_METAFILE_RECURSION} — refusing to convert`,
+		);
+		return null;
+	}
 	// Parse the flexible options argument
 	const opts: EmfConvertOptions =
 		typeof optionsOrDpiScale === 'number'
@@ -287,7 +318,14 @@ export async function convertWmfToDataUrl(
 	maxWidth?: number,
 	maxHeight?: number,
 	optionsOrDpiScale?: EmfConvertOptions | number,
+	recursionDepth: number = 0,
 ): Promise<string | null> {
+	if (recursionDepth > MAX_METAFILE_RECURSION) {
+		emfWarn(
+			`convertWmfToDataUrl: recursion depth ${recursionDepth} exceeds limit ${MAX_METAFILE_RECURSION} — refusing to convert`,
+		);
+		return null;
+	}
 	const opts: EmfConvertOptions =
 		typeof optionsOrDpiScale === 'number'
 			? { dpiScale: optionsOrDpiScale }

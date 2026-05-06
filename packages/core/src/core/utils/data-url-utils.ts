@@ -82,15 +82,53 @@ const extensionByResponseMime: Record<string, string> = {
 };
 
 /**
+ * Options for {@link fetchUrlToBytes}.
+ *
+ * `allowExternalFetch` (default `false`) gates `http:`/`https:` URLs to
+ * prevent SSRF during save: a deck whose mediaData was populated by an
+ * untrusted source could otherwise force the host to issue arbitrary HTTP
+ * requests (e.g. to cloud-metadata endpoints).
+ *
+ * `allowedSchemes` further constrains the accepted URL schemes. The default
+ * permits only `pptx-resource:`, `blob:`, and `data:` — schemes that cannot
+ * reach a remote network.
+ */
+export interface FetchUrlToBytesOptions {
+	allowExternalFetch?: boolean;
+	allowedSchemes?: ReadonlySet<string>;
+}
+
+const DEFAULT_SAFE_SCHEMES: ReadonlySet<string> = new Set(['pptx-resource:', 'blob:', 'data:']);
+
+/**
  * Resolve a media source URL (pptx-resource://, blob:, http(s)://) to raw
- * bytes by fetching it. Returns null on failure.
+ * bytes by fetching it. Returns null on failure or when the URL scheme is
+ * not permitted by {@link FetchUrlToBytesOptions}.
  *
  * This is used during PPTX save to embed media that was streamed from disk
  * (via pptx-resource:// URLs) rather than stored as base64 data URLs.
  */
 export async function fetchUrlToBytes(
 	url: string,
+	options: FetchUrlToBytesOptions = {},
 ): Promise<{ bytes: Uint8Array; extension: string } | null> {
+	// Validate scheme up front to prevent SSRF on save.
+	let scheme: string;
+	try {
+		scheme = new URL(url).protocol;
+	} catch {
+		return null;
+	}
+	const allowedSchemes = options.allowedSchemes ?? DEFAULT_SAFE_SCHEMES;
+	const isHttp = scheme === 'http:' || scheme === 'https:';
+	if (isHttp) {
+		if (options.allowExternalFetch !== true) {
+			return null;
+		}
+	} else if (!allowedSchemes.has(scheme)) {
+		return null;
+	}
+
 	try {
 		const response = await fetch(url);
 		if (!response.ok) {

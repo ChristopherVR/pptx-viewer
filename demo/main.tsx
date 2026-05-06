@@ -11,6 +11,23 @@ import type { CollaborationConfig } from '../packages/react/src/viewer';
 
 import './app.css';
 
+// ── Server URL safety ──────────────────────────────────────────────────────
+// Only allow auto-connect / auto-upload to trusted hosts when driven from URL
+// params. Untrusted servers can still be used via the explicit Share dialog,
+// but a crafted ?server=... must never silently fetch or POST a presentation.
+const TRUSTED_COLLAB_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
+function isTrustedServerUrl(url: string): boolean {
+	try {
+		const u = new URL(url);
+		if (u.protocol !== 'ws:' && u.protocol !== 'wss:') {
+			return false;
+		}
+		return TRUSTED_COLLAB_HOSTS.includes(u.hostname);
+	} catch {
+		return false;
+	}
+}
+
 // ── Theme presets ──────────────────────────────────────────────────────────
 
 interface ThemePreset {
@@ -327,9 +344,9 @@ function App() {
 	// ── Collaboration ────────────────────────────────────────────────────
 	const [collaborationConfig, setCollaborationConfig] = useState<CollaborationConfig | null>(null);
 
-	// Auto-connect if room is in URL (collaboration mode)
+	// Auto-connect if room is in URL (collaboration mode) — only if server is trusted
 	useEffect(() => {
-		if (urlRoom && !collaborationConfig) {
+		if (urlRoom && !collaborationConfig && isTrustedServerUrl(urlServer)) {
 			setCollaborationConfig({
 				roomId: urlRoom,
 				serverUrl: urlServer,
@@ -338,12 +355,16 @@ function App() {
 					.toString(16)
 					.padStart(6, '0')}`,
 			});
+		} else if (urlRoom && !isTrustedServerUrl(urlServer)) {
+			console.warn(
+				`Ignoring ?room= auto-connect because ?server=${urlServer} is not in the trusted-host allowlist. Use the Share dialog to connect explicitly.`,
+			);
 		}
 	}, [urlRoom, urlServer, urlName, autoName, collaborationConfig]);
 
-	// Auto-connect if broadcast is in URL (viewer mode)
+	// Auto-connect if broadcast is in URL (viewer mode) — only if server is trusted
 	useEffect(() => {
-		if (urlBroadcast && !collaborationConfig) {
+		if (urlBroadcast && !collaborationConfig && isTrustedServerUrl(urlServer)) {
 			setCollaborationConfig({
 				roomId: urlBroadcast,
 				serverUrl: urlServer,
@@ -353,6 +374,10 @@ function App() {
 					.padStart(6, '0')}`,
 				role: 'viewer',
 			});
+		} else if (urlBroadcast && !isTrustedServerUrl(urlServer)) {
+			console.warn(
+				`Ignoring ?broadcast= auto-connect because ?server=${urlServer} is not in the trusted-host allowlist.`,
+			);
 		}
 	}, [urlBroadcast, urlServer, urlName, autoName, collaborationConfig]);
 
@@ -368,8 +393,10 @@ function App() {
 			}
 			url.searchParams.set('server', config.serverUrl);
 			window.history.replaceState({}, '', url.toString());
-			// Upload PPTX content to the collab server so joiners can download it
-			if (content) {
+			// Upload PPTX content to the collab server so joiners can download it.
+			// Restricted to trusted hosts to prevent crafted ?server= URLs from
+			// exfiltrating user content.
+			if (content && isTrustedServerUrl(config.serverUrl)) {
 				const httpUrl = config.serverUrl.replace(/^ws/, 'http');
 				void fetch(`${httpUrl}/file/${encodeURIComponent(config.roomId)}`, {
 					method: 'POST',
@@ -395,10 +422,18 @@ function App() {
 		window.history.replaceState({}, '', url.toString());
 	}, []);
 
-	// When joining via URL with a room/broadcast param, download PPTX from the collab server
+	// When joining via URL with a room/broadcast param, download PPTX from the
+	// collab server — but ONLY if the server is in the trusted-host allowlist.
+	// Otherwise a crafted URL could trick the demo into ingesting attacker bytes.
 	const joinRoomId = urlRoom ?? urlBroadcast;
 	useEffect(() => {
 		if (!joinRoomId || content) {
+			return;
+		}
+		if (!isTrustedServerUrl(urlServer)) {
+			console.warn(
+				`Refusing to fetch presentation from untrusted ?server=${urlServer}. Add the host to TRUSTED_COLLAB_HOSTS or use the Share dialog.`,
+			);
 			return;
 		}
 		let cancelled = false;

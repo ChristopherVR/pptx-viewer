@@ -6,6 +6,7 @@ import type {
 	TextStyle,
 } from '../../core';
 import { hasTextProperties } from '../../core/types/type-guards';
+import { escapeHtml } from '../base';
 import { renderShapeToDataUrl } from '../ShapeImageRenderer';
 import { TextSegmentRenderer } from '../TextSegmentRenderer';
 import type { ElementProcessor, ElementProcessorContext } from './ElementProcessor';
@@ -72,8 +73,11 @@ export class TextElementProcessor implements ElementProcessor {
 			const fallbackText = textElement.text?.trim();
 			if (fallbackText) {
 				const align = textElement.textStyle?.align;
+				// Escape both the alignment attribute and the body content — the
+				// fallback path emits raw HTML that downstream Markdown→HTML
+				// renderers will not re-escape.
 				if (align && align !== 'left') {
-					parts.push(`<p align="${align}">${fallbackText}</p>`);
+					parts.push(`<p align="${escapeHtml(align)}">${escapeHtml(fallbackText)}</p>`);
 				} else {
 					parts.push(fallbackText);
 				}
@@ -118,7 +122,7 @@ export class TextElementProcessor implements ElementProcessor {
 			seen.add(dataUrl);
 			try {
 				const path = await ctx.mediaContext.saveImage(dataUrl, `slide${ctx.slideNumber}-bullet`);
-				extracted.push(`<img src="${path}" alt="Bullet image">`);
+				extracted.push(`<img src="${escapeHtml(path)}" alt="Bullet image">`);
 			} catch {
 				// Ignore extraction errors.
 			}
@@ -148,7 +152,7 @@ export class TextElementProcessor implements ElementProcessor {
 			if (ctx.semanticMode) {
 				return `![Shape fill](${path})`;
 			}
-			return `<img src="${path}" alt="Shape fill">`;
+			return `<img src="${escapeHtml(path)}" alt="Shape fill">`;
 		} catch {
 			return null;
 		}
@@ -198,10 +202,10 @@ export class TextElementProcessor implements ElementProcessor {
 				return `![Shape](${imgPath})`;
 			}
 			if (ctx.layoutScale) {
-				return `<img src="${imgPath}" alt="Shape" style="max-width:100%;height:auto">`;
+				return `<img src="${escapeHtml(imgPath)}" alt="Shape" style="max-width:100%;height:auto">`;
 			}
 			const dims = this.computeDisplaySize(shape.width, shape.height);
-			return `<img src="${imgPath}" alt="Shape" width="${dims.w}" height="${dims.h}">`;
+			return `<img src="${escapeHtml(imgPath)}" alt="Shape" width="${dims.w}" height="${dims.h}">`;
 		} catch {
 			return null;
 		}

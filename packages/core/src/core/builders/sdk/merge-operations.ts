@@ -291,7 +291,10 @@ export function mergePresentation(
 	if (options?.keepSourceTheme && sourceData.themeColorMap) {
 		targetData.themeColorMap = { ...sourceData.themeColorMap };
 		if (sourceData.theme) {
-			targetData.theme = JSON.parse(JSON.stringify(sourceData.theme));
+			targetData.theme =
+				typeof structuredClone === 'function'
+					? structuredClone(sourceData.theme)
+					: JSON.parse(JSON.stringify(sourceData.theme));
 		}
 	}
 

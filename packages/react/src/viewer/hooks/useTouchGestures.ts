@@ -13,7 +13,7 @@
  *
  * @module useTouchGestures
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { MIN_ZOOM_SCALE, MAX_ZOOM_SCALE } from '../constants';
 
@@ -80,6 +80,23 @@ export function useTouchGestures(input: UseTouchGesturesInput): void {
 
 	const scaleRef = useRef(currentScale);
 	scaleRef.current = currentScale;
+
+	// React refs are mutable but don't trigger re-renders when their `current`
+	// is reassigned. If the underlying DOM node is replaced (e.g., conditional
+	// rendering swaps the canvas wrapper), our effect would never re-attach
+	// listeners because its deps array hasn't changed.
+	//
+	// Mitigation: poll `targetRef.current` on every render via state, and when
+	// the node identity changes, bump `targetVersion` so the listener-attaching
+	// effect re-runs. This keeps the public API (a RefObject) intact while
+	// behaving like a callback ref.
+	const [targetVersion, setTargetVersion] = useState(0);
+	const lastTargetRef = useRef<HTMLElement | null>(null);
+	if (targetRef.current !== lastTargetRef.current) {
+		lastTargetRef.current = targetRef.current;
+		// Schedule a re-run on next microtask (avoid setState during render).
+		queueMicrotask(() => setTargetVersion((v) => v + 1));
+	}
 
 	useEffect(() => {
 		const el = targetRef.current;
@@ -196,5 +213,7 @@ export function useTouchGestures(input: UseTouchGesturesInput): void {
 			el.removeEventListener('touchcancel', handleTouchCancel);
 			cancelLongPress();
 		};
-	}, [targetRef, enabled]);
+		// targetVersion changes when the underlying DOM node identity changes,
+		// triggering listener re-attachment.
+	}, [targetRef, enabled, targetVersion]);
 }

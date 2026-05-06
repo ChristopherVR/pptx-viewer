@@ -6,7 +6,7 @@
  */
 
 import { EMFPLUS_HEADER, EMFPLUS_ENDOFFILE, EMFPLUS_GETDC, EMFPLUS_OBJECT } from './emf-constants';
-import { emfLog } from './emf-logging';
+import { emfLog, emfWarn } from './emf-logging';
 import { handleEmfPlusDrawRecord } from './emf-plus-draw-handlers';
 import { handleEmfPlusObjectRecord } from './emf-plus-object-parser';
 import { handleEmfPlusStateRecord } from './emf-plus-state-handlers';
@@ -137,18 +137,36 @@ export function replayEmfPlusRecords(
 						if (recDataSize >= 4) {
 							const totalSize = view.getUint32(dataOff, true);
 							const objectType = (recFlags >> 8) & 0x7f;
-							rCtx.continuationTotalSize = totalSize;
-							rCtx.continuationObjectId = objectId;
-							rCtx.continuationObjectType = objectType;
-							rCtx.continuationBuffer = new Uint8Array(totalSize);
-							const chunkSize = recDataSize - 4;
-							const chunk = new Uint8Array(
-								view.buffer,
-								view.byteOffset + dataOff + 4,
-								Math.min(chunkSize, totalSize),
-							);
-							rCtx.continuationBuffer.set(chunk, 0);
-							rCtx.continuationOffset = chunk.length;
+							const MAX_CONTINUATION_BYTES = 64 * 1024 * 1024; // 64 MiB hard cap
+							const remainingEmfPlusBytes = view.byteLength - dataOff;
+							// Reject implausible / hostile sizes. Setting totalSize to 0
+							// makes the subsequent block skip allocation, and the
+							// continuationBuffer remains null so trailing records will
+							// not be appended. recDataSize is already <= remainingEmfPlusBytes.
+							if (
+								!Number.isFinite(totalSize) ||
+								totalSize <= 0 ||
+								totalSize > MAX_CONTINUATION_BYTES ||
+								totalSize > remainingEmfPlusBytes ||
+								recDataSize - 4 < 0
+							) {
+								emfWarn(
+									`EMFPLUS_OBJECT continuation: rejecting invalid totalObjectSize=${totalSize} (remaining=${remainingEmfPlusBytes}, recDataSize=${recDataSize})`,
+								);
+							} else {
+								rCtx.continuationTotalSize = totalSize;
+								rCtx.continuationObjectId = objectId;
+								rCtx.continuationObjectType = objectType;
+								rCtx.continuationBuffer = new Uint8Array(totalSize);
+								const chunkSize = recDataSize - 4;
+								const chunk = new Uint8Array(
+									view.buffer,
+									view.byteOffset + dataOff + 4,
+									Math.min(chunkSize, totalSize),
+								);
+								rCtx.continuationBuffer.set(chunk, 0);
+								rCtx.continuationOffset = chunk.length;
+							}
 						}
 					} else {
 						// Subsequent continuation record — append raw data

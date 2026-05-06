@@ -6,10 +6,36 @@ import { validateSlideIndex } from './helpers.js';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-function buildSearchRegex(query: string, useRegex: boolean, caseSensitive: boolean): RegExp {
+/** Maximum allowed user-supplied regex source length. */
+const MAX_REGEX_LEN = 200;
+
+/**
+ * Reject patterns containing nested unbounded quantifiers — the classic
+ * "evil regex" shape (e.g. `(a+)+`, `(a*)+`, `(a+)*`) that produces
+ * exponential backtracking.
+ */
+function hasNestedUnboundedQuantifier(pattern: string): boolean {
+	// Match a parenthesised group whose body ends with `+` or `*`, immediately
+	// followed by another `+` or `*` outside the group.
+	return /\([^)]*[+*]\)[+*]/.test(pattern);
+}
+
+function buildSearchRegex(query: string, useRegex: boolean, caseSensitive: boolean): RegExp | null {
+	if (useRegex) {
+		if (query.length > MAX_REGEX_LEN) {
+			return null;
+		}
+		if (hasNestedUnboundedQuantifier(query)) {
+			return null;
+		}
+	}
 	const pattern = useRegex ? query : query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 	const flags = caseSensitive ? 'g' : 'gi';
-	return new RegExp(pattern, flags);
+	try {
+		return new RegExp(pattern, flags);
+	} catch {
+		return null;
+	}
 }
 
 // ── findText ─────────────────────────────────────────────────────────────────
@@ -41,6 +67,15 @@ export function findText(ctx: ToolContext, params: FindTextParams): ToolResult<F
 		params.useRegex === true,
 		params.caseSensitive === true,
 	);
+
+	// Invalid / unsafe regex — return empty result rather than throwing.
+	if (!regex) {
+		return {
+			pptxData: ctx.pptxData,
+			dirty: false,
+			result: { query: params.query, matchCount: 0, matches: [] },
+		};
+	}
 
 	const targetIndexes = params.slideIndexes
 		? params.slideIndexes
@@ -156,6 +191,14 @@ export function replaceText(
 		params.useRegex === true,
 		params.caseSensitive === true,
 	);
+
+	if (!regex) {
+		return {
+			pptxData: ctx.pptxData,
+			dirty: false,
+			result: { query: params.query, replacement: params.replacement, replacementCount: 0 },
+		};
+	}
 
 	const targetIndexes = params.slideIndexes
 		? params.slideIndexes

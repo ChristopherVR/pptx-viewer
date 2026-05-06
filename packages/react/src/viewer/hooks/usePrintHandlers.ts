@@ -43,6 +43,37 @@ export interface PrintHandlersResult {
 }
 
 /* ------------------------------------------------------------------ */
+/*  HTML attribute escaping                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Escape a value for safe interpolation inside an HTML attribute (single
+ * or double quoted). Escapes `&`, `<`, `>`, `"`, and `'`.
+ */
+function escapeHtmlAttr(value: string): string {
+	return value
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+}
+
+/**
+ * Validate and escape an `img` `src` for inclusion in print-window HTML.
+ * Only `data:image/...` URLs are accepted; anything else returns an empty
+ * 1x1 transparent PNG sentinel so the document stays well-formed.
+ */
+function safeDataImageSrc(src: string): string {
+	if (typeof src !== 'string' || !src.startsWith('data:image/')) {
+		// Transparent 1x1 PNG fallback — keeps the layout stable but emits
+		// nothing exploitable.
+		return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgAAIAAAUAAen63NgAAAAASUVORK5CYII=';
+	}
+	return escapeHtmlAttr(src);
+}
+
+/* ------------------------------------------------------------------ */
 /*  Print Window Builder                                               */
 /* ------------------------------------------------------------------ */
 
@@ -277,7 +308,7 @@ export function usePrintHandlers(input: UsePrintHandlersInput): PrintHandlersRes
 				const bodyHtml = slideImages
 					.map(
 						(img, i) =>
-							`<section class="page slide-page"><img class="slide-img" src="${img}" alt="Slide ${slideIndices[i] + 1}" /></section>`,
+							`<section class="page slide-page"><img class="slide-img" src="${safeDataImageSrc(img)}" alt="Slide ${slideIndices[i] + 1}" /></section>`,
 					)
 					.join('');
 				openPrintWindow(
@@ -296,7 +327,7 @@ export function usePrintHandlers(input: UsePrintHandlersInput): PrintHandlersRes
 						const idx = slideIndices[i];
 						const notes = slides[idx]?.notes?.trim() || '';
 						return `<section class="page notes-page">
-  <img class="notes-slide" src="${img}" alt="Slide ${idx + 1}" />
+  <img class="notes-slide" src="${safeDataImageSrc(img)}" alt="Slide ${idx + 1}" />
   <div class="notes-text">${escapeHtml(notes)}</div>
 </section>`;
 					})
@@ -331,7 +362,7 @@ export function usePrintHandlers(input: UsePrintHandlersInput): PrintHandlersRes
 						const rows = Array.from({ length: spp }, (_, cellIndex) => {
 							const img = pageImgs[cellIndex];
 							const slideCell = img
-								? `<div class="handout-cell"><img src="${img}" alt="Slide ${slideIndices[i + cellIndex] + 1}" /></div>`
+								? `<div class="handout-cell"><img src="${safeDataImageSrc(img)}" alt="Slide ${slideIndices[i + cellIndex] + 1}" /></div>`
 								: `<div class="handout-cell"></div>`;
 							return `<div class="handout-row-3">${slideCell}${buildNoteLines()}</div>`;
 						}).join('');
@@ -340,7 +371,7 @@ export function usePrintHandlers(input: UsePrintHandlersInput): PrintHandlersRes
 						const cells = Array.from({ length: spp }, (_, cellIndex) => {
 							const img = pageImgs[cellIndex];
 							return img
-								? `<div class="handout-cell"><img src="${img}" alt="Slide ${slideIndices[i + cellIndex] + 1}" /></div>`
+								? `<div class="handout-cell"><img src="${safeDataImageSrc(img)}" alt="Slide ${slideIndices[i + cellIndex] + 1}" /></div>`
 								: `<div class="handout-cell"></div>`;
 						}).join('');
 						pages.push(

@@ -223,7 +223,12 @@ export class PptxCodec implements FormatCodec {
 		for (const [prefixed, original] of Object.entries(REVERSE_COMPLEX_SLIDE_MAP)) {
 			const value = slideMap.get(prefixed) as string | undefined;
 			if (value !== undefined) {
-				slide[original] = JSON.parse(value);
+				try {
+					slide[original] = JSON.parse(value);
+				} catch {
+					// Corrupt or non-JSON value — leave field undefined to keep
+					// dehydration safe rather than aborting the whole document.
+				}
 			}
 		}
 		const elementsArray = slideMap.get('elements') as YArray<YMap<unknown>> | undefined;
@@ -258,7 +263,12 @@ export class PptxCodec implements FormatCodec {
 		const element: Record<string, unknown> = {};
 		elemMap.forEach((value: unknown, key: string) => {
 			if (REVERSE_COMPLEX_MAP[key]) {
-				element[REVERSE_COMPLEX_MAP[key]] = JSON.parse(value as string);
+				try {
+					element[REVERSE_COMPLEX_MAP[key]] = JSON.parse(value as string);
+				} catch {
+					// Corrupt JSON in Y.Doc — skip rather than throwing so the
+					// element still hydrates with whatever scalar fields parsed.
+				}
 			} else {
 				element[key] = value;
 			}

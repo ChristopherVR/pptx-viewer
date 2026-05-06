@@ -1,4 +1,5 @@
 import type { TextSegment } from '../core';
+import { escapeHtml as escapeHtmlAttr, safeHrefOrHash } from './base';
 import { isCodeLikeFont, resolveListLevel, resolveListMarker } from './ListMarkerHelper';
 import type { SegmentBulletInfo } from './ListMarkerHelper';
 import { OmmlLatexConverter } from './OmmlLatexConverter';
@@ -243,10 +244,13 @@ export class TextSegmentRenderer {
 			text = `<span style="font-variant:small-caps">${text}</span>`;
 		}
 		if (segment.style.hyperlink) {
-			const dest = this.renderLinkDestination(segment.style.hyperlink);
 			if (useHtml) {
-				text = `<a href="${dest}">${text}</a>`;
+				// Clamp the scheme first so a hostile `javascript:` / `data:text/html`
+				// collapses to `#`, then HTML-escape for the attribute value.
+				const safeDest = escapeHtmlAttr(safeHrefOrHash(segment.style.hyperlink));
+				text = `<a href="${safeDest}">${text}</a>`;
 			} else {
+				const dest = this.renderLinkDestination(segment.style.hyperlink);
 				const title = segment.style.hyperlinkTooltip
 					? ` "${this.escapeLinkTitle(segment.style.hyperlinkTooltip)}"`
 					: '';

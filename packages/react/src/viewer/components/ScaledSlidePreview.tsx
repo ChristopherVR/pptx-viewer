@@ -43,7 +43,7 @@ export interface ScaledSlidePreviewProps {
 // Component
 // ---------------------------------------------------------------------------
 
-export function ScaledSlidePreview({
+function ScaledSlidePreviewImpl({
 	slide,
 	templateElements,
 	canvasSize,
@@ -205,3 +205,46 @@ export function ScaledSlidePreview({
 		</div>
 	);
 }
+
+/**
+ * Memo comparator: re-render only when slide identity, dirty/hidden state,
+ * elements, template elements, canvas size, or className change.
+ */
+function arePropsEqual(prev: ScaledSlidePreviewProps, next: ScaledSlidePreviewProps): boolean {
+	if (prev.slide.id !== next.slide.id) {
+		return false;
+	}
+	if (prev.slide.isDirty !== next.slide.isDirty) {
+		return false;
+	}
+	if (prev.slide.hidden !== next.slide.hidden) {
+		return false;
+	}
+	if (prev.slide.elements !== next.slide.elements) {
+		return false;
+	}
+	if (prev.slide.backgroundColor !== next.slide.backgroundColor) {
+		return false;
+	}
+	if (prev.slide.backgroundImage !== next.slide.backgroundImage) {
+		return false;
+	}
+	if (prev.slide.backgroundGradient !== next.slide.backgroundGradient) {
+		return false;
+	}
+	if (prev.templateElements !== next.templateElements) {
+		return false;
+	}
+	if (
+		prev.canvasSize.width !== next.canvasSize.width ||
+		prev.canvasSize.height !== next.canvasSize.height
+	) {
+		return false;
+	}
+	if (prev.className !== next.className) {
+		return false;
+	}
+	return true;
+}
+
+export const ScaledSlidePreview = React.memo(ScaledSlidePreviewImpl, arePropsEqual);

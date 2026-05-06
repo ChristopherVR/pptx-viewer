@@ -442,18 +442,12 @@ function decodeSimpleGlyph(
 
 		const enc = TRIPLET_ENCODINGS[flag & 0x7f];
 
-		// Build a sub-stream from the next (byteCount - 1) bytes of glyph data
-		// for bit-level reading of coordinate deltas.
-		const extraBytes = enc.byteCount - 1;
-		const subBuf = new Uint8Array(extraBytes);
-		for (let b = 0; b < extraBytes; b++) {
-			subBuf[b] = sGlyph.readU8();
-		}
-		const sub = new Stream(subBuf, extraBytes);
-
-		// Read raw X and Y bit-fields
-		let dx = sub.readNBits(enc.xBits) + enc.deltaX;
-		let dy = sub.readNBits(enc.yBits) + enc.deltaY;
+		// Read raw X and Y bit-fields directly from the glyph stream.
+		// `xBits + yBits == 8 * (byteCount - 1)` for every triplet entry, so
+		// the stream remains byte-aligned after both reads — no temporary
+		// allocation needed (was: per-point Uint8Array + Stream, perf hot path).
+		let dx = sGlyph.readNBits(enc.xBits) + enc.deltaX;
+		let dy = sGlyph.readNBits(enc.yBits) + enc.deltaY;
 
 		// Apply sign
 		if (enc.xSign !== 0) {

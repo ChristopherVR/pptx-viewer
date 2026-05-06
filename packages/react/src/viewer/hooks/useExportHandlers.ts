@@ -85,7 +85,7 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		modalControls,
 	});
 
-	const handleExportPng = async () => {
+	const handleExportPng = useCallback(async () => {
 		const stageEl = canvasStageRef.current;
 		if (!stageEl) {
 			return;
@@ -97,9 +97,9 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		} catch (err) {
 			console.error('[PowerPointViewer] PNG export failed:', err);
 		}
-	};
+	}, [canvasStageRef, activeSlideIndex, activeSlide?.backgroundColor]);
 
-	const handleExportPdf = async () => {
+	const handleExportPdf = useCallback(async () => {
 		if (!canvasStageRef.current) {
 			return;
 		}
@@ -140,9 +140,9 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 			exportAbortRef.current = null;
 			setExportModalOpen(false);
 		}
-	};
+	}, [canvasStageRef, slides.length, setActiveSlideIndex, activeSlideIndex]);
 
-	const handleExportNotesPdf = async () => {
+	const handleExportNotesPdf = useCallback(async () => {
 		if (!canvasStageRef.current) {
 			return;
 		}
@@ -185,9 +185,9 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 			exportAbortRef.current = null;
 			setExportModalOpen(false);
 		}
-	};
+	}, [canvasStageRef, slides, setActiveSlideIndex, activeSlideIndex]);
 
-	const handleCopySlideAsImage = async () => {
+	const handleCopySlideAsImage = useCallback(async () => {
 		const stageEl = canvasStageRef.current;
 		if (!stageEl) {
 			return;
@@ -199,9 +199,9 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		} catch (err) {
 			console.error('[PowerPointViewer] Copy slide as image failed:', err);
 		}
-	};
+	}, [canvasStageRef, activeSlide?.backgroundColor]);
 
-	const handleExportVideo = async () => {
+	const handleExportVideo = useCallback(async () => {
 		if (!canvasStageRef.current) {
 			return;
 		}
@@ -243,9 +243,9 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 			exportAbortRef.current = null;
 			setExportModalOpen(false);
 		}
-	};
+	}, [canvasStageRef, slides.length, setActiveSlideIndex, activeSlideIndex]);
 
-	const handleExportGif = async () => {
+	const handleExportGif = useCallback(async () => {
 		if (!canvasStageRef.current) {
 			return;
 		}
@@ -283,7 +283,7 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 			exportAbortRef.current = null;
 			setExportModalOpen(false);
 		}
-	};
+	}, [canvasStageRef, slides.length, setActiveSlideIndex, activeSlideIndex]);
 
 	const handleCancelExport = useCallback(() => {
 		exportAbortRef.current?.abort();

@@ -43,11 +43,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		const ext = this.getPathExtension(imagePath);
 
-		if (
-			imagePath.startsWith('http://') ||
-			imagePath.startsWith('https://') ||
-			imagePath.startsWith('data:')
-		) {
+		// Load H3: gate external URLs behind the `allowExternalImages` load
+		// option (default false). Returning `undefined` for external targets
+		// blocks SSRF / privacy-leak vectors when an attacker controls a
+		// relationship's TargetMode="External" Target.
+		if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+			if (this.allowExternalImages !== true) {
+				return undefined;
+			}
+			return imagePath;
+		}
+		if (imagePath.startsWith('data:')) {
 			return imagePath;
 		}
 
@@ -113,7 +119,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected async enrichMediaElementsWithTiming(
 		elements: PptxElement[],
 		timingMap: Map<string, MediaTimingData>,
+		depth: number = 0,
 	): Promise<void> {
+		// Load H1: cap recursion depth on group-children traversal to prevent
+		// stack-overflow DoS from a maliciously deep group tree (defence in
+		// depth — `parseGroupShape` already caps construction at 64, but this
+		// method is reachable via other paths and merits its own bound).
+		const MAX_TIMING_DEPTH = 32;
+		if (depth > MAX_TIMING_DEPTH) {
+			return;
+		}
 		for (const el of elements) {
 			if (el.type !== 'media') {
 				continue;
@@ -185,7 +200,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Also check inside groups (one level deep)
 		for (const el of elements) {
 			if (el.type === 'group' && el.children) {
-				await this.enrichMediaElementsWithTiming(el.children, timingMap);
+				await this.enrichMediaElementsWithTiming(el.children, timingMap, depth + 1);
 			}
 		}
 	}

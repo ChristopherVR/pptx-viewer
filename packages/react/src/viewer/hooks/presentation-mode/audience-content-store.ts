@@ -11,6 +11,14 @@ const DB_VERSION = 1;
 const STORE_NAME = 'content';
 const CONTENT_KEY = 'pptx-bytes';
 
+/** Maximum age (ms) for stored audience content. Older records are rejected. */
+const MAX_CONTENT_AGE_MS = 5 * 60 * 1000;
+
+interface AudienceContentRecord {
+	bytes: Uint8Array;
+	createdAt: number;
+}
+
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
@@ -42,9 +50,10 @@ export async function storeAudienceContent(content: ArrayBuffer | Uint8Array): P
 	return new Promise((resolve, reject) => {
 		const tx = db.transaction(STORE_NAME, 'readwrite');
 		const store = tx.objectStore(STORE_NAME);
-		// Store as Uint8Array for consistent retrieval
+		// Store as Uint8Array for consistent retrieval, wrapped with a timestamp.
 		const bytes = content instanceof Uint8Array ? content : new Uint8Array(content);
-		store.put(bytes, CONTENT_KEY);
+		const record: AudienceContentRecord = { bytes, createdAt: Date.now() };
+		store.put(record, CONTENT_KEY);
 		tx.oncomplete = () => {
 			db.close();
 			resolve();
@@ -70,13 +79,26 @@ export async function loadAudienceContent(): Promise<Uint8Array | null> {
 			request.onsuccess = () => {
 				db.close();
 				const result = request.result;
-				if (result instanceof Uint8Array) {
-					resolve(result);
-				} else if (result instanceof ArrayBuffer) {
-					resolve(new Uint8Array(result));
-				} else {
-					resolve(null);
+				// New format: { bytes, createdAt } record with TTL check.
+				if (result && typeof result === 'object' && 'bytes' in result && 'createdAt' in result) {
+					const record = result as AudienceContentRecord;
+					const age = Date.now() - record.createdAt;
+					if (age > MAX_CONTENT_AGE_MS) {
+						resolve(null);
+						return;
+					}
+					const raw: unknown = record.bytes;
+					if (raw instanceof Uint8Array) {
+						resolve(raw);
+					} else if (raw instanceof ArrayBuffer) {
+						resolve(new Uint8Array(raw));
+					} else {
+						resolve(null);
+					}
+					return;
 				}
+				// Legacy format (raw bytes without timestamp) — reject for safety.
+				resolve(null);
 			};
 			request.onerror = () => {
 				db.close();

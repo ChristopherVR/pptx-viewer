@@ -37,6 +37,12 @@ const LEN_MIN = 2;
 /** Minimum match distance returned by decodeDistance. */
 const DIST_MIN = 1;
 
+/** Hard cap on the declared LZCOMP output length to bound allocations. */
+const MAX_OUT_LEN = 4 * 1024 * 1024; // 4 MiB
+
+/** Hard cap on RLE-expanded output buffer growth. */
+const MAX_OUT = 16 * 1024 * 1024; // 16 MiB
+
 // ---------------------------------------------------------------------------
 // RLE state constants
 // ---------------------------------------------------------------------------
@@ -60,6 +66,11 @@ function setDistRange(length: number) {
 
 	while (distMax < length) {
 		numDistRanges++;
+		// Defense-in-depth: cap numDistRanges to prevent runaway loop or
+		// out-of-range left-shifts when `length` is corrupted.
+		if (numDistRanges > 8) {
+			throw new Error('LZCOMP setDistRange: numDistRanges exceeds bound (8)');
+		}
 		distMax = DIST_MIN + ((1 << (DIST_WIDTH * numDistRanges)) - 1);
 	}
 
@@ -123,8 +134,14 @@ function decodeLength(lenEcoder: AHuff, symbol: number, numDistRangesOut: number
 	let firstTime = true;
 	let value = 0;
 	let done: boolean;
+	let iters = 0;
 
 	do {
+		// Defense-in-depth: cap iteration count to prevent unbounded loops on
+		// adversarial input (each chunk is 3 bits ⇒ 16 chunks ≫ any sane length).
+		if (++iters > 16) {
+			throw new Error('LZCOMP decodeLength: iteration cap exceeded');
+		}
 		let bits: number;
 
 		if (firstTime) {
@@ -206,6 +223,12 @@ export function lzcompDecompress(data: Uint8Array, size: number, version: number
 	// --- Read expected output length (24-bit big-endian) -------------------
 	const outLen = bio.readValue(24);
 
+	// Cap declared output length so a hostile stream cannot allocate huge
+	// buffers (sliding window + outBuf are sized from this value).
+	if (outLen > MAX_OUT_LEN) {
+		throw new Error(`LZCOMP outLen ${outLen} exceeds maximum (${MAX_OUT_LEN})`);
+	}
+
 	// --- Compute distance-range parameters ---------------------------------
 	const { DUP2, DUP4, DUP6, NUM_SYMS } = setDistRange(outLen);
 
@@ -239,6 +262,9 @@ export function lzcompDecompress(data: Uint8Array, size: number, version: number
 			// Fast path: no RLE, just append.
 			if (outIdx >= outBufSize) {
 				outBufSize += outBufSize >>> 1;
+				if (outBufSize > MAX_OUT) {
+					throw new Error('LZCOMP output exceeds maximum size budget');
+				}
 				const tmp = new Uint8Array(outBufSize);
 				tmp.set(outBuf);
 				outBuf = tmp;
@@ -261,6 +287,9 @@ export function lzcompDecompress(data: Uint8Array, size: number, version: number
 				} else {
 					if (outIdx >= outBufSize) {
 						outBufSize += outBufSize >>> 1;
+						if (outBufSize > MAX_OUT) {
+							throw new Error('LZCOMP output exceeds maximum size budget');
+						}
 						const tmp = new Uint8Array(outBufSize);
 						tmp.set(outBuf);
 						outBuf = tmp;
@@ -275,6 +304,9 @@ export function lzcompDecompress(data: Uint8Array, size: number, version: number
 					// Escaped escape: emit the escape byte itself.
 					if (outIdx >= outBufSize) {
 						outBufSize += outBufSize >>> 1;
+						if (outBufSize > MAX_OUT) {
+							throw new Error('LZCOMP output exceeds maximum size budget');
+						}
 						const tmp = new Uint8Array(outBufSize);
 						tmp.set(outBuf);
 						outBuf = tmp;
@@ -290,6 +322,9 @@ export function lzcompDecompress(data: Uint8Array, size: number, version: number
 				// Emit `rleCount` copies of `byte`.
 				if (outIdx + rleCount > outBufSize) {
 					outBufSize = outIdx + rleCount + (outBufSize >>> 1);
+					if (outBufSize > MAX_OUT) {
+						throw new Error('LZCOMP output exceeds maximum size budget');
+					}
 					const tmp = new Uint8Array(outBufSize);
 					tmp.set(outBuf);
 					outBuf = tmp;

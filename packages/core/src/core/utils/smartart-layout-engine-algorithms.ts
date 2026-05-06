@@ -195,7 +195,13 @@ export function computeHierarchyLayout(
 
 	const shapes: LayoutEngineShape[] = [];
 
+	// Cap recursion to guard against pathological/malformed input
+	const MAX_WALK_DEPTH = 256;
+
 	function walk(t: TreeNode, xOffset: number, level: number): number {
+		if (level >= MAX_WALK_DEPTH) {
+			return 1;
+		}
 		const w = treeWidth(t);
 		const cx = bounds.x + begPad + (xOffset + w / 2) * cellW;
 		const cy = bounds.y + begPad + level * cellH + cellH / 2;

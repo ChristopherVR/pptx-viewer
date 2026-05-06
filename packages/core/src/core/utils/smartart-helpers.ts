@@ -182,18 +182,44 @@ export function buildForest(nodes: PptxSmartArtNode[]): TreeNode[] {
 	return roots;
 }
 
-export function treeWidth(t: TreeNode): number {
+/**
+ * Maximum recursion depth for tree traversal helpers.
+ *
+ * SmartArt diagrams are user-authored and may contain pathological depths
+ * (or be the result of malformed input). Capping protects against stack
+ * overflow while still accommodating any realistic SmartArt hierarchy.
+ */
+const MAX_TREE_DEPTH = 256;
+
+export function treeWidth(t: TreeNode, depth = 0): number {
+	if (depth >= MAX_TREE_DEPTH) {
+		return 1;
+	}
 	if (t.children.length === 0) {
 		return 1;
 	}
-	return t.children.reduce((s, c) => s + treeWidth(c), 0);
+	let sum = 0;
+	for (const c of t.children) {
+		sum += treeWidth(c, depth + 1);
+	}
+	return sum;
 }
 
-export function treeDepth(t: TreeNode): number {
+export function treeDepth(t: TreeNode, depth = 0): number {
+	if (depth >= MAX_TREE_DEPTH) {
+		return 0;
+	}
 	if (t.children.length === 0) {
 		return 1;
 	}
-	return 1 + Math.max(...t.children.map(treeDepth));
+	let max = 0;
+	for (const c of t.children) {
+		const d = treeDepth(c, depth + 1);
+		if (d > max) {
+			max = d;
+		}
+	}
+	return 1 + max;
 }
 
 // ── Filter out root-only "doc" nodes with empty text ────────────────────

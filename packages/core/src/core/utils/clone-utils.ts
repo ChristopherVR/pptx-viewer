@@ -130,10 +130,12 @@ export function cloneTemplateElementsBySlideId(
 }
 
 /**
- * Deep-clone an {@link XmlObject} tree using JSON round-trip serialisation.
+ * Deep-clone an {@link XmlObject} tree.
  *
- * This is a simple but reliable approach for pure-data XML objects.
- * Returns `undefined` if cloning fails (e.g. circular references).
+ * Prefers the structured clone algorithm (faster, preserves more types)
+ * with a JSON round-trip fallback for legacy runtimes that lack
+ * {@link structuredClone}. Returns `undefined` if cloning fails
+ * (e.g. circular references on the JSON path).
  *
  * @param value - The XML object tree to clone.
  * @returns A deep copy, or `undefined` on failure.
@@ -143,6 +145,9 @@ export function cloneXmlObject(value: XmlObject | undefined): XmlObject | undefi
 		return undefined;
 	}
 	try {
+		if (typeof structuredClone === 'function') {
+			return structuredClone(value) as XmlObject;
+		}
 		return JSON.parse(JSON.stringify(value)) as XmlObject;
 	} catch (error) {
 		console.warn('Failed to clone XML object, returning undefined.', value, error);

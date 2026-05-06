@@ -80,7 +80,24 @@ function injectFontFaces(svg: string, fontFaces: FontFaceEntry[]): string {
 		return svg;
 	}
 
-	const styleBlock = `<style type="text/css">${fontFaces.map((f) => f.css).join('\n')}</style>`;
+	// Reject any font-face entries that contain a `</style` substring — these
+	// could prematurely terminate the surrounding `<style>` block and allow
+	// arbitrary markup to escape into the SVG document.
+	const safeFontFaces = fontFaces.filter((f) => {
+		if (f.css.toLowerCase().includes('</style')) {
+			console.warn(
+				`[export-svg] Dropping @font-face entry for "${f.family}" containing "</style" — would break out of the <style> block.`,
+			);
+			return false;
+		}
+		return true;
+	});
+
+	if (!safeFontFaces.length) {
+		return svg;
+	}
+
+	const styleBlock = `<style type="text/css">${safeFontFaces.map((f) => f.css).join('\n')}</style>`;
 
 	// If the SVG already contains a <defs> block, insert the style at the start
 	if (svg.includes('<defs>')) {

@@ -44,6 +44,11 @@ export function unpackMtx(
 	data: Uint8Array,
 	size: number,
 ): { streams: Uint8Array[]; sizes: number[] } {
+	// --- Validate buffer & header ------------------------------------------
+	if (size < 10 || data.length < 10) {
+		throw new Error('MTX data too small: header requires at least 10 bytes');
+	}
+
 	// --- Read 10-byte MTX header -------------------------------------------
 	const versionMagic = data[0];
 
@@ -52,9 +57,20 @@ export function unpackMtx(
 	const offset2 = (data[4] << 16) | (data[5] << 8) | data[6];
 	const offset3 = (data[7] << 16) | (data[8] << 8) | data[9];
 
-	// Block boundaries
+	// Validate offset ordering: 10 <= offset2 <= offset3 <= size
+	if (offset2 < 10 || offset3 < offset2 || offset3 > size) {
+		throw new Error(
+			`MTX header offsets out of bounds: offset2=${offset2}, offset3=${offset3}, size=${size}`,
+		);
+	}
+
+	// Block boundaries — clamp blockSizes to >= 0 defensively
 	const offsets = [10, offset2, offset3];
-	const blockSizes = [offset2 - 10, offset3 - offset2, size - offset3];
+	const blockSizes = [
+		Math.max(0, offset2 - 10),
+		Math.max(0, offset3 - offset2),
+		Math.max(0, size - offset3),
+	];
 
 	// Decompress each block
 	const streams: Uint8Array[] = [];

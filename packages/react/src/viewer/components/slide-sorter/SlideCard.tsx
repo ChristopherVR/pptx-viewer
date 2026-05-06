@@ -33,7 +33,7 @@ interface SlideCardProps {
 // Component
 // ---------------------------------------------------------------------------
 
-export function SlideCard({
+function SlideCardImpl({
 	slide,
 	index,
 	isActive,
@@ -100,3 +100,65 @@ export function SlideCard({
 		</div>
 	);
 }
+
+/**
+ * Memo comparator: skips re-renders when neither the slide identity, its
+ * mutability flags, nor any of the selection/active/drag state changed.
+ * Handlers are intentionally compared by reference — callers should pass
+ * stable callbacks (useCallback) to keep this effective.
+ */
+function arePropsEqual(prev: SlideCardProps, next: SlideCardProps): boolean {
+	if (prev.slide.id !== next.slide.id) {
+		return false;
+	}
+	if (prev.slide.isDirty !== next.slide.isDirty) {
+		return false;
+	}
+	if (prev.slide.hidden !== next.slide.hidden) {
+		return false;
+	}
+	if (prev.slide.elements !== next.slide.elements) {
+		return false;
+	}
+	if (prev.index !== next.index) {
+		return false;
+	}
+	if (prev.isActive !== next.isActive) {
+		return false;
+	}
+	if (prev.isDragTarget !== next.isDragTarget) {
+		return false;
+	}
+	if (prev.isSelected !== next.isSelected) {
+		return false;
+	}
+	if (prev.selectedCount !== next.selectedCount) {
+		return false;
+	}
+	if (prev.selectionOrder !== next.selectionOrder) {
+		return false;
+	}
+	if (prev.canEdit !== next.canEdit) {
+		return false;
+	}
+	if (
+		prev.canvasSize.width !== next.canvasSize.width ||
+		prev.canvasSize.height !== next.canvasSize.height
+	) {
+		return false;
+	}
+	if (
+		prev.onSlideClick !== next.onSlideClick ||
+		prev.onDoubleClick !== next.onDoubleClick ||
+		prev.onContextMenu !== next.onContextMenu ||
+		prev.onDragStart !== next.onDragStart ||
+		prev.onDragOver !== next.onDragOver ||
+		prev.onDragLeave !== next.onDragLeave ||
+		prev.onDrop !== next.onDrop
+	) {
+		return false;
+	}
+	return true;
+}
+
+export const SlideCard = React.memo(SlideCardImpl, arePropsEqual);

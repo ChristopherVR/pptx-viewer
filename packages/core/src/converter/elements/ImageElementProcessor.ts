@@ -1,5 +1,6 @@
 import type { ImagePptxElement, PicturePptxElement, PptxElement } from '../../core';
 import { isImageLikeElement } from '../../core/types/type-guards';
+import { escapeHtml } from '../base';
 import type { ElementProcessor, ElementProcessorContext } from './ElementProcessor';
 
 type ImageLikeElement = ImagePptxElement | PicturePptxElement;
@@ -31,16 +32,21 @@ export class ImageElementProcessor implements ElementProcessor {
 			return `> **[Image extraction failed]** ${imageElement.id} (slide ${ctx.slideNumber})`;
 		}
 
+		// `altText` and `imagePath` may originate from PPTX-controlled values;
+		// escape both before embedding into HTML attributes / Markdown image syntax.
+		const safeAlt = escapeHtml(altText);
+		const safeSrc = escapeHtml(imagePath);
+
 		if (ctx.semanticMode) {
-			return `![${altText}](${imagePath})`;
+			return `![${safeAlt}](${imagePath})`;
 		}
 
 		if (ctx.layoutScale) {
-			return `<img src="${imagePath}" alt="${altText}" style="max-width:100%;height:auto">`;
+			return `<img src="${safeSrc}" alt="${safeAlt}" style="max-width:100%;height:auto">`;
 		}
 
 		const dims = this.computeDisplaySize(element.width, element.height);
-		return `<img src="${imagePath}" alt="${altText}" width="${dims.w}" height="${dims.h}">`;
+		return `<img src="${safeSrc}" alt="${safeAlt}" width="${dims.w}" height="${dims.h}">`;
 	}
 
 	/** Scale element dimensions to a sensible display size, capping width. */

@@ -2,6 +2,7 @@ import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { safeOpenUrl } from '../../utils/hyperlink-security';
 import { parseSegmentsFromRichEditor, segmentsToEditorHtml } from './notes-html';
 import {
 	DEBOUNCE_MS,
@@ -259,7 +260,9 @@ export function useSlideNotes({
 		const href = target.getAttribute('data-hyperlink') || target.getAttribute('href');
 		if (href && (e.ctrlKey || e.metaKey)) {
 			e.preventDefault();
-			window.open(href, '_blank');
+			// Route through safeOpenUrl so javascript:/data: schemes can't execute
+			// when the user Ctrl+clicks an anchor in untrusted PPTX notes content.
+			safeOpenUrl(href);
 		}
 	}, []);
 

@@ -31,31 +31,43 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	protected collectLocalTextValues(node: unknown, localName: string, output: string[]): void {
-		if (node === null || node === undefined) {
-			return;
-		}
-		if (Array.isArray(node)) {
-			node.forEach((entry) => {
-				this.collectLocalTextValues(entry, localName, output);
-			});
-			return;
-		}
-		if (typeof node !== 'object') {
-			return;
-		}
-
-		const objectNode = node as XmlObject;
-		for (const [key, value] of Object.entries(objectNode)) {
-			if (this.compatibilityService.getXmlLocalName(key) === localName) {
-				if (typeof value === 'string' || typeof value === 'number') {
-					const textValue = String(value).trim();
-					if (textValue.length > 0) {
-						output.push(textValue);
+		// Load H1: iterative explicit-stack walk to bound stack usage on
+		// deeply-nested attacker-supplied SmartArt XML (was recursive).
+		const MAX_NODES = 1_000_000;
+		const stack: unknown[] = [node];
+		let visited = 0;
+		while (stack.length > 0) {
+			if (visited++ > MAX_NODES) {
+				break;
+			}
+			const current = stack.pop();
+			if (current === null || current === undefined) {
+				continue;
+			}
+			if (Array.isArray(current)) {
+				for (const entry of current) {
+					stack.push(entry);
+				}
+				continue;
+			}
+			if (typeof current !== 'object') {
+				continue;
+			}
+			const objectNode = current as XmlObject;
+			for (const [key, value] of Object.entries(objectNode)) {
+				if (this.compatibilityService.getXmlLocalName(key) === localName) {
+					if (typeof value === 'string' || typeof value === 'number') {
+						const textValue = String(value).trim();
+						if (textValue.length > 0) {
+							output.push(textValue);
+						}
+						continue;
 					}
-					continue;
+				}
+				if (value !== null && value !== undefined) {
+					stack.push(value);
 				}
 			}
-			this.collectLocalTextValues(value, localName, output);
 		}
 	}
 

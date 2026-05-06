@@ -155,11 +155,11 @@ export function useLoadContent({
 					);
 				}
 
-				// Dispose previous handler to free Blob URLs and caches
-				if (handlerRef.current) {
-					handlerRef.current.dispose();
-					handlerRef.current = null;
-				}
+				// Capture the previous handler so we can dispose it AFTER the new
+				// load resolves. Disposing too early would yank Blob URLs that
+				// are still being painted by the previous render, causing flashes
+				// of broken images while the new file loads.
+				const previousHandler = handlerRef.current;
 
 				const handler = new PptxHandler();
 				const parsed = await handler.load(buffer as ArrayBuffer);
@@ -167,6 +167,12 @@ export function useLoadContent({
 					handler.dispose();
 					return;
 				}
+
+				// New load succeeded — now safe to dispose the previous handler.
+				if (previousHandler) {
+					previousHandler.dispose();
+				}
+				handlerRef.current = null;
 
 				// ── Resolve media Blob URLs (audio/video) ───────────────────
 				const mediaElements: MediaPptxElement[] = [];
@@ -220,6 +226,7 @@ export function useLoadContent({
 				// imagePath but no imageData after parse.  Resolve them now
 				// using getImageData which returns Blob URLs in browsers.
 				const { paths: imagePaths, refs: imageRefs } = collectImagePaths(parsed.slides);
+				let nextSlides = parsed.slides;
 				if (imagePaths.size > 0) {
 					// Load unique paths in parallel, then fan out to all refs
 					const resolvedMap = new Map<string, string>();
@@ -235,18 +242,51 @@ export function useLoadContent({
 							}
 						}),
 					);
-					// Set imageData/svgData on elements so renderers have it
+					// Build a per-element-id patch map (id → { field: url, ... })
+					// outside the transform loop so we don't repeat lookups.
+					const elementPatches = new Map<string, Record<string, string>>();
 					for (const ref of imageRefs) {
 						const url = resolvedMap.get(ref.path);
-						if (url) {
-							// eslint-disable-next-line @typescript-eslint/no-explicit-any
-							(ref.element as any)[ref.field] = url;
+						if (!url) {
+							continue;
 						}
+						const id = ref.element.id;
+						const existing = elementPatches.get(id) ?? {};
+						existing[ref.field] = url;
+						elementPatches.set(id, existing);
+					}
+
+					if (elementPatches.size > 0) {
+						const patchElements = (elements: PptxElement[]): PptxElement[] => {
+							let mutated = false;
+							const next = elements.map((el) => {
+								let updated = el;
+								const patch = elementPatches.get(el.id);
+								if (patch) {
+									updated = { ...el, ...patch } as PptxElement;
+								}
+								if (updated.type === 'group' && updated.children?.length) {
+									const newChildren = patchElements(updated.children);
+									if (newChildren !== updated.children) {
+										updated = { ...updated, children: newChildren };
+									}
+								}
+								if (updated !== el) {
+									mutated = true;
+								}
+								return updated;
+							});
+							return mutated ? next : elements;
+						};
+						nextSlides = parsed.slides.map((s) => {
+							const newElements = patchElements(s.elements);
+							return newElements === s.elements ? s : { ...s, elements: newElements };
+						});
 					}
 				}
 
 				handlerRef.current = handler;
-				setSlides(parsed.slides);
+				setSlides(nextSlides);
 				setTemplateElementsBySlideId({});
 				setCanvasSize({
 					width: parsed.width ?? DEFAULT_CANVAS_WIDTH,

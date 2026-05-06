@@ -70,6 +70,13 @@ export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFacto
 			// More generally, OOXML element text is always an untyped string;
 			// downstream callers coerce where needed.
 			parseTagValue: false,
+			// Security hardening (Load M3): explicitly disable XML entity
+			// processing. PPTX XML never uses DOCTYPE / DTDs, so allowing
+			// entity expansion serves only as an attack surface
+			// (billion-laughs / external-entity / future fast-xml-parser
+			// regressions). v5.5.5 currently defaults to safe behaviour but
+			// pinning this makes the guarantee explicit and forward-stable.
+			processEntities: false,
 		});
 	}
 
