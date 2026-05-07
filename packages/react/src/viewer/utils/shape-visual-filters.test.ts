@@ -1,4 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect } from 'vitest';
 
 import {
@@ -10,6 +11,9 @@ import {
 	mapDagBlendModeToCss,
 	getDagDuotoneFilterId,
 	hasDagDuotoneEffect,
+	getImageAlphaFilterId,
+	hasAdvancedImageAlphaEffects,
+	renderImageAlphaSvgFilter,
 } from './shape-visual-filters';
 
 // ---------------------------------------------------------------------------
@@ -389,5 +393,99 @@ describe('hasDagDuotoneEffect', () => {
 			},
 		} as PptxElement;
 		expect(hasDagDuotoneEffect(el)).toBeTruthy();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Image alpha primitives filter
+// ---------------------------------------------------------------------------
+
+const makeImg = (effects: Record<string, unknown>): PptxElement =>
+	({
+		id: 'img-x',
+		type: 'image',
+		x: 0,
+		y: 0,
+		width: 100,
+		height: 100,
+		imageEffects: effects,
+	}) as PptxElement;
+
+describe('getImageAlphaFilterId', () => {
+	it('prefixes the element id with imgalpha-', () => {
+		expect(getImageAlphaFilterId('e1')).toBe('imgalpha-e1');
+	});
+});
+
+describe('hasAdvancedImageAlphaEffects', () => {
+	it('returns false for plain image (no imageEffects)', () => {
+		expect(hasAdvancedImageAlphaEffects({ id: '1', type: 'image' } as PptxElement)).toBeFalsy();
+	});
+
+	it('returns false for css-expressible effects only (brightness/contrast)', () => {
+		expect(hasAdvancedImageAlphaEffects(makeImg({ brightness: 10, contrast: -5 }))).toBeFalsy();
+	});
+
+	it('returns true when alphaInv is set', () => {
+		expect(hasAdvancedImageAlphaEffects(makeImg({ alphaInv: {} }))).toBeTruthy();
+	});
+
+	it('returns true when alphaModFix is set', () => {
+		expect(hasAdvancedImageAlphaEffects(makeImg({ alphaModFix: 50 }))).toBeTruthy();
+	});
+
+	it('returns true when biLevel threshold is set', () => {
+		expect(hasAdvancedImageAlphaEffects(makeImg({ biLevel: 30 }))).toBeTruthy();
+	});
+
+	it('returns true when clrRepl is set', () => {
+		expect(hasAdvancedImageAlphaEffects(makeImg({ clrRepl: { color: '#FF0000' } }))).toBeTruthy();
+	});
+});
+
+describe('renderImageAlphaSvgFilter', () => {
+	it('returns null when there are no advanced effects', () => {
+		expect(renderImageAlphaSvgFilter(makeImg({ brightness: 10 }))).toBeNull();
+	});
+
+	it('emits an alphaInv feFuncA primitive', () => {
+		const html = renderToStaticMarkup(renderImageAlphaSvgFilter(makeImg({ alphaInv: {} }))!);
+		expect(html).toContain('id="imgalpha-img-x"');
+		expect(html).toContain('<feFuncA type="linear" slope="-1" intercept="1"');
+	});
+
+	it('emits an alpha-multiplier matrix for alphaModFix', () => {
+		const html = renderToStaticMarkup(renderImageAlphaSvgFilter(makeImg({ alphaModFix: 50 }))!);
+		expect(html).toContain('0 0 0 0.5 0');
+	});
+
+	it('emits a 10-step alpha threshold table for alphaBiLevel', () => {
+		const html = renderToStaticMarkup(renderImageAlphaSvgFilter(makeImg({ alphaBiLevel: 50 }))!);
+		expect(html).toMatch(/<feFuncA type="discrete" tableValues="0 0 0 0 0 1 1 1 1 1"/);
+	});
+
+	it('emits an alphaCeiling and alphaFloor pair when both set', () => {
+		const html = renderToStaticMarkup(
+			renderImageAlphaSvgFilter(makeImg({ alphaCeiling: true, alphaFloor: true }))!,
+		);
+		expect(html).toContain('<feFuncA type="discrete" tableValues="0 1 1 1 1 1 1 1 1 1"');
+		expect(html).toContain('<feFuncA type="discrete" tableValues="0 0 0 0 0 0 0 0 0 1"');
+	});
+
+	it('emits a clrRepl colour matrix that maps to a constant RGB', () => {
+		const html = renderToStaticMarkup(
+			renderImageAlphaSvgFilter(makeImg({ clrRepl: { color: '#FF0000' } }))!,
+		);
+		expect(html).toContain('0 0 0 0 1');
+		expect(html).toContain('0 0 0 1 0');
+	});
+
+	it('chains effects with progressing result names so the filter pipeline composes', () => {
+		const html = renderToStaticMarkup(
+			renderImageAlphaSvgFilter(makeImg({ alphaModFix: 80, alphaInv: {}, alphaBiLevel: 50 }))!,
+		);
+		expect(html).toContain('result="r0"');
+		expect(html).toContain('result="r1"');
+		expect(html).toContain('result="r2"');
 	});
 });

@@ -2,7 +2,11 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
 
 import { needsSvgArtisticFilter, getArtisticFilterId } from './artistic-effects';
-import { getDuotoneFilterId } from './shape-visual-filters';
+import {
+	getDuotoneFilterId,
+	getImageAlphaFilterId,
+	hasAdvancedImageAlphaEffects,
+} from './shape-visual-filters';
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -51,6 +55,11 @@ export function getImageEffectsFilter(
 	if (effects.duotone && !options?.excludeDuotone) {
 		const filterId = getDuotoneFilterId(element.id);
 		filters.push(`url(#${filterId})`);
+	}
+	// Advanced alpha primitives + biLevel/lum/hsl(sat,lum)/tint/clrRepl that
+	// CSS filters can't express; rendered by renderImageAlphaSvgFilter().
+	if (hasAdvancedImageAlphaEffects(element)) {
+		filters.push(`url(#${getImageAlphaFilterId(element.id)})`);
 	}
 	// Artistic effects
 	// For effects that need SVG filters, reference the inline SVG filter via url(#id).

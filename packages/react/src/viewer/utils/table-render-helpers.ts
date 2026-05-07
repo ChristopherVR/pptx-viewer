@@ -75,13 +75,13 @@ export function cellStyleToCss(style?: PptxTableCellStyle): React.CSSProperties 
 	// Vertical text direction — map all variants to CSS writing-mode + text-orientation
 	if (style.textDirection) {
 		switch (style.textDirection) {
-			case 'vertical':
+			case 'vert':
 			case 'eaVert':
 			case 'wordArtVert':
 			case 'wordArtVertRtl':
 				css.writingMode = 'vertical-rl';
 				break;
-			case 'vertical270':
+			case 'vert270':
 			case 'mongolianVert':
 				css.writingMode = 'vertical-lr';
 				break;

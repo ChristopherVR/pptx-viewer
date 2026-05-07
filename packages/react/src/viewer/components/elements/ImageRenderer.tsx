@@ -10,6 +10,7 @@ import {
 	renderDuotoneSvgFilter,
 } from '../../utils';
 import { renderArtisticEffectSvgFilter } from '../../utils/artistic-effects';
+import { renderImageAlphaSvgFilter } from '../../utils/shape-visual-filters';
 import { ColorChangedImage } from '../ColorChangedImage';
 import { DuotoneImage } from '../DuotoneImage';
 
@@ -88,6 +89,7 @@ export function renderImg(
 				{tileDuotoneColors &&
 					renderDuotoneSvgFilter(el.id, tileDuotoneColors.color1, tileDuotoneColors.color2)}
 				{renderArtisticEffectSvgFilter(el.id, artisticEffectName, artisticRadius)}
+				{renderImageAlphaSvgFilter(el)}
 				<div
 					className='pointer-events-none select-none w-full h-full'
 					style={{ ...getImageTilingStyle(el), ...effectStyles }}
@@ -140,6 +142,8 @@ export function renderImg(
 				renderDuotoneSvgFilter(el.id, duotoneColors.color1, duotoneColors.color2)}
 			{/* SVG artistic effect filter definition */}
 			{renderArtisticEffectSvgFilter(el.id, artisticEffectName, artisticRadius)}
+			{/* SVG alpha-primitives & advanced colour-effect filter definition */}
+			{renderImageAlphaSvgFilter(el)}
 			{useDuotoneCanvas && duotoneColors ? (
 				<DuotoneImage
 					src={src}

@@ -99,6 +99,31 @@ const MATERIAL_MAP: Record<MaterialPresetType, MaterialCssOverrides> = {
 		backgroundImage:
 			'radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.1) 0%, transparent 60%)',
 	},
+	// Legacy materials (PowerPoint 2007 / earlier). Render as muted variants
+	// of the modern equivalents so legacy decks still resemble the originals.
+	legacyMatte: {
+		filter: 'brightness(0.92) saturate(0.85)',
+		backgroundImage:
+			'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 50%, rgba(0,0,0,0.04) 100%)',
+	},
+	legacyPlastic: {
+		filter: 'brightness(1.02) contrast(1.03)',
+		boxShadow: 'inset -2px -2px 5px rgba(255,255,255,0.3)',
+		backgroundImage:
+			'radial-gradient(ellipse 35% 25% at 25% 20%, rgba(255,255,255,0.15) 0%, transparent 70%)',
+	},
+	legacyMetal: {
+		filter: 'brightness(1.05) contrast(1.1) saturate(1.1)',
+		boxShadow:
+			'inset -2px -2px 6px rgba(255,255,255,0.35), inset 1px 1px 3px rgba(255,255,255,0.15)',
+		backgroundImage:
+			'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.06) 25%, transparent 50%, rgba(0,0,0,0.05) 80%)',
+	},
+	legacyWireframe: {
+		filter: 'brightness(1) contrast(1.4) saturate(0.6)',
+		// Wireframe: high contrast outline-emphasising look
+		boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.4)',
+	},
 };
 
 /**
