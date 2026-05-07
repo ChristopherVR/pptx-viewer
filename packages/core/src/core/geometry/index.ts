@@ -11,11 +11,28 @@
 export {
 	getShapeType,
 	getShapeClipPath,
+	getAdjustmentAwareShapeClipPath,
 	getCloudPathForRendering,
 	getRoundRectRadiusPx,
 	getImageMaskStyle,
+	getShapeClipPathFromPreset,
 } from './shape-geometry';
 export type { ImageMaskStyle } from './shape-geometry';
+
+export {
+	PRESET_SHAPE_GEOMETRY_TABLE,
+	type PresetShapeGeometryDefinition,
+	type PresetPath,
+	type PresetPathCommand,
+} from './preset-shape-definitions-table';
+
+export {
+	evaluatePresetShape,
+	lookupPresetShape,
+	type PresetShapeEvaluationResult,
+} from './preset-shape-evaluator';
+
+export { getAdjustmentAwareClipPath } from './adjustment-aware-shapes';
 
 export {
 	getCloudClipPath,

@@ -6,7 +6,9 @@ import type { SupportedShapeType } from '../constants';
  * generates CSS clip-paths, and calculates round-rect radii.
  */
 import type { PptxElementWithShapeStyle } from '../types';
+import { getAdjustmentAwareClipPath } from './adjustment-aware-shapes';
 import { getCloudCalloutClipPath, getCloudClipPath } from './cloud-bezier-paths';
+import { evaluatePresetShape } from './preset-shape-evaluator';
 import { PRESET_SHAPE_CLIP_PATHS, getPresetShapeClipPath } from './preset-shape-paths';
 
 // ---------------------------------------------------------------------------
@@ -90,6 +92,37 @@ export function getShapeClipPath(shapeType: string | undefined): string | undefi
 }
 
 /**
+ * Like {@link getShapeClipPath} but consults the adjustment-aware table
+ * first. Falls back to the static preset clip-path when the shape isn't
+ * in the adjustment-aware table or no adjustments are supplied.
+ *
+ * Use this entry point from renderers that have access to the element's
+ * `shapeAdjustments` and dimensions; the result varies with adjustments
+ * for shapes like `pie`, `donut`, `wedgeRectCallout`, etc.
+ *
+ * @param shapeType   The OOXML preset geometry name.
+ * @param width       Element width in pixels.
+ * @param height      Element height in pixels.
+ * @param adjustments Optional adjustment record (`adj`, `adj1`, `adj2`, …).
+ * @returns A CSS `clip-path` value, or `undefined` if no clipping is needed.
+ */
+export function getAdjustmentAwareShapeClipPath(
+	shapeType: string | undefined,
+	width: number,
+	height: number,
+	adjustments?: Record<string, number>,
+): string | undefined {
+	if (!shapeType) {
+		return undefined;
+	}
+	const dynamic = getAdjustmentAwareClipPath(shapeType, width, height, adjustments);
+	if (dynamic !== undefined) {
+		return dynamic;
+	}
+	return getPresetShapeClipPath(shapeType);
+}
+
+/**
  * Return a high-DPI cubic-Bezier `clip-path: path('…')` expression for
  * `cloud` / `cloudCallout` shapes when actual pixel dimensions are known.
  *
@@ -122,6 +155,54 @@ export function getCloudPathForRendering(
 		return getCloudCalloutClipPath(width, height);
 	}
 	return undefined;
+}
+
+// ---------------------------------------------------------------------------
+// Spec-correct preset clip-path (ECMA-376 pathLst evaluator)
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a CSS `clip-path: path('…')` expression from the spec-correct ECMA-376
+ * preset shape evaluator. This consults
+ * {@link evaluatePresetShape} (which evaluates the preset's `gdLst` formulas
+ * against the shape dimensions and any `shapeAdjustments`) and wraps the
+ * resulting SVG path data in `path(...)` so it can be used as a CSS
+ * `clip-path`.
+ *
+ * The legacy {@link getShapeClipPath} / {@link getAdjustmentAwareShapeClipPath}
+ * helpers — which read from the static polygon table — remain in place and
+ * are still the preferred fallback for any shape this evaluator does not
+ * yet cover. Callers that want spec-correct, formula-driven geometry should
+ * try this helper first and fall through to the static helpers when it
+ * returns `undefined`.
+ *
+ * @param shapeType   The OOXML preset geometry name (e.g. `"roundRect"`).
+ *                    Lookup is case-sensitive but tolerant of common casings.
+ * @param width       Element width in pixels (must be > 0 to produce a
+ *                    meaningful path).
+ * @param height      Element height in pixels.
+ * @param adjustments Optional adjustment record from `shapeAdjustments`.
+ * @returns A CSS `clip-path` value (e.g. `path('M 0 0 …')`), or `undefined`
+ *          when the shape isn't in the populated preset table or the
+ *          evaluation produced no path commands.
+ */
+export function getShapeClipPathFromPreset(
+	shapeType: string | undefined,
+	width: number,
+	height: number,
+	adjustments?: Record<string, number>,
+): string | undefined {
+	if (!shapeType) {
+		return undefined;
+	}
+	const result = evaluatePresetShape(shapeType, width, height, adjustments);
+	if (!result || result.svgPath === '') {
+		return undefined;
+	}
+	// Single-quoted form is the most widely supported in CSS clip-path: path().
+	// Escape any embedded single quotes defensively (none are produced today).
+	const escaped = result.svgPath.replace(/'/g, "\\'");
+	return `path('${escaped}')`;
 }
 
 // ---------------------------------------------------------------------------
