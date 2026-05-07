@@ -66,7 +66,11 @@ export type PptxTransitionType =
 	| 'vortex'
 	| 'warp'
 	| 'wheelReverse'
-	| 'window';
+	| 'window'
+	| 'cube'
+	| 'flip'
+	| 'rotate'
+	| 'orbit';
 
 /** Cardinal direction tokens from OOXML transition `@_dir`. */
 export type PptxTransitionDirection4 = 'l' | 'r' | 'u' | 'd';
@@ -134,6 +138,11 @@ export interface PptxSlideTransition {
 	soundPath?: string;
 	/** Human-readable sound file name (extracted from soundPath). */
 	soundFileName?: string;
+	/**
+	 * When true, the transition stops the currently-playing sound (OOXML `p:sndAc/p:endSnd`).
+	 * Mutually exclusive with `soundRId`/`soundPath` (which use `p:stSnd`).
+	 */
+	stopSound?: boolean;
 	/** Preserved sound-action XML node from `p:sndAc` for lossless round-trip. */
 	rawSoundAction?: XmlObject;
 	/** Preserved extension-list XML node from `p:extLst` within the transition for lossless round-trip. */

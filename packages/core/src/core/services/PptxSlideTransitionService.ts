@@ -16,6 +16,12 @@ import type {
 import { parseP14FromExtLst, buildP14ExtLst, P14_TRANSITION_TYPES } from './p14-transition-parser';
 import type { IPptxXmlLookupService } from './PptxXmlLookupService';
 
+/**
+ * Extension URI for the PowerPoint 2016+ `morph` slide transition.
+ * Stored in `p:transition/p:extLst/p:ext[@uri="{C7C9D14B-FE2A-4D35-B620-AB07D5B017F4}"]/p159:morph`.
+ */
+const MORPH_EXT_URI = '{C7C9D14B-FE2A-4D35-B620-AB07D5B017F4}';
+
 /** Set of standard OOXML slide transition type names (ISO/IEC 29500-1). */
 const TRANSITION_TYPES: Set<string> = new Set([
 	'fade',
@@ -40,7 +46,6 @@ const TRANSITION_TYPES: Set<string> = new Set([
 	'wheel',
 	'zoom',
 	'newsflash',
-	'morph',
 ]);
 
 /**
@@ -141,7 +146,8 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 				const rawSpokes = String(detail['@_spokes'] || '').trim();
 				if (rawSpokes.length > 0) {
 					const parsedSpokes = Number.parseInt(rawSpokes, 10);
-					if (Number.isFinite(parsedSpokes) && parsedSpokes >= 1 && parsedSpokes <= 8) {
+					// ST_WheelTransition/@spokes is xsd:unsignedInt (no upper bound in schema).
+					if (Number.isFinite(parsedSpokes) && parsedSpokes >= 1) {
 						spokes = parsedSpokes;
 					}
 				}
@@ -175,6 +181,9 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 				if (p14Result.pattern) {
 					pattern = p14Result.pattern;
 				}
+			} else if (this.parseMorphFromExtLst(rawExtLst)) {
+				// PowerPoint 2016+ `morph` lives in a p159 extension.
+				transitionType = 'morph';
 			}
 		}
 
@@ -194,8 +203,10 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 				? parsedAdvanceAfter
 				: undefined;
 
-		// Extract sound relationship ID from rawSoundAction
+		// Extract sound relationship ID and endSnd flag from rawSoundAction.
+		// CT_TransitionSoundAction is a choice: either p:stSnd (start sound) or p:endSnd (stop sound).
 		let soundRId: string | undefined;
+		let stopSound: boolean | undefined;
 		if (rawSoundAction) {
 			const stSnd = this.xmlLookupService.getChildByLocalName(rawSoundAction, 'stSnd');
 			if (stSnd) {
@@ -206,6 +217,20 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 						soundRId = String(embed);
 					}
 				}
+			}
+			// `endSnd` is CT_Empty; presence alone signals "stop currently-playing sound".
+			let hasEndSnd = false;
+			for (const key of Object.keys(rawSoundAction)) {
+				if (key.startsWith('@_')) {
+					continue;
+				}
+				if (this.getXmlLocalName(key) === 'endSnd') {
+					hasEndSnd = true;
+					break;
+				}
+			}
+			if (hasEndSnd) {
+				stopSound = true;
 			}
 		}
 
@@ -220,9 +245,38 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 			advanceOnClick,
 			advanceAfterMs,
 			soundRId,
+			stopSound,
 			rawSoundAction,
 			rawExtLst,
 		};
+	}
+
+	/**
+	 * Detects the PowerPoint 2016+ `morph` transition stored as a p159 extension
+	 * inside the transition's extLst.
+	 */
+	private parseMorphFromExtLst(extLstNode: XmlObject): boolean {
+		const extEntries = this.xmlLookupService.getChildrenArrayByLocalName(extLstNode, 'ext');
+		for (const ext of extEntries) {
+			if (!ext) {
+				continue;
+			}
+			const uri = String(ext['@_uri'] || '').trim();
+			const matchesUri = uri.toUpperCase() === MORPH_EXT_URI.toUpperCase();
+			for (const key of Object.keys(ext)) {
+				if (key.startsWith('@_')) {
+					continue;
+				}
+				if (this.getXmlLocalName(key) === 'morph') {
+					// Accept either matching uri or just the morph element (be lenient on URI casing/whitespace).
+					if (matchesUri || uri.length === 0) {
+						return true;
+					}
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	public buildSlideTransitionXml(transition: PptxSlideTransition): XmlObject | undefined {
@@ -232,6 +286,7 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 
 		const transitionType = transition.type || 'cut';
 		const isP14Type = P14_TRANSITION_TYPES.has(transitionType);
+		const isMorphType = transitionType === 'morph';
 		const node: XmlObject = {};
 
 		if (isP14Type) {
@@ -245,7 +300,20 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 				this.xmlLookupService,
 				this.getXmlLocalName,
 			);
-		} else if (transitionType !== 'cut') {
+		} else if (isMorphType) {
+			// PowerPoint 2016+ `morph` lives in the p159 extension list, not as a
+			// direct child of `p:transition`. Emitting `<p:morph/>` is silently
+			// dropped by PowerPoint.
+			node['p:extLst'] = this.buildMorphExtLst(transition.rawExtLst);
+		} else if (transitionType === 'cut' || transitionType === 'fade') {
+			// Both `cut` and `fade` use CT_OptionalBlackTransition, which carries the
+			// `thruBlk` attribute. Build the child object so `thruBlk` round-trips.
+			const childNode: XmlObject = {};
+			if (typeof transition.thruBlk === 'boolean') {
+				childNode['@_thruBlk'] = transition.thruBlk ? '1' : '0';
+			}
+			node[`p:${transitionType}`] = childNode;
+		} else {
 			const childNode: XmlObject = {};
 			const direction = String(transition.direction || '').trim();
 			if (direction.length > 0) {
@@ -264,8 +332,6 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 				childNode['@_thruBlk'] = transition.thruBlk ? '1' : '0';
 			}
 			node[`p:${transitionType}`] = childNode;
-		} else {
-			node['p:cut'] = {};
 		}
 
 		if (
@@ -288,14 +354,58 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 			node['@_advTm'] = String(Math.round(transition.advanceAfterMs));
 		}
 
-		if (transition.rawSoundAction) {
+		// Sound action: prefer typed `stopSound` (emits `<p:endSnd/>`), otherwise
+		// pass through any preserved rawSoundAction (which may carry `p:stSnd`).
+		if (transition.stopSound) {
+			node['p:sndAc'] = { 'p:endSnd': {} };
+		} else if (transition.rawSoundAction) {
 			node['p:sndAc'] = transition.rawSoundAction;
 		}
-		// Only write rawExtLst for non-p14 types (p14 already built its own extLst)
-		if (transition.rawExtLst && !isP14Type) {
+		// Only write rawExtLst when we did not already build our own extLst.
+		// p14 and morph types build their own extLst (and merge the rest of rawExtLst).
+		if (transition.rawExtLst && !isP14Type && !isMorphType) {
 			node['p:extLst'] = transition.rawExtLst;
 		}
 
 		return node;
+	}
+
+	/**
+	 * Build the extLst XML node for a morph (p159) transition, preserving any
+	 * non-morph extensions from rawExtLst.
+	 */
+	private buildMorphExtLst(rawExtLst: XmlObject | undefined): XmlObject {
+		const morphExt: XmlObject = {
+			'@_uri': MORPH_EXT_URI,
+			'p159:morph': {
+				'@_xmlns:p159': 'http://schemas.microsoft.com/office/powerpoint/2015/09/main',
+			},
+		};
+
+		if (!rawExtLst) {
+			return { 'p:ext': morphExt };
+		}
+
+		const existing = this.xmlLookupService.getChildrenArrayByLocalName(rawExtLst, 'ext');
+		const otherExts = existing.filter((ext) => {
+			if (!ext) {
+				return false;
+			}
+			const uri = String(ext['@_uri'] || '').trim();
+			if (uri.toUpperCase() === MORPH_EXT_URI.toUpperCase()) {
+				return false;
+			}
+			for (const key of Object.keys(ext)) {
+				if (key.startsWith('@_')) {
+					continue;
+				}
+				if (this.getXmlLocalName(key) === 'morph') {
+					return false;
+				}
+			}
+			return true;
+		});
+		const allExts = [morphExt, ...otherExts];
+		return { 'p:ext': allExts.length === 1 ? allExts[0] : allExts };
 	}
 }

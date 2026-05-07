@@ -25,6 +25,10 @@ export const P14_TRANSITION_TYPES: ReadonlySet<string> = new Set([
 	'warp',
 	'wheelReverse',
 	'window',
+	'cube',
+	'flip',
+	'rotate',
+	'orbit',
 ]);
 
 export interface P14ParseResult {

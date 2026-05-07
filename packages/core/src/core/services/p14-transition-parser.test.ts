@@ -89,14 +89,38 @@ describe('p14_TRANSITION_TYPES', () => {
 		expect(P14_TRANSITION_TYPES.has('wheelReverse')).toBeTruthy();
 	});
 
+	it('contains the 3D p14 transitions cube, flip, rotate, orbit', () => {
+		expect(P14_TRANSITION_TYPES.has('cube')).toBeTruthy();
+		expect(P14_TRANSITION_TYPES.has('flip')).toBeTruthy();
+		expect(P14_TRANSITION_TYPES.has('rotate')).toBeTruthy();
+		expect(P14_TRANSITION_TYPES.has('orbit')).toBeTruthy();
+	});
+
 	it('does not contain non-p14 transition types', () => {
 		expect(P14_TRANSITION_TYPES.has('fade')).toBeFalsy();
 		expect(P14_TRANSITION_TYPES.has('push')).toBeFalsy();
 		expect(P14_TRANSITION_TYPES.has('wipe')).toBeFalsy();
 	});
 
-	it('has 18 entries', () => {
-		expect(P14_TRANSITION_TYPES.size).toBe(18);
+	it('has 22 entries (18 original + cube/flip/rotate/orbit)', () => {
+		expect(P14_TRANSITION_TYPES.size).toBe(22);
+	});
+});
+
+describe('parseP14FromExtLst (3D transitions)', () => {
+	const lookup = createMockXmlLookupService();
+
+	it.each(['cube', 'flip', 'rotate', 'orbit'] as const)('parses p14:%s with @dir', (name) => {
+		const extLst: XmlObject = {
+			'p:ext': {
+				'@_uri': '{CE6CE671-F284-4235-B8B7-4F3F06D5A82C}',
+				[`p14:${name}`]: { '@_dir': 'r' },
+			},
+		};
+		const result = parseP14FromExtLst(extLst, lookup, getXmlLocalName);
+		expect(result).toBeDefined();
+		expect(result!.type).toBe(name);
+		expect(result!.direction).toBe('r');
 	});
 });
 

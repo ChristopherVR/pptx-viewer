@@ -94,11 +94,36 @@ describe('pptxSlideTransitionService.parseSlideTransition', () => {
 		expect(result!.spokes).toBe(4);
 	});
 
-	it('ignores spokes values outside valid range', () => {
+	it('accepts spokes values above the historical 1-8 range (ST_WheelTransition is unsignedInt)', () => {
 		const slideXml: XmlObject = {
 			'p:sld': {
 				'p:transition': {
 					'p:wheel': { '@_spokes': '20' },
+				},
+			},
+		};
+		const result = service.parseSlideTransition(slideXml);
+		expect(result!.type).toBe('wheel');
+		expect(result!.spokes).toBe(20);
+	});
+
+	it('accepts spokes values >= 9', () => {
+		const slideXml: XmlObject = {
+			'p:sld': {
+				'p:transition': {
+					'p:wheel': { '@_spokes': '12' },
+				},
+			},
+		};
+		const result = service.parseSlideTransition(slideXml);
+		expect(result!.spokes).toBe(12);
+	});
+
+	it('rejects spokes values < 1', () => {
+		const slideXml: XmlObject = {
+			'p:sld': {
+				'p:transition': {
+					'p:wheel': { '@_spokes': '0' },
 				},
 			},
 		};
