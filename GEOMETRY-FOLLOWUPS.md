@@ -71,3 +71,53 @@ look correct at default adjustment values. The remaining preset names
 that the audit flagged as "passable but not perfect" are not enumerated
 here because they no longer render as plain rectangles or generic
 ellipses.
+
+## Truly out-of-scope (multi-week projects)
+
+### Spec-correct geometry evaluator
+
+ECMA-376 ships canonical pathLst data + guide formulas for all 187
+ST_ShapeType values via Microsoft's `presetShapeDefinitions.xml`. A full
+parity implementation would:
+
+1. Embed (or generate at build time) the 187-entry preset table with
+   `avLst`, `gdLst`, `pathLst`, and connection sites.
+2. Wire `shapeAdjustments` through `getShapeClipPath` so each shape
+   evaluates its formulas with the actual adjusters from the source PPTX.
+3. Emit the result as either a `polygon()` approximation or a
+   `path()` clip-path (modern browsers only).
+4. Update the 11+ shapes whose visual silhouette depends on the adjusters
+   (`circularArrow*`, `swooshArrow`, `curved*Arrow`, `wedgeEllipseCallout`,
+   `cloudCallout`, `pie`, `arc`, `donut`, `blockArc`, the wedge callouts).
+
+The guide-formula evaluator already exists (`packages/core/src/core/geometry/guide-formula-eval.ts`,
+17/17 ops) and the `shapeAdjustments` field is already typed on
+`PptxShapeProperties`. The missing piece is the preset table + the
+adjustment-aware clip-path API.
+
+### Image-effects rendering in the React viewer
+
+The SVG converter now applies `imageEffects` via an SVG `<filter>` chain
+(`packages/core/src/converter/svg-image-effects.ts`). Bringing the same
+support into the React viewer (`packages/react/src/viewer/components/elements/`)
+requires either:
+
+- Reusing the same SVG filter strings under a portal/`<defs>` block, or
+- A separate Canvas2D / WebGL rendering path for the image element.
+
+The data-layer parity is complete (all blip primitives parse and
+round-trip), so this is a renderer-only project.
+
+### Action-button glyph overlays
+
+`actionButton*` shapes now render as rounded rectangles. The interior
+glyph (home, help, sound, movie, back, info) needs a small icon overlay
+in the React renderer. Not a clip-path problem.
+
+### Line-callout leader lines
+
+`callout1/2/3`, `borderCallout1/2/3`, `accentCallout1/2/3`,
+`accentBorderCallout1/2/3` body geometry is correctly rectangular per
+spec. The leader line is part of the shape's outline (drawn through
+custom geometry pathLst with `stroke` segments and no `fill`). Renderer
+needs to interpret the outline path to draw the leader.

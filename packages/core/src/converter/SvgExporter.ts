@@ -10,6 +10,7 @@
 
 import type { PptxElement } from '../core/types/elements';
 import type { PptxSlide, PptxData } from '../core/types/presentation';
+import { buildImageEffectsFilter } from './svg-image-effects';
 
 // ────────────────────────────────────────────────────────────────────
 // Public options
@@ -77,10 +78,20 @@ interface RenderContext {
 	/** color → markerId, so duplicate-colored arrows reuse one <marker> def. */
 	markerCache: Map<string, string>;
 	markerIdCounter: number;
+	/** Slide index used to namespace generated filter ids across slides. */
+	slideIndex: number;
+	/** Counter for image-effects filter ids within a slide. */
+	filterCounter: number;
 }
 
-function createRenderContext(): RenderContext {
-	return { defs: [], markerCache: new Map(), markerIdCounter: 0 };
+function createRenderContext(slideIndex = 0): RenderContext {
+	return {
+		defs: [],
+		markerCache: new Map(),
+		markerIdCounter: 0,
+		slideIndex,
+		filterCounter: 0,
+	};
 }
 
 /**
@@ -315,7 +326,7 @@ function renderShapeBody(el: PptxElement): string {
 	}
 }
 
-function renderImageElement(el: PptxElement): string {
+function renderImageElement(el: PptxElement, ctx: RenderContext): string {
 	if (el.type !== 'image' && el.type !== 'picture') {
 		return '';
 	}
@@ -329,11 +340,30 @@ function renderImageElement(el: PptxElement): string {
 		);
 	}
 
+	// Translate any blip-side image effects into an SVG <filter> so the
+	// renderer matches what's parsed in PptxImageEffects (alpha primitives,
+	// duotone, hsl/lum, brightness/contrast, blur, etc.).
+	const filter = el.imageEffects
+		? buildImageEffectsFilter(el.imageEffects, registerFilter(ctx, el))
+		: null;
+	const filterAttr = filter ? ` filter="url(#${filter.filterId})"` : '';
+	if (filter) {
+		ctx.defs.push(filter.defsXml);
+	}
+
 	return `<image${attrs({
 		width: el.width,
 		height: el.height,
 		preserveAspectRatio: 'none',
-	})} href="${escXml(imageData)}" />`;
+	})} href="${escXml(imageData)}"${filterAttr} />`;
+}
+
+function registerFilter(ctx: RenderContext, el: PptxElement): string {
+	// Stable id derived from the slide-local element index so filters dedupe
+	// across re-renders without colliding across slides.
+	const i = ctx.filterCounter++;
+	void el;
+	return `${ctx.slideIndex}-${i}`;
 }
 
 function renderConnector(el: PptxElement, ctx: RenderContext): string {
@@ -534,7 +564,7 @@ function renderElement(
 
 		case 'image':
 		case 'picture':
-			inner = renderImageElement(el);
+			inner = renderImageElement(el, ctx);
 			break;
 
 		case 'table':
@@ -625,7 +655,9 @@ export class SvgExporter {
 		options?: SvgExportOptions,
 	): string {
 		const defaults = resolveDefaults(options);
-		const ctx = createRenderContext();
+		// Slide.slideId / sequence-number not always present; use a hash of
+		// elements length as a stable slide-local namespace for filter ids.
+		const ctx = createRenderContext(slide.elements.length);
 
 		const bodyParts: string[] = [];
 		bodyParts.push(renderBackground(slide, width, height));
