@@ -211,6 +211,12 @@ export interface OlePptxElement extends PptxElementBase {
 	previewImage?: string;
 	/** Decoded preview image as a data-URL. */
 	previewImageData?: string;
+	/** Whether the OLE object is shown as an icon (`p:oleObj/@showAsIcon`). */
+	oleShowAsIcon?: boolean;
+	/** Authored display width of the OLE object preview, in EMU (`@imgW`). */
+	oleImgW?: number;
+	/** Authored display height of the OLE object preview, in EMU (`@imgH`). */
+	oleImgH?: number;
 }
 
 /**
@@ -273,6 +279,11 @@ export interface MediaPptxElement extends PptxElementBase {
 	captionTracks?: MediaCaptionTrack[];
 	/** Whether the media source is missing/broken (file not found in archive). */
 	mediaMissing?: boolean;
+	/**
+	 * Whether the media is linked (external `r:link`) rather than embedded
+	 * (`r:embed`). Defaults to embedded when undefined.
+	 */
+	isLinked?: boolean;
 }
 
 /**

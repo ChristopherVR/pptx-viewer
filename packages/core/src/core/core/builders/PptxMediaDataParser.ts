@@ -35,7 +35,10 @@ export class PptxMediaDataParser implements IPptxMediaDataParser {
 			if (videoFile) {
 				result.mediaType = 'video';
 				// Prefer r:link (external/linked media), fall back to r:embed (embedded media)
-				const relationshipId = videoFile['@_r:link'] ?? videoFile['@_r:embed'];
+				const linkRid = videoFile['@_r:link'];
+				const embedRid = videoFile['@_r:embed'];
+				const relationshipId = linkRid ?? embedRid;
+				result.isLinked = typeof linkRid === 'string' && linkRid.length > 0;
 				if (typeof relationshipId === 'string' && relationshipId.length > 0) {
 					result.mediaPath = this.resolveRelationshipTarget(slidePath, relationshipId);
 					result.mediaMimeType = this.getMediaMimeType(result.mediaPath);
@@ -43,7 +46,10 @@ export class PptxMediaDataParser implements IPptxMediaDataParser {
 			} else if (audioFile) {
 				result.mediaType = 'audio';
 				// Prefer r:link (external/linked media), fall back to r:embed (embedded media)
-				const relationshipId = audioFile['@_r:link'] ?? audioFile['@_r:embed'];
+				const linkRid = audioFile['@_r:link'];
+				const embedRid = audioFile['@_r:embed'];
+				const relationshipId = linkRid ?? embedRid;
+				result.isLinked = typeof linkRid === 'string' && linkRid.length > 0;
 				if (typeof relationshipId === 'string' && relationshipId.length > 0) {
 					result.mediaPath = this.resolveRelationshipTarget(slidePath, relationshipId);
 					result.mediaMimeType = this.getMediaMimeType(result.mediaPath);

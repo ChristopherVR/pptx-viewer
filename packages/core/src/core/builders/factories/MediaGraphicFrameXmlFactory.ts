@@ -33,6 +33,11 @@ export class MediaGraphicFrameXmlFactory implements IMediaGraphicFrameXmlFactory
 		const mediaType = element.mediaType === 'audio' ? 'audio' : 'video';
 		const mediaName = mediaType === 'audio' ? 'Audio' : 'Video';
 		const mediaTag = mediaType === 'audio' ? 'a:audioFile' : 'a:videoFile';
+		// Per ECMA-376 §20.1.3.1 / §20.1.3.6 (a:CT_AudioFile / CT_VideoFile),
+		// the relationship reference is `r:link` for externally linked media
+		// and `r:embed` for media stored inside the package. Mirror the OLE
+		// embed-vs-link logic: default to embedded unless explicitly linked.
+		const linkAttr = element.isLinked ? '@_r:link' : '@_r:embed';
 
 		return {
 			'p:nvGraphicFramePr': {
@@ -60,7 +65,7 @@ export class MediaGraphicFrameXmlFactory implements IMediaGraphicFrameXmlFactory
 				'a:graphicData': {
 					'@_uri': 'http://schemas.openxmlformats.org/drawingml/2006/media',
 					[mediaTag]: {
-						'@_r:link': relationshipId,
+						[linkAttr]: relationshipId,
 					},
 				},
 			},

@@ -7,10 +7,11 @@
  */
 import { describe, it, expect } from 'vitest';
 
-import type { XmlObject } from '../../types';
+import type { OlePptxElement, XmlObject } from '../../types';
 import { PptxGraphicFrameParser } from './PptxGraphicFrameParser';
+import type { PptxGraphicFrameParserContext } from './PptxGraphicFrameParser';
 
-function makeParser() {
+function makeParser(overrides: Partial<PptxGraphicFrameParserContext> = {}) {
 	return new PptxGraphicFrameParser({
 		emuPerPx: 9525,
 		getOrderedSlidePaths: () => [],
@@ -21,7 +22,28 @@ function makeParser() {
 		parseMediaData: () => ({}),
 		parseElementActions: () => ({}),
 		inspectGraphicFrameCompatibility: () => {},
+		...overrides,
 	});
+}
+
+function makeOleFrame(oleObj: XmlObject): XmlObject {
+	return {
+		'p:nvGraphicFramePr': {
+			'p:cNvPr': { '@_id': '7', '@_name': 'Object 1' },
+			'p:cNvGraphicFramePr': {},
+			'p:nvPr': {},
+		},
+		'p:xfrm': {
+			'a:off': { '@_x': '0', '@_y': '0' },
+			'a:ext': { '@_cx': '2286000', '@_cy': '1714500' },
+		},
+		'a:graphic': {
+			'a:graphicData': {
+				'@_uri': 'http://schemas.openxmlformats.org/presentationml/2006/ole',
+				'p:oleObj': oleObj,
+			},
+		},
+	};
 }
 
 describe('pptxGraphicFrameParser.parseGraphicFrameType', () => {
@@ -93,6 +115,85 @@ describe('pptxGraphicFrameParser.parseGraphicFrameType', () => {
 			},
 		};
 		expect(parser.parseGraphicFrameType(data)).toBe('unknown');
+	});
+
+	it('treats a p:oleObj with a <p:embed> child as embedded (isLinked=false)', () => {
+		const slidePath = 'ppt/slides/slide1.xml';
+		const slideRelsMap = new Map<string, Map<string, string>>([
+			[slidePath, new Map([['rId2', '../embeddings/oleObject1.xlsx']])],
+		]);
+		const parser = makeParser({ slideRelsMap });
+		const frame = makeOleFrame({
+			'@_progId': 'Excel.Sheet.12',
+			'@_showAsIcon': '0',
+			'@_imgW': '2286000',
+			'@_imgH': '1714500',
+			'@_r:id': 'rId2',
+			'p:embed': {},
+		});
+		const result = parser.parseGraphicFrame(frame, 'ole-1', slidePath) as OlePptxElement | null;
+		expect(result).not.toBeNull();
+		expect(result!.type).toBe('ole');
+		expect(result!.isLinked).toBeFalsy();
+		expect(result!.externalPath).toBeUndefined();
+		expect(result!.oleTarget).toBe('../embeddings/oleObject1.xlsx');
+	});
+
+	it('treats a p:oleObj with a <p:link> child + External rel as linked (isLinked=true)', () => {
+		const slidePath = 'ppt/slides/slide1.xml';
+		const slideRelsMap = new Map<string, Map<string, string>>([
+			[slidePath, new Map([['rId4', 'file:///C:/data/budget.xlsx']])],
+		]);
+		const externalRelsMap = new Map<string, Set<string>>([[slidePath, new Set(['rId4'])]]);
+		const parser = makeParser({ slideRelsMap, externalRelsMap });
+		const frame = makeOleFrame({
+			'@_progId': 'Excel.Sheet.12',
+			'@_showAsIcon': '1',
+			'p:link': { '@_r:id': 'rId4', '@_updateAutomatic': '1' },
+		});
+		const result = parser.parseGraphicFrame(frame, 'ole-2', slidePath) as OlePptxElement | null;
+		expect(result).not.toBeNull();
+		expect(result!.isLinked).toBeTruthy();
+		expect(result!.externalPath).toBe('file:///C:/data/budget.xlsx');
+		expect(result!.oleShowAsIcon).toBeTruthy();
+	});
+
+	it('captures showAsIcon, imgW, and imgH typed fields from p:oleObj attributes', () => {
+		const slidePath = 'ppt/slides/slide1.xml';
+		const slideRelsMap = new Map<string, Map<string, string>>([
+			[slidePath, new Map([['rId2', '../embeddings/oleObject1.xlsx']])],
+		]);
+		const parser = makeParser({ slideRelsMap });
+		const frame = makeOleFrame({
+			'@_progId': 'Excel.Sheet.12',
+			'@_showAsIcon': '1',
+			'@_imgW': '3048000',
+			'@_imgH': '2286000',
+			'@_r:id': 'rId2',
+			'p:embed': {},
+		});
+		const result = parser.parseGraphicFrame(frame, 'ole-3', slidePath) as OlePptxElement | null;
+		expect(result).not.toBeNull();
+		expect(result!.oleShowAsIcon).toBeTruthy();
+		expect(result!.oleImgW).toBe(3048000);
+		expect(result!.oleImgH).toBe(2286000);
+	});
+
+	it('does not falsely report embed-only OLE objects as linked when no @_link attr is present', () => {
+		const slidePath = 'ppt/slides/slide1.xml';
+		const slideRelsMap = new Map<string, Map<string, string>>([
+			[slidePath, new Map([['rId2', '../embeddings/oleObject1.xlsx']])],
+		]);
+		const parser = makeParser({ slideRelsMap });
+		const frame = makeOleFrame({
+			'@_progId': 'Excel.Sheet.12',
+			'@_r:id': 'rId2',
+			'p:embed': {},
+		});
+		const result = parser.parseGraphicFrame(frame, 'ole-4', slidePath) as OlePptxElement | null;
+		// Pre-fix bug: `isLinked` was always true because `@_link !== null` is
+		// trivially true for absent attributes (which are `undefined`).
+		expect(result!.isLinked).toBeFalsy();
 	});
 
 	it('parses a full ink graphicFrame and preserves rawXml', () => {

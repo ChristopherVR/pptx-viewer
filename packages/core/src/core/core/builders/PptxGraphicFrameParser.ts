@@ -96,21 +96,52 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 				const oleProgId = String(oleObject?.['@_progId'] || '').trim() || undefined;
 				const oleName = String(oleObject?.['@_name'] || '').trim() || undefined;
 				const oleClsId = String(oleObject?.['@_classid'] || '').trim() || undefined;
-				const isLinked = oleObject?.['@_link'] !== null;
+				// Per ECMA-376 §13.3.4 / CT_OleObject, the embed-vs-link form is
+				// expressed via a *child element* choice (`<p:embed>` or
+				// `<p:link>`), not an attribute. The previous `@_link !== null`
+				// check was always true because absent attributes are
+				// `undefined`, never `null`. Detect via the child element and
+				// confirm via the relationship `TargetMode` (External for link).
+				const oleEmbedNode = oleObject?.['p:embed'] as XmlObject | undefined;
+				const oleLinkNode = oleObject?.['p:link'] as XmlObject | undefined;
+				const showAsIconAttr = oleObject?.['@_showAsIcon'];
+				const oleShowAsIcon =
+					showAsIconAttr === undefined
+						? undefined
+						: String(showAsIconAttr) === '1' || String(showAsIconAttr).toLowerCase() === 'true';
+				const oleImgWRaw = oleObject?.['@_imgW'];
+				const oleImgHRaw = oleObject?.['@_imgH'];
+				const oleImgW =
+					oleImgWRaw !== undefined && String(oleImgWRaw).length > 0
+						? parseInt(String(oleImgWRaw), 10)
+						: undefined;
+				const oleImgH =
+					oleImgHRaw !== undefined && String(oleImgHRaw).length > 0
+						? parseInt(String(oleImgHRaw), 10)
+						: undefined;
 				let oleTarget: string | undefined;
 				let previewImage: string | undefined;
 
-				const oleRelationshipId = String(oleObject?.['@_r:id'] || oleObject?.['@_id'] || '').trim();
+				const oleRelationshipId = String(
+					oleLinkNode?.['@_r:id'] ||
+						oleEmbedNode?.['@_r:id'] ||
+						oleObject?.['@_r:id'] ||
+						oleObject?.['@_id'] ||
+						'',
+				).trim();
 				let externalPath: string | undefined;
+				let isLinked = Boolean(oleLinkNode) && !oleEmbedNode;
 				if (oleRelationshipId && slidePath) {
 					const relsMap = this.context.slideRelsMap.get(slidePath);
 					oleTarget = relsMap?.get(oleRelationshipId);
-					// Detect external path for linked OLE objects
-					if (isLinked) {
-						const externalIds = this.context.externalRelsMap.get(slidePath);
-						if (externalIds?.has(oleRelationshipId)) {
-							externalPath = oleTarget;
-						}
+					// Confirm linked status via TargetMode="External" in the
+					// slide rels (external map is populated from
+					// TargetMode="External" entries).
+					const externalIds = this.context.externalRelsMap.get(slidePath);
+					const isExternalRel = Boolean(externalIds?.has(oleRelationshipId));
+					if (isExternalRel) {
+						isLinked = true;
+						externalPath = oleTarget;
 					}
 				}
 
@@ -151,6 +182,9 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 					externalPath,
 					oleTarget,
 					previewImage,
+					oleShowAsIcon,
+					oleImgW,
+					oleImgH,
 					actionClick,
 					actionHover,
 				} as OlePptxElement;

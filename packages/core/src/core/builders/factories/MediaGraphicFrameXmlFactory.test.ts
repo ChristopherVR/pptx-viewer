@@ -96,7 +96,9 @@ describe('mediaGraphicFrameXmlFactory', () => {
 		});
 		const graphicData = (result['a:graphic'] as XmlObject)['a:graphicData'] as XmlObject;
 		expect(graphicData['a:videoFile']).toBeDefined();
-		expect((graphicData['a:videoFile'] as XmlObject)['@_r:link']).toBe('rId5');
+		// Default (embedded) emits r:embed, per CT_VideoFile.
+		expect((graphicData['a:videoFile'] as XmlObject)['@_r:embed']).toBe('rId5');
+		expect((graphicData['a:videoFile'] as XmlObject)['@_r:link']).toBeUndefined();
 		expect(graphicData['a:audioFile']).toBeUndefined();
 	});
 
@@ -108,8 +110,32 @@ describe('mediaGraphicFrameXmlFactory', () => {
 		});
 		const graphicData = (result['a:graphic'] as XmlObject)['a:graphicData'] as XmlObject;
 		expect(graphicData['a:audioFile']).toBeDefined();
-		expect((graphicData['a:audioFile'] as XmlObject)['@_r:link']).toBe('rId7');
+		// Default (embedded) emits r:embed, per CT_AudioFile.
+		expect((graphicData['a:audioFile'] as XmlObject)['@_r:embed']).toBe('rId7');
+		expect((graphicData['a:audioFile'] as XmlObject)['@_r:link']).toBeUndefined();
 		expect(graphicData['a:videoFile']).toBeUndefined();
+	});
+
+	it('emits r:link when the media element is marked as linked', () => {
+		const factory = new MediaGraphicFrameXmlFactory(createMockContext());
+		const result = factory.createXmlElement({
+			element: createMediaElement({ mediaType: 'video', isLinked: true }),
+			relationshipId: 'rIdLink',
+		});
+		const graphicData = (result['a:graphic'] as XmlObject)['a:graphicData'] as XmlObject;
+		expect((graphicData['a:videoFile'] as XmlObject)['@_r:link']).toBe('rIdLink');
+		expect((graphicData['a:videoFile'] as XmlObject)['@_r:embed']).toBeUndefined();
+	});
+
+	it('emits r:embed when isLinked is explicitly false', () => {
+		const factory = new MediaGraphicFrameXmlFactory(createMockContext());
+		const result = factory.createXmlElement({
+			element: createMediaElement({ mediaType: 'audio', isLinked: false }),
+			relationshipId: 'rIdEmbed',
+		});
+		const graphicData = (result['a:graphic'] as XmlObject)['a:graphicData'] as XmlObject;
+		expect((graphicData['a:audioFile'] as XmlObject)['@_r:embed']).toBe('rIdEmbed');
+		expect((graphicData['a:audioFile'] as XmlObject)['@_r:link']).toBeUndefined();
 	});
 
 	it('defaults to video for "unknown" media type', () => {

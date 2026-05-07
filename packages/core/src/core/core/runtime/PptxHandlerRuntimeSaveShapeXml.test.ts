@@ -2,10 +2,123 @@
  * Tests for PptxHandlerRuntimeSaveShapeXml:
  *   - createInkShapeXml logic (ink path token parsing, shape XML generation)
  *   - buildGroupShapeXml logic (group structure, child categorization)
+ *   - createOleGraphicFrameXml + applyOleTypedFieldUpdates (OLE round-trip)
  */
 import { describe, it, expect } from 'vitest';
 
-import type { XmlObject } from '../../types';
+import type { OlePptxElement, XmlObject } from '../../types';
+
+// ---------------------------------------------------------------------------
+// OLE save helpers — re-implemented from PptxHandlerRuntimeSaveShapeXml so
+// the tests can exercise the logic without instantiating the full
+// PptxHandlerRuntime mixin chain (which has a top-level circular import
+// when loaded standalone).
+// ---------------------------------------------------------------------------
+const OLE_GRAPHIC_DATA_URI = 'http://schemas.openxmlformats.org/presentationml/2006/ole';
+
+function createOleGraphicFrameXml(el: OlePptxElement, embedRelationshipId: string): XmlObject {
+	const offX = String(Math.round(el.x * EMU_PER_PX));
+	const offY = String(Math.round(el.y * EMU_PER_PX));
+	const extCx = String(Math.round(Math.max(el.width, 1) * EMU_PER_PX));
+	const extCy = String(Math.round(Math.max(el.height, 1) * EMU_PER_PX));
+
+	const oleObj: XmlObject = {
+		'@_showAsIcon': el.oleShowAsIcon ? '1' : '0',
+		'@_imgW': el.oleImgW !== undefined ? String(el.oleImgW) : extCx,
+		'@_imgH': el.oleImgH !== undefined ? String(el.oleImgH) : extCy,
+	};
+	if (el.oleProgId) {
+		oleObj['@_progId'] = el.oleProgId;
+	}
+	if (el.oleName) {
+		oleObj['@_name'] = el.oleName;
+	}
+	if (el.oleClsId) {
+		oleObj['@_classid'] = el.oleClsId;
+	}
+	if (embedRelationshipId) {
+		oleObj['@_r:id'] = embedRelationshipId;
+	}
+	if (el.isLinked) {
+		oleObj['p:link'] = { '@_r:id': embedRelationshipId, '@_updateAutomatic': '1' };
+	} else {
+		oleObj['p:embed'] = {};
+	}
+	oleObj['p:pic'] = {
+		'p:nvPicPr': {
+			'p:cNvPr': { '@_id': '0', '@_name': el.oleName || 'OleObject' },
+			'p:cNvPicPr': {},
+			'p:nvPr': {},
+		},
+		'p:blipFill': { 'a:blip': {}, 'a:stretch': { 'a:fillRect': {} } },
+		'p:spPr': {
+			'a:xfrm': {
+				'a:off': { '@_x': offX, '@_y': offY },
+				'a:ext': { '@_cx': extCx, '@_cy': extCy },
+			},
+			'a:prstGeom': { '@_prst': 'rect', 'a:avLst': {} },
+		},
+	};
+	return {
+		'p:nvGraphicFramePr': {
+			'p:cNvPr': { '@_id': '0', '@_name': el.oleName || 'OleObject' },
+			'p:cNvGraphicFramePr': { 'a:graphicFrameLocks': { '@_noChangeAspect': '1' } },
+			'p:nvPr': {},
+		},
+		'p:xfrm': {
+			'a:off': { '@_x': offX, '@_y': offY },
+			'a:ext': { '@_cx': extCx, '@_cy': extCy },
+		},
+		'a:graphic': {
+			'a:graphicData': { '@_uri': OLE_GRAPHIC_DATA_URI, 'p:oleObj': oleObj },
+		},
+	};
+}
+
+function applyOleTypedFieldUpdates(shape: XmlObject, el: OlePptxElement): void {
+	const oleObj = shape['a:graphic']?.['a:graphicData']?.['p:oleObj'] as XmlObject | undefined;
+	if (!oleObj) {
+		return;
+	}
+	if (el.oleProgId) {
+		oleObj['@_progId'] = el.oleProgId;
+	}
+	if (el.oleName !== undefined) {
+		if (el.oleName.length > 0) {
+			oleObj['@_name'] = el.oleName;
+		} else {
+			delete oleObj['@_name'];
+		}
+	}
+	if (el.oleClsId) {
+		oleObj['@_classid'] = el.oleClsId;
+	}
+	if (el.oleShowAsIcon !== undefined) {
+		oleObj['@_showAsIcon'] = el.oleShowAsIcon ? '1' : '0';
+	}
+	if (el.oleImgW !== undefined) {
+		oleObj['@_imgW'] = String(el.oleImgW);
+	}
+	if (el.oleImgH !== undefined) {
+		oleObj['@_imgH'] = String(el.oleImgH);
+	}
+	if (el.isLinked === true) {
+		if (!oleObj['p:link']) {
+			const existingRid = String(
+				(oleObj['p:embed'] as XmlObject | undefined)?.['@_r:id'] || oleObj['@_r:id'] || '',
+			).trim();
+			oleObj['p:link'] = existingRid
+				? { '@_r:id': existingRid, '@_updateAutomatic': '1' }
+				: { '@_updateAutomatic': '1' };
+		}
+		delete oleObj['p:embed'];
+	} else if (el.isLinked === false) {
+		if (!oleObj['p:embed']) {
+			oleObj['p:embed'] = {};
+		}
+		delete oleObj['p:link'];
+	}
+}
 
 const EMU_PER_PX = 9525;
 
@@ -376,5 +489,123 @@ describe('buildGroupShapeXml child categorization', () => {
 		expect(result.shapes).toHaveLength(0);
 		expect(result.pics).toHaveLength(0);
 		expect(result.connectors).toHaveLength(0);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// OLE graphic-frame XML construction & updates
+// ---------------------------------------------------------------------------
+
+function makeOleElement(overrides: Partial<OlePptxElement> = {}): OlePptxElement {
+	return {
+		type: 'ole',
+		id: 'ole1',
+		x: 100,
+		y: 200,
+		width: 240,
+		height: 180,
+		oleProgId: 'Excel.Sheet.12',
+		...overrides,
+	} as OlePptxElement;
+}
+
+describe('createOleGraphicFrameXml', () => {
+	it('emits showAsIcon=1 when oleShowAsIcon is true', () => {
+		const xml = createOleGraphicFrameXml(makeOleElement({ oleShowAsIcon: true }), 'rId2');
+		const oleObj = ((xml['a:graphic'] as XmlObject)['a:graphicData'] as XmlObject)[
+			'p:oleObj'
+		] as XmlObject;
+		expect(oleObj['@_showAsIcon']).toBe('1');
+	});
+
+	it('emits showAsIcon=0 when oleShowAsIcon is false or undefined', () => {
+		const xml = createOleGraphicFrameXml(makeOleElement({ oleShowAsIcon: false }), 'rId2');
+		const oleObj = ((xml['a:graphic'] as XmlObject)['a:graphicData'] as XmlObject)[
+			'p:oleObj'
+		] as XmlObject;
+		expect(oleObj['@_showAsIcon']).toBe('0');
+	});
+
+	it('honors typed oleImgW/oleImgH when present', () => {
+		const xml = createOleGraphicFrameXml(
+			makeOleElement({ oleImgW: 3048000, oleImgH: 2286000 }),
+			'rId2',
+		);
+		const oleObj = ((xml['a:graphic'] as XmlObject)['a:graphicData'] as XmlObject)[
+			'p:oleObj'
+		] as XmlObject;
+		expect(oleObj['@_imgW']).toBe('3048000');
+		expect(oleObj['@_imgH']).toBe('2286000');
+	});
+
+	it('emits a <p:embed> child for embedded OLE objects', () => {
+		const xml = createOleGraphicFrameXml(makeOleElement({ isLinked: false }), 'rId2');
+		const oleObj = ((xml['a:graphic'] as XmlObject)['a:graphicData'] as XmlObject)[
+			'p:oleObj'
+		] as XmlObject;
+		expect(oleObj['p:embed']).toBeDefined();
+		expect(oleObj['p:link']).toBeUndefined();
+	});
+
+	it('emits a <p:link> child for linked OLE objects', () => {
+		const xml = createOleGraphicFrameXml(makeOleElement({ isLinked: true }), 'rId2');
+		const oleObj = ((xml['a:graphic'] as XmlObject)['a:graphicData'] as XmlObject)[
+			'p:oleObj'
+		] as XmlObject;
+		expect(oleObj['p:link']).toBeDefined();
+		expect(oleObj['p:embed']).toBeUndefined();
+	});
+});
+
+describe('applyOleTypedFieldUpdates', () => {
+	function makeOleShape(initial: XmlObject): XmlObject {
+		return {
+			'a:graphic': {
+				'a:graphicData': {
+					'@_uri': 'http://schemas.openxmlformats.org/presentationml/2006/ole',
+					'p:oleObj': initial,
+				},
+			},
+		};
+	}
+
+	it('round-trips showAsIcon back into the existing rawXml', () => {
+		const shape = makeOleShape({
+			'@_showAsIcon': '0',
+			'@_progId': 'Excel.Sheet.12',
+			'p:embed': {},
+		});
+		applyOleTypedFieldUpdates(shape, makeOleElement({ oleShowAsIcon: true }));
+		const oleObj = ((shape['a:graphic'] as XmlObject)['a:graphicData'] as XmlObject)[
+			'p:oleObj'
+		] as XmlObject;
+		expect(oleObj['@_showAsIcon']).toBe('1');
+	});
+
+	it('switches embedded → linked when isLinked is set to true', () => {
+		const shape = makeOleShape({
+			'@_progId': 'Excel.Sheet.12',
+			'@_r:id': 'rId2',
+			'p:embed': {},
+		});
+		applyOleTypedFieldUpdates(shape, makeOleElement({ isLinked: true }));
+		const oleObj = ((shape['a:graphic'] as XmlObject)['a:graphicData'] as XmlObject)[
+			'p:oleObj'
+		] as XmlObject;
+		expect(oleObj['p:link']).toBeDefined();
+		expect(oleObj['p:embed']).toBeUndefined();
+	});
+
+	it('switches linked → embedded when isLinked is set to false', () => {
+		const shape = makeOleShape({
+			'@_progId': 'Excel.Sheet.12',
+			'p:link': { '@_r:id': 'rId4' },
+		});
+		applyOleTypedFieldUpdates(shape, makeOleElement({ isLinked: false }));
+		const oleObj = ((shape['a:graphic'] as XmlObject)['a:graphicData'] as XmlObject)[
+			'p:oleObj'
+		] as XmlObject;
+		expect(oleObj['p:embed']).toBeDefined();
+		expect(oleObj['p:link']).toBeUndefined();
 	});
 });

@@ -104,9 +104,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const extCy = String(Math.round(Math.max(el.height, 1) * EMU));
 
 		const oleObj: XmlObject = {
-			'@_showAsIcon': '0',
-			'@_imgW': extCx,
-			'@_imgH': extCy,
+			'@_showAsIcon': el.oleShowAsIcon ? '1' : '0',
+			'@_imgW': el.oleImgW !== undefined ? String(el.oleImgW) : extCx,
+			'@_imgH': el.oleImgH !== undefined ? String(el.oleImgH) : extCy,
 		};
 		if (el.oleProgId) {
 			oleObj['@_progId'] = el.oleProgId;
@@ -120,7 +120,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (embedRelationshipId) {
 			oleObj['@_r:id'] = embedRelationshipId;
 		}
-		// Choose embed vs link form per CT_OleObject.
+		// Choose embed vs link form per CT_OleObject (ECMA-376 §13.3.4).
+		// `<p:embed>` and `<p:link>` are a child-element choice — exactly one
+		// must be present.
 		if (el.isLinked) {
 			oleObj['p:link'] = {
 				'@_r:id': embedRelationshipId,
@@ -196,6 +198,34 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		if (el.oleClsId) {
 			oleObj['@_classid'] = el.oleClsId;
+		}
+		if (el.oleShowAsIcon !== undefined) {
+			oleObj['@_showAsIcon'] = el.oleShowAsIcon ? '1' : '0';
+		}
+		if (el.oleImgW !== undefined) {
+			oleObj['@_imgW'] = String(el.oleImgW);
+		}
+		if (el.oleImgH !== undefined) {
+			oleObj['@_imgH'] = String(el.oleImgH);
+		}
+		// Reconcile the embed/link child choice with the typed `isLinked`
+		// flag. CT_OleObject is a strict choice — keep exactly one of the
+		// two child elements.
+		if (el.isLinked === true) {
+			if (!oleObj['p:link']) {
+				const existingRid = String(
+					(oleObj['p:embed'] as XmlObject | undefined)?.['@_r:id'] || oleObj['@_r:id'] || '',
+				).trim();
+				oleObj['p:link'] = existingRid
+					? { '@_r:id': existingRid, '@_updateAutomatic': '1' }
+					: { '@_updateAutomatic': '1' };
+			}
+			delete oleObj['p:embed'];
+		} else if (el.isLinked === false) {
+			if (!oleObj['p:embed']) {
+				oleObj['p:embed'] = {};
+			}
+			delete oleObj['p:link'];
 		}
 	}
 
