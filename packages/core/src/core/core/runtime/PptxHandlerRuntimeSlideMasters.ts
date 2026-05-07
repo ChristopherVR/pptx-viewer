@@ -147,6 +147,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					continue;
 				}
 
+				// Cache the parsed master XML so the save-side master writer
+				// can mutate it in place. Without this seed, layouts/masters
+				// that were never rendered (no slide referenced them) would
+				// not have an XmlObject available at save time and the
+				// passthrough flush would skip them.
+				if (!this.masterXmlMap.has(path)) {
+					this.masterXmlMap.set(path, data);
+				}
+
 				// Background
 				const bg = sldMaster['p:cSld']?.['p:bg'] as XmlObject | undefined;
 				const backgroundColor = this.parseBackgroundColor(bg);
@@ -305,6 +314,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const sldLayout = data?.['p:sldLayout'] as XmlObject | undefined;
 			if (!sldLayout) {
 				return undefined;
+			}
+
+			// Cache the parsed layout XML so the save-side layout writer can
+			// mutate it in place without reloading the part from the ZIP. The
+			// save pipeline already flushes layoutXmlMap entries verbatim, so
+			// caching here also makes raw-XML passthrough available for
+			// layouts that have not been mutated.
+			if (!this.layoutXmlMap.has(layoutPath)) {
+				this.layoutXmlMap.set(layoutPath, data);
 			}
 
 			const layout: PptxSlideLayout = { path: layoutPath };

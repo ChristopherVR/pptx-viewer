@@ -492,6 +492,146 @@ describe('getPresetShapeClipPath', () => {
 	});
 });
 
+describe('improved geometry for previously-aliased shapes', () => {
+	const PLACEHOLDER_RECT = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
+	const PLACEHOLDER_RECT_TOP80 = 'polygon(0% 0%, 100% 0%, 100% 80%, 0% 80%)';
+	const GENERIC_ELLIPSE = 'ellipse(50% 50% at 50% 50%)';
+
+	it('action buttons render as rounded rectangles, not flat rectangles', () => {
+		const buttons = [
+			'actionButtonBackPrevious',
+			'actionButtonBeginning',
+			'actionButtonBlank',
+			'actionButtonDocument',
+			'actionButtonEnd',
+			'actionButtonForwardNext',
+			'actionButtonHelp',
+			'actionButtonHome',
+			'actionButtonInformation',
+			'actionButtonMovie',
+			'actionButtonReturn',
+			'actionButtonSound',
+			'actionButtonForwardOrNext',
+			'actionButtonBackOrPrevious',
+		] as const;
+		for (const name of buttons) {
+			const value = getPresetShapeClipPath(name);
+			expect(value, `${name} should have a clip-path`).toBeDefined();
+			expect(value, `${name} should not be the placeholder rect`).not.toBe(PLACEHOLDER_RECT);
+			expect(
+				value!.startsWith('inset('),
+				`${name} should be an inset(...) rounded rectangle, got: ${value}`,
+			).toBeTruthy();
+			expect(
+				value!.includes('round'),
+				`${name} should declare a corner radius via "round", got: ${value}`,
+			).toBeTruthy();
+		}
+	});
+
+	it('curved arrows are no longer aliased to straight-arrow polygons', () => {
+		const right = getPresetShapeClipPath('rightArrow');
+		const left = getPresetShapeClipPath('leftArrow');
+		const up = getPresetShapeClipPath('upArrow');
+		const down = getPresetShapeClipPath('downArrow');
+		expect(getPresetShapeClipPath('curvedRightArrow')).not.toBe(right);
+		expect(getPresetShapeClipPath('curvedLeftArrow')).not.toBe(left);
+		expect(getPresetShapeClipPath('curvedUpArrow')).not.toBe(up);
+		expect(getPresetShapeClipPath('curvedDownArrow')).not.toBe(down);
+		// Each must contain >=20 vertices to count as a curved approximation.
+		for (const name of [
+			'curvedRightArrow',
+			'curvedLeftArrow',
+			'curvedUpArrow',
+			'curvedDownArrow',
+		]) {
+			const v = getPresetShapeClipPath(name)!;
+			const vertexCount = v.split(',').length;
+			expect(
+				vertexCount,
+				`${name} should be a multi-vertex polygon, got ${v}`,
+			).toBeGreaterThanOrEqual(20);
+		}
+	});
+
+	it('cloud and cloudCallout are bumpy polygons, not generic ellipses', () => {
+		const cloud = getPresetShapeClipPath('cloud')!;
+		const cloudCallout = getPresetShapeClipPath('cloudCallout')!;
+		expect(cloud).not.toBe(GENERIC_ELLIPSE);
+		expect(cloudCallout).not.toBe(GENERIC_ELLIPSE);
+		expect(cloud.startsWith('polygon(')).toBeTruthy();
+		expect(cloudCallout.startsWith('polygon(')).toBeTruthy();
+		// Cloud should have many vertices to convey its bumpy outline.
+		expect(cloud.split(',').length).toBeGreaterThanOrEqual(24);
+		expect(cloudCallout.split(',').length).toBeGreaterThanOrEqual(24);
+	});
+
+	it('smileyFace outer geometry is a circle (not generic ellipse)', () => {
+		const v = getPresetShapeClipPath('smileyFace');
+		expect(v).toBe('circle(50% at 50% 50%)');
+	});
+
+	it('circular arrows are arc-shaped polygons, not full ellipses', () => {
+		const arrows = ['circularArrow', 'leftCircularArrow', 'leftRightCircularArrow'] as const;
+		for (const name of arrows) {
+			const v = getPresetShapeClipPath(name);
+			expect(v, `${name} clip-path defined`).toBeDefined();
+			expect(v, `${name} should not be a plain ellipse`).not.toBe(GENERIC_ELLIPSE);
+			expect(v!.startsWith('polygon(')).toBeTruthy();
+			expect(v!.split(',').length).toBeGreaterThanOrEqual(30);
+		}
+	});
+
+	it('swooshArrow now uses a curved approximation', () => {
+		const v = getPresetShapeClipPath('swooshArrow')!;
+		// Old definition was a 7-point straight chevron-like polygon.
+		expect(v.split(',').length).toBeGreaterThanOrEqual(20);
+	});
+
+	it('wedgeEllipseCallout has a pointer (more vertices than a plain ellipse)', () => {
+		const v = getPresetShapeClipPath('wedgeEllipseCallout')!;
+		expect(v.startsWith('polygon(')).toBeTruthy();
+		expect(v.split(',').length).toBeGreaterThanOrEqual(20);
+	});
+
+	it('flowChartConnector is rendered as a circle (not an ellipse)', () => {
+		expect(getPresetShapeClipPath('flowChartConnector')).toBe('circle(50% at 50% 50%)');
+	});
+
+	it('flowChartMagneticTape has the tangent leg, not a plain ellipse', () => {
+		const v = getPresetShapeClipPath('flowChartMagneticTape')!;
+		expect(v).not.toBe(GENERIC_ELLIPSE);
+		expect(v.startsWith('polygon(')).toBeTruthy();
+	});
+
+	it('callout1/2/3 (and accent/border variants) keep a rectangular text-frame body', () => {
+		// Per spec the leader-line is the shape outline drawn separately;
+		// the body geometry is rectangular. We assert this stays consistent
+		// across the entire family and never regresses to the "top-80%" placeholder.
+		const family = [
+			'callout1',
+			'callout2',
+			'callout3',
+			'borderCallout1',
+			'borderCallout2',
+			'borderCallout3',
+			'accentCallout1',
+			'accentCallout2',
+			'accentCallout3',
+			'accentBorderCallout1',
+			'accentBorderCallout2',
+			'accentBorderCallout3',
+		];
+		for (const name of family) {
+			const v = getPresetShapeClipPath(name);
+			expect(v, `${name} should be defined`).toBe(PLACEHOLDER_RECT);
+			expect(v, `${name} should not be the truncated 80% placeholder`).not.toBe(
+				PLACEHOLDER_RECT_TOP80,
+			);
+		}
+	});
+});
+
 describe('shape definitions coverage', () => {
 	it('all shape definitions have corresponding clip-path entries', () => {
 		const missing: string[] = [];

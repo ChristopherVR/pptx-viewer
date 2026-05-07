@@ -22,6 +22,7 @@ export type PptxChartType =
 	| 'bar'
 	| 'line'
 	| 'pie'
+	| 'ofPie'
 	| 'doughnut'
 	| 'area'
 	| 'scatter'
@@ -368,6 +369,72 @@ export interface PptxExternalData {
 	embeddedWorkbookData?: Uint8Array;
 }
 
+/**
+ * Options specific to the OOXML "Pie of Pie" / "Bar of Pie" chart
+ * (`c:ofPieChart`, ECMA-376 §21.2.2.126 / CT_OfPieChart).
+ *
+ * The primary discriminator is {@link ofPieType}: `"pie"` produces a
+ * pie-of-pie chart whose secondary plot is itself a pie, while `"bar"`
+ * produces a bar-of-pie chart whose secondary plot is a horizontal bar.
+ *
+ * - {@link splitType} chooses the split rule.
+ * - {@link splitPos} is the threshold value used by `pos`/`val`/`percent`.
+ * - {@link secondPieSize} controls the secondary plot's size (5–200%).
+ * - {@link serLines} toggles the leader lines connecting the plots.
+ * - {@link gapWidth} is the gap between the plots in percent (0–500).
+ */
+export interface PptxChartOfPieOptions {
+	ofPieType: 'pie' | 'bar';
+	splitType?: 'auto' | 'cust' | 'percent' | 'pos' | 'val';
+	splitPos?: number;
+	custSplit?: number[];
+	secondPieSize?: number;
+	serLines?: boolean;
+	gapWidth?: number;
+}
+
+/**
+ * 3D viewing parameters for a chart (`c:view3D`, ECMA-376 §21.2.2.228 /
+ * CT_View3D).
+ *
+ * All fields are optional and round-trip verbatim.
+ *
+ * - {@link rotX} — X-axis rotation in degrees (-90…90).
+ * - {@link rotY} — Y-axis rotation in degrees (0…360).
+ * - {@link depthPercent} — chart depth as a percentage of base width.
+ * - {@link rAngAx} — `true` if axes meet at right angles.
+ * - {@link perspective} — perspective angle in degrees (0…240).
+ * - {@link hPercent} — height as a percentage of chart width.
+ */
+export interface PptxChartView3D {
+	rotX?: number;
+	rotY?: number;
+	depthPercent?: number;
+	rAngAx?: boolean;
+	perspective?: number;
+	hPercent?: number;
+}
+
+/**
+ * Chart "chrome" flags from `c:chart` that round-trip cleanly even when
+ * rendering ignores them.
+ *
+ * - {@link autoTitleDeleted} — `c:autoTitleDeleted/@val`. Suppresses the
+ *   auto-generated title for single-series charts.
+ * - {@link dispBlanksAs} — `c:dispBlanksAs/@val`. How blank cells
+ *   render: `"gap"`, `"zero"`, or `"span"`.
+ * - {@link showDLblsOverMax} — `c:showDLblsOverMax/@val`. Keeps data
+ *   labels visible for points exceeding the value-axis maximum.
+ *
+ * `c:plotVisOnly` lives on {@link PptxChartData.plotVisibleOnly} and is
+ * intentionally not duplicated here.
+ */
+export interface PptxChartChrome {
+	autoTitleDeleted?: boolean;
+	dispBlanksAs?: 'gap' | 'zero' | 'span';
+	showDLblsOverMax?: boolean;
+}
+
 /** Parsed data extracted from an embedded xlsx workbook. */
 export interface PptxEmbeddedWorkbookData {
 	/** Category labels from the first column/row. */
@@ -463,4 +530,56 @@ export interface PptxChartData {
 	 * - `"acrossLinear"` — gradient across series
 	 */
 	colorMethod?: 'cycle' | 'withinLinear' | 'acrossLinear';
+
+	/**
+	 * Pie-of-pie / Bar-of-pie options (`c:ofPieChart`, CT_OfPieChart).
+	 *
+	 * Present only when {@link chartType} is `"ofPie"`. Carries the split
+	 * configuration, secondary plot size, and serLines flag so that an
+	 * `ofPieChart` element can be re-emitted on save with full fidelity.
+	 */
+	ofPieOptions?: PptxChartOfPieOptions;
+
+	/**
+	 * 3D viewing parameters (`c:view3D`, CT_View3D).
+	 *
+	 * Parsed from and emitted to `c:chart/c:view3D`. Absent when the
+	 * chart XML has no `c:view3D` element.
+	 */
+	view3D?: PptxChartView3D;
+
+	/**
+	 * Top-level chart chrome flags (`c:autoTitleDeleted`,
+	 * `c:dispBlanksAs`, `c:showDLblsOverMax`).
+	 *
+	 * Each flag is omitted from the emitted XML when absent on the
+	 * source data, so absence does not produce empty `<c:…/>` placeholders.
+	 */
+	chartChrome?: PptxChartChrome;
+
+	/**
+	 * Raw `c:userShapes` XML subtree (a drawing tree) preserved verbatim.
+	 *
+	 * `c:userShapes` references a separate drawing part containing
+	 * shapes drawn over the chart. The reference is preserved as-is so
+	 * that round-trip save re-emits the original element without
+	 * attempting to parse the nested drawing tree.
+	 */
+	userShapesXml?: unknown;
+
+	/**
+	 * Raw `c:pivotFmts` XML subtree preserved verbatim.
+	 *
+	 * `c:pivotFmts` carries a list of `c:pivotFmt` formatting overrides
+	 * for charts whose data originates from a PivotTable. Preserved
+	 * verbatim for round-trip fidelity.
+	 */
+	pivotFmtsXml?: unknown;
+
+	/**
+	 * Color-map override (`c:clrMapOvr`) carrying 12 attributes that
+	 * remap theme colour roles for this chart only. Preserved as a flat
+	 * `attribute → value` map for round-trip fidelity.
+	 */
+	clrMapOvr?: Record<string, string>;
 }

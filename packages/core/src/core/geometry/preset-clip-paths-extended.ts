@@ -70,17 +70,28 @@ export const CLIP_PATHS_EXTENDED: Record<string, string | undefined> = {
 	wedgerectcallout: 'polygon(0% 0%, 100% 0%, 100% 75%, 50% 75%, 30% 100%, 40% 75%, 0% 75%)',
 	wedgeroundrectcallout:
 		'polygon(5% 0%, 95% 0%, 100% 5%, 100% 70%, 95% 75%, 50% 75%, 30% 100%, 40% 75%, 5% 75%, 0% 70%, 0% 5%)',
-	wedgeellipsecallout: 'ellipse(50% 42% at 50% 42%)',
-	cloudcallout: 'ellipse(50% 50% at 50% 50%)',
-	callout1: 'polygon(0% 0%, 100% 0%, 100% 80%, 0% 80%)',
-	callout2: 'polygon(0% 0%, 100% 0%, 100% 80%, 0% 80%)',
-	callout3: 'polygon(0% 0%, 100% 0%, 100% 80%, 0% 80%)',
+	// wedgeEllipseCallout: 24-segment ellipse body with a triangle pointer
+	// inserted at the lower-left (around 5π/6).
+	wedgeellipsecallout:
+		'polygon(98% 40%, 96% 49%, 92% 58%, 84% 65%, 74% 70%, 62% 74%, 50% 75%, 38% 74%, 26% 70%, 16% 65%, 10% 95%, 8% 58%, 4% 49%, 2% 40%, 4% 31%, 8% 22%, 16% 15%, 26% 10%, 38% 6%, 50% 5%, 62% 6%, 74% 10%, 84% 15%, 92% 22%, 96% 31%)',
+	// cloudCallout: bumpy cloud body + 3 small "tail" circles pointing toward bottom-left.
+	cloudcallout:
+		'polygon(97% 42%, 99% 51%, 92% 57%, 86% 63%, 83% 72%, 74% 75%, 64% 75%, 55% 78%, 45% 79%, 37% 73%, 30% 69%, 18% 70%, 12% 78%, 14% 84%, 8% 92%, 4% 98%, 10% 90%, 16% 86%, 22% 78%, 22% 70%, 20% 66%, 16% 58%, 17% 49%, 13% 42%, 11% 33%, 18% 27%, 24% 21%, 27% 12%, 36% 9%, 46% 9%, 55% 6%, 65% 5%, 73% 11%, 80% 15%, 90% 18%, 94% 26%, 93% 35%)',
+	// Line-callouts (callout1/2/3 + their accent/border/accentBorder variants).
+	// Per ECMA-376 Section 20.1.10.56 the geometry of these shapes is a plain
+	// rectangular text-frame; the leader line is the *outline* path drawn by
+	// the renderer, NOT part of the geometry. A full-rect clip-path is the
+	// spec-correct value for the body. See GEOMETRY-FOLLOWUPS.md for the
+	// outstanding work to draw the leader-lines as overlay strokes.
+	callout1: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
+	callout2: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
+	callout3: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
 	bordercallout1: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
 	bordercallout2: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
 	bordercallout3: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
-	accentcallout1: 'polygon(0% 0%, 100% 0%, 100% 80%, 0% 80%)',
-	accentcallout2: 'polygon(0% 0%, 100% 0%, 100% 80%, 0% 80%)',
-	accentcallout3: 'polygon(0% 0%, 100% 0%, 100% 80%, 0% 80%)',
+	accentcallout1: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
+	accentcallout2: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
+	accentcallout3: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
 	accentbordercallout1: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
 	accentbordercallout2: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
 	accentbordercallout3: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
@@ -99,7 +110,8 @@ export const CLIP_PATHS_EXTENDED: Record<string, string | undefined> = {
 	flowchartpreparation: 'polygon(17% 0%, 83% 0%, 100% 50%, 83% 100%, 17% 100%, 0% 50%)',
 	flowchartmanualinput: 'polygon(0% 20%, 100% 0%, 100% 100%, 0% 100%)',
 	flowchartmanualoperation: 'polygon(0% 0%, 100% 0%, 85% 100%, 15% 100%)',
-	flowchartconnector: 'ellipse(50% 50% at 50% 50%)',
+	// flowChartConnector is the small Connector symbol — a circle, not an ellipse.
+	flowchartconnector: 'circle(50% at 50% 50%)',
 	flowchartoffpageconnector: 'polygon(0% 0%, 100% 0%, 100% 70%, 50% 100%, 0% 70%)',
 	flowchartpunchedcard: 'polygon(15% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 15%)',
 	flowchartpunchedtape:
@@ -114,7 +126,10 @@ export const CLIP_PATHS_EXTENDED: Record<string, string | undefined> = {
 	flowchartofflinestorage: 'polygon(0% 0%, 100% 0%, 80% 100%, 20% 100%)',
 	flowchartmagneticdisk: 'ellipse(50% 50% at 50% 50%)',
 	flowchartmagneticdrum: 'polygon(0% 0%, 90% 0%, 100% 15%, 100% 85%, 90% 100%, 0% 100%)',
-	flowchartmagnetictape: 'ellipse(50% 50% at 50% 50%)',
+	// flowChartMagneticTape: a near-circle with a short tangent "leg" at the lower-right
+	// (per the ANSI flowchart sequential-access-storage symbol).
+	flowchartmagnetictape:
+		'polygon(95% 50%, 94% 60%, 91% 70%, 85% 78%, 85% 95%, 100% 95%, 100% 80%, 78% 85%, 70% 91%, 60% 94%, 50% 95%, 40% 94%, 30% 91%, 22% 85%, 15% 78%, 9% 70%, 6% 60%, 5% 50%, 6% 40%, 9% 30%, 15% 22%, 22% 15%, 30% 9%, 40% 6%, 50% 5%, 60% 6%, 70% 9%, 78% 15%, 85% 22%, 91% 30%, 94% 40%)',
 	flowchartdisplay: 'polygon(17% 0%, 83% 0%, 100% 50%, 83% 100%, 17% 100%, 0% 50%)',
 	flowchartdelay: 'polygon(0% 0%, 60% 0%, 100% 50%, 60% 100%, 0% 100%)',
 
@@ -132,20 +147,25 @@ export const CLIP_PATHS_EXTENDED: Record<string, string | undefined> = {
 		'polygon(20% 5%, 50% 35%, 80% 5%, 95% 20%, 65% 50%, 95% 80%, 80% 95%, 50% 65%, 20% 95%, 5% 80%, 35% 50%, 5% 20%)',
 
 	// ── Action Buttons ────────────────────────────────────────────────────
-	actionbuttonblank: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
-	actionbuttonhome: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
-	actionbuttonhelp: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
-	actionbuttoninformation: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
-	actionbuttonbackorprevious: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
-	actionbuttonbackprevious: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
-	actionbuttonforwardornext: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
-	actionbuttonforwardnext: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
-	actionbuttonbeginning: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
-	actionbuttonend: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
-	actionbuttonreturn: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
-	actionbuttondocument: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
-	actionbuttonsound: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
-	actionbuttonmovie: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
+	// Per ECMA-376 ST_ShapeType, every actionButton* preset is a rounded
+	// rectangle frame (a "button"); the inner glyph (home, help, arrow, etc.)
+	// is rendered as a *separate* path inside the same shape. Until we add
+	// per-button glyph overlays we emit the rounded-rectangle body so they
+	// stop looking like featureless rectangles.
+	actionbuttonblank: 'inset(0 round 6px)',
+	actionbuttonhome: 'inset(0 round 6px)',
+	actionbuttonhelp: 'inset(0 round 6px)',
+	actionbuttoninformation: 'inset(0 round 6px)',
+	actionbuttonbackorprevious: 'inset(0 round 6px)',
+	actionbuttonbackprevious: 'inset(0 round 6px)',
+	actionbuttonforwardornext: 'inset(0 round 6px)',
+	actionbuttonforwardnext: 'inset(0 round 6px)',
+	actionbuttonbeginning: 'inset(0 round 6px)',
+	actionbuttonend: 'inset(0 round 6px)',
+	actionbuttonreturn: 'inset(0 round 6px)',
+	actionbuttondocument: 'inset(0 round 6px)',
+	actionbuttonsound: 'inset(0 round 6px)',
+	actionbuttonmovie: 'inset(0 round 6px)',
 
 	// ── Additional Flowchart ─────────────────────────────────────────────
 	flowchartdata: 'polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%)',
@@ -154,7 +174,9 @@ export const CLIP_PATHS_EXTENDED: Record<string, string | undefined> = {
 	flowchartstoreddata: 'polygon(15% 0%, 100% 0%, 100% 100%, 15% 100%, 0% 85%, 8% 50%, 0% 15%)',
 
 	// ── Additional Arrows ──────────────────────────────────────────────
-	swoosharrow: 'polygon(0% 80%, 30% 40%, 20% 40%, 60% 0%, 100% 40%, 70% 40%, 45% 80%)',
+	// swooshArrow: graceful curved arrow (quadratic-Bezier band) ending in arrowhead.
+	swoosharrow:
+		'polygon(0% 100%, 8% 81%, 16% 65%, 25% 52%, 33% 41%, 42% 33%, 51% 28%, 60% 25%, 69% 24%, 78% 27%, 88% 32%, 100% 25%, 95% 5%, 78% 22%, 82% 40%, 75% 37%, 67% 37%, 60% 38%, 54% 41%, 47% 46%, 40% 53%, 34% 62%, 27% 73%, 21% 85%, 15% 100%)',
 	leftuparrow:
 		'polygon(50% 0%, 75% 25%, 60% 25%, 60% 60%, 25% 60%, 25% 75%, 0% 50%, 25% 25%, 25% 40%, 40% 40%, 40% 25%)',
 

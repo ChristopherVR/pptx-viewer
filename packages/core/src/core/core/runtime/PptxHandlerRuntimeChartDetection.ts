@@ -16,6 +16,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			line3DChart: 'line3D',
 			pieChart: 'pie',
 			pie3DChart: 'pie3D',
+			ofPieChart: 'ofPie',
 			doughnutChart: 'doughnut',
 			areaChart: 'area',
 			area3DChart: 'area3D',

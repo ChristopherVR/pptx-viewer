@@ -41,6 +41,8 @@ export interface PptxNotesMaster {
 	elements?: PptxElement[];
 	/** Header/footer flags from `<p:hf>` on the notes master (P-H3). */
 	headerFooter?: PptxHeaderFooterFlags;
+	/** Colour map from `<p:clrMap>` (12 alias attributes). Applied at save time. */
+	clrMap?: Record<string, string>;
 }
 
 /**
@@ -73,6 +75,8 @@ export interface PptxHandoutMaster {
 	slidesPerPage?: number;
 	/** Header/footer flags from `<p:hf>` on the handout master (P-H3). */
 	headerFooter?: PptxHeaderFooterFlags;
+	/** Colour map from `<p:clrMap>` (12 alias attributes). Applied at save time. */
+	clrMap?: Record<string, string>;
 }
 
 /**
@@ -130,6 +134,11 @@ export interface PptxSlideMaster {
 	txStyles?: PptxMasterTextStyles;
 	/** Header/footer flags from `<p:hf>` on this master (P-H3). */
 	headerFooter?: PptxHeaderFooterFlags;
+	/**
+	 * Colour map from `<p:clrMap>` (12 alias attributes: bg1/tx1/bg2/tx2,
+	 * accent1-6, hlink, folHlink). Applied at save time when present.
+	 */
+	clrMap?: Record<string, string>;
 }
 
 /**

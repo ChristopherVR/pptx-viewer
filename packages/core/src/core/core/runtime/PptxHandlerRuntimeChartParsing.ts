@@ -199,6 +199,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Parse Office 2013+ chart color style (chartColorStyle*.xml)
 		const chartColorStyle = await this.parseChartColorStyle(chartPartPath);
 
+		// Parse ofPie options when this is an ofPieChart container.
+		const ofPieOptions =
+			chartType === 'ofPie' ? this.parseOfPieOptions(seriesContainer) : undefined;
+
+		// Parse view3D, top-level chrome flags, and raw preservation blobs.
+		const view3D = this.parseView3D(chartRoot);
+		const chartChrome = this.parseChartChrome(chartRoot);
+		const userShapesXml = this.parseUserShapesXml(chartSpace);
+		const pivotFmtsXml = this.parsePivotFmtsXml(chartRoot);
+		const clrMapOvr = this.parseClrMapOvr(chartSpace);
+
 		return {
 			chartType,
 			categories: finalCategories,
@@ -221,6 +232,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(pivotSource ? { pivotSource } : {}),
 			...(chartColorStyle?.palette ? { colorPalette: chartColorStyle.palette } : {}),
 			...(chartColorStyle?.method ? { colorMethod: chartColorStyle.method } : {}),
+			...(ofPieOptions ? { ofPieOptions } : {}),
+			...(view3D ? { view3D } : {}),
+			...(chartChrome ? { chartChrome } : {}),
+			...(userShapesXml ? { userShapesXml } : {}),
+			...(pivotFmtsXml ? { pivotFmtsXml } : {}),
+			...(clrMapOvr ? { clrMapOvr } : {}),
 		};
 	}
 
@@ -345,6 +362,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Parse Office 2013+ chart color style (chartColorStyle*.xml)
 		const chartColorStyle = await this.parseChartColorStyle(chartPartPath);
 
+		// Parse view3D, top-level chrome flags, and raw preservation blobs.
+		const view3D = this.parseView3D(chartRoot);
+		const chartChrome = this.parseChartChrome(chartRoot);
+		const userShapesXml = this.parseUserShapesXml(chartSpace);
+		const pivotFmtsXml = this.parsePivotFmtsXml(chartRoot);
+		const clrMapOvr = this.parseClrMapOvr(chartSpace);
+
 		return {
 			chartType,
 			categories: result.categories,
@@ -359,6 +383,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			...(pivotSource ? { pivotSource } : {}),
 			...(chartColorStyle?.palette ? { colorPalette: chartColorStyle.palette } : {}),
 			...(chartColorStyle?.method ? { colorMethod: chartColorStyle.method } : {}),
+			...(view3D ? { view3D } : {}),
+			...(chartChrome ? { chartChrome } : {}),
+			...(userShapesXml ? { userShapesXml } : {}),
+			...(pivotFmtsXml ? { pivotFmtsXml } : {}),
+			...(clrMapOvr ? { clrMapOvr } : {}),
 		};
 	}
 }

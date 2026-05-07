@@ -119,6 +119,188 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 
+		// ── Additional ECMA-376 blip alpha/recolour primitives ──
+		// a:alphaInv — invert alpha; optional colour child shifts the inversion baseline
+		const alphaInv = blip['a:alphaInv'] as XmlObject | undefined;
+		if (alphaInv) {
+			const color = this.parseColor(alphaInv);
+			effects.alphaInv = color ? { color } : {};
+			hasAny = true;
+		}
+
+		// a:alphaCeiling / a:alphaFloor — empty boolean flags
+		if (blip['a:alphaCeiling']) {
+			effects.alphaCeiling = true;
+			hasAny = true;
+		}
+		if (blip['a:alphaFloor']) {
+			effects.alphaFloor = true;
+			hasAny = true;
+		}
+
+		// a:alphaMod — alpha modulation by sub-effect tree (preserve cont child opaquely)
+		const alphaMod = blip['a:alphaMod'] as XmlObject | undefined;
+		if (alphaMod) {
+			const cont = alphaMod['a:cont'] as XmlObject | undefined;
+			effects.alphaMod = cont ? { contRawXml: cont as Record<string, unknown> } : {};
+			hasAny = true;
+		}
+
+		// a:alphaRepl — alpha replace (@_a fixed-percent in 1/1000ths of a percent)
+		const alphaRepl = blip['a:alphaRepl'] as XmlObject | undefined;
+		if (alphaRepl) {
+			const a = alphaRepl['@_a'];
+			if (a !== undefined) {
+				const pct = parseInt(String(a)) / 1000;
+				if (Number.isFinite(pct)) {
+					effects.alphaRepl = pct;
+					hasAny = true;
+				}
+			}
+		}
+
+		// a:alphaBiLevel — alpha bi-level (@_thresh in 1/1000ths of a percent)
+		const alphaBiLevelNode = blip['a:alphaBiLevel'] as XmlObject | undefined;
+		if (alphaBiLevelNode) {
+			const thresh = alphaBiLevelNode['@_thresh'];
+			if (thresh !== undefined) {
+				const pct = parseInt(String(thresh)) / 1000;
+				if (Number.isFinite(pct)) {
+					effects.alphaBiLevel = pct;
+					hasAny = true;
+				}
+			}
+		}
+
+		// a:clrRepl — colour replace (full colour child)
+		const clrRepl = blip['a:clrRepl'] as XmlObject | undefined;
+		if (clrRepl) {
+			const color = this.parseColor(clrRepl);
+			if (color) {
+				effects.clrRepl = {
+					color,
+					rawXml: clrRepl as Record<string, unknown>,
+				};
+				hasAny = true;
+			}
+		}
+
+		// a:lum — luminance modulation (@_bright, @_contrast in 1/1000ths of a percent)
+		const lumNode = blip['a:lum'] as XmlObject | undefined;
+		if (lumNode) {
+			const lumEffect: NonNullable<PptxImageEffects['lum']> = {};
+			const lumBright = lumNode['@_bright'];
+			const lumContrast = lumNode['@_contrast'];
+			if (lumBright !== undefined) {
+				const v = parseInt(String(lumBright)) / 1000;
+				if (Number.isFinite(v)) {
+					lumEffect.bright = v;
+				}
+			}
+			if (lumContrast !== undefined) {
+				const v = parseInt(String(lumContrast)) / 1000;
+				if (Number.isFinite(v)) {
+					lumEffect.contrast = v;
+				}
+			}
+			effects.lum = lumEffect;
+			hasAny = true;
+		}
+
+		// a:hsl — HSL modulation (@_hue in 1/60000ths of a degree, @_sat/@_lum in 1/1000ths of a percent)
+		const hslNode = blip['a:hsl'] as XmlObject | undefined;
+		if (hslNode) {
+			const hslEffect: NonNullable<PptxImageEffects['hsl']> = {};
+			const hue = hslNode['@_hue'];
+			const sat = hslNode['@_sat'];
+			const lum = hslNode['@_lum'];
+			if (hue !== undefined) {
+				const v = parseInt(String(hue)) / 60000;
+				if (Number.isFinite(v)) {
+					hslEffect.hue = v;
+				}
+			}
+			if (sat !== undefined) {
+				const v = parseInt(String(sat)) / 1000;
+				if (Number.isFinite(v)) {
+					hslEffect.sat = v;
+				}
+			}
+			if (lum !== undefined) {
+				const v = parseInt(String(lum)) / 1000;
+				if (Number.isFinite(v)) {
+					hslEffect.lum = v;
+				}
+			}
+			effects.hsl = hslEffect;
+			hasAny = true;
+		}
+
+		// a:tint (image-effect tint inside blip) — @_hue (1/60000ths degree), @_amt (1/1000ths %)
+		const tintNode = blip['a:tint'] as XmlObject | undefined;
+		if (tintNode) {
+			const tintEffect: NonNullable<PptxImageEffects['tint']> = {};
+			const hue = tintNode['@_hue'];
+			const amt = tintNode['@_amt'];
+			if (hue !== undefined) {
+				const v = parseInt(String(hue)) / 60000;
+				if (Number.isFinite(v)) {
+					tintEffect.hue = v;
+				}
+			}
+			if (amt !== undefined) {
+				const v = parseInt(String(amt)) / 1000;
+				if (Number.isFinite(v)) {
+					tintEffect.amt = v;
+				}
+			}
+			effects.tint = tintEffect;
+			hasAny = true;
+		}
+
+		// a:fillOverlay — overlay fill (@_blend, child fill preserved opaquely)
+		const fillOverlay = blip['a:fillOverlay'] as XmlObject | undefined;
+		if (fillOverlay) {
+			const blendRaw = String(fillOverlay['@_blend'] || 'over');
+			const blend: NonNullable<PptxImageEffects['fillOverlay']>['blend'] = (
+				['over', 'mult', 'screen', 'darken', 'lighten'] as const
+			).includes(blendRaw as 'over' | 'mult' | 'screen' | 'darken' | 'lighten')
+				? (blendRaw as 'over' | 'mult' | 'screen' | 'darken' | 'lighten')
+				: 'over';
+			// Preserve the entire fillOverlay node (minus the blend attribute) as raw XML.
+			// fast-xml-parser returns child fill nodes as keys like a:solidFill, a:gradFill,
+			// a:blipFill, a:pattFill, a:noFill — we just keep the whole object.
+			const rawCopy: Record<string, unknown> = {};
+			for (const key of Object.keys(fillOverlay)) {
+				if (key === '@_blend') {
+					continue;
+				}
+				rawCopy[key] = (fillOverlay as Record<string, unknown>)[key];
+			}
+			effects.fillOverlay = { blend, fillRawXml: rawCopy };
+			hasAny = true;
+		}
+
+		// a:blur — blur (@_rad in EMU, @_grow boolean)
+		const blurNode = blip['a:blur'] as XmlObject | undefined;
+		if (blurNode) {
+			const blurEffect: NonNullable<PptxImageEffects['blur']> = {};
+			const rad = blurNode['@_rad'];
+			if (rad !== undefined) {
+				const v = parseInt(String(rad));
+				if (Number.isFinite(v)) {
+					blurEffect.rad = v;
+				}
+			}
+			const grow = blurNode['@_grow'];
+			if (grow !== undefined) {
+				const s = String(grow).toLowerCase();
+				blurEffect.grow = s === '1' || s === 'true';
+			}
+			effects.blur = blurEffect;
+			hasAny = true;
+		}
+
 		// Artistic effects from extension list
 		const extLst = blip['a:extLst'];
 		if (extLst) {

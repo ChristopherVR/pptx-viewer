@@ -11,6 +11,7 @@ type ChartType =
 	| 'line3D'
 	| 'pie'
 	| 'pie3D'
+	| 'ofPie'
 	| 'doughnut'
 	| 'area'
 	| 'area3D'
@@ -66,6 +67,7 @@ function detectChartType(plotArea: XmlObject | undefined): ChartType {
 		line3DChart: 'line3D',
 		pieChart: 'pie',
 		pie3DChart: 'pie3D',
+		ofPieChart: 'ofPie',
 		doughnutChart: 'doughnut',
 		areaChart: 'area',
 		area3DChart: 'area3D',
@@ -164,6 +166,10 @@ describe('detectChartType', () => {
 
 	it('should detect pie3D chart', () => {
 		expect(detectChartType({ 'c:pie3DChart': {} })).toBe('pie3D');
+	});
+
+	it('should detect ofPieChart (Pie of Pie / Bar of Pie)', () => {
+		expect(detectChartType({ 'c:ofPieChart': {} })).toBe('ofPie');
 	});
 
 	it('should detect doughnut chart', () => {

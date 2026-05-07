@@ -1,5 +1,12 @@
 import { XmlObject } from '../../types';
-import type { PptxTableData, PptxChartData, PptxChartSeries } from '../../types';
+import type {
+	PptxChartChrome,
+	PptxChartData,
+	PptxChartOfPieOptions,
+	PptxChartSeries,
+	PptxChartView3D,
+	PptxTableData,
+} from '../../types';
 import { upsertChartAxisChild } from '../../utils/chart-axis-parser';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveTableStyles';
 import {
@@ -399,6 +406,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					}
 				}
 
+				// ── ofPieChart options round-trip (CT_OfPieChart) ─────────
+				if (chartData.ofPieOptions) {
+					this.applyOfPieOptions(chartTypeContainer, chartData.ofPieOptions);
+				}
+
+				// ── view3D round-trip (CT_View3D) ─────────────────────────
+				if (chartData.view3D) {
+					this.applyView3D(chartRoot, chartData.view3D);
+				}
+
+				// ── Chart chrome flags round-trip ─────────────────────────
+				if (chartData.chartChrome) {
+					this.applyChartChrome(chartRoot, chartData.chartChrome);
+				}
+
 				// Update axis fields (Phase 5 Stream A item 4).
 				// Currently writes back: scaling.min/max, scaling.logBase,
 				// numFmt, majorUnit, tickLblPos. Other parsed-but-not-written
@@ -578,6 +600,132 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	// ---------------------------------------------------------------------------
 
 	/**
+	 * Upsert a `c:<localName>` child carrying only an `@_val` attribute on
+	 * `parent`. When `value` is `undefined` the existing child is removed.
+	 */
+	private upsertValChild(parent: XmlObject, localName: string, value: string | undefined): void {
+		const existing = this.xmlLookupService.getChildByLocalName(parent, localName);
+		const existingKey = Object.keys(parent).find(
+			(k) => this.compatibilityService.getXmlLocalName(k) === localName,
+		);
+		if (value === undefined) {
+			if (existingKey) {
+				delete parent[existingKey];
+			}
+			return;
+		}
+		if (existing && existingKey) {
+			parent[existingKey] = { ...(existing as XmlObject), '@_val': value };
+		} else {
+			parent[`c:${localName}`] = { '@_val': value };
+		}
+	}
+
+	/**
+	 * Apply ofPie options (CT_OfPieChart) onto an existing
+	 * `c:ofPieChart` container. Updates ofPieType, splitType, splitPos,
+	 * secondPieSize, gapWidth, and serLines presence.
+	 */
+	protected applyOfPieOptions(ofPieContainer: XmlObject, options: PptxChartOfPieOptions): void {
+		this.upsertValChild(ofPieContainer, 'ofPieType', options.ofPieType);
+		this.upsertValChild(ofPieContainer, 'splitType', options.splitType);
+		this.upsertValChild(
+			ofPieContainer,
+			'splitPos',
+			options.splitPos !== undefined ? String(options.splitPos) : undefined,
+		);
+		this.upsertValChild(
+			ofPieContainer,
+			'secondPieSize',
+			options.secondPieSize !== undefined ? String(options.secondPieSize) : undefined,
+		);
+		this.upsertValChild(
+			ofPieContainer,
+			'gapWidth',
+			options.gapWidth !== undefined ? String(options.gapWidth) : undefined,
+		);
+		// serLines: presence-only (insert empty element when true; remove when false).
+		const serLinesKey = Object.keys(ofPieContainer).find(
+			(k) => this.compatibilityService.getXmlLocalName(k) === 'serLines',
+		);
+		if (options.serLines) {
+			if (!serLinesKey) {
+				ofPieContainer['c:serLines'] = {};
+			}
+		} else if (options.serLines === false && serLinesKey) {
+			delete ofPieContainer[serLinesKey];
+		}
+
+		// custSplit: rebuild secondPiePt list when provided.
+		if (options.custSplit && options.custSplit.length > 0) {
+			ofPieContainer['c:custSplit'] = {
+				'c:secondPiePt': options.custSplit.map((idx) => ({ '@_val': String(idx) })),
+			};
+		}
+	}
+
+	/**
+	 * Apply `c:view3D` (CT_View3D) onto the chart root. Replaces any
+	 * existing `c:view3D` element, preserving only the fields supplied
+	 * on `view3D`.
+	 */
+	protected applyView3D(chartRoot: XmlObject, view3D: PptxChartView3D): void {
+		const node: XmlObject = {};
+		if (view3D.rotX !== undefined) {
+			node['c:rotX'] = { '@_val': String(view3D.rotX) };
+		}
+		// Per CT_View3D the order is rotX, hPercent, rotY, depthPercent,
+		// rAngAx, perspective. fast-xml-parser preserves insertion order.
+		if (view3D.hPercent !== undefined) {
+			node['c:hPercent'] = { '@_val': String(view3D.hPercent) };
+		}
+		if (view3D.rotY !== undefined) {
+			node['c:rotY'] = { '@_val': String(view3D.rotY) };
+		}
+		if (view3D.depthPercent !== undefined) {
+			node['c:depthPercent'] = { '@_val': String(view3D.depthPercent) };
+		}
+		if (view3D.rAngAx !== undefined) {
+			node['c:rAngAx'] = { '@_val': view3D.rAngAx ? '1' : '0' };
+		}
+		if (view3D.perspective !== undefined) {
+			node['c:perspective'] = { '@_val': String(view3D.perspective) };
+		}
+
+		const existingKey = Object.keys(chartRoot).find(
+			(k) => this.compatibilityService.getXmlLocalName(k) === 'view3D',
+		);
+		if (Object.keys(node).length === 0) {
+			if (existingKey) {
+				delete chartRoot[existingKey];
+			}
+			return;
+		}
+		if (existingKey) {
+			chartRoot[existingKey] = node;
+		} else {
+			chartRoot['c:view3D'] = node;
+		}
+	}
+
+	/**
+	 * Apply chart chrome flags onto the chart root. Each flag is only
+	 * written when explicitly set on `chrome`; absent fields preserve
+	 * any existing element verbatim.
+	 */
+	protected applyChartChrome(chartRoot: XmlObject, chrome: PptxChartChrome): void {
+		if (chrome.autoTitleDeleted !== undefined) {
+			this.upsertValChild(chartRoot, 'autoTitleDeleted', chrome.autoTitleDeleted ? '1' : '0');
+		}
+		if (chrome.dispBlanksAs !== undefined) {
+			this.upsertValChild(chartRoot, 'dispBlanksAs', chrome.dispBlanksAs);
+		}
+		if (chrome.showDLblsOverMax !== undefined) {
+			this.upsertValChild(chartRoot, 'showDLblsOverMax', chrome.showDLblsOverMax ? '1' : '0');
+		}
+	}
+
+	/**
 	 * Map a {@link PptxChartType} to the OOXML element local name for the
 	 * chart type container (e.g. `"bar"` &rarr; `"barChart"`).
 	 *
@@ -592,6 +740,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			line3D: 'line3DChart',
 			pie: 'pieChart',
 			pie3D: 'pie3DChart',
+			ofPie: 'ofPieChart',
 			doughnut: 'doughnutChart',
 			area: 'areaChart',
 			area3D: 'area3DChart',

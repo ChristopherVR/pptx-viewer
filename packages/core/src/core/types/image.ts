@@ -53,6 +53,71 @@ export interface PptxImageEffects {
 		/** Whether the target colour is fully transparent (alpha = 0). */
 		clrToTransparent?: boolean;
 	};
+	/**
+	 * Alpha inverse effect (`a:alphaInv`). Inverts the alpha channel; an optional
+	 * colour child shifts the inversion baseline.
+	 */
+	alphaInv?: {
+		/** Optional baseline colour (hex). */
+		color?: string;
+	};
+	/** Alpha ceiling (`a:alphaCeiling`) — clamps any non-zero alpha to fully opaque. Boolean flag. */
+	alphaCeiling?: boolean;
+	/** Alpha floor (`a:alphaFloor`) — clamps any non-fully-opaque alpha to fully transparent. Boolean flag. */
+	alphaFloor?: boolean;
+	/**
+	 * Alpha modulate (`a:alphaMod`). The schema requires a single `cont` (effect
+	 * container) child; we preserve the inner XML opaquely for round-trip.
+	 */
+	alphaMod?: {
+		/** Raw opaque XML for the `a:cont` child to preserve on save. */
+		contRawXml?: Record<string, unknown>;
+	};
+	/** Alpha replace (`a:alphaRepl`) — replaces alpha with the given fixed-percent value (0..100). */
+	alphaRepl?: number;
+	/** Alpha bi-level (`a:alphaBiLevel`) — threshold (0..100) above which alpha becomes fully opaque. */
+	alphaBiLevel?: number;
+	/**
+	 * Colour replace (`a:clrRepl`) — replaces all colour information in an image
+	 * with the given solid colour. Stores the raw colour child to preserve scheme
+	 * colour references and modifiers.
+	 */
+	clrRepl?: {
+		/** Resolved hex colour. */
+		color: string;
+		/** Raw opaque colour XML for round-trip. */
+		rawXml?: Record<string, unknown>;
+	};
+	/** Luminance modulation (`a:lum`) — bright/contrast as fixed percentages (0..100). */
+	lum?: {
+		bright?: number;
+		contrast?: number;
+	};
+	/** HSL modulation (`a:hsl`) — hue (0..360 degrees), saturation/luminance (-100..100). */
+	hsl?: {
+		hue?: number;
+		sat?: number;
+		lum?: number;
+	};
+	/** Image-effect tint (`a:tint` inside blip) — hue (0..360), amount (-100..100). */
+	tint?: {
+		hue?: number;
+		amt?: number;
+	};
+	/**
+	 * Fill overlay (`a:fillOverlay`) — overlays a fill on top of the blip.
+	 * Stores blend mode and the raw inner fill XML for round-trip.
+	 */
+	fillOverlay?: {
+		blend: 'over' | 'mult' | 'screen' | 'darken' | 'lighten';
+		/** Raw opaque fill XML preserved for round-trip. */
+		fillRawXml?: Record<string, unknown>;
+	};
+	/** Blur (`a:blur`) — radius in EMU and grow flag. */
+	blur?: {
+		rad?: number;
+		grow?: boolean;
+	};
 }
 
 /**

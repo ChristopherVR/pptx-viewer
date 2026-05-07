@@ -3,7 +3,7 @@ import type { OoxmlConformanceClass } from '../../utils';
 import { PptxSaveStateBuilder } from '../builders';
 import { createPptxSaveConstants } from '../factories';
 import type { PptxHandlerSaveOptions } from '../types';
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveTheme';
+import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveViewProperties';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -112,6 +112,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			this.zip.file('[Content_Types].xml', this.builder.build(contentTypesData));
 		}
 
+		// Apply typed-model mutations to cached master / layout XmlObjects
+		// before the passthrough flush. Masters / layouts not listed in the
+		// save options keep their original parsed XML and round-trip
+		// verbatim. (Slide master / layout writers — ECMA-376 §19.3.1.42 /
+		// §19.3.1.40.)
+		this.applySlideMasterChanges(options?.slideMasters);
+		this.applySlideLayoutChanges(options?.slideLayouts);
+
 		// Persist template/master updates
 		for (const [layoutPath, layoutXmlObj] of this.layoutXmlMap.entries()) {
 			this.zip.file(layoutPath, this.builder.build(layoutXmlObj));
@@ -152,6 +160,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			this.zip.file('ppt/presentation.xml', presentationXml);
 		}
 		await this.applyPresentationPropertiesPart(options?.presentationProperties);
+		await this.applyViewPropertiesPart(options?.viewProperties);
+		await this.applyTableStylesPart(options?.tableStyles);
 
 		await this.documentPropertiesUpdater.updateOnSave(slides, {
 			coreProperties: options?.coreProperties,
@@ -161,7 +171,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		await this.applyTagCollectionChanges(options?.tags);
 		await this.applyNotesMasterChanges(options?.notesMaster);
+		await this.applyNotesMasterStructuralChanges(options?.notesMaster);
 		await this.applyHandoutMasterChanges(options?.handoutMaster);
+		await this.applyHandoutMasterStructuralChanges(options?.handoutMaster);
 		await this.processPendingChartUpdates();
 		await this.processPendingSmartArtUpdates();
 		this.applyCustomXmlPartsPreservation();

@@ -141,6 +141,155 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		} else {
 			delete blip['a:clrChange'];
 		}
+
+		// ── Additional ECMA-376 blip alpha/recolour primitives ──
+		// a:alphaInv
+		if (nextEffects.alphaInv) {
+			const node: XmlObject = {};
+			if (nextEffects.alphaInv.color) {
+				node['a:srgbClr'] = {
+					'@_val': nextEffects.alphaInv.color.replace('#', ''),
+				};
+			}
+			blip['a:alphaInv'] = node;
+		} else {
+			delete blip['a:alphaInv'];
+		}
+
+		// a:alphaCeiling / a:alphaFloor
+		if (nextEffects.alphaCeiling) {
+			blip['a:alphaCeiling'] = {};
+		} else {
+			delete blip['a:alphaCeiling'];
+		}
+		if (nextEffects.alphaFloor) {
+			blip['a:alphaFloor'] = {};
+		} else {
+			delete blip['a:alphaFloor'];
+		}
+
+		// a:alphaMod — preserve cont child opaquely
+		if (nextEffects.alphaMod) {
+			const node: XmlObject = {};
+			if (nextEffects.alphaMod.contRawXml) {
+				node['a:cont'] = nextEffects.alphaMod.contRawXml as XmlObject;
+			}
+			blip['a:alphaMod'] = node;
+		} else {
+			delete blip['a:alphaMod'];
+		}
+
+		// a:alphaRepl
+		if (typeof nextEffects.alphaRepl === 'number' && Number.isFinite(nextEffects.alphaRepl)) {
+			blip['a:alphaRepl'] = {
+				'@_a': String(Math.round(nextEffects.alphaRepl * 1000)),
+			};
+		} else {
+			delete blip['a:alphaRepl'];
+		}
+
+		// a:alphaBiLevel
+		if (typeof nextEffects.alphaBiLevel === 'number' && Number.isFinite(nextEffects.alphaBiLevel)) {
+			blip['a:alphaBiLevel'] = {
+				'@_thresh': String(Math.round(nextEffects.alphaBiLevel * 1000)),
+			};
+		} else {
+			delete blip['a:alphaBiLevel'];
+		}
+
+		// a:clrRepl — prefer the preserved raw XML so scheme-colour modifiers round-trip
+		if (nextEffects.clrRepl) {
+			if (nextEffects.clrRepl.rawXml) {
+				blip['a:clrRepl'] = nextEffects.clrRepl.rawXml as XmlObject;
+			} else if (typeof nextEffects.clrRepl.color === 'string') {
+				blip['a:clrRepl'] = {
+					'a:srgbClr': {
+						'@_val': nextEffects.clrRepl.color.replace('#', ''),
+					},
+				};
+			}
+		} else {
+			delete blip['a:clrRepl'];
+		}
+
+		// a:lum
+		if (nextEffects.lum) {
+			const node: XmlObject = {};
+			if (typeof nextEffects.lum.bright === 'number' && Number.isFinite(nextEffects.lum.bright)) {
+				node['@_bright'] = String(Math.round(nextEffects.lum.bright * 1000));
+			}
+			if (
+				typeof nextEffects.lum.contrast === 'number' &&
+				Number.isFinite(nextEffects.lum.contrast)
+			) {
+				node['@_contrast'] = String(Math.round(nextEffects.lum.contrast * 1000));
+			}
+			blip['a:lum'] = node;
+		} else {
+			delete blip['a:lum'];
+		}
+
+		// a:hsl
+		if (nextEffects.hsl) {
+			const node: XmlObject = {};
+			if (typeof nextEffects.hsl.hue === 'number' && Number.isFinite(nextEffects.hsl.hue)) {
+				node['@_hue'] = String(Math.round(nextEffects.hsl.hue * 60000));
+			}
+			if (typeof nextEffects.hsl.sat === 'number' && Number.isFinite(nextEffects.hsl.sat)) {
+				node['@_sat'] = String(Math.round(nextEffects.hsl.sat * 1000));
+			}
+			if (typeof nextEffects.hsl.lum === 'number' && Number.isFinite(nextEffects.hsl.lum)) {
+				node['@_lum'] = String(Math.round(nextEffects.hsl.lum * 1000));
+			}
+			blip['a:hsl'] = node;
+		} else {
+			delete blip['a:hsl'];
+		}
+
+		// a:tint (image effect)
+		if (nextEffects.tint) {
+			const node: XmlObject = {};
+			if (typeof nextEffects.tint.hue === 'number' && Number.isFinite(nextEffects.tint.hue)) {
+				node['@_hue'] = String(Math.round(nextEffects.tint.hue * 60000));
+			}
+			if (typeof nextEffects.tint.amt === 'number' && Number.isFinite(nextEffects.tint.amt)) {
+				node['@_amt'] = String(Math.round(nextEffects.tint.amt * 1000));
+			}
+			blip['a:tint'] = node;
+		} else {
+			delete blip['a:tint'];
+		}
+
+		// a:fillOverlay — preserve inner fill XML opaquely
+		if (nextEffects.fillOverlay) {
+			const node: XmlObject = {
+				'@_blend': nextEffects.fillOverlay.blend,
+			};
+			if (nextEffects.fillOverlay.fillRawXml) {
+				for (const key of Object.keys(nextEffects.fillOverlay.fillRawXml)) {
+					node[key] = (nextEffects.fillOverlay.fillRawXml as Record<string, unknown>)[
+						key
+					] as XmlObject[keyof XmlObject];
+				}
+			}
+			blip['a:fillOverlay'] = node;
+		} else {
+			delete blip['a:fillOverlay'];
+		}
+
+		// a:blur
+		if (nextEffects.blur) {
+			const node: XmlObject = {};
+			if (typeof nextEffects.blur.rad === 'number' && Number.isFinite(nextEffects.blur.rad)) {
+				node['@_rad'] = String(Math.round(nextEffects.blur.rad));
+			}
+			if (typeof nextEffects.blur.grow === 'boolean') {
+				node['@_grow'] = nextEffects.blur.grow ? '1' : '0';
+			}
+			blip['a:blur'] = node;
+		} else {
+			delete blip['a:blur'];
+		}
 	}
 
 	protected normalizePresetGeometry(shapeType: string | undefined): string {

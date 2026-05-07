@@ -19,11 +19,14 @@ import type {
 	PptxPresentationProperties,
 	PptxSection,
 	PptxSlide,
+	PptxSlideLayout,
+	PptxSlideMaster,
 	PptxSmartArtData,
 	PptxTagCollection,
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 	PptxViewProperties,
+	ParsedTableStyleMap,
 	XmlObject,
 } from '../types';
 
@@ -101,6 +104,20 @@ export interface PptxHandlerSaveOptions {
 	notesMaster?: PptxNotesMaster;
 	/** Updated handout master data to save back to handoutMaster1.xml. */
 	handoutMaster?: PptxHandoutMaster;
+	/**
+	 * Updated slide masters to save back to ppt/slideMasters/slideMaster*.xml.
+	 * Each entry in the array applies typed mutations (clrMap, hf flags,
+	 * background) to the master at its `path`. Masters not listed here pass
+	 * through verbatim from the original load.
+	 */
+	slideMasters?: PptxSlideMaster[];
+	/**
+	 * Updated slide layouts to save back to ppt/slideLayouts/slideLayout*.xml.
+	 * Each entry applies typed mutations (clrMapOverride, attrs, hf flags,
+	 * background) to the layout at its `path`. Layouts not listed here pass
+	 * through verbatim from the original load.
+	 */
+	slideLayouts?: PptxSlideLayout[];
 	/** Updated tag collections to save back to ppt/tags/tag*.xml. */
 	tags?: PptxTagCollection[];
 	/** Photo album metadata to save back to `p:photoAlbum`. */
@@ -111,6 +128,14 @@ export interface PptxHandlerSaveOptions {
 	modifyVerifier?: PptxModifyVerifier | null;
 	/** View properties to save back to ppt/viewProps.xml. */
 	viewProperties?: PptxViewProperties;
+	/**
+	 * Table style edits to save back to `ppt/tableStyles.xml`. Pass the
+	 * `tableStyleMap` from `PptxData` (optionally with edited entries)
+	 * to persist user edits. The `def` GUID and any unmodelled XML are
+	 * preserved verbatim. Omitting the option round-trips the original
+	 * part untouched.
+	 */
+	tableStyles?: ParsedTableStyleMap;
 	/**
 	 * Target output format.
 	 * - `'pptx'` (default): Standard presentation.
