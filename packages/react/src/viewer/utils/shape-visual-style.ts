@@ -22,8 +22,9 @@ import {
 	buildPatternFillCss,
 } from './color';
 import { getEffectDagFilter } from './effect-dag-filters';
+import { getResolvedShapeClipPath } from './resolved-shape-clip-path';
 import { getRoundRectRadiusPx } from './shape-round-rect';
-import { getShapeType, getShapeClipPath } from './shape-types';
+import { getShapeType } from './shape-types';
 import { apply3dEffects } from './shape-visual-3d';
 import {
 	buildLineShadowCss,
@@ -68,8 +69,7 @@ export function getShapeVisualStyle(
 		return {};
 	}
 	const normalizedShapeType = getShapeType(element.shapeType);
-	const shapeType = element.shapeType || normalizedShapeType;
-	const clipPath = getShapeClipPath(shapeType);
+	const clipPath = getResolvedShapeClipPath(element);
 	const fillOpacity = element.shapeStyle?.fillOpacity;
 	const strokeOpacity = element.shapeStyle?.strokeOpacity;
 	const strokeDash = normalizeStrokeDashType(element.shapeStyle?.strokeDash);

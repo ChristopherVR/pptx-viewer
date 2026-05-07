@@ -7,8 +7,8 @@ import { isImageLikeElement, hasShapeProperties } from 'pptx-viewer-core';
 import type React from 'react';
 
 import { clampCropValue } from './color';
+import { getResolvedShapeClipPath } from './resolved-shape-clip-path';
 import { getRoundRectRadiusPx } from './shape-adjustment';
-import { getShapeClipPath } from './shape-types';
 
 // ---------------------------------------------------------------------------
 // Image mask / render style helpers
@@ -47,7 +47,7 @@ export function getImageMaskStyle(element: PptxElement): React.CSSProperties | u
 		return { borderRadius: '48% / 12%' };
 	}
 
-	const clipPath = getShapeClipPath(shapeType);
+	const clipPath = getResolvedShapeClipPath(element);
 	if (!clipPath) {
 		return undefined;
 	}
