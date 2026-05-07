@@ -24,6 +24,7 @@ import {
 import {
 	extractSoundAction,
 	extractChildMotionValues,
+	extractChildKeyframes,
 	extractRepeatInfo,
 	extractAnimationTargetId,
 	applyBuildList,
@@ -194,6 +195,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 				const iterateInfo = extractIterate(cTn);
 				const cmdInfo = extractCommand(childTnList);
 				const textTarget = this.extractTextTargetFromCTn(cTn);
+				const keyframes = extractChildKeyframes(childTnList);
 
 				animations.push({
 					targetId,
@@ -206,9 +208,19 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 					motionPath: childMotion.motionPath,
 					motionOrigin: childMotion.motionOrigin,
 					motionPathRotateAuto: childMotion.motionPathRotateAuto,
+					motionPathEditMode: childMotion.motionPathEditMode,
+					motionPtsTypes: childMotion.motionPtsTypes,
 					rotationBy: childMotion.rotationBy,
+					rotationFrom: childMotion.rotationFrom,
+					rotationTo: childMotion.rotationTo,
 					scaleByX: childMotion.scaleByX,
 					scaleByY: childMotion.scaleByY,
+					scaleFromX: childMotion.scaleFromX,
+					scaleFromY: childMotion.scaleFromY,
+					scaleToX: childMotion.scaleToX,
+					scaleToY: childMotion.scaleToY,
+					scaleZoomContents: childMotion.scaleZoomContents,
+					keyframes: keyframes ?? undefined,
 					repeatCount: repeatInfo.repeatCount,
 					autoReverse: repeatInfo.autoReverse,
 					soundRId: soundInfo.soundRId,

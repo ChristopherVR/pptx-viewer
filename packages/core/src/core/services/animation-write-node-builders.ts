@@ -2,7 +2,12 @@
  * XML node builder functions for the OOXML animation write service.
  * Extracted from PptxAnimationWriteService to keep file sizes manageable.
  */
-import type { PptxAnimationPreset, PptxElementAnimation, XmlObject } from '../types';
+import type {
+	PptxAnimationKeyframe,
+	PptxAnimationPreset,
+	PptxElementAnimation,
+	XmlObject,
+} from '../types';
 import {
 	PRESET_TO_OOXML,
 	DIRECTION_TO_SUBTYPE,
@@ -350,16 +355,88 @@ function buildAnimScaleNode(
 	} as XmlObject;
 }
 
+/** Default opacity-emphasis keyframes used when no parsed keyframes exist. */
+const DEFAULT_OPACITY_KEYFRAMES: ReadonlyArray<PptxAnimationKeyframe> = [
+	{ tm: 0, value: '1', valueType: 'str' },
+	{ tm: 50000, value: '0.4', valueType: 'str' },
+	{ tm: 100000, value: '1', valueType: 'str' },
+];
+
+/**
+ * Serialize an array of {@link PptxAnimationKeyframe} entries into an
+ * OOXML `p:tavLst` XML object.
+ *
+ * @see ECMA-376 §19.5.30 CT_TLAnimVariantList
+ */
+export function buildTavLstFromKeyframes(
+	keyframes: ReadonlyArray<PptxAnimationKeyframe> | undefined,
+): XmlObject | undefined {
+	if (!keyframes || keyframes.length === 0) {
+		return undefined;
+	}
+
+	const tavNodes: XmlObject[] = keyframes.map((kf) => {
+		const node: XmlObject = {
+			'@_tm': typeof kf.tm === 'number' ? String(kf.tm) : kf.tm,
+		};
+		if (kf.fmla !== undefined) {
+			node['@_fmla'] = kf.fmla;
+		}
+		node['p:val'] = encodeKeyframeValue(kf);
+		return node;
+	});
+
+	return {
+		'p:tav': tavNodes.length === 1 ? tavNodes[0] : tavNodes,
+	} as XmlObject;
+}
+
+function encodeKeyframeValue(kf: PptxAnimationKeyframe): XmlObject {
+	switch (kf.valueType) {
+		case 'bool':
+			return { 'p:boolVal': { '@_val': kf.value === true || kf.value === 'true' ? '1' : '0' } };
+		case 'int': {
+			const n =
+				typeof kf.value === 'number' ? Math.trunc(kf.value) : Number.parseInt(String(kf.value), 10);
+			return { 'p:intVal': { '@_val': String(Number.isNaN(n) ? 0 : n) } };
+		}
+		case 'flt': {
+			const n = typeof kf.value === 'number' ? kf.value : Number.parseFloat(String(kf.value));
+			return { 'p:fltVal': { '@_val': String(Number.isNaN(n) ? 0 : n) } };
+		}
+		case 'clr': {
+			// Stored either as a hex string (#RRGGBB) or scheme token. Round-trip
+			// hex strings into a:srgbClr; otherwise emit @_val for non-hex tokens.
+			const v = String(kf.value);
+			if (v.startsWith('#') && v.length === 7) {
+				return { 'p:clrVal': { 'a:srgbClr': { '@_val': v.slice(1).toUpperCase() } } };
+			}
+			return { 'p:clrVal': { '@_val': v } };
+		}
+		case 'str':
+		default:
+			return { 'p:strVal': { '@_val': String(kf.value) } };
+	}
+}
+
 /**
  * Build a p:anim node for property animations (opacity, etc.).
+ *
+ * When `keyframes` are provided, they are serialized verbatim into the
+ * `p:tavLst`. Otherwise the historic default 3-stop keyframes (0 → 0.4 → 1)
+ * are emitted to preserve emphasis-effect playback for animations that
+ * never carried explicit keyframes.
  */
 function buildAnimPropertyNode(
 	shapeId: string,
 	duration: number,
 	attrName: string,
 	allocateId: () => number,
+	keyframes?: ReadonlyArray<PptxAnimationKeyframe>,
 ): XmlObject {
 	const animId = allocateId();
+	const tavLst =
+		buildTavLstFromKeyframes(keyframes) ?? buildTavLstFromKeyframes(DEFAULT_OPACITY_KEYFRAMES)!;
 	return {
 		_type: 'anim',
 		'@_calcmode': 'lin',
@@ -379,22 +456,7 @@ function buildAnimPropertyNode(
 				'p:attrName': attrName,
 			},
 		},
-		'p:tavLst': {
-			'p:tav': [
-				{
-					'@_tm': '0',
-					'p:val': { 'p:strVal': { '@_val': '1' } },
-				},
-				{
-					'@_tm': '50000',
-					'p:val': { 'p:strVal': { '@_val': '0.4' } },
-				},
-				{
-					'@_tm': '100000',
-					'p:val': { 'p:strVal': { '@_val': '1' } },
-				},
-			],
-		},
+		'p:tavLst': tavLst,
 	} as XmlObject;
 }
 
@@ -421,8 +483,8 @@ export function buildMotionPathNode(
 	const motionNode: XmlObject = {
 		'@_origin': 'layout',
 		'@_path': anim.motionPath,
-		'@_pathEditMode': 'relative',
-		'@_ptsTypes': '',
+		'@_pathEditMode': anim.motionPathEditMode ?? 'relative',
+		'@_ptsTypes': anim.motionPtsTypes ?? '',
 		'p:cBhvr': {
 			'p:cTn': {
 				'@_id': String(motionId),

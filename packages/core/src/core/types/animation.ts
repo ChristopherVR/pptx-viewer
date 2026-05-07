@@ -121,12 +121,32 @@ export interface PptxNativeAnimation {
 	motionOrigin?: string;
 	/** Whether the element auto-rotates to follow the motion path tangent (`p:animMotion/@rAng` = "0"). */
 	motionPathRotateAuto?: boolean;
-	/** Rotation angle in degrees for `p:animRot` (converted from 60000ths). */
+	/** Path edit mode from `p:animMotion/@pathEditMode` (e.g. "relative", "fixed"). */
+	motionPathEditMode?: string;
+	/** Comma-separated point-types string from `p:animMotion/@ptsTypes`. */
+	motionPtsTypes?: string;
+	/** Rotation angle in degrees for `p:animRot/@by` (converted from 60000ths). */
 	rotationBy?: number;
-	/** X scale factor (percentage / 100) for `p:animScale`. */
+	/** Starting rotation angle in degrees for `p:animRot/@from` (converted from 60000ths). */
+	rotationFrom?: number;
+	/** Ending rotation angle in degrees for `p:animRot/@to` (converted from 60000ths). */
+	rotationTo?: number;
+	/** X scale factor (percentage / 100) for `p:animScale/p:by/@x`. */
 	scaleByX?: number;
-	/** Y scale factor (percentage / 100) for `p:animScale`. */
+	/** Y scale factor (percentage / 100) for `p:animScale/p:by/@y`. */
 	scaleByY?: number;
+	/** Starting X scale factor for `p:animScale/p:from/@x`. */
+	scaleFromX?: number;
+	/** Starting Y scale factor for `p:animScale/p:from/@y`. */
+	scaleFromY?: number;
+	/** Ending X scale factor for `p:animScale/p:to/@x`. */
+	scaleToX?: number;
+	/** Ending Y scale factor for `p:animScale/p:to/@y`. */
+	scaleToY?: number;
+	/** Whether `p:animScale/@zoomContents` was set ("1"/"true"). */
+	scaleZoomContents?: boolean;
+	/** Parsed `p:tav` keyframes from `p:tavLst` (CT_TLAnimVariantList). */
+	keyframes?: PptxAnimationKeyframe[];
 	/** Repeat count (e.g. `2`, `Infinity` for indefinite). */
 	repeatCount?: number;
 	/** Whether the animation plays in reverse after completion. */
@@ -161,6 +181,33 @@ export interface PptxNativeAnimation {
 	commandString?: string;
 	/** Iteration configuration from `p:iterate`. */
 	iterate?: PptxAnimationIterate;
+}
+
+/**
+ * Single keyframe parsed from a `p:tav` element (CT_TLTimeAnimateValue).
+ *
+ * Each entry in a `p:tavLst` has a time fraction (`@_tm`, in 1000ths of the
+ * total duration; or the literal "indefinite" / "large") and a typed value
+ * child under `p:val/p:strVal|p:boolVal|p:intVal|p:fltVal|p:clrVal`.
+ *
+ * @see ECMA-376 §19.5.30 CT_TLAnimVariantList / §19.5.92 CT_TLTimeAnimateValue
+ */
+export interface PptxAnimationKeyframe {
+	/**
+	 * Time fraction. A finite number is the OOXML `@_tm` integer (0–100000
+	 * for percentage, where 100000 = 100% of duration). A string preserves
+	 * special tokens ("indefinite", "large").
+	 */
+	tm: number | string;
+	/** Decoded keyframe value. */
+	value: string | boolean | number;
+	/** Discriminant indicating which `p:val` child carried the value. */
+	valueType: 'str' | 'bool' | 'int' | 'flt' | 'clr';
+	/**
+	 * Optional formula carried on `p:tav/@_fmla`. Preserved for round-trip
+	 * fidelity; consumers may use it to drive computed animation values.
+	 */
+	fmla?: string;
 }
 
 /** Color animation data parsed from `p:animClr`. */
@@ -318,6 +365,13 @@ export interface PptxElementAnimation {
 	afterAnimationColor?: string;
 	/** SVG motion path string for custom motion path animations. */
 	motionPath?: string;
+	/**
+	 * Path edit mode for `p:animMotion/@pathEditMode`. Defaults to "relative"
+	 * when emitted without an explicit value.
+	 */
+	motionPathEditMode?: string;
+	/** Comma-separated point-types string for `p:animMotion/@ptsTypes`. */
+	motionPtsTypes?: string;
 	/** Sound relationship ID to play when animation triggers (`p:stSnd`). */
 	soundRId?: string;
 	/** Resolved sound file path from relationship. */

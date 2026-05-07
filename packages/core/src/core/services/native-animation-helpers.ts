@@ -5,6 +5,7 @@
 import type {
 	AnimationCondition,
 	AnimationConditionEvent,
+	PptxAnimationKeyframe,
 	PptxNativeAnimation,
 	PptxTextBuildType,
 	XmlObject,
@@ -56,19 +57,53 @@ export function extractChildMotionValues(childTnList: XmlObject | undefined): {
 	motionPath?: string;
 	motionOrigin?: string;
 	motionPathRotateAuto?: boolean;
+	motionPathEditMode?: string;
+	motionPtsTypes?: string;
 	rotationBy?: number;
+	rotationFrom?: number;
+	rotationTo?: number;
 	scaleByX?: number;
 	scaleByY?: number;
+	scaleFromX?: number;
+	scaleFromY?: number;
+	scaleToX?: number;
+	scaleToY?: number;
+	scaleZoomContents?: boolean;
 } {
 	let motionPath: string | undefined;
 	let motionOrigin: string | undefined;
 	let motionPathRotateAuto: boolean | undefined;
+	let motionPathEditMode: string | undefined;
+	let motionPtsTypes: string | undefined;
 	let rotationBy: number | undefined;
+	let rotationFrom: number | undefined;
+	let rotationTo: number | undefined;
 	let scaleByX: number | undefined;
 	let scaleByY: number | undefined;
+	let scaleFromX: number | undefined;
+	let scaleFromY: number | undefined;
+	let scaleToX: number | undefined;
+	let scaleToY: number | undefined;
+	let scaleZoomContents: boolean | undefined;
 
 	if (!childTnList) {
-		return { motionPath, motionOrigin, motionPathRotateAuto, rotationBy, scaleByX, scaleByY };
+		return {
+			motionPath,
+			motionOrigin,
+			motionPathRotateAuto,
+			motionPathEditMode,
+			motionPtsTypes,
+			rotationBy,
+			rotationFrom,
+			rotationTo,
+			scaleByX,
+			scaleByY,
+			scaleFromX,
+			scaleFromY,
+			scaleToX,
+			scaleToY,
+			scaleZoomContents,
+		};
 	}
 
 	const motionNodes = ensureArray(childTnList['p:animMotion']);
@@ -84,6 +119,12 @@ export function extractChildMotionValues(childTnList: XmlObject | undefined): {
 					motionPathRotateAuto = true;
 				}
 			}
+			if (motionNode['@_pathEditMode'] !== undefined) {
+				motionPathEditMode = String(motionNode['@_pathEditMode']);
+			}
+			if (motionNode['@_ptsTypes'] !== undefined) {
+				motionPtsTypes = String(motionNode['@_ptsTypes']);
+			}
 		}
 	}
 
@@ -92,23 +133,207 @@ export function extractChildMotionValues(childTnList: XmlObject | undefined): {
 		if (rotationNode['@_by'] !== undefined) {
 			rotationBy = Number.parseInt(String(rotationNode['@_by']), 10) / 60000;
 		}
+		if (rotationNode['@_from'] !== undefined) {
+			rotationFrom = Number.parseInt(String(rotationNode['@_from']), 10) / 60000;
+		}
+		if (rotationNode['@_to'] !== undefined) {
+			rotationTo = Number.parseInt(String(rotationNode['@_to']), 10) / 60000;
+		}
 	}
 
 	const scaleNodes = ensureArray(childTnList['p:animScale']);
 	for (const scaleNode of scaleNodes) {
 		const scaleBy = scaleNode['p:by'] as XmlObject | undefined;
-		if (!scaleBy) {
-			continue;
+		if (scaleBy) {
+			if (scaleBy['@_x'] !== undefined) {
+				scaleByX = Number.parseInt(String(scaleBy['@_x']), 10) / 100000;
+			}
+			if (scaleBy['@_y'] !== undefined) {
+				scaleByY = Number.parseInt(String(scaleBy['@_y']), 10) / 100000;
+			}
 		}
-		if (scaleBy['@_x'] !== undefined) {
-			scaleByX = Number.parseInt(String(scaleBy['@_x']), 10) / 100000;
+
+		const scaleFrom = scaleNode['p:from'] as XmlObject | undefined;
+		if (scaleFrom) {
+			if (scaleFrom['@_x'] !== undefined) {
+				scaleFromX = Number.parseInt(String(scaleFrom['@_x']), 10) / 100000;
+			}
+			if (scaleFrom['@_y'] !== undefined) {
+				scaleFromY = Number.parseInt(String(scaleFrom['@_y']), 10) / 100000;
+			}
 		}
-		if (scaleBy['@_y'] !== undefined) {
-			scaleByY = Number.parseInt(String(scaleBy['@_y']), 10) / 100000;
+
+		const scaleTo = scaleNode['p:to'] as XmlObject | undefined;
+		if (scaleTo) {
+			if (scaleTo['@_x'] !== undefined) {
+				scaleToX = Number.parseInt(String(scaleTo['@_x']), 10) / 100000;
+			}
+			if (scaleTo['@_y'] !== undefined) {
+				scaleToY = Number.parseInt(String(scaleTo['@_y']), 10) / 100000;
+			}
+		}
+
+		const zoom = scaleNode['@_zoomContents'];
+		if (zoom !== undefined) {
+			scaleZoomContents = zoom === '1' || zoom === 'true' || zoom === true;
 		}
 	}
 
-	return { motionPath, motionOrigin, motionPathRotateAuto, rotationBy, scaleByX, scaleByY };
+	return {
+		motionPath,
+		motionOrigin,
+		motionPathRotateAuto,
+		motionPathEditMode,
+		motionPtsTypes,
+		rotationBy,
+		rotationFrom,
+		rotationTo,
+		scaleByX,
+		scaleByY,
+		scaleFromX,
+		scaleFromY,
+		scaleToX,
+		scaleToY,
+		scaleZoomContents,
+	};
+}
+
+/**
+ * Parse `p:tavLst/p:tav` keyframes from a `p:anim` (or other behavior)
+ * node into a typed array.
+ *
+ * Each `p:tav` entry has a time fraction `@_tm` plus a typed value child
+ * inside `p:val` (one of `p:strVal`, `p:boolVal`, `p:intVal`, `p:fltVal`,
+ * `p:clrVal`). Preserves `@_fmla` when present.
+ *
+ * @see ECMA-376 §19.5.30 CT_TLAnimVariantList
+ */
+export function extractKeyframes(
+	behaviorNode: XmlObject | undefined,
+): PptxAnimationKeyframe[] | undefined {
+	if (!behaviorNode) {
+		return undefined;
+	}
+	const tavLst = behaviorNode['p:tavLst'] as XmlObject | undefined;
+	if (!tavLst) {
+		return undefined;
+	}
+
+	const tavEntries = ensureArray(tavLst['p:tav']);
+	if (tavEntries.length === 0) {
+		return undefined;
+	}
+
+	const out: PptxAnimationKeyframe[] = [];
+	for (const tav of tavEntries) {
+		const tmRaw = tav['@_tm'];
+		let tm: number | string;
+		if (tmRaw === undefined) {
+			tm = 0;
+		} else {
+			const tmStr = String(tmRaw);
+			if (tmStr === 'indefinite' || tmStr === 'large') {
+				tm = tmStr;
+			} else {
+				const parsed = Number.parseInt(tmStr, 10);
+				tm = Number.isNaN(parsed) ? tmStr : parsed;
+			}
+		}
+
+		const fmlaRaw = tav['@_fmla'];
+
+		const valNode = tav['p:val'] as XmlObject | undefined;
+		if (!valNode) {
+			continue;
+		}
+
+		const decoded = decodeKeyframeValue(valNode);
+		if (!decoded) {
+			continue;
+		}
+
+		const entry: PptxAnimationKeyframe = {
+			tm,
+			value: decoded.value,
+			valueType: decoded.valueType,
+		};
+		if (fmlaRaw !== undefined) {
+			entry.fmla = String(fmlaRaw);
+		}
+		out.push(entry);
+	}
+
+	return out.length > 0 ? out : undefined;
+}
+
+function decodeKeyframeValue(
+	valNode: XmlObject,
+): { value: string | boolean | number; valueType: 'str' | 'bool' | 'int' | 'flt' | 'clr' } | null {
+	const strVal = valNode['p:strVal'] as XmlObject | undefined;
+	if (strVal && strVal['@_val'] !== undefined) {
+		return { value: String(strVal['@_val']), valueType: 'str' };
+	}
+
+	const boolVal = valNode['p:boolVal'] as XmlObject | undefined;
+	if (boolVal && boolVal['@_val'] !== undefined) {
+		const raw = boolVal['@_val'];
+		const value = raw === true || raw === '1' || raw === 'true';
+		return { value, valueType: 'bool' };
+	}
+
+	const intVal = valNode['p:intVal'] as XmlObject | undefined;
+	if (intVal && intVal['@_val'] !== undefined) {
+		const parsed = Number.parseInt(String(intVal['@_val']), 10);
+		return { value: Number.isNaN(parsed) ? 0 : parsed, valueType: 'int' };
+	}
+
+	const fltVal = valNode['p:fltVal'] as XmlObject | undefined;
+	if (fltVal && fltVal['@_val'] !== undefined) {
+		const parsed = Number.parseFloat(String(fltVal['@_val']));
+		return { value: Number.isNaN(parsed) ? 0 : parsed, valueType: 'flt' };
+	}
+
+	const clrVal = valNode['p:clrVal'] as XmlObject | undefined;
+	if (clrVal) {
+		// p:clrVal contains a colour child (a:srgbClr / a:schemeClr) or a @_val attr.
+		if (clrVal['@_val'] !== undefined) {
+			return { value: String(clrVal['@_val']), valueType: 'clr' };
+		}
+		const srgb = clrVal['a:srgbClr'] as XmlObject | undefined;
+		if (srgb?.['@_val'] !== undefined) {
+			return { value: `#${String(srgb['@_val'])}`, valueType: 'clr' };
+		}
+		const scheme = clrVal['a:schemeClr'] as XmlObject | undefined;
+		if (scheme?.['@_val'] !== undefined) {
+			return { value: String(scheme['@_val']), valueType: 'clr' };
+		}
+	}
+
+	return null;
+}
+
+/**
+ * Collect keyframes from any `p:anim`-style behavior nodes inside the given
+ * `p:childTnLst`. Returns the first non-empty keyframe list found, scanning
+ * `p:anim`, `p:animRot`, `p:animScale`, and `p:animClr`.
+ */
+export function extractChildKeyframes(
+	childTnList: XmlObject | undefined,
+): PptxAnimationKeyframe[] | undefined {
+	if (!childTnList) {
+		return undefined;
+	}
+	const candidateKeys = ['p:anim', 'p:animRot', 'p:animScale', 'p:animClr'] as const;
+	for (const key of candidateKeys) {
+		const nodes = ensureArray(childTnList[key]);
+		for (const node of nodes) {
+			const kf = extractKeyframes(node);
+			if (kf && kf.length > 0) {
+				return kf;
+			}
+		}
+	}
+	return undefined;
 }
 
 export function extractRepeatInfo(cTn: XmlObject): {
