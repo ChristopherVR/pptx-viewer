@@ -48,7 +48,13 @@ export {
 	PptxAnimationWriteService,
 	type IPptxAnimationWriteService,
 } from './PptxAnimationWriteService';
-export { PRESET_TO_OOXML } from './animation-write-mappings';
+export {
+	PRESET_TO_OOXML,
+	OOXML_TO_PRESET_ENTR,
+	OOXML_TO_PRESET_EXIT,
+	OOXML_TO_PRESET_EMPH,
+	ooxmlToPresetName,
+} from './animation-write-mappings';
 export { buildSingleEffectNode } from './animation-write-node-builders';
 export {
 	parseCondition,

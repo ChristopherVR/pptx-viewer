@@ -5,6 +5,10 @@ import {
 	DIRECTION_TO_SUBTYPE,
 	triggerToNodeType,
 	timingCurveToAccelDecel,
+	OOXML_TO_PRESET_ENTR,
+	OOXML_TO_PRESET_EXIT,
+	OOXML_TO_PRESET_EMPH,
+	ooxmlToPresetName,
 } from './animation-write-mappings';
 
 // ---------------------------------------------------------------------------
@@ -247,6 +251,78 @@ describe('pRESET_TO_OOXML', () => {
 			const emphEffects = Object.values(PRESET_TO_OOXML).filter((m) => m.presetClass === 'emph');
 			expect(emphEffects.length).toBeGreaterThan(0);
 		});
+
+		it('should expand the catalog at least 4× over the prior 37 entries', () => {
+			expect(Object.keys(PRESET_TO_OOXML).length).toBeGreaterThanOrEqual(37 * 4);
+		});
+
+		it('should cover the full PowerPoint preset library (>=60 per class)', () => {
+			const entr = Object.values(PRESET_TO_OOXML).filter((m) => m.presetClass === 'entr');
+			const exit = Object.values(PRESET_TO_OOXML).filter((m) => m.presetClass === 'exit');
+			const emph = Object.values(PRESET_TO_OOXML).filter((m) => m.presetClass === 'emph');
+			expect(entr.length).toBeGreaterThanOrEqual(60);
+			expect(exit.length).toBeGreaterThanOrEqual(60);
+			expect(emph.length).toBeGreaterThanOrEqual(60);
+		});
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Reverse lookup (parse -> typed name)
+// ---------------------------------------------------------------------------
+describe('oOXML_TO_PRESET reverse lookups', () => {
+	it('oOXML_TO_PRESET_ENTR maps id 1 back to "appear"', () => {
+		expect(OOXML_TO_PRESET_ENTR[1]).toBe('appear');
+	});
+
+	it('oOXML_TO_PRESET_ENTR maps id 10 back to "fadeIn"', () => {
+		expect(OOXML_TO_PRESET_ENTR[10]).toBe('fadeIn');
+	});
+
+	it('oOXML_TO_PRESET_EXIT maps id 1 back to "disappear"', () => {
+		expect(OOXML_TO_PRESET_EXIT[1]).toBe('disappear');
+	});
+
+	it('oOXML_TO_PRESET_EMPH disambiguates aliased ids to canonical names', () => {
+		// id 1 has aliases boldFlash + flash; canonical is boldFlash.
+		expect(OOXML_TO_PRESET_EMPH[1]).toBe('boldFlash');
+		// id 2 has aliases wave + colorWave; canonical is colorWave.
+		expect(OOXML_TO_PRESET_EMPH[2]).toBe('colorWave');
+		// id 26 has aliases pulse + bounce; canonical is pulse.
+		expect(OOXML_TO_PRESET_EMPH[26]).toBe('pulse');
+	});
+
+	it('ooxmlToPresetName resolves all four classes', () => {
+		expect(ooxmlToPresetName({ presetClass: 'entr', presetId: 1 })).toBe('appear');
+		expect(ooxmlToPresetName({ presetClass: 'exit', presetId: 1 })).toBe('disappear');
+		expect(ooxmlToPresetName({ presetClass: 'emph', presetId: 8 })).toBe('spin');
+		// path class always returns undefined — the integer ID is informational.
+		expect(ooxmlToPresetName({ presetClass: 'path', presetId: 1 })).toBeUndefined();
+	});
+
+	it('ooxmlToPresetName returns undefined for unknown presetIds', () => {
+		expect(ooxmlToPresetName({ presetClass: 'entr', presetId: 9999 })).toBeUndefined();
+	});
+});
+
+describe('preset name round-trip via PRESET_TO_OOXML + ooxmlToPresetName', () => {
+	// For every typed name in PRESET_TO_OOXML, parsing the (presetClass, presetId)
+	// back through the reverse lookup must yield SOME canonical name in
+	// PRESET_TO_OOXML that re-emits the same numeric (presetClass, presetId)
+	// pair. Aliased ids resolve to their canonical sibling, but the resulting
+	// pair must match the original.
+	it('round-trip preserves (presetClass, presetId) for every typed mapping', () => {
+		for (const [name, mapping] of Object.entries(PRESET_TO_OOXML)) {
+			const recovered = ooxmlToPresetName({
+				presetClass: mapping.presetClass,
+				presetId: mapping.presetId,
+			});
+			expect(recovered, `${name} -> reverse should not be undefined`).toBeDefined();
+			const reverseMapping = PRESET_TO_OOXML[recovered!];
+			expect(reverseMapping, `recovered name ${recovered} should exist`).toBeDefined();
+			expect(reverseMapping.presetClass).toBe(mapping.presetClass);
+			expect(reverseMapping.presetId).toBe(mapping.presetId);
+		}
 	});
 });
 

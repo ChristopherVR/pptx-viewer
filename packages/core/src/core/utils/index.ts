@@ -367,6 +367,7 @@ export {
 	ALL_ANIMATION_PRESETS,
 	getAnimationPresetInfo,
 	getPresetsByCategory,
+	getNativeAnimationPresetMetadata,
 	type AnimationCategory,
 	type AnimationPresetInfo,
 } from './animation-preset-catalog';
