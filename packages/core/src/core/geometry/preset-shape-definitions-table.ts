@@ -43,9 +43,17 @@
 // Batch shape additions authored by parallel agents — aggregated into
 // PRESET_SHAPE_GEOMETRY_TABLE below. Each batch file owns its own shape group
 // and is independently testable.
+import { ACTION_BUTTON_PRESET_DEFINITIONS } from './preset-shape-definitions-action-buttons';
+import { ARROW_CALLOUT_PRESET_DEFINITIONS } from './preset-shape-definitions-arrow-callouts';
 import { ARROW_PRESET_DEFINITIONS } from './preset-shape-definitions-arrows';
+import { REFINED_ARROW_PRESET_DEFINITIONS } from './preset-shape-definitions-arrows-refined';
+import { CONNECTORS_BRACKETS_PRESET_DEFINITIONS } from './preset-shape-definitions-connectors-brackets';
+import { CURVED_ARROWS_CONNECTORS_PRESET_DEFINITIONS } from './preset-shape-definitions-curved-arrows-connectors';
 import { FLOWCHART_PRESET_DEFINITIONS } from './preset-shape-definitions-flowchart';
 import { MISC_PRESET_DEFINITIONS } from './preset-shape-definitions-misc';
+import { RECTS_SNIPS_PRESET_DEFINITIONS } from './preset-shape-definitions-rects-snips';
+import { SCROLLS_ACCENT_CALLOUTS_PRESET_DEFINITIONS } from './preset-shape-definitions-scrolls-accent-callouts';
+import { TABS_DECORATIONS_PRESET_DEFINITIONS } from './preset-shape-definitions-tabs-decorations';
 
 /**
  * A single command inside a preset path. Coordinates / radii / angles are
@@ -1094,4 +1102,14 @@ export const PRESET_SHAPE_GEOMETRY_TABLE: Record<string, PresetShapeGeometryDefi
 	...ARROW_PRESET_DEFINITIONS,
 	...FLOWCHART_PRESET_DEFINITIONS,
 	...MISC_PRESET_DEFINITIONS,
+	...ARROW_CALLOUT_PRESET_DEFINITIONS,
+	...CURVED_ARROWS_CONNECTORS_PRESET_DEFINITIONS,
+	...CONNECTORS_BRACKETS_PRESET_DEFINITIONS,
+	...RECTS_SNIPS_PRESET_DEFINITIONS,
+	...TABS_DECORATIONS_PRESET_DEFINITIONS,
+	...SCROLLS_ACCENT_CALLOUTS_PRESET_DEFINITIONS,
+	...ACTION_BUTTON_PRESET_DEFINITIONS,
+	// Refined arrows MUST come last so its full-spec versions override the
+	// simplified entries from ARROW_PRESET_DEFINITIONS.
+	...REFINED_ARROW_PRESET_DEFINITIONS,
 };
