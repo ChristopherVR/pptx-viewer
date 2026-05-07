@@ -7,8 +7,8 @@ describe('aCTION_BUTTON_PRESETS', () => {
 		expect(ACTION_BUTTON_PRESETS.length).toBeGreaterThan(0);
 	});
 
-	it('contains exactly five presets', () => {
-		expect(ACTION_BUTTON_PRESETS).toHaveLength(5);
+	it('contains the 12 OOXML action button presets (11 with glyphs + Blank)', () => {
+		expect(ACTION_BUTTON_PRESETS).toHaveLength(12);
 	});
 
 	it('each preset has shapeType, label, defaultAction, and iconPath', () => {
@@ -20,7 +20,10 @@ describe('aCTION_BUTTON_PRESETS', () => {
 			expectTypeOf(preset.defaultAction).toBeString();
 			expect(preset.defaultAction.length).toBeGreaterThan(0);
 			expectTypeOf(preset.iconPath).toBeString();
-			expect(preset.iconPath.length).toBeGreaterThan(0);
+			// `actionButtonBlank` intentionally has an empty path (no glyph).
+			if (preset.shapeType !== 'actionButtonBlank') {
+				expect(preset.iconPath.length).toBeGreaterThan(0);
+			}
 		}
 	});
 
@@ -66,6 +69,9 @@ describe('aCTION_BUTTON_PRESETS', () => {
 
 	it('iconPath values are valid SVG path data strings', () => {
 		for (const preset of ACTION_BUTTON_PRESETS) {
+			if (preset.shapeType === 'actionButtonBlank') {
+				continue;
+			}
 			// SVG path data should contain command letters (M, L, Z, etc.)
 			expect(preset.iconPath).toMatch(/[MLZCQSTAHVmlzcqstahv]/);
 		}

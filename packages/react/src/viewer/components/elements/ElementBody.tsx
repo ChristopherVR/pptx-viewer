@@ -31,6 +31,7 @@ import { buildTextBody3DSceneStyle } from '../../utils/text-effects';
 import type { FieldSubstitutionContext } from '../../utils/text-field-substitution';
 import type { ElementFindHighlights } from '../../utils/text-segment-helpers';
 import { shouldUseSvgWarp, WarpedText } from '../../utils/text-warp';
+import { ActionButtonGlyphOverlay, isActionButtonShape } from './ActionButtonGlyphOverlay';
 import { renderImg } from './ImageRenderer';
 import { renderInk, renderGroup, renderContentPart, renderOleElement } from './InkGroupRenderers';
 import { InlineTextEditor } from './InlineTextEditor';
@@ -211,9 +212,14 @@ export function renderBody(
 			}
 		: undefined;
 
+	const shapeTypeForGlyph =
+		'shapeType' in el ? (el as { shapeType?: string }).shapeType : undefined;
+	const showActionButtonGlyph = isActionButtonShape(shapeTypeForGlyph);
+
 	return (
 		<>
 			{vecShape}
+			{showActionButtonGlyph && <ActionButtonGlyphOverlay element={el} />}
 			{isTxtEl ? (
 				useSvgWarp ? (
 					<div
