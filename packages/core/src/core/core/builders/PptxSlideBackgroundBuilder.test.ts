@@ -333,4 +333,39 @@ describe('pptxSlideBackgroundBuilder', () => {
 		expect(bgIdx).toBeGreaterThanOrEqual(0);
 		expect(spTreeIdx).toBeGreaterThan(bgIdx);
 	});
+
+	// ── shadeToTitle round-trip (ECMA-376 §19.3.1.2) ──────────────────────
+
+	it('emits @_shadeToTitle="1" when slide.backgroundShadeToTitle is true', () => {
+		const input = createInput({
+			backgroundColor: '#FFFFFF',
+			backgroundShadeToTitle: true,
+		});
+		builder.applyBackground(input);
+		const bgPr = (
+			((input.slideNode['p:cSld'] as XmlObject)['p:bg'] as XmlObject)['p:bgPr'] as XmlObject
+		)['@_shadeToTitle'];
+		expect(bgPr).toBe('1');
+	});
+
+	it('emits @_shadeToTitle="0" when slide.backgroundShadeToTitle is false', () => {
+		const input = createInput({
+			backgroundColor: '#FFFFFF',
+			backgroundShadeToTitle: false,
+		});
+		builder.applyBackground(input);
+		const bgPr = (
+			((input.slideNode['p:cSld'] as XmlObject)['p:bg'] as XmlObject)['p:bgPr'] as XmlObject
+		)['@_shadeToTitle'];
+		expect(bgPr).toBe('0');
+	});
+
+	it('omits @_shadeToTitle when backgroundShadeToTitle is undefined', () => {
+		const input = createInput({ backgroundColor: '#FFFFFF' });
+		builder.applyBackground(input);
+		const bgPr = ((input.slideNode['p:cSld'] as XmlObject)['p:bg'] as XmlObject)[
+			'p:bgPr'
+		] as XmlObject;
+		expect(bgPr['@_shadeToTitle']).toBeUndefined();
+	});
 });

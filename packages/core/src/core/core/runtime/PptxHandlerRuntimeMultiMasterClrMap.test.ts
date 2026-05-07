@@ -37,20 +37,38 @@ const DEFAULT_SCHEME: Record<string, string> = {
 	bg2: '#E7E6E6',
 };
 
+const DEFAULT_CLR_MAP_ALIAS: Record<string, string> = {
+	bg1: 'lt1',
+	tx1: 'dk1',
+	bg2: 'lt2',
+	tx2: 'dk2',
+};
+
 function resolveThemeColor(ctx: ResolveCtx, schemeKey: string): string | undefined {
 	const normalized = schemeKey.trim().toLowerCase();
 	if (!normalized) {
 		return undefined;
 	}
-	const resolvedKey = normalized === 'phclr' ? 'accent1' : normalized;
+	if (normalized === 'phclr') {
+		return ctx.themeColorMap['phclr'] || ctx.themeColorMap['accent1'] || DEFAULT_SCHEME['accent1'];
+	}
 	const overrideMap = ctx.currentSlideClrMapOverride ?? ctx.currentMasterClrMap;
 	if (overrideMap) {
-		const remapped = overrideMap[resolvedKey];
+		const remapped = overrideMap[normalized];
 		if (remapped) {
 			return ctx.themeColorMap[remapped] || DEFAULT_SCHEME[remapped];
 		}
+	} else {
+		const defaultAliasTarget = DEFAULT_CLR_MAP_ALIAS[normalized];
+		if (defaultAliasTarget) {
+			return (
+				ctx.themeColorMap[defaultAliasTarget] ||
+				ctx.themeColorMap[normalized] ||
+				DEFAULT_SCHEME[normalized]
+			);
+		}
 	}
-	return ctx.themeColorMap[resolvedKey] || DEFAULT_SCHEME[resolvedKey];
+	return ctx.themeColorMap[normalized] || DEFAULT_SCHEME[normalized];
 }
 
 describe('resolveThemeColor — Phase 2 Stream B / C-H4', () => {

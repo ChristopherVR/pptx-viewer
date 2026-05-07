@@ -1,4 +1,5 @@
 import { XmlObject } from '../../types';
+import type { PptxSlideBackgroundPattern } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeColorAndEffects';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -76,26 +77,153 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 			}
 
-			// Try bgRef (reference to theme background)
+			// Try bgRef (reference to theme background fill style list)
 			const bgRef = bg['p:bgRef'];
 			if (bgRef) {
-				// Check for solid fill in bgRef
-				const solidFill = bgRef['a:solidFill'];
-				if (solidFill) {
-					return this.parseColor(solidFill);
-				}
-				// Resolve via theme format scheme bgFillStyleLst
-				const refColor = this.parseColor(bgRef);
-				if (refColor) {
-					return refColor;
-				}
-				// If it references a theme, default to white
-				return '#FFFFFF';
+				return this.resolveBackgroundRefColor(bgRef as XmlObject);
 			}
 		} catch {
 			// Ignore background parsing errors
 		}
 		return undefined;
+	}
+
+	/**
+	 * Resolve a `<p:bgRef>` element to a flat colour string.
+	 *
+	 * Per ECMA-376 §20.1.4.2.10 the `@idx` attribute selects an entry
+	 * from one of two style matrices on the active theme:
+	 *
+	 * - `idx == 0` → no fill (transparent / undefined)
+	 * - `1 ≤ idx ≤ 999` → `fmtScheme/fillStyleLst[idx-1]`
+	 * - `1001 ≤ idx ≤ 1003` → `fmtScheme/bgFillStyleLst[idx-1001]`
+	 *
+	 * When the resolved fill is a gradient or pattern we surface its
+	 * primary colour; gradient CSS is handled separately by
+	 * {@link extractBackgroundGradient}. The colour child of `bgRef`
+	 * acts as the `phClr` placeholder for any `phClr` tokens inside the
+	 * referenced fill definition.
+	 */
+	protected resolveBackgroundRefColor(bgRef: XmlObject): string | undefined {
+		const rawIdx = bgRef['@_idx'];
+		const idx = parseInt(String(rawIdx ?? '0'), 10);
+
+		// idx == 0 → no fill
+		if (Number.isFinite(idx) && idx === 0) {
+			return undefined;
+		}
+
+		// Direct solid fill child overrides any matrix lookup
+		const solidFill = bgRef['a:solidFill'] as XmlObject | undefined;
+		if (solidFill) {
+			return this.parseColor(solidFill);
+		}
+
+		// The colour choice on bgRef itself acts as the phClr supplier.
+		const overrideColor = this.parseColor(bgRef);
+
+		if (Number.isFinite(idx) && this.themeFormatScheme) {
+			let fillDef = undefined as (typeof this.themeFormatScheme)['fillStyles'][number] | undefined;
+			if (idx >= 1 && idx <= 999) {
+				fillDef = this.themeFormatScheme.fillStyles[idx - 1];
+			} else if (idx >= 1001 && idx <= 1003) {
+				fillDef = this.themeFormatScheme.backgroundFillStyles[idx - 1001];
+			}
+
+			if (fillDef) {
+				switch (fillDef.kind) {
+					case 'none':
+						return undefined;
+					case 'solid':
+						return overrideColor || fillDef.color;
+					case 'gradient':
+						return overrideColor || fillDef.color;
+					case 'pattern':
+						return overrideColor || fillDef.color || fillDef.patternBackgroundColor;
+				}
+			}
+		}
+
+		if (overrideColor) {
+			return overrideColor;
+		}
+
+		// Out-of-range or missing scheme — log & fall through to white so the
+		// renderer doesn't blank the slide.
+		if (Number.isFinite(idx) && idx !== 0) {
+			console.warn(
+				`bgRef @idx=${idx} did not resolve to a fill style (theme has ${
+					this.themeFormatScheme?.fillStyles.length ?? 0
+				} fillStyleLst / ${
+					this.themeFormatScheme?.backgroundFillStyles.length ?? 0
+				} bgFillStyleLst entries); falling back to #FFFFFF.`,
+			);
+		}
+		return '#FFFFFF';
+	}
+
+	/**
+	 * Extract a structured pattern fill (`<a:pattFill>`) from a slide
+	 * background. Returns the preset name plus resolved fg/bg colours so
+	 * renderers can draw a real SVG pattern instead of a flat fill.
+	 *
+	 * ECMA-376 §20.1.8.47.
+	 */
+	protected extractBackgroundPattern(
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		slideXml: any,
+		rootElement: string = 'p:sld',
+	): PptxSlideBackgroundPattern | undefined {
+		try {
+			const bg = slideXml[rootElement]?.['p:cSld']?.['p:bg'];
+			const pattFill = bg?.['p:bgPr']?.['a:pattFill'] as XmlObject | undefined;
+			if (!pattFill) {
+				return undefined;
+			}
+			const preset = String(pattFill['@_prst'] || '').trim();
+			if (!preset) {
+				return undefined;
+			}
+			const fgColor = this.parseColor(pattFill['a:fgClr']);
+			const bgColor = this.parseColor(pattFill['a:bgClr']);
+			return {
+				preset,
+				fgColor,
+				bgColor,
+			};
+		} catch {
+			return undefined;
+		}
+	}
+
+	/**
+	 * Extract the `<p:bgPr/@shadeToTitle>` boolean attribute from a slide
+	 * background. Captured for round-trip — render-time semantics are a
+	 * passthrough hint to renderers that may want to blend toward the
+	 * title placeholder colour.
+	 *
+	 * ECMA-376 §19.3.1.2 (CT_BackgroundProperties).
+	 */
+	protected extractBackgroundShadeToTitle(
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		slideXml: any,
+		rootElement: string = 'p:sld',
+	): boolean | undefined {
+		try {
+			const bg = slideXml[rootElement]?.['p:cSld']?.['p:bg'];
+			const bgPr = bg?.['p:bgPr'] as XmlObject | undefined;
+			if (!bgPr) {
+				return undefined;
+			}
+			const raw = bgPr['@_shadeToTitle'];
+			if (raw === undefined) {
+				return undefined;
+			}
+			const normalized = String(raw).trim().toLowerCase();
+			return normalized === '1' || normalized === 'true';
+		} catch {
+			return undefined;
+		}
 	}
 
 	/**

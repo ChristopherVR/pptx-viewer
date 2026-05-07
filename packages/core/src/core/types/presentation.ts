@@ -71,6 +71,33 @@ export interface PptxActiveXControl {
 }
 
 /**
+ * Pattern fill on a slide background.
+ *
+ * Mirrors the `<a:pattFill>` choice inside `<p:bgPr>`. Renderers should
+ * draw a 2-colour preset pattern (e.g. `dkDnDiag`, `pct50`).
+ *
+ * ECMA-376 §20.1.8.47.
+ *
+ * @example
+ * ```ts
+ * const pattern: PptxSlideBackgroundPattern = {
+ *   preset: "ltDnDiag",
+ *   fgColor: "#4472C4",
+ *   bgColor: "#FFFFFF",
+ * };
+ * // => satisfies PptxSlideBackgroundPattern
+ * ```
+ */
+export interface PptxSlideBackgroundPattern {
+	/** DrawingML preset pattern token (`@_prst`). */
+	preset: string;
+	/** Foreground colour resolved to `#RRGGBB`. */
+	fgColor?: string;
+	/** Background colour resolved to `#RRGGBB`. */
+	bgColor?: string;
+}
+
+/**
  * A single slide in a parsed PPTX presentation.
  *
  * Contains the element tree, background settings, notes, comments,
@@ -103,6 +130,26 @@ export interface PptxSlide {
 	backgroundColor?: string;
 	backgroundImage?: string; // base64 data URL for background image
 	backgroundGradient?: string; // CSS gradient string for background
+	/**
+	 * Pattern fill on the slide background (`<a:pattFill>` inside `<p:bgPr>`).
+	 *
+	 * When present, renderers should draw a real two-colour pattern using
+	 * the named DrawingML preset (e.g. `"ltDnDiag"`, `"pct50"`). The flat
+	 * `backgroundColor` field is left set to the foreground colour for
+	 * fallback rendering paths that don't understand patterns.
+	 *
+	 * ECMA-376 §20.1.8.47.
+	 */
+	backgroundPattern?: PptxSlideBackgroundPattern;
+	/**
+	 * `<p:bgPr/@shadeToTitle>` — boolean flag instructing the renderer to
+	 * shade the background toward the title placeholder colour. Captured
+	 * for lossless round-trip; the React renderer currently treats it as
+	 * a passthrough hint.
+	 *
+	 * ECMA-376 §19.3.1.2 (CT_BackgroundProperties).
+	 */
+	backgroundShadeToTitle?: boolean;
 	transition?: PptxSlideTransition;
 	animations?: PptxElementAnimation[];
 	/** Native OOXML animation data parsed from `p:timing`. */

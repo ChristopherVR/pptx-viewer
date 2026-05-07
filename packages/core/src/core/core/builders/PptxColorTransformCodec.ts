@@ -79,23 +79,33 @@ export class PptxColorTransformCodec implements IPptxColorTransformCodec {
 			}
 		}
 
-		if (colorChoice['a:schemeClr']) {
-			const scheme = colorChoice['a:schemeClr'] as XmlObject;
-			const schemeKey = String(scheme['@_val'] || '')
+		// `a:schemeClr` and `a:styleClr` (DrawingML §20.1.4.1.32 / §20.1.4.1.42).
+		// `styleClr` is the table-style alias and behaves identically: its `@_val`
+		// is one of the same scheme tokens (or `phClr`).
+		const schemeNode =
+			(colorChoice['a:schemeClr'] as XmlObject | undefined) ??
+			(colorChoice['a:styleClr'] as XmlObject | undefined);
+		if (schemeNode) {
+			const schemeKey = String(schemeNode['@_val'] || '')
 				.trim()
 				.toLowerCase();
 			if (!schemeKey) {
 				return undefined;
 			}
 
-			const baseColor =
-				schemeKey === 'phclr'
-					? placeholderColor || this.context.resolveThemeColor('accent1')
-					: this.context.resolveThemeColor(schemeKey);
+			let baseColor: string | undefined;
+			if (schemeKey === 'phclr') {
+				// `phClr` means "use the contextual placeholder colour from the
+				// surrounding style ref". Only fall back to accent1 when no
+				// placeholder is in scope (matches PowerPoint's defaulting).
+				baseColor = placeholderColor ?? this.context.resolveThemeColor('phclr');
+			} else {
+				baseColor = this.context.resolveThemeColor(schemeKey);
+			}
 			if (!baseColor) {
 				return undefined;
 			}
-			return this.applyColorTransforms(baseColor, scheme);
+			return this.applyColorTransforms(baseColor, schemeNode);
 		}
 
 		// OOXML_PARITY: a:hslClr now supported

@@ -1,6 +1,19 @@
 import { XmlObject, ShapeStyle, StrokeDashType, ConnectorArrowType } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSlideParsing';
 
+/**
+ * Canonical default `clrMap` aliasing used when an active master does NOT
+ * supply its own `<p:clrMap>` element. Mirrors the PowerPoint defaults
+ * (`bg1 → lt1`, `tx1 → dk1`, etc.) — every other alias maps onto itself
+ * and is left unrouted.
+ */
+const DEFAULT_CLR_MAP_ALIAS: Record<string, string> = {
+	bg1: 'lt1',
+	tx1: 'dk1',
+	bg2: 'lt2',
+	tx2: 'dk2',
+};
+
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
 	 * Forward declaration – implemented in PptxHandlerRuntimeThemeProcessing.
@@ -51,15 +64,31 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return undefined;
 		}
 
-		// Placeholder colors in style refs typically map through accent1.
-		const resolvedKey = normalized === 'phclr' ? 'accent1' : normalized;
+		// `phClr` is a contextual placeholder — its actual value is supplied
+		// by the surrounding `fillRef`/`lnRef`/`effectRef`/`fontRef`. When
+		// `parseColorChoice` is given a `placeholderColor` it short-circuits
+		// before ever reaching `resolveThemeColor`. The only remaining route
+		// here is via `reResolveGradientWithPhClr`, which temporarily injects
+		// `themeColorMap['phclr']`. Honour that injection if present, then
+		// fall back to `accent1` so a stray `phClr` token without context
+		// still yields a visible colour rather than an undefined render.
+		if (normalized === 'phclr') {
+			const injected = this.themeColorMap['phclr'];
+			if (injected) {
+				return injected;
+			}
+			return this.themeColorMap['accent1'] || this.getDefaultSchemeColorMap()['accent1'];
+		}
 
 		// Resolve through the active clrMap layer:
 		//   1. Slide / layout `p:clrMapOvr` (highest precedence — when present
 		//      slides bypass the master entirely for the listed aliases).
 		//   2. The master's own `p:clrMap` (routing for aliases like
 		//      `bg1 → lt1`, `tx1 → dk1`, etc.).
-		//   3. Direct theme scheme slot.
+		//   3. Default alias→slot mapping (`bg1 → lt1`, `tx1 → dk1`, etc.)
+		//      when no clrMap is present — this matches PowerPoint's
+		//      implicit behaviour for decks that omit the routing layer.
+		//   4. Direct theme scheme slot lookup.
 		//
 		// Per ECMA-376 §19.3.1.7 (CT_ColorMapping) clrMap is a routing
 		// layer, not a colour table; resolve it lazily at lookup time so
@@ -67,13 +96,26 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Phase 2 Stream B / C-H4 / C-H5.
 		const overrideMap = this.currentSlideClrMapOverride ?? this.currentMasterClrMap;
 		if (overrideMap) {
-			const remapped = overrideMap[resolvedKey];
+			const remapped = overrideMap[normalized];
 			if (remapped) {
 				return this.themeColorMap[remapped] || this.getDefaultSchemeColorMap()[remapped];
 			}
+		} else {
+			// No clrMap on the active master — apply the canonical default
+			// alias mapping so `bg1`/`tx1`/`bg2`/`tx2` resolve to their
+			// dk/lt counterparts on the live theme rather than freezing on
+			// the static default colour table.
+			const defaultAliasTarget = DEFAULT_CLR_MAP_ALIAS[normalized];
+			if (defaultAliasTarget) {
+				return (
+					this.themeColorMap[defaultAliasTarget] ||
+					this.themeColorMap[normalized] ||
+					this.getDefaultSchemeColorMap()[normalized]
+				);
+			}
 		}
 
-		return this.themeColorMap[resolvedKey] || this.getDefaultSchemeColorMap()[resolvedKey];
+		return this.themeColorMap[normalized] || this.getDefaultSchemeColorMap()[normalized];
 	}
 
 	protected normalizeStrokeDashType(value: unknown): StrokeDashType | undefined {

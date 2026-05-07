@@ -46,6 +46,8 @@ function createMockParams(overrides?: Partial<PptxSlideLoaderParams>): PptxSlide
 		extractSlideComments: vi.fn<(...args: any[]) => any>(async () => []),
 		extractModernSlideComments: vi.fn<(...args: any[]) => any>(async () => []),
 		isSlideHidden: vi.fn<(...args: any[]) => any>(() => false),
+		extractBackgroundPattern: vi.fn<(...args: any[]) => any>(() => undefined),
+		extractBackgroundShadeToTitle: vi.fn<(...args: any[]) => any>(() => undefined),
 		extractBackgroundShowAnimation: vi.fn<(...args: any[]) => any>(() => undefined),
 		extractShowMasterShapes: vi.fn<(...args: any[]) => any>(() => undefined),
 		parseSlideTransition: vi.fn<(...args: any[]) => any>(() => undefined),

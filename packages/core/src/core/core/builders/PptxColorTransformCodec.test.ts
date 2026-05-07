@@ -204,6 +204,52 @@ describe('pptxColorTransformCodec', () => {
 			expect(codec.parseColorChoice(node, '#AABBCC')).toBe('#AABBCC');
 		});
 
+		it('phClr applies subsequent transforms on the placeholder colour', () => {
+			// fillRef-style: the contextual placeholder is supplied, then
+			// lumMod 50% reduces the channel values by half.
+			const node: XmlObject = {
+				'a:schemeClr': {
+					'@_val': 'phClr',
+					'a:lumMod': { '@_val': '50000' },
+				},
+			};
+			expect(codec.parseColorChoice(node, '#FFFFFF')).toBe('#808080');
+		});
+
+		it('phClr without context defers to resolveThemeColor("phclr") fallback', () => {
+			// The codec must consult the runtime's resolveThemeColor for the
+			// phClr fallback. With no `phclr` entry in the stub, the codec
+			// returns undefined rather than baking a hard-coded fallback.
+			const node: XmlObject = {
+				'a:schemeClr': { '@_val': 'phClr' },
+			};
+			expect(codec.parseColorChoice(node)).toBeUndefined();
+		});
+
+		it('phClr without context honours an injected resolveThemeColor("phclr")', () => {
+			const codecWithPhclr = new PptxColorTransformCodec({
+				resolveThemeColor: (k: string) => (k === 'phclr' ? '#FF00FF' : THEME_COLORS[k]),
+			});
+			const node: XmlObject = {
+				'a:schemeClr': { '@_val': 'phClr' },
+			};
+			expect(codecWithPhclr.parseColorChoice(node)).toBe('#FF00FF');
+		});
+
+		it('parses a:styleClr alias to scheme colour (table-style colour ref)', () => {
+			const node: XmlObject = {
+				'a:styleClr': { '@_val': 'accent2' },
+			};
+			expect(codec.parseColorChoice(node)).toBe('#ED7D31');
+		});
+
+		it('parses a:styleClr with phClr against placeholder colour', () => {
+			const node: XmlObject = {
+				'a:styleClr': { '@_val': 'phClr' },
+			};
+			expect(codec.parseColorChoice(node, '#102030')).toBe('#102030');
+		});
+
 		it('parses a:sysClr using lastClr attribute', () => {
 			const node: XmlObject = {
 				'a:sysClr': { '@_val': 'windowText', '@_lastClr': '000000' },

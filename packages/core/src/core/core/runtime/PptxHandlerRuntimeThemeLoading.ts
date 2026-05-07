@@ -260,11 +260,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 
-		// Theme aliases used throughout DrawingML map back to the main dark/light slots.
-		colorMap['tx1'] = colorMap['dk1'] || defaultMap['dk1'];
-		colorMap['bg1'] = colorMap['lt1'] || defaultMap['lt1'];
-		colorMap['tx2'] = colorMap['dk2'] || defaultMap['dk2'];
-		colorMap['bg2'] = colorMap['lt2'] || defaultMap['lt2'];
+		// Aliases (`tx1`/`bg1`/`tx2`/`bg2`) are resolved LAZILY through the
+		// active master's `<p:clrMap>` at colour-lookup time (see
+		// `resolveThemeColor`). Eagerly baking them as `tx1 = dk1` etc. here
+		// would leak the default mapping even when a master remaps them
+		// (e.g. dark themes that swap `bg1 ↔ tx1`). The defaults registered
+		// via `getDefaultSchemeColorMap()` provide the final fallback when
+		// no master clrMap exists for the slide. Phase 2 Stream B / C-H4.
 
 		const majorFontNode = fontScheme?.['a:majorFont'] as XmlObject | undefined;
 		const minorFontNode = fontScheme?.['a:minorFont'] as XmlObject | undefined;

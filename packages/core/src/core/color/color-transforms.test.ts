@@ -177,4 +177,44 @@ describe('applyDrawingColorTransforms', () => {
 		});
 		expect(result).toBe('#BFBFBF');
 	});
+
+	// ── gamma / invGamma (ECMA-376 §20.1.2.3.8 / §20.1.2.3.16) ────────────
+	describe('gamma / invGamma', () => {
+		it('a:gamma is a no-op on pure black', () => {
+			expect(applyDrawingColorTransforms('#000000', { 'a:gamma': {} })).toBe('#000000');
+		});
+
+		it('a:gamma is a no-op on pure white', () => {
+			expect(applyDrawingColorTransforms('#FFFFFF', { 'a:gamma': {} })).toBe('#FFFFFF');
+		});
+
+		it('a:gamma encodes 50%-grey-linear toward sRGB 188', () => {
+			// linear 0.5 → companded 1.055*0.5^(1/2.4) - 0.055 ≈ 0.7354 ≈ 187.5
+			const result = applyDrawingColorTransforms('#808080', { 'a:gamma': {} });
+			// Channel value should be 187 or 188 (rounding-dependent).
+			expect(['#BBBBBB', '#BCBCBC']).toContain(result);
+		});
+
+		it('a:invGamma is a no-op on pure black and white', () => {
+			expect(applyDrawingColorTransforms('#000000', { 'a:invGamma': {} })).toBe('#000000');
+			expect(applyDrawingColorTransforms('#FFFFFF', { 'a:invGamma': {} })).toBe('#FFFFFF');
+		});
+
+		it('a:invGamma decodes sRGB 188 toward linear ~50%', () => {
+			// companded 0.737 → linear ((0.737+0.055)/1.055)^2.4 ≈ 0.501
+			const result = applyDrawingColorTransforms('#BCBCBC', { 'a:invGamma': {} });
+			// Channel value should be 127 or 128.
+			expect(['#7F7F7F', '#808080']).toContain(result);
+		});
+
+		it('a:gamma followed by a:invGamma is approximately identity', () => {
+			// Both transforms applied in the same call; encode then decode.
+			const result = applyDrawingColorTransforms('#808080', {
+				'a:gamma': {},
+				'a:invGamma': {},
+			});
+			// Should land within 1 channel-unit of the input due to rounding.
+			expect(['#7F7F7F', '#808080', '#818181']).toContain(result);
+		});
+	});
 });

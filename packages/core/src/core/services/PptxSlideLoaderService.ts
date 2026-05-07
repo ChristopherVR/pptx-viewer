@@ -205,6 +205,8 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 				modernComments.length > 0 ? [...legacyComments, ...modernComments] : legacyComments;
 
 			const hidden = params.isSlideHidden(slideXmlObj, slideIdNode);
+			const backgroundPattern = params.extractBackgroundPattern(slideXmlObj);
+			const backgroundShadeToTitle = params.extractBackgroundShadeToTitle(slideXmlObj);
 			const backgroundShowAnimation = params.extractBackgroundShowAnimation(slideXmlObj);
 			const showMasterShapes = params.extractShowMasterShapes(slideXmlObj);
 			const transition = params.parseSlideTransition(slideXmlObj, path);
@@ -240,6 +242,8 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 				comments,
 				rawXml: slideXmlObj,
 				clrMapOverride: clrMapOverride ?? undefined,
+				backgroundPattern,
+				backgroundShadeToTitle: backgroundShadeToTitle ?? undefined,
 				backgroundShowAnimation: backgroundShowAnimation ?? undefined,
 				showMasterShapes: showMasterShapes ?? undefined,
 				guides: drawingGuides.length > 0 ? drawingGuides : undefined,

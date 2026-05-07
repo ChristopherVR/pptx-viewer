@@ -107,6 +107,14 @@ export class PptxSlideBackgroundBuilder implements IPptxSlideBackgroundBuilder {
 			backgroundProperties['a:effectLst'] = {};
 		}
 
+		// Round-trip <p:bgPr/@shadeToTitle> when the slide carries the flag.
+		// ECMA-376 §19.3.1.2 (CT_BackgroundProperties).
+		if (init.slide.backgroundShadeToTitle === true) {
+			backgroundProperties['@_shadeToTitle'] = '1';
+		} else if (init.slide.backgroundShadeToTitle === false) {
+			backgroundProperties['@_shadeToTitle'] = '0';
+		}
+
 		if (!hasFillChild) {
 			// Nothing to write (e.g. data URL parse failed and no other source).
 			// Fall back to dropping <p:bg> entirely rather than emitting

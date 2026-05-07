@@ -55,6 +55,26 @@ export function applyDrawingColorTransforms(baseColor: string, colorNode: XmlObj
 	/** Shorthand: read the `@_val` attribute from a child element. */
 	const getVal = (key: string): unknown => (colorNode[key] as XmlObject | undefined)?.['@_val'];
 
+	// ── 0. Gamma encode (`a:gamma`) ──────────────────────────────────────
+	// ECMA-376 §20.1.2.3.8 — apply the standard sRGB gamma encoding
+	// (linear → companded). Mirror element of `a:invGamma`.
+	if (colorNode['a:gamma'] !== undefined) {
+		const out = applySrgbGammaEncode(r, g, b);
+		r = out.r;
+		g = out.g;
+		b = out.b;
+	}
+
+	// `a:invGamma` (ECMA-376 §20.1.2.3.16) — inverse gamma decoding
+	// (companded → linear).  Applied here, before any transforms that
+	// expect linear-space channels.
+	if (colorNode['a:invGamma'] !== undefined) {
+		const out = applySrgbGammaDecode(r, g, b);
+		r = out.r;
+		g = out.g;
+		b = out.b;
+	}
+
 	// ── 1. Structural transforms ─────────────────────────────────────────
 
 	// Complement: rotate hue by 180 degrees (opposite on the colour wheel)
@@ -215,4 +235,46 @@ export function applyDrawingColorTransforms(baseColor: string, colorNode: XmlObj
 	}
 
 	return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+// ---------------------------------------------------------------------------
+// sRGB gamma helpers (ECMA-376 §20.1.2.3.8 / §20.1.2.3.16)
+// ---------------------------------------------------------------------------
+
+/**
+ * Encode a single channel from linear-space [0,255] to companded sRGB [0,255]
+ * using the IEC 61966-2-1 transfer function.
+ */
+function srgbEncodeChannel(channel: number): number {
+	const linear = Math.min(1, Math.max(0, channel / 255));
+	const companded = linear <= 0.0031308 ? 12.92 * linear : 1.055 * linear ** (1 / 2.4) - 0.055;
+	return Math.min(255, Math.max(0, Math.round(companded * 255)));
+}
+
+/**
+ * Decode a single channel from companded sRGB [0,255] to linear-space [0,255]
+ * using the inverse IEC 61966-2-1 transfer function.
+ */
+function srgbDecodeChannel(channel: number): number {
+	const companded = Math.min(1, Math.max(0, channel / 255));
+	const linear = companded <= 0.04045 ? companded / 12.92 : ((companded + 0.055) / 1.055) ** 2.4;
+	return Math.min(255, Math.max(0, Math.round(linear * 255)));
+}
+
+/** Apply sRGB gamma encoding (linear → companded) to all three channels. */
+function applySrgbGammaEncode(
+	r: number,
+	g: number,
+	b: number,
+): { r: number; g: number; b: number } {
+	return { r: srgbEncodeChannel(r), g: srgbEncodeChannel(g), b: srgbEncodeChannel(b) };
+}
+
+/** Apply sRGB inverse gamma decoding (companded → linear) to all three channels. */
+function applySrgbGammaDecode(
+	r: number,
+	g: number,
+	b: number,
+): { r: number; g: number; b: number } {
+	return { r: srgbDecodeChannel(r), g: srgbDecodeChannel(g), b: srgbDecodeChannel(b) };
 }
