@@ -205,6 +205,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			runProps['a:effectLst'] = textEffectLst;
 		}
 
+		// 3b. a:effectDag (run-level effect graph). Per ECMA-376 §21.1.2.3.6
+		// `effectDag` is the choice-alternative to `effectLst` on
+		// CT_TextCharacterProperties. We round-trip it from the raw XML
+		// captured at parse time. The typed tree is held in parallel for
+		// downstream consumers; the raw blob is authoritative on save.
+		if (style.textEffectDagXml) {
+			runProps['a:effectDag'] = style.textEffectDagXml;
+		}
+
 		// 4. a:highlight
 		if (style.highlightColor) {
 			runProps['a:highlight'] = {

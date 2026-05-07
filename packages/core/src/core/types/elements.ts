@@ -119,6 +119,22 @@ export interface PicturePptxElement
 }
 
 /**
+ * A single unrecognised `<a:graphicData>/<a:extLst>/<a:ext>` extension on a
+ * graphicFrame, captured verbatim so the round-trip can preserve future or
+ * vendor-specific markup that the parser doesn't yet understand.
+ *
+ * The XML is preserved as a fast-xml-parser object tree (the same shape as
+ * `rawXml` on other elements) so the save layer can re-emit it through the
+ * existing builder without lossy string manipulation.
+ */
+export interface PptxGraphicFrameExtension {
+	/** The `@_uri` attribute identifying the extension (e.g. `{C3CD43...}`). */
+	uri: string;
+	/** Parsed XML payload of the extension, suitable for re-serialization. */
+	xml: import('./common').XmlObject;
+}
+
+/**
  * A table embedded via a `<p:graphicFrame>`.
  *
  * @example
@@ -140,6 +156,11 @@ export interface TablePptxElement extends PptxElementBase {
 	type: 'table';
 	/** Parsed table cell data for editing. */
 	tableData?: PptxTableData;
+	/**
+	 * Unrecognised extensions captured from `a:graphicData/a:extLst` so they
+	 * round-trip losslessly. See {@link PptxGraphicFrameExtension}.
+	 */
+	extensionXml?: PptxGraphicFrameExtension[];
 }
 
 /**
@@ -151,6 +172,8 @@ export interface TablePptxElement extends PptxElementBase {
 export interface ChartPptxElement extends PptxElementBase {
 	type: 'chart';
 	chartData?: PptxChartData;
+	/** Unrecognised graphicFrame extLst extensions, captured verbatim for round-trip. */
+	extensionXml?: PptxGraphicFrameExtension[];
 }
 
 /**
@@ -162,6 +185,8 @@ export interface ChartPptxElement extends PptxElementBase {
 export interface SmartArtPptxElement extends PptxElementBase {
 	type: 'smartArt';
 	smartArtData?: PptxSmartArtData;
+	/** Unrecognised graphicFrame extLst extensions, captured verbatim for round-trip. */
+	extensionXml?: PptxGraphicFrameExtension[];
 }
 
 /**
@@ -217,6 +242,8 @@ export interface OlePptxElement extends PptxElementBase {
 	oleImgW?: number;
 	/** Authored display height of the OLE object preview, in EMU (`@imgH`). */
 	oleImgH?: number;
+	/** Unrecognised graphicFrame extLst extensions, captured verbatim for round-trip. */
+	extensionXml?: PptxGraphicFrameExtension[];
 }
 
 /**
@@ -284,6 +311,8 @@ export interface MediaPptxElement extends PptxElementBase {
 	 * (`r:embed`). Defaults to embedded when undefined.
 	 */
 	isLinked?: boolean;
+	/** Unrecognised graphicFrame extLst extensions, captured verbatim for round-trip. */
+	extensionXml?: PptxGraphicFrameExtension[];
 }
 
 /**
@@ -337,6 +366,8 @@ export interface InkPptxElement extends PptxElementBase {
 	 * variable-width strokes that reflect stylus/pen pressure.
 	 */
 	inkPointPressures?: number[][];
+	/** Unrecognised graphicFrame extLst extensions, captured verbatim for round-trip. */
+	extensionXml?: PptxGraphicFrameExtension[];
 }
 
 /**
@@ -412,11 +443,15 @@ export interface Model3DPptxElement extends PptxElementBase, PptxImageProperties
 	modelMimeType?: string;
 	/** Poster/preview image shown when 3D rendering is unavailable. */
 	posterImage?: string;
+	/** Unrecognised graphicFrame extLst extensions, captured verbatim for round-trip. */
+	extensionXml?: PptxGraphicFrameExtension[];
 }
 
 /** An element whose type is not recognised by the parser. */
 export interface UnknownPptxElement extends PptxElementBase {
 	type: 'unknown';
+	/** Unrecognised graphicFrame extLst extensions, captured verbatim for round-trip. */
+	extensionXml?: PptxGraphicFrameExtension[];
 }
 
 // ==========================================================================

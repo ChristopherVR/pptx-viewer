@@ -1,4 +1,5 @@
 import { TextStyle, XmlObject } from '../../types';
+import { buildEffectDagTreeFromXml } from '../builders/effect-dag-containers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTextStyleUtils';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -280,6 +281,32 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					color2: this.parseColor(colorNodes[1]) || '#ffffff',
 				};
 			}
+		}
+	}
+
+	/**
+	 * Parse `a:effectDag` on `a:rPr` (run-level effect graph) and attach both
+	 * the raw XML (for verbatim round-trip) and a typed structural tree to
+	 * the given TextStyle. ECMA-376 §21.1.2.3.6 lists `a:effectDag` as a
+	 * valid alternative to `a:effectLst` inside CT_TextCharacterProperties;
+	 * historically the codebase ignored it on the run side, so any preset
+	 * carrying a run-level DAG would lose its effects on save.
+	 *
+	 * The four structural container nodes (`a:cont`, `a:blend`,
+	 * `a:xfrmEffect`, `a:relOff`) are parsed into a typed
+	 * {@link import('../../types').EffectDagContainer} tree; everything else
+	 * (e.g. `a:outerShdw`, `a:glow`, `a:alphaInv`) is captured opaquely as
+	 * raw XML so we don't duplicate the entire effect taxonomy here.
+	 */
+	protected applyTextRunEffectDag(style: TextStyle, runProperties: XmlObject): void {
+		const effectDag = runProperties['a:effectDag'] as XmlObject | undefined;
+		if (!effectDag) {
+			return;
+		}
+		style.textEffectDagXml = effectDag;
+		const tree = buildEffectDagTreeFromXml(effectDag);
+		if (tree) {
+			style.textEffectDagTree = tree;
 		}
 	}
 }

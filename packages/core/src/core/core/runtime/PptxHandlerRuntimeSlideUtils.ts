@@ -1,4 +1,4 @@
-import { XmlObject, TextSegment } from '../../types';
+import { XmlObject, TextSegment, PptxElement } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeBackgroundParsing';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -269,9 +269,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return chunks.join('').trim();
 	}
 
-	protected async extractSlideNotes(
-		slidePath: string,
-	): Promise<{ notes?: string; notesSegments?: TextSegment[] }> {
+	protected async extractSlideNotes(slidePath: string): Promise<{
+		notes?: string;
+		notesSegments?: TextSegment[];
+		notesShapes?: PptxElement[];
+		notesClrMapOverride?: Record<string, string>;
+		notesCSldName?: string;
+	}> {
 		const slideRels = this.slideRelsMap.get(slidePath);
 		if (!slideRels) {
 			return {};
@@ -294,7 +298,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return {};
 		}
 		const notesObj = this.parser.parse(notesXml) as XmlObject;
-		const spTree = notesObj?.['p:notes']?.['p:cSld']?.['p:spTree'] as XmlObject | undefined;
+		const notesNode = notesObj?.['p:notes'] as XmlObject | undefined;
+		const cSld = notesNode?.['p:cSld'] as XmlObject | undefined;
+		const spTree = cSld?.['p:spTree'] as XmlObject | undefined;
 		if (!spTree) {
 			return {};
 		}
@@ -302,7 +308,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const shapes = this.ensureArray(spTree['p:sp']) as XmlObject[];
 		const notesChunks: string[] = [];
 		const allSegments: TextSegment[] = [];
-		for (const shape of shapes) {
+		const parsedShapes: PptxElement[] = [];
+		shapes.forEach((shape, shapeIndex) => {
 			const txBody = shape?.['p:txBody'] as XmlObject | undefined;
 			const text = this.extractTextFromTxBody(txBody);
 			if (text.length > 0) {
@@ -314,12 +321,67 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 				allSegments.push(...segs);
 			}
+			// Parse the full shape so the notes-page shape tree can be
+			// inspected and edited (not just the body placeholder text).
+			// `parseShape` is sync and does not mutate the parser state. We
+			// scope it to the notes part path so any placeholder lookups use
+			// the notes-master/-layout if present, falling back gracefully.
+			try {
+				const parsed = this.parseShape(shape, `notes-shape-${shapeIndex}`, notesPath);
+				if (parsed) {
+					parsedShapes.push(parsed);
+				}
+			} catch {
+				// Non-fatal — raw notes XML still round-trips via the
+				// existing slideNotesPartUpdater fallback.
+			}
+		});
+
+		// Per-notes-slide colour-map override (`<p:clrMapOvr>`). Captured as
+		// a plain `bg1: dk1` mapping when an `<a:overrideClrMapping>` is
+		// present; absent/`<a:masterClrMapping/>` yields no override.
+		let notesClrMapOverride: Record<string, string> | undefined;
+		const clrMapOvr = notesNode?.['p:clrMapOvr'] as XmlObject | undefined;
+		const overrideMapping = clrMapOvr?.['a:overrideClrMapping'] as XmlObject | undefined;
+		if (overrideMapping) {
+			const map: Record<string, string> = {};
+			for (const key of [
+				'bg1',
+				'tx1',
+				'bg2',
+				'tx2',
+				'accent1',
+				'accent2',
+				'accent3',
+				'accent4',
+				'accent5',
+				'accent6',
+				'hlink',
+				'folHlink',
+			]) {
+				const v = overrideMapping[`@_${key}`];
+				if (v !== undefined && v !== null) {
+					map[key] = String(v);
+				}
+			}
+			if (Object.keys(map).length > 0) {
+				notesClrMapOverride = map;
+			}
 		}
+
+		const notesCSldNameRaw = cSld?.['@_name'];
+		const notesCSldName =
+			notesCSldNameRaw !== undefined && notesCSldNameRaw !== null
+				? String(notesCSldNameRaw)
+				: undefined;
 
 		const merged = notesChunks.join('\n').trim();
 		return {
 			notes: merged.length > 0 ? merged : undefined,
 			notesSegments: allSegments.length > 0 ? allSegments : undefined,
+			notesShapes: parsedShapes.length > 0 ? parsedShapes : undefined,
+			notesClrMapOverride,
+			notesCSldName,
 		};
 	}
 }

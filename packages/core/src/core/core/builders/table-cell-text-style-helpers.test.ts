@@ -76,10 +76,10 @@ describe('applyCellAlignmentStyle — vertical alignment', () => {
 // ---------------------------------------------------------------------------
 
 describe('applyCellAlignmentStyle — text direction', () => {
-	it("sets textDirection to vertical for 'vert'", () => {
+	it("sets textDirection to vert for 'vert'", () => {
 		const style: PptxTableCellStyle = {};
 		applyCellAlignmentStyle({ '@_vert': 'vert' }, style);
-		expect(style.textDirection).toBe('vertical');
+		expect(style.textDirection).toBe('vert');
 	});
 
 	it("sets textDirection to eaVert for 'eaVert'", () => {
@@ -100,10 +100,10 @@ describe('applyCellAlignmentStyle — text direction', () => {
 		expect(style.textDirection).toBe('mongolianVert');
 	});
 
-	it("sets textDirection to vertical270 for 'vert270'", () => {
+	it("sets textDirection to vert270 for 'vert270'", () => {
 		const style: PptxTableCellStyle = {};
 		applyCellAlignmentStyle({ '@_vert': 'vert270' }, style);
-		expect(style.textDirection).toBe('vertical270');
+		expect(style.textDirection).toBe('vert270');
 	});
 
 	it("sets textDirection to wordArtVertRtl for 'wordArtVertRtl'", () => {

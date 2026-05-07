@@ -65,6 +65,16 @@ export interface PptxElementBase {
 	actionHover?: PptxAction;
 	/** Shape lock attributes parsed from `p:cNvSpPr/a:spLocks`. */
 	locks?: PptxShapeLocks;
+	/**
+	 * Opaque `<a:ext>` children captured from the shape's `<a:extLst>` whose
+	 * URI is not recognised by a typed extractor (hidden fill/line, image
+	 * effects, …). Preserved verbatim and re-emitted on save so unknown
+	 * vendor extensions survive a round-trip.
+	 *
+	 * Mirrors the existing `effectDagXml` / `endParaRunProperties` raw-XML
+	 * preservation pattern.
+	 */
+	extLstXml?: XmlObject[];
 }
 
 /**

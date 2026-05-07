@@ -133,6 +133,8 @@ export interface ShapeStyle {
 	lineCap?: 'flat' | 'rnd' | 'sq';
 	/** Compound line type (`a:ln/@cmpd`). */
 	compoundLine?: 'sng' | 'dbl' | 'thickThin' | 'thinThick' | 'tri';
+	/** Pen line alignment (`a:ln/@algn`): `ctr` (centre, default) or `in` (inside). */
+	lineAlignment?: 'ctr' | 'in';
 	shadowColor?: string;
 	shadowBlur?: number;
 	shadowOffsetX?: number;

@@ -83,17 +83,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			tcPr['@_anchor'] = vAlignMap[style.vAlign] || 't';
 		}
 
-		// Text direction (vertical text)
+		// Text direction (vertical text). Values are CT_TextVerticalType
+		// spec tokens (`vert`, `vert270`, `eaVert`, `wordArtVert`,
+		// `wordArtVertRtl`, `mongolianVert`) and pass through verbatim.
 		if (style.textDirection) {
-			const vertMap: Record<string, string> = {
-				vertical: 'vert',
-				vertical270: 'vert270',
-				eaVert: 'eaVert',
-				wordArtVert: 'wordArtVert',
-				wordArtVertRtl: 'wordArtVertRtl',
-				mongolianVert: 'mongolianVert',
-			};
-			tcPr['@_vert'] = vertMap[style.textDirection] || 'vert';
+			tcPr['@_vert'] = style.textDirection;
 		}
 
 		// Text alignment — set in first paragraph's pPr

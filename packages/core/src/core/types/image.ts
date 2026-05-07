@@ -10,6 +10,114 @@
 // ==========================================================================
 
 /**
+ * Blend mode for `a:blend` container nodes inside an `a:effectDag` (CT_BlendEffect).
+ *
+ * Per ECMA-376 §20.1.8.10, valid values are: `darken`, `lighten`, `mult`,
+ * `over`, `screen`.
+ */
+export type EffectDagBlendMode = 'darken' | 'lighten' | 'mult' | 'over' | 'screen';
+
+/**
+ * Container node kind inside an `a:effectDag` (CT_EffectContainer @type).
+ *
+ * Per ECMA-376 §20.1.8.20, `sib` (sibling) draws each child independently
+ * over the same source; `tree` (tree) chains effects so each sees the output
+ * of its siblings.
+ */
+export type EffectDagContainerType = 'sib' | 'tree';
+
+/**
+ * Typed model of the directed-acyclic effect graph stored in `a:effectDag`.
+ *
+ * The four "structural" container/transform nodes are typed; any other inner
+ * effect (e.g. `a:outerShdw`, `a:glow`, `a:alphaInv`) is preserved verbatim
+ * as a raw XML object via the {@link EffectDagRawLeaf} variant so we never
+ * have to recurse into the full effect taxonomy.
+ *
+ * @example
+ * ```ts
+ * // <a:effectDag>
+ * //   <a:cont type="sib">
+ * //     <a:blend blend="mult"><a:cont type="tree" /></a:blend>
+ * //   </a:cont>
+ * // </a:effectDag>
+ * const dag: EffectDagContainer = {
+ *   kind: "cont",
+ *   type: "sib",
+ *   children: [{
+ *     kind: "blend",
+ *     mode: "mult",
+ *     container: { kind: "cont", type: "tree", children: [] },
+ *   }],
+ * };
+ * ```
+ */
+export type EffectDagNode =
+	| EffectDagContainer
+	| EffectDagBlend
+	| EffectDagXfrm
+	| EffectDagRelOff
+	| EffectDagRawLeaf;
+
+/** `a:cont` — CT_EffectContainer. Recursive; mirrors the top-level `effectDag`. */
+export interface EffectDagContainer {
+	kind: 'cont';
+	/** `@type` — `sib` or `tree`. */
+	type: EffectDagContainerType;
+	/** Optional `@name` attribute. */
+	name?: string;
+	/** Ordered children. */
+	children: EffectDagNode[];
+}
+
+/** `a:blend` — CT_BlendEffect. Always wraps a single `a:cont` child. */
+export interface EffectDagBlend {
+	kind: 'blend';
+	/** `@blend` attribute. */
+	mode: EffectDagBlendMode;
+	/** Required child `a:cont` container. */
+	container: EffectDagContainer;
+}
+
+/** `a:xfrmEffect` — CT_TransformEffect. Affine transform with no children. */
+export interface EffectDagXfrm {
+	kind: 'xfrmEffect';
+	/** Horizontal scale, percentage * 1000 (e.g. 100000 = 100%). */
+	sx?: number;
+	/** Vertical scale, percentage * 1000. */
+	sy?: number;
+	/** Horizontal skew, degrees * 60000. */
+	kx?: number;
+	/** Vertical skew, degrees * 60000. */
+	ky?: number;
+	/** Horizontal translation in EMU. */
+	tx?: number;
+	/** Vertical translation in EMU. */
+	ty?: number;
+}
+
+/** `a:relOff` — CT_RelativeOffsetEffect. Relative offset in 1000ths of a percent. */
+export interface EffectDagRelOff {
+	kind: 'relOff';
+	/** Horizontal offset, percentage * 1000. */
+	tx?: number;
+	/** Vertical offset, percentage * 1000. */
+	ty?: number;
+}
+
+/**
+ * Catch-all leaf preserving any non-container effect (e.g. `a:outerShdw`,
+ * `a:glow`, `a:alphaInv`) as raw XML. Re-emitted verbatim on save.
+ */
+export interface EffectDagRawLeaf {
+	kind: 'raw';
+	/** Local element name without the `a:` prefix (e.g. `outerShdw`, `glow`). */
+	tag: string;
+	/** Raw XML object captured at load — preserved verbatim on save. */
+	xml: Record<string, unknown>;
+}
+
+/**
  * Image recolour/adjustment properties parsed from blip extensions.
  *
  * These effects are stored in the OpenXML `<a:blip>` extension list
@@ -191,4 +299,47 @@ export interface PptxImageProperties {
 	imageEffects?: PptxImageEffects;
 	/** Crop-to-shape — CSS clip-path shape name. */
 	cropShape?: PptxCropShape;
+}
+
+// ==========================================================================
+// Declaration merging — attach run-side effectDag fields to TextStyle
+// ==========================================================================
+// ECMA-376 §21.1.2.3.6 lists `a:effectDag` as a valid child of
+// `CT_TextCharacterProperties` (the `<a:rPr>` element). Round-tripping it
+// requires storing both the raw XML (for unknown leaf effects) and the
+// typed tree of structural container nodes. We attach these via TypeScript
+// declaration merging so the canonical TextStyle definition in `text.ts`
+// stays untouched while the new fields remain co-located with the
+// effectDag types they reference.
+
+declare module './text' {
+	interface TextStyle {
+		/**
+		 * Raw `a:effectDag` XML node from `a:rPr`, preserved verbatim for
+		 * round-trip serialisation. Mirrors the shape-level
+		 * {@link import('./shape-style').ShapeStyle.effectDagXml} field.
+		 */
+		textEffectDagXml?: import('./common').XmlObject;
+		/**
+		 * Typed effect graph parsed from `textEffectDagXml`. The four structural
+		 * container nodes (`a:cont`, `a:blend`, `a:xfrmEffect`, `a:relOff`) are
+		 * fully typed; any other leaf effect is captured as
+		 * {@link EffectDagRawLeaf} so we never have to recurse into the full
+		 * effect taxonomy.
+		 */
+		textEffectDagTree?: EffectDagContainer;
+	}
+}
+
+declare module './shape-style' {
+	interface ShapeStyle {
+		/**
+		 * Typed effect graph parsed from {@link ShapeStyle.effectDagXml}. The four
+		 * structural container nodes (`a:cont`, `a:blend`, `a:xfrmEffect`,
+		 * `a:relOff`) are fully typed; any other leaf effect (e.g. `a:outerShdw`,
+		 * `a:glow`, `a:alphaInv`) is captured as {@link EffectDagRawLeaf} so we
+		 * never have to recurse into the full effect taxonomy.
+		 */
+		effectDagTree?: EffectDagContainer;
+	}
 }

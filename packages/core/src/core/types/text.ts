@@ -71,6 +71,38 @@ export interface TextStyle {
 	underlineStyle?: UnderlineStyle;
 	/** Underline colour as hex string (`a:uFill` / `a:uLn`). When absent, inherits text colour. */
 	underlineColor?: string;
+	/**
+	 * When true, the source authored `<a:u val="none"/>` to explicitly suppress
+	 * underline (rather than omitting the attribute entirely). Preserved so the
+	 * writer can re-emit the explicit `none` token instead of dropping it.
+	 */
+	underlineExplicitNone?: boolean;
+	/**
+	 * Underline line properties parsed from `<a:rPr><a:uLn>` — width, dash
+	 * preset, and end caps. Captured as a typed object so the writer can
+	 * round-trip the line styling that previously was dropped (only the
+	 * solidFill colour was carried before).
+	 */
+	underlineLine?: {
+		/** Line width in EMU (raw OOXML) for `a:uLn/@w`. */
+		widthEmu?: number;
+		/** Compound line type (`a:uLn/@cmpd`). */
+		compound?: string;
+		/** Cap style (`a:uLn/@cap`). */
+		cap?: string;
+		/** Pen alignment (`a:uLn/@algn`). */
+		algn?: string;
+		/** Preset dash value (`a:uLn/a:prstDash/@val`). */
+		prstDash?: string;
+		/** Raw `a:uLn/a:headEnd` XML preserved verbatim. */
+		headEndXml?: XmlObject;
+		/** Raw `a:uLn/a:tailEnd` XML preserved verbatim. */
+		tailEndXml?: XmlObject;
+	};
+	/** When `<a:uLnTx/>` is present — underline line follows the text run line. */
+	underlineLineFollowsText?: boolean;
+	/** When `<a:uFillTx/>` is present — underline fill follows the text run fill. */
+	underlineFillFollowsText?: boolean;
 	strikethrough?: boolean;
 	/** Specific strike type: single or double from `a:rPr/@strike`. */
 	strikeType?: 'sngStrike' | 'dblStrike';
@@ -194,6 +226,12 @@ export interface TextStyle {
 	textWarpAdj2?: number;
 	/** Text capitalization style from `a:rPr/@cap`. */
 	textCaps?: 'all' | 'small' | 'none';
+	/**
+	 * When true, the source authored `<a:rPr cap="none"/>` explicitly. This
+	 * differs from {@link textCaps} = `"none"` only because the writer must
+	 * preserve the explicit token rather than collapse it to omission.
+	 */
+	textCapsExplicitNone?: boolean;
 	/** Symbol font family from `a:sym`. */
 	symbolFont?: string;
 	/** East Asian font family from `a:ea`. */
@@ -393,6 +431,37 @@ export interface TextStyle {
 	text3d?: Text3DStyle;
 	/** 3D scene (camera + light rig) settings on the text body (`a:bodyPr/a:scene3d`). */
 	textBodyScene3d?: Pptx3DScene;
+
+	// ── Opaque XML preservation (extLst extension lists) ──
+
+	/**
+	 * Raw `<a:extLst>` subtree captured from `<a:bodyPr>`. Preserved verbatim so
+	 * authored extensions (e.g. content placeholders, custom application data)
+	 * survive a round-trip even though the engine doesn't interpret them.
+	 */
+	bodyPropertiesExtLstXml?: XmlObject;
+	/**
+	 * Raw `<a:extLst>` subtree captured from `<a:pPr>`. Only meaningful on the
+	 * paragraph-level style (paragraphs propagate this via the first segment).
+	 */
+	paragraphPropertiesExtLstXml?: XmlObject;
+	/**
+	 * Raw `<a:extLst>` subtree captured from `<a:rPr>`. Persisted verbatim on
+	 * save when present — covers run-level extensions the typed model doesn't
+	 * model (e.g. `a14:hiddenFill` and similar).
+	 */
+	runPropertiesExtLstXml?: XmlObject;
+
+	/**
+	 * Raw `<a:defRPr>` XML node captured from `<a:pPr>`. The schema permits
+	 * `defRPr` directly inside `pPr` so that paragraph defaults can specify the
+	 * end-paragraph run formatting; previously this was dropped on save. We
+	 * persist the parsed XML object so it round-trips verbatim.
+	 *
+	 * Only meaningful on the *first* segment of each paragraph (matches the
+	 * convention used for {@link bulletInfo} / {@link endParaRunProperties}).
+	 */
+	paragraphDefaultRunPropertiesXml?: XmlObject;
 }
 
 /**
@@ -434,12 +503,26 @@ export interface BulletInfo {
 	sizePts?: number;
 	/** Bullet color as hex string from `a:buClr`. */
 	color?: string;
+	/**
+	 * Raw colour-choice XML captured from `<a:buClr>` so that themed bullets
+	 * (`a:schemeClr`, `a:sysClr`, `a:prstClr`) round-trip with their original
+	 * identity rather than being flattened to `<a:srgbClr/>` on save.
+	 */
+	colorXml?: XmlObject;
 	/** True when `a:buNone` explicitly suppresses bullets. */
 	none?: boolean;
 	/** Picture bullet: relationship ID from `a:buBlip` → `a:blip[@r:embed]`. */
 	imageRelId?: string;
 	/** Picture bullet: data URL of the embedded image. */
 	imageDataUrl?: string;
+	/**
+	 * Raw `<a:buBlip>` XML captured at parse time. Carries the full blipFill
+	 * subtree (`a:tile`, `a:stretch`, `a:srcRect`, `a:blip > a:extLst`) so the
+	 * writer can emit the complete original definition rather than the bare
+	 * `a:blip[@r:embed]` mapping. When set, the writer prefers it over
+	 * {@link imageRelId} for emission.
+	 */
+	imageBlipFillXml?: XmlObject;
 	/** When true, `<a:buFontTx/>` was specified — inherit the bullet font from
 	 *  the run text, not from a buFont declaration. */
 	fontInherit?: boolean;
@@ -476,6 +559,20 @@ export interface TextSegment {
 	fieldType?: string;
 	/** When this segment originated from an `a:fld` element, stores the field GUID. */
 	fieldGuid?: string;
+	/**
+	 * Original attribute name used to author the field GUID — `'uuid'` for the
+	 * `a:fld/@uuid` form authored by some legacy producers, `'id'` for the
+	 * canonical `a:fld/@id` form. Preserved so the writer round-trips whichever
+	 * spelling the source used (PowerPoint accepts both). Defaults to `'id'`
+	 * on save when undefined.
+	 */
+	fieldGuidAttr?: 'uuid' | 'id';
+	/**
+	 * Raw per-field paragraph properties (`a:fld > a:pPr`). The schema permits
+	 * `pPr` inside an `a:fld` so the field can carry its own paragraph-level
+	 * formatting; preserved verbatim on save when present.
+	 */
+	fieldParagraphPropertiesXml?: XmlObject;
 	/** Raw OMML XML node for equation segments (from `a14:m` / `m:oMathPara`). */
 	equationXml?: Record<string, unknown>;
 	/**

@@ -9,6 +9,41 @@ interface CellMergeInfo {
 	rowSpan?: number;
 	hMerge?: boolean;
 	vMerge?: boolean;
+	extraAttributes?: Record<string, string>;
+}
+
+/**
+ * Round-trip the recognised opaque CT_TableCellProperties attributes
+ * (`horzOverflow`, `anchorCtr`, `headers`, `hideSlicers`, `slicerCacheId`)
+ * onto `<a:tcPr>`. Attributes already carried by the typed model are
+ * left for the dedicated writers; missing keys clear any prior values
+ * the writer might have inherited from preserved raw XML.
+ */
+const OPAQUE_TC_PR_ATTRS = [
+	'horzOverflow',
+	'anchorCtr',
+	'headers',
+	'hideSlicers',
+	'slicerCacheId',
+] as const;
+
+export function serializeCellExtraAttributes(
+	xmlCell: XmlObject,
+	extra: Record<string, string> | undefined,
+): void {
+	if (!xmlCell['a:tcPr']) {
+		xmlCell['a:tcPr'] = {};
+	}
+	const tcPr = xmlCell['a:tcPr'] as XmlObject;
+	for (const attr of OPAQUE_TC_PR_ATTRS) {
+		const key = `@_${attr}`;
+		const value = extra?.[attr];
+		if (value !== undefined && value.length > 0) {
+			tcPr[key] = value;
+		} else {
+			delete tcPr[key];
+		}
+	}
 }
 
 /**
@@ -63,6 +98,9 @@ export function serializeTablePropertyFlags(
 		firstCol?: boolean;
 		lastCol?: boolean;
 		tableStyleId?: string;
+		bandRowCycle?: number;
+		bandColCycle?: number;
+		rtl?: boolean;
 	},
 ): void {
 	const tblPr = ((tbl as XmlObject)['a:tblPr'] ?? {}) as XmlObject;
@@ -83,6 +121,27 @@ export function serializeTablePropertyFlags(
 	setOrDelete('@_lastRow', tableData.lastRow);
 	setOrDelete('@_firstCol', tableData.firstCol);
 	setOrDelete('@_lastCol', tableData.lastCol);
+	// `@_rtl` uses preserve-on-undefined semantics: a save call that doesn't
+	// know the full table state (e.g. structural-flag-only updates) should
+	// not strip a previously-parsed rtl attribute.
+	if (tableData.rtl === true) {
+		tblPr['@_rtl'] = '1';
+	} else if (tableData.rtl === false) {
+		delete tblPr['@_rtl'];
+	}
+
+	// bandRowCycle / bandColCycle default to 1 per CT_TableProperties; only
+	// emit when explicitly non-default to match Office output.
+	const setOrDeleteAttr = (key: string, value: number | undefined): void => {
+		if (value !== undefined && Number.isFinite(value) && value > 1) {
+			tblPr[key] = String(value);
+		} else {
+			delete tblPr[key];
+		}
+	};
+	setOrDeleteAttr('@_bandRowCycle', tableData.bandRowCycle);
+	setOrDeleteAttr('@_bandColCycle', tableData.bandColCycle);
+
 	// Default to PowerPoint's Medium Style 2 - Accent 1 when the caller
 	// didn't pick a style. Without an `<a:tableStyleId>`, PowerPoint renders
 	// the table with no borders and no fill.

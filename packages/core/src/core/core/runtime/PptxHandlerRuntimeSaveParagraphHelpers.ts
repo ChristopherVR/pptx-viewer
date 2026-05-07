@@ -112,9 +112,23 @@ export function buildParagraphPropertiesXml(
 		paragraphProps['@_hangingPunct'] = textStyle.hangingPunctuation ? '1' : '0';
 	}
 
+	// `a:defRPr` — paragraph default run properties. CT_TextParagraphProperties
+	// places `defRPr` *before* the bullet group in document order. fast-xml-parser
+	// emits keys in insertion order, so assign here ahead of the bullet block.
+	if (textStyle?.paragraphDefaultRunPropertiesXml) {
+		paragraphProps['a:defRPr'] = textStyle.paragraphDefaultRunPropertiesXml;
+	}
+
 	// Bullet properties
 	if (bulletInfo) {
 		applyBulletProperties(paragraphProps, bulletInfo);
+	}
+
+	// `a:extLst` is the very last child of CT_TextParagraphProperties. Re-emit
+	// the captured opaque subtree verbatim when present so authored extensions
+	// survive a round-trip.
+	if (textStyle?.paragraphPropertiesExtLstXml) {
+		paragraphProps['a:extLst'] = textStyle.paragraphPropertiesExtLstXml;
 	}
 
 	return paragraphProps;
@@ -137,6 +151,11 @@ export function applyBulletProperties(paragraphProps: XmlObject, bulletInfo: Bul
 	// parsed model captured the marker.
 	if (bulletInfo.colorInherit) {
 		paragraphProps['a:buClrTx'] = {};
+	} else if (bulletInfo.colorXml) {
+		// Re-emit the original colour-choice node (a:schemeClr / a:sysClr /
+		// a:prstClr / a:srgbClr plus any colour transforms) verbatim so themed
+		// bullet colours survive a round-trip.
+		paragraphProps['a:buClr'] = bulletInfo.colorXml;
 	} else if (bulletInfo.color) {
 		const colorHex = bulletInfo.color.replace('#', '');
 		paragraphProps['a:buClr'] = {

@@ -1,4 +1,5 @@
 import type { ShapeStyle, XmlObject } from '../../types';
+import { buildEffectDagTreeFromXml } from './effect-dag-containers';
 import {
 	extractDagGrayscale,
 	extractDagBiLevel,
@@ -58,6 +59,16 @@ export class PptxEffectDagExtractor implements IPptxEffectDagExtractor {
 
 		// Preserve raw XML for round-trip save
 		style.effectDagXml = effectDag;
+
+		// Typed structural tree — captures the four CT_EffectContainer nodes
+		// (`a:cont`, `a:blend`, `a:xfrmEffect`, `a:relOff`) and preserves any
+		// other inner effect verbatim as a raw leaf. Round-trip serialisation
+		// continues to use the raw XML above; the typed tree is exposed for
+		// downstream consumers and tests.
+		const tree = buildEffectDagTreeFromXml(effectDag);
+		if (tree) {
+			style.effectDagTree = tree;
+		}
 
 		// ── Standard effectLst-compatible effects inside the DAG ──
 		this.extractDagShadow(effectDag, style);
@@ -218,3 +229,8 @@ export {
 	extractDagDuotone,
 	extractDagFillOverlay,
 } from './effect-dag-specific-helpers';
+export {
+	parseEffectDagContainer,
+	buildEffectDagTreeFromXml,
+	serializeEffectDagContainer,
+} from './effect-dag-containers';

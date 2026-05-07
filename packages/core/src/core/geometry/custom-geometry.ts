@@ -3,10 +3,14 @@
  * SVG path data strings, plus serialization to/from OOXML a:custGeom XML.
  */
 import type {
+	AdjustHandlePolar,
+	AdjustHandleXY,
+	ConnectionSite,
 	CustomGeometryPath,
 	CustomGeometryPoint,
 	CustomGeometryRawData,
 	CustomGeometrySegment,
+	CustomGeometryTextRect,
 	XmlObject,
 } from '../types';
 import { ooxmlArcToSvg } from './guide-formula-paths';
@@ -169,12 +173,133 @@ function pointToXml(pt: CustomGeometryPoint): XmlObject {
 }
 
 /**
+ * Optional typed inputs for {@link customGeometryPathsToXml}.
+ *
+ * When typed values are provided they take precedence over the matching
+ * raw-XML slot in {@link CustomGeometryRawData} so SDK-built shapes that
+ * never carried raw XML still emit a populated `a:ahLst` / `a:cxnLst` /
+ * `a:rect`.
+ */
+export interface CustomGeometryTypedExtras {
+	adjustHandlesXY?: AdjustHandleXY[];
+	adjustHandlesPolar?: AdjustHandlePolar[];
+	connectionSites?: ConnectionSite[];
+	textRect?: CustomGeometryTextRect;
+}
+
+function adjustHandleXyToXml(handle: AdjustHandleXY): XmlObject {
+	const node: XmlObject = {};
+	if (handle.gdRefX !== undefined) {
+		node['@_gdRefX'] = handle.gdRefX;
+	}
+	if (handle.gdRefY !== undefined) {
+		node['@_gdRefY'] = handle.gdRefY;
+	}
+	if (handle.minX !== undefined) {
+		node['@_minX'] = handle.minX;
+	}
+	if (handle.maxX !== undefined) {
+		node['@_maxX'] = handle.maxX;
+	}
+	if (handle.minY !== undefined) {
+		node['@_minY'] = handle.minY;
+	}
+	if (handle.maxY !== undefined) {
+		node['@_maxY'] = handle.maxY;
+	}
+	const pos: XmlObject = {};
+	if (handle.posX !== undefined) {
+		pos['@_x'] = handle.posX;
+	}
+	if (handle.posY !== undefined) {
+		pos['@_y'] = handle.posY;
+	}
+	if (Object.keys(pos).length > 0) {
+		node['a:pos'] = pos;
+	}
+	return node;
+}
+
+function adjustHandlePolarToXml(handle: AdjustHandlePolar): XmlObject {
+	const node: XmlObject = {};
+	if (handle.gdRefR !== undefined) {
+		node['@_gdRefR'] = handle.gdRefR;
+	}
+	if (handle.gdRefAng !== undefined) {
+		node['@_gdRefAng'] = handle.gdRefAng;
+	}
+	if (handle.minR !== undefined) {
+		node['@_minR'] = handle.minR;
+	}
+	if (handle.maxR !== undefined) {
+		node['@_maxR'] = handle.maxR;
+	}
+	if (handle.minAng !== undefined) {
+		node['@_minAng'] = handle.minAng;
+	}
+	if (handle.maxAng !== undefined) {
+		node['@_maxAng'] = handle.maxAng;
+	}
+	const pos: XmlObject = {};
+	if (handle.posX !== undefined) {
+		pos['@_x'] = handle.posX;
+	}
+	if (handle.posY !== undefined) {
+		pos['@_y'] = handle.posY;
+	}
+	if (Object.keys(pos).length > 0) {
+		node['a:pos'] = pos;
+	}
+	return node;
+}
+
+function connectionSiteToXml(site: ConnectionSite): XmlObject {
+	const node: XmlObject = {};
+	if (site.ang !== undefined) {
+		node['@_ang'] = site.ang;
+	}
+	const pos: XmlObject = {};
+	if (site.posX !== undefined) {
+		pos['@_x'] = site.posX;
+	}
+	if (site.posY !== undefined) {
+		pos['@_y'] = site.posY;
+	}
+	if (Object.keys(pos).length > 0) {
+		node['a:pos'] = pos;
+	}
+	return node;
+}
+
+function textRectToXml(rect: CustomGeometryTextRect): XmlObject {
+	const node: XmlObject = {};
+	if (rect.l !== undefined) {
+		node['@_l'] = rect.l;
+	}
+	if (rect.t !== undefined) {
+		node['@_t'] = rect.t;
+	}
+	if (rect.r !== undefined) {
+		node['@_r'] = rect.r;
+	}
+	if (rect.b !== undefined) {
+		node['@_b'] = rect.b;
+	}
+	return node;
+}
+
+/**
  * Serialize structured custom geometry paths to an OOXML `a:custGeom` XML object.
  *
- * Produces a complete custom geometry XML structure including empty
+ * Produces a complete custom geometry XML structure including
  * `a:avLst`, `a:gdLst`, `a:ahLst`, `a:cxnLst`, and a `a:rect`
  * referencing the built-in position variables. The `a:pathLst`
  * contains the serialized path segments.
+ *
+ * Typed extras (`extras.adjustHandlesXY`/`Polar`, `connectionSites`, `textRect`)
+ * take precedence over the raw-XML slot they correspond to. This lets
+ * SDK-built shapes emit populated handle/connection/rect data even though
+ * they never round-tripped any raw XML.
  *
  * @param paths - Array of structured custom geometry paths to serialize.
  * @returns An XML object representing the complete `a:custGeom` element.
@@ -182,6 +307,7 @@ function pointToXml(pt: CustomGeometryPoint): XmlObject {
 export function customGeometryPathsToXml(
 	paths: CustomGeometryPath[],
 	rawData?: CustomGeometryRawData,
+	extras?: CustomGeometryTypedExtras,
 ): XmlObject {
 	const xmlPaths: XmlObject[] = paths.map((path) => {
 		const pathXml: XmlObject = {
@@ -264,12 +390,47 @@ export function customGeometryPathsToXml(
 		return pathXml;
 	});
 
+	// Build typed a:ahLst when typed extras present
+	let ahLstXml: XmlObject | undefined;
+	const typedXy = extras?.adjustHandlesXY ?? [];
+	const typedPolar = extras?.adjustHandlesPolar ?? [];
+	if (typedXy.length > 0 || typedPolar.length > 0) {
+		const node: XmlObject = {};
+		if (typedXy.length > 0) {
+			const items = typedXy.map(adjustHandleXyToXml);
+			node['a:ahXY'] = items.length === 1 ? items[0] : items;
+		}
+		if (typedPolar.length > 0) {
+			const items = typedPolar.map(adjustHandlePolarToXml);
+			node['a:ahPolar'] = items.length === 1 ? items[0] : items;
+		}
+		ahLstXml = node;
+	} else if (rawData?.ahLstXml !== undefined) {
+		ahLstXml = rawData.ahLstXml as XmlObject;
+	}
+
+	let cxnLstXml: XmlObject | undefined;
+	const typedCxn = extras?.connectionSites ?? [];
+	if (typedCxn.length > 0) {
+		const items = typedCxn.map(connectionSiteToXml);
+		cxnLstXml = { 'a:cxn': items.length === 1 ? items[0] : items };
+	} else if (rawData?.cxnLstXml !== undefined) {
+		cxnLstXml = rawData.cxnLstXml as XmlObject;
+	}
+
+	let rectXml: XmlObject | undefined;
+	if (extras?.textRect && Object.keys(extras.textRect).length > 0) {
+		rectXml = textRectToXml(extras.textRect);
+	} else if (rawData?.rectXml !== undefined) {
+		rectXml = rawData.rectXml as XmlObject;
+	}
+
 	const result: XmlObject = {
 		'a:avLst': {},
 		'a:gdLst': (rawData?.gdLstXml as XmlObject | undefined) ?? {},
-		'a:ahLst': (rawData?.ahLstXml as XmlObject | undefined) ?? {},
-		'a:cxnLst': (rawData?.cxnLstXml as XmlObject | undefined) ?? {},
-		'a:rect': (rawData?.rectXml as XmlObject | undefined) ?? {
+		'a:ahLst': ahLstXml ?? {},
+		'a:cxnLst': cxnLstXml ?? {},
+		'a:rect': rectXml ?? {
 			'@_l': 'l',
 			'@_t': 't',
 			'@_r': 'r',

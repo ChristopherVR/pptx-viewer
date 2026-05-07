@@ -20,6 +20,8 @@ import {
 	extractIterate,
 	extractCommand,
 	extractOleChartBuilds,
+	extractSmartArtBuilds,
+	extractGraphicBuilds,
 } from './native-animation-extended-helpers';
 import {
 	extractSoundAction,
@@ -31,6 +33,8 @@ import {
 	extractTriggerShapeId,
 	ensureArray,
 	parseConditionList,
+	captureRoundTripCTnAttrs,
+	extractAfterEffect,
 } from './native-animation-helpers';
 
 /**
@@ -84,10 +88,17 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 			// Parse interactive sequences (sibling p:seq nodes with trigger shape)
 			this.parseInteractiveSequences(rootPar as XmlObject, animations);
 
-			// Parse p:bldLst to attach text build info to animations
-			applyBuildList(timing as XmlObject, animations);
+			// Walk for media (p:audio / p:video) entries and emit a
+			// PptxNativeAnimation per node so the timeline order is preserved
+			// alongside other animations. Media-trim metadata remains the
+			// responsibility of PptxHandlerRuntimeMediaTimingParsing — this
+			// pass only mints the typed entries.
+			this.parseMediaAnimations(timing as XmlObject, animations);
 
 			// Parse p:bldOleChart entries and attach OLE chart build info
+			// before running the bldP pass — applyBuildList relies on the
+			// groupId being set so its grpId-fallback can find the right
+			// animation node.
 			const bldLst = (timing as XmlObject)['p:bldLst'] as XmlObject | undefined;
 			const oleChartBuilds = extractOleChartBuilds(bldLst);
 			for (const entry of oleChartBuilds) {
@@ -97,6 +108,35 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 					}
 				}
 			}
+
+			// SmartArt diagram builds (p:bldDgm) — attach the build mode so
+			// downstream renderers / writers know which diagram-build sequence
+			// to emit.
+			const smartArtBuilds = extractSmartArtBuilds(bldLst);
+			for (const entry of smartArtBuilds) {
+				for (const anim of animations) {
+					if (anim.targetId === entry.spid) {
+						anim.smartArtBuild = entry.bld;
+					}
+				}
+			}
+
+			// Generic graphic-frame builds (p:bldGraphic) — attach the build
+			// mode for non-OLE graphic frames (pictures, generic content).
+			const graphicBuilds = extractGraphicBuilds(bldLst);
+			for (const entry of graphicBuilds) {
+				for (const anim of animations) {
+					if (anim.targetId === entry.spid) {
+						anim.graphicBuild = entry.bld;
+					}
+				}
+			}
+
+			// Parse p:bldLst to attach text build info to animations.
+			// Run after the OLE/SmartArt/Graphic merges so the grpId fallback
+			// in applyBuildList can reach groupId-tagged animations whose
+			// targetId differs from the bldP's spid.
+			applyBuildList(timing as XmlObject, animations);
 
 			return animations.length > 0 ? animations : undefined;
 		} catch (error) {
@@ -196,6 +236,9 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 				const cmdInfo = extractCommand(childTnList);
 				const textTarget = this.extractTextTargetFromCTn(cTn);
 				const keyframes = extractChildKeyframes(childTnList);
+				// Round-trip surface for cTn attrs that don't have a typed home.
+				const roundTripAttrs = captureRoundTripCTnAttrs(cTn);
+				const afterEffectFlag = extractAfterEffect(cTn);
 
 				animations.push({
 					targetId,
@@ -233,6 +276,8 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 					commandType: cmdInfo.commandType,
 					commandString: cmdInfo.commandString,
 					textTarget: textTarget ?? undefined,
+					cTnAttributes: roundTripAttrs,
+					afterEffect: afterEffectFlag,
 				});
 			}
 
@@ -268,6 +313,86 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 		}
 		for (const sequence of directSequences) {
 			this.walkTimingTree(sequence, animations, currentTrigger);
+		}
+	}
+
+	/**
+	 * Walk the timing tree for `p:audio` / `p:video` nodes and emit a
+	 * `kind: 'media'` PptxNativeAnimation entry per media node, capturing the
+	 * target shape id, optional `afterEffect` flag, and opaque round-trip
+	 * cTn attributes. This puts media playback nodes in the same typed list
+	 * as preset-driven animations so callers can reason about timeline order.
+	 *
+	 * Trim values, fade durations, bookmarks etc. are intentionally NOT
+	 * captured here — they remain owned by
+	 * `PptxHandlerRuntimeMediaTimingParsing`'s media-timing map.
+	 */
+	private parseMediaAnimations(timing: XmlObject, animations: PptxNativeAnimation[]): void {
+		this.collectMediaNodes(timing, animations);
+	}
+
+	/**
+	 * Recursively descend into the timing tree and push a media-kind entry
+	 * for each `p:audio` / `p:video` node found.
+	 */
+	private collectMediaNodes(node: XmlObject | undefined, animations: PptxNativeAnimation[]): void {
+		if (!node) {
+			return;
+		}
+
+		for (const tag of ['p:audio', 'p:video'] as const) {
+			const mediaNodes = ensureArray(node[tag]);
+			for (const mediaNode of mediaNodes) {
+				const cMediaNode = mediaNode['p:cMediaNode'] as XmlObject | undefined;
+				if (!cMediaNode) {
+					continue;
+				}
+				const tgtEl = cMediaNode['p:tgtEl'] as XmlObject | undefined;
+				const spTgt = tgtEl?.['p:spTgt'] as XmlObject | undefined;
+				const targetId = spTgt?.['@_spid'] ? String(spTgt['@_spid']) : undefined;
+				if (!targetId) {
+					continue;
+				}
+
+				const cTn = cMediaNode['p:cTn'] as XmlObject | undefined;
+				const roundTripAttrs = cTn ? captureRoundTripCTnAttrs(cTn) : undefined;
+				const afterEffectFlag = cTn ? extractAfterEffect(cTn) : undefined;
+				const durationMs =
+					cTn && cTn['@_dur'] !== undefined && String(cTn['@_dur']) !== 'indefinite'
+						? Number.parseInt(String(cTn['@_dur']), 10)
+						: undefined;
+
+				animations.push({
+					kind: 'media',
+					mediaType: tag === 'p:audio' ? 'audio' : 'video',
+					targetId,
+					durationMs:
+						durationMs !== undefined && !Number.isNaN(durationMs) ? durationMs : undefined,
+					cTnAttributes: roundTripAttrs,
+					afterEffect: afterEffectFlag,
+				});
+			}
+		}
+
+		// Descend into the timing tree containers.
+		const cTn = node['p:cTn'] as XmlObject | undefined;
+		const childTnList = cTn?.['p:childTnLst'] as XmlObject | undefined;
+		if (childTnList) {
+			for (const container of ['p:par', 'p:seq', 'p:excl'] as const) {
+				const children = ensureArray(childTnList[container]);
+				for (const child of children) {
+					this.collectMediaNodes(child, animations);
+				}
+			}
+			// Also inspect direct media children inside childTnLst.
+			this.collectMediaNodes(childTnList, animations);
+		}
+
+		for (const container of ['p:par', 'p:seq', 'p:excl', 'p:tnLst'] as const) {
+			const children = ensureArray(node[container]);
+			for (const child of children) {
+				this.collectMediaNodes(child, animations);
+			}
 		}
 	}
 

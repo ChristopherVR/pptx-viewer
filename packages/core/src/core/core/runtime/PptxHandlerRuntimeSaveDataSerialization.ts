@@ -12,6 +12,7 @@ import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRunti
 import {
 	buildChartPoints,
 	replaceFirstTextValueInTree,
+	serializeCellExtraAttributes,
 	serializeCellMergeAttributes,
 	serializeTablePropertyFlags,
 } from './save-table-merge-helpers';
@@ -78,6 +79,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						if (cell.style) {
 							this.writeTableCellStyle(xmlCell, cell.style);
 						}
+						serializeCellExtraAttributes(xmlCell, cell.extraAttributes);
 					}
 				}
 				return;
@@ -110,6 +112,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					if (cell.style) {
 						this.writeTableCellStyle(xmlCell, cell.style);
 					}
+
+					// Round-trip opaque tcPr attributes (horzOverflow,
+					// anchorCtr, headers, hideSlicers, slicerCacheId) that
+					// don't yet have typed equivalents on the cell-style
+					// shape but must be preserved across save cycles.
+					serializeCellExtraAttributes(xmlCell, cell.extraAttributes);
 				}
 			}
 		} catch (e) {

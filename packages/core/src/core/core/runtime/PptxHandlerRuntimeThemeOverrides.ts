@@ -1,6 +1,9 @@
 import { XmlObject } from '../../types';
 import type { PptxThemeFormatScheme } from '../../types';
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeThemeFormatScheme';
+import {
+	PptxHandlerRuntime as PptxHandlerRuntimeBase,
+	extractFillStyleListChildOrder,
+} from './PptxHandlerRuntimeThemeFormatScheme';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -8,13 +11,23 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * {@link PptxThemeFormatScheme}.  Each sub-list (fillStyleLst, lnStyleLst,
 	 * effectStyleLst, bgFillStyleLst) contains up to three intensity levels
 	 * (subtle / moderate / intense) referenced by 1-based index.
+	 *
+	 * When `rawXml` is supplied (the original theme/themeOverride XML
+	 * source), the document order of fill children is recovered via a
+	 * targeted regex scan and threaded into {@link parseFillStyleList} so
+	 * mixed solid/grad/blip/grpFill lists round-trip in source order even
+	 * though fast-xml-parser collapses heterogeneous siblings into typed
+	 * buckets.
 	 */
-	protected parseFormatScheme(fmtScheme: XmlObject): PptxThemeFormatScheme {
+	protected parseFormatScheme(fmtScheme: XmlObject, rawXml?: string): PptxThemeFormatScheme {
 		const name = String(fmtScheme['@_name'] || '').trim() || undefined;
+
+		const fillOrder = extractFillStyleListChildOrder(rawXml, 'a:fillStyleLst');
+		const bgFillOrder = extractFillStyleListChildOrder(rawXml, 'a:bgFillStyleLst');
 
 		// --- Fill styles (a:fillStyleLst) ---
 		const fillStyleLst = fmtScheme['a:fillStyleLst'] as XmlObject | undefined;
-		const fillStyles = this.parseFillStyleList(fillStyleLst);
+		const fillStyles = this.parseFillStyleList(fillStyleLst, fillOrder);
 
 		// --- Line styles (a:lnStyleLst) ---
 		const lnStyleLst = fmtScheme['a:lnStyleLst'] as XmlObject | undefined;
@@ -26,7 +39,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// --- Background fill styles (a:bgFillStyleLst) ---
 		const bgFillStyleLst = fmtScheme['a:bgFillStyleLst'] as XmlObject | undefined;
-		const backgroundFillStyles = this.parseFillStyleList(bgFillStyleLst);
+		const backgroundFillStyles = this.parseFillStyleList(bgFillStyleLst, bgFillOrder);
 
 		return {
 			name,

@@ -185,6 +185,11 @@ function applyJoinCapCompound(lineNode: XmlObject, style: ShapeStyle): void {
 	) {
 		style.compoundLine = compoundValue as ShapeStyle['compoundLine'];
 	}
+
+	const algnValue = String(lineNode['@_algn'] || '').trim();
+	if (algnValue === 'ctr' || algnValue === 'in') {
+		style.lineAlignment = algnValue;
+	}
 }
 
 function applyLineEffects(

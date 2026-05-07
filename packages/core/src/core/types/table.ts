@@ -65,10 +65,10 @@ export interface PptxTableCellStyle {
 	borderRightColor?: string;
 	align?: 'left' | 'center' | 'right' | 'justify';
 	vAlign?: 'top' | 'middle' | 'bottom';
-	/** Text direction from `a:tcPr/@vert`. */
+	/** Text direction from `a:tcPr/@vert` (spec values from CT_TextVerticalType). */
 	textDirection?:
-		| 'vertical'
-		| 'vertical270'
+		| 'vert'
+		| 'vert270'
 		| 'eaVert'
 		| 'wordArtVert'
 		| 'wordArtVertRtl'
@@ -164,6 +164,14 @@ export interface PptxTableCell {
 	vMerge?: boolean;
 	/** Whether this cell is horizontally merged with the cell to the left (gridSpan continuation). */
 	hMerge?: boolean;
+	/**
+	 * Opaque round-trip storage for `a:tcPr` attributes that don't yet have
+	 * typed equivalents on {@link PptxTableCellStyle} (e.g. `horzOverflow`,
+	 * `anchorCtr`, `headers`, `hideSlicers`, `slicerCacheId`). Keys are the
+	 * raw XML attribute names without the `@_` prefix used by
+	 * fast-xml-parser. Re-emitted verbatim by the save writer when present.
+	 */
+	extraAttributes?: Record<string, string>;
 }
 
 /**
@@ -229,6 +237,8 @@ export interface PptxTableData {
 	bandRowCycle?: number;
 	/** Number of columns per banding group (default 1). */
 	bandColCycle?: number;
+	/** Right-to-left table layout from `a:tblPr/@rtl`. */
+	rtl?: boolean;
 }
 
 // ==========================================================================
@@ -289,11 +299,27 @@ export interface ParsedTableStyleText {
 	fontShade?: number;
 }
 
+/**
+ * Table background style (CT_TableBackgroundStyle, ECMA-376 §21.1.3.7).
+ *
+ * Corresponds to the `<a:tblBg>` child of `<a:tblStyle>`. Currently
+ * captures only the resolved scheme-fill colour (verbatim XML for fill
+ * / effect references is preserved separately by the save path).
+ */
+export interface ParsedTableBackground {
+	/** Solid fill (resolved from `a:fill > a:solidFill > a:schemeClr`). */
+	fill?: ParsedTableStyleFill;
+	/** Has an `a:effectLst` child that should be round-tripped. */
+	hasEffectLst?: boolean;
+}
+
 export interface ParsedTableStyleEntry {
 	styleId: string;
 	styleName?: string;
 	/** Dominant accent key derived from fills (e.g. `accent1`). */
 	accentKey?: string;
+	/** Table-level background (`<a:tblBg>`). */
+	tableBackground?: ParsedTableBackground;
 	wholeTblFill?: ParsedTableStyleFill;
 	band1HFill?: ParsedTableStyleFill;
 	band2HFill?: ParsedTableStyleFill;
@@ -303,6 +329,11 @@ export interface ParsedTableStyleEntry {
 	lastRowFill?: ParsedTableStyleFill;
 	firstColFill?: ParsedTableStyleFill;
 	lastColFill?: ParsedTableStyleFill;
+	/** Corner cell fills (`<a:seCell>`, `<a:swCell>`, `<a:neCell>`, `<a:nwCell>`). */
+	seCellFill?: ParsedTableStyleFill;
+	swCellFill?: ParsedTableStyleFill;
+	neCellFill?: ParsedTableStyleFill;
+	nwCellFill?: ParsedTableStyleFill;
 	/** Per-role text styling from a:tcTxStyle. */
 	wholeTblText?: ParsedTableStyleText;
 	firstRowText?: ParsedTableStyleText;
@@ -313,6 +344,10 @@ export interface ParsedTableStyleEntry {
 	band2HText?: ParsedTableStyleText;
 	band1VText?: ParsedTableStyleText;
 	band2VText?: ParsedTableStyleText;
+	seCellText?: ParsedTableStyleText;
+	swCellText?: ParsedTableStyleText;
+	neCellText?: ParsedTableStyleText;
+	nwCellText?: ParsedTableStyleText;
 }
 
 /**

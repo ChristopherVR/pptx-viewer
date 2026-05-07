@@ -81,6 +81,14 @@ export type PptxAnimationTrigger =
 	| 'afterDelay';
 
 /**
+ * Native animation kind. The historic shape-targeted preset animations are
+ * implicitly the default kind (`undefined`). Media animations (`p:audio`,
+ * `p:video`) emit dedicated entries so playback order on the slide timeline
+ * is preserved alongside other animations.
+ */
+export type PptxNativeAnimationKind = 'media';
+
+/**
  * Parsed native animation record from `p:timing / p:tnLst`.
  *
  * Represents a single animation node in the OOXML timing tree,
@@ -181,6 +189,47 @@ export interface PptxNativeAnimation {
 	commandString?: string;
 	/** Iteration configuration from `p:iterate`. */
 	iterate?: PptxAnimationIterate;
+	/**
+	 * Discriminator for non-preset animation kinds. When `undefined`, the
+	 * entry represents the default shape-effect animation. The `'media'`
+	 * kind represents a `p:audio` / `p:video` timing node, captured here so
+	 * playback order in the timeline is preserved alongside other animations.
+	 */
+	kind?: PptxNativeAnimationKind;
+	/**
+	 * For `kind === 'media'`, identifies whether this is an audio or video
+	 * media node so writers know which OOXML element to re-emit.
+	 */
+	mediaType?: 'audio' | 'video';
+	/**
+	 * SmartArt build attribute (`p:bldDgm/@bld`) when this animation is
+	 * associated with a SmartArt diagram build. Common values include
+	 * `whole`, `one`, `lvlOne`, `lvlAtOnce`.
+	 */
+	smartArtBuild?: string;
+	/**
+	 * Graphic-frame build attribute (`p:bldGraphic/@bld`) when this animation
+	 * is associated with a generic graphic frame build (charts, tables, etc.
+	 * that aren't OLE charts).
+	 */
+	graphicBuild?: string;
+	/**
+	 * Opaque map of `p:cTn` attributes that don't have a typed home on this
+	 * interface but must round-trip through parse → save. Keys are stored
+	 * verbatim including the `@_` prefix used by the underlying XML parser
+	 * (e.g. `@_evtFilter`, `@_display`, `@_masterRel`, `@_nodePh`,
+	 * `@_endSync`, `@_progress`). The `subTnLst` child element is also
+	 * preserved here under the literal key `p:subTnLst`. The `afterEffect`
+	 * attribute is surfaced separately as a typed boolean ({@link afterEffect})
+	 * because it changes write semantics for subsequent timing nodes.
+	 */
+	cTnAttributes?: Record<string, unknown>;
+	/**
+	 * Whether the OOXML `p:cTn/@afterEffect` flag is set. Indicates this node
+	 * runs after the parent effect's main body has completed; affects how
+	 * subsequent peer nodes are sequenced when serialised back to OOXML.
+	 */
+	afterEffect?: boolean;
 }
 
 /**
@@ -216,11 +265,22 @@ export interface PptxColorAnimation {
 	colorSpace: 'hsl' | 'rgb';
 	/** Direction for HSL interpolation: "cw" (clockwise) or "ccw". */
 	direction?: 'cw' | 'ccw';
+	/**
+	 * Optional `p:animClr/@path` value preserved for round-trip. When set,
+	 * the colour sweep follows a path-based interpolation rather than the
+	 * straight cw/ccw arc. ECMA-376 §19.5.13 documents this attribute as a
+	 * companion to `@dir` for HSL colour-space animations.
+	 */
+	path?: string;
 	/** Starting color as hex string. */
 	fromColor?: string;
 	/** Ending color as hex string. */
 	toColor?: string;
-	/** Color delta (for "by" animations) as hex string. */
+	/**
+	 * Color delta (for "by" animations) as hex string. For HSL colour-space
+	 * animations the value encodes a delta over hue/sat/lum and is preserved
+	 * verbatim from the source.
+	 */
 	byColor?: string;
 	/**
 	 * Target attribute from `p:attrNameLst` (e.g. "fillcolor", "style.color",

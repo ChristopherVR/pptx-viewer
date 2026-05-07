@@ -53,7 +53,11 @@ export type MaterialPresetType =
 	| 'softmetal'
 	| 'clear'
 	| 'powder'
-	| 'translucentPowder';
+	| 'translucentPowder'
+	| 'legacyMatte'
+	| 'legacyPlastic'
+	| 'legacyMetal'
+	| 'legacyWireframe';
 
 /**
  * 3D text body extrusion/bevel from `a:bodyPr/a:sp3d`.

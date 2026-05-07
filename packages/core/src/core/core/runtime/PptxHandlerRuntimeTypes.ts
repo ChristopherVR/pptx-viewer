@@ -29,6 +29,18 @@ export interface PlaceholderInfo {
 	type?: string;
 	/** Size hint (`@_sz`) — e.g. "half", "quarter" for layout hinting. */
 	sz?: string;
+	/**
+	 * Orientation (`@_orient`) — only `"vert"` is meaningful per the schema
+	 * (`ST_Direction`). Indicates the placeholder hosts a vertically-oriented
+	 * text body and should preserve that on round-trip.
+	 */
+	orient?: 'vert';
+	/**
+	 * Whether the placeholder defines its own custom prompt text
+	 * (`@_hasCustomPrompt`). Defaults to `false`. Preserved so that authoring
+	 * tools see the same flag they wrote.
+	 */
+	hasCustomPrompt?: boolean;
 }
 
 /**

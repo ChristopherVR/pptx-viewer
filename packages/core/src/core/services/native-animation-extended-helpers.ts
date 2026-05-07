@@ -31,10 +31,14 @@ export function extractColorAnimation(
 	const colorSpace: 'hsl' | 'rgb' = clrSpc === 'hsl' ? 'hsl' : 'rgb';
 	const dir = String(node['@_dir'] || '').toLowerCase();
 	const direction = dir === 'cw' ? 'cw' : dir === 'ccw' ? 'ccw' : undefined;
+	// ECMA-376 §19.5.13 also defines `@path` as a companion HSL-direction
+	// hint. Preserve verbatim for round-trip — we don't attempt to interpret
+	// the value here, only ensure it survives a parse/save cycle.
+	const path = node['@_path'] !== undefined ? String(node['@_path']) : undefined;
 
 	const fromColor = extractColorValue(node['p:from'] as XmlObject | undefined);
 	const toColor = extractColorValue(node['p:to'] as XmlObject | undefined);
-	const byColor = extractColorValue(node['p:by'] as XmlObject | undefined);
+	const byColor = extractHslDeltaOrColorValue(node['p:by'] as XmlObject | undefined, colorSpace);
 
 	// Extract target attribute from p:cBhvr/p:attrNameLst/p:attrName
 	let targetAttribute: string | undefined;
@@ -52,11 +56,51 @@ export function extractColorAnimation(
 	return {
 		colorSpace,
 		direction,
+		path,
 		fromColor,
 		toColor,
 		byColor,
 		targetAttribute,
 	};
+}
+
+/**
+ * Extract a `p:by` colour container, preserving HSL deltas as `#rrggbb`-style
+ * delta-hex (channels packed as `#HHSSLL` where each pair is the lower byte of
+ * the signed delta). For RGB animations behaves identically to
+ * {@link extractColorValue}. The intent is round-trip fidelity: the byte-packed
+ * form is reversible because we always emit it verbatim again through
+ * the value, and consumers that don't understand HSL deltas can ignore it.
+ */
+function extractHslDeltaOrColorValue(
+	colorContainer: XmlObject | undefined,
+	colorSpace: 'hsl' | 'rgb',
+): string | undefined {
+	if (!colorContainer) {
+		return undefined;
+	}
+
+	if (colorSpace === 'hsl') {
+		// CT_TLByHslColorTransform: hue (60000ths/degree), sat/lum (1000ths/percent)
+		const hsl = colorContainer['p:hsl'] as XmlObject | undefined;
+		if (hsl) {
+			const hueRaw = Number(hsl['@_h'] ?? 0);
+			const satRaw = Number(hsl['@_s'] ?? 0);
+			const lumRaw = Number(hsl['@_l'] ?? 0);
+			const hueByte = packSignedDeltaByte(Math.round(hueRaw / 60000));
+			const satByte = packSignedDeltaByte(Math.round(satRaw / 1000));
+			const lumByte = packSignedDeltaByte(Math.round(lumRaw / 1000));
+			return `#${hueByte}${satByte}${lumByte}`;
+		}
+	}
+
+	return extractColorValue(colorContainer);
+}
+
+/** Pack a signed integer into a two-digit two's-complement byte hex. */
+function packSignedDeltaByte(n: number): string {
+	const v = ((n % 256) + 256) % 256;
+	return v.toString(16).padStart(2, '0').toUpperCase();
 }
 
 /**

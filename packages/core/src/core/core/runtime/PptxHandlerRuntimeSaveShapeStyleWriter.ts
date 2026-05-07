@@ -215,6 +215,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 			(spPr['a:ln'] as XmlObject)['@_cmpd'] = shapeStyle.compoundLine;
 		}
+		// Line alignment (a:ln/@algn)
+		if (shapeStyle.lineAlignment !== undefined) {
+			if (!spPr['a:ln']) {
+				spPr['a:ln'] = {};
+			}
+			(spPr['a:ln'] as XmlObject)['@_algn'] = shapeStyle.lineAlignment;
+		}
 
 		// Line-level effects (a:ln/a:effectLst)
 		const lineEffectListXml = this.buildLineEffectListXml(shapeStyle);

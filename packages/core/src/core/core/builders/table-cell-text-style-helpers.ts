@@ -24,23 +24,17 @@ export function applyCellAlignmentStyle(
 
 	if (cellProperties['@_vert']) {
 		const vertical = String(cellProperties['@_vert']);
-		if (vertical === 'vert') {
-			style.textDirection = 'vertical';
-			hasStyle = true;
-		} else if (vertical === 'eaVert') {
-			style.textDirection = 'eaVert';
-			hasStyle = true;
-		} else if (vertical === 'wordArtVert') {
-			style.textDirection = 'wordArtVert';
-			hasStyle = true;
-		} else if (vertical === 'mongolianVert') {
-			style.textDirection = 'mongolianVert';
-			hasStyle = true;
-		} else if (vertical === 'vert270') {
-			style.textDirection = 'vertical270';
-			hasStyle = true;
-		} else if (vertical === 'wordArtVertRtl') {
-			style.textDirection = 'wordArtVertRtl';
+		// Spec values from CT_TextVerticalType (ECMA-376 §20.1.10.83) pass
+		// through verbatim so downstream code can re-emit them directly.
+		if (
+			vertical === 'vert' ||
+			vertical === 'vert270' ||
+			vertical === 'eaVert' ||
+			vertical === 'wordArtVert' ||
+			vertical === 'wordArtVertRtl' ||
+			vertical === 'mongolianVert'
+		) {
+			style.textDirection = vertical;
 			hasStyle = true;
 		}
 	}

@@ -2,89 +2,176 @@ import { XmlObject } from '../../types';
 import type { PptxThemeFillStyle, PptxThemeLineStyle, PptxThemeEffectStyle } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeLayoutElements';
 
+/**
+ * Ordered fill-child tag tokens recognised inside `a:fillStyleLst` /
+ * `a:bgFillStyleLst`. Used by {@link extractFillStyleListChildOrder} to
+ * recover document order from raw XML when fast-xml-parser has merged
+ * heterogeneous siblings into typed buckets.
+ */
+const FILL_LIST_CHILD_TAGS = [
+	'a:solidFill',
+	'a:gradFill',
+	'a:pattFill',
+	'a:noFill',
+	'a:grpFill',
+] as const;
+
+type FillListChildTag = (typeof FILL_LIST_CHILD_TAGS)[number];
+
+/**
+ * Recover the document order of fill children in an `a:fillStyleLst` /
+ * `a:bgFillStyleLst` block from a raw XML string by scanning the opening
+ * tags between the list element's `<a:fillStyleLst[ \t\n>]` and its
+ * closing tag. Returns an array of child tag names in source order.
+ *
+ * Returns an empty array when the listing tag isn't found or the raw XML
+ * is unavailable.
+ */
+export function extractFillStyleListChildOrder(
+	rawXml: string | undefined,
+	listTag: 'a:fillStyleLst' | 'a:bgFillStyleLst',
+): FillListChildTag[] {
+	if (!rawXml) {
+		return [];
+	}
+	const openRegex = new RegExp(`<${listTag.replace(':', '\\:')}\\b[^>]*>`);
+	const closeRegex = new RegExp(`</${listTag.replace(':', '\\:')}\\s*>`);
+	const openMatch = openRegex.exec(rawXml);
+	if (!openMatch) {
+		return [];
+	}
+	const startIdx = openMatch.index + openMatch[0].length;
+	const closeMatch = closeRegex.exec(rawXml.slice(startIdx));
+	if (!closeMatch) {
+		return [];
+	}
+	const inner = rawXml.slice(startIdx, startIdx + closeMatch.index);
+	const order: FillListChildTag[] = [];
+	const childRegex = /<a:(solidFill|gradFill|pattFill|noFill|grpFill)\b/g;
+	let match: RegExpExecArray | null;
+	while ((match = childRegex.exec(inner)) !== null) {
+		order.push(`a:${match[1]}` as FillListChildTag);
+	}
+	return order;
+}
+
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
-	 * Collect fill-style children from a style list node, preserving
-	 * document order.  Handles `a:solidFill`, `a:gradFill`, `a:pattFill`,
-	 * `a:noFill` in the order they appear.
+	 * Build a fill-style entry for one child node based on its tag.
 	 */
-	protected collectFillChildren(listNode: XmlObject): PptxThemeFillStyle[] {
+	private buildFillStyleEntry(tag: FillListChildTag, node: XmlObject): PptxThemeFillStyle {
+		switch (tag) {
+			case 'a:solidFill':
+				return {
+					kind: 'solid',
+					color: this.parseColor(node),
+					opacity: this.extractColorOpacity(node),
+					rawNode: node,
+				};
+			case 'a:gradFill':
+				return {
+					kind: 'gradient',
+					color: this.extractGradientFillColor(node),
+					opacity: this.extractGradientOpacity(node),
+					gradientStops: this.extractGradientStops(node),
+					gradientAngle: this.extractGradientAngle(node),
+					gradientType: this.extractGradientType(node),
+					gradientCss: this.extractGradientFillCss(node),
+					rawNode: node,
+				};
+			case 'a:pattFill':
+				return {
+					kind: 'pattern',
+					color: this.parseColor(node['a:fgClr']) || this.parseColor(node['a:bgClr']),
+					patternPreset: String(node['@_prst'] || '').trim() || undefined,
+					patternBackgroundColor: this.parseColor(node['a:bgClr']) || undefined,
+					rawNode: node,
+				};
+			case 'a:noFill':
+				return { kind: 'none', rawNode: node };
+			case 'a:grpFill':
+				return { kind: 'group', rawNode: node };
+		}
+	}
+
+	/**
+	 * Collect fill-style children from a style list node, preserving
+	 * document order when an `orderHint` is supplied (extracted from the
+	 * raw theme XML). Handles `a:solidFill`, `a:gradFill`, `a:pattFill`,
+	 * `a:noFill`, `a:grpFill`.
+	 *
+	 * fast-xml-parser without `preserveOrder` collapses heterogeneous
+	 * siblings into per-tag buckets and we lose the relative document
+	 * order. When the caller supplies an `orderHint` (a list of tag names
+	 * in source order recovered via {@link extractFillStyleListChildOrder})
+	 * we walk the buckets in step with the hint and emit entries in true
+	 * document order. Without a hint we fall back to the historical
+	 * solid → gradient → pattern → noFill → grpFill grouping.
+	 */
+	protected collectFillChildren(
+		listNode: XmlObject,
+		orderHint?: readonly FillListChildTag[],
+	): PptxThemeFillStyle[] {
+		const buckets: Record<FillListChildTag, XmlObject[]> = {
+			'a:solidFill': this.ensureArray(listNode['a:solidFill']) as XmlObject[],
+			'a:gradFill': this.ensureArray(listNode['a:gradFill']) as XmlObject[],
+			'a:pattFill': this.ensureArray(listNode['a:pattFill']) as XmlObject[],
+			'a:noFill': this.ensureArray(listNode['a:noFill']) as XmlObject[],
+			'a:grpFill': this.ensureArray(listNode['a:grpFill']) as XmlObject[],
+		};
+
+		if (orderHint && orderHint.length > 0) {
+			const cursors: Record<FillListChildTag, number> = {
+				'a:solidFill': 0,
+				'a:gradFill': 0,
+				'a:pattFill': 0,
+				'a:noFill': 0,
+				'a:grpFill': 0,
+			};
+			const ordered: PptxThemeFillStyle[] = [];
+			for (const tag of orderHint) {
+				const idx = cursors[tag];
+				const node = buckets[tag][idx];
+				if (node) {
+					ordered.push(this.buildFillStyleEntry(tag, node));
+					cursors[tag] = idx + 1;
+				}
+			}
+			// Append any nodes the hint did not cover (defensive).
+			for (const tag of FILL_LIST_CHILD_TAGS) {
+				while (cursors[tag] < buckets[tag].length) {
+					ordered.push(this.buildFillStyleEntry(tag, buckets[tag][cursors[tag]]));
+					cursors[tag] += 1;
+				}
+			}
+			return ordered;
+		}
+
+		// No order hint — fall back to typed grouping (legacy behaviour).
 		const results: PptxThemeFillStyle[] = [];
-
-		// Attempt to detect ordering via the parser's internal ordering.
-		// fast-xml-parser with `preserveOrder` would give us order, but since
-		// this codebase does not use that mode we need to handle each tag type.
-		// Typically a fill style list has exactly 3 entries (one per intensity).
-		const solidFills = this.ensureArray(listNode['a:solidFill']);
-		const gradFills = this.ensureArray(listNode['a:gradFill']);
-		const pattFills = this.ensureArray(listNode['a:pattFill']);
-		const noFills = this.ensureArray(listNode['a:noFill']);
-
-		// Heuristic: In nearly all real-world PPTX themes the fill style list
-		// is [solidFill, gradFill, gradFill] or [solidFill, solidFill, gradFill].
-		// Since fast-xml-parser loses relative ordering between different tags,
-		// we reconstruct a best-effort order: solid fills first, then gradient,
-		// then pattern, then noFill.  This matches the overwhelming majority of
-		// themes shipped by Microsoft and third parties.
-		for (const sf of solidFills) {
-			const node = sf as XmlObject;
-			results.push({
-				kind: 'solid',
-				color: this.parseColor(node),
-				opacity: this.extractColorOpacity(node),
-				rawNode: node,
-			});
+		for (const tag of FILL_LIST_CHILD_TAGS) {
+			for (const node of buckets[tag]) {
+				results.push(this.buildFillStyleEntry(tag, node));
+			}
 		}
-		for (const gf of gradFills) {
-			const node = gf as XmlObject;
-			results.push({
-				kind: 'gradient',
-				color: this.extractGradientFillColor(node),
-				opacity: this.extractGradientOpacity(node),
-				gradientStops: this.extractGradientStops(node),
-				gradientAngle: this.extractGradientAngle(node),
-				gradientType: this.extractGradientType(node),
-				gradientCss: this.extractGradientFillCss(node),
-				rawNode: node,
-			});
-		}
-		for (const pf of pattFills) {
-			const node = pf as XmlObject;
-			results.push({
-				kind: 'pattern',
-				color: this.parseColor(node['a:fgClr']) || this.parseColor(node['a:bgClr']),
-				patternPreset: String(node['@_prst'] || '').trim() || undefined,
-				patternBackgroundColor: this.parseColor(node['a:bgClr']) || undefined,
-				rawNode: node,
-			});
-		}
-		for (const _nf of noFills) {
-			results.push({ kind: 'none' });
-		}
-
 		return results;
 	}
 
 	/**
 	 * Parse each child of a `a:fillStyleLst` (or `a:bgFillStyleLst`).
-	 * Children can be `a:solidFill`, `a:gradFill`, `a:pattFill`, or `a:noFill`.
-	 * The list is ordered and 1-indexed by position.
+	 * Children can be `a:solidFill`, `a:gradFill`, `a:pattFill`,
+	 * `a:noFill`, or `a:grpFill`. The list is ordered and 1-indexed by
+	 * position; supply `orderHint` to recover document order when the
+	 * parser collapsed heterogeneous siblings.
 	 */
-	protected parseFillStyleList(listNode: XmlObject | undefined): PptxThemeFillStyle[] {
+	protected parseFillStyleList(
+		listNode: XmlObject | undefined,
+		orderHint?: readonly FillListChildTag[],
+	): PptxThemeFillStyle[] {
 		if (!listNode) {
 			return [];
 		}
-		const result: PptxThemeFillStyle[] = [];
-
-		// The OOXML spec puts solid/grad/patt fills directly as children in order.
-		// fast-xml-parser may merge same-tag siblings into an array.
-		// We iterate all possible fill child types and try to reconstruct order.
-		// A pragmatic approach: collect all children in document order.
-		const children = this.collectFillChildren(listNode);
-		for (const child of children) {
-			result.push(child);
-		}
-		return result;
+		return this.collectFillChildren(listNode, orderHint);
 	}
 
 	/**

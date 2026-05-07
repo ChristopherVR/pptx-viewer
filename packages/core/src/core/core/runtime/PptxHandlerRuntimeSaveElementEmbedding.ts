@@ -80,6 +80,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			spPr['a:custGeom'] = customGeometryPathsToXml(
 				elWithPaths.customGeometryPaths,
 				elWithPaths.customGeometryRawData,
+				{
+					adjustHandlesXY: elWithPaths.customGeometryAdjustHandlesXY,
+					adjustHandlesPolar: elWithPaths.customGeometryAdjustHandlesPolar,
+					connectionSites: elWithPaths.customGeometryConnectionSites,
+					textRect: elWithPaths.customGeometryTextRect,
+				},
 			);
 		} else if (spPr['a:prstGeom']) {
 			const presetGeometry =

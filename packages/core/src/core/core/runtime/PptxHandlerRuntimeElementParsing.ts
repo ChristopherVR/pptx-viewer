@@ -237,11 +237,30 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const idx = placeholderNode['@_idx'];
 		const type = placeholderNode['@_type'];
 		const sz = placeholderNode['@_sz'];
+		const orientRaw = placeholderNode['@_orient'];
+		const hasCustomPromptRaw = placeholderNode['@_hasCustomPrompt'];
+
+		const orient =
+			orientRaw !== undefined && String(orientRaw).trim().toLowerCase() === 'vert'
+				? 'vert'
+				: undefined;
+
+		let hasCustomPrompt: boolean | undefined;
+		if (hasCustomPromptRaw !== undefined) {
+			const v = String(hasCustomPromptRaw).trim().toLowerCase();
+			if (v === '1' || v === 'true') {
+				hasCustomPrompt = true;
+			} else if (v === '0' || v === 'false') {
+				hasCustomPrompt = false;
+			}
+		}
 
 		return {
 			idx: idx !== undefined ? String(idx) : undefined,
 			type: type !== undefined ? String(type).toLowerCase() : undefined,
 			sz: sz !== undefined ? String(sz).toLowerCase() : undefined,
+			orient,
+			hasCustomPrompt,
 		};
 	}
 

@@ -148,8 +148,14 @@ export interface PptxThemeFontScheme {
  * ```
  */
 export interface PptxThemeFillStyle {
-	/** Discriminator for the fill type. */
-	kind: 'solid' | 'gradient' | 'pattern' | 'none';
+	/**
+	 * Discriminator for the fill type.
+	 *
+	 * `'group'` corresponds to `<a:grpFill/>` — a fill that inherits the
+	 * containing group shape's fill at render time. Captured for round-trip
+	 * preservation in `fmtScheme/fillStyleLst`.
+	 */
+	kind: 'solid' | 'gradient' | 'pattern' | 'none' | 'group';
 	/** Pre-resolved colour (may be `undefined` when `phClr`-dependent). */
 	color?: string;
 	opacity?: number;

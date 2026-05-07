@@ -400,6 +400,14 @@ export function extractAnimationTargetId(cTn: XmlObject): string | undefined {
 /**
  * Parse `p:bldLst` from the timing element and attach text-build info
  * to matching animations.
+ *
+ * Matching is done first by `targetId === spid`. When a `bldP` entry also
+ * carries `@bldLvl`, ECMA-376 §19.5.6 ties it to a specific iteration group
+ * via `@grpId`. Animations whose `groupId` already equals the bldP `grpId`
+ * (set earlier by e.g. {@link extractOleChartBuilds} merge) get their
+ * build-level applied even when their `targetId` was assigned independently.
+ * This restores the spec-compliant fallback that previously matched only on
+ * shape id.
  */
 export function applyBuildList(timing: XmlObject, animations: PptxNativeAnimation[]): void {
 	const bldLst = timing['p:bldLst'] as XmlObject | undefined;
@@ -420,11 +428,26 @@ export function applyBuildList(timing: XmlObject, animations: PptxNativeAnimatio
 			bldP['@_bldLvl'] !== undefined ? Number.parseInt(String(bldP['@_bldLvl']), 10) : undefined;
 
 		for (const anim of animations) {
-			if (anim.targetId === spid) {
+			const matchesShape = anim.targetId === spid;
+			// grpId fallback: when the bldP carries an @bldLvl tied to a specific
+			// grpId, an animation already carrying that groupId is the intended
+			// recipient even if its targetId differs (ECMA-376 §19.5.6).
+			const matchesGrp =
+				bldLvl !== undefined &&
+				groupId !== undefined &&
+				anim.groupId !== undefined &&
+				anim.groupId === groupId;
+
+			if (matchesShape) {
 				anim.buildType = buildType;
 				anim.groupId = groupId;
 				if (bldLvl !== undefined && !Number.isNaN(bldLvl)) {
 					anim.buildLevel = bldLvl;
+				}
+			} else if (matchesGrp && bldLvl !== undefined && !Number.isNaN(bldLvl)) {
+				anim.buildLevel = bldLvl;
+				if (anim.buildType === undefined) {
+					anim.buildType = buildType;
 				}
 			}
 		}
@@ -475,6 +498,91 @@ export function extractTriggerShapeId(cTn: XmlObject): string | undefined {
 		}
 	}
 
+	return undefined;
+}
+
+/**
+ * `p:cTn` attributes that have first-class typed homes elsewhere on
+ * {@link PptxNativeAnimation}. They are excluded from the opaque
+ * round-trip map collected by {@link captureRoundTripCTnAttrs} so we don't
+ * duplicate state and risk drift between typed/untyped surfaces.
+ */
+const TYPED_CTN_ATTRS: ReadonlySet<string> = new Set([
+	'@_id',
+	'@_nodeType',
+	'@_presetClass',
+	'@_presetID',
+	'@_presetSubtype',
+	'@_dur',
+	'@_delay',
+	'@_repeatCount',
+	'@_autoRev',
+	'@_fill',
+	'@_accel',
+	'@_decel',
+	'@_restart',
+	'@_grpId',
+	// afterEffect is surfaced as a typed boolean separately
+	'@_afterEffect',
+]);
+
+/**
+ * `p:cTn` attribute names that the parse layer must capture verbatim so the
+ * write layer can re-emit them. Most are documented in ECMA-376 §19.5.27
+ * (CT_TLCommonTimeNodeData) and don't have first-class semantics in our
+ * editor model — they pass straight through.
+ */
+const OPAQUE_CTN_ATTRS: ReadonlyArray<string> = [
+	'@_evtFilter',
+	'@_display',
+	'@_masterRel',
+	'@_nodePh',
+	'@_endSync',
+	'@_progress',
+	// Additional CT_TLCommonTimeNodeData attributes we don't yet model.
+	'@_syncBehavior',
+	'@_tmFilter',
+];
+
+/**
+ * Collect opaque `p:cTn` attributes (and `p:subTnLst`) that don't have a
+ * typed home on {@link PptxNativeAnimation} so they can round-trip through
+ * parse → save unchanged.
+ *
+ * Keys are returned with the underlying parser's `@_` prefix preserved (or
+ * the literal `p:subTnLst` for the sub-time-node list). Returns `undefined`
+ * when nothing of interest was present.
+ */
+export function captureRoundTripCTnAttrs(cTn: XmlObject): Record<string, unknown> | undefined {
+	const out: Record<string, unknown> = {};
+	for (const key of OPAQUE_CTN_ATTRS) {
+		if (cTn[key] !== undefined && !TYPED_CTN_ATTRS.has(key)) {
+			out[key] = cTn[key];
+		}
+	}
+	const subTnLst = cTn['p:subTnLst'];
+	if (subTnLst !== undefined) {
+		out['p:subTnLst'] = subTnLst;
+	}
+	return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/**
+ * Parse the `p:cTn/@afterEffect` boolean. PowerPoint emits both `'1'` and
+ * `'true'` forms; both `'0'` and `'false'` (and absence) result in
+ * `undefined` so callers can treat it as a tri-state when needed.
+ */
+export function extractAfterEffect(cTn: XmlObject): boolean | undefined {
+	const raw = cTn['@_afterEffect'];
+	if (raw === undefined) {
+		return undefined;
+	}
+	if (raw === '1' || raw === 1 || raw === true || raw === 'true') {
+		return true;
+	}
+	if (raw === '0' || raw === 0 || raw === false || raw === 'false') {
+		return false;
+	}
 	return undefined;
 }
 

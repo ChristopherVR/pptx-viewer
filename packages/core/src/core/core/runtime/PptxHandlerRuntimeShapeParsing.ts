@@ -55,6 +55,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			let pathWidth: number | undefined;
 			let pathHeight: number | undefined;
 			let customGeometryRawData: ReturnType<typeof this.extractCustomGeometryRawData>;
+			let customGeometryAdjustHandlesXY: ReturnType<
+				typeof this.extractCustomGeometryAdjustHandles
+			>['xy'];
+			let customGeometryAdjustHandlesPolar: ReturnType<
+				typeof this.extractCustomGeometryAdjustHandles
+			>['polar'];
+			let customGeometryConnectionSites: ReturnType<
+				typeof this.extractCustomGeometryConnectionSites
+			>;
+			let customGeometryTextRect: ReturnType<typeof this.extractCustomGeometryTextRect>;
 
 			const custGeom = effectiveSpPr?.['a:custGeom'];
 			if (custGeom) {
@@ -69,6 +79,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					pathWidth = customPath.pathWidth;
 					pathHeight = customPath.pathHeight;
 					customGeometryRawData = this.extractCustomGeometryRawData(custGeom as XmlObject);
+					const typedHandles = this.extractCustomGeometryAdjustHandles(custGeom as XmlObject);
+					customGeometryAdjustHandlesXY = typedHandles.xy;
+					customGeometryAdjustHandlesPolar = typedHandles.polar;
+					customGeometryConnectionSites = this.extractCustomGeometryConnectionSites(
+						custGeom as XmlObject,
+					);
+					customGeometryTextRect = this.extractCustomGeometryTextRect(custGeom as XmlObject);
 				}
 			}
 
@@ -229,6 +246,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 			const promptText = !hasText && phDefaults?.promptText ? phDefaults.promptText : undefined;
 
+			const opaqueExtLstXml = this.extractOpaqueSpPrExtLst(effectiveSpPr);
+
 			const commonProps = {
 				id,
 				name: elementName || undefined,
@@ -247,6 +266,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				shapeAdjustments,
 				adjustmentHandles,
 				shapeStyle,
+				extLstXml: opaqueExtLstXml,
 				rotation,
 				skewX,
 				skewY,
@@ -269,6 +289,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				pathWidth,
 				pathHeight,
 				customGeometryRawData,
+				customGeometryAdjustHandlesXY,
+				customGeometryAdjustHandlesPolar,
+				customGeometryConnectionSites,
+				customGeometryTextRect,
 			};
 		} catch (e) {
 			console.warn(`[pptx] Skipping shape element (${id}):`, e);

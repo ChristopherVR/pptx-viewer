@@ -1,5 +1,6 @@
 import { PptxSlide, XmlObject } from '../../types';
 import type {
+	ParsedTableBackground,
 	ParsedTableStyleFill,
 	ParsedTableStyleText,
 	PptxExportOptions,
@@ -72,6 +73,34 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 		return undefined;
+	}
+
+	/**
+	 * Extract `<a:tblBg>` children: an inline fill (best-effort scheme-fill
+	 * resolution) plus a flag for `<a:effectLst>` so the save path can
+	 * round-trip the original effect XML.
+	 */
+	protected extractTableBackground(
+		tblBg: XmlObject | undefined,
+	): ParsedTableBackground | undefined {
+		if (!tblBg) {
+			return undefined;
+		}
+		const fillNode = tblBg['a:fill'] as XmlObject | undefined;
+		const solidFill = (fillNode?.['a:solidFill'] ?? tblBg['a:solidFill']) as XmlObject | undefined;
+		const schemeClr = solidFill?.['a:schemeClr'] as XmlObject | undefined;
+		const schemeColor = schemeClr
+			? String(schemeClr['@_val'] || '').trim() || undefined
+			: undefined;
+		const fill = schemeColor ? { schemeColor } : undefined;
+		const hasEffectLst = Boolean(tblBg['a:effectLst']);
+		if (!fill && !hasEffectLst) {
+			return undefined;
+		}
+		return {
+			...(fill ? { fill } : {}),
+			...(hasEffectLst ? { hasEffectLst } : {}),
+		};
 	}
 
 	/**
@@ -230,6 +259,24 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				const lastColFill = this.extractTableStyleSectionFill(
 					(style as XmlObject)['a:lastCol'] as XmlObject | undefined,
 				);
+				// Corner cells (CT_TableStyle §21.1.3.16): each corner overrides
+				// the intersection of firstRow/lastRow × firstCol/lastCol.
+				const seCellFill = this.extractTableStyleSectionFill(
+					(style as XmlObject)['a:seCell'] as XmlObject | undefined,
+				);
+				const swCellFill = this.extractTableStyleSectionFill(
+					(style as XmlObject)['a:swCell'] as XmlObject | undefined,
+				);
+				const neCellFill = this.extractTableStyleSectionFill(
+					(style as XmlObject)['a:neCell'] as XmlObject | undefined,
+				);
+				const nwCellFill = this.extractTableStyleSectionFill(
+					(style as XmlObject)['a:nwCell'] as XmlObject | undefined,
+				);
+
+				const tableBackground = this.extractTableBackground(
+					(style as XmlObject)['a:tblBg'] as XmlObject | undefined,
+				);
 
 				const accentKey = this.deriveTableStyleAccentKey(
 					wholeTblFill,
@@ -249,6 +296,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					'band2H',
 					'band1V',
 					'band2V',
+					'seCell',
+					'swCell',
+					'neCell',
+					'nwCell',
 				] as const;
 				const textProps: Partial<
 					Record<`${(typeof sectionNames)[number]}Text`, ParsedTableStyleText>
@@ -266,6 +317,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					styleId,
 					styleName,
 					accentKey,
+					...(tableBackground ? { tableBackground } : {}),
 					wholeTblFill,
 					band1HFill,
 					band2HFill,
@@ -275,6 +327,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					lastRowFill,
 					firstColFill,
 					lastColFill,
+					...(seCellFill ? { seCellFill } : {}),
+					...(swCellFill ? { swCellFill } : {}),
+					...(neCellFill ? { neCellFill } : {}),
+					...(nwCellFill ? { nwCellFill } : {}),
 					...textProps,
 				};
 				map[styleId] = entry;

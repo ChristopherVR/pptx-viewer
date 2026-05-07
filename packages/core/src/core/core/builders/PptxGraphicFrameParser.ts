@@ -1,12 +1,210 @@
 import type {
+	InkPptxElement,
 	MediaPptxElement,
 	OlePptxElement,
 	PptxElement,
+	PptxGraphicFrameExtension,
 	PptxTableData,
 	TablePptxElement,
 	XmlObject,
 } from '../../types';
 import { detectOleObjectType, inferOleExtensionFromTarget } from '../../utils/ole-utils';
+
+/**
+ * Recognised `a:graphicData/a:extLst/a:ext` URIs that map to first-class
+ * element types and therefore should NOT be captured as opaque extensions.
+ * Anything else (e.g. `p15:` future-feature extensions) is preserved
+ * verbatim on the typed element via `extensionXml` so it can round-trip.
+ */
+const KNOWN_GRAPHIC_FRAME_EXT_URIS = new Set<string>([
+	// Office 365+ 3D model envelope; handled by parseModel3DElement.
+	'{D42C27E5-1956-4C4D-AC15-FE9D03D7D63E}',
+]);
+
+function ensureArrayLike<T>(value: T | T[] | undefined): T[] {
+	if (value === undefined || value === null) {
+		return [];
+	}
+	return Array.isArray(value) ? value : [value];
+}
+
+/**
+ * Walk `<a:graphicData>/<a:extLst>/<a:ext>` and capture each unrecognised
+ * extension verbatim so the save layer can re-emit it.
+ *
+ * Recognised URIs (currently the 3D model envelope) are skipped because
+ * dedicated parsers already model them; all other extensions are captured
+ * with their full XML so future-feature markup (e.g. `p15:` extensions)
+ * survives the round-trip.
+ */
+export function collectGraphicFrameExtensions(
+	graphicData: XmlObject | undefined,
+): PptxGraphicFrameExtension[] {
+	if (!graphicData) {
+		return [];
+	}
+	const extLst = graphicData['a:extLst'] as XmlObject | undefined;
+	if (!extLst) {
+		return [];
+	}
+	const exts = ensureArrayLike(extLst['a:ext'] as XmlObject | XmlObject[] | undefined);
+	const captured: PptxGraphicFrameExtension[] = [];
+	for (const ext of exts) {
+		const uri = String(ext?.['@_uri'] ?? '').trim();
+		if (uri.length === 0) {
+			continue;
+		}
+		if (KNOWN_GRAPHIC_FRAME_EXT_URIS.has(uri)) {
+			continue;
+		}
+		captured.push({ uri, xml: ext });
+	}
+	return captured;
+}
+
+/**
+ * Parse a single `aink:trace` payload into an SVG path string.
+ *
+ * The `aink:trace` element from Office 2010+ ink (`aink` namespace) carries
+ * a whitespace-separated list of `x,y` point pairs as element text content.
+ * The first pair becomes an `M` (moveto) and subsequent pairs become `L`
+ * (lineto) commands. Returns `undefined` when the payload yields no usable
+ * points.
+ */
+export function parseAinkTraceText(raw: string): string | undefined {
+	const cleaned = raw.replace(/\s+/g, ' ').trim();
+	if (cleaned.length === 0) {
+		return undefined;
+	}
+	// Split on whitespace; each token should be an `x,y` pair. Tolerate a
+	// few formatting variants: comma- or space-separated, and leading
+	// command letters (`M`/`L`) carried over from earlier conversions.
+	const tokens = cleaned.split(/\s+/);
+	const coords: Array<{ x: number; y: number }> = [];
+	for (const token of tokens) {
+		const cleanedToken = token.replace(/^[MLml]/, '');
+		const parts = cleanedToken.split(',');
+		if (parts.length < 2) {
+			continue;
+		}
+		const x = Number(parts[0]);
+		const y = Number(parts[1]);
+		if (!Number.isFinite(x) || !Number.isFinite(y)) {
+			continue;
+		}
+		coords.push({ x, y });
+	}
+	if (coords.length === 0) {
+		return undefined;
+	}
+	const segments = coords.map((p, idx) => `${idx === 0 ? 'M' : 'L'}${p.x},${p.y}`);
+	return segments.join(' ');
+}
+
+/**
+ * Locate the `<aink:ink>` payload inside a graphicData node. Modern files
+ * wrap it under `mc:AlternateContent > mc:Choice@Requires="aink"`; older
+ * files place it directly under `<a:graphicData>`.
+ */
+function findAinkInkPayload(graphicData: XmlObject | undefined): XmlObject | undefined {
+	if (!graphicData) {
+		return undefined;
+	}
+	const direct = graphicData['aink:ink'] as XmlObject | undefined;
+	if (direct) {
+		return direct;
+	}
+	const altContent = graphicData['mc:AlternateContent'] as XmlObject | undefined;
+	if (!altContent) {
+		return undefined;
+	}
+	const choices = ensureArrayLike(altContent['mc:Choice'] as XmlObject | XmlObject[] | undefined);
+	for (const choice of choices) {
+		const requires = String(choice?.['@_Requires'] ?? '').toLowerCase();
+		if (requires.includes('aink')) {
+			const node = choice?.['aink:ink'] as XmlObject | undefined;
+			if (node) {
+				return node;
+			}
+		}
+	}
+	return undefined;
+}
+
+/**
+ * Decode the `<aink:ink>` payload into stroke arrays for an
+ * {@link InkPptxElement}. Reads `<aink:inkBrush>` for the default colour
+ * and width (`@_brushColor`, `@_brushSize`) and walks each `<aink:trace>`
+ * to produce SVG path data. Returns empty arrays when the payload has no
+ * usable strokes.
+ */
+export function decodeAinkInk(inkRoot: XmlObject): {
+	inkPaths: string[];
+	inkColors: string[];
+	inkWidths: number[];
+} {
+	const inkPaths: string[] = [];
+	const inkColors: string[] = [];
+	const inkWidths: number[] = [];
+
+	const brush = inkRoot['aink:inkBrush'] as XmlObject | undefined;
+	const defaultColor = (() => {
+		const raw = String(brush?.['@_brushColor'] ?? '').trim();
+		if (raw.length === 0) {
+			return '#000000';
+		}
+		// Spec form is hex w/o leading `#`; tolerate `#RRGGBB` and `RRGGBB`.
+		return raw.startsWith('#') ? raw : `#${raw}`;
+	})();
+	const defaultWidth = (() => {
+		const raw = String(brush?.['@_brushSize'] ?? '').trim();
+		if (raw.length === 0) {
+			return 2;
+		}
+		const num = Number(raw);
+		return Number.isFinite(num) && num > 0 ? num : 2;
+	})();
+
+	const traces = ensureArrayLike(inkRoot['aink:trace'] as unknown as XmlObject | XmlObject[]);
+	for (const trace of traces) {
+		const text = (() => {
+			if (typeof trace === 'string') {
+				return trace as string;
+			}
+			const childText = (trace as XmlObject | undefined)?.['#text'];
+			if (typeof childText === 'string') {
+				return childText;
+			}
+			if (childText !== undefined && childText !== null) {
+				return String(childText);
+			}
+			return '';
+		})();
+		const path = parseAinkTraceText(text);
+		if (!path) {
+			continue;
+		}
+		inkPaths.push(path);
+		// Per-trace colour/size override (`@_brushColor`, `@_brushSize`)
+		// when the trace itself is an XmlObject.
+		const traceObj = typeof trace === 'string' ? undefined : (trace as XmlObject);
+		const traceColor = traceObj ? String(traceObj['@_brushColor'] ?? '').trim() : '';
+		const traceWidthRaw = traceObj ? String(traceObj['@_brushSize'] ?? '').trim() : '';
+		inkColors.push(
+			traceColor.length > 0
+				? traceColor.startsWith('#')
+					? traceColor
+					: `#${traceColor}`
+				: defaultColor,
+		);
+		const traceWidthNum = traceWidthRaw.length > 0 ? Number(traceWidthRaw) : NaN;
+		inkWidths.push(
+			Number.isFinite(traceWidthNum) && traceWidthNum > 0 ? traceWidthNum : defaultWidth,
+		);
+	}
+
+	return { inkPaths, inkColors, inkWidths };
+}
 
 export interface PptxGraphicFrameParserContext {
 	emuPerPx: number;
@@ -81,14 +279,42 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 				rawXml: frame,
 			};
 
+			// Capture any unrecognised `<a:graphicData>/<a:extLst>/<a:ext>`
+			// extensions verbatim so they round-trip on save. This covers
+			// future-feature markup (e.g. `p15:` extensions) that the
+			// dedicated parsers below do not yet handle.
+			const extensionXml = collectGraphicFrameExtensions(graphicData);
+
 			if (type === 'table' && graphicData) {
 				const tableData = this.context.parseTableData(graphicData);
-				return { ...baseElement, tableData } as TablePptxElement;
+				return {
+					...baseElement,
+					tableData,
+					...(extensionXml.length > 0 ? { extensionXml } : {}),
+				} as TablePptxElement;
+			}
+
+			if (type === 'ink' && graphicData) {
+				const inkRoot = findAinkInkPayload(graphicData);
+				const decoded = inkRoot
+					? decodeAinkInk(inkRoot)
+					: { inkPaths: [] as string[], inkColors: [] as string[], inkWidths: [] as number[] };
+				return {
+					...baseElement,
+					inkPaths: decoded.inkPaths,
+					...(decoded.inkColors.length > 0 ? { inkColors: decoded.inkColors } : {}),
+					...(decoded.inkWidths.length > 0 ? { inkWidths: decoded.inkWidths } : {}),
+					...(extensionXml.length > 0 ? { extensionXml } : {}),
+				} as InkPptxElement;
 			}
 
 			if (type === 'media' && graphicData && slidePath) {
 				const mediaInfo = this.context.parseMediaData(graphicData, slidePath);
-				return { ...baseElement, ...mediaInfo } as MediaPptxElement;
+				return {
+					...baseElement,
+					...mediaInfo,
+					...(extensionXml.length > 0 ? { extensionXml } : {}),
+				} as MediaPptxElement;
 			}
 
 			if (type === 'ole' && graphicData) {
@@ -187,10 +413,14 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 					oleImgH,
 					actionClick,
 					actionHover,
+					...(extensionXml.length > 0 ? { extensionXml } : {}),
 				} as OlePptxElement;
 			}
 
-			return baseElement as PptxElement;
+			return {
+				...baseElement,
+				...(extensionXml.length > 0 ? { extensionXml } : {}),
+			} as PptxElement;
 		} catch {
 			return null;
 		}

@@ -9,8 +9,12 @@ import {
 } from '../../geometry/guide-formula';
 import { XmlObject, ShapeStyle } from '../../types';
 import type {
+	AdjustHandlePolar,
+	AdjustHandleXY,
+	ConnectionSite,
 	CustomGeometryPath,
 	CustomGeometryRawData,
+	CustomGeometryTextRect,
 	PptxImageLikeElement,
 	GeometryAdjustmentHandle,
 } from '../../types';
@@ -189,6 +193,169 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const rect = custGeom['a:rect'];
 		if (isNonEmpty(rect)) {
 			result.rectXml = rect;
+		}
+		return Object.keys(result).length > 0 ? result : undefined;
+	}
+
+	/**
+	 * URIs recognised by other extractors and therefore already mapped to
+	 * typed fields. These should NOT be captured as opaque `extLstXml`.
+	 *
+	 * - `{AF507438-7753-43E0-B8FC-AC1667EBCBE1}` → `p14:hiddenFill`
+	 * - `{91240B29-F687-4F45-9708-019B960494DF}` → `p14:hiddenLine`
+	 */
+	private static readonly RECOGNISED_SP_PR_EXT_URIS = new Set<string>([
+		'{AF507438-7753-43E0-B8FC-AC1667EBCBE1}',
+		'{91240B29-F687-4F45-9708-019B960494DF}',
+	]);
+
+	/**
+	 * Capture unrecognised `<a:ext>` children from `spPr/a:extLst` for
+	 * verbatim re-emission. Returns `undefined` when nothing opaque needs
+	 * preserving so the slot stays empty for round-trip cleanliness.
+	 */
+	protected extractOpaqueSpPrExtLst(spPr: XmlObject | undefined): XmlObject[] | undefined {
+		if (!spPr) {
+			return undefined;
+		}
+		const extLst = spPr['a:extLst'] as XmlObject | undefined;
+		if (!extLst) {
+			return undefined;
+		}
+		const exts = this.ensureArray(extLst['a:ext']) as XmlObject[];
+		if (exts.length === 0) {
+			return undefined;
+		}
+		const opaque: XmlObject[] = [];
+		for (const ext of exts) {
+			const uri = String(ext?.['@_uri'] ?? '').trim();
+			if (uri && PptxHandlerRuntime.RECOGNISED_SP_PR_EXT_URIS.has(uri)) {
+				continue;
+			}
+			opaque.push(ext);
+		}
+		return opaque.length > 0 ? opaque : undefined;
+	}
+
+	/**
+	 * Extract typed adjustment handles (`a:ahXY` / `a:ahPolar`) from a
+	 * `a:custGeom/a:ahLst` node. Coordinate / guide references are preserved
+	 * as raw strings so they round-trip verbatim.
+	 */
+	protected extractCustomGeometryAdjustHandles(custGeom: XmlObject | undefined): {
+		xy?: AdjustHandleXY[];
+		polar?: AdjustHandlePolar[];
+	} {
+		const ahLst = custGeom?.['a:ahLst'] as XmlObject | undefined;
+		if (!ahLst) {
+			return {};
+		}
+		const toStr = (v: unknown): string | undefined => {
+			if (v === undefined || v === null) {
+				return undefined;
+			}
+			const s = String(v);
+			return s.length > 0 ? s : undefined;
+		};
+		const result: { xy?: AdjustHandleXY[]; polar?: AdjustHandlePolar[] } = {};
+
+		const xyNodes = this.ensureArray(ahLst['a:ahXY']) as XmlObject[];
+		if (xyNodes.length > 0) {
+			const xyHandles: AdjustHandleXY[] = [];
+			for (const node of xyNodes) {
+				const pos = node?.['a:pos'] as XmlObject | undefined;
+				const handle: AdjustHandleXY = {
+					gdRefX: toStr(node?.['@_gdRefX']),
+					gdRefY: toStr(node?.['@_gdRefY']),
+					minX: toStr(node?.['@_minX']),
+					maxX: toStr(node?.['@_maxX']),
+					minY: toStr(node?.['@_minY']),
+					maxY: toStr(node?.['@_maxY']),
+					posX: toStr(pos?.['@_x']),
+					posY: toStr(pos?.['@_y']),
+				};
+				xyHandles.push(handle);
+			}
+			if (xyHandles.length > 0) {
+				result.xy = xyHandles;
+			}
+		}
+
+		const polarNodes = this.ensureArray(ahLst['a:ahPolar']) as XmlObject[];
+		if (polarNodes.length > 0) {
+			const polarHandles: AdjustHandlePolar[] = [];
+			for (const node of polarNodes) {
+				const pos = node?.['a:pos'] as XmlObject | undefined;
+				const handle: AdjustHandlePolar = {
+					gdRefR: toStr(node?.['@_gdRefR']),
+					gdRefAng: toStr(node?.['@_gdRefAng']),
+					minR: toStr(node?.['@_minR']),
+					maxR: toStr(node?.['@_maxR']),
+					minAng: toStr(node?.['@_minAng']),
+					maxAng: toStr(node?.['@_maxAng']),
+					posX: toStr(pos?.['@_x']),
+					posY: toStr(pos?.['@_y']),
+				};
+				polarHandles.push(handle);
+			}
+			if (polarHandles.length > 0) {
+				result.polar = polarHandles;
+			}
+		}
+
+		return result;
+	}
+
+	/**
+	 * Extract typed connection sites (`a:cxn`) from `a:custGeom/a:cxnLst`.
+	 */
+	protected extractCustomGeometryConnectionSites(
+		custGeom: XmlObject | undefined,
+	): ConnectionSite[] | undefined {
+		const cxnLst = custGeom?.['a:cxnLst'] as XmlObject | undefined;
+		if (!cxnLst) {
+			return undefined;
+		}
+		const cxnNodes = this.ensureArray(cxnLst['a:cxn']) as XmlObject[];
+		if (cxnNodes.length === 0) {
+			return undefined;
+		}
+		const sites: ConnectionSite[] = [];
+		for (const node of cxnNodes) {
+			const pos = node?.['a:pos'] as XmlObject | undefined;
+			const ang = node?.['@_ang'];
+			const site: ConnectionSite = {
+				ang: ang !== undefined && ang !== null ? String(ang) : undefined,
+				posX: pos?.['@_x'] !== undefined ? String(pos['@_x']) : undefined,
+				posY: pos?.['@_y'] !== undefined ? String(pos['@_y']) : undefined,
+			};
+			sites.push(site);
+		}
+		return sites.length > 0 ? sites : undefined;
+	}
+
+	/**
+	 * Extract the typed text rectangle (`a:rect`) on a custom geometry.
+	 */
+	protected extractCustomGeometryTextRect(
+		custGeom: XmlObject | undefined,
+	): CustomGeometryTextRect | undefined {
+		const rect = custGeom?.['a:rect'] as XmlObject | undefined;
+		if (!rect) {
+			return undefined;
+		}
+		const result: CustomGeometryTextRect = {};
+		if (rect['@_l'] !== undefined) {
+			result.l = String(rect['@_l']);
+		}
+		if (rect['@_t'] !== undefined) {
+			result.t = String(rect['@_t']);
+		}
+		if (rect['@_r'] !== undefined) {
+			result.r = String(rect['@_r']);
+		}
+		if (rect['@_b'] !== undefined) {
+			result.b = String(rect['@_b']);
 		}
 		return Object.keys(result).length > 0 ? result : undefined;
 	}

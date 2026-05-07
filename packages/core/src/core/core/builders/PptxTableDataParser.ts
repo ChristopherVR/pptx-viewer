@@ -67,20 +67,33 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 
 				return {
 					height: rowHeight,
-					cells: xmlCells.map((cellNode) => ({
-						text: this.extractTableCellText(cellNode),
-						style: this.extractTableCellStyleFromXml(cellNode),
-						gridSpan: cellNode['@_gridSpan']
-							? parseInt(String(cellNode['@_gridSpan']), 10)
-							: undefined,
-						rowSpan: cellNode['@_rowSpan']
-							? parseInt(String(cellNode['@_rowSpan']), 10)
-							: undefined,
-						vMerge: cellNode['@_vMerge'] === '1' || cellNode['@_vMerge'] === true,
-						hMerge: cellNode['@_hMerge'] === '1' || cellNode['@_hMerge'] === true,
-					})),
+					cells: xmlCells.map((cellNode) => {
+						const extraAttributes = this.extractCellExtraAttributes(
+							cellNode['a:tcPr'] as XmlObject | undefined,
+						);
+						return {
+							text: this.extractTableCellText(cellNode),
+							style: this.extractTableCellStyleFromXml(cellNode),
+							gridSpan: cellNode['@_gridSpan']
+								? parseInt(String(cellNode['@_gridSpan']), 10)
+								: undefined,
+							rowSpan: cellNode['@_rowSpan']
+								? parseInt(String(cellNode['@_rowSpan']), 10)
+								: undefined,
+							vMerge: cellNode['@_vMerge'] === '1' || cellNode['@_vMerge'] === true,
+							hMerge: cellNode['@_hMerge'] === '1' || cellNode['@_hMerge'] === true,
+							...(extraAttributes ? { extraAttributes } : {}),
+						};
+					}),
 				};
 			});
+
+			// CT_TableProperties §21.1.3.15: bandRowCycle/bandColCycle live in a
+			// child <a:tblPr/a:bandRowCycle val="N"/>, not as attributes. Older
+			// inputs may also expose them as @_bandRowCycle / @_bandColCycle.
+			const bandRowCycle = this.extractBandCycle(tableProperties, 'bandRowCycle');
+			const bandColCycle = this.extractBandCycle(tableProperties, 'bandColCycle');
+			const rtl = tableProperties['@_rtl'] === '1' || tableProperties['@_rtl'] === true;
 
 			return {
 				rows,
@@ -94,8 +107,9 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 				firstCol: tableProperties['@_firstCol'] === '1' || tableProperties['@_firstCol'] === true,
 				lastCol: tableProperties['@_lastCol'] === '1' || tableProperties['@_lastCol'] === true,
 				tableStyleId,
-				bandRowCycle: 1,
-				bandColCycle: 1,
+				bandRowCycle: bandRowCycle ?? 1,
+				bandColCycle: bandColCycle ?? 1,
+				...(rtl ? { rtl: true } : {}),
 			};
 		} catch {
 			return undefined;
@@ -126,6 +140,65 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 		const tableStyleNode = tableProperties['a:tblStyle'] as XmlObject | undefined;
 		const legacy = String(tableStyleNode?.['@_val'] || tableProperties['@_tblStyle'] || '').trim();
 		return legacy.length > 0 ? legacy : undefined;
+	}
+
+	/**
+	 * CT_TableProperties §21.1.3.15 declares `bandRowCycle` / `bandColCycle`
+	 * as either an attribute (`@_bandRowCycle`) or a child element
+	 * (`<a:bandRowCycle val="N"/>`). Read both forms; return `undefined` to
+	 * let the caller fall back to the spec default of 1.
+	 */
+	private extractBandCycle(
+		tableProperties: XmlObject,
+		key: 'bandRowCycle' | 'bandColCycle',
+	): number | undefined {
+		const attrName = `@_${key}`;
+		const attrVal = tableProperties[attrName];
+		if (attrVal !== undefined && attrVal !== null) {
+			const parsed = parseInt(String(attrVal), 10);
+			if (Number.isFinite(parsed) && parsed > 0) {
+				return parsed;
+			}
+		}
+		const child = tableProperties[`a:${key}`] as XmlObject | undefined;
+		if (child) {
+			const childVal = parseInt(String(child['@_val'] ?? ''), 10);
+			if (Number.isFinite(childVal) && childVal > 0) {
+				return childVal;
+			}
+		}
+		return undefined;
+	}
+
+	/**
+	 * Capture `a:tcPr` attributes that don't yet have typed equivalents on
+	 * {@link PptxTableCellStyle} so they survive a round-trip
+	 * (`horzOverflow`, `anchorCtr`, `headers`, `hideSlicers`,
+	 * `slicerCacheId`). Returns the attribute name (without the `@_` prefix
+	 * fast-xml-parser adds) → string-value map, or undefined when none of
+	 * the recognised opaque attributes are present.
+	 */
+	private extractCellExtraAttributes(
+		cellProperties: XmlObject | undefined,
+	): Record<string, string> | undefined {
+		if (!cellProperties) {
+			return undefined;
+		}
+		const opaqueAttrs = [
+			'horzOverflow',
+			'anchorCtr',
+			'headers',
+			'hideSlicers',
+			'slicerCacheId',
+		] as const;
+		const result: Record<string, string> = {};
+		for (const attr of opaqueAttrs) {
+			const raw = cellProperties[`@_${attr}`];
+			if (raw !== undefined && raw !== null && String(raw).length > 0) {
+				result[attr] = String(raw);
+			}
+		}
+		return Object.keys(result).length > 0 ? result : undefined;
 	}
 
 	private extractTableCellText(tableCell: XmlObject): string {

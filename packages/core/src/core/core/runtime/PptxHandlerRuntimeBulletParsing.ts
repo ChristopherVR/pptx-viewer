@@ -1,5 +1,6 @@
 import { BulletInfo, XmlObject } from '../../types';
 import type { PlaceholderTextLevelStyle } from '../../types';
+import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTextDefaults';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -105,11 +106,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		const buClr = resolvedBulletProps['a:buClr'] as XmlObject | undefined;
 		let color: string | undefined;
+		let colorXml: XmlObject | undefined;
 		if (buClr) {
-			const srgb = buClr['a:srgbClr'] as XmlObject | undefined;
-			if (srgb?.['@_val']) {
-				color = String(srgb['@_val']);
-			}
+			// Preserve scheme/sys/prst/srgb identity (themed bullet colours)
+			// instead of extracting only `a:srgbClr/@_val`.
+			color = this.parseColor(buClr);
+			colorXml = extractColorChoiceXml(buClr);
 		}
 		const colorInherit = resolvedBulletProps['a:buClrTx'] !== undefined;
 
@@ -124,6 +126,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				sizePercent,
 				sizePts,
 				color,
+				...(colorXml ? { colorXml } : {}),
 				...(fontInherit ? { fontInherit: true } : {}),
 				...(colorInherit ? { colorInherit: true } : {}),
 				...(sizeInherit ? { sizeInherit: true } : {}),
@@ -144,6 +147,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				sizePercent,
 				sizePts,
 				color,
+				...(colorXml ? { colorXml } : {}),
 				...(fontInherit ? { fontInherit: true } : {}),
 				...(colorInherit ? { colorInherit: true } : {}),
 				...(sizeInherit ? { sizeInherit: true } : {}),
@@ -155,6 +159,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (buBlip) {
 			const blip = buBlip['a:blip'] as XmlObject | undefined;
 			const imageRelId = blip?.['@_r:embed'] ? String(blip['@_r:embed']) : undefined;
+			// Preserve the full a:buBlip subtree (a:blip + extLst, a:tile, a:stretch,
+			// a:srcRect) verbatim so the writer can round-trip blipFill modifiers.
+			const imageBlipFillXml: XmlObject = { ...(buBlip as Record<string, unknown>) };
 			if (imageRelId && slidePath) {
 				// Resolve image data URL from relationship ID
 				const slideRels = this.slideRelsMap.get(slidePath);
@@ -181,12 +188,23 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return {
 					imageRelId,
 					imageDataUrl,
+					imageBlipFillXml,
 					fontFamily,
 					sizePercent,
 					sizePts,
 					color,
+					...(colorXml ? { colorXml } : {}),
 				};
 			}
+			// buBlip without a resolvable rel/path — still preserve the subtree.
+			return {
+				imageBlipFillXml,
+				fontFamily,
+				sizePercent,
+				sizePts,
+				color,
+				...(colorXml ? { colorXml } : {}),
+			};
 		}
 
 		// No explicit bullet element found in the resolved props
@@ -254,13 +272,34 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return upper ? result : result.toLowerCase();
 		};
 
+		// Map a single Arabic digit (0-9) to its Unicode "circled digit" code point.
+		// circleNumDbPlain — Wingdings/full-width style ⓪–⑨ (U+24EA, U+2460..U+2468).
+		// circleNumWdBlackPlain — black filled circles ⓿–⓽ (U+24EB..U+24F4).
+		// circleNumWdWhitePlain — white outlined circles (uses the same block as
+		//   circleNumDbPlain since Unicode does not maintain a parallel "white" set
+		//   distinct from the standard set; falls back to U+24EA / U+2460..).
+		const toCircled = (n: number, style: 'std' | 'black'): string => {
+			if (n < 0 || n > 9) {
+				return `${n}`; // out of representable range — fall back to digit
+			}
+			if (style === 'black') {
+				return n === 0 ? '⓫' : String.fromCodePoint(0x24eb + n);
+			}
+			// std (and white fallback)
+			return n === 0 ? '⓪' : String.fromCodePoint(0x245f + n);
+		};
+
 		switch (autoNumType) {
 			case 'arabicPeriod':
+			case 'arabicDbPeriod':
 				return `${seqNum}. `;
 			case 'arabicParenR':
 				return `${seqNum}) `;
 			case 'arabicParenBoth':
 				return `(${seqNum}) `;
+			case 'arabicPlain':
+			case 'arabicDbPlain':
+				return `${seqNum} `;
 			case 'alphaLcPeriod':
 				return `${toAlpha(seqNum, false)}. `;
 			case 'alphaUcPeriod':
@@ -269,10 +308,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return `${toAlpha(seqNum, false)}) `;
 			case 'alphaUcParenR':
 				return `${toAlpha(seqNum, true)}) `;
+			case 'alphaLcParenBoth':
+				return `(${toAlpha(seqNum, false)}) `;
+			case 'alphaUcParenBoth':
+				return `(${toAlpha(seqNum, true)}) `;
 			case 'romanLcPeriod':
 				return `${toRoman(seqNum, false)}. `;
 			case 'romanUcPeriod':
 				return `${toRoman(seqNum, true)}. `;
+			case 'romanLcParenR':
+				return `${toRoman(seqNum, false)}) `;
+			case 'romanUcParenR':
+				return `${toRoman(seqNum, true)}) `;
+			case 'romanLcParenBoth':
+				return `(${toRoman(seqNum, false)}) `;
+			case 'romanUcParenBoth':
+				return `(${toRoman(seqNum, true)}) `;
+			case 'circleNumDbPlain':
+			case 'circleNumWdWhitePlain':
+				return `${toCircled(seqNum, 'std')} `;
+			case 'circleNumWdBlackPlain':
+				return `${toCircled(seqNum, 'black')} `;
 			default:
 				return `${seqNum}. `;
 		}

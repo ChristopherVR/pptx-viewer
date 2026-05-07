@@ -159,6 +159,20 @@ export interface PptxSlide {
 	notes?: string;
 	/** Rich text segments for the slide notes (preserves formatting). */
 	notesSegments?: TextSegment[];
+	/**
+	 * Parsed shapes from the notes slide's `<p:cSld>/<p:spTree>` so the full
+	 * notes-page shape tree can be inspected and mutated, not just the body
+	 * placeholder text. When undefined, the existing notes XML is left
+	 * untouched on save and only `notes` / `notesSegments` are written.
+	 */
+	notesShapes?: PptxElement[];
+	/**
+	 * Per-notes-slide colour map override parsed from `<p:notes>/<p:clrMapOvr>`.
+	 * Captured for lossless round-trip of the notes-slide's colour scheme.
+	 */
+	notesClrMapOverride?: Record<string, string>;
+	/** Optional `<p:cSld @name>` value of the notes slide, for round-trip. */
+	notesCSldName?: string;
 	comments?: PptxComment[];
 	warnings?: PptxCompatibilityWarning[];
 	rawXml?: XmlObject;

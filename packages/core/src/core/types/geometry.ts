@@ -142,6 +142,120 @@ export interface CustomGeometryRawData {
 	rectXml?: unknown;
 }
 
+// ==========================================================================
+// Typed adjustment handles and connection sites for custom geometry
+// ==========================================================================
+
+/**
+ * XY-style adjustment handle (`a:ahXY`) on a custom geometry.
+ *
+ * Allows interactive editing of one or two guide values constrained to a
+ * rectangular range. Coordinates are formula references (e.g. `"adj1"`,
+ * `"w/2"`, `"0"`) preserved verbatim so they can re-emit unchanged.
+ *
+ * @example
+ * ```ts
+ * const handle: AdjustHandleXY = {
+ *   gdRefX: "adj1",
+ *   minX: "0",
+ *   maxX: "w",
+ *   posX: "adj1",
+ *   posY: "h/2",
+ * };
+ * // => satisfies AdjustHandleXY
+ * ```
+ */
+export interface AdjustHandleXY {
+	/** Guide reference for the X axis (`@_gdRefX`). */
+	gdRefX?: string;
+	/** Guide reference for the Y axis (`@_gdRefY`). */
+	gdRefY?: string;
+	/** Minimum X value, as a formula reference (`@_minX`). */
+	minX?: string;
+	/** Maximum X value (`@_maxX`). */
+	maxX?: string;
+	/** Minimum Y value (`@_minY`). */
+	minY?: string;
+	/** Maximum Y value (`@_maxY`). */
+	maxY?: string;
+	/** Handle position X (formula or literal) from `a:pos/@_x`. */
+	posX?: string;
+	/** Handle position Y from `a:pos/@_y`. */
+	posY?: string;
+}
+
+/**
+ * Polar-style adjustment handle (`a:ahPolar`) on a custom geometry.
+ *
+ * Drives a guide via radial distance and angle rather than XY coordinates.
+ *
+ * @example
+ * ```ts
+ * const handle: AdjustHandlePolar = {
+ *   gdRefR: "adj1",
+ *   gdRefAng: "adj2",
+ *   posX: "wd2",
+ *   posY: "hd2",
+ * };
+ * // => satisfies AdjustHandlePolar
+ * ```
+ */
+export interface AdjustHandlePolar {
+	/** Guide reference for the radial distance (`@_gdRefR`). */
+	gdRefR?: string;
+	/** Guide reference for the angle (`@_gdRefAng`). */
+	gdRefAng?: string;
+	/** Minimum radial value (`@_minR`). */
+	minR?: string;
+	/** Maximum radial value (`@_maxR`). */
+	maxR?: string;
+	/** Minimum angle (`@_minAng`). */
+	minAng?: string;
+	/** Maximum angle (`@_maxAng`). */
+	maxAng?: string;
+	/** Handle position X from `a:pos/@_x`. */
+	posX?: string;
+	/** Handle position Y from `a:pos/@_y`. */
+	posY?: string;
+}
+
+/**
+ * Connection site (`a:cxn`) on a custom geometry.
+ *
+ * Defines a point on a custom shape that connectors may snap to.
+ *
+ * @example
+ * ```ts
+ * const cxn: ConnectionSite = { ang: "0", posX: "0", posY: "hd2" };
+ * // => satisfies ConnectionSite
+ * ```
+ */
+export interface ConnectionSite {
+	/** Approach angle (`@_ang`) — formula or literal degree-1/60000 value. */
+	ang?: string;
+	/** Site position X from `a:pos/@_x`. */
+	posX?: string;
+	/** Site position Y from `a:pos/@_y`. */
+	posY?: string;
+}
+
+/**
+ * Typed text rectangle (`a:rect`) on a custom geometry.
+ *
+ * Each edge is the formula or literal string preserved from the source XML
+ * (`"l"`, `"t"`, `"r"`, `"b"`, or any guide name / formula).
+ */
+export interface CustomGeometryTextRect {
+	/** Left edge formula reference (`@_l`). */
+	l?: string;
+	/** Top edge (`@_t`). */
+	t?: string;
+	/** Right edge (`@_r`). */
+	r?: string;
+	/** Bottom edge (`@_b`). */
+	b?: string;
+}
+
 /**
  * Custom (non-preset) geometry path — only on shapes and pictures.
  *
@@ -169,4 +283,23 @@ export interface PptxCustomPathProperties {
 	customGeometryPaths?: CustomGeometryPath[];
 	/** Raw a:gdLst/a:ahLst/a:cxnLst/a:rect XML preserved for round-trip serialization. */
 	customGeometryRawData?: CustomGeometryRawData;
+	/**
+	 * Typed XY adjustment handles parsed from `a:custGeom/a:ahLst/a:ahXY`.
+	 * SDK-built shapes can populate this and the writer will emit `<a:ahXY>` entries
+	 * even when no raw XML was preserved.
+	 */
+	customGeometryAdjustHandlesXY?: AdjustHandleXY[];
+	/**
+	 * Typed polar adjustment handles parsed from `a:custGeom/a:ahLst/a:ahPolar`.
+	 */
+	customGeometryAdjustHandlesPolar?: AdjustHandlePolar[];
+	/**
+	 * Typed connection sites parsed from `a:custGeom/a:cxnLst/a:cxn`.
+	 */
+	customGeometryConnectionSites?: ConnectionSite[];
+	/**
+	 * Typed text rectangle parsed from `a:custGeom/a:rect`. When present this is
+	 * preferred over {@link customGeometryRawData}'s `rectXml` on save.
+	 */
+	customGeometryTextRect?: CustomGeometryTextRect;
 }

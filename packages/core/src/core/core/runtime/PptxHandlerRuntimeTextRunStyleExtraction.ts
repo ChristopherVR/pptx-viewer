@@ -247,6 +247,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			this.applyTextRunEffects(style, runEffectList);
 		}
 
+		// Text run effect graph (a:effectDag on a:rPr) — ECMA-376
+		// §21.1.2.3.6 allows `effectDag` as an alternative to `effectLst`.
+		this.applyTextRunEffectDag(style, runProperties);
+
 		return style;
 	}
 
