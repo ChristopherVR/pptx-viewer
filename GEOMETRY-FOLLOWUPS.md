@@ -11,23 +11,22 @@ intentionally NOT in scope here. The items below are the realistic next steps.
 
 ## High-impact follow-ups
 
-### 1. Action-button glyph overlays
+### 1. Action-button glyph overlays — DONE (commit `ec0053d`)
 
-The 14 `actionButton*` presets now render as rounded-rectangle bodies, but the
-inner glyph (home, help, sound, movie, "back", arrow, etc.) is still missing.
-These need a lightweight icon overlay in
-`packages/react/src/viewer/components/elements/`, NOT another clip-path.
-Without the glyph, every action button looks identical.
+The 14 `actionButton*` presets now render their inner glyph (home, help,
+sound, movie, info, back/forward, beginning/end, return, document) via
+`ActionButtonGlyphOverlay`. `actionButtonBlank` correctly renders no
+glyph. The icon paths come from `ACTION_BUTTON_PRESETS` so the slide
+renderer and toolbar's "Insert Action Button" picker stay in sync.
 
-### 2. Line-callout leader lines
+### 2. Line-callout leader lines — DONE
 
-`callout1/2/3`, `borderCallout1/2/3`, `accentCallout1/2/3`, and the three
-`accentBorderCallout*` variants all clip to a plain rectangle. Per ECMA-376
-Section 20.1.10.56 this is the spec-correct _body_ geometry — the leader
-line is part of the shape's outline path, not its fill geometry. To draw the
-leader correctly we need an SVG-overlay leader that reads the callout's
-adjustment values (`adj1`..`adj4`). Until that lands the callouts render as
-silent rectangles with a missing pointer line.
+`vector-shape-renderer.tsx` already calls `getCalloutLeaderLineGeometry`
+for callout1/2/3 + border + accent variants and draws the leader as
+an SVG polyline overlay. Leader-line geometry (`callout-geometry.ts`)
+honours the 2-4 adjustment-pair sets per shape complexity tier. The
+GEOMETRY-FOLLOWUPS comment about "missing pointer line" predates that
+implementation.
 
 ### 3. Adjustable shape parameters
 
@@ -95,29 +94,22 @@ The guide-formula evaluator already exists (`packages/core/src/core/geometry/gui
 `PptxShapeProperties`. The missing piece is the preset table + the
 adjustment-aware clip-path API.
 
-### Image-effects rendering in the React viewer
+### Image-effects rendering — DONE in both renderers
 
-The SVG converter now applies `imageEffects` via an SVG `<filter>` chain
-(`packages/core/src/converter/svg-image-effects.ts`). Bringing the same
-support into the React viewer (`packages/react/src/viewer/components/elements/`)
-requires either:
+- SVG converter: commit `db0c7cd` (`svg-image-effects.ts` builds SVG
+  filter chain from `PptxImageEffects`).
+- React viewer: commit `a41df2a` (`renderImageAlphaSvgFilter` plus
+  filter-url append in `getImageEffectsFilter`).
 
-- Reusing the same SVG filter strings under a portal/`<defs>` block, or
-- A separate Canvas2D / WebGL rendering path for the image element.
+Both renderers now translate alphaInv/Ceiling/Floor/Mod/Repl/BiLevel,
+alphaModFix, biLevel, lum, hsl(sat,lum), tint, and clrRepl into SVG
+`<filter>` primitives. CSS-expressible effects (brightness/contrast/
+saturate/hueRotate/grayscale) keep their CSS-filter path.
 
-The data-layer parity is complete (all blip primitives parse and
-round-trip), so this is a renderer-only project.
+### Action-button glyph overlays — DONE (commit `ec0053d`)
 
-### Action-button glyph overlays
+See "High-impact follow-ups #1" above.
 
-`actionButton*` shapes now render as rounded rectangles. The interior
-glyph (home, help, sound, movie, back, info) needs a small icon overlay
-in the React renderer. Not a clip-path problem.
+### Line-callout leader lines — DONE
 
-### Line-callout leader lines
-
-`callout1/2/3`, `borderCallout1/2/3`, `accentCallout1/2/3`,
-`accentBorderCallout1/2/3` body geometry is correctly rectangular per
-spec. The leader line is part of the shape's outline (drawn through
-custom geometry pathLst with `stroke` segments and no `fill`). Renderer
-needs to interpret the outline path to draw the leader.
+See "High-impact follow-ups #2" above.
