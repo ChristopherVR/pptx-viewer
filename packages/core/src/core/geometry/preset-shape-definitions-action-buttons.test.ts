@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import { ACTION_BUTTON_PRESET_DEFINITIONS } from './preset-shape-definitions-action-buttons';
 
+// Tests for the 12 ECMA-376 actionButton* preset geometries. All twelve
+// share an identical beveled-rectangle shape; the differentiating glyph is
+// rendered separately by the React layer (`ActionButtonGlyphOverlay`).
+
 const REQUIRED_SHAPES = [
 	'actionButtonBlank',
 	'actionButtonHome',
