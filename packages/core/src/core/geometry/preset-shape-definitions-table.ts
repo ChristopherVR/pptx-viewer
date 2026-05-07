@@ -40,6 +40,13 @@
 // Types
 // ---------------------------------------------------------------------------
 
+// Batch shape additions authored by parallel agents — aggregated into
+// PRESET_SHAPE_GEOMETRY_TABLE below. Each batch file owns its own shape group
+// and is independently testable.
+import { ARROW_PRESET_DEFINITIONS } from './preset-shape-definitions-arrows';
+import { FLOWCHART_PRESET_DEFINITIONS } from './preset-shape-definitions-flowchart';
+import { MISC_PRESET_DEFINITIONS } from './preset-shape-definitions-misc';
+
 /**
  * A single command inside a preset path. Coordinates / radii / angles are
  * stored as raw OOXML guide tokens (numeric literal strings or guide names)
@@ -1048,6 +1055,10 @@ const star5: PresetShapeGeometryDefinition = {
  * Master table of populated preset geometries. Keyed by ECMA-376 ST_ShapeType
  * name (camelCase). Lookups are case-sensitive; callers should normalise
  * unknown casings (e.g. `'roundrect'` → `'roundRect'`) before consulting it.
+ *
+ * Inline definitions for ~30 shapes live above. Additional batches authored
+ * by parallel agents are imported from sibling files and spread last so they
+ * cannot accidentally shadow the inline canonical shapes.
  */
 export const PRESET_SHAPE_GEOMETRY_TABLE: Record<string, PresetShapeGeometryDefinition> = {
 	rect,
@@ -1080,4 +1091,7 @@ export const PRESET_SHAPE_GEOMETRY_TABLE: Record<string, PresetShapeGeometryDefi
 	wedgeEllipseCallout,
 	star4,
 	star5,
+	...ARROW_PRESET_DEFINITIONS,
+	...FLOWCHART_PRESET_DEFINITIONS,
+	...MISC_PRESET_DEFINITIONS,
 };
