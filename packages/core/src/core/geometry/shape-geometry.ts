@@ -6,6 +6,7 @@ import type { SupportedShapeType } from '../constants';
  * generates CSS clip-paths, and calculates round-rect radii.
  */
 import type { PptxElementWithShapeStyle } from '../types';
+import { getCloudCalloutClipPath, getCloudClipPath } from './cloud-bezier-paths';
 import { PRESET_SHAPE_CLIP_PATHS, getPresetShapeClipPath } from './preset-shape-paths';
 
 // ---------------------------------------------------------------------------
@@ -86,6 +87,41 @@ export function getShapeType(shapeType: string | undefined): SupportedShapeType 
  */
 export function getShapeClipPath(shapeType: string | undefined): string | undefined {
 	return getPresetShapeClipPath(shapeType);
+}
+
+/**
+ * Return a high-DPI cubic-Bezier `clip-path: path('…')` expression for
+ * `cloud` / `cloudCallout` shapes when actual pixel dimensions are known.
+ *
+ * Static polygon entries in {@link PRESET_SHAPE_CLIP_PATHS} remain the
+ * lookup-table fallback for non-renderer consumers (e.g. shape pickers,
+ * SSR previews) that don't yet know the element's pixel size. Renderers
+ * that have measured the element should prefer this helper -- it produces
+ * smooth Bezier lobes that stay sharp at any DPI / zoom.
+ *
+ * @param shapeType - The OOXML preset geometry name. Case-insensitive.
+ * @param width - Element width in pixels (must be > 0).
+ * @param height - Element height in pixels (must be > 0).
+ * @returns A CSS `path('M…Z')` expression for cloud/cloudCallout, or
+ *          `undefined` for any other shape (callers should fall back to
+ *          {@link getShapeClipPath}).
+ */
+export function getCloudPathForRendering(
+	shapeType: string | undefined,
+	width: number,
+	height: number,
+): string | undefined {
+	if (!shapeType) {
+		return undefined;
+	}
+	const normalized = shapeType.toLowerCase();
+	if (normalized === 'cloud') {
+		return getCloudClipPath(width, height);
+	}
+	if (normalized === 'cloudcallout') {
+		return getCloudCalloutClipPath(width, height);
+	}
+	return undefined;
 }
 
 // ---------------------------------------------------------------------------

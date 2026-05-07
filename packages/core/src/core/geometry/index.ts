@@ -11,10 +11,18 @@
 export {
 	getShapeType,
 	getShapeClipPath,
+	getCloudPathForRendering,
 	getRoundRectRadiusPx,
 	getImageMaskStyle,
 } from './shape-geometry';
 export type { ImageMaskStyle } from './shape-geometry';
+
+export {
+	getCloudClipPath,
+	getCloudCalloutClipPath,
+	CLOUD_LOBE_COUNT,
+	CLOUD_CALLOUT_TAIL_COUNT,
+} from './cloud-bezier-paths';
 
 export { getConnectorAdjustment, getConnectorPathGeometry } from './connector-geometry';
 export type { ConnectorPathGeometry } from './connector-geometry';
