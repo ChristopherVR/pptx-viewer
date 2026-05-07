@@ -213,10 +213,26 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					case 'mc:AlternateContent':
 						processAlternateContent(item);
 						break;
-					case 'a:br':
+					case 'a:br': {
+						const brNode = (item ?? {}) as XmlObject;
+						const brRunProps = brNode['a:rPr'] as XmlObject | undefined;
+						const brStyle = {
+							...mergedDefaultRunStyle,
+							...this.extractTextRunStyle(brRunProps, paraAlign, ctx.slideRelationshipMap),
+						} as TextStyle;
 						parts.push('\n');
-						segments.push({ text: '\n', style: { ...mergedDefaultRunStyle } });
+						const brSegment: TextSegment = {
+							text: '\n',
+							style: brStyle,
+							isLineBreak: true,
+						};
+						if (brRunProps && typeof brRunProps === 'object') {
+							// Preserve the raw a:rPr for round-trip serialisation.
+							brSegment.breakRunProperties = { ...(brRunProps as Record<string, unknown>) };
+						}
+						segments.push(brSegment);
 						break;
+					}
 				}
 			}
 		}

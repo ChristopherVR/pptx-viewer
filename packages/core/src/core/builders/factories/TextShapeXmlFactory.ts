@@ -81,7 +81,6 @@ export class TextShapeXmlFactory implements ITextShapeXmlFactory {
 			'p:txBody': {
 				'a:bodyPr': {
 					'@_wrap': 'square',
-					'@_rtlCol': '0',
 					'@_anchor': this.context.toDrawingTextVerticalAlign(element.textStyle?.vAlign),
 				},
 				'a:lstStyle': {},

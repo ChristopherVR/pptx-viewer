@@ -165,6 +165,140 @@ describe('writeBodyPrBooleanAttrs', () => {
 });
 
 // ---------------------------------------------------------------------------
+// ECMA-376 parity: rot, spcFirstLastPara, anchorCtr, rtlCol
+// ---------------------------------------------------------------------------
+
+describe('parseBodyPrBooleanAttrs — extended bodyPr attributes', () => {
+	it('parses @_rot (60000ths of a degree) into degrees', () => {
+		const textStyle: TextStyle = {};
+		// 5400000 = 90deg
+		parseBodyPrBooleanAttrs({ '@_rot': '5400000' }, textStyle);
+		expect(textStyle.textBodyRotation).toBe(90);
+	});
+
+	it('parses negative @_rot', () => {
+		const textStyle: TextStyle = {};
+		parseBodyPrBooleanAttrs({ '@_rot': '-2700000' }, textStyle);
+		expect(textStyle.textBodyRotation).toBe(-45);
+	});
+
+	it('ignores non-numeric @_rot', () => {
+		const textStyle: TextStyle = {};
+		parseBodyPrBooleanAttrs({ '@_rot': 'abc' }, textStyle);
+		expect(textStyle.textBodyRotation).toBeUndefined();
+	});
+
+	it('parses @_spcFirstLastPara = "1" as true', () => {
+		const textStyle: TextStyle = {};
+		parseBodyPrBooleanAttrs({ '@_spcFirstLastPara': '1' }, textStyle);
+		expect(textStyle.spaceFirstLastParagraph).toBeTruthy();
+	});
+
+	it('parses @_spcFirstLastPara = "0" as false', () => {
+		const textStyle: TextStyle = {};
+		parseBodyPrBooleanAttrs({ '@_spcFirstLastPara': '0' }, textStyle);
+		expect(textStyle.spaceFirstLastParagraph).toBeFalsy();
+	});
+
+	it('parses @_anchorCtr = "1" as true', () => {
+		const textStyle: TextStyle = {};
+		parseBodyPrBooleanAttrs({ '@_anchorCtr': '1' }, textStyle);
+		expect(textStyle.anchorCenter).toBeTruthy();
+	});
+
+	it('parses @_anchorCtr = "0" as false', () => {
+		const textStyle: TextStyle = {};
+		parseBodyPrBooleanAttrs({ '@_anchorCtr': '0' }, textStyle);
+		expect(textStyle.anchorCenter).toBeFalsy();
+	});
+
+	it('parses @_rtlCol = "1" as true', () => {
+		const textStyle: TextStyle = {};
+		parseBodyPrBooleanAttrs({ '@_rtlCol': '1' }, textStyle);
+		expect(textStyle.rtlColumns).toBeTruthy();
+	});
+
+	it('parses @_rtlCol = "0" as false', () => {
+		const textStyle: TextStyle = {};
+		parseBodyPrBooleanAttrs({ '@_rtlCol': '0' }, textStyle);
+		expect(textStyle.rtlColumns).toBeFalsy();
+	});
+
+	it('leaves rtlColumns undefined when @_rtlCol is absent', () => {
+		const textStyle: TextStyle = {};
+		parseBodyPrBooleanAttrs({}, textStyle);
+		expect(textStyle.rtlColumns).toBeUndefined();
+	});
+});
+
+describe('writeBodyPrBooleanAttrs — extended bodyPr attributes', () => {
+	it('writes @_rot in 60000ths of a degree from textBodyRotation', () => {
+		const bodyPr: XmlObject = {};
+		writeBodyPrBooleanAttrs(bodyPr, { textBodyRotation: 90 });
+		expect(bodyPr['@_rot']).toBe('5400000');
+	});
+
+	it('writes negative @_rot for negative rotation', () => {
+		const bodyPr: XmlObject = {};
+		writeBodyPrBooleanAttrs(bodyPr, { textBodyRotation: -45 });
+		expect(bodyPr['@_rot']).toBe('-2700000');
+	});
+
+	it('does not emit @_rot when textBodyRotation is undefined', () => {
+		const bodyPr: XmlObject = {};
+		writeBodyPrBooleanAttrs(bodyPr, {});
+		expect(bodyPr['@_rot']).toBeUndefined();
+	});
+
+	it('writes @_spcFirstLastPara from spaceFirstLastParagraph', () => {
+		const bodyPr: XmlObject = {};
+		writeBodyPrBooleanAttrs(bodyPr, { spaceFirstLastParagraph: true });
+		expect(bodyPr['@_spcFirstLastPara']).toBe('1');
+	});
+
+	it('writes @_anchorCtr from anchorCenter', () => {
+		const bodyPr: XmlObject = {};
+		writeBodyPrBooleanAttrs(bodyPr, { anchorCenter: true });
+		expect(bodyPr['@_anchorCtr']).toBe('1');
+		const bodyPr2: XmlObject = {};
+		writeBodyPrBooleanAttrs(bodyPr2, { anchorCenter: false });
+		expect(bodyPr2['@_anchorCtr']).toBe('0');
+	});
+
+	it('writes @_rtlCol from rtlColumns and skips when undefined', () => {
+		const bodyPr: XmlObject = {};
+		writeBodyPrBooleanAttrs(bodyPr, { rtlColumns: true });
+		expect(bodyPr['@_rtlCol']).toBe('1');
+
+		const bodyPr2: XmlObject = {};
+		writeBodyPrBooleanAttrs(bodyPr2, {});
+		expect(bodyPr2['@_rtlCol']).toBeUndefined();
+	});
+
+	it('round-trips rot, spcFirstLastPara, anchorCtr, rtlCol', () => {
+		const original: XmlObject = {
+			'@_rot': '10800000',
+			'@_spcFirstLastPara': '1',
+			'@_anchorCtr': '0',
+			'@_rtlCol': '1',
+		};
+		const textStyle: TextStyle = {};
+		parseBodyPrBooleanAttrs(original, textStyle);
+		expect(textStyle.textBodyRotation).toBe(180);
+		expect(textStyle.spaceFirstLastParagraph).toBeTruthy();
+		expect(textStyle.anchorCenter).toBeFalsy();
+		expect(textStyle.rtlColumns).toBeTruthy();
+
+		const output: XmlObject = {};
+		writeBodyPrBooleanAttrs(output, textStyle);
+		expect(output['@_rot']).toBe('10800000');
+		expect(output['@_spcFirstLastPara']).toBe('1');
+		expect(output['@_anchorCtr']).toBe('0');
+		expect(output['@_rtlCol']).toBe('1');
+	});
+});
+
+// ---------------------------------------------------------------------------
 // GAP-11: PptxLayoutOption.type (Slide Layout Type)
 // ---------------------------------------------------------------------------
 

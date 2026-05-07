@@ -2,7 +2,11 @@ import type { XmlObject, TextStyle } from '../types';
 
 /**
  * Parse additional boolean body properties from a:bodyPr attributes.
- * Handles: compatLnSpc, forceAA, upright, fromWordArt
+ *
+ * Handles the boolean / numeric attributes defined on
+ * CT_TextBodyProperties that aren't mapped elsewhere in the runtime:
+ *   `compatLnSpc`, `forceAA`, `upright`, `fromWordArt`,
+ *   `spcFirstLastPara`, `anchorCtr`, `rtlCol`, and `rot` (degrees).
  */
 export function parseBodyPrBooleanAttrs(bodyPr: XmlObject, textStyle: TextStyle): void {
 	const parseBoolAttr = (attr: string): boolean | undefined => {
@@ -33,10 +37,38 @@ export function parseBodyPrBooleanAttrs(bodyPr: XmlObject, textStyle: TextStyle)
 	if (fromWordArt !== undefined) {
 		textStyle.fromWordArt = fromWordArt;
 	}
+
+	const spcFirstLastPara = parseBoolAttr('@_spcFirstLastPara');
+	if (spcFirstLastPara !== undefined) {
+		textStyle.spaceFirstLastParagraph = spcFirstLastPara;
+	}
+
+	const anchorCtr = parseBoolAttr('@_anchorCtr');
+	if (anchorCtr !== undefined) {
+		textStyle.anchorCenter = anchorCtr;
+	}
+
+	const rtlCol = parseBoolAttr('@_rtlCol');
+	if (rtlCol !== undefined) {
+		textStyle.rtlColumns = rtlCol;
+	}
+
+	// Body rotation is stored as 60000ths of a degree per ECMA-376.
+	const rotRaw = bodyPr['@_rot'];
+	if (rotRaw !== undefined) {
+		const rotEmu = Number.parseInt(String(rotRaw), 10);
+		if (Number.isFinite(rotEmu)) {
+			textStyle.textBodyRotation = rotEmu / 60000;
+		}
+	}
 }
 
 /**
  * Write body property boolean attributes to bodyPr XML object.
+ *
+ * Mirrors {@link parseBodyPrBooleanAttrs} — only emits attributes that the
+ * caller explicitly authored. `rtlCol` is intentionally not defaulted here
+ * so callers can preserve the loaded value when the model is undefined.
  */
 export function writeBodyPrBooleanAttrs(bodyPr: XmlObject, textStyle: TextStyle | undefined): void {
 	if (!textStyle) {
@@ -53,5 +85,17 @@ export function writeBodyPrBooleanAttrs(bodyPr: XmlObject, textStyle: TextStyle 
 	}
 	if (textStyle.fromWordArt !== undefined) {
 		bodyPr['@_fromWordArt'] = textStyle.fromWordArt ? '1' : '0';
+	}
+	if (textStyle.spaceFirstLastParagraph !== undefined) {
+		bodyPr['@_spcFirstLastPara'] = textStyle.spaceFirstLastParagraph ? '1' : '0';
+	}
+	if (textStyle.anchorCenter !== undefined) {
+		bodyPr['@_anchorCtr'] = textStyle.anchorCenter ? '1' : '0';
+	}
+	if (textStyle.rtlColumns !== undefined) {
+		bodyPr['@_rtlCol'] = textStyle.rtlColumns ? '1' : '0';
+	}
+	if (textStyle.textBodyRotation !== undefined && Number.isFinite(textStyle.textBodyRotation)) {
+		bodyPr['@_rot'] = String(Math.round(textStyle.textBodyRotation * 60000));
 	}
 }

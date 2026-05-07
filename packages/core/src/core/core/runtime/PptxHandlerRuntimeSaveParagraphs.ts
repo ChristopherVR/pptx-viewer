@@ -126,8 +126,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					...segment.style,
 					...uniformSegmentOverrides,
 				} as TextStyle;
-				const segmentText = String(segment.text ?? '');
-				const lineParts = segmentText.split('\n');
 
 				// Capture paragraph-level metadata from the first segment of each paragraph.
 				if (currentRuns.length === 0) {
@@ -141,6 +139,37 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						currentEndParaRunProperties = segment.endParaRunProperties;
 					}
 				}
+
+				// Soft line break (`a:br`) — emit a single br node inside the
+				// current paragraph and never split into a new paragraph.
+				if (segment.isLineBreak) {
+					const brNode: XmlObject = {};
+					if (segment.breakRunProperties && typeof segment.breakRunProperties === 'object') {
+						brNode['a:rPr'] = { ...(segment.breakRunProperties as Record<string, unknown>) };
+					} else {
+						brNode['a:rPr'] = this.createRunPropertiesFromTextStyle(
+							segmentStyle,
+							resolveHyperlinkRelationshipId,
+						);
+					}
+					(brNode as Record<string, unknown>).__isLineBreak = true;
+					currentRuns.push(brNode);
+					return;
+				}
+
+				// Math equation segments — re-emit the original m:oMath /
+				// m:oMathPara / mc:AlternateContent subtree captured at parse time.
+				if (segment.equationXml && typeof segment.equationXml === 'object') {
+					const eqNode: XmlObject = {
+						__isEquation: true,
+						__equationXml: segment.equationXml as Record<string, unknown>,
+					};
+					currentRuns.push(eqNode);
+					return;
+				}
+
+				const segmentText = String(segment.text ?? '');
+				const lineParts = segmentText.split('\n');
 
 				lineParts.forEach((linePart, lineIndex) => {
 					if (segment.rubyText !== undefined) {

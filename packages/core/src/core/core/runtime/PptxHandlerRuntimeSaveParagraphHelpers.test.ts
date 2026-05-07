@@ -285,6 +285,67 @@ describe('assembleParagraphXml', () => {
 		expect(result['a:r']).toBeUndefined();
 	});
 
+	it('should emit a:br for line-break runs and strip the marker', () => {
+		const text: XmlObject = { 'a:t': 'Hello' };
+		const br: XmlObject = {
+			__isLineBreak: true,
+			'a:rPr': { '@_lang': 'en-US' },
+		};
+		const result = assembleParagraphXml([text, br], {});
+		expect(result['a:r']).toStrictEqual(text);
+		const brOut = result['a:br'] as XmlObject;
+		expect(brOut['__isLineBreak']).toBeUndefined();
+		expect(brOut['a:rPr']).toStrictEqual({ '@_lang': 'en-US' });
+	});
+
+	it('should keep multiple a:br as array', () => {
+		const br1: XmlObject = { __isLineBreak: true };
+		const br2: XmlObject = { __isLineBreak: true };
+		const result = assembleParagraphXml([br1, br2], {});
+		expect(Array.isArray(result['a:br'])).toBeTruthy();
+		expect(result['a:br'] as XmlObject[]).toHaveLength(2);
+	});
+
+	it('should re-emit m:oMath equation runs verbatim', () => {
+		const equationXml = {
+			'm:oMath': { 'm:r': { 'm:t': 'x^2' } },
+		};
+		const equationRun: XmlObject = {
+			__isEquation: true,
+			__equationXml: equationXml,
+		};
+		const result = assembleParagraphXml([equationRun], {});
+		expect(result['m:oMath']).toStrictEqual({ 'm:r': { 'm:t': 'x^2' } });
+		// Marker keys should not leak into the paragraph output.
+		expect(result['__isEquation']).toBeUndefined();
+		expect(result['__equationXml']).toBeUndefined();
+	});
+
+	it('should re-emit m:oMathPara equation runs verbatim', () => {
+		const oMathParaNode = { 'm:oMath': { 'm:r': { 'm:t': 'a+b' } } };
+		const equationXml = { 'm:oMathPara': oMathParaNode };
+		const equationRun: XmlObject = {
+			__isEquation: true,
+			__equationXml: equationXml,
+		};
+		const result = assembleParagraphXml([equationRun], {});
+		expect(result['m:oMathPara']).toStrictEqual(oMathParaNode);
+	});
+
+	it('should re-emit mc:AlternateContent equation wrappers verbatim', () => {
+		const acNode = {
+			'mc:Choice': { '@_Requires': 'a14', 'a14:m': { 'm:oMath': {} } },
+			'mc:Fallback': { 'a:r': { 'a:t': '[Equation]' } },
+		};
+		const equationXml = { 'mc:AlternateContent': acNode };
+		const equationRun: XmlObject = {
+			__isEquation: true,
+			__equationXml: equationXml,
+		};
+		const result = assembleParagraphXml([equationRun], {});
+		expect(result['mc:AlternateContent']).toStrictEqual(acNode);
+	});
+
 	it('buildParagraphPropertiesXml emits a:lnSpc before a:spcBef before a:spcAft', () => {
 		// CT_TextParagraphProperties schema order for spacing children:
 		//   lnSpc, spcBef, spcAft. Out-of-order emission yields

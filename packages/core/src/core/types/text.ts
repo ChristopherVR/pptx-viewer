@@ -302,6 +302,14 @@ export interface TextStyle {
 	upright?: boolean;
 	/** Compatible line spacing flag (`a:bodyPr/@compatLnSpc`). */
 	compatibleLineSpacing?: boolean;
+	/**
+	 * Text body rotation in **degrees** (`a:bodyPr/@rot`).
+	 *
+	 * OOXML stores the value as 60000ths of a degree. Positive values rotate
+	 * the body clockwise. When undefined, the attribute is omitted on save
+	 * (PowerPoint treats absent `rot` as inherit/none).
+	 */
+	textBodyRotation?: number;
 
 	// ── Text run effects (from `a:rPr/a:effectLst`) ──
 
@@ -477,6 +485,21 @@ export interface TextSegment {
 	equationNumber?: string;
 	/** Whether this segment represents a paragraph break rather than renderable text. */
 	isParagraphBreak?: boolean;
+	/**
+	 * Whether this segment represents a soft line break (`a:br`) rather than
+	 * a paragraph terminator. Soft line breaks remain inside the same paragraph
+	 * but force a line wrap and may carry their own run properties.
+	 *
+	 * The renderer should treat the segment text as `"\n"` when present.
+	 */
+	isLineBreak?: true;
+	/**
+	 * Raw `a:rPr` XML for an `a:br` (soft line break) segment, captured verbatim
+	 * during parse so the writer can re-emit attributes/colours/fonts that the
+	 * typed model doesn't represent. Only meaningful when {@link isLineBreak}
+	 * is `true`.
+	 */
+	breakRunProperties?: Record<string, unknown>;
 	/** Structured bullet info for the first segment of a paragraph. */
 	bulletInfo?: BulletInfo;
 	/**

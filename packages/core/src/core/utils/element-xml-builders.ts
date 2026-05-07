@@ -61,7 +61,6 @@ export function createTemplateShapeRawXml(element: PptxElementWithText): XmlObje
 		'p:txBody': {
 			'a:bodyPr': {
 				'@_wrap': 'square',
-				'@_rtlCol': '0',
 			},
 			'a:lstStyle': {},
 			'a:p': [
