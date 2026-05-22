@@ -2,6 +2,7 @@ import { PptxXmlBuilder } from '../../builders/fluent';
 import { PptxData, PptxSlide, PptxCompatibilityWarning, XmlObject } from '../../types';
 import type { PptxSection, PptxLayoutOption } from '../../types';
 import { parsePresentationDrawingGuides } from '../../utils/guide-utils';
+import { resolveLayoutDisplayName } from '../../utils/layout-display-name';
 import { PptxLoadDataBuilder } from '../builders';
 import type { PptxHandlerLoadOptions } from '../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeLoadSession';
@@ -350,11 +351,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		for (const lp of masterLayoutPaths) {
 			const xmlObj = this.layoutXmlMap.get(lp);
 			if (xmlObj) {
-				const sldLayout = (xmlObj as XmlObject)['p:sldLayout'] as XmlObject | undefined;
-				const name = String(sldLayout?.['p:cSld']?.['@_name'] || '').trim() || lp;
-				const type =
-					sldLayout?.['@_type'] !== null ? String(sldLayout!['@_type']).trim() : undefined;
-				options.push({ path: lp, name, ...(type ? { type } : {}) });
+				options.push(this.buildLayoutOption(lp, xmlObj as XmlObject));
 			} else {
 				// Layout not yet in cache -- try to load from ZIP
 				try {
@@ -362,11 +359,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					if (layoutXmlStr) {
 						const layoutXmlObj = this.parser.parse(layoutXmlStr) as XmlObject;
 						this.layoutXmlMap.set(lp, layoutXmlObj);
-						const sldLayout = layoutXmlObj['p:sldLayout'] as XmlObject | undefined;
-						const name = String(sldLayout?.['p:cSld']?.['@_name'] || '').trim() || lp;
-						const type =
-							sldLayout?.['@_type'] !== null ? String(sldLayout!['@_type']).trim() : undefined;
-						options.push({ path: lp, name, ...(type ? { type } : {}) });
+						options.push(this.buildLayoutOption(lp, layoutXmlObj));
 					}
 				} catch {
 					// Skip unreadable layouts
@@ -374,6 +367,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 		return options;
+	}
+
+	protected buildLayoutOption(path: string, xmlObj: XmlObject): PptxLayoutOption {
+		const sldLayout = xmlObj['p:sldLayout'] as XmlObject | undefined;
+		const rawName = String(sldLayout?.['p:cSld']?.['@_name'] || '').trim();
+		const typeAttr = sldLayout?.['@_type'];
+		const type = typeAttr !== undefined && typeAttr !== null ? String(typeAttr).trim() : undefined;
+		const name = resolveLayoutDisplayName({ name: rawName, type, path });
+		const masterPath = this.findMasterPathForLayout(path);
+		return {
+			path,
+			name,
+			...(type ? { type } : {}),
+			...(masterPath ? { masterPath } : {}),
+		};
 	}
 
 	/**

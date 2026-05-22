@@ -213,6 +213,8 @@ export interface PptxLayoutOption {
 	name: string;
 	/** Standard layout type from `p:sldLayout/@type` (e.g. "obj", "twoColTx", "blank"). */
 	type?: string;
+	/** ZIP path of the slide master this layout belongs to. */
+	masterPath?: string;
 }
 
 /**

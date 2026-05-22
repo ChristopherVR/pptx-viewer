@@ -6,6 +6,7 @@ import {
 	detectFontFormat,
 	extractGuidFromPartName,
 } from '../../utils/font-deobfuscation';
+import { resolveLayoutDisplayName } from '../../utils/layout-display-name';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimePresentationStructure';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -233,11 +234,45 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const options: PptxLayoutOption[] = [];
 		for (const [path, xmlObj] of this.layoutXmlMap.entries()) {
 			const sldLayout = (xmlObj as XmlObject)['p:sldLayout'] as XmlObject | undefined;
-			const name = String(sldLayout?.['p:cSld']?.['@_name'] || '').trim() || path;
+			const rawName = String(sldLayout?.['p:cSld']?.['@_name'] || '').trim();
 			const type =
 				sldLayout?.['@_type'] !== undefined ? String(sldLayout['@_type']).trim() : undefined;
-			options.push({ path, name, ...(type ? { type } : {}) });
+			const name = resolveLayoutDisplayName({ name: rawName, type, path });
+			const masterPath = this.resolveMasterPathForLayout(path);
+			options.push({
+				path,
+				name,
+				...(type ? { type } : {}),
+				...(masterPath ? { masterPath } : {}),
+			});
 		}
 		return options;
+	}
+
+	protected resolveMasterPathForLayout(layoutPath: string): string | undefined {
+		const layoutRels = this.slideRelsMap.get(layoutPath);
+		if (!layoutRels) {
+			return undefined;
+		}
+		for (const [, target] of layoutRels.entries()) {
+			if (target.includes('slideMaster')) {
+				const layoutDir = layoutPath.substring(0, layoutPath.lastIndexOf('/') + 1);
+				if (target.startsWith('..')) {
+					// resolvePath isn't in scope here; do a simple normalization.
+					const segments = (layoutDir + target).split('/');
+					const stack: string[] = [];
+					for (const seg of segments) {
+						if (seg === '..') {
+							stack.pop();
+						} else if (seg && seg !== '.') {
+							stack.push(seg);
+						}
+					}
+					return stack.join('/');
+				}
+				return `ppt/${target.replace('../', '')}`;
+			}
+		}
+		return undefined;
 	}
 }

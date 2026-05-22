@@ -374,6 +374,8 @@ export {
 
 export { relayoutSmartArt } from './smartart-relayout';
 
+export { resolveLayoutDisplayName, type LayoutDisplayNameInput } from './layout-display-name';
+
 export {
 	reorderObjectKeys,
 	EFFECT_LST_ORDER,
