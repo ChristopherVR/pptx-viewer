@@ -105,191 +105,208 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 	}, [slideMasters, themeOptions]);
 
 	return (
-		<div
-			className={cn(
-				// Shared styles
-				'bg-background flex flex-col text-xs text-foreground shadow-xl',
-				// Mobile: absolute bottom sheet overlay
-				'max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:max-h-[60vh] max-md:rounded-t-xl max-md:border-t max-md:border-border max-md:z-30',
-				'max-md:transition-transform max-md:duration-200 max-md:ease-in-out',
-				isOpen ? 'max-md:translate-y-0' : 'max-md:translate-y-full',
-				// Desktop: flow-based flex child (takes space from canvas)
-				'md:h-full md:border-l md:border-border',
-				!panelWidth && 'md:w-72',
-			)}
-			style={panelWidth ? { width: panelWidth } : undefined}
-		>
-			{/* Header */}
-			<div className='flex items-center justify-between gap-2 px-3 py-2 border-b border-border'>
-				<div className='flex items-center gap-1 rounded bg-muted p-0.5'>
-					{TABS.map(({ key, label, icon: Icon }) => (
-						<button
-							key={key}
-							type='button'
-							title={label}
-							className={cn(
-								'flex items-center gap-1 px-2 py-1 rounded text-[11px] transition-colors',
-								activeTab === key
-									? 'bg-primary text-primary-foreground'
-									: 'text-muted-foreground hover:text-foreground hover:bg-accent',
-							)}
-							onClick={() => onSetActiveTab(key)}
-						>
-							<Icon className='w-3.5 h-3.5' />
-							<span className='hidden sm:inline'>{label}</span>
-						</button>
-					))}
-				</div>
+		<>
+			{/* Mobile backdrop — tap to dismiss the bottom sheet. */}
+			{isOpen && (
 				<button
 					type='button'
+					aria-label={t('common.close')}
 					onClick={onClose}
-					title={t('common.close')}
-					className='p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors'
-				>
-					<LuX className='w-4 h-4' />
-				</button>
-			</div>
-
-			{/* Tab content */}
-			<div className='flex-1 overflow-y-auto p-3 space-y-3'>
-				{/* ── Elements ── */}
-				{activeTab === 'elements' && (
-					<div className='space-y-1'>
-						<div className={cn(HEADING, 'mb-2')}>{t('pptx.inspector.layerOrder')}</div>
-						{activeSlide ? (
-							[...(activeSlide.elements || [])].reverse().map((el, ri) => {
-								const idx = (activeSlide.elements || []).length - 1 - ri;
-								const sel = selectedElement?.id === el.id || selectedElementIds.includes(el.id);
-								const label =
-									(hasTextProperties(el) ? (el.text || '').slice(0, 24) : undefined) || el.type;
-								return (
-									<div
-										key={el.id}
-										title={`${el.type} — ${el.id}`}
-										className={cn(
-											'flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-colors',
-											sel ? 'bg-primary/30 text-primary' : 'hover:bg-muted text-foreground',
-										)}
-										onClick={() => onSelectElement(el.id)}
-									>
-										<span className='text-muted-foreground w-4 text-right'>{idx + 1}</span>
-										<span className='flex-1 truncate'>{label}</span>
-									</div>
-								);
-							})
-						) : (
-							<div className='text-muted-foreground italic'>
-								{t('pptx.inspector.noSlideSelected')}
-							</div>
-						)}
-					</div>
-				)}
-
-				{/* ── Properties ── */}
-				{activeTab === 'properties' && (
-					<div className='space-y-3'>
-						{hasSelection && selectedElement ? (
-							<ElementInspectorBody
-								selectedElement={selectedElement}
-								canEdit={canEdit}
-								slides={slides}
-								tableEditorState={tableEditorState}
-								mediaDataUrls={mediaDataUrls}
-								onUpdateElement={onUpdateElement}
-								onUpdateElementStyle={onUpdateElementStyle}
-								onUpdateTextStyle={onUpdateTextStyle}
-								onMoveLayer={onMoveLayer}
-							/>
-						) : (
-							<>
-								<PresentationPropertiesPanel
-									canEdit={canEdit}
-									canvasSize={canvasSize}
-									presentationProperties={presentationProperties}
-									onUpdatePresentationProperties={onUpdatePresentationProperties}
-									notesMaster={notesMaster}
-									handoutMaster={handoutMaster}
-									notesCanvasSize={notesCanvasSize}
-									coreProperties={coreProperties}
-									appProperties={appProperties}
-									customProperties={customProperties}
-									themeOptions={themeOptions}
-									selectedThemePath={selectedThemePath}
-									setSelectedThemePath={setSelectedThemePath}
-									onApplyTheme={onApplyTheme}
-									onUpdateCoreProperties={onUpdateCoreProperties}
-									onUpdateAppProperties={onUpdateAppProperties}
-									onUpdateCustomProperties={onUpdateCustomProperties}
-									tagCollections={tagCollections}
-									onUpdateTagCollections={onUpdateTagCollections}
-									onUpdateCanvasSize={onUpdateCanvasSize}
-									activeSlide={activeSlide}
-									theme={theme}
-									onUpdateSlide={onUpdateSlide}
-								/>
-
-								{activeSlide && (
-									<SlideBackgroundPanel
-										activeSlide={activeSlide}
-										canEdit={canEdit}
-										onUpdateSlide={onUpdateSlide}
-										editTemplateMode={editTemplateMode}
-										slideMasters={slideMasters}
-										onSetTemplateBackground={onSetTemplateBackground}
-										onGetTemplateBackgroundColor={onGetTemplateBackgroundColor}
-									/>
-								)}
-							</>
-						)}
-					</div>
-				)}
-
-				{/* ── Comments ── */}
-				{activeTab === 'comments' && (
-					<InspectorCommentsSection
-						comments={comments}
-						canEdit={canEdit}
-						activeSlide={activeSlide}
-						selectedElement={selectedElement}
-						editingCommentId={editingCommentId}
-						commentEditDraft={commentEditDraft}
-						commentDraft={commentDraft}
-						replyingToCommentId={replyingToCommentId ?? null}
-						replyDraftByCommentId={replyDraftByCommentId ?? {}}
-						onSetCommentDraft={onSetCommentDraft}
-						onAddComment={onAddComment}
-						onDeleteComment={onDeleteComment}
-						onStartEditComment={onStartEditComment}
-						onSaveEditComment={onSaveEditComment}
-						onCancelEditComment={onCancelEditComment}
-						onSetCommentEditDraft={onSetCommentEditDraft}
-						onToggleCommentResolved={onToggleCommentResolved}
-						onStartReply={onStartReply}
-						onCancelReply={onCancelReply}
-						onReplyDraftChange={onReplyDraftChange}
-						onSubmitReply={onSubmitReply}
-						onSelectElement={onSelectElement}
-					/>
-				)}
-			</div>
-
-			{/* Animation panel — always visible at bottom when element selected */}
-			{hasSelection && selectedElement && activeSlide && (
-				<>
-					<ResizeHandle direction='vertical' onResize={onResizeAnim} />
-					<div
-						className='border-t border-border p-3 overflow-y-auto flex-shrink-0'
-						style={{ height: animPanelHeight }}
-					>
-						<AnimationPanel
-							selectedElement={selectedElement}
-							activeSlide={activeSlide}
-							canEdit={canEdit}
-							onUpdateSlide={onUpdateSlide}
-						/>
-					</div>
-				</>
+					className='md:hidden fixed inset-0 z-20 bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-150'
+				/>
 			)}
-		</div>
+			<div
+				className={cn(
+					// Shared styles
+					'bg-background flex flex-col text-xs text-foreground shadow-xl',
+					// Mobile: absolute bottom sheet overlay sized via dvh so it
+					// adapts to the on-screen keyboard / dynamic browser chrome.
+					'max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:max-h-[75dvh] max-md:rounded-t-2xl max-md:border-t max-md:border-border max-md:z-30 max-md:pb-[max(env(safe-area-inset-bottom),0px)]',
+					'max-md:transition-transform max-md:duration-200 max-md:ease-in-out',
+					isOpen ? 'max-md:translate-y-0' : 'max-md:translate-y-full',
+					// Desktop: flow-based flex child (takes space from canvas)
+					'md:h-full md:border-l md:border-border',
+					!panelWidth && 'md:w-72',
+				)}
+				style={panelWidth ? { width: panelWidth } : undefined}
+			>
+				{/* Mobile drag handle */}
+				<div className='md:hidden flex items-center justify-center pt-2 pb-1'>
+					<div className='h-1 w-10 rounded-full bg-muted-foreground/40' />
+				</div>
+
+				{/* Header */}
+				<div className='flex items-center justify-between gap-2 px-3 py-2 border-b border-border'>
+					<div className='flex items-center gap-1 rounded bg-muted p-0.5'>
+						{TABS.map(({ key, label, icon: Icon }) => (
+							<button
+								key={key}
+								type='button'
+								title={label}
+								className={cn(
+									'flex items-center gap-1 px-2 py-1 rounded text-[11px] transition-colors',
+									activeTab === key
+										? 'bg-primary text-primary-foreground'
+										: 'text-muted-foreground hover:text-foreground hover:bg-accent',
+								)}
+								onClick={() => onSetActiveTab(key)}
+							>
+								<Icon className='w-3.5 h-3.5' />
+								<span className='hidden sm:inline'>{label}</span>
+							</button>
+						))}
+					</div>
+					<button
+						type='button'
+						onClick={onClose}
+						title={t('common.close')}
+						className='p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors'
+					>
+						<LuX className='w-4 h-4' />
+					</button>
+				</div>
+
+				{/* Tab content */}
+				<div className='flex-1 overflow-y-auto p-3 space-y-3'>
+					{/* ── Elements ── */}
+					{activeTab === 'elements' && (
+						<div className='space-y-1'>
+							<div className={cn(HEADING, 'mb-2')}>{t('pptx.inspector.layerOrder')}</div>
+							{activeSlide ? (
+								[...(activeSlide.elements || [])].reverse().map((el, ri) => {
+									const idx = (activeSlide.elements || []).length - 1 - ri;
+									const sel = selectedElement?.id === el.id || selectedElementIds.includes(el.id);
+									const label =
+										(hasTextProperties(el) ? (el.text || '').slice(0, 24) : undefined) || el.type;
+									return (
+										<div
+											key={el.id}
+											title={`${el.type} — ${el.id}`}
+											className={cn(
+												'flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-colors',
+												sel ? 'bg-primary/30 text-primary' : 'hover:bg-muted text-foreground',
+											)}
+											onClick={() => onSelectElement(el.id)}
+										>
+											<span className='text-muted-foreground w-4 text-right'>{idx + 1}</span>
+											<span className='flex-1 truncate'>{label}</span>
+										</div>
+									);
+								})
+							) : (
+								<div className='text-muted-foreground italic'>
+									{t('pptx.inspector.noSlideSelected')}
+								</div>
+							)}
+						</div>
+					)}
+
+					{/* ── Properties ── */}
+					{activeTab === 'properties' && (
+						<div className='space-y-3'>
+							{hasSelection && selectedElement ? (
+								<ElementInspectorBody
+									selectedElement={selectedElement}
+									canEdit={canEdit}
+									slides={slides}
+									tableEditorState={tableEditorState}
+									mediaDataUrls={mediaDataUrls}
+									onUpdateElement={onUpdateElement}
+									onUpdateElementStyle={onUpdateElementStyle}
+									onUpdateTextStyle={onUpdateTextStyle}
+									onMoveLayer={onMoveLayer}
+								/>
+							) : (
+								<>
+									<PresentationPropertiesPanel
+										canEdit={canEdit}
+										canvasSize={canvasSize}
+										presentationProperties={presentationProperties}
+										onUpdatePresentationProperties={onUpdatePresentationProperties}
+										notesMaster={notesMaster}
+										handoutMaster={handoutMaster}
+										notesCanvasSize={notesCanvasSize}
+										coreProperties={coreProperties}
+										appProperties={appProperties}
+										customProperties={customProperties}
+										themeOptions={themeOptions}
+										selectedThemePath={selectedThemePath}
+										setSelectedThemePath={setSelectedThemePath}
+										onApplyTheme={onApplyTheme}
+										onUpdateCoreProperties={onUpdateCoreProperties}
+										onUpdateAppProperties={onUpdateAppProperties}
+										onUpdateCustomProperties={onUpdateCustomProperties}
+										tagCollections={tagCollections}
+										onUpdateTagCollections={onUpdateTagCollections}
+										onUpdateCanvasSize={onUpdateCanvasSize}
+										activeSlide={activeSlide}
+										theme={theme}
+										onUpdateSlide={onUpdateSlide}
+									/>
+
+									{activeSlide && (
+										<SlideBackgroundPanel
+											activeSlide={activeSlide}
+											canEdit={canEdit}
+											onUpdateSlide={onUpdateSlide}
+											editTemplateMode={editTemplateMode}
+											slideMasters={slideMasters}
+											onSetTemplateBackground={onSetTemplateBackground}
+											onGetTemplateBackgroundColor={onGetTemplateBackgroundColor}
+										/>
+									)}
+								</>
+							)}
+						</div>
+					)}
+
+					{/* ── Comments ── */}
+					{activeTab === 'comments' && (
+						<InspectorCommentsSection
+							comments={comments}
+							canEdit={canEdit}
+							activeSlide={activeSlide}
+							selectedElement={selectedElement}
+							editingCommentId={editingCommentId}
+							commentEditDraft={commentEditDraft}
+							commentDraft={commentDraft}
+							replyingToCommentId={replyingToCommentId ?? null}
+							replyDraftByCommentId={replyDraftByCommentId ?? {}}
+							onSetCommentDraft={onSetCommentDraft}
+							onAddComment={onAddComment}
+							onDeleteComment={onDeleteComment}
+							onStartEditComment={onStartEditComment}
+							onSaveEditComment={onSaveEditComment}
+							onCancelEditComment={onCancelEditComment}
+							onSetCommentEditDraft={onSetCommentEditDraft}
+							onToggleCommentResolved={onToggleCommentResolved}
+							onStartReply={onStartReply}
+							onCancelReply={onCancelReply}
+							onReplyDraftChange={onReplyDraftChange}
+							onSubmitReply={onSubmitReply}
+							onSelectElement={onSelectElement}
+						/>
+					)}
+				</div>
+
+				{/* Animation panel — always visible at bottom when element selected */}
+				{hasSelection && selectedElement && activeSlide && (
+					<>
+						<ResizeHandle direction='vertical' onResize={onResizeAnim} />
+						<div
+							className='border-t border-border p-3 overflow-y-auto flex-shrink-0'
+							style={{ height: animPanelHeight }}
+						>
+							<AnimationPanel
+								selectedElement={selectedElement}
+								activeSlide={activeSlide}
+								canEdit={canEdit}
+								onUpdateSlide={onUpdateSlide}
+							/>
+						</div>
+					</>
+				)}
+			</div>
+		</>
 	);
 }

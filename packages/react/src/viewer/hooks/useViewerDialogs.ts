@@ -57,21 +57,43 @@ export function useViewerDialogs(input: UseViewerDialogsInput): ViewerDialogsRes
 	const [embedFontsEnabled, setEmbedFontsEnabled] = useState(false);
 
 	// ── Narrow viewport ───────────────────────────────────────────────
-	const [isNarrowViewport, setIsNarrowViewport] = useState(false);
+	// Initialize from window width so the value is correct even before the
+	// containerRef attaches (the viewer renders LoadingState first, which
+	// short-circuits the ref). The effect upgrades to a ResizeObserver once
+	// the container is mounted, and falls back to window resize otherwise.
+	const [isNarrowViewport, setIsNarrowViewport] = useState(() =>
+		typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+	);
 	useEffect(() => {
-		const el = containerRef.current;
-		if (!el) {
-			return;
-		}
-		const observer = new ResizeObserver((entries) => {
-			const entry = entries[0];
-			if (entry) {
-				setIsNarrowViewport(entry.contentRect.width < 768);
+		const handleWindow = () => setIsNarrowViewport(window.innerWidth < 768);
+
+		// Poll briefly until the container mounts (it does not exist while
+		// LoadingState is shown), then attach a ResizeObserver to it.
+		let observer: ResizeObserver | null = null;
+		let raf = 0;
+		const attach = () => {
+			const el = containerRef.current;
+			if (!el) {
+				raf = requestAnimationFrame(attach);
+				return;
 			}
-		});
-		observer.observe(el);
-		setIsNarrowViewport(el.clientWidth < 768);
-		return () => observer.disconnect();
+			observer = new ResizeObserver((entries) => {
+				const entry = entries[0];
+				if (entry) {
+					setIsNarrowViewport(entry.contentRect.width < 768);
+				}
+			});
+			observer.observe(el);
+			setIsNarrowViewport(el.clientWidth < 768);
+		};
+		attach();
+
+		window.addEventListener('resize', handleWindow);
+		return () => {
+			cancelAnimationFrame(raf);
+			observer?.disconnect();
+			window.removeEventListener('resize', handleWindow);
+		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 

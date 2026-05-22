@@ -2,6 +2,7 @@ import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { cn } from '../utils';
 import { renderRichNotesSegments } from './notes/notes-html';
 import { EXPANDED_MAX_HEIGHT } from './notes/notes-utils';
 import { NotesPrintDialog } from './notes/NotesPrintDialog';
@@ -78,11 +79,18 @@ export const SlideNotesPanel: React.FC<SlideNotesPanelProps> = ({
 		: t('pptx.notes.noSlide');
 
 	return (
-		<div className='flex flex-col border-t border-border/60 bg-background select-none'>
+		<div
+			className={cn(
+				'flex flex-col border-t border-border/60 bg-background select-none',
+				// On mobile, hide the entire notes strip when collapsed — the
+				// MobileBottomBar's Notes button is the entry point instead.
+				!isExpanded && 'max-md:hidden',
+			)}
+		>
 			<button
 				type='button'
 				onClick={onToggle}
-				className='flex items-center gap-1.5 px-3 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors w-full text-left shrink-0'
+				className='flex items-center gap-1.5 px-3 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors w-full text-left shrink-0 max-md:hidden'
 				aria-expanded={isExpanded}
 				aria-controls='slide-notes-content'
 			>

@@ -37,6 +37,7 @@ import {
 	useCollaboration,
 	CollaborationStatusIndicator,
 } from './components/collaboration';
+import { MobileChromeOverlay } from './components/mobile/MobileChromeOverlay';
 import { SettingsDialog } from './components/SettingsDialog';
 import { ViewerDialogGroup } from './components/ViewerDialogGroup';
 import { ViewerMainContent } from './components/ViewerMainContent';
@@ -307,6 +308,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			dialogs,
 			presentation,
 			userName: authorName ?? collaboration?.userName,
+			handlerRef: actionSoundHandlerRef,
 		});
 
 		// ── Integration (pointers, lifecycle, I/O, annotations, etc.) ─
@@ -439,7 +441,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					<ViewerBottomPanels
 						activeSlide={activeSlide}
 						allSlides={slides}
-						isSlideNotesCollapsed={isMobile || state.isSlideNotesCollapsed}
+						isSlideNotesCollapsed={state.isSlideNotesCollapsed}
 						canEdit={canEdit}
 						slideCount={slides.length}
 						activeSlideIndex={activeSlideIndex}
@@ -457,6 +459,21 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 						mode={mode}
 						onSetMode={handleSetMode}
 						onToggleSlideSorter={() => state.setShowSlideSorter((p) => !p)}
+						hideStatusBar={isMobile}
+					/>
+				)}
+
+				{mode !== 'present' && isMobile && (
+					<MobileChromeOverlay
+						state={state}
+						editorOps={editorOps}
+						presentation={presentation}
+						slides={slides}
+						activeSlideIndex={activeSlideIndex}
+						canvasSize={canvasSize}
+						slideSectionGroups={slideSectionGroups}
+						canEdit={canEdit}
+						commentCount={activeSlide?.comments?.length ?? 0}
 					/>
 				)}
 

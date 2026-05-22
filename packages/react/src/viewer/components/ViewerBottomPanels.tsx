@@ -47,6 +47,8 @@ export interface ViewerBottomPanelsProps {
 	onSetMode?: (mode: ViewerMode) => void;
 	/** Toggle slide sorter view. */
 	onToggleSlideSorter?: () => void;
+	/** When true, the StatusBar row is omitted (mobile uses MobileBottomBar instead). */
+	hideStatusBar?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -74,6 +76,7 @@ export function ViewerBottomPanels({
 	mode,
 	onSetMode,
 	onToggleSlideSorter,
+	hideStatusBar = false,
 }: ViewerBottomPanelsProps): React.ReactElement {
 	return (
 		<>
@@ -89,22 +92,24 @@ export function ViewerBottomPanels({
 				onUpdateNotes={onUpdateNotes}
 				panelHeight={notesPanelHeight}
 			/>
-			<StatusBar
-				slideCount={slideCount}
-				activeSlideIndex={activeSlideIndex}
-				isDirty={isDirty}
-				autosaveStatus={autosaveStatus}
-				scale={scale}
-				onZoomIn={onZoomIn}
-				onZoomOut={onZoomOut}
-				onZoomToFit={onZoomToFit}
-				isNotesExpanded={!isSlideNotesCollapsed}
-				onToggleNotes={onToggleNotes}
-				mode={mode}
-				onSetMode={onSetMode as ((mode: 'edit' | 'present') => void) | undefined}
-				onToggleSlideSorter={onToggleSlideSorter}
-				collaborationSlot={collaborationSlot}
-			/>
+			{!hideStatusBar && (
+				<StatusBar
+					slideCount={slideCount}
+					activeSlideIndex={activeSlideIndex}
+					isDirty={isDirty}
+					autosaveStatus={autosaveStatus}
+					scale={scale}
+					onZoomIn={onZoomIn}
+					onZoomOut={onZoomOut}
+					onZoomToFit={onZoomToFit}
+					isNotesExpanded={!isSlideNotesCollapsed}
+					onToggleNotes={onToggleNotes}
+					mode={mode}
+					onSetMode={onSetMode as ((mode: 'edit' | 'present') => void) | undefined}
+					onToggleSlideSorter={onToggleSlideSorter}
+					collaborationSlot={collaborationSlot}
+				/>
+			)}
 		</>
 	);
 }

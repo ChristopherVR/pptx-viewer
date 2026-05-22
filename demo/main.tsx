@@ -581,7 +581,7 @@ function App() {
 
 	if (content) {
 		return (
-			<div className='h-screen w-screen'>
+			<div className='h-[100dvh] w-screen'>
 				<ThemePicker current={themeKey} onChange={handleThemeChange} />
 				<PowerPointViewer
 					content={content}
@@ -604,7 +604,7 @@ function App() {
 	}
 
 	return (
-		<div className='flex items-center justify-center h-screen w-screen bg-background text-foreground'>
+		<div className='flex items-center justify-center h-[100dvh] w-screen bg-background text-foreground'>
 			<ThemePicker current={themeKey} onChange={handleThemeChange} />
 			<div
 				className='max-w-[900px] w-full border-2 border-dashed border-border rounded-xl p-12 text-center cursor-pointer transition-colors hover:border-primary hover:bg-accent'

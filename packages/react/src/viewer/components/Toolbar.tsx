@@ -2,6 +2,7 @@ import React from 'react';
 
 import { TOOLBAR_SECTIONS } from '../constants';
 import { cn } from '../utils';
+import { MobileToolbar } from './mobile/MobileToolbar';
 import { AnimationsSection } from './toolbar/AnimationsSection';
 import { ArrangeSection } from './toolbar/ArrangeSection';
 import {
@@ -24,6 +25,13 @@ export type { ToolbarProps } from './toolbar/toolbar-types';
 
 export function Toolbar(p: ToolbarProps): React.ReactElement {
 	const { mode, isNarrowViewport, isCompactToolbarOpen, toolbarSection, onSetToolbarSection } = p;
+
+	// Mobile-first: at <768px we swap the entire desktop ribbon for a compact
+	// top bar plus a slide-up sheet exposing every section. The bottom action
+	// bar is rendered separately by MobileChromeOverlay at the viewer level.
+	if (isNarrowViewport && mode !== 'present') {
+		return <MobileToolbar {...p} />;
+	}
 
 	const sFil = toolbarSection === 'file';
 	const sHome = toolbarSection === 'home';
@@ -124,6 +132,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							canEdit={p.canEdit}
 							clipboardPayload={p.clipboardPayload}
 							formatPainterActive={p.formatPainterActive}
+							canActivateFormatPainter={p.canActivateFormatPainter}
 							onCopy={p.onCopy}
 							onCut={p.onCut}
 							onPaste={p.onPaste}
@@ -188,6 +197,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							onDelete={p.onDelete}
 							formatPainterActive={p.formatPainterActive}
 							onToggleFormatPainter={p.onToggleFormatPainter}
+							canActivateFormatPainter={p.canActivateFormatPainter}
 						/>
 					)}
 

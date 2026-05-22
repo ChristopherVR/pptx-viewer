@@ -93,7 +93,11 @@ export function useViewerUIState(): ViewerUIState {
 	// ── UI Panel State ────────────────────────────────────────────────
 	const [isCompactToolbarOpen, setIsCompactToolbarOpen] = useState(false);
 	const [toolbarSection, setToolbarSection] = useState<ToolbarSection>('home');
-	const [isSlidesPaneOpen, setIsSlidesPaneOpen] = useState(true);
+	// Default closed on mobile so the canvas owns the screen on first paint;
+	// the bottom action bar's "Slides" button is the entry point.
+	const [isSlidesPaneOpen, setIsSlidesPaneOpen] = useState(() =>
+		typeof window === 'undefined' ? true : window.innerWidth >= 768,
+	);
 	const [isInspectorPaneOpen, setIsInspectorPaneOpen] = useState(false);
 	const [isSlideNotesCollapsed, setIsSlideNotesCollapsed] = useState(true);
 	const [isOverflowMenuOpen, setIsOverflowMenuOpen] = useState(false);
