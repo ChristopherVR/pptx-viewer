@@ -32,9 +32,13 @@
 		"outdated": "bun outdated --filter '*'",
 		"update": "bun update --latest",
 		"collab": "bun demo/collab-server.mjs",
+		"e2e": "playwright test",
+		"e2e:install": "playwright install --with-deps chromium",
+		"e2e:ui": "playwright test --ui",
 		"prepare": "husky"
 	},
 	"devDependencies": {
+		"@playwright/test": "^1.60.0",
 		"@types/three": "^0.184.0",
 		"husky": "^9.1.7",
 		"lib0": "^0.2.117",
@@ -42,6 +46,7 @@
 		"oxfmt": "^0.47.0",
 		"oxlint": "^1.62.0",
 		"pptx-viewer": "workspace:*",
+		"pptx-viewer-core": "workspace:*",
 		"typescript": "^5.9.3",
 		"y-protocols": "^1.0.7",
 		"yjs": "^13.6.30"

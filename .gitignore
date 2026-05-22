@@ -107,3 +107,10 @@ presentation.pptx
 presentation (*).pptx
 *-saved.pptx
 _debug-*.pptx
+
+# Playwright / scratch screenshots
+/test-results/
+playwright-report/
+e2e/.playwright-mcp/
+/*.png
+/SECURITY-PERFORMANCE-REVIEW.md
