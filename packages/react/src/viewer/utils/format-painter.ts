@@ -77,6 +77,16 @@ export function copyFormatFromElement(element: PptxElement): CopiedFormat {
 // Apply copied format to an element
 // ---------------------------------------------------------------------------
 
+function definedEntries<T extends object>(obj: T): Partial<T> {
+	const out: Partial<T> = {};
+	for (const key in obj) {
+		if (obj[key] !== undefined) {
+			out[key] = obj[key];
+		}
+	}
+	return out;
+}
+
 export function applyFormatToElement(element: PptxElement, format: CopiedFormat): PptxElement {
 	let updated = { ...element };
 
@@ -85,7 +95,7 @@ export function applyFormatToElement(element: PptxElement, format: CopiedFormat)
 			...updated,
 			shapeStyle: {
 				...updated.shapeStyle,
-				...format.shapeStyle,
+				...definedEntries(format.shapeStyle),
 			},
 		} as PptxElement;
 	}
@@ -95,10 +105,22 @@ export function applyFormatToElement(element: PptxElement, format: CopiedFormat)
 			...updated,
 			textStyle: {
 				...updated.textStyle,
-				...format.textStyle,
+				...definedEntries(format.textStyle),
 			},
 		} as PptxElement;
 	}
 
 	return updated;
+}
+
+// ---------------------------------------------------------------------------
+// Predicate
+// ---------------------------------------------------------------------------
+
+/** Returns true when an element exposes formatting fields that the painter can copy. */
+export function hasCopyableFormat(element: PptxElement | null | undefined): boolean {
+	if (!element) {
+		return false;
+	}
+	return hasShapeProperties(element) || hasTextProperties(element);
 }

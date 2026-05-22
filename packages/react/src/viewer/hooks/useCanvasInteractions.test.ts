@@ -285,6 +285,58 @@ describe('buildResizeState', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Extracted pure logic: drag-target IDs on element mousedown
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute which element IDs a drag should move when an element receives mousedown.
+ * Mirrors the logic in handleElementMouseDown.
+ *
+ * Regression guard: if the clicked element wasn't already selected, the drag
+ * must target only the clicked element. `effectiveSelectedIds` is the previous
+ * render's selection because `applySelection` only schedules a React state
+ * update — using it here would drag the previously-selected element while
+ * focus moves to the new one.
+ */
+function computeMouseDownDragIds(
+	elementId: string,
+	selectedElementIdSet: Set<string>,
+	effectiveSelectedIds: string[],
+): string[] {
+	const wasSelected = selectedElementIdSet.has(elementId);
+	if (!wasSelected) {
+		return [elementId];
+	}
+	return effectiveSelectedIds.length ? effectiveSelectedIds : [elementId];
+}
+
+describe('computeMouseDownDragIds', () => {
+	it('drags only the clicked element when it was not already selected', () => {
+		// Previously: dragging A, then clicking+dragging B would drag A because
+		// `effectiveSelectedIds` was stale [A] when the mousedown handler ran.
+		const result = computeMouseDownDragIds('B', new Set(['A']), ['A']);
+		expect(result).toStrictEqual(['B']);
+	});
+
+	it('drags the current multi-selection when the clicked element is in it', () => {
+		const result = computeMouseDownDragIds('B', new Set(['A', 'B', 'C']), ['A', 'B', 'C']);
+		expect(result).toStrictEqual(['A', 'B', 'C']);
+	});
+
+	it('drags just the clicked element when it is the sole selection', () => {
+		const result = computeMouseDownDragIds('A', new Set(['A']), ['A']);
+		expect(result).toStrictEqual(['A']);
+	});
+
+	it('falls back to the clicked element when selection state is empty', () => {
+		// Defensive path: selectedElementIdSet says it is selected but
+		// effectiveSelectedIds is empty — drag the clicked element only.
+		const result = computeMouseDownDragIds('A', new Set(['A']), []);
+		expect(result).toStrictEqual(['A']);
+	});
+});
+
+// ---------------------------------------------------------------------------
 // CanvasInteractionHandlers type shape
 // ---------------------------------------------------------------------------
 

@@ -1,7 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
-import { copyFormatFromElement, applyFormatToElement } from './format-painter';
+import { copyFormatFromElement, applyFormatToElement, hasCopyableFormat } from './format-painter';
 import type { CopiedFormat } from './format-painter';
 
 // Helper to create a shape element with shapeStyle
@@ -222,5 +222,86 @@ describe('applyFormatToElement', () => {
 		const format: CopiedFormat = {};
 		const result = applyFormatToElement(target, format);
 		expect((result as any).shapeStyle.fillColor).toBe('#AAAAAA');
+	});
+
+	it('should not overwrite target fields with undefined source values', () => {
+		// Target has a glow; source's copied format has glowColor === undefined.
+		// The painter must NOT erase the target's glow with that undefined.
+		const target = makeShapeElement({
+			fillColor: '#AAAAAA',
+			glowColor: '#FF00FF',
+			glowRadius: 5,
+			glowOpacity: 0.8,
+		});
+		const format: CopiedFormat = {
+			shapeStyle: {
+				fillColor: '#BBBBBB',
+				glowColor: undefined,
+				glowRadius: undefined,
+				glowOpacity: undefined,
+			},
+		};
+		const result = applyFormatToElement(target, format);
+		expect((result as any).shapeStyle.fillColor).toBe('#BBBBBB');
+		expect((result as any).shapeStyle.glowColor).toBe('#FF00FF');
+		expect((result as any).shapeStyle.glowRadius).toBe(5);
+		expect((result as any).shapeStyle.glowOpacity).toBe(0.8);
+	});
+
+	it('should not overwrite target text fields with undefined source values', () => {
+		const target = makeTextElement({ fontSize: 24, bold: true, italic: true });
+		const format: CopiedFormat = {
+			textStyle: {
+				fontSize: 36,
+				bold: undefined,
+				italic: undefined,
+			},
+		};
+		const result = applyFormatToElement(target, format);
+		expect((result as any).textStyle.fontSize).toBe(36);
+		expect((result as any).textStyle.bold).toBeTruthy();
+		expect((result as any).textStyle.italic).toBeTruthy();
+	});
+});
+
+describe('hasCopyableFormat', () => {
+	it('returns false for null', () => {
+		expect(hasCopyableFormat(null)).toBeFalsy();
+	});
+
+	it('returns false for undefined', () => {
+		expect(hasCopyableFormat(undefined)).toBeFalsy();
+	});
+
+	it('returns true for a shape element', () => {
+		expect(hasCopyableFormat(makeShapeElement())).toBeTruthy();
+	});
+
+	it('returns true for a text element', () => {
+		expect(hasCopyableFormat(makeTextElement())).toBeTruthy();
+	});
+
+	it('returns true for an image (shape-style only)', () => {
+		const img = {
+			id: 'img1',
+			type: 'image',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+		} as unknown as PptxElement;
+		expect(hasCopyableFormat(img)).toBeTruthy();
+	});
+
+	it('returns false for a chart element (no shape/text properties)', () => {
+		const chart = {
+			id: 'c1',
+			type: 'chart',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+		} as unknown as PptxElement;
+		expect(hasCopyableFormat(chart)).toBeFalsy();
 	});
 });

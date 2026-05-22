@@ -29,6 +29,7 @@ export interface ArrangeSectionProps {
 	onDelete: () => void;
 	formatPainterActive?: boolean;
 	onToggleFormatPainter?: () => void;
+	canActivateFormatPainter?: boolean;
 }
 
 export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
@@ -72,7 +73,8 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 				<button
 					type='button'
 					onClick={p.onToggleFormatPainter}
-					disabled={!p.canEdit}
+					disabled={!p.canEdit || (p.canActivateFormatPainter === false && !p.formatPainterActive)}
+					data-testid='format-painter-toggle'
 					className={cn(
 						pill,
 						p.formatPainterActive ? 'bg-amber-600 hover:bg-amber-500 text-amber-50' : '',

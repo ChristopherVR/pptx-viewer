@@ -149,13 +149,22 @@ export function useCanvasInteractions(
 		if (e.button !== 0) {
 			return;
 		}
-		if (!selectedElementIdSet.has(elementId)) {
+		const wasSelected = selectedElementIdSet.has(elementId);
+		if (!wasSelected) {
 			ops.applySelection(elementId);
 			justSelectedRef.current = true;
 		} else {
 			justSelectedRef.current = false;
 		}
-		const ids = effectiveSelectedIds.length ? effectiveSelectedIds : [elementId];
+		// When this mousedown is what selected the element, `effectiveSelectedIds`
+		// still reflects the prior render's selection (applySelection only schedules
+		// a state update). Using it here would drag the previously-selected element
+		// while focus moves to the new one. Drag just the clicked element instead.
+		const ids = !wasSelected
+			? [elementId]
+			: effectiveSelectedIds.length
+				? effectiveSelectedIds
+				: [elementId];
 		const startPositions: Record<string, { x: number; y: number }> = {};
 		const domEls = new Map<string, HTMLElement>();
 		for (const id of ids) {

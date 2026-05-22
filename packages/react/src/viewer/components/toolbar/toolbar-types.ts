@@ -108,7 +108,7 @@ export interface ToolbarProps {
 	isOverflowMenuOpen: boolean;
 	onSetOverflowMenuOpen: (open: boolean) => void;
 	layoutOptions: Array<{ path: string; name: string }>;
-	onInsertSlideFromLayout: (path: string) => void;
+	onInsertSlideFromLayout: (path: string, name?: string) => void;
 	customShows: PptxCustomShow[];
 	activeCustomShowId: string | null;
 	onSetActiveCustomShowId: (id: string | null) => void;
@@ -137,6 +137,7 @@ export interface ToolbarProps {
 	slideCommentCount?: number;
 	formatPainterActive?: boolean;
 	onToggleFormatPainter?: () => void;
+	canActivateFormatPainter?: boolean;
 	isSelectionPaneOpen?: boolean;
 	onToggleSelectionPane?: () => void;
 	eyedropperActive?: boolean;

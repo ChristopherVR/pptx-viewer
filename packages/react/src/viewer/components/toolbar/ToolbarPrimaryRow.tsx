@@ -108,7 +108,7 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 					onClick={p.onToggleComments}
 					className={cn(
 						qab,
-						'max-md:hidden',
+						'relative max-md:hidden',
 						p.isCommentsPanelOpen ? 'text-foreground' : 'text-muted-foreground',
 					)}
 					title={t('pptx.toolbar.comments')}

@@ -1,5 +1,6 @@
 import type {
 	PptxElement,
+	PptxLayoutOption,
 	PptxSlide,
 	PptxSlideTransition,
 	PptxElementAnimation,
@@ -19,11 +20,13 @@ import type { ExportHandlersResult } from '../hooks/useExportHandlers';
 import type { InsertElementHandlers } from '../hooks/useInsertElements';
 import type { PrintHandlersResult } from '../hooks/usePrintHandlers';
 import type { PropertyHandlersResult } from '../hooks/usePropertyHandlers';
+import { scopeLayoutOptionsToActiveSlide } from '../hooks/useScopedLayoutOptions';
 import type { SlideManagementHandlers } from '../hooks/useSlideManagement';
 import type { ViewerDialogsResult } from '../hooks/useViewerDialogs';
 import type { SupportedShapeType, ViewerMode } from '../types';
 import type { ElementClipboardPayload } from '../types-core';
 import type { DrawingTool, TableCellEditorState, ToolbarSection } from '../types-ui';
+import { hasCopyableFormat } from '../utils/format-painter';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -65,7 +68,7 @@ export interface ViewerToolbarSectionProps {
 		setSnapToShape: React.Dispatch<React.SetStateAction<boolean>>;
 		isOverflowMenuOpen: boolean;
 		setIsOverflowMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
-		layoutOptions: Array<{ path: string; name: string }>;
+		layoutOptions: PptxLayoutOption[];
 		hasMacros: boolean;
 		isThemeEditorOpen: boolean;
 		setIsThemeEditorOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -196,6 +199,11 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		[activeSlide, propertyHandlers],
 	);
 
+	const scopedLayoutOptions = React.useMemo(
+		() => scopeLayoutOptionsToActiveSlide(s.layoutOptions, activeSlide),
+		[s.layoutOptions, activeSlide],
+	);
+
 	const handleApplyTransitionToAll = useCallback(() => {
 		const transition = activeSlide?.transition;
 		if (!transition) {
@@ -302,7 +310,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onUpdateTextStyle={ops.updateSelectedTextStyle}
 				isOverflowMenuOpen={s.isOverflowMenuOpen}
 				onSetOverflowMenuOpen={s.setIsOverflowMenuOpen}
-				layoutOptions={s.layoutOptions}
+				layoutOptions={scopedLayoutOptions}
 				onInsertSlideFromLayout={slideOps.handleInsertSlideFromLayout}
 				customShows={s.customShows}
 				activeCustomShowId={s.activeCustomShowId}
@@ -335,6 +343,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				isCommentsPanelOpen={s.isInspectorPaneOpen}
 				slideCommentCount={activeSlide?.comments?.length ?? 0}
 				formatPainterActive={s.formatPainterActive}
+				canActivateFormatPainter={hasCopyableFormat(selectedElement)}
 				onToggleFormatPainter={
 					onToggleFormatPainterProp ?? (() => s.setFormatPainterActive((p) => !p))
 				}

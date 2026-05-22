@@ -18,12 +18,13 @@ export interface HomeSectionProps {
 	canEdit: boolean;
 	clipboardPayload: ElementClipboardPayload | null;
 	formatPainterActive?: boolean;
+	canActivateFormatPainter?: boolean;
 	onCopy: () => void;
 	onCut: () => void;
 	onPaste: () => void;
 	onToggleFormatPainter?: () => void;
 	layoutOptions: Array<{ path: string; name: string }>;
-	onInsertSlideFromLayout: (path: string) => void;
+	onInsertSlideFromLayout: (path: string, name?: string) => void;
 	selectedElement?: PptxElement | null;
 	onUpdateTextStyle?: (style: Record<string, unknown>) => void;
 }
@@ -80,7 +81,8 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 
 	const handleNewSlide = useCallback(() => {
 		if (p.layoutOptions.length > 0) {
-			p.onInsertSlideFromLayout(p.layoutOptions[0].path);
+			const first = p.layoutOptions[0];
+			p.onInsertSlideFromLayout(first.path, first.name);
 		}
 	}, [p]);
 
@@ -169,7 +171,10 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 						<button
 							type='button'
 							onClick={p.onToggleFormatPainter}
-							disabled={!p.canEdit}
+							disabled={
+								!p.canEdit || (p.canActivateFormatPainter === false && !p.formatPainterActive)
+							}
+							data-testid='format-painter-toggle'
 							className={cn(
 								gL,
 								p.formatPainterActive ? 'bg-amber-600 hover:bg-amber-500 text-amber-50' : '',
@@ -222,7 +227,7 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 										type='button'
 										className='flex items-center gap-2 w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors'
 										onClick={() => {
-											p.onInsertSlideFromLayout(lo.path);
+											p.onInsertSlideFromLayout(lo.path, lo.name);
 											setLayoutMenuOpen(false);
 										}}
 									>

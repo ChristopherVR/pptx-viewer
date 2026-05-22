@@ -2,7 +2,8 @@
  * useSlideManagement — Slide CRUD operations: add, move, delete,
  * duplicate, toggle-hide, insert-from-layout, and context menu.
  */
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxHandler, PptxSlide } from 'pptx-viewer-core';
+import type React from 'react';
 
 import type { EditorHistoryResult } from './useEditorHistory';
 import type { ElementOperations } from './useElementOperations';
@@ -14,6 +15,8 @@ export interface UseSlideManagementInput {
 	setActiveSlideIndex: React.Dispatch<React.SetStateAction<number>>;
 	ops: ElementOperations;
 	history: EditorHistoryResult;
+	/** Ref to the loaded PPTX handler; `current` is null before initial load. */
+	handlerRef?: React.RefObject<PptxHandler | null> | React.MutableRefObject<PptxHandler | null>;
 }
 
 export interface SlideManagementHandlers {
@@ -23,11 +26,27 @@ export interface SlideManagementHandlers {
 	handleDeleteSlides: (indexes: number[]) => void;
 	handleDuplicateSlides: (indexes: number[]) => void;
 	handleToggleHideSlides: (indexes: number[]) => void;
-	handleInsertSlideFromLayout: (layoutPath: string) => void;
+	handleInsertSlideFromLayout: (layoutPath: string, layoutName?: string) => void;
+}
+
+/**
+ * Insert `draft` directly after `activeIndex` in `slides`. Negative
+ * indices clamp to 0 and out-of-range indices clamp to the end. Does
+ * not mutate the input array.
+ */
+export function insertSlideFromLayoutUpdater(
+	slides: PptxSlide[],
+	activeIndex: number,
+	draft: PptxSlide,
+): PptxSlide[] {
+	const next = [...slides];
+	const insertAt = Math.max(0, Math.min(activeIndex + 1, next.length));
+	next.splice(insertAt, 0, draft);
+	return next;
 }
 
 export function useSlideManagement(input: UseSlideManagementInput): SlideManagementHandlers {
-	const { slides, activeSlideIndex, setActiveSlideIndex, ops, history } = input;
+	const { slides, activeSlideIndex, setActiveSlideIndex, ops, history, handlerRef } = input;
 
 	const handleAddSlide = () => {
 		const newSlide: PptxSlide = {
@@ -134,10 +153,49 @@ export function useSlideManagement(input: UseSlideManagementInput): SlideManagem
 		history.markDirty();
 	};
 
-	const handleInsertSlideFromLayout = (_layoutPath: string) => {
-		// Layout-based slide insertion depends on the PPTX handler;
-		// fall back to adding a blank slide for now.
-		handleAddSlide();
+	const handleInsertSlideFromLayout = (layoutPath: string, layoutName?: string) => {
+		const insertAt = activeSlideIndex + 1;
+		const draft: PptxSlide = {
+			id: `slide-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+			rId: '',
+			slideNumber: slides.length + 1,
+			elements: [],
+			layoutPath,
+			...(layoutName ? { layoutName } : {}),
+		};
+
+		let inserted: PptxSlide[] = [];
+		ops.updateSlides((prev) => {
+			inserted = insertSlideFromLayoutUpdater(prev, activeSlideIndex, draft);
+			return inserted;
+		});
+		setActiveSlideIndex(insertAt);
+		history.markDirty();
+
+		// Ask the handler to populate layoutName/background by walking the
+		// chosen layout XML. If the handler isn't loaded yet we keep the
+		// draft as-is — the slide already carries the layoutPath so the
+		// renderer can still pick up placeholders.
+		const handler = handlerRef?.current;
+		if (handler) {
+			void handler.applyLayoutToSlide(insertAt, layoutPath, inserted).then(
+				(updated) => {
+					ops.updateSlides((prev) => {
+						if (prev[insertAt]?.id !== draft.id) {
+							return prev;
+						}
+						const next = [...prev];
+						next[insertAt] = updated;
+						return next;
+					});
+					return undefined;
+				},
+				() => {
+					// Layout couldn't be resolved; the draft still has layoutPath.
+					return undefined;
+				},
+			);
+		}
 	};
 
 	return {

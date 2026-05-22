@@ -1,5 +1,5 @@
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-import type { PptxSlide, PptxElement, TextStyle } from 'pptx-viewer-core';
+import type { PptxHandler, PptxSlide, PptxElement, TextStyle } from 'pptx-viewer-core';
 /**
  * useEditorOperations — Composes all editor-interaction hooks (element ops,
  * section ops, find/replace, comments, canvas interactions, insert, manipulate,
@@ -56,6 +56,8 @@ export interface UseEditorOperationsInput {
 	presentation: UsePresentationModeResult;
 	/** Display name for comment authoring. */
 	userName?: string;
+	/** Ref to the loaded PPTX handler; populated by the content-lifecycle hook. */
+	handlerRef?: React.RefObject<PptxHandler | null> | React.MutableRefObject<PptxHandler | null>;
 }
 
 // ---------------------------------------------------------------------------
@@ -95,6 +97,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		dialogs,
 		presentation,
 		userName,
+		handlerRef,
 	} = input;
 
 	const ops = useElementOperations({
@@ -209,6 +212,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		setActiveSlideIndex: state.setActiveSlideIndex,
 		ops,
 		history,
+		handlerRef,
 	});
 
 	const tableOps = useTableOperations({
@@ -246,24 +250,41 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 	// The toolbar toggle sets formatPainterActive; this effect reacts to it.
 	const copiedFormatRef = useRef<CopiedFormat | null>(null);
 	const prevFormatPainterRef = useRef(false);
+	const { formatPainterActive, setFormatPainterActive, elementLookup } = state;
 
 	useEffect(() => {
-		if (state.formatPainterActive && !prevFormatPainterRef.current && selectedElement) {
+		if (formatPainterActive && !prevFormatPainterRef.current && selectedElement) {
 			copiedFormatRef.current = copyFormatFromElement(selectedElement);
-		} else if (!state.formatPainterActive) {
+		} else if (!formatPainterActive) {
 			copiedFormatRef.current = null;
 		}
-		prevFormatPainterRef.current = state.formatPainterActive;
-	}, [state.formatPainterActive, selectedElement]);
+		prevFormatPainterRef.current = formatPainterActive;
+	}, [formatPainterActive, selectedElement]);
 
-	// Wrap canvas click handler to apply copied format when painter is active.
+	// Escape cancels the painter without applying.
+	useEffect(() => {
+		if (!formatPainterActive) {
+			return;
+		}
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') {
+				setFormatPainterActive(false);
+			}
+		};
+		window.addEventListener('keydown', onKey);
+		return () => window.removeEventListener('keydown', onKey);
+	}, [formatPainterActive, setFormatPainterActive]);
+
+	// Wrap canvas handlers to:
+	//  - apply copied format on element click when painter is active;
+	//  - cancel painter when the user mousedowns on empty canvas.
 	const formatPainterCanvasHandlers: CanvasInteractionHandlers = useMemo(
 		() => ({
 			...canvasHandlers,
 			handleElementClick: (elementId: string, e: React.MouseEvent) => {
-				if (state.formatPainterActive && copiedFormatRef.current) {
+				if (formatPainterActive && copiedFormatRef.current) {
 					e.stopPropagation();
-					const element = state.elementLookup.get(elementId);
+					const element = elementLookup.get(elementId);
 					if (element) {
 						const updated = applyFormatToElement(element, copiedFormatRef.current);
 						const updates: Partial<PptxElement> = {};
@@ -276,14 +297,21 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 						ops.updateElementById(elementId, updates);
 					}
 					copiedFormatRef.current = null;
-					state.setFormatPainterActive(false);
+					setFormatPainterActive(false);
 					ops.applySelection(elementId);
 					return;
 				}
 				canvasHandlers.handleElementClick(elementId, e);
 			},
+			handleCanvasMouseDown: (e: React.MouseEvent) => {
+				if (formatPainterActive) {
+					setFormatPainterActive(false);
+					return;
+				}
+				canvasHandlers.handleCanvasMouseDown(e);
+			},
 		}),
-		[canvasHandlers, ops, state],
+		[canvasHandlers, ops, formatPainterActive, setFormatPainterActive, elementLookup],
 	);
 
 	return {

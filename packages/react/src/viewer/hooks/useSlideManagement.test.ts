@@ -1,6 +1,8 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
+import { insertSlideFromLayoutUpdater } from './useSlideManagement';
+
 // ---------------------------------------------------------------------------
 // Pure logic extracted from useSlideManagement for testing.
 // These mirror the updater functions passed to ops.updateSlides().
@@ -257,6 +259,53 @@ describe('duplicateSlidesUpdater', () => {
 // ---------------------------------------------------------------------------
 // Tests: toggleHideSlidesUpdater
 // ---------------------------------------------------------------------------
+
+describe('insertSlideFromLayoutUpdater', () => {
+	const slides = [makeSlide({ id: 's1' }), makeSlide({ id: 's2' }), makeSlide({ id: 's3' })];
+
+	it('inserts the new slide directly after the active index', () => {
+		const draft = makeSlide({ id: 'new', layoutPath: 'p', layoutName: 'Title Slide' });
+		const result = insertSlideFromLayoutUpdater(slides, 0, draft);
+		expect(result.map((s) => s.id)).toStrictEqual(['s1', 'new', 's2', 's3']);
+	});
+
+	it('appends when the active index is the last slide', () => {
+		const draft = makeSlide({ id: 'new', layoutPath: 'p', layoutName: 'Blank' });
+		const result = insertSlideFromLayoutUpdater(slides, 2, draft);
+		expect(result.map((s) => s.id)).toStrictEqual(['s1', 's2', 's3', 'new']);
+	});
+
+	it('preserves the draft slide unchanged (layoutPath and layoutName)', () => {
+		const draft = makeSlide({
+			id: 'new',
+			layoutPath: 'ppt/slideLayouts/slideLayout5.xml',
+			layoutName: 'Two Content',
+		});
+		const result = insertSlideFromLayoutUpdater(slides, 1, draft);
+		const inserted = result[2];
+		expect(inserted.layoutPath).toBe('ppt/slideLayouts/slideLayout5.xml');
+		expect(inserted.layoutName).toBe('Two Content');
+	});
+
+	it('does not mutate the input slides array', () => {
+		const draft = makeSlide({ id: 'new' });
+		const before = slides.map((s) => s.id);
+		insertSlideFromLayoutUpdater(slides, 1, draft);
+		expect(slides.map((s) => s.id)).toStrictEqual(before);
+	});
+
+	it('clamps a negative active index to inserting at position 0', () => {
+		const draft = makeSlide({ id: 'new' });
+		const result = insertSlideFromLayoutUpdater(slides, -1, draft);
+		expect(result[0].id).toBe('new');
+	});
+
+	it('clamps an out-of-range active index to appending at the end', () => {
+		const draft = makeSlide({ id: 'new' });
+		const result = insertSlideFromLayoutUpdater(slides, 99, draft);
+		expect(result[result.length - 1].id).toBe('new');
+	});
+});
 
 describe('toggleHideSlidesUpdater', () => {
 	it('should toggle hidden from undefined to true', () => {
