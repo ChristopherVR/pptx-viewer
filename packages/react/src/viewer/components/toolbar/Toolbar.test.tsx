@@ -1557,23 +1557,8 @@ describe('toolbar — section content rendering', () => {
 		expect(html).toContain('title="Underline"');
 	});
 
-	it('narrow viewport shows expand/collapse button', () => {
-		const html = render(
-			React.createElement(Toolbar, createMockToolbarProps({ isNarrowViewport: true })),
-		);
-		expect(html).toContain('Expand');
-	});
-
-	it('narrow viewport with compact open shows Collapse', () => {
-		const html = render(
-			React.createElement(
-				Toolbar,
-				createMockToolbarProps({
-					isNarrowViewport: true,
-					isCompactToolbarOpen: true,
-				}),
-			),
-		);
-		expect(html).toContain('Collapse');
-	});
+	// Narrow-viewport rendering moved to <MobileToolbar /> (see Toolbar.tsx
+	// short-circuit at the top of the component). The expand/collapse button
+	// was part of the old in-Toolbar compact mode and no longer exists.
+	// MobileToolbar has its own test coverage for the mobile-first UI.
 });
