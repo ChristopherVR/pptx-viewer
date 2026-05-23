@@ -237,8 +237,8 @@ function TransitionTable({
 									style={rowHeight ? { height: rowHeight } : undefined}
 								>
 									{cells.map((cell, ci) => {
-										const isHMerged = cell['@_hMerge'] === '1' || cell['@_hMerge'] === true;
-										const isVMerged = cell['@_vMerge'] === '1' || cell['@_vMerge'] === true;
+										const isHMerged = cell['@_hMerge'] === '1';
+										const isVMerged = cell['@_vMerge'] === '1';
 										if (isHMerged || isVMerged) {
 											return null;
 										}
