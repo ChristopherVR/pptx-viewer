@@ -12,12 +12,12 @@ import { ImageElementProcessor } from './ImageElementProcessor';
 function makeCtx(overrides: Partial<ElementProcessorContext> = {}): ElementProcessorContext {
 	return {
 		mediaContext: {
-			saveImage: vi.fn<(...args: any[]) => any>(async () => './media/slide1-image-001.png'),
+			saveImage: vi.fn(async () => './media/slide1-image-001.png'),
 		} as unknown as MediaContext,
 		slideNumber: 1,
 		slideWidth: 960,
 		slideHeight: 540,
-		processElements: vi.fn<(...args: any[]) => any>(async () => []),
+		processElements: vi.fn(async () => []),
 		...overrides,
 	};
 }

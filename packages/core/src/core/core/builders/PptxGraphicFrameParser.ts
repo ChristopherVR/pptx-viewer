@@ -250,7 +250,9 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 			const offset = ((transform?.['a:off'] as XmlObject | undefined) || {}) as XmlObject;
 			const extent = ((transform?.['a:ext'] as XmlObject | undefined) || {}) as XmlObject;
 
-			const graphicData = frame['a:graphic']?.['a:graphicData'] as XmlObject | undefined;
+			const graphicData = (frame['a:graphic'] as XmlObject | undefined)?.['a:graphicData'] as
+				| XmlObject
+				| undefined;
 			const { flipHorizontal, flipVertical } = this.context.readFlipState(transform);
 
 			const type = this.parseGraphicFrameType(graphicData);
@@ -389,7 +391,9 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 				const targetExt = inferOleExtensionFromTarget(oleTarget);
 				const oleFileExtension = targetExt ?? detectedExt;
 
-				const cNvPr = frame?.['p:nvGraphicFramePr']?.['p:cNvPr'] as XmlObject | undefined;
+				const cNvPr = (frame?.['p:nvGraphicFramePr'] as XmlObject | undefined)?.['p:cNvPr'] as
+					| XmlObject
+					| undefined;
 				const slideRelationships = slidePath ? this.context.slideRelsMap.get(slidePath) : undefined;
 				const { actionClick, actionHover } = this.context.parseElementActions(
 					cNvPr,

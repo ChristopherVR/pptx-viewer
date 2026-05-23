@@ -1,4 +1,4 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxSlide, PptxElement } from 'pptx-viewer-core';
 /**
  * Tests for useYjsDocumentSync — verifies the synchronisation logic between
  * local PptxSlide[] state and a Yjs Y.Map for real-time collaboration.
@@ -402,7 +402,7 @@ describe('useYjsDocumentSync (logic)', () => {
 			const updatedSlides = slides.map((s) => ({ ...s }));
 			updatedSlides[1] = {
 				...updatedSlides[1],
-				elements: [{ type: 'text', id: 'el-1' } as any],
+				elements: [{ type: 'text', id: 'el-1' } as unknown as PptxElement],
 			};
 
 			syncLocalToDoc(doc, updatedSlides, {
@@ -593,20 +593,20 @@ describe('useYjsDocumentSync (logic)', () => {
 	describe('getDocMap guard logic', () => {
 		it('returns null for non-object doc', () => {
 			const nonObjDoc = 'not-an-object';
-			const d = nonObjDoc as any;
+			const d = nonObjDoc as unknown as { getMap?: unknown };
 			const result = typeof d === 'object' && d !== null && typeof d.getMap === 'function';
 			expect(result).toBeFalsy();
 		});
 
 		it('returns null for doc without getMap', () => {
 			const noMapDoc = { notGetMap: () => {} };
-			const d = noMapDoc as any;
+			const d = noMapDoc as unknown as { getMap?: unknown };
 			const result = typeof d.getMap === 'function';
 			expect(result).toBeFalsy();
 		});
 
 		it('returns Y.Map for valid doc', () => {
-			const d = doc as any;
+			const d = doc as unknown as { getMap: (name: string) => unknown };
 			const result = typeof d.getMap === 'function';
 			expect(result).toBeTruthy();
 			const m = d.getMap('slides-data');
@@ -623,7 +623,7 @@ describe('useYjsDocumentSync (logic)', () => {
 			// Add some elements to make it non-trivial
 			slides[0] = {
 				...slides[0],
-				elements: [{ type: 'text', id: 'txt-1', x: 100, y: 200 } as any],
+				elements: [{ type: 'text', id: 'txt-1', x: 100, y: 200 } as unknown as PptxElement],
 			};
 			slides[2] = {
 				...slides[2],

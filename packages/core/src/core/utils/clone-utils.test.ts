@@ -99,7 +99,7 @@ describe('cloneElement', () => {
 		// Verify deep independence of textSegments
 		if (cloned.type === 'text' && cloned.textSegments) {
 			cloned.textSegments[0].text = 'Changed';
-			expect((el as any).textSegments[0].text).toBe('Hello');
+			expect((el as { textSegments: Array<{ text: string }> }).textSegments[0].text).toBe('Hello');
 		}
 	});
 
@@ -120,7 +120,9 @@ describe('cloneElement', () => {
 		// Mutating the clone's adjustments should not affect original
 		if (cloned.type === 'shape' && cloned.shapeAdjustments) {
 			cloned.shapeAdjustments.adj1 = 0;
-			expect((el as any).shapeAdjustments.adj1).toBe(50000);
+			expect((el as { shapeAdjustments: Record<string, number> }).shapeAdjustments.adj1).toBe(
+				50000,
+			);
 		}
 	});
 
@@ -243,7 +245,7 @@ describe('cloneXmlObject', () => {
 	it('mutations on clone do not affect original', () => {
 		const obj: XmlObject = { 'a:sp': { '@_id': '42' } };
 		const cloned = cloneXmlObject(obj)!;
-		(cloned['a:sp'] as any)['@_id'] = '99';
-		expect((obj['a:sp'] as any)['@_id']).toBe('42');
+		(cloned['a:sp'] as XmlObject)['@_id'] = '99';
+		expect((obj['a:sp'] as XmlObject)['@_id']).toBe('42');
 	});
 });

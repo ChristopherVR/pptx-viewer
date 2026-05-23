@@ -141,7 +141,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (gradFill) {
 			const gsLst = gradFill['a:gsLst'];
 			if (gsLst) {
-				const stops = this.ensureArray(gsLst['a:gs']);
+				const stops = this.ensureArray((gsLst as XmlObject)['a:gs']);
 				if (stops.length >= 2) {
 					const cssStops = stops.map((gs: XmlObject) => {
 						const pos = parseInt(String(gs['@_pos'] || '0')) / 1000;
@@ -149,7 +149,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						return `${color} ${pos}%`;
 					});
 					const angle = gradFill['a:lin']
-						? parseInt(String(gradFill['a:lin']['@_ang'] || '0')) / 60000
+						? parseInt(String((gradFill['a:lin'] as XmlObject)['@_ang'] || '0')) / 60000
 						: 0;
 					const gradType = gradFill['a:path'] ? 'radial' : 'linear';
 					result.textFillGradient = `linear-gradient(${angle}deg, ${cssStops.join(', ')})`;
@@ -179,8 +179,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const pattFill = rPr['a:pattFill'] as XmlObject | undefined;
 		if (pattFill) {
 			result.textFillPattern = String(pattFill['@_prst'] || '');
-			const fgClr = pattFill['a:fgClr'];
-			const bgClr = pattFill['a:bgClr'];
+			const fgClr = pattFill['a:fgClr'] as XmlObject | undefined;
+			const bgClr = pattFill['a:bgClr'] as XmlObject | undefined;
 			if (fgClr) {
 				result.textFillPatternForeground = this.parseColor(fgClr);
 			}

@@ -27,7 +27,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// eslint-disable-next-line no-await-in-loop
 			await relsXml.async('string'),
 		) as XmlObject;
-		const relNodes = this.ensureArray(relsData?.Relationships?.Relationship) as XmlObject[];
+		const relNodes = this.ensureArray(
+			(relsData?.Relationships as XmlObject | undefined)?.Relationship,
+		) as XmlObject[];
 		for (const rel of relNodes) {
 			const target = String(rel['@_Target'] || '');
 			if (!target.includes('theme')) {
@@ -170,7 +172,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// eslint-disable-next-line no-await-in-loop
 				const masterXml = await file.async('string');
 				const masterData = this.parser.parse(masterXml) as XmlObject;
-				const clrMap = masterData?.['p:sldMaster']?.['p:clrMap'] as XmlObject | undefined;
+				const clrMap = (masterData?.['p:sldMaster'] as XmlObject | undefined)?.['p:clrMap'] as
+					| XmlObject
+					| undefined;
 				if (!clrMap) {
 					continue;
 				}
@@ -396,7 +400,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return undefined;
 		}
 		const relsData = this.parser.parse(await relsXml.async('string')) as XmlObject;
-		const relNodes = this.ensureArray(relsData?.Relationships?.Relationship) as XmlObject[];
+		const relNodes = this.ensureArray(
+			(relsData?.Relationships as XmlObject | undefined)?.Relationship,
+		) as XmlObject[];
 		for (const rel of relNodes) {
 			const target = String(rel['@_Target'] || '');
 			if (!target.includes('theme')) {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import type { PptxElementAnimation, XmlObject } from '../types';
+import type { PptxAnimationPreset, PptxElementAnimation, XmlObject } from '../types';
 import {
 	buildSingleEffectNode,
 	buildVisibilitySet,
@@ -126,7 +126,7 @@ describe('buildSingleEffectNode', () => {
 		const anim: PptxElementAnimation = { elementId: 'sp1' };
 		const result = buildSingleEffectNode(
 			anim,
-			'nonexistentPreset' as any,
+			'nonexistentPreset' as unknown as PptxAnimationPreset,
 			'entr',
 			createIdAllocator(),
 		);

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 
-import type { PptxSmartArtData } from '../types';
+import type { PptxSmartArtData, SmartArtLayoutType } from '../types';
 import {
 	addSmartArtNode,
 	addSmartArtNodeAsChild,
@@ -24,7 +24,8 @@ const bounds: ContainerBounds = { x: 0, y: 0, width: 400, height: 300 };
 
 function makeData(texts: string[], layoutType?: string): PptxSmartArtData {
 	return {
-		resolvedLayoutType: (layoutType as any) ?? 'list',
+		resolvedLayoutType: ((layoutType as SmartArtLayoutType | undefined) ??
+			'list') as SmartArtLayoutType,
 		nodes: texts.map((text, i) => ({
 			id: String(i + 1),
 			text,

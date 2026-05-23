@@ -353,7 +353,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		switch (tag) {
 			case 'p:sp': {
-				const spPr = node['p:spPr'];
+				const spPr = node['p:spPr'] as XmlObject | undefined;
 				if (spPr?.['a:blipFill']) {
 					return this.parseShapeWithImageFill(
 						node,
@@ -442,8 +442,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * Forward declaration – implemented in PptxHandlerRuntimeGroupParsing.
 	 */
 	protected parseGroupShapeAsGroup(
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		_group: any,
+		_group: XmlObject,
 		_baseId: string,
 		_slidePath: string,
 		_rawXmlStr?: string,

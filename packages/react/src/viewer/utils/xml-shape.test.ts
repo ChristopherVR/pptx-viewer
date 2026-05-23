@@ -5,7 +5,7 @@ import { createTemplateShapeRawXml, createTemplateConnectorRawXml } from './xml-
 
 const EMU_PER_PX = 9525;
 
-function makeTextElement(overrides: Partial<PptxElementWithText> = {}): PptxElementWithText {
+function makeTextElement(overrides: Record<string, unknown> = {}): PptxElementWithText {
 	return {
 		id: 'el1',
 		type: 'text',
@@ -16,10 +16,10 @@ function makeTextElement(overrides: Partial<PptxElementWithText> = {}): PptxElem
 		text: 'Hello World',
 		shapeType: 'rect',
 		...overrides,
-	} as PptxElementWithText;
+	} as unknown as PptxElementWithText;
 }
 
-function makeShapeElement(overrides: Partial<PptxElementWithText> = {}): PptxElementWithText {
+function makeShapeElement(overrides: Record<string, unknown> = {}): PptxElementWithText {
 	return {
 		id: 'el2',
 		type: 'shape',
@@ -30,10 +30,10 @@ function makeShapeElement(overrides: Partial<PptxElementWithText> = {}): PptxEle
 		text: '',
 		shapeType: 'rect',
 		...overrides,
-	} as PptxElementWithText;
+	} as unknown as PptxElementWithText;
 }
 
-function makeConnector(overrides: Partial<ConnectorPptxElement> = {}): ConnectorPptxElement {
+function makeConnector(overrides: Record<string, unknown> = {}): ConnectorPptxElement {
 	return {
 		id: 'conn1',
 		type: 'connector',
@@ -47,7 +47,7 @@ function makeConnector(overrides: Partial<ConnectorPptxElement> = {}): Connector
 			strokeWidth: 2,
 		},
 		...overrides,
-	} as ConnectorPptxElement;
+	} as unknown as ConnectorPptxElement;
 }
 
 describe('createTemplateShapeRawXml', () => {
@@ -121,7 +121,7 @@ describe('createTemplateShapeRawXml', () => {
 	});
 
 	it('should set flipH when flipHorizontal is true', () => {
-		const element = makeShapeElement({ flipHorizontal: true } as any);
+		const element = makeShapeElement({ flipHorizontal: true });
 		const xml = createTemplateShapeRawXml(element);
 		const spPr = xml['p:spPr'] as XmlObject;
 		const xfrm = spPr['a:xfrm'] as XmlObject;
@@ -131,7 +131,7 @@ describe('createTemplateShapeRawXml', () => {
 	it('should include shape adjustments when provided', () => {
 		const element = makeShapeElement({
 			shapeAdjustments: { adj1: 50000, adj2: 25000 },
-		} as any);
+		});
 		const xml = createTemplateShapeRawXml(element);
 		const spPr = xml['p:spPr'] as XmlObject;
 		const prstGeom = spPr['a:prstGeom'] as XmlObject;
@@ -163,7 +163,7 @@ describe('createTemplateConnectorRawXml', () => {
 	});
 
 	it('should use custom shapeType when not "connector"', () => {
-		const element = makeConnector({ shapeType: 'bentConnector3' } as any);
+		const element = makeConnector({ shapeType: 'bentConnector3' });
 		const xml = createTemplateConnectorRawXml(element);
 		const spPr = xml['p:spPr'] as XmlObject;
 		const prstGeom = spPr['a:prstGeom'] as XmlObject;
@@ -173,7 +173,7 @@ describe('createTemplateConnectorRawXml', () => {
 	it('should include stroke width in line node', () => {
 		const element = makeConnector({
 			shapeStyle: { strokeColor: '#000000', strokeWidth: 3 },
-		} as any);
+		});
 		const xml = createTemplateConnectorRawXml(element);
 		const spPr = xml['p:spPr'] as XmlObject;
 		const ln = spPr['a:ln'] as XmlObject;
@@ -183,7 +183,7 @@ describe('createTemplateConnectorRawXml', () => {
 	it('should include stroke color in line node', () => {
 		const element = makeConnector({
 			shapeStyle: { strokeColor: '#FF0000', strokeWidth: 1 },
-		} as any);
+		});
 		const xml = createTemplateConnectorRawXml(element);
 		const spPr = xml['p:spPr'] as XmlObject;
 		const ln = spPr['a:ln'] as XmlObject;
@@ -199,7 +199,7 @@ describe('createTemplateConnectorRawXml', () => {
 				strokeWidth: 1,
 				connectorStartArrow: 'triangle',
 			},
-		} as any);
+		});
 		const xml = createTemplateConnectorRawXml(element);
 		const spPr = xml['p:spPr'] as XmlObject;
 		const ln = spPr['a:ln'] as XmlObject;
@@ -214,7 +214,7 @@ describe('createTemplateConnectorRawXml', () => {
 				strokeWidth: 1,
 				connectorEndArrow: 'arrow',
 			},
-		} as any);
+		});
 		const xml = createTemplateConnectorRawXml(element);
 		const spPr = xml['p:spPr'] as XmlObject;
 		const ln = spPr['a:ln'] as XmlObject;
@@ -225,7 +225,7 @@ describe('createTemplateConnectorRawXml', () => {
 	it('should enforce minimum stroke width of 1', () => {
 		const element = makeConnector({
 			shapeStyle: { strokeColor: '#000', strokeWidth: 0 },
-		} as any);
+		});
 		const xml = createTemplateConnectorRawXml(element);
 		const spPr = xml['p:spPr'] as XmlObject;
 		const ln = spPr['a:ln'] as XmlObject;

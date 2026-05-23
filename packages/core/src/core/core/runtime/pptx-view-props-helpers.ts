@@ -20,7 +20,7 @@ export function parseViewProperties(viewPrRoot: XmlObject): PptxViewProperties {
 
 	const showComments = viewPrRoot['@_showComments'];
 	if (showComments !== undefined) {
-		props.showComments = showComments !== '0' && showComments !== false;
+		props.showComments = showComments !== '0';
 	}
 
 	const normalViewPr = viewPrRoot['p:normalViewPr'] as XmlObject | undefined;
@@ -78,12 +78,12 @@ function parseNormalViewPr(node: XmlObject): PptxNormalViewProperties {
 
 	const showOutlineIcons = node['@_showOutlineIcons'];
 	if (showOutlineIcons !== undefined) {
-		result.showOutlineIcons = showOutlineIcons !== '0' && showOutlineIcons !== false;
+		result.showOutlineIcons = showOutlineIcons !== '0';
 	}
 
 	const snapVertSplitter = node['@_snapVertSplitter'];
 	if (snapVertSplitter !== undefined) {
-		result.snapVertSplitter = snapVertSplitter === '1' || snapVertSplitter === true;
+		result.snapVertSplitter = snapVertSplitter === '1';
 	}
 
 	const vertBarState = String(node['@_vertBarState'] || '').trim();
@@ -98,7 +98,7 @@ function parseNormalViewPr(node: XmlObject): PptxNormalViewProperties {
 
 	const preferSingleView = node['@_preferSingleView'];
 	if (preferSingleView !== undefined) {
-		result.preferSingleView = preferSingleView === '1' || preferSingleView === true;
+		result.preferSingleView = preferSingleView === '1';
 	}
 
 	const restoredLeft = node['p:restoredLeft'] as XmlObject | undefined;
@@ -119,7 +119,7 @@ function parseRestoredRegion(node: XmlObject): PptxRestoredRegion {
 	const autoAdjust = node['@_autoAdjust'];
 	return {
 		sz: Number.isFinite(sz) ? sz : 0,
-		autoAdjust: autoAdjust !== undefined ? autoAdjust !== '0' && autoAdjust !== false : undefined,
+		autoAdjust: autoAdjust !== undefined ? autoAdjust !== '0' : undefined,
 	};
 }
 
@@ -128,17 +128,17 @@ function parseCommonSlideViewPr(node: XmlObject): PptxCommonSlideViewProperties 
 
 	const snapToGrid = node['@_snapToGrid'];
 	if (snapToGrid !== undefined) {
-		result.snapToGrid = snapToGrid !== '0' && snapToGrid !== false;
+		result.snapToGrid = snapToGrid !== '0';
 	}
 
 	const snapToObjects = node['@_snapToObjects'];
 	if (snapToObjects !== undefined) {
-		result.snapToObjects = snapToObjects !== '0' && snapToObjects !== false;
+		result.snapToObjects = snapToObjects !== '0';
 	}
 
 	const showGuides = node['@_showGuides'];
 	if (showGuides !== undefined) {
-		result.showGuides = showGuides !== '0' && showGuides !== false;
+		result.showGuides = showGuides !== '0';
 	}
 
 	const origin = node['p:origin'] as XmlObject | undefined;

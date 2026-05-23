@@ -12,7 +12,7 @@ import { getElementTransform, getTextCompensationTransform } from './transform-u
  */
 
 // Helper: create a minimal PptxElement with optional overrides
-function makeElement(overrides: Partial<PptxElement> = {}): PptxElement {
+function makeElement(overrides: Record<string, unknown> = {}): PptxElement {
 	return {
 		id: 'el-1',
 		type: 'shape',
@@ -21,7 +21,7 @@ function makeElement(overrides: Partial<PptxElement> = {}): PptxElement {
 		width: 100,
 		height: 100,
 		...overrides,
-	} as PptxElement;
+	} as unknown as PptxElement;
 }
 
 // ---------------------------------------------------------------------------
@@ -164,12 +164,12 @@ describe('getElementTransform', () => {
 	// -- Different element types --
 
 	it('works with image element type', () => {
-		const el = makeElement({ type: 'image', flipHorizontal: true } as any);
+		const el = makeElement({ type: 'image', flipHorizontal: true });
 		expect(getElementTransform(el)).toBe('scaleX(-1)');
 	});
 
 	it('works with text element type', () => {
-		const el = makeElement({ type: 'text', rotation: 90 } as any);
+		const el = makeElement({ type: 'text', rotation: 90 });
 		expect(getElementTransform(el)).toBe('rotate(90deg)');
 	});
 
@@ -178,7 +178,7 @@ describe('getElementTransform', () => {
 			type: 'connector',
 			flipVertical: true,
 			rotation: 180,
-		} as any);
+		});
 		expect(getElementTransform(el)).toBe('scaleY(-1) rotate(180deg)');
 	});
 
@@ -187,7 +187,7 @@ describe('getElementTransform', () => {
 			type: 'group',
 			flipHorizontal: true,
 			flipVertical: true,
-		} as any);
+		});
 		expect(getElementTransform(el)).toBe('scaleX(-1) scaleY(-1)');
 	});
 });

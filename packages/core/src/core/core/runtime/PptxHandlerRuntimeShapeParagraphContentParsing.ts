@@ -59,23 +59,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			maybeSeed(mergedDefaultRunStyle);
 		}
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const appendRun = (runText: string, runProps: any) => {
+		const appendRun = (runText: string, runProps: XmlObject | undefined) => {
 			const runStyle = {
 				...mergedDefaultRunStyle,
-				...this.extractTextRunStyle(
-					runProps as XmlObject | undefined,
-					paraAlign,
-					ctx.slideRelationshipMap,
-				),
+				...this.extractTextRunStyle(runProps, paraAlign, ctx.slideRelationshipMap),
 			} as TextStyle;
 			parts.push(runText);
 			segments.push({ text: runText, style: runStyle });
 			maybeSeed(runStyle);
 		};
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const processRun = (r: any) => {
+		const processRun = (r: XmlObject) => {
 			if (!r) {
 				return;
 			}
@@ -85,7 +79,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (rubyNode) {
 				const rubySegment = this.parseRubyElement(
 					rubyNode,
-					r['a:rPr'],
+					r['a:rPr'] as XmlObject | undefined,
 					paraAlign,
 					mergedDefaultRunStyle,
 					ctx.slideRelationshipMap,
@@ -100,7 +94,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 			const runText =
 				typeof r['a:t'] === 'string' ? r['a:t'] : r['a:t'] !== undefined ? String(r['a:t']) : '';
-			appendRun(runText, r['a:rPr']);
+			appendRun(runText, r['a:rPr'] as XmlObject | undefined);
 		};
 
 		const processField = (field: XmlObject | undefined) => {
@@ -202,7 +196,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					case 'a:t': {
 						const directText =
 							typeof item === 'string' ? item : item !== undefined ? String(item) : '';
-						appendRun(directText, p['a:rPr']);
+						appendRun(directText, p['a:rPr'] as XmlObject | undefined);
 						break;
 					}
 					case 'a14:m':
@@ -283,10 +277,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * </a:ruby>
 	 * ```
 	 */
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	protected parseRubyElement(
 		rubyNode: XmlObject,
-		runProps: any,
+		runProps: XmlObject | undefined,
 		paraAlign: TextStyle['align'],
 		mergedDefaultRunStyle: TextStyle,
 		slideRelationshipMap: Map<string, string> | undefined,
@@ -294,7 +287,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Extract ruby properties
 		const rubyPr = rubyNode['a:rubyPr'] as XmlObject | undefined;
 		const rubyAlign =
-			String(rubyPr?.['@_algn'] ?? rubyPr?.['a:rubyAlign']?.['@_val'] ?? 'ctr').trim() || 'ctr';
+			String(
+				rubyPr?.['@_algn'] ??
+					(rubyPr?.['a:rubyAlign'] as XmlObject | undefined)?.['@_val'] ??
+					'ctr',
+			).trim() || 'ctr';
 
 		// Extract ruby text (phonetic annotation) from a:rt
 		const rtNode = rubyNode['a:rt'] as XmlObject | undefined;

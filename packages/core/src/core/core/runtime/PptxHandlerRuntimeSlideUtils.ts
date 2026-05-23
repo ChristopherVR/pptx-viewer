@@ -174,7 +174,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 */
 	protected extractBackgroundShowAnimation(slideXml: XmlObject): boolean | undefined {
 		const sld = slideXml['p:sld'] as XmlObject | undefined;
-		const bg = sld?.['p:cSld']?.['p:bg'] as XmlObject | undefined;
+		const bg = (sld?.['p:cSld'] as XmlObject | undefined)?.['p:bg'] as XmlObject | undefined;
 		if (!bg) {
 			return undefined;
 		}
@@ -206,7 +206,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	protected isSlideHidden(slideXmlObj: XmlObject, slideIdEntry: XmlObject | undefined): boolean {
-		const slideShowValue = String(slideXmlObj?.['p:sld']?.['@_show'] ?? '').toLowerCase();
+		const slideShowValue = String(
+			(slideXmlObj?.['p:sld'] as XmlObject | undefined)?.['@_show'] ?? '',
+		).toLowerCase();
 		if (slideShowValue === '0' || slideShowValue === 'false') {
 			return true;
 		}
@@ -225,8 +227,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		const chunks: string[] = [];
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		paragraphs.forEach((paragraph: any, paragraphIndex: number) => {
+		paragraphs.forEach((paragraph: XmlObject, paragraphIndex: number) => {
 			const runTexts: string[] = [];
 			const runs = this.ensureArray(paragraph?.['a:r']);
 			runs.forEach((run) => {

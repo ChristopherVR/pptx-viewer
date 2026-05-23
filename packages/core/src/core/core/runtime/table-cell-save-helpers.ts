@@ -164,7 +164,9 @@ export function writeCellTextFormatting(
 		return;
 	}
 
-	const paragraphs = ensureArray(xmlCell['a:txBody']?.['a:p']);
+	const paragraphs = ensureArray(
+		(xmlCell['a:txBody'] as XmlObject | undefined)?.['a:p'],
+	) as XmlObject[];
 	for (const paragraph of paragraphs) {
 		const runs = ensureArray(paragraph?.['a:r']);
 		const rebuiltRuns: XmlObject[] = [];

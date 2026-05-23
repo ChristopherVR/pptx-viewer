@@ -254,13 +254,13 @@ export function removeTableRow(
 				for (let c = 0; c < xmlRemovedCells.length; c++) {
 					const xmlCell = xmlRemovedCells[c];
 
-					if (xmlCell['@_vMerge'] === '1' || xmlCell['@_vMerge'] === true) {
+					if (xmlCell['@_vMerge'] === '1') {
 						// Find anchor above and decrement rowSpan
 						for (let r = index - 1; r >= 0; r--) {
 							const aboveCells = ensureArray(xmlRows[r]['a:tc'] as XmlObject | XmlObject[]);
 							if (c < aboveCells.length) {
 								const aboveXmlCell = aboveCells[c];
-								if (aboveXmlCell['@_vMerge'] !== '1' && aboveXmlCell['@_vMerge'] !== true) {
+								if (aboveXmlCell['@_vMerge'] !== '1') {
 									const rs = parseInt(String(aboveXmlCell['@_rowSpan'] || '0'), 10);
 									if (rs > 2) {
 										aboveXmlCell['@_rowSpan'] = String(rs - 1);

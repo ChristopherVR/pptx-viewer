@@ -232,11 +232,17 @@ describe('parseSeriesErrBars', () => {
 			if (!container) {
 				return [];
 			}
-			const vals = (container as any)['c:numRef']?.['c:numCache']?.['c:pt'];
+			const vals = (
+				((container as XmlObject)['c:numRef'] as XmlObject | undefined)?.['c:numCache'] as
+					| XmlObject
+					| undefined
+			)?.['c:pt'];
 			if (!vals) {
 				return [];
 			}
-			return Array.isArray(vals) ? vals.map((v: any) => String(v['c:v'])) : [String(vals['c:v'])];
+			return Array.isArray(vals)
+				? vals.map((v: XmlObject) => String(v['c:v']))
+				: [String((vals as XmlObject)['c:v'])];
 		};
 
 		const seriesNode: XmlObject = {

@@ -10,6 +10,7 @@
 
 import { describe, expect, it } from 'vitest';
 
+import type { XmlObject } from '../../types';
 import { PptxSlideRelationshipRegistry, isExternalTarget } from './PptxSlideRelationshipRegistry';
 
 describe('isExternalTarget', () => {
@@ -49,7 +50,7 @@ describe('isExternalTarget', () => {
 
 describe('pptxSlideRelationshipRegistry', () => {
 	it('marks tel: and ms-teams: hyperlinks as External', () => {
-		const relationships: any[] = [];
+		const relationships: XmlObject[] = [];
 		const registry = new PptxSlideRelationshipRegistry({ relationships });
 
 		registry.resolveHyperlinkRelationshipId('tel:+1-800-555');
@@ -61,7 +62,7 @@ describe('pptxSlideRelationshipRegistry', () => {
 	});
 
 	it('does not mark relative targets as External', () => {
-		const relationships: any[] = [];
+		const relationships: XmlObject[] = [];
 		const registry = new PptxSlideRelationshipRegistry({ relationships });
 		registry.resolveHyperlinkRelationshipId('../slides/slide2.xml');
 		expect(relationships[0]['@_TargetMode']).toBeUndefined();

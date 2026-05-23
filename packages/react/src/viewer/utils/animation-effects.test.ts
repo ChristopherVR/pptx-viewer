@@ -1,3 +1,4 @@
+import type { PptxAnimationPreset, PptxNativeAnimation } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
 import { getInitialStyleForEffect, getAnimationInitialStyle } from './animation-effects';
@@ -142,7 +143,7 @@ describe('getAnimationInitialStyle', () => {
 			presetClass: 'entr',
 			presetId: 10, // fadeIn
 			trigger: 'onClick',
-		} as any);
+		} as unknown as PptxNativeAnimation);
 		expect(style).toStrictEqual({ opacity: 0 });
 	});
 
@@ -152,7 +153,7 @@ describe('getAnimationInitialStyle', () => {
 			presetClass: 'exit',
 			presetId: 10, // fadeOut
 			trigger: 'onClick',
-		} as any);
+		} as unknown as PptxNativeAnimation);
 		expect(style).toStrictEqual({});
 	});
 
@@ -162,7 +163,7 @@ describe('getAnimationInitialStyle', () => {
 			presetClass: 'emph',
 			presetId: 26, // pulse
 			trigger: 'onClick',
-		} as any);
+		} as unknown as PptxNativeAnimation);
 		expect(style).toStrictEqual({});
 	});
 
@@ -172,7 +173,7 @@ describe('getAnimationInitialStyle', () => {
 			presetClass: 'entr',
 			presetId: 99999,
 			trigger: 'onClick',
-		} as any);
+		} as unknown as PptxNativeAnimation);
 		expect(style).toStrictEqual({});
 	});
 
@@ -182,7 +183,7 @@ describe('getAnimationInitialStyle', () => {
 			presetClass: 'entr',
 			presetId: 2, // flyInBottom
 			trigger: 'onClick',
-		} as any);
+		} as unknown as PptxNativeAnimation);
 		expect(style).toStrictEqual({ opacity: 0, transform: 'translateY(100%)' });
 	});
 
@@ -193,7 +194,9 @@ describe('getAnimationInitialStyle', () => {
 		expect(getAnimationInitialStyle('flyOut')).toStrictEqual({});
 		expect(getAnimationInitialStyle('zoomIn')).toStrictEqual({});
 		expect(getAnimationInitialStyle('zoomOut')).toStrictEqual({});
-		expect(getAnimationInitialStyle('unknownPreset' as any)).toStrictEqual({});
-		expect(getAnimationInitialStyle('none' as any)).toStrictEqual({});
+		expect(
+			getAnimationInitialStyle('unknownPreset' as unknown as PptxAnimationPreset),
+		).toStrictEqual({});
+		expect(getAnimationInitialStyle('none' as unknown as PptxAnimationPreset)).toStrictEqual({});
 	});
 });

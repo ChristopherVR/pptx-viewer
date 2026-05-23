@@ -1,4 +1,4 @@
-import type { PptxNativeAnimation } from 'pptx-viewer-core';
+import type { PptxNativeAnimation, PptxTextBuildType } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
 import {
@@ -225,7 +225,7 @@ describe('expandTextBuildAnimations', () => {
 	});
 
 	it('should pass through unknown buildType as original animation', () => {
-		const anim = { ...baseAnim, buildType: 'unknownType' as any };
+		const anim = { ...baseAnim, buildType: 'unknownType' as unknown as PptxTextBuildType };
 		const result = expandTextBuildAnimations([anim], segmentCounts);
 		expect(result).toHaveLength(1);
 		expect(result[0]).toBe(anim);

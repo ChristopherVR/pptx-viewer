@@ -15,7 +15,7 @@ function makeCtx(overrides: Partial<ElementProcessorContext> = {}): ElementProce
 		slideNumber: 1,
 		slideWidth: 960,
 		slideHeight: 540,
-		processElements: vi.fn<(...args: any[]) => any>(async () => []),
+		processElements: vi.fn(async () => []),
 		...overrides,
 	};
 }
@@ -40,7 +40,7 @@ function makeDummyProcessor(
 ): ElementProcessor {
 	return {
 		supportedTypes: types,
-		process: vi.fn<(...args: any[]) => any>(async () => result),
+		process: vi.fn(async () => result),
 	};
 }
 

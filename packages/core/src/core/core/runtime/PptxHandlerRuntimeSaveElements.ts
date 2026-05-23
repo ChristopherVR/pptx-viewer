@@ -14,7 +14,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		notesSegments?: TextSegment[],
 	): boolean {
 		const notesRoot = notesXmlObj?.['p:notes'] as XmlObject | undefined;
-		const spTree = notesRoot?.['p:cSld']?.['p:spTree'] as XmlObject | undefined;
+		const spTree = (notesRoot?.['p:cSld'] as XmlObject | undefined)?.['p:spTree'] as
+			| XmlObject
+			| undefined;
 		if (!spTree) {
 			return false;
 		}
@@ -26,7 +28,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		const notesBodyShape =
 			shapes.find((shape) => {
-				const placeholder = shape?.['p:nvSpPr']?.['p:nvPr']?.['p:ph'] as XmlObject | undefined;
+				const placeholder = (
+					(shape?.['p:nvSpPr'] as XmlObject | undefined)?.['p:nvPr'] as XmlObject | undefined
+				)?.['p:ph'] as XmlObject | undefined;
 				const placeholderType = String(placeholder?.['@_type'] || '')
 					.trim()
 					.toLowerCase();

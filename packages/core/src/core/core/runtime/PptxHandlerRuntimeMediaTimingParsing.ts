@@ -45,7 +45,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				const timing = parseCtnMediaTiming(cTn, mediaTag);
 
 				// Full-screen flag
-				const fullScreen = cMediaNode['@_fullScrn'] === '1' || cMediaNode['@_fullScrn'] === true;
+				const fullScreen = cMediaNode['@_fullScrn'] === '1';
 
 				// Volume (0-100000 in OOXML, maps to 0-1)
 				let volume: number | undefined;
@@ -58,8 +58,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 
 				// Hide-when-not-playing
-				const hideWhenNotPlaying =
-					cMediaNode['@_showWhenStopped'] === '0' || cMediaNode['@_showWhenStopped'] === false;
+				const hideWhenNotPlaying = cMediaNode['@_showWhenStopped'] === '0';
 
 				// Poster frame — resolve rId
 				let posterFramePath: string | undefined;
@@ -133,7 +132,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const result = new Map<string, MediaTimingData>();
 
 		try {
-			const timing = slideXml?.['p:sld']?.['p:timing'];
+			const timing = (slideXml?.['p:sld'] as XmlObject | undefined)?.['p:timing'] as
+				| XmlObject
+				| undefined;
 			if (!timing) {
 				return result;
 			}

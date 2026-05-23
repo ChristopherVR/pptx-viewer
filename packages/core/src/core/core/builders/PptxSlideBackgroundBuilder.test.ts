@@ -23,14 +23,14 @@ function createInput(
 		} as PptxSlide,
 		zip: {
 			file: vi.fn<() => void>(),
-		} as any,
+		} as unknown as PptxSlideBackgroundBuilderInput['zip'],
 		saveState: {
 			nextMediaPath: vi.fn<() => void>().mockReturnValue('ppt/media/image1.png'),
-		} as any,
+		} as unknown as PptxSlideBackgroundBuilderInput['saveState'],
 		relationshipRegistry: {
 			nextRelationshipId: vi.fn<() => void>().mockReturnValue('rId10'),
 			upsertRelationship: vi.fn<() => void>(),
-		} as any,
+		} as unknown as PptxSlideBackgroundBuilderInput['relationshipRegistry'],
 		slideImageRelationshipType:
 			'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image',
 		parseDataUrlToBytes: vi.fn<() => void>().mockReturnValue({

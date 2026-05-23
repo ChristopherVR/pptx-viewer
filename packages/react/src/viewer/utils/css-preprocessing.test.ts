@@ -75,10 +75,16 @@ function hasInlineStyle(el: HTMLElement, prop: string): boolean {
 function installMockGetComputedStyle(): () => void {
 	// Provide a minimal global window if not present (Node / non-jsdom).
 	if (typeof globalThis.window === 'undefined') {
-		(globalThis as any).window = {};
+		(
+			globalThis as { window: { getComputedStyle?: typeof globalThis.window.getComputedStyle } }
+		).window = {};
 	}
-	const prev = (globalThis as any).window.getComputedStyle;
-	(globalThis as any).window.getComputedStyle = (el: Element) => {
+	const prev = (
+		globalThis as { window: { getComputedStyle?: typeof globalThis.window.getComputedStyle } }
+	).window.getComputedStyle;
+	(
+		globalThis as { window: { getComputedStyle?: typeof globalThis.window.getComputedStyle } }
+	).window.getComputedStyle = (el: Element) => {
 		const styles = elementComputedStyles.get(el) ?? {};
 		return {
 			getPropertyValue: (prop: string) => styles[prop] ?? '',
@@ -86,9 +92,13 @@ function installMockGetComputedStyle(): () => void {
 	};
 	return () => {
 		if (prev !== undefined) {
-			(globalThis as any).window.getComputedStyle = prev;
+			(
+				globalThis as { window: { getComputedStyle?: typeof globalThis.window.getComputedStyle } }
+			).window.getComputedStyle = prev;
 		} else {
-			delete (globalThis as any).window.getComputedStyle;
+			delete (
+				globalThis as { window: { getComputedStyle?: typeof globalThis.window.getComputedStyle } }
+			).window.getComputedStyle;
 		}
 	};
 }

@@ -100,7 +100,7 @@ function parseSingleAxis(
 		if (formatCode) {
 			result.numFmt = {
 				formatCode,
-				sourceLinked: numFmtNode['@_sourceLinked'] === '1' || numFmtNode['@_sourceLinked'] === true,
+				sourceLinked: numFmtNode['@_sourceLinked'] === '1',
 			};
 		}
 	}
@@ -149,7 +149,7 @@ function parseSingleAxis(
 	const deleteNode = xmlLookup.getChildByLocalName(axisNode, 'delete');
 	if (deleteNode) {
 		const delVal = deleteNode['@_val'];
-		if (delVal === '1' || delVal === true) {
+		if (delVal === '1') {
 			result.deleted = true;
 		}
 	}
@@ -304,7 +304,7 @@ function parseTxPr(
 		target.fontSize = sz / 100;
 	}
 
-	if (defRPr['@_b'] === '1' || defRPr['@_b'] === true) {
+	if (defRPr['@_b'] === '1') {
 		target.fontBold = true;
 	}
 

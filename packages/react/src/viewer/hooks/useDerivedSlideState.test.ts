@@ -1,4 +1,4 @@
-import type { PptxSlide, PptxSlideMaster, PptxSlideLayout } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide, PptxSlideMaster, PptxSlideLayout } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
 import { EMU_PER_PX, GRID_SIZE, UNGROUPED_SECTION_ID } from '../constants';
@@ -217,7 +217,9 @@ describe('computeMasterPseudoSlide', () => {
 			path: 'ppt/slideLayouts/slideLayout1.xml',
 			name: 'Title Slide',
 			backgroundColor: '#FFFFFF',
-			elements: [{ id: 'el1', type: 'shape', x: 0, y: 0, width: 100, height: 50 }] as any,
+			elements: [
+				{ id: 'el1', type: 'shape', x: 0, y: 0, width: 100, height: 50 },
+			] as unknown as PptxElement[],
 		};
 		const master: PptxSlideMaster = {
 			path: 'ppt/slideMasters/slideMaster1.xml',
@@ -255,7 +257,9 @@ describe('computeMasterPseudoSlide', () => {
 		const master: PptxSlideMaster = {
 			path: 'ppt/slideMasters/slideMaster1.xml',
 			backgroundColor: '#CCCCCC',
-			elements: [{ id: 'el2', type: 'text', x: 10, y: 10, width: 200, height: 100 }] as any,
+			elements: [
+				{ id: 'el2', type: 'text', x: 10, y: 10, width: 200, height: 100 },
+			] as unknown as PptxElement[],
 		} as PptxSlideMaster;
 
 		const result = computeMasterPseudoSlide('master', undefined, master);

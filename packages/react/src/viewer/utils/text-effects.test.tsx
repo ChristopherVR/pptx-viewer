@@ -135,7 +135,9 @@ describe('buildText3DShadowCss', () => {
 
 	it('returns undefined for bevelTopType = none', () => {
 		const style: TextStyle = {
-			text3d: { bevelTopType: 'none' as any },
+			text3d: {
+				bevelTopType: 'none' as unknown as NonNullable<TextStyle['text3d']>['bevelTopType'],
+			},
 		};
 		expect(buildText3DShadowCss(style)).toBeUndefined();
 	});

@@ -175,7 +175,7 @@ export function extractChildMotionValues(childTnList: XmlObject | undefined): {
 
 		const zoom = scaleNode['@_zoomContents'];
 		if (zoom !== undefined) {
-			scaleZoomContents = zoom === '1' || zoom === 'true' || zoom === true;
+			scaleZoomContents = zoom === '1' || zoom === 'true';
 		}
 	}
 
@@ -277,7 +277,7 @@ function decodeKeyframeValue(
 	const boolVal = valNode['p:boolVal'] as XmlObject | undefined;
 	if (boolVal && boolVal['@_val'] !== undefined) {
 		const raw = boolVal['@_val'];
-		const value = raw === true || raw === '1' || raw === 'true';
+		const value = raw === '1' || raw === 'true';
 		return { value, valueType: 'bool' };
 	}
 
@@ -349,7 +349,7 @@ export function extractRepeatInfo(cTn: XmlObject): {
 		repeatCount = repeatToken === 'indefinite' ? Infinity : Number.parseInt(repeatToken, 10) / 1000;
 	}
 
-	if (cTn['@_autoRev'] === '1' || cTn['@_autoRev'] === true) {
+	if (cTn['@_autoRev'] === '1') {
 		autoReverse = true;
 	}
 
@@ -577,10 +577,10 @@ export function extractAfterEffect(cTn: XmlObject): boolean | undefined {
 	if (raw === undefined) {
 		return undefined;
 	}
-	if (raw === '1' || raw === 1 || raw === true || raw === 'true') {
+	if (raw === '1' || raw === 'true') {
 		return true;
 	}
-	if (raw === '0' || raw === 0 || raw === false || raw === 'false') {
+	if (raw === '0' || raw === 'false') {
 		return false;
 	}
 	return undefined;

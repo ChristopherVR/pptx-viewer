@@ -7,14 +7,13 @@ import {
 	extractGuidFromPartName,
 } from '../../utils/font-deobfuscation';
 import { resolveLayoutDisplayName } from '../../utils/layout-display-name';
+import { xmlAttr, xmlChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimePresentationStructure';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected async getEmbeddedFonts(): Promise<PptxEmbeddedFont[]> {
 		const embeddedFontEntries = this.ensureArray(
-			(this.presentationData?.['p:presentation'] as XmlObject | undefined)?.['p:embeddedFontLst']?.[
-				'p:embeddedFont'
-			],
+			xmlPath(this.presentationData, 'p:presentation', 'p:embeddedFontLst')?.['p:embeddedFont'],
 		) as XmlObject[];
 
 		if (embeddedFontEntries.length === 0) {
@@ -29,7 +28,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		const results: PptxEmbeddedFont[] = [];
 		for (const entry of embeddedFontEntries) {
-			const typeface = String(entry?.['p:font']?.['@_typeface'] || '').trim();
+			const typeface = (xmlAttr(xmlChild(entry, 'p:font'), 'typeface') || '').trim();
 			if (!typeface) {
 				continue;
 			}
@@ -85,7 +84,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 
 			const relsData = this.parser.parse(relsXml) as XmlObject;
-			const rels = this.ensureArray(relsData?.Relationships?.Relationship) as XmlObject[];
+			const rels = this.ensureArray(
+				xmlChild(relsData, 'Relationships')?.Relationship,
+			) as XmlObject[];
 			for (const rel of rels) {
 				const type = String(rel?.['@_Type'] || '');
 				if (!type.includes('/font')) {
@@ -234,7 +235,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const options: PptxLayoutOption[] = [];
 		for (const [path, xmlObj] of this.layoutXmlMap.entries()) {
 			const sldLayout = (xmlObj as XmlObject)['p:sldLayout'] as XmlObject | undefined;
-			const rawName = String(sldLayout?.['p:cSld']?.['@_name'] || '').trim();
+			const rawName = (xmlAttr(xmlChild(sldLayout, 'p:cSld'), 'name') || '').trim();
 			const type =
 				sldLayout?.['@_type'] !== undefined ? String(sldLayout['@_type']).trim() : undefined;
 			const name = resolveLayoutDisplayName({ name: rawName, type, path });

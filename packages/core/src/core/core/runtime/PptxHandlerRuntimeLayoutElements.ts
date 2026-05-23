@@ -1,4 +1,5 @@
 import { XmlObject, PptxElement } from '../../types';
+import { xmlAttr, xmlChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeMasterElements';
 import type { PlaceholderInfo } from './PptxHandlerRuntimeTypes';
 
@@ -68,8 +69,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const placeholderShapeIndices = new Set<number>();
 			for (let idx = 0; idx < shapes.length; idx++) {
 				const shape = shapes[idx];
-				const nvSpPr = shape['p:nvSpPr'];
-				const ph = nvSpPr?.['p:nvPr']?.['p:ph'];
+				const ph = xmlPath(shape, 'p:nvSpPr', 'p:nvPr', 'p:ph');
 				if (ph) {
 					placeholderShapeIndices.add(idx);
 					const phDefaults = this.extractPlaceholderDefaultsFromShape(shape as XmlObject);
@@ -106,10 +106,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						continue;
 					}
 
-					const spPr = shape['p:spPr'];
+					const spPr = xmlChild(shape, 'p:spPr');
 					let element: PptxElement | null = null;
 
-					if (spPr?.['a:blipFill']) {
+					if (spPr && xmlChild(spPr, 'a:blipFill')) {
 						element = await this.parseShapeWithImageFill(
 							shape,
 							`layout-shape-img-${entry.indexInType}`,
@@ -160,11 +160,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 			// Check whether master shapes should be shown on this layout
 			// (p:sldLayout/@showMasterSp — defaults to true when absent)
-			const layoutShowMasterSp = (layoutXmlObj as XmlObject)['p:sldLayout']?.['@_showMasterSp'];
+			const layoutShowMasterSp = xmlAttr(
+				xmlChild(layoutXmlObj as XmlObject, 'p:sldLayout'),
+				'showMasterSp',
+			);
 			const showMasterSp =
 				layoutShowMasterSp === undefined ||
-				(String(layoutShowMasterSp).trim().toLowerCase() !== '0' &&
-					String(layoutShowMasterSp).trim().toLowerCase() !== 'false');
+				(layoutShowMasterSp.trim().toLowerCase() !== '0' &&
+					layoutShowMasterSp.trim().toLowerCase() !== 'false');
 
 			// Get master elements while the layout's clrMapOvr is still active,
 			// so master shapes drawn through this layout resolve scheme colours

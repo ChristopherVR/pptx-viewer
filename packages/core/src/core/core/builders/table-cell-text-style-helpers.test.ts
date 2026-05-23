@@ -280,7 +280,7 @@ describe('applyCellTextFormat — run properties', () => {
 					'a:r': {
 						'a:rPr': {
 							'@_b': '1',
-							'@_i': true,
+							'@_i': '1',
 							'@_sz': '2400',
 							'a:solidFill': { 'a:srgbClr': { '@_val': '0000FF' } },
 						},

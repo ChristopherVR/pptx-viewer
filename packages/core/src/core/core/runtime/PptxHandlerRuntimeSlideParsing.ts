@@ -36,8 +36,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			textStyle.align = 'center';
 		}
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		paras.forEach((p: any, pIdx: number) => {
+		paras.forEach((p: XmlObject, pIdx: number) => {
 			const pPr = p['a:pPr'] as XmlObject | undefined;
 			let paraAlign: TextStyle['align'] = 'center';
 			if (pPr?.['@_algn']) {
@@ -55,24 +54,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 
 			const defaultRunStyle = this.extractTextRunStyle(
-				pPr?.['a:defRPr'],
+				pPr?.['a:defRPr'] as XmlObject | undefined,
 				paraAlign,
 				slideRelationshipMap,
 			);
 			const mergedDefaultRunStyle = { ...defaultRunStyle } as TextStyle;
 
-			const appendRun = (
-				runText: string,
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				runProps: any,
-			) => {
+			const appendRun = (runText: string, runProps: XmlObject | undefined) => {
 				const runStyle = {
 					...mergedDefaultRunStyle,
-					...this.extractTextRunStyle(
-						runProps as XmlObject | undefined,
-						paraAlign,
-						slideRelationshipMap,
-					),
+					...this.extractTextRunStyle(runProps, paraAlign, slideRelationshipMap),
 				} as TextStyle;
 
 				textParts.push(runText);
@@ -84,20 +75,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 			};
 
-			const runs = this.ensureArray(p['a:r']);
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			runs.forEach((r: any) => {
+			const runs = this.ensureArray(p['a:r']) as XmlObject[];
+			runs.forEach((r) => {
 				if (!r) {
 					return;
 				}
 				const runText =
 					typeof r['a:t'] === 'string' ? r['a:t'] : r['a:t'] !== undefined ? String(r['a:t']) : '';
-				appendRun(runText, r['a:rPr']);
+				appendRun(runText, r['a:rPr'] as XmlObject | undefined);
 			});
 
 			if (p['a:t'] !== undefined) {
 				const directText = typeof p['a:t'] === 'string' ? p['a:t'] : String(p['a:t']);
-				appendRun(directText, p['a:rPr']);
+				appendRun(directText, p['a:rPr'] as XmlObject | undefined);
 			}
 
 			if (pIdx < paras.length - 1) {
@@ -117,12 +107,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return { text, textStyle, textSegments };
 	}
 
-	protected async parseSlide(
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		slideXml: any,
-		slidePath: string,
-	): Promise<PptxElement[]> {
-		const spTree = slideXml['p:sld']?.['p:cSld']?.['p:spTree'];
+	protected async parseSlide(slideXml: XmlObject, slidePath: string): Promise<PptxElement[]> {
+		const spTree = (
+			(slideXml['p:sld'] as XmlObject | undefined)?.['p:cSld'] as XmlObject | undefined
+		)?.['p:spTree'] as XmlObject | undefined;
 		if (!spTree) {
 			return [];
 		}

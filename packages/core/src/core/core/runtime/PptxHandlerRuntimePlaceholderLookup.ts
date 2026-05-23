@@ -1,4 +1,5 @@
 import { XmlObject, PlaceholderDefaults, PlaceholderTextLevelStyle } from '../../types';
+import { xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeElementParsing';
 import type { PlaceholderInfo, PlaceholderLookupContext } from './PptxHandlerRuntimeTypes';
 
@@ -13,9 +14,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		const shapes = this.ensureArray(spTree['p:sp']) as XmlObject[];
 		for (const shape of shapes) {
-			const info = this.extractPlaceholderInfo(
-				shape?.['p:nvSpPr']?.['p:nvPr'] as XmlObject | undefined,
-			);
+			const info = this.extractPlaceholderInfo(xmlPath(shape, 'p:nvSpPr', 'p:nvPr'));
 			if (!this.placeholderMatches(expected, info)) {
 				continue;
 			}
@@ -24,9 +23,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		const pictures = this.ensureArray(spTree['p:pic']) as XmlObject[];
 		for (const picture of pictures) {
-			const info = this.extractPlaceholderInfo(
-				picture?.['p:nvPicPr']?.['p:nvPr'] as XmlObject | undefined,
-			);
+			const info = this.extractPlaceholderInfo(xmlPath(picture, 'p:nvPicPr', 'p:nvPr'));
 			if (!this.placeholderMatches(expected, info)) {
 				continue;
 			}
@@ -47,7 +44,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		const layoutXmlObj = this.layoutXmlMap.get(layoutPath);
 		const layoutContext = this.findPlaceholderInShapeTree(
-			layoutXmlObj?.['p:sldLayout']?.['p:cSld']?.['p:spTree'] as XmlObject | undefined,
+			xmlPath(layoutXmlObj, 'p:sldLayout', 'p:cSld', 'p:spTree'),
 			expected,
 		);
 		if (layoutContext) {
@@ -60,7 +57,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		const masterXmlObj = this.masterXmlMap.get(masterPath);
 		return this.findPlaceholderInShapeTree(
-			masterXmlObj?.['p:sldMaster']?.['p:cSld']?.['p:spTree'] as XmlObject | undefined,
+			xmlPath(masterXmlObj, 'p:sldMaster', 'p:cSld', 'p:spTree'),
 			expected,
 		);
 	}

@@ -130,7 +130,7 @@ describe('decomposeSmartArt — drawing shapes', () => {
 		expect(result).toBeDefined();
 		expect(result!).toHaveLength(2);
 		// Text from the drawing shape should be used
-		expect((result![0] as any).text).toBe('Box A');
+		expect((result![0] as Record<string, unknown>).text).toBe('Box A');
 	});
 
 	it('scales drawing shapes to fit container bounds', () => {
@@ -162,7 +162,9 @@ describe('decomposeSmartArt — drawing shapes', () => {
 		};
 		const result = decomposeSmartArt(data, bounds);
 		expect(result).toBeDefined();
-		expect((result![0] as any).shapeStyle.fillColor).toBe('#FF0000');
+		expect((result![0] as { shapeStyle: Record<string, unknown> }).shapeStyle.fillColor).toBe(
+			'#FF0000',
+		);
 	});
 
 	it('applies colorTransform fills when drawing shapes lack fillColor', () => {
@@ -180,7 +182,9 @@ describe('decomposeSmartArt — drawing shapes', () => {
 		};
 		const result = decomposeSmartArt(data, bounds);
 		expect(result).toBeDefined();
-		expect((result![0] as any).shapeStyle.fillColor).toBe('#AABB00');
+		expect((result![0] as { shapeStyle: Record<string, unknown> }).shapeStyle.fillColor).toBe(
+			'#AABB00',
+		);
 	});
 
 	it('applies quickStyle stroke scale for intense effect', () => {
@@ -195,7 +199,7 @@ describe('decomposeSmartArt — drawing shapes', () => {
 		const result = decomposeSmartArt(data, bounds);
 		expect(result).toBeDefined();
 		// Intense effect doubles stroke width: 2 * 2 = 4
-		expect((result![0] as any).shapeStyle.strokeWidth).toBe(4);
+		expect((result![0] as { shapeStyle: Record<string, unknown> }).shapeStyle.strokeWidth).toBe(4);
 	});
 
 	it('applies quickStyle stroke scale for subtle effect', () => {
@@ -210,7 +214,7 @@ describe('decomposeSmartArt — drawing shapes', () => {
 		const result = decomposeSmartArt(data, bounds);
 		expect(result).toBeDefined();
 		// Subtle effect halves stroke width: 2 * 0.5 = 1
-		expect((result![0] as any).shapeStyle.strokeWidth).toBe(1);
+		expect((result![0] as { shapeStyle: Record<string, unknown> }).shapeStyle.strokeWidth).toBe(1);
 	});
 });
 
@@ -299,7 +303,7 @@ describe('decomposeSmartArt — raw layout type resolution', () => {
 		};
 		const result = decomposeSmartArt(data, bounds);
 		expect(result).toBeDefined();
-		expect((result![0] as any).shapeType).toBe('ellipse');
+		expect((result![0] as Record<string, unknown>).shapeType).toBe('ellipse');
 	});
 });
 
@@ -321,7 +325,9 @@ describe('decomposeSmartArt — colour transforms', () => {
 		const result = decomposeSmartArt(data, bounds, theme);
 		expect(result).toBeDefined();
 		// The colorTransform fill should override the theme accent1
-		expect((result![0] as any).shapeStyle.fillColor).toBe('#AABBCC');
+		expect((result![0] as { shapeStyle: Record<string, unknown> }).shapeStyle.fillColor).toBe(
+			'#AABBCC',
+		);
 	});
 
 	it('passes through theme map when no colorTransform', () => {
@@ -332,6 +338,8 @@ describe('decomposeSmartArt — colour transforms', () => {
 		const theme = { accent1: '#FACADE' };
 		const result = decomposeSmartArt(data, bounds, theme);
 		expect(result).toBeDefined();
-		expect((result![0] as any).shapeStyle.fillColor).toBe('#FACADE');
+		expect((result![0] as { shapeStyle: Record<string, unknown> }).shapeStyle.fillColor).toBe(
+			'#FACADE',
+		);
 	});
 });

@@ -38,7 +38,9 @@ export function getXmlShapeIdFromXml(rawXml: XmlObject | undefined): string | un
 		['p:nvCxnSpPr', 'p:cNvPr'],
 	] as const;
 	for (const [nvProp, cNvPr] of nvPaths) {
-		const id = (rawXml[nvProp] as XmlObject | undefined)?.[cNvPr as string]?.['@_id'];
+		const id = (
+			(rawXml[nvProp] as XmlObject | undefined)?.[cNvPr as string] as XmlObject | undefined
+		)?.['@_id'];
 		if (id !== undefined) {
 			return String(id);
 		}
@@ -150,7 +152,7 @@ export function parseCtnMediaTiming(cTn: XmlObject | undefined, mediaTag: string
 		}
 		// Auto-play: nodeType=1 means "with previous" (auto), 2 = "after previous"
 		const nodeType = cTn['@_nodeType'];
-		if (nodeType === '1' || nodeType === '2' || nodeType === 1 || nodeType === 2) {
+		if (nodeType === '1' || nodeType === '2') {
 			autoPlay = true;
 		}
 		// Play across slides: dur="indefinite" on the cTn means the media

@@ -6,6 +6,8 @@
  * @module collaboration/types
  */
 
+import type { Doc as YDoc } from 'yjs';
+
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
@@ -92,7 +94,7 @@ export interface CollaborationContextValue {
 	/** The collaboration config that was provided. */
 	config: CollaborationConfig;
 	/** The Yjs document (for document sync). */
-	doc: unknown | null;
+	doc: YDoc | null;
 	/** Manually retry the WebSocket connection after a timeout or error. */
 	retry: () => void;
 }

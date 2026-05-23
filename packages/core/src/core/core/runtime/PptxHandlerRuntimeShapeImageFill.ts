@@ -1,4 +1,5 @@
 import { PptxElement, XmlObject, TextStyle } from '../../types';
+import { xmlAttr, xmlChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeGeometryParsing';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -12,10 +13,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		slidePath: string,
 	): Promise<PptxElement | null> {
 		try {
-			const spPr = shape['p:spPr'] as XmlObject | undefined;
-			const placeholderInfo = this.extractPlaceholderInfo(
-				shape?.['p:nvSpPr']?.['p:nvPr'] as XmlObject | undefined,
-			);
+			const spPr = xmlChild(shape, 'p:spPr');
+			const placeholderInfo = this.extractPlaceholderInfo(xmlPath(shape, 'p:nvSpPr', 'p:nvPr'));
 			const inheritedPlaceholder = placeholderInfo
 				? this.findPlaceholderContext(slidePath, placeholderInfo)
 				: undefined;
@@ -29,16 +28,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return null;
 			}
 
-			const off = xfrm['a:off'];
-			const ext = xfrm['a:ext'];
+			const off = xmlChild(xfrm, 'a:off');
+			const ext = xmlChild(xfrm, 'a:ext');
 			if (!off || !ext) {
 				return null;
 			}
 
-			const x = Math.round(parseInt(off['@_x'] || '0') / PptxHandlerRuntime.EMU_PER_PX);
-			const y = Math.round(parseInt(off['@_y'] || '0') / PptxHandlerRuntime.EMU_PER_PX);
-			const width = Math.round(parseInt(ext['@_cx'] || '0') / PptxHandlerRuntime.EMU_PER_PX);
-			const height = Math.round(parseInt(ext['@_cy'] || '0') / PptxHandlerRuntime.EMU_PER_PX);
+			const x = Math.round(parseInt(xmlAttr(off, 'x') || '0') / PptxHandlerRuntime.EMU_PER_PX);
+			const y = Math.round(parseInt(xmlAttr(off, 'y') || '0') / PptxHandlerRuntime.EMU_PER_PX);
+			const width = Math.round(parseInt(xmlAttr(ext, 'cx') || '0') / PptxHandlerRuntime.EMU_PER_PX);
+			const height = Math.round(
+				parseInt(xmlAttr(ext, 'cy') || '0') / PptxHandlerRuntime.EMU_PER_PX,
+			);
 
 			// Get rotation if present
 			const rotation = xfrm['@_rot'] ? parseInt(xfrm['@_rot']) / 60000 : undefined;
@@ -46,7 +47,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const skewY = xfrm['@_skewY'] ? parseInt(String(xfrm['@_skewY']), 10) / 60000 : undefined;
 			const { flipHorizontal, flipVertical } = this.readFlipState(xfrm);
 
-			const prstGeom = effectiveSpPr?.['a:prstGeom']?.['@_prst'];
+			const prstGeom = xmlAttr(xmlChild(effectiveSpPr, 'a:prstGeom'), 'prst');
 			const shapeAdjustments = this.parseGeometryAdjustments(
 				effectiveSpPr?.['a:prstGeom'] as XmlObject | undefined,
 			);
@@ -79,9 +80,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const blipFill = (effectiveSpPr?.['a:blipFill'] || spPr?.['a:blipFill']) as
 				| XmlObject
 				| undefined;
-			const blip = blipFill?.['a:blip'];
-			const rEmbed = blip?.['@_r:embed'];
-			const rLink = blip?.['@_r:link'];
+			const blip = xmlChild(blipFill, 'a:blip');
+			const rEmbed = xmlAttr(blip, 'r:embed');
+			const rLink = xmlAttr(blip, 'r:link');
 			const crop = this.readImageCropFromBlipFill(blipFill);
 
 			// Image tiling properties from a:tile
@@ -125,9 +126,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			let imageData: string | undefined;
 			let imagePath: string | undefined;
 
-			if (rEmbed || rLink) {
+			const relId = rEmbed || rLink;
+			if (relId) {
 				const slideRels = this.slideRelsMap.get(slidePath);
-				const target = slideRels?.get(rEmbed || rLink);
+				const target = slideRels?.get(relId);
 
 				if (target) {
 					if (
@@ -150,7 +152,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				inheritedPlaceholder?.picture?.['p:style']) as XmlObject | undefined;
 
 			// Parse hyperlink / action for the shape-with-image-fill element
-			const sifCNvPr = shape?.['p:nvSpPr']?.['p:cNvPr'] as XmlObject | undefined;
+			const sifCNvPr = xmlPath(shape, 'p:nvSpPr', 'p:cNvPr');
 			const sifSlideRels = this.slideRelsMap.get(slidePath);
 			const { actionClick: sifActionClick, actionHover: sifActionHover } = this.parseElementActions(
 				sifCNvPr,

@@ -18,8 +18,8 @@ function makeDeps(overrides: Partial<StructuredElementDeps> = {}): StructuredEle
 		} as PptxSlide,
 		activeSlideIndex: 0,
 		selectedElements: [],
-		ops: { updateElementById: vi.fn<() => void>() } as any,
-		history: { markDirty: vi.fn<() => void>() } as any,
+		ops: { updateElementById: vi.fn<() => void>() } as unknown as StructuredElementDeps['ops'],
+		history: { markDirty: vi.fn<() => void>() } as unknown as StructuredElementDeps['history'],
 		addElement: vi.fn<() => void>(),
 		...overrides,
 	};
@@ -86,7 +86,7 @@ describe('handleInsertSmartArt', () => {
 		handlers.handleInsertSmartArt('list', ['A', 'B', 'C']);
 
 		const el = (deps.addElement as ReturnType<typeof vi.fn>).mock.calls[0][0];
-		const ids = el.smartArtData.nodes.map((n: any) => n.id);
+		const ids = el.smartArtData.nodes.map((n: { id: string }) => n.id);
 		expect(new Set(ids).size).toBe(3);
 	});
 

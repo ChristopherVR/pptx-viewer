@@ -15,7 +15,7 @@ function makeCtx(overrides: Partial<ElementProcessorContext> = {}): ElementProce
 		slideNumber: 1,
 		slideWidth: 960,
 		slideHeight: 540,
-		processElements: vi.fn<(...args: any[]) => any>(async () => []),
+		processElements: vi.fn(async () => []),
 		...overrides,
 	};
 }

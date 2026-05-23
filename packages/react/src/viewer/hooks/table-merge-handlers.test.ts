@@ -6,11 +6,11 @@ import type { UseTableOperationsInput } from './table-operation-types';
 
 // Mock the external utilities
 vi.mock<typeof import('../utils/table-parse')>(import('../utils/table-parse'), () => ({
-	updateMergeAttrsInRawXml: vi.fn<(...args: any[]) => any>(() => '<merged-xml/>'),
+	updateMergeAttrsInRawXml: vi.fn(() => '<merged-xml/>'),
 }));
 
 vi.mock<typeof import('../utils/table-merge-utils')>(import('../utils/table-merge-utils'), () => ({
-	mergeCells: vi.fn<(...args: any[]) => any>((cells, td) => {
+	mergeCells: vi.fn((cells, td) => {
 		// Simple mock: return tableData with anchor cell marked with gridSpan/rowSpan
 		const newRows = td.rows.map((row: PptxTableData['rows'][0], ri: number) => ({
 			...row,
@@ -23,7 +23,7 @@ vi.mock<typeof import('../utils/table-merge-utils')>(import('../utils/table-merg
 		}));
 		return { ...td, rows: newRows };
 	}),
-	splitCell: vi.fn<(...args: any[]) => any>((row, col, td) => {
+	splitCell: vi.fn((row, col, td) => {
 		const newRows = td.rows.map((r: PptxTableData['rows'][0], ri: number) => ({
 			...r,
 			cells: r.cells.map((c: PptxTableData['rows'][0]['cells'][0], ci: number) => {

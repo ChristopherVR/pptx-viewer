@@ -107,13 +107,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				) {
 					const rot: XmlObject = {};
 					if (s3d.cameraRotX !== undefined) {
-						rot['@_lat'] = s3d.cameraRotX;
+						rot['@_lat'] = String(s3d.cameraRotX);
 					}
 					if (s3d.cameraRotY !== undefined) {
-						rot['@_lon'] = s3d.cameraRotY;
+						rot['@_lon'] = String(s3d.cameraRotY);
 					}
 					if (s3d.cameraRotZ !== undefined) {
-						rot['@_rev'] = s3d.cameraRotZ;
+						rot['@_rev'] = String(s3d.cameraRotZ);
 					}
 					cameraObj['a:rot'] = rot;
 				}
@@ -137,9 +137,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						s3d.backdropAnchorZ !== undefined
 					) {
 						backdropObj['a:anchor'] = {
-							'@_x': s3d.backdropAnchorX ?? 0,
-							'@_y': s3d.backdropAnchorY ?? 0,
-							'@_z': s3d.backdropAnchorZ ?? 0,
+							'@_x': String(s3d.backdropAnchorX ?? 0),
+							'@_y': String(s3d.backdropAnchorY ?? 0),
+							'@_z': String(s3d.backdropAnchorZ ?? 0),
 						};
 					}
 					scene3dXml['a:backdrop'] = backdropObj;
@@ -166,10 +166,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (hasData) {
 				const sp3dXml: XmlObject = {};
 				if (sh3d.extrusionHeight !== undefined) {
-					sp3dXml['@_extrusionH'] = sh3d.extrusionHeight;
+					sp3dXml['@_extrusionH'] = String(sh3d.extrusionHeight);
 				}
 				if (sh3d.contourWidth !== undefined) {
-					sp3dXml['@_contourW'] = sh3d.contourWidth;
+					sp3dXml['@_contourW'] = String(sh3d.contourWidth);
 				}
 				if (sh3d.presetMaterial) {
 					sp3dXml['@_prstMaterial'] = sh3d.presetMaterial;
@@ -177,20 +177,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				if (sh3d.bevelTopType) {
 					const bevelT: XmlObject = { '@_prst': sh3d.bevelTopType };
 					if (sh3d.bevelTopWidth !== undefined) {
-						bevelT['@_w'] = sh3d.bevelTopWidth;
+						bevelT['@_w'] = String(sh3d.bevelTopWidth);
 					}
 					if (sh3d.bevelTopHeight !== undefined) {
-						bevelT['@_h'] = sh3d.bevelTopHeight;
+						bevelT['@_h'] = String(sh3d.bevelTopHeight);
 					}
 					sp3dXml['a:bevelT'] = bevelT;
 				}
 				if (sh3d.bevelBottomType) {
 					const bevelB: XmlObject = { '@_prst': sh3d.bevelBottomType };
 					if (sh3d.bevelBottomWidth !== undefined) {
-						bevelB['@_w'] = sh3d.bevelBottomWidth;
+						bevelB['@_w'] = String(sh3d.bevelBottomWidth);
 					}
 					if (sh3d.bevelBottomHeight !== undefined) {
-						bevelB['@_h'] = sh3d.bevelBottomHeight;
+						bevelB['@_h'] = String(sh3d.bevelBottomHeight);
 					}
 					sp3dXml['a:bevelB'] = bevelB;
 				}

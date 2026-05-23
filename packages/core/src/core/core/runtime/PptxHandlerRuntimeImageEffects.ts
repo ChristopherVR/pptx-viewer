@@ -1,5 +1,6 @@
 import { XmlObject } from '../../types';
 import type { PptxImageEffects, MediaBookmark } from '../../types';
+import { xmlAttr, xmlChild } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTableStylesAndActions';
 
 /** Timing data extracted from the OOXML timing tree for a single media element. */
@@ -302,13 +303,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		// Artistic effects from extension list
-		const extLst = blip['a:extLst'];
+		const extLst = xmlChild(blip, 'a:extLst');
 		if (extLst) {
 			const exts = this.ensureArray(extLst['a:ext']);
 			for (const ext of exts) {
-				const uri = String(ext['@_uri'] || '');
+				const uri = xmlAttr(ext, 'uri') || '';
 				if (uri === '{BEBA8EAE-BF5A-486C-A8C5-ECC9F3942E4B}') {
-					const imgEffect = (ext['a14:imgEffect'] || ext['a14:imgLayer']) as XmlObject | undefined;
+					const imgEffect = xmlChild(ext, 'a14:imgEffect') || xmlChild(ext, 'a14:imgLayer');
 					if (imgEffect) {
 						// Find the actual effect child (e.g. a14:artisticBlur, a14:artisticPencilGrayscale, etc.)
 						const keys = Object.keys(imgEffect).filter((k) => k.startsWith('a14:artistic'));
@@ -354,7 +355,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (!blip) {
 			return undefined;
 		}
-		const extLst = blip['a:extLst'];
+		const extLst = xmlChild(blip, 'a:extLst');
 		if (!extLst) {
 			return undefined;
 		}
@@ -362,11 +363,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const exts = this.ensureArray(extLst['a:ext']);
 		for (const ext of exts) {
 			// SVG extension uses URI {96DAC541-7B7A-43D3-8B79-37D633B846F1}
-			const uri = String(ext['@_uri'] || '');
+			const uri = xmlAttr(ext, 'uri') || '';
 			if (uri === '{96DAC541-7B7A-43D3-8B79-37D633B846F1}') {
-				const svgBlip = ext['asvg:svgBlip'] || ext['a16:svgBlip'];
+				const svgBlip = xmlChild(ext, 'asvg:svgBlip') || xmlChild(ext, 'a16:svgBlip');
 				if (svgBlip) {
-					return String(svgBlip['@_r:embed'] || svgBlip['@_r:link'] || '');
+					return xmlAttr(svgBlip, 'r:embed') || xmlAttr(svgBlip, 'r:link') || '';
 				}
 			}
 		}

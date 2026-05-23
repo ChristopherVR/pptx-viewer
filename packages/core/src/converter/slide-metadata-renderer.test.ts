@@ -4,14 +4,14 @@ import type { PptxSlide } from '../core';
 import { SlideMetadataRenderer } from './SlideMetadataRenderer';
 import { TextSegmentRenderer } from './TextSegmentRenderer';
 
-function makeSlide(overrides: Partial<PptxSlide> = {}): PptxSlide {
+function makeSlide(overrides: Record<string, unknown> = {}): PptxSlide {
 	return {
 		id: 'slide1',
 		rId: 'rId1',
 		slideNumber: 1,
 		elements: [],
 		...overrides,
-	} as PptxSlide;
+	} as unknown as PptxSlide;
 }
 
 describe('slideMetadataRenderer', () => {
@@ -25,14 +25,14 @@ describe('slideMetadataRenderer', () => {
 
 		it('should return empty string when transition type is "none"', () => {
 			const slide = makeSlide({
-				transition: { type: 'none' } as any,
+				transition: { type: 'none' },
 			});
 			expect(renderer.renderTransition(slide)).toBe('');
 		});
 
 		it('should render basic transition type', () => {
 			const slide = makeSlide({
-				transition: { type: 'fade' } as any,
+				transition: { type: 'fade' },
 			});
 			const result = renderer.renderTransition(slide);
 			expect(result).toContain('Transition');
@@ -41,7 +41,7 @@ describe('slideMetadataRenderer', () => {
 
 		it('should include direction when present', () => {
 			const slide = makeSlide({
-				transition: { type: 'push', direction: 'left' } as any,
+				transition: { type: 'push', direction: 'left' },
 			});
 			const result = renderer.renderTransition(slide);
 			expect(result).toContain('direction: left');
@@ -49,7 +49,7 @@ describe('slideMetadataRenderer', () => {
 
 		it('should include duration', () => {
 			const slide = makeSlide({
-				transition: { type: 'fade', durationMs: 500 } as any,
+				transition: { type: 'fade', durationMs: 500 },
 			});
 			const result = renderer.renderTransition(slide);
 			expect(result).toContain('500ms');
@@ -57,7 +57,7 @@ describe('slideMetadataRenderer', () => {
 
 		it('should include auto-advance timing', () => {
 			const slide = makeSlide({
-				transition: { type: 'fade', advanceAfterMs: 3000 } as any,
+				transition: { type: 'fade', advanceAfterMs: 3000 },
 			});
 			const result = renderer.renderTransition(slide);
 			expect(result).toContain('auto-advance: 3000ms');
@@ -65,7 +65,7 @@ describe('slideMetadataRenderer', () => {
 
 		it('should include "no click advance" when advanceOnClick is false', () => {
 			const slide = makeSlide({
-				transition: { type: 'fade', advanceOnClick: false } as any,
+				transition: { type: 'fade', advanceOnClick: false },
 			});
 			const result = renderer.renderTransition(slide);
 			expect(result).toContain('no click advance');
@@ -73,7 +73,7 @@ describe('slideMetadataRenderer', () => {
 
 		it('should include sound file name', () => {
 			const slide = makeSlide({
-				transition: { type: 'fade', soundFileName: 'chime.wav' } as any,
+				transition: { type: 'fade', soundFileName: 'chime.wav' },
 			});
 			const result = renderer.renderTransition(slide);
 			expect(result).toContain('sound: chime.wav');
@@ -91,7 +91,7 @@ describe('slideMetadataRenderer', () => {
 
 		it('should render a single comment', () => {
 			const slide = makeSlide({
-				comments: [{ author: 'Alice', text: 'Fix this', createdAt: '2025-01-01' }] as any,
+				comments: [{ author: 'Alice', text: 'Fix this', createdAt: '2025-01-01' }],
 			});
 			const result = renderer.renderComments(slide);
 			expect(result).toContain('### Comments');
@@ -102,7 +102,7 @@ describe('slideMetadataRenderer', () => {
 
 		it('should show "Unknown" for missing author', () => {
 			const slide = makeSlide({
-				comments: [{ text: 'A note' }] as any,
+				comments: [{ text: 'A note' }],
 			});
 			const result = renderer.renderComments(slide);
 			expect(result).toContain('**Unknown**');
@@ -110,7 +110,7 @@ describe('slideMetadataRenderer', () => {
 
 		it('should show [resolved] for resolved comments', () => {
 			const slide = makeSlide({
-				comments: [{ author: 'Bob', text: 'Done', resolved: true }] as any,
+				comments: [{ author: 'Bob', text: 'Done', resolved: true }],
 			});
 			const result = renderer.renderComments(slide);
 			expect(result).toContain('[resolved]');
@@ -121,7 +121,7 @@ describe('slideMetadataRenderer', () => {
 				comments: [
 					{ author: 'Alice', text: 'First' },
 					{ author: 'Bob', text: 'Second' },
-				] as any,
+				],
 			});
 			const result = renderer.renderComments(slide);
 			expect(result).toContain('Alice');
@@ -168,7 +168,7 @@ describe('slideMetadataRenderer', () => {
 				warnings: [
 					{ message: 'Font missing', severity: 'warning' },
 					{ message: 'SmartArt simplified', severity: 'info' },
-				] as any,
+				],
 			});
 			const result = renderer.renderWarnings(slide);
 			expect(result).toContain('### Warnings');
@@ -197,7 +197,7 @@ describe('slideMetadataRenderer', () => {
 						presetName: 'Pulse',
 						durationMs: 300,
 					},
-				] as any,
+				],
 			});
 			const result = renderer.renderAnimations(slide);
 			expect(result).toContain('### Animations');
@@ -211,7 +211,7 @@ describe('slideMetadataRenderer', () => {
 				nativeAnimations: [
 					{ trigger: 'onClick', presetClass: 'entr', presetName: 'Fly In' },
 					{ trigger: 'onClick', presetClass: 'exit', presetName: 'Fly Out' },
-				] as any,
+				],
 			});
 			const result = renderer.renderAnimations(slide);
 			expect(result).toContain('Click 1');

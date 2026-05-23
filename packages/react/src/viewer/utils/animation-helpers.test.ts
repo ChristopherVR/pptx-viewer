@@ -8,6 +8,7 @@ import {
 	defaultDuration,
 	fillModeForClass,
 } from './animation-helpers';
+import type { EffectName } from './animation-types';
 
 describe('resolveEffect', () => {
 	it('should return undefined when presetClass is undefined', () => {
@@ -136,12 +137,12 @@ describe('buildDynamicKeyframes', () => {
 
 describe('cssKeyframeName', () => {
 	it('should prefix effect name with "pptx-"', () => {
-		expect(cssKeyframeName('appear' as any)).toBe('pptx-appear');
-		expect(cssKeyframeName('fadeIn' as any)).toBe('pptx-fadeIn');
+		expect(cssKeyframeName('appear' as unknown as EffectName)).toBe('pptx-appear');
+		expect(cssKeyframeName('fadeIn' as unknown as EffectName)).toBe('pptx-fadeIn');
 	});
 
 	it('should work with any string', () => {
-		expect(cssKeyframeName('customEffect' as any)).toBe('pptx-customEffect');
+		expect(cssKeyframeName('customEffect' as unknown as EffectName)).toBe('pptx-customEffect');
 	});
 });
 
@@ -167,7 +168,7 @@ describe('defaultDuration', () => {
 	});
 
 	it('should return 500 for unknown preset class', () => {
-		expect(defaultDuration('unknown' as any)).toBe(500);
+		expect(defaultDuration('unknown' as unknown as EffectName)).toBe(500);
 	});
 });
 

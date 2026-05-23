@@ -184,7 +184,7 @@ export function applyBulletProperties(paragraphProps: XmlObject, bulletInfo: Bul
 		paragraphProps['a:buChar'] = { '@_char': bulletInfo.char };
 	}
 	if (bulletInfo.autoNumType) {
-		const buAutoNum: Record<string, unknown> = {
+		const buAutoNum: XmlObject = {
 			'@_type': bulletInfo.autoNumType,
 		};
 		if (bulletInfo.autoNumStartAt !== undefined && bulletInfo.autoNumStartAt !== 1) {

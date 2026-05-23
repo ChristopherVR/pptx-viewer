@@ -218,8 +218,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const placeholderShapeIndices = new Set<number>();
 			for (let idx = 0; idx < shapes.length; idx++) {
 				const shape = shapes[idx];
-				const nvSpPr = shape['p:nvSpPr'];
-				const ph = nvSpPr?.['p:nvPr']?.['p:ph'];
+				const nvSpPr = shape['p:nvSpPr'] as XmlObject | undefined;
+				const ph = (nvSpPr?.['p:nvPr'] as XmlObject | undefined)?.['p:ph'];
 				if (ph) {
 					placeholderShapeIndices.add(idx);
 					const phDefaults = this.extractPlaceholderDefaultsFromShape(shape as XmlObject);
@@ -256,7 +256,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						continue;
 					}
 
-					const spPr = shape['p:spPr'];
+					const spPr = shape['p:spPr'] as XmlObject | undefined;
 					let element: PptxElement | null = null;
 
 					if (spPr?.['a:blipFill']) {

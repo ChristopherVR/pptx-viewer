@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import type { PptxElement } from '../types/elements';
-import type { PptxSlide } from '../types/presentation';
+import type { PptxData, PptxSlide } from '../types/presentation';
 import {
 	checkPresentation,
 	checkMissingAltText,
@@ -19,14 +19,16 @@ import {
 // Helpers to build minimal test fixtures
 // ---------------------------------------------------------------------------
 
-function makeElement(overrides: Partial<PptxElement> & { type: string; id: string }): PptxElement {
+function makeElement(
+	overrides: { type: string; id: string } & Record<string, unknown>,
+): PptxElement {
 	return {
 		x: 0,
 		y: 0,
 		width: 100,
 		height: 50,
 		...overrides,
-	} as PptxElement;
+	} as unknown as PptxElement;
 }
 
 function makeSlide(elements: PptxElement[], overrides: Partial<PptxSlide> = {}): PptxSlide {
@@ -114,7 +116,7 @@ describe('checkMissingAltText', () => {
 	});
 
 	it('does not flag images with alt text', () => {
-		const slide = makeSlide([makeElement({ type: 'image', id: 'img1', altText: 'Logo' } as any)]);
+		const slide = makeSlide([makeElement({ type: 'image', id: 'img1', altText: 'Logo' })]);
 		const issues = checkMissingAltText(slide, 0);
 		expect(issues).toHaveLength(0);
 	});
@@ -128,7 +130,7 @@ describe('checkMissingAltText', () => {
 	});
 
 	it('skips hidden elements', () => {
-		const slide = makeSlide([makeElement({ type: 'image', id: 'img1', hidden: true } as any)]);
+		const slide = makeSlide([makeElement({ type: 'image', id: 'img1', hidden: true })]);
 		expect(checkMissingAltText(slide, 0)).toHaveLength(0);
 	});
 
@@ -160,22 +162,20 @@ describe('checkMissingSlideTitle', () => {
 	});
 
 	it('flags slide with empty title', () => {
-		const slide = makeSlide([makeElement({ type: 'text', id: 'title-1', text: '' } as any)]);
+		const slide = makeSlide([makeElement({ type: 'text', id: 'title-1', text: '' })]);
 		const issues = checkMissingSlideTitle(slide, 0);
 		expect(issues).toHaveLength(1);
 		expect(issues[0].message).toContain('empty');
 	});
 
 	it('passes slide with populated title', () => {
-		const slide = makeSlide([
-			makeElement({ type: 'text', id: 'title-1', text: 'Hello World' } as any),
-		]);
+		const slide = makeSlide([makeElement({ type: 'text', id: 'title-1', text: 'Hello World' })]);
 		expect(checkMissingSlideTitle(slide, 0)).toHaveLength(0);
 	});
 
 	it('detects title via ctrTitle in id', () => {
 		const slide = makeSlide([
-			makeElement({ type: 'text', id: 'ctrTitle_42', text: 'Center Title' } as any),
+			makeElement({ type: 'text', id: 'ctrTitle_42', text: 'Center Title' }),
 		]);
 		expect(checkMissingSlideTitle(slide, 0)).toHaveLength(0);
 	});
@@ -193,7 +193,7 @@ describe('checkLowContrast', () => {
 			text: 'Hello',
 			textStyle: { color: '#FFFFFF' },
 			shapeStyle: { fillColor: '#FFFFCC' },
-		} as any);
+		});
 		const slide = makeSlide([el]);
 		const issues = checkLowContrast(slide, 0, 4.5);
 		expect(issues).toHaveLength(1);
@@ -207,7 +207,7 @@ describe('checkLowContrast', () => {
 			text: 'Hello',
 			textStyle: { color: '#000000' },
 			shapeStyle: { fillColor: '#FFFFFF' },
-		} as any);
+		});
 		const slide = makeSlide([el]);
 		expect(checkLowContrast(slide, 0, 4.5)).toHaveLength(0);
 	});
@@ -218,7 +218,7 @@ describe('checkLowContrast', () => {
 			id: 'txt1',
 			text: 'Hello',
 			textStyle: { color: '#FFFF00' },
-		} as any);
+		});
 		const slide = makeSlide([el]);
 		// Yellow on white (default bg) is low contrast
 		const issues = checkLowContrast(slide, 0, 4.5, '#FFFFFF');
@@ -231,13 +231,13 @@ describe('checkLowContrast', () => {
 			id: 'txt1',
 			text: '',
 			textStyle: { color: '#FFF' },
-		} as any);
+		});
 		const slide = makeSlide([el]);
 		expect(checkLowContrast(slide, 0, 4.5)).toHaveLength(0);
 	});
 
 	it('skips elements without determinable text colour', () => {
-		const el = makeElement({ type: 'text', id: 'txt1', text: 'Hello' } as any);
+		const el = makeElement({ type: 'text', id: 'txt1', text: 'Hello' });
 		const slide = makeSlide([el]);
 		expect(checkLowContrast(slide, 0, 4.5)).toHaveLength(0);
 	});
@@ -265,7 +265,7 @@ describe('checkComplexTables', () => {
 				],
 				columnWidths: [0.25, 0.25, 0.25, 0.25],
 			},
-		} as any);
+		});
 		const slide = makeSlide([el]);
 		const issues = checkComplexTables(slide, 0);
 		expect(issues).toHaveLength(1);
@@ -283,7 +283,7 @@ describe('checkComplexTables', () => {
 				],
 				columnWidths: [0.5, 0.5],
 			},
-		} as any);
+		});
 		const slide = makeSlide([el]);
 		expect(checkComplexTables(slide, 0)).toHaveLength(0);
 	});
@@ -299,7 +299,7 @@ describe('checkComplexTables', () => {
 				],
 				columnWidths: [0.5, 0.5],
 			},
-		} as any);
+		});
 		const slide = makeSlide([el]);
 		expect(checkComplexTables(slide, 0)).toHaveLength(0);
 	});
@@ -312,8 +312,8 @@ describe('checkComplexTables', () => {
 describe('checkDuplicateTitles', () => {
 	it('flags slides with identical titles', () => {
 		const slides = [
-			makeSlide([makeElement({ type: 'text', id: 'title-1', text: 'Overview' } as any)]),
-			makeSlide([makeElement({ type: 'text', id: 'title-2', text: 'Overview' } as any)]),
+			makeSlide([makeElement({ type: 'text', id: 'title-1', text: 'Overview' })]),
+			makeSlide([makeElement({ type: 'text', id: 'title-2', text: 'Overview' })]),
 		];
 		const issues = checkDuplicateTitles(slides);
 		expect(issues).toHaveLength(2);
@@ -322,16 +322,16 @@ describe('checkDuplicateTitles', () => {
 
 	it('is case-insensitive', () => {
 		const slides = [
-			makeSlide([makeElement({ type: 'text', id: 'title-1', text: 'overview' } as any)]),
-			makeSlide([makeElement({ type: 'text', id: 'title-2', text: 'OVERVIEW' } as any)]),
+			makeSlide([makeElement({ type: 'text', id: 'title-1', text: 'overview' })]),
+			makeSlide([makeElement({ type: 'text', id: 'title-2', text: 'OVERVIEW' })]),
 		];
 		expect(checkDuplicateTitles(slides)).toHaveLength(2);
 	});
 
 	it('does not flag unique titles', () => {
 		const slides = [
-			makeSlide([makeElement({ type: 'text', id: 'title-1', text: 'Intro' } as any)]),
-			makeSlide([makeElement({ type: 'text', id: 'title-2', text: 'Details' } as any)]),
+			makeSlide([makeElement({ type: 'text', id: 'title-1', text: 'Intro' })]),
+			makeSlide([makeElement({ type: 'text', id: 'title-2', text: 'Details' })]),
 		];
 		expect(checkDuplicateTitles(slides)).toHaveLength(0);
 	});
@@ -351,8 +351,8 @@ describe('checkBlankSlide', () => {
 
 	it('flags slide with only empty text elements', () => {
 		const slide = makeSlide([
-			makeElement({ type: 'text', id: 'txt1', text: '' } as any),
-			makeElement({ type: 'shape', id: 'shp1', text: '  ' } as any),
+			makeElement({ type: 'text', id: 'txt1', text: '' }),
+			makeElement({ type: 'shape', id: 'shp1', text: '  ' }),
 		]);
 		expect(checkBlankSlide(slide, 0)).toHaveLength(1);
 	});
@@ -363,12 +363,12 @@ describe('checkBlankSlide', () => {
 	});
 
 	it('passes slide with non-empty text', () => {
-		const slide = makeSlide([makeElement({ type: 'text', id: 'txt1', text: 'Hello' } as any)]);
+		const slide = makeSlide([makeElement({ type: 'text', id: 'txt1', text: 'Hello' })]);
 		expect(checkBlankSlide(slide, 0)).toHaveLength(0);
 	});
 
 	it('skips hidden elements when checking for blank', () => {
-		const slide = makeSlide([makeElement({ type: 'image', id: 'img1', hidden: true } as any)]);
+		const slide = makeSlide([makeElement({ type: 'image', id: 'img1', hidden: true })]);
 		expect(checkBlankSlide(slide, 0)).toHaveLength(1);
 	});
 });
@@ -385,7 +385,7 @@ describe('checkPresentation', () => {
 				// no title → missing slide title
 			]),
 		];
-		const data = { slides, width: 1280, height: 720 } as any;
+		const data = { slides, width: 1280, height: 720 } as unknown as PptxData;
 		const issues = checkPresentation(data);
 		expect(issues.length).toBeGreaterThanOrEqual(2);
 		const types = new Set(issues.map((i) => i.type));
@@ -395,10 +395,10 @@ describe('checkPresentation', () => {
 
 	it('sorts issues by slide index then severity', () => {
 		const slides = [
-			makeSlide([makeElement({ type: 'text', id: 'title-1', text: 'A' } as any)]),
+			makeSlide([makeElement({ type: 'text', id: 'title-1', text: 'A' })]),
 			makeSlide([makeElement({ type: 'image', id: 'img1' })]),
 		];
-		const data = { slides, width: 1280, height: 720 } as any;
+		const data = { slides, width: 1280, height: 720 } as unknown as PptxData;
 		const issues = checkPresentation(data);
 		for (let i = 1; i < issues.length; i++) {
 			expect(issues[i].slideIndex).toBeGreaterThanOrEqual(issues[i - 1].slideIndex);
@@ -412,9 +412,9 @@ describe('checkPresentation', () => {
 			text: 'Hello',
 			textStyle: { color: '#FFFFFF' },
 			shapeStyle: { fillColor: '#FFFFCC' },
-		} as any);
+		});
 		const slides = [makeSlide([el])];
-		const data = { slides, width: 1280, height: 720 } as any;
+		const data = { slides, width: 1280, height: 720 } as unknown as PptxData;
 
 		const withContrast = checkPresentation(data, { skipContrast: false });
 		const withoutContrast = checkPresentation(data, { skipContrast: true });
@@ -426,7 +426,7 @@ describe('checkPresentation', () => {
 
 	it('respects skipBlankSlide option', () => {
 		const slides = [makeSlide([])];
-		const data = { slides, width: 1280, height: 720 } as any;
+		const data = { slides, width: 1280, height: 720 } as unknown as PptxData;
 		const without = checkPresentation(data, { skipBlankSlide: true });
 		expect(without.filter((i) => i.type === 'blankSlide')).toHaveLength(0);
 	});
@@ -434,11 +434,11 @@ describe('checkPresentation', () => {
 	it('returns empty array for a fully accessible presentation', () => {
 		const slides = [
 			makeSlide([
-				makeElement({ type: 'text', id: 'title-1', text: 'Slide Title' } as any),
-				makeElement({ type: 'image', id: 'img1', altText: 'Description' } as any),
+				makeElement({ type: 'text', id: 'title-1', text: 'Slide Title' }),
+				makeElement({ type: 'image', id: 'img1', altText: 'Description' }),
 			]),
 		];
-		const data = { slides, width: 1280, height: 720 } as any;
+		const data = { slides, width: 1280, height: 720 } as unknown as PptxData;
 		const issues = checkPresentation(data, { skipContrast: true });
 		expect(issues).toHaveLength(0);
 	});
@@ -450,9 +450,9 @@ describe('checkPresentation', () => {
 			text: 'Hello',
 			textStyle: { color: '#777777' },
 			shapeStyle: { fillColor: '#FFFFFF' },
-		} as any);
+		});
 		const slides = [makeSlide([el])];
-		const data = { slides, width: 1280, height: 720 } as any;
+		const data = { slides, width: 1280, height: 720 } as unknown as PptxData;
 
 		// #777 on #FFF is ~4.48:1, should pass at 3:1 but fail at 7:1
 		const atLow = checkPresentation(data, { minContrastRatio: 3 });

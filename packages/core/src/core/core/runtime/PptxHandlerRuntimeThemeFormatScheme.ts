@@ -82,9 +82,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			case 'a:pattFill':
 				return {
 					kind: 'pattern',
-					color: this.parseColor(node['a:fgClr']) || this.parseColor(node['a:bgClr']),
+					color:
+						this.parseColor(node['a:fgClr'] as XmlObject | undefined) ||
+						this.parseColor(node['a:bgClr'] as XmlObject | undefined),
 					patternPreset: String(node['@_prst'] || '').trim() || undefined,
-					patternBackgroundColor: this.parseColor(node['a:bgClr']) || undefined,
+					patternBackgroundColor:
+						this.parseColor(node['a:bgClr'] as XmlObject | undefined) || undefined,
 					rawNode: node,
 				};
 			case 'a:noFill':
@@ -200,7 +203,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				style.color = this.extractGradientFillColor(ln['a:gradFill'] as XmlObject);
 			} else if (ln['a:pattFill']) {
 				const pf = ln['a:pattFill'] as XmlObject;
-				style.color = this.parseColor(pf['a:fgClr']) || this.parseColor(pf['a:bgClr']);
+				style.color =
+					this.parseColor(pf['a:fgClr'] as XmlObject | undefined) ||
+					this.parseColor(pf['a:bgClr'] as XmlObject | undefined);
 			}
 
 			// Dash style

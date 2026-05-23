@@ -11,6 +11,10 @@ import type { PptxSlide } from 'pptx-viewer-core';
  * @module collaboration/useYjsDocumentSync
  */
 import { useCallback, useEffect, useRef } from 'react';
+import type { Doc as YDoc, Map as YMap } from 'yjs';
+
+// The Y.Map stores `count` as a number and `slide-<i>` keys as JSON strings.
+type SlidesDataMap = YMap<number | string>;
 
 // ---------------------------------------------------------------------------
 // Input
@@ -18,7 +22,7 @@ import { useCallback, useEffect, useRef } from 'react';
 
 export interface UseYjsDocumentSyncInput {
 	/** The Yjs document (from useCollaboration). null when not collaborating. */
-	doc: unknown | null;
+	doc: YDoc | null;
 	/** Current slides state. */
 	slides: PptxSlide[];
 	/** React state setter for slides. */
@@ -46,15 +50,11 @@ export function useYjsDocumentSync({
 	const hasInitializedRef = useRef(false);
 
 	// Get the Y.Map from the doc
-	const getDocMap = useCallback(() => {
-		if (!doc || typeof doc !== 'object') {
+	const getDocMap = useCallback((): SlidesDataMap | null => {
+		if (!doc) {
 			return null;
 		}
-		const d = doc as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-		if (typeof d.getMap !== 'function') {
-			return null;
-		}
-		return d.getMap('slides-data') as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+		return doc.getMap<number | string>('slides-data');
 	}, [doc]);
 
 	// --- Sync local changes TO Y.Doc ---
@@ -84,11 +84,10 @@ export function useYjsDocumentSync({
 		lastSyncedRef.current = serialized;
 
 		// Write to Y.Doc inside a transaction
-		const d = doc as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-		d.transact(() => {
+		doc.transact(() => {
 			// Clear extra entries if slide count decreased
-			const currentCount = map.get('count') as number | undefined;
-			if (currentCount && currentCount > slides.length) {
+			const currentCount = map.get('count');
+			if (typeof currentCount === 'number' && currentCount > slides.length) {
 				for (let i = slides.length; i < currentCount; i++) {
 					map.delete(`slide-${i}`);
 				}
@@ -96,7 +95,7 @@ export function useYjsDocumentSync({
 			map.set('count', slides.length);
 			for (let i = 0; i < slides.length; i++) {
 				const slideJson = JSON.stringify(slides[i]);
-				const existing = map.get(`slide-${i}`) as string | undefined;
+				const existing = map.get(`slide-${i}`);
 				if (existing !== slideJson) {
 					map.set(`slide-${i}`, slideJson);
 				}
@@ -116,16 +115,16 @@ export function useYjsDocumentSync({
 		}
 
 		const handleUpdate = () => {
-			const count = map.get('count') as number | undefined;
-			if (!count || count === 0) {
+			const count = map.get('count');
+			if (typeof count !== 'number' || count === 0) {
 				return;
 			}
 
 			// Reconstruct slides from Y.Map
 			const remoteSlides: PptxSlide[] = [];
 			for (let i = 0; i < count; i++) {
-				const slideJson = map.get(`slide-${i}`) as string | undefined;
-				if (slideJson) {
+				const slideJson = map.get(`slide-${i}`);
+				if (typeof slideJson === 'string') {
 					try {
 						remoteSlides.push(JSON.parse(slideJson));
 					} catch {
@@ -159,8 +158,8 @@ export function useYjsDocumentSync({
 		// load it
 		if (!hasInitializedRef.current) {
 			hasInitializedRef.current = true;
-			const count = map.get('count') as number | undefined;
-			if (count && count > 0) {
+			const count = map.get('count');
+			if (typeof count === 'number' && count > 0) {
 				handleUpdate();
 			}
 		}

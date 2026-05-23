@@ -57,7 +57,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			((shape['p:spPr'] as XmlObject | undefined)?.['a:blipFill'] as XmlObject | undefined);
 		this.applyImageCropToBlipFill(pictureBlipFill, el);
 		this.applyImageEffectsToBlip(pictureBlipFill, el.imageEffects);
-		const cNvPrNode = shape?.['p:nvPicPr']?.['p:cNvPr'] as XmlObject | undefined;
+		const cNvPrNode = (shape?.['p:nvPicPr'] as XmlObject | undefined)?.['p:cNvPr'] as
+			| XmlObject
+			| undefined;
 		if (cNvPrNode) {
 			const altText = String((el as PptxImageLikeElement).altText || '').trim();
 			if (altText.length > 0) {

@@ -175,17 +175,17 @@ describe('resolveListLevel', () => {
 	});
 
 	it('should return explicit level from bulletInfo', () => {
-		const bullet: SegmentBulletInfo = { level: 2 } as any;
+		const bullet = { level: 2 } as unknown as SegmentBulletInfo;
 		expect(resolveListLevel(bullet, 0, undefined)).toBe(2);
 	});
 
 	it('should floor explicit level', () => {
-		const bullet: SegmentBulletInfo = { level: 1.7 } as any;
+		const bullet = { level: 1.7 } as unknown as SegmentBulletInfo;
 		expect(resolveListLevel(bullet, 0, undefined)).toBe(1);
 	});
 
 	it('should clamp explicit level to 0 minimum', () => {
-		const bullet: SegmentBulletInfo = { level: -1 } as any;
+		const bullet = { level: -1 } as unknown as SegmentBulletInfo;
 		expect(resolveListLevel(bullet, 0, undefined)).toBe(0);
 	});
 

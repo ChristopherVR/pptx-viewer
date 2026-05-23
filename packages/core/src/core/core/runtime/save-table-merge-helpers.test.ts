@@ -181,7 +181,7 @@ describe('replaceFirstTextValueInTree', () => {
 		};
 		const replaced = replaceFirstTextValueInTree(node, 't', 'Replaced', getLocalName);
 		expect(replaced).toBeTruthy();
-		expect((node['a:p'] as any)['a:r']['a:t']).toBe('Replaced');
+		expect((node['a:p'] as Record<string, Record<string, string>>)['a:r']['a:t']).toBe('Replaced');
 	});
 
 	it('should return false when no match is found', () => {
@@ -194,7 +194,7 @@ describe('replaceFirstTextValueInTree', () => {
 		const node = [{ 'a:x': 'skip' }, { 'a:t': 'Found' }];
 		const replaced = replaceFirstTextValueInTree(node, 't', 'New', getLocalName);
 		expect(replaced).toBeTruthy();
-		expect((node[1] as any)['a:t']).toBe('New');
+		expect((node[1] as Record<string, string>)['a:t']).toBe('New');
 	});
 
 	it('should handle null/undefined gracefully', () => {

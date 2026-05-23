@@ -8,11 +8,10 @@
  * keys in their original insertion order. Keys whose values are
  * `undefined` are skipped.
  */
-export function reorderObjectKeys(
-	obj: Record<string, unknown>,
-	schemaOrder: readonly string[],
-): Record<string, unknown> {
-	const result: Record<string, unknown> = {};
+import type { XmlObject } from '../types/common';
+
+export function reorderObjectKeys(obj: XmlObject, schemaOrder: readonly string[]): XmlObject {
+	const result: XmlObject = {};
 	const consumed = new Set<string>();
 
 	for (const key of schemaOrder) {

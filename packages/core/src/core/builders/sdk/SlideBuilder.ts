@@ -325,7 +325,7 @@ export class SlideBuilder {
 	 * ```
 	 */
 	setName(name: string): this {
-		(this.slide as any).name = name;
+		this.slide.name = name;
 		return this;
 	}
 

@@ -1,3 +1,4 @@
+import type { PptxTextWarpPreset } from 'pptx-viewer-core';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import { TEXT_WARP_PRESETS, warpPreviewPath } from './TextWarpGallery';
@@ -93,7 +94,7 @@ describe('warpPreviewPath', () => {
 	});
 
 	it('returns a fallback path for unknown presets', () => {
-		const path = warpPreviewPath('unknownPreset' as any);
+		const path = warpPreviewPath('unknownPreset' as unknown as PptxTextWarpPreset);
 		expectTypeOf(path).toBeString();
 		expect(path.length).toBeGreaterThan(0);
 		// Fallback is the same as textNoShape/textPlain

@@ -96,7 +96,7 @@ function shouldEnterInlineEdit(
 	if (el.type !== 'text' && el.type !== 'shape') {
 		return false;
 	}
-	if ((el as any).locks?.noTextEdit) {
+	if ((el as { locks?: { noTextEdit?: boolean } }).locks?.noTextEdit) {
 		return false;
 	}
 	return true;

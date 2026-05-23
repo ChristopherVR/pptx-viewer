@@ -137,9 +137,42 @@ export interface ShadowEffect {
 	rotateWithShape?: boolean;
 }
 
-// Type for parsed XML objects from fast-xml-parser
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type XmlObject = Record<string, any>;
+/**
+ * Strongly-typed parsed XML node from fast-xml-parser.
+ *
+ * The parser is configured with `attributeNamePrefix: '@_'`,
+ * `parseAttributeValue: false`, and `parseTagValue: false`, so attribute and
+ * text values are always strings at runtime. This type encodes that:
+ *
+ * - **Attributes** — keys matching `` `@_${string}` `` return
+ *   `string | undefined` directly.
+ * - **Text content** — `#text` returns `string | undefined`.
+ * - **Child elements** — any other string key returns
+ *   `XmlObject | XmlObject[] | string | undefined`. The union reflects that
+ *   fast-xml-parser may emit an object (single child), an array (repeated
+ *   children), or a bare string (text-only element collapsed by the parser).
+ *
+ * For traversal, prefer the helpers in {@link ./../utils/xml-access} —
+ * `xmlChild` / `xmlChildren` / `xmlAttr` / `xmlText` / `xmlPath` — which
+ * narrow the union and normalize the single-vs-array duality. Direct
+ * indexing works for attributes (typed as string) but chained child access
+ * (`obj['p:spPr']?.['a:xfrm']`) requires the helpers or a narrowing cast
+ * because TypeScript cannot index into the `XmlObject[] | string` part of
+ * the union.
+ */
+export interface XmlObject {
+	/** Attributes (`@_`-prefixed keys) are always strings at runtime. */
+	[attr: `@_${string}`]: string | undefined;
+	/** Element text content surfaces under `#text` when present. */
+	'#text'?: string;
+	/**
+	 * Child elements keyed by their (namespaced) tag name. fast-xml-parser
+	 * emits a single object for unique elements, an array for repeated ones,
+	 * and a bare string for elements collapsed to their text content. Use
+	 * the helpers in `utils/xml-access` to narrow this union.
+	 */
+	[child: string]: XmlObject | XmlObject[] | string | undefined;
+}
 
 /**
  * Discriminant values for the `type` field on {@link PptxElement}.

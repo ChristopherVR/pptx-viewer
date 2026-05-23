@@ -120,6 +120,8 @@ export interface PptxSlide {
 	id: string;
 	rId: string; // Relationship ID
 	sourceSlideId?: string; // Optional source slide path when creating new slides
+	/** Optional author-supplied slide name (set via `SlideBuilder.setName`). */
+	name?: string;
 	layoutPath?: string;
 	layoutName?: string;
 	slideNumber: number;

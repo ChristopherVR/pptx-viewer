@@ -7,7 +7,16 @@ import type { DrawState } from './emf-types';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function createMockCtx() {
+interface MockCtx {
+	strokeStyle: string;
+	lineWidth: number;
+	fillStyle: string;
+	font: string;
+	_lineDash: number[];
+	setLineDash(dash: number[]): void;
+}
+
+function createMockCtx(): MockCtx {
 	return {
 		strokeStyle: '',
 		lineWidth: 0,
@@ -19,6 +28,9 @@ function createMockCtx() {
 		},
 	};
 }
+
+const asCtx = (ctx: MockCtx): CanvasRenderingContext2D =>
+	ctx as unknown as CanvasRenderingContext2D;
 
 function createDefaultDrawState(overrides: Partial<DrawState> = {}): DrawState {
 	return {
@@ -49,7 +61,7 @@ describe('applyPen', () => {
 	it('sets transparent stroke for null pen (style 5)', () => {
 		const ctx = createMockCtx();
 		const state = createDefaultDrawState({ penStyle: 5 });
-		applyPen(ctx as any, state);
+		applyPen(asCtx(ctx), state);
 		expect(ctx.strokeStyle).toBe('rgba(0,0,0,0)');
 		expect(ctx.lineWidth).toBe(0);
 	});
@@ -57,7 +69,7 @@ describe('applyPen', () => {
 	it('sets solid stroke with pen color and width', () => {
 		const ctx = createMockCtx();
 		const state = createDefaultDrawState({ penColor: '#ff0000', penWidth: 3, penStyle: 0 });
-		applyPen(ctx as any, state);
+		applyPen(asCtx(ctx), state);
 		expect(ctx.strokeStyle).toBe('#ff0000');
 		expect(ctx.lineWidth).toBe(3);
 		expect(ctx._lineDash).toStrictEqual([]);
@@ -66,35 +78,35 @@ describe('applyPen', () => {
 	it('sets dash pattern for pen style 1', () => {
 		const ctx = createMockCtx();
 		const state = createDefaultDrawState({ penStyle: 1 });
-		applyPen(ctx as any, state);
+		applyPen(asCtx(ctx), state);
 		expect(ctx._lineDash).toStrictEqual([8, 4]);
 	});
 
 	it('sets dot pattern for pen style 2', () => {
 		const ctx = createMockCtx();
 		const state = createDefaultDrawState({ penStyle: 2 });
-		applyPen(ctx as any, state);
+		applyPen(asCtx(ctx), state);
 		expect(ctx._lineDash).toStrictEqual([2, 2]);
 	});
 
 	it('sets dash-dot pattern for pen style 3', () => {
 		const ctx = createMockCtx();
 		const state = createDefaultDrawState({ penStyle: 3 });
-		applyPen(ctx as any, state);
+		applyPen(asCtx(ctx), state);
 		expect(ctx._lineDash).toStrictEqual([8, 4, 2, 4]);
 	});
 
 	it('sets dash-dot-dot pattern for pen style 4', () => {
 		const ctx = createMockCtx();
 		const state = createDefaultDrawState({ penStyle: 4 });
-		applyPen(ctx as any, state);
+		applyPen(asCtx(ctx), state);
 		expect(ctx._lineDash).toStrictEqual([8, 4, 2, 4, 2, 4]);
 	});
 
 	it('enforces minimum line width of 1', () => {
 		const ctx = createMockCtx();
 		const state = createDefaultDrawState({ penWidth: 0, penStyle: 0 });
-		applyPen(ctx as any, state);
+		applyPen(asCtx(ctx), state);
 		expect(ctx.lineWidth).toBe(1);
 	});
 });
@@ -107,21 +119,21 @@ describe('applyBrush', () => {
 	it('sets transparent fill for hollow brush (style 1)', () => {
 		const ctx = createMockCtx();
 		const state = createDefaultDrawState({ brushStyle: 1 });
-		applyBrush(ctx as any, state);
+		applyBrush(asCtx(ctx), state);
 		expect(ctx.fillStyle).toBe('rgba(0,0,0,0)');
 	});
 
 	it('sets solid fill with brush color for style 0', () => {
 		const ctx = createMockCtx();
 		const state = createDefaultDrawState({ brushColor: '#00ff00', brushStyle: 0 });
-		applyBrush(ctx as any, state);
+		applyBrush(asCtx(ctx), state);
 		expect(ctx.fillStyle).toBe('#00ff00');
 	});
 
 	it('uses brush color for non-null non-hollow styles', () => {
 		const ctx = createMockCtx();
 		const state = createDefaultDrawState({ brushColor: '#123456', brushStyle: 2 });
-		applyBrush(ctx as any, state);
+		applyBrush(asCtx(ctx), state);
 		expect(ctx.fillStyle).toBe('#123456');
 	});
 });
@@ -139,14 +151,14 @@ describe('applyFont', () => {
 			fontItalic: false,
 			fontFamily: 'Arial',
 		});
-		applyFont(ctx as any, state);
+		applyFont(asCtx(ctx), state);
 		expect(ctx.font).toBe('16px Arial');
 	});
 
 	it('includes italic prefix when fontItalic is true', () => {
 		const ctx = createMockCtx();
 		const state = createDefaultDrawState({ fontHeight: 14, fontItalic: true, fontFamily: 'Times' });
-		applyFont(ctx as any, state);
+		applyFont(asCtx(ctx), state);
 		expect(ctx.font).toContain('italic');
 	});
 
@@ -157,21 +169,21 @@ describe('applyFont', () => {
 			fontWeight: 700,
 			fontFamily: 'Verdana',
 		});
-		applyFont(ctx as any, state);
+		applyFont(asCtx(ctx), state);
 		expect(ctx.font).toContain('bold');
 	});
 
 	it('uses minimum font size of 8', () => {
 		const ctx = createMockCtx();
 		const state = createDefaultDrawState({ fontHeight: 3, fontFamily: 'Courier' });
-		applyFont(ctx as any, state);
+		applyFont(asCtx(ctx), state);
 		expect(ctx.font).toContain('8px');
 	});
 
 	it('handles negative fontHeight by taking absolute value', () => {
 		const ctx = createMockCtx();
 		const state = createDefaultDrawState({ fontHeight: -20, fontFamily: 'Helvetica' });
-		applyFont(ctx as any, state);
+		applyFont(asCtx(ctx), state);
 		expect(ctx.font).toContain('20px');
 	});
 
@@ -183,7 +195,7 @@ describe('applyFont', () => {
 			fontItalic: true,
 			fontFamily: 'Georgia',
 		});
-		applyFont(ctx as any, state);
+		applyFont(asCtx(ctx), state);
 		expect(ctx.font).toBe('italic bold 18px Georgia');
 	});
 });
@@ -243,56 +255,56 @@ describe('getStockObject', () => {
 		const obj = getStockObject(0);
 		expect(obj).not.toBeNull();
 		expect(obj!.kind).toBe('brush');
-		expect((obj as any).color).toBe('#ffffff');
+		expect((obj as Record<string, unknown>).color).toBe('#ffffff');
 	});
 
 	it('returns black brush for index 4', () => {
 		const obj = getStockObject(4);
 		expect(obj).not.toBeNull();
 		expect(obj!.kind).toBe('brush');
-		expect((obj as any).color).toBe('#000000');
+		expect((obj as Record<string, unknown>).color).toBe('#000000');
 	});
 
 	it('returns hollow brush for index 5', () => {
 		const obj = getStockObject(5);
 		expect(obj).not.toBeNull();
 		expect(obj!.kind).toBe('brush');
-		expect((obj as any).style).toBe(1);
+		expect((obj as Record<string, unknown>).style).toBe(1);
 	});
 
 	it('returns white pen for index 6', () => {
 		const obj = getStockObject(6);
 		expect(obj).not.toBeNull();
 		expect(obj!.kind).toBe('pen');
-		expect((obj as any).color).toBe('#ffffff');
+		expect((obj as Record<string, unknown>).color).toBe('#ffffff');
 	});
 
 	it('returns black pen for index 7', () => {
 		const obj = getStockObject(7);
 		expect(obj).not.toBeNull();
 		expect(obj!.kind).toBe('pen');
-		expect((obj as any).color).toBe('#000000');
+		expect((obj as Record<string, unknown>).color).toBe('#000000');
 	});
 
 	it('returns null pen for index 8', () => {
 		const obj = getStockObject(8);
 		expect(obj).not.toBeNull();
 		expect(obj!.kind).toBe('pen');
-		expect((obj as any).style).toBe(5);
+		expect((obj as Record<string, unknown>).style).toBe(5);
 	});
 
 	it('returns monospace font for index 10', () => {
 		const obj = getStockObject(10);
 		expect(obj).not.toBeNull();
 		expect(obj!.kind).toBe('font');
-		expect((obj as any).family).toBe('monospace');
+		expect((obj as Record<string, unknown>).family).toBe('monospace');
 	});
 
 	it('returns sans-serif font for index 13', () => {
 		const obj = getStockObject(13);
 		expect(obj).not.toBeNull();
 		expect(obj!.kind).toBe('font');
-		expect((obj as any).family).toBe('sans-serif');
+		expect((obj as Record<string, unknown>).family).toBe('sans-serif');
 	});
 
 	it('returns null for unknown index', () => {

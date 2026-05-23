@@ -182,7 +182,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * passes through verbatim.
 	 */
 	protected applyOleTypedFieldUpdates(shape: XmlObject, el: OlePptxElement): void {
-		const oleObj = shape['a:graphic']?.['a:graphicData']?.['p:oleObj'] as XmlObject | undefined;
+		const oleObj = (
+			(shape['a:graphic'] as XmlObject | undefined)?.['a:graphicData'] as XmlObject | undefined
+		)?.['p:oleObj'] as XmlObject | undefined;
 		if (!oleObj) {
 			return;
 		}
@@ -445,7 +447,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 
 			// Update child transform — coordinates are relative to group
-			const childXfrm = (xml['p:spPr']?.['a:xfrm'] || xml['p:xfrm']) as XmlObject | undefined;
+			const childXfrm = ((xml['p:spPr'] as XmlObject | undefined)?.['a:xfrm'] || xml['p:xfrm']) as
+				| XmlObject
+				| undefined;
 			if (childXfrm) {
 				if (!childXfrm['a:off']) {
 					childXfrm['a:off'] = {};

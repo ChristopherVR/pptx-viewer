@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import { gmx, gmy, gmw, gmh, activateGdiMappingMode } from './emf-gdi-coord';
-import type { EmfGdiReplayCtx } from './emf-types';
+import type { CanvasContext, DrawState, EmfGdiReplayCtx } from './emf-types';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -12,10 +12,10 @@ function makeCtx(overrides: Partial<EmfGdiReplayCtx> = {}): EmfGdiReplayCtx {
 	return {
 		// Provide stubs for all required fields; tests only care about
 		// the coordinate-related subset.
-		ctx: {} as any,
-		view: {} as any,
+		ctx: {} as unknown as CanvasContext,
+		view: {} as unknown as DataView,
 		objectTable: new Map(),
-		state: {} as any,
+		state: {} as unknown as DrawState,
 		stateStack: [],
 		inPath: false,
 		windowOrg: { x: 0, y: 0 },

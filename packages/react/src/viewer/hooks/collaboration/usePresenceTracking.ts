@@ -10,24 +10,10 @@
  * @module collaboration/usePresenceTracking
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { Awareness } from 'y-protocols/awareness';
 
 import { sanitizePresence } from './sanitize';
 import type { UserPresence } from './types';
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
-interface Awareness {
-	setLocalStateField: (field: string, value: any) => void;
-	getLocalState: () => any;
-	getStates: () => Map<number, any>;
-	on: (event: string, cb: (...args: any[]) => void) => void;
-	off: (event: string, cb: (...args: any[]) => void) => void;
-	clientID: number;
-}
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export interface UsePresenceTrackingInput {
 	awareness: Awareness | null;
@@ -158,12 +144,17 @@ export function usePresenceTracking({
 					return;
 				}
 
-				const raw = state?.presence;
+				const stateRecord = state as Record<string, unknown> | null | undefined;
+				const raw = stateRecord?.presence;
 				if (!raw || typeof raw !== 'object') {
 					return;
 				}
 
-				const sanitized = sanitizePresence({ ...raw, clientId: cid }, canvasWidth, canvasHeight);
+				const sanitized = sanitizePresence(
+					{ ...(raw as Record<string, unknown>), clientId: cid },
+					canvasWidth,
+					canvasHeight,
+				);
 				if (!sanitized) {
 					return;
 				}

@@ -6,7 +6,8 @@ export interface IPptxElementTransformUpdater {
 
 export class PptxElementTransformUpdater implements IPptxElementTransformUpdater {
 	public applyTransform(shape: XmlObject, element: PptxElement, emuPerPx: number): void {
-		const transform = (shape['p:spPr']?.['a:xfrm'] || shape['p:xfrm']) as XmlObject | undefined;
+		const transform = ((shape['p:spPr'] as XmlObject | undefined)?.['a:xfrm'] ||
+			shape['p:xfrm']) as XmlObject | undefined;
 		if (!transform) {
 			return;
 		}

@@ -127,10 +127,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 			}
 			if (defRPr['@_b'] !== undefined) {
-				style.bold = defRPr['@_b'] === '1' || defRPr['@_b'] === true;
+				style.bold = defRPr['@_b'] === '1';
 			}
 			if (defRPr['@_i'] !== undefined) {
-				style.italic = defRPr['@_i'] === '1' || defRPr['@_i'] === true;
+				style.italic = defRPr['@_i'] === '1';
 			}
 
 			const color = this.parseColor(defRPr['a:solidFill'] as XmlObject | undefined);

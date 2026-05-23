@@ -1,5 +1,6 @@
 import { XmlObject, PptxElement } from '../../types';
 import type { PptxAction, PptxShapeLocks } from '../../types';
+import { xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTableStyles';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -64,15 +65,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 	protected getCnvPrNode(shape: XmlObject, key: string): XmlObject | undefined {
 		if (key === 'p:pic') {
-			return shape?.['p:nvPicPr']?.['p:cNvPr'] as XmlObject | undefined;
+			return xmlPath(shape, 'p:nvPicPr', 'p:cNvPr');
 		}
 		if (key === 'p:cxnSp') {
-			return shape?.['p:nvCxnSpPr']?.['p:cNvPr'] as XmlObject | undefined;
+			return xmlPath(shape, 'p:nvCxnSpPr', 'p:cNvPr');
 		}
 		if (key === 'p:graphicFrame') {
-			return shape?.['p:nvGraphicFramePr']?.['p:cNvPr'] as XmlObject | undefined;
+			return xmlPath(shape, 'p:nvGraphicFramePr', 'p:cNvPr');
 		}
-		return shape?.['p:nvSpPr']?.['p:cNvPr'] as XmlObject | undefined;
+		return xmlPath(shape, 'p:nvSpPr', 'p:cNvPr');
 	}
 
 	/**
@@ -116,13 +117,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		let container: XmlObject | undefined;
 		let lockTag: string;
 		if (key === 'p:pic') {
-			container = shape?.['p:nvPicPr']?.['p:cNvPicPr'] as XmlObject | undefined;
+			container = xmlPath(shape, 'p:nvPicPr', 'p:cNvPicPr');
 			lockTag = 'a:picLocks';
 		} else if (key === 'p:cxnSp') {
-			container = shape?.['p:nvCxnSpPr']?.['p:cNvCxnSpPr'] as XmlObject | undefined;
+			container = xmlPath(shape, 'p:nvCxnSpPr', 'p:cNvCxnSpPr');
 			lockTag = 'a:cxnSpLocks';
 		} else if (key === 'p:sp') {
-			container = shape?.['p:nvSpPr']?.['p:cNvSpPr'] as XmlObject | undefined;
+			container = xmlPath(shape, 'p:nvSpPr', 'p:cNvSpPr');
 			lockTag = 'a:spLocks';
 		} else {
 			// graphic frames / other — no lock serialization

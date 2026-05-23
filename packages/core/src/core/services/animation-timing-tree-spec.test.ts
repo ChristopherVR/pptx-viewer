@@ -300,17 +300,6 @@ describe('animation timing tree: extractRepeatInfo', () => {
 		expect(result.autoReverse).toBeTruthy();
 	});
 
-	it('should detect autoReverse when @_autoRev is boolean true', () => {
-		const cTn: XmlObject = {
-			'@_id': '5',
-			'@_dur': '2000',
-			'@_autoRev': true,
-		};
-
-		const result = extractRepeatInfo(cTn);
-		expect(result.autoReverse).toBeTruthy();
-	});
-
 	it('should return no repeat info when attributes are absent', () => {
 		const cTn: XmlObject = { '@_id': '5', '@_dur': '2000' };
 		const result = extractRepeatInfo(cTn);

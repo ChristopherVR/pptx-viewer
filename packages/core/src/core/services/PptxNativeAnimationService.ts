@@ -67,7 +67,7 @@ export class PptxNativeAnimationService implements IPptxNativeAnimationService {
 	 */
 	public parseNativeAnimations(slideXml: XmlObject): PptxNativeAnimation[] | undefined {
 		try {
-			const timing = slideXml?.['p:sld']?.['p:timing'];
+			const timing = (slideXml?.['p:sld'] as XmlObject | undefined)?.['p:timing'];
 			if (!timing || typeof timing !== 'object') {
 				return undefined;
 			}

@@ -327,9 +327,15 @@ describe('sanitizePresence', () => {
 	});
 
 	it('returns null for non-number clientId types', () => {
-		expect(sanitizePresence({ clientId: 'abc' as any }, canvasWidth, canvasHeight)).toBeNull();
-		expect(sanitizePresence({ clientId: null as any }, canvasWidth, canvasHeight)).toBeNull();
-		expect(sanitizePresence({ clientId: undefined as any }, canvasWidth, canvasHeight)).toBeNull();
+		expect(
+			sanitizePresence({ clientId: 'abc' as unknown as number }, canvasWidth, canvasHeight),
+		).toBeNull();
+		expect(
+			sanitizePresence({ clientId: null as unknown as number }, canvasWidth, canvasHeight),
+		).toBeNull();
+		expect(
+			sanitizePresence({ clientId: undefined as unknown as number }, canvasWidth, canvasHeight),
+		).toBeNull();
 	});
 
 	it('ignores non-string selectedElementId', () => {
@@ -417,8 +423,8 @@ describe('sanitizeUserName — edge cases', () => {
 	});
 
 	it('handles boolean input', () => {
-		expect(sanitizeUserName(true as any)).toBe('Anonymous');
-		expect(sanitizeUserName(false as any)).toBe('Anonymous');
+		expect(sanitizeUserName(true as unknown as string)).toBe('Anonymous');
+		expect(sanitizeUserName(false as unknown as string)).toBe('Anonymous');
 	});
 });
 
@@ -502,7 +508,7 @@ describe('sanitizeAvatarUrl — edge cases', () => {
 	});
 
 	it('handles array input', () => {
-		expect(sanitizeAvatarUrl([] as any)).toBeUndefined();
+		expect(sanitizeAvatarUrl([] as unknown as string)).toBeUndefined();
 	});
 });
 
@@ -521,7 +527,7 @@ describe('sanitizeSlideIndex — edge cases', () => {
 
 	it('handles boolean values', () => {
 		// typeof true === 'boolean', not 'number'
-		expect(sanitizeSlideIndex(true as any)).toBe(0);
+		expect(sanitizeSlideIndex(true as unknown as number)).toBe(0);
 	});
 
 	it('floors 0.999', () => {

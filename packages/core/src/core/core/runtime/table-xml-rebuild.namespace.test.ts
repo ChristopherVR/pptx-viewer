@@ -5,6 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import type { XmlObject } from '../../types';
 import {
 	A16_NAMESPACE,
 	ensureA16NamespaceOnSlideRoot,
@@ -17,7 +18,7 @@ const ensureArray = (value: unknown): unknown[] =>
 
 describe('rebuildTableXmlFromData — a16 namespace placement', () => {
 	it('omits xmlns:a16 from the leaf <a16:colId>', () => {
-		const tbl: any = {};
+		const tbl: XmlObject = {};
 		rebuildTableXmlFromData(
 			tbl,
 			{
@@ -36,7 +37,7 @@ describe('rebuildTableXmlFromData — a16 namespace placement', () => {
 
 describe('ensureA16NamespaceOnSlideRoot', () => {
 	it('declares xmlns:a16, xmlns:mc, and adds a16 to mc:Ignorable on a fresh slide root', () => {
-		const slideRoot: any = {};
+		const slideRoot: XmlObject = {};
 		ensureA16NamespaceOnSlideRoot(slideRoot);
 		expect(slideRoot['@_xmlns:a16']).toBe(A16_NAMESPACE);
 		expect(slideRoot['@_xmlns:mc']).toBe(
@@ -46,13 +47,13 @@ describe('ensureA16NamespaceOnSlideRoot', () => {
 	});
 
 	it('appends a16 to an existing mc:Ignorable list', () => {
-		const slideRoot: any = { '@_mc:Ignorable': 'p14 p15' };
+		const slideRoot: XmlObject = { '@_mc:Ignorable': 'p14 p15' };
 		ensureA16NamespaceOnSlideRoot(slideRoot);
 		expect(slideRoot['@_mc:Ignorable']).toBe('p14 p15 a16');
 	});
 
 	it('is idempotent', () => {
-		const slideRoot: any = { '@_mc:Ignorable': 'a16' };
+		const slideRoot: XmlObject = { '@_mc:Ignorable': 'a16' };
 		ensureA16NamespaceOnSlideRoot(slideRoot);
 		ensureA16NamespaceOnSlideRoot(slideRoot);
 		expect(slideRoot['@_mc:Ignorable']).toBe('a16');

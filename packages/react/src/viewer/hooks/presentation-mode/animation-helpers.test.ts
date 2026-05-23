@@ -36,7 +36,7 @@ describe('applyAnimationGroupSteps', () => {
 			setTimeout: globalThis.setTimeout,
 			clearTimeout: globalThis.clearTimeout,
 		});
-		setPresentationElementStates = vi.fn<(...args: any[]) => any>((updater) => {
+		setPresentationElementStates = vi.fn((updater) => {
 			// Execute the updater to test its logic
 			if (typeof updater === 'function') {
 				updater(new Map());
@@ -105,7 +105,7 @@ describe('applyAnimationGroupSteps', () => {
 
 	it('should set visible=true for entrance animations', () => {
 		let capturedState: Map<string, { visible: boolean; cssAnimation?: string }> | undefined;
-		const stateSetter = vi.fn<(...args: any[]) => any>((updater: unknown) => {
+		const stateSetter = vi.fn((updater: unknown) => {
 			if (typeof updater === 'function') {
 				capturedState = (
 					updater as (
@@ -127,7 +127,7 @@ describe('applyAnimationGroupSteps', () => {
 
 	it('should keep current visibility for exit animations initially', () => {
 		let capturedState: Map<string, { visible: boolean; cssAnimation?: string }> | undefined;
-		const stateSetter = vi.fn<(...args: any[]) => any>((updater: unknown) => {
+		const stateSetter = vi.fn((updater: unknown) => {
 			if (typeof updater === 'function') {
 				const prev = new Map<string, { visible: boolean; cssAnimation?: string }>();
 				prev.set('el-1', { visible: true, cssAnimation: undefined });
@@ -156,7 +156,7 @@ describe('applyAnimationGroupSteps', () => {
 
 	it('should clear CSS animation and set visible=false for exit after timer fires', () => {
 		let capturedCleanupState: Map<string, { visible: boolean; cssAnimation?: string }> | undefined;
-		const stateSetter = vi.fn<(...args: any[]) => any>((updater: unknown) => {
+		const stateSetter = vi.fn((updater: unknown) => {
 			if (typeof updater === 'function') {
 				const prev = new Map<string, { visible: boolean; cssAnimation?: string }>();
 				prev.set('el-1', { visible: true, cssAnimation: 'fadeOut 0.5s ease' });

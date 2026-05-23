@@ -1,4 +1,5 @@
 import { PptxComment, PptxCommentAuthor, XmlObject } from '../../types';
+import { xmlChild } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeThemeProcessing';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -22,7 +23,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 
 			const relsData = this.parser.parse(relsXml) as XmlObject;
-			const rels = this.ensureArray(relsData?.Relationships?.Relationship) as XmlObject[];
+			const rels = this.ensureArray(
+				xmlChild(relsData, 'Relationships')?.Relationship,
+			) as XmlObject[];
 
 			// Modern comment relationship types
 			const modernCommentRels = rels.filter((rel) => {
@@ -75,7 +78,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					const txBodyKey = Object.keys(cm || {}).find((k) => k.endsWith('txBody'));
 					let text = '';
 					if (txBodyKey) {
-						const paragraphs = this.ensureArray(cm[txBodyKey]?.['a:p']);
+						const paragraphs = this.ensureArray(xmlChild(cm, txBodyKey)?.['a:p']);
 						const lines: string[] = [];
 						for (const p of paragraphs) {
 							const runs = this.ensureArray(p?.['a:r']);
@@ -151,7 +154,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		try {
 			const relsData = this.parser.parse(relsXml) as XmlObject;
-			const rels = this.ensureArray(relsData?.Relationships?.Relationship) as XmlObject[];
+			const rels = this.ensureArray(
+				xmlChild(relsData, 'Relationships')?.Relationship,
+			) as XmlObject[];
 			const commentRelation = rels.find((relation) => {
 				const relationType = String(relation?.['@_Type'] || '').toLowerCase();
 				return relationType.endsWith('/comments');

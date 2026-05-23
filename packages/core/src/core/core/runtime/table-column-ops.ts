@@ -165,12 +165,7 @@ export function addTableColumn(
 				for (let c = 0; c < clampedIndex && c < xmlCells.length; c++) {
 					const xmlCell = xmlCells[c];
 					const gs = parseInt(String(xmlCell['@_gridSpan'] || '0'), 10);
-					if (
-						gs > 1 &&
-						c + gs > clampedIndex &&
-						xmlCell['@_hMerge'] !== '1' &&
-						xmlCell['@_hMerge'] !== true
-					) {
+					if (gs > 1 && c + gs > clampedIndex && xmlCell['@_hMerge'] !== '1') {
 						insideMerge = true;
 						// Increment gridSpan
 						xmlCell['@_gridSpan'] = String(gs + 1);
@@ -190,16 +185,11 @@ export function addTableColumn(
 					if (clampedIndex < aboveCells.length) {
 						const aboveXmlCell = aboveCells[clampedIndex];
 						const rs = parseInt(String(aboveXmlCell['@_rowSpan'] || '0'), 10);
-						if (
-							rs > 1 &&
-							r + rs > ri &&
-							aboveXmlCell['@_vMerge'] !== '1' &&
-							aboveXmlCell['@_vMerge'] !== true
-						) {
+						if (rs > 1 && r + rs > ri && aboveXmlCell['@_vMerge'] !== '1') {
 							newXmlCell['@_vMerge'] = '1';
 							break;
 						}
-						if (aboveXmlCell['@_vMerge'] === '1' || aboveXmlCell['@_vMerge'] === true) {
+						if (aboveXmlCell['@_vMerge'] === '1') {
 							// Continue walking up
 							continue;
 						}
@@ -335,11 +325,11 @@ export function removeTableColumn(
 				if (index < xmlCells.length) {
 					const xmlCell = xmlCells[index];
 
-					if (xmlCell['@_hMerge'] === '1' || xmlCell['@_hMerge'] === true) {
+					if (xmlCell['@_hMerge'] === '1') {
 						// Find anchor and decrement gridSpan
 						for (let c = index - 1; c >= 0; c--) {
 							const leftXmlCell = xmlCells[c];
-							if (leftXmlCell['@_hMerge'] !== '1' && leftXmlCell['@_hMerge'] !== true) {
+							if (leftXmlCell['@_hMerge'] !== '1') {
 								const gs = parseInt(String(leftXmlCell['@_gridSpan'] || '0'), 10);
 								if (gs > 2) {
 									leftXmlCell['@_gridSpan'] = String(gs - 1);

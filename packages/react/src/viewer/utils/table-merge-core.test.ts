@@ -167,13 +167,13 @@ describe('canSplitCell', () => {
 
 	it('should return true for a cell with gridSpan > 1', () => {
 		const table = makeTable(3, 3);
-		(table.rows[0].cells[0] as any).gridSpan = 2;
+		table.rows[0].cells[0].gridSpan = 2;
 		expect(canSplitCell(0, 0, table)).toBeTruthy();
 	});
 
 	it('should return true for a cell with rowSpan > 1', () => {
 		const table = makeTable(3, 3);
-		(table.rows[0].cells[0] as any).rowSpan = 3;
+		table.rows[0].cells[0].rowSpan = 3;
 		expect(canSplitCell(0, 0, table)).toBeTruthy();
 	});
 
@@ -184,8 +184,8 @@ describe('canSplitCell', () => {
 
 	it('should return false for cell with gridSpan and rowSpan both 1', () => {
 		const table = makeTable(3, 3);
-		(table.rows[0].cells[0] as any).gridSpan = 1;
-		(table.rows[0].cells[0] as any).rowSpan = 1;
+		table.rows[0].cells[0].gridSpan = 1;
+		table.rows[0].cells[0].rowSpan = 1;
 		expect(canSplitCell(0, 0, table)).toBeFalsy();
 	});
 });
@@ -269,12 +269,12 @@ describe('mergeCells', () => {
 describe('splitCell', () => {
 	it('should remove gridSpan and rowSpan from anchor cell', () => {
 		const table = makeTable(2, 3);
-		(table.rows[0].cells[0] as any).gridSpan = 2;
-		(table.rows[0].cells[0] as any).rowSpan = 2;
-		(table.rows[0].cells[1] as any).hMerge = true;
-		(table.rows[1].cells[0] as any).vMerge = true;
-		(table.rows[1].cells[1] as any).hMerge = true;
-		(table.rows[1].cells[1] as any).vMerge = true;
+		table.rows[0].cells[0].gridSpan = 2;
+		table.rows[0].cells[0].rowSpan = 2;
+		table.rows[0].cells[1].hMerge = true;
+		table.rows[1].cells[0].vMerge = true;
+		table.rows[1].cells[1].hMerge = true;
+		table.rows[1].cells[1].vMerge = true;
 
 		const result = splitCell(0, 0, table);
 		expect(result.rows[0].cells[0].gridSpan).toBeUndefined();
@@ -283,8 +283,8 @@ describe('splitCell', () => {
 
 	it('should clear hMerge/vMerge on continuation cells', () => {
 		const table = makeTable(2, 2);
-		(table.rows[0].cells[0] as any).gridSpan = 2;
-		(table.rows[0].cells[1] as any).hMerge = true;
+		table.rows[0].cells[0].gridSpan = 2;
+		table.rows[0].cells[1].hMerge = true;
 
 		const result = splitCell(0, 0, table);
 		expect(result.rows[0].cells[1].hMerge).toBeUndefined();
@@ -304,8 +304,8 @@ describe('splitCell', () => {
 
 	it('should not affect cells outside the merge region', () => {
 		const table = makeTable(2, 3);
-		(table.rows[0].cells[0] as any).gridSpan = 2;
-		(table.rows[0].cells[1] as any).hMerge = true;
+		table.rows[0].cells[0].gridSpan = 2;
+		table.rows[0].cells[1].hMerge = true;
 		table.rows[0].cells[2].text = 'untouched';
 
 		const result = splitCell(0, 0, table);

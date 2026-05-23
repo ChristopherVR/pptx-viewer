@@ -10,7 +10,9 @@ import { PptxGradientStyleCodec } from './PptxGradientStyleCodec';
 const codec = new PptxGradientStyleCodec({
 	ensureArray: (v) => (Array.isArray(v) ? v : v === undefined ? [] : [v]),
 	parseColor: (n) =>
-		(n as any)?.['a:srgbClr']?.['@_val'] ? `#${(n as any)['a:srgbClr']['@_val']}` : undefined,
+		(n as XmlObject | undefined)?.['a:srgbClr'] !== undefined
+			? `#${((n as XmlObject)['a:srgbClr'] as XmlObject)['@_val'] as string}`
+			: undefined,
 	extractColorOpacity: () => undefined,
 	clampUnitInterval: (v) => Math.max(0, Math.min(1, v)),
 	hexToRgb: () => undefined,
@@ -51,7 +53,7 @@ describe('pptxGradientStyleCodec — flip / rotWithShape / scaled', () => {
 		const xml = codec.buildGradientFillXml(style)!;
 		expect(xml['@_flip']).toBe('xy');
 		expect(xml['@_rotWithShape']).toBe('0');
-		expect((xml['a:lin'] as any)['@_scaled']).toBe('0');
+		expect((xml['a:lin'] as XmlObject)['@_scaled']).toBe('0');
 	});
 
 	it('omits @flip when value is "none" (default)', () => {
@@ -70,6 +72,6 @@ describe('pptxGradientStyleCodec — flip / rotWithShape / scaled', () => {
 			fillGradientType: 'linear',
 		};
 		const xml = codec.buildGradientFillXml(style)!;
-		expect((xml['a:lin'] as any)['@_scaled']).toBe('1');
+		expect((xml['a:lin'] as XmlObject)['@_scaled']).toBe('1');
 	});
 });

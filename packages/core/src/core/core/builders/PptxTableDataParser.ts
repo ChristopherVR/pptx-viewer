@@ -42,7 +42,7 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 			}
 
 			const gridColumns = this.context.ensureArray(
-				tableNode['a:tblGrid']?.['a:gridCol'],
+				(tableNode['a:tblGrid'] as XmlObject | undefined)?.['a:gridCol'],
 			) as XmlObject[];
 			const totalWidthEmu = gridColumns.reduce((sum, column) => {
 				const width = parseInt(String(column?.['@_w'] || '0'), 10) || 0;
@@ -80,8 +80,8 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 							rowSpan: cellNode['@_rowSpan']
 								? parseInt(String(cellNode['@_rowSpan']), 10)
 								: undefined,
-							vMerge: cellNode['@_vMerge'] === '1' || cellNode['@_vMerge'] === true,
-							hMerge: cellNode['@_hMerge'] === '1' || cellNode['@_hMerge'] === true,
+							vMerge: cellNode['@_vMerge'] === '1',
+							hMerge: cellNode['@_hMerge'] === '1',
 							...(extraAttributes ? { extraAttributes } : {}),
 						};
 					}),
@@ -93,19 +93,17 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 			// inputs may also expose them as @_bandRowCycle / @_bandColCycle.
 			const bandRowCycle = this.extractBandCycle(tableProperties, 'bandRowCycle');
 			const bandColCycle = this.extractBandCycle(tableProperties, 'bandColCycle');
-			const rtl = tableProperties['@_rtl'] === '1' || tableProperties['@_rtl'] === true;
+			const rtl = tableProperties['@_rtl'] === '1';
 
 			return {
 				rows,
 				columnWidths,
-				bandedRows: tableProperties['@_bandRow'] === '1' || tableProperties['@_bandRow'] === true,
-				firstRowHeader:
-					tableProperties['@_firstRow'] === '1' || tableProperties['@_firstRow'] === true,
-				bandedColumns:
-					tableProperties['@_bandCol'] === '1' || tableProperties['@_bandCol'] === true,
-				lastRow: tableProperties['@_lastRow'] === '1' || tableProperties['@_lastRow'] === true,
-				firstCol: tableProperties['@_firstCol'] === '1' || tableProperties['@_firstCol'] === true,
-				lastCol: tableProperties['@_lastCol'] === '1' || tableProperties['@_lastCol'] === true,
+				bandedRows: tableProperties['@_bandRow'] === '1',
+				firstRowHeader: tableProperties['@_firstRow'] === '1',
+				bandedColumns: tableProperties['@_bandCol'] === '1',
+				lastRow: tableProperties['@_lastRow'] === '1',
+				firstCol: tableProperties['@_firstCol'] === '1',
+				lastCol: tableProperties['@_lastCol'] === '1',
 				tableStyleId,
 				bandRowCycle: bandRowCycle ?? 1,
 				bandColCycle: bandColCycle ?? 1,
@@ -202,7 +200,9 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 	}
 
 	private extractTableCellText(tableCell: XmlObject): string {
-		const paragraphs = this.context.ensureArray(tableCell?.['a:txBody']?.['a:p']) as XmlObject[];
+		const paragraphs = this.context.ensureArray(
+			(tableCell?.['a:txBody'] as XmlObject | undefined)?.['a:p'],
+		) as XmlObject[];
 		const lines: string[] = [];
 
 		for (const paragraph of paragraphs) {

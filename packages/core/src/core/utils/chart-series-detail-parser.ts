@@ -147,7 +147,7 @@ export function parseSeriesDataPoints(
 			}
 
 			const invertNode = xmlLookup.getChildByLocalName(node, 'invertIfNegative');
-			if (invertNode?.['@_val'] === '1' || invertNode?.['@_val'] === true) {
+			if (invertNode?.['@_val'] === '1') {
 				result.invertIfNegative = true;
 			}
 
@@ -196,9 +196,9 @@ export function parseSeriesDataLabels(
 
 			for (const [xmlName, propName] of boolFields) {
 				const child = xmlLookup.getChildByLocalName(node, xmlName);
-				if (child?.['@_val'] === '1' || child?.['@_val'] === true) {
+				if (child?.['@_val'] === '1') {
 					result[propName] = true;
-				} else if (child?.['@_val'] === '0' || child?.['@_val'] === false) {
+				} else if (child?.['@_val'] === '0') {
 					result[propName] = false;
 				}
 			}

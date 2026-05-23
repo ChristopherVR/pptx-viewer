@@ -329,7 +329,7 @@ describe('buildTimeline', () => {
 	it('separates onHover animations into hover sequences', () => {
 		const result = buildTimeline([
 			makeAnim({ targetId: 'el1', trigger: 'onClick' }),
-			makeAnim({ targetId: 'el2', trigger: 'onHover' as any }),
+			makeAnim({ targetId: 'el2', trigger: 'onHover' }),
 		]);
 		// el1 in click-groups, el2 in hover sequences
 		expect(result.clickGroups).toHaveLength(1);

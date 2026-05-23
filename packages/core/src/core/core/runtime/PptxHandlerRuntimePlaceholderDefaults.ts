@@ -8,7 +8,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 */
 	protected extractPlaceholderDefaultsFromShape(shape: XmlObject): PlaceholderDefaults | null {
 		const nvSpPr = shape['p:nvSpPr'] as XmlObject | undefined;
-		const phNode = nvSpPr?.['p:nvPr']?.['p:ph'] as XmlObject | undefined;
+		const phNode = (nvSpPr?.['p:nvPr'] as XmlObject | undefined)?.['p:ph'] as XmlObject | undefined;
 		if (!phNode) {
 			return null;
 		}

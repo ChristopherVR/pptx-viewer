@@ -169,7 +169,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (el.textStyle.autoFitMode === 'shrink') {
 				bodyPr['a:spAutoFit'] = {};
 			} else if (el.textStyle.autoFitMode === 'normal') {
-				const normNode: Record<string, unknown> = {};
+				const normNode: XmlObject = {};
 				if (el.textStyle.autoFitFontScale !== undefined && el.textStyle.autoFitFontScale < 1) {
 					normNode['@_fontScale'] = String(Math.round(el.textStyle.autoFitFontScale * 100000));
 				}
@@ -189,7 +189,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// Legacy path — keep backward compat
 			if (!bodyPr['a:spAutoFit'] && !bodyPr['a:normAutofit']) {
 				if (el.textStyle.autoFitFontScale !== undefined && el.textStyle.autoFitFontScale < 1) {
-					const normNode: Record<string, unknown> = {
+					const normNode: XmlObject = {
 						'@_fontScale': String(Math.round(el.textStyle.autoFitFontScale * 100000)),
 					};
 					if (
@@ -206,7 +206,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 			}
 			if (bodyPr['a:normAutofit'] && el.textStyle.autoFitFontScale !== undefined) {
-				(bodyPr['a:normAutofit'] as Record<string, unknown>)['@_fontScale'] = String(
+				(bodyPr['a:normAutofit'] as XmlObject)['@_fontScale'] = String(
 					Math.round(el.textStyle.autoFitFontScale * 100000),
 				);
 			}
@@ -258,7 +258,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (t3d && Object.keys(t3d).length > 0) {
 			const sp3dXml: XmlObject = {};
 			if (t3d.extrusionHeight) {
-				sp3dXml['@_extrusionH'] = t3d.extrusionHeight;
+				sp3dXml['@_extrusionH'] = String(t3d.extrusionHeight);
 			}
 			if (t3d.presetMaterial) {
 				sp3dXml['@_prstMaterial'] = t3d.presetMaterial;
@@ -266,20 +266,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (t3d.bevelTopType && t3d.bevelTopType !== 'none') {
 				const bvt: XmlObject = { '@_prst': t3d.bevelTopType };
 				if (t3d.bevelTopWidth) {
-					bvt['@_w'] = t3d.bevelTopWidth;
+					bvt['@_w'] = String(t3d.bevelTopWidth);
 				}
 				if (t3d.bevelTopHeight) {
-					bvt['@_h'] = t3d.bevelTopHeight;
+					bvt['@_h'] = String(t3d.bevelTopHeight);
 				}
 				sp3dXml['a:bevelT'] = bvt;
 			}
 			if (t3d.bevelBottomType && t3d.bevelBottomType !== 'none') {
 				const bvb: XmlObject = { '@_prst': t3d.bevelBottomType };
 				if (t3d.bevelBottomWidth) {
-					bvb['@_w'] = t3d.bevelBottomWidth;
+					bvb['@_w'] = String(t3d.bevelBottomWidth);
 				}
 				if (t3d.bevelBottomHeight) {
-					bvb['@_h'] = t3d.bevelBottomHeight;
+					bvb['@_h'] = String(t3d.bevelBottomHeight);
 				}
 				sp3dXml['a:bevelB'] = bvb;
 			}

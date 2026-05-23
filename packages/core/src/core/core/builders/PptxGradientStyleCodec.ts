@@ -1,4 +1,5 @@
 import type { ShapeStyle, XmlObject } from '../../types';
+import { xmlChild } from '../../utils/xml-access';
 
 export interface PptxGradientStyleCodecContext {
 	ensureArray: (value: unknown) => unknown[];
@@ -41,7 +42,9 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 	}
 
 	public extractGradientOpacity(gradFill: XmlObject): number | undefined {
-		const gradientStops = this.context.ensureArray(gradFill?.['a:gsLst']?.['a:gs']) as XmlObject[];
+		const gradientStops = this.context.ensureArray(
+			xmlChild(gradFill, 'a:gsLst')?.['a:gs'],
+		) as XmlObject[];
 		if (gradientStops.length === 0) {
 			return undefined;
 		}
@@ -58,7 +61,9 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 	}
 
 	public extractGradientStops(gradFill: XmlObject): NonNullable<ShapeStyle['fillGradientStops']> {
-		const gradientStops = this.context.ensureArray(gradFill?.['a:gsLst']?.['a:gs']) as XmlObject[];
+		const gradientStops = this.context.ensureArray(
+			xmlChild(gradFill, 'a:gsLst')?.['a:gs'],
+		) as XmlObject[];
 		if (gradientStops.length === 0) {
 			return [];
 		}
@@ -432,7 +437,9 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 	}
 
 	private extractStopsSorted(gradFill: XmlObject): XmlObject[] {
-		const gradientStops = this.context.ensureArray(gradFill?.['a:gsLst']?.['a:gs']) as XmlObject[];
+		const gradientStops = this.context.ensureArray(
+			xmlChild(gradFill, 'a:gsLst')?.['a:gs'],
+		) as XmlObject[];
 		if (gradientStops.length === 0) {
 			return [];
 		}

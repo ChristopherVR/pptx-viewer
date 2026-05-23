@@ -11,38 +11,15 @@
  * @module collaboration/useYjsProvider
  */
 import { useEffect, useRef, useState, useCallback } from 'react';
+import type { Awareness } from 'y-protocols/awareness';
+import type { WebsocketProvider } from 'y-websocket';
+import type { Doc as YDoc } from 'yjs';
 
 import { validateRoomId } from './sanitize';
 import type { CollaborationConfig, ConnectionStatus } from './types';
 
-// ---------------------------------------------------------------------------
-// Yjs type stubs (lazy-loaded to avoid bundling when unused)
-// ---------------------------------------------------------------------------
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
-interface YDoc {
-	destroy: () => void;
-	getMap: (name: string) => any;
-	getArray: (name: string) => any;
-}
-
-interface Awareness {
-	setLocalStateField: (field: string, value: any) => void;
-	getLocalState: () => any;
-	getStates: () => Map<number, any>;
-	on: (event: string, cb: (...args: any[]) => void) => void;
-	off: (event: string, cb: (...args: any[]) => void) => void;
-	clientID: number;
-}
-
-interface YWebSocketProvider {
-	awareness: Awareness;
-	wsconnected: boolean;
-	destroy: () => void;
-	on: (event: string, cb: (...args: any[]) => void) => void;
-	off: (event: string, cb: (...args: any[]) => void) => void;
-}
-/* eslint-enable @typescript-eslint/no-explicit-any */
+// Re-export the upstream type aliases for downstream consumers.
+export type { YDoc, Awareness };
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -119,15 +96,10 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 			// Dynamic imports — zero bundle cost when unused
 			const [Y, { WebsocketProvider }] = await Promise.all([import('yjs'), import('y-websocket')]);
 
-			const yDoc = new Y.Doc() as unknown as YDoc;
-			const provider = new WebsocketProvider(
-				config.serverUrl,
-				roomId,
-				yDoc as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-				{
-					params: config.authToken ? { token: config.authToken } : undefined,
-				},
-			) as unknown as YWebSocketProvider;
+			const yDoc: YDoc = new Y.Doc();
+			const provider: WebsocketProvider = new WebsocketProvider(config.serverUrl, roomId, yDoc, {
+				params: config.authToken ? { token: config.authToken } : undefined,
+			});
 
 			let connected = false;
 

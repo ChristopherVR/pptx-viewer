@@ -40,8 +40,7 @@ function parseEmuInt(value: unknown): number {
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected async parseGroupShape(
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		group: any,
+		group: XmlObject,
 		baseId: string,
 		slidePath: string,
 		rawXmlStr?: string,
@@ -61,8 +60,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return [];
 		}
 
-		const grpSpPr = group['p:grpSpPr'];
-		const xfrm = grpSpPr?.['a:xfrm'];
+		const grpSpPr = group['p:grpSpPr'] as XmlObject | undefined;
+		const xfrm = grpSpPr?.['a:xfrm'] as XmlObject | undefined;
 
 		let parentX = 0,
 			parentY = 0,
@@ -74,21 +73,25 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			chH = 0;
 
 		if (xfrm) {
-			if (xfrm['a:off']) {
-				parentX = Math.round(parseEmuInt(xfrm['a:off']['@_x']) / PptxHandlerRuntime.EMU_PER_PX);
-				parentY = Math.round(parseEmuInt(xfrm['a:off']['@_y']) / PptxHandlerRuntime.EMU_PER_PX);
+			const off = xfrm['a:off'] as XmlObject | undefined;
+			if (off) {
+				parentX = Math.round(parseEmuInt(off['@_x']) / PptxHandlerRuntime.EMU_PER_PX);
+				parentY = Math.round(parseEmuInt(off['@_y']) / PptxHandlerRuntime.EMU_PER_PX);
 			}
-			if (xfrm['a:ext']) {
-				parentW = Math.round(parseEmuInt(xfrm['a:ext']['@_cx']) / PptxHandlerRuntime.EMU_PER_PX);
-				parentH = Math.round(parseEmuInt(xfrm['a:ext']['@_cy']) / PptxHandlerRuntime.EMU_PER_PX);
+			const ext = xfrm['a:ext'] as XmlObject | undefined;
+			if (ext) {
+				parentW = Math.round(parseEmuInt(ext['@_cx']) / PptxHandlerRuntime.EMU_PER_PX);
+				parentH = Math.round(parseEmuInt(ext['@_cy']) / PptxHandlerRuntime.EMU_PER_PX);
 			}
-			if (xfrm['a:chOff']) {
-				chX = Math.round(parseEmuInt(xfrm['a:chOff']['@_x']) / PptxHandlerRuntime.EMU_PER_PX);
-				chY = Math.round(parseEmuInt(xfrm['a:chOff']['@_y']) / PptxHandlerRuntime.EMU_PER_PX);
+			const chOff = xfrm['a:chOff'] as XmlObject | undefined;
+			if (chOff) {
+				chX = Math.round(parseEmuInt(chOff['@_x']) / PptxHandlerRuntime.EMU_PER_PX);
+				chY = Math.round(parseEmuInt(chOff['@_y']) / PptxHandlerRuntime.EMU_PER_PX);
 			}
-			if (xfrm['a:chExt']) {
-				chW = Math.round(parseEmuInt(xfrm['a:chExt']['@_cx']) / PptxHandlerRuntime.EMU_PER_PX);
-				chH = Math.round(parseEmuInt(xfrm['a:chExt']['@_cy']) / PptxHandlerRuntime.EMU_PER_PX);
+			const chExt = xfrm['a:chExt'] as XmlObject | undefined;
+			if (chExt) {
+				chW = Math.round(parseEmuInt(chExt['@_cx']) / PptxHandlerRuntime.EMU_PER_PX);
+				chH = Math.round(parseEmuInt(chExt['@_cy']) / PptxHandlerRuntime.EMU_PER_PX);
 			}
 		}
 
@@ -170,14 +173,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * Children have coordinates relative to the group's position.
 	 */
 	protected override async parseGroupShapeAsGroup(
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		group: any,
+		group: XmlObject,
 		baseId: string,
 		slidePath: string,
 		rawXmlStr?: string,
 	): Promise<PptxElement | null> {
-		const grpSpPr = group['p:grpSpPr'];
-		const xfrm = grpSpPr?.['a:xfrm'];
+		const grpSpPr = group['p:grpSpPr'] as XmlObject | undefined;
+		const xfrm = grpSpPr?.['a:xfrm'] as XmlObject | undefined;
 
 		let parentX = 0,
 			parentY = 0,
@@ -185,13 +187,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			parentH = 0;
 
 		if (xfrm) {
-			if (xfrm['a:off']) {
-				parentX = Math.round(parseEmuInt(xfrm['a:off']['@_x']) / PptxHandlerRuntime.EMU_PER_PX);
-				parentY = Math.round(parseEmuInt(xfrm['a:off']['@_y']) / PptxHandlerRuntime.EMU_PER_PX);
+			const off = xfrm['a:off'] as XmlObject | undefined;
+			if (off) {
+				parentX = Math.round(parseEmuInt(off['@_x']) / PptxHandlerRuntime.EMU_PER_PX);
+				parentY = Math.round(parseEmuInt(off['@_y']) / PptxHandlerRuntime.EMU_PER_PX);
 			}
-			if (xfrm['a:ext']) {
-				parentW = Math.round(parseEmuInt(xfrm['a:ext']['@_cx']) / PptxHandlerRuntime.EMU_PER_PX);
-				parentH = Math.round(parseEmuInt(xfrm['a:ext']['@_cy']) / PptxHandlerRuntime.EMU_PER_PX);
+			const ext = xfrm['a:ext'] as XmlObject | undefined;
+			if (ext) {
+				parentW = Math.round(parseEmuInt(ext['@_cx']) / PptxHandlerRuntime.EMU_PER_PX);
+				parentH = Math.round(parseEmuInt(ext['@_cy']) / PptxHandlerRuntime.EMU_PER_PX);
 			}
 		}
 
@@ -231,7 +235,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			child.y -= parentY;
 		}
 
-		const grpCNvPr = group?.['p:nvGrpSpPr']?.['p:cNvPr'] as XmlObject | undefined;
+		const grpCNvPr = (group?.['p:nvGrpSpPr'] as XmlObject | undefined)?.['p:cNvPr'] as
+			| XmlObject
+			| undefined;
 		const grpSlideRels = this.slideRelsMap.get(slidePath);
 		const { actionClick: grpActionClick, actionHover: grpActionHover } = this.parseElementActions(
 			grpCNvPr,

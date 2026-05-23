@@ -9,7 +9,7 @@ import type { SetPixelFn } from './emf-dib-rle-decoder';
 
 beforeAll(() => {
 	if (typeof globalThis.ImageData === 'undefined') {
-		(globalThis as any).ImageData = class ImageData {
+		(globalThis as { ImageData?: unknown }).ImageData = class ImageData {
 			data: Uint8ClampedArray;
 			width: number;
 			height: number;

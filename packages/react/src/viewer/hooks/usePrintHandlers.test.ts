@@ -113,8 +113,9 @@ function buildOutlineHtml(slideIndices: number[], slides: PptxSlide[]): string {
 			if (!slide) {
 				return '';
 			}
-			const title = slide.elements?.find((el) => 'text' in el && (el as any).text);
-			const titleText = title && 'text' in title ? String((title as any).text) : `Slide ${idx + 1}`;
+			const title = slide.elements?.find((el) => 'text' in el && (el as { text?: unknown }).text);
+			const titleText =
+				title && 'text' in title ? String((title as { text?: unknown }).text) : `Slide ${idx + 1}`;
 			const notes = slide.notes?.trim() || '';
 			return `<h2>${escapeHtml(titleText)}</h2>${notes ? `<p>${escapeHtml(notes)}</p>` : ''}`;
 		})
@@ -135,7 +136,7 @@ function makeSlideWithText(id: string, text: string, notes?: string): PptxSlide 
 				width: 100,
 				height: 50,
 				text,
-			} as any,
+			} as unknown as PptxSlide['elements'][number],
 		],
 		notes,
 	} as PptxSlide;

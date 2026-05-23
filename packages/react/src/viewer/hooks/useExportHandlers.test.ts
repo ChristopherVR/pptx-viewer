@@ -164,7 +164,9 @@ describe('exportHandlersResult shape', () => {
 		};
 
 		// Verify handler count
-		const handlers = Object.keys(result).filter((k) => typeof (result as any)[k] === 'function');
+		const handlers = Object.keys(result).filter(
+			(k) => typeof (result as Record<string, unknown>)[k] === 'function',
+		);
 		expect(handlers).toHaveLength(11);
 	});
 

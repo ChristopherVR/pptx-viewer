@@ -39,7 +39,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						continue;
 					}
 
-					const extsArray = Array.isArray(rawExts) ? rawExts : [rawExts];
+					const extsArray = (Array.isArray(rawExts) ? rawExts : [rawExts]).filter(
+						(ext): ext is XmlObject => typeof ext === 'object' && ext !== null,
+					);
 					if (extsArray.length <= 1) {
 						continue;
 					}
@@ -184,11 +186,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return undefined;
 			}
 			const masterXml = this.masterXmlMap.get(masterPath);
-			return masterXml?.['p:sldMaster']?.['p:cSld']?.['p:spTree'] as XmlObject | undefined;
+			return (
+				(masterXml?.['p:sldMaster'] as XmlObject | undefined)?.['p:cSld'] as XmlObject | undefined
+			)?.['p:spTree'] as XmlObject | undefined;
 		}
 
 		const layoutXml = this.layoutXmlMap.get(layoutPath);
-		return layoutXml?.['p:sldLayout']?.['p:cSld']?.['p:spTree'] as XmlObject | undefined;
+		return (
+			(layoutXml?.['p:sldLayout'] as XmlObject | undefined)?.['p:cSld'] as XmlObject | undefined
+		)?.['p:spTree'] as XmlObject | undefined;
 	}
 
 	protected isSameShapeIdentity(key: string, left: XmlObject, right: XmlObject): boolean {

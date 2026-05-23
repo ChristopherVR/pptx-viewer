@@ -438,7 +438,9 @@ describe('shareDialog — session details', () => {
 		// 'error' status means isActive is false, so it shows the start form.
 		// But if we set status to anything truthy that isn't 'disconnected' or 'error'...
 		// Actually 'error' makes isActive false, so we verify the form is shown.
-		mockCollabValue = createConnectedCollab({ status: 'error' as any });
+		mockCollabValue = createConnectedCollab({
+			status: 'error' as unknown as CollaborationContextValue['status'],
+		});
 		const html = render(React.createElement(ShareDialog, createProps()));
 		// Should show the start form since error means not active
 		expect(html).toContain('Share Presentation');

@@ -1,4 +1,4 @@
-import type { PptxElement, ParsedTableStyleMap } from 'pptx-viewer-core';
+import type { PptxElement, ParsedTableStyleMap, PptxTheme } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
 import { getTableCellBandStyle } from './table-band-style';
@@ -195,7 +195,7 @@ describe('getTableCellBandStyle', () => {
 		});
 		const style = getTableCellBandStyle(el, 0, 0, 3, 3, {
 			tableStyleMap: tableStyleMap as unknown as ParsedTableStyleMap,
-			theme: theme as any,
+			theme: theme as unknown as PptxTheme,
 		});
 		expect(style).toBeDefined();
 		expect(style!.backgroundColor).toBe('#4472C4');
@@ -214,7 +214,7 @@ describe('getTableCellBandStyle', () => {
 		});
 		const style = getTableCellBandStyle(el, 0, 0, 3, 3, {
 			tableStyleMap: tableStyleMap as unknown as ParsedTableStyleMap,
-			theme: theme as any,
+			theme: theme as unknown as PptxTheme,
 		});
 		expect(style).toBeDefined();
 		expect(style!.backgroundColor).toBeDefined();

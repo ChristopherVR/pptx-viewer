@@ -155,7 +155,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 				// Resolve the 3D model binary from relationship
 				const modelRId = String(
-					model3d['p16:model3Drel']?.['@_r:id'] ?? model3d['@_r:embed'] ?? '',
+					(model3d['p16:model3Drel'] as XmlObject | undefined)?.['@_r:id'] ??
+						model3d['@_r:embed'] ??
+						'',
 				).trim();
 				if (modelRId && relsMap) {
 					const modelTarget = relsMap.get(modelRId);

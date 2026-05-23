@@ -8,7 +8,7 @@ import { TextElementProcessor } from './TextElementProcessor';
 
 // Mock the ShapeImageRenderer to avoid canvas dependency
 vi.mock<typeof import('../ShapeImageRenderer')>(import('../ShapeImageRenderer'), () => ({
-	renderShapeToDataUrl: vi.fn<(...args: any[]) => any>(() => null),
+	renderShapeToDataUrl: vi.fn(() => null),
 }));
 
 // ---------------------------------------------------------------------------
@@ -18,14 +18,12 @@ vi.mock<typeof import('../ShapeImageRenderer')>(import('../ShapeImageRenderer'),
 function makeCtx(overrides: Partial<ElementProcessorContext> = {}): ElementProcessorContext {
 	return {
 		mediaContext: {
-			saveImage: vi.fn<(...args: any[]) => any>(
-				async (_data: string, _prefix?: string) => './media/image-001.png',
-			),
+			saveImage: vi.fn(async (_data: string, _prefix?: string) => './media/image-001.png'),
 		} as unknown as MediaContext,
 		slideNumber: 1,
 		slideWidth: 960,
 		slideHeight: 540,
-		processElements: vi.fn<(...args: any[]) => any>(async () => []),
+		processElements: vi.fn(async () => []),
 		...overrides,
 	};
 }

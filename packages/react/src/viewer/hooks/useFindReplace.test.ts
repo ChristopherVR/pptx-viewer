@@ -174,7 +174,8 @@ describe('applyFindReplacements', () => {
 			length: 5,
 		};
 		const result = applyFindReplacements(slides, [match], 'earth');
-		const seg = (result[0].elements[0] as any).textSegments[0];
+		const seg = (result[0].elements[0] as { textSegments: Array<{ text: string }> })
+			.textSegments[0];
 		expect(seg.text).toBe('hello earth');
 	});
 
@@ -187,7 +188,7 @@ describe('applyFindReplacements', () => {
 			{ slideIndex: 0, elementId: 'el1', segmentIndex: 1, startOffset: 0, length: 3 },
 		];
 		const result = applyFindReplacements(slides, matches, 'qux');
-		const segs = (result[0].elements[0] as any).textSegments;
+		const segs = (result[0].elements[0] as { textSegments: Array<{ text: string }> }).textSegments;
 		expect(segs[0].text).toBe('qux bar');
 		expect(segs[1].text).toBe('qux baz');
 	});
@@ -202,7 +203,8 @@ describe('applyFindReplacements', () => {
 			length: 3,
 		};
 		const result = applyFindReplacements(slides, [match], 'longer-replacement');
-		const seg = (result[0].elements[0] as any).textSegments[0];
+		const seg = (result[0].elements[0] as { textSegments: Array<{ text: string }> })
+			.textSegments[0];
 		expect(seg.text).toBe('longer-replacement');
 	});
 
@@ -216,7 +218,8 @@ describe('applyFindReplacements', () => {
 			length: 6,
 		};
 		const result = applyFindReplacements(slides, [match], '');
-		const seg = (result[0].elements[0] as any).textSegments[0];
+		const seg = (result[0].elements[0] as { textSegments: Array<{ text: string }> })
+			.textSegments[0];
 		expect(seg.text).toBe('hello');
 	});
 
@@ -228,7 +231,8 @@ describe('applyFindReplacements', () => {
 			{ slideIndex: 0, elementId: 'el1', segmentIndex: 0, startOffset: 8, length: 3 },
 		];
 		const result = applyFindReplacements(slides, matches, 'bar');
-		const seg = (result[0].elements[0] as any).textSegments[0];
+		const seg = (result[0].elements[0] as { textSegments: Array<{ text: string }> })
+			.textSegments[0];
 		expect(seg.text).toBe('bar bar bar');
 	});
 
@@ -244,7 +248,7 @@ describe('applyFindReplacements', () => {
 			length: 5,
 		};
 		const result = applyFindReplacements(slides, [match], 'earth');
-		const el = result[0].elements[0] as any;
+		const el = result[0].elements[0] as { text: string };
 		expect(el.text).toBe('hello earth');
 	});
 
@@ -258,7 +262,8 @@ describe('applyFindReplacements', () => {
 			length: 5,
 		};
 		applyFindReplacements(slides, [match], 'bye');
-		const seg = (slides[0].elements[0] as any).textSegments[0];
+		const seg = (slides[0].elements[0] as { textSegments: Array<{ text: string }> })
+			.textSegments[0];
 		expect(seg.text).toBe('hello');
 	});
 
@@ -272,7 +277,11 @@ describe('applyFindReplacements', () => {
 			{ slideIndex: 1, elementId: 'el2', segmentIndex: 0, startOffset: 0, length: 3 },
 		];
 		const result = applyFindReplacements(slides, matches, 'dog');
-		expect((result[0].elements[0] as any).textSegments[0].text).toBe('dog');
-		expect((result[1].elements[0] as any).textSegments[0].text).toBe('dog');
+		expect(
+			(result[0].elements[0] as { textSegments: Array<{ text: string }> }).textSegments[0].text,
+		).toBe('dog');
+		expect(
+			(result[1].elements[0] as { textSegments: Array<{ text: string }> }).textSegments[0].text,
+		).toBe('dog');
 	});
 });

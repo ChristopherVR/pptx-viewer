@@ -50,12 +50,14 @@ export function applyCellTextFormat(
 ): boolean {
 	let hasStyle = false;
 
-	const firstParagraph = (context.ensureArray(tableCell?.['a:txBody']?.['a:p']) as XmlObject[])[0];
+	const firstParagraph = (
+		context.ensureArray((tableCell?.['a:txBody'] as XmlObject | undefined)?.['a:p']) as XmlObject[]
+	)[0];
 	if (!firstParagraph) {
 		return false;
 	}
 
-	const paragraphAlign = firstParagraph['a:pPr']?.['@_algn'];
+	const paragraphAlign = (firstParagraph['a:pPr'] as XmlObject | undefined)?.['@_algn'];
 	if (paragraphAlign === 'ctr') {
 		style.align = 'center';
 		hasStyle = true;
@@ -85,11 +87,11 @@ function applyRunProperties(
 ): boolean {
 	let hasStyle = false;
 
-	if (runProperties['@_b'] === '1' || runProperties['@_b'] === true) {
+	if (runProperties['@_b'] === '1') {
 		style.bold = true;
 		hasStyle = true;
 	}
-	if (runProperties['@_i'] === '1' || runProperties['@_i'] === true) {
+	if (runProperties['@_i'] === '1') {
 		style.italic = true;
 		hasStyle = true;
 	}

@@ -155,8 +155,10 @@ describe('applyFormatToElement', () => {
 		};
 		const result = applyFormatToElement(target, format);
 		// The result should have the new fill color
-		expect((result as any).shapeStyle.fillColor).toBe('#BBBBBB');
-		expect((result as any).shapeStyle.strokeWidth).toBe(5);
+		expect((result as { shapeStyle: Record<string, unknown> }).shapeStyle.fillColor).toBe(
+			'#BBBBBB',
+		);
+		expect((result as { shapeStyle: Record<string, unknown> }).shapeStyle.strokeWidth).toBe(5);
 	});
 
 	it('should apply text style to a text element', () => {
@@ -168,8 +170,8 @@ describe('applyFormatToElement', () => {
 			},
 		};
 		const result = applyFormatToElement(target, format);
-		expect((result as any).textStyle.fontSize).toBe(36);
-		expect((result as any).textStyle.bold).toBeTruthy();
+		expect((result as { textStyle: Record<string, unknown> }).textStyle.fontSize).toBe(36);
+		expect((result as { textStyle: Record<string, unknown> }).textStyle.bold).toBeTruthy();
 	});
 
 	it('should not modify the original element', () => {
@@ -179,7 +181,9 @@ describe('applyFormatToElement', () => {
 		};
 		applyFormatToElement(target, format);
 		// Original should be unchanged
-		expect((target as any).shapeStyle.fillColor).toBe('#AAAAAA');
+		expect((target as { shapeStyle: Record<string, unknown> }).shapeStyle.fillColor).toBe(
+			'#AAAAAA',
+		);
 	});
 
 	it('should return element unchanged when format has no applicable styles', () => {
@@ -212,16 +216,22 @@ describe('applyFormatToElement', () => {
 			},
 		};
 		const result = applyFormatToElement(target, format);
-		expect((result as any).shapeStyle.fillColor).toBe('#BBBBBB');
-		expect((result as any).shapeStyle.strokeColor).toBe('#111111');
-		expect((result as any).shapeStyle.strokeWidth).toBe(1);
+		expect((result as { shapeStyle: Record<string, unknown> }).shapeStyle.fillColor).toBe(
+			'#BBBBBB',
+		);
+		expect((result as { shapeStyle: Record<string, unknown> }).shapeStyle.strokeColor).toBe(
+			'#111111',
+		);
+		expect((result as { shapeStyle: Record<string, unknown> }).shapeStyle.strokeWidth).toBe(1);
 	});
 
 	it('should apply empty format without changing element', () => {
 		const target = makeShapeElement({ fillColor: '#AAAAAA' });
 		const format: CopiedFormat = {};
 		const result = applyFormatToElement(target, format);
-		expect((result as any).shapeStyle.fillColor).toBe('#AAAAAA');
+		expect((result as { shapeStyle: Record<string, unknown> }).shapeStyle.fillColor).toBe(
+			'#AAAAAA',
+		);
 	});
 
 	it('should not overwrite target fields with undefined source values', () => {
@@ -242,10 +252,14 @@ describe('applyFormatToElement', () => {
 			},
 		};
 		const result = applyFormatToElement(target, format);
-		expect((result as any).shapeStyle.fillColor).toBe('#BBBBBB');
-		expect((result as any).shapeStyle.glowColor).toBe('#FF00FF');
-		expect((result as any).shapeStyle.glowRadius).toBe(5);
-		expect((result as any).shapeStyle.glowOpacity).toBe(0.8);
+		expect((result as { shapeStyle: Record<string, unknown> }).shapeStyle.fillColor).toBe(
+			'#BBBBBB',
+		);
+		expect((result as { shapeStyle: Record<string, unknown> }).shapeStyle.glowColor).toBe(
+			'#FF00FF',
+		);
+		expect((result as { shapeStyle: Record<string, unknown> }).shapeStyle.glowRadius).toBe(5);
+		expect((result as { shapeStyle: Record<string, unknown> }).shapeStyle.glowOpacity).toBe(0.8);
 	});
 
 	it('should not overwrite target text fields with undefined source values', () => {
@@ -258,9 +272,9 @@ describe('applyFormatToElement', () => {
 			},
 		};
 		const result = applyFormatToElement(target, format);
-		expect((result as any).textStyle.fontSize).toBe(36);
-		expect((result as any).textStyle.bold).toBeTruthy();
-		expect((result as any).textStyle.italic).toBeTruthy();
+		expect((result as { textStyle: Record<string, unknown> }).textStyle.fontSize).toBe(36);
+		expect((result as { textStyle: Record<string, unknown> }).textStyle.bold).toBeTruthy();
+		expect((result as { textStyle: Record<string, unknown> }).textStyle.italic).toBeTruthy();
 	});
 });
 

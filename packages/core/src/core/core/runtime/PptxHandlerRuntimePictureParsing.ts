@@ -1,5 +1,6 @@
 import { XmlObject, PptxElement } from '../../types';
 import type { MediaPptxElement } from '../../types';
+import { xmlAttr, xmlChild } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeParsing';
 
 /** EMU values are int32 per ECMA-376 §22.1.2.4. Clamp parsed values to this range. */
@@ -26,15 +27,14 @@ function parseEmuInt(value: unknown): number {
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected async parsePicture(
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		pic: any,
+		pic: XmlObject,
 		id: string,
 		slidePath: string,
 	): Promise<PptxElement | null> {
 		try {
 			const spPr = pic['p:spPr'] as XmlObject | undefined;
 			const placeholderInfo = this.extractPlaceholderInfo(
-				pic?.['p:nvPicPr']?.['p:nvPr'] as XmlObject | undefined,
+				(pic?.['p:nvPicPr'] as XmlObject | undefined)?.['p:nvPr'] as XmlObject | undefined,
 			);
 			const inheritedPlaceholder = placeholderInfo
 				? this.findPlaceholderContext(slidePath, placeholderInfo)
@@ -49,23 +49,25 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return null;
 			}
 
-			const off = xfrm['a:off'];
-			const ext = xfrm['a:ext'];
+			const off = xmlChild(xfrm, 'a:off');
+			const ext = xmlChild(xfrm, 'a:ext');
 			if (!off || !ext) {
 				return null;
 			}
 
-			const x = Math.round(parseEmuInt(off['@_x']) / PptxHandlerRuntime.EMU_PER_PX);
-			const y = Math.round(parseEmuInt(off['@_y']) / PptxHandlerRuntime.EMU_PER_PX);
-			const width = Math.round(parseEmuInt(ext['@_cx']) / PptxHandlerRuntime.EMU_PER_PX);
-			const height = Math.round(parseEmuInt(ext['@_cy']) / PptxHandlerRuntime.EMU_PER_PX);
+			const x = Math.round(parseEmuInt(xmlAttr(off, 'x')) / PptxHandlerRuntime.EMU_PER_PX);
+			const y = Math.round(parseEmuInt(xmlAttr(off, 'y')) / PptxHandlerRuntime.EMU_PER_PX);
+			const width = Math.round(parseEmuInt(xmlAttr(ext, 'cx')) / PptxHandlerRuntime.EMU_PER_PX);
+			const height = Math.round(parseEmuInt(xmlAttr(ext, 'cy')) / PptxHandlerRuntime.EMU_PER_PX);
 			const rotation = xfrm['@_rot'] ? parseEmuInt(xfrm['@_rot']) / 60000 : undefined;
 			const skewX = xfrm['@_skewX'] ? parseEmuInt(xfrm['@_skewX']) / 60000 : undefined;
 			const skewY = xfrm['@_skewY'] ? parseEmuInt(xfrm['@_skewY']) / 60000 : undefined;
 			const { flipHorizontal, flipVertical } = this.readFlipState(xfrm);
 
 			// ── Check if this picture is actually a video/audio placeholder ──
-			const nvPr = pic?.['p:nvPicPr']?.['p:nvPr'] as XmlObject | undefined;
+			const nvPr = (pic?.['p:nvPicPr'] as XmlObject | undefined)?.['p:nvPr'] as
+				| XmlObject
+				| undefined;
 			const videoFileNode = nvPr?.['a:videoFile'] as XmlObject | undefined;
 			const audioFileNode = nvPr?.['a:audioFile'] as XmlObject | undefined;
 
@@ -86,13 +88,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// Extract the poster frame from the picture's blipFill
 				let posterFramePath: string | undefined;
 				let posterFrameData: string | undefined;
-				const posterBlipFill = pic['p:blipFill'];
-				const posterBlip = posterBlipFill?.['a:blip'];
+				const posterBlipFill = pic['p:blipFill'] as XmlObject | undefined;
+				const posterBlip = posterBlipFill?.['a:blip'] as XmlObject | undefined;
 				const posterREmbed = posterBlip?.['@_r:embed'];
 				const posterRLink = posterBlip?.['@_r:link'];
-				if (posterREmbed || posterRLink) {
+				const posterRelId = posterREmbed || posterRLink;
+				if (posterRelId) {
 					const slideRels = this.slideRelsMap.get(slidePath);
-					const posterTarget = slideRels?.get(posterREmbed || posterRLink);
+					const posterTarget = slideRels?.get(posterRelId);
 					if (posterTarget) {
 						const isExternal =
 							posterTarget.startsWith('http://') || posterTarget.startsWith('https://');
@@ -135,7 +138,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				} as MediaPptxElement;
 			}
 
-			const prstGeom = effectiveSpPr?.['a:prstGeom']?.['@_prst'];
+			const prstGeom = xmlAttr(xmlChild(effectiveSpPr, 'a:prstGeom'), 'prst');
 			const shapeAdjustments = this.parseGeometryAdjustments(
 				effectiveSpPr?.['a:prstGeom'] as XmlObject | undefined,
 			);
@@ -170,10 +173,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			);
 
 			// Get image relationship ID
-			const blipFill = pic['p:blipFill'];
-			const blip = blipFill?.['a:blip'];
+			const blipFill = pic['p:blipFill'] as XmlObject | undefined;
+			const blip = blipFill?.['a:blip'] as XmlObject | undefined;
 			const rEmbed = blip?.['@_r:embed'];
 			const rLink = blip?.['@_r:link'];
+			const relId = rEmbed || rLink;
 			const crop = this.readImageCropFromBlipFill(blipFill as XmlObject | undefined);
 
 			// Image tiling properties
@@ -232,9 +236,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 			let imageData: string | undefined;
 			let imagePath: string | undefined;
-			if (rEmbed || rLink) {
+			if (relId) {
 				const slideRels = this.slideRelsMap.get(slidePath);
-				const target = slideRels?.get(rEmbed || rLink);
+				const target = slideRels?.get(relId);
 				if (target) {
 					const isExternal = target.startsWith('http://') || target.startsWith('https://');
 					if (isExternal) {
@@ -258,11 +262,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const styleNode = (pic['p:style'] ||
 				inheritedPlaceholder?.picture?.['p:style'] ||
 				inheritedPlaceholder?.shape?.['p:style']) as XmlObject | undefined;
-			const altTextRaw = String(pic?.['p:nvPicPr']?.['p:cNvPr']?.['@_descr'] || '').trim();
+			const altTextRaw = String(
+				((pic?.['p:nvPicPr'] as XmlObject | undefined)?.['p:cNvPr'] as XmlObject | undefined)?.[
+					'@_descr'
+				] || '',
+			).trim();
 			const imageEffects = this.extractImageEffects(blip as XmlObject | undefined);
 
 			// Parse hyperlink / action for the picture element
-			const picCNvPr = pic?.['p:nvPicPr']?.['p:cNvPr'] as XmlObject | undefined;
+			const picCNvPr = (pic?.['p:nvPicPr'] as XmlObject | undefined)?.['p:cNvPr'] as
+				| XmlObject
+				| undefined;
 			const picSlideRels = this.slideRelsMap.get(slidePath);
 			const { actionClick: picActionClick, actionHover: picActionHover } = this.parseElementActions(
 				picCNvPr,
@@ -274,7 +284,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const picElementName = picCNvPr?.['@_name'] ? String(picCNvPr['@_name']).trim() : undefined;
 
 			// Parse locks from p:nvPicPr/p:cNvPicPr/a:picLocks
-			const picCNvPicPr = pic?.['p:nvPicPr']?.['p:cNvPicPr'] as XmlObject | undefined;
+			const picCNvPicPr = (pic?.['p:nvPicPr'] as XmlObject | undefined)?.['p:cNvPicPr'] as
+				| XmlObject
+				| undefined;
 			const picLocks = this.parseShapeLocks(
 				(picCNvPicPr?.['a:picLocks'] ?? picCNvPicPr?.['a:spLocks']) as XmlObject | undefined,
 			);

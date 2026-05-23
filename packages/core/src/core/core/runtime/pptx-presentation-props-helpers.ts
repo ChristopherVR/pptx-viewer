@@ -26,7 +26,7 @@ export function parseShowProperties(showPr: XmlObject): Partial<PptxPresentation
 		}
 	}
 
-	props.loopContinuously = showPr['@_loop'] === '1' || showPr['@_loop'] === true;
+	props.loopContinuously = showPr['@_loop'] === '1';
 	props.showWithNarration = showPr['@_showNarration'] !== '0';
 	props.showWithAnimation = showPr['@_showAnimation'] !== '0';
 

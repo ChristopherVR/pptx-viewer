@@ -2,6 +2,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import type { CSSProperties } from 'react';
 import { describe, it, expect } from 'vitest';
 
+import type { ElementAnimationState } from '../../utils/animation-timeline';
 import { getContainerStyle } from './element-renderer-helpers';
 
 // ---------------------------------------------------------------------------
@@ -75,7 +76,7 @@ describe('getContainerStyle', () => {
 	it('sets visibility to hidden when animationState.visible is false', () => {
 		const style = getContainerStyle({
 			...BASE_PARAMS,
-			animationState: { visible: false } as any,
+			animationState: { visible: false } as unknown as ElementAnimationState,
 		});
 		expect(style.visibility).toBe('hidden');
 	});
@@ -83,7 +84,10 @@ describe('getContainerStyle', () => {
 	it('sets cssAnimation from animation state', () => {
 		const style = getContainerStyle({
 			...BASE_PARAMS,
-			animationState: { visible: true, cssAnimation: 'fadeIn 1s' } as any,
+			animationState: {
+				visible: true,
+				cssAnimation: 'fadeIn 1s',
+			} as unknown as ElementAnimationState,
 		});
 		expect(style.animation).toBe('fadeIn 1s');
 	});

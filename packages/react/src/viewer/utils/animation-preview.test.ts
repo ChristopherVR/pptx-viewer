@@ -1,3 +1,4 @@
+import type { PptxAnimationPreset, PptxAnimationTimingCurve } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
 import {
@@ -28,7 +29,7 @@ describe('timingCurveToCss', () => {
 	});
 
 	it('should return "ease" for unknown curve name', () => {
-		expect(timingCurveToCss('unknownCurve' as any)).toBe('ease');
+		expect(timingCurveToCss('unknownCurve' as unknown as PptxAnimationTimingCurve)).toBe('ease');
 	});
 
 	it('should return cubic-bezier when valid cubicBezierValues are provided', () => {
@@ -102,7 +103,7 @@ describe('buildPreviewAnimation', () => {
 	});
 
 	it('should return undefined for an unknown preset', () => {
-		const result = buildPreviewAnimation('unknownPreset' as any);
+		const result = buildPreviewAnimation('unknownPreset' as unknown as PptxAnimationPreset);
 		expect(result).toBeUndefined();
 	});
 

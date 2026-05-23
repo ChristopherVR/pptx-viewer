@@ -75,8 +75,8 @@ describe('layoutStepDownProcess', () => {
 		const nodes = makeNodes(['Alpha', 'Beta']);
 		const elements = layoutStepDownProcess(nodes, bounds);
 		const shapes = elements.filter((e) => e.type === 'shape');
-		expect((shapes[0] as any).text).toBe('Alpha');
-		expect((shapes[1] as any).text).toBe('Beta');
+		expect((shapes[0] as Record<string, unknown>).text).toBe('Alpha');
+		expect((shapes[1] as Record<string, unknown>).text).toBe('Beta');
 	});
 
 	it('keeps all shapes within bounds', () => {
@@ -92,7 +92,9 @@ describe('layoutStepDownProcess', () => {
 		const nodes = makeNodes(['A']);
 		const theme = { accent1: '#FF0000' };
 		const elements = layoutStepDownProcess(nodes, bounds, theme);
-		expect((elements[0] as any).shapeStyle.fillColor).toBe('#FF0000');
+		expect((elements[0] as Record<string, { fillColor: string }>).shapeStyle.fillColor).toBe(
+			'#FF0000',
+		);
 	});
 });
 
@@ -202,7 +204,7 @@ describe('layoutPictureAccentList', () => {
 		const nodes = makeNodes(['A']);
 		const elements = layoutPictureAccentList(nodes, bounds);
 		const ellipses = elements.filter(
-			(e) => e.type === 'shape' && (e as any).shapeType === 'ellipse',
+			(e) => e.type === 'shape' && (e as Record<string, unknown>).shapeType === 'ellipse',
 		);
 		expect(ellipses).toHaveLength(1);
 	});
@@ -211,7 +213,7 @@ describe('layoutPictureAccentList', () => {
 		const nodes = makeNodes(['A']);
 		const elements = layoutPictureAccentList(nodes, bounds);
 		const rects = elements.filter(
-			(e) => e.type === 'shape' && (e as any).shapeType === 'roundRect',
+			(e) => e.type === 'shape' && (e as Record<string, unknown>).shapeType === 'roundRect',
 		);
 		expect(rects).toHaveLength(1);
 	});
@@ -220,9 +222,9 @@ describe('layoutPictureAccentList', () => {
 		const nodes = makeNodes(['Hello']);
 		const elements = layoutPictureAccentList(nodes, bounds);
 		const rects = elements.filter(
-			(e) => e.type === 'shape' && (e as any).shapeType === 'roundRect',
+			(e) => e.type === 'shape' && (e as Record<string, unknown>).shapeType === 'roundRect',
 		);
-		expect((rects[0] as any).text).toBe('Hello');
+		expect((rects[0] as Record<string, unknown>).text).toBe('Hello');
 	});
 });
 
@@ -282,8 +284,8 @@ describe('layoutGroupedList', () => {
 		const headers = elements.filter(
 			(e) =>
 				e.type === 'shape' &&
-				typeof (e as any).text === 'string' &&
-				(e as any).text.startsWith('Group'),
+				typeof (e as Record<string, unknown>).text === 'string' &&
+				(e as Record<string, unknown>).text.startsWith('Group'),
 		);
 		expect(headers.length).toBeGreaterThanOrEqual(2);
 	});
@@ -295,8 +297,8 @@ describe('layoutGroupedList', () => {
 		const headers = elements.filter(
 			(e) =>
 				e.type === 'shape' &&
-				typeof (e as any).text === 'string' &&
-				(e as any).text.startsWith('Group'),
+				typeof (e as Record<string, unknown>).text === 'string' &&
+				(e as Record<string, unknown>).text.startsWith('Group'),
 		);
 		if (headers.length >= 2) {
 			expect(headers[1].x).toBeGreaterThan(headers[0].x);
@@ -363,7 +365,7 @@ describe('layoutHorizontalPictureList', () => {
 		const nodes = makeNodes(['A']);
 		const elements = layoutHorizontalPictureList(nodes, bounds);
 		const ellipses = elements.filter(
-			(e) => e.type === 'shape' && (e as any).shapeType === 'ellipse',
+			(e) => e.type === 'shape' && (e as Record<string, unknown>).shapeType === 'ellipse',
 		);
 		expect(ellipses).toHaveLength(1);
 	});
@@ -372,7 +374,7 @@ describe('layoutHorizontalPictureList', () => {
 		const nodes = makeNodes(['A', 'B', 'C']);
 		const elements = layoutHorizontalPictureList(nodes, bounds);
 		const ellipses = elements.filter(
-			(e) => e.type === 'shape' && (e as any).shapeType === 'ellipse',
+			(e) => e.type === 'shape' && (e as Record<string, unknown>).shapeType === 'ellipse',
 		);
 		for (let i = 1; i < ellipses.length; i++) {
 			expect(ellipses[i].x).toBeGreaterThan(ellipses[i - 1].x);
@@ -382,8 +384,12 @@ describe('layoutHorizontalPictureList', () => {
 	it('places labels below circles', () => {
 		const nodes = makeNodes(['A']);
 		const elements = layoutHorizontalPictureList(nodes, bounds);
-		const ellipse = elements.find((e) => e.type === 'shape' && (e as any).shapeType === 'ellipse')!;
-		const label = elements.find((e) => e.type === 'shape' && (e as any).shapeType === 'roundRect')!;
+		const ellipse = elements.find(
+			(e) => e.type === 'shape' && (e as Record<string, unknown>).shapeType === 'ellipse',
+		)!;
+		const label = elements.find(
+			(e) => e.type === 'shape' && (e as Record<string, unknown>).shapeType === 'roundRect',
+		)!;
 		expect(label.y).toBeGreaterThan(ellipse.y);
 	});
 });
@@ -413,7 +419,7 @@ describe('layoutAccentProcess', () => {
 		const elements = layoutAccentProcess(nodes, bounds);
 		// Get the main boxes (every other shape starting at index 1)
 		const mainBoxes = elements.filter(
-			(e) => e.type === 'shape' && (e as any).shapeType === 'roundRect',
+			(e) => e.type === 'shape' && (e as Record<string, unknown>).shapeType === 'roundRect',
 		);
 		if (mainBoxes.length >= 2) {
 			expect(mainBoxes[1].x).toBeGreaterThan(mainBoxes[0].x);
@@ -466,8 +472,8 @@ describe('layoutVerticalChevronList', () => {
 		const nodes = makeNodes(['First', 'Second']);
 		const elements = layoutVerticalChevronList(nodes, bounds);
 		const shapes = elements.filter((e) => e.type === 'shape');
-		expect((shapes[0] as any).text).toBe('First');
-		expect((shapes[1] as any).text).toBe('Second');
+		expect((shapes[0] as Record<string, unknown>).text).toBe('First');
+		expect((shapes[1] as Record<string, unknown>).text).toBe('Second');
 	});
 });
 

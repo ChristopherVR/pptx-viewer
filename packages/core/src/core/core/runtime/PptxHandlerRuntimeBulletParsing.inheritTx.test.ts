@@ -5,25 +5,26 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import type { XmlObject } from '../../types';
 import { applyBulletProperties } from './PptxHandlerRuntimeSaveParagraphHelpers';
 
 describe('applyBulletProperties — Tx (inherit-from-text) variants', () => {
 	it('emits <a:buFontTx/> when fontInherit is set', () => {
-		const props: any = {};
+		const props: XmlObject = {};
 		applyBulletProperties(props, { fontInherit: true, char: '•' });
 		expect(props['a:buFontTx']).toStrictEqual({});
 		expect(props['a:buFont']).toBeUndefined();
 	});
 
 	it('emits <a:buClrTx/> when colorInherit is set', () => {
-		const props: any = {};
+		const props: XmlObject = {};
 		applyBulletProperties(props, { colorInherit: true, char: '•' });
 		expect(props['a:buClrTx']).toStrictEqual({});
 		expect(props['a:buClr']).toBeUndefined();
 	});
 
 	it('emits <a:buSzTx/> when sizeInherit is set', () => {
-		const props: any = {};
+		const props: XmlObject = {};
 		applyBulletProperties(props, { sizeInherit: true, char: '•' });
 		expect(props['a:buSzTx']).toStrictEqual({});
 		expect(props['a:buSzPct']).toBeUndefined();
@@ -31,7 +32,7 @@ describe('applyBulletProperties — Tx (inherit-from-text) variants', () => {
 	});
 
 	it('inherit variants take precedence over explicit declarations', () => {
-		const props: any = {};
+		const props: XmlObject = {};
 		applyBulletProperties(props, {
 			fontInherit: true,
 			fontFamily: 'Arial',
@@ -50,7 +51,7 @@ describe('applyBulletProperties — Tx (inherit-from-text) variants', () => {
 	});
 
 	it('falls back to explicit declarations when no Tx flag is set', () => {
-		const props: any = {};
+		const props: XmlObject = {};
 		applyBulletProperties(props, {
 			fontFamily: 'Arial',
 			color: '#FF0000',

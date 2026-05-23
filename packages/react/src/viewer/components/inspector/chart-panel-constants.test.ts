@@ -1,3 +1,4 @@
+import type { PptxChartType } from 'pptx-viewer-core';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import {
@@ -153,8 +154,8 @@ describe('gROUPING_SUPPORTED_TYPES', () => {
 	});
 
 	it('does not contain pie or scatter', () => {
-		expect(GROUPING_SUPPORTED_TYPES.has('pie' as any)).toBeFalsy();
-		expect(GROUPING_SUPPORTED_TYPES.has('scatter' as any)).toBeFalsy();
+		expect(GROUPING_SUPPORTED_TYPES.has('pie' as PptxChartType)).toBeFalsy();
+		expect(GROUPING_SUPPORTED_TYPES.has('scatter' as PptxChartType)).toBeFalsy();
 	});
 
 	it('has exactly 3 entries', () => {

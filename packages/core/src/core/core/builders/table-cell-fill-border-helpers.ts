@@ -66,7 +66,9 @@ export function applyCellFillStyle(
 			style.gradientFillCss = context.extractGradientFillCss(gradFill);
 		}
 		// Fallback backgroundColor from first gradient stop
-		const gradStops = context.ensureArray(gradFill?.['a:gsLst']?.['a:gs']) as XmlObject[];
+		const gradStops = context.ensureArray(
+			(gradFill?.['a:gsLst'] as XmlObject | undefined)?.['a:gs'],
+		) as XmlObject[];
 		if (gradStops.length > 0 && !style.backgroundColor) {
 			const firstStopColor = context.parseColor(gradStops[0]);
 			if (firstStopColor) {

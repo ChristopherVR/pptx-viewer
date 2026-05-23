@@ -67,7 +67,7 @@ export class MediaGraphicFrameXmlFactory implements IMediaGraphicFrameXmlFactory
 					[mediaTag]: {
 						[linkAttr]: relationshipId,
 					},
-				},
+				} as unknown as XmlObject,
 			},
 		};
 	}

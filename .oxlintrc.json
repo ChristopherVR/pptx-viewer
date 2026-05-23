@@ -1,6 +1,6 @@
 {
 	"$schema": "./node_modules/oxlint/configuration_schema.json",
-	"plugins": ["react", "import", "vitest", "promise", "jsx-a11y"],
+	"plugins": ["react", "import", "vitest", "promise", "jsx-a11y", "typescript"],
 	"categories": {
 		"correctness": "error",
 		"suspicious": "warn",
@@ -9,6 +9,14 @@
 		"style": "warn"
 	},
 	"rules": {
+		// ── Forbid `any`: keep the type system honest. Per-line escape hatches
+		//    via `// eslint-disable-next-line @typescript-eslint/no-explicit-any`
+		//    remain available for genuinely unavoidable cases (currently: the
+		//    `XmlObject` alias documents itself as the escape hatch for
+		//    fast-xml-parser output). New code should reach for `unknown` +
+		//    narrowing, concrete types, or `XmlObject` instead. ──
+		"typescript/no-explicit-any": "error",
+
 		// ── Suspicious: disable rules that don't apply ──
 		"react/react-in-jsx-scope": "off",
 		"import/no-unassigned-import": "off",
@@ -37,6 +45,16 @@
 		"typescript/no-unsafe-return": "off",
 		"typescript/no-deprecated": "off",
 		"typescript/no-misused-promises": "off",
+		// ── Typescript-plugin stylistic rules: noisy and not worth churn ──
+		"typescript/array-type": "off",
+		"typescript/consistent-type-imports": "off",
+		"typescript/no-inferrable-types": "off",
+		"typescript/consistent-generic-constructors": "off",
+		"typescript/consistent-indexed-object-style": "off",
+		"typescript/prefer-for-of": "off",
+		"typescript/no-empty-interface": "off",
+		"typescript/no-extraneous-class": "off",
+		"typescript/ban-ts-comment": "off",
 		"typescript/no-confusing-void-expression": "off",
 		"typescript/no-mixed-enums": "off",
 		"typescript/restrict-plus-operands": "off",
@@ -142,6 +160,10 @@
 		"vitest/prefer-describe-function-title": "off",
 		"vitest/no-importing-vitest-globals": "off",
 		"vitest/prefer-called-times": "off",
+		// vi.fn() infers its signature from the impl arg in nearly every site;
+		// requiring an explicit type parameter just to satisfy the rule produces
+		// redundant noise. Disable in favor of letting inference work.
+		"vitest/require-mock-type-parameters": "off",
 		"jest/prefer-called-with": "off",
 
 		// ── oxlint 1.62 introduced vitest/* counterparts of already-disabled jest/* rules ──

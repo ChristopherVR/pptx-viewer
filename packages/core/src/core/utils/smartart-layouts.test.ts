@@ -55,14 +55,14 @@ describe('layoutList', () => {
 		const nodes = makeNodes(['Alpha', 'Beta']);
 		const elements = layoutList(nodes, bounds);
 		expect(elements[0].type).toBe('shape');
-		expect((elements[0] as any).text).toBe('Alpha');
-		expect((elements[1] as any).text).toBe('Beta');
+		expect((elements[0] as Record<string, unknown>).text).toBe('Alpha');
+		expect((elements[1] as Record<string, unknown>).text).toBe('Beta');
 	});
 
 	it('uses roundRect shape type', () => {
 		const nodes = makeNodes(['X']);
 		const elements = layoutList(nodes, bounds);
-		expect((elements[0] as any).shapeType).toBe('roundRect');
+		expect((elements[0] as Record<string, unknown>).shapeType).toBe('roundRect');
 	});
 
 	it('stacks shapes vertically within bounds', () => {
@@ -76,7 +76,9 @@ describe('layoutList', () => {
 		const nodes = makeNodes(['A']);
 		const theme = { accent1: '#FF0000' };
 		const elements = layoutList(nodes, bounds, theme);
-		expect((elements[0] as any).shapeStyle.fillColor).toBe('#FF0000');
+		expect((elements[0] as { shapeStyle: Record<string, unknown> }).shapeStyle.fillColor).toBe(
+			'#FF0000',
+		);
 	});
 
 	it('positions shapes within the bounding area', () => {
@@ -201,7 +203,7 @@ describe('layoutMatrix', () => {
 	it('uses roundRect shapes', () => {
 		const nodes = makeNodes(['A']);
 		const elements = layoutMatrix(nodes, bounds);
-		expect((elements[0] as any).shapeType).toBe('roundRect');
+		expect((elements[0] as Record<string, unknown>).shapeType).toBe('roundRect');
 	});
 });
 
@@ -298,7 +300,7 @@ describe('layoutRelationship', () => {
 		const nodes = makeNodes(['A', 'B']);
 		const elements = layoutRelationship(nodes, bounds);
 		expect(elements).toHaveLength(2);
-		expect((elements[0] as any).shapeType).toBe('ellipse');
+		expect((elements[0] as Record<string, unknown>).shapeType).toBe('ellipse');
 	});
 
 	it('uses overlapping circles for 2-4 items', () => {
@@ -307,7 +309,7 @@ describe('layoutRelationship', () => {
 		expect(elements).toHaveLength(3);
 		// All should be ellipses
 		for (const el of elements) {
-			expect((el as any).shapeType).toBe('ellipse');
+			expect((el as Record<string, unknown>).shapeType).toBe('ellipse');
 		}
 	});
 

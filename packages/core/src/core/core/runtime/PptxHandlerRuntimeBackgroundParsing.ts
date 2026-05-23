@@ -1,44 +1,45 @@
-import { XmlObject } from '../../types';
-import type { PptxSlideBackgroundPattern } from '../../types';
+import type { PptxSlideBackgroundPattern, XmlObject } from '../../types';
+import { xmlAttr, xmlAttrNumber, xmlChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeColorAndEffects';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected async extractBackgroundImage(
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		slideXml: any,
+		slideXml: XmlObject,
 		slidePath: string,
 		rootElement: string = 'p:sld',
 	): Promise<string | undefined> {
 		try {
-			const bg = slideXml[rootElement]?.['p:cSld']?.['p:bg'];
-			if (!bg) {
+			const blip = xmlPath(
+				slideXml,
+				rootElement,
+				'p:cSld',
+				'p:bg',
+				'p:bgPr',
+				'a:blipFill',
+				'a:blip',
+			);
+			const rEmbed = xmlAttr(blip, 'r:embed');
+			if (!rEmbed) {
 				return undefined;
 			}
 
-			const bgPr = bg['p:bgPr'];
-			if (bgPr?.['a:blipFill']) {
-				const blip = bgPr['a:blipFill']['a:blip'];
-				const rEmbed = blip?.['@_r:embed'];
-
-				if (rEmbed) {
-					const slideRels = this.slideRelsMap.get(slidePath);
-					const target = slideRels?.get(rEmbed);
-
-					if (target) {
-						// Load H3: external URL gating. Refuse to pass through
-						// http(s):// background images unless allowExternalImages
-						// is explicitly enabled.
-						if (target.startsWith('http://') || target.startsWith('https://')) {
-							if (this.allowExternalImages !== true) {
-								return undefined;
-							}
-							return target;
-						}
-						const imagePath = this.resolveImagePath(slidePath, target);
-						return this.getImageData(imagePath);
-					}
-				}
+			const slideRels = this.slideRelsMap.get(slidePath);
+			const target = slideRels?.get(rEmbed);
+			if (!target) {
+				return undefined;
 			}
+
+			// Load H3: external URL gating. Refuse to pass through
+			// http(s):// background images unless allowExternalImages
+			// is explicitly enabled.
+			if (target.startsWith('http://') || target.startsWith('https://')) {
+				if (this.allowExternalImages !== true) {
+					return undefined;
+				}
+				return target;
+			}
+			const imagePath = this.resolveImagePath(slidePath, target);
+			return this.getImageData(imagePath);
 		} catch (e) {
 			console.warn('Failed to extract background image:', e);
 		}
@@ -46,31 +47,30 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	protected extractBackgroundColor(
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		slideXml: any,
+		slideXml: XmlObject,
 		rootElement: string = 'p:sld',
 	): string | undefined {
 		try {
-			const bg = slideXml[rootElement]?.['p:cSld']?.['p:bg'];
+			const bg = xmlPath(slideXml, rootElement, 'p:cSld', 'p:bg');
 			if (!bg) {
 				return undefined;
 			}
 
 			// Try solid fill from bgPr
-			const bgPr = bg['p:bgPr'];
+			const bgPr = xmlChild(bg, 'p:bgPr');
 			if (bgPr) {
-				const solidFill = bgPr['a:solidFill'];
+				const solidFill = xmlChild(bgPr, 'a:solidFill');
 				if (solidFill) {
 					return this.parseColor(solidFill);
 				}
 				// Pattern fill foreground colour as fallback for solid rendering
-				const pattFill = bgPr['a:pattFill'] as XmlObject | undefined;
+				const pattFill = xmlChild(bgPr, 'a:pattFill');
 				if (pattFill) {
-					const fgClr = this.parseColor(pattFill['a:fgClr']);
+					const fgClr = this.parseColor(xmlChild(pattFill, 'a:fgClr'));
 					if (fgClr) {
 						return fgClr;
 					}
-					const bgClr = this.parseColor(pattFill['a:bgClr']);
+					const bgClr = this.parseColor(xmlChild(pattFill, 'a:bgClr'));
 					if (bgClr) {
 						return bgClr;
 					}
@@ -78,9 +78,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 
 			// Try bgRef (reference to theme background fill style list)
-			const bgRef = bg['p:bgRef'];
+			const bgRef = xmlChild(bg, 'p:bgRef');
 			if (bgRef) {
-				return this.resolveBackgroundRefColor(bgRef as XmlObject);
+				return this.resolveBackgroundRefColor(bgRef);
 			}
 		} catch {
 			// Ignore background parsing errors
@@ -105,16 +105,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * referenced fill definition.
 	 */
 	protected resolveBackgroundRefColor(bgRef: XmlObject): string | undefined {
-		const rawIdx = bgRef['@_idx'];
-		const idx = parseInt(String(rawIdx ?? '0'), 10);
+		const idx = xmlAttrNumber(bgRef, 'idx') ?? 0;
 
 		// idx == 0 → no fill
-		if (Number.isFinite(idx) && idx === 0) {
+		if (idx === 0) {
 			return undefined;
 		}
 
 		// Direct solid fill child overrides any matrix lookup
-		const solidFill = bgRef['a:solidFill'] as XmlObject | undefined;
+		const solidFill = xmlChild(bgRef, 'a:solidFill');
 		if (solidFill) {
 			return this.parseColor(solidFill);
 		}
@@ -122,7 +121,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// The colour choice on bgRef itself acts as the phClr supplier.
 		const overrideColor = this.parseColor(bgRef);
 
-		if (Number.isFinite(idx) && this.themeFormatScheme) {
+		if (this.themeFormatScheme) {
 			let fillDef = undefined as (typeof this.themeFormatScheme)['fillStyles'][number] | undefined;
 			if (idx >= 1 && idx <= 999) {
 				fillDef = this.themeFormatScheme.fillStyles[idx - 1];
@@ -150,7 +149,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// Out-of-range or missing scheme — log & fall through to white so the
 		// renderer doesn't blank the slide.
-		if (Number.isFinite(idx) && idx !== 0) {
+		if (idx !== 0) {
 			console.warn(
 				`bgRef @idx=${idx} did not resolve to a fill style (theme has ${
 					this.themeFormatScheme?.fillStyles.length ?? 0
@@ -170,22 +169,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * ECMA-376 §20.1.8.47.
 	 */
 	protected extractBackgroundPattern(
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		slideXml: any,
+		slideXml: XmlObject,
 		rootElement: string = 'p:sld',
 	): PptxSlideBackgroundPattern | undefined {
 		try {
-			const bg = slideXml[rootElement]?.['p:cSld']?.['p:bg'];
-			const pattFill = bg?.['p:bgPr']?.['a:pattFill'] as XmlObject | undefined;
+			const pattFill = xmlPath(slideXml, rootElement, 'p:cSld', 'p:bg', 'p:bgPr', 'a:pattFill');
 			if (!pattFill) {
 				return undefined;
 			}
-			const preset = String(pattFill['@_prst'] || '').trim();
+			const preset = (xmlAttr(pattFill, 'prst') ?? '').trim();
 			if (!preset) {
 				return undefined;
 			}
-			const fgColor = this.parseColor(pattFill['a:fgClr']);
-			const bgColor = this.parseColor(pattFill['a:bgClr']);
+			const fgColor = this.parseColor(xmlChild(pattFill, 'a:fgClr'));
+			const bgColor = this.parseColor(xmlChild(pattFill, 'a:bgClr'));
 			return {
 				preset,
 				fgColor,
@@ -205,21 +202,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * ECMA-376 §19.3.1.2 (CT_BackgroundProperties).
 	 */
 	protected extractBackgroundShadeToTitle(
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		slideXml: any,
+		slideXml: XmlObject,
 		rootElement: string = 'p:sld',
 	): boolean | undefined {
 		try {
-			const bg = slideXml[rootElement]?.['p:cSld']?.['p:bg'];
-			const bgPr = bg?.['p:bgPr'] as XmlObject | undefined;
+			const bgPr = xmlPath(slideXml, rootElement, 'p:cSld', 'p:bg', 'p:bgPr');
 			if (!bgPr) {
 				return undefined;
 			}
-			const raw = bgPr['@_shadeToTitle'];
+			const raw = xmlAttr(bgPr, 'shadeToTitle');
 			if (raw === undefined) {
 				return undefined;
 			}
-			const normalized = String(raw).trim().toLowerCase();
+			const normalized = raw.trim().toLowerCase();
 			return normalized === '1' || normalized === 'true';
 		} catch {
 			return undefined;
@@ -231,28 +226,24 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * Handles `a:gradFill` within `p:bgPr` and gradient-based `p:bgRef`.
 	 */
 	protected extractBackgroundGradient(
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		slideXml: any,
+		slideXml: XmlObject,
 		rootElement: string = 'p:sld',
 	): string | undefined {
 		try {
-			const bg = slideXml[rootElement]?.['p:cSld']?.['p:bg'];
+			const bg = xmlPath(slideXml, rootElement, 'p:cSld', 'p:bg');
 			if (!bg) {
 				return undefined;
 			}
 
-			const bgPr = bg['p:bgPr'] as XmlObject | undefined;
-			if (bgPr) {
-				const gradFill = bgPr['a:gradFill'] as XmlObject | undefined;
-				if (gradFill) {
-					return this.extractGradientFillCss(gradFill);
-				}
+			const gradFill = xmlPath(bg, 'p:bgPr', 'a:gradFill');
+			if (gradFill) {
+				return this.extractGradientFillCss(gradFill);
 			}
 
 			// bgRef may reference a theme background fill that is a gradient
-			const bgRef = bg['p:bgRef'] as XmlObject | undefined;
+			const bgRef = xmlChild(bg, 'p:bgRef');
 			if (bgRef && this.themeFormatScheme) {
-				const idx = parseInt(String(bgRef['@_idx'] || '0'), 10);
+				const idx = xmlAttrNumber(bgRef, 'idx') ?? 0;
 				if (idx >= 1001) {
 					const offset = idx - 1001;
 					const fillDef = this.themeFormatScheme.backgroundFillStyles[offset];

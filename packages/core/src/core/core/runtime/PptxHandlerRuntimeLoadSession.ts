@@ -212,7 +212,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// Extract schema URI from ds:schemaRef if present
 				try {
 					const propsData = this.parser.parse(properties) as XmlObject;
-					const schemaRefs = propsData?.['ds:datastoreItem']?.['ds:schemaRefs']?.['ds:schemaRef'];
+					const schemaRefs = (
+						(propsData?.['ds:datastoreItem'] as XmlObject | undefined)?.['ds:schemaRefs'] as
+							| XmlObject
+							| undefined
+					)?.['ds:schemaRef'];
 					if (schemaRefs) {
 						const refs = Array.isArray(schemaRefs) ? schemaRefs : [schemaRefs];
 						const ref = refs[0] as XmlObject | undefined;

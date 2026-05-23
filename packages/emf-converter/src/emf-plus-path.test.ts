@@ -175,7 +175,19 @@ describe('parseEmfPlusPath', () => {
 // ---------------------------------------------------------------------------
 
 describe('replayEmfPlusPath', () => {
-	function createMockCtx() {
+	interface MockCtx {
+		calls: Array<{ method: string; args: number[] }>;
+		beginPath(): void;
+		moveTo(x: number, y: number): void;
+		lineTo(x: number, y: number): void;
+		bezierCurveTo(x1: number, y1: number, x2: number, y2: number, x: number, y: number): void;
+		closePath(): void;
+	}
+
+	const asCtx = (ctx: MockCtx): CanvasRenderingContext2D =>
+		ctx as unknown as CanvasRenderingContext2D;
+
+	function createMockCtx(): MockCtx {
 		const calls: Array<{ method: string; args: number[] }> = [];
 		return {
 			calls,
@@ -204,7 +216,7 @@ describe('replayEmfPlusPath', () => {
 			points: [{ x: 0, y: 0 }],
 			types: new Uint8Array([0]),
 		};
-		replayEmfPlusPath(ctx as any, path);
+		replayEmfPlusPath(asCtx(ctx), path);
 		expect(ctx.calls[0].method).toBe('beginPath');
 	});
 
@@ -215,7 +227,7 @@ describe('replayEmfPlusPath', () => {
 			points: [{ x: 5, y: 10 }],
 			types: new Uint8Array([0]),
 		};
-		replayEmfPlusPath(ctx as any, path);
+		replayEmfPlusPath(asCtx(ctx), path);
 		expect(ctx.calls[1]).toStrictEqual({ method: 'moveTo', args: [5, 10] });
 	});
 
@@ -229,7 +241,7 @@ describe('replayEmfPlusPath', () => {
 			],
 			types: new Uint8Array([0, 1]),
 		};
-		replayEmfPlusPath(ctx as any, path);
+		replayEmfPlusPath(asCtx(ctx), path);
 		expect(ctx.calls[2]).toStrictEqual({ method: 'lineTo', args: [100, 50] });
 	});
 
@@ -245,7 +257,7 @@ describe('replayEmfPlusPath', () => {
 			],
 			types: new Uint8Array([0, 3, 3, 3]),
 		};
-		replayEmfPlusPath(ctx as any, path);
+		replayEmfPlusPath(asCtx(ctx), path);
 		const bezierCall = ctx.calls.find((c) => c.method === 'bezierCurveTo');
 		expect(bezierCall).toBeDefined();
 		expect(bezierCall!.args).toStrictEqual([10, 20, 30, 40, 50, 60]);
@@ -262,7 +274,7 @@ describe('replayEmfPlusPath', () => {
 			],
 			types: new Uint8Array([0, 1, 0x81]), // last line has close flag
 		};
-		replayEmfPlusPath(ctx as any, path);
+		replayEmfPlusPath(asCtx(ctx), path);
 		const closeCall = ctx.calls.find((c) => c.method === 'closePath');
 		expect(closeCall).toBeDefined();
 	});
@@ -274,7 +286,7 @@ describe('replayEmfPlusPath', () => {
 			points: [],
 			types: new Uint8Array([]),
 		};
-		replayEmfPlusPath(ctx as any, path);
+		replayEmfPlusPath(asCtx(ctx), path);
 		expect(ctx.calls).toHaveLength(1); // only beginPath
 	});
 
@@ -288,7 +300,7 @@ describe('replayEmfPlusPath', () => {
 			],
 			types: new Uint8Array([0, 7]), // 7 is unknown
 		};
-		replayEmfPlusPath(ctx as any, path);
+		replayEmfPlusPath(asCtx(ctx), path);
 		expect(ctx.calls[2]).toStrictEqual({ method: 'lineTo', args: [10, 10] });
 	});
 });

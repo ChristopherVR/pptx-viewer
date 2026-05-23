@@ -208,9 +208,9 @@ export function parseTabStops(pPr: XmlObject | undefined): TextStyle['tabStops']
 	}
 
 	const tabNodes: XmlObject[] = Array.isArray(tabLst['a:tab'])
-		? tabLst['a:tab']
+		? (tabLst['a:tab'] as XmlObject[])
 		: tabLst['a:tab']
-			? [tabLst['a:tab']]
+			? [tabLst['a:tab'] as XmlObject]
 			: [];
 
 	if (tabNodes.length === 0) {

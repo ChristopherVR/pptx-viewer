@@ -50,7 +50,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// Print properties (p:prnPr)
 			const prnPr = presProps['p:prnPr'] as XmlObject | undefined;
 			if (prnPr) {
-				props.printFrameSlides = prnPr['@_frameSlides'] === '1' || prnPr['@_frameSlides'] === true;
+				props.printFrameSlides = prnPr['@_frameSlides'] === '1';
 				const slidesPerPageRaw = prnPr['@_sldPerPg'] ?? prnPr['@_slidesPerPage'];
 				if (slidesPerPageRaw !== undefined) {
 					const slidesPerPage = Number.parseInt(String(slidesPerPageRaw), 10);

@@ -242,12 +242,6 @@ describe('parseCtnMediaTiming', () => {
 		expect(result.autoPlay).toBeTruthy();
 	});
 
-	it('should detect autoPlay from nodeType=2 (number)', () => {
-		const cTn: XmlObject = { '@_nodeType': 2 };
-		const result = parseCtnMediaTiming(cTn, 'p:video');
-		expect(result.autoPlay).toBeTruthy();
-	});
-
 	it('should not set autoPlay for nodeType=0', () => {
 		const cTn: XmlObject = { '@_nodeType': '0' };
 		const result = parseCtnMediaTiming(cTn, 'p:video');

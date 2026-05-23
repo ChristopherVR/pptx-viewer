@@ -278,39 +278,6 @@ describe('pptxTableDataParser — cell merge detection', () => {
 		expect(result!.rows[0].cells[0].vMerge).toBeFalsy();
 		expect(result!.rows[1].cells[0].vMerge).toBeTruthy();
 	});
-
-	it('detects vMerge with boolean true value', () => {
-		const graphicData = makeTableXml({
-			gridCols: ['9144000'],
-			rows: [
-				{ height: '370840', cells: [makeCell('Top')] },
-				{ height: '370840', cells: [{ ...makeCell(''), '@_vMerge': true }] },
-			],
-		});
-		const parser = new PptxTableDataParser(makeContext());
-		const result = parser.parseTableData(graphicData);
-
-		expect(result!.rows[1].cells[0].vMerge).toBeTruthy();
-	});
-
-	it('detects hMerge with boolean true value', () => {
-		const graphicData = makeTableXml({
-			gridCols: ['3048000', '3048000'],
-			rows: [
-				{
-					height: '370840',
-					cells: [
-						{ ...makeCell('Main'), '@_gridSpan': '2' },
-						{ ...makeCell(''), '@_hMerge': true },
-					],
-				},
-			],
-		});
-		const parser = new PptxTableDataParser(makeContext());
-		const result = parser.parseTableData(graphicData);
-
-		expect(result!.rows[0].cells[1].hMerge).toBeTruthy();
-	});
 });
 
 // ---------------------------------------------------------------------------
@@ -342,17 +309,17 @@ describe('pptxTableDataParser — table style properties', () => {
 		expect(result!.lastCol).toBeFalsy();
 	});
 
-	it('parses boolean true values for table property flags', () => {
+	it('parses "1" string values for table property flags', () => {
 		const graphicData = makeTableXml({
 			gridCols: ['9144000'],
 			rows: [{ height: '370840', cells: [makeCell('Data')] }],
 			tblPrAttrs: {
-				'@_firstRow': true,
-				'@_lastRow': true,
-				'@_firstCol': true,
-				'@_lastCol': true,
-				'@_bandRow': true,
-				'@_bandCol': true,
+				'@_firstRow': '1',
+				'@_lastRow': '1',
+				'@_firstCol': '1',
+				'@_lastCol': '1',
+				'@_bandRow': '1',
+				'@_bandCol': '1',
 			},
 		});
 		const parser = new PptxTableDataParser(makeContext());

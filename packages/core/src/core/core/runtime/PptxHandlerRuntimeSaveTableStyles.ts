@@ -92,7 +92,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// Text alignment — set in first paragraph's pPr
 		if (style.align) {
-			const firstP = this.ensureArray(xmlCell['a:txBody']?.['a:p'])[0];
+			const firstP = this.ensureArray(
+				(xmlCell['a:txBody'] as XmlObject | undefined)?.['a:p'],
+			)[0] as XmlObject | undefined;
 			if (firstP) {
 				if (!firstP['a:pPr']) {
 					firstP['a:pPr'] = {};
@@ -103,7 +105,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					right: 'r',
 					justify: 'just',
 				};
-				firstP['a:pPr']['@_algn'] = alignMap[style.align] || 'l';
+				(firstP['a:pPr'] as XmlObject)['@_algn'] = alignMap[style.align] || 'l';
 			}
 		}
 

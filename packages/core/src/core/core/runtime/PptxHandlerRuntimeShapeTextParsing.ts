@@ -143,24 +143,30 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// Resolve run-level default styles
 		const defaultRunStyle = this.extractTextRunStyle(
-			pPr?.['a:defRPr'],
+			pPr?.['a:defRPr'] as XmlObject | undefined,
 			paraAlign,
 			ctx.slideRelationshipMap,
 		);
 		const level = Number.parseInt(String(pPr?.['@_lvl'] || '0'), 10);
 		const levelKey = `a:lvl${Number.isFinite(level) ? Math.min(Math.max(level + 1, 1), 9) : 1}pPr`;
 		const inheritedLevelStyle = this.extractTextRunStyle(
-			ctx.inheritedTxBody?.['a:lstStyle']?.[levelKey]?.['a:defRPr'],
+			(
+				(ctx.inheritedTxBody?.['a:lstStyle'] as XmlObject | undefined)?.[levelKey] as
+					| XmlObject
+					| undefined
+			)?.['a:defRPr'] as XmlObject | undefined,
 			paraAlign,
 			ctx.slideRelationshipMap,
 		);
 		const bodyLevelStyle = this.extractTextRunStyle(
-			ctx.txBody?.['a:lstStyle']?.[levelKey]?.['a:defRPr'],
+			(
+				(ctx.txBody?.['a:lstStyle'] as XmlObject | undefined)?.[levelKey] as XmlObject | undefined
+			)?.['a:defRPr'] as XmlObject | undefined,
 			paraAlign,
 			ctx.slideRelationshipMap,
 		);
 		const endParagraphStyle = this.extractTextRunStyle(
-			p?.['a:endParaRPr'],
+			p?.['a:endParaRPr'] as XmlObject | undefined,
 			paraAlign,
 			ctx.slideRelationshipMap,
 		);

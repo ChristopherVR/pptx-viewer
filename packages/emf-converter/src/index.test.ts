@@ -1135,7 +1135,7 @@ describe('emf-plus-object-complex', () => {
 describe('emf-plus-object-parser (Region)', () => {
 	function buildMinimalReplayCtx(view: DataView) {
 		return {
-			ctx: null as any,
+			ctx: null as unknown as CanvasRenderingContext2D,
 			view,
 			objectTable: new Map(),
 			worldTransform: [1, 0, 0, 1, 0, 0] as [number, number, number, number, number, number],
@@ -1296,8 +1296,8 @@ describe('emf-plus-object-parser (Region)', () => {
 describe('emf-gdi-coord', () => {
 	function makeCtx(overrides: Partial<EmfGdiReplayCtx> = {}): EmfGdiReplayCtx {
 		return {
-			ctx: null as any,
-			view: null as any,
+			ctx: null as unknown as CanvasRenderingContext2D,
+			view: null as unknown as DataView,
 			objectTable: new Map(),
 			state: defaultState(),
 			stateStack: [],
@@ -1566,8 +1566,8 @@ describe('emf-plus pen dash style parsing', () => {
 describe('continuation records tracking', () => {
 	it('emfPlusReplayCtx has continuation fields initialized correctly', () => {
 		const ctx = {
-			ctx: null as any,
-			view: null as any,
+			ctx: null as unknown as CanvasRenderingContext2D,
+			view: null as unknown as DataView,
 			objectTable: new Map(),
 			worldTransform: [1, 0, 0, 1, 0, 0] as [number, number, number, number, number, number],
 			deferredImages: [],

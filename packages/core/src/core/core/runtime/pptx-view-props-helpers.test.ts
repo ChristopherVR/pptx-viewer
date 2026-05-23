@@ -77,11 +77,6 @@ describe('parseViewProperties', () => {
 			expect(result.showComments).toBeTruthy();
 		});
 
-		it('should parse showComments false when value is false', () => {
-			const result = parseViewProperties({ '@_showComments': false });
-			expect(result.showComments).toBeFalsy();
-		});
-
 		it('should parse showComments false when value is "0"', () => {
 			const result = parseViewProperties({ '@_showComments': '0' });
 			expect(result.showComments).toBeFalsy();
@@ -159,13 +154,6 @@ describe('parseViewProperties', () => {
 			});
 			expect(result.normalViewPr!.vertBarState).toBe('maximized');
 			expect(result.normalViewPr!.horzBarState).toBe('minimized');
-		});
-
-		it('should parse preferSingleView true from boolean true', () => {
-			const result = parseViewProperties({
-				'p:normalViewPr': { '@_preferSingleView': true },
-			});
-			expect(result.normalViewPr!.preferSingleView).toBeTruthy();
 		});
 
 		it('should parse both restoredLeft and restoredTop', () => {

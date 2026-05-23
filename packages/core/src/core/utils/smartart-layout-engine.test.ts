@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import type { PptxSmartArtNode, PptxSmartArtData } from '../types';
+import type { PptxSmartArtNode, PptxSmartArtData, SmartArtLayoutType } from '../types';
 import type { ContainerBounds } from './smartart-helpers';
 import {
 	computeSnakeLayout,
@@ -610,7 +610,7 @@ describe('computeSmartArtLayout', () => {
 
 		for (const lt of layoutTypes) {
 			const data: PptxSmartArtData = {
-				resolvedLayoutType: lt as any,
+				resolvedLayoutType: lt as SmartArtLayoutType,
 				nodes: makeNodes(['A', 'B', 'C']),
 			};
 			const shapes = computeSmartArtLayout(data, bounds);

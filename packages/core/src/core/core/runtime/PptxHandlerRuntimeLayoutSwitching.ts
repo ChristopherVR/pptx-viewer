@@ -1,5 +1,6 @@
 import { EMU_PER_PX } from '../../constants';
 import { XmlObject, PptxElement } from '../../types';
+import { xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTextEditing';
 import type { PlaceholderInfo } from './PptxHandlerRuntimeTypes';
 
@@ -53,9 +54,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		const nvPr =
-			(raw['p:nvSpPr']?.['p:nvPr'] as XmlObject | undefined) ??
-			(raw['p:nvPicPr']?.['p:nvPr'] as XmlObject | undefined) ??
-			(raw['p:nvGraphicFramePr']?.['p:nvPr'] as XmlObject | undefined);
+			xmlPath(raw, 'p:nvSpPr', 'p:nvPr') ??
+			xmlPath(raw, 'p:nvPicPr', 'p:nvPr') ??
+			xmlPath(raw, 'p:nvGraphicFramePr', 'p:nvPr');
 
 		return this.readPlaceholderInfoFromNvPr(nvPr);
 	}
@@ -74,8 +75,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		cyEmu: number;
 		shapeXml: XmlObject;
 	}> {
-		const sldLayout = layoutXml['p:sldLayout'] as XmlObject | undefined;
-		const spTree = sldLayout?.['p:cSld']?.['p:spTree'] as XmlObject | undefined;
+		const spTree = xmlPath(layoutXml, 'p:sldLayout', 'p:cSld', 'p:spTree');
 		if (!spTree) {
 			return [];
 		}
@@ -91,7 +91,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		const shapes = this.ensureArray(spTree['p:sp']) as XmlObject[];
 		for (const shape of shapes) {
-			const nvPr = shape?.['p:nvSpPr']?.['p:nvPr'] as XmlObject | undefined;
+			const nvPr = xmlPath(shape, 'p:nvSpPr', 'p:nvPr');
 			const phInfo = this.readPlaceholderInfoFromNvPr(nvPr);
 			if (!phInfo) {
 				continue;

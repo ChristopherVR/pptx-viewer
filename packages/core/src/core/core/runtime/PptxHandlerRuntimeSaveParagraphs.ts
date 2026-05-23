@@ -145,14 +145,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				if (segment.isLineBreak) {
 					const brNode: XmlObject = {};
 					if (segment.breakRunProperties && typeof segment.breakRunProperties === 'object') {
-						brNode['a:rPr'] = { ...(segment.breakRunProperties as Record<string, unknown>) };
+						brNode['a:rPr'] = { ...(segment.breakRunProperties as XmlObject) };
 					} else {
 						brNode['a:rPr'] = this.createRunPropertiesFromTextStyle(
 							segmentStyle,
 							resolveHyperlinkRelationshipId,
 						);
 					}
-					(brNode as Record<string, unknown>).__isLineBreak = true;
+					(brNode as Record<string, unknown>)['__isLineBreak'] = true;
 					currentRuns.push(brNode);
 					return;
 				}
@@ -160,10 +160,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// Math equation segments — re-emit the original m:oMath /
 				// m:oMathPara / mc:AlternateContent subtree captured at parse time.
 				if (segment.equationXml && typeof segment.equationXml === 'object') {
-					const eqNode: XmlObject = {
+					const eqNode = {
 						__isEquation: true,
 						__equationXml: segment.equationXml as Record<string, unknown>,
-					};
+					} as unknown as XmlObject;
 					currentRuns.push(eqNode);
 					return;
 				}

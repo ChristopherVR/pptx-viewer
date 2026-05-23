@@ -64,7 +64,10 @@ export class PptxConnectorParser implements IPptxConnectorParser {
 				return null;
 			}
 
-			const shapeType = String(shapeProperties?.['a:prstGeom']?.['@_prst'] || 'straightConnector1');
+			const shapeType = String(
+				(shapeProperties?.['a:prstGeom'] as XmlObject | undefined)?.['@_prst'] ||
+					'straightConnector1',
+			);
 			const shapeAdjustments = this.context.parseGeometryAdjustments(
 				shapeProperties?.['a:prstGeom'] as XmlObject | undefined,
 			);
@@ -79,9 +82,9 @@ export class PptxConnectorParser implements IPptxConnectorParser {
 				: undefined;
 			const { flipHorizontal, flipVertical } = this.context.readFlipState(transform);
 
-			const cNvConnectionShapeProperties = connector?.['p:nvCxnSpPr']?.['p:cNvCxnSpPr'] as
-				| XmlObject
-				| undefined;
+			const cNvConnectionShapeProperties = (connector?.['p:nvCxnSpPr'] as XmlObject | undefined)?.[
+				'p:cNvCxnSpPr'
+			] as XmlObject | undefined;
 			const shapeStyle = this.context.extractShapeStyle(shapeProperties);
 
 			const startConnectionNode = cNvConnectionShapeProperties?.['a:stCxn'] as
@@ -114,7 +117,9 @@ export class PptxConnectorParser implements IPptxConnectorParser {
 				}
 			}
 
-			const cNvPr = connector?.['p:nvCxnSpPr']?.['p:cNvPr'] as XmlObject | undefined;
+			const cNvPr = (connector?.['p:nvCxnSpPr'] as XmlObject | undefined)?.['p:cNvPr'] as
+				| XmlObject
+				| undefined;
 			const slideRelationships = slidePath ? this.context.slideRelsMap.get(slidePath) : undefined;
 			const { actionClick, actionHover } = this.context.parseElementActions(
 				cNvPr,

@@ -1,19 +1,15 @@
 import { PptxElement, XmlObject, TextSegment, TextStyle } from '../../types';
+import { xmlAttr, xmlChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeParagraphContentParsing';
 import type { ShapeTextParsingContext } from './PptxHandlerRuntimeTypes';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
-	protected parseShape(
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		shape: any,
-		id: string,
-		slidePath?: string,
-	): PptxElement | null {
+	protected parseShape(shape: XmlObject, id: string, slidePath?: string): PptxElement | null {
 		try {
 			const spPr = shape['p:spPr'] as XmlObject | undefined;
 			const slideRelationshipMap = slidePath ? this.slideRelsMap.get(slidePath) : undefined;
 			const placeholderInfo = this.extractPlaceholderInfo(
-				shape?.['p:nvSpPr']?.['p:nvPr'] as XmlObject | undefined,
+				(shape?.['p:nvSpPr'] as XmlObject | undefined)?.['p:nvPr'] as XmlObject | undefined,
 			);
 			const inheritedPlaceholder =
 				slidePath && placeholderInfo
@@ -29,16 +25,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return null;
 			}
 
-			const off = xfrm['a:off'];
-			const ext = xfrm['a:ext'];
+			const off = xmlChild(xfrm, 'a:off');
+			const ext = xmlChild(xfrm, 'a:ext');
 			if (!off || !ext) {
 				return null;
 			}
 
-			const x = Math.round(parseInt(off['@_x'] || '0') / PptxHandlerRuntime.EMU_PER_PX);
-			const y = Math.round(parseInt(off['@_y'] || '0') / PptxHandlerRuntime.EMU_PER_PX);
-			const width = Math.round(parseInt(ext['@_cx'] || '0') / PptxHandlerRuntime.EMU_PER_PX);
-			const height = Math.round(parseInt(ext['@_cy'] || '0') / PptxHandlerRuntime.EMU_PER_PX);
+			const x = Math.round(parseInt(xmlAttr(off, 'x') || '0') / PptxHandlerRuntime.EMU_PER_PX);
+			const y = Math.round(parseInt(xmlAttr(off, 'y') || '0') / PptxHandlerRuntime.EMU_PER_PX);
+			const width = Math.round(parseInt(xmlAttr(ext, 'cx') || '0') / PptxHandlerRuntime.EMU_PER_PX);
+			const height = Math.round(
+				parseInt(xmlAttr(ext, 'cy') || '0') / PptxHandlerRuntime.EMU_PER_PX,
+			);
 
 			const rotation = xfrm['@_rot'] ? parseInt(xfrm['@_rot']) / 60000 : undefined;
 			const skewX = xfrm['@_skewX'] ? parseInt(String(xfrm['@_skewX']), 10) / 60000 : undefined;
@@ -46,7 +44,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const { flipHorizontal, flipVertical } = this.readFlipState(xfrm);
 
 			// Extract shape geometry
-			const prstGeom = effectiveSpPr?.['a:prstGeom']?.['@_prst'];
+			const prstGeom = xmlAttr(xmlChild(effectiveSpPr, 'a:prstGeom'), 'prst');
 			const shapeAdjustments = this.parseGeometryAdjustments(
 				effectiveSpPr?.['a:prstGeom'] as XmlObject | undefined,
 			);
@@ -117,14 +115,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const textSegments: TextSegment[] = [];
 			const paragraphIndents: Array<{ marginLeft?: number; indent?: number }> = [];
 			const inheritedBodyDefaultRunStyle = this.extractTextRunStyle(
-				inheritedTxBody?.['a:lstStyle']?.['a:defPPr']?.['a:defRPr'],
+				xmlPath(inheritedTxBody, 'a:lstStyle', 'a:defPPr', 'a:defRPr'),
 				'left',
 				slideRelationshipMap,
 			);
 			const bodyDefaultRunStyle = {
 				...inheritedBodyDefaultRunStyle,
 				...this.extractTextRunStyle(
-					txBody?.['a:lstStyle']?.['a:defPPr']?.['a:defRPr'],
+					xmlPath(txBody as XmlObject | undefined, 'a:lstStyle', 'a:defPPr', 'a:defRPr'),
 					'left',
 					slideRelationshipMap,
 				),
@@ -144,9 +142,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				textStyle.color = this.parseColor(fontRef);
 			}
 
-			const bodyPr = (txBody?.['a:bodyPr'] || inheritedTxBody?.['a:bodyPr']) as
-				| XmlObject
-				| undefined;
+			const bodyPr = ((txBody as XmlObject | undefined)?.['a:bodyPr'] ||
+				(inheritedTxBody as XmlObject | undefined)?.['a:bodyPr']) as XmlObject | undefined;
 			const bodyPropResult = this.applyBodyProperties(
 				bodyPr,
 				txBody as XmlObject | undefined,
@@ -167,14 +164,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				this.applyPlaceholderBodyDefaults(textStyle, this.presentationDefaultTextStyle);
 			}
 
-			if (txBody?.['a:p']) {
-				const paras = this.ensureArray(txBody['a:p']);
+			const txBodyObj = txBody as XmlObject | undefined;
+			if (txBodyObj?.['a:p']) {
+				const paras = this.ensureArray(txBodyObj['a:p']) as XmlObject[];
 				const textParts: string[] = [];
 				let didSeedPrimaryTextStyle = false;
 				const effectiveLevelStyles =
 					phDefaults?.levelStyles ?? this.presentationDefaultTextStyle?.levelStyles;
 				const ctx: ShapeTextParsingContext = {
-					txBody,
+					txBody: txBodyObj,
 					inheritedTxBody,
 					bodyDefaultRunStyle,
 					slideRelationshipMap,
@@ -184,13 +182,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					effectiveLevelStyles,
 				};
 
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				paras.forEach((p: any, pIdx: number) => {
-					const styleResult = this.resolveShapeParagraphStyle(p as XmlObject, textStyle, ctx);
+				paras.forEach((p: XmlObject, pIdx: number) => {
+					const styleResult = this.resolveShapeParagraphStyle(p, textStyle, ctx);
 					paragraphIndents.push(styleResult.indent);
 
 					const contentResult = this.collectShapeParagraphContent(
-						p as XmlObject,
+						p,
 						pIdx,
 						paras.length,
 						styleResult.paraAlign,
@@ -221,7 +218,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 
 			// Parse shape-level actions (hyperlinks, slide jumps)
-			const cNvPrForActions = shape?.['p:nvSpPr']?.['p:cNvPr'] as XmlObject | undefined;
+			const cNvPrForActions = (shape?.['p:nvSpPr'] as XmlObject | undefined)?.['p:cNvPr'] as
+				| XmlObject
+				| undefined;
 			const { actionClick, actionHover } = this.parseElementActions(
 				cNvPrForActions,
 				slideRelationshipMap,
@@ -234,11 +233,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				: undefined;
 
 			// Parse shape lock attributes with inheritance
-			const cNvSpPr = shape?.['p:nvSpPr']?.['p:cNvSpPr'] as XmlObject | undefined;
+			const cNvSpPr = (shape?.['p:nvSpPr'] as XmlObject | undefined)?.['p:cNvSpPr'] as
+				| XmlObject
+				| undefined;
 			const spLocksNode = cNvSpPr?.['a:spLocks'] as XmlObject | undefined;
 			const slideLocks = this.parseShapeLocks(spLocksNode);
-			const inheritedCNvSpPr = (inheritedPlaceholder?.shape?.['p:nvSpPr']?.['p:cNvSpPr'] ??
-				inheritedPlaceholder?.picture?.['p:nvPicPr']?.['p:cNvPicPr']) as XmlObject | undefined;
+			const inheritedCNvSpPr =
+				xmlPath(inheritedPlaceholder?.shape, 'p:nvSpPr', 'p:cNvSpPr') ??
+				xmlPath(inheritedPlaceholder?.picture, 'p:nvPicPr', 'p:cNvPicPr');
 			const inheritedLockNode = (inheritedCNvSpPr?.['a:spLocks'] ??
 				inheritedCNvSpPr?.['a:picLocks']) as XmlObject | undefined;
 			const inheritedLocks = this.parseShapeLocks(inheritedLockNode);

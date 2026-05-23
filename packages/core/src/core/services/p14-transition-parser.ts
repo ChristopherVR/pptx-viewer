@@ -114,10 +114,10 @@ export function buildP14ExtLst(
 		p14Child['@_pattern'] = pattern;
 	}
 
-	const transitionExt: XmlObject = {
+	const transitionExt = {
 		'@_uri': '{CE6CE671-F284-4235-B8B7-4F3F06D5A82C}',
 		[`p14:${transitionType}`]: p14Child,
-	};
+	} as unknown as XmlObject;
 
 	if (rawExtLst) {
 		const existing = xmlLookupService.getChildrenArrayByLocalName(rawExtLst, 'ext');

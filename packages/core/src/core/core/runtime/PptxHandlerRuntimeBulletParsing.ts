@@ -1,6 +1,7 @@
 import { BulletInfo, XmlObject } from '../../types';
 import type { PlaceholderTextLevelStyle } from '../../types';
 import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
+import { xmlChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTextDefaults';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -24,14 +25,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const normalizedLevel = Number.isFinite(level) ? Math.min(Math.max(level + 1, 1), 9) : 1;
 		const levelKey = `a:lvl${normalizedLevel}pPr`;
 
-		const inheritedLevelProps = inheritedTxBody?.['a:lstStyle']?.[levelKey] as
-			| XmlObject
-			| undefined;
-		const bodyLevelProps = txBody?.['a:lstStyle']?.[levelKey] as XmlObject | undefined;
-		const defaultBodyProps = txBody?.['a:lstStyle']?.['a:defPPr'] as XmlObject | undefined;
-		const inheritedDefaultBodyProps = inheritedTxBody?.['a:lstStyle']?.['a:defPPr'] as
-			| XmlObject
-			| undefined;
+		const inheritedLevelProps = xmlChild(xmlChild(inheritedTxBody, 'a:lstStyle'), levelKey);
+		const bodyLevelProps = xmlChild(xmlChild(txBody, 'a:lstStyle'), levelKey);
+		const defaultBodyProps = xmlPath(txBody, 'a:lstStyle', 'a:defPPr');
+		const inheritedDefaultBodyProps = xmlPath(inheritedTxBody, 'a:lstStyle', 'a:defPPr');
 
 		const bulletPropsCandidates = [
 			paragraphProps,
@@ -161,7 +158,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const imageRelId = blip?.['@_r:embed'] ? String(blip['@_r:embed']) : undefined;
 			// Preserve the full a:buBlip subtree (a:blip + extLst, a:tile, a:stretch,
 			// a:srcRect) verbatim so the writer can round-trip blipFill modifiers.
-			const imageBlipFillXml: XmlObject = { ...(buBlip as Record<string, unknown>) };
+			const imageBlipFillXml: XmlObject = { ...buBlip };
 			if (imageRelId && slidePath) {
 				// Resolve image data URL from relationship ID
 				const slideRels = this.slideRelsMap.get(slidePath);

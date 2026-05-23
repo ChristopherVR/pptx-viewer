@@ -20,14 +20,14 @@ vi.mock<typeof import('./export-helpers')>(import('./export-helpers'), () => ({
 	downloadBlob: vi.fn<() => void>(),
 	downloadDataUrl: vi.fn<() => void>(),
 	renderElementToCanvas: vi.fn<() => void>(),
-	waitForRender: vi.fn<(...args: any[]) => any>(() => Promise.resolve()),
+	waitForRender: vi.fn(() => Promise.resolve()),
 }));
 
 // Mock pdf-builder to avoid heavy PDF generation
 vi.mock<typeof import('./pdf-builder')>(import('./pdf-builder'), () => ({
-	buildPdfFromImageData: vi.fn<(...args: any[]) => any>(() => 'blob:mock-pdf-url'),
-	buildNotesPdf: vi.fn<(...args: any[]) => any>(() => 'blob:mock-notes-pdf-url'),
-	canvasToJpegData: vi.fn<(...args: any[]) => any>(() => ({
+	buildPdfFromImageData: vi.fn(() => 'blob:mock-pdf-url'),
+	buildNotesPdf: vi.fn(() => 'blob:mock-notes-pdf-url'),
+	canvasToJpegData: vi.fn(() => ({
 		width: 1920,
 		height: 1080,
 		dataUrl: 'data:image/jpeg;base64,abc',
@@ -42,10 +42,10 @@ function makeMockCanvas(): HTMLCanvasElement {
 	const canvas = {
 		width: 1920,
 		height: 1080,
-		toBlob: vi.fn<(...args: any[]) => any>((callback: BlobCallback, type?: string) => {
+		toBlob: vi.fn((callback: BlobCallback, type?: string) => {
 			callback(new Blob(['mock-png-data'], { type: type ?? 'image/png' }));
 		}),
-		toDataURL: vi.fn<(...args: any[]) => any>(() => 'data:image/png;base64,abc123'),
+		toDataURL: vi.fn(() => 'data:image/png;base64,abc123'),
 	} as unknown as HTMLCanvasElement;
 	return canvas;
 }

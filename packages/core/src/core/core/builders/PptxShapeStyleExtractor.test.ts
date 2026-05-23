@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import type { XmlObject } from '../../types';
+import type { ConnectorArrowType, StrokeDashType, XmlObject } from '../../types';
 import { PptxShapeStyleExtractor } from './PptxShapeStyleExtractor';
 
 const EMU_PER_PX = 9525;
@@ -63,12 +63,12 @@ function createExtractor() {
 				'sysDashDotDot',
 			];
 			const s = String(value || '').trim();
-			return valid.includes(s) ? (s as any) : undefined;
+			return valid.includes(s) ? (s as StrokeDashType) : undefined;
 		},
 		normalizeConnectorArrowType: (value: unknown) => {
 			const valid = ['none', 'triangle', 'stealth', 'diamond', 'oval', 'arrow'];
 			const s = String(value || '').trim();
-			return valid.includes(s) ? (s as any) : undefined;
+			return valid.includes(s) ? (s as ConnectorArrowType) : undefined;
 		},
 		ensureArray: (value: unknown): unknown[] => {
 			if (Array.isArray(value)) {

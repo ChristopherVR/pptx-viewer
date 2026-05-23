@@ -8,6 +8,7 @@ import type {
 	PptxTableData,
 } from '../../types';
 import { upsertChartAxisChild } from '../../utils/chart-axis-parser';
+import { xmlChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveTableStyles';
 import {
 	buildChartPoints,
@@ -30,18 +31,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 */
 	protected serializeTableDataToXml(shape: XmlObject, tableData: PptxTableData): void {
 		try {
-			const graphicData = shape['a:graphic']?.['a:graphicData'] as XmlObject | undefined;
-			const tbl = graphicData?.['a:tbl'];
+			const graphicData = xmlPath(shape, 'a:graphic', 'a:graphicData');
+			const tbl = xmlChild(graphicData, 'a:tbl');
 			if (!tbl) {
 				return;
 			}
 
 			// ── Serialize table-level properties (tblPr) ──────────────
-			serializeTablePropertyFlags(tbl as XmlObject, tableData);
+			serializeTablePropertyFlags(tbl, tableData);
 
 			// ── Detect structural changes (row/column count mismatch) ──
 			const xmlRows = this.ensureArray(tbl['a:tr']);
-			const xmlColCount = this.ensureArray((tbl as XmlObject)['a:tblGrid']?.['a:gridCol']).length;
+			const xmlColCount = this.ensureArray(xmlChild(tbl, 'a:tblGrid')?.['a:gridCol']).length;
 			const dataRowCount = tableData.rows.length;
 			const dataColCount = tableData.columnWidths.length;
 

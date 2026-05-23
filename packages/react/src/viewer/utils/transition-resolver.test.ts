@@ -1,3 +1,4 @@
+import type { PptxTransitionType } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
 import { getSlideTransitionAnimations } from './transition-resolver';
@@ -114,7 +115,11 @@ describe('getSlideTransitionAnimations', () => {
 	});
 
 	it('should handle unknown type with fade fallback', () => {
-		const result = getSlideTransitionAnimations('unknownType' as any, 500, undefined);
+		const result = getSlideTransitionAnimations(
+			'unknownType' as unknown as PptxTransitionType,
+			500,
+			undefined,
+		);
 		expect(result.outgoing).toContain('fade-out');
 		expect(result.incoming).toContain('fade-in');
 	});

@@ -28,11 +28,6 @@ describe('parseShowProperties', () => {
 		expect(result.loopContinuously).toBeTruthy();
 	});
 
-	it('should parse loopContinuously when @_loop is boolean true', () => {
-		const result = parseShowProperties({ '@_loop': true });
-		expect(result.loopContinuously).toBeTruthy();
-	});
-
 	it('should parse loopContinuously as false when @_loop is absent', () => {
 		const result = parseShowProperties({});
 		expect(result.loopContinuously).toBeFalsy();

@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
 
+import type {
+	ConnectorPptxElement,
+	ImagePptxElement,
+	MediaPptxElement,
+	TextPptxElement,
+} from '../../types';
 import { ConnectorXmlFactory } from './ConnectorXmlFactory';
 import { MediaGraphicFrameXmlFactory } from './MediaGraphicFrameXmlFactory';
 import { PictureXmlFactory } from './PictureXmlFactory';
@@ -70,7 +76,7 @@ describe('pptxXmlFactoryProvider', () => {
 				width: 100,
 				height: 50,
 				text: 'test',
-			} as any,
+			} as unknown as TextPptxElement,
 		});
 		expect(result['p:nvSpPr']).toBeDefined();
 		expect(result['p:spPr']).toBeDefined();
@@ -88,7 +94,7 @@ describe('pptxXmlFactoryProvider', () => {
 				y: 0,
 				width: 100,
 				height: 0,
-			} as any,
+			} as unknown as ConnectorPptxElement,
 		});
 		expect(result['p:nvCxnSpPr']).toBeDefined();
 		expect(result['p:spPr']).toBeDefined();
@@ -105,7 +111,7 @@ describe('pptxXmlFactoryProvider', () => {
 				y: 0,
 				width: 100,
 				height: 75,
-			} as any,
+			} as unknown as ImagePptxElement,
 			relationshipId: 'rId1',
 		});
 		expect(result['p:nvPicPr']).toBeDefined();
@@ -125,7 +131,7 @@ describe('pptxXmlFactoryProvider', () => {
 				width: 320,
 				height: 240,
 				mediaType: 'video',
-			} as any,
+			} as unknown as MediaPptxElement,
 			relationshipId: 'rId3',
 		});
 		expect(result['p:nvGraphicFramePr']).toBeDefined();

@@ -57,7 +57,7 @@ describe('parseVmlElement - v:rect', () => {
 		};
 		const el = parseVmlElement('v:rect', node, 'test-', 0);
 		expect(el).not.toBeNull();
-		expect((el as any).shapeType).toBe('rect');
+		expect((el as Record<string, unknown>).shapeType).toBe('rect');
 	});
 
 	it('generates correct element id from prefix and index', () => {
@@ -76,8 +76,8 @@ describe('parseVmlElement - v:rect', () => {
 		};
 		const el = parseVmlElement('v:rect', node, 'test-', 0);
 		expect(el).not.toBeNull();
-		expect((el as any).shapeStyle.fillColor).toBe('#ff0000');
-		expect((el as any).shapeStyle.fillMode).toBe('solid');
+		expect((el as { shapeStyle: Record<string, unknown> }).shapeStyle.fillColor).toBe('#ff0000');
+		expect((el as { shapeStyle: Record<string, unknown> }).shapeStyle.fillMode).toBe('solid');
 	});
 
 	it('sets fillMode to none when filled is false', () => {
@@ -87,7 +87,7 @@ describe('parseVmlElement - v:rect', () => {
 		};
 		const el = parseVmlElement('v:rect', node, 'test-', 0);
 		expect(el).not.toBeNull();
-		expect((el as any).shapeStyle.fillMode).toBe('none');
+		expect((el as { shapeStyle: Record<string, unknown> }).shapeStyle.fillMode).toBe('none');
 	});
 
 	it('sets strokeWidth to 0 when stroked is false', () => {
@@ -97,7 +97,7 @@ describe('parseVmlElement - v:rect', () => {
 		};
 		const el = parseVmlElement('v:rect', node, 'test-', 0);
 		expect(el).not.toBeNull();
-		expect((el as any).shapeStyle.strokeWidth).toBe(0);
+		expect((el as { shapeStyle: Record<string, unknown> }).shapeStyle.strokeWidth).toBe(0);
 	});
 });
 
@@ -112,7 +112,7 @@ describe('parseVmlElement - v:oval', () => {
 		};
 		const el = parseVmlElement('v:oval', node, 'test-', 0);
 		expect(el).not.toBeNull();
-		expect((el as any).shapeType).toBe('ellipse');
+		expect((el as Record<string, unknown>).shapeType).toBe('ellipse');
 	});
 });
 
@@ -128,7 +128,7 @@ describe('parseVmlElement - v:line', () => {
 		};
 		const el = parseVmlElement('v:line', node, 'test-', 0);
 		expect(el).not.toBeNull();
-		expect((el as any).shapeType).toBe('line');
+		expect((el as Record<string, unknown>).shapeType).toBe('line');
 		expect(el!.width).toBeGreaterThan(0);
 		expect(el!.height).toBeGreaterThan(0);
 	});
@@ -156,7 +156,7 @@ describe('parseVmlElement - v:roundrect', () => {
 		};
 		const el = parseVmlElement('v:roundrect', node, 'test-', 0);
 		expect(el).not.toBeNull();
-		expect((el as any).shapeType).toBe('roundRect');
+		expect((el as Record<string, unknown>).shapeType).toBe('roundRect');
 	});
 
 	it('extracts arc size as shape adjustment', () => {
@@ -166,8 +166,8 @@ describe('parseVmlElement - v:roundrect', () => {
 		};
 		const el = parseVmlElement('v:roundrect', node, 'test-', 0);
 		expect(el).not.toBeNull();
-		expect((el as any).shapeAdjustments).toBeDefined();
-		expect((el as any).shapeAdjustments.adj).toBe(10000); // 0.2 * 50000
+		expect((el as { shapeAdjustments: Record<string, unknown> }).shapeAdjustments).toBeDefined();
+		expect((el as { shapeAdjustments: Record<string, unknown> }).shapeAdjustments.adj).toBe(10000); // 0.2 * 50000
 	});
 });
 
@@ -220,8 +220,8 @@ describe('parseVmlElement - textbox', () => {
 		};
 		const el = parseVmlElement('v:rect', node, 'test-', 0);
 		expect(el).not.toBeNull();
-		expect((el as any).text).toBe('Hello World');
-		expect((el as any).textSegments).toHaveLength(1);
+		expect((el as Record<string, unknown>).text).toBe('Hello World');
+		expect((el as Record<string, unknown>).textSegments).toHaveLength(1);
 	});
 });
 
@@ -256,7 +256,7 @@ describe('parseVmlElements', () => {
 		};
 		const elements = parseVmlElements(container);
 		expect(elements).toHaveLength(1);
-		expect((elements[0] as any).shapeType).toBe('ellipse');
+		expect((elements[0] as Record<string, unknown>).shapeType).toBe('ellipse');
 	});
 
 	it('skips elements that fail to parse', () => {

@@ -207,8 +207,8 @@ describe('groupBuilder', () => {
 			.build();
 		expect(el.children).toHaveLength(1);
 		expect(el.children[0].type).toBe('text');
-		expect((el.children[0] as any).text).toBe('Built');
-		expect((el.children[0] as any).textStyle?.fontSize).toBe(18);
+		expect((el.children[0] as Record<string, unknown>).text).toBe('Built');
+		expect((el.children[0] as Record<string, unknown>).textStyle?.fontSize).toBe(18);
 	});
 
 	it('.addChildren([...]) adds multiple elements at once', () => {
@@ -262,8 +262,12 @@ describe('groupBuilder', () => {
 		const outerGroup = GroupBuilder.create().addChild(innerGroup).build();
 		expect(outerGroup.children).toHaveLength(1);
 		expect(outerGroup.children[0].type).toBe('group');
-		expect((outerGroup.children[0] as any).children).toHaveLength(1);
-		expect((outerGroup.children[0] as any).children[0].type).toBe('text');
+		expect((outerGroup.children[0] as { children: Array<{ type: string }> }).children).toHaveLength(
+			1,
+		);
+		expect((outerGroup.children[0] as { children: Array<{ type: string }> }).children[0].type).toBe(
+			'text',
+		);
 	});
 
 	// -- Full chaining test -----------------------------------------------

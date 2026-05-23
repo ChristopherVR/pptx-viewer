@@ -86,13 +86,6 @@ describe('extractOleChartBuilds', () => {
 		expect(extractOleChartBuilds(bldLst)[0].animBg).toBeTruthy();
 	});
 
-	it('sets animBg to true when @_animBg is boolean true', () => {
-		const bldLst = {
-			'p:bldOleChart': { '@_spid': '1', '@_animBg': true },
-		};
-		expect(extractOleChartBuilds(bldLst)[0].animBg).toBeTruthy();
-	});
-
 	it("sets animBg to undefined when @_animBg is not '1'", () => {
 		const bldLst = {
 			'p:bldOleChart': { '@_spid': '1', '@_animBg': '0' },

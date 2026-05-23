@@ -18,8 +18,10 @@ describe('slideBuilder.addFreeform', () => {
 		const slide = new SlideBuilder(1).addFreeform('M 0 0 L 100 50 L 50 100 Z').build();
 		expect(slide.elements).toHaveLength(1);
 		expect(slide.elements[0].type).toBe('shape');
-		expect((slide.elements[0] as any).shapeType).toBe('custom');
-		expect((slide.elements[0] as any).pathData).toBe('M 0 0 L 100 50 L 50 100 Z');
+		expect((slide.elements[0] as Record<string, unknown>).shapeType).toBe('custom');
+		expect((slide.elements[0] as Record<string, unknown>).pathData).toBe(
+			'M 0 0 L 100 50 L 50 100 Z',
+		);
 	});
 
 	it('generates an id with frm prefix', () => {
@@ -42,8 +44,10 @@ describe('slideBuilder.addFreeform', () => {
 		expect(el.y).toBe(75);
 		expect(el.width).toBe(200);
 		expect(el.height).toBe(150);
-		expect((el as any).shapeStyle?.strokeColor).toBe('#FF0000');
-		expect((el as any).shapeStyle?.strokeWidth).toBe(3);
+		expect((el as { shapeStyle?: Record<string, unknown> }).shapeStyle?.strokeColor).toBe(
+			'#FF0000',
+		);
+		expect((el as { shapeStyle?: Record<string, unknown> }).shapeStyle?.strokeWidth).toBe(3);
 	});
 
 	it('returns the builder for chaining', () => {
@@ -63,9 +67,9 @@ describe('slideBuilder.addFreeform', () => {
 		expect(slide.elements).toHaveLength(3);
 		expect(slide.elements[0].type).toBe('text');
 		expect(slide.elements[1].type).toBe('shape');
-		expect((slide.elements[1] as any).shapeType).toBe('custom');
+		expect((slide.elements[1] as Record<string, unknown>).shapeType).toBe('custom');
 		expect(slide.elements[2].type).toBe('shape');
-		expect((slide.elements[2] as any).shapeType).toBe('rect');
+		expect((slide.elements[2] as Record<string, unknown>).shapeType).toBe('rect');
 	});
 });
 
@@ -79,9 +83,9 @@ describe('slideBuilder.addBuilderElement', () => {
 		const slide = new SlideBuilder(1).addBuilderElement(textBuilder).build();
 		expect(slide.elements).toHaveLength(1);
 		expect(slide.elements[0].type).toBe('text');
-		expect((slide.elements[0] as any).text).toBe('Hello');
-		expect((slide.elements[0] as any).textStyle?.fontSize).toBe(24);
-		expect((slide.elements[0] as any).textStyle?.bold).toBeTruthy();
+		expect((slide.elements[0] as Record<string, unknown>).text).toBe('Hello');
+		expect((slide.elements[0] as Record<string, unknown>).textStyle?.fontSize).toBe(24);
+		expect((slide.elements[0] as Record<string, unknown>).textStyle?.bold).toBeTruthy();
 	});
 
 	it('works with ShapeBuilder', () => {
@@ -89,7 +93,7 @@ describe('slideBuilder.addBuilderElement', () => {
 		const slide = new SlideBuilder(1).addBuilderElement(shapeBuilder).build();
 		expect(slide.elements).toHaveLength(1);
 		expect(slide.elements[0].type).toBe('shape');
-		expect((slide.elements[0] as any).shapeType).toBe('ellipse');
+		expect((slide.elements[0] as Record<string, unknown>).shapeType).toBe('ellipse');
 		expect(slide.elements[0].x).toBe(10);
 	});
 
@@ -100,7 +104,7 @@ describe('slideBuilder.addBuilderElement', () => {
 		const slide = new SlideBuilder(1).addBuilderElement(fakeBuilder).build();
 		expect(slide.elements).toHaveLength(1);
 		expect(slide.elements[0].type).toBe('text');
-		expect((slide.elements[0] as any).text).toBe('Fake');
+		expect((slide.elements[0] as Record<string, unknown>).text).toBe('Fake');
 	});
 
 	it('returns the builder for chaining', () => {
@@ -284,7 +288,7 @@ describe('slideBuilder.getLastElement', () => {
 describe('slideBuilder.setName', () => {
 	it('sets the name on the built slide', () => {
 		const slide = new SlideBuilder(1).setName('Introduction').build();
-		expect((slide as any).name).toBe('Introduction');
+		expect(slide.name).toBe('Introduction');
 	});
 
 	it('returns the builder for chaining', () => {
@@ -295,7 +299,7 @@ describe('slideBuilder.setName', () => {
 
 	it('can be overwritten with a subsequent call', () => {
 		const slide = new SlideBuilder(1).setName('Draft').setName('Final').build();
-		expect((slide as any).name).toBe('Final');
+		expect(slide.name).toBe('Final');
 	});
 
 	it('chains with other slide-level setters', () => {
@@ -305,13 +309,13 @@ describe('slideBuilder.setName', () => {
 			.setHidden(false)
 			.addText('Content')
 			.build();
-		expect((slide as any).name).toBe('Summary');
+		expect(slide.name).toBe('Summary');
 		expect(slide.notes).toBe('Remember the key points');
 		expect(slide.elements).toHaveLength(1);
 	});
 
 	it('accepts empty string as name', () => {
 		const slide = new SlideBuilder(1).setName('').build();
-		expect((slide as any).name).toBe('');
+		expect(slide.name).toBe('');
 	});
 });

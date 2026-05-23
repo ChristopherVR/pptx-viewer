@@ -782,7 +782,7 @@ describe('additional round-trip scenarios', () => {
 		expect(reloaded.slides).toHaveLength(1);
 		// Images may reload as "image" or might have a different classifier
 		const imgEl = reloaded.slides[0].elements.find(
-			(e) => e.type === 'image' || (e as any).type === 'picture',
+			(e) => e.type === 'image' || (e as { type: string }).type === 'picture',
 		);
 		expect(imgEl).toBeDefined();
 	});

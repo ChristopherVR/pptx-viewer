@@ -6,6 +6,7 @@ import type {
 	PptxHandoutMaster,
 	PptxNotesMaster,
 } from '../../types';
+import { xmlAttr, xmlChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeDocProperties';
 import { parseHeaderFooterFlags } from './PptxHandlerRuntimeMasterElements';
 
@@ -17,11 +18,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (!bg) {
 			return undefined;
 		}
-		const bgPr = bg['p:bgPr'] as XmlObject | undefined;
+		const bgPr = xmlChild(bg, 'p:bgPr');
 		if (bgPr) {
-			return this.parseColor(bgPr['a:solidFill']);
+			return this.parseColor(xmlChild(bgPr, 'a:solidFill'));
 		}
-		const bgRef = bg['p:bgRef'] as XmlObject | undefined;
+		const bgRef = xmlChild(bg, 'p:bgRef');
 		if (bgRef) {
 			return this.parseColor(bgRef);
 		}
@@ -40,13 +41,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const shapes = this.ensureArray(spTree['p:sp']);
 		const result: Array<{ type: string; idx?: string }> = [];
 		for (const sp of shapes) {
-			const nvPr = sp?.['p:nvSpPr']?.['p:nvPr'] as XmlObject | undefined;
-			const ph = nvPr?.['p:ph'] as XmlObject | undefined;
+			const ph = xmlPath(sp, 'p:nvSpPr', 'p:nvPr', 'p:ph');
 			if (!ph) {
 				continue;
 			}
-			const type = String(ph['@_type'] || 'body').trim();
-			const idx = ph['@_idx'] !== undefined ? String(ph['@_idx']) : undefined;
+			const type = (xmlAttr(ph, 'type') ?? 'body').trim();
+			const idx = xmlAttr(ph, 'idx');
 			result.push({ type, idx });
 		}
 		return result;
@@ -157,11 +157,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 
 				// Background
-				const bg = sldMaster['p:cSld']?.['p:bg'] as XmlObject | undefined;
+				const bg = (sldMaster['p:cSld'] as XmlObject | undefined)?.['p:bg'] as
+					| XmlObject
+					| undefined;
 				const backgroundColor = this.parseBackgroundColor(bg);
 
 				// Placeholders
-				const spTree = sldMaster['p:cSld']?.['p:spTree'] as XmlObject | undefined;
+				const spTree = (sldMaster['p:cSld'] as XmlObject | undefined)?.['p:spTree'] as
+					| XmlObject
+					| undefined;
 				const placeholders = this.extractPlaceholderList(spTree);
 
 				// Theme reference (from relationship)
@@ -175,7 +179,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					const relsXml = await relsFile.async('string');
 					const relsData = this.parser.parse(relsXml) as XmlObject;
 					const rels = this.ensureArray(
-						relsData?.['Relationships']?.['Relationship'],
+						xmlChild(relsData, 'Relationships')?.['Relationship'],
 					) as XmlObject[];
 					for (const rel of rels) {
 						const relType = String(rel['@_Type'] || '');
@@ -192,7 +196,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					const relsXml = await relsFile.async('string');
 					const relsData = this.parser.parse(relsXml) as XmlObject;
 					const rels = this.ensureArray(
-						relsData?.['Relationships']?.['Relationship'],
+						xmlChild(relsData, 'Relationships')?.['Relationship'],
 					) as XmlObject[];
 					for (const rel of rels) {
 						const relType = String(rel['@_Type'] || '');
@@ -244,10 +248,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return undefined;
 			}
 
-			const bg = master['p:cSld']?.['p:bg'] as XmlObject | undefined;
+			const bg = xmlPath(master, 'p:cSld', 'p:bg');
 			const bgColor = this.parseBackgroundColor(bg);
 
-			const spTree = master['p:cSld']?.['p:spTree'] as XmlObject | undefined;
+			const spTree = xmlPath(master, 'p:cSld', 'p:spTree');
 			const placeholders = this.extractPlaceholderList(spTree);
 
 			const result: PptxHandoutMaster = { path, backgroundColor: bgColor, placeholders };
@@ -280,10 +284,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return undefined;
 			}
 
-			const bg = master['p:cSld']?.['p:bg'] as XmlObject | undefined;
+			const bg = xmlPath(master, 'p:cSld', 'p:bg');
 			const bgColor = this.parseBackgroundColor(bg);
 
-			const spTree = master['p:cSld']?.['p:spTree'] as XmlObject | undefined;
+			const spTree = xmlPath(master, 'p:cSld', 'p:spTree');
 			const placeholders = this.extractPlaceholderList(spTree);
 
 			const result: PptxNotesMaster = { path, backgroundColor: bgColor, placeholders };
@@ -328,7 +332,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const layout: PptxSlideLayout = { path: layoutPath };
 
 			// Name from p:cSld/@name
-			const cSldName = String(sldLayout['p:cSld']?.['@_name'] || '').trim();
+			const cSldName = (xmlAttr(xmlChild(sldLayout, 'p:cSld'), 'name') ?? '').trim();
 			if (cSldName) {
 				layout.name = cSldName;
 			}
@@ -397,14 +401,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 
 			// Background
-			const bg = sldLayout['p:cSld']?.['p:bg'] as XmlObject | undefined;
+			const bg = xmlPath(sldLayout, 'p:cSld', 'p:bg');
 			const bgColor = this.parseBackgroundColor(bg);
 			if (bgColor) {
 				layout.backgroundColor = bgColor;
 			}
 
 			// Placeholders
-			const spTree = sldLayout['p:cSld']?.['p:spTree'] as XmlObject | undefined;
+			const spTree = xmlPath(sldLayout, 'p:cSld', 'p:spTree');
 			const placeholders = this.extractPlaceholderList(spTree);
 			if (placeholders.length > 0) {
 				layout.placeholders = placeholders;
@@ -422,7 +426,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 */
 	protected parseCustomShows(): PptxCustomShow[] | undefined {
 		try {
-			const custShowLst = this.presentationData?.['p:presentation']?.['p:custShowLst'];
+			const custShowLst = xmlPath(this.presentationData, 'p:presentation', 'p:custShowLst');
 			if (!custShowLst) {
 				return undefined;
 			}
@@ -435,7 +439,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return custShows.map((show: XmlObject) => {
 				const name = String(show['@_name'] || '');
 				const id = String(show['@_id'] || '');
-				const sldLst = show['p:sldLst'];
+				const sldLst = show['p:sldLst'] as XmlObject | undefined;
 				const sldEntries = sldLst ? this.ensureArray(sldLst['p:sld']) : [];
 				const slideRIds = sldEntries
 					.map((sld: XmlObject) => String(sld['@_r:id'] || ''))

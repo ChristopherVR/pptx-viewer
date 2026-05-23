@@ -343,7 +343,11 @@ describe('evaluateGeometryPaths — edge cases', () => {
 			},
 		];
 		// moveTo has a non-object value, should be skipped
-		const result = evaluateGeometryPaths(pathNodes as any, vars, ensureArray);
+		const result = evaluateGeometryPaths(
+			pathNodes as ReadonlyArray<Record<string, unknown>>,
+			vars,
+			ensureArray,
+		);
 		expect(result).not.toBeNull();
 		expect(result!.pathData).toContain('L 50 50');
 		expect(result!.pathData).not.toContain('M ');

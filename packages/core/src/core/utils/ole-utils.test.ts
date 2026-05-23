@@ -162,6 +162,6 @@ describe('getOleObjectTypeLabel', () => {
 	});
 
 	it('returns default label for unknown type', () => {
-		expect(getOleObjectTypeLabel('unknown' as any)).toBe('Embedded Object');
+		expect(getOleObjectTypeLabel('unknown')).toBe('Embedded Object');
 	});
 });

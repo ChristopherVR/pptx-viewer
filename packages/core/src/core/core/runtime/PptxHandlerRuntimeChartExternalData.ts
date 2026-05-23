@@ -66,9 +66,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				const chartRelsData = this.parser.parse(chartRelsXml) as XmlObject;
 				const relsContainer = chartRelsData?.Relationships as XmlObject | undefined;
 				if (relsContainer?.Relationship) {
-					const rels = Array.isArray(relsContainer.Relationship)
-						? relsContainer.Relationship
-						: [relsContainer.Relationship];
+					const rels = (
+						Array.isArray(relsContainer.Relationship)
+							? relsContainer.Relationship
+							: [relsContainer.Relationship]
+					) as XmlObject[];
 					for (const rel of rels) {
 						if (String(rel?.['@_Id'] || '') === relId) {
 							targetPath = String(rel?.['@_Target'] || '').trim() || undefined;

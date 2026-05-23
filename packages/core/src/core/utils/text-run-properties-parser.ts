@@ -505,7 +505,7 @@ export function parseRunSymbolFont(rPr: XmlObject | undefined): string | undefin
 	if (!rPr) {
 		return undefined;
 	}
-	const symNode = rPr['a:sym'];
+	const symNode = rPr['a:sym'] as XmlObject | undefined;
 	if (!symNode) {
 		return undefined;
 	}

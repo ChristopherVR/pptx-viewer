@@ -32,7 +32,7 @@ function parseBoolVal(node: XmlObject | undefined): boolean | undefined {
 		// Element present without @val => spec default is true.
 		return true;
 	}
-	if (val === '0' || val === 'false' || val === false) {
+	if (val === '0' || val === 'false') {
 		return false;
 	}
 	return true;
@@ -72,7 +72,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		const val = plotVisOnlyNode['@_val'];
-		if (val === '0' || val === 'false' || val === false) {
+		if (val === '0' || val === 'false') {
 			return false;
 		}
 		return true;

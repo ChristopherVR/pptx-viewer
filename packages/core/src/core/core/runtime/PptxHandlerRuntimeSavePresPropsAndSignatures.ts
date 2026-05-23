@@ -20,7 +20,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (relsXml) {
 			try {
 				const relsData = this.parser.parse(relsXml) as XmlObject;
-				const relNodes = this.ensureArray(relsData?.Relationships?.Relationship) as XmlObject[];
+				const relNodes = this.ensureArray(
+					(relsData?.Relationships as XmlObject | undefined)?.Relationship,
+				) as XmlObject[];
 				const relNode = relNodes.find((node) => {
 					const relType = String(node?.['@_Type'] || '');
 					const relTarget = String(node?.['@_Target'] || '');

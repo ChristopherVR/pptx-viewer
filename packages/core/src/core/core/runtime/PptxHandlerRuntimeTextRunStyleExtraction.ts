@@ -1,5 +1,6 @@
 import { TextStyle, XmlObject } from '../../types';
 import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
+import { xmlAttr, xmlChild } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTextRunEffects';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -107,7 +108,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		// Text highlight colour
 		if (runProperties['a:highlight']) {
-			const highlightHex = this.parseColor(runProperties['a:highlight']);
+			const highlightHex = this.parseColor(xmlChild(runProperties, 'a:highlight'));
 			if (highlightHex) {
 				style.highlightColor = highlightHex;
 			}
@@ -130,36 +131,32 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			style.rtl = runRtl;
 		}
 
-		const latin = runProperties['a:latin'];
-		const eastAsian = runProperties['a:ea'];
-		const complexScript = runProperties['a:cs'];
+		const latin = xmlChild(runProperties, 'a:latin');
+		const eastAsian = xmlChild(runProperties, 'a:ea');
+		const complexScript = xmlChild(runProperties, 'a:cs');
 		const chosenTypeface =
-			latin?.['@_typeface'] || eastAsian?.['@_typeface'] || complexScript?.['@_typeface'];
-		const resolvedTypeface = this.resolveThemeTypeface(
-			typeof chosenTypeface === 'string' ? chosenTypeface : undefined,
-		);
+			xmlAttr(latin, 'typeface') ||
+			xmlAttr(eastAsian, 'typeface') ||
+			xmlAttr(complexScript, 'typeface');
+		const resolvedTypeface = this.resolveThemeTypeface(chosenTypeface);
 		if (resolvedTypeface) {
 			style.fontFamily = resolvedTypeface;
 		}
 
 		// Store per-script font families for Unicode font fallback
-		const eaTypeface = this.resolveThemeTypeface(
-			typeof eastAsian?.['@_typeface'] === 'string' ? eastAsian['@_typeface'] : undefined,
-		);
+		const eaTypeface = this.resolveThemeTypeface(xmlAttr(eastAsian, 'typeface'));
 		if (eaTypeface) {
 			style.eastAsiaFont = eaTypeface;
 		}
-		const csTypeface = this.resolveThemeTypeface(
-			typeof complexScript?.['@_typeface'] === 'string' ? complexScript['@_typeface'] : undefined,
-		);
+		const csTypeface = this.resolveThemeTypeface(xmlAttr(complexScript, 'typeface'));
 		if (csTypeface) {
 			style.complexScriptFont = csTypeface;
 		}
 
-		const solidFill = runProperties['a:solidFill'];
+		const solidFill = xmlChild(runProperties, 'a:solidFill');
 		if (solidFill) {
 			style.color = this.parseColor(solidFill);
-			const colorXml = extractColorChoiceXml(solidFill as XmlObject);
+			const colorXml = extractColorChoiceXml(solidFill);
 			if (colorXml) {
 				style.colorXml = colorXml;
 			}
@@ -177,11 +174,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		// Symbol font (a:sym)
-		const symNode = runProperties['a:sym'];
+		const symNode = xmlChild(runProperties, 'a:sym');
 		if (symNode) {
-			const symTypeface = this.normalizeTypefaceToken(
-				typeof symNode['@_typeface'] === 'string' ? symNode['@_typeface'] : '',
-			);
+			const symTypeface = this.normalizeTypefaceToken(xmlAttr(symNode, 'typeface') || '');
 			if (symTypeface) {
 				style.symbolFont = symTypeface;
 			}
@@ -236,10 +231,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		// Per-script font metadata (CT_TextFont @panose, @pitchFamily, @charset).
-		this.applyTextFontMetadata(style, latin as XmlObject | undefined, 'latin');
-		this.applyTextFontMetadata(style, eastAsian as XmlObject | undefined, 'eastAsia');
-		this.applyTextFontMetadata(style, complexScript as XmlObject | undefined, 'complexScript');
-		this.applyTextFontMetadata(style, runProperties['a:sym'] as XmlObject | undefined, 'symbol');
+		this.applyTextFontMetadata(style, latin, 'latin');
+		this.applyTextFontMetadata(style, eastAsian, 'eastAsia');
+		this.applyTextFontMetadata(style, complexScript, 'complexScript');
+		this.applyTextFontMetadata(style, symNode, 'symbol');
 
 		// Text run effects (a:effectLst on a:rPr)
 		const runEffectList = runProperties['a:effectLst'] as XmlObject | undefined;

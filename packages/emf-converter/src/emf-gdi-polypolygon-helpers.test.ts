@@ -6,7 +6,7 @@ import {
 	handlePolyPolygon16,
 } from './emf-gdi-polypolygon-helpers';
 import { defaultState } from './emf-types';
-import type { EmfGdiReplayCtx, DrawState } from './emf-types';
+import type { CanvasContext, EmfGdiReplayCtx, DrawState } from './emf-types';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -21,21 +21,15 @@ function buildBuffer(size: number, writer: (view: DataView) => void): DataView {
 
 /** Create a mock canvas context that records path commands. */
 function mockCtx() {
-	const calls: Array<{ method: string; args: any[] }> = [];
+	const calls: Array<{ method: string; args: unknown[] }> = [];
 	return {
 		calls,
-		beginPath: vi.fn<(...args: any[]) => any>(() => calls.push({ method: 'beginPath', args: [] })),
-		moveTo: vi.fn<(...args: any[]) => any>((x: number, y: number) =>
-			calls.push({ method: 'moveTo', args: [x, y] }),
-		),
-		lineTo: vi.fn<(...args: any[]) => any>((x: number, y: number) =>
-			calls.push({ method: 'lineTo', args: [x, y] }),
-		),
-		closePath: vi.fn<(...args: any[]) => any>(() => calls.push({ method: 'closePath', args: [] })),
-		fill: vi.fn<(...args: any[]) => any>((rule?: string) =>
-			calls.push({ method: 'fill', args: [rule] }),
-		),
-		stroke: vi.fn<(...args: any[]) => any>(() => calls.push({ method: 'stroke', args: [] })),
+		beginPath: vi.fn(() => calls.push({ method: 'beginPath', args: [] })),
+		moveTo: vi.fn((x: number, y: number) => calls.push({ method: 'moveTo', args: [x, y] })),
+		lineTo: vi.fn((x: number, y: number) => calls.push({ method: 'lineTo', args: [x, y] })),
+		closePath: vi.fn(() => calls.push({ method: 'closePath', args: [] })),
+		fill: vi.fn((rule?: string) => calls.push({ method: 'fill', args: [rule] })),
+		stroke: vi.fn(() => calls.push({ method: 'stroke', args: [] })),
 		// Stubs needed by applyPen / applyBrush
 		setLineDash: vi.fn<() => void>(),
 		lineWidth: 1,
@@ -58,7 +52,7 @@ function makeCtx(
 	const ctx = mockCtx();
 	const ds = { ...defaultState(), ...state };
 	const rCtx: EmfGdiReplayCtx = {
-		ctx: ctx as any,
+		ctx: ctx as unknown as CanvasContext,
 		view,
 		objectTable: new Map(),
 		state: ds,

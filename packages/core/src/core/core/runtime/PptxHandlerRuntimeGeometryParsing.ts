@@ -27,7 +27,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (!prstGeom) {
 			return undefined;
 		}
-		const gdNodes = this.ensureArray(prstGeom?.['a:avLst']?.['a:gd']) as XmlObject[];
+		const gdNodes = this.ensureArray(
+			(prstGeom?.['a:avLst'] as XmlObject | undefined)?.['a:gd'],
+		) as XmlObject[];
 		if (gdNodes.length === 0) {
 			return undefined;
 		}

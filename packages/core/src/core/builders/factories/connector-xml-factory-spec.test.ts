@@ -19,9 +19,7 @@ function createMockContext(
 	};
 }
 
-function createConnectorElement(
-	overrides: Partial<ConnectorPptxElement> = {},
-): ConnectorPptxElement {
+function createConnectorElement(overrides: Record<string, unknown> = {}): ConnectorPptxElement {
 	return {
 		type: 'connector',
 		id: 'cxn_1',
@@ -30,7 +28,7 @@ function createConnectorElement(
 		width: 300,
 		height: 0,
 		...overrides,
-	} as ConnectorPptxElement;
+	} as unknown as ConnectorPptxElement;
 }
 
 describe('connectorXmlFactory', () => {
@@ -46,7 +44,7 @@ describe('connectorXmlFactory', () => {
 	it('should default to straightConnector1 for line shapeType', () => {
 		const factory = new ConnectorXmlFactory(createMockContext());
 		const result = factory.createXmlElement({
-			element: createConnectorElement({ shapeType: 'line' } as any),
+			element: createConnectorElement({ shapeType: 'line' }),
 		});
 		const spPr = result['p:spPr'] as XmlObject;
 		const prstGeom = spPr['a:prstGeom'] as XmlObject;
@@ -62,7 +60,7 @@ describe('connectorXmlFactory', () => {
 		const result = factory.createXmlElement({
 			element: createConnectorElement({
 				shapeType: 'bentConnector3',
-			} as any),
+			}),
 		});
 		const spPr = result['p:spPr'] as XmlObject;
 		const prstGeom = spPr['a:prstGeom'] as XmlObject;
@@ -96,7 +94,7 @@ describe('connectorXmlFactory', () => {
 				shapeStyle: {
 					connectorStartArrow: 'triangle',
 				},
-			} as any),
+			}),
 		});
 		const spPr = result['p:spPr'] as XmlObject;
 		const ln = spPr['a:ln'] as XmlObject;
@@ -111,7 +109,7 @@ describe('connectorXmlFactory', () => {
 				shapeStyle: {
 					connectorEndArrow: 'stealth',
 				},
-			} as any),
+			}),
 		});
 		const spPr = result['p:spPr'] as XmlObject;
 		const ln = spPr['a:ln'] as XmlObject;
@@ -126,7 +124,7 @@ describe('connectorXmlFactory', () => {
 				shapeStyle: {
 					connectorStartArrow: 'none',
 				},
-			} as any),
+			}),
 		});
 		const spPr = result['p:spPr'] as XmlObject;
 		const ln = spPr['a:ln'] as XmlObject;
@@ -141,7 +139,7 @@ describe('connectorXmlFactory', () => {
 					connectorStartArrow: 'diamond',
 					connectorEndArrow: 'oval',
 				},
-			} as any),
+			}),
 		});
 		const spPr = result['p:spPr'] as XmlObject;
 		const ln = spPr['a:ln'] as XmlObject;
@@ -156,7 +154,7 @@ describe('connectorXmlFactory', () => {
 				shapeStyle: {
 					strokeDash: 'dash',
 				},
-			} as any),
+			}),
 		});
 		const spPr = result['p:spPr'] as XmlObject;
 		const ln = spPr['a:ln'] as XmlObject;
@@ -175,7 +173,7 @@ describe('connectorXmlFactory', () => {
 						{ dash: 100000, space: 100000 },
 					],
 				},
-			} as any),
+			}),
 		});
 		const spPr = result['p:spPr'] as XmlObject;
 		const ln = spPr['a:ln'] as XmlObject;
@@ -201,7 +199,7 @@ describe('connectorXmlFactory', () => {
 						connectionSiteIndex: 1,
 					},
 				},
-			} as any),
+			}),
 		});
 		const nvCxnSpPr = result['p:nvCxnSpPr'] as XmlObject;
 		const cNvCxnSpPr = nvCxnSpPr['p:cNvCxnSpPr'] as XmlObject;
@@ -221,7 +219,7 @@ describe('connectorXmlFactory', () => {
 					strokeColor: '#FF0000',
 					strokeWidth: 3,
 				},
-			} as any),
+			}),
 		});
 		const spPr = result['p:spPr'] as XmlObject;
 		const ln = spPr['a:ln'] as XmlObject;
@@ -240,7 +238,7 @@ describe('connectorXmlFactory', () => {
 					strokeColor: 'transparent',
 					strokeWidth: 2,
 				},
-			} as any),
+			}),
 		});
 		const spPr = result['p:spPr'] as XmlObject;
 		const ln = spPr['a:ln'] as XmlObject;

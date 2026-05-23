@@ -99,12 +99,12 @@ export function parseSeriesTrendlines(
 			}
 
 			const dispRSq = xmlLookup.getChildByLocalName(node, 'dispRSqr');
-			if (dispRSq?.['@_val'] === '1' || dispRSq?.['@_val'] === true) {
+			if (dispRSq?.['@_val'] === '1') {
 				result.displayRSq = true;
 			}
 
 			const dispEq = xmlLookup.getChildByLocalName(node, 'dispEq');
-			if (dispEq?.['@_val'] === '1' || dispEq?.['@_val'] === true) {
+			if (dispEq?.['@_val'] === '1') {
 				result.displayEq = true;
 			}
 
@@ -190,25 +190,25 @@ export function parseDataTable(
 	let hasProps = false;
 
 	const hBorder = xmlLookup.getChildByLocalName(dTable, 'showHorzBorder');
-	if (hBorder?.['@_val'] === '1' || hBorder?.['@_val'] === true) {
+	if (hBorder?.['@_val'] === '1') {
 		result.showHorzBorder = true;
 		hasProps = true;
 	}
 
 	const vBorder = xmlLookup.getChildByLocalName(dTable, 'showVertBorder');
-	if (vBorder?.['@_val'] === '1' || vBorder?.['@_val'] === true) {
+	if (vBorder?.['@_val'] === '1') {
 		result.showVertBorder = true;
 		hasProps = true;
 	}
 
 	const outline = xmlLookup.getChildByLocalName(dTable, 'showOutline');
-	if (outline?.['@_val'] === '1' || outline?.['@_val'] === true) {
+	if (outline?.['@_val'] === '1') {
 		result.showOutline = true;
 		hasProps = true;
 	}
 
 	const keys = xmlLookup.getChildByLocalName(dTable, 'showKeys');
-	if (keys?.['@_val'] === '1' || keys?.['@_val'] === true) {
+	if (keys?.['@_val'] === '1') {
 		result.showKeys = true;
 		hasProps = true;
 	}

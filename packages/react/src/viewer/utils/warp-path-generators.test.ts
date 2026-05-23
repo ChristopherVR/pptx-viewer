@@ -1,3 +1,4 @@
+import type { PptxTextWarpPreset } from 'pptx-viewer-core';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import {
@@ -87,7 +88,7 @@ describe('shouldUseSvgWarp', () => {
 	});
 
 	it('should return false for unknown preset strings', () => {
-		expect(shouldUseSvgWarp('textUnknownShape' as any)).toBeFalsy();
+		expect(shouldUseSvgWarp('textUnknownShape' as unknown as PptxTextWarpPreset)).toBeFalsy();
 	});
 });
 
@@ -138,7 +139,7 @@ describe('getWarpPath', () => {
 	});
 
 	it('should return fallback straight line for unknown preset', () => {
-		const path = getWarpPath('textUnknown' as any, 200, 100, 0, 1);
+		const path = getWarpPath('textUnknown' as unknown as PptxTextWarpPreset, 200, 100, 0, 1);
 		// Fallback: M 0,{y} L {w},{y}
 		expect(path).toContain('M 0,');
 		expect(path).toContain('L 200,');

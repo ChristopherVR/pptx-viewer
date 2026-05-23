@@ -1,3 +1,5 @@
+import type JSZip from 'jszip';
+
 import { PptxXmlBuilder } from '../../builders/fluent';
 import { PptxData, PptxSlide, PptxCompatibilityWarning, XmlObject } from '../../types';
 import type { PptxSection, PptxLayoutOption } from '../../types';
@@ -212,9 +214,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.loadedEmbeddedFonts = [];
 		this.orderedSlidePaths = [];
 		// Release the ZIP archive — this is typically the largest allocation
-		// (the entire PPTX file contents live here).
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		this.zip = null as any;
+		// (the entire PPTX file contents live here). The handler is unusable
+		// after dispose(), so dropping the reference is safe.
+		this.zip = null as unknown as JSZip;
 	}
 
 	async load(data: ArrayBuffer, options: PptxHandlerLoadOptions = {}): Promise<PptxData> {
@@ -371,7 +373,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 	protected buildLayoutOption(path: string, xmlObj: XmlObject): PptxLayoutOption {
 		const sldLayout = xmlObj['p:sldLayout'] as XmlObject | undefined;
-		const rawName = String(sldLayout?.['p:cSld']?.['@_name'] || '').trim();
+		const rawName = String(
+			(sldLayout?.['p:cSld'] as XmlObject | undefined)?.['@_name'] || '',
+		).trim();
 		const typeAttr = sldLayout?.['@_type'];
 		const type = typeAttr !== undefined && typeAttr !== null ? String(typeAttr).trim() : undefined;
 		const name = resolveLayoutDisplayName({ name: rawName, type, path });
@@ -482,7 +486,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// ── 4. Resolve layout name and background ───────────────────────
 		const sldLayout = (layoutXml as XmlObject)['p:sldLayout'] as XmlObject | undefined;
-		const layoutName = String(sldLayout?.['p:cSld']?.['@_name'] || '').trim() || layoutPath;
+		const layoutName =
+			String((sldLayout?.['p:cSld'] as XmlObject | undefined)?.['@_name'] || '').trim() ||
+			layoutPath;
 
 		// Try to resolve background from the new layout
 		const layoutBgColor = this.extractBackgroundColor(layoutXml, 'p:sldLayout');

@@ -265,11 +265,6 @@ describe('extractRepeatInfo', () => {
 		expect(result.autoReverse).toBeTruthy();
 	});
 
-	it('detects autoReverse when @_autoRev is boolean true', () => {
-		const result = extractRepeatInfo({ '@_autoRev': true });
-		expect(result.autoReverse).toBeTruthy();
-	});
-
 	it("does not set autoReverse when @_autoRev is '0'", () => {
 		const result = extractRepeatInfo({ '@_autoRev': '0' });
 		expect(result.autoReverse).toBeUndefined();

@@ -237,8 +237,7 @@ export function extractIterate(cTn: XmlObject | undefined): PptxAnimationIterate
 	const rawType = String(iterate['@_type'] || 'el').toLowerCase();
 	const type: 'el' | 'lt' | 'wd' = rawType === 'lt' ? 'lt' : rawType === 'wd' ? 'wd' : 'el';
 
-	const backwards =
-		iterate['@_backwards'] === '1' || iterate['@_backwards'] === true ? true : undefined;
+	const backwards = iterate['@_backwards'] === '1' ? true : undefined;
 
 	const tmPctNode = iterate['p:tmPct'] as XmlObject | undefined;
 	const tmAbsNode = iterate['p:tmAbs'] as XmlObject | undefined;
@@ -346,6 +345,6 @@ export function extractOleChartBuilds(
 			spid: String(e['@_spid']),
 			grpId: String(e['@_grpId'] || '0'),
 			bld: String(e['@_bld'] || 'allAtOnce'),
-			animBg: e['@_animBg'] === '1' || e['@_animBg'] === true ? true : undefined,
+			animBg: e['@_animBg'] === '1' ? true : undefined,
 		}));
 }

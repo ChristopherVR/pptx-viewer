@@ -1,10 +1,15 @@
+import type { PptxTransitionType } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
 import { getP14TransitionAnimations } from './p14-transition-animations';
 
 describe('getP14TransitionAnimations', () => {
 	it('should return undefined for unknown transition type', () => {
-		const result = getP14TransitionAnimations('unknownType' as any, 1000, undefined);
+		const result = getP14TransitionAnimations(
+			'unknownType' as unknown as PptxTransitionType,
+			1000,
+			undefined,
+		);
 		expect(result).toBeUndefined();
 	});
 

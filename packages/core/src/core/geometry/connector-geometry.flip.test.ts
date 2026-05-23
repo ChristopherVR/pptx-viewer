@@ -14,7 +14,7 @@ import { getConnectorPathGeometry } from './connector-geometry';
 function makeConnector(overrides: Partial<PptxElementWithShapeStyle>): PptxElementWithShapeStyle {
 	return {
 		id: 'c1',
-		type: 'connector' as any,
+		type: 'connector',
 		x: 0,
 		y: 0,
 		width: 100,

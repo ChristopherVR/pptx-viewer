@@ -6,8 +6,8 @@ import { createTableStructHandlers } from './table-struct-handlers';
 
 // Mock the table-parse utilities so we don't depend on XML parsing
 vi.mock<typeof import('../utils/table-parse')>(import('../utils/table-parse'), () => ({
-	updateCellTextInRawXml: vi.fn<(...args: any[]) => any>(() => '<new-xml/>'),
-	rebuildTableStructureInRawXml: vi.fn<(...args: any[]) => any>(() => '<rebuilt-xml/>'),
+	updateCellTextInRawXml: vi.fn(() => '<new-xml/>'),
+	rebuildTableStructureInRawXml: vi.fn(() => '<rebuilt-xml/>'),
 }));
 
 function createTableElement(tableData: PptxTableData, id = 'table-1'): TablePptxElement {

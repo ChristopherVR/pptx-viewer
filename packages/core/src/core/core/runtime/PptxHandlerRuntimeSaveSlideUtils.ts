@@ -143,7 +143,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const cSld = pSld['p:cSld'] as XmlObject;
 
 		if (!cSld['p:spTree']) {
-			cSld['p:spTree'] = this.createEmptySlideXml()['p:sld']['p:cSld']['p:spTree'] as XmlObject;
+			const emptySlide = this.createEmptySlideXml();
+			const emptyTree = (
+				(emptySlide['p:sld'] as XmlObject | undefined)?.['p:cSld'] as XmlObject | undefined
+			)?.['p:spTree'] as XmlObject | undefined;
+			if (emptyTree) {
+				cSld['p:spTree'] = emptyTree;
+			}
 		}
 
 		pSld['p:cSld'] = cSld;

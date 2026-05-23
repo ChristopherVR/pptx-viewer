@@ -1,4 +1,4 @@
-import type { PptxSlide, PptxData } from 'pptx-viewer-core';
+import type { PptxSlide, PptxData, PptxElement } from 'pptx-viewer-core';
 /**
  * Tests for SVG vector export utilities in export-svg.ts.
  *
@@ -65,7 +65,7 @@ describe('exportSlideToSvg', () => {
 					height: 40,
 					text: 'Hello',
 					textStyle: { fontSize: 18 },
-				} as any,
+				} as unknown as PptxElement,
 			],
 		});
 		const svg = exportSlideToSvg(slide, 960, 540);
@@ -86,7 +86,7 @@ describe('exportSlideToSvg', () => {
 					height: 80,
 					shapeType: 'rect',
 					shapeStyle: { fillColor: '#FF0000' },
-				} as any,
+				} as unknown as PptxElement,
 			],
 		});
 		const svg = exportSlideToSvg(slide, 960, 540);
@@ -106,7 +106,7 @@ describe('exportSlideToSvg', () => {
 					width: 200,
 					height: 150,
 					imageData: 'data:image/png;base64,iVBOR',
-				} as any,
+				} as unknown as PptxElement,
 			],
 		});
 		const svg = exportSlideToSvg(slide, 960, 540);
@@ -126,7 +126,7 @@ describe('exportSlideToSvg', () => {
 					width: 200,
 					height: 40,
 					text: 'Styled',
-				} as any,
+				} as unknown as PptxElement,
 			],
 		});
 		const svg = exportSlideToSvg(slide, 960, 540, {
@@ -210,7 +210,7 @@ describe('exportSlideToSvg font embedding', () => {
 						strokeColor: '#000',
 						connectorEndArrow: 'triangle',
 					},
-				} as any,
+				} as unknown as PptxElement,
 			],
 		});
 

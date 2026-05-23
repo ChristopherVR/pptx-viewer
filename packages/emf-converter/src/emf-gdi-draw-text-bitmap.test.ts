@@ -39,7 +39,7 @@ function makeCtxStub(): Record<string, unknown> {
 		fillText: vi.fn<() => void>(),
 		drawImage: vi.fn<() => void>(),
 		putImageData: vi.fn<() => void>(),
-		measureText: vi.fn<(...args: any[]) => any>(() => ({ width: 50 })),
+		measureText: vi.fn(() => ({ width: 50 })),
 		strokeStyle: '#000000',
 		fillStyle: '#ffffff',
 		lineWidth: 1,

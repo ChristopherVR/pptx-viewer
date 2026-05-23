@@ -376,8 +376,8 @@ describe('round-trip (create -> save -> reload)', () => {
 			// majorFont may be a string or an object with { latin, ... }
 			const major = data2.theme.fontScheme.majorFont;
 			const minor = data2.theme.fontScheme.minorFont;
-			const majorName = typeof major === 'string' ? major : (major as any)?.latin;
-			const minorName = typeof minor === 'string' ? minor : (minor as any)?.latin;
+			const majorName = typeof major === 'string' ? major : (major as { latin?: string })?.latin;
+			const minorName = typeof minor === 'string' ? minor : (minor as { latin?: string })?.latin;
 			expect(majorName).toBe('Georgia');
 			expect(minorName).toBe('Verdana');
 		}
@@ -718,8 +718,8 @@ describe('theme and metadata options', () => {
 			// majorFont may be a string or an object with { latin, ... }
 			const major = data.theme.fontScheme.majorFont;
 			const minor = data.theme.fontScheme.minorFont;
-			const majorName = typeof major === 'string' ? major : (major as any)?.latin;
-			const minorName = typeof minor === 'string' ? minor : (minor as any)?.latin;
+			const majorName = typeof major === 'string' ? major : (major as { latin?: string })?.latin;
+			const minorName = typeof minor === 'string' ? minor : (minor as { latin?: string })?.latin;
 			expect(majorName).toBe('Montserrat');
 			expect(minorName).toBe('Open Sans');
 		}
@@ -732,8 +732,8 @@ describe('theme and metadata options', () => {
 		if (data.theme?.fontScheme) {
 			const major = data.theme.fontScheme.majorFont;
 			const minor = data.theme.fontScheme.minorFont;
-			const majorName = typeof major === 'string' ? major : (major as any)?.latin;
-			const minorName = typeof minor === 'string' ? minor : (minor as any)?.latin;
+			const majorName = typeof major === 'string' ? major : (major as { latin?: string })?.latin;
+			const minorName = typeof minor === 'string' ? minor : (minor as { latin?: string })?.latin;
 			expect(majorName).toBe('Calibri Light');
 			expect(minorName).toBe('Calibri');
 		}
