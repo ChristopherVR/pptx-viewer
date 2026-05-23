@@ -383,3 +383,14 @@ export {
 	TC_PR_BORDERS_ORDER,
 	BLIP_FILL_ORDER,
 } from './xml-reorder';
+
+export {
+	xmlChild,
+	xmlChildren,
+	xmlAttr,
+	xmlAttrNumber,
+	xmlAttrBool,
+	xmlText,
+	xmlPath,
+	isXmlNode,
+} from './xml-access';
