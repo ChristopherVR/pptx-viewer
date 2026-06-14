@@ -1,0 +1,3 @@
+dist/
+# Vendored at build time from packages/shared/src by scripts/inline-shared.mjs
+src/internal/shared-src/

@@ -1,0 +1,23 @@
+{
+	"compilerOptions": {
+		"ignoreDeprecations": "6.0",
+		"target": "ES2022",
+		"module": "ES2022",
+		"moduleResolution": "bundler",
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"strict": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		"importHelpers": true,
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+		"useDefineForClassFields": false,
+		"resolveJsonModule": true
+	},
+	"angularCompilerOptions": {
+		"strictInjectionParameters": true,
+		"strictInputAccessModifiers": true,
+		"strictTemplates": true
+	}
+}

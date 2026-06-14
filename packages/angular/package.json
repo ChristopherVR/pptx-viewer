@@ -1,0 +1,62 @@
+{
+	"name": "pptx-angular-viewer",
+	"version": "0.1.0",
+	"description": "Angular PowerPoint viewer/editor component — depends on pptx-viewer-core. Angular counterpart of the React `pptx-viewer` and Vue `pptx-vue-viewer` packages.",
+	"keywords": [
+		"angular",
+		"editor",
+		"openxml",
+		"powerpoint",
+		"pptx",
+		"presentation",
+		"viewer"
+	],
+	"homepage": "https://github.com/ChristopherVR/pptx-viewer",
+	"bugs": {
+		"url": "https://github.com/ChristopherVR/pptx-viewer/issues"
+	},
+	"license": "Apache-2.0",
+	"author": "ChristopherVR",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ChristopherVR/pptx-viewer.git",
+		"directory": "packages/angular"
+	},
+	"exports": {
+		"./styles": "./pptx-angular-viewer.css",
+		"./styles.css": "./pptx-angular-viewer.css"
+	},
+	"scripts": {
+		"inline-shared": "node ./scripts/inline-shared.mjs",
+		"build": "bun run inline-shared && ng-packagr -p ng-package.json",
+		"dev": "bun run inline-shared && ng-packagr -p ng-package.json --watch",
+		"typecheck": "bun run inline-shared && tsc --noEmit -p tsconfig.lib.json",
+		"test": "bun run inline-shared && vitest run",
+		"test:watch": "bun run inline-shared && vitest",
+		"pack": "bun run build && cd dist && bun pm pack"
+	},
+	"dependencies": {
+		"tslib": "^2.8.1"
+	},
+	"devDependencies": {
+		"@analogjs/vite-plugin-angular": "^2.6.1",
+		"@angular/common": "^22.0.0",
+		"@angular/compiler": "^22.0.0",
+		"@angular/compiler-cli": "^22.0.0",
+		"@angular/core": "^22.0.0",
+		"@angular/platform-browser": "^22.0.0",
+		"happy-dom": "^15.11.7",
+		"ng-packagr": "^22.0.0",
+		"pptx-viewer-core": "workspace:*",
+		"rxjs": "^7.8.1",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.8",
+		"zone.js": "^0.16.2"
+	},
+	"peerDependencies": {
+		"@angular/common": "^22.0.0",
+		"@angular/core": "^22.0.0",
+		"pptx-viewer-core": "workspace:*",
+		"rxjs": "^7.8.0"
+	}
+}

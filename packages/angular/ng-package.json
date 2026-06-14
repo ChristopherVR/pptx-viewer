@@ -1,0 +1,12 @@
+{
+	"$schema": "../../node_modules/ng-packagr/ng-package.schema.json",
+	"dest": "dist",
+	"assets": [
+		"NOTICE",
+		"README.md",
+		{ "glob": "pptx-angular-viewer.css", "input": "src/styles", "output": "." }
+	],
+	"lib": {
+		"entryFile": "src/public-api.ts"
+	}
+}
