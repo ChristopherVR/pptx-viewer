@@ -45,7 +45,7 @@
 		"@angular/compiler-cli": "^22.0.0",
 		"@angular/core": "^22.0.0",
 		"@angular/platform-browser": "^22.0.0",
-		"happy-dom": "^15.11.7",
+		"happy-dom": "^20.10.3",
 		"ng-packagr": "^22.0.0",
 		"pptx-viewer-core": "workspace:*",
 		"rxjs": "^7.8.1",
