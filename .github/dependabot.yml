@@ -1,0 +1,68 @@
+version: 2
+
+updates:
+  # ── JavaScript / TypeScript dependencies (Bun workspaces) ──
+  # Dependabot reads bun.lock and the workspace package.json files.
+  # "/" picks up the root and every package via the workspaces field.
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Africa/Johannesburg'
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
+    labels:
+      - 'dependencies'
+    commit-message:
+      prefix: 'chore(deps)'
+      prefix-development: 'chore(deps-dev)'
+      include: 'scope'
+    groups:
+      # Batch low-risk minor/patch bumps into a single PR to cut noise.
+      minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - 'minor'
+          - 'patch'
+      # Keep the React ecosystem moving together.
+      react:
+        applies-to: version-updates
+        patterns:
+          - 'react'
+          - 'react-dom'
+          - '@types/react'
+          - '@types/react-dom'
+      # Keep type-only definitions grouped.
+      types:
+        applies-to: version-updates
+        patterns:
+          - '@types/*'
+    ignore:
+      # Major version bumps tend to be breaking for these — review manually.
+      - dependency-name: 'react'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react-dom'
+        update-types: ['version-update:semver-major']
+
+  # ── GitHub Actions used in workflows ──
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Africa/Johannesburg'
+    open-pull-requests-limit: 5
+    labels:
+      - 'dependencies'
+      - 'github-actions'
+    commit-message:
+      prefix: 'chore(ci)'
+      include: 'scope'
+    groups:
+      actions:
+        applies-to: version-updates
+        patterns:
+          - '*'
