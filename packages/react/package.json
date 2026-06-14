@@ -57,35 +57,35 @@
 	},
 	"dependencies": {
 		"clsx": "^2.1.1",
-		"dompurify": "^3.4.2",
+		"dompurify": "^3.4.10",
 		"emf-converter": "workspace:*",
-		"html2canvas-pro": "^2.0.2",
+		"html2canvas-pro": "^2.0.4",
 		"mtx-decompressor": "workspace:*",
 		"pptx-viewer-core": "workspace:*",
-		"tailwind-merge": "^3.5.0"
+		"tailwind-merge": "^3.6.0"
 	},
 	"devDependencies": {
-		"@tailwindcss/cli": "^4.2.4",
+		"@tailwindcss/cli": "^4.3.1",
 		"@types/dompurify": "^3.2.0",
-		"@types/react": "^19.2.14",
+		"@types/react": "^19.2.17",
 		"@types/react-dom": "^19.2.3",
-		"tailwindcss": "^4.2.4",
+		"tailwindcss": "^4.3.1",
 		"tsup": "^8.5.1",
-		"typescript": "^5.9.3",
-		"vitest": "^4.1.5",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.8",
 		"y-websocket": "^3.0.0",
-		"yjs": "^13.6.30"
+		"yjs": "^13.6.31"
 	},
 	"peerDependencies": {
-		"fast-xml-parser": "^5.7.3",
-		"framer-motion": "^12.38.0",
-		"i18next": "^26.0.8",
+		"fast-xml-parser": "^5.8.0",
+		"framer-motion": "^12.40.0",
+		"i18next": "^26.3.1",
 		"jspdf": "^4.2.1",
 		"jszip": "^3.10.1",
-		"lucide-react": "^1.14.0",
-		"react": "^19.2.5",
-		"react-dom": "^19.2.5",
-		"react-i18next": "^17.0.6",
+		"lucide-react": "^1.18.0",
+		"react": "^19.2.7",
+		"react-dom": "^19.2.7",
+		"react-i18next": "^17.0.8",
 		"react-icons": "^5.6.0"
 	},
 	"optionalDependencies": {
@@ -93,7 +93,7 @@
 		"@react-three/fiber": "^9.6.1",
 		"three": "^0.184.0",
 		"y-websocket": "^3.0.0",
-		"yjs": "^13.6.30"
+		"yjs": "^13.6.31"
 	},
 	"bundledDependencies": [
 		"emf-converter",

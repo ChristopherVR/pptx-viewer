@@ -397,7 +397,7 @@ function App() {
 			// Restricted to trusted hosts to prevent crafted ?server= URLs from
 			// exfiltrating user content.
 			if (content && isTrustedServerUrl(config.serverUrl)) {
-				const httpUrl = config.serverUrl.replace(/^ws/, 'http');
+				const httpUrl = config.serverUrl.replace(/^ws/u, 'http');
 				void fetch(`${httpUrl}/file/${encodeURIComponent(config.roomId)}`, {
 					method: 'POST',
 					body: content,
@@ -437,7 +437,7 @@ function App() {
 			return;
 		}
 		let cancelled = false;
-		const httpUrl = urlServer.replace(/^ws/, 'http');
+		const httpUrl = urlServer.replace(/^ws/u, 'http');
 		void fetch(`${httpUrl}/file/${encodeURIComponent(joinRoomId)}`)
 			.then((res) => {
 				if (!res.ok) {
@@ -653,6 +653,7 @@ function App() {
 					type='file'
 					id='file-input'
 					accept='.pptx'
+					aria-label='Upload PPTX file'
 					style={{ display: 'none' }}
 					onChange={handleInputChange}
 				/>

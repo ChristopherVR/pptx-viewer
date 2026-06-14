@@ -72,7 +72,7 @@ Binary EMF/WMF → GDI record replay onto Canvas 2D → PNG data URL. Supports 3
 
 ## Tech Stack
 
-- **TypeScript 5.9** (strict mode), **Bun** (package manager/runtime), **tsup** (bundler → ESM + CJS)
+- **TypeScript 6.0** (strict mode), **Bun** (package manager/runtime), **tsup** (bundler → ESM + CJS)
 - **React 19**, **Framer Motion**, **Tailwind CSS 4**, **Lucide React**
 - **Vitest** (testing), **JSZip** (ZIP), **fast-xml-parser** (XML), **html2canvas** + **jsPDF** (export)
 - **Vite** (demo app dev server)

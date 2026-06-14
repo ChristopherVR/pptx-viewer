@@ -39,17 +39,17 @@
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.60.0",
-		"@types/three": "^0.184.0",
+		"@types/three": "^0.184.1",
 		"husky": "^9.1.7",
 		"lib0": "^0.2.117",
-		"lint-staged": "^16.4.0",
-		"oxfmt": "^0.47.0",
-		"oxlint": "^1.62.0",
+		"lint-staged": "^17.0.7",
+		"oxfmt": "^0.54.0",
+		"oxlint": "^1.69.0",
 		"pptx-viewer": "workspace:*",
 		"pptx-viewer-core": "workspace:*",
-		"typescript": "^5.9.3",
+		"typescript": "^6.0.3",
 		"y-protocols": "^1.0.7",
-		"yjs": "^13.6.30"
+		"yjs": "^13.6.31"
 	},
 	"optionalDependencies": {
 		"@react-three/drei": "^10.7.7",

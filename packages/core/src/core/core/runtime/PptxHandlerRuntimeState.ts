@@ -506,7 +506,7 @@ export class PptxHandlerRuntime {
 				get(target, prop, receiver) {
 					if (prop === 'parse') {
 						return function (xmlData: string, validationOption?: boolean) {
-							const result = target.parse(xmlData, validationOption);
+							const result = target.parse(xmlData, validationOption ?? false);
 							if (typeof result === 'object' && result !== null) {
 								normalizeStrictXml(result as Record<string, unknown>);
 							}

@@ -178,6 +178,9 @@
 		"vitest/require-top-level-describe": "off",
 		"vitest/max-nested-describe": "off",
 		"vitest/valid-title": "off",
+		// ── oxlint 1.69 promoted vitest/require-to-throw-message to correctness ──
+		// Mirrors the already-disabled jest/require-to-throw-message above.
+		"vitest/require-to-throw-message": "off",
 		// Codebase uses _-prefixed locals to mark intentionally unused values.
 		"no-underscore-dangle": "off",
 
@@ -209,10 +212,12 @@
 		"jsx-a11y/no-access-key": "warn",
 		"jsx-a11y/no-aria-hidden-on-focusable": "warn",
 		"jsx-a11y/no-distracting-elements": "warn",
-		// Removed: these 3 rules are not yet available in the current oxlint version
+		// These 2 rules are not yet available in the current oxlint version
 		// "jsx-a11y/no-interactive-element-to-noninteractive-role": "warn",
-		// "jsx-a11y/no-noninteractive-element-interactions": "warn",
 		// "jsx-a11y/no-noninteractive-element-to-interactive-role": "warn",
+		// ── oxlint 1.69 made these correctness=error; downgrade to warn pending UI work ──
+		"jsx-a11y/no-noninteractive-element-interactions": "warn",
+		"jsx-a11y/control-has-associated-label": "warn",
 		"jsx-a11y/no-noninteractive-tabindex": "warn",
 		"jsx-a11y/no-redundant-roles": "warn",
 		"jsx-a11y/role-has-required-aria-props": "warn",
@@ -250,5 +255,16 @@
 		"builtin": true
 	},
 	"globals": {},
-	"ignorePatterns": ["dist", "node_modules", "*.min.js", "*.d.ts"]
+	"ignorePatterns": ["dist", "node_modules", "*.min.js", "*.d.ts"],
+	"overrides": [
+		{
+			// Vue `<script setup>` blocks legitimately call composables/watchers at
+			// the top level of the compiled setup function; the vitest plugin's
+			// `require-hook` rule misreads these as test setup/teardown.
+			"files": ["**/*.vue"],
+			"rules": {
+				"vitest/require-hook": "off"
+			}
+		}
+	]
 }
