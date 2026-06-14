@@ -18,7 +18,9 @@ const i18nInstance = createInstance();
  */
 function keyToLabel(key: string): string {
 	const last = key.split('.').pop() ?? key;
-	return last.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
+	return last
+		.replace(/(?<lower>[a-z])(?<upper>[A-Z])/gu, '$<lower> $<upper>')
+		.replace(/^./u, (c) => c.toUpperCase());
 }
 
 // Build a flat English resource from every known key namespace.

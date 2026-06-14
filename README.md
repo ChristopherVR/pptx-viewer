@@ -332,7 +332,9 @@ bun run fmt                  # Format all files with oxfmt
 bun run fmt:check            # Check formatting (CI-safe, no writes)
 bun run lint                 # Lint with oxlint
 bun run lint:fix             # Auto-fix lint issues
-bun run demo                 # Start demo dev server (Vite, port 4173)
+bun run demo                 # Start the React demo dev server (Vite, port 4173)
+bun run demo:vue             # Start the Vue demo dev server (Vite, port 4175)
+bun run demo:angular         # Start the Angular demo dev server (Vite, port 4174)
 ```
 
 Build order matters: **emf-converter -> mtx-decompressor -> core -> react**

@@ -12,7 +12,7 @@ import { defineConfig } from 'vite';
  * `pptx-vue-viewer` SFCs. (Published consumers resolve these via the package's
  * `dist` `exports` instead.)
  */
-const pkg = (...p: string[]) => resolve(__dirname, '..', 'packages', ...p);
+const pkg = (...p: string[]) => resolve(__dirname, '..', '..', 'packages', ...p);
 
 export default defineConfig({
 	root: __dirname,

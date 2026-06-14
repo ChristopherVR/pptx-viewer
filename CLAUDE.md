@@ -13,7 +13,9 @@ bun run fmt                  # Format all files with oxfmt
 bun run fmt:check            # Check formatting (CI-safe, no writes)
 bun run lint                 # Lint with oxlint
 bun run lint:fix             # Auto-fix lint issues
-bun run demo                 # Start demo dev server (Vite, port 4173)
+bun run demo                 # Start the React demo dev server (Vite, port 4173)
+bun run demo:vue             # Start the Vue demo dev server (Vite, port 4175)
+bun run demo:angular         # Start the Angular demo dev server (Vite, port 4174)
 bun run changelog            # Regenerate CHANGELOG.md from Conventional Commits (git-cliff)
 bun run changelog:unreleased # Preview changelog notes for commits since the last tag
 
@@ -31,10 +33,17 @@ Build order matters: **emf-converter → mtx-decompressor → core → react**
 ```
 packages/
   core/             pptx-viewer-core     – Parse, edit, serialize PPTX (framework-agnostic)
+  shared/           pptx-viewer-shared   – Framework-agnostic viewer logic (INTERNAL, bundled into each binding, never published)
   react/            pptx-viewer          – React viewer/editor component
+  vue/              pptx-vue-viewer      – Vue 3 viewer/editor component
+  angular/          pptx-angular-viewer  – Angular viewer/editor component
   emf-converter/    emf-converter        – EMF/WMF metafile → PNG converter
   mtx-decompressor/ mtx-decompressor     – MicroType Express font decompressor
-demo/               Vite + React demo app
+  tools/            pptx-viewer-mcp      – MCP server / tooling
+demos/
+  demo-react/       Vite + React demo app  (port 4173)
+  demo-vue/         Vite + Vue 3 demo app  (port 4175)
+  demo-angular/     Vite + Angular demo app (port 4174)
 ```
 
 Dependency graph: `react → core → emf-converter`. Packages use `workspace:*` protocol. Bun workspaces defined at root.

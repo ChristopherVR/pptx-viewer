@@ -1,5 +1,5 @@
 {
-	"name": "pptx-viewer-demo",
+	"name": "pptx-react-demo",
 	"private": true,
 	"scripts": {
 		"dev": "vite",

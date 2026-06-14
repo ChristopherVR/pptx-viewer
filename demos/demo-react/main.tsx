@@ -4,10 +4,14 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 
-import { themeToCssVars } from '../packages/react/src/theme';
-import type { ViewerTheme } from '../packages/react/src/theme';
-import { PowerPointViewer, isAudienceTab, loadAudienceContent } from '../packages/react/src/viewer';
-import type { CollaborationConfig } from '../packages/react/src/viewer';
+import { themeToCssVars } from '../../packages/react/src/theme';
+import type { ViewerTheme } from '../../packages/react/src/theme';
+import {
+	PowerPointViewer,
+	isAudienceTab,
+	loadAudienceContent,
+} from '../../packages/react/src/viewer';
+import type { CollaborationConfig } from '../../packages/react/src/viewer';
 
 import './app.css';
 

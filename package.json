@@ -13,18 +13,17 @@
 	},
 	"workspaces": [
 		"packages/*",
-		"demo",
-		"demo-angular",
-		"demo-vue"
+		"demos/*"
 	],
 	"scripts": {
 		"install:all": "bun install",
-		"demo": "cd demo && npx vite",
-		"demo:vue": "cd demo-vue && npx vite",
+		"demo": "cd demos/demo-react && npx vite",
+		"demo:vue": "cd demos/demo-vue && npx vite",
+		"demo:angular": "cd demos/demo-angular && npx vite",
 		"docs:dev": "cd docs && bun run docs:dev",
 		"docs:build": "cd docs && bun install && bun run docs:build",
 		"docs:preview": "cd docs && bun run docs:preview",
-		"build": "bun run --filter 'emf-converter' build && bun run --filter 'mtx-decompressor' build && bun run --filter 'pptx-viewer-core' build && bun run --filter 'pptx-viewer-shared' build && bun run --filter 'pptx-viewer-mcp' build && bun run --filter 'pptx-viewer' build && bun run --filter 'pptx-vue-viewer' build && bun run --filter 'pptx-angular-viewer' build && bun run --filter 'pptx-viewer-demo' build",
+		"build": "bun run --filter 'emf-converter' build && bun run --filter 'mtx-decompressor' build && bun run --filter 'pptx-viewer-core' build && bun run --filter 'pptx-viewer-shared' build && bun run --filter 'pptx-viewer-mcp' build && bun run --filter 'pptx-viewer' build && bun run --filter 'pptx-vue-viewer' build && bun run --filter 'pptx-angular-viewer' build && bun run --filter 'pptx-react-demo' build",
 		"typecheck": "bun run --filter '*' typecheck",
 		"test": "bash scripts/test-all.sh",
 		"fmt": "oxfmt",
@@ -43,7 +42,7 @@
 		"changelog:unreleased": "bunx git-cliff --unreleased",
 		"outdated": "bun outdated --filter '*'",
 		"update": "bun update --latest",
-		"collab": "bun demo/collab-server.mjs",
+		"collab": "bun demos/demo-react/collab-server.mjs",
 		"e2e": "playwright test",
 		"e2e:install": "playwright install --with-deps chromium",
 		"e2e:ui": "playwright test --ui",

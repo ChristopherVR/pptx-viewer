@@ -15,7 +15,7 @@ import { defineConfig } from 'vite';
  * `/styles` alias maps to the emitted CSS asset. (Published consumers resolve
  * these via the generated `dist/package.json` `exports` instead.)
  */
-const angularLibDist = resolve(__dirname, '../packages/angular/dist');
+const angularLibDist = resolve(__dirname, '../../packages/angular/dist');
 
 export default defineConfig({
 	plugins: [angular({ tsconfig: './tsconfig.json' })],

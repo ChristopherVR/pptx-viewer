@@ -16,11 +16,11 @@
 		"allowImportingTsExtensions": true,
 		"types": ["node", "vite/client"],
 		"paths": {
-			"pptx-vue-viewer/viewer": ["../packages/vue/src/viewer/index.ts"],
-			"pptx-vue-viewer": ["../packages/vue/src/index.ts"],
-			"pptx-viewer-core/converter": ["../packages/core/src/converter/index.ts"],
-			"pptx-viewer-core": ["../packages/core/src/index.ts"],
-			"pptx-viewer-shared": ["../packages/shared/src/index.ts"]
+			"pptx-vue-viewer/viewer": ["../../packages/vue/src/viewer/index.ts"],
+			"pptx-vue-viewer": ["../../packages/vue/src/index.ts"],
+			"pptx-viewer-core/converter": ["../../packages/core/src/converter/index.ts"],
+			"pptx-viewer-core": ["../../packages/core/src/index.ts"],
+			"pptx-viewer-shared": ["../../packages/shared/src/index.ts"]
 		}
 	},
 	"include": ["src", "src/**/*.vue", "vite.config.ts"]
