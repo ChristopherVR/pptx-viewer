@@ -10,7 +10,7 @@ import type {
 	PptxHandoutMaster,
 	PptxSection,
 } from 'pptx-viewer-core';
-import { guidePxToEmu } from 'pptx-viewer-core';
+import { guidePxToEmu, hasTextProperties } from 'pptx-viewer-core';
 /**
  * useSerialize — Builds the `serializeSlides` callback that persists the
  * current slide deck (including header/footer, properties, etc.) via the
@@ -18,6 +18,8 @@ import { guidePxToEmu } from 'pptx-viewer-core';
  */
 import { useCallback } from 'react';
 import type React from 'react';
+
+import { remapTextToSegments } from '../utils/remap-text';
 
 // ---------------------------------------------------------------------------
 // Input
@@ -37,6 +39,8 @@ export interface UseSerializeInput {
 	notesMaster: PptxNotesMaster | undefined;
 	handoutMaster: PptxHandoutMaster | undefined;
 	handlerRef: React.RefObject<PptxHandler | null>;
+	inlineEditingElementIdRef: React.MutableRefObject<string | null>;
+	inlineEditingTextRef: React.MutableRefObject<string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -58,6 +62,8 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 		notesMaster,
 		handoutMaster,
 		handlerRef,
+		inlineEditingElementIdRef,
+		inlineEditingTextRef,
 	} = input;
 
 	return useCallback(async (): Promise<Uint8Array | null> => {
@@ -66,9 +72,33 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 			return null;
 		}
 
+		// Apply any in-progress inline text edit at serialize time so that
+		// save() captures the live text even when the editor element hasn't
+		// been blurred yet (e.g. Ctrl+S while typing inside a text box).
+		const pendingEditId = inlineEditingElementIdRef.current;
+		const pendingEditText = inlineEditingTextRef.current;
+
 		const slidesWithGuides = slides.map((slide, idx) => {
+			// Apply the pending inline edit to the element being edited.
+			let processedSlide = slide;
+			if (pendingEditId) {
+				const updatedElements = slide.elements.map((el) => {
+					if (el.id !== pendingEditId || !hasTextProperties(el)) {
+						return el;
+					}
+					return {
+						...el,
+						text: pendingEditText,
+						textSegments: remapTextToSegments(pendingEditText, el.textSegments, el.textStyle),
+					};
+				});
+				if (updatedElements.some((el, i) => el !== slide.elements[i])) {
+					processedSlide = { ...slide, elements: updatedElements };
+				}
+			}
+
 			if (idx !== activeSlideIndex) {
-				return slide;
+				return processedSlide;
 			}
 			const pptxGuides = guides.map((g) => ({
 				id: g.id,
@@ -76,7 +106,7 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 				positionEmu: guidePxToEmu(g.position),
 			}));
 			return {
-				...slide,
+				...processedSlide,
 				guides: pptxGuides.length > 0 ? pptxGuides : undefined,
 			};
 		});
@@ -106,5 +136,7 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 		guides,
 		activeSlideIndex,
 		handlerRef,
+		inlineEditingElementIdRef,
+		inlineEditingTextRef,
 	]);
 }

@@ -33,7 +33,8 @@ import type {
  *
  * @module useViewerCoreState
  */
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import type React from 'react';
 
 import { DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH } from '../constants';
 import type {
@@ -103,8 +104,30 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 	const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
 	const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
 	const [isDirty, setIsDirty] = useState(false);
-	const [inlineEditingElementId, setInlineEditingElementId] = useState<string | null>(null);
-	const [inlineEditingText, setInlineEditingText] = useState('');
+	// Refs that mirror inline-editing state synchronously so serializeSlides can
+	// read the live values without waiting for a React re-render (e.g. Ctrl+S
+	// while a text box is still being edited and hasn't blurred yet).
+	const inlineEditingElementIdRef = useRef<string | null>(null);
+	const inlineEditingTextRef = useRef('');
+	// eslint-disable-next-line react/hook-use-state -- wrapped below to also mirror into a ref
+	const [inlineEditingElementId, setInlineEditingElementIdBase] = useState<string | null>(null);
+	// eslint-disable-next-line react/hook-use-state -- wrapped below to also mirror into a ref
+	const [inlineEditingText, setInlineEditingTextBase] = useState('');
+	const setInlineEditingElementId: React.Dispatch<React.SetStateAction<string | null>> =
+		useCallback((value) => {
+			const resolved =
+				typeof value === 'function' ? value(inlineEditingElementIdRef.current) : value;
+			inlineEditingElementIdRef.current = resolved;
+			setInlineEditingElementIdBase(value);
+		}, []);
+	const setInlineEditingText: React.Dispatch<React.SetStateAction<string>> = useCallback(
+		(value) => {
+			const resolved = typeof value === 'function' ? value(inlineEditingTextRef.current) : value;
+			inlineEditingTextRef.current = resolved;
+			setInlineEditingTextBase(value);
+		},
+		[],
+	);
 	const [editTemplateMode, setEditTemplateMode] = useState(false);
 	const [newShapeType, setNewShapeType] = useState<SupportedShapeType>('rect');
 	const [clipboardPayload, setClipboardPayload] = useState<ElementClipboardPayload | null>(null);
@@ -160,6 +183,8 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 		imageInputRef,
 		mediaInputRef,
 		activeSlideIndexRef,
+		inlineEditingElementIdRef,
+		inlineEditingTextRef,
 		dragStateRef,
 		resizeStateRef,
 		shapeAdjustmentDragStateRef,

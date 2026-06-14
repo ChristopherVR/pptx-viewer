@@ -79,6 +79,10 @@ export interface ViewerCoreState {
 	mediaInputRef: React.RefObject<HTMLInputElement | null>;
 	/** Mutable ref mirroring `activeSlideIndex` for use in event handlers that must not re-subscribe on index change. */
 	activeSlideIndexRef: React.MutableRefObject<number>;
+	/** Mutable ref mirroring `inlineEditingElementId` — always current without waiting for a re-render. */
+	inlineEditingElementIdRef: React.MutableRefObject<string | null>;
+	/** Mutable ref mirroring `inlineEditingText` — always current without waiting for a re-render. */
+	inlineEditingTextRef: React.MutableRefObject<string>;
 	/** Tracks the in-progress drag operation (move) for element(s). */
 	dragStateRef: React.MutableRefObject<DragState | null>;
 	/** Tracks the in-progress resize operation for an element. */
