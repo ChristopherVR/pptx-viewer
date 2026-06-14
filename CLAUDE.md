@@ -14,6 +14,8 @@ bun run fmt:check            # Check formatting (CI-safe, no writes)
 bun run lint                 # Lint with oxlint
 bun run lint:fix             # Auto-fix lint issues
 bun run demo                 # Start demo dev server (Vite, port 4173)
+bun run changelog            # Regenerate CHANGELOG.md from Conventional Commits (git-cliff)
+bun run changelog:unreleased # Preview changelog notes for commits since the last tag
 
 # Per-package (run from package directory)
 bun run build                # Build via tsup
@@ -69,6 +71,46 @@ Binary EMF/WMF → GDI record replay onto Canvas 2D → PNG data URL. Supports 3
 - **EMU units**: PowerPoint uses English Metric Units internally. Conversion constants in `core/constants.ts` (`EMU_PER_INCH = 914400`, `EMU_PER_POINT = 12700`, `EMU_PER_PIXEL = 9525`).
 - **Service interfaces**: Services define `I*` interfaces for DI/testability.
 - **File naming**: kebab-case for utilities, PascalCase for classes. Tests colocated with source (`.test.ts` suffix).
+
+## Commit Conventions
+
+Commits **must** follow [Conventional Commits](https://www.conventionalcommits.org).
+`CHANGELOG.md` is generated from the commit history by [git-cliff](https://git-cliff.org)
+(config: `cliff.toml`), and the release pipeline derives release notes the same
+way — non-conforming commits are silently dropped from the changelog, so the
+format is load-bearing, not cosmetic.
+
+Format:
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+- **type** — one of: `feat`, `fix`, `perf`, `refactor`, `docs`, `test`,
+  `build`, `ci`, `style`, `chore`, `revert`. These map to changelog sections
+  (see `cliff.toml` → `commit_parsers`). `feat`/`fix`/`perf`/`refactor` are
+  user-facing; `chore(deps)` groups dependency bumps.
+- **scope** — optional, the affected package/area: `core`, `react`, `vue`,
+  `shared`, `emf`, `mtx`, `tools`, `ci`, `deps`, etc. Use it — the changelog
+  bolds it.
+- **subject** — imperative mood, lower-case, no trailing period. Keep the first
+  line ≤ ~72 chars.
+- **breaking changes** — append `!` after the type/scope (`feat(core)!: …`) or
+  add a `BREAKING CHANGE:` footer.
+
+Examples (from history): `feat(core): typed xml-access helpers`,
+`fix(react): remove dead table-cell comparisons`, `chore(deps): update all
+dependencies to latest`.
+
+**Authoring tip (tooling):** when committing via a multi-line message, use a
+real heredoc or `git commit -F <file>` — do **not** wrap the message in
+`@'…'@` (PowerShell here-string syntax); under `bash`/`sh` the stray `@`
+characters leak into the subject and break Conventional Commit parsing. End
+commit messages with the required `Co-Authored-By:` trailer.
 
 ## Tech Stack
 

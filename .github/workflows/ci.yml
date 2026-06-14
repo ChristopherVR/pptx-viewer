@@ -224,6 +224,30 @@ jobs:
       - name: Test tools
         run: cd packages/tools && bun vitest run --reporter=verbose --reporter=github-actions
 
+  test-vue:
+    needs: build
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Test vue
+        run: cd packages/vue && bun vitest run --reporter=verbose --reporter=github-actions
+
   release:
     needs:
       [
@@ -235,6 +259,7 @@ jobs:
         test-emf-converter,
         test-mtx-decompressor,
         test-tools,
+        test-vue,
       ]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -299,7 +324,7 @@ jobs:
       - name: Update package versions
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          for pkgdir in packages/emf-converter packages/mtx-decompressor packages/core packages/react packages/tools; do
+          for pkgdir in packages/emf-converter packages/mtx-decompressor packages/core packages/react packages/tools packages/vue; do
             node -e "
               const fs = require('fs');
               const p = '${pkgdir}/package.json';
@@ -327,18 +352,52 @@ jobs:
       - name: Pack pptx-viewer-tools
         run: cd packages/tools && bun pm pack
 
+      - name: Pack pptx-vue-viewer
+        run: cd packages/vue && bun pm pack
+
+      # ── Changelog (git-cliff, see cliff.toml) ────────────────────────
+      # Regenerate CHANGELOG.md treating the new commits as the next tag,
+      # commit it back to main, and reuse the latest section as the GitHub
+      # release body. The GITHUB_TOKEN push does not retrigger workflows, and
+      # `[skip ci]` guards against it regardless. NOTE: if `main` is protected
+      # against direct pushes, allow the actions bot or relax the rule.
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --tag ${{ steps.version.outputs.tag }} --output CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit changelog
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- CHANGELOG.md; then
+            echo "CHANGELOG.md unchanged — nothing to commit"
+          else
+            git add CHANGELOG.md
+            git commit -m "docs(changelog): update for ${{ steps.version.outputs.tag }} [skip ci]"
+            git push origin HEAD:main
+          fi
+
+      - name: Extract latest release notes
+        run: awk '/^## \[/{c++} c==1{print} c==2{exit}' CHANGELOG.md > "${RUNNER_TEMP}/release_notes.md"
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: main
           name: v${{ steps.version.outputs.version }}
-          generate_release_notes: true
+          body_path: ${{ runner.temp }}/release_notes.md
           files: |
             packages/emf-converter/*.tgz
             packages/mtx-decompressor/*.tgz
             packages/core/*.tgz
             packages/react/*.tgz
             packages/tools/*.tgz
+            packages/vue/*.tgz
 
   # ──────────────────────────────────────────────────────────────
   # Publish to npm with provenance
@@ -353,6 +412,7 @@ jobs:
   #   mtx-decompressor  → https://www.npmjs.com/package/mtx-decompressor
   #   pptx-viewer-core  → https://www.npmjs.com/package/pptx-viewer-core
   #   pptx-react-viewer → https://www.npmjs.com/package/pptx-react-viewer
+  #   pptx-vue-viewer   → https://www.npmjs.com/package/pptx-vue-viewer
   #   pptx-viewer-mcp → https://www.npmjs.com/package/pptx-viewer-mcp
   # ──────────────────────────────────────────────────────────────
   publish:
@@ -390,7 +450,7 @@ jobs:
       - name: Update package versions
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          for pkgdir in packages/emf-converter packages/mtx-decompressor packages/core packages/react packages/tools; do
+          for pkgdir in packages/emf-converter packages/mtx-decompressor packages/core packages/react packages/tools packages/vue; do
             node -e "
               const fs = require('fs');
               const p = '${pkgdir}/package.json';
@@ -406,7 +466,10 @@ jobs:
       - name: Prepare react package for publish
         # The react package is published as "pptx-react-viewer" on npm,
         # but uses "pptx-viewer" locally for workspace resolution.
-        # Also replace workspace:* references with real version ranges.
+        # Replace workspace:* runtime deps with real version ranges, and drop
+        # build-only workspace devDeps (pptx-viewer-core / pptx-viewer-shared
+        # are bundled into dist, so the published manifest must not reference
+        # these unpublished internal packages).
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           node -e "
@@ -419,13 +482,43 @@ jobs:
                 if (v === 'workspace:*') data.dependencies[k] = '^${VERSION}';
               }
             }
+            if (data.devDependencies) {
+              for (const [k, v] of Object.entries(data.devDependencies)) {
+                if (typeof v === 'string' && v.startsWith('workspace:')) delete data.devDependencies[k];
+              }
+            }
+            fs.writeFileSync(p, JSON.stringify(data, null, '\t') + '\n');
+          "
+
+      - name: Prepare vue package for publish
+        # Published as "pptx-vue-viewer" (no rename needed).
+        # Replace workspace:* runtime deps with real version ranges, and drop
+        # build-only workspace devDeps (pptx-viewer-core / pptx-viewer-shared
+        # are bundled into dist, so the published manifest must not reference
+        # these unpublished internal packages).
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          node -e "
+            const fs = require('fs');
+            const p = 'packages/vue/package.json';
+            const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+            if (data.dependencies) {
+              for (const [k, v] of Object.entries(data.dependencies)) {
+                if (v === 'workspace:*') data.dependencies[k] = '^${VERSION}';
+              }
+            }
+            if (data.devDependencies) {
+              for (const [k, v] of Object.entries(data.devDependencies)) {
+                if (typeof v === 'string' && v.startsWith('workspace:')) delete data.devDependencies[k];
+              }
+            }
             fs.writeFileSync(p, JSON.stringify(data, null, '\t') + '\n');
           "
 
       - name: Replace mermaid blocks with GitHub links in READMEs
         run: |
           REPO_URL="https://github.com/ChristopherVR/pptx-viewer"
-          for readme in packages/emf-converter/README.md packages/mtx-decompressor/README.md packages/core/README.md packages/react/README.md packages/tools/README.md; do
+          for readme in packages/emf-converter/README.md packages/mtx-decompressor/README.md packages/core/README.md packages/react/README.md packages/tools/README.md packages/vue/README.md; do
             if [ -f "$readme" ]; then
               pkg_dir=$(dirname "$readme")
               github_link="${REPO_URL}/blob/main/${readme}"
@@ -488,6 +581,20 @@ jobs:
             npm publish --provenance --access public
           fi
         working-directory: packages/react
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # https://www.npmjs.com/package/pptx-vue-viewer
+      - name: Publish pptx-vue-viewer
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          EXISTING=$(npm view pptx-vue-viewer@"$VERSION" version 2>/dev/null || echo "")
+          if [ "$EXISTING" = "$VERSION" ]; then
+            echo "pptx-vue-viewer@$VERSION already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
+        working-directory: packages/vue
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

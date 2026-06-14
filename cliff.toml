@@ -1,0 +1,89 @@
+# git-cliff configuration — generates CHANGELOG.md from Conventional Commits.
+#
+# Usage:
+#   bun run changelog            # regenerate the full CHANGELOG.md
+#   bun run changelog:latest     # print notes for the latest release only
+#   bunx git-cliff --unreleased  # preview notes for commits since the last tag
+#
+# CI regenerates this on release (see .github/workflows/ci.yml → release job).
+# Conventional Commit format is documented in CLAUDE.md → "Commit Conventions".
+
+[changelog]
+# Rendered once at the top of the file.
+header = """
+# Changelog
+
+All notable changes to this project are documented here.
+This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
+by [git-cliff](https://git-cliff.org); do not edit it by hand.\n
+"""
+# Tera template rendered once per release (tag).
+# Repo URL is hard-coded so commit/release links render without needing a
+# GITHUB_TOKEN (the [remote.github] block enriches author handles when a token
+# is available, but is not required for the file to generate).
+body = """
+{% set repo = "https://github.com/ChristopherVR/pptx-viewer" %}\
+{% if version %}\
+    ## [{{ version | trim_start_matches(pat="v") }}]({{ repo }}/releases/tag/{{ version }}) - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+    ## [Unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+    ### {{ group | striptags | trim | upper_first }}
+    {% for commit in commits %}
+        - {% if commit.scope %}**{{ commit.scope }}:** {% endif %}\
+            {{ commit.message | upper_first }}\
+            {% if commit.remote.username %} (by @{{ commit.remote.username }}){% endif %}\
+            {% if commit.id %} ([{{ commit.id | truncate(length=7, end="") }}]({{ repo }}/commit/{{ commit.id }})){% endif %}\
+    {% endfor %}
+{% endfor %}\n
+"""
+footer = ""
+trim = true
+postprocessors = []
+
+[git]
+# Parse Conventional Commits and drop anything that does not match.
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+
+# Tidy up raw subjects before grouping.
+commit_preprocessors = [
+	# Turn "#123" issue refs into links to the repo.
+	{ pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](https://github.com/ChristopherVR/pptx-viewer/issues/${2}))" },
+]
+
+# Map commit types → changelog sections. Order here = order in the output.
+commit_parsers = [
+	{ message = "^feat", group = "<!-- 0 -->🚀 Features" },
+	{ message = "^fix", group = "<!-- 1 -->🐛 Bug Fixes" },
+	{ message = "^perf", group = "<!-- 2 -->⚡ Performance" },
+	{ message = "^refactor", group = "<!-- 3 -->♻️ Refactor" },
+	{ message = "^docs", group = "<!-- 4 -->📚 Documentation" },
+	{ message = "^test", group = "<!-- 5 -->🧪 Testing" },
+	{ message = "^(build|ci)", group = "<!-- 6 -->🛠️ Build & CI" },
+	{ message = "^style", group = "<!-- 7 -->🎨 Styling" },
+	{ message = "^chore\\(release\\)", skip = true },
+	{ message = "^chore\\(deps\\)", group = "<!-- 8 -->📦 Dependencies" },
+	{ message = "^chore", group = "<!-- 9 -->🧹 Chores" },
+	{ message = "^revert", group = "<!-- 10 -->⏪ Reverts" },
+	{ body = ".*security", group = "<!-- 11 -->🔒 Security" },
+	# Anything left over that still parsed as conventional.
+	{ message = ".*", group = "<!-- 12 -->Other" },
+]
+
+# Skip merge commits and the CI changelog-update commits to avoid noise/loops.
+filter_commits = false
+protect_breaking_commits = false
+topo_order = false
+sort_commits = "oldest"
+# Only consider semver tags like v1.2.3 as releases.
+tag_pattern = "v[0-9]*.[0-9]*.[0-9]*"
+# Never treat the auto-generated changelog commit as a feature/fix.
+skip_tags = ""
+ignore_tags = ""
+
+[remote.github]
+owner = "ChristopherVR"
+repo = "pptx-viewer"
