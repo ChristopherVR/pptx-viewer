@@ -1,10 +1,12 @@
-name: Deploy Docs to GitHub Pages
+name: Deploy Docs + Demo to GitHub Pages
 
 on:
   push:
     branches: [main]
     paths:
       - 'docs/**'
+      - 'demos/demo-react/**'
+      - 'packages/**'
       - '.github/workflows/docs.yml'
   # Allow manual runs from the Actions tab
   workflow_dispatch:
@@ -23,9 +25,6 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: docs
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -40,8 +39,23 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build with VitePress
+      - name: Build docs with VitePress
         run: bun run docs:build
+
+      # Builds the workspace packages and the React demo. DEMO_BASE makes the
+      # demo's asset URLs resolve under the Pages subpath it is served from.
+      - name: Build packages + React demo
+        run: bun run build
+        env:
+          DEMO_BASE: /pptx-viewer/demo/
+
+      # Fold the demo into the docs artifact so both ship as one Pages site.
+      # The 404.html copy lets the demo's client-side routing survive deep links.
+      - name: Bundle demo into docs site
+        run: |
+          mkdir -p docs/.vitepress/dist/demo
+          cp -r demos/demo-react/dist/. docs/.vitepress/dist/demo/
+          cp docs/.vitepress/dist/demo/index.html docs/.vitepress/dist/demo/404.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v6
