@@ -1,8 +1,14 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
+import {
+	getRoundRectRadiusPx,
+	getShapeType,
+	hasShapeProperties,
+	hasTextProperties,
+} from 'pptx-viewer-core';
 import type { CSSProperties } from 'vue';
 
 import { DEFAULT_STROKE_COLOR, DEFAULT_TEXT_COLOR } from '../constants';
+import { getResolvedShapeClipPath } from './shape-geometry';
 
 /**
  * Basic, framework-agnostic style computation for slide elements.
@@ -21,6 +27,17 @@ import { DEFAULT_STROKE_COLOR, DEFAULT_TEXT_COLOR } from '../constants';
 
 /** Map a value to a CSS pixel string. */
 const px = (n: number): string => `${n}px`;
+
+/** Map an OOXML stroke-dash value to a CSS `border-style` keyword. */
+function cssBorderDashStyle(strokeDash: string | undefined): 'solid' | 'dotted' | 'dashed' {
+	if (!strokeDash || strokeDash === 'solid') {
+		return 'solid';
+	}
+	if (strokeDash === 'dot' || strokeDash === 'sysDot') {
+		return 'dotted';
+	}
+	return 'dashed';
+}
 
 /**
  * Absolute container style: position, size, rotation, flip, opacity, z-index.
@@ -93,22 +110,52 @@ export function getShapeFillStrokeStyle(el: PptxElement): CSSProperties {
 		// Stroke.
 		const strokeWidth = Math.max(0, ss.strokeWidth ?? 0);
 		if (strokeWidth > 0) {
-			const dash =
-				ss.strokeDash && ss.strokeDash !== 'solid'
-					? ss.strokeDash === 'dot' || ss.strokeDash === 'sysDot'
-						? 'dotted'
-						: 'dashed'
-					: 'solid';
-			style.border = `${px(strokeWidth)} ${dash} ${ss.strokeColor ?? DEFAULT_STROKE_COLOR}`;
+			style.border = `${px(strokeWidth)} ${cssBorderDashStyle(ss.strokeDash)} ${ss.strokeColor ?? DEFAULT_STROKE_COLOR}`;
 		}
 	}
 
-	// Corner radius — approximate common preset geometries (independent of fill/stroke).
-	const shapeType = 'shapeType' in el ? el.shapeType : undefined;
-	if (shapeType === 'ellipse' || shapeType === 'circle') {
-		style.borderRadius = '50%';
-	} else if (shapeType === 'roundRect') {
-		style.borderRadius = px(Math.min(el.width, el.height) * 0.1);
+	// Geometry: mirror the React `getShapeVisualStyle` priority cascade —
+	// connector → roundRect (radius) → ellipse → clip-path → line → cylinder.
+	const normalizedShapeType = getShapeType(el.shapeType);
+
+	if (el.type === 'connector' || normalizedShapeType === 'connector') {
+		// Connectors paint as SVG (ConnectorRenderer); the box itself is bare.
+		style.backgroundColor = 'transparent';
+		style.border = 'none';
+		return style;
+	}
+
+	if (normalizedShapeType === 'roundRect') {
+		const radiusPx = getRoundRectRadiusPx(el);
+		if (radiusPx > 0.01) {
+			style.borderRadius = px(radiusPx);
+		}
+		return style;
+	}
+
+	if (normalizedShapeType === 'ellipse') {
+		style.borderRadius = '9999px';
+		return style;
+	}
+
+	const clipPath = getResolvedShapeClipPath(el);
+	if (clipPath) {
+		style.clipPath = clipPath;
+		return style;
+	}
+
+	if (normalizedShapeType === 'line') {
+		// A bare line shape: drop the box fill/border and draw only the top edge.
+		const strokeWidth = Math.max(0, el.shapeStyle?.strokeWidth ?? 0);
+		style.backgroundColor = 'transparent';
+		style.border = 'none';
+		style.borderTop = `${px(Math.max(strokeWidth, 2))} ${cssBorderDashStyle(el.shapeStyle?.strokeDash)} ${el.shapeStyle?.strokeColor ?? DEFAULT_STROKE_COLOR}`;
+		return style;
+	}
+
+	if (normalizedShapeType === 'cylinder') {
+		style.borderRadius = '48% / 12%';
+		return style;
 	}
 
 	return style;

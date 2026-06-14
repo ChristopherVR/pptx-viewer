@@ -163,22 +163,23 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 
 ### Rendering
 
-| Item                                                           | Status | Notes                                                                                                                |
-| -------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------- |
-| `PowerPointViewer.vue` (load + nav + zoom)                     | ◑      | loading/error/encrypted states, prev/next, zoom, **live thumbnail previews**                                         |
-| `SlideStage.vue`                                               | ◑      | reusable scaled stage (bg + elements); shared by canvas + thumbnails                                                 |
-| `SlideCanvas.vue`                                              | ◑      | centres `SlideStage` in a scrollable viewport; no rulers/grid/guides/overlays                                        |
-| `ElementRenderer.vue`                                          | ◑      | text, shape (fill/stroke), picture/image, media poster, group recursion; placeholders for the rest. Component tests. |
-| `element-style.ts`                                             | ◑      | container/shape/text/image basics + gradient & image fills; no clip-path/effects/3D                                  |
-| text: `picture`/`image`                                        | ◑      | `<img>` object-fit contain                                                                                           |
-| text: rich text runs (bold/italic/underline/strike/color/size) | ◑      | per-segment spans, paragraph + line breaks                                                                           |
-| Connectors (SVG)                                               | ◑      | `ConnectorRenderer.vue` — straight line + arrowheads + dash; bent/curved routing, compound lines, text overlay TODO  |
-| Tables                                                         | ☐      | `utils/table-render*.tsx`                                                                                            |
-| Charts (SVG)                                                   | ☐      | `utils/chart*.tsx` (large)                                                                                           |
-| SmartArt                                                       | ☐      | `utils/smartart-*.tsx` (large)                                                                                       |
-| Ink / OLE / Model3D / Zoom                                     | ☐      |                                                                                                                      |
-| Image effects, gradients, shadows, glow, clip-paths            | ☐      |                                                                                                                      |
-| Text warp / WordArt, equations (OMML→MathML)                   | ☐      |                                                                                                                      |
+| Item                                                           | Status | Notes                                                                                                                                                                             |
+| -------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PowerPointViewer.vue` (load + nav + zoom)                     | ◑      | loading/error/encrypted states, prev/next, zoom, **live thumbnail previews**                                                                                                      |
+| `SlideStage.vue`                                               | ◑      | reusable scaled stage (bg + elements); shared by canvas + thumbnails                                                                                                              |
+| `SlideCanvas.vue`                                              | ◑      | centres `SlideStage` in a scrollable viewport; no rulers/grid/guides/overlays                                                                                                     |
+| `ElementRenderer.vue`                                          | ◑      | text, shape (fill/stroke + preset clip-paths), picture/image, media poster, group recursion; placeholders for the rest. Component tests.                                          |
+| `element-style.ts`                                             | ◑      | container/shape/text/image basics + gradient & image fills + **preset-geometry clip-paths** (roundRect radius / ellipse / clip-path / line / cylinder); no effects/3D             |
+| `shape-geometry.ts` (clip-path cascade)                        | ◑      | mirrors React `getResolvedShapeClipPath`; imports core's evaluator/adjustment-aware/cloud/static entry points directly (no shared extraction needed — core is framework-agnostic) |
+| text: `picture`/`image`                                        | ◑      | `<img>` object-fit contain                                                                                                                                                        |
+| text: rich text runs (bold/italic/underline/strike/color/size) | ◑      | per-segment spans, paragraph + line breaks                                                                                                                                        |
+| Connectors (SVG)                                               | ◑      | `ConnectorRenderer.vue` — straight line + arrowheads + dash; bent/curved routing, compound lines, text overlay TODO                                                               |
+| Tables                                                         | ☐      | `utils/table-render*.tsx`                                                                                                                                                         |
+| Charts (SVG)                                                   | ☐      | `utils/chart*.tsx` (large)                                                                                                                                                        |
+| SmartArt                                                       | ☐      | `utils/smartart-*.tsx` (large)                                                                                                                                                    |
+| Ink / OLE / Model3D / Zoom                                     | ☐      |                                                                                                                                                                                   |
+| Image effects, gradients, shadows, glow                        | ◑      | preset-geometry **clip-paths done** (`shape-geometry.ts`); image effects/shadows/glow still TODO                                                                                  |
+| Text warp / WordArt, equations (OMML→MathML)                   | ☐      |                                                                                                                                                                                   |
 
 ### Editor chrome (all ☐ — not started)
 
@@ -213,14 +214,27 @@ digital signatures, font embedding/injection.
 
 ## Recommended next steps (priority order)
 
-1. Add a Vue demo page that loads a sample `.pptx` to validate rendering visually.
-2. Flesh out `ElementRenderer.vue`: clip-paths for preset geometries (extract
-   `utils/geometry.ts` shape-path generation into `pptx-viewer-shared` first),
-   then connectors (SVG), then tables, then charts. (Gradient + image fills done.)
+1. Add a Vue demo page that loads a sample `.pptx` to validate rendering visually. (demo-vue done.)
+2. Flesh out `ElementRenderer.vue`: ~~clip-paths for preset geometries~~ ✅ (done —
+   `shape-geometry.ts` imports the cascade straight from `pptx-viewer-core`; no
+   `pptx-viewer-shared` extraction was needed because core's geometry layer is
+   already framework-agnostic), ~~connectors (SVG)~~ ✅, then **tables**, then charts.
+   (Gradient + image fills done.)
 3. Decide the Tailwind question before starting the toolbar/inspector.
 4. Port `useViewerState` fully + `useEditorHistory` to unlock editing.
-5. Continue the shared-code extraction (color → geometry → connector-router →
-   animation engine), importing from `pptx-viewer-shared` in both React and Vue.
+5. Continue the shared-code extraction (color → ~~geometry~~ (lives in core
+   already) → connector-router → animation engine), importing from
+   `pptx-viewer-shared`/`pptx-viewer-core` in both React and Vue.
+
+> **Note for the extraction roadmap:** the PORTING plan assumed shape-path
+> generation lived in `packages/react/src/viewer/utils/geometry.ts` and needed
+> hoisting to `pptx-viewer-shared`. It doesn't — the ECMA-376 preset evaluator,
+> adjustment-aware table, cubic-Bezier cloud paths, and static preset table all
+> already live in **`pptx-viewer-core`** (`getShapeClipPathFromPreset`,
+> `getAdjustmentAwareShapeClipPath`, `getCloudPathForRendering`,
+> `getShapeClipPath`, `getShapeType`, `getRoundRectRadiusPx`) and are exported
+> from its barrel. Bindings should import these directly. React keeps a local
+> `shape-types.tsx` polygon fallback, but Vue/Angular don't need to replicate it.
 
 ## Session log
 
@@ -255,3 +269,16 @@ digital signatures, font embedding/injection.
   connectors/lines as SVG (stroke colour/width/dash, start/end arrowheads,
   flip-aware endpoints); `ElementRenderer` delegates `type === 'connector'`.
   4 connector tests added (19 total green). Bent/curved routing still TODO.
+- **2026-06-15** — Preset-geometry clip-paths. Added `shape-geometry.ts`
+  (`getResolvedShapeClipPath` / `getResolvedShapeClipPathFor`) mirroring the
+  React `resolved-shape-clip-path.ts` cascade — adjustment-aware → ECMA-376
+  preset evaluator → cubic-Bezier cloud → static preset table — importing all
+  four entry points **directly from `pptx-viewer-core`** (the geometry layer is
+  already framework-agnostic; no `pptx-viewer-shared` extraction needed, contra
+  the original roadmap). Rewrote `getShapeFillStrokeStyle` to follow React's
+  `getShapeVisualStyle` geometry priority: connector → roundRect (radius via
+  `getRoundRectRadiusPx`) → ellipse (`9999px`) → clip-path → line (bare top
+  edge) → cylinder (`48% / 12%`); replaced the crude `borderRadius` guesses.
+  Added a `cssBorderDashStyle` helper for dashed/dotted borders. 13 new tests
+  (32 total green). Build inlines core geometry (bundle externalises only
+  `vue`/`jszip`/`fast-xml-parser`); typecheck/lint/fmt clean.

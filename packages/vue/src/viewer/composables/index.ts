@@ -12,3 +12,4 @@ export {
 	getTextBlockStyle,
 	getImageSrc,
 } from './element-style';
+export { getResolvedShapeClipPath, getResolvedShapeClipPathFor } from './shape-geometry';
