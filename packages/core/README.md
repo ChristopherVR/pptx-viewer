@@ -1,39 +1,26 @@
 # pptx-viewer-core
 
-A framework-agnostic TypeScript engine for **parsing**, **editing**, **serialising**, and **converting** PowerPoint (.pptx) files. Operates entirely in-memory on the OpenXML ZIP archive with no native dependencies.
+[![npm version](https://img.shields.io/npm/v/pptx-viewer-core.svg)](https://www.npmjs.com/package/pptx-viewer-core)
+[![license](https://img.shields.io/npm/l/pptx-viewer-core.svg)](https://github.com/ChristopherVR/pptx-viewer/blob/main/LICENSE)
+[![types](https://img.shields.io/npm/types/pptx-viewer-core.svg)](https://www.npmjs.com/package/pptx-viewer-core)
 
-## Table of Contents
+> The framework-agnostic TypeScript engine to **parse, create, edit, serialise, and convert** PowerPoint (`.pptx`) files — runs in the browser and Node.js with no native dependencies.
 
-- [pptx-viewer-core](#pptx-viewer-core)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Quick Start](#quick-start)
-  - [API Reference](#api-reference)
-    - [PptxHandler](#pptxhandler)
-    - [PptxMarkdownConverter](#pptxmarkdownconverter)
-    - [PptxXmlBuilder (Fluent API)](#pptxxmlbuilder-fluent-api)
-  - [Architecture](#architecture)
-    - [High-Level Architecture](#high-level-architecture)
-    - [Module Map](#module-map)
-    - [Load Pipeline](#load-pipeline)
-    - [Save Pipeline](#save-pipeline)
-    - [Runtime Mixin Composition](#runtime-mixin-composition)
-  - [Deep Dive: How It Works](#deep-dive-how-it-works)
-    - [1. OpenXML ZIP Structure](#1-openxml-zip-structure)
-    - [2. Type System](#2-type-system)
-    - [3. Theme Resolution Chain](#3-theme-resolution-chain)
-    - [4. Geometry Engine](#4-geometry-engine)
-    - [5. Colour Processing](#5-colour-processing)
-    - [6. Converter System](#6-converter-system)
-    - [7. Services Layer](#7-services-layer)
-    - [8. Builder APIs (Fluent SDK)](#8-builder-apis-fluent-sdk)
-    - [9. Encryption and Security](#9-encryption-and-security)
-  - [Type System Reference](#type-system-reference)
-  - [Feature Summary](#feature-summary)
-  - [File Structure Reference](#file-structure-reference)
-  - [Limitations](#limitations)
+This is the headless core SDK. Point it at a `.pptx` `ArrayBuffer` and get back a fully typed `PptxData` model you can read, mutate, and write straight back to a valid `.pptx`. It also builds presentations from scratch with a fluent API and converts decks to Markdown. It powers the [`pptx-react-viewer`](https://www.npmjs.com/package/pptx-react-viewer), `pptx-vue-viewer`, and `pptx-angular-viewer` UI components.
+
+<samp>**[📦 npm](https://www.npmjs.com/package/pptx-viewer-core)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/)** · **[⚛️ React UI](https://www.npmjs.com/package/pptx-react-viewer)**</samp>
 
 ---
+
+## Install
+
+```bash
+npm install pptx-viewer-core
+# peer dependencies:
+npm install jszip fast-xml-parser
+```
+
+> Only two required peers: **jszip** (ZIP handling) and **fast-xml-parser** (XML parse/build). Encryption and digital-signature features pull in optional peers (`node-forge`, `xml-crypto`, `@xmldom/xmldom`) only if you use them.
 
 ## Overview
 

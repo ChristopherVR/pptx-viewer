@@ -1,31 +1,38 @@
 # pptx-viewer
 
-A comprehensive TypeScript monorepo for parsing, editing, rendering, and converting Microsoft PowerPoint (`.pptx`) files in the browser and Node.js.
+[![docs](https://img.shields.io/badge/docs-christophervr.github.io-6366f1.svg)](https://christophervr.github.io/pptx-viewer/)
+[![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![tests](https://img.shields.io/badge/tests-11%2C900%2B%20passing-brightgreen.svg)](#)
 
-**Note: I'm developing this with Claude Code using Opus 4.6**
+> A TypeScript toolkit to **parse, render, edit, present, and convert** Microsoft PowerPoint (`.pptx`) files — in the browser **and** Node.js. No PowerPoint install, no server round-trips, no native dependencies.
 
-> **📖 Documentation:** Full developer and user guides are published at **[christophervr.github.io/pptx-viewer](https://christophervr.github.io/pptx-viewer/)** (built with VitePress from [`docs/`](docs/)). Run it locally with `bun run docs:dev`.
+![The pptx-viewer editor rendering a PowerPoint slide with ribbon toolbar and slide thumbnails](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/editor.png)
 
-## Table of Contents
+Open a `.pptx`, render it with full visual fidelity, edit it in a WYSIWYG UI (or programmatically), present it fullscreen with animations and transitions, collaborate live, and save back to a valid `.pptx` — all client-side. The same engine also converts decks to Markdown and exports slides to PNG/SVG/PDF/GIF/video.
 
-- [Overview](#overview)
-- [Packages](#packages)
-- [Limitations](#limitations)
-- [Getting Started](#getting-started)
-- [Quick Start](#quick-start)
-- [Architecture](#architecture)
-- [Development](#development)
-- [License](#license)
+<samp>**[📖 Full docs](https://christophervr.github.io/pptx-viewer/)** · **[🎮 Try the demo](#getting-started)** (`bun run demo`) · _Built with [Claude Code](https://claude.com/claude-code)_</samp>
 
 ---
 
-## Overview
+## Which package do I install?
 
-`pptx-viewer` is a monorepo containing four packages that together provide a full-featured PowerPoint SDK:
+The UI packages **bundle the core engine**, so for an app you install exactly one package — no separate `pptx-viewer-core` required.
 
-1. **Parse** `.pptx` files from raw `ArrayBuffer` into a structured `PptxData` model
+| I'm building…                                     | Install                     | Package                                                                  |
+| ------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------ |
+| A **React** app                                   | `npm i pptx-react-viewer`   | [pptx-react-viewer](https://www.npmjs.com/package/pptx-react-viewer)     |
+| A **Vue 3** app                                   | `npm i pptx-vue-viewer`     | [pptx-vue-viewer](https://www.npmjs.com/package/pptx-vue-viewer)         |
+| An **Angular** app                                | `npm i pptx-angular-viewer` | [pptx-angular-viewer](https://www.npmjs.com/package/pptx-angular-viewer) |
+| **Headless** parse / edit / convert (Node or web) | `npm i pptx-viewer-core`    | [pptx-viewer-core](https://www.npmjs.com/package/pptx-viewer-core)       |
+| **CLI / MCP / AI** tooling                        | `npm i pptx-viewer-mcp`     | [pptx-viewer-mcp](https://www.npmjs.com/package/pptx-viewer-mcp)         |
+
+> **Naming note:** the React package publishes to npm as **`pptx-react-viewer`** — `pptx-viewer` (used throughout this repo) is its internal workspace name.
+
+## What it does
+
+1. **Parse** `.pptx` files from a raw `ArrayBuffer` into a structured `PptxData` model
 2. **Create** presentations from scratch with a fluent builder API
-3. **Render** slides as interactive React components with full visual fidelity
+3. **Render** slides as interactive React / Vue / Angular components with full visual fidelity
 4. **Edit** presentations programmatically or via the built-in WYSIWYG editor
 5. **Save** changes back to a valid `.pptx` file (round-trip safe)
 6. **Convert** presentations to Markdown with optional media extraction
@@ -33,9 +40,9 @@ A comprehensive TypeScript monorepo for parsing, editing, rendering, and convert
 8. **Collaborate** in real-time via Yjs CRDT with presence tracking
 9. **Encrypt/Decrypt** password-protected PPTX files (AES-128/256)
 
-The codebase handles the full OpenXML specification including 16 element types, 187+ preset shapes, 23 chart types, SmartArt (13 layouts), 3D models, animations (40+ presets), transitions (42 types including morph), themes, slide masters, embedded media, EMF/WMF metafiles, OLE objects, digital ink with pressure sensitivity, digital signatures, PPTX encryption, VBA macro preservation, OOXML Strict conformance, and more.
+The engine handles the full OpenXML specification: 16 element types, 187+ preset shapes, 23 chart types, SmartArt (13 layouts), 3D models, animations (40+ presets), transitions (42 types including morph), themes, slide masters, embedded media, EMF/WMF metafiles, OLE objects, digital ink with pressure sensitivity, digital signatures, PPTX encryption, VBA macro preservation, OOXML Strict conformance, and more — backed by **11,900+ passing tests** across 419 files.
 
-**Test coverage:** 11,900+ passing tests across 419 test files.
+> _Developed with [Claude Code](https://claude.com/claude-code) (Opus 4.x)._
 
 ## Packages
 
@@ -50,15 +57,15 @@ packages/
   mtx-decompressor/  mtx-decompressor     – MicroType Express font decompressor
 ```
 
-| Package                                            | Description                                                                                                | README                                               |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| **[pptx-viewer-core](packages/core/)**             | Core PPTX engine -- parse, create, edit, serialize, and convert PowerPoint files. Framework-agnostic.      | [Documentation](packages/core/README.md)             |
-| **[pptx-viewer-shared](packages/shared/)**         | Framework-agnostic viewer logic (theme, load helpers, types) shared by the React, Vue, and Angular UIs.    | [Documentation](packages/shared/README.md)           |
-| **[pptx-viewer](packages/react/)**                 | React-based PowerPoint viewer, editor, and presenter with toolbar, inspector, collaboration, and export.   | [Documentation](packages/react/README.md)            |
-| **[pptx-vue-viewer](packages/vue/)**               | Vue 3 PowerPoint viewer component. Counterpart of the React package (viewer-first; porting in progress).   | [Documentation](packages/vue/README.md)              |
-| **[pptx-angular-viewer](packages/angular/)**       | Angular PowerPoint viewer component. Counterpart of the React package (viewer-first; porting in progress). | [Documentation](packages/angular/README.md)          |
-| **[emf-converter](packages/emf-converter/)**       | Convert EMF/WMF metafile binaries to PNG data URLs using Canvas 2D. Handles EMF, EMF+, and WMF formats.    | [Documentation](packages/emf-converter/README.md)    |
-| **[mtx-decompressor](packages/mtx-decompressor/)** | Decompress MicroType Express (MTX) compressed fonts from EOT containers into TrueType.                     | [Documentation](packages/mtx-decompressor/README.md) |
+| Package                                            | Description                                                                                                                                | README                                               |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| **[pptx-viewer-core](packages/core/)**             | Core PPTX engine -- parse, create, edit, serialize, and convert PowerPoint files. Framework-agnostic.                                      | [Documentation](packages/core/README.md)             |
+| **[pptx-viewer-shared](packages/shared/)**         | Framework-agnostic viewer logic (theme, load helpers, types) shared by the React, Vue, and Angular UIs.                                    | [Documentation](packages/shared/README.md)           |
+| **[pptx-react-viewer](packages/react/)**           | React-based PowerPoint viewer, editor, and presenter with toolbar, inspector, collaboration, and export. _(workspace name: `pptx-viewer`)_ | [Documentation](packages/react/README.md)            |
+| **[pptx-vue-viewer](packages/vue/)**               | Vue 3 PowerPoint viewer component. Counterpart of the React package (viewer-first; porting in progress).                                   | [Documentation](packages/vue/README.md)              |
+| **[pptx-angular-viewer](packages/angular/)**       | Angular PowerPoint viewer component. Counterpart of the React package (viewer-first; porting in progress).                                 | [Documentation](packages/angular/README.md)          |
+| **[emf-converter](packages/emf-converter/)**       | Convert EMF/WMF metafile binaries to PNG data URLs using Canvas 2D. Handles EMF, EMF+, and WMF formats.                                    | [Documentation](packages/emf-converter/README.md)    |
+| **[mtx-decompressor](packages/mtx-decompressor/)** | Decompress MicroType Express (MTX) compressed fonts from EOT containers into TrueType.                                                     | [Documentation](packages/mtx-decompressor/README.md) |
 
 ### Dependency Graph
 
@@ -217,8 +224,10 @@ console.log(markdown);
 
 ### React Viewer Component
 
+> Installs from npm as **`pptx-react-viewer`** (see [packages/react](packages/react/README.md)).
+
 ```tsx
-import { PowerPointViewer } from 'pptx-viewer/viewer';
+import { PowerPointViewer } from 'pptx-react-viewer';
 
 function App() {
 	const [content, setContent] = useState<ArrayBuffer | null>(null);
