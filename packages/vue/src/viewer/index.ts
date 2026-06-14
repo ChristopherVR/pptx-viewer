@@ -1,5 +1,6 @@
 export { default as PowerPointViewer } from './PowerPointViewer.vue';
 export { default as SlideCanvas } from './components/SlideCanvas.vue';
+export { default as SlideStage } from './components/SlideStage.vue';
 export { default as ElementRenderer } from './components/ElementRenderer.vue';
 
 export type {

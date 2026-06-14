@@ -1,5 +1,5 @@
 // ── Vue 3 PowerPoint viewer/editor ──
-export { PowerPointViewer, SlideCanvas, ElementRenderer } from './viewer';
+export { PowerPointViewer, SlideCanvas, SlideStage, ElementRenderer } from './viewer';
 export type {
 	PowerPointViewerProps,
 	PowerPointViewerEmits,

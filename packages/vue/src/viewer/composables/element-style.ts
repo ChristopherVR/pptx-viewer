@@ -71,8 +71,22 @@ export function getShapeFillStrokeStyle(el: PptxElement): CSSProperties {
 	const style: CSSProperties = {};
 
 	if (ss) {
-		// Fill — solid only for now (gradients/patterns/images: TODO).
-		if (ss.fillColor && ss.fillColor !== 'transparent' && ss.fillMode !== 'none') {
+		// Fill resolution order mirrors the React `getShapeVisualStyle`:
+		//   image fill → gradient → solid colour. Pattern fills (SVG-based) are
+		//   not yet ported (TODO, see PORTING.md).
+		const imageFillUrl = ss.fillMode === 'image' && ss.fillImageUrl ? ss.fillImageUrl : undefined;
+		// `fillGradient` is a prebuilt CSS gradient string from the parser. The
+		// richer structured builder (color-gradient.ts) is an extraction candidate.
+		const gradient = ss.fillMode === 'gradient' || ss.fillGradient ? ss.fillGradient : undefined;
+
+		if (imageFillUrl) {
+			style.backgroundColor = 'transparent';
+			style.backgroundImage = `url(${imageFillUrl})`;
+			style.backgroundRepeat = ss.fillImageMode === 'tile' ? 'repeat' : 'no-repeat';
+			style.backgroundSize = ss.fillImageMode === 'tile' ? 'auto' : '100% 100%';
+		} else if (gradient) {
+			style.backgroundImage = gradient;
+		} else if (ss.fillColor && ss.fillColor !== 'transparent' && ss.fillMode !== 'none') {
 			style.backgroundColor = ss.fillColor;
 		}
 

@@ -154,21 +154,22 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 
 ### Rendering
 
-| Item                                                           | Status | Notes                                                                                                    |
-| -------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------- |
-| `PowerPointViewer.vue` (load + nav + zoom)                     | ◑      | loading/error/encrypted states, prev/next, zoom, thumbnail rail                                          |
-| `SlideCanvas.vue`                                              | ◑      | scaled stage + element list; no rulers/grid/guides/overlays                                              |
-| `ElementRenderer.vue`                                          | ◑      | text, shape (solid fill/stroke), picture/image, media poster, group recursion; placeholders for the rest |
-| `element-style.ts`                                             | ◑      | container/shape/text/image basics; no gradient/clip-path/effects/3D                                      |
-| text: `picture`/`image`                                        | ◑      | `<img>` object-fit contain                                                                               |
-| text: rich text runs (bold/italic/underline/strike/color/size) | ◑      | per-segment spans, paragraph + line breaks                                                               |
-| Connectors (SVG)                                               | ☐      | `ConnectorElementRenderer`                                                                               |
-| Tables                                                         | ☐      | `utils/table-render*.tsx`                                                                                |
-| Charts (SVG)                                                   | ☐      | `utils/chart*.tsx` (large)                                                                               |
-| SmartArt                                                       | ☐      | `utils/smartart-*.tsx` (large)                                                                           |
-| Ink / OLE / Model3D / Zoom                                     | ☐      |                                                                                                          |
-| Image effects, gradients, shadows, glow, clip-paths            | ☐      |                                                                                                          |
-| Text warp / WordArt, equations (OMML→MathML)                   | ☐      |                                                                                                          |
+| Item                                                           | Status | Notes                                                                                                                |
+| -------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------- |
+| `PowerPointViewer.vue` (load + nav + zoom)                     | ◑      | loading/error/encrypted states, prev/next, zoom, **live thumbnail previews**                                         |
+| `SlideStage.vue`                                               | ◑      | reusable scaled stage (bg + elements); shared by canvas + thumbnails                                                 |
+| `SlideCanvas.vue`                                              | ◑      | centres `SlideStage` in a scrollable viewport; no rulers/grid/guides/overlays                                        |
+| `ElementRenderer.vue`                                          | ◑      | text, shape (fill/stroke), picture/image, media poster, group recursion; placeholders for the rest. Component tests. |
+| `element-style.ts`                                             | ◑      | container/shape/text/image basics + gradient & image fills; no clip-path/effects/3D                                  |
+| text: `picture`/`image`                                        | ◑      | `<img>` object-fit contain                                                                                           |
+| text: rich text runs (bold/italic/underline/strike/color/size) | ◑      | per-segment spans, paragraph + line breaks                                                                           |
+| Connectors (SVG)                                               | ☐      | `ConnectorElementRenderer`                                                                                           |
+| Tables                                                         | ☐      | `utils/table-render*.tsx`                                                                                            |
+| Charts (SVG)                                                   | ☐      | `utils/chart*.tsx` (large)                                                                                           |
+| SmartArt                                                       | ☐      | `utils/smartart-*.tsx` (large)                                                                                       |
+| Ink / OLE / Model3D / Zoom                                     | ☐      |                                                                                                                      |
+| Image effects, gradients, shadows, glow, clip-paths            | ☐      |                                                                                                                      |
+| Text warp / WordArt, equations (OMML→MathML)                   | ☐      |                                                                                                                      |
 
 ### Editor chrome (all ☐ — not started)
 
@@ -204,9 +205,9 @@ digital signatures, font embedding/injection.
 ## Recommended next steps (priority order)
 
 1. Add a Vue demo page that loads a sample `.pptx` to validate rendering visually.
-2. Flesh out `ElementRenderer.vue`: gradients, clip-paths for preset geometries
-   (extract `utils/geometry.ts` shape-path generation into `pptx-viewer-shared`
-   first), then tables, then connectors, then charts.
+2. Flesh out `ElementRenderer.vue`: clip-paths for preset geometries (extract
+   `utils/geometry.ts` shape-path generation into `pptx-viewer-shared` first),
+   then connectors (SVG), then tables, then charts. (Gradient + image fills done.)
 3. Decide the Tailwind question before starting the toolbar/inspector.
 4. Port `useViewerState` fully + `useEditorHistory` to unlock editing.
 5. Continue the shared-code extraction (color → geometry → connector-router →
@@ -228,3 +229,10 @@ digital signatures, font embedding/injection.
   `pptx-viewer-shared` (JS via Rollup, types via `vite-plugin-dts`
   `bundledPackages` + `rollupTypes`); both are now devDependencies. Verified the
   published `dist` has no dangling internal imports. Build/typecheck/test/lint/fmt green.
+- **2026-06-14** — Renderer fidelity + thumbnails. Extracted reusable
+  `SlideStage.vue` (scaled bg + element list) shared by `SlideCanvas` and the
+  thumbnail rail, so the rail now shows **live mini-slide previews** instead of
+  numbers. Added gradient (`fillGradient`) and image (`fillImageUrl`) fill
+  resolution to `element-style.ts` (mirrors React's fill order). Added
+  `ElementRenderer` component tests (`@vue/test-utils`): text, rich-text runs,
+  picture, group recursion, placeholder. 15 tests green.

@@ -138,7 +138,9 @@
 
 .pptx-vue-thumb {
 	position: relative;
-	aspect-ratio: 16 / 9;
+	width: 100%;
+	padding: 0;
+	overflow: hidden;
 	border: 2px solid var(--pptx-border);
 	border-radius: 0.375rem;
 	background: #ffffff;
@@ -149,12 +151,23 @@
 	border-color: var(--pptx-primary);
 }
 
+/* Mini slide preview fills the button; non-interactive. */
+.pptx-vue-thumb-stage {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	overflow: hidden;
+}
+
 .pptx-vue-thumb-index {
 	position: absolute;
 	bottom: 0.15rem;
 	right: 0.3rem;
+	padding: 0 0.2rem;
+	border-radius: 0.2rem;
 	font-size: 0.7rem;
-	color: #111827;
+	color: #f3f4f6;
+	background: rgba(0, 0, 0, 0.55);
 }
 
 .pptx-vue-main {

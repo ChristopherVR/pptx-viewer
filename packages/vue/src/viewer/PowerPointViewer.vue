@@ -17,6 +17,7 @@ import { computed, ref, toRef, watch } from 'vue';
 
 import { provideViewerTheme, useThemeStyle } from '../theme';
 import SlideCanvas from './components/SlideCanvas.vue';
+import SlideStage from './components/SlideStage.vue';
 import { useLoadContent } from './composables/useLoadContent';
 import type { PowerPointViewerEmits, PowerPointViewerExpose, PowerPointViewerProps } from './types';
 
@@ -71,6 +72,11 @@ const zoomReset = () => {
 };
 const zoomPercent = computed(() => Math.round(zoom.value * 100));
 
+// ── Thumbnail previews ────────────────────────────────────────────────
+const THUMB_WIDTH = 104; // px — matches the thumbnail rail content width
+const thumbScale = computed(() => THUMB_WIDTH / Math.max(1, canvasSize.value.width));
+const thumbHeight = computed(() => Math.round(canvasSize.value.height * thumbScale.value));
+
 // ── Imperative surface (mirrors the React forwardRef handle) ──────────
 defineExpose<PowerPointViewerExpose>({ getContent });
 </script>
@@ -123,8 +129,19 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						type="button"
 						class="pptx-vue-thumb"
 						:class="{ 'is-active': index === activeSlideIndex }"
+						:style="{ height: `${thumbHeight}px` }"
+						:aria-label="`Slide ${index + 1}`"
+						:aria-current="index === activeSlideIndex ? 'true' : undefined"
 						@click="goTo(index)"
 					>
+						<div class="pptx-vue-thumb-stage" aria-hidden="true">
+							<SlideStage
+								:slide="slide"
+								:canvas-size="canvasSize"
+								:media-data-urls="mediaDataUrls"
+								:scale="thumbScale"
+							/>
+						</div>
 						<span class="pptx-vue-thumb-index">{{ index + 1 }}</span>
 					</button>
 				</nav>
