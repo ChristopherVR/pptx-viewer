@@ -124,11 +124,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// Non-critical — will fall back to type-grouped order
 		}
 
+		// Prefix element IDs with the slide path so they are unique across
+		// slides. Without this, the first picture on every slide gets the same
+		// id (e.g. "pic-0"), which collapses the collectImagePaths →
+		// elementPatches image pipeline so one slide's image overwrites others.
+		const slidePrefix = slidePath ? `${slidePath}-` : '';
 		return this.parseSpTreeChildren(
 			spTree as Record<string, unknown>,
 			slidePath,
 			rawXmlStr,
 			'p:spTree',
+			slidePrefix,
 		);
 	}
 }
