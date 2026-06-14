@@ -1,5 +1,5 @@
 @import 'tailwindcss';
 
-@source "../packages/react/src/**/*.{ts,tsx}";
+@source "../../packages/react/src/**/*.{ts,tsx}";
 
-@import '../packages/react/src/styles/theme.css';
+@import '../../packages/react/src/styles/theme.css';
