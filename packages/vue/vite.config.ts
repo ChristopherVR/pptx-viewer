@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
 
+import terser from '@rollup/plugin-terser';
 import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
@@ -43,7 +44,14 @@ export default defineConfig({
 		},
 		sourcemap: false,
 		emptyOutDir: true,
+		// Vite's built-in minify (esbuild or terser) is NOT applied to the ESM
+		// output in lib mode, leaving the .js bundle ~50% larger than the .cjs
+		// one. Run terser as a rollup output plugin instead so every emitted
+		// chunk — ESM and CJS — is minified uniformly. `minify: false` avoids a
+		// redundant esbuild pass on the CJS output.
+		minify: false,
 		rollupOptions: {
+			plugins: [terser({ format: { comments: false } })],
 			external: [
 				'vue',
 				'jspdf',

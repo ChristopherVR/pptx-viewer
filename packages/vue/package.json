@@ -48,7 +48,7 @@
 		"./styles.css": "./dist/pptx-vue-viewer.css"
 	},
 	"scripts": {
-		"build": "vite build && cp src/styles/pptx-vue-viewer.css dist/pptx-vue-viewer.css",
+		"build": "vite build && cp src/styles/pptx-vue-viewer.css dist/pptx-vue-viewer.css && node ../../scripts/compress-dist.mjs dist",
 		"dev": "vite build --watch",
 		"typecheck": "vue-tsc --noEmit -p tsconfig.json",
 		"test": "vitest run",
@@ -61,6 +61,7 @@
 		"tailwind-merge": "^3.6.0"
 	},
 	"devDependencies": {
+		"@rollup/plugin-terser": "^0.4.4",
 		"@tailwindcss/cli": "^4.3.1",
 		"@types/dompurify": "^3.2.0",
 		"@vitejs/plugin-vue": "^5.2.1",
@@ -69,6 +70,7 @@
 		"pptx-viewer-core": "workspace:*",
 		"pptx-viewer-shared": "workspace:*",
 		"tailwindcss": "^4.3.1",
+		"terser": "^5.37.0",
 		"typescript": "^6.0.3",
 		"vite": "^6.0.0",
 		"vite-plugin-dts": "^4.5.4",

@@ -15,7 +15,7 @@
 	"bugs": {
 		"url": "https://github.com/ChristopherVR/pptx-viewer/issues"
 	},
-	"license": "MIT",
+	"license": "Apache-2.0",
 	"author": "ChristopherVR",
 	"repository": {
 		"type": "git",
@@ -47,7 +47,7 @@
 		"./theme.css": "./src/styles/theme.css"
 	},
 	"scripts": {
-		"build": "tsup && npx @tailwindcss/cli -i src/styles/pptx-viewer.css -o dist/pptx-viewer.css --minify",
+		"build": "tsup && npx @tailwindcss/cli -i src/styles/pptx-viewer.css -o dist/pptx-viewer.css --minify && node ../../scripts/compress-dist.mjs dist",
 		"build:css": "npx @tailwindcss/cli -i src/styles/pptx-viewer.css -o dist/pptx-viewer.css --minify",
 		"dev": "tsup --watch",
 		"typecheck": "tsc --noEmit --pretty",
@@ -58,10 +58,7 @@
 	"dependencies": {
 		"clsx": "^2.1.1",
 		"dompurify": "^3.4.10",
-		"emf-converter": "workspace:*",
 		"html2canvas-pro": "^2.0.4",
-		"mtx-decompressor": "workspace:*",
-		"pptx-viewer-core": "workspace:*",
 		"tailwind-merge": "^3.6.0"
 	},
 	"devDependencies": {
@@ -69,12 +66,14 @@
 		"@types/dompurify": "^3.2.0",
 		"@types/react": "^19.2.17",
 		"@types/react-dom": "^19.2.3",
+		"pptx-viewer-core": "workspace:*",
+		"pptx-viewer-shared": "workspace:*",
 		"tailwindcss": "^4.3.1",
 		"tsup": "^8.5.1",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.8",
 		"y-websocket": "^3.0.0",
-		"yjs": "^13.6.31"
+		"yjs": "^13.6.30"
 	},
 	"peerDependencies": {
 		"fast-xml-parser": "^5.8.0",
@@ -94,10 +93,5 @@
 		"three": "^0.184.0",
 		"y-websocket": "^3.0.0",
 		"yjs": "^13.6.31"
-	},
-	"bundledDependencies": [
-		"emf-converter",
-		"mtx-decompressor",
-		"pptx-viewer-core"
-	]
+	}
 }
