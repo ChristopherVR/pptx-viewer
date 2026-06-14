@@ -12,21 +12,29 @@ import {
 } from '../composables/element-style';
 import ChartRenderer from './ChartRenderer.vue';
 import ConnectorRenderer from './ConnectorRenderer.vue';
+import InkRenderer from './InkRenderer.vue';
+import Model3DRenderer from './Model3DRenderer.vue';
+import OleRenderer from './OleRenderer.vue';
+import SmartArtRenderer from './SmartArtRenderer.vue';
 import TableRenderer from './TableRenderer.vue';
+import ZoomRenderer from './ZoomRenderer.vue';
 
 /**
  * ElementRenderer — Vue port of the React `ElementRenderer.tsx`.
  *
- * Renders a single slide element by its `type` discriminant. This is the
- * viewer-first subset:
- *  - `text` / `shape`        → positioned box with fill/stroke + rich text
+ * Renders a single slide element by its `type` discriminant. Each non-trivial
+ * type delegates to a dedicated renderer component:
+ *  - `text` / `shape`        → positioned box with fill/stroke/effects + rich text
  *  - `picture` / `image`     → `<img>`
  *  - `media`                 → poster frame (`<img>`) — playback TODO
  *  - `group`                 → recursive children
- *  - everything else         → labelled placeholder (TODO, see PORTING.md)
+ *  - `connector`             → `ConnectorRenderer` (SVG)
+ *  - `table` / `chart`       → `TableRenderer` / `ChartRenderer`
+ *  - `smartArt`              → `SmartArtRenderer`
+ *  - `ink` / `ole` / `model3d` / `zoom` → dedicated renderers
+ *  - anything else           → labelled placeholder (TODO, see PORTING.md)
  *
- * Interaction (selection, resize handles, inline editing), connectors,
- * charts, tables, SmartArt, ink, OLE, and 3D are not yet ported.
+ * Interaction (selection, resize handles, inline editing) is not yet ported.
  */
 const props = defineProps<{
 	element: PptxElement;
@@ -111,14 +119,7 @@ const hasText = computed(() => paragraphs.value.some((p) => p.length > 0));
 /** Friendly label for the placeholder rendered for not-yet-ported types. */
 const placeholderLabel = computed(() => {
 	const map: Record<string, string> = {
-		smartArt: 'SmartArt',
-		connector: 'Connector',
-		group: 'Group',
 		media: 'Media',
-		ink: 'Ink',
-		ole: 'Embedded object',
-		model3d: '3D model',
-		zoom: 'Zoom',
 	};
 	return map[props.element.type] ?? props.element.type;
 });
@@ -190,6 +191,46 @@ const placeholderLabel = computed(() => {
 	<!-- Chart -->
 	<ChartRenderer
 		v-else-if="element.type === 'chart'"
+		:element="element"
+		:media-data-urls="mediaDataUrls"
+		:z-index="zIndex"
+	/>
+
+	<!-- SmartArt -->
+	<SmartArtRenderer
+		v-else-if="element.type === 'smartArt'"
+		:element="element"
+		:media-data-urls="mediaDataUrls"
+		:z-index="zIndex"
+	/>
+
+	<!-- Ink -->
+	<InkRenderer
+		v-else-if="element.type === 'ink'"
+		:element="element"
+		:media-data-urls="mediaDataUrls"
+		:z-index="zIndex"
+	/>
+
+	<!-- Embedded OLE object -->
+	<OleRenderer
+		v-else-if="element.type === 'ole'"
+		:element="element"
+		:media-data-urls="mediaDataUrls"
+		:z-index="zIndex"
+	/>
+
+	<!-- 3D model -->
+	<Model3DRenderer
+		v-else-if="element.type === 'model3d'"
+		:element="element"
+		:media-data-urls="mediaDataUrls"
+		:z-index="zIndex"
+	/>
+
+	<!-- Zoom -->
+	<ZoomRenderer
+		v-else-if="element.type === 'zoom'"
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"

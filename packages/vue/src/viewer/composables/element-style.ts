@@ -9,6 +9,7 @@ import type { CSSProperties } from 'vue';
 
 import { DEFAULT_STROKE_COLOR, DEFAULT_TEXT_COLOR } from '../constants';
 import { getResolvedShapeClipPath } from './shape-geometry';
+import { getComputedEffectStyle } from './visual-effects';
 
 /**
  * Basic, framework-agnostic style computation for slide elements.
@@ -112,6 +113,38 @@ export function getShapeFillStrokeStyle(el: PptxElement): CSSProperties {
 		if (strokeWidth > 0) {
 			style.border = `${px(strokeWidth)} ${cssBorderDashStyle(ss.strokeDash)} ${ss.strokeColor ?? DEFAULT_STROKE_COLOR}`;
 		}
+	}
+
+	// Visual effects (outer/inner shadow, glow, soft edges, reflection, DAG
+	// blend/opacity). Applied to `style` *before* the geometry cascade so each
+	// early `return style` below carries them. Mirrors the React
+	// `getShapeVisualStyle` effect layer.
+	const fx = getComputedEffectStyle(el);
+	if (fx.boxShadow) {
+		style.boxShadow = fx.boxShadow;
+	}
+	if (fx.filter) {
+		// The duotone DAG effect emits a `url(#…)` reference to an SVG <filter>
+		// the Vue renderer does not inject yet. Strip it so the remaining CSS
+		// filter functions (glow, blur, grayscale, …) still apply and the element
+		// isn't hidden by a dangling filter reference. (Duotone deferred.)
+		const filter = fx.filter.replace(/\s*url\(#[^)]*\)/gu, '').trim();
+		if (filter) {
+			style.filter = filter;
+		}
+	}
+	if (fx.webkitBoxReflect) {
+		style.WebkitBoxReflect = fx.webkitBoxReflect;
+	}
+	if (fx.mixBlendMode) {
+		style.mixBlendMode = fx.mixBlendMode as CSSProperties['mixBlendMode'];
+	}
+	if (fx.opacity !== undefined) {
+		// Compose the effect alpha with any element-level opacity (the shape
+		// style is merged over the container style, so this would otherwise
+		// clobber `getContainerStyle`'s element opacity).
+		const elementOpacity = typeof el.opacity === 'number' ? el.opacity : 1;
+		style.opacity = elementOpacity * fx.opacity;
 	}
 
 	// Geometry: mirror the React `getShapeVisualStyle` priority cascade —

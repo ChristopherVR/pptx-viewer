@@ -75,15 +75,17 @@ describe('elementRenderer', () => {
 		expect(wrapper.text()).toContain('child');
 	});
 
-	it('renders a placeholder for not-yet-ported types', () => {
+	it('renders a defensive placeholder for unknown element types', () => {
+		// Every real PptxElement type now has a dedicated renderer; the generic
+		// placeholder is only reached defensively for an unrecognised `type`.
 		const wrapper = mountEl({
-			type: 'ink',
-			id: 'ink1',
+			type: 'futureType',
+			id: 'x1',
 			x: 0,
 			y: 0,
 			width: 100,
 			height: 100,
-		} as PptxElement);
-		expect(wrapper.find('.pptx-vue-placeholder').text()).toBe('Ink');
+		} as unknown as PptxElement);
+		expect(wrapper.find('.pptx-vue-placeholder').text()).toBe('futureType');
 	});
 });
