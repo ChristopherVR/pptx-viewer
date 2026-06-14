@@ -15,7 +15,7 @@
 	"bugs": {
 		"url": "https://github.com/ChristopherVR/pptx-viewer/issues"
 	},
-	"license": "MIT",
+	"license": "Apache-2.0",
 	"author": "ChristopherVR",
 	"repository": {
 		"type": "git",

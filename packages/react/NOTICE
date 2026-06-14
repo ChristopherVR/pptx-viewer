@@ -1,7 +1,9 @@
 pptx-viewer
 Copyright (c) 2025-present pptx-viewer contributors
 
-This package is licensed under the MIT License. See the LICENSE file for details.
+This package is licensed under the Apache License 2.0. See the LICENSE file for
+details. Under Section 4(d) of that license, please preserve this NOTICE (or the
+attribution it contains) in any derivative works you distribute.
 
 This package bundles the following component under a different license:
 

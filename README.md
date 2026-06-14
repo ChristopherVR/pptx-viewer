@@ -4,6 +4,8 @@ A comprehensive TypeScript monorepo for parsing, editing, rendering, and convert
 
 **Note: I'm developing this with Claude Code using Opus 4.6**
 
+> **📖 Documentation:** Full developer and user guides are published at **[christophervr.github.io/pptx-viewer](https://christophervr.github.io/pptx-viewer/)** (built with VitePress from [`docs/`](docs/)). Run it locally with `bun run docs:dev`.
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -40,25 +42,33 @@ The codebase handles the full OpenXML specification including 16 element types, 
 ```
 packages/
   core/              pptx-viewer-core     – Parse, create, edit, serialize PPTX files (framework-agnostic)
+  shared/            pptx-viewer-shared   – Framework-agnostic viewer logic shared by the UI bindings
   react/             pptx-viewer          – React-based viewer/editor component
+  vue/               pptx-vue-viewer      – Vue 3 viewer component
+  angular/           pptx-angular-viewer  – Angular viewer component
   emf-converter/     emf-converter        – EMF/WMF metafile to PNG converter
   mtx-decompressor/  mtx-decompressor     – MicroType Express font decompressor
 ```
 
-| Package                                            | Description                                                                                              | README                                               |
-| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| **[pptx-viewer-core](packages/core/)**             | Core PPTX engine -- parse, create, edit, serialize, and convert PowerPoint files. Framework-agnostic.    | [Documentation](packages/core/README.md)             |
-| **[pptx-viewer](packages/react/)**                 | React-based PowerPoint viewer, editor, and presenter with toolbar, inspector, collaboration, and export. | [Documentation](packages/react/README.md)            |
-| **[emf-converter](packages/emf-converter/)**       | Convert EMF/WMF metafile binaries to PNG data URLs using Canvas 2D. Handles EMF, EMF+, and WMF formats.  | [Documentation](packages/emf-converter/README.md)    |
-| **[mtx-decompressor](packages/mtx-decompressor/)** | Decompress MicroType Express (MTX) compressed fonts from EOT containers into TrueType.                   | [Documentation](packages/mtx-decompressor/README.md) |
+| Package                                            | Description                                                                                                | README                                               |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| **[pptx-viewer-core](packages/core/)**             | Core PPTX engine -- parse, create, edit, serialize, and convert PowerPoint files. Framework-agnostic.      | [Documentation](packages/core/README.md)             |
+| **[pptx-viewer-shared](packages/shared/)**         | Framework-agnostic viewer logic (theme, load helpers, types) shared by the React, Vue, and Angular UIs.    | [Documentation](packages/shared/README.md)           |
+| **[pptx-viewer](packages/react/)**                 | React-based PowerPoint viewer, editor, and presenter with toolbar, inspector, collaboration, and export.   | [Documentation](packages/react/README.md)            |
+| **[pptx-vue-viewer](packages/vue/)**               | Vue 3 PowerPoint viewer component. Counterpart of the React package (viewer-first; porting in progress).   | [Documentation](packages/vue/README.md)              |
+| **[pptx-angular-viewer](packages/angular/)**       | Angular PowerPoint viewer component. Counterpart of the React package (viewer-first; porting in progress). | [Documentation](packages/angular/README.md)          |
+| **[emf-converter](packages/emf-converter/)**       | Convert EMF/WMF metafile binaries to PNG data URLs using Canvas 2D. Handles EMF, EMF+, and WMF formats.    | [Documentation](packages/emf-converter/README.md)    |
+| **[mtx-decompressor](packages/mtx-decompressor/)** | Decompress MicroType Express (MTX) compressed fonts from EOT containers into TrueType.                     | [Documentation](packages/mtx-decompressor/README.md) |
 
 ### Dependency Graph
 
 ```
-pptx-viewer (React)
-  └── pptx-viewer-core
-        ├── emf-converter
-        └── mtx-decompressor
+pptx-viewer (React) ┐
+pptx-vue-viewer     ├── pptx-viewer-shared ──┐
+pptx-angular-viewer ┘                        ├── pptx-viewer-core
+                                             │         ├── emf-converter
+                                             │         └── mtx-decompressor
+                    (each UI binding) ───────┘
 ```
 
 ---
@@ -374,4 +384,16 @@ bun run pack:react   # packages/react
 
 ## License
 
-MIT
+Released under the [Apache License 2.0](LICENSE) — free to use, modify, and distribute, including in commercial and closed-source projects. Apache-2.0 also gives you an explicit patent grant, so adopting `pptx-viewer` is safe for legal teams.
+
+### Attribution
+
+Apache-2.0 keeps attribution simple and clear. When you redistribute `pptx-viewer` or a derivative, please:
+
+- Keep the [`LICENSE`](LICENSE) file with your distribution (§4a).
+- Keep a readable copy of the [`NOTICE`](NOTICE) file's attribution — in your own `NOTICE`, your docs, or a credits/about screen (§4d).
+- If you modify our files, add a brief note that you changed them (§4b).
+
+That's the whole ask, and most of it is just keeping two text files intact. Beyond the license, a link back to [this repository](https://github.com/ChristopherVR/pptx-viewer) is always appreciated and helps others find the project. 🙏
+
+> **Note:** Some bundled components carry their own licenses (for example, `mtx-decompressor` is MPL-2.0). Those terms are listed in the `NOTICE` file and the per-package `NOTICE` files, and must be preserved as described there.
