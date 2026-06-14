@@ -248,6 +248,31 @@ jobs:
       - name: Test vue
         run: cd packages/vue && bun vitest run --reporter=verbose --reporter=github-actions
 
+  test-angular:
+    needs: build
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: build-output
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Test angular
+        # inline-shared vendors the shared source the Angular lib compiles against
+        run: cd packages/angular && bun run inline-shared && bun vitest run --reporter=verbose --reporter=github-actions
+
   release:
     needs:
       [
@@ -260,6 +285,7 @@ jobs:
         test-mtx-decompressor,
         test-tools,
         test-vue,
+        test-angular,
       ]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -324,7 +350,7 @@ jobs:
       - name: Update package versions
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          for pkgdir in packages/emf-converter packages/mtx-decompressor packages/core packages/react packages/tools packages/vue; do
+          for pkgdir in packages/emf-converter packages/mtx-decompressor packages/core packages/react packages/tools packages/vue packages/angular; do
             node -e "
               const fs = require('fs');
               const p = '${pkgdir}/package.json';
@@ -354,6 +380,27 @@ jobs:
 
       - name: Pack pptx-vue-viewer
         run: cd packages/vue && bun pm pack
+
+      # The Angular library is published from its ng-packagr `dist/` (built in
+      # the `build` job and restored from the artifact), NOT from the package
+      # root. dist/package.json carries the version and a concrete
+      # pptx-viewer-core range that finalize-dist baked in at build time, so
+      # patch both to the release version before packing from dist/.
+      - name: Pack pptx-angular-viewer
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          node -e "
+            const fs = require('fs');
+            const p = 'packages/angular/dist/package.json';
+            const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+            data.version = '${VERSION}';
+            for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
+              const deps = data[field];
+              if (deps && deps['pptx-viewer-core']) deps['pptx-viewer-core'] = '^${VERSION}';
+            }
+            fs.writeFileSync(p, JSON.stringify(data, null, '\t') + '\n');
+          "
+          cd packages/angular/dist && bun pm pack
 
       # ── Changelog (git-cliff, see cliff.toml) ────────────────────────
       # Regenerate CHANGELOG.md treating the new commits as the next tag,
@@ -398,6 +445,7 @@ jobs:
             packages/react/*.tgz
             packages/tools/*.tgz
             packages/vue/*.tgz
+            packages/angular/dist/*.tgz
 
   # ──────────────────────────────────────────────────────────────
   # Publish to npm with provenance
@@ -413,6 +461,7 @@ jobs:
   #   pptx-viewer-core  → https://www.npmjs.com/package/pptx-viewer-core
   #   pptx-react-viewer → https://www.npmjs.com/package/pptx-react-viewer
   #   pptx-vue-viewer   → https://www.npmjs.com/package/pptx-vue-viewer
+  #   pptx-angular-viewer → https://www.npmjs.com/package/pptx-angular-viewer
   #   pptx-viewer-mcp → https://www.npmjs.com/package/pptx-viewer-mcp
   # ──────────────────────────────────────────────────────────────
   publish:
@@ -450,7 +499,7 @@ jobs:
       - name: Update package versions
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          for pkgdir in packages/emf-converter packages/mtx-decompressor packages/core packages/react packages/tools packages/vue; do
+          for pkgdir in packages/emf-converter packages/mtx-decompressor packages/core packages/react packages/tools packages/vue packages/angular; do
             node -e "
               const fs = require('fs');
               const p = '${pkgdir}/package.json';
@@ -511,6 +560,24 @@ jobs:
               for (const [k, v] of Object.entries(data.devDependencies)) {
                 if (typeof v === 'string' && v.startsWith('workspace:')) delete data.devDependencies[k];
               }
+            }
+            fs.writeFileSync(p, JSON.stringify(data, null, '\t') + '\n');
+          "
+
+      - name: Prepare angular package for publish
+        # Published from ng-packagr's dist/ (restored from the build artifact).
+        # Patch the baked-in version and pptx-viewer-core range to the release
+        # version, mirroring the Pack pptx-angular-viewer step in `release`.
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          node -e "
+            const fs = require('fs');
+            const p = 'packages/angular/dist/package.json';
+            const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+            data.version = '${VERSION}';
+            for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
+              const deps = data[field];
+              if (deps && deps['pptx-viewer-core']) deps['pptx-viewer-core'] = '^${VERSION}';
             }
             fs.writeFileSync(p, JSON.stringify(data, null, '\t') + '\n');
           "
@@ -595,6 +662,21 @@ jobs:
             npm publish --provenance --access public
           fi
         working-directory: packages/vue
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # https://www.npmjs.com/package/pptx-angular-viewer
+      # Published from ng-packagr's dist/ (see Prepare angular package step).
+      - name: Publish pptx-angular-viewer
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          EXISTING=$(npm view pptx-angular-viewer@"$VERSION" version 2>/dev/null || echo "")
+          if [ "$EXISTING" = "$VERSION" ]; then
+            echo "pptx-angular-viewer@$VERSION already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
+        working-directory: packages/angular/dist
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
