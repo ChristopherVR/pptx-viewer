@@ -1,0 +1,27 @@
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"jsx": "preserve",
+		"jsxImportSource": "vue",
+		"strict": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		"noEmit": true,
+		"resolveJsonModule": true,
+		"isolatedModules": true,
+		"allowImportingTsExtensions": true,
+		"types": ["node", "vite/client"],
+		"paths": {
+			"pptx-vue-viewer/viewer": ["../packages/vue/src/viewer/index.ts"],
+			"pptx-vue-viewer": ["../packages/vue/src/index.ts"],
+			"pptx-viewer-core/converter": ["../packages/core/src/converter/index.ts"],
+			"pptx-viewer-core": ["../packages/core/src/index.ts"],
+			"pptx-viewer-shared": ["../packages/shared/src/index.ts"]
+		}
+	},
+	"include": ["src", "src/**/*.vue", "vite.config.ts"]
+}

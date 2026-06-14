@@ -14,11 +14,13 @@
 	"workspaces": [
 		"packages/*",
 		"demo",
-		"demo-angular"
+		"demo-angular",
+		"demo-vue"
 	],
 	"scripts": {
 		"install:all": "bun install",
 		"demo": "cd demo && npx vite",
+		"demo:vue": "cd demo-vue && npx vite",
 		"docs:dev": "cd docs && bun run docs:dev",
 		"docs:build": "cd docs && bun install && bun run docs:build",
 		"docs:preview": "cd docs && bun run docs:preview",
