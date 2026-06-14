@@ -1,7 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { getContainerStyle } from './element-style';
+import { getContainerStyle, getShapeFillStrokeStyle } from './element-style';
 
 /**
  * Minimal element factory. `getContainerStyle` only reads `PptxElementBase`
@@ -48,5 +48,55 @@ describe('getContainerStyle', () => {
 		const style = getContainerStyle(baseElement({ opacity: 0.5, hidden: true }), 0);
 		expect(style['opacity']).toBe(0.5);
 		expect(style['display']).toBe('none');
+	});
+});
+
+describe('getShapeFillStrokeStyle', () => {
+	it('paints a solid fill colour', () => {
+		const style = getShapeFillStrokeStyle(
+			baseElement({ shapeStyle: { fillColor: '#0055AA', fillMode: 'solid' } }),
+		);
+		expect(style['background-color']).toBe('#0055AA');
+		expect(style['background-image']).toBeUndefined();
+	});
+
+	it('uses the prebuilt gradient string for gradient fills', () => {
+		const gradient = 'linear-gradient(90deg, #FF6B6B 0%, #556270 100%)';
+		const style = getShapeFillStrokeStyle(
+			baseElement({
+				shapeStyle: { fillMode: 'gradient', fillColor: '#FF6B6B', fillGradient: gradient },
+			}),
+		);
+		expect(style['background-image']).toBe(gradient);
+		// Gradient takes precedence over the solid colour fallback.
+		expect(style['background-color']).toBeUndefined();
+	});
+
+	it('renders an image fill stretched to fill by default', () => {
+		const style = getShapeFillStrokeStyle(
+			baseElement({ shapeStyle: { fillMode: 'image', fillImageUrl: 'data:image/png;base64,AAA' } }),
+		);
+		expect(style['background-image']).toBe('url(data:image/png;base64,AAA)');
+		expect(style['background-repeat']).toBe('no-repeat');
+		expect(style['background-size']).toBe('100% 100%');
+		expect(style['background-color']).toBe('transparent');
+	});
+
+	it('tiles an image fill when fillImageMode is tile', () => {
+		const style = getShapeFillStrokeStyle(
+			baseElement({
+				shapeStyle: { fillMode: 'image', fillImageUrl: 'u', fillImageMode: 'tile' },
+			}),
+		);
+		expect(style['background-repeat']).toBe('repeat');
+		expect(style['background-size']).toBe('auto');
+	});
+
+	it('does not paint a fill when fillMode is none', () => {
+		const style = getShapeFillStrokeStyle(
+			baseElement({ shapeStyle: { fillColor: '#123456', fillMode: 'none' } }),
+		);
+		expect(style['background-color']).toBeUndefined();
+		expect(style['background-image']).toBeUndefined();
 	});
 });

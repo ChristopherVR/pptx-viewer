@@ -128,20 +128,20 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 
 ### Rendering
 
-| Item                                                     | Status | Notes                                                                                                                    |
-| -------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
-| `PowerPointViewerComponent` (load + nav + zoom)          | ◑      | loading/error/encrypted states, prev/next, zoom, thumbnail rail; `activeSlideChange` output                              |
-| `SlideCanvasComponent`                                   | ◑      | scaled stage + element list; no rulers/grid/guides/overlays                                                              |
-| `ElementRendererComponent`                               | ◑      | text, shape (solid fill/stroke), picture/image, media poster, group recursion (self-selector); placeholders for the rest |
-| `element-style.ts`                                       | ◑      | container/shape/text/image basics; no gradient/clip-path/effects/3D                                                      |
-| Rich text runs (bold/italic/underline/strike/color/size) | ◑      | per-segment spans, paragraph + line breaks                                                                               |
-| Connectors (SVG)                                         | ☐      |                                                                                                                          |
-| Tables                                                   | ☐      |                                                                                                                          |
-| Charts (SVG)                                             | ☐      | large                                                                                                                    |
-| SmartArt                                                 | ☐      | large                                                                                                                    |
-| Ink / OLE / Model3D / Zoom                               | ☐      |                                                                                                                          |
-| Image effects, gradients, shadows, glow, clip-paths      | ☐      |                                                                                                                          |
-| Text warp / WordArt, equations (OMML→MathML)             | ☐      |                                                                                                                          |
+| Item                                                     | Status | Notes                                                                                                                                                   |
+| -------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PowerPointViewerComponent` (load + nav + zoom)          | ◑      | loading/error/encrypted states, prev/next, zoom, thumbnail rail; `activeSlideChange` output                                                             |
+| `SlideCanvasComponent`                                   | ◑      | scaled stage + element list; no rulers/grid/guides/overlays                                                                                             |
+| `ElementRendererComponent`                               | ◑      | text, shape (solid fill/stroke), picture/image, media poster, group recursion (self-selector); placeholders for the rest                                |
+| `element-style.ts`                                       | ◑      | container/shape/text/image basics + image & gradient fills (parser's prebuilt CSS gradient string); no structured gradient builder/clip-path/effects/3D |
+| Rich text runs (bold/italic/underline/strike/color/size) | ◑      | per-segment spans, paragraph + line breaks                                                                                                              |
+| Connectors (SVG)                                         | ☐      |                                                                                                                                                         |
+| Tables                                                   | ☐      |                                                                                                                                                         |
+| Charts (SVG)                                             | ☐      | large                                                                                                                                                   |
+| SmartArt                                                 | ☐      | large                                                                                                                                                   |
+| Ink / OLE / Model3D / Zoom                               | ☐      |                                                                                                                                                         |
+| Image effects, gradients, shadows, glow, clip-paths      | ☐      |                                                                                                                                                         |
+| Text warp / WordArt, equations (OMML→MathML)             | ☐      |                                                                                                                                                         |
 
 ### Editor chrome (all ☐ — not started)
 
@@ -192,9 +192,11 @@ Format), so **build the library first** (`bun run --filter pptx-angular-viewer b
    version and rewrites the `dist/package.json` range to `^<version>`. So the
    peer tracks the workspace version automatically — no manual pinning.
 
-   Remaining work before npm releases are automated:
-   - Add `pptx-angular-viewer` (and its build) to the CI build/release/publish
-     jobs, and bump the core peer range in lockstep with releases.
+   npm releases are now automated: `pptx-angular-viewer` has a `test-angular`
+   CI job, is packed in the `release` job (patching `dist/package.json`'s
+   version + `pptx-viewer-core` range to the release version before packing
+   from `dist/`), attached to the GitHub release, and published to npm in the
+   `publish` job. The core peer range is bumped in lockstep automatically.
 
    In-repo (build, demo, typecheck, test) everything resolves via the bun
    workspace symlinks + the build-time vendoring, so nothing here blocks
@@ -206,9 +208,12 @@ Format), so **build the library first** (`bun run --filter pptx-angular-viewer b
 
 ## Recommended next steps (priority order)
 
-1. Flesh out `ElementRendererComponent`: gradients, then clip-paths for preset
-   geometries (extract `utils/geometry.ts` shape-path generation into
-   `pptx-viewer-shared`), then tables, then connectors, then charts.
+1. Flesh out `ElementRendererComponent`: image & gradient fills landed (parser's
+   prebuilt CSS string) — next the structured gradient builder (extract
+   `utils/color-gradient.ts` + `color-core.ts` into `pptx-viewer-shared`), then
+   clip-paths for preset geometries (extract `utils/geometry.ts` shape-path
+   generation into `pptx-viewer-shared`), then tables, then connectors, then
+   charts.
 2. Add component/TestBed tests (decision #2).
 3. Port full viewer state + editor history to unlock editing.
 4. Continue the shared-code extraction (color, geometry, animation engine) —
@@ -226,3 +231,11 @@ Format), so **build the library first** (`bun run --filter pptx-angular-viewer b
   group + placeholders), `element-style.ts`, base CSS, `cn`, unit tests. Library
   builds + typechecks + tests green. Added `demo-angular/` (Vite + Analog) — full
   production build green. Repo relicensed MIT → Apache-2.0; Dependabot added.
+- **2026-06-15** — Wired `pptx-angular-viewer` into the CI pipeline (it was
+  built but never tested/released/published): added a `test-angular` job, gated
+  `release` on it, and pack/publish from ng-packagr's `dist/` with the version +
+  `pptx-viewer-core` peer range patched to the release version. Added image &
+  gradient fill support to `element-style.ts` (`getShapeFillStrokeStyle`),
+  mirroring the Vue port's fill resolution order (image → gradient via the
+  parser's prebuilt CSS string → solid); +5 unit tests. Library build,
+  typecheck, and all 13 tests green.

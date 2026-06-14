@@ -9,9 +9,10 @@ import { DEFAULT_STROKE_COLOR, DEFAULT_TEXT_COLOR } from '../internal/shared';
  *
  * This mirrors the Vue package's `element-style.ts` (and a deliberately small
  * subset of the React `viewer/utils/*` style layer). It is enough to position
- * and paint text boxes, basic preset shapes, and images. Advanced visuals
- * (gradients, custom geometry clip-paths, shadows, 3D, image effects, text
- * warp) are tracked in PORTING.md.
+ * and paint text boxes, basic preset shapes, images, and image/gradient fills
+ * (the latter via the parser's prebuilt CSS gradient string). Advanced visuals
+ * (the structured gradient builder, pattern fills, custom geometry clip-paths,
+ * shadows, 3D, image effects, text warp) are tracked in PORTING.md.
  *
  * Long term the *logic* here is a shared-extraction candidate — only the
  * return type (CSS map shape) differs per framework — so a future refactor
@@ -73,8 +74,23 @@ export function getShapeFillStrokeStyle(el: PptxElement): StyleMap {
 	const style: StyleMap = {};
 
 	if (ss) {
-		// Fill — solid only for now (gradients/patterns/images: TODO).
-		if (ss.fillColor && ss.fillColor !== 'transparent' && ss.fillMode !== 'none') {
+		// Fill resolution order mirrors the React `getShapeVisualStyle` and the
+		// Vue port: image fill → gradient → solid colour. Pattern fills
+		// (SVG-based) and the richer structured gradient builder
+		// (`color-gradient.ts`) remain shared-extraction candidates — see
+		// PORTING.md.
+		const imageFillUrl = ss.fillMode === 'image' && ss.fillImageUrl ? ss.fillImageUrl : undefined;
+		// `fillGradient` is a prebuilt CSS gradient string from the parser.
+		const gradient = ss.fillMode === 'gradient' || ss.fillGradient ? ss.fillGradient : undefined;
+
+		if (imageFillUrl) {
+			style['background-color'] = 'transparent';
+			style['background-image'] = `url(${imageFillUrl})`;
+			style['background-repeat'] = ss.fillImageMode === 'tile' ? 'repeat' : 'no-repeat';
+			style['background-size'] = ss.fillImageMode === 'tile' ? 'auto' : '100% 100%';
+		} else if (gradient) {
+			style['background-image'] = gradient;
+		} else if (ss.fillColor && ss.fillColor !== 'transparent' && ss.fillMode !== 'none') {
 			style['background-color'] = ss.fillColor;
 		}
 
