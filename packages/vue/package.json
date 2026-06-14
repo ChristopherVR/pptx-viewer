@@ -75,7 +75,7 @@
 		"vite": "^6.0.0",
 		"vite-plugin-dts": "^4.5.4",
 		"vitest": "^4.1.8",
-		"vue-tsc": "^2.2.0"
+		"vue-tsc": "^3.3.5"
 	},
 	"peerDependencies": {
 		"fast-xml-parser": "^5.8.0",
