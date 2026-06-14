@@ -41,7 +41,10 @@ export function ExportProgressModal({
 	const clampedProgress = Math.min(100, Math.max(0, Math.round(progress)));
 
 	return (
-		<div className='fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm'>
+		<div
+			style={{ zIndex: 1200 }}
+			className='fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm'
+		>
 			<div className='w-96 rounded-xl border border-border bg-background p-6 shadow-2xl'>
 				<h3 className='mb-4 text-sm font-semibold text-foreground'>{title}</h3>
 

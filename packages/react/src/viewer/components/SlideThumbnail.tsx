@@ -93,7 +93,7 @@ function SlideThumbnailImpl({
 					slide.transition.type !== 'none' &&
 					slide.transition.type !== 'cut' && (
 						<div
-							className='absolute top-0.5 right-0.5 z-10 px-1 py-px rounded bg-primary/80 text-[7px] text-primary-foreground leading-tight pointer-events-none'
+							className='absolute top-0.5 right-0.5 z-10 px-1 py-px rounded bg-primary/80 text-[7px] text-white leading-tight pointer-events-none'
 							title={`Transition: ${SLIDE_TRANSITION_OPTIONS.find((o) => o.value === slide.transition?.type)?.label ?? slide.transition.type}`}
 						>
 							{SLIDE_TRANSITION_OPTIONS.find((o) => o.value === slide.transition?.type)?.label ??

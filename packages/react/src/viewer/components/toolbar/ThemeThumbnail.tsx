@@ -51,7 +51,7 @@ export function ThemeThumbnail({
 
 			{/* Selected indicator */}
 			{selected && (
-				<div className='absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-1'>
+				<div className='absolute top-1 right-1 bg-primary text-white rounded-full p-1'>
 					<LuCheck className='w-3 h-3' />
 				</div>
 			)}

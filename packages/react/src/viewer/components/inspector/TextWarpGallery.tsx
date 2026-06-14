@@ -180,9 +180,7 @@ export function TextWarpGallery({
 									stroke='currentColor'
 									strokeWidth={1.5}
 									fill='none'
-									className={
-										currentPreset === value ? 'text-primary-foreground' : 'text-muted-foreground'
-									}
+									className={currentPreset === value ? 'text-white' : 'text-muted-foreground'}
 								/>
 							</svg>
 						</button>

@@ -98,7 +98,7 @@ export function MobileBottomBar({
 						<Icon className='w-5 h-5' />
 						<span>{label}</span>
 						{badge !== undefined && badge > 0 && (
-							<span className='absolute top-1 right-1/4 flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-primary text-[9px] font-semibold text-primary-foreground'>
+							<span className='absolute top-1 right-1/4 flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-primary text-[9px] font-semibold text-white'>
 								{badge > 99 ? '99+' : badge}
 							</span>
 						)}

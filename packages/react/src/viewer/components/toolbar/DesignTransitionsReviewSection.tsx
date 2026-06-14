@@ -37,7 +37,7 @@ export function DesignSection(p: DesignSectionProps): React.ReactElement {
 				disabled={!p.canEdit}
 				className={cn(
 					pill,
-					p.isThemeGalleryOpen ? 'bg-primary hover:bg-primary/80 text-primary-foreground' : '',
+					p.isThemeGalleryOpen ? 'bg-primary hover:bg-primary/80 text-white' : '',
 				)}
 				title='Browse and apply built-in themes'
 			>
@@ -47,10 +47,7 @@ export function DesignSection(p: DesignSectionProps): React.ReactElement {
 			<button
 				onClick={p.onToggleThemeEditor}
 				disabled={!p.canEdit}
-				className={cn(
-					pill,
-					p.isThemeEditorOpen ? 'bg-primary hover:bg-primary/80 text-primary-foreground' : '',
-				)}
+				className={cn(pill, p.isThemeEditorOpen ? 'bg-primary hover:bg-primary/80 text-white' : '')}
 				title='Edit presentation theme colors and fonts'
 			>
 				<LuPencil className={ics} />
@@ -75,7 +72,7 @@ export function DesignSection(p: DesignSectionProps): React.ReactElement {
 					onClick={p.onToggleInspector}
 					className={cn(
 						pill,
-						p.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-primary-foreground' : '',
+						p.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '',
 					)}
 					title='Open inspector to edit slide background'
 				>
@@ -170,7 +167,7 @@ export function TransitionsSection(p: TransitionsSectionProps): React.ReactEleme
 				onClick={p.onToggleInspector}
 				className={cn(
 					pill,
-					p.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-primary-foreground' : '',
+					p.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '',
 				)}
 				title='Open Inspector for full transition options'
 			>
@@ -201,7 +198,7 @@ export function ReviewSection(p: ReviewSectionProps): React.ReactElement {
 					onClick={p.onToggleComments}
 					className={cn(
 						pill,
-						p.isCommentsPanelOpen ? 'bg-primary hover:bg-primary/80 text-primary-foreground' : '',
+						p.isCommentsPanelOpen ? 'bg-primary hover:bg-primary/80 text-white' : '',
 					)}
 					title='Toggle comments panel'
 				>
@@ -216,10 +213,7 @@ export function ReviewSection(p: ReviewSectionProps): React.ReactElement {
 			)}
 			<button
 				onClick={() => p.onSetSpellCheckEnabled(!p.spellCheckEnabled)}
-				className={cn(
-					pill,
-					p.spellCheckEnabled ? 'bg-primary hover:bg-primary/80 text-primary-foreground' : '',
-				)}
+				className={cn(pill, p.spellCheckEnabled ? 'bg-primary hover:bg-primary/80 text-white' : '')}
 				title='Toggle spell check'
 			>
 				<LuSpellCheck className={ic} />

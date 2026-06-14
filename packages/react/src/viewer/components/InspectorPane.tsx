@@ -146,7 +146,7 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 								className={cn(
 									'flex items-center gap-1 px-2 py-1 rounded text-[11px] transition-colors',
 									activeTab === key
-										? 'bg-primary text-primary-foreground'
+										? 'bg-primary text-white'
 										: 'text-muted-foreground hover:text-foreground hover:bg-accent',
 								)}
 								onClick={() => onSetActiveTab(key)}

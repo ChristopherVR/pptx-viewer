@@ -48,13 +48,17 @@ export function InsertSmartArtDialog({
 			{/* Backdrop */}
 			<button
 				type='button'
-				className='fixed inset-0 z-50 bg-black/50'
+				style={{ zIndex: 1200 }}
+				className='fixed inset-0 bg-black/50'
 				onClick={onClose}
 				aria-label='Close'
 			/>
 
 			{/* Dialog */}
-			<div className='fixed inset-0 z-50 flex items-center justify-center pointer-events-none'>
+			<div
+				style={{ zIndex: 1201 }}
+				className='fixed inset-0 flex items-center justify-center pointer-events-none'
+			>
 				<div
 					className='pointer-events-auto w-[600px] max-w-[90vw] max-h-[80vh] rounded-lg border border-border bg-background shadow-2xl flex flex-col'
 					role='dialog'
@@ -91,7 +95,7 @@ export function InsertSmartArtDialog({
 									className={cn(
 										'w-full text-left px-3 py-1.5 text-xs transition-colors',
 										activeCategory === cat.id
-											? 'bg-primary text-primary-foreground'
+											? 'bg-primary text-white'
 											: 'text-foreground hover:bg-muted',
 									)}
 								>
@@ -148,7 +152,7 @@ export function InsertSmartArtDialog({
 							className={cn(
 								'px-3 py-1.5 text-xs rounded transition-colors',
 								selectedLayout
-									? 'bg-primary hover:bg-primary/80 text-primary-foreground'
+									? 'bg-primary hover:bg-primary/80 text-white'
 									: 'bg-muted text-muted-foreground cursor-not-allowed',
 							)}
 						>

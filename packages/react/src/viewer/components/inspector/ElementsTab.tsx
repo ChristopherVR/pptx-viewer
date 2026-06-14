@@ -47,9 +47,7 @@ export function ElementsTab({
 							key={element.id}
 							className={cn(
 								'flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-colors',
-								isSelected
-									? 'bg-primary/30 text-primary-foreground'
-									: 'hover:bg-muted text-foreground',
+								isSelected ? 'bg-primary/30 text-white' : 'hover:bg-muted text-foreground',
 							)}
 							onClick={() => {
 								setSelectedElementId(element.id);

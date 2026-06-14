@@ -54,7 +54,7 @@ export function HandoutMasterPanel({
 							className={cn(
 								'px-2 py-1.5 rounded text-[11px] font-medium transition-colors',
 								slidesPerPage === count
-									? 'bg-primary text-primary-foreground'
+									? 'bg-primary text-white'
 									: 'bg-accent/50 text-muted-foreground hover:bg-accent/70 hover:text-foreground',
 							)}
 							onClick={() => onSlidesPerPageChange(count)}

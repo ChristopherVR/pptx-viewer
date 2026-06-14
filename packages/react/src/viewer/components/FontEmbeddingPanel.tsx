@@ -85,12 +85,16 @@ export function FontEmbeddingPanel({
 			{/* Backdrop */}
 			<button
 				type='button'
-				className='fixed inset-0 z-50 bg-black/60'
+				style={{ zIndex: 1200 }}
+				className='fixed inset-0 bg-black/60'
 				aria-label={t('common.close')}
 				onClick={onClose}
 			/>
 			{/* Dialog */}
-			<div className='fixed inset-0 z-50 flex items-center justify-center pointer-events-none'>
+			<div
+				style={{ zIndex: 1201 }}
+				className='fixed inset-0 flex items-center justify-center pointer-events-none'
+			>
 				<div className='pointer-events-auto w-[460px] max-h-[80vh] rounded-xl border border-border bg-popover backdrop-blur-xl shadow-2xl flex flex-col'>
 					{/* Header */}
 					<div className='flex items-center justify-between px-5 py-4 border-b border-border/60 shrink-0'>

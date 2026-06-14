@@ -70,7 +70,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 								'relative px-3.5 py-2 text-[12px] font-medium whitespace-nowrap transition-colors max-md:min-h-[36px] max-md:px-3',
 								toolbarSection === s.id
 									? s.id === 'file'
-										? 'text-primary-foreground bg-primary/80 rounded-sm'
+										? 'text-white bg-primary/80 rounded-sm'
 										: 'text-foreground after:absolute after:-bottom-px after:left-0 after:right-0 after:h-[2.5px] after:bg-primary'
 									: s.id === 'file'
 										? 'text-primary hover:bg-primary/15 rounded-sm'
@@ -88,7 +88,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							className={cn(
 								'px-2 py-1 rounded text-[11px] transition-colors mr-1',
 								isCompactToolbarOpen
-									? 'bg-primary/80 text-primary-foreground'
+									? 'bg-primary/80 text-white'
 									: 'text-muted-foreground hover:text-foreground',
 							)}
 							title='Toggle ribbon'

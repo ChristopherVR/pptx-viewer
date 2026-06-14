@@ -128,7 +128,10 @@ export function PrintDialog({
 
 	// ── Render ──────────────────────────────────────────────────────────
 	return (
-		<div className='fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm'>
+		<div
+			style={{ zIndex: 1200 }}
+			className='fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm'
+		>
 			<div className='w-[780px] max-h-[90vh] rounded-xl border border-border bg-background shadow-2xl flex flex-col'>
 				{/* Header */}
 				<div className='flex items-center justify-between px-5 py-4 border-b border-border'>
@@ -210,7 +213,7 @@ export function PrintDialog({
 						<button
 							type='button'
 							onClick={handlePrint}
-							className='px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-1.5'
+							className='px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors flex items-center gap-1.5'
 						>
 							<LuPrinter className='w-3.5 h-3.5' />
 							{t('pptx.print.printButton')}

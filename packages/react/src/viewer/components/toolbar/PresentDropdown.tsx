@@ -42,7 +42,7 @@ export function PresentDropdown({
 					onClick={onPresent}
 					className={cn(
 						'px-2 py-1 transition-colors',
-						isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-accent text-foreground',
+						isActive ? 'bg-primary text-white' : 'hover:bg-accent text-foreground',
 					)}
 					title='Present (fullscreen)'
 				>
@@ -53,7 +53,7 @@ export function PresentDropdown({
 					onClick={() => setOpen((prev) => !prev)}
 					className={cn(
 						'px-1 py-1 transition-colors border-l border-border',
-						open ? 'bg-primary text-primary-foreground' : 'hover:bg-accent text-foreground',
+						open ? 'bg-primary text-white' : 'hover:bg-accent text-foreground',
 					)}
 					title='Presentation options'
 					aria-label='Presentation options'

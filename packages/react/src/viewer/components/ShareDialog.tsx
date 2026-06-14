@@ -150,13 +150,17 @@ export function ShareDialog({
 			{/* Backdrop */}
 			<button
 				type='button'
-				className='fixed inset-0 z-[200] bg-black/50'
+				style={{ zIndex: 1200 }}
+				className='fixed inset-0 bg-black/50'
 				aria-label={t('pptx.share.closeDialog')}
 				onClick={onClose}
 			/>
 
 			{/* Dialog */}
-			<div className='fixed inset-0 z-[201] flex items-center justify-center pointer-events-none'>
+			<div
+				style={{ zIndex: 1201 }}
+				className='fixed inset-0 flex items-center justify-center pointer-events-none'
+			>
 				<div
 					ref={dialogRef}
 					role='dialog'
@@ -217,7 +221,7 @@ export function ShareDialog({
 								type='button'
 								disabled={!canStart}
 								onClick={handleStartSharing}
-								className='px-3 py-1.5 rounded bg-primary hover:bg-primary/90 text-[12px] text-primary-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
+								className='px-3 py-1.5 rounded bg-primary hover:bg-primary/90 text-[12px] text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
 							>
 								{t('pptx.share.startSharing')}
 							</button>

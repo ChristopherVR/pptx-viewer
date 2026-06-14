@@ -103,7 +103,7 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 					onClick={p.onToggleSelectionPane}
 					className={cn(
 						pill,
-						p.isSelectionPaneOpen ? 'bg-primary hover:bg-primary/80 text-primary-foreground' : '',
+						p.isSelectionPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '',
 					)}
 					title='Selection Pane'
 				>
@@ -128,28 +128,28 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 			)}
 			<button
 				onClick={() => p.onSetShowGrid(!p.showGrid)}
-				className={cn(pill, p.showGrid ? 'bg-primary text-primary-foreground' : '')}
+				className={cn(pill, p.showGrid ? 'bg-primary text-white' : '')}
 				title={t('pptx.grid.toggleGrid')}
 			>
 				{t('pptx.grid.grid')}
 			</button>
 			<button
 				onClick={() => p.onSetShowRulers(!p.showRulers)}
-				className={cn(pill, p.showRulers ? 'bg-primary text-primary-foreground' : '')}
+				className={cn(pill, p.showRulers ? 'bg-primary text-white' : '')}
 				title={t('pptx.ruler.toggleRulers')}
 			>
 				{t('pptx.ruler.rulers')}
 			</button>
 			<button
 				onClick={() => p.onSetSnapToGrid(!p.snapToGrid)}
-				className={cn(pill, p.snapToGrid ? 'bg-primary text-primary-foreground' : '')}
+				className={cn(pill, p.snapToGrid ? 'bg-primary text-white' : '')}
 				title={t('pptx.grid.snapToGrid')}
 			>
 				{t('pptx.grid.snapToGrid')}
 			</button>
 			<button
 				onClick={() => p.onSetSnapToShape(!p.snapToShape)}
-				className={cn(pill, p.snapToShape ? 'bg-primary text-primary-foreground' : '')}
+				className={cn(pill, p.snapToShape ? 'bg-primary text-white' : '')}
 				title={t('pptx.grid.snapToShape')}
 			>
 				{t('pptx.grid.snapToShape')}
@@ -162,7 +162,7 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 			</button>
 			<button
 				onClick={() => p.onSetSpellCheckEnabled(!p.spellCheckEnabled)}
-				className={cn(pill, p.spellCheckEnabled ? 'bg-primary text-primary-foreground' : '')}
+				className={cn(pill, p.spellCheckEnabled ? 'bg-primary text-white' : '')}
 				title='Toggle spell check'
 			>
 				Spell

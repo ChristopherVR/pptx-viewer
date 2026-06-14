@@ -11,7 +11,7 @@ export const THEME_EDITOR_INPUT =
 	'w-full rounded border border-border bg-background px-2 py-1 text-xs text-foreground focus:border-primary focus:outline-none';
 
 export const THEME_EDITOR_BTN =
-	'rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-colors';
+	'rounded bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-colors';
 
 export const THEME_EDITOR_BTN_SECONDARY =
 	'rounded bg-accent px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent/80 disabled:opacity-40 disabled:cursor-not-allowed transition-colors';

@@ -177,7 +177,7 @@ export function CommentItem({
 					<div className='flex items-center gap-1.5'>
 						<button
 							type='button'
-							className='inline-flex items-center gap-1 rounded bg-primary px-2 py-1 text-[11px] text-primary-foreground hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed'
+							className='inline-flex items-center gap-1 rounded bg-primary px-2 py-1 text-[11px] text-white hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed'
 							onClick={() => onSaveCommentEdit(comment.id)}
 							disabled={String(editDraft).trim().length === 0}
 						>
@@ -292,7 +292,7 @@ export function AddCommentForm({
 			/>
 			<button
 				type='button'
-				className='inline-flex items-center gap-1 rounded bg-primary px-2 py-1 text-[11px] text-primary-foreground hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed'
+				className='inline-flex items-center gap-1 rounded bg-primary px-2 py-1 text-[11px] text-white hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed'
 				onClick={() => onAdd()}
 				disabled={String(draft).trim().length === 0}
 			>

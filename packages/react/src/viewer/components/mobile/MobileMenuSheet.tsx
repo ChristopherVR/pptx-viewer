@@ -97,7 +97,7 @@ export function MobileMenuSheet(props: MobileMenuSheetProps): React.ReactElement
 								className={cn(
 									'inline-flex items-center gap-1.5 shrink-0 px-3 py-2 rounded-full text-[12px] font-medium border transition-colors min-h-[36px]',
 									active === key
-										? 'bg-primary text-primary-foreground border-primary'
+										? 'bg-primary text-white border-primary'
 										: 'border-border text-muted-foreground hover:text-foreground hover:bg-accent/40',
 								)}
 							>

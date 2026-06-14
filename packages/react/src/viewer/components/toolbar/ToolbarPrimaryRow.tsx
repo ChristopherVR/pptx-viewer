@@ -116,7 +116,7 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 				>
 					<LuMessageSquare className={ics} />
 					{(p.slideCommentCount ?? 0) > 0 && (
-						<span className='absolute -top-0.5 -right-0.5 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-primary text-[8px] text-primary-foreground leading-none'>
+						<span className='absolute -top-0.5 -right-0.5 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-primary text-[8px] text-white leading-none'>
 							{p.slideCommentCount}
 						</span>
 					)}
@@ -195,7 +195,7 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 						'relative inline-flex items-center gap-1 px-2.5 py-1 rounded-sm text-[11px] font-medium transition-colors',
 						collab && collab.status === 'connected'
 							? 'bg-green-600 hover:bg-green-500 text-white'
-							: 'bg-primary hover:bg-primary/90 text-primary-foreground',
+							: 'bg-primary hover:bg-primary/90 text-white',
 					)}
 					title={
 						collab && collab.status === 'connected'

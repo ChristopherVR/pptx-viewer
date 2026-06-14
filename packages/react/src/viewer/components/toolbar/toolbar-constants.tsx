@@ -71,13 +71,13 @@ export const DRAW_TOOLS: Array<{
 		id: 'select',
 		icon: <LuMoveRight className={ic} />,
 		t: 'Select',
-		ac: 'bg-primary text-primary-foreground',
+		ac: 'bg-primary text-white',
 	},
 	{
 		id: 'pen',
 		icon: <LuPencil className={ic} />,
 		t: 'Pen',
-		ac: 'bg-primary text-primary-foreground',
+		ac: 'bg-primary text-white',
 	},
 	{
 		id: 'highlighter',
@@ -90,7 +90,7 @@ export const DRAW_TOOLS: Array<{
 		id: 'freeform',
 		icon: <LuSpline className={ic} />,
 		t: 'Freeform',
-		ac: 'bg-primary text-primary-foreground',
+		ac: 'bg-primary text-white',
 	},
 ];
 

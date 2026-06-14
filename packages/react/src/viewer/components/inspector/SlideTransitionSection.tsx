@@ -97,7 +97,7 @@ export function SlideTransitionSection({
 								onClick={() => onTransitionChange({ orient: o })}
 								className={`px-2 py-1 rounded text-xs border ${
 									(activeSlide.transition?.orient ?? 'horz') === o
-										? 'bg-primary text-primary-foreground border-primary'
+										? 'bg-primary text-white border-primary'
 										: 'bg-muted border-border hover:bg-accent'
 								}`}
 							>

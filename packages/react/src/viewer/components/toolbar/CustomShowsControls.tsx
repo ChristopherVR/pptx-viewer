@@ -80,7 +80,7 @@ export function CustomShowsControls({
 									className={cn(
 										'px-2 py-1 rounded text-[11px] transition-colors',
 										isCurrentSlideInActiveShow
-											? 'bg-primary text-primary-foreground'
+											? 'bg-primary text-white'
 											: 'bg-muted hover:bg-accent',
 									)}
 									title='Include/exclude current slide in active custom show'

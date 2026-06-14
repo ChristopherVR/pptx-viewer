@@ -111,8 +111,11 @@ export function HyperlinkEditDialog({
 
 	return (
 		<>
-			<div className='fixed inset-0 z-[200] bg-black/40' onClick={onCancel} />
-			<div className='fixed inset-0 z-[201] flex items-center justify-center pointer-events-none'>
+			<div style={{ zIndex: 1200 }} className='fixed inset-0 bg-black/40' onClick={onCancel} />
+			<div
+				style={{ zIndex: 1201 }}
+				className='fixed inset-0 flex items-center justify-center pointer-events-none'
+			>
 				<div
 					className='pointer-events-auto w-[440px] rounded-lg border border-border bg-popover shadow-2xl'
 					onClick={(e) => e.stopPropagation()}
@@ -204,7 +207,7 @@ export function HyperlinkEditDialog({
 						</button>
 						<button
 							type='button'
-							className='px-3 py-1.5 text-xs rounded bg-primary text-primary-foreground hover:bg-primary/90'
+							className='px-3 py-1.5 text-xs rounded bg-primary text-white hover:bg-primary/90'
 							onClick={handleConfirm}
 						>
 							{t('common.apply')}

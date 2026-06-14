@@ -129,7 +129,7 @@ export function ThemeGallery({
 								type='button'
 								onClick={handleApply}
 								disabled={!canEdit || !selectedTheme}
-								className='px-3 py-1.5 rounded bg-primary hover:bg-primary/80 text-xs font-medium text-primary-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
+								className='px-3 py-1.5 rounded bg-primary hover:bg-primary/80 text-xs font-medium text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
 							>
 								{t('common.apply')}
 							</button>

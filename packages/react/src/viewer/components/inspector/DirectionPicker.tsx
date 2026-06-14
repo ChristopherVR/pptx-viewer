@@ -64,7 +64,7 @@ export function DirectionPicker({
 						onClick={() => onChange(dir)}
 						className={`px-2 py-1 rounded text-xs border ${
 							value === dir
-								? 'bg-primary text-primary-foreground border-primary'
+								? 'bg-primary text-white border-primary'
 								: 'bg-muted border-border hover:bg-accent'
 						}`}
 						title={t(`pptx.transition.dir.${dir}`, dir)}
@@ -103,7 +103,7 @@ export function DirectionPicker({
 							onClick={() => onChange(cell)}
 							className={`w-6 h-6 rounded text-xs flex items-center justify-center border ${
 								value === cell
-									? 'bg-primary text-primary-foreground border-primary'
+									? 'bg-primary text-white border-primary'
 									: 'bg-muted border-border hover:bg-accent'
 							}`}
 							title={t(`pptx.transition.dir.${cell}`, cell)}

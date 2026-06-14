@@ -202,7 +202,7 @@ export function TextProperties({
 						key={key}
 						type='button'
 						title={label}
-						className={`p-1.5 rounded ${ts?.[key] ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground hover:bg-accent'}`}
+						className={`p-1.5 rounded ${ts?.[key] ? 'bg-primary text-white' : 'bg-muted text-foreground hover:bg-accent'}`}
 						onClick={() => onUpdateTextStyle({ [key]: !ts?.[key] })}
 					>
 						<Icon className='h-4 w-4' />
@@ -214,7 +214,7 @@ export function TextProperties({
 						key={value}
 						type='button'
 						title={value}
-						className={`p-1.5 rounded ${selectedTextAlignment === value ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground hover:bg-accent'}`}
+						className={`p-1.5 rounded ${selectedTextAlignment === value ? 'bg-primary text-white' : 'bg-muted text-foreground hover:bg-accent'}`}
 						onClick={() => onSetTextAlignment(value)}
 					>
 						<Icon className='h-4 w-4' />

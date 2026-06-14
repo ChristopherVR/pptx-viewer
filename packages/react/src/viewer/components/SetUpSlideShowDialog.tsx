@@ -63,13 +63,17 @@ export function SetUpSlideShowDialog({
 			{/* Backdrop */}
 			<button
 				type='button'
-				className='fixed inset-0 z-[200] bg-black/50'
+				style={{ zIndex: 1200 }}
+				className='fixed inset-0 bg-black/50'
 				aria-label='Close dialog'
 				onClick={onClose}
 			/>
 
 			{/* Dialog */}
-			<div className='fixed inset-0 z-[201] flex items-center justify-center pointer-events-none'>
+			<div
+				style={{ zIndex: 1201 }}
+				className='fixed inset-0 flex items-center justify-center pointer-events-none'
+			>
 				<div className='pointer-events-auto w-[440px] rounded-xl border border-border bg-background shadow-2xl'>
 					{/* Header */}
 					<div className='flex items-center justify-between px-5 py-3 border-b border-border'>

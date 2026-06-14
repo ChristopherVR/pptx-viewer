@@ -132,7 +132,7 @@ export function InspectorCommentRow({
 					<div className='flex items-center gap-1.5'>
 						<button
 							type='button'
-							className='inline-flex items-center gap-1 rounded bg-primary px-2 py-1 text-[11px] text-primary-foreground hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed'
+							className='inline-flex items-center gap-1 rounded bg-primary px-2 py-1 text-[11px] text-white hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed'
 							onClick={() => onSaveEditComment(comment.id)}
 							disabled={String(commentEditDraft).trim().length === 0}
 						>
@@ -269,7 +269,7 @@ export function InspectorCommentRow({
 					<div className='flex items-center gap-1.5'>
 						<button
 							type='button'
-							className='inline-flex items-center gap-1 rounded bg-primary px-2 py-1 text-[11px] text-primary-foreground hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed'
+							className='inline-flex items-center gap-1 rounded bg-primary px-2 py-1 text-[11px] text-white hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed'
 							onClick={() => onSubmitReply(comment.id)}
 							disabled={replyDraft.trim().length === 0}
 						>

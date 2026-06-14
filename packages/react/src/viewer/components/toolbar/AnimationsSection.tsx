@@ -67,10 +67,7 @@ export function AnimationsSection(p: AnimationsSectionProps): React.ReactElement
 				type='button'
 				onClick={handlePreview}
 				disabled={disabled}
-				className={cn(
-					pill,
-					previewActive ? 'bg-primary hover:bg-primary/80 text-primary-foreground' : '',
-				)}
+				className={cn(pill, previewActive ? 'bg-primary hover:bg-primary/80 text-white' : '')}
 				title={t('pptx.animations.previewTooltip')}
 			>
 				<LuPlay className={ic} />
@@ -145,7 +142,7 @@ export function AnimationsSection(p: AnimationsSectionProps): React.ReactElement
 				onClick={p.onOpenAnimationPanel ?? p.onToggleInspector}
 				className={cn(
 					pill,
-					p.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-primary-foreground' : '',
+					p.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '',
 				)}
 				title={t('pptx.animations.openPanelTooltip')}
 			>

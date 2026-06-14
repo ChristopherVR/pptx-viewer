@@ -52,10 +52,7 @@ export function SlideShowSection(p: SlideShowSectionProps): React.ReactElement {
 			{sep}
 			<button
 				onClick={p.onToggleSubtitles}
-				className={cn(
-					pill,
-					p.showSubtitles ? 'bg-primary hover:bg-primary/80 text-primary-foreground' : '',
-				)}
+				className={cn(pill, p.showSubtitles ? 'bg-primary hover:bg-primary/80 text-white' : '')}
 				title='Toggle subtitles'
 			>
 				<LuCaptions className={ic} />

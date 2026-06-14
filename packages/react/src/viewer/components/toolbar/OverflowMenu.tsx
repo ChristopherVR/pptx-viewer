@@ -62,9 +62,7 @@ export function OverflowMenu(p: OverflowMenuProps): React.ReactElement {
 				onClick={() => p.onSetOverflowMenuOpen(!p.isOverflowMenuOpen)}
 				className={cn(
 					'p-1.5 rounded transition-colors',
-					p.isOverflowMenuOpen
-						? 'bg-primary/80 text-primary-foreground'
-						: 'bg-muted hover:bg-accent',
+					p.isOverflowMenuOpen ? 'bg-primary/80 text-white' : 'bg-muted hover:bg-accent',
 				)}
 				title='More actions'
 				aria-label='More actions'

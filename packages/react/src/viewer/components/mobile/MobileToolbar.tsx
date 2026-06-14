@@ -90,7 +90,7 @@ export function MobileToolbar(props: ToolbarProps): React.ReactElement {
 				<button
 					type='button'
 					onClick={props.onOpenShareDialog ?? props.onPackageForSharing}
-					className={cn(btn, 'bg-primary text-primary-foreground hover:bg-primary/90 px-3')}
+					className={cn(btn, 'bg-primary text-white hover:bg-primary/90 px-3')}
 					title={t('pptx.toolbar.share')}
 					aria-label={t('pptx.toolbar.share')}
 				>

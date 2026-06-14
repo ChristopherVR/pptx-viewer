@@ -75,7 +75,8 @@ export function SlideSorterOverlay({
 	return (
 		<div
 			ref={state.backdropRef}
-			className='fixed inset-0 z-50 flex flex-col bg-black/70 backdrop-blur-sm'
+			style={{ zIndex: 1200 }}
+			className='fixed inset-0 flex flex-col bg-black/70 backdrop-blur-sm'
 			onClick={state.handleBackdropClick}
 		>
 			{/* Header bar */}
