@@ -70,7 +70,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: build-output
 
@@ -94,7 +94,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: build-output
 
@@ -118,7 +118,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: build-output
 
@@ -142,7 +142,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: build-output
 
@@ -166,7 +166,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: build-output
 
@@ -190,7 +190,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: build-output
 
@@ -214,7 +214,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: build-output
 
@@ -238,7 +238,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: build-output
 
@@ -275,7 +275,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: build-output
 
@@ -385,7 +385,7 @@ jobs:
         run: awk '/^## \[/{c++} c==1{print} c==2{exit}' CHANGELOG.md > "${RUNNER_TEMP}/release_notes.md"
 
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           target_commitish: main
@@ -436,7 +436,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: build-output
 
