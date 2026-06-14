@@ -2,6 +2,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 
 import { DEFAULT_STROKE_COLOR, DEFAULT_TEXT_COLOR } from '../internal/shared';
+import { getResolvedShapeClipPath } from './shape-geometry';
 
 /**
  * Basic, framework-agnostic style computation for slide elements, returning
@@ -107,12 +108,23 @@ export function getShapeFillStrokeStyle(el: PptxElement): StyleMap {
 		}
 	}
 
-	// Corner radius — approximate common preset geometries.
+	// Geometry. ellipse / roundRect get cheap `border-radius` approximations;
+	// every other preset geometry falls back to an SVG `clip-path` derived from
+	// the core geometry engine (mirrors the Vue port's cascade). Plain
+	// rectangles resolve to `undefined` and stay unclipped.
 	const shapeType = 'shapeType' in el ? el.shapeType : undefined;
 	if (shapeType === 'ellipse' || shapeType === 'circle') {
 		style['border-radius'] = '50%';
-	} else if (shapeType === 'roundRect') {
+		return style;
+	}
+	if (shapeType === 'roundRect') {
 		style['border-radius'] = px(Math.min(el.width, el.height) * 0.1);
+		return style;
+	}
+
+	const clipPath = getResolvedShapeClipPath(el);
+	if (clipPath) {
+		style['clip-path'] = clipPath;
 	}
 
 	return style;

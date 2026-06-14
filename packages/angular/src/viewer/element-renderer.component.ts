@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
+import { ConnectorRendererComponent } from './connector-renderer.component';
 import {
 	getContainerStyle,
 	getImageSrc,
@@ -10,6 +11,7 @@ import {
 	getTextBlockStyle,
 } from './element-style';
 import type { StyleMap } from './element-style';
+import { TableRendererComponent } from './table-renderer.component';
 
 interface TextRun {
 	text: string;
@@ -35,9 +37,21 @@ interface TextRun {
 	selector: 'pptx-element-renderer',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle],
+	imports: [NgStyle, ConnectorRendererComponent, TableRendererComponent],
 	template: `
 		@switch (true) {
+			@case (element().type === 'connector') {
+				<pptx-connector-renderer [element]="element()" [zIndex]="zIndex()" />
+			}
+			@case (element().type === 'table') {
+				<div
+					class="pptx-ng-element pptx-ng-table"
+					[ngStyle]="containerStyle()"
+					[attr.data-element-id]="element().id"
+				>
+					<pptx-table-renderer [element]="element()" />
+				</div>
+			}
 			@case (element().type === 'group') {
 				<div
 					class="pptx-ng-element pptx-ng-group"
@@ -171,10 +185,8 @@ export class ElementRendererComponent {
 
 	readonly placeholderLabel = computed(() => {
 		const map: Record<string, string> = {
-			table: 'Table',
 			chart: 'Chart',
 			smartArt: 'SmartArt',
-			connector: 'Connector',
 			group: 'Group',
 			media: 'Media',
 			ink: 'Ink',

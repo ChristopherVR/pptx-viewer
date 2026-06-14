@@ -1,6 +1,8 @@
 export { PowerPointViewerComponent } from './power-point-viewer.component';
 export { SlideCanvasComponent } from './slide-canvas.component';
 export { ElementRendererComponent } from './element-renderer.component';
+export { ConnectorRendererComponent } from './connector-renderer.component';
+export { TableRendererComponent } from './table-renderer.component';
 export { LoadContentService } from './load-content.service';
 
 export type { CanvasSize, CollaborationConfig, CollaborationRole } from './types';
@@ -11,6 +13,7 @@ export {
 	getTextBlockStyle,
 	getImageSrc,
 } from './element-style';
+export { getResolvedShapeClipPath, getResolvedShapeClipPathFor } from './shape-geometry';
 export {
 	DEFAULT_CANVAS_WIDTH,
 	DEFAULT_CANVAS_HEIGHT,

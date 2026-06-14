@@ -188,6 +188,26 @@
 	margin: 0;
 }
 
+/* ── Tables ─────────────────────────────────────────────────────────── */
+.pptx-ng-table-wrapper {
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+.pptx-ng-table-wrapper > .pptx-ng-table {
+	width: 100%;
+	height: 100%;
+	border-collapse: collapse;
+	table-layout: fixed;
+}
+
+.pptx-ng-table-wrapper > .pptx-ng-table td {
+	overflow: hidden;
+	word-break: break-word;
+	vertical-align: middle;
+}
+
 .pptx-ng-placeholder {
 	display: flex;
 	align-items: center;
