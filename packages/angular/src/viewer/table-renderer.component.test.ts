@@ -11,8 +11,10 @@ import type { PptxElement, PptxTableCell, PptxTableCellStyle } from 'pptx-viewer
 import { describe, expect, it } from 'vitest';
 
 import {
+	buildCellParagraphs,
 	buildColStyles,
 	buildTableViewModel,
+	cellRunStyle,
 	cellStyleToStyleMap,
 	cellTdStyle,
 	columnWidthStyle,
@@ -455,8 +457,169 @@ describe('buildTableViewModel — empty cell display text', () => {
 	it('uses non-breaking space for empty text to preserve row height', () => {
 		const el = tableElement([{ cells: [{ text: '' }] }]);
 		const rows = buildTableViewModel(el);
-		// ' ' (U+00A0) keeps the cell from collapsing; mirrors React's
+		// ' ' (U+00A0) keeps the cell from collapsing; mirrors React's
 		// `cell.text || ' '` in table-render-data.tsx.
 		expect(rows[0].cells[0].displayText).toBe(' ');
+	});
+});
+
+// ==========================================================================
+// cellRunStyle
+// ==========================================================================
+
+describe('cellRunStyle', () => {
+	it('returns an empty map for undefined style', () => {
+		expect(cellRunStyle(undefined)).toStrictEqual({});
+	});
+
+	it('maps bold to font-weight', () => {
+		expect(cellRunStyle({ bold: true })['font-weight']).toBe('bold');
+	});
+
+	it('maps italic to font-style', () => {
+		expect(cellRunStyle({ italic: true })['font-style']).toBe('italic');
+	});
+
+	it('maps underline to text-decoration', () => {
+		expect(cellRunStyle({ underline: true })['text-decoration']).toBe('underline');
+	});
+
+	it('maps color', () => {
+		expect(cellRunStyle({ color: '#FF0000' })['color']).toBe('#FF0000');
+	});
+
+	it('maps fontSize to font-size in px', () => {
+		// PptxTableCellStyle.fontSize is already in px (converted from EMU by the parser).
+		expect(cellRunStyle({ fontSize: 14 })['font-size']).toBe('14px');
+	});
+
+	it('does not include layout properties like background-color', () => {
+		const map = cellRunStyle({ bold: true, backgroundColor: '#000000' });
+		// backgroundColor is a layout property -- it should not appear in the run style.
+		expect(map['background-color']).toBeUndefined();
+	});
+
+	it('maps bold + color + underline together', () => {
+		const map = cellRunStyle({ bold: true, color: '#123456', underline: true });
+		expect(map['font-weight']).toBe('bold');
+		expect(map['color']).toBe('#123456');
+		expect(map['text-decoration']).toBe('underline');
+	});
+});
+
+// ==========================================================================
+// buildCellParagraphs
+// ==========================================================================
+
+describe('buildCellParagraphs', () => {
+	it('returns empty array for an empty cell with no style', () => {
+		const cell: PptxTableCell = { text: '' };
+		expect(buildCellParagraphs(cell)).toHaveLength(0);
+	});
+
+	it('returns one paragraph for a plain text cell', () => {
+		const cell: PptxTableCell = { text: 'Hello' };
+		const paras = buildCellParagraphs(cell);
+		expect(paras).toHaveLength(1);
+		expect(paras[0]).toHaveLength(1);
+		expect(paras[0][0].text).toBe('Hello');
+	});
+
+	it('plain text cell run has empty style (no cell style)', () => {
+		const cell: PptxTableCell = { text: 'Hello' };
+		const paras = buildCellParagraphs(cell);
+		expect(paras[0][0].style).toStrictEqual({});
+	});
+
+	it('cell with bold style produces a run with font-weight bold', () => {
+		const cell: PptxTableCell = { text: 'Bold text', style: { bold: true } };
+		const paras = buildCellParagraphs(cell);
+		expect(paras).toHaveLength(1);
+		expect(paras[0][0].style['font-weight']).toBe('bold');
+	});
+
+	it('cell with color produces a run with correct color', () => {
+		const cell: PptxTableCell = { text: 'Colored', style: { color: '#FF0000' } };
+		const paras = buildCellParagraphs(cell);
+		expect(paras[0][0].style['color']).toBe('#FF0000');
+	});
+
+	it('cell with bold + colored style -- both applied to the single run', () => {
+		const cell: PptxTableCell = {
+			text: 'Hello world',
+			style: { bold: true, color: '#0000FF' },
+		};
+		const paras = buildCellParagraphs(cell);
+		// One paragraph, one run (cell-level style applies to the whole cell text).
+		expect(paras).toHaveLength(1);
+		expect(paras[0]).toHaveLength(1);
+		expect(paras[0][0].style['font-weight']).toBe('bold');
+		expect(paras[0][0].style['color']).toBe('#0000FF');
+	});
+
+	it('cell with paragraph break (newline in text) produces two paragraphs', () => {
+		// The core parser joins paragraphs with \n in extractTableCellText.
+		const cell: PptxTableCell = { text: 'Line 1\nLine 2' };
+		const paras = buildCellParagraphs(cell);
+		expect(paras).toHaveLength(2);
+		expect(paras[0][0].text).toBe('Line 1');
+		expect(paras[1][0].text).toBe('Line 2');
+	});
+
+	it('three-paragraph cell produces three paragraph entries', () => {
+		const cell: PptxTableCell = { text: 'A\nB\nC' };
+		const paras = buildCellParagraphs(cell);
+		expect(paras).toHaveLength(3);
+		expect(paras[2][0].text).toBe('C');
+	});
+
+	it('empty cell WITH style still returns one paragraph (styled placeholder)', () => {
+		// When a cell is empty but has explicit formatting (e.g. bold) we must
+		// still output a paragraph so the style is rendered -- otherwise the empty
+		// cell would wrongly fall back to the unstyled displayText path.
+		const cell: PptxTableCell = { text: '', style: { bold: true } };
+		const paras = buildCellParagraphs(cell);
+		expect(paras).toHaveLength(1);
+		expect(paras[0][0].style['font-weight']).toBe('bold');
+	});
+});
+
+// ==========================================================================
+// buildTableViewModel -- paragraphs field integration
+// ==========================================================================
+
+describe('buildTableViewModel -- paragraphs field', () => {
+	it('plain text cell has one paragraph', () => {
+		const el = tableElement([{ cells: [{ text: 'Hello' }] }]);
+		const rows = buildTableViewModel(el);
+		expect(rows[0].cells[0].paragraphs).toHaveLength(1);
+		expect(rows[0].cells[0].paragraphs[0][0].text).toBe('Hello');
+	});
+
+	it('multi-paragraph cell (\\n) produces multiple paragraph entries in the view-model', () => {
+		const el = tableElement([{ cells: [{ text: 'Para 1\nPara 2' }] }]);
+		const rows = buildTableViewModel(el);
+		const paras = rows[0].cells[0].paragraphs;
+		expect(paras).toHaveLength(2);
+		expect(paras[0][0].text).toBe('Para 1');
+		expect(paras[1][0].text).toBe('Para 2');
+	});
+
+	it('empty unstyled cell has paragraphs length 0 (falls back to displayText)', () => {
+		const el = tableElement([{ cells: [{ text: '' }] }]);
+		const rows = buildTableViewModel(el);
+		expect(rows[0].cells[0].paragraphs).toHaveLength(0);
+		// displayText is the non-breaking-space fallback.
+		expect(rows[0].cells[0].displayText).toBe(' ');
+	});
+
+	it('styled cell preserves style on each paragraph run', () => {
+		const style: PptxTableCellStyle = { bold: true, color: '#FF6600', underline: true };
+		const el = tableElement([{ cells: [{ text: 'Styled', style }] }]);
+		const rows = buildTableViewModel(el);
+		const run = rows[0].cells[0].paragraphs[0][0];
+		expect(run.style['font-weight']).toBe('bold');
+		expect(run.style['color']).toBe('#FF6600');
+		expect(run.style['text-decoration']).toBe('underline');
 	});
 });

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Pure, framework-agnostic helpers for table rendering.
  *
  * Ported from:
@@ -19,6 +19,35 @@ import type {
 } from 'pptx-viewer-core';
 
 import type { StyleMap } from './element-style';
+
+// ==========================================================================
+// Rich-text cell paragraph / run types
+// ==========================================================================
+
+/**
+ * A single styled text run inside a cell paragraph.
+ *
+ * The `style` map is an `[ngStyle]`-compatible object derived from the cell's
+ * `PptxTableCellStyle` (bold, italic, underline, color, fontSize). When the
+ * cell has no style the map is empty ({}) and CSS inherits.
+ *
+ * `isLineBreak` is true for soft line-break runs. The template renders them
+ * as `<br>`.
+ */
+export interface CellTextRun {
+	text: string;
+	style: StyleMap;
+	isLineBreak?: true;
+}
+
+/**
+ * A single paragraph inside a table cell, made up of one or more `CellTextRun`s.
+ *
+ * In the current implementation each paragraph has exactly one run (styled by
+ * the cell-level `PptxTableCellStyle`). When the core later exposes per-run
+ * segments on `PptxTableCell`, additional runs per paragraph will be populated.
+ */
+export type CellParagraph = CellTextRun[];
 
 // ==========================================================================
 // Border dash mapping
@@ -247,6 +276,92 @@ export function cellTdStyle(cell: PptxTableCell): StyleMap {
 }
 
 // ==========================================================================
+// Rich-text run style helper
+// ==========================================================================
+
+/**
+ * Convert cell-level style properties (bold, italic, underline, color,
+ * fontSize) into an `[ngStyle]`-compatible map for a text run.
+ *
+ * This mirrors the private `segmentStyle()` method in
+ * `ElementRendererComponent` but operates on `PptxTableCellStyle` instead of
+ * `TextSegment.style`. Extracted here as a pure function so tests can exercise
+ * it directly without TestBed.
+ *
+ * Only character-level text formatting is mapped; layout-level properties
+ * (background, border, padding, etc.) remain on the `<td>` via `cellTdStyle`.
+ */
+export function cellRunStyle(style: PptxTableCellStyle | undefined): StyleMap {
+	if (!style) {
+		return {};
+	}
+	const map: StyleMap = {};
+	if (style.fontSize) {
+		// PptxTableCellStyle.fontSize is in px (converted from EMU by the parser),
+		// unlike TextSegment.style.fontSize which is in pt.
+		map['font-size'] = `${style.fontSize}px`;
+	}
+	if (style.bold) {
+		map['font-weight'] = 'bold';
+	}
+	if (style.italic) {
+		map['font-style'] = 'italic';
+	}
+	if (style.color) {
+		map['color'] = style.color;
+	}
+	const deco: string[] = [];
+	if (style.underline) {
+		deco.push('underline');
+	}
+	// PptxTableCellStyle does not have a strikethrough field — reserved for when
+	// the core type gains per-run strikethrough on cells.
+	if (deco.length > 0) {
+		map['text-decoration'] = deco.join(' ');
+	}
+	return map;
+}
+
+// ==========================================================================
+// Rich-text paragraph builder
+// ==========================================================================
+
+/**
+ * Build a list of `CellParagraph` arrays from a `PptxTableCell`.
+ *
+ * Strategy:
+ *  - Split `cell.text` on `\n` (the parser joins paragraphs with newlines in
+ *    `extractTableCellText`) to recover individual paragraphs.
+ *  - Each paragraph becomes one `CellTextRun` whose `style` is built from the
+ *    cell-level `PptxTableCellStyle` via {@link cellRunStyle}.
+ *  - Paragraphs with empty text are kept so the paragraph structure is preserved
+ *    (an empty `<p>` still takes up vertical space).
+ *
+ * Returns an empty array when `cell.text` is empty AND there is no cell style
+ * that would add meaningful formatting — signalling the template to fall back to
+ * the `displayText` non-breaking-space placeholder (which keeps the row height).
+ *
+ * When there is at least one non-empty paragraph OR a style is present the array
+ * is always non-empty so the template renders the rich-text path.
+ */
+export function buildCellParagraphs(cell: PptxTableCell): CellParagraph[] {
+	const runStyle = cellRunStyle(cell.style);
+	const text = cell.text ?? '';
+
+	// If the cell is completely empty and has no character-level formatting,
+	// return empty so the template uses the non-breaking space displayText
+	// fallback to keep row height.
+	if (!text && Object.keys(runStyle).length === 0) {
+		return [];
+	}
+
+	const lines = text.split('\n');
+	return lines.map((line): CellParagraph => {
+		return [{ text: line, style: runStyle }];
+	});
+}
+
+// ==========================================================================
 // View-model types
 // ==========================================================================
 
@@ -257,14 +372,28 @@ export function cellTdStyle(cell: PptxTableCell): StyleMap {
  */
 export interface TableCellViewModel {
 	cell: PptxTableCell;
-	/** Resolved colspan from `gridSpan` (≥ 2) or undefined. */
+	/** Resolved colspan from `gridSpan` (>= 2) or undefined. */
 	colSpan: number | undefined;
-	/** Resolved rowspan from `rowSpan` (≥ 2) or undefined. */
+	/** Resolved rowspan from `rowSpan` (>= 2) or undefined. */
 	rowSpan: number | undefined;
 	/** Pre-computed `[ngStyle]` map for this cell's `<td>`. */
 	tdStyle: StyleMap;
-	/** Display text — non-breaking space when the cell is empty to keep the row height. */
+	/**
+	 * Display text — non-breaking space when the cell is empty to keep the row
+	 * height. Used as fallback when `paragraphs` is empty (no text AND no style).
+	 */
 	displayText: string;
+	/**
+	 * Rich-text paragraphs built from the cell's text content and cell-level
+	 * style. When non-empty the template renders this instead of `displayText`.
+	 * Each entry is a paragraph (array of styled runs); runs with `isLineBreak`
+	 * render as `<br>`.
+	 *
+	 * When this array is empty (cell is completely empty + unstyled) the template
+	 * falls back to rendering `displayText` (a non-breaking space) so the row
+	 * retains its height.
+	 */
+	paragraphs: CellParagraph[];
 }
 
 export interface TableRowViewModel {
@@ -308,8 +437,9 @@ export function buildTableViewModel(el: PptxElement): TableRowViewModel[] {
 					rowSpan,
 					tdStyle: cellTdStyle(cell),
 					// Non-breaking space keeps the row height when the cell is empty;
-					// mirrors `cell.text || ' '` in table-render-data.tsx.
+					// mirrors `cell.text || ' '` in table-render-data.tsx.
 					displayText: cell.text || ' ',
+					paragraphs: buildCellParagraphs(cell),
 				};
 			});
 		return { rowStyle: rowStyle(row), cells };

@@ -4,7 +4,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 
 import type { StyleMap } from './element-style';
 import { buildColStyles, buildTableViewModel } from './table-renderer-helpers';
-import type { TableRowViewModel } from './table-renderer-helpers';
+import type { CellParagraph, TableRowViewModel } from './table-renderer-helpers';
 
 /**
  * TableRendererComponent — Angular port of the React `renderTableFromTableData`
@@ -24,7 +24,9 @@ import type { TableRowViewModel } from './table-renderer-helpers';
  *  - Cell fill: solid `backgroundColor` or the parser's pre-built
  *    `gradientFillCss` string (gradient). Pattern fills are deferred.
  *  - Cell borders: per-edge (top/bottom/left/right) width + colour.
- *  - Cell text: plain `cell.text` string; rich text segments are a TODO.
+ *  - Cell text: rich-text paragraphs of styled `<span>` runs when the cell
+ *    carries text or formatting; falls back to a non-breaking-space placeholder
+ *    for empty+unstyled cells (preserves row height).
  *
  * Pure helpers (view-model projection, style maps) live in
  * `table-renderer-helpers.ts` so tests can exercise them without TestBed.
@@ -53,7 +55,21 @@ import type { TableRowViewModel } from './table-renderer-helpers';
 									[attr.colspan]="vm.colSpan ?? null"
 									[attr.rowspan]="vm.rowSpan ?? null"
 								>
-									{{ vm.displayText }}
+									@if (vm.paragraphs.length > 0) {
+										@for (para of vm.paragraphs; track $index) {
+											<p class="pptx-ng-cell-para">
+												@for (run of para; track $index) {
+													@if (run.isLineBreak) {
+														<br />
+													} @else {
+														<span [ngStyle]="run.style">{{ run.text }}</span>
+													}
+												}
+											</p>
+										}
+									} @else {
+										{{ vm.displayText }}
+									}
 								</td>
 							}
 						</tr>
@@ -73,3 +89,6 @@ export class TableRendererComponent {
 	/** Projected view-model rows with merged-cell resolution applied. */
 	readonly rows = computed<TableRowViewModel[]>(() => buildTableViewModel(this.element()));
 }
+
+// Re-export for template type-checking (CellParagraph is used in the @for loop).
+export type { CellParagraph };

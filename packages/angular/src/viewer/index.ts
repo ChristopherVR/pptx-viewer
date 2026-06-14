@@ -3,6 +3,7 @@ export { SlideCanvasComponent } from './slide-canvas.component';
 export { ElementRendererComponent } from './element-renderer.component';
 export { ConnectorRendererComponent } from './connector-renderer.component';
 export { TableRendererComponent } from './table-renderer.component';
+export { ChartRendererComponent } from './chart-renderer.component';
 export { LoadContentService } from './load-content.service';
 
 export type { CanvasSize, CollaborationConfig, CollaborationRole } from './types';

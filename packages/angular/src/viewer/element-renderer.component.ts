@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
+import { ChartRendererComponent } from './chart-renderer.component';
 import { ConnectorRendererComponent } from './connector-renderer.component';
 import {
 	getContainerStyle,
@@ -25,23 +26,35 @@ interface TextRun {
  * Renders a single slide element by its `type` discriminant (viewer-first
  * subset):
  *  - `text` / `shape`    → positioned box with fill/stroke + rich text
+ *  - `connector`         → SVG straight/bent/curved connector
+ *  - `chart`             → inline-SVG chart (bar/line/area/pie/scatter)
+ *  - `table`             → HTML `<table>`
  *  - `picture` / `image` → `<img>`
  *  - `media`             → poster frame (`<img>`) — playback TODO
  *  - `group`             → recursive children (self-referencing selector)
  *  - everything else     → labelled placeholder (TODO, see PORTING.md)
  *
- * Interaction (selection, resize, inline editing), connectors, charts, tables,
- * SmartArt, ink, OLE, and 3D are not yet ported.
+ * Interaction (selection, resize, inline editing), SmartArt, ink, OLE, and 3D
+ * are not yet ported.
  */
 @Component({
 	selector: 'pptx-element-renderer',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle, ConnectorRendererComponent, TableRendererComponent],
+	imports: [NgStyle, ConnectorRendererComponent, TableRendererComponent, ChartRendererComponent],
 	template: `
 		@switch (true) {
 			@case (element().type === 'connector') {
 				<pptx-connector-renderer [element]="element()" [zIndex]="zIndex()" />
+			}
+			@case (element().type === 'chart') {
+				<div
+					class="pptx-ng-element pptx-ng-chart"
+					[ngStyle]="containerStyle()"
+					[attr.data-element-id]="element().id"
+				>
+					<pptx-chart-renderer [element]="element()" />
+				</div>
 			}
 			@case (element().type === 'table') {
 				<div
@@ -185,7 +198,6 @@ export class ElementRendererComponent {
 
 	readonly placeholderLabel = computed(() => {
 		const map: Record<string, string> = {
-			chart: 'Chart',
 			smartArt: 'SmartArt',
 			group: 'Group',
 			media: 'Media',
