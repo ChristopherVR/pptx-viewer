@@ -28,7 +28,8 @@
 	},
 	"scripts": {
 		"inline-shared": "node ./scripts/inline-shared.mjs",
-		"build": "bun run inline-shared && ng-packagr -p ng-package.json",
+		"finalize-dist": "node ./scripts/finalize-dist.mjs",
+		"build": "bun run inline-shared && ng-packagr -p ng-package.json && bun run finalize-dist",
 		"dev": "bun run inline-shared && ng-packagr -p ng-package.json --watch",
 		"typecheck": "bun run inline-shared && tsc --noEmit -p tsconfig.lib.json",
 		"test": "bun run inline-shared && vitest run",
@@ -56,7 +57,7 @@
 	"peerDependencies": {
 		"@angular/common": "^22.0.0",
 		"@angular/core": "^22.0.0",
-		"pptx-viewer-core": "^1.4.0",
+		"pptx-viewer-core": "workspace:*",
 		"rxjs": "^7.8.0"
 	}
 }

@@ -185,11 +185,12 @@ Format), so **build the library first** (`bun run --filter pptx-angular-viewer b
    `@angular/*`, `rxjs`, and `pptx-viewer-core` (already published on npm).
 
    The library packs cleanly today (`bun run pack` → a valid tarball with no
-   `workspace:*` leaks): the `pptx-viewer-core` **peer** is a concrete published
-   range (`^1.4.0`) rather than `workspace:*` — ng-packagr publishes from `dist/`,
-   which is not a workspace member, so `workspace:*` cannot be resolved there.
-   The `pptx-viewer-core` **devDependency** stays `workspace:*` to link the local
-   engine for build/test.
+   `workspace:*` leaks). The source keeps `pptx-viewer-core: workspace:*` like
+   every other package; because ng-packagr publishes from `dist/` (not a
+   workspace member, so `bun pm pack` can't resolve `workspace:*` there), a
+   post-build step `scripts/finalize-dist.mjs` reads the workspace's current core
+   version and rewrites the `dist/package.json` range to `^<version>`. So the
+   peer tracks the workspace version automatically — no manual pinning.
 
    Remaining work before npm releases are automated:
    - Add `pptx-angular-viewer` (and its build) to the CI build/release/publish
