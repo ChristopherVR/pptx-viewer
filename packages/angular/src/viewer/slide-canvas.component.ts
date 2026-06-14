@@ -1,8 +1,8 @@
 import { NgStyle } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import type { PptxSlide } from 'pptx-viewer-core';
-import type { CanvasSize } from 'pptx-viewer-shared';
 
+import type { CanvasSize } from '../internal/shared';
 import { ElementRendererComponent } from './element-renderer.component';
 import type { StyleMap } from './element-style';
 
