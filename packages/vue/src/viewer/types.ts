@@ -1,0 +1,107 @@
+import type { CanvasSize, CollaborationConfig, CollaborationRole } from 'pptx-viewer-shared';
+
+import type { ViewerTheme } from '../theme';
+
+/**
+ * Public component types for the Vue PowerPoint viewer.
+ *
+ * Ported from the React package's `types-ui.ts`. Two conventions differ
+ * from React:
+ *
+ *  - **Callbacks → emits.** React passed `onDirtyChange`, `onContentChange`,
+ *    and `onActiveSlideChange` as function props. The Vue component exposes
+ *    these as native events (see {@link PowerPointViewerEmits}); a thin
+ *    callback-prop compatibility layer can be added later if needed.
+ *  - **Imperative handle → `defineExpose`.** React used `forwardRef` to
+ *    surface `getContent()`. The Vue component exposes the same surface via
+ *    `defineExpose`, typed by {@link PowerPointViewerExpose}.
+ *
+ * The framework-agnostic `CanvasSize`, `CollaborationConfig`, and
+ * `CollaborationRole` types now live in `pptx-viewer-shared` and are
+ * re-exported below for API stability.
+ */
+export type { CanvasSize, CollaborationConfig, CollaborationRole };
+
+/**
+ * Props for `<PowerPointViewer>`.
+ *
+ * Mirrors the React `PowerPointViewerProps`, minus the function callbacks
+ * (which become emits).
+ */
+export interface PowerPointViewerProps {
+	/** PowerPoint content as Uint8Array (or ArrayBuffer). */
+	content: Uint8Array | ArrayBuffer;
+	/** Original file path — used for autosave recovery. */
+	filePath?: string;
+	/** Whether editing actions are enabled. */
+	canEdit?: boolean;
+	/** Optional class name applied to the root element. */
+	class?: string;
+	/**
+	 * Display name used as the author for comments and annotations.
+	 * Falls back to `collaboration.userName` when collaborating, or `'You'`.
+	 */
+	authorName?: string;
+	/**
+	 * Theme configuration for customising the viewer's appearance.
+	 *
+	 * Accepts partial color overrides, a custom border-radius, and arbitrary
+	 * CSS custom properties. Unset values fall back to the built-in dark theme.
+	 *
+	 * @see {@link ViewerTheme}
+	 */
+	theme?: ViewerTheme;
+	/**
+	 * Optional real-time collaboration configuration. (Not yet implemented in
+	 * the Vue port — accepted for API parity.)
+	 */
+	collaboration?: CollaborationConfig;
+	/** Default values for the Share dialog fields. */
+	shareDefaults?: {
+		roomId?: string;
+		userName?: string;
+		serverUrl?: string;
+	};
+}
+
+/**
+ * Events emitted by `<PowerPointViewer>`.
+ *
+ * These replace the React function-prop callbacks:
+ *  - `onDirtyChange`       → `@dirty-change`
+ *  - `onContentChange`     → `@content-change`
+ *  - `onActiveSlideChange` → `@active-slide-change`
+ */
+export interface PowerPointViewerEmits {
+	/** Fired when the unsaved-changes flag toggles. */
+	(e: 'dirty-change', isDirty: boolean): void;
+	/** Fired when the in-memory content changes (after edits). */
+	(e: 'content-change', content: Uint8Array): void;
+	/** Fired when the active slide changes. */
+	(e: 'active-slide-change', slideIndex: number): void;
+	/** Fired when the user starts a collaboration session from the Share dialog. */
+	(e: 'start-collaboration', config: CollaborationConfig): void;
+	/** Fired when the user stops a collaboration session from the Share dialog. */
+	(e: 'stop-collaboration'): void;
+}
+
+/**
+ * Imperative surface exposed via `defineExpose`, retrievable through a
+ * template ref. Mirrors the React `PowerPointViewerHandle`.
+ *
+ * @example
+ * ```vue
+ * <script setup lang="ts">
+ * import { ref } from 'vue';
+ * import { PowerPointViewer, type PowerPointViewerExpose } from 'pptx-vue-viewer';
+ * const viewer = ref<PowerPointViewerExpose>();
+ * async function save() {
+ *   const bytes = await viewer.value!.getContent();
+ * }
+ * </script>
+ * ```
+ */
+export interface PowerPointViewerExpose {
+	/** Serialise the current presentation to `.pptx` bytes. */
+	getContent: () => Promise<Uint8Array>;
+}

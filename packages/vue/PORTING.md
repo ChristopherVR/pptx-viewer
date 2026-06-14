@@ -1,0 +1,230 @@
+# Porting `pptx-viewer` (React) → `pptx-vue-viewer` (Vue 3)
+
+> **Living document.** Update the status tables as you port. This is the
+> hand-off contract between sessions (and a reference for the parallel Angular
+> port). Keep it accurate — future sessions trust it instead of re-scanning the
+> 100k-line React package.
+
+## Goal
+
+Ship a Vue 3 package, **`pptx-vue-viewer`** (npm), that is a feature-equivalent
+counterpart to the React `pptx-viewer` package (`packages/react`). Both wrap the
+framework-agnostic `pptx-viewer-core` engine. The Angular port is being done in
+a separate session and should follow the same conventions and the same
+shared-code extraction plan (see below).
+
+## Source-of-truth sizing (React package, non-test)
+
+| Area                         | Files                  | Notes                                                                                                                                        |
+| ---------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `viewer/components/**/*.tsx` | 213                    | Presentational components (10 subdirs: canvas, collaboration, elements, inspector, mobile, notes, print, slide-sorter, slides-pane, toolbar) |
+| `viewer/hooks/**/*.ts`       | 94                     | All business logic (React hooks)                                                                                                             |
+| `viewer/utils/**/*.ts`       | 116                    | **Framework-agnostic logic** — color, geometry, connector routing, animation, latex/omml, morph, export, table-merge, etc.                   |
+| `viewer/utils/**/*.tsx`      | 68                     | JSX-producing renderers (charts, smartart, table, text, shapes) — must be reimplemented per framework                                        |
+| Total non-test               | ~564 files / ~101k LOC |                                                                                                                                              |
+
+## Conventions (React → Vue 3)
+
+Use **Vue 3.5+, `<script setup lang="ts">` SFCs, Composition API**. Mirror the
+React hook architecture as composables so the two packages stay easy to keep in
+sync.
+
+| React                                         | Vue                                                                                                            |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Custom hook `useXxx` returning values/setters | Composable `useXxx` returning `ref`/`computed`/`shallowRef`                                                    |
+| `useState`                                    | `ref` / `shallowRef` (use `shallowRef` for large parsed arrays/maps)                                           |
+| `useMemo`                                     | `computed`                                                                                                     |
+| `useEffect(fn, [deps])`                       | `watch` / `watchEffect` (+ `onScopeDispose` for cleanup)                                                       |
+| `useRef` (DOM)                                | template `ref`                                                                                                 |
+| `useRef` (mutable box)                        | module-local `let` inside the composable, or `ref`                                                             |
+| `createContext` + `useContext`                | `provide` / `inject` with a typed `InjectionKey`                                                               |
+| `forwardRef` + `useImperativeHandle`          | `defineExpose`                                                                                                 |
+| Function-prop callbacks (`onX`)               | `defineEmits` events (`@x`)                                                                                    |
+| `.tsx` component                              | `.vue` SFC                                                                                                     |
+| `React.memo`                                  | usually unnecessary; rely on Vue reactivity granularity                                                        |
+| Tailwind utility classes                      | currently hand-written CSS scoped under `.pptx-vue-viewer` (Tailwind pipeline optional — see "Open decisions") |
+
+## Shared-code extraction (IN PROGRESS — `packages/shared` → `pptx-viewer-shared`)
+
+The framework-agnostic logic now has a home: **`packages/shared`** (package
+name `pptx-viewer-shared`). It is **bundled, not published** — each UI binding
+(React, Vue, Angular) lists it as a **devDependency** and **inlines** it into
+its own `dist` (JS + `.d.ts`). The published tarballs are self-contained; npm
+never sees `pptx-viewer-shared` as a dependency. `pptx-viewer-core` is treated
+the same way (inlined, devDependency) so a consumer installs only the single
+framework package.
+
+How the inlining is wired:
+
+- **React** (`packages/react`): tsup `noExternal: ['pptx-viewer-core', 'pptx-viewer-shared']`.
+- **Vue** (`packages/vue`): Vite — internal packages omitted from `rollupOptions.external`
+  (JS inlined); `vite-plugin-dts` with `bundledPackages: ['pptx-viewer-core', 'pptx-viewer-shared']`
+  and `rollupTypes: true` (types inlined into `dist/index.d.ts` + `dist/viewer/index.d.ts`).
+- **Angular**: mirror the same — inline both internal packages, keep them devDependencies.
+
+Build order: `pptx-viewer-core` → `pptx-viewer-shared` → bindings (already wired
+in the root `build` script).
+
+**Already extracted into `pptx-viewer-shared`** (Vue re-exports these for
+import-path stability — see `src/theme/*`, `src/viewer/constants.ts`,
+`src/viewer/composables/load-content-helpers.ts`, `src/viewer/types.ts`):
+
+- ✅ `theme/{types,defaults,css-vars}` → `pptx-viewer-shared/theme`
+- ✅ load-pipeline helpers (`collect*`, `buildInitialGuides`, `GuideEntry`,
+  `ImagePathElement`) → `pptx-viewer-shared/loader`
+- ✅ public types `CanvasSize`, `CollaborationConfig`, `CollaborationRole`
+- ✅ scalar constants (`DEFAULT_CANVAS_*`, fallback colours)
+
+**Still to extract** (pure `.ts`, no framework import) — priority targets:
+
+- `utils/color-core.ts`, `color-gradient.ts`, `color-patterns.ts`, `color.ts`
+- `utils/geometry.ts`, `geometry-image.ts`, `geometry-selection.ts`
+- `utils/connector-router*.ts`, `connector-reroute.ts`, `connector-path` (path math)
+- `utils/animation-*.ts` (timeline/sequencer/keyframes/presets — the engine, not the JSX)
+- `utils/latex-to-omml*.ts`, `omml-*.ts`, `omml-to-mathml.ts`
+- `utils/morph-*.ts` (matching/transition/svg-path)
+- `utils/warp-path-*.ts`, `text-warp-classifier.ts`
+- `utils/table-merge-core.ts`, `table-merge-utils.ts`, `table-selection-utils.ts`
+- `utils/shape-adjustment.ts`, `shape-round-rect.ts`, `shape-3d-styles.ts`,
+  `shape-visual-3d.ts`, `shape-visual-style.ts`, `resolved-shape-clip-path.ts`
+- `utils/image-effects.ts`, `image-style.ts`, `duotone-effects.ts`,
+  `effect-dag-filters.ts`, `shape-visual-effects.ts`
+- `utils/export-*.ts`, `pdf-builder*.ts`, `svg-print-serializer.ts` (the data/binary parts)
+- `utils/clone.ts`, `compare.ts`, `generate-id.ts`, `style.ts`, `element.ts`,
+  `xml*.ts`, `hyperlink-security.ts`, `unicode-script-detection.ts`,
+  `kinsoku-styles.ts`, `tab-leader.ts`, `remap-text.ts`
+
+When porting a feature that needs one of the candidates above, **extract it into
+`pptx-viewer-shared` first, then import from there** (both React and Vue). The
+only Vue-local pure helper still not extracted is `element-style.ts` (a tiny
+style subset) — fold its richer logic into shared when the renderer grows.
+
+> ⚠️ Coordinate the extraction with the React + Angular sessions: moving files
+> out of `packages/react` touches that package's imports. Do it as its own
+> focused change, not bundled into a feature port.
+
+## Directory mapping
+
+```
+packages/react/src/                         packages/vue/src/
+  index.ts                                    index.ts                         ✅
+  utils.ts (cn)                               utils.ts                         ✅
+  theme/{types,defaults,css-vars}.ts          theme/{types,defaults,css-vars}.ts ✅ (copied; extract later)
+  theme/context.tsx (createContext)           theme/provider.ts (provide/inject) ✅
+  lib/canvas-export.ts                         lib/  (TODO)
+  viewer/PowerPointViewer.tsx                  viewer/PowerPointViewer.vue      ◑ viewer-first
+  viewer/index.ts                              viewer/index.ts                  ✅
+  viewer/types-ui.ts / types-core.ts           viewer/types.ts                  ◑ public subset
+  viewer/constants/*                           viewer/constants.ts              ◑ subset
+  viewer/hooks/*                               viewer/composables/*             ◑ load only
+  viewer/components/SlideCanvas.tsx            viewer/components/SlideCanvas.vue ◑ basic
+  viewer/components/ElementRenderer.tsx        viewer/components/ElementRenderer.vue ◑ basic
+  viewer/components/{toolbar,inspector,...}    viewer/components/*              ☐ TODO
+  viewer/utils/*                               viewer/composables/element-style.ts ◑ tiny subset
+  styles/pptx-viewer.css (Tailwind)            styles/pptx-vue-viewer.css       ◑ hand-written
+```
+
+Legend: ✅ done · ◑ partial/basic · ☐ not started
+
+## Status by area
+
+### Foundation
+
+| Item                                                                                | Status | Notes                                                                          |
+| ----------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------ |
+| Package scaffold (package.json `pptx-vue-viewer`, Vite lib build, tsconfig, vitest) | ✅     | Vite lib mode; `vite-plugin-dts` (rollupTypes) inlines core+shared types       |
+| `cn` utility                                                                        | ✅     | verbatim                                                                       |
+| Theme types/defaults/css-vars                                                       | ✅     | re-exports `pptx-viewer-shared/theme`                                          |
+| Theme provider (`provide`/`inject`, `useThemeStyle`)                                | ✅     | replaces React context                                                         |
+| Bundle core + shared (inlined, devDeps, not published)                              | ✅     | matches React tsup `noExternal`; verified no dangling internal imports in dist |
+| Public types (props/emits/expose)                                                   | ◑      | viewer-first subset of `types-ui.ts`                                           |
+| Base CSS                                                                            | ◑      | hand-written chrome; no Tailwind yet                                           |
+
+### Load / state
+
+| Item                                                                                                                                               | Status | Notes                                                                                                                                                      |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useLoadContent`                                                                                                                                   | ◑      | parses via `PptxHandler`, resolves image/media Blob URLs, exposes `getContent`. Populates **slides, canvasSize, theme, slideMasters, mediaDataUrls** only. |
+| `load-content-helpers`                                                                                                                             | ✅     | verbatim (extraction candidate)                                                                                                                            |
+| Full `useViewerState` (sections, customShows, embeddedFonts, header/footer, notes/handout masters, signatures, macros, guides, tags, doc props, …) | ☐      | ~25 extra fields the React hook sets; add as features need them                                                                                            |
+| `useEditorHistory` (undo/redo)                                                                                                                     | ☐      |                                                                                                                                                            |
+| `useEditorOperations` (element CRUD/transform)                                                                                                     | ☐      |                                                                                                                                                            |
+| `useExportHandlers` / `useViewerIntegration`                                                                                                       | ☐      |                                                                                                                                                            |
+| Autosave, clipboard, find/replace, comments                                                                                                        | ☐      |                                                                                                                                                            |
+
+### Rendering
+
+| Item                                                           | Status | Notes                                                                                                    |
+| -------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------- |
+| `PowerPointViewer.vue` (load + nav + zoom)                     | ◑      | loading/error/encrypted states, prev/next, zoom, thumbnail rail                                          |
+| `SlideCanvas.vue`                                              | ◑      | scaled stage + element list; no rulers/grid/guides/overlays                                              |
+| `ElementRenderer.vue`                                          | ◑      | text, shape (solid fill/stroke), picture/image, media poster, group recursion; placeholders for the rest |
+| `element-style.ts`                                             | ◑      | container/shape/text/image basics; no gradient/clip-path/effects/3D                                      |
+| text: `picture`/`image`                                        | ◑      | `<img>` object-fit contain                                                                               |
+| text: rich text runs (bold/italic/underline/strike/color/size) | ◑      | per-segment spans, paragraph + line breaks                                                               |
+| Connectors (SVG)                                               | ☐      | `ConnectorElementRenderer`                                                                               |
+| Tables                                                         | ☐      | `utils/table-render*.tsx`                                                                                |
+| Charts (SVG)                                                   | ☐      | `utils/chart*.tsx` (large)                                                                               |
+| SmartArt                                                       | ☐      | `utils/smartart-*.tsx` (large)                                                                           |
+| Ink / OLE / Model3D / Zoom                                     | ☐      |                                                                                                          |
+| Image effects, gradients, shadows, glow, clip-paths            | ☐      |                                                                                                          |
+| Text warp / WordArt, equations (OMML→MathML)                   | ☐      |                                                                                                          |
+
+### Editor chrome (all ☐ — not started)
+
+Toolbar, inspector panels (fill/stroke/text/image/table/chart/animation/…),
+context menu, dialogs (share/broadcast/settings/properties/hyperlink/…),
+slides pane, slide sorter, notes, mobile chrome, accessibility panel.
+
+### Advanced subsystems (all ☐ — not started)
+
+Presentation mode + animations/transitions, export (PNG/PDF/GIF/video,
+html2canvas equivalent — note React uses `html2canvas-pro`; Vue will need an
+equivalent rasterizer), collaboration (Yjs), print, find/replace, comments,
+digital signatures, font embedding/injection.
+
+## Open decisions / notes for next session
+
+1. **Styling strategy.** React uses Tailwind 4 utility classes compiled to
+   `pptx-viewer.css`. Options for Vue: (a) adopt the same Tailwind pipeline
+   (`@tailwindcss/cli` is already a devDep) and reuse class names, easing 1:1
+   component porting; or (b) continue hand-written scoped CSS. Recommend (a)
+   once the editor chrome porting begins — it makes the 213 components far
+   cheaper to port. Decide before porting the toolbar/inspector.
+2. **Rasterizer for export.** `html2canvas-pro` is React-agnostic (operates on
+   DOM), so it can likely be reused directly for the Vue export path.
+3. **Collaboration.** Yjs/y-websocket are framework-agnostic; the React
+   `hooks/collaboration/*` logic is a good extraction candidate. The Vue
+   binding only needs reactive wrappers + cursor overlay components.
+4. **Demo.** No Vue demo app yet. Consider `demo-vue/` (Vite + Vue) mirroring
+   `demo/`, or a route in the existing demo.
+5. **Tests.** Logic composables should get vitest unit tests (happy-dom env is
+   configured). Component tests via `@vue/test-utils`.
+
+## Recommended next steps (priority order)
+
+1. Add a Vue demo page that loads a sample `.pptx` to validate rendering visually.
+2. Flesh out `ElementRenderer.vue`: gradients, clip-paths for preset geometries
+   (extract `utils/geometry.ts` shape-path generation into `pptx-viewer-shared`
+   first), then tables, then connectors, then charts.
+3. Decide the Tailwind question before starting the toolbar/inspector.
+4. Port `useViewerState` fully + `useEditorHistory` to unlock editing.
+5. Continue the shared-code extraction (color → geometry → connector-router →
+   animation engine), importing from `pptx-viewer-shared` in both React and Vue.
+
+## Session log
+
+- **2026-06-14** — Initial scaffold. Package config (Vite lib build, two entry
+  points, Vue 3.5 peer dep), foundation (cn, theme system as provide/inject +
+  `useThemeStyle`, public prop/emit/expose types, constants subset),
+  `useLoadContent` composable (parse + Blob URL resolution + `getContent`),
+  basic `PowerPointViewer.vue` / `SlideCanvas.vue` / `ElementRenderer.vue`
+  (text/shape/image/group + placeholders), base CSS, unit tests for theme
+  css-vars and element-style, README. Documented shared-code extraction plan.
+- **2026-06-14** — `pptx-viewer-shared` (`packages/shared`) introduced as the
+  bundled-not-published home for framework-agnostic logic; theme, loader
+  helpers, public types, and scalar constants moved there (Vue re-exports for
+  path stability). Switched the Vue build to inline both `pptx-viewer-core` and
+  `pptx-viewer-shared` (JS via Rollup, types via `vite-plugin-dts`
+  `bundledPackages` + `rollupTypes`); both are now devDependencies. Verified the
+  published `dist` has no dangling internal imports. Build/typecheck/test/lint/fmt green.

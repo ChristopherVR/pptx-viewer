@@ -1,0 +1,88 @@
+{
+	"name": "pptx-vue-viewer",
+	"version": "0.1.0",
+	"description": "Vue 3 PowerPoint viewer/editor component — depends on pptx-viewer-core. Vue counterpart of the React `pptx-viewer` package.",
+	"keywords": [
+		"editor",
+		"openxml",
+		"powerpoint",
+		"pptx",
+		"presentation",
+		"viewer",
+		"vue",
+		"vue3"
+	],
+	"homepage": "https://github.com/ChristopherVR/pptx-viewer",
+	"bugs": {
+		"url": "https://github.com/ChristopherVR/pptx-viewer/issues"
+	},
+	"license": "Apache-2.0",
+	"author": "ChristopherVR",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ChristopherVR/pptx-viewer.git",
+		"directory": "packages/vue"
+	},
+	"files": [
+		"dist/",
+		"LICENSE",
+		"NOTICE",
+		"README.md"
+	],
+	"type": "module",
+	"main": "dist/index.cjs",
+	"module": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		},
+		"./viewer": {
+			"types": "./dist/viewer/index.d.ts",
+			"import": "./dist/viewer/index.js",
+			"require": "./dist/viewer/index.cjs"
+		},
+		"./styles": "./dist/pptx-vue-viewer.css",
+		"./styles.css": "./dist/pptx-vue-viewer.css"
+	},
+	"scripts": {
+		"build": "vite build && cp src/styles/pptx-vue-viewer.css dist/pptx-vue-viewer.css",
+		"dev": "vite build --watch",
+		"typecheck": "vue-tsc --noEmit -p tsconfig.json",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"pack": "bun run build && bun pm pack"
+	},
+	"dependencies": {
+		"clsx": "^2.1.1",
+		"dompurify": "^3.4.10",
+		"tailwind-merge": "^3.6.0"
+	},
+	"devDependencies": {
+		"@tailwindcss/cli": "^4.3.1",
+		"@types/dompurify": "^3.2.0",
+		"@vitejs/plugin-vue": "^5.2.1",
+		"@vue/test-utils": "^2.4.6",
+		"happy-dom": "^15.11.7",
+		"pptx-viewer-core": "workspace:*",
+		"pptx-viewer-shared": "workspace:*",
+		"tailwindcss": "^4.3.1",
+		"typescript": "^6.0.3",
+		"vite": "^6.0.0",
+		"vite-plugin-dts": "^4.5.4",
+		"vitest": "^4.1.8",
+		"vue-tsc": "^2.2.0"
+	},
+	"peerDependencies": {
+		"fast-xml-parser": "^5.8.0",
+		"jspdf": "^4.2.1",
+		"jszip": "^3.10.1",
+		"vue": "^3.5.0"
+	},
+	"optionalDependencies": {
+		"y-websocket": "^3.0.0",
+		"yjs": "^13.6.31"
+	}
+}

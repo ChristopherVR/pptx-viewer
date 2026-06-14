@@ -1,0 +1,67 @@
+{
+	"name": "pptx-viewer-shared",
+	"version": "0.1.0",
+	"description": "Framework-agnostic viewer logic shared by the React, Vue, and Angular pptx-viewer bindings (theme, color, geometry, animation, and other pure helpers).",
+	"keywords": [
+		"openxml",
+		"powerpoint",
+		"pptx",
+		"presentation",
+		"shared",
+		"viewer"
+	],
+	"homepage": "https://github.com/ChristopherVR/pptx-viewer",
+	"bugs": {
+		"url": "https://github.com/ChristopherVR/pptx-viewer/issues"
+	},
+	"license": "Apache-2.0",
+	"author": "ChristopherVR",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ChristopherVR/pptx-viewer.git",
+		"directory": "packages/shared"
+	},
+	"files": [
+		"dist/",
+		"LICENSE",
+		"NOTICE",
+		"README.md"
+	],
+	"main": "dist/index.js",
+	"module": "dist/index.mjs",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.js"
+		},
+		"./theme": {
+			"types": "./dist/theme/index.d.ts",
+			"import": "./dist/theme/index.mjs",
+			"require": "./dist/theme/index.js"
+		},
+		"./loader": {
+			"types": "./dist/loader/index.d.ts",
+			"import": "./dist/loader/index.mjs",
+			"require": "./dist/loader/index.js"
+		}
+	},
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"typecheck": "tsc --noEmit --pretty",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"pack": "bun run build && bun pm pack"
+	},
+	"devDependencies": {
+		"pptx-viewer-core": "workspace:*",
+		"tsup": "^8.5.1",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.8"
+	},
+	"peerDependencies": {
+		"pptx-viewer-core": "workspace:*"
+	}
+}

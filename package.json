@@ -5,7 +5,7 @@
 	"bugs": {
 		"url": "https://github.com/ChristopherVR/pptx-viewer/issues"
 	},
-	"license": "MIT",
+	"license": "Apache-2.0",
 	"author": "ChristopherVR",
 	"repository": {
 		"type": "git",
@@ -13,12 +13,16 @@
 	},
 	"workspaces": [
 		"packages/*",
-		"demo"
+		"demo",
+		"demo-angular"
 	],
 	"scripts": {
 		"install:all": "bun install",
 		"demo": "cd demo && npx vite",
-		"build": "bun run --filter 'emf-converter' build && bun run --filter 'mtx-decompressor' build && bun run --filter 'pptx-viewer-core' build && bun run --filter 'pptx-viewer-mcp' build && bun run --filter 'pptx-viewer' build && bun run --filter 'pptx-viewer-demo' build",
+		"docs:dev": "cd docs && bun run docs:dev",
+		"docs:build": "cd docs && bun install && bun run docs:build",
+		"docs:preview": "cd docs && bun run docs:preview",
+		"build": "bun run --filter 'emf-converter' build && bun run --filter 'mtx-decompressor' build && bun run --filter 'pptx-viewer-core' build && bun run --filter 'pptx-viewer-shared' build && bun run --filter 'pptx-viewer-mcp' build && bun run --filter 'pptx-viewer' build && bun run --filter 'pptx-vue-viewer' build && bun run --filter 'pptx-viewer-demo' build",
 		"typecheck": "bun run --filter '*' typecheck",
 		"test": "bash scripts/test-all.sh",
 		"fmt": "oxfmt",
@@ -27,8 +31,10 @@
 		"lint:fix": "oxlint --fix",
 		"pack:emf": "cd packages/emf-converter && bun run pack",
 		"pack:mtx": "cd packages/mtx-decompressor && bun run pack",
+		"pack:shared": "cd packages/shared && bun run pack",
 		"pack:core": "cd packages/core && bun run pack",
 		"pack:react": "cd packages/react && bun run pack",
+		"pack:vue": "cd packages/vue && bun run pack",
 		"outdated": "bun outdated --filter '*'",
 		"update": "bun update --latest",
 		"collab": "bun demo/collab-server.mjs",
