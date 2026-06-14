@@ -174,8 +174,8 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 | text: `picture`/`image`                                        | ◑      | `<img>` object-fit contain                                                                                                                                                        |
 | text: rich text runs (bold/italic/underline/strike/color/size) | ◑      | per-segment spans, paragraph + line breaks                                                                                                                                        |
 | Connectors (SVG)                                               | ◑      | `ConnectorRenderer.vue` — straight line + arrowheads + dash; bent/curved routing, compound lines, text overlay TODO                                                               |
-| Tables                                                         | ☐      | `utils/table-render*.tsx`                                                                                                                                                         |
-| Charts (SVG)                                                   | ☐      | `utils/chart*.tsx` (large)                                                                                                                                                        |
+| Tables                                                         | ◑      | `TableRenderer.vue` + `composables/table-style.ts` — HTML `<table>`, colgroup widths/row heights, rowspan/colspan merges, per-cell fill/borders/dash/align, band/header/total emphasis, diagonal borders (SVG overlay). Read-only; pattern fills, scheme-colour band resolution, rich per-run cell text still TODO |
+| Charts (SVG)                                                   | ◑      | `ChartRenderer.vue` + `chart/ChartChrome.vue` + `composables/chart-helpers.ts` — bar/column, stacked & 100%-stacked, line, area, pie/doughnut + axes/gridlines/legend/title/data-labels. Deferred (labelled placeholder): radar, scatter/bubble, stock, surface, treemap, sunburst, funnel, waterfall, combo, map, boxWhisker, histogram, ofPie; + secondary/log axes, trendlines, overlays |
 | SmartArt                                                       | ☐      | `utils/smartart-*.tsx` (large)                                                                                                                                                    |
 | Ink / OLE / Model3D / Zoom                                     | ☐      |                                                                                                                                                                                   |
 | Image effects, gradients, shadows, glow                        | ◑      | preset-geometry **clip-paths done** (`shape-geometry.ts`); image effects/shadows/glow still TODO                                                                                  |
@@ -282,3 +282,21 @@ digital signatures, font embedding/injection.
   Added a `cssBorderDashStyle` helper for dashed/dotted borders. 13 new tests
   (32 total green). Build inlines core geometry (bundle externalises only
   `vue`/`jszip`/`fast-xml-parser`); typecheck/lint/fmt clean.
+- **2026-06-15** — Tables + Charts (parallel subagent port). **Tables:**
+  `TableRenderer.vue` + `composables/table-style.ts` render the structured
+  `PptxTableData` model as an HTML `<table>` — colgroup widths, row heights,
+  rowspan/colspan with merge-skip, per-cell fill/borders/dash/alignment/vertical
+  direction/padding, band/header/total-row & first/last-column emphasis, and
+  diagonal borders via an SVG overlay. Read-only (no resize/inline-edit/select);
+  pattern fills, theme-scheme band colours, and rich per-run cell text deferred.
+  **Charts:** `ChartRenderer.vue` + `chart/ChartChrome.vue` +
+  `composables/chart-helpers.ts` render SVG for bar/column, stacked &
+  100%-stacked, line, area, pie/doughnut with axes, gridlines, zero line,
+  legend, title, and data labels. Exotic types (radar, scatter/bubble, stock,
+  surface, treemap, sunburst, funnel, waterfall, combo, map, boxWhisker,
+  histogram, ofPie) + secondary/log axes, trendlines, and overlays render a
+  labelled `Chart: <type>` placeholder (TODO comments in place). `ElementRenderer`
+  now delegates `type === 'table'` / `'chart'`; both exported from the viewer
+  barrel. 22 new tests (41 total green); typecheck/lint clean; build green.
+  Done via two `general-purpose` subagents working disjoint files in parallel,
+  integrated + committed centrally.

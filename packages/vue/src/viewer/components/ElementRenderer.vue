@@ -10,7 +10,9 @@ import {
 	getShapeFillStrokeStyle,
 	getTextBlockStyle,
 } from '../composables/element-style';
+import ChartRenderer from './ChartRenderer.vue';
 import ConnectorRenderer from './ConnectorRenderer.vue';
+import TableRenderer from './TableRenderer.vue';
 
 /**
  * ElementRenderer — Vue port of the React `ElementRenderer.tsx`.
@@ -109,8 +111,6 @@ const hasText = computed(() => paragraphs.value.some((p) => p.length > 0));
 /** Friendly label for the placeholder rendered for not-yet-ported types. */
 const placeholderLabel = computed(() => {
 	const map: Record<string, string> = {
-		table: 'Table',
-		chart: 'Chart',
 		smartArt: 'SmartArt',
 		connector: 'Connector',
 		group: 'Group',
@@ -176,6 +176,22 @@ const placeholderLabel = computed(() => {
 	<ConnectorRenderer
 		v-else-if="element.type === 'connector'"
 		:element="element"
+		:z-index="zIndex"
+	/>
+
+	<!-- Table -->
+	<TableRenderer
+		v-else-if="element.type === 'table'"
+		:element="element"
+		:media-data-urls="mediaDataUrls"
+		:z-index="zIndex"
+	/>
+
+	<!-- Chart -->
+	<ChartRenderer
+		v-else-if="element.type === 'chart'"
+		:element="element"
+		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
 	/>
 

@@ -77,13 +77,13 @@ describe('elementRenderer', () => {
 
 	it('renders a placeholder for not-yet-ported types', () => {
 		const wrapper = mountEl({
-			type: 'chart',
-			id: 'ch1',
+			type: 'ink',
+			id: 'ink1',
 			x: 0,
 			y: 0,
 			width: 100,
 			height: 100,
 		} as PptxElement);
-		expect(wrapper.find('.pptx-vue-placeholder').text()).toBe('Chart');
+		expect(wrapper.find('.pptx-vue-placeholder').text()).toBe('Ink');
 	});
 });
