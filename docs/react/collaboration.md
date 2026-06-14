@@ -25,8 +25,8 @@ Pass a `CollaborationConfig` to the `collaboration` prop. When present, the view
 in a collaboration provider and wires up presence tracking, remote cursors, and CRDT sync.
 
 ```tsx
-import { PowerPointViewer } from 'pptx-viewer';
-import type { CollaborationConfig } from 'pptx-viewer/viewer';
+import { PowerPointViewer } from 'pptx-react-viewer';
+import type { CollaborationConfig } from 'pptx-react-viewer/viewer';
 
 const config: CollaborationConfig = {
 	roomId: 'my-room-123',
@@ -131,14 +131,14 @@ import {
 	RemoteUserCursors,
 	UserAvatarBar,
 	CollaborationStatusIndicator,
-} from 'pptx-viewer/viewer';
+} from 'pptx-react-viewer/viewer';
 import type {
 	CollaborationConfig,
 	CollaborationContextValue,
 	UserPresence,
 	ConnectionStatus,
 	CollaborationRole,
-} from 'pptx-viewer/viewer';
+} from 'pptx-react-viewer/viewer';
 ```
 
 See [Hooks › Collaboration hooks](/react/hooks#collaboration-hooks) for the hook surface.

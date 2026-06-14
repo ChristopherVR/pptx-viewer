@@ -99,7 +99,7 @@ The `PowerPointViewer` component renders a deck from a `Uint8Array` and can run 
 
 ```tsx
 import { useState } from 'react';
-import { PowerPointViewer } from 'pptx-viewer/viewer';
+import { PowerPointViewer } from 'pptx-react-viewer/viewer';
 
 function App() {
 	const [content, setContent] = useState<Uint8Array>();

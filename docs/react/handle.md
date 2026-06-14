@@ -9,8 +9,8 @@ description: The PowerPointViewerHandle ref API exposes getContent() to serializ
 call its imperative API.
 
 ```tsx
-import { PowerPointViewer } from 'pptx-viewer';
-import type { PowerPointViewerHandle } from 'pptx-viewer';
+import { PowerPointViewer } from 'pptx-react-viewer';
+import type { PowerPointViewerHandle } from 'pptx-react-viewer';
 import { useRef } from 'react';
 
 function Editor({ content }: { content: Uint8Array }) {

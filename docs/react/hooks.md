@@ -53,7 +53,7 @@ tree-shakeable. Note these come from the **`/viewer`** entry — the root `pptx-
 only the component, `renderToCanvas`, and theme utilities.
 
 ```tsx
-import { useThemeSwitching, useCollaborativeState } from 'pptx-viewer/viewer';
+import { useThemeSwitching, useCollaborativeState } from 'pptx-react-viewer/viewer';
 ```
 
 ### Collaboration hooks

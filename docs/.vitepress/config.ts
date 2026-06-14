@@ -37,7 +37,7 @@ export default defineConfig({
 				text: 'Packages',
 				items: [
 					{ text: 'Core (pptx-viewer-core)', link: '/core/' },
-					{ text: 'React (pptx-viewer)', link: '/react/' },
+					{ text: 'React (pptx-react-viewer)', link: '/react/' },
 					{ text: 'EMF Converter', link: '/packages/emf-converter' },
 					{ text: 'MTX Decompressor', link: '/packages/mtx-decompressor' },
 					{ text: 'MCP & Tools', link: '/packages/mcp' },
@@ -52,7 +52,11 @@ export default defineConfig({
 						link: 'https://github.com/ChristopherVR/pptx-viewer/blob/main/CHANGELOG.md',
 					},
 					{ text: 'npm: pptx-viewer-core', link: 'https://www.npmjs.com/package/pptx-viewer-core' },
-					{ text: 'npm: pptx-viewer', link: 'https://www.npmjs.com/package/pptx-viewer' },
+					{
+						text: 'npm: pptx-react-viewer',
+						link: 'https://www.npmjs.com/package/pptx-react-viewer',
+					},
+					{ text: 'npm: pptx-vue-viewer', link: 'https://www.npmjs.com/package/pptx-vue-viewer' },
 				],
 			},
 		],
@@ -176,7 +180,7 @@ export default defineConfig({
 		},
 
 		footer: {
-			message: 'Released under the MIT License.',
+			message: 'Released under the Apache-2.0 License.',
 			copyright: 'Copyright © 2025-present ChristopherVR',
 		},
 	},

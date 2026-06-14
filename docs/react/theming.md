@@ -22,8 +22,8 @@ If you do not use Tailwind, import the self-contained stylesheet once at your en
 all required utility classes plus dark-theme defaults.
 
 ```tsx
-import 'pptx-viewer/styles';
-// or: import 'pptx-viewer/styles.css';
+import 'pptx-react-viewer/styles';
+// or: import 'pptx-react-viewer/styles.css';
 ```
 
 ### Mode 3 — raw CSS custom properties
@@ -51,7 +51,7 @@ The simplest path is to pass a `ViewerTheme` to the component. It is merged over
 defaults, so you only override what you need.
 
 ```tsx
-import { PowerPointViewer } from 'pptx-viewer';
+import { PowerPointViewer } from 'pptx-react-viewer';
 
 <PowerPointViewer
 	content={bytes}
@@ -65,7 +65,7 @@ import { PowerPointViewer } from 'pptx-viewer';
 ## `ViewerTheme` and `ViewerThemeColors`
 
 ```ts
-import type { ViewerTheme, ViewerThemeColors } from 'pptx-viewer';
+import type { ViewerTheme, ViewerThemeColors } from 'pptx-react-viewer';
 ```
 
 Every field is optional; unset values fall back to the dark-theme defaults. Each color key maps to a
@@ -121,7 +121,7 @@ import {
 	defaultCssVars, // () => Record<string, string> of all --pptx-* defaults
 	ViewerThemeProvider,
 	useViewerTheme,
-} from 'pptx-viewer';
+} from 'pptx-react-viewer';
 ```
 
 ### `defaultThemeColors` and `defaultRadius`
@@ -158,7 +158,7 @@ For most apps the `theme` prop is enough. The provider is an advanced escape hat
 theme across multiple viewers or a wider subtree.
 
 ```tsx
-import { ViewerThemeProvider, useViewerTheme } from 'pptx-viewer';
+import { ViewerThemeProvider, useViewerTheme } from 'pptx-react-viewer';
 
 function Shell({ children }: { children: React.ReactNode }) {
 	return (

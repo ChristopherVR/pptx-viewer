@@ -10,7 +10,7 @@ description: mtx-decompressor is a zero-dependency TypeScript library that decom
 MicroType Express is a font compression format developed by Monotype, used inside EOT containers. EOT files turn up in older web pages and embedded in Microsoft Office documents, **including `.pptx` files**. This library extracts the compressed font data and reconstructs a standard TrueType file usable with normal font APIs.
 
 ::: warning Licensing — MPL-2.0
-Unlike the rest of the monorepo (which is **MIT**), this package is licensed under the **Mozilla Public License 2.0 (MPL-2.0)**. It is a TypeScript port of the MTX decompression code from [libeot](https://github.com/umanwizard/libeot) by Brennan Vincent. The original C implementation derives from the [MicroType Express specification](http://www.w3.org/Submission/MTX/) submitted to the W3C by Monotype Imaging. Keep the MPL-2.0 obligations in mind when redistributing.
+Unlike the rest of the monorepo (which is **Apache-2.0**), this package is licensed under the **Mozilla Public License 2.0 (MPL-2.0)**. It is a TypeScript port of the MTX decompression code from [libeot](https://github.com/umanwizard/libeot) by Brennan Vincent. The original C implementation derives from the [MicroType Express specification](http://www.w3.org/Submission/MTX/) submitted to the W3C by Monotype Imaging. Keep the MPL-2.0 obligations in mind when redistributing.
 :::
 
 The decompression pipeline runs:

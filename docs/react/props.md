@@ -9,8 +9,8 @@ The `PowerPointViewer` component accepts the `PowerPointViewerProps` interface b
 is required; everything else is optional. This reference is taken directly from the source interface.
 
 ```tsx
-import { PowerPointViewer } from 'pptx-viewer';
-import type { PowerPointViewerProps } from 'pptx-viewer';
+import { PowerPointViewer } from 'pptx-react-viewer';
+import type { PowerPointViewerProps } from 'pptx-react-viewer';
 ```
 
 ::: tip

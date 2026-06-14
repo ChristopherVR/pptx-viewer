@@ -49,3 +49,27 @@ features:
     link: /packages/mcp
     linkText: MCP & Tools
 ---
+
+<div style="max-width: 1152px; margin: 3rem auto 0; padding: 0 24px;">
+
+![The pptx-react-viewer editor: ribbon toolbar, slide thumbnails, and a slide rendered on the canvas](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/editor.png)
+
+<p style="text-align: center; color: var(--vp-c-text-2); margin-top: 0.75rem;">
+The <a href="/pptx-viewer/react/">React viewer/editor</a> in action — rendered entirely with HTML, CSS, and SVG. Vue and Angular bindings share the same engine.
+</p>
+
+</div>
+
+## Install in one line
+
+Pick the package for your stack — the UI packages **bundle the core engine**, so you install just one:
+
+| Stack                         | Install                     |
+| ----------------------------- | --------------------------- |
+| **React**                     | `npm i pptx-react-viewer`   |
+| **Vue 3**                     | `npm i pptx-vue-viewer`     |
+| **Angular**                   | `npm i pptx-angular-viewer` |
+| **Headless** (Node / browser) | `npm i pptx-viewer-core`    |
+| **CLI / MCP / AI tools**      | `npm i pptx-viewer-mcp`     |
+
+→ Full details in the [installation guide](/guide/installation).

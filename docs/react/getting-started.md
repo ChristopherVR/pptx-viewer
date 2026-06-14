@@ -18,12 +18,12 @@ The component takes its slide data through the `content` prop as a **`Uint8Array
 bytes. The component fills its parent, so give the parent an explicit height.
 
 ```tsx
-import { PowerPointViewer } from 'pptx-viewer';
+import { PowerPointViewer } from 'pptx-react-viewer';
 import { useEffect, useState } from 'react';
 
 // If your app does NOT use Tailwind CSS v4, import the bundled stylesheet once
 // at your entry point (see Theming for the three styling modes):
-import 'pptx-viewer/styles';
+import 'pptx-react-viewer/styles';
 
 export function ViewerOnly() {
 	const [content, setContent] = useState<Uint8Array | null>(null);
@@ -52,7 +52,7 @@ The prop type is `Uint8Array`, not `ArrayBuffer`. If you have an `ArrayBuffer` (
 ## 2. Loading from a file `<input>`
 
 ```tsx
-import { PowerPointViewer } from 'pptx-viewer';
+import { PowerPointViewer } from 'pptx-react-viewer';
 import { useState } from 'react';
 
 export function FilePickerViewer() {
@@ -85,9 +85,9 @@ Set `canEdit` to turn on the editing toolbar and inspector. Track changes with t
 - `onActiveSlideChange(index)` — fires when the active slide changes.
 
 ```tsx
-import { PowerPointViewer } from 'pptx-viewer';
+import { PowerPointViewer } from 'pptx-react-viewer';
 import { useRef, useState } from 'react';
-import type { PowerPointViewerHandle } from 'pptx-viewer';
+import type { PowerPointViewerHandle } from 'pptx-react-viewer';
 
 export function Editor({ initial }: { initial: Uint8Array }) {
 	const ref = useRef<PowerPointViewerHandle>(null);
@@ -134,7 +134,7 @@ from a client component and add the `'use client'` directive at the top of **you
 
 ```tsx
 'use client';
-import { PowerPointViewer } from 'pptx-viewer';
+import { PowerPointViewer } from 'pptx-react-viewer';
 // … your wrapper component
 ```
 
@@ -151,7 +151,7 @@ semantic tokens — the viewer's classes resolve through your existing config. O
 bundled stylesheet once at your entry point:
 
 ```tsx
-import 'pptx-viewer/styles'; // or 'pptx-viewer/styles.css'
+import 'pptx-react-viewer/styles'; // or 'pptx-react-viewer/styles.css'
 ```
 
 See [Theming](/react/theming) for the three styling modes and how to customise colours.

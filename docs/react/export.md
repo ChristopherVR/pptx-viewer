@@ -43,7 +43,7 @@ working around browsers' modern-color-space (oklch/oklab/lch/lab/`color()`) pars
 `html2canvas`.
 
 ```ts
-import { renderToCanvas } from 'pptx-viewer';
+import { renderToCanvas } from 'pptx-react-viewer';
 
 const canvas: HTMLCanvasElement = await renderToCanvas(element, options);
 const dataUrl = canvas.toDataURL('image/png');

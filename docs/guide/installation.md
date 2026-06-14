@@ -39,26 +39,34 @@ bun add pptx-viewer-core
 
 ### React viewer
 
-The React-based viewer/editor component. It depends on the core engine and requires **React 19** as a peer dependency.
+The React-based viewer/editor component, published on npm as **`pptx-react-viewer`**. The core engine (`pptx-viewer-core`) is **bundled in**, so you don't install it separately — just the package and your React peers.
 
 ::: code-group
 
 ```bash [npm]
-npm install pptx-viewer pptx-viewer-core react react-dom
+npm install pptx-react-viewer react react-dom
 ```
 
 ```bash [pnpm]
-pnpm add pptx-viewer pptx-viewer-core react react-dom
+pnpm add pptx-react-viewer react react-dom
 ```
 
 ```bash [yarn]
-yarn add pptx-viewer pptx-viewer-core react react-dom
+yarn add pptx-react-viewer react react-dom
 ```
 
 ```bash [bun]
-bun add pptx-viewer pptx-viewer-core react react-dom
+bun add pptx-react-viewer react react-dom
 ```
 
+:::
+
+::: tip Other peer dependencies
+The viewer also expects `framer-motion`, `lucide-react`, `react-icons`, `jspdf`, `jszip`, `fast-xml-parser`, and `i18next`/`react-i18next` — install the ones your usage needs.
+:::
+
+::: info Vue & Angular
+Vue 3 (`pptx-vue-viewer`) and Angular (`pptx-angular-viewer`) bindings are available too — same one-package install, with the core engine bundled in.
 :::
 
 ### Low-level converters
@@ -162,7 +170,7 @@ bun run typecheck
 Packages must be built in dependency order:
 
 ```
-emf-converter → mtx-decompressor → core → react
+emf-converter → mtx-decompressor → shared → core → react / vue / angular
 ```
 
 `bun run build` from the repo root handles this for you. When building a single package manually (`cd packages/<pkg> && bun run build`), make sure its dependencies are built first.
