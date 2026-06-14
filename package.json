@@ -68,7 +68,7 @@
 		"three": "^0.184.0"
 	},
 	"lint-staged": {
-		"*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,css,scss,less,html,vue,yaml,toml,md,mdx,graphql}": "oxfmt --check",
+		"*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,css,scss,less,html,vue,yaml,toml,md,mdx,graphql}": "oxfmt",
 		"*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}": "oxlint --deny-warnings"
 	}
 }
