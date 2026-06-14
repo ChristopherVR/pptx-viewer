@@ -6,6 +6,9 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
 	root: __dirname,
+	// Served from the repo root locally ("/"), but under "/pptx-viewer/demo/" when
+	// deployed to GitHub Pages. CI sets DEMO_BASE to the subpath.
+	base: process.env.DEMO_BASE ?? '/',
 	plugins: [react(), tailwindcss()],
 	server: {
 		port: 4173,

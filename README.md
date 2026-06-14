@@ -10,7 +10,7 @@
 
 Open a `.pptx`, render it with full visual fidelity, edit it in a WYSIWYG UI (or programmatically), present it fullscreen with animations and transitions, collaborate live, and save back to a valid `.pptx` — all client-side. The same engine also converts decks to Markdown and exports slides to PNG/SVG/PDF/GIF/video.
 
-<samp>**[📖 Full docs](https://christophervr.github.io/pptx-viewer/)** · **[🎮 Try the demo](#getting-started)** (`bun run demo`) · _Built with [Claude Code](https://claude.com/claude-code)_</samp>
+<samp>**[📖 Full docs](https://christophervr.github.io/pptx-viewer/)** · **[🎮 Try the demo](https://christophervr.github.io/pptx-viewer/demo/)** (or `bun run demo` locally) · _Built with [Claude Code](https://claude.com/claude-code)_</samp>
 
 ---
 

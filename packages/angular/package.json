@@ -28,7 +28,8 @@
 	},
 	"scripts": {
 		"inline-shared": "node ./scripts/inline-shared.mjs",
-		"build": "bun run inline-shared && ng-packagr -p ng-package.json",
+		"finalize-dist": "node ./scripts/finalize-dist.mjs",
+		"build": "bun run inline-shared && ng-packagr -p ng-package.json && bun run finalize-dist",
 		"dev": "bun run inline-shared && ng-packagr -p ng-package.json --watch",
 		"typecheck": "bun run inline-shared && tsc --noEmit -p tsconfig.lib.json",
 		"test": "bun run inline-shared && vitest run",
@@ -40,22 +41,22 @@
 	},
 	"devDependencies": {
 		"@analogjs/vite-plugin-angular": "^2.6.1",
-		"@angular/common": "^22.0.0",
-		"@angular/compiler": "^22.0.0",
-		"@angular/compiler-cli": "^22.0.0",
-		"@angular/core": "^22.0.0",
-		"@angular/platform-browser": "^22.0.0",
-		"happy-dom": "^15.11.7",
+		"@angular/common": "^22.0.1",
+		"@angular/compiler": "^22.0.1",
+		"@angular/compiler-cli": "^22.0.1",
+		"@angular/core": "^22.0.1",
+		"@angular/platform-browser": "^22.0.1",
+		"happy-dom": "^20.10.3",
 		"ng-packagr": "^22.0.0",
 		"pptx-viewer-core": "workspace:*",
-		"rxjs": "^7.8.1",
+		"rxjs": "^7.8.2",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.8",
 		"zone.js": "^0.16.2"
 	},
 	"peerDependencies": {
-		"@angular/common": "^22.0.0",
-		"@angular/core": "^22.0.0",
+		"@angular/common": "^22.0.1",
+		"@angular/core": "^22.0.1",
 		"pptx-viewer-core": "workspace:*",
 		"rxjs": "^7.8.0"
 	}
