@@ -128,21 +128,21 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 
 ### Rendering
 
-| Item                                                     | Status | Notes                                                                                                                                                                                                                                         |
-| -------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PowerPointViewerComponent` (load + nav + zoom)          | ◑      | loading/error/encrypted states, prev/next, zoom, thumbnail rail; `activeSlideChange` output                                                                                                                                                   |
-| `SlideCanvasComponent`                                   | ◑      | scaled stage + element list; no rulers/grid/guides/overlays                                                                                                                                                                                   |
-| `ElementRendererComponent`                               | ◑      | text, shape (solid fill/stroke), picture/image, media poster, group recursion (self-selector); placeholders for the rest                                                                                                                      |
-| `element-style.ts`                                       | ◑      | container/shape/text/image basics + image & gradient fills (parser's prebuilt CSS gradient string) + preset-geometry clip-paths (via `shape-geometry.ts`); no structured gradient builder/effects/3D                                          |
-| Rich text runs (bold/italic/underline/strike/color/size) | ◑      | per-segment spans, paragraph + line breaks                                                                                                                                                                                                    |
-| Connectors (SVG)                                         | ◑      | `ConnectorRendererComponent` — straight lines/connectors: stroke colour/width/dash + arrowheads, flip baked into endpoints. Bent/curved routing, compound lines, connector text: TODO. Path math in `connector-path.ts` (pure TS)             |
-| Tables                                                   | ◑      | `TableRendererComponent` — `<table>` with merged cells (colspan/rowspan), column widths/row heights, per-cell solid/gradient fill + borders + plain text. Rich-text cells, editing: TODO. View-model in `table-renderer-helpers.ts` (pure TS) |
-| Charts (SVG)                                             | ☐      | large                                                                                                                                                                                                                                         |
-| SmartArt                                                 | ☐      | large                                                                                                                                                                                                                                         |
-| Ink / OLE / Model3D / Zoom                               | ☐      |                                                                                                                                                                                                                                               |
-| Preset-geometry clip-paths                               | ◑      | `shape-geometry.ts` (`getResolvedShapeClipPath`) — core geometry-engine cascade (adjustment-aware → preset evaluator → cloud bezier → static polygon); wired into `element-style.ts`                                                          |
-| Image effects, structured gradients, shadows, glow       | ☐      |                                                                                                                                                                                                                                               |
-| Text warp / WordArt, equations (OMML→MathML)             | ☐      |                                                                                                                                                                                                                                               |
+| Item                                                     | Status | Notes                                                                                                                                                                                                                                                                                                        |
+| -------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PowerPointViewerComponent` (load + nav + zoom)          | ◑      | loading/error/encrypted states, prev/next, zoom, thumbnail rail; `activeSlideChange` output                                                                                                                                                                                                                  |
+| `SlideCanvasComponent`                                   | ◑      | scaled stage + element list; no rulers/grid/guides/overlays                                                                                                                                                                                                                                                  |
+| `ElementRendererComponent`                               | ◑      | text, shape (solid fill/stroke), picture/image, media poster, group recursion (self-selector); placeholders for the rest                                                                                                                                                                                     |
+| `element-style.ts`                                       | ◑      | container/shape/text/image basics + image & gradient fills (parser's prebuilt CSS gradient string) + preset-geometry clip-paths (via `shape-geometry.ts`); no structured gradient builder/effects/3D                                                                                                         |
+| Rich text runs (bold/italic/underline/strike/color/size) | ◑      | per-segment spans, paragraph + line breaks (text/shape elements and table cells)                                                                                                                                                                                                                             |
+| Connectors (SVG)                                         | ◑      | `ConnectorRendererComponent` — straight + bent (elbow) + curved (Bézier) routing via `connector-path.ts` (pure TS); stroke colour/width/dash + arrowheads, flip baked into endpoints. Full A\* routing, compound lines, connector text: TODO                                                                 |
+| Tables                                                   | ◑      | `TableRendererComponent` — `<table>` with merged cells (colspan/rowspan), column widths/row heights, per-cell solid/gradient fill + borders, and rich text (cell-level style, paragraph/line breaks). Per-run cell segments (needs core), editing: TODO. View-model in `table-renderer-helpers.ts` (pure TS) |
+| Charts (SVG)                                             | ◑      | `ChartRendererComponent` — inline SVG for bar/column, line/area, pie/doughnut, scatter (value scaling, per-series colours, legend); unsupported kinds → labelled fallback. Geometry in `chart-renderer-helpers.ts` (pure TS). 3D/combo/radar/bubble/stock/etc: TODO                                          |
+| SmartArt                                                 | ☐      | large                                                                                                                                                                                                                                                                                                        |
+| Ink / OLE / Model3D / Zoom                               | ☐      |                                                                                                                                                                                                                                                                                                              |
+| Preset-geometry clip-paths                               | ◑      | `shape-geometry.ts` (`getResolvedShapeClipPath`) — core geometry-engine cascade (adjustment-aware → preset evaluator → cloud bezier → static polygon); wired into `element-style.ts`                                                                                                                         |
+| Image effects, structured gradients, shadows, glow       | ☐      |                                                                                                                                                                                                                                                                                                              |
+| Text warp / WordArt, equations (OMML→MathML)             | ☐      |                                                                                                                                                                                                                                                                                                              |
 
 ### Editor chrome (all ☐ — not started)
 
@@ -210,12 +210,15 @@ Format), so **build the library first** (`bun run --filter pptx-angular-viewer b
 ## Recommended next steps (priority order)
 
 1. `ElementRendererComponent` progress: image & gradient fills, preset-geometry
-   clip-paths (`shape-geometry.ts`), connectors (`ConnectorRendererComponent`),
-   and tables (`TableRendererComponent`) have all landed. Remaining renderer
-   work, roughly in priority order: the structured gradient builder (extract
-   `utils/color-gradient.ts` + `color-core.ts` into `pptx-viewer-shared`),
-   bent/curved connector routing, rich-text table cells, then charts (large),
-   then SmartArt (large).
+   clip-paths (`shape-geometry.ts`), connectors incl. bent/curved routing
+   (`ConnectorRendererComponent`), tables incl. rich-text cells
+   (`TableRendererComponent`), and charts (`ChartRendererComponent`,
+   bar/line/area/pie/scatter) have all landed. Remaining renderer work, roughly
+   in priority order: the structured gradient builder (extract
+   `utils/color-gradient.ts` + `color-core.ts` into `pptx-viewer-shared`), more
+   chart kinds (combo/radar/bubble/stock) + axes/gridlines polish, full A\*
+   connector routing, per-run rich text in table cells (needs a core extension),
+   then SmartArt (large), then shadows/glow/image effects.
 2. Add component/TestBed tests (decision #2).
 3. Port full viewer state + editor history to unlock editing.
 4. Continue the shared-code extraction (color, geometry, animation engine) —
@@ -251,3 +254,17 @@ Format), so **build the library first** (`bun run --filter pptx-angular-viewer b
   `ElementRendererComponent`; exported the new surface from the barrels; added
   base table CSS. Pure logic extracted to helper modules so tests skip TestBed.
   Library build, typecheck, lint (`--deny-warnings`), and all 100 tests green.
+- **2026-06-15 (batch 3)** — Three more renderer upgrades via parallel subagents:
+  `ChartRendererComponent` + `chart-renderer-helpers.ts` (inline-SVG
+  bar/line/area/pie/scatter charts, labelled fallback for unsupported kinds,
+  wired as the `chart` case), rich-text table cells (cell-level style +
+  paragraph/line breaks in `table-renderer-helpers.ts`), and bent/curved
+  connector routing (`connector-path.ts` gains an optional `pathD`; the
+  component renders `<path>` vs `<line>`). Library build, typecheck, lint
+  (`--deny-warnings`), and all 209 tests green.
+  > ⚠️ The shared-checkout hazard bit mid-batch: a parallel session reset the
+  > working tree and wiped the (already-finished) connector subagent's edits
+  > before the slower chart/table subagents returned. Recovery: commit surviving
+  > work immediately, then redo the lost task by hand and commit fast. Lesson —
+  > commit each completed unit ASAP; don't leave a wide window of uncommitted
+  > subagent output in the shared tree.
