@@ -10,6 +10,9 @@ hero:
     - theme: brand
       text: Get Started
       link: /guide/introduction
+    - theme: brand
+      text: Try the Demo
+      link: https://christophervr.github.io/pptx-viewer/demo/
     - theme: alt
       text: User Guide
       link: /user/

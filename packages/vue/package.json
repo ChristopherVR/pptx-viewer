@@ -61,21 +61,21 @@
 		"tailwind-merge": "^3.6.0"
 	},
 	"devDependencies": {
-		"@rollup/plugin-terser": "^0.4.4",
+		"@rollup/plugin-terser": "^1.0.0",
 		"@tailwindcss/cli": "^4.3.1",
 		"@types/dompurify": "^3.2.0",
-		"@vitejs/plugin-vue": "^5.2.1",
 		"@vue/test-utils": "^2.4.11",
-		"happy-dom": "^15.11.7",
+		"@vitejs/plugin-vue": "^6.0.7",
+		"happy-dom": "^20.10.3",
 		"pptx-viewer-core": "workspace:*",
 		"pptx-viewer-shared": "workspace:*",
 		"tailwindcss": "^4.3.1",
-		"terser": "^5.37.0",
+		"terser": "^5.48.0",
 		"typescript": "^6.0.3",
-		"vite": "^6.0.0",
-		"vite-plugin-dts": "^4.5.4",
+		"vite": "^8.0.16",
+		"vite-plugin-dts": "^5.0.2",
 		"vitest": "^4.1.8",
-		"vue-tsc": "^2.2.0"
+		"vue-tsc": "^3.3.5"
 	},
 	"peerDependencies": {
 		"fast-xml-parser": "^5.8.0",
