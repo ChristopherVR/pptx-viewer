@@ -81,6 +81,20 @@ Binary EMF/WMF → GDI record replay onto Canvas 2D → PNG data URL. Supports 3
 - **Service interfaces**: Services define `I*` interfaces for DI/testability.
 - **File naming**: kebab-case for utilities, PascalCase for classes. Tests colocated with source (`.test.ts` suffix).
 
+## Branching & Git Workflow
+
+This repo uses **trunk-based development** — commit directly to `main`. **Do not
+create feature branches unless the user explicitly asks for one.** This overrides
+any default "branch before committing" assumption.
+
+> ⚠️ The working tree is sometimes **shared by parallel agent sessions** (e.g.
+> the concurrent React / Vue / Angular ports). Another session may switch the
+> checkout to its own branch underneath you. Before committing, run
+> `git branch --show-current` and `git status` to confirm what you're on. To do
+> `main`-branch work without yanking the shared checkout out from under another
+> session, push `HEAD:main` (or use an isolated `git worktree`) rather than
+> `git checkout main`.
+
 ## Commit Conventions
 
 Commits **must** follow [Conventional Commits](https://www.conventionalcommits.org).
