@@ -14,7 +14,7 @@
 		"jszip": "^3.10.1",
 		"pptx-viewer-core": "workspace:*",
 		"pptx-vue-viewer": "workspace:*",
-		"vue": "^3.5.0"
+		"vue": "^3.5.38"
 	},
 	"devDependencies": {
 		"@types/node": "^25.9.3",
