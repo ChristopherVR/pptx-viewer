@@ -10,6 +10,7 @@ import {
 	getShapeFillStrokeStyle,
 	getTextBlockStyle,
 } from '../composables/element-style';
+import ConnectorRenderer from './ConnectorRenderer.vue';
 
 /**
  * ElementRenderer — Vue port of the React `ElementRenderer.tsx`.
@@ -170,6 +171,13 @@ const placeholderLabel = computed(() => {
 		/>
 		<div v-else class="pptx-vue-placeholder">{{ placeholderLabel }}</div>
 	</div>
+
+	<!-- Connector / line -->
+	<ConnectorRenderer
+		v-else-if="element.type === 'connector'"
+		:element="element"
+		:z-index="zIndex"
+	/>
 
 	<!-- Text / shape -->
 	<div

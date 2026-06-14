@@ -60,7 +60,16 @@ How the inlining is wired:
 - **Vue** (`packages/vue`): Vite — internal packages omitted from `rollupOptions.external`
   (JS inlined); `vite-plugin-dts` with `bundledPackages: ['pptx-viewer-core', 'pptx-viewer-shared']`
   and `rollupTypes: true` (types inlined into `dist/index.d.ts` + `dist/viewer/index.d.ts`).
-- **Angular**: mirror the same — inline both internal packages, keep them devDependencies.
+- **Angular** (`packages/angular`): ng-packagr **externalizes** bare-specifier
+  deps and cannot inline them like tsup/vite, so the approach differs:
+  `pptx-viewer-shared` is **vendored at build time** — `scripts/inline-shared.mjs`
+  copies `packages/shared/src` into `src/internal/shared-src` (git-ignored) and
+  the lib imports it via a relative barrel, so ng-packagr compiles it as local
+  source and ships it inlined. `pptx-viewer-shared` never appears in the
+  published manifest. `pptx-viewer-core` is kept an external **peerDependency**
+  (it is a published package; vendoring the whole engine into the FESM is
+  impractical), so an Angular consumer installs `pptx-angular-viewer` +
+  `pptx-viewer-core`.
 
 Build order: `pptx-viewer-core` → `pptx-viewer-shared` → bindings (already wired
 in the root `build` script).
@@ -163,7 +172,7 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 | `element-style.ts`                                             | ◑      | container/shape/text/image basics + gradient & image fills; no clip-path/effects/3D                                  |
 | text: `picture`/`image`                                        | ◑      | `<img>` object-fit contain                                                                                           |
 | text: rich text runs (bold/italic/underline/strike/color/size) | ◑      | per-segment spans, paragraph + line breaks                                                                           |
-| Connectors (SVG)                                               | ☐      | `ConnectorElementRenderer`                                                                                           |
+| Connectors (SVG)                                               | ◑      | `ConnectorRenderer.vue` — straight line + arrowheads + dash; bent/curved routing, compound lines, text overlay TODO  |
 | Tables                                                         | ☐      | `utils/table-render*.tsx`                                                                                            |
 | Charts (SVG)                                                   | ☐      | `utils/chart*.tsx` (large)                                                                                           |
 | SmartArt                                                       | ☐      | `utils/smartart-*.tsx` (large)                                                                                       |
@@ -236,3 +245,13 @@ digital signatures, font embedding/injection.
   resolution to `element-style.ts` (mirrors React's fill order). Added
   `ElementRenderer` component tests (`@vue/test-utils`): text, rich-text runs,
   picture, group recursion, placeholder. 15 tests green.
+- **2026-06-14** — Changelog tooling: `cliff.toml` (git-cliff) + root
+  `changelog*` scripts + CI release-job integration (regenerate CHANGELOG.md,
+  commit back, release notes); CLAUDE.md documents Conventional Commits.
+- **2026-06-14** — `demo-vue/` (Vite + Vue 3, port 4175) mirroring the React
+  `demo/`: drag-drop / picker / new-presentation, theme switcher, download via
+  `getContent()`. Browser smoke test passed. Registered as a workspace.
+- **2026-06-14** — Connectors: `ConnectorRenderer.vue` renders straight
+  connectors/lines as SVG (stroke colour/width/dash, start/end arrowheads,
+  flip-aware endpoints); `ElementRenderer` delegates `type === 'connector'`.
+  4 connector tests added (19 total green). Bent/curved routing still TODO.
