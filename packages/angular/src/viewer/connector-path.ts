@@ -38,6 +38,12 @@ export interface ConnectorGeometry {
 	y1: number;
 	x2: number;
 	y2: number;
+	/**
+	 * SVG `path` data for bent / curved connectors. `undefined` for straight
+	 * connectors, in which case the component renders a `<line>` from
+	 * `(x1,y1)` to `(x2,y2)` instead.
+	 */
+	pathD: string | undefined;
 	startMarkerId: string;
 	endMarkerId: string;
 	startMarker: MarkerShape | null;
@@ -74,6 +80,9 @@ export function buildConnectorGeometry(element: PptxElement, zIndex: number): Co
 	const x2 = element.flipHorizontal ? 0 : svgW;
 	const y2 = element.flipVertical ? 0 : svgH;
 
+	const shapeType = (element as { shapeType?: string }).shapeType;
+	const pathD = buildConnectorPathD(shapeType, x1, y1, x2, y2, connectorBendFraction(element));
+
 	const markerSeed = element.id.replace(/[^a-zA-Z0-9_-]/gu, '_');
 	const startMarkerId = `${markerSeed}-start`;
 	const endMarkerId = `${markerSeed}-end`;
@@ -100,6 +109,7 @@ export function buildConnectorGeometry(element: PptxElement, zIndex: number): Co
 		y1,
 		x2,
 		y2,
+		pathD,
 		startMarkerId,
 		endMarkerId,
 		startMarker,
@@ -127,6 +137,82 @@ export function buildDashArray(dash: string | undefined, strokeWidth: number): s
 		return `${w} ${w}`;
 	}
 	return `${w * 3} ${w}`;
+}
+
+/** Connector routing family, derived from the OOXML preset shape type. */
+export type ConnectorKind = 'straight' | 'bent' | 'curved';
+
+/**
+ * Classify a connector by its OOXML preset shape type (case-insensitive):
+ * `bentConnector2..5` → `"bent"`, `curvedConnector2..5` → `"curved"`,
+ * everything else (incl. `straightConnector1`) → `"straight"`.
+ */
+export function connectorKind(shapeType: string | undefined): ConnectorKind {
+	const t = (shapeType ?? '').toLowerCase();
+	if (t.includes('bentconnector')) {
+		return 'bent';
+	}
+	if (t.includes('curvedconnector')) {
+		return 'curved';
+	}
+	return 'straight';
+}
+
+/**
+ * Normalise a connector's first adjustment value (`adj1`/`adj`) to a 0..1
+ * fraction that positions the elbow / curve mid-axis. OOXML stores these in
+ * 1000ths of a percent (0..100000); values already in 0..1 are passed through.
+ * Defaults to the midpoint (`0.5`) when no usable adjustment is present.
+ */
+export function connectorBendFraction(element: PptxElement): number {
+	const adj = (element as { shapeAdjustments?: Record<string, number> }).shapeAdjustments;
+	const raw = adj?.adj1 ?? adj?.adj;
+	if (typeof raw !== 'number' || !Number.isFinite(raw)) {
+		return 0.5;
+	}
+	const fraction = Math.abs(raw) > 1 ? raw / 100000 : raw;
+	return Math.min(1, Math.max(0, fraction));
+}
+
+/**
+ * Build the SVG `path` data for a bent or curved connector, or `undefined`
+ * for straight connectors (which render as a `<line>`). Endpoints are already
+ * flip-adjusted by the caller.
+ *
+ * Viewer-first approximation (full A* routing is a TODO, see PORTING.md):
+ *  - **bent**: orthogonal elbow polyline. `bentConnector2` is a single L-bend;
+ *    `bentConnector3..5` route through a vertical mid-axis at `bend`.
+ *  - **curved**: `curvedConnector2` is a quadratic Bézier; `curvedConnector3..5`
+ *    are a cubic S-curve with control points on the mid-axis.
+ */
+export function buildConnectorPathD(
+	shapeType: string | undefined,
+	x1: number,
+	y1: number,
+	x2: number,
+	y2: number,
+	bend: number,
+): string | undefined {
+	const kind = connectorKind(shapeType);
+	if (kind === 'straight') {
+		return undefined;
+	}
+	const t = (shapeType ?? '').toLowerCase();
+	// x of the vertical mid-axis the elbow / control points pivot around.
+	const mx = x1 + (x2 - x1) * bend;
+
+	if (kind === 'bent') {
+		if (t.includes('bentconnector2')) {
+			return `M${x1},${y1} L${x2},${y1} L${x2},${y2}`;
+		}
+		return `M${x1},${y1} L${mx},${y1} L${mx},${y2} L${x2},${y2}`;
+	}
+
+	// curved
+	if (t.includes('curvedconnector2')) {
+		return `M${x1},${y1} Q${x2},${y1} ${x2},${y2}`;
+	}
+	return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
 }
 
 /**

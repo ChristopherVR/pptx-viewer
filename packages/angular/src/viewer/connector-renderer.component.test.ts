@@ -11,8 +11,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	buildConnectorGeometry,
+	buildConnectorPathD,
 	buildDashArray,
 	buildWrapperStyle,
+	connectorBendFraction,
+	connectorKind,
 	markerPath,
 	normalizeArrow,
 } from './connector-path';
@@ -251,5 +254,115 @@ describe('buildConnectorGeometry', () => {
 		);
 		expect(geo.startMarker).toBeNull();
 		expect(geo.endMarker).toBeNull();
+	});
+
+	it('leaves pathD undefined for a straight connector (renders a <line>)', () => {
+		const geo = buildConnectorGeometry(connector({ shapeType: 'straightConnector1' }), 0);
+		expect(geo.pathD).toBeUndefined();
+	});
+
+	it('produces an elbow path for a bent connector', () => {
+		const geo = buildConnectorGeometry(
+			connector({ shapeType: 'bentConnector3', width: 200, height: 100 }),
+			0,
+		);
+		expect(geo.pathD).toBeDefined();
+		// Multi-segment elbow: starts with a move and has at least two line-tos.
+		expect(geo.pathD!.startsWith('M')).toBeTruthy();
+		expect((geo.pathD!.match(/L/gu) ?? []).length).toBeGreaterThanOrEqual(2);
+	});
+
+	it('produces a Bézier path for a curved connector', () => {
+		const geo = buildConnectorGeometry(
+			connector({ shapeType: 'curvedConnector3', width: 200, height: 100 }),
+			0,
+		);
+		expect(geo.pathD).toBeDefined();
+		expect(geo.pathD).toContain('C');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// connectorKind
+// ---------------------------------------------------------------------------
+
+describe('connectorKind', () => {
+	it('classifies bent connectors (case-insensitive)', () => {
+		expect(connectorKind('bentConnector3')).toBe('bent');
+		expect(connectorKind('BENTCONNECTOR2')).toBe('bent');
+	});
+
+	it('classifies curved connectors', () => {
+		expect(connectorKind('curvedConnector4')).toBe('curved');
+	});
+
+	it('falls back to straight for straight/unknown/undefined', () => {
+		expect(connectorKind('straightConnector1')).toBe('straight');
+		expect(connectorKind('line')).toBe('straight');
+		expect(connectorKind(undefined)).toBe('straight');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// connectorBendFraction
+// ---------------------------------------------------------------------------
+
+describe('connectorBendFraction', () => {
+	it('defaults to 0.5 with no adjustments', () => {
+		expect(connectorBendFraction(connector())).toBe(0.5);
+	});
+
+	it('normalises an OOXML 1000ths-of-a-percent adjustment to 0..1', () => {
+		const el = connector({ shapeAdjustments: { adj1: 25000 } } as Partial<PptxElement>);
+		expect(connectorBendFraction(el)).toBeCloseTo(0.25, 5);
+	});
+
+	it('clamps out-of-range fractions', () => {
+		const el = connector({ shapeAdjustments: { adj1: 250000 } } as Partial<PptxElement>);
+		expect(connectorBendFraction(el)).toBe(1);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// buildConnectorPathD
+// ---------------------------------------------------------------------------
+
+describe('buildConnectorPathD', () => {
+	it('returns undefined for straight connectors', () => {
+		expect(buildConnectorPathD('straightConnector1', 0, 0, 100, 50, 0.5)).toBeUndefined();
+		expect(buildConnectorPathD(undefined, 0, 0, 100, 50, 0.5)).toBeUndefined();
+	});
+
+	it('builds a single L-bend for bentConnector2', () => {
+		expect(buildConnectorPathD('bentConnector2', 0, 0, 100, 50, 0.5)).toBe('M0,0 L100,0 L100,50');
+	});
+
+	it('routes through the mid-axis for bentConnector3', () => {
+		expect(buildConnectorPathD('bentConnector3', 0, 0, 100, 50, 0.5)).toBe(
+			'M0,0 L50,0 L50,50 L100,50',
+		);
+	});
+
+	it('honours the bend fraction for the elbow x-position', () => {
+		expect(buildConnectorPathD('bentConnector3', 0, 0, 100, 50, 0.25)).toBe(
+			'M0,0 L25,0 L25,50 L100,50',
+		);
+	});
+
+	it('builds a quadratic Bézier for curvedConnector2', () => {
+		expect(buildConnectorPathD('curvedConnector2', 0, 0, 100, 50, 0.5)).toBe('M0,0 Q100,0 100,50');
+	});
+
+	it('builds a cubic Bézier for curvedConnector3', () => {
+		expect(buildConnectorPathD('curvedConnector3', 0, 0, 100, 50, 0.5)).toBe(
+			'M0,0 C50,0 50,50 100,50',
+		);
+	});
+
+	it('mirrors the path when endpoints are flipped', () => {
+		// Flipped horizontally: x1=100, x2=0.
+		expect(buildConnectorPathD('bentConnector3', 100, 0, 0, 50, 0.5)).toBe(
+			'M100,0 L50,0 L50,50 L0,50',
+		);
 	});
 });

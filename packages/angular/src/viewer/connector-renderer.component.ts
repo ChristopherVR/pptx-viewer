@@ -75,19 +75,34 @@ import type { MarkerShape } from './connector-path';
 						</marker>
 					}
 				</defs>
-				<line
-					[attr.x1]="geo().x1"
-					[attr.y1]="geo().y1"
-					[attr.x2]="geo().x2"
-					[attr.y2]="geo().y2"
-					[attr.stroke]="geo().strokeColor"
-					[attr.stroke-width]="geo().strokeWidth"
-					[attr.stroke-opacity]="geo().strokeOpacity"
-					[attr.stroke-dasharray]="geo().dashArray ?? null"
-					stroke-linecap="round"
-					[attr.marker-start]="geo().startMarkerRef"
-					[attr.marker-end]="geo().endMarkerRef"
-				/>
+				@if (geo().pathD) {
+					<path
+						[attr.d]="geo().pathD"
+						fill="none"
+						[attr.stroke]="geo().strokeColor"
+						[attr.stroke-width]="geo().strokeWidth"
+						[attr.stroke-opacity]="geo().strokeOpacity"
+						[attr.stroke-dasharray]="geo().dashArray ?? null"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						[attr.marker-start]="geo().startMarkerRef"
+						[attr.marker-end]="geo().endMarkerRef"
+					/>
+				} @else {
+					<line
+						[attr.x1]="geo().x1"
+						[attr.y1]="geo().y1"
+						[attr.x2]="geo().x2"
+						[attr.y2]="geo().y2"
+						[attr.stroke]="geo().strokeColor"
+						[attr.stroke-width]="geo().strokeWidth"
+						[attr.stroke-opacity]="geo().strokeOpacity"
+						[attr.stroke-dasharray]="geo().dashArray ?? null"
+						stroke-linecap="round"
+						[attr.marker-start]="geo().startMarkerRef"
+						[attr.marker-end]="geo().endMarkerRef"
+					/>
+				}
 			</svg>
 		</div>
 	`,
