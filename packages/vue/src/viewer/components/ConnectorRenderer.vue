@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { ConnectorArrowType, PptxElement } from 'pptx-viewer-core';
-import { hasShapeProperties } from 'pptx-viewer-core';
+import type { ConnectorArrowType, PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
+import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
@@ -11,6 +11,7 @@ import {
 	getConnectorPathGeometry,
 } from '../composables/connector-routing';
 import { DEFAULT_STROKE_COLOR } from '../constants';
+import ConnectorTextOverlay from './ConnectorTextOverlay.vue';
 
 /**
  * ConnectorRenderer — Vue port of the React `ConnectorElementRenderer`.
@@ -28,9 +29,10 @@ import { DEFAULT_STROKE_COLOR } from '../constants';
  * Flip is baked into the path geometry (not a CSS transform) so arrowheads
  * point the right way for both straight and multi-segment connectors.
  *
- * Not yet ported (TODO, see PORTING.md): line shadows/glow effects,
- * connector text overlay (data model does carry textSegments on some connectors
- * but no Vue text-overlay component exists yet).
+ * Connector labels (a non-empty `<p:txBody>` on the connector) render via the
+ * {@link ConnectorTextOverlay} child, centred over the bounding box.
+ *
+ * Not yet ported (TODO, see PORTING.md): line shadows/glow effects.
  */
 const props = defineProps<{
 	element: PptxElement;
@@ -162,6 +164,20 @@ function markerPath(type: ConnectorArrowType): { shape: 'path' | 'circle'; d?: s
 const startMarker = computed(() => (startArrow.value ? markerPath(startArrow.value) : null));
 const endMarker = computed(() => (endArrow.value ? markerPath(endArrow.value) : null));
 
+// ── Connector text label ───────────────────────────────────────────────────────
+
+/** The element narrowed to its text properties, when it carries any. */
+const textEl = computed(() => (hasTextProperties(props.element) ? props.element : undefined));
+
+/** Trimmed plain-text label (empty when the connector has no text). */
+const connectorText = computed(() => textEl.value?.text?.trim() ?? '');
+/** Per-run styled text segments, when present. */
+const connectorTextSegments = computed<readonly TextSegment[] | undefined>(
+	() => textEl.value?.textSegments,
+);
+/** Paragraph-level text style (font/colour/alignment). */
+const connectorTextStyle = computed<TextStyle | undefined>(() => textEl.value?.textStyle);
+
 // ── Compound offset style helpers ─────────────────────────────────────────────
 
 /**
@@ -260,10 +276,14 @@ function offsetTransform(offset: number): string | undefined {
 					"
 				/>
 			</template>
-
-			<!-- TODO: connector text overlay — textSegments data is present on the
-			     element when the PPTX author added a label to the connector, but the
-			     Vue viewer does not yet have a ConnectorTextOverlay component. -->
 		</svg>
+
+		<!-- Connector label, centred over the path (rendered above the SVG). -->
+		<ConnectorTextOverlay
+			v-if="connectorTextSegments"
+			:text="connectorText"
+			:segments="connectorTextSegments"
+			:text-style="connectorTextStyle"
+		/>
 	</div>
 </template>
