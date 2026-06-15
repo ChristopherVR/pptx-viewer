@@ -5,6 +5,7 @@ import {
 	computed,
 	effect,
 	ElementRef,
+	HostListener,
 	inject,
 	input,
 	output,
@@ -14,6 +15,7 @@ import {
 
 import type { ViewerTheme } from '../internal/shared';
 import { themeStyle } from '../theme/viewer-theme';
+import { EditorStateService } from './editor-state.service';
 import { slideFileName } from './export-helpers';
 import { ExportService } from './export.service';
 import { FindBarComponent } from './find-bar.component';
@@ -48,7 +50,7 @@ const ZOOM_MAX = 3;
 	selector: 'pptx-viewer',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	providers: [LoadContentService, ExportService],
+	providers: [LoadContentService, ExportService, EditorStateService],
 	imports: [
 		NgClass,
 		NgStyle,
@@ -96,6 +98,26 @@ const ZOOM_MAX = 3;
 						<button type="button" (click)="zoomIn()">+</button>
 					</div>
 					<div class="pptx-ng-actions">
+						@if (canEdit()) {
+							<button
+								type="button"
+								[disabled]="!editor.canUndo()"
+								[attr.title]="editor.undoLabel() ? 'Undo ' + editor.undoLabel() : 'Undo'"
+								(click)="editor.undo()"
+								aria-label="Undo"
+							>
+								↶
+							</button>
+							<button
+								type="button"
+								[disabled]="!editor.canRedo()"
+								[attr.title]="editor.redoLabel() ? 'Redo ' + editor.redoLabel() : 'Redo'"
+								(click)="editor.redo()"
+								aria-label="Redo"
+							>
+								↷
+							</button>
+						}
 						<button type="button" (click)="showFind.set(true)" aria-label="Find in slides">
 							Find
 						</button>
@@ -151,6 +173,10 @@ const ZOOM_MAX = 3;
 							[canvasSize]="loader.canvasSize()"
 							[mediaDataUrls]="loader.mediaDataUrls()"
 							[zoom]="zoom()"
+							[editable]="canEdit()"
+							[selectedIds]="editor.selectedIds()"
+							(elementSelect)="onElementSelect($event)"
+							(backgroundClick)="editor.clearSelection()"
 						/>
 						@if (showNotes() && activeNotes()) {
 							<aside class="pptx-ng-notes" aria-label="Speaker notes">
@@ -215,6 +241,7 @@ export class PowerPointViewerComponent {
 
 	protected readonly loader = inject(LoadContentService);
 	private readonly exportSvc = inject(ExportService);
+	protected readonly editor = inject(EditorStateService);
 
 	/** The `<main>` host; used to locate the live `.pptx-ng-canvas-stage`. */
 	private readonly mainEl = viewChild<ElementRef<HTMLElement>>('mainEl');
@@ -223,7 +250,11 @@ export class PowerPointViewerComponent {
 
 	protected readonly activeSlideIndex = signal(0);
 	protected readonly slideCount = this.loader.slideCount;
-	protected readonly activeSlide = computed(() => this.loader.slides()[this.activeSlideIndex()]);
+	/** Slides to display: the editable deck when `canEdit`, else the loaded deck. */
+	protected readonly displaySlides = computed(() =>
+		this.canEdit() ? this.editor.slides() : this.loader.slides(),
+	);
+	protected readonly activeSlide = computed(() => this.displaySlides()[this.activeSlideIndex()]);
 	protected readonly rootStyle = computed(() => themeStyle(this.theme()));
 
 	protected readonly zoom = signal(1);
@@ -247,16 +278,22 @@ export class PowerPointViewerComponent {
 			void this.loader.load(content);
 		});
 
-		// Reset to the first slide whenever a new presentation finishes loading.
+		// Reset to the first slide and seed the editable deck whenever a new
+		// presentation finishes loading.
 		effect(() => {
-			// Read slides to track; reset index out of band.
-			this.loader.slides();
+			const slides = this.loader.slides();
+			this.editor.setSlides(slides);
 			this.activeSlideIndex.set(0);
 		});
 
 		// Emit navigation changes.
 		effect(() => {
 			this.activeSlideChange.emit(this.activeSlideIndex());
+		});
+
+		// Surface the editor's dirty flag to the host.
+		effect(() => {
+			this.dirtyChange.emit(this.editor.dirty());
 		});
 	}
 
@@ -297,6 +334,83 @@ export class PowerPointViewerComponent {
 	/** Toggle the speaker-notes strip. */
 	toggleNotes(): void {
 		this.showNotes.update((v) => !v);
+	}
+
+	/** Handle an element click from the canvas (select / additive-select). */
+	onElementSelect(event: { id: string; additive: boolean }): void {
+		this.editor.toggleSelect(event.id, event.additive);
+	}
+
+	/**
+	 * Editing keyboard shortcuts (only when `canEdit` and not typing in a
+	 * field or presenting): Delete, Ctrl/Cmd+Z/Y undo/redo, Ctrl/Cmd+D
+	 * duplicate, arrow-key nudge (Shift = ×10).
+	 */
+	@HostListener('document:keydown', ['$event'])
+	onKeyDown(event: KeyboardEvent): void {
+		if (!this.canEdit() || this.presenting()) {
+			return;
+		}
+		const target = event.target as HTMLElement | null;
+		const tag = target?.tagName;
+		if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable) {
+			return;
+		}
+
+		const mod = event.ctrlKey || event.metaKey;
+		const idx = this.activeSlideIndex();
+
+		if (mod && (event.key === 'z' || event.key === 'Z')) {
+			event.preventDefault();
+			if (event.shiftKey) {
+				this.editor.redo();
+			} else {
+				this.editor.undo();
+			}
+			return;
+		}
+		if (mod && (event.key === 'y' || event.key === 'Y')) {
+			event.preventDefault();
+			this.editor.redo();
+			return;
+		}
+		if (mod && (event.key === 'd' || event.key === 'D')) {
+			event.preventDefault();
+			this.editor.duplicateSelected(idx);
+			return;
+		}
+
+		if (!this.editor.hasSelection()) {
+			return;
+		}
+
+		if (event.key === 'Delete' || event.key === 'Backspace') {
+			event.preventDefault();
+			this.editor.deleteSelected(idx);
+			return;
+		}
+
+		const step = event.shiftKey ? 10 : 1;
+		switch (event.key) {
+			case 'ArrowLeft':
+				event.preventDefault();
+				this.editor.moveSelectedBy(idx, -step, 0);
+				break;
+			case 'ArrowRight':
+				event.preventDefault();
+				this.editor.moveSelectedBy(idx, step, 0);
+				break;
+			case 'ArrowUp':
+				event.preventDefault();
+				this.editor.moveSelectedBy(idx, 0, -step);
+				break;
+			case 'ArrowDown':
+				event.preventDefault();
+				this.editor.moveSelectedBy(idx, 0, step);
+				break;
+			default:
+				break;
+		}
 	}
 
 	/** Resolve the live slide-stage element within `<main>`. */

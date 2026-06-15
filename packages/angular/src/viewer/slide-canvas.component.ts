@@ -1,5 +1,5 @@
 import { NgStyle } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
@@ -26,9 +26,11 @@ import { getSlideBackgroundStyle } from './slide-background';
 			<div class="pptx-ng-canvas-wrapper" [ngStyle]="wrapperStyle()">
 				<div
 					class="pptx-ng-canvas-stage"
+					[class.is-editable]="editable()"
 					role="region"
 					aria-roledescription="slide"
 					[ngStyle]="stageStyle()"
+					(click)="onStageClick($event)"
 				>
 					@for (element of elements(); track element.id; let i = $index) {
 						<pptx-element-renderer
@@ -36,6 +38,15 @@ import { getSlideBackgroundStyle } from './slide-background';
 							[mediaDataUrls]="mediaDataUrls()"
 							[zIndex]="i"
 						/>
+					}
+					@for (box of selectionBoxes(); track box.id) {
+						<div
+							class="pptx-ng-selection"
+							[style.left.px]="box.x"
+							[style.top.px]="box.y"
+							[style.width.px]="box.width"
+							[style.height.px]="box.height"
+						></div>
 					}
 				</div>
 			</div>
@@ -47,8 +58,43 @@ export class SlideCanvasComponent {
 	readonly canvasSize = input.required<CanvasSize>();
 	readonly mediaDataUrls = input<Map<string, string>>(new Map());
 	readonly zoom = input<number>(1);
+	/** When true, clicking an element selects it and selection outlines show. */
+	readonly editable = input<boolean>(false);
+	/** Ids of currently-selected elements (drawn with a selection outline). */
+	readonly selectedIds = input<readonly string[]>([]);
+
+	/** Emitted when an element is clicked (with the additive-select modifier). */
+	readonly elementSelect = output<{ id: string; additive: boolean }>();
+	/** Emitted when empty stage space is clicked (deselect). */
+	readonly backgroundClick = output<void>();
 
 	readonly elements = computed(() => this.slide()?.elements ?? []);
+
+	/** Bounding boxes (stage coords) for the selected elements. */
+	readonly selectionBoxes = computed(() => {
+		const selected = new Set(this.selectedIds());
+		if (selected.size === 0) {
+			return [];
+		}
+		return this.elements()
+			.filter((el) => selected.has(el.id))
+			.map((el) => ({ id: el.id, x: el.x, y: el.y, width: el.width, height: el.height }));
+	});
+
+	/** Resolve a click to an element id (event delegation) or the background. */
+	onStageClick(event: MouseEvent): void {
+		if (!this.editable()) {
+			return;
+		}
+		const target = event.target as HTMLElement | null;
+		const host = target?.closest('[data-element-id]') as HTMLElement | null;
+		const id = host?.getAttribute('data-element-id');
+		if (id) {
+			this.elementSelect.emit({ id, additive: event.shiftKey || event.ctrlKey || event.metaKey });
+		} else {
+			this.backgroundClick.emit();
+		}
+	}
 
 	readonly wrapperStyle = computed<StyleMap>(() => {
 		const scale = this.zoom();
