@@ -386,7 +386,21 @@ frontier is **editing** and the remaining advanced subsystems.
   select-all / clipboard / group keyboard shortcuts. The editor now supports
   full WYSIWYG editing — select (click/shift/marquee) → move/resize/rotate/
   inline-edit → cut/copy/paste, align/distribute, group, z-order → undo/redo →
-  save. Test count 996 → **1017**. Remaining for full React parity are the large
-  subsystems: collaboration (Yjs), comments, dialogs, digital signatures, font
-  embedding, print, mobile/a11y chrome, animation authoring, table/chart data
-  editing, and the advanced inspector tabs (gradient picker / effects).
+  save. Test count 996 → **1017**.
+- **2026-06-15 (editor polish)** — **Alignment snap guides** while dragging
+  (`snap-guides.ts` — snap edges/centres to nearby elements, draw guide lines)
+  and **slide property editing** (`EditorStateService.updateSlide` + a
+  slide-properties panel for background colour + notes when nothing is
+  selected). Test count 1017 → **1048**.
+
+> **Parity summary.** The Angular **viewer** matches React's viewing surface
+> (all 11 element types, fills/effects/clip-paths/backgrounds, lists,
+> hyperlinks, equations; presentation mode, slide sorter, notes, find, PNG/PDF
+> export). The **editor** is a complete WYSIWYG editor (selection, move/resize/
+> rotate with snap guides, inline text, clipboard, align/distribute, group,
+> z-order, slide CRUD + properties, insert, inspector, toolbar, context menu,
+> undo/redo, save). **Remaining for full React parity** — the large
+> subsystems, several in progress on the Vue side: collaboration (Yjs),
+> comments, the dialog suite, digital signatures, font embedding, print, mobile/
+> a11y chrome, animation/transition authoring, table & chart data editing, and
+> the advanced inspector tabs (structured gradient picker / effects).
