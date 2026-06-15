@@ -30,6 +30,7 @@ import {
 	setElementPosition,
 	updateElementById,
 } from './element-operations';
+import { groupElements, ungroupElements } from './group-ops';
 
 /** Default nudge distance (px) for arrow-key moves. */
 const NUDGE_STEP = 1;
@@ -262,6 +263,54 @@ export class EditorStateService {
 					: s,
 			),
 		);
+		this.dirty.set(true);
+		this.syncHistory();
+	}
+
+	// ── Group / ungroup ──────────────────────────────────────────────────────
+
+	/** Group the selected elements into a single group element. */
+	groupSelected(slideIndex: number): void {
+		const ids = this.selectedIds();
+		if (ids.length < 2) {
+			return;
+		}
+		const slides = this.slides();
+		const slide = slides[slideIndex];
+		if (!slide) {
+			return;
+		}
+		const { elements, groupId } = groupElements(slide.elements, ids, this.newId());
+		if (!groupId) {
+			return;
+		}
+		this.history.record(this.clone(slides), 'Group');
+		this.slides.set(slides.map((s, i) => (i === slideIndex ? { ...s, elements } : s)));
+		this.selectedIds.set([groupId]);
+		this.dirty.set(true);
+		this.syncHistory();
+	}
+
+	/** Ungroup the single selected group back into its children. */
+	ungroupSelected(slideIndex: number): void {
+		const ids = this.selectedIds();
+		if (ids.length !== 1) {
+			return;
+		}
+		const slides = this.slides();
+		const slide = slides[slideIndex];
+		if (!slide) {
+			return;
+		}
+		const group = slide.elements.find((el) => el.id === ids[0]);
+		if (!group || group.type !== 'group') {
+			return;
+		}
+		const childIds = (group.children ?? []).map(() => this.newId());
+		const { elements, childIds: used } = ungroupElements(slide.elements, ids[0], childIds);
+		this.history.record(this.clone(slides), 'Ungroup');
+		this.slides.set(slides.map((s, i) => (i === slideIndex ? { ...s, elements } : s)));
+		this.selectedIds.set(used);
 		this.dirty.set(true);
 		this.syncHistory();
 	}

@@ -136,6 +136,24 @@ import { EditorStateService } from './editor-state.service';
 				>
 					↓
 				</button>
+				<button
+					type="button"
+					class="pptx-ng-toolbar__btn"
+					title="Group"
+					[disabled]="!canGroup()"
+					(click)="editor.groupSelected(slideIndex())"
+				>
+					⊡
+				</button>
+				<button
+					type="button"
+					class="pptx-ng-toolbar__btn"
+					title="Ungroup"
+					[disabled]="!canUngroup()"
+					(click)="editor.ungroupSelected(slideIndex())"
+				>
+					⊠
+				</button>
 			</div>
 
 			<div class="pptx-ng-toolbar__divider" role="separator" aria-orientation="vertical"></div>
@@ -307,6 +325,16 @@ export class EditorToolbarComponent {
 	/** Align needs ≥2 selected elements; distribute needs ≥3. */
 	protected readonly canAlign = computed(() => this.editor.selectedIds().length >= 2);
 	protected readonly canDistribute = computed(() => this.editor.selectedIds().length >= 3);
+	/** Group needs ≥2 selected; ungroup needs exactly one selected group. */
+	protected readonly canGroup = computed(() => this.editor.selectedIds().length >= 2);
+	protected readonly canUngroup = computed(() => {
+		const ids = this.editor.selectedIds();
+		if (ids.length !== 1) {
+			return false;
+		}
+		const slide = this.editor.slides()[this.slideIndex()];
+		return slide?.elements.find((el) => el.id === ids[0])?.type === 'group';
+	});
 
 	protected onInsertText(): void {
 		this.editor.addElement(this.slideIndex(), newTextElement());
