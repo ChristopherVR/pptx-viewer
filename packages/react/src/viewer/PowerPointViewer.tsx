@@ -58,6 +58,7 @@ import { useViewerIntegration } from './hooks/useViewerIntegration';
 import { useViewerState } from './hooks/useViewerState';
 import { useZoomViewport } from './hooks/useZoomViewport';
 import type { PowerPointViewerProps, PowerPointViewerHandle } from './types';
+
 export type { PowerPointViewerProps, PowerPointViewerHandle } from './types';
 export { getAnimationInitialStyle } from './utils/animation';
 
@@ -75,6 +76,7 @@ export { getAnimationInitialStyle } from './utils/animation';
  * access (e.g. serialising the current content for saving).
  */
 export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointViewerProps>(
+	// oxlint-disable-next-line prefer-arrow-callback -- named fn gives the forwardRef component its displayName
 	function PowerPointViewer(props, ref) {
 		const {
 			content: incomingContent,
@@ -437,7 +439,13 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					onResizeRight={isMobile ? undefined : resizablePanels.onResizeRight}
 				/>
 
-				{mode !== 'present' && !isVirtualKeyboardOpen && (
+				{/* Keep the bottom panels mounted while the notes panel is expanded —
+				    focusing the notes textbox opens the virtual keyboard, and
+				    unmounting on `isVirtualKeyboardOpen` would yank the textbox the
+				    user just tapped out from under them. When notes is collapsed we
+				    still hide the strip on keyboard-open to free room for canvas
+				    inline editing. */}
+				{mode !== 'present' && (!isVirtualKeyboardOpen || !state.isSlideNotesCollapsed) && (
 					<ViewerBottomPanels
 						activeSlide={activeSlide}
 						allSlides={slides}
