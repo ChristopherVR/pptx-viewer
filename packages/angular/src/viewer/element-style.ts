@@ -2,6 +2,8 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 
 import { DEFAULT_STROKE_COLOR, DEFAULT_TEXT_COLOR } from '../internal/shared';
+import { buildCssGradientFromShapeStyle } from './color-gradient';
+import { buildPatternFillCss } from './color-patterns';
 import { getResolvedShapeClipPath } from './shape-geometry';
 import { getComputedEffectStyle } from './visual-effects';
 
@@ -76,20 +78,26 @@ export function getShapeFillStrokeStyle(el: PptxElement): StyleMap {
 	const style: StyleMap = {};
 
 	if (ss) {
-		// Fill resolution order mirrors the React `getShapeVisualStyle` and the
-		// Vue port: image fill → gradient → solid colour. Pattern fills
-		// (SVG-based) and the richer structured gradient builder
-		// (`color-gradient.ts`) remain shared-extraction candidates — see
-		// PORTING.md.
+		// Fill resolution order mirrors the React `getShapeVisualStyle`:
+		// image → pattern (SVG preset) → gradient (structured builder, with the
+		// parser's prebuilt CSS string as fallback) → solid colour.
 		const imageFillUrl = ss.fillMode === 'image' && ss.fillImageUrl ? ss.fillImageUrl : undefined;
-		// `fillGradient` is a prebuilt CSS gradient string from the parser.
-		const gradient = ss.fillMode === 'gradient' || ss.fillGradient ? ss.fillGradient : undefined;
+		const patternCss = ss.fillMode === 'pattern' ? buildPatternFillCss(ss) : undefined;
+		const gradient =
+			ss.fillMode === 'gradient'
+				? (buildCssGradientFromShapeStyle(ss) ?? ss.fillGradient)
+				: ss.fillGradient;
 
 		if (imageFillUrl) {
 			style['background-color'] = 'transparent';
 			style['background-image'] = `url(${imageFillUrl})`;
 			style['background-repeat'] = ss.fillImageMode === 'tile' ? 'repeat' : 'no-repeat';
 			style['background-size'] = ss.fillImageMode === 'tile' ? 'auto' : '100% 100%';
+		} else if (patternCss) {
+			style['background-image'] = patternCss.backgroundImage;
+			style['background-color'] = patternCss.backgroundColor;
+			style['background-repeat'] = 'repeat';
+			style['background-size'] = 'auto';
 		} else if (gradient) {
 			style['background-image'] = gradient;
 		} else if (ss.fillColor && ss.fillColor !== 'transparent' && ss.fillMode !== 'none') {
