@@ -27,12 +27,17 @@ const HANDLE_SCREEN_PX = 9;
 
 interface DragState {
 	id: string;
-	mode: 'move' | 'resize';
+	mode: 'move' | 'resize' | 'rotate';
 	handle: ResizeHandle | null;
 	startBox: Box;
 	startX: number;
 	startY: number;
 	started: boolean;
+	/** Rotation-gesture state (stage coords + degrees). */
+	centerX?: number;
+	centerY?: number;
+	startAngle?: number;
+	startRotation?: number;
 }
 
 /** Best-effort plain text of a text-bearing element for inline editing. */
@@ -66,6 +71,7 @@ function plainText(el: PptxElement): string {
 		<div class="pptx-ng-canvas-viewport">
 			<div class="pptx-ng-canvas-wrapper" [ngStyle]="wrapperStyle()">
 				<div
+					#stage
 					class="pptx-ng-canvas-stage"
 					[class.is-editable]="editable()"
 					role="region"
@@ -100,6 +106,16 @@ function plainText(el: PptxElement): string {
 							[style.height.px]="h.size"
 							[style.cursor]="h.cursor"
 							(pointerdown)="onHandlePointerDown($event, h.handle)"
+						></div>
+					}
+					@if (rotateHandle(); as rh) {
+						<div
+							class="pptx-ng-rotate-handle"
+							[style.left.px]="rh.left"
+							[style.top.px]="rh.top"
+							[style.width.px]="rh.size"
+							[style.height.px]="rh.size"
+							(pointerdown)="onRotatePointerDown($event)"
 						></div>
 					}
 					@if (editingBox(); as eb) {
@@ -149,11 +165,14 @@ export class SlideCanvasComponent {
 	readonly textCommit = output<{ id: string; text: string }>();
 	/** Emitted when an inline edit is cancelled (Escape). */
 	readonly textCancel = output<void>();
+	/** Emitted during a rotate gesture with the new rotation (degrees). */
+	readonly rotateUpdate = output<{ id: string; rotation: number }>();
 
 	private drag: DragState | null = null;
 	private editCancelled = false;
 
 	private readonly textEditor = viewChild<ElementRef<HTMLTextAreaElement>>('textEditor');
+	private readonly stageRef = viewChild<ElementRef<HTMLElement>>('stage');
 
 	constructor() {
 		// Focus + select the inline editor whenever it appears.
@@ -209,6 +228,21 @@ export class SlideCanvasComponent {
 				cursor: handleCursor(handle),
 			};
 		});
+	});
+
+	/** Rotation-handle box (stage coords) above the single selection, or null. */
+	readonly rotateHandle = computed(() => {
+		if (!this.editable()) {
+			return null;
+		}
+		const box = this.singleSelected();
+		if (!box) {
+			return null;
+		}
+		const zoom = this.zoom() || 1;
+		const size = HANDLE_SCREEN_PX / zoom;
+		const offset = 24 / zoom;
+		return { left: box.x + box.width / 2 - size / 2, top: box.y - offset - size / 2, size };
 	});
 
 	onStagePointerDown(event: PointerEvent): void {
@@ -314,6 +348,35 @@ export class SlideCanvasComponent {
 		};
 	}
 
+	onRotatePointerDown(event: PointerEvent): void {
+		event.stopPropagation();
+		const box = this.singleSelected();
+		const stage = this.stageRef()?.nativeElement;
+		if (!box || !stage) {
+			return;
+		}
+		const el = this.elements().find((e) => e.id === box.id);
+		const zoom = this.zoom() || 1;
+		const rect = stage.getBoundingClientRect();
+		const centerX = box.x + box.width / 2;
+		const centerY = box.y + box.height / 2;
+		const px = (event.clientX - rect.left) / zoom;
+		const py = (event.clientY - rect.top) / zoom;
+		this.drag = {
+			id: box.id,
+			mode: 'rotate',
+			handle: null,
+			startBox: box,
+			startX: event.clientX,
+			startY: event.clientY,
+			started: false,
+			centerX,
+			centerY,
+			startAngle: Math.atan2(py - centerY, px - centerX),
+			startRotation: el?.rotation ?? 0,
+		};
+	}
+
 	@HostListener('document:pointermove', ['$event'])
 	onPointerMove(event: PointerEvent): void {
 		const drag = this.drag;
@@ -321,8 +384,6 @@ export class SlideCanvasComponent {
 			return;
 		}
 		const zoom = this.zoom() || 1;
-		const dx = (event.clientX - drag.startX) / zoom;
-		const dy = (event.clientY - drag.startY) / zoom;
 
 		if (!drag.started) {
 			if (
@@ -332,9 +393,33 @@ export class SlideCanvasComponent {
 				return;
 			}
 			drag.started = true;
-			this.transformStart.emit({ id: drag.id, label: drag.mode === 'move' ? 'Move' : 'Resize' });
+			const label = drag.mode === 'move' ? 'Move' : drag.mode === 'resize' ? 'Resize' : 'Rotate';
+			this.transformStart.emit({ id: drag.id, label });
 		}
 
+		if (drag.mode === 'rotate') {
+			const stage = this.stageRef()?.nativeElement;
+			if (
+				!stage ||
+				drag.centerX === undefined ||
+				drag.centerY === undefined ||
+				drag.startAngle === undefined ||
+				drag.startRotation === undefined
+			) {
+				return;
+			}
+			const rect = stage.getBoundingClientRect();
+			const px = (event.clientX - rect.left) / zoom;
+			const py = (event.clientY - rect.top) / zoom;
+			const angle = Math.atan2(py - drag.centerY, px - drag.centerX);
+			const deltaDeg = ((angle - drag.startAngle) * 180) / Math.PI;
+			const rotation = (((drag.startRotation + deltaDeg) % 360) + 360) % 360;
+			this.rotateUpdate.emit({ id: drag.id, rotation: Math.round(rotation) });
+			return;
+		}
+
+		const dx = (event.clientX - drag.startX) / zoom;
+		const dy = (event.clientY - drag.startY) / zoom;
 		const box =
 			drag.mode === 'move' || drag.handle === null
 				? applyMove(drag.startBox, dx, dy)

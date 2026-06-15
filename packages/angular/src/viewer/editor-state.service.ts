@@ -177,7 +177,7 @@ export class EditorStateService {
 	applyTransform(
 		slideIndex: number,
 		id: string,
-		box: { x?: number; y?: number; width?: number; height?: number },
+		box: { x?: number; y?: number; width?: number; height?: number; rotation?: number },
 	): void {
 		const slides = this.slides();
 		if (!slides[slideIndex]) {

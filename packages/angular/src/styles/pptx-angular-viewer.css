@@ -222,6 +222,18 @@
 	white-space: pre-wrap;
 }
 
+.pptx-ng-rotate-handle {
+	position: absolute;
+	box-sizing: border-box;
+	background: #ffffff;
+	border: 1px solid #4f86ff;
+	border-radius: 50%;
+	cursor: grab;
+	pointer-events: auto;
+	touch-action: none;
+	z-index: 10001;
+}
+
 .pptx-ng-inspector-host {
 	flex: 0 0 240px;
 	width: 240px;

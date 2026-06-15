@@ -201,6 +201,9 @@ const ZOOM_MAX = 3;
 							(backgroundClick)="editor.clearSelection()"
 							(transformStart)="editor.beginTransform($event.label)"
 							(transformUpdate)="editor.applyTransform(activeSlideIndex(), $event.id, $event.box)"
+							(rotateUpdate)="
+								editor.applyTransform(activeSlideIndex(), $event.id, { rotation: $event.rotation })
+							"
 							(contextMenu)="onContextMenu($event)"
 							[editingId]="editingId()"
 							(textEditStart)="editingId.set($event.id)"
