@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import type { PptxElement } from 'pptx-viewer-core';
-import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
+import { hasShapeProperties, hasTextProperties, isImageLikeElement } from 'pptx-viewer-core';
 import { computed } from 'vue';
 
 import ArrangePanel from './ArrangePanel.vue';
 import EffectsPanel from './EffectsPanel.vue';
 import FillPanel from './FillPanel.vue';
+import ImagePanel from './ImagePanel.vue';
 import StrokePanel from './StrokePanel.vue';
+import TablePanel from './TablePanel.vue';
 import TextPanel from './TextPanel.vue';
 
 /**
@@ -25,6 +27,8 @@ const emit = defineEmits<{ update: [patch: Partial<PptxElement>] }>();
 
 const isShape = computed(() => hasShapeProperties(props.element));
 const isText = computed(() => hasTextProperties(props.element));
+const isImage = computed(() => isImageLikeElement(props.element));
+const isTable = computed(() => props.element.type === 'table');
 
 function relay(patch: Partial<PptxElement>): void {
 	emit('update', patch);
@@ -41,6 +45,16 @@ function relay(patch: Partial<PptxElement>): void {
 		<div v-if="isText" class="pptx-vue-inspector-section">
 			<h3 class="pptx-vue-inspector-title">Text</h3>
 			<TextPanel :element="element" @update="relay" />
+		</div>
+
+		<div v-if="isImage" class="pptx-vue-inspector-section">
+			<h3 class="pptx-vue-inspector-title">Image</h3>
+			<ImagePanel :element="element" @update="relay" />
+		</div>
+
+		<div v-if="isTable" class="pptx-vue-inspector-section">
+			<h3 class="pptx-vue-inspector-title">Table</h3>
+			<TablePanel :element="element" @update="relay" />
 		</div>
 
 		<div v-if="isShape" class="pptx-vue-inspector-section">

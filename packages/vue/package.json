@@ -1,7 +1,7 @@
 {
 	"name": "pptx-vue-viewer",
 	"version": "0.1.0",
-	"description": "Vue 3 PowerPoint viewer/editor component — depends on pptx-viewer-core. Vue counterpart of the React `pptx-viewer` package.",
+	"description": "Vue 3 PowerPoint viewer/editor component â€” depends on pptx-viewer-core. Vue counterpart of the React `pptx-viewer` package.",
 	"keywords": [
 		"editor",
 		"openxml",
@@ -58,6 +58,8 @@
 	"dependencies": {
 		"clsx": "^2.1.1",
 		"dompurify": "^3.4.10",
+		"html2canvas-pro": "^2.0.4",
+		"jspdf": "^4.2.1",
 		"tailwind-merge": "^3.6.0"
 	},
 	"devDependencies": {
@@ -79,7 +81,6 @@
 	},
 	"peerDependencies": {
 		"fast-xml-parser": "^5.8.0",
-		"jspdf": "^4.2.1",
 		"jszip": "^3.10.1",
 		"vue": "^3.5.0"
 	},

@@ -20,13 +20,14 @@ import {
 	createTextElement,
 } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
-import { computed, ref, toRef, watch } from 'vue';
+import { computed, nextTick, ref, toRef, watch } from 'vue';
 
 import { provideViewerTheme, useThemeStyle } from '../theme';
 import ContextMenu from './components/ContextMenu.vue';
 import type { ContextMenuItem } from './components/ContextMenu.vue';
 import EditorToolbar from './components/EditorToolbar.vue';
 import type { ShapePreset } from './components/EditorToolbar.vue';
+import ExportMenu from './components/ExportMenu.vue';
 import FindReplaceBar from './components/FindReplaceBar.vue';
 import HyperlinkDialog from './components/HyperlinkDialog.vue';
 import InspectorPane from './components/inspector/InspectorPane.vue';
@@ -37,6 +38,7 @@ import SlidesPaneControls from './components/SlidesPaneControls.vue';
 import SlideStage from './components/SlideStage.vue';
 import { useEditorHistory } from './composables/useEditorHistory';
 import { useEditorOperations } from './composables/useEditorOperations';
+import { useExport } from './composables/useExport';
 import { useFindReplace } from './composables/useFindReplace';
 import { useLoadContent } from './composables/useLoadContent';
 import { useSlideOperations } from './composables/useSlideOperations';
@@ -390,6 +392,41 @@ const find = useFindReplace({
 	activeSlideIndex,
 	pushHistory: history.pushHistory,
 });
+
+// ── Export (PNG / PDF) ────────────────────────────────────────────────
+// An off-screen stage renders one slide at a time at scale 1; `rasterizeSlide`
+// drives it and snapshots it with `html2canvas-pro`.
+const exportStageRef = ref<HTMLElement | null>(null);
+const exportIndex = ref(0);
+const exportSlide = computed(() => slides.value[exportIndex.value]);
+
+async function rasterizeSlide(index: number): Promise<HTMLCanvasElement> {
+	exportIndex.value = index;
+	await nextTick();
+	await new Promise<void>((resolve) => {
+		requestAnimationFrame(() => resolve());
+	});
+	const stageEl = exportStageRef.value?.querySelector('.pptx-vue-stage') as HTMLElement | null;
+	if (!stageEl) {
+		throw new Error('Export stage not ready');
+	}
+	const { default: html2canvas } = await import('html2canvas-pro');
+	return html2canvas(stageEl, {
+		backgroundColor: '#ffffff',
+		scale: 2,
+		width: canvasSize.value.width,
+		height: canvasSize.value.height,
+		logging: false,
+	});
+}
+
+const exporter = useExport({ slides, canvasSize, rasterizeSlide });
+function onExportPng(): void {
+	void exporter.exportSlidePng(activeSlideIndex.value);
+}
+function onExportPdf(): void {
+	void exporter.exportPdf();
+}
 function sendBackward(): void {
 	for (const id of [...selectedElementIds.value]) {
 		ops.sendBackward(id);
@@ -484,6 +521,12 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					>
 						▶
 					</button>
+					<ExportMenu
+						v-if="slideCount > 0"
+						:exporting="exporter.exporting.value"
+						@export-png="onExportPng"
+						@export-pdf="onExportPdf"
+					/>
 				</div>
 			</header>
 
@@ -602,6 +645,22 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				@save="onHyperlinkSave"
 				@close="hyperlinkOpen = false"
 			/>
+
+			<!-- Off-screen stage used to rasterise slides for export -->
+			<div
+				ref="exportStageRef"
+				class="pptx-vue-export-stage"
+				aria-hidden="true"
+				style="position: fixed; left: -99999px; top: 0; pointer-events: none; opacity: 0"
+			>
+				<SlideStage
+					v-if="exportSlide"
+					:slide="exportSlide"
+					:canvas-size="canvasSize"
+					:media-data-urls="mediaDataUrls"
+					:scale="1"
+				/>
+			</div>
 		</template>
 
 		<!-- Presentation / slideshow overlay -->

@@ -55,6 +55,7 @@ export default defineConfig({
 			external: [
 				'vue',
 				'jspdf',
+				'html2canvas-pro',
 				'jszip',
 				'fast-xml-parser',
 				'dompurify',
