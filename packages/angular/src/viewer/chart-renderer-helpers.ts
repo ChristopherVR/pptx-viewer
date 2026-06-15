@@ -37,6 +37,10 @@ import type {
 	PptxElement,
 } from 'pptx-viewer-core';
 
+import { buildComboViewModel, buildStockViewModel } from './chart-combo-stock';
+import { buildSurfaceViewModel, buildTreemapViewModel } from './chart-surface-treemap';
+import { buildRegionMapViewModel, buildWaterfallViewModel } from './chart-waterfall-map';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Palette
 // ─────────────────────────────────────────────────────────────────────────────
@@ -750,7 +754,13 @@ export type SupportedChartKind =
 	| 'doughnut'
 	| 'scatter'
 	| 'bubble'
-	| 'radar';
+	| 'radar'
+	| 'combo'
+	| 'stock'
+	| 'surface'
+	| 'treemap'
+	| 'waterfall'
+	| 'regionMap';
 
 export function resolveChartKind(chartType: string): SupportedChartKind | 'unsupported' {
 	switch (chartType) {
@@ -776,6 +786,19 @@ export function resolveChartKind(chartType: string): SupportedChartKind | 'unsup
 		case 'radar':
 		case 'radar3D':
 			return 'radar';
+		case 'combo':
+			return 'combo';
+		case 'stock':
+			return 'stock';
+		case 'surface':
+		case 'surface3D':
+			return 'surface';
+		case 'treemap':
+			return 'treemap';
+		case 'waterfall':
+			return 'waterfall';
+		case 'regionMap':
+			return 'regionMap';
 		default:
 			return 'unsupported';
 	}
@@ -815,6 +838,25 @@ export function buildChartViewModel(element: PptxElement): ChartViewModel {
 
 	if (kind === 'radar') {
 		return buildRadarViewModel(element, chartData, categoryLabels);
+	}
+
+	if (kind === 'combo') {
+		return buildComboViewModel(element, chartData, categoryLabels);
+	}
+	if (kind === 'stock') {
+		return buildStockViewModel(element, chartData, categoryLabels);
+	}
+	if (kind === 'surface') {
+		return buildSurfaceViewModel(element, chartData, categoryLabels);
+	}
+	if (kind === 'treemap') {
+		return buildTreemapViewModel(element, chartData, categoryLabels);
+	}
+	if (kind === 'waterfall') {
+		return buildWaterfallViewModel(element, chartData, categoryLabels);
+	}
+	if (kind === 'regionMap') {
+		return buildRegionMapViewModel(element, chartData, categoryLabels);
 	}
 
 	return buildCartesianViewModel(element, chartData, categoryLabels, kind);

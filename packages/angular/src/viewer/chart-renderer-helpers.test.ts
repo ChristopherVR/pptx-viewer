@@ -581,10 +581,11 @@ describe('resolveChartKind', () => {
 	});
 
 	it('maps unknown types to "unsupported"', () => {
-		expect(resolveChartKind('waterfall')).toBe('unsupported');
+		expect(resolveChartKind('sunburst')).toBe('unsupported');
 		expect(resolveChartKind('unknown')).toBe('unsupported');
 		expect(resolveChartKind('funnel')).toBe('unsupported');
-		expect(resolveChartKind('surface')).toBe('unsupported');
+		expect(resolveChartKind('histogram')).toBe('unsupported');
+		expect(resolveChartKind('boxWhisker')).toBe('unsupported');
 	});
 });
 
@@ -846,7 +847,7 @@ describe('buildChartViewModel - unsupported chart type', () => {
 		width: 400,
 		height: 300,
 		chartData: {
-			chartType: 'waterfall' as const,
+			chartType: 'funnel' as const,
 			categories: [],
 			series: [{ name: 'S', values: [1, 2, 3] }],
 		} satisfies PptxChartData,
