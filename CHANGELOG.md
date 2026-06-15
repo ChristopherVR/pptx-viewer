@@ -4,11 +4,32 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.19](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.19) - 2026-06-15
+
+### 🚀 Features
+
+- **vue:** GIF/WebM export, slide-transition animations, collab depth, property round-trip (by @ChristopherVR) ([1d66b44](https://github.com/ChristopherVR/pptx-viewer/commit/1d66b443afe59cf062af0d7b96484b03f689de29))
+- **angular:** Wire animation playback into the presentation overlay (by @ChristopherVR) ([fc4ab61](https://github.com/ChristopherVR/pptx-viewer/commit/fc4ab6166a97d9a211a96f1c184fd9a05825efb1))
+- **angular:** Animation-authoring inspector tab (by @ChristopherVR) ([0dc66ac](https://github.com/ChristopherVR/pptx-viewer/commit/0dc66ac27aa60876048d23e424b63bce59077513))
+- **angular:** Mobile chrome (bottom bar + slide-up sheets) (by @ChristopherVR) ([7e1ad8b](https://github.com/ChristopherVR/pptx-viewer/commit/7e1ad8b9bee265c3b59fad39cab1f3ddf03d34ba))
+
+### 🐛 Bug Fixes
+
+- **react:** Don't leak edit chrome into presentation mode (by @ChristopherVR) ([701c808](https://github.com/ChristopherVR/pptx-viewer/commit/701c808340c808712f61a2eb1b5611e54836a144))
+
+### 📚 Documentation
+
+- **angular:** Record full feature parity (animation playback/authoring, mobile chrome) (by @ChristopherVR) ([e48a258](https://github.com/ChristopherVR/pptx-viewer/commit/e48a258e0e2a873f75121aaeff906d56de5b43c6))
+
 ## [1.1.18](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.18) - 2026-06-15
 
 ### 🚀 Features
 
 - **vue:** Version history/compare, insert-SmartArt & equation dialogs, settings (by @ChristopherVR) ([ba40c85](https://github.com/ChristopherVR/pptx-viewer/commit/ba40c8584297166d73496a8f78d97e22adf7f393))
+
+### 📚 Documentation
+
+- **changelog:** Update for v1.1.18 [skip ci] (by @github-actions[bot]) ([c847b8d](https://github.com/ChristopherVR/pptx-viewer/commit/c847b8da76430d18e6dafd649a749f9e51e3a003))
 
 ## [1.1.17](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.17) - 2026-06-15
 
