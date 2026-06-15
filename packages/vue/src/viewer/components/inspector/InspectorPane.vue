@@ -3,7 +3,9 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties, isImageLikeElement } from 'pptx-viewer-core';
 import { computed } from 'vue';
 
+import AnimationPanel from './AnimationPanel.vue';
 import ArrangePanel from './ArrangePanel.vue';
+import ChartPanel from './ChartPanel.vue';
 import EffectsPanel from './EffectsPanel.vue';
 import FillPanel from './FillPanel.vue';
 import ImagePanel from './ImagePanel.vue';
@@ -29,6 +31,7 @@ const isShape = computed(() => hasShapeProperties(props.element));
 const isText = computed(() => hasTextProperties(props.element));
 const isImage = computed(() => isImageLikeElement(props.element));
 const isTable = computed(() => props.element.type === 'table');
+const isChart = computed(() => props.element.type === 'chart');
 
 function relay(patch: Partial<PptxElement>): void {
 	emit('update', patch);
@@ -55,6 +58,16 @@ function relay(patch: Partial<PptxElement>): void {
 		<div v-if="isTable" class="pptx-vue-inspector-section">
 			<h3 class="pptx-vue-inspector-title">Table</h3>
 			<TablePanel :element="element" @update="relay" />
+		</div>
+
+		<div v-if="isChart" class="pptx-vue-inspector-section">
+			<h3 class="pptx-vue-inspector-title">Chart</h3>
+			<ChartPanel :element="element" @update="relay" />
+		</div>
+
+		<div class="pptx-vue-inspector-section">
+			<h3 class="pptx-vue-inspector-title">Animations</h3>
+			<AnimationPanel :element="element" @update="relay" />
 		</div>
 
 		<div v-if="isShape" class="pptx-vue-inspector-section">

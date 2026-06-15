@@ -19,7 +19,7 @@ import {
 	createShapeElement,
 	createTextElement,
 } from 'pptx-viewer-core';
-import type { PptxElement, PptxSlideTransition } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import { computed, nextTick, ref, toRef, watch } from 'vue';
 
 import { provideViewerTheme, useThemeStyle } from '../theme';
@@ -32,6 +32,7 @@ import ExportMenu from './components/ExportMenu.vue';
 import FindReplaceBar from './components/FindReplaceBar.vue';
 import HyperlinkDialog from './components/HyperlinkDialog.vue';
 import InspectorPane from './components/inspector/InspectorPane.vue';
+import NotesPanel from './components/NotesPanel.vue';
 import PresentationMode from './components/PresentationMode.vue';
 import SelectionOverlay from './components/SelectionOverlay.vue';
 import SlideCanvas from './components/SlideCanvas.vue';
@@ -248,11 +249,46 @@ function bringForward(): void {
 const inspectorElement = computed<PptxElement | undefined>(() =>
 	selectedElements.value.length === 1 ? selectedElements.value[0] : undefined,
 );
+// Animations are stored on the slide (`slide.animations`, keyed by `elementId`),
+// not on the element — surface this element's animations to the inspector by
+// augmenting the element object the panels receive.
+const inspectorElementForPanels = computed<PptxElement | undefined>(() => {
+	const el = inspectorElement.value;
+	if (!el) {
+		return undefined;
+	}
+	const animations = (activeSlide.value?.animations ?? []).filter((a) => a.elementId === el.id);
+	return { ...el, animations } as unknown as PptxElement;
+});
 function onInspectorUpdate(patch: Partial<PptxElement>): void {
 	const el = inspectorElement.value;
-	if (el) {
-		ops.updateElement(el.id, patch);
+	if (!el) {
+		return;
 	}
+	// An `animations` patch belongs on the slide, not the element.
+	if ('animations' in patch) {
+		const { animations, ...rest } = patch as Partial<PptxElement> & {
+			animations?: PptxSlide['animations'];
+		};
+		writeElementAnimations(el.id, animations ?? []);
+		if (Object.keys(rest).length > 0) {
+			ops.updateElement(el.id, rest);
+		}
+		return;
+	}
+	ops.updateElement(el.id, patch);
+}
+function writeElementAnimations(elementId: string, animations: PptxSlide['animations']): void {
+	const index = activeSlideIndex.value;
+	const slide = slides.value[index];
+	if (!slide) {
+		return;
+	}
+	history.pushHistory();
+	const others = (slide.animations ?? []).filter((a) => a.elementId !== elementId);
+	const nextSlides = slides.value.slice();
+	nextSlides[index] = { ...slide, animations: [...others, ...(animations ?? [])] };
+	slides.value = nextSlides;
 }
 
 // ── Slide operations (add / duplicate / delete / reorder) ─────────────
@@ -445,6 +481,19 @@ function onSorterReorder(from: number, to: number): void {
 // ── Accessibility checker ─────────────────────────────────────────────
 const showA11y = ref(false);
 const a11y = useAccessibility(slides);
+
+// ── Speaker notes ─────────────────────────────────────────────────────
+function onNotesUpdate(notes: string): void {
+	const index = activeSlideIndex.value;
+	const slide = slides.value[index];
+	if (!slide) {
+		return;
+	}
+	history.pushHistory();
+	const nextSlides = slides.value.slice();
+	nextSlides[index] = { ...slide, notes };
+	slides.value = nextSlides;
+}
 
 // ── Slide transition ──────────────────────────────────────────────────
 function onTransitionUpdate(transition: PptxSlideTransition | undefined): void {
@@ -674,12 +723,13 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 							@transform-end="onTransformEnd"
 						/>
 					</SlideCanvas>
+					<NotesPanel v-if="props.canEdit" :slide="activeSlide" @update="onNotesUpdate" />
 				</main>
 
 				<!-- Property inspector (single selection, edit mode) -->
 				<InspectorPane
-					v-if="props.canEdit && inspectorElement"
-					:element="inspectorElement"
+					v-if="props.canEdit && inspectorElementForPanels"
+					:element="inspectorElementForPanels"
 					@update="onInspectorUpdate"
 				/>
 
