@@ -190,7 +190,7 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 | Item                                                                    | Status | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | ----------------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Editing interaction core                                                | ◑      | `useSelection` + `SelectionOverlay.vue` (8 resize handles + rotate + drag) + `element-interaction.ts` (pure transform/resize/rotate math) + `EditorToolbar.vue` (undo/redo/zoom/add-text/add-shape/delete/duplicate/forward/backward). **Wired into `PowerPointViewer`** behind `canEdit`: click-to-select (event delegation on `data-element-id`), drag/resize via overlay (1 history entry/gesture), Ctrl+Z/Y + Delete shortcuts. Edits flow to `getContent()` export |
-| Inspector panels (fill/stroke/text/image/table/chart/animation/…)       | ☐      |                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Inspector panels (fill/stroke/text/image/table/chart/animation/…)       | ◑      | `inspector/InspectorPane.vue` + `ArrangePanel`/`FillPanel`/`StrokePanel`/`TextPanel`/`EffectsPanel`; wired into `PowerPointViewer` (right sidebar, single selection → `ops.updateElement`). Image/table/chart/animation panels still ☐                                                                                                                                                                                                                                  |
 | Context menu, dialogs (share/broadcast/settings/properties/hyperlink/…) | ☐      |                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | Slides pane, slide sorter, notes, mobile chrome, accessibility panel    | ☐      |                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 
@@ -369,3 +369,17 @@ equationXml` OMML → MathML (ported from React's three omml-\* files, core only
   typecheck/lint clean; build green. Three parallel subagents + central wiring.
   **The interactive editing core is now live** — the editor-chrome batches
   (inspector panels, dialogs, context menu, slides pane) build on this.
+- **2026-06-15** — Batch 6: inspector panels. `inspector/InspectorPane.vue`
+  composes per-concern panels for the selected element: `ArrangePanel`
+  (x/y/w/h/rotation/flip), `FillPanel` (mode/color/opacity), `StrokePanel`
+  (color/width/dash), `TextPanel` (font/size/bold/italic/underline/strike/color/
+  align/vAlign), `EffectsPanel` (opacity/shadow/glow). All panels share one
+  contract — `props { element }`, `emit update(patch: Partial<PptxElement>)` with
+  nested style sub-objects pre-merged — so the shell just relays. Wired into
+  `PowerPointViewer`'s right sidebar (shown for a single selection); patches go
+  through `ops.updateElement` (one undo entry per change). EffectsPanel writes
+  the real flat `ShapeStyle` shadow/glow fields (`shadowColor`/`shadowBlur`/…,
+  `glowColor`/`glowRadius`) that `visual-effects.ts` reads. 26 new tests (392
+  total green); typecheck/lint clean; build green. Three parallel subagents +
+  central shell/wiring. Next chrome: image/table/chart panels, context menu,
+  dialogs, slides pane.

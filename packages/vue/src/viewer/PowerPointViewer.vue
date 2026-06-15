@@ -20,6 +20,7 @@ import { computed, ref, toRef, watch } from 'vue';
 import { provideViewerTheme, useThemeStyle } from '../theme';
 import EditorToolbar from './components/EditorToolbar.vue';
 import type { ShapePreset } from './components/EditorToolbar.vue';
+import InspectorPane from './components/inspector/InspectorPane.vue';
 import SelectionOverlay from './components/SelectionOverlay.vue';
 import SlideCanvas from './components/SlideCanvas.vue';
 import SlideStage from './components/SlideStage.vue';
@@ -223,6 +224,17 @@ function bringForward(): void {
 		ops.bringForward(id);
 	}
 }
+
+// Inspector targets a single selected element; multi-select hides it.
+const inspectorElement = computed<PptxElement | undefined>(() =>
+	selectedElements.value.length === 1 ? selectedElements.value[0] : undefined,
+);
+function onInspectorUpdate(patch: Partial<PptxElement>): void {
+	const el = inspectorElement.value;
+	if (el) {
+		ops.updateElement(el.id, patch);
+	}
+}
 function sendBackward(): void {
 	for (const id of [...selectedElementIds.value]) {
 		ops.sendBackward(id);
@@ -368,6 +380,13 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						/>
 					</SlideCanvas>
 				</main>
+
+				<!-- Property inspector (single selection, edit mode) -->
+				<InspectorPane
+					v-if="props.canEdit && inspectorElement"
+					:element="inspectorElement"
+					@update="onInspectorUpdate"
+				/>
 			</div>
 		</template>
 	</div>
