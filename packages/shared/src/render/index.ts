@@ -7,7 +7,8 @@
  * - fills:      `fill-style` (image/gradient/pattern/solid → CSS).
  * - effects:    `visual-effects` (shadow/glow/reflection/DAG), `image-effects`.
  * - text:       `text-warp` (WordArt paths), `omml-to-mathml` (equations).
- * - charts:     `chart-helpers` (layout/palette/axis math).
+ * - charts:     `chart-helpers` (layout/palette/axis math), `chart-trendlines`
+ *               (regression overlays).
  * - animation:  `animation-css` (preset → CSS keyframes).
  * - 3d:         `visual-3d` (scene3d/shape3d → CSS transform/shadow pieces).
  * - tables:     `table-style` (cell style + banding → CSS).
@@ -21,6 +22,7 @@ export * from './image-effects';
 export * from './text-warp';
 export * from './omml-to-mathml';
 export * from './chart-helpers';
+export * from './chart-trendlines';
 export * from './animation-css';
 export * from './visual-3d';
 export * from './table-style';
