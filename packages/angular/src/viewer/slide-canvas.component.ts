@@ -56,6 +56,7 @@ interface DragState {
 					aria-roledescription="slide"
 					[ngStyle]="stageStyle()"
 					(pointerdown)="onStagePointerDown($event)"
+					(contextmenu)="onContextMenu($event)"
 				>
 					@for (element of elements(); track element.id; let i = $index) {
 						<pptx-element-renderer
@@ -107,6 +108,8 @@ export class SlideCanvasComponent {
 	readonly transformStart = output<{ id: string; label: string }>();
 	/** Emitted on each pointer move during a gesture with the new box. */
 	readonly transformUpdate = output<{ id: string; box: Box }>();
+	/** Emitted on right-click with the element under the cursor (or null). */
+	readonly contextMenu = output<{ id: string | null; x: number; y: number }>();
 
 	private drag: DragState | null = null;
 
@@ -180,6 +183,17 @@ export class SlideCanvasComponent {
 			startY: event.clientY,
 			started: false,
 		};
+	}
+
+	onContextMenu(event: MouseEvent): void {
+		if (!this.editable()) {
+			return;
+		}
+		event.preventDefault();
+		const target = event.target as HTMLElement | null;
+		const host = target?.closest('[data-element-id]') as HTMLElement | null;
+		const id = host?.getAttribute('data-element-id') ?? null;
+		this.contextMenu.emit({ id, x: event.clientX, y: event.clientY });
 	}
 
 	onHandlePointerDown(event: PointerEvent, handle: ResizeHandle): void {

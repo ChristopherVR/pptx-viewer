@@ -15,6 +15,7 @@ export { FindBarComponent } from './find-bar.component';
 export { InspectorPanelComponent } from './inspector-panel.component';
 export { SlidesPanelComponent } from './slides-panel.component';
 export { EditorToolbarComponent } from './editor-toolbar.component';
+export { EditorContextMenuComponent } from './editor-context-menu.component';
 export { collectElementText, collectSlideText, searchSlides } from './slide-search';
 export { ExportService } from './export.service';
 export { renderToCanvas } from '../lib/canvas-export';

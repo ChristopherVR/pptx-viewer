@@ -16,6 +16,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 
 import type { ViewerTheme } from '../internal/shared';
 import { themeStyle } from '../theme/viewer-theme';
+import { EditorContextMenuComponent } from './editor-context-menu.component';
 import { EditorStateService } from './editor-state.service';
 import { EditorToolbarComponent } from './editor-toolbar.component';
 import { slideFileName } from './export-helpers';
@@ -65,6 +66,7 @@ const ZOOM_MAX = 3;
 		InspectorPanelComponent,
 		SlidesPanelComponent,
 		EditorToolbarComponent,
+		EditorContextMenuComponent,
 	],
 	template: `
 		<div class="pptx-ng-viewer" [ngClass]="class()" [ngStyle]="rootStyle()">
@@ -199,6 +201,7 @@ const ZOOM_MAX = 3;
 							(backgroundClick)="editor.clearSelection()"
 							(transformStart)="editor.beginTransform($event.label)"
 							(transformUpdate)="editor.applyTransform(activeSlideIndex(), $event.id, $event.box)"
+							(contextMenu)="onContextMenu($event)"
 						/>
 						@if (showNotes() && activeNotes()) {
 							<aside class="pptx-ng-notes" aria-label="Speaker notes">
@@ -243,6 +246,15 @@ const ZOOM_MAX = 3;
 					[slides]="loader.slides()"
 					(navigate)="goTo($event)"
 					(closed)="showFind.set(false)"
+				/>
+			}
+
+			@if (canEdit() && contextMenuPos(); as m) {
+				<pptx-editor-context-menu
+					[x]="m.x"
+					[y]="m.y"
+					[slideIndex]="activeSlideIndex()"
+					(closed)="contextMenuPos.set(null)"
 				/>
 			}
 		</div>
@@ -296,6 +308,8 @@ export class PowerPointViewerComponent {
 	protected readonly showNotes = signal(false);
 	/** Find-in-slides bar visibility. */
 	protected readonly showFind = signal(false);
+	/** Open editor context-menu position (client coords), or null. */
+	protected readonly contextMenuPos = signal<{ x: number; y: number } | null>(null);
 	/** Notes for the active slide, if any. */
 	protected readonly activeNotes = computed(() => this.activeSlide()?.notes?.trim() || '');
 	/** The single selected element on the active slide (for the inspector). */
@@ -394,6 +408,14 @@ export class PowerPointViewerComponent {
 		} else if (!this.editor.isSelected(event.id)) {
 			this.editor.select([event.id]);
 		}
+	}
+
+	/** Right-click: select the element under the cursor and open the menu. */
+	onContextMenu(event: { id: string | null; x: number; y: number }): void {
+		if (event.id && !this.editor.isSelected(event.id)) {
+			this.editor.select([event.id]);
+		}
+		this.contextMenuPos.set({ x: event.x, y: event.y });
 	}
 
 	/**
