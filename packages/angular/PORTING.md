@@ -167,13 +167,17 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 | **Inspector panel**                             | ◑      | `InspectorPanelComponent` — position/size/rotation/opacity, fill/stroke colour (shapes), text colour/size + B/I/U (text), arrange (z-order), duplicate/delete; commits one history entry per change. Readers/patch-builders in pure `inspector-helpers.ts`. Full React inspector (tabs, advanced fill, effects, animation): TODO                                     |
 | Section / table operations, clipboard, autosave | ☐      | mirror `useSectionOperations` / `useTableOperations`                                                                                                                                                                                                                                                                                                                 |
 
-### Editor chrome (◑ — inspector started)
+### Editor chrome (◑ — substantial)
 
-The single-element **inspector panel** is in (see above). Remaining: a
-formatting **toolbar**, context menu, dialogs, slides pane (add/delete/reorder
-slides), mobile chrome, accessibility panel, and the inspector's advanced tabs
-(structured fill, effects, animation, text-advanced). All build on the editor
-foundation + interaction UI.
+Landed: single-element **inspector panel**; **slides panel** (live previews +
+add/duplicate/delete/reorder); **insert/arrange/align toolbar** (insert
+text/rect/ellipse/line, duplicate/delete, z-order, align/distribute);
+**right-click context menu** (cut/copy/paste/duplicate/delete/z-order);
+**clipboard** (Ctrl+C/X/V); **inline text editing** (double-click); **align &
+distribute** for multi-selection. Remaining: dialogs, mobile chrome,
+accessibility panel, marquee/rotation handles, and the inspector's advanced
+tabs (structured fill/gradient picker, effects, animation, text-advanced),
+plus table/chart data editing. All build on the editor foundation.
 
 ### Advanced subsystems (all ☐ — not started)
 
@@ -366,3 +370,13 @@ frontier is **editing** and the remaining advanced subsystems.
   end-to-end: select → drag/resize/edit-properties → undo/redo → save. Test
   count 915 → **953**. Remaining chrome: formatting toolbar, slide CRUD pane,
   dialogs, advanced inspector tabs.
+- **2026-06-15 (editor chrome)** — Built out the editor chrome on the
+  foundation: slide CRUD + element insert in `EditorStateService`; **slides
+  panel** (live previews + add/duplicate/delete/reorder); **insert/arrange/align
+  toolbar**; **inline text editing** (double-click → textarea overlay);
+  **clipboard** (cut/copy/paste, Ctrl+C/X/V); **right-click context menu**;
+  **align & distribute** (`align-distribute.ts` + toolbar). The editor now
+  covers selection, direct manipulation, text editing, clipboard, slide
+  management, insert, arrange, align, and undo/redo/save. Test count 953 →
+  **996**. Remaining: dialogs, marquee/rotation handles, advanced inspector
+  tabs, table/chart data editing, mobile/a11y chrome, collaboration.
