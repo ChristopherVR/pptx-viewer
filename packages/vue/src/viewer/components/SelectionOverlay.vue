@@ -86,6 +86,14 @@ function boxForId(id: string): SelectedBox | undefined {
 // parent scale; matches typical editor affordances).
 const ROTATE_STEM = 24;
 
+/**
+ * True when the primary pointer is coarse (touch). Computed once at module load
+ * and guarded for environments without `matchMedia` (SSR/tests). On touch the
+ * handle/knob hit areas are grown so they can actually be grabbed with a finger.
+ */
+const IS_COARSE_POINTER: boolean =
+	typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+
 // ---------------------------------------------------------------------------
 // Active gesture state
 // ---------------------------------------------------------------------------
@@ -306,7 +314,12 @@ function rotateKnobStyle(box: SelectedBox): Record<string, string> {
 </script>
 
 <template>
-	<div ref="rootEl" class="pptx-vue-selection-overlay" data-testid="selection-overlay">
+	<div
+		ref="rootEl"
+		class="pptx-vue-selection-overlay"
+		:class="{ 'is-coarse-pointer': IS_COARSE_POINTER }"
+		data-testid="selection-overlay"
+	>
 		<div
 			v-for="box in selectedBoxes"
 			:key="box.id"
@@ -366,6 +379,9 @@ function rotateKnobStyle(box: SelectedBox): Record<string, string> {
 	inset: 0;
 	pointer-events: auto;
 	cursor: move;
+	/* The body owns the move gesture: stop the browser from hijacking the touch
+	   for panning/pinch-zoom so a finger drag actually moves the element. */
+	touch-action: none;
 }
 
 .pptx-vue-resize-handle {
@@ -379,6 +395,19 @@ function rotateKnobStyle(box: SelectedBox): Record<string, string> {
 	background: var(--pptx-vue-selection-color, #3b82f6);
 	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 	pointer-events: auto;
+	/* Resize handles must own their touch gesture (no scroll/zoom stealing). */
+	touch-action: none;
+}
+
+/*
+ * On coarse (touch) pointers a 10px handle is far too small to grab reliably.
+ * Grow the resize/rotate hit targets to a finger-friendly size; the visual
+ * footprint stays modest but the tappable area is large.
+ */
+.pptx-vue-selection-overlay.is-coarse-pointer .pptx-vue-resize-handle {
+	width: 22px;
+	height: 22px;
+	margin: -11px 0 0 -11px;
 }
 
 .pptx-vue-rotate-stem {
@@ -401,5 +430,12 @@ function rotateKnobStyle(box: SelectedBox): Record<string, string> {
 	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 	cursor: grab;
 	pointer-events: auto;
+	touch-action: none;
+}
+
+.pptx-vue-selection-overlay.is-coarse-pointer .pptx-vue-rotate-knob {
+	width: 24px;
+	height: 24px;
+	margin: -12px 0 0 -12px;
 }
 </style>

@@ -139,6 +139,45 @@ function goTo(index: number): void {
 const goPrev = () => goTo(activeSlideIndex.value - 1);
 const goNext = () => goTo(activeSlideIndex.value + 1);
 
+// ── Touch swipe navigation (view mode only) ───────────────────────────
+// On touch devices a horizontal swipe across the slide area changes slides.
+// In edit mode the same gesture must drive element drag/resize, so swipe
+// navigation is disabled while `canEdit` so it never hijacks an edit gesture.
+const SWIPE_THRESHOLD = 50;
+const touchStart = ref<{ x: number; y: number } | null>(null);
+
+function onMainTouchStart(event: TouchEvent): void {
+	if (props.canEdit) {
+		touchStart.value = null;
+		return;
+	}
+	const touch = event.changedTouches[0];
+	touchStart.value = touch ? { x: touch.clientX, y: touch.clientY } : null;
+}
+
+function onMainTouchEnd(event: TouchEvent): void {
+	const start = touchStart.value;
+	touchStart.value = null;
+	if (!start) {
+		return;
+	}
+	const touch = event.changedTouches[0];
+	if (!touch) {
+		return;
+	}
+	const dx = touch.clientX - start.x;
+	const dy = touch.clientY - start.y;
+	// Require a predominantly-horizontal gesture past the threshold.
+	if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) <= Math.abs(dy)) {
+		return;
+	}
+	if (dx < 0) {
+		goNext();
+	} else {
+		goPrev();
+	}
+}
+
 // ── Zoom ──────────────────────────────────────────────────────────────
 const zoom = ref(1);
 const ZOOM_STEP = 0.1;
@@ -1009,9 +1048,12 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 
 				<main
 					class="pptx-vue-main"
+					:class="{ 'is-editable': props.canEdit }"
 					@pointerdown="onCanvasPointerDown"
 					@contextmenu="onCanvasContextMenu"
 					@pointermove="onCollabPointerMove"
+					@touchstart="onMainTouchStart"
+					@touchend="onMainTouchEnd"
 				>
 					<SlideCanvas
 						:slide="activeSlide"

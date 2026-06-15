@@ -177,6 +177,16 @@
 	background: #1e293b;
 }
 
+/*
+ * In editor mode the slide surface must own all pointer/touch gestures so a
+ * finger drag/resize/rotate isn't stolen by the browser for panning or
+ * pinch-zoom. View-only mode keeps default touch behaviour so the slide can
+ * still be scrolled.
+ */
+.pptx-vue-main.is-editable .pptx-vue-stage {
+	touch-action: none;
+}
+
 /* ── Canvas ─────────────────────────────────────────────────────────── */
 .pptx-vue-canvas-viewport {
 	width: 100%;
@@ -197,4 +207,76 @@
 	color: rgba(99, 102, 241, 0.8);
 	font-size: 0.75rem;
 	background: rgba(99, 102, 241, 0.06);
+}
+
+/* ── Mobile / coarse-pointer ─────────────────────────────────────────── */
+/*
+ * On small screens and touch devices the toolbar buttons are too small to tap
+ * reliably and the toolbar overflows. Below we (1) grow the nav/zoom buttons to
+ * ≥44px touch targets, (2) let the toolbar wrap / scroll horizontally instead
+ * of overflowing, and (3) collapse the side panels so the slide canvas gets the
+ * available width. Horizontal swipe navigation is wired up in the component
+ * (touchstart/touchend on <main>) for non-editing mode; the dedicated mobile
+ * bottom bar and the large ‹ › buttons remain the always-available fallback.
+ */
+@media (max-width: 640px), (pointer: coarse) {
+	.pptx-vue-toolbar {
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		row-gap: 0.5rem;
+		padding: 0.5rem;
+	}
+
+	.pptx-vue-zoom {
+		flex: 1 1 100%;
+		flex-wrap: wrap;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+		scrollbar-width: thin;
+		padding-bottom: 0.15rem;
+	}
+
+	.pptx-vue-nav button,
+	.pptx-vue-zoom button {
+		min-width: 44px;
+		min-height: 44px;
+		height: auto;
+		padding: 0 0.65rem;
+		font-size: 1.1rem;
+		flex: 0 0 auto;
+	}
+
+	/* Emphasise the prev/next controls — primary on-screen navigation. */
+	.pptx-vue-nav button {
+		font-size: 1.5rem;
+		font-weight: 600;
+	}
+
+	/* Shrink the slide thumbnails rail to a slim horizontal strip. */
+	.pptx-vue-thumbnails {
+		flex-direction: row;
+		width: auto;
+		max-width: 100%;
+		overflow-x: auto;
+		overflow-y: hidden;
+		border-right: none;
+		border-bottom: 1px solid var(--pptx-border);
+		padding: 0.5rem;
+	}
+
+	.pptx-vue-thumbnails .pptx-vue-thumb {
+		flex: 0 0 4.5rem;
+		width: 4.5rem;
+	}
+
+	/* Stack the body vertically so the canvas spans the full width. */
+	.pptx-vue-body {
+		flex-direction: column;
+	}
+
+	/* Give the canvas the bulk of the vertical space. */
+	.pptx-vue-main {
+		flex: 1 1 auto;
+		min-height: 50vh;
+	}
 }

@@ -29,12 +29,16 @@ describe('notesPanel', () => {
 		expect((textarea.element as HTMLTextAreaElement).value).toBe('');
 	});
 
-	it('emits update with the new text when the user types', async () => {
+	it('emits update with the new text when the edit is committed', async () => {
 		const wrapper = mount(NotesPanel, {
 			props: { slide: makeSlide({ notes: 'old' }) },
 		});
 		const textarea = wrapper.get('textarea');
-		await textarea.setValue('new notes text');
+		// The field is uncontrolled and commits on `change`/`blur` (not per
+		// keystroke) so the host's history-aware reassignment cannot remount it
+		// mid-typing (which on mobile dismisses the on-screen keyboard).
+		(textarea.element as HTMLTextAreaElement).value = 'new notes text';
+		await textarea.trigger('change');
 
 		const emitted = wrapper.emitted('update');
 		expect(emitted).toBeTruthy();
