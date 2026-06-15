@@ -19,10 +19,11 @@ import {
 	createShapeElement,
 	createTextElement,
 } from 'pptx-viewer-core';
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlideTransition } from 'pptx-viewer-core';
 import { computed, nextTick, ref, toRef, watch } from 'vue';
 
 import { provideViewerTheme, useThemeStyle } from '../theme';
+import AccessibilityPanel from './components/AccessibilityPanel.vue';
 import ContextMenu from './components/ContextMenu.vue';
 import type { ContextMenuItem } from './components/ContextMenu.vue';
 import EditorToolbar from './components/EditorToolbar.vue';
@@ -34,8 +35,11 @@ import InspectorPane from './components/inspector/InspectorPane.vue';
 import PresentationMode from './components/PresentationMode.vue';
 import SelectionOverlay from './components/SelectionOverlay.vue';
 import SlideCanvas from './components/SlideCanvas.vue';
+import SlideSorter from './components/SlideSorter.vue';
 import SlidesPaneControls from './components/SlidesPaneControls.vue';
 import SlideStage from './components/SlideStage.vue';
+import SlideTransitionPanel from './components/SlideTransitionPanel.vue';
+import { useAccessibility } from './composables/useAccessibility';
 import { useEditorHistory } from './composables/useEditorHistory';
 import { useEditorOperations } from './composables/useEditorOperations';
 import { useExport } from './composables/useExport';
@@ -427,6 +431,33 @@ function onExportPng(): void {
 function onExportPdf(): void {
 	void exporter.exportPdf();
 }
+
+// ── Slide sorter (grid overview + drag reorder) ───────────────────────
+const showSorter = ref(false);
+function onSorterSelect(index: number): void {
+	goTo(index);
+	showSorter.value = false;
+}
+function onSorterReorder(from: number, to: number): void {
+	slideOps.moveSlide(from, to);
+}
+
+// ── Accessibility checker ─────────────────────────────────────────────
+const showA11y = ref(false);
+const a11y = useAccessibility(slides);
+
+// ── Slide transition ──────────────────────────────────────────────────
+function onTransitionUpdate(transition: PptxSlideTransition | undefined): void {
+	const index = activeSlideIndex.value;
+	const slide = slides.value[index];
+	if (!slide) {
+		return;
+	}
+	history.pushHistory();
+	const nextSlides = slides.value.slice();
+	nextSlides[index] = { ...slide, transition };
+	slides.value = nextSlides;
+}
 function sendBackward(): void {
 	for (const id of [...selectedElementIds.value]) {
 		ops.sendBackward(id);
@@ -527,6 +558,26 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						@export-png="onExportPng"
 						@export-pdf="onExportPdf"
 					/>
+					<button
+						v-if="slideCount > 0"
+						type="button"
+						class="pptx-vue-sorter-btn"
+						title="Slide sorter"
+						aria-label="Slide sorter"
+						@click="showSorter = true"
+					>
+						▦
+					</button>
+					<button
+						v-if="props.canEdit"
+						type="button"
+						class="pptx-vue-a11y-btn"
+						:title="`Accessibility (${a11y.issueCount.value})`"
+						aria-label="Accessibility checker"
+						@click="showA11y = !showA11y"
+					>
+						♿ {{ a11y.issueCount.value }}
+					</button>
 				</div>
 			</header>
 
@@ -573,6 +624,11 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						@add="slideOps.addSlide()"
 						@duplicate="slideOps.duplicateSlide(activeSlideIndex)"
 						@delete="slideOps.deleteSlide(activeSlideIndex)"
+					/>
+					<SlideTransitionPanel
+						v-if="props.canEdit && activeSlide"
+						:slide="activeSlide"
+						@update="onTransitionUpdate"
 					/>
 					<button
 						v-for="(slide, index) in slides"
@@ -626,6 +682,13 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					:element="inspectorElement"
 					@update="onInspectorUpdate"
 				/>
+
+				<!-- Accessibility checker -->
+				<AccessibilityPanel
+					v-if="props.canEdit && showA11y"
+					:issues="a11y.issues.value"
+					@select-slide="goTo"
+				/>
 			</div>
 
 			<!-- Element context menu (edit mode) -->
@@ -662,6 +725,18 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				/>
 			</div>
 		</template>
+
+		<!-- Slide sorter overlay -->
+		<SlideSorter
+			v-if="showSorter"
+			:slides="slides"
+			:canvas-size="canvasSize"
+			:media-data-urls="mediaDataUrls"
+			:active-index="activeSlideIndex"
+			@select="onSorterSelect"
+			@reorder="onSorterReorder"
+			@close="showSorter = false"
+		/>
 
 		<!-- Presentation / slideshow overlay -->
 		<PresentationMode

@@ -192,7 +192,8 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 | Editing interaction core                                          | ◑      | `useSelection` + `SelectionOverlay.vue` (8 resize handles + rotate + drag) + `element-interaction.ts` (pure transform/resize/rotate math) + `EditorToolbar.vue` (undo/redo/zoom/add-text/add-shape/delete/duplicate/forward/backward). **Wired into `PowerPointViewer`** behind `canEdit`: click-to-select (event delegation on `data-element-id`), drag/resize via overlay (1 history entry/gesture), Ctrl+Z/Y + Delete shortcuts. Edits flow to `getContent()` export |
 | Inspector panels (fill/stroke/text/image/table/chart/animation/…) | ◑      | `InspectorPane` + Arrange/Fill/Stroke/Text/Effects/**Image** (alt-text + brightness/contrast/saturation via `imageEffects`)/**Table** (insert/delete row+col, header toggle); single selection → `ops.updateElement`. Chart/animation panels still ☐                                                                                                                                                                                                                    |
 | Context menu + dialogs                                            | ◑      | `ContextMenu.vue` right-click (cut/copy/paste/delete/duplicate/forward/backward/**hyperlink**); reusable `ModalDialog.vue` + `HyperlinkDialog.vue` (edit element `actionClick` hyperlink). Other dialogs (share/broadcast/settings/properties) still ☐                                                                                                                                                                                                                  |
-| Slides pane                                                       | ◑      | `useSlideOperations` (add/delete/duplicate/move slide, history-aware) + `SlidesPaneControls.vue` in the thumbnail rail. Drag-reorder, slide sorter, notes, mobile chrome, accessibility panel still ☐                                                                                                                                                                                                                                                                   |
+| Slides pane + sorter                                              | ◑      | `useSlideOperations` (add/delete/duplicate/move) + `SlidesPaneControls`; **`SlideSorter.vue`** grid overview with HTML5 drag-reorder (→ `moveSlide`); **`SlideTransitionPanel.vue`** (per-slide transition type+duration, history-aware). Notes, mobile chrome still ☐                                                                                                                                                                                                  |
+| Accessibility panel                                               | ◑      | `useAccessibility` (core `checkMissingAltText`/`checkLowContrast`/… aggregated) + `AccessibilityPanel.vue` — grouped issues, click → jump to slide; header button shows live issue count                                                                                                                                                                                                                                                                                |
 
 ### Advanced subsystems (all ☐ — not started)
 
@@ -421,3 +422,18 @@ equationXml` OMML → MathML (ported from React's three omml-\* files, core only
   cloned `tableData`, header-row toggle) added to `InspectorPane`. 20 new tests
   (473 total green); typecheck/lint clean; build green. Two parallel subagents
   (panels) + export written directly (dependency-coupled).
+- **2026-06-15** — Batch 10: accessibility + slide sorter + transitions.
+  `useAccessibility` (aggregates core `checkMissingAltText`/`checkMissingSlideTitle`/
+  `checkLowContrast`/`checkComplexTables`/`checkBlankSlide`/`checkDuplicateTitles`
+  — `checkPresentation` needs full `PptxData`, so the per-check fns are called
+  over slides) + `AccessibilityPanel.vue` (grouped issues, click→jump, live count
+  in a header button). `SlideSorter.vue` (grid overview, HTML5 drag-reorder →
+  `slideOps.moveSlide`, opened from a header button as a full overlay).
+  `SlideTransitionPanel.vue` (per-slide transition type from the real
+  `PptxTransitionType` union + `durationMs`, written to `slide.transition` via a
+  history-aware reassignment) in the thumbnail rail. 19 new tests (492 total
+  green); typecheck/lint clean; build green. Three parallel subagents + central
+  wiring. **Remaining ☐:** collaboration (Yjs), animations (element-level
+  entrance/exit/emphasis + playback), comments, notes editing, digital
+  signatures, font embedding, mobile chrome, chart/animation inspector panels,
+  autosave, broadcast/share/properties dialogs.
