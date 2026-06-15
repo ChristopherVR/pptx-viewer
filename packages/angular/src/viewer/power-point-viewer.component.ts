@@ -18,6 +18,8 @@ import type { ViewerTheme } from '../internal/shared';
 import { themeStyle } from '../theme/viewer-theme';
 import { AccessibilityPanelComponent } from './accessibility-panel.component';
 import { AccessibilityService } from './accessibility.service';
+import { BroadcastDialogComponent } from './broadcast-dialog.component';
+import type { BroadcastConfig } from './broadcast-helpers';
 import { CollaborationCursorsComponent } from './collaboration-cursors.component';
 import { CollaborationService } from './collaboration.service';
 import {
@@ -45,6 +47,7 @@ import { PrintDialogComponent } from './print-dialog.component';
 import type { PrintSettings } from './print-helpers';
 import { PrintService } from './print.service';
 import { PropertiesDialogComponent } from './properties-dialog.component';
+import { ShareDialogComponent } from './share-dialog.component';
 import { SignaturesPanelComponent } from './signatures-panel.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
@@ -104,6 +107,8 @@ const ZOOM_MAX = 3;
 		PropertiesDialogComponent,
 		HyperlinkDialogComponent,
 		PrintDialogComponent,
+		ShareDialogComponent,
+		BroadcastDialogComponent,
 	],
 	template: `
 		<div class="pptx-ng-viewer" [ngClass]="class()" [ngStyle]="rootStyle()">
@@ -265,6 +270,22 @@ const ZOOM_MAX = 3;
 						</button>
 						<button type="button" [disabled]="slideCount() === 0" (click)="present()">
 							Present
+						</button>
+						<button
+							type="button"
+							[class.is-active]="collab.connected()"
+							(click)="showShare.set(true)"
+							aria-label="Share for collaboration"
+						>
+							Share
+						</button>
+						<button
+							type="button"
+							[disabled]="slideCount() === 0"
+							(click)="showBroadcast.set(true)"
+							aria-label="Broadcast presentation"
+						>
+							Broadcast
 						</button>
 					</div>
 				</header>
@@ -469,6 +490,22 @@ const ZOOM_MAX = 3;
 					(cancel)="print.closeDialog()"
 				/>
 			}
+
+			<pptx-share-dialog
+				[open]="showShare()"
+				[active]="collab.connected()"
+				(start)="onShareStart($event)"
+				(stop)="onShareStop()"
+				(close)="showShare.set(false)"
+			/>
+
+			<pptx-broadcast-dialog
+				[open]="showBroadcast()"
+				[active]="collab.connected()"
+				(start)="onBroadcastStart($event)"
+				(stop)="onBroadcastStop()"
+				(close)="showBroadcast.set(false)"
+			/>
 		</div>
 	`,
 })
@@ -541,6 +578,10 @@ export class PowerPointViewerComponent {
 	protected readonly showProperties = signal(false);
 	/** Hyperlink-edit dialog visibility. */
 	protected readonly showHyperlink = signal(false);
+	/** Share (collaboration) dialog visibility. */
+	protected readonly showShare = signal(false);
+	/** Broadcast dialog visibility. */
+	protected readonly showBroadcast = signal(false);
 	/** Local overrides applied to document properties via the Info dialog. */
 	private readonly coreOverride = signal<Partial<PptxCoreProperties>>({});
 	/** Comments on the active slide. */
@@ -712,6 +753,34 @@ export class PowerPointViewerComponent {
 			this.editor.applyReplacement(updated.slides, 'Replace all');
 		}
 		this.refreshFindResults(evt.query);
+	}
+
+	// ── Collaboration: share & broadcast ───────────────────────────────────────
+
+	/** Start a real-time collaboration session from the share dialog config. */
+	protected onShareStart(config: CollaborationConfig): void {
+		void this.collab.connect(config);
+		this.showShare.set(false);
+	}
+
+	protected onShareStop(): void {
+		this.collab.disconnect();
+	}
+
+	/** Start broadcasting (presenter as session owner) from the broadcast config. */
+	protected onBroadcastStart(config: BroadcastConfig): void {
+		const collabConfig: CollaborationConfig = {
+			roomId: config.roomId,
+			serverUrl: config.serverUrl,
+			userName: 'Presenter',
+			role: 'owner',
+		};
+		void this.collab.connect(collabConfig);
+		this.showBroadcast.set(false);
+	}
+
+	protected onBroadcastStop(): void {
+		this.collab.disconnect();
 	}
 
 	/** Horizontal-swipe tracking start coordinates (touch begins on the canvas). */
