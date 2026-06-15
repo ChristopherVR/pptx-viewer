@@ -11,8 +11,28 @@ import {
 	ENTRANCE_PRESETS,
 	EXIT_PRESETS,
 	getAnimationPresetInfo,
+	ooxmlToPresetName,
 } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
+
+/**
+ * Resolve an editor catalog id (e.g. `entr.10`) to the real `PptxAnimationPreset`
+ * string-union value (e.g. `fadeIn`) via core's `ooxmlToPresetName`, so animations
+ * added here map to the right keyframe in presentation playback. Falls back to the
+ * catalog id when core has no mapping (rare presets).
+ */
+function catalogIdToPreset(catalogId: string): PptxAnimationPreset {
+	const dot = catalogId.indexOf('.');
+	const cls = dot > 0 ? catalogId.slice(0, dot) : '';
+	const num = dot > 0 ? Number(catalogId.slice(dot + 1)) : Number.NaN;
+	if ((cls === 'entr' || cls === 'exit' || cls === 'emph') && Number.isFinite(num)) {
+		const name = ooxmlToPresetName({ presetClass: cls, presetId: num });
+		if (name) {
+			return name as PptxAnimationPreset;
+		}
+	}
+	return catalogId as PptxAnimationPreset;
+}
 
 /**
  * AnimationPanel — Vue inspector panel for an element's animation list.
@@ -111,10 +131,9 @@ function buildAnimation(): PptxElementAnimation | undefined {
 	if (!info) {
 		return undefined;
 	}
-	// `PptxAnimationPreset` is a string-literal union; the catalog id is a
-	// stable preset key. We mirror the React panel which assigns the chosen
-	// preset string into the field via `as PptxAnimationPreset`.
-	const preset = info.presetId as PptxAnimationPreset;
+	// Convert the catalog id (e.g. `entr.10`) to the real `PptxAnimationPreset`
+	// string (e.g. `fadeIn`) so the choice maps to the right playback keyframe.
+	const preset = catalogIdToPreset(info.presetId);
 	const base: PptxElementAnimation = {
 		elementId: props.element.id,
 		durationMs: info.defaultDurationMs,

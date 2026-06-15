@@ -498,3 +498,26 @@ equationXml` OMML → MathML (ported from React's three omml-\* files, core only
   — whole-doc sync + cursors, not yet fine-grained CRDT / presence / follow-mode.
   **Remaining ☐:** broadcast dialog, mobile chrome, granular CRDT collaboration,
   unified animation-preset id mapping, properties persistence to saved `.pptx`.
+- **2026-06-15** — Batch 15 (final polish): broadcast + mobile + animation-id fix.
+  **BroadcastDialog.vue** (one-way present-to-audience: room/server form →
+  starts a collab session; viewer link + copy) wired with a viewer-URL builder.
+  **Mobile chrome**: `useIsMobile` (matchMedia) + `MobileBottomBar.vue` (fixed
+  touch bar: nav/zoom/present/menu); the desktop header is hidden under 768px.
+  **Animation-preset fix**: `AnimationPanel` now converts the editor catalog id
+  (`entr.10`) to the real `PptxAnimationPreset` string (`fadeIn`) via core
+  `ooxmlToPresetName`, so panel-added animations resolve to the correct keyframe
+  in `PresentationMode` (no more fade-fallback). 18 new tests (634 total green);
+  typecheck/lint clean; build green.
+
+> **Port status (2026-06-15):** the Vue editor now covers essentially the full
+> React feature surface — rendering (all element types + effects/3D/equations/
+> warp), editing (select/drag/resize/align/group/undo), the complete inspector
+> (9 panels), slides pane + sorter + transitions + notes, presentation mode with
+> animation playback, find/replace, comments, export (PNG/PDF), accessibility,
+> hyperlink/properties/share/broadcast dialogs, autosave, embedded fonts, digital
+> signatures, Yjs collaboration (cursors), and mobile chrome. **Known
+> limitations / not-yet-done:** collaboration is whole-document broadcast (not
+> fine-grained CRDT) with cursors but no selection-presence/follow-mode;
+> Properties edits are in-memory (not persisted to the saved `.pptx`); GIF/video
+> export, presenter view, and the 8-way directional animation variants are
+> deferred. 634 tests; everything green on `main`.

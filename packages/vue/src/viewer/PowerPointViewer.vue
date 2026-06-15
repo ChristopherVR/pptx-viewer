@@ -32,6 +32,7 @@ import { provideViewerTheme, useThemeStyle } from '../theme';
 import AccessibilityPanel from './components/AccessibilityPanel.vue';
 import AlignToolbar from './components/AlignToolbar.vue';
 import AutosaveIndicator from './components/AutosaveIndicator.vue';
+import BroadcastDialog from './components/BroadcastDialog.vue';
 import CollaborationCursors from './components/CollaborationCursors.vue';
 import CommentsPanel from './components/CommentsPanel.vue';
 import ContextMenu from './components/ContextMenu.vue';
@@ -42,6 +43,7 @@ import ExportMenu from './components/ExportMenu.vue';
 import FindReplaceBar from './components/FindReplaceBar.vue';
 import HyperlinkDialog from './components/HyperlinkDialog.vue';
 import InspectorPane from './components/inspector/InspectorPane.vue';
+import MobileBottomBar from './components/MobileBottomBar.vue';
 import NotesPanel from './components/NotesPanel.vue';
 import PresentationMode from './components/PresentationMode.vue';
 import PropertiesDialog from './components/PropertiesDialog.vue';
@@ -65,6 +67,7 @@ import { useEditorOperations } from './composables/useEditorOperations';
 import { useEmbeddedFonts } from './composables/useEmbeddedFonts';
 import { useExport } from './composables/useExport';
 import { useFindReplace } from './composables/useFindReplace';
+import { useIsMobile } from './composables/useIsMobile';
 import { useLoadContent } from './composables/useLoadContent';
 import { useSignatures } from './composables/useSignatures';
 import { useSlideOperations } from './composables/useSlideOperations';
@@ -709,6 +712,36 @@ function onCollabPointerMove(event: PointerEvent): void {
 const showSignatures = ref(false);
 const signaturesApi = useSignatures(signatures);
 
+// ── Broadcast ─────────────────────────────────────────────────────────
+const broadcastOpen = ref(false);
+const broadcastConfig = ref<{ roomId: string; serverUrl: string } | null>(null);
+const broadcastViewerUrl = computed(() => {
+	if (!broadcastConfig.value || typeof window === 'undefined') {
+		return '';
+	}
+	const { roomId, serverUrl } = broadcastConfig.value;
+	const base = `${window.location.origin}${window.location.pathname}`;
+	return `${base}?broadcast=${encodeURIComponent(roomId)}&server=${encodeURIComponent(serverUrl)}`;
+});
+function onBroadcastStart(config: { roomId: string; serverUrl: string }): void {
+	broadcastConfig.value = config;
+	void collab.start({ ...config, userName: props.authorName ?? 'Presenter' });
+	emit('start-collaboration', { ...config, userName: props.authorName ?? 'Presenter' });
+	broadcastOpen.value = false;
+}
+function onBroadcastStop(): void {
+	broadcastConfig.value = null;
+	collab.stop();
+	emit('stop-collaboration');
+	broadcastOpen.value = false;
+}
+
+// ── Responsive / mobile chrome ────────────────────────────────────────
+const { isMobile } = useIsMobile();
+function present(): void {
+	presenting.value = true;
+}
+
 // ── Document properties dialog ────────────────────────────────────────
 const propertiesOpen = ref(false);
 const docProperties = computed<DocumentProperties>(() => coreProperties.value ?? {});
@@ -784,7 +817,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 
 		<!-- Viewer -->
 		<template v-else>
-			<header class="pptx-vue-toolbar">
+			<header v-if="!isMobile" class="pptx-vue-toolbar">
 				<div class="pptx-vue-nav">
 					<button type="button" :disabled="activeSlideIndex <= 0" @click="goPrev">‹</button>
 					<span class="pptx-vue-slide-counter">
@@ -859,6 +892,15 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						@click="shareOpen = true"
 					>
 						⤴
+					</button>
+					<button
+						type="button"
+						class="pptx-vue-broadcast-btn"
+						title="Broadcast"
+						aria-label="Broadcast"
+						@click="broadcastOpen = true"
+					>
+						📡
 					</button>
 					<button
 						type="button"
@@ -1057,6 +1099,31 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				:properties="docProperties"
 				@save="onPropertiesSave"
 				@close="propertiesOpen = false"
+			/>
+
+			<!-- Broadcast -->
+			<BroadcastDialog
+				:open="broadcastOpen"
+				:active="collabActive"
+				:viewer-url="broadcastViewerUrl"
+				:defaults="{ serverUrl: props.shareDefaults?.serverUrl }"
+				@start="onBroadcastStart"
+				@stop="onBroadcastStop"
+				@close="broadcastOpen = false"
+			/>
+
+			<!-- Mobile bottom bar -->
+			<MobileBottomBar
+				v-if="isMobile"
+				:slide-index="activeSlideIndex"
+				:slide-count="slideCount"
+				:zoom-percent="zoomPercent"
+				@prev="goPrev"
+				@next="goNext"
+				@zoom-in="zoomIn"
+				@zoom-out="zoomOut"
+				@present="present"
+				@menu="showSorter = true"
 			/>
 
 			<!-- Off-screen stage used to rasterise slides for export -->

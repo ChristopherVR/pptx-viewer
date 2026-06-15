@@ -1,9 +1,20 @@
 import { mount } from '@vue/test-utils';
 import type { PptxElement, PptxElementAnimation } from 'pptx-viewer-core';
-import { ENTRANCE_PRESETS, EXIT_PRESETS } from 'pptx-viewer-core';
+import { ENTRANCE_PRESETS, EXIT_PRESETS, ooxmlToPresetName } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import AnimationPanel from './AnimationPanel.vue';
+
+/** Mirror the panel's catalog-id → real-preset conversion for assertions. */
+function presetOf(catalogId: string): string {
+	const dot = catalogId.indexOf('.');
+	const cls = catalogId.slice(0, dot);
+	const num = Number(catalogId.slice(dot + 1));
+	if (cls === 'entr' || cls === 'exit' || cls === 'emph') {
+		return ooxmlToPresetName({ presetClass: cls, presetId: num }) ?? catalogId;
+	}
+	return catalogId;
+}
 
 type AnimatableElement = PptxElement & { animations?: PptxElementAnimation[] };
 
@@ -61,7 +72,7 @@ describe('animationPanel', () => {
 		const added = patch.animations?.[0];
 		expect(added).toMatchObject({
 			elementId: 'sp1',
-			entrance: chosen.presetId,
+			entrance: presetOf(chosen.presetId),
 			trigger: 'withPrevious',
 			durationMs: chosen.defaultDurationMs,
 			order: 0,
@@ -93,7 +104,7 @@ describe('animationPanel', () => {
 		expect(patch.animations?.[0]).toMatchObject(existing);
 		expect(patch.animations?.[1]).toMatchObject({
 			elementId: 'sp1',
-			exit: chosen.presetId,
+			exit: presetOf(chosen.presetId),
 			order: 1,
 		});
 	});
