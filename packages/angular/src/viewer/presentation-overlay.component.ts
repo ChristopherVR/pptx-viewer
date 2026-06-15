@@ -2,17 +2,22 @@ import { NgStyle } from '@angular/common';
 import {
 	ChangeDetectionStrategy,
 	Component,
+	ElementRef,
 	HostListener,
 	OnDestroy,
 	OnInit,
 	computed,
+	effect,
+	inject,
 	input,
 	output,
 	signal,
+	viewChild,
 } from '@angular/core';
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
+import { AnimationPlaybackService } from './animation-playback.service';
 import {
 	clampIndex,
 	fitZoom,
@@ -57,6 +62,7 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [NgStyle, SlideCanvasComponent, PresentationTransitionOverlayComponent],
+	providers: [AnimationPlaybackService],
 	styles: `
 		:host {
 			display: block;
@@ -87,6 +93,7 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 			(touchend)="onTouchEnd($event)"
 		>
 			<div
+				#stage
 				class="pptx-ng-presentation-stage"
 				[ngStyle]="stageContainerStyle()"
 				(click)="onBodyClick($event)"
@@ -183,6 +190,65 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 		outgoing: PptxSlide;
 		transition: PptxSlideTransition;
 	} | null>(null);
+
+	/** Click-stepped element-animation playback for the current slide. */
+	protected readonly playback = inject(AnimationPlaybackService);
+
+	/** The slide stage root — animation styles are applied to its elements. */
+	private readonly stageRef = viewChild<ElementRef<HTMLElement>>('stage');
+
+	constructor() {
+		// Feed the current slide's element animations into playback (resets to the
+		// pre-build state so entrance-animated elements start hidden).
+		effect(() => {
+			this.playback.setAnimations(this.currentSlide()?.animations);
+		});
+
+		// Apply the reveal / pending styles to the rendered elements whenever the
+		// playback step or the slide changes. Deferred to an animation frame so the
+		// new slide's `[data-element-id]` nodes are in the DOM first.
+		effect(() => {
+			// Register reactive dependencies.
+			this.playback.elementStyles();
+			this.playback.pendingStyles();
+			this.currentSlide();
+			if (typeof requestAnimationFrame === 'function') {
+				requestAnimationFrame(() => this.applyAnimationStyles());
+			} else {
+				this.applyAnimationStyles();
+			}
+		});
+	}
+
+	/**
+	 * Imperatively apply animation reveal / pending CSS to the slide's element
+	 * nodes (mirrors the Vue `applyAnimationStyles`). Every renderer emits a
+	 * `data-element-id`, so this needs no per-element renderer plumbing.
+	 */
+	private applyAnimationStyles(): void {
+		const root = this.stageRef()?.nativeElement;
+		if (!root) {
+			return;
+		}
+		const revealed = this.playback.elementStyles();
+		const pending = this.playback.pendingStyles();
+		const nodes = root.querySelectorAll<HTMLElement>('[data-element-id]');
+		nodes.forEach((el) => {
+			const id = el.dataset['elementId'];
+			if (!id) {
+				return;
+			}
+			el.style.removeProperty('animation');
+			el.style.removeProperty('opacity');
+			el.style.removeProperty('visibility');
+			const active = revealed.get(id) ?? pending.get(id);
+			if (active) {
+				for (const [prop, value] of Object.entries(active)) {
+					el.style.setProperty(prop, value);
+				}
+			}
+		});
+	}
 
 	/** Viewport dimensions — updated on resize. */
 	private readonly viewportW = signal(0);
@@ -493,6 +559,12 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 		const slides = this.slides();
 		const count = slides.length;
 		if (count === 0) {
+			return;
+		}
+
+		// On forward navigation, first reveal the next click-group of element
+		// animations; only advance the slide once the slide's builds are exhausted.
+		if (direction === 'next' && this.playback.advance()) {
 			return;
 		}
 
