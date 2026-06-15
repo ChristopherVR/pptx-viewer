@@ -12,7 +12,12 @@ import {
 	getTextBlockStyle,
 } from './element-style';
 import type { StyleMap } from './element-style';
+import { InkRendererComponent } from './ink-renderer.component';
+import { Model3DRendererComponent } from './model3d-renderer.component';
+import { OleRendererComponent } from './ole-renderer.component';
+import { SmartArtRendererComponent } from './smart-art-renderer.component';
 import { TableRendererComponent } from './table-renderer.component';
+import { ZoomRendererComponent } from './zoom-renderer.component';
 
 interface TextRun {
 	text: string;
@@ -25,27 +30,80 @@ interface TextRun {
  *
  * Renders a single slide element by its `type` discriminant (viewer-first
  * subset):
- *  - `text` / `shape`    → positioned box with fill/stroke + rich text
+ *  - `text` / `shape`    → positioned box with fill/stroke + rich text + effects
  *  - `connector`         → SVG straight/bent/curved connector
  *  - `chart`             → inline-SVG chart (bar/line/area/pie/scatter)
  *  - `table`             → HTML `<table>`
+ *  - `smartArt`          → SVG drawing-shapes / node-text fallback
+ *  - `ink`               → SVG ink strokes
+ *  - `ole`               → embedded-object preview / icon
+ *  - `model3d`           → poster / placeholder (no three.js)
+ *  - `zoom`              → slide/section zoom thumbnail
  *  - `picture` / `image` → `<img>`
  *  - `media`             → poster frame (`<img>`) — playback TODO
  *  - `group`             → recursive children (self-referencing selector)
  *  - everything else     → labelled placeholder (TODO, see PORTING.md)
  *
- * Interaction (selection, resize, inline editing), SmartArt, ink, OLE, and 3D
- * are not yet ported.
+ * Interaction (selection, resize, inline editing) is not yet ported.
  */
 @Component({
 	selector: 'pptx-element-renderer',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle, ConnectorRendererComponent, TableRendererComponent, ChartRendererComponent],
+	imports: [
+		NgStyle,
+		ConnectorRendererComponent,
+		TableRendererComponent,
+		ChartRendererComponent,
+		SmartArtRendererComponent,
+		InkRendererComponent,
+		OleRendererComponent,
+		Model3DRendererComponent,
+		ZoomRendererComponent,
+	],
 	template: `
 		@switch (true) {
 			@case (element().type === 'connector') {
 				<pptx-connector-renderer [element]="element()" [zIndex]="zIndex()" />
+			}
+			@case (element().type === 'ink') {
+				<pptx-ink-renderer
+					[element]="element()"
+					[zIndex]="zIndex()"
+					[mediaDataUrls]="mediaDataUrls()"
+				/>
+			}
+			@case (element().type === 'zoom') {
+				<pptx-zoom-renderer
+					[element]="element()"
+					[zIndex]="zIndex()"
+					[mediaDataUrls]="mediaDataUrls()"
+				/>
+			}
+			@case (element().type === 'model3d') {
+				<pptx-model3d-renderer
+					[element]="element()"
+					[zIndex]="zIndex()"
+					[mediaDataUrls]="mediaDataUrls()"
+				/>
+			}
+			@case (element().type === 'smartArt') {
+				<div
+					class="pptx-ng-element pptx-ng-smartart"
+					[ngStyle]="containerStyle()"
+					[attr.data-element-id]="element().id"
+				>
+					<pptx-smart-art-renderer [element]="element()" [zIndex]="zIndex()" />
+				</div>
+			}
+			@case (element().type === 'ole') {
+				<div
+					class="pptx-ng-element pptx-ng-ole"
+					[ngStyle]="containerStyle()"
+					[attr.data-element-id]="element().id"
+				>
+					<pptx-ole-renderer [element]="element()" [zIndex]="zIndex()" />
+				</div>
 			}
 			@case (element().type === 'chart') {
 				<div
@@ -198,13 +256,8 @@ export class ElementRendererComponent {
 
 	readonly placeholderLabel = computed(() => {
 		const map: Record<string, string> = {
-			smartArt: 'SmartArt',
 			group: 'Group',
 			media: 'Media',
-			ink: 'Ink',
-			ole: 'Embedded object',
-			model3d: '3D model',
-			zoom: 'Zoom',
 		};
 		return map[this.element().type] ?? this.element().type;
 	});

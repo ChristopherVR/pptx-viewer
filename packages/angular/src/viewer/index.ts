@@ -4,6 +4,11 @@ export { ElementRendererComponent } from './element-renderer.component';
 export { ConnectorRendererComponent } from './connector-renderer.component';
 export { TableRendererComponent } from './table-renderer.component';
 export { ChartRendererComponent } from './chart-renderer.component';
+export { SmartArtRendererComponent } from './smart-art-renderer.component';
+export { InkRendererComponent } from './ink-renderer.component';
+export { OleRendererComponent } from './ole-renderer.component';
+export { Model3DRendererComponent } from './model3d-renderer.component';
+export { ZoomRendererComponent } from './zoom-renderer.component';
 export { LoadContentService } from './load-content.service';
 
 export type { CanvasSize, CollaborationConfig, CollaborationRole } from './types';

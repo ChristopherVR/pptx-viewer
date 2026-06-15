@@ -3,6 +3,7 @@ import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 
 import { DEFAULT_STROKE_COLOR, DEFAULT_TEXT_COLOR } from '../internal/shared';
 import { getResolvedShapeClipPath } from './shape-geometry';
+import { getComputedEffectStyle } from './visual-effects';
 
 /**
  * Basic, framework-agnostic style computation for slide elements, returning
@@ -106,6 +107,32 @@ export function getShapeFillStrokeStyle(el: PptxElement): StyleMap {
 					: 'solid';
 			style['border'] = `${px(strokeWidth)} ${dash} ${ss.strokeColor ?? DEFAULT_STROKE_COLOR}`;
 		}
+	}
+
+	// Visual effects (outer/inner/glow shadows, blur/soft-edge filters,
+	// reflection, blend mode, effect-DAG alpha). Applied to every return path
+	// below. Mirrors the Vue port's `getComputedEffectStyle` integration; the
+	// duotone DAG `url(#…)` reference is stripped until the SVG <filter> is
+	// injected.
+	const fx = getComputedEffectStyle(el);
+	if (fx.boxShadow) {
+		style['box-shadow'] = fx.boxShadow;
+	}
+	if (fx.filter) {
+		const filter = fx.filter.replace(/\s*url\(#[^)]*\)/gu, '').trim();
+		if (filter) {
+			style['filter'] = filter;
+		}
+	}
+	if (fx.webkitBoxReflect) {
+		style['-webkit-box-reflect'] = fx.webkitBoxReflect;
+	}
+	if (fx.mixBlendMode) {
+		style['mix-blend-mode'] = fx.mixBlendMode;
+	}
+	if (fx.opacity !== undefined) {
+		const elementOpacity = typeof el.opacity === 'number' ? el.opacity : 1;
+		style['opacity'] = elementOpacity * fx.opacity;
 	}
 
 	// Geometry. ellipse / roundRect get cheap `border-radius` approximations;
