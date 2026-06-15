@@ -17,6 +17,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import type { ViewerTheme } from '../internal/shared';
 import { themeStyle } from '../theme/viewer-theme';
 import { EditorStateService } from './editor-state.service';
+import { EditorToolbarComponent } from './editor-toolbar.component';
 import { slideFileName } from './export-helpers';
 import { ExportService } from './export.service';
 import { FindBarComponent } from './find-bar.component';
@@ -25,6 +26,7 @@ import { LoadContentService } from './load-content.service';
 import { PresentationOverlayComponent } from './presentation-overlay.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
+import { SlidesPanelComponent } from './slides-panel.component';
 import type { CollaborationConfig } from './types';
 
 const ZOOM_STEP = 0.1;
@@ -61,6 +63,8 @@ const ZOOM_MAX = 3;
 		SlideSorterOverlayComponent,
 		FindBarComponent,
 		InspectorPanelComponent,
+		SlidesPanelComponent,
+		EditorToolbarComponent,
 	],
 	template: `
 		<div class="pptx-ng-viewer" [ngClass]="class()" [ngStyle]="rootStyle()">
@@ -156,19 +160,32 @@ const ZOOM_MAX = 3;
 					</div>
 				</header>
 
+				@if (canEdit()) {
+					<pptx-editor-toolbar [slideIndex]="activeSlideIndex()" />
+				}
+
 				<div class="pptx-ng-body">
-					<nav class="pptx-ng-thumbnails" aria-label="Slides">
-						@for (slide of displaySlides(); track slide.id; let i = $index) {
-							<button
-								type="button"
-								class="pptx-ng-thumb"
-								[class.is-active]="i === activeSlideIndex()"
-								(click)="goTo(i)"
-							>
-								<span class="pptx-ng-thumb-index">{{ i + 1 }}</span>
-							</button>
-						}
-					</nav>
+					@if (canEdit()) {
+						<pptx-slides-panel
+							[canvasSize]="loader.canvasSize()"
+							[mediaDataUrls]="loader.mediaDataUrls()"
+							[activeIndex]="activeSlideIndex()"
+							(select)="goTo($event)"
+						/>
+					} @else {
+						<nav class="pptx-ng-thumbnails" aria-label="Slides">
+							@for (slide of displaySlides(); track slide.id; let i = $index) {
+								<button
+									type="button"
+									class="pptx-ng-thumb"
+									[class.is-active]="i === activeSlideIndex()"
+									(click)="goTo(i)"
+								>
+									<span class="pptx-ng-thumb-index">{{ i + 1 }}</span>
+								</button>
+							}
+						</nav>
+					}
 
 					<main class="pptx-ng-main" #mainEl>
 						<pptx-slide-canvas
