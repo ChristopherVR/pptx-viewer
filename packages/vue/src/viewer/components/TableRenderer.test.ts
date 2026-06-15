@@ -10,6 +10,7 @@ import type {
 import type { CellTextRun } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
 
+import { TableThemeKey } from '../composables/table-theme';
 import TableRenderer from './TableRenderer.vue';
 
 function table(tableData: PptxTableData, overrides: Partial<PptxElement> = {}): PptxElement {
@@ -352,6 +353,53 @@ describe('tableRenderer', () => {
 		const style = wrapper.findAll('tr')[0].get('td').attributes('style') ?? '';
 		// The hardcoded fallback uses rgba(68, 114, 196, …).
 		expect(style).toContain('rgba(68, 114, 196');
+	});
+
+	it('resolves table-style GUID banding from the injected TableThemeKey (no props)', () => {
+		// This exercises the viewer-root provide/inject wiring: the colour scheme
+		// and parsed tableStyleMap reach the renderer through TableThemeKey rather
+		// than via props (the path PowerPointViewer uses).
+		const colorScheme: PptxThemeColorScheme = {
+			dk1: '#000000',
+			lt1: '#FFFFFF',
+			dk2: '#1F497D',
+			lt2: '#EEECE1',
+			accent1: '#C0504D',
+			accent2: '#9BBB59',
+			accent3: '#4BACC6',
+			accent4: '#8064A2',
+			accent5: '#4F81BD',
+			accent6: '#F79646',
+			hlink: '#0000FF',
+			folHlink: '#800080',
+		};
+		const styleEntry: ParsedTableStyleEntry = {
+			styleId: '{INJECTED-STYLE}',
+			firstRowFill: { schemeColor: 'accent1' },
+		};
+		const tableStyleMap: ParsedTableStyleMap = { '{INJECTED-STYLE}': styleEntry };
+
+		const headed: PptxTableData = {
+			columnWidths: [1],
+			firstRowHeader: true,
+			tableStyleId: '{INJECTED-STYLE}',
+			rows: [{ cells: [{ text: 'Header' }] }, { cells: [{ text: 'Body' }] }],
+		};
+
+		const wrapper = mount(TableRenderer, {
+			props: { element: table(headed), zIndex: 0 },
+			global: {
+				provide: {
+					// InjectionKey symbols are keyed by their symbol value at runtime.
+					[TableThemeKey as symbol]: () => ({ colorScheme, tableStyleMap }),
+				},
+			},
+		});
+		const headerCell = wrapper.findAll('tr')[0].get('td');
+		const style = headerCell.attributes('style') ?? '';
+		// The injected accent1 colour (#C0504D) resolves the header fill.
+		expect(style).toContain('#C0504D');
+		expect(style).not.toContain('rgba(68, 114, 196');
 	});
 
 	it('resolves band row colour from theme when tableStyleMap has band1HFill', () => {

@@ -1,6 +1,7 @@
 import type {
 	MediaPptxElement,
 	ParsedSignature,
+	ParsedTableStyleMap,
 	PptxCoreProperties,
 	PptxElement,
 	PptxEmbeddedFont,
@@ -87,6 +88,12 @@ export interface UseLoadContentResult {
 	embeddedFonts: ShallowRef<PptxEmbeddedFont[]>;
 	/** Parsed digital signatures (empty when unsigned). */
 	signatures: ShallowRef<ParsedSignature[]>;
+	/**
+	 * Parsed `ppt/tableStyles.xml` map (GUID → style entry), or `undefined`
+	 * when the presentation has no table styles part. Feeds table banding /
+	 * header colour resolution by table-style GUID.
+	 */
+	tableStyleMap: ShallowRef<ParsedTableStyleMap | undefined>;
 	/** Serialise the current presentation back to `.pptx` bytes. */
 	getContent: () => Promise<Uint8Array>;
 }
@@ -109,6 +116,7 @@ export function useLoadContent(
 	const coreProperties = shallowRef<PptxCoreProperties | undefined>(undefined);
 	const embeddedFonts = shallowRef<PptxEmbeddedFont[]>([]);
 	const signatures = shallowRef<ParsedSignature[]>([]);
+	const tableStyleMap = shallowRef<ParsedTableStyleMap | undefined>(undefined);
 
 	let renderToken = 0;
 	let activeBlobUrls: string[] = [];
@@ -283,6 +291,7 @@ export function useLoadContent(
 			slideMasters.value = parsed.slideMasters ?? [];
 			coreProperties.value = parsed.coreProperties;
 			embeddedFonts.value = parsed.embeddedFonts ?? [];
+			tableStyleMap.value = parsed.tableStyleMap;
 			signatures.value =
 				parsed.hasDigitalSignatures && signatureBuffer instanceof ArrayBuffer
 					? await parseSignaturesFromBuffer(signatureBuffer)
@@ -341,6 +350,7 @@ export function useLoadContent(
 		coreProperties,
 		embeddedFonts,
 		signatures,
+		tableStyleMap,
 		getContent,
 	};
 }

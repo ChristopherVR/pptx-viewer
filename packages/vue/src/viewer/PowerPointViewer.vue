@@ -110,14 +110,19 @@ const {
 	coreProperties,
 	embeddedFonts,
 	signatures,
+	tableStyleMap,
 	theme: pptxTheme,
 	getContent,
 } = useLoadContent(() => props.content);
 
-// Expose the presentation colour scheme to table cells (banded/header colour
-// resolution) via provide/inject, avoiding theme prop-threading through the
-// hot SlideStage → ElementRenderer chain.
-provide(TableThemeKey, () => ({ colorScheme: pptxTheme.value?.colorScheme }));
+// Expose the presentation colour scheme + parsed table-style map to table
+// cells (banded/header colour resolution by table-style GUID) via
+// provide/inject, avoiding theme prop-threading through the hot
+// SlideStage → ElementRenderer chain.
+provide(TableThemeKey, () => ({
+	colorScheme: pptxTheme.value?.colorScheme,
+	tableStyleMap: tableStyleMap.value,
+}));
 
 // Inject embedded fonts as @font-face (side effect; auto-cleaned on unmount).
 useEmbeddedFonts(embeddedFonts);
