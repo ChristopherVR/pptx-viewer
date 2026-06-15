@@ -217,13 +217,18 @@ the `collaboration` input + remote-cursor overlay). `LoadContentService` now
 also surfaces `embeddedFonts` / `coreProperties` / `hasDigitalSignatures` /
 `digitalSignatureCount`.
 
-> **Remaining wiring:** the **signatures panel** needs a handler API to read the
-> `_xmlsignatures/*.xml` parts into `ParsedSignature[]` (only the count/flag are
-> surfaced today); **animation playback**, **presenter view**, and
-> **presentation transitions** are exported but not yet composed into the
-> presentation overlay; **share/broadcast** dialogs are exported but not yet
-> behind toolbar buttons. These touch the single large tracked component, so
-> coordinate with the parallel sessions and commit fast.
+> **Wiring update (2026-06-16):** now composed into the default chrome —
+> **signatures panel** (`LoadContentService` parses `_xmlsignatures/*.xml` into
+> `ParsedSignature[]` via lazy jszip/fast-xml-parser + core `parseSignatureXml`;
+> a `signatures` signal feeds a toolbar-toggled panel shown when the deck is
+> signed); **share** + **broadcast** dialogs (toolbar buttons → CollaborationService
+> connect); **presenter view** (toolbar button → fullscreen speaker overlay);
+> **presentation transitions** (played in the presentation overlay on forward
+> navigation). **Still not composed:** **animation playback** — the service,
+> panel, and helpers are exported and tested, but composing them into the
+> overlay needs a per-element style-override mechanism threaded through the
+> universal `ElementRenderer` (affects all 11 element render paths) — a
+> deliberate rendering-path change left as the single remaining wiring task.
 
 ## Demo
 
@@ -479,20 +484,47 @@ frontier is **editing** and the remaining advanced subsystems.
   `chart-radar.tsx`. Typecheck, build (ng-packagr), lint (`--deny-warnings`),
   and all **1440** tests green.
 
-> **Parity summary.** The Angular **viewer** matches React's viewing surface
-> (all 11 element types, fills/effects/clip-paths/backgrounds, lists,
-> hyperlinks, equations; presentation mode, slide sorter, notes, find, PNG/PDF
-> export). The **editor** is a complete WYSIWYG editor (selection, move/resize/
-> rotate with snap guides, inline text, clipboard, align/distribute, group,
-> z-order, slide CRUD + properties, insert, inspector, toolbar, context menu,
-> undo/redo, save). The **advanced subsystems** are now ported as exported
-> services/components (comments, digital signatures, accessibility, embedded
-> fonts, animation playback, collaboration/Yjs, the dialog suite, print,
-> presentation transitions, presenter view — see the Advanced subsystems
-> table); the remaining step for these is wiring them into the default
-> `PowerPointViewerComponent` chrome. **Still ☐ for full React parity** —
-> GIF/video export, find **replace** (find-only done), table & chart data
-> editing, the advanced inspector tabs (structured gradient picker / effects /
-> animation authoring), more chart kinds (combo/stock/surface/treemap/waterfall),
-> full A\* connector routing, duotone SVG `<filter>` injection, and mobile/a11y
-> chrome.
+- **2026-06-16 (parity push — team of subagents)** — Closed nearly all
+  remaining React-parity gaps. Each subagent produced **only new files**
+  (reset-safe); the orchestrator did all tracked-file integration, ran
+  typecheck + build (ng-packagr) + lint (`--deny-warnings`) + the full vitest
+  suite, and committed each unit. Test count **1440 → 1850**.
+  - **Render depth:** 6 new chart kinds (combo, stock, surface, treemap,
+    waterfall, regionMap) wired into `resolveChartKind`/`buildChartViewModel`;
+    **A\* connector routing** (`connector-routing.ts`) threaded SlideCanvas →
+    ElementRenderer → connector (obstacles from sibling elements); **connector
+    text overlay**; **duotone** SVG `<filter>` injection
+    (`duotone-filter.ts` + `<defs>` in `ElementRenderer`, `element-style`
+    keeps the `url(#…)` ref).
+  - **Editor:** advanced inspector tabs (gradient picker, effects,
+    text-advanced) + **table & chart data editing** as collapsible inspector
+    sections; **find & replace** (`find-replace-helpers` +
+    `FindReplaceBarComponent` + `EditorStateService.applyReplacement`).
+  - **Export:** **GIF** (pure GIF89a encoder) + **WebM** (MediaRecorder)
+    toolbar buttons in `ExportService`.
+  - **Subsystem wiring:** signatures panel (parts-reading in
+    `LoadContentService`; added `jszip`/`fast-xml-parser` deps), share +
+    broadcast dialogs, presenter view, presentation transitions in the overlay.
+  - **Deferred:** animation playback composed into the overlay (needs a
+    per-element style-override path through the universal `ElementRenderer`).
+
+> **Parity summary (updated 2026-06-16).** The Angular **viewer** matches
+> React's viewing surface (all 11 element types, fills/effects/clip-paths/
+> backgrounds, lists, hyperlinks, equations; presentation mode with **slide
+> transitions**, slide sorter, **presenter view**, notes, find, PNG/PDF/**GIF**/
+> **WebM** export, duotone `<filter>` injection). **Charts** now cover bar/column,
+> line/area, pie/doughnut, scatter, **bubble, radar, combo, stock, surface,
+> treemap, waterfall, regionMap**. **Connectors** do straight/bent/curved plus
+> **A\* obstacle-avoiding routing** and **connector text**. The **editor** is a
+> complete WYSIWYG editor (selection, move/resize/rotate with snap guides, inline
+> text, clipboard, align/distribute, group, z-order, slide CRUD + properties,
+> insert, inspector with **advanced tabs** — structured gradient picker, effects,
+> text-advanced — **table & chart data editing**, toolbar, context menu,
+> **find & replace**, undo/redo, save). **Advanced subsystems** are ported AND
+> wired into the default chrome: comments, **digital signatures** (parts-read),
+> accessibility, embedded fonts, collaboration/Yjs with **share & broadcast**
+> dialogs, the dialog suite, print, presentation transitions, presenter view.
+> **Still ☐ for full React parity** — **animation playback** composed into the
+> presentation overlay (service/panel/helpers are ported & exported; needs a
+> per-element style-override path through `ElementRenderer`), the inspector's
+> **animation authoring** tab, and mobile/a11y chrome.
