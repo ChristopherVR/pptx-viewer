@@ -158,13 +158,13 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 
 ### Editor foundation (◑ — services landed; interaction UI next)
 
-| Item                                            | Status | Notes                                                                                                                                                                                                                                 |
-| ----------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Undo/redo history                               | ◑      | `editor-history.ts` — generic `EditorHistory<T>` snapshot stacks with labels + depth cap (mirrors `useEditorHistory`)                                                                                                                 |
-| Element operations                              | ◑      | `element-operations.ts` — pure immutable update/move/resize/delete/duplicate/z-order (mirrors `useElementOperations`)                                                                                                                 |
-| Editor state service                            | ◑      | `EditorStateService` — editable slides signal + selection + dirty + ops that record history; undo/redo restore snapshots                                                                                                              |
-| **Interaction UI**                              | ☐      | click-select + selection outline, drag/resize handles, keyboard (Delete/Ctrl+Z/arrows), rendering the editable deck when `canEdit` — **the next phase**; wires `EditorStateService` into SlideCanvas/ElementRenderer/PowerPointViewer |
-| Section / table operations, clipboard, autosave | ☐      | mirror `useSectionOperations` / `useTableOperations`                                                                                                                                                                                  |
+| Item                                            | Status | Notes                                                                                                                                                                                                                                                                                                         |
+| ----------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Undo/redo history                               | ◑      | `editor-history.ts` — generic `EditorHistory<T>` snapshot stacks with labels + depth cap (mirrors `useEditorHistory`)                                                                                                                                                                                         |
+| Element operations                              | ◑      | `element-operations.ts` — pure immutable update/move/resize/delete/duplicate/z-order (mirrors `useElementOperations`)                                                                                                                                                                                         |
+| Editor state service                            | ◑      | `EditorStateService` — editable slides signal + selection + dirty + ops that record history; undo/redo restore snapshots                                                                                                                                                                                      |
+| **Interaction UI**                              | ◑      | click-select (event delegation) + selection outlines, keyboard (Delete, Ctrl/Cmd+Z/Y, Ctrl/Cmd+D, arrow-nudge ×10), editable deck + Undo/Redo buttons when `canEdit`; edits persist through `getContent()` (save-back via `LoadContentService.saveSlides`). Drag/resize handles, marquee, rulers/guides: TODO |
+| Section / table operations, clipboard, autosave | ☐      | mirror `useSectionOperations` / `useTableOperations`                                                                                                                                                                                                                                                          |
 
 ### Editor chrome (all ☐ — not started)
 
@@ -342,7 +342,13 @@ frontier is **editing** and the remaining advanced subsystems.
       `allowedNonPeerDependencies` in ng-package.json; PNG/PDF toolbar buttons.
   - Wave 6: **editor foundation** — `editor-history.ts` (generic undo/redo),
     `element-operations.ts` (pure transforms), `EditorStateService` (signal
-    state + selection + history). Interaction UI is the next phase.
+    state + selection + history), then the **interaction UI**: click-select +
+    selection outlines in SlideCanvas, keyboard editing (Delete/undo/redo/
+    duplicate/arrow-nudge) in PowerPointViewer, editable deck + Undo/Redo
+    buttons when `canEdit`, and save-back so edits persist through
+    `getContent()`. The editor is now usable end-to-end (select → edit →
+    undo → save); drag/resize handles and the editor chrome (toolbar/
+    inspector/dialogs) are the remaining phases.
     Test count 611 → **915**, all green. The lib-target rule still bites (no
     `replaceAll` / named-capture-groups; one ASCII-CSS-regex file carries a
     justified `eslint-disable`, mirroring React).
