@@ -133,29 +133,43 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 | `PowerPointViewerComponent` (load + nav + zoom)          | ◑      | loading/error/encrypted states, prev/next, zoom, thumbnail rail; `activeSlideChange` output                                                                                                                                                                                                                  |
 | `SlideCanvasComponent`                                   | ◑      | scaled stage + element list + full slide background (image → gradient → pattern base → solid, via `slide-background.ts`); no rulers/grid/guides/overlays                                                                                                                                                     |
 | `ElementRendererComponent`                               | ◑      | renders all 11 element types (text/shape, connector, chart, table, smartArt, ink, ole, model3d, zoom, picture/image, media, group); sanitized text hyperlinks (`hyperlink.ts`)                                                                                                                               |
-| `element-style.ts`                                       | ◑      | container/shape/text/image basics + image & gradient fills (parser's prebuilt CSS gradient string) + preset-geometry clip-paths (via `shape-geometry.ts`); no structured gradient builder/effects/3D                                                                                                         |
-| Rich text runs (bold/italic/underline/strike/color/size) | ◑      | per-segment spans, paragraph + line breaks (text/shape elements and table cells)                                                                                                                                                                                                                             |
+| `element-style.ts`                                       | ◑      | container/shape/text/image basics; fill cascade image → pattern → gradient → solid (structured `color-gradient.ts` + OOXML `color-patterns.ts`); preset-geometry clip-paths (`shape-geometry.ts`); shadows/glow/reflection (`visual-effects.ts`)                                                             |
+| Rich text runs (bold/italic/underline/strike/color/size) | ◑      | per-segment spans, paragraph + line breaks (text/shape + table cells); bulleted/numbered lists via `text-bullets.ts` (char/auto-number markers + per-level indent)                                                                                                                                           |
 | Connectors (SVG)                                         | ◑      | `ConnectorRendererComponent` — straight + bent (elbow) + curved (Bézier) routing via `connector-path.ts` (pure TS); stroke colour/width/dash + arrowheads, flip baked into endpoints. Full A\* routing, compound lines, connector text: TODO                                                                 |
 | Tables                                                   | ◑      | `TableRendererComponent` — `<table>` with merged cells (colspan/rowspan), column widths/row heights, per-cell solid/gradient fill + borders, and rich text (cell-level style, paragraph/line breaks). Per-run cell segments (needs core), editing: TODO. View-model in `table-renderer-helpers.ts` (pure TS) |
 | Charts (SVG)                                             | ◑      | `ChartRendererComponent` — inline SVG for bar/column, line/area, pie/doughnut, scatter (value scaling, per-series colours, legend); unsupported kinds → labelled fallback. Geometry in `chart-renderer-helpers.ts` (pure TS). 3D/combo/radar/bubble/stock/etc: TODO                                          |
-| SmartArt                                                 | ◑      | `SmartArtRendererComponent` — SVG drawing-shapes (rect/ellipse/roundRect + rotated text) with stacked node-text fallback, palette + chrome. Family-specific layout engines (hierarchy/cycle/process/…), node connectors: TODO. Logic in `smart-art-renderer-helpers.ts` (pure TS)                            |
+| SmartArt                                                 | ◑      | `SmartArtRendererComponent` — authored drawing-shapes (rect/ellipse/roundRect + rotated text); when absent, a family layout fallback (list/process/cycle/hierarchy, positioned nodes + connectors) via `smart-art-layouts.ts`; stacked-text last resort. Logic in `smart-art-renderer-helpers.ts` (pure TS)  |
 | Ink / OLE / Model3D / Zoom                               | ◑      | `InkRendererComponent` (SVG strokes), `OleRendererComponent` (preview image / type icon + badge), `Model3DRendererComponent` (poster/placeholder — no three.js), `ZoomRendererComponent` (slide/section thumbnail). Each with a pure-TS `*-helpers.ts`                                                       |
 | Preset-geometry clip-paths                               | ◑      | `shape-geometry.ts` (`getResolvedShapeClipPath`) — core geometry-engine cascade (adjustment-aware → preset evaluator → cloud bezier → static polygon); wired into `element-style.ts`                                                                                                                         |
 | Shadows / glow / reflection / image-effect filters       | ◑      | `visual-effects.ts` (`getComputedEffectStyle`) — outer/inner/glow shadows, blur/soft-edge filters, reflection, blend mode, effect-DAG alpha; wired into `element-style.ts`. Duotone SVG `<filter>` injection deferred                                                                                        |
-| Structured gradients, pattern fills                      | ☐      | extract `color-gradient.ts` + `color-core.ts` into `pptx-viewer-shared` (today: parser's prebuilt CSS string only)                                                                                                                                                                                           |
-| Text warp / WordArt, equations (OMML→MathML)             | ☐      |                                                                                                                                                                                                                                                                                                              |
+| Structured gradients, pattern fills                      | ◑      | local pure-TS ports `color-gradient.ts` (linear/radial/circle/rect/shape) + `color-patterns.ts` (all 52 OOXML presets); wired into `element-style.ts`. Extraction to `pptx-viewer-shared` still a future refactor                                                                                            |
+| Text warp / WordArt, equations (OMML→MathML)             | ☐      | Vue has an equation renderer to mirror                                                                                                                                                                                                                                                                       |
+
+### Viewer features
+
+| Item              | Status | Notes                                                                                                                                                   |
+| ----------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Presentation mode | ◑      | `PresentationOverlayComponent` — fullscreen fit-to-screen slideshow, keyboard + click nav skipping hidden slides, counter. Animations/transitions: TODO |
+| Slide sorter      | ◑      | `SlideSorterOverlayComponent` — responsive grid of live slide-preview thumbnails; click to jump                                                         |
+| Speaker notes     | ◑      | toggleable notes strip in `PowerPointViewerComponent`                                                                                                   |
+| Find in slides    | ◑      | `FindBarComponent` + `slide-search.ts` — text search across all slides (text/table/smartArt/group/notes) with prev/next navigation. Replace: editor     |
 
 ### Editor chrome (all ☐ — not started)
 
-Toolbar, inspector panels, context menu, dialogs, slides pane, slide sorter,
-notes, mobile chrome, accessibility panel.
+Toolbar, inspector panels, context menu, dialogs, slides pane, mobile chrome,
+accessibility panel. (Requires the editor foundation below first.)
+
+### Editor foundation (☐ — the main remaining gap)
+
+Full viewer state, editor history (undo/redo), element CRUD/transform
+operations, autosave, clipboard. None started — this gates all editing chrome.
 
 ### Advanced subsystems (all ☐ — not started)
 
-Presentation mode + animations/transitions, export (PNG/PDF/GIF/video — note
-React uses `html2canvas-pro`, which is DOM-based and likely reusable),
-collaboration (Yjs — framework-agnostic, good shared-extraction candidate),
-print, find/replace, comments, digital signatures, font embedding/injection.
+Presentation animations/transitions, export (PNG/PDF/GIF/video — React uses
+`html2canvas-pro`, DOM-based and likely reusable), collaboration (Yjs —
+framework-agnostic, good shared-extraction candidate), print, find/**replace**,
+comments, digital signatures, font embedding/injection.
 
 ## Demo
 
@@ -210,20 +224,26 @@ Format), so **build the library first** (`bun run --filter pptx-angular-viewer b
 
 ## Recommended next steps (priority order)
 
-1. `ElementRendererComponent` now covers all 11 element types (viewer-first):
-   text/shape (fill/stroke/clip-path/effects), connector (straight/bent/curved),
-   chart, table, smartArt, ink, ole, model3d, zoom, picture/image, media, group.
-   Shadows/glow/reflection effects (`visual-effects.ts`) are wired in. Remaining
-   depth work, roughly in priority order: the structured gradient builder
-   (extract `utils/color-gradient.ts` + `color-core.ts` into
-   `pptx-viewer-shared`), SmartArt family layout engines
-   (hierarchy/cycle/process), more chart kinds (combo/radar/bubble/stock) +
-   axes/gridlines, full A\* connector routing, per-run rich text in table cells
-   (needs a core extension), duotone SVG `<filter>` injection.
-2. Add component/TestBed tests (decision #2).
-3. Port full viewer state + editor history to unlock editing.
-4. Continue the shared-code extraction (color, geometry, animation engine) —
-   coordinate with the React/Vue sessions.
+The viewer is now feature-rich: all 11 element types render with fills
+(solid/gradient/pattern/image), clip-path geometry, shadows/glow/reflection,
+bulleted/numbered lists, sanitized hyperlinks, and full slide backgrounds; plus
+presentation mode, slide sorter, speaker notes, and find-in-slides. The next
+frontier is **editing** and the remaining advanced subsystems.
+
+1. **Editor foundation** (gates all editor chrome): port the full viewer state,
+   editor history (undo/redo), and element CRUD/transform operations as
+   signal-based services. Large — its own multi-step effort before any
+   toolbar/inspector work.
+2. **Export** (PNG/PDF): add `html2canvas-pro` + `jspdf` and an export service
+   driven off the rendered slide stage. Self-contained, high user value.
+3. Remaining render depth: more chart kinds (combo/radar/bubble/stock), full A\*
+   connector routing, per-run rich text in table cells (needs a core
+   extension), equations (OMML→MathML — Vue has a reference), duotone SVG
+   `<filter>` injection, presentation transitions/animations.
+4. Add component/TestBed tests (decision #2).
+5. Extract the local pure-TS ports (`color-gradient`, `color-patterns`,
+   `visual-effects`, `shape-geometry`, `text-bullets`) into `pptx-viewer-shared`
+   to dedupe with React/Vue — coordinate with those sessions.
 
 ## Session log
 
@@ -292,3 +312,18 @@ Format), so **build the library first** (`bun run --filter pptx-angular-viewer b
   targets a lower `lib` than `tsconfig.lib.json` — `String.prototype.replaceAll`
   fails the build; use `.split(x).join('')` (typecheck passes but build is the
   real gate). Build, typecheck, lint, tests green.
+- **2026-06-15 (parity waves 1–3)** — Team-of-agents push toward React parity;
+  each subagent produced **only new files** (reset-safe), orchestrator did all
+  tracked-file integration and committed each unit immediately:
+  - Wave 1 (render depth): structured gradients (`color-gradient.ts`) + all 52
+    OOXML pattern fills (`color-patterns.ts`) wired into the `element-style`
+    fill cascade; SmartArt family layout fallback (`smart-art-layouts.ts` —
+    list/process/cycle/hierarchy). A `chart-axes.ts` agent output was discarded
+    (the chart helper already renders gridlines/axis labels).
+  - Wave 2 (viewing experience): `PresentationOverlayComponent` (fullscreen
+    slideshow), `SlideSorterOverlayComponent` (thumbnail grid), speaker-notes
+    strip — wired into `PowerPointViewerComponent`.
+  - Wave 3 (text + find): bulleted/numbered lists (`text-bullets.ts`) in the
+    text renderer; find-in-slides (`slide-search.ts` + `FindBarComponent`).
+    Test count 376 → **611**, all green. The renderer/viewer surface is now broad;
+    the editor foundation is the main remaining gap (see next steps).
