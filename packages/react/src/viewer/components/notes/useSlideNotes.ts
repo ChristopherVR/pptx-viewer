@@ -49,9 +49,25 @@ export function useSlideNotes({
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const richEditorRef = useRef<HTMLDivElement>(null);
 	const savedSelectionRef = useRef<{ text: string } | null>(null);
+	// True when the pending draftSegments change came from the user typing inside
+	// the rich editor (handleRichInput). In that case the contentEditable DOM
+	// already reflects the new content, so the seeding effect must NOT rewrite
+	// innerHTML — doing so collapses the caret to offset 0 and every subsequent
+	// keystroke lands at the start, producing reversed text. See handleRichInput.
+	const isInternalInputRef = useRef(false);
+	// The plain text of the most recent debounced save we pushed to the parent.
+	// When that save echoes back as a new activeSlide.notes value, the slide-sync
+	// effect below must NOT rebuild draftSegments — a fresh array would re-run the
+	// seeding effect mid-typing and collapse the caret. We only re-sync on genuine
+	// external changes (slide switch, programmatic edits).
+	const lastSavedTextRef = useRef<string | null>(null);
 
 	useEffect(() => {
 		const nextText = activeSlide?.notes ?? '';
+		// Ignore our own debounced save round-tripping back through the parent.
+		if (nextText === lastSavedTextRef.current) {
+			return;
+		}
 		const nextSegments =
 			activeSlide?.notesSegments && activeSlide.notesSegments.length > 0
 				? normalizeSegments(activeSlide.notesSegments)
@@ -65,6 +81,12 @@ export function useSlideNotes({
 		if (!isRichEditEnabled || !isExpanded || !canEdit || !richEditorRef.current) {
 			return;
 		}
+		// Skip re-seeding when the change originated from the user's own typing —
+		// the DOM is already correct and rewriting innerHTML would reset the caret.
+		if (isInternalInputRef.current) {
+			isInternalInputRef.current = false;
+			return;
+		}
 		richEditorRef.current.innerHTML = segmentsToEditorHtml(draftSegments);
 	}, [canEdit, draftSegments, isExpanded, isRichEditEnabled]);
 
@@ -74,6 +96,7 @@ export function useSlideNotes({
 				clearTimeout(debounceRef.current);
 				debounceRef.current = null;
 			}
+			lastSavedTextRef.current = value;
 			onUpdateNotes(value, segments);
 		},
 		[onUpdateNotes],
@@ -85,6 +108,7 @@ export function useSlideNotes({
 				clearTimeout(debounceRef.current);
 			}
 			debounceRef.current = setTimeout(() => {
+				lastSavedTextRef.current = value;
 				onUpdateNotes(value, segments);
 				debounceRef.current = null;
 			}, DEBOUNCE_MS);
@@ -126,6 +150,9 @@ export function useSlideNotes({
 		if (!richEditorRef.current) {
 			return;
 		}
+		// Mark this draftSegments update as originating from in-editor typing so the
+		// seeding effect leaves the live DOM (and the caret) untouched.
+		isInternalInputRef.current = true;
 		const segments = parseSegmentsFromRichEditor(richEditorRef.current);
 		const text = segmentsToPlainText(segments);
 		setDraft(text);
