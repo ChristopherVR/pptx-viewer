@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import type { PptxSlide } from 'pptx-viewer-core';
 import type { CSSProperties } from 'vue';
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
+import { ANIMATION_KEYFRAMES_CSS } from '../composables/animation-css';
+import { useAnimationPlayback } from '../composables/useAnimationPlayback';
 import type { CanvasSize } from '../types';
 import SlideStage from './SlideStage.vue';
 
@@ -94,7 +96,37 @@ function goTo(index: number): void {
 	currentIndex.value = target;
 }
 
+// Animation playback: each "next" first reveals the slide's next click-group of
+// element animations; only when the slide's builds are exhausted do we advance.
+const slideAnimations = computed(() => activeSlide.value?.animations ?? []);
+const playback = useAnimationPlayback({ animations: slideAnimations });
+const frameRef = ref<HTMLDivElement | null>(null);
+
+function applyAnimationStyles(): void {
+	const root = frameRef.value;
+	if (!root) {
+		return;
+	}
+	const revealed = playback.elementStyles.value;
+	const pending = playback.pendingStyles.value;
+	root.querySelectorAll<HTMLElement>('[data-element-id]').forEach((el) => {
+		const id = el.dataset.elementId;
+		if (!id) {
+			return;
+		}
+		el.style.animation = '';
+		el.style.opacity = '';
+		const active = revealed.get(id) ?? pending.get(id);
+		if (active) {
+			Object.assign(el.style, active);
+		}
+	});
+}
+
 function next(): void {
+	if (playback.advance()) {
+		return; // revealed an animation build step; stay on the slide
+	}
 	goTo(currentIndex.value + 1);
 }
 
@@ -108,7 +140,16 @@ function close(): void {
 
 watch(currentIndex, (index) => {
 	emit('slide-change', index);
+	playback.reset();
 });
+
+watch(
+	[() => playback.elementStyles.value, () => playback.pendingStyles.value, activeSlide],
+	() => {
+		void nextTick(applyAnimationStyles);
+	},
+	{ immediate: true },
+);
 
 // ---------------------------------------------------------------------------
 // Keyboard + resize listeners
@@ -196,7 +237,9 @@ onBeforeUnmount(() => {
 <template>
 	<Teleport to="body">
 		<div ref="overlayRef" class="pptx-vue-presentation" @click="next">
-			<div class="pptx-vue-presentation-frame" :style="frameStyle">
+			<!-- Inject the animation @keyframes once for this overlay. -->
+			<component :is="'style'">{{ ANIMATION_KEYFRAMES_CSS }}</component>
+			<div ref="frameRef" class="pptx-vue-presentation-frame" :style="frameStyle">
 				<SlideStage
 					:slide="activeSlide"
 					:canvas-size="canvasSize"

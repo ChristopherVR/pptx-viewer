@@ -1,5 +1,6 @@
 import type {
 	MediaPptxElement,
+	PptxCoreProperties,
 	PptxElement,
 	PptxSlide,
 	PptxSlideMaster,
@@ -51,6 +52,8 @@ export interface UseLoadContentResult {
 	isEncrypted: Ref<boolean>;
 	/** The live `PptxHandler` for the loaded file (or null). */
 	handler: ShallowRef<PptxHandler | null>;
+	/** Parsed document core properties (title/author/subject/…). */
+	coreProperties: ShallowRef<PptxCoreProperties | undefined>;
 	/** Serialise the current presentation back to `.pptx` bytes. */
 	getContent: () => Promise<Uint8Array>;
 }
@@ -70,6 +73,7 @@ export function useLoadContent(
 	const error = ref<string | null>(null);
 	const isEncrypted = ref(false);
 	const handler = shallowRef<PptxHandler | null>(null);
+	const coreProperties = shallowRef<PptxCoreProperties | undefined>(undefined);
 
 	let renderToken = 0;
 	let activeBlobUrls: string[] = [];
@@ -239,6 +243,7 @@ export function useLoadContent(
 			};
 			theme.value = parsed.theme;
 			slideMasters.value = parsed.slideMasters ?? [];
+			coreProperties.value = parsed.coreProperties;
 		} catch (err) {
 			if (token === renderToken) {
 				if (err instanceof EncryptedFileError) {
@@ -289,6 +294,7 @@ export function useLoadContent(
 		error,
 		isEncrypted,
 		handler,
+		coreProperties,
 		getContent,
 	};
 }

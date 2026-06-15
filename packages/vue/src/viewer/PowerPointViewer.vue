@@ -20,13 +20,19 @@ import {
 	createShapeElement,
 	createTextElement,
 } from 'pptx-viewer-core';
-import type { PptxElement, PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
+import type {
+	PptxCoreProperties,
+	PptxElement,
+	PptxSlide,
+	PptxSlideTransition,
+} from 'pptx-viewer-core';
 import { computed, nextTick, ref, toRef, watch } from 'vue';
 
 import { provideViewerTheme, useThemeStyle } from '../theme';
 import AccessibilityPanel from './components/AccessibilityPanel.vue';
 import AlignToolbar from './components/AlignToolbar.vue';
 import AutosaveIndicator from './components/AutosaveIndicator.vue';
+import CommentsPanel from './components/CommentsPanel.vue';
 import ContextMenu from './components/ContextMenu.vue';
 import type { ContextMenuItem } from './components/ContextMenu.vue';
 import EditorToolbar from './components/EditorToolbar.vue';
@@ -37,7 +43,10 @@ import HyperlinkDialog from './components/HyperlinkDialog.vue';
 import InspectorPane from './components/inspector/InspectorPane.vue';
 import NotesPanel from './components/NotesPanel.vue';
 import PresentationMode from './components/PresentationMode.vue';
+import PropertiesDialog from './components/PropertiesDialog.vue';
+import type { DocumentProperties } from './components/PropertiesDialog.vue';
 import SelectionOverlay from './components/SelectionOverlay.vue';
+import ShareDialog from './components/ShareDialog.vue';
 import SlideCanvas from './components/SlideCanvas.vue';
 import SlideSorter from './components/SlideSorter.vue';
 import SlidesPaneControls from './components/SlidesPaneControls.vue';
@@ -47,13 +56,19 @@ import type { AlignEdge, DistributeAxis } from './composables/element-align';
 import { alignElements, distributeElements } from './composables/element-align';
 import { useAccessibility } from './composables/useAccessibility';
 import { useAutosave } from './composables/useAutosave';
+import { useComments } from './composables/useComments';
 import { useEditorHistory } from './composables/useEditorHistory';
 import { useEditorOperations } from './composables/useEditorOperations';
 import { useExport } from './composables/useExport';
 import { useFindReplace } from './composables/useFindReplace';
 import { useLoadContent } from './composables/useLoadContent';
 import { useSlideOperations } from './composables/useSlideOperations';
-import type { PowerPointViewerEmits, PowerPointViewerExpose, PowerPointViewerProps } from './types';
+import type {
+	CollaborationConfig,
+	PowerPointViewerEmits,
+	PowerPointViewerExpose,
+	PowerPointViewerProps,
+} from './types';
 
 /** Geometry patch emitted by the selection overlay during a drag/resize/rotate. */
 interface TransformPayload {
@@ -76,8 +91,16 @@ provideViewerTheme(theme);
 const themeStyle = useThemeStyle(theme);
 
 // ── Load + parse content ──────────────────────────────────────────────
-const { slides, canvasSize, mediaDataUrls, loading, error, isEncrypted, getContent } =
-	useLoadContent(() => props.content);
+const {
+	slides,
+	canvasSize,
+	mediaDataUrls,
+	loading,
+	error,
+	isEncrypted,
+	coreProperties,
+	getContent,
+} = useLoadContent(() => props.content);
 
 // ── Navigation ────────────────────────────────────────────────────────
 const activeSlideIndex = ref(0);
@@ -611,6 +634,51 @@ const autosave = useAutosave({
 		emit('autosave', bytes);
 	},
 });
+
+// ── Comments ──────────────────────────────────────────────────────────
+const showComments = ref(false);
+const activeComments = computed(() => activeSlide.value?.comments ?? []);
+const authorNameRef = computed(() => props.authorName ?? 'You');
+const commentsApi = useComments({
+	comments: activeComments,
+	activeSlideIndex,
+	authorName: authorNameRef,
+});
+/** Commit a new comment array for the active slide (history-aware). */
+function commitComments(next: ReturnType<typeof commentsApi.addComment>): void {
+	if (!next) {
+		return;
+	}
+	const index = activeSlideIndex.value;
+	const slide = slides.value[index];
+	if (!slide) {
+		return;
+	}
+	history.pushHistory();
+	const nextSlides = slides.value.slice();
+	nextSlides[index] = { ...slide, comments: next };
+	slides.value = nextSlides;
+}
+
+// ── Share / collaboration dialog ──────────────────────────────────────
+const shareOpen = ref(false);
+const collabActive = computed(() => Boolean(props.collaboration));
+function onShareStart(config: CollaborationConfig): void {
+	emit('start-collaboration', config);
+	shareOpen.value = false;
+}
+function onShareStop(): void {
+	emit('stop-collaboration');
+	shareOpen.value = false;
+}
+
+// ── Document properties dialog ────────────────────────────────────────
+const propertiesOpen = ref(false);
+const docProperties = computed<DocumentProperties>(() => coreProperties.value ?? {});
+function onPropertiesSave(patch: Partial<PptxCoreProperties>): void {
+	coreProperties.value = { ...coreProperties.value, ...patch };
+	propertiesOpen.value = false;
+}
 function sendBackward(): void {
 	for (const id of [...selectedElementIds.value]) {
 		ops.sendBackward(id);
@@ -736,6 +804,34 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						:status="autosave.status.value"
 						:is-dirty="autosave.isDirty.value"
 					/>
+					<button
+						v-if="props.canEdit"
+						type="button"
+						class="pptx-vue-comments-btn"
+						:title="`Comments (${activeComments.length})`"
+						aria-label="Comments"
+						@click="showComments = !showComments"
+					>
+						💬 {{ activeComments.length }}
+					</button>
+					<button
+						type="button"
+						class="pptx-vue-share-btn"
+						title="Share"
+						aria-label="Share"
+						@click="shareOpen = true"
+					>
+						⤴
+					</button>
+					<button
+						type="button"
+						class="pptx-vue-props-btn"
+						title="Properties"
+						aria-label="Document properties"
+						@click="propertiesOpen = true"
+					>
+						ⓘ
+					</button>
 				</div>
 			</header>
 
@@ -859,6 +955,16 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					:issues="a11y.issues.value"
 					@select-slide="goTo"
 				/>
+
+				<!-- Comments -->
+				<CommentsPanel
+					v-if="props.canEdit && showComments"
+					:comments="commentsApi.slideComments.value"
+					:author-name="authorNameRef"
+					@add="(t) => commitComments(commentsApi.addComment(t))"
+					@remove="(id) => commitComments(commentsApi.removeComment(id))"
+					@resolve="(id) => commitComments(commentsApi.resolveComment(id))"
+				/>
 			</div>
 
 			<!-- Element context menu (edit mode) -->
@@ -877,6 +983,24 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				:element="hyperlinkTarget"
 				@save="onHyperlinkSave"
 				@close="hyperlinkOpen = false"
+			/>
+
+			<!-- Share / collaboration -->
+			<ShareDialog
+				:open="shareOpen"
+				:defaults="props.shareDefaults"
+				:active="collabActive"
+				@start="onShareStart"
+				@stop="onShareStop"
+				@close="shareOpen = false"
+			/>
+
+			<!-- Document properties -->
+			<PropertiesDialog
+				:open="propertiesOpen"
+				:properties="docProperties"
+				@save="onPropertiesSave"
+				@close="propertiesOpen = false"
 			/>
 
 			<!-- Off-screen stage used to rasterise slides for export -->

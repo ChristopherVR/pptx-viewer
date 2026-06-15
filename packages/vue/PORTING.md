@@ -465,3 +465,20 @@ equationXml` OMML → MathML (ported from React's three omml-\* files, core only
   cursors), animation _playback_ in presentation, comments (needs loader to
   surface comment data), digital signatures, font embedding, broadcast/share/
   properties dialogs, mobile chrome.
+- **2026-06-15** — Batch 13: comments + animation playback + share/properties.
+  **Comments** (`useComments` + `CommentsPanel.vue`): per-slide `slide.comments`
+  (already loaded), add/remove/resolve via history-aware writes, toggle panel.
+  **Animation playback** (`animation-css.ts` preset→CSS-keyframes map +
+  `useAnimationPlayback.ts` click-group stepper) wired into `PresentationMode` —
+  injects `@keyframes` once, applies per-element styles by `data-element-id`, and
+  each "next" reveals the slide's next build before advancing the slide.
+  **Share dialog** (collaboration form → `@start-collaboration`/`@stop-collaboration`)
+  and **Properties dialog** (`PptxCoreProperties` view/edit) on the existing
+  `ModalDialog`; `useLoadContent` now exposes `coreProperties`. 79 new tests (587
+  total green); typecheck/lint clean; build green. Three parallel subagents +
+  central wiring. **Caveat:** AnimationPanel writes catalog preset ids
+  (`entr.N`); playback keys on the parsed `PptxAnimationPreset` string union, so
+  panel-added animations fall back to a fade until the id mapping is unified.
+  Properties save is in-memory (not yet persisted to the saved `.pptx`).
+  **Remaining ☐:** Yjs collaboration (real-time/cursors), digital signatures,
+  font embedding, mobile chrome, broadcast dialog.
