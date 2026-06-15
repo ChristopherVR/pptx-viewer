@@ -5,6 +5,7 @@ import { hasTextProperties } from 'pptx-viewer-core';
 
 import { ChartRendererComponent } from './chart-renderer.component';
 import { ConnectorRendererComponent } from './connector-renderer.component';
+import type { Rect } from './connector-routing';
 import {
 	getContainerStyle,
 	getImageSrc,
@@ -86,7 +87,13 @@ interface Paragraph {
 	template: `
 		@switch (true) {
 			@case (element().type === 'connector') {
-				<pptx-connector-renderer [element]="element()" [zIndex]="zIndex()" />
+				<pptx-connector-renderer
+					[element]="element()"
+					[zIndex]="zIndex()"
+					[obstacles]="obstacles()"
+					[canvasWidth]="canvasWidth()"
+					[canvasHeight]="canvasHeight()"
+				/>
 			}
 			@case (element().type === 'ink') {
 				<pptx-ink-renderer
@@ -247,6 +254,10 @@ export class ElementRendererComponent {
 	readonly element = input.required<PptxElement>();
 	readonly mediaDataUrls = input<Map<string, string>>(new Map());
 	readonly zIndex = input<number>(0);
+	/** Obstacle rects (absolute slide coords) for connector A* routing. */
+	readonly obstacles = input<readonly Rect[]>([]);
+	readonly canvasWidth = input<number>(0);
+	readonly canvasHeight = input<number>(0);
 
 	readonly containerStyle = computed<StyleMap>(() =>
 		getContainerStyle(this.element(), this.zIndex()),

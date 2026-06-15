@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
 
 import { buildConnectorGeometry } from './connector-path';
 import type { MarkerShape } from './connector-path';
+import type { Rect } from './connector-routing';
+import { ConnectorTextOverlayComponent } from './connector-text-overlay.component';
 
 /**
  * ConnectorRendererComponent — Angular port of the Vue `ConnectorRenderer.vue`
@@ -13,18 +15,23 @@ import type { MarkerShape } from './connector-path';
  * is baked into the endpoints (not a CSS transform) so arrowheads point the
  * right way.
  *
- * All path/style math lives in `connector-path.ts` (pure TS, no Angular
- * dependency) so it can be unit-tested without TestBed.
+ * Renders straight (`<line>`), bent (elbow) and curved (Bézier) connectors via
+ * `connector-path.ts`. When obstacle rects are supplied (`obstacles` input,
+ * absolute slide coords), bent connectors are routed around them with an A*
+ * orthogonal router. A connector's optional text label is painted on top via
+ * `ConnectorTextOverlayComponent`.
  *
- * Not yet ported (TODO, see PORTING.md): bent/curved connector routing
- * (`getConnectorPathGeometry`), compound lines, connector text overlay, line
- * shadows/glow. Bent/curved connectors currently fall back to a straight line.
+ * All path/style math lives in `connector-path.ts` / `connector-routing.ts`
+ * (pure TS, no Angular dependency) so it can be unit-tested without TestBed.
+ *
+ * Not yet ported (TODO, see PORTING.md): compound (double/triple) lines, line
+ * shadows/glow.
  */
 @Component({
 	selector: 'pptx-connector-renderer',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [],
+	imports: [ConnectorTextOverlayComponent],
 	template: `
 		<div
 			class="pptx-ng-element pptx-ng-connector"
@@ -104,17 +111,42 @@ import type { MarkerShape } from './connector-path';
 					/>
 				}
 			</svg>
+			<pptx-connector-text-overlay
+				[text]="connectorText()"
+				[segments]="connectorSegments()"
+				[textStyle]="connectorTextStyle()"
+			/>
 		</div>
 	`,
 })
 export class ConnectorRendererComponent {
 	readonly element = input.required<PptxElement>();
 	readonly zIndex = input<number>(0);
+	/** Obstacle rects (absolute slide coords) for A* routing of bent connectors. */
+	readonly obstacles = input<readonly Rect[]>([]);
+	readonly canvasWidth = input<number>(0);
+	readonly canvasHeight = input<number>(0);
 
 	/** All derived geometry, recomputed on every input change. */
-	readonly geo = computed(() => buildConnectorGeometry(this.element(), this.zIndex()));
+	readonly geo = computed(() => {
+		const obstacles = this.obstacles();
+		const routing =
+			obstacles.length > 0
+				? { obstacles, canvasWidth: this.canvasWidth(), canvasHeight: this.canvasHeight() }
+				: undefined;
+		return buildConnectorGeometry(this.element(), this.zIndex(), routing);
+	});
 
 	readonly viewBox = computed(() => `0 0 ${this.geo().svgW} ${this.geo().svgH}`);
+
+	// Connectors carry an optional text label (PptxTextProperties). Narrow the
+	// union once here so the template can bind the overlay inputs.
+	private readonly textProps = computed(
+		() => this.element() as { text?: string; textSegments?: TextSegment[]; textStyle?: TextStyle },
+	);
+	readonly connectorText = computed(() => this.textProps().text);
+	readonly connectorSegments = computed(() => this.textProps().textSegments);
+	readonly connectorTextStyle = computed(() => this.textProps().textStyle);
 }
 
 // Re-export the MarkerShape type so consumers can reference it if needed.

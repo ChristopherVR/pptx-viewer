@@ -13,6 +13,20 @@ import type { ConnectorArrowType, PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 
 import { DEFAULT_STROKE_COLOR } from '../internal/shared';
+import { routeOrthogonalConnector, waypointsToPathD } from './connector-routing';
+import type { Rect } from './connector-routing';
+
+/**
+ * Optional obstacle-avoidance routing context for bent connectors. When
+ * supplied with a non-empty obstacle list, a bent connector's elbow path is
+ * replaced by an A* orthogonal route that detours around the obstacle rects
+ * (absolute slide coordinates). Straight/curved connectors ignore this.
+ */
+export interface ConnectorRouting {
+	obstacles: ReadonlyArray<Rect>;
+	canvasWidth: number;
+	canvasHeight: number;
+}
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -64,7 +78,11 @@ export interface ConnectorGeometry {
  * This is a pure function: no side-effects, no Angular/Vue/React imports.
  * The component calls this once per change-detection cycle inside a `computed()`.
  */
-export function buildConnectorGeometry(element: PptxElement, zIndex: number): ConnectorGeometry {
+export function buildConnectorGeometry(
+	element: PptxElement,
+	zIndex: number,
+	routing?: ConnectorRouting,
+): ConnectorGeometry {
 	const ss = hasShapeProperties(element) ? element.shapeStyle : undefined;
 
 	const strokeWidth = Math.max(0, ss?.strokeWidth ?? 2);
@@ -81,7 +99,29 @@ export function buildConnectorGeometry(element: PptxElement, zIndex: number): Co
 	const y2 = element.flipVertical ? 0 : svgH;
 
 	const shapeType = (element as { shapeType?: string }).shapeType;
-	const pathD = buildConnectorPathD(shapeType, x1, y1, x2, y2, connectorBendFraction(element));
+	let pathD = buildConnectorPathD(shapeType, x1, y1, x2, y2, connectorBendFraction(element));
+
+	// Obstacle-avoiding A* routing for bent connectors. Routes in absolute slide
+	// coordinates (so it can detour outside the connector's own bounding box —
+	// the SVG uses `overflow: visible`), then translates waypoints back to
+	// element-local space for the path data.
+	if (
+		routing &&
+		routing.obstacles.length > 0 &&
+		connectorKind(shapeType) === 'bent' &&
+		(element.width > 0 || element.height > 0)
+	) {
+		const start = { x: element.x + x1, y: element.y + y1 };
+		const end = { x: element.x + x2, y: element.y + y2 };
+		const waypoints = routeOrthogonalConnector(start, end, routing.obstacles, {
+			canvasWidth: routing.canvasWidth,
+			canvasHeight: routing.canvasHeight,
+		});
+		if (waypoints.length > 2) {
+			const local = waypoints.map((p) => ({ x: p.x - element.x, y: p.y - element.y }));
+			pathD = waypointsToPathD(local);
+		}
+	}
 
 	const markerSeed = element.id.replace(/[^a-zA-Z0-9_-]/gu, '_');
 	const startMarkerId = `${markerSeed}-start`;

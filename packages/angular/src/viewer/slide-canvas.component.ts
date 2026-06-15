@@ -121,6 +121,9 @@ function plainText(el: PptxElement): string {
 							[element]="element"
 							[mediaDataUrls]="mediaDataUrls()"
 							[zIndex]="i"
+							[obstacles]="connectorObstacles()"
+							[canvasWidth]="canvasSize().width"
+							[canvasHeight]="canvasSize().height"
 						/>
 					}
 					@for (box of selectionBoxes(); track box.id) {
@@ -329,6 +332,17 @@ export class SlideCanvasComponent {
 	}
 
 	readonly elements = computed(() => this.slide()?.elements ?? []);
+
+	/**
+	 * Obstacle rects (absolute slide coords) for connector A* routing: every
+	 * non-connector element with a positive footprint. Bent connectors detour
+	 * around these instead of cutting straight through neighbouring shapes.
+	 */
+	readonly connectorObstacles = computed(() =>
+		this.elements()
+			.filter((e) => e.type !== 'connector' && e.width > 0 && e.height > 0)
+			.map((e) => ({ x: e.x, y: e.y, width: e.width, height: e.height })),
+	);
 
 	/** Bounding boxes (stage coords) for the selected elements. */
 	readonly selectionBoxes = computed(() => {
