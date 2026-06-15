@@ -131,8 +131,8 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 | Item                                                     | Status | Notes                                                                                                                                                                                                                                                                                                        |
 | -------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `PowerPointViewerComponent` (load + nav + zoom)          | ◑      | loading/error/encrypted states, prev/next, zoom, thumbnail rail; `activeSlideChange` output                                                                                                                                                                                                                  |
-| `SlideCanvasComponent`                                   | ◑      | scaled stage + element list; no rulers/grid/guides/overlays                                                                                                                                                                                                                                                  |
-| `ElementRendererComponent`                               | ◑      | text, shape (solid fill/stroke), picture/image, media poster, group recursion (self-selector); placeholders for the rest                                                                                                                                                                                     |
+| `SlideCanvasComponent`                                   | ◑      | scaled stage + element list + full slide background (image → gradient → pattern base → solid, via `slide-background.ts`); no rulers/grid/guides/overlays                                                                                                                                                     |
+| `ElementRendererComponent`                               | ◑      | renders all 11 element types (text/shape, connector, chart, table, smartArt, ink, ole, model3d, zoom, picture/image, media, group); sanitized text hyperlinks (`hyperlink.ts`)                                                                                                                               |
 | `element-style.ts`                                       | ◑      | container/shape/text/image basics + image & gradient fills (parser's prebuilt CSS gradient string) + preset-geometry clip-paths (via `shape-geometry.ts`); no structured gradient builder/effects/3D                                                                                                         |
 | Rich text runs (bold/italic/underline/strike/color/size) | ◑      | per-segment spans, paragraph + line breaks (text/shape elements and table cells)                                                                                                                                                                                                                             |
 | Connectors (SVG)                                         | ◑      | `ConnectorRendererComponent` — straight + bent (elbow) + curved (Bézier) routing via `connector-path.ts` (pure TS); stroke colour/width/dash + arrowheads, flip baked into endpoints. Full A\* routing, compound lines, connector text: TODO                                                                 |
@@ -282,3 +282,13 @@ Format), so **build the library first** (`bun run --filter pptx-angular-viewer b
   reference (newer than the local checkout) read-only via
   `git show origin/main:<path>`. Library build, typecheck, lint
   (`--deny-warnings`), and all 361 tests green.
+- **2026-06-15 (batch 5)** — Viewer-completeness polish (orchestrator, no
+  subagents): full slide background (`slide-background.ts` —
+  `getSlideBackgroundStyle`, image → gradient → pattern base → solid, wired into
+  `SlideCanvasComponent`; SVG pattern presets deferred), and sanitized text
+  hyperlinks (`hyperlink.ts` — `resolveHyperlinkHref` blocks
+  javascript/data/vbscript/mhtml + `ppaction://`; runs render as
+  `<a target=_blank rel=noopener>`). +15 tests (376 total). Note: ng-packagr
+  targets a lower `lib` than `tsconfig.lib.json` — `String.prototype.replaceAll`
+  fails the build; use `.split(x).join('')` (typecheck passes but build is the
+  real gate). Build, typecheck, lint, tests green.
