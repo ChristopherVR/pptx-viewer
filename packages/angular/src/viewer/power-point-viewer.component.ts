@@ -12,19 +12,35 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxComment, PptxCoreProperties, PptxElement, PptxSlide } from 'pptx-viewer-core';
 
 import type { ViewerTheme } from '../internal/shared';
 import { themeStyle } from '../theme/viewer-theme';
+import { AccessibilityPanelComponent } from './accessibility-panel.component';
+import { AccessibilityService } from './accessibility.service';
+import { CollaborationCursorsComponent } from './collaboration-cursors.component';
+import { CollaborationService } from './collaboration.service';
+import {
+	addCommentToList,
+	removeCommentFromList,
+	toggleCommentResolvedInList,
+} from './comments-helpers';
+import { CommentsPanelComponent } from './comments-panel.component';
 import { EditorContextMenuComponent } from './editor-context-menu.component';
 import { EditorStateService } from './editor-state.service';
 import { EditorToolbarComponent } from './editor-toolbar.component';
+import { EmbeddedFontsService } from './embedded-fonts.service';
 import { slideFileName } from './export-helpers';
 import { ExportService } from './export.service';
 import { FindBarComponent } from './find-bar.component';
+import { HyperlinkDialogComponent } from './hyperlink-dialog.component';
 import { InspectorPanelComponent } from './inspector-panel.component';
 import { LoadContentService } from './load-content.service';
 import { PresentationOverlayComponent } from './presentation-overlay.component';
+import { PrintDialogComponent } from './print-dialog.component';
+import type { PrintSettings } from './print-helpers';
+import { PrintService } from './print.service';
+import { PropertiesDialogComponent } from './properties-dialog.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
 import { SlidesPanelComponent } from './slides-panel.component';
@@ -55,7 +71,15 @@ const ZOOM_MAX = 3;
 	selector: 'pptx-viewer',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	providers: [LoadContentService, ExportService, EditorStateService],
+	providers: [
+		LoadContentService,
+		ExportService,
+		EditorStateService,
+		EmbeddedFontsService,
+		CollaborationService,
+		AccessibilityService,
+		PrintService,
+	],
 	imports: [
 		NgClass,
 		NgStyle,
@@ -67,6 +91,12 @@ const ZOOM_MAX = 3;
 		SlidesPanelComponent,
 		EditorToolbarComponent,
 		EditorContextMenuComponent,
+		CommentsPanelComponent,
+		AccessibilityPanelComponent,
+		CollaborationCursorsComponent,
+		PropertiesDialogComponent,
+		HyperlinkDialogComponent,
+		PrintDialogComponent,
 	],
 	template: `
 		<div class="pptx-ng-viewer" [ngClass]="class()" [ngStyle]="rootStyle()">
@@ -132,6 +162,42 @@ const ZOOM_MAX = 3;
 						</button>
 						<button type="button" (click)="showSorter.set(true)" aria-label="Slide sorter">
 							⊞
+						</button>
+						<button
+							type="button"
+							[class.is-active]="activePanel() === 'accessibility'"
+							[attr.aria-pressed]="activePanel() === 'accessibility'"
+							(click)="togglePanel('accessibility')"
+							aria-label="Accessibility checker"
+						>
+							A11y
+						</button>
+						@if (canEdit()) {
+							<button
+								type="button"
+								[class.is-active]="activePanel() === 'comments'"
+								[attr.aria-pressed]="activePanel() === 'comments'"
+								(click)="togglePanel('comments')"
+								aria-label="Comments"
+							>
+								Comments
+							</button>
+							@if (selectedElement(); as el) {
+								<button type="button" (click)="showHyperlink.set(true)" aria-label="Edit hyperlink">
+									Link
+								</button>
+							}
+						}
+						<button type="button" (click)="showProperties.set(true)" aria-label="Document properties">
+							Info
+						</button>
+						<button
+							type="button"
+							[disabled]="slideCount() === 0"
+							(click)="print.openDialog()"
+							aria-label="Print"
+						>
+							Print
 						</button>
 						<button
 							type="button"
@@ -216,6 +282,9 @@ const ZOOM_MAX = 3;
 							(textCommit)="onTextCommit($event)"
 							(textCancel)="editingId.set(null)"
 						/>
+						@if (collab.connected()) {
+							<pptx-collaboration-cursors [cursors]="collab.cursors()" [zoom]="zoom()" />
+						}
 						@if (showNotes() && activeNotes()) {
 							<aside class="pptx-ng-notes" aria-label="Speaker notes">
 								<h2 class="pptx-ng-notes-title">Notes</h2>
@@ -224,7 +293,23 @@ const ZOOM_MAX = 3;
 						}
 					</main>
 
-					@if (canEdit() && selectedElement(); as el) {
+					@if (activePanel() === 'accessibility') {
+						<aside class="pptx-ng-inspector-host" aria-label="Accessibility checker">
+							<pptx-accessibility-panel
+								[issues]="accessibility.issues()"
+								(selectSlide)="goTo($event)"
+							/>
+						</aside>
+					} @else if (activePanel() === 'comments' && canEdit()) {
+						<aside class="pptx-ng-inspector-host" aria-label="Comments">
+							<pptx-comments-panel
+								[comments]="activeComments()"
+								(add)="onCommentAdd($event)"
+								(remove)="onCommentRemove($event)"
+								(resolve)="onCommentResolve($event)"
+							/>
+						</aside>
+					} @else if (canEdit() && selectedElement(); as el) {
 						<aside class="pptx-ng-inspector-host" aria-label="Element properties">
 							<pptx-inspector-panel [element]="el" [slideIndex]="activeSlideIndex()" />
 						</aside>
@@ -302,6 +387,31 @@ const ZOOM_MAX = 3;
 					(closed)="contextMenuPos.set(null)"
 				/>
 			}
+
+			<pptx-properties-dialog
+				[open]="showProperties()"
+				[properties]="coreProperties()"
+				(save)="onPropertiesSave($event)"
+				(close)="showProperties.set(false)"
+			/>
+
+			@if (canEdit()) {
+				<pptx-hyperlink-dialog
+					[open]="showHyperlink()"
+					[element]="selectedElement()"
+					(save)="onHyperlinkSave($event)"
+					(close)="showHyperlink.set(false)"
+				/>
+			}
+
+			@if (print.isDialogOpen()) {
+				<pptx-print-dialog
+					[slides]="displaySlidesMut()"
+					[activeSlideIndex]="activeSlideIndex()"
+					(print)="onPrint($event)"
+					(cancel)="print.closeDialog()"
+				/>
+			}
 		</div>
 	`,
 })
@@ -314,7 +424,7 @@ export class PowerPointViewerComponent {
 	readonly class = input<string>('');
 	/** Theme configuration for customising the viewer's appearance. */
 	readonly theme = input<ViewerTheme | undefined>(undefined);
-	/** Optional real-time collaboration config (accepted for API parity; not yet implemented). */
+	/** Optional real-time collaboration config; when set, connects and shows remote cursors. */
 	readonly collaboration = input<CollaborationConfig | undefined>(undefined);
 
 	/** Fired when the active slide changes. */
@@ -323,10 +433,16 @@ export class PowerPointViewerComponent {
 	readonly dirtyChange = output<boolean>();
 	/** Fired with freshly-serialised `.pptx` bytes whenever {@link getContent} materialises the deck. */
 	readonly contentChange = output<Uint8Array>();
+	/** Fired when the user edits document properties in the Info dialog. */
+	readonly propertiesChange = output<Partial<PptxCoreProperties>>();
 
 	protected readonly loader = inject(LoadContentService);
 	private readonly exportSvc = inject(ExportService);
 	protected readonly editor = inject(EditorStateService);
+	private readonly fonts = inject(EmbeddedFontsService);
+	protected readonly collab = inject(CollaborationService);
+	protected readonly accessibility = inject(AccessibilityService);
+	protected readonly print = inject(PrintService);
 
 	/** The `<main>` host; used to locate the live `.pptx-ng-canvas-stage`. */
 	private readonly mainEl = viewChild<ElementRef<HTMLElement>>('mainEl');
@@ -339,6 +455,8 @@ export class PowerPointViewerComponent {
 		this.canEdit() ? this.editor.slides() : this.loader.slides(),
 	);
 	protected readonly slideCount = computed(() => this.displaySlides().length);
+	/** Mutable copy of the display deck for inputs that require a non-readonly array. */
+	protected readonly displaySlidesMut = computed<PptxSlide[]>(() => [...this.displaySlides()]);
 	protected readonly activeSlide = computed(() => this.displaySlides()[this.activeSlideIndex()]);
 	protected readonly rootStyle = computed(() => themeStyle(this.theme()));
 
@@ -353,6 +471,23 @@ export class PowerPointViewerComponent {
 	protected readonly showNotes = signal(false);
 	/** Find-in-slides bar visibility. */
 	protected readonly showFind = signal(false);
+	/** Active right-docked tool panel (comments / accessibility), or null. */
+	protected readonly activePanel = signal<'comments' | 'accessibility' | null>(null);
+	/** Document-properties (Info) dialog visibility. */
+	protected readonly showProperties = signal(false);
+	/** Hyperlink-edit dialog visibility. */
+	protected readonly showHyperlink = signal(false);
+	/** Local overrides applied to document properties via the Info dialog. */
+	private readonly coreOverride = signal<Partial<PptxCoreProperties>>({});
+	/** Comments on the active slide. */
+	protected readonly activeComments = computed<PptxComment[]>(
+		() => this.activeSlide()?.comments ?? [],
+	);
+	/** Document core properties (loaded, with any in-session edits merged in). */
+	protected readonly coreProperties = computed<PptxCoreProperties>(() => ({
+		...(this.loader.coreProperties() ?? {}),
+		...this.coreOverride(),
+	}));
 	/** Open editor context-menu position (client coords), or null. */
 	protected readonly contextMenuPos = signal<{ x: number; y: number } | null>(null);
 	/** Id of the element being inline text-edited, or null. */
@@ -405,6 +540,26 @@ export class PowerPointViewerComponent {
 			const count = this.displaySlides().length;
 			if (count > 0 && this.activeSlideIndex() >= count) {
 				this.activeSlideIndex.set(count - 1);
+			}
+		});
+
+		// Inject the presentation's embedded fonts as managed `@font-face` rules.
+		effect(() => {
+			this.fonts.setFonts(this.loader.embeddedFonts());
+		});
+
+		// Feed the live deck to the accessibility checker.
+		effect(() => {
+			this.accessibility.setSlides([...this.displaySlides()]);
+		});
+
+		// Connect / disconnect real-time collaboration when the config changes.
+		effect(() => {
+			const config = this.collaboration();
+			if (config) {
+				void this.collab.connect(config);
+			} else {
+				this.collab.disconnect();
 			}
 		});
 	}
@@ -506,6 +661,77 @@ export class PowerPointViewerComponent {
 	/** Toggle the speaker-notes strip. */
 	toggleNotes(): void {
 		this.showNotes.update((v) => !v);
+	}
+
+	/** Toggle a right-docked tool panel (clicking the active one closes it). */
+	togglePanel(panel: 'comments' | 'accessibility'): void {
+		this.activePanel.update((current) => (current === panel ? null : panel));
+	}
+
+	/** Append a comment to the active slide (one history entry). */
+	onCommentAdd(text: string): void {
+		const next = addCommentToList(this.activeComments(), text, 'You');
+		if (next) {
+			this.editor.updateSlide(this.activeSlideIndex(), { comments: next });
+		}
+	}
+
+	/** Remove a comment from the active slide. */
+	onCommentRemove(id: string): void {
+		const next = removeCommentFromList(this.activeComments(), id);
+		if (next) {
+			this.editor.updateSlide(this.activeSlideIndex(), { comments: next });
+		}
+	}
+
+	/** Toggle a comment's resolved flag on the active slide. */
+	onCommentResolve(id: string): void {
+		const next = toggleCommentResolvedInList(this.activeComments(), id);
+		if (next) {
+			this.editor.updateSlide(this.activeSlideIndex(), { comments: next });
+		}
+	}
+
+	/** Persist a document-properties edit from the Info dialog. */
+	onPropertiesSave(patch: Partial<PptxCoreProperties>): void {
+		this.coreOverride.update((current) => ({ ...current, ...patch }));
+		this.propertiesChange.emit(patch);
+		this.showProperties.set(false);
+	}
+
+	/** Apply a hyperlink edit to the selected element (one history entry). */
+	onHyperlinkSave(patch: Partial<PptxElement>): void {
+		const el = this.selectedElement();
+		if (el) {
+			this.editor.updateElement(this.activeSlideIndex(), el.id, patch);
+		}
+		this.showHyperlink.set(false);
+	}
+
+	/** Run a print job for the chosen settings, rasterising each slide off the live stage. */
+	async onPrint(settings: PrintSettings): Promise<void> {
+		const original = this.activeSlideIndex();
+		try {
+			await this.print.print(settings, [...this.displaySlides()], original, (index) =>
+				this.captureSlideDataUrl(index),
+			);
+		} finally {
+			this.activeSlideIndex.set(original);
+		}
+	}
+
+	/** Flip the live stage to `index`, let it settle, and capture it to a PNG data URL. */
+	private async captureSlideDataUrl(index: number): Promise<string | null> {
+		this.activeSlideIndex.set(index);
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 150);
+		});
+		const el = this.stageElement();
+		if (!el) {
+			return null;
+		}
+		const canvas = await this.exportSvc.renderElement(el);
+		return canvas.toDataURL('image/png');
 	}
 
 	/**

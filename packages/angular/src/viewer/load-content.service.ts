@@ -1,7 +1,9 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import type {
 	MediaPptxElement,
+	PptxCoreProperties,
 	PptxElement,
+	PptxEmbeddedFont,
 	PptxSlide,
 	PptxSlideMaster,
 	PptxTheme,
@@ -49,6 +51,14 @@ export class LoadContentService {
 	readonly slideMasters = signal<PptxSlideMaster[]>([]);
 	/** Archive-path → displayable URL map for media + poster frames. */
 	readonly mediaDataUrls = signal<Map<string, string>>(new Map());
+	/** Embedded font data (name + binary) extracted from the presentation. */
+	readonly embeddedFonts = signal<PptxEmbeddedFont[]>([]);
+	/** Core document properties from `docProps/core.xml`. */
+	readonly coreProperties = signal<PptxCoreProperties | undefined>(undefined);
+	/** Whether the presentation contains digital signatures. */
+	readonly hasDigitalSignatures = signal(false);
+	/** Number of digital signatures found. */
+	readonly digitalSignatureCount = signal(0);
 	/** True while a load is in flight. */
 	readonly loading = signal(false);
 	/** Error message from the last failed load, or null. */
@@ -236,6 +246,10 @@ export class LoadContentService {
 			});
 			this.theme.set(parsed.theme);
 			this.slideMasters.set(parsed.slideMasters ?? []);
+			this.embeddedFonts.set(parsed.embeddedFonts ?? []);
+			this.coreProperties.set(parsed.coreProperties);
+			this.hasDigitalSignatures.set(parsed.hasDigitalSignatures ?? false);
+			this.digitalSignatureCount.set(parsed.digitalSignatureCount ?? 0);
 		} catch (err) {
 			if (token === this.renderToken) {
 				if (err instanceof EncryptedFileError) {
