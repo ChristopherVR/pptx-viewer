@@ -159,7 +159,7 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 | `useEditorHistory` (undo/redo)                                                                                                                     | ◑      | `composables/useEditorHistory.ts` — undo/redo over `Ref<PptxSlide[]>` (deep-clone snapshots, 120 cap). **Wired into `PowerPointViewer`** (toolbar + Ctrl+Z/Y)                                                                                                              |
 | `useEditorOperations` (element CRUD/transform)                                                                                                     | ◑      | `composables/useEditorOperations.ts` — add/update/remove/transform/duplicate/reorder/updateText over the active slide via core clone helpers; snapshot-first history. **Wired into `PowerPointViewer`** (toolbar + selection overlay). Group/align/flip/clipboard deferred |
 | `useExportHandlers` / `useViewerIntegration`                                                                                                       | ☐      |                                                                                                                                                                                                                                                                            |
-| Autosave, clipboard, find/replace, comments                                                                                                        | ☐      |                                                                                                                                                                                                                                                                            |
+| Clipboard, find/replace                                                                                                                            | ◑      | clipboard (cut/copy/paste via context menu) + `useFindReplace`/`FindReplaceBar` (Ctrl+F, cross-slide text search + replace/replace-all, history-aware). Autosave + comments still ☐                                                                                        |
 
 ### Rendering
 
@@ -191,7 +191,7 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 | ----------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Editing interaction core                                          | ◑      | `useSelection` + `SelectionOverlay.vue` (8 resize handles + rotate + drag) + `element-interaction.ts` (pure transform/resize/rotate math) + `EditorToolbar.vue` (undo/redo/zoom/add-text/add-shape/delete/duplicate/forward/backward). **Wired into `PowerPointViewer`** behind `canEdit`: click-to-select (event delegation on `data-element-id`), drag/resize via overlay (1 history entry/gesture), Ctrl+Z/Y + Delete shortcuts. Edits flow to `getContent()` export |
 | Inspector panels (fill/stroke/text/image/table/chart/animation/…) | ◑      | `inspector/InspectorPane.vue` + `ArrangePanel`/`FillPanel`/`StrokePanel`/`TextPanel`/`EffectsPanel`; wired into `PowerPointViewer` (right sidebar, single selection → `ops.updateElement`). Image/table/chart/animation panels still ☐                                                                                                                                                                                                                                  |
-| Context menu                                                      | ◑      | `ContextMenu.vue` (generic teleported menu) wired into `PowerPointViewer` right-click: cut/copy/paste/delete/duplicate/bring-forward/send-backward over the in-memory clipboard + ops. Dialogs (share/broadcast/settings/properties/hyperlink/…) still ☐                                                                                                                                                                                                                |
+| Context menu + dialogs                                            | ◑      | `ContextMenu.vue` right-click (cut/copy/paste/delete/duplicate/forward/backward/**hyperlink**); reusable `ModalDialog.vue` + `HyperlinkDialog.vue` (edit element `actionClick` hyperlink). Other dialogs (share/broadcast/settings/properties) still ☐                                                                                                                                                                                                                  |
 | Slides pane                                                       | ◑      | `useSlideOperations` (add/delete/duplicate/move slide, history-aware) + `SlidesPaneControls.vue` in the thumbnail rail. Drag-reorder, slide sorter, notes, mobile chrome, accessibility panel still ☐                                                                                                                                                                                                                                                                   |
 
 ### Advanced subsystems (all ☐ — not started)
@@ -396,3 +396,16 @@ equationXml` OMML → MathML (ported from React's three omml-\* files, core only
   typecheck/lint clean; build green. Three parallel subagents + central wiring.
   Next: dialogs (properties/hyperlink/share), drag-reorder slides, slide
   transitions/animations, export (PNG/PDF), find/replace, comments, collaboration.
+- **2026-06-15** — Batch 8: find/replace + dialogs. `useFindReplace` +
+  `FindReplaceBar.vue` — Ctrl+F bar with cross-slide text search, prev/next,
+  replace + replace-all (rewrites both `element.text` and `textSegments[].text`,
+  history-aware). Reusable `ModalDialog.vue` (teleported, Esc/backdrop close,
+  footer slot) + `HyperlinkDialog.vue` editing the element-level `actionClick`
+  hyperlink (url + tooltip), opened from a new "Hyperlink…" context-menu item and
+  applied via `ops.updateElement`. 30 new tests (453 total green);
+  typecheck/lint clean; build green. Two parallel subagents + central wiring.
+  **Still ☐ (heavier, dedicated work):** export (PNG/PDF/GIF — needs
+  `html2canvas-pro` added to vue deps + offscreen slide rasterization),
+  collaboration (Yjs), animations/transitions, comments, digital signatures,
+  font embedding, slide sorter, notes, mobile chrome, accessibility panel,
+  remaining inspector panels (image/table/chart/animation), drag-reorder slides.

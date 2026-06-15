@@ -27,6 +27,8 @@ import ContextMenu from './components/ContextMenu.vue';
 import type { ContextMenuItem } from './components/ContextMenu.vue';
 import EditorToolbar from './components/EditorToolbar.vue';
 import type { ShapePreset } from './components/EditorToolbar.vue';
+import FindReplaceBar from './components/FindReplaceBar.vue';
+import HyperlinkDialog from './components/HyperlinkDialog.vue';
 import InspectorPane from './components/inspector/InspectorPane.vue';
 import PresentationMode from './components/PresentationMode.vue';
 import SelectionOverlay from './components/SelectionOverlay.vue';
@@ -35,6 +37,7 @@ import SlidesPaneControls from './components/SlidesPaneControls.vue';
 import SlideStage from './components/SlideStage.vue';
 import { useEditorHistory } from './composables/useEditorHistory';
 import { useEditorOperations } from './composables/useEditorOperations';
+import { useFindReplace } from './composables/useFindReplace';
 import { useLoadContent } from './composables/useLoadContent';
 import { useSlideOperations } from './composables/useSlideOperations';
 import type { PowerPointViewerEmits, PowerPointViewerExpose, PowerPointViewerProps } from './types';
@@ -309,6 +312,8 @@ const contextItems = computed<ContextMenuItem[]>(() => [
 	{ id: 'sep2', label: '', separator: true },
 	{ id: 'bring-forward', label: 'Bring forward' },
 	{ id: 'send-backward', label: 'Send backward' },
+	{ id: 'sep3', label: '', separator: true },
+	{ id: 'hyperlink', label: 'Hyperlink…' },
 ]);
 function onCanvasContextMenu(event: MouseEvent): void {
 	if (!props.canEdit) {
@@ -355,8 +360,36 @@ function onContextSelect(actionId: string): void {
 		case 'send-backward':
 			ops.sendBackward(target);
 			break;
+		case 'hyperlink':
+			openHyperlinkDialog(target);
+			break;
 	}
 }
+
+// ── Hyperlink dialog ──────────────────────────────────────────────────
+const hyperlinkOpen = ref(false);
+const hyperlinkTarget = ref<PptxElement | null>(null);
+function openHyperlinkDialog(id: string): void {
+	const el = activeSlide.value?.elements.find((e) => e.id === id);
+	if (el) {
+		hyperlinkTarget.value = el;
+		hyperlinkOpen.value = true;
+	}
+}
+function onHyperlinkSave(patch: Partial<PptxElement>): void {
+	if (hyperlinkTarget.value) {
+		ops.updateElement(hyperlinkTarget.value.id, patch);
+	}
+	hyperlinkOpen.value = false;
+}
+
+// ── Find & replace ────────────────────────────────────────────────────
+const findOpen = ref(false);
+const find = useFindReplace({
+	slides,
+	activeSlideIndex,
+	pushHistory: history.pushHistory,
+});
 function sendBackward(): void {
 	for (const id of [...selectedElementIds.value]) {
 		ops.sendBackward(id);
@@ -369,6 +402,11 @@ function onEditorKeydown(event: KeyboardEvent): void {
 		return;
 	}
 	const mod = event.ctrlKey || event.metaKey;
+	if (mod && event.key.toLowerCase() === 'f') {
+		event.preventDefault();
+		findOpen.value = !findOpen.value;
+		return;
+	}
 	if (mod && event.key.toLowerCase() === 'z') {
 		event.preventDefault();
 		if (event.shiftKey) {
@@ -469,6 +507,21 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				@send-backward="sendBackward"
 			/>
 
+			<!-- Find & replace bar -->
+			<FindReplaceBar
+				v-if="props.canEdit && findOpen"
+				v-model:query="find.query.value"
+				v-model:replacement="find.replacement.value"
+				v-model:match-case="find.matchCase.value"
+				:match-count="find.matchCount.value"
+				:current-index="find.currentMatch.value"
+				@next="find.next"
+				@prev="find.prev"
+				@replace="find.replaceCurrent"
+				@replace-all="find.replaceAll"
+				@close="findOpen = false"
+			/>
+
 			<div class="pptx-vue-body">
 				<nav class="pptx-vue-thumbnails" aria-label="Slides">
 					<SlidesPaneControls
@@ -540,6 +593,14 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				:items="contextItems"
 				@select="onContextSelect"
 				@close="contextMenu.open = false"
+			/>
+
+			<!-- Hyperlink editor -->
+			<HyperlinkDialog
+				:open="hyperlinkOpen"
+				:element="hyperlinkTarget"
+				@save="onHyperlinkSave"
+				@close="hyperlinkOpen = false"
 			/>
 		</template>
 
