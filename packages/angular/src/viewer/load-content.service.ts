@@ -72,12 +72,20 @@ export class LoadContentService {
 		});
 	}
 
-	/** Serialise the current presentation back to `.pptx` bytes. */
+	/** Serialise the current (loaded) presentation back to `.pptx` bytes. */
 	async getContent(): Promise<Uint8Array> {
+		return this.saveSlides(this.slides());
+	}
+
+	/**
+	 * Serialise an explicit set of slides back to `.pptx` bytes (e.g. the
+	 * editor's edited deck) using the loaded presentation's handler.
+	 */
+	async saveSlides(slides: readonly PptxSlide[]): Promise<Uint8Array> {
 		if (!this.handler) {
 			throw new Error('No presentation is loaded.');
 		}
-		return this.handler.save(this.slides());
+		return this.handler.save([...slides]);
 	}
 
 	/** Parse the supplied `.pptx` bytes into the reactive signals. */

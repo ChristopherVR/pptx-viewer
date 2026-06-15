@@ -297,9 +297,12 @@ export class PowerPointViewerComponent {
 		});
 	}
 
-	/** Serialise the current presentation to `.pptx` bytes (imperative handle). */
+	/**
+	 * Serialise the current presentation to `.pptx` bytes (imperative handle).
+	 * When editing, this serialises the editor's edited deck so changes persist.
+	 */
 	getContent(): Promise<Uint8Array> {
-		return this.loader.getContent();
+		return this.canEdit() ? this.loader.saveSlides(this.editor.slides()) : this.loader.getContent();
 	}
 
 	goTo(index: number): void {
