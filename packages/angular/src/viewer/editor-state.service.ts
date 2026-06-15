@@ -215,7 +215,91 @@ export class EditorStateService {
 		}
 	}
 
+	// ── Element insertion ────────────────────────────────────────────────────
+
+	/** Append a new element to a slide (records history) and select it. */
+	addElement(slideIndex: number, element: PptxElement): void {
+		const slides = this.slides();
+		if (!slides[slideIndex]) {
+			return;
+		}
+		const withId: PptxElement = { ...element, id: element.id || this.newId() };
+		this.history.record(this.clone(slides), 'Insert');
+		this.slides.set(
+			slides.map((slide, i) =>
+				i === slideIndex ? { ...slide, elements: [...slide.elements, withId] } : slide,
+			),
+		);
+		this.selectedIds.set([withId.id]);
+		this.dirty.set(true);
+		this.syncHistory();
+	}
+
+	// ── Slide operations ─────────────────────────────────────────────────────
+
+	/** Insert a blank slide after `afterIndex` (records history). */
+	addSlide(afterIndex: number): void {
+		const slides = this.slides();
+		this.history.record(this.clone(slides), 'Add slide');
+		const id = this.newId();
+		const blank = { id, rId: id, slideNumber: 0, elements: [] } as PptxSlide;
+		const next = [...slides];
+		next.splice(Math.min(afterIndex + 1, next.length), 0, blank);
+		this.slides.set(this.renumber(next));
+		this.selectedIds.set([]);
+		this.dirty.set(true);
+		this.syncHistory();
+	}
+
+	/** Delete a slide (keeps at least one; records history). */
+	deleteSlide(index: number): void {
+		const slides = this.slides();
+		if (slides.length <= 1 || !slides[index]) {
+			return;
+		}
+		this.history.record(this.clone(slides), 'Delete slide');
+		this.slides.set(this.renumber(slides.filter((_, i) => i !== index)));
+		this.selectedIds.set([]);
+		this.dirty.set(true);
+		this.syncHistory();
+	}
+
+	/** Duplicate a slide, inserting the copy after it (records history). */
+	duplicateSlide(index: number): void {
+		const slides = this.slides();
+		if (!slides[index]) {
+			return;
+		}
+		this.history.record(this.clone(slides), 'Duplicate slide');
+		const id = this.newId();
+		const copy: PptxSlide = { ...this.clone(slides[index]), id, rId: id };
+		const next = [...slides];
+		next.splice(index + 1, 0, copy);
+		this.slides.set(this.renumber(next));
+		this.dirty.set(true);
+		this.syncHistory();
+	}
+
+	/** Reorder a slide from `from` to `to` (records history). */
+	moveSlide(from: number, to: number): void {
+		const slides = this.slides();
+		if (from === to || !slides[from] || to < 0 || to >= slides.length) {
+			return;
+		}
+		this.history.record(this.clone(slides), 'Move slide');
+		const next = [...slides];
+		const [moved] = next.splice(from, 1);
+		next.splice(to, 0, moved);
+		this.slides.set(this.renumber(next));
+		this.dirty.set(true);
+		this.syncHistory();
+	}
+
 	// ── Internals ────────────────────────────────────────────────────────────
+
+	private renumber(slides: readonly PptxSlide[]): PptxSlide[] {
+		return slides.map((slide, i) => ({ ...slide, slideNumber: i + 1 }));
+	}
 
 	private zOrder(
 		slideIndex: number,

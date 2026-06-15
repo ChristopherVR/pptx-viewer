@@ -91,4 +91,53 @@ describe('editorStateService', () => {
 		expect(svc.slides()[0].elements).toHaveLength(3);
 		expect(svc.canUndo()).toBeFalsy();
 	});
+
+	it('adds an element and selects it', () => {
+		const svc = service();
+		svc.addElement(0, element('x', 5, 5));
+		const els = svc.slides()[0].elements;
+		expect(els.map((e) => e.id)).toStrictEqual(['a', 'b', 'c', 'x']);
+		expect(svc.selectedIds()).toStrictEqual(['x']);
+		svc.undo();
+		expect(svc.slides()[0].elements).toHaveLength(3);
+	});
+
+	function deck(): EditorStateService {
+		const svc = new EditorStateService();
+		svc.setSlides([slide('s1', [element('a')]), slide('s2', [element('b')])]);
+		return svc;
+	}
+
+	it('adds a blank slide after the given index and renumbers', () => {
+		const svc = deck();
+		svc.addSlide(0);
+		expect(svc.slides()).toHaveLength(3);
+		expect(svc.slides()[1].elements).toHaveLength(0);
+		expect(svc.slides().map((s) => s.slideNumber)).toStrictEqual([1, 2, 3]);
+		svc.undo();
+		expect(svc.slides()).toHaveLength(2);
+	});
+
+	it('deletes a slide but keeps at least one', () => {
+		const svc = deck();
+		svc.deleteSlide(0);
+		expect(svc.slides().map((s) => s.id)).toStrictEqual(['s2']);
+		svc.deleteSlide(0);
+		// last slide is not deletable
+		expect(svc.slides()).toHaveLength(1);
+	});
+
+	it('duplicates a slide with a fresh id', () => {
+		const svc = deck();
+		svc.duplicateSlide(0);
+		expect(svc.slides()).toHaveLength(3);
+		expect(svc.slides()[1].id).not.toBe('s1');
+		expect(svc.slides()[1].elements.map((e) => e.id)).toStrictEqual(['a']);
+	});
+
+	it('reorders slides', () => {
+		const svc = deck();
+		svc.moveSlide(0, 1);
+		expect(svc.slides().map((s) => s.id)).toStrictEqual(['s2', 's1']);
+	});
 });

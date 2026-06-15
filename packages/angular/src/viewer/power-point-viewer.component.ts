@@ -158,7 +158,7 @@ const ZOOM_MAX = 3;
 
 				<div class="pptx-ng-body">
 					<nav class="pptx-ng-thumbnails" aria-label="Slides">
-						@for (slide of loader.slides(); track slide.id; let i = $index) {
+						@for (slide of displaySlides(); track slide.id; let i = $index) {
 							<button
 								type="button"
 								class="pptx-ng-thumb"
@@ -260,11 +260,11 @@ export class PowerPointViewerComponent {
 	protected readonly exporting = signal(false);
 
 	protected readonly activeSlideIndex = signal(0);
-	protected readonly slideCount = this.loader.slideCount;
 	/** Slides to display: the editable deck when `canEdit`, else the loaded deck. */
 	protected readonly displaySlides = computed(() =>
 		this.canEdit() ? this.editor.slides() : this.loader.slides(),
 	);
+	protected readonly slideCount = computed(() => this.displaySlides().length);
 	protected readonly activeSlide = computed(() => this.displaySlides()[this.activeSlideIndex()]);
 	protected readonly rootStyle = computed(() => themeStyle(this.theme()));
 
@@ -313,6 +313,14 @@ export class PowerPointViewerComponent {
 		// Surface the editor's dirty flag to the host.
 		effect(() => {
 			this.dirtyChange.emit(this.editor.dirty());
+		});
+
+		// Keep the active index in range when the deck shrinks (slide deleted).
+		effect(() => {
+			const count = this.displaySlides().length;
+			if (count > 0 && this.activeSlideIndex() >= count) {
+				this.activeSlideIndex.set(count - 1);
+			}
 		});
 	}
 
