@@ -398,6 +398,18 @@ export class EditorStateService {
 
 	// ── Slide operations ─────────────────────────────────────────────────────
 
+	/** Patch slide-level properties (background, notes, …); one history entry. */
+	updateSlide(slideIndex: number, patch: Partial<PptxSlide>): void {
+		const slides = this.slides();
+		if (!slides[slideIndex]) {
+			return;
+		}
+		this.history.record(this.clone(slides), 'Slide properties');
+		this.slides.set(slides.map((s, i) => (i === slideIndex ? { ...s, ...patch } : s)));
+		this.dirty.set(true);
+		this.syncHistory();
+	}
+
 	/** Insert a blank slide after `afterIndex` (records history). */
 	addSlide(afterIndex: number): void {
 		const slides = this.slides();

@@ -223,6 +223,24 @@ const ZOOM_MAX = 3;
 						<aside class="pptx-ng-inspector-host" aria-label="Element properties">
 							<pptx-inspector-panel [element]="el" [slideIndex]="activeSlideIndex()" />
 						</aside>
+					} @else if (canEdit() && activeSlide(); as sl) {
+						<aside class="pptx-ng-inspector-host" aria-label="Slide properties">
+							<div class="pptx-ng-slide-props">
+								<h2 class="pptx-ng-notes-title">Slide</h2>
+								<label class="pptx-ng-prop-row">
+									<span>Background</span>
+									<input
+										type="color"
+										[value]="sl.backgroundColor || '#ffffff'"
+										(change)="onSlideBackground($event)"
+									/>
+								</label>
+								<label class="pptx-ng-prop-row pptx-ng-prop-col">
+									<span>Notes</span>
+									<textarea rows="5" [value]="sl.notes || ''" (change)="onSlideNotes($event)"></textarea>
+								</label>
+							</div>
+						</aside>
 					}
 				</div>
 			}
@@ -426,6 +444,20 @@ export class PowerPointViewerComponent {
 			this.editor.select([event.id]);
 		}
 		this.contextMenuPos.set({ x: event.x, y: event.y });
+	}
+
+	/** Update the active slide's background colour. */
+	onSlideBackground(event: Event): void {
+		this.editor.updateSlide(this.activeSlideIndex(), {
+			backgroundColor: (event.target as HTMLInputElement).value,
+		});
+	}
+
+	/** Update the active slide's speaker notes. */
+	onSlideNotes(event: Event): void {
+		this.editor.updateSlide(this.activeSlideIndex(), {
+			notes: (event.target as HTMLTextAreaElement).value,
+		});
 	}
 
 	/** Commit an inline text edit: replace the element's text (one history entry). */
