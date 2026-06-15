@@ -14,6 +14,8 @@ export { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
 export { FindBarComponent } from './find-bar.component';
 export { collectElementText, collectSlideText, searchSlides } from './slide-search';
 export { resolveParagraphBullet, formatAutoNumber, bulletIndentPx } from './text-bullets';
+export { EquationRendererComponent } from './equation-renderer.component';
+export { ommlToMathml, convertOmmlToMathMl } from './omml-to-mathml';
 export { LoadContentService } from './load-content.service';
 
 export type { CanvasSize, CollaborationConfig, CollaborationRole } from './types';

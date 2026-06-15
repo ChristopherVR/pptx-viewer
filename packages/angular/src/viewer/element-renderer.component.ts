@@ -12,6 +12,7 @@ import {
 	getTextBlockStyle,
 } from './element-style';
 import type { StyleMap } from './element-style';
+import { EquationRendererComponent } from './equation-renderer.component';
 import { resolveHyperlinkHref } from './hyperlink';
 import { InkRendererComponent } from './ink-renderer.component';
 import { Model3DRendererComponent } from './model3d-renderer.component';
@@ -28,6 +29,10 @@ interface TextRun {
 	href?: string;
 	/** Hyperlink tooltip / title text. */
 	tooltip?: string;
+	/** Parsed OMML for an inline equation run (rendered as MathML). */
+	equationXml?: Record<string, unknown>;
+	/** Optional equation number for numbered equations. */
+	equationNumber?: string;
 }
 
 interface Paragraph {
@@ -76,6 +81,7 @@ interface Paragraph {
 		OleRendererComponent,
 		Model3DRendererComponent,
 		ZoomRendererComponent,
+		EquationRendererComponent,
 	],
 	template: `
 		@switch (true) {
@@ -194,7 +200,12 @@ interface Paragraph {
 										>
 									}
 									@for (run of para.runs; track $index) {
-										@if (
+										@if (run.equationXml) {
+											<pptx-equation-renderer
+												[equationXml]="run.equationXml"
+												[equationNumber]="run.equationNumber"
+											/>
+										} @else if (
 											run.text ===
 											'
 '
@@ -293,6 +304,15 @@ export class ElementRendererComponent {
 						current.bulletStyle['font-family'] = bullet.fontFamily;
 					}
 				}
+			}
+			if (seg.equationXml) {
+				current.runs.push({
+					text: '',
+					style: this.segmentStyle(seg),
+					equationXml: seg.equationXml,
+					equationNumber: seg.equationNumber,
+				});
+				continue;
 			}
 			const text = seg.isLineBreak ? '\n' : seg.text;
 			if (text) {
