@@ -110,6 +110,108 @@ export {
 } from './animation-playback-helpers';
 export type { AnimationClickGroup, CSSProperties } from './animation-playback-helpers';
 
+// Collaboration (Yjs)
+export { CollaborationCursorsComponent } from './collaboration-cursors.component';
+export { CollaborationService } from './collaboration.service';
+export {
+	validateRoomId,
+	isValidRoomId,
+	sanitizeUserName,
+	sanitizeColor,
+	sanitizeSlideIndex,
+	clampCursorPosition,
+	derivePresenceList,
+	presenceToCursors,
+	assignUserColor,
+	formatCursorLabel,
+	CURSOR_PALETTE,
+} from './collaboration-helpers';
+export type { RemoteCursor, RemotePresence } from './collaboration-helpers';
+
+// Dialog suite
+export { ModalDialogComponent } from './modal-dialog.component';
+export { PropertiesDialogComponent } from './properties-dialog.component';
+export { ShareDialogComponent } from './share-dialog.component';
+export { HyperlinkDialogComponent } from './hyperlink-dialog.component';
+export { BroadcastDialogComponent } from './broadcast-dialog.component';
+export {
+	seedPropertiesDraft,
+	formatPropertyDate,
+	buildPropertiesPatch,
+} from './properties-dialog-helpers';
+export type { DocumentProperties, PropertiesDraft } from './properties-dialog-helpers';
+export {
+	seedShareFields,
+	canStartShare,
+	buildCollaborationConfig,
+	buildShareUrl,
+} from './share-helpers';
+export type { ShareDefaults, ShareFormFields } from './share-helpers';
+export {
+	hasExistingLink,
+	seedHyperlinkDraft,
+	buildHyperlinkPatch,
+	buildClearHyperlinkPatch,
+} from './hyperlink-dialog-helpers';
+export type { HyperlinkDraft } from './hyperlink-dialog-helpers';
+export {
+	DEFAULT_BROADCAST_SERVER_URL,
+	generateBroadcastRoomId,
+	seedBroadcastFields,
+	canStartBroadcast,
+	buildBroadcastConfig,
+	buildBroadcastViewerUrl,
+	canUseClipboard,
+} from './broadcast-helpers';
+export type { BroadcastDefaults, BroadcastConfig } from './broadcast-helpers';
+
+// Print
+export { PrintDialogComponent } from './print-dialog.component';
+export { PrintSettingsPanelComponent } from './print-settings-panel.component';
+export { PrintService } from './print.service';
+export {
+	buildPrintDocument,
+	computeSlideIndices,
+	computePageCount,
+	estimatePageCount,
+	computeHandoutLayout,
+	validatePrintSettings,
+	normalizeSlidesPerPage,
+	DEFAULT_PRINT_SETTINGS,
+	HANDOUT_OPTIONS,
+} from './print-helpers';
+export type {
+	PrintWhat,
+	PrintOrientation,
+	PrintColorMode,
+	HandoutSlidesPerPage,
+	PrintSlideRange,
+	PrintSettings,
+	PrintDocumentOptions,
+} from './print-helpers';
+
+// Presentation transitions + presenter view
+export { PresentationTransitionOverlayComponent } from './presentation-transition-overlay.component';
+export { PresenterViewComponent } from './presenter-view.component';
+export {
+	getSlideTransitionAnimations,
+	resolveTransitionDuration,
+	SLIDE_TRANSITION_KEYFRAMES,
+} from './transition-helpers';
+export type { SlideTransitionAnimations } from './transition-helpers';
+export {
+	formatTime,
+	formatElapsed,
+	clampNotesFontSize,
+	computeTimerProgress,
+	resolvePresenterNotes,
+} from './presenter-view-helpers';
+export type {
+	NotesSegmentViewModel,
+	PresenterNotes,
+	TimerProgress,
+} from './presenter-view-helpers';
+
 export type { CanvasSize, CollaborationConfig, CollaborationRole } from './types';
 export type { StyleMap } from './element-style';
 export {
