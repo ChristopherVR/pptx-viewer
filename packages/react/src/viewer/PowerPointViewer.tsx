@@ -294,6 +294,25 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			// eslint-disable-next-line react-hooks/exhaustive-deps
 		}, [activeSlideIndex]);
 
+		// ── Reset canvas state when entering presentation mode ───────
+		// A selection carried into present mode leaks its outline (and, with the
+		// handle gating, would otherwise show resize/rotate handles) on top of the
+		// slide. The edit viewport's zoom/scroll is also inherited, so a slide the
+		// user had scrolled/zoomed during editing would open the presentation on a
+		// sub-region instead of the whole slide. Reset all of it so presentations
+		// start clean: unselected, fit-to-view, scrolled to the slide origin.
+		useEffect(() => {
+			if (mode !== 'present') {
+				return;
+			}
+			state.setSelectedElementId(null);
+			state.setSelectedElementIds([]);
+			state.setInlineEditingElementId(null);
+			zoom.handleZoomToFit();
+			zoom.canvasViewportRef.current?.scrollTo({ left: 0, top: 0 });
+			// eslint-disable-next-line react-hooks/exhaustive-deps
+		}, [mode]);
+
 		const editorOps = useEditorOperations({
 			state,
 			history,

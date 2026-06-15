@@ -257,6 +257,7 @@ export function SlideCanvas({
 							zIndex={index}
 							imageAltText='Template element'
 							showResizeHandles={
+								isEditableCanvas &&
 								selectedElementIdSet.has(element.id) &&
 								selectedElementIdSet.size <= 1 &&
 								!inlineEditingElementId
@@ -264,7 +265,7 @@ export function SlideCanvas({
 							renderInk={false}
 							renderGroups={false}
 							adjustmentHandleDescriptor={
-								selectedElement?.id === element.id
+								isEditableCanvas && selectedElement?.id === element.id
 									? getShapeAdjustmentHandleDescriptor(element)
 									: null
 							}
@@ -303,6 +304,7 @@ export function SlideCanvas({
 							zIndex={templateElements.length + index}
 							imageAltText='Slide element'
 							showResizeHandles={
+								isEditableCanvas &&
 								selectedElementIdSet.has(element.id) &&
 								selectedElementIdSet.size <= 1 &&
 								!inlineEditingElementId
@@ -310,7 +312,7 @@ export function SlideCanvas({
 							renderInk
 							renderGroups
 							adjustmentHandleDescriptor={
-								selectedElement?.id === element.id
+								isEditableCanvas && selectedElement?.id === element.id
 									? getShapeAdjustmentHandleDescriptor(element)
 									: null
 							}
