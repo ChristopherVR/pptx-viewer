@@ -1,14 +1,16 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import type {
 	MediaPptxElement,
+	ParsedSignature,
 	PptxCoreProperties,
 	PptxElement,
 	PptxEmbeddedFont,
 	PptxSlide,
 	PptxSlideMaster,
 	PptxTheme,
+	XmlObject,
 } from 'pptx-viewer-core';
-import { EncryptedFileError, PptxHandler } from 'pptx-viewer-core';
+import { EncryptedFileError, parseSignatureXml, PptxHandler } from 'pptx-viewer-core';
 
 import {
 	DEFAULT_CANVAS_HEIGHT,
@@ -56,6 +58,9 @@ export class LoadContentService {
 	/** Core document properties from `docProps/core.xml`. */
 	readonly coreProperties = signal<PptxCoreProperties | undefined>(undefined);
 	/** Whether the presentation contains digital signatures. */
+	/** Parsed digital signatures (empty when unsigned or parsing fails). */
+	readonly signatures = signal<ParsedSignature[]>([]);
+
 	readonly hasDigitalSignatures = signal(false);
 	/** Number of digital signatures found. */
 	readonly digitalSignatureCount = signal(0);
@@ -123,6 +128,10 @@ export class LoadContentService {
 						`Loading may use significant memory.`,
 				);
 			}
+
+			// Keep an independent copy for signature parsing — the handler may
+			// detach/consume the ArrayBuffer during load.
+			const sigBuffer = (buffer as ArrayBuffer).slice(0);
 
 			const previousHandler = this.handler;
 			const newHandler = new PptxHandler();
@@ -250,6 +259,17 @@ export class LoadContentService {
 			this.coreProperties.set(parsed.coreProperties);
 			this.hasDigitalSignatures.set(parsed.hasDigitalSignatures ?? false);
 			this.digitalSignatureCount.set(parsed.digitalSignatureCount ?? 0);
+
+			// Parse the `_xmlsignatures/*.xml` parts into ParsedSignature[] for the
+			// signatures panel (best-effort; lazy ZIP/XML import keeps it off the
+			// main chunk). Only commit if this load is still current.
+			this.signatures.set([]);
+			if (parsed.hasDigitalSignatures) {
+				const sigs = await parseSignaturesFromBuffer(sigBuffer);
+				if (token === this.renderToken) {
+					this.signatures.set(sigs);
+				}
+			}
 		} catch (err) {
 			if (token === this.renderToken) {
 				if (err instanceof EncryptedFileError) {
@@ -278,5 +298,32 @@ export class LoadContentService {
 				URL.revokeObjectURL(url);
 			}
 		}
+	}
+}
+
+/**
+ * Parse digital signatures from a `.pptx` ZIP buffer (best-effort; returns an
+ * empty array when there are none or parsing fails). `jszip`/`fast-xml-parser`
+ * are imported lazily so they stay out of the main chunk. Mirrors the Vue
+ * port's `parseSignaturesFromBuffer`.
+ */
+async function parseSignaturesFromBuffer(buffer: ArrayBuffer): Promise<ParsedSignature[]> {
+	try {
+		const [{ default: JSZip }, { XMLParser }] = await Promise.all([
+			import('jszip'),
+			import('fast-xml-parser'),
+		]);
+		const zip = await JSZip.loadAsync(buffer);
+		const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
+		const result: ParsedSignature[] = [];
+		for (const path of Object.keys(zip.files)) {
+			if (path.startsWith('_xmlsignatures/') && path.endsWith('.xml')) {
+				const xml = await zip.files[path].async('string');
+				result.push(parseSignatureXml(parser.parse(xml) as XmlObject, path));
+			}
+		}
+		return result;
+	} catch {
+		return [];
 	}
 }

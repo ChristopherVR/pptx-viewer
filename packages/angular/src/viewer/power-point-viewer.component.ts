@@ -45,6 +45,7 @@ import { PrintDialogComponent } from './print-dialog.component';
 import type { PrintSettings } from './print-helpers';
 import { PrintService } from './print.service';
 import { PropertiesDialogComponent } from './properties-dialog.component';
+import { SignaturesPanelComponent } from './signatures-panel.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
 import { SlidesPanelComponent } from './slides-panel.component';
@@ -97,6 +98,7 @@ const ZOOM_MAX = 3;
 		EditorToolbarComponent,
 		EditorContextMenuComponent,
 		CommentsPanelComponent,
+		SignaturesPanelComponent,
 		AccessibilityPanelComponent,
 		CollaborationCursorsComponent,
 		PropertiesDialogComponent,
@@ -186,6 +188,17 @@ const ZOOM_MAX = 3;
 						>
 							A11y
 						</button>
+						@if (loader.hasDigitalSignatures()) {
+							<button
+								type="button"
+								[class.is-active]="activePanel() === 'signatures'"
+								[attr.aria-pressed]="activePanel() === 'signatures'"
+								(click)="togglePanel('signatures')"
+								aria-label="Digital signatures"
+							>
+								Signatures
+							</button>
+						}
 						@if (canEdit()) {
 							<button
 								type="button"
@@ -327,6 +340,10 @@ const ZOOM_MAX = 3;
 								[issues]="accessibility.issues()"
 								(selectSlide)="goTo($event)"
 							/>
+						</aside>
+					} @else if (activePanel() === 'signatures') {
+						<aside class="pptx-ng-inspector-host" aria-label="Digital signatures">
+							<pptx-signatures-panel [signatures]="loader.signatures()" />
 						</aside>
 					} @else if (activePanel() === 'comments' && canEdit()) {
 						<aside class="pptx-ng-inspector-host" aria-label="Comments">
@@ -519,7 +536,7 @@ export class PowerPointViewerComponent {
 	private findMatchCase = false;
 
 	/** Active right-docked tool panel (comments / accessibility), or null. */
-	protected readonly activePanel = signal<'comments' | 'accessibility' | null>(null);
+	protected readonly activePanel = signal<'comments' | 'accessibility' | 'signatures' | null>(null);
 	/** Document-properties (Info) dialog visibility. */
 	protected readonly showProperties = signal(false);
 	/** Hyperlink-edit dialog visibility. */
@@ -770,7 +787,7 @@ export class PowerPointViewerComponent {
 	}
 
 	/** Toggle a right-docked tool panel (clicking the active one closes it). */
-	togglePanel(panel: 'comments' | 'accessibility'): void {
+	togglePanel(panel: 'comments' | 'accessibility' | 'signatures'): void {
 		this.activePanel.update((current) => (current === panel ? null : panel));
 	}
 
