@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.13](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.13) - 2026-06-15
+
+### 🐛 Bug Fixes
+
+- **vue:** Fit slide to viewport on mobile (by @ChristopherVR) ([d210975](https://github.com/ChristopherVR/pptx-viewer/commit/d21097549a92a94c4f6a8d89134c2cf013abd71d))
+- **angular:** Boot demo under Vite by loading the JIT compiler (by @ChristopherVR) ([1cf4d97](https://github.com/ChristopherVR/pptx-viewer/commit/1cf4d97d21db90bf7ac78976d300117c82ef0cac))
+
 ## [1.1.12](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.12) - 2026-06-15
 
 ### 🐛 Bug Fixes
@@ -13,6 +20,10 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### ♻️ Refactor
 
 - **shared:** Extract 3D + table render helpers (wave 2) (by @ChristopherVR) ([0348d81](https://github.com/ChristopherVR/pptx-viewer/commit/0348d819a407a6d615ad78ce373f16cefcebf803))
+
+### 📚 Documentation
+
+- **changelog:** Update for v1.1.12 [skip ci] (by @github-actions[bot]) ([ae0761d](https://github.com/ChristopherVR/pptx-viewer/commit/ae0761d3649c989fe9b9da3367d403e9178934c2))
 
 ## [1.1.11](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.11) - 2026-06-15
 
