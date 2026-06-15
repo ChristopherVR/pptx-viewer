@@ -202,6 +202,10 @@ const ZOOM_MAX = 3;
 							(transformStart)="editor.beginTransform($event.label)"
 							(transformUpdate)="editor.applyTransform(activeSlideIndex(), $event.id, $event.box)"
 							(contextMenu)="onContextMenu($event)"
+							[editingId]="editingId()"
+							(textEditStart)="editingId.set($event.id)"
+							(textCommit)="onTextCommit($event)"
+							(textCancel)="editingId.set(null)"
 						/>
 						@if (showNotes() && activeNotes()) {
 							<aside class="pptx-ng-notes" aria-label="Speaker notes">
@@ -310,6 +314,8 @@ export class PowerPointViewerComponent {
 	protected readonly showFind = signal(false);
 	/** Open editor context-menu position (client coords), or null. */
 	protected readonly contextMenuPos = signal<{ x: number; y: number } | null>(null);
+	/** Id of the element being inline text-edited, or null. */
+	protected readonly editingId = signal<string | null>(null);
 	/** Notes for the active slide, if any. */
 	protected readonly activeNotes = computed(() => this.activeSlide()?.notes?.trim() || '');
 	/** The single selected element on the active slide (for the inspector). */
@@ -416,6 +422,15 @@ export class PowerPointViewerComponent {
 			this.editor.select([event.id]);
 		}
 		this.contextMenuPos.set({ x: event.x, y: event.y });
+	}
+
+	/** Commit an inline text edit: replace the element's text (one history entry). */
+	onTextCommit(event: { id: string; text: string }): void {
+		this.editor.updateElement(this.activeSlideIndex(), event.id, {
+			text: event.text,
+			textSegments: [],
+		});
+		this.editingId.set(null);
 	}
 
 	/**

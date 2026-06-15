@@ -3,11 +3,15 @@ import {
 	ChangeDetectionStrategy,
 	Component,
 	computed,
+	effect,
+	ElementRef,
 	HostListener,
 	input,
 	output,
+	viewChild,
 } from '@angular/core';
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { hasTextProperties } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
 import { applyMove, applyResize, handleAnchor, handleCursor, RESIZE_HANDLES } from './drag-resize';
@@ -29,6 +33,18 @@ interface DragState {
 	startX: number;
 	startY: number;
 	started: boolean;
+}
+
+/** Best-effort plain text of a text-bearing element for inline editing. */
+function plainText(el: PptxElement): string {
+	if (!hasTextProperties(el)) {
+		return '';
+	}
+	const segments = el.textSegments;
+	if (segments && segments.length > 0) {
+		return segments.map((s) => (s.isParagraphBreak || s.isLineBreak ? '\n' : s.text)).join('');
+	}
+	return el.text ?? '';
 }
 
 /**
@@ -57,6 +73,7 @@ interface DragState {
 					[ngStyle]="stageStyle()"
 					(pointerdown)="onStagePointerDown($event)"
 					(contextmenu)="onContextMenu($event)"
+					(dblclick)="onDblClick($event)"
 				>
 					@for (element of elements(); track element.id; let i = $index) {
 						<pptx-element-renderer
@@ -85,6 +102,20 @@ interface DragState {
 							(pointerdown)="onHandlePointerDown($event, h.handle)"
 						></div>
 					}
+					@if (editingBox(); as eb) {
+						<textarea
+							#textEditor
+							class="pptx-ng-text-editor"
+							[style.left.px]="eb.x"
+							[style.top.px]="eb.y"
+							[style.width.px]="eb.width"
+							[style.height.px]="eb.height"
+							[value]="eb.text"
+							(pointerdown)="$event.stopPropagation()"
+							(blur)="commitText($event, eb.id)"
+							(keydown)="onEditorKeydown($event)"
+						></textarea>
+					}
 				</div>
 			</div>
 		</div>
@@ -99,6 +130,8 @@ export class SlideCanvasComponent {
 	readonly editable = input<boolean>(false);
 	/** Ids of currently-selected elements (drawn with a selection outline). */
 	readonly selectedIds = input<readonly string[]>([]);
+	/** Id of the element currently being text-edited inline (or null). */
+	readonly editingId = input<string | null>(null);
 
 	/** Emitted when an element is pointer-pressed (with the additive modifier). */
 	readonly elementSelect = output<{ id: string; additive: boolean }>();
@@ -110,8 +143,28 @@ export class SlideCanvasComponent {
 	readonly transformUpdate = output<{ id: string; box: Box }>();
 	/** Emitted on right-click with the element under the cursor (or null). */
 	readonly contextMenu = output<{ id: string | null; x: number; y: number }>();
+	/** Emitted on double-click of a text-bearing element to begin inline edit. */
+	readonly textEditStart = output<{ id: string }>();
+	/** Emitted with the new text when an inline edit commits. */
+	readonly textCommit = output<{ id: string; text: string }>();
+	/** Emitted when an inline edit is cancelled (Escape). */
+	readonly textCancel = output<void>();
 
 	private drag: DragState | null = null;
+	private editCancelled = false;
+
+	private readonly textEditor = viewChild<ElementRef<HTMLTextAreaElement>>('textEditor');
+
+	constructor() {
+		// Focus + select the inline editor whenever it appears.
+		effect(() => {
+			const editor = this.textEditor();
+			if (editor) {
+				editor.nativeElement.focus();
+				editor.nativeElement.select();
+			}
+		});
+	}
 
 	readonly elements = computed(() => this.slide()?.elements ?? []);
 
@@ -183,6 +236,54 @@ export class SlideCanvasComponent {
 			startY: event.clientY,
 			started: false,
 		};
+	}
+
+	/** Box + current plain text for the element under inline edit, or null. */
+	readonly editingBox = computed(() => {
+		const id = this.editingId();
+		if (!id || !this.editable()) {
+			return null;
+		}
+		const el = this.elements().find((e) => e.id === id);
+		if (!el) {
+			return null;
+		}
+		return { id: el.id, x: el.x, y: el.y, width: el.width, height: el.height, text: plainText(el) };
+	});
+
+	onDblClick(event: MouseEvent): void {
+		if (!this.editable()) {
+			return;
+		}
+		const target = event.target as HTMLElement | null;
+		const host = target?.closest('[data-element-id]') as HTMLElement | null;
+		const id = host?.getAttribute('data-element-id');
+		if (id) {
+			event.preventDefault();
+			this.textEditStart.emit({ id });
+		}
+	}
+
+	onEditorKeydown(event: KeyboardEvent): void {
+		const editor = event.target as HTMLTextAreaElement;
+		if (event.key === 'Escape') {
+			event.preventDefault();
+			this.editCancelled = true;
+			editor.blur();
+		} else if (event.key === 'Enter' && !event.shiftKey) {
+			event.preventDefault();
+			editor.blur();
+		}
+	}
+
+	commitText(event: Event, id: string): void {
+		if (this.editCancelled) {
+			this.editCancelled = false;
+			this.textCancel.emit();
+			return;
+		}
+		const editor = event.target as HTMLTextAreaElement;
+		this.textCommit.emit({ id, text: editor.value });
 	}
 
 	onContextMenu(event: MouseEvent): void {

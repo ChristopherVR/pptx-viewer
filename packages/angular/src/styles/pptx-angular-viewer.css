@@ -206,6 +206,22 @@
 	z-index: 10001;
 }
 
+.pptx-ng-text-editor {
+	position: absolute;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 2px;
+	border: 2px solid #4f86ff;
+	background: rgba(255, 255, 255, 0.96);
+	color: #000;
+	font: inherit;
+	line-height: 1.2;
+	resize: none;
+	overflow: auto;
+	z-index: 10002;
+	white-space: pre-wrap;
+}
+
 .pptx-ng-inspector-host {
 	flex: 0 0 240px;
 	width: 240px;
