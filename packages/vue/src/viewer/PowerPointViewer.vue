@@ -32,6 +32,7 @@ import { provideViewerTheme, useThemeStyle } from '../theme';
 import AccessibilityPanel from './components/AccessibilityPanel.vue';
 import AlignToolbar from './components/AlignToolbar.vue';
 import AutosaveIndicator from './components/AutosaveIndicator.vue';
+import CollaborationCursors from './components/CollaborationCursors.vue';
 import CommentsPanel from './components/CommentsPanel.vue';
 import ContextMenu from './components/ContextMenu.vue';
 import type { ContextMenuItem } from './components/ContextMenu.vue';
@@ -47,6 +48,7 @@ import PropertiesDialog from './components/PropertiesDialog.vue';
 import type { DocumentProperties } from './components/PropertiesDialog.vue';
 import SelectionOverlay from './components/SelectionOverlay.vue';
 import ShareDialog from './components/ShareDialog.vue';
+import SignaturesPanel from './components/SignaturesPanel.vue';
 import SlideCanvas from './components/SlideCanvas.vue';
 import SlideSorter from './components/SlideSorter.vue';
 import SlidesPaneControls from './components/SlidesPaneControls.vue';
@@ -56,12 +58,15 @@ import type { AlignEdge, DistributeAxis } from './composables/element-align';
 import { alignElements, distributeElements } from './composables/element-align';
 import { useAccessibility } from './composables/useAccessibility';
 import { useAutosave } from './composables/useAutosave';
+import { useCollaboration } from './composables/useCollaboration';
 import { useComments } from './composables/useComments';
 import { useEditorHistory } from './composables/useEditorHistory';
 import { useEditorOperations } from './composables/useEditorOperations';
+import { useEmbeddedFonts } from './composables/useEmbeddedFonts';
 import { useExport } from './composables/useExport';
 import { useFindReplace } from './composables/useFindReplace';
 import { useLoadContent } from './composables/useLoadContent';
+import { useSignatures } from './composables/useSignatures';
 import { useSlideOperations } from './composables/useSlideOperations';
 import type {
 	CollaborationConfig,
@@ -99,8 +104,13 @@ const {
 	error,
 	isEncrypted,
 	coreProperties,
+	embeddedFonts,
+	signatures,
 	getContent,
 } = useLoadContent(() => props.content);
+
+// Inject embedded fonts as @font-face (side effect; auto-cleaned on unmount).
+useEmbeddedFonts(embeddedFonts);
 
 // ── Navigation ────────────────────────────────────────────────────────
 const activeSlideIndex = ref(0);
@@ -660,17 +670,44 @@ function commitComments(next: ReturnType<typeof commentsApi.addComment>): void {
 	slides.value = nextSlides;
 }
 
-// ── Share / collaboration dialog ──────────────────────────────────────
+// ── Collaboration (Yjs) ───────────────────────────────────────────────
+const collab = useCollaboration({
+	slides,
+	onRemoteSlides: (remote) => {
+		slides.value = remote;
+	},
+});
 const shareOpen = ref(false);
-const collabActive = computed(() => Boolean(props.collaboration));
+const collabActive = collab.active;
 function onShareStart(config: CollaborationConfig): void {
+	void collab.start(config);
 	emit('start-collaboration', config);
 	shareOpen.value = false;
 }
 function onShareStop(): void {
+	collab.stop();
 	emit('stop-collaboration');
 	shareOpen.value = false;
 }
+/** Publish the local cursor in slide coordinates while collaborating. */
+function onCollabPointerMove(event: PointerEvent): void {
+	if (!collab.active.value) {
+		return;
+	}
+	const stage = (event.currentTarget as HTMLElement | null)?.querySelector('.pptx-vue-stage');
+	if (!stage) {
+		return;
+	}
+	const rect = stage.getBoundingClientRect();
+	collab.setCursor(
+		(event.clientX - rect.left) / zoom.value,
+		(event.clientY - rect.top) / zoom.value,
+	);
+}
+
+// ── Digital signatures ────────────────────────────────────────────────
+const showSignatures = ref(false);
+const signaturesApi = useSignatures(signatures);
 
 // ── Document properties dialog ────────────────────────────────────────
 const propertiesOpen = ref(false);
@@ -832,6 +869,16 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					>
 						ⓘ
 					</button>
+					<button
+						v-if="signaturesApi.isSigned.value"
+						type="button"
+						class="pptx-vue-sig-btn"
+						:title="`Digital signatures (${signaturesApi.overall.value})`"
+						aria-label="Digital signatures"
+						@click="showSignatures = !showSignatures"
+					>
+						🔏
+					</button>
 				</div>
 			</header>
 
@@ -922,6 +969,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					class="pptx-vue-main"
 					@pointerdown="onCanvasPointerDown"
 					@contextmenu="onCanvasContextMenu"
+					@pointermove="onCollabPointerMove"
 				>
 					<SlideCanvas
 						:slide="activeSlide"
@@ -937,6 +985,11 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 							@transform-start="onTransformStart"
 							@transform="onTransform"
 							@transform-end="onTransformEnd"
+						/>
+						<CollaborationCursors
+							v-if="collabActive"
+							:cursors="collab.cursors.value"
+							:zoom="zoom"
 						/>
 					</SlideCanvas>
 					<NotesPanel v-if="props.canEdit" :slide="activeSlide" @update="onNotesUpdate" />
@@ -965,6 +1018,9 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					@remove="(id) => commitComments(commentsApi.removeComment(id))"
 					@resolve="(id) => commitComments(commentsApi.resolveComment(id))"
 				/>
+
+				<!-- Digital signatures -->
+				<SignaturesPanel v-if="showSignatures" :signatures="signatures" />
 			</div>
 
 			<!-- Element context menu (edit mode) -->

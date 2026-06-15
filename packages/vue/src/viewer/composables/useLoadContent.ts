@@ -1,18 +1,47 @@
 import type {
 	MediaPptxElement,
+	ParsedSignature,
 	PptxCoreProperties,
 	PptxElement,
+	PptxEmbeddedFont,
 	PptxSlide,
 	PptxSlideMaster,
 	PptxTheme,
+	XmlObject,
 } from 'pptx-viewer-core';
-import { PptxHandler, EncryptedFileError } from 'pptx-viewer-core';
+import { PptxHandler, EncryptedFileError, parseSignatureXml } from 'pptx-viewer-core';
 import { onScopeDispose, ref, shallowRef, toValue, watch } from 'vue';
 import type { MaybeRefOrGetter, Ref, ShallowRef } from 'vue';
 
 import { DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH } from '../constants';
 import type { CanvasSize } from '../types';
 import { collectImagePaths, collectMediaElements } from './load-content-helpers';
+
+/**
+ * Parse digital signatures from a `.pptx` ZIP buffer (best-effort; returns an
+ * empty array when there are none or parsing fails). `jszip`/`fast-xml-parser`
+ * are loaded lazily so they stay out of the main chunk.
+ */
+async function parseSignaturesFromBuffer(buffer: ArrayBuffer): Promise<ParsedSignature[]> {
+	try {
+		const [{ default: JSZip }, { XMLParser }] = await Promise.all([
+			import('jszip'),
+			import('fast-xml-parser'),
+		]);
+		const zip = await JSZip.loadAsync(buffer);
+		const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
+		const result: ParsedSignature[] = [];
+		for (const path of Object.keys(zip.files)) {
+			if (path.startsWith('_xmlsignatures/') && path.endsWith('.xml')) {
+				const xml = await zip.files[path].async('string');
+				result.push(parseSignatureXml(parser.parse(xml) as XmlObject, path));
+			}
+		}
+		return result;
+	} catch {
+		return [];
+	}
+}
 
 /**
  * `useLoadContent` — Vue port of the React hook of the same name.
@@ -54,6 +83,10 @@ export interface UseLoadContentResult {
 	handler: ShallowRef<PptxHandler | null>;
 	/** Parsed document core properties (title/author/subject/…). */
 	coreProperties: ShallowRef<PptxCoreProperties | undefined>;
+	/** Embedded fonts (for `@font-face` injection). */
+	embeddedFonts: ShallowRef<PptxEmbeddedFont[]>;
+	/** Parsed digital signatures (empty when unsigned). */
+	signatures: ShallowRef<ParsedSignature[]>;
 	/** Serialise the current presentation back to `.pptx` bytes. */
 	getContent: () => Promise<Uint8Array>;
 }
@@ -74,6 +107,8 @@ export function useLoadContent(
 	const isEncrypted = ref(false);
 	const handler = shallowRef<PptxHandler | null>(null);
 	const coreProperties = shallowRef<PptxCoreProperties | undefined>(undefined);
+	const embeddedFonts = shallowRef<PptxEmbeddedFont[]>([]);
+	const signatures = shallowRef<ParsedSignature[]>([]);
 
 	let renderToken = 0;
 	let activeBlobUrls: string[] = [];
@@ -106,6 +141,9 @@ export function useLoadContent(
 				raw instanceof Uint8Array
 					? raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength)
 					: raw;
+			// Keep an independent copy for signature parsing — the handler may
+			// consume/transfer `buffer` during load.
+			const signatureBuffer = buffer.slice(0);
 
 			const fileSizeMB = buffer instanceof ArrayBuffer ? buffer.byteLength / (1024 * 1024) : 0;
 			if (fileSizeMB > 50) {
@@ -244,6 +282,11 @@ export function useLoadContent(
 			theme.value = parsed.theme;
 			slideMasters.value = parsed.slideMasters ?? [];
 			coreProperties.value = parsed.coreProperties;
+			embeddedFonts.value = parsed.embeddedFonts ?? [];
+			signatures.value =
+				parsed.hasDigitalSignatures && signatureBuffer instanceof ArrayBuffer
+					? await parseSignaturesFromBuffer(signatureBuffer)
+					: [];
 		} catch (err) {
 			if (token === renderToken) {
 				if (err instanceof EncryptedFileError) {
@@ -295,6 +338,8 @@ export function useLoadContent(
 		isEncrypted,
 		handler,
 		coreProperties,
+		embeddedFonts,
+		signatures,
 		getContent,
 	};
 }

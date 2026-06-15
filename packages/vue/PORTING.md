@@ -482,3 +482,19 @@ equationXml` OMML → MathML (ported from React's three omml-\* files, core only
   Properties save is in-memory (not yet persisted to the saved `.pptx`).
   **Remaining ☐:** Yjs collaboration (real-time/cursors), digital signatures,
   font embedding, mobile chrome, broadcast dialog.
+- **2026-06-15** — Batch 14: collaboration + signatures + embedded fonts. **Yjs
+  collaboration** (`useCollaboration.ts`): lazy yjs/y-websocket, whole-document
+  JSON slide broadcast via a shared `Y.Map` (last-write-wins) + awareness-based
+  remote cursors; `CollaborationCursors.vue` overlay (scaled stage), pointer-move
+  publishes the local cursor; ShareDialog start/stop drives `collab.start/stop`.
+  **Digital signatures** (`useSignatures` + `SignaturesPanel.vue`): `useLoadContent`
+  now parses `_xmlsignatures/*.xml` (lazy jszip/fast-xml-parser → `parseSignatureXml`)
+  and exposes `signatures`; a header badge shows the overall status. **Embedded
+  fonts** (`useEmbeddedFonts`): `useLoadContent` exposes `embeddedFonts`, injected
+  as `@font-face` (de-obfuscation handled by the loader). Added yjs/y-websocket to
+  vue deps (already in the vite `external` list). 29 new tests (616 total green);
+  typecheck/lint clean; build green. Three parallel subagents (cursors/signatures/
+  fonts) + `useCollaboration` written directly. **Collaboration is foundational**
+  — whole-doc sync + cursors, not yet fine-grained CRDT / presence / follow-mode.
+  **Remaining ☐:** broadcast dialog, mobile chrome, granular CRDT collaboration,
+  unified animation-preset id mapping, properties persistence to saved `.pptx`.
