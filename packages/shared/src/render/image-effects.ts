@@ -24,7 +24,7 @@ import { isImageLikeElement } from 'pptx-viewer-core';
 // ── Public types ────────────────────────────────────────────────────────────
 
 /** An inline SVG `<filter>` definition to inject so a `url(#id)` reference resolves. */
-export interface SvgFilterDefinition {
+export interface ImageSvgFilterDefinition {
 	/** The `id` attribute of the `<filter>` (matches the `url(#id)` reference). */
 	id: string;
 	/**
@@ -41,7 +41,7 @@ export interface ComputedImageStyle {
 	/** Overall opacity (0–1) derived from `alphaModFix`, or `undefined`. */
 	opacity?: number;
 	/** SVG `<filter>` defs that must be injected for the CSS `url(#…)` refs to resolve. */
-	svgFilters: SvgFilterDefinition[];
+	svgFilters: ImageSvgFilterDefinition[];
 }
 
 // ── Internal helpers ────────────────────────────────────────────────────────
@@ -80,7 +80,7 @@ function getEffects(element: PptxElement): PptxImageEffects | undefined {
 // ── Filter ID generators (mirror the React util IDs) ────────────────────────
 
 /** Stable SVG filter ID for a duotone effect on an element. */
-export function getDuotoneFilterId(elementId: string): string {
+export function getImageDuotoneFilterId(elementId: string): string {
 	return `duotone-${elementId}`;
 }
 
@@ -209,7 +209,7 @@ export function getImageFilterCss(
 	}
 	// Duotone: reference inline SVG filter (rendered by getImageSvgFilters).
 	if (effects.duotone && !options?.excludeDuotone) {
-		filters.push(`url(#${getDuotoneFilterId(element.id)})`);
+		filters.push(`url(#${getImageDuotoneFilterId(element.id)})`);
 	}
 	// Advanced alpha primitives + biLevel/lum/hsl(sat,lum)/tint/clrRepl that
 	// CSS filters can't express; rendered by getImageSvgFilters().
@@ -369,7 +369,7 @@ export function getDuotoneImageFilter(
 	if (!effects?.duotone) {
 		return undefined;
 	}
-	const id = getDuotoneFilterId(elementId);
+	const id = getImageDuotoneFilterId(elementId);
 	return {
 		id,
 		cssReference: `url(#${id})`,
@@ -751,8 +751,8 @@ export function getArtisticImageFilter(
  * (duotone, advanced alpha, complex artistic) in the same order their `url(#…)`
  * references are appended in {@link getImageFilterCss}.
  */
-export function getImageSvgFilters(element: PptxElement): SvgFilterDefinition[] {
-	const defs: SvgFilterDefinition[] = [];
+export function getImageSvgFilters(element: PptxElement): ImageSvgFilterDefinition[] {
+	const defs: ImageSvgFilterDefinition[] = [];
 	const duotone = getDuotoneImageFilter(element);
 	if (duotone) {
 		defs.push({ id: duotone.id, markup: duotone.filterMarkup });

@@ -5,7 +5,7 @@ import {
 	getArtisticFilterId,
 	getArtisticImageFilter,
 	getComputedImageStyle,
-	getDuotoneFilterId,
+	getImageDuotoneFilterId,
 	getDuotoneImageFilter,
 	getImageAlphaFilter,
 	getImageAlphaFilterId,
@@ -74,7 +74,7 @@ describe('getImageFilterCss', () => {
 
 	it('references the duotone SVG filter via url(#id)', () => {
 		const css = getImageFilterCss(image({ duotone: { color1: '#000000', color2: '#ffffff' } }));
-		expect(css).toBe(`url(#${getDuotoneFilterId('img1')})`);
+		expect(css).toBe(`url(#${getImageDuotoneFilterId('img1')})`);
 	});
 
 	it('omits the duotone reference when excludeDuotone is set', () => {
@@ -124,8 +124,8 @@ describe('getDuotoneImageFilter', () => {
 	it('returns a filter def with id, cssReference, and markup', () => {
 		const f = getDuotoneImageFilter(image({ duotone: { color1: '#000000', color2: '#ffffff' } }));
 		expect(f).toBeDefined();
-		expect(f?.id).toBe(getDuotoneFilterId('img1'));
-		expect(f?.cssReference).toBe(`url(#${getDuotoneFilterId('img1')})`);
+		expect(f?.id).toBe(getImageDuotoneFilterId('img1'));
+		expect(f?.cssReference).toBe(`url(#${getImageDuotoneFilterId('img1')})`);
 		expect(f?.filterMarkup).toContain('<feColorMatrix');
 		expect(f?.filterMarkup).toContain('<feComponentTransfer>');
 		// shadow #000000 → intercept 0, highlight #ffffff → slope 1
@@ -202,7 +202,7 @@ describe('getImageSvgFilters', () => {
 			image({ duotone: { color1: '#000000', color2: '#ffffff' }, alphaInv: {} }),
 		);
 		expect(defs.map((d) => d.id)).toStrictEqual([
-			getDuotoneFilterId('img1'),
+			getImageDuotoneFilterId('img1'),
 			getImageAlphaFilterId('img1'),
 		]);
 	});
@@ -218,9 +218,9 @@ describe('getComputedImageStyle', () => {
 		const style = getComputedImageStyle(
 			image({ duotone: { color1: '#000080', color2: '#ffd700' } }),
 		);
-		expect(style.filter).toBe(`url(#${getDuotoneFilterId('img1')})`);
+		expect(style.filter).toBe(`url(#${getImageDuotoneFilterId('img1')})`);
 		expect(style.svgFilters).toHaveLength(1);
-		expect(style.svgFilters[0].id).toBe(getDuotoneFilterId('img1'));
+		expect(style.svgFilters[0].id).toBe(getImageDuotoneFilterId('img1'));
 	});
 
 	it('returns filter without svg defs for simple recolour', () => {

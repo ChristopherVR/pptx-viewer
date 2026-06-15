@@ -1,8 +1,8 @@
 import { mount } from '@vue/test-utils';
 import type { PptxElement } from 'pptx-viewer-core';
+import { convertOmmlToMathMl } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
 
-import { convertOmmlToMathMl } from '../composables/omml-to-mathml';
 import EquationRenderer from './EquationRenderer.vue';
 
 function mountEq(element: PptxElement) {

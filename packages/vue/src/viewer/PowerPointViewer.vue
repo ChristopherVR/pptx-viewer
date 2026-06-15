@@ -26,6 +26,8 @@ import type {
 	PptxSlide,
 	PptxSlideTransition,
 } from 'pptx-viewer-core';
+import type { AlignEdge, DistributeAxis } from 'pptx-viewer-shared';
+import { alignElements, distributeElements } from 'pptx-viewer-shared';
 import { computed, nextTick, ref, toRef, watch } from 'vue';
 
 import { provideViewerTheme, useThemeStyle } from '../theme';
@@ -56,8 +58,6 @@ import SlideSorter from './components/SlideSorter.vue';
 import SlidesPaneControls from './components/SlidesPaneControls.vue';
 import SlideStage from './components/SlideStage.vue';
 import SlideTransitionPanel from './components/SlideTransitionPanel.vue';
-import type { AlignEdge, DistributeAxis } from './composables/element-align';
-import { alignElements, distributeElements } from './composables/element-align';
 import { useAccessibility } from './composables/useAccessibility';
 import { useAutosave } from './composables/useAutosave';
 import { useCollaboration } from './composables/useCollaboration';

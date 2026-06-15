@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	buildReflectionCssValue,
-	colorWithOpacity,
 	getBoxShadowCss,
 	getComputedEffectStyle,
 	getDuotoneSvgFilter,
@@ -16,7 +15,6 @@ import {
 	getMultiLayerShadowCss,
 	getOuterShadowCss,
 	getReflectionCss,
-	normalizeHexColor,
 } from './visual-effects';
 
 function shape(shapeStyle?: ShapeStyle, overrides: Partial<PptxElement> = {}): PptxElement {
@@ -32,24 +30,8 @@ function shape(shapeStyle?: ShapeStyle, overrides: Partial<PptxElement> = {}): P
 	} as PptxElement;
 }
 
-// ── colour helpers ─────────────────────────────────────────────────────────
-
-describe('colour helpers', () => {
-	it('normalizeHexColor falls back for invalid/transparent', () => {
-		expect(normalizeHexColor('#abcdef', '#000000')).toBe('#abcdef');
-		expect(normalizeHexColor('abcdef', '#000000')).toBe('#abcdef');
-		expect(normalizeHexColor('transparent', '#123456')).toBe('#123456');
-		expect(normalizeHexColor(undefined, '#123456')).toBe('#123456');
-		expect(normalizeHexColor('not-a-color', '#123456')).toBe('#123456');
-	});
-
-	it('colorWithOpacity produces rgba()', () => {
-		expect(colorWithOpacity('#ff0000', 0.5)).toBe('rgba(255, 0, 0, 0.5)');
-		expect(colorWithOpacity('#ff0000', undefined)).toBe('#ff0000');
-		expect(colorWithOpacity('#ff0000', 2)).toBe('rgba(255, 0, 0, 1)');
-		expect(colorWithOpacity('#ff0000', -1)).toBe('rgba(255, 0, 0, 0)');
-	});
-});
+// (normalizeHexColor / colorWithOpacity are exported by `fill-style` — the
+//  canonical copy — and covered by its test.)
 
 // ── outer shadow ────────────────────────────────────────────────────────────
 

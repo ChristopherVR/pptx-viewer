@@ -12,6 +12,6 @@ export {
 	getTextBlockStyle,
 	getImageSrc,
 } from './element-style';
-export { getResolvedShapeClipPath, getResolvedShapeClipPathFor } from './shape-geometry';
+export { getResolvedShapeClipPath, getResolvedShapeClipPathFor } from 'pptx-viewer-shared';
 export { useEditorHistory } from './useEditorHistory';
 export { useEditorOperations } from './useEditorOperations';

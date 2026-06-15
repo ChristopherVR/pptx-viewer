@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import type { PptxChartData } from 'pptx-viewer-core';
+import type { PlotLayout, ValueRange } from 'pptx-viewer-shared';
+import { formatAxisValue, seriesColor, valueToY } from 'pptx-viewer-shared';
 import { computed } from 'vue';
-
-import type { PlotLayout, ValueRange } from '../../composables/chart-helpers';
-import { formatAxisValue, seriesColor, valueToY } from '../../composables/chart-helpers';
 
 /**
  * ChartChrome — Vue port of the React `chart-chrome.tsx` common chrome:
@@ -98,10 +97,7 @@ const legend = computed<LegendItem[]>(() => {
 		const y = pos === 'b' ? props.layout.svgHeight - 10 : props.layout.plotTop - 14;
 		const charWidth = 6;
 		const gap = 24;
-		const totalWidth = series.reduce(
-			(w, s) => w + (s.name?.length ?? 4) * charWidth + gap,
-			0,
-		);
+		const totalWidth = series.reduce((w, s) => w + (s.name?.length ?? 4) * charWidth + gap, 0);
 		let cx = (props.layout.svgWidth - totalWidth) / 2;
 		series.forEach((s, i) => {
 			items.push({

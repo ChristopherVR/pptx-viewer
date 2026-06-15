@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
+import { getComputedImageStyle, hasTextWarp } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
@@ -10,8 +11,6 @@ import {
 	getShapeFillStrokeStyle,
 	getTextBlockStyle,
 } from '../composables/element-style';
-import { getComputedImageStyle } from '../composables/image-effects';
-import { hasTextWarp } from '../composables/text-warp';
 import ChartRenderer from './ChartRenderer.vue';
 import ConnectorRenderer from './ConnectorRenderer.vue';
 import EquationRenderer from './EquationRenderer.vue';

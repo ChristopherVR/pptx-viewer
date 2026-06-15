@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { PptxSlide } from 'pptx-viewer-core';
+import { ANIMATION_KEYFRAMES_CSS } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-import { ANIMATION_KEYFRAMES_CSS } from '../composables/animation-css';
 import { useAnimationPlayback } from '../composables/useAnimationPlayback';
 import type { CanvasSize } from '../types';
 import SlideStage from './SlideStage.vue';

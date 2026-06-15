@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import type { PptxElement, PptxElementWithText, TextSegment, TextStyle } from 'pptx-viewer-core';
 import { getSubstituteFontFamily, hasTextProperties } from 'pptx-viewer-core';
+import { buildWarpPath, shouldUseSvgWarp } from 'pptx-viewer-shared';
 import { computed } from 'vue';
-
-import { buildWarpPath, shouldUseSvgWarp } from '../composables/text-warp';
 
 /**
  * WordArtText — Vue port of the React `WarpedText` SVG renderer.

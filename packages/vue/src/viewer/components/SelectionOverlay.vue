@@ -23,8 +23,6 @@
  * `transformEnd` as the commit point for history/undo.
  */
 import type { PptxElement } from 'pptx-viewer-core';
-import { computed, ref } from 'vue';
-
 import {
 	applyDragDelta,
 	applyResize,
@@ -32,8 +30,9 @@ import {
 	computeRotation,
 	RESIZE_HANDLES,
 	snapAngle,
-} from '../composables/element-interaction';
-import type { InteractionBox, ResizeHandleId } from '../composables/element-interaction';
+} from 'pptx-viewer-shared';
+import type { InteractionBox, ResizeHandleId } from 'pptx-viewer-shared';
+import { computed, ref } from 'vue';
 
 const props = defineProps<{
 	elements: PptxElement[];

@@ -26,10 +26,9 @@
  */
 
 import type { PptxElementAnimation, PptxAnimationTrigger } from 'pptx-viewer-core';
+import { initialHiddenStyle, resolveAnimationCss } from 'pptx-viewer-shared';
 import { computed, ref, toValue } from 'vue';
 import type { ComputedRef, MaybeRefOrGetter, WritableComputedRef } from 'vue';
-
-import { initialHiddenStyle, resolveAnimationCss } from './animation-css';
 
 /** Minimal CSS-properties shape: kebab-case property → value. */
 export type CSSProperties = Record<string, string>;

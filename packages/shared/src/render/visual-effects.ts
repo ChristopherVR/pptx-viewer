@@ -44,7 +44,7 @@ function clampUnitInterval(value: number): number {
  * Normalize an arbitrary colour string to a 6-digit hex value (`#RRGGBB`).
  * Returns `fallback` when the input is missing, "transparent", or invalid.
  */
-export function normalizeHexColor(value: string | undefined, fallback: string): string {
+function normalizeHexColor(value: string | undefined, fallback: string): string {
 	if (!value || value === 'transparent') {
 		return fallback;
 	}
@@ -69,7 +69,7 @@ function hexToRgbChannels(color: string): { r: number; g: number; b: number } | 
  * Convert a hex colour to an `rgba()` string with the given opacity. When
  * `opacity` is `undefined` the original colour is returned unchanged.
  */
-export function colorWithOpacity(color: string, opacity: number | undefined): string {
+function colorWithOpacity(color: string, opacity: number | undefined): string {
 	if (opacity === undefined) {
 		return color;
 	}

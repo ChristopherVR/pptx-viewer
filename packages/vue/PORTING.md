@@ -521,3 +521,20 @@ equationXml` OMML → MathML (ported from React's three omml-\* files, core only
 > Properties edits are in-memory (not persisted to the saved `.pptx`); GIF/video
 > export, presenter view, and the 8-way directional animation variants are
 > deferred. 634 tests; everything green on `main`.
+
+- **2026-06-15** — Properties persistence fix + **shared-code extraction wave 1**.
+  Fixed: `getContent` now passes `{ coreProperties }` to `handler.save`, so
+  Properties-dialog edits persist into the exported `.pptx` (was in-memory only).
+  Extraction: 10 framework-agnostic modules moved from `packages/vue/.../composables`
+  into **`packages/shared/src/render/`** (new `pptx-viewer-shared` barrel
+  `./render`, re-exported from the package root): `shape-geometry`, `fill-style`,
+  `visual-effects`, `image-effects`, `text-warp`, `omml-to-mathml`, `chart-helpers`,
+  `animation-css`, `element-align`, `element-interaction` (+ their ~227 tests now
+  run under shared). Vue imports them from `pptx-viewer-shared`; React/Angular can
+  now reuse the same code. Deduped collisions (color helpers → canonical in
+  `fill-style`; image-effects' SVG-filter helpers renamed `Image*`). Vue dist
+  still inlines core+shared (verified: only `vue`/`jszip`/`fast-xml-parser`/
+  `dompurify` external). 649 tests total (417 vue + 232 shared), all green.
+  **Still in vue (need `CSSProperties`→agnostic-type genericisation before moving):**
+  `visual-3d`, `table-style`, `element-style`. Vue-inherent composables stay
+  (useLoadContent/Editor\*/Selection/etc.).

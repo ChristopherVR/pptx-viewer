@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AlignEdge, DistributeAxis } from '../composables/element-align';
+import type { AlignEdge, DistributeAxis } from 'pptx-viewer-shared';
 
 /**
  * AlignToolbar — a compact, purely presentational button row for the editor's

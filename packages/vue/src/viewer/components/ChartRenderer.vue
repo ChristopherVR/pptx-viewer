@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import type { PptxChartData, PptxChartType, PptxElement } from 'pptx-viewer-core';
-import type { CSSProperties } from 'vue';
-import { computed } from 'vue';
-
-import { getContainerStyle } from '../composables/element-style';
-import type { PlotLayout, ValueRange } from '../composables/chart-helpers';
+import type { PlotLayout, ValueRange } from 'pptx-viewer-shared';
 import {
 	computeLayout,
 	computeValueRange,
@@ -13,7 +9,11 @@ import {
 	resolveCategoryLabels,
 	seriesColor,
 	valueToY,
-} from '../composables/chart-helpers';
+} from 'pptx-viewer-shared';
+import type { CSSProperties } from 'vue';
+import { computed } from 'vue';
+
+import { getContainerStyle } from '../composables/element-style';
 import ChartChrome from './chart/ChartChrome.vue';
 
 /**
@@ -243,8 +243,7 @@ const stackRects = computed<StackRect[]>(() => {
 	for (let ci = 0; ci < catCount; ci++) {
 		let posRunning = 0;
 		let negRunning = 0;
-		const catTotal =
-			data.series.reduce((sum, s) => sum + Math.abs(s.values[ci] ?? 0), 0) || 1;
+		const catTotal = data.series.reduce((sum, s) => sum + Math.abs(s.values[ci] ?? 0), 0) || 1;
 
 		data.series.forEach((series, si) => {
 			const rawVal = series.values[ci] ?? 0;
@@ -518,7 +517,13 @@ const pieLegend = computed<PieLegendItem[]>(() => {
 				v-if="chartData"
 				:chart-data="chartData"
 				:layout="layout"
-				:range="renderKind === 'stackedBar' ? stackRange : renderKind === 'line' || renderKind === 'area' ? lineRange : barRange"
+				:range="
+					renderKind === 'stackedBar'
+						? stackRange
+						: renderKind === 'line' || renderKind === 'area'
+							? lineRange
+							: barRange
+				"
 				:categories="categoryLabels"
 				:category-axis-style="categoryAxisStyle"
 			/>

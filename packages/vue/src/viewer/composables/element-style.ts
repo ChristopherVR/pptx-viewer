@@ -5,13 +5,15 @@ import {
 	hasShapeProperties,
 	hasTextProperties,
 } from 'pptx-viewer-core';
+import {
+	getComputedEffectStyle,
+	getComputedFillStyle,
+	getResolvedShapeClipPath,
+} from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 
 import { DEFAULT_STROKE_COLOR, DEFAULT_TEXT_COLOR } from '../constants';
-import { getComputedFillStyle } from './fill-style';
-import { getResolvedShapeClipPath } from './shape-geometry';
 import { getComputed3dStyle, merge3dStyle } from './visual-3d';
-import { getComputedEffectStyle } from './visual-effects';
 
 /**
  * Basic, framework-agnostic style computation for slide elements.

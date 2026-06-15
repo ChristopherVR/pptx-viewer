@@ -306,7 +306,8 @@ export function useLoadContent(
 		if (!handler.value) {
 			throw new Error('No presentation is loaded.');
 		}
-		return handler.value.save(slides.value);
+		// Persist edited document core properties into the saved `.pptx`.
+		return handler.value.save(slides.value, { coreProperties: coreProperties.value });
 	};
 
 	watch(

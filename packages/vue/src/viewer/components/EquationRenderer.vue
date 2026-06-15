@@ -2,12 +2,12 @@
 import DOMPurify from 'dompurify';
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
+import type { OmmlNode } from 'pptx-viewer-shared';
+import { convertOmmlToMathMl } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
 import { getContainerStyle } from '../composables/element-style';
-import type { OmmlNode } from '../composables/omml-to-mathml';
-import { convertOmmlToMathMl } from '../composables/omml-to-mathml';
 
 /**
  * EquationRenderer — renders an element's math equation(s) as inline MathML.
