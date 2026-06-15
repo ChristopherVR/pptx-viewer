@@ -692,8 +692,16 @@ export class PowerPointViewerComponent {
 		}
 	}
 
-	/** Persist a document-properties edit from the Info dialog. */
+	/**
+	 * Persist a document-properties edit from the Info dialog. Gated on
+	 * {@link canEdit} — viewers may inspect properties but not mutate them
+	 * (mirrors the comments / hyperlink edit paths).
+	 */
 	onPropertiesSave(patch: Partial<PptxCoreProperties>): void {
+		if (!this.canEdit()) {
+			this.showProperties.set(false);
+			return;
+		}
 		this.coreOverride.update((current) => ({ ...current, ...patch }));
 		this.propertiesChange.emit(patch);
 		this.showProperties.set(false);
