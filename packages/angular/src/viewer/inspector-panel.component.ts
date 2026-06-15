@@ -16,9 +16,15 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import type { ChartPptxElement, PptxElement, TablePptxElement } from 'pptx-viewer-core';
+import type {
+	ChartPptxElement,
+	PptxElement,
+	PptxElementAnimation,
+	TablePptxElement,
+} from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 
+import { AnimationAuthorPanelComponent } from './animation-author-panel.component';
 import { ChartDataEditorComponent } from './chart-data-editor.component';
 import { EditorStateService } from './editor-state.service';
 import { EffectsPanelComponent } from './effects-panel.component';
@@ -47,6 +53,7 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 		TextAdvancedPanelComponent,
 		TableDataEditorComponent,
 		ChartDataEditorComponent,
+		AnimationAuthorPanelComponent,
 	],
 	template: `
 		<!--
@@ -299,6 +306,17 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 					<pptx-chart-data-editor [element]="c" (elementChange)="onElementReplace($event)" />
 				</details>
 			}
+
+			<!-- ── Animation authoring ────────────────────────────────────────── -->
+			<details class="pptx-ng-inspector__details">
+				<summary class="pptx-ng-inspector__summary">Animation</summary>
+				<pptx-animation-author-panel
+					[element]="el()"
+					[slideIndex]="slideIndex()"
+					[animations]="slideAnimations()"
+					(animationsChange)="onAnimationsChange($event)"
+				/>
+			</details>
 
 			<!-- ── Element actions ────────────────────────────────────────────── -->
 			<section class="pptx-ng-inspector__section">
@@ -584,6 +602,16 @@ export class InspectorPanelComponent {
 	/** Commit a fully-replaced element (table/chart data editors) as one history entry. */
 	protected onElementReplace(updated: PptxElement): void {
 		this.editor.updateElement(this.slideIndex(), updated.id, updated as Partial<PptxElement>);
+	}
+
+	/** The active slide's element-animation list (animations live on the slide). */
+	protected readonly slideAnimations = computed<readonly PptxElementAnimation[]>(
+		() => this.editor.slides()[this.slideIndex()]?.animations ?? [],
+	);
+
+	/** Commit an updated slide-level animation list as one history entry. */
+	protected onAnimationsChange(animations: PptxElementAnimation[]): void {
+		this.editor.updateSlide(this.slideIndex(), { animations });
 	}
 
 	// ── Position & size ──────────────────────────────────────────────────────
