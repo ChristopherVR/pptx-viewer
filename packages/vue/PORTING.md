@@ -196,12 +196,28 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 | Slides pane + sorter                                            | ◑      | `useSlideOperations` (add/delete/duplicate/move) + `SlidesPaneControls`; **`SlideSorter.vue`** grid overview with HTML5 drag-reorder (→ `moveSlide`); **`SlideTransitionPanel.vue`** (per-slide transition type+duration, history-aware). Notes, mobile chrome still ☐                                                                                                                                                                                                  |
 | Accessibility panel                                             | ◑      | `useAccessibility` (core `checkMissingAltText`/`checkLowContrast`/… aggregated) + `AccessibilityPanel.vue` — grouped issues, click → jump to slide; header button shows live issue count                                                                                                                                                                                                                                                                                |
 
-### Advanced subsystems (all ☐ — not started)
+### Presentation, print & shortcuts (Batch 18)
 
-Presentation mode + animations/transitions, export (PNG/PDF/GIF/video,
-html2canvas equivalent — note React uses `html2canvas-pro`; Vue will need an
-equivalent rasterizer), collaboration (Yjs), print, find/replace, comments,
-digital signatures, font embedding/injection.
+| Item                                  | Status | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Presentation chrome (presenter + ink) | ◑      | `PresentationToolbar.vue` (nav/pen/highlighter/laser/eraser/clear + presenter toggle + end), `PresentationAnnotationOverlay.vue` (SVG ink, self-scaled), `usePresentationAnnotations` (per-slide pen/highlighter/eraser/laser stroke state), `PresenterView.vue` (next-slide preview + speaker notes + timer), `PresentationSubtitleBar.vue` (Web-Speech captions, `C` toggle), `RehearseTimingsHud`/`useRehearseTimings`. **Wired into `PresentationMode.vue`** (tap-to-advance gated while a tool is armed / presenter view open) |
+| Print                                 | ◑      | `usePrint` (settings + range parse + rasterise-to-print-window, reuses export `rasterizeSlide`) + `PrintDialog.vue` + `PrintSettingsPanel.vue` + pure `print-dialog-types.ts` (slides/notes/handouts/outline, slides-per-page, color/grayscale, frame, range). **Wired** into the header (🖨). SVG-vector print path deferred                                                                                                                                                                                                       |
+| Keyboard shortcuts + help             | ◑      | `useKeyboardShortcuts` (config-driven registry + `matchShortcut`/`handleKeyDown`, guard flags, `SHORTCUT_CATALOG`) replaces the ad-hoc Ctrl+Z/Y/Delete handling — undo/redo/copy/cut/paste/duplicate/delete/select-all/nudge/slide-nav/escape; `ShortcutPanel.vue` searchable help overlay (Ctrl+/ or ⌨ button)                                                                                                                                                                                                                     |
+| Document properties (full)            | ◑      | `DocumentPropertiesDialog.vue` (General/Statistics/Custom tabs) + `useDocumentStatistics` (live slide/word/paragraph/element counts) replaces the basic `PropertiesDialog`. Core-property edits persist via `getContent`; custom/app props are read-mostly (loader doesn't surface them yet)                                                                                                                                                                                                                                        |
+
+### Advanced subsystems (status)
+
+Done in earlier/this batch: presentation mode + animation playback + **presenter
+view / ink annotations / rehearse timings (Batch 18)**, export (PNG/PDF via
+`html2canvas-pro`), **print (Batch 18)**, find/replace, comments, collaboration
+(Yjs whole-doc + cursors), digital signatures, font embedding, **comprehensive
+keyboard shortcuts (Batch 18)**.
+
+Still ☐ / partial: GIF/video export, presentation transition _overlay_
+animations, fine-grained CRDT collaboration (selection-presence / follow-mode),
+master views (notes/handout master, header/footer), sections, slide-version
+history / compare, insert-SmartArt & equation-editor dialogs, settings dialog,
+custom/app document-property round-trip.
 
 ## Open decisions / notes for next session
 
@@ -618,3 +634,30 @@ Record<string, string | number>`; `TableRenderer.vue` now imports them from
     green**; vue typecheck/lint/fmt clean; build green, dist self-contained.
     Surface + regionMap built by two parallel `general-purpose` subagents (disjoint
     new files); trendlines + central integration done in-session.
+
+- **2026-06-16** — Batch 18: editor-chrome parity (four parallel subagents +
+  central wiring). Closed four React subsystems that had no Vue counterpart:
+  **(a) Presentation chrome** — `PresentationToolbar.vue`, `PresentationAnnotationOverlay.vue`
+  - `usePresentationAnnotations` (pen/highlighter/laser/eraser, per-slide stroke
+    state), `PresenterView.vue` (next-slide preview + speaker notes + elapsed
+    timer), `PresentationSubtitleBar.vue` (Web-Speech captions), `RehearseTimingsHud`
+  - `useRehearseTimings`. **Wired into `PresentationMode.vue`**: armed-tool/presenter
+    view gate tap-to-advance, toolbar `move`/`end`/`toggle-presenter`, `C` toggles
+    captions, start-time stamped on mount. **(b) Print** — `usePrint` (settings +
+    range parse + rasterise-to-print-window, reusing the export `rasterizeSlide`),
+    `PrintDialog.vue`/`PrintSettingsPanel.vue`, pure `print-dialog-types.ts`
+    (slides/notes/handouts/outline, slides-per-page, color/grayscale, frame, range);
+    header 🖨 button. **(c) Keyboard shortcuts** — `useKeyboardShortcuts` config-driven
+    registry (`matchShortcut`/`handleKeyDown` + guard flags + `SHORTCUT_CATALOG`)
+    replaces the ad-hoc Ctrl+Z/Y/Delete handling (undo/redo/copy/cut/paste/duplicate/
+    delete/select-all/nudge/slide-nav/escape); `ShortcutPanel.vue` searchable help
+    (Ctrl+/ or ⌨). **(d) Full document properties** — `DocumentPropertiesDialog.vue`
+    (General/Statistics/Custom tabs) + `useDocumentStatistics` (live counts) replaces
+    the basic `PropertiesDialog` (core edits persist via `getContent`; custom/app
+    round-trip deferred — loader doesn't surface them). Central wiring added the
+    header buttons, swapped the properties dialog, and threaded `nudge`/`select-all`/
+    clipboard actions into the new shortcut registry. **+201 tests (783 vue total,
+    all green)**; typecheck clean; `oxlint --deny-warnings` clean on all new `.ts`;
+    oxfmt clean; build green (dist self-contained, no internal specifiers). The Vue
+    editor-chrome surface now matches React except master views, sections, version
+    history/compare, insert-SmartArt/equation-editor dialogs, and the settings dialog.

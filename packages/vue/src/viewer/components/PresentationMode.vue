@@ -5,7 +5,12 @@ import type { CSSProperties } from 'vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import { useAnimationPlayback } from '../composables/useAnimationPlayback';
+import { usePresentationAnnotations } from '../composables/usePresentationAnnotations';
 import type { CanvasSize } from '../types';
+import PresentationAnnotationOverlay from './PresentationAnnotationOverlay.vue';
+import PresentationSubtitleBar from './PresentationSubtitleBar.vue';
+import PresentationToolbar from './PresentationToolbar.vue';
+import PresenterView from './PresenterView.vue';
 import SlideStage from './SlideStage.vue';
 
 /**
@@ -138,6 +143,43 @@ function close(): void {
 	emit('close');
 }
 
+// ---------------------------------------------------------------------------
+// Presentation chrome — ink annotations, toolbar, presenter view, captions
+// ---------------------------------------------------------------------------
+
+/** Timestamp (ms) the show started — drives the toolbar/presenter timers. */
+const presentationStartTime = ref<number | null>(null);
+/** Whether the presenter view (notes + next-slide preview) is shown. */
+const presenterMode = ref(false);
+/** Whether the live-caption (subtitle) bar is shown. */
+const subtitlesOn = ref(false);
+
+const annotations = usePresentationAnnotations({
+	isActive: () => true,
+	activeSlideIndex: currentIndex,
+});
+
+/**
+ * Tap-to-advance, but only when no drawing tool is armed and the presenter
+ * view is not covering the stage — otherwise a pen stroke or a presenter-view
+ * click would skip slides.
+ */
+function onOverlayClick(): void {
+	if (annotations.presentationTool.value !== 'none' || presenterMode.value) {
+		return;
+	}
+	next();
+}
+
+/** Toolbar `move(±1)` → next/prev. */
+function onToolbarMove(direction: 1 | -1): void {
+	if (direction > 0) {
+		next();
+	} else {
+		prev();
+	}
+}
+
 watch(currentIndex, (index) => {
 	emit('slide-change', index);
 	playback.reset();
@@ -179,6 +221,12 @@ function handleKeyDown(event: KeyboardEvent): void {
 		case 'End':
 			event.preventDefault();
 			goTo(props.slides.length - 1);
+			return;
+		case 'c':
+		case 'C':
+			// Toggle live captions (mirrors PowerPoint's "C" shortcut).
+			event.preventDefault();
+			subtitlesOn.value = !subtitlesOn.value;
 			break;
 		default:
 	}
@@ -259,6 +307,7 @@ function exitFullscreen(): void {
 }
 
 onMounted(() => {
+	presentationStartTime.value = Date.now();
 	window.addEventListener('keydown', handleKeyDown);
 	window.addEventListener('resize', handleResize);
 	handleResize();
@@ -277,7 +326,7 @@ onBeforeUnmount(() => {
 		<div
 			ref="overlayRef"
 			class="pptx-vue-presentation"
-			@click="next"
+			@click="onOverlayClick"
 			@touchstart="onTouchStart"
 			@touchend="onTouchEnd"
 		>
@@ -290,7 +339,59 @@ onBeforeUnmount(() => {
 					:media-data-urls="mediaDataUrls"
 					:scale="scale"
 				/>
+				<!-- Ink / laser / eraser overlay (captures pointers only when armed). -->
+				<PresentationAnnotationOverlay
+					:canvas-size="canvasSize"
+					:editor-scale="scale"
+					:presentation-tool="annotations.presentationTool.value"
+					:annotation-strokes="annotations.annotationStrokes.value"
+					:current-stroke="annotations.currentStroke.value"
+					:laser-position="annotations.laserPosition.value"
+					@pointer-down="annotations.handlePointerDown"
+					@pointer-move="annotations.handlePointerMove"
+					@pointer-up="annotations.handlePointerUp"
+					@laser-move="annotations.handleLaserMove"
+					@laser-leave="annotations.handleLaserLeave"
+					@erase="annotations.eraseAtPoint"
+				/>
 			</div>
+
+			<!-- Presenter view (notes + next-slide preview) — covers the stage. -->
+			<PresenterView
+				v-if="presenterMode"
+				:slides="slides"
+				:current-slide-index="currentIndex"
+				:canvas-size="canvasSize"
+				:media-data-urls="mediaDataUrls"
+				:presentation-start-time="presentationStartTime"
+				@click.stop
+				@move="onToolbarMove"
+				@exit="presenterMode = false"
+			/>
+
+			<!-- Live caption bar. -->
+			<PresentationSubtitleBar :visible="subtitlesOn" @click.stop />
+
+			<!-- Control bar (nav + ink tools + presenter toggle + end). -->
+			<PresentationToolbar
+				:presentation-tool="annotations.presentationTool.value"
+				:pen-color="annotations.penColor.value"
+				:highlighter-color="annotations.highlighterColor.value"
+				:has-annotations="annotations.hasAnyAnnotations.value"
+				:current-slide-index="currentIndex"
+				:total-slides="slides.length"
+				:presentation-start-time="presentationStartTime"
+				:presenter-mode="presenterMode"
+				:show-presenter-toggle="true"
+				@click.stop
+				@set-tool="annotations.setPresentationTool"
+				@set-pen-color="annotations.setPenColor"
+				@set-highlighter-color="annotations.setHighlighterColor"
+				@clear-annotations="annotations.clearAnnotations"
+				@move="onToolbarMove"
+				@end-presentation="close"
+				@toggle-presenter-view="presenterMode = !presenterMode"
+			/>
 
 			<div class="pptx-vue-presentation-counter" @click.stop>
 				{{ currentIndex + 1 }} / {{ slides.length }}

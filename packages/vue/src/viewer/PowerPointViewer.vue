@@ -20,12 +20,7 @@ import {
 	createShapeElement,
 	createTextElement,
 } from 'pptx-viewer-core';
-import type {
-	PptxCoreProperties,
-	PptxElement,
-	PptxSlide,
-	PptxSlideTransition,
-} from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import type { AlignEdge, DistributeAxis } from 'pptx-viewer-shared';
 import { alignElements, distributeElements } from 'pptx-viewer-shared';
 import { computed, nextTick, provide, ref, toRef, watch } from 'vue';
@@ -39,6 +34,8 @@ import CollaborationCursors from './components/CollaborationCursors.vue';
 import CommentsPanel from './components/CommentsPanel.vue';
 import ContextMenu from './components/ContextMenu.vue';
 import type { ContextMenuItem } from './components/ContextMenu.vue';
+import DocumentPropertiesDialog from './components/DocumentPropertiesDialog.vue';
+import type { DocumentPropertiesSavePatch } from './components/DocumentPropertiesDialog.vue';
 import EditorToolbar from './components/EditorToolbar.vue';
 import type { ShapePreset } from './components/EditorToolbar.vue';
 import ExportMenu from './components/ExportMenu.vue';
@@ -48,10 +45,10 @@ import InspectorPane from './components/inspector/InspectorPane.vue';
 import MobileBottomBar from './components/MobileBottomBar.vue';
 import NotesPanel from './components/NotesPanel.vue';
 import PresentationMode from './components/PresentationMode.vue';
-import PropertiesDialog from './components/PropertiesDialog.vue';
-import type { DocumentProperties } from './components/PropertiesDialog.vue';
+import PrintDialog from './components/PrintDialog.vue';
 import SelectionOverlay from './components/SelectionOverlay.vue';
 import ShareDialog from './components/ShareDialog.vue';
+import ShortcutPanel from './components/ShortcutPanel.vue';
 import SignaturesPanel from './components/SignaturesPanel.vue';
 import SlideCanvas from './components/SlideCanvas.vue';
 import SlideSorter from './components/SlideSorter.vue';
@@ -69,7 +66,9 @@ import { useEmbeddedFonts } from './composables/useEmbeddedFonts';
 import { useExport } from './composables/useExport';
 import { useFindReplace } from './composables/useFindReplace';
 import { useIsMobile } from './composables/useIsMobile';
+import { useKeyboardShortcuts } from './composables/useKeyboardShortcuts';
 import { useLoadContent } from './composables/useLoadContent';
+import { usePrint } from './composables/usePrint';
 import { useSignatures } from './composables/useSignatures';
 import { useSlideOperations } from './composables/useSlideOperations';
 import type {
@@ -569,6 +568,10 @@ function onExportPdf(): void {
 	void exporter.exportPdf();
 }
 
+// ── Print (dialog + rasterised print window) ──────────────────────────
+// Reuses the same off-screen `rasterizeSlide` the export path drives.
+const printer = usePrint({ slides, activeSlideIndex, rasterizeSlide });
+
 // ── Slide sorter (grid overview + drag reorder) ───────────────────────
 const showSorter = ref(false);
 function onSorterSelect(index: number): void {
@@ -803,9 +806,11 @@ function present(): void {
 
 // ── Document properties dialog ────────────────────────────────────────
 const propertiesOpen = ref(false);
-const docProperties = computed<DocumentProperties>(() => coreProperties.value ?? {});
-function onPropertiesSave(patch: Partial<PptxCoreProperties>): void {
-	coreProperties.value = { ...coreProperties.value, ...patch };
+function onPropertiesSave(patch: DocumentPropertiesSavePatch): void {
+	// Persist the edited core properties — `getContent` forwards them to
+	// `handler.save`. Custom/app properties are not yet round-tripped (the
+	// loader does not surface parsed custom/app props).
+	coreProperties.value = { ...coreProperties.value, ...patch.core };
 	propertiesOpen.value = false;
 }
 function sendBackward(): void {
@@ -814,35 +819,84 @@ function sendBackward(): void {
 	}
 }
 
-/** Keyboard editing shortcuts (only while editable). */
-function onEditorKeydown(event: KeyboardEvent): void {
-	if (!props.canEdit) {
+// ── Keyboard shortcuts ────────────────────────────────────────────────
+// A config-driven registry (mirrors React `useKeyboardShortcuts`) replaces the
+// old ad-hoc Ctrl+Z/Y/Delete handling. Find (Ctrl+F) and the shortcut-help
+// overlay (Ctrl+/) are handled in `onEditorKeydown` before delegating.
+const showShortcuts = ref(false);
+
+/** Select every element on the active slide. */
+function selectAllElements(): void {
+	selectedElementIds.value = (activeSlide.value?.elements ?? []).map((e) => e.id);
+}
+/** Copy the first selected element to the in-memory clipboard. */
+function copySelected(): void {
+	const id = selectedElementIds.value[0];
+	if (id) {
+		copyElement(id);
+	}
+}
+/** Cut the first selected element to the in-memory clipboard. */
+function cutSelected(): void {
+	const id = selectedElementIds.value[0];
+	if (id) {
+		cutElement(id);
+	}
+}
+/** Nudge every selected element by (dx, dy) px as one history entry. */
+function nudgeSelected(dx: number, dy: number): void {
+	if (selectedElementIds.value.length === 0) {
 		return;
 	}
+	const index = activeSlideIndex.value;
+	const slide = slides.value[index];
+	if (!slide) {
+		return;
+	}
+	const ids = new Set(selectedElementIds.value);
+	history.pushHistory();
+	const nextElements = slide.elements.map((el) =>
+		ids.has(el.id) ? { ...el, x: el.x + dx, y: el.y + dy } : el,
+	);
+	const nextSlides = slides.value.slice();
+	nextSlides[index] = { ...slide, elements: nextElements };
+	slides.value = nextSlides;
+}
+
+const shortcuts = useKeyboardShortcuts({
+	actions: {
+		undo: history.undo,
+		redo: history.redo,
+		copy: copySelected,
+		cut: cutSelected,
+		paste: pasteElement,
+		duplicate: duplicateSelected,
+		delete: deleteSelected,
+		selectAll: selectAllElements,
+		nudge: nudgeSelected,
+		prevSlide: goPrev,
+		nextSlide: goNext,
+		escape: clearSelection,
+	},
+	canEdit: () => props.canEdit,
+	hasSelection,
+	isPresenting: presenting,
+});
+
+/** Root keydown: Find / shortcut-help first, then the shortcut registry. */
+function onEditorKeydown(event: KeyboardEvent): void {
 	const mod = event.ctrlKey || event.metaKey;
-	if (mod && event.key.toLowerCase() === 'f') {
+	if (props.canEdit && mod && event.key.toLowerCase() === 'f') {
 		event.preventDefault();
 		findOpen.value = !findOpen.value;
 		return;
 	}
-	if (mod && event.key.toLowerCase() === 'z') {
+	if (mod && event.key === '/') {
 		event.preventDefault();
-		if (event.shiftKey) {
-			history.redo();
-		} else {
-			history.undo();
-		}
+		showShortcuts.value = !showShortcuts.value;
 		return;
 	}
-	if (mod && event.key.toLowerCase() === 'y') {
-		event.preventDefault();
-		history.redo();
-		return;
-	}
-	if ((event.key === 'Delete' || event.key === 'Backspace') && hasSelection.value) {
-		event.preventDefault();
-		deleteSelected();
-	}
+	shortcuts.handleKeyDown(event);
 }
 
 // ── Imperative surface (mirrors the React forwardRef handle) ──────────
@@ -911,6 +965,16 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					<button
 						v-if="slideCount > 0"
 						type="button"
+						class="pptx-vue-print-btn"
+						title="Print"
+						aria-label="Print"
+						@click="printer.openPrintDialog"
+					>
+						🖨
+					</button>
+					<button
+						v-if="slideCount > 0"
+						type="button"
 						class="pptx-vue-sorter-btn"
 						title="Slide sorter"
 						aria-label="Slide sorter"
@@ -969,6 +1033,15 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						@click="propertiesOpen = true"
 					>
 						ⓘ
+					</button>
+					<button
+						type="button"
+						class="pptx-vue-shortcuts-btn"
+						title="Keyboard shortcuts (Ctrl+/)"
+						aria-label="Keyboard shortcuts"
+						@click="showShortcuts = true"
+					>
+						⌨
 					</button>
 					<button
 						v-if="signaturesApi.isSigned.value"
@@ -1156,13 +1229,26 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				@close="shareOpen = false"
 			/>
 
-			<!-- Document properties -->
-			<PropertiesDialog
+			<!-- Document properties (General / Statistics / Custom) -->
+			<DocumentPropertiesDialog
 				:open="propertiesOpen"
-				:properties="docProperties"
+				:core-properties="coreProperties"
+				:slides="slides"
 				@save="onPropertiesSave"
 				@close="propertiesOpen = false"
 			/>
+
+			<!-- Print -->
+			<PrintDialog
+				:open="printer.isPrintDialogOpen.value"
+				:slides="slides"
+				:active-slide-index="activeSlideIndex"
+				@print="printer.print"
+				@close="printer.closePrintDialog"
+			/>
+
+			<!-- Keyboard shortcut help -->
+			<ShortcutPanel :open="showShortcuts" @close="showShortcuts = false" />
 
 			<!-- Broadcast -->
 			<BroadcastDialog
