@@ -12,6 +12,7 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
+import type { PptxElement } from 'pptx-viewer-core';
 
 import type { ViewerTheme } from '../internal/shared';
 import { themeStyle } from '../theme/viewer-theme';
@@ -19,6 +20,7 @@ import { EditorStateService } from './editor-state.service';
 import { slideFileName } from './export-helpers';
 import { ExportService } from './export.service';
 import { FindBarComponent } from './find-bar.component';
+import { InspectorPanelComponent } from './inspector-panel.component';
 import { LoadContentService } from './load-content.service';
 import { PresentationOverlayComponent } from './presentation-overlay.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
@@ -58,6 +60,7 @@ const ZOOM_MAX = 3;
 		PresentationOverlayComponent,
 		SlideSorterOverlayComponent,
 		FindBarComponent,
+		InspectorPanelComponent,
 	],
 	template: `
 		<div class="pptx-ng-viewer" [ngClass]="class()" [ngStyle]="rootStyle()">
@@ -187,6 +190,12 @@ const ZOOM_MAX = 3;
 							</aside>
 						}
 					</main>
+
+					@if (canEdit() && selectedElement(); as el) {
+						<aside class="pptx-ng-inspector-host" aria-label="Element properties">
+							<pptx-inspector-panel [element]="el" [slideIndex]="activeSlideIndex()" />
+						</aside>
+					}
 				</div>
 			}
 
@@ -272,6 +281,14 @@ export class PowerPointViewerComponent {
 	protected readonly showFind = signal(false);
 	/** Notes for the active slide, if any. */
 	protected readonly activeNotes = computed(() => this.activeSlide()?.notes?.trim() || '');
+	/** The single selected element on the active slide (for the inspector). */
+	protected readonly selectedElement = computed<PptxElement | null>(() => {
+		const ids = this.editor.selectedIds();
+		if (ids.length !== 1) {
+			return null;
+		}
+		return this.activeSlide()?.elements.find((e) => e.id === ids[0]) ?? null;
+	});
 
 	constructor() {
 		// Load whenever the `content` input changes.

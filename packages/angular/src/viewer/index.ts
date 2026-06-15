@@ -12,6 +12,7 @@ export { ZoomRendererComponent } from './zoom-renderer.component';
 export { PresentationOverlayComponent } from './presentation-overlay.component';
 export { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
 export { FindBarComponent } from './find-bar.component';
+export { InspectorPanelComponent } from './inspector-panel.component';
 export { collectElementText, collectSlideText, searchSlides } from './slide-search';
 export { ExportService } from './export.service';
 export { renderToCanvas } from '../lib/canvas-export';
