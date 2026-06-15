@@ -154,20 +154,26 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 | Speaker notes     | ◑      | toggleable notes strip in `PowerPointViewerComponent`                                                                                                   |
 | Find in slides    | ◑      | `FindBarComponent` + `slide-search.ts` — text search across all slides (text/table/smartArt/group/notes) with prev/next navigation. Replace: editor     |
 
+| Export (PNG / PDF) | ◑ | `ExportService` + ported `lib/canvas-export.ts` (html2canvas-pro wrapper with modern-CSS-colour + backdrop/blend/3D preprocessing) + `jspdf`; PNG (current slide) and PDF (all slides) toolbar buttons. Matches React's deps (auto-installed via `dependencies`, allowed in ng-package.json). GIF/video: TODO |
+
+### Editor foundation (◑ — services landed; interaction UI next)
+
+| Item                                            | Status | Notes                                                                                                                                                                                                                                 |
+| ----------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Undo/redo history                               | ◑      | `editor-history.ts` — generic `EditorHistory<T>` snapshot stacks with labels + depth cap (mirrors `useEditorHistory`)                                                                                                                 |
+| Element operations                              | ◑      | `element-operations.ts` — pure immutable update/move/resize/delete/duplicate/z-order (mirrors `useElementOperations`)                                                                                                                 |
+| Editor state service                            | ◑      | `EditorStateService` — editable slides signal + selection + dirty + ops that record history; undo/redo restore snapshots                                                                                                              |
+| **Interaction UI**                              | ☐      | click-select + selection outline, drag/resize handles, keyboard (Delete/Ctrl+Z/arrows), rendering the editable deck when `canEdit` — **the next phase**; wires `EditorStateService` into SlideCanvas/ElementRenderer/PowerPointViewer |
+| Section / table operations, clipboard, autosave | ☐      | mirror `useSectionOperations` / `useTableOperations`                                                                                                                                                                                  |
+
 ### Editor chrome (all ☐ — not started)
 
 Toolbar, inspector panels, context menu, dialogs, slides pane, mobile chrome,
-accessibility panel. (Requires the editor foundation below first.)
-
-### Editor foundation (☐ — the main remaining gap)
-
-Full viewer state, editor history (undo/redo), element CRUD/transform
-operations, autosave, clipboard. None started — this gates all editing chrome.
+accessibility panel. Builds on the editor foundation (above) + interaction UI.
 
 ### Advanced subsystems (all ☐ — not started)
 
-Presentation animations/transitions, export (PNG/PDF/GIF/video — React uses
-`html2canvas-pro`, DOM-based and likely reusable), collaboration (Yjs —
+Presentation animations/transitions, GIF/video export, collaboration (Yjs —
 framework-agnostic, good shared-extraction candidate), print, find/**replace**,
 comments, digital signatures, font embedding/injection.
 
@@ -327,3 +333,16 @@ frontier is **editing** and the remaining advanced subsystems.
     text renderer; find-in-slides (`slide-search.ts` + `FindBarComponent`).
     Test count 376 → **611**, all green. The renderer/viewer surface is now broad;
     the editor foundation is the main remaining gap (see next steps).
+- **2026-06-15 (parity waves 4–6)** — Continued the team push:
+  - Wave 4: math **equations** (`omml-to-mathml.ts` + `EquationRendererComponent`,
+    inline MathML via sanitizer bypass), wired into the text renderer.
+  - Wave 5: **export** — ported `lib/canvas-export.ts` (html2canvas-pro wrapper)
+    - `ExportService` / `export-helpers` + `jspdf`; added html2canvas-pro & jspdf
+      as Angular-package deps (matching React) allowed via
+      `allowedNonPeerDependencies` in ng-package.json; PNG/PDF toolbar buttons.
+  - Wave 6: **editor foundation** — `editor-history.ts` (generic undo/redo),
+    `element-operations.ts` (pure transforms), `EditorStateService` (signal
+    state + selection + history). Interaction UI is the next phase.
+    Test count 611 → **915**, all green. The lib-target rule still bites (no
+    `replaceAll` / named-capture-groups; one ASCII-CSS-regex file carries a
+    justified `eslint-disable`, mirroring React).
