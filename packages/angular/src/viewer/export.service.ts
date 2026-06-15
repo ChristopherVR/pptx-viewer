@@ -15,6 +15,9 @@ import { jsPDF } from 'jspdf';
 
 import { renderToCanvas } from '../lib/canvas-export';
 import { pdfPageSize, sanitizeFileName } from './export-helpers';
+import { encodeGif, planGifFrames } from './gif-export-helpers';
+import type { GifFrame } from './gif-export-helpers';
+import { recordWebm } from './video-export-helpers';
 
 /* ------------------------------------------------------------------ */
 /*  Internal helpers (DOM only — not exported)                          */
@@ -137,5 +140,65 @@ export class ExportService {
 		}
 
 		doc.save(sanitizeFileName(fileName));
+	}
+
+	/**
+	 * Assemble an animated GIF from pre-rendered slide canvases (one frame per
+	 * slide) and trigger a download. Frame delay is derived from
+	 * `slideDurationMs` via the pure {@link planGifFrames} planner.
+	 *
+	 * @param canvases        - One canvas per slide, in order.
+	 * @param slideDurationMs - Display time per slide in milliseconds.
+	 * @param fileName        - Suggested download file name.
+	 */
+	exportCanvasesToGif(
+		canvases: HTMLCanvasElement[],
+		slideDurationMs: number,
+		fileName: string,
+	): void {
+		if (canvases.length === 0) {
+			throw new Error('[ExportService] No slide canvases provided for GIF export');
+		}
+		const plans = planGifFrames({ totalSlides: canvases.length, slideDurationMs });
+		const delayCs = plans[0]?.delayCs ?? 200;
+
+		const frames: GifFrame[] = canvases.map((c) => {
+			const ctx = c.getContext('2d');
+			if (!ctx) {
+				throw new Error('[ExportService] 2D context unavailable for GIF frame');
+			}
+			return {
+				imageData: ctx.getImageData(0, 0, c.width, c.height),
+				width: c.width,
+				height: c.height,
+			};
+		});
+
+		const bytes = encodeGif(frames, { delayCs });
+		const buffer = new ArrayBuffer(bytes.byteLength);
+		new Uint8Array(buffer).set(bytes);
+		downloadBlob(new Blob([buffer], { type: 'image/gif' }), sanitizeFileName(fileName));
+	}
+
+	/**
+	 * Record a WebM video from pre-rendered slide canvases (each held for
+	 * `slideDurationMs`) via the browser `MediaRecorder` and trigger a download.
+	 *
+	 * @param canvases        - One canvas per slide, in order.
+	 * @param slideDurationMs - Display time per slide in milliseconds.
+	 * @param fileName        - Suggested download file name.
+	 * @param signal          - Optional abort signal to cancel recording.
+	 */
+	async exportCanvasesToWebm(
+		canvases: HTMLCanvasElement[],
+		slideDurationMs: number,
+		fileName: string,
+		signal?: AbortSignal,
+	): Promise<void> {
+		if (canvases.length === 0) {
+			throw new Error('[ExportService] No slide canvases provided for video export');
+		}
+		const blob = await recordWebm(canvases, { slideDurationMs, signal });
+		downloadBlob(blob, sanitizeFileName(fileName));
 	}
 }

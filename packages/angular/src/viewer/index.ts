@@ -28,6 +28,22 @@ export { EditorContextMenuComponent } from './editor-context-menu.component';
 export { collectElementText, collectSlideText, searchSlides } from './slide-search';
 export { ExportService } from './export.service';
 export { renderToCanvas } from '../lib/canvas-export';
+export {
+	planGifFrames,
+	encodeGif,
+	msToFrameDelayCs,
+	clampGifDimensions,
+} from './gif-export-helpers';
+export type { GifFrame, GifFramePlan, GifPlanOptions } from './gif-export-helpers';
+export {
+	planVideoSegments,
+	recordWebm,
+	pickSupportedMimeType,
+	fpsToFrameIntervalMs,
+	segmentFrameCount,
+	WEBM_MIME_CANDIDATES,
+} from './video-export-helpers';
+export type { VideoSegmentPlan, VideoPlanOptions, RecordWebmOptions } from './video-export-helpers';
 export { EditorStateService } from './editor-state.service';
 export { EditorHistory } from './editor-history';
 export {

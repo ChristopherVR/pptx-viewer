@@ -222,6 +222,20 @@ const ZOOM_MAX = 3;
 						>
 							{{ exporting() ? 'Exporting…' : 'PDF' }}
 						</button>
+						<button
+							type="button"
+							[disabled]="slideCount() === 0 || exporting()"
+							(click)="exportGif()"
+						>
+							GIF
+						</button>
+						<button
+							type="button"
+							[disabled]="slideCount() === 0 || exporting()"
+							(click)="exportVideo()"
+						>
+							Video
+						</button>
 						<button type="button" [disabled]="slideCount() === 0" (click)="present()">
 							Present
 						</button>
@@ -940,6 +954,56 @@ export class PowerPointViewerComponent {
 			this.exportSvc.exportCanvasesToPdf(canvases, width, height, 'presentation.pdf');
 		} finally {
 			this.activeSlideIndex.set(original);
+			this.exporting.set(false);
+		}
+	}
+
+	/** Render every slide to a canvas (each made the live stage in turn). */
+	private async renderAllSlideCanvases(): Promise<HTMLCanvasElement[]> {
+		const total = this.slideCount();
+		const original = this.activeSlideIndex();
+		const canvases: HTMLCanvasElement[] = [];
+		try {
+			for (let i = 0; i < total; i++) {
+				this.activeSlideIndex.set(i);
+				await new Promise<void>((resolve) => {
+					setTimeout(resolve, 150);
+				});
+				const el = this.stageElement();
+				if (el) {
+					canvases.push(await this.exportSvc.renderElement(el));
+				}
+			}
+		} finally {
+			this.activeSlideIndex.set(original);
+		}
+		return canvases;
+	}
+
+	/** Export every slide as an animated GIF (2s per slide). */
+	async exportGif(): Promise<void> {
+		if (this.slideCount() === 0 || this.exporting()) {
+			return;
+		}
+		this.exporting.set(true);
+		try {
+			const canvases = await this.renderAllSlideCanvases();
+			this.exportSvc.exportCanvasesToGif(canvases, 2000, 'presentation.gif');
+		} finally {
+			this.exporting.set(false);
+		}
+	}
+
+	/** Export every slide as a WebM video (3s per slide) via MediaRecorder. */
+	async exportVideo(): Promise<void> {
+		if (this.slideCount() === 0 || this.exporting()) {
+			return;
+		}
+		this.exporting.set(true);
+		try {
+			const canvases = await this.renderAllSlideCanvases();
+			await this.exportSvc.exportCanvasesToWebm(canvases, 3000, 'presentation.webm');
+		} finally {
 			this.exporting.set(false);
 		}
 	}
