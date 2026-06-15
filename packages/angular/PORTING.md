@@ -179,11 +179,40 @@ accessibility panel, marquee/rotation handles, and the inspector's advanced
 tabs (structured fill/gradient picker, effects, animation, text-advanced),
 plus table/chart data editing. All build on the editor foundation.
 
-### Advanced subsystems (all ☐ — not started)
+### Advanced subsystems
 
-Presentation animations/transitions, GIF/video export, collaboration (Yjs —
-framework-agnostic, good shared-extraction candidate), print, find/**replace**,
-comments, digital signatures, font embedding/injection.
+Landed as signal-based services + standalone OnPush components (pure logic in
+`*-helpers.ts`, colocated vitest tests; **not yet wired into
+`PowerPointViewerComponent`** — exported from the barrel for host use and
+incremental wiring):
+
+| Subsystem                | Status | Notes                                                                                                                                                             |
+| ------------------------ | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Comments                 | ◑      | `CommentsService` + `CommentsPanelComponent` + `comments-helpers` (add/remove/resolve; per-slide model, host writes back)                                         |
+| Digital signatures       | ◑      | `SignaturesService` + `SignaturesPanelComponent` + `signatures-helpers` (status aggregation/formatting)                                                           |
+| Accessibility            | ◑      | `AccessibilityService` + `AccessibilityPanelComponent` + `accessibility-helpers` (issue scan over slides, severity grouping)                                      |
+| Font embedding/injection | ◑      | `EmbeddedFontsService` (managed `@font-face` `<style>`, object-URL lifecycle) + `embedded-fonts-helpers`                                                          |
+| Animation playback       | ◑      | `AnimationPlaybackService` + `AnimationPanelComponent` + `animation-playback-helpers` (click-group steps, reveal/pending styles, rAF playback)                    |
+| Collaboration (Yjs)      | ◑      | `CollaborationService` (Y.Doc + awareness, lazy `y-websocket`, degrades if absent) + `CollaborationCursorsComponent` + `collaboration-helpers` (presence/cursors) |
+| Dialog suite             | ◑      | `ModalDialogComponent` base + Properties/Share/Hyperlink/Broadcast dialogs + per-dialog helpers (hyperlink reuses `./hyperlink` URL-safety)                       |
+| Print                    | ◑      | `PrintService` + `PrintDialogComponent` + `PrintSettingsPanelComponent` + `print-helpers` (settings/layout/printable-markup; window.print)                        |
+| Presentation transitions | ◑      | `transition-helpers` (slide-transition → CSS keyframes) + `PresentationTransitionOverlayComponent` (plays entering/leaving over the stage)                        |
+| Presenter view           | ◑      | `presenter-view-helpers` (layout/timer/notes) + `PresenterViewComponent` (current+next slide, notes, elapsed timer, controls)                                     |
+
+**Still ☐ — not started:** GIF/video export, find/**replace** (find-only is
+done), table & chart data editing, the advanced inspector tabs (structured
+gradient picker / effects / animation authoring), more chart kinds
+(combo/radar/bubble/stock/treemap — the Vue side is adding these), full A\*
+connector routing, duotone SVG `<filter>` injection.
+
+> **Next integration step:** wire the above panels/dialogs/overlays into
+> `PowerPointViewerComponent` (toolbar buttons + side panels + dialog group +
+> presenter/transition layers), mirroring how the inspector / slides panel /
+> find bar / presentation overlay are already composed. Each subsystem's
+> service is `providedIn` at the component level and its component takes
+> `input()`/`output()` — see the per-subsystem wiring surface in the commit
+> messages. This touches the single large tracked component, so coordinate with
+> the parallel sessions and commit fast.
 
 ## Demo
 
@@ -392,6 +421,27 @@ frontier is **editing** and the remaining advanced subsystems.
   and **slide property editing** (`EditorStateService.updateSlide` + a
   slide-properties panel for background colour + notes when nothing is
   selected). Test count 1017 → **1048**.
+- **2026-06-15 (advanced-subsystem waves 1–2)** — Team-of-agents push to close
+  the advanced-subsystem gap; each subagent produced **only new files**
+  (reset-safe), orchestrator wired the barrel + fixed integration and committed
+  each wave:
+  - Wave 1: **comments**, **digital signatures**, **accessibility**, **embedded
+    fonts** (`@font-face` injection), **animation playback** — each a
+    signal-based service + (where applicable) a standalone OnPush panel +
+    `*-helpers.ts` + colocated tests. Test count 1048 → **1172**.
+  - Wave 2: **collaboration (Yjs)** (Y.Doc/awareness, lazy `y-websocket`,
+    cursors component), **dialog suite** (`ModalDialog` base + Properties /
+    Share / Hyperlink / Broadcast), **print** (`PrintService` + dialog +
+    settings panel + layout/markup helpers), **presentation transitions**
+    (slide-transition → CSS keyframes + overlay) and **presenter view**
+    (current+next + notes + elapsed timer). Test count 1172 → **1421**.
+  - Integration fixups: `CollaborationRole` is `'owner' | 'collaborator' |
+'viewer'` (no `'broadcaster'`); renamed the hyperlink dialog's `save()`
+    method to `apply()` to avoid colliding with its `save` output. typecheck,
+    build (ng-packagr), and lint (`--deny-warnings`) all green.
+  - All landed as exported services/components; **wiring into
+    `PowerPointViewerComponent` is the remaining step** (see the Advanced
+    subsystems table note).
 
 > **Parity summary.** The Angular **viewer** matches React's viewing surface
 > (all 11 element types, fills/effects/clip-paths/backgrounds, lists,
@@ -399,8 +449,14 @@ frontier is **editing** and the remaining advanced subsystems.
 > export). The **editor** is a complete WYSIWYG editor (selection, move/resize/
 > rotate with snap guides, inline text, clipboard, align/distribute, group,
 > z-order, slide CRUD + properties, insert, inspector, toolbar, context menu,
-> undo/redo, save). **Remaining for full React parity** — the large
-> subsystems, several in progress on the Vue side: collaboration (Yjs),
-> comments, the dialog suite, digital signatures, font embedding, print, mobile/
-> a11y chrome, animation/transition authoring, table & chart data editing, and
-> the advanced inspector tabs (structured gradient picker / effects).
+> undo/redo, save). The **advanced subsystems** are now ported as exported
+> services/components (comments, digital signatures, accessibility, embedded
+> fonts, animation playback, collaboration/Yjs, the dialog suite, print,
+> presentation transitions, presenter view — see the Advanced subsystems
+> table); the remaining step for these is wiring them into the default
+> `PowerPointViewerComponent` chrome. **Still ☐ for full React parity** —
+> GIF/video export, find **replace** (find-only done), table & chart data
+> editing, the advanced inspector tabs (structured gradient picker / effects /
+> animation authoring), more chart kinds (combo/radar/bubble/stock/treemap),
+> full A\* connector routing, duotone SVG `<filter>` injection, and mobile/a11y
+> chrome.
