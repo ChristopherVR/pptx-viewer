@@ -10,8 +10,10 @@ import {
 	getShapeFillStrokeStyle,
 	getTextBlockStyle,
 } from '../composables/element-style';
+import { getComputedImageStyle } from '../composables/image-effects';
 import ChartRenderer from './ChartRenderer.vue';
 import ConnectorRenderer from './ConnectorRenderer.vue';
+import EquationRenderer from './EquationRenderer.vue';
 import InkRenderer from './InkRenderer.vue';
 import Model3DRenderer from './Model3DRenderer.vue';
 import OleRenderer from './OleRenderer.vue';
@@ -46,12 +48,39 @@ const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
 );
 const shapeStyle = computed<CSSProperties>(() => getShapeFillStrokeStyle(props.element));
+/**
+ * Merge container + shape styles for the shape box. The shape style may carry a
+ * 3D `transform` (from `visual-3d`); compose it with the container's
+ * rotation/flip transform instead of letting the spread clobber it.
+ */
+const shapeDivStyle = computed<CSSProperties>(() => {
+	const c = containerStyle.value;
+	const s = shapeStyle.value;
+	const merged: CSSProperties = { ...c, ...s };
+	if (c.transform && s.transform) {
+		merged.transform = `${c.transform} ${s.transform}`;
+	}
+	return merged;
+});
 const textStyle = computed<CSSProperties>(() => getTextBlockStyle(props.element));
 const imageSrc = computed(() => getImageSrc(props.element, props.mediaDataUrls));
+/** Computed CSS filter + SVG `<filter>` defs for picture/image effects. */
+const imageFx = computed(() => getComputedImageStyle(props.element));
 
 const isShapeLike = computed(() => props.element.type === 'text' || props.element.type === 'shape');
 const isImageLike = computed(
 	() => props.element.type === 'picture' || props.element.type === 'image',
+);
+
+/**
+ * Whether this element carries math equation segments (OMML). Equation text
+ * boxes are typically equation-only, so they delegate wholesale to
+ * `EquationRenderer` (which self-positions). Mirrors the React equation path.
+ */
+const hasEquation = computed(
+	() =>
+		hasTextProperties(props.element) &&
+		(props.element.textSegments ?? []).some((s) => s.equationXml),
 );
 
 /** Per-run inline style derived from a TextSegment's style. */
@@ -149,11 +178,31 @@ const placeholderLabel = computed(() => {
 		:style="containerStyle"
 		:data-element-id="element.id"
 	>
+		<!-- SVG <filter> defs for duotone / advanced-alpha / artistic image effects. -->
+		<svg
+			v-for="f in imageFx.svgFilters"
+			:key="f.id"
+			width="0"
+			height="0"
+			aria-hidden="true"
+			style="position: absolute; width: 0; height: 0; overflow: hidden"
+		>
+			<defs>
+				<filter :id="f.id" color-interpolation-filters="sRGB" v-html="f.markup" />
+			</defs>
+		</svg>
 		<img
 			v-if="imageSrc"
 			:src="imageSrc"
 			alt=""
-			style="width: 100%; height: 100%; object-fit: contain; display: block"
+			:style="{
+				width: '100%',
+				height: '100%',
+				objectFit: 'contain',
+				display: 'block',
+				filter: imageFx.filter,
+				opacity: imageFx.opacity,
+			}"
 		/>
 	</div>
 
@@ -236,11 +285,19 @@ const placeholderLabel = computed(() => {
 		:z-index="zIndex"
 	/>
 
+	<!-- Equation (OMML → MathML) — equation text boxes delegate wholesale -->
+	<EquationRenderer
+		v-else-if="hasEquation"
+		:element="element"
+		:media-data-urls="mediaDataUrls"
+		:z-index="zIndex"
+	/>
+
 	<!-- Text / shape -->
 	<div
 		v-else-if="isShapeLike"
 		class="pptx-vue-element pptx-vue-shape"
-		:style="{ ...containerStyle, ...shapeStyle }"
+		:style="shapeDivStyle"
 		:data-element-id="element.id"
 	>
 		<div v-if="hasText" class="pptx-vue-text" :style="textStyle">

@@ -178,9 +178,11 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 | Charts (SVG)                                                   | ◑      | `ChartRenderer.vue` + `chart/ChartChrome.vue` + `composables/chart-helpers.ts` — bar/column, stacked & 100%-stacked, line, area, pie/doughnut + axes/gridlines/legend/title/data-labels. Deferred (labelled placeholder): radar, scatter/bubble, stock, surface, treemap, sunburst, funnel, waterfall, combo, map, boxWhisker, histogram, ofPie; + secondary/log axes, trendlines, overlays |
 | SmartArt                                                       | ◑      | `SmartArtRenderer.vue` — renders the core-decomposed `smartArtData.drawingShapes` (rect/ellipse + text/fill/stroke/rotation/shadow) as SVG, mirroring React `smartart-drawing.tsx`. Node-list fallback when no drawing shapes; per-family layout-from-nodes (cycle/gear/matrix/…) deferred                                                                                                  |
 | Ink / OLE / Model3D / Zoom                                     | ◑      | `InkRenderer` (SVG strokes), `OleRenderer` (preview/icon+label), `Model3DRenderer` (poster, three.js deferred), `ZoomRenderer` (static link tile, navigation deferred)                                                                                                                                                                                                                      |
-| Shape effects (shadow/glow/soft-edge/reflection), clip-paths   | ◑      | `composables/visual-effects.ts` — outer/inner/multi shadow, glow, soft-edge/blur, reflection (`-webkit-box-reflect`), DAG blend/opacity, wired into `getShapeFillStrokeStyle`. Preset-geometry clip-paths (`shape-geometry.ts`). Image recolour/artistic/duotone deferred (duotone `url(#…)` ref stripped)                                                                                  |
-| Image effects (recolour/artistic/duotone), gradients (rich)    | ☐      | `utils/image-effects.ts`, `duotone-effects.ts`, `artistic-effects.tsx`                                                                                                                                                                                                                                                                                                                      |
-| Text warp / WordArt, equations (OMML→MathML)                   | ☐      |                                                                                                                                                                                                                                                                                                                                                                                             |
+| Shape effects (shadow/glow/soft-edge/reflection), clip-paths   | ◑      | `composables/visual-effects.ts` — outer/inner/multi shadow, glow, soft-edge/blur, reflection (`-webkit-box-reflect`), DAG blend/opacity, wired into `getShapeFillStrokeStyle`. Preset-geometry clip-paths (`shape-geometry.ts`)                                                                                                                                                             |
+| Shape 3D (scene3d/extrusion/bevel/material)                    | ◑      | `composables/visual-3d.ts` — camera perspective→`transform`, extrusion→layered box-shadow, bevel/contour/material/light-rig, merged into `getShapeFillStrokeStyle` (`merge3dStyle` comma-joins shadows; container rotation composed in `ElementRenderer`). Real CSS-3D extruded faces (`Extrusion3DOverlay`) deferred                                                                       |
+| Image effects (recolour/artistic/duotone)                      | ◑      | `composables/image-effects.ts` — recolour (brightness/contrast/saturate/grayscale/sepia/hue), duotone + advanced-alpha + artistic via SVG `<filter>` defs (injected in the image branch), `alphaModFix` opacity. Destructive `clrChange` chroma-key & canvas re-encodes deferred                                                                                                            |
+| Equations (OMML → MathML)                                      | ◑      | `EquationRenderer.vue` + `composables/omml-to-mathml.ts` — converts `TextSegment.equationXml` OMML to MathML (fraction/sub/sup/radical/n-ary/matrix/accent/delimiter/func…), DOMPurify-sanitised, rendered via native `<math>`; `ElementRenderer` delegates elements with equation segments. Exotic constructs (phant/scaling) deferred                                                     |
+| Text warp / WordArt, rich structured gradients                 | ☐      | `utils/warp-path-*.ts`, `text-warp-classifier.ts`, `color-gradient.ts`                                                                                                                                                                                                                                                                                                                      |
 
 ### Editor chrome (all ☐ — not started)
 
@@ -318,3 +320,19 @@ digital signatures, font embedding/injection.
   typecheck/lint clean; build green (53 modules). Integrated + committed
   centrally from a `main` worktree (shared checkout left untouched on the
   Angular branch); rebased over 3 concurrent Angular pushes to `main`.
+- **2026-06-15** — Image effects + shape 3D + equations (three parallel
+  subagents). **Image effects** (`composables/image-effects.ts`): recolour CSS
+  filter + duotone/advanced-alpha/artistic SVG `<filter>` defs, applied to the
+  `<img>` and injected in the image branch of `ElementRenderer`. **Shape 3D**
+  (`composables/visual-3d.ts`): scene3d camera→`transform`/perspective,
+  extrusion→layered box-shadow, bevel/contour/material/light-rig, merged into
+  `getShapeFillStrokeStyle` via `merge3dStyle` (comma-joins shadows so it doesn't
+  clobber the effect shadow; the container rotation/flip transform is composed
+  with the 3D transform in a new `shapeDivStyle` computed). **Equations**
+  (`EquationRenderer.vue` + `composables/omml-to-mathml.ts`): `TextSegment.
+equationXml` OMML → MathML (ported from React's three omml-\* files, core only
+  had OMML↔LaTeX), DOMPurify-sanitised, native `<math>`; `ElementRenderer`
+  delegates elements carrying equation segments. 106 new tests (216 total
+  green); typecheck/lint clean; build green. Worktree integration used a
+  **targeted file copy** (not `git stash -u`) per the sharpened shared-worktree
+  rule, leaving the Angular session's checkout untouched.

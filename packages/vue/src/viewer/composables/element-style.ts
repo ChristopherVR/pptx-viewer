@@ -9,6 +9,7 @@ import type { CSSProperties } from 'vue';
 
 import { DEFAULT_STROKE_COLOR, DEFAULT_TEXT_COLOR } from '../constants';
 import { getResolvedShapeClipPath } from './shape-geometry';
+import { getComputed3dStyle, merge3dStyle } from './visual-3d';
 import { getComputedEffectStyle } from './visual-effects';
 
 /**
@@ -146,6 +147,13 @@ export function getShapeFillStrokeStyle(el: PptxElement): CSSProperties {
 		const elementOpacity = typeof el.opacity === 'number' ? el.opacity : 1;
 		style.opacity = elementOpacity * fx.opacity;
 	}
+
+	// Shape 3D (scene3d camera/perspective + shape3d extrusion/bevel/material).
+	// Also applied before the geometry cascade. `merge3dStyle` comma-joins the
+	// extrusion/bevel shadows onto any effect `boxShadow` set above (rather than
+	// clobbering) and appends the 3D transform; the element's container
+	// rotation/flip transform is composed separately in `ElementRenderer`.
+	merge3dStyle(style, getComputed3dStyle(el));
 
 	// Geometry: mirror the React `getShapeVisualStyle` priority cascade —
 	// connector → roundRect (radius) → ellipse → clip-path → line → cylinder.
