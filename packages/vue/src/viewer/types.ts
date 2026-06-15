@@ -35,6 +35,10 @@ export interface PowerPointViewerProps {
 	filePath?: string;
 	/** Whether editing actions are enabled. */
 	canEdit?: boolean;
+	/** Enable debounced autosave (emits `@autosave` with serialised bytes). */
+	autosave?: boolean;
+	/** Autosave debounce window in milliseconds (default 2000). */
+	autosaveIntervalMs?: number;
 	/** Optional class name applied to the root element. */
 	class?: string;
 	/**
@@ -75,8 +79,11 @@ export interface PowerPointViewerProps {
 export interface PowerPointViewerEmits {
 	/** Fired when the unsaved-changes flag toggles. */
 	(e: 'dirty-change', isDirty: boolean): void;
-	/** Fired when the in-memory content changes (after edits). */
-	(e: 'content-change', content: Uint8Array): void;
+	/**
+	 * Fired with serialised bytes — on each in-memory content change (after
+	 * edits) and when autosave persists the presentation.
+	 */
+	(e: 'content-change' | 'autosave', content: Uint8Array): void;
 	/** Fired when the active slide changes. */
 	(e: 'active-slide-change', slideIndex: number): void;
 	/** Fired when the user starts a collaboration session from the Share dialog. */

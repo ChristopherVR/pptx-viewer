@@ -16,6 +16,7 @@
 import {
 	cloneElement,
 	createEditorId,
+	createGroupElement,
 	createShapeElement,
 	createTextElement,
 } from 'pptx-viewer-core';
@@ -24,6 +25,8 @@ import { computed, nextTick, ref, toRef, watch } from 'vue';
 
 import { provideViewerTheme, useThemeStyle } from '../theme';
 import AccessibilityPanel from './components/AccessibilityPanel.vue';
+import AlignToolbar from './components/AlignToolbar.vue';
+import AutosaveIndicator from './components/AutosaveIndicator.vue';
 import ContextMenu from './components/ContextMenu.vue';
 import type { ContextMenuItem } from './components/ContextMenu.vue';
 import EditorToolbar from './components/EditorToolbar.vue';
@@ -40,7 +43,10 @@ import SlideSorter from './components/SlideSorter.vue';
 import SlidesPaneControls from './components/SlidesPaneControls.vue';
 import SlideStage from './components/SlideStage.vue';
 import SlideTransitionPanel from './components/SlideTransitionPanel.vue';
+import type { AlignEdge, DistributeAxis } from './composables/element-align';
+import { alignElements, distributeElements } from './composables/element-align';
 import { useAccessibility } from './composables/useAccessibility';
+import { useAutosave } from './composables/useAutosave';
 import { useEditorHistory } from './composables/useEditorHistory';
 import { useEditorOperations } from './composables/useEditorOperations';
 import { useExport } from './composables/useExport';
@@ -507,6 +513,104 @@ function onTransitionUpdate(transition: PptxSlideTransition | undefined): void {
 	nextSlides[index] = { ...slide, transition };
 	slides.value = nextSlides;
 }
+
+// ── Align / distribute / group ────────────────────────────────────────
+const canGroup = computed(() => selectedElements.value.length >= 2);
+const canUngroup = computed(
+	() => selectedElements.value.length === 1 && selectedElements.value[0]?.type === 'group',
+);
+
+/** Apply a {id → {x?,y?}} position map to the active slide as one history entry. */
+function applyPositionMap(map: Map<string, { x?: number; y?: number }>): void {
+	if (map.size === 0) {
+		return;
+	}
+	const index = activeSlideIndex.value;
+	const slide = slides.value[index];
+	if (!slide) {
+		return;
+	}
+	history.pushHistory();
+	const nextElements = slide.elements.map((el) => {
+		const pos = map.get(el.id);
+		if (!pos) {
+			return el;
+		}
+		return {
+			...el,
+			...(pos.x === undefined ? {} : { x: pos.x }),
+			...(pos.y === undefined ? {} : { y: pos.y }),
+		};
+	});
+	const nextSlides = slides.value.slice();
+	nextSlides[index] = { ...slide, elements: nextElements };
+	slides.value = nextSlides;
+}
+function onAlign(edge: AlignEdge): void {
+	applyPositionMap(alignElements(selectedElements.value, edge));
+}
+function onDistribute(axis: DistributeAxis): void {
+	applyPositionMap(distributeElements(selectedElements.value, axis));
+}
+function onGroup(): void {
+	const sel = selectedElements.value;
+	const index = activeSlideIndex.value;
+	const slide = slides.value[index];
+	if (sel.length < 2 || !slide) {
+		return;
+	}
+	const minX = Math.min(...sel.map((e) => e.x));
+	const minY = Math.min(...sel.map((e) => e.y));
+	const maxX = Math.max(...sel.map((e) => e.x + e.width));
+	const maxY = Math.max(...sel.map((e) => e.y + e.height));
+	// Children store coordinates relative to the group's top-left.
+	const children = sel.map((e) => ({ ...e, x: e.x - minX, y: e.y - minY }));
+	const group = createGroupElement(children, {
+		x: minX,
+		y: minY,
+		width: maxX - minX,
+		height: maxY - minY,
+	});
+	history.pushHistory();
+	const selIds = new Set(sel.map((e) => e.id));
+	const nextSlides = slides.value.slice();
+	nextSlides[index] = {
+		...slide,
+		elements: [...slide.elements.filter((e) => !selIds.has(e.id)), group],
+	};
+	slides.value = nextSlides;
+	selectedElementIds.value = [group.id];
+}
+function onUngroup(): void {
+	const g = selectedElements.value[0];
+	const index = activeSlideIndex.value;
+	const slide = slides.value[index];
+	if (!g || g.type !== 'group' || !slide) {
+		return;
+	}
+	// Re-absolutise children (inverse of the group-relative offset).
+	const restored = (g.children ?? []).map((c) => ({ ...c, x: c.x + g.x, y: c.y + g.y }));
+	history.pushHistory();
+	const nextSlides = slides.value.slice();
+	nextSlides[index] = {
+		...slide,
+		elements: slide.elements.flatMap((e) => (e.id === g.id ? restored : [e])),
+	};
+	slides.value = nextSlides;
+	selectedElementIds.value = restored.map((c) => c.id);
+}
+
+// ── Autosave ──────────────────────────────────────────────────────────
+const autosaveEnabled = computed(() => props.canEdit && (props.autosave ?? false));
+const autosave = useAutosave({
+	slides,
+	enabled: autosaveEnabled,
+	intervalMs: props.autosaveIntervalMs ?? 2000,
+	onSave: async () => {
+		const bytes = await getContent();
+		emit('autosave', bytes);
+	},
+});
 function sendBackward(): void {
 	for (const id of [...selectedElementIds.value]) {
 		ops.sendBackward(id);
@@ -627,6 +731,11 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					>
 						♿ {{ a11y.issueCount.value }}
 					</button>
+					<AutosaveIndicator
+						v-if="autosaveEnabled"
+						:status="autosave.status.value"
+						:is-dirty="autosave.isDirty.value"
+					/>
 				</div>
 			</header>
 
@@ -648,6 +757,17 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				@duplicate-selected="duplicateSelected"
 				@bring-forward="bringForward"
 				@send-backward="sendBackward"
+			/>
+
+			<!-- Align / distribute / group -->
+			<AlignToolbar
+				v-if="props.canEdit && hasSelection"
+				:can-group="canGroup"
+				:can-ungroup="canUngroup"
+				@align="onAlign"
+				@distribute="onDistribute"
+				@group="onGroup"
+				@ungroup="onUngroup"
 			/>
 
 			<!-- Find & replace bar -->

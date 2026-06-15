@@ -159,7 +159,8 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 | `useEditorHistory` (undo/redo)                                                                                                                     | ◑      | `composables/useEditorHistory.ts` — undo/redo over `Ref<PptxSlide[]>` (deep-clone snapshots, 120 cap). **Wired into `PowerPointViewer`** (toolbar + Ctrl+Z/Y)                                                                                                              |
 | `useEditorOperations` (element CRUD/transform)                                                                                                     | ◑      | `composables/useEditorOperations.ts` — add/update/remove/transform/duplicate/reorder/updateText over the active slide via core clone helpers; snapshot-first history. **Wired into `PowerPointViewer`** (toolbar + selection overlay). Group/align/flip/clipboard deferred |
 | `useExportHandlers` / `useViewerIntegration`                                                                                                       | ☐      |                                                                                                                                                                                                                                                                            |
-| Clipboard, find/replace                                                                                                                            | ◑      | clipboard (cut/copy/paste via context menu) + `useFindReplace`/`FindReplaceBar` (Ctrl+F, cross-slide text search + replace/replace-all, history-aware). Autosave + comments still ☐                                                                                        |
+| Clipboard, find/replace, autosave                                                                                                                  | ◑      | clipboard (context menu) + `useFindReplace`/`FindReplaceBar` (Ctrl+F) + **`useAutosave`/`AutosaveIndicator`** (debounced, `autosave`/`autosaveIntervalMs` props → `@autosave` bytes). Comments still ☐                                                                     |
+| Align / distribute / group                                                                                                                         | ◑      | `element-align.ts` (align L/CenterH/R/T/M/B + distribute H/V) + `AlignToolbar.vue` (incl. group/ungroup using core `createGroupElement` + relative-coord offset), wired into `PowerPointViewer` (one history entry per op)                                                 |
 
 ### Rendering
 
@@ -451,3 +452,16 @@ equationXml` OMML → MathML (ported from React's three omml-\* files, core only
   **Remaining ☐:** collaboration (Yjs), animation _playback_ in presentation
   mode, comments (needs loader to surface comment data), digital signatures,
   font embedding, broadcast/share/properties dialogs, autosave, mobile chrome.
+- **2026-06-15** — Batch 12: align/distribute/group + autosave. `element-align.ts`
+  (pure align-to-bbox + even-distribute geometry) + `AlignToolbar.vue` (align
+  6-way, distribute H/V, group/ungroup); group wraps the selection into a core
+  `createGroupElement` with children offset to group-relative coords, ungroup
+  re-absolutises them (mirrors the parser convention). `useAutosave` (debounced,
+  status machine, `vi.useFakeTimers`-testable) + `AutosaveIndicator.vue`; new
+  public `autosave`/`autosaveIntervalMs` props + `@autosave` emit. Both wired
+  into `PowerPointViewer` (one history entry per align/group op). 31 new tests
+  (539 total green); typecheck/lint clean; build green. Two parallel subagents +
+  central wiring. **Remaining ☐ (heaviest):** collaboration (Yjs real-time +
+  cursors), animation _playback_ in presentation, comments (needs loader to
+  surface comment data), digital signatures, font embedding, broadcast/share/
+  properties dialogs, mobile chrome.
