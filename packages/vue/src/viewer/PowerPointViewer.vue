@@ -38,6 +38,7 @@ import AutosaveIndicator from './components/AutosaveIndicator.vue';
 import BroadcastDialog from './components/BroadcastDialog.vue';
 import CollaborationCursors from './components/CollaborationCursors.vue';
 import CommentsPanel from './components/CommentsPanel.vue';
+import ComparePanel from './components/ComparePanel.vue';
 import ContextMenu from './components/ContextMenu.vue';
 import type { ContextMenuItem } from './components/ContextMenu.vue';
 import CustomShowsPanel from './components/CustomShowsPanel.vue';
@@ -45,10 +46,12 @@ import DocumentPropertiesDialog from './components/DocumentPropertiesDialog.vue'
 import type { DocumentPropertiesSavePatch } from './components/DocumentPropertiesDialog.vue';
 import EditorToolbar from './components/EditorToolbar.vue';
 import type { ShapePreset } from './components/EditorToolbar.vue';
+import EquationEditorDialog from './components/EquationEditorDialog.vue';
 import ExportMenu from './components/ExportMenu.vue';
 import FindReplaceBar from './components/FindReplaceBar.vue';
 import HeaderFooterPanel from './components/HeaderFooterPanel.vue';
 import HyperlinkDialog from './components/HyperlinkDialog.vue';
+import InsertSmartArtDialog from './components/InsertSmartArtDialog.vue';
 import InspectorPane from './components/inspector/InspectorPane.vue';
 import MasterViewSidebar from './components/MasterViewSidebar.vue';
 import MobileBottomBar from './components/MobileBottomBar.vue';
@@ -58,6 +61,7 @@ import PresentationMode from './components/PresentationMode.vue';
 import PrintDialog from './components/PrintDialog.vue';
 import SectionList from './components/SectionList.vue';
 import SelectionOverlay from './components/SelectionOverlay.vue';
+import SettingsDialog from './components/SettingsDialog.vue';
 import ShareDialog from './components/ShareDialog.vue';
 import ShortcutPanel from './components/ShortcutPanel.vue';
 import SignaturesPanel from './components/SignaturesPanel.vue';
@@ -66,6 +70,11 @@ import SlideSorter from './components/SlideSorter.vue';
 import SlidesPaneControls from './components/SlidesPaneControls.vue';
 import SlideStage from './components/SlideStage.vue';
 import SlideTransitionPanel from './components/SlideTransitionPanel.vue';
+import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
+import { DEFAULT_VIEWER_SETTINGS } from './components/viewer-settings';
+import type { ViewerSettings } from './components/viewer-settings';
+import { compareSlides } from './composables/slide-compare';
+import type { CompareResult } from './composables/slide-compare';
 import { TableThemeKey } from './composables/table-theme';
 import { useAccessibility } from './composables/useAccessibility';
 import { useAutosave } from './composables/useAutosave';
@@ -84,6 +93,7 @@ import { usePrint } from './composables/usePrint';
 import { useSectionOperations } from './composables/useSectionOperations';
 import { useSignatures } from './composables/useSignatures';
 import { useSlideOperations } from './composables/useSlideOperations';
+import { useVersionHistory } from './composables/useVersionHistory';
 import type {
 	CollaborationConfig,
 	PowerPointViewerEmits,
@@ -726,6 +736,8 @@ const autosave = useAutosave({
 	onSave: async () => {
 		const bytes = await getContent();
 		emit('autosave', bytes);
+		// Snapshot a restorable version on each autosave.
+		versionHistory.capture('Autosave', Date.now());
 	},
 });
 
@@ -881,6 +893,57 @@ function onDeleteCustomShow(showId: string): void {
 	if (activeCustomShowId.value === showId) {
 		activeCustomShowId.value = null;
 	}
+}
+
+// ── Version history + compare ─────────────────────────────────────────
+// Snapshots accrue on each autosave (see the autosave `onSave` below).
+const versionHistory = useVersionHistory({ slides, pushHistory: history.pushHistory });
+const showVersionHistory = ref(false);
+const compareResult = ref<CompareResult | null>(null);
+const compareVersionId = ref<string | null>(null);
+const showCompare = computed(() => compareResult.value !== null);
+function onVersionRestore(id: string): void {
+	versionHistory.restore(id);
+	showVersionHistory.value = false;
+}
+function onVersionDelete(id: string): void {
+	versionHistory.remove(id);
+}
+function onVersionCompare(id: string): void {
+	const version = versionHistory.versions.value.find((v) => v.id === id);
+	if (!version) {
+		return;
+	}
+	compareVersionId.value = id;
+	compareResult.value = compareSlides(version.slides, slides.value);
+}
+function onCompareClose(): void {
+	compareResult.value = null;
+	compareVersionId.value = null;
+}
+function onCompareAcceptAll(): void {
+	if (compareVersionId.value) {
+		versionHistory.restore(compareVersionId.value);
+	}
+	onCompareClose();
+	showVersionHistory.value = false;
+}
+
+// ── Insert SmartArt / equation ────────────────────────────────────────
+const showInsertSmartArt = ref(false);
+const showEquationEditor = ref(false);
+function onInsertElement(element: PptxElement): void {
+	ops.addElement(element);
+	selectedElementIds.value = [element.id];
+	showInsertSmartArt.value = false;
+	showEquationEditor.value = false;
+}
+
+// ── Viewer settings ───────────────────────────────────────────────────
+const showSettings = ref(false);
+const viewerSettings = ref<ViewerSettings>({ ...DEFAULT_VIEWER_SETTINGS });
+function onSettingsUpdate(next: ViewerSettings): void {
+	viewerSettings.value = next;
 }
 function sendBackward(): void {
 	for (const id of [...selectedElementIds.value]) {
@@ -1141,6 +1204,45 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						@click="showCustomShows = !showCustomShows"
 					>
 						🎬
+					</button>
+					<button
+						v-if="props.canEdit"
+						type="button"
+						class="pptx-vue-insert-smartart-btn"
+						title="Insert SmartArt"
+						aria-label="Insert SmartArt"
+						@click="showInsertSmartArt = true"
+					>
+						🗂
+					</button>
+					<button
+						v-if="props.canEdit"
+						type="button"
+						class="pptx-vue-insert-equation-btn"
+						title="Insert equation"
+						aria-label="Insert equation"
+						@click="showEquationEditor = true"
+					>
+						∑
+					</button>
+					<button
+						v-if="props.canEdit"
+						type="button"
+						class="pptx-vue-history-btn"
+						title="Version history"
+						aria-label="Version history"
+						@click="showVersionHistory = true"
+					>
+						🕑
+					</button>
+					<button
+						type="button"
+						class="pptx-vue-settings-btn"
+						title="Settings"
+						aria-label="Settings"
+						@click="showSettings = true"
+					>
+						⚙
 					</button>
 					<button
 						v-if="signaturesApi.isSigned.value"

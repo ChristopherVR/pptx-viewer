@@ -212,12 +212,15 @@ view / ink annotations / rehearse timings (Batch 18)**, export (PNG/PDF via
 `html2canvas-pro`), **print (Batch 18)**, find/replace, comments, collaboration
 (Yjs whole-doc + cursors), digital signatures, font embedding, **comprehensive
 keyboard shortcuts (Batch 18)**, **master views + header/footer (Batch 19)**,
-**sections + custom shows (Batch 19)**.
+**sections + custom shows (Batch 19)**, **version history + compare (Batch 20)**,
+**insert-SmartArt + equation-editor dialogs (Batch 20)**, **settings dialog
+(Batch 20)**.
 
 Still ☐ / partial: GIF/video export, presentation transition _overlay_
 animations, fine-grained CRDT collaboration (selection-presence / follow-mode),
-slide-version history / compare, insert-SmartArt & equation-editor dialogs,
-settings dialog, custom/app document-property round-trip.
+custom/app document-property round-trip. The component-level surface is now at
+parity with React; what remains is depth (advanced export formats, CRDT
+granularity) and a few data-round-trip gaps.
 
 ## Open decisions / notes for next session
 
@@ -684,3 +687,31 @@ Record<string, string | number>`; `TableRenderer.vue` now imports them from
   self-contained. **Remaining ☐:** slide-version history/compare, insert-SmartArt &
   equation-editor dialogs, settings dialog, GIF/video export, custom/app
   document-property round-trip, transition-overlay animations, fine-grained CRDT.
+
+- **2026-06-16** — Batch 20: version history/compare + insert dialogs + settings
+  (three parallel subagents, one per group + central wiring). Closes the last
+  component-level React→Vue gaps. **(a) Version history + compare** —
+  `useVersionHistory` (deep-clone snapshots via core `cloneSlide`, history-aware
+  restore, pure `capture(label, now)` so no `Date.now()` in the testable path) +
+  pure `slide-compare.ts` (`compareSlides` → added/removed/changed rows by stable
+  element id + numeric tolerance) + `VersionHistoryPanel.vue` (list/restore/delete/
+  compare) + `ComparePanel.vue`/`SlideDiffRow.vue` (self-managed accept/reject).
+  Wired: snapshots accrue on each **autosave**; 🕑 opens the panel; compare builds
+  `compareSlides(version, current)`, accept-all restores the version. (Vue models
+  versions as in-memory `PptxSlide[]` snapshots, not serialized `.pptx` blobs like
+  React's IndexedDB store — restore is an undoable slide swap.) **(b) Insert
+  dialogs** — `InsertSmartArtDialog.vue` + `SmartArtPreviews.vue` +
+  `smart-art-presets.ts` (catalog) emit a renderable core SmartArt element;
+  `EquationEditorDialog.vue` (LaTeX input + live MathML preview via the existing
+  `omml-to-mathml`) emits a `shape` element carrying an `equationXml` segment. Both
+  → `ops.addElement`. Needed a Vue-local `components/latex-to-omml.ts` (consolidated
+  port of React's 4 `latex-to-omml-*` files — the conversion lives only in React,
+  not core/shared; **extraction candidate** for `pptx-viewer-shared`). **(c)
+  Settings** — `SettingsDialog.vue` + `viewer-settings.ts` (`ViewerSettings` +
+  `DEFAULT_VIEWER_SETTINGS` + read-only shortcut reference); ⚙ opens it, host holds
+  the settings object. **+216 tests (1093 vue total, all green)**; typecheck clean;
+  `oxlint --deny-warnings` clean on all new `.ts`; oxfmt clean; build green, dist
+  self-contained. **Component-level parity with React is now reached** — remaining
+  gaps are depth-only (GIF/video export, transition-overlay animations, fine-grained
+  CRDT presence/follow-mode, custom/app document-property round-trip) plus the
+  `latex-to-omml` shared-extraction follow-up.
