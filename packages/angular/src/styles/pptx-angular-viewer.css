@@ -222,6 +222,15 @@
 	white-space: pre-wrap;
 }
 
+.pptx-ng-marquee {
+	position: absolute;
+	box-sizing: border-box;
+	border: 1px dashed #4f86ff;
+	background: rgba(79, 134, 255, 0.12);
+	pointer-events: none;
+	z-index: 9999;
+}
+
 .pptx-ng-rotate-handle {
 	position: absolute;
 	box-sizing: border-box;

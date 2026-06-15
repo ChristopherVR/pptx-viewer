@@ -8,6 +8,7 @@ import {
 	HostListener,
 	input,
 	output,
+	signal,
 	viewChild,
 } from '@angular/core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
@@ -108,6 +109,15 @@ function plainText(el: PptxElement): string {
 							(pointerdown)="onHandlePointerDown($event, h.handle)"
 						></div>
 					}
+					@if (marqueeRect(); as mr) {
+						<div
+							class="pptx-ng-marquee"
+							[style.left.px]="mr.x"
+							[style.top.px]="mr.y"
+							[style.width.px]="mr.width"
+							[style.height.px]="mr.height"
+						></div>
+					}
 					@if (rotateHandle(); as rh) {
 						<div
 							class="pptx-ng-rotate-handle"
@@ -167,9 +177,22 @@ export class SlideCanvasComponent {
 	readonly textCancel = output<void>();
 	/** Emitted during a rotate gesture with the new rotation (degrees). */
 	readonly rotateUpdate = output<{ id: string; rotation: number }>();
+	/** Emitted on marquee release with the ids of enclosed/overlapping elements. */
+	readonly marqueeSelect = output<string[]>();
 
 	private drag: DragState | null = null;
 	private editCancelled = false;
+	private marquee: {
+		startX: number;
+		startY: number;
+		startScreenX: number;
+		startScreenY: number;
+		started: boolean;
+	} | null = null;
+	/** Live marquee rectangle (stage coords) while rubber-band selecting. */
+	readonly marqueeRect = signal<{ x: number; y: number; width: number; height: number } | null>(
+		null,
+	);
 
 	private readonly textEditor = viewChild<ElementRef<HTMLTextAreaElement>>('textEditor');
 	private readonly stageRef = viewChild<ElementRef<HTMLElement>>('stage');
@@ -253,7 +276,21 @@ export class SlideCanvasComponent {
 		const host = target?.closest('[data-element-id]') as HTMLElement | null;
 		const id = host?.getAttribute('data-element-id');
 		if (!id) {
-			this.backgroundClick.emit();
+			// Empty space: begin a marquee (rubber-band) selection.
+			const stage = this.stageRef()?.nativeElement;
+			if (stage) {
+				const rect = stage.getBoundingClientRect();
+				const zoom = this.zoom() || 1;
+				this.marquee = {
+					startX: (event.clientX - rect.left) / zoom,
+					startY: (event.clientY - rect.top) / zoom,
+					startScreenX: event.clientX,
+					startScreenY: event.clientY,
+					started: false,
+				};
+			} else {
+				this.backgroundClick.emit();
+			}
 			return;
 		}
 		this.elementSelect.emit({ id, additive: event.shiftKey || event.ctrlKey || event.metaKey });
@@ -379,6 +416,33 @@ export class SlideCanvasComponent {
 
 	@HostListener('document:pointermove', ['$event'])
 	onPointerMove(event: PointerEvent): void {
+		const marquee = this.marquee;
+		if (marquee) {
+			const stage = this.stageRef()?.nativeElement;
+			if (!stage) {
+				return;
+			}
+			if (
+				!marquee.started &&
+				Math.abs(event.clientX - marquee.startScreenX) < DRAG_THRESHOLD &&
+				Math.abs(event.clientY - marquee.startScreenY) < DRAG_THRESHOLD
+			) {
+				return;
+			}
+			marquee.started = true;
+			const rect = stage.getBoundingClientRect();
+			const z = this.zoom() || 1;
+			const curX = (event.clientX - rect.left) / z;
+			const curY = (event.clientY - rect.top) / z;
+			this.marqueeRect.set({
+				x: Math.min(marquee.startX, curX),
+				y: Math.min(marquee.startY, curY),
+				width: Math.abs(curX - marquee.startX),
+				height: Math.abs(curY - marquee.startY),
+			});
+			return;
+		}
+
 		const drag = this.drag;
 		if (!drag) {
 			return;
@@ -429,6 +493,26 @@ export class SlideCanvasComponent {
 
 	@HostListener('document:pointerup')
 	onPointerUp(): void {
+		const marquee = this.marquee;
+		if (marquee) {
+			const rect = this.marqueeRect();
+			if (marquee.started && rect) {
+				const ids = this.elements()
+					.filter(
+						(el) =>
+							rect.x < el.x + el.width &&
+							rect.x + rect.width > el.x &&
+							rect.y < el.y + el.height &&
+							rect.y + rect.height > el.y,
+					)
+					.map((el) => el.id);
+				this.marqueeSelect.emit(ids);
+			} else {
+				this.backgroundClick.emit();
+			}
+			this.marquee = null;
+			this.marqueeRect.set(null);
+		}
 		this.drag = null;
 	}
 

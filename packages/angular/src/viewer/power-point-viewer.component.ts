@@ -199,6 +199,7 @@ const ZOOM_MAX = 3;
 							[selectedIds]="editor.selectedIds()"
 							(elementSelect)="onElementSelect($event)"
 							(backgroundClick)="editor.clearSelection()"
+							(marqueeSelect)="editor.select($event)"
 							(transformStart)="editor.beginTransform($event.label)"
 							(transformUpdate)="editor.applyTransform(activeSlideIndex(), $event.id, $event.box)"
 							(rotateUpdate)="
