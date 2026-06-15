@@ -195,6 +195,17 @@
 	z-index: 10000;
 }
 
+.pptx-ng-handle {
+	position: absolute;
+	box-sizing: border-box;
+	background: #ffffff;
+	border: 1px solid #4f86ff;
+	border-radius: 2px;
+	pointer-events: auto;
+	touch-action: none;
+	z-index: 10001;
+}
+
 .pptx-ng-img {
 	width: 100%;
 	height: 100%;

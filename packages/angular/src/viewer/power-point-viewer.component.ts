@@ -177,6 +177,8 @@ const ZOOM_MAX = 3;
 							[selectedIds]="editor.selectedIds()"
 							(elementSelect)="onElementSelect($event)"
 							(backgroundClick)="editor.clearSelection()"
+							(transformStart)="editor.beginTransform($event.label)"
+							(transformUpdate)="editor.applyTransform(activeSlideIndex(), $event.id, $event.box)"
 						/>
 						@if (showNotes() && activeNotes()) {
 							<aside class="pptx-ng-notes" aria-label="Speaker notes">
@@ -339,9 +341,17 @@ export class PowerPointViewerComponent {
 		this.showNotes.update((v) => !v);
 	}
 
-	/** Handle an element click from the canvas (select / additive-select). */
+	/**
+	 * Handle an element press from the canvas. Additive (Shift/Ctrl) toggles
+	 * membership; a plain press selects the element (keeping it selected if it
+	 * already was, so a subsequent drag works).
+	 */
 	onElementSelect(event: { id: string; additive: boolean }): void {
-		this.editor.toggleSelect(event.id, event.additive);
+		if (event.additive) {
+			this.editor.toggleSelect(event.id, true);
+		} else if (!this.editor.isSelected(event.id)) {
+			this.editor.select([event.id]);
+		}
 	}
 
 	/**

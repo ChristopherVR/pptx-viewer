@@ -158,6 +158,41 @@ export class EditorStateService {
 		this.zOrder(slideIndex, 'Send backward', sendBackward);
 	}
 
+	// ── Interactive transform (drag / resize: one history entry per gesture) ──
+
+	/** Record a single history snapshot at the start of a drag/resize gesture. */
+	beginTransform(label: string): void {
+		this.history.record(this.clone(this.slides()), label);
+		this.dirty.set(true);
+		this.syncHistory();
+	}
+
+	/**
+	 * Apply a live transform during a gesture WITHOUT recording history (the
+	 * gesture's snapshot was taken in {@link beginTransform}). Accepts any subset
+	 * of x/y/width/height.
+	 */
+	applyTransform(
+		slideIndex: number,
+		id: string,
+		box: { x?: number; y?: number; width?: number; height?: number },
+	): void {
+		const slides = this.slides();
+		if (!slides[slideIndex]) {
+			return;
+		}
+		this.slides.set(
+			slides.map((slide, i) =>
+				i === slideIndex
+					? {
+							...slide,
+							elements: updateElementById(slide.elements, id, box as Partial<PptxElement>),
+						}
+					: slide,
+			),
+		);
+	}
+
 	// ── Undo / redo ──────────────────────────────────────────────────────────
 
 	undo(): void {
