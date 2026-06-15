@@ -41,7 +41,11 @@ import { findInSlides, replaceInSlides, replaceMatch } from './find-replace-help
 import type { FindResult } from './find-replace-helpers';
 import { HyperlinkDialogComponent } from './hyperlink-dialog.component';
 import { InspectorPanelComponent } from './inspector-panel.component';
+import { IsMobileService } from './is-mobile';
 import { LoadContentService } from './load-content.service';
+import { MobileBottomBarComponent } from './mobile-bottom-bar.component';
+import { MobileMenuSheetComponent } from './mobile-menu-sheet.component';
+import { MobileSlidesSheetComponent } from './mobile-slides-sheet.component';
 import { PresentationOverlayComponent } from './presentation-overlay.component';
 import { PresenterViewComponent } from './presenter-view.component';
 import { PrintDialogComponent } from './print-dialog.component';
@@ -88,6 +92,7 @@ const ZOOM_MAX = 3;
 		CollaborationService,
 		AccessibilityService,
 		PrintService,
+		IsMobileService,
 	],
 	imports: [
 		NgClass,
@@ -111,6 +116,9 @@ const ZOOM_MAX = 3;
 		PrintDialogComponent,
 		ShareDialogComponent,
 		BroadcastDialogComponent,
+		MobileBottomBarComponent,
+		MobileMenuSheetComponent,
+		MobileSlidesSheetComponent,
 	],
 	template: `
 		<div class="pptx-ng-viewer" [ngClass]="class()" [ngStyle]="rootStyle()">
@@ -531,6 +539,52 @@ const ZOOM_MAX = 3;
 				(stop)="onBroadcastStop()"
 				(close)="showBroadcast.set(false)"
 			/>
+
+			<!-- ── Mobile chrome (narrow / touch viewports only) ─────────────── -->
+			@if (mobile.isMobile() && !loader.loading() && !loader.error()) {
+				<pptx-mobile-slides-sheet
+					[open]="mobileSheet() === 'slides'"
+					[slides]="displaySlidesMut()"
+					[canvasSize]="loader.canvasSize()"
+					[mediaDataUrls]="loader.mediaDataUrls()"
+					[activeIndex]="activeSlideIndex()"
+					(jumpToSlide)="goTo($event)"
+					(closed)="mobileSheet.set(null)"
+				/>
+
+				<pptx-mobile-menu-sheet
+					[open]="mobileSheet() === 'menu'"
+					[slideCount]="slideCount()"
+					[exporting]="exporting()"
+					[showNotes]="showNotes()"
+					[canEdit]="canEdit()"
+					(closed)="mobileSheet.set(null)"
+					(openFind)="showFind.set(true)"
+					(openSorter)="showSorter.set(true)"
+					(toggleNotes)="toggleNotes()"
+					(present)="present()"
+					(exportPng)="exportPng()"
+					(exportPdf)="exportPdf()"
+					(exportGif)="exportGif()"
+					(exportVideo)="exportVideo()"
+					(print)="print.openDialog()"
+				/>
+
+				<pptx-mobile-bottom-bar
+					[activeIndex]="activeSlideIndex()"
+					[slideCount]="slideCount()"
+					[canPresent]="slideCount() > 0"
+					[slidesOpen]="mobileSheet() === 'slides'"
+					[menuOpen]="mobileSheet() === 'menu'"
+					(prev)="goPrev()"
+					(next)="goNext()"
+					(present)="present()"
+					(openSorter)="showSorter.set(true)"
+					(openFind)="showFind.set(true)"
+					(openSlides)="mobileSheet.set(mobileSheet() === 'slides' ? null : 'slides')"
+					(toggleMenu)="mobileSheet.set(mobileSheet() === 'menu' ? null : 'menu')"
+				/>
+			}
 		</div>
 	`,
 })
@@ -562,6 +616,7 @@ export class PowerPointViewerComponent {
 	protected readonly collab = inject(CollaborationService);
 	protected readonly accessibility = inject(AccessibilityService);
 	protected readonly print = inject(PrintService);
+	protected readonly mobile = inject(IsMobileService);
 
 	/** The `<main>` host; used to locate the live `.pptx-ng-canvas-stage`. */
 	private readonly mainEl = viewChild<ElementRef<HTMLElement>>('mainEl');
@@ -590,6 +645,8 @@ export class PowerPointViewerComponent {
 	protected readonly presenterStartTime = signal<number | null>(null);
 	/** Slide-sorter grid overlay visibility. */
 	protected readonly showSorter = signal(false);
+	/** Open mobile bottom-sheet (slides / menu), or null. */
+	protected readonly mobileSheet = signal<'slides' | 'menu' | null>(null);
 	/** Speaker-notes strip visibility. */
 	protected readonly showNotes = signal(false);
 	/** Find-in-slides bar visibility. */
