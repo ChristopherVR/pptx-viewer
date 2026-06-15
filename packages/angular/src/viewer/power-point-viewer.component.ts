@@ -490,6 +490,20 @@ export class PowerPointViewerComponent {
 			this.editor.paste(idx);
 			return;
 		}
+		if (mod && (event.key === 'a' || event.key === 'A')) {
+			event.preventDefault();
+			this.editor.selectAll(idx);
+			return;
+		}
+		if (mod && (event.key === 'g' || event.key === 'G')) {
+			event.preventDefault();
+			if (event.shiftKey) {
+				this.editor.ungroupSelected(idx);
+			} else {
+				this.editor.groupSelected(idx);
+			}
+			return;
+		}
 
 		if (!this.editor.hasSelection()) {
 			return;

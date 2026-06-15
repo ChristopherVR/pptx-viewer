@@ -88,6 +88,14 @@ export class EditorStateService {
 		this.selectedIds.set([]);
 	}
 
+	/** Select every element on a slide. */
+	selectAll(slideIndex: number): void {
+		const slide = this.slides()[slideIndex];
+		if (slide) {
+			this.selectedIds.set(slide.elements.map((el) => el.id));
+		}
+	}
+
 	isSelected(id: string): boolean {
 		return this.selectedIds().includes(id);
 	}
