@@ -4,6 +4,8 @@ import type { PptxElement } from 'pptx-viewer-core';
 
 import type { StyleMap } from './element-style';
 import { getContainerStyle } from './element-style';
+import { layoutSmartArtNodes } from './smart-art-layouts';
+import type { SmartArtLayoutResult } from './smart-art-layouts';
 import {
 	buildChromeStyle,
 	buildFallbackBlocks,
@@ -85,6 +87,54 @@ import type { DrawingViewBox, FallbackBlock, RenderedShape } from './smart-art-r
 									</text>
 								}
 							</g>
+						}
+					</svg>
+				} @else if (hasLayout()) {
+					<svg
+						class="pptx-ng-smartart-svg"
+						[attr.viewBox]="layoutViewBox()"
+						preserveAspectRatio="xMidYMid meet"
+					>
+						@for (conn of layoutResult().connectors; track $index) {
+							<line
+								[attr.x1]="conn.x1"
+								[attr.y1]="conn.y1"
+								[attr.x2]="conn.x2"
+								[attr.y2]="conn.y2"
+								stroke="rgba(148, 163, 184, 0.7)"
+								stroke-width="1.5"
+							/>
+						}
+						@for (node of layoutResult().nodes; track node.id) {
+							@if (node.r) {
+								<circle
+									[attr.cx]="node.x + node.r"
+									[attr.cy]="node.y + node.r"
+									[attr.r]="node.r"
+									[attr.fill]="nodeFill(node.level)"
+								/>
+							} @else {
+								<rect
+									[attr.x]="node.x"
+									[attr.y]="node.y"
+									[attr.width]="node.w"
+									[attr.height]="node.h"
+									rx="4"
+									[attr.fill]="nodeFill(node.level)"
+								/>
+							}
+							@if (node.text) {
+								<text
+									[attr.x]="node.x + node.w / 2"
+									[attr.y]="node.y + node.h / 2"
+									text-anchor="middle"
+									dominant-baseline="central"
+									fill="#ffffff"
+									font-size="11"
+								>
+									{{ node.text }}
+								</text>
+							}
 						}
 					</svg>
 				} @else {
@@ -208,6 +258,30 @@ export class SmartArtRendererComponent {
 	);
 
 	readonly shadowFilter = computed<string | undefined>(() => styleShadowFilter(this.artStyle()));
+
+	// ── Family layout fallback (when no authored drawing shapes) ────────────
+
+	readonly layoutResult = computed<SmartArtLayoutResult>(() => {
+		const el = this.element();
+		const data = el.type === 'smartArt' ? el.smartArtData : undefined;
+		if (!data) {
+			return { nodes: [], connectors: [] };
+		}
+		return layoutSmartArtNodes(data, Math.max(el.width, 1), Math.max(el.height, 1));
+	});
+
+	readonly hasLayout = computed(() => this.layoutResult().nodes.length > 0);
+
+	readonly layoutViewBox = computed<string>(() => {
+		const el = this.element();
+		return `0 0 ${Math.max(el.width, 1)} ${Math.max(el.height, 1)}`;
+	});
+
+	/** Palette colour for a node at the given depth level. */
+	nodeFill(level: number): string {
+		const p = this.palette();
+		return p[level % p.length] ?? p[0];
+	}
 
 	// ── Fallback block list ────────────────────────────────────────────────
 
