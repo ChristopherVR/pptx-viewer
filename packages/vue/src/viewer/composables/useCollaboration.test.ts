@@ -87,6 +87,88 @@ describe('useCollaboration', () => {
 		scope.stop();
 	});
 
+	it('publishes selection + active slide and surfaces remote presence', async () => {
+		state.mapValues.clear();
+		state.awarenessStates.clear();
+		const slides = ref<PptxSlide[]>([slide('1')]);
+		const onRemoteSlides = vi.fn();
+		const scope = effectScope();
+		const collab = scope.run(() => useCollaboration({ slides, onRemoteSlides }))!;
+		await collab.start(config);
+
+		// Local publishers write into the self awareness state.
+		collab.setSelection(['el-1', 'el-2']);
+		collab.setActiveSlide(3);
+		expect(state.awarenessStates.get(1)).toMatchObject({
+			selection: ['el-1', 'el-2'],
+			activeSlide: 3,
+		});
+
+		// A remote peer publishes selection + active slide (no cursor yet).
+		state.awarenessStates.set(2, {
+			user: { name: 'Bob', color: '#00ff00' },
+			selection: ['el-9'],
+			activeSlide: 2,
+		});
+		state.awarenessChange?.();
+
+		expect(collab.remotePresences.value).toHaveLength(1);
+		expect(collab.remotePresences.value[0]).toMatchObject({
+			clientId: 2,
+			userName: 'Bob',
+			selectionIds: ['el-9'],
+			activeSlide: 2,
+			cursor: undefined,
+		});
+		// Peers without a cursor are absent from the cursor projection.
+		expect(collab.cursors.value).toHaveLength(0);
+
+		scope.stop();
+	});
+
+	it('drives follow-mode from a followed peer active slide', async () => {
+		state.mapValues.clear();
+		state.awarenessStates.clear();
+		const slides = ref<PptxSlide[]>([slide('1')]);
+		const onRemoteSlides = vi.fn();
+		const scope = effectScope();
+		const collab = scope.run(() => useCollaboration({ slides, onRemoteSlides }))!;
+		await collab.start(config);
+
+		state.awarenessStates.set(2, {
+			user: { name: 'Bob', color: '#00ff00' },
+			activeSlide: 4,
+		});
+		state.awarenessChange?.();
+
+		// Not following yet → null.
+		expect(collab.followedSlideIndex.value).toBeNull();
+
+		collab.followUser(2);
+		expect(collab.followedClientId.value).toBe(2);
+		expect(collab.followedSlideIndex.value).toBe(4);
+
+		// The followed peer navigates; followedSlideIndex tracks it.
+		state.awarenessStates.set(2, {
+			user: { name: 'Bob', color: '#00ff00' },
+			activeSlide: 7,
+		});
+		state.awarenessChange?.();
+		expect(collab.followedSlideIndex.value).toBe(7);
+
+		// The followed peer disconnects → follow target is dropped.
+		state.awarenessStates.delete(2);
+		state.awarenessChange?.();
+		expect(collab.followedClientId.value).toBeNull();
+		expect(collab.followedSlideIndex.value).toBeNull();
+
+		// Explicitly stop following.
+		collab.followUser(null);
+		expect(collab.followedClientId.value).toBeNull();
+
+		scope.stop();
+	});
+
 	it('broadcasts local slide changes and applies remote ones', async () => {
 		state.mapValues.clear();
 		state.awarenessStates.clear();

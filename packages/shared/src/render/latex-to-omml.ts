@@ -12,7 +12,7 @@
  * matching what the core shape-parsing pipeline stores as
  * `TextSegment.equationXml`.
  */
-import type { OmmlNode } from 'pptx-viewer-shared';
+import type { OmmlNode } from './omml-to-mathml';
 
 // ── Greek letter map ─────────────────────────────────────────────────────────
 

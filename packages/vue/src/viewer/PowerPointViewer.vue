@@ -49,6 +49,7 @@ import type { ShapePreset } from './components/EditorToolbar.vue';
 import EquationEditorDialog from './components/EquationEditorDialog.vue';
 import ExportMenu from './components/ExportMenu.vue';
 import FindReplaceBar from './components/FindReplaceBar.vue';
+import FollowModeBar from './components/FollowModeBar.vue';
 import HeaderFooterPanel from './components/HeaderFooterPanel.vue';
 import HyperlinkDialog from './components/HyperlinkDialog.vue';
 import InsertSmartArtDialog from './components/InsertSmartArtDialog.vue';
@@ -59,6 +60,7 @@ import ModalDialog from './components/ModalDialog.vue';
 import NotesPanel from './components/NotesPanel.vue';
 import PresentationMode from './components/PresentationMode.vue';
 import PrintDialog from './components/PrintDialog.vue';
+import RemoteSelectionOverlay from './components/RemoteSelectionOverlay.vue';
 import SectionList from './components/SectionList.vue';
 import SelectionOverlay from './components/SelectionOverlay.vue';
 import SettingsDialog from './components/SettingsDialog.vue';
@@ -89,6 +91,7 @@ import { useFindReplace } from './composables/useFindReplace';
 import { useIsMobile } from './composables/useIsMobile';
 import { useKeyboardShortcuts } from './composables/useKeyboardShortcuts';
 import { useLoadContent } from './composables/useLoadContent';
+import { useMediaExport } from './composables/useMediaExport';
 import { usePrint } from './composables/usePrint';
 import { useSectionOperations } from './composables/useSectionOperations';
 import { useSignatures } from './composables/useSignatures';
@@ -130,6 +133,8 @@ const {
 	error,
 	isEncrypted,
 	coreProperties,
+	customProperties,
+	appProperties,
 	embeddedFonts,
 	signatures,
 	tableStyleMap,
@@ -590,11 +595,19 @@ async function rasterizeSlide(index: number): Promise<HTMLCanvasElement> {
 }
 
 const exporter = useExport({ slides, canvasSize, rasterizeSlide });
+const mediaExport = useMediaExport({ slideCount, rasterizeSlide });
+const isExporting = computed(() => exporter.exporting.value || mediaExport.exporting.value);
 function onExportPng(): void {
 	void exporter.exportSlidePng(activeSlideIndex.value);
 }
 function onExportPdf(): void {
 	void exporter.exportPdf();
+}
+function onExportGif(): void {
+	void mediaExport.exportGif();
+}
+function onExportWebm(): void {
+	void mediaExport.exportWebm();
 }
 
 // ── Print (dialog + rasterised print window) ──────────────────────────
@@ -775,6 +788,24 @@ const collab = useCollaboration({
 });
 const shareOpen = ref(false);
 const collabActive = collab.active;
+
+// Publish local selection + active slide to peers; follow a peer's active slide.
+watch(selectedElementIds, (ids) => {
+	if (collab.active.value) {
+		collab.setSelection(ids);
+	}
+});
+watch(activeSlideIndex, (index) => {
+	if (collab.active.value) {
+		collab.setActiveSlide(index);
+	}
+});
+watch(collab.followedSlideIndex, (index) => {
+	if (index !== null) {
+		goTo(index);
+	}
+});
+
 function onShareStart(config: CollaborationConfig): void {
 	void collab.start(config);
 	emit('start-collaboration', config);
@@ -838,10 +869,13 @@ function present(): void {
 // ── Document properties dialog ────────────────────────────────────────
 const propertiesOpen = ref(false);
 function onPropertiesSave(patch: DocumentPropertiesSavePatch): void {
-	// Persist the edited core properties — `getContent` forwards them to
-	// `handler.save`. Custom/app properties are not yet round-tripped (the
-	// loader does not surface parsed custom/app props).
+	// Persist the edited core / custom / app properties — `getContent` forwards
+	// all three to `handler.save`, so they round-trip into the saved `.pptx`.
 	coreProperties.value = { ...coreProperties.value, ...patch.core };
+	customProperties.value = patch.custom;
+	if (patch.app) {
+		appProperties.value = { ...appProperties.value, ...patch.app };
+	}
 	propertiesOpen.value = false;
 }
 
@@ -1090,9 +1124,11 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					</button>
 					<ExportMenu
 						v-if="slideCount > 0"
-						:exporting="exporter.exporting.value"
+						:exporting="isExporting"
 						@export-png="onExportPng"
 						@export-pdf="onExportPdf"
+						@export-gif="onExportGif"
+						@export-webm="onExportWebm"
 					/>
 					<button
 						v-if="slideCount > 0"
@@ -1388,6 +1424,13 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 							:cursors="collab.cursors.value"
 							:zoom="effectiveZoom"
 						/>
+						<RemoteSelectionOverlay
+							v-if="collabActive"
+							:presences="collab.remotePresences.value"
+							:elements="activeSlide?.elements ?? []"
+							:active-slide-index="activeSlideIndex"
+							:zoom="effectiveZoom"
+						/>
 					</SlideCanvas>
 					<NotesPanel v-if="props.canEdit" :slide="activeSlide" @update="onNotesUpdate" />
 				</main>
@@ -1418,6 +1461,14 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 
 				<!-- Digital signatures -->
 				<SignaturesPanel v-if="showSignatures" :signatures="signatures" />
+
+				<!-- Collaboration follow-mode -->
+				<FollowModeBar
+					v-if="collabActive"
+					:presences="collab.remotePresences.value"
+					:followed-client-id="collab.followedClientId.value"
+					@follow="collab.followUser"
+				/>
 
 				<!-- Custom shows -->
 				<CustomShowsPanel
@@ -1466,6 +1517,8 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 			<DocumentPropertiesDialog
 				:open="propertiesOpen"
 				:core-properties="coreProperties"
+				:custom-properties="customProperties"
+				:app-properties="appProperties"
 				:slides="slides"
 				@save="onPropertiesSave"
 				@close="propertiesOpen = false"

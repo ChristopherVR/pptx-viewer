@@ -2,23 +2,37 @@
 import { ref } from 'vue';
 
 /**
- * ExportMenu — a small dropdown offering PNG (current slide) and PDF exports.
- * Emits intent; the host runs the actual export via `useExport`.
+ * ExportMenu — a small dropdown offering PNG (current slide), PDF, animated GIF
+ * and WebM video exports. Emits intent; the host runs the actual export via
+ * `useExport` / `useMediaExport`.
  */
 defineProps<{ exporting: boolean }>();
-const emit = defineEmits<{ 'export-png': []; 'export-pdf': [] }>();
+const emit = defineEmits<{
+	'export-png': [];
+	'export-pdf': [];
+	'export-gif': [];
+	'export-webm': [];
+}>();
 
 const open = ref(false);
 
 function toggle(): void {
 	open.value = !open.value;
 }
-function choose(kind: 'png' | 'pdf'): void {
+function choose(kind: 'png' | 'pdf' | 'gif' | 'webm'): void {
 	open.value = false;
-	if (kind === 'png') {
-		emit('export-png');
-	} else {
-		emit('export-pdf');
+	switch (kind) {
+		case 'png':
+			emit('export-png');
+			return;
+		case 'pdf':
+			emit('export-pdf');
+			return;
+		case 'gif':
+			emit('export-gif');
+			return;
+		case 'webm':
+			emit('export-webm');
 	}
 }
 </script>
@@ -39,6 +53,8 @@ function choose(kind: 'png' | 'pdf'): void {
 		<div v-if="open" class="pptx-vue-export-menu" role="menu">
 			<button type="button" role="menuitem" @click="choose('png')">PNG (current slide)</button>
 			<button type="button" role="menuitem" @click="choose('pdf')">PDF (all slides)</button>
+			<button type="button" role="menuitem" @click="choose('gif')">GIF (animated)</button>
+			<button type="button" role="menuitem" @click="choose('webm')">WebM (video)</button>
 		</div>
 	</div>
 </template>

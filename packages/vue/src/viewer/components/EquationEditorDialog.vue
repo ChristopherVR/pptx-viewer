@@ -2,10 +2,9 @@
 import DOMPurify from 'dompurify';
 import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
 import type { OmmlNode } from 'pptx-viewer-shared';
-import { convertOmmlToMathMl } from 'pptx-viewer-shared';
+import { convertLatexToOmml, convertOmmlToLatex, convertOmmlToMathMl } from 'pptx-viewer-shared';
 import { computed, ref, watch } from 'vue';
 
-import { convertLatexToOmml, convertOmmlToLatex } from './latex-to-omml';
 import ModalDialog from './ModalDialog.vue';
 
 /**

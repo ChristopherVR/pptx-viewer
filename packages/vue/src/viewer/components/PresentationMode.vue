@@ -10,6 +10,7 @@ import type { CanvasSize } from '../types';
 import PresentationAnnotationOverlay from './PresentationAnnotationOverlay.vue';
 import PresentationSubtitleBar from './PresentationSubtitleBar.vue';
 import PresentationToolbar from './PresentationToolbar.vue';
+import PresentationTransitionOverlay from './PresentationTransitionOverlay.vue';
 import PresenterView from './PresenterView.vue';
 import SlideStage from './SlideStage.vue';
 
@@ -180,10 +181,33 @@ function onToolbarMove(direction: 1 | -1): void {
 	}
 }
 
-watch(currentIndex, (index) => {
+// Slide-transition overlay: when the active slide carries a transition, play it
+// over the frame (outgoing snapshot + animated incoming) until `done`.
+const transitionState = ref<{
+	outgoing: PptxSlide | undefined;
+	incoming: PptxSlide | undefined;
+	transition: NonNullable<PptxSlide['transition']>;
+} | null>(null);
+
+watch(currentIndex, (index, previousIndex) => {
 	emit('slide-change', index);
 	playback.reset();
+	const incoming = props.slides[index];
+	const transition = incoming?.transition;
+	if (transition && transition.type && transition.type !== 'none') {
+		transitionState.value = {
+			outgoing: props.slides[previousIndex],
+			incoming,
+			transition,
+		};
+	} else {
+		transitionState.value = null;
+	}
 });
+
+function onTransitionDone(): void {
+	transitionState.value = null;
+}
 
 watch(
 	[() => playback.elementStyles.value, () => playback.pendingStyles.value, activeSlide],
@@ -353,6 +377,17 @@ onBeforeUnmount(() => {
 					@laser-move="annotations.handleLaserMove"
 					@laser-leave="annotations.handleLaserLeave"
 					@erase="annotations.eraseAtPoint"
+				/>
+				<!-- Slide-transition animation (covers the frame until `done`). -->
+				<PresentationTransitionOverlay
+					v-if="transitionState"
+					:outgoing-slide="transitionState.outgoing"
+					:incoming-slide="transitionState.incoming"
+					:canvas-size="canvasSize"
+					:media-data-urls="mediaDataUrls"
+					:scale="scale"
+					:transition="transitionState.transition"
+					@done="onTransitionDone"
 				/>
 			</div>
 

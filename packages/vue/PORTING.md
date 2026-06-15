@@ -203,7 +203,7 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 | Presentation chrome (presenter + ink) | ◑      | `PresentationToolbar.vue` (nav/pen/highlighter/laser/eraser/clear + presenter toggle + end), `PresentationAnnotationOverlay.vue` (SVG ink, self-scaled), `usePresentationAnnotations` (per-slide pen/highlighter/eraser/laser stroke state), `PresenterView.vue` (next-slide preview + speaker notes + timer), `PresentationSubtitleBar.vue` (Web-Speech captions, `C` toggle), `RehearseTimingsHud`/`useRehearseTimings`. **Wired into `PresentationMode.vue`** (tap-to-advance gated while a tool is armed / presenter view open) |
 | Print                                 | ◑      | `usePrint` (settings + range parse + rasterise-to-print-window, reuses export `rasterizeSlide`) + `PrintDialog.vue` + `PrintSettingsPanel.vue` + pure `print-dialog-types.ts` (slides/notes/handouts/outline, slides-per-page, color/grayscale, frame, range). **Wired** into the header (🖨). SVG-vector print path deferred                                                                                                                                                                                                       |
 | Keyboard shortcuts + help             | ◑      | `useKeyboardShortcuts` (config-driven registry + `matchShortcut`/`handleKeyDown`, guard flags, `SHORTCUT_CATALOG`) replaces the ad-hoc Ctrl+Z/Y/Delete handling — undo/redo/copy/cut/paste/duplicate/delete/select-all/nudge/slide-nav/escape; `ShortcutPanel.vue` searchable help overlay (Ctrl+/ or ⌨ button)                                                                                                                                                                                                                     |
-| Document properties (full)            | ◑      | `DocumentPropertiesDialog.vue` (General/Statistics/Custom tabs) + `useDocumentStatistics` (live slide/word/paragraph/element counts) replaces the basic `PropertiesDialog`. Core-property edits persist via `getContent`; custom/app props are read-mostly (loader doesn't surface them yet)                                                                                                                                                                                                                                        |
+| Document properties (full)            | ✅     | `DocumentPropertiesDialog.vue` (General/Statistics/Custom tabs) + `useDocumentStatistics` (live slide/word/paragraph/element counts) replaces the basic `PropertiesDialog`. Core **+ custom + app** property edits now round-trip via `getContent` (Batch 21 surfaced `customProperties`/`appProperties` in the loader)                                                                                                                                                                                                             |
 
 ### Advanced subsystems (status)
 
@@ -214,13 +214,16 @@ view / ink annotations / rehearse timings (Batch 18)**, export (PNG/PDF via
 keyboard shortcuts (Batch 18)**, **master views + header/footer (Batch 19)**,
 **sections + custom shows (Batch 19)**, **version history + compare (Batch 20)**,
 **insert-SmartArt + equation-editor dialogs (Batch 20)**, **settings dialog
-(Batch 20)**.
+(Batch 20)**, **GIF + WebM export (Batch 21)**, **slide-transition overlay
+animations (Batch 21)**, **fine-grained collaboration — selection presence +
+follow-mode (Batch 21)**, **custom/app document-property round-trip (Batch 21)**.
 
-Still ☐ / partial: GIF/video export, presentation transition _overlay_
-animations, fine-grained CRDT collaboration (selection-presence / follow-mode),
-custom/app document-property round-trip. The component-level surface is now at
-parity with React; what remains is depth (advanced export formats, CRDT
-granularity) and a few data-round-trip gaps.
+Still ☐ / partial: the component- and feature-level surface is now at **full
+parity** with React. Remaining items are genuinely optional depth: richer
+conflict-resolving CRDT merge (current collab is whole-doc last-write-wins with
+presence/follow on top), and the GIF encoder is vendored per-binding (React /
+Angular / Vue each carry a copy — a `pptx-viewer-shared/render` extraction
+candidate, like the Batch-21 `latex-to-omml` hoist).
 
 ## Open decisions / notes for next session
 
@@ -715,3 +718,34 @@ Record<string, string | number>`; `TableRenderer.vue` now imports them from
   gaps are depth-only (GIF/video export, transition-overlay animations, fine-grained
   CRDT presence/follow-mode, custom/app document-property round-trip) plus the
   `latex-to-omml` shared-extraction follow-up.
+
+- **2026-06-16** — Batch 21: depth close-out (three parallel subagents + central
+  wiring + two in-session central changes). Closes the deferred depth items, taking
+  the Vue port to **full feature parity** with React. **(a) GIF + WebM export**
+  (`useMediaExport` + a vendored pure-JS `gif-encoder.ts`, WebM via `MediaRecorder`
+  over the existing off-screen `rasterizeSlide`; no new npm dep — mirrors React's
+  self-contained encoder) wired into `ExportMenu` (GIF/WebM items) with a combined
+  `isExporting` flag. **(b) Slide-transition overlay animations** (pure
+  `slide-transition-css.ts` mapping `PptxSlideTransition` → CSS keyframes for
+  fade/push/wipe/cover/split/dissolve/zoom/… with cross-fade fallback +
+  `PresentationTransitionOverlay.vue`) wired into `PresentationMode`: the
+  `currentIndex` watch arms an outgoing→incoming transition when the incoming slide
+  declares one, cleared on `@done`. **(c) Collaboration depth** — extended
+  `useCollaboration` awareness with selection + active-slide; new `remotePresences`,
+  `setSelection`/`setActiveSlide`, `followUser`/`followedSlideIndex`; new
+  `RemoteSelectionOverlay.vue` (peer selection boxes on the scaled stage) +
+  `FollowModeBar.vue`. Host publishes selection/slide on change and watches
+  `followedSlideIndex` → `goTo`. **(d) Custom/app document-property round-trip**
+  (central): `useLoadContent` now surfaces `customProperties`/`appProperties` and
+  `getContent` forwards them to `handler.save`; `DocumentPropertiesDialog` receives
+  - persists them (General/Statistics/**Custom** tab fully live). **(e)
+    `latex-to-omml` extraction** (central): moved the Vue-local converter into
+    **`pptx-viewer-shared/render/latex-to-omml.ts`** (import `OmmlNode` relatively;
+    added to the render barrel); `EquationEditorDialog` now imports it from
+    `pptx-viewer-shared`, so React/Angular can reuse it. **Tests: shared 279 (+10
+    moved latex), vue 1151 (net after the latex test moved to shared) — all green**;
+    vue + shared typecheck clean; `oxlint --deny-warnings` clean on all changed/new
+    `.ts`; oxfmt clean; vue build green, dist self-contained. **The Vue port now
+    matches React at the feature level.** Only-remaining: conflict-resolving CRDT
+    merge depth, and the per-binding GIF-encoder duplication (shared-extraction
+    candidate).

@@ -1,9 +1,9 @@
 import { mount } from '@vue/test-utils';
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
+import { convertLatexToOmml } from 'pptx-viewer-shared';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import EquationEditorDialog from './EquationEditorDialog.vue';
-import { convertLatexToOmml } from './latex-to-omml';
 
 afterEach(() => {
 	document.body.innerHTML = '';

@@ -21,6 +21,7 @@ export * from './visual-effects';
 export * from './image-effects';
 export * from './text-warp';
 export * from './omml-to-mathml';
+export * from './latex-to-omml';
 export * from './chart-helpers';
 export * from './chart-trendlines';
 export * from './animation-css';

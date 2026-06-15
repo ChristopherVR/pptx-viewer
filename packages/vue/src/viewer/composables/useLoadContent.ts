@@ -2,7 +2,9 @@ import type {
 	MediaPptxElement,
 	ParsedSignature,
 	ParsedTableStyleMap,
+	PptxAppProperties,
 	PptxCoreProperties,
+	PptxCustomProperty,
 	PptxCustomShow,
 	PptxElement,
 	PptxEmbeddedFont,
@@ -89,6 +91,10 @@ export interface UseLoadContentResult {
 	handler: ShallowRef<PptxHandler | null>;
 	/** Parsed document core properties (title/author/subject/…). */
 	coreProperties: ShallowRef<PptxCoreProperties | undefined>;
+	/** Parsed custom document properties (name/type/value), empty when none. */
+	customProperties: ShallowRef<PptxCustomProperty[]>;
+	/** Parsed application properties (manager/company/…), or undefined. */
+	appProperties: ShallowRef<PptxAppProperties | undefined>;
 	/** Embedded fonts (for `@font-face` injection). */
 	embeddedFonts: ShallowRef<PptxEmbeddedFont[]>;
 	/** Parsed digital signatures (empty when unsigned). */
@@ -129,6 +135,8 @@ export function useLoadContent(
 	const isEncrypted = ref(false);
 	const handler = shallowRef<PptxHandler | null>(null);
 	const coreProperties = shallowRef<PptxCoreProperties | undefined>(undefined);
+	const customProperties = shallowRef<PptxCustomProperty[]>([]);
+	const appProperties = shallowRef<PptxAppProperties | undefined>(undefined);
 	const embeddedFonts = shallowRef<PptxEmbeddedFont[]>([]);
 	const signatures = shallowRef<ParsedSignature[]>([]);
 	const tableStyleMap = shallowRef<ParsedTableStyleMap | undefined>(undefined);
@@ -310,6 +318,8 @@ export function useLoadContent(
 			theme.value = parsed.theme;
 			slideMasters.value = parsed.slideMasters ?? [];
 			coreProperties.value = parsed.coreProperties;
+			customProperties.value = parsed.customProperties ?? [];
+			appProperties.value = parsed.appProperties;
 			embeddedFonts.value = parsed.embeddedFonts ?? [];
 			tableStyleMap.value = parsed.tableStyleMap;
 			sections.value = parsed.sections ?? [];
@@ -344,6 +354,8 @@ export function useLoadContent(
 		// shows, header/footer) into the saved `.pptx`.
 		return handler.value.save(slides.value, {
 			coreProperties: coreProperties.value,
+			customProperties: customProperties.value,
+			appProperties: appProperties.value,
 			sections: sections.value,
 			customShows: customShows.value,
 			headerFooter: headerFooter.value,
@@ -379,6 +391,8 @@ export function useLoadContent(
 		isEncrypted,
 		handler,
 		coreProperties,
+		customProperties,
+		appProperties,
 		embeddedFonts,
 		signatures,
 		tableStyleMap,
