@@ -13,20 +13,30 @@
  *  - function-prop callbacks → emits ({@link PowerPointViewerEmits}).
  *  - `theme` context      → `provideViewerTheme` + `useThemeStyle`.
  */
-import { createShapeElement, createTextElement } from 'pptx-viewer-core';
+import {
+	cloneElement,
+	createEditorId,
+	createShapeElement,
+	createTextElement,
+} from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
 import { computed, ref, toRef, watch } from 'vue';
 
 import { provideViewerTheme, useThemeStyle } from '../theme';
+import ContextMenu from './components/ContextMenu.vue';
+import type { ContextMenuItem } from './components/ContextMenu.vue';
 import EditorToolbar from './components/EditorToolbar.vue';
 import type { ShapePreset } from './components/EditorToolbar.vue';
 import InspectorPane from './components/inspector/InspectorPane.vue';
+import PresentationMode from './components/PresentationMode.vue';
 import SelectionOverlay from './components/SelectionOverlay.vue';
 import SlideCanvas from './components/SlideCanvas.vue';
+import SlidesPaneControls from './components/SlidesPaneControls.vue';
 import SlideStage from './components/SlideStage.vue';
 import { useEditorHistory } from './composables/useEditorHistory';
 import { useEditorOperations } from './composables/useEditorOperations';
 import { useLoadContent } from './composables/useLoadContent';
+import { useSlideOperations } from './composables/useSlideOperations';
 import type { PowerPointViewerEmits, PowerPointViewerExpose, PowerPointViewerProps } from './types';
 
 /** Geometry patch emitted by the selection overlay during a drag/resize/rotate. */
@@ -235,6 +245,118 @@ function onInspectorUpdate(patch: Partial<PptxElement>): void {
 		ops.updateElement(el.id, patch);
 	}
 }
+
+// ── Slide operations (add / duplicate / delete / reorder) ─────────────
+const slideOps = useSlideOperations({
+	slides,
+	activeSlideIndex,
+	pushHistory: history.pushHistory,
+});
+const canDeleteSlide = computed(() => slides.value.length > 1);
+
+// ── Clipboard (in-memory element copy/cut/paste) ──────────────────────
+const clipboard = ref<PptxElement | null>(null);
+const hasClipboard = computed(() => clipboard.value !== null);
+function copyElement(id: string): void {
+	const el = activeSlide.value?.elements.find((e) => e.id === id);
+	if (el) {
+		clipboard.value = cloneElement(el);
+	}
+}
+function cutElement(id: string): void {
+	copyElement(id);
+	ops.removeElement(id);
+	selectedElementIds.value = selectedElementIds.value.filter((x) => x !== id);
+}
+function pasteElement(): void {
+	if (!clipboard.value) {
+		return;
+	}
+	const copy = cloneElement(clipboard.value);
+	copy.id = createEditorId('el');
+	copy.x = (copy.x ?? 0) + 16;
+	copy.y = (copy.y ?? 0) + 16;
+	ops.addElement(copy);
+	selectedElementIds.value = [copy.id];
+}
+
+// ── Presentation (slideshow) mode ─────────────────────────────────────
+const presenting = ref(false);
+function startPresenting(): void {
+	presenting.value = true;
+}
+function onPresentClose(): void {
+	presenting.value = false;
+}
+function onPresentSlideChange(index: number): void {
+	activeSlideIndex.value = index;
+}
+
+// ── Element context menu ──────────────────────────────────────────────
+const contextMenu = ref<{ open: boolean; x: number; y: number; elementId: string | null }>({
+	open: false,
+	x: 0,
+	y: 0,
+	elementId: null,
+});
+const contextItems = computed<ContextMenuItem[]>(() => [
+	{ id: 'cut', label: 'Cut' },
+	{ id: 'copy', label: 'Copy' },
+	{ id: 'paste', label: 'Paste', disabled: !hasClipboard.value },
+	{ id: 'sep1', label: '', separator: true },
+	{ id: 'duplicate', label: 'Duplicate' },
+	{ id: 'delete', label: 'Delete' },
+	{ id: 'sep2', label: '', separator: true },
+	{ id: 'bring-forward', label: 'Bring forward' },
+	{ id: 'send-backward', label: 'Send backward' },
+]);
+function onCanvasContextMenu(event: MouseEvent): void {
+	if (!props.canEdit) {
+		return;
+	}
+	const host = (event.target as HTMLElement | null)?.closest(
+		'[data-element-id]',
+	) as HTMLElement | null;
+	const id = host?.dataset.elementId;
+	if (!id) {
+		return;
+	}
+	event.preventDefault();
+	if (!selectedElementIds.value.includes(id)) {
+		selectedElementIds.value = [id];
+	}
+	contextMenu.value = { open: true, x: event.clientX, y: event.clientY, elementId: id };
+}
+function onContextSelect(actionId: string): void {
+	const target = contextMenu.value.elementId;
+	if (!target) {
+		return;
+	}
+	switch (actionId) {
+		case 'cut':
+			cutElement(target);
+			break;
+		case 'copy':
+			copyElement(target);
+			break;
+		case 'paste':
+			pasteElement();
+			break;
+		case 'duplicate':
+			ops.duplicateElement(target);
+			break;
+		case 'delete':
+			ops.removeElement(target);
+			selectedElementIds.value = selectedElementIds.value.filter((x) => x !== target);
+			break;
+		case 'bring-forward':
+			ops.bringForward(target);
+			break;
+		case 'send-backward':
+			ops.sendBackward(target);
+			break;
+	}
+}
 function sendBackward(): void {
 	for (const id of [...selectedElementIds.value]) {
 		ops.sendBackward(id);
@@ -314,6 +436,16 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						{{ zoomPercent }}%
 					</button>
 					<button type="button" @click="zoomIn">+</button>
+					<button
+						v-if="slideCount > 0"
+						type="button"
+						class="pptx-vue-present-btn"
+						title="Present"
+						aria-label="Present"
+						@click="startPresenting"
+					>
+						▶
+					</button>
 				</div>
 			</header>
 
@@ -339,6 +471,13 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 
 			<div class="pptx-vue-body">
 				<nav class="pptx-vue-thumbnails" aria-label="Slides">
+					<SlidesPaneControls
+						v-if="props.canEdit"
+						:can-delete="canDeleteSlide"
+						@add="slideOps.addSlide()"
+						@duplicate="slideOps.duplicateSlide(activeSlideIndex)"
+						@delete="slideOps.deleteSlide(activeSlideIndex)"
+					/>
 					<button
 						v-for="(slide, index) in slides"
 						:key="slide.id ?? index"
@@ -362,7 +501,11 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					</button>
 				</nav>
 
-				<main class="pptx-vue-main" @pointerdown="onCanvasPointerDown">
+				<main
+					class="pptx-vue-main"
+					@pointerdown="onCanvasPointerDown"
+					@contextmenu="onCanvasContextMenu"
+				>
 					<SlideCanvas
 						:slide="activeSlide"
 						:canvas-size="canvasSize"
@@ -388,6 +531,27 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					@update="onInspectorUpdate"
 				/>
 			</div>
+
+			<!-- Element context menu (edit mode) -->
+			<ContextMenu
+				:open="contextMenu.open"
+				:x="contextMenu.x"
+				:y="contextMenu.y"
+				:items="contextItems"
+				@select="onContextSelect"
+				@close="contextMenu.open = false"
+			/>
 		</template>
+
+		<!-- Presentation / slideshow overlay -->
+		<PresentationMode
+			v-if="presenting"
+			:slides="slides"
+			:canvas-size="canvasSize"
+			:media-data-urls="mediaDataUrls"
+			:start-index="activeSlideIndex"
+			@close="onPresentClose"
+			@slide-change="onPresentSlideChange"
+		/>
 	</div>
 </template>

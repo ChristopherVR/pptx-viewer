@@ -1,0 +1,282 @@
+<script setup lang="ts">
+import type { PptxSlide } from 'pptx-viewer-core';
+import type { CSSProperties } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+
+import type { CanvasSize } from '../types';
+import SlideStage from './SlideStage.vue';
+
+/**
+ * PresentationMode — a full-viewport slideshow overlay.
+ *
+ * Renders the active slide via {@link SlideStage}, scaled to fit the viewport
+ * while preserving aspect ratio, centered on a black background. Mounted into
+ * `document.body` via `<Teleport>` and pinned with `position: fixed; inset: 0`.
+ *
+ * Navigation mirrors the React `usePresentationMode` semantics:
+ *  - ArrowRight / Space / PageDown → next slide
+ *  - ArrowLeft / PageUp           → previous slide
+ *  - Home / End                   → first / last slide
+ *  - Esc                          → exit (emits `close`)
+ *  - Click on the stage           → next slide
+ *
+ * Real fullscreen is requested via the Fullscreen API where available; absence
+ * degrades gracefully to the fixed overlay.
+ */
+const props = withDefaults(
+	defineProps<{
+		slides: PptxSlide[];
+		canvasSize: CanvasSize;
+		mediaDataUrls: Map<string, string>;
+		startIndex?: number;
+	}>(),
+	{ startIndex: 0 },
+);
+
+const emit = defineEmits<{
+	(e: 'close'): void;
+	(e: 'slide-change', index: number): void;
+}>();
+
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+
+function clampIndex(index: number): number {
+	const last = Math.max(0, props.slides.length - 1);
+	if (index < 0) {
+		return 0;
+	}
+	if (index > last) {
+		return last;
+	}
+	return index;
+}
+
+const currentIndex = ref(clampIndex(props.startIndex));
+
+const activeSlide = computed<PptxSlide | undefined>(() => props.slides[currentIndex.value]);
+
+// ---------------------------------------------------------------------------
+// Fit-to-viewport scaling
+// ---------------------------------------------------------------------------
+
+const viewportWidth = ref(typeof window === 'undefined' ? 0 : window.innerWidth);
+const viewportHeight = ref(typeof window === 'undefined' ? 0 : window.innerHeight);
+
+const scale = computed(() => {
+	const { width, height } = props.canvasSize;
+	if (width <= 0 || height <= 0 || viewportWidth.value <= 0 || viewportHeight.value <= 0) {
+		return 1;
+	}
+	return Math.min(viewportWidth.value / width, viewportHeight.value / height);
+});
+
+/**
+ * The scaled stage uses `transform: scale()` with a `top left` origin, so its
+ * laid-out box still occupies the unscaled dimensions. Wrap it in a box sized to
+ * the *scaled* footprint so flexbox can center it correctly.
+ */
+const frameStyle = computed<CSSProperties>(() => ({
+	width: `${props.canvasSize.width * scale.value}px`,
+	height: `${props.canvasSize.height * scale.value}px`,
+}));
+
+// ---------------------------------------------------------------------------
+// Navigation
+// ---------------------------------------------------------------------------
+
+function goTo(index: number): void {
+	const target = clampIndex(index);
+	if (target === currentIndex.value) {
+		return;
+	}
+	currentIndex.value = target;
+}
+
+function next(): void {
+	goTo(currentIndex.value + 1);
+}
+
+function prev(): void {
+	goTo(currentIndex.value - 1);
+}
+
+function close(): void {
+	emit('close');
+}
+
+watch(currentIndex, (index) => {
+	emit('slide-change', index);
+});
+
+// ---------------------------------------------------------------------------
+// Keyboard + resize listeners
+// ---------------------------------------------------------------------------
+
+function handleKeyDown(event: KeyboardEvent): void {
+	switch (event.key) {
+		case 'Escape':
+			event.preventDefault();
+			close();
+			return;
+		case 'ArrowRight':
+		case 'PageDown':
+		case ' ':
+			event.preventDefault();
+			next();
+			return;
+		case 'ArrowLeft':
+		case 'PageUp':
+			event.preventDefault();
+			prev();
+			return;
+		case 'Home':
+			event.preventDefault();
+			goTo(0);
+			return;
+		case 'End':
+			event.preventDefault();
+			goTo(props.slides.length - 1);
+			break;
+		default:
+	}
+}
+
+function handleResize(): void {
+	viewportWidth.value = window.innerWidth;
+	viewportHeight.value = window.innerHeight;
+}
+
+const overlayRef = ref<HTMLDivElement | null>(null);
+
+function requestFullscreen(): void {
+	const el = overlayRef.value;
+	if (!el || typeof el.requestFullscreen !== 'function') {
+		return;
+	}
+	try {
+		void el.requestFullscreen().catch(() => {
+			/* ignore fullscreen errors */
+		});
+	} catch {
+		/* fullscreen not supported */
+	}
+}
+
+function exitFullscreen(): void {
+	if (typeof document === 'undefined') {
+		return;
+	}
+	try {
+		if (document.fullscreenElement && typeof document.exitFullscreen === 'function') {
+			void document.exitFullscreen().catch(() => {
+				/* ignore */
+			});
+		}
+	} catch {
+		/* fullscreen not supported */
+	}
+}
+
+onMounted(() => {
+	window.addEventListener('keydown', handleKeyDown);
+	window.addEventListener('resize', handleResize);
+	handleResize();
+	requestFullscreen();
+});
+
+onBeforeUnmount(() => {
+	window.removeEventListener('keydown', handleKeyDown);
+	window.removeEventListener('resize', handleResize);
+	exitFullscreen();
+});
+</script>
+
+<template>
+	<Teleport to="body">
+		<div ref="overlayRef" class="pptx-vue-presentation" @click="next">
+			<div class="pptx-vue-presentation-frame" :style="frameStyle">
+				<SlideStage
+					:slide="activeSlide"
+					:canvas-size="canvasSize"
+					:media-data-urls="mediaDataUrls"
+					:scale="scale"
+				/>
+			</div>
+
+			<div class="pptx-vue-presentation-counter" @click.stop>
+				{{ currentIndex + 1 }} / {{ slides.length }}
+			</div>
+
+			<button
+				type="button"
+				class="pptx-vue-presentation-close"
+				aria-label="Exit presentation"
+				@click.stop="close"
+			>
+				&times;
+			</button>
+		</div>
+	</Teleport>
+</template>
+
+<style scoped>
+.pptx-vue-presentation {
+	position: fixed;
+	inset: 0;
+	z-index: 2147483000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: #000000;
+	overflow: hidden;
+	cursor: default;
+}
+
+.pptx-vue-presentation-frame {
+	position: relative;
+	overflow: hidden;
+}
+
+.pptx-vue-presentation-counter {
+	position: fixed;
+	bottom: 16px;
+	left: 50%;
+	transform: translateX(-50%);
+	padding: 4px 12px;
+	border-radius: 999px;
+	background-color: rgba(0, 0, 0, 0.55);
+	color: #ffffff;
+	font-size: 13px;
+	font-family:
+		system-ui,
+		-apple-system,
+		sans-serif;
+	line-height: 1.4;
+	user-select: none;
+	pointer-events: none;
+}
+
+.pptx-vue-presentation-close {
+	position: fixed;
+	top: 16px;
+	right: 16px;
+	width: 36px;
+	height: 36px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: none;
+	border-radius: 50%;
+	background-color: rgba(0, 0, 0, 0.55);
+	color: #ffffff;
+	font-size: 22px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.pptx-vue-presentation-close:hover {
+	background-color: rgba(255, 255, 255, 0.2);
+}
+</style>
