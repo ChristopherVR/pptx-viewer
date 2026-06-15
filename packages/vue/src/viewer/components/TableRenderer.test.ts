@@ -1,5 +1,13 @@
 import { mount } from '@vue/test-utils';
-import type { PptxElement, PptxTableData } from 'pptx-viewer-core';
+import type {
+	ParsedTableStyleEntry,
+	ParsedTableStyleMap,
+	PptxElement,
+	PptxTableCell,
+	PptxTableData,
+	PptxThemeColorScheme,
+} from 'pptx-viewer-core';
+import type { CellTextRun } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
 
 import TableRenderer from './TableRenderer.vue';
@@ -15,6 +23,11 @@ function table(tableData: PptxTableData, overrides: Partial<PptxElement> = {}): 
 		tableData,
 		...overrides,
 	} as PptxElement;
+}
+
+/** Cast a cell with extra `textRuns` field through the `PptxTableCell` type. */
+function richCell(base: PptxTableCell, textRuns: CellTextRun[]): PptxTableCell {
+	return { ...base, textRuns } as PptxTableCell & { textRuns: CellTextRun[] };
 }
 
 const basicGrid: PptxTableData = {
@@ -131,5 +144,254 @@ describe('tableRenderer', () => {
 			props: { element: table({ columnWidths: [], rows: [] }), zIndex: 0 },
 		});
 		expect(wrapper.find('table').exists()).toBeFalsy();
+	});
+
+	// ── Feature 1: Rich per-run cell text ───────────────────────────────────
+
+	it('renders multiple styled spans when a cell carries textRuns', () => {
+		const runs: CellTextRun[] = [
+			{ text: 'Bold', bold: true },
+			{ text: ' plain', bold: false },
+			{ text: ' italic', italic: true, color: '#ff0000' },
+		];
+		const data: PptxTableData = {
+			columnWidths: [1],
+			rows: [{ cells: [richCell({ text: 'Bold plain italic' }, runs)] }],
+		};
+		const wrapper = mount(TableRenderer, { props: { element: table(data), zIndex: 0 } });
+		const spans = wrapper.findAll('td span.pptx-vue-table__run');
+		expect(spans).toHaveLength(3);
+		// Note: @vue/test-utils .text() trims surrounding whitespace.
+		expect(spans[0].text()).toBe('Bold');
+		expect(spans[0].attributes('style')).toContain('font-weight: bold');
+		// The second run has a leading space — check via element innerHTML to avoid trim.
+		expect(spans[1].element.textContent).toBe(' plain');
+		expect(spans[2].element.textContent).toBe(' italic');
+		expect(spans[2].attributes('style')).toContain('font-style: italic');
+		expect(spans[2].attributes('style')).toContain('color: #ff0000');
+	});
+
+	it('falls back to the plain text span when no textRuns are present', () => {
+		const data: PptxTableData = {
+			columnWidths: [1],
+			rows: [{ cells: [{ text: 'Plain' }] }],
+		};
+		const wrapper = mount(TableRenderer, { props: { element: table(data), zIndex: 0 } });
+		// Plain fallback uses .pptx-vue-table__text, not .pptx-vue-table__run
+		expect(wrapper.find('td span.pptx-vue-table__text').exists()).toBeTruthy();
+		expect(wrapper.find('td span.pptx-vue-table__run').exists()).toBeFalsy();
+		expect(wrapper.get('td').text()).toBe('Plain');
+	});
+
+	it('renders a paragraph break between runs when isParagraphBreak is set', () => {
+		const runs: CellTextRun[] = [
+			{ text: 'Line 1' },
+			{ text: '', isParagraphBreak: true },
+			{ text: 'Line 2' },
+		];
+		const data: PptxTableData = {
+			columnWidths: [1],
+			rows: [{ cells: [richCell({ text: 'Line 1\nLine 2' }, runs)] }],
+		};
+		const wrapper = mount(TableRenderer, { props: { element: table(data), zIndex: 0 } });
+		// A paragraph break is rendered as a <div.pptx-vue-table__para-break>
+		expect(wrapper.find('div.pptx-vue-table__para-break').exists()).toBeTruthy();
+		const textContent = wrapper.get('td').text();
+		expect(textContent).toContain('Line 1');
+		expect(textContent).toContain('Line 2');
+	});
+
+	it('renders a line break as <br> when isLineBreak is set', () => {
+		const runs: CellTextRun[] = [
+			{ text: 'First' },
+			{ text: '', isLineBreak: true },
+			{ text: 'Second' },
+		];
+		const data: PptxTableData = {
+			columnWidths: [1],
+			rows: [{ cells: [richCell({ text: 'First\nSecond' }, runs)] }],
+		};
+		const wrapper = mount(TableRenderer, { props: { element: table(data), zIndex: 0 } });
+		expect(wrapper.find('td br').exists()).toBeTruthy();
+	});
+
+	it('renders run font-size and font-family when set', () => {
+		const runs: CellTextRun[] = [{ text: 'Styled', fontSize: 16, fontFamily: 'Arial' }];
+		const data: PptxTableData = {
+			columnWidths: [1],
+			rows: [{ cells: [richCell({ text: 'Styled' }, runs)] }],
+		};
+		const wrapper = mount(TableRenderer, { props: { element: table(data), zIndex: 0 } });
+		const span = wrapper.get('td span.pptx-vue-table__run');
+		expect(span.attributes('style')).toContain('font-size: 16pt');
+		expect(span.attributes('style')).toContain('font-family: Arial');
+	});
+
+	it('renders strikethrough run with text-decoration: line-through', () => {
+		const runs: CellTextRun[] = [{ text: 'Strike', strikethrough: true }];
+		const data: PptxTableData = {
+			columnWidths: [1],
+			rows: [{ cells: [richCell({ text: 'Strike' }, runs)] }],
+		};
+		const wrapper = mount(TableRenderer, { props: { element: table(data), zIndex: 0 } });
+		const span = wrapper.get('td span.pptx-vue-table__run');
+		expect(span.attributes('style')).toContain('line-through');
+	});
+
+	// ── Feature 2: Pattern fills ─────────────────────────────────────────────
+
+	it('renders a pattern-fill cell with a background-image (SVG tile), not a flat colour', () => {
+		const patterned: PptxTableData = {
+			columnWidths: [1],
+			rows: [
+				{
+					cells: [
+						{
+							text: 'Pattern',
+							style: {
+								fillMode: 'pattern',
+								patternFillPreset: 'ltDnDiag',
+								patternFillForeground: '#0000FF',
+								patternFillBackground: '#FFFFFF',
+							},
+						},
+					],
+				},
+			],
+		};
+		const wrapper = mount(TableRenderer, { props: { element: table(patterned), zIndex: 0 } });
+		const cell = wrapper.get('td');
+		const style = cell.attributes('style') ?? '';
+		// The tiled SVG pattern is encoded as a data-URI background-image.
+		expect(style).toContain('background-image');
+		expect(style).toContain('data:image/svg+xml');
+		// The solid background colour (behind the tile) must also be present.
+		expect(style).toContain('background-color');
+	});
+
+	it('pattern-fill cell does NOT have a simple flat background-image when preset is unknown', () => {
+		const unknown: PptxTableData = {
+			columnWidths: [1],
+			rows: [
+				{
+					cells: [
+						{
+							text: 'X',
+							style: {
+								fillMode: 'pattern',
+								patternFillPreset: '__nonexistent_preset__',
+								patternFillForeground: '#000000',
+								patternFillBackground: '#AABBCC',
+							},
+						},
+					],
+				},
+			],
+		};
+		const wrapper = mount(TableRenderer, { props: { element: table(unknown), zIndex: 0 } });
+		const style = wrapper.get('td').attributes('style') ?? '';
+		// No SVG encoded image for unknown preset; fallback to background colour.
+		expect(style).not.toContain('data:image/svg+xml');
+		expect(style).toContain('background-color: #AABBCC');
+	});
+
+	// ── Feature 3: Theme scheme-colour band resolution ───────────────────────
+
+	it('resolves header-row colour from theme colorScheme when provided', () => {
+		const colorScheme: PptxThemeColorScheme = {
+			dk1: '#000000',
+			lt1: '#FFFFFF',
+			dk2: '#1F497D',
+			lt2: '#EEECE1',
+			accent1: '#C0504D', // red-ish — distinct from the default blue fallback
+			accent2: '#9BBB59',
+			accent3: '#4BACC6',
+			accent4: '#8064A2',
+			accent5: '#4F81BD',
+			accent6: '#F79646',
+			hlink: '#0000FF',
+			folHlink: '#800080',
+		};
+
+		// A minimal table style entry that ties the header row fill to accent1.
+		const styleEntry: ParsedTableStyleEntry = {
+			styleId: '{TEST-STYLE-1}',
+			firstRowFill: { schemeColor: 'accent1' },
+		};
+		const tableStyleMap: ParsedTableStyleMap = { '{TEST-STYLE-1}': styleEntry };
+
+		const headed: PptxTableData = {
+			columnWidths: [1],
+			firstRowHeader: true,
+			tableStyleId: '{TEST-STYLE-1}',
+			rows: [{ cells: [{ text: 'Header' }] }, { cells: [{ text: 'Body' }] }],
+		};
+
+		const wrapper = mount(TableRenderer, {
+			props: {
+				element: table(headed),
+				zIndex: 0,
+				colorScheme,
+				tableStyleMap,
+			},
+		});
+		const headerCell = wrapper.findAll('tr')[0].get('td');
+		const style = headerCell.attributes('style') ?? '';
+		// The resolved accent1 colour (#C0504D) should appear, not the default blue.
+		expect(style).toContain('#C0504D');
+		expect(style).not.toContain('rgba(68, 114, 196');
+	});
+
+	it('uses hardcoded fallback colour when no colorScheme is provided', () => {
+		const headed: PptxTableData = {
+			columnWidths: [1],
+			firstRowHeader: true,
+			rows: [{ cells: [{ text: 'Header' }] }],
+		};
+		const wrapper = mount(TableRenderer, { props: { element: table(headed), zIndex: 0 } });
+		const style = wrapper.findAll('tr')[0].get('td').attributes('style') ?? '';
+		// The hardcoded fallback uses rgba(68, 114, 196, …).
+		expect(style).toContain('rgba(68, 114, 196');
+	});
+
+	it('resolves band row colour from theme when tableStyleMap has band1HFill', () => {
+		const colorScheme: PptxThemeColorScheme = {
+			dk1: '#000000',
+			lt1: '#FFFFFF',
+			dk2: '#1F497D',
+			lt2: '#EEECE1',
+			accent1: '#FF6600',
+			accent2: '#9BBB59',
+			accent3: '#4BACC6',
+			accent4: '#8064A2',
+			accent5: '#4F81BD',
+			accent6: '#F79646',
+			hlink: '#0000FF',
+			folHlink: '#800080',
+		};
+		const styleEntry: ParsedTableStyleEntry = {
+			styleId: '{TEST-BAND}',
+			band1HFill: { schemeColor: 'accent1', tint: 60000 }, // 60% tint of #FF6600
+		};
+		const tableStyleMap: ParsedTableStyleMap = { '{TEST-BAND}': styleEntry };
+
+		const banded: PptxTableData = {
+			columnWidths: [1],
+			bandedRows: true,
+			tableStyleId: '{TEST-BAND}',
+			rows: [
+				{ cells: [{ text: 'Band 1' }] },
+				{ cells: [{ text: 'Band 2' }] },
+				{ cells: [{ text: 'Band 3' }] },
+			],
+		};
+		const wrapper = mount(TableRenderer, {
+			props: { element: table(banded), zIndex: 0, colorScheme, tableStyleMap },
+		});
+		const firstRowStyle = wrapper.findAll('tr')[0].get('td').attributes('style') ?? '';
+		// Should NOT be the default fallback rgba(217, 226, 243, …).
+		expect(firstRowStyle).not.toContain('rgba(217, 226, 243');
+		// Should contain a hex colour (the tinted accent1).
+		expect(firstRowStyle).toMatch(/background-color: #[0-9A-Fa-f]{6}/u);
 	});
 });

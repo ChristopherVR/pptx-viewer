@@ -1,11 +1,29 @@
 <script setup lang="ts">
-import type { PptxElement, PptxTableData } from 'pptx-viewer-core';
-import type { TableCellCss } from 'pptx-viewer-shared';
-import { cellStyleToCss, getDiagonalBorders, getTableCellBandStyle } from 'pptx-viewer-shared';
+import type {
+	ParsedTableStyleMap,
+	PptxElement,
+	PptxTableCellStyle,
+	PptxTableData,
+	PptxThemeColorScheme,
+} from 'pptx-viewer-core';
+import type {
+	CellPatternFillCss,
+	CellTextRun,
+	TableCellCss,
+	TableStyleContext,
+} from 'pptx-viewer-shared';
+import {
+	cellPatternFillCss,
+	cellRunStyle,
+	cellStyleToCss,
+	getDiagonalBorders,
+	getTableCellBandStyle,
+} from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
 import { getContainerStyle } from '../composables/element-style';
+import { injectTableTheme, resolveTableTheme } from '../composables/table-theme';
 
 /**
  * TableRenderer — Vue port of the React table renderer
@@ -18,24 +36,40 @@ import { getContainerStyle } from '../composables/element-style';
  *  - per-row heights
  *  - per-cell fill / border / alignment / text effects
  *  - rowspan / colspan, skipping cells covered by a merge
- *  - banded-row / header-row / first-last emphasis
+ *  - banded-row / header-row / first-last emphasis (theme-aware when
+ *    `colorScheme` + `tableStyleMap` props are supplied)
+ *  - pattern fills rendered as tiled inline SVG (not a flat colour)
+ *  - rich per-run cell text via optional `CellTextRun[]` on cells
  *  - diagonal cell borders via an SVG overlay
  *
  * Not ported (editing concerns, see PORTING.md): resize handles, inline cell
- * editing, cell selection, and the raw-OOXML render path. Cell text is the
- * cell's plain string; rich per-run cell text is a future enhancement. Pattern
- * fills are approximated by their background colour.
+ * editing, cell selection, and the raw-OOXML render path.
  */
 const props = defineProps<{
 	element: PptxElement;
 	/** Accepted for parity with `ElementRenderer`; unused (no image fills yet). */
 	mediaDataUrls?: Map<string, string>;
 	zIndex: number;
+	/**
+	 * PPTX theme colour scheme from the active presentation theme.
+	 * When supplied, band / header emphasis colours are resolved against
+	 * the real scheme instead of using hardcoded fallback colours.
+	 */
+	colorScheme?: PptxThemeColorScheme;
+	/**
+	 * Parsed table style map (from `ppt/tableStyles.xml`).
+	 * Enables accurate banding / header style lookups by table style GUID.
+	 */
+	tableStyleMap?: ParsedTableStyleMap;
 }>();
 
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
 );
+
+// Viewer-root-provided theme context (colour scheme / table-style map), used as
+// a fallback for band/header colour resolution when the props are not supplied.
+const injectedTableTheme = injectTableTheme();
 
 /** The structured table data, when this element is a populated table. */
 const tableData = computed<PptxTableData | undefined>(() => {
@@ -55,11 +89,36 @@ const columnPercentages = computed<string[]>(() =>
 	(tableData.value?.columnWidths ?? []).map((w) => `${(w * 100).toFixed(2)}%`),
 );
 
+/**
+ * Resolve pattern-fill CSS for a cell's style.
+ *
+ * Returns the resolved {@link CellPatternFillCss} (with `backgroundImage`
+ * and/or `backgroundColor`) when the cell has a pattern fill, or `null`
+ * otherwise.
+ */
+function resolvePatternFill(style: PptxTableCellStyle): CellPatternFillCss | null {
+	return cellPatternFillCss(style);
+}
+
 interface RenderableCell {
 	key: string;
 	colSpan?: number;
 	rowSpan?: number;
+	/** Base style (band + explicit, minus pattern-fill overrides). */
 	style: TableCellCss;
+	/**
+	 * Resolved pattern-fill properties. When non-null the template applies
+	 * `backgroundImage` (tiled SVG) and `backgroundColor` separately so
+	 * the SVG tile is drawn on top of the solid background colour.
+	 */
+	patternFill: CellPatternFillCss | null;
+	/**
+	 * Rich text runs for this cell. When non-null, the template renders
+	 * each run as a styled `<span>` element (with paragraph/line breaks);
+	 * when null, the plain `text` string is rendered instead.
+	 */
+	textRuns: CellTextRun[] | null;
+	/** Plain-text fallback rendered when `textRuns` is null. */
 	text: string;
 	diagonals: ReturnType<typeof getDiagonalBorders>;
 }
@@ -83,6 +142,14 @@ const rows = computed<RenderableRow[]>(() => {
 	const rCount = rowCount.value;
 	const cCount = columnCount.value;
 
+	// Props win; otherwise fall back to the viewer-root-provided theme context
+	// so banded/header colours still resolve without prop-threading the theme.
+	const injected = resolveTableTheme(injectedTableTheme);
+	const colorScheme = props.colorScheme ?? injected?.colorScheme;
+	const tableStyleMap = props.tableStyleMap ?? injected?.tableStyleMap;
+	const styleCtx: TableStyleContext | undefined =
+		colorScheme || tableStyleMap ? { colorScheme, tableStyleMap } : undefined;
+
 	return td.rows.map((row, rowIndex) => {
 		const cells: RenderableCell[] = [];
 		row.cells.forEach((cell, cellIndex) => {
@@ -95,16 +162,30 @@ const rows = computed<RenderableRow[]>(() => {
 			const colSpan = cell.gridSpan && cell.gridSpan > 1 ? cell.gridSpan : undefined;
 			const rowSpan = cell.rowSpan && cell.rowSpan > 1 ? cell.rowSpan : undefined;
 
-			const bandStyle = getTableCellBandStyle(td, rowIndex, cellIndex, rCount, cCount);
+			const bandStyle = getTableCellBandStyle(td, rowIndex, cellIndex, rCount, cCount, styleCtx);
 			const cellStyle = cellStyleToCss(cell.style);
 			// Explicit cell style wins over band style (mirrors the React layering).
 			const style: TableCellCss = { ...bandStyle, ...cellStyle };
+
+			// Pattern fill: resolve separately so the Vue template can apply
+			// `backgroundImage` in addition to `backgroundColor`.
+			const patternFill = cell.style ? resolvePatternFill(cell.style) : null;
+
+			// Rich per-run text: the cell type carries an optional `textRuns`
+			// field (duck-typed; not in the published core interface yet).
+			// When present, render styled spans; otherwise fall back to the
+			// plain `cell.text` string.
+			const cellAsRich = cell as typeof cell & { textRuns?: CellTextRun[] };
+			const textRuns =
+				cellAsRich.textRuns && cellAsRich.textRuns.length > 0 ? cellAsRich.textRuns : null;
 
 			cells.push({
 				key: `${id}-cell-${rowIndex}-${cellIndex}`,
 				colSpan,
 				rowSpan,
 				style,
+				patternFill,
+				textRuns,
 				text: cell.text || ' ',
 				diagonals: getDiagonalBorders(cell.style),
 			});
@@ -117,6 +198,36 @@ const rows = computed<RenderableRow[]>(() => {
 		};
 	});
 });
+
+/**
+ * Build the computed inline style for a `<td>`, merging the base `TableCellCss`
+ * with any pattern-fill overrides (backgroundImage + backgroundColor).
+ */
+function tdStyle(cell: RenderableCell): TableCellCss {
+	if (!cell.patternFill) {
+		return cell.style;
+	}
+	// Pattern fill overrides the solid backgroundColor that `cellStyleToCss` may
+	// have set, replacing it with the backgroundImage + the solid bg behind it.
+	const merged: TableCellCss = { ...cell.style };
+	delete merged['backgroundColor'];
+	delete merged['background'];
+	if (cell.patternFill.backgroundImage) {
+		merged['backgroundImage'] = cell.patternFill.backgroundImage;
+	}
+	if (cell.patternFill.backgroundColor) {
+		merged['backgroundColor'] = cell.patternFill.backgroundColor;
+	}
+	return merged;
+}
+
+/**
+ * Convert a {@link CellTextRun} to an inline style object for a `<span>`.
+ * Delegates to the framework-agnostic `cellRunStyle` helper.
+ */
+function runStyle(run: CellTextRun): TableCellCss {
+	return cellRunStyle(run);
+}
 </script>
 
 <template>
@@ -146,7 +257,7 @@ const rows = computed<RenderableRow[]>(() => {
 						class="pptx-vue-table__cell"
 						:colspan="cell.colSpan"
 						:rowspan="cell.rowSpan"
-						:style="cell.style"
+						:style="tdStyle(cell)"
 					>
 						<svg
 							v-if="cell.diagonals"
@@ -173,7 +284,25 @@ const rows = computed<RenderableRow[]>(() => {
 								:stroke-width="cell.diagonals.diagUpWidth"
 							/>
 						</svg>
-						<span class="pptx-vue-table__text">{{ cell.text }}</span>
+
+						<!--
+							Rich per-run text: when `textRuns` is present each run is
+							a styled <span>. Paragraph breaks become block-level <div>s;
+							line breaks become <br> within a paragraph.
+						-->
+						<template v-if="cell.textRuns">
+							<template v-for="(run, ri) in cell.textRuns" :key="`${cell.key}-run-${ri}`">
+								<div v-if="run.isParagraphBreak" class="pptx-vue-table__para-break" />
+								<br v-else-if="run.isLineBreak" />
+								<span v-else class="pptx-vue-table__run" :style="runStyle(run)">{{
+									run.text
+								}}</span>
+							</template>
+						</template>
+						<!--
+							Plain-text fallback: rendered when no per-run data is available.
+						-->
+						<span v-else class="pptx-vue-table__text">{{ cell.text }}</span>
 					</td>
 				</tr>
 			</tbody>
@@ -214,5 +343,14 @@ const rows = computed<RenderableRow[]>(() => {
 
 .pptx-vue-table__text {
 	position: relative;
+}
+
+.pptx-vue-table__run {
+	position: relative;
+}
+
+.pptx-vue-table__para-break {
+	display: block;
+	height: 0;
 }
 </style>

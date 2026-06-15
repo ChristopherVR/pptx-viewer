@@ -28,7 +28,7 @@ import type {
 } from 'pptx-viewer-core';
 import type { AlignEdge, DistributeAxis } from 'pptx-viewer-shared';
 import { alignElements, distributeElements } from 'pptx-viewer-shared';
-import { computed, nextTick, ref, toRef, watch } from 'vue';
+import { computed, nextTick, provide, ref, toRef, watch } from 'vue';
 
 import { provideViewerTheme, useThemeStyle } from '../theme';
 import AccessibilityPanel from './components/AccessibilityPanel.vue';
@@ -58,6 +58,7 @@ import SlideSorter from './components/SlideSorter.vue';
 import SlidesPaneControls from './components/SlidesPaneControls.vue';
 import SlideStage from './components/SlideStage.vue';
 import SlideTransitionPanel from './components/SlideTransitionPanel.vue';
+import { TableThemeKey } from './composables/table-theme';
 import { useAccessibility } from './composables/useAccessibility';
 import { useAutosave } from './composables/useAutosave';
 import { useCollaboration } from './composables/useCollaboration';
@@ -109,8 +110,14 @@ const {
 	coreProperties,
 	embeddedFonts,
 	signatures,
+	theme: pptxTheme,
 	getContent,
 } = useLoadContent(() => props.content);
+
+// Expose the presentation colour scheme to table cells (banded/header colour
+// resolution) via provide/inject, avoiding theme prop-threading through the
+// hot SlideStage → ElementRenderer chain.
+provide(TableThemeKey, () => ({ colorScheme: pptxTheme.value?.colorScheme }));
 
 // Inject embedded fonts as @font-face (side effect; auto-cleaned on unmount).
 useEmbeddedFonts(embeddedFonts);
