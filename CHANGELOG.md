@@ -4,6 +4,23 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.16](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.16) - 2026-06-15
+
+### 🚀 Features
+
+- **angular:** Add bubble & radar chart kinds (by @ChristopherVR) ([6ed5812](https://github.com/ChristopherVR/pptx-viewer/commit/6ed5812803704ca6c1bfe40d8faea42b5dc2a4ac))
+- **angular:** Add combo, stock, surface, treemap, waterfall & regionMap charts (by @ChristopherVR) ([527a37f](https://github.com/ChristopherVR/pptx-viewer/commit/527a37fc32d39adc7263f45f0a9a446ce8c8c19a))
+- **angular:** A\* connector routing + connector text overlay (by @ChristopherVR) ([01f58a8](https://github.com/ChristopherVR/pptx-viewer/commit/01f58a8328f94adaec836f7dc5f211c8667e91d0))
+- **vue:** Editor-chrome parity — presenter view, print, shortcuts, doc properties (by @ChristopherVR) ([b8965b9](https://github.com/ChristopherVR/pptx-viewer/commit/b8965b9bb4bbd92814a9a79426dcfdd8a51288db))
+
+### ♻️ Refactor
+
+- **angular:** Export chart chrome helpers for reuse (by @ChristopherVR) ([70f4334](https://github.com/ChristopherVR/pptx-viewer/commit/70f4334b595fd617761019452f06729a550bd31b))
+
+### 📚 Documentation
+
+- **angular:** Record bubble & radar chart kinds in PORTING.md (by @ChristopherVR) ([ea8dd22](https://github.com/ChristopherVR/pptx-viewer/commit/ea8dd226cca868fec18e1c6a2375d25ad942a03f))
+
 ## [1.1.15](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.15) - 2026-06-15
 
 ### 🚀 Features
@@ -16,6 +33,7 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### 📚 Documentation
 
 - **vue:** Record batch 17 (table GUIDs, connector labels, charts) (by @ChristopherVR) ([318b41a](https://github.com/ChristopherVR/pptx-viewer/commit/318b41aecd988eb364bded1038406ed8860eb181))
+- **changelog:** Update for v1.1.15 [skip ci] (by @github-actions[bot]) ([f2fa365](https://github.com/ChristopherVR/pptx-viewer/commit/f2fa365ccb80d18183062668aa47edca2180bab2))
 
 ## [1.1.14](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.14) - 2026-06-15
 
