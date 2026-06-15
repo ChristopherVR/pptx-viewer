@@ -319,9 +319,9 @@ export class PowerPointViewerComponent {
 
 	/** Fired when the active slide changes. */
 	readonly activeSlideChange = output<number>();
-	/** Fired when the unsaved-changes flag toggles. (Editing not yet ported.) */
+	/** Fired when the unsaved-changes flag toggles. */
 	readonly dirtyChange = output<boolean>();
-	/** Fired when the in-memory content changes after edits. (Editing not yet ported.) */
+	/** Fired with freshly-serialised `.pptx` bytes whenever {@link getContent} materialises the deck. */
 	readonly contentChange = output<Uint8Array>();
 
 	protected readonly loader = inject(LoadContentService);
@@ -413,8 +413,14 @@ export class PowerPointViewerComponent {
 	 * Serialise the current presentation to `.pptx` bytes (imperative handle).
 	 * When editing, this serialises the editor's edited deck so changes persist.
 	 */
-	getContent(): Promise<Uint8Array> {
-		return this.canEdit() ? this.loader.saveSlides(this.editor.slides()) : this.loader.getContent();
+	async getContent(): Promise<Uint8Array> {
+		const data = this.canEdit()
+			? await this.loader.saveSlides(this.editor.slides())
+			: await this.loader.getContent();
+		// Mirror React's imperative handle: serialising the deck also notifies the
+		// host so listeners wired to (contentChange) receive the latest bytes.
+		this.contentChange.emit(data);
+		return data;
 	}
 
 	goTo(index: number): void {
