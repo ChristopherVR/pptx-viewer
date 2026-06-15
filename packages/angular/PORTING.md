@@ -138,10 +138,11 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 | Connectors (SVG)                                         | ◑      | `ConnectorRendererComponent` — straight + bent (elbow) + curved (Bézier) routing via `connector-path.ts` (pure TS); stroke colour/width/dash + arrowheads, flip baked into endpoints. Full A\* routing, compound lines, connector text: TODO                                                                 |
 | Tables                                                   | ◑      | `TableRendererComponent` — `<table>` with merged cells (colspan/rowspan), column widths/row heights, per-cell solid/gradient fill + borders, and rich text (cell-level style, paragraph/line breaks). Per-run cell segments (needs core), editing: TODO. View-model in `table-renderer-helpers.ts` (pure TS) |
 | Charts (SVG)                                             | ◑      | `ChartRendererComponent` — inline SVG for bar/column, line/area, pie/doughnut, scatter (value scaling, per-series colours, legend); unsupported kinds → labelled fallback. Geometry in `chart-renderer-helpers.ts` (pure TS). 3D/combo/radar/bubble/stock/etc: TODO                                          |
-| SmartArt                                                 | ☐      | large                                                                                                                                                                                                                                                                                                        |
-| Ink / OLE / Model3D / Zoom                               | ☐      |                                                                                                                                                                                                                                                                                                              |
+| SmartArt                                                 | ◑      | `SmartArtRendererComponent` — SVG drawing-shapes (rect/ellipse/roundRect + rotated text) with stacked node-text fallback, palette + chrome. Family-specific layout engines (hierarchy/cycle/process/…), node connectors: TODO. Logic in `smart-art-renderer-helpers.ts` (pure TS)                            |
+| Ink / OLE / Model3D / Zoom                               | ◑      | `InkRendererComponent` (SVG strokes), `OleRendererComponent` (preview image / type icon + badge), `Model3DRendererComponent` (poster/placeholder — no three.js), `ZoomRendererComponent` (slide/section thumbnail). Each with a pure-TS `*-helpers.ts`                                                       |
 | Preset-geometry clip-paths                               | ◑      | `shape-geometry.ts` (`getResolvedShapeClipPath`) — core geometry-engine cascade (adjustment-aware → preset evaluator → cloud bezier → static polygon); wired into `element-style.ts`                                                                                                                         |
-| Image effects, structured gradients, shadows, glow       | ☐      |                                                                                                                                                                                                                                                                                                              |
+| Shadows / glow / reflection / image-effect filters       | ◑      | `visual-effects.ts` (`getComputedEffectStyle`) — outer/inner/glow shadows, blur/soft-edge filters, reflection, blend mode, effect-DAG alpha; wired into `element-style.ts`. Duotone SVG `<filter>` injection deferred                                                                                        |
+| Structured gradients, pattern fills                      | ☐      | extract `color-gradient.ts` + `color-core.ts` into `pptx-viewer-shared` (today: parser's prebuilt CSS string only)                                                                                                                                                                                           |
 | Text warp / WordArt, equations (OMML→MathML)             | ☐      |                                                                                                                                                                                                                                                                                                              |
 
 ### Editor chrome (all ☐ — not started)
@@ -209,16 +210,16 @@ Format), so **build the library first** (`bun run --filter pptx-angular-viewer b
 
 ## Recommended next steps (priority order)
 
-1. `ElementRendererComponent` progress: image & gradient fills, preset-geometry
-   clip-paths (`shape-geometry.ts`), connectors incl. bent/curved routing
-   (`ConnectorRendererComponent`), tables incl. rich-text cells
-   (`TableRendererComponent`), and charts (`ChartRendererComponent`,
-   bar/line/area/pie/scatter) have all landed. Remaining renderer work, roughly
-   in priority order: the structured gradient builder (extract
-   `utils/color-gradient.ts` + `color-core.ts` into `pptx-viewer-shared`), more
-   chart kinds (combo/radar/bubble/stock) + axes/gridlines polish, full A\*
-   connector routing, per-run rich text in table cells (needs a core extension),
-   then SmartArt (large), then shadows/glow/image effects.
+1. `ElementRendererComponent` now covers all 11 element types (viewer-first):
+   text/shape (fill/stroke/clip-path/effects), connector (straight/bent/curved),
+   chart, table, smartArt, ink, ole, model3d, zoom, picture/image, media, group.
+   Shadows/glow/reflection effects (`visual-effects.ts`) are wired in. Remaining
+   depth work, roughly in priority order: the structured gradient builder
+   (extract `utils/color-gradient.ts` + `color-core.ts` into
+   `pptx-viewer-shared`), SmartArt family layout engines
+   (hierarchy/cycle/process), more chart kinds (combo/radar/bubble/stock) +
+   axes/gridlines, full A\* connector routing, per-run rich text in table cells
+   (needs a core extension), duotone SVG `<filter>` injection.
 2. Add component/TestBed tests (decision #2).
 3. Port full viewer state + editor history to unlock editing.
 4. Continue the shared-code extraction (color, geometry, animation engine) —
@@ -268,3 +269,16 @@ Format), so **build the library first** (`bun run --filter pptx-angular-viewer b
   > work immediately, then redo the lost task by hand and commit fast. Lesson —
   > commit each completed unit ASAP; don't leave a wide window of uncommitted
   > subagent output in the shared tree.
+- **2026-06-15 (batch 4)** — Completed the renderer surface for all 11 element
+  types via 4 parallel subagents, each producing **only new files** (key hazard
+  insight: `git checkout`-style resets revert tracked-file edits but leave new
+  untracked files intact — so new files are reset-safe; the orchestrator does
+  all tracked-file integration and commits fast). Landed: `visual-effects.ts`
+  (`getComputedEffectStyle` — shadows/glow/reflection/filters, wired into
+  `element-style.ts`), `SmartArtRendererComponent`, `InkRendererComponent`,
+  `OleRendererComponent`, `Model3DRendererComponent`, `ZoomRendererComponent`
+  (each + pure-TS `*-helpers.ts`). Wired all five `@case`s + the effects layer;
+  trimmed the placeholder map to just `group`/`media`. Subagents read the Vue
+  reference (newer than the local checkout) read-only via
+  `git show origin/main:<path>`. Library build, typecheck, lint
+  (`--deny-warnings`), and all 361 tests green.
