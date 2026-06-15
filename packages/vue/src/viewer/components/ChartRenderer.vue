@@ -17,13 +17,16 @@ import { getContainerStyle } from '../composables/element-style';
 import BoxWhiskerChart from './chart/BoxWhiskerChart.vue';
 import BubbleChart from './chart/BubbleChart.vue';
 import ChartChrome from './chart/ChartChrome.vue';
+import ChartTrendlines from './chart/ChartTrendlines.vue';
 import ComboChart from './chart/ComboChart.vue';
 import FunnelChart from './chart/FunnelChart.vue';
 import HistogramChart from './chart/HistogramChart.vue';
 import RadarChart from './chart/RadarChart.vue';
+import RegionMapChart from './chart/RegionMapChart.vue';
 import ScatterChart from './chart/ScatterChart.vue';
 import StockChart from './chart/StockChart.vue';
 import SunburstChart from './chart/SunburstChart.vue';
+import SurfaceChart from './chart/SurfaceChart.vue';
 import TreemapChart from './chart/TreemapChart.vue';
 import WaterfallChart from './chart/WaterfallChart.vue';
 
@@ -48,13 +51,15 @@ import WaterfallChart from './chart/WaterfallChart.vue';
  *   - stock (HLC / OHLC)              — React `chart-stock.tsx`
  *   - histogram                       — React `chart-bar.tsx`
  *   - boxWhisker                      — React `chart-bar.tsx`
+ *   - surface                         — isometric SVG mesh (`SurfaceChart.vue`)
+ *   - regionMap                       — choropleth map (`RegionMapChart.vue`)
+ *   - trendlines (regression overlays) — React `chart-trendlines.tsx`
  *   - chrome (title, axes, gridlines, legend, data labels) — `chart-chrome.tsx`
  *
  * Remaining TODOs:
- *   // TODO(vue): port surface        (React chart-surface-treemap.tsx) — Three.js 3D
- *   // TODO(vue): port regionMap      (React chart-map.tsx)
- *   // TODO(vue): port trendlines + overlay lines (React chart-overlays/-trendlines)
- *   // TODO(vue): port secondary axes + data tables + log/display-unit axes
+ *   // TODO(vue): port secondary axes (right-hand value axis for series on a
+ *   //   second axisId) + data tables. Log/display-unit value axes are also not
+ *   //   yet honoured — the value axis is always linear.
  */
 const props = defineProps<{
 	element: PptxElement;
@@ -102,6 +107,8 @@ type RenderKind =
 	| 'stock'
 	| 'histogram'
 	| 'boxWhisker'
+	| 'surface'
+	| 'regionMap'
 	| 'placeholder';
 
 const renderKind = computed<RenderKind>(() => {
@@ -157,6 +164,12 @@ const renderKind = computed<RenderKind>(() => {
 	}
 	if (t === 'boxWhisker') {
 		return 'boxWhisker';
+	}
+	if (t === 'surface') {
+		return 'surface';
+	}
+	if (t === 'regionMap') {
+		return 'regionMap';
 	}
 	return 'placeholder';
 });
@@ -511,6 +524,33 @@ const pieLegend = computed<PieLegendItem[]>(() => {
 	});
 	return out;
 });
+
+// ── Trendlines (regression overlays) ─────────────────────────────
+
+/** Whether trendline overlays apply to the active (axis-based) render kind. */
+const showTrendlines = computed(
+	() =>
+		renderKind.value === 'bar' ||
+		renderKind.value === 'stackedBar' ||
+		renderKind.value === 'line' ||
+		renderKind.value === 'area',
+);
+
+/** The value range the active axis plot is drawn against. */
+const trendlineRange = computed<ValueRange>(() => {
+	if (renderKind.value === 'stackedBar') {
+		return stackRange.value;
+	}
+	if (renderKind.value === 'line' || renderKind.value === 'area') {
+		return lineRange.value;
+	}
+	return barRange.value;
+});
+
+/** Bar-mode plots centre on category slots; line/area anchor at points. */
+const trendlineMode = computed<'line' | 'bar'>(() =>
+	renderKind.value === 'line' || renderKind.value === 'area' ? 'line' : 'bar',
+);
 </script>
 
 <template>
@@ -689,6 +729,49 @@ const pieLegend = computed<PieLegendItem[]>(() => {
 				{{ chartData?.title || 'Chart' }}
 			</text>
 			<FunnelChart
+				v-if="chartData"
+				:chart-data="chartData"
+				:layout="noAxisLayout"
+				:categories="categoryLabels"
+			/>
+		</svg>
+
+		<!-- Surface: isometric 2.5D mesh (own SVG, no axis chrome) -->
+		<svg
+			v-else-if="renderKind === 'surface'"
+			class="pptx-vue-chart-svg"
+			:viewBox="`0 0 ${svgWidth} ${svgHeight}`"
+			preserveAspectRatio="none"
+		>
+			<rect :x="0" :y="0" :width="svgWidth" :height="svgHeight" fill="#0f172a11" />
+			<text
+				v-if="style?.hasTitle"
+				:x="svgWidth / 2"
+				y="14"
+				text-anchor="middle"
+				font-size="12"
+				font-weight="600"
+				fill="#1e293b"
+			>
+				{{ chartData?.title || 'Chart' }}
+			</text>
+			<SurfaceChart
+				v-if="chartData"
+				:chart-data="chartData"
+				:layout="layout"
+				:range="barRange"
+				:categories="categoryLabels"
+			/>
+		</svg>
+
+		<!-- Region map: choropleth world map (no axes; component draws its own bg) -->
+		<svg
+			v-else-if="renderKind === 'regionMap'"
+			class="pptx-vue-chart-svg"
+			:viewBox="`0 0 ${noAxisLayout.svgWidth} ${noAxisLayout.svgHeight}`"
+			preserveAspectRatio="xMidYMid meet"
+		>
+			<RegionMapChart
 				v-if="chartData"
 				:chart-data="chartData"
 				:layout="noAxisLayout"
@@ -881,6 +964,17 @@ const pieLegend = computed<PieLegendItem[]>(() => {
 				:layout="layout"
 				:range="barRange"
 				:categories="categoryLabels"
+			/>
+
+			<!-- Trendline overlays (drawn on top of bar / stacked / line / area). -->
+			<ChartTrendlines
+				v-if="showTrendlines && chartData"
+				:chart-data="chartData"
+				:layout="layout"
+				:range="trendlineRange"
+				:mode="trendlineMode"
+				:style-id="styleId"
+				:color-palette="colorPalette"
 			/>
 		</svg>
 	</div>

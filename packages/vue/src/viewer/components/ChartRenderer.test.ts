@@ -118,20 +118,28 @@ describe('chartRenderer', () => {
 		expect(labels.length).toBeGreaterThanOrEqual(6);
 	});
 
-	it('renders the labelled placeholder for a truly unsupported chart type (surface)', () => {
+	it('renders an SVG (not a placeholder) for a surface chart', () => {
 		const wrapper = mount(ChartRenderer, {
 			props: { element: chartElement(data('surface')), zIndex: 0 },
 		});
-		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeTruthy();
-		expect(wrapper.text()).toContain('Chart: surface');
+		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeFalsy();
+		expect(wrapper.find('svg').exists()).toBeTruthy();
 	});
 
-	it('renders the labelled placeholder for regionMap', () => {
+	it('renders an SVG (not a placeholder) for a regionMap chart', () => {
 		const wrapper = mount(ChartRenderer, {
 			props: { element: chartElement(data('regionMap')), zIndex: 0 },
 		});
+		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeFalsy();
+		expect(wrapper.find('svg').exists()).toBeTruthy();
+	});
+
+	it('renders the labelled placeholder for a still-unsupported chart type (ofPie)', () => {
+		const wrapper = mount(ChartRenderer, {
+			props: { element: chartElement(data('ofPie')), zIndex: 0 },
+		});
 		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeTruthy();
-		expect(wrapper.text()).toContain('Chart: regionMap');
+		expect(wrapper.text()).toContain('Chart: ofPie');
 	});
 
 	it('renders the placeholder when chart data is missing', () => {
