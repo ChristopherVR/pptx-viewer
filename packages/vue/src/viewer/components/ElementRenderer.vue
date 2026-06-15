@@ -11,6 +11,7 @@ import {
 	getTextBlockStyle,
 } from '../composables/element-style';
 import { getComputedImageStyle } from '../composables/image-effects';
+import { hasTextWarp } from '../composables/text-warp';
 import ChartRenderer from './ChartRenderer.vue';
 import ConnectorRenderer from './ConnectorRenderer.vue';
 import EquationRenderer from './EquationRenderer.vue';
@@ -19,6 +20,7 @@ import Model3DRenderer from './Model3DRenderer.vue';
 import OleRenderer from './OleRenderer.vue';
 import SmartArtRenderer from './SmartArtRenderer.vue';
 import TableRenderer from './TableRenderer.vue';
+import WordArtText from './WordArtText.vue';
 import ZoomRenderer from './ZoomRenderer.vue';
 
 /**
@@ -82,6 +84,9 @@ const hasEquation = computed(
 		hasTextProperties(props.element) &&
 		(props.element.textSegments ?? []).some((s) => s.equationXml),
 );
+
+/** Whether this element's text is warped (WordArt / `prstTxWarp`). */
+const isWarpedText = computed(() => hasTextWarp(props.element));
 
 /** Per-run inline style derived from a TextSegment's style. */
 function segmentStyle(seg: TextSegment): CSSProperties {
@@ -300,7 +305,9 @@ const placeholderLabel = computed(() => {
 		:style="shapeDivStyle"
 		:data-element-id="element.id"
 	>
-		<div v-if="hasText" class="pptx-vue-text" :style="textStyle">
+		<!-- Warped text (WordArt) renders as SVG textPath in place of plain runs -->
+		<WordArtText v-if="isWarpedText" :element="element" :z-index="0" />
+		<div v-else-if="hasText" class="pptx-vue-text" :style="textStyle">
 			<p v-for="(para, pi) in paragraphs" :key="pi" style="margin: 0">
 				<template v-for="(run, ri) in para" :key="ri">
 					<br v-if="run.text === '\n'" />

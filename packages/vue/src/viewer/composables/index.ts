@@ -13,3 +13,5 @@ export {
 	getImageSrc,
 } from './element-style';
 export { getResolvedShapeClipPath, getResolvedShapeClipPathFor } from './shape-geometry';
+export { useEditorHistory } from './useEditorHistory';
+export { useEditorOperations } from './useEditorOperations';

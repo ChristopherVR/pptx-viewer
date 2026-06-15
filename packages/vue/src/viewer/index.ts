@@ -11,6 +11,7 @@ export { default as OleRenderer } from './components/OleRenderer.vue';
 export { default as Model3DRenderer } from './components/Model3DRenderer.vue';
 export { default as ZoomRenderer } from './components/ZoomRenderer.vue';
 export { default as EquationRenderer } from './components/EquationRenderer.vue';
+export { default as WordArtText } from './components/WordArtText.vue';
 
 export type {
 	PowerPointViewerProps,

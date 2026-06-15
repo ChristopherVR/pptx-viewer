@@ -8,6 +8,7 @@ import {
 import type { CSSProperties } from 'vue';
 
 import { DEFAULT_STROKE_COLOR, DEFAULT_TEXT_COLOR } from '../constants';
+import { getComputedFillStyle } from './fill-style';
 import { getResolvedShapeClipPath } from './shape-geometry';
 import { getComputed3dStyle, merge3dStyle } from './visual-3d';
 import { getComputedEffectStyle } from './visual-effects';
@@ -90,23 +91,23 @@ export function getShapeFillStrokeStyle(el: PptxElement): CSSProperties {
 	const style: CSSProperties = {};
 
 	if (ss) {
-		// Fill resolution order mirrors the React `getShapeVisualStyle`:
-		//   image fill → gradient → solid colour. Pattern fills (SVG-based) are
-		//   not yet ported (TODO, see PORTING.md).
-		const imageFillUrl = ss.fillMode === 'image' && ss.fillImageUrl ? ss.fillImageUrl : undefined;
-		// `fillGradient` is a prebuilt CSS gradient string from the parser. The
-		// richer structured builder (color-gradient.ts) is an extraction candidate.
-		const gradient = ss.fillMode === 'gradient' || ss.fillGradient ? ss.fillGradient : undefined;
-
-		if (imageFillUrl) {
-			style.backgroundColor = 'transparent';
-			style.backgroundImage = `url(${imageFillUrl})`;
-			style.backgroundRepeat = ss.fillImageMode === 'tile' ? 'repeat' : 'no-repeat';
-			style.backgroundSize = ss.fillImageMode === 'tile' ? 'auto' : '100% 100%';
-		} else if (gradient) {
-			style.backgroundImage = gradient;
-		} else if (ss.fillColor && ss.fillColor !== 'transparent' && ss.fillMode !== 'none') {
-			style.backgroundColor = ss.fillColor;
+		// Fill: resolve in React's order via the structured fill builder —
+		//   image → structured gradient (falls back to prebuilt `fillGradient`)
+		//   → preset pattern → solid (with `fillOpacity`).
+		const fill = getComputedFillStyle(el);
+		if (fill) {
+			if (fill.backgroundColor !== undefined) {
+				style.backgroundColor = fill.backgroundColor;
+			}
+			if (fill.backgroundImage !== undefined) {
+				style.backgroundImage = fill.backgroundImage;
+			}
+			if (fill.backgroundRepeat !== undefined) {
+				style.backgroundRepeat = fill.backgroundRepeat;
+			}
+			if (fill.backgroundSize !== undefined) {
+				style.backgroundSize = fill.backgroundSize;
+			}
 		}
 
 		// Stroke.
