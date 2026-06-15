@@ -16,10 +16,13 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import type { PptxElement } from 'pptx-viewer-core';
+import type { ChartPptxElement, PptxElement, TablePptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 
+import { ChartDataEditorComponent } from './chart-data-editor.component';
 import { EditorStateService } from './editor-state.service';
+import { EffectsPanelComponent } from './effects-panel.component';
+import { GradientPickerComponent } from './gradient-picker.component';
 import {
 	fillColorOf,
 	fontSizeOf,
@@ -31,11 +34,20 @@ import {
 	textColorOf,
 	textStylePatch,
 } from './inspector-helpers';
+import { TableDataEditorComponent } from './table-data-editor.component';
+import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 
 @Component({
 	selector: 'pptx-inspector-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [
+		GradientPickerComponent,
+		EffectsPanelComponent,
+		TextAdvancedPanelComponent,
+		TableDataEditorComponent,
+		ChartDataEditorComponent,
+	],
 	template: `
 		<!--
 			NOTE (mobile-safe inputs): every numeric / colour input is keyed on the
@@ -250,6 +262,44 @@ import {
 				</div>
 			</section>
 
+			<!-- ── Advanced: gradient fill (shape-style elements) ─────────────── -->
+			@if (hasShape()) {
+				<details class="pptx-ng-inspector__details">
+					<summary class="pptx-ng-inspector__summary">Gradient fill</summary>
+					<pptx-gradient-picker [element]="el()" (patch)="onPatch($event)" />
+				</details>
+
+				<!-- ── Advanced: effects (shadow / glow / reflection / soft edge) ── -->
+				<details class="pptx-ng-inspector__details">
+					<summary class="pptx-ng-inspector__summary">Effects</summary>
+					<pptx-effects-panel [element]="el()" (patch)="onPatch($event)" />
+				</details>
+			}
+
+			<!-- ── Advanced: text (spacing / alignment / direction) ───────────── -->
+			@if (hasText()) {
+				<details class="pptx-ng-inspector__details">
+					<summary class="pptx-ng-inspector__summary">Text — advanced</summary>
+					<pptx-text-advanced-panel [element]="el()" (patch)="onPatch($event)" />
+				</details>
+			}
+
+			<!-- ── Table data editor ──────────────────────────────────────────── -->
+			@if (tableEl(); as t) {
+				<details class="pptx-ng-inspector__details">
+					<summary class="pptx-ng-inspector__summary">Table data</summary>
+					<pptx-table-data-editor [element]="t" (elementChange)="onElementReplace($event)" />
+				</details>
+			}
+
+			<!-- ── Chart data editor ──────────────────────────────────────────── -->
+			@if (chartEl(); as c) {
+				<details class="pptx-ng-inspector__details">
+					<summary class="pptx-ng-inspector__summary">Chart data</summary>
+					<pptx-chart-data-editor [element]="c" (elementChange)="onElementReplace($event)" />
+				</details>
+			}
+
 			<!-- ── Element actions ────────────────────────────────────────────── -->
 			<section class="pptx-ng-inspector__section">
 				<div class="pptx-ng-inspector__row">
@@ -300,6 +350,21 @@ import {
 			letter-spacing: 0.05em;
 			color: var(--pptx-inspector-muted, #888);
 			margin: 0 0 0.35rem 0;
+		}
+
+		.pptx-ng-inspector__details {
+			border-bottom: 1px solid var(--pptx-inspector-border, #333);
+		}
+
+		.pptx-ng-inspector__summary {
+			padding: 0.5rem 0;
+			font-size: 10px;
+			font-weight: 600;
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+			color: var(--pptx-inspector-muted, #888);
+			cursor: pointer;
+			user-select: none;
 		}
 
 		.pptx-ng-inspector__row {
@@ -501,6 +566,25 @@ export class InspectorPanelComponent {
 	protected readonly currentBold = computed(() => isBold(this.el()));
 	protected readonly currentItalic = computed(() => isItalic(this.el()));
 	protected readonly currentUnderline = computed(() => isUnderline(this.el()));
+
+	/** The selected element narrowed to a table, or undefined. */
+	protected readonly tableEl = computed(() =>
+		this.el().type === 'table' ? (this.el() as TablePptxElement) : undefined,
+	);
+	/** The selected element narrowed to a chart, or undefined. */
+	protected readonly chartEl = computed(() =>
+		this.el().type === 'chart' ? (this.el() as ChartPptxElement) : undefined,
+	);
+
+	/** Commit a partial-element patch from an advanced sub-panel as one history entry. */
+	protected onPatch(patch: Partial<PptxElement>): void {
+		this.editor.updateElement(this.slideIndex(), this.el().id, patch);
+	}
+
+	/** Commit a fully-replaced element (table/chart data editors) as one history entry. */
+	protected onElementReplace(updated: PptxElement): void {
+		this.editor.updateElement(this.slideIndex(), updated.id, updated as Partial<PptxElement>);
+	}
 
 	// ── Position & size ──────────────────────────────────────────────────────
 
