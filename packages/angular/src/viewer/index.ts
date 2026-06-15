@@ -39,6 +39,77 @@ export { EquationRendererComponent } from './equation-renderer.component';
 export { ommlToMathml, convertOmmlToMathMl } from './omml-to-mathml';
 export { LoadContentService } from './load-content.service';
 
+// Comments
+export { CommentsPanelComponent } from './comments-panel.component';
+export { CommentsService, generateCommentId } from './comments.service';
+export {
+	addCommentToList,
+	removeCommentFromList,
+	toggleCommentResolvedInList,
+} from './comments-helpers';
+
+// Digital signatures
+export { SignaturesPanelComponent } from './signatures-panel.component';
+export { SignaturesService } from './signatures.service';
+export {
+	isSigned,
+	worstStatus,
+	overallStatus,
+	headerLabel,
+	statusLabel,
+	statusKind,
+	signerName,
+	signatureTimestamp,
+	signatureKey,
+	signatureCountLabel,
+} from './signatures-helpers';
+export type { OverallSignatureStatus, SignatureStatusKind } from './signatures-helpers';
+
+// Accessibility
+export { AccessibilityPanelComponent } from './accessibility-panel.component';
+export { AccessibilityService } from './accessibility.service';
+export {
+	collectAccessibilityIssues,
+	countAccessibilityIssues,
+	groupIssuesBySeverity,
+	issueTypeLabel,
+	issueTrackKey,
+	SEVERITY_GROUPS,
+	SEVERITY_LABELS,
+	TYPE_LABELS,
+} from './accessibility-helpers';
+export type { AccessibilityIssueGroup } from './accessibility-helpers';
+
+// Embedded fonts
+export { EmbeddedFontsService } from './embedded-fonts.service';
+export {
+	EMBEDDED_FONTS_STYLE_ID,
+	buildEmbeddedFontStyles,
+	buildFontFaceRule,
+	resolveFontVariant,
+	isInjectableUrl,
+	normalizeFontFormat,
+	fontMimeForFormat,
+} from './embedded-fonts-helpers';
+export type {
+	ResolvedFontVariant,
+	EmbeddedFontStyles,
+	ObjectUrlFactory,
+} from './embedded-fonts-helpers';
+
+// Animation playback
+export { AnimationPanelComponent } from './animation-panel.component';
+export { AnimationPlaybackService } from './animation-playback.service';
+export {
+	buildClickGroups,
+	clampStep,
+	advanceStep,
+	durationOf,
+	revealedElementStyles,
+	pendingElementStyles,
+} from './animation-playback-helpers';
+export type { AnimationClickGroup, CSSProperties } from './animation-playback-helpers';
+
 export type { CanvasSize, CollaborationConfig, CollaborationRole } from './types';
 export type { StyleMap } from './element-style';
 export {
