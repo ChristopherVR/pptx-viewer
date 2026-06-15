@@ -205,14 +205,24 @@ gradient picker / effects / animation authoring), more chart kinds
 (combo/radar/bubble/stock/treemap — the Vue side is adding these), full A\*
 connector routing, duotone SVG `<filter>` injection.
 
-> **Next integration step:** wire the above panels/dialogs/overlays into
-> `PowerPointViewerComponent` (toolbar buttons + side panels + dialog group +
-> presenter/transition layers), mirroring how the inspector / slides panel /
-> find bar / presentation overlay are already composed. Each subsystem's
-> service is `providedIn` at the component level and its component takes
-> `input()`/`output()` — see the per-subsystem wiring surface in the commit
-> messages. This touches the single large tracked component, so coordinate with
-> the parallel sessions and commit fast.
+**Wired into `PowerPointViewerComponent`** (composed in the default
+`<pptx-viewer>` chrome): **embedded fonts** (auto `@font-face` injection on
+load), **comments** (toolbar toggle → editable side panel, when `canEdit`),
+**accessibility** (toolbar toggle → side panel + jump-to-slide), **document
+properties** ("Info" dialog + `propertiesChange` output), **hyperlink** ("Link"
+dialog for the selection, when `canEdit`), **print** (toolbar button → dialog,
+rasterising each slide off the live stage), and **collaboration** (connects on
+the `collaboration` input + remote-cursor overlay). `LoadContentService` now
+also surfaces `embeddedFonts` / `coreProperties` / `hasDigitalSignatures` /
+`digitalSignatureCount`.
+
+> **Remaining wiring:** the **signatures panel** needs a handler API to read the
+> `_xmlsignatures/*.xml` parts into `ParsedSignature[]` (only the count/flag are
+> surfaced today); **animation playback**, **presenter view**, and
+> **presentation transitions** are exported but not yet composed into the
+> presentation overlay; **share/broadcast** dialogs are exported but not yet
+> behind toolbar buttons. These touch the single large tracked component, so
+> coordinate with the parallel sessions and commit fast.
 
 ## Demo
 
@@ -439,9 +449,20 @@ frontier is **editing** and the remaining advanced subsystems.
 'viewer'` (no `'broadcaster'`); renamed the hyperlink dialog's `save()`
     method to `apply()` to avoid colliding with its `save` output. typecheck,
     build (ng-packagr), and lint (`--deny-warnings`) all green.
-  - All landed as exported services/components; **wiring into
-    `PowerPointViewerComponent` is the remaining step** (see the Advanced
-    subsystems table note).
+  - All landed as exported services/components.
+- **2026-06-15 (subsystem wiring)** — Composed the advanced subsystems into the
+  default `<pptx-viewer>` chrome (orchestrator, single tracked component):
+  `LoadContentService` now surfaces `embeddedFonts` / `coreProperties` /
+  signature count+flag; `EmbeddedFontsService` auto-injects `@font-face` on
+  load; toolbar gained **A11y** / **Comments** (canEdit) / **Info** / **Print** /
+  **Link** (canEdit + selection) buttons feeding right-docked panels
+  (accessibility + comments) and dialogs (properties + hyperlink + print);
+  collaboration connects on the `collaboration` input and overlays remote
+  cursors; added a `propertiesChange` output. Comments/hyperlink edits go
+  through the editor (one history entry each). typecheck, build (ng-packagr),
+  1421 tests, and lint (`--deny-warnings`) all green. Still unwired: signatures
+  panel (needs a parts-reading handler API), animation/presenter/transition
+  layers, and share/broadcast dialogs.
 
 > **Parity summary.** The Angular **viewer** matches React's viewing surface
 > (all 11 element types, fills/effects/clip-paths/backgrounds, lists,
