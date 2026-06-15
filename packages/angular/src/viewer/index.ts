@@ -16,6 +16,14 @@ export { ZoomRendererComponent } from './zoom-renderer.component';
 export { PresentationOverlayComponent } from './presentation-overlay.component';
 export { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
 export { FindBarComponent } from './find-bar.component';
+export { FindReplaceBarComponent } from './find-replace-bar.component';
+export {
+	findInSlides,
+	replaceInSlides,
+	replaceMatch,
+	applyFindReplacements,
+} from './find-replace-helpers';
+export type { FindResult, FindOptions, ReplaceResult } from './find-replace-helpers';
 export { InspectorPanelComponent } from './inspector-panel.component';
 export { GradientPickerComponent } from './gradient-picker.component';
 export { EffectsPanelComponent } from './effects-panel.component';

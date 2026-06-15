@@ -69,6 +69,18 @@ export class EditorStateService {
 		return this.clone(this.slides());
 	}
 
+	/**
+	 * Replace the whole deck with pre-computed slides (e.g. a find/replace
+	 * result) as a single undoable history entry. Unlike {@link setSlides} this
+	 * preserves history and selection.
+	 */
+	applyReplacement(newSlides: readonly PptxSlide[], label = 'Replace'): void {
+		this.history.record(this.clone(this.slides()), label);
+		this.slides.set(this.clone(newSlides));
+		this.dirty.set(true);
+		this.syncHistory();
+	}
+
 	// ── Selection ───────────────────────────────────────────────────────────
 
 	select(ids: readonly string[]): void {

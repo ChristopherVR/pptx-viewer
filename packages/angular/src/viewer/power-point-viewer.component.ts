@@ -33,6 +33,10 @@ import { EmbeddedFontsService } from './embedded-fonts.service';
 import { slideFileName } from './export-helpers';
 import { ExportService } from './export.service';
 import { FindBarComponent } from './find-bar.component';
+import { FindReplaceBarComponent } from './find-replace-bar.component';
+import type { FindEvent, ReplaceEvent } from './find-replace-bar.component';
+import { findInSlides, replaceInSlides, replaceMatch } from './find-replace-helpers';
+import type { FindResult } from './find-replace-helpers';
 import { HyperlinkDialogComponent } from './hyperlink-dialog.component';
 import { InspectorPanelComponent } from './inspector-panel.component';
 import { LoadContentService } from './load-content.service';
@@ -87,6 +91,7 @@ const ZOOM_MAX = 3;
 		PresentationOverlayComponent,
 		SlideSorterOverlayComponent,
 		FindBarComponent,
+		FindReplaceBarComponent,
 		InspectorPanelComponent,
 		SlidesPanelComponent,
 		EditorToolbarComponent,
@@ -160,6 +165,15 @@ const ZOOM_MAX = 3;
 						<button type="button" (click)="showFind.set(true)" aria-label="Find in slides">
 							Find
 						</button>
+						@if (canEdit()) {
+							<button
+								type="button"
+								(click)="openFindReplace()"
+								aria-label="Find and replace in slides"
+							>
+								Replace
+							</button>
+						}
 						<button type="button" (click)="showSorter.set(true)" aria-label="Slide sorter">
 							⊞
 						</button>
@@ -393,6 +407,18 @@ const ZOOM_MAX = 3;
 				/>
 			}
 
+			@if (showFindReplace()) {
+				<pptx-find-replace-bar
+					[matchCount]="findResults().length"
+					[matchIndex]="findActiveIndex()"
+					(find)="onFindReplaceFind($event)"
+					(navigate)="onFindReplaceNavigate($event)"
+					(replaceOne)="onFindReplaceReplaceOne($event)"
+					(replaceAll)="onFindReplaceReplaceAll($event)"
+					(close)="showFindReplace.set(false)"
+				/>
+			}
+
 			@if (canEdit() && contextMenuPos(); as m) {
 				<pptx-editor-context-menu
 					[x]="m.x"
@@ -485,6 +511,13 @@ export class PowerPointViewerComponent {
 	protected readonly showNotes = signal(false);
 	/** Find-in-slides bar visibility. */
 	protected readonly showFind = signal(false);
+
+	/** Find-and-replace bar state (edit mode only). */
+	protected readonly showFindReplace = signal(false);
+	protected readonly findResults = signal<readonly FindResult[]>([]);
+	protected readonly findActiveIndex = signal(-1);
+	private findMatchCase = false;
+
 	/** Active right-docked tool panel (comments / accessibility), or null. */
 	protected readonly activePanel = signal<'comments' | 'accessibility' | null>(null);
 	/** Document-properties (Info) dialog visibility. */
@@ -603,6 +636,65 @@ export class PowerPointViewerComponent {
 	}
 	goNext(): void {
 		this.goTo(this.activeSlideIndex() + 1);
+	}
+
+	// ── Find & replace (edit mode) ─────────────────────────────────────────────
+
+	/** Open the find/replace bar (mutually exclusive with the find-only bar). */
+	protected openFindReplace(): void {
+		this.showFind.set(false);
+		this.showFindReplace.set(true);
+	}
+
+	/** Re-run the search over the editable deck and refresh the match list. */
+	private refreshFindResults(query: string): void {
+		if (query.length === 0) {
+			this.findResults.set([]);
+			this.findActiveIndex.set(-1);
+			return;
+		}
+		const results = findInSlides(this.editor.slides(), query, { matchCase: this.findMatchCase });
+		this.findResults.set(results);
+		this.findActiveIndex.set(results.length > 0 ? 0 : -1);
+		if (results.length > 0) {
+			this.goTo(results[0].slideIndex);
+		}
+	}
+
+	protected onFindReplaceFind(evt: FindEvent): void {
+		this.findMatchCase = evt.matchCase;
+		this.refreshFindResults(evt.query);
+	}
+
+	protected onFindReplaceNavigate(dir: 1 | -1): void {
+		const results = this.findResults();
+		if (results.length === 0) {
+			return;
+		}
+		const next = (this.findActiveIndex() + dir + results.length) % results.length;
+		this.findActiveIndex.set(next);
+		this.goTo(results[next].slideIndex);
+	}
+
+	protected onFindReplaceReplaceOne(evt: ReplaceEvent): void {
+		const results = this.findResults();
+		const idx = this.findActiveIndex();
+		if (idx < 0 || idx >= results.length) {
+			return;
+		}
+		const updated = replaceMatch(this.editor.slides(), results, idx, evt.replacement);
+		this.editor.applyReplacement(updated.slides, 'Replace');
+		this.refreshFindResults(evt.query);
+	}
+
+	protected onFindReplaceReplaceAll(evt: ReplaceEvent): void {
+		const updated = replaceInSlides(this.editor.slides(), evt.query, evt.replacement, {
+			matchCase: this.findMatchCase,
+		});
+		if (updated.replacements > 0) {
+			this.editor.applyReplacement(updated.slides, 'Replace all');
+		}
+		this.refreshFindResults(evt.query);
 	}
 
 	/** Horizontal-swipe tracking start coordinates (touch begins on the canvas). */
