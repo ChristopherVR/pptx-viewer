@@ -1,11 +1,14 @@
 import { NgStyle } from '@angular/common';
 import {
+	afterNextRender,
 	ChangeDetectionStrategy,
 	Component,
 	computed,
+	DestroyRef,
 	effect,
 	ElementRef,
 	HostListener,
+	inject,
 	input,
 	output,
 	signal,
@@ -100,7 +103,7 @@ function plainText(el: PptxElement): string {
 		`,
 	],
 	template: `
-		<div class="pptx-ng-canvas-viewport">
+		<div #viewport class="pptx-ng-canvas-viewport">
 			<div class="pptx-ng-canvas-wrapper" [ngStyle]="wrapperStyle()">
 				<div
 					#stage
@@ -237,6 +240,23 @@ export class SlideCanvasComponent {
 
 	private readonly textEditor = viewChild<ElementRef<HTMLTextAreaElement>>('textEditor');
 	private readonly stageRef = viewChild<ElementRef<HTMLElement>>('stage');
+	private readonly viewportRef = viewChild<ElementRef<HTMLElement>>('viewport');
+
+	/**
+	 * Auto-fit scale (≤ 1): how much the fixed-size slide must shrink to fit the
+	 * scroll viewport. The authored slide is e.g. 1280×720, which overflows a
+	 * phone; without this it renders off-screen at `zoom=1`. Mirrors the React
+	 * viewer's `fitScale * scale` model (useZoomViewport.ts) so "100%" means "fit
+	 * to viewport". Measured from the viewport via ResizeObserver below.
+	 */
+	private readonly fitScale = signal(1);
+
+	/**
+	 * The on-screen scale used for ALL rendering and pointer→stage coordinate
+	 * math: the user's zoom folded with the auto-fit. The parent keeps showing the
+	 * raw user zoom as the percentage, so this stays internal to the canvas.
+	 */
+	private readonly effectiveScale = computed(() => this.fitScale() * this.zoom());
 
 	/** The editing id we've already initialised the textarea for, to avoid re-seeding its value mid-edit. */
 	private seededEditId: string | null = null;
@@ -267,6 +287,45 @@ export class SlideCanvasComponent {
 			editor.nativeElement.focus();
 			editor.nativeElement.select();
 		});
+
+		// Re-fit whenever the authored slide size changes (e.g. switching decks).
+		effect(() => {
+			this.canvasSize();
+			this.recomputeFit();
+		});
+
+		// Observe the viewport so the slide re-fits on container resize / rotation.
+		const destroyRef = inject(DestroyRef);
+		afterNextRender(() => {
+			this.recomputeFit();
+			const el = this.viewportRef()?.nativeElement;
+			if (typeof ResizeObserver !== 'undefined' && el) {
+				const observer = new ResizeObserver(() => this.recomputeFit());
+				observer.observe(el);
+				destroyRef.onDestroy(() => observer.disconnect());
+			}
+		});
+	}
+
+	/**
+	 * Compute the largest scale (≤ 1) at which the whole slide fits the viewport,
+	 * reserving the 1rem gutter + drop shadow. Sets fitScale to 1 when unmeasured.
+	 */
+	private recomputeFit(): void {
+		const el = this.viewportRef()?.nativeElement;
+		const size = this.canvasSize();
+		if (!el || !size.width || !size.height) {
+			this.fitScale.set(1);
+			return;
+		}
+		const availW = Math.max(el.clientWidth - 16, 0);
+		const availH = Math.max(el.clientHeight - 32, 0);
+		if (!availW || !availH) {
+			this.fitScale.set(1);
+			return;
+		}
+		const fit = Math.min(availW / size.width, availH / size.height, 1);
+		this.fitScale.set(fit > 0 ? fit : 1);
 	}
 
 	readonly elements = computed(() => this.slide()?.elements ?? []);
@@ -301,7 +360,7 @@ export class SlideCanvasComponent {
 		if (!box) {
 			return [];
 		}
-		const size = HANDLE_SCREEN_PX / (this.zoom() || 1);
+		const size = HANDLE_SCREEN_PX / (this.effectiveScale() || 1);
 		return RESIZE_HANDLES.map((handle) => {
 			const { fx, fy } = handleAnchor(handle);
 			return {
@@ -323,7 +382,7 @@ export class SlideCanvasComponent {
 		if (!box) {
 			return null;
 		}
-		const zoom = this.zoom() || 1;
+		const zoom = this.effectiveScale() || 1;
 		const size = HANDLE_SCREEN_PX / zoom;
 		const offset = 24 / zoom;
 		return { left: box.x + box.width / 2 - size / 2, top: box.y - offset - size / 2, size };
@@ -359,7 +418,7 @@ export class SlideCanvasComponent {
 			const stage = this.stageRef()?.nativeElement;
 			if (stage) {
 				const rect = stage.getBoundingClientRect();
-				const zoom = this.zoom() || 1;
+				const zoom = this.effectiveScale() || 1;
 				this.marquee = {
 					startX: (event.clientX - rect.left) / zoom,
 					startY: (event.clientY - rect.top) / zoom,
@@ -474,7 +533,7 @@ export class SlideCanvasComponent {
 			return;
 		}
 		const el = this.elements().find((e) => e.id === box.id);
-		const zoom = this.zoom() || 1;
+		const zoom = this.effectiveScale() || 1;
 		const rect = stage.getBoundingClientRect();
 		const centerX = box.x + box.width / 2;
 		const centerY = box.y + box.height / 2;
@@ -512,7 +571,7 @@ export class SlideCanvasComponent {
 			}
 			marquee.started = true;
 			const rect = stage.getBoundingClientRect();
-			const z = this.zoom() || 1;
+			const z = this.effectiveScale() || 1;
 			const curX = (event.clientX - rect.left) / z;
 			const curY = (event.clientY - rect.top) / z;
 			this.marqueeRect.set({
@@ -528,7 +587,7 @@ export class SlideCanvasComponent {
 		if (!drag) {
 			return;
 		}
-		const zoom = this.zoom() || 1;
+		const zoom = this.effectiveScale() || 1;
 
 		if (!drag.started) {
 			if (
@@ -609,7 +668,7 @@ export class SlideCanvasComponent {
 	}
 
 	readonly wrapperStyle = computed<StyleMap>(() => {
-		const scale = this.zoom();
+		const scale = this.effectiveScale();
 		const size = this.canvasSize();
 		return {
 			width: `${size.width * scale}px`,
@@ -620,7 +679,7 @@ export class SlideCanvasComponent {
 	});
 
 	readonly stageStyle = computed<StyleMap>(() => {
-		const scale = this.zoom();
+		const scale = this.effectiveScale();
 		const size = this.canvasSize();
 		const slide = this.slide();
 		const style: StyleMap = {
