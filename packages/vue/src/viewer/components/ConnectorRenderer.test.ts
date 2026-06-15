@@ -17,6 +17,8 @@ function connector(overrides: Partial<PptxElement> = {}): PptxElement {
 	} as PptxElement;
 }
 
+// ── Straight connector (existing behaviour) ───────────────────────────────────
+
 describe('connectorRenderer', () => {
 	it('renders an svg line with the stroke colour and width', () => {
 		const wrapper = mount(ConnectorRenderer, { props: { element: connector(), zIndex: 1 } });
@@ -58,5 +60,259 @@ describe('connectorRenderer', () => {
 		const wrapper = mount(ConnectorRenderer, { props: { element: connector(), zIndex: 0 } });
 		expect(wrapper.find('marker').exists()).toBeFalsy();
 		expect(wrapper.get('line').attributes('marker-end')).toBeUndefined();
+	});
+});
+
+// ── Bent connector routing ────────────────────────────────────────────────────
+
+describe('connectorRenderer — bent connectors', () => {
+	it('renders a <path> (not a <line>) for bentConnector2', () => {
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({
+					shapeType: 'bentConnector2',
+					width: 200,
+					height: 100,
+				}),
+				zIndex: 0,
+			},
+		});
+		expect(wrapper.find('path').exists()).toBeTruthy();
+		// No plain <line> elements — multi-segment replaces them
+		expect(wrapper.find('line').exists()).toBeFalsy();
+	});
+
+	it('renders a multi-segment <path> for bentConnector3', () => {
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({
+					shapeType: 'bentConnector3',
+					width: 200,
+					height: 100,
+				}),
+				zIndex: 0,
+			},
+		});
+		const path = wrapper.get('path');
+		const d = path.attributes('d') ?? '';
+		// Must contain at least 3 L segments (not a straight diagonal)
+		const lCount = (d.match(/\bL\b/g) ?? []).length;
+		expect(lCount).toBeGreaterThanOrEqual(3);
+	});
+
+	it('renders a <path> for bentConnector4', () => {
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({
+					shapeType: 'bentConnector4',
+					width: 200,
+					height: 100,
+				}),
+				zIndex: 0,
+			},
+		});
+		expect(wrapper.find('path').exists()).toBeTruthy();
+		expect(wrapper.find('line').exists()).toBeFalsy();
+	});
+
+	it('renders a <path> for bentConnector5', () => {
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({
+					shapeType: 'bentConnector5',
+					width: 200,
+					height: 100,
+				}),
+				zIndex: 0,
+			},
+		});
+		expect(wrapper.find('path').exists()).toBeTruthy();
+		expect(wrapper.find('line').exists()).toBeFalsy();
+	});
+
+	it('passes stroke colour through to the bent-connector path', () => {
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({
+					shapeType: 'bentConnector3',
+					width: 200,
+					height: 100,
+					shapeStyle: { strokeColor: '#0000ff', strokeWidth: 2 },
+				}),
+				zIndex: 0,
+			},
+		});
+		const path = wrapper.get('path');
+		expect(path.attributes('stroke')).toBe('#0000ff');
+	});
+});
+
+// ── Curved connector routing ──────────────────────────────────────────────────
+
+describe('connectorRenderer — curved connectors', () => {
+	it('renders a <path> with Q (quadratic Bezier) for curvedConnector2', () => {
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({
+					shapeType: 'curvedConnector2',
+					width: 200,
+					height: 100,
+				}),
+				zIndex: 0,
+			},
+		});
+		const path = wrapper.get('path');
+		expect(path.attributes('d')).toMatch(/Q/);
+		expect(wrapper.find('line').exists()).toBeFalsy();
+	});
+
+	it('renders a <path> with C (cubic Bezier) for curvedConnector3', () => {
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({
+					shapeType: 'curvedConnector3',
+					width: 200,
+					height: 100,
+				}),
+				zIndex: 0,
+			},
+		});
+		const path = wrapper.get('path');
+		expect(path.attributes('d')).toMatch(/C/);
+		expect(wrapper.find('line').exists()).toBeFalsy();
+	});
+
+	it('renders a <path> with C for curvedConnector4', () => {
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({
+					shapeType: 'curvedConnector4',
+					width: 200,
+					height: 100,
+				}),
+				zIndex: 0,
+			},
+		});
+		expect(wrapper.get('path').attributes('d')).toMatch(/C/);
+	});
+
+	it('renders a <path> with C for curvedConnector5', () => {
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({
+					shapeType: 'curvedConnector5',
+					width: 200,
+					height: 100,
+				}),
+				zIndex: 0,
+			},
+		});
+		expect(wrapper.get('path').attributes('d')).toMatch(/C/);
+	});
+});
+
+// ── Compound line rendering ───────────────────────────────────────────────────
+
+describe('connectorRenderer — compound lines', () => {
+	it('renders two <line> elements for a straight dbl compound connector', () => {
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({
+					width: 200,
+					height: 0,
+					shapeStyle: { strokeColor: '#333', strokeWidth: 4, compoundLine: 'dbl' },
+				}),
+				zIndex: 0,
+			},
+		});
+		const lines = wrapper.findAll('line');
+		expect(lines).toHaveLength(2);
+	});
+
+	it('renders three <line> elements for a straight tri compound connector', () => {
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({
+					width: 200,
+					height: 0,
+					shapeStyle: { strokeColor: '#333', strokeWidth: 4, compoundLine: 'tri' },
+				}),
+				zIndex: 0,
+			},
+		});
+		const lines = wrapper.findAll('line');
+		expect(lines).toHaveLength(3);
+	});
+
+	it('renders two <path> elements for a bent dbl compound connector', () => {
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({
+					shapeType: 'bentConnector3',
+					width: 200,
+					height: 100,
+					shapeStyle: { strokeColor: '#333', strokeWidth: 4, compoundLine: 'dbl' },
+				}),
+				zIndex: 0,
+			},
+		});
+		const paths = wrapper.findAll('path');
+		expect(paths).toHaveLength(2);
+		expect(wrapper.find('line').exists()).toBeFalsy();
+	});
+
+	it('attaches start arrow only to first compound stroke', () => {
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({
+					width: 200,
+					height: 0,
+					shapeStyle: {
+						strokeColor: '#333',
+						strokeWidth: 4,
+						compoundLine: 'dbl',
+						connectorStartArrow: 'triangle',
+						connectorEndArrow: 'triangle',
+					},
+				}),
+				zIndex: 0,
+			},
+		});
+		const lines = wrapper.findAll('line');
+		expect(lines).toHaveLength(2);
+		// Only first line has marker-start
+		expect(lines[0]!.attributes('marker-start')).toContain('url(#');
+		expect(lines[1]!.attributes('marker-start')).toBeUndefined();
+		// Only last line has marker-end
+		expect(lines[1]!.attributes('marker-end')).toContain('url(#');
+		expect(lines[0]!.attributes('marker-end')).toBeUndefined();
+	});
+});
+
+// ── Dash array ────────────────────────────────────────────────────────────────
+
+describe('connectorRenderer — dash array', () => {
+	it('applies stroke-dasharray for dot dash', () => {
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({
+					shapeStyle: { strokeColor: '#000', strokeWidth: 2, strokeDash: 'dot' },
+				}),
+				zIndex: 0,
+			},
+		});
+		expect(wrapper.get('line').attributes('stroke-dasharray')).toBe('2 2');
+	});
+
+	it('omits stroke-dasharray for solid', () => {
+		const wrapper = mount(ConnectorRenderer, {
+			props: {
+				element: connector({
+					shapeStyle: { strokeColor: '#000', strokeWidth: 2, strokeDash: 'solid' },
+				}),
+				zIndex: 0,
+			},
+		});
+		expect(wrapper.get('line').attributes('stroke-dasharray')).toBeUndefined();
 	});
 });
