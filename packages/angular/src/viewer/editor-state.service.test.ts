@@ -140,4 +140,27 @@ describe('editorStateService', () => {
 		svc.moveSlide(0, 1);
 		expect(svc.slides().map((s) => s.id)).toStrictEqual(['s2', 's1']);
 	});
+
+	it('copies and pastes elements (offset + fresh ids, selected)', () => {
+		const svc = service();
+		svc.select(['a']);
+		svc.copySelected(0);
+		expect(svc.hasClipboard()).toBeTruthy();
+		svc.paste(0);
+		const els = svc.slides()[0].elements;
+		expect(els).toHaveLength(4);
+		const pasted = els[3];
+		expect(pasted.id).not.toBe('a');
+		expect(pasted.x).toBe(12); // original a.x (0) + 12 paste offset
+		expect(svc.selectedIds()).toStrictEqual([pasted.id]);
+	});
+
+	it('cuts elements (copy then delete)', () => {
+		const svc = service();
+		svc.select(['b']);
+		svc.cutSelected(0);
+		expect(svc.slides()[0].elements.map((e) => e.id)).toStrictEqual(['a', 'c']);
+		svc.paste(0);
+		expect(svc.slides()[0].elements).toHaveLength(3);
+	});
 });

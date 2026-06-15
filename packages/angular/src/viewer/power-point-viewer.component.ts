@@ -434,6 +434,21 @@ export class PowerPointViewerComponent {
 			this.editor.duplicateSelected(idx);
 			return;
 		}
+		if (mod && (event.key === 'c' || event.key === 'C')) {
+			event.preventDefault();
+			this.editor.copySelected(idx);
+			return;
+		}
+		if (mod && (event.key === 'x' || event.key === 'X')) {
+			event.preventDefault();
+			this.editor.cutSelected(idx);
+			return;
+		}
+		if (mod && (event.key === 'v' || event.key === 'V')) {
+			event.preventDefault();
+			this.editor.paste(idx);
+			return;
+		}
 
 		if (!this.editor.hasSelection()) {
 			return;

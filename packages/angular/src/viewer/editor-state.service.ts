@@ -215,6 +215,59 @@ export class EditorStateService {
 		}
 	}
 
+	// ── Clipboard ──────────────────────────────────────────────────────────────
+
+	private clipboard: PptxElement[] = [];
+	/** Whether the clipboard holds copied elements (enables paste). */
+	readonly hasClipboard = signal(false);
+
+	/** Copy the selected elements to the in-memory clipboard. */
+	copySelected(slideIndex: number): void {
+		const ids = new Set(this.selectedIds());
+		const slide = this.slides()[slideIndex];
+		if (!slide) {
+			return;
+		}
+		const picked = slide.elements.filter((el) => ids.has(el.id));
+		if (picked.length === 0) {
+			return;
+		}
+		this.clipboard = this.clone(picked);
+		this.hasClipboard.set(true);
+	}
+
+	/** Copy then delete the selected elements. */
+	cutSelected(slideIndex: number): void {
+		this.copySelected(slideIndex);
+		this.deleteSelected(slideIndex);
+	}
+
+	/** Paste clipboard elements onto a slide (offset + fresh ids) and select them. */
+	paste(slideIndex: number): void {
+		if (this.clipboard.length === 0) {
+			return;
+		}
+		const slides = this.slides();
+		if (!slides[slideIndex]) {
+			return;
+		}
+		this.history.record(this.clone(slides), 'Paste');
+		const newIds: string[] = [];
+		const additions = this.clipboard.map((el) => {
+			const id = this.newId();
+			newIds.push(id);
+			return { ...this.clone(el), id, x: el.x + 12, y: el.y + 12 };
+		});
+		this.slides.set(
+			slides.map((slide, i) =>
+				i === slideIndex ? { ...slide, elements: [...slide.elements, ...additions] } : slide,
+			),
+		);
+		this.selectedIds.set(newIds);
+		this.dirty.set(true);
+		this.syncHistory();
+	}
+
 	// ── Element insertion ────────────────────────────────────────────────────
 
 	/** Append a new element to a slide (records history) and select it. */
