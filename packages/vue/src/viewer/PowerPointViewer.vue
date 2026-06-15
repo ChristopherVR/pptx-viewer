@@ -194,6 +194,14 @@ const zoomReset = () => {
 };
 const zoomPercent = computed(() => Math.round(zoom.value * 100));
 
+// Auto-fit: the slide shrinks to fit small/mobile viewports without the user
+// touching the zoom. `fitScale` (≤ 1) is reported by SlideCanvas after measuring
+// its viewport; the effective on-screen scale folds it into the user zoom so the
+// percentage still reads the user's chosen zoom (100% = "fit"). All scaled
+// rendering and pointer→slide coordinate math must use `effectiveZoom`.
+const fitScale = ref(1);
+const effectiveZoom = computed(() => fitScale.value * zoom.value);
+
 // ── Thumbnail previews ────────────────────────────────────────────────
 const THUMB_WIDTH = 104; // px — matches the thumbnail rail content width
 const thumbScale = computed(() => THUMB_WIDTH / Math.max(1, canvasSize.value.width));
@@ -742,8 +750,8 @@ function onCollabPointerMove(event: PointerEvent): void {
 	}
 	const rect = stage.getBoundingClientRect();
 	collab.setCursor(
-		(event.clientX - rect.left) / zoom.value,
-		(event.clientY - rect.top) / zoom.value,
+		(event.clientX - rect.left) / effectiveZoom.value,
+		(event.clientY - rect.top) / effectiveZoom.value,
 	);
 }
 
@@ -1059,13 +1067,14 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						:slide="activeSlide"
 						:canvas-size="canvasSize"
 						:media-data-urls="mediaDataUrls"
-						:zoom="zoom"
+						:zoom="effectiveZoom"
+						@update:fit-scale="fitScale = $event"
 					>
 						<SelectionOverlay
 							v-if="props.canEdit"
 							:elements="selectedElements"
 							:selected-ids="selectedElementIds"
-							:zoom="zoom"
+							:zoom="effectiveZoom"
 							@transform-start="onTransformStart"
 							@transform="onTransform"
 							@transform-end="onTransformEnd"
@@ -1073,7 +1082,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						<CollaborationCursors
 							v-if="collabActive"
 							:cursors="collab.cursors.value"
-							:zoom="zoom"
+							:zoom="effectiveZoom"
 						/>
 					</SlideCanvas>
 					<NotesPanel v-if="props.canEdit" :slide="activeSlide" @update="onNotesUpdate" />
