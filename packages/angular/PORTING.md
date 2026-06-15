@@ -158,18 +158,22 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 
 ### Editor foundation (◑ — services landed; interaction UI next)
 
-| Item                                            | Status | Notes                                                                                                                                                                                                                                                                                                         |
-| ----------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Undo/redo history                               | ◑      | `editor-history.ts` — generic `EditorHistory<T>` snapshot stacks with labels + depth cap (mirrors `useEditorHistory`)                                                                                                                                                                                         |
-| Element operations                              | ◑      | `element-operations.ts` — pure immutable update/move/resize/delete/duplicate/z-order (mirrors `useElementOperations`)                                                                                                                                                                                         |
-| Editor state service                            | ◑      | `EditorStateService` — editable slides signal + selection + dirty + ops that record history; undo/redo restore snapshots                                                                                                                                                                                      |
-| **Interaction UI**                              | ◑      | click-select (event delegation) + selection outlines, keyboard (Delete, Ctrl/Cmd+Z/Y, Ctrl/Cmd+D, arrow-nudge ×10), editable deck + Undo/Redo buttons when `canEdit`; edits persist through `getContent()` (save-back via `LoadContentService.saveSlides`). Drag/resize handles, marquee, rulers/guides: TODO |
-| Section / table operations, clipboard, autosave | ☐      | mirror `useSectionOperations` / `useTableOperations`                                                                                                                                                                                                                                                          |
+| Item                                            | Status | Notes                                                                                                                                                                                                                                                                                                                                                                |
+| ----------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Undo/redo history                               | ◑      | `editor-history.ts` — generic `EditorHistory<T>` snapshot stacks with labels + depth cap (mirrors `useEditorHistory`)                                                                                                                                                                                                                                                |
+| Element operations                              | ◑      | `element-operations.ts` — pure immutable update/move/resize/delete/duplicate/z-order (mirrors `useElementOperations`)                                                                                                                                                                                                                                                |
+| Editor state service                            | ◑      | `EditorStateService` — editable slides signal + selection + dirty + ops that record history; undo/redo restore snapshots                                                                                                                                                                                                                                             |
+| **Interaction UI**                              | ◑      | click-select (event delegation) + selection outlines, **drag-to-move + 8 resize handles** (`drag-resize.ts`, one undo entry per gesture via `beginTransform`/`applyTransform`), keyboard (Delete, Ctrl/Cmd+Z/Y, Ctrl/Cmd+D, arrow-nudge ×10), editable deck + Undo/Redo buttons; edits persist through `getContent()`. Marquee, rulers/guides, rotation handle: TODO |
+| **Inspector panel**                             | ◑      | `InspectorPanelComponent` — position/size/rotation/opacity, fill/stroke colour (shapes), text colour/size + B/I/U (text), arrange (z-order), duplicate/delete; commits one history entry per change. Readers/patch-builders in pure `inspector-helpers.ts`. Full React inspector (tabs, advanced fill, effects, animation): TODO                                     |
+| Section / table operations, clipboard, autosave | ☐      | mirror `useSectionOperations` / `useTableOperations`                                                                                                                                                                                                                                                                                                                 |
 
-### Editor chrome (all ☐ — not started)
+### Editor chrome (◑ — inspector started)
 
-Toolbar, inspector panels, context menu, dialogs, slides pane, mobile chrome,
-accessibility panel. Builds on the editor foundation (above) + interaction UI.
+The single-element **inspector panel** is in (see above). Remaining: a
+formatting **toolbar**, context menu, dialogs, slides pane (add/delete/reorder
+slides), mobile chrome, accessibility panel, and the inspector's advanced tabs
+(structured fill, effects, animation, text-advanced). All build on the editor
+foundation + interaction UI.
 
 ### Advanced subsystems (all ☐ — not started)
 
@@ -352,3 +356,13 @@ frontier is **editing** and the remaining advanced subsystems.
     Test count 611 → **915**, all green. The lib-target rule still bites (no
     `replaceAll` / named-capture-groups; one ASCII-CSS-regex file carries a
     justified `eslint-disable`, mirroring React).
+- **2026-06-15 (editor waves)** — Built a working editor on the foundation:
+  interaction UI (click-select + outlines, keyboard editing, undo/redo buttons,
+  save-back through `getContent()`), then **drag-to-move + resize handles**
+  (`drag-resize.ts`; one undo entry per gesture via `beginTransform`/
+  `applyTransform`), then the **inspector panel** (`InspectorPanelComponent` +
+  `inspector-helpers.ts`: position/size/rotation/opacity, fill/stroke/text
+  colour, B/I/U, z-order, duplicate/delete). The editor is now usable
+  end-to-end: select → drag/resize/edit-properties → undo/redo → save. Test
+  count 915 → **953**. Remaining chrome: formatting toolbar, slide CRUD pane,
+  dialogs, advanced inspector tabs.
