@@ -194,6 +194,39 @@
 	cursor: pointer;
 }
 
+/* ── Toolbar actions + speaker notes ────────────────────────────────── */
+.pptx-ng-actions {
+	display: flex;
+	gap: 0.25rem;
+	align-items: center;
+}
+
+.pptx-ng-notes {
+	max-height: 30%;
+	overflow: auto;
+	margin: 0.5rem 1rem 1rem;
+	padding: 0.5rem 0.75rem;
+	border-top: 1px solid rgba(0, 0, 0, 0.1);
+	background: rgba(0, 0, 0, 0.02);
+	font-size: 0.875rem;
+	line-height: 1.4;
+}
+
+.pptx-ng-notes-title {
+	margin: 0 0 0.25rem;
+	font-size: 0.75rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	opacity: 0.6;
+}
+
+.pptx-ng-notes-body {
+	margin: 0;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
 /* ── Tables ─────────────────────────────────────────────────────────── */
 .pptx-ng-table-wrapper {
 	width: 100%;

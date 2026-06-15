@@ -13,7 +13,9 @@ import {
 import type { ViewerTheme } from '../internal/shared';
 import { themeStyle } from '../theme/viewer-theme';
 import { LoadContentService } from './load-content.service';
+import { PresentationOverlayComponent } from './presentation-overlay.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
+import { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
 import type { CollaborationConfig } from './types';
 
 const ZOOM_STEP = 0.1;
@@ -42,7 +44,13 @@ const ZOOM_MAX = 3;
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	providers: [LoadContentService],
-	imports: [NgClass, NgStyle, SlideCanvasComponent],
+	imports: [
+		NgClass,
+		NgStyle,
+		SlideCanvasComponent,
+		PresentationOverlayComponent,
+		SlideSorterOverlayComponent,
+	],
 	template: `
 		<div class="pptx-ng-viewer" [ngClass]="class()" [ngStyle]="rootStyle()">
 			@if (loader.loading()) {
@@ -81,6 +89,23 @@ const ZOOM_MAX = 3;
 						</button>
 						<button type="button" (click)="zoomIn()">+</button>
 					</div>
+					<div class="pptx-ng-actions">
+						<button type="button" (click)="showSorter.set(true)" aria-label="Slide sorter">
+							⊞
+						</button>
+						<button
+							type="button"
+							[class.is-active]="showNotes()"
+							[disabled]="!activeNotes()"
+							(click)="toggleNotes()"
+							aria-label="Speaker notes"
+						>
+							Notes
+						</button>
+						<button type="button" [disabled]="slideCount() === 0" (click)="present()">
+							Present
+						</button>
+					</div>
 				</header>
 
 				<div class="pptx-ng-body">
@@ -104,8 +129,36 @@ const ZOOM_MAX = 3;
 							[mediaDataUrls]="loader.mediaDataUrls()"
 							[zoom]="zoom()"
 						/>
+						@if (showNotes() && activeNotes()) {
+							<aside class="pptx-ng-notes" aria-label="Speaker notes">
+								<h2 class="pptx-ng-notes-title">Notes</h2>
+								<p class="pptx-ng-notes-body">{{ activeNotes() }}</p>
+							</aside>
+						}
 					</main>
 				</div>
+			}
+
+			@if (showSorter()) {
+				<pptx-slide-sorter-overlay
+					[slides]="loader.slides()"
+					[canvasSize]="loader.canvasSize()"
+					[mediaDataUrls]="loader.mediaDataUrls()"
+					[activeIndex]="activeSlideIndex()"
+					(select)="goTo($event); showSorter.set(false)"
+					(closed)="showSorter.set(false)"
+				/>
+			}
+
+			@if (presenting()) {
+				<pptx-presentation-overlay
+					[slides]="loader.slides()"
+					[canvasSize]="loader.canvasSize()"
+					[mediaDataUrls]="loader.mediaDataUrls()"
+					[startIndex]="activeSlideIndex()"
+					(indexChange)="activeSlideIndex.set($event)"
+					(closed)="presenting.set(false)"
+				/>
 			}
 		</div>
 	`,
@@ -138,6 +191,15 @@ export class PowerPointViewerComponent {
 
 	protected readonly zoom = signal(1);
 	protected readonly zoomPercent = computed(() => Math.round(this.zoom() * 100));
+
+	/** Fullscreen presentation-mode overlay visibility. */
+	protected readonly presenting = signal(false);
+	/** Slide-sorter grid overlay visibility. */
+	protected readonly showSorter = signal(false);
+	/** Speaker-notes strip visibility. */
+	protected readonly showNotes = signal(false);
+	/** Notes for the active slide, if any. */
+	protected readonly activeNotes = computed(() => this.activeSlide()?.notes?.trim() || '');
 
 	constructor() {
 		// Load whenever the `content` input changes.
@@ -185,5 +247,16 @@ export class PowerPointViewerComponent {
 	}
 	zoomReset(): void {
 		this.zoom.set(1);
+	}
+
+	/** Open the fullscreen presentation overlay from the current slide. */
+	present(): void {
+		if (this.slideCount() > 0) {
+			this.presenting.set(true);
+		}
+	}
+	/** Toggle the speaker-notes strip. */
+	toggleNotes(): void {
+		this.showNotes.update((v) => !v);
 	}
 }
