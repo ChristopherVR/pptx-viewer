@@ -15,6 +15,20 @@ export { FindBarComponent } from './find-bar.component';
 export { collectElementText, collectSlideText, searchSlides } from './slide-search';
 export { ExportService } from './export.service';
 export { renderToCanvas } from '../lib/canvas-export';
+export { EditorStateService } from './editor-state.service';
+export { EditorHistory } from './editor-history';
+export {
+	updateElementById,
+	moveElementBy,
+	setElementPosition,
+	resizeElement,
+	deleteElementsByIds,
+	duplicateElementById,
+	bringToFront,
+	sendToBack,
+	bringForward,
+	sendBackward,
+} from './element-operations';
 export { resolveParagraphBullet, formatAutoNumber, bulletIndentPx } from './text-bullets';
 export { EquationRendererComponent } from './equation-renderer.component';
 export { ommlToMathml, convertOmmlToMathMl } from './omml-to-mathml';
