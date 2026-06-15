@@ -12,6 +12,7 @@ import {
 	getTextBlockStyle,
 } from './element-style';
 import type { StyleMap } from './element-style';
+import { resolveHyperlinkHref } from './hyperlink';
 import { InkRendererComponent } from './ink-renderer.component';
 import { Model3DRendererComponent } from './model3d-renderer.component';
 import { OleRendererComponent } from './ole-renderer.component';
@@ -22,6 +23,10 @@ import { ZoomRendererComponent } from './zoom-renderer.component';
 interface TextRun {
 	text: string;
 	style: StyleMap;
+	/** Safe `href` when this run carries a renderable hyperlink. */
+	href?: string;
+	/** Hyperlink tooltip / title text. */
+	tooltip?: string;
 }
 
 /**
@@ -179,6 +184,16 @@ interface TextRun {
 '
 										) {
 											<br />
+										} @else if (run.href) {
+											<a
+												class="pptx-ng-link"
+												[href]="run.href"
+												target="_blank"
+												rel="noopener noreferrer"
+												[attr.title]="run.tooltip ?? null"
+												[ngStyle]="run.style"
+												>{{ run.text }}</a
+											>
 										} @else {
 											<span [ngStyle]="run.style">{{ run.text }}</span>
 										}
@@ -246,7 +261,13 @@ export class ElementRendererComponent {
 			const current = out[out.length - 1];
 			const text = seg.isLineBreak ? '\n' : seg.text;
 			if (text) {
-				current.push({ text, style: this.segmentStyle(seg) });
+				const href = resolveHyperlinkHref(seg.style?.hyperlink);
+				current.push({
+					text,
+					style: this.segmentStyle(seg),
+					href,
+					tooltip: href ? seg.style?.hyperlinkTooltip : undefined,
+				});
 			}
 		}
 		return out.filter((p) => p.length > 0 || out.length === 1);

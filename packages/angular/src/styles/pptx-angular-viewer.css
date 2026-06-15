@@ -188,6 +188,12 @@
 	margin: 0;
 }
 
+.pptx-ng-link {
+	color: inherit;
+	text-decoration: underline;
+	cursor: pointer;
+}
+
 /* ── Tables ─────────────────────────────────────────────────────────── */
 .pptx-ng-table-wrapper {
 	width: 100%;
