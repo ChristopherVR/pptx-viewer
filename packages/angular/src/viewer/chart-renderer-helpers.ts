@@ -38,6 +38,12 @@ import type {
 } from 'pptx-viewer-core';
 
 import { buildComboViewModel, buildStockViewModel } from './chart-combo-stock';
+import {
+	computeAxisTitlePrimitives,
+	computeDataTablePrimitives,
+	computeErrorBarPrimitives,
+	computeTrendlinePrimitives,
+} from './chart-overlays';
 import { buildSurfaceViewModel, buildTreemapViewModel } from './chart-surface-treemap';
 import { buildRegionMapViewModel, buildWaterfallViewModel } from './chart-waterfall-map';
 
@@ -283,6 +289,8 @@ export interface SvgText {
 	fontWeight?: 'normal' | 'bold';
 	dominantBaseline?: string;
 	opacity?: number;
+	/** Optional SVG transform (e.g. `rotate(-90, x, y)` for a vertical axis title). */
+	transform?: string;
 }
 
 export interface SvgPolygon {
@@ -1251,6 +1259,22 @@ function buildCartesianViewModel(
 	}
 
 	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
+
+	// Overlays (depth): regression trendlines, error bars, axis titles, data
+	// table — appended on top of the base cartesian primitives.
+	primitives.push(
+		...computeTrendlinePrimitives(
+			chartData,
+			catCount,
+			layout,
+			range,
+			catAxisStyle,
+			chartData.colorPalette,
+		),
+		...computeErrorBarPrimitives(chartData, catCount, layout, range, catAxisStyle),
+		...computeAxisTitlePrimitives(chartData, layout),
+		...computeDataTablePrimitives(chartData, layout, chartData.colorPalette),
+	);
 
 	return {
 		svgWidth: layout.svgWidth,
