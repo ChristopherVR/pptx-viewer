@@ -20,11 +20,15 @@ import type { Box, ResizeHandle } from './drag-resize';
 import { ElementRendererComponent } from './element-renderer.component';
 import type { StyleMap } from './element-style';
 import { getSlideBackgroundStyle } from './slide-background';
+import { computeSnap } from './snap-guides';
+import type { SnapGuide } from './snap-guides';
 
 /** Pixels (screen-space) a pointer must move before a click becomes a drag. */
 const DRAG_THRESHOLD = 3;
 /** Handle size in screen pixels (scaled to stage units via the zoom). */
 const HANDLE_SCREEN_PX = 9;
+/** Snap distance (screen pixels) for alignment guides. */
+const SNAP_SCREEN_PX = 6;
 
 interface DragState {
 	id: string;
@@ -118,6 +122,15 @@ function plainText(el: PptxElement): string {
 							[style.height.px]="mr.height"
 						></div>
 					}
+					@for (g of snapGuides(); track $index) {
+						<div
+							class="pptx-ng-snap-guide"
+							[style.left.px]="g.axis === 'x' ? g.pos : g.start"
+							[style.top.px]="g.axis === 'x' ? g.start : g.pos"
+							[style.width.px]="g.axis === 'x' ? 0 : g.end - g.start"
+							[style.height.px]="g.axis === 'x' ? g.end - g.start : 0"
+						></div>
+					}
 					@if (rotateHandle(); as rh) {
 						<div
 							class="pptx-ng-rotate-handle"
@@ -193,6 +206,8 @@ export class SlideCanvasComponent {
 	readonly marqueeRect = signal<{ x: number; y: number; width: number; height: number } | null>(
 		null,
 	);
+	/** Live alignment-snap guide lines (stage coords) during a move. */
+	readonly snapGuides = signal<readonly SnapGuide[]>([]);
 
 	private readonly textEditor = viewChild<ElementRef<HTMLTextAreaElement>>('textEditor');
 	private readonly stageRef = viewChild<ElementRef<HTMLElement>>('stage');
@@ -484,10 +499,20 @@ export class SlideCanvasComponent {
 
 		const dx = (event.clientX - drag.startX) / zoom;
 		const dy = (event.clientY - drag.startY) / zoom;
-		const box =
+		let box =
 			drag.mode === 'move' || drag.handle === null
 				? applyMove(drag.startBox, dx, dy)
 				: applyResize(drag.startBox, drag.handle, dx, dy);
+
+		// Snap a move to nearby element edges/centres and show alignment guides.
+		if (drag.mode === 'move') {
+			const others = this.elements()
+				.filter((el) => el.id !== drag.id)
+				.map((el) => ({ x: el.x, y: el.y, width: el.width, height: el.height }));
+			const snap = computeSnap(box, others, SNAP_SCREEN_PX / zoom);
+			box = { ...box, x: snap.x, y: snap.y };
+			this.snapGuides.set(snap.guides);
+		}
 		this.transformUpdate.emit({ id: drag.id, box });
 	}
 
@@ -514,6 +539,7 @@ export class SlideCanvasComponent {
 			this.marqueeRect.set(null);
 		}
 		this.drag = null;
+		this.snapGuides.set([]);
 	}
 
 	readonly wrapperStyle = computed<StyleMap>(() => {

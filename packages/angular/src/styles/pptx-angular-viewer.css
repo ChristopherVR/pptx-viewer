@@ -231,6 +231,15 @@
 	z-index: 9999;
 }
 
+.pptx-ng-snap-guide {
+	position: absolute;
+	box-sizing: border-box;
+	border-left: 1px solid #f43f8e;
+	border-top: 1px solid #f43f8e;
+	pointer-events: none;
+	z-index: 10003;
+}
+
 .pptx-ng-rotate-handle {
 	position: absolute;
 	box-sizing: border-box;
