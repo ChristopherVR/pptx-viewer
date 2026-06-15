@@ -406,6 +406,14 @@ export class SlideCanvasComponent {
 		if (!this.editable()) {
 			return;
 		}
+		// A press that reaches the stage started OUTSIDE the inline text editor
+		// (the textarea stops its own pointerdown). Flush the edit synchronously by
+		// blurring it — this routes through commitText → textCommit now, instead of
+		// relying on the native blur firing before pointerup clears selection, which
+		// is unreliable on touch.
+		if (this.editingId()) {
+			this.textEditor()?.nativeElement.blur();
+		}
 		// Capture the pointer so subsequent move/up events keep firing even when
 		// the finger drifts off the original target (essential on touch, where the
 		// browser would otherwise route the gesture elsewhere).
