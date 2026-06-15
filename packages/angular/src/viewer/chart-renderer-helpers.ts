@@ -347,7 +347,7 @@ const AXIS_LABEL_COLOR = '#64748b';
 const ZERO_LINE_COLOR = '#94a3b8';
 const TICK_COUNT = 5;
 
-function buildGridlinesAndLabels(
+export function buildGridlinesAndLabels(
 	range: ValueRange,
 	layout: PlotLayout,
 ): { gridlines: SvgLine[]; axisLabels: SvgText[] } {
@@ -383,7 +383,7 @@ function buildGridlinesAndLabels(
 	return { gridlines, axisLabels };
 }
 
-function buildZeroLine(range: ValueRange, layout: PlotLayout): SvgLine | undefined {
+export function buildZeroLine(range: ValueRange, layout: PlotLayout): SvgLine | undefined {
 	if (range.min >= 0 || range.max <= 0) {
 		return undefined;
 	}
@@ -399,7 +399,7 @@ function buildZeroLine(range: ValueRange, layout: PlotLayout): SvgLine | undefin
 	};
 }
 
-function buildCategoryLabels(
+export function buildCategoryLabels(
 	categoryLabels: ReadonlyArray<string>,
 	layout: PlotLayout,
 	catSpacing: 'bar' | 'line',
@@ -424,7 +424,7 @@ function buildCategoryLabels(
 	});
 }
 
-function buildLegend(
+export function buildLegend(
 	series: ReadonlyArray<PptxChartSeries>,
 	colorPalette: readonly string[] | undefined,
 	svgWidth: number,
