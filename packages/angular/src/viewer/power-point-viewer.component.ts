@@ -43,6 +43,7 @@ import { HyperlinkDialogComponent } from './hyperlink-dialog.component';
 import { InspectorPanelComponent } from './inspector-panel.component';
 import { LoadContentService } from './load-content.service';
 import { PresentationOverlayComponent } from './presentation-overlay.component';
+import { PresenterViewComponent } from './presenter-view.component';
 import { PrintDialogComponent } from './print-dialog.component';
 import type { PrintSettings } from './print-helpers';
 import { PrintService } from './print.service';
@@ -93,6 +94,7 @@ const ZOOM_MAX = 3;
 		NgStyle,
 		SlideCanvasComponent,
 		PresentationOverlayComponent,
+		PresenterViewComponent,
 		SlideSorterOverlayComponent,
 		FindBarComponent,
 		FindReplaceBarComponent,
@@ -273,6 +275,14 @@ const ZOOM_MAX = 3;
 						</button>
 						<button
 							type="button"
+							[disabled]="slideCount() === 0"
+							(click)="presentPresenter()"
+							aria-label="Presenter view"
+						>
+							Presenter
+						</button>
+						<button
+							type="button"
 							[class.is-active]="collab.connected()"
 							(click)="showShare.set(true)"
 							aria-label="Share for collaboration"
@@ -437,6 +447,21 @@ const ZOOM_MAX = 3;
 				/>
 			}
 
+			@if (presentingPresenter()) {
+				<pptx-presenter-view
+					[slides]="loader.slides()"
+					[currentSlideIndex]="activeSlideIndex()"
+					[canvasSize]="loader.canvasSize()"
+					[mediaDataUrls]="loader.mediaDataUrls()"
+					[presentationStartTime]="presenterStartTime()"
+					[isAudienceWindowOpen]="presenting()"
+					(movePresentationSlide)="goTo(activeSlideIndex() + $event)"
+					(openAudienceWindow)="present()"
+					(closeAudienceWindow)="presenting.set(false)"
+					(exit)="exitPresenter()"
+				/>
+			}
+
 			@if (showFind()) {
 				<pptx-find-bar
 					[slides]="loader.slides()"
@@ -559,6 +584,10 @@ export class PowerPointViewerComponent {
 
 	/** Fullscreen presentation-mode overlay visibility. */
 	protected readonly presenting = signal(false);
+	/** Presenter-view (speaker) overlay visibility. */
+	protected readonly presentingPresenter = signal(false);
+	/** Epoch ms when presenter view started (drives the elapsed timer). */
+	protected readonly presenterStartTime = signal<number | null>(null);
 	/** Slide-sorter grid overlay visibility. */
 	protected readonly showSorter = signal(false);
 	/** Speaker-notes strip visibility. */
@@ -849,6 +878,20 @@ export class PowerPointViewerComponent {
 		if (this.slideCount() > 0) {
 			this.presenting.set(true);
 		}
+	}
+
+	/** Open the presenter (speaker) view — current+next slide, notes, timer. */
+	presentPresenter(): void {
+		if (this.slideCount() > 0) {
+			this.presenterStartTime.set(Date.now());
+			this.presentingPresenter.set(true);
+		}
+	}
+
+	/** Close the presenter view (and any audience overlay it opened). */
+	exitPresenter(): void {
+		this.presentingPresenter.set(false);
+		this.presenting.set(false);
 	}
 	/** Toggle the speaker-notes strip. */
 	toggleNotes(): void {
