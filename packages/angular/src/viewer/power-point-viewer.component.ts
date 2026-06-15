@@ -12,6 +12,7 @@ import {
 
 import type { ViewerTheme } from '../internal/shared';
 import { themeStyle } from '../theme/viewer-theme';
+import { FindBarComponent } from './find-bar.component';
 import { LoadContentService } from './load-content.service';
 import { PresentationOverlayComponent } from './presentation-overlay.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
@@ -50,6 +51,7 @@ const ZOOM_MAX = 3;
 		SlideCanvasComponent,
 		PresentationOverlayComponent,
 		SlideSorterOverlayComponent,
+		FindBarComponent,
 	],
 	template: `
 		<div class="pptx-ng-viewer" [ngClass]="class()" [ngStyle]="rootStyle()">
@@ -90,6 +92,9 @@ const ZOOM_MAX = 3;
 						<button type="button" (click)="zoomIn()">+</button>
 					</div>
 					<div class="pptx-ng-actions">
+						<button type="button" (click)="showFind.set(true)" aria-label="Find in slides">
+							Find
+						</button>
 						<button type="button" (click)="showSorter.set(true)" aria-label="Slide sorter">
 							⊞
 						</button>
@@ -160,6 +165,14 @@ const ZOOM_MAX = 3;
 					(closed)="presenting.set(false)"
 				/>
 			}
+
+			@if (showFind()) {
+				<pptx-find-bar
+					[slides]="loader.slides()"
+					(navigate)="goTo($event)"
+					(closed)="showFind.set(false)"
+				/>
+			}
 		</div>
 	`,
 })
@@ -198,6 +211,8 @@ export class PowerPointViewerComponent {
 	protected readonly showSorter = signal(false);
 	/** Speaker-notes strip visibility. */
 	protected readonly showNotes = signal(false);
+	/** Find-in-slides bar visibility. */
+	protected readonly showFind = signal(false);
 	/** Notes for the active slide, if any. */
 	protected readonly activeNotes = computed(() => this.activeSlide()?.notes?.trim() || '');
 

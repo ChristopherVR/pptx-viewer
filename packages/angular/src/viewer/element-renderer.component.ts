@@ -18,6 +18,7 @@ import { Model3DRendererComponent } from './model3d-renderer.component';
 import { OleRendererComponent } from './ole-renderer.component';
 import { SmartArtRendererComponent } from './smart-art-renderer.component';
 import { TableRendererComponent } from './table-renderer.component';
+import { bulletIndentPx, resolveParagraphBullet } from './text-bullets';
 import { ZoomRendererComponent } from './zoom-renderer.component';
 
 interface TextRun {
@@ -27,6 +28,16 @@ interface TextRun {
 	href?: string;
 	/** Hyperlink tooltip / title text. */
 	tooltip?: string;
+}
+
+interface Paragraph {
+	runs: TextRun[];
+	/** Bullet / number marker text, when this paragraph is a list item. */
+	bulletMarker?: string;
+	/** `[ngStyle]` map for the bullet marker (colour / font). */
+	bulletStyle: StyleMap;
+	/** Left indent in px derived from the paragraph outline level. */
+	indentPx: number;
 }
 
 /**
@@ -176,8 +187,13 @@ interface TextRun {
 					@if (hasText()) {
 						<div class="pptx-ng-text" [ngStyle]="textStyle()">
 							@for (para of paragraphs(); track $index) {
-								<p class="pptx-ng-para">
-									@for (run of para; track $index) {
+								<p class="pptx-ng-para" [style.padding-left.px]="para.indentPx">
+									@if (para.bulletMarker) {
+										<span class="pptx-ng-bullet" [ngStyle]="para.bulletStyle"
+											>{{ para.bulletMarker }}&nbsp;</span
+										>
+									}
+									@for (run of para.runs; track $index) {
 										@if (
 											run.text ===
 											'
@@ -243,26 +259,45 @@ export class ElementRendererComponent {
 		() => this.element().type === 'picture' || this.element().type === 'image',
 	);
 
-	readonly paragraphs = computed<TextRun[][]>(() => {
+	readonly paragraphs = computed<Paragraph[]>(() => {
 		const el = this.element();
 		if (!hasTextProperties(el)) {
 			return [];
 		}
 		const segments = el.textSegments;
 		if (!segments || segments.length === 0) {
-			return el.text ? [[{ text: el.text, style: {} }]] : [];
+			return el.text
+				? [{ runs: [{ text: el.text, style: {} }], bulletStyle: {}, indentPx: 0 }]
+				: [];
 		}
-		const out: TextRun[][] = [[]];
+		const out: Paragraph[] = [{ runs: [], bulletStyle: {}, indentPx: 0 }];
+		let paraStarted = false;
 		for (const seg of segments) {
 			if (seg.isParagraphBreak) {
-				out.push([]);
+				out.push({ runs: [], bulletStyle: {}, indentPx: 0 });
+				paraStarted = false;
 				continue;
 			}
 			const current = out[out.length - 1];
+			// The first segment of each paragraph carries its bullet + outline level.
+			if (!paraStarted) {
+				paraStarted = true;
+				current.indentPx = bulletIndentPx(seg.paragraphLevel);
+				const bullet = resolveParagraphBullet(seg);
+				if (bullet) {
+					current.bulletMarker = bullet.marker;
+					if (bullet.color) {
+						current.bulletStyle['color'] = bullet.color;
+					}
+					if (bullet.fontFamily) {
+						current.bulletStyle['font-family'] = bullet.fontFamily;
+					}
+				}
+			}
 			const text = seg.isLineBreak ? '\n' : seg.text;
 			if (text) {
 				const href = resolveHyperlinkHref(seg.style?.hyperlink);
-				current.push({
+				current.runs.push({
 					text,
 					style: this.segmentStyle(seg),
 					href,
@@ -270,10 +305,12 @@ export class ElementRendererComponent {
 				});
 			}
 		}
-		return out.filter((p) => p.length > 0 || out.length === 1);
+		return out.filter((p) => p.runs.length > 0 || p.bulletMarker !== undefined || out.length === 1);
 	});
 
-	readonly hasText = computed(() => this.paragraphs().some((p) => p.length > 0));
+	readonly hasText = computed(() =>
+		this.paragraphs().some((p) => p.runs.length > 0 || p.bulletMarker !== undefined),
+	);
 
 	readonly placeholderLabel = computed(() => {
 		const map: Record<string, string> = {

@@ -11,6 +11,9 @@ export { Model3DRendererComponent } from './model3d-renderer.component';
 export { ZoomRendererComponent } from './zoom-renderer.component';
 export { PresentationOverlayComponent } from './presentation-overlay.component';
 export { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
+export { FindBarComponent } from './find-bar.component';
+export { collectElementText, collectSlideText, searchSlides } from './slide-search';
+export { resolveParagraphBullet, formatAutoNumber, bulletIndentPx } from './text-bullets';
 export { LoadContentService } from './load-content.service';
 
 export type { CanvasSize, CollaborationConfig, CollaborationRole } from './types';
