@@ -44,6 +44,11 @@ import { SlideCanvasComponent } from './slide-canvas.component';
  *   End                           → last slide
  *   Escape                        → emit `closed`
  *
+ * Touch bindings (mobile has no keyboard):
+ *   Always-visible ✕ button (top-right) → emit `closed`
+ *   ‹ / › edge buttons                  → previous / next visible slide
+ *   Horizontal swipe                    → left → next, right → previous
+ *
  * Click on the overlay body → advance to next visible slide.
  */
 @Component({
@@ -61,32 +66,74 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 			cursor: pointer;
 			user-select: none;
 		}
+
+		.pptx-ng-presentation-root {
+			position: absolute;
+			inset: 0;
+			/* Allow vertical scrolling/pinch but let us interpret horizontal swipes. */
+			touch-action: pan-y;
+		}
+
+		.pptx-ng-presentation-close:hover,
+		.pptx-ng-presentation-nav:hover {
+			background: rgba(0, 0, 0, 0.75);
+		}
 	`,
 	template: `
 		<div
-			class="pptx-ng-presentation-stage"
-			[ngStyle]="stageContainerStyle()"
-			(click)="onBodyClick($event)"
-			(contextmenu)="$event.preventDefault()"
+			class="pptx-ng-presentation-root"
+			(touchstart)="onTouchStart($event)"
+			(touchend)="onTouchEnd($event)"
 		>
-			<pptx-slide-canvas
-				[slide]="currentSlide()"
-				[canvasSize]="canvasSize()"
-				[mediaDataUrls]="mediaDataUrls()"
-				[zoom]="zoom()"
-			/>
-		</div>
+			<div
+				class="pptx-ng-presentation-stage"
+				[ngStyle]="stageContainerStyle()"
+				(click)="onBodyClick($event)"
+				(contextmenu)="$event.preventDefault()"
+			>
+				<pptx-slide-canvas
+					[slide]="currentSlide()"
+					[canvasSize]="canvasSize()"
+					[mediaDataUrls]="mediaDataUrls()"
+					[zoom]="zoom()"
+				/>
+			</div>
 
-		<div class="pptx-ng-presentation-hud" [ngStyle]="hudStyle">
+			<!-- Always-visible close button (top-right, safe-area aware). -->
 			<button
 				type="button"
 				class="pptx-ng-presentation-close"
 				[ngStyle]="closeButtonStyle"
 				(click)="onClose($event)"
+				(touchend)="onCloseTouch($event)"
 				aria-label="Exit presentation"
 			>
 				&#x2715;
 			</button>
+
+			<!-- Edge navigation buttons (vertically centred, touch-friendly). -->
+			<button
+				type="button"
+				class="pptx-ng-presentation-nav pptx-ng-presentation-prev"
+				[ngStyle]="prevButtonStyle"
+				(click)="onPrev($event)"
+				(touchend)="onPrevTouch($event)"
+				aria-label="Previous slide"
+			>
+				&#x2039;
+			</button>
+			<button
+				type="button"
+				class="pptx-ng-presentation-nav pptx-ng-presentation-next"
+				[ngStyle]="nextButtonStyle"
+				(click)="onNext($event)"
+				(touchend)="onNextTouch($event)"
+				aria-label="Next slide"
+			>
+				&#x203A;
+			</button>
+
+			<!-- Slide counter. -->
 			<span class="pptx-ng-presentation-counter" [ngStyle]="counterStyle">
 				{{ counterLabel() }}
 			</span>
@@ -156,41 +203,97 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 	});
 
 	// ------------------------------------------------------------------
-	// Static HUD styles (no dynamic data → plain objects, not computed)
+	// Static control styles (no dynamic data → plain objects, not computed)
 	// ------------------------------------------------------------------
 
-	protected readonly hudStyle: Record<string, string> = {
+	/**
+	 * Always-visible close button, fixed at the top-right and offset by the
+	 * device safe-area insets so it clears notches / rounded corners. Sits on a
+	 * higher z-index than the stage so taps never fall through to tap-advance.
+	 */
+	protected readonly closeButtonStyle: Record<string, string> = {
 		position: 'fixed',
-		top: '0',
-		right: '0',
+		top: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)',
+		right: 'calc(env(safe-area-inset-right, 0px) + 0.5rem)',
 		display: 'flex',
 		'align-items': 'center',
-		gap: '0.75rem',
-		padding: '0.5rem 0.75rem',
+		'justify-content': 'center',
+		width: '44px',
+		height: '44px',
+		'min-width': '44px',
+		'min-height': '44px',
 		background: 'rgba(0,0,0,0.55)',
-		'border-bottom-left-radius': '6px',
-		'z-index': '10001',
-		color: '#fff',
-		'font-family': 'system-ui, sans-serif',
-		'font-size': '0.875rem',
-		'pointer-events': 'none',
-	};
-
-	protected readonly closeButtonStyle: Record<string, string> = {
-		background: 'none',
 		border: 'none',
+		'border-radius': '50%',
 		color: '#fff',
 		cursor: 'pointer',
-		'font-size': '1rem',
-		padding: '0.25rem 0.5rem',
-		'border-radius': '4px',
-		'pointer-events': 'auto',
+		'font-size': '1.25rem',
 		'line-height': '1',
+		'pointer-events': 'auto',
+		'z-index': '10002',
+		'touch-action': 'manipulation',
+	};
+
+	/** Shared geometry for the left/right edge navigation buttons. */
+	private readonly navButtonBase: Record<string, string> = {
+		position: 'fixed',
+		top: '50%',
+		transform: 'translateY(-50%)',
+		display: 'flex',
+		'align-items': 'center',
+		'justify-content': 'center',
+		width: '44px',
+		height: '44px',
+		'min-width': '44px',
+		'min-height': '44px',
+		background: 'rgba(0,0,0,0.45)',
+		border: 'none',
+		'border-radius': '50%',
+		color: '#fff',
+		cursor: 'pointer',
+		'font-size': '1.75rem',
+		'line-height': '1',
+		'pointer-events': 'auto',
+		'z-index': '10001',
+		'touch-action': 'manipulation',
+	};
+
+	protected readonly prevButtonStyle: Record<string, string> = {
+		...this.navButtonBase,
+		left: 'calc(env(safe-area-inset-left, 0px) + 0.5rem)',
+	};
+
+	protected readonly nextButtonStyle: Record<string, string> = {
+		...this.navButtonBase,
+		right: 'calc(env(safe-area-inset-right, 0px) + 0.5rem)',
 	};
 
 	protected readonly counterStyle: Record<string, string> = {
+		position: 'fixed',
+		bottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.5rem)',
+		left: '50%',
+		transform: 'translateX(-50%)',
+		padding: '0.25rem 0.75rem',
+		background: 'rgba(0,0,0,0.55)',
+		'border-radius': '999px',
+		color: '#fff',
+		'font-family': 'system-ui, sans-serif',
+		'font-size': '0.875rem',
+		'line-height': '1.4',
 		'pointer-events': 'none',
+		'z-index': '10001',
 	};
+
+	// ------------------------------------------------------------------
+	// Touch / swipe tracking
+	// ------------------------------------------------------------------
+
+	/** Horizontal swipe distance (px) required to trigger navigation. */
+	private static readonly SWIPE_THRESHOLD = 50;
+
+	/** X coordinate captured on touchstart, or null when no swipe is active. */
+	private touchStartX: number | null = null;
+	private touchStartY: number | null = null;
 
 	// ------------------------------------------------------------------
 	// Lifecycle
@@ -278,6 +381,88 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 	protected onClose(event: MouseEvent): void {
 		event.stopPropagation();
 		this.emitClosed();
+	}
+
+	/**
+	 * Close button touch — stop propagation and prevent the synthesized click
+	 * so a tap exits without bubbling to the tap-advance handler.
+	 */
+	protected onCloseTouch(event: TouchEvent): void {
+		event.stopPropagation();
+		event.preventDefault();
+		this.emitClosed();
+	}
+
+	/** Previous-edge button — stop propagation so the tap does not double-fire. */
+	protected onPrev(event: MouseEvent): void {
+		event.stopPropagation();
+		this.navigate('prev');
+	}
+
+	protected onPrevTouch(event: TouchEvent): void {
+		event.stopPropagation();
+		event.preventDefault();
+		this.navigate('prev');
+	}
+
+	/** Next-edge button — stop propagation so the tap does not double-fire. */
+	protected onNext(event: MouseEvent): void {
+		event.stopPropagation();
+		this.navigate('next');
+	}
+
+	protected onNextTouch(event: TouchEvent): void {
+		event.stopPropagation();
+		event.preventDefault();
+		this.navigate('next');
+	}
+
+	// ------------------------------------------------------------------
+	// Swipe handling (touch devices have no keyboard)
+	// ------------------------------------------------------------------
+
+	/** Record the initial touch position. */
+	protected onTouchStart(event: TouchEvent): void {
+		const touch = event.changedTouches[0];
+		if (!touch) {
+			this.touchStartX = null;
+			this.touchStartY = null;
+			return;
+		}
+		this.touchStartX = touch.clientX;
+		this.touchStartY = touch.clientY;
+	}
+
+	/**
+	 * On touchend, treat a predominantly horizontal drag past the threshold as a
+	 * swipe: left-swipe → next, right-swipe → prev.
+	 */
+	protected onTouchEnd(event: TouchEvent): void {
+		const startX = this.touchStartX;
+		const startY = this.touchStartY;
+		this.touchStartX = null;
+		this.touchStartY = null;
+		if (startX === null || startY === null) {
+			return;
+		}
+		const touch = event.changedTouches[0];
+		if (!touch) {
+			return;
+		}
+		const dx = touch.clientX - startX;
+		const dy = touch.clientY - startY;
+		// Require a mostly-horizontal gesture past the threshold.
+		if (Math.abs(dx) < PresentationOverlayComponent.SWIPE_THRESHOLD) {
+			return;
+		}
+		if (Math.abs(dx) <= Math.abs(dy)) {
+			return;
+		}
+		if (dx < 0) {
+			this.navigate('next');
+		} else {
+			this.navigate('prev');
+		}
 	}
 
 	// ------------------------------------------------------------------

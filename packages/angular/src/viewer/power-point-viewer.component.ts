@@ -189,7 +189,12 @@ const ZOOM_MAX = 3;
 						</nav>
 					}
 
-					<main class="pptx-ng-main" #mainEl>
+					<main
+						class="pptx-ng-main"
+						#mainEl
+						(touchstart)="onMainTouchStart($event)"
+						(touchend)="onMainTouchEnd($event)"
+					>
 						<pptx-slide-canvas
 							[slide]="activeSlide()"
 							[canvasSize]="loader.canvasSize()"
@@ -225,21 +230,35 @@ const ZOOM_MAX = 3;
 						</aside>
 					} @else if (canEdit() && activeSlide(); as sl) {
 						<aside class="pptx-ng-inspector-host" aria-label="Slide properties">
-							<div class="pptx-ng-slide-props">
-								<h2 class="pptx-ng-notes-title">Slide</h2>
-								<label class="pptx-ng-prop-row">
-									<span>Background</span>
-									<input
-										type="color"
-										[value]="sl.backgroundColor || '#ffffff'"
-										(change)="onSlideBackground($event)"
-									/>
-								</label>
-								<label class="pptx-ng-prop-row pptx-ng-prop-col">
-									<span>Notes</span>
-									<textarea rows="5" [value]="sl.notes || ''" (change)="onSlideNotes($event)"></textarea>
-								</label>
-							</div>
+							<!--
+								Keyed on the active index so the inputs are recreated (and reseeded)
+								only when the slide changes — never on every change-detection pass
+								while typing. This keeps the on-screen keyboard open and the caret
+								stable on mobile.
+							-->
+							@if (slidePropsKey(); as key) {
+								<div class="pptx-ng-slide-props" [attr.data-slide-key]="key">
+									<h2 class="pptx-ng-notes-title">Slide</h2>
+									<label class="pptx-ng-prop-row">
+										<span>Background</span>
+										<input
+											type="color"
+											[attr.value]="sl.backgroundColor || '#ffffff'"
+											(change)="onSlideBackground($event)"
+										/>
+									</label>
+									<label class="pptx-ng-prop-row pptx-ng-prop-col">
+										<span>Notes</span>
+										<textarea
+											rows="5"
+											placeholder="Speaker notes…"
+											(change)="onSlideNotes($event)"
+											(blur)="onSlideNotes($event)"
+											>{{ sl.notes || '' }}</textarea
+										>
+									</label>
+								</div>
+							}
 						</aside>
 					}
 				</div>
@@ -340,6 +359,13 @@ export class PowerPointViewerComponent {
 	protected readonly editingId = signal<string | null>(null);
 	/** Notes for the active slide, if any. */
 	protected readonly activeNotes = computed(() => this.activeSlide()?.notes?.trim() || '');
+	/**
+	 * Stable, always-truthy key for the slide-properties form. Changes only when
+	 * the active slide changes, so the `@if` recreates (and reseeds) the
+	 * uncontrolled notes/background inputs on navigation — but never mid-typing.
+	 * String-prefixed so slide index 0 stays truthy under `@if (…; as key)`.
+	 */
+	protected readonly slidePropsKey = computed(() => `slide-${this.activeSlideIndex()}`);
 	/** The single selected element on the active slide (for the inspector). */
 	protected readonly selectedElement = computed<PptxElement | null>(() => {
 		const ids = this.editor.selectedIds();
@@ -402,6 +428,57 @@ export class PowerPointViewerComponent {
 	}
 	goNext(): void {
 		this.goTo(this.activeSlideIndex() + 1);
+	}
+
+	/** Horizontal-swipe tracking start coordinates (touch begins on the canvas). */
+	private swipeStartX: number | null = null;
+	private swipeStartY: number | null = null;
+
+	/**
+	 * Begin tracking a horizontal swipe for slide navigation.
+	 *
+	 * To disambiguate a navigation swipe from an element drag, swipe-nav is only
+	 * armed when editing is off (`!canEdit()`). When `canEdit()` is true,
+	 * pointer/touch gestures belong to element manipulation (move/resize/rotate),
+	 * so we never hijack them. The large ‹ › buttons remain available in all
+	 * modes for explicit navigation.
+	 */
+	onMainTouchStart(event: TouchEvent): void {
+		if (this.canEdit() || event.changedTouches.length !== 1) {
+			this.swipeStartX = null;
+			this.swipeStartY = null;
+			return;
+		}
+		const touch = event.changedTouches[0];
+		this.swipeStartX = touch.clientX;
+		this.swipeStartY = touch.clientY;
+	}
+
+	/**
+	 * Complete a swipe: a predominantly horizontal drag of at least the threshold
+	 * navigates to the previous (swipe right) or next (swipe left) slide.
+	 */
+	onMainTouchEnd(event: TouchEvent): void {
+		const startX = this.swipeStartX;
+		const startY = this.swipeStartY;
+		this.swipeStartX = null;
+		this.swipeStartY = null;
+		if (startX === null || startY === null || event.changedTouches.length !== 1) {
+			return;
+		}
+		const touch = event.changedTouches[0];
+		const dx = touch.clientX - startX;
+		const dy = touch.clientY - startY;
+		const SWIPE_THRESHOLD = 50;
+		// Ignore vertical-dominant gestures (scrolling) and short drags.
+		if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) <= Math.abs(dy)) {
+			return;
+		}
+		if (dx < 0) {
+			this.goNext();
+		} else {
+			this.goPrev();
+		}
 	}
 
 	zoomIn(): void {

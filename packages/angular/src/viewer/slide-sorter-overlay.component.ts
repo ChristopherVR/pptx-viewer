@@ -164,8 +164,12 @@ const GRID_GAP = 16;
 				display: flex;
 				align-items: center;
 				justify-content: center;
-				width: 2rem;
-				height: 2rem;
+				/* Touch-friendly: at least 44x44 CSS px so it can be tapped
+				   without a keyboard on mobile. */
+				width: 44px;
+				height: 44px;
+				min-width: 44px;
+				min-height: 44px;
 				padding: 0;
 				border: none;
 				border-radius: 50%;
@@ -174,6 +178,7 @@ const GRID_GAP = 16;
 				cursor: pointer;
 				transition: background 0.15s;
 				flex-shrink: 0;
+				touch-action: manipulation;
 			}
 
 			.pptx-ng-sorter-close:hover {

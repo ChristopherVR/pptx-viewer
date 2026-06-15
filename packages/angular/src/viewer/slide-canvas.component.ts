@@ -25,10 +25,24 @@ import type { SnapGuide } from './snap-guides';
 
 /** Pixels (screen-space) a pointer must move before a click becomes a drag. */
 const DRAG_THRESHOLD = 3;
-/** Handle size in screen pixels (scaled to stage units via the zoom). */
-const HANDLE_SCREEN_PX = 9;
+/** Handle size in screen pixels (fine pointer — mouse/trackpad). */
+const HANDLE_SCREEN_PX_FINE = 9;
+/** Handle size in screen pixels (coarse pointer — touch); larger hit target. */
+const HANDLE_SCREEN_PX_COARSE = 20;
 /** Snap distance (screen pixels) for alignment guides. */
 const SNAP_SCREEN_PX = 6;
+/** Max delay (ms) between two taps to count as a double-tap on touch. */
+const DOUBLE_TAP_MS = 300;
+
+/**
+ * True when the primary pointer is coarse (touch). Computed once at module
+ * load; guarded for environments without `matchMedia` (SSR/tests).
+ */
+const IS_COARSE_POINTER: boolean =
+	typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+
+/** Resize/rotate handle size in screen pixels for the current pointer kind. */
+const HANDLE_SCREEN_PX = IS_COARSE_POINTER ? HANDLE_SCREEN_PX_COARSE : HANDLE_SCREEN_PX_FINE;
 
 interface DragState {
 	id: string;
@@ -72,6 +86,19 @@ function plainText(el: PptxElement): string {
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [NgStyle, ElementRendererComponent],
+	styles: [
+		`
+			/*
+			 * In editor mode the stage must own all pointer gestures so touch
+			 * drag/resize/rotate/marquee aren't stolen by the browser for
+			 * panning/pinch-zooming. View-only mode keeps default behaviour so
+			 * the slide can still be scrolled.
+			 */
+			.pptx-ng-canvas-stage.is-editable {
+				touch-action: none;
+			}
+		`,
+	],
 	template: `
 		<div class="pptx-ng-canvas-viewport">
 			<div class="pptx-ng-canvas-wrapper" [ngStyle]="wrapperStyle()">
@@ -149,7 +176,6 @@ function plainText(el: PptxElement): string {
 							[style.top.px]="eb.y"
 							[style.width.px]="eb.width"
 							[style.height.px]="eb.height"
-							[value]="eb.text"
 							(pointerdown)="$event.stopPropagation()"
 							(blur)="commitText($event, eb.id)"
 							(keydown)="onEditorKeydown($event)"
@@ -212,14 +238,34 @@ export class SlideCanvasComponent {
 	private readonly textEditor = viewChild<ElementRef<HTMLTextAreaElement>>('textEditor');
 	private readonly stageRef = viewChild<ElementRef<HTMLElement>>('stage');
 
+	/** The editing id we've already initialised the textarea for, to avoid re-seeding its value mid-edit. */
+	private seededEditId: string | null = null;
+	/** Last-tap timestamp + element id, for synthetic double-tap detection on touch. */
+	private lastTap: { id: string; time: number } | null = null;
+
 	constructor() {
-		// Focus + select the inline editor whenever it appears.
+		// Seed + focus the inline editor exactly once when it first appears for a
+		// given element. The textarea is UNCONTROLLED (no `[value]` binding): if
+		// Angular rewrote `value` on every change-detection pass the caret would
+		// jump to position 0 and typed text would reverse. We therefore set the
+		// initial text and select it only on first appearance, and never touch
+		// `value` again while the user types.
 		effect(() => {
 			const editor = this.textEditor();
-			if (editor) {
-				editor.nativeElement.focus();
-				editor.nativeElement.select();
+			const box = this.editingBox();
+			if (!editor || !box) {
+				if (!box) {
+					this.seededEditId = null;
+				}
+				return;
 			}
+			if (this.seededEditId === box.id) {
+				return;
+			}
+			this.seededEditId = box.id;
+			editor.nativeElement.value = box.text;
+			editor.nativeElement.focus();
+			editor.nativeElement.select();
 		});
 	}
 
@@ -287,9 +333,27 @@ export class SlideCanvasComponent {
 		if (!this.editable()) {
 			return;
 		}
+		// Capture the pointer so subsequent move/up events keep firing even when
+		// the finger drifts off the original target (essential on touch, where the
+		// browser would otherwise route the gesture elsewhere).
+		(event.target as Element | null)?.setPointerCapture?.(event.pointerId);
 		const target = event.target as HTMLElement | null;
 		const host = target?.closest('[data-element-id]') as HTMLElement | null;
 		const id = host?.getAttribute('data-element-id');
+		// Synthetic double-tap: two presses on the same element within
+		// DOUBLE_TAP_MS begin inline text editing (native dblclick is unreliable
+		// on touch). Desktop dblclick is handled separately in onDblClick.
+		if (id) {
+			const now = event.timeStamp || Date.now();
+			if (this.lastTap && this.lastTap.id === id && now - this.lastTap.time < DOUBLE_TAP_MS) {
+				this.lastTap = null;
+				this.textEditStart.emit({ id });
+				return;
+			}
+			this.lastTap = { id, time: now };
+		} else {
+			this.lastTap = null;
+		}
 		if (!id) {
 			// Empty space: begin a marquee (rubber-band) selection.
 			const stage = this.stageRef()?.nativeElement;
@@ -385,6 +449,7 @@ export class SlideCanvasComponent {
 
 	onHandlePointerDown(event: PointerEvent, handle: ResizeHandle): void {
 		event.stopPropagation();
+		(event.target as Element | null)?.setPointerCapture?.(event.pointerId);
 		const box = this.singleSelected();
 		if (!box) {
 			return;
@@ -402,6 +467,7 @@ export class SlideCanvasComponent {
 
 	onRotatePointerDown(event: PointerEvent): void {
 		event.stopPropagation();
+		(event.target as Element | null)?.setPointerCapture?.(event.pointerId);
 		const box = this.singleSelected();
 		const stage = this.stageRef()?.nativeElement;
 		if (!box || !stage) {

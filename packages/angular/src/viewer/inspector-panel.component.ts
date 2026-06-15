@@ -37,72 +37,89 @@ import {
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
+		<!--
+			NOTE (mobile-safe inputs): every numeric / colour input is keyed on the
+			selected element's id via @if blocks. Angular destroys and recreates the
+			<input> only when a *different* element is selected, seeding its initial
+			value once. While the user types, the [value] binding is NOT re-evaluated
+			against the live (just-patched) element, so .value is never rewritten
+			mid-edit — the caret stays put and the on-screen keyboard does not dismiss.
+			All commits happen on (change) (blur), reading event.target.value.
+		-->
 		<aside class="pptx-ng-inspector" aria-label="Element properties">
 			<!-- ── Transform: Position & Size ─────────────────────────────────── -->
 			<section class="pptx-ng-inspector__section">
 				<h3 class="pptx-ng-inspector__heading">Transform</h3>
 
-				<div class="pptx-ng-inspector__row">
-					<label class="pptx-ng-inspector__label" for="insp-x">X</label>
-					<input
-						id="insp-x"
-						class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
-						type="number"
-						[value]="el().x"
-						(change)="onPositionChange($event, 'x')"
-					/>
-					<label class="pptx-ng-inspector__label" for="insp-y">Y</label>
-					<input
-						id="insp-y"
-						class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
-						type="number"
-						[value]="el().y"
-						(change)="onPositionChange($event, 'y')"
-					/>
-				</div>
+				@if (elementKey(); as key) {
+					<div class="pptx-ng-inspector__row" [attr.data-el-key]="key">
+						<label class="pptx-ng-inspector__label" for="insp-x">X</label>
+						<input
+							id="insp-x"
+							class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
+							type="number"
+							inputmode="numeric"
+							[value]="seed().x"
+							(change)="onPositionChange($event, 'x')"
+						/>
+						<label class="pptx-ng-inspector__label" for="insp-y">Y</label>
+						<input
+							id="insp-y"
+							class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
+							type="number"
+							inputmode="numeric"
+							[value]="seed().y"
+							(change)="onPositionChange($event, 'y')"
+						/>
+					</div>
 
-				<div class="pptx-ng-inspector__row">
-					<label class="pptx-ng-inspector__label" for="insp-w">W</label>
-					<input
-						id="insp-w"
-						class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
-						type="number"
-						min="1"
-						[value]="el().width"
-						(change)="onSizeChange($event, 'width')"
-					/>
-					<label class="pptx-ng-inspector__label" for="insp-h">H</label>
-					<input
-						id="insp-h"
-						class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
-						type="number"
-						min="1"
-						[value]="el().height"
-						(change)="onSizeChange($event, 'height')"
-					/>
-				</div>
+					<div class="pptx-ng-inspector__row">
+						<label class="pptx-ng-inspector__label" for="insp-w">W</label>
+						<input
+							id="insp-w"
+							class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
+							type="number"
+							inputmode="numeric"
+							min="1"
+							[value]="seed().width"
+							(change)="onSizeChange($event, 'width')"
+						/>
+						<label class="pptx-ng-inspector__label" for="insp-h">H</label>
+						<input
+							id="insp-h"
+							class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
+							type="number"
+							inputmode="numeric"
+							min="1"
+							[value]="seed().height"
+							(change)="onSizeChange($event, 'height')"
+						/>
+					</div>
 
-				<div class="pptx-ng-inspector__row">
-					<label class="pptx-ng-inspector__label" for="insp-rot">Rot°</label>
-					<input
-						id="insp-rot"
-						class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
-						type="number"
-						[value]="el().rotation ?? 0"
-						(change)="onRotationChange($event)"
-					/>
-					<label class="pptx-ng-inspector__label" for="insp-opacity">Opacity</label>
-					<input
-						id="insp-opacity"
-						class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
-						type="number"
-						min="0"
-						max="1"
-						step="0.01"
-						[value]="el().opacity ?? 1"
-						(change)="onOpacityChange($event)"
-					/>
-				</div>
+					<div class="pptx-ng-inspector__row">
+						<label class="pptx-ng-inspector__label" for="insp-rot">Rot°</label>
+						<input
+							id="insp-rot"
+							class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
+							type="number"
+							inputmode="numeric"
+							[value]="seed().rotation"
+							(change)="onRotationChange($event)"
+						/>
+						<label class="pptx-ng-inspector__label" for="insp-opacity">Opacity</label>
+						<input
+							id="insp-opacity"
+							class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
+							type="number"
+							inputmode="decimal"
+							min="0"
+							max="1"
+							step="0.01"
+							[value]="seed().opacity"
+							(change)="onOpacityChange($event)"
+						/>
+					</div>
+				}
 			</section>
 
 			<!-- ── Shape fill & stroke (shape-style elements only) ────────────── -->
@@ -110,24 +127,26 @@ import {
 				<section class="pptx-ng-inspector__section">
 					<h3 class="pptx-ng-inspector__heading">Fill &amp; Stroke</h3>
 
-					<div class="pptx-ng-inspector__row">
-						<label class="pptx-ng-inspector__label" for="insp-fill">Fill</label>
-						<input
-							id="insp-fill"
-							class="pptx-ng-inspector__color"
-							type="color"
-							[value]="currentFillColor()"
-							(change)="onFillColorChange($event)"
-						/>
-						<label class="pptx-ng-inspector__label" for="insp-stroke">Stroke</label>
-						<input
-							id="insp-stroke"
-							class="pptx-ng-inspector__color"
-							type="color"
-							[value]="currentStrokeColor()"
-							(change)="onStrokeColorChange($event)"
-						/>
-					</div>
+					@if (elementKey(); as key) {
+						<div class="pptx-ng-inspector__row" [attr.data-el-key]="key">
+							<label class="pptx-ng-inspector__label" for="insp-fill">Fill</label>
+							<input
+								id="insp-fill"
+								class="pptx-ng-inspector__color"
+								type="color"
+								[value]="seed().fillColor"
+								(change)="onFillColorChange($event)"
+							/>
+							<label class="pptx-ng-inspector__label" for="insp-stroke">Stroke</label>
+							<input
+								id="insp-stroke"
+								class="pptx-ng-inspector__color"
+								type="color"
+								[value]="seed().strokeColor"
+								(change)="onStrokeColorChange($event)"
+							/>
+						</div>
+					}
 				</section>
 			}
 
@@ -136,25 +155,28 @@ import {
 				<section class="pptx-ng-inspector__section">
 					<h3 class="pptx-ng-inspector__heading">Text</h3>
 
-					<div class="pptx-ng-inspector__row">
-						<label class="pptx-ng-inspector__label" for="insp-text-color">Color</label>
-						<input
-							id="insp-text-color"
-							class="pptx-ng-inspector__color"
-							type="color"
-							[value]="currentTextColor()"
-							(change)="onTextColorChange($event)"
-						/>
-						<label class="pptx-ng-inspector__label" for="insp-font-size">Size</label>
-						<input
-							id="insp-font-size"
-							class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
-							type="number"
-							min="1"
-							[value]="currentFontSize()"
-							(change)="onFontSizeChange($event)"
-						/>
-					</div>
+					@if (elementKey(); as key) {
+						<div class="pptx-ng-inspector__row" [attr.data-el-key]="key">
+							<label class="pptx-ng-inspector__label" for="insp-text-color">Color</label>
+							<input
+								id="insp-text-color"
+								class="pptx-ng-inspector__color"
+								type="color"
+								[value]="seed().textColor"
+								(change)="onTextColorChange($event)"
+							/>
+							<label class="pptx-ng-inspector__label" for="insp-font-size">Size</label>
+							<input
+								id="insp-font-size"
+								class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
+								type="number"
+								inputmode="numeric"
+								min="1"
+								[value]="seed().fontSize"
+								(change)="onFontSizeChange($event)"
+							/>
+						</div>
+					}
 
 					<div class="pptx-ng-inspector__row pptx-ng-inspector__row--toggles">
 						<button
@@ -342,6 +364,56 @@ import {
 			font-size: 12px;
 		}
 
+		/* ── Touch / mobile: larger hit targets + full-width inputs ─────────── */
+		@media (pointer: coarse), (max-width: 640px) {
+			.pptx-ng-inspector {
+				width: 100%;
+				min-width: 0;
+				box-sizing: border-box;
+				font-size: 14px;
+			}
+
+			.pptx-ng-inspector__row {
+				flex-wrap: wrap;
+				gap: 0.5rem;
+			}
+
+			.pptx-ng-inspector__label {
+				min-width: 28px;
+			}
+
+			.pptx-ng-inspector__input {
+				flex: 1 1 auto;
+				min-height: 40px;
+				font-size: 16px; /* prevents iOS auto-zoom on focus */
+				padding: 6px 8px;
+			}
+
+			.pptx-ng-inspector__input--number {
+				width: auto;
+				min-width: 72px;
+			}
+
+			.pptx-ng-inspector__color {
+				width: 44px;
+				height: 40px;
+			}
+
+			.pptx-ng-inspector__toggle {
+				min-width: 44px;
+				width: auto;
+				flex: 1 1 auto;
+				height: 40px;
+				font-size: 15px;
+			}
+
+			.pptx-ng-inspector__btn {
+				min-height: 40px;
+				padding: 8px 10px;
+				font-size: 13px;
+			}
+		}
+
 		.pptx-ng-inspector__toggle.is-active {
 			background: var(--pptx-inspector-active, #0078d4);
 			border-color: var(--pptx-inspector-active, #0078d4);
@@ -385,18 +457,47 @@ export class InspectorPanelComponent {
 	/** Alias so the template can call el() without conflicting with Angular internals. */
 	protected readonly el = computed(() => this.element());
 
+	/**
+	 * Stable identity key for the selected element. Only changes when a
+	 * *different* element is selected. The seed signal below is keyed on this so
+	 * input [value] bindings never get rewritten while the user is typing into
+	 * the currently-selected element (caret-reset / keyboard-dismiss guard).
+	 */
+	protected readonly elementKey = computed(() => this.el().id);
+
+	/**
+	 * One-shot seed of every editable field's initial display value, recomputed
+	 * only when `elementKey` changes (i.e. on selection change), NOT on every
+	 * edit commit. Bound to each <input>'s [value] so Angular re-evaluating the
+	 * binding during change-detection always yields the same value mid-edit and
+	 * therefore never rewrites the element's `.value` / resets the caret.
+	 */
+	protected readonly seed = computed(() => {
+		// Depend on elementKey for stability, then read the element once.
+		this.elementKey();
+		const cur = this.el();
+		return {
+			x: cur.x,
+			y: cur.y,
+			width: cur.width,
+			height: cur.height,
+			rotation: cur.rotation ?? 0,
+			opacity: cur.opacity ?? 1,
+			fillColor: fillColorOf(cur),
+			strokeColor: strokeColorOf(cur),
+			textColor: textColorOf(cur),
+			fontSize: fontSizeOf(cur),
+		};
+	});
+
 	/** Whether the element supports shape-style (fill/stroke) editing. */
 	protected readonly hasShape = computed(() => hasShapeProperties(this.el()));
 
 	/** Whether the element supports text-style editing. */
 	protected readonly hasText = computed(() => hasTextProperties(this.el()));
 
-	// ── Computed display values ──────────────────────────────────────────────
+	// ── Computed display values (toggles only — buttons, no caret risk) ───────
 
-	protected readonly currentFillColor = computed(() => fillColorOf(this.el()));
-	protected readonly currentStrokeColor = computed(() => strokeColorOf(this.el()));
-	protected readonly currentTextColor = computed(() => textColorOf(this.el()));
-	protected readonly currentFontSize = computed(() => fontSizeOf(this.el()));
 	protected readonly currentBold = computed(() => isBold(this.el()));
 	protected readonly currentItalic = computed(() => isItalic(this.el()));
 	protected readonly currentUnderline = computed(() => isUnderline(this.el()));
