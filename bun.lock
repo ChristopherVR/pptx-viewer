@@ -95,8 +95,10 @@
       "name": "pptx-angular-viewer",
       "version": "0.1.0",
       "dependencies": {
+        "fast-xml-parser": "^5.8.0",
         "html2canvas-pro": "^2.0.4",
         "jspdf": "^4.2.1",
+        "jszip": "^3.10.1",
         "tslib": "^2.8.1",
       },
       "devDependencies": {
