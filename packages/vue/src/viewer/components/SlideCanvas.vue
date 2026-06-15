@@ -40,7 +40,9 @@ const wrapperStyle = computed<CSSProperties>(() => ({
 				:canvas-size="canvasSize"
 				:media-data-urls="mediaDataUrls"
 				:scale="scale"
-			/>
+			>
+				<slot />
+			</SlideStage>
 		</div>
 	</div>
 </template>

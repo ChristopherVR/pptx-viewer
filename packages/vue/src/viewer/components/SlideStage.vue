@@ -49,5 +49,7 @@ const stageStyle = computed<CSSProperties>(() => ({
 			:media-data-urls="mediaDataUrls"
 			:z-index="index"
 		/>
+		<!-- Optional editing overlay (selection handles, etc.) shares this scaled space -->
+		<slot />
 	</div>
 </template>
