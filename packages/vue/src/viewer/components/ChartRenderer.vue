@@ -14,35 +14,45 @@ import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
 import { getContainerStyle } from '../composables/element-style';
+import BoxWhiskerChart from './chart/BoxWhiskerChart.vue';
+import BubbleChart from './chart/BubbleChart.vue';
 import ChartChrome from './chart/ChartChrome.vue';
+import ComboChart from './chart/ComboChart.vue';
+import FunnelChart from './chart/FunnelChart.vue';
+import HistogramChart from './chart/HistogramChart.vue';
+import RadarChart from './chart/RadarChart.vue';
+import ScatterChart from './chart/ScatterChart.vue';
+import StockChart from './chart/StockChart.vue';
+import SunburstChart from './chart/SunburstChart.vue';
+import TreemapChart from './chart/TreemapChart.vue';
+import WaterfallChart from './chart/WaterfallChart.vue';
 
 /**
  * ChartRenderer — Vue port of the React chart renderer (`viewer/utils/chart.tsx`
  * and friends). Renders a PPTX chart element as an inline SVG.
  *
- * Implemented chart types (faithful subset):
+ * Implemented chart types:
  *   - bar / column (clustered)        — React `chart-bar.tsx`
  *   - stacked + 100%-stacked bar      — React `chart-stacked-bar.tsx`
  *   - line / line3D                   — React `chart-area-line.tsx`
  *   - area / area3D                   — React `chart-area-line.tsx`
  *   - pie / doughnut / pie3D          — React `chart-pie.tsx`
+ *   - radar                           — React `chart-radar.tsx`
+ *   - scatter                         — React `chart-scatter-bubble.tsx`
+ *   - bubble                          — React `chart-scatter-bubble.tsx`
+ *   - waterfall                       — React `chart-waterfall-combo.tsx`
+ *   - funnel                          — React `chart-sunburst-funnel.tsx`
+ *   - treemap                         — React `chart-surface-treemap.tsx`
+ *   - sunburst                        — React `chart-sunburst-funnel.tsx`
+ *   - combo (column+line)             — React `chart-waterfall-combo.tsx`
+ *   - stock (HLC / OHLC)              — React `chart-stock.tsx`
+ *   - histogram                       — React `chart-bar.tsx`
+ *   - boxWhisker                      — React `chart-bar.tsx`
  *   - chrome (title, axes, gridlines, legend, data labels) — `chart-chrome.tsx`
  *
- * Everything else renders a labelled placeholder box `Chart: <type>`.
- * Deferred types (see the dispatch below):
- *   // TODO(vue): port radar          (React chart-radar.tsx)
- *   // TODO(vue): port scatter        (React chart-scatter-bubble.tsx)
- *   // TODO(vue): port bubble         (React chart-scatter-bubble.tsx)
- *   // TODO(vue): port stock          (React chart-stock.tsx)
- *   // TODO(vue): port surface        (React chart-surface-treemap.tsx)
- *   // TODO(vue): port treemap        (React chart-surface-treemap.tsx)
- *   // TODO(vue): port sunburst       (React chart-sunburst-funnel.tsx)
- *   // TODO(vue): port funnel         (React chart-sunburst-funnel.tsx)
- *   // TODO(vue): port waterfall      (React chart-waterfall-combo.tsx)
- *   // TODO(vue): port combo          (React chart-waterfall-combo.tsx)
+ * Remaining TODOs:
+ *   // TODO(vue): port surface        (React chart-surface-treemap.tsx) — Three.js 3D
  *   // TODO(vue): port regionMap      (React chart-map.tsx)
- *   // TODO(vue): port boxWhisker     (React chart-bar.tsx)
- *   // TODO(vue): port histogram      (React chart-bar.tsx)
  *   // TODO(vue): port trendlines + overlay lines (React chart-overlays/-trendlines)
  *   // TODO(vue): port secondary axes + data tables + log/display-unit axes
  */
@@ -74,8 +84,25 @@ const categoryLabels = computed<string[]>(() =>
 	chartData.value ? resolveCategoryLabels(chartData.value) : [],
 );
 
-/** Which renderer to dispatch to. 'placeholder' covers the deferred types. */
-type RenderKind = 'bar' | 'stackedBar' | 'line' | 'area' | 'pie' | 'placeholder';
+/** Which renderer to dispatch to. 'placeholder' covers the remaining deferred types. */
+type RenderKind =
+	| 'bar'
+	| 'stackedBar'
+	| 'line'
+	| 'area'
+	| 'pie'
+	| 'radar'
+	| 'scatter'
+	| 'bubble'
+	| 'waterfall'
+	| 'funnel'
+	| 'treemap'
+	| 'sunburst'
+	| 'combo'
+	| 'stock'
+	| 'histogram'
+	| 'boxWhisker'
+	| 'placeholder';
 
 const renderKind = computed<RenderKind>(() => {
 	const data = chartData.value;
@@ -98,6 +125,39 @@ const renderKind = computed<RenderKind>(() => {
 	if (t === 'bar' || t === 'bar3D') {
 		return 'bar';
 	}
+	if (t === 'radar') {
+		return 'radar';
+	}
+	if (t === 'scatter') {
+		return 'scatter';
+	}
+	if (t === 'bubble') {
+		return 'bubble';
+	}
+	if (t === 'waterfall') {
+		return 'waterfall';
+	}
+	if (t === 'funnel') {
+		return 'funnel';
+	}
+	if (t === 'treemap') {
+		return 'treemap';
+	}
+	if (t === 'sunburst') {
+		return 'sunburst';
+	}
+	if (t === 'combo') {
+		return 'combo';
+	}
+	if (t === 'stock') {
+		return 'stock';
+	}
+	if (t === 'histogram') {
+		return 'histogram';
+	}
+	if (t === 'boxWhisker') {
+		return 'boxWhisker';
+	}
 	return 'placeholder';
 });
 
@@ -113,9 +173,14 @@ const colorPalette = computed(() => chartData.value?.colorPalette);
 const legendPos = computed(() => style.value?.legendPosition || 'b');
 const hasDataLabels = computed(() => Boolean(style.value?.hasDataLabels));
 
-/** Plot layout for the axis-based charts (bar/line/area/stacked). */
+/** Plot layout for axis-based charts (bar/line/area/stacked and most exotic types). */
 const layout = computed<PlotLayout>(() =>
 	computeLayout(props.element.width, props.element.height, style.value, true, legendPos.value),
+);
+
+/** Radar / sunburst / treemap / funnel use a no-axis layout. */
+const noAxisLayout = computed<PlotLayout>(() =>
+	computeLayout(props.element.width, props.element.height, style.value, false, legendPos.value),
 );
 
 const svgWidth = computed(() => layout.value.svgWidth);
@@ -504,7 +569,135 @@ const pieLegend = computed<PieLegendItem[]>(() => {
 			</template>
 		</svg>
 
-		<!-- Axis-based charts: bar / stacked / line / area -->
+		<!-- Radar: spider-web layout (no axes) -->
+		<svg
+			v-else-if="renderKind === 'radar'"
+			class="pptx-vue-chart-svg"
+			:viewBox="`0 0 ${noAxisLayout.svgWidth} ${noAxisLayout.svgHeight}`"
+			preserveAspectRatio="xMidYMid meet"
+		>
+			<rect
+				:x="0"
+				:y="0"
+				:width="noAxisLayout.svgWidth"
+				:height="noAxisLayout.svgHeight"
+				fill="#0f172a11"
+			/>
+			<text
+				v-if="style?.hasTitle"
+				:x="noAxisLayout.svgWidth / 2"
+				y="14"
+				text-anchor="middle"
+				font-size="12"
+				font-weight="600"
+				fill="#1e293b"
+			>
+				{{ chartData?.title || 'Chart' }}
+			</text>
+			<RadarChart
+				v-if="chartData"
+				:chart-data="chartData"
+				:layout="noAxisLayout"
+				:categories="categoryLabels"
+			/>
+		</svg>
+
+		<!-- Sunburst: concentric rings (no axes) -->
+		<svg
+			v-else-if="renderKind === 'sunburst'"
+			class="pptx-vue-chart-svg"
+			:viewBox="`0 0 ${noAxisLayout.svgWidth} ${noAxisLayout.svgHeight}`"
+			preserveAspectRatio="xMidYMid meet"
+		>
+			<rect
+				:x="0"
+				:y="0"
+				:width="noAxisLayout.svgWidth"
+				:height="noAxisLayout.svgHeight"
+				fill="#0f172a11"
+			/>
+			<text
+				v-if="style?.hasTitle"
+				:x="noAxisLayout.svgWidth / 2"
+				y="14"
+				text-anchor="middle"
+				font-size="12"
+				font-weight="600"
+				fill="#1e293b"
+			>
+				{{ chartData?.title || 'Chart' }}
+			</text>
+			<SunburstChart v-if="chartData" :chart-data="chartData" :layout="noAxisLayout" />
+		</svg>
+
+		<!-- Treemap: hierarchical rectangles (no axes) -->
+		<svg
+			v-else-if="renderKind === 'treemap'"
+			class="pptx-vue-chart-svg"
+			:viewBox="`0 0 ${noAxisLayout.svgWidth} ${noAxisLayout.svgHeight}`"
+			preserveAspectRatio="none"
+		>
+			<rect
+				:x="0"
+				:y="0"
+				:width="noAxisLayout.svgWidth"
+				:height="noAxisLayout.svgHeight"
+				fill="#0f172a11"
+			/>
+			<text
+				v-if="style?.hasTitle"
+				:x="noAxisLayout.svgWidth / 2"
+				y="14"
+				text-anchor="middle"
+				font-size="12"
+				font-weight="600"
+				fill="#1e293b"
+			>
+				{{ chartData?.title || 'Chart' }}
+			</text>
+			<TreemapChart
+				v-if="chartData"
+				:chart-data="chartData"
+				:layout="noAxisLayout"
+				:categories="categoryLabels"
+			/>
+		</svg>
+
+		<!-- Funnel: descending trapezoids (no axes) -->
+		<svg
+			v-else-if="renderKind === 'funnel'"
+			class="pptx-vue-chart-svg"
+			:viewBox="`0 0 ${noAxisLayout.svgWidth} ${noAxisLayout.svgHeight}`"
+			preserveAspectRatio="none"
+		>
+			<rect
+				:x="0"
+				:y="0"
+				:width="noAxisLayout.svgWidth"
+				:height="noAxisLayout.svgHeight"
+				fill="#0f172a11"
+			/>
+			<text
+				v-if="style?.hasTitle"
+				:x="noAxisLayout.svgWidth / 2"
+				y="14"
+				text-anchor="middle"
+				font-size="12"
+				font-weight="600"
+				fill="#1e293b"
+			>
+				{{ chartData?.title || 'Chart' }}
+			</text>
+			<FunnelChart
+				v-if="chartData"
+				:chart-data="chartData"
+				:layout="noAxisLayout"
+				:categories="categoryLabels"
+			/>
+		</svg>
+
+		<!-- Axis-based charts: bar / stacked / line / area / scatter / bubble /
+		     waterfall / combo / stock / histogram / boxWhisker -->
 		<svg
 			v-else
 			class="pptx-vue-chart-svg"
@@ -628,6 +821,67 @@ const pieLegend = computed<PieLegendItem[]>(() => {
 					</template>
 				</g>
 			</template>
+
+			<!-- Scatter -->
+			<ScatterChart
+				v-else-if="renderKind === 'scatter' && chartData"
+				:chart-data="chartData"
+				:layout="layout"
+				:range="barRange"
+			/>
+
+			<!-- Bubble -->
+			<BubbleChart
+				v-else-if="renderKind === 'bubble' && chartData"
+				:chart-data="chartData"
+				:layout="layout"
+				:range="barRange"
+			/>
+
+			<!-- Waterfall -->
+			<WaterfallChart
+				v-else-if="renderKind === 'waterfall' && chartData"
+				:chart-data="chartData"
+				:layout="layout"
+				:range="barRange"
+				:categories="categoryLabels"
+			/>
+
+			<!-- Combo (column + line) -->
+			<ComboChart
+				v-else-if="renderKind === 'combo' && chartData"
+				:chart-data="chartData"
+				:layout="layout"
+				:range="barRange"
+				:categories="categoryLabels"
+			/>
+
+			<!-- Stock (OHLC candlestick) -->
+			<StockChart
+				v-else-if="renderKind === 'stock' && chartData"
+				:chart-data="chartData"
+				:layout="layout"
+				:range="barRange"
+				:categories="categoryLabels"
+			/>
+
+			<!-- Histogram -->
+			<HistogramChart
+				v-else-if="renderKind === 'histogram' && chartData"
+				:chart-data="chartData"
+				:layout="layout"
+				:range="barRange"
+				:categories="categoryLabels"
+			/>
+
+			<!-- Box-and-whisker -->
+			<BoxWhiskerChart
+				v-else-if="renderKind === 'boxWhisker' && chartData"
+				:chart-data="chartData"
+				:layout="layout"
+				:range="barRange"
+				:categories="categoryLabels"
+			/>
 		</svg>
 	</div>
 </template>

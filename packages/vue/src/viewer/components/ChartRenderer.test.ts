@@ -118,13 +118,20 @@ describe('chartRenderer', () => {
 		expect(labels.length).toBeGreaterThanOrEqual(6);
 	});
 
-	it('renders the labelled placeholder for an unsupported chart type', () => {
+	it('renders the labelled placeholder for a truly unsupported chart type (surface)', () => {
 		const wrapper = mount(ChartRenderer, {
-			props: { element: chartElement(data('radar')), zIndex: 0 },
+			props: { element: chartElement(data('surface')), zIndex: 0 },
 		});
 		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeTruthy();
-		expect(wrapper.text()).toContain('Chart: radar');
-		expect(wrapper.find('svg').exists()).toBeFalsy();
+		expect(wrapper.text()).toContain('Chart: surface');
+	});
+
+	it('renders the labelled placeholder for regionMap', () => {
+		const wrapper = mount(ChartRenderer, {
+			props: { element: chartElement(data('regionMap')), zIndex: 0 },
+		});
+		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeTruthy();
+		expect(wrapper.text()).toContain('Chart: regionMap');
 	});
 
 	it('renders the placeholder when chart data is missing', () => {
@@ -142,5 +149,181 @@ describe('chartRenderer', () => {
 			},
 		});
 		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeTruthy();
+	});
+
+	// ── Exotic chart types ──────────────────────────────────────────
+
+	it('renders an SVG (not a placeholder) for a radar chart', () => {
+		const wrapper = mount(ChartRenderer, {
+			props: { element: chartElement(data('radar')), zIndex: 0 },
+		});
+		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeFalsy();
+		expect(wrapper.find('svg').exists()).toBeTruthy();
+		// Radar draws ring polygons and series polygons
+		expect(wrapper.findAll('polygon').length).toBeGreaterThanOrEqual(1);
+	});
+
+	it('renders an SVG with circles for a scatter chart', () => {
+		const wrapper = mount(ChartRenderer, {
+			props: { element: chartElement(data('scatter')), zIndex: 0 },
+		});
+		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeFalsy();
+		expect(wrapper.find('svg').exists()).toBeTruthy();
+		// 2 series × 3 values = 6 dots
+		expect(wrapper.findAll('circle').length).toBeGreaterThanOrEqual(6);
+	});
+
+	it('renders an SVG with circles for a bubble chart', () => {
+		const wrapper = mount(ChartRenderer, {
+			props: {
+				element: chartElement(
+					data('bubble', {
+						series: [
+							{ name: 'X', values: [1, 2, 3] },
+							{ name: 'Y', values: [4, 5, 6] },
+							{ name: 'Size', values: [10, 20, 30] },
+						],
+					}),
+				),
+				zIndex: 0,
+			},
+		});
+		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeFalsy();
+		expect(wrapper.find('svg').exists()).toBeTruthy();
+		expect(wrapper.findAll('circle').length).toBeGreaterThanOrEqual(3);
+	});
+
+	it('renders an SVG with coloured rects for a waterfall chart', () => {
+		const wrapper = mount(ChartRenderer, {
+			props: {
+				element: chartElement(
+					data('waterfall', {
+						series: [{ name: 'Cash Flow', values: [100, -30, 50, -20, 80] }],
+					}),
+				),
+				zIndex: 0,
+			},
+		});
+		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeFalsy();
+		expect(wrapper.find('svg').exists()).toBeTruthy();
+		// At least some rects drawn by WaterfallChart
+		expect(wrapper.findAll('rect').length).toBeGreaterThanOrEqual(1);
+	});
+
+	it('renders an SVG with paths for a funnel chart', () => {
+		const wrapper = mount(ChartRenderer, {
+			props: {
+				element: chartElement(
+					data('funnel', {
+						series: [{ name: 'Stage', values: [100, 80, 60, 40] }],
+					}),
+				),
+				zIndex: 0,
+			},
+		});
+		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeFalsy();
+		expect(wrapper.find('svg').exists()).toBeTruthy();
+		expect(wrapper.findAll('path').length).toBeGreaterThanOrEqual(4);
+	});
+
+	it('renders an SVG with paths for a sunburst chart', () => {
+		const wrapper = mount(ChartRenderer, {
+			props: {
+				element: chartElement(
+					data('sunburst', {
+						series: [
+							{ name: 'Ring1', values: [30, 40, 30] },
+							{ name: 'Ring2', values: [20, 50, 30] },
+						],
+					}),
+				),
+				zIndex: 0,
+			},
+		});
+		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeFalsy();
+		expect(wrapper.find('svg').exists()).toBeTruthy();
+		expect(wrapper.findAll('path').length).toBeGreaterThanOrEqual(3);
+	});
+
+	it('renders an SVG with rects for a treemap chart', () => {
+		const wrapper = mount(ChartRenderer, {
+			props: { element: chartElement(data('treemap')), zIndex: 0 },
+		});
+		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeFalsy();
+		expect(wrapper.find('svg').exists()).toBeTruthy();
+		// treemap draws one rect per data point (3 values across 2 series = 6 items)
+		expect(wrapper.findAll('rect').length).toBeGreaterThanOrEqual(1);
+	});
+
+	it('renders an SVG with bars and lines for a combo chart', () => {
+		const wrapper = mount(ChartRenderer, {
+			props: { element: chartElement(data('combo')), zIndex: 0 },
+		});
+		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeFalsy();
+		expect(wrapper.find('svg').exists()).toBeTruthy();
+		// First series as bars, second as line
+		expect(wrapper.findAll('polyline').length).toBeGreaterThanOrEqual(1);
+	});
+
+	it('renders an SVG with candles for a stock chart', () => {
+		const wrapper = mount(ChartRenderer, {
+			props: {
+				element: chartElement(
+					data('stock', {
+						series: [
+							{ name: 'High', values: [120, 130, 125] },
+							{ name: 'Low', values: [100, 110, 105] },
+							{ name: 'Close', values: [115, 125, 118] },
+						],
+					}),
+				),
+				zIndex: 0,
+			},
+		});
+		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeFalsy();
+		expect(wrapper.find('svg').exists()).toBeTruthy();
+		// One wick line + one body rect per category (3 categories)
+		expect(wrapper.findAll('rect').length).toBeGreaterThanOrEqual(3);
+		expect(wrapper.findAll('line').length).toBeGreaterThanOrEqual(3);
+	});
+
+	it('renders an SVG with contiguous bars for a histogram chart', () => {
+		const wrapper = mount(ChartRenderer, {
+			props: {
+				element: chartElement(
+					data('histogram', {
+						series: [{ name: 'Frequency', values: [5, 12, 20, 15, 8] }],
+					}),
+				),
+				zIndex: 0,
+			},
+		});
+		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeFalsy();
+		expect(wrapper.find('svg').exists()).toBeTruthy();
+		expect(wrapper.findAll('rect').length).toBeGreaterThanOrEqual(5);
+	});
+
+	it('renders an SVG with box shapes for a boxWhisker chart', () => {
+		const wrapper = mount(ChartRenderer, {
+			props: {
+				element: chartElement(
+					data('boxWhisker', {
+						categories: ['Group A', 'Group B'],
+						series: [
+							{ name: 'Min', values: [5, 8] },
+							{ name: 'Q1', values: [15, 18] },
+							{ name: 'Median', values: [25, 28] },
+							{ name: 'Q3', values: [35, 38] },
+							{ name: 'Max', values: [45, 48] },
+						],
+					}),
+				),
+				zIndex: 0,
+			},
+		});
+		expect(wrapper.find('.pptx-vue-chart-placeholder').exists()).toBeFalsy();
+		expect(wrapper.find('svg').exists()).toBeTruthy();
+		// 2 categories → 2 box-whisker groups with multiple lines each
+		expect(wrapper.findAll('line').length).toBeGreaterThanOrEqual(4);
 	});
 });
