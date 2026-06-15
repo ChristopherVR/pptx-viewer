@@ -13,7 +13,9 @@ import {
 	buildChartViewModel,
 	buildFallbackViewModel,
 	computeBarRects,
+	computeBubbleRadius,
 	computeLinePoints,
+	computeRadarPoints,
 	computePieLayout,
 	computePieSlicePath,
 	computePieSlices,
@@ -26,6 +28,8 @@ import {
 	formatAxisValue,
 	linePointsToSvgString,
 	paletteColor,
+	radarAngle,
+	radarRingPoints,
 	resolveChartKind,
 	seriesColor,
 	valueToY,
@@ -468,6 +472,72 @@ describe('computeScatterDots', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// computeBubbleRadius
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('computeBubbleRadius', () => {
+	it('returns the median radius when no size value is present', () => {
+		expect(computeBubbleRadius(undefined, 100, 10)).toBe(10);
+	});
+
+	it('scales from 0.5x (size 0) to 2x (max size) the median radius', () => {
+		expect(computeBubbleRadius(0, 100, 10)).toBeCloseTo(5);
+		expect(computeBubbleRadius(100, 100, 10)).toBeCloseTo(20);
+	});
+
+	it('uses the absolute size value', () => {
+		expect(computeBubbleRadius(-100, 100, 10)).toBeCloseTo(20);
+	});
+
+	it('guards against a zero max (no division by zero)', () => {
+		const r = computeBubbleRadius(5, 0, 10);
+		expect(Number.isFinite(r)).toBeTruthy();
+		// denom falls back to 1: 10*0.5 + (5/1)*10*1.5
+		expect(r).toBeCloseTo(80);
+	});
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Radar geometry
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('radarAngle', () => {
+	it('places the first spoke pointing up (-90 degrees)', () => {
+		expect(radarAngle(0, 4)).toBeCloseTo(-Math.PI / 2);
+	});
+
+	it('advances clockwise by a full turn divided by the category count', () => {
+		expect(radarAngle(1, 4) - radarAngle(0, 4)).toBeCloseTo(Math.PI / 2);
+	});
+});
+
+describe('computeRadarPoints', () => {
+	it('returns one point per value, clamped to the category count', () => {
+		const pts = computeRadarPoints([10, 20, 30, 40, 50], 50, 100, 200, 200, 4);
+		expect(pts).toHaveLength(4);
+	});
+
+	it('places a max value on the ring radius (first spoke straight up)', () => {
+		const pts = computeRadarPoints([50], 50, 100, 200, 200, 4);
+		expect(pts[0].x).toBeCloseTo(200);
+		expect(pts[0].y).toBeCloseTo(100);
+	});
+
+	it('places a zero value at the centre', () => {
+		const pts = computeRadarPoints([0], 50, 100, 200, 200, 4);
+		expect(pts[0].x).toBeCloseTo(200);
+		expect(pts[0].y).toBeCloseTo(200);
+	});
+});
+
+describe('radarRingPoints', () => {
+	it('produces one vertex per category', () => {
+		const pts = radarRingPoints(200, 200, 100, 4).split(' ');
+		expect(pts).toHaveLength(4);
+	});
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // resolveChartKind
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -501,12 +571,20 @@ describe('resolveChartKind', () => {
 		expect(resolveChartKind('scatter')).toBe('scatter');
 	});
 
+	it('maps bubble to "bubble"', () => {
+		expect(resolveChartKind('bubble')).toBe('bubble');
+	});
+
+	it('maps radar and radar3D to "radar"', () => {
+		expect(resolveChartKind('radar')).toBe('radar');
+		expect(resolveChartKind('radar3D')).toBe('radar');
+	});
+
 	it('maps unknown types to "unsupported"', () => {
-		expect(resolveChartKind('radar')).toBe('unsupported');
-		expect(resolveChartKind('bubble')).toBe('unsupported');
 		expect(resolveChartKind('waterfall')).toBe('unsupported');
 		expect(resolveChartKind('unknown')).toBe('unsupported');
 		expect(resolveChartKind('funnel')).toBe('unsupported');
+		expect(resolveChartKind('surface')).toBe('unsupported');
 	});
 });
 
@@ -676,6 +754,89 @@ describe('buildChartViewModel - scatter chart integration', () => {
 	});
 });
 
+describe('buildChartViewModel - bubble chart integration', () => {
+	const element = {
+		id: 'el-bub',
+		type: 'chart' as const,
+		x: 0,
+		y: 0,
+		width: 400,
+		height: 300,
+		chartData: {
+			chartType: 'bubble' as const,
+			categories: [],
+			series: [
+				{ name: 'X', values: [1, 2, 3] },
+				{ name: 'Y', values: [4, 5, 6] },
+				{ name: 'Size', values: [10, 50, 100] },
+			],
+		} satisfies PptxChartData,
+	};
+
+	it('produces circle primitives only for the first two series (size series excluded)', () => {
+		const vm = buildChartViewModel(element);
+		const circles = vm.primitives.filter((p) => p.kind === 'circle');
+		expect(circles).toHaveLength(6);
+	});
+
+	it('scales bubble radius by the third series', () => {
+		const vm = buildChartViewModel(element);
+		const circles = vm.primitives.filter((p) => p.kind === 'circle');
+		// First X-series point (size 10) should be smaller than the third (size 100).
+		expect(circles[0].r).toBeLessThan(circles[2].r);
+	});
+});
+
+describe('buildChartViewModel - radar chart integration', () => {
+	const element = {
+		id: 'el-radar',
+		type: 'chart' as const,
+		x: 0,
+		y: 0,
+		width: 400,
+		height: 400,
+		chartData: {
+			chartType: 'radar' as const,
+			categories: ['A', 'B', 'C', 'D'],
+			series: [
+				{ name: 'S1', values: [10, 20, 30, 40] },
+				{ name: 'S2', values: [40, 30, 20, 10] },
+			],
+			style: { hasLegend: true },
+		} satisfies PptxChartData,
+	};
+
+	it('has no cartesian gridlines or axis labels', () => {
+		const vm = buildChartViewModel(element);
+		expect(vm.gridlines).toHaveLength(0);
+		expect(vm.axisLabels).toHaveLength(0);
+	});
+
+	it('produces ring + data polygons', () => {
+		const vm = buildChartViewModel(element);
+		const polygons = vm.primitives.filter((p) => p.kind === 'polygon');
+		// 4 gridline rings + 1 polygon per series.
+		expect(polygons).toHaveLength(6);
+	});
+
+	it('produces one spoke line per category', () => {
+		const vm = buildChartViewModel(element);
+		const lines = vm.primitives.filter((p) => p.kind === 'line');
+		expect(lines).toHaveLength(4);
+	});
+
+	it('places one perimeter label per category', () => {
+		const vm = buildChartViewModel(element);
+		expect(vm.categoryLabels).toHaveLength(4);
+		expect(vm.categoryLabels[0].text).toBe('A');
+	});
+
+	it('includes a legend entry per series', () => {
+		const vm = buildChartViewModel(element);
+		expect(vm.legend).toHaveLength(2);
+	});
+});
+
 describe('buildChartViewModel - unsupported chart type', () => {
 	const element = {
 		id: 'el-5',
@@ -685,7 +846,7 @@ describe('buildChartViewModel - unsupported chart type', () => {
 		width: 400,
 		height: 300,
 		chartData: {
-			chartType: 'radar' as const,
+			chartType: 'waterfall' as const,
 			categories: [],
 			series: [{ name: 'S', values: [1, 2, 3] }],
 		} satisfies PptxChartData,

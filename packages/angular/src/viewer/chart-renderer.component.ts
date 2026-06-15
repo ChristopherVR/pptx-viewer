@@ -8,9 +8,11 @@
  *   area / area3D
  *   pie / doughnut / pie3D / ofPie
  *   scatter
+ *   bubble
+ *   radar / radar3D
  *
  * Deferred (labelled fallback box):
- *   bubble, radar, stock, waterfall, combo, surface, treemap, sunburst,
+ *   stock, waterfall, combo, surface, treemap, sunburst,
  *   funnel, boxWhisker, histogram, regionMap, bar3D (complex 3-D shading),
  *   error bars, trendlines, secondary axes, data tables.
  *
@@ -30,6 +32,7 @@ import type {
 	SvgCircle,
 	SvgLine,
 	SvgPath,
+	SvgPolygon,
 	SvgPolyline,
 	SvgPrimitive,
 	SvgRect,
@@ -123,6 +126,7 @@ const LEGEND_ITEM_WIDTH = 80;
 					[attr.text-anchor]="lbl.textAnchor"
 					[attr.font-size]="lbl.fontSize"
 					[attr.fill]="lbl.fill"
+					[attr.dominant-baseline]="lbl.dominantBaseline ?? 'auto'"
 				>
 					{{ lbl.text }}
 				</text>
@@ -176,6 +180,16 @@ const LEGEND_ITEM_WIDTH = 80;
 							[attr.y2]="asLine(prim).y2"
 							[attr.stroke]="asLine(prim).stroke"
 							[attr.stroke-width]="asLine(prim).strokeWidth"
+						/>
+					}
+					@case ('polygon') {
+						<polygon
+							[attr.points]="asPolygon(prim).points"
+							[attr.fill]="asPolygon(prim).fill"
+							[attr.stroke]="asPolygon(prim).stroke"
+							[attr.stroke-width]="asPolygon(prim).strokeWidth"
+							[attr.opacity]="asPolygon(prim).opacity ?? 1"
+							[attr.stroke-dasharray]="asPolygon(prim).dashArray ?? null"
 						/>
 					}
 				}
@@ -247,6 +261,9 @@ export class ChartRendererComponent {
 	}
 	asLine(p: SvgPrimitive): SvgLine {
 		return p as SvgLine;
+	}
+	asPolygon(p: SvgPrimitive): SvgPolygon {
+		return p as SvgPolygon;
 	}
 	asText(p: SvgPrimitive): SvgText {
 		return p as SvgText;

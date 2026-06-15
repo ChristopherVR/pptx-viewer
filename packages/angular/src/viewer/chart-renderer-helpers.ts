@@ -19,9 +19,11 @@
  *   area / area3D -> polygon fill + polyline
  *   pie / doughnut / pie3D / ofPie -> arc paths
  *   scatter -> circle dots
+ *   bubble -> circle dots sized by a 3rd series
+ *   radar / radar3D -> polar polygons + spokes
  *
  * Deferred (fallback box rendered instead):
- *   bubble, radar, stock, waterfall, combo, surface, treemap, sunburst,
+ *   stock, waterfall, combo, surface, treemap, sunburst,
  *   funnel, boxWhisker, histogram, regionMap, bar3D (complex 3-D shading),
  *   error bars, trendlines, secondary axes, data tables.
  *
@@ -279,6 +281,16 @@ export interface SvgText {
 	opacity?: number;
 }
 
+export interface SvgPolygon {
+	kind: 'polygon';
+	points: string;
+	fill: string;
+	stroke: string;
+	strokeWidth: number;
+	opacity?: number;
+	dashArray?: string;
+}
+
 export interface SvgAreaGradient {
 	kind: 'areaGradient';
 	id: string;
@@ -291,6 +303,7 @@ export type SvgPrimitive =
 	| SvgPolyline
 	| SvgCircle
 	| SvgLine
+	| SvgPolygon
 	| SvgText
 	| SvgAreaGradient;
 
@@ -663,10 +676,81 @@ export function computeScatterDots(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Bubble
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Radius of a bubble given its size value, the max size in the chart, and a
+ * median radius derived from the plot area. Mirrors `renderBubbleChart` in
+ * React's chart-scatter-bubble.tsx: when no size value is present the bubble
+ * uses the median radius; otherwise it scales from 0.5x to 2x the median.
+ */
+export function computeBubbleRadius(
+	sizeVal: number | undefined,
+	maxBubble: number,
+	medianRadius: number,
+): number {
+	if (sizeVal === undefined) {
+		return medianRadius;
+	}
+	const denom = maxBubble > 0 ? maxBubble : 1;
+	return medianRadius * 0.5 + (Math.abs(sizeVal) / denom) * medianRadius * 1.5;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Radar
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Angle (radians) of the i-th radar spoke; 0 points up (-90°), clockwise. */
+export function radarAngle(index: number, catCount: number): number {
+	const n = Math.max(catCount, 1);
+	return (Math.PI * 2 * index) / n - Math.PI / 2;
+}
+
+export interface RadarPoint {
+	x: number;
+	y: number;
+}
+
+/** Project a series' values onto radar (polar) coordinates around (cx, cy). */
+export function computeRadarPoints(
+	values: ReadonlyArray<number>,
+	maxVal: number,
+	radius: number,
+	cx: number,
+	cy: number,
+	catCount: number,
+): RadarPoint[] {
+	const denom = maxVal > 0 ? maxVal : 1;
+	return values.slice(0, Math.max(catCount, 1)).map((val, i) => {
+		const angle = radarAngle(i, catCount);
+		const r = (Math.abs(val) / denom) * radius;
+		return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+	});
+}
+
+/** Points string for a radar gridline ring at radius `rr`. */
+export function radarRingPoints(cx: number, cy: number, rr: number, catCount: number): string {
+	const n = Math.max(catCount, 1);
+	return Array.from({ length: n }, (_, i) => {
+		const angle = radarAngle(i, n);
+		return `${(cx + rr * Math.cos(angle)).toFixed(2)},${(cy + rr * Math.sin(angle)).toFixed(2)}`;
+	}).join(' ');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Supported chart kinds
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type SupportedChartKind = 'bar' | 'line' | 'area' | 'pie' | 'doughnut' | 'scatter';
+export type SupportedChartKind =
+	| 'bar'
+	| 'line'
+	| 'area'
+	| 'pie'
+	| 'doughnut'
+	| 'scatter'
+	| 'bubble'
+	| 'radar';
 
 export function resolveChartKind(chartType: string): SupportedChartKind | 'unsupported' {
 	switch (chartType) {
@@ -687,6 +771,11 @@ export function resolveChartKind(chartType: string): SupportedChartKind | 'unsup
 			return 'doughnut';
 		case 'scatter':
 			return 'scatter';
+		case 'bubble':
+			return 'bubble';
+		case 'radar':
+		case 'radar3D':
+			return 'radar';
 		default:
 			return 'unsupported';
 	}
@@ -722,6 +811,10 @@ export function buildChartViewModel(element: PptxElement): ChartViewModel {
 
 	if (kind === 'pie' || kind === 'doughnut') {
 		return buildPieViewModel(element, chartData, categoryLabels, kind === 'doughnut');
+	}
+
+	if (kind === 'radar') {
+		return buildRadarViewModel(element, chartData, categoryLabels);
 	}
 
 	return buildCartesianViewModel(element, chartData, categoryLabels, kind);
@@ -875,7 +968,8 @@ function buildCartesianViewModel(
 
 	const { gridlines, axisLabels } = buildGridlinesAndLabels(range, layout);
 	const zeroLine = buildZeroLine(range, layout);
-	const catAxisStyle = kind === 'line' || kind === 'area' || kind === 'scatter' ? 'line' : 'bar';
+	const catAxisStyle =
+		kind === 'line' || kind === 'area' || kind === 'scatter' || kind === 'bubble' ? 'line' : 'bar';
 	const catLabels = buildCategoryLabels(categoryLabels, layout, catAxisStyle);
 
 	const legendPos = chartData.style?.legendPosition ?? 'b';
@@ -1069,6 +1163,49 @@ function buildCartesianViewModel(
 				});
 			}
 		}
+	} else if (kind === 'bubble') {
+		// X = category index, Y = first/second series value, size = third series.
+		const allIndices = chartData.series.flatMap((s) => s.values.map((_, i) => i));
+		const maxXIndex = Math.max(1, ...allIndices);
+		const sizeSeries = chartData.series.length >= 3 ? chartData.series[2] : undefined;
+		const maxBubble = sizeSeries ? Math.max(1, ...sizeSeries.values.map((v) => Math.abs(v))) : 1;
+		const medianRadius = Math.min(layout.plotWidth, layout.plotHeight) * 0.04;
+		const pointSeries = chartData.series.slice(0, 2);
+
+		for (let si = 0; si < pointSeries.length; si++) {
+			const series = pointSeries[si];
+			const c = seriesColor(series, si, chartData.colorPalette);
+			const dots = computeScatterDots(series.values, maxXIndex, layout, range);
+			dots.forEach((dot, vi) => {
+				const r = computeBubbleRadius(sizeSeries?.values[vi], maxBubble, medianRadius);
+				primitives.push({
+					kind: 'circle',
+					cx: dot.cx,
+					cy: dot.cy,
+					r,
+					fill: c,
+					opacity: 0.6,
+				} satisfies SvgCircle);
+			});
+
+			if (chartData.style?.hasDataLabels) {
+				series.values.forEach((val, vi) => {
+					const dot = dots[vi];
+					if (!dot) {
+						return;
+					}
+					dataLabels.push({
+						kind: 'text',
+						x: dot.cx,
+						y: dot.cy - 10,
+						text: formatAxisValue(val),
+						fontSize: 7,
+						fill: '#334155',
+						textAnchor: 'middle',
+					});
+				});
+			}
+		}
 	}
 
 	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
@@ -1083,6 +1220,141 @@ function buildCartesianViewModel(
 		axisLabels,
 		zeroLine,
 		categoryLabels: catLabels,
+		primitives,
+		dataLabels,
+		legend: chartData.style?.hasLegend ? legend : [],
+		legendX,
+		legendY,
+		legendAnchor,
+	};
+}
+
+const RADAR_RINGS = 4;
+const RADAR_RING_COLOR = '#cbd5e1';
+const RADAR_SPOKE_COLOR = '#94a3b8';
+const RADAR_LABEL_COLOR = '#64748b';
+
+/**
+ * Build the view-model for a radar / spider chart. Polar, so it has no
+ * cartesian gridlines/axes; ring + spoke geometry and the data polygons all
+ * live in `primitives`, perimeter category labels in `categoryLabels`.
+ * Mirrors React's `renderRadarChart` (chart-radar.tsx).
+ */
+function buildRadarViewModel(
+	element: PptxElement,
+	chartData: PptxChartData,
+	categoryLabels: ReadonlyArray<string>,
+): ChartViewModel {
+	const layout = computePlotLayout(element.width, element.height, chartData, false);
+	const cx = layout.plotLeft + layout.plotWidth / 2;
+	const cy = layout.plotTop + layout.plotHeight / 2;
+	const radius = Math.max(Math.min(layout.plotWidth, layout.plotHeight) / 2 - 4, 1);
+	const catCount = Math.max(categoryLabels.length, 1);
+	const maxVal = Math.max(1, ...chartData.series.flatMap((s) => s.values.map((v) => Math.abs(v))));
+
+	const primitives: SvgPrimitive[] = [];
+	const perimeterLabels: SvgText[] = [];
+
+	// Concentric gridline rings (dashed except the outermost).
+	for (let r = 1; r <= RADAR_RINGS; r++) {
+		const rr = (radius * r) / RADAR_RINGS;
+		primitives.push({
+			kind: 'polygon',
+			points: radarRingPoints(cx, cy, rr, catCount),
+			fill: 'none',
+			stroke: RADAR_RING_COLOR,
+			strokeWidth: 0.5,
+			dashArray: r < RADAR_RINGS ? '3 2' : undefined,
+		} satisfies SvgPolygon);
+	}
+
+	// Axis spokes + perimeter category labels.
+	for (let i = 0; i < catCount; i++) {
+		const angle = radarAngle(i, catCount);
+		primitives.push({
+			kind: 'line',
+			x1: cx,
+			y1: cy,
+			x2: cx + radius * Math.cos(angle),
+			y2: cy + radius * Math.sin(angle),
+			stroke: RADAR_SPOKE_COLOR,
+			strokeWidth: 0.5,
+		} satisfies SvgLine);
+		const labelR = radius + 10;
+		perimeterLabels.push({
+			kind: 'text',
+			x: cx + labelR * Math.cos(angle),
+			y: cy + labelR * Math.sin(angle),
+			text: categoryLabels[i] ?? '',
+			fontSize: 8,
+			fill: RADAR_LABEL_COLOR,
+			textAnchor: 'middle',
+			dominantBaseline: 'central',
+		});
+	}
+
+	// Per-series data polygons + vertex dots.
+	const dataLabels: SvgText[] = [];
+	chartData.series.forEach((series, si) => {
+		const c = seriesColor(series, si, chartData.colorPalette);
+		const pts = computeRadarPoints(series.values, maxVal, radius, cx, cy, catCount);
+		if (pts.length === 0) {
+			return;
+		}
+		const pointsStr = pts.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ');
+		primitives.push({
+			kind: 'polygon',
+			points: pointsStr,
+			fill: c,
+			opacity: 0.2,
+			stroke: c,
+			strokeWidth: 1.5,
+		} satisfies SvgPolygon);
+		for (const p of pts) {
+			primitives.push({ kind: 'circle', cx: p.x, cy: p.y, r: 3, fill: c } satisfies SvgCircle);
+		}
+
+		if (chartData.style?.hasDataLabels) {
+			pts.forEach((p, vi) => {
+				const val = series.values[vi];
+				if (val === undefined) {
+					return;
+				}
+				dataLabels.push({
+					kind: 'text',
+					x: p.x,
+					y: p.y - 8,
+					text: formatAxisValue(val),
+					fontSize: 7,
+					fill: '#334155',
+					textAnchor: 'middle',
+				});
+			});
+		}
+	});
+
+	const legendPos = chartData.style?.legendPosition ?? 'b';
+	const { legend, legendX, legendY, legendAnchor } = buildLegend(
+		chartData.series,
+		chartData.colorPalette,
+		layout.svgWidth,
+		legendPos,
+		layout.svgHeight,
+		layout.plotTop,
+	);
+
+	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
+
+	return {
+		svgWidth: layout.svgWidth,
+		svgHeight: layout.svgHeight,
+		title,
+		titleX: layout.svgWidth / 2,
+		titleY: 12,
+		gridlines: [],
+		axisLabels: [],
+		zeroLine: undefined,
+		categoryLabels: perimeterLabels,
 		primitives,
 		dataLabels,
 		legend: chartData.style?.hasLegend ? legend : [],
