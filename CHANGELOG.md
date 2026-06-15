@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.18](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.18) - 2026-06-15
+
+### 🚀 Features
+
+- **vue:** Version history/compare, insert-SmartArt & equation dialogs, settings (by @ChristopherVR) ([ba40c85](https://github.com/ChristopherVR/pptx-viewer/commit/ba40c8584297166d73496a8f78d97e22adf7f393))
+
 ## [1.1.17](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.17) - 2026-06-15
 
 ### 🚀 Features
@@ -27,6 +33,7 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### 📚 Documentation
 
 - **angular:** Record parity push (charts, connectors, duotone, editor, export, subsystem wiring) (by @ChristopherVR) ([127a233](https://github.com/ChristopherVR/pptx-viewer/commit/127a2333f84eeb0ffb0956dd2a2d15518f18269e))
+- **changelog:** Update for v1.1.17 [skip ci] (by @github-actions[bot]) ([2eb76cf](https://github.com/ChristopherVR/pptx-viewer/commit/2eb76cf73fe2381be6c81cb097f33d85dab8e2e5))
 
 ### 🧹 Chores
 
