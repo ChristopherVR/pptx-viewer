@@ -505,8 +505,15 @@ frontier is **editing** and the remaining advanced subsystems.
   - **Subsystem wiring:** signatures panel (parts-reading in
     `LoadContentService`; added `jszip`/`fast-xml-parser` deps), share +
     broadcast dialogs, presenter view, presentation transitions in the overlay.
-  - **Deferred:** animation playback composed into the overlay (needs a
-    per-element style-override path through the universal `ElementRenderer`).
+  - **Deferred (now done, same day):** **animation playback** composed into the
+    presentation overlay (forward nav reveals each click-group before advancing;
+    reveal/pending CSS applied imperatively to `[data-element-id]` nodes via a
+    stage ref — mirrors the Vue `applyAnimationStyles`, no `ElementRenderer`
+    change); the inspector **animation-authoring** tab
+    (`animation-author-panel` + helpers → `EditorStateService.updateSlide`); and
+    the **mobile chrome** suite (`IsMobileService` + `MobileBottomBar` /
+    `MobileMenuSheet` / `MobileSlidesSheet`, mirroring React `mobile/`). Test
+    count **1850 → 1935**. This closes full feature parity.
 
 > **Parity summary (updated 2026-06-16).** The Angular **viewer** matches
 > React's viewing surface (all 11 element types, fills/effects/clip-paths/
@@ -524,7 +531,12 @@ frontier is **editing** and the remaining advanced subsystems.
 > wired into the default chrome: comments, **digital signatures** (parts-read),
 > accessibility, embedded fonts, collaboration/Yjs with **share & broadcast**
 > dialogs, the dialog suite, print, presentation transitions, presenter view.
-> **Still ☐ for full React parity** — **animation playback** composed into the
-> presentation overlay (service/panel/helpers are ported & exported; needs a
-> per-element style-override path through `ElementRenderer`), the inspector's
-> **animation authoring** tab, and mobile/a11y chrome.
+> **Full feature parity reached** with the React viewer/editor. The final gaps
+> are now closed: **animation playback** plays in the presentation overlay
+> (gated forward navigation reveals each click-group; reveal/pending CSS applied
+> imperatively to `[data-element-id]` nodes — no per-element renderer plumbing),
+> the inspector has an **animation-authoring** tab, and a **mobile chrome**
+> (responsive bottom bar + slide-up menu/slides sheets via `IsMobileService`)
+> mirrors the React `mobile/` suite. Remaining differences are cosmetic/depth
+> (e.g. exact transition catalogue coverage, finer a11y focus management) rather
+> than missing features.
