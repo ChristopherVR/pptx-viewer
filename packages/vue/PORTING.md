@@ -211,13 +211,13 @@ Done in earlier/this batch: presentation mode + animation playback + **presenter
 view / ink annotations / rehearse timings (Batch 18)**, export (PNG/PDF via
 `html2canvas-pro`), **print (Batch 18)**, find/replace, comments, collaboration
 (Yjs whole-doc + cursors), digital signatures, font embedding, **comprehensive
-keyboard shortcuts (Batch 18)**.
+keyboard shortcuts (Batch 18)**, **master views + header/footer (Batch 19)**,
+**sections + custom shows (Batch 19)**.
 
 Still ☐ / partial: GIF/video export, presentation transition _overlay_
 animations, fine-grained CRDT collaboration (selection-presence / follow-mode),
-master views (notes/handout master, header/footer), sections, slide-version
-history / compare, insert-SmartArt & equation-editor dialogs, settings dialog,
-custom/app document-property round-trip.
+slide-version history / compare, insert-SmartArt & equation-editor dialogs,
+settings dialog, custom/app document-property round-trip.
 
 ## Open decisions / notes for next session
 
@@ -661,3 +661,26 @@ Record<string, string | number>`; `TableRenderer.vue` now imports them from
     oxfmt clean; build green (dist self-contained, no internal specifiers). The Vue
     editor-chrome surface now matches React except master views, sections, version
     history/compare, insert-SmartArt/equation-editor dialogs, and the settings dialog.
+
+- **2026-06-16** — Batch 19: master views + sections (two parallel subagents +
+  central wiring). First extended `useLoadContent` (central, in-session) to surface
+  five previously-unexposed `PptxData` fields — `sections`, `customShows`,
+  `headerFooter`, `notesMaster`, `handoutMaster` (all already parsed by core) — and
+  taught `getContent` to round-trip `sections`/`customShows`/`headerFooter` via
+  `handler.save` options. **(a) Master views** — `MasterViewSidebar.vue` (slides/
+  notes/handout tabs) + `SlideMastersList.vue` (live `SlideStage` previews of each
+  master + its layouts via pseudo-`PptxSlide` conversion), `NotesMasterCanvas`/
+  `NotesMasterPanel`, `HandoutMasterCanvas`/`HandoutMasterPanel` (slot-grid layout),
+  and `HeaderFooterPanel.vue` (visibility flags + date/footer/slide-number fields,
+  `update(next)` data-contract). Wired into the shell as a 📐 master-view overlay +
+  a ▭ header/footer `ModalDialog`. **(b) Sections + custom shows** —
+  `useSectionOperations` (add/rename/delete/move section, move-slides-to-section,
+  collapse, `slidesBySection` grouping; `pushHistory`-aware) + `SectionList.vue`
+  (collapsible sectioned slide rail, inline rename/reorder) replaces the flat
+  thumbnail rail when the deck declares sections; `useCustomShows` +
+  `CustomShowsPanel.vue` (🎬 toggle — create/rename/delete shows + ordered slide
+  membership). **+94 tests (877 vue total, all green)**; typecheck clean;
+  `oxlint --deny-warnings` clean on all new `.ts`; oxfmt clean; build green, dist
+  self-contained. **Remaining ☐:** slide-version history/compare, insert-SmartArt &
+  equation-editor dialogs, settings dialog, GIF/video export, custom/app
+  document-property round-trip, transition-overlay animations, fine-grained CRDT.

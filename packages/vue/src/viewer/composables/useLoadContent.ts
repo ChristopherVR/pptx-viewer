@@ -3,8 +3,13 @@ import type {
 	ParsedSignature,
 	ParsedTableStyleMap,
 	PptxCoreProperties,
+	PptxCustomShow,
 	PptxElement,
 	PptxEmbeddedFont,
+	PptxHandoutMaster,
+	PptxHeaderFooter,
+	PptxNotesMaster,
+	PptxSection,
 	PptxSlide,
 	PptxSlideMaster,
 	PptxTheme,
@@ -94,6 +99,16 @@ export interface UseLoadContentResult {
 	 * header colour resolution by table-style GUID.
 	 */
 	tableStyleMap: ShallowRef<ParsedTableStyleMap | undefined>;
+	/** Ordered presentation sections (`p:sectionLst`), empty when none. */
+	sections: ShallowRef<PptxSection[]>;
+	/** Named custom slide shows (`p:custShowLst`), empty when none. */
+	customShows: ShallowRef<PptxCustomShow[]>;
+	/** Presentation-level header/footer settings, or `undefined`. */
+	headerFooter: ShallowRef<PptxHeaderFooter | undefined>;
+	/** Parsed notes master, or `undefined` when absent. */
+	notesMaster: ShallowRef<PptxNotesMaster | undefined>;
+	/** Parsed handout master, or `undefined` when absent. */
+	handoutMaster: ShallowRef<PptxHandoutMaster | undefined>;
 	/** Serialise the current presentation back to `.pptx` bytes. */
 	getContent: () => Promise<Uint8Array>;
 }
@@ -117,6 +132,11 @@ export function useLoadContent(
 	const embeddedFonts = shallowRef<PptxEmbeddedFont[]>([]);
 	const signatures = shallowRef<ParsedSignature[]>([]);
 	const tableStyleMap = shallowRef<ParsedTableStyleMap | undefined>(undefined);
+	const sections = shallowRef<PptxSection[]>([]);
+	const customShows = shallowRef<PptxCustomShow[]>([]);
+	const headerFooter = shallowRef<PptxHeaderFooter | undefined>(undefined);
+	const notesMaster = shallowRef<PptxNotesMaster | undefined>(undefined);
+	const handoutMaster = shallowRef<PptxHandoutMaster | undefined>(undefined);
 
 	let renderToken = 0;
 	let activeBlobUrls: string[] = [];
@@ -292,6 +312,11 @@ export function useLoadContent(
 			coreProperties.value = parsed.coreProperties;
 			embeddedFonts.value = parsed.embeddedFonts ?? [];
 			tableStyleMap.value = parsed.tableStyleMap;
+			sections.value = parsed.sections ?? [];
+			customShows.value = parsed.customShows ?? [];
+			headerFooter.value = parsed.headerFooter;
+			notesMaster.value = parsed.notesMaster;
+			handoutMaster.value = parsed.handoutMaster;
 			signatures.value =
 				parsed.hasDigitalSignatures && signatureBuffer instanceof ArrayBuffer
 					? await parseSignaturesFromBuffer(signatureBuffer)
@@ -315,8 +340,14 @@ export function useLoadContent(
 		if (!handler.value) {
 			throw new Error('No presentation is loaded.');
 		}
-		// Persist edited document core properties into the saved `.pptx`.
-		return handler.value.save(slides.value, { coreProperties: coreProperties.value });
+		// Persist edited document metadata (core properties, sections, custom
+		// shows, header/footer) into the saved `.pptx`.
+		return handler.value.save(slides.value, {
+			coreProperties: coreProperties.value,
+			sections: sections.value,
+			customShows: customShows.value,
+			headerFooter: headerFooter.value,
+		});
 	};
 
 	watch(
@@ -351,6 +382,11 @@ export function useLoadContent(
 		embeddedFonts,
 		signatures,
 		tableStyleMap,
+		sections,
+		customShows,
+		headerFooter,
+		notesMaster,
+		handoutMaster,
 		getContent,
 	};
 }

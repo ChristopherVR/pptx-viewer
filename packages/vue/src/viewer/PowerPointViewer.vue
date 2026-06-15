@@ -20,7 +20,13 @@ import {
 	createShapeElement,
 	createTextElement,
 } from 'pptx-viewer-core';
-import type { PptxElement, PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
+import type {
+	MasterViewTab,
+	PptxElement,
+	PptxHeaderFooter,
+	PptxSlide,
+	PptxSlideTransition,
+} from 'pptx-viewer-core';
 import type { AlignEdge, DistributeAxis } from 'pptx-viewer-shared';
 import { alignElements, distributeElements } from 'pptx-viewer-shared';
 import { computed, nextTick, provide, ref, toRef, watch } from 'vue';
@@ -34,18 +40,23 @@ import CollaborationCursors from './components/CollaborationCursors.vue';
 import CommentsPanel from './components/CommentsPanel.vue';
 import ContextMenu from './components/ContextMenu.vue';
 import type { ContextMenuItem } from './components/ContextMenu.vue';
+import CustomShowsPanel from './components/CustomShowsPanel.vue';
 import DocumentPropertiesDialog from './components/DocumentPropertiesDialog.vue';
 import type { DocumentPropertiesSavePatch } from './components/DocumentPropertiesDialog.vue';
 import EditorToolbar from './components/EditorToolbar.vue';
 import type { ShapePreset } from './components/EditorToolbar.vue';
 import ExportMenu from './components/ExportMenu.vue';
 import FindReplaceBar from './components/FindReplaceBar.vue';
+import HeaderFooterPanel from './components/HeaderFooterPanel.vue';
 import HyperlinkDialog from './components/HyperlinkDialog.vue';
 import InspectorPane from './components/inspector/InspectorPane.vue';
+import MasterViewSidebar from './components/MasterViewSidebar.vue';
 import MobileBottomBar from './components/MobileBottomBar.vue';
+import ModalDialog from './components/ModalDialog.vue';
 import NotesPanel from './components/NotesPanel.vue';
 import PresentationMode from './components/PresentationMode.vue';
 import PrintDialog from './components/PrintDialog.vue';
+import SectionList from './components/SectionList.vue';
 import SelectionOverlay from './components/SelectionOverlay.vue';
 import ShareDialog from './components/ShareDialog.vue';
 import ShortcutPanel from './components/ShortcutPanel.vue';
@@ -60,6 +71,7 @@ import { useAccessibility } from './composables/useAccessibility';
 import { useAutosave } from './composables/useAutosave';
 import { useCollaboration } from './composables/useCollaboration';
 import { useComments } from './composables/useComments';
+import { useCustomShows } from './composables/useCustomShows';
 import { useEditorHistory } from './composables/useEditorHistory';
 import { useEditorOperations } from './composables/useEditorOperations';
 import { useEmbeddedFonts } from './composables/useEmbeddedFonts';
@@ -69,6 +81,7 @@ import { useIsMobile } from './composables/useIsMobile';
 import { useKeyboardShortcuts } from './composables/useKeyboardShortcuts';
 import { useLoadContent } from './composables/useLoadContent';
 import { usePrint } from './composables/usePrint';
+import { useSectionOperations } from './composables/useSectionOperations';
 import { useSignatures } from './composables/useSignatures';
 import { useSlideOperations } from './composables/useSlideOperations';
 import type {
@@ -110,6 +123,12 @@ const {
 	embeddedFonts,
 	signatures,
 	tableStyleMap,
+	slideMasters,
+	sections,
+	customShows,
+	headerFooter,
+	notesMaster,
+	handoutMaster,
 	theme: pptxTheme,
 	getContent,
 } = useLoadContent(() => props.content);
@@ -813,6 +832,56 @@ function onPropertiesSave(patch: DocumentPropertiesSavePatch): void {
 	coreProperties.value = { ...coreProperties.value, ...patch.core };
 	propertiesOpen.value = false;
 }
+
+// ── Master view (slide / notes / handout masters) ─────────────────────
+const showMasterView = ref(false);
+const masterViewTab = ref<MasterViewTab>('slides');
+const activeMasterIndex = ref(0);
+const activeLayoutIndex = ref<number | null>(null);
+const handoutSlidesPerPage = ref(6);
+function onSelectMaster(index: number): void {
+	activeMasterIndex.value = index;
+	activeLayoutIndex.value = null;
+}
+function onSelectLayout(masterIndex: number, layoutIndex: number): void {
+	activeMasterIndex.value = masterIndex;
+	activeLayoutIndex.value = layoutIndex;
+}
+
+// ── Header / footer dialog ────────────────────────────────────────────
+const showHeaderFooter = ref(false);
+function onHeaderFooterUpdate(next: PptxHeaderFooter): void {
+	headerFooter.value = next;
+	showHeaderFooter.value = false;
+}
+
+// ── Sections (group the slide rail) ───────────────────────────────────
+const sectionOps = useSectionOperations({
+	sections,
+	slides,
+	activeSlideIndex,
+	pushHistory: history.pushHistory,
+});
+const hasSections = computed(() => sections.value.length > 0);
+
+// ── Custom shows ──────────────────────────────────────────────────────
+const showCustomShows = ref(false);
+const activeCustomShowId = ref<string | null>(null);
+const customShowOps = useCustomShows({
+	customShows,
+	slides,
+	activeSlideIndex,
+	pushHistory: history.pushHistory,
+});
+function onCreateCustomShow(name: string): void {
+	activeCustomShowId.value = customShowOps.createCustomShow(name);
+}
+function onDeleteCustomShow(showId: string): void {
+	customShowOps.deleteCustomShow(showId);
+	if (activeCustomShowId.value === showId) {
+		activeCustomShowId.value = null;
+	}
+}
 function sendBackward(): void {
 	for (const id of [...selectedElementIds.value]) {
 		ops.sendBackward(id);
@@ -1044,6 +1113,36 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						⌨
 					</button>
 					<button
+						v-if="slideMasters.length > 0"
+						type="button"
+						class="pptx-vue-masters-btn"
+						title="Master views"
+						aria-label="Master views"
+						@click="showMasterView = true"
+					>
+						📐
+					</button>
+					<button
+						v-if="props.canEdit"
+						type="button"
+						class="pptx-vue-headerfooter-btn"
+						title="Header &amp; footer"
+						aria-label="Header and footer"
+						@click="showHeaderFooter = true"
+					>
+						▭
+					</button>
+					<button
+						v-if="props.canEdit"
+						type="button"
+						class="pptx-vue-customshows-btn"
+						title="Custom shows"
+						aria-label="Custom shows"
+						@click="showCustomShows = !showCustomShows"
+					>
+						🎬
+					</button>
+					<button
 						v-if="signaturesApi.isSigned.value"
 						type="button"
 						class="pptx-vue-sig-btn"
@@ -1116,27 +1215,45 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						:slide="activeSlide"
 						@update="onTransitionUpdate"
 					/>
-					<button
-						v-for="(slide, index) in slides"
-						:key="slide.id ?? index"
-						type="button"
-						class="pptx-vue-thumb"
-						:class="{ 'is-active': index === activeSlideIndex }"
-						:style="{ height: `${thumbHeight}px` }"
-						:aria-label="`Slide ${index + 1}`"
-						:aria-current="index === activeSlideIndex ? 'true' : undefined"
-						@click="goTo(index)"
-					>
-						<div class="pptx-vue-thumb-stage" aria-hidden="true">
-							<SlideStage
-								:slide="slide"
-								:canvas-size="canvasSize"
-								:media-data-urls="mediaDataUrls"
-								:scale="thumbScale"
-							/>
-						</div>
-						<span class="pptx-vue-thumb-index">{{ index + 1 }}</span>
-					</button>
+					<!-- Sectioned rail when the deck declares sections; flat otherwise. -->
+					<SectionList
+						v-if="hasSections"
+						:groups="sectionOps.slidesBySection.value"
+						:canvas-size="canvasSize"
+						:media-data-urls="mediaDataUrls"
+						:active-index="activeSlideIndex"
+						:can-edit="props.canEdit"
+						@select="goTo"
+						@toggle-collapse="sectionOps.toggleSectionCollapse"
+						@rename="sectionOps.renameSection"
+						@move-up="sectionOps.moveSectionUp"
+						@move-down="sectionOps.moveSectionDown"
+						@delete="sectionOps.deleteSection"
+						@add-section="(idx) => sectionOps.addSection('Untitled Section', idx)"
+					/>
+					<template v-else>
+						<button
+							v-for="(slide, index) in slides"
+							:key="slide.id ?? index"
+							type="button"
+							class="pptx-vue-thumb"
+							:class="{ 'is-active': index === activeSlideIndex }"
+							:style="{ height: `${thumbHeight}px` }"
+							:aria-label="`Slide ${index + 1}`"
+							:aria-current="index === activeSlideIndex ? 'true' : undefined"
+							@click="goTo(index)"
+						>
+							<div class="pptx-vue-thumb-stage" aria-hidden="true">
+								<SlideStage
+									:slide="slide"
+									:canvas-size="canvasSize"
+									:media-data-urls="mediaDataUrls"
+									:scale="thumbScale"
+								/>
+							</div>
+							<span class="pptx-vue-thumb-index">{{ index + 1 }}</span>
+						</button>
+					</template>
 				</nav>
 
 				<main
@@ -1199,6 +1316,20 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 
 				<!-- Digital signatures -->
 				<SignaturesPanel v-if="showSignatures" :signatures="signatures" />
+
+				<!-- Custom shows -->
+				<CustomShowsPanel
+					v-if="props.canEdit && showCustomShows"
+					:custom-shows="customShows"
+					:slides="slides"
+					:active-show-id="activeCustomShowId"
+					@create="onCreateCustomShow"
+					@rename="customShowOps.renameCustomShow"
+					@delete="onDeleteCustomShow"
+					@select="(id) => (activeCustomShowId = id)"
+					@toggle-slide="customShowOps.toggleSlideInShow"
+					@move-slide="customShowOps.moveSlideInShow"
+				/>
 			</div>
 
 			<!-- Element context menu (edit mode) -->
@@ -1249,6 +1380,53 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 
 			<!-- Keyboard shortcut help -->
 			<ShortcutPanel :open="showShortcuts" @close="showShortcuts = false" />
+
+			<!-- Header & footer -->
+			<ModalDialog
+				:open="showHeaderFooter"
+				title="Header & footer"
+				@close="showHeaderFooter = false"
+			>
+				<HeaderFooterPanel
+					:header-footer="headerFooter"
+					@update="onHeaderFooterUpdate"
+					@close="showHeaderFooter = false"
+				/>
+			</ModalDialog>
+
+			<!-- Master views (slide / notes / handout) -->
+			<div
+				v-if="showMasterView"
+				class="pptx-vue-master-overlay"
+				role="dialog"
+				aria-label="Master views"
+				style="
+					position: fixed;
+					inset: 0;
+					z-index: 1000;
+					display: flex;
+					justify-content: flex-start;
+					background: rgba(0, 0, 0, 0.45);
+				"
+				@click.self="showMasterView = false"
+			>
+				<MasterViewSidebar
+					:slide-masters="slideMasters"
+					:active-master-index="activeMasterIndex"
+					:active-layout-index="activeLayoutIndex"
+					:canvas-size="canvasSize"
+					:media-data-urls="mediaDataUrls"
+					:master-view-tab="masterViewTab"
+					:notes-master="notesMaster"
+					:handout-master="handoutMaster"
+					:handout-slides-per-page="handoutSlidesPerPage"
+					@select-master="onSelectMaster"
+					@select-layout="onSelectLayout"
+					@tab-change="masterViewTab = $event"
+					@handout-slides-per-page-change="handoutSlidesPerPage = $event"
+					@collapse="showMasterView = false"
+				/>
+			</div>
 
 			<!-- Broadcast -->
 			<BroadcastDialog
