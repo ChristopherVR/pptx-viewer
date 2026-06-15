@@ -4,14 +4,18 @@ import {
 	Component,
 	computed,
 	effect,
+	ElementRef,
 	inject,
 	input,
 	output,
 	signal,
+	viewChild,
 } from '@angular/core';
 
 import type { ViewerTheme } from '../internal/shared';
 import { themeStyle } from '../theme/viewer-theme';
+import { slideFileName } from './export-helpers';
+import { ExportService } from './export.service';
 import { FindBarComponent } from './find-bar.component';
 import { LoadContentService } from './load-content.service';
 import { PresentationOverlayComponent } from './presentation-overlay.component';
@@ -44,7 +48,7 @@ const ZOOM_MAX = 3;
 	selector: 'pptx-viewer',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	providers: [LoadContentService],
+	providers: [LoadContentService, ExportService],
 	imports: [
 		NgClass,
 		NgStyle,
@@ -107,6 +111,20 @@ const ZOOM_MAX = 3;
 						>
 							Notes
 						</button>
+						<button
+							type="button"
+							[disabled]="slideCount() === 0 || exporting()"
+							(click)="exportPng()"
+						>
+							PNG
+						</button>
+						<button
+							type="button"
+							[disabled]="slideCount() === 0 || exporting()"
+							(click)="exportPdf()"
+						>
+							{{ exporting() ? 'Exporting…' : 'PDF' }}
+						</button>
 						<button type="button" [disabled]="slideCount() === 0" (click)="present()">
 							Present
 						</button>
@@ -127,7 +145,7 @@ const ZOOM_MAX = 3;
 						}
 					</nav>
 
-					<main class="pptx-ng-main">
+					<main class="pptx-ng-main" #mainEl>
 						<pptx-slide-canvas
 							[slide]="activeSlide()"
 							[canvasSize]="loader.canvasSize()"
@@ -196,6 +214,12 @@ export class PowerPointViewerComponent {
 	readonly contentChange = output<Uint8Array>();
 
 	protected readonly loader = inject(LoadContentService);
+	private readonly exportSvc = inject(ExportService);
+
+	/** The `<main>` host; used to locate the live `.pptx-ng-canvas-stage`. */
+	private readonly mainEl = viewChild<ElementRef<HTMLElement>>('mainEl');
+	/** True while a PNG/PDF export is in progress (disables the buttons). */
+	protected readonly exporting = signal(false);
 
 	protected readonly activeSlideIndex = signal(0);
 	protected readonly slideCount = this.loader.slideCount;
@@ -273,5 +297,62 @@ export class PowerPointViewerComponent {
 	/** Toggle the speaker-notes strip. */
 	toggleNotes(): void {
 		this.showNotes.update((v) => !v);
+	}
+
+	/** Resolve the live slide-stage element within `<main>`. */
+	private stageElement(): HTMLElement | undefined {
+		return (
+			this.mainEl()?.nativeElement.querySelector<HTMLElement>('.pptx-ng-canvas-stage') ?? undefined
+		);
+	}
+
+	/** Export the current slide as a PNG download. */
+	async exportPng(): Promise<void> {
+		const el = this.stageElement();
+		if (!el || this.exporting()) {
+			return;
+		}
+		this.exporting.set(true);
+		try {
+			await this.exportSvc.exportElementToPng(
+				el,
+				slideFileName('slide', this.activeSlideIndex() + 1, 'png'),
+			);
+		} finally {
+			this.exporting.set(false);
+		}
+	}
+
+	/**
+	 * Export every slide to a multi-page PDF. Each slide is made the live stage,
+	 * given a render tick to settle, captured to a canvas, then the original
+	 * slide is restored.
+	 */
+	async exportPdf(): Promise<void> {
+		const total = this.slideCount();
+		if (total === 0 || this.exporting()) {
+			return;
+		}
+		this.exporting.set(true);
+		const original = this.activeSlideIndex();
+		const { width, height } = this.loader.canvasSize();
+		const canvases: HTMLCanvasElement[] = [];
+		try {
+			for (let i = 0; i < total; i++) {
+				this.activeSlideIndex.set(i);
+				await new Promise<void>((resolve) => {
+					setTimeout(resolve, 150);
+				});
+				const el = this.stageElement();
+				if (el) {
+					canvases.push(await this.exportSvc.renderElement(el));
+				}
+			}
+			this.activeSlideIndex.set(original);
+			this.exportSvc.exportCanvasesToPdf(canvases, width, height, 'presentation.pdf');
+		} finally {
+			this.activeSlideIndex.set(original);
+			this.exporting.set(false);
+		}
 	}
 }

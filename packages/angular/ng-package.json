@@ -1,6 +1,7 @@
 {
 	"$schema": "../../node_modules/ng-packagr/ng-package.schema.json",
 	"dest": "dist",
+	"allowedNonPeerDependencies": ["html2canvas-pro", "jspdf"],
 	"assets": [
 		"NOTICE",
 		"README.md",

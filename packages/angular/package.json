@@ -37,6 +37,8 @@
 		"pack": "bun run build && cd dist && bun pm pack"
 	},
 	"dependencies": {
+		"html2canvas-pro": "^2.0.4",
+		"jspdf": "^4.2.1",
 		"tslib": "^2.8.1"
 	},
 	"devDependencies": {

@@ -13,6 +13,8 @@ export { PresentationOverlayComponent } from './presentation-overlay.component';
 export { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
 export { FindBarComponent } from './find-bar.component';
 export { collectElementText, collectSlideText, searchSlides } from './slide-search';
+export { ExportService } from './export.service';
+export { renderToCanvas } from '../lib/canvas-export';
 export { resolveParagraphBullet, formatAutoNumber, bulletIndentPx } from './text-bullets';
 export { EquationRendererComponent } from './equation-renderer.component';
 export { ommlToMathml, convertOmmlToMathMl } from './omml-to-mathml';
