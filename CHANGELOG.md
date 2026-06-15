@@ -4,6 +4,34 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.17](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.17) - 2026-06-15
+
+### 🚀 Features
+
+- **angular:** Duotone image-effect SVG filter injection (by @ChristopherVR) ([36ccab8](https://github.com/ChristopherVR/pptx-viewer/commit/36ccab85213b1fb21ab122043c8047ac916da6cb))
+- **angular:** Advanced inspector tabs + table/chart data editing (by @ChristopherVR) ([0d21fa7](https://github.com/ChristopherVR/pptx-viewer/commit/0d21fa724d9b3182433f8dd1c9d0d3a98d9c24f5))
+- **angular:** GIF & WebM video export (by @ChristopherVR) ([3f18a76](https://github.com/ChristopherVR/pptx-viewer/commit/3f18a76a1e6c80562fce868626c86674a49258dd))
+- **angular:** Find & replace across slides (by @ChristopherVR) ([1dd7fbb](https://github.com/ChristopherVR/pptx-viewer/commit/1dd7fbb5ee3fcad5f623accce09cbfa6e59cafa7))
+- **angular:** Wire signatures panel (parts-reading) into the viewer (by @ChristopherVR) ([d11afb9](https://github.com/ChristopherVR/pptx-viewer/commit/d11afb96195c998f9a56a218fa641b8adbf62fb6))
+- **angular:** Wire share & broadcast dialogs into the viewer (by @ChristopherVR) ([fca4b2d](https://github.com/ChristopherVR/pptx-viewer/commit/fca4b2d2e374830fc5d940384f76e28710aceabc))
+- **angular:** Wire presenter view into the viewer (by @ChristopherVR) ([19bf7a3](https://github.com/ChristopherVR/pptx-viewer/commit/19bf7a32b731707c7ad32e9c46a220cf61000bbe))
+- **angular:** Play slide transitions in the presentation overlay (by @ChristopherVR) ([5f2c4cb](https://github.com/ChristopherVR/pptx-viewer/commit/5f2c4cb4857903ad701899b246d951668750d55e))
+- **vue:** Master views, header/footer, sections & custom shows (by @ChristopherVR) ([b6a1dfb](https://github.com/ChristopherVR/pptx-viewer/commit/b6a1dfbfc931331d9986a030bae1d6a0e17ad10e))
+
+### 🐛 Bug Fixes
+
+- **react:** Keep notes panel mounted when the virtual keyboard opens (by @ChristopherVR) ([a2f2efa](https://github.com/ChristopherVR/pptx-viewer/commit/a2f2efa61e9ebfa9977f200dfbcfeec11b328e6c))
+- **react:** Commit inline text edit on touch tap-away (by @ChristopherVR) ([3599dcf](https://github.com/ChristopherVR/pptx-viewer/commit/3599dcfc428f1902c75501c3dd59eafd5eb2bba2))
+- **angular:** Commit inline text edit deterministically on tap-away (by @ChristopherVR) ([1387cff](https://github.com/ChristopherVR/pptx-viewer/commit/1387cfffacbf0a01f9a579bbfeccda090b46769e))
+
+### 📚 Documentation
+
+- **angular:** Record parity push (charts, connectors, duotone, editor, export, subsystem wiring) (by @ChristopherVR) ([127a233](https://github.com/ChristopherVR/pptx-viewer/commit/127a2333f84eeb0ffb0956dd2a2d15518f18269e))
+
+### 🧹 Chores
+
+- **angular:** Lockfile for jszip + fast-xml-parser deps (by @ChristopherVR) ([9ac5403](https://github.com/ChristopherVR/pptx-viewer/commit/9ac5403e8a624551f879d304b3cd2475484070d6))
+
 ## [1.1.16](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.16) - 2026-06-15
 
 ### 🚀 Features
@@ -20,6 +48,7 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### 📚 Documentation
 
 - **angular:** Record bubble & radar chart kinds in PORTING.md (by @ChristopherVR) ([ea8dd22](https://github.com/ChristopherVR/pptx-viewer/commit/ea8dd226cca868fec18e1c6a2375d25ad942a03f))
+- **changelog:** Update for v1.1.16 [skip ci] (by @github-actions[bot]) ([8e832ab](https://github.com/ChristopherVR/pptx-viewer/commit/8e832ab327d5bbd2870324d5acf94b20ab419c4a))
 
 ## [1.1.15](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.15) - 2026-06-15
 
