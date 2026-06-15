@@ -20,6 +20,7 @@ export {
 	getImageSrc,
 } from './element-style';
 export { getResolvedShapeClipPath, getResolvedShapeClipPathFor } from './shape-geometry';
+export { getSlideBackgroundStyle, DEFAULT_SLIDE_BACKGROUND } from './slide-background';
 export {
 	DEFAULT_CANVAS_WIDTH,
 	DEFAULT_CANVAS_HEIGHT,

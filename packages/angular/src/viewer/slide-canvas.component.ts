@@ -5,6 +5,7 @@ import type { PptxSlide } from 'pptx-viewer-core';
 import type { CanvasSize } from '../internal/shared';
 import { ElementRendererComponent } from './element-renderer.component';
 import type { StyleMap } from './element-style';
+import { getSlideBackgroundStyle } from './slide-background';
 
 /**
  * SlideCanvasComponent — Angular port of the React `SlideCanvas.tsx` and Vue
@@ -71,16 +72,10 @@ export class SlideCanvasComponent {
 			'transform-origin': 'top left',
 			position: 'relative',
 			overflow: 'hidden',
-			'background-color':
-				slide?.backgroundColor && slide.backgroundColor !== 'transparent'
-					? slide.backgroundColor
-					: '#ffffff',
-			'background-size': '100% 100%',
 			'box-shadow': '0 10px 40px rgba(0, 0, 0, 0.35)',
+			// Resolved slide background: image → gradient → pattern → solid colour.
+			...getSlideBackgroundStyle(slide),
 		};
-		if (slide?.backgroundImage) {
-			style['background-image'] = `url(${slide.backgroundImage})`;
-		}
 		return style;
 	});
 }
