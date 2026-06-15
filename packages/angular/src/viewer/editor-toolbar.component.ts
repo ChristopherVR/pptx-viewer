@@ -18,7 +18,7 @@
  * ```
  */
 
-import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 
 import { newShapeElement, newTextElement } from './editor-insert';
 import { EditorStateService } from './editor-state.service';
@@ -137,6 +137,84 @@ import { EditorStateService } from './editor-state.service';
 					↓
 				</button>
 			</div>
+
+			<div class="pptx-ng-toolbar__divider" role="separator" aria-orientation="vertical"></div>
+
+			<div class="pptx-ng-toolbar__group" role="group" aria-label="Align">
+				<span class="pptx-ng-toolbar__group-label">Align</span>
+				<button
+					type="button"
+					class="pptx-ng-toolbar__btn"
+					title="Align Left"
+					[disabled]="!canAlign()"
+					(click)="editor.alignSelected(slideIndex(), 'left')"
+				>
+					⊣
+				</button>
+				<button
+					type="button"
+					class="pptx-ng-toolbar__btn"
+					title="Align Centre"
+					[disabled]="!canAlign()"
+					(click)="editor.alignSelected(slideIndex(), 'centerH')"
+				>
+					⊟
+				</button>
+				<button
+					type="button"
+					class="pptx-ng-toolbar__btn"
+					title="Align Right"
+					[disabled]="!canAlign()"
+					(click)="editor.alignSelected(slideIndex(), 'right')"
+				>
+					⊢
+				</button>
+				<button
+					type="button"
+					class="pptx-ng-toolbar__btn"
+					title="Align Top"
+					[disabled]="!canAlign()"
+					(click)="editor.alignSelected(slideIndex(), 'top')"
+				>
+					⊤
+				</button>
+				<button
+					type="button"
+					class="pptx-ng-toolbar__btn"
+					title="Align Middle"
+					[disabled]="!canAlign()"
+					(click)="editor.alignSelected(slideIndex(), 'middle')"
+				>
+					⊞
+				</button>
+				<button
+					type="button"
+					class="pptx-ng-toolbar__btn"
+					title="Align Bottom"
+					[disabled]="!canAlign()"
+					(click)="editor.alignSelected(slideIndex(), 'bottom')"
+				>
+					⊥
+				</button>
+				<button
+					type="button"
+					class="pptx-ng-toolbar__btn"
+					title="Distribute Horizontally"
+					[disabled]="!canDistribute()"
+					(click)="editor.distributeSelected(slideIndex(), 'horizontal')"
+				>
+					↔
+				</button>
+				<button
+					type="button"
+					class="pptx-ng-toolbar__btn"
+					title="Distribute Vertically"
+					[disabled]="!canDistribute()"
+					(click)="editor.distributeSelected(slideIndex(), 'vertical')"
+				>
+					↕
+				</button>
+			</div>
 		</div>
 	`,
 	styles: `
@@ -225,6 +303,10 @@ export class EditorToolbarComponent {
 	readonly slideIndex = input.required<number>();
 
 	protected readonly editor = inject(EditorStateService);
+
+	/** Align needs ≥2 selected elements; distribute needs ≥3. */
+	protected readonly canAlign = computed(() => this.editor.selectedIds().length >= 2);
+	protected readonly canDistribute = computed(() => this.editor.selectedIds().length >= 3);
 
 	protected onInsertText(): void {
 		this.editor.addElement(this.slideIndex(), newTextElement());

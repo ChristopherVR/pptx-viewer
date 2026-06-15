@@ -15,6 +15,8 @@
 import { computed, Injectable, signal } from '@angular/core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
+import { computeAlign, computeDistribute } from './align-distribute';
+import type { AlignMode, DistributeMode } from './align-distribute';
 import { EditorHistory } from './editor-history';
 import {
 	bringForward,
@@ -213,6 +215,55 @@ export class EditorStateService {
 			this.selectedIds.set([]);
 			this.syncHistory();
 		}
+	}
+
+	// ── Align / distribute (multi-selection) ─────────────────────────────────
+
+	/** Align the selected elements within their group bounds (one history entry). */
+	alignSelected(slideIndex: number, mode: AlignMode): void {
+		this.applyPositionMap(slideIndex, `Align ${mode}`, (boxes) => computeAlign(boxes, mode));
+	}
+
+	/** Evenly distribute the selected elements along an axis (one history entry). */
+	distributeSelected(slideIndex: number, mode: DistributeMode): void {
+		this.applyPositionMap(slideIndex, 'Distribute', (boxes) => computeDistribute(boxes, mode));
+	}
+
+	private applyPositionMap(
+		slideIndex: number,
+		label: string,
+		compute: (
+			boxes: { id: string; x: number; y: number; width: number; height: number }[],
+		) => Map<string, { x?: number; y?: number }>,
+	): void {
+		const ids = new Set(this.selectedIds());
+		const slide = this.slides()[slideIndex];
+		if (!slide) {
+			return;
+		}
+		const boxes = slide.elements
+			.filter((el) => ids.has(el.id))
+			.map((el) => ({ id: el.id, x: el.x, y: el.y, width: el.width, height: el.height }));
+		const map = compute(boxes);
+		if (map.size === 0) {
+			return;
+		}
+		this.history.record(this.clone(this.slides()), label);
+		this.slides.set(
+			this.slides().map((s, i) =>
+				i === slideIndex
+					? {
+							...s,
+							elements: s.elements.map((el) => {
+								const pos = map.get(el.id);
+								return pos ? { ...el, x: pos.x ?? el.x, y: pos.y ?? el.y } : el;
+							}),
+						}
+					: s,
+			),
+		);
+		this.dirty.set(true);
+		this.syncHistory();
 	}
 
 	// ── Clipboard ──────────────────────────────────────────────────────────────
