@@ -9,6 +9,8 @@
  * - text:       `text-warp` (WordArt paths), `omml-to-mathml` (equations).
  * - charts:     `chart-helpers` (layout/palette/axis math).
  * - animation:  `animation-css` (preset → CSS keyframes).
+ * - 3d:         `visual-3d` (scene3d/shape3d → CSS transform/shadow pieces).
+ * - tables:     `table-style` (cell style + banding → CSS).
  * - editing:    `element-align` (align/distribute), `element-interaction`
  *               (drag/resize/rotate math).
  */
@@ -20,5 +22,7 @@ export * from './text-warp';
 export * from './omml-to-mathml';
 export * from './chart-helpers';
 export * from './animation-css';
+export * from './visual-3d';
+export * from './table-style';
 export * from './element-align';
 export * from './element-interaction';

@@ -1,14 +1,11 @@
 <script setup lang="ts">
 import type { PptxElement, PptxTableData } from 'pptx-viewer-core';
+import type { TableCellCss } from 'pptx-viewer-shared';
+import { cellStyleToCss, getDiagonalBorders, getTableCellBandStyle } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
 import { getContainerStyle } from '../composables/element-style';
-import {
-	cellStyleToCss,
-	getDiagonalBorders,
-	getTableCellBandStyle,
-} from '../composables/table-style';
 
 /**
  * TableRenderer — Vue port of the React table renderer
@@ -62,7 +59,7 @@ interface RenderableCell {
 	key: string;
 	colSpan?: number;
 	rowSpan?: number;
-	style: CSSProperties;
+	style: TableCellCss;
 	text: string;
 	diagonals: ReturnType<typeof getDiagonalBorders>;
 }
@@ -101,7 +98,7 @@ const rows = computed<RenderableRow[]>(() => {
 			const bandStyle = getTableCellBandStyle(td, rowIndex, cellIndex, rCount, cCount);
 			const cellStyle = cellStyleToCss(cell.style);
 			// Explicit cell style wins over band style (mirrors the React layering).
-			const style: CSSProperties = { ...bandStyle, ...cellStyle };
+			const style: TableCellCss = { ...bandStyle, ...cellStyle };
 
 			cells.push({
 				key: `${id}-cell-${rowIndex}-${cellIndex}`,

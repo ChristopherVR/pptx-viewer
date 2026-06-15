@@ -1,10 +1,14 @@
 /**
- * table-style.ts — framework-agnostic helpers for the Vue `TableRenderer`.
+ * table-style.ts — framework-agnostic table render helpers.
  *
  * A focused port of the React table render helpers that operate on the
  * structured {@link PptxTableData} model (not raw OOXML). The renderer is
  * viewer-first: it consumes the already-parsed cell styles, banding flags,
  * and column widths that `pptx-viewer-core` produces, and maps them to CSS.
+ *
+ * Returns plain {@link TableCellCss} objects (no framework `CSSProperties`
+ * type) so React, Vue, and Angular can each apply them to their own style
+ * binding.
  *
  * Ports of:
  *   - `viewer/utils/table-render-helpers.ts`  → {@link cellStyleToCss}
@@ -15,7 +19,9 @@
  * not exported from core). See PORTING.md.
  */
 import type { PptxTableCellStyle, PptxTableData } from 'pptx-viewer-core';
-import type { CSSProperties } from 'vue';
+
+/** A framework-agnostic CSS style object: camelCased property → value. */
+export type TableCellCss = Record<string, string | number>;
 
 /** Map an OOXML `a:prstDash/@val` value to a CSS `border-style` keyword. */
 export function ooxmlDashToCssBorderStyle(dashVal: string | undefined): string {
@@ -46,11 +52,11 @@ export function ooxmlDashToCssBorderStyle(dashVal: string | undefined): string {
  * Mirrors the React `cellStyleToCss`, minus the SVG pattern-fill branch
  * (approximated by its background colour here).
  */
-export function cellStyleToCss(style?: PptxTableCellStyle): CSSProperties {
+export function cellStyleToCss(style?: PptxTableCellStyle): TableCellCss {
 	if (!style) {
 		return {};
 	}
-	const css: CSSProperties = {};
+	const css: TableCellCss = {};
 
 	if (style.fontSize) {
 		css.fontSize = `${style.fontSize}px`;
@@ -73,7 +79,10 @@ export function cellStyleToCss(style?: PptxTableCellStyle): CSSProperties {
 	if (style.gradientFillCss) {
 		css.background = style.gradientFillCss;
 	} else if (style.fillMode === 'pattern') {
-		css.backgroundColor = style.patternFillBackground ?? style.backgroundColor;
+		const patternBg = style.patternFillBackground ?? style.backgroundColor;
+		if (patternBg) {
+			css.backgroundColor = patternBg;
+		}
 	} else if (style.backgroundColor) {
 		css.backgroundColor = style.backgroundColor;
 	}
@@ -141,7 +150,7 @@ export function cellStyleToCss(style?: PptxTableCellStyle): CSSProperties {
 			const w = edge.width ?? 1;
 			const c = edge.color ?? style.borderColor ?? '#000000';
 			const s = ooxmlDashToCssBorderStyle(edge.dash);
-			(css as Record<string, string>)[edge.prefix] = `${w}px ${s} ${c}`;
+			css[edge.prefix] = `${w}px ${s} ${c}`;
 		}
 	}
 
@@ -212,7 +221,7 @@ export function getDiagonalBorders(style?: PptxTableCellStyle): DiagonalBorderIn
  *
  * A port of the React `getTableCellBandStyle` that operates purely on the
  * structured {@link PptxTableData} banding flags. Without the parsed table
- * style map + theme colour scheme (not threaded into the Vue viewer yet) it
+ * style map + theme colour scheme (not threaded into the viewer yet) it
  * uses the same hardcoded fallback colours the React renderer falls back to.
  *
  * Returns `undefined` when no banding applies, so callers can treat the
@@ -224,12 +233,12 @@ export function getTableCellBandStyle(
 	cellIndex: number,
 	rowCount: number,
 	columnCount: number,
-): CSSProperties | undefined {
+): TableCellCss | undefined {
 	if (!tableData) {
 		return undefined;
 	}
 
-	const style: CSSProperties = {};
+	const style: TableCellCss = {};
 	let applied = false;
 
 	// ── Banded rows (skip the header row when present). ──

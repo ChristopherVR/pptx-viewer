@@ -538,3 +538,22 @@ equationXml` OMML → MathML (ported from React's three omml-\* files, core only
   **Still in vue (need `CSSProperties`→agnostic-type genericisation before moving):**
   `visual-3d`, `table-style`, `element-style`. Vue-inherent composables stay
   (useLoadContent/Editor\*/Selection/etc.).
+
+- **2026-06-15** — **Shared-code extraction wave 2** (`visual-3d` + `table-style`).
+  Moved the pure scene3d/shape3d 3D engine into **`packages/shared/src/render/visual-3d.ts`**
+  (camera/extrusion/contour/bevel/material/light-rig → CSS pieces; the aggregate
+  `getComputed3dStyle` returns plain string/number fields, no framework type).
+  Vue's `composables/visual-3d.ts` is now a thin adapter: it re-exports the shared
+  pure fns and keeps only the framework-coupled `merge3dStyle` (folds the pieces
+  into a Vue `CSSProperties`). Moved the table render helpers into
+  **`packages/shared/src/render/table-style.ts`** (`cellStyleToCss`,
+  `getTableCellBandStyle`, `getDiagonalBorders`, `ooxmlDashToCssBorderStyle`),
+  swapping `CSSProperties` for a framework-agnostic `TableCellCss =
+Record<string, string | number>`; `TableRenderer.vue` now imports them from
+  `pptx-viewer-shared`. Deleted the old `composables/table-style.ts`. React/Angular
+  can now reuse both. Vue dist still inlines core+shared (runtime JS carries no
+  `pptx-viewer-shared`/`pptx-viewer-core` specifiers; rolled-up `index.d.ts` clean).
+  678 tests total (417 vue + 261 shared, +29 from the moved 3D suite), all green;
+  vue typecheck clean.
+  **Still in vue:** `element-style` (the Vue-facing CSSProperties assembler — stays;
+  it composes the shared pieces into Vue's style object).
