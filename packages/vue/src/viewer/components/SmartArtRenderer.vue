@@ -11,6 +11,13 @@ import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
 import { getContainerStyle } from '../composables/element-style';
+import type {
+	RenderedCircleNode,
+	RenderedPolygonNode,
+	RenderedRectNode,
+	SmartArtLayoutResult as ComputedLayout,
+} from '../composables/smartart-layout';
+import { computeSmartArtLayout } from '../composables/smartart-layout';
 
 /**
  * SmartArtRenderer — Vue port of the React SmartArt renderer
@@ -227,38 +234,26 @@ const renderedShapes = computed<RenderedShape[]>(() => {
 
 const shadowFilter = computed(() => styleShadow(style.value));
 
-// ── Simple node-list fallback (no drawing shapes) ────────────────────────────
+// ── SVG layout fallback (no drawing shapes) ──────────────────────────────────
+//
+// When drawing shapes are absent the component runs the pure-geometry layout
+// engine from `smartart-layout.ts` to produce an SVG approximation.
 
-interface FallbackBlock {
-	key: string;
-	text: string;
-	fill: string;
-}
-
-const fallbackBlocks = computed<FallbackBlock[]>(() => {
-	const flat = flattenNodes(nodes.value);
-	const pal = palette.value;
-	return flat.map((n, i) => ({
-		key: `${props.element.id}-node-${n.id}-${i}`,
-		text: n.text,
-		fill: colour(i, pal),
-	}));
-});
-
-/** Depth-first flatten of the node forest (children may be nested). */
-function flattenNodes(roots: PptxSmartArtNode[]): PptxSmartArtNode[] {
-	const out: PptxSmartArtNode[] = [];
-	const walk = (n: PptxSmartArtNode): void => {
-		out.push(n);
-		for (const c of n.children ?? []) {
-			walk(c);
-		}
-	};
-	for (const r of roots) {
-		walk(r);
+const fallbackLayout = computed<ComputedLayout | undefined>(() => {
+	if (hasDrawingShapes.value || nodes.value.length === 0) {
+		return undefined;
 	}
-	return out;
-}
+	const data = smartArtData.value;
+	return computeSmartArtLayout(
+		nodes.value,
+		{ width: props.element.width, height: props.element.height },
+		palette.value,
+		style.value,
+		props.element.id,
+		data?.resolvedLayoutType,
+		data?.layout,
+	);
+});
 
 const isEmpty = computed(() => nodes.value.length === 0 && !hasDrawingShapes.value);
 </script>
@@ -322,17 +317,98 @@ const isEmpty = computed(() => nodes.value.length === 0 && !hasDrawingShapes.val
 				</g>
 			</svg>
 
-			<!-- Fallback: simple stacked block list from node text -->
-			<div v-else class="pptx-vue-smartart-list">
-				<div
-					v-for="block in fallbackBlocks"
-					:key="block.key"
-					class="pptx-vue-smartart-block"
-					:style="{ backgroundColor: block.fill }"
+			<!-- Fallback: SVG layout computed from node tree -->
+			<svg
+				v-else-if="fallbackLayout"
+				class="pptx-vue-smartart-svg"
+				:viewBox="fallbackLayout.viewBox"
+				preserveAspectRatio="xMidYMid meet"
+				:data-layout-family="fallbackLayout.family"
+			>
+				<!-- Connectors (render first so they appear behind nodes) -->
+				<path
+					v-for="conn in fallbackLayout.connectors"
+					:key="conn.key"
+					:d="conn.d"
+					fill="none"
+					stroke="#94a3b8"
+					stroke-width="1.5"
+					opacity="0.5"
+				/>
+				<!-- Rendered nodes -->
+				<g
+					v-for="node in fallbackLayout.nodes"
+					:key="node.key"
+					:style="fallbackLayout.shadowFilter ? { filter: fallbackLayout.shadowFilter } : undefined"
 				>
-					{{ block.text }}
-				</div>
-			</div>
+					<!-- Circle nodes (cycle, radial, venn, target) -->
+					<template v-if="node.kind === 'circle'">
+						<circle
+							:cx="(node as RenderedCircleNode).cx"
+							:cy="(node as RenderedCircleNode).cy"
+							:r="(node as RenderedCircleNode).r"
+							:fill="node.fill"
+							:stroke="node.stroke"
+							:stroke-width="node.strokeWidth"
+							:opacity="node.opacity"
+						/>
+						<text
+							:x="(node as RenderedCircleNode).cx"
+							:y="(node as RenderedCircleNode).cy"
+							text-anchor="middle"
+							dominant-baseline="central"
+							fill="white"
+							:font-size="node.fontSize"
+						>
+							{{ node.text }}
+						</text>
+					</template>
+					<!-- Polygon nodes (process, pyramid, funnel) -->
+					<template v-else-if="node.kind === 'polygon'">
+						<polygon
+							:points="(node as RenderedPolygonNode).points"
+							:fill="node.fill"
+							:stroke="node.stroke"
+							:stroke-width="node.strokeWidth"
+							:opacity="node.opacity"
+						/>
+						<text
+							:x="(node as RenderedPolygonNode).textX"
+							:y="(node as RenderedPolygonNode).textY"
+							text-anchor="middle"
+							dominant-baseline="central"
+							fill="white"
+							:font-size="node.fontSize"
+						>
+							{{ node.text }}
+						</text>
+					</template>
+					<!-- Rect nodes (list, matrix, hierarchy) -->
+					<template v-else>
+						<rect
+							:x="(node as RenderedRectNode).x"
+							:y="(node as RenderedRectNode).y"
+							:width="(node as RenderedRectNode).width"
+							:height="(node as RenderedRectNode).height"
+							:rx="(node as RenderedRectNode).rx"
+							:fill="node.fill"
+							:stroke="node.stroke"
+							:stroke-width="node.strokeWidth"
+							:opacity="node.opacity"
+						/>
+						<text
+							:x="(node as RenderedRectNode).textX"
+							:y="(node as RenderedRectNode).textY"
+							text-anchor="middle"
+							dominant-baseline="central"
+							fill="white"
+							:font-size="node.fontSize"
+						>
+							{{ node.text }}
+						</text>
+					</template>
+				</g>
+			</svg>
 		</div>
 	</div>
 </template>
