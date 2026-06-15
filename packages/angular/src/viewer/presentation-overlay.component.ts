@@ -10,7 +10,7 @@ import {
 	output,
 	signal,
 } from '@angular/core';
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
 import {
@@ -19,6 +19,7 @@ import {
 	nextVisibleIndex,
 	prevVisibleIndex,
 } from './presentation-overlay-helpers';
+import { PresentationTransitionOverlayComponent } from './presentation-transition-overlay.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
 
 /**
@@ -55,7 +56,7 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 	selector: 'pptx-presentation-overlay',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle, SlideCanvasComponent],
+	imports: [NgStyle, SlideCanvasComponent, PresentationTransitionOverlayComponent],
 	styles: `
 		:host {
 			display: block;
@@ -97,6 +98,16 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 					[mediaDataUrls]="mediaDataUrls()"
 					[zoom]="zoom()"
 				/>
+
+				@if (activeTransition(); as t) {
+					<pptx-presentation-transition-overlay
+						[outgoingSlide]="t.outgoing"
+						[canvasSize]="canvasSize()"
+						[transition]="t.transition"
+						[mediaDataUrls]="mediaDataUrls()"
+						(complete)="activeTransition.set(null)"
+					/>
+				}
 			</div>
 
 			<!-- Always-visible close button (top-right, safe-area aware). -->
@@ -163,6 +174,15 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 
 	/** Zero-based index into `slides()`. */
 	protected readonly currentIndex = signal(0);
+
+	/**
+	 * Active slide-transition animation: the outgoing slide + the incoming
+	 * slide's transition, played over the new slide. Cleared on completion.
+	 */
+	protected readonly activeTransition = signal<{
+		outgoing: PptxSlide;
+		transition: PptxSlideTransition;
+	} | null>(null);
 
 	/** Viewport dimensions — updated on resize. */
 	private readonly viewportW = signal(0);
@@ -495,6 +515,16 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 		}
 
 		if (next !== current) {
+			// Play the incoming slide's transition (if any) over the new slide,
+			// animating the outgoing slide out. Forward navigation only — matching
+			// PowerPoint, which does not replay transitions when stepping back.
+			const incoming = slides[next];
+			const outgoing = slides[current];
+			if ((direction === 'next' || direction === 'first') && incoming?.transition && outgoing) {
+				this.activeTransition.set({ outgoing, transition: incoming.transition });
+			} else {
+				this.activeTransition.set(null);
+			}
 			this.currentIndex.set(next);
 			this.indexChange.emit(next);
 		}
