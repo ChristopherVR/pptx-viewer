@@ -8,7 +8,7 @@
 	},
 	"dependencies": {
 		"emf-converter": "workspace:*",
-		"fast-xml-parser": "^5.8.0",
+		"fast-xml-parser": "^5.9.0",
 		"framer-motion": "^12.40.0",
 		"html2canvas-pro": "^2.0.4",
 		"i18next": "^26.3.1",
