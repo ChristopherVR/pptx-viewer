@@ -164,6 +164,11 @@ export function InlineTextEditor({
 				cursor: 'text',
 				minHeight: '1em',
 			}}
+			// Touch surfaces drive canvas drag/marquee through onPointerDown (see
+			// useCanvasEventHandlers.handleStagePointerDown). Without stopping it
+			// here, tapping inside the editor to reposition the caret would bubble
+			// to the stage and start dragging the element instead of editing.
+			onPointerDown={(e) => e.stopPropagation()}
 			onMouseDown={(e) => e.stopPropagation()}
 			onClick={(e) => e.stopPropagation()}
 			onInput={handleInput}

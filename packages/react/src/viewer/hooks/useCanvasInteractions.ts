@@ -16,6 +16,7 @@ import { remapTextToSegments } from '../utils/remap-text';
 import type { CanvasInteractionHandlers } from './canvas-interaction-types';
 import type { EditorHistoryResult } from './useEditorHistory';
 import type { ElementOperations } from './useElementOperations';
+
 export type { CanvasInteractionHandlers } from './canvas-interaction-types';
 
 export interface UseCanvasInteractionsInput {
@@ -88,6 +89,24 @@ export function useCanvasInteractions(
 	// on the same click that selected the element (which would hide resize handles).
 	const justSelectedRef = useRef(false);
 
+	const handleInlineEditCommit = () => {
+		const editId = inlineEditingElementId;
+		if (!editId) {
+			return;
+		}
+		const el = elementLookup.get(editId);
+		if (el && hasTextProperties(el)) {
+			const newSegments = remapTextToSegments(inlineEditingText, el.textSegments, el.textStyle);
+			ops.updateElementById(editId, {
+				text: inlineEditingText,
+				textSegments: newSegments,
+			} as Partial<PptxElement>);
+			history.markDirty();
+		}
+		setInlineEditingElementId(null);
+		setInlineEditingText('');
+	};
+
 	const handleElementClick = (elementId: string, e: React.MouseEvent) => {
 		e.stopPropagation();
 		if (mode === 'present') {
@@ -149,6 +168,12 @@ export function useCanvasInteractions(
 		if (e.button !== 0) {
 			return;
 		}
+		// Pressing another element while inline-editing must commit the pending text
+		// first. On touch the editor's blur can fire too late (after pointerup has
+		// run), so commit deterministically rather than relying on blur ordering.
+		if (inlineEditingElementId && inlineEditingElementId !== elementId) {
+			handleInlineEditCommit();
+		}
 		const wasSelected = selectedElementIdSet.has(elementId);
 		if (!wasSelected) {
 			ops.applySelection(elementId);
@@ -202,6 +227,12 @@ export function useCanvasInteractions(
 	const handleCanvasMouseDown = (e: React.MouseEvent) => {
 		if (mode !== 'edit' || !canEdit || e.button !== 0 || activeTool !== 'select') {
 			return;
+		}
+		// Tapping empty canvas starts a marquee; a tap-sized marquee resolves to
+		// clearSelection() on pointerup, which drops inline editing without saving.
+		// Commit any in-progress edit up front so touch tap-away keeps the text.
+		if (inlineEditingElementId) {
+			handleInlineEditCommit();
 		}
 		const stage = canvasStageRef.current;
 		if (!stage) {
@@ -273,24 +304,6 @@ export function useCanvasInteractions(
 			startHeight: el.height,
 			moved: false,
 		};
-	};
-
-	const handleInlineEditCommit = () => {
-		const editId = inlineEditingElementId;
-		if (!editId) {
-			return;
-		}
-		const el = elementLookup.get(editId);
-		if (el && hasTextProperties(el)) {
-			const newSegments = remapTextToSegments(inlineEditingText, el.textSegments, el.textStyle);
-			ops.updateElementById(editId, {
-				text: inlineEditingText,
-				textSegments: newSegments,
-			} as Partial<PptxElement>);
-			history.markDirty();
-		}
-		setInlineEditingElementId(null);
-		setInlineEditingText('');
 	};
 
 	return {
