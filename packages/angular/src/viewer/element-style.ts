@@ -4,6 +4,8 @@ import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import { DEFAULT_STROKE_COLOR, DEFAULT_TEXT_COLOR } from '../internal/shared';
 import { buildCssGradientFromShapeStyle } from './color-gradient';
 import { buildPatternFillCss } from './color-patterns';
+import { buildDuotoneFilter } from './duotone-filter';
+import type { DuotoneFilterDef } from './duotone-filter';
 import { getResolvedShapeClipPath } from './shape-geometry';
 import { getComputedEffectStyle } from './visual-effects';
 
@@ -22,6 +24,16 @@ import { getComputedEffectStyle } from './visual-effects';
  * return type (CSS map shape) differs per framework — so a future refactor
  * could hoist a neutral core into `pptx-viewer-shared`.
  */
+
+/**
+ * Resolve the duotone SVG `<filter>` descriptor for an element, or `undefined`
+ * when it carries no duotone image effect. The renderer pairs this with the
+ * `filter: url(#…)` set in {@link getShapeFillStrokeStyle} by injecting the
+ * matching `<filter>` def into a hidden `<defs>` block.
+ */
+export function getDuotoneFilterDef(el: PptxElement): DuotoneFilterDef | undefined {
+	return buildDuotoneFilter(el);
+}
 
 /** `[ngStyle]`-compatible style map. */
 export type StyleMap = Record<string, string | number>;
@@ -119,18 +131,22 @@ export function getShapeFillStrokeStyle(el: PptxElement): StyleMap {
 
 	// Visual effects (outer/inner/glow shadows, blur/soft-edge filters,
 	// reflection, blend mode, effect-DAG alpha). Applied to every return path
-	// below. Mirrors the Vue port's `getComputedEffectStyle` integration; the
-	// duotone DAG `url(#…)` reference is stripped until the SVG <filter> is
-	// injected.
+	// below. Mirrors the Vue port's `getComputedEffectStyle` integration. The
+	// duotone DAG `url(#…)` reference is kept only when the matching SVG
+	// <filter> def is actually rendered (i.e. the element has a duotone effect —
+	// the renderer injects the def); otherwise the dangling ref is stripped.
+	const duotone = buildDuotoneFilter(el);
 	const fx = getComputedEffectStyle(el);
 	if (fx.boxShadow) {
 		style['box-shadow'] = fx.boxShadow;
 	}
 	if (fx.filter) {
-		const filter = fx.filter.replace(/\s*url\(#[^)]*\)/gu, '').trim();
+		const filter = duotone ? fx.filter : fx.filter.replace(/\s*url\(#[^)]*\)/gu, '').trim();
 		if (filter) {
 			style['filter'] = filter;
 		}
+	} else if (duotone) {
+		style['filter'] = duotone.cssFilter;
 	}
 	if (fx.webkitBoxReflect) {
 		style['-webkit-box-reflect'] = fx.webkitBoxReflect;

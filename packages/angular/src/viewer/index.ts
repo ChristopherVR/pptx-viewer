@@ -223,7 +223,10 @@ export {
 	getShapeFillStrokeStyle,
 	getTextBlockStyle,
 	getImageSrc,
+	getDuotoneFilterDef,
 } from './element-style';
+export { buildDuotoneFilter, buildDuotoneFilterId } from './duotone-filter';
+export type { DuotoneFilterDef } from './duotone-filter';
 export { getResolvedShapeClipPath, getResolvedShapeClipPathFor } from './shape-geometry';
 export { getSlideBackgroundStyle, DEFAULT_SLIDE_BACKGROUND } from './slide-background';
 export { resolveHyperlinkHref, isUrlSafe, isPpactionUrl } from './hyperlink';

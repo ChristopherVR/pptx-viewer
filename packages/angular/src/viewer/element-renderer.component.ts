@@ -8,6 +8,7 @@ import { ConnectorRendererComponent } from './connector-renderer.component';
 import type { Rect } from './connector-routing';
 import {
 	getContainerStyle,
+	getDuotoneFilterDef,
 	getImageSrc,
 	getShapeFillStrokeStyle,
 	getTextBlockStyle,
@@ -248,6 +249,39 @@ interface Paragraph {
 				</div>
 			}
 		}
+
+		<!-- Duotone image-effect <filter> def, referenced via filter: url(#id). -->
+		@if (duotoneFilter(); as df) {
+			<svg
+				width="0"
+				height="0"
+				aria-hidden="true"
+				style="position: absolute; width: 0; height: 0; overflow: hidden"
+			>
+				<defs>
+					<filter [attr.id]="df.id" color-interpolation-filters="sRGB">
+						<feColorMatrix type="matrix" [attr.values]="df.primitives[0].values" />
+						<feComponentTransfer>
+							<feFuncR
+								type="linear"
+								[attr.slope]="df.primitives[1].channels[0].slope"
+								[attr.intercept]="df.primitives[1].channels[0].intercept"
+							/>
+							<feFuncG
+								type="linear"
+								[attr.slope]="df.primitives[1].channels[1].slope"
+								[attr.intercept]="df.primitives[1].channels[1].intercept"
+							/>
+							<feFuncB
+								type="linear"
+								[attr.slope]="df.primitives[1].channels[2].slope"
+								[attr.intercept]="df.primitives[1].channels[2].intercept"
+							/>
+						</feComponentTransfer>
+					</filter>
+				</defs>
+			</svg>
+		}
 	`,
 })
 export class ElementRendererComponent {
@@ -258,6 +292,9 @@ export class ElementRendererComponent {
 	readonly obstacles = input<readonly Rect[]>([]);
 	readonly canvasWidth = input<number>(0);
 	readonly canvasHeight = input<number>(0);
+
+	/** Duotone SVG `<filter>` descriptor for this element, if any. */
+	readonly duotoneFilter = computed(() => getDuotoneFilterDef(this.element()));
 
 	readonly containerStyle = computed<StyleMap>(() =>
 		getContainerStyle(this.element(), this.zIndex()),
