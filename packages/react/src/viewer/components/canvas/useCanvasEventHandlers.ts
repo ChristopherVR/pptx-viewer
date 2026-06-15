@@ -3,11 +3,14 @@ import type { PptxElement } from 'pptx-viewer-core';
  * useCanvasEventHandlers — Event delegation, guide-drag state, find-result
  * highlights, and selected-element bounds for the slide canvas.
  */
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 
 import type { ElementFindHighlights } from '../../utils/text-segment-helpers';
 import { getElementIdFromEvent } from './canvas-types';
 import type { ZoomViewport } from './canvas-types';
+
+/** Max delay (ms) between two taps to count as a double-tap on touch. */
+const DOUBLE_TAP_MS = 300;
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -41,6 +44,8 @@ export interface CanvasEventHandlers {
 	handleStageClick: (e: React.MouseEvent) => void;
 	handleStageDblClick: (e: React.MouseEvent) => void;
 	handleStageMouseDown: (e: React.MouseEvent) => void;
+	/** Touch/pen press on the stage — mirrors handleStageMouseDown for coarse pointers. */
+	handleStagePointerDown: (e: React.PointerEvent) => void;
 	handleStageContextMenu: (e: React.MouseEvent) => void;
 	/* guide dragging */
 	draggingGuide: DraggingGuide | null;
@@ -140,13 +145,55 @@ export function useCanvasEventHandlers({
 		[cbRef],
 	);
 
+	// Set when a touch/pen pointer-down just handled a press, so the browser's
+	// synthesized compatibility mousedown that follows is ignored (it would
+	// otherwise re-initiate the drag/marquee a second time).
+	const suppressNextMouseDownRef = useRef(false);
+
 	const handleStageMouseDown = useCallback(
 		(e: React.MouseEvent) => {
+			if (suppressNextMouseDownRef.current) {
+				suppressNextMouseDownRef.current = false;
+				return;
+			}
 			const id = getElementIdFromEvent(e);
 			if (id) {
 				cbRef.current.onMouseDown(id, e);
 				return;
 			}
+			onCanvasMouseDown?.(e);
+		},
+		[cbRef, onCanvasMouseDown],
+	);
+
+	/* ── Touch/pen press on the stage ─────────────────────────────── */
+	// Mouse continues to use handleStageMouseDown (above) so desktop behaviour
+	// is untouched. For touch/pen we run the same delegation here: capture the
+	// pointer so the gesture keeps tracking off-target, then start an element
+	// drag or a canvas marquee. Two quick taps on one element open inline edit
+	// (native dblclick is unreliable on touch).
+	const lastTapRef = useRef<{ id: string; time: number } | null>(null);
+	const handleStagePointerDown = useCallback(
+		(e: React.PointerEvent) => {
+			if (e.pointerType === 'mouse') {
+				return;
+			}
+			suppressNextMouseDownRef.current = true;
+			(e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+			const id = getElementIdFromEvent(e);
+			if (id) {
+				const now = e.timeStamp || Date.now();
+				const last = lastTapRef.current;
+				if (last && last.id === id && now - last.time < DOUBLE_TAP_MS) {
+					lastTapRef.current = null;
+					cbRef.current.onDoubleClick(id, e);
+					return;
+				}
+				lastTapRef.current = { id, time: now };
+				cbRef.current.onMouseDown(id, e);
+				return;
+			}
+			lastTapRef.current = null;
 			onCanvasMouseDown?.(e);
 		},
 		[cbRef, onCanvasMouseDown],
@@ -206,6 +253,7 @@ export function useCanvasEventHandlers({
 		handleStageClick,
 		handleStageDblClick,
 		handleStageMouseDown,
+		handleStagePointerDown,
 		handleStageContextMenu,
 		draggingGuide,
 		setDraggingGuide,

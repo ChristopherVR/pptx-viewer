@@ -56,14 +56,32 @@ export function InlineTextEditor({
 }) {
 	const editorRef = useRef<HTMLDivElement>(null);
 
+	// The editor is UNCONTROLLED: its content is seeded exactly once (below) and
+	// the DOM owns the text from then on. `initialText` is updated by the parent
+	// on every keystroke (via onEditChange), so if we rendered it as children
+	// React would rewrite the text node on each change and the caret would jump
+	// back to the start / typing would reverse. We therefore capture the seed
+	// content on first render and never re-render it; live edits flow out through
+	// handleInput, and the latest value is read from the DOM on commit/blur.
+	const seedRef = useRef<{ initialText: string; hasRichSegments: boolean } | null>(null);
+	if (seedRef.current === null) {
+		seedRef.current = {
+			initialText,
+			hasRichSegments: Boolean(
+				hasTextProperties(element) && element.textSegments && element.textSegments.length > 0,
+			),
+		};
+	}
+	const seed = seedRef.current;
+
 	// Extract plain text from the contentEditable div
 	const extractText = useCallback((): string => {
 		const el = editorRef.current;
 		if (!el) {
-			return initialText;
+			return seed.initialText;
 		}
 		return el.innerText || '';
-	}, [initialText]);
+	}, [seed]);
 
 	// Sync text to parent on every input via ref (no re-render)
 	const handleInput = useCallback(() => {
@@ -132,10 +150,6 @@ export function InlineTextEditor({
 		transformOrigin: warpStyle?.transformOrigin || 'center',
 	};
 
-	// Determine if the element has rich text segments to render
-	const hasRichSegments =
-		hasTextProperties(element) && element.textSegments && element.textSegments.length > 0;
-
 	return (
 		<div
 			ref={editorRef}
@@ -198,7 +212,7 @@ export function InlineTextEditor({
 				document.execCommand('insertText', false, text);
 			}}
 		>
-			{hasRichSegments ? renderTextSegments(element, DEFAULT_TEXT_COLOR) : initialText}
+			{seed.hasRichSegments ? renderTextSegments(element, DEFAULT_TEXT_COLOR) : seed.initialText}
 		</div>
 	);
 }

@@ -13,11 +13,13 @@ import {
 	PresentationAnnotationOverlay,
 	PresentationSubtitleBar,
 	PresentationToolbar,
+	PresentationTouchControls,
 } from '.';
 import type { CanvasInteractionHandlers } from '../hooks/useCanvasInteractions';
 import type { InsertElementHandlers } from '../hooks/useInsertElements';
 import type { UsePresentationAnnotationsResult } from '../hooks/usePresentationAnnotations';
 import type { UsePresentationModeResult } from '../hooks/usePresentationMode';
+import { useSwipeNavigation } from '../hooks/useSwipeNavigation';
 import type { TableOperationHandlers } from '../hooks/useTableOperations';
 import type { ViewerState } from '../hooks/useViewerState';
 import type { UseZoomViewportResult } from '../hooks/useZoomViewport';
@@ -195,8 +197,38 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 		toolbarHoveringRef.current = false;
 	}, []);
 
+	// ── Touch swipe navigation ─────────────────────────────────────────
+	// Only in non-editing modes: in preview/present a horizontal swipe changes
+	// slides; in edit/master, touch gestures belong to element drag/resize so
+	// swipe-nav stays disabled to avoid hijacking them.
+	const swipeEnabled = mode === 'preview' || mode === 'present';
+	const handleSwipeNext = useCallback(() => {
+		if (mode === 'present') {
+			presentation.movePresentationSlide(1);
+		} else {
+			s.setActiveSlideIndex((i) => Math.min(slides.length - 1, i + 1));
+		}
+	}, [mode, presentation, s, slides.length]);
+	const handleSwipePrev = useCallback(() => {
+		if (mode === 'present') {
+			presentation.movePresentationSlide(-1);
+		} else {
+			s.setActiveSlideIndex((i) => Math.max(0, i - 1));
+		}
+	}, [mode, presentation, s]);
+	const swipe = useSwipeNavigation({
+		enabled: swipeEnabled,
+		onNext: handleSwipeNext,
+		onPrev: handleSwipePrev,
+	});
+
 	return (
-		<main aria-label='Slide editor' className='flex-1 min-w-0 relative flex flex-col bg-background'>
+		<main
+			aria-label='Slide editor'
+			className='flex-1 min-w-0 relative flex flex-col bg-background'
+			onTouchStart={swipe.onTouchStart}
+			onTouchEnd={swipe.onTouchEnd}
+		>
 			{findReplace.findReplaceOpen && (
 				<FindReplacePanel
 					findQuery={findReplace.findQuery}
@@ -357,6 +389,18 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 			{/* Presentation subtitle bar */}
 			{mode === 'present' && (
 				<PresentationSubtitleBar visible={Boolean(s.presentationProperties.showSubtitles)} />
+			)}
+
+			{/* Always-visible touch controls (close + prev/next) for slideshow on
+			    touch devices — the mouse toolbar below is hidden without a pointer
+			    move, leaving no way to exit or navigate on mobile. */}
+			{mode === 'present' && (
+				<PresentationTouchControls
+					currentSlideIndex={presentation.presentationSlideIndex}
+					totalSlides={slides.length}
+					onMovePresentationSlide={presentation.movePresentationSlide}
+					onEndPresentation={onEndPresentation ?? (() => {})}
+				/>
 			)}
 
 			{/* Presentation floating toolbar with auto-hide */}

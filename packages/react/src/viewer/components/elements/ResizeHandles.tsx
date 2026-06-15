@@ -12,6 +12,13 @@ export interface ResizeHandlesProps {
 	forcePointerEvents?: boolean;
 }
 
+/**
+ * Touch-action: none stops the browser from claiming touch gestures (scroll /
+ * pinch-zoom) over a handle so a finger drag becomes a resize. Applied to every
+ * handle button alongside the pointer-down wiring below.
+ */
+const HANDLE_TOUCH_ACTION = { touchAction: 'none' as const };
+
 // Corner handle positions and cursors
 const CORNER_HANDLES: {
 	handle: ResizeHandle;
@@ -80,7 +87,22 @@ export function ResizeHandles({
 	onAdjustmentPointerDown,
 	forcePointerEvents,
 }: ResizeHandlesProps) {
-	const peStyle = forcePointerEvents ? { pointerEvents: 'auto' as const } : undefined;
+	const peStyle = forcePointerEvents
+		? { ...HANDLE_TOUCH_ACTION, pointerEvents: 'auto' as const }
+		: HANDLE_TOUCH_ACTION;
+
+	// Touch/pen presses start the resize via Pointer Events (mouse keeps using
+	// onMouseDown so desktop behaviour is unchanged and never double-fires). The
+	// pointer is captured so the gesture keeps tracking even if the finger drifts
+	// off the small handle.
+	const handleResizePointer = (e: React.PointerEvent, handle: string) => {
+		if (e.pointerType === 'mouse') {
+			return;
+		}
+		e.stopPropagation();
+		(e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+		onResizePointerDown(elementId, e, handle);
+	};
 
 	return (
 		<>
@@ -91,6 +113,7 @@ export function ResizeHandles({
 					type='button'
 					className={cn('absolute z-10 group', posClass, cursor)}
 					style={peStyle}
+					onPointerDown={(e) => handleResizePointer(e, handle)}
 					onMouseDown={(e) => {
 						e.stopPropagation();
 						onResizePointerDown(elementId, e, handle);
@@ -110,6 +133,7 @@ export function ResizeHandles({
 					type='button'
 					className={cn('absolute z-10', posClass, cursor)}
 					style={peStyle}
+					onPointerDown={(e) => handleResizePointer(e, handle)}
 					onMouseDown={(e) => {
 						e.stopPropagation();
 						onResizePointerDown(elementId, e, handle);
@@ -126,12 +150,22 @@ export function ResizeHandles({
 			{adjH ? (
 				<button
 					type='button'
+					aria-label='Adjust shape'
 					className='absolute h-2.5 w-2.5 max-md:h-4 max-md:w-4 rotate-45 border border-amber-700 bg-amber-300 shadow z-10'
 					style={{
 						left: adjH.left - 5,
 						top: adjH.top,
 						cursor: adjH.cursor,
+						...HANDLE_TOUCH_ACTION,
 						...(forcePointerEvents ? { pointerEvents: 'auto' as const } : {}),
+					}}
+					onPointerDown={(e) => {
+						if (e.pointerType === 'mouse') {
+							return;
+						}
+						e.stopPropagation();
+						(e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+						onAdjustmentPointerDown(elementId, e);
 					}}
 					onMouseDown={(e) => {
 						e.stopPropagation();

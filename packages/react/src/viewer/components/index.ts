@@ -48,6 +48,7 @@ export { InspectorPane } from './InspectorPane';
 // Presentation annotation tools
 export { PresentationAnnotationOverlay } from './PresentationAnnotationOverlay';
 export { PresentationToolbar, PresentationToolbarWrapper } from './PresentationToolbar';
+export { PresentationTouchControls } from './PresentationTouchControls';
 export { PresentationSubtitleBar } from './PresentationSubtitleBar';
 export { KeepAnnotationsDialog } from './KeepAnnotationsDialog';
 

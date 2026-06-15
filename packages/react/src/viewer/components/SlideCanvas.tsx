@@ -86,6 +86,11 @@ export function SlideCanvas({
 	tableStyleContext,
 	collaborationOverlay,
 }: SlideCanvasProps) {
+	// True when the stage is an interactive editing surface (drag/resize/marquee
+	// are live). Drives touch-action: none and the touch pointer-down wiring so
+	// finger gestures manipulate elements instead of scrolling the page.
+	const isEditableCanvas = (mode === 'edit' || mode === 'master') && canEdit;
+
 	/* ── Stable callback refs ──────────────────────────────────────── */
 	const {
 		cbRef,
@@ -121,6 +126,7 @@ export function SlideCanvas({
 		handleStageClick,
 		handleStageDblClick,
 		handleStageMouseDown,
+		handleStagePointerDown,
 		handleStageContextMenu,
 		setDraggingGuide,
 		handleStagePointerMove,
@@ -189,6 +195,7 @@ export function SlideCanvas({
 					selectedBounds={selectedBounds}
 					onCreateGuideFromRuler={onCreateGuideFromRuler}
 				/>
+				{/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the slide stage is the primary pointer interaction surface (drag/marquee/select) */}
 				<div
 					ref={zoom.canvasStageRef}
 					role='region'
@@ -202,6 +209,11 @@ export function SlideCanvas({
 						transformOrigin: 'top left',
 						marginTop: rulerOffset,
 						marginLeft: rulerOffset,
+						// In edit/master mode the stage must own all touch gestures so
+						// drag/resize/marquee aren't stolen by the browser for panning or
+						// pinch-zoom. View/present mode keeps the default so the slide can
+						// still be scrolled and swipe-navigated.
+						touchAction: isEditableCanvas ? 'none' : undefined,
 						backgroundColor:
 							activeSlide?.backgroundColor && activeSlide.backgroundColor !== 'transparent'
 								? activeSlide.backgroundColor
@@ -210,6 +222,7 @@ export function SlideCanvas({
 					onClick={handleStageClick}
 					onDoubleClick={handleStageDblClick}
 					onMouseDown={handleStageMouseDown}
+					onPointerDown={isEditableCanvas ? handleStagePointerDown : undefined}
 					onContextMenu={handleStageContextMenu}
 					onPointerMove={handleStagePointerMove}
 					onPointerUp={handleStagePointerUp}
