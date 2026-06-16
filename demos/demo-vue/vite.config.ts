@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
 
+import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
 
@@ -16,7 +17,7 @@ const pkg = (...p: string[]) => resolve(__dirname, '..', '..', 'packages', ...p)
 
 export default defineConfig({
 	root: __dirname,
-	plugins: [vue()],
+	plugins: [vue(), tailwindcss()],
 	server: {
 		port: 4175,
 		open: true,

@@ -1,15 +1,23 @@
 /**
- * Base styles for the Vue PowerPoint viewer chrome.
+ * Stylesheet for the Vue PowerPoint viewer chrome.
  *
- * Minimal, self-contained CSS for the viewer-first milestone. The React
- * package uses Tailwind CSS 4 utility classes compiled into a stylesheet; the
- * Vue port currently ships hand-written CSS scoped under `.pptx-vue-viewer`.
- * A Tailwind pipeline can be added later (see PORTING.md) if the editor chrome
- * is ported wholesale.
+ * Tailwind CSS 4 entry (mirrors the React `pptx-viewer.css`): pulls in Tailwind
+ * + the shared `--pptx-*` → Tailwind-token mapping (`theme.css`) so the Vue
+ * chrome can use the SAME utility classes as React and render with the same
+ * look. `@source` tells Tailwind where to scan for utilities.
  *
- * Theme tokens (`--pptx-*`) are emitted by `themeToCssVars` and bound to the
- * root element via the `theme` prop.
+ * The hand-written `.pptx-vue-*` rules below remain as the chrome is migrated to
+ * Tailwind utilities component-by-component; they are removed once each area is
+ * converted. Theme tokens (`--pptx-*`) are emitted by `themeToCssVars` and bound
+ * to the root element via the `theme` prop.
  */
+
+@import 'tailwindcss';
+
+@source "../viewer/**/*.vue";
+@source "../viewer/**/*.ts";
+
+@import './theme.css';
 
 .pptx-vue-viewer {
 	--pptx-background: #030712;
