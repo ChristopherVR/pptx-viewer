@@ -180,6 +180,7 @@ async function download(): Promise<void> {
 			{{ isBusy ? 'Creating…' : 'or create a New Presentation' }}
 		</button>
 		<input
+			id="file-input"
 			ref="fileInput"
 			type="file"
 			accept=".pptx"
@@ -198,6 +199,9 @@ body {
 		'Segoe UI',
 		Roboto,
 		sans-serif;
+	/* Never let demo chrome overflow horizontally — on mobile a wider-than-viewport
+	   page expands the layout viewport and mis-anchors the viewer's fixed bottom bar. */
+	overflow-x: hidden;
 }
 
 .demo-shell {
@@ -210,7 +214,8 @@ body {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 1rem;
+	flex-wrap: wrap;
+	gap: 0.5rem 1rem;
 	padding: 0.5rem 1rem;
 	background: #0b1220;
 	color: #e2e8f0;
@@ -220,12 +225,17 @@ body {
 .demo-file {
 	font-weight: 600;
 	font-size: 0.9rem;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .demo-actions {
 	display: flex;
 	align-items: center;
-	gap: 0.75rem;
+	flex-wrap: wrap;
+	gap: 0.5rem 0.75rem;
 }
 
 .demo-theme {

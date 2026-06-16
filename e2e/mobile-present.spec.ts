@@ -34,7 +34,7 @@ test('entering presentation mode with a selection does not leak edit chrome', as
 	// The presentation also starts at the slide origin rather than wherever the
 	// edit canvas had been scrolled/zoomed.
 	const scrollLeft = await page.evaluate(() => {
-		const vp = document.querySelector('.overflow-auto') as HTMLElement | null;
+		const vp = document.querySelector('[data-pptx-viewport]') as HTMLElement | null;
 		return vp ? vp.scrollLeft : 0;
 	});
 	expect(scrollLeft).toBe(0);

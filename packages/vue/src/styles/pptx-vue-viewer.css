@@ -252,21 +252,15 @@
 		font-weight: 600;
 	}
 
-	/* Shrink the slide thumbnails rail to a slim horizontal strip. */
+	/*
+	 * Hide the desktop slide-thumbnail rail (and the inline slides/transition
+	 * controls it hosts) on phones — they don't fit a narrow viewport and would
+	 * overflow the page horizontally, which mis-anchors the fixed bottom bar.
+	 * Mobile navigation is handled by the bottom bar + the slide-sorter overlay
+	 * (mirrors the React mobile chrome, which hides desktop chrome under 768px).
+	 */
 	.pptx-vue-thumbnails {
-		flex-direction: row;
-		width: auto;
-		max-width: 100%;
-		overflow-x: auto;
-		overflow-y: hidden;
-		border-right: none;
-		border-bottom: 1px solid var(--pptx-border);
-		padding: 0.5rem;
-	}
-
-	.pptx-vue-thumbnails .pptx-vue-thumb {
-		flex: 0 0 4.5rem;
-		width: 4.5rem;
+		display: none;
 	}
 
 	/* Stack the body vertically so the canvas spans the full width. */
@@ -274,9 +268,10 @@
 		flex-direction: column;
 	}
 
-	/* Give the canvas the bulk of the vertical space. */
+	/* Give the canvas the bulk of the vertical space; leave room for the bar. */
 	.pptx-vue-main {
 		flex: 1 1 auto;
-		min-height: 50vh;
+		min-height: 0;
+		padding-bottom: 56px;
 	}
 }

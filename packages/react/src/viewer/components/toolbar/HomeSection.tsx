@@ -175,6 +175,7 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 								!p.canEdit || (p.canActivateFormatPainter === false && !p.formatPainterActive)
 							}
 							data-testid='format-painter-toggle'
+							data-active={p.formatPainterActive ? 'true' : 'false'}
 							className={cn(
 								gL,
 								p.formatPainterActive ? 'bg-amber-600 hover:bg-amber-500 text-amber-50' : '',

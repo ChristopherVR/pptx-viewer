@@ -28,7 +28,7 @@ import type {
 	PptxSlideTransition,
 } from 'pptx-viewer-core';
 import type { AlignEdge, DistributeAxis } from 'pptx-viewer-shared';
-import { alignElements, distributeElements } from 'pptx-viewer-shared';
+import { alignElements, applyDragDelta, distributeElements } from 'pptx-viewer-shared';
 import { computed, nextTick, provide, ref, toRef, watch } from 'vue';
 
 import { provideViewerTheme, useThemeStyle } from '../theme';
@@ -52,6 +52,7 @@ import FindReplaceBar from './components/FindReplaceBar.vue';
 import FollowModeBar from './components/FollowModeBar.vue';
 import HeaderFooterPanel from './components/HeaderFooterPanel.vue';
 import HyperlinkDialog from './components/HyperlinkDialog.vue';
+import InlineTextEditor from './components/InlineTextEditor.vue';
 import InsertSmartArtDialog from './components/InsertSmartArtDialog.vue';
 import InspectorPane from './components/inspector/InspectorPane.vue';
 import MasterViewSidebar from './components/MasterViewSidebar.vue';
@@ -75,6 +76,13 @@ import SlideTransitionPanel from './components/SlideTransitionPanel.vue';
 import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
 import { DEFAULT_VIEWER_SETTINGS } from './components/viewer-settings';
 import type { ViewerSettings } from './components/viewer-settings';
+import {
+	applyFormatToElement,
+	copyFormatFromElement,
+	hasCopyableFormat,
+} from './composables/format-painter';
+import type { CopiedFormat } from './composables/format-painter';
+import { remapTextToSegments } from './composables/remap-text';
 import { compareSlides } from './composables/slide-compare';
 import type { CompareResult } from './composables/slide-compare';
 import { TableThemeKey } from './composables/table-theme';
@@ -239,13 +247,13 @@ const zoomReset = () => {
 };
 const zoomPercent = computed(() => Math.round(zoom.value * 100));
 
-// Auto-fit: the slide shrinks to fit small/mobile viewports without the user
-// touching the zoom. `fitScale` (≤ 1) is reported by SlideCanvas after measuring
-// its viewport; the effective on-screen scale folds it into the user zoom so the
-// percentage still reads the user's chosen zoom (100% = "fit"). All scaled
-// rendering and pointer→slide coordinate math must use `effectiveZoom`.
-const fitScale = ref(1);
-const effectiveZoom = computed(() => fitScale.value * zoom.value);
+// Effective on-screen scale = the user's zoom. The slide renders at its authored
+// size scaled by the zoom and the canvas viewport scrolls when it overflows
+// (matching the React viewer, whose edit canvas is authored-size + scrollable —
+// this keeps the slide's coordinate space stable across frameworks so the same
+// e2e position-based interactions work). All scaled rendering and pointer→slide
+// coordinate math must use `effectiveZoom`.
+const effectiveZoom = computed(() => zoom.value);
 
 // ── Thumbnail previews ────────────────────────────────────────────────
 const THUMB_WIDTH = 104; // px — matches the thumbnail rail content width
@@ -284,6 +292,104 @@ function clearSelection(): void {
 	selectedElementIds.value = [];
 }
 
+// ── Format painter ────────────────────────────────────────────────────
+// Arm by copying the selected element's format; the next element click applies
+// it. Escape or an empty-canvas click cancels (mirrors React's painter).
+const formatPainterActive = ref(false);
+const copiedFormat = ref<CopiedFormat | null>(null);
+const canActivateFormatPainter = computed(
+	() => selectedElements.value.length === 1 && hasCopyableFormat(selectedElements.value[0]),
+);
+function toggleFormatPainter(): void {
+	if (formatPainterActive.value) {
+		cancelFormatPainter();
+		return;
+	}
+	const source = selectedElements.value[0];
+	if (!source || !hasCopyableFormat(source)) {
+		return;
+	}
+	copiedFormat.value = copyFormatFromElement(source);
+	formatPainterActive.value = true;
+}
+function cancelFormatPainter(): void {
+	formatPainterActive.value = false;
+	copiedFormat.value = null;
+}
+/** Escape: disarm the painter first, otherwise clear the selection. */
+function onEscape(): void {
+	if (inlineEditingElementId.value) {
+		cancelInlineEdit();
+		return;
+	}
+	if (formatPainterActive.value) {
+		cancelFormatPainter();
+		return;
+	}
+	clearSelection();
+}
+
+// ── Inline text editing ───────────────────────────────────────────────
+// Entered by tapping an already-selected element (SelectionOverlay emits
+// `requestEdit`). Commits on blur, on selecting another element, or on an
+// empty-canvas tap; the typed text is remapped back onto the rich segments.
+const inlineEditingElementId = ref<string | null>(null);
+const inlineEditingText = ref('');
+const inlineEditingElement = computed<PptxElement | undefined>(() =>
+	inlineEditingElementId.value
+		? activeSlide.value?.elements.find((e) => e.id === inlineEditingElementId.value)
+		: undefined,
+);
+function enterInlineEdit(id: string): void {
+	const el = activeSlide.value?.elements.find((e) => e.id === id);
+	if (!el) {
+		return;
+	}
+	inlineEditingElementId.value = id;
+	inlineEditingText.value = (el as { text?: string }).text ?? '';
+}
+function commitInlineEdit(): void {
+	const id = inlineEditingElementId.value;
+	if (!id) {
+		return;
+	}
+	const el = activeSlide.value?.elements.find((e) => e.id === id) as
+		| (PptxElement & { textSegments?: unknown; textStyle?: unknown })
+		| undefined;
+	const text = inlineEditingText.value;
+	inlineEditingElementId.value = null;
+	if (el) {
+		const segments = remapTextToSegments(
+			text,
+			(el.textSegments as Parameters<typeof remapTextToSegments>[1]) ?? undefined,
+			(el.textStyle as Parameters<typeof remapTextToSegments>[2]) ?? undefined,
+		);
+		ops.updateElement(id, { text, textSegments: segments } as Partial<PptxElement>);
+	}
+}
+function cancelInlineEdit(): void {
+	inlineEditingElementId.value = null;
+}
+/** Apply the copied format to a target element (shape/text style only). */
+function applyFormatToTarget(id: string): void {
+	const format = copiedFormat.value;
+	const target = activeSlide.value?.elements.find((e) => e.id === id);
+	if (!format || !target) {
+		return;
+	}
+	const updated = applyFormatToElement(target, format) as unknown as Record<string, unknown>;
+	const patch: Record<string, unknown> = {};
+	if (format.shapeStyle && updated.shapeStyle !== undefined) {
+		patch.shapeStyle = updated.shapeStyle;
+	}
+	if (format.textStyle && updated.textStyle !== undefined) {
+		patch.textStyle = updated.textStyle;
+	}
+	if (Object.keys(patch).length > 0) {
+		ops.updateElement(id, patch as Partial<PptxElement>);
+	}
+}
+
 /** Click-to-select via event delegation (elements render `data-element-id`). */
 function onCanvasPointerDown(event: PointerEvent): void {
 	if (!props.canEdit) {
@@ -292,10 +398,97 @@ function onCanvasPointerDown(event: PointerEvent): void {
 	const target = event.target as HTMLElement | null;
 	const host = target?.closest('[data-element-id]') as HTMLElement | null;
 	const id = host?.dataset.elementId;
+	// While inline-editing, a tap elsewhere (another element or empty canvas)
+	// commits the pending edit first (the typed text must be kept).
+	if (inlineEditingElementId.value && id !== inlineEditingElementId.value) {
+		commitInlineEdit();
+	}
+	// Format painter intercepts the next click: apply to a target element, then
+	// disarm; an empty-canvas click just disarms.
+	if (formatPainterActive.value) {
+		if (id) {
+			applyFormatToTarget(id);
+		}
+		cancelFormatPainter();
+		return;
+	}
+	const additive = event.shiftKey || event.ctrlKey || event.metaKey;
 	if (id) {
-		selectElement(id, event.shiftKey || event.ctrlKey || event.metaKey);
+		const wasSelected =
+			!additive && selectedElementIds.value.length === 1 && selectedElementIds.value[0] === id;
+		if (!wasSelected) {
+			selectElement(id, additive);
+		}
+		// Drive move (drag) + inline-edit entry from the element itself. A tap
+		// without drag on an already-selected element enters inline edit.
+		if (!additive) {
+			startElementDrag(id, event, wasSelected);
+		}
 	} else {
 		clearSelection();
+	}
+}
+
+// ── Element drag-to-move + tap-to-edit (driven from the element) ──────
+interface ElementDragState {
+	id: string;
+	startClientX: number;
+	startClientY: number;
+	startBox: { x: number; y: number; width: number; height: number; rotation: number };
+	moved: boolean;
+	wasSelected: boolean;
+}
+let elementDrag: ElementDragState | null = null;
+function startElementDrag(id: string, event: PointerEvent, wasSelected: boolean): void {
+	const el = activeSlide.value?.elements.find((e) => e.id === id);
+	if (!el) {
+		return;
+	}
+	elementDrag = {
+		id,
+		startClientX: event.clientX,
+		startClientY: event.clientY,
+		startBox: { x: el.x, y: el.y, width: el.width, height: el.height, rotation: el.rotation ?? 0 },
+		moved: false,
+		wasSelected,
+	};
+	window.addEventListener('pointermove', onElementDragMove);
+	window.addEventListener('pointerup', onElementDragUp);
+	window.addEventListener('pointercancel', onElementDragUp);
+}
+function onElementDragMove(event: PointerEvent): void {
+	const drag = elementDrag;
+	if (!drag) {
+		return;
+	}
+	const dx = event.clientX - drag.startClientX;
+	const dy = event.clientY - drag.startClientY;
+	if (!drag.moved && (Math.abs(dx) > 2 || Math.abs(dy) > 2)) {
+		drag.moved = true;
+		history.pushHistory();
+	}
+	if (!drag.moved) {
+		return;
+	}
+	const box = applyDragDelta(drag.startBox, dx, dy, effectiveZoom.value);
+	patchActiveElementGeometry({
+		id: drag.id,
+		x: box.x,
+		y: box.y,
+		width: box.width,
+		height: box.height,
+		rotation: box.rotation ?? 0,
+	});
+}
+function onElementDragUp(): void {
+	const drag = elementDrag;
+	elementDrag = null;
+	window.removeEventListener('pointermove', onElementDragMove);
+	window.removeEventListener('pointerup', onElementDragUp);
+	window.removeEventListener('pointercancel', onElementDragUp);
+	// A tap (no drag) on an already-selected element enters inline edit.
+	if (drag && !drag.moved && drag.wasSelected) {
+		enterInlineEdit(drag.id);
 	}
 }
 
@@ -333,6 +526,38 @@ function onTransform(payload: TransformPayload): void {
 }
 function onTransformEnd(payload: TransformPayload): void {
 	patchActiveElementGeometry(payload);
+}
+
+/** Patch an element's round-rect corner-radius adjustment WITHOUT a history entry. */
+function patchActiveElementAdjustment(id: string, value: number): void {
+	const index = activeSlideIndex.value;
+	const slide = slides.value[index];
+	if (!slide) {
+		return;
+	}
+	const nextElements = slide.elements.map((el) =>
+		el.id === id
+			? ({
+					...el,
+					shapeAdjustments: {
+						...(el as { shapeAdjustments?: Record<string, number> }).shapeAdjustments,
+						adj: value,
+					},
+				} as PptxElement)
+			: el,
+	);
+	const nextSlides = slides.value.slice();
+	nextSlides[index] = { ...slide, elements: nextElements };
+	slides.value = nextSlides;
+}
+function onAdjustStart(): void {
+	history.pushHistory();
+}
+function onAdjust(payload: { id: string; value: number }): void {
+	patchActiveElementAdjustment(payload.id, payload.value);
+}
+function onAdjustEnd(payload: { id: string; value: number }): void {
+	patchActiveElementAdjustment(payload.id, payload.value);
 }
 
 /** Centre a newly-created element (default box) on the slide. */
@@ -862,6 +1087,7 @@ function onBroadcastStop(): void {
 
 // ── Responsive / mobile chrome ────────────────────────────────────────
 const { isMobile } = useIsMobile();
+const mobileNotesOpen = ref(false);
 function present(): void {
 	presenting.value = true;
 }
@@ -1042,7 +1268,7 @@ const shortcuts = useKeyboardShortcuts({
 		nudge: nudgeSelected,
 		prevSlide: goPrev,
 		nextSlide: goNext,
-		escape: clearSelection,
+		escape: onEscape,
 	},
 	canEdit: () => props.canEdit,
 	hasSelection,
@@ -1300,6 +1526,8 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				:can-redo="history.canRedo.value"
 				:zoom-percent="zoomPercent"
 				:has-selection="hasSelection"
+				:format-painter-active="formatPainterActive"
+				:can-activate-format-painter="canActivateFormatPainter"
 				@undo="history.undo"
 				@redo="history.redo"
 				@zoom-in="zoomIn"
@@ -1311,6 +1539,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				@duplicate-selected="duplicateSelected"
 				@bring-forward="bringForward"
 				@send-backward="sendBackward"
+				@toggle-format-painter="toggleFormatPainter"
 			/>
 
 			<!-- Align / distribute / group -->
@@ -1408,16 +1637,26 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						:canvas-size="canvasSize"
 						:media-data-urls="mediaDataUrls"
 						:zoom="effectiveZoom"
-						@update:fit-scale="fitScale = $event"
 					>
 						<SelectionOverlay
-							v-if="props.canEdit"
+							v-if="props.canEdit && !inlineEditingElementId && !presenting"
 							:elements="selectedElements"
 							:selected-ids="selectedElementIds"
 							:zoom="effectiveZoom"
 							@transform-start="onTransformStart"
 							@transform="onTransform"
 							@transform-end="onTransformEnd"
+							@adjust-start="onAdjustStart"
+							@adjust="onAdjust"
+							@adjust-end="onAdjustEnd"
+							@request-edit="(p) => enterInlineEdit(p.id)"
+						/>
+						<InlineTextEditor
+							v-if="props.canEdit && inlineEditingElement"
+							:element="inlineEditingElement"
+							@change="(t) => (inlineEditingText = t)"
+							@commit="commitInlineEdit"
+							@cancel="cancelInlineEdit"
 						/>
 						<CollaborationCursors
 							v-if="collabActive"
@@ -1432,7 +1671,11 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 							:zoom="effectiveZoom"
 						/>
 					</SlideCanvas>
-					<NotesPanel v-if="props.canEdit" :slide="activeSlide" @update="onNotesUpdate" />
+					<NotesPanel
+						v-if="props.canEdit && !isMobile"
+						:slide="activeSlide"
+						@update="onNotesUpdate"
+					/>
 				</main>
 
 				<!-- Property inspector (single selection, edit mode) -->
@@ -1605,8 +1848,29 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				@zoom-in="zoomIn"
 				@zoom-out="zoomOut"
 				@present="present"
+				@notes="mobileNotesOpen = !mobileNotesOpen"
 				@menu="showSorter = true"
 			/>
+
+			<!-- Mobile speaker-notes sheet (toggled from the bottom bar) -->
+			<div
+				v-if="isMobile && mobileNotesOpen"
+				class="pptx-vue-mobile-notes-sheet"
+				style="
+					position: fixed;
+					left: 0;
+					right: 0;
+					bottom: 56px;
+					z-index: 29;
+					max-height: 50vh;
+					overflow: auto;
+					background: #ffffff;
+					border-top: 1px solid rgba(0, 0, 0, 0.15);
+					box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.18);
+				"
+			>
+				<NotesPanel :slide="activeSlide" @update="onNotesUpdate" />
+			</div>
 
 			<!-- Off-screen stage used to rasterise slides for export -->
 			<div

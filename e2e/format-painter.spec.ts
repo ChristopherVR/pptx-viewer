@@ -9,8 +9,9 @@ const fixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/format-painter.pptx', import.meta.url)),
 );
 
-/** Amber Tailwind class applied to the painter button when armed. */
-const ACTIVE_CLASS = 'bg-amber-600';
+// The painter button exposes a framework-neutral `data-active` attribute
+// (`"true"` when armed, `"false"` otherwise) so this spec runs unchanged across
+// React / Vue / Angular instead of asserting a framework-specific CSS class.
 
 /**
  * Uploads the fixture deck and waits for the viewer to render both shapes.
@@ -35,7 +36,7 @@ async function openFixture(page: Page): Promise<{
 	await target.waitFor();
 
 	const painter = page.getByTestId('format-painter-toggle').first();
-	const canvas = page.locator('[data-pptx-stage], [data-canvas-stage]').first();
+	const canvas = page.locator('[aria-roledescription="slide"]').first();
 	return { painter, source, target, canvas };
 }
 
@@ -67,11 +68,11 @@ test.describe('format painter', () => {
 
 		await source.click();
 		await painter.click();
-		await expect(painter).toHaveClass(new RegExp(ACTIVE_CLASS));
+		await expect(painter).toHaveAttribute('data-active', 'true');
 
 		await target.click();
 
-		await expect(painter).not.toHaveClass(new RegExp(ACTIVE_CLASS));
+		await expect(painter).toHaveAttribute('data-active', 'false');
 		await expect.poll(async () => getShapeFill(target), { timeout: 5_000 }).toBe('rgb(255, 0, 0)');
 	});
 
@@ -82,10 +83,10 @@ test.describe('format painter', () => {
 
 		await source.click();
 		await painter.click();
-		await expect(painter).toHaveClass(new RegExp(ACTIVE_CLASS));
+		await expect(painter).toHaveAttribute('data-active', 'true');
 
 		await page.keyboard.press('Escape');
-		await expect(painter).not.toHaveClass(new RegExp(ACTIVE_CLASS));
+		await expect(painter).toHaveAttribute('data-active', 'false');
 
 		// Now clicking the target should just select it, not apply the fill.
 		await target.click();
@@ -97,7 +98,7 @@ test.describe('format painter', () => {
 
 		await source.click();
 		await painter.click();
-		await expect(painter).toHaveClass(new RegExp(ACTIVE_CLASS));
+		await expect(painter).toHaveAttribute('data-active', 'true');
 
 		// Click well outside both shapes — there's a wide empty band between
 		// SOURCE (right edge ≈ 300px) and TARGET (left edge ≈ 500px) on the
@@ -112,6 +113,6 @@ test.describe('format painter', () => {
 		const midY = sourceBox.y + sourceBox.height / 2;
 		await page.mouse.click(midX, midY);
 
-		await expect(painter).not.toHaveClass(new RegExp(ACTIVE_CLASS));
+		await expect(painter).toHaveAttribute('data-active', 'false');
 	});
 });

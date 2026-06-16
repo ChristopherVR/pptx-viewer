@@ -24,6 +24,10 @@ interface Props {
 	zoomPercent: number;
 	/** Whether one or more elements are selected (gates the selection actions). */
 	hasSelection: boolean;
+	/** Whether the format painter is currently armed. */
+	formatPainterActive?: boolean;
+	/** Whether the current selection exposes a copyable format (arms the painter). */
+	canActivateFormatPainter?: boolean;
 }
 
 const props = defineProps<Props>();
@@ -40,6 +44,7 @@ const emit = defineEmits<{
 	'duplicate-selected': [];
 	'bring-forward': [];
 	'send-backward': [];
+	'toggle-format-painter': [];
 }>();
 
 /** Shape presets rendered as a small button cluster in the Insert group. */
@@ -200,6 +205,19 @@ const SHAPE_PRESETS: ReadonlyArray<{ preset: ShapePreset; label: string }> = [
 		<div class="pptx-vue-tb-group" role="group" aria-label="Arrange">
 			<button
 				type="button"
+				class="pptx-vue-tb-btn pptx-vue-tb-painter"
+				:class="{ 'is-active': props.formatPainterActive }"
+				data-testid="format-painter-toggle"
+				:data-active="props.formatPainterActive ? 'true' : 'false'"
+				aria-label="Format painter"
+				title="Format painter"
+				:disabled="!props.canActivateFormatPainter && !props.formatPainterActive"
+				@click="emit('toggle-format-painter')"
+			>
+				<span aria-hidden="true">🖌</span>
+			</button>
+			<button
+				type="button"
 				class="pptx-vue-tb-btn"
 				aria-label="Duplicate selection"
 				title="Duplicate"
@@ -355,5 +373,17 @@ const SHAPE_PRESETS: ReadonlyArray<{ preset: ShapePreset; label: string }> = [
 .pptx-vue-tb-danger:hover:not(:disabled) {
 	border-color: var(--pptx-destructive, #dc2626);
 	color: var(--pptx-destructive, #dc2626);
+}
+
+/* Format painter "armed" state — mirrors React's amber active pill. */
+.pptx-vue-tb-painter.is-active {
+	background: #d97706;
+	border-color: #d97706;
+	color: #fffbeb;
+}
+
+.pptx-vue-tb-painter.is-active:hover:not(:disabled) {
+	background: #f59e0b;
+	border-color: #f59e0b;
 }
 </style>

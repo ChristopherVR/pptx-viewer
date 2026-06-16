@@ -75,6 +75,7 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 					onClick={p.onToggleFormatPainter}
 					disabled={!p.canEdit || (p.canActivateFormatPainter === false && !p.formatPainterActive)}
 					data-testid='format-painter-toggle'
+					data-active={p.formatPainterActive ? 'true' : 'false'}
 					className={cn(
 						pill,
 						p.formatPainterActive ? 'bg-amber-600 hover:bg-amber-500 text-amber-50' : '',
