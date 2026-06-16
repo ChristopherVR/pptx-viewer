@@ -697,6 +697,31 @@ export function getSlideTransitionAnimations(
 			return getSlideTransitionAnimations(randomType, durationMs, direction, orient, spokes);
 		}
 
+		// ── Exotic / 3-D transitions — approximated with the closest 2-D CSS
+		// behaviour (mirrors React's CSS fallback for the dynamic-content family
+		// that has no faithful pure-CSS analogue). Delegates to an existing
+		// well-tested case rather than emitting a plain fade.
+		case 'pan':
+		case 'gallery':
+		case 'conveyor':
+			return getSlideTransitionAnimations('push', durationMs, direction, orient, spokes);
+		case 'reveal':
+			return getSlideTransitionAnimations('wipe', durationMs, direction, orient, spokes);
+		case 'doors':
+			return getSlideTransitionAnimations('split', durationMs, direction, orient, spokes);
+		case 'switch':
+		case 'flythrough':
+		case 'ferris':
+		case 'prism':
+			return getSlideTransitionAnimations('zoom', durationMs, direction, orient, spokes);
+		case 'ripple':
+		case 'honeycomb':
+		case 'glitter':
+		case 'shred':
+			return getSlideTransitionAnimations('dissolve', durationMs, direction, orient, spokes);
+		case 'flash':
+			return getSlideTransitionAnimations('fade', durationMs, direction, orient, spokes);
+
 		// Fallback (unknown / not-yet-mapped type)
 		default:
 			return {
