@@ -122,11 +122,13 @@ function onDurationChange(event: Event): void {
 </script>
 
 <template>
-	<div class="pptx-vue-transition-panel">
-		<label class="pptx-vue-transition-panel__field">
-			<span class="pptx-vue-transition-panel__label">Transition</span>
+	<div class="pptx-vue-transition-panel flex flex-col gap-2.5 p-2.5 text-xs text-foreground">
+		<label class="pptx-vue-transition-panel__field flex flex-col gap-1">
+			<span class="pptx-vue-transition-panel__label font-medium text-muted-foreground"
+				>Transition</span
+			>
 			<select
-				class="pptx-vue-transition-panel__select"
+				class="pptx-vue-transition-panel__select rounded border border-border bg-popover px-1.5 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
 				:value="selectedType"
 				data-testid="transition-type"
 				@change="onTypeChange"
@@ -138,10 +140,12 @@ function onDurationChange(event: Event): void {
 			</select>
 		</label>
 
-		<label class="pptx-vue-transition-panel__field">
-			<span class="pptx-vue-transition-panel__label">Duration (ms)</span>
+		<label class="pptx-vue-transition-panel__field flex flex-col gap-1">
+			<span class="pptx-vue-transition-panel__label font-medium text-muted-foreground"
+				>Duration (ms)</span
+			>
 			<input
-				class="pptx-vue-transition-panel__duration"
+				class="pptx-vue-transition-panel__duration rounded border border-border bg-popover px-1.5 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
 				type="number"
 				min="0"
 				step="100"

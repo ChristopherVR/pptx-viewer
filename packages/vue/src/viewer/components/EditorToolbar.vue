@@ -54,15 +54,28 @@ const SHAPE_PRESETS: ReadonlyArray<{ preset: ShapePreset; label: string }> = [
 	{ preset: 'roundRect', label: 'Rounded rectangle' },
 	{ preset: 'triangle', label: 'Triangle' },
 ];
+
+/**
+ * Shared toolbar-button utility classes — mirrors React's bordered icon button
+ * (semantic tokens: border, foreground, primary hover) so the Vue chrome reads
+ * identically. Applied alongside the `pptx-vue-tb-btn` test hook.
+ */
+const TB_BTN =
+	'inline-flex items-center justify-center min-w-8 h-8 px-2 rounded-md border border-border bg-transparent text-foreground text-base leading-none cursor-pointer hover:border-primary disabled:opacity-40 disabled:cursor-not-allowed';
 </script>
 
 <template>
-	<div class="pptx-vue-editor-toolbar" role="toolbar" aria-label="Editing toolbar">
+	<div
+		class="pptx-vue-editor-toolbar flex flex-wrap items-center gap-2 px-3 py-2 border-b border-border bg-card"
+		role="toolbar"
+		aria-label="Editing toolbar"
+	>
 		<!-- History -->
-		<div class="pptx-vue-tb-group" role="group" aria-label="History">
+		<div class="pptx-vue-tb-group flex items-center gap-1" role="group" aria-label="History">
 			<button
 				type="button"
 				class="pptx-vue-tb-btn"
+				:class="TB_BTN"
 				aria-label="Undo"
 				title="Undo"
 				:disabled="!props.canUndo"
@@ -82,6 +95,7 @@ const SHAPE_PRESETS: ReadonlyArray<{ preset: ShapePreset; label: string }> = [
 			<button
 				type="button"
 				class="pptx-vue-tb-btn"
+				:class="TB_BTN"
 				aria-label="Redo"
 				title="Redo"
 				:disabled="!props.canRedo"
@@ -100,13 +114,14 @@ const SHAPE_PRESETS: ReadonlyArray<{ preset: ShapePreset; label: string }> = [
 			</button>
 		</div>
 
-		<span class="pptx-vue-tb-sep" aria-hidden="true" />
+		<span class="pptx-vue-tb-sep w-px h-6 bg-border" aria-hidden="true" />
 
 		<!-- Zoom -->
-		<div class="pptx-vue-tb-group" role="group" aria-label="Zoom">
+		<div class="pptx-vue-tb-group flex items-center gap-1" role="group" aria-label="Zoom">
 			<button
 				type="button"
 				class="pptx-vue-tb-btn"
+				:class="TB_BTN"
 				aria-label="Zoom out"
 				title="Zoom out"
 				@click="emit('zoom-out')"
@@ -115,7 +130,8 @@ const SHAPE_PRESETS: ReadonlyArray<{ preset: ShapePreset; label: string }> = [
 			</button>
 			<button
 				type="button"
-				class="pptx-vue-tb-btn pptx-vue-tb-zoom"
+				class="pptx-vue-tb-btn pptx-vue-tb-zoom tabular-nums text-[0.85rem]"
+				:class="TB_BTN"
 				aria-label="Reset zoom to 100%"
 				title="Reset zoom"
 				@click="emit('zoom-reset')"
@@ -125,6 +141,7 @@ const SHAPE_PRESETS: ReadonlyArray<{ preset: ShapePreset; label: string }> = [
 			<button
 				type="button"
 				class="pptx-vue-tb-btn"
+				:class="TB_BTN"
 				aria-label="Zoom in"
 				title="Zoom in"
 				@click="emit('zoom-in')"
@@ -133,13 +150,14 @@ const SHAPE_PRESETS: ReadonlyArray<{ preset: ShapePreset; label: string }> = [
 			</button>
 		</div>
 
-		<span class="pptx-vue-tb-sep" aria-hidden="true" />
+		<span class="pptx-vue-tb-sep w-px h-6 bg-border" aria-hidden="true" />
 
 		<!-- Insert -->
-		<div class="pptx-vue-tb-group" role="group" aria-label="Insert">
+		<div class="pptx-vue-tb-group flex items-center gap-1" role="group" aria-label="Insert">
 			<button
 				type="button"
-				class="pptx-vue-tb-btn pptx-vue-tb-text"
+				class="pptx-vue-tb-btn pptx-vue-tb-text font-bold font-serif"
+				:class="TB_BTN"
 				aria-label="Add text box"
 				title="Add text box"
 				@click="emit('add-text')"
@@ -151,6 +169,7 @@ const SHAPE_PRESETS: ReadonlyArray<{ preset: ShapePreset; label: string }> = [
 				:key="s.preset"
 				type="button"
 				class="pptx-vue-tb-btn"
+				:class="TB_BTN"
 				:aria-label="`Add ${s.label}`"
 				:title="`Add ${s.label}`"
 				@click="emit('add-shape', s.preset)"
@@ -199,14 +218,19 @@ const SHAPE_PRESETS: ReadonlyArray<{ preset: ShapePreset; label: string }> = [
 			</button>
 		</div>
 
-		<span class="pptx-vue-tb-sep" aria-hidden="true" />
+		<span class="pptx-vue-tb-sep w-px h-6 bg-border" aria-hidden="true" />
 
 		<!-- Arrange (selection-gated) -->
-		<div class="pptx-vue-tb-group" role="group" aria-label="Arrange">
+		<div class="pptx-vue-tb-group flex items-center gap-1" role="group" aria-label="Arrange">
 			<button
 				type="button"
 				class="pptx-vue-tb-btn pptx-vue-tb-painter"
-				:class="{ 'is-active': props.formatPainterActive }"
+				:class="[
+					TB_BTN,
+					props.formatPainterActive
+						? 'is-active !bg-amber-600 !border-amber-600 !text-amber-50 hover:!bg-amber-500 hover:!border-amber-500'
+						: '',
+				]"
 				data-testid="format-painter-toggle"
 				:data-active="props.formatPainterActive ? 'true' : 'false'"
 				aria-label="Format painter"
@@ -219,6 +243,7 @@ const SHAPE_PRESETS: ReadonlyArray<{ preset: ShapePreset; label: string }> = [
 			<button
 				type="button"
 				class="pptx-vue-tb-btn"
+				:class="TB_BTN"
 				aria-label="Duplicate selection"
 				title="Duplicate"
 				:disabled="!props.hasSelection"
@@ -248,6 +273,7 @@ const SHAPE_PRESETS: ReadonlyArray<{ preset: ShapePreset; label: string }> = [
 			<button
 				type="button"
 				class="pptx-vue-tb-btn"
+				:class="TB_BTN"
 				aria-label="Bring forward"
 				title="Bring forward"
 				:disabled="!props.hasSelection"
@@ -270,6 +296,7 @@ const SHAPE_PRESETS: ReadonlyArray<{ preset: ShapePreset; label: string }> = [
 			<button
 				type="button"
 				class="pptx-vue-tb-btn"
+				:class="TB_BTN"
 				aria-label="Send backward"
 				title="Send backward"
 				:disabled="!props.hasSelection"
@@ -291,7 +318,8 @@ const SHAPE_PRESETS: ReadonlyArray<{ preset: ShapePreset; label: string }> = [
 			</button>
 			<button
 				type="button"
-				class="pptx-vue-tb-btn pptx-vue-tb-danger"
+				class="pptx-vue-tb-btn pptx-vue-tb-danger hover:!border-destructive hover:!text-destructive"
+				:class="TB_BTN"
 				aria-label="Delete selection"
 				title="Delete"
 				:disabled="!props.hasSelection"
@@ -311,79 +339,3 @@ const SHAPE_PRESETS: ReadonlyArray<{ preset: ShapePreset; label: string }> = [
 		</div>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-editor-toolbar {
-	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
-	gap: 0.5rem;
-	padding: 0.5rem 0.75rem;
-	border-bottom: 1px solid var(--pptx-border);
-	background: var(--pptx-card);
-}
-
-.pptx-vue-tb-group {
-	display: flex;
-	align-items: center;
-	gap: 0.25rem;
-}
-
-.pptx-vue-tb-sep {
-	width: 1px;
-	height: 1.5rem;
-	background: var(--pptx-border);
-}
-
-.pptx-vue-tb-btn {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-width: 2rem;
-	height: 2rem;
-	padding: 0 0.5rem;
-	border: 1px solid var(--pptx-border);
-	border-radius: 0.375rem;
-	background: transparent;
-	color: var(--pptx-foreground);
-	font-size: 1rem;
-	line-height: 1;
-	cursor: pointer;
-}
-
-.pptx-vue-tb-btn:hover:not(:disabled) {
-	border-color: var(--pptx-primary);
-}
-
-.pptx-vue-tb-btn:disabled {
-	opacity: 0.4;
-	cursor: not-allowed;
-}
-
-.pptx-vue-tb-zoom {
-	font-variant-numeric: tabular-nums;
-	font-size: 0.85rem;
-}
-
-.pptx-vue-tb-text {
-	font-weight: 700;
-	font-family: serif;
-}
-
-.pptx-vue-tb-danger:hover:not(:disabled) {
-	border-color: var(--pptx-destructive, #dc2626);
-	color: var(--pptx-destructive, #dc2626);
-}
-
-/* Format painter "armed" state — mirrors React's amber active pill. */
-.pptx-vue-tb-painter.is-active {
-	background: #d97706;
-	border-color: #d97706;
-	color: #fffbeb;
-}
-
-.pptx-vue-tb-painter.is-active:hover:not(:disabled) {
-	background: #f59e0b;
-	border-color: #f59e0b;
-}
-</style>

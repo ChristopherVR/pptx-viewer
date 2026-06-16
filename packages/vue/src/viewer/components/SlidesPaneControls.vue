@@ -21,10 +21,14 @@ const emit = defineEmits<{
 </script>
 
 <template>
-	<div class="pptx-vue-slides-controls" role="toolbar" aria-label="Slide actions">
+	<div
+		class="pptx-vue-slides-controls flex items-center gap-1 border-t border-border bg-card p-1.5"
+		role="toolbar"
+		aria-label="Slide actions"
+	>
 		<button
 			type="button"
-			class="pptx-vue-slides-controls__btn"
+			class="pptx-vue-slides-controls__btn inline-flex flex-1 cursor-pointer items-center justify-center gap-1 rounded border border-border bg-secondary px-2 py-1.5 text-xs leading-none text-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-45"
 			title="Add slide"
 			aria-label="Add slide"
 			@click="emit('add')"
@@ -38,12 +42,12 @@ const emit = defineEmits<{
 					stroke-linecap="round"
 				/>
 			</svg>
-			<span class="pptx-vue-slides-controls__label">Add</span>
+			<span class="pptx-vue-slides-controls__label whitespace-nowrap">Add</span>
 		</button>
 
 		<button
 			type="button"
-			class="pptx-vue-slides-controls__btn"
+			class="pptx-vue-slides-controls__btn inline-flex flex-1 cursor-pointer items-center justify-center gap-1 rounded border border-border bg-secondary px-2 py-1.5 text-xs leading-none text-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-45"
 			title="Duplicate slide"
 			aria-label="Duplicate slide"
 			@click="emit('duplicate')"
@@ -67,12 +71,12 @@ const emit = defineEmits<{
 					stroke-linecap="round"
 				/>
 			</svg>
-			<span class="pptx-vue-slides-controls__label">Duplicate</span>
+			<span class="pptx-vue-slides-controls__label whitespace-nowrap">Duplicate</span>
 		</button>
 
 		<button
 			type="button"
-			class="pptx-vue-slides-controls__btn pptx-vue-slides-controls__btn--danger"
+			class="pptx-vue-slides-controls__btn pptx-vue-slides-controls__btn--danger inline-flex flex-1 cursor-pointer items-center justify-center gap-1 rounded border border-border bg-secondary px-2 py-1.5 text-xs leading-none text-foreground transition-colors hover:border-destructive hover:bg-muted hover:text-destructive focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-45"
 			title="Delete slide"
 			aria-label="Delete slide"
 			:disabled="!canDelete"
@@ -88,61 +92,7 @@ const emit = defineEmits<{
 					stroke-linejoin="round"
 				/>
 			</svg>
-			<span class="pptx-vue-slides-controls__label">Delete</span>
+			<span class="pptx-vue-slides-controls__label whitespace-nowrap">Delete</span>
 		</button>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-slides-controls {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	padding: 6px;
-	border-top: 1px solid rgba(0, 0, 0, 0.08);
-	background: var(--pptx-vue-pane-bg, #fafafa);
-}
-
-.pptx-vue-slides-controls__btn {
-	display: inline-flex;
-	align-items: center;
-	gap: 4px;
-	flex: 1 1 auto;
-	justify-content: center;
-	padding: 5px 8px;
-	font-size: 12px;
-	line-height: 1;
-	color: var(--pptx-vue-text, #333);
-	background: var(--pptx-vue-btn-bg, #fff);
-	border: 1px solid rgba(0, 0, 0, 0.12);
-	border-radius: 4px;
-	cursor: pointer;
-	transition:
-		background-color 0.12s ease,
-		border-color 0.12s ease;
-}
-
-.pptx-vue-slides-controls__btn:hover:not(:disabled) {
-	background: var(--pptx-vue-btn-hover-bg, #f0f0f0);
-	border-color: rgba(0, 0, 0, 0.22);
-}
-
-.pptx-vue-slides-controls__btn:focus-visible {
-	outline: 2px solid var(--pptx-vue-focus, #2563eb);
-	outline-offset: 1px;
-}
-
-.pptx-vue-slides-controls__btn:disabled {
-	opacity: 0.45;
-	cursor: not-allowed;
-}
-
-.pptx-vue-slides-controls__btn--danger:hover:not(:disabled) {
-	color: var(--pptx-vue-danger, #c0392b);
-	border-color: var(--pptx-vue-danger, #c0392b);
-}
-
-.pptx-vue-slides-controls__label {
-	white-space: nowrap;
-}
-</style>

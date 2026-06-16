@@ -107,15 +107,25 @@ function setVAlign(value: VAlignValue): void {
 </script>
 
 <template>
-	<div class="pptx-vue-text-panel">
-		<h3 class="pptx-vue-text-title">Text</h3>
+	<div class="pptx-vue-text-panel flex flex-col gap-2 p-2">
+		<h3
+			class="pptx-vue-text-title text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+		>
+			Text
+		</h3>
 
-		<p v-if="!applicable" class="pptx-vue-text-muted">This element has no text properties.</p>
+		<p v-if="!applicable" class="pptx-vue-text-muted text-xs text-muted-foreground">
+			This element has no text properties.
+		</p>
 
-		<div v-else class="pptx-vue-text-fields">
-			<label class="pptx-vue-text-field">
-				<span class="pptx-vue-text-label">Font</span>
-				<select class="pptx-vue-text-input" :value="fontFamily" @change="onFontFamily">
+		<div v-else class="pptx-vue-text-fields flex flex-col gap-2">
+			<label class="pptx-vue-text-field flex flex-col gap-1">
+				<span class="pptx-vue-text-label text-muted-foreground">Font</span>
+				<select
+					class="pptx-vue-text-input w-full bg-muted border border-border rounded px-2 py-1"
+					:value="fontFamily"
+					@change="onFontFamily"
+				>
 					<option value="">Default</option>
 					<option v-for="font in FONT_OPTIONS" :key="font" :value="font">
 						{{ font }}
@@ -126,33 +136,42 @@ function setVAlign(value: VAlignValue): void {
 				</select>
 			</label>
 
-			<div class="pptx-vue-text-row">
-				<label class="pptx-vue-text-field">
-					<span class="pptx-vue-text-label">Size (pt)</span>
+			<div class="pptx-vue-text-row grid grid-cols-2 gap-2">
+				<label class="pptx-vue-text-field flex flex-col gap-1">
+					<span class="pptx-vue-text-label text-muted-foreground">Size (pt)</span>
 					<input
 						type="number"
-						class="pptx-vue-text-input"
+						class="pptx-vue-text-input w-full bg-muted border border-border rounded px-2 py-1"
 						min="1"
 						step="1"
 						:value="fontSize"
 						@input="onFontSize"
 					/>
 				</label>
-				<label class="pptx-vue-text-field">
-					<span class="pptx-vue-text-label">Color</span>
-					<input type="color" class="pptx-vue-text-color" :value="color" @input="onColor" />
+				<label class="pptx-vue-text-field flex flex-col gap-1">
+					<span class="pptx-vue-text-label text-muted-foreground">Color</span>
+					<input
+						type="color"
+						class="pptx-vue-text-color w-full h-8 bg-muted border border-border rounded p-0.5"
+						:value="color"
+						@input="onColor"
+					/>
 				</label>
 			</div>
 
-			<div class="pptx-vue-text-field">
-				<span class="pptx-vue-text-label">Style</span>
-				<div class="pptx-vue-text-toggles">
+			<div class="pptx-vue-text-field flex flex-col gap-1">
+				<span class="pptx-vue-text-label text-muted-foreground">Style</span>
+				<div class="pptx-vue-text-toggles flex flex-wrap gap-1">
 					<button
 						v-for="t in TOGGLES"
 						:key="t.key"
 						type="button"
-						class="pptx-vue-text-toggle"
-						:class="{ 'pptx-vue-text-toggle-active': isActive(t.key) }"
+						class="pptx-vue-text-toggle min-w-8 rounded border border-border px-2 py-1 transition-colors"
+						:class="
+							isActive(t.key)
+								? 'pptx-vue-text-toggle-active bg-primary text-white font-semibold'
+								: 'bg-muted hover:bg-accent'
+						"
 						:aria-pressed="isActive(t.key)"
 						:title="t.key"
 						@click="toggle(t.key)"
@@ -162,15 +181,19 @@ function setVAlign(value: VAlignValue): void {
 				</div>
 			</div>
 
-			<div class="pptx-vue-text-field">
-				<span class="pptx-vue-text-label">Horizontal Align</span>
-				<div class="pptx-vue-text-toggles">
+			<div class="pptx-vue-text-field flex flex-col gap-1">
+				<span class="pptx-vue-text-label text-muted-foreground">Horizontal Align</span>
+				<div class="pptx-vue-text-toggles flex flex-wrap gap-1">
 					<button
 						v-for="opt in ALIGN_OPTIONS"
 						:key="opt.value"
 						type="button"
-						class="pptx-vue-text-toggle"
-						:class="{ 'pptx-vue-text-toggle-active': align === opt.value }"
+						class="pptx-vue-text-toggle min-w-8 rounded border border-border px-2 py-1 transition-colors"
+						:class="
+							align === opt.value
+								? 'pptx-vue-text-toggle-active bg-primary text-white font-semibold'
+								: 'bg-muted hover:bg-accent'
+						"
 						:aria-pressed="align === opt.value"
 						:title="opt.value"
 						@click="setAlign(opt.value)"
@@ -180,15 +203,19 @@ function setVAlign(value: VAlignValue): void {
 				</div>
 			</div>
 
-			<div class="pptx-vue-text-field">
-				<span class="pptx-vue-text-label">Vertical Align</span>
-				<div class="pptx-vue-text-toggles">
+			<div class="pptx-vue-text-field flex flex-col gap-1">
+				<span class="pptx-vue-text-label text-muted-foreground">Vertical Align</span>
+				<div class="pptx-vue-text-toggles flex flex-wrap gap-1">
 					<button
 						v-for="opt in VALIGN_OPTIONS"
 						:key="opt.value"
 						type="button"
-						class="pptx-vue-text-toggle"
-						:class="{ 'pptx-vue-text-toggle-active': vAlign === opt.value }"
+						class="pptx-vue-text-toggle min-w-8 rounded border border-border px-2 py-1 transition-colors"
+						:class="
+							vAlign === opt.value
+								? 'pptx-vue-text-toggle-active bg-primary text-white font-semibold'
+								: 'bg-muted hover:bg-accent'
+						"
 						:aria-pressed="vAlign === opt.value"
 						:title="opt.value"
 						@click="setVAlign(opt.value)"
@@ -200,88 +227,3 @@ function setVAlign(value: VAlignValue): void {
 		</div>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-text-panel {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-	padding: 0.5rem;
-}
-
-.pptx-vue-text-title {
-	margin: 0;
-	font-size: 0.75rem;
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
-	opacity: 0.7;
-}
-
-.pptx-vue-text-muted {
-	margin: 0;
-	font-size: 0.75rem;
-	opacity: 0.6;
-}
-
-.pptx-vue-text-fields {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-}
-
-.pptx-vue-text-row {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 0.5rem;
-}
-
-.pptx-vue-text-field {
-	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
-}
-
-.pptx-vue-text-label {
-	font-size: 0.7rem;
-	opacity: 0.7;
-}
-
-.pptx-vue-text-input,
-.pptx-vue-text-color {
-	width: 100%;
-	box-sizing: border-box;
-	font: inherit;
-	padding: 0.25rem 0.4rem;
-	border: 1px solid rgba(0, 0, 0, 0.2);
-	border-radius: 0.25rem;
-	background: transparent;
-}
-
-.pptx-vue-text-color {
-	height: 2rem;
-	padding: 0.1rem;
-}
-
-.pptx-vue-text-toggles {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.25rem;
-}
-
-.pptx-vue-text-toggle {
-	min-width: 2rem;
-	padding: 0.25rem 0.5rem;
-	font: inherit;
-	cursor: pointer;
-	border: 1px solid rgba(0, 0, 0, 0.2);
-	border-radius: 0.25rem;
-	background: transparent;
-}
-
-.pptx-vue-text-toggle-active {
-	background: rgba(59, 130, 246, 0.2);
-	border-color: rgba(59, 130, 246, 0.6);
-	font-weight: 600;
-}
-</style>

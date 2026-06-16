@@ -143,25 +143,28 @@ function slideLabel(slide: PptxSlide, index: number): string {
 </script>
 
 <template>
-	<div class="pptx-vue-section-list">
+	<div class="pptx-vue-section-list flex flex-col gap-0.5 p-1">
 		<div
 			v-for="(group, gi) in props.groups"
 			:key="group.section?.id ?? `__nosection-${gi}`"
-			class="pptx-vue-section-group"
+			class="pptx-vue-section-group flex flex-col"
 		>
 			<!-- Section header (omitted for the leading no-section group). -->
-			<div v-if="group.section" class="pptx-vue-section-header">
+			<div
+				v-if="group.section"
+				class="pptx-vue-section-header group flex items-center gap-1 px-1 py-0.5"
+			>
 				<button
 					type="button"
-					class="pptx-vue-section-toggle"
+					class="pptx-vue-section-toggle inline-flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded border-none bg-transparent px-1.5 py-1 text-[11px] uppercase tracking-wide text-muted-foreground hover:bg-muted hover:text-foreground"
 					:aria-expanded="!isCollapsed(group)"
 					:title="isCollapsed(group) ? 'Expand section' : 'Collapse section'"
 					@click="onHeaderClick(group)"
 					@dblclick.stop="startRename(group.section.id, group.section.name)"
 				>
 					<svg
-						class="pptx-vue-section-chevron"
-						:class="{ 'is-collapsed': isCollapsed(group) }"
+						class="pptx-vue-section-chevron h-3 w-3 flex-shrink-0 transition-transform"
+						:class="{ 'is-collapsed -rotate-90': isCollapsed(group) }"
 						viewBox="0 0 16 16"
 						width="12"
 						height="12"
@@ -182,25 +185,29 @@ function slideLabel(slide: PptxSlide, index: number): string {
 						v-if="renamingId === group.section.id"
 						:ref="setRenameInput"
 						v-model="renameValue"
-						class="pptx-vue-section-rename"
+						class="pptx-vue-section-rename min-w-0 flex-1 rounded-sm border border-primary bg-popover px-1 py-0.5 text-[11px] text-foreground outline-none"
 						type="text"
 						@keydown="onRenameKeydown"
 						@blur="commitRename"
 						@click.stop
 					/>
 					<template v-else>
-						<span class="pptx-vue-section-name">{{ group.section.name }}</span>
-						<span class="pptx-vue-section-count">{{ group.slides.length }}</span>
+						<span class="pptx-vue-section-name overflow-hidden text-ellipsis whitespace-nowrap">{{
+							group.section.name
+						}}</span>
+						<span class="pptx-vue-section-count ml-auto text-[10px] text-muted-foreground">{{
+							group.slides.length
+						}}</span>
 					</template>
 				</button>
 
 				<div
 					v-if="props.canEdit !== false && renamingId !== group.section.id"
-					class="pptx-vue-section-actions"
+					class="pptx-vue-section-actions inline-flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
 				>
 					<button
 						type="button"
-						class="pptx-vue-section-action"
+						class="pptx-vue-section-action inline-flex h-[18px] w-[18px] cursor-pointer items-center justify-center rounded-sm border border-transparent bg-transparent p-0 text-[10px] leading-none text-muted-foreground hover:bg-muted hover:text-foreground"
 						title="Move section up"
 						aria-label="Move section up"
 						@click="emit('move-up', group.section.id)"
@@ -209,7 +216,7 @@ function slideLabel(slide: PptxSlide, index: number): string {
 					</button>
 					<button
 						type="button"
-						class="pptx-vue-section-action"
+						class="pptx-vue-section-action inline-flex h-[18px] w-[18px] cursor-pointer items-center justify-center rounded-sm border border-transparent bg-transparent p-0 text-[10px] leading-none text-muted-foreground hover:bg-muted hover:text-foreground"
 						title="Move section down"
 						aria-label="Move section down"
 						@click="emit('move-down', group.section.id)"
@@ -218,7 +225,7 @@ function slideLabel(slide: PptxSlide, index: number): string {
 					</button>
 					<button
 						type="button"
-						class="pptx-vue-section-action pptx-vue-section-action--danger"
+						class="pptx-vue-section-action pptx-vue-section-action--danger inline-flex h-[18px] w-[18px] cursor-pointer items-center justify-center rounded-sm border border-transparent bg-transparent p-0 text-[10px] leading-none text-muted-foreground hover:bg-muted hover:text-destructive"
 						title="Delete section"
 						aria-label="Delete section"
 						@click="emit('delete', group.section.id)"
@@ -229,22 +236,36 @@ function slideLabel(slide: PptxSlide, index: number): string {
 			</div>
 
 			<!-- Slide thumbnails for this group (hidden while collapsed). -->
-			<ul v-show="!isCollapsed(group)" class="pptx-vue-section-slides">
+			<ul
+				v-show="!isCollapsed(group)"
+				class="pptx-vue-section-slides m-0 flex list-none flex-col gap-1.5 px-1 pb-1 pt-0.5"
+			>
 				<li
 					v-for="(slide, si) in group.slides"
 					:key="slide.id ?? group.slideIndexes[si]"
-					class="pptx-vue-section-slide"
+					class="pptx-vue-section-slide flex"
 					:class="{ 'is-active': group.slideIndexes[si] === props.activeIndex }"
 				>
 					<button
 						type="button"
-						class="pptx-vue-section-thumb"
+						class="pptx-vue-section-thumb flex w-full cursor-pointer items-center gap-1.5 rounded border bg-transparent p-0.5"
+						:class="
+							group.slideIndexes[si] === props.activeIndex
+								? 'border-primary bg-accent'
+								: 'border-transparent hover:bg-muted'
+						"
 						:title="slideLabel(slide, group.slideIndexes[si])"
 						:aria-label="slideLabel(slide, group.slideIndexes[si])"
 						@click="onSelect(group.slideIndexes[si])"
 					>
-						<span class="pptx-vue-section-thumb-num">{{ group.slideIndexes[si] + 1 }}</span>
-						<span class="pptx-vue-section-stage" :style="stageWrapStyle">
+						<span
+							class="pptx-vue-section-thumb-num w-[18px] flex-shrink-0 text-right text-[10px] text-muted-foreground"
+							>{{ group.slideIndexes[si] + 1 }}</span
+						>
+						<span
+							class="pptx-vue-section-stage block overflow-hidden rounded-sm border border-border bg-white"
+							:style="stageWrapStyle"
+						>
 							<SlideStage
 								:slide="slide"
 								:canvas-size="props.canvasSize"
@@ -260,7 +281,7 @@ function slideLabel(slide: PptxSlide, index: number): string {
 			<button
 				v-if="props.canEdit !== false && lastSlideIndex(group) >= 0"
 				type="button"
-				class="pptx-vue-section-add"
+				class="pptx-vue-section-add mb-1 ml-7 mr-1 mt-0 cursor-pointer self-start rounded border border-dashed border-border bg-transparent px-1.5 py-0.5 text-[10px] text-muted-foreground hover:border-primary hover:text-foreground"
 				:title="sectionCount === 0 ? 'Add section' : 'Add section here'"
 				@click="emit('add-section', lastSlideIndex(group))"
 			>
@@ -269,182 +290,3 @@ function slideLabel(slide: PptxSlide, index: number): string {
 		</div>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-section-list {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	padding: 4px;
-}
-
-.pptx-vue-section-group {
-	display: flex;
-	flex-direction: column;
-}
-
-.pptx-vue-section-header {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	padding: 2px 4px;
-}
-
-.pptx-vue-section-toggle {
-	display: inline-flex;
-	flex: 1 1 auto;
-	align-items: center;
-	gap: 6px;
-	min-width: 0;
-	padding: 4px 6px;
-	font-size: 11px;
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-	background: transparent;
-	border: none;
-	border-radius: 4px;
-	cursor: pointer;
-}
-
-.pptx-vue-section-toggle:hover {
-	background: var(--pptx-vue-muted, #f3f4f6);
-	color: var(--pptx-vue-foreground, #111827);
-}
-
-.pptx-vue-section-chevron {
-	flex-shrink: 0;
-	transition: transform 0.12s ease;
-}
-
-.pptx-vue-section-chevron.is-collapsed {
-	transform: rotate(-90deg);
-}
-
-.pptx-vue-section-name {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.pptx-vue-section-count {
-	margin-left: auto;
-	font-size: 10px;
-	color: var(--pptx-vue-muted-foreground, #9ca3af);
-}
-
-.pptx-vue-section-rename {
-	flex: 1 1 auto;
-	min-width: 0;
-	padding: 2px 4px;
-	font-size: 11px;
-	color: var(--pptx-vue-foreground, #111827);
-	background: var(--pptx-vue-popover, #fff);
-	border: 1px solid var(--pptx-vue-focus, #2563eb);
-	border-radius: 3px;
-	outline: none;
-}
-
-.pptx-vue-section-actions {
-	display: inline-flex;
-	gap: 2px;
-	opacity: 0;
-	transition: opacity 0.12s ease;
-}
-
-.pptx-vue-section-header:hover .pptx-vue-section-actions {
-	opacity: 1;
-}
-
-.pptx-vue-section-action {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 18px;
-	height: 18px;
-	padding: 0;
-	font-size: 10px;
-	line-height: 1;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-	background: transparent;
-	border: 1px solid transparent;
-	border-radius: 3px;
-	cursor: pointer;
-}
-
-.pptx-vue-section-action:hover {
-	color: var(--pptx-vue-foreground, #111827);
-	background: var(--pptx-vue-muted, #f3f4f6);
-}
-
-.pptx-vue-section-action--danger:hover {
-	color: var(--pptx-vue-danger, #c0392b);
-}
-
-.pptx-vue-section-slides {
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
-	margin: 0;
-	padding: 2px 4px 4px;
-	list-style: none;
-}
-
-.pptx-vue-section-slide {
-	display: flex;
-}
-
-.pptx-vue-section-thumb {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	width: 100%;
-	padding: 2px;
-	background: transparent;
-	border: 1px solid transparent;
-	border-radius: 4px;
-	cursor: pointer;
-}
-
-.pptx-vue-section-thumb:hover {
-	background: var(--pptx-vue-muted, #f3f4f6);
-}
-
-.pptx-vue-section-slide.is-active .pptx-vue-section-thumb {
-	border-color: var(--pptx-vue-focus, #2563eb);
-	background: var(--pptx-vue-muted, #eef2ff);
-}
-
-.pptx-vue-section-thumb-num {
-	flex-shrink: 0;
-	width: 18px;
-	font-size: 10px;
-	text-align: right;
-	color: var(--pptx-vue-muted-foreground, #9ca3af);
-}
-
-.pptx-vue-section-stage {
-	display: block;
-	overflow: hidden;
-	background: #fff;
-	border: 1px solid var(--pptx-vue-border, #e5e7eb);
-	border-radius: 3px;
-}
-
-.pptx-vue-section-add {
-	align-self: flex-start;
-	margin: 0 4px 4px 28px;
-	padding: 2px 6px;
-	font-size: 10px;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-	background: transparent;
-	border: 1px dashed var(--pptx-vue-border, #d1d5db);
-	border-radius: 4px;
-	cursor: pointer;
-}
-
-.pptx-vue-section-add:hover {
-	color: var(--pptx-vue-foreground, #111827);
-	border-color: var(--pptx-vue-focus, #2563eb);
-}
-</style>

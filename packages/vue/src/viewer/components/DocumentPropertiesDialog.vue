@@ -161,23 +161,27 @@ function handleSave(): void {
 
 <template>
 	<ModalDialog :open="open" title="Document properties" @close="emit('close')">
-		<div class="pptx-vue-docprops">
-			<div class="pptx-vue-docprops-tabs" role="tablist">
+		<div class="pptx-vue-docprops flex min-w-[360px] flex-col gap-3">
+			<div class="pptx-vue-docprops-tabs flex border-b border-border/60" role="tablist">
 				<button
 					v-for="tab in TABS"
 					:key="tab.id"
 					type="button"
 					role="tab"
 					:aria-selected="activeTab === tab.id"
-					class="pptx-vue-docprops-tab"
-					:class="{ 'pptx-vue-docprops-tab-active': activeTab === tab.id }"
+					class="pptx-vue-docprops-tab px-4 py-2 text-xs font-medium transition-colors"
+					:class="
+						activeTab === tab.id
+							? 'pptx-vue-docprops-tab-active border-b-2 border-primary text-primary'
+							: 'text-muted-foreground hover:text-foreground'
+					"
 					@click="activeTab = tab.id"
 				>
 					{{ tab.label }}
 				</button>
 			</div>
 
-			<div class="pptx-vue-docprops-body">
+			<div class="pptx-vue-docprops-body min-h-[280px]">
 				<DocumentPropertiesGeneralTab
 					v-if="activeTab === 'general'"
 					:core="draftCore"
@@ -200,10 +204,16 @@ function handleSave(): void {
 		</div>
 
 		<template #footer>
-			<button type="button" class="pptx-vue-docprops-btn" @click="emit('close')">Cancel</button>
 			<button
 				type="button"
-				class="pptx-vue-docprops-btn pptx-vue-docprops-btn-primary"
+				class="pptx-vue-docprops-btn rounded-md border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
+				@click="emit('close')"
+			>
+				Cancel
+			</button>
+			<button
+				type="button"
+				class="pptx-vue-docprops-btn pptx-vue-docprops-btn-primary rounded-md border border-transparent bg-primary px-3 py-1.5 text-xs text-primary-foreground transition-colors hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-40"
 				:disabled="!isDirty"
 				@click="handleSave"
 			>
@@ -212,62 +222,3 @@ function handleSave(): void {
 		</template>
 	</ModalDialog>
 </template>
-
-<style scoped>
-.pptx-vue-docprops {
-	display: flex;
-	flex-direction: column;
-	gap: 0.75rem;
-	min-width: 360px;
-}
-
-.pptx-vue-docprops-tabs {
-	display: flex;
-	gap: 0.25rem;
-	border-bottom: 1px solid var(--pptx-vue-border, #2a2a2a);
-}
-
-.pptx-vue-docprops-tab {
-	padding: 0.375rem 0.75rem;
-	border: none;
-	background: transparent;
-	color: var(--pptx-vue-muted-foreground, #9a9a9a);
-	font-size: 0.75rem;
-	font-weight: 500;
-	cursor: pointer;
-	border-bottom: 2px solid transparent;
-}
-
-.pptx-vue-docprops-tab:hover {
-	color: var(--pptx-vue-foreground, #e5e5e5);
-}
-
-.pptx-vue-docprops-tab-active {
-	color: var(--pptx-vue-primary, #6366f1);
-	border-bottom-color: var(--pptx-vue-primary, #6366f1);
-}
-
-.pptx-vue-docprops-body {
-	min-height: 280px;
-}
-
-.pptx-vue-docprops-btn {
-	padding: 0.375rem 0.75rem;
-	border: none;
-	border-radius: 0.375rem;
-	background: var(--pptx-vue-muted, #2a2a2a);
-	color: var(--pptx-vue-foreground, #e5e5e5);
-	font-size: 0.75rem;
-	cursor: pointer;
-}
-
-.pptx-vue-docprops-btn-primary {
-	background: var(--pptx-vue-primary, #6366f1);
-	color: var(--pptx-vue-primary-foreground, #fff);
-}
-
-.pptx-vue-docprops-btn-primary:disabled {
-	opacity: 0.4;
-	cursor: not-allowed;
-}
-</style>

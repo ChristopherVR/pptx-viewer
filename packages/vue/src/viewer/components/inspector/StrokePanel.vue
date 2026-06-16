@@ -60,22 +60,33 @@ function onDash(event: Event): void {
 </script>
 
 <template>
-	<div class="pptx-vue-stroke-panel">
-		<h3 class="pptx-vue-stroke-title">Line</h3>
+	<div class="pptx-vue-stroke-panel flex flex-col gap-2 p-2">
+		<h3
+			class="pptx-vue-stroke-title text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+		>
+			Line
+		</h3>
 
-		<p v-if="!applicable" class="pptx-vue-stroke-muted">This element has no border properties.</p>
+		<p v-if="!applicable" class="pptx-vue-stroke-muted text-xs text-muted-foreground">
+			This element has no border properties.
+		</p>
 
-		<div v-else class="pptx-vue-stroke-fields">
-			<label class="pptx-vue-stroke-field">
-				<span class="pptx-vue-stroke-label">Color</span>
-				<input type="color" class="pptx-vue-stroke-color" :value="strokeColor" @input="onColor" />
+		<div v-else class="pptx-vue-stroke-fields flex flex-col gap-2">
+			<label class="pptx-vue-stroke-field flex flex-col gap-1">
+				<span class="pptx-vue-stroke-label text-muted-foreground">Color</span>
+				<input
+					type="color"
+					class="pptx-vue-stroke-color w-full h-8 bg-muted border border-border rounded p-0.5"
+					:value="strokeColor"
+					@input="onColor"
+				/>
 			</label>
 
-			<label class="pptx-vue-stroke-field">
-				<span class="pptx-vue-stroke-label">Width (px)</span>
+			<label class="pptx-vue-stroke-field flex flex-col gap-1">
+				<span class="pptx-vue-stroke-label text-muted-foreground">Width (px)</span>
 				<input
 					type="number"
-					class="pptx-vue-stroke-input"
+					class="pptx-vue-stroke-input w-full bg-muted border border-border rounded px-2 py-1"
 					min="0"
 					step="0.5"
 					:value="strokeWidth"
@@ -83,9 +94,13 @@ function onDash(event: Event): void {
 				/>
 			</label>
 
-			<label class="pptx-vue-stroke-field">
-				<span class="pptx-vue-stroke-label">Dash</span>
-				<select class="pptx-vue-stroke-input" :value="strokeDash" @change="onDash">
+			<label class="pptx-vue-stroke-field flex flex-col gap-1">
+				<span class="pptx-vue-stroke-label text-muted-foreground">Dash</span>
+				<select
+					class="pptx-vue-stroke-input w-full bg-muted border border-border rounded px-2 py-1"
+					:value="strokeDash"
+					@change="onDash"
+				>
 					<option v-for="opt in DASH_OPTIONS" :key="opt.value" :value="opt.value">
 						{{ opt.label }}
 					</option>
@@ -94,60 +109,3 @@ function onDash(event: Event): void {
 		</div>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-stroke-panel {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-	padding: 0.5rem;
-}
-
-.pptx-vue-stroke-title {
-	margin: 0;
-	font-size: 0.75rem;
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
-	opacity: 0.7;
-}
-
-.pptx-vue-stroke-muted {
-	margin: 0;
-	font-size: 0.75rem;
-	opacity: 0.6;
-}
-
-.pptx-vue-stroke-fields {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-}
-
-.pptx-vue-stroke-field {
-	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
-}
-
-.pptx-vue-stroke-label {
-	font-size: 0.7rem;
-	opacity: 0.7;
-}
-
-.pptx-vue-stroke-input,
-.pptx-vue-stroke-color {
-	width: 100%;
-	box-sizing: border-box;
-	font: inherit;
-	padding: 0.25rem 0.4rem;
-	border: 1px solid rgba(0, 0, 0, 0.2);
-	border-radius: 0.25rem;
-	background: transparent;
-}
-
-.pptx-vue-stroke-color {
-	height: 2rem;
-	padding: 0.1rem;
-}
-</style>

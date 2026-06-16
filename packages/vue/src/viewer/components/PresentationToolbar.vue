@@ -134,20 +134,32 @@ function pickHighlighterColor(color: string): void {
 	}
 }
 
-function toolClass(tool: PresentationTool): Record<string, boolean> {
-	return {
-		'pptx-vue-ptb-btn': true,
-		'pptx-vue-ptb-btn--active': props.presentationTool === tool,
-	};
+// Shared utility class strings mirroring the React `PresentationToolbar`.
+const NAV_BTN_CLASS =
+	'flex items-center justify-center w-9 h-9 rounded-md transition-colors text-white/70 hover:text-white hover:bg-white/10 disabled:text-white/20 disabled:cursor-not-allowed';
+
+function toolClass(tool: PresentationTool): Array<string | Record<string, boolean>> {
+	return [
+		'pptx-vue-ptb-btn',
+		'relative flex items-center justify-center w-9 h-9 rounded-md transition-colors',
+		props.presentationTool === tool
+			? 'pptx-vue-ptb-btn--active bg-white/25 text-white'
+			: 'text-white/70 hover:text-white hover:bg-white/10',
+	];
 }
 </script>
 
 <template>
-	<div ref="toolbarRef" class="pptx-vue-ptb" @click.stop>
+	<div
+		ref="toolbarRef"
+		class="pptx-vue-ptb flex items-center gap-1 rounded-xl border border-white/15 bg-neutral-900/90 px-3 py-2 shadow-2xl backdrop-blur-md"
+		@click.stop
+	>
 		<!-- Previous -->
 		<button
 			type="button"
 			class="pptx-vue-ptb-btn"
+			:class="NAV_BTN_CLASS"
 			:disabled="atFirst"
 			title="Previous slide"
 			aria-label="Previous slide"
@@ -156,12 +168,16 @@ function toolClass(tool: PresentationTool): Record<string, boolean> {
 			‹
 		</button>
 
-		<span class="pptx-vue-ptb-counter">{{ counterText }}</span>
+		<span
+			class="pptx-vue-ptb-counter min-w-[48px] select-none px-1.5 text-center font-mono text-xs tabular-nums text-white/80"
+			>{{ counterText }}</span
+		>
 
 		<!-- Next -->
 		<button
 			type="button"
 			class="pptx-vue-ptb-btn"
+			:class="NAV_BTN_CLASS"
 			:disabled="atLast"
 			title="Next slide"
 			aria-label="Next slide"
@@ -170,15 +186,18 @@ function toolClass(tool: PresentationTool): Record<string, boolean> {
 			›
 		</button>
 
-		<div class="pptx-vue-ptb-divider" />
+		<div class="pptx-vue-ptb-divider mx-1 h-6 w-px bg-white/20" />
 
 		<!-- Elapsed timer -->
-		<div class="pptx-vue-ptb-timer" title="Elapsed">
+		<div
+			class="pptx-vue-ptb-timer flex select-none items-center gap-1.5 px-1 font-mono text-xs tabular-nums text-white/60"
+			title="Elapsed"
+		>
 			<span>⏱</span>
 			<span>{{ elapsedText }}</span>
 		</div>
 
-		<div class="pptx-vue-ptb-divider" />
+		<div class="pptx-vue-ptb-divider mx-1 h-6 w-px bg-white/20" />
 
 		<!-- Laser -->
 		<button
@@ -192,7 +211,7 @@ function toolClass(tool: PresentationTool): Record<string, boolean> {
 		</button>
 
 		<!-- Pen + colour dropdown -->
-		<div class="pptx-vue-ptb-group">
+		<div class="pptx-vue-ptb-group relative flex items-center">
 			<button
 				type="button"
 				:class="toolClass('pen')"
@@ -202,24 +221,32 @@ function toolClass(tool: PresentationTool): Record<string, boolean> {
 				@contextmenu="onPenContextMenu"
 			>
 				✎
-				<span class="pptx-vue-ptb-swatch" :style="{ backgroundColor: penColor }" />
+				<span
+					class="pptx-vue-ptb-swatch absolute bottom-0.5 left-1/2 h-0.5 w-3 -translate-x-1/2 rounded-full"
+					:style="{ backgroundColor: penColor }"
+				/>
 			</button>
 			<button
 				type="button"
-				class="pptx-vue-ptb-caret"
+				class="pptx-vue-ptb-caret -ml-1 flex h-9 w-[18px] items-center justify-center rounded-r-md text-white/50 transition-colors hover:bg-white/10 hover:text-white"
 				title="Pen — colour"
 				aria-label="Pen colour"
 				@click="togglePenColors"
 			>
 				▾
 			</button>
-			<div v-if="showPenColors" class="pptx-vue-ptb-palette">
+			<div
+				v-if="showPenColors"
+				class="pptx-vue-ptb-palette absolute bottom-full left-1/2 mb-2 grid -translate-x-1/2 grid-cols-4 gap-2 rounded-lg border border-white/20 bg-neutral-800 p-3 shadow-xl"
+			>
 				<button
 					v-for="color in PEN_COLORS"
 					:key="color"
 					type="button"
-					class="pptx-vue-ptb-color"
-					:class="{ 'pptx-vue-ptb-color--active': penColor === color }"
+					class="pptx-vue-ptb-color h-8 w-8 rounded-full border-2 transition-transform hover:scale-110"
+					:class="
+						penColor === color ? 'pptx-vue-ptb-color--active border-white' : 'border-white/20'
+					"
 					:style="{ backgroundColor: color }"
 					:aria-label="`Pen colour ${color}`"
 					@click="pickPenColor(color)"
@@ -228,7 +255,7 @@ function toolClass(tool: PresentationTool): Record<string, boolean> {
 		</div>
 
 		<!-- Highlighter + colour dropdown -->
-		<div class="pptx-vue-ptb-group">
+		<div class="pptx-vue-ptb-group relative flex items-center">
 			<button
 				type="button"
 				:class="toolClass('highlighter')"
@@ -238,24 +265,34 @@ function toolClass(tool: PresentationTool): Record<string, boolean> {
 				@contextmenu="onHighlighterContextMenu"
 			>
 				▤
-				<span class="pptx-vue-ptb-swatch" :style="{ backgroundColor: highlighterColor }" />
+				<span
+					class="pptx-vue-ptb-swatch absolute bottom-0.5 left-1/2 h-0.5 w-3 -translate-x-1/2 rounded-full"
+					:style="{ backgroundColor: highlighterColor }"
+				/>
 			</button>
 			<button
 				type="button"
-				class="pptx-vue-ptb-caret"
+				class="pptx-vue-ptb-caret -ml-1 flex h-9 w-[18px] items-center justify-center rounded-r-md text-white/50 transition-colors hover:bg-white/10 hover:text-white"
 				title="Highlighter — colour"
 				aria-label="Highlighter colour"
 				@click="toggleHighlighterColors"
 			>
 				▾
 			</button>
-			<div v-if="showHighlighterColors" class="pptx-vue-ptb-palette">
+			<div
+				v-if="showHighlighterColors"
+				class="pptx-vue-ptb-palette absolute bottom-full left-1/2 mb-2 grid -translate-x-1/2 grid-cols-4 gap-2 rounded-lg border border-white/20 bg-neutral-800 p-3 shadow-xl"
+			>
 				<button
 					v-for="color in HIGHLIGHTER_COLORS"
 					:key="color"
 					type="button"
-					class="pptx-vue-ptb-color"
-					:class="{ 'pptx-vue-ptb-color--active': highlighterColor === color }"
+					class="pptx-vue-ptb-color h-8 w-8 rounded-full border-2 transition-transform hover:scale-110"
+					:class="
+						highlighterColor === color
+							? 'pptx-vue-ptb-color--active border-white'
+							: 'border-white/20'
+					"
 					:style="{ backgroundColor: color }"
 					:aria-label="`Highlighter colour ${color}`"
 					@click="pickHighlighterColor(color)"
@@ -277,8 +314,12 @@ function toolClass(tool: PresentationTool): Record<string, boolean> {
 		<!-- Clear all -->
 		<button
 			type="button"
-			class="pptx-vue-ptb-btn"
-			:class="{ 'pptx-vue-ptb-btn--danger': hasAnnotations }"
+			class="pptx-vue-ptb-btn flex h-9 w-9 items-center justify-center rounded-md transition-colors"
+			:class="
+				hasAnnotations
+					? 'pptx-vue-ptb-btn--danger text-white/70 hover:bg-white/10 hover:text-red-400'
+					: 'cursor-not-allowed text-white/30'
+			"
 			:disabled="!hasAnnotations"
 			title="Clear annotations"
 			aria-label="Clear annotations"
@@ -287,14 +328,18 @@ function toolClass(tool: PresentationTool): Record<string, boolean> {
 			🗑
 		</button>
 
-		<div class="pptx-vue-ptb-divider" />
+		<div class="pptx-vue-ptb-divider mx-1 h-6 w-px bg-white/20" />
 
 		<!-- Presenter view toggle -->
 		<button
 			v-if="showPresenterToggle"
 			type="button"
-			class="pptx-vue-ptb-btn"
-			:class="{ 'pptx-vue-ptb-btn--active': presenterMode }"
+			class="pptx-vue-ptb-btn flex h-9 w-9 items-center justify-center rounded-md transition-colors"
+			:class="
+				presenterMode
+					? 'pptx-vue-ptb-btn--active bg-white/25 text-white'
+					: 'text-white/70 hover:bg-white/10 hover:text-white'
+			"
 			title="Presenter view"
 			aria-label="Presenter view"
 			@click="emit('toggle-presenter-view')"
@@ -305,7 +350,7 @@ function toolClass(tool: PresentationTool): Record<string, boolean> {
 		<!-- End presentation -->
 		<button
 			type="button"
-			class="pptx-vue-ptb-btn pptx-vue-ptb-btn--end"
+			class="pptx-vue-ptb-btn pptx-vue-ptb-btn--end flex h-9 w-9 items-center justify-center rounded-md text-white/70 transition-colors hover:bg-white/10 hover:text-red-400"
 			title="End presentation"
 			aria-label="End presentation"
 			@click="emit('end-presentation')"
@@ -314,162 +359,3 @@ function toolClass(tool: PresentationTool): Record<string, boolean> {
 		</button>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-ptb {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	padding: 8px 12px;
-	border-radius: 12px;
-	background: rgba(23, 23, 23, 0.9);
-	backdrop-filter: blur(8px);
-	border: 1px solid rgba(255, 255, 255, 0.15);
-	box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-	font-family:
-		system-ui,
-		-apple-system,
-		sans-serif;
-}
-
-.pptx-vue-ptb-btn {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	position: relative;
-	width: 36px;
-	height: 36px;
-	border: none;
-	border-radius: 8px;
-	background: transparent;
-	color: rgba(255, 255, 255, 0.7);
-	font-size: 16px;
-	line-height: 1;
-	cursor: pointer;
-	transition:
-		background-color 0.15s,
-		color 0.15s;
-}
-
-.pptx-vue-ptb-btn:hover:not(:disabled) {
-	background: rgba(255, 255, 255, 0.1);
-	color: #ffffff;
-}
-
-.pptx-vue-ptb-btn--active {
-	background: rgba(255, 255, 255, 0.25);
-	color: #ffffff;
-}
-
-.pptx-vue-ptb-btn--danger:hover {
-	color: #f87171;
-}
-
-.pptx-vue-ptb-btn--end:hover {
-	color: #f87171;
-}
-
-.pptx-vue-ptb-btn:disabled {
-	color: rgba(255, 255, 255, 0.2);
-	cursor: not-allowed;
-}
-
-.pptx-vue-ptb-counter {
-	min-width: 48px;
-	text-align: center;
-	padding: 0 6px;
-	font-size: 12px;
-	font-family: ui-monospace, monospace;
-	font-variant-numeric: tabular-nums;
-	color: rgba(255, 255, 255, 0.8);
-	user-select: none;
-}
-
-.pptx-vue-ptb-divider {
-	width: 1px;
-	height: 24px;
-	margin: 0 4px;
-	background: rgba(255, 255, 255, 0.2);
-}
-
-.pptx-vue-ptb-timer {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	padding: 0 4px;
-	font-size: 12px;
-	font-family: ui-monospace, monospace;
-	font-variant-numeric: tabular-nums;
-	color: rgba(255, 255, 255, 0.6);
-	user-select: none;
-}
-
-.pptx-vue-ptb-group {
-	display: flex;
-	align-items: center;
-	position: relative;
-}
-
-.pptx-vue-ptb-swatch {
-	position: absolute;
-	bottom: 3px;
-	left: 50%;
-	transform: translateX(-50%);
-	width: 12px;
-	height: 2px;
-	border-radius: 999px;
-}
-
-.pptx-vue-ptb-caret {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 18px;
-	height: 36px;
-	margin-left: -4px;
-	border: none;
-	border-radius: 0 8px 8px 0;
-	background: transparent;
-	color: rgba(255, 255, 255, 0.5);
-	font-size: 10px;
-	cursor: pointer;
-}
-
-.pptx-vue-ptb-caret:hover {
-	background: rgba(255, 255, 255, 0.1);
-	color: #ffffff;
-}
-
-.pptx-vue-ptb-palette {
-	position: absolute;
-	bottom: 100%;
-	left: 50%;
-	transform: translateX(-50%);
-	margin-bottom: 8px;
-	padding: 12px;
-	display: grid;
-	grid-template-columns: repeat(4, 1fr);
-	gap: 8px;
-	background: #262626;
-	border-radius: 8px;
-	border: 1px solid rgba(255, 255, 255, 0.2);
-	box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
-}
-
-.pptx-vue-ptb-color {
-	width: 32px;
-	height: 32px;
-	border-radius: 50%;
-	border: 2px solid rgba(255, 255, 255, 0.2);
-	cursor: pointer;
-	transition: transform 0.15s;
-}
-
-.pptx-vue-ptb-color:hover {
-	transform: scale(1.1);
-}
-
-.pptx-vue-ptb-color--active {
-	border-color: #ffffff;
-}
-</style>

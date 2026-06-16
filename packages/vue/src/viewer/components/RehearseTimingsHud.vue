@@ -24,23 +24,32 @@ const emit = defineEmits<{
 </script>
 
 <template>
-	<div class="pptx-vue-rehearse-hud" data-testid="rehearse-hud">
-		<div class="pptx-vue-rehearse-col">
-			<span class="pptx-vue-rehearse-label">Slide time</span>
-			<span class="pptx-vue-rehearse-value" data-testid="rehearse-slide-time">
+	<div
+		class="pptx-vue-rehearse-hud fixed bottom-4 left-4 z-[9999] flex items-center gap-3 rounded-lg bg-black/80 px-4 py-2 text-white shadow-xl backdrop-blur-sm select-none"
+		data-testid="rehearse-hud"
+	>
+		<div class="pptx-vue-rehearse-col flex flex-col text-xs leading-tight">
+			<span class="pptx-vue-rehearse-label text-white/60">Slide time</span>
+			<span
+				class="pptx-vue-rehearse-value text-lg font-mono tabular-nums"
+				data-testid="rehearse-slide-time"
+			>
 				{{ formatRehearseMs(slideElapsedMs) }}
 			</span>
 		</div>
-		<div class="pptx-vue-rehearse-divider" />
-		<div class="pptx-vue-rehearse-col">
-			<span class="pptx-vue-rehearse-label">Total time</span>
-			<span class="pptx-vue-rehearse-value" data-testid="rehearse-total-time">
+		<div class="pptx-vue-rehearse-divider w-px h-8 bg-white/20" />
+		<div class="pptx-vue-rehearse-col flex flex-col text-xs leading-tight">
+			<span class="pptx-vue-rehearse-label text-white/60">Total time</span>
+			<span
+				class="pptx-vue-rehearse-value text-lg font-mono tabular-nums"
+				data-testid="rehearse-total-time"
+			>
 				{{ formatRehearseMs(totalElapsedMs) }}
 			</span>
 		</div>
 		<button
 			type="button"
-			class="pptx-vue-rehearse-pause"
+			class="pptx-vue-rehearse-pause ml-1 flex items-center justify-center rounded p-1.5 text-sm transition-colors hover:bg-white/20"
 			:title="paused ? 'Resume' : 'Pause'"
 			:aria-label="paused ? 'Resume' : 'Pause'"
 			@click="emit('toggle-pause')"
@@ -49,69 +58,3 @@ const emit = defineEmits<{
 		</button>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-rehearse-hud {
-	position: fixed;
-	bottom: 16px;
-	left: 16px;
-	z-index: 2147483646;
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	padding: 8px 16px;
-	border-radius: 8px;
-	background: rgba(0, 0, 0, 0.8);
-	backdrop-filter: blur(4px);
-	color: #ffffff;
-	box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
-	user-select: none;
-	font-family:
-		system-ui,
-		-apple-system,
-		sans-serif;
-}
-
-.pptx-vue-rehearse-col {
-	display: flex;
-	flex-direction: column;
-	line-height: 1.2;
-}
-
-.pptx-vue-rehearse-label {
-	font-size: 11px;
-	color: rgba(255, 255, 255, 0.6);
-}
-
-.pptx-vue-rehearse-value {
-	font-size: 18px;
-	font-family: ui-monospace, monospace;
-	font-variant-numeric: tabular-nums;
-}
-
-.pptx-vue-rehearse-divider {
-	width: 1px;
-	height: 32px;
-	background: rgba(255, 255, 255, 0.2);
-}
-
-.pptx-vue-rehearse-pause {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 30px;
-	height: 30px;
-	margin-left: 4px;
-	border: none;
-	border-radius: 6px;
-	background: transparent;
-	color: #ffffff;
-	font-size: 14px;
-	cursor: pointer;
-	transition: background-color 0.15s;
-}
-
-.pptx-vue-rehearse-pause:hover {
-	background: rgba(255, 255, 255, 0.2);
-}
-</style>

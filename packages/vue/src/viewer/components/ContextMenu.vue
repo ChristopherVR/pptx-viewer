@@ -152,20 +152,27 @@ onBeforeUnmount(removeListeners);
 		<div
 			v-if="open"
 			ref="menuRef"
-			class="pptx-vue-context-menu"
+			class="pptx-vue-context-menu fixed z-[120] min-w-[180px] select-none rounded border border-border bg-popover py-1.5 text-xs leading-4 text-popover-foreground shadow-2xl"
 			role="menu"
 			:style="menuStyle"
 			data-pptx-context-menu="true"
 			@contextmenu.prevent
 		>
 			<template v-for="(item, index) in items" :key="item.separator ? `sep-${index}` : item.id">
-				<div v-if="item.separator" class="pptx-vue-context-menu__separator" role="separator" />
+				<div
+					v-if="item.separator"
+					class="pptx-vue-context-menu__separator my-1 border-t border-border"
+					role="separator"
+				/>
 				<button
 					v-else
 					type="button"
 					role="menuitem"
-					class="pptx-vue-context-menu__item"
-					:class="{ 'pptx-vue-context-menu__item--disabled': item.disabled }"
+					class="pptx-vue-context-menu__item block w-full cursor-pointer border-0 bg-transparent px-3 py-1.5 text-left text-inherit hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
+					:class="{
+						'pptx-vue-context-menu__item--disabled pointer-events-none cursor-default opacity-45 hover:bg-transparent':
+							item.disabled,
+					}"
 					:disabled="item.disabled"
 					:aria-disabled="item.disabled ? 'true' : undefined"
 					:data-item-id="item.id"
@@ -177,52 +184,3 @@ onBeforeUnmount(removeListeners);
 		</div>
 	</Teleport>
 </template>
-
-<style scoped>
-.pptx-vue-context-menu {
-	position: fixed;
-	z-index: 120;
-	min-width: 180px;
-	padding: 0.375rem 0;
-	border: 1px solid var(--pptx-vue-border, rgba(0, 0, 0, 0.15));
-	border-radius: 6px;
-	background: var(--pptx-vue-popover, #ffffff);
-	color: var(--pptx-vue-foreground, #1a1a1a);
-	box-shadow:
-		0 10px 15px -3px rgba(0, 0, 0, 0.3),
-		0 4px 6px -4px rgba(0, 0, 0, 0.3);
-	font-size: 0.75rem;
-	line-height: 1rem;
-	user-select: none;
-}
-
-.pptx-vue-context-menu__item {
-	display: block;
-	width: 100%;
-	padding: 0.375rem 0.75rem;
-	border: 0;
-	background: transparent;
-	color: inherit;
-	text-align: left;
-	font: inherit;
-	cursor: pointer;
-}
-
-.pptx-vue-context-menu__item:hover:not(.pptx-vue-context-menu__item--disabled),
-.pptx-vue-context-menu__item:focus-visible {
-	background: var(--pptx-vue-muted, rgba(0, 0, 0, 0.06));
-	outline: none;
-}
-
-.pptx-vue-context-menu__item--disabled {
-	opacity: 0.45;
-	cursor: default;
-	pointer-events: none;
-}
-
-.pptx-vue-context-menu__separator {
-	height: 0;
-	margin: 0.25rem 0;
-	border-top: 1px solid var(--pptx-vue-border, rgba(0, 0, 0, 0.15));
-}
-</style>

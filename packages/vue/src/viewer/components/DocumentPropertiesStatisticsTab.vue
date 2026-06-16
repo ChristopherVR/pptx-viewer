@@ -47,35 +47,14 @@ const rows = computed<StatRow[]>(() => {
 </script>
 
 <template>
-	<div class="pptx-vue-docprops-stats">
-		<div v-for="row in rows" :key="row.label" class="pptx-vue-docprops-stat-row">
-			<span class="pptx-vue-docprops-stat-label">{{ row.label }}</span>
-			<span class="pptx-vue-docprops-stat-value">{{ row.value }}</span>
+	<div class="pptx-vue-docprops-stats flex flex-col gap-2">
+		<div
+			v-for="row in rows"
+			:key="row.label"
+			class="pptx-vue-docprops-stat-row flex items-center justify-between gap-3 text-[0.8125rem]"
+		>
+			<span class="pptx-vue-docprops-stat-label text-muted-foreground">{{ row.label }}</span>
+			<span class="pptx-vue-docprops-stat-value tabular-nums text-foreground">{{ row.value }}</span>
 		</div>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-docprops-stats {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-}
-
-.pptx-vue-docprops-stat-row {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 0.75rem;
-	font-size: 0.8125rem;
-}
-
-.pptx-vue-docprops-stat-label {
-	color: var(--pptx-vue-muted-foreground, #9a9a9a);
-}
-
-.pptx-vue-docprops-stat-value {
-	color: var(--pptx-vue-foreground, #e5e5e5);
-	font-variant-numeric: tabular-nums;
-}
-</style>

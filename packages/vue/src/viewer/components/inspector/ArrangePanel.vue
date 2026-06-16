@@ -66,41 +66,41 @@ function onFlipVertical(checked: boolean): void {
 </script>
 
 <template>
-	<div class="pptx-vue-arrange">
-		<div class="pptx-vue-arrange-grid">
-			<label class="pptx-vue-arrange-field">
-				<span class="pptx-vue-arrange-label">X</span>
+	<div class="pptx-vue-arrange flex flex-col gap-2 text-xs">
+		<div class="pptx-vue-arrange-grid grid grid-cols-2 gap-2">
+			<label class="pptx-vue-arrange-field flex flex-col gap-1">
+				<span class="pptx-vue-arrange-label text-muted-foreground">X</span>
 				<input
 					type="number"
-					class="pptx-vue-arrange-input"
+					class="pptx-vue-arrange-input bg-muted border border-border rounded px-2 py-1"
 					:value="x"
 					@input="onPos('x', ($event.target as HTMLInputElement).value)"
 				/>
 			</label>
-			<label class="pptx-vue-arrange-field">
-				<span class="pptx-vue-arrange-label">Y</span>
+			<label class="pptx-vue-arrange-field flex flex-col gap-1">
+				<span class="pptx-vue-arrange-label text-muted-foreground">Y</span>
 				<input
 					type="number"
-					class="pptx-vue-arrange-input"
+					class="pptx-vue-arrange-input bg-muted border border-border rounded px-2 py-1"
 					:value="y"
 					@input="onPos('y', ($event.target as HTMLInputElement).value)"
 				/>
 			</label>
-			<label class="pptx-vue-arrange-field">
-				<span class="pptx-vue-arrange-label">Width</span>
+			<label class="pptx-vue-arrange-field flex flex-col gap-1">
+				<span class="pptx-vue-arrange-label text-muted-foreground">Width</span>
 				<input
 					type="number"
-					class="pptx-vue-arrange-input"
+					class="pptx-vue-arrange-input bg-muted border border-border rounded px-2 py-1"
 					:min="MIN_SIZE"
 					:value="width"
 					@input="onSize('width', ($event.target as HTMLInputElement).value)"
 				/>
 			</label>
-			<label class="pptx-vue-arrange-field">
-				<span class="pptx-vue-arrange-label">Height</span>
+			<label class="pptx-vue-arrange-field flex flex-col gap-1">
+				<span class="pptx-vue-arrange-label text-muted-foreground">Height</span>
 				<input
 					type="number"
-					class="pptx-vue-arrange-input"
+					class="pptx-vue-arrange-input bg-muted border border-border rounded px-2 py-1"
 					:min="MIN_SIZE"
 					:value="height"
 					@input="onSize('height', ($event.target as HTMLInputElement).value)"
@@ -108,18 +108,18 @@ function onFlipVertical(checked: boolean): void {
 			</label>
 		</div>
 
-		<label class="pptx-vue-arrange-field">
-			<span class="pptx-vue-arrange-label">Rotation</span>
+		<label class="pptx-vue-arrange-field flex flex-col gap-1">
+			<span class="pptx-vue-arrange-label text-muted-foreground">Rotation</span>
 			<input
 				type="number"
-				class="pptx-vue-arrange-input"
+				class="pptx-vue-arrange-input bg-muted border border-border rounded px-2 py-1"
 				:value="rotation"
 				@input="onRotation(($event.target as HTMLInputElement).value)"
 			/>
 		</label>
 
-		<div class="pptx-vue-arrange-flips">
-			<label class="pptx-vue-arrange-check">
+		<div class="pptx-vue-arrange-flips grid grid-cols-2 gap-2">
+			<label class="pptx-vue-arrange-check inline-flex items-center gap-2 text-foreground">
 				<input
 					type="checkbox"
 					:checked="flipHorizontal"
@@ -127,7 +127,7 @@ function onFlipVertical(checked: boolean): void {
 				/>
 				Flip Horizontally
 			</label>
-			<label class="pptx-vue-arrange-check">
+			<label class="pptx-vue-arrange-check inline-flex items-center gap-2 text-foreground">
 				<input
 					type="checkbox"
 					:checked="flipVertical"
@@ -138,48 +138,3 @@ function onFlipVertical(checked: boolean): void {
 		</div>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-arrange {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-	font-size: 0.75rem;
-}
-
-.pptx-vue-arrange-grid {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 0.5rem;
-}
-
-.pptx-vue-arrange-field {
-	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
-}
-
-.pptx-vue-arrange-label {
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
-.pptx-vue-arrange-input {
-	border: 1px solid var(--pptx-vue-border, #d1d5db);
-	border-radius: 0.25rem;
-	padding: 0.25rem 0.5rem;
-	background: var(--pptx-vue-muted, #f3f4f6);
-	color: inherit;
-}
-
-.pptx-vue-arrange-flips {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 0.5rem;
-}
-
-.pptx-vue-arrange-check {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.5rem;
-}
-</style>

@@ -74,48 +74,72 @@ function close(): void {
 
 <template>
 	<ModalDialog :open="open" title="Settings" @close="close">
-		<div class="pptx-vue-settings">
-			<div class="pptx-vue-settings-tabs" role="tablist">
+		<div class="pptx-vue-settings flex min-w-[320px] flex-col">
+			<div class="pptx-vue-settings-tabs mb-2 flex gap-1 border-b border-border" role="tablist">
 				<button
 					v-for="tab in tabs"
 					:key="tab.id"
 					type="button"
 					role="tab"
 					:aria-selected="activeTab === tab.id"
-					class="pptx-vue-settings-tab"
-					:class="{ 'pptx-vue-settings-tab--active': activeTab === tab.id }"
+					class="pptx-vue-settings-tab relative border-b-2 px-2.5 py-1.5 text-xs font-medium transition-colors"
+					:class="
+						activeTab === tab.id
+							? 'pptx-vue-settings-tab--active border-primary text-primary'
+							: 'border-transparent text-muted-foreground hover:text-foreground'
+					"
 					@click="activeTab = tab.id"
 				>
 					{{ tab.label }}
 				</button>
 			</div>
 
-			<div v-if="activeTab === 'general'" class="pptx-vue-settings-panel">
-				<div v-for="spec in toggles" :key="spec.key" class="pptx-vue-settings-row">
-					<span class="pptx-vue-settings-row-label">{{ spec.label }}</span>
+			<div
+				v-if="activeTab === 'general'"
+				class="pptx-vue-settings-panel flex max-h-[56vh] flex-col overflow-y-auto"
+			>
+				<div
+					v-for="spec in toggles"
+					:key="spec.key"
+					class="pptx-vue-settings-row flex items-center justify-between gap-3 px-1 py-2"
+				>
+					<span class="pptx-vue-settings-row-label text-[13px] text-foreground">
+						{{ spec.label }}
+					</span>
 					<button
 						type="button"
 						role="switch"
 						:aria-checked="draft[spec.key]"
 						:aria-label="spec.label"
-						class="pptx-vue-settings-switch"
-						:class="{ 'pptx-vue-settings-switch--on': draft[spec.key] }"
+						class="pptx-vue-settings-switch relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+						:class="
+							draft[spec.key] ? 'pptx-vue-settings-switch--on bg-primary' : 'bg-muted-foreground/30'
+						"
 						@click="toggle(spec.key)"
 					>
-						<span class="pptx-vue-settings-switch-knob" />
+						<span
+							class="pptx-vue-settings-switch-knob inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform"
+							:class="draft[spec.key] ? 'translate-x-[18px]' : 'translate-x-[3px]'"
+						/>
 					</button>
 				</div>
 			</div>
 
-			<div v-else class="pptx-vue-settings-panel">
+			<div v-else class="pptx-vue-settings-panel flex max-h-[56vh] flex-col overflow-y-auto">
 				<div
 					v-for="(item, i) in shortcuts"
 					:key="item.action"
-					class="pptx-vue-settings-shortcut"
-					:class="{ 'pptx-vue-settings-shortcut--alt': i % 2 === 0 }"
+					class="pptx-vue-settings-shortcut flex items-center justify-between gap-3 rounded px-2 py-1.5"
+					:class="{ 'pptx-vue-settings-shortcut--alt bg-muted/60': i % 2 === 0 }"
 				>
-					<span class="pptx-vue-settings-shortcut-action">{{ item.action }}</span>
-					<span class="pptx-vue-settings-shortcut-keys">{{ item.shortcut }}</span>
+					<span class="pptx-vue-settings-shortcut-action text-xs text-foreground">
+						{{ item.action }}
+					</span>
+					<span
+						class="pptx-vue-settings-shortcut-keys whitespace-nowrap font-mono text-[11px] text-muted-foreground"
+					>
+						{{ item.shortcut }}
+					</span>
 				</div>
 			</div>
 		</div>
@@ -123,7 +147,7 @@ function close(): void {
 		<template #footer>
 			<button
 				type="button"
-				class="pptx-vue-settings-btn pptx-vue-settings-btn--primary"
+				class="pptx-vue-settings-btn pptx-vue-settings-btn--primary rounded border border-transparent bg-primary px-3 py-1.5 text-xs text-white hover:bg-primary/90"
 				@click="close"
 			>
 				Done
@@ -131,125 +155,3 @@ function close(): void {
 		</template>
 	</ModalDialog>
 </template>
-
-<style scoped>
-.pptx-vue-settings {
-	display: flex;
-	flex-direction: column;
-	min-width: 320px;
-}
-
-.pptx-vue-settings-tabs {
-	display: flex;
-	gap: 4px;
-	margin-bottom: 8px;
-	border-bottom: 1px solid var(--pptx-vue-border, #e5e7eb);
-}
-
-.pptx-vue-settings-tab {
-	position: relative;
-	padding: 6px 10px;
-	font-size: 12px;
-	font-weight: 500;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-	background: transparent;
-	border: none;
-	border-bottom: 2px solid transparent;
-	cursor: pointer;
-}
-
-.pptx-vue-settings-tab--active {
-	color: var(--pptx-vue-primary, #2563eb);
-	border-bottom-color: var(--pptx-vue-primary, #2563eb);
-}
-
-.pptx-vue-settings-panel {
-	display: flex;
-	flex-direction: column;
-	max-height: 56vh;
-	overflow-y: auto;
-}
-
-.pptx-vue-settings-row {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
-	padding: 8px 4px;
-}
-
-.pptx-vue-settings-row-label {
-	font-size: 13px;
-	color: var(--pptx-vue-foreground, #111827);
-}
-
-.pptx-vue-settings-switch {
-	position: relative;
-	display: inline-flex;
-	align-items: center;
-	width: 36px;
-	height: 20px;
-	padding: 0;
-	background: var(--pptx-vue-muted, #d1d5db);
-	border: none;
-	border-radius: 9999px;
-	cursor: pointer;
-	transition: background-color 0.15s ease;
-}
-
-.pptx-vue-settings-switch--on {
-	background: var(--pptx-vue-primary, #2563eb);
-}
-
-.pptx-vue-settings-switch-knob {
-	display: inline-block;
-	width: 14px;
-	height: 14px;
-	margin-left: 3px;
-	background: #ffffff;
-	border-radius: 9999px;
-	transition: transform 0.15s ease;
-}
-
-.pptx-vue-settings-switch--on .pptx-vue-settings-switch-knob {
-	transform: translateX(16px);
-}
-
-.pptx-vue-settings-shortcut {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
-	padding: 6px 8px;
-	border-radius: 4px;
-}
-
-.pptx-vue-settings-shortcut--alt {
-	background: var(--pptx-vue-muted, #f3f4f6);
-}
-
-.pptx-vue-settings-shortcut-action {
-	font-size: 12px;
-	color: var(--pptx-vue-foreground, #111827);
-}
-
-.pptx-vue-settings-shortcut-keys {
-	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-	font-size: 11px;
-	white-space: nowrap;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
-.pptx-vue-settings-btn {
-	padding: 6px 12px;
-	font-size: 12px;
-	border: 1px solid transparent;
-	border-radius: 4px;
-	cursor: pointer;
-}
-
-.pptx-vue-settings-btn--primary {
-	color: var(--pptx-vue-primary-foreground, #ffffff);
-	background: var(--pptx-vue-primary, #2563eb);
-}
-</style>

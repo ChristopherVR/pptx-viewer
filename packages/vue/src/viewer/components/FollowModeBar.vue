@@ -53,13 +53,19 @@ function stopFollowing(): void {
 </script>
 
 <template>
-	<div v-if="props.presences.length > 0" class="pptx-vue-follow-bar" data-export-ignore="true">
-		<span class="pptx-vue-follow-status">
+	<div
+		v-if="props.presences.length > 0"
+		class="pptx-vue-follow-bar flex flex-wrap items-center gap-3 rounded-lg bg-card/95 px-2.5 py-1.5 text-xs text-foreground"
+		data-export-ignore="true"
+	>
+		<span
+			class="pptx-vue-follow-status inline-flex items-center gap-1.5 whitespace-nowrap text-muted-foreground"
+		>
 			<template v-if="followedPeer">
-				Following <strong>{{ followedPeer.userName }}</strong>
+				Following <strong class="text-foreground">{{ followedPeer.userName }}</strong>
 				<button
 					type="button"
-					class="pptx-vue-follow-stop"
+					class="pptx-vue-follow-stop cursor-pointer rounded-md border border-border bg-transparent px-2 py-0.5 text-[11px] text-foreground hover:bg-muted"
 					title="Stop following"
 					@click="stopFollowing"
 				>
@@ -68,12 +74,14 @@ function stopFollowing(): void {
 			</template>
 			<template v-else> Follow a collaborator </template>
 		</span>
-		<ul class="pptx-vue-follow-list">
+		<ul class="pptx-vue-follow-list m-0 flex list-none items-center gap-1.5 p-0">
 			<li v-for="peer in props.presences" :key="peer.clientId">
 				<button
 					type="button"
-					class="pptx-vue-follow-peer"
-					:class="{ 'is-following': peer.clientId === props.followedClientId }"
+					class="pptx-vue-follow-peer inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-transparent bg-muted/60 py-0.5 pl-0.5 pr-2 text-foreground hover:bg-muted"
+					:class="{
+						'is-following border-primary bg-primary/30': peer.clientId === props.followedClientId,
+					}"
 					:data-client-id="peer.clientId"
 					:aria-pressed="peer.clientId === props.followedClientId"
 					:title="
@@ -83,104 +91,18 @@ function stopFollowing(): void {
 					"
 					@click="toggleFollow(peer.clientId)"
 				>
-					<span class="pptx-vue-follow-avatar" :style="{ backgroundColor: peer.color }">
+					<span
+						class="pptx-vue-follow-avatar inline-flex h-[22px] w-[22px] items-center justify-center rounded-full text-[10px] font-semibold leading-none text-white"
+						:style="{ backgroundColor: peer.color }"
+					>
 						{{ initials(peer.userName) }}
 					</span>
-					<span class="pptx-vue-follow-name">{{ peer.userName }}</span>
+					<span
+						class="pptx-vue-follow-name max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap"
+						>{{ peer.userName }}</span
+					>
 				</button>
 			</li>
 		</ul>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-follow-bar {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	flex-wrap: wrap;
-	padding: 6px 10px;
-	font-family: system-ui, sans-serif;
-	font-size: 12px;
-	color: #e5e7eb;
-	background: rgba(17, 24, 39, 0.92);
-	border-radius: 8px;
-}
-
-.pptx-vue-follow-status {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	white-space: nowrap;
-	color: #9ca3af;
-}
-
-.pptx-vue-follow-status strong {
-	color: #f3f4f6;
-}
-
-.pptx-vue-follow-stop {
-	padding: 2px 8px;
-	border: 1px solid #4b5563;
-	border-radius: 6px;
-	background: transparent;
-	color: #e5e7eb;
-	font-size: 11px;
-	cursor: pointer;
-}
-
-.pptx-vue-follow-stop:hover {
-	background: rgba(75, 85, 99, 0.4);
-}
-
-.pptx-vue-follow-list {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-.pptx-vue-follow-peer {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	padding: 3px 8px 3px 3px;
-	border: 1px solid transparent;
-	border-radius: 999px;
-	background: rgba(55, 65, 81, 0.5);
-	color: inherit;
-	font: inherit;
-	cursor: pointer;
-}
-
-.pptx-vue-follow-peer:hover {
-	background: rgba(75, 85, 99, 0.7);
-}
-
-.pptx-vue-follow-peer.is-following {
-	border-color: #60a5fa;
-	background: rgba(37, 99, 235, 0.35);
-}
-
-.pptx-vue-follow-avatar {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 22px;
-	height: 22px;
-	border-radius: 50%;
-	color: #ffffff;
-	font-size: 10px;
-	font-weight: 600;
-	line-height: 1;
-}
-
-.pptx-vue-follow-name {
-	max-width: 120px;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-</style>

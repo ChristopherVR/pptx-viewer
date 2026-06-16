@@ -127,14 +127,25 @@ const previewMainFrameStyle = computed(() => ({
 </script>
 
 <template>
-	<div v-if="!currentSlide" class="pptx-vue-presenter pptx-vue-presenter--empty">
+	<div
+		v-if="!currentSlide"
+		class="pptx-vue-presenter pptx-vue-presenter--empty absolute inset-0 z-50 flex items-center justify-center bg-card text-muted-foreground"
+	>
 		No slides to present.
 	</div>
-	<div v-else class="pptx-vue-presenter">
-		<div class="pptx-vue-presenter-body">
+	<div
+		v-else
+		class="pptx-vue-presenter absolute inset-0 z-50 flex flex-col bg-card text-foreground"
+	>
+		<div class="pptx-vue-presenter-body flex flex-1 min-h-0">
 			<!-- Left: current slide -->
-			<div class="pptx-vue-presenter-main">
-				<div class="pptx-vue-presenter-stage" :style="previewMainFrameStyle">
+			<div
+				class="pptx-vue-presenter-main flex flex-[7] min-w-0 flex-col items-center justify-center overflow-hidden bg-black p-6"
+			>
+				<div
+					class="pptx-vue-presenter-stage relative overflow-hidden"
+					:style="previewMainFrameStyle"
+				>
 					<SlideStage
 						:slide="currentSlide"
 						:canvas-size="canvasSize"
@@ -142,26 +153,44 @@ const previewMainFrameStyle = computed(() => ({
 						:scale="mainScale"
 					/>
 				</div>
-				<div class="pptx-vue-presenter-slide-label">
+				<div
+					class="pptx-vue-presenter-slide-label mt-3 select-none font-mono text-xs tabular-nums text-white/50"
+				>
 					Slide {{ currentSlideIndex + 1 }} of {{ slides.length }}
 				</div>
 			</div>
 
 			<!-- Right: controls -->
-			<div class="pptx-vue-presenter-rail">
+			<div
+				class="pptx-vue-presenter-rail flex flex-[3] min-w-[260px] max-w-[440px] flex-col border-l border-border bg-background"
+			>
 				<!-- Header: clock + elapsed + exit -->
-				<div class="pptx-vue-presenter-header">
-					<div class="pptx-vue-presenter-time">
-						<span class="pptx-vue-presenter-label">Current time</span>
-						<span class="pptx-vue-presenter-clock">{{ clockText }}</span>
+				<div
+					class="pptx-vue-presenter-header flex items-center justify-between gap-2 border-b border-border/60 px-4 py-3"
+				>
+					<div class="pptx-vue-presenter-time flex flex-col">
+						<span
+							class="pptx-vue-presenter-label text-[10px] uppercase tracking-wider text-muted-foreground"
+							>Current time</span
+						>
+						<span class="pptx-vue-presenter-clock font-mono text-lg tabular-nums text-foreground">{{
+							clockText
+						}}</span>
 					</div>
-					<div class="pptx-vue-presenter-time pptx-vue-presenter-time--right">
-						<span class="pptx-vue-presenter-label">Elapsed</span>
-						<span class="pptx-vue-presenter-elapsed">{{ elapsedText }}</span>
+					<div
+						class="pptx-vue-presenter-time pptx-vue-presenter-time--right flex flex-col items-end"
+					>
+						<span
+							class="pptx-vue-presenter-label text-[10px] uppercase tracking-wider text-muted-foreground"
+							>Elapsed</span
+						>
+						<span class="pptx-vue-presenter-elapsed font-mono text-lg tabular-nums text-primary">{{
+							elapsedText
+						}}</span>
 					</div>
 					<button
 						type="button"
-						class="pptx-vue-presenter-icon-btn"
+						class="pptx-vue-presenter-icon-btn flex h-7 w-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 						title="End presentation"
 						aria-label="End presentation"
 						@click="emit('exit')"
@@ -171,22 +200,24 @@ const previewMainFrameStyle = computed(() => ({
 				</div>
 
 				<!-- Navigation -->
-				<div class="pptx-vue-presenter-nav">
+				<div
+					class="pptx-vue-presenter-nav flex items-center justify-between border-b border-border/60 px-4 py-2"
+				>
 					<button
 						type="button"
-						class="pptx-vue-presenter-nav-btn"
+						class="pptx-vue-presenter-nav-btn inline-flex items-center gap-1.5 rounded bg-muted px-3 py-1.5 text-xs transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
 						:disabled="atFirst"
 						title="Previous slide"
 						@click="emit('move', -1)"
 					>
 						‹ Prev
 					</button>
-					<span class="pptx-vue-presenter-counter">
+					<span class="pptx-vue-presenter-counter font-mono text-sm tabular-nums text-foreground">
 						{{ currentSlideIndex + 1 }} / {{ slides.length }}
 					</span>
 					<button
 						type="button"
-						class="pptx-vue-presenter-nav-btn"
+						class="pptx-vue-presenter-nav-btn inline-flex items-center gap-1.5 rounded bg-muted px-3 py-1.5 text-xs transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
 						:disabled="atLast"
 						title="Next slide"
 						@click="emit('move', 1)"
@@ -196,9 +227,17 @@ const previewMainFrameStyle = computed(() => ({
 				</div>
 
 				<!-- Next slide preview -->
-				<div class="pptx-vue-presenter-section">
-					<div class="pptx-vue-presenter-label">Next slide</div>
-					<div v-if="nextSlide" class="pptx-vue-presenter-preview-frame" :style="previewFrameStyle">
+				<div class="pptx-vue-presenter-section border-b border-border/60 px-4 py-3">
+					<div
+						class="pptx-vue-presenter-label mb-2 text-[10px] uppercase tracking-wider text-muted-foreground"
+					>
+						Next slide
+					</div>
+					<div
+						v-if="nextSlide"
+						class="pptx-vue-presenter-preview-frame relative mt-2 overflow-hidden rounded border border-border/30"
+						:style="previewFrameStyle"
+					>
 						<SlideStage
 							:slide="nextSlide"
 							:canvas-size="canvasSize"
@@ -206,17 +245,26 @@ const previewMainFrameStyle = computed(() => ({
 							:scale="previewScale"
 						/>
 					</div>
-					<div v-else class="pptx-vue-presenter-preview-empty">End of presentation</div>
+					<div
+						v-else
+						class="pptx-vue-presenter-preview-empty mt-2 flex h-16 items-center justify-center rounded border border-border/30 bg-muted/40 text-xs italic text-muted-foreground"
+					>
+						End of presentation
+					</div>
 				</div>
 
 				<!-- Speaker notes -->
-				<div class="pptx-vue-presenter-notes-section">
-					<div class="pptx-vue-presenter-notes-head">
-						<div class="pptx-vue-presenter-label">Speaker notes</div>
-						<div class="pptx-vue-presenter-font-ctl">
+				<div class="pptx-vue-presenter-notes-section flex flex-1 min-h-0 flex-col px-4 py-3">
+					<div class="pptx-vue-presenter-notes-head mb-2 flex items-center justify-between">
+						<div
+							class="pptx-vue-presenter-label text-[10px] uppercase tracking-wider text-muted-foreground"
+						>
+							Speaker notes
+						</div>
+						<div class="pptx-vue-presenter-font-ctl flex items-center gap-1">
 							<button
 								type="button"
-								class="pptx-vue-presenter-font-btn"
+								class="pptx-vue-presenter-font-btn rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
 								:disabled="notesFontSize <= NOTES_FONT_SIZE_MIN"
 								title="Decrease font size"
 								aria-label="Decrease font size"
@@ -224,10 +272,13 @@ const previewMainFrameStyle = computed(() => ({
 							>
 								−
 							</button>
-							<span class="pptx-vue-presenter-font-val">{{ notesFontSize }}px</span>
+							<span
+								class="pptx-vue-presenter-font-val min-w-[28px] select-none text-center font-mono text-[10px] tabular-nums text-muted-foreground"
+								>{{ notesFontSize }}px</span
+							>
 							<button
 								type="button"
-								class="pptx-vue-presenter-font-btn"
+								class="pptx-vue-presenter-font-btn rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
 								:disabled="notesFontSize >= NOTES_FONT_SIZE_MAX"
 								title="Increase font size"
 								aria-label="Increase font size"
@@ -237,7 +288,10 @@ const previewMainFrameStyle = computed(() => ({
 							</button>
 						</div>
 					</div>
-					<div class="pptx-vue-presenter-notes" :style="{ fontSize: `${notesFontSize}px` }">
+					<div
+						class="pptx-vue-presenter-notes flex-1 overflow-y-auto whitespace-pre-wrap rounded border border-border/30 bg-muted/40 px-3 py-2 leading-relaxed text-foreground"
+						:style="{ fontSize: `${notesFontSize}px` }"
+					>
 						<template v-if="notesSpans">
 							<template v-for="span in notesSpans" :key="span.key">
 								<br v-if="span.kind === 'break'" />
@@ -245,7 +299,9 @@ const previewMainFrameStyle = computed(() => ({
 							</template>
 						</template>
 						<template v-else-if="hasPlainNotes">{{ notesText }}</template>
-						<span v-else class="pptx-vue-presenter-notes-empty">No notes for this slide.</span>
+						<span v-else class="pptx-vue-presenter-notes-empty italic text-muted-foreground"
+							>No notes for this slide.</span
+						>
 					</div>
 				</div>
 			</div>
@@ -253,7 +309,7 @@ const previewMainFrameStyle = computed(() => ({
 
 		<!-- Timer progress bar -->
 		<div
-			class="pptx-vue-presenter-progress"
+			class="pptx-vue-presenter-progress h-1.5 w-full flex-shrink-0 bg-muted/60"
 			role="progressbar"
 			:aria-valuenow="Math.round(timerProgress)"
 			:aria-valuemin="0"
@@ -261,267 +317,10 @@ const previewMainFrameStyle = computed(() => ({
 			aria-label="Timer progress"
 			:title="`${elapsedText} (segment ${timerSegment + 1})`"
 		>
-			<div class="pptx-vue-presenter-progress-fill" :style="{ width: `${timerProgress}%` }" />
+			<div
+				class="pptx-vue-presenter-progress-fill h-full bg-primary transition-[width] duration-1000 ease-linear"
+				:style="{ width: `${timerProgress}%` }"
+			/>
 		</div>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-presenter {
-	position: absolute;
-	inset: 0;
-	display: flex;
-	flex-direction: column;
-	background: var(--pptx-card, #111827);
-	color: var(--pptx-foreground, #f3f4f6);
-	font-family:
-		system-ui,
-		-apple-system,
-		sans-serif;
-}
-
-.pptx-vue-presenter--empty {
-	align-items: center;
-	justify-content: center;
-	color: var(--pptx-muted-foreground, #9ca3af);
-}
-
-.pptx-vue-presenter-body {
-	display: flex;
-	flex: 1 1 auto;
-	min-height: 0;
-}
-
-.pptx-vue-presenter-main {
-	flex: 7 1 0;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	background: #000000;
-	padding: 24px;
-	min-width: 0;
-	overflow: hidden;
-}
-
-.pptx-vue-presenter-stage {
-	position: relative;
-	overflow: hidden;
-}
-
-.pptx-vue-presenter-slide-label {
-	margin-top: 12px;
-	font-size: 12px;
-	font-family: ui-monospace, monospace;
-	font-variant-numeric: tabular-nums;
-	color: rgba(255, 255, 255, 0.5);
-	user-select: none;
-}
-
-.pptx-vue-presenter-rail {
-	flex: 3 1 0;
-	display: flex;
-	flex-direction: column;
-	min-width: 260px;
-	max-width: 440px;
-	background: var(--pptx-background, #030712);
-	border-left: 1px solid var(--pptx-border, #374151);
-}
-
-.pptx-vue-presenter-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 8px;
-	padding: 12px 16px;
-	border-bottom: 1px solid var(--pptx-border, #374151);
-}
-
-.pptx-vue-presenter-time {
-	display: flex;
-	flex-direction: column;
-}
-
-.pptx-vue-presenter-time--right {
-	align-items: flex-end;
-}
-
-.pptx-vue-presenter-label {
-	font-size: 10px;
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
-	color: var(--pptx-muted-foreground, #9ca3af);
-}
-
-.pptx-vue-presenter-clock,
-.pptx-vue-presenter-elapsed {
-	font-size: 18px;
-	font-family: ui-monospace, monospace;
-	font-variant-numeric: tabular-nums;
-}
-
-.pptx-vue-presenter-elapsed {
-	color: var(--pptx-primary, #6366f1);
-}
-
-.pptx-vue-presenter-icon-btn {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 28px;
-	height: 28px;
-	border: none;
-	border-radius: 6px;
-	background: transparent;
-	color: var(--pptx-muted-foreground, #9ca3af);
-	font-size: 20px;
-	line-height: 1;
-	cursor: pointer;
-}
-
-.pptx-vue-presenter-icon-btn:hover {
-	background: var(--pptx-accent, #1f2937);
-	color: var(--pptx-foreground, #f3f4f6);
-}
-
-.pptx-vue-presenter-nav {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 8px 16px;
-	border-bottom: 1px solid var(--pptx-border, #374151);
-}
-
-.pptx-vue-presenter-nav-btn {
-	padding: 6px 12px;
-	border: none;
-	border-radius: 6px;
-	background: var(--pptx-muted, #1f2937);
-	color: inherit;
-	font-size: 12px;
-	cursor: pointer;
-}
-
-.pptx-vue-presenter-nav-btn:hover:not(:disabled) {
-	background: var(--pptx-accent, #374151);
-}
-
-.pptx-vue-presenter-nav-btn:disabled {
-	opacity: 0.4;
-	cursor: not-allowed;
-}
-
-.pptx-vue-presenter-counter {
-	font-size: 14px;
-	font-family: ui-monospace, monospace;
-	font-variant-numeric: tabular-nums;
-}
-
-.pptx-vue-presenter-section {
-	padding: 12px 16px;
-	border-bottom: 1px solid var(--pptx-border, #374151);
-}
-
-.pptx-vue-presenter-preview-frame {
-	position: relative;
-	overflow: hidden;
-	margin-top: 8px;
-	border-radius: 4px;
-	border: 1px solid var(--pptx-border, #374151);
-}
-
-.pptx-vue-presenter-preview-empty {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	height: 64px;
-	margin-top: 8px;
-	border-radius: 4px;
-	border: 1px solid var(--pptx-border, #374151);
-	background: var(--pptx-muted, #1f2937);
-	font-size: 12px;
-	font-style: italic;
-	color: var(--pptx-muted-foreground, #9ca3af);
-}
-
-.pptx-vue-presenter-notes-section {
-	display: flex;
-	flex-direction: column;
-	flex: 1 1 auto;
-	min-height: 0;
-	padding: 12px 16px;
-}
-
-.pptx-vue-presenter-notes-head {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	margin-bottom: 8px;
-}
-
-.pptx-vue-presenter-font-ctl {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-}
-
-.pptx-vue-presenter-font-btn {
-	width: 20px;
-	height: 20px;
-	border: none;
-	border-radius: 4px;
-	background: transparent;
-	color: var(--pptx-muted-foreground, #9ca3af);
-	font-size: 14px;
-	line-height: 1;
-	cursor: pointer;
-}
-
-.pptx-vue-presenter-font-btn:hover:not(:disabled) {
-	background: var(--pptx-accent, #374151);
-	color: var(--pptx-foreground, #f3f4f6);
-}
-
-.pptx-vue-presenter-font-btn:disabled {
-	opacity: 0.3;
-	cursor: not-allowed;
-}
-
-.pptx-vue-presenter-font-val {
-	min-width: 28px;
-	text-align: center;
-	font-size: 10px;
-	font-family: ui-monospace, monospace;
-	font-variant-numeric: tabular-nums;
-	color: var(--pptx-muted-foreground, #9ca3af);
-}
-
-.pptx-vue-presenter-notes {
-	flex: 1 1 auto;
-	overflow-y: auto;
-	padding: 8px 12px;
-	border-radius: 4px;
-	border: 1px solid var(--pptx-border, #374151);
-	background: var(--pptx-muted, #1f2937);
-	white-space: pre-wrap;
-	line-height: 1.6;
-}
-
-.pptx-vue-presenter-notes-empty {
-	font-style: italic;
-	color: var(--pptx-muted-foreground, #9ca3af);
-}
-
-.pptx-vue-presenter-progress {
-	flex-shrink: 0;
-	height: 6px;
-	width: 100%;
-	background: var(--pptx-muted, #1f2937);
-}
-
-.pptx-vue-presenter-progress-fill {
-	height: 100%;
-	background: var(--pptx-primary, #6366f1);
-	transition: width 1s linear;
-}
-</style>

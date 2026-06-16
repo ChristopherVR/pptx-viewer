@@ -80,58 +80,85 @@ function handleStop(): void {
 		:title="active ? 'Collaboration active' : 'Share'"
 		@close="emit('close')"
 	>
-		<div v-if="active" class="pptx-vue-share-active">
-			<p class="pptx-vue-share-desc">A collaboration session is currently active.</p>
-			<button type="button" class="pptx-vue-share-stop" @click="handleStop">Stop sharing</button>
+		<div v-if="active" class="pptx-vue-share-active flex flex-col gap-4">
+			<p class="pptx-vue-share-desc text-[13px] leading-relaxed text-muted-foreground">
+				A collaboration session is currently active.
+			</p>
+			<button
+				type="button"
+				class="pptx-vue-share-stop w-full rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-[12px] font-medium text-red-400 transition-colors hover:bg-red-500/20"
+				@click="handleStop"
+			>
+				Stop sharing
+			</button>
 		</div>
 
-		<div v-else class="pptx-vue-share-form">
-			<p class="pptx-vue-share-desc">
+		<div v-else class="pptx-vue-share-form flex flex-col gap-4">
+			<p class="pptx-vue-share-desc text-[13px] leading-relaxed text-muted-foreground">
 				Start a real-time session and invite others to edit with you.
 			</p>
 
-			<div class="pptx-vue-share-field">
-				<label for="pptx-vue-share-room" class="pptx-vue-share-label">Room ID</label>
+			<div class="pptx-vue-share-field flex flex-col gap-1.5">
+				<label
+					for="pptx-vue-share-room"
+					class="pptx-vue-share-label text-[12px] font-medium text-foreground"
+				>
+					Room ID
+				</label>
 				<input
 					id="pptx-vue-share-room"
 					v-model="roomId"
 					type="text"
-					class="pptx-vue-share-input"
+					class="pptx-vue-share-input w-full rounded border border-border bg-background px-3 py-1.5 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
 					placeholder="my-presentation"
 				/>
 			</div>
 
-			<div class="pptx-vue-share-field">
-				<label for="pptx-vue-share-name" class="pptx-vue-share-label">Your name</label>
+			<div class="pptx-vue-share-field flex flex-col gap-1.5">
+				<label
+					for="pptx-vue-share-name"
+					class="pptx-vue-share-label text-[12px] font-medium text-foreground"
+				>
+					Your name
+				</label>
 				<input
 					id="pptx-vue-share-name"
 					v-model="userName"
 					type="text"
-					class="pptx-vue-share-input"
+					class="pptx-vue-share-input w-full rounded border border-border bg-background px-3 py-1.5 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
 					placeholder="Jane Doe"
 				/>
 			</div>
 
-			<div class="pptx-vue-share-field">
-				<label for="pptx-vue-share-server" class="pptx-vue-share-label">Server URL</label>
+			<div class="pptx-vue-share-field flex flex-col gap-1.5">
+				<label
+					for="pptx-vue-share-server"
+					class="pptx-vue-share-label text-[12px] font-medium text-foreground"
+				>
+					Server URL
+				</label>
 				<input
 					id="pptx-vue-share-server"
 					v-model="serverUrl"
 					type="text"
-					class="pptx-vue-share-input"
+					class="pptx-vue-share-input w-full rounded border border-border bg-background px-3 py-1.5 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
 					placeholder="wss://collab.example.com"
 				/>
 			</div>
 		</div>
 
 		<template #footer>
-			<button type="button" class="pptx-vue-share-btn" @click="emit('close')">
+			<button
+				type="button"
+				class="pptx-vue-share-btn rounded bg-muted px-3 py-1.5 text-[12px] text-foreground transition-colors hover:bg-accent"
+				@click="emit('close')"
+			>
 				{{ active ? 'Close' : 'Cancel' }}
 			</button>
 			<button
 				v-if="!active"
 				type="button"
-				class="pptx-vue-share-btn pptx-vue-share-btn-primary"
+				class="pptx-vue-share-btn pptx-vue-share-btn-primary rounded bg-primary px-3 py-1.5 text-[12px] text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
 				:disabled="!canStart"
 				@click="handleStart"
 			>
@@ -140,82 +167,3 @@ function handleStop(): void {
 		</template>
 	</ModalDialog>
 </template>
-
-<style scoped>
-.pptx-vue-share-form,
-.pptx-vue-share-active {
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
-}
-
-.pptx-vue-share-desc {
-	margin: 0;
-	font-size: 0.8125rem;
-	color: var(--pptx-muted-foreground, #9a9a9a);
-}
-
-.pptx-vue-share-field {
-	display: flex;
-	flex-direction: column;
-	gap: 0.375rem;
-}
-
-.pptx-vue-share-label {
-	font-size: 0.75rem;
-	font-weight: 500;
-	color: var(--pptx-foreground, #e5e5e5);
-}
-
-.pptx-vue-share-input {
-	width: 100%;
-	padding: 0.375rem 0.75rem;
-	border-radius: 0.375rem;
-	border: 1px solid var(--pptx-border, #2a2a2a);
-	background: var(--pptx-background, #111);
-	color: var(--pptx-foreground, #e5e5e5);
-	font-size: 0.8125rem;
-}
-
-.pptx-vue-share-input:focus {
-	outline: none;
-	border-color: var(--pptx-primary, #6366f1);
-	box-shadow: 0 0 0 1px var(--pptx-primary, #6366f1);
-}
-
-.pptx-vue-share-btn {
-	padding: 0.375rem 0.75rem;
-	border: none;
-	border-radius: 0.375rem;
-	background: var(--pptx-muted, #2a2a2a);
-	color: var(--pptx-foreground, #e5e5e5);
-	font-size: 0.75rem;
-	cursor: pointer;
-}
-
-.pptx-vue-share-btn-primary {
-	background: var(--pptx-primary, #6366f1);
-	color: var(--pptx-primary-foreground, #fff);
-}
-
-.pptx-vue-share-btn-primary:disabled {
-	opacity: 0.4;
-	cursor: not-allowed;
-}
-
-.pptx-vue-share-stop {
-	width: 100%;
-	padding: 0.5rem 0.75rem;
-	border: 1px solid rgba(239, 68, 68, 0.3);
-	border-radius: 0.375rem;
-	background: rgba(239, 68, 68, 0.1);
-	color: #f87171;
-	font-size: 0.75rem;
-	font-weight: 500;
-	cursor: pointer;
-}
-
-.pptx-vue-share-stop:hover {
-	background: rgba(239, 68, 68, 0.2);
-}
-</style>

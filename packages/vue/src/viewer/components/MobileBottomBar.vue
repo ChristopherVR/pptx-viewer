@@ -44,13 +44,27 @@ const atEnd = computed(() => props.slideIndex >= props.slideCount - 1);
 const counterLabel = computed(
 	() => `${props.slideCount === 0 ? 0 : props.slideIndex + 1} / ${props.slideCount}`,
 );
+
+/**
+ * Shared mobile-button utility classes — each control gets an equal flex share,
+ * a ≥44px touch target, and React-style ghost hover/active states over semantic
+ * tokens.
+ */
+const MOBILE_BTN =
+	'inline-flex items-center justify-center flex-1 min-w-0 min-h-[44px] p-0 border-0 rounded-lg bg-transparent text-foreground text-xl leading-none cursor-pointer transition-[background-color,transform] duration-150 hover:bg-accent active:scale-[0.94] disabled:opacity-35 disabled:cursor-not-allowed';
+const MOBILE_LABEL =
+	'inline-flex items-center justify-center flex-1 min-w-0 min-h-[44px] px-0.5 text-xs tabular-nums text-muted-foreground select-none whitespace-nowrap';
 </script>
 
 <template>
-	<nav class="pptx-vue-mobile-bar" aria-label="Slide controls">
+	<nav
+		class="pptx-vue-mobile-bar fixed bottom-0 left-0 right-0 z-40 flex items-stretch justify-between overflow-hidden p-1 pb-[max(env(safe-area-inset-bottom),0.25rem)] border-t border-border bg-secondary/90 backdrop-blur-md"
+		aria-label="Slide controls"
+	>
 		<button
 			type="button"
 			class="pptx-vue-mobile-btn"
+			:class="MOBILE_BTN"
 			:disabled="atStart"
 			aria-label="Previous slide"
 			@click="emit('prev')"
@@ -58,11 +72,14 @@ const counterLabel = computed(
 			<span aria-hidden="true">‹</span>
 		</button>
 
-		<span class="pptx-vue-mobile-counter" aria-live="polite">{{ counterLabel }}</span>
+		<span class="pptx-vue-mobile-counter" :class="MOBILE_LABEL" aria-live="polite">{{
+			counterLabel
+		}}</span>
 
 		<button
 			type="button"
 			class="pptx-vue-mobile-btn"
+			:class="MOBILE_BTN"
 			:disabled="atEnd"
 			aria-label="Next slide"
 			@click="emit('next')"
@@ -70,41 +87,64 @@ const counterLabel = computed(
 			<span aria-hidden="true">›</span>
 		</button>
 
-		<span class="pptx-vue-mobile-divider" aria-hidden="true" />
+		<span
+			class="pptx-vue-mobile-divider flex-[0_0_1px] w-px my-2 mx-px bg-border"
+			aria-hidden="true"
+		/>
 
 		<button
 			type="button"
 			class="pptx-vue-mobile-btn"
+			:class="MOBILE_BTN"
 			aria-label="Zoom out"
 			@click="emit('zoom-out')"
 		>
 			<span aria-hidden="true">−</span>
 		</button>
 
-		<span class="pptx-vue-mobile-zoom" aria-label="Zoom level">{{ zoomPercent }}%</span>
-
-		<button type="button" class="pptx-vue-mobile-btn" aria-label="Zoom in" @click="emit('zoom-in')">
-			<span aria-hidden="true">+</span>
-		</button>
-
-		<span class="pptx-vue-mobile-divider" aria-hidden="true" />
+		<span class="pptx-vue-mobile-zoom" :class="MOBILE_LABEL" aria-label="Zoom level"
+			>{{ zoomPercent }}%</span
+		>
 
 		<button
 			type="button"
-			class="pptx-vue-mobile-btn pptx-vue-mobile-present"
+			class="pptx-vue-mobile-btn"
+			:class="MOBILE_BTN"
+			aria-label="Zoom in"
+			@click="emit('zoom-in')"
+		>
+			<span aria-hidden="true">+</span>
+		</button>
+
+		<span
+			class="pptx-vue-mobile-divider flex-[0_0_1px] w-px my-2 mx-px bg-border"
+			aria-hidden="true"
+		/>
+
+		<button
+			type="button"
+			class="pptx-vue-mobile-btn pptx-vue-mobile-present !text-primary"
+			:class="MOBILE_BTN"
 			aria-label="Present"
 			@click="emit('present')"
 		>
 			<span aria-hidden="true">▶</span>
 		</button>
 
-		<button type="button" class="pptx-vue-mobile-btn" aria-label="Notes" @click="emit('notes')">
+		<button
+			type="button"
+			class="pptx-vue-mobile-btn"
+			:class="MOBILE_BTN"
+			aria-label="Notes"
+			@click="emit('notes')"
+		>
 			<span aria-hidden="true">📝</span>
 		</button>
 
 		<button
 			type="button"
 			class="pptx-vue-mobile-btn"
+			:class="MOBILE_BTN"
 			aria-label="More actions"
 			@click="emit('menu')"
 		>
@@ -112,86 +152,3 @@ const counterLabel = computed(
 		</button>
 	</nav>
 </template>
-
-<style scoped>
-.pptx-vue-mobile-bar {
-	position: fixed;
-	bottom: 0;
-	left: 0;
-	right: 0;
-	z-index: 40;
-	display: flex;
-	align-items: stretch;
-	justify-content: space-between;
-	gap: 0;
-	padding: 0.25rem;
-	padding-bottom: max(env(safe-area-inset-bottom), 0.25rem);
-	border-top: 1px solid var(--pptx-border, rgba(0, 0, 0, 0.12));
-	background: var(--pptx-surface, rgba(255, 255, 255, 0.92));
-	backdrop-filter: blur(8px);
-	/* Never overflow the viewport width — every control gets an equal share
-	   (mirrors React's `flex-1` bottom bar) so the rightmost buttons (Notes,
-	   More) stay on-screen and tappable on narrow phones. */
-	overflow: hidden;
-}
-
-.pptx-vue-mobile-btn {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	flex: 1 1 0;
-	min-width: 0;
-	min-height: 44px;
-	padding: 0;
-	border: none;
-	border-radius: 0.5rem;
-	background: transparent;
-	color: var(--pptx-fg, #1f2937);
-	font-size: 1.25rem;
-	line-height: 1;
-	cursor: pointer;
-	transition:
-		background-color 0.15s ease,
-		transform 0.1s ease;
-}
-
-.pptx-vue-mobile-btn:hover:not(:disabled) {
-	background: var(--pptx-accent, rgba(0, 0, 0, 0.06));
-}
-
-.pptx-vue-mobile-btn:active:not(:disabled) {
-	transform: scale(0.94);
-}
-
-.pptx-vue-mobile-btn:disabled {
-	opacity: 0.35;
-	cursor: not-allowed;
-}
-
-.pptx-vue-mobile-present {
-	color: var(--pptx-primary, #2563eb);
-}
-
-.pptx-vue-mobile-counter,
-.pptx-vue-mobile-zoom {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	flex: 1 1 0;
-	min-width: 0;
-	min-height: 44px;
-	padding: 0 0.125rem;
-	font-size: 0.75rem;
-	font-variant-numeric: tabular-nums;
-	color: var(--pptx-fg-muted, #4b5563);
-	user-select: none;
-	white-space: nowrap;
-}
-
-.pptx-vue-mobile-divider {
-	flex: 0 0 1px;
-	width: 1px;
-	margin: 0.5rem 0.0625rem;
-	background: var(--pptx-border, rgba(0, 0, 0, 0.12));
-}
-</style>

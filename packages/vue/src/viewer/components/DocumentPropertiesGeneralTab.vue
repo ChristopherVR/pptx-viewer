@@ -71,15 +71,22 @@ function onCompanyInput(event: Event): void {
 </script>
 
 <template>
-	<div class="pptx-vue-docprops-general">
-		<div v-for="field in CORE_FIELDS" :key="field.key" class="pptx-vue-docprops-field">
-			<label :for="`pptx-vue-docprops-${field.key}`" class="pptx-vue-docprops-label">
+	<div class="pptx-vue-docprops-general flex flex-col gap-3">
+		<div
+			v-for="field in CORE_FIELDS"
+			:key="field.key"
+			class="pptx-vue-docprops-field flex flex-col gap-1.5"
+		>
+			<label
+				:for="`pptx-vue-docprops-${field.key}`"
+				class="pptx-vue-docprops-label text-xs font-medium text-foreground"
+			>
 				{{ field.label }}
 			</label>
 			<textarea
 				v-if="field.multiline"
 				:id="`pptx-vue-docprops-${field.key}`"
-				class="pptx-vue-docprops-input pptx-vue-docprops-textarea"
+				class="pptx-vue-docprops-input pptx-vue-docprops-textarea w-full resize-y rounded-md border border-border bg-muted px-3 py-1.5 text-[0.8125rem] text-foreground placeholder-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
 				rows="3"
 				:value="coreValue(field.key)"
 				@input="onCoreInput(field.key, $event)"
@@ -88,73 +95,40 @@ function onCompanyInput(event: Event): void {
 				v-else
 				:id="`pptx-vue-docprops-${field.key}`"
 				type="text"
-				class="pptx-vue-docprops-input"
+				class="pptx-vue-docprops-input w-full rounded-md border border-border bg-muted px-3 py-1.5 text-[0.8125rem] text-foreground placeholder-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
 				:value="coreValue(field.key)"
 				@input="onCoreInput(field.key, $event)"
 			/>
 		</div>
 
-		<div class="pptx-vue-docprops-field">
-			<label for="pptx-vue-docprops-manager" class="pptx-vue-docprops-label">Manager</label>
+		<div class="pptx-vue-docprops-field flex flex-col gap-1.5">
+			<label
+				for="pptx-vue-docprops-manager"
+				class="pptx-vue-docprops-label text-xs font-medium text-foreground"
+				>Manager</label
+			>
 			<input
 				id="pptx-vue-docprops-manager"
 				type="text"
-				class="pptx-vue-docprops-input"
+				class="pptx-vue-docprops-input w-full rounded-md border border-border bg-muted px-3 py-1.5 text-[0.8125rem] text-foreground placeholder-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
 				:value="manager"
 				@input="onManagerInput"
 			/>
 		</div>
 
-		<div class="pptx-vue-docprops-field">
-			<label for="pptx-vue-docprops-company" class="pptx-vue-docprops-label">Company</label>
+		<div class="pptx-vue-docprops-field flex flex-col gap-1.5">
+			<label
+				for="pptx-vue-docprops-company"
+				class="pptx-vue-docprops-label text-xs font-medium text-foreground"
+				>Company</label
+			>
 			<input
 				id="pptx-vue-docprops-company"
 				type="text"
-				class="pptx-vue-docprops-input"
+				class="pptx-vue-docprops-input w-full rounded-md border border-border bg-muted px-3 py-1.5 text-[0.8125rem] text-foreground placeholder-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
 				:value="company"
 				@input="onCompanyInput"
 			/>
 		</div>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-docprops-general {
-	display: flex;
-	flex-direction: column;
-	gap: 0.75rem;
-}
-
-.pptx-vue-docprops-field {
-	display: flex;
-	flex-direction: column;
-	gap: 0.375rem;
-}
-
-.pptx-vue-docprops-label {
-	font-size: 0.75rem;
-	font-weight: 500;
-	color: var(--pptx-vue-foreground, #e5e5e5);
-}
-
-.pptx-vue-docprops-input {
-	width: 100%;
-	padding: 0.375rem 0.75rem;
-	border-radius: 0.375rem;
-	border: 1px solid var(--pptx-vue-border, #2a2a2a);
-	background: var(--pptx-vue-muted, #1a1a1a);
-	color: var(--pptx-vue-foreground, #e5e5e5);
-	font-size: 0.8125rem;
-}
-
-.pptx-vue-docprops-input:focus {
-	outline: none;
-	border-color: var(--pptx-vue-primary, #6366f1);
-	box-shadow: 0 0 0 1px var(--pptx-vue-primary, #6366f1);
-}
-
-.pptx-vue-docprops-textarea {
-	resize: vertical;
-	font-family: inherit;
-}
-</style>

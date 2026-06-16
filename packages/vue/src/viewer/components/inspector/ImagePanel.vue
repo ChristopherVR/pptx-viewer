@@ -79,16 +79,20 @@ function onReset(): void {
 </script>
 
 <template>
-	<div class="pptx-vue-image-panel">
-		<p v-if="!isImage" class="pptx-vue-image-panel__note">No image properties for this element.</p>
+	<div class="pptx-vue-image-panel flex flex-col gap-3 text-[11px]">
+		<p v-if="!isImage" class="pptx-vue-image-panel__note text-muted-foreground">
+			No image properties for this element.
+		</p>
 
 		<template v-else>
 			<!-- Alt text -->
-			<label class="pptx-vue-image-panel__field">
-				<span class="pptx-vue-image-panel__label">Alt text</span>
+			<label class="pptx-vue-image-panel__field flex flex-col gap-1">
+				<span class="pptx-vue-image-panel__label font-semibold text-muted-foreground"
+					>Alt text</span
+				>
 				<input
 					type="text"
-					class="pptx-vue-image-panel__input"
+					class="pptx-vue-image-panel__input w-full bg-muted border border-border rounded px-1.5 py-1 text-[11px]"
 					:value="altText"
 					placeholder="Describe this image"
 					@input="onAltInput"
@@ -96,134 +100,75 @@ function onReset(): void {
 			</label>
 
 			<!-- Image adjustments -->
-			<div class="pptx-vue-image-panel__section">
-				<div class="pptx-vue-image-panel__section-head">
-					<span class="pptx-vue-image-panel__label">Image adjustments</span>
+			<div class="pptx-vue-image-panel__section flex flex-col gap-2">
+				<div class="pptx-vue-image-panel__section-head flex items-center justify-between">
+					<span class="pptx-vue-image-panel__label font-semibold text-muted-foreground">
+						Image adjustments
+					</span>
 					<button
 						v-if="hasAdjustments"
 						type="button"
-						class="pptx-vue-image-panel__reset"
+						class="pptx-vue-image-panel__reset rounded border border-border bg-muted hover:bg-accent px-1.5 py-0.5 text-[10px] transition-colors"
 						@click="onReset"
 					>
 						Reset adjustments
 					</button>
 				</div>
 
-				<label class="pptx-vue-image-panel__slider">
-					<span class="pptx-vue-image-panel__slider-label">Brightness</span>
+				<label
+					class="pptx-vue-image-panel__slider grid grid-cols-[72px_1fr_36px] items-center gap-2"
+				>
+					<span class="pptx-vue-image-panel__slider-label text-muted-foreground">Brightness</span>
 					<input
 						type="range"
+						class="w-full accent-primary"
 						min="-100"
 						max="100"
 						step="1"
 						:value="brightness"
 						@input="onBrightness"
 					/>
-					<span class="pptx-vue-image-panel__value">{{ brightness }}</span>
+					<span class="pptx-vue-image-panel__value text-right tabular-nums text-muted-foreground">
+						{{ brightness }}
+					</span>
 				</label>
 
-				<label class="pptx-vue-image-panel__slider">
-					<span class="pptx-vue-image-panel__slider-label">Contrast</span>
-					<input type="range" min="-100" max="100" step="1" :value="contrast" @input="onContrast" />
-					<span class="pptx-vue-image-panel__value">{{ contrast }}</span>
-				</label>
-
-				<label class="pptx-vue-image-panel__slider">
-					<span class="pptx-vue-image-panel__slider-label">Saturation</span>
+				<label
+					class="pptx-vue-image-panel__slider grid grid-cols-[72px_1fr_36px] items-center gap-2"
+				>
+					<span class="pptx-vue-image-panel__slider-label text-muted-foreground">Contrast</span>
 					<input
 						type="range"
+						class="w-full accent-primary"
+						min="-100"
+						max="100"
+						step="1"
+						:value="contrast"
+						@input="onContrast"
+					/>
+					<span class="pptx-vue-image-panel__value text-right tabular-nums text-muted-foreground">
+						{{ contrast }}
+					</span>
+				</label>
+
+				<label
+					class="pptx-vue-image-panel__slider grid grid-cols-[72px_1fr_36px] items-center gap-2"
+				>
+					<span class="pptx-vue-image-panel__slider-label text-muted-foreground">Saturation</span>
+					<input
+						type="range"
+						class="w-full accent-primary"
 						min="-100"
 						max="100"
 						step="1"
 						:value="saturation"
 						@input="onSaturation"
 					/>
-					<span class="pptx-vue-image-panel__value">{{ saturation }}</span>
+					<span class="pptx-vue-image-panel__value text-right tabular-nums text-muted-foreground">
+						{{ saturation }}
+					</span>
 				</label>
 			</div>
 		</template>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-image-panel {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-	font-size: 11px;
-}
-
-.pptx-vue-image-panel__note {
-	margin: 0;
-	color: var(--pptx-vue-muted, #888);
-}
-
-.pptx-vue-image-panel__field {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-}
-
-.pptx-vue-image-panel__label {
-	font-weight: 600;
-	color: var(--pptx-vue-muted, #666);
-}
-
-.pptx-vue-image-panel__input {
-	width: 100%;
-	box-sizing: border-box;
-	padding: 4px 6px;
-	font-size: 11px;
-	border: 1px solid var(--pptx-vue-border, #ccc);
-	border-radius: 4px;
-	background: var(--pptx-vue-input-bg, #fff);
-	color: inherit;
-}
-
-.pptx-vue-image-panel__section {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-}
-
-.pptx-vue-image-panel__section-head {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-}
-
-.pptx-vue-image-panel__reset {
-	padding: 2px 6px;
-	font-size: 10px;
-	border: 1px solid var(--pptx-vue-border, #ccc);
-	border-radius: 4px;
-	background: var(--pptx-vue-muted-bg, #f3f3f3);
-	color: inherit;
-	cursor: pointer;
-}
-
-.pptx-vue-image-panel__reset:hover {
-	background: var(--pptx-vue-accent-bg, #e8e8e8);
-}
-
-.pptx-vue-image-panel__slider {
-	display: grid;
-	grid-template-columns: 72px 1fr 36px;
-	align-items: center;
-	gap: 8px;
-}
-
-.pptx-vue-image-panel__slider-label {
-	color: var(--pptx-vue-muted, #666);
-}
-
-.pptx-vue-image-panel__slider input[type='range'] {
-	width: 100%;
-}
-
-.pptx-vue-image-panel__value {
-	text-align: right;
-	font-variant-numeric: tabular-nums;
-	color: var(--pptx-vue-muted, #666);
-}
-</style>

@@ -186,12 +186,14 @@ function onGlowRadius(value: string): void {
 </script>
 
 <template>
-	<div class="pptx-vue-effects">
-		<label class="pptx-vue-effects-field">
-			<span class="pptx-vue-effects-label">Opacity ({{ opacityPercent }}%)</span>
+	<div class="pptx-vue-effects flex flex-col gap-3 text-xs">
+		<label class="pptx-vue-effects-field flex flex-col gap-1">
+			<span class="pptx-vue-effects-label text-muted-foreground"
+				>Opacity ({{ opacityPercent }}%)</span
+			>
 			<input
 				type="range"
-				class="pptx-vue-effects-range"
+				class="pptx-vue-effects-range w-full accent-primary"
 				min="0"
 				max="100"
 				:value="opacityPercent"
@@ -200,8 +202,8 @@ function onGlowRadius(value: string): void {
 		</label>
 
 		<template v-if="isShapeLike">
-			<div class="pptx-vue-effects-section">
-				<label class="pptx-vue-effects-check">
+			<div class="pptx-vue-effects-section flex flex-col gap-2">
+				<label class="pptx-vue-effects-check inline-flex items-center gap-2 text-foreground">
 					<input
 						type="checkbox"
 						:checked="shadowOn"
@@ -210,43 +212,43 @@ function onGlowRadius(value: string): void {
 					Outer Shadow
 				</label>
 
-				<div v-if="shadowOn" class="pptx-vue-effects-grid">
-					<label class="pptx-vue-effects-field">
-						<span class="pptx-vue-effects-label">Color</span>
+				<div v-if="shadowOn" class="pptx-vue-effects-grid grid grid-cols-2 gap-2">
+					<label class="pptx-vue-effects-field flex flex-col gap-1">
+						<span class="pptx-vue-effects-label text-muted-foreground">Color</span>
 						<input
 							type="color"
-							class="pptx-vue-effects-color"
+							class="pptx-vue-effects-color w-full h-7 p-0 bg-muted border border-border rounded"
 							:value="shadowColor"
 							@input="onShadowColor(($event.target as HTMLInputElement).value)"
 						/>
 					</label>
-					<label class="pptx-vue-effects-field">
-						<span class="pptx-vue-effects-label">Blur</span>
+					<label class="pptx-vue-effects-field flex flex-col gap-1">
+						<span class="pptx-vue-effects-label text-muted-foreground">Blur</span>
 						<input
 							type="number"
-							class="pptx-vue-effects-input"
+							class="pptx-vue-effects-input bg-muted border border-border rounded px-2 py-1"
 							min="0"
 							max="96"
 							:value="shadowBlur"
 							@input="onShadowBlur(($event.target as HTMLInputElement).value)"
 						/>
 					</label>
-					<label class="pptx-vue-effects-field">
-						<span class="pptx-vue-effects-label">Distance</span>
+					<label class="pptx-vue-effects-field flex flex-col gap-1">
+						<span class="pptx-vue-effects-label text-muted-foreground">Distance</span>
 						<input
 							type="number"
-							class="pptx-vue-effects-input"
+							class="pptx-vue-effects-input bg-muted border border-border rounded px-2 py-1"
 							min="0"
 							max="96"
 							:value="shadowDistance"
 							@input="onShadowDistance(($event.target as HTMLInputElement).value)"
 						/>
 					</label>
-					<label class="pptx-vue-effects-field">
-						<span class="pptx-vue-effects-label">Angle</span>
+					<label class="pptx-vue-effects-field flex flex-col gap-1">
+						<span class="pptx-vue-effects-label text-muted-foreground">Angle</span>
 						<input
 							type="number"
-							class="pptx-vue-effects-input"
+							class="pptx-vue-effects-input bg-muted border border-border rounded px-2 py-1"
 							min="0"
 							max="360"
 							:value="shadowAngle"
@@ -256,8 +258,8 @@ function onGlowRadius(value: string): void {
 				</div>
 			</div>
 
-			<div class="pptx-vue-effects-section">
-				<label class="pptx-vue-effects-check">
+			<div class="pptx-vue-effects-section flex flex-col gap-2">
+				<label class="pptx-vue-effects-check inline-flex items-center gap-2 text-foreground">
 					<input
 						type="checkbox"
 						:checked="glowOn"
@@ -266,21 +268,21 @@ function onGlowRadius(value: string): void {
 					Outer Glow
 				</label>
 
-				<div v-if="glowOn" class="pptx-vue-effects-grid">
-					<label class="pptx-vue-effects-field">
-						<span class="pptx-vue-effects-label">Color</span>
+				<div v-if="glowOn" class="pptx-vue-effects-grid grid grid-cols-2 gap-2">
+					<label class="pptx-vue-effects-field flex flex-col gap-1">
+						<span class="pptx-vue-effects-label text-muted-foreground">Color</span>
 						<input
 							type="color"
-							class="pptx-vue-effects-color"
+							class="pptx-vue-effects-color w-full h-7 p-0 bg-muted border border-border rounded"
 							:value="glowColor"
 							@input="onGlowColor(($event.target as HTMLInputElement).value)"
 						/>
 					</label>
-					<label class="pptx-vue-effects-field">
-						<span class="pptx-vue-effects-label">Radius</span>
+					<label class="pptx-vue-effects-field flex flex-col gap-1">
+						<span class="pptx-vue-effects-label text-muted-foreground">Radius</span>
 						<input
 							type="number"
-							class="pptx-vue-effects-input"
+							class="pptx-vue-effects-input bg-muted border border-border rounded px-2 py-1"
 							min="0"
 							max="96"
 							:value="glowRadius"
@@ -291,72 +293,8 @@ function onGlowRadius(value: string): void {
 			</div>
 		</template>
 
-		<p v-else class="pptx-vue-effects-note">
+		<p v-else class="pptx-vue-effects-note text-muted-foreground italic">
 			Shadow and glow are only available on shape-like elements.
 		</p>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-effects {
-	display: flex;
-	flex-direction: column;
-	gap: 0.75rem;
-	font-size: 0.75rem;
-}
-
-.pptx-vue-effects-section {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-}
-
-.pptx-vue-effects-grid {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 0.5rem;
-}
-
-.pptx-vue-effects-field {
-	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
-}
-
-.pptx-vue-effects-label {
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
-.pptx-vue-effects-input {
-	border: 1px solid var(--pptx-vue-border, #d1d5db);
-	border-radius: 0.25rem;
-	padding: 0.25rem 0.5rem;
-	background: var(--pptx-vue-muted, #f3f4f6);
-	color: inherit;
-}
-
-.pptx-vue-effects-color {
-	width: 100%;
-	height: 1.75rem;
-	border: 1px solid var(--pptx-vue-border, #d1d5db);
-	border-radius: 0.25rem;
-	background: var(--pptx-vue-muted, #f3f4f6);
-	padding: 0;
-}
-
-.pptx-vue-effects-range {
-	width: 100%;
-}
-
-.pptx-vue-effects-check {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.5rem;
-}
-
-.pptx-vue-effects-note {
-	margin: 0;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-	font-style: italic;
-}
-</style>

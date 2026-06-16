@@ -83,38 +83,72 @@ function signatureKey(sig: ParsedSignature, index: number): string {
 </script>
 
 <template>
-	<section class="pptx-vue-signatures" aria-label="Digital signatures">
-		<header class="pptx-vue-signatures__header" :class="`pptx-vue-signatures__header--${overall}`">
-			<span class="pptx-vue-signatures__dot" aria-hidden="true" />
-			<span class="pptx-vue-signatures__title">{{ headerLabel }}</span>
-			<span v-if="isSigned" class="pptx-vue-signatures__count">
+	<section
+		class="pptx-vue-signatures overflow-hidden rounded-lg border border-border bg-popover text-[13px] text-foreground"
+		aria-label="Digital signatures"
+	>
+		<header
+			class="pptx-vue-signatures__header flex items-center gap-2 border-b border-border px-3 py-2.5 font-semibold"
+			:class="[
+				`pptx-vue-signatures__header--${overall}`,
+				{
+					'bg-green-900/20 text-green-300': overall === 'signed',
+					'bg-red-900/20 text-red-300': overall === 'invalid',
+					'bg-muted/30 text-foreground': overall === 'unsigned',
+				},
+			]"
+		>
+			<span
+				class="pptx-vue-signatures__dot h-2.5 w-2.5 flex-none rounded-full bg-current"
+				aria-hidden="true"
+			/>
+			<span class="pptx-vue-signatures__title flex-1">{{ headerLabel }}</span>
+			<span v-if="isSigned" class="pptx-vue-signatures__count text-xs font-normal opacity-80">
 				{{ props.signatures.length }}
 				signature{{ props.signatures.length === 1 ? '' : 's' }}
 			</span>
 		</header>
 
-		<p v-if="!isSigned" class="pptx-vue-signatures__empty">
+		<p v-if="!isSigned" class="pptx-vue-signatures__empty m-0 px-3 py-3.5 text-muted-foreground">
 			This presentation has no digital signatures.
 		</p>
 
-		<ul v-else class="pptx-vue-signatures__list">
+		<ul v-else class="pptx-vue-signatures__list m-0 list-none p-0">
 			<li
 				v-for="(sig, index) in props.signatures"
 				:key="signatureKey(sig, index)"
-				class="pptx-vue-signatures__item"
-				:class="`pptx-vue-signatures__item--${statusKind(sig.status)}`"
+				class="pptx-vue-signatures__item border-b border-l-[3px] border-b-border/60 border-l-transparent px-3 py-2.5 last:border-b-0"
+				:class="[
+					`pptx-vue-signatures__item--${statusKind(sig.status)}`,
+					{
+						'border-l-green-500': statusKind(sig.status) === 'valid',
+						'border-l-red-500': statusKind(sig.status) === 'invalid',
+						'border-l-amber-500': statusKind(sig.status) === 'unknown',
+					},
+				]"
 			>
-				<div class="pptx-vue-signatures__item-main">
-					<span class="pptx-vue-signatures__signer">{{ signerName(sig) }}</span>
+				<div class="pptx-vue-signatures__item-main flex items-center justify-between gap-2">
+					<span class="pptx-vue-signatures__signer font-semibold break-words">{{
+						signerName(sig)
+					}}</span>
 					<span
-						class="pptx-vue-signatures__badge"
-						:class="`pptx-vue-signatures__badge--${statusKind(sig.status)}`"
+						class="pptx-vue-signatures__badge flex-none whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold"
+						:class="[
+							`pptx-vue-signatures__badge--${statusKind(sig.status)}`,
+							{
+								'bg-green-900/30 text-green-300': statusKind(sig.status) === 'valid',
+								'bg-red-900/30 text-red-300': statusKind(sig.status) === 'invalid',
+								'bg-amber-900/30 text-amber-300': statusKind(sig.status) === 'unknown',
+							},
+						]"
 					>
 						{{ statusLabel(sig.status) }}
 					</span>
 				</div>
 
-				<dl class="pptx-vue-signatures__meta">
+				<dl
+					class="pptx-vue-signatures__meta m-0 mt-1.5 grid grid-cols-[auto_1fr] gap-x-2.5 gap-y-0.5 text-xs text-muted-foreground [&_dd]:m-0 [&_dd]:break-words [&_dt]:font-medium [&_dt]:text-muted-foreground"
+				>
 					<template v-if="sig.certificate?.issuer">
 						<dt>Issuer</dt>
 						<dd>{{ sig.certificate.issuer }}</dd>
@@ -136,146 +170,3 @@ function signatureKey(sig: ParsedSignature, index: number): string {
 		</ul>
 	</section>
 </template>
-
-<style scoped>
-.pptx-vue-signatures {
-	font-family: system-ui, sans-serif;
-	font-size: 13px;
-	color: #1f2937;
-	background: #fff;
-	border: 1px solid #e5e7eb;
-	border-radius: 8px;
-	overflow: hidden;
-}
-
-.pptx-vue-signatures__header {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	padding: 10px 12px;
-	font-weight: 600;
-	border-bottom: 1px solid #e5e7eb;
-}
-
-.pptx-vue-signatures__header--signed {
-	background: #ecfdf5;
-	color: #065f46;
-}
-
-.pptx-vue-signatures__header--invalid {
-	background: #fef2f2;
-	color: #991b1b;
-}
-
-.pptx-vue-signatures__header--unsigned {
-	background: #f9fafb;
-	color: #374151;
-}
-
-.pptx-vue-signatures__dot {
-	width: 9px;
-	height: 9px;
-	border-radius: 50%;
-	background: currentColor;
-	flex: none;
-}
-
-.pptx-vue-signatures__title {
-	flex: 1;
-}
-
-.pptx-vue-signatures__count {
-	font-weight: 400;
-	font-size: 12px;
-	opacity: 0.8;
-}
-
-.pptx-vue-signatures__empty {
-	margin: 0;
-	padding: 14px 12px;
-	color: #6b7280;
-}
-
-.pptx-vue-signatures__list {
-	list-style: none;
-	margin: 0;
-	padding: 0;
-}
-
-.pptx-vue-signatures__item {
-	padding: 10px 12px;
-	border-bottom: 1px solid #f3f4f6;
-	border-left: 3px solid transparent;
-}
-
-.pptx-vue-signatures__item:last-child {
-	border-bottom: none;
-}
-
-.pptx-vue-signatures__item--valid {
-	border-left-color: #10b981;
-}
-
-.pptx-vue-signatures__item--invalid {
-	border-left-color: #ef4444;
-}
-
-.pptx-vue-signatures__item--unknown {
-	border-left-color: #f59e0b;
-}
-
-.pptx-vue-signatures__item-main {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	justify-content: space-between;
-}
-
-.pptx-vue-signatures__signer {
-	font-weight: 600;
-	word-break: break-word;
-}
-
-.pptx-vue-signatures__badge {
-	flex: none;
-	font-size: 11px;
-	font-weight: 600;
-	padding: 2px 8px;
-	border-radius: 999px;
-	white-space: nowrap;
-}
-
-.pptx-vue-signatures__badge--valid {
-	background: #d1fae5;
-	color: #065f46;
-}
-
-.pptx-vue-signatures__badge--invalid {
-	background: #fee2e2;
-	color: #991b1b;
-}
-
-.pptx-vue-signatures__badge--unknown {
-	background: #fef3c7;
-	color: #92400e;
-}
-
-.pptx-vue-signatures__meta {
-	display: grid;
-	grid-template-columns: auto 1fr;
-	gap: 2px 10px;
-	margin: 6px 0 0;
-	font-size: 12px;
-	color: #4b5563;
-}
-
-.pptx-vue-signatures__meta dt {
-	font-weight: 500;
-	color: #6b7280;
-}
-
-.pptx-vue-signatures__meta dd {
-	margin: 0;
-	word-break: break-word;
-}
-</style>

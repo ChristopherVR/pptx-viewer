@@ -102,111 +102,52 @@ function requestClose(): void {
 
 <template>
 	<ModalDialog :open="open" title="Keyboard shortcuts" @close="requestClose">
-		<div class="pptx-vue-shortcuts" data-pptx-shortcuts-panel="true">
+		<div
+			class="pptx-vue-shortcuts flex min-w-[18rem] flex-col gap-3"
+			data-pptx-shortcuts-panel="true"
+		>
 			<input
 				v-model="query"
 				type="text"
-				class="pptx-vue-shortcuts-search"
+				class="pptx-vue-shortcuts-search w-full rounded border border-border bg-muted px-2.5 py-1.5 text-foreground outline-none focus:ring-1 focus:ring-primary"
 				placeholder="Search shortcuts…"
 				aria-label="Search shortcuts"
 			/>
 
-			<div v-if="hasResults" class="pptx-vue-shortcuts-list">
-				<section v-for="bucket in groups" :key="bucket.group" class="pptx-vue-shortcuts-group">
-					<h3 class="pptx-vue-shortcuts-group-title">{{ bucket.label }}</h3>
+			<div
+				v-if="hasResults"
+				class="pptx-vue-shortcuts-list flex max-h-[22rem] flex-col gap-4 overflow-y-auto"
+			>
+				<section
+					v-for="bucket in groups"
+					:key="bucket.group"
+					class="pptx-vue-shortcuts-group flex flex-col gap-1"
+				>
+					<h3
+						class="pptx-vue-shortcuts-group-title text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+					>
+						{{ bucket.label }}
+					</h3>
 					<div
 						v-for="shortcut in bucket.shortcuts"
 						:key="shortcut.id"
-						class="pptx-vue-shortcuts-row"
+						class="pptx-vue-shortcuts-row flex items-center justify-between gap-3 rounded bg-muted px-2 py-1.5"
 					>
-						<span class="pptx-vue-shortcuts-desc">{{ shortcut.description }}</span>
-						<kbd class="pptx-vue-shortcuts-combo">{{ comboGlyphs(shortcut.combo) }}</kbd>
+						<span class="pptx-vue-shortcuts-desc text-[13px] text-foreground">
+							{{ shortcut.description }}
+						</span>
+						<kbd
+							class="pptx-vue-shortcuts-combo shrink-0 whitespace-nowrap rounded border border-border bg-popover px-2 py-0.5 font-mono text-xs text-foreground"
+						>
+							{{ comboGlyphs(shortcut.combo) }}
+						</kbd>
 					</div>
 				</section>
 			</div>
 
-			<p v-else class="pptx-vue-shortcuts-empty">No shortcuts match “{{ query }}”.</p>
+			<p v-else class="pptx-vue-shortcuts-empty px-2 py-3 text-[13px] text-muted-foreground">
+				No shortcuts match “{{ query }}”.
+			</p>
 		</div>
 	</ModalDialog>
 </template>
-
-<style scoped>
-.pptx-vue-shortcuts {
-	display: flex;
-	flex-direction: column;
-	gap: 0.75rem;
-	min-width: 18rem;
-}
-
-.pptx-vue-shortcuts-search {
-	width: 100%;
-	padding: 0.375rem 0.625rem;
-	background: var(--pptx-vue-muted, #f3f4f6);
-	border: 1px solid var(--pptx-vue-border, #e5e7eb);
-	border-radius: 0.375rem;
-	color: var(--pptx-vue-foreground, #111827);
-	font: inherit;
-}
-
-.pptx-vue-shortcuts-search:focus {
-	outline: none;
-	border-color: #3b82f6;
-}
-
-.pptx-vue-shortcuts-list {
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
-	max-height: 22rem;
-	overflow-y: auto;
-}
-
-.pptx-vue-shortcuts-group {
-	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
-}
-
-.pptx-vue-shortcuts-group-title {
-	margin: 0;
-	font-size: 0.6875rem;
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
-.pptx-vue-shortcuts-row {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 0.75rem;
-	padding: 0.375rem 0.5rem;
-	background: var(--pptx-vue-muted, #f3f4f6);
-	border-radius: 0.375rem;
-}
-
-.pptx-vue-shortcuts-desc {
-	font-size: 0.8125rem;
-	color: var(--pptx-vue-foreground, #111827);
-}
-
-.pptx-vue-shortcuts-combo {
-	flex: 0 0 auto;
-	padding: 0.125rem 0.5rem;
-	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-	font-size: 0.75rem;
-	white-space: nowrap;
-	color: var(--pptx-vue-foreground, #111827);
-	background: var(--pptx-vue-popover, #ffffff);
-	border: 1px solid var(--pptx-vue-border, #e5e7eb);
-	border-radius: 0.25rem;
-}
-
-.pptx-vue-shortcuts-empty {
-	margin: 0;
-	padding: 0.75rem 0.5rem;
-	font-size: 0.8125rem;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-</style>

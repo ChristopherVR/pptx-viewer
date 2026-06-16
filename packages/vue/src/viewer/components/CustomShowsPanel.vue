@@ -103,15 +103,15 @@ function onToggleSlide(slide: PptxSlide): void {
 </script>
 
 <template>
-	<div class="pptx-vue-custom-shows">
-		<header class="pptx-vue-cs-header">
-			<h3 class="pptx-vue-cs-title">Custom shows</h3>
+	<div class="pptx-vue-custom-shows flex flex-col gap-2 p-2.5 text-xs text-foreground">
+		<header class="pptx-vue-cs-header flex items-center">
+			<h3 class="pptx-vue-cs-title m-0 text-[13px] font-semibold">Custom shows</h3>
 		</header>
 
 		<!-- Show list + create -->
-		<div class="pptx-vue-cs-list-row">
+		<div class="pptx-vue-cs-list-row flex items-center gap-1.5">
 			<select
-				class="pptx-vue-cs-select"
+				class="pptx-vue-cs-select min-w-0 flex-1 rounded border border-border bg-popover px-1.5 py-1 text-xs text-foreground"
 				aria-label="Custom show"
 				:value="props.activeShowId ?? ''"
 				@change="emit('select', ($event.target as HTMLSelectElement).value)"
@@ -125,7 +125,7 @@ function onToggleSlide(slide: PptxSlide): void {
 			<button
 				v-if="activeShow"
 				type="button"
-				class="pptx-vue-cs-btn"
+				class="pptx-vue-cs-btn shrink-0 cursor-pointer rounded border border-border bg-muted px-2 py-1 text-xs text-foreground hover:bg-accent"
 				title="Rename show"
 				@click="startRename"
 			>
@@ -134,7 +134,7 @@ function onToggleSlide(slide: PptxSlide): void {
 			<button
 				v-if="activeShow"
 				type="button"
-				class="pptx-vue-cs-btn pptx-vue-cs-btn--danger"
+				class="pptx-vue-cs-btn pptx-vue-cs-btn--danger shrink-0 cursor-pointer rounded border border-border bg-muted px-2 py-1 text-xs text-foreground hover:border-destructive hover:text-destructive"
 				title="Delete show"
 				@click="emit('delete', activeShow.id)"
 			>
@@ -142,42 +142,60 @@ function onToggleSlide(slide: PptxSlide): void {
 			</button>
 		</div>
 
-		<div v-if="isRenaming" class="pptx-vue-cs-rename-row">
+		<div v-if="isRenaming" class="pptx-vue-cs-rename-row flex items-center gap-1.5">
 			<input
 				v-model="renameDraft"
-				class="pptx-vue-cs-input"
+				class="pptx-vue-cs-input min-w-0 flex-1 rounded border border-border bg-popover px-1.5 py-1 text-xs text-foreground"
 				type="text"
 				aria-label="New show name"
 				@keydown.enter.prevent="commitRename"
 				@keydown.escape.prevent="isRenaming = false"
 			/>
-			<button type="button" class="pptx-vue-cs-btn" @click="commitRename">Save</button>
+			<button
+				type="button"
+				class="pptx-vue-cs-btn shrink-0 cursor-pointer rounded border border-border bg-muted px-2 py-1 text-xs text-foreground hover:bg-accent"
+				@click="commitRename"
+			>
+				Save
+			</button>
 		</div>
 
-		<form class="pptx-vue-cs-create-row" @submit.prevent="onCreate">
+		<form class="pptx-vue-cs-create-row flex items-center gap-1.5" @submit.prevent="onCreate">
 			<input
 				v-model="newName"
-				class="pptx-vue-cs-input"
+				class="pptx-vue-cs-input min-w-0 flex-1 rounded border border-border bg-popover px-1.5 py-1 text-xs text-foreground"
 				type="text"
 				placeholder="New show name"
 				aria-label="New custom show name"
 			/>
-			<button type="submit" class="pptx-vue-cs-btn">Create</button>
+			<button
+				type="submit"
+				class="pptx-vue-cs-btn shrink-0 cursor-pointer rounded border border-border bg-muted px-2 py-1 text-xs text-foreground hover:bg-accent"
+			>
+				Create
+			</button>
 		</form>
 
 		<!-- Membership checklist for the active show -->
-		<div v-if="activeShow" class="pptx-vue-cs-members">
-			<p class="pptx-vue-cs-section-label">Slides in show</p>
-			<ol class="pptx-vue-cs-order">
+		<div v-if="activeShow" class="pptx-vue-cs-members flex flex-col gap-1">
+			<p
+				class="pptx-vue-cs-section-label mt-1.5 mb-0.5 text-[10px] uppercase tracking-wide text-muted-foreground"
+			>
+				Slides in show
+			</p>
+			<ol class="pptx-vue-cs-order m-0 flex list-none flex-col gap-0.5 p-0">
 				<li
 					v-for="(slide, i) in orderedShowSlides"
 					:key="slide.id ?? slide.rId"
-					class="pptx-vue-cs-order-item"
+					class="pptx-vue-cs-order-item flex items-center gap-1 rounded-sm px-1 py-0.5"
 				>
-					<span class="pptx-vue-cs-order-label">{{ slideLabel(slide, i) }}</span>
+					<span
+						class="pptx-vue-cs-order-label flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
+						>{{ slideLabel(slide, i) }}</span
+					>
 					<button
 						type="button"
-						class="pptx-vue-cs-mini"
+						class="pptx-vue-cs-mini inline-flex h-[18px] w-[18px] cursor-pointer items-center justify-center rounded-sm border border-border bg-transparent p-0 text-[9px] text-muted-foreground enabled:hover:bg-muted enabled:hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
 						title="Move up"
 						aria-label="Move up"
 						:disabled="i === 0"
@@ -187,7 +205,7 @@ function onToggleSlide(slide: PptxSlide): void {
 					</button>
 					<button
 						type="button"
-						class="pptx-vue-cs-mini"
+						class="pptx-vue-cs-mini inline-flex h-[18px] w-[18px] cursor-pointer items-center justify-center rounded-sm border border-border bg-transparent p-0 text-[9px] text-muted-foreground enabled:hover:bg-muted enabled:hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
 						title="Move down"
 						aria-label="Move down"
 						:disabled="i === orderedShowSlides.length - 1"
@@ -196,15 +214,26 @@ function onToggleSlide(slide: PptxSlide): void {
 						▼
 					</button>
 				</li>
-				<li v-if="orderedShowSlides.length === 0" class="pptx-vue-cs-empty">
+				<li
+					v-if="orderedShowSlides.length === 0"
+					class="pptx-vue-cs-empty px-1 py-0.5 italic text-muted-foreground"
+				>
 					No slides yet — add them below.
 				</li>
 			</ol>
 
-			<p class="pptx-vue-cs-section-label">All slides</p>
-			<ul class="pptx-vue-cs-all">
-				<li v-for="(slide, i) in props.slides" :key="slide.id ?? i" class="pptx-vue-cs-all-item">
-					<label class="pptx-vue-cs-check">
+			<p
+				class="pptx-vue-cs-section-label mt-1.5 mb-0.5 text-[10px] uppercase tracking-wide text-muted-foreground"
+			>
+				All slides
+			</p>
+			<ul class="pptx-vue-cs-all m-0 flex list-none flex-col gap-0.5 p-0">
+				<li
+					v-for="(slide, i) in props.slides"
+					:key="slide.id ?? i"
+					class="pptx-vue-cs-all-item px-1 py-px"
+				>
+					<label class="pptx-vue-cs-check flex cursor-pointer items-center gap-1.5">
 						<input
 							type="checkbox"
 							:checked="isSlideInShow(slide)"
@@ -218,146 +247,3 @@ function onToggleSlide(slide: PptxSlide): void {
 		</div>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-custom-shows {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-	padding: 10px;
-	font-size: 12px;
-	color: var(--pptx-vue-foreground, #111827);
-}
-
-.pptx-vue-cs-header {
-	display: flex;
-	align-items: center;
-}
-
-.pptx-vue-cs-title {
-	margin: 0;
-	font-size: 13px;
-	font-weight: 600;
-}
-
-.pptx-vue-cs-list-row,
-.pptx-vue-cs-rename-row,
-.pptx-vue-cs-create-row {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-}
-
-.pptx-vue-cs-select,
-.pptx-vue-cs-input {
-	flex: 1 1 auto;
-	min-width: 0;
-	padding: 4px 6px;
-	font-size: 12px;
-	color: var(--pptx-vue-foreground, #111827);
-	background: var(--pptx-vue-popover, #fff);
-	border: 1px solid var(--pptx-vue-border, #d1d5db);
-	border-radius: 4px;
-}
-
-.pptx-vue-cs-btn {
-	flex-shrink: 0;
-	padding: 4px 8px;
-	font-size: 12px;
-	color: var(--pptx-vue-foreground, #111827);
-	background: var(--pptx-vue-muted, #f3f4f6);
-	border: 1px solid var(--pptx-vue-border, #d1d5db);
-	border-radius: 4px;
-	cursor: pointer;
-}
-
-.pptx-vue-cs-btn:hover {
-	background: var(--pptx-vue-muted, #e5e7eb);
-}
-
-.pptx-vue-cs-btn--danger:hover {
-	color: var(--pptx-vue-danger, #c0392b);
-	border-color: var(--pptx-vue-danger, #c0392b);
-}
-
-.pptx-vue-cs-members {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-}
-
-.pptx-vue-cs-section-label {
-	margin: 6px 0 2px;
-	font-size: 10px;
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
-.pptx-vue-cs-order,
-.pptx-vue-cs-all {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-.pptx-vue-cs-order-item {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	padding: 2px 4px;
-	border-radius: 3px;
-}
-
-.pptx-vue-cs-order-label {
-	flex: 1 1 auto;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.pptx-vue-cs-mini {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 18px;
-	height: 18px;
-	padding: 0;
-	font-size: 9px;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-	background: transparent;
-	border: 1px solid var(--pptx-vue-border, #e5e7eb);
-	border-radius: 3px;
-	cursor: pointer;
-}
-
-.pptx-vue-cs-mini:disabled {
-	opacity: 0.4;
-	cursor: not-allowed;
-}
-
-.pptx-vue-cs-mini:hover:not(:disabled) {
-	color: var(--pptx-vue-foreground, #111827);
-	background: var(--pptx-vue-muted, #f3f4f6);
-}
-
-.pptx-vue-cs-empty {
-	padding: 2px 4px;
-	color: var(--pptx-vue-muted-foreground, #9ca3af);
-	font-style: italic;
-}
-
-.pptx-vue-cs-check {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	cursor: pointer;
-}
-
-.pptx-vue-cs-all-item {
-	padding: 1px 4px;
-}
-</style>

@@ -44,15 +44,27 @@ const alignButtons: readonly AlignButton[] = [
 	{ edge: 'middle', label: 'Align middle (vertical)' },
 	{ edge: 'bottom', label: 'Align bottom' },
 ];
+
+/**
+ * Shared ghost icon-button classes — mirrors React's toolbar align buttons
+ * (`hover:bg-accent`, focus ring, disabled fade) over semantic tokens.
+ */
+const ALIGN_BTN =
+	'inline-flex items-center justify-center w-7 h-7 p-0 border-0 rounded bg-transparent text-current cursor-pointer hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:opacity-40 disabled:cursor-not-allowed';
 </script>
 
 <template>
-	<div class="pptx-vue-align-toolbar" role="toolbar" aria-label="Align and distribute">
+	<div
+		class="pptx-vue-align-toolbar inline-flex items-center gap-0.5 p-1 rounded-md bg-card border border-border text-foreground shadow-sm"
+		role="toolbar"
+		aria-label="Align and distribute"
+	>
 		<button
 			v-for="btn in alignButtons"
 			:key="btn.edge"
 			type="button"
 			class="pptx-vue-align-btn"
+			:class="ALIGN_BTN"
 			:title="btn.label"
 			:aria-label="btn.label"
 			@click="emit('align', btn.edge)"
@@ -115,11 +127,12 @@ const alignButtons: readonly AlignButton[] = [
 			</svg>
 		</button>
 
-		<span class="pptx-vue-align-sep" aria-hidden="true" />
+		<span class="pptx-vue-align-sep w-px h-[18px] mx-[3px] bg-border" aria-hidden="true" />
 
 		<button
 			type="button"
 			class="pptx-vue-align-btn"
+			:class="ALIGN_BTN"
 			title="Distribute horizontally"
 			aria-label="Distribute horizontally"
 			@click="emit('distribute', 'horizontal')"
@@ -133,6 +146,7 @@ const alignButtons: readonly AlignButton[] = [
 		<button
 			type="button"
 			class="pptx-vue-align-btn"
+			:class="ALIGN_BTN"
 			title="Distribute vertically"
 			aria-label="Distribute vertically"
 			@click="emit('distribute', 'vertical')"
@@ -144,11 +158,12 @@ const alignButtons: readonly AlignButton[] = [
 			</svg>
 		</button>
 
-		<span class="pptx-vue-align-sep" aria-hidden="true" />
+		<span class="pptx-vue-align-sep w-px h-[18px] mx-[3px] bg-border" aria-hidden="true" />
 
 		<button
 			type="button"
 			class="pptx-vue-align-btn"
+			:class="ALIGN_BTN"
 			title="Group"
 			aria-label="Group"
 			:disabled="!canGroup"
@@ -172,6 +187,7 @@ const alignButtons: readonly AlignButton[] = [
 		<button
 			type="button"
 			class="pptx-vue-align-btn"
+			:class="ALIGN_BTN"
 			title="Ungroup"
 			aria-label="Ungroup"
 			:disabled="!canUngroup"
@@ -184,52 +200,3 @@ const alignButtons: readonly AlignButton[] = [
 		</button>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-align-toolbar {
-	display: inline-flex;
-	align-items: center;
-	gap: 2px;
-	padding: 4px;
-	border-radius: 6px;
-	background: var(--pptx-vue-toolbar-bg, #ffffff);
-	border: 1px solid var(--pptx-vue-toolbar-border, #d4d4d8);
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-	color: var(--pptx-vue-toolbar-fg, #27272a);
-}
-
-.pptx-vue-align-btn {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 28px;
-	height: 28px;
-	padding: 0;
-	border: none;
-	border-radius: 4px;
-	background: transparent;
-	color: inherit;
-	cursor: pointer;
-}
-
-.pptx-vue-align-btn:hover:not(:disabled) {
-	background: var(--pptx-vue-toolbar-hover, #f4f4f5);
-}
-
-.pptx-vue-align-btn:focus-visible {
-	outline: 2px solid var(--pptx-vue-toolbar-focus, #3b82f6);
-	outline-offset: 1px;
-}
-
-.pptx-vue-align-btn:disabled {
-	opacity: 0.4;
-	cursor: not-allowed;
-}
-
-.pptx-vue-align-sep {
-	width: 1px;
-	height: 18px;
-	margin: 0 3px;
-	background: var(--pptx-vue-toolbar-border, #d4d4d8);
-}
-</style>

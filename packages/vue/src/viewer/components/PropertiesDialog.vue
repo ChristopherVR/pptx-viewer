@@ -88,59 +88,82 @@ function handleSave(): void {
 
 <template>
 	<ModalDialog :open="open" title="Document properties" @close="emit('close')">
-		<div class="pptx-vue-props-form">
-			<div class="pptx-vue-props-field">
-				<label for="pptx-vue-props-title" class="pptx-vue-props-label">Title</label>
-				<input id="pptx-vue-props-title" v-model="title" type="text" class="pptx-vue-props-input" />
+		<div class="pptx-vue-props-form flex flex-col gap-3">
+			<div class="pptx-vue-props-field flex flex-col gap-1.5">
+				<label for="pptx-vue-props-title" class="pptx-vue-props-label text-xs text-foreground">
+					Title
+				</label>
+				<input
+					id="pptx-vue-props-title"
+					v-model="title"
+					type="text"
+					class="pptx-vue-props-input w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+				/>
 			</div>
 
-			<div class="pptx-vue-props-field">
-				<label for="pptx-vue-props-creator" class="pptx-vue-props-label">Author</label>
+			<div class="pptx-vue-props-field flex flex-col gap-1.5">
+				<label for="pptx-vue-props-creator" class="pptx-vue-props-label text-xs text-foreground">
+					Author
+				</label>
 				<input
 					id="pptx-vue-props-creator"
 					v-model="creator"
 					type="text"
-					class="pptx-vue-props-input"
+					class="pptx-vue-props-input w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
 				/>
 			</div>
 
-			<div class="pptx-vue-props-field">
-				<label for="pptx-vue-props-subject" class="pptx-vue-props-label">Subject</label>
+			<div class="pptx-vue-props-field flex flex-col gap-1.5">
+				<label for="pptx-vue-props-subject" class="pptx-vue-props-label text-xs text-foreground">
+					Subject
+				</label>
 				<input
 					id="pptx-vue-props-subject"
 					v-model="subject"
 					type="text"
-					class="pptx-vue-props-input"
+					class="pptx-vue-props-input w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
 				/>
 			</div>
 
-			<div class="pptx-vue-props-field">
-				<label for="pptx-vue-props-keywords" class="pptx-vue-props-label">Keywords</label>
+			<div class="pptx-vue-props-field flex flex-col gap-1.5">
+				<label for="pptx-vue-props-keywords" class="pptx-vue-props-label text-xs text-foreground">
+					Keywords
+				</label>
 				<input
 					id="pptx-vue-props-keywords"
 					v-model="keywords"
 					type="text"
-					class="pptx-vue-props-input"
+					class="pptx-vue-props-input w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
 				/>
 			</div>
 
-			<div class="pptx-vue-props-meta">
-				<div class="pptx-vue-props-meta-row">
-					<span class="pptx-vue-props-meta-label">Created</span>
-					<span class="pptx-vue-props-meta-value">{{ formatDate(properties.created) }}</span>
+			<div class="pptx-vue-props-meta flex flex-col gap-1.5 border-t border-border pt-2">
+				<div class="pptx-vue-props-meta-row flex justify-between text-xs">
+					<span class="pptx-vue-props-meta-label text-muted-foreground">Created</span>
+					<span class="pptx-vue-props-meta-value text-foreground">
+						{{ formatDate(properties.created) }}
+					</span>
 				</div>
-				<div class="pptx-vue-props-meta-row">
-					<span class="pptx-vue-props-meta-label">Modified</span>
-					<span class="pptx-vue-props-meta-value">{{ formatDate(properties.modified) }}</span>
+				<div class="pptx-vue-props-meta-row flex justify-between text-xs">
+					<span class="pptx-vue-props-meta-label text-muted-foreground">Modified</span>
+					<span class="pptx-vue-props-meta-value text-foreground">
+						{{ formatDate(properties.modified) }}
+					</span>
 				</div>
 			</div>
 		</div>
 
 		<template #footer>
-			<button type="button" class="pptx-vue-props-btn" @click="emit('close')">Cancel</button>
 			<button
 				type="button"
-				class="pptx-vue-props-btn pptx-vue-props-btn-primary"
+				class="pptx-vue-props-btn rounded-lg border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
+				@click="emit('close')"
+			>
+				Cancel
+			</button>
+			<button
+				type="button"
+				class="pptx-vue-props-btn pptx-vue-props-btn-primary rounded-lg bg-primary px-3 py-1.5 text-xs text-white transition-colors hover:bg-primary/80"
 				@click="handleSave"
 			>
 				Save
@@ -148,76 +171,3 @@ function handleSave(): void {
 		</template>
 	</ModalDialog>
 </template>
-
-<style scoped>
-.pptx-vue-props-form {
-	display: flex;
-	flex-direction: column;
-	gap: 0.75rem;
-}
-
-.pptx-vue-props-field {
-	display: flex;
-	flex-direction: column;
-	gap: 0.375rem;
-}
-
-.pptx-vue-props-label {
-	font-size: 0.75rem;
-	font-weight: 500;
-	color: var(--pptx-foreground, #e5e5e5);
-}
-
-.pptx-vue-props-input {
-	width: 100%;
-	padding: 0.375rem 0.75rem;
-	border-radius: 0.375rem;
-	border: 1px solid var(--pptx-border, #2a2a2a);
-	background: var(--pptx-background, #111);
-	color: var(--pptx-foreground, #e5e5e5);
-	font-size: 0.8125rem;
-}
-
-.pptx-vue-props-input:focus {
-	outline: none;
-	border-color: var(--pptx-primary, #6366f1);
-	box-shadow: 0 0 0 1px var(--pptx-primary, #6366f1);
-}
-
-.pptx-vue-props-meta {
-	display: flex;
-	flex-direction: column;
-	gap: 0.375rem;
-	padding-top: 0.5rem;
-	border-top: 1px solid var(--pptx-border, #2a2a2a);
-}
-
-.pptx-vue-props-meta-row {
-	display: flex;
-	justify-content: space-between;
-	font-size: 0.75rem;
-}
-
-.pptx-vue-props-meta-label {
-	color: var(--pptx-muted-foreground, #9a9a9a);
-}
-
-.pptx-vue-props-meta-value {
-	color: var(--pptx-foreground, #e5e5e5);
-}
-
-.pptx-vue-props-btn {
-	padding: 0.375rem 0.75rem;
-	border: none;
-	border-radius: 0.375rem;
-	background: var(--pptx-muted, #2a2a2a);
-	color: var(--pptx-foreground, #e5e5e5);
-	font-size: 0.75rem;
-	cursor: pointer;
-}
-
-.pptx-vue-props-btn-primary {
-	background: var(--pptx-primary, #6366f1);
-	color: var(--pptx-primary-foreground, #fff);
-}
-</style>

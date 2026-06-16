@@ -125,16 +125,20 @@ function onGroupingChange(event: Event): void {
 </script>
 
 <template>
-	<div class="pptx-vue-chart-panel">
-		<p v-if="!isChart" class="pptx-vue-chart-muted">Select a chart to edit its properties.</p>
+	<div class="pptx-vue-chart-panel flex flex-col gap-3 p-3 text-xs">
+		<p v-if="!isChart" class="pptx-vue-chart-muted text-muted-foreground italic">
+			Select a chart to edit its properties.
+		</p>
 
-		<p v-else-if="!chartData" class="pptx-vue-chart-muted">This chart has no editable data.</p>
+		<p v-else-if="!chartData" class="pptx-vue-chart-muted text-muted-foreground italic">
+			This chart has no editable data.
+		</p>
 
 		<template v-else>
-			<label class="pptx-vue-chart-field">
-				<span class="pptx-vue-chart-label">Chart type</span>
+			<label class="pptx-vue-chart-field flex flex-col gap-1">
+				<span class="pptx-vue-chart-label font-semibold text-muted-foreground">Chart type</span>
 				<select
-					class="pptx-vue-chart-select"
+					class="pptx-vue-chart-select w-full bg-muted border border-border rounded px-2 py-1 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
 					data-testid="chart-type"
 					:value="currentType"
 					@change="onTypeChange"
@@ -145,10 +149,10 @@ function onGroupingChange(event: Event): void {
 				</select>
 			</label>
 
-			<label class="pptx-vue-chart-field">
-				<span class="pptx-vue-chart-label">Title</span>
+			<label class="pptx-vue-chart-field flex flex-col gap-1">
+				<span class="pptx-vue-chart-label font-semibold text-muted-foreground">Title</span>
 				<input
-					class="pptx-vue-chart-input"
+					class="pptx-vue-chart-input w-full bg-muted border border-border rounded px-2 py-1 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
 					data-testid="chart-title"
 					type="text"
 					:value="currentTitle"
@@ -157,10 +161,10 @@ function onGroupingChange(event: Event): void {
 				/>
 			</label>
 
-			<label v-if="showGrouping" class="pptx-vue-chart-field">
-				<span class="pptx-vue-chart-label">Grouping</span>
+			<label v-if="showGrouping" class="pptx-vue-chart-field flex flex-col gap-1">
+				<span class="pptx-vue-chart-label font-semibold text-muted-foreground">Grouping</span>
 				<select
-					class="pptx-vue-chart-select"
+					class="pptx-vue-chart-select w-full bg-muted border border-border rounded px-2 py-1 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
 					data-testid="chart-grouping"
 					:value="currentGrouping"
 					@change="onGroupingChange"
@@ -173,49 +177,3 @@ function onGroupingChange(event: Event): void {
 		</template>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-chart-panel {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-	padding: 12px;
-	font-size: 13px;
-}
-
-.pptx-vue-chart-muted {
-	margin: 0;
-	color: #6b7280;
-	font-style: italic;
-}
-
-.pptx-vue-chart-field {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-}
-
-.pptx-vue-chart-label {
-	font-weight: 600;
-	color: #374151;
-}
-
-.pptx-vue-chart-select,
-.pptx-vue-chart-input {
-	width: 100%;
-	box-sizing: border-box;
-	padding: 6px 8px;
-	border: 1px solid #d1d5db;
-	border-radius: 6px;
-	background: #fff;
-	font-size: 13px;
-	color: #111827;
-}
-
-.pptx-vue-chart-select:focus,
-.pptx-vue-chart-input:focus {
-	outline: none;
-	border-color: #2563eb;
-	box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
-}
-</style>

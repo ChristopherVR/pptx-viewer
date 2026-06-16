@@ -204,48 +204,69 @@ function onTextareaKeydown(event: KeyboardEvent): void {
 
 <template>
 	<ModalDialog :open="open" :title="isEditing ? 'Edit Equation' : 'Insert Equation'" @close="close">
-		<div class="pptx-vue-equation-editor">
+		<div class="pptx-vue-equation-editor flex w-[min(82vw,600px)] flex-col gap-3.5">
 			<!-- Live preview -->
-			<div class="pptx-vue-equation-preview">
+			<div
+				class="pptx-vue-equation-preview flex min-h-[80px] items-center justify-center rounded-md border border-border bg-muted/60 p-3"
+			>
 				<div
 					v-if="hasContent"
-					class="pptx-vue-equation-preview-math"
+					class="pptx-vue-equation-preview-math text-2xl text-foreground"
 					v-html="computedEquation.mathml"
 				/>
-				<span v-else class="pptx-vue-equation-preview-empty">
+				<span
+					v-else
+					class="pptx-vue-equation-preview-empty text-[13px] italic text-muted-foreground"
+				>
 					Equation preview will appear here
 				</span>
 			</div>
 
 			<!-- LaTeX input -->
-			<label class="pptx-vue-equation-field">
-				<span class="pptx-vue-equation-label">LaTeX Input</span>
+			<label class="pptx-vue-equation-field flex flex-col gap-1">
+				<span class="pptx-vue-equation-label text-xs font-medium text-muted-foreground"
+					>LaTeX Input</span
+				>
 				<textarea
 					v-model="latex"
-					class="pptx-vue-equation-textarea"
+					class="pptx-vue-equation-textarea w-full resize-y rounded border border-border bg-background px-2.5 py-2 font-mono text-[13px] text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
 					rows="3"
 					spellcheck="false"
 					placeholder="\frac{a}{b} + \sqrt{c}"
 					@keydown="onTextareaKeydown"
 				/>
-				<span class="pptx-vue-equation-hint">Use LaTeX syntax. Ctrl+Enter to insert.</span>
+				<span class="pptx-vue-equation-hint text-[11px] text-muted-foreground"
+					>Use LaTeX syntax. Ctrl+Enter to insert.</span
+				>
 			</label>
 
 			<!-- Templates -->
-			<div class="pptx-vue-equation-templates-wrap">
-				<span class="pptx-vue-equation-label">Common Templates</span>
-				<div class="pptx-vue-equation-templates">
+			<div class="pptx-vue-equation-templates-wrap flex flex-col gap-1.5">
+				<span class="pptx-vue-equation-label text-xs font-medium text-muted-foreground"
+					>Common Templates</span
+				>
+				<div class="pptx-vue-equation-templates grid grid-cols-4 gap-1.5">
 					<button
 						v-for="(tmpl, idx) in TEMPLATES"
 						:key="tmpl.latex"
 						type="button"
-						class="pptx-vue-equation-template"
-						:class="{ 'pptx-vue-equation-template--active': latex === tmpl.latex }"
+						class="pptx-vue-equation-template flex flex-col items-center gap-1 rounded-md border p-2 transition-colors"
+						:class="
+							latex === tmpl.latex
+								? 'pptx-vue-equation-template--active border-primary bg-primary/10'
+								: 'border-border bg-muted/40 hover:bg-accent/60'
+						"
 						:title="tmpl.label"
 						@click="selectTemplate(tmpl.latex)"
 					>
-						<span class="pptx-vue-equation-template-math" v-html="templateMathMl[idx]" />
-						<span class="pptx-vue-equation-template-label">{{ tmpl.label }}</span>
+						<span
+							class="pptx-vue-equation-template-math flex h-7 items-center justify-center overflow-hidden text-foreground"
+							v-html="templateMathMl[idx]"
+						/>
+						<span
+							class="pptx-vue-equation-template-label w-full truncate text-center text-[10px] text-muted-foreground"
+							>{{ tmpl.label }}</span
+						>
 					</button>
 				</div>
 			</div>
@@ -254,14 +275,14 @@ function onTextareaKeydown(event: KeyboardEvent): void {
 		<template #footer>
 			<button
 				type="button"
-				class="pptx-vue-equation-btn pptx-vue-equation-btn--secondary"
+				class="pptx-vue-equation-btn pptx-vue-equation-btn--secondary rounded border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
 				@click="close"
 			>
 				Cancel
 			</button>
 			<button
 				type="button"
-				class="pptx-vue-equation-btn pptx-vue-equation-btn--primary"
+				class="pptx-vue-equation-btn pptx-vue-equation-btn--primary rounded border border-transparent bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-45"
 				:disabled="!hasContent"
 				@click="confirm"
 			>
@@ -272,145 +293,10 @@ function onTextareaKeydown(event: KeyboardEvent): void {
 </template>
 
 <style scoped>
-.pptx-vue-equation-editor {
-	display: flex;
-	flex-direction: column;
-	gap: 14px;
-	width: min(82vw, 600px);
-}
-
-.pptx-vue-equation-preview {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	min-height: 80px;
-	padding: 12px;
-	background: var(--pptx-vue-muted, #f3f4f6);
-	border: 1px solid var(--pptx-vue-border, #e5e7eb);
-	border-radius: 6px;
-}
-
-.pptx-vue-equation-preview-math {
-	font-size: 24px;
-	font-family: 'Cambria Math', 'STIX Two Math', serif;
-	color: var(--pptx-vue-foreground, #111827);
-}
-
-.pptx-vue-equation-preview-empty {
-	font-size: 13px;
-	font-style: italic;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
-.pptx-vue-equation-field {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-}
-
-.pptx-vue-equation-label {
-	font-size: 12px;
-	font-weight: 500;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
-.pptx-vue-equation-textarea {
-	width: 100%;
-	padding: 8px 10px;
-	font-size: 13px;
-	font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-	color: var(--pptx-vue-foreground, #111827);
-	background: var(--pptx-vue-background, #ffffff);
-	border: 1px solid var(--pptx-vue-border, #e5e7eb);
-	border-radius: 4px;
-	resize: vertical;
-	outline: none;
-}
-
-.pptx-vue-equation-textarea:focus {
-	border-color: var(--pptx-vue-primary, #2563eb);
-	box-shadow: 0 0 0 1px var(--pptx-vue-primary, #2563eb);
-}
-
-.pptx-vue-equation-hint {
-	font-size: 11px;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
-.pptx-vue-equation-templates-wrap {
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
-}
-
-.pptx-vue-equation-templates {
-	display: grid;
-	grid-template-columns: repeat(4, 1fr);
-	gap: 6px;
-}
-
-.pptx-vue-equation-template {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 4px;
-	padding: 8px 4px;
-	background: var(--pptx-vue-background, #ffffff);
-	border: 1px solid var(--pptx-vue-border, #e5e7eb);
-	border-radius: 6px;
-	cursor: pointer;
-}
-
-.pptx-vue-equation-template:hover {
-	background: var(--pptx-vue-muted, #f3f4f6);
-}
-
-.pptx-vue-equation-template--active {
-	border-color: var(--pptx-vue-primary, #2563eb);
-	background: color-mix(in srgb, var(--pptx-vue-primary, #2563eb) 12%, transparent);
-}
-
+/* Math glyph font — not expressible as a Tailwind utility. Matches React's
+   inline `fontFamily: '"Cambria Math", "STIX Two Math", serif'`. */
+.pptx-vue-equation-preview-math,
 .pptx-vue-equation-template-math {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	height: 28px;
-	overflow: hidden;
 	font-family: 'Cambria Math', 'STIX Two Math', serif;
-	color: var(--pptx-vue-foreground, #111827);
-}
-
-.pptx-vue-equation-template-label {
-	font-size: 10px;
-	text-align: center;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
-.pptx-vue-equation-btn {
-	padding: 6px 12px;
-	font-size: 12px;
-	border-radius: 4px;
-	border: 1px solid transparent;
-	cursor: pointer;
-}
-
-.pptx-vue-equation-btn--secondary {
-	color: var(--pptx-vue-foreground, #111827);
-	background: transparent;
-	border-color: var(--pptx-vue-border, #e5e7eb);
-}
-
-.pptx-vue-equation-btn--secondary:hover {
-	background: var(--pptx-vue-muted, #f3f4f6);
-}
-
-.pptx-vue-equation-btn--primary {
-	color: var(--pptx-vue-primary-foreground, #ffffff);
-	background: var(--pptx-vue-primary, #2563eb);
-}
-
-.pptx-vue-equation-btn--primary:disabled {
-	opacity: 0.45;
-	cursor: not-allowed;
 }
 </style>

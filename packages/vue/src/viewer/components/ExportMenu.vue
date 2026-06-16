@@ -38,10 +38,10 @@ function choose(kind: 'png' | 'pdf' | 'gif' | 'webm'): void {
 </script>
 
 <template>
-	<div class="pptx-vue-export" @focusout="open = false">
+	<div class="pptx-vue-export relative inline-flex" @focusout="open = false">
 		<button
 			type="button"
-			class="pptx-vue-export-trigger"
+			class="pptx-vue-export-trigger inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded bg-muted hover:bg-accent text-xs text-foreground transition-colors active:scale-95 active:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
 			:disabled="exporting"
 			aria-haspopup="menu"
 			:aria-expanded="open"
@@ -50,50 +50,43 @@ function choose(kind: 'png' | 'pdf' | 'gif' | 'webm'): void {
 		>
 			{{ exporting ? '…' : '⬇' }}
 		</button>
-		<div v-if="open" class="pptx-vue-export-menu" role="menu">
-			<button type="button" role="menuitem" @click="choose('png')">PNG (current slide)</button>
-			<button type="button" role="menuitem" @click="choose('pdf')">PDF (all slides)</button>
-			<button type="button" role="menuitem" @click="choose('gif')">GIF (animated)</button>
-			<button type="button" role="menuitem" @click="choose('webm')">WebM (video)</button>
+		<div
+			v-if="open"
+			class="pptx-vue-export-menu absolute top-full right-0 z-50 mt-1 flex min-w-40 flex-col rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg"
+			role="menu"
+		>
+			<button
+				type="button"
+				role="menuitem"
+				class="block w-full rounded px-2.5 py-1.5 text-left text-xs hover:bg-accent cursor-pointer"
+				@click="choose('png')"
+			>
+				PNG (current slide)
+			</button>
+			<button
+				type="button"
+				role="menuitem"
+				class="block w-full rounded px-2.5 py-1.5 text-left text-xs hover:bg-accent cursor-pointer"
+				@click="choose('pdf')"
+			>
+				PDF (all slides)
+			</button>
+			<button
+				type="button"
+				role="menuitem"
+				class="block w-full rounded px-2.5 py-1.5 text-left text-xs hover:bg-accent cursor-pointer"
+				@click="choose('gif')"
+			>
+				GIF (animated)
+			</button>
+			<button
+				type="button"
+				role="menuitem"
+				class="block w-full rounded px-2.5 py-1.5 text-left text-xs hover:bg-accent cursor-pointer"
+				@click="choose('webm')"
+			>
+				WebM (video)
+			</button>
 		</div>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-export {
-	position: relative;
-	display: inline-flex;
-}
-.pptx-vue-export-trigger {
-	cursor: pointer;
-}
-.pptx-vue-export-menu {
-	position: absolute;
-	top: 100%;
-	right: 0;
-	z-index: 50;
-	min-width: 160px;
-	margin-top: 4px;
-	padding: 4px;
-	border: 1px solid var(--pptx-border, #d0d0d0);
-	border-radius: 6px;
-	background: var(--pptx-panel-bg, #ffffff);
-	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
-	display: flex;
-	flex-direction: column;
-}
-.pptx-vue-export-menu button {
-	display: block;
-	width: 100%;
-	padding: 6px 10px;
-	border: none;
-	background: transparent;
-	text-align: left;
-	font-size: 13px;
-	cursor: pointer;
-	border-radius: 4px;
-}
-.pptx-vue-export-menu button:hover {
-	background: var(--pptx-hover, #f0f0f0);
-}
-</style>

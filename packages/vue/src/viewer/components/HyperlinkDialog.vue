@@ -112,24 +112,28 @@ function clear(): void {
 
 <template>
 	<ModalDialog :open="open" title="Hyperlink" @close="close">
-		<div class="pptx-vue-hyperlink-form">
-			<label class="pptx-vue-hyperlink-field">
-				<span class="pptx-vue-hyperlink-label">Address</span>
+		<div class="pptx-vue-hyperlink-form flex min-w-[280px] flex-col gap-3">
+			<label class="pptx-vue-hyperlink-field flex flex-col gap-1">
+				<span class="pptx-vue-hyperlink-label text-xs font-medium text-muted-foreground">
+					Address
+				</span>
 				<input
 					v-model="url"
 					type="url"
-					class="pptx-vue-hyperlink-input"
+					class="pptx-vue-hyperlink-input w-full rounded border border-border bg-background px-2.5 py-1.5 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
 					placeholder="https://example.com"
 					@keydown.enter.prevent="save"
 				/>
 			</label>
 
-			<label class="pptx-vue-hyperlink-field">
-				<span class="pptx-vue-hyperlink-label">Tooltip</span>
+			<label class="pptx-vue-hyperlink-field flex flex-col gap-1">
+				<span class="pptx-vue-hyperlink-label text-xs font-medium text-muted-foreground">
+					Tooltip
+				</span>
 				<input
 					v-model="tooltip"
 					type="text"
-					class="pptx-vue-hyperlink-input"
+					class="pptx-vue-hyperlink-input w-full rounded border border-border bg-background px-2.5 py-1.5 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
 					placeholder="Shown on hover (optional)"
 					@keydown.enter.prevent="save"
 				/>
@@ -140,21 +144,21 @@ function clear(): void {
 			<button
 				v-if="hasExistingLink"
 				type="button"
-				class="pptx-vue-hyperlink-btn pptx-vue-hyperlink-btn--ghost"
+				class="pptx-vue-hyperlink-btn pptx-vue-hyperlink-btn--ghost mr-auto rounded border border-transparent px-3 py-1.5 text-xs text-destructive hover:bg-muted"
 				@click="clear"
 			>
 				Remove link
 			</button>
 			<button
 				type="button"
-				class="pptx-vue-hyperlink-btn pptx-vue-hyperlink-btn--secondary"
+				class="pptx-vue-hyperlink-btn pptx-vue-hyperlink-btn--secondary rounded border border-border px-3 py-1.5 text-xs text-foreground hover:bg-muted"
 				@click="close"
 			>
 				Cancel
 			</button>
 			<button
 				type="button"
-				class="pptx-vue-hyperlink-btn pptx-vue-hyperlink-btn--primary"
+				class="pptx-vue-hyperlink-btn pptx-vue-hyperlink-btn--primary rounded border border-transparent bg-primary px-3 py-1.5 text-xs text-white hover:bg-primary/90"
 				@click="save"
 			>
 				Apply
@@ -162,70 +166,3 @@ function clear(): void {
 		</template>
 	</ModalDialog>
 </template>
-
-<style scoped>
-.pptx-vue-hyperlink-form {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-	min-width: 280px;
-}
-
-.pptx-vue-hyperlink-field {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-}
-
-.pptx-vue-hyperlink-label {
-	font-size: 12px;
-	font-weight: 500;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
-.pptx-vue-hyperlink-input {
-	width: 100%;
-	padding: 6px 10px;
-	font-size: 13px;
-	color: var(--pptx-vue-foreground, #111827);
-	background: var(--pptx-vue-background, #ffffff);
-	border: 1px solid var(--pptx-vue-border, #e5e7eb);
-	border-radius: 4px;
-	outline: none;
-}
-
-.pptx-vue-hyperlink-input:focus {
-	border-color: var(--pptx-vue-primary, #2563eb);
-	box-shadow: 0 0 0 1px var(--pptx-vue-primary, #2563eb);
-}
-
-.pptx-vue-hyperlink-btn {
-	padding: 6px 12px;
-	font-size: 12px;
-	border-radius: 4px;
-	border: 1px solid transparent;
-	cursor: pointer;
-}
-
-.pptx-vue-hyperlink-btn--primary {
-	color: var(--pptx-vue-primary-foreground, #ffffff);
-	background: var(--pptx-vue-primary, #2563eb);
-}
-
-.pptx-vue-hyperlink-btn--secondary {
-	color: var(--pptx-vue-foreground, #111827);
-	background: transparent;
-	border-color: var(--pptx-vue-border, #e5e7eb);
-}
-
-.pptx-vue-hyperlink-btn--ghost {
-	margin-right: auto;
-	color: var(--pptx-vue-destructive, #dc2626);
-	background: transparent;
-}
-
-.pptx-vue-hyperlink-btn--secondary:hover,
-.pptx-vue-hyperlink-btn--ghost:hover {
-	background: var(--pptx-vue-muted, #f3f4f6);
-}
-</style>

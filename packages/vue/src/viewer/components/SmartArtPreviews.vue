@@ -100,7 +100,7 @@ const genericBars = computed(() =>
 </script>
 
 <template>
-	<svg viewBox="0 0 60 40" class="pptx-vue-smartart-preview" role="img">
+	<svg viewBox="0 0 60 40" class="pptx-vue-smartart-preview block h-full w-full" role="img">
 		<!-- Block list -->
 		<template v-if="kind === 'blockList'">
 			<rect
@@ -215,11 +215,3 @@ const genericBars = computed(() =>
 		</template>
 	</svg>
 </template>
-
-<style scoped>
-.pptx-vue-smartart-preview {
-	width: 100%;
-	height: 100%;
-	display: block;
-}
-</style>

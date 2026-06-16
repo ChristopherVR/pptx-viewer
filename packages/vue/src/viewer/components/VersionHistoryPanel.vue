@@ -66,12 +66,17 @@ function togglePreview(id: string): void {
 </script>
 
 <template>
-	<aside v-if="open" class="pptx-vue-version-panel">
-		<header class="pptx-vue-version-header">
-			<h3 class="pptx-vue-version-title">Version history</h3>
+	<aside
+		v-if="open"
+		class="pptx-vue-version-panel absolute inset-y-0 right-0 z-50 flex w-80 flex-col border-l border-border bg-background text-foreground shadow-xl"
+	>
+		<header
+			class="pptx-vue-version-header flex items-center justify-between border-b border-border px-3.5 py-2.5"
+		>
+			<h3 class="pptx-vue-version-title m-0 text-sm font-semibold">Version history</h3>
 			<button
 				type="button"
-				class="pptx-vue-version-close"
+				class="pptx-vue-version-close inline-flex h-6 w-6 items-center justify-center rounded p-0 text-lg leading-none text-muted-foreground hover:bg-accent hover:text-foreground"
 				aria-label="Close"
 				@click="emit('close')"
 			>
@@ -79,29 +84,42 @@ function togglePreview(id: string): void {
 			</button>
 		</header>
 
-		<div class="pptx-vue-version-list">
-			<p v-if="orderedVersions.length === 0" class="pptx-vue-version-empty">
+		<div class="pptx-vue-version-list flex-1 overflow-y-auto">
+			<p
+				v-if="orderedVersions.length === 0"
+				class="pptx-vue-version-empty m-0 px-3.5 py-8 text-center text-xs text-muted-foreground"
+			>
 				No versions saved yet
 			</p>
 
-			<div v-for="version in orderedVersions" :key="version.id" class="pptx-vue-version-item">
-				<button type="button" class="pptx-vue-version-row" @click="togglePreview(version.id)">
-					<span class="pptx-vue-version-caret">
+			<div
+				v-for="version in orderedVersions"
+				:key="version.id"
+				class="pptx-vue-version-item group border-b border-border"
+			>
+				<button
+					type="button"
+					class="pptx-vue-version-row flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3.5 py-2.5 text-left text-foreground"
+					@click="togglePreview(version.id)"
+				>
+					<span class="pptx-vue-version-caret flex-shrink-0 text-muted-foreground">
 						{{ previewId === version.id ? '▾' : '▸' }}
 					</span>
-					<span class="pptx-vue-version-meta">
-						<span class="pptx-vue-version-label">{{ version.label }}</span>
-						<span class="pptx-vue-version-sub">
+					<span class="pptx-vue-version-meta flex min-w-0 flex-col gap-0.5">
+						<span class="pptx-vue-version-label truncate text-xs font-medium">{{
+							version.label
+						}}</span>
+						<span class="pptx-vue-version-sub text-[10px] text-muted-foreground">
 							{{ formatTimestamp(version.timestamp) }} · {{ version.slideCount }}
 							{{ version.slideCount === 1 ? 'slide' : 'slides' }}
 						</span>
 					</span>
 				</button>
 
-				<div v-if="previewId === version.id" class="pptx-vue-version-preview">
+				<div v-if="previewId === version.id" class="pptx-vue-version-preview px-3.5 pb-2">
 					<div
 						v-if="version.slides.length > 0"
-						class="pptx-vue-version-thumb"
+						class="pptx-vue-version-thumb overflow-hidden rounded border border-border"
 						:style="previewStyle"
 					>
 						<SlideStage
@@ -113,20 +131,24 @@ function togglePreview(id: string): void {
 					</div>
 				</div>
 
-				<div class="pptx-vue-version-actions">
+				<div class="pptx-vue-version-actions flex gap-1.5 px-3.5 pb-2.5">
 					<button
 						type="button"
-						class="pptx-vue-version-btn pptx-vue-version-btn--primary"
+						class="pptx-vue-version-btn pptx-vue-version-btn--primary inline-flex cursor-pointer items-center rounded bg-primary/20 px-2.5 py-1 text-[11px] text-primary transition-colors hover:bg-primary/30"
 						@click="emit('restore', version.id)"
 					>
 						Restore
 					</button>
-					<button type="button" class="pptx-vue-version-btn" @click="emit('compare', version.id)">
+					<button
+						type="button"
+						class="pptx-vue-version-btn inline-flex cursor-pointer items-center rounded bg-muted px-2.5 py-1 text-[11px] text-foreground transition-colors hover:bg-accent"
+						@click="emit('compare', version.id)"
+					>
 						Compare
 					</button>
 					<button
 						type="button"
-						class="pptx-vue-version-btn pptx-vue-version-btn--danger"
+						class="pptx-vue-version-btn pptx-vue-version-btn--danger inline-flex cursor-pointer items-center rounded bg-red-600/20 px-2.5 py-1 text-[11px] text-red-400 transition-colors hover:bg-red-600/30"
 						@click="emit('delete', version.id)"
 					>
 						Delete
@@ -136,143 +158,3 @@ function togglePreview(id: string): void {
 		</div>
 	</aside>
 </template>
-
-<style scoped>
-.pptx-vue-version-panel {
-	position: absolute;
-	top: 0;
-	bottom: 0;
-	right: 0;
-	z-index: 50;
-	display: flex;
-	flex-direction: column;
-	width: 320px;
-	background: var(--pptx-vue-background, #ffffff);
-	color: var(--pptx-vue-foreground, #111827);
-	border-left: 1px solid var(--pptx-vue-border, #e5e7eb);
-	box-shadow: -8px 0 32px rgba(0, 0, 0, 0.2);
-}
-
-.pptx-vue-version-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 10px 14px;
-	border-bottom: 1px solid var(--pptx-vue-border, #e5e7eb);
-}
-
-.pptx-vue-version-title {
-	margin: 0;
-	font-size: 14px;
-	font-weight: 600;
-}
-
-.pptx-vue-version-close {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 24px;
-	height: 24px;
-	padding: 0;
-	font-size: 18px;
-	line-height: 1;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-	background: transparent;
-	border: none;
-	border-radius: 4px;
-	cursor: pointer;
-}
-
-.pptx-vue-version-list {
-	flex: 1;
-	overflow-y: auto;
-}
-
-.pptx-vue-version-empty {
-	margin: 0;
-	padding: 32px 14px;
-	text-align: center;
-	font-size: 12px;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
-.pptx-vue-version-item {
-	border-bottom: 1px solid var(--pptx-vue-border, #e5e7eb);
-}
-
-.pptx-vue-version-row {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	width: 100%;
-	padding: 10px 14px;
-	text-align: left;
-	background: transparent;
-	border: none;
-	cursor: pointer;
-	color: var(--pptx-vue-foreground, #111827);
-}
-
-.pptx-vue-version-caret {
-	flex-shrink: 0;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
-.pptx-vue-version-meta {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	min-width: 0;
-}
-
-.pptx-vue-version-label {
-	font-size: 12px;
-	font-weight: 500;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.pptx-vue-version-sub {
-	font-size: 10px;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
-.pptx-vue-version-preview {
-	padding: 0 14px 8px;
-}
-
-.pptx-vue-version-thumb {
-	overflow: hidden;
-	border: 1px solid var(--pptx-vue-border, #e5e7eb);
-	border-radius: 4px;
-}
-
-.pptx-vue-version-actions {
-	display: flex;
-	gap: 6px;
-	padding: 0 14px 10px;
-}
-
-.pptx-vue-version-btn {
-	display: inline-flex;
-	align-items: center;
-	padding: 4px 10px;
-	font-size: 11px;
-	color: var(--pptx-vue-foreground, #111827);
-	background: var(--pptx-vue-muted, #f3f4f6);
-	border: none;
-	border-radius: 4px;
-	cursor: pointer;
-}
-
-.pptx-vue-version-btn--primary {
-	color: #eff6ff;
-	background: var(--pptx-vue-primary, #2563eb);
-}
-
-.pptx-vue-version-btn--danger {
-	color: #b91c1c;
-	background: rgba(239, 68, 68, 0.16);
-}
-</style>

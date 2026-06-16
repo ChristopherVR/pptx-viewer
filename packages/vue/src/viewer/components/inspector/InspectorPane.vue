@@ -39,74 +39,89 @@ function relay(patch: Partial<PptxElement>): void {
 </script>
 
 <template>
-	<aside class="pptx-vue-inspector" aria-label="Properties">
-		<div class="pptx-vue-inspector-section">
-			<h3 class="pptx-vue-inspector-title">Arrange</h3>
+	<aside
+		class="pptx-vue-inspector w-60 flex-[0_0_15rem] overflow-y-auto border-l border-border bg-card box-border px-3 pt-2 pb-8 text-xs text-foreground"
+		aria-label="Properties"
+	>
+		<div class="pptx-vue-inspector-section py-2 border-b border-border">
+			<h3
+				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+			>
+				Arrange
+			</h3>
 			<ArrangePanel :element="element" @update="relay" />
 		</div>
 
-		<div v-if="isText" class="pptx-vue-inspector-section">
-			<h3 class="pptx-vue-inspector-title">Text</h3>
+		<div v-if="isText" class="pptx-vue-inspector-section py-2 border-b border-border">
+			<h3
+				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+			>
+				Text
+			</h3>
 			<TextPanel :element="element" @update="relay" />
 		</div>
 
-		<div v-if="isImage" class="pptx-vue-inspector-section">
-			<h3 class="pptx-vue-inspector-title">Image</h3>
+		<div v-if="isImage" class="pptx-vue-inspector-section py-2 border-b border-border">
+			<h3
+				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+			>
+				Image
+			</h3>
 			<ImagePanel :element="element" @update="relay" />
 		</div>
 
-		<div v-if="isTable" class="pptx-vue-inspector-section">
-			<h3 class="pptx-vue-inspector-title">Table</h3>
+		<div v-if="isTable" class="pptx-vue-inspector-section py-2 border-b border-border">
+			<h3
+				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+			>
+				Table
+			</h3>
 			<TablePanel :element="element" @update="relay" />
 		</div>
 
-		<div v-if="isChart" class="pptx-vue-inspector-section">
-			<h3 class="pptx-vue-inspector-title">Chart</h3>
+		<div v-if="isChart" class="pptx-vue-inspector-section py-2 border-b border-border">
+			<h3
+				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+			>
+				Chart
+			</h3>
 			<ChartPanel :element="element" @update="relay" />
 		</div>
 
-		<div class="pptx-vue-inspector-section">
-			<h3 class="pptx-vue-inspector-title">Animations</h3>
+		<div class="pptx-vue-inspector-section py-2 border-b border-border">
+			<h3
+				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+			>
+				Animations
+			</h3>
 			<AnimationPanel :element="element" @update="relay" />
 		</div>
 
-		<div v-if="isShape" class="pptx-vue-inspector-section">
-			<h3 class="pptx-vue-inspector-title">Fill</h3>
+		<div v-if="isShape" class="pptx-vue-inspector-section py-2 border-b border-border">
+			<h3
+				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+			>
+				Fill
+			</h3>
 			<FillPanel :element="element" @update="relay" />
 		</div>
 
-		<div v-if="isShape" class="pptx-vue-inspector-section">
-			<h3 class="pptx-vue-inspector-title">Line</h3>
+		<div v-if="isShape" class="pptx-vue-inspector-section py-2 border-b border-border">
+			<h3
+				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+			>
+				Line
+			</h3>
 			<StrokePanel :element="element" @update="relay" />
 		</div>
 
-		<div v-if="isShape" class="pptx-vue-inspector-section">
-			<h3 class="pptx-vue-inspector-title">Effects</h3>
+		<div v-if="isShape" class="pptx-vue-inspector-section py-2 border-b border-border">
+			<h3
+				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+			>
+				Effects
+			</h3>
 			<EffectsPanel :element="element" @update="relay" />
 		</div>
 	</aside>
 </template>
-
-<style scoped>
-.pptx-vue-inspector {
-	width: 240px;
-	flex: 0 0 240px;
-	overflow-y: auto;
-	border-left: 1px solid var(--pptx-border, #d0d0d0);
-	background: var(--pptx-panel-bg, #fafafa);
-	padding: 0.5rem 0.75rem 2rem;
-	box-sizing: border-box;
-}
-.pptx-vue-inspector-section {
-	padding: 0.5rem 0;
-	border-bottom: 1px solid var(--pptx-border, #e4e4e4);
-}
-.pptx-vue-inspector-title {
-	margin: 0 0 0.5rem;
-	font-size: 0.72rem;
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
-	color: var(--pptx-muted, #777);
-}
-</style>

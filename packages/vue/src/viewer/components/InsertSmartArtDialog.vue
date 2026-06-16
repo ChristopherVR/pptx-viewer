@@ -135,15 +135,22 @@ function close(): void {
 
 <template>
 	<ModalDialog :open="open" title="Insert SmartArt" @close="close">
-		<div class="pptx-vue-smartart-dialog">
+		<div class="pptx-vue-smartart-dialog flex h-[min(60vh,440px)] w-[min(78vw,600px)] gap-3">
 			<!-- Category sidebar -->
-			<nav class="pptx-vue-smartart-sidebar" aria-label="SmartArt categories">
+			<nav
+				class="pptx-vue-smartart-sidebar flex w-[130px] flex-shrink-0 flex-col gap-0.5 border-r border-border pr-2"
+				aria-label="SmartArt categories"
+			>
 				<button
 					v-for="cat in CATEGORIES"
 					:key="cat.id"
 					type="button"
-					class="pptx-vue-smartart-cat"
-					:class="{ 'pptx-vue-smartart-cat--active': activeCategory === cat.id }"
+					class="pptx-vue-smartart-cat rounded px-2.5 py-1.5 text-left text-xs transition-colors"
+					:class="
+						activeCategory === cat.id
+							? 'pptx-vue-smartart-cat--active bg-primary text-primary-foreground'
+							: 'text-foreground hover:bg-muted'
+					"
 					@click="selectCategory(cat.id)"
 				>
 					{{ cat.label }}
@@ -151,34 +158,52 @@ function close(): void {
 			</nav>
 
 			<!-- Gallery + node-text entry -->
-			<div class="pptx-vue-smartart-main">
-				<div class="pptx-vue-smartart-gallery" role="listbox" aria-label="SmartArt layouts">
+			<div class="pptx-vue-smartart-main flex min-w-0 flex-1 flex-col gap-2.5">
+				<div
+					class="pptx-vue-smartart-gallery grid flex-1 grid-cols-3 gap-2 overflow-y-auto pr-1"
+					role="listbox"
+					aria-label="SmartArt layouts"
+				>
 					<button
 						v-for="preset in filteredPresets"
 						:key="preset.layout"
 						type="button"
 						role="option"
 						:aria-selected="selectedLayout === preset.layout"
-						class="pptx-vue-smartart-tile"
-						:class="{ 'pptx-vue-smartart-tile--active': selectedLayout === preset.layout }"
+						class="pptx-vue-smartart-tile flex flex-col items-center gap-1 rounded-md border p-2 transition-colors"
+						:class="
+							selectedLayout === preset.layout
+								? 'pptx-vue-smartart-tile--active border-primary bg-primary/20'
+								: 'border-border hover:bg-muted/50'
+						"
 						@click="selectLayout(preset.layout)"
 						@dblclick="
 							selectLayout(preset.layout);
 							insert();
 						"
 					>
-						<span class="pptx-vue-smartart-thumb">
+						<span
+							class="pptx-vue-smartart-thumb flex h-12 w-16 items-center justify-center rounded bg-muted"
+						>
 							<SmartArtPreviews :layout="preset.layout" />
 						</span>
-						<span class="pptx-vue-smartart-tile-label">{{ preset.label }}</span>
+						<span
+							class="pptx-vue-smartart-tile-label text-center text-[10px] leading-tight text-foreground"
+							>{{ preset.label }}</span
+						>
 					</button>
 				</div>
 
-				<label v-if="selectedLayout" class="pptx-vue-smartart-nodes">
-					<span class="pptx-vue-smartart-nodes-label">Nodes (one per line)</span>
+				<label
+					v-if="selectedLayout"
+					class="pptx-vue-smartart-nodes flex flex-shrink-0 flex-col gap-1"
+				>
+					<span class="pptx-vue-smartart-nodes-label text-xs font-medium text-muted-foreground"
+						>Nodes (one per line)</span
+					>
 					<textarea
 						v-model="nodeText"
-						class="pptx-vue-smartart-textarea"
+						class="pptx-vue-smartart-textarea w-full resize-y rounded border border-border bg-background px-2.5 py-2 text-[13px] text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
 						rows="5"
 						spellcheck="false"
 						placeholder="Item 1&#10;Item 2&#10;Item 3"
@@ -190,14 +215,14 @@ function close(): void {
 		<template #footer>
 			<button
 				type="button"
-				class="pptx-vue-smartart-btn pptx-vue-smartart-btn--secondary"
+				class="pptx-vue-smartart-btn pptx-vue-smartart-btn--secondary rounded border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
 				@click="close"
 			>
 				Cancel
 			</button>
 			<button
 				type="button"
-				class="pptx-vue-smartart-btn pptx-vue-smartart-btn--primary"
+				class="pptx-vue-smartart-btn pptx-vue-smartart-btn--primary rounded border border-transparent bg-primary px-3 py-1.5 text-xs text-primary-foreground transition-colors hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-45"
 				:disabled="!canInsert"
 				@click="insert"
 			>
@@ -206,160 +231,3 @@ function close(): void {
 		</template>
 	</ModalDialog>
 </template>
-
-<style scoped>
-.pptx-vue-smartart-dialog {
-	display: flex;
-	gap: 12px;
-	width: min(78vw, 600px);
-	height: min(60vh, 440px);
-}
-
-.pptx-vue-smartart-sidebar {
-	display: flex;
-	flex-direction: column;
-	width: 130px;
-	flex-shrink: 0;
-	border-right: 1px solid var(--pptx-vue-border, #e5e7eb);
-	padding-right: 8px;
-	gap: 2px;
-}
-
-.pptx-vue-smartart-cat {
-	text-align: left;
-	padding: 6px 10px;
-	font-size: 12px;
-	color: var(--pptx-vue-foreground, #111827);
-	background: transparent;
-	border: none;
-	border-radius: 4px;
-	cursor: pointer;
-}
-
-.pptx-vue-smartart-cat:hover {
-	background: var(--pptx-vue-muted, #f3f4f6);
-}
-
-.pptx-vue-smartart-cat--active {
-	color: var(--pptx-vue-primary-foreground, #ffffff);
-	background: var(--pptx-vue-primary, #2563eb);
-}
-
-.pptx-vue-smartart-cat--active:hover {
-	background: var(--pptx-vue-primary, #2563eb);
-}
-
-.pptx-vue-smartart-main {
-	display: flex;
-	flex-direction: column;
-	flex: 1;
-	min-width: 0;
-	gap: 10px;
-}
-
-.pptx-vue-smartart-gallery {
-	display: grid;
-	grid-template-columns: repeat(3, 1fr);
-	gap: 8px;
-	overflow-y: auto;
-	flex: 1;
-	padding-right: 4px;
-}
-
-.pptx-vue-smartart-tile {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 4px;
-	padding: 8px;
-	background: transparent;
-	border: 1px solid var(--pptx-vue-border, #e5e7eb);
-	border-radius: 6px;
-	cursor: pointer;
-}
-
-.pptx-vue-smartart-tile:hover {
-	background: var(--pptx-vue-muted, #f3f4f6);
-}
-
-.pptx-vue-smartart-tile--active {
-	border-color: var(--pptx-vue-primary, #2563eb);
-	background: color-mix(in srgb, var(--pptx-vue-primary, #2563eb) 14%, transparent);
-}
-
-.pptx-vue-smartart-thumb {
-	width: 64px;
-	height: 48px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background: var(--pptx-vue-muted, #f3f4f6);
-	border-radius: 4px;
-}
-
-.pptx-vue-smartart-tile-label {
-	font-size: 10px;
-	line-height: 1.2;
-	text-align: center;
-	color: var(--pptx-vue-foreground, #111827);
-}
-
-.pptx-vue-smartart-nodes {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	flex-shrink: 0;
-}
-
-.pptx-vue-smartart-nodes-label {
-	font-size: 12px;
-	font-weight: 500;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
-.pptx-vue-smartart-textarea {
-	width: 100%;
-	padding: 8px 10px;
-	font-size: 13px;
-	font-family: inherit;
-	color: var(--pptx-vue-foreground, #111827);
-	background: var(--pptx-vue-background, #ffffff);
-	border: 1px solid var(--pptx-vue-border, #e5e7eb);
-	border-radius: 4px;
-	resize: vertical;
-	outline: none;
-}
-
-.pptx-vue-smartart-textarea:focus {
-	border-color: var(--pptx-vue-primary, #2563eb);
-	box-shadow: 0 0 0 1px var(--pptx-vue-primary, #2563eb);
-}
-
-.pptx-vue-smartart-btn {
-	padding: 6px 12px;
-	font-size: 12px;
-	border-radius: 4px;
-	border: 1px solid transparent;
-	cursor: pointer;
-}
-
-.pptx-vue-smartart-btn--secondary {
-	color: var(--pptx-vue-foreground, #111827);
-	background: transparent;
-	border-color: var(--pptx-vue-border, #e5e7eb);
-}
-
-.pptx-vue-smartart-btn--secondary:hover {
-	background: var(--pptx-vue-muted, #f3f4f6);
-}
-
-.pptx-vue-smartart-btn--primary {
-	color: var(--pptx-vue-primary-foreground, #ffffff);
-	background: var(--pptx-vue-primary, #2563eb);
-}
-
-.pptx-vue-smartart-btn--primary:disabled {
-	opacity: 0.45;
-	cursor: not-allowed;
-}
-</style>

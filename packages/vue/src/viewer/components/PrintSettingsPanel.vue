@@ -66,21 +66,29 @@ function onCustomToInput(event: Event): void {
 </script>
 
 <template>
-	<div class="pptx-vue-print-settings">
+	<div class="pptx-vue-print-settings flex min-w-0 flex-1 flex-col gap-5">
 		<!-- Print What -->
-		<fieldset class="pptx-vue-print-fieldset">
-			<legend class="pptx-vue-print-legend">Print what</legend>
-			<div class="pptx-vue-print-grid">
+		<fieldset class="pptx-vue-print-fieldset m-0 border-none p-0">
+			<legend
+				class="pptx-vue-print-legend mb-2 p-0 text-xs font-medium uppercase tracking-wide text-muted-foreground"
+			>
+				Print what
+			</legend>
+			<div class="pptx-vue-print-grid grid grid-cols-2 gap-2">
 				<label
 					v-for="opt in PRINT_WHAT_OPTIONS"
 					:key="opt.value"
-					class="pptx-vue-print-card"
-					:class="{ 'pptx-vue-print-card--active': props.printWhat === opt.value }"
+					class="pptx-vue-print-card flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors"
+					:class="
+						props.printWhat === opt.value
+							? 'pptx-vue-print-card--active border-primary bg-primary/10 text-foreground'
+							: 'border-border bg-background text-muted-foreground hover:border-primary/40'
+					"
 				>
 					<input
 						type="radio"
 						name="printWhat"
-						class="pptx-vue-print-sr-only"
+						class="pptx-vue-print-sr-only sr-only"
 						:checked="props.printWhat === opt.value"
 						@change="emit('update:printWhat', opt.value)"
 					/>
@@ -90,15 +98,26 @@ function onCustomToInput(event: Event): void {
 		</fieldset>
 
 		<!-- Handout options -->
-		<fieldset v-if="props.printWhat === 'handouts'" class="pptx-vue-print-fieldset">
-			<legend class="pptx-vue-print-legend">Slides per page</legend>
-			<div class="pptx-vue-print-chips">
+		<fieldset
+			v-if="props.printWhat === 'handouts'"
+			class="pptx-vue-print-fieldset m-0 border-none p-0"
+		>
+			<legend
+				class="pptx-vue-print-legend mb-2 p-0 text-xs font-medium uppercase tracking-wide text-muted-foreground"
+			>
+				Slides per page
+			</legend>
+			<div class="pptx-vue-print-chips flex flex-wrap gap-1.5">
 				<button
 					v-for="n in HANDOUT_OPTIONS"
 					:key="n"
 					type="button"
-					class="pptx-vue-print-chip"
-					:class="{ 'pptx-vue-print-chip--active': props.slidesPerPage === n }"
+					class="pptx-vue-print-chip rounded-md border px-3 py-1.5 text-sm font-medium transition-colors"
+					:class="
+						props.slidesPerPage === n
+							? 'pptx-vue-print-chip--active border-primary bg-primary/10 text-foreground'
+							: 'border-border bg-background text-muted-foreground hover:border-primary/40'
+					"
 					@click="emit('update:slidesPerPage', n)"
 				>
 					{{ n }}
@@ -107,65 +126,84 @@ function onCustomToInput(event: Event): void {
 		</fieldset>
 
 		<!-- Slide Range -->
-		<fieldset class="pptx-vue-print-fieldset">
-			<legend class="pptx-vue-print-legend">Slide range</legend>
-			<div class="pptx-vue-print-stack">
+		<fieldset class="pptx-vue-print-fieldset m-0 border-none p-0">
+			<legend
+				class="pptx-vue-print-legend mb-2 p-0 text-xs font-medium uppercase tracking-wide text-muted-foreground"
+			>
+				Slide range
+			</legend>
+			<div class="pptx-vue-print-stack flex flex-col gap-2">
 				<label
-					class="pptx-vue-print-card"
-					:class="{ 'pptx-vue-print-card--active': props.slideRange === 'all' }"
+					class="pptx-vue-print-card flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors"
+					:class="
+						props.slideRange === 'all'
+							? 'pptx-vue-print-card--active border-primary bg-primary/10 text-foreground'
+							: 'border-border bg-background text-muted-foreground hover:border-primary/40'
+					"
 				>
 					<input
 						type="radio"
 						name="slideRange"
-						class="pptx-vue-print-sr-only"
+						class="pptx-vue-print-sr-only sr-only"
 						:checked="props.slideRange === 'all'"
 						@change="emit('update:slideRange', 'all')"
 					/>
 					All slides ({{ props.totalSlides }})
 				</label>
 				<label
-					class="pptx-vue-print-card"
-					:class="{ 'pptx-vue-print-card--active': props.slideRange === 'current' }"
+					class="pptx-vue-print-card flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors"
+					:class="
+						props.slideRange === 'current'
+							? 'pptx-vue-print-card--active border-primary bg-primary/10 text-foreground'
+							: 'border-border bg-background text-muted-foreground hover:border-primary/40'
+					"
 				>
 					<input
 						type="radio"
 						name="slideRange"
-						class="pptx-vue-print-sr-only"
+						class="pptx-vue-print-sr-only sr-only"
 						:checked="props.slideRange === 'current'"
 						@change="emit('update:slideRange', 'current')"
 					/>
 					Current slide ({{ props.activeSlideIndex + 1 }})
 				</label>
 				<label
-					class="pptx-vue-print-card"
-					:class="{ 'pptx-vue-print-card--active': props.slideRange === 'custom' }"
+					class="pptx-vue-print-card flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors"
+					:class="
+						props.slideRange === 'custom'
+							? 'pptx-vue-print-card--active border-primary bg-primary/10 text-foreground'
+							: 'border-border bg-background text-muted-foreground hover:border-primary/40'
+					"
 				>
 					<input
 						type="radio"
 						name="slideRange"
-						class="pptx-vue-print-sr-only"
+						class="pptx-vue-print-sr-only sr-only"
 						:checked="props.slideRange === 'custom'"
 						@change="emit('update:slideRange', 'custom')"
 					/>
 					Custom range
 				</label>
-				<div v-if="props.slideRange === 'custom'" class="pptx-vue-print-range">
-					<span class="pptx-vue-print-range-label">From</span>
+				<div
+					v-if="props.slideRange === 'custom'"
+					class="pptx-vue-print-range flex items-center gap-2 pl-6"
+				>
+					<span class="pptx-vue-print-range-label text-xs text-muted-foreground">From</span>
 					<input
 						type="number"
 						:min="1"
 						:max="props.totalSlides"
 						:value="props.customFrom"
-						class="pptx-vue-print-number"
+						class="pptx-vue-print-number w-16 rounded border border-border bg-background px-2 py-1 text-sm text-foreground"
 						@input="onCustomFromInput"
 					/>
-					<span class="pptx-vue-print-range-label">To</span>
+					<span class="pptx-vue-print-range-label text-xs text-muted-foreground">To</span>
 					<input
 						type="number"
 						:min="1"
 						:max="props.totalSlides"
 						:value="props.customTo"
-						class="pptx-vue-print-number"
+						class="pptx-vue-print-number w-16 rounded border border-border bg-background px-2 py-1 text-sm text-foreground"
 						@input="onCustomToInput"
 					/>
 				</div>
@@ -173,30 +211,45 @@ function onCustomToInput(event: Event): void {
 		</fieldset>
 
 		<!-- Orientation — only for full-page slides -->
-		<fieldset v-if="props.printWhat === 'slides'" class="pptx-vue-print-fieldset">
-			<legend class="pptx-vue-print-legend">Orientation</legend>
-			<div class="pptx-vue-print-row">
+		<fieldset
+			v-if="props.printWhat === 'slides'"
+			class="pptx-vue-print-fieldset m-0 border-none p-0"
+		>
+			<legend
+				class="pptx-vue-print-legend mb-2 p-0 text-xs font-medium uppercase tracking-wide text-muted-foreground"
+			>
+				Orientation
+			</legend>
+			<div class="pptx-vue-print-row flex flex-wrap gap-2">
 				<label
-					class="pptx-vue-print-card"
-					:class="{ 'pptx-vue-print-card--active': props.orientation === 'landscape' }"
+					class="pptx-vue-print-card flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors"
+					:class="
+						props.orientation === 'landscape'
+							? 'pptx-vue-print-card--active border-primary bg-primary/10 text-foreground'
+							: 'border-border bg-background text-muted-foreground hover:border-primary/40'
+					"
 				>
 					<input
 						type="radio"
 						name="orientation"
-						class="pptx-vue-print-sr-only"
+						class="pptx-vue-print-sr-only sr-only"
 						:checked="props.orientation === 'landscape'"
 						@change="emit('update:orientation', 'landscape')"
 					/>
 					Landscape
 				</label>
 				<label
-					class="pptx-vue-print-card"
-					:class="{ 'pptx-vue-print-card--active': props.orientation === 'portrait' }"
+					class="pptx-vue-print-card flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors"
+					:class="
+						props.orientation === 'portrait'
+							? 'pptx-vue-print-card--active border-primary bg-primary/10 text-foreground'
+							: 'border-border bg-background text-muted-foreground hover:border-primary/40'
+					"
 				>
 					<input
 						type="radio"
 						name="orientation"
-						class="pptx-vue-print-sr-only"
+						class="pptx-vue-print-sr-only sr-only"
 						:checked="props.orientation === 'portrait'"
 						@change="emit('update:orientation', 'portrait')"
 					/>
@@ -206,19 +259,27 @@ function onCustomToInput(event: Event): void {
 		</fieldset>
 
 		<!-- Colour Mode -->
-		<fieldset class="pptx-vue-print-fieldset">
-			<legend class="pptx-vue-print-legend">Color mode</legend>
-			<div class="pptx-vue-print-row">
+		<fieldset class="pptx-vue-print-fieldset m-0 border-none p-0">
+			<legend
+				class="pptx-vue-print-legend mb-2 p-0 text-xs font-medium uppercase tracking-wide text-muted-foreground"
+			>
+				Color mode
+			</legend>
+			<div class="pptx-vue-print-row flex flex-wrap gap-2">
 				<label
 					v-for="opt in COLOR_OPTIONS"
 					:key="opt.value"
-					class="pptx-vue-print-card"
-					:class="{ 'pptx-vue-print-card--active': props.colorMode === opt.value }"
+					class="pptx-vue-print-card flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors"
+					:class="
+						props.colorMode === opt.value
+							? 'pptx-vue-print-card--active border-primary bg-primary/10 text-foreground'
+							: 'border-border bg-background text-muted-foreground hover:border-primary/40'
+					"
 				>
 					<input
 						type="radio"
 						name="colorMode"
-						class="pptx-vue-print-sr-only"
+						class="pptx-vue-print-sr-only sr-only"
 						:checked="props.colorMode === opt.value"
 						@change="emit('update:colorMode', opt.value)"
 					/>
@@ -228,9 +289,12 @@ function onCustomToInput(event: Event): void {
 		</fieldset>
 
 		<!-- Frame Slides -->
-		<label class="pptx-vue-print-checkbox">
+		<label
+			class="pptx-vue-print-checkbox flex cursor-pointer items-center gap-2 text-sm text-foreground"
+		>
 			<input
 				type="checkbox"
+				class="rounded border-border"
 				:checked="props.frameSlides"
 				@change="emit('update:frameSlides', ($event.target as HTMLInputElement).checked)"
 			/>
@@ -238,144 +302,3 @@ function onCustomToInput(event: Event): void {
 		</label>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-print-settings {
-	display: flex;
-	flex-direction: column;
-	gap: 18px;
-	flex: 1;
-	min-width: 0;
-}
-
-.pptx-vue-print-fieldset {
-	margin: 0;
-	padding: 0;
-	border: none;
-}
-
-.pptx-vue-print-legend {
-	padding: 0;
-	margin-bottom: 8px;
-	font-size: 11px;
-	font-weight: 500;
-	letter-spacing: 0.04em;
-	text-transform: uppercase;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
-.pptx-vue-print-grid {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 8px;
-}
-
-.pptx-vue-print-stack {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-}
-
-.pptx-vue-print-row {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 8px;
-}
-
-.pptx-vue-print-card {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	padding: 8px 12px;
-	font-size: 13px;
-	cursor: pointer;
-	border: 1px solid var(--pptx-vue-border, #e5e7eb);
-	border-radius: 8px;
-	background: var(--pptx-vue-background, #ffffff);
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-	transition:
-		border-color 0.15s,
-		background 0.15s,
-		color 0.15s;
-}
-
-.pptx-vue-print-card:hover {
-	border-color: var(--pptx-vue-primary, #2563eb);
-}
-
-.pptx-vue-print-card--active {
-	border-color: var(--pptx-vue-primary, #2563eb);
-	background: color-mix(in srgb, var(--pptx-vue-primary, #2563eb) 10%, transparent);
-	color: var(--pptx-vue-foreground, #111827);
-}
-
-.pptx-vue-print-sr-only {
-	position: absolute;
-	width: 1px;
-	height: 1px;
-	padding: 0;
-	margin: -1px;
-	overflow: hidden;
-	clip: rect(0, 0, 0, 0);
-	white-space: nowrap;
-	border: 0;
-}
-
-.pptx-vue-print-chips {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 6px;
-}
-
-.pptx-vue-print-chip {
-	padding: 6px 12px;
-	font-size: 13px;
-	font-weight: 500;
-	cursor: pointer;
-	border: 1px solid var(--pptx-vue-border, #e5e7eb);
-	border-radius: 6px;
-	background: var(--pptx-vue-background, #ffffff);
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
-.pptx-vue-print-chip:hover {
-	border-color: var(--pptx-vue-primary, #2563eb);
-}
-
-.pptx-vue-print-chip--active {
-	border-color: var(--pptx-vue-primary, #2563eb);
-	background: color-mix(in srgb, var(--pptx-vue-primary, #2563eb) 10%, transparent);
-	color: var(--pptx-vue-foreground, #111827);
-}
-
-.pptx-vue-print-range {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	padding-left: 24px;
-}
-
-.pptx-vue-print-range-label {
-	font-size: 11px;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
-.pptx-vue-print-number {
-	width: 64px;
-	padding: 4px 8px;
-	font-size: 13px;
-	color: var(--pptx-vue-foreground, #111827);
-	background: var(--pptx-vue-background, #ffffff);
-	border: 1px solid var(--pptx-vue-border, #e5e7eb);
-	border-radius: 4px;
-}
-
-.pptx-vue-print-checkbox {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	font-size: 13px;
-	cursor: pointer;
-	color: var(--pptx-vue-foreground, #111827);
-}
-</style>

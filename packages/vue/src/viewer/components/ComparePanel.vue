@@ -71,18 +71,25 @@ function handleAcceptAll(): void {
 </script>
 
 <template>
-	<aside v-if="open && compareResult" class="pptx-vue-compare-panel">
-		<header class="pptx-vue-compare-header">
+	<aside
+		v-if="open && compareResult"
+		class="pptx-vue-compare-panel fixed inset-y-0 right-0 z-50 flex w-[440px] max-w-[100vw] flex-col border-l border-border bg-popover text-foreground shadow-2xl backdrop-blur-lg"
+	>
+		<header
+			class="pptx-vue-compare-header flex items-start justify-between gap-3 border-b border-border px-4 py-3"
+		>
 			<div>
-				<h3 class="pptx-vue-compare-title">Compare versions</h3>
-				<p class="pptx-vue-compare-summary">
+				<h3 class="pptx-vue-compare-title m-0 text-sm font-medium text-foreground">
+					Compare versions
+				</h3>
+				<p class="pptx-vue-compare-summary mt-0.5 text-[11px] text-muted-foreground">
 					{{ compareResult.addedCount }} added · {{ compareResult.removedCount }} removed ·
 					{{ compareResult.changedCount }} changed
 				</p>
 			</div>
 			<button
 				type="button"
-				class="pptx-vue-compare-close"
+				class="pptx-vue-compare-close inline-flex h-6 w-6 items-center justify-center rounded p-0 text-lg leading-none text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 				aria-label="Close"
 				@click="emit('close')"
 			>
@@ -90,14 +97,26 @@ function handleAcceptAll(): void {
 			</button>
 		</header>
 
-		<div v-if="nonTrivialCount > 0" class="pptx-vue-compare-actions">
-			<button type="button" class="pptx-vue-compare-accept-all" @click="handleAcceptAll">
+		<div
+			v-if="nonTrivialCount > 0"
+			class="pptx-vue-compare-actions border-b border-border/60 px-4 py-2"
+		>
+			<button
+				type="button"
+				class="pptx-vue-compare-accept-all inline-flex cursor-pointer items-center gap-1.5 rounded bg-green-700/80 px-3 py-1.5 text-xs text-green-50 transition-colors hover:bg-green-600"
+				@click="handleAcceptAll"
+			>
 				Accept all
 			</button>
 		</div>
 
-		<div class="pptx-vue-compare-list">
-			<p v-if="nonTrivialCount === 0" class="pptx-vue-compare-empty">No differences</p>
+		<div class="pptx-vue-compare-list flex flex-1 flex-col gap-2 overflow-y-auto p-3">
+			<p
+				v-if="nonTrivialCount === 0"
+				class="pptx-vue-compare-empty m-0 py-8 text-center text-xs text-muted-foreground"
+			>
+				No differences
+			</p>
 			<template v-else>
 				<SlideDiffRow
 					v-for="(diff, i) in compareResult.diffs"
@@ -115,92 +134,3 @@ function handleAcceptAll(): void {
 		</div>
 	</aside>
 </template>
-
-<style scoped>
-.pptx-vue-compare-panel {
-	position: fixed;
-	top: 0;
-	bottom: 0;
-	right: 0;
-	z-index: 50;
-	display: flex;
-	flex-direction: column;
-	width: 440px;
-	max-width: 100vw;
-	background: var(--pptx-vue-popover, #ffffff);
-	color: var(--pptx-vue-foreground, #111827);
-	border-left: 1px solid var(--pptx-vue-border, #e5e7eb);
-	box-shadow: -8px 0 32px rgba(0, 0, 0, 0.25);
-}
-
-.pptx-vue-compare-header {
-	display: flex;
-	align-items: flex-start;
-	justify-content: space-between;
-	gap: 12px;
-	padding: 12px 16px;
-	border-bottom: 1px solid var(--pptx-vue-border, #e5e7eb);
-}
-
-.pptx-vue-compare-title {
-	margin: 0;
-	font-size: 14px;
-	font-weight: 600;
-}
-
-.pptx-vue-compare-summary {
-	margin: 2px 0 0;
-	font-size: 11px;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
-.pptx-vue-compare-close {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 24px;
-	height: 24px;
-	padding: 0;
-	font-size: 18px;
-	line-height: 1;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-	background: transparent;
-	border: none;
-	border-radius: 4px;
-	cursor: pointer;
-}
-
-.pptx-vue-compare-actions {
-	padding: 8px 16px;
-	border-bottom: 1px solid var(--pptx-vue-border, #e5e7eb);
-}
-
-.pptx-vue-compare-accept-all {
-	display: inline-flex;
-	align-items: center;
-	padding: 6px 12px;
-	font-size: 12px;
-	color: #f0fdf4;
-	background: #15803d;
-	border: none;
-	border-radius: 4px;
-	cursor: pointer;
-}
-
-.pptx-vue-compare-list {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-	flex: 1;
-	overflow-y: auto;
-	padding: 12px;
-}
-
-.pptx-vue-compare-empty {
-	margin: 0;
-	padding: 32px 0;
-	text-align: center;
-	font-size: 12px;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-</style>

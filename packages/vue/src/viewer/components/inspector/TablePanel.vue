@@ -196,32 +196,44 @@ function toggleHeaderRow(event: Event): void {
 </script>
 
 <template>
-	<div class="pptx-vue-table-panel">
-		<p v-if="!isTable" class="pptx-vue-table-panel__muted">
+	<div class="pptx-vue-table-panel flex flex-col gap-2 text-xs">
+		<p v-if="!isTable" class="pptx-vue-table-panel__muted text-[11px] text-muted-foreground">
 			Select a table to edit its rows and columns.
 		</p>
-		<p v-else-if="!tableData" class="pptx-vue-table-panel__muted">
+		<p v-else-if="!tableData" class="pptx-vue-table-panel__muted text-[11px] text-muted-foreground">
 			This table has no editable cell data.
 		</p>
 		<template v-else>
-			<div class="pptx-vue-table-panel__heading">Table</div>
-			<div class="pptx-vue-table-panel__counts">
+			<div
+				class="pptx-vue-table-panel__heading text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+			>
+				Table
+			</div>
+			<div class="pptx-vue-table-panel__counts flex gap-4 text-[11px] text-muted-foreground">
 				<span>Rows: {{ rowCount }}</span>
 				<span>Columns: {{ colCount }}</span>
 			</div>
 
-			<div class="pptx-vue-table-panel__group">
-				<div class="pptx-vue-table-panel__label">Rows</div>
-				<div class="pptx-vue-table-panel__buttons">
-					<button type="button" class="pptx-vue-table-panel__btn" @click="insertRowAbove">
+			<div class="pptx-vue-table-panel__group flex flex-col gap-1">
+				<div class="pptx-vue-table-panel__label text-[11px] font-medium">Rows</div>
+				<div class="pptx-vue-table-panel__buttons flex flex-wrap gap-1">
+					<button
+						type="button"
+						class="pptx-vue-table-panel__btn flex-1 min-w-0 rounded border border-border bg-muted hover:bg-accent px-2 py-1 text-[11px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+						@click="insertRowAbove"
+					>
 						Insert above
 					</button>
-					<button type="button" class="pptx-vue-table-panel__btn" @click="insertRowBelow">
+					<button
+						type="button"
+						class="pptx-vue-table-panel__btn flex-1 min-w-0 rounded border border-border bg-muted hover:bg-accent px-2 py-1 text-[11px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+						@click="insertRowBelow"
+					>
 						Insert below
 					</button>
 					<button
 						type="button"
-						class="pptx-vue-table-panel__btn pptx-vue-table-panel__btn--danger"
+						class="pptx-vue-table-panel__btn pptx-vue-table-panel__btn--danger flex-1 min-w-0 rounded border border-border bg-muted px-2 py-1 text-[11px] transition-colors hover:border-destructive hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed"
 						:disabled="!canDeleteRow"
 						@click="deleteRow"
 					>
@@ -230,18 +242,26 @@ function toggleHeaderRow(event: Event): void {
 				</div>
 			</div>
 
-			<div class="pptx-vue-table-panel__group">
-				<div class="pptx-vue-table-panel__label">Columns</div>
-				<div class="pptx-vue-table-panel__buttons">
-					<button type="button" class="pptx-vue-table-panel__btn" @click="insertColumnLeft">
+			<div class="pptx-vue-table-panel__group flex flex-col gap-1">
+				<div class="pptx-vue-table-panel__label text-[11px] font-medium">Columns</div>
+				<div class="pptx-vue-table-panel__buttons flex flex-wrap gap-1">
+					<button
+						type="button"
+						class="pptx-vue-table-panel__btn flex-1 min-w-0 rounded border border-border bg-muted hover:bg-accent px-2 py-1 text-[11px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+						@click="insertColumnLeft"
+					>
 						Insert left
 					</button>
-					<button type="button" class="pptx-vue-table-panel__btn" @click="insertColumnRight">
+					<button
+						type="button"
+						class="pptx-vue-table-panel__btn flex-1 min-w-0 rounded border border-border bg-muted hover:bg-accent px-2 py-1 text-[11px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+						@click="insertColumnRight"
+					>
 						Insert right
 					</button>
 					<button
 						type="button"
-						class="pptx-vue-table-panel__btn pptx-vue-table-panel__btn--danger"
+						class="pptx-vue-table-panel__btn pptx-vue-table-panel__btn--danger flex-1 min-w-0 rounded border border-border bg-muted px-2 py-1 text-[11px] transition-colors hover:border-destructive hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed"
 						:disabled="!canDeleteColumn"
 						@click="deleteColumn"
 					>
@@ -250,91 +270,13 @@ function toggleHeaderRow(event: Event): void {
 				</div>
 			</div>
 
-			<label v-if="supportsHeaderRow" class="pptx-vue-table-panel__toggle">
+			<label
+				v-if="supportsHeaderRow"
+				class="pptx-vue-table-panel__toggle flex items-center gap-2 text-[11px] cursor-pointer"
+			>
 				<input type="checkbox" :checked="headerRow" @change="toggleHeaderRow" />
 				<span>Header row</span>
 			</label>
 		</template>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-table-panel {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-	font-size: 12px;
-}
-
-.pptx-vue-table-panel__muted {
-	color: var(--pptx-muted-foreground, #888);
-	font-size: 11px;
-	margin: 0;
-}
-
-.pptx-vue-table-panel__heading {
-	font-weight: 600;
-	font-size: 11px;
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
-	color: var(--pptx-muted-foreground, #888);
-}
-
-.pptx-vue-table-panel__counts {
-	display: flex;
-	gap: 1rem;
-	color: var(--pptx-muted-foreground, #888);
-	font-size: 11px;
-}
-
-.pptx-vue-table-panel__group {
-	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
-}
-
-.pptx-vue-table-panel__label {
-	font-size: 11px;
-	font-weight: 500;
-}
-
-.pptx-vue-table-panel__buttons {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.25rem;
-}
-
-.pptx-vue-table-panel__btn {
-	flex: 1 1 auto;
-	min-width: 0;
-	padding: 0.25rem 0.5rem;
-	font-size: 11px;
-	border: 1px solid var(--pptx-border, #ccc);
-	border-radius: 4px;
-	background: var(--pptx-background, #fff);
-	color: inherit;
-	cursor: pointer;
-}
-
-.pptx-vue-table-panel__btn:hover:not(:disabled) {
-	border-color: var(--pptx-primary, #3b82f6);
-}
-
-.pptx-vue-table-panel__btn:disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
-}
-
-.pptx-vue-table-panel__btn--danger:hover:not(:disabled) {
-	border-color: var(--pptx-destructive, #ef4444);
-	color: var(--pptx-destructive, #ef4444);
-}
-
-.pptx-vue-table-panel__toggle {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	font-size: 11px;
-	cursor: pointer;
-}
-</style>

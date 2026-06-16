@@ -75,31 +75,47 @@ function onSelect(issue: AccessibilityIssue): void {
 </script>
 
 <template>
-	<section class="pptx-vue-a11y-panel" aria-label="Accessibility checker">
-		<header class="pptx-vue-a11y-panel__header">
-			<h2 class="pptx-vue-a11y-panel__title">Accessibility</h2>
-			<span class="pptx-vue-a11y-panel__count">{{ issues.length }}</span>
+	<section
+		class="pptx-vue-a11y-panel flex flex-col gap-3 bg-popover p-3 text-sm text-foreground"
+		aria-label="Accessibility checker"
+	>
+		<header class="pptx-vue-a11y-panel__header flex items-center justify-between gap-2">
+			<h2 class="pptx-vue-a11y-panel__title m-0 text-base font-semibold">Accessibility</h2>
+			<span
+				class="pptx-vue-a11y-panel__count min-w-6 rounded-full bg-muted px-1.5 py-px text-center text-xs font-semibold text-muted-foreground"
+				>{{ issues.length }}</span
+			>
 		</header>
 
-		<div v-if="!hasIssues" class="pptx-vue-a11y-panel__empty">
-			<p class="pptx-vue-a11y-panel__empty-title">No issues found</p>
-			<p class="pptx-vue-a11y-panel__empty-hint">
+		<div v-if="!hasIssues" class="pptx-vue-a11y-panel__empty px-2 py-6 text-center text-green-400">
+			<p class="pptx-vue-a11y-panel__empty-title m-0 mb-1 font-semibold">No issues found</p>
+			<p class="pptx-vue-a11y-panel__empty-hint m-0 text-[0.8125rem] text-muted-foreground">
 				This presentation passes all accessibility checks.
 			</p>
 		</div>
 
-		<div v-else class="pptx-vue-a11y-panel__groups">
+		<div v-else class="pptx-vue-a11y-panel__groups flex flex-col gap-4">
 			<div
 				v-for="group in groups"
 				:key="group.severity"
 				class="pptx-vue-a11y-group"
 				:data-severity="group.severity"
 			>
-				<h3 class="pptx-vue-a11y-group__label">
+				<h3
+					class="pptx-vue-a11y-group__label m-0 mb-1.5 flex items-center gap-1.5 text-[0.8125rem] font-semibold uppercase tracking-wide"
+					:class="{
+						'text-red-400': group.severity === 'error',
+						'text-amber-400': group.severity === 'warning',
+						'text-blue-400': group.severity === 'tip',
+					}"
+				>
 					{{ group.label }}
-					<span class="pptx-vue-a11y-group__count">{{ group.issues.length }}</span>
+					<span
+						class="pptx-vue-a11y-group__count text-[0.6875rem] font-semibold text-muted-foreground"
+						>{{ group.issues.length }}</span
+					>
 				</h3>
-				<ul class="pptx-vue-a11y-group__list">
+				<ul class="pptx-vue-a11y-group__list m-0 flex list-none flex-col gap-1.5 p-0">
 					<li
 						v-for="(issue, index) in group.issues"
 						:key="issueKey(issue, index)"
@@ -107,10 +123,23 @@ function onSelect(issue: AccessibilityIssue): void {
 						:data-severity="issue.severity"
 						:data-type="issue.type"
 					>
-						<button type="button" class="pptx-vue-a11y-issue__button" @click="onSelect(issue)">
-							<span class="pptx-vue-a11y-issue__type">{{ typeLabel(issue.type) }}</span>
-							<span class="pptx-vue-a11y-issue__message">{{ issue.message }}</span>
-							<span class="pptx-vue-a11y-issue__slide">Slide {{ issue.slideIndex + 1 }}</span>
+						<button
+							type="button"
+							class="pptx-vue-a11y-issue__button flex w-full cursor-pointer flex-col gap-0.5 rounded-md border border-l-[3px] border-border bg-muted/50 px-2.5 py-2 text-left text-foreground hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+							:class="{
+								'border-l-red-500': issue.severity === 'error',
+								'border-l-amber-500': issue.severity === 'warning',
+								'border-l-blue-500': issue.severity === 'tip',
+							}"
+							@click="onSelect(issue)"
+						>
+							<span class="pptx-vue-a11y-issue__type font-semibold">{{
+								typeLabel(issue.type)
+							}}</span>
+							<span class="pptx-vue-a11y-issue__message text-foreground">{{ issue.message }}</span>
+							<span class="pptx-vue-a11y-issue__slide text-xs text-muted-foreground"
+								>Slide {{ issue.slideIndex + 1 }}</span
+							>
 						</button>
 					</li>
 				</ul>
@@ -118,150 +147,3 @@ function onSelect(issue: AccessibilityIssue): void {
 		</div>
 	</section>
 </template>
-
-<style scoped>
-.pptx-vue-a11y-panel {
-	display: flex;
-	flex-direction: column;
-	gap: 0.75rem;
-	padding: 0.75rem;
-	font-family: system-ui, sans-serif;
-	font-size: 0.875rem;
-	color: #1f2937;
-	background: #ffffff;
-}
-
-.pptx-vue-a11y-panel__header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 0.5rem;
-}
-
-.pptx-vue-a11y-panel__title {
-	margin: 0;
-	font-size: 1rem;
-	font-weight: 600;
-}
-
-.pptx-vue-a11y-panel__count {
-	min-width: 1.5rem;
-	padding: 0.05rem 0.4rem;
-	text-align: center;
-	font-size: 0.75rem;
-	font-weight: 600;
-	color: #374151;
-	background: #e5e7eb;
-	border-radius: 999px;
-}
-
-.pptx-vue-a11y-panel__empty {
-	padding: 1.5rem 0.5rem;
-	text-align: center;
-	color: #047857;
-}
-
-.pptx-vue-a11y-panel__empty-title {
-	margin: 0 0 0.25rem;
-	font-weight: 600;
-}
-
-.pptx-vue-a11y-panel__empty-hint {
-	margin: 0;
-	font-size: 0.8125rem;
-	color: #6b7280;
-}
-
-.pptx-vue-a11y-panel__groups {
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
-}
-
-.pptx-vue-a11y-group__label {
-	display: flex;
-	align-items: center;
-	gap: 0.4rem;
-	margin: 0 0 0.4rem;
-	font-size: 0.8125rem;
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.03em;
-}
-
-.pptx-vue-a11y-group[data-severity='error'] .pptx-vue-a11y-group__label {
-	color: #b91c1c;
-}
-
-.pptx-vue-a11y-group[data-severity='warning'] .pptx-vue-a11y-group__label {
-	color: #b45309;
-}
-
-.pptx-vue-a11y-group[data-severity='tip'] .pptx-vue-a11y-group__label {
-	color: #1d4ed8;
-}
-
-.pptx-vue-a11y-group__count {
-	font-size: 0.6875rem;
-	font-weight: 600;
-	color: #6b7280;
-}
-
-.pptx-vue-a11y-group__list {
-	display: flex;
-	flex-direction: column;
-	gap: 0.4rem;
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-.pptx-vue-a11y-issue__button {
-	display: flex;
-	flex-direction: column;
-	gap: 0.15rem;
-	width: 100%;
-	padding: 0.5rem 0.625rem;
-	text-align: left;
-	color: inherit;
-	background: #f9fafb;
-	border: 1px solid #e5e7eb;
-	border-left-width: 3px;
-	border-radius: 0.375rem;
-	cursor: pointer;
-}
-
-.pptx-vue-a11y-issue__button:hover {
-	background: #f3f4f6;
-}
-
-.pptx-vue-a11y-issue__button:focus-visible {
-	outline: 2px solid #2563eb;
-	outline-offset: 1px;
-}
-
-.pptx-vue-a11y-issue[data-severity='error'] .pptx-vue-a11y-issue__button {
-	border-left-color: #dc2626;
-}
-
-.pptx-vue-a11y-issue[data-severity='warning'] .pptx-vue-a11y-issue__button {
-	border-left-color: #d97706;
-}
-
-.pptx-vue-a11y-issue[data-severity='tip'] .pptx-vue-a11y-issue__button {
-	border-left-color: #2563eb;
-}
-
-.pptx-vue-a11y-issue__type {
-	font-weight: 600;
-}
-
-.pptx-vue-a11y-issue__message {
-	color: #374151;
-}
-
-.pptx-vue-a11y-issue__slide {
-	font-size: 0.75rem;
-	color: #6b7280;
-}
-</style>

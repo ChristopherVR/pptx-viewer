@@ -35,24 +35,40 @@ const counter = computed(() => {
 });
 
 const hasMatches = computed(() => props.matchCount > 0);
+
+/** Shared input classes — mirrors React's find/replace inputs. */
+const FR_INPUT =
+	'flex-1 min-w-32 rounded border border-border bg-muted px-2 py-1 text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none';
+/** Shared icon-button classes — ghost buttons matching React's nav controls. */
+const FR_BTN =
+	'inline-flex items-center justify-center min-w-7 h-7 rounded border border-border bg-muted px-2 leading-none text-foreground cursor-pointer hover:bg-accent disabled:opacity-45 disabled:cursor-not-allowed';
 </script>
 
 <template>
-	<div class="pptx-vue-find-replace" role="search">
-		<div class="pptx-vue-fr-row">
+	<div
+		class="pptx-vue-find-replace flex flex-col gap-1.5 rounded-lg border border-border bg-popover px-2.5 py-2 text-[0.8125rem] text-popover-foreground shadow-lg"
+		role="search"
+	>
+		<div class="pptx-vue-fr-row flex items-center gap-1.5">
 			<input
 				v-model="query"
 				type="text"
 				class="pptx-vue-fr-input"
+				:class="FR_INPUT"
 				placeholder="Find"
 				aria-label="Find"
 				@keydown.enter.prevent="emit('next')"
 				@keydown.esc.prevent="emit('close')"
 			/>
-			<span class="pptx-vue-fr-counter" aria-live="polite">{{ counter }}</span>
+			<span
+				class="pptx-vue-fr-counter min-w-14 text-center tabular-nums text-muted-foreground"
+				aria-live="polite"
+				>{{ counter }}</span
+			>
 			<button
 				type="button"
 				class="pptx-vue-fr-btn"
+				:class="FR_BTN"
 				title="Previous match"
 				aria-label="Previous match"
 				:disabled="!hasMatches"
@@ -63,6 +79,7 @@ const hasMatches = computed(() => props.matchCount > 0);
 			<button
 				type="button"
 				class="pptx-vue-fr-btn"
+				:class="FR_BTN"
 				title="Next match"
 				aria-label="Next match"
 				:disabled="!hasMatches"
@@ -70,13 +87,17 @@ const hasMatches = computed(() => props.matchCount > 0);
 			>
 				›
 			</button>
-			<label class="pptx-vue-fr-case" title="Match case">
+			<label
+				class="pptx-vue-fr-case inline-flex items-center gap-1 select-none cursor-pointer"
+				title="Match case"
+			>
 				<input v-model="matchCase" type="checkbox" />
 				<span>Aa</span>
 			</label>
 			<button
 				type="button"
-				class="pptx-vue-fr-btn pptx-vue-fr-close"
+				class="pptx-vue-fr-btn pptx-vue-fr-close text-[1.1rem]"
+				:class="FR_BTN"
 				title="Close"
 				aria-label="Close find and replace"
 				@click="emit('close')"
@@ -84,11 +105,12 @@ const hasMatches = computed(() => props.matchCount > 0);
 				×
 			</button>
 		</div>
-		<div class="pptx-vue-fr-row">
+		<div class="pptx-vue-fr-row flex items-center gap-1.5">
 			<input
 				v-model="replacement"
 				type="text"
 				class="pptx-vue-fr-input"
+				:class="FR_INPUT"
 				placeholder="Replace"
 				aria-label="Replace"
 				@keydown.enter.prevent="emit('replace')"
@@ -96,7 +118,8 @@ const hasMatches = computed(() => props.matchCount > 0);
 			/>
 			<button
 				type="button"
-				class="pptx-vue-fr-btn pptx-vue-fr-text"
+				class="pptx-vue-fr-btn pptx-vue-fr-text !min-w-0"
+				:class="FR_BTN"
 				:disabled="!hasMatches"
 				@click="emit('replace')"
 			>
@@ -104,7 +127,8 @@ const hasMatches = computed(() => props.matchCount > 0);
 			</button>
 			<button
 				type="button"
-				class="pptx-vue-fr-btn pptx-vue-fr-text"
+				class="pptx-vue-fr-btn pptx-vue-fr-text !min-w-0"
+				:class="FR_BTN"
 				:disabled="!hasMatches"
 				@click="emit('replace-all')"
 			>
@@ -113,88 +137,3 @@ const hasMatches = computed(() => props.matchCount > 0);
 		</div>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-find-replace {
-	display: flex;
-	flex-direction: column;
-	gap: 0.375rem;
-	padding: 0.5rem 0.625rem;
-	background: #1f2937;
-	border: 1px solid rgba(255, 255, 255, 0.12);
-	border-radius: 0.5rem;
-	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-	color: #f9fafb;
-	font-size: 0.8125rem;
-}
-
-.pptx-vue-fr-row {
-	display: flex;
-	align-items: center;
-	gap: 0.375rem;
-}
-
-.pptx-vue-fr-input {
-	flex: 1 1 auto;
-	min-width: 8rem;
-	padding: 0.25rem 0.5rem;
-	background: #111827;
-	border: 1px solid rgba(255, 255, 255, 0.18);
-	border-radius: 0.25rem;
-	color: inherit;
-	font: inherit;
-}
-
-.pptx-vue-fr-input:focus {
-	outline: none;
-	border-color: #3b82f6;
-}
-
-.pptx-vue-fr-counter {
-	min-width: 3.5rem;
-	text-align: center;
-	font-variant-numeric: tabular-nums;
-	color: #9ca3af;
-}
-
-.pptx-vue-fr-btn {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-width: 1.75rem;
-	height: 1.75rem;
-	padding: 0 0.5rem;
-	background: #374151;
-	border: 1px solid rgba(255, 255, 255, 0.12);
-	border-radius: 0.25rem;
-	color: inherit;
-	font: inherit;
-	line-height: 1;
-	cursor: pointer;
-}
-
-.pptx-vue-fr-btn:hover:not(:disabled) {
-	background: #4b5563;
-}
-
-.pptx-vue-fr-btn:disabled {
-	opacity: 0.45;
-	cursor: not-allowed;
-}
-
-.pptx-vue-fr-text {
-	min-width: auto;
-}
-
-.pptx-vue-fr-close {
-	font-size: 1.1rem;
-}
-
-.pptx-vue-fr-case {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.25rem;
-	user-select: none;
-	cursor: pointer;
-}
-</style>

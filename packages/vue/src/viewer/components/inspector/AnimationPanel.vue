@@ -165,16 +165,33 @@ function removeAnimation(index: number): void {
 </script>
 
 <template>
-	<div class="pptx-vue-anim-panel">
-		<div class="pptx-vue-anim-heading">Animations</div>
+	<div
+		class="pptx-vue-anim-panel flex flex-col gap-2 rounded-md border border-border bg-card p-2 text-xs"
+	>
+		<div class="pptx-vue-anim-heading text-[11px] uppercase tracking-wide text-muted-foreground">
+			Animations
+		</div>
 
-		<ul v-if="currentAnimations.length > 0" class="pptx-vue-anim-list">
-			<li v-for="(anim, index) in currentAnimations" :key="index" class="pptx-vue-anim-row">
-				<span class="pptx-vue-anim-name">{{ presetLabel(anim) }}</span>
-				<span class="pptx-vue-anim-trigger">{{ triggerLabel(anim.trigger) }}</span>
+		<ul
+			v-if="currentAnimations.length > 0"
+			class="pptx-vue-anim-list flex flex-col gap-1 m-0 p-0 list-none"
+		>
+			<li
+				v-for="(anim, index) in currentAnimations"
+				:key="index"
+				class="pptx-vue-anim-row flex items-center gap-2 rounded border border-border bg-muted px-1.5 py-1"
+			>
+				<span
+					class="pptx-vue-anim-name flex-1 font-medium overflow-hidden text-ellipsis whitespace-nowrap"
+				>
+					{{ presetLabel(anim) }}
+				</span>
+				<span class="pptx-vue-anim-trigger text-muted-foreground">{{
+					triggerLabel(anim.trigger)
+				}}</span>
 				<button
 					type="button"
-					class="pptx-vue-anim-remove"
+					class="pptx-vue-anim-remove inline-flex items-center justify-center w-5 h-5 p-0 rounded border-none bg-transparent text-muted-foreground text-base leading-none cursor-pointer transition-colors hover:bg-destructive/10 hover:text-destructive"
 					:aria-label="`Remove ${presetLabel(anim)}`"
 					title="Remove animation"
 					@click="removeAnimation(index)"
@@ -183,16 +200,20 @@ function removeAnimation(index: number): void {
 				</button>
 			</li>
 		</ul>
-		<p v-else class="pptx-vue-anim-empty">No animations</p>
+		<p v-else class="pptx-vue-anim-empty text-muted-foreground">No animations</p>
 
-		<div class="pptx-vue-anim-add">
-			<div class="pptx-vue-anim-add-title">Add animation</div>
+		<div class="pptx-vue-anim-add flex flex-col gap-1.5 pt-2 border-t border-border">
+			<div
+				class="pptx-vue-anim-add-title text-[11px] uppercase tracking-wide text-muted-foreground"
+			>
+				Add animation
+			</div>
 
-			<label class="pptx-vue-anim-field">
-				<span class="pptx-vue-anim-label">Category</span>
+			<label class="pptx-vue-anim-field flex flex-col gap-1">
+				<span class="pptx-vue-anim-label text-muted-foreground">Category</span>
 				<select
 					v-model="category"
-					class="pptx-vue-anim-select"
+					class="pptx-vue-anim-select w-full bg-muted border border-border rounded px-2 py-1"
 					aria-label="Animation category"
 					@change="onCategoryChange"
 				>
@@ -202,18 +223,26 @@ function removeAnimation(index: number): void {
 				</select>
 			</label>
 
-			<label class="pptx-vue-anim-field">
-				<span class="pptx-vue-anim-label">Effect</span>
-				<select v-model="presetId" class="pptx-vue-anim-select" aria-label="Animation preset">
+			<label class="pptx-vue-anim-field flex flex-col gap-1">
+				<span class="pptx-vue-anim-label text-muted-foreground">Effect</span>
+				<select
+					v-model="presetId"
+					class="pptx-vue-anim-select w-full bg-muted border border-border rounded px-2 py-1"
+					aria-label="Animation preset"
+				>
 					<option v-for="preset in presetChoices" :key="preset.presetId" :value="preset.presetId">
 						{{ preset.label }}
 					</option>
 				</select>
 			</label>
 
-			<label class="pptx-vue-anim-field">
-				<span class="pptx-vue-anim-label">Start</span>
-				<select v-model="trigger" class="pptx-vue-anim-select" aria-label="Animation trigger">
+			<label class="pptx-vue-anim-field flex flex-col gap-1">
+				<span class="pptx-vue-anim-label text-muted-foreground">Start</span>
+				<select
+					v-model="trigger"
+					class="pptx-vue-anim-select w-full bg-muted border border-border rounded px-2 py-1"
+					aria-label="Animation trigger"
+				>
 					<option v-for="opt in TRIGGER_OPTIONS" :key="opt.value" :value="opt.value">
 						{{ opt.label }}
 					</option>
@@ -222,7 +251,7 @@ function removeAnimation(index: number): void {
 
 			<button
 				type="button"
-				class="pptx-vue-anim-add-btn"
+				class="pptx-vue-anim-add-btn rounded bg-primary text-white px-2 py-1.5 transition-colors hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
 				:disabled="!presetId"
 				@click="addAnimation"
 			>
@@ -231,129 +260,3 @@ function removeAnimation(index: number): void {
 		</div>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-anim-panel {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-	padding: 0.5rem;
-	border: 1px solid var(--pptx-vue-border, #d4d4d8);
-	border-radius: 0.375rem;
-	background: var(--pptx-vue-card, #fff);
-	font-size: 0.75rem;
-}
-
-.pptx-vue-anim-heading {
-	font-size: 0.6875rem;
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
-	color: var(--pptx-vue-muted, #71717a);
-}
-
-.pptx-vue-anim-list {
-	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-.pptx-vue-anim-row {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	padding: 0.25rem 0.375rem;
-	border: 1px solid var(--pptx-vue-border, #d4d4d8);
-	border-radius: 0.25rem;
-	background: var(--pptx-vue-muted-bg, #f4f4f5);
-}
-
-.pptx-vue-anim-name {
-	flex: 1;
-	font-weight: 500;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.pptx-vue-anim-trigger {
-	color: var(--pptx-vue-muted, #71717a);
-}
-
-.pptx-vue-anim-remove {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 1.25rem;
-	height: 1.25rem;
-	padding: 0;
-	border: none;
-	border-radius: 0.25rem;
-	background: transparent;
-	color: var(--pptx-vue-muted, #71717a);
-	font-size: 1rem;
-	line-height: 1;
-	cursor: pointer;
-}
-
-.pptx-vue-anim-remove:hover {
-	background: var(--pptx-vue-danger-bg, #fee2e2);
-	color: var(--pptx-vue-danger, #dc2626);
-}
-
-.pptx-vue-anim-empty {
-	margin: 0;
-	color: var(--pptx-vue-muted, #71717a);
-}
-
-.pptx-vue-anim-add {
-	display: flex;
-	flex-direction: column;
-	gap: 0.375rem;
-	padding-top: 0.5rem;
-	border-top: 1px solid var(--pptx-vue-border, #d4d4d8);
-}
-
-.pptx-vue-anim-add-title {
-	font-size: 0.6875rem;
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
-	color: var(--pptx-vue-muted, #71717a);
-}
-
-.pptx-vue-anim-field {
-	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
-}
-
-.pptx-vue-anim-label {
-	color: var(--pptx-vue-muted, #71717a);
-}
-
-.pptx-vue-anim-select {
-	width: 100%;
-	padding: 0.25rem 0.5rem;
-	border: 1px solid var(--pptx-vue-border, #d4d4d8);
-	border-radius: 0.25rem;
-	background: var(--pptx-vue-muted-bg, #f4f4f5);
-	font-size: 0.75rem;
-}
-
-.pptx-vue-anim-add-btn {
-	padding: 0.375rem 0.5rem;
-	border: 1px solid var(--pptx-vue-border, #d4d4d8);
-	border-radius: 0.25rem;
-	background: var(--pptx-vue-primary, #2563eb);
-	color: #fff;
-	font-size: 0.75rem;
-	cursor: pointer;
-}
-
-.pptx-vue-anim-add-btn:disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
-}
-</style>

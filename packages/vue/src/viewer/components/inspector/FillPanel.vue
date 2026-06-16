@@ -65,14 +65,16 @@ function onOpacity(value: string): void {
 </script>
 
 <template>
-	<div class="pptx-vue-fill">
-		<p v-if="!applicable" class="pptx-vue-fill-note">No fill options</p>
+	<div class="pptx-vue-fill flex flex-col gap-2 text-xs">
+		<p v-if="!applicable" class="pptx-vue-fill-note text-muted-foreground italic">
+			No fill options
+		</p>
 
 		<template v-else>
-			<label class="pptx-vue-fill-field">
-				<span class="pptx-vue-fill-label">Fill</span>
+			<label class="pptx-vue-fill-field flex flex-col gap-1">
+				<span class="pptx-vue-fill-label text-muted-foreground">Fill</span>
 				<select
-					class="pptx-vue-fill-select"
+					class="pptx-vue-fill-select bg-muted border border-border rounded px-2 py-1"
 					:value="fillMode"
 					@change="onMode(($event.target as HTMLSelectElement).value)"
 				>
@@ -82,21 +84,23 @@ function onOpacity(value: string): void {
 				</select>
 			</label>
 
-			<label v-if="fillMode === 'solid'" class="pptx-vue-fill-field">
-				<span class="pptx-vue-fill-label">Color</span>
+			<label v-if="fillMode === 'solid'" class="pptx-vue-fill-field flex flex-col gap-1">
+				<span class="pptx-vue-fill-label text-muted-foreground">Color</span>
 				<input
 					type="color"
-					class="pptx-vue-fill-color"
+					class="pptx-vue-fill-color w-full h-8 p-0 bg-muted border border-border rounded"
 					:value="fillColor"
 					@input="onColor(($event.target as HTMLInputElement).value)"
 				/>
 			</label>
 
-			<label v-if="fillMode === 'solid'" class="pptx-vue-fill-field">
-				<span class="pptx-vue-fill-label">Opacity ({{ fillOpacityPercent }}%)</span>
+			<label v-if="fillMode === 'solid'" class="pptx-vue-fill-field flex flex-col gap-1">
+				<span class="pptx-vue-fill-label text-muted-foreground"
+					>Opacity ({{ fillOpacityPercent }}%)</span
+				>
 				<input
 					type="range"
-					class="pptx-vue-fill-range"
+					class="pptx-vue-fill-range w-full accent-primary"
 					min="0"
 					max="100"
 					:value="fillOpacityPercent"
@@ -106,48 +110,3 @@ function onOpacity(value: string): void {
 		</template>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-fill {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-	font-size: 0.75rem;
-}
-
-.pptx-vue-fill-note {
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-	font-style: italic;
-}
-
-.pptx-vue-fill-field {
-	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
-}
-
-.pptx-vue-fill-label {
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
-.pptx-vue-fill-select {
-	border: 1px solid var(--pptx-vue-border, #d1d5db);
-	border-radius: 0.25rem;
-	padding: 0.25rem 0.5rem;
-	background: var(--pptx-vue-muted, #f3f4f6);
-	color: inherit;
-}
-
-.pptx-vue-fill-color {
-	width: 100%;
-	height: 2rem;
-	padding: 0;
-	border: 1px solid var(--pptx-vue-border, #d1d5db);
-	border-radius: 0.25rem;
-	background: var(--pptx-vue-muted, #f3f4f6);
-}
-
-.pptx-vue-fill-range {
-	width: 100%;
-}
-</style>

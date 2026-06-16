@@ -63,34 +63,36 @@ function valueInputType(type: string): string {
 </script>
 
 <template>
-	<div class="pptx-vue-docprops-custom">
-		<p class="pptx-vue-docprops-custom-desc">
+	<div class="pptx-vue-docprops-custom flex flex-col gap-3">
+		<p class="pptx-vue-docprops-custom-desc text-xs text-muted-foreground">
 			Custom properties let you store additional metadata with the presentation.
 		</p>
 
-		<div class="pptx-vue-docprops-custom-head">
+		<div
+			class="pptx-vue-docprops-custom-head grid grid-cols-[1fr_1fr_100px_32px] items-center gap-1 px-1 text-[11px] font-medium text-muted-foreground"
+		>
 			<span>Name</span>
 			<span>Value</span>
 			<span>Type</span>
 			<span />
 		</div>
 
-		<div class="pptx-vue-docprops-custom-rows">
+		<div class="pptx-vue-docprops-custom-rows flex max-h-[240px] flex-col gap-1 overflow-y-auto">
 			<div
 				v-for="(prop, index) in customProperties"
 				:key="`custom-prop-${index}`"
-				class="pptx-vue-docprops-custom-row"
+				class="pptx-vue-docprops-custom-row grid grid-cols-[1fr_1fr_100px_32px] items-center gap-1"
 			>
 				<input
 					type="text"
-					class="pptx-vue-docprops-custom-input"
+					class="pptx-vue-docprops-custom-input w-full rounded border border-border bg-muted px-2 py-1 text-xs text-foreground placeholder-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
 					placeholder="Name"
 					:value="prop.name"
 					@input="onNameInput(index, $event)"
 				/>
 				<select
 					v-if="prop.type === 'bool'"
-					class="pptx-vue-docprops-custom-input"
+					class="pptx-vue-docprops-custom-input w-full rounded border border-border bg-muted px-2 py-1 text-xs text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
 					:value="prop.value"
 					@change="onValueInput(index, $event)"
 				>
@@ -100,13 +102,13 @@ function valueInputType(type: string): string {
 				<input
 					v-else
 					:type="valueInputType(prop.type)"
-					class="pptx-vue-docprops-custom-input"
+					class="pptx-vue-docprops-custom-input w-full rounded border border-border bg-muted px-2 py-1 text-xs text-foreground placeholder-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
 					placeholder="Value"
 					:value="prop.value"
 					@input="onValueInput(index, $event)"
 				/>
 				<select
-					class="pptx-vue-docprops-custom-input"
+					class="pptx-vue-docprops-custom-input w-full rounded border border-border bg-muted px-2 py-1 text-xs text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
 					:value="prop.type"
 					@change="onTypeInput(index, $event)"
 				>
@@ -116,7 +118,7 @@ function valueInputType(type: string): string {
 				</select>
 				<button
 					type="button"
-					class="pptx-vue-docprops-custom-delete"
+					class="pptx-vue-docprops-custom-delete inline-flex h-6 w-6 items-center justify-center rounded p-0 text-base leading-none text-muted-foreground transition-colors hover:bg-red-500/20 hover:text-red-400"
 					aria-label="Delete property"
 					@click="handleDelete(index)"
 				>
@@ -125,109 +127,19 @@ function valueInputType(type: string): string {
 			</div>
 		</div>
 
-		<p v-if="customProperties.length === 0" class="pptx-vue-docprops-custom-empty">
+		<p
+			v-if="customProperties.length === 0"
+			class="pptx-vue-docprops-custom-empty py-4 text-center text-xs text-muted-foreground/60"
+		>
 			No custom properties yet.
 		</p>
 
-		<button type="button" class="pptx-vue-docprops-custom-add" @click="handleAdd">
+		<button
+			type="button"
+			class="pptx-vue-docprops-custom-add inline-flex items-center gap-1.5 self-start rounded-md border border-border px-2.5 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
+			@click="handleAdd"
+		>
 			+ Add property
 		</button>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-docprops-custom {
-	display: flex;
-	flex-direction: column;
-	gap: 0.75rem;
-}
-
-.pptx-vue-docprops-custom-desc {
-	margin: 0;
-	font-size: 0.75rem;
-	color: var(--pptx-vue-muted-foreground, #9a9a9a);
-}
-
-.pptx-vue-docprops-custom-head,
-.pptx-vue-docprops-custom-row {
-	display: grid;
-	grid-template-columns: 1fr 1fr 100px 28px;
-	gap: 0.25rem;
-	align-items: center;
-}
-
-.pptx-vue-docprops-custom-head {
-	font-size: 0.6875rem;
-	font-weight: 500;
-	color: var(--pptx-vue-muted-foreground, #9a9a9a);
-	padding: 0 0.25rem;
-}
-
-.pptx-vue-docprops-custom-rows {
-	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
-	max-height: 240px;
-	overflow-y: auto;
-}
-
-.pptx-vue-docprops-custom-input {
-	width: 100%;
-	padding: 0.25rem 0.5rem;
-	border-radius: 0.25rem;
-	border: 1px solid var(--pptx-vue-border, #2a2a2a);
-	background: var(--pptx-vue-muted, #1a1a1a);
-	color: var(--pptx-vue-foreground, #e5e5e5);
-	font-size: 0.75rem;
-}
-
-.pptx-vue-docprops-custom-input:focus {
-	outline: none;
-	border-color: var(--pptx-vue-primary, #6366f1);
-	box-shadow: 0 0 0 1px var(--pptx-vue-primary, #6366f1);
-}
-
-.pptx-vue-docprops-custom-delete {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 24px;
-	height: 24px;
-	padding: 0;
-	font-size: 16px;
-	line-height: 1;
-	color: var(--pptx-vue-muted-foreground, #9a9a9a);
-	background: transparent;
-	border: none;
-	border-radius: 0.25rem;
-	cursor: pointer;
-}
-
-.pptx-vue-docprops-custom-delete:hover {
-	color: #f87171;
-	background: rgba(248, 113, 113, 0.15);
-}
-
-.pptx-vue-docprops-custom-empty {
-	margin: 0;
-	padding: 1rem 0;
-	text-align: center;
-	font-size: 0.75rem;
-	color: var(--pptx-vue-muted-foreground, #777);
-}
-
-.pptx-vue-docprops-custom-add {
-	align-self: flex-start;
-	padding: 0.375rem 0.625rem;
-	border-radius: 0.375rem;
-	border: 1px solid var(--pptx-vue-border, #2a2a2a);
-	background: transparent;
-	color: var(--pptx-vue-foreground, #e5e5e5);
-	font-size: 0.75rem;
-	cursor: pointer;
-}
-
-.pptx-vue-docprops-custom-add:hover {
-	background: var(--pptx-vue-muted, #1a1a1a);
-}
-</style>

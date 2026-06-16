@@ -132,7 +132,7 @@ function confirmPrint(): void {
 
 <template>
 	<ModalDialog :open="open" title="Print" @close="close">
-		<div class="pptx-vue-print-body">
+		<div class="pptx-vue-print-body flex min-w-[480px] gap-5">
 			<PrintSettingsPanel
 				:print-what="printWhat"
 				:orientation="orientation"
@@ -155,10 +155,20 @@ function confirmPrint(): void {
 			/>
 
 			<!-- Lightweight preview for handout / notes layouts -->
-			<div v-if="showHandoutPreview || showNotesPreview" class="pptx-vue-print-preview">
-				<span class="pptx-vue-print-preview-title">Preview</span>
+			<div
+				v-if="showHandoutPreview || showNotesPreview"
+				class="pptx-vue-print-preview flex w-[180px] shrink-0 flex-col items-center gap-2.5 border-l border-border pl-4"
+			>
+				<span
+					class="pptx-vue-print-preview-title text-[10px] uppercase tracking-wide text-muted-foreground"
+				>
+					Preview
+				</span>
 
-				<div v-if="previewSlideIndices.length === 0" class="pptx-vue-print-preview-empty">
+				<div
+					v-if="previewSlideIndices.length === 0"
+					class="pptx-vue-print-preview-empty flex h-full items-center justify-center text-xs text-muted-foreground"
+				>
 					No slides
 				</div>
 
@@ -200,16 +210,20 @@ function confirmPrint(): void {
 		</div>
 
 		<template #footer>
-			<span class="pptx-vue-print-estimate">
+			<span class="pptx-vue-print-estimate mr-auto text-xs text-muted-foreground">
 				{{ pageCount }} {{ pageCount === 1 ? 'page' : 'pages' }} · {{ slideCount }}
 				{{ slideCount === 1 ? 'slide' : 'slides' }}
 			</span>
-			<button type="button" class="pptx-vue-print-btn pptx-vue-print-btn--secondary" @click="close">
+			<button
+				type="button"
+				class="pptx-vue-print-btn pptx-vue-print-btn--secondary rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+				@click="close"
+			>
 				Cancel
 			</button>
 			<button
 				type="button"
-				class="pptx-vue-print-btn pptx-vue-print-btn--primary"
+				class="pptx-vue-print-btn pptx-vue-print-btn--primary rounded-lg bg-primary px-4 py-2 text-sm text-white transition-colors hover:bg-primary/90"
 				@click="confirmPrint"
 			>
 				Print
@@ -219,39 +233,6 @@ function confirmPrint(): void {
 </template>
 
 <style scoped>
-.pptx-vue-print-body {
-	display: flex;
-	gap: 20px;
-	min-width: 480px;
-}
-
-.pptx-vue-print-preview {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 10px;
-	flex-shrink: 0;
-	width: 180px;
-	padding-left: 16px;
-	border-left: 1px solid var(--pptx-vue-border, #e5e7eb);
-}
-
-.pptx-vue-print-preview-title {
-	font-size: 10px;
-	letter-spacing: 0.04em;
-	text-transform: uppercase;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
-.pptx-vue-print-preview-empty {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	height: 100%;
-	font-size: 12px;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
 .pptx-vue-print-preview-page {
 	width: 130px;
 	height: 184px;
@@ -307,34 +288,5 @@ function confirmPrint(): void {
 .pptx-vue-print-preview-line {
 	height: 0;
 	border-bottom: 1px solid #d1d5db;
-}
-
-.pptx-vue-print-estimate {
-	margin-right: auto;
-	font-size: 12px;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-}
-
-.pptx-vue-print-btn {
-	padding: 6px 14px;
-	font-size: 13px;
-	border-radius: 6px;
-	border: 1px solid transparent;
-	cursor: pointer;
-}
-
-.pptx-vue-print-btn--primary {
-	color: var(--pptx-vue-primary-foreground, #ffffff);
-	background: var(--pptx-vue-primary, #2563eb);
-}
-
-.pptx-vue-print-btn--secondary {
-	color: var(--pptx-vue-foreground, #111827);
-	background: transparent;
-	border-color: var(--pptx-vue-border, #e5e7eb);
-}
-
-.pptx-vue-print-btn--secondary:hover {
-	background: var(--pptx-vue-muted, #f3f4f6);
 }
 </style>

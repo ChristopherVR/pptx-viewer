@@ -151,37 +151,16 @@ const renderedText = computed<string>(() => {
 </script>
 
 <template>
-	<div v-if="visible" class="pptx-vue-subtitle-bar">
-		<div class="pptx-vue-subtitle-inner">
-			<p class="pptx-vue-subtitle-text">{{ renderedText }}</p>
+	<div
+		v-if="visible"
+		class="pptx-vue-subtitle-bar absolute bottom-14 left-1/2 z-[70] max-w-[80%] min-w-[300px] -translate-x-1/2"
+	>
+		<div
+			class="pptx-vue-subtitle-inner rounded-lg border border-white/10 bg-black/75 px-6 py-3 backdrop-blur-sm"
+		>
+			<p class="pptx-vue-subtitle-text m-0 text-center text-[15px] italic text-white/70">
+				{{ renderedText }}
+			</p>
 		</div>
 	</div>
 </template>
-
-<style scoped>
-.pptx-vue-subtitle-bar {
-	position: absolute;
-	bottom: 56px;
-	left: 50%;
-	transform: translateX(-50%);
-	z-index: 70;
-	max-width: 80%;
-	min-width: 300px;
-}
-
-.pptx-vue-subtitle-inner {
-	padding: 12px 24px;
-	border-radius: 8px;
-	background: rgba(0, 0, 0, 0.75);
-	backdrop-filter: blur(4px);
-	border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.pptx-vue-subtitle-text {
-	margin: 0;
-	text-align: center;
-	font-size: 15px;
-	font-style: italic;
-	color: rgba(255, 255, 255, 0.7);
-}
-</style>

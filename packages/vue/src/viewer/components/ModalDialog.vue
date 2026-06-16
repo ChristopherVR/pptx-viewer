@@ -74,20 +74,28 @@ onBeforeUnmount(() => {
 
 <template>
 	<Teleport to="body">
-		<div v-if="open" class="pptx-vue-modal-backdrop" @click="onBackdropClick">
+		<div
+			v-if="open"
+			class="pptx-vue-modal-backdrop fixed inset-0 z-[1000] flex items-center justify-center bg-black/50"
+			@click="onBackdropClick"
+		>
 			<div
-				class="pptx-vue-modal-panel"
+				class="pptx-vue-modal-panel flex max-h-[88vh] min-w-[320px] max-w-[min(92vw,480px)] flex-col overflow-hidden rounded-lg border border-border bg-popover text-foreground shadow-2xl"
 				role="dialog"
 				aria-modal="true"
 				:aria-label="title"
 				@click.stop
 			>
-				<header class="pptx-vue-modal-header">
-					<h2 v-if="title" class="pptx-vue-modal-title">{{ title }}</h2>
+				<header
+					class="pptx-vue-modal-header flex items-center justify-between gap-3 border-b border-border px-4 py-3"
+				>
+					<h2 v-if="title" class="pptx-vue-modal-title text-sm font-semibold leading-snug">
+						{{ title }}
+					</h2>
 					<span v-else />
 					<button
 						type="button"
-						class="pptx-vue-modal-close"
+						class="pptx-vue-modal-close inline-flex h-6 w-6 items-center justify-center rounded text-lg leading-none text-muted-foreground hover:bg-muted hover:text-foreground"
 						aria-label="Close"
 						@click="requestClose"
 					>
@@ -95,90 +103,17 @@ onBeforeUnmount(() => {
 					</button>
 				</header>
 
-				<div class="pptx-vue-modal-body">
+				<div class="pptx-vue-modal-body overflow-y-auto p-4">
 					<slot />
 				</div>
 
-				<footer v-if="$slots.footer" class="pptx-vue-modal-footer">
+				<footer
+					v-if="$slots.footer"
+					class="pptx-vue-modal-footer flex justify-end gap-2 border-t border-border px-4 py-3"
+				>
 					<slot name="footer" />
 				</footer>
 			</div>
 		</div>
 	</Teleport>
 </template>
-
-<style scoped>
-.pptx-vue-modal-backdrop {
-	position: fixed;
-	inset: 0;
-	z-index: 1000;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background: rgba(0, 0, 0, 0.45);
-}
-
-.pptx-vue-modal-panel {
-	display: flex;
-	flex-direction: column;
-	min-width: 320px;
-	max-width: min(92vw, 480px);
-	max-height: 88vh;
-	overflow: hidden;
-	background: var(--pptx-vue-popover, #ffffff);
-	color: var(--pptx-vue-foreground, #111827);
-	border: 1px solid var(--pptx-vue-border, #e5e7eb);
-	border-radius: var(--pptx-vue-radius, 8px);
-	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
-}
-
-.pptx-vue-modal-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
-	padding: 12px 16px;
-	border-bottom: 1px solid var(--pptx-vue-border, #e5e7eb);
-}
-
-.pptx-vue-modal-title {
-	margin: 0;
-	font-size: 14px;
-	font-weight: 600;
-	line-height: 1.4;
-}
-
-.pptx-vue-modal-close {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 24px;
-	height: 24px;
-	padding: 0;
-	font-size: 18px;
-	line-height: 1;
-	color: var(--pptx-vue-muted-foreground, #6b7280);
-	background: transparent;
-	border: none;
-	border-radius: 4px;
-	cursor: pointer;
-}
-
-.pptx-vue-modal-close:hover {
-	color: var(--pptx-vue-foreground, #111827);
-	background: var(--pptx-vue-muted, #f3f4f6);
-}
-
-.pptx-vue-modal-body {
-	padding: 16px;
-	overflow-y: auto;
-}
-
-.pptx-vue-modal-footer {
-	display: flex;
-	justify-content: flex-end;
-	gap: 8px;
-	padding: 12px 16px;
-	border-top: 1px solid var(--pptx-vue-border, #e5e7eb);
-}
-</style>
