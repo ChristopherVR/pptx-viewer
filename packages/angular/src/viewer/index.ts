@@ -229,6 +229,12 @@ export type {
 	PrintDocumentOptions,
 } from './print-helpers';
 
+// Presentation annotations + subtitles
+export { PresentationAnnotationsService } from './presentation-annotations.service';
+export { PresentationAnnotationOverlayComponent } from './presentation-annotation-overlay.component';
+export { PresentationSubtitleBarComponent } from './presentation-subtitle-bar.component';
+export type { AnnotationStroke, PresentationTool } from './presentation-annotations-helpers';
+
 // Presentation transitions + presenter view
 export { PresentationTransitionOverlayComponent } from './presentation-transition-overlay.component';
 export { PresenterViewComponent } from './presenter-view.component';

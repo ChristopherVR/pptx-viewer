@@ -18,12 +18,15 @@ import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
 import { AnimationPlaybackService } from './animation-playback.service';
+import { PresentationAnnotationOverlayComponent } from './presentation-annotation-overlay.component';
+import { PresentationAnnotationsService } from './presentation-annotations.service';
 import {
 	clampIndex,
 	fitZoom,
 	nextVisibleIndex,
 	prevVisibleIndex,
 } from './presentation-overlay-helpers';
+import { PresentationSubtitleBarComponent } from './presentation-subtitle-bar.component';
 import { PresentationTransitionOverlayComponent } from './presentation-transition-overlay.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
 
@@ -61,8 +64,14 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 	selector: 'pptx-presentation-overlay',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle, SlideCanvasComponent, PresentationTransitionOverlayComponent],
-	providers: [AnimationPlaybackService],
+	imports: [
+		NgStyle,
+		SlideCanvasComponent,
+		PresentationTransitionOverlayComponent,
+		PresentationAnnotationOverlayComponent,
+		PresentationSubtitleBarComponent,
+	],
+	providers: [AnimationPlaybackService, PresentationAnnotationsService],
 	styles: `
 		:host {
 			display: block;
@@ -84,6 +93,38 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 		.pptx-ng-presentation-close:hover,
 		.pptx-ng-presentation-nav:hover {
 			background: rgba(0, 0, 0, 0.75);
+		}
+
+		.pptx-ng-presentation-tools {
+			position: absolute;
+			bottom: max(1rem, env(safe-area-inset-bottom));
+			left: 50%;
+			transform: translateX(-50%);
+			display: flex;
+			gap: 0.25rem;
+			padding: 0.25rem;
+			border-radius: 0.5rem;
+			background: rgba(0, 0, 0, 0.55);
+			z-index: 80;
+		}
+
+		.pptx-ng-presentation-tools button {
+			width: 2rem;
+			height: 2rem;
+			border: none;
+			border-radius: 0.35rem;
+			background: transparent;
+			color: #fff;
+			font-size: 1rem;
+			cursor: pointer;
+		}
+
+		.pptx-ng-presentation-tools button:hover {
+			background: rgba(255, 255, 255, 0.15);
+		}
+
+		.pptx-ng-presentation-tools button.is-active {
+			background: rgba(255, 255, 255, 0.3);
 		}
 	`,
 	template: `
@@ -115,6 +156,59 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 						(complete)="activeTransition.set(null)"
 					/>
 				}
+
+				<!-- Ink annotation overlay (pen/highlighter/eraser/laser). -->
+				<pptx-presentation-annotation-overlay [canvasSize]="canvasSize()" [zoom]="zoom()" />
+			</div>
+
+			<!-- Live-caption (subtitle) bar. -->
+			<pptx-presentation-subtitle-bar [visible]="subtitlesVisible()" />
+
+			<!-- Annotation tool toolbar (bottom-centre). -->
+			<div class="pptx-ng-presentation-tools" role="toolbar" aria-label="Annotation tools">
+				<button
+					type="button"
+					[class.is-active]="annotations.tool() === 'pen'"
+					(click)="selectTool('pen')"
+					aria-label="Pen"
+				>
+					✎
+				</button>
+				<button
+					type="button"
+					[class.is-active]="annotations.tool() === 'highlighter'"
+					(click)="selectTool('highlighter')"
+					aria-label="Highlighter"
+				>
+					▭
+				</button>
+				<button
+					type="button"
+					[class.is-active]="annotations.tool() === 'eraser'"
+					(click)="selectTool('eraser')"
+					aria-label="Eraser"
+				>
+					⌫
+				</button>
+				<button
+					type="button"
+					[class.is-active]="annotations.tool() === 'laser'"
+					(click)="selectTool('laser')"
+					aria-label="Laser pointer"
+				>
+					•
+				</button>
+				<button type="button" (click)="annotations.clearAnnotations()" aria-label="Clear ink">
+					🗑
+				</button>
+				<button
+					type="button"
+					[class.is-active]="subtitlesVisible()"
+					(click)="toggleSubtitles()"
+					aria-label="Live captions"
+				>
+					CC
+				</button>
 			</div>
 
 			<!-- Always-visible close button (top-right, safe-area aware). -->
@@ -193,6 +287,11 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 
 	/** Click-stepped element-animation playback for the current slide. */
 	protected readonly playback = inject(AnimationPlaybackService);
+
+	/** Ink-annotation state (pen/highlighter/eraser/laser) for the show. */
+	protected readonly annotations = inject(PresentationAnnotationsService);
+	/** Whether the live-caption bar is shown. */
+	protected readonly subtitlesVisible = signal(false);
 
 	/** The slide stage root — animation styles are applied to its elements. */
 	private readonly stageRef = viewChild<ElementRef<HTMLElement>>('stage');
@@ -460,7 +559,21 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 		if (event.button !== 0) {
 			return;
 		}
+		// A drawing tool owns pointer gestures — don't hijack them to advance.
+		if (this.annotations.tool() !== 'none') {
+			return;
+		}
 		this.navigate('next');
+	}
+
+	/** Toggle an annotation tool (clicking the active one disarms it). */
+	protected selectTool(tool: 'pen' | 'highlighter' | 'eraser' | 'laser'): void {
+		this.annotations.setTool(tool);
+	}
+
+	/** Toggle the live-caption (subtitle) bar. */
+	protected toggleSubtitles(): void {
+		this.subtitlesVisible.update((v) => !v);
 	}
 
 	/** Close button click — stop propagation so it does not also advance. */
@@ -598,6 +711,7 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 				this.activeTransition.set(null);
 			}
 			this.currentIndex.set(next);
+			this.annotations.setActiveSlide(next);
 			this.indexChange.emit(next);
 		}
 	}
