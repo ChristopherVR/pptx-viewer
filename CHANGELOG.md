@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.21](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.21) - 2026-06-16
+
+### 🧪 Testing
+
+- **e2e:** Run one Playwright suite against both React and Vue demos (by @ChristopherVR) ([4762782](https://github.com/ChristopherVR/pptx-viewer/commit/476278229417fdbd550faa0b241d2b16819a3fe6))
+
 ## [1.1.20](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.20) - 2026-06-16
 
 ### 🚀 Features
@@ -15,6 +21,7 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### 📚 Documentation
 
 - **angular:** Record depth batch (chart overlays, text warp, annotations, transitions) (by @ChristopherVR) ([e68f07e](https://github.com/ChristopherVR/pptx-viewer/commit/e68f07e3a56ba881bbd0f178e518695baf34d139))
+- **changelog:** Update for v1.1.20 [skip ci] (by @github-actions[bot]) ([d4e0a95](https://github.com/ChristopherVR/pptx-viewer/commit/d4e0a956a782ef52cc30a7d2fd4958c8146ff773))
 
 ## [1.1.19](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.19) - 2026-06-15
 
