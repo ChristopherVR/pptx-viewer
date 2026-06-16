@@ -4,7 +4,21 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.22](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.22) - 2026-06-16
+
+### 🚀 Features
+
+- Development on visual parity for Vue (by @ChristopherVR) ([7d6d787](https://github.com/ChristopherVR/pptx-viewer/commit/7d6d7871075b4d31a69663e8f922076dbba5ee57))
+
+### 🛠️ Build & CI
+
+- **vue:** Adopt Tailwind 4 pipeline for chrome visual parity with React (by @ChristopherVR) ([451dacc](https://github.com/ChristopherVR/pptx-viewer/commit/451dacc831d41e620749f8403a2183d4e8b853df))
+
 ## [1.1.21](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.21) - 2026-06-16
+
+### 📚 Documentation
+
+- **changelog:** Update for v1.1.21 [skip ci] (by @github-actions[bot]) ([833cdb5](https://github.com/ChristopherVR/pptx-viewer/commit/833cdb59f619f9aaee3ed01a17162e43da4feb2f))
 
 ### 🧪 Testing
 
@@ -22,6 +36,10 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 - **angular:** Record depth batch (chart overlays, text warp, annotations, transitions) (by @ChristopherVR) ([e68f07e](https://github.com/ChristopherVR/pptx-viewer/commit/e68f07e3a56ba881bbd0f178e518695baf34d139))
 - **changelog:** Update for v1.1.20 [skip ci] (by @github-actions[bot]) ([d4e0a95](https://github.com/ChristopherVR/pptx-viewer/commit/d4e0a956a782ef52cc30a7d2fd4958c8146ff773))
+
+### 🧪 Testing
+
+- **e2e:** Run one Playwright suite against both React and Vue demos (by @ChristopherVR) ([7737fe1](https://github.com/ChristopherVR/pptx-viewer/commit/7737fe1a07343ebb04a79c47217172d77891bc2b))
 
 ## [1.1.19](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.19) - 2026-06-15
 
