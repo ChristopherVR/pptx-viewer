@@ -34,6 +34,12 @@ import {
 import type { InteractionBox, ResizeHandleId } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 
+import {
+	getDraggedShapeAdjustmentValue,
+	getShapeAdjustmentHandleDescriptor,
+} from '../composables/shape-adjustment';
+import type { ShapeAdjustmentHandleDescriptor } from '../composables/shape-adjustment';
+
 const props = defineProps<{
 	elements: PptxElement[];
 	selectedIds: string[];
@@ -49,11 +55,27 @@ export interface TransformPayload {
 	rotation: number;
 }
 
+export interface AdjustPayload {
+	id: string;
+	value: number;
+}
+
 const emit = defineEmits<{
 	transformStart: [payload: { id: string }];
 	transform: [payload: TransformPayload];
 	transformEnd: [payload: TransformPayload];
+	adjustStart: [payload: { id: string }];
+	adjust: [payload: AdjustPayload];
+	adjustEnd: [payload: AdjustPayload];
+	/** A tap (no drag) on an already-selected element — enter inline edit. */
+	requestEdit: [payload: { id: string }];
 }>();
+
+/** The adjustment-handle descriptor for a selected element, or null. */
+function adjustDescriptorFor(id: string): ShapeAdjustmentHandleDescriptor | null {
+	const el = props.elements.find((e) => e.id === id);
+	return el ? getShapeAdjustmentHandleDescriptor(el) : null;
+}
 
 // ---------------------------------------------------------------------------
 // Geometry of currently-selected elements
@@ -98,7 +120,7 @@ const IS_COARSE_POINTER: boolean =
 // Active gesture state
 // ---------------------------------------------------------------------------
 
-type GestureKind = 'move' | 'resize' | 'rotate';
+type GestureKind = 'move' | 'resize' | 'rotate' | 'adjust';
 
 interface Gesture {
 	kind: GestureKind;
@@ -113,6 +135,8 @@ interface Gesture {
 	/** Shift held — used for rotation snap. */
 	shift: boolean;
 	last: TransformPayload;
+	/** Start state for an `adjust` gesture (round-rect corner radius). */
+	adjust?: { startAdjustment: number; lastValue: number };
 }
 
 const gesture = ref<Gesture | null>(null);
@@ -198,6 +222,42 @@ function beginGesture(
 	emit('transformStart', { id });
 }
 
+/** Begin a round-rect corner-radius adjustment gesture (the amber diamond). */
+function beginAdjust(id: string, event: PointerEvent): void {
+	const box = boxForId(id);
+	const descriptor = adjustDescriptorFor(id);
+	if (!box || !descriptor) {
+		return;
+	}
+	event.preventDefault();
+	event.stopPropagation();
+	const startBox: InteractionBox = {
+		x: box.x,
+		y: box.y,
+		width: box.width,
+		height: box.height,
+		rotation: box.rotation ?? 0,
+	};
+	gesture.value = {
+		kind: 'adjust',
+		id,
+		pointerId: event.pointerId,
+		startClientX: event.clientX,
+		startClientY: event.clientY,
+		startBox,
+		moved: false,
+		shift: false,
+		last: payloadFromBox(id, startBox),
+		adjust: { startAdjustment: descriptor.value, lastValue: descriptor.value },
+	};
+	const target = event.currentTarget as HTMLElement | null;
+	target?.setPointerCapture?.(event.pointerId);
+	window.addEventListener('pointermove', onPointerMove);
+	window.addEventListener('pointerup', onPointerUp);
+	window.addEventListener('pointercancel', onPointerUp);
+	emit('adjustStart', { id });
+}
+
 function onPointerMove(event: PointerEvent): void {
 	const g = gesture.value;
 	if (!g || event.pointerId !== g.pointerId) {
@@ -210,6 +270,28 @@ function onPointerMove(event: PointerEvent): void {
 		g.moved = true;
 	}
 	if (!g.moved) {
+		return;
+	}
+
+	// Round-rect corner-radius adjustment — emits `adjust`, not a geometry transform.
+	if (g.kind === 'adjust' && g.adjust) {
+		const deltaXel = dxScreen / (props.zoom || 1);
+		const value = getDraggedShapeAdjustmentValue(
+			{
+				elementId: g.id,
+				key: 'adj',
+				shapeType: 'roundrect',
+				startClientX: g.startClientX,
+				startClientY: g.startClientY,
+				startAdjustment: g.adjust.startAdjustment,
+				startWidth: g.startBox.width,
+				startHeight: g.startBox.height,
+				moved: g.moved,
+			},
+			deltaXel,
+		);
+		g.adjust.lastValue = value;
+		emit('adjust', { id: g.id, value });
 		return;
 	}
 
@@ -239,9 +321,17 @@ function onPointerUp(event: PointerEvent): void {
 		return;
 	}
 	detachGlobalListeners();
-	// Emit a final commit. If the gesture never moved, `last` is the start box,
-	// which is a harmless no-op commit (consumers can short-circuit identical).
-	emit('transformEnd', g.last);
+	if (g.kind === 'adjust' && g.adjust) {
+		emit('adjustEnd', { id: g.id, value: g.adjust.lastValue });
+	} else if (g.kind === 'move' && !g.moved) {
+		// A tap on the already-selected element (no drag) → enter inline edit,
+		// mirroring React's "click selected element again to edit".
+		emit('requestEdit', { id: g.id });
+	} else {
+		// Emit a final commit. If the gesture never moved, `last` is the start box,
+		// which is a harmless no-op commit (consumers can short-circuit identical).
+		emit('transformEnd', g.last);
+	}
 	gesture.value = null;
 }
 
@@ -311,6 +401,15 @@ function rotateKnobStyle(box: SelectedBox): Record<string, string> {
 		top: `${-ROTATE_STEM}px`,
 	};
 }
+
+function adjustHandleStyle(box: SelectedBox): Record<string, string> {
+	const descriptor = adjustDescriptorFor(box.id);
+	return {
+		left: `${descriptor?.left ?? 0}px`,
+		top: `${descriptor?.top ?? 0}px`,
+		cursor: descriptor?.cursor ?? 'ew-resize',
+	};
+}
 </script>
 
 <template>
@@ -352,6 +451,16 @@ function rotateKnobStyle(box: SelectedBox): Record<string, string> {
 				:aria-label="`Resize ${meta.id}`"
 				@pointerdown="(e) => beginGesture('resize', box.id, e, meta.id)"
 			/>
+
+			<!-- Shape adjustment handle (amber diamond) — round-rect corner radius -->
+			<button
+				v-if="adjustDescriptorFor(box.id)"
+				type="button"
+				class="pptx-vue-adjust-handle"
+				:style="adjustHandleStyle(box)"
+				aria-label="Adjust shape"
+				@pointerdown="(e) => beginAdjust(box.id, e)"
+			/>
 		</div>
 	</div>
 </template>
@@ -377,11 +486,12 @@ function rotateKnobStyle(box: SelectedBox): Record<string, string> {
 .pptx-vue-selection-body {
 	position: absolute;
 	inset: 0;
-	pointer-events: auto;
+	/* The body never intercepts pointer events — move + inline-edit entry are
+	   driven from the element itself (host pointer delegation), so taps reach the
+	   underlying element (required for e2e actionability + double-tap-to-edit).
+	   Only the resize/rotate/adjust handles capture. */
+	pointer-events: none;
 	cursor: move;
-	/* The body owns the move gesture: stop the browser from hijacking the touch
-	   for panning/pinch-zoom so a finger drag actually moves the element. */
-	touch-action: none;
 }
 
 .pptx-vue-resize-handle {
@@ -437,5 +547,26 @@ function rotateKnobStyle(box: SelectedBox): Record<string, string> {
 	width: 24px;
 	height: 24px;
 	margin: -12px 0 0 -12px;
+}
+
+/* Shape-adjustment handle — amber diamond (rotate 45°), mirrors React. */
+.pptx-vue-adjust-handle {
+	position: absolute;
+	width: 10px;
+	height: 10px;
+	margin: -5px 0 0 -5px;
+	padding: 0;
+	border: 1px solid #ffffff;
+	background: #fcd34d;
+	transform: rotate(45deg);
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+	pointer-events: auto;
+	touch-action: none;
+}
+
+.pptx-vue-selection-overlay.is-coarse-pointer .pptx-vue-adjust-handle {
+	width: 22px;
+	height: 22px;
+	margin: -11px 0 0 -11px;
 }
 </style>

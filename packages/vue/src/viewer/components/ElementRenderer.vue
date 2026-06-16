@@ -43,6 +43,13 @@ const props = defineProps<{
 	element: PptxElement;
 	mediaDataUrls: Map<string, string>;
 	zIndex: number;
+	/**
+	 * When true, emit the `data-pptx-element` test/interaction hook. Only the
+	 * primary editable canvas sets this — thumbnails, the sorter, the export
+	 * stage and presentation mode render the same elements without it, so the
+	 * e2e selectors resolve to exactly the on-canvas elements.
+	 */
+	interactive?: boolean;
 }>();
 
 const containerStyle = computed<CSSProperties>(() =>
@@ -165,6 +172,7 @@ const placeholderLabel = computed(() => {
 		class="pptx-vue-element pptx-vue-group"
 		:style="containerStyle"
 		:data-element-id="element.id"
+		:data-pptx-element="interactive ? 'true' : undefined"
 	>
 		<ElementRenderer
 			v-for="(child, i) in element.children ?? []"
@@ -172,6 +180,7 @@ const placeholderLabel = computed(() => {
 			:element="child"
 			:media-data-urls="mediaDataUrls"
 			:z-index="i"
+			:interactive="interactive"
 		/>
 	</div>
 
@@ -181,6 +190,7 @@ const placeholderLabel = computed(() => {
 		class="pptx-vue-element pptx-vue-image"
 		:style="containerStyle"
 		:data-element-id="element.id"
+		:data-pptx-element="interactive ? 'true' : undefined"
 	>
 		<!-- SVG <filter> defs for duotone / advanced-alpha / artistic image effects. -->
 		<svg
@@ -216,6 +226,7 @@ const placeholderLabel = computed(() => {
 		class="pptx-vue-element pptx-vue-media"
 		:style="containerStyle"
 		:data-element-id="element.id"
+		:data-pptx-element="interactive ? 'true' : undefined"
 	>
 		<img
 			v-if="imageSrc"
@@ -303,6 +314,7 @@ const placeholderLabel = computed(() => {
 		class="pptx-vue-element pptx-vue-shape"
 		:style="shapeDivStyle"
 		:data-element-id="element.id"
+		:data-pptx-element="interactive ? 'true' : undefined"
 	>
 		<!-- Warped text (WordArt) renders as SVG textPath in place of plain runs -->
 		<WordArtText v-if="isWarpedText" :element="element" :z-index="0" />
@@ -322,6 +334,7 @@ const placeholderLabel = computed(() => {
 		class="pptx-vue-element pptx-vue-unsupported"
 		:style="containerStyle"
 		:data-element-id="element.id"
+		:data-pptx-element="interactive ? 'true' : undefined"
 	>
 		<div class="pptx-vue-placeholder">{{ placeholderLabel }}</div>
 	</div>

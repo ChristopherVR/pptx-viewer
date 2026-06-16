@@ -20,6 +20,8 @@ const props = withDefaults(
 		canvasSize: CanvasSize;
 		mediaDataUrls: Map<string, string>;
 		scale?: number;
+		/** Mark elements with the `data-pptx-element` interaction hook (main canvas only). */
+		interactive?: boolean;
 	}>(),
 	{ scale: 1 },
 );
@@ -48,6 +50,7 @@ const stageStyle = computed<CSSProperties>(() => ({
 			:element="element"
 			:media-data-urls="mediaDataUrls"
 			:z-index="index"
+			:interactive="interactive"
 		/>
 		<!-- Optional editing overlay (selection handles, etc.) shares this scaled space -->
 		<slot />

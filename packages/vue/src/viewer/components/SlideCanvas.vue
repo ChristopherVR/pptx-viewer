@@ -86,13 +86,20 @@ watch(() => [props.canvasSize.width, props.canvasSize.height], recomputeFit);
 </script>
 
 <template>
-	<div ref="viewportRef" class="pptx-vue-canvas-viewport">
-		<div class="pptx-vue-canvas-wrapper" :style="wrapperStyle">
+	<div ref="viewportRef" class="pptx-vue-canvas-viewport" data-pptx-viewport>
+		<div
+			class="pptx-vue-canvas-wrapper"
+			:style="wrapperStyle"
+			role="region"
+			aria-roledescription="slide"
+			aria-label="Slide"
+		>
 			<SlideStage
 				:slide="slide"
 				:canvas-size="canvasSize"
 				:media-data-urls="mediaDataUrls"
 				:scale="scale"
+				interactive
 			>
 				<slot />
 			</SlideStage>

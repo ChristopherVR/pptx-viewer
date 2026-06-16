@@ -35,6 +35,7 @@ const emit = defineEmits<{
 	'zoom-in': [];
 	'zoom-out': [];
 	present: [];
+	notes: [];
 	menu: [];
 }>();
 
@@ -97,6 +98,10 @@ const counterLabel = computed(
 			<span aria-hidden="true">▶</span>
 		</button>
 
+		<button type="button" class="pptx-vue-mobile-btn" aria-label="Notes" @click="emit('notes')">
+			<span aria-hidden="true">📝</span>
+		</button>
+
 		<button
 			type="button"
 			class="pptx-vue-mobile-btn"
@@ -114,23 +119,28 @@ const counterLabel = computed(
 	bottom: 0;
 	left: 0;
 	right: 0;
-	z-index: 30;
+	z-index: 40;
 	display: flex;
 	align-items: stretch;
-	justify-content: center;
-	gap: 0.125rem;
-	padding: 0.25rem 0.5rem;
+	justify-content: space-between;
+	gap: 0;
+	padding: 0.25rem;
 	padding-bottom: max(env(safe-area-inset-bottom), 0.25rem);
 	border-top: 1px solid var(--pptx-border, rgba(0, 0, 0, 0.12));
 	background: var(--pptx-surface, rgba(255, 255, 255, 0.92));
 	backdrop-filter: blur(8px);
+	/* Never overflow the viewport width — every control gets an equal share
+	   (mirrors React's `flex-1` bottom bar) so the rightmost buttons (Notes,
+	   More) stay on-screen and tappable on narrow phones. */
+	overflow: hidden;
 }
 
 .pptx-vue-mobile-btn {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	min-width: 44px;
+	flex: 1 1 0;
+	min-width: 0;
 	min-height: 44px;
 	padding: 0;
 	border: none;
@@ -167,18 +177,21 @@ const counterLabel = computed(
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	min-width: 44px;
+	flex: 1 1 0;
+	min-width: 0;
 	min-height: 44px;
-	padding: 0 0.25rem;
-	font-size: 0.8125rem;
+	padding: 0 0.125rem;
+	font-size: 0.75rem;
 	font-variant-numeric: tabular-nums;
 	color: var(--pptx-fg-muted, #4b5563);
 	user-select: none;
+	white-space: nowrap;
 }
 
 .pptx-vue-mobile-divider {
+	flex: 0 0 1px;
 	width: 1px;
-	margin: 0.5rem 0.125rem;
+	margin: 0.5rem 0.0625rem;
 	background: var(--pptx-border, rgba(0, 0, 0, 0.12));
 }
 </style>

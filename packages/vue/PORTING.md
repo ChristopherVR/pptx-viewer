@@ -749,3 +749,32 @@ Record<string, string | number>`; `TableRenderer.vue` now imports them from
     matches React at the feature level.** Only-remaining: conflict-resolving CRDT
     merge depth, and the per-binding GIF-encoder duplication (shared-extraction
     candidate).
+
+- **2026-06-16** — Shared e2e suite (React + Vue), phases 1–3. The Playwright suite
+  (`e2e/*.spec.ts`) now runs the **same spec bodies against both demos** —
+  `playwright.config.ts` has projects `react`@4173 + `vue`@4175, each with its own
+  `webServer` — and passes on both (**16/16 green**). **(1)** Ported the three pure
+  helpers the specs' features need as Vue-local modules (`composables/{format-painter,
+shape-adjustment,remap-text}.ts` + 56 ported tests; shared extraction deferred to
+  avoid churn in the active React session). **(2)** Built the three missing editor
+  features in Vue: **format painter** (arm/copy/apply/cancel + `EditorToolbar` button
+  `data-testid="format-painter-toggle"` + neutral `data-active`), **inline text
+  editing** (`InlineTextEditor.vue` `[data-inline-editor]`, entered by tapping an
+  already-selected element, commit on blur/tap-away via `remapTextToSegments`), and
+  **shape-adjustment handles** (amber diamond in `SelectionOverlay`,
+  `aria-label="Adjust shape"`, hidden while presenting). Move/drag + tap-to-edit moved
+  off the full-cover selection-body onto the element (host pointer delegation) so taps
+  reach the element. Emitted the neutral DOM contract: gated `data-pptx-element="true"`
+  to the **interactive** canvas only (threaded `interactive` prop — not thumbnails/
+  sorter/export/presentation), `aria-roledescription="slide"` + `data-pptx-viewport`
+  on the main stage/viewport, `#slide-notes-content` + `textarea[name="slide-notes"]`,
+  a mobile **Notes** button. **(3)** Neutralized the specs (`bg-amber-600`→`[data-active]`,
+  `.overflow-auto`→`[data-pptx-viewport]`, dead stage selector→`[aria-roledescription="slide"]`),
+  added the two neutral hooks to React (`data-active` on both painter buttons,
+  `data-pptx-viewport` on the viewport), gave demo-vue a `#file-input` drop-zone, and
+  made the runner multi-project. Aligned the Vue edit canvas to React's
+  **authored-size + scrollable** model (dropped the auto-`fitScale`) and fixed mobile
+  layout (hide desktop rail < 768px, flex bottom-bar, responsive demo header) so
+  position-based touch specs match. 1207 vue unit tests still green; typecheck/lint/fmt
+  clean; build green, dist self-contained. **Next: phase 4 — adopt Tailwind in the Vue
+  chrome for utility-for-utility visual parity with React.**

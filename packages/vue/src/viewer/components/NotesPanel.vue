@@ -79,9 +79,10 @@ function toggle(): void {
 			<span class="pptx-vue-notes-chevron" aria-hidden="true">{{ collapsed ? '▸' : '▾' }}</span>
 		</button>
 
-		<div v-show="!collapsed" class="pptx-vue-notes-body">
+		<div v-show="!collapsed" id="slide-notes-content" class="pptx-vue-notes-body">
 			<textarea
 				ref="textareaRef"
+				name="slide-notes"
 				class="pptx-vue-notes-textarea"
 				:disabled="!hasSlide"
 				:placeholder="hasSlide ? 'Add speaker notes…' : 'No slide selected'"
