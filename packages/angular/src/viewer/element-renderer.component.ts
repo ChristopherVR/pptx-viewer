@@ -22,6 +22,8 @@ import { OleRendererComponent } from './ole-renderer.component';
 import { SmartArtRendererComponent } from './smart-art-renderer.component';
 import { TableRendererComponent } from './table-renderer.component';
 import { bulletIndentPx, resolveParagraphBullet } from './text-bullets';
+import { getTextWarp } from './text-warp';
+import type { TextWarpPathDef } from './text-warp';
 import { ZoomRendererComponent } from './zoom-renderer.component';
 
 interface TextRun {
@@ -198,8 +200,45 @@ interface Paragraph {
 					[ngStyle]="shapeContainerStyle()"
 					[attr.data-element-id]="element().id"
 				>
-					@if (hasText()) {
-						<div class="pptx-ng-text" [ngStyle]="textStyle()">
+					@if (pathWarp(); as warp) {
+						<svg
+							[attr.width]="warp.width"
+							[attr.height]="warp.height"
+							[attr.viewBox]="'0 0 ' + warp.width + ' ' + warp.height"
+							style="position: absolute; inset: 0; overflow: visible; pointer-events: none"
+							aria-hidden="true"
+						>
+							<defs>
+								@for (line of warp.pathLines; track line.pathId) {
+									<path [attr.id]="line.pathId" [attr.d]="line.d" fill="none" />
+								}
+							</defs>
+							@for (line of warp.pathLines; track line.pathId) {
+								<text
+									[attr.font-size]="warp.baseFontSize"
+									[attr.font-family]="warp.baseFontFamily"
+									[attr.fill]="warp.baseColor"
+								>
+									<textPath
+										[attr.href]="'#' + line.pathId"
+										[attr.startOffset]="warp.startOffset"
+										[attr.text-anchor]="warp.textAnchor"
+									>
+										@for (seg of line.segments; track $index) {
+											<tspan
+												[attr.fill]="seg.style?.color ?? warp.baseColor"
+												[attr.font-weight]="seg.style?.bold ? 700 : 400"
+												[attr.font-style]="seg.style?.italic ? 'italic' : 'normal'"
+											>
+												{{ seg.text }}
+											</tspan>
+										}
+									</textPath>
+								</text>
+							}
+						</svg>
+					} @else if (hasText()) {
+						<div class="pptx-ng-text" [ngStyle]="warpedTextStyle()">
 							@for (para of paragraphs(); track $index) {
 								<p class="pptx-ng-para" [style.padding-left.px]="para.indentPx">
 									@if (para.bulletMarker) {
@@ -305,6 +344,23 @@ export class ElementRendererComponent {
 	}));
 	readonly textStyle = computed<StyleMap>(() => getTextBlockStyle(this.element()));
 	readonly imageSrc = computed(() => getImageSrc(this.element(), this.mediaDataUrls()));
+
+	/** Text-warp (WordArt) descriptor for the element, if any. */
+	readonly textWarp = computed(() => getTextWarp(this.element()));
+	/** Only the SVG-textPath warp variant (for the `<svg>` overlay branch). */
+	readonly pathWarp = computed<TextWarpPathDef | undefined>(() => {
+		const w = this.textWarp();
+		return w?.strategy === 'path' ? w : undefined;
+	});
+	/** Text block style, folding in a CSS-transform warp when present. */
+	readonly warpedTextStyle = computed<StyleMap>(() => {
+		const base = this.textStyle();
+		const w = this.textWarp();
+		if (w?.strategy === 'css') {
+			return { ...base, transform: w.cssTransform, 'transform-origin': w.cssTransformOrigin };
+		}
+		return base;
+	});
 
 	readonly children = computed<PptxElement[]>(() => {
 		const el = this.element();

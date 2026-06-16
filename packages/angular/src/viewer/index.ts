@@ -263,6 +263,9 @@ export {
 export { buildDuotoneFilter, buildDuotoneFilterId } from './duotone-filter';
 export type { DuotoneFilterDef } from './duotone-filter';
 export { getResolvedShapeClipPath, getResolvedShapeClipPathFor } from './shape-geometry';
+export { getTextWarp, getWarpCategory } from './text-warp';
+export type { TextWarpDef, TextWarpPathDef, TextWarpCssDef } from './text-warp';
+export { getWarpPath, shouldUseSvgWarp, SVG_WARP_PRESETS } from './warp-path-generators';
 export { getSlideBackgroundStyle, DEFAULT_SLIDE_BACKGROUND } from './slide-background';
 export { resolveHyperlinkHref, isUrlSafe, isPpactionUrl } from './hyperlink';
 export { buildCssGradientFromShapeStyle } from './color-gradient';
