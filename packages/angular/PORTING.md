@@ -531,6 +531,29 @@ frontier is **editing** and the remaining advanced subsystems.
 > wired into the default chrome: comments, **digital signatures** (parts-read),
 > accessibility, embedded fonts, collaboration/Yjs with **share & broadcast**
 > dialogs, the dialog suite, print, presentation transitions, presenter view.
+
+- **2026-06-16 (depth/cosmetic batch — subagents)** — Closed the remaining
+  depth gaps via new-files-only subagents + orchestrator integration; test
+  count **1935 → 2108**:
+  - **Chart overlays** (`chart-overlays.ts`): regression **trendlines**
+    (linear/exp/log/poly/movingAvg), **error bars**, **axis titles** (y rotated
+    via a new optional `SvgText.transform` + a `text` case in the chart
+    primitive `@switch`), and a **data-table** grid — appended to the cartesian
+    view-model.
+  - **Text warp / WordArt** (`warp-path-generators.ts` + `text-warp.ts`): 21 SVG
+    `<textPath>` presets + envelope/simple **CSS-transform** presets, rendered
+    in `ElementRenderer` (path → inline `<svg><textPath>`, css → folded into the
+    text block). Fixed a path/css routing mismatch (`SVG_WARP_PRESETS` kept in
+    sync with `getWarpCategory`).
+  - **Presentation annotations** (`presentation-annotations.service.ts` +
+    overlay + subtitle bar): pen/highlighter/eraser/laser ink with per-slide
+    storage + a **live-caption** bar (Web Speech API), wired into the
+    presentation overlay with a tool toolbar; tap-to-advance suppressed while a
+    tool is armed.
+  - **Transition catalogue**: the exotic 3-D family (pan/gallery/conveyor/
+    reveal/doors/switch/flythrough/ferris/prism/ripple/honeycomb/glitter/shred/
+    flash) now maps to the closest 2-D CSS transition instead of a plain fade.
+
 > **Full feature parity reached** with the React viewer/editor. The final gaps
 > are now closed: **animation playback** plays in the presentation overlay
 > (gated forward navigation reveals each click-group; reveal/pending CSS applied
