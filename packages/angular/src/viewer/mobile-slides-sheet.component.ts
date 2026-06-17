@@ -74,6 +74,7 @@ const THUMB_W = 160;
 								[mediaDataUrls]="mediaDataUrls()"
 								[zoom]="thumbZoom()"
 								[editable]="false"
+								[autoFit]="false"
 							/>
 						</div>
 

@@ -61,6 +61,7 @@ const THUMB_W = 150;
 									[mediaDataUrls]="mediaDataUrls()"
 									[zoom]="thumbZoom()"
 									[editable]="false"
+									[autoFit]="false"
 								/>
 							</div>
 						</button>

@@ -202,6 +202,14 @@ export class SlideCanvasComponent {
 	readonly zoom = input<number>(1);
 	/** When true, elements are selectable and drag/resize handles are shown. */
 	readonly editable = input<boolean>(false);
+	/**
+	 * When true (default), the stage auto-fits the slide to the scroll viewport so
+	 * the user's `zoom` is relative to "fit". Thumbnail consumers (slides panel,
+	 * slide sorter) pass an explicit fit-to-width `zoom` and set this `false`, so
+	 * their `zoom` is the sole scale — otherwise the two scales compound and the
+	 * thumbnail shrinks to near-invisible.
+	 */
+	readonly autoFit = input<boolean>(true);
 	/** Ids of currently-selected elements (drawn with a selection outline). */
 	readonly selectedIds = input<readonly string[]>([]);
 	/** Id of the element currently being text-edited inline (or null). */
@@ -318,6 +326,12 @@ export class SlideCanvasComponent {
 	 * reserving the 1rem gutter + drop shadow. Sets fitScale to 1 when unmeasured.
 	 */
 	private recomputeFit(): void {
+		// Thumbnail consumers manage their own scale via `zoom` — keep fit at 1 so
+		// the two scales don't compound.
+		if (!this.autoFit()) {
+			this.fitScale.set(1);
+			return;
+		}
 		const el = this.viewportRef()?.nativeElement;
 		const size = this.canvasSize();
 		if (!el || !size.width || !size.height) {

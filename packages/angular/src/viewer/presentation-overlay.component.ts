@@ -145,6 +145,7 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 					[canvasSize]="canvasSize()"
 					[mediaDataUrls]="mediaDataUrls()"
 					[zoom]="zoom()"
+					[autoFit]="false"
 				/>
 
 				@if (activeTransition(); as t) {
