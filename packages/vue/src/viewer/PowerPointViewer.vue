@@ -19,6 +19,7 @@ import {
 	createGroupElement,
 	createShapeElement,
 	createTextElement,
+	hasTextProperties,
 } from 'pptx-viewer-core';
 import type {
 	MasterViewTab,
@@ -26,6 +27,7 @@ import type {
 	PptxHeaderFooter,
 	PptxSlide,
 	PptxSlideTransition,
+	TextStyle,
 } from 'pptx-viewer-core';
 import type { AlignEdge, DistributeAxis } from 'pptx-viewer-shared';
 import { alignElements, applyDragDelta, distributeElements } from 'pptx-viewer-shared';
@@ -62,6 +64,14 @@ import NotesPanel from './components/NotesPanel.vue';
 import PresentationMode from './components/PresentationMode.vue';
 import PrintDialog from './components/PrintDialog.vue';
 import RemoteSelectionOverlay from './components/RemoteSelectionOverlay.vue';
+import type {
+	DrawingTool,
+	RibbonProps,
+	SupportedShapeType,
+	ToolbarSection,
+	ViewerMode,
+} from './components/ribbon/ribbon-types';
+import RibbonToolbar from './components/ribbon/RibbonToolbar.vue';
 import SectionList from './components/SectionList.vue';
 import SelectionOverlay from './components/SelectionOverlay.vue';
 import SettingsDialog from './components/SettingsDialog.vue';
@@ -1291,6 +1301,275 @@ function onEditorKeydown(event: KeyboardEvent): void {
 	shortcuts.handleKeyDown(event);
 }
 
+// ── Office-style ribbon wiring (RibbonToolbar ← React Toolbar.tsx) ────────
+// The desktop chrome is the full Office ribbon. This block adapts the host's
+// existing state + handlers to the `RibbonProps` contract. Capabilities the
+// host does not yet expose (drawing tools, grid/ruler/snap, theme gallery,
+// flip, action buttons, layout gallery) are wired as no-ops for now — the
+// ribbon renders faithfully and the core actions are live.
+const toolbarSection = ref<ToolbarSection>('home');
+const newShapeType = ref<SupportedShapeType>('rect');
+const activeTool = ref<DrawingTool>('select');
+const drawingColor = ref('#000000');
+const drawingWidth = ref(2);
+const inspectorOpen = ref(true);
+const overflowOpen = ref(false);
+
+const ribbonMode = computed<ViewerMode>(() =>
+	presenting.value
+		? 'present'
+		: showMasterView.value
+			? 'master'
+			: props.canEdit
+				? 'edit'
+				: 'preview',
+);
+
+const RIBBON_ALIGN: Record<string, AlignEdge> = {
+	left: 'left',
+	center: 'centerH',
+	right: 'right',
+	top: 'top',
+	middle: 'middle',
+	bottom: 'bottom',
+};
+
+/** Narrow a ribbon `SupportedShapeType` to the EditorToolbar's `ShapePreset`. */
+function toShapePreset(t: SupportedShapeType): ShapePreset {
+	return t === 'ellipse' || t === 'roundRect' || t === 'triangle' ? t : 'rect';
+}
+
+/** Apply a character/paragraph style patch to the selected text element. */
+function ribbonUpdateTextStyle(updates: Partial<TextStyle>): void {
+	const id = selectedElementIds.value[0];
+	if (!id) {
+		return;
+	}
+	const el = activeSlide.value?.elements.find((e) => e.id === id);
+	if (!el || !hasTextProperties(el)) {
+		return;
+	}
+	const textStyle = { ...el.textStyle, ...updates };
+	const segments =
+		el.textSegments && el.textSegments.length > 0
+			? el.textSegments.map((s) => ({ ...s, style: { ...s.style, ...updates } }))
+			: undefined;
+	ops.updateElement(
+		id,
+		(segments ? { textStyle, textSegments: segments } : { textStyle }) as Partial<PptxElement>,
+	);
+}
+
+const noop = (): void => {};
+
+const ribbonProps = computed<RibbonProps>(() => ({
+	mode: ribbonMode.value,
+	canEdit: props.canEdit,
+	isNarrowViewport: isMobile.value,
+	isSidebarCollapsed: false,
+	isInspectorPaneOpen: inspectorOpen.value,
+	isCompactToolbarOpen: true,
+	toolbarSection: toolbarSection.value,
+	scale: zoom.value,
+	canUndo: history.canUndo.value,
+	canRedo: history.canRedo.value,
+	undoLabel: undefined,
+	redoLabel: undefined,
+	findReplaceOpen: findOpen.value,
+	selectedElement: selectedElements.value[0] ?? null,
+	tableEditorState: null,
+	editTemplateMode: false,
+	newShapeType: newShapeType.value,
+	activeTool: activeTool.value,
+	drawingColor: drawingColor.value,
+	drawingWidth: drawingWidth.value,
+	clipboardPayload: clipboard.value ? { kind: 'element' } : null,
+	spellCheckEnabled: false,
+	showGrid: false,
+	showRulers: false,
+	snapToGrid: false,
+	snapToShape: false,
+	isOverflowMenuOpen: overflowOpen.value,
+	layoutOptions: [],
+	customShows: customShows.value,
+	activeCustomShowId: activeCustomShowId.value,
+	isCurrentSlideInActiveShow: false,
+	hasMacros: false,
+	isThemeEditorOpen: false,
+	isThemeGalleryOpen: false,
+	isCommentsPanelOpen: showComments.value,
+	slideCommentCount: activeComments.value.length,
+	formatPainterActive: formatPainterActive.value,
+	canActivateFormatPainter: canActivateFormatPainter.value,
+	isSelectionPaneOpen: false,
+	eyedropperActive: false,
+	showSubtitles: false,
+	activeSlide: activeSlide.value,
+
+	onSetMode: (m) => {
+		if (m === 'present') {
+			startPresenting();
+		} else {
+			presenting.value = false;
+		}
+	},
+	onToggleSidebar: noop,
+	onToggleInspector: () => {
+		inspectorOpen.value = !inspectorOpen.value;
+	},
+	onOpenAnimationPanel: () => {
+		toolbarSection.value = 'animations';
+	},
+	onAddAnimation: noop,
+	onRemoveAnimation: noop,
+	onToggleCompactToolbar: noop,
+	onSetToolbarSection: (sec) => {
+		toolbarSection.value = sec;
+	},
+	onZoomIn: zoomIn,
+	onZoomOut: zoomOut,
+	onZoomToFit: zoomReset,
+	onUndo: history.undo,
+	onRedo: history.redo,
+	onToggleFindReplace: () => {
+		findOpen.value = !findOpen.value;
+	},
+	onSetNewShapeType: (t) => {
+		newShapeType.value = t;
+	},
+	onAddTextBox: addText,
+	onAddShape: () => addShape(toShapePreset(newShapeType.value)),
+	onAddTable: noop,
+	onAddSmartArt: () => {
+		showInsertSmartArt.value = true;
+	},
+	onAddEquation: () => {
+		showEquationEditor.value = true;
+	},
+	onAddActionButton: noop,
+	onInsertField: undefined,
+	onOpenImagePicker: noop,
+	onOpenMediaPicker: noop,
+	onSetActiveTool: (t) => {
+		activeTool.value = t;
+	},
+	onSetDrawingColor: (c) => {
+		drawingColor.value = c;
+	},
+	onSetDrawingWidth: (w) => {
+		drawingWidth.value = w;
+	},
+	onSetEditTemplateMode: noop,
+	onSetSpellCheckEnabled: noop,
+	onSetShowGrid: noop,
+	onSetShowRulers: noop,
+	onSetSnapToGrid: noop,
+	onSetSnapToShape: noop,
+	onAddGuide: noop,
+	onAlignElements: (edge) => {
+		const e = RIBBON_ALIGN[edge];
+		if (e) {
+			onAlign(e);
+		}
+	},
+	onCopy: copySelected,
+	onCut: cutSelected,
+	onPaste: pasteElement,
+	onFlip: noop,
+	onMoveLayer: (dir) => {
+		if (dir === 'forward' || dir === 'up' || dir === 'front') {
+			bringForward();
+		} else {
+			sendBackward();
+		}
+	},
+	onMoveLayerToEdge: (dir) => {
+		if (dir === 'front' || dir === 'forward' || dir === 'up') {
+			bringForward();
+		} else {
+			sendBackward();
+		}
+	},
+	onDuplicate: duplicateSelected,
+	onDelete: deleteSelected,
+	onExportPng,
+	onExportPdf,
+	onExportVideo: onExportWebm,
+	onExportGif,
+	onPackageForSharing: () => {
+		shareOpen.value = true;
+	},
+	onOpenShareDialog: () => {
+		shareOpen.value = true;
+	},
+	onSaveAsPptx: noop,
+	onSaveAsPpsx: noop,
+	onSaveAsPptm: noop,
+	onCopySlideAsImage: noop,
+	onPrint: printer.openPrintDialog,
+	onToggleShortcuts: () => {
+		showShortcuts.value = !showShortcuts.value;
+	},
+	onOpenSettings: () => {
+		showSettings.value = true;
+	},
+	onRunAccessibilityCheck: () => {
+		showA11y.value = true;
+	},
+	onToggleSlideSorter: () => {
+		showSorter.value = true;
+	},
+	onUpdateTextStyle: ribbonUpdateTextStyle,
+	onSetOverflowMenuOpen: (o) => {
+		overflowOpen.value = o;
+	},
+	onInsertSlideFromLayout: () => slideOps.addSlide(),
+	onSetActiveCustomShowId: (id) => {
+		activeCustomShowId.value = id;
+	},
+	onCreateCustomShow: () => {
+		showCustomShows.value = true;
+	},
+	onRenameActiveCustomShow: noop,
+	onDeleteActiveCustomShow: noop,
+	onToggleCurrentSlideInActiveShow: noop,
+	onToggleVersionHistory: () => {
+		showVersionHistory.value = true;
+	},
+	onOpenPasswordProtection: undefined,
+	onOpenDocumentProperties: () => {
+		propertiesOpen.value = true;
+	},
+	onOpenFontEmbedding: undefined,
+	onOpenDigitalSignatures: () => {
+		showSignatures.value = true;
+	},
+	onEnterMasterView: () => {
+		showMasterView.value = true;
+	},
+	onCloseMasterView: () => {
+		showMasterView.value = false;
+	},
+	onEnterPresenterView: undefined,
+	onEnterRehearsalMode: undefined,
+	onToggleThemeEditor: noop,
+	onToggleThemeGallery: noop,
+	onCompare: undefined,
+	onToggleComments: () => {
+		showComments.value = !showComments.value;
+	},
+	onToggleFormatPainter: toggleFormatPainter,
+	onToggleSelectionPane: undefined,
+	onToggleEyedropper: undefined,
+	onOpenSetUpSlideShow: undefined,
+	onOpenBroadcastDialog: () => {
+		broadcastOpen.value = true;
+	},
+	onToggleSubtitles: undefined,
+	onTransitionChange: noop,
+	onApplyTransitionToAll: noop,
+}));
+
 // ── Imperative surface (mirrors the React forwardRef handle) ──────────
 defineExpose<PowerPointViewerExpose>({ getContent });
 </script>
@@ -1322,7 +1601,10 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 
 		<!-- Viewer -->
 		<template v-else>
-			<header v-if="!isMobile" class="pptx-vue-toolbar">
+			<!-- Office-style ribbon (desktop) — full React-parity chrome -->
+			<RibbonToolbar v-if="!isMobile" v-bind="ribbonProps" />
+
+			<header v-if="false" class="pptx-vue-toolbar">
 				<div class="pptx-vue-nav">
 					<button type="button" :disabled="activeSlideIndex <= 0" @click="goPrev">‹</button>
 					<span class="pptx-vue-slide-counter">
@@ -1519,9 +1801,9 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				</div>
 			</header>
 
-			<!-- Editing toolbar -->
+			<!-- Editing toolbar (superseded by RibbonToolbar; kept disabled) -->
 			<EditorToolbar
-				v-if="props.canEdit"
+				v-if="false"
 				:can-undo="history.canUndo.value"
 				:can-redo="history.canRedo.value"
 				:zoom-percent="zoomPercent"
@@ -1542,9 +1824,9 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				@toggle-format-painter="toggleFormatPainter"
 			/>
 
-			<!-- Align / distribute / group -->
+			<!-- Align / distribute / group (superseded by RibbonToolbar; disabled) -->
 			<AlignToolbar
-				v-if="props.canEdit && hasSelection"
+				v-if="false"
 				:can-group="canGroup"
 				:can-ungroup="canUngroup"
 				@align="onAlign"
@@ -1680,7 +1962,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 
 				<!-- Property inspector (single selection, edit mode) -->
 				<InspectorPane
-					v-if="props.canEdit && inspectorElementForPanels"
+					v-if="props.canEdit && inspectorElementForPanels && inspectorOpen"
 					:element="inspectorElementForPanels"
 					@update="onInspectorUpdate"
 				/>

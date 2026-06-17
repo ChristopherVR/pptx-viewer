@@ -54,6 +54,7 @@ export default defineConfig({
 			plugins: [terser({ format: { comments: false } })],
 			external: [
 				'vue',
+				'lucide-vue-next',
 				'jspdf',
 				'html2canvas-pro',
 				'jszip',
