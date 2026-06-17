@@ -29,14 +29,12 @@ import type {
 	PptxSlideTransition,
 	TextStyle,
 } from 'pptx-viewer-core';
-import type { AlignEdge, DistributeAxis } from 'pptx-viewer-shared';
-import { alignElements, applyDragDelta, distributeElements } from 'pptx-viewer-shared';
+import type { AlignEdge } from 'pptx-viewer-shared';
+import { alignElements, applyDragDelta } from 'pptx-viewer-shared';
 import { computed, nextTick, provide, ref, toRef, watch } from 'vue';
 
 import { provideViewerTheme, useThemeStyle } from '../theme';
 import AccessibilityPanel from './components/AccessibilityPanel.vue';
-import AlignToolbar from './components/AlignToolbar.vue';
-import AutosaveIndicator from './components/AutosaveIndicator.vue';
 import BroadcastDialog from './components/BroadcastDialog.vue';
 import CollaborationCursors from './components/CollaborationCursors.vue';
 import CommentsPanel from './components/CommentsPanel.vue';
@@ -46,10 +44,8 @@ import type { ContextMenuItem } from './components/ContextMenu.vue';
 import CustomShowsPanel from './components/CustomShowsPanel.vue';
 import DocumentPropertiesDialog from './components/DocumentPropertiesDialog.vue';
 import type { DocumentPropertiesSavePatch } from './components/DocumentPropertiesDialog.vue';
-import EditorToolbar from './components/EditorToolbar.vue';
 import type { ShapePreset } from './components/EditorToolbar.vue';
 import EquationEditorDialog from './components/EquationEditorDialog.vue';
-import ExportMenu from './components/ExportMenu.vue';
 import FindReplaceBar from './components/FindReplaceBar.vue';
 import FollowModeBar from './components/FollowModeBar.vue';
 import HeaderFooterPanel from './components/HeaderFooterPanel.vue';
@@ -725,6 +721,9 @@ const contextItems = computed<ContextMenuItem[]>(() => [
 	{ id: 'bring-forward', label: 'Bring forward' },
 	{ id: 'send-backward', label: 'Send backward' },
 	{ id: 'sep3', label: '', separator: true },
+	{ id: 'group', label: 'Group', disabled: !canGroup.value },
+	{ id: 'ungroup', label: 'Ungroup', disabled: !canUngroup.value },
+	{ id: 'sep4', label: '', separator: true },
 	{ id: 'hyperlink', label: 'Hyperlink…' },
 ]);
 function onCanvasContextMenu(event: MouseEvent): void {
@@ -771,6 +770,12 @@ function onContextSelect(actionId: string): void {
 			break;
 		case 'send-backward':
 			ops.sendBackward(target);
+			break;
+		case 'group':
+			onGroup();
+			break;
+		case 'ungroup':
+			onUngroup();
 			break;
 		case 'hyperlink':
 			openHyperlinkDialog(target);
@@ -890,7 +895,7 @@ function onTransitionUpdate(transition: PptxSlideTransition | undefined): void {
 	slides.value = nextSlides;
 }
 
-// ── Align / distribute / group ────────────────────────────────────────
+// ── Align / group ─────────────────────────────────────────────────────
 const canGroup = computed(() => selectedElements.value.length >= 2);
 const canUngroup = computed(
 	() => selectedElements.value.length === 1 && selectedElements.value[0]?.type === 'group',
@@ -924,9 +929,6 @@ function applyPositionMap(map: Map<string, { x?: number; y?: number }>): void {
 }
 function onAlign(edge: AlignEdge): void {
 	applyPositionMap(alignElements(selectedElements.value, edge));
-}
-function onDistribute(axis: DistributeAxis): void {
-	applyPositionMap(distributeElements(selectedElements.value, axis));
 }
 function onGroup(): void {
 	const sel = selectedElements.value;
@@ -1363,6 +1365,39 @@ function ribbonUpdateTextStyle(updates: Partial<TextStyle>): void {
 	);
 }
 
+/** Flip the selected elements horizontally / vertically as one history entry. */
+function ribbonFlip(direction: 'horizontal' | 'vertical'): void {
+	const ids = new Set(selectedElementIds.value);
+	const index = activeSlideIndex.value;
+	const slide = slides.value[index];
+	if (ids.size === 0 || !slide) {
+		return;
+	}
+	history.pushHistory();
+	const nextElements = slide.elements.map((el) => {
+		if (!ids.has(el.id)) {
+			return el;
+		}
+		return direction === 'horizontal'
+			? { ...el, flipHorizontal: !el.flipHorizontal }
+			: { ...el, flipVertical: !el.flipVertical };
+	});
+	const nextSlides = slides.value.slice();
+	nextSlides[index] = { ...slide, elements: nextElements };
+	slides.value = nextSlides;
+}
+
+/** Move the first selected element to the front/back of the slide z-order. */
+function ribbonMoveToEdge(dir: string): void {
+	const id = selectedElementIds.value[0];
+	const slide = activeSlide.value;
+	if (!id || !slide) {
+		return;
+	}
+	const toFront = dir === 'front' || dir === 'forward' || dir === 'up';
+	ops.reorder(id, toFront ? slide.elements.length - 1 : 0);
+}
+
 const noop = (): void => {};
 
 const ribbonProps = computed<RibbonProps>(() => ({
@@ -1478,7 +1513,7 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	onCopy: copySelected,
 	onCut: cutSelected,
 	onPaste: pasteElement,
-	onFlip: noop,
+	onFlip: ribbonFlip,
 	onMoveLayer: (dir) => {
 		if (dir === 'forward' || dir === 'up' || dir === 'front') {
 			bringForward();
@@ -1486,13 +1521,7 @@ const ribbonProps = computed<RibbonProps>(() => ({
 			sendBackward();
 		}
 	},
-	onMoveLayerToEdge: (dir) => {
-		if (dir === 'front' || dir === 'forward' || dir === 'up') {
-			bringForward();
-		} else {
-			sendBackward();
-		}
-	},
+	onMoveLayerToEdge: ribbonMoveToEdge,
 	onDuplicate: duplicateSelected,
 	onDelete: deleteSelected,
 	onExportPng,
@@ -1606,237 +1635,6 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 		<template v-else>
 			<!-- Office-style ribbon (desktop) — full React-parity chrome -->
 			<RibbonToolbar v-if="!isMobile" v-bind="ribbonProps" />
-
-			<header v-if="false" class="pptx-vue-toolbar">
-				<div class="pptx-vue-nav">
-					<button type="button" :disabled="activeSlideIndex <= 0" @click="goPrev">‹</button>
-					<span class="pptx-vue-slide-counter">
-						{{ slideCount === 0 ? 0 : activeSlideIndex + 1 }} / {{ slideCount }}
-					</span>
-					<button type="button" :disabled="activeSlideIndex >= slideCount - 1" @click="goNext">
-						›
-					</button>
-				</div>
-				<div class="pptx-vue-zoom">
-					<button type="button" @click="zoomOut">−</button>
-					<button type="button" class="pptx-vue-zoom-value" @click="zoomReset">
-						{{ zoomPercent }}%
-					</button>
-					<button type="button" @click="zoomIn">+</button>
-					<button
-						v-if="slideCount > 0"
-						type="button"
-						class="pptx-vue-present-btn"
-						title="Present"
-						aria-label="Present"
-						@click="startPresenting"
-					>
-						▶
-					</button>
-					<ExportMenu
-						v-if="slideCount > 0"
-						:exporting="isExporting"
-						@export-png="onExportPng"
-						@export-pdf="onExportPdf"
-						@export-gif="onExportGif"
-						@export-webm="onExportWebm"
-					/>
-					<button
-						v-if="slideCount > 0"
-						type="button"
-						class="pptx-vue-print-btn"
-						title="Print"
-						aria-label="Print"
-						@click="printer.openPrintDialog"
-					>
-						🖨
-					</button>
-					<button
-						v-if="slideCount > 0"
-						type="button"
-						class="pptx-vue-sorter-btn"
-						title="Slide sorter"
-						aria-label="Slide sorter"
-						@click="showSorter = true"
-					>
-						▦
-					</button>
-					<button
-						v-if="props.canEdit"
-						type="button"
-						class="pptx-vue-a11y-btn"
-						:title="`Accessibility (${a11y.issueCount.value})`"
-						aria-label="Accessibility checker"
-						@click="showA11y = !showA11y"
-					>
-						♿ {{ a11y.issueCount.value }}
-					</button>
-					<AutosaveIndicator
-						v-if="autosaveEnabled"
-						:status="autosave.status.value"
-						:is-dirty="autosave.isDirty.value"
-					/>
-					<button
-						v-if="props.canEdit"
-						type="button"
-						class="pptx-vue-comments-btn"
-						:title="`Comments (${activeComments.length})`"
-						aria-label="Comments"
-						@click="showComments = !showComments"
-					>
-						💬 {{ activeComments.length }}
-					</button>
-					<button
-						type="button"
-						class="pptx-vue-share-btn"
-						title="Share"
-						aria-label="Share"
-						@click="shareOpen = true"
-					>
-						⤴
-					</button>
-					<button
-						type="button"
-						class="pptx-vue-broadcast-btn"
-						title="Broadcast"
-						aria-label="Broadcast"
-						@click="broadcastOpen = true"
-					>
-						📡
-					</button>
-					<button
-						type="button"
-						class="pptx-vue-props-btn"
-						title="Properties"
-						aria-label="Document properties"
-						@click="propertiesOpen = true"
-					>
-						ⓘ
-					</button>
-					<button
-						type="button"
-						class="pptx-vue-shortcuts-btn"
-						title="Keyboard shortcuts (Ctrl+/)"
-						aria-label="Keyboard shortcuts"
-						@click="showShortcuts = true"
-					>
-						⌨
-					</button>
-					<button
-						v-if="slideMasters.length > 0"
-						type="button"
-						class="pptx-vue-masters-btn"
-						title="Master views"
-						aria-label="Master views"
-						@click="showMasterView = true"
-					>
-						📐
-					</button>
-					<button
-						v-if="props.canEdit"
-						type="button"
-						class="pptx-vue-headerfooter-btn"
-						title="Header &amp; footer"
-						aria-label="Header and footer"
-						@click="showHeaderFooter = true"
-					>
-						▭
-					</button>
-					<button
-						v-if="props.canEdit"
-						type="button"
-						class="pptx-vue-customshows-btn"
-						title="Custom shows"
-						aria-label="Custom shows"
-						@click="showCustomShows = !showCustomShows"
-					>
-						🎬
-					</button>
-					<button
-						v-if="props.canEdit"
-						type="button"
-						class="pptx-vue-insert-smartart-btn"
-						title="Insert SmartArt"
-						aria-label="Insert SmartArt"
-						@click="showInsertSmartArt = true"
-					>
-						🗂
-					</button>
-					<button
-						v-if="props.canEdit"
-						type="button"
-						class="pptx-vue-insert-equation-btn"
-						title="Insert equation"
-						aria-label="Insert equation"
-						@click="showEquationEditor = true"
-					>
-						∑
-					</button>
-					<button
-						v-if="props.canEdit"
-						type="button"
-						class="pptx-vue-history-btn"
-						title="Version history"
-						aria-label="Version history"
-						@click="showVersionHistory = true"
-					>
-						🕑
-					</button>
-					<button
-						type="button"
-						class="pptx-vue-settings-btn"
-						title="Settings"
-						aria-label="Settings"
-						@click="showSettings = true"
-					>
-						⚙
-					</button>
-					<button
-						v-if="signaturesApi.isSigned.value"
-						type="button"
-						class="pptx-vue-sig-btn"
-						:title="`Digital signatures (${signaturesApi.overall.value})`"
-						aria-label="Digital signatures"
-						@click="showSignatures = !showSignatures"
-					>
-						🔏
-					</button>
-				</div>
-			</header>
-
-			<!-- Editing toolbar (superseded by RibbonToolbar; kept disabled) -->
-			<EditorToolbar
-				v-if="false"
-				:can-undo="history.canUndo.value"
-				:can-redo="history.canRedo.value"
-				:zoom-percent="zoomPercent"
-				:has-selection="hasSelection"
-				:format-painter-active="formatPainterActive"
-				:can-activate-format-painter="canActivateFormatPainter"
-				@undo="history.undo"
-				@redo="history.redo"
-				@zoom-in="zoomIn"
-				@zoom-out="zoomOut"
-				@zoom-reset="zoomReset"
-				@add-text="addText"
-				@add-shape="addShape"
-				@delete-selected="deleteSelected"
-				@duplicate-selected="duplicateSelected"
-				@bring-forward="bringForward"
-				@send-backward="sendBackward"
-				@toggle-format-painter="toggleFormatPainter"
-			/>
-
-			<!-- Align / distribute / group (superseded by RibbonToolbar; disabled) -->
-			<AlignToolbar
-				v-if="false"
-				:can-group="canGroup"
-				:can-ungroup="canUngroup"
-				@align="onAlign"
-				@distribute="onDistribute"
-				@group="onGroup"
-				@ungroup="onUngroup"
-			/>
 
 			<!-- Find & replace bar -->
 			<FindReplaceBar
