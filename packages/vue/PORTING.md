@@ -799,3 +799,20 @@ shape-adjustment,remap-text}.ts` + 56 ported tests; shared extraction deferred t
   (`ElementRenderer` paragraph loop ignores `bulletInfo`/`paragraphIndents`), and
   the editor **chrome** is a compact two-row toolbar vs React's full Office-style
   ribbon (File/Home/Insert/… tabs, Font/Paragraph groups, status bar).
+
+- **2026-06-18** — Table-cell text invisible on light tables. Body cells with no
+  explicit text colour (no cell-style colour, band/header emphasis, or per-run
+  colour) inherited the dark-UI chrome `foreground` (near-white `#f3f4f6`) and
+  vanished on the sample deck's "Plans" table (the banded rows were unreadable).
+  React resolves such cells to `DEFAULT_TEXT_COLOR` (`#111827`); `TableRenderer.vue`
+  now applies the same fallback after layering band + cell styles, so header cells
+  keep their explicit white and body cells render dark. Verified live: header
+  `rgb(255,255,255)`, body `rgb(17,24,39)` — exact match with React. +2 table unit
+  tests (1211 vue total green); typecheck clean. _Note for the chrome work:_ the
+  near-white default is a latent risk anywhere slide text lacks a resolved colour —
+  the real root is that slide content inherits the chrome `--pptx-foreground`; a
+  future hardening is to set a dark slide-content text base on `SlideStage` so this
+  can't recur per-renderer.
+  **Also confirmed shared (non-parity) core bug:** `&` renders as literal `&amp;`
+  in slide text (double-encoding) on **both** React and Vue — a `pptx-viewer-core`
+  text-decoding issue, not a binding gap; left for a core fix.
