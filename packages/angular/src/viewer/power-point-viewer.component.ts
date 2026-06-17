@@ -297,6 +297,33 @@ const ZOOM_MAX = 3;
 						</aside>
 					}
 				</div>
+
+				@if (!mobile.isMobile()) {
+					<footer
+						class="flex items-center justify-between border-t border-border bg-secondary/50 px-3 py-1 text-[11px] text-muted-foreground"
+					>
+						<div class="flex items-center gap-3">
+							<span>Slide {{ slideCount() === 0 ? 0 : activeSlideIndex() + 1 }} of {{ slideCount() }}</span>
+							@if (canEdit()) {
+								<span>{{ editor.dirty() ? 'Unsaved changes' : 'All saved' }}</span>
+							}
+						</div>
+						<div class="flex items-center gap-1">
+							<button type="button" class="pptx-rb-icon" aria-label="Speaker notes" (click)="toggleNotes()">≣</button>
+							<button type="button" class="pptx-rb-icon" aria-label="Slide sorter" (click)="showSorter.set(true)">▦</button>
+							<span class="mx-1 h-4 w-px self-center bg-border/50"></span>
+							<button type="button" class="pptx-rb-icon" aria-label="Zoom out" (click)="zoomOut()">−</button>
+							<button
+								type="button"
+								class="pptx-rb-pill min-w-12 justify-center tabular-nums"
+								(click)="zoomReset()"
+							>
+								{{ zoomPercent() }}%
+							</button>
+							<button type="button" class="pptx-rb-icon" aria-label="Zoom in" (click)="zoomIn()">+</button>
+						</div>
+					</footer>
+				}
 			}
 
 			@if (showSorter()) {
