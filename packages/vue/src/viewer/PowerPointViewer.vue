@@ -26,7 +26,6 @@ import type {
 	PptxElement,
 	PptxHeaderFooter,
 	PptxSlide,
-	PptxSlideTransition,
 	TextStyle,
 } from 'pptx-viewer-core';
 import type { AlignEdge } from 'pptx-viewer-shared';
@@ -76,9 +75,8 @@ import ShortcutPanel from './components/ShortcutPanel.vue';
 import SignaturesPanel from './components/SignaturesPanel.vue';
 import SlideCanvas from './components/SlideCanvas.vue';
 import SlideSorter from './components/SlideSorter.vue';
-import SlidesPaneControls from './components/SlidesPaneControls.vue';
+import SlidesPaneSidebar from './components/SlidesPaneSidebar.vue';
 import SlideStage from './components/SlideStage.vue';
-import SlideTransitionPanel from './components/SlideTransitionPanel.vue';
 import StatusBar from './components/StatusBar.vue';
 import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
 import { DEFAULT_VIEWER_SETTINGS } from './components/viewer-settings';
@@ -264,8 +262,6 @@ const effectiveZoom = computed(() => zoom.value);
 
 // ── Thumbnail previews ────────────────────────────────────────────────
 const THUMB_WIDTH = 104; // px — matches the thumbnail rail content width
-const thumbScale = computed(() => THUMB_WIDTH / Math.max(1, canvasSize.value.width));
-const thumbHeight = computed(() => Math.round(canvasSize.value.height * thumbScale.value));
 
 // ── Editing: selection, history, operations ───────────────────────────
 // Composed unconditionally (cheap); the toolbar/overlay/handlers only act when
@@ -663,7 +659,6 @@ const slideOps = useSlideOperations({
 	activeSlideIndex,
 	pushHistory: history.pushHistory,
 });
-const canDeleteSlide = computed(() => slides.value.length > 1);
 
 // ── Clipboard (in-memory element copy/cut/paste) ──────────────────────
 const clipboard = ref<PptxElement | null>(null);
@@ -883,15 +878,15 @@ function onNotesUpdate(notes: string): void {
 }
 
 // ── Slide transition ──────────────────────────────────────────────────
-function onTransitionUpdate(transition: PptxSlideTransition | undefined): void {
-	const index = activeSlideIndex.value;
+/** Toggle the hidden flag on the slide at `index` (from the rail context menu). */
+function toggleSlideHidden(index: number): void {
 	const slide = slides.value[index];
 	if (!slide) {
 		return;
 	}
 	history.pushHistory();
 	const nextSlides = slides.value.slice();
-	nextSlides[index] = { ...slide, transition };
+	nextSlides[index] = { ...slide, hidden: !slide.hidden };
 	slides.value = nextSlides;
 }
 
@@ -1652,22 +1647,25 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 			/>
 
 			<div class="pptx-vue-body">
-				<nav class="pptx-vue-thumbnails" aria-label="Slides">
-					<SlidesPaneControls
-						v-if="props.canEdit"
-						:can-delete="canDeleteSlide"
-						@add="slideOps.addSlide()"
-						@duplicate="slideOps.duplicateSlide(activeSlideIndex)"
-						@delete="slideOps.deleteSlide(activeSlideIndex)"
-					/>
-					<SlideTransitionPanel
-						v-if="props.canEdit && activeSlide"
-						:slide="activeSlide"
-						@update="onTransitionUpdate"
-					/>
-					<!-- Sectioned rail when the deck declares sections; flat otherwise. -->
+				<!-- Flat slide rail (React-parity): number-left thumbnails + Add Slide + context menu -->
+				<SlidesPaneSidebar
+					v-if="!hasSections"
+					:slides="slides"
+					:active-index="activeSlideIndex"
+					:canvas-size="canvasSize"
+					:media-data-urls="mediaDataUrls"
+					:can-edit="props.canEdit"
+					:thumb-width="THUMB_WIDTH"
+					@select="goTo"
+					@reorder="(p) => slideOps.moveSlide(p.from, p.to)"
+					@add-slide="slideOps.addSlide()"
+					@duplicate="(i) => slideOps.duplicateSlide(i)"
+					@delete="(i) => slideOps.deleteSlide(i)"
+					@toggle-hidden="toggleSlideHidden"
+				/>
+				<!-- Sectioned rail when the deck declares sections. -->
+				<nav v-else class="pptx-vue-thumbnails" aria-label="Slides">
 					<SectionList
-						v-if="hasSections"
 						:groups="sectionOps.slidesBySection.value"
 						:canvas-size="canvasSize"
 						:media-data-urls="mediaDataUrls"
@@ -1681,29 +1679,6 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						@delete="sectionOps.deleteSection"
 						@add-section="(idx) => sectionOps.addSection('Untitled Section', idx)"
 					/>
-					<template v-else>
-						<button
-							v-for="(slide, index) in slides"
-							:key="slide.id ?? index"
-							type="button"
-							class="pptx-vue-thumb"
-							:class="{ 'is-active': index === activeSlideIndex }"
-							:style="{ height: `${thumbHeight}px` }"
-							:aria-label="`Slide ${index + 1}`"
-							:aria-current="index === activeSlideIndex ? 'true' : undefined"
-							@click="goTo(index)"
-						>
-							<div class="pptx-vue-thumb-stage" aria-hidden="true">
-								<SlideStage
-									:slide="slide"
-									:canvas-size="canvasSize"
-									:media-data-urls="mediaDataUrls"
-									:scale="thumbScale"
-								/>
-							</div>
-							<span class="pptx-vue-thumb-index">{{ index + 1 }}</span>
-						</button>
-					</template>
 				</nav>
 
 				<main
