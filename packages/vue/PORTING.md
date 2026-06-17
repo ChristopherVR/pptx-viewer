@@ -778,3 +778,24 @@ shape-adjustment,remap-text}.ts` + 56 ported tests; shared extraction deferred t
   position-based touch specs match. 1207 vue unit tests still green; typecheck/lint/fmt
   clean; build green, dist self-contained. **Next: phase 4 — adopt Tailwind in the Vue
   chrome for utility-for-utility visual parity with React.**
+
+- **2026-06-18** — Slide-render fidelity: **font sizes were rendered in `pt`,
+  not `px`**. `element-style.ts` (`getTextBlockStyle`) and `ElementRenderer.vue`
+  (`segmentStyle`) emitted `${fontSize}pt`, inflating every glyph by ~1.33×
+  (96/72) versus React, which renders the parsed size as a unitless CSS px value
+  (so does the inline editor). On the sample deck this pushed the two-line title
+  out of its box and over the subtitle. Fixed to `px`; also added the missing
+  **line-height** (default 1.25 / `lineSpacing` / `lineSpacingExactPt`) and
+  **body-inset padding** (0.1″ L/R, 0.05″ T/B) to mirror React's
+  `getTextStyleForElement`. Verified live against the React demo (title run
+  54px↔54px, line-height 1.25, insets 9.6/4.8px) — slide 1 now matches React.
+  New **framework-agnostic** e2e `e2e/text-rendering.spec.ts` asserts the
+  authored px sizes (54/20/16 on slide 1) off the neutral `[data-pptx-element]`
+  contract + that the title fits its box; passes on **react/vue/angular**. 1209
+  vue unit tests green; vue typecheck clean. Connector/presenter text paths keep
+  `pt` deliberately — React's own `ConnectorTextOverlay` uses `pt` there, so they
+  already match. **Observed next visual-parity targets** (from the live React↔Vue
+  diff): slide 2 bulleted lists render no bullet glyphs/indents in Vue
+  (`ElementRenderer` paragraph loop ignores `bulletInfo`/`paragraphIndents`), and
+  the editor **chrome** is a compact two-row toolbar vs React's full Office-style
+  ribbon (File/Home/Insert/… tabs, Font/Paragraph groups, status bar).
