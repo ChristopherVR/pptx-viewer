@@ -873,5 +873,22 @@ shape-adjustment,remap-text}.ts` + 56 ported tests; shared extraction deferred t
   ribbon + status bar, no dead code. 1217 vue tests green; typecheck + oxlint clean.
   **Still no-op (host lacks the capability):** drawing tools, grid/ruler/snap, theme
   gallery, action buttons, image/media picker, table insert, layout gallery, spell-check,
-  guides, transitions controls. The left **slides rail** still shows the old `Add`/
-  `Duplicate` + Transition panel (vs React's plain thumbnail rail) — next chrome target.
+  guides, transitions controls.
+
+- **2026-06-18** — **Slides rail parity** (`components/SlidesPaneSidebar.vue`, port of
+  React's `SlidesPaneSidebar` + `SlideItem`). Replaced the cluttered rail (Add/Duplicate/
+  Delete controls + per-slide Transition panel + index-badge thumbnails) with React's
+  layout: a fixed-width rail of **number-left thumbnails** (active slide → left primary
+  bar + accent bg + primary thumbnail border, classes verbatim), a bottom **"Add slide"**
+  button, a right-click **slide context menu** (Duplicate / Delete / Hide → new
+  `toggleSlideHidden` host handler), **HTML5 drag-to-reorder** (`slideOps.moveSlide`), and
+  comment-count + hidden-slide overlays. Sectioned decks keep `SectionList`; this is the
+  flat case. Removed the orphaned `SlidesPaneControls`/`SlideTransitionPanel` usages +
+  imports and `onTransitionUpdate`/`canDeleteSlide`/`thumbScale`/`thumbHeight`. Verified
+  live: rail matches React (nav, active bar, Add Slide, context menu, drag-reorder). +6
+  unit tests (1223 vue total green); typecheck + oxlint clean; e2e green. **The desktop
+  chrome is now at React parity** — ribbon + status bar + slides rail. **Follow-up:**
+  per-slide **transition editing** has no UI home now (React's rail has none, its Transitions
+  ribbon tab is inert, and real editing is the Inspector) — port a **Transition panel into
+  the Vue inspector** (transition data still round-trips via `getContent`). Remaining no-op
+  ribbon stubs are unchanged (need host capabilities).
