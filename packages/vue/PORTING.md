@@ -847,3 +847,19 @@ shape-adjustment,remap-text}.ts` + 56 ported tests; shared extraction deferred t
     grid/ruler/snap, theme gallery, flip, action buttons, image/media picker, table insert,
     layout gallery, spell-check, guides, transitions controls. The left slides rail still
     shows the old `Add`/`Duplicate` + Transition panel (vs React's plain thumbnail rail).
+
+- **2026-06-18** — **Bottom status bar** (`components/StatusBar.vue`, Vue port of
+  React's `StatusBar.tsx`). Slide counter + language + autosave status on the left;
+  Notes toggle + view-mode buttons (Normal / Slide Sorter / Slide Show) + zoom controls
+  on the right (classes verbatim; Lucide icons; English literals). Wired into
+  `PowerPointViewer.vue` below the body (`v-if="!isMobile"`): zoom reuses the existing
+  handlers, the view buttons drive present/sorter, and a new `notesExpanded` ref lets the
+  Notes toggle collapse the desktop `NotesPanel`. **The desktop chrome is now
+  ribbon-on-top + status-bar-on-bottom, matching React** (verified live). Confirmed that
+  React keeps **no slide nav in the toolbar** either (thumbnails + keyboard), so the
+  disabled header's loss of prev/next is parity-correct. +6 StatusBar unit tests (1217
+  vue total green); typecheck + oxlint clean. **Remaining chrome cleanup:** the disabled
+  `<header>` / `EditorToolbar` / `AlignToolbar` blocks can be deleted once group/ungroup/
+  distribute (currently only surfaced by the disabled `AlignToolbar`) get a ribbon home or
+  are intentionally dropped; that also removes the orphaned `ExportMenu`/`AutosaveIndicator`
+  imports.
