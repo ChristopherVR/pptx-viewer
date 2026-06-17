@@ -84,11 +84,12 @@ export function MobileMenuSheet(props: MobileMenuSheetProps): React.ReactElement
 	const [active, setActive] = useState<MenuKey>('home');
 
 	return (
-		<MobileSheet open={open} onClose={onClose} fullScreen title='Menu'>
+		<MobileSheet open={open} onClose={onClose} autoHeight title='Menu'>
 			<div className='flex flex-col'>
-				{/* Section selector — horizontally scrollable chips */}
+				{/* Section selector — chips wrap so every section stays reachable
+				    without horizontal scrolling (which hid the trailing sections). */}
 				<div className='sticky top-0 z-10 bg-background border-b border-border'>
-					<div className='flex gap-1.5 overflow-x-auto px-3 py-2 scrollbar-none'>
+					<div className='flex flex-wrap gap-1.5 px-3 py-2'>
 						{MENU_ITEMS.map(({ key, label, icon: Icon }) => (
 							<button
 								key={key}

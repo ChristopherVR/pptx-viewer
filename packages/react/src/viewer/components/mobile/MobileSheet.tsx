@@ -11,6 +11,12 @@ export interface MobileSheetProps {
 	heightFraction?: number;
 	/** When true, sheet covers full viewport. */
 	fullScreen?: boolean;
+	/**
+	 * When true, the sheet sizes to its content (up to 85dvh, then the body
+	 * scrolls). Preferred over `fullScreen` for variable-height content so short
+	 * sections don't leave a large empty void below the controls.
+	 */
+	autoHeight?: boolean;
 	className?: string;
 	/** Extra header content rendered to the right of the title. */
 	headerRight?: React.ReactNode;
@@ -28,6 +34,7 @@ export function MobileSheet({
 	children,
 	heightFraction = 0.6,
 	fullScreen = false,
+	autoHeight = false,
 	className,
 	headerRight,
 }: MobileSheetProps): React.ReactElement | null {
@@ -81,9 +88,11 @@ export function MobileSheet({
 		return null;
 	}
 
-	const heightStyle = fullScreen
-		? { height: 'calc(100dvh - env(safe-area-inset-top))' }
-		: { height: `${Math.round(heightFraction * 100)}dvh` };
+	const heightStyle = autoHeight
+		? { maxHeight: 'calc(85dvh - env(safe-area-inset-top))' }
+		: fullScreen
+			? { height: 'calc(100dvh - env(safe-area-inset-top))' }
+			: { height: `${Math.round(heightFraction * 100)}dvh` };
 
 	return (
 		<div
