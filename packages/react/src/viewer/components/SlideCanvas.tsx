@@ -52,6 +52,7 @@ export function SlideCanvas({
 	onCanvasMouseDown,
 	onResizePointerDown,
 	onAdjustmentPointerDown,
+	onRotate,
 	onInlineEditChange,
 	onInlineEditCommit,
 	onInlineEditCancel,
@@ -96,6 +97,7 @@ export function SlideCanvas({
 		cbRef,
 		stableResizePointerDown,
 		stableAdjustmentPointerDown,
+		stableRotate,
 		stableInlineEditChange,
 		stableInlineEditCommit,
 		stableInlineEditCancel,
@@ -110,6 +112,7 @@ export function SlideCanvas({
 		onContextMenu,
 		onResizePointerDown,
 		onAdjustmentPointerDown,
+		onRotate,
 		onInlineEditChange,
 		onInlineEditCommit,
 		onInlineEditCancel,
@@ -272,6 +275,7 @@ export function SlideCanvas({
 							}
 							onResizePointerDown={stableResizePointerDown}
 							onAdjustmentPointerDown={stableAdjustmentPointerDown}
+							onRotate={stableRotate}
 							onInlineEditChange={stableInlineEditChange}
 							onInlineEditCommit={stableInlineEditCommit}
 							onInlineEditCancel={stableInlineEditCancel}
@@ -319,6 +323,7 @@ export function SlideCanvas({
 							}
 							onResizePointerDown={stableResizePointerDown}
 							onAdjustmentPointerDown={stableAdjustmentPointerDown}
+							onRotate={stableRotate}
 							onInlineEditChange={stableInlineEditChange}
 							onInlineEditCommit={stableInlineEditCommit}
 							onInlineEditCancel={stableInlineEditCancel}

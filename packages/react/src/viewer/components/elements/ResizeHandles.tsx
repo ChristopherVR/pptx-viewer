@@ -1,4 +1,5 @@
 import React from 'react';
+import { LuRotateCw } from 'react-icons/lu';
 
 import type { ResizeHandle, ShapeAdjustmentHandleDescriptor } from '../../types';
 import { cn } from '../../utils';
@@ -10,6 +11,12 @@ export interface ResizeHandlesProps {
 	onAdjustmentPointerDown: (elementId: string, e: React.MouseEvent) => void;
 	/** Whether to force pointerEvents: "auto" on buttons (needed inside pointer-events:none containers). */
 	forcePointerEvents?: boolean;
+	/** Current element rotation in degrees (the rotate-handle drag baseline). */
+	rotation?: number;
+	/** Element transform sans rotation (flips/skews) — the live-preview base. */
+	nonRotationTransform?: string;
+	/** Commit a new rotation (degrees) for the element. Omit to hide the handle. */
+	onRotate?: (elementId: string, rotationDeg: number) => void;
 }
 
 /**
@@ -86,6 +93,9 @@ export function ResizeHandles({
 	onResizePointerDown,
 	onAdjustmentPointerDown,
 	forcePointerEvents,
+	rotation,
+	nonRotationTransform,
+	onRotate,
 }: ResizeHandlesProps) {
 	const peStyle = forcePointerEvents
 		? { ...HANDLE_TOUCH_ACTION, pointerEvents: 'auto' as const }
@@ -102,6 +112,51 @@ export function ResizeHandles({
 		e.stopPropagation();
 		(e.currentTarget as Element).setPointerCapture?.(e.pointerId);
 		onResizePointerDown(elementId, e, handle);
+	};
+
+	// ── Rotate handle (self-contained) ───────────────────────────────────
+	// Dragging the knob rotates the element about its centre. We compute the
+	// absolute angle from the element centre to the pointer (so the gesture
+	// is robust to the current rotation), preview live by mutating the wrapper
+	// transform, then commit the final degrees on release. Shift snaps to 15°.
+	const startRotate = (btn: HTMLElement, pointerId?: number): void => {
+		const wrapper = btn.closest('[data-element-id]') as HTMLElement | null;
+		if (!wrapper) {
+			return;
+		}
+		const rect = wrapper.getBoundingClientRect();
+		const cx = rect.left + rect.width / 2;
+		const cy = rect.top + rect.height / 2;
+		const base = nonRotationTransform ? `${nonRotationTransform} ` : '';
+		const startDeg = rotation ?? 0;
+		let last = startDeg;
+		if (pointerId !== undefined) {
+			btn.setPointerCapture?.(pointerId);
+		}
+		// Track via Pointer Events only — they fire for both mouse and touch,
+		// matching the rest of the canvas (usePointerHandlers). A plain
+		// `mousemove` listener would miss the touch drag entirely.
+		const apply = (clientX: number, clientY: number, shift: boolean): void => {
+			let deg = (Math.atan2(clientY - cy, clientX - cx) * 180) / Math.PI + 90;
+			if (shift) {
+				deg = Math.round(deg / 15) * 15;
+			}
+			deg = Math.round(((deg % 360) + 360) % 360);
+			last = deg;
+			wrapper.style.transform = `${base}rotate(${deg}deg)`;
+		};
+		const onPointerMove = (ev: PointerEvent): void => apply(ev.clientX, ev.clientY, ev.shiftKey);
+		const end = (): void => {
+			window.removeEventListener('pointermove', onPointerMove);
+			window.removeEventListener('pointerup', end);
+			window.removeEventListener('pointercancel', end);
+			if (last !== startDeg) {
+				onRotate?.(elementId, last);
+			}
+		};
+		window.addEventListener('pointermove', onPointerMove);
+		window.addEventListener('pointerup', end);
+		window.addEventListener('pointercancel', end);
 	};
 
 	return (
@@ -145,6 +200,34 @@ export function ResizeHandles({
 					<div className='absolute -inset-2 max-md:-inset-1' />
 				</button>
 			))}
+
+			{/* Rotate handle — knob straddling the top-centre edge. It overlaps the
+			    element box (bottom half inside) so it stays reliably hit-testable;
+			    children positioned entirely outside the box are not. An invisible
+			    extension enlarges the finger target without moving the visual. */}
+			{onRotate ? (
+				<button
+					type='button'
+					aria-label='Rotate'
+					className='absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-5 h-5 max-md:w-7 max-md:h-7 rounded-full border border-white bg-primary text-white shadow cursor-grab active:cursor-grabbing'
+					style={peStyle}
+					onPointerDown={(e) => {
+						if (e.pointerType === 'mouse') {
+							return;
+						}
+						e.stopPropagation();
+						startRotate(e.currentTarget, e.pointerId);
+					}}
+					onMouseDown={(e) => {
+						e.stopPropagation();
+						startRotate(e.currentTarget);
+					}}
+				>
+					<LuRotateCw className='w-3 h-3 max-md:w-4 max-md:h-4' />
+					{/* Expanded invisible hit area (kept inside the element box). */}
+					<span className='absolute -inset-2 max-md:-inset-1' aria-hidden='true' />
+				</button>
+			) : null}
 
 			{/* Shape adjustment handle (yellow diamond) */}
 			{adjH ? (

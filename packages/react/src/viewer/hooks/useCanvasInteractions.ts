@@ -280,6 +280,15 @@ export function useCanvasInteractions(
 		};
 	};
 
+	const handleRotate = (elementId: string, rotationDeg: number) => {
+		const el = elementLookup.get(elementId);
+		if (!el || el.locks?.noRotation) {
+			return;
+		}
+		ops.updateElementById(elementId, { rotation: rotationDeg } as Partial<PptxElement>);
+		history.markDirty();
+	};
+
 	const handleAdjustmentPointerDown = (elementId: string, e: React.MouseEvent) => {
 		e.stopPropagation();
 		const el = elementLookup.get(elementId);
@@ -314,6 +323,7 @@ export function useCanvasInteractions(
 		handleCanvasMouseDown,
 		handleResizePointerDown,
 		handleAdjustmentPointerDown,
+		handleRotate,
 		handleInlineEditCommit,
 	};
 }

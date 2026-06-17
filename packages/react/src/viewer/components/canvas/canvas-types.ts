@@ -87,6 +87,8 @@ export interface SlideCanvasProps {
 	onCanvasMouseDown?: (e: React.MouseEvent) => void;
 	onResizePointerDown: (elementId: string, e: React.MouseEvent, handle: string) => void;
 	onAdjustmentPointerDown: (elementId: string, e: React.MouseEvent) => void;
+	/** Commit a new rotation (degrees) when the on-canvas rotate handle is dragged. */
+	onRotate?: (elementId: string, rotationDeg: number) => void;
 	onInlineEditChange: (text: string) => void;
 	onInlineEditCommit: () => void;
 	onInlineEditCancel: () => void;

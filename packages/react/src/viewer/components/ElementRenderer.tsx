@@ -10,6 +10,7 @@ import {
 	getImageEffectsFilter,
 	getImageEffectsOpacity,
 	getImageRenderStyle,
+	getElementTransformWithoutRotation,
 	getShapeVisualStyle,
 	getTextStyleForElement,
 	isConnectorOrLineElement,
@@ -30,6 +31,7 @@ import { renderBody } from './elements/ElementBody';
 import { Extrusion3DOverlay } from './elements/Extrusion3DOverlay';
 import { LinkTooltip } from './elements/LinkTooltip';
 import { ResizeHandles } from './elements/ResizeHandles';
+
 export type { ElementRendererProps } from './elements/element-renderer-types';
 
 export function shapeParams(el: PptxElement) {
@@ -45,6 +47,7 @@ export function shapeParams(el: PptxElement) {
 }
 
 export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
+	// oxlint-disable-next-line prefer-arrow-callback -- named fn gives the memo component its displayName
 	function ElementRendererInner({
 		element: el,
 		activeSlide,
@@ -66,6 +69,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		adjustmentHandleDescriptor: adjH,
 		onResizePointerDown,
 		onAdjustmentPointerDown,
+		onRotate,
 		onInlineEditChange,
 		onInlineEditCommit,
 		onInlineEditCancel,
@@ -335,6 +339,9 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 						adjustmentHandleDescriptor={adjH}
 						onResizePointerDown={onResizePointerDown}
 						onAdjustmentPointerDown={onAdjustmentPointerDown}
+						rotation={el.rotation}
+						nonRotationTransform={getElementTransformWithoutRotation(el)}
+						onRotate={elementLocks?.noRotation ? undefined : onRotate}
 					/>
 				)}
 			</div>

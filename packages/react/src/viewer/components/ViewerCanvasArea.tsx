@@ -294,6 +294,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 					onCanvasMouseDown={canvasHandlers.handleCanvasMouseDown}
 					onResizePointerDown={canvasHandlers.handleResizePointerDown}
 					onAdjustmentPointerDown={canvasHandlers.handleAdjustmentPointerDown}
+					onRotate={canvasHandlers.handleRotate}
 					onInlineEditChange={s.setInlineEditingText}
 					onInlineEditCommit={canvasHandlers.handleInlineEditCommit}
 					onInlineEditCancel={() => s.setInlineEditingElementId(null)}

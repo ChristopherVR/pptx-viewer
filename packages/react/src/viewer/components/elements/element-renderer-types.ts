@@ -18,6 +18,7 @@ export interface ConnectorRendererProps {
 	adjustmentHandleDescriptor: ShapeAdjustmentHandleDescriptor | null;
 	onResizePointerDown: (elementId: string, e: React.MouseEvent, handle: string) => void;
 	onAdjustmentPointerDown: (elementId: string, e: React.MouseEvent) => void;
+	onRotate?: (elementId: string, rotationDeg: number) => void;
 	animationState?: ElementAnimationState;
 }
 
@@ -43,6 +44,8 @@ export interface ElementRendererProps {
 	adjustmentHandleDescriptor: ShapeAdjustmentHandleDescriptor | null;
 	onResizePointerDown: (elementId: string, e: React.MouseEvent, handle: string) => void;
 	onAdjustmentPointerDown: (elementId: string, e: React.MouseEvent) => void;
+	/** Commit a new rotation (degrees) when the on-canvas rotate handle is dragged. */
+	onRotate?: (elementId: string, rotationDeg: number) => void;
 	onInlineEditChange: (text: string) => void;
 	onInlineEditCommit: () => void;
 	onInlineEditCancel: () => void;

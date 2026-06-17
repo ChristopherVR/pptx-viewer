@@ -13,6 +13,7 @@ interface ParentCallbacks {
 	onContextMenu: (elementId: string, e: React.MouseEvent) => void;
 	onResizePointerDown: (elementId: string, e: React.MouseEvent, handle: string) => void;
 	onAdjustmentPointerDown: (elementId: string, e: React.MouseEvent) => void;
+	onRotate?: (elementId: string, rotationDeg: number) => void;
 	onInlineEditChange: (text: string) => void;
 	onInlineEditCommit: () => void;
 	onInlineEditCancel: () => void;
@@ -33,6 +34,7 @@ export interface StableCallbacks {
 	cbRef: React.RefObject<ParentCallbacks>;
 	stableResizePointerDown: (elementId: string, e: React.MouseEvent, handle: string) => void;
 	stableAdjustmentPointerDown: (elementId: string, e: React.MouseEvent) => void;
+	stableRotate: (elementId: string, rotationDeg: number) => void;
 	stableInlineEditChange: (text: string) => void;
 	stableInlineEditCommit: () => void;
 	stableInlineEditCancel: () => void;
@@ -63,6 +65,11 @@ export function useStableCallbacks(callbacks: ParentCallbacks): StableCallbacks 
 
 	const stableAdjustmentPointerDown = useCallback(
 		(elementId: string, e: React.MouseEvent) => cbRef.current.onAdjustmentPointerDown(elementId, e),
+		[],
+	);
+
+	const stableRotate = useCallback(
+		(elementId: string, rotationDeg: number) => cbRef.current.onRotate?.(elementId, rotationDeg),
 		[],
 	);
 
@@ -103,6 +110,7 @@ export function useStableCallbacks(callbacks: ParentCallbacks): StableCallbacks 
 		cbRef,
 		stableResizePointerDown,
 		stableAdjustmentPointerDown,
+		stableRotate,
 		stableInlineEditChange,
 		stableInlineEditCommit,
 		stableInlineEditCancel,

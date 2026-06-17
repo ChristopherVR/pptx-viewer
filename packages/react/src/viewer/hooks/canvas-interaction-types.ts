@@ -9,5 +9,7 @@ export interface CanvasInteractionHandlers {
 	handleCanvasMouseDown: (e: React.MouseEvent) => void;
 	handleResizePointerDown: (elementId: string, e: React.MouseEvent, handle: string) => void;
 	handleAdjustmentPointerDown: (elementId: string, e: React.MouseEvent) => void;
+	/** Commit a new rotation (degrees) for an element from the on-canvas rotate handle. */
+	handleRotate: (elementId: string, rotationDeg: number) => void;
 	handleInlineEditCommit: () => void;
 }

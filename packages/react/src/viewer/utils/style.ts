@@ -290,6 +290,32 @@ export function getElementTransform(element: PptxElement): string | undefined {
 }
 
 /**
+ * Builds the element's CSS transform WITHOUT its rotation component
+ * (flips + skews only). Used as the stable base while a live rotate-handle
+ * drag appends its own `rotate(...)` for preview — recomputing the full
+ * transform from {@link getElementTransform} ordering keeps flipped/skewed
+ * shapes rendering correctly mid-rotation.
+ * @param element - The element whose non-rotation transform is built.
+ * @returns A CSS transform string, or `undefined` if none apply.
+ */
+export function getElementTransformWithoutRotation(element: PptxElement): string | undefined {
+	const transforms: string[] = [];
+	if (element.flipHorizontal) {
+		transforms.push('scaleX(-1)');
+	}
+	if (element.flipVertical) {
+		transforms.push('scaleY(-1)');
+	}
+	if (element.skewX) {
+		transforms.push(`skewX(${element.skewX}deg)`);
+	}
+	if (element.skewY) {
+		transforms.push(`skewY(${element.skewY}deg)`);
+	}
+	return transforms.length > 0 ? transforms.join(' ') : undefined;
+}
+
+/**
  * Builds a CSS transform that compensates for element flips so that text
  * inside a flipped shape renders in its natural reading direction.
  * Only includes `scaleX(-1)` / `scaleY(-1)`; rotation is not compensated.
