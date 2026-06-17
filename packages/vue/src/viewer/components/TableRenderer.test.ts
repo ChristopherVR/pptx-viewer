@@ -115,6 +115,28 @@ describe('tableRenderer', () => {
 		expect(cell.attributes('style')).toContain('background-color: #ff0000');
 	});
 
+	it('defaults body-cell text to the dark slide colour when none is set', () => {
+		// Without this fallback an unstyled cell inherits the dark-UI chrome
+		// `foreground` (near-white) and is invisible on a light table.
+		const plain: PptxTableData = {
+			columnWidths: [1],
+			rows: [{ cells: [{ text: 'Body' }] }],
+		};
+		const wrapper = mount(TableRenderer, { props: { element: table(plain), zIndex: 0 } });
+		expect(wrapper.get('td').attributes('style')).toContain('color: #111827');
+	});
+
+	it('lets an explicit cell colour win over the default', () => {
+		const coloured: PptxTableData = {
+			columnWidths: [1],
+			rows: [{ cells: [{ text: 'Body', style: { color: '#ff0000' } }] }],
+		};
+		const wrapper = mount(TableRenderer, { props: { element: table(coloured), zIndex: 0 } });
+		const style = wrapper.get('td').attributes('style') ?? '';
+		expect(style).toContain('color: #ff0000');
+		expect(style).not.toContain('#111827');
+	});
+
 	it('applies header-row banding (bold + background) when firstRowHeader is set', () => {
 		const headed: PptxTableData = {
 			columnWidths: [1],

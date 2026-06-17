@@ -24,6 +24,7 @@ import { computed } from 'vue';
 
 import { getContainerStyle } from '../composables/element-style';
 import { injectTableTheme, resolveTableTheme } from '../composables/table-theme';
+import { DEFAULT_TEXT_COLOR } from '../constants';
 
 /**
  * TableRenderer — Vue port of the React table renderer
@@ -166,6 +167,15 @@ const rows = computed<RenderableRow[]>(() => {
 			const cellStyle = cellStyleToCss(cell.style);
 			// Explicit cell style wins over band style (mirrors the React layering).
 			const style: TableCellCss = { ...bandStyle, ...cellStyle };
+			// Default body-cell text to the dark slide-text colour when nothing
+			// (cell style, band/header emphasis, or per-run colour) sets one.
+			// Otherwise the cell inherits the dark-UI chrome `foreground`
+			// (near-white), rendering invisible on a light table — React resolves
+			// these cells to DEFAULT_TEXT_COLOR (#111827). Per-run colours still win
+			// because their `<span>` overrides this cascaded `<td>` colour.
+			if (style.color === undefined) {
+				style.color = DEFAULT_TEXT_COLOR;
+			}
 
 			// Pattern fill: resolve separately so the Vue template can apply
 			// `backgroundImage` in addition to `backgroundColor`.
