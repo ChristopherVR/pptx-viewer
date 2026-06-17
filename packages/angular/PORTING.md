@@ -656,13 +656,34 @@ pipeline…`): `tailwindcss` + `@tailwindcss/cli` devDeps; `src/styles/theme.css
     `jspdf`/`html2canvas-pro` unresolvable for the demo's vite, which does not
     happen on `main`/CI). Verify on `main` (working demo) or fix the worktree
     demo hoisting first.
-  - **Next (not started):** the ribbon UI itself — tab bar + ribbon container +
-    `ToolbarPrimaryRow` + bottom `StatusBar`, then per-tab sections
-    (Home/Insert/Text/Arrange first; they wire to existing `EditorStateService`
-    ops). NOTE: many React ribbon handlers have **no Angular op yet** (drawing
-    tools, SmartArt/Table insert, transitions, animation authoring, theme
-    gallery, eyedropper, selection pane, grid/rulers, custom shows) — those
-    operations must be ported alongside their controls, which is what makes this
-    multi-session. Reference: React `viewer/components/toolbar/*` (13 sections),
-    `Toolbar.tsx`, `ToolbarPrimaryRow.tsx`, `StatusBar.tsx`,
-    `constants/toolbar.ts`.
+  - **Landed — preflight verified safe** (worktree demo got working once
+    `pptx-viewer-core` was built + the demo declared the lib's runtime deps
+    `jspdf`/`html2canvas-pro`/`jszip`/`fast-xml-parser`): with Tailwind +
+    preflight active, slide rendering is unchanged (Project-Atlas title, shapes,
+    live thumbnails all correct). Preflight risk **cleared**.
+  - **Landed — ribbon shell + core tabs** (`feat(angular): port React's
+Office-style ribbon…` + `…bottom status bar`): new `RibbonComponent`
+    replacing the flat header — primary quick-access row (nav, undo/redo, zoom,
+    Find · Present/Presenter/Share/Info), the full **tab bar** (File/Home/Insert/
+    Text/Arrange/Design/Transitions/Animations/Slide Show/Review/View/Help) with
+    active-tab underline, and per-tab content for **File** (export PNG/PDF/GIF/
+    Video, Print, Properties, Replace), **Home** (Clipboard incl. format painter,
+    Slides, Font family/size dropdowns + B/I/U/S + colour swatches, paragraph
+    align), **Insert** (text/rect/ellipse/line), **Text**, **Arrange** (z-order/
+    align/group/duplicate/delete), and **Slide Show/Review/View/Help** wired to
+    existing handlers. Plus a desktop **status bar** (slide counter + saved-state;
+    notes/sorter + zoom). Tailwind component classes via `@layer components` +
+    `@apply` in the global sheet. Verified visually against React; build +
+    typecheck + lint + 2108 tests green.
+  - **Remaining ribbon work:** **Draw / Design / Transitions / Animations** tab
+    bodies are placeholders — they need Angular editor ops that don't exist yet
+    (freehand drawing tools, theme gallery/editor, transition + animation
+    authoring), plus the deeper controls (SmartArt/Table/Equation insert,
+    eyedropper, selection pane, grid/rulers/guides, custom shows). Those ops must
+    be ported alongside their controls. The font-size/family dropdowns reflect
+    the selection; verify they write back when a text element is selected.
+  - **Branch status:** all of the above is on `angular-ribbon` (worktree),
+    **not merged to `main`**. It is buildable/testable there. To merge: rebase/
+    merge onto `main` (reconciling with the parallel Vue ribbon + `bun.lock`),
+    re-run the e2e suite (`--project=angular`) to confirm the contract still
+    holds with the new chrome, then fast-forward.
