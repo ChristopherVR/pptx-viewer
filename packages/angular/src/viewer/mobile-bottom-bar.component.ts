@@ -216,6 +216,9 @@ export class MobileBottomBarComponent {
 	/** Whether the slides thumbnail sheet is currently open. */
 	readonly slidesOpen = input<boolean>(false);
 
+	/** Whether the speaker-notes sheet is currently open (highlights the button). */
+	readonly notesOpen = input<boolean>(false);
+
 	// ── Outputs ───────────────────────────────────────────────────────────────
 
 	/** User tapped the previous-slide button. */
@@ -228,6 +231,8 @@ export class MobileBottomBarComponent {
 	readonly openSorter = output<void>();
 	/** User tapped the Find button. */
 	readonly openFind = output<void>();
+	/** User tapped the Notes button. */
+	readonly notes = output<void>();
 	/** User tapped the Slides thumbnail strip button. */
 	readonly openSlides = output<void>();
 	/** User tapped the menu (⋯) button. */
@@ -271,6 +276,16 @@ export class MobileBottomBarComponent {
 				svgPath: 'M5 3l14 9-14 9V3z',
 				disabled: !this.canPresent() || count === 0,
 				emit: () => this.present.emit(),
+			},
+			{
+				key: 'notes',
+				label: 'Notes',
+				// Note / document-text icon
+				svgPath:
+					'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M8 13h8 M8 17h5',
+				disabled: count === 0,
+				active: this.notesOpen(),
+				emit: () => this.notes.emit(),
 			},
 			{
 				key: 'menu',

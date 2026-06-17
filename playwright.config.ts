@@ -7,13 +7,14 @@ import { defineConfig, devices } from '@playwright/test';
  * (`#file-input`, `[data-pptx-element="true"]`, `[aria-roledescription="slide"]`,
  * `[data-inline-editor]`, `[data-testid="format-painter-toggle"]` + `data-active`,
  * `#slide-notes-content` / `textarea[name="slide-notes"]`, `aria-label="Adjust shape"`,
- * `[data-pptx-viewport]`, and accessible button names), which both the React and
- * Vue viewers emit. Each project boots its own demo dev server and points its
- * `baseURL` at it, so `playwright test --project=react` / `--project=vue` exercise
- * the identical spec bodies.
+ * `[data-pptx-viewport]`, and accessible button names), which the React, Vue, and
+ * Angular viewers all emit. Each project boots its own demo dev server and points
+ * its `baseURL` at it, so `playwright test --project=react` / `--project=vue` /
+ * `--project=angular` exercise the identical spec bodies.
  */
 const REACT_PORT = 4173;
 const VUE_PORT = 4175;
+const ANGULAR_PORT = 4174;
 const isCI = Boolean(process.env.CI);
 
 export default defineConfig({
@@ -39,6 +40,10 @@ export default defineConfig({
 			name: 'vue',
 			use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${VUE_PORT}` },
 		},
+		{
+			name: 'angular',
+			use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${ANGULAR_PORT}` },
+		},
 	],
 	webServer: [
 		{
@@ -54,6 +59,15 @@ export default defineConfig({
 			command: `npx vite --port ${VUE_PORT} --strictPort`,
 			cwd: 'demos/demo-vue',
 			url: `http://localhost:${VUE_PORT}`,
+			reuseExistingServer: !isCI,
+			timeout: 120_000,
+			stdout: 'ignore',
+			stderr: 'pipe',
+		},
+		{
+			command: `npx vite --port ${ANGULAR_PORT} --strictPort`,
+			cwd: 'demos/demo-angular',
+			url: `http://localhost:${ANGULAR_PORT}`,
 			reuseExistingServer: !isCI,
 			timeout: 120_000,
 			stdout: 'ignore',

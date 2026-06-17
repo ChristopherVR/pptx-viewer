@@ -51,14 +51,20 @@ import 'pptx-angular-viewer/styles';
 	template: `
 		<div class="bar">
 			<h1>pptx-angular-viewer</h1>
-			<input type="file" accept=".pptx" (change)="onFile($event)" />
+			<input
+				id="file-input"
+				type="file"
+				accept=".pptx"
+				aria-label="Upload PPTX file"
+				(change)="onFile($event)"
+			/>
 			@if (fileName()) {
 				<span>{{ fileName() }}</span>
 			}
 		</div>
 		<div class="viewer-host">
 			@if (content()) {
-				<pptx-viewer [content]="content()" [theme]="theme" />
+				<pptx-viewer [content]="content()" [theme]="theme" [canEdit]="true" />
 			} @else {
 				<div class="empty">Choose a .pptx file to preview it.</div>
 			}

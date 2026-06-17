@@ -39,6 +39,8 @@ import { FindReplaceBarComponent } from './find-replace-bar.component';
 import type { FindEvent, ReplaceEvent } from './find-replace-bar.component';
 import { findInSlides, replaceInSlides, replaceMatch } from './find-replace-helpers';
 import type { FindResult } from './find-replace-helpers';
+import { applyFormatToElement, copyFormatFromElement, hasCopyableFormat } from './format-painter';
+import type { CopiedFormat } from './format-painter';
 import { HyperlinkDialogComponent } from './hyperlink-dialog.component';
 import { InspectorPanelComponent } from './inspector-panel.component';
 import { IsMobileService } from './is-mobile';
@@ -46,6 +48,7 @@ import { LoadContentService } from './load-content.service';
 import { MobileBottomBarComponent } from './mobile-bottom-bar.component';
 import { MobileMenuSheetComponent } from './mobile-menu-sheet.component';
 import { MobileSlidesSheetComponent } from './mobile-slides-sheet.component';
+import { NotesPanelComponent } from './notes-panel.component';
 import { PresentationOverlayComponent } from './presentation-overlay.component';
 import { PresenterViewComponent } from './presenter-view.component';
 import { PrintDialogComponent } from './print-dialog.component';
@@ -119,6 +122,7 @@ const ZOOM_MAX = 3;
 		MobileBottomBarComponent,
 		MobileMenuSheetComponent,
 		MobileSlidesSheetComponent,
+		NotesPanelComponent,
 	],
 	template: `
 		<div class="pptx-ng-viewer" [ngClass]="class()" [ngStyle]="rootStyle()">
@@ -224,6 +228,18 @@ const ZOOM_MAX = 3;
 							>
 								Comments
 							</button>
+							<button
+								type="button"
+								data-testid="format-painter-toggle"
+								[class.is-active]="formatPainterActive()"
+								[attr.data-active]="formatPainterActive() ? 'true' : 'false'"
+								[attr.aria-pressed]="formatPainterActive()"
+								[disabled]="!canActivateFormatPainter() && !formatPainterActive()"
+								(click)="toggleFormatPainter()"
+								aria-label="Format painter"
+							>
+								Format Painter
+							</button>
 							@if (selectedElement(); as el) {
 								<button type="button" (click)="showHyperlink.set(true)" aria-label="Edit hyperlink">
 									Link
@@ -244,7 +260,7 @@ const ZOOM_MAX = 3;
 						<button
 							type="button"
 							[class.is-active]="showNotes()"
-							[disabled]="!activeNotes()"
+							[disabled]="slideCount() === 0"
 							(click)="toggleNotes()"
 							aria-label="Speaker notes"
 						>
@@ -349,7 +365,7 @@ const ZOOM_MAX = 3;
 							[editable]="canEdit()"
 							[selectedIds]="editor.selectedIds()"
 							(elementSelect)="onElementSelect($event)"
-							(backgroundClick)="editor.clearSelection()"
+							(backgroundClick)="onBackgroundClick()"
 							(marqueeSelect)="editor.select($event)"
 							(transformStart)="editor.beginTransform($event.label)"
 							(transformUpdate)="editor.applyTransform(activeSlideIndex(), $event.id, $event.box)"
@@ -365,10 +381,12 @@ const ZOOM_MAX = 3;
 						@if (collab.connected()) {
 							<pptx-collaboration-cursors [cursors]="collab.cursors()" [zoom]="zoom()" />
 						}
-						@if (showNotes() && activeNotes()) {
+						@if (showNotes() && !mobile.isMobile()) {
 							<aside class="pptx-ng-notes" aria-label="Speaker notes">
-								<h2 class="pptx-ng-notes-title">Notes</h2>
-								<p class="pptx-ng-notes-body">{{ activeNotes() }}</p>
+								<pptx-notes-panel
+									[slide]="activeSlide()"
+									(update)="onNotesUpdate($event)"
+								/>
 							</aside>
 						}
 					</main>
@@ -574,16 +592,28 @@ const ZOOM_MAX = 3;
 					[activeIndex]="activeSlideIndex()"
 					[slideCount]="slideCount()"
 					[canPresent]="slideCount() > 0"
+					[notesOpen]="showNotes()"
 					[slidesOpen]="mobileSheet() === 'slides'"
 					[menuOpen]="mobileSheet() === 'menu'"
 					(prev)="goPrev()"
 					(next)="goNext()"
 					(present)="present()"
+					(notes)="toggleNotes()"
 					(openSorter)="showSorter.set(true)"
 					(openFind)="showFind.set(true)"
 					(openSlides)="mobileSheet.set(mobileSheet() === 'slides' ? null : 'slides')"
 					(toggleMenu)="mobileSheet.set(mobileSheet() === 'menu' ? null : 'menu')"
 				/>
+
+				<!-- Mobile speaker-notes sheet (toggled from the bottom bar). Rendered
+				     inside the isMobile() gate so it stays mounted when the on-screen
+				     keyboard shrinks the viewport (coarse pointer keeps isMobile true) —
+				     mirrors the Vue mobile notes sheet. -->
+				@if (showNotes()) {
+					<div class="pptx-ng-mobile-notes-sheet">
+						<pptx-notes-panel [slide]="activeSlide()" (update)="onNotesUpdate($event)" />
+					</div>
+				}
 			}
 		</div>
 	`,
@@ -683,8 +713,6 @@ export class PowerPointViewerComponent {
 	protected readonly contextMenuPos = signal<{ x: number; y: number } | null>(null);
 	/** Id of the element being inline text-edited, or null. */
 	protected readonly editingId = signal<string | null>(null);
-	/** Notes for the active slide, if any. */
-	protected readonly activeNotes = computed(() => this.activeSlide()?.notes?.trim() || '');
 	/**
 	 * Stable, always-truthy key for the slide-properties form. Changes only when
 	 * the active slide changes, so the `@if` recreates (and reseeds) the
@@ -700,6 +728,18 @@ export class PowerPointViewerComponent {
 		}
 		return this.activeSlide()?.elements.find((e) => e.id === ids[0]) ?? null;
 	});
+
+	// ── Format painter ─────────────────────────────────────────────────────
+	// Arm by copying the selected element's format; the next element click applies
+	// it. Escape or an empty-canvas click cancels (mirrors React/Vue).
+	/** True while the painter is armed (next element click applies the copied format). */
+	protected readonly formatPainterActive = signal(false);
+	/** Format copied from the source element when the painter was armed. */
+	private copiedFormat: CopiedFormat | null = null;
+	/** Whether the painter can be armed: exactly one selected element with copyable format. */
+	protected readonly canActivateFormatPainter = computed(() =>
+		hasCopyableFormat(this.selectedElement()),
+	);
 
 	constructor() {
 		// Load whenever the `content` input changes.
@@ -1040,10 +1080,66 @@ export class PowerPointViewerComponent {
 	 * already was, so a subsequent drag works).
 	 */
 	onElementSelect(event: { id: string; additive: boolean }): void {
+		// The armed format painter intercepts the next element click: apply the
+		// copied format to the target, then disarm (no selection change).
+		if (this.formatPainterActive()) {
+			this.applyFormatToTarget(event.id);
+			this.cancelFormatPainter();
+			return;
+		}
 		if (event.additive) {
 			this.editor.toggleSelect(event.id, true);
 		} else if (!this.editor.isSelected(event.id)) {
 			this.editor.select([event.id]);
+		}
+	}
+
+	/** Empty-stage press: disarm the painter if armed, else clear the selection. */
+	onBackgroundClick(): void {
+		if (this.formatPainterActive()) {
+			this.cancelFormatPainter();
+			return;
+		}
+		this.editor.clearSelection();
+	}
+
+	/** Toggle the format painter: arm from the current selection, or disarm. */
+	toggleFormatPainter(): void {
+		if (this.formatPainterActive()) {
+			this.cancelFormatPainter();
+			return;
+		}
+		const source = this.selectedElement();
+		if (!source || !hasCopyableFormat(source)) {
+			return;
+		}
+		this.copiedFormat = copyFormatFromElement(source);
+		this.formatPainterActive.set(true);
+	}
+
+	/** Disarm the painter and drop the copied format. */
+	cancelFormatPainter(): void {
+		this.formatPainterActive.set(false);
+		this.copiedFormat = null;
+	}
+
+	/** Apply the copied format to a target element (shape/text style only; one history entry). */
+	private applyFormatToTarget(id: string): void {
+		const format = this.copiedFormat;
+		const target = this.activeSlide()?.elements.find((e) => e.id === id);
+		if (!format || !target) {
+			return;
+		}
+		const updated = applyFormatToElement(target, format) as unknown as Record<string, unknown>;
+		const patch: Record<string, unknown> = {};
+		if (format.shapeStyle && updated['shapeStyle'] !== undefined) {
+			patch['shapeStyle'] = updated['shapeStyle'];
+		}
+		if (format.textStyle && updated['textStyle'] !== undefined) {
+			patch['textStyle'] = updated['textStyle'];
+		}
+		if (Object.keys(patch).length > 0) {
+			this.editor.updateElement(this.activeSlideIndex(), id, patch as Partial<PptxElement>);
 		}
 	}
 
@@ -1069,6 +1165,11 @@ export class PowerPointViewerComponent {
 		});
 	}
 
+	/** Update the active slide's speaker notes from the editable NotesPanel. */
+	onNotesUpdate(notes: string): void {
+		this.editor.updateSlide(this.activeSlideIndex(), { notes });
+	}
+
 	/** Commit an inline text edit: replace the element's text (one history entry). */
 	onTextCommit(event: { id: string; text: string }): void {
 		this.editor.updateElement(this.activeSlideIndex(), event.id, {
@@ -1091,6 +1192,13 @@ export class PowerPointViewerComponent {
 		const target = event.target as HTMLElement | null;
 		const tag = target?.tagName;
 		if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable) {
+			return;
+		}
+
+		// Escape disarms the format painter first (mirrors React/Vue).
+		if (event.key === 'Escape' && this.formatPainterActive()) {
+			event.preventDefault();
+			this.cancelFormatPainter();
 			return;
 		}
 

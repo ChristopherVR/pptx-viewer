@@ -37,6 +37,7 @@ import { ConnectorTextOverlayComponent } from './connector-text-overlay.componen
 			class="pptx-ng-element pptx-ng-connector"
 			[style]="geo().wrapperStyle"
 			[attr.data-element-id]="element().id"
+			data-pptx-element="true"
 		>
 			<svg
 				[attr.width]="geo().svgW"

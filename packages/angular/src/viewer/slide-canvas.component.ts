@@ -103,7 +103,7 @@ function plainText(el: PptxElement): string {
 		`,
 	],
 	template: `
-		<div #viewport class="pptx-ng-canvas-viewport">
+		<div #viewport class="pptx-ng-canvas-viewport" data-pptx-viewport>
 			<div class="pptx-ng-canvas-wrapper" [ngStyle]="wrapperStyle()">
 				<div
 					#stage
@@ -167,6 +167,8 @@ function plainText(el: PptxElement): string {
 					@if (rotateHandle(); as rh) {
 						<div
 							class="pptx-ng-rotate-handle"
+							role="button"
+							aria-label="Adjust shape"
 							[style.left.px]="rh.left"
 							[style.top.px]="rh.top"
 							[style.width.px]="rh.size"
@@ -177,6 +179,7 @@ function plainText(el: PptxElement): string {
 					@if (editingBox(); as eb) {
 						<textarea
 							#textEditor
+							data-inline-editor
 							class="pptx-ng-text-editor"
 							[style.left.px]="eb.x"
 							[style.top.px]="eb.y"

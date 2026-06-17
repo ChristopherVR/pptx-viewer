@@ -36,6 +36,13 @@ export { MobileBottomBarComponent } from './mobile-bottom-bar.component';
 export { MobileMenuSheetComponent } from './mobile-menu-sheet.component';
 export { MobileSlidesSheetComponent } from './mobile-slides-sheet.component';
 export { MobileSheetComponent } from './mobile-sheet.component';
+export { NotesPanelComponent } from './notes-panel.component';
+export {
+	applyFormatToElement,
+	copyFormatFromElement,
+	hasCopyableFormat,
+	type CopiedFormat,
+} from './format-painter';
 export { SlidesPanelComponent } from './slides-panel.component';
 export { EditorToolbarComponent } from './editor-toolbar.component';
 export { EditorContextMenuComponent } from './editor-context-menu.component';

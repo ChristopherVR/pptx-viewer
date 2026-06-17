@@ -124,6 +124,7 @@ interface Paragraph {
 					class="pptx-ng-element pptx-ng-smartart"
 					[ngStyle]="containerStyle()"
 					[attr.data-element-id]="element().id"
+					data-pptx-element="true"
 				>
 					<pptx-smart-art-renderer [element]="element()" [zIndex]="zIndex()" />
 				</div>
@@ -133,6 +134,7 @@ interface Paragraph {
 					class="pptx-ng-element pptx-ng-ole"
 					[ngStyle]="containerStyle()"
 					[attr.data-element-id]="element().id"
+					data-pptx-element="true"
 				>
 					<pptx-ole-renderer [element]="element()" [zIndex]="zIndex()" />
 				</div>
@@ -142,6 +144,7 @@ interface Paragraph {
 					class="pptx-ng-element pptx-ng-chart"
 					[ngStyle]="containerStyle()"
 					[attr.data-element-id]="element().id"
+					data-pptx-element="true"
 				>
 					<pptx-chart-renderer [element]="element()" />
 				</div>
@@ -151,6 +154,7 @@ interface Paragraph {
 					class="pptx-ng-element pptx-ng-table"
 					[ngStyle]="containerStyle()"
 					[attr.data-element-id]="element().id"
+					data-pptx-element="true"
 				>
 					<pptx-table-renderer [element]="element()" />
 				</div>
@@ -160,6 +164,7 @@ interface Paragraph {
 					class="pptx-ng-element pptx-ng-group"
 					[ngStyle]="containerStyle()"
 					[attr.data-element-id]="element().id"
+					data-pptx-element="true"
 				>
 					@for (child of children(); track child.id) {
 						<pptx-element-renderer
@@ -175,6 +180,7 @@ interface Paragraph {
 					class="pptx-ng-element pptx-ng-image"
 					[ngStyle]="containerStyle()"
 					[attr.data-element-id]="element().id"
+					data-pptx-element="true"
 				>
 					@if (imageSrc()) {
 						<img [src]="imageSrc()" alt="" class="pptx-ng-img" />
@@ -186,6 +192,7 @@ interface Paragraph {
 					class="pptx-ng-element pptx-ng-media"
 					[ngStyle]="containerStyle()"
 					[attr.data-element-id]="element().id"
+					data-pptx-element="true"
 				>
 					@if (imageSrc()) {
 						<img [src]="imageSrc()" alt="" class="pptx-ng-img" />
@@ -199,6 +206,7 @@ interface Paragraph {
 					class="pptx-ng-element pptx-ng-shape"
 					[ngStyle]="shapeContainerStyle()"
 					[attr.data-element-id]="element().id"
+					data-pptx-element="true"
 				>
 					@if (pathWarp(); as warp) {
 						<svg
@@ -283,6 +291,7 @@ interface Paragraph {
 					class="pptx-ng-element pptx-ng-unsupported"
 					[ngStyle]="containerStyle()"
 					[attr.data-element-id]="element().id"
+					data-pptx-element="true"
 				>
 					<div class="pptx-ng-placeholder">{{ placeholderLabel() }}</div>
 				</div>

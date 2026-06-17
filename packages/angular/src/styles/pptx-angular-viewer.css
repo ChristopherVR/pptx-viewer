@@ -340,6 +340,20 @@
 	word-break: break-word;
 }
 
+/* Mobile speaker-notes sheet — docked above the mobile bottom bar. */
+.pptx-ng-mobile-notes-sheet {
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 56px;
+	z-index: 29;
+	max-height: 50vh;
+	overflow: auto;
+	background: #ffffff;
+	border-top: 1px solid rgba(0, 0, 0, 0.15);
+	box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.18);
+}
+
 /* ── Tables ─────────────────────────────────────────────────────────── */
 .pptx-ng-table-wrapper {
 	width: 100%;
