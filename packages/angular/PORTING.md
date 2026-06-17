@@ -634,3 +634,35 @@ frontier is **editing** and the remaining advanced subsystems.
     the Tailwind-4 pipeline adopted first to port the ~213 components 1:1). It is
     a large, multi-session effort and remains the single biggest visual-parity
     item.
+
+- **2026-06-18 (ribbon port — started, on branch `angular-ribbon`)** — Decision
+  taken: port React's Office ribbon to Angular **1:1 with the Tailwind 4
+  pipeline** (Open decision #1 resolved; matches the Vue session now building its
+  own `components/ribbon/`). Done in an isolated git worktree to avoid the shared
+  `bun.lock`/checkout hazard.
+  - **Landed — Tailwind 4 pipeline** (`build(angular): adopt Tailwind 4
+pipeline…`): `tailwindcss` + `@tailwindcss/cli` devDeps; `src/styles/theme.css`
+    (`@theme` mapping `--pptx-*` → Tailwind `--color-*`, identical to React/Vue);
+    `pptx-angular-viewer.css` rewired as the Tailwind entry (`@import
+'tailwindcss'; @source '../viewer/**/*.ts'; @import './theme.css';`) keeping
+    the hand-written `.pptx-ng-*` rules during migration; a `build:css`
+    post-ng-packagr step compiles the shipped CSS. ng-packagr build + tailwind
+    compile + typecheck + 2108 tests pass.
+  - **⚠️ Open before merge:** the Tailwind import pulls in **preflight**; its
+    visual impact on slide rendering must be confirmed against React (React ships
+    preflight and renders slides correctly, and the Angular renderer mirrors
+    React's structure, so risk is low — but unverified: the worktree demo env
+    could not be exercised due to a fresh-install bun hoisting quirk leaving
+    `jspdf`/`html2canvas-pro` unresolvable for the demo's vite, which does not
+    happen on `main`/CI). Verify on `main` (working demo) or fix the worktree
+    demo hoisting first.
+  - **Next (not started):** the ribbon UI itself — tab bar + ribbon container +
+    `ToolbarPrimaryRow` + bottom `StatusBar`, then per-tab sections
+    (Home/Insert/Text/Arrange first; they wire to existing `EditorStateService`
+    ops). NOTE: many React ribbon handlers have **no Angular op yet** (drawing
+    tools, SmartArt/Table insert, transitions, animation authoring, theme
+    gallery, eyedropper, selection pane, grid/rulers, custom shows) — those
+    operations must be ported alongside their controls, which is what makes this
+    multi-session. Reference: React `viewer/components/toolbar/*` (13 sections),
+    `Toolbar.tsx`, `ToolbarPrimaryRow.tsx`, `StatusBar.tsx`,
+    `constants/toolbar.ts`.
