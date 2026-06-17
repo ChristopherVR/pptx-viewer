@@ -858,8 +858,20 @@ shape-adjustment,remap-text}.ts` + 56 ported tests; shared extraction deferred t
   ribbon-on-top + status-bar-on-bottom, matching React** (verified live). Confirmed that
   React keeps **no slide nav in the toolbar** either (thumbnails + keyboard), so the
   disabled header's loss of prev/next is parity-correct. +6 StatusBar unit tests (1217
-  vue total green); typecheck + oxlint clean. **Remaining chrome cleanup:** the disabled
-  `<header>` / `EditorToolbar` / `AlignToolbar` blocks can be deleted once group/ungroup/
-  distribute (currently only surfaced by the disabled `AlignToolbar`) get a ribbon home or
-  are intentionally dropped; that also removes the orphaned `ExportMenu`/`AutosaveIndicator`
-  imports.
+  vue total green); typecheck + oxlint clean.
+
+- **2026-06-18** — **Chrome cleanup + Arrange wiring** (closes the ribbon migration).
+  Deleted the disabled `<header>` / `EditorToolbar` / `AlignToolbar` blocks (−202 net
+  lines) and the now-orphan `EditorToolbar`/`AlignToolbar`/`ExportMenu`/`AutosaveIndicator`
+  imports. Properly wired the Arrange-tab actions React surfaces: **flip** (toggles
+  `flipHorizontal`/`flipVertical` → `scaleX(-1)`/`scaleY(-1)`, one history entry — verified
+  live) and **send-to-back / bring-to-front** (`ops.reorder` to z-order edges). **group /
+  ungroup** moved to the element **context menu** (React's ribbon has no group, so this
+  keeps the feature without diverging) — verified the menu now shows Group/Ungroup.
+  **Distribute dropped** (Vue-only; absent from React's chrome) with its
+  `distributeElements`/`DistributeAxis` import. The desktop chrome is now exactly
+  ribbon + status bar, no dead code. 1217 vue tests green; typecheck + oxlint clean.
+  **Still no-op (host lacks the capability):** drawing tools, grid/ruler/snap, theme
+  gallery, action buttons, image/media picker, table insert, layout gallery, spell-check,
+  guides, transitions controls. The left **slides rail** still shows the old `Add`/
+  `Duplicate` + Transition panel (vs React's plain thumbnail rail) — next chrome target.
