@@ -96,6 +96,7 @@ interface Paragraph {
 					[obstacles]="obstacles()"
 					[canvasWidth]="canvasWidth()"
 					[canvasHeight]="canvasHeight()"
+					[interactive]="interactive()"
 				/>
 			}
 			@case (element().type === 'ink') {
@@ -124,7 +125,7 @@ interface Paragraph {
 					class="pptx-ng-element pptx-ng-smartart"
 					[ngStyle]="containerStyle()"
 					[attr.data-element-id]="element().id"
-					data-pptx-element="true"
+					[attr.data-pptx-element]="interactive() ? 'true' : null"
 				>
 					<pptx-smart-art-renderer [element]="element()" [zIndex]="zIndex()" />
 				</div>
@@ -134,7 +135,7 @@ interface Paragraph {
 					class="pptx-ng-element pptx-ng-ole"
 					[ngStyle]="containerStyle()"
 					[attr.data-element-id]="element().id"
-					data-pptx-element="true"
+					[attr.data-pptx-element]="interactive() ? 'true' : null"
 				>
 					<pptx-ole-renderer [element]="element()" [zIndex]="zIndex()" />
 				</div>
@@ -144,7 +145,7 @@ interface Paragraph {
 					class="pptx-ng-element pptx-ng-chart"
 					[ngStyle]="containerStyle()"
 					[attr.data-element-id]="element().id"
-					data-pptx-element="true"
+					[attr.data-pptx-element]="interactive() ? 'true' : null"
 				>
 					<pptx-chart-renderer [element]="element()" />
 				</div>
@@ -154,7 +155,7 @@ interface Paragraph {
 					class="pptx-ng-element pptx-ng-table"
 					[ngStyle]="containerStyle()"
 					[attr.data-element-id]="element().id"
-					data-pptx-element="true"
+					[attr.data-pptx-element]="interactive() ? 'true' : null"
 				>
 					<pptx-table-renderer [element]="element()" />
 				</div>
@@ -164,13 +165,14 @@ interface Paragraph {
 					class="pptx-ng-element pptx-ng-group"
 					[ngStyle]="containerStyle()"
 					[attr.data-element-id]="element().id"
-					data-pptx-element="true"
+					[attr.data-pptx-element]="interactive() ? 'true' : null"
 				>
 					@for (child of children(); track child.id) {
 						<pptx-element-renderer
 							[element]="child"
 							[mediaDataUrls]="mediaDataUrls()"
 							[zIndex]="$index"
+							[interactive]="interactive()"
 						/>
 					}
 				</div>
@@ -180,7 +182,7 @@ interface Paragraph {
 					class="pptx-ng-element pptx-ng-image"
 					[ngStyle]="containerStyle()"
 					[attr.data-element-id]="element().id"
-					data-pptx-element="true"
+					[attr.data-pptx-element]="interactive() ? 'true' : null"
 				>
 					@if (imageSrc()) {
 						<img [src]="imageSrc()" alt="" class="pptx-ng-img" />
@@ -192,7 +194,7 @@ interface Paragraph {
 					class="pptx-ng-element pptx-ng-media"
 					[ngStyle]="containerStyle()"
 					[attr.data-element-id]="element().id"
-					data-pptx-element="true"
+					[attr.data-pptx-element]="interactive() ? 'true' : null"
 				>
 					@if (imageSrc()) {
 						<img [src]="imageSrc()" alt="" class="pptx-ng-img" />
@@ -206,7 +208,7 @@ interface Paragraph {
 					class="pptx-ng-element pptx-ng-shape"
 					[ngStyle]="shapeContainerStyle()"
 					[attr.data-element-id]="element().id"
-					data-pptx-element="true"
+					[attr.data-pptx-element]="interactive() ? 'true' : null"
 				>
 					@if (pathWarp(); as warp) {
 						<svg
@@ -291,7 +293,7 @@ interface Paragraph {
 					class="pptx-ng-element pptx-ng-unsupported"
 					[ngStyle]="containerStyle()"
 					[attr.data-element-id]="element().id"
-					data-pptx-element="true"
+					[attr.data-pptx-element]="interactive() ? 'true' : null"
 				>
 					<div class="pptx-ng-placeholder">{{ placeholderLabel() }}</div>
 				</div>
@@ -340,6 +342,15 @@ export class ElementRendererComponent {
 	readonly obstacles = input<readonly Rect[]>([]);
 	readonly canvasWidth = input<number>(0);
 	readonly canvasHeight = input<number>(0);
+	/**
+	 * When true (default), the element host carries the framework-neutral
+	 * `data-pptx-element="true"` contract attribute (used by selection + the
+	 * shared e2e specs). Thumbnail / preview / presentation canvases pass `false`
+	 * so they don't pollute the contract selectors — mirroring React, where only
+	 * the main editing canvas exposes the element contract (thumbnails use a
+	 * separate lightweight renderer).
+	 */
+	readonly interactive = input<boolean>(true);
 
 	/** Duotone SVG `<filter>` descriptor for this element, if any. */
 	readonly duotoneFilter = computed(() => getDuotoneFilterDef(this.element()));
@@ -460,7 +471,7 @@ export class ElementRendererComponent {
 			style['font-family'] = s.fontFamily;
 		}
 		if (typeof s.fontSize === 'number') {
-			style['font-size'] = `${s.fontSize}pt`;
+			style['font-size'] = `${s.fontSize}px`;
 		}
 		if (s.color) {
 			style['color'] = s.color;

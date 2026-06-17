@@ -209,7 +209,10 @@ export function getTextBlockStyle(el: PptxElement): StyleMap {
 		style['font-family'] = ts.fontFamily;
 	}
 	if (typeof ts.fontSize === 'number') {
-		style['font-size'] = `${ts.fontSize}pt`;
+		// The parsed model stores font size as a px value; render it as px (matches
+		// React/Vue). Emitting `pt` inflated every glyph by 96/72 (≈1.33×), which
+		// overflowed text boxes and broke visual parity (e2e: text-rendering.spec).
+		style['font-size'] = `${ts.fontSize}px`;
 	}
 	if (ts.bold) {
 		style['font-weight'] = 'bold';

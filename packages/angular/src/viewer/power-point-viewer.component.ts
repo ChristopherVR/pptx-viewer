@@ -143,7 +143,8 @@ const ZOOM_MAX = 3;
 					<pre class="pptx-ng-error-detail">{{ loader.error() }}</pre>
 				</div>
 			} @else {
-				<pptx-ribbon
+				@if (!mobile.isMobile()) {
+					<pptx-ribbon
 					[slideIndex]="activeSlideIndex()"
 					[slideCount]="slideCount()"
 					[selectedElement]="selectedElement()"
@@ -174,7 +175,8 @@ const ZOOM_MAX = 3;
 					(exportGif)="exportGif()"
 					(exportVideo)="exportVideo()"
 					(replace)="openFindReplace()"
-				/>
+					/>
+				}
 
 				<div class="pptx-ng-body">
 					@if (canEdit()) {

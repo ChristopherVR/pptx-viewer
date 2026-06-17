@@ -100,6 +100,7 @@ const GRID_GAP = 16;
 										[mediaDataUrls]="mediaDataUrls()"
 										[zoom]="thumbZoom()"
 										[autoFit]="false"
+										[interactive]="false"
 									/>
 								</div>
 								<!-- Slide number badge -->

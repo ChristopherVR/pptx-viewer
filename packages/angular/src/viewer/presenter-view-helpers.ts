@@ -205,7 +205,7 @@ export function buildNotesSegments(segments: readonly TextSegment[]): NotesSegme
 			style['color'] = s.color;
 		}
 		if (s.fontSize) {
-			style['font-size'] = `${s.fontSize}pt`;
+			style['font-size'] = `${s.fontSize}px`;
 		}
 		if (s.fontFamily) {
 			style['font-family'] = s.fontFamily;

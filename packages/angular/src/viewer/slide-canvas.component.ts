@@ -103,14 +103,18 @@ function plainText(el: PptxElement): string {
 		`,
 	],
 	template: `
-		<div #viewport class="pptx-ng-canvas-viewport" data-pptx-viewport>
+		<div
+			#viewport
+			class="pptx-ng-canvas-viewport"
+			[attr.data-pptx-viewport]="interactive() ? '' : null"
+		>
 			<div class="pptx-ng-canvas-wrapper" [ngStyle]="wrapperStyle()">
 				<div
 					#stage
 					class="pptx-ng-canvas-stage"
 					[class.is-editable]="editable()"
 					role="region"
-					aria-roledescription="slide"
+					[attr.aria-roledescription]="interactive() ? 'slide' : null"
 					[ngStyle]="stageStyle()"
 					(pointerdown)="onStagePointerDown($event)"
 					(contextmenu)="onContextMenu($event)"
@@ -124,6 +128,7 @@ function plainText(el: PptxElement): string {
 							[obstacles]="connectorObstacles()"
 							[canvasWidth]="canvasSize().width"
 							[canvasHeight]="canvasSize().height"
+							[interactive]="interactive()"
 						/>
 					}
 					@for (box of selectionBoxes(); track box.id) {
@@ -210,6 +215,15 @@ export class SlideCanvasComponent {
 	 * thumbnail shrinks to near-invisible.
 	 */
 	readonly autoFit = input<boolean>(true);
+	/**
+	 * When true (default), the canvas + its elements expose the framework-neutral
+	 * contract attributes (`data-pptx-viewport`, `aria-roledescription="slide"`,
+	 * `data-pptx-element`). Thumbnail / preview / presentation instances pass
+	 * `false` so only the main editing canvas exposes the contract (mirrors React,
+	 * where thumbnails use a separate lightweight renderer). Prevents the shared
+	 * e2e selectors from matching multiple elements.
+	 */
+	readonly interactive = input<boolean>(true);
 	/** Ids of currently-selected elements (drawn with a selection outline). */
 	readonly selectedIds = input<readonly string[]>([]);
 	/** Id of the element currently being text-edited inline (or null). */
@@ -299,7 +313,10 @@ export class SlideCanvasComponent {
 			this.seededEditId = box.id;
 			editor.nativeElement.value = box.text;
 			editor.nativeElement.focus();
-			editor.nativeElement.select();
+			// Caret at end (do NOT select-all): typing appends to the existing text,
+			// matching React/Vue inline editors (and the shared inline-edit e2e spec).
+			const end = editor.nativeElement.value.length;
+			editor.nativeElement.setSelectionRange(end, end);
 		});
 
 		// Re-fit whenever the authored slide size changes (e.g. switching decks).

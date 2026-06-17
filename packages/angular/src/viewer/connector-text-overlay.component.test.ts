@@ -77,7 +77,7 @@ describe('buildOverlayBlockStyle', () => {
 	it('falls back to sensible defaults when textStyle is undefined', () => {
 		const style = buildOverlayBlockStyle(undefined);
 		expect(style).toContain('font-family:inherit');
-		expect(style).toContain('font-size:10pt');
+		expect(style).toContain('font-size:10px');
 		expect(style).toContain('color:#000000');
 		expect(style).toContain('font-weight:normal');
 		expect(style).toContain('font-style:normal');
@@ -91,7 +91,7 @@ describe('buildOverlayBlockStyle', () => {
 
 	it('applies font size from textStyle (in points)', () => {
 		const style = buildOverlayBlockStyle({ fontSize: 14 });
-		expect(style).toContain('font-size:14pt');
+		expect(style).toContain('font-size:14px');
 	});
 
 	it('applies colour from textStyle', () => {
@@ -158,7 +158,7 @@ describe('buildSegmentStyle', () => {
 	it('emits font-size in points when the run specifies one', () => {
 		const s = seg('big', { fontSize: 20 });
 		const style = buildSegmentStyle(s, undefined);
-		expect(style).toContain('font-size:20pt');
+		expect(style).toContain('font-size:20px');
 	});
 
 	it('omits font-size when neither run nor paragraph has one', () => {

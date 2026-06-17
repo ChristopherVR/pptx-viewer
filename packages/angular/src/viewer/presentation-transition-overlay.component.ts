@@ -102,6 +102,7 @@ function ensureTransitionKeyframes(): void {
 					[canvasSize]="canvasSize()"
 					[mediaDataUrls]="mediaDataUrls()"
 					[zoom]="1"
+					[interactive]="false"
 				/>
 			</div>
 		</div>

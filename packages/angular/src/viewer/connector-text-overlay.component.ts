@@ -70,7 +70,7 @@ export function buildOverlayBlockStyle(textStyle: TextStyle | undefined): string
 	const ts = textStyle;
 	const parts: string[] = [
 		`font-family:${ts?.fontFamily ?? 'inherit'}`,
-		`font-size:${ts?.fontSize !== undefined ? `${ts.fontSize}pt` : '10pt'}`,
+		`font-size:${ts?.fontSize !== undefined ? `${ts.fontSize}px` : '10px'}`,
 		`color:${ts?.color ?? '#000000'}`,
 		`font-weight:${ts?.bold ? 'bold' : 'normal'}`,
 		`font-style:${ts?.italic ? 'italic' : 'normal'}`,
@@ -100,7 +100,7 @@ export function buildSegmentStyle(segment: TextSegment, textStyle: TextStyle | u
 		`text-decoration:${s?.underline ? 'underline' : 'none'}`,
 	];
 	if (s?.fontSize !== undefined) {
-		parts.push(`font-size:${s.fontSize}pt`);
+		parts.push(`font-size:${s.fontSize}px`);
 	}
 	return parts.join(';');
 }
