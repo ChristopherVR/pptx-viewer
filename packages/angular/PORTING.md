@@ -597,3 +597,40 @@ frontier is **editing** and the remaining advanced subsystems.
     toolbar (not the mobile chrome); `format-painter.ts` is a third copy of the
     same pure logic (React/Vue/Angular) — a candidate for the
     `pptx-viewer-shared` extraction noted above.
+
+- **2026-06-18 (visual-parity audit vs React)** — Rendered the **same decks**
+  (`sample-deck.pptx` + an 8 MB rich `_debug-pipeline.pptx`) in the React and
+  Angular demos side-by-side (presentation mode, identical 1280×720 viewport)
+  and diffed every slide. Findings + fixes:
+  - **Slide rendering parity is strong.** Across text, accent shapes,
+    connectors, the blockchain-cube graphic, embedded photos/diagrams, and the
+    dense CNCF-landscape image slide, Angular renders essentially identically to
+    React. No element-rendering divergences found.
+  - **Fixed — invisible thumbnails + letterboxed presentation.** `SlideCanvas`
+    had grown an internal `fitScale` auto-fit (for the main viewer's "100 % =
+    fit"). The thumbnail/preview consumers already pass an explicit
+    fit-to-width/computed `zoom`, so the scales compounded: slides-panel +
+    mobile-slides-sheet thumbnails shrank to ~1 % (empty cards) and the
+    presentation/sorter slides were fit twice (black letterbox bars instead of
+    filling like React). Added an `autoFit` input (default true) and set it
+    `false` on slides-panel, slide-sorter, mobile-slides-sheet, and the
+    presentation overlay. Thumbnails now show live previews; the show fills the
+    viewport — both verified against React.
+  - **Fixed — presentation annotation toolbar overlapped the slide counter.**
+    Moved it bottom-left so the centred counter is clear (React reserves the
+    bottom-centre for the counter).
+  - **Known shared (not Angular-specific) bug:** the literal `&amp;` entity
+    shows un-decoded in list text ("Roadmap &amp; next steps") in **React, Vue,
+    and Angular** alike — a core/converter double-encoding issue, out of scope
+    for this Angular wave but worth a core fix.
+  - **The remaining parity gap is the EDITOR CHROME, not rendering.** React
+    ships a full Office-style ribbon (File/Home/Insert/Text/Draw/Arrange/Design/
+    Transitions/Animations/Slide Show/Review/View/Help tabs; Clipboard/Slides/
+    Font/Paragraph groups with font-family + size dropdowns, B/I/U/colour
+    pickers, list/indent/align controls; a bottom status bar). Angular exposes
+    the same _capabilities_ but as a flat button row + a second insert/arrange/
+    align strip + a right-side slide inspector — visually far from React. This
+    is the wholesale-ribbon port flagged in **Open decision #1** (likely wants
+    the Tailwind-4 pipeline adopted first to port the ~213 components 1:1). It is
+    a large, multi-session effort and remains the single biggest visual-parity
+    item.
