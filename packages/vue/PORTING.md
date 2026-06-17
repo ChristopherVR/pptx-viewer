@@ -892,3 +892,16 @@ shape-adjustment,remap-text}.ts` + 56 ported tests; shared extraction deferred t
   ribbon tab is inert, and real editing is the Inspector) — port a **Transition panel into
   the Vue inspector** (transition data still round-trips via `getContent`). Remaining no-op
   ribbon stubs are unchanged (need host capabilities).
+
+- **2026-06-18** — **Slide-level inspector** (`inspector/SlideInspector.vue`) — closes the
+  transition-editing follow-up. Mirrors React's inspector, which swaps element panels for
+  **slide properties** when nothing is selected. `SlideInspector` renders in the right pane
+  when `canEdit && inspectorOpen` and no element is selected, hosting a **Slide Transition**
+  section (reuses the existing `SlideTransitionPanel` for type + duration, adds the
+  advance-on-click toggle — React's `SlideTransitionSection`). Host `applySlideTransition`
+  re-applies/clears the active slide's transition (history-aware). So the inspector now
+  always shows **element OR slide properties**, like React. Verified live (selecting a type
+  applies it + reveals advance-on-click). +4 unit tests (1227 vue total green); typecheck +
+  oxlint clean. **Deferred** (advanced; core's direction-constant tables aren't exported):
+  transition direction / orientation / spokes / preview, and the rest of React's
+  slide-properties inspector (background, size, theme override).
