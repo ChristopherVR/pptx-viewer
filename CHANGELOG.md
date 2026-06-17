@@ -4,11 +4,58 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.23](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.23) - 2026-06-17
+
+### 🚀 Features
+
+- **angular:** Satisfy framework-neutral e2e contract for viewer parity (by @ChristopherVR) ([88f3e0e](https://github.com/ChristopherVR/pptx-viewer/commit/88f3e0ed2a116f2b1be47323fab1bb537ee68e3a))
+- **vue:** Port React's full Office-style ribbon toolbar (by @ChristopherVR) ([2341157](https://github.com/ChristopherVR/pptx-viewer/commit/23411572fb88ee50c7a3f64d93fc7d365e7ac73f))
+- **vue:** Port React's bottom status bar to complete the ribbon chrome (by @ChristopherVR) ([d8c7f67](https://github.com/ChristopherVR/pptx-viewer/commit/d8c7f67bb1d7e799adc9e107ae440ac5b425cf31))
+- **react:** Add on-canvas drag-to-rotate handle (by @ChristopherVR) ([e92132c](https://github.com/ChristopherVR/pptx-viewer/commit/e92132c2370a7ddfbec23e308e3755929f4172ab))
+- **vue:** React-parity slides rail (SlidesPaneSidebar) (by @ChristopherVR) ([adc88a3](https://github.com/ChristopherVR/pptx-viewer/commit/adc88a3f14e263d395bf08dc1469aea5d3928e81))
+- **vue:** Slide-level inspector with transition editing (by @ChristopherVR) ([315c33a](https://github.com/ChristopherVR/pptx-viewer/commit/315c33abd3fa27ece62a08cc61182402e7e81e1d))
+
+### 🐛 Bug Fixes
+
+- **vue:** Render text font sizes in px, not pt, for React parity (by @ChristopherVR) ([8b950d5](https://github.com/ChristopherVR/pptx-viewer/commit/8b950d5af63bce349ea57ff3621648c278240c1c))
+- **vue:** Default table body-cell text to dark colour for React parity (by @ChristopherVR) ([54a3dc3](https://github.com/ChristopherVR/pptx-viewer/commit/54a3dc31f6c0e9ef4ca8d36290490dbc97099c93))
+- **angular:** Stop double-scaling slide thumbnails and presentation slides (by @ChristopherVR) ([8a225ff](https://github.com/ChristopherVR/pptx-viewer/commit/8a225ffac9e7f742c1649af8c64831b4222ae27f))
+- **angular:** Move presentation annotation toolbar clear of the slide counter (by @ChristopherVR) ([c0c75b6](https://github.com/ChristopherVR/pptx-viewer/commit/c0c75b66d312b33dc6df7245d8bd7bab41e977ef))
+- **react:** Content-height mobile menu sheet with wrapping sections (by @ChristopherVR) ([ba88ce8](https://github.com/ChristopherVR/pptx-viewer/commit/ba88ce8fc511c1986956eed5e5fd434ad43b703c))
+- **react:** Use mobile chrome on landscape phones (height-aware breakpoint) (by @ChristopherVR) ([2ee25a5](https://github.com/ChristopherVR/pptx-viewer/commit/2ee25a5ab18c2d8dfacca41b861c174f3ffcbe2b))
+- **react:** Fit slide to the viewport (measure editor area) (by @ChristopherVR) ([f54a2c6](https://github.com/ChristopherVR/pptx-viewer/commit/f54a2c6906adf6ac11dd17069b2f7ed1b32e2447))
+
+### ♻️ Refactor
+
+- **vue:** Wire ribbon Arrange actions, move group/ungroup to context menu, drop dead chrome (by @ChristopherVR) ([216f597](https://github.com/ChristopherVR/pptx-viewer/commit/216f597e2dc658427c25c2d2b36250df5f80e54e))
+
+### 📚 Documentation
+
+- **vue:** Log px font-size fix + agnostic text-rendering e2e (by @ChristopherVR) ([3ffbe80](https://github.com/ChristopherVR/pptx-viewer/commit/3ffbe8056b2c7e6b87cf3f01fe14ef518e1c6e51))
+- **angular:** Record framework-neutral e2e contract parity (by @ChristopherVR) ([6200fc9](https://github.com/ChristopherVR/pptx-viewer/commit/6200fc9cdf38f2c1623b3b519d1499cdc98515b3))
+- **vue:** Log table body-cell colour fix + shared &amp; core bug (by @ChristopherVR) ([5fdf655](https://github.com/ChristopherVR/pptx-viewer/commit/5fdf6558523260096cc5b8b151bceae562ce253a))
+- Make site framework-agnostic, promote demo, remove all em-dashes (by @ChristopherVR) ([e719ffa](https://github.com/ChristopherVR/pptx-viewer/commit/e719ffafe5d8c35458050ac50d9e07fc4c965962))
+- **angular:** Record visual-parity audit vs React + remaining chrome gap (by @ChristopherVR) ([f3ae199](https://github.com/ChristopherVR/pptx-viewer/commit/f3ae19991d6208a2654a7137aff08dd3ee43b22e))
+- **vue:** Log Office-style ribbon toolbar port + follow-ups (by @ChristopherVR) ([b2c0a54](https://github.com/ChristopherVR/pptx-viewer/commit/b2c0a54637ef19c1dad6e57a7219aafa650dc383))
+- **vue:** Log bottom status bar port (ribbon chrome complete) (by @ChristopherVR) ([6e2a938](https://github.com/ChristopherVR/pptx-viewer/commit/6e2a9387596e21e2bcbb4ca97885110f03f3e8b3))
+- **vue:** Log ribbon chrome cleanup + Arrange wiring (by @ChristopherVR) ([51ce920](https://github.com/ChristopherVR/pptx-viewer/commit/51ce920d21ab285f26c219ff2063dc74a621dc71))
+- **vue:** Log slides-rail parity (desktop chrome complete) (by @ChristopherVR) ([5b258a0](https://github.com/ChristopherVR/pptx-viewer/commit/5b258a00a8ef96286d1e639576b632b2b9223b03))
+- **vue:** Log slide-level inspector (transition editing restored) (by @ChristopherVR) ([df15436](https://github.com/ChristopherVR/pptx-viewer/commit/df15436b070f81520881756f6135c2cb52ca53e7))
+
+### 🧪 Testing
+
+- **e2e:** Add mobile audit and manipulation suites (by @ChristopherVR) ([85e9046](https://github.com/ChristopherVR/pptx-viewer/commit/85e9046f16f16afb1f590625f08b49c59d1c89a6))
+- **e2e:** Add tablet/landscape and table-cell touch coverage (by @ChristopherVR) ([e6ef4b5](https://github.com/ChristopherVR/pptx-viewer/commit/e6ef4b5f6791a3c05147c62b01aabb0094de6f1d))
+
 ## [1.1.22](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.22) - 2026-06-16
 
 ### 🚀 Features
 
 - Development on visual parity for Vue (by @ChristopherVR) ([7d6d787](https://github.com/ChristopherVR/pptx-viewer/commit/7d6d7871075b4d31a69663e8f922076dbba5ee57))
+
+### 📚 Documentation
+
+- **changelog:** Update for v1.1.22 [skip ci] (by @github-actions[bot]) ([0df5b94](https://github.com/ChristopherVR/pptx-viewer/commit/0df5b947371083985a6cafb95a605c8aca68df3e))
 
 ### 🛠️ Build & CI
 
