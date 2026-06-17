@@ -816,3 +816,34 @@ shape-adjustment,remap-text}.ts` + 56 ported tests; shared extraction deferred t
   **Also confirmed shared (non-parity) core bug:** `&` renders as literal `&amp;`
   in slide text (double-encoding) on **both** React and Vue — a `pptx-viewer-core`
   text-decoding issue, not a binding gap; left for a core fix.
+
+- **2026-06-18** — **Office-style ribbon toolbar** (`components/ribbon/`). Replaced
+  the compact two-row `EditorToolbar` with a faithful port of React's ribbon chrome
+  (`components/Toolbar.tsx` + `toolbar/*`, ~5.5k LOC). New `ribbon/`: `ribbon-constants.ts`
+  (verbatim Tailwind tokens + data tables; JSX icon arrays → `lucide-vue-next`
+  component refs), `ribbon-types.ts` (UI enums + the `RibbonProps` contract mirroring
+  `ToolbarProps`), `use-dropdown.ts` (open-state + outside-click composable replacing
+  each section's React `useState`+`useEffect`), the `RibbonToolbar.vue` shell +
+  `ToolbarPrimaryRow.vue` + all 13 tab sections + ModeSwitcher/PresentDropdown/
+  OverflowMenu/CustomShowsControls. Sections were ported by 8 parallel subagents
+  against the scaffold (callbacks as function props, `react-icons/lu`→Lucide minus the
+  `Lu` prefix, i18n keys→English literals), integrated centrally. **Added
+  `lucide-vue-next`** (externalised dep — the Vue equivalent of React's `react-icons`).
+  Host wiring: a `ribbonProps` computed in `PowerPointViewer.vue` adapts the existing
+  state + handlers (undo/redo, zoom, insert text/shape/smartart/equation, clipboard,
+  format-painter, align, delete/duplicate/layer, find, comments, inspector toggle,
+  present, export, sorter, a11y, settings, master view, custom shows, doc properties,
+  version history) to `RibbonProps`. **Verified live against the React demo** — primary
+  row, full tab bar (File…Help), Home (Clipboard/Slides/Font/Paragraph) and Insert
+  (Text/Shape/Image/Media/Table/SmartArt/Equation/Action) sections match; tab switching
+  - active-tab underline work. 1211 vue unit tests green (edit-wiring smoke test updated
+    for the ribbon); typecheck + oxlint clean; **format-painter + text-rendering e2e green
+    on vue** (the `format-painter-toggle` hook now lives in the ribbon's Home tab).
+    **Interim / follow-ups:** the old `<header>` + `EditorToolbar` + `AlignToolbar` are
+    disabled (`v-if="false"`) rather than deleted — they still carry the **slide
+    prev/next nav**, which React keeps in a **bottom status bar** that isn't ported yet;
+    next step is to port the status bar (slide counter + nav + zoom + view toggles), then
+    delete the dead header. No-op ribbon stubs awaiting host capability: drawing tools,
+    grid/ruler/snap, theme gallery, flip, action buttons, image/media picker, table insert,
+    layout gallery, spell-check, guides, transitions controls. The left slides rail still
+    shows the old `Add`/`Duplicate` + Transition panel (vs React's plain thumbnail rail).
