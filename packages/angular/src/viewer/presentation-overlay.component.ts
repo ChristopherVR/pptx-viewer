@@ -98,8 +98,9 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 		.pptx-ng-presentation-tools {
 			position: absolute;
 			bottom: max(1rem, env(safe-area-inset-bottom));
-			left: 50%;
-			transform: translateX(-50%);
+			/* Bottom-left, clear of the centred slide counter (mirrors React, which
+			   keeps the bottom-centre reserved for the counter). */
+			left: 1rem;
 			display: flex;
 			gap: 0.25rem;
 			padding: 0.25rem;
