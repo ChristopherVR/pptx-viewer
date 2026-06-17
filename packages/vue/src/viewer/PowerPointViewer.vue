@@ -26,6 +26,7 @@ import type {
 	PptxElement,
 	PptxHeaderFooter,
 	PptxSlide,
+	PptxSlideTransition,
 	TextStyle,
 } from 'pptx-viewer-core';
 import type { AlignEdge } from 'pptx-viewer-shared';
@@ -52,6 +53,7 @@ import HyperlinkDialog from './components/HyperlinkDialog.vue';
 import InlineTextEditor from './components/InlineTextEditor.vue';
 import InsertSmartArtDialog from './components/InsertSmartArtDialog.vue';
 import InspectorPane from './components/inspector/InspectorPane.vue';
+import SlideInspector from './components/inspector/SlideInspector.vue';
 import MasterViewSidebar from './components/MasterViewSidebar.vue';
 import MobileBottomBar from './components/MobileBottomBar.vue';
 import ModalDialog from './components/ModalDialog.vue';
@@ -887,6 +889,19 @@ function toggleSlideHidden(index: number): void {
 	history.pushHistory();
 	const nextSlides = slides.value.slice();
 	nextSlides[index] = { ...slide, hidden: !slide.hidden };
+	slides.value = nextSlides;
+}
+
+/** Apply a transition (or clear it) on the active slide — from the SlideInspector. */
+function applySlideTransition(transition: PptxSlideTransition | undefined): void {
+	const index = activeSlideIndex.value;
+	const slide = slides.value[index];
+	if (!slide) {
+		return;
+	}
+	history.pushHistory();
+	const nextSlides = slides.value.slice();
+	nextSlides[index] = { ...slide, transition };
 	slides.value = nextSlides;
 }
 
@@ -1741,6 +1756,13 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					v-if="props.canEdit && inspectorElementForPanels && inspectorOpen"
 					:element="inspectorElementForPanels"
 					@update="onInspectorUpdate"
+				/>
+
+				<!-- Slide-level inspector (no element selected) — slide transition, etc. -->
+				<SlideInspector
+					v-else-if="props.canEdit && inspectorOpen && slideCount > 0"
+					:slide="activeSlide"
+					@transition-update="applySlideTransition"
 				/>
 
 				<!-- Accessibility checker -->
