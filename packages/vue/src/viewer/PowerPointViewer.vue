@@ -83,6 +83,7 @@ import SlideSorter from './components/SlideSorter.vue';
 import SlidesPaneControls from './components/SlidesPaneControls.vue';
 import SlideStage from './components/SlideStage.vue';
 import SlideTransitionPanel from './components/SlideTransitionPanel.vue';
+import StatusBar from './components/StatusBar.vue';
 import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
 import { DEFAULT_VIEWER_SETTINGS } from './components/viewer-settings';
 import type { ViewerSettings } from './components/viewer-settings';
@@ -1314,6 +1315,8 @@ const drawingColor = ref('#000000');
 const drawingWidth = ref(2);
 const inspectorOpen = ref(true);
 const overflowOpen = ref(false);
+/** Status-bar Notes toggle: expands/collapses the desktop notes panel. */
+const notesExpanded = ref(true);
 
 const ribbonMode = computed<ViewerMode>(() =>
 	presenting.value
@@ -1954,7 +1957,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						/>
 					</SlideCanvas>
 					<NotesPanel
-						v-if="props.canEdit && !isMobile"
+						v-if="props.canEdit && !isMobile && notesExpanded"
 						:slide="activeSlide"
 						@update="onNotesUpdate"
 					/>
@@ -2009,6 +2012,25 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					@move-slide="customShowOps.moveSlideInShow"
 				/>
 			</div>
+
+			<!-- Bottom status bar (desktop) — React-parity chrome -->
+			<StatusBar
+				v-if="!isMobile && slideCount > 0"
+				:slide-count="slideCount"
+				:active-slide-index="activeSlideIndex"
+				:is-dirty="autosave.isDirty.value"
+				:autosave-status="autosaveEnabled ? autosave.status.value : undefined"
+				:scale="zoom"
+				:mode="ribbonMode"
+				:is-notes-expanded="notesExpanded"
+				:show-notes="props.canEdit"
+				@zoom-in="zoomIn"
+				@zoom-out="zoomOut"
+				@zoom-to-fit="zoomReset"
+				@toggle-notes="notesExpanded = !notesExpanded"
+				@toggle-slide-sorter="showSorter = true"
+				@set-mode="(m) => (m === 'present' ? startPresenting() : (presenting = false))"
+			/>
 
 			<!-- Element context menu (edit mode) -->
 			<ContextMenu
