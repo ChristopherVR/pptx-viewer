@@ -1,6 +1,6 @@
 ---
 title: Adding an Element Type
-description: The seven-step process for adding a new PptxElement type — interface, discriminated union, type guard, parsing, serialization, React renderer, and converter processor.
+description: The seven-step process for adding a new PptxElement type - interface, discriminated union, type guard, parsing, serialization, React renderer, and converter processor.
 ---
 
 # Adding an Element Type
@@ -10,10 +10,10 @@ A `PptxElement` is a discriminated union of all the element kinds a slide can co
 This page walks through the seven steps end to end. For background on the union and how elements flow through the system, see [Data model](/guide/data-model) and [Concepts](/guide/concepts).
 
 ::: info
-Throughout this walkthrough, replace `myThing` / `MyThing` / `"myThing"` with your actual element type name. Keep the discriminant string (`"myThing"`) identical everywhere it appears — it is the single value that ties parsing, narrowing, serialization, rendering, and conversion together.
+Throughout this walkthrough, replace `myThing` / `MyThing` / `"myThing"` with your actual element type name. Keep the discriminant string (`"myThing"`) identical everywhere it appears - it is the single value that ties parsing, narrowing, serialization, rendering, and conversion together.
 :::
 
-## Step 1 — Define the interface
+## Step 1 - Define the interface
 
 **File:** `packages/core/src/core/types/elements.ts`
 
@@ -27,7 +27,7 @@ export interface PptxMyThingElement extends PptxElementBase {
 }
 ```
 
-## Step 2 — Add to the discriminated union
+## Step 2 - Add to the discriminated union
 
 **File:** `packages/core/src/core/types/elements.ts`
 
@@ -42,7 +42,7 @@ export type PptxElement =
 	| PptxMyThingElement;
 ```
 
-## Step 3 — Add a type guard
+## Step 3 - Add a type guard
 
 **File:** `packages/core/src/core/types/type-guards.ts`
 
@@ -54,11 +54,11 @@ export function isMyThingElement(el: PptxElement): el is PptxMyThingElement {
 }
 ```
 
-## Step 4 — Add parsing
+## Step 4 - Add parsing
 
-**File:** `packages/core/src/core/runtime/` — a `PptxHandlerRuntime*Parsing.ts` mixin
+**File:** `packages/core/src/core/runtime/` - a `PptxHandlerRuntime*Parsing.ts` mixin
 
-Parsing lives in the runtime mixin layer. Create a new `PptxHandlerRuntime*Parsing.ts` module (or extend an existing one) that reads the relevant OpenXML and produces a `PptxMyThingElement`. Follow the existing mixin pattern — one concern per module — and remember to consume parsed XML through the `XmlObject` alias rather than `any`.
+Parsing lives in the runtime mixin layer. Create a new `PptxHandlerRuntime*Parsing.ts` module (or extend an existing one) that reads the relevant OpenXML and produces a `PptxMyThingElement`. Follow the existing mixin pattern - one concern per module - and remember to consume parsed XML through the `XmlObject` alias rather than `any`.
 
 ```ts
 // PptxHandlerRuntimeMyThingParsing.ts
@@ -71,7 +71,7 @@ parseMyThing(node: XmlObject): PptxMyThingElement {
 }
 ```
 
-## Step 5 — Add serialization
+## Step 5 - Add serialization
 
 **File:** `packages/core/src/core/runtime/*SaveElementWriter.ts`
 
@@ -83,7 +83,7 @@ if (element.type === 'myThing') {
 }
 ```
 
-## Step 6 — Add a React renderer
+## Step 6 - Add a React renderer
 
 **File:** `packages/react/src/viewer/components/elements/`
 
@@ -95,7 +95,7 @@ export function MyThingElement({ element }: { element: PptxMyThingElement }) {
 }
 ```
 
-## Step 7 — Add a converter processor
+## Step 7 - Add a converter processor
 
 **File:** `packages/core/src/converter/elements/`
 
@@ -123,5 +123,5 @@ export const myThingProcessor: ElementProcessor<PptxMyThingElement> = {
 | 7    | `packages/core/src/converter/elements/`                        | Markdown/HTML converter processor     |
 
 ::: tip
-Add a colocated `.test.ts` for each new module as you go, and keep the discriminant string consistent across all seven steps. Run `bun run typecheck` after Step 2 — the union change will flag every `switch` and guard that still needs a case for your new type.
+Add a colocated `.test.ts` for each new module as you go, and keep the discriminant string consistent across all seven steps. Run `bun run typecheck` after Step 2 - the union change will flag every `switch` and guard that still needs a case for your new type.
 :::

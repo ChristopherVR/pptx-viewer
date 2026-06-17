@@ -35,7 +35,7 @@ A vector **SVG** export path is also available. Because SVG is vector-based, it 
 
 ## Saving back to PowerPoint
 
-Choose **Save as PPTX** to write your edits to a standard `.pptx` file that opens in Microsoft PowerPoint and other apps. This round-trips your changes — added/edited elements, slide changes, notes, and so on. Use **PPSX** if you want a file that opens straight into a slideshow, or **PPTM** for macro-enabled decks.
+Choose **Save as PPTX** to write your edits to a standard `.pptx` file that opens in Microsoft PowerPoint and other apps. This round-trips your changes - added/edited elements, slide changes, notes, and so on. Use **PPSX** if you want a file that opens straight into a slideshow, or **PPTM** for macro-enabled decks.
 
 ## Resolution and quality notes
 

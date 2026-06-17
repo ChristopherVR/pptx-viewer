@@ -5,7 +5,7 @@ description: Construct a PptxHandler, load a .pptx ArrayBuffer into the structur
 
 # Loading & Parsing
 
-Loading turns raw `.pptx` bytes into a fully resolved, typed [`PptxData`](/guide/data-model) object. All parsing happens in memory — no temporary files, no native code.
+Loading turns raw `.pptx` bytes into a fully resolved, typed [`PptxData`](/guide/data-model) object. All parsing happens in memory - no temporary files, no native code.
 
 ## Construct a handler and load
 
@@ -70,14 +70,14 @@ The result is a single `PptxData` object holding everything needed to render, ed
 ```ts
 const data = await handler.load(buffer, {
 	password: 'secret', // decrypt an encrypted file (see below)
-	allowExternalImages: false, // default false — http(s) image URLs are dropped
+	allowExternalImages: false, // default false - http(s) image URLs are dropped
 	maxUncompressedBytes: 500 * 1024 * 1024, // zip-bomb guard, 500 MiB default
 });
 ```
 
 | Option                 | Default   | Purpose                                                                                                                                                              |
 | ---------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `password`             | —         | Decrypts an encrypted package before parsing.                                                                                                                        |
+| `password`             | -         | Decrypts an encrypted package before parsing.                                                                                                                        |
 | `allowExternalImages`  | `false`   | When `false`, relationship targets resolving to `http://`/`https://` are dropped from rendered slides (SSRF / privacy mitigation). Set `true` to allow them through. |
 | `maxUncompressedBytes` | `500 MiB` | Total uncompressed budget. Exceeding it (or 65,536 entries) rejects with `ZipBombError`.                                                                             |
 | `eagerDecodeImages`    | `false`   | Decode embedded images during load rather than lazily.                                                                                                               |
@@ -109,7 +109,7 @@ See [/guide/data-model](/guide/data-model) for the full shape of `PptxData`, `Pp
 
 ## Iterating elements and narrowing by `type`
 
-Every slide's `elements` array is a list of [`PptxElement`](/guide/data-model) — a discriminated union of 16 variants. Always narrow with the `type` discriminant before touching variant-specific fields:
+Every slide's `elements` array is a list of [`PptxElement`](/guide/data-model) - a discriminated union of 16 variants. Always narrow with the `type` discriminant before touching variant-specific fields:
 
 ```ts
 for (const slide of data.slides) {
@@ -138,7 +138,7 @@ for (const slide of data.slides) {
 ```
 
 ::: warning Narrow before access
-TypeScript only exposes variant fields (like `imagePath` or `tableData`) after you've narrowed on `el.type`. This is the intended pattern — see [/guide/concepts](/guide/concepts).
+TypeScript only exposes variant fields (like `imagePath` or `tableData`) after you've narrowed on `el.type`. This is the intended pattern - see [/guide/concepts](/guide/concepts).
 :::
 
 ## Embedded media

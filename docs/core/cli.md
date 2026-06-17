@@ -1,11 +1,11 @@
 ---
 title: CLI
-description: The pptx command-line tool from pptx-viewer-core — info, export-svg, export-md, merge, find, replace, create, and diff commands for PPTX files.
+description: The pptx command-line tool from pptx-viewer-core - info, export-svg, export-md, merge, find, replace, create, and diff commands for PPTX files.
 ---
 
 # CLI
 
-`pptx-viewer-core` ships a `pptx` binary for common PPTX operations from the terminal — no code required. Each command is a thin wrapper around the engine, so behaviour matches the programmatic API.
+`pptx-viewer-core` ships a `pptx` binary for common PPTX operations from the terminal - no code required. Each command is a thin wrapper around the engine, so behaviour matches the programmatic API.
 
 ## Install / run
 

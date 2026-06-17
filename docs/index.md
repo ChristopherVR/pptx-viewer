@@ -4,8 +4,8 @@ layout: home
 
 hero:
   name: 'pptx-viewer'
-  text: 'A PowerPoint SDK for TypeScript'
-  tagline: Parse, create, edit, render, and convert .pptx files — in the browser and Node.js. Framework-agnostic core plus a full-featured React viewer/editor.
+  text: 'PowerPoint SDK for TypeScript'
+  tagline: Parse, create, edit, render, and convert .pptx files - browser and Node.js. Works with React, Vue 3, and Angular. No native dependencies.
   actions:
     - theme: brand
       text: Get Started
@@ -28,14 +28,14 @@ features:
     linkText: Loading & Parsing
   - icon: 🏗️
     title: Build from Scratch
-    details: A fluent builder API for creating presentations programmatically — text, shapes, images, tables, charts, and more, without touching raw OpenXML.
+    details: A fluent builder API for creating presentations programmatically - text, shapes, images, tables, charts, and more, without touching raw OpenXML.
     link: /core/builder
     linkText: The Builder API
   - icon: ⚛️
-    title: React Viewer & Editor
-    details: A CSS-rendered PowerPointViewer component with a WYSIWYG editor, inspector, presenter mode, find/replace, and export — driven by 67+ composable hooks.
-    link: /react/
-    linkText: React Viewer
+    title: React, Vue & Angular
+    details: Drop-in viewer components for all three major frameworks. The same rendering engine powers all bindings - HTML/CSS slides, full visual fidelity, no Canvas.
+    link: /guide/installation
+    linkText: Choose a Framework
   - icon: 📝
     title: Convert to Markdown
     details: Turn presentations into clean Markdown (or positioned HTML) with optional media extraction, speaker notes, and metadata.
@@ -43,36 +43,115 @@ features:
     linkText: Markdown Converter
   - icon: 🎨
     title: Faithful Rendering
-    details: 187+ preset shapes, 23 chart types, SmartArt, animations, morph transitions, EMF/WMF metafiles, embedded fonts, and 3D models — rendered with HTML, CSS, and SVG.
+    details: 187+ preset shapes, 23 chart types, SmartArt, animations, morph transitions, EMF/WMF metafiles, embedded fonts, and 3D models - rendered with HTML, CSS, and SVG.
     link: /guide/concepts
     linkText: Core Concepts
-  - icon: 🤝
-    title: Collaborate & Automate
-    details: Real-time co-editing via Yjs CRDT, AES-128/256 encryption, an MCP server with 24 tools, and a CLI for headless workflows.
+  - icon: 🤖
+    title: MCP & AI Tooling
+    details: 24 pure tool functions, Zod schemas, and an MCP server so AI agents (Claude, Cursor, Copilot) can read, write, and transform PPTX files directly.
     link: /packages/mcp
     linkText: MCP & Tools
+  - icon: 🤝
+    title: Collaborate & Encrypt
+    details: Real-time co-editing via Yjs CRDT with presence tracking. AES-128/256 encryption for password-protected files. Collaboration codec for Y.Doc round-trips.
+    link: /react/collaboration
+    linkText: Collaboration
+  - icon: 🚀
+    title: Export Everything
+    details: PNG, JPEG, SVG, PDF, GIF, and video export from the browser. SVG export also works headlessly in Node.js via SvgExporter with no DOM.
+    link: /react/export
+    linkText: Export Options
 ---
 
 <div style="max-width: 1152px; margin: 3rem auto 0; padding: 0 24px;">
 
+## See it in action
+
 ![The pptx-react-viewer editor: ribbon toolbar, slide thumbnails, and a slide rendered on the canvas](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/editor.png)
 
 <p style="text-align: center; color: var(--vp-c-text-2); margin-top: 0.75rem;">
-The <a href="/pptx-viewer/react/">React viewer/editor</a> in action — rendered entirely with HTML, CSS, and SVG. Vue and Angular bindings share the same engine.
+The viewer/editor rendered entirely with HTML, CSS, and SVG - sharp text at any zoom, native accessibility, no Canvas. Vue and Angular bindings use the same engine. <a href="https://christophervr.github.io/pptx-viewer/demo/">Try the live demo.</a>
 </p>
 
+## Choose your stack
+
+The UI packages **bundle the core engine**, so you install exactly one package:
+
+| I'm building...               | Install                     | What you get                                                                  |
+| ----------------------------- | --------------------------- | ----------------------------------------------------------------------------- |
+| **React app**                 | `npm i pptx-react-viewer`   | Full-featured viewer + WYSIWYG editor, presenter mode, export, collaboration  |
+| **Vue 3 app**                 | `npm i pptx-vue-viewer`     | Viewer component with the same rendering engine; editor features being ported |
+| **Angular app**               | `npm i pptx-angular-viewer` | Viewer component with the same rendering engine; editor features being ported |
+| **Headless (Node / browser)** | `npm i pptx-viewer-core`    | Parse, create, edit, convert, encrypt - no UI, no framework dependency        |
+| **AI / MCP tooling**          | `npm i pptx-viewer-mcp`     | 24 MCP tools, CLI, Y.Doc collaboration codec                                  |
+
+Full installation details and peer dependency requirements are in the [installation guide](/guide/installation).
+
+## Programmatic use
+
+All three UI packages bundle `pptx-viewer-core`, but you can also use the core engine on its own for headless workflows - no browser, no framework:
+
+```ts
+import { PptxHandler, PptxMarkdownConverter } from 'pptx-viewer-core';
+
+const handler = new PptxHandler();
+const data = await handler.load(await fs.readFile('deck.pptx'));
+
+// Walk the slide data model
+for (const slide of data.slides) {
+	for (const el of slide.elements) {
+		if (el.type === 'text') console.log(el.text);
+	}
+}
+
+// Mutate and save back to .pptx
+data.slides[0].elements[0].text = 'Updated';
+await fs.writeFile('out.pptx', await handler.save(data.slides));
+
+// Or convert to Markdown
+const md = await new PptxMarkdownConverter('./out', { semanticMode: true }).convert(data);
+```
+
+The core engine runs identically in Node.js, Bun, Deno, browser tabs, Web Workers, and serverless functions.
+
+## MCP and AI agents
+
+`pptx-viewer-mcp` exposes 24 PPTX manipulation tools as an MCP server. Any MCP-compatible client (Claude Desktop, Cursor, VS Code Copilot) can use them to read, edit, and convert presentations without writing code:
+
+```json
+{
+	"mcpServers": {
+		"pptx": { "command": "npx", "args": ["pptx-viewer-mcp"] }
+	}
+}
+```
+
+Alternatively, call the tool functions directly in your own pipeline - they are pure functions that take `PptxData` and return `PptxData`:
+
+```ts
+import { replaceText, addSlide, convertToMarkdown } from 'pptx-viewer-mcp';
+```
+
+See the [MCP & Tools reference](/packages/mcp) for the full tool catalogue, Zod schemas, and the Y.Doc collaboration codec.
+
+## Limitations
+
+Before adopting the library, read the [full limitations page](/guide/limitations). Key caveats:
+
+- **OLE objects are read-only** - embedded Excel/Word content can be displayed but not edited
+- **SmartArt is static** - shapes are fully editable but there is no live reflow engine
+- **CSS rendering approximates some effects** - backdrop-filter, mix-blend-mode, and CSS 3D transforms are not pixel-perfect
+- **Vue / Angular are viewer-first** - full editing, presenter mode, and export are React-only for now; they are being ported
+- **EMF/WMF on Canvas only** - the EMF converter requires `HTMLCanvasElement` or `OffscreenCanvas`; pure Node.js needs a canvas polyfill
+
+## Extending the viewer
+
+The React viewer is built on 67+ composable hooks. You can hook into any layer:
+
+- **Custom element renderers** - override the default renderer for any `PptxElement` type by mapping the `type` discriminant to your own component
+- **Theming** - override CSS custom properties or pass a `theme` prop to restyle the toolbar, inspector, and slides ([Theming guide](/react/theming))
+- **Imperative handle** - use `ref` to call `exportAsPng`, `goToSlide`, `setZoom`, and other methods programmatically ([Imperative handle reference](/react/handle))
+- **Custom hooks** - import and compose the individual hooks (`useEditorOperations`, `useExportHandlers`, etc.) to build your own viewer shell ([Hooks reference](/react/hooks))
+- **New element types** - the core engine's mixin architecture makes adding a new `PptxElement` type a seven-step process ([Adding an element type](/contributing/adding-element-type))
+
 </div>
-
-## Install in one line
-
-Pick the package for your stack — the UI packages **bundle the core engine**, so you install just one:
-
-| Stack                         | Install                     |
-| ----------------------------- | --------------------------- |
-| **React**                     | `npm i pptx-react-viewer`   |
-| **Vue 3**                     | `npm i pptx-vue-viewer`     |
-| **Angular**                   | `npm i pptx-angular-viewer` |
-| **Headless** (Node / browser) | `npm i pptx-viewer-core`    |
-| **CLI / MCP / AI tools**      | `npm i pptx-viewer-mcp`     |
-
-→ Full details in the [installation guide](/guide/installation).

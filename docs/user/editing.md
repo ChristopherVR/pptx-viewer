@@ -25,9 +25,9 @@ When something is selected, the **inspector panel** on the right updates to show
 
 With an element selected:
 
-- **Move** — Drag it to a new position. Use the **arrow keys** to nudge it a little, or **Shift + arrow keys** to nudge it in larger steps.
-- **Resize** — Drag any of the square handles on the element's edges or corners.
-- **Rotate** — Drag the rotation handle, or set an exact angle in the inspector.
+- **Move** - Drag it to a new position. Use the **arrow keys** to nudge it a little, or **Shift + arrow keys** to nudge it in larger steps.
+- **Resize** - Drag any of the square handles on the element's edges or corners.
+- **Rotate** - Drag the rotation handle, or set an exact angle in the inspector.
 
 You can also type exact **position** (X/Y) and **size** (width/height) values into the inspector's element properties for precise placement.
 
@@ -57,7 +57,7 @@ New elements appear on the slide ready to be moved, resized, and styled.
 
 ## The inspector panel (properties)
 
-The inspector on the right is **context-sensitive** — it changes based on what you have selected:
+The inspector on the right is **context-sensitive** - it changes based on what you have selected:
 
 | When you select...       | The inspector lets you change...                                           |
 | ------------------------ | -------------------------------------------------------------------------- |
@@ -84,8 +84,8 @@ Use the **Arrange** toolbar tab (or right-click context menu) to:
 
 Every edit can be undone:
 
-- **Undo** — **Ctrl/Cmd + Z**
-- **Redo** — **Ctrl/Cmd + Shift + Z** or **Ctrl/Cmd + Y**
+- **Undo** - **Ctrl/Cmd + Z**
+- **Redo** - **Ctrl/Cmd + Shift + Z** or **Ctrl/Cmd + Y**
 
 The app captures a snapshot after each change, so you can step backward and forward through your edit history. (Continuous actions like dragging are captured once the action finishes, not on every pixel.)
 
@@ -105,12 +105,12 @@ See the full list on the [Keyboard Shortcuts](/user/shortcuts) page.
 
 Work with slides from the **slides panel** (left), its right-click menu, or the **Home** toolbar tab:
 
-- **Add a slide** — Insert a new blank slide.
-- **Duplicate a slide** — Copy an existing slide and its contents.
-- **Delete a slide** — Remove the selected slide.
-- **Reorder slides** — Drag thumbnails in the slides panel, or use the [slide sorter](/user/viewing#the-slide-sorter).
-- **Hide a slide** — Keep a slide in the file but skip it during a slideshow.
-- **Sections** — Group slides into named sections to organise larger decks.
+- **Add a slide** - Insert a new blank slide.
+- **Duplicate a slide** - Copy an existing slide and its contents.
+- **Delete a slide** - Remove the selected slide.
+- **Reorder slides** - Drag thumbnails in the slides panel, or use the [slide sorter](/user/viewing#the-slide-sorter).
+- **Hide a slide** - Keep a slide in the file but skip it during a slideshow.
+- **Sections** - Group slides into named sections to organise larger decks.
 
 ## Editing speaker notes
 
@@ -138,7 +138,7 @@ Comment markers appear on the canvas so you can see where feedback is attached.
 
 ## Saving your work
 
-The status bar shows whether you have **unsaved changes**. To keep your edits, save or export the file — see [Exporting](/user/exporting) for saving back to `.pptx` and other formats. Some apps also enable **autosave**.
+The status bar shows whether you have **unsaved changes**. To keep your edits, save or export the file - see [Exporting](/user/exporting) for saving back to `.pptx` and other formats. Some apps also enable **autosave**.
 
 ## Next
 

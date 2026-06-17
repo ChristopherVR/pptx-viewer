@@ -1,6 +1,6 @@
 ---
 title: Architecture
-description: The layered architecture of pptx-viewer — React package, core engine, low-level converters, the mixin-composition runtime, and the load/save pipelines.
+description: The layered architecture of pptx-viewer - React package, core engine, low-level converters, the mixin-composition runtime, and the load/save pipelines.
 ---
 
 # Architecture
@@ -59,18 +59,18 @@ description: The layered architecture of pptx-viewer — React package, core eng
 +------------------------------------------------------------------+
 ```
 
-- **React package** — purely presentational components driven by 67+ custom hooks. `PowerPointViewer` is the forwardRef orchestrator. Slides render as scaled HTML/SVG using CSS transforms rather than Canvas.
-- **Core package** — the framework-agnostic engine. The `PptxHandler` facade is the public entry point; everything else (runtime, converter, services, types, geometry, colour, builders) sits beneath it.
-- **emf-converter / mtx-decompressor** — pure binary-format workers invoked by the core engine to rasterize EMF/WMF metafiles and decompress embedded MicroType Express fonts.
+- **React package** - purely presentational components driven by 67+ custom hooks. `PowerPointViewer` is the forwardRef orchestrator. Slides render as scaled HTML/SVG using CSS transforms rather than Canvas.
+- **Core package** - the framework-agnostic engine. The `PptxHandler` facade is the public entry point; everything else (runtime, converter, services, types, geometry, colour, builders) sits beneath it.
+- **emf-converter / mtx-decompressor** - pure binary-format workers invoked by the core engine to rasterize EMF/WMF metafiles and decompress embedded MicroType Express fonts.
 
 ## Mixin-composition runtime
 
-The heart of the core engine is `PptxHandlerRuntime`, assembled from **50+ focused mixin modules**. Each module (`PptxHandlerRuntime*.ts`) adds one concern — XML parsing, theme resolution, a specific element type's parsing, serialization, save-pipeline steps, and so on.
+The heart of the core engine is `PptxHandlerRuntime`, assembled from **50+ focused mixin modules**. Each module (`PptxHandlerRuntime*.ts`) adds one concern - XML parsing, theme resolution, a specific element type's parsing, serialization, save-pipeline steps, and so on.
 
 The public surface narrows progressively:
 
 ```
-PptxHandler            (public facade — the class you instantiate)
+PptxHandler            (public facade - the class you instantiate)
   └── PptxHandlerCore  (facade over the runtime)
         └── PptxHandlerRuntime
               ↑ composed from 50+ mixins:
@@ -80,7 +80,7 @@ PptxHandler            (public facade — the class you instantiate)
               · …
 ```
 
-This keeps each concern isolated and individually testable. New capabilities — including new element types — are added as new mixins rather than by growing a monolithic class. See [Adding a new element type](/guide/data-model) for the end-to-end checklist.
+This keeps each concern isolated and individually testable. New capabilities - including new element types - are added as new mixins rather than by growing a monolithic class. See [Adding a new element type](/guide/data-model) for the end-to-end checklist.
 
 ## Load pipeline
 
@@ -88,7 +88,7 @@ This keeps each concern isolated and individually testable. New capabilities —
 
 ```
 ArrayBuffer
-   │  detectFileFormat() — and decrypt if password-protected
+   │  detectFileFormat() - and decrypt if password-protected
    ▼
 JSZip.loadAsync()                 (ZIP opened in memory)
    │
@@ -132,13 +132,13 @@ Uint8Array  (a valid .pptx file)
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | **CSS-based rendering** (not Canvas)  | Sharp text at any zoom, native accessibility, DOM interactivity, and standard CSS styling.                    |
 | **Mixin composition** for the runtime | 50+ focused modules keep each concern isolated and testable; new capabilities are added as new mixins.        |
-| **Discriminated union** for elements  | TypeScript narrows to the correct element type via the `type` field — no casting needed.                      |
+| **Discriminated union** for elements  | TypeScript narrows to the correct element type via the `type` field - no casting needed.                      |
 | **EMU units** internally              | PowerPoint uses English Metric Units (1 inch = 914,400 EMU). Conversion constants live in `constants.ts`.     |
 | **Theme resolution chain**            | Element → Placeholder → Layout → Master → Theme mirrors PowerPoint's own style inheritance.                   |
 | **Deferred image processing**         | EMF/WMF record replay is synchronous for performance; bitmap draws are collected and resolved asynchronously. |
 
 ## Related reading
 
-- [Core Concepts](/guide/concepts) — EMU units, the element model, and theme resolution in depth.
-- [The PptxData Model](/guide/data-model) — the full shape of a parsed presentation.
-- [Core package overview](/core/) — the public API reference.
+- [Core Concepts](/guide/concepts) - EMU units, the element model, and theme resolution in depth.
+- [The PptxData Model](/guide/data-model) - the full shape of a parsed presentation.
+- [Core package overview](/core/) - the public API reference.

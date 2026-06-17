@@ -10,13 +10,13 @@ for every visual token. This means you can theme it three ways, in increasing or
 
 ## Three styling modes
 
-### Mode 1 — Tailwind CSS v4 project (no extra setup)
+### Mode 1 - Tailwind CSS v4 project (no extra setup)
 
 If your app already uses Tailwind CSS v4 with the shadcn-style semantic tokens, the viewer's classes
 resolve through your existing config. No CSS import needed. Override specific values with the
 [`theme` prop](#the-theme-prop).
 
-### Mode 2 — bundled stylesheet
+### Mode 2 - bundled stylesheet
 
 If you do not use Tailwind, import the self-contained stylesheet once at your entry point. It ships
 all required utility classes plus dark-theme defaults.
@@ -26,7 +26,7 @@ import 'pptx-react-viewer/styles';
 // or: import 'pptx-react-viewer/styles.css';
 ```
 
-### Mode 3 — raw CSS custom properties
+### Mode 3 - raw CSS custom properties
 
 For full control, define the `--pptx-*` properties yourself and skip both the bundled CSS and the
 `theme` prop:
@@ -82,7 +82,7 @@ interface ViewerTheme {
 }
 ```
 
-`ViewerThemeColors` keys (all CSS color strings — hex, `rgb()`, `hsl()`, `oklch()`, named):
+`ViewerThemeColors` keys (all CSS color strings - hex, `rgb()`, `hsl()`, `oklch()`, named):
 
 | Key                     | CSS variable                    | Role                            |
 | ----------------------- | ------------------------------- | ------------------------------- |
@@ -108,7 +108,7 @@ interface ViewerTheme {
 
 ::: warning Required-vs-partial
 On `ViewerThemeColors` all keys are required, but the `theme.colors` field is typed
-`Partial<ViewerThemeColors>` — so when you pass colors to the component you can supply any subset.
+`Partial<ViewerThemeColors>` - so when you pass colors to the component you can supply any subset.
 :::
 
 ## Theme utilities
@@ -149,7 +149,7 @@ const style = themeToCssVars({ colors: { primary: '#6366f1' }, radius: '0.75rem'
 
 ### `defaultCssVars()`
 
-Returns the complete set of `--pptx-*` properties populated with the dark-theme defaults — useful for
+Returns the complete set of `--pptx-*` properties populated with the dark-theme defaults - useful for
 generating a full fallback stylesheet.
 
 ## `ViewerThemeProvider` and `useViewerTheme`
@@ -175,7 +175,7 @@ function SomeChild() {
 
 ::: tip
 `useViewerTheme()` returns the nearest provided `ViewerTheme` (or `undefined`). It reads context only
-— it does not produce the CSS variables. Use `themeToCssVars` for that.
+: it does not produce the CSS variables. Use `themeToCssVars` for that.
 :::
 
 ## Light theme example

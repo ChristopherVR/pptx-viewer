@@ -5,11 +5,11 @@ description: Create PowerPoint presentations from scratch with the fluent Presen
 
 # The Builder API
 
-`pptx-viewer-core` ships a fluent SDK for building presentations programmatically — no template file needed. There are three tiers, from highest to lowest level:
+`pptx-viewer-core` ships a fluent SDK for building presentations programmatically - no template file needed. There are three tiers, from highest to lowest level:
 
-1. **`Presentation`** / **`PptxHandler.create`** — manage slides, text, sections, merging, and saving with zero boilerplate.
-2. **Element builders** — `TextBuilder`, `ShapeBuilder`, `ImageBuilder`, `TableBuilder`, `ChartBuilder`, `ConnectorBuilder`, `MediaBuilder`, `GroupBuilder`.
-3. **`PptxXmlBuilder`** — low-level in-place mutation of `PptxData` (see [/core/editing](/core/editing)).
+1. **`Presentation`** / **`PptxHandler.create`** - manage slides, text, sections, merging, and saving with zero boilerplate.
+2. **Element builders** - `TextBuilder`, `ShapeBuilder`, `ImageBuilder`, `TableBuilder`, `ChartBuilder`, `ConnectorBuilder`, `MediaBuilder`, `GroupBuilder`.
+3. **`PptxXmlBuilder`** - low-level in-place mutation of `PptxData` (see [/core/editing](/core/editing)).
 
 ## Creating a presentation
 
@@ -112,7 +112,7 @@ For step-by-step construction, the eight element builders each expose a `.create
 ```ts
 import { TextBuilder, ShapeBuilder, ChartBuilder, TableBuilder } from 'pptx-viewer-core';
 
-// Text — rich, chainable styling
+// Text - rich, chainable styling
 const title = TextBuilder.create('Hello World')
 	.fontSize(36)
 	.bold()
@@ -123,7 +123,7 @@ const title = TextBuilder.create('Hello World')
 	.size(600, 80)
 	.build();
 
-// Shape — fill/stroke/shadow convenience methods + geometry adjustments
+// Shape - fill/stroke/shadow convenience methods + geometry adjustments
 const button = ShapeBuilder.create('roundRect')
 	.solidFill('#4472C4')
 	.stroke({ color: '#000', width: 2 })
@@ -133,7 +133,7 @@ const button = ShapeBuilder.create('roundRect')
 	.size(300, 200)
 	.build();
 
-// Chart — bar | line | pie | doughnut | area | scatter | ...
+// Chart - bar | line | pie | doughnut | area | scatter | ...
 const chart = ChartBuilder.create('bar')
 	.categories(['North', 'South', 'East', 'West'])
 	.addSeries('2026', [210, 150, 180, 120], '#2563EB')
@@ -143,7 +143,7 @@ const chart = ChartBuilder.create('bar')
 	.bounds(50, 100, 860, 420)
 	.build();
 
-// Table — header row, data rows, banding, proportional widths
+// Table - header row, data rows, banding, proportional widths
 const table = TableBuilder.create()
 	.headerRow(['Name', 'Q1', 'Q2'])
 	.addRow(['North', '120', '145'])

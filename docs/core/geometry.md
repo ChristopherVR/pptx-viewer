@@ -1,11 +1,11 @@
 ---
 title: Geometry Engine
-description: Overview of the pptx-viewer-core geometry engine — 187+ preset shapes, clip paths, connector routing, the OOXML DrawingML guide-formula evaluator, and exported helpers.
+description: Overview of the pptx-viewer-core geometry engine - 187+ preset shapes, clip paths, connector routing, the OOXML DrawingML guide-formula evaluator, and exported helpers.
 ---
 
 # Geometry Engine
 
-PowerPoint shapes are not stored as paths — they're defined by a shape **preset** (one of 187+) plus adjustment handles, evaluated through the OOXML DrawingML guide-formula language to produce coordinates. The geometry module turns all of that into SVG paths and clip paths the renderer can use.
+PowerPoint shapes are not stored as paths - they're defined by a shape **preset** (one of 187+) plus adjustment handles, evaluated through the OOXML DrawingML guide-formula language to produce coordinates. The geometry module turns all of that into SVG paths and clip paths the renderer can use.
 
 This is an overview of what the module does and the public helpers it exports (re-exported from `pptx-viewer-core`). It powers the React viewer's shape rendering and the headless [SVG export](/core/svg-export).
 
@@ -119,5 +119,5 @@ import {
 ```
 
 ::: tip Rendering
-You rarely call these directly when using the React package — they're wired into the renderer. Reach for them when building a custom renderer or generating geometry outside the viewer (e.g. server-side). For the visual output, see [/core/svg-export](/core/svg-export) and [/react/](/react/).
+You rarely call these directly when using the React package - they're wired into the renderer. Reach for them when building a custom renderer or generating geometry outside the viewer (e.g. server-side). For the visual output, see [/core/svg-export](/core/svg-export) and [/react/](/react/).
 :::

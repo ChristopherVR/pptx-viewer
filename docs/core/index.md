@@ -5,7 +5,7 @@ description: pptx-viewer-core is a framework-agnostic TypeScript engine for pars
 
 # Core Engine Overview
 
-`pptx-viewer-core` is a **framework-agnostic** TypeScript engine for working with PowerPoint (`.pptx`) files. It parses, creates, edits, serializes, and converts presentations entirely in memory on the OpenXML ZIP archive — no native dependencies, no browser DOM required.
+`pptx-viewer-core` is a **framework-agnostic** TypeScript engine for working with PowerPoint (`.pptx`) files. It parses, creates, edits, serializes, and converts presentations entirely in memory on the OpenXML ZIP archive - no native dependencies, no browser DOM required.
 
 A `.pptx` file is a ZIP archive of XML documents conforming to the [Office Open XML (OOXML)](https://www.ecma-international.org/publications-and-standards/standards/ecma-376/) specification. This package gives you a complete, typed SDK over that format. It has only two runtime dependencies: **jszip** (ZIP handling) and **fast-xml-parser** (XML parse/build).
 
@@ -26,7 +26,7 @@ bun add pptx-viewer-core
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Parse**           | Unzip, parse XML, and extract slides, elements, themes, masters, layouts, media, charts, SmartArt, comments, animations, transitions, and document properties. |
 | **Create**          | Build presentations from scratch with a fluent builder API ([/core/builder](/core/builder)).                                                                   |
-| **Edit**            | Mutate the in-memory data model — add/remove/reorder slides, insert elements, modify text, change styles, update themes ([/core/editing](/core/editing)).      |
+| **Edit**            | Mutate the in-memory data model - add/remove/reorder slides, insert elements, modify text, change styles, update themes ([/core/editing](/core/editing)).      |
 | **Save**            | Serialize the data model back into a valid `.pptx` ZIP archive with full round-trip fidelity ([/core/saving](/core/saving)).                                   |
 | **Convert**         | Transform parsed PPTX into Markdown, optionally extracting media ([/core/converter](/core/converter)).                                                         |
 | **Export**          | Headless SVG export of slides without a browser ([/core/svg-export](/core/svg-export)); export individual slides as standalone `.pptx` files.                  |
@@ -41,13 +41,13 @@ import { PptxHandler } from 'pptx-viewer-core';
 
 const handler = new PptxHandler();
 
-// 1. Load — parse a .pptx buffer into the structured PptxData model
+// 1. Load - parse a .pptx buffer into the structured PptxData model
 const data = await handler.load(arrayBuffer);
 
-// 2. Edit — mutate data.slides in place
+// 2. Edit - mutate data.slides in place
 data.slides[0].elements[0].text = 'Updated title';
 
-// 3. Save — serialize the slides back to .pptx bytes
+// 3. Save - serialize the slides back to .pptx bytes
 const bytes = await handler.save(data.slides); // => Uint8Array
 ```
 
@@ -83,7 +83,7 @@ Everything is re-exported from the package root (`pptx-viewer-core`). Import fro
 | `inches`, `cm`, `mm`, `pt`, `inchesToEmu`                                                                                         | functions | Unit-conversion helpers.                                        |
 | `PptxMarkdownConverter`                                                                                                           | class     | PPTX → Markdown converter ([/core/converter](/core/converter)). |
 | `SvgExporter`                                                                                                                     | class     | Headless SVG export ([/core/svg-export](/core/svg-export)).     |
-| `PptxData`, `PptxSlide`, `PptxElement`, `TextStyle`, `ShapeStyle`, `TableData`, `PptxChartData`, `PptxTheme`, …                   | types     | The type system — see [/guide/data-model](/guide/data-model).   |
+| `PptxData`, `PptxSlide`, `PptxElement`, `TextStyle`, `ShapeStyle`, `TableData`, `PptxChartData`, `PptxTheme`, …                   | types     | The type system - see [/guide/data-model](/guide/data-model).   |
 | `getShapeClipPath`, `evaluateGuides`, `getConnectorPathGeometry`, `getElementTransform`, …                                        | functions | Geometry helpers ([/core/geometry](/core/geometry)).            |
 | `parseDrawingColor` and colour utilities                                                                                          | functions | OOXML colour parsing and transforms.                            |
 
@@ -96,10 +96,10 @@ Everything is re-exported from the package root (`pptx-viewer-core`). Import fro
 
 ## Next steps
 
-- [Loading & Parsing](/core/loading) — open a `.pptx` and walk the data model.
-- [The Builder API](/core/builder) — create decks fluently.
-- [Editing Programmatically](/core/editing) — mutate loaded data.
-- [Saving & Round-tripping](/core/saving) — serialize back to `.pptx`.
+- [Loading & Parsing](/core/loading) - open a `.pptx` and walk the data model.
+- [The Builder API](/core/builder) - create decks fluently.
+- [Editing Programmatically](/core/editing) - mutate loaded data.
+- [Saving & Round-tripping](/core/saving) - serialize back to `.pptx`.
 - [Markdown Converter](/core/converter) and [SVG Export](/core/svg-export).
 - [Encryption](/core/encryption) and the [Geometry Engine](/core/geometry).
-- [CLI](/core/cli) — the `pptx` command-line tool.
+- [CLI](/core/cli) - the `pptx` command-line tool.

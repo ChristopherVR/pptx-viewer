@@ -9,17 +9,17 @@ description: mtx-decompressor is a zero-dependency TypeScript library that decom
 
 MicroType Express is a font compression format developed by Monotype, used inside EOT containers. EOT files turn up in older web pages and embedded in Microsoft Office documents, **including `.pptx` files**. This library extracts the compressed font data and reconstructs a standard TrueType file usable with normal font APIs.
 
-::: warning Licensing — MPL-2.0
+::: warning Licensing - MPL-2.0
 Unlike the rest of the monorepo (which is **Apache-2.0**), this package is licensed under the **Mozilla Public License 2.0 (MPL-2.0)**. It is a TypeScript port of the MTX decompression code from [libeot](https://github.com/umanwizard/libeot) by Brennan Vincent. The original C implementation derives from the [MicroType Express specification](http://www.w3.org/Submission/MTX/) submitted to the W3C by Monotype Imaging. Keep the MPL-2.0 obligations in mind when redistributing.
 :::
 
 The decompression pipeline runs:
 
-1. **XOR decryption** (optional) — undo the simple XOR obfuscation (key `0x50`) used by some EOT producers.
-2. **MTX unpacking** — split the data into three LZCOMP-compressed streams.
-3. **LZCOMP decompression** — sliding-window LZ with adaptive (splay-tree) Huffman coding.
-4. **CTF parsing** — reconstruct TrueType tables from the three decompressed Compact TrueType Font streams.
-5. **SFNT assembly** — build a valid TrueType file with header, table directory, and checksums.
+1. **XOR decryption** (optional) - undo the simple XOR obfuscation (key `0x50`) used by some EOT producers.
+2. **MTX unpacking** - split the data into three LZCOMP-compressed streams.
+3. **LZCOMP decompression** - sliding-window LZ with adaptive (splay-tree) Huffman coding.
+4. **CTF parsing** - reconstruct TrueType tables from the three decompressed Compact TrueType Font streams.
+5. **SFNT assembly** - build a valid TrueType file with header, table directory, and checksums.
 
 It has no dependencies and runs in both browser and Node.js environments.
 
@@ -72,7 +72,7 @@ function decompressEotFont(
 
 ### `unpackMtx(data, size)`
 
-Low-level helper that unpacks an MTX blob into its three LZCOMP-decompressed streams — useful for inspection or custom pipelines.
+Low-level helper that unpacks an MTX blob into its three LZCOMP-decompressed streams - useful for inspection or custom pipelines.
 
 ```ts
 function unpackMtx(data: Uint8Array, size: number): { streams: Uint8Array[]; sizes: number[] };
@@ -102,7 +102,7 @@ const ttf = decompressEotFont(fontData, /* compressed */ true, /* encrypted */ f
 // Encrypted (XOR-obfuscated) payload
 const decrypted = decompressMtx(encryptedData, { encrypted: true, compressed: true });
 
-// Pass-through: decrypt only, no decompression — returns the input as-is
+// Pass-through: decrypt only, no decompression - returns the input as-is
 const raw = decompressMtx(rawData, { encrypted: false, compressed: false });
 ```
 

@@ -58,13 +58,13 @@ interface PowerPointViewerHandle extends FileViewerHandle {
 
 ::: info This is the entire handle
 `getContent` is the only method exposed via the ref. There are no imperative methods for
-navigation, export, mode-switching, or print on the handle — those are driven through the
+navigation, export, mode-switching, or print on the handle - those are driven through the
 component's UI. For change notifications without calling `getContent`, use the
 [`onContentChange` / `onDirtyChange`](/react/props#callbacks) props.
 :::
 
 ::: tip getContent vs onContentChange
-`getContent()` is a pull API — serialize on demand, e.g. when a Save button is clicked.
+`getContent()` is a pull API - serialize on demand, e.g. when a Save button is clicked.
 `onContentChange` is a push callback that fires with fresh bytes as the document changes. Use
 whichever fits your save model; they return equivalent `Uint8Array` content.
 :::

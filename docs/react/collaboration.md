@@ -1,6 +1,6 @@
 ---
 title: Collaboration
-description: Real-time multi-user co-editing for PowerPointViewer via Yjs CRDT — the collaboration prop, CollaborationConfig shape, presence, and remote cursors.
+description: Real-time multi-user co-editing for PowerPointViewer via Yjs CRDT - the collaboration prop, CollaborationConfig shape, presence, and remote cursors.
 ---
 
 # Collaboration
@@ -11,7 +11,7 @@ indicators, and avatars. In single-user mode none of this is loaded.
 
 ::: info Optional dependencies
 Collaboration requires the `yjs` and `y-websocket` peer dependencies. The viewer works fully without
-them — it simply runs single-user. Install them only when you need co-editing:
+them - it simply runs single-user. Install them only when you need co-editing:
 
 ```bash
 npm i yjs y-websocket
@@ -56,7 +56,7 @@ interface CollaborationConfig {
 	userColor?: string;
 	/** Optional auth token sent with the WebSocket handshake. */
 	authToken?: string;
-	/** Session role — defaults to 'collaborator'. */
+	/** Session role - defaults to 'collaborator'. */
 	role?: CollaborationRole;
 }
 ```
@@ -83,8 +83,8 @@ the `collaboration` prop in response.
 
 | Prop                   | Type                                    | Purpose                                                                                       |
 | ---------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `onStartCollaboration` | `(config: CollaborationConfig) => void` | User started a session from the Share dialog — set the `collaboration` prop with this config. |
-| `onStopCollaboration`  | `() => void`                            | User stopped the session — clear the `collaboration` prop.                                    |
+| `onStartCollaboration` | `(config: CollaborationConfig) => void` | User started a session from the Share dialog - set the `collaboration` prop with this config. |
+| `onStopCollaboration`  | `() => void`                            | User stopped the session - clear the `collaboration` prop.                                    |
 | `shareDefaults`        | `{ roomId?; userName?; serverUrl? }`    | Pre-fills the Share dialog fields; empty if omitted.                                          |
 
 ```tsx

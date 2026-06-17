@@ -4,21 +4,31 @@
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![tests](https://img.shields.io/badge/tests-11%2C900%2B%20passing-brightgreen.svg)](#)
 
-> A TypeScript toolkit to **parse, render, edit, present, and convert** Microsoft PowerPoint (`.pptx`) files — in the browser **and** Node.js. No PowerPoint install, no server round-trips, no native dependencies.
+> A TypeScript toolkit to **parse, render, edit, present, and convert** Microsoft PowerPoint (`.pptx`) files - in the browser **and** Node.js. No PowerPoint install, no server round-trips, no native dependencies.
 
 ![The pptx-viewer editor rendering a PowerPoint slide with ribbon toolbar and slide thumbnails](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/editor.png)
 
-Open a `.pptx`, render it with full visual fidelity, edit it in a WYSIWYG UI (or programmatically), present it fullscreen with animations and transitions, collaborate live, and save back to a valid `.pptx` — all client-side. The same engine also converts decks to Markdown and exports slides to PNG/SVG/PDF/GIF/video.
+Open a `.pptx`, render it with full visual fidelity, edit it in a WYSIWYG UI (or programmatically), present it fullscreen with animations and transitions, collaborate live, and save back to a valid `.pptx` - all client-side. The same engine also converts decks to Markdown and exports slides to PNG/SVG/PDF/GIF/video.
 
-<samp>**[📖 Full docs](https://christophervr.github.io/pptx-viewer/)** · **[🎮 Try the demo](https://christophervr.github.io/pptx-viewer/demo/)** (or `bun run demo` locally) · _Built with [Claude Code](https://claude.com/claude-code)_</samp>
+Works with **React 19**, **Vue 3**, and **Angular** out of the box. The core engine is framework-agnostic and runs in Node.js, Bun, Deno, serverless functions, and build scripts.
+
+---
+
+<p align="center">
+  <strong><a href="https://christophervr.github.io/pptx-viewer/demo/">Try the live demo</a></strong>
+  &nbsp;&middot;&nbsp;
+  <strong><a href="https://christophervr.github.io/pptx-viewer/">Read the full docs</a></strong>
+  &nbsp;&middot;&nbsp;
+  or run <code>bun run demo</code> locally
+</p>
 
 ---
 
 ## Which package do I install?
 
-The UI packages **bundle the core engine**, so for an app you install exactly one package — no separate `pptx-viewer-core` required.
+The UI packages **bundle the core engine**, so for an app you install exactly one package - no separate `pptx-viewer-core` required.
 
-| I'm building…                                     | Install                     | Package                                                                  |
+| I'm building...                                   | Install                     | Package                                                                  |
 | ------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------ |
 | A **React** app                                   | `npm i pptx-react-viewer`   | [pptx-react-viewer](https://www.npmjs.com/package/pptx-react-viewer)     |
 | A **Vue 3** app                                   | `npm i pptx-vue-viewer`     | [pptx-vue-viewer](https://www.npmjs.com/package/pptx-vue-viewer)         |
@@ -26,7 +36,7 @@ The UI packages **bundle the core engine**, so for an app you install exactly on
 | **Headless** parse / edit / convert (Node or web) | `npm i pptx-viewer-core`    | [pptx-viewer-core](https://www.npmjs.com/package/pptx-viewer-core)       |
 | **CLI / MCP / AI** tooling                        | `npm i pptx-viewer-mcp`     | [pptx-viewer-mcp](https://www.npmjs.com/package/pptx-viewer-mcp)         |
 
-> **Naming note:** the React package publishes to npm as **`pptx-react-viewer`** — `pptx-viewer` (used throughout this repo) is its internal workspace name.
+> **Naming note:** the React package publishes to npm as **`pptx-react-viewer`** - `pptx-viewer` (used throughout this repo) is its internal workspace name.
 
 ## What it does
 
@@ -40,7 +50,7 @@ The UI packages **bundle the core engine**, so for an app you install exactly on
 8. **Collaborate** in real-time via Yjs CRDT with presence tracking
 9. **Encrypt/Decrypt** password-protected PPTX files (AES-128/256)
 
-The engine handles the full OpenXML specification: 16 element types, 187+ preset shapes, 23 chart types, SmartArt (13 layouts), 3D models, animations (40+ presets), transitions (42 types including morph), themes, slide masters, embedded media, EMF/WMF metafiles, OLE objects, digital ink with pressure sensitivity, digital signatures, PPTX encryption, VBA macro preservation, OOXML Strict conformance, and more — backed by **11,900+ passing tests** across 419 files.
+The engine handles the full OpenXML specification: 16 element types, 187+ preset shapes, 23 chart types, SmartArt (13 layouts), 3D models, animations (40+ presets), transitions (42 types including morph), themes, slide masters, embedded media, EMF/WMF metafiles, OLE objects, digital ink with pressure sensitivity, digital signatures, PPTX encryption, VBA macro preservation, OOXML Strict conformance, and more - backed by **11,900+ passing tests** across 419 files.
 
 > _Developed with [Claude Code](https://claude.com/claude-code) (Opus 4.x)._
 
@@ -48,29 +58,29 @@ The engine handles the full OpenXML specification: 16 element types, 187+ preset
 
 ```
 packages/
-  core/              pptx-viewer-core     – Parse, create, edit, serialize PPTX files (framework-agnostic)
-  shared/            pptx-viewer-shared   – Framework-agnostic viewer logic shared by the UI bindings
-  react/             pptx-viewer          – React-based viewer/editor component
-  vue/               pptx-vue-viewer      – Vue 3 viewer component
-  angular/           pptx-angular-viewer  – Angular viewer component
-  emf-converter/     emf-converter        – EMF/WMF metafile to PNG converter
-  mtx-decompressor/  mtx-decompressor     – MicroType Express font decompressor
+  core/              pptx-viewer-core     - Parse, create, edit, serialize PPTX files (framework-agnostic)
+  shared/            pptx-viewer-shared   - Framework-agnostic viewer logic shared by the UI bindings
+  react/             pptx-react-viewer    - React-based viewer/editor component
+  vue/               pptx-vue-viewer      - Vue 3 viewer component
+  angular/           pptx-angular-viewer  - Angular viewer component
+  emf-converter/     emf-converter        - EMF/WMF metafile to PNG converter
+  mtx-decompressor/  mtx-decompressor     - MicroType Express font decompressor
 ```
 
-| Package                                            | Description                                                                                                                                | README                                               |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
-| **[pptx-viewer-core](packages/core/)**             | Core PPTX engine -- parse, create, edit, serialize, and convert PowerPoint files. Framework-agnostic.                                      | [Documentation](packages/core/README.md)             |
-| **[pptx-viewer-shared](packages/shared/)**         | Framework-agnostic viewer logic (theme, load helpers, types) shared by the React, Vue, and Angular UIs.                                    | [Documentation](packages/shared/README.md)           |
-| **[pptx-react-viewer](packages/react/)**           | React-based PowerPoint viewer, editor, and presenter with toolbar, inspector, collaboration, and export. _(workspace name: `pptx-viewer`)_ | [Documentation](packages/react/README.md)            |
-| **[pptx-vue-viewer](packages/vue/)**               | Vue 3 PowerPoint viewer component. Counterpart of the React package (viewer-first; porting in progress).                                   | [Documentation](packages/vue/README.md)              |
-| **[pptx-angular-viewer](packages/angular/)**       | Angular PowerPoint viewer component. Counterpart of the React package (viewer-first; porting in progress).                                 | [Documentation](packages/angular/README.md)          |
-| **[emf-converter](packages/emf-converter/)**       | Convert EMF/WMF metafile binaries to PNG data URLs using Canvas 2D. Handles EMF, EMF+, and WMF formats.                                    | [Documentation](packages/emf-converter/README.md)    |
-| **[mtx-decompressor](packages/mtx-decompressor/)** | Decompress MicroType Express (MTX) compressed fonts from EOT containers into TrueType.                                                     | [Documentation](packages/mtx-decompressor/README.md) |
+| Package                                            | npm name              | Description                                                                                                | README                                               |
+| -------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| **[pptx-viewer-core](packages/core/)**             | `pptx-viewer-core`    | Core PPTX engine - parse, create, edit, serialize, and convert PowerPoint files. Framework-agnostic.       | [Documentation](packages/core/README.md)             |
+| **[pptx-viewer-shared](packages/shared/)**         | (internal)            | Framework-agnostic viewer logic (theme, load helpers, types) shared by the React, Vue, and Angular UIs.    | [Documentation](packages/shared/README.md)           |
+| **[pptx-react-viewer](packages/react/)**           | `pptx-react-viewer`   | React-based PowerPoint viewer, editor, and presenter with toolbar, inspector, collaboration, and export.   | [Documentation](packages/react/README.md)            |
+| **[pptx-vue-viewer](packages/vue/)**               | `pptx-vue-viewer`     | Vue 3 PowerPoint viewer component. Counterpart of the React package (viewer-first; porting in progress).   | [Documentation](packages/vue/README.md)              |
+| **[pptx-angular-viewer](packages/angular/)**       | `pptx-angular-viewer` | Angular PowerPoint viewer component. Counterpart of the React package (viewer-first; porting in progress). | [Documentation](packages/angular/README.md)          |
+| **[emf-converter](packages/emf-converter/)**       | `emf-converter`       | Convert EMF/WMF metafile binaries to PNG data URLs using Canvas 2D. Handles EMF, EMF+, and WMF formats.    | [Documentation](packages/emf-converter/README.md)    |
+| **[mtx-decompressor](packages/mtx-decompressor/)** | `mtx-decompressor`    | Decompress MicroType Express (MTX) compressed fonts from EOT containers into TrueType.                     | [Documentation](packages/mtx-decompressor/README.md) |
 
 ### Dependency Graph
 
 ```
-pptx-viewer (React) ┐
+pptx-react-viewer   ┐
 pptx-vue-viewer     ├── pptx-viewer-shared ──┐
 pptx-angular-viewer ┘                        ├── pptx-viewer-core
                                              │         ├── emf-converter
@@ -86,32 +96,33 @@ pptx-angular-viewer ┘                        ├── pptx-viewer-core
 
 ### Core Engine (`pptx-viewer-core`)
 
-- **Embedded OLE objects are read-only** -- OLE objects (embedded Excel, Word, etc.) are recognised and their preview images are displayed, but their internal content cannot be edited. OLE2 is an opaque binary container format -- deserialising and re-serialising the internal object structure (e.g. an embedded Excel workbook) would require embedding the full application runtime.
-- **SmartArt uses static shape decomposition** -- SmartArt diagrams are decomposed into individual positioned shapes using PowerPoint's own pre-computed drawing data (13 layout types). The shapes are fully editable, but there is no live SmartArt reflow engine -- moving or reordering shapes won't automatically recalculate the layout the way PowerPoint's built-in SmartArt engine does.
-- **Chart editing is data-level only** -- You can add/remove series, edit data points, add/remove categories, and change chart type. However, structural chart properties (axis formatting, legend placement, data labels, trendlines, error bars) are parsed for display but not exposed for programmatic editing.
-- **Strict OOXML conformance is normalised** -- Office 365 can save files in ISO/IEC 29500 Strict mode, which uses different namespace URIs than the more common Transitional (ECMA-376) format. The engine maps 46+ namespace URI pairs on load (Strict -> Transitional) and converts back on save. Features that rely on strict-only extensions outside these mapped namespaces may not round-trip.
+- **Embedded OLE objects are read-only** - OLE objects (embedded Excel, Word, etc.) are recognised and their preview images are displayed, but their internal content cannot be edited. OLE2 is an opaque binary container format; deserialising and re-serialising the internal object structure (e.g. an embedded Excel workbook) would require embedding the full application runtime.
+- **SmartArt uses static shape decomposition** - SmartArt diagrams are decomposed into individual positioned shapes using PowerPoint's own pre-computed drawing data (13 layout types). The shapes are fully editable, but there is no live SmartArt reflow engine; moving or reordering shapes won't automatically recalculate the layout the way PowerPoint's built-in SmartArt engine does.
+- **Chart editing is data-level only** - You can add/remove series, edit data points, add/remove categories, and change chart type. However, structural chart properties (axis formatting, legend placement, data labels, trendlines, error bars) are parsed for display but not exposed for programmatic editing.
+- **Strict OOXML conformance is normalised** - Office 365 can save files in ISO/IEC 29500 Strict mode, which uses different namespace URIs than the more common Transitional (ECMA-376) format. The engine maps 46+ namespace URI pairs on load (Strict to Transitional) and converts back on save. Features that rely on strict-only extensions outside these mapped namespaces may not round-trip.
 
-### React Viewer (`pptx-viewer`)
+### React / Vue / Angular Viewer
 
-- **CSS-based rendering** -- Slides are rendered as HTML/CSS rather than Canvas, which gives sharp text at any zoom, native accessibility, and DOM interactivity. The tradeoff is that some visual effects are approximated: `backdrop-filter` is replaced with semi-transparent backgrounds, `mix-blend-mode` is mapped to opacity fallbacks, and CSS 3D transforms (rotateX/Y) are flattened to 2D. Path gradients are approximated as elliptical radials.
-- **Font availability** -- Text renders using fonts available in the browser. Missing fonts fall back to system defaults, which may affect text metrics and layout fidelity. Embedded fonts in the PPTX are deobfuscated and injected into the DOM when available.
-- **Embedded media** -- Audio/video playback depends on browser codec support (e.g. browsers may not support WMV or legacy codecs). DRM-protected media will not play.
-- **Animation triggers** -- 40+ animation presets are supported with `onClick`, `withPrevious`, `afterPrevious`, `afterDelay`, `onHover`, and `onShapeClick` triggers. Advanced OOXML timing tree conditions (compound triggers, multiple simultaneous conditions) are parsed but simplified for playback.
-- **Morph transitions** -- Morph matches elements across slides using three strategies: explicit `!!` naming convention, element ID matching, and proximity matching (within 300px). Position, size, opacity, rotation, and colour are interpolated. Shape geometry morphing (interpolating between different shape types) and intelligent text token morphing are not implemented -- unmatched elements crossfade.
-- **Chart interactivity** -- Charts are rendered as static SVG with hover tooltips. They are not directly editable via the chart surface -- use the inspector panel's chart data editor instead.
-- **Print and export fidelity** -- Raster exports (PNG/JPEG/PDF) go through `html2canvas`, which does not support `backdrop-filter`, CSS custom properties (`var()`), or CSS 3D transforms. The library preprocesses CSS to approximate these, but some fidelity is lost. An SVG export path is available as a vector alternative.
-- **Maximum export resolution** -- Canvas-based exports are constrained by the browser's maximum canvas size (typically 16384x16384 or 32768x32768 pixels depending on browser and GPU).
-- **Mobile support** -- Touch interactions (drag, pinch-zoom) are supported but the toolbar, inspector panels, and dialogs are designed for desktop viewport sizes.
-- **3D models** -- Rendering GLB/GLTF 3D models requires optional peer dependencies (`three`, `@react-three/fiber`, `@react-three/drei`). Without them, the element falls back to its poster image.
+- **CSS-based rendering** - Slides are rendered as HTML/CSS rather than Canvas, which gives sharp text at any zoom, native accessibility, and DOM interactivity. The tradeoff is that some visual effects are approximated: `backdrop-filter` is replaced with semi-transparent backgrounds, `mix-blend-mode` is mapped to opacity fallbacks, and CSS 3D transforms (rotateX/Y) are flattened to 2D. Path gradients are approximated as elliptical radials.
+- **Font availability** - Text renders using fonts available in the browser. Missing fonts fall back to system defaults, which may affect text metrics and layout fidelity. Embedded fonts in the PPTX are deobfuscated and injected into the DOM when available.
+- **Embedded media** - Audio/video playback depends on browser codec support (e.g. browsers may not support WMV or legacy codecs). DRM-protected media will not play.
+- **Animation triggers** - 40+ animation presets are supported with `onClick`, `withPrevious`, `afterPrevious`, `afterDelay`, `onHover`, and `onShapeClick` triggers. Advanced OOXML timing tree conditions (compound triggers, multiple simultaneous conditions) are parsed but simplified for playback.
+- **Morph transitions** - Morph matches elements across slides using three strategies: explicit `!!` naming convention, element ID matching, and proximity matching (within 300px). Position, size, opacity, rotation, and colour are interpolated. Shape geometry morphing (interpolating between different shape types) and intelligent text token morphing are not implemented; unmatched elements crossfade.
+- **Chart interactivity** - Charts are rendered as static SVG with hover tooltips. They are not directly editable via the chart surface; use the inspector panel's chart data editor instead.
+- **Print and export fidelity** - Raster exports (PNG/JPEG/PDF) go through `html2canvas`, which does not support `backdrop-filter`, CSS custom properties (`var()`), or CSS 3D transforms. The library preprocesses CSS to approximate these, but some fidelity is lost. An SVG export path is available as a vector alternative.
+- **Maximum export resolution** - Canvas-based exports are constrained by the browser's maximum canvas size (typically 16384x16384 or 32768x32768 pixels depending on browser and GPU).
+- **Mobile support** - Touch interactions (drag, pinch-zoom) are supported but the toolbar, inspector panels, and dialogs are designed for desktop viewport sizes.
+- **3D models** - Rendering GLB/GLTF 3D models requires optional peer dependencies (`three`, `@react-three/fiber`, `@react-three/drei`). Without them, the element falls back to its poster image.
+- **Vue / Angular feature parity** - The Vue and Angular bindings are viewer-first. Full editing, presenter mode, collaboration, and export features are available in the React package first and being ported incrementally.
 
 ### EMF Converter (`emf-converter`)
 
-- **Gradient brushes are simplified** -- GDI+ `LinearGradient` and `PathGradient` brush types extract only the primary colour rather than rendering full multi-stop gradient fills. The Canvas 2D API does not have a direct equivalent for GDI+ path gradients.
-- **No raster operations (ROP)** -- `SetROP2` is acknowledged but GDI raster operation blending modes (XOR, NOT, AND, etc.) have no direct Canvas 2D equivalent and are not applied.
-- **Limited clipping** -- `IntersectClipRect` and `SelectClipPath` are supported. Complex GDI region clipping (combining multiple regions with union/intersect/exclude operations) is not, as Canvas 2D only supports a single clip path.
-- **Maximum canvas size** -- Output is clamped to 4096x4096 pixels to prevent excessive memory usage from malformed or very large metafiles.
-- **Font rendering** -- Text is rendered using the browser's font engine with CSS font matching, so glyph metrics and kerning may differ from the original Windows GDI text rendering.
-- **Canvas API required** -- The library needs either `OffscreenCanvas` (for Web Worker support) or `HTMLCanvasElement` to be available in the runtime environment. Pure Node.js without a canvas polyfill is not supported.
+- **Gradient brushes are simplified** - GDI+ `LinearGradient` and `PathGradient` brush types extract only the primary colour rather than rendering full multi-stop gradient fills. The Canvas 2D API does not have a direct equivalent for GDI+ path gradients.
+- **No raster operations (ROP)** - `SetROP2` is acknowledged but GDI raster operation blending modes (XOR, NOT, AND, etc.) have no direct Canvas 2D equivalent and are not applied.
+- **Limited clipping** - `IntersectClipRect` and `SelectClipPath` are supported. Complex GDI region clipping (combining multiple regions with union/intersect/exclude operations) is not, as Canvas 2D only supports a single clip path.
+- **Maximum canvas size** - Output is clamped to 4096x4096 pixels to prevent excessive memory usage from malformed or very large metafiles.
+- **Font rendering** - Text is rendered using the browser's font engine with CSS font matching, so glyph metrics and kerning may differ from the original Windows GDI text rendering.
+- **Canvas API required** - The library needs either `OffscreenCanvas` (for Web Worker support) or `HTMLCanvasElement` to be available in the runtime environment. Pure Node.js without a canvas polyfill is not supported.
 
 ---
 
@@ -215,7 +226,7 @@ const converter = new PptxMarkdownConverter('./output', {
 	includeSpeakerNotes: true,
 	mediaFolderName: 'media',
 	includeMetadata: true,
-	semanticMode: true, // Clean markdown vs positioned HTML
+	semanticMode: true, // clean markdown vs positioned HTML
 });
 
 const markdown = await converter.convert(data);
@@ -247,6 +258,72 @@ function App() {
 }
 ```
 
+### Vue 3 Viewer Component
+
+> Installs from npm as **`pptx-vue-viewer`** (see [packages/vue](packages/vue/README.md)).
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { PowerPointViewer } from 'pptx-vue-viewer';
+
+const content = ref<ArrayBuffer | null>(null);
+</script>
+
+<template>
+	<PowerPointViewer :content="content" />
+</template>
+```
+
+### Angular Viewer Component
+
+> Installs from npm as **`pptx-angular-viewer`** (see [packages/angular](packages/angular/README.md)).
+
+```typescript
+// app.module.ts
+import { PptxAngularViewerModule } from 'pptx-angular-viewer';
+
+@NgModule({
+	imports: [PptxAngularViewerModule],
+})
+export class AppModule {}
+```
+
+```html
+<!-- app.component.html -->
+<pptx-viewer [content]="content"></pptx-viewer>
+```
+
+### MCP / AI Tooling
+
+> Use **`pptx-viewer-mcp`** to let AI agents (Claude, Cursor, etc.) manipulate PPTX files via the Model Context Protocol.
+
+```json
+{
+	"mcpServers": {
+		"pptx": {
+			"command": "npx",
+			"args": ["pptx-viewer-mcp"]
+		}
+	}
+}
+```
+
+Or call the 24 tool functions directly in your own pipeline:
+
+```typescript
+import { PptxHandler } from 'pptx-viewer-core';
+import { addSlide, replaceText } from 'pptx-viewer-mcp';
+
+const handler = new PptxHandler();
+const bytes = await fs.readFile('deck.pptx');
+const pptxData = await handler.load(bytes.buffer);
+
+const { pptxData: updated } = replaceText({ pptxData }, { find: 'Draft', replace: 'Final' });
+const out = await handler.save(updated.slides);
+await fs.writeFile('deck.pptx', out);
+```
+
 ### EMF/WMF Conversion
 
 ```typescript
@@ -267,7 +344,7 @@ const pngDataUrl = await convertEmfToDataUrl(emfBuffer);
 
 ```
 +-------------------------------------------------------------------+
-|                     React Package (pptx-viewer)                    |
+|          React / Vue / Angular packages (UI bindings)              |
 |                                                                    |
 |  +----------------+  +--------------+  +------------------------+  |
 |  | PowerPoint     |  | SlideCanvas  |  |   Inspector/Toolbar    |  |
@@ -276,7 +353,7 @@ const pngDataUrl = await convertEmfToDataUrl(emfBuffer);
 |  +-------+--------+  +--------------+  +------------------------+  |
 |          |                                                         |
 |  +-------+-----------------------------------------------------+  |
-|  |              Hooks Layer (67+ custom hooks)                  |  |
+|  |       Shared Layer (framework-agnostic viewer logic)         |  |
 |  |  State, editing, loading, interaction, presentation,          |  |
 |  |  export, collaboration, comments, find/replace, ...           |  |
 |  +--------------------------------------------------------------+  |
@@ -292,7 +369,7 @@ const pngDataUrl = await convertEmfToDataUrl(emfBuffer);
 |          |                                  |  crypto, etc.)      |  |
 |  +-------+-------------------------------+ +--------------------+  |
 |  |              Runtime Layer             |                        |
-|  |  PptxHandlerRuntime -- 50+ mixin       |                        |
+|  |  PptxHandlerRuntime - 50+ mixin        |                        |
 |  |  modules for parsing, serializing,     |                        |
 |  |  theme resolution, element processing  |                        |
 |  +-------+-------------------------------+                         |
@@ -321,7 +398,7 @@ const pngDataUrl = await convertEmfToDataUrl(emfBuffer);
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
 | **CSS-based rendering** (not Canvas) | Sharp text at any zoom, native accessibility, DOM interactivity, and standard CSS styling                    |
 | **Mixin composition** for runtime    | 50+ focused modules keep each concern isolated and testable; new capabilities added as new mixins            |
-| **Discriminated union** for elements | TypeScript narrows to the correct element type via the `type` field -- no casting needed                     |
+| **Discriminated union** for elements | TypeScript narrows to the correct element type via the `type` field - no casting needed                      |
 | **EMU units** internally             | PowerPoint uses English Metric Units (1 inch = 914,400 EMU). Conversion constants in `constants.ts`          |
 | **Theme resolution chain**           | Element -> Placeholder -> Layout -> Master -> Theme mirrors PowerPoint's own style inheritance               |
 | **Deferred image processing**        | EMF/WMF record replay is synchronous for performance; bitmap draws are collected and resolved asynchronously |
@@ -370,9 +447,9 @@ bun run pack:react   # packages/react
 
 | Category          | Technologies                                                         |
 | ----------------- | -------------------------------------------------------------------- |
-| **Language**      | TypeScript 5.9 (strict mode)                                         |
+| **Language**      | TypeScript 6.0 (strict mode)                                         |
 | **Runtime**       | Bun (package manager), Node.js 18+                                   |
-| **UI**            | React 19, Framer Motion, Tailwind CSS 4, Lucide React                |
+| **UI**            | React 19 / Vue 3 / Angular, Framer Motion, Tailwind CSS 4, Lucide    |
 | **Parsing**       | JSZip (ZIP), fast-xml-parser (XML)                                   |
 | **Export**        | html2canvas + jsPDF (PDF), custom GIF encoder, MediaRecorder (video) |
 | **3D**            | Three.js, @react-three/fiber, @react-three/drei (optional)           |
@@ -385,26 +462,26 @@ bun run pack:react   # packages/react
 
 ### Adding a New Element Type
 
-1. **Define the interface** in `packages/core/src/core/types/elements.ts` -- extend `PptxElementBase`
-2. **Add to the union** -- add your type to the `PptxElement` discriminated union
+1. **Define the interface** in `packages/core/src/core/types/elements.ts` - extend `PptxElementBase`
+2. **Add to the union** - add your type to the `PptxElement` discriminated union
 3. **Add a type guard** in `packages/core/src/core/types/type-guards.ts`
-4. **Add parsing** -- create or extend a `PptxHandlerRuntime*Parsing.ts` module in the core runtime
-5. **Add serialization** -- handle your type in `*SaveElementWriter.ts`
+4. **Add parsing** - create or extend a `PptxHandlerRuntime*Parsing.ts` module in the core runtime
+5. **Add serialization** - handle your type in `*SaveElementWriter.ts`
 6. **Add a React renderer** in `packages/react/src/viewer/components/elements/`
 7. **Add a converter processor** in `packages/core/src/converter/elements/` for Markdown output
 
 ## License
 
-Released under the [Apache License 2.0](LICENSE) — free to use, modify, and distribute, including in commercial and closed-source projects. Apache-2.0 also gives you an explicit patent grant, so adopting `pptx-viewer` is safe for legal teams.
+Released under the [Apache License 2.0](LICENSE) - free to use, modify, and distribute, including in commercial and closed-source projects. Apache-2.0 also gives you an explicit patent grant, so adopting `pptx-viewer` is safe for legal teams.
 
 ### Attribution
 
 Apache-2.0 keeps attribution simple and clear. When you redistribute `pptx-viewer` or a derivative, please:
 
-- Keep the [`LICENSE`](LICENSE) file with your distribution (§4a).
-- Keep a readable copy of the [`NOTICE`](NOTICE) file's attribution — in your own `NOTICE`, your docs, or a credits/about screen (§4d).
-- If you modify our files, add a brief note that you changed them (§4b).
+- Keep the [`LICENSE`](LICENSE) file with your distribution (section 4a).
+- Keep a readable copy of the [`NOTICE`](NOTICE) file's attribution - in your own `NOTICE`, your docs, or a credits/about screen (section 4d).
+- If you modify our files, add a brief note that you changed them (section 4b).
 
-That's the whole ask, and most of it is just keeping two text files intact. Beyond the license, a link back to [this repository](https://github.com/ChristopherVR/pptx-viewer) is always appreciated and helps others find the project. 🙏
+That's the whole ask, and most of it is just keeping two text files intact. Beyond the license, a link back to [this repository](https://github.com/ChristopherVR/pptx-viewer) is always appreciated and helps others find the project.
 
 > **Note:** Some bundled components carry their own licenses (for example, `mtx-decompressor` is MPL-2.0). Those terms are listed in the `NOTICE` file and the per-package `NOTICE` files, and must be preserved as described there.

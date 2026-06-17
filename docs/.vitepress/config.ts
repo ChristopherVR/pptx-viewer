@@ -4,7 +4,7 @@ import { defineConfig } from 'vitepress';
 export default defineConfig({
 	title: 'pptx-viewer',
 	description:
-		'Parse, edit, render, and convert Microsoft PowerPoint (.pptx) files in the browser and Node.js — a TypeScript SDK and React viewer/editor.',
+		'Parse, edit, render, and convert Microsoft PowerPoint (.pptx) files in the browser and Node.js - a TypeScript SDK with React, Vue 3, and Angular viewer components.',
 	lang: 'en-US',
 
 	// Deployed to https://christophervr.github.io/pptx-viewer/
@@ -23,7 +23,7 @@ export default defineConfig({
 			{
 				property: 'og:description',
 				content:
-					'Parse, edit, render, and convert PowerPoint (.pptx) files in TypeScript — SDK + React viewer/editor.',
+					'Parse, edit, render, and convert PowerPoint (.pptx) files in TypeScript - SDK with React, Vue 3, and Angular viewer components.',
 			},
 		],
 	],
@@ -38,6 +38,14 @@ export default defineConfig({
 				items: [
 					{ text: 'Core (pptx-viewer-core)', link: '/core/' },
 					{ text: 'React (pptx-react-viewer)', link: '/react/' },
+					{
+						text: 'Vue 3 (pptx-vue-viewer)',
+						link: 'https://www.npmjs.com/package/pptx-vue-viewer',
+					},
+					{
+						text: 'Angular (pptx-angular-viewer)',
+						link: 'https://www.npmjs.com/package/pptx-angular-viewer',
+					},
 					{ text: 'EMF Converter', link: '/packages/emf-converter' },
 					{ text: 'MTX Decompressor', link: '/packages/mtx-decompressor' },
 					{ text: 'MCP & Tools', link: '/packages/mcp' },

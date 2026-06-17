@@ -1,6 +1,6 @@
 ---
 title: Component Props
-description: Complete reference for PowerPointViewerProps — content, editing, callbacks, theming, and collaboration props of the PowerPointViewer component.
+description: Complete reference for PowerPointViewerProps - content, editing, callbacks, theming, and collaboration props of the PowerPointViewer component.
 ---
 
 # Component Props
@@ -15,7 +15,7 @@ import type { PowerPointViewerProps } from 'pptx-react-viewer';
 
 ::: tip
 `PowerPointViewer` uses `forwardRef`, so you can also pass a `ref` of type
-[`PowerPointViewerHandle`](/react/handle) — that is not part of `PowerPointViewerProps`.
+[`PowerPointViewerHandle`](/react/handle) - that is not part of `PowerPointViewerProps`.
 :::
 
 ## Content
@@ -23,7 +23,7 @@ import type { PowerPointViewerProps } from 'pptx-react-viewer';
 | Prop       | Type         | Default    | Description                                                               |
 | ---------- | ------------ | ---------- | ------------------------------------------------------------------------- |
 | `content`  | `Uint8Array` | (required) | Raw `.pptx` file bytes. Wrap an `ArrayBuffer` with `new Uint8Array(buf)`. |
-| `filePath` | `string`     | —          | Original file path. Used for autosave recovery and display.               |
+| `filePath` | `string`     | -          | Original file path. Used for autosave recovery and display.               |
 
 ::: warning `content` type
 The prop is a `Uint8Array`, not an `ArrayBuffer`. See [Getting Started](/react/getting-started) for
@@ -40,9 +40,9 @@ conversion from a `fetch`/file `ArrayBuffer`.
 
 | Prop                  | Type                            | Default | Description                                                        |
 | --------------------- | ------------------------------- | ------- | ------------------------------------------------------------------ |
-| `onDirtyChange`       | `(isDirty: boolean) => void`    | —       | Called when the unsaved-changes flag flips.                        |
-| `onContentChange`     | `(content: Uint8Array) => void` | —       | Called with the re-serialized document bytes when content changes. |
-| `onActiveSlideChange` | `(slideIndex: number) => void`  | —       | Called when the active slide changes.                              |
+| `onDirtyChange`       | `(isDirty: boolean) => void`    | -       | Called when the unsaved-changes flag flips.                        |
+| `onContentChange`     | `(content: Uint8Array) => void` | -       | Called with the re-serialized document bytes when content changes. |
+| `onActiveSlideChange` | `(slideIndex: number) => void`  | -       | Called when the active slide changes.                              |
 
 ::: info
 `onContentChange` delivers a `Uint8Array` (the serialized document), not a boolean. To pull content
@@ -53,14 +53,14 @@ on demand instead, use the handle's [`getContent()`](/react/handle).
 
 | Prop         | Type     | Default | Description                                                                                                                                 |
 | ------------ | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `authorName` | `string` | —       | Display name used as the author for comments and annotations. Falls back to `collaboration.userName` when collaborating, otherwise `'You'`. |
-| `className`  | `string` | —       | Optional class name applied to the viewer root element.                                                                                     |
+| `authorName` | `string` | -       | Display name used as the author for comments and annotations. Falls back to `collaboration.userName` when collaborating, otherwise `'You'`. |
+| `className`  | `string` | -       | Optional class name applied to the viewer root element.                                                                                     |
 
 ## Theming
 
 | Prop    | Type          | Default | Description                                                                                                                                                                 |
 | ------- | ------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `theme` | `ViewerTheme` | —       | Theme configuration: partial color overrides, a custom `radius`, and arbitrary `cssVars`. Unset values fall back to the built-in dark theme. See [Theming](/react/theming). |
+| `theme` | `ViewerTheme` | -       | Theme configuration: partial color overrides, a custom `radius`, and arbitrary `cssVars`. Unset values fall back to the built-in dark theme. See [Theming](/react/theming). |
 
 ```tsx
 <PowerPointViewer
@@ -79,13 +79,13 @@ the full flow and the `CollaborationConfig` shape.
 
 | Prop                   | Type                                                         | Default | Description                                                                                                                                          |
 | ---------------------- | ------------------------------------------------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `collaboration`        | `CollaborationConfig`                                        | —       | When provided, enables collaborative editing with live cursors, presence, and Yjs CRDT sync. Requires the `yjs` and `y-websocket` peer dependencies. |
-| `onStartCollaboration` | `(config: CollaborationConfig) => void`                      | —       | Called when the user starts a session from the Share dialog. The host should set the `collaboration` prop with the returned config.                  |
-| `onStopCollaboration`  | `() => void`                                                 | —       | Called when the user stops a session from the Share dialog. The host should clear the `collaboration` prop.                                          |
-| `shareDefaults`        | `{ roomId?: string; userName?: string; serverUrl?: string }` | —       | Default values for the Share dialog fields. If omitted, the fields start empty.                                                                      |
+| `collaboration`        | `CollaborationConfig`                                        | -       | When provided, enables collaborative editing with live cursors, presence, and Yjs CRDT sync. Requires the `yjs` and `y-websocket` peer dependencies. |
+| `onStartCollaboration` | `(config: CollaborationConfig) => void`                      | -       | Called when the user starts a session from the Share dialog. The host should set the `collaboration` prop with the returned config.                  |
+| `onStopCollaboration`  | `() => void`                                                 | -       | Called when the user stops a session from the Share dialog. The host should clear the `collaboration` prop.                                          |
+| `shareDefaults`        | `{ roomId?: string; userName?: string; serverUrl?: string }` | -       | Default values for the Share dialog fields. If omitted, the fields start empty.                                                                      |
 
 ::: info
-`collaboration` is controlled. The viewer does not start a session on its own — wire
+`collaboration` is controlled. The viewer does not start a session on its own - wire
 `onStartCollaboration` to set the `collaboration` prop, and `onStopCollaboration` to clear it.
 :::
 

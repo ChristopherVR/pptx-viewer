@@ -1,6 +1,6 @@
 ---
 title: Quick Start
-description: Four end-to-end flows — create a presentation, parse and edit one, convert to Markdown, and render with the React viewer.
+description: Four end-to-end flows - create a presentation, parse and edit one, convert to Markdown, and render with the React viewer.
 ---
 
 # Quick Start
@@ -52,7 +52,7 @@ const data = await handler.load(buffer.buffer);
 console.log(`Loaded ${data.slides.length} slides`);
 console.log(`Theme: ${data.theme?.name}`);
 
-// Access slide content — narrow on the `type` discriminant
+// Access slide content - narrow on the `type` discriminant
 for (const slide of data.slides) {
 	for (const element of slide.elements) {
 		if (element.type === 'text') {
@@ -68,7 +68,7 @@ await fs.writeFile('output.pptx', Buffer.from(output));
 ```
 
 ::: tip Narrowing elements
-`slide.elements` is an array of the [`PptxElement`](/guide/data-model) discriminated union. Always check `element.type` before accessing variant-specific fields — see [Core Concepts](/guide/concepts#the-element-model).
+`slide.elements` is an array of the [`PptxElement`](/guide/data-model) discriminated union. Always check `element.type` before accessing variant-specific fields - see [Core Concepts](/guide/concepts#the-element-model).
 :::
 
 ## 3. Convert to Markdown
@@ -120,12 +120,12 @@ function App() {
 ```
 
 ::: tip
-See [Component Props](/react/props) for the full, source-verified prop reference — the viewer takes `Uint8Array` content (not `ArrayBuffer`), and `onContentChange` delivers serialized bytes rather than a dirty flag.
+See [Component Props](/react/props) for the full, source-verified prop reference - the viewer takes `Uint8Array` content (not `ArrayBuffer`), and `onContentChange` delivers serialized bytes rather than a dirty flag.
 :::
 
 ## Next steps
 
-- [Core package overview](/core/) — the full handler, builder, and converter APIs.
-- [React package overview](/react/) — viewer props, editing, presenting, and export.
-- [The PptxData Model](/guide/data-model) — the shape of parsed presentations.
-- [Core Concepts](/guide/concepts) — EMU units, the element model, and theme resolution.
+- [Core package overview](/core/) - the full handler, builder, and converter APIs.
+- [React package overview](/react/) - viewer props, editing, presenting, and export.
+- [The PptxData Model](/guide/data-model) - the shape of parsed presentations.
+- [Core Concepts](/guide/concepts) - EMU units, the element model, and theme resolution.

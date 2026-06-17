@@ -1,6 +1,6 @@
 ---
 title: The PptxData Model
-description: The shape of the parsed PptxData model — slides, theme, masters, and metadata — and the full PptxElement discriminated union.
+description: The shape of the parsed PptxData model - slides, theme, masters, and metadata - and the full PptxElement discriminated union.
 ---
 
 # The PptxData Model
@@ -70,7 +70,7 @@ interface PptxSlide {
 }
 ```
 
-A slide resolves its unspecified styling through its layout and master — see the [theme resolution chain](/guide/concepts#theme-resolution-chain).
+A slide resolves its unspecified styling through its layout and master - see the [theme resolution chain](/guide/concepts#theme-resolution-chain).
 
 ## The `PptxElement` union
 
@@ -78,7 +78,7 @@ A slide resolves its unspecified styling through its layout and master — see t
 
 | `type` string   | Interface                | Description                                                                            |
 | --------------- | ------------------------ | -------------------------------------------------------------------------------------- |
-| `"text"`        | `TextPptxElement`        | A text box — a rectangle containing text, usually with no visible fill or stroke.      |
+| `"text"`        | `TextPptxElement`        | A text box - a rectangle containing text, usually with no visible fill or stroke.      |
 | `"shape"`       | `ShapePptxElement`       | A shape with preset or freeform geometry; may also contain text.                       |
 | `"connector"`   | `ConnectorPptxElement`   | A straight, bent, or curved line linking shapes, with optional arrowheads.             |
 | `"image"`       | `ImagePptxElement`       | A raster image from a `<p:pic>` node.                                                  |
@@ -140,5 +140,5 @@ for (const slide of data.slides) {
 
 ## Related reading
 
-- [Core Concepts](/guide/concepts) — the element model and theme resolution explained.
-- [Core package overview](/core/) — handler, builder, and converter APIs.
+- [Core Concepts](/guide/concepts) - the element model and theme resolution explained.
+- [Core package overview](/core/) - handler, builder, and converter APIs.

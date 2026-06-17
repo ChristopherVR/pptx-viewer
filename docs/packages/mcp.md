@@ -1,6 +1,6 @@
 ---
 title: MCP & Tools
-description: pptx-viewer-mcp provides 24 pure PPTX manipulation tools, Zod input schemas, an MCP server, and a Y.Doc collaboration codec — all built on pptx-viewer-core.
+description: pptx-viewer-mcp provides 24 pure PPTX manipulation tools, Zod input schemas, an MCP server, and a Y.Doc collaboration codec - all built on pptx-viewer-core.
 ---
 
 # MCP & Tools
@@ -8,14 +8,14 @@ description: pptx-viewer-mcp provides 24 pure PPTX manipulation tools, Zod input
 `pptx-viewer-mcp` (source lives in `packages/tools`) packages everything you need to drive PPTX edits from AI agents and collaborative runtimes: **24 pure tool functions**, **Zod schemas** for every tool input, an **MCP server**, and a **Y.Doc collaboration codec**. It is built entirely on top of [`pptx-viewer-core`](/core/).
 
 ::: tip Where this fits
-The tools take the [`PptxData` model](/guide/data-model) the core engine produces, mutate it as plain in-memory data, and hand it back. They add no file I/O or framework dependencies of their own — you (or the provided MCP server / execution pipeline) decide how to load and persist.
+The tools take the [`PptxData` model](/guide/data-model) the core engine produces, mutate it as plain in-memory data, and hand it back. They add no file I/O or framework dependencies of their own - you (or the provided MCP server / execution pipeline) decide how to load and persist.
 :::
 
 ## Install
 
 ```bash
 npm install pptx-viewer-mcp pptx-viewer-core
-# optional — required only for the collaboration codec
+# optional - required only for the collaboration codec
 npm install yjs
 ```
 
@@ -27,8 +27,8 @@ The package exposes four import paths:
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | `pptx-viewer-mcp`         | The 24 tool functions + provider types + execution pipeline (`loadPresentation`, `savePresentation`, `executeToolWithContext`). |
 | `pptx-viewer-mcp/schemas` | Zod schemas for every tool input.                                                                                               |
-| `pptx-viewer-mcp/codec`   | `PptxCodec` — the Y.Doc ↔ PPTX-bytes codec.                                                                                     |
-| `pptx-viewer-mcp/mcp`     | `createServer()` — programmatic MCP server factory.                                                                             |
+| `pptx-viewer-mcp/codec`   | `PptxCodec` - the Y.Doc ↔ PPTX-bytes codec.                                                                                     |
+| `pptx-viewer-mcp/mcp`     | `createServer()` - programmatic MCP server factory.                                                                             |
 
 ## The 24 tool functions
 
@@ -62,7 +62,7 @@ interface ToolResult<T = unknown> {
 	pptxData: PptxData;
 	/** Tool-specific return value (slide info, element id, search results, …). */
 	result: T;
-	/** Whether pptxData was modified — signals the consumer to save. */
+	/** Whether pptxData was modified - signals the consumer to save. */
 	dirty: boolean;
 }
 ```
@@ -114,7 +114,7 @@ Run the bundled MCP server so an MCP client (Claude Desktop, Cursor, etc.) can c
 }
 ```
 
-The binary is also installed as **`pptx-tools`** after a global install (`npm i -g pptx-viewer-mcp`). All 24 tools are exposed over stdio under their **snake_case** names — e.g. `get_slide`, `add_slide`, `batch_update_elements`, `convert_to_markdown`. Each MCP tool accepts a `filePath` parameter; the server handles loading and saving internally.
+The binary is also installed as **`pptx-tools`** after a global install (`npm i -g pptx-viewer-mcp`). All 24 tools are exposed over stdio under their **snake_case** names - e.g. `get_slide`, `add_slide`, `batch_update_elements`, `convert_to_markdown`. Each MCP tool accepts a `filePath` parameter; the server handles loading and saving internally.
 
 To embed the server programmatically rather than via the CLI, use the factory from the `/mcp` entry point:
 
@@ -159,14 +159,14 @@ When `execCtx.collaboration` is set, the pipeline **dehydrates** the current Y.D
 
 ## Provider interfaces
 
-`CollaborationProvider`, `FileSystemProvider`, and `ViewerProvider` are plain interfaces — implement them for any runtime (Node, Electron, browser, edge worker). The `ExecutionContext` bundles them together:
+`CollaborationProvider`, `FileSystemProvider`, and `ViewerProvider` are plain interfaces - implement them for any runtime (Node, Electron, browser, edge worker). The `ExecutionContext` bundles them together:
 
 | Interface               | Responsibility                                                                                                                |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `FileSystemProvider`    | `readFile(path)` / `writeFile(path, data)` — where bytes come from and go.                                                    |
+| `FileSystemProvider`    | `readFile(path)` / `writeFile(path, data)` - where bytes come from and go.                                                    |
 | `CollaborationProvider` | Resolve the active Y.Doc room and codec for a file path (`getRoom`, `getCodec`), plus `agentOrigin(name)` for undo isolation. |
-| `ViewerProvider`        | Push live updates into an open viewer (`replaceContent`, `openFile`) — used by Electron integrations.                         |
-| `ExecutionContext`      | `{ filesystem, collaboration?, viewer?, agentName? }` — passed to `executeToolWithContext`.                                   |
+| `ViewerProvider`        | Push live updates into an open viewer (`replaceContent`, `openFile`) - used by Electron integrations.                         |
+| `ExecutionContext`      | `{ filesystem, collaboration?, viewer?, agentName? }` - passed to `executeToolWithContext`.                                   |
 
 ## Architecture
 
@@ -220,6 +220,6 @@ The exported `ORIGIN_FILE_LOAD` constant tags the initial hydration so it can be
 
 ## See also
 
-- [/core/](/core/) — the engine these tools mutate (`PptxData`, `PptxHandler`).
-- [/guide/data-model](/guide/data-model) — the `PptxData` / `PptxElement` model.
-- [/react/collaboration](/react/collaboration) — the React side of Y.Doc collaboration.
+- [/core/](/core/) - the engine these tools mutate (`PptxData`, `PptxHandler`).
+- [/guide/data-model](/guide/data-model) - the `PptxData` / `PptxElement` model.
+- [/react/collaboration](/react/collaboration) - the React side of Y.Doc collaboration.

@@ -1,6 +1,6 @@
 ---
 title: Development
-description: Getting set up to develop pptx-viewer — prerequisites, workspace and per-package commands, build order, monorepo layout, tech stack, code conventions, and packing for npm.
+description: Getting set up to develop pptx-viewer - prerequisites, workspace and per-package commands, build order, monorepo layout, tech stack, code conventions, and packing for npm.
 ---
 
 # Development
@@ -13,8 +13,8 @@ For the bigger picture of how the packages fit together, see [Architecture](/gui
 
 ### Prerequisites
 
-- [**Bun**](https://bun.sh/) — package manager and runtime. The repo uses Bun workspaces and `workspace:*` linking.
-- **Node.js 18+** — required for TypeScript compilation and tooling.
+- [**Bun**](https://bun.sh/) - package manager and runtime. The repo uses Bun workspaces and `workspace:*` linking.
+- **Node.js 18+** - required for TypeScript compilation and tooling.
 
 ::: tip
 The repository is built and tested with Bun. While many scripts will run under other package managers, the `bun run --filter` workspace targeting used by the build and typecheck scripts relies on Bun, so install Bun before you begin.
@@ -40,11 +40,11 @@ Run these from the repository root. They operate across all workspace packages.
 | --------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `bun install`         | Install all workspace dependencies.                                                                        |
 | `bun run build`       | Build every package in dependency order (see [Build order](#build-order-and-why-it-matters)).              |
-| `bun run dev`         | Watch-mode build — run per package from its directory (see [Per-package commands](#per-package-commands)). |
+| `bun run dev`         | Watch-mode build - run per package from its directory (see [Per-package commands](#per-package-commands)). |
 | `bun run test`        | Run the full test suite via `scripts/test-all.sh` (Vitest across all packages).                            |
 | `bun run typecheck`   | Type-check every package (`bun run --filter '*' typecheck`).                                               |
 | `bun run fmt`         | Format all files with oxfmt.                                                                               |
-| `bun run fmt:check`   | Check formatting without writing — CI-safe.                                                                |
+| `bun run fmt:check`   | Check formatting without writing - CI-safe.                                                                |
 | `bun run lint`        | Lint with oxlint.                                                                                          |
 | `bun run lint:fix`    | Auto-fix lint issues with oxlint.                                                                          |
 | `bun run demo`        | Start the Vite demo dev server.                                                                            |
@@ -79,7 +79,7 @@ emf-converter → mtx-decompressor → core → react
 The order is **not** arbitrary. The dependency graph is `react → core → { emf-converter, mtx-decompressor }`. Each package consumes the built output of the packages below it, so a downstream package must be built before anything that imports it. Building out of order (for example, building `core` before `emf-converter`) will fail or pick up stale artifacts.
 :::
 
-The root `build` script chains the per-package builds with Bun's `--filter` so the order is enforced for you — you normally just run `bun run build` at the root.
+The root `build` script chains the per-package builds with Bun's `--filter` so the order is enforced for you - you normally just run `bun run build` at the root.
 
 ## Monorepo structure
 
@@ -140,7 +140,7 @@ import { PptxHandler } from '../core/core/PptxHandler';
 
 ### Type narrowing via the `type` discriminant
 
-`PptxElement` is a discriminated union. Always narrow on the `type` field — never cast:
+`PptxElement` is a discriminated union. Always narrow on the `type` field - never cast:
 
 ```ts
 if (element.type === 'image') {

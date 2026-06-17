@@ -15,13 +15,13 @@ real-time collaboration, and export.
 | Capability         | Summary                                                                                                                                      |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Viewer**         | Renders slides with 16 element types (shapes, text, images, tables, 23 chart types, SmartArt, connectors, media, ink, OLE, 3D models, zoom). |
-| **WYSIWYG editor** | Insert / move / resize / delete elements, inline text editing, style editing, slide management — gated behind `canEdit`.                     |
+| **WYSIWYG editor** | Insert / move / resize / delete elements, inline text editing, style editing, slide management - gated behind `canEdit`.                     |
 | **Presenter**      | Fullscreen slideshow with 40+ animations, 42 transitions (including morph), speaker notes, presenter view with timer.                        |
 | **Export**         | PNG / JPEG / SVG / PDF / GIF / video slide export, plus save-as PPTX. See [Export](/react/export).                                           |
 | **Collaboration**  | Real-time multi-user editing via Yjs CRDT with presence tracking, remote cursors, and avatars. See [Collaboration](/react/collaboration).    |
 
 ::: info Element coverage
-For a precise list of what the underlying parser/serializer supports — and what is approximated —
+For a precise list of what the underlying parser/serializer supports - and what is approximated -
 see [Limitations](/guide/limitations).
 :::
 
@@ -43,8 +43,8 @@ the framework-agnostic engine you may also use directly).
 
 **Optional dependencies** (only needed for specific features):
 
-- `three`, `@react-three/fiber`, `@react-three/drei` — GLB/GLTF 3D models and 3D surface charts
-- `yjs`, `y-websocket` — real-time collaboration
+- `three`, `@react-three/fiber`, `@react-three/drei` - GLB/GLTF 3D models and 3D surface charts
+- `yjs`, `y-websocket` - real-time collaboration
 
 ::: tip
 3D and collaboration features degrade gracefully. Without `three`, 3D models fall back to their
@@ -56,10 +56,10 @@ poster image. Without `yjs`/`y-websocket`, the viewer runs in single-user mode.
 The package exposes two entry points (from `package.json` `exports`):
 
 ```tsx
-// Root entry — viewer, theme utilities, renderToCanvas
+// Root entry - viewer, theme utilities, renderToCanvas
 import { PowerPointViewer } from 'pptx-react-viewer';
 
-// Viewer sub-entry — same component PLUS the opt-in hooks/components surface
+// Viewer sub-entry - same component PLUS the opt-in hooks/components surface
 import { PowerPointViewer } from 'pptx-react-viewer/viewer';
 ```
 
@@ -104,10 +104,10 @@ hooks are internal architecture, but a curated, tree-shakeable subset is exporte
 
 ## Next steps
 
-- [Getting Started](/react/getting-started) — a minimal working example.
-- [Component Props](/react/props) — the complete `PowerPointViewerProps` reference.
-- [Imperative Handle](/react/handle) — the ref API.
-- [Theming](/react/theming) — colours, radius, CSS vars, providers.
-- [Hooks](/react/hooks) — architecture and the public hook surface.
-- [Export](/react/export) — PNG/PDF/SVG/GIF/video and the html2canvas pipeline.
-- [Collaboration](/react/collaboration) — Yjs co-editing and presence.
+- [Getting Started](/react/getting-started) - a minimal working example.
+- [Component Props](/react/props) - the complete `PowerPointViewerProps` reference.
+- [Imperative Handle](/react/handle) - the ref API.
+- [Theming](/react/theming) - colours, radius, CSS vars, providers.
+- [Hooks](/react/hooks) - architecture and the public hook surface.
+- [Export](/react/export) - PNG/PDF/SVG/GIF/video and the html2canvas pipeline.
+- [Collaboration](/react/collaboration) - Yjs co-editing and presence.

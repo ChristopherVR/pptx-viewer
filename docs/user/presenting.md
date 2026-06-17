@@ -29,13 +29,13 @@ The slideshow toolbar also has **previous** / **next** buttons and a slide count
 
 ## Transitions and animations
 
-When you move between slides, the **slide transition** assigned to each slide plays automatically — fades, pushes, wipes, reveals, and more, including **morph** transitions that animate matching elements from one slide to the next.
+When you move between slides, the **slide transition** assigned to each slide plays automatically - fades, pushes, wipes, reveals, and more, including **morph** transitions that animate matching elements from one slide to the next.
 
 **Animations** on a slide play according to their triggers:
 
-- **On click** — wait for you to click/advance before each animation runs.
-- **With previous** — play at the same time as the prior animation.
-- **After previous** — play automatically once the prior one finishes.
+- **On click** - wait for you to click/advance before each animation runs.
+- **With previous** - play at the same time as the prior animation.
+- **After previous** - play automatically once the prior one finishes.
 
 Entrance, emphasis, exit, and motion-path animations are all played back.
 

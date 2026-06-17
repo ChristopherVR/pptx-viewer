@@ -27,7 +27,7 @@ Export is **driven by the viewer's UI**, not by props or the imperative handle:
 - The toolbar / export dialog invoke the internal `useExportHandlers` hook, which runs the pipeline
   above with progress reporting and an abort controller (export can be cancelled).
 - The only public, programmatic way to obtain document bytes is the handle's
-  [`getContent()`](/react/handle), which returns the serialized `.pptx` `Uint8Array` — equivalent to
+  [`getContent()`](/react/handle), which returns the serialized `.pptx` `Uint8Array` - equivalent to
   the PPTX "save-as" path.
 
 ::: info No export prop/handle method
@@ -68,14 +68,14 @@ render.
 
 Raster export inherits the html2canvas constraints (see [Limitations](/guide/limitations)):
 
-- `backdrop-filter`, CSS `var()`, and CSS 3D transforms are not natively supported — the library
+- `backdrop-filter`, CSS `var()`, and CSS 3D transforms are not natively supported - the library
   preprocesses CSS to approximate them, so some fidelity is lost.
 - `mix-blend-mode` is mapped to opacity fallbacks; path gradients become elliptical radials.
 - Canvas size is capped by the browser's maximum (commonly 16384×16384 or 32768×32768 px depending
   on browser/GPU), bounding maximum export resolution.
 
 ::: tip Vector alternative
-When raster fidelity matters, prefer the **SVG** export path — it serializes the DOM to vector and
+When raster fidelity matters, prefer the **SVG** export path - it serializes the DOM to vector and
 sidesteps the html2canvas color/effect approximations.
 :::
 

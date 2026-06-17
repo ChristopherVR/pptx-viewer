@@ -24,9 +24,9 @@ Once loaded, the first slide appears on the **slide canvas** in the centre, with
 
 You can move between slides in several ways:
 
-- **Slides panel** — Click any thumbnail on the left to jump straight to that slide.
-- **Arrow keys** — With nothing selected on the canvas, press **Left Arrow** / **Right Arrow** to step to the previous / next slide.
-- **Click navigation** — Some elements (such as "Zoom" links) jump to another slide when clicked.
+- **Slides panel** - Click any thumbnail on the left to jump straight to that slide.
+- **Arrow keys** - With nothing selected on the canvas, press **Left Arrow** / **Right Arrow** to step to the previous / next slide.
+- **Click navigation** - Some elements (such as "Zoom" links) jump to another slide when clicked.
 
 The slides panel highlights the slide you are currently viewing, and the **status bar** at the bottom shows the current slide number.
 
@@ -63,13 +63,13 @@ Close the sorter to return to the normal editing view.
 
 ## Speaker notes
 
-If a slide has speaker notes, they appear in the **notes panel** below the canvas. Click into the notes area to read the full text. (In edit mode you can also type here — see [Editing](/user/editing).)
+If a slide has speaker notes, they appear in the **notes panel** below the canvas. Click into the notes area to read the full text. (In edit mode you can also type here - see [Editing](/user/editing).)
 
-During a slideshow, notes are shown in **presenter view** rather than on the slide itself — see [Presenting](/user/presenting).
+During a slideshow, notes are shown in **presenter view** rather than on the slide itself - see [Presenting](/user/presenting).
 
 ## Going fullscreen
 
-To view the presentation as a fullscreen slideshow — with transitions and animations playing — start **presentation mode**. This is covered in detail on the [Presenting](/user/presenting) page.
+To view the presentation as a fullscreen slideshow - with transitions and animations playing - start **presentation mode**. This is covered in detail on the [Presenting](/user/presenting) page.
 
 ## Next
 

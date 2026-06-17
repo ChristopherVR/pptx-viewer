@@ -12,14 +12,14 @@ const bytes = await handler.save(data.slides); // => Uint8Array
 ```
 
 ::: tip Use the originating handler
-Call `save()` on the handler that loaded or created the data. It holds the in-memory ZIP — media, masters, themes, custom XML parts, VBA — that the save pipeline reuses for anything you didn't touch.
+Call `save()` on the handler that loaded or created the data. It holds the in-memory ZIP - media, masters, themes, custom XML parts, VBA - that the save pipeline reuses for anything you didn't touch.
 :::
 
 ## What the save pipeline rebuilds
 
 When you call `save()`, the runtime:
 
-1. Reconciles the slide list — added, removed, and reordered slides — and updates `ppt/presentation.xml`.
+1. Reconciles the slide list - added, removed, and reordered slides - and updates `ppt/presentation.xml`.
 2. For each slide, rebuilds the shape tree from element data: serializes text paragraphs and run properties, writes shape styles, effects, and transforms, updates relationships (images, charts, media), writes animation timing trees, and updates notes.
 3. Rebuilds `[Content_Types].xml` and writes document properties and comments.
 4. **Preserves** VBA macros and custom XML parts that the model doesn't represent.
@@ -39,7 +39,7 @@ Features that rely on strict-only extensions **outside** the mapped namespace se
 
 ## Save options
 
-`save(slides, options?)` accepts a `PptxHandlerSaveOptions` object for persisting parts that live outside the per-slide element model — for example:
+`save(slides, options?)` accepts a `PptxHandlerSaveOptions` object for persisting parts that live outside the per-slide element model - for example:
 
 | Option                                                                                     | Purpose                                                                                                         |
 | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |

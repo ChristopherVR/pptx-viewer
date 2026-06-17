@@ -1,6 +1,6 @@
 ---
 title: Collaboration
-description: Co-edit a presentation in real time — live cursors, presence, and simultaneous edits.
+description: Co-edit a presentation in real time - live cursors, presence, and simultaneous edits.
 ---
 
 # Collaboration
@@ -15,10 +15,10 @@ Collaboration is an optional feature. It only works when the app you are using h
 
 When you join a shared session:
 
-- **Live presence** — A bar of colour-coded **avatars** shows who else is in the session right now.
-- **Remote cursors** — You can see other people's cursors moving on the slide canvas, each labelled with their name and colour.
-- **Simultaneous edits** — When someone moves a shape, edits text, or changes a slide, you see it update in near real time. Your own edits appear for everyone else the same way.
-- **Connection status** — An indicator shows whether you are **connected**, **syncing**, or **disconnected** from the session.
+- **Live presence** - A bar of colour-coded **avatars** shows who else is in the session right now.
+- **Remote cursors** - You can see other people's cursors moving on the slide canvas, each labelled with their name and colour.
+- **Simultaneous edits** - When someone moves a shape, edits text, or changes a slide, you see it update in near real time. Your own edits appear for everyone else the same way.
+- **Connection status** - An indicator shows whether you are **connected**, **syncing**, or **disconnected** from the session.
 
 Edits are merged automatically, so two people working on different parts of the deck won't overwrite each other.
 
@@ -40,15 +40,15 @@ Once connected, anyone else in the same room is collaborating with you on the sa
 ## Tips for smooth collaboration
 
 - Communicate which slide or section each person is working on to avoid surprises.
-- Watch the **connection status** — if it shows disconnected, your recent changes may not be syncing until you reconnect.
+- Watch the **connection status** - if it shows disconnected, your recent changes may not be syncing until you reconnect.
 - Comments (see [Editing → Comments](/user/editing#comments)) are a good way to leave asynchronous feedback alongside live editing.
 
 ## For developers
 
 Setting up rooms, a collaboration server, and presence is a developer task. See:
 
-- [React Viewer → Collaboration](/react/collaboration) — wiring up Yjs-based co-editing.
-- [MCP & Tools](/packages/mcp) — automation and tooling.
+- [React Viewer → Collaboration](/react/collaboration) - wiring up Yjs-based co-editing.
+- [MCP & Tools](/packages/mcp) - automation and tooling.
 
 ## Next
 

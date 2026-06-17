@@ -1,6 +1,6 @@
 ---
 title: Core Concepts
-description: The mental model behind pptx-viewer — EMU units, the discriminated-union element model, the theme resolution chain, and how slides, masters, and layouts relate.
+description: The mental model behind pptx-viewer - EMU units, the discriminated-union element model, the theme resolution chain, and how slides, masters, and layouts relate.
 ---
 
 # Core Concepts
@@ -41,7 +41,7 @@ Element `x`, `y`, `width`, and `height` fields on a parsed [`PptxElement`](/guid
 
 ## The element model
 
-Everything on a slide is a `PptxElement` — a **discriminated union** of concrete element types. The discriminant is the `type` string field. Narrowing on `type` unlocks the variant-specific properties with full type safety and no casting:
+Everything on a slide is a `PptxElement` - a **discriminated union** of concrete element types. The discriminant is the `type` string field. Narrowing on `type` unlocks the variant-specific properties with full type safety and no casting:
 
 ```ts
 for (const element of slide.elements) {
@@ -77,11 +77,11 @@ A single visual property (a fill colour, a font, a size) is rarely set directly 
 Element  →  Placeholder  →  Layout  →  Master  →  Theme
 ```
 
-1. **Element** — an explicit value on the element wins if present.
-2. **Placeholder** — otherwise inherit from the matching placeholder.
-3. **Layout** — then from the slide layout the slide is based on.
-4. **Master** — then from the layout's slide master.
-5. **Theme** — finally from the theme (colour scheme, font scheme).
+1. **Element** - an explicit value on the element wins if present.
+2. **Placeholder** - otherwise inherit from the matching placeholder.
+3. **Layout** - then from the slide layout the slide is based on.
+4. **Master** - then from the layout's slide master.
+5. **Theme** - finally from the theme (colour scheme, font scheme).
 
 This is why an element with no explicit colour still renders correctly: the value flows down from the theme through the master and layout. Theme colours are also exposed on the parsed data as `PptxData.themeColorMap` and the full `PptxData.theme` object.
 
@@ -89,9 +89,9 @@ This is why an element with no explicit colour still renders correctly: the valu
 
 The presentation hierarchy has three structural levels:
 
-- **Slide master** (`PptxSlideMaster`) — the top-level template. Defines default text styles (`txStyles`), a background, a colour map, and the set of layouts beneath it.
-- **Slide layout** (`PptxSlideLayout`) — a named arrangement of placeholders (e.g. _Title Slide_, _Title and Content_) belonging to a master. A slide picks exactly one layout via its `layoutPath`.
-- **Slide** (`PptxSlide`) — the actual content. Its `elements` array holds the `PptxElement`s the user authored; unspecified styling inherits up through its layout and master per the [theme resolution chain](#theme-resolution-chain).
+- **Slide master** (`PptxSlideMaster`) - the top-level template. Defines default text styles (`txStyles`), a background, a colour map, and the set of layouts beneath it.
+- **Slide layout** (`PptxSlideLayout`) - a named arrangement of placeholders (e.g. _Title Slide_, _Title and Content_) belonging to a master. A slide picks exactly one layout via its `layoutPath`.
+- **Slide** (`PptxSlide`) - the actual content. Its `elements` array holds the `PptxElement`s the user authored; unspecified styling inherits up through its layout and master per the [theme resolution chain](#theme-resolution-chain).
 
 ```
 PptxData
@@ -103,5 +103,5 @@ PptxData
 
 ## Related reading
 
-- [The PptxData Model](/guide/data-model) — the full type listing for `PptxData`, `PptxSlide`, and every element type.
-- [Architecture](/guide/architecture) — the load/save pipelines that produce this model.
+- [The PptxData Model](/guide/data-model) - the full type listing for `PptxData`, `PptxSlide`, and every element type.
+- [Architecture](/guide/architecture) - the load/save pipelines that produce this model.

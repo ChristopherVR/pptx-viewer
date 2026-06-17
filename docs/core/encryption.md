@@ -1,11 +1,11 @@
 ---
 title: Encryption
-description: Load password-protected PPTX files and save encrypted output with pptx-viewer-core — AES-128/256 OOXML agile encryption via Web Crypto.
+description: Load password-protected PPTX files and save encrypted output with pptx-viewer-core - AES-128/256 OOXML agile encryption via Web Crypto.
 ---
 
 # Encryption
 
-`pptx-viewer-core` reads and writes password-protected PPTX files using OOXML encryption (per [MS-OFFCRYPTO]). Encrypted files are OLE2/CFB compound documents wrapping the encrypted ZIP package. All cryptography runs on the platform's Web Crypto (`crypto.subtle`) — no native modules.
+`pptx-viewer-core` reads and writes password-protected PPTX files using OOXML encryption (per [MS-OFFCRYPTO]). Encrypted files are OLE2/CFB compound documents wrapping the encrypted ZIP package. All cryptography runs on the platform's Web Crypto (`crypto.subtle`) - no native modules.
 
 | Capability          | Detail                                                                                                    |
 | ------------------- | --------------------------------------------------------------------------------------------------------- |
@@ -63,7 +63,7 @@ Encrypted output uses the agile scheme with SHA-512 hashing and CBC chaining. Sa
 
 ## Low-level crypto functions
 
-The underlying functions are also exported for advanced use — they operate on raw `ArrayBuffer`s rather than the data model:
+The underlying functions are also exported for advanced use - they operate on raw `ArrayBuffer`s rather than the data model:
 
 ```ts
 import { decryptPptx, encryptPptx, verifyPassword } from 'pptx-viewer-core';
@@ -77,7 +77,7 @@ const enc = await encryptPptx(pptxBuffer, 'secret', { algorithm: 'AES256' });
 - `verifyPassword(...)` → check a password without fully decrypting.
 
 ::: tip
-Prefer `handler.load({ password })` and `handler.saveEncrypted(...)` for normal workflows — they handle detection and serialization for you. Reach for the low-level functions only when you're working with raw buffers outside the handler lifecycle.
+Prefer `handler.load({ password })` and `handler.saveEncrypted(...)` for normal workflows - they handle detection and serialization for you. Reach for the low-level functions only when you're working with raw buffers outside the handler lifecycle.
 :::
 
 ## Related security features

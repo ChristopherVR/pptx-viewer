@@ -7,7 +7,7 @@ description: The hooks-based architecture of PowerPointViewer, and the curated s
 
 `PowerPointViewer` is a thin `forwardRef` orchestrator. Almost all of its logic lives in **67+ custom
 hooks** composed inside `PowerPointViewer.tsx`, while the visual components are largely
-presentational. State is held entirely in React hooks — there is no external state library.
+presentational. State is held entirely in React hooks - there is no external state library.
 
 ::: info Internal vs public
 Most of these hooks are **internal architecture**: they assume a specific composition order and
@@ -18,7 +18,7 @@ shared inputs, and are not importable from the package. A curated subset is expo
 ## Architecture (internal)
 
 These hooks describe how the viewer is wired. They are named in the source and the README but are
-**not** part of the supported public import surface — treat them as conceptual reference.
+**not** part of the supported public import surface - treat them as conceptual reference.
 
 | Hook                     | Concern                                                                     |
 | ------------------------ | --------------------------------------------------------------------------- |
@@ -49,7 +49,7 @@ Reference_.
 ## Public hooks
 
 The following are exported from `pptx-viewer/viewer` and are safe to import. They are opt-in and
-tree-shakeable. Note these come from the **`/viewer`** entry — the root `pptx-viewer` entry exports
+tree-shakeable. Note these come from the **`/viewer`** entry - the root `pptx-viewer` entry exports
 only the component, `renderToCanvas`, and theme utilities.
 
 ```tsx
@@ -63,7 +63,7 @@ For building custom collaboration UIs or driving sync yourself. See
 
 | Hook                      | Exported type(s)                                                | Purpose                                                  |
 | ------------------------- | --------------------------------------------------------------- | -------------------------------------------------------- |
-| `useYjsProvider`          | —                                                               | Manages the Yjs WebSocket provider lifecycle.            |
+| `useYjsProvider`          | -                                                               | Manages the Yjs WebSocket provider lifecycle.            |
 | `usePresenceTracking`     | `UsePresenceTrackingInput`, `UsePresenceTrackingResult`         | Tracks remote cursors, selection, and connection status. |
 | `useCollaborativeState`   | `UseCollaborativeStateInput`                                    | CRDT-backed shared document state.                       |
 | `useCollaborativeHistory` | `UseCollaborativeHistoryInput`, `UseCollaborativeHistoryResult` | Collaborative undo/redo.                                 |
@@ -84,7 +84,7 @@ Not hooks, but exported from `pptx-viewer/viewer` for the presenter/audience-win
 
 ::: warning Hooks reference table caveat
 The package README publishes a large "Hooks Reference" table listing ~40 hooks. Most of those are
-internal composition hooks and are **not** importable — only the hooks listed under _Public hooks_
+internal composition hooks and are **not** importable - only the hooks listed under _Public hooks_
 above are re-exported from `pptx-viewer/viewer`. Do not import internal hooks from deep paths; they
 have no stability guarantees.
 :::

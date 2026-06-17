@@ -1,6 +1,6 @@
 ---
 title: Markdown Converter
-description: Convert parsed PPTX data to Markdown with PptxMarkdownConverter — semantic vs positioned-HTML modes, media extraction, and a FileSystemAdapter for non-Node environments.
+description: Convert parsed PPTX data to Markdown with PptxMarkdownConverter - semantic vs positioned-HTML modes, media extraction, and a FileSystemAdapter for non-Node environments.
 ---
 
 # Markdown Converter
@@ -13,7 +13,7 @@ description: Convert parsed PPTX data to Markdown with PptxMarkdownConverter —
 new PptxMarkdownConverter(outputDir: string, options: PptxConverterOptions, fs?: FileSystemAdapter)
 ```
 
-`.convert(data: PptxData)` returns `Promise<string>` — the complete Markdown.
+`.convert(data: PptxData)` returns `Promise<string>` - the complete Markdown.
 
 ```ts
 import { PptxHandler, PptxMarkdownConverter } from 'pptx-viewer-core';
@@ -33,7 +33,7 @@ const markdown = await converter.convert(data);
 ```
 
 ::: info Parse first
-The converter takes already-parsed `PptxData`, not raw bytes — load with `PptxHandler` (see [/core/loading](/core/loading)), then convert. To go straight from a file with no setup, the [CLI](/core/cli) `export-md` command wraps this for you.
+The converter takes already-parsed `PptxData`, not raw bytes - load with `PptxHandler` (see [/core/loading](/core/loading)), then convert. To go straight from a file with no setup, the [CLI](/core/cli) `export-md` command wraps this for you.
 :::
 
 ## `PptxConverterOptions`
@@ -54,7 +54,7 @@ The options object extends the base `ConversionOptions`.
 The converter has two output strategies:
 
 - **Positioned mode** (default, `semanticMode: false`): emits HTML `<div>` elements with absolute CSS positioning, preserving slide layout fidelity.
-- **Semantic mode** (`semanticMode: true`): emits clean Markdown — headings, paragraphs, and lists — optimized for readability, search, and LLM ingestion.
+- **Semantic mode** (`semanticMode: true`): emits clean Markdown - headings, paragraphs, and lists - optimized for readability, search, and LLM ingestion.
 
 ::: tip Choosing a mode
 Use **semantic** for text extraction, RAG/indexing, or human reading. Use **positioned** when you need the visual arrangement of the slide reflected in the output.
@@ -73,7 +73,7 @@ interface FileSystemAdapter {
 ```
 
 ::: info In-memory only
-If you only need the Markdown string back, you can omit the adapter — `convert()` still returns the full Markdown. The adapter is required only when you want media files (and a written `.md`) on a backing store.
+If you only need the Markdown string back, you can omit the adapter - `convert()` still returns the full Markdown. The adapter is required only when you want media files (and a written `.md`) on a backing store.
 :::
 
 A Node adapter is a few lines:
@@ -97,7 +97,7 @@ const fsAdapter: FileSystemAdapter = {
 };
 ```
 
-Because the adapter is just an interface, you can back it with an in-memory map, a virtual FS, S3, or any other store — which is how the converter runs in browsers and Workers.
+Because the adapter is just an interface, you can back it with an in-memory map, a virtual FS, S3, or any other store - which is how the converter runs in browsers and Workers.
 
 ## Runnable example
 
@@ -146,5 +146,5 @@ After conversion, the instance exposes `imagesExtracted`, `mediaDir`, `slidesCon
 
 ## See also
 
-- [SVG Export](/core/svg-export) — a vector rendering of slides.
-- [CLI](/core/cli) — `pptx export-md` for one-shot conversion from a file.
+- [SVG Export](/core/svg-export) - a vector rendering of slides.
+- [CLI](/core/cli) - `pptx export-md` for one-shot conversion from a file.

@@ -9,7 +9,7 @@ This page walks from a read-only viewer to an editable one, wiring a file `<inpu
 `onContentChange` / `onDirtyChange` callbacks.
 
 ::: tip Prerequisites
-Install the package and its peer deps first — see [Overview › Installation](/react/#installation).
+Install the package and its peer deps first - see [Overview › Installation](/react/#installation).
 :::
 
 ## 1. Read-only viewer
@@ -80,9 +80,9 @@ export function FilePickerViewer() {
 
 Set `canEdit` to turn on the editing toolbar and inspector. Track changes with the callbacks:
 
-- `onDirtyChange(isDirty)` — fires when the unsaved-changes flag flips.
-- `onContentChange(content)` — fires with the **re-serialized `Uint8Array`** when the document changes.
-- `onActiveSlideChange(index)` — fires when the active slide changes.
+- `onDirtyChange(isDirty)` - fires when the unsaved-changes flag flips.
+- `onContentChange(content)` - fires with the **re-serialized `Uint8Array`** when the document changes.
+- `onActiveSlideChange(index)` - fires when the active slide changes.
 
 ```tsx
 import { PowerPointViewer } from 'pptx-react-viewer';
@@ -128,7 +128,7 @@ latest bytes as edits happen.
 
 ## SSR and `'use client'`
 
-`PowerPointViewer` is a client-only component — it reaches for the DOM, `window`, and browser APIs
+`PowerPointViewer` is a client-only component - it reaches for the DOM, `window`, and browser APIs
 (file/canvas/clipboard). In React Server Component frameworks (Next.js App Router, etc.), render it
 from a client component and add the `'use client'` directive at the top of **your** wrapper module:
 
@@ -147,7 +147,7 @@ guard any pre-render code paths that touch `window`.
 ## Styling / required CSS
 
 There is **no mandatory CSS import** if your app already uses Tailwind CSS v4 with the shadcn-style
-semantic tokens — the viewer's classes resolve through your existing config. Otherwise, import the
+semantic tokens - the viewer's classes resolve through your existing config. Otherwise, import the
 bundled stylesheet once at your entry point:
 
 ```tsx
@@ -158,6 +158,6 @@ See [Theming](/react/theming) for the three styling modes and how to customise c
 
 ## Next steps
 
-- [Component Props](/react/props) — every prop in detail.
-- [Imperative Handle](/react/handle) — the ref API.
-- [Export](/react/export) — turning slides into PNG/PDF/etc.
+- [Component Props](/react/props) - every prop in detail.
+- [Imperative Handle](/react/handle) - the ref API.
+- [Export](/react/export) - turning slides into PNG/PDF/etc.

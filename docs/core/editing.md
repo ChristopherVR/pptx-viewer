@@ -1,11 +1,11 @@
 ---
 title: Editing Programmatically
-description: Mutate a loaded PptxData model in pptx-viewer-core — edit text, move and resize elements, add and remove elements and slides, and work with tables and charts.
+description: Mutate a loaded PptxData model in pptx-viewer-core - edit text, move and resize elements, add and remove elements and slides, and work with tables and charts.
 ---
 
 # Editing Programmatically
 
-After [loading](/core/loading) a deck into `PptxData`, you edit by mutating the in-memory model directly, then [save](/core/saving). The model is a plain object graph — there's no transaction layer to fight; mutate `data.slides` and hand it to `handler.save()`.
+After [loading](/core/loading) a deck into `PptxData`, you edit by mutating the in-memory model directly, then [save](/core/saving). The model is a plain object graph - there's no transaction layer to fight; mutate `data.slides` and hand it to `handler.save()`.
 
 ::: tip Same handler
 Always call `save()` on the handler that produced the data. It owns the in-memory ZIP (media, masters, custom parts) that the save pipeline reuses.
@@ -56,7 +56,7 @@ The data model exposes element coordinates in pixels for rendering convenience; 
 
 ## Adding and removing elements
 
-`data.slides[i].elements` is a plain array — push, splice, or filter it. Build new elements with the [element builders](/core/builder):
+`data.slides[i].elements` is a plain array - push, splice, or filter it. Build new elements with the [element builders](/core/builder):
 
 ```ts
 import { TextBuilder, ShapeBuilder } from 'pptx-viewer-core';
@@ -110,7 +110,7 @@ pptx.duplicateSlide(0).moveSlide(0, 2).removeSlide(5);
 const bytes = await pptx.save();
 ```
 
-The save pipeline reconciles added, removed, and reordered slides — rebuilding `ppt/presentation.xml`, relationships, and content types.
+The save pipeline reconciles added, removed, and reordered slides - rebuilding `ppt/presentation.xml`, relationships, and content types.
 
 ## Working with tables
 
