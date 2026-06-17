@@ -83,6 +83,40 @@ export function useZoomViewport({
 		renderScaleRef.current = editorScale;
 	}, [editorScale]);
 
+	// Measure the available editor area (the scrollable canvas viewport) so
+	// `fitScale` reflects reality and the slide is fit-to-contain by default.
+	// Without this, editorDimensions stays null → fitScale is pinned at 1 and
+	// the slide renders at native size, overflowing small (esp. mobile) viewports.
+	// The slide is centred with an `my-4` margin and an optional ruler gutter, so
+	// we trim a small allowance off the measured box.
+	useEffect(() => {
+		let observer: ResizeObserver | null = null;
+		let raf = 0;
+		const VERTICAL_MARGIN = 32; // editWrapper `my-4` (top + bottom)
+		const measure = (el: HTMLElement) => {
+			const width = Math.max(0, el.clientWidth - 8);
+			const height = Math.max(0, el.clientHeight - VERTICAL_MARGIN);
+			if (width > 0 && height > 0) {
+				setEditorDimensions({ width, height });
+			}
+		};
+		const attach = () => {
+			const el = canvasViewportRef.current;
+			if (!el) {
+				raf = requestAnimationFrame(attach);
+				return;
+			}
+			observer = new ResizeObserver(() => measure(el));
+			observer.observe(el);
+			measure(el);
+		};
+		attach();
+		return () => {
+			cancelAnimationFrame(raf);
+			observer?.disconnect();
+		};
+	}, []);
+
 	// ── Actions ───────────────────────────────────────────────────────────
 
 	const centerBoundsInViewport = useCallback(

@@ -60,7 +60,9 @@ test.describe('mobile inline text editing (touch)', () => {
 		// Tap an empty region of the slide (bottom-centre, clear of both shapes).
 		// On touch this starts a tap-sized marquee whose pointerup resolves to
 		// clearSelection() — the path that used to drop the edit without saving.
-		await stage.tap({ position: { x: 480, y: 480 } });
+		// Box-relative so it stays inside the fit-to-width slide.
+		const box = (await stage.boundingBox())!;
+		await stage.tap({ position: { x: box.width * 0.5, y: box.height * 0.85 } });
 
 		await expect(editor).toBeHidden();
 		await expect(target).toContainText('EDIT');

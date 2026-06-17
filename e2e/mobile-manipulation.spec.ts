@@ -93,7 +93,10 @@ test.describe('mobile manipulation (Pixel 7 touch)', () => {
 		await editor.waitFor();
 
 		await page.keyboard.type(' MOBILE');
-		await stage.tap({ position: { x: 200, y: 360 } });
+		// Tap empty canvas below the shapes (which sit in the slide's top area).
+		// Box-relative so it stays inside the now fit-to-width slide.
+		const box = (await stage.boundingBox())!;
+		await stage.tap({ position: { x: box.width * 0.5, y: box.height * 0.85 } });
 
 		await expect(editor).toBeHidden();
 		await expect(target).toContainText('MOBILE');
