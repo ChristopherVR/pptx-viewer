@@ -114,9 +114,27 @@ describe('getTextBlockStyle', () => {
 		const style = getTextBlockStyle(
 			shape({ textStyle: { fontSize: 18, bold: true, align: 'center', vAlign: 'middle' } }),
 		);
-		expect(style.fontSize).toBe('18pt');
+		// Font size is emitted in CSS px (unitless React convention), not pt —
+		// appending pt would inflate every glyph by ~1.33× and overflow the box.
+		expect(style.fontSize).toBe('18px');
 		expect(style.fontWeight).toBe('bold');
 		expect(style.textAlign).toBe('center');
 		expect(style.justifyContent).toBe('center');
+	});
+
+	it('applies a default 1.25 line-height and honours explicit line spacing', () => {
+		expect(getTextBlockStyle(shape({ textStyle: { fontSize: 18 } })).lineHeight).toBe(1.25);
+		expect(
+			getTextBlockStyle(shape({ textStyle: { fontSize: 18, lineSpacing: 0.9 } })).lineHeight,
+		).toBe(0.9);
+		expect(
+			getTextBlockStyle(shape({ textStyle: { fontSize: 18, lineSpacingExactPt: 20 } })).lineHeight,
+		).toBe('20pt');
+	});
+
+	it('insets text from the box with default body padding', () => {
+		const style = getTextBlockStyle(shape({ textStyle: { fontSize: 18 } }));
+		expect(style.paddingLeft).toBe(`${91440 / 9525}px`);
+		expect(style.paddingTop).toBe(`${45720 / 9525}px`);
 	});
 });

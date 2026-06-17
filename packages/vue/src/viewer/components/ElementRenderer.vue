@@ -101,8 +101,10 @@ function segmentStyle(seg: TextSegment): CSSProperties {
 	if (s.fontFamily) {
 		style.fontFamily = s.fontFamily;
 	}
+	// px, not pt — the parsed value is the CSS px size (matches React + the
+	// inline text editor). Appending `pt` inflates every run by ~1.33×.
 	if (typeof s.fontSize === 'number') {
-		style.fontSize = `${s.fontSize}pt`;
+		style.fontSize = `${s.fontSize}px`;
 	}
 	if (s.color) {
 		style.color = s.color;

@@ -33,6 +33,32 @@ import { getComputed3dStyle, merge3dStyle } from './visual-3d';
 /** Map a value to a CSS pixel string. */
 const px = (n: number): string => `${n}px`;
 
+/**
+ * Default text-body insets, in px. Mirrors React's `DEFAULT_BODY_INSET_*_PX`
+ * (PowerPoint defaults: 0.1" left/right, 0.05" top/bottom → EMU / EMU_PER_PIXEL).
+ */
+const DEFAULT_BODY_INSET_LR_PX = 91440 / 9525;
+const DEFAULT_BODY_INSET_TB_PX = 45720 / 9525;
+
+/**
+ * Resolve the CSS `line-height` for a text block, mirroring React's
+ * `resolveLineHeight`: an exact point spacing (`a:lnSpc > a:spcPts`) wins and
+ * renders as a fixed `Xpt`; otherwise the proportional multiplier (`a:spcPct`)
+ * is used, defaulting to 1.25 (1.35 when the block carries italics, which sit
+ * slightly taller). Returning a unitless multiplier lets it scale with the
+ * resolved font size — matching React, which never relies on the browser's
+ * font-dependent `normal` (≈1.2–1.5).
+ */
+function resolveLineHeight(
+	ts: { lineSpacing?: number; lineSpacingExactPt?: number } | undefined,
+	hasItalic: boolean,
+): string | number {
+	if (typeof ts?.lineSpacingExactPt === 'number' && ts.lineSpacingExactPt > 0) {
+		return `${ts.lineSpacingExactPt}pt`;
+	}
+	return ts?.lineSpacing ?? (hasItalic ? 1.35 : 1.25);
+}
+
 /** Map an OOXML stroke-dash value to a CSS `border-style` keyword. */
 function cssBorderDashStyle(strokeDash: string | undefined): 'solid' | 'dotted' | 'dashed' {
 	if (!strokeDash || strokeDash === 'solid') {
@@ -214,6 +240,13 @@ export function getTextBlockStyle(el: PptxElement): CSSProperties {
 		return {};
 	}
 	const ts = el.textStyle;
+	// Body insets: PowerPoint pads text away from the shape edge. React applies
+	// these as padding; without them the Vue text hugs the box and mis-aligns
+	// horizontally vs React.
+	const bodyTop = ts?.bodyInsetTop ?? DEFAULT_BODY_INSET_TB_PX;
+	const bodyBottom = ts?.bodyInsetBottom ?? DEFAULT_BODY_INSET_TB_PX;
+	const bodyLeft = ts?.bodyInsetLeft ?? DEFAULT_BODY_INSET_LR_PX;
+	const bodyRight = ts?.bodyInsetRight ?? DEFAULT_BODY_INSET_LR_PX;
 	const style: CSSProperties = {
 		display: 'flex',
 		flexDirection: 'column',
@@ -222,6 +255,10 @@ export function getTextBlockStyle(el: PptxElement): CSSProperties {
 		overflow: 'hidden',
 		whiteSpace: 'pre-wrap',
 		wordBreak: 'break-word',
+		paddingTop: px(bodyTop),
+		paddingBottom: px(bodyBottom),
+		paddingLeft: px(bodyLeft),
+		paddingRight: px(bodyRight),
 	};
 	if (!ts) {
 		style.color = DEFAULT_TEXT_COLOR;
@@ -232,9 +269,15 @@ export function getTextBlockStyle(el: PptxElement): CSSProperties {
 	if (ts.fontFamily) {
 		style.fontFamily = ts.fontFamily;
 	}
+	// Font size is rendered in CSS px (unitless number in React). The parsed
+	// value is the px size; appending `pt` here would inflate every glyph by
+	// ~1.33× and overflow the box. Mirror React: emit px.
 	if (typeof ts.fontSize === 'number') {
-		style.fontSize = `${ts.fontSize}pt`;
+		style.fontSize = px(ts.fontSize);
 	}
+	// Line spacing — without this the browser's font-dependent `normal`
+	// (≈1.2–1.5) loosens multi-line text and pushes it out of its box.
+	style.lineHeight = resolveLineHeight(ts, Boolean(ts.italic));
 	if (ts.bold) {
 		style.fontWeight = 'bold';
 	}
