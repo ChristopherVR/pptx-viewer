@@ -55,6 +55,7 @@ import { PrintDialogComponent } from './print-dialog.component';
 import type { PrintSettings } from './print-helpers';
 import { PrintService } from './print.service';
 import { PropertiesDialogComponent } from './properties-dialog.component';
+import { RibbonComponent } from './ribbon.component';
 import { ShareDialogComponent } from './share-dialog.component';
 import { SignaturesPanelComponent } from './signatures-panel.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
@@ -123,6 +124,7 @@ const ZOOM_MAX = 3;
 		MobileMenuSheetComponent,
 		MobileSlidesSheetComponent,
 		NotesPanelComponent,
+		RibbonComponent,
 	],
 	template: `
 		<div class="pptx-ng-viewer" [ngClass]="class()" [ngStyle]="rootStyle()">
@@ -141,192 +143,38 @@ const ZOOM_MAX = 3;
 					<pre class="pptx-ng-error-detail">{{ loader.error() }}</pre>
 				</div>
 			} @else {
-				<header class="pptx-ng-toolbar">
-					<div class="pptx-ng-nav">
-						<button type="button" [disabled]="activeSlideIndex() <= 0" (click)="goPrev()">‹</button>
-						<span class="pptx-ng-slide-counter">
-							{{ slideCount() === 0 ? 0 : activeSlideIndex() + 1 }} / {{ slideCount() }}
-						</span>
-						<button
-							type="button"
-							[disabled]="activeSlideIndex() >= slideCount() - 1"
-							(click)="goNext()"
-						>
-							›
-						</button>
-					</div>
-					<div class="pptx-ng-zoom">
-						<button type="button" (click)="zoomOut()">−</button>
-						<button type="button" class="pptx-ng-zoom-value" (click)="zoomReset()">
-							{{ zoomPercent() }}%
-						</button>
-						<button type="button" (click)="zoomIn()">+</button>
-					</div>
-					<div class="pptx-ng-actions">
-						@if (canEdit()) {
-							<button
-								type="button"
-								[disabled]="!editor.canUndo()"
-								[attr.title]="editor.undoLabel() ? 'Undo ' + editor.undoLabel() : 'Undo'"
-								(click)="editor.undo()"
-								aria-label="Undo"
-							>
-								↶
-							</button>
-							<button
-								type="button"
-								[disabled]="!editor.canRedo()"
-								[attr.title]="editor.redoLabel() ? 'Redo ' + editor.redoLabel() : 'Redo'"
-								(click)="editor.redo()"
-								aria-label="Redo"
-							>
-								↷
-							</button>
-						}
-						<button type="button" (click)="showFind.set(true)" aria-label="Find in slides">
-							Find
-						</button>
-						@if (canEdit()) {
-							<button
-								type="button"
-								(click)="openFindReplace()"
-								aria-label="Find and replace in slides"
-							>
-								Replace
-							</button>
-						}
-						<button type="button" (click)="showSorter.set(true)" aria-label="Slide sorter">
-							⊞
-						</button>
-						<button
-							type="button"
-							[class.is-active]="activePanel() === 'accessibility'"
-							[attr.aria-pressed]="activePanel() === 'accessibility'"
-							(click)="togglePanel('accessibility')"
-							aria-label="Accessibility checker"
-						>
-							A11y
-						</button>
-						@if (loader.hasDigitalSignatures()) {
-							<button
-								type="button"
-								[class.is-active]="activePanel() === 'signatures'"
-								[attr.aria-pressed]="activePanel() === 'signatures'"
-								(click)="togglePanel('signatures')"
-								aria-label="Digital signatures"
-							>
-								Signatures
-							</button>
-						}
-						@if (canEdit()) {
-							<button
-								type="button"
-								[class.is-active]="activePanel() === 'comments'"
-								[attr.aria-pressed]="activePanel() === 'comments'"
-								(click)="togglePanel('comments')"
-								aria-label="Comments"
-							>
-								Comments
-							</button>
-							<button
-								type="button"
-								data-testid="format-painter-toggle"
-								[class.is-active]="formatPainterActive()"
-								[attr.data-active]="formatPainterActive() ? 'true' : 'false'"
-								[attr.aria-pressed]="formatPainterActive()"
-								[disabled]="!canActivateFormatPainter() && !formatPainterActive()"
-								(click)="toggleFormatPainter()"
-								aria-label="Format painter"
-							>
-								Format Painter
-							</button>
-							@if (selectedElement(); as el) {
-								<button type="button" (click)="showHyperlink.set(true)" aria-label="Edit hyperlink">
-									Link
-								</button>
-							}
-						}
-						<button type="button" (click)="showProperties.set(true)" aria-label="Document properties">
-							Info
-						</button>
-						<button
-							type="button"
-							[disabled]="slideCount() === 0"
-							(click)="print.openDialog()"
-							aria-label="Print"
-						>
-							Print
-						</button>
-						<button
-							type="button"
-							[class.is-active]="showNotes()"
-							[disabled]="slideCount() === 0"
-							(click)="toggleNotes()"
-							aria-label="Speaker notes"
-						>
-							Notes
-						</button>
-						<button
-							type="button"
-							[disabled]="slideCount() === 0 || exporting()"
-							(click)="exportPng()"
-						>
-							PNG
-						</button>
-						<button
-							type="button"
-							[disabled]="slideCount() === 0 || exporting()"
-							(click)="exportPdf()"
-						>
-							{{ exporting() ? 'Exporting…' : 'PDF' }}
-						</button>
-						<button
-							type="button"
-							[disabled]="slideCount() === 0 || exporting()"
-							(click)="exportGif()"
-						>
-							GIF
-						</button>
-						<button
-							type="button"
-							[disabled]="slideCount() === 0 || exporting()"
-							(click)="exportVideo()"
-						>
-							Video
-						</button>
-						<button type="button" [disabled]="slideCount() === 0" (click)="present()">
-							Present
-						</button>
-						<button
-							type="button"
-							[disabled]="slideCount() === 0"
-							(click)="presentPresenter()"
-							aria-label="Presenter view"
-						>
-							Presenter
-						</button>
-						<button
-							type="button"
-							[class.is-active]="collab.connected()"
-							(click)="showShare.set(true)"
-							aria-label="Share for collaboration"
-						>
-							Share
-						</button>
-						<button
-							type="button"
-							[disabled]="slideCount() === 0"
-							(click)="showBroadcast.set(true)"
-							aria-label="Broadcast presentation"
-						>
-							Broadcast
-						</button>
-					</div>
-				</header>
-
-				@if (canEdit()) {
-					<pptx-editor-toolbar [slideIndex]="activeSlideIndex()" />
-				}
+				<pptx-ribbon
+					[slideIndex]="activeSlideIndex()"
+					[slideCount]="slideCount()"
+					[selectedElement]="selectedElement()"
+					[zoomPercent]="zoomPercent()"
+					[formatPainterActive]="formatPainterActive()"
+					[canActivateFormatPainter]="canActivateFormatPainter()"
+					[exporting]="exporting()"
+					(prev)="goPrev()"
+					(next)="goNext()"
+					(zoomIn)="zoomIn()"
+					(zoomOut)="zoomOut()"
+					(zoomReset)="zoomReset()"
+					(find)="showFind.set(true)"
+					(present)="present()"
+					(presenter)="presentPresenter()"
+					(share)="showShare.set(true)"
+					(broadcast)="showBroadcast.set(true)"
+					(info)="showProperties.set(true)"
+					(print)="print.openDialog()"
+					(comments)="togglePanel('comments')"
+					(a11y)="togglePanel('accessibility')"
+					(link)="showHyperlink.set(true)"
+					(openSorter)="showSorter.set(true)"
+					(toggleNotes)="toggleNotes()"
+					(toggleFormatPainter)="toggleFormatPainter()"
+					(exportPng)="exportPng()"
+					(exportPdf)="exportPdf()"
+					(exportGif)="exportGif()"
+					(exportVideo)="exportVideo()"
+					(replace)="openFindReplace()"
+				/>
 
 				<div class="pptx-ng-body">
 					@if (canEdit()) {

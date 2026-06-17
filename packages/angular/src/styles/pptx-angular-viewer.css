@@ -26,6 +26,35 @@
 
 @import './theme.css';
 
+/* ── Ribbon chrome component classes (Office-style toolbar) ──────────────────
+   Defined here (not in component styles) because ng-packagr does not run
+   Tailwind on component styles, so @apply only works in this CLI-compiled
+   global sheet. Global classes still match emulated-encapsulated component
+   elements (same pattern as the .pptx-ng-* rules below). */
+@layer components {
+	.pptx-rb-icon {
+		@apply inline-flex h-7 min-w-7 items-center justify-center rounded text-[0.95rem] text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
+	}
+	.pptx-rb-pill {
+		@apply inline-flex items-center gap-1.5 rounded bg-muted px-2.5 py-1.5 text-xs text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
+	}
+	.pptx-rb-grp {
+		@apply inline-flex items-center overflow-hidden rounded bg-muted text-xs text-foreground;
+	}
+	.pptx-rb-gb {
+		@apply inline-flex items-center justify-center border-r border-border px-2.5 py-1.5 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
+	}
+	.pptx-rb-gl {
+		@apply inline-flex items-center justify-center px-2.5 py-1.5 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
+	}
+	.pptx-rb-sep {
+		@apply mx-1 w-px self-stretch bg-border/40;
+	}
+	.pptx-rb-select {
+		@apply rounded border border-border bg-card px-1 py-1 text-xs text-foreground;
+	}
+}
+
 .pptx-ng-viewer {
 	--pptx-background: #030712;
 	--pptx-foreground: #f3f4f6;
