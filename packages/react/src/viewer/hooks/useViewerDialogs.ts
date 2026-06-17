@@ -7,7 +7,16 @@ import type { PptxPresentationProperties } from 'pptx-viewer-core';
 import { useState, useCallback, useRef, useEffect } from 'react';
 
 import { useDialogCustomShows } from './useDialogCustomShows';
+import { isMobileViewport } from './useIsMobile';
 import type { UseViewerDialogsInput, ViewerDialogsResult } from './viewer-dialog-types';
+
+/** Coarse-pointer (touch) check, mirroring useIsMobile. */
+function viewportIsTouch(): boolean {
+	if (typeof window === 'undefined') {
+		return false;
+	}
+	return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+}
 
 export type { UseViewerDialogsInput, ViewerDialogsResult } from './viewer-dialog-types';
 
@@ -62,10 +71,15 @@ export function useViewerDialogs(input: UseViewerDialogsInput): ViewerDialogsRes
 	// short-circuits the ref). The effect upgrades to a ResizeObserver once
 	// the container is mounted, and falls back to window resize otherwise.
 	const [isNarrowViewport, setIsNarrowViewport] = useState(() =>
-		typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+		typeof window !== 'undefined'
+			? isMobileViewport(window.innerWidth, window.innerHeight, viewportIsTouch())
+			: false,
 	);
 	useEffect(() => {
-		const handleWindow = () => setIsNarrowViewport(window.innerWidth < 768);
+		const handleWindow = () =>
+			setIsNarrowViewport(
+				isMobileViewport(window.innerWidth, window.innerHeight, viewportIsTouch()),
+			);
 
 		// Poll briefly until the container mounts (it does not exist while
 		// LoadingState is shown), then attach a ResizeObserver to it.
@@ -80,11 +94,13 @@ export function useViewerDialogs(input: UseViewerDialogsInput): ViewerDialogsRes
 			observer = new ResizeObserver((entries) => {
 				const entry = entries[0];
 				if (entry) {
-					setIsNarrowViewport(entry.contentRect.width < 768);
+					setIsNarrowViewport(
+						isMobileViewport(entry.contentRect.width, entry.contentRect.height, viewportIsTouch()),
+					);
 				}
 			});
 			observer.observe(el);
-			setIsNarrowViewport(el.clientWidth < 768);
+			setIsNarrowViewport(isMobileViewport(el.clientWidth, el.clientHeight, viewportIsTouch()));
 		};
 		attach();
 

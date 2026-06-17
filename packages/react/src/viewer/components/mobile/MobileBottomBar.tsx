@@ -80,7 +80,10 @@ export function MobileBottomBar({
 	return (
 		<nav
 			aria-label='Editor actions'
-			className='md:hidden flex items-stretch justify-around border-t border-border bg-secondary/80 backdrop-blur supports-[backdrop-filter]:bg-secondary/60 pb-[max(env(safe-area-inset-bottom),0px)]'
+			// Visibility is owned by the parent (rendered only when `isMobile`), so
+			// no width-based `md:hidden` here — that would wrongly hide the bar on a
+			// wide-but-short landscape phone, which is still mobile.
+			className='flex items-stretch justify-around border-t border-border bg-secondary/80 backdrop-blur supports-[backdrop-filter]:bg-secondary/60 pb-[max(env(safe-area-inset-bottom),0px)]'
 		>
 			{actions.map(({ key, label, icon: Icon, onClick, badge }) => {
 				const active = activeSheet === key;

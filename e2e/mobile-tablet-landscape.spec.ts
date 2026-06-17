@@ -39,6 +39,10 @@ test.describe('tablet portrait (820×1180, touch)', () => {
 			return { scrollW: el.scrollWidth, clientW: el.clientWidth };
 		});
 		expect(overflow.scrollW).toBeLessThanOrEqual(overflow.clientW + 1);
+
+		// Tablet keeps the desktop chrome (no mobile bottom bar) — it's tall
+		// enough for the ribbon + panels.
+		await expect(page.getByRole('navigation', { name: 'Editor actions' })).toHaveCount(0);
 	});
 
 	test('present mode fits and shows touch controls', async ({ page }) => {
@@ -56,7 +60,7 @@ test.describe('tablet portrait (820×1180, touch)', () => {
 test.describe('landscape phone (915×412, touch)', () => {
 	test.use({ viewport: { width: 915, height: 412 }, hasTouch: true, isMobile: true });
 
-	test('edit layout fits in landscape', async ({ page }) => {
+	test('edit layout uses mobile chrome in landscape', async ({ page }) => {
 		await load(page);
 		await page.screenshot({ path: resolve(shotDir, 'landscape-edit.png') });
 		const overflow = await page.evaluate(() => {
@@ -64,6 +68,11 @@ test.describe('landscape phone (915×412, touch)', () => {
 			return { scrollW: el.scrollWidth, clientW: el.clientWidth };
 		});
 		expect(overflow.scrollW).toBeLessThanOrEqual(overflow.clientW + 1);
+
+		// A short landscape phone must get the mobile chrome — both the bottom
+		// action bar and the compact top toolbar (not the desktop ribbon).
+		await expect(page.getByRole('navigation', { name: 'Editor actions' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Menu' })).toBeVisible();
 	});
 
 	test('present mode fills the landscape viewport', async ({ page }) => {
