@@ -563,3 +563,37 @@ frontier is **editing** and the remaining advanced subsystems.
 > mirrors the React `mobile/` suite. Remaining differences are cosmetic/depth
 > (e.g. exact transition catalogue coverage, finer a11y focus management) rather
 > than missing features.
+
+- **2026-06-18 (framework-neutral e2e contract)** — Earlier parity was measured
+  by _features existing_; this wave makes Angular satisfy the **shared
+  Playwright contract** that defines cross-framework parity (the same
+  `e2e/*.spec.ts` bodies that run against React + Vue). Angular had drifted from
+  the neutral DOM hooks and was not even wired into `playwright.config.ts`.
+  Landed:
+  - **Harness:** added an `angular` project + `demo-angular` webServer (port 4174) to `playwright.config.ts`; the suite now runs via
+    `playwright test --project=angular`.
+  - **Demo:** `demo-angular` file input gets `id="file-input"` +
+    `aria-label="Upload PPTX file"`; the viewer runs with `canEdit` so the
+    editor contract is exercised.
+  - **Contract hooks:** `data-pptx-element="true"` on every element/connector
+    host (alongside `data-element-id`); `data-pptx-viewport`,
+    `data-inline-editor`, and `aria-label="Adjust shape"` (rotate handle) on the
+    slide canvas.
+  - **Notes:** new **editable** `NotesPanelComponent` (`#slide-notes-content` +
+    `textarea[name="slide-notes"]`, uncontrolled/seed-per-slide, commit on
+    change/blur — mirrors Vue `NotesPanel`) used in the desktop aside and a new
+    mobile notes sheet; the mobile bottom bar gained a `Notes` button. The
+    desktop read-only `<p>` notes strip is gone.
+  - **Format painter** (was entirely absent): ported `format-painter.ts`
+    (`copyFormatFromElement` / `applyFormatToElement` / `hasCopyableFormat`,
+    mirrors Vue) + a toolbar toggle (`data-testid="format-painter-toggle"` +
+    `data-active`) with arm → apply-on-next-element-click → Escape /
+    empty-canvas cancel.
+  - **Result:** the full agnostic suite — **19/19** tests — passes against
+    `--project=angular` (format-painter ×4, mobile-inline-edit ×2, mobile-notes,
+    mobile-present, mobile-audit ×9, text-rendering ×2). ng-packagr build,
+    typecheck, lint (`--deny-warnings`), and **2108** unit tests stay green.
+  - **Follow-up:** the format painter still lives only on the desktop header
+    toolbar (not the mobile chrome); `format-painter.ts` is a third copy of the
+    same pure logic (React/Vue/Angular) — a candidate for the
+    `pptx-viewer-shared` extraction noted above.
