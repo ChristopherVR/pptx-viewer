@@ -40,6 +40,7 @@ vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 				'pptx.share.namePlaceholder': 'e.g. Alice',
 				'pptx.share.serverLabel': 'Collaboration Server',
 				'pptx.share.serverPlaceholder': 'wss://collab.example.com',
+				'pptx.share.serverHint': 'Enter the WebSocket URL of a y-websocket server.',
 				'pptx.share.shareLink': 'Share Link',
 				'pptx.share.copyUrl': 'Copy URL',
 				'pptx.share.copyLink': 'Copy link to clipboard',
@@ -178,7 +179,7 @@ describe('shareDialog — start button validation', () => {
 		// Should contain the Start Sharing button. Check it does NOT have
 		// the disabled="" attribute (note: CSS classes contain "disabled:"
 		// so we must check for the actual HTML attribute).
-		const startBtnRegex = /<button[^>]*>Start Sharing<\/button>/;
+		const startBtnRegex = /<button[^>]*>Start Sharing<\/button>/u;
 		const match = html.match(startBtnRegex);
 		expect(match).not.toBeNull();
 		// The matched button should not have disabled="" attribute
@@ -317,7 +318,7 @@ describe('shareDialog — preconfigured mode', () => {
 			),
 		);
 		// All 3 inputs should have readOnly attribute (rendered as readonly="")
-		const readonlyCount = (html.match(/readonly=""/gi) || []).length;
+		const readonlyCount = (html.match(/readonly=""/giu) || []).length;
 		expect(readonlyCount).toBe(3);
 	});
 
