@@ -225,3 +225,24 @@ export function computeSnap(
 
 	return { x: snappedX, y: snappedY, guides };
 }
+
+// ---------------------------------------------------------------------------
+// Grid snapping
+// ---------------------------------------------------------------------------
+
+/**
+ * Snap a raw position value to the nearest grid step.
+ *
+ * @param value - Raw position in stage coordinates.
+ * @param step  - Grid spacing in px (must be > 0; if ≤ 0 the value is returned
+ *               unchanged so callers do not need to guard against zero).
+ * @returns The nearest multiple of `step`.
+ */
+export function snapToGridStep(value: number, step: number): number {
+	if (step <= 0) {
+		return value;
+	}
+	// `|| 0` converts −0 (which Math.round can produce for small negative inputs)
+	// to plain 0, so position values stay sign-neutral.
+	return Math.round(value / step) * step || 0;
+}

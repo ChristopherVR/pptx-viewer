@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeSnap } from './snap-guides';
+import { computeSnap, snapToGridStep } from './snap-guides';
 import type { SnapBox, SnapGuide, SnapResult } from './snap-guides';
 
 // Shorthand factory so tests stay compact.
@@ -277,5 +277,32 @@ describe('both axes snap at once', () => {
 	it('emits one x guide and one y guide', () => {
 		expect(result.guides.filter((g: SnapGuide) => g.axis === 'x')).toHaveLength(1);
 		expect(result.guides.filter((g: SnapGuide) => g.axis === 'y')).toHaveLength(1);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// snapToGridStep
+// ---------------------------------------------------------------------------
+
+describe('snapToGridStep', () => {
+	it('snaps to nearest multiple below', () => {
+		expect(snapToGridStep(3, 8)).toBe(0);
+	});
+	it('snaps to nearest multiple above', () => {
+		expect(snapToGridStep(5, 8)).toBe(8);
+	});
+	it('already on grid → unchanged', () => {
+		expect(snapToGridStep(16, 8)).toBe(16);
+	});
+	it('returns value unchanged when step is 0', () => {
+		expect(snapToGridStep(12, 0)).toBe(12);
+	});
+	it('works with non-8 step', () => {
+		expect(snapToGridStep(7, 5)).toBe(5);
+		expect(snapToGridStep(8, 5)).toBe(10);
+	});
+	it('negative values snap correctly', () => {
+		expect(snapToGridStep(-3, 8)).toBe(0);
+		expect(snapToGridStep(-5, 8)).toBe(-8);
 	});
 });

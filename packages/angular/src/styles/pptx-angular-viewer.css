@@ -463,7 +463,11 @@
 /*
  * Ruler strips — positioned inside the wrapper's padding area (which is
  * RULER_THICKNESS px wide/tall). The corner square fills the 20×20 corner
- * where both rulers meet. All strips are pointer-events: none.
+ * where both rulers meet.
+ *
+ * The corner is always non-interactive. The ruler SVGs allow pointer events
+ * when the canvas is editable so the user can drag guides out of them
+ * (cursor and pointer-event toggling done inline via [style.cursor] binding).
  */
 .pptx-ng-ruler-corner {
 	position: absolute;
@@ -484,7 +488,6 @@
 	left: 20px;
 	height: 20px;
 	overflow: hidden;
-	pointer-events: none;
 	z-index: 51;
 }
 
@@ -494,8 +497,32 @@
 	left: 0;
 	width: 20px;
 	overflow: hidden;
-	pointer-events: none;
 	z-index: 51;
+}
+
+/*
+ * User-created ruler guide lines.
+ * Lines are pointer-events:none; handles are pointer-events:auto.
+ */
+.pptx-ng-ruler-guide-line {
+	position: absolute;
+	background: rgba(250, 204, 21, 0.85);
+	pointer-events: none;
+	z-index: 49;
+}
+
+.pptx-ng-ruler-guide-handle {
+	position: absolute;
+	pointer-events: auto;
+	touch-action: none;
+	z-index: 50;
+}
+
+/*
+ * Eyedropper active state — purple highlight to indicate screen-pick mode.
+ */
+.pptx-rb-eyedropper-active {
+	@apply bg-purple-600 text-white;
 }
 
 /* ── Mobile / coarse-pointer ─────────────────────────────────────────── */
