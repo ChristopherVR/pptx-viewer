@@ -13,6 +13,7 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 - **angular:** Add bottom status bar to complete the ribbon shell (by @ChristopherVR) ([fdeef54](https://github.com/ChristopherVR/pptx-viewer/commit/fdeef54f742c7f775294666e50978a345544b29c))
 - **vue:** Wire Insert ▸ Action buttons (by @ChristopherVR) ([1201ff0](https://github.com/ChristopherVR/pptx-viewer/commit/1201ff038583a9a335455617c4c986e4974a19f6))
 - **angular:** Implement Draw/Design/Transitions/Animations ribbon tabs (by @ChristopherVR) ([7cf8027](https://github.com/ChristopherVR/pptx-viewer/commit/7cf8027c35b6346bf1aa772d7bcaa452dde1822c))
+- **vue:** Wire the New-Slide layout gallery (by @ChristopherVR) ([3f0ae0c](https://github.com/ChristopherVR/pptx-viewer/commit/3f0ae0c1ab59362f06fa3383b087ad696e33c815))
 
 ### Bug Fixes
 
@@ -52,6 +53,7 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 - **vue:** Log action buttons + suite-green note (by @ChristopherVR) ([b5a7ef6](https://github.com/ChristopherVR/pptx-viewer/commit/b5a7ef6f479ca26c4f21e481f5697c67ab0b3c0e))
 - **angular:** Log advanced ribbon tabs landed (Transitions/Animations wired, Design partial, Draw UI-only) (by @ChristopherVR) ([deeb6c1](https://github.com/ChristopherVR/pptx-viewer/commit/deeb6c1adfd25516b3d3effe19b136721c9ee8a1))
 - **angular:** Mobile e2e now 10/10 (notes-sheet flow fix); log trunk spec fix (by @ChristopherVR) ([92f4c44](https://github.com/ChristopherVR/pptx-viewer/commit/92f4c44a931233258981e452ecaccd5fe25f1a39))
+- **changelog:** Update for v1.1.24 [skip ci] (by @github-actions[bot]) ([4ebbac6](https://github.com/ChristopherVR/pptx-viewer/commit/4ebbac632ad85d51c2b8d7e79c60fbfc69b7aded))
 
 ### Testing
 
