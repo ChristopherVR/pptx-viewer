@@ -1000,3 +1000,10 @@ mtx-decompressor`). Consequently **anything that imports `pptx-viewer-core` won'
 > still run. **Vue-port code added this session is unaffected** (isolated unit tests pass,
 > typecheck clean). **Fix:** publish `emf-converter@1.4.0` + `mtx-decompressor@1.4.0` (or repoint
 > core's deps to existing versions / restore the workspace packages), then `bun install`.
+> **Ribbon-action status: the data-driven stubs are done.** Wired: Insert (text/shape/table/
+> image/media/smartArt/equation/action-button/**layout gallery**), View (Grid + Snap-to-Grid),
+> Design (**theme gallery**), plus undo/selection fixed. **Genuinely-larger remaining work,
+> each its own subsystem:** **drawing tools** (Draw tab — pointer ink capture → ink elements),
+> **spell-check** (a spell engine + squiggles), **theme editor** (`onToggleThemeEditor` — a
+> colour/font editor panel), and **Rulers / Snap-to-Shape / H+V Guides** (ruler + guide overlay
+> components; touches the parallel session's `SlideCanvas` layout — coordinate first).

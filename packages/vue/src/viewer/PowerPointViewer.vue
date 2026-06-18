@@ -1542,6 +1542,32 @@ const snapToGrid = ref(false);
 const showRulers = ref(false);
 /** Grid spacing in px (matches React's GRID_SIZE). */
 const GRID_SIZE = 8;
+/** Design ▸ Themes gallery overlay. */
+const themeGalleryOpen = ref(false);
+
+/**
+ * Apply a built-in theme preset to the whole deck — re-themes via core's pure
+ * `applyThemeToData` (re-resolves slide colours against the new scheme) and
+ * writes the new slides/theme/colour-map back (history-aware). The active
+ * colour scheme is provided to tables via `pptxTheme`, so banding updates too.
+ */
+function applyThemePreset(preset: PptxThemePreset): void {
+	history.pushHistory();
+	const result = applyThemeToData(
+		{
+			slides: slides.value,
+			theme: pptxTheme.value,
+			themeColorMap: themeColorMap.value,
+		} as unknown as PptxData,
+		preset.colorScheme,
+		preset.fontScheme,
+		preset.name,
+	);
+	slides.value = result.slides;
+	pptxTheme.value = result.theme;
+	themeColorMap.value = result.themeColorMap;
+	themeGalleryOpen.value = false;
+}
 
 /** A pen/highlighter/eraser tool is armed (Draw tab) → ink capture is active. */
 const drawingActive = computed(
