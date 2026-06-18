@@ -46,63 +46,29 @@ describe('toggleSheet', () => {
 // ---------------------------------------------------------------------------
 
 describe('buildBarActions', () => {
-	const base = {
-		activeIndex: 2,
-		slideCount: 5,
-		canPresent: true,
-		slidesOpen: false,
-		menuOpen: false,
-	};
+	const base = { slideCount: 5 };
 
-	it('returns six actions', () => {
-		expect(buildBarActions(base)).toHaveLength(6);
+	it('returns five actions', () => {
+		expect(buildBarActions(base)).toHaveLength(5);
 	});
 
 	it('has the correct keys in order', () => {
 		const keys = buildBarActions(base).map((a) => a.key);
-		expect(keys).toStrictEqual(['prev', 'slides', 'find', 'present', 'menu', 'next']);
+		expect(keys).toStrictEqual(['slides', 'insert', 'inspector', 'comments', 'notes']);
 	});
 
-	it('disables prev when activeIndex is 0', () => {
-		const actions = buildBarActions({ ...base, activeIndex: 0 });
-		expect(actions.find((a) => a.key === 'prev')!.disabled).toBeTruthy();
+	it('has the correct labels in order', () => {
+		const labels = buildBarActions(base).map((a) => a.label);
+		expect(labels).toStrictEqual(['Slides', 'Insert', 'Format', 'Comments', 'Notes']);
 	});
 
-	it('enables prev when activeIndex > 0', () => {
-		const actions = buildBarActions({ ...base, activeIndex: 1 });
-		expect(actions.find((a) => a.key === 'prev')!.disabled).toBeFalsy();
+	it('enables all actions when slides exist', () => {
+		expect(buildBarActions(base).every((a) => !a.disabled)).toBeTruthy();
 	});
 
-	it('disables next when on the last slide', () => {
-		const actions = buildBarActions({ ...base, activeIndex: 4 });
-		expect(actions.find((a) => a.key === 'next')!.disabled).toBeTruthy();
-	});
-
-	it('enables next when not on the last slide', () => {
-		const actions = buildBarActions({ ...base, activeIndex: 3 });
-		expect(actions.find((a) => a.key === 'next')!.disabled).toBeFalsy();
-	});
-
-	it('disables slides/find/present when slideCount is 0', () => {
-		const actions = buildBarActions({ ...base, activeIndex: 0, slideCount: 0 });
-		expect(actions.find((a) => a.key === 'slides')!.disabled).toBeTruthy();
-		expect(actions.find((a) => a.key === 'find')!.disabled).toBeTruthy();
-		expect(actions.find((a) => a.key === 'present')!.disabled).toBeTruthy();
-	});
-
-	it('disables present when canPresent is false', () => {
-		const actions = buildBarActions({ ...base, canPresent: false });
-		expect(actions.find((a) => a.key === 'present')!.disabled).toBeTruthy();
-	});
-
-	it('enables present when canPresent is true and slides exist', () => {
-		const actions = buildBarActions({ ...base, canPresent: true });
-		expect(actions.find((a) => a.key === 'present')!.disabled).toBeFalsy();
-	});
-
-	it('never disables the menu button', () => {
-		const actions = buildBarActions({ ...base, slideCount: 0, canPresent: false });
-		expect(actions.find((a) => a.key === 'menu')!.disabled).toBeFalsy();
+	it('disables every action when slideCount is 0', () => {
+		const actions = buildBarActions({ slideCount: 0 });
+		expect(actions.every((a) => a.disabled)).toBeTruthy();
 	});
 });
 

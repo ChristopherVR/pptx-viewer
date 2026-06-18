@@ -1,46 +1,47 @@
 /**
- * mobile-bottom-bar.component.ts — Persistent mobile bottom navigation bar.
+ * mobile-bottom-bar.component.ts — Persistent mobile bottom action bar.
  *
  * Ported from: packages/react/src/viewer/components/mobile/MobileBottomBar.tsx
  *
- * A fixed-to-bottom bar exposing five primary actions for mobile viewers:
- *   Prev · Slide counter · Next · Sorter · Present · Menu
+ * A fixed-to-bottom bar exposing the five primary per-selection / per-slide
+ * actions for mobile editing, mirroring React's slot set:
  *
- * The Angular version targets the viewer-first scope (no editor): the actions
- * mirror `goPrev`, `goNext`, `present`, `openSorter`, `openFind`, `openMenu`
- * (which in turn opens the `MobileMenuSheetComponent`).
+ *   Slides · Insert · Format · Comments · Notes
  *
- * Unlike the React version (which targets the full editor and uses inspector /
- * comments / notes as the five slots), this component exposes navigation
- * primitives that the orchestrator (`PowerPointViewerComponent`) already has
- * concrete handler methods for.
+ * Each slot either opens a bottom sheet/panel (slides / format / comments /
+ * notes) or triggers an action (insert). The Menu, Undo/Redo and Present
+ * controls live in the compact top toolbar (`MobileToolbarComponent`).
+ *
+ * The host renders a `<nav aria-label="Editor actions">` so it matches the
+ * framework-neutral accessibility contract the e2e specs assert against
+ * (`getByRole('navigation', { name: 'Editor actions' })`).
  *
  * Inputs
- *   activeIndex   — zero-based index of the current slide
- *   slideCount    — total number of slides
- *   canPresent    — whether the Present action should be enabled
- *   menuOpen      — whether the mobile menu sheet is currently open
+ *   slideCount    — total number of slides (gates Slides/Format/Insert)
+ *   commentCount  — number of comments on the active slide (badge)
+ *   activeSheet   — currently-active sheet, for highlighting the bar button
  *
  * Outputs
- *   prev          — user tapped the previous-slide button
- *   next          — user tapped the next-slide button
- *   present       — user tapped the Present button
- *   openSorter    — user tapped the Sorter button
- *   openFind      — user tapped the Find button
- *   openSlides    — user tapped the Slides thumbnail button
- *   toggleMenu    — user tapped the menu (⋯) button
+ *   openSlides    — user tapped the Slides button
+ *   insert        — user tapped the Insert button
+ *   openFormat    — user tapped the Format button
+ *   openComments  — user tapped the Comments button
+ *   notes         — user tapped the Notes button
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 
+/** Which mobile sheet/panel is currently active (highlights its button). */
+export type MobileBarSheet = 'slides' | 'inspector' | 'comments' | 'notes' | null;
+
 /** Internal action descriptor used to build the bar. */
 interface BarAction {
-	key: string;
+	key: NonNullable<MobileBarSheet> | 'insert';
 	label: string;
 	/** SVG path data for the icon (24 × 24 view-box). */
 	svgPath: string;
 	disabled: boolean;
-	active?: boolean;
+	active: boolean;
 	badge?: number;
 	emit: () => void;
 }
@@ -50,7 +51,7 @@ interface BarAction {
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
-		<nav class="pptx-ng-mbar" aria-label="Mobile navigation">
+		<nav class="pptx-ng-mbar" aria-label="Editor actions">
 			@for (action of actions(); track action.key) {
 				<button
 					type="button"
@@ -201,81 +202,71 @@ interface BarAction {
 export class MobileBottomBarComponent {
 	// ── Inputs ────────────────────────────────────────────────────────────────
 
-	/** Zero-based index of the currently displayed slide. */
-	readonly activeIndex = input<number>(0);
-
 	/** Total number of slides in the presentation. */
 	readonly slideCount = input<number>(0);
 
-	/** Whether the "Present" action should be available. */
-	readonly canPresent = input<boolean>(true);
+	/** Number of comments on the active slide (for the badge). */
+	readonly commentCount = input<number>(0);
 
-	/** Whether the mobile-menu sheet is currently open (highlights the button). */
-	readonly menuOpen = input<boolean>(false);
-
-	/** Whether the slides thumbnail sheet is currently open. */
-	readonly slidesOpen = input<boolean>(false);
-
-	/** Whether the speaker-notes sheet is currently open (highlights the button). */
-	readonly notesOpen = input<boolean>(false);
+	/** Currently-active sheet/panel (highlights its button). */
+	readonly activeSheet = input<MobileBarSheet>(null);
 
 	// ── Outputs ───────────────────────────────────────────────────────────────
 
-	/** User tapped the previous-slide button. */
-	readonly prev = output<void>();
-	/** User tapped the next-slide button. */
-	readonly next = output<void>();
-	/** User tapped the Present button. */
-	readonly present = output<void>();
-	/** User tapped the Slide Sorter button. */
-	readonly openSorter = output<void>();
-	/** User tapped the Find button. */
-	readonly openFind = output<void>();
-	/** User tapped the Notes button. */
-	readonly notes = output<void>();
 	/** User tapped the Slides thumbnail strip button. */
 	readonly openSlides = output<void>();
-	/** User tapped the menu (⋯) button. */
-	readonly toggleMenu = output<void>();
+	/** User tapped the Insert button. */
+	readonly insert = output<void>();
+	/** User tapped the Format (inspector) button. */
+	readonly openFormat = output<void>();
+	/** User tapped the Comments button. */
+	readonly openComments = output<void>();
+	/** User tapped the Notes button. */
+	readonly notes = output<void>();
 
 	// ── Derived action list ───────────────────────────────────────────────────
 
 	readonly actions = computed<BarAction[]>(() => {
-		const idx = this.activeIndex();
 		const count = this.slideCount();
+		const noSlides = count === 0;
+		const active = this.activeSheet();
 		return [
-			{
-				key: 'prev',
-				label: 'Prev',
-				// Chevron-left
-				svgPath: 'M15 18l-6-6 6-6',
-				disabled: idx <= 0,
-				emit: () => this.prev.emit(),
-			},
 			{
 				key: 'slides',
 				label: 'Slides',
 				// Layers icon
 				svgPath: 'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5',
-				disabled: count === 0,
-				active: this.slidesOpen(),
+				disabled: noSlides,
+				active: active === 'slides',
 				emit: () => this.openSlides.emit(),
 			},
 			{
-				key: 'find',
-				label: 'Find',
-				// Search icon
-				svgPath: 'M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z',
-				disabled: count === 0,
-				emit: () => this.openFind.emit(),
+				key: 'insert',
+				label: 'Insert',
+				// Plus icon
+				svgPath: 'M12 5v14 M5 12h14',
+				disabled: noSlides,
+				active: false,
+				emit: () => this.insert.emit(),
 			},
 			{
-				key: 'present',
-				label: 'Present',
-				// Play icon
-				svgPath: 'M5 3l14 9-14 9V3z',
-				disabled: !this.canPresent() || count === 0,
-				emit: () => this.present.emit(),
+				key: 'inspector',
+				label: 'Format',
+				// Sliders icon
+				svgPath: 'M4 21v-7 M4 10V3 M12 21v-9 M12 8V3 M20 21v-5 M20 12V3 M1 14h6 M9 8h6 M17 16h6',
+				disabled: noSlides,
+				active: active === 'inspector',
+				emit: () => this.openFormat.emit(),
+			},
+			{
+				key: 'comments',
+				label: 'Comments',
+				// Message-square icon
+				svgPath: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',
+				disabled: noSlides,
+				active: active === 'comments',
+				badge: this.commentCount(),
+				emit: () => this.openComments.emit(),
 			},
 			{
 				key: 'notes',
@@ -283,26 +274,9 @@ export class MobileBottomBarComponent {
 				// Note / document-text icon
 				svgPath:
 					'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M8 13h8 M8 17h5',
-				disabled: count === 0,
-				active: this.notesOpen(),
+				disabled: noSlides,
+				active: active === 'notes',
 				emit: () => this.notes.emit(),
-			},
-			{
-				key: 'menu',
-				label: 'More',
-				// More-horizontal (⋯)
-				svgPath: 'M5 12h.01M12 12h.01M19 12h.01',
-				disabled: false,
-				active: this.menuOpen(),
-				emit: () => this.toggleMenu.emit(),
-			},
-			{
-				key: 'next',
-				label: 'Next',
-				// Chevron-right
-				svgPath: 'M9 18l6-6-6-6',
-				disabled: idx >= count - 1,
-				emit: () => this.next.emit(),
 			},
 		];
 	});

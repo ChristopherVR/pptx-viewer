@@ -26,32 +26,49 @@ export const MOBILE_BREAKPOINT = 768;
 /** Tablet breakpoint — below this width (but >= MOBILE) is tablet. */
 export const TABLET_BREAKPOINT = 1024;
 
+/**
+ * Max viewport height (px) at which a *touch* device is treated as mobile
+ * regardless of width. Catches landscape phones (e.g. 915×412), which are wide
+ * enough to fall in the "tablet" width band but far too short for the desktop
+ * ribbon + side panels — they need the mobile chrome. Tablets in landscape are
+ * taller (~760px+) so they stay on the desktop layout. Mirrors React's
+ * `MOBILE_LANDSCAPE_MAX_HEIGHT` in useIsMobile.ts.
+ */
+export const MOBILE_LANDSCAPE_MAX_HEIGHT = 500;
+
 // ---------------------------------------------------------------------------
 // Pure helpers (no Angular deps — safe in vitest without a DOM)
 // ---------------------------------------------------------------------------
 
 /**
- * Decide whether the current environment is "mobile" based on two signals:
- * - `width` is the viewport / container width in pixels
- * - `coarsePointer` is true when `(pointer: coarse)` matches
+ * Decide whether the current environment should use the mobile layout:
+ * - a narrow viewport (`width < MOBILE_BREAKPOINT`), OR
+ * - a short *touch* viewport below the tablet width — a landscape phone, which
+ *   is wide enough to look like a tablet but far too short for the desktop
+ *   ribbon + side panels.
  *
- * Either condition alone is sufficient (narrow viewport OR touch device).
+ * This mirrors React's `isMobileViewport(width, height, isTouch)` so the three
+ * frameworks switch chrome at the same breakpoints (and the shared mobile e2e
+ * specs pass identically). A tall touch tablet (e.g. 820×1180) is NOT mobile.
  *
  * @pure — no side effects, fully testable without a DOM.
  */
-export function computeIsMobile(width: number, coarsePointer: boolean): boolean {
-	return width < MOBILE_BREAKPOINT || coarsePointer;
+export function computeIsMobile(width: number, height: number, isTouch: boolean): boolean {
+	if (width < MOBILE_BREAKPOINT) {
+		return true;
+	}
+	return isTouch && height > 0 && height < MOBILE_LANDSCAPE_MAX_HEIGHT && width < TABLET_BREAKPOINT;
 }
 
 /**
- * Decide whether the current environment is "tablet" based on width only.
- * A coarse-pointer device at tablet width is still treated as mobile
- * (handled by `computeIsMobile`).
+ * Decide whether the current environment is "tablet" (desktop chrome, but in
+ * the 768–1023px width band). A short landscape-phone touch viewport is mobile,
+ * not tablet (handled by {@link computeIsMobile}).
  *
  * @pure
  */
-export function computeIsTablet(width: number, coarsePointer: boolean): boolean {
-	if (coarsePointer) {
+export function computeIsTablet(width: number, height: number, isTouch: boolean): boolean {
+	if (computeIsMobile(width, height, isTouch)) {
 		return false;
 	}
 	return width >= MOBILE_BREAKPOINT && width < TABLET_BREAKPOINT;
@@ -100,55 +117,50 @@ export class IsMobileService {
 	constructor() {
 		const destroyRef = inject(DestroyRef);
 
-		// Guard: matchMedia may not be available in SSR / test environments.
-		if (typeof matchMedia !== 'function') {
+		// Guard: matchMedia / window may not be available in SSR / test envs.
+		if (typeof matchMedia !== 'function' || typeof window === 'undefined') {
 			return;
 		}
 
-		// ── Coarse-pointer media query ───────────────────────────────────────────
+		// ── Coarse-pointer media query (drives the touch flag) ───────────────────
 		const coarseMql = matchMedia('(pointer: coarse)');
 		this.isCoarsePointer.set(coarseMql.matches);
-		this._update(coarseMql.matches, this.isNarrowViewport());
 
 		const onCoarseChange = (evt: MediaQueryListEvent) => {
 			this.isCoarsePointer.set(evt.matches);
-			this._update(evt.matches, this.isNarrowViewport());
+			this._recompute();
 		};
 		coarseMql.addEventListener('change', onCoarseChange);
 
-		// ── Narrow-viewport media query ──────────────────────────────────────────
-		const narrowMql = matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
-		this.isNarrowViewport.set(narrowMql.matches);
-		this._update(this.isCoarsePointer(), narrowMql.matches);
+		// ── Viewport size tracking ───────────────────────────────────────────────
+		// Width-only media queries cannot express the "short landscape phone"
+		// rule (which depends on height + touch), so track the live viewport size
+		// on resize and recompute the derived flags from width/height/touch.
+		const onResize = () => this._recompute();
+		window.addEventListener('resize', onResize);
+		if (typeof screen !== 'undefined' && screen.orientation) {
+			screen.orientation.addEventListener('change', onResize);
+		}
 
-		const onNarrowChange = (evt: MediaQueryListEvent) => {
-			this.isNarrowViewport.set(evt.matches);
-			this._update(this.isCoarsePointer(), evt.matches);
-		};
-		narrowMql.addEventListener('change', onNarrowChange);
-
-		// ── Tablet media query ───────────────────────────────────────────────────
-		const tabletMql = matchMedia(
-			`(min-width: ${MOBILE_BREAKPOINT}px) and (max-width: ${TABLET_BREAKPOINT - 1}px)`,
-		);
-
-		const updateTablet = () => {
-			this.isTablet.set(computeIsTablet(window.innerWidth, this.isCoarsePointer()));
-		};
-		updateTablet();
-		tabletMql.addEventListener('change', updateTablet);
+		this._recompute();
 
 		// ── Cleanup on destroy ───────────────────────────────────────────────────
 		destroyRef.onDestroy(() => {
 			coarseMql.removeEventListener('change', onCoarseChange);
-			narrowMql.removeEventListener('change', onNarrowChange);
-			tabletMql.removeEventListener('change', updateTablet);
+			window.removeEventListener('resize', onResize);
+			if (typeof screen !== 'undefined' && screen.orientation) {
+				screen.orientation.removeEventListener('change', onResize);
+			}
 		});
 	}
 
-	/** Recompute derived `isMobile` signal from the two raw conditions. */
-	private _update(coarse: boolean, narrow: boolean): void {
-		// Either condition alone makes it mobile: narrow viewport OR coarse pointer.
-		this.isMobile.set(narrow || coarse);
+	/** Recompute all derived flags from the live viewport size + pointer kind. */
+	private _recompute(): void {
+		const width = window.innerWidth;
+		const height = window.innerHeight;
+		const touch = this.isCoarsePointer();
+		this.isNarrowViewport.set(width < MOBILE_BREAKPOINT);
+		this.isMobile.set(computeIsMobile(width, height, touch));
+		this.isTablet.set(computeIsTablet(width, height, touch));
 	}
 }

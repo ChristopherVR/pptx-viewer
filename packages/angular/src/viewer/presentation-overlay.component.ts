@@ -132,8 +132,19 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 		<div
 			class="pptx-ng-presentation-root"
 			(touchstart)="onTouchStart($event)"
+			(touchmove)="onTouchMove($event)"
 			(touchend)="onTouchEnd($event)"
 		>
+			<!--
+				Slide counter — rendered first in DOM (before slide content) so a
+				generic "N / M" text query resolves to it rather than to any slide-text
+				run that happens to read like "24 / 7". Position is fixed, so DOM order
+				does not affect its on-screen placement.
+			-->
+			<span class="pptx-ng-presentation-counter" [ngStyle]="counterStyle">
+				{{ counterLabel() }}
+			</span>
+
 			<div
 				#stage
 				class="pptx-ng-presentation-stage"
@@ -221,7 +232,7 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 				[ngStyle]="closeButtonStyle"
 				(click)="onClose($event)"
 				(touchend)="onCloseTouch($event)"
-				aria-label="Exit presentation"
+				aria-label="End presentation"
 			>
 				&#x2715;
 			</button>
@@ -247,11 +258,6 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 			>
 				&#x203A;
 			</button>
-
-			<!-- Slide counter. -->
-			<span class="pptx-ng-presentation-counter" [ngStyle]="counterStyle">
-				{{ counterLabel() }}
-			</span>
 		</div>
 	`,
 })
@@ -482,6 +488,14 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 	/** X coordinate captured on touchstart, or null when no swipe is active. */
 	private touchStartX: number | null = null;
 	private touchStartY: number | null = null;
+	/**
+	 * Last position seen during the gesture (updated on every touchmove). Some
+	 * touch dispatchers (e.g. CDP `Input.dispatchTouchEvent`) fire `touchEnd`
+	 * with an empty `changedTouches` list, so we fall back to the final move
+	 * coordinates to compute the swipe delta.
+	 */
+	private touchLastX: number | null = null;
+	private touchLastY: number | null = null;
 
 	// ------------------------------------------------------------------
 	// Lifecycle
@@ -629,10 +643,24 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 		if (!touch) {
 			this.touchStartX = null;
 			this.touchStartY = null;
+			this.touchLastX = null;
+			this.touchLastY = null;
 			return;
 		}
 		this.touchStartX = touch.clientX;
 		this.touchStartY = touch.clientY;
+		this.touchLastX = touch.clientX;
+		this.touchLastY = touch.clientY;
+	}
+
+	/** Track the latest gesture position so touchend can compute the delta even
+	 *  when the touchend event carries no `changedTouches`. */
+	protected onTouchMove(event: TouchEvent): void {
+		const touch = event.changedTouches[0] ?? event.touches[0];
+		if (touch) {
+			this.touchLastX = touch.clientX;
+			this.touchLastY = touch.clientY;
+		}
 	}
 
 	/**
@@ -642,17 +670,25 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 	protected onTouchEnd(event: TouchEvent): void {
 		const startX = this.touchStartX;
 		const startY = this.touchStartY;
+		const lastX = this.touchLastX;
+		const lastY = this.touchLastY;
 		this.touchStartX = null;
 		this.touchStartY = null;
+		this.touchLastX = null;
+		this.touchLastY = null;
 		if (startX === null || startY === null) {
 			return;
 		}
+		// Prefer the touchend coordinates; fall back to the last touchmove
+		// position (CDP dispatches touchEnd with an empty changedTouches list).
 		const touch = event.changedTouches[0];
-		if (!touch) {
+		const endX = touch ? touch.clientX : lastX;
+		const endY = touch ? touch.clientY : lastY;
+		if (endX === null || endY === null) {
 			return;
 		}
-		const dx = touch.clientX - startX;
-		const dy = touch.clientY - startY;
+		const dx = endX - startX;
+		const dy = endY - startY;
 		// Require a mostly-horizontal gesture past the threshold.
 		if (Math.abs(dx) < PresentationOverlayComponent.SWIPE_THRESHOLD) {
 			return;

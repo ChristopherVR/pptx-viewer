@@ -22,18 +22,32 @@ import 'pptx-angular-viewer/styles';
 				background: #0b1020;
 				color: #e5e7eb;
 				font-family: system-ui, sans-serif;
+				/* Never let the demo chrome scroll the page horizontally — the mobile
+				   e2e specs assert the document does not overflow its width. */
+				overflow-x: hidden;
 			}
 			.bar {
 				display: flex;
+				flex-wrap: wrap;
 				align-items: center;
-				gap: 1rem;
+				gap: 0.5rem 1rem;
 				padding: 0.75rem 1rem;
 				border-bottom: 1px solid #1f2937;
+				max-width: 100%;
+				box-sizing: border-box;
 			}
 			.bar h1 {
 				font-size: 1rem;
 				font-weight: 600;
 				margin: 0;
+			}
+			.bar input,
+			.bar span {
+				min-width: 0;
+				max-width: 100%;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
 			}
 			.viewer-host {
 				flex: 1;

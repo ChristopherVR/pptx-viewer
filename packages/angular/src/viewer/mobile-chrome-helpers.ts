@@ -54,28 +54,22 @@ export interface ActionDescriptor {
  * Build the ordered list of visible bottom-bar action descriptors given the
  * current presentation state.
  *
- * The list is always the same six slots; only `disabled` changes. This makes
- * it easy to iterate in tests without spinning up Angular.
+ * The list is always the same five slots (Slides · Insert · Format · Comments
+ * · Notes), mirroring React's mobile bottom bar; only `disabled` changes. This
+ * makes it easy to iterate in tests without spinning up Angular.
  *
  * @pure
  */
-export function buildBarActions(opts: {
-	activeIndex: number;
-	slideCount: number;
-	canPresent: boolean;
-	slidesOpen: boolean;
-	menuOpen: boolean;
-}): ActionDescriptor[] {
-	const { activeIndex, slideCount, canPresent } = opts;
+export function buildBarActions(opts: { slideCount: number }): ActionDescriptor[] {
+	const { slideCount } = opts;
 	const noSlides = slideCount === 0;
 
 	return [
-		{ key: 'prev', label: 'Prev', disabled: activeIndex <= 0 },
 		{ key: 'slides', label: 'Slides', disabled: noSlides },
-		{ key: 'find', label: 'Find', disabled: noSlides },
-		{ key: 'present', label: 'Present', disabled: !canPresent || noSlides },
-		{ key: 'menu', label: 'More', disabled: false },
-		{ key: 'next', label: 'Next', disabled: activeIndex >= slideCount - 1 },
+		{ key: 'insert', label: 'Insert', disabled: noSlides },
+		{ key: 'inspector', label: 'Format', disabled: noSlides },
+		{ key: 'comments', label: 'Comments', disabled: noSlides },
+		{ key: 'notes', label: 'Notes', disabled: noSlides },
 	];
 }
 

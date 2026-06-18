@@ -36,6 +36,7 @@ export { MobileBottomBarComponent } from './mobile-bottom-bar.component';
 export { MobileMenuSheetComponent } from './mobile-menu-sheet.component';
 export { MobileSlidesSheetComponent } from './mobile-slides-sheet.component';
 export { MobileSheetComponent } from './mobile-sheet.component';
+export { MobileToolbarComponent } from './mobile-toolbar.component';
 export { NotesPanelComponent } from './notes-panel.component';
 export {
 	applyFormatToElement,

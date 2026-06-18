@@ -41,6 +41,7 @@ import { createCustomShow } from './custom-shows-helpers';
 import type { CustomShow } from './custom-shows-helpers';
 import { CustomShowsComponent } from './custom-shows.component';
 import { EditorContextMenuComponent } from './editor-context-menu.component';
+import { newTextElement } from './editor-insert';
 import { EditorStateService } from './editor-state.service';
 import { EditorToolbarComponent } from './editor-toolbar.component';
 import { EmbeddedFontsService } from './embedded-fonts.service';
@@ -59,8 +60,10 @@ import { InspectorPanelComponent } from './inspector-panel.component';
 import { IsMobileService } from './is-mobile';
 import { LoadContentService } from './load-content.service';
 import { MobileBottomBarComponent } from './mobile-bottom-bar.component';
+import type { MobileBarSheet } from './mobile-bottom-bar.component';
 import { MobileMenuSheetComponent } from './mobile-menu-sheet.component';
 import { MobileSlidesSheetComponent } from './mobile-slides-sheet.component';
+import { MobileToolbarComponent } from './mobile-toolbar.component';
 import { NotesPanelComponent } from './notes-panel.component';
 import { PresentationOverlayComponent } from './presentation-overlay.component';
 import { PresenterViewComponent } from './presenter-view.component';
@@ -75,6 +78,8 @@ import { SignaturesPanelComponent } from './signatures-panel.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
 import { SlidesPanelComponent } from './slides-panel.component';
+import { setCellText } from './table-data-helpers';
+import type { TableCellCommit } from './table-renderer.component';
 import { ThemeGalleryComponent } from './theme-gallery.component';
 import type { CollaborationConfig } from './types';
 
@@ -138,6 +143,7 @@ const ZOOM_MAX = 3;
 		MobileBottomBarComponent,
 		MobileMenuSheetComponent,
 		MobileSlidesSheetComponent,
+		MobileToolbarComponent,
 		NotesPanelComponent,
 		RibbonComponent,
 		ThemeGalleryComponent,
@@ -212,15 +218,29 @@ const ZOOM_MAX = 3;
 					/>
 				}
 
+				@if (mobile.isMobile()) {
+					<pptx-mobile-toolbar
+						[canEdit]="canEdit()"
+						[canUndo]="editor.canUndo()"
+						[canRedo]="editor.canRedo()"
+						[canPresent]="slideCount() > 0"
+						[menuOpen]="mobileSheet() === 'menu'"
+						(toggleMenu)="mobileSheet.set(mobileSheet() === 'menu' ? null : 'menu')"
+						(undo)="editor.undo()"
+						(redo)="editor.redo()"
+						(present)="present()"
+					/>
+				}
+
 				<div class="pptx-ng-body">
-					@if (canEdit()) {
+					@if (canEdit() && !mobile.isMobile()) {
 						<pptx-slides-panel
 							[canvasSize]="loader.canvasSize()"
 							[mediaDataUrls]="loader.mediaDataUrls()"
 							[activeIndex]="activeSlideIndex()"
 							(select)="goTo($event)"
 						/>
-					} @else {
+					} @else if (!canEdit()) {
 						<nav class="pptx-ng-thumbnails" aria-label="Slides">
 							@for (slide of displaySlides(); track slide.id; let i = $index) {
 								<button
@@ -271,6 +291,7 @@ const ZOOM_MAX = 3;
 							(textCancel)="editingId.set(null)"
 							(inkStrokeComplete)="onInkStrokeComplete($event)"
 							(eraserHit)="onEraserHit($event)"
+							(cellCommit)="onTableCellCommit($event)"
 						/>
 						@if (collab.connected()) {
 							<pptx-collaboration-cursors [cursors]="collab.cursors()" [zoom]="zoom()" />
@@ -533,6 +554,7 @@ const ZOOM_MAX = 3;
 					(openFind)="showFind.set(true)"
 					(openSorter)="showSorter.set(true)"
 					(toggleNotes)="toggleNotes()"
+					(insertText)="onMobileInsert()"
 					(present)="present()"
 					(exportPng)="exportPng()"
 					(exportPdf)="exportPdf()"
@@ -556,20 +578,14 @@ const ZOOM_MAX = 3;
 				}
 
 				<pptx-mobile-bottom-bar
-					[activeIndex]="activeSlideIndex()"
 					[slideCount]="slideCount()"
-					[canPresent]="slideCount() > 0"
-					[notesOpen]="showNotes()"
-					[slidesOpen]="mobileSheet() === 'slides'"
-					[menuOpen]="mobileSheet() === 'menu'"
-					(prev)="goPrev()"
-					(next)="goNext()"
-					(present)="present()"
-					(notes)="toggleNotes()"
-					(openSorter)="showSorter.set(true)"
-					(openFind)="showFind.set(true)"
+					[commentCount]="activeComments().length"
+					[activeSheet]="mobileBarSheet()"
 					(openSlides)="mobileSheet.set(mobileSheet() === 'slides' ? null : 'slides')"
-					(toggleMenu)="mobileSheet.set(mobileSheet() === 'menu' ? null : 'menu')"
+					(insert)="onMobileInsert()"
+					(openFormat)="onMobileFormat()"
+					(openComments)="togglePanel('comments')"
+					(notes)="toggleNotes()"
 				/>
 			}
 		</div>
@@ -659,6 +675,28 @@ export class PowerPointViewerComponent {
 	protected readonly activePanel = signal<
 		'comments' | 'accessibility' | 'signatures' | 'selection' | null
 	>(null);
+
+	/**
+	 * Which mobile bottom-bar slot is currently "active" (highlighted). The
+	 * comments panel maps to the Comments slot; an open notes strip maps to
+	 * Notes; the open slides sheet maps to Slides; otherwise, when an element is
+	 * selected the inspector (Format) is showing inline so it maps to inspector.
+	 */
+	protected readonly mobileBarSheet = computed<MobileBarSheet>(() => {
+		if (this.mobileSheet() === 'slides') {
+			return 'slides';
+		}
+		if (this.activePanel() === 'comments') {
+			return 'comments';
+		}
+		if (this.showNotes()) {
+			return 'notes';
+		}
+		if (this.selectedElement()) {
+			return 'inspector';
+		}
+		return null;
+	});
 	/** Document-properties (Info) dialog visibility. */
 	protected readonly showProperties = signal(false);
 	/** Hyperlink-edit dialog visibility. */
@@ -1066,6 +1104,32 @@ export class PowerPointViewerComponent {
 		this.showNotes.update((v) => !v);
 	}
 
+	/**
+	 * Mobile quick-insert: drop a text box on the active slide. Mirrors React's
+	 * mobile bottom-bar "Insert" slot (a text box is the most common starter
+	 * element on a phone; the full Insert section lives in the top-bar menu).
+	 */
+	protected onMobileInsert(): void {
+		if (!this.canEdit() || this.slideCount() === 0) {
+			return;
+		}
+		// Close any open mobile sheet so the new element is visible on the canvas.
+		this.mobileSheet.set(null);
+		this.editor.addElement(this.activeSlideIndex(), newTextElement());
+	}
+
+	/**
+	 * Mobile "Format" slot: surface the inspector for the current selection. The
+	 * inspector renders inline (below the canvas) whenever an element is selected
+	 * and no other right-docked panel is open, so closing any open panel reveals
+	 * it. With nothing selected this is a no-op (the slide-properties panel shows
+	 * instead).
+	 */
+	protected onMobileFormat(): void {
+		this.activePanel.set(null);
+		this.mobileSheet.set(null);
+	}
+
 	/** Toggle a right-docked tool panel (clicking the active one closes it). */
 	togglePanel(panel: 'comments' | 'accessibility' | 'signatures' | 'selection'): void {
 		this.activePanel.update((current) => (current === panel ? null : panel));
@@ -1336,6 +1400,30 @@ export class PowerPointViewerComponent {
 			textSegments: [],
 		});
 		this.editingId.set(null);
+	}
+
+	/**
+	 * Commit a table cell's inline text edit. Finds the table element on the
+	 * active slide, rebuilds its `tableData` with the new cell text, and patches
+	 * it through the editor (which records undo history).
+	 */
+	protected onTableCellCommit(event: { id: string; commit: TableCellCommit }): void {
+		if (!this.canEdit()) {
+			return;
+		}
+		const el = this.activeSlide()?.elements.find((e) => e.id === event.id);
+		if (!el || el.type !== 'table') {
+			return;
+		}
+		const updated = setCellText(
+			el,
+			event.commit.rowIndex,
+			event.commit.colIndex,
+			event.commit.text,
+		);
+		this.editor.updateElement(this.activeSlideIndex(), event.id, {
+			tableData: updated.tableData,
+		});
 	}
 
 	/**

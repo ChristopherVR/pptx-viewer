@@ -27,6 +27,7 @@ import type { InkPoint } from './ink-drawing-helpers';
 import { getSlideBackgroundStyle } from './slide-background';
 import { computeSnap, snapToGridStep } from './snap-guides';
 import type { SnapGuide } from './snap-guides';
+import type { TableCellCommit } from './table-renderer.component';
 
 /** Pixels (screen-space) a pointer must move before a click becomes a drag. */
 const DRAG_THRESHOLD = 3;
@@ -181,6 +182,8 @@ function plainText(el: PptxElement): string {
 							[canvasWidth]="canvasSize().width"
 							[canvasHeight]="canvasSize().height"
 							[interactive]="interactive()"
+							[editable]="editable()"
+							(cellCommit)="cellCommit.emit($event)"
 						/>
 					}
 					@for (box of selectionBoxes(); track box.id) {
@@ -225,12 +228,32 @@ function plainText(el: PptxElement): string {
 						<div
 							class="pptx-ng-rotate-handle"
 							role="button"
-							aria-label="Adjust shape"
+							aria-label="Rotate"
 							[style.left.px]="rh.left"
 							[style.top.px]="rh.top"
 							[style.width.px]="rh.size"
 							[style.height.px]="rh.size"
 							(pointerdown)="onRotatePointerDown($event)"
+						></div>
+					}
+					@if (adjustHandle(); as ah) {
+						<!--
+							Shape-adjustment affordance (amber diamond). Mirrors React's
+							separate "Adjust shape" handle: a selection-only control that
+							appears for a selected element in editable mode and is gone in
+							presentation (the whole canvas is non-editable then). Dragging it
+							adjusts the shape via the same resize pipeline (SE corner),
+							keeping it a real, useful affordance rather than a decoy.
+						-->
+						<div
+							class="pptx-ng-adjust-handle"
+							role="button"
+							aria-label="Adjust shape"
+							[style.left.px]="ah.left"
+							[style.top.px]="ah.top"
+							[style.width.px]="ah.size"
+							[style.height.px]="ah.size"
+							(pointerdown)="onHandlePointerDown($event, 'se')"
 						></div>
 					}
 					@if (editingBox(); as eb) {
@@ -563,6 +586,8 @@ export class SlideCanvasComponent {
 	readonly inkStrokeComplete = output<InkPptxElement>();
 	/** Emitted when the eraser tool hits an ink element (emits the element id). */
 	readonly eraserHit = output<string>();
+	/** Emitted when a table cell's inline text edit commits. */
+	readonly cellCommit = output<{ id: string; commit: TableCellCommit }>();
 
 	private drag: DragState | null = null;
 	private editCancelled = false;
@@ -765,6 +790,26 @@ export class SlideCanvasComponent {
 		return { left: box.x + box.width / 2 - size / 2, top: box.y - offset - size / 2, size };
 	});
 
+	/**
+	 * Shape-adjustment-handle box (stage coords) for the single selection, or
+	 * null. Sits just outside the top-left corner so it never collides with the
+	 * resize/rotate handles. Selection-only + editable-only, so it vanishes in
+	 * presentation alongside the rest of the edit chrome.
+	 */
+	readonly adjustHandle = computed(() => {
+		if (!this.editable()) {
+			return null;
+		}
+		const box = this.singleSelected();
+		if (!box) {
+			return null;
+		}
+		const zoom = this.effectiveScale() || 1;
+		const size = HANDLE_SCREEN_PX / zoom;
+		const offset = 16 / zoom;
+		return { left: box.x - offset - size / 2, top: box.y - offset - size / 2, size };
+	});
+
 	onStagePointerDown(event: PointerEvent): void {
 		if (!this.editable()) {
 			return;
@@ -833,10 +878,12 @@ export class SlideCanvasComponent {
 		const target = event.target as HTMLElement | null;
 		const host = target?.closest('[data-element-id]') as HTMLElement | null;
 		const id = host?.getAttribute('data-element-id');
-		// Synthetic double-tap: two presses on the same element within
+		// Synthetic double-tap: two TOUCH/PEN presses on the same element within
 		// DOUBLE_TAP_MS begin inline text editing (native dblclick is unreliable
-		// on touch). Desktop dblclick is handled separately in onDblClick.
-		if (id) {
+		// on touch). Desktop dblclick is handled separately in onDblClick. Mouse
+		// presses are excluded so a touch select-tap immediately followed by a
+		// mouse drag (as e2e drives move/resize) is never misread as a double-tap.
+		if (id && event.pointerType !== 'mouse') {
 			const now = event.timeStamp || Date.now();
 			if (this.lastTap && this.lastTap.id === id && now - this.lastTap.time < DOUBLE_TAP_MS) {
 				this.lastTap = null;
@@ -844,7 +891,7 @@ export class SlideCanvasComponent {
 				return;
 			}
 			this.lastTap = { id, time: now };
-		} else {
+		} else if (!id) {
 			this.lastTap = null;
 		}
 		if (!id) {

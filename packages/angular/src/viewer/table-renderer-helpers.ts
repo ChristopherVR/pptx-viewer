@@ -372,6 +372,10 @@ export function buildCellParagraphs(cell: PptxTableCell): CellParagraph[] {
  */
 export interface TableCellViewModel {
 	cell: PptxTableCell;
+	/** Original row index of this cell in `tableData.rows` (for inline edit). */
+	rowIndex: number;
+	/** Original column index of this cell in its row (for inline edit). */
+	colIndex: number;
 	/** Resolved colspan from `gridSpan` (>= 2) or undefined. */
 	colSpan: number | undefined;
 	/** Resolved rowspan from `rowSpan` (>= 2) or undefined. */
@@ -424,15 +428,20 @@ export function buildTableViewModel(el: PptxElement): TableRowViewModel[] {
 		return [];
 	}
 
-	return tableData.rows.map((row) => {
+	return tableData.rows.map((row, rowIndex) => {
 		const cells: TableCellViewModel[] = row.cells
-			.filter((cell) => !cell.hMerge && !cell.vMerge)
-			.map((cell) => {
+			// Keep the original column index alongside each cell before filtering
+			// out merge participants, so inline edits target the right cell.
+			.map((cell, colIndex) => ({ cell, colIndex }))
+			.filter(({ cell }) => !cell.hMerge && !cell.vMerge)
+			.map(({ cell, colIndex }) => {
 				const colSpan =
 					cell.gridSpan !== undefined && cell.gridSpan > 1 ? cell.gridSpan : undefined;
 				const rowSpan = cell.rowSpan !== undefined && cell.rowSpan > 1 ? cell.rowSpan : undefined;
 				return {
 					cell,
+					rowIndex,
+					colIndex,
 					colSpan,
 					rowSpan,
 					tdStyle: cellTdStyle(cell),

@@ -293,6 +293,18 @@
 	z-index: 10001;
 }
 
+.pptx-ng-adjust-handle {
+	position: absolute;
+	box-sizing: border-box;
+	background: #fcd34d;
+	border: 1px solid #b45309;
+	transform: rotate(45deg);
+	cursor: crosshair;
+	pointer-events: auto;
+	touch-action: none;
+	z-index: 10001;
+}
+
 .pptx-ng-inspector-host {
 	flex: 0 0 240px;
 	width: 240px;
@@ -414,6 +426,19 @@
 	overflow: hidden;
 	word-break: break-word;
 	vertical-align: middle;
+}
+
+/* Inline table-cell editor (double-tap to edit). */
+.pptx-ng-table-wrapper > .pptx-ng-table td .pptx-ng-cell-input {
+	width: 100%;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	outline: none;
 }
 
 /* ── Charts ─────────────────────────────────────────────────────────── */

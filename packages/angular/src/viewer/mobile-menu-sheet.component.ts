@@ -237,6 +237,9 @@ export class MobileMenuSheetComponent {
 	/** Toggle the speaker-notes panel. */
 	readonly toggleNotes = output<void>();
 
+	/** Insert a text box on the active slide. */
+	readonly insertText = output<void>();
+
 	/** Start the fullscreen presentation mode. */
 	readonly present = output<void>();
 
@@ -261,8 +264,21 @@ export class MobileMenuSheetComponent {
 		const count = this.slideCount();
 		const exp = this.exporting();
 		const noSlides = count === 0;
+		const editable = this.canEdit();
 
 		return [
+			// ── Insert (editor only) ────────────────────────────────────────────
+			...(editable
+				? [
+						{
+							key: 'insert-text',
+							label: 'Insert text box',
+							svgPath: 'M12 5v14 M5 12h14',
+							disabled: noSlides,
+							emit: () => this.insertText.emit(),
+						},
+					]
+				: []),
 			// ── Navigation ──────────────────────────────────────────────────────
 			{
 				key: 'find',

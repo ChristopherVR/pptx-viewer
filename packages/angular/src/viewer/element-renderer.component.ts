@@ -1,5 +1,5 @@
 import { NgStyle } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
@@ -21,6 +21,7 @@ import { Model3DRendererComponent } from './model3d-renderer.component';
 import { OleRendererComponent } from './ole-renderer.component';
 import { SmartArtRendererComponent } from './smart-art-renderer.component';
 import { TableRendererComponent } from './table-renderer.component';
+import type { TableCellCommit } from './table-renderer.component';
 import { bulletIndentPx, resolveParagraphBullet } from './text-bullets';
 import { getTextWarp } from './text-warp';
 import type { TextWarpPathDef } from './text-warp';
@@ -157,7 +158,11 @@ interface Paragraph {
 					[attr.data-element-id]="element().id"
 					[attr.data-pptx-element]="interactive() ? 'true' : null"
 				>
-					<pptx-table-renderer [element]="element()" />
+					<pptx-table-renderer
+						[element]="element()"
+						[editable]="interactive() && editable()"
+						(cellCommit)="cellCommit.emit({ id: element().id, commit: $event })"
+					/>
 				</div>
 			}
 			@case (element().type === 'group') {
@@ -351,6 +356,12 @@ export class ElementRendererComponent {
 	 * separate lightweight renderer).
 	 */
 	readonly interactive = input<boolean>(true);
+
+	/** Whether inline editing (e.g. table-cell text input) is enabled. */
+	readonly editable = input<boolean>(false);
+
+	/** Emitted when a table cell's text edit is committed. */
+	readonly cellCommit = output<{ id: string; commit: TableCellCommit }>();
 
 	/** Duotone SVG `<filter>` descriptor for this element, if any. */
 	readonly duotoneFilter = computed(() => getDuotoneFilterDef(this.element()));

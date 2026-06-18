@@ -18,11 +18,12 @@ import type { Page } from '@playwright/test';
 
 test.use({ ...devices['Pixel 7'] });
 
-// React-specific mobile chrome (Slides/Insert/Format/Comments/Notes bar, menu
-// sheet). Other frameworks have different mobile shells, so scope to react.
+// React + Angular emit the same mobile chrome contract (Toolbar role, Editor
+// actions nav, Slides/Insert/Format/Comments/Notes bar, menu sheet). Vue has a
+// different mobile shell, so scope the skip to vue only.
 // oxlint-disable-next-line no-empty-pattern -- Playwright requires the first beforeEach arg to be a destructuring pattern
 test.beforeEach(({}, testInfo) => {
-	test.skip(testInfo.project.name !== 'react', 'React mobile chrome only');
+	test.skip(testInfo.project.name === 'vue', 'Vue mobile chrome differs');
 });
 
 const deck = resolve(fileURLToPath(new URL('../.github/assets/sample-deck.pptx', import.meta.url)));
