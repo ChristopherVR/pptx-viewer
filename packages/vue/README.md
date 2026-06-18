@@ -17,7 +17,7 @@ Parsing is powered by the framework-agnostic `pptx-viewer-core` engine
 (OpenXML → a structured slide model); this package is the Vue rendering layer on
 top of it, with the engine **bundled in**.
 
-<samp>**[▶️ Live demo](https://christophervr.github.io/pptx-viewer/demo/)** · **[📦 npm](https://www.npmjs.com/package/pptx-vue-viewer)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/)**</samp>
+<samp>**[▶️ Live demo](https://christophervr.github.io/pptx-viewer/demo-vue/)** · **[📦 npm](https://www.npmjs.com/package/pptx-vue-viewer)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/)**</samp>
 
 ## Features
 

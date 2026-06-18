@@ -17,7 +17,7 @@ Parsing is powered by the framework-agnostic `pptx-viewer-core` engine
 (OpenXML → a structured slide model); this package is the Angular rendering
 layer on top of it.
 
-<samp>**[▶️ Live demo](https://christophervr.github.io/pptx-viewer/demo/)** · **[📦 npm](https://www.npmjs.com/package/pptx-angular-viewer)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/)**</samp>
+<samp>**[▶️ Live demo](https://christophervr.github.io/pptx-viewer/demo-angular/)** · **[📦 npm](https://www.npmjs.com/package/pptx-angular-viewer)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/)**</samp>
 
 ## Features
 
