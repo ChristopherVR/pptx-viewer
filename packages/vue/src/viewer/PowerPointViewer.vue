@@ -180,11 +180,18 @@ const activeSlideIndex = ref(0);
 const slideCount = computed(() => slides.value.length);
 const activeSlide = computed(() => slides.value[activeSlideIndex.value]);
 
-watch(slides, () => {
-	activeSlideIndex.value = 0;
-	selectedElementIds.value = [];
-	history.clearHistory();
-});
+// Reset view state only when a NEW document is loaded — keyed off the `content`
+// input, not `slides`. Editing reassigns `slides.value` (so watching it here
+// would wrongly clear the selection + undo history on every edit); the input
+// changes only on a real load.
+watch(
+	() => props.content,
+	() => {
+		activeSlideIndex.value = 0;
+		selectedElementIds.value = [];
+		history.clearHistory();
+	},
+);
 watch(activeSlideIndex, (index) => {
 	emit('active-slide-change', index);
 	selectedElementIds.value = [];
@@ -584,6 +591,72 @@ function addShape(preset: ShapePreset): void {
 	centreNewElement(el, 240, 160);
 	ops.addElement(el);
 	selectedElementIds.value = [el.id];
+}
+
+/** Insert a default 3×3 table, centred on the slide (mirrors React's handleAddTable). */
+function addTable(): void {
+	const rows = 3;
+	const cols = 3;
+	const el = {
+		id: createEditorId('table'),
+		type: 'table',
+		x: 0,
+		y: 0,
+		width: 600,
+		height: 250,
+		tableData: {
+			rows: Array.from({ length: rows }, () => ({
+				cells: Array.from({ length: cols }, () => ({ text: '', style: {} })),
+			})),
+			columnWidths: Array.from({ length: cols }, () => 1 / cols),
+		},
+	} as unknown as PptxElement;
+	centreNewElement(el, 600, 250);
+	ops.addElement(el);
+	selectedElementIds.value = [el.id];
+}
+
+// ── Image picker (Insert tab) ──
+const imageInputRef = ref<HTMLInputElement | null>(null);
+function openImagePicker(): void {
+	imageInputRef.value?.click();
+}
+function onImageFileSelected(e: Event): void {
+	const input = e.target as HTMLInputElement;
+	const file = input.files?.[0];
+	input.value = '';
+	if (!file) {
+		return;
+	}
+	const reader = new FileReader();
+	reader.onload = () => {
+		const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+		if (!dataUrl) {
+			return;
+		}
+		// Size the picture to ~60% of the slide width, preserving aspect ratio.
+		const probe = new Image();
+		probe.onload = () => {
+			const maxW = Math.round(canvasSize.value.width * 0.6);
+			const ratio = probe.width / Math.max(1, probe.height);
+			const width = Math.min(maxW, probe.width || maxW);
+			const height = Math.max(1, Math.round(width / (ratio || 1)));
+			const el = {
+				id: createEditorId('image'),
+				type: 'image',
+				x: 0,
+				y: 0,
+				width,
+				height,
+				imageData: dataUrl,
+			} as unknown as PptxElement;
+			centreNewElement(el, width, height);
+			ops.addElement(el);
+			selectedElementIds.value = [el.id];
+		};
+		probe.src = dataUrl;
+	};
+	reader.readAsDataURL(file);
 }
 function deleteSelected(): void {
 	for (const id of [...selectedElementIds.value]) {
@@ -1487,7 +1560,7 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	},
 	onAddTextBox: addText,
 	onAddShape: () => addShape(toShapePreset(newShapeType.value)),
-	onAddTable: noop,
+	onAddTable: addTable,
 	onAddSmartArt: () => {
 		showInsertSmartArt.value = true;
 	},
@@ -1496,7 +1569,7 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	},
 	onAddActionButton: noop,
 	onInsertField: undefined,
-	onOpenImagePicker: noop,
+	onOpenImagePicker: openImagePicker,
 	onOpenMediaPicker: noop,
 	onSetActiveTool: (t) => {
 		activeTool.value = t;
@@ -1645,6 +1718,16 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 		<template v-else>
 			<!-- Office-style ribbon (desktop) — full React-parity chrome -->
 			<RibbonToolbar v-if="!isMobile" v-bind="ribbonProps" />
+
+			<!-- Hidden picker for Insert ▸ Image -->
+			<input
+				ref="imageInputRef"
+				type="file"
+				accept="image/*"
+				aria-hidden="true"
+				style="display: none"
+				@change="onImageFileSelected"
+			/>
 
 			<!-- Find & replace bar -->
 			<FindReplaceBar
