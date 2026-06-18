@@ -4,6 +4,25 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.4.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.1) - 2026-06-18
+
+### Features
+
+- **angular:** Add Table, SmartArt, and Equation insertion to ribbon Insert tab (by @ChristopherVR) ([3f310a8](https://github.com/ChristopherVR/pptx-viewer/commit/3f310a8bd74861599d94cde5861ff81846753835))
+- **angular:** Add grid, rulers, and guides overlays to View tab ribbon (by @ChristopherVR) ([7b556ba](https://github.com/ChristopherVR/pptx-viewer/commit/7b556ba6fea179c24fe224c6403d45217711490b))
+- **vue:** Design ▸ Themes gallery (apply built-in theme presets) (by @ChristopherVR) ([b16271a](https://github.com/ChristopherVR/pptx-viewer/commit/b16271a1e1b7a34f4a832f661f58e5bd8cc0eff6))
+- **angular:** Design tab theme gallery (apply built-in theme presets) (by @ChristopherVR) ([dc01108](https://github.com/ChristopherVR/pptx-viewer/commit/dc01108886959c49c9dfbbf9eb530cdb8a7914fa))
+
+### Documentation
+
+- **vue:** Log layout + theme galleries; ribbon data-stubs complete (by @ChristopherVR) ([3e1c556](https://github.com/ChristopherVR/pptx-viewer/commit/3e1c55683eeffb3c237d5c8f8bef3ab5a0ab9052))
+
+## [1.1.25](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.25) - 2026-06-18
+
+### Documentation
+
+- **changelog:** Update for v1.1.25 [skip ci] (by @github-actions[bot]) ([fd233b8](https://github.com/ChristopherVR/pptx-viewer/commit/fd233b8ec2a571623a51215588006b4970ee0f0e))
+
 ## [1.1.24](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.24) - 2026-06-18
 
 ### Features
