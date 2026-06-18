@@ -80,6 +80,24 @@ Binary EMF/WMF → GDI record replay onto Canvas 2D → PNG data URL. Supports 3
 - **EMU units**: PowerPoint uses English Metric Units internally. Conversion constants in `core/constants.ts` (`EMU_PER_INCH = 914400`, `EMU_PER_POINT = 12700`, `EMU_PER_PIXEL = 9525`).
 - **Service interfaces**: Services define `I*` interfaces for DI/testability.
 - **File naming**: kebab-case for utilities, PascalCase for classes. Tests colocated with source (`.test.ts` suffix).
+- **File size — keep every source file ≤ 300 LOC.** No `.vue` / `.ts` / `.tsx`
+  source file should exceed ~300 lines (tests excluded). When a file approaches
+  the limit, **split it out** rather than letting it grow: extract pure logic into
+  a focused module, lift sub-views into their own components, and group related
+  helpers into their own files. A component SFC that declares its own `interface`s
+  or non-trivial computation is a smell — that logic belongs in a composable or a
+  shared module, leaving the SFC as thin presentation. Prefer many small,
+  single-purpose files over one large one.
+- **Share framework-agnostic logic — default to `pptx-viewer-shared`.** The vast
+  majority of each binding's code (React/Vue/Angular) is _not_ framework-specific:
+  geometry, style/colour/gradient resolution, text/paragraph/bullet building,
+  chart/axis maths, connector routing, animation, OMML/LaTeX, export data, etc.
+  All of that belongs in **`pptx-viewer-shared`** (`packages/shared/src/render/…`),
+  consumed by every binding. Only the actual view layer (SFC templates / JSX /
+  Angular templates + the thin reactive wiring) should live in a binding. When
+  porting or adding a feature, put the logic in shared **first**, then have each
+  binding import it — do not reimplement it per framework. Treat a pure helper
+  sitting inside `packages/{vue,react,angular}` as an extraction candidate.
 
 ## Branching & Git Workflow
 
