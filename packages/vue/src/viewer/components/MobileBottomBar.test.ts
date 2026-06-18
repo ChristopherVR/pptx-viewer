@@ -62,6 +62,22 @@ describe('mobileBottomBar', () => {
 		expect(wrapper.emitted('save')).toHaveLength(1);
 	});
 
+	it('hides the Format / Comments triggers unless canEdit', () => {
+		const wrapper = mountBar();
+		expect(wrapper.find('button[aria-label="Format"]').exists()).toBeFalsy();
+		expect(wrapper.find('button[aria-label="Comments"]').exists()).toBeFalsy();
+	});
+
+	it('emits format / comments when editable', async () => {
+		const wrapper = mount(MobileBottomBar, {
+			props: { slideIndex: 0, slideCount: 1, zoomPercent: 100, canEdit: true },
+		});
+		await wrapper.get('button[aria-label="Format"]').trigger('click');
+		await wrapper.get('button[aria-label="Comments"]').trigger('click');
+		expect(wrapper.emitted('format')).toHaveLength(1);
+		expect(wrapper.emitted('comments')).toHaveLength(1);
+	});
+
 	it('disables prev at the first slide and next at the last', () => {
 		const first = mountBar({ slideIndex: 0, slideCount: 3 });
 		expect(first.get('button[aria-label="Previous slide"]').attributes('disabled')).toBeDefined();

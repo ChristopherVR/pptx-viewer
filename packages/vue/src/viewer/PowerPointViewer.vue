@@ -68,6 +68,7 @@ import SlideInspector from './components/inspector/SlideInspector.vue';
 import ThemeEditorPanel from './components/inspector/ThemeEditorPanel.vue';
 import MasterViewSidebar from './components/MasterViewSidebar.vue';
 import MobileBottomBar from './components/MobileBottomBar.vue';
+import MobileSheet from './components/MobileSheet.vue';
 import ModalDialog from './components/ModalDialog.vue';
 import NotesPanel from './components/NotesPanel.vue';
 import PresentationMode from './components/PresentationMode.vue';
@@ -1443,6 +1444,16 @@ function onBroadcastStop(): void {
 // ── Responsive / mobile chrome ────────────────────────────────────────
 const { isMobile } = useIsMobile();
 const mobileNotesOpen = ref(false);
+/** Mobile-only bottom sheets for panels that are right-rail sidebars on desktop. */
+const mobileInspectorOpen = ref(false);
+const mobileCommentsOpen = ref(false);
+
+/** Open one mobile sheet at a time so they don't stack over each other. */
+function openMobileSheet(which: 'format' | 'comments' | 'notes'): void {
+	mobileInspectorOpen.value = which === 'format';
+	mobileCommentsOpen.value = which === 'comments';
+	mobileNotesOpen.value = which === 'notes';
+}
 function present(): void {
 	presenting.value = true;
 }
@@ -2330,16 +2341,17 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					/>
 				</main>
 
-				<!-- Property inspector (single selection, edit mode) -->
+				<!-- Property inspector (single selection, edit mode). On mobile this
+				     becomes a swipe-dismissable bottom sheet (see MobileSheet below). -->
 				<InspectorPane
-					v-if="props.canEdit && inspectorElementForPanels && inspectorOpen"
+					v-if="props.canEdit && !isMobile && inspectorElementForPanels && inspectorOpen"
 					:element="inspectorElementForPanels"
 					@update="onInspectorUpdate"
 				/>
 
 				<!-- Slide-level inspector (no element selected) — slide transition, etc. -->
 				<SlideInspector
-					v-else-if="props.canEdit && inspectorOpen && slideCount > 0"
+					v-else-if="props.canEdit && !isMobile && inspectorOpen && slideCount > 0"
 					:slide="activeSlide"
 					@transition-update="applySlideTransition"
 				/>
@@ -2351,9 +2363,9 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					@select-slide="goTo"
 				/>
 
-				<!-- Comments -->
+				<!-- Comments (desktop right rail; mobile uses the bottom sheet below) -->
 				<CommentsPanel
-					v-if="props.canEdit && showComments"
+					v-if="props.canEdit && !isMobile && showComments"
 					:comments="commentsApi.slideComments.value"
 					:author-name="authorNameRef"
 					@add="(t) => commitComments(commentsApi.addComment(t))"
@@ -2538,13 +2550,16 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				:slide-index="activeSlideIndex"
 				:slide-count="slideCount"
 				:zoom-percent="zoomPercent"
+				:can-edit="props.canEdit"
 				@prev="goPrev"
 				@next="goNext"
 				@zoom-in="zoomIn"
 				@zoom-out="zoomOut"
 				@present="present"
+				@format="mobileInspectorOpen ? (mobileInspectorOpen = false) : openMobileSheet('format')"
+				@comments="mobileCommentsOpen ? (mobileCommentsOpen = false) : openMobileSheet('comments')"
 				@save="downloadAs('pptx')"
-				@notes="mobileNotesOpen = !mobileNotesOpen"
+				@notes="mobileNotesOpen ? (mobileNotesOpen = false) : openMobileSheet('notes')"
 				@menu="showSorter = true"
 			/>
 
@@ -2567,6 +2582,44 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 			>
 				<NotesPanel :slide="activeSlide" @update="onNotesUpdate" />
 			</div>
+
+			<!-- Mobile Format / properties sheet (right-rail inspector on desktop) -->
+			<MobileSheet
+				v-if="isMobile && props.canEdit"
+				:open="mobileInspectorOpen"
+				title="Format"
+				@close="mobileInspectorOpen = false"
+			>
+				<InspectorPane
+					v-if="inspectorElementForPanels"
+					mobile
+					:element="inspectorElementForPanels"
+					@update="onInspectorUpdate"
+				/>
+				<SlideInspector
+					v-else-if="slideCount > 0"
+					mobile
+					:slide="activeSlide"
+					@transition-update="applySlideTransition"
+				/>
+				<p v-else class="px-4 py-6 text-center text-xs text-muted-foreground">No slide selected.</p>
+			</MobileSheet>
+
+			<!-- Mobile Comments sheet (right-rail panel on desktop) -->
+			<MobileSheet
+				v-if="isMobile && props.canEdit"
+				:open="mobileCommentsOpen"
+				title="Comments"
+				@close="mobileCommentsOpen = false"
+			>
+				<CommentsPanel
+					:comments="commentsApi.slideComments.value"
+					:author-name="authorNameRef"
+					@add="(t) => commitComments(commentsApi.addComment(t))"
+					@remove="(id) => commitComments(commentsApi.removeComment(id))"
+					@resolve="(id) => commitComments(commentsApi.resolveComment(id))"
+				/>
+			</MobileSheet>
 
 			<!-- Off-screen stage used to rasterise slides for export -->
 			<div

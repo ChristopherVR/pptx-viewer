@@ -16,7 +16,7 @@ import { computed } from 'vue';
 
 import SlideTransitionPanel from '../SlideTransitionPanel.vue';
 
-const props = defineProps<{ slide: PptxSlide | undefined }>();
+const props = defineProps<{ slide: PptxSlide | undefined; mobile?: boolean }>();
 
 const emit = defineEmits<{
 	'transition-update': [transition: PptxSlideTransition | undefined];
@@ -40,7 +40,8 @@ function onAdvanceChange(e: Event): void {
 
 <template>
 	<aside
-		class="pptx-vue-inspector w-60 flex-[0_0_15rem] overflow-y-auto border-l border-border bg-card box-border px-3 pt-2 pb-8 text-xs text-foreground"
+		class="pptx-vue-inspector overflow-y-auto bg-card box-border px-3 pb-8 text-xs text-foreground"
+		:class="mobile ? 'w-full pt-1' : 'w-60 flex-[0_0_15rem] border-l border-border pt-2'"
 		aria-label="Slide properties"
 	>
 		<div class="pptx-vue-inspector-section py-2 border-b border-border">

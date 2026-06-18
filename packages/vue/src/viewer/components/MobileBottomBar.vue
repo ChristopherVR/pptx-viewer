@@ -27,6 +27,8 @@ const props = defineProps<{
 	slideCount: number;
 	/** Current zoom level, already expressed as a whole percentage. */
 	zoomPercent: number;
+	/** When true, surface the editor-only Format / Comments sheet triggers. */
+	canEdit?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -35,6 +37,8 @@ const emit = defineEmits<{
 	'zoom-in': [];
 	'zoom-out': [];
 	present: [];
+	format: [];
+	comments: [];
 	save: [];
 	notes: [];
 	menu: [];
@@ -130,6 +134,30 @@ const MOBILE_LABEL =
 			@click="emit('present')"
 		>
 			<span aria-hidden="true">▶</span>
+		</button>
+
+		<button
+			v-if="props.canEdit"
+			type="button"
+			class="pptx-vue-mobile-btn"
+			:class="MOBILE_BTN"
+			aria-label="Format"
+			title="Format / properties"
+			@click="emit('format')"
+		>
+			<span aria-hidden="true">⚙</span>
+		</button>
+
+		<button
+			v-if="props.canEdit"
+			type="button"
+			class="pptx-vue-mobile-btn"
+			:class="MOBILE_BTN"
+			aria-label="Comments"
+			title="Comments"
+			@click="emit('comments')"
+		>
+			<span aria-hidden="true">💬</span>
 		</button>
 
 		<button

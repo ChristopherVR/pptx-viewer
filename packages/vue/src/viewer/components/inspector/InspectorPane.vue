@@ -24,7 +24,7 @@ import TextPanel from './TextPanel.vue';
  * where `patch` is a shallow `Partial<PptxElement>` (nested style objects are
  * emitted pre-merged by the panel).
  */
-const props = defineProps<{ element: PptxElement }>();
+const props = defineProps<{ element: PptxElement; mobile?: boolean }>();
 const emit = defineEmits<{ update: [patch: Partial<PptxElement>] }>();
 
 const isShape = computed(() => hasShapeProperties(props.element));
@@ -40,7 +40,8 @@ function relay(patch: Partial<PptxElement>): void {
 
 <template>
 	<aside
-		class="pptx-vue-inspector w-60 flex-[0_0_15rem] overflow-y-auto border-l border-border bg-card box-border px-3 pt-2 pb-8 text-xs text-foreground"
+		class="pptx-vue-inspector overflow-y-auto bg-card box-border px-3 pb-8 text-xs text-foreground"
+		:class="mobile ? 'w-full pt-1' : 'w-60 flex-[0_0_15rem] border-l border-border pt-2'"
 		aria-label="Properties"
 	>
 		<div class="pptx-vue-inspector-section py-2 border-b border-border">
