@@ -4,6 +4,22 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.4.7](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.7) - 2026-06-18
+
+### Bug Fixes
+
+- **core:** Sort OLE2 directory entries for PowerPoint compatibility (by @ChristopherVR) ([f6d5c3e](https://github.com/ChristopherVR/pptx-viewer/commit/f6d5c3e783af7d10f05bd34d931af47470dfe138))
+
+### Documentation
+
+- **vue:** Trim PORTING.md to a parity-gap view (1042→175 lines) (by @ChristopherVR) ([e04848c](https://github.com/ChristopherVR/pptx-viewer/commit/e04848c1016838e58f3159bcab9c6c353d6a3c38))
+
+## [1.4.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.6) - 2026-06-18
+
+### Documentation
+
+- **changelog:** Update for v1.4.6 [skip ci] (by @github-actions[bot]) ([20fb856](https://github.com/ChristopherVR/pptx-viewer/commit/20fb856b1414d872a4178ca8a37bbf8bb216224f))
+
 ## [1.4.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.5) - 2026-06-18
 
 ### Features
