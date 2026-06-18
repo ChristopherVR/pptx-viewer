@@ -381,13 +381,14 @@
 	word-break: break-word;
 }
 
-/* Mobile speaker-notes sheet — docked above the mobile bottom bar. */
+/* Mobile speaker-notes sheet — docked in normal flow directly above the mobile
+   bottom bar (NOT position:fixed). A fixed sheet anchored to the visual viewport
+   bottom lands below the document on mobile (the app is sized to the 100vh layout
+   viewport, which is shorter than the dynamic/visual viewport), pushing its
+   textarea into an unscrollable region that taps can't reach. Keeping it in flow
+   places it inside the app bounds — mirrors React's flow notes panel. */
 .pptx-ng-mobile-notes-sheet {
-	position: fixed;
-	left: 0;
-	right: 0;
-	bottom: 56px;
-	z-index: 29;
+	flex: 0 0 auto;
 	max-height: 50vh;
 	overflow: auto;
 	background: #ffffff;
