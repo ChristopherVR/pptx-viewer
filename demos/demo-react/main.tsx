@@ -172,6 +172,19 @@ const pickerRoot = document.getElementById('theme-picker-root')!;
 
 function ThemePicker({ current, onChange }: { current: string; onChange: (key: string) => void }) {
 	const [open, setOpen] = useState(false);
+	// The picker is a fixed sibling of the viewer, so any z-index floats it above
+	// the viewer's whole subtree (its bottom sheets / action bar live in their own
+	// stacking context). Rather than fight that, on small screens we anchor it to
+	// the top-right — clear of the mobile bottom bar and the bottom sheets — and
+	// keep the familiar bottom-right spot on desktop.
+	const [isSmallScreen, setIsSmallScreen] = useState(
+		() => typeof window !== 'undefined' && window.innerWidth < 768,
+	);
+	useEffect(() => {
+		const onResize = () => setIsSmallScreen(window.innerWidth < 768);
+		window.addEventListener('resize', onResize);
+		return () => window.removeEventListener('resize', onResize);
+	}, []);
 	const preset = themes[current];
 	const bg = preset.theme.colors?.card ?? '#111827';
 	const border = preset.theme.colors?.border ?? '#374151';
@@ -182,8 +195,9 @@ function ThemePicker({ current, onChange }: { current: string; onChange: (key: s
 		<div
 			style={{
 				position: 'fixed',
-				bottom: 48,
-				right: 12,
+				...(isSmallScreen
+					? { top: 'calc(env(safe-area-inset-top, 0px) + 60px)', right: 8 }
+					: { bottom: 48, right: 12 }),
 				zIndex: 99999,
 				fontFamily: 'system-ui, sans-serif',
 			}}
