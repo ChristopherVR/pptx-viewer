@@ -289,7 +289,7 @@ describe('parseEncryptionInfo', () => {
 		const view = new DataView(data.buffer);
 		view.setUint16(0, 1, true); // major = 1
 		view.setUint16(2, 1, true); // minor = 1
-		expect(() => parseEncryptionInfo(data)).toThrow(/Unsupported encryption version/);
+		expect(() => parseEncryptionInfo(data)).toThrow(/Unsupported encryption version/u);
 	});
 
 	it('parses standard encryption info (version 2.2)', () => {
@@ -530,7 +530,7 @@ describe('decryptPptx error handling', () => {
 		const ole2Buf = buildOle2(streams);
 
 		await expect(decryptPptx(ole2Buf, 'password')).rejects.toThrow(
-			/EncryptionInfo stream not found/,
+			/EncryptionInfo stream not found/u,
 		);
 	});
 
@@ -542,7 +542,7 @@ describe('decryptPptx error handling', () => {
 		const ole2Buf = buildOle2(streams);
 
 		await expect(decryptPptx(ole2Buf, 'password')).rejects.toThrow(
-			/EncryptedPackage stream not found/,
+			/EncryptedPackage stream not found/u,
 		);
 	});
 
@@ -583,6 +583,79 @@ describe('oLE2 container integration', () => {
 
 		expect(major).toBe(4);
 		expect(minor).toBe(4);
+	});
+
+	it('orders directory entries so a CFB tree walk finds both streams', async () => {
+		// PowerPoint locates EncryptionInfo / EncryptedPackage via a binary
+		// search over the compound-file directory tree, not a linear scan.
+		// Walk the tree the same way and confirm both streams are reachable —
+		// this is what fails when the directory is emitted unsorted.
+		const originalData = createMinimalZipBuffer();
+		const encrypted = await encryptPptx(originalData, 'tree-walk', { spinCount: TEST_SPIN_COUNT });
+
+		const view = new DataView(encrypted);
+		const sectorSize = 1 << view.getUint16(0x1e, true);
+		const firstDirSector = view.getUint32(0x30, true);
+		const dirBase = (firstDirSector + 1) * sectorSize;
+
+		// Read directory entries indexed by slot.
+		const entries: Array<{
+			name: string;
+			type: number;
+			left: number;
+			right: number;
+			child: number;
+		}> = [];
+		for (let off = dirBase; off + 128 <= encrypted.byteLength; off += 128) {
+			const nameLen = view.getUint16(off + 64, true);
+			const type = view.getUint8(off + 66);
+			if (type === 0) {
+				break; // first empty entry ends the used directory
+			}
+			let name = '';
+			for (let j = 0; j < Math.max(0, nameLen - 2) / 2; j++) {
+				name += String.fromCharCode(view.getUint16(off + j * 2, true));
+			}
+			entries.push({
+				name,
+				type,
+				left: view.getUint32(off + 68, true),
+				right: view.getUint32(off + 72, true),
+				child: view.getUint32(off + 76, true),
+			});
+		}
+
+		const cfbCompare = (a: string, b: string): number => {
+			if (a.length !== b.length) {
+				return a.length - b.length;
+			}
+			const ua = a.toUpperCase();
+			const ub = b.toUpperCase();
+			for (let i = 0; i < ua.length; i++) {
+				const diff = ua.charCodeAt(i) - ub.charCodeAt(i);
+				if (diff !== 0) {
+					return diff;
+				}
+			}
+			return 0;
+		};
+
+		const findViaTree = (target: string): boolean => {
+			const root = entries.find((e) => e.type === 5);
+			let id = root ? root.child : 0xffffffff;
+			while (id !== 0xffffffff && id < entries.length) {
+				const node = entries[id]!;
+				const cmp = cfbCompare(target, node.name);
+				if (cmp === 0) {
+					return true;
+				}
+				id = cmp < 0 ? node.left : node.right;
+			}
+			return false;
+		};
+
+		expect(findViaTree('EncryptionInfo')).toBeTruthy();
+		expect(findViaTree('EncryptedPackage')).toBeTruthy();
 	});
 
 	it('encryptedPackage stream starts with 8-byte size prefix', async () => {

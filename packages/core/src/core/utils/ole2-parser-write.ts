@@ -35,6 +35,41 @@ interface SectorChain {
 }
 
 /**
+ * Compare two directory-entry names using the [MS-CFB] §2.6.4 ordering.
+ *
+ * The compound-file directory is a red-black tree keyed by name, and
+ * conformant readers (including Microsoft Office / PowerPoint) locate a
+ * stream by performing a binary search over that tree rather than a linear
+ * scan. The ordering rule is:
+ *
+ *   1. Shorter names (by UTF-16 code-unit count) sort before longer ones.
+ *   2. For equal-length names, compare by uppercased UTF-16 code units.
+ *
+ * If sibling entries are not stored in this order the binary search walks
+ * the wrong branch and reports the stream as missing — which is why an
+ * incorrectly ordered container round-trips through a linear-scan reader yet
+ * fails to open in PowerPoint.
+ *
+ * @param a - First name.
+ * @param b - Second name.
+ * @returns Negative if `a < b`, positive if `a > b`, zero if equal.
+ */
+function compareDirEntryNames(a: string, b: string): number {
+	if (a.length !== b.length) {
+		return a.length - b.length;
+	}
+	const ua = a.toUpperCase();
+	const ub = b.toUpperCase();
+	for (let i = 0; i < ua.length; i++) {
+		const diff = ua.charCodeAt(i) - ub.charCodeAt(i);
+		if (diff !== 0) {
+			return diff;
+		}
+	}
+	return 0;
+}
+
+/**
  * Encode a name as UTF-16LE bytes (including null terminator).
  *
  * @param name - The string to encode.
@@ -353,6 +388,16 @@ export function buildOle2(streams: Map<string, Uint8Array>): ArrayBuffer {
 		});
 	}
 
+	// Sort the non-root entries into [MS-CFB] directory order. Each DirEntry is
+	// self-contained (it already carries its own start sector + size), so the
+	// stream/mini-FAT allocations above are unaffected by the reorder. Sorting
+	// here lets serializeDirectoryEntries emit an ascending right-sibling chain,
+	// which is a valid binary search tree that conformant readers (PowerPoint)
+	// can traverse to find every stream by name.
+	const [rootEntry, ...streamEntries] = dirEntries;
+	streamEntries.sort((a, b) => compareDirEntryNames(a.name, b.name));
+	const sortedDirEntries = [rootEntry!, ...streamEntries];
+
 	// Allocate directory sectors
 	const numDirSectors = Math.ceil((dirEntries.length * DIR_ENTRY_SIZE) / sectorSize);
 	const firstDirSector = nextSector;
@@ -442,7 +487,7 @@ export function buildOle2(streams: Map<string, Uint8Array>): ArrayBuffer {
 	}
 
 	// Write directory entries
-	const dirData = serializeDirectoryEntries(dirEntries, numDirSectors, sectorSize);
+	const dirData = serializeDirectoryEntries(sortedDirEntries, numDirSectors, sectorSize);
 	for (let i = 0; i < numDirSectors; i++) {
 		const sectorOff = (firstDirSector + i + 1) * sectorSize;
 		outBytes.set(dirData.subarray(i * sectorSize, (i + 1) * sectorSize), sectorOff);
