@@ -49,6 +49,8 @@ export class LoadContentService {
 	});
 	/** Resolved presentation theme. */
 	readonly theme = signal<PptxTheme | undefined>(undefined);
+	/** Resolved colour map for the presentation theme (scheme key → hex). */
+	readonly themeColorMap = signal<Record<string, string> | undefined>(undefined);
 	/** Slide masters (for placeholder/background resolution). */
 	readonly slideMasters = signal<PptxSlideMaster[]>([]);
 	/** Archive-path → displayable URL map for media + poster frames. */
@@ -254,6 +256,7 @@ export class LoadContentService {
 				height: parsed.height ?? DEFAULT_CANVAS_HEIGHT,
 			});
 			this.theme.set(parsed.theme);
+			this.themeColorMap.set(parsed.themeColorMap);
 			this.slideMasters.set(parsed.slideMasters ?? []);
 			this.embeddedFonts.set(parsed.embeddedFonts ?? []);
 			this.coreProperties.set(parsed.coreProperties);

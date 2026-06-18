@@ -713,19 +713,15 @@ const TEXT_COLORS = [
 						</label>
 					}
 					@case ('design') {
-						<!--
-							Theme gallery and theme editor are React-only features not yet
-							ported to Angular. The Browse/Edit Theme buttons open the info
-							dialog as a documented stub until those panels ship.
-						-->
-						<!-- Themes (stubs) -->
+						<!-- Themes -->
 						<button
 							type="button"
 							class="pptx-rb-pill"
-							title="Browse themes — theme gallery not yet ported"
-							(click)="info.emit()"
+							[ngClass]="themeGalleryOpen() ? 'bg-primary text-primary-foreground' : ''"
+							title="Browse and apply built-in themes"
+							(click)="toggleThemeGallery.emit()"
 						>
-							🎨 Browse Themes
+							Browse Themes
 						</button>
 						<button
 							type="button"
@@ -733,17 +729,17 @@ const TEXT_COLORS = [
 							title="Edit theme — theme editor not yet ported"
 							(click)="info.emit()"
 						>
-							✏ Edit Theme
+							Edit Theme
 						</button>
 						<span class="pptx-rb-sep"></span>
-						<!-- Slide Size / Format Background -->
+						<!-- Customize -->
 						<button
 							type="button"
 							class="pptx-rb-pill"
 							title="Slide size / document properties"
 							(click)="info.emit()"
 						>
-							⬛ Slide Size
+							Slide Size
 						</button>
 						<button
 							type="button"
@@ -751,7 +747,7 @@ const TEXT_COLORS = [
 							title="Format slide background — opens the Inspector"
 							(click)="toggleInspector.emit()"
 						>
-							🪣 Format Background
+							Format Background
 						</button>
 					}
 					@case ('transitions') {
@@ -1070,6 +1066,8 @@ export class RibbonComponent {
 	readonly showRulers = input<boolean>(false);
 	/** Current visibility state of center guide lines (for active-state styling). */
 	readonly showGuides = input<boolean>(false);
+	/** Current visibility state of the theme gallery overlay (for active-state styling). */
+	readonly themeGalleryOpen = input<boolean>(false);
 
 	readonly prev = output<void>();
 	readonly next = output<void>();
@@ -1106,6 +1104,11 @@ export class RibbonComponent {
 	 * Currently UI-only — no freehand-draw back-end exists in the Angular port.
 	 */
 	readonly drawToolChange = output<{ tool: DrawTool; color: string; width: number }>();
+	/**
+	 * Emitted when the user clicks "Browse Themes" in the Design tab.
+	 * The parent toggles the theme-gallery overlay.
+	 */
+	readonly toggleThemeGallery = output<void>();
 	/** Emitted when the user toggles the grid overlay in the View tab. */
 	readonly toggleGrid = output<void>();
 	/** Emitted when the user toggles rulers in the View tab. */

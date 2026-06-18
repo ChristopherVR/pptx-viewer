@@ -12,7 +12,15 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
-import type { PptxComment, PptxCoreProperties, PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { applyThemeToData } from 'pptx-viewer-core';
+import type {
+	PptxComment,
+	PptxCoreProperties,
+	PptxData,
+	PptxElement,
+	PptxSlide,
+	PptxThemePreset,
+} from 'pptx-viewer-core';
 
 import type { ViewerTheme } from '../internal/shared';
 import { themeStyle } from '../theme/viewer-theme';
@@ -61,6 +69,7 @@ import { SignaturesPanelComponent } from './signatures-panel.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
 import { SlidesPanelComponent } from './slides-panel.component';
+import { ThemeGalleryComponent } from './theme-gallery.component';
 import type { CollaborationConfig } from './types';
 
 const ZOOM_STEP = 0.1;
@@ -125,6 +134,7 @@ const ZOOM_MAX = 3;
 		MobileSlidesSheetComponent,
 		NotesPanelComponent,
 		RibbonComponent,
+		ThemeGalleryComponent,
 	],
 	template: `
 		<div class="pptx-ng-viewer" [ngClass]="class()" [ngStyle]="rootStyle()">
@@ -183,6 +193,8 @@ const ZOOM_MAX = 3;
 					(toggleGrid)="showGrid.update(v => !v)"
 					(toggleRulers)="showRulers.update(v => !v)"
 					(toggleGuides)="showGuides.update(v => !v)"
+					[themeGalleryOpen]="showThemeGallery()"
+					(toggleThemeGallery)="showThemeGallery.update(v => !v)"
 					/>
 				}
 
@@ -405,6 +417,13 @@ const ZOOM_MAX = 3;
 				/>
 			}
 
+			<pptx-theme-gallery
+				[open]="showThemeGallery()"
+				[activeName]="activeThemeName()"
+				(applyTheme)="applyThemePreset($event)"
+				(close)="showThemeGallery.set(false)"
+			/>
+
 			<pptx-properties-dialog
 				[open]="showProperties()"
 				[properties]="coreProperties()"
@@ -611,6 +630,12 @@ export class PowerPointViewerComponent {
 	protected readonly showRulers = signal(false);
 	/** Whether center-crosshair guide lines are visible on the editor canvas. */
 	protected readonly showGuides = signal(false);
+	/** Whether the theme-gallery overlay is visible (Design → Browse Themes). */
+	protected readonly showThemeGallery = signal(false);
+	/** The `name` property of the loaded deck's theme (for check-mark in gallery). */
+	protected readonly activeThemeName = computed<string | undefined>(
+		() => this.loader.theme()?.name,
+	);
 	/**
 	 * Stable, always-truthy key for the slide-properties form. Changes only when
 	 * the active slide changes, so the `@if` recreates (and reseeds) the
@@ -718,6 +743,37 @@ export class PowerPointViewerComponent {
 	}
 	goNext(): void {
 		this.goTo(this.activeSlideIndex() + 1);
+	}
+
+	// ── Theme gallery (Design tab) ─────────────────────────────────────────────
+
+	/**
+	 * Apply a built-in theme preset to the whole deck.
+	 *
+	 * Mirrors Vue's `applyThemePreset()`: re-resolves slide colours via core's
+	 * pure `applyThemeToData`, then writes the updated slides + theme metadata
+	 * into `EditorStateService` as a single undoable entry.  Also refreshes the
+	 * `loader.themeColorMap` so subsequent theme switches start from the correct
+	 * baseline.
+	 */
+	applyThemePreset(preset: PptxThemePreset): void {
+		const currentSlides = this.editor.slides();
+		const result = applyThemeToData(
+			{
+				slides: [...currentSlides],
+				theme: this.loader.theme() ?? {},
+				themeColorMap: this.loader.themeColorMap() ?? {},
+			} as unknown as PptxData,
+			preset.colorScheme,
+			preset.fontScheme,
+			preset.name,
+		);
+		// Write slides back through the editor (records undo history).
+		this.editor.applyReplacement(result.slides, `Apply theme "${preset.name}"`);
+		// Update the loader's theme signals so the check-mark and future switches are correct.
+		this.loader.theme.set(result.theme);
+		this.loader.themeColorMap.set(result.themeColorMap);
+		this.showThemeGallery.set(false);
 	}
 
 	// ── Find & replace (edit mode) ─────────────────────────────────────────────
