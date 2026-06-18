@@ -47,13 +47,13 @@
 		"prepare": "husky"
 	},
 	"devDependencies": {
-		"@playwright/test": "^1.60.0",
+		"@playwright/test": "^1.61.0",
 		"@types/three": "^0.184.1",
 		"husky": "^9.1.7",
 		"lib0": "^0.2.117",
 		"lint-staged": "^17.0.7",
-		"oxfmt": "^0.54.0",
-		"oxlint": "^1.69.0",
+		"oxfmt": "^0.55.0",
+		"oxlint": "^1.70.0",
 		"pptx-react-viewer": "workspace:*",
 		"pptx-viewer-core": "workspace:*",
 		"typescript": "^6.0.3",
