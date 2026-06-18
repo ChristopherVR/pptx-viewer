@@ -467,6 +467,20 @@ const ZOOM_MAX = 3;
 					(print)="print.openDialog()"
 				/>
 
+				<!-- Mobile speaker-notes sheet (toggled from the bottom bar). Rendered
+				     inside the isMobile() gate so it stays mounted when the on-screen
+				     keyboard shrinks the viewport (coarse pointer keeps isMobile true).
+				     Docked in normal flow *above* the bottom bar (not position:fixed) so it
+				     lives inside the app's layout-viewport bounds — a fixed sheet anchored to
+				     the visual viewport ends up below the document on mobile (100vh layout
+				     viewport < dynamic viewport), leaving its textarea unreachable to taps.
+				     Mirrors React, where the notes panel is a flow sibling below the canvas. -->
+				@if (showNotes()) {
+					<div class="pptx-ng-mobile-notes-sheet">
+						<pptx-notes-panel [slide]="activeSlide()" (update)="onNotesUpdate($event)" />
+					</div>
+				}
+
 				<pptx-mobile-bottom-bar
 					[activeIndex]="activeSlideIndex()"
 					[slideCount]="slideCount()"
@@ -483,16 +497,6 @@ const ZOOM_MAX = 3;
 					(openSlides)="mobileSheet.set(mobileSheet() === 'slides' ? null : 'slides')"
 					(toggleMenu)="mobileSheet.set(mobileSheet() === 'menu' ? null : 'menu')"
 				/>
-
-				<!-- Mobile speaker-notes sheet (toggled from the bottom bar). Rendered
-				     inside the isMobile() gate so it stays mounted when the on-screen
-				     keyboard shrinks the viewport (coarse pointer keeps isMobile true) —
-				     mirrors the Vue mobile notes sheet. -->
-				@if (showNotes()) {
-					<div class="pptx-ng-mobile-notes-sheet">
-						<pptx-notes-panel [slide]="activeSlide()" (update)="onNotesUpdate($event)" />
-					</div>
-				}
 			}
 		</div>
 	`,
