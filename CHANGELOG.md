@@ -4,7 +4,31 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.4.8](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.8) - 2026-06-18
+
+### Refactor
+
+- **vue:** Extract ElementRenderer text logic to shared; split SFC (by @ChristopherVR) ([d4740ac](https://github.com/ChristopherVR/pptx-viewer/commit/d4740ac970baec5ae12e2f7e38188bb40f40687f))
+
+### Documentation
+
+- Require ≤300 LOC per file + default logic to pptx-viewer-shared (by @ChristopherVR) ([b2e9c6e](https://github.com/ChristopherVR/pptx-viewer/commit/b2e9c6eaa64fa95df35abe19a04fccac165bd5cc))
+
+### Testing
+
+- **core:** Replace sensitive V8 fixture with synthetic sample (by @ChristopherVR) ([7f89a27](https://github.com/ChristopherVR/pptx-viewer/commit/7f89a279a5ddc3ed978e83a2ed81db2bae812f6e))
+
+### Dependencies
+
+- **deps:** Update dependencies to latest (by @ChristopherVR) ([595287f](https://github.com/ChristopherVR/pptx-viewer/commit/595287f801f84cf87b8805e98de805a720c76488))
+
 ## [1.4.7](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.7) - 2026-06-18
+
+### Features
+
+- **vue:** Render bulleted lists (glyphs, auto-numbers, indents) (by @ChristopherVR) ([54f5b05](https://github.com/ChristopherVR/pptx-viewer/commit/54f5b0509197a4a29e523a14228e3297bddcf757))
+- **shared:** Gradient tile-flip mode (a:gradFill/@flip) (by @ChristopherVR) ([8b64c7c](https://github.com/ChristopherVR/pptx-viewer/commit/8b64c7cf9440522317815a87b48543b986ff66c6))
+- **shared:** Text-warp envelope/simple CSS-transform presets (by @ChristopherVR) ([7d6e4dc](https://github.com/ChristopherVR/pptx-viewer/commit/7d6e4dcbc6f7b8bbe878871b35497e12797fbfda))
 
 ### Bug Fixes
 
@@ -13,6 +37,8 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### Documentation
 
 - **vue:** Trim PORTING.md to a parity-gap view (1042→175 lines) (by @ChristopherVR) ([e04848c](https://github.com/ChristopherVR/pptx-viewer/commit/e04848c1016838e58f3159bcab9c6c353d6a3c38))
+- **vue:** Mark bullets/gradient-flip/text-warp done; drop non-gap equations (by @ChristopherVR) ([d22cddb](https://github.com/ChristopherVR/pptx-viewer/commit/d22cddbf4fcfc614dd5eaf4cecef11a43a6b9567))
+- **changelog:** Update for v1.4.7 [skip ci] (by @github-actions[bot]) ([92b6e55](https://github.com/ChristopherVR/pptx-viewer/commit/92b6e5554306342b9a6d5f1eeb5b87a5d52ccdfc))
 
 ## [1.4.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.6) - 2026-06-18
 
