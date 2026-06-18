@@ -966,10 +966,21 @@ shape-adjustment,remap-text}.ts` + 56 ported tests; shared extraction deferred t
   slides/theme/colour-map back, history-aware. Verified live: applying "Ion" updates the active
   theme. +3 unit tests. **1243 vue tests green; typecheck + oxlint clean.**
 
-  > **Ribbon-action status: the data-driven stubs are done.** Wired: Insert (text/shape/table/
-  > image/media/smartArt/equation/action-button/**layout gallery**), View (Grid + Snap-to-Grid),
-  > Design (**theme gallery**), plus undo/selection fixed. **Genuinely-larger remaining work,
-  > each its own subsystem:** **drawing tools** (Draw tab — pointer ink capture → ink elements),
-  > **spell-check** (a spell engine + squiggles), **theme editor** (`onToggleThemeEditor` — a
-  > colour/font editor panel), and **Rulers / Snap-to-Shape / H+V Guides** (ruler + guide overlay
-  > components; touches the parallel session's `SlideCanvas` layout — coordinate first).
+- **2026-06-18** — **Theme editor + Draw-tab ink tools** (two more subsystems). **Theme editor**
+  (`inspector/ThemeEditorPanel.vue`): a right-side panel editing the 12 scheme colours (native
+  pickers), heading/body fonts, and theme name; "Apply to Presentation" re-themes via the shared
+  `applyTheme` helper (refactored out of the gallery), Reset re-seeds from the loaded theme.
+  Verified live. **Drawing tools** (`DrawingOverlay.vue`): an SVG over the slide (SlideStage
+  scaled space) captures pen/highlighter strokes (live preview) → host builds an `ink` element
+  (tight bbox + local-coord path; highlighter 3×width @0.4 opacity), eraser hit-tests ink boxes
+  to remove the top stroke; `pointer-events:none` under the Select tool so selection is
+  unaffected; renders via the existing `InkRenderer`. Verified live: Pen draws, Eraser removes.
+  +6 unit tests. **1249 vue tests green; typecheck + oxlint clean.**
+
+  > **Ribbon-action status.** Wired: Insert (text/shape/table/image/media/smartArt/equation/
+  > action-button/layout gallery), View (Grid + Snap-to-Grid), Design (theme gallery + **theme
+  > editor**), Draw (**pen/highlighter/eraser**), plus the undo/selection fix. **Remaining
+  > genuinely-larger work:** **spell-check** (a spell engine + squiggle rendering), and **Rulers /
+  > Snap-to-Shape / H+V Guides** (ruler + guide overlay components + the SlideCanvas layout offset
+  > — the Vue `SlideCanvas`/`SlideStage` are no longer being touched by the parallel Angular
+  > session, so this is now safe to start; it's the last cohesive canvas-chrome port).
