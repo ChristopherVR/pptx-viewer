@@ -7,6 +7,9 @@ import {
 	WARP_PATH_GENERATORS,
 	buildWarpPath,
 	classifyTextWarp,
+	getEnvelopeCssTransform,
+	getSimpleCssTransform,
+	getWarpCssTransform,
 	hasTextWarp,
 	shouldUseSvgWarp,
 } from './text-warp';
@@ -180,5 +183,106 @@ describe('buildWarpPath', () => {
 	it('handles zero dimensions gracefully', () => {
 		expect(buildWarpPath('textArchUp', 200, 0, 0, 1).length).toBeGreaterThan(0);
 		expect(buildWarpPath('textArchUp', 0, 100, 0, 1).length).toBeGreaterThan(0);
+	});
+});
+
+describe('getEnvelopeCssTransform', () => {
+	it('inflate uses scale at default intensity 1', () => {
+		const style = getEnvelopeCssTransform('textInflate');
+		expect(style).toBeDefined();
+		expect(style!.transform).toBe('scaleY(1.15) scaleX(1.05)');
+		expect(style!.transformOrigin).toBe('center center');
+	});
+
+	it('deflate scales below 1', () => {
+		const style = getEnvelopeCssTransform('textDeflate');
+		expect(style!.transform).toBe('scaleY(0.88) scaleX(0.95)');
+		expect(style!.transformOrigin).toBe('center center');
+	});
+
+	it('can-up uses perspective + negative rotateX', () => {
+		const style = getEnvelopeCssTransform('textCanUp');
+		expect(style!.transform).toContain('perspective(');
+		expect(style!.transform).toContain('rotateX(-6deg)');
+		expect(style!.transformOrigin).toBe('center center');
+	});
+
+	it('explicit default adj matches the implicit default', () => {
+		expect(getEnvelopeCssTransform('textInflate')).toStrictEqual(
+			getEnvelopeCssTransform('textInflate', 18750),
+		);
+	});
+
+	it('scales intensity with adj1', () => {
+		const small = getEnvelopeCssTransform('textInflate', 9375); // half default
+		const large = getEnvelopeCssTransform('textInflate', 37500); // double default
+		expect(small!.transform).not.toBe(large!.transform);
+		expect(small!.transform).toBe('scaleY(1.075) scaleX(1.025)');
+		expect(large!.transform).toBe('scaleY(1.3) scaleX(1.1)');
+	});
+
+	it('returns undefined for a non-envelope preset', () => {
+		expect(getEnvelopeCssTransform('textArchUp')).toBeUndefined();
+		expect(getEnvelopeCssTransform('textUnknown')).toBeUndefined();
+	});
+});
+
+describe('getSimpleCssTransform', () => {
+	it('slant up uses rotateY + skewY from the left', () => {
+		const style = getSimpleCssTransform('textSlantUp');
+		expect(style).toBeDefined();
+		expect(style!.transform).toBe('perspective(500px) rotateY(8deg) skewY(-4deg)');
+		expect(style!.transformOrigin).toBe('left center');
+	});
+
+	it('cascade down skews positively from top-left', () => {
+		const style = getSimpleCssTransform('textCascadeDown');
+		expect(style!.transform).toBe('skewY(8deg)');
+		expect(style!.transformOrigin).toBe('left top');
+	});
+
+	it('fade right rotates around Y from the left', () => {
+		const style = getSimpleCssTransform('textFadeRight');
+		expect(style!.transform).toBe('perspective(400px) rotateY(-10deg)');
+		expect(style!.transformOrigin).toBe('left center');
+	});
+
+	it('scales the angle with adj1', () => {
+		const small = getSimpleCssTransform('textSlantUp', 27500); // half default
+		const large = getSimpleCssTransform('textSlantUp', 110000); // double default
+		expect(small!.transform).toBe('perspective(500px) rotateY(4deg) skewY(-2deg)');
+		expect(large!.transform).toBe('perspective(500px) rotateY(16deg) skewY(-8deg)');
+	});
+
+	it('returns undefined for a non-simple preset', () => {
+		expect(getSimpleCssTransform('textInflate')).toBeUndefined();
+		expect(getSimpleCssTransform('textUnknown')).toBeUndefined();
+	});
+});
+
+describe('getWarpCssTransform', () => {
+	it('dispatches envelope presets to the envelope generator', () => {
+		expect(getWarpCssTransform('textInflate')).toStrictEqual(
+			getEnvelopeCssTransform('textInflate'),
+		);
+	});
+
+	it('dispatches simple presets to the simple generator', () => {
+		expect(getWarpCssTransform('textSlantUp')).toStrictEqual(getSimpleCssTransform('textSlantUp'));
+	});
+
+	it('passes adjustments through', () => {
+		expect(getWarpCssTransform('textInflate', 37500)).toStrictEqual(
+			getEnvelopeCssTransform('textInflate', 37500),
+		);
+		expect(getWarpCssTransform('textSlantUp', 110000)).toStrictEqual(
+			getSimpleCssTransform('textSlantUp', 110000),
+		);
+	});
+
+	it('returns undefined for path / none presets', () => {
+		expect(getWarpCssTransform('textArchUp')).toBeUndefined();
+		expect(getWarpCssTransform('textPlain')).toBeUndefined();
+		expect(getWarpCssTransform(undefined)).toBeUndefined();
 	});
 });

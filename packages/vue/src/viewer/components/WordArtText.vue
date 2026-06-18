@@ -1,22 +1,32 @@
 <script setup lang="ts">
 import type { PptxElement, PptxElementWithText, TextSegment, TextStyle } from 'pptx-viewer-core';
 import { getSubstituteFontFamily, hasTextProperties } from 'pptx-viewer-core';
-import { buildWarpPath, shouldUseSvgWarp } from 'pptx-viewer-shared';
+import {
+	buildWarpPath,
+	classifyTextWarp,
+	getWarpCssTransform,
+	shouldUseSvgWarp,
+} from 'pptx-viewer-shared';
+import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
 /**
  * WordArtText — Vue port of the React `WarpedText` SVG renderer.
  *
- * Renders warped (WordArt) text along SVG `<textPath>` baselines for the
- * `prstTxWarp` presets that {@link shouldUseSvgWarp} accepts (arch, arched
- * up/down, wave, circle, triangle, chevron, inflate/deflate, slant, fade,
- * pour, …). Each paragraph becomes one baseline `<path>` + `<text>` pair, and
- * per-run styling (colour, bold/italic, underline, hyperlink) is emitted as
- * `<tspan>` attributes.
+ * Renders warped (WordArt) text. The strategy depends on the preset's
+ * {@link classifyTextWarp} category, mirroring React:
+ *  - `path` (arch, wave, circle, triangle, chevron, curve, ring, …): each
+ *    paragraph becomes one SVG baseline `<path>` + `<text>` pair, with per-run
+ *    styling (colour, bold/italic, underline, hyperlink) emitted as `<tspan>`
+ *    attributes.
+ *  - `envelope` (inflate/deflate/can) and `simple` (slant/fade/cascade): SVG
+ *    `<textPath>` cannot bend individual glyphs, so the text is laid out flat
+ *    and a CSS `transform` (+ `transform-origin`) from {@link getWarpCssTransform}
+ *    approximates the warp — the same approach React uses.
  *
- * Presets that are not in the SVG allowlist (`textNoShape`, `textPlain`,
- * unknown values) cause the component to render nothing — callers fall back to
- * flat text. The SVG is absolutely positioned to fill the host box and is
+ * Presets that are not classified (`textNoShape`, `textPlain`, unknown values)
+ * cause the component to render nothing — callers fall back to flat text. The
+ * overlay is absolutely positioned to fill the host box and is
  * `pointer-events: none` so it overlays without intercepting interaction.
  */
 const props = defineProps<{
@@ -73,8 +83,28 @@ const textEl = computed<PptxElementWithText | null>(() =>
 
 const preset = computed(() => textEl.value?.textStyle?.textWarpPreset);
 
+/** Rendering-strategy category for the current preset. */
+const category = computed(() => classifyTextWarp(preset.value));
+
+/**
+ * `path` presets render along an SVG `<textPath>` baseline. `envelope`/`simple`
+ * presets are excluded here even though they also pass {@link shouldUseSvgWarp} —
+ * they use the CSS-transform branch instead, matching React.
+ */
+const usesTextPath = computed(
+	() => Boolean(textEl.value) && category.value === 'path' && shouldUseSvgWarp(preset.value),
+);
+
+/**
+ * `envelope`/`simple` presets render flat text with a CSS-transform
+ * approximation (perspective/rotate/skew/scale) instead of a textPath.
+ */
+const usesCssTransform = computed(
+	() => Boolean(textEl.value) && (category.value === 'envelope' || category.value === 'simple'),
+);
+
 /** Whether this component should render anything for the current element. */
-const active = computed(() => Boolean(textEl.value) && shouldUseSvgWarp(preset.value));
+const active = computed(() => usesTextPath.value || usesCssTransform.value);
 
 const width = computed(() => Math.max(props.element.width, 1));
 const height = computed(() => Math.max(props.element.height, 1));
@@ -158,11 +188,37 @@ function pathFor(i: number): string {
 		warpAdj2.value,
 	);
 }
+
+/**
+ * CSS-transform style for `envelope`/`simple` presets — the warp `transform`
+ * plus its `transform-origin`, applied to the flat-text overlay. `undefined`
+ * for `path`/`none` presets.
+ */
+const warpTransformStyle = computed<CSSProperties | undefined>(() => {
+	const warp = getWarpCssTransform(preset.value, warpAdj.value, warpAdj2.value);
+	if (!warp) {
+		return undefined;
+	}
+	return { transform: warp.transform, transformOrigin: warp.transformOrigin };
+});
+
+/** Inline style for a flat-text run (mirrors {@link tspanProps} as CSS). */
+function runStyle(segment: TextSegment): CSSProperties {
+	const p = tspanProps(segment);
+	return {
+		color: p.fill,
+		fontSize: `${p.fontSize}px`,
+		fontWeight: p.fontWeight,
+		fontStyle: p.fontStyle,
+		fontFamily: p.fontFamily,
+		textDecoration: p.textDecoration,
+	};
+}
 </script>
 
 <template>
 	<svg
-		v-if="active && paragraphs.length > 0"
+		v-if="usesTextPath && paragraphs.length > 0"
 		class="pptx-vue-wordart"
 		:width="width"
 		:height="height"
@@ -209,6 +265,24 @@ function pathFor(i: number): string {
 			</textPath>
 		</text>
 	</svg>
+
+	<div
+		v-else-if="usesCssTransform && paragraphs.length > 0"
+		class="pptx-vue-wordart pptx-vue-wordart-css"
+		:style="{ ...warpTransformStyle, zIndex }"
+		aria-hidden="true"
+	>
+		<div
+			v-for="(para, pi) in paragraphs"
+			:key="`css-line-${pi}`"
+			class="pptx-vue-wordart-line"
+			:style="{ textAlign: alignment.textAnchor === 'middle' ? 'center' : alignment.textAnchor }"
+		>
+			<span v-for="(seg, si) in para.segments" :key="`css-run-${pi}-${si}`" :style="runStyle(seg)">
+				{{ seg.text }}
+			</span>
+		</div>
+	</div>
 </template>
 
 <style scoped>
@@ -217,5 +291,18 @@ function pathFor(i: number): string {
 	inset: 0;
 	overflow: visible;
 	pointer-events: none;
+}
+
+.pptx-vue-wordart-css {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	white-space: pre-wrap;
+	will-change: transform;
+}
+
+.pptx-vue-wordart-line {
+	width: 100%;
 }
 </style>

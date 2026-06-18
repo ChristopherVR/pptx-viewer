@@ -685,3 +685,217 @@ export function buildWarpPath(
 	const y = height * (0.2 + t * 0.6);
 	return `M 0,${y} L ${width},${y}`;
 }
+
+// ── CSS-transform approximation (envelope / simple) ─────────────────────
+
+/**
+ * Framework-agnostic CSS-transform approximation for a warp preset.
+ *
+ * `path` presets render along an SVG `<textPath>`; `envelope`/`simple`
+ * presets cannot bend individual glyphs, so the visual effect is hinted with
+ * a `transform` (perspective / rotateX / rotateY / skew / scale) plus the
+ * `transform-origin` that anchors it. Port of the React `getEnvelopeCssTransform`
+ * + `getSimpleCssTransform` generators (`viewer/utils/text-warp-classifier.ts`)
+ * and the simpler `getTextWarpStyle` map (`viewer/utils/text-warp-css.tsx`).
+ */
+export interface WarpCssTransform {
+	/** The CSS `transform` value. */
+	transform: string;
+	/** The CSS `transform-origin` value. */
+	transformOrigin: string;
+}
+
+/**
+ * Default OOXML adjustment values for envelope presets (raw 1/60000th units).
+ * Default `adj1` of 18750 maps to an intensity factor of 1.
+ */
+const ENVELOPE_ADJ_DEFAULTS: Readonly<Record<string, number>> = {
+	textInflate: 18750,
+	textDeflate: 18750,
+	textInflateBottom: 18750,
+	textInflateTop: 18750,
+	textDeflateBottom: 18750,
+	textDeflateTop: 18750,
+	textDeflateInflate: 18750,
+	textDeflateInflateDeflate: 18750,
+	textCanUp: 18750,
+	textCanDown: 18750,
+};
+
+/**
+ * CSS-transform approximation for an `envelope` preset (inflate/deflate/can).
+ *
+ * Envelope warps distort text non-uniformly (e.g. inflate widens the middle
+ * lines, narrows the top/bottom). CSS cannot bend glyphs, so `scaleX`/`scaleY`,
+ * `perspective`, and `rotateX` give a reasonable hint scaled by the `adj1`
+ * intensity. Returns `undefined` for a non-envelope preset.
+ *
+ * @param preset One of the envelope warp preset names.
+ * @param adj1   Optional first adjustment value (raw OOXML units).
+ * @param adj2   Optional second adjustment value (raw OOXML units; reserved).
+ */
+export function getEnvelopeCssTransform(
+	preset: string,
+	adj1?: number,
+	adj2?: number,
+): WarpCssTransform | undefined {
+	const defaultAdj1 = ENVELOPE_ADJ_DEFAULTS[preset] ?? 18750;
+	const a1 = adj1 ?? defaultAdj1;
+	void adj2;
+
+	// Normalise adj1 to a 0..4 intensity factor (default adj 18750 -> factor 1).
+	const intensity = Math.max(0, Math.min(a1 / 18750, 4));
+
+	switch (preset) {
+		case 'textInflate':
+			return {
+				transform: `scaleY(${1 + 0.15 * intensity}) scaleX(${1 + 0.05 * intensity})`,
+				transformOrigin: 'center center',
+			};
+		case 'textInflateBottom':
+			return {
+				transform: `perspective(${600 - 100 * intensity}px) rotateX(${-8 * intensity}deg)`,
+				transformOrigin: 'center bottom',
+			};
+		case 'textInflateTop':
+			return {
+				transform: `perspective(${600 - 100 * intensity}px) rotateX(${8 * intensity}deg)`,
+				transformOrigin: 'center top',
+			};
+		case 'textDeflate':
+			return {
+				transform: `scaleY(${1 - 0.12 * intensity}) scaleX(${1 - 0.05 * intensity})`,
+				transformOrigin: 'center center',
+			};
+		case 'textDeflateBottom':
+			return {
+				transform: `perspective(${600 - 100 * intensity}px) rotateX(${6 * intensity}deg)`,
+				transformOrigin: 'center bottom',
+			};
+		case 'textDeflateTop':
+			return {
+				transform: `perspective(${600 - 100 * intensity}px) rotateX(${-6 * intensity}deg)`,
+				transformOrigin: 'center top',
+			};
+		case 'textDeflateInflate':
+			return {
+				transform: `scaleY(${1 - 0.08 * intensity}) scaleX(${1 + 0.04 * intensity})`,
+				transformOrigin: 'center center',
+			};
+		case 'textDeflateInflateDeflate':
+			return {
+				transform: `scaleY(${1 - 0.15 * intensity}) scaleX(${1 + 0.06 * intensity})`,
+				transformOrigin: 'center center',
+			};
+		case 'textCanUp':
+			return {
+				transform: `perspective(${500 - 80 * intensity}px) rotateX(${-6 * intensity}deg)`,
+				transformOrigin: 'center center',
+			};
+		case 'textCanDown':
+			return {
+				transform: `perspective(${500 - 80 * intensity}px) rotateX(${6 * intensity}deg)`,
+				transformOrigin: 'center center',
+			};
+		default:
+			return undefined;
+	}
+}
+
+/** Default OOXML adjustment values for simple presets (raw 1/60000th units). */
+const SIMPLE_ADJ_DEFAULTS: Readonly<Record<string, number>> = {
+	textSlantUp: 55000,
+	textSlantDown: 55000,
+	textFadeRight: 50000,
+	textFadeLeft: 50000,
+	textFadeUp: 50000,
+	textFadeDown: 50000,
+	textCascadeUp: 44444,
+	textCascadeDown: 44444,
+};
+
+/**
+ * CSS-transform approximation for a `simple` preset (slant/fade/cascade).
+ *
+ * These warps are well-modelled by basic 2D transforms (`skewY`, `perspective`,
+ * `rotateX`/`rotateY`) scaled by the `adj1` value. Returns `undefined` for a
+ * non-simple preset.
+ *
+ * @param preset One of the simple warp preset names.
+ * @param adj1   Optional adjustment value (raw OOXML units).
+ */
+export function getSimpleCssTransform(preset: string, adj1?: number): WarpCssTransform | undefined {
+	const a1 = adj1 ?? SIMPLE_ADJ_DEFAULTS[preset] ?? 50000;
+
+	switch (preset) {
+		case 'textSlantUp':
+			return {
+				transform: `perspective(500px) rotateY(${8 * (a1 / 55000)}deg) skewY(${-4 * (a1 / 55000)}deg)`,
+				transformOrigin: 'left center',
+			};
+		case 'textSlantDown':
+			return {
+				transform: `perspective(500px) rotateY(${-8 * (a1 / 55000)}deg) skewY(${4 * (a1 / 55000)}deg)`,
+				transformOrigin: 'right center',
+			};
+		case 'textFadeRight':
+			return {
+				transform: `perspective(400px) rotateY(${-10 * (a1 / 50000)}deg)`,
+				transformOrigin: 'left center',
+			};
+		case 'textFadeLeft':
+			return {
+				transform: `perspective(400px) rotateY(${10 * (a1 / 50000)}deg)`,
+				transformOrigin: 'right center',
+			};
+		case 'textFadeUp':
+			return {
+				transform: `perspective(400px) rotateX(${-10 * (a1 / 50000)}deg)`,
+				transformOrigin: 'center bottom',
+			};
+		case 'textFadeDown':
+			return {
+				transform: `perspective(400px) rotateX(${10 * (a1 / 50000)}deg)`,
+				transformOrigin: 'center top',
+			};
+		case 'textCascadeUp':
+			return {
+				transform: `skewY(${-8 * (a1 / 44444)}deg)`,
+				transformOrigin: 'left top',
+			};
+		case 'textCascadeDown':
+			return {
+				transform: `skewY(${8 * (a1 / 44444)}deg)`,
+				transformOrigin: 'left top',
+			};
+		default:
+			return undefined;
+	}
+}
+
+/**
+ * Dispatch a preset to its CSS-transform approximation based on its
+ * {@link classifyTextWarp} category.
+ *
+ * Returns the `envelope`/`simple` transform, or `undefined` for `path`/`none`
+ * presets (which render via `<textPath>` or flat text respectively). This is
+ * the CSS-transform counterpart to {@link buildWarpPath}.
+ *
+ * @param preset OOXML `prstTxWarp` preset name.
+ * @param adj    Optional primary adjustment (raw OOXML 1/60000th units).
+ * @param adj2   Optional secondary adjustment (raw OOXML 1/60000th units).
+ */
+export function getWarpCssTransform(
+	preset: PptxTextWarpPreset | string | undefined,
+	adj?: number,
+	adj2?: number,
+): WarpCssTransform | undefined {
+	const category = classifyTextWarp(preset);
+	if (category === 'envelope') {
+		return getEnvelopeCssTransform(preset as string, adj, adj2);
+	}
+	if (category === 'simple') {
+		return getSimpleCssTransform(preset as string, adj);
+	}
+	return undefined;
+}

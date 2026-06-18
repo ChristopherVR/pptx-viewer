@@ -114,4 +114,51 @@ describe('wordArtText', () => {
 		expect(tp.attributes('text-anchor')).toBe('middle');
 		expect(tp.attributes('startOffset')).toBe('50%');
 	});
+
+	it('applies a CSS transform (not a textPath) for an envelope preset', () => {
+		const wrapper = mount(WordArtText, {
+			props: {
+				element: warpedText({ textStyle: { textWarpPreset: 'textInflate', color: '#00ff00' } }),
+				zIndex: 4,
+			},
+		});
+		// Envelope presets render the flat-text overlay, never an SVG textPath.
+		expect(wrapper.find('svg').exists()).toBeFalsy();
+		expect(wrapper.find('textPath').exists()).toBeFalsy();
+		const box = wrapper.find('.pptx-vue-wordart-css');
+		expect(box.exists()).toBeTruthy();
+		const style = box.attributes('style') ?? '';
+		expect(style).toContain('scaleY(1.15)');
+		expect(style).toContain('transform-origin: center center');
+		// The text content + per-run colour still render.
+		expect(box.text()).toContain('Hello');
+		expect(box.find('span').attributes('style')).toContain('color: #00ff00');
+	});
+
+	it('applies a CSS transform for a simple preset', () => {
+		const wrapper = mount(WordArtText, {
+			props: {
+				element: warpedText({ textStyle: { textWarpPreset: 'textSlantUp' } }),
+				zIndex: 0,
+			},
+		});
+		expect(wrapper.find('textPath').exists()).toBeFalsy();
+		const box = wrapper.find('.pptx-vue-wordart-css');
+		expect(box.exists()).toBeTruthy();
+		const style = box.attributes('style') ?? '';
+		expect(style).toContain('skewY(-4deg)');
+		expect(style).toContain('rotateY(8deg)');
+		expect(style).toContain('transform-origin: left center');
+	});
+
+	it('keeps using a textPath (not a CSS box) for a path preset', () => {
+		const wrapper = mount(WordArtText, {
+			props: {
+				element: warpedText({ textStyle: { textWarpPreset: 'textArchUp' } }),
+				zIndex: 0,
+			},
+		});
+		expect(wrapper.find('textPath').exists()).toBeTruthy();
+		expect(wrapper.find('.pptx-vue-wordart-css').exists()).toBeFalsy();
+	});
 });
