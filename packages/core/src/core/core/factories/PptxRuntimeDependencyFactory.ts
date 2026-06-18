@@ -45,14 +45,14 @@ export interface PptxRuntimeDependencyBundle {
 }
 
 export interface IPptxRuntimeDependencyFactory {
-	createParser(): XMLParser;
-	createBuilder(): XMLBuilder;
-	createDocumentPropertiesUpdater(
+	createParser: () => XMLParser;
+	createBuilder: () => XMLBuilder;
+	createDocumentPropertiesUpdater: (
 		zip: JSZip,
 		parser: XMLParser,
 		builder: XMLBuilder,
-	): PptxDocumentPropertiesUpdater;
-	createDependencies(input: PptxRuntimeDependencyFactoryInput): PptxRuntimeDependencyBundle;
+	) => PptxDocumentPropertiesUpdater;
+	createDependencies: (input: PptxRuntimeDependencyFactoryInput) => PptxRuntimeDependencyBundle;
 }
 
 export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFactory {
@@ -84,7 +84,13 @@ export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFacto
 		return new XMLBuilder({
 			ignoreAttributes: false,
 			attributeNamePrefix: '@_',
-			format: true,
+			// Pretty-printing is intentionally disabled. PowerPoint ignores
+			// inter-element whitespace in OOXML parts, so indentation buys
+			// nothing on read-back but costs measurable serialize time (~2.3s of
+			// a ~5.3s save on a 112k-element / 100MB deck) and inflates the
+			// pre-compression part size. Emitting compact XML is both faster and
+			// smaller with no fidelity loss. See packages/core/scripts/perf-large.ts.
+			format: false,
 		});
 	}
 
