@@ -396,11 +396,11 @@ const ZOOM_MAX = 3;
 
 			@if (presenting()) {
 				<pptx-presentation-overlay
-					[slides]="loader.slides()"
+					[slides]="presentationSlides()"
 					[canvasSize]="loader.canvasSize()"
 					[mediaDataUrls]="loader.mediaDataUrls()"
-					[startIndex]="activeSlideIndex()"
-					(indexChange)="activeSlideIndex.set($event)"
+					[startIndex]="presentationStartIndex()"
+					(indexChange)="onPresentationIndexChange($event)"
 					(closed)="presenting.set(false)"
 				/>
 			}
@@ -700,6 +700,36 @@ export class PowerPointViewerComponent {
 	protected readonly customShows = signal<readonly CustomShow[]>([]);
 	/** The id of the currently active custom show, or null. */
 	protected readonly activeCustomShowId = signal<string | null>(null);
+
+	/**
+	 * The active custom show's slides, in its defined order, or null when no show
+	 * is active (or it resolves to nothing). Used to filter the presentation.
+	 */
+	private resolveActiveShowSlides(): PptxSlide[] | null {
+		const id = this.activeCustomShowId();
+		if (!id) {
+			return null;
+		}
+		const show = this.customShows().find((s) => s.id === id);
+		if (!show || show.slideIds.length === 0) {
+			return null;
+		}
+		const byId = new Map(this.loader.slides().map((s) => [s.id, s]));
+		const picked = show.slideIds
+			.map((sid) => byId.get(sid))
+			.filter((s): s is PptxSlide => s !== undefined);
+		return picked.length > 0 ? picked : null;
+	}
+
+	/** Slides shown in presentation mode: the active custom show, else the full deck. */
+	protected readonly presentationSlides = computed<PptxSlide[]>(
+		() => this.resolveActiveShowSlides() ?? [...this.loader.slides()],
+	);
+
+	/** Start index into {@link presentationSlides}: first slide of a custom show, else the active slide. */
+	protected readonly presentationStartIndex = computed<number>(() =>
+		this.resolveActiveShowSlides() ? 0 : this.activeSlideIndex(),
+	);
 	/** The `name` property of the loaded deck's theme (for check-mark in gallery). */
 	protected readonly activeThemeName = computed<string | undefined>(
 		() => this.loader.theme()?.name,
@@ -1001,6 +1031,21 @@ export class PowerPointViewerComponent {
 			this.editingId.set(null);
 			this.presenting.set(true);
 		}
+	}
+
+	/**
+	 * Map a presentation-overlay index back to the full-deck `activeSlideIndex`.
+	 * The overlay's index is relative to {@link presentationSlides} (a custom show
+	 * may filter/reorder the deck), so resolve by slide id to keep the editor
+	 * selection correct when the show closes.
+	 */
+	onPresentationIndexChange(index: number): void {
+		const target = this.presentationSlides()[index];
+		if (!target) {
+			return;
+		}
+		const fullIndex = this.loader.slides().findIndex((s) => s.id === target.id);
+		this.activeSlideIndex.set(fullIndex >= 0 ? fullIndex : index);
 	}
 
 	/** Open the presenter (speaker) view — current+next slide, notes, timer. */

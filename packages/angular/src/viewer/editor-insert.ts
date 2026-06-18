@@ -215,17 +215,17 @@ export function newEquationElement(
 	x: number = DEFAULT_X,
 	y: number = EQUATION_DEFAULT_Y,
 ): PptxElement {
-	// Minimal OMML object tree representing E = mc².
-	// The keys mirror what fast-xml-parser produces from real OOXML:
-	//   m:oMathPara → m:oMath → m:r (run) with m:t (text) children.
+	// OMML object tree representing E = mc². The keys mirror what fast-xml-parser
+	// produces from real OOXML (m:oMath → m:r runs + m:sSup superscript). The
+	// converter walks keys in insertion order, so the leading run ("E = m") is
+	// emitted before the superscript group (base "c", sup "2") → "E = mc²".
 	const omml: Record<string, unknown> = {
 		'm:oMath': {
-			'm:r': [
-				{ 'm:t': 'E' },
-				{ 'm:t': ' = ' },
-				{ 'm:t': 'mc' },
-				{ 'm:sSup': { 'm:e': { 'm:r': { 'm:t': '2' } }, 'm:sup': { 'm:r': { 'm:t': '2' } } } },
-			],
+			'm:r': { 'm:t': 'E = m' },
+			'm:sSup': {
+				'm:e': { 'm:r': { 'm:t': 'c' } },
+				'm:sup': { 'm:r': { 'm:t': '2' } },
+			},
 		},
 	};
 
