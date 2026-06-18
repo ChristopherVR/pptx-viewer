@@ -24,7 +24,7 @@ export default defineConfig({
 				'../../packages/core/src/converter/index.ts',
 			),
 			'pptx-viewer-core': path.resolve(__dirname, '../../packages/core/src/index.ts'),
-			'pptx-viewer': path.resolve(__dirname, '../../packages/react/src/index.ts'),
+			'pptx-react-viewer': path.resolve(__dirname, '../../packages/react/src/index.ts'),
 			'emf-converter': path.resolve(__dirname, '../../packages/emf-converter/src/index.ts'),
 		},
 	},

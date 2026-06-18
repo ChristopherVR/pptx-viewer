@@ -15,7 +15,7 @@
 		"jspdf": "^4.2.1",
 		"jszip": "^3.10.1",
 		"lucide-react": "^1.18.0",
-		"pptx-viewer": "workspace:*",
+		"pptx-react-viewer": "workspace:*",
 		"pptx-viewer-core": "workspace:*",
 		"react": "^19.2.7",
 		"react-dom": "^19.2.7",

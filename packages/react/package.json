@@ -1,5 +1,5 @@
 {
-	"name": "pptx-viewer",
+	"name": "pptx-react-viewer",
 	"version": "1.5.0",
 	"description": "React-based PowerPoint viewer, editor, and canvas export — depends on pptx-viewer-core",
 	"keywords": [
