@@ -63,21 +63,19 @@
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.29.0",
+		"fast-xml-parser": "^5.8.0",
+		"jszip": "^3.10.1",
+		"pptx-viewer-core": "^1.4.0",
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
-		"fast-xml-parser": "^5.9.0",
-		"jszip": "^3.10.1",
-		"pptx-viewer-core": "^1.1.7",
 		"tsup": "^8.5.1",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.8",
 		"yjs": "^13.6.31"
 	},
 	"peerDependencies": {
-		"fast-xml-parser": "^5.5.0",
-		"jszip": "^3.10.0",
-		"pptx-viewer-core": "latest"
+		"yjs": "^13.6.31"
 	},
 	"peerDependenciesMeta": {
 		"yjs": {
