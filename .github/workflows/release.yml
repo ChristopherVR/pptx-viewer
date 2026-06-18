@@ -44,7 +44,7 @@ jobs:
 
           # Check npm for the highest published version across all packages
           NPM_MAX="0.0.0"
-          for pkg in emf-converter mtx-decompressor pptx-viewer-core pptx-react-viewer pptx-viewer-mcp; do
+          for pkg in pptx-viewer-core pptx-react-viewer pptx-viewer-mcp; do
             NPM_VER=$(npm view "$pkg" version 2>/dev/null || echo "0.0.0")
             echo "  $pkg npm version: $NPM_VER"
             if [ "$(printf '%s\n%s' "$NPM_MAX" "$NPM_VER" | sort -V | tail -1)" = "$NPM_VER" ]; then
@@ -75,7 +75,7 @@ jobs:
       - name: Update package versions
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          for pkgdir in packages/emf-converter packages/mtx-decompressor packages/core packages/react packages/tools packages/vue packages/angular; do
+          for pkgdir in packages/core packages/react packages/tools packages/vue packages/angular; do
             node -e "
               const fs = require('fs');
               const p = '${pkgdir}/package.json';
@@ -84,12 +84,6 @@ jobs:
               fs.writeFileSync(p, JSON.stringify(data, null, '\t') + '\n');
             "
           done
-
-      - name: Pack emf-converter
-        run: cd packages/emf-converter && bun pm pack
-
-      - name: Pack mtx-decompressor
-        run: cd packages/mtx-decompressor && bun pm pack
 
       - name: Pack pptx-viewer-core
         run: cd packages/core && bun pm pack
@@ -160,8 +154,6 @@ jobs:
           name: v${{ steps.version.outputs.version }}
           body_path: ${{ runner.temp }}/release_notes.md
           files: |
-            packages/emf-converter/*.tgz
-            packages/mtx-decompressor/*.tgz
             packages/core/*.tgz
             packages/react/*.tgz
             packages/tools/*.tgz

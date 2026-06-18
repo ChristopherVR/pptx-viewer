@@ -8,8 +8,6 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			'pptx-viewer-core': resolve(__dirname, '../core/src/index.ts'),
-			'emf-converter': resolve(__dirname, '../emf-converter/src/index.ts'),
-			'mtx-decompressor': resolve(__dirname, '../mtx-decompressor/src/index.ts'),
 		},
 	},
 	test: {

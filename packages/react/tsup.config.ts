@@ -29,7 +29,10 @@ export default defineConfig((options) => ({
 	],
 	// Bundle the internal workspace packages so consumers can install just
 	// `pptx-react-viewer` without also pulling `pptx-viewer-core` from npm.
-	// (`emf-converter` / `mtx-decompressor` are already inlined into core's dist.)
+	// (`emf-converter` / `mtx-decompressor` are no longer bundled into core's
+	// dist — core now imports them from npm — but since they're not listed as
+	// external above, they get inlined here too, keeping this package
+	// self-contained.)
 	noExternal: ['pptx-viewer-core', 'pptx-viewer-shared'],
 	treeshake: true,
 	platform: 'browser',

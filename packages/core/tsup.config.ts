@@ -13,6 +13,8 @@ export default defineConfig((options) => ({
 	sourcemap: false,
 	clean: !options.watch,
 	external: [
+		'emf-converter',
+		'mtx-decompressor',
 		'jszip',
 		'fast-xml-parser',
 		'fs',
@@ -25,7 +27,6 @@ export default defineConfig((options) => ({
 		'https',
 		'tls',
 	],
-	noExternal: ['emf-converter', 'mtx-decompressor'],
 	treeshake: true,
 	platform: 'neutral',
 }));
