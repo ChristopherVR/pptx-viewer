@@ -953,7 +953,23 @@ shape-adjustment,remap-text}.ts` + 56 ported tests; shared extraction deferred t
   `handleAddActionButton`. Host centres + selects it. Verified live ("Forward / Next" inserts a
   labelled action shape, selected). +4 unit tests. **Also fixed the parallel session's red test**
   `useIsMobile.test.ts` (aligned the spec to the shipped height-aware media query) → **full suite
-  green: 1240 vue tests.** **Insert/View ribbon actions now wired except:** drawing tools, theme
-  gallery, layout gallery, spell-check, and Rulers / Snap-to-Shape / H+V Guides (the cohesive
-  ruler+guide overlay port — touches the parallel session's `SlideCanvas` layout, best done once
-  that file settles).
+  green: 1240 vue tests.**
+
+- **2026-06-18** — **New-Slide layout gallery + Design theme gallery** (the last two
+  ribbon-data stubs). **Layout gallery:** the loader now surfaces `parsed.layoutOptions`
+  (`{ path, name }[]`); `onInsertSlideFromLayout` inserts a draft slide carrying `layoutPath`
+  then calls `handler.applyLayoutToSlide` to populate background/placeholders (mirrors React's
+  `handleInsertSlideFromLayout`). Verified live: the New-Slide dropdown lists the deck's layouts
+  and inserting one grows the deck 7→8. **Theme gallery** (`ThemeGallery.vue`, teleported): lists
+  the core `THEME_PRESETS` (8) as accent-swatch thumbnails; applying one re-themes via the pure
+  `applyThemeToData` (loader also surfaces `themeColorMap` for colour re-resolution) and writes
+  slides/theme/colour-map back, history-aware. Verified live: applying "Ion" updates the active
+  theme. +3 unit tests. **1243 vue tests green; typecheck + oxlint clean.**
+
+  > **Ribbon-action status: the data-driven stubs are done.** Wired: Insert (text/shape/table/
+  > image/media/smartArt/equation/action-button/**layout gallery**), View (Grid + Snap-to-Grid),
+  > Design (**theme gallery**), plus undo/selection fixed. **Genuinely-larger remaining work,
+  > each its own subsystem:** **drawing tools** (Draw tab — pointer ink capture → ink elements),
+  > **spell-check** (a spell engine + squiggles), **theme editor** (`onToggleThemeEditor` — a
+  > colour/font editor panel), and **Rulers / Snap-to-Shape / H+V Guides** (ruler + guide overlay
+  > components; touches the parallel session's `SlideCanvas` layout — coordinate first).
