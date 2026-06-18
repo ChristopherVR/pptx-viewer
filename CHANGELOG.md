@@ -10,14 +10,25 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 - **angular:** Add snap-to-grid, draggable ruler guides, and eyedropper (by @ChristopherVR) ([2b40442](https://github.com/ChristopherVR/pptx-viewer/commit/2b404425414741711cc28a9f3ee508b4522fef8c))
 
+### Documentation
+
+- **changelog:** Update for v1.4.4 [skip ci] (by @github-actions[bot]) ([ab9393c](https://github.com/ChristopherVR/pptx-viewer/commit/ab9393c41bd237f46a10b4c80ceec005e75e6be3))
+
 ## [1.4.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.3) - 2026-06-18
 
 ### Features
 
+- **vue:** View ▸ H/V Guides + Snap to Shape (by @ChristopherVR) ([f743404](https://github.com/ChristopherVR/pptx-viewer/commit/f743404e448660bf645800e2e2dd39e108cd0ad6))
+- **angular:** Add Selection Pane and Custom Shows panels (by @ChristopherVR) ([b811dcf](https://github.com/ChristopherVR/pptx-viewer/commit/b811dcf4fd6323227dce148694d401421f86415a))
+- **angular:** Add snap-to-grid, draggable ruler guides, and eyedropper (by @ChristopherVR) ([ecc201d](https://github.com/ChristopherVR/pptx-viewer/commit/ecc201ddfd58dff6e869d0909ace1ca9869d892e))
+- **vue:** View ▸ Spell — host-controlled inline spell-check (by @ChristopherVR) ([f63ab1a](https://github.com/ChristopherVR/pptx-viewer/commit/f63ab1a615314e5681224b36c817f706060f5cfa))
 - **angular:** Add Selection Pane and Custom Shows panels (by @ChristopherVR) ([7922508](https://github.com/ChristopherVR/pptx-viewer/commit/7922508b01644bfaa190341317053be65740a7ba))
 
 ### Documentation
 
+- **vue:** Log H/V Guides + Snap to Shape; clear the emf/mtx break flag (by @ChristopherVR) ([99b6315](https://github.com/ChristopherVR/pptx-viewer/commit/99b6315c2a4923668549bbc48455c67190f82303))
+- **angular:** Log niche wave (snap-to-grid/guides/eyedropper/selection-pane/custom-shows); 2161 tests, e2e 10/10 (by @ChristopherVR) ([fa77b49](https://github.com/ChristopherVR/pptx-viewer/commit/fa77b497938ea9bae60aa3794902f16f710efe54))
+- **vue:** Log View ▸ Spell; all ribbon View-tab stubs now done (by @ChristopherVR) ([60673f8](https://github.com/ChristopherVR/pptx-viewer/commit/60673f8215749ed3a5379c1b9d236f82fe510fbe))
 - **changelog:** Update for v1.4.3 [skip ci] (by @github-actions[bot]) ([e320b3a](https://github.com/ChristopherVR/pptx-viewer/commit/e320b3a8e1d65c3c7e14f13f4df54af5b9159e56))
 
 ## [1.4.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.2) - 2026-06-18
