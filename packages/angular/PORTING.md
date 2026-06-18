@@ -680,15 +680,26 @@ Transitions/Animations ribbon tabs`): the 4 placeholder tabs now have real
     content. **Transitions** (preset gallery + duration + Apply-to-all) and
     **Animations** (add entrance/emphasis/exit + remove, via
     `animation-author-helpers` + `EditorStateService.updateSlide`) are **fully
-    wired**. **Design** is partial — Slide Size / Format Background open the
-    existing properties dialog / slide inspector (new `toggleInspector` output);
-    theme gallery is React-only and left as a documented stub. **Draw** is
-    **UI-only** — the tool selector / colour / width have signal state + a
-    `drawToolChange` output, but there is no editor freehand-ink backend yet
-    (documented no-op `onDrawToolChange`). Build + typecheck + lint + 2108 tests
-    green. Still TODO: deeper controls (SmartArt/Table/Equation insert,
-    eyedropper, selection pane, grid/rulers/guides, custom shows) and a real
-    freehand-draw backend + theme gallery.
+    wired**. **Design** — Slide Size / Format Background open the existing
+    properties dialog / slide inspector; **Browse Themes now opens a real theme
+    gallery** (`ThemeGalleryComponent` applies core `THEME_PRESETS` via
+    `applyThemeToData` to the deck design theme — mirrors Vue). **Draw is now
+    functional** — Pen/Highlighter/Freeform capture pointer strokes and create
+    real `ink` elements (`ink-drawing-helpers` + a draw branch in the
+    `slide-canvas` pointer pipeline that fully bypasses select/drag/marquee when
+    a draw tool is armed; live SVG preview; eraser deletes ink by hit-test). The
+    default `select` tool path is unchanged (e2e stays green).
+  - **Insert tab depth — LANDED:** Table / SmartArt / Equation insertion
+    (`newTableElement` / `newSmartArtElement` / `newEquationElement` factories →
+    `editor.addElement`), rendered by the existing renderers; +24 unit tests.
+  - **View tab depth — LANDED:** Grid / Rulers / Guides toggles + `pointer-events:
+none` canvas overlays on the main editor canvas only (contract untouched).
+  - **Combined state on `main`:** ng-packagr build + Tailwind, typecheck, lint,
+    **2148** unit tests, and `--project=angular` e2e **10 passed / 18 skipped**
+    all green. **Still TODO** (net-new features, not parity regressions):
+    snap-to-grid logic to pair with the grid overlay, eyedropper, selection
+    pane, custom shows, draggable ruler guides, and richer default OMML for
+    inserted equations.
   - **e2e after the ribbon** (`fix(angular): restore e2e contract…` + `…clear
 selection when entering presentation`): replacing the header + rendering live
     thumbnails broke the framework-neutral contract; fixed by (a) an
@@ -721,7 +732,9 @@ selection when entering presentation`): replacing the header + rendering live
     tests, and **`--project=angular` e2e 10/10** (18 react-only specs skipped).
     Also fixed a trunk breakage in the parallel session's react-only specs
     (`(_, testInfo)` → `({}, testInfo)`; Playwright needs a destructuring
-    pattern — it had broken collection for _all_ projects). **Still open on
-    `main`:** deeper ribbon controls (real freehand-draw backend, theme gallery,
-    SmartArt/Table/Equation insert, eyedropper, selection pane, grid/rulers,
-    custom shows). The `angular-ribbon` worktree branch is left for reference.
+    pattern — it had broken collection for _all_ projects). Subsequent waves
+    then landed: **Insert** Table/SmartArt/Equation, **View** grid/rulers/guides,
+    **Design** theme gallery, and a real **Draw** freehand-ink backend (see the
+    "Advanced ribbon tabs" entry above). **Still open on `main`** (net-new, not
+    parity gaps): snap-to-grid logic, eyedropper, selection pane, custom shows,
+    draggable ruler guides, richer inserted-equation OMML.
