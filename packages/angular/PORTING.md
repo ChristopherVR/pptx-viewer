@@ -735,6 +735,14 @@ selection when entering presentation`): replacing the header + rendering live
     pattern — it had broken collection for _all_ projects). Subsequent waves
     then landed: **Insert** Table/SmartArt/Equation, **View** grid/rulers/guides,
     **Design** theme gallery, and a real **Draw** freehand-ink backend (see the
-    "Advanced ribbon tabs" entry above). **Still open on `main`** (net-new, not
-    parity gaps): snap-to-grid logic, eyedropper, selection pane, custom shows,
-    draggable ruler guides, richer inserted-equation OMML.
+    "Advanced ribbon tabs" entry above). A further niche wave then landed:
+    **snap-to-grid** (View toggle; `snapToGridStep` helper in the move branch),
+    **draggable ruler guides** (drag from a ruler to create/move guide lines;
+    elements snap to them), **eyedropper** (native `EyeDropper` API → applies the
+    picked hex to the selected shape's fill; feature-detected, no-ops on
+    Firefox/Safari), **Selection Pane** (View panel: list/select/show-hide/
+    z-order the active slide's elements), and **Custom Shows** (Slide Show
+    dialog: CRUD named slide subsets + active selection). **Still open on `main`**
+    (small net-new): filtering the presentation overlay by the active custom show,
+    and richer default OMML for inserted equations. Combined: build + typecheck +
+    lint + **2161** unit tests + `--project=angular` e2e **10/18** all green.
