@@ -28,9 +28,23 @@ import {
 	output,
 	signal,
 } from '@angular/core';
-import type { PptxElement } from 'pptx-viewer-core';
+import type {
+	PptxAnimationPreset,
+	PptxElement,
+	PptxSlide,
+	PptxTransitionType,
+} from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
+import {
+	EMPHASIS_PRESETS,
+	ENTRANCE_PRESETS,
+	EXIT_PRESETS,
+	removeAnimation,
+	setAnimationEmphasis,
+	setAnimationEntrance,
+	setAnimationExit,
+} from './animation-author-helpers';
 import { newShapeElement, newTextElement } from './editor-insert';
 import { EditorStateService } from './editor-state.service';
 
@@ -40,6 +54,7 @@ type RibbonTab =
 	| 'home'
 	| 'insert'
 	| 'text'
+	| 'draw'
 	| 'arrange'
 	| 'design'
 	| 'transitions'
@@ -59,6 +74,7 @@ const TABS: readonly TabDef[] = [
 	{ id: 'home', label: 'Home' },
 	{ id: 'insert', label: 'Insert' },
 	{ id: 'text', label: 'Text' },
+	{ id: 'draw', label: 'Draw' },
 	{ id: 'arrange', label: 'Arrange' },
 	{ id: 'design', label: 'Design' },
 	{ id: 'transitions', label: 'Transitions' },
@@ -67,6 +83,39 @@ const TABS: readonly TabDef[] = [
 	{ id: 'review', label: 'Review' },
 	{ id: 'view', label: 'View' },
 	{ id: 'help', label: 'Help' },
+];
+
+/** Drawing tool IDs (mirrors React DRAW_TOOLS). */
+type DrawTool = 'select' | 'pen' | 'highlighter' | 'eraser' | 'freeform';
+
+interface DrawToolDef {
+	id: DrawTool;
+	label: string;
+	icon: string;
+}
+
+const DRAW_TOOLS: readonly DrawToolDef[] = [
+	{ id: 'select', label: 'Select', icon: '↖' },
+	{ id: 'pen', label: 'Pen', icon: '✏' },
+	{ id: 'highlighter', label: 'Highlighter', icon: 'Hl' },
+	{ id: 'eraser', label: 'Eraser', icon: '⌫' },
+	{ id: 'freeform', label: 'Freeform', icon: '∿' },
+];
+
+/**
+ * Transition presets shown in the Transitions ribbon tab (mirrors React
+ * `TRANSITION_PRESETS` in `DesignTransitionsReviewSection.tsx`).
+ */
+const TRANSITION_PRESETS: ReadonlyArray<{ value: PptxTransitionType; label: string }> = [
+	{ value: 'none', label: 'None' },
+	{ value: 'fade', label: 'Fade' },
+	{ value: 'push', label: 'Push' },
+	{ value: 'wipe', label: 'Wipe' },
+	{ value: 'split', label: 'Split' },
+	{ value: 'reveal', label: 'Reveal' },
+	{ value: 'cut', label: 'Cut' },
+	{ value: 'cover', label: 'Cover' },
+	{ value: 'uncover', label: 'Uncover' },
 ];
 
 /** Font families offered in the Home tab (mirrors React). */
@@ -545,13 +594,270 @@ const TEXT_COLORS = [
 						<button type="button" class="pptx-rb-pill" (click)="toggleNotes.emit()">Notes</button>
 						<button type="button" class="pptx-rb-pill" (click)="print.emit()">Print</button>
 					}
+					@case ('draw') {
+						<!--
+							Draw tool state is held here in the ribbon as local signals.
+							TODO: wire activeTool/drawingColor/drawingWidth to an actual
+							freehand-ink layer when the editor annotation back-end ships.
+							The toolbar is fully interactive and emits drawToolChange so
+							the parent can opt in to the state.
+						-->
+						<!-- Tool selector -->
+						<div class="pptx-rb-grp">
+							@for (tool of drawTools; track tool.id; let last = $last) {
+								<button
+									type="button"
+									[class]="last ? 'pptx-rb-gl' : 'pptx-rb-gb'"
+									[ngClass]="activeTool() === tool.id ? 'bg-primary text-primary-foreground' : ''"
+									[title]="tool.label"
+									(click)="setDrawTool(tool.id)"
+								>
+									{{ tool.icon }}
+								</button>
+							}
+						</div>
+						<span class="pptx-rb-sep"></span>
+						<!-- Colour + width -->
+						<label
+							class="inline-flex items-center gap-1 text-xs text-muted-foreground"
+							title="Pen colour"
+						>
+							Colour
+							<input
+								type="color"
+								[value]="drawingColor()"
+								(input)="onDrawColorInput($event)"
+								class="h-6 w-6 cursor-pointer rounded border border-border bg-transparent"
+							/>
+						</label>
+						<span class="pptx-rb-sep"></span>
+						<label
+							class="inline-flex items-center gap-1 text-xs text-muted-foreground"
+							title="Stroke width"
+						>
+							Width
+							<input
+								type="range"
+								min="1"
+								max="12"
+								[value]="drawingWidth()"
+								(input)="onDrawWidthInput($event)"
+								class="h-1 w-16 accent-primary"
+							/>
+							<span class="w-4 text-right text-foreground">{{ drawingWidth() }}</span>
+						</label>
+					}
+					@case ('design') {
+						<!--
+							Theme gallery and theme editor are React-only features not yet
+							ported to Angular. The Browse/Edit Theme buttons open the info
+							dialog as a documented stub until those panels ship.
+						-->
+						<!-- Themes (stubs) -->
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							title="Browse themes — theme gallery not yet ported"
+							(click)="info.emit()"
+						>
+							🎨 Browse Themes
+						</button>
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							title="Edit theme — theme editor not yet ported"
+							(click)="info.emit()"
+						>
+							✏ Edit Theme
+						</button>
+						<span class="pptx-rb-sep"></span>
+						<!-- Slide Size / Format Background -->
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							title="Slide size / document properties"
+							(click)="info.emit()"
+						>
+							⬛ Slide Size
+						</button>
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							title="Format slide background — opens the Inspector"
+							(click)="toggleInspector.emit()"
+						>
+							🪣 Format Background
+						</button>
+					}
+					@case ('transitions') {
+						<!-- Preview (fires existing presentation present path; no separate preview API yet) -->
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							title="Preview transition"
+							(click)="present.emit()"
+						>
+							▶ Preview
+						</button>
+						<span class="pptx-rb-sep"></span>
+						<!-- Preset gallery -->
+						<div class="inline-flex max-w-[420px] items-center gap-0.5 overflow-x-auto">
+							@for (t of transitionPresets; track t.value) {
+								<button
+									type="button"
+									(click)="setTransition(t.value)"
+									class="flex-shrink-0 rounded border px-2 py-1 text-[11px] leading-tight transition-colors"
+									[ngClass]="
+										selectedTransition() === t.value
+											? 'border-primary bg-primary/10 font-medium text-primary'
+											: 'border-border bg-muted text-foreground hover:bg-accent'
+									"
+									[title]="t.label + ' transition'"
+								>
+									{{ t.label }}
+								</button>
+							}
+						</div>
+						<span class="pptx-rb-sep"></span>
+						<!-- Duration -->
+						<label class="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+							<span class="whitespace-nowrap">Duration:</span>
+							<input
+								type="number"
+								min="0"
+								max="10"
+								step="0.1"
+								[value]="transitionDurationSec()"
+								(change)="onTransitionDurationChange($event)"
+								class="pptx-rb-select w-16 text-center"
+								title="Transition duration in seconds"
+							/>
+							<span>s</span>
+						</label>
+						<span class="pptx-rb-sep"></span>
+						<!-- Apply to all -->
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							title="Apply transition to all slides"
+							(click)="applyTransitionToAll()"
+						>
+							⧉ Apply to All
+						</button>
+						<span class="pptx-rb-sep"></span>
+						<!-- Inspector -->
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							title="Open Inspector for full transition options"
+							(click)="toggleInspector.emit()"
+						>
+							▤ Inspector
+						</button>
+					}
+					@case ('animations') {
+						<!-- Preview: plays presentation from this slide; no element-only preview API yet -->
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							[disabled]="!hasSel()"
+							title="Preview animation for selected element"
+							(click)="present.emit()"
+						>
+							▶ Preview
+						</button>
+						<span class="pptx-rb-sep"></span>
+						<!-- Add Animation dropdown (hover-reveal, mirrors React pattern) -->
+						<div class="group relative">
+							<button
+								type="button"
+								class="pptx-rb-pill"
+								[disabled]="!hasSel()"
+								title="Add an animation to the selected element"
+							>
+								✨ Add Animation ▾
+							</button>
+							<!-- Dropdown panel — shown on group hover -->
+							<div class="absolute left-0 top-full z-50 hidden w-44 pt-1 group-hover:block">
+								<div class="rounded-lg border border-border bg-card py-1 shadow-2xl">
+									<!-- Entrance group -->
+									<div
+										class="px-3 pb-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+									>
+										Entrance
+									</div>
+									@for (item of entrancePresets; track item.value) {
+										<button
+											type="button"
+											[disabled]="!hasSel()"
+											(click)="addAnimation(item.value, 'entrance')"
+											class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+											[title]="'Entrance: ' + item.label"
+										>
+											{{ item.label }}
+										</button>
+									}
+									<!-- Emphasis group -->
+									<div
+										class="px-3 pb-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+									>
+										Emphasis
+									</div>
+									@for (item of emphasisPresets; track item.value) {
+										<button
+											type="button"
+											[disabled]="!hasSel()"
+											(click)="addAnimation(item.value, 'emphasis')"
+											class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+											[title]="'Emphasis: ' + item.label"
+										>
+											{{ item.label }}
+										</button>
+									}
+									<!-- Exit group -->
+									<div
+										class="px-3 pb-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+									>
+										Exit
+									</div>
+									@for (item of exitPresets; track item.value) {
+										<button
+											type="button"
+											[disabled]="!hasSel()"
+											(click)="addAnimation(item.value, 'exit')"
+											class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+											[title]="'Exit: ' + item.label"
+										>
+											{{ item.label }}
+										</button>
+									}
+								</div>
+							</div>
+						</div>
+						<span class="pptx-rb-sep"></span>
+						<!-- Remove Animation -->
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							[disabled]="!hasSel()"
+							title="Remove all animations from the selected element"
+							(click)="removeAnim()"
+						>
+							✕ Remove Animation
+						</button>
+						<span class="pptx-rb-sep"></span>
+						<!-- Animation Panel -->
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							title="Open Animation Inspector panel"
+							(click)="toggleInspector.emit()"
+						>
+							▤ Animation Panel
+						</button>
+					}
 					@case ('help') {
 						<button type="button" class="pptx-rb-pill" (click)="a11y.emit()">Accessibility</button>
-					}
-					@default {
-						<span class="px-2 py-1.5 text-xs italic text-muted-foreground">
-							{{ activeTabLabel() }} — controls coming soon
-						</span>
 					}
 				}
 			</div>
@@ -717,13 +1023,44 @@ export class RibbonComponent {
 	readonly exportGif = output<void>();
 	readonly exportVideo = output<void>();
 	readonly replace = output<void>();
+	/**
+	 * Emitted by Design / Transitions / Animations tabs when the user wants to
+	 * open the right-docked Inspector panel (Format Background, Transitions full
+	 * options, Animation Panel). The parent component decides what to show.
+	 */
+	readonly toggleInspector = output<void>();
+	/**
+	 * Emitted whenever the Draw tab tool state changes (tool / colour / width).
+	 * The parent may connect this to an annotation / ink layer when available.
+	 * Currently UI-only — no freehand-draw back-end exists in the Angular port.
+	 */
+	readonly drawToolChange = output<{ tool: DrawTool; color: string; width: number }>();
 
 	protected readonly tabs = TABS;
 	protected readonly fontFamilies = FONT_FAMILIES;
 	protected readonly fontSizes = FONT_SIZES;
 	protected readonly textColors = TEXT_COLORS;
+	protected readonly drawTools = DRAW_TOOLS;
+	protected readonly transitionPresets = TRANSITION_PRESETS;
+	protected readonly entrancePresets = ENTRANCE_PRESETS;
+	protected readonly emphasisPresets = EMPHASIS_PRESETS;
+	protected readonly exitPresets = EXIT_PRESETS;
 
 	protected readonly activeTab = signal<RibbonTab>('home');
+
+	// ── Draw tab state ────────────────────────────────────────────────────────
+	/** Active drawing tool (UI state only — no ink back-end yet). */
+	protected readonly activeTool = signal<DrawTool>('select');
+	/** Drawing pen colour (UI state only). */
+	protected readonly drawingColor = signal<string>('#000000');
+	/** Drawing stroke width in pixels (UI state only). */
+	protected readonly drawingWidth = signal<number>(3);
+
+	// ── Transitions tab state ─────────────────────────────────────────────────
+	/** The transition type currently selected in the ribbon gallery. */
+	protected readonly selectedTransition = signal<PptxTransitionType>('none');
+	/** Transition duration in seconds (round-trips through the UI input). */
+	protected readonly transitionDurationSec = signal<number>(0.5);
 
 	protected readonly activeTabLabel = computed(
 		() => TABS.find((t) => t.id === this.activeTab())?.label ?? '',
@@ -794,5 +1131,108 @@ export class RibbonComponent {
 	}
 	protected setFontSize(event: Event): void {
 		this.patchText({ fontSize: Number((event.target as HTMLSelectElement).value) });
+	}
+
+	// ── Draw tab ─────────────────────────────────────────────────────────────
+
+	protected setDrawTool(tool: DrawTool): void {
+		this.activeTool.set(tool);
+		this.drawToolChange.emit({ tool, color: this.drawingColor(), width: this.drawingWidth() });
+	}
+
+	protected onDrawColorInput(event: Event): void {
+		const color = (event.target as HTMLInputElement).value;
+		this.drawingColor.set(color);
+		this.drawToolChange.emit({ tool: this.activeTool(), color, width: this.drawingWidth() });
+	}
+
+	protected onDrawWidthInput(event: Event): void {
+		const width = Number((event.target as HTMLInputElement).value);
+		this.drawingWidth.set(width);
+		this.drawToolChange.emit({ tool: this.activeTool(), color: this.drawingColor(), width });
+	}
+
+	// ── Transitions tab ──────────────────────────────────────────────────────
+
+	/** Apply the chosen transition to the active slide. */
+	protected setTransition(type: PptxTransitionType): void {
+		this.selectedTransition.set(type);
+		const durationMs = Math.round(this.transitionDurationSec() * 1000);
+		this.editor.updateSlide(this.slideIndex(), {
+			transition: { type, durationMs, advanceOnClick: true },
+		} as Partial<PptxSlide>);
+	}
+
+	protected onTransitionDurationChange(event: Event): void {
+		const sec = Number((event.target as HTMLInputElement).value);
+		if (Number.isFinite(sec) && sec >= 0) {
+			this.transitionDurationSec.set(sec);
+			// Re-apply to active slide with the new duration.
+			const durationMs = Math.round(sec * 1000);
+			this.editor.updateSlide(this.slideIndex(), {
+				transition: {
+					type: this.selectedTransition(),
+					durationMs,
+					advanceOnClick: true,
+				},
+			} as Partial<PptxSlide>);
+		}
+	}
+
+	/** Apply the current transition to every slide in the deck. */
+	protected applyTransitionToAll(): void {
+		const type = this.selectedTransition();
+		const durationMs = Math.round(this.transitionDurationSec() * 1000);
+		const count = this.editor.slides().length;
+		for (let i = 0; i < count; i++) {
+			this.editor.updateSlide(i, {
+				transition: { type, durationMs, advanceOnClick: true },
+			} as Partial<PptxSlide>);
+		}
+	}
+
+	// ── Animations tab ───────────────────────────────────────────────────────
+
+	/**
+	 * Add an animation preset to the selected element on the active slide.
+	 * Delegates to the immutable helpers in animation-author-helpers.ts and
+	 * commits the updated animations array via EditorStateService.updateSlide.
+	 */
+	protected addAnimation(
+		preset: PptxAnimationPreset,
+		group: 'entrance' | 'emphasis' | 'exit',
+	): void {
+		const el = this.selectedElement();
+		if (!el) {
+			return;
+		}
+		const slide = this.editor.slides()[this.slideIndex()];
+		if (!slide) {
+			return;
+		}
+		const current = slide.animations ?? [];
+		let updated: ReturnType<typeof setAnimationEntrance>;
+		if (group === 'entrance') {
+			updated = setAnimationEntrance(current, el.id, preset);
+		} else if (group === 'emphasis') {
+			updated = setAnimationEmphasis(current, el.id, preset);
+		} else {
+			updated = setAnimationExit(current, el.id, preset);
+		}
+		this.editor.updateSlide(this.slideIndex(), { animations: updated } as Partial<PptxSlide>);
+	}
+
+	/** Remove all animations from the selected element. */
+	protected removeAnim(): void {
+		const el = this.selectedElement();
+		if (!el) {
+			return;
+		}
+		const slide = this.editor.slides()[this.slideIndex()];
+		if (!slide) {
+			return;
+		}
+		const updated = removeAnimation(slide.animations ?? [], el.id);
+		this.editor.updateSlide(this.slideIndex(), { animations: updated } as Partial<PptxSlide>);
 	}
 }
