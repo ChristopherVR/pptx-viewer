@@ -21,6 +21,12 @@ import type { Page } from '@playwright/test';
 
 test.use({ ...devices['Pixel 7'] });
 
+// Navigates via React's mobile slides sheet ("Slides" button); other
+// frameworks differ, so scope to react.
+test.beforeEach((_, testInfo) => {
+	test.skip(testInfo.project.name !== 'react', 'React mobile navigation only');
+});
+
 const deck = resolve(fileURLToPath(new URL('../.github/assets/sample-deck.pptx', import.meta.url)));
 const shotDir = fileURLToPath(new URL('../test-results/mobile-table/', import.meta.url));
 

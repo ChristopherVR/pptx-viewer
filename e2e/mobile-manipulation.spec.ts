@@ -36,6 +36,12 @@ import type { Locator, Page } from '@playwright/test';
 
 test.use({ ...devices['Pixel 7'] });
 
+// Asserts React-specific selection chrome (rotate handle aria, etc.); other
+// frameworks differ, so scope to react.
+test.beforeEach((_, testInfo) => {
+	test.skip(testInfo.project.name !== 'react', 'React selection chrome only');
+});
+
 const fixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/format-painter.pptx', import.meta.url)),
 );

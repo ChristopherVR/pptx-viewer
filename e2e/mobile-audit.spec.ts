@@ -18,6 +18,12 @@ import type { Page } from '@playwright/test';
 
 test.use({ ...devices['Pixel 7'] });
 
+// React-specific mobile chrome (Slides/Insert/Format/Comments/Notes bar, menu
+// sheet). Other frameworks have different mobile shells, so scope to react.
+test.beforeEach((_, testInfo) => {
+	test.skip(testInfo.project.name !== 'react', 'React mobile chrome only');
+});
+
 const deck = resolve(fileURLToPath(new URL('../.github/assets/sample-deck.pptx', import.meta.url)));
 // Screenshots are debug artifacts; write them under the gitignored test-results dir.
 const shotDir = fileURLToPath(new URL('../test-results/mobile-audit/', import.meta.url));

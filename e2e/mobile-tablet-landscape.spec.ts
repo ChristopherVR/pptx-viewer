@@ -19,6 +19,12 @@ import type { Page } from '@playwright/test';
 const deck = resolve(fileURLToPath(new URL('../.github/assets/sample-deck.pptx', import.meta.url)));
 const shotDir = fileURLToPath(new URL('../test-results/mobile-tablet-landscape/', import.meta.url));
 
+// Asserts React's mobile chrome (Editor actions bar, Menu button); other
+// frameworks differ, so scope to react.
+test.beforeEach((_, testInfo) => {
+	test.skip(testInfo.project.name !== 'react', 'React mobile chrome only');
+});
+
 async function load(page: Page): Promise<void> {
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(deck);
