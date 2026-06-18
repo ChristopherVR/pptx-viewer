@@ -1008,6 +1008,22 @@ shape-adjustment,remap-text}.ts` + 56 ported tests; shared extraction deferred t
   toggle flips the live editor's `spellcheck` attribute). +2 unit tests; full suite **1271
   passing**. **All ribbon View-tab interactivity is now done.**
 
+- **2026-06-18** — **Remaining File / Slide-Show / Animations ribbon actions wired** (the last
+  functional ribbon no-ops). **Save As** (.pptx/.ppsx/.pptm): `useLoadContent` gains
+  `saveAs(format)` (shared with `getContent`), the viewer serialises via core's `outputFormat`
+  and downloads with the matching extension. **Copy Slide as Image**: rasterise → PNG →
+  `ClipboardItem`. **Transitions**: `onTransitionChange` (partial-merge) + `onApplyTransitionToAll`
+  (contract completion — the Transitions-tab presets are visual stubs in React too; real editing
+  is the Inspector). **Custom shows**: rename/delete/toggle-current-slide + `isCurrentSlideInActiveShow`
+  over `useCustomShows`. **Slides-rail collapse** via `onToggleSidebar`. **Animations**:
+  `composables/element-animation.ts` (`applyAnimationPreset`/`removeElementAnimation`) wired to the
+  AnimationsSection preset menu. Verified live: Save as .pptx/.ppsx produced real OpenXML
+  downloads; Copy Slide as Image wrote an image/png ClipboardItem; the slides-panel toggle
+  collapses/restores the rail. +4 animation unit tests; full suite **1275 passing**. **Only two
+  ribbon no-ops remain, both intentional:** `onToggleCompactToolbar` (no ribbon consumer) and
+  `onSetEditTemplateMode` (needs the still-partial master/template _editing_ pipeline — toggling
+  the flag alone would be misleading).
+
 - **2026-06-18** — **Workspace unblocked.** The earlier emf/mtx break (parallel
   `refactor(core)!: consume emf-converter and mtx-decompressor from npm`, `2f6013d`) is resolved:
   `emf-converter@1.4.1` + `mtx-decompressor@1.4.1` are now published. `bun install` re-resolved
@@ -1019,5 +1035,7 @@ shape-adjustment,remap-text}.ts` + 56 ported tests; shared extraction deferred t
 > image/media/smartArt/equation/action-button/**layout gallery**), View (Grid + Snap-to-Grid),
 > Design (**theme gallery**), plus undo/selection fixed. **All previously-larger subsystems are
 > now done:** **drawing tools** (Draw tab — pointer ink capture → ink elements), **theme editor**,
-> **Rulers**, **Snap-to-Shape**, **H/V Guides**, and **spell-check** (native browser squiggles).
-> No ribbon-action stubs remain.
+> **Rulers**, **Snap-to-Shape**, **H/V Guides**, **spell-check** (native browser squiggles), plus
+> **Save As / Copy-as-Image / Transitions / Custom-show / Animations** ribbon actions. The only
+> remaining ribbon no-ops are `onToggleCompactToolbar` (no consumer) and `onSetEditTemplateMode`
+> (master/template _editing_ — a larger, still-partial subsystem).
