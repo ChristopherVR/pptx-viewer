@@ -41,6 +41,7 @@ import { computed, nextTick, provide, ref, toRef, watch } from 'vue';
 import { provideViewerTheme, useThemeStyle } from '../theme';
 import AccessibilityPanel from './components/AccessibilityPanel.vue';
 import BroadcastDialog from './components/BroadcastDialog.vue';
+import CanvasGuides from './components/CanvasGuides.vue';
 import CollaborationCursors from './components/CollaborationCursors.vue';
 import CommentsPanel from './components/CommentsPanel.vue';
 import ComparePanel from './components/ComparePanel.vue';
@@ -87,6 +88,7 @@ import SlideCanvas from './components/SlideCanvas.vue';
 import SlideSorter from './components/SlideSorter.vue';
 import SlidesPaneSidebar from './components/SlidesPaneSidebar.vue';
 import SlideStage from './components/SlideStage.vue';
+import SnapLinesOverlay from './components/SnapLinesOverlay.vue';
 import StatusBar from './components/StatusBar.vue';
 import ThemeGallery from './components/ThemeGallery.vue';
 import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
@@ -99,10 +101,13 @@ import {
 	hasCopyableFormat,
 } from './composables/format-painter';
 import type { CopiedFormat } from './composables/format-painter';
+import { createGuide, moveGuide, removeGuide } from './composables/guides';
+import type { Guide } from './composables/guides';
 import { remapTextToSegments } from './composables/remap-text';
 import { compareSlides } from './composables/slide-compare';
 import type { CompareResult } from './composables/slide-compare';
 import { snapBox } from './composables/snap';
+import { computeSnapToShape } from './composables/snap-shape';
 import { TableThemeKey } from './composables/table-theme';
 import { useAccessibility } from './composables/useAccessibility';
 import { useAutosave } from './composables/useAutosave';
@@ -498,10 +503,39 @@ function onElementDragMove(event: PointerEvent): void {
 		return;
 	}
 	const box = applyDragDelta(drag.startBox, dx, dy, effectiveZoom.value);
+	let nextX = box.x;
+	let nextY = box.y;
+	// Snap to other shapes' edges/centres (+ user guides), with visual snap lines.
+	if (snapToShape.value && !box.rotation) {
+		const siblings = (activeSlide.value?.elements ?? []).map((el) => ({
+			id: el.id,
+			x: el.x,
+			y: el.y,
+			width: el.width,
+			height: el.height,
+		}));
+		const result = computeSnapToShape(
+			box.x,
+			box.y,
+			box.width,
+			box.height,
+			siblings,
+			new Set([drag.id]),
+			guides.value,
+		);
+		nextX = result.x;
+		nextY = result.y;
+		snapLines.value = result.lines.map((line) => ({
+			axis: line.axis === 'v' ? 'x' : 'y',
+			position: line.position,
+		}));
+	} else if (snapLines.value.length > 0) {
+		snapLines.value = [];
+	}
 	patchActiveElementGeometry({
 		id: drag.id,
-		x: box.x,
-		y: box.y,
+		x: nextX,
+		y: nextY,
 		width: box.width,
 		height: box.height,
 		rotation: box.rotation ?? 0,
@@ -510,6 +544,9 @@ function onElementDragMove(event: PointerEvent): void {
 function onElementDragUp(): void {
 	const drag = elementDrag;
 	elementDrag = null;
+	if (snapLines.value.length > 0) {
+		snapLines.value = [];
+	}
 	window.removeEventListener('pointermove', onElementDragMove);
 	window.removeEventListener('pointerup', onElementDragUp);
 	window.removeEventListener('pointercancel', onElementDragUp);
@@ -1540,6 +1577,24 @@ const showGrid = ref(false);
 const snapToGrid = ref(false);
 /** View ▸ Rulers — horizontal/vertical rulers along the slide edges. */
 const showRulers = ref(false);
+/** View ▸ Snap to Shape — snap dragged elements to other elements' edges/centres. */
+const snapToShape = ref(false);
+/** Transient red snap-alignment lines shown during a snap-to-shape drag. */
+const snapLines = ref<Array<{ axis: 'x' | 'y'; position: number }>>([]);
+/** View ▸ H/V Guides — draggable alignment guides (authored slide px). */
+const guides = ref<Guide[]>([]);
+/** Add a centred horizontal/vertical guide (View ▸ H/V Guide buttons). */
+function addGuide(axis: 'h' | 'v'): void {
+	guides.value = [...guides.value, createGuide(createEditorId('guide'), axis, canvasSize.value)];
+}
+/** Drag a guide to a new (clamped) position. */
+function onMoveGuide(payload: { id: string; position: number }): void {
+	guides.value = moveGuide(guides.value, payload.id, payload.position, canvasSize.value);
+}
+/** Double-click removes a guide. */
+function onRemoveGuide(id: string): void {
+	guides.value = removeGuide(guides.value, id);
+}
 /** Grid spacing in px (matches React's GRID_SIZE). */
 const GRID_SIZE = 8;
 /** Design ▸ Themes gallery overlay. */
@@ -1756,7 +1811,7 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	showGrid: showGrid.value,
 	showRulers: showRulers.value,
 	snapToGrid: snapToGrid.value,
-	snapToShape: false,
+	snapToShape: snapToShape.value,
 	isOverflowMenuOpen: overflowOpen.value,
 	layoutOptions: layoutOptions.value,
 	customShows: customShows.value,
@@ -1838,8 +1893,10 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	onSetSnapToGrid: (enabled) => {
 		snapToGrid.value = enabled;
 	},
-	onSetSnapToShape: noop,
-	onAddGuide: noop,
+	onSetSnapToShape: (enabled) => {
+		snapToShape.value = enabled;
+	},
+	onAddGuide: addGuide,
 	onAlignElements: (edge) => {
 		const e = RIBBON_ALIGN[edge];
 		if (e) {
@@ -2065,6 +2122,16 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					>
 						<!-- Dot grid overlay (View ▸ Grid) — sits over content, under selection -->
 						<GridOverlay :canvas-size="canvasSize" :visible="showGrid && !presenting" />
+						<!-- Draggable H/V alignment guides (View ▸ Guides) -->
+						<CanvasGuides
+							v-if="props.canEdit && !presenting"
+							:guides="guides"
+							:scale="effectiveZoom"
+							@move="onMoveGuide"
+							@remove="onRemoveGuide"
+						/>
+						<!-- Transient snap-to-shape alignment lines (during drag) -->
+						<SnapLinesOverlay v-if="snapLines.length > 0" :snap-lines="snapLines" />
 						<!-- Ink capture (Draw tab) — pointer-events on only while a tool is armed -->
 						<DrawingOverlay
 							v-if="props.canEdit"
