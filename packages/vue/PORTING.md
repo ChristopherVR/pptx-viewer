@@ -986,24 +986,30 @@ shape-adjustment,remap-text}.ts` + 56 ported tests; shared extraction deferred t
   ruler strips (SVG ticks + inch labels, zoom-scaled) drawn along the slide edges. `SlideCanvas`
   gains a `showRulers` prop (renders the strips inside the slide wrapper, reserves top space);
   host `showRulers` ref wired to `onSetShowRulers`. Verified live (168 ticks, inch labels 0–5).
-  +6 unit tests; typecheck + oxlint clean. **Remaining View-tab interactivity:** **Snap-to-Shape**
-  and **H/V Guides** (draggable guide lines + alignment-guide logic during drag), and **spell-check**.
+  +6 unit tests; typecheck + oxlint clean.
 
-> **🚨 WORKSPACE BROKEN (not the Vue port) — needs the parallel session / a publish.** A
-> parallel commit, `refactor(core)!: consume emf-converter and mtx-decompressor from npm`
-> (`2f6013d`, merged `839d9aa`), **deleted the `packages/emf-converter` + `packages/mtx-decompressor`
-> workspace packages** and made `packages/core` depend on them from npm at `^1.4.0`. Those
-> versions **are not published**, so `bun install` fails (`No version matching "^1.4.0" for
-mtx-decompressor`). Consequently **anything that imports `pptx-viewer-core` won't load** — the
-> demo dev server 500s and the full `vitest` run aborts (~470 of 1255 tests can't import).
-> `vue-tsc` typecheck still passes (uses bundled types), and tests/files that don't import core
-> still run. **Vue-port code added this session is unaffected** (isolated unit tests pass,
-> typecheck clean). **Fix:** publish `emf-converter@1.4.0` + `mtx-decompressor@1.4.0` (or repoint
-> core's deps to existing versions / restore the workspace packages), then `bun install`.
+- **2026-06-18** — **View ▸ H/V Guides + Snap to Shape** (the last interactive View-tab stubs).
+  **Guides:** `composables/guides.ts` (`createGuide`/`moveGuide`/`removeGuide`, clamped to slide
+  bounds) + `CanvasGuides.vue` — draggable yellow guide lines inside the scaled stage; the H/V
+  Guide ribbon buttons add a centred guide, double-click removes one. **Snap to Shape:**
+  `composables/snap-shape.ts` ports React's `computeSnapToShapeResult` (edge/centre snapping to
+  sibling elements + user guides within a 6px threshold) + `SnapLinesOverlay.vue` (transient red
+  alignment lines); wired into the element-drag handler beside the snap-to-grid branch, lines
+  clear on drop. Verified live: guides render at slide centre & drag; a shape dragged toward a
+  sibling snapped its left edge 523→520px with red lines at the sibling's left/centre/right
+  (centre also matching the vertical guide). +14 unit tests; typecheck + oxlint clean; full suite
+  **1269 passing**. **Remaining View-tab interactivity:** **spell-check** (spell engine + squiggles).
+
+- **2026-06-18** — **Workspace unblocked.** The earlier emf/mtx break (parallel
+  `refactor(core)!: consume emf-converter and mtx-decompressor from npm`, `2f6013d`) is resolved:
+  `emf-converter@1.4.1` + `mtx-decompressor@1.4.1` are now published. `bun install` re-resolved
+  the lockfile against them (committed separately), so the demo dev server and the full `vitest`
+  run work again. Also fixed a duplicate `themeGalleryOpen`/`applyThemePreset` declaration the
+  broken workspace had masked (the SFC never compiled far enough to surface it).
+
 > **Ribbon-action status: the data-driven stubs are done.** Wired: Insert (text/shape/table/
 > image/media/smartArt/equation/action-button/**layout gallery**), View (Grid + Snap-to-Grid),
 > Design (**theme gallery**), plus undo/selection fixed. **Genuinely-larger remaining work,
 > each its own subsystem:** **drawing tools** (Draw tab — pointer ink capture → ink elements),
-> **spell-check** (a spell engine + squiggles), **theme editor** (`onToggleThemeEditor` — a
-> colour/font editor panel), and **Rulers / Snap-to-Shape / H+V Guides** (ruler + guide overlay
-> components; touches the parallel session's `SlideCanvas` layout — coordinate first).
+> **spell-check** (a spell engine + squiggles) — the last remaining subsystem. (Done since:
+> **theme editor**, **drawing tools**, **Rulers**, **Snap-to-Shape**, **H/V Guides**.)
