@@ -37,6 +37,9 @@ import {
 	toggleCommentResolvedInList,
 } from './comments-helpers';
 import { CommentsPanelComponent } from './comments-panel.component';
+import { createCustomShow } from './custom-shows-helpers';
+import type { CustomShow } from './custom-shows-helpers';
+import { CustomShowsComponent } from './custom-shows.component';
 import { EditorContextMenuComponent } from './editor-context-menu.component';
 import { EditorStateService } from './editor-state.service';
 import { EditorToolbarComponent } from './editor-toolbar.component';
@@ -65,6 +68,7 @@ import type { PrintSettings } from './print-helpers';
 import { PrintService } from './print.service';
 import { PropertiesDialogComponent } from './properties-dialog.component';
 import { RibbonComponent } from './ribbon.component';
+import { SelectionPaneComponent } from './selection-pane.component';
 import { ShareDialogComponent } from './share-dialog.component';
 import { SignaturesPanelComponent } from './signatures-panel.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
@@ -136,6 +140,8 @@ const ZOOM_MAX = 3;
 		NotesPanelComponent,
 		RibbonComponent,
 		ThemeGalleryComponent,
+		SelectionPaneComponent,
+		CustomShowsComponent,
 	],
 	template: `
 		<div class="pptx-ng-viewer" [ngClass]="class()" [ngStyle]="rootStyle()">
@@ -196,6 +202,8 @@ const ZOOM_MAX = 3;
 					(toggleGuides)="showGuides.update(v => !v)"
 					[themeGalleryOpen]="showThemeGallery()"
 					(toggleThemeGallery)="showThemeGallery.update(v => !v)"
+					(toggleSelectionPane)="togglePanel('selection')"
+					(openCustomShows)="showCustomShows.set(true)"
 					/>
 				}
 
@@ -288,6 +296,17 @@ const ZOOM_MAX = 3;
 								(add)="onCommentAdd($event)"
 								(remove)="onCommentRemove($event)"
 								(resolve)="onCommentResolve($event)"
+							/>
+						</aside>
+					} @else if (activePanel() === 'selection' && canEdit()) {
+						<aside class="pptx-ng-inspector-host" aria-label="Selection pane">
+							<pptx-selection-pane
+								[elements]="activeSlide()?.elements ?? []"
+								[selectedIds]="editor.selectedIds()"
+								(selectElement)="editor.select([$event])"
+								(bringForward)="onSelectionPaneBringForward($event)"
+								(sendBackward)="onSelectionPaneSendBackward($event)"
+								(toggleHidden)="onToggleElementHidden($event)"
 							/>
 						</aside>
 					} @else if (canEdit() && selectedElement(); as el) {
@@ -471,6 +490,20 @@ const ZOOM_MAX = 3;
 				(close)="showBroadcast.set(false)"
 			/>
 
+			@if (canEdit()) {
+				<pptx-custom-shows
+					[open]="showCustomShows()"
+					[slides]="displaySlidesMut()"
+					[customShows]="customShows()"
+					[activeCustomShowId]="activeCustomShowId()"
+					(create)="onCustomShowCreate($event)"
+					(remove)="onCustomShowRemove($event)"
+					(update)="onCustomShowUpdate($event)"
+					(setActive)="activeCustomShowId.set($event)"
+					(close)="showCustomShows.set(false)"
+				/>
+			}
+
 			<!-- ── Mobile chrome (narrow / touch viewports only) ─────────────── -->
 			@if (mobile.isMobile() && !loader.loading() && !loader.error()) {
 				<pptx-mobile-slides-sheet
@@ -615,8 +648,10 @@ export class PowerPointViewerComponent {
 	protected readonly findActiveIndex = signal(-1);
 	private findMatchCase = false;
 
-	/** Active right-docked tool panel (comments / accessibility), or null. */
-	protected readonly activePanel = signal<'comments' | 'accessibility' | 'signatures' | null>(null);
+	/** Active right-docked tool panel (comments / accessibility / selection), or null. */
+	protected readonly activePanel = signal<
+		'comments' | 'accessibility' | 'signatures' | 'selection' | null
+	>(null);
 	/** Document-properties (Info) dialog visibility. */
 	protected readonly showProperties = signal(false);
 	/** Hyperlink-edit dialog visibility. */
@@ -648,6 +683,12 @@ export class PowerPointViewerComponent {
 	protected readonly showGuides = signal(false);
 	/** Whether the theme-gallery overlay is visible (Design → Browse Themes). */
 	protected readonly showThemeGallery = signal(false);
+	/** Whether the custom-shows dialog is open. */
+	protected readonly showCustomShows = signal(false);
+	/** The list of user-defined custom shows for this session. */
+	protected readonly customShows = signal<readonly CustomShow[]>([]);
+	/** The id of the currently active custom show, or null. */
+	protected readonly activeCustomShowId = signal<string | null>(null);
 	/** The `name` property of the loaded deck's theme (for check-mark in gallery). */
 	protected readonly activeThemeName = computed<string | undefined>(
 		() => this.loader.theme()?.name,
@@ -970,7 +1011,7 @@ export class PowerPointViewerComponent {
 	}
 
 	/** Toggle a right-docked tool panel (clicking the active one closes it). */
-	togglePanel(panel: 'comments' | 'accessibility' | 'signatures'): void {
+	togglePanel(panel: 'comments' | 'accessibility' | 'signatures' | 'selection'): void {
 		this.activePanel.update((current) => (current === panel ? null : panel));
 	}
 
@@ -1166,6 +1207,44 @@ export class PowerPointViewerComponent {
 	/** Update the active slide's speaker notes from the editable NotesPanel. */
 	onNotesUpdate(notes: string): void {
 		this.editor.updateSlide(this.activeSlideIndex(), { notes });
+	}
+
+	// ── Selection pane handlers ────────────────────────────────────────────────
+
+	onSelectionPaneBringForward(id: string): void {
+		this.editor.select([id]);
+		this.editor.bringSelectedForward(this.activeSlideIndex());
+	}
+
+	onSelectionPaneSendBackward(id: string): void {
+		this.editor.select([id]);
+		this.editor.sendSelectedBackward(this.activeSlideIndex());
+	}
+
+	onToggleElementHidden(id: string): void {
+		const el = this.activeSlide()?.elements.find((e) => e.id === id);
+		if (el) {
+			this.editor.updateElement(this.activeSlideIndex(), id, { hidden: !el.hidden });
+		}
+	}
+
+	// ── Custom shows handlers ──────────────────────────────────────────────────
+
+	onCustomShowCreate(show: { name: string; slideIds: string[] }): void {
+		this.customShows.update((list) => [...list, createCustomShow(show.name, show.slideIds)]);
+	}
+
+	onCustomShowRemove(id: string): void {
+		this.customShows.update((list) => list.filter((s) => s.id !== id));
+		if (this.activeCustomShowId() === id) {
+			this.activeCustomShowId.set(null);
+		}
+	}
+
+	onCustomShowUpdate(show: { id: string; name: string; slideIds: string[] }): void {
+		this.customShows.update((list) =>
+			list.map((s) => (s.id === show.id ? { ...s, name: show.name, slideIds: show.slideIds } : s)),
+		);
 	}
 
 	/** Commit an inline text edit: replace the element's text (one history entry). */
