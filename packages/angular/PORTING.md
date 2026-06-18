@@ -742,7 +742,13 @@ selection when entering presentation`): replacing the header + rendering live
     picked hex to the selected shape's fill; feature-detected, no-ops on
     Firefox/Safari), **Selection Pane** (View panel: list/select/show-hide/
     z-order the active slide's elements), and **Custom Shows** (Slide Show
-    dialog: CRUD named slide subsets + active selection). **Still open on `main`**
-    (small net-new): filtering the presentation overlay by the active custom show,
-    and richer default OMML for inserted equations. Combined: build + typecheck +
-    lint + **2161** unit tests + `--project=angular` e2e **10/18** all green.
+    dialog: CRUD named slide subsets + active selection). Then the last two
+    follow-ups landed: the **presentation overlay now plays the active custom
+    show** (filtered/reordered slides; the overlay index maps back to the
+    full-deck `activeSlideIndex` by slide id so the editor selection stays correct
+    on close), and the **inserted-equation OMML** now renders a correct E = mc²
+    (was "mc2²"). Combined: build + typecheck + lint + **2161** unit tests +
+    `--project=angular` e2e **10/18** all green. **The Angular ribbon/editor is
+    now at functional parity with React** across the whole surface; remaining
+    differences are cosmetic-depth only (exact React pixel styling of individual
+    controls), not missing features.
