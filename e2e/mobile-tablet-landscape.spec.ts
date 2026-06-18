@@ -21,7 +21,8 @@ const shotDir = fileURLToPath(new URL('../test-results/mobile-tablet-landscape/'
 
 // Asserts React's mobile chrome (Editor actions bar, Menu button); other
 // frameworks differ, so scope to react.
-test.beforeEach((_, testInfo) => {
+// oxlint-disable-next-line no-empty-pattern -- Playwright requires the first beforeEach arg to be a destructuring pattern
+test.beforeEach(({}, testInfo) => {
 	test.skip(testInfo.project.name !== 'react', 'React mobile chrome only');
 });
 

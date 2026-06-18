@@ -23,7 +23,8 @@ test.use({ ...devices['Pixel 7'] });
 
 // Navigates via React's mobile slides sheet ("Slides" button); other
 // frameworks differ, so scope to react.
-test.beforeEach((_, testInfo) => {
+// oxlint-disable-next-line no-empty-pattern -- Playwright requires the first beforeEach arg to be a destructuring pattern
+test.beforeEach(({}, testInfo) => {
 	test.skip(testInfo.project.name !== 'react', 'React mobile navigation only');
 });
 
