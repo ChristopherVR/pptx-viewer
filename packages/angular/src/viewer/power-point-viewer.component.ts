@@ -850,6 +850,10 @@ export class PowerPointViewerComponent {
 	/** Open the fullscreen presentation overlay from the current slide. */
 	present(): void {
 		if (this.slideCount() > 0) {
+			// Deselect first so no edit chrome (selection outline / resize + rotate
+			// "Adjust shape" handles) leaks over the slideshow.
+			this.editor.clearSelection();
+			this.editingId.set(null);
 			this.presenting.set(true);
 		}
 	}
