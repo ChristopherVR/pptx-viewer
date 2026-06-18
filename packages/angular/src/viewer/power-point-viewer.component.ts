@@ -12,7 +12,7 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
-import { applyThemeToData } from 'pptx-viewer-core';
+import { applyThemeToData, hasShapeProperties } from 'pptx-viewer-core';
 import type {
 	InkPptxElement,
 	PptxComment,
@@ -46,6 +46,7 @@ import { EditorToolbarComponent } from './editor-toolbar.component';
 import { EmbeddedFontsService } from './embedded-fonts.service';
 import { slideFileName } from './export-helpers';
 import { ExportService } from './export.service';
+import { openNativeEyeDropper } from './eyedropper';
 import { FindBarComponent } from './find-bar.component';
 import { FindReplaceBarComponent } from './find-replace-bar.component';
 import type { FindEvent, ReplaceEvent } from './find-replace-bar.component';
@@ -197,9 +198,13 @@ const ZOOM_MAX = 3;
 					[showGrid]="showGrid()"
 					[showRulers]="showRulers()"
 					[showGuides]="showGuides()"
+					[snapToGrid]="snapToGrid()"
+					[eyedropperActive]="eyedropperActive()"
 					(toggleGrid)="showGrid.update(v => !v)"
 					(toggleRulers)="showRulers.update(v => !v)"
 					(toggleGuides)="showGuides.update(v => !v)"
+					(toggleSnapToGrid)="snapToGrid.update(v => !v)"
+					(toggleEyedropper)="onToggleEyedropper()"
 					[themeGalleryOpen]="showThemeGallery()"
 					(toggleThemeGallery)="showThemeGallery.update(v => !v)"
 					(toggleSelectionPane)="togglePanel('selection')"
@@ -246,6 +251,8 @@ const ZOOM_MAX = 3;
 							[showGrid]="showGrid()"
 							[showRulers]="showRulers()"
 							[showGuides]="showGuides()"
+							[snapToGrid]="snapToGrid()"
+							[snapToGuides]="showGuides()"
 							[drawTool]="activeDrawTool()"
 							[drawColor]="activeDrawColor()"
 							[drawWidth]="activeDrawWidth()"
@@ -681,6 +688,10 @@ export class PowerPointViewerComponent {
 	protected readonly showRulers = signal(false);
 	/** Whether center-crosshair guide lines are visible on the editor canvas. */
 	protected readonly showGuides = signal(false);
+	/** Whether snap-to-grid is active on the editor canvas. */
+	protected readonly snapToGrid = signal(false);
+	/** Whether the eyedropper is currently active. */
+	protected readonly eyedropperActive = signal(false);
 	/** Whether the theme-gallery overlay is visible (Design → Browse Themes). */
 	protected readonly showThemeGallery = signal(false);
 	/** Whether the custom-shows dialog is open. */
@@ -1037,6 +1048,32 @@ export class PowerPointViewerComponent {
 		}
 		this.editor.select([id]);
 		this.editor.deleteSelected(this.activeSlideIndex());
+	}
+
+	/**
+	 * Activate the native EyeDropper API to pick a colour from the screen.
+	 * When a shape/text/connector/image element is selected, applies the colour
+	 * to its fill. Otherwise copies the colour to the clipboard. No-ops when
+	 * the EyeDropper API is not available or the user cancels.
+	 */
+	protected async onToggleEyedropper(): Promise<void> {
+		this.eyedropperActive.set(true);
+		try {
+			const color = await openNativeEyeDropper();
+			if (color) {
+				const sel = this.selectedElement();
+				const idx = this.activeSlideIndex();
+				if (sel !== null && hasShapeProperties(sel)) {
+					this.editor.updateElement(idx, sel.id, {
+						shapeStyle: { ...sel.shapeStyle, fillColor: color },
+					} as Partial<PptxElement>);
+				} else {
+					await navigator.clipboard.writeText(color).catch(() => undefined);
+				}
+			}
+		} finally {
+			this.eyedropperActive.set(false);
+		}
 	}
 
 	/** Append a comment to the active slide (one history entry). */

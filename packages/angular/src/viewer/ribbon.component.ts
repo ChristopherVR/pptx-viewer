@@ -670,6 +670,25 @@ const TEXT_COLORS = [
 						>
 							Selection Pane
 						</button>
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							[ngClass]="snapToGrid() ? 'bg-primary text-primary-foreground' : ''"
+							title="Snap elements to grid while moving"
+							(click)="toggleSnapToGrid.emit()"
+						>
+							Snap to Grid
+						</button>
+						<span class="pptx-rb-sep"></span>
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							[ngClass]="eyedropperActive() ? 'pptx-rb-eyedropper-active' : ''"
+							title="Pick colour from screen (EyeDropper)"
+							(click)="toggleEyedropper.emit()"
+						>
+							Eyedropper
+						</button>
 					}
 					@case ('draw') {
 						<!--
@@ -1078,6 +1097,10 @@ export class RibbonComponent {
 	readonly showRulers = input<boolean>(false);
 	/** Current visibility state of center guide lines (for active-state styling). */
 	readonly showGuides = input<boolean>(false);
+	/** Current state of snap-to-grid (for active-state styling). */
+	readonly snapToGrid = input<boolean>(false);
+	/** Current state of eyedropper tool (for active-state styling). */
+	readonly eyedropperActive = input<boolean>(false);
 	/** Current visibility state of the theme gallery overlay (for active-state styling). */
 	readonly themeGalleryOpen = input<boolean>(false);
 
@@ -1131,6 +1154,10 @@ export class RibbonComponent {
 	readonly toggleSelectionPane = output<void>();
 	/** Emitted when the user clicks "Custom Shows" in the Slide Show tab. */
 	readonly openCustomShows = output<void>();
+	/** Emitted when the user toggles snap-to-grid in the View tab. */
+	readonly toggleSnapToGrid = output<void>();
+	/** Emitted when the user activates the eyedropper in the View tab. */
+	readonly toggleEyedropper = output<void>();
 
 	protected readonly tabs = TABS;
 	protected readonly fontFamilies = FONT_FAMILIES;

@@ -25,7 +25,7 @@ import type { StyleMap } from './element-style';
 import { pointsToSvgPathD, strokeToInkElement } from './ink-drawing-helpers';
 import type { InkPoint } from './ink-drawing-helpers';
 import { getSlideBackgroundStyle } from './slide-background';
-import { computeSnap } from './snap-guides';
+import { computeSnap, snapToGridStep } from './snap-guides';
 import type { SnapGuide } from './snap-guides';
 
 /** Pixels (screen-space) a pointer must move before a click becomes a drag. */
@@ -91,6 +91,13 @@ const IS_COARSE_POINTER: boolean =
 
 /** Resize/rotate handle size in screen pixels for the current pointer kind. */
 const HANDLE_SCREEN_PX = IS_COARSE_POINTER ? HANDLE_SCREEN_PX_COARSE : HANDLE_SCREEN_PX_FINE;
+
+/** A user-created guide line dragged from a ruler strip. */
+interface RulerGuide {
+	id: string;
+	axis: 'x' | 'y';
+	pos: number;
+}
 
 interface DragState {
 	id: string;
@@ -309,6 +316,34 @@ function plainText(el: PptxElement): string {
 								stroke-dasharray="6 3"
 							/>
 						</svg>
+
+						<!--
+							User-created ruler guides.
+							Each guide has a non-interactive line body and an interactive
+							drag handle. Double-click the handle to delete the guide.
+						-->
+						@for (g of rulerGuides(); track g.id) {
+							<!-- Guide line body — pointer-events:none -->
+							<div
+								class="pptx-ng-ruler-guide-line"
+								[style.left.px]="g.axis === 'x' ? g.pos : 0"
+								[style.top.px]="g.axis === 'y' ? g.pos : 0"
+								[style.width]="g.axis === 'x' ? '1px' : '100%'"
+								[style.height]="g.axis === 'y' ? '1px' : '100%'"
+							></div>
+							<!-- Drag handle — pointer-events:auto -->
+							<div
+								class="pptx-ng-ruler-guide-handle"
+								[style.left.px]="g.axis === 'x' ? g.pos - 4 : 0"
+								[style.top.px]="g.axis === 'y' ? g.pos - 4 : 0"
+								[style.width]="g.axis === 'x' ? '9px' : '100%'"
+								[style.height]="g.axis === 'y' ? '9px' : '100%'"
+								[style.cursor]="g.axis === 'x' ? 'col-resize' : 'row-resize'"
+								(pointerdown)="onGuidePointerDown($event, g.id, g.axis)"
+								(dblclick)="onGuideDoubleClick($event, g.id)"
+								title="Drag to move guide. Double-click to remove."
+							></div>
+						}
 					}
 
 					<!--
@@ -354,6 +389,8 @@ function plainText(el: PptxElement): string {
 						aria-hidden="true"
 						[attr.width]="canvasSize().width * effectiveScalePublic()"
 						[attr.height]="20"
+						[style.cursor]="editable() ? 'crosshair' : null"
+						(pointerdown)="editable() ? onHRulerPointerDown($event) : null"
 					>
 						<rect
 							[attr.width]="canvasSize().width * effectiveScalePublic()"
@@ -397,6 +434,8 @@ function plainText(el: PptxElement): string {
 						aria-hidden="true"
 						[attr.width]="20"
 						[attr.height]="canvasSize().height * effectiveScalePublic()"
+						[style.cursor]="editable() ? 'crosshair' : null"
+						(pointerdown)="editable() ? onVRulerPointerDown($event) : null"
 					>
 						<rect
 							width="20"
@@ -462,6 +501,15 @@ export class SlideCanvasComponent {
 	 */
 	readonly showGuides = input<boolean>(false);
 	/**
+	 * When true, snap element positions to the grid increment during move.
+	 * Combines with edge-alignment snapping.
+	 */
+	readonly snapToGrid = input<boolean>(false);
+	/**
+	 * When true, snap elements to user-created ruler guides during move.
+	 */
+	readonly snapToGuides = input<boolean>(false);
+	/**
 	 * When true (default), the stage auto-fits the slide to the scroll viewport so
 	 * the user's `zoom` is relative to "fit". Thumbnail consumers (slides panel,
 	 * slide sorter) pass an explicit fit-to-width `zoom` and set this `false`, so
@@ -518,6 +566,8 @@ export class SlideCanvasComponent {
 
 	private drag: DragState | null = null;
 	private editCancelled = false;
+	/** Active guide-drag state (id + axis only), or null when nothing is being dragged. */
+	private guideDrag: Pick<RulerGuide, 'id' | 'axis'> | null = null;
 	private marquee: {
 		startX: number;
 		startY: number;
@@ -531,6 +581,11 @@ export class SlideCanvasComponent {
 	);
 	/** Live alignment-snap guide lines (stage coords) during a move. */
 	readonly snapGuides = signal<readonly SnapGuide[]>([]);
+	/**
+	 * User-created guide lines (dragged from rulers or added from toolbar).
+	 * axis:'x' → vertical line at x=pos; axis:'y' → horizontal line at y=pos.
+	 */
+	readonly rulerGuides = signal<readonly RulerGuide[]>([]);
 
 	// ── Ink drawing state ─────────────────────────────────────────────────────
 	/** Accumulated points for the stroke currently being drawn. */
@@ -935,6 +990,24 @@ export class SlideCanvasComponent {
 
 	@HostListener('document:pointermove', ['$event'])
 	onPointerMove(event: PointerEvent): void {
+		// ── GUIDE DRAG ────────────────────────────────────────────────────────
+		if (this.guideDrag) {
+			const stage = this.stageRef()?.nativeElement;
+			if (stage) {
+				const rect = stage.getBoundingClientRect();
+				const z = this.effectiveScale() || 1;
+				const guides = this.rulerGuides();
+				const { id, axis } = this.guideDrag;
+				const rawPos =
+					axis === 'x' ? (event.clientX - rect.left) / z : (event.clientY - rect.top) / z;
+				const clampMax = axis === 'x' ? this.canvasSize().width : this.canvasSize().height;
+				const pos = Math.max(0, Math.min(clampMax, rawPos));
+				this.rulerGuides.set(guides.map((g) => (g.id === id ? { ...g, pos } : g)));
+			}
+			return;
+		}
+		// ── END GUIDE DRAG ────────────────────────────────────────────────────
+
 		// ── DRAW BRANCH ───────────────────────────────────────────────────────
 		// When a stroke is in progress, consume all pointer-move events for drawing.
 		if (this.inkActiveSignal()) {
@@ -1035,12 +1108,55 @@ export class SlideCanvasComponent {
 			const snap = computeSnap(box, others, SNAP_SCREEN_PX / zoom);
 			box = { ...box, x: snap.x, y: snap.y };
 			this.snapGuides.set(snap.guides);
+
+			// Grid snap — applied after element-edge snap so grid takes precedence.
+			if (this.snapToGrid()) {
+				const step = this.gridSpacingPx();
+				box = {
+					...box,
+					x: snapToGridStep(box.x, step),
+					y: snapToGridStep(box.y, step),
+				};
+			}
+
+			// Guide snap — snap the moving element to the nearest user guide.
+			if (this.snapToGuides()) {
+				const guides = this.rulerGuides();
+				const thr = SNAP_SCREEN_PX / zoom;
+				let gx = box.x;
+				let gy = box.y;
+				for (const g of guides) {
+					if (g.axis === 'x') {
+						for (const candidate of [gx, gx + box.width / 2, gx + box.width]) {
+							if (Math.abs(candidate - g.pos) <= thr) {
+								gx = g.pos - (candidate - gx);
+								break;
+							}
+						}
+					} else {
+						for (const candidate of [gy, gy + box.height / 2, gy + box.height]) {
+							if (Math.abs(candidate - g.pos) <= thr) {
+								gy = g.pos - (candidate - gy);
+								break;
+							}
+						}
+					}
+				}
+				box = { ...box, x: gx, y: gy };
+			}
 		}
 		this.transformUpdate.emit({ id: drag.id, box });
 	}
 
 	@HostListener('document:pointerup')
 	onPointerUp(): void {
+		// ── GUIDE DRAG ────────────────────────────────────────────────────────
+		if (this.guideDrag) {
+			this.guideDrag = null;
+			return;
+		}
+		// ── END GUIDE DRAG ────────────────────────────────────────────────────
+
 		// ── DRAW BRANCH ───────────────────────────────────────────────────────
 		// Finalise the stroke and emit the completed ink element.
 		if (this.inkActiveSignal()) {
@@ -1085,6 +1201,65 @@ export class SlideCanvasComponent {
 		}
 		this.drag = null;
 		this.snapGuides.set([]);
+	}
+
+	/** Begin dragging an existing guide. Called from the guide handle pointerdown. */
+	onGuidePointerDown(event: PointerEvent, id: string, axis: RulerGuide['axis']): void {
+		event.stopPropagation();
+		(event.target as Element | null)?.setPointerCapture?.(event.pointerId);
+		this.guideDrag = { id, axis };
+	}
+
+	/** Remove a guide (called on guide handle double-click). */
+	onGuideDoubleClick(event: MouseEvent, id: string): void {
+		event.stopPropagation();
+		this.rulerGuides.update((gs: readonly RulerGuide[]) =>
+			gs.filter((g: RulerGuide) => g.id !== id),
+		);
+	}
+
+	/** Drag from the horizontal ruler to create a new horizontal guide (axis:'y'). */
+	onHRulerPointerDown(event: PointerEvent): void {
+		if (!this.editable()) {
+			return;
+		}
+		const stage = this.stageRef()?.nativeElement;
+		if (!stage) {
+			return;
+		}
+		event.preventDefault();
+		(event.target as Element | null)?.setPointerCapture?.(event.pointerId);
+		const rect = stage.getBoundingClientRect();
+		const z = this.effectiveScale() || 1;
+		const pos = (event.clientY - rect.top) / z;
+		const id = `guide-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+		this.rulerGuides.update((gs: readonly RulerGuide[]) => [
+			...gs,
+			{ id, axis: 'y' as const, pos: Math.max(0, pos) },
+		]);
+		this.guideDrag = { id, axis: 'y' };
+	}
+
+	/** Drag from the vertical ruler to create a new vertical guide (axis:'x'). */
+	onVRulerPointerDown(event: PointerEvent): void {
+		if (!this.editable()) {
+			return;
+		}
+		const stage = this.stageRef()?.nativeElement;
+		if (!stage) {
+			return;
+		}
+		event.preventDefault();
+		(event.target as Element | null)?.setPointerCapture?.(event.pointerId);
+		const rect = stage.getBoundingClientRect();
+		const z = this.effectiveScale() || 1;
+		const pos = (event.clientX - rect.left) / z;
+		const id = `guide-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+		this.rulerGuides.update((gs: readonly RulerGuide[]) => [
+			...gs,
+			{ id, axis: 'x' as const, pos: Math.max(0, pos) },
+		]);
+		this.guideDrag = { id, axis: 'x' };
 	}
 
 	readonly wrapperStyle = computed<StyleMap>(() => {
