@@ -28,6 +28,33 @@ export type { YDoc, Awareness };
 /** Maximum time (ms) to wait for an initial WebSocket connection before giving up. */
 const CONNECTION_TIMEOUT_MS = 30_000;
 
+/**
+ * Returns true if connecting to `serverUrl` would be blocked as mixed content:
+ * an insecure `ws://` socket opened from a secure `https://` page. Browsers
+ * exempt loopback hosts (localhost / 127.0.0.1 / [::1]) as potentially
+ * trustworthy, so those are allowed.
+ *
+ * Detecting this up front lets us fail fast with a clear `'error'` status
+ * instead of waiting out the full connection timeout on a socket the browser
+ * will never open.
+ */
+export function isMixedContentBlocked(serverUrl: string): boolean {
+	if (typeof window === 'undefined' || window.location.protocol !== 'https:') {
+		return false;
+	}
+	let parsed: URL;
+	try {
+		parsed = new URL(serverUrl);
+	} catch {
+		return false;
+	}
+	if (parsed.protocol !== 'ws:') {
+		return false;
+	}
+	const loopbackHosts = ['localhost', '127.0.0.1', '[::1]'];
+	return !loopbackHosts.includes(parsed.hostname);
+}
+
 // ---------------------------------------------------------------------------
 // Hook input / output
 // ---------------------------------------------------------------------------
@@ -89,6 +116,16 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 
 		// Validate room ID before connecting
 		const roomId = validateRoomId(config.roomId);
+
+		// Fail fast on mixed content: an https page cannot open a ws:// socket.
+		// Surface the error immediately rather than hanging until the timeout.
+		if (isMixedContentBlocked(config.serverUrl)) {
+			console.warn(
+				`[pptx-viewer] Refusing to connect: insecure ws:// server "${config.serverUrl}" is blocked from a secure (https) page. Use a wss:// URL.`,
+			);
+			setStatus('error');
+			return;
+		}
 
 		setStatus('connecting');
 

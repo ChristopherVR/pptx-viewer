@@ -197,6 +197,8 @@ const en = {
 		'pptx.share.namePlaceholder': 'e.g. Alice',
 		'pptx.share.serverLabel': 'Collaboration Server',
 		'pptx.share.serverPlaceholder': 'wss://collab.example.com',
+		'pptx.share.serverHint':
+			'Enter the WebSocket URL of a y-websocket server. Use a secure wss:// URL when sharing from an https:// page.',
 		'pptx.share.shareLink': 'Share Link',
 		'pptx.share.copyLink': 'Copy share link',
 		'pptx.share.copied': 'Copied',
@@ -206,6 +208,8 @@ const en = {
 		'pptx.share.server': 'Server:',
 		'pptx.share.connectedUsers': 'Connected Users',
 		'pptx.share.you': '(you)',
+		'pptx.share.connectionError':
+			"Couldn't reach the collaboration server. Check the server URL — it must be a reachable y-websocket server, and a secure wss:// URL when sharing from an https:// page.",
 
 		// Settings dialog
 		'pptx.settings.title': 'Settings',

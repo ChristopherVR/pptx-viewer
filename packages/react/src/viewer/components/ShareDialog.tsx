@@ -21,7 +21,7 @@ import { useCollaboration } from './collaboration';
 // ---------------------------------------------------------------------------
 
 function getInitials(name: string): string {
-	const parts = name.trim().split(/\s+/);
+	const parts = name.trim().split(/\s+/u);
 	if (parts.length >= 2) {
 		return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 	}
@@ -203,6 +203,8 @@ export function ShareDialog({
 								onUserNameChange={setUserName}
 								onServerUrlChange={setServerUrl}
 								preconfigured={preconfigured}
+								connectionFailed={collab?.status === 'error'}
+								onRetry={collab?.retry}
 							/>
 						)}
 					</div>
@@ -246,6 +248,8 @@ function StartSessionForm({
 	onUserNameChange,
 	onServerUrlChange,
 	preconfigured,
+	connectionFailed,
+	onRetry,
 }: {
 	roomId: string;
 	userName: string;
@@ -254,6 +258,10 @@ function StartSessionForm({
 	onUserNameChange: (v: string) => void;
 	onServerUrlChange: (v: string) => void;
 	preconfigured?: boolean;
+	/** True when the last connection attempt ended in an error. */
+	connectionFailed?: boolean;
+	/** Retry the failed connection (provided by the collaboration context). */
+	onRetry?: () => void;
 }) {
 	const { t } = useTranslation();
 	const inputReadOnlyClass = preconfigured ? ' opacity-70 cursor-not-allowed' : '';
@@ -264,6 +272,30 @@ function StartSessionForm({
 				{preconfigured ? t('pptx.share.preconfiguredDescription') : t('pptx.share.description')}
 			</p>
 
+			{/* Connection error banner — surfaced when a previous attempt failed
+			    (e.g. unreachable server, or a blocked ws:// socket on an https
+			    page). Keeps the failure visible instead of silently resetting. */}
+			{connectionFailed && (
+				<div
+					role='alert'
+					className='flex items-start gap-2 rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-[12px] text-red-400'
+				>
+					<LuWifiOff className='w-4 h-4 mt-0.5 shrink-0' />
+					<div className='flex-1 space-y-1'>
+						<p className='font-medium'>{t('pptx.share.connectionError')}</p>
+						{onRetry && (
+							<button
+								type='button'
+								onClick={onRetry}
+								className='underline underline-offset-2 hover:no-underline'
+							>
+								{t('pptx.collaboration.retry')}
+							</button>
+						)}
+					</div>
+				</div>
+			)}
+
 			{/* Room / Session Name */}
 			<div className='space-y-1.5'>
 				<label htmlFor='share-room-id' className='block text-[12px] font-medium text-foreground'>
@@ -272,6 +304,7 @@ function StartSessionForm({
 				<input
 					id='share-room-id'
 					type='text'
+					aria-label={t('pptx.share.sessionName')}
 					value={roomId}
 					onChange={(e) => onRoomIdChange(e.target.value)}
 					readOnly={preconfigured}
@@ -289,6 +322,7 @@ function StartSessionForm({
 				<input
 					id='share-user-name'
 					type='text'
+					aria-label={t('pptx.share.displayName')}
 					value={userName}
 					onChange={(e) => onUserNameChange(e.target.value)}
 					readOnly={preconfigured}
@@ -305,6 +339,7 @@ function StartSessionForm({
 				<input
 					id='share-server-url'
 					type='text'
+					aria-label={t('pptx.share.serverLabel')}
 					value={serverUrl}
 					onChange={(e) => onServerUrlChange(e.target.value)}
 					readOnly={preconfigured}
@@ -314,14 +349,7 @@ function StartSessionForm({
 			</div>
 
 			{/* y-websocket server hint */}
-			<p className='text-[11px] text-muted-foreground/70 leading-relaxed'>
-				Run{' '}
-				<code className='px-1 py-0.5 rounded bg-muted text-[10px] font-mono'>bun run collab</code>{' '}
-				to start the server. Others can join at{' '}
-				<code className='px-1 py-0.5 rounded bg-muted text-[10px] font-mono'>
-					?room=SESSION_NAME
-				</code>
-			</p>
+			<p className='text-[11px] text-muted-foreground'>{t('pptx.share.serverHint')}</p>
 		</div>
 	);
 }
