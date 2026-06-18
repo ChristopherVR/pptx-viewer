@@ -978,9 +978,25 @@ shape-adjustment,remap-text}.ts` + 56 ported tests; shared extraction deferred t
   +6 unit tests. **1249 vue tests green; typecheck + oxlint clean.**
 
   > **Ribbon-action status.** Wired: Insert (text/shape/table/image/media/smartArt/equation/
-  > action-button/layout gallery), View (Grid + Snap-to-Grid), Design (theme gallery + **theme
-  > editor**), Draw (**pen/highlighter/eraser**), plus the undo/selection fix. **Remaining
-  > genuinely-larger work:** **spell-check** (a spell engine + squiggle rendering), and **Rulers /
-  > Snap-to-Shape / H+V Guides** (ruler + guide overlay components + the SlideCanvas layout offset
-  > — the Vue `SlideCanvas`/`SlideStage` are no longer being touched by the parallel Angular
-  > session, so this is now safe to start; it's the last cohesive canvas-chrome port).
+  > action-button/layout gallery), View (Grid + Snap-to-Grid), Design (theme gallery + theme
+  > editor), Draw (pen/highlighter/eraser), plus the undo/selection fix.
+
+- **2026-06-18** — **View ▸ Rulers.** Ported React's `ruler-utils` (`generateTicks` + constants)
+  verbatim into `composables/ruler-utils.ts` and added `RulerStrips.vue` — horizontal + vertical
+  ruler strips (SVG ticks + inch labels, zoom-scaled) drawn along the slide edges. `SlideCanvas`
+  gains a `showRulers` prop (renders the strips inside the slide wrapper, reserves top space);
+  host `showRulers` ref wired to `onSetShowRulers`. Verified live (168 ticks, inch labels 0–5).
+  +6 unit tests; typecheck + oxlint clean. **Remaining View-tab interactivity:** **Snap-to-Shape**
+  and **H/V Guides** (draggable guide lines + alignment-guide logic during drag), and **spell-check**.
+
+> **🚨 WORKSPACE BROKEN (not the Vue port) — needs the parallel session / a publish.** A
+> parallel commit, `refactor(core)!: consume emf-converter and mtx-decompressor from npm`
+> (`2f6013d`, merged `839d9aa`), **deleted the `packages/emf-converter` + `packages/mtx-decompressor`
+> workspace packages** and made `packages/core` depend on them from npm at `^1.4.0`. Those
+> versions **are not published**, so `bun install` fails (`No version matching "^1.4.0" for
+mtx-decompressor`). Consequently **anything that imports `pptx-viewer-core` won't load** — the
+> demo dev server 500s and the full `vitest` run aborts (~470 of 1255 tests can't import).
+> `vue-tsc` typecheck still passes (uses bundled types), and tests/files that don't import core
+> still run. **Vue-port code added this session is unaffected** (isolated unit tests pass,
+> typecheck clean). **Fix:** publish `emf-converter@1.4.0` + `mtx-decompressor@1.4.0` (or repoint
+> core's deps to existing versions / restore the workspace packages), then `bun install`.
