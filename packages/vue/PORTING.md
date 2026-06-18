@@ -905,3 +905,18 @@ shape-adjustment,remap-text}.ts` + 56 ported tests; shared extraction deferred t
   oxlint clean. **Deferred** (advanced; core's direction-constant tables aren't exported):
   transition direction / orientation / spokes / preview, and the rest of React's
   slide-properties inspector (background, size, theme override).
+
+- **2026-06-18** — **Insert: table + image** wired (self-contained ribbon stubs) **+ a host
+  undo/selection bugfix surfaced by them.** `onAddTable` inserts a centred 3×3 table
+  (mirrors React's `handleAddTable`); `onOpenImagePicker` reads a chosen image via a hidden
+  file input → inserts an aspect-preserving picture at ~60% slide width. **Bug found &
+  fixed:** `watch(slides, …)` (from the June-15 editing wiring) reset
+  activeSlideIndex/selection/history — meant for a new-document **load**, but it fired on
+  **every edit** because `commitElements` reassigns `slides.value` (shallowRef). So after
+  _any_ insert/edit, **undo was disabled and the selection was wiped** (the new element
+  never opened its inspector). Re-keyed the reset to the **`content` input** (changes only on
+  a real load) → undo-after-edit and post-insert selection work again. Verified live:
+  inserting a shape/table keeps undo enabled and opens the element inspector. 1227 vue tests
+  green; typecheck + oxlint clean; e2e green. **Still no-op (need host capability):** drawing
+  tools, grid/ruler/snap (need canvas overlays), theme gallery, action buttons, media (video/
+  audio) picker, layout gallery, spell-check, guides.
