@@ -93,6 +93,7 @@ import type { CopiedFormat } from './composables/format-painter';
 import { remapTextToSegments } from './composables/remap-text';
 import { compareSlides } from './composables/slide-compare';
 import type { CompareResult } from './composables/slide-compare';
+import { snapBox } from './composables/snap';
 import { TableThemeKey } from './composables/table-theme';
 import { useAccessibility } from './composables/useAccessibility';
 import { useAutosave } from './composables/useAutosave';
@@ -515,12 +516,10 @@ function patchActiveElementGeometry(payload: TransformPayload): void {
 	}
 	// Snap-to-grid (View tab): round position + size to the grid. Skipped while
 	// rotating (rounding a rotated box's x/y fights the rotation).
-	const snap = (v: number): number => Math.round(v / GRID_SIZE) * GRID_SIZE;
 	const useSnap = snapToGrid.value && !payload.rotation;
-	const x = useSnap ? snap(payload.x) : payload.x;
-	const y = useSnap ? snap(payload.y) : payload.y;
-	const width = useSnap ? Math.max(GRID_SIZE, snap(payload.width)) : payload.width;
-	const height = useSnap ? Math.max(GRID_SIZE, snap(payload.height)) : payload.height;
+	const { x, y, width, height } = useSnap
+		? snapBox(payload, GRID_SIZE)
+		: { x: payload.x, y: payload.y, width: payload.width, height: payload.height };
 	const nextElements = slide.elements.map((el) =>
 		el.id === payload.id
 			? {
@@ -1814,6 +1813,8 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						:zoom="effectiveZoom"
 						@update:fit-scale="fitScale = $event"
 					>
+						<!-- Dot grid overlay (View ▸ Grid) — sits over content, under selection -->
+						<GridOverlay :canvas-size="canvasSize" :visible="showGrid && !presenting" />
 						<SelectionOverlay
 							v-if="props.canEdit && !inlineEditingElementId && !presenting"
 							:elements="selectedElements"
