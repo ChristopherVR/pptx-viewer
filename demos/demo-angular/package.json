@@ -9,10 +9,10 @@
 		"preview": "vite preview"
 	},
 	"dependencies": {
-		"@angular/common": "^22.0.1",
-		"@angular/core": "^22.0.1",
-		"@angular/platform-browser": "^22.0.1",
-		"fast-xml-parser": "^5.8.0",
+		"@angular/common": "^22.0.2",
+		"@angular/core": "^22.0.2",
+		"@angular/platform-browser": "^22.0.2",
+		"fast-xml-parser": "^5.9.2",
 		"html2canvas-pro": "^2.0.4",
 		"jspdf": "^4.2.1",
 		"jszip": "^3.10.1",
@@ -23,9 +23,9 @@
 	},
 	"devDependencies": {
 		"@analogjs/vite-plugin-angular": "^2.6.1",
-		"@angular/build": "^22.0.1",
-		"@angular/compiler": "^22.0.1",
-		"@angular/compiler-cli": "^22.0.1",
+		"@angular/build": "^22.0.3",
+		"@angular/compiler": "^22.0.2",
+		"@angular/compiler-cli": "^22.0.2",
 		"typescript": "^6.0.3",
 		"vite": "^8.0.16"
 	}

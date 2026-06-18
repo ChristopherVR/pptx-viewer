@@ -57,7 +57,7 @@
 	},
 	"dependencies": {
 		"clsx": "^2.1.1",
-		"dompurify": "^3.4.10",
+		"dompurify": "^3.4.11",
 		"html2canvas-pro": "^2.0.4",
 		"tailwind-merge": "^3.6.0"
 	},
@@ -71,9 +71,9 @@
 		"tailwindcss": "^4.3.1",
 		"tsup": "^8.5.1",
 		"typescript": "^6.0.3",
-		"vitest": "^4.1.8",
+		"vitest": "^4.1.9",
 		"y-websocket": "^3.0.0",
-		"yjs": "^13.6.30"
+		"yjs": "^13.6.31"
 	},
 	"peerDependencies": {
 		"fast-xml-parser": "^5.8.0",

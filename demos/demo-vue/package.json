@@ -9,7 +9,7 @@
 		"preview": "vite preview"
 	},
 	"dependencies": {
-		"fast-xml-parser": "^5.9.0",
+		"fast-xml-parser": "^5.9.2",
 		"jspdf": "^4.2.1",
 		"jszip": "^3.10.1",
 		"pptx-viewer-core": "workspace:*",

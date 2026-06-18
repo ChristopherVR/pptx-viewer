@@ -38,7 +38,7 @@
 		"pack": "bun run build && cd dist && bun pm pack"
 	},
 	"dependencies": {
-		"fast-xml-parser": "^5.8.0",
+		"fast-xml-parser": "^5.9.2",
 		"html2canvas-pro": "^2.0.4",
 		"jspdf": "^4.2.1",
 		"jszip": "^3.10.1",
@@ -46,19 +46,19 @@
 	},
 	"devDependencies": {
 		"@analogjs/vite-plugin-angular": "^2.6.1",
-		"@angular/common": "^22.0.1",
-		"@angular/compiler": "^22.0.1",
-		"@angular/compiler-cli": "^22.0.1",
-		"@angular/core": "^22.0.1",
-		"@angular/platform-browser": "^22.0.1",
+		"@angular/common": "^22.0.2",
+		"@angular/compiler": "^22.0.2",
+		"@angular/compiler-cli": "^22.0.2",
+		"@angular/core": "^22.0.2",
+		"@angular/platform-browser": "^22.0.2",
 		"@tailwindcss/cli": "^4.3.1",
-		"happy-dom": "^20.10.3",
+		"happy-dom": "^20.10.6",
 		"ng-packagr": "^22.0.0",
 		"pptx-viewer-core": "workspace:*",
 		"rxjs": "^7.8.2",
 		"tailwindcss": "^4.3.1",
 		"typescript": "^6.0.3",
-		"vitest": "^4.1.8",
+		"vitest": "^4.1.9",
 		"zone.js": "^0.16.2"
 	},
 	"peerDependencies": {
