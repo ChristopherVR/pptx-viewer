@@ -3,7 +3,9 @@ import type { PptxSlide } from 'pptx-viewer-core';
 import type { CSSProperties } from 'vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
+import { RULER_THICKNESS } from '../composables/ruler-utils';
 import type { CanvasSize } from '../types';
+import RulerStrips from './RulerStrips.vue';
 import SlideStage from './SlideStage.vue';
 
 /**
@@ -26,6 +28,8 @@ const props = defineProps<{
 	mediaDataUrls: Map<string, string>;
 	/** Effective scale (fitScale × user zoom) supplied by the parent. */
 	zoom?: number;
+	/** Show the horizontal/vertical rulers along the slide edges (View ▸ Rulers). */
+	showRulers?: boolean;
 }>();
 
 const emit = defineEmits<{ 'update:fitScale': [number] }>();
@@ -36,7 +40,8 @@ const wrapperStyle = computed<CSSProperties>(() => ({
 	width: `${props.canvasSize.width * scale.value}px`,
 	height: `${props.canvasSize.height * scale.value}px`,
 	position: 'relative',
-	margin: '1rem auto',
+	// Reserve room above for the horizontal ruler when it's shown.
+	margin: props.showRulers ? `${RULER_THICKNESS + 8}px auto 1rem` : '1rem auto',
 	boxShadow: '0 10px 40px rgba(0, 0, 0, 0.35)',
 }));
 
@@ -94,6 +99,7 @@ watch(() => [props.canvasSize.width, props.canvasSize.height], recomputeFit);
 			aria-roledescription="slide"
 			aria-label="Slide"
 		>
+			<RulerStrips v-if="showRulers" :canvas-size="canvasSize" :scale="scale" />
 			<SlideStage
 				:slide="slide"
 				:canvas-size="canvasSize"

@@ -1538,6 +1538,8 @@ const notesExpanded = ref(true);
 /** View-tab canvas aids: dot grid overlay + snap-to-grid during drag/resize. */
 const showGrid = ref(false);
 const snapToGrid = ref(false);
+/** View ▸ Rulers — horizontal/vertical rulers along the slide edges. */
+const showRulers = ref(false);
 /** Grid spacing in px (matches React's GRID_SIZE). */
 const GRID_SIZE = 8;
 
@@ -1751,7 +1753,7 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	clipboardPayload: clipboard.value ? { kind: 'element' } : null,
 	spellCheckEnabled: false,
 	showGrid: showGrid.value,
-	showRulers: false,
+	showRulers: showRulers.value,
 	snapToGrid: snapToGrid.value,
 	snapToShape: false,
 	isOverflowMenuOpen: overflowOpen.value,
@@ -1829,7 +1831,9 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	onSetShowGrid: (enabled) => {
 		showGrid.value = enabled;
 	},
-	onSetShowRulers: noop,
+	onSetShowRulers: (enabled) => {
+		showRulers.value = enabled;
+	},
 	onSetSnapToGrid: (enabled) => {
 		snapToGrid.value = enabled;
 	},
@@ -2055,6 +2059,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						:canvas-size="canvasSize"
 						:media-data-urls="mediaDataUrls"
 						:zoom="effectiveZoom"
+						:show-rulers="showRulers && !presenting"
 						@update:fit-scale="fitScale = $event"
 					>
 						<!-- Dot grid overlay (View ▸ Grid) — sits over content, under selection -->
