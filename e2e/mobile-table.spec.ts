@@ -21,14 +21,13 @@ import type { Page } from '@playwright/test';
 
 test.use({ ...devices['Pixel 7'] });
 
-// React-only for now: Angular DOES support table-cell touch editing (double-tap
-// mounts a `.pptx-ng-cell-input`), but this spec's broad `td input[type="text"]`
-// selector also matches Angular's inspector table-data-editor inputs (which sit
-// in their own `<td>`s), tripping strict mode. Scope to react until the selector
-// or the data-editor DOM is disambiguated.
+// React + Angular both support table-cell touch editing (double-tap mounts a
+// text input in the slide's `<td>`). The Angular inspector table editor was
+// switched to a non-<table> grid so it no longer collides with this spec's
+// `td input[type="text"]` selector. Vue's mobile chrome differs, so skip vue.
 // oxlint-disable-next-line no-empty-pattern -- Playwright requires the first beforeEach arg to be a destructuring pattern
 test.beforeEach(({}, testInfo) => {
-	test.skip(testInfo.project.name !== 'react', 'React mobile navigation only');
+	test.skip(testInfo.project.name === 'vue', 'Vue mobile chrome differs');
 });
 
 const deck = resolve(fileURLToPath(new URL('../.github/assets/sample-deck.pptx', import.meta.url)));

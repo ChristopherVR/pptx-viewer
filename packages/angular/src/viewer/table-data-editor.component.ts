@@ -90,61 +90,61 @@ import {
 				}
 			</header>
 
+			<!-- A non-table grid (role=grid) on purpose: the framework-neutral e2e
+			     contract uses a td-input selector for the in-slide table-cell
+			     editor, so this inspector editor must NOT put its inputs inside td
+			     cells or it collides (Playwright strict mode). -->
 			<div class="pptx-tbl-editor__scroll">
-				<table class="pptx-tbl-editor__table">
-					<thead>
-						<tr>
-							<!-- Row-number gutter -->
-							<th class="pptx-tbl-editor__corner"></th>
-							@for (colIdx of colIndices(); track colIdx) {
-								<th class="pptx-tbl-editor__col-header">
-									<span class="pptx-tbl-editor__col-label">{{ colIdx + 1 }}</span>
-									@if (canEdit() && colCount() > 1) {
-										<button
-											type="button"
-											class="pptx-tbl-editor__remove-btn"
-											title="Remove column {{ colIdx + 1 }}"
-											(click)="onRemoveColumn(colIdx)"
-										>
-											×
-										</button>
-									}
-								</th>
-							}
-						</tr>
-					</thead>
-					<tbody>
-						@for (row of rows(); track $index; let ri = $index) {
-							<tr>
-								<!-- Row label + remove button -->
-								<th class="pptx-tbl-editor__row-header">
-									<span class="pptx-tbl-editor__row-label">{{ ri + 1 }}</span>
-									@if (canEdit() && rowCount() > 1) {
-										<button
-											type="button"
-											class="pptx-tbl-editor__remove-btn"
-											title="Remove row {{ ri + 1 }}"
-											(click)="onRemoveRow(ri)"
-										>
-											×
-										</button>
-									}
-								</th>
-								@for (cell of row.cells; track $index; let ci = $index) {
-									<td class="pptx-tbl-editor__cell">
-										<input
-											type="text"
-											class="pptx-tbl-editor__input"
-											[disabled]="!canEdit()"
-											[value]="cell.text"
-											(change)="onCellChange($event, ri, ci)"
-										/>
-									</td>
+				<div class="pptx-tbl-editor__grid" role="grid">
+					<div class="pptx-tbl-editor__row" role="row">
+						<!-- Row-number gutter -->
+						<div class="pptx-tbl-editor__corner" role="columnheader"></div>
+						@for (colIdx of colIndices(); track colIdx) {
+							<div class="pptx-tbl-editor__col-header" role="columnheader">
+								<span class="pptx-tbl-editor__col-label">{{ colIdx + 1 }}</span>
+								@if (canEdit() && colCount() > 1) {
+									<button
+										type="button"
+										class="pptx-tbl-editor__remove-btn"
+										title="Remove column {{ colIdx + 1 }}"
+										(click)="onRemoveColumn(colIdx)"
+									>
+										×
+									</button>
 								}
-							</tr>
+							</div>
 						}
-					</tbody>
-				</table>
+					</div>
+					@for (row of rows(); track $index; let ri = $index) {
+						<div class="pptx-tbl-editor__row" role="row">
+							<!-- Row label + remove button -->
+							<div class="pptx-tbl-editor__row-header" role="rowheader">
+								<span class="pptx-tbl-editor__row-label">{{ ri + 1 }}</span>
+								@if (canEdit() && rowCount() > 1) {
+									<button
+										type="button"
+										class="pptx-tbl-editor__remove-btn"
+										title="Remove row {{ ri + 1 }}"
+										(click)="onRemoveRow(ri)"
+									>
+										×
+									</button>
+								}
+							</div>
+							@for (cell of row.cells; track $index; let ci = $index) {
+								<div class="pptx-tbl-editor__cell" role="gridcell">
+									<input
+										type="text"
+										class="pptx-tbl-editor__input"
+										[disabled]="!canEdit()"
+										[value]="cell.text"
+										(change)="onCellChange($event, ri, ci)"
+									/>
+								</div>
+							}
+						</div>
+					}
+				</div>
 			</div>
 		</section>
 	`,
@@ -204,31 +204,40 @@ import {
 			overflow-x: auto;
 		}
 
-		.pptx-tbl-editor__table {
-			border-collapse: collapse;
+		.pptx-tbl-editor__grid {
+			display: flex;
+			flex-direction: column;
 			font-size: 11px;
 			min-width: 100%;
+			width: max-content;
+		}
+
+		.pptx-tbl-editor__row {
+			display: flex;
 		}
 
 		.pptx-tbl-editor__corner,
 		.pptx-tbl-editor__col-header,
 		.pptx-tbl-editor__row-header {
+			display: flex;
+			align-items: center;
+			justify-content: center;
 			background: var(--pptx-inspector-input-bg, #2d2d2d);
 			color: var(--pptx-inspector-muted, #888);
 			font-weight: 400;
 			padding: 2px 4px;
 			border: 1px solid var(--pptx-inspector-border, #333);
-			min-width: 60px;
-		}
-
-		.pptx-tbl-editor__corner {
-			min-width: 28px;
-		}
-
-		.pptx-tbl-editor__col-header,
-		.pptx-tbl-editor__row-header {
-			text-align: center;
+			margin: -0.5px;
 			white-space: nowrap;
+		}
+
+		.pptx-tbl-editor__col-header {
+			flex: 1 0 60px;
+		}
+
+		.pptx-tbl-editor__corner,
+		.pptx-tbl-editor__row-header {
+			flex: 0 0 40px;
 		}
 
 		.pptx-tbl-editor__col-label,
@@ -247,8 +256,11 @@ import {
 		}
 
 		.pptx-tbl-editor__cell {
+			display: flex;
+			flex: 1 0 60px;
 			padding: 1px;
 			border: 1px solid var(--pptx-inspector-border, #333);
+			margin: -0.5px;
 		}
 
 		.pptx-tbl-editor__input {
