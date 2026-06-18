@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 
+import { useSheetDismissDrag } from '../../hooks/useSheetDismissDrag';
 import { cn } from '../../utils';
 
 export interface MobileSheetProps {
@@ -39,37 +40,7 @@ export function MobileSheet({
 	headerRight,
 }: MobileSheetProps): React.ReactElement | null {
 	const sheetRef = useRef<HTMLDivElement>(null);
-	const [dragY, setDragY] = useState(0);
-	const dragStartRef = useRef<number | null>(null);
-
-	const onPointerDown = useCallback((e: React.PointerEvent) => {
-		dragStartRef.current = e.clientY;
-		(e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-	}, []);
-
-	const onPointerMove = useCallback((e: React.PointerEvent) => {
-		if (dragStartRef.current === null) {
-			return;
-		}
-		const delta = e.clientY - dragStartRef.current;
-		setDragY(Math.max(0, delta));
-	}, []);
-
-	const onPointerUp = useCallback(
-		(e: React.PointerEvent) => {
-			if (dragStartRef.current === null) {
-				return;
-			}
-			const delta = e.clientY - dragStartRef.current;
-			dragStartRef.current = null;
-			(e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
-			if (delta > 120) {
-				onClose();
-			}
-			setDragY(0);
-		},
-		[onClose],
-	);
+	const { dragY, dragging, handlers } = useSheetDismissDrag(onClose);
 
 	useEffect(() => {
 		if (!open) {
@@ -119,27 +90,30 @@ export function MobileSheet({
 				style={{
 					...heightStyle,
 					transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
-					transition: dragStartRef.current === null ? 'transform 150ms ease-out' : 'none',
+					transition: dragging ? 'none' : 'transform 150ms ease-out',
 				}}
 			>
-				{/* Drag handle */}
+				{/* Drag handle + header form a single swipe-to-dismiss grab region so
+				    the gesture isn't limited to the thin pill. */}
 				<div
-					className='flex items-center justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing touch-none'
-					onPointerDown={onPointerDown}
-					onPointerMove={onPointerMove}
-					onPointerUp={onPointerUp}
-					onPointerCancel={onPointerUp}
+					className='cursor-grab active:cursor-grabbing touch-none'
+					onPointerDown={handlers.onPointerDown}
+					onPointerMove={handlers.onPointerMove}
+					onPointerUp={handlers.onPointerUp}
+					onPointerCancel={handlers.onPointerCancel}
 				>
-					<div className='h-1 w-10 rounded-full bg-muted-foreground/40' />
-				</div>
-
-				{/* Header */}
-				{(title || headerRight) && (
-					<div className='flex items-center justify-between gap-2 px-4 pb-2 border-b border-border/60'>
-						<div className='text-sm font-semibold text-foreground truncate'>{title}</div>
-						{headerRight}
+					<div className='flex items-center justify-center pt-2 pb-1'>
+						<div className='h-1 w-10 rounded-full bg-muted-foreground/40' />
 					</div>
-				)}
+
+					{/* Header */}
+					{(title || headerRight) && (
+						<div className='flex items-center justify-between gap-2 px-4 pb-2 border-b border-border/60'>
+							<div className='text-sm font-semibold text-foreground truncate'>{title}</div>
+							{headerRight}
+						</div>
+					)}
+				</div>
 
 				{/* Body */}
 				<div className='flex-1 overflow-y-auto overscroll-contain'>{children}</div>

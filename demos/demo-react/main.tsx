@@ -284,13 +284,18 @@ function ThemePicker({ current, onChange }: { current: string; onChange: (key: s
 				<div
 					style={{
 						position: 'absolute',
-						bottom: '100%',
+						// On mobile the button is anchored near the top, so an upward
+						// menu was clipped off-screen (Dark/Light unreachable). Open
+						// downward there; keep the bottom-anchored placement on desktop.
+						...(isSmallScreen
+							? { top: '100%', marginTop: 4 }
+							: { bottom: '100%', marginBottom: 4 }),
 						right: 0,
-						marginBottom: 4,
 						background: bg,
 						border: `1px solid ${border}`,
 						borderRadius: 8,
-						overflow: 'hidden',
+						overflowY: 'auto',
+						maxHeight: '60dvh',
 						boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
 						minWidth: 150,
 					}}

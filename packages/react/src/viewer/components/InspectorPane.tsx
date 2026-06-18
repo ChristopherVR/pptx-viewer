@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuX } from 'react-icons/lu';
 
+import { useSheetDismissDrag } from '../hooks/useSheetDismissDrag';
 import { cn } from '../utils';
 import { AnimationPanel } from './inspector/AnimationPanel';
 import { ElementInspectorBody } from './inspector/ElementInspectorBody';
@@ -82,6 +83,11 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 	const hasSelection = selectedElement !== null;
 	const { t } = useTranslation();
 
+	// Swipe-down-to-dismiss for the mobile bottom-sheet presentation. The grab
+	// region is `md:hidden`, so `dragY` only ever moves on mobile — the inline
+	// transform below is therefore a no-op on desktop where this is a side panel.
+	const { dragY, handlers: dragHandlers } = useSheetDismissDrag(onClose);
+
 	const [selectedThemePath, setSelectedThemePath] = useState<string>('');
 
 	// Animation panel resizable height
@@ -128,10 +134,19 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 					'md:h-full md:border-l md:border-border',
 					!panelWidth && 'md:w-72',
 				)}
-				style={panelWidth ? { width: panelWidth } : undefined}
+				style={{
+					...(panelWidth ? { width: panelWidth } : {}),
+					...(dragY > 0 ? { transform: `translateY(${dragY}px)`, transition: 'none' } : {}),
+				}}
 			>
-				{/* Mobile drag handle */}
-				<div className='md:hidden flex items-center justify-center pt-2 pb-1'>
+				{/* Mobile drag handle — swipe down past the threshold to dismiss. */}
+				<div
+					className='md:hidden flex items-center justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none'
+					onPointerDown={dragHandlers.onPointerDown}
+					onPointerMove={dragHandlers.onPointerMove}
+					onPointerUp={dragHandlers.onPointerUp}
+					onPointerCancel={dragHandlers.onPointerCancel}
+				>
 					<div className='h-1 w-10 rounded-full bg-muted-foreground/40' />
 				</div>
 

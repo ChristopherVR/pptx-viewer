@@ -14,6 +14,9 @@ export type {
 
 export { useFindReplace } from './useFindReplace';
 
+export { useSheetDismissDrag } from './useSheetDismissDrag';
+export type { SheetDismissDrag, SheetDismissDragHandlers } from './useSheetDismissDrag';
+
 export { useComments } from './useComments';
 
 export { useViewerState } from './useViewerState';

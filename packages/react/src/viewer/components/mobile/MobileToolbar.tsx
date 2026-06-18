@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuMenu, LuPresentation, LuRedo, LuShare2, LuUndo } from 'react-icons/lu';
+import { LuDownload, LuMenu, LuPresentation, LuRedo, LuShare2, LuUndo } from 'react-icons/lu';
 
 import { cn } from '../../utils';
 import type { ToolbarProps } from '../toolbar/toolbar-types';
@@ -18,7 +18,7 @@ import { MobileMenuSheet } from './MobileMenuSheet';
  */
 export function MobileToolbar(props: ToolbarProps): React.ReactElement {
 	const { t } = useTranslation();
-	const { mode, canUndo, canRedo, onUndo, onRedo, onSetMode } = props;
+	const { mode, canUndo, canRedo, onUndo, onRedo, onSetMode, onSaveAsPptx } = props;
 	const [menuOpen, setMenuOpen] = useState(false);
 
 	const showEdit = mode === 'edit' || mode === 'master';
@@ -73,6 +73,19 @@ export function MobileToolbar(props: ToolbarProps): React.ReactElement {
 
 			{/* Flexible spacer (could hold filename later) */}
 			<div className='flex-1' />
+
+			{/* Save / download — surfaced directly so it's reachable without
+			    digging into Menu → File, and available even in view-only mode
+			    where the Menu button is hidden. */}
+			<button
+				type='button'
+				onClick={onSaveAsPptx}
+				className={btn}
+				title={t('pptx.toolbar.save', 'Save')}
+				aria-label={t('pptx.toolbar.save', 'Save')}
+			>
+				<LuDownload className='w-5 h-5' />
+			</button>
 
 			{/* Present */}
 			<button
