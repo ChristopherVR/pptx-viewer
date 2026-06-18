@@ -435,6 +435,69 @@
 	background: rgba(99, 102, 241, 0.06);
 }
 
+/* ── View overlays (grid / guides / rulers) ──────────────────────────── */
+
+/*
+ * Grid overlay — absolutely positioned SVG that sits over the slide stage.
+ * pointer-events: none so it never intercepts element gestures.
+ * z-index below selection handles (10000) but above slide content.
+ */
+.pptx-ng-overlay-grid {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	z-index: 2;
+}
+
+/*
+ * Guides overlay — dashed center crosshair lines rendered as an SVG.
+ * Same stacking / non-interactive requirements as the grid.
+ */
+.pptx-ng-overlay-guides {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	z-index: 3;
+}
+
+/*
+ * Ruler strips — positioned inside the wrapper's padding area (which is
+ * RULER_THICKNESS px wide/tall). The corner square fills the 20×20 corner
+ * where both rulers meet. All strips are pointer-events: none.
+ */
+.pptx-ng-ruler-corner {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 20px;
+	height: 20px;
+	background: #1e293b;
+	border-right: 1px solid rgba(255, 255, 255, 0.1);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	pointer-events: none;
+	z-index: 52;
+}
+
+.pptx-ng-ruler-h {
+	position: absolute;
+	top: 0;
+	left: 20px;
+	height: 20px;
+	overflow: hidden;
+	pointer-events: none;
+	z-index: 51;
+}
+
+.pptx-ng-ruler-v {
+	position: absolute;
+	top: 20px;
+	left: 0;
+	width: 20px;
+	overflow: hidden;
+	pointer-events: none;
+	z-index: 51;
+}
+
 /* ── Mobile / coarse-pointer ─────────────────────────────────────────── */
 /*
  * On small screens and touch devices the toolbar buttons are too small to tap

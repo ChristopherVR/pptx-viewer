@@ -177,6 +177,12 @@ const ZOOM_MAX = 3;
 					(replace)="openFindReplace()"
 					(toggleInspector)="activePanel.set(null)"
 					(drawToolChange)="onDrawToolChange($event)"
+					[showGrid]="showGrid()"
+					[showRulers]="showRulers()"
+					[showGuides]="showGuides()"
+					(toggleGrid)="showGrid.update(v => !v)"
+					(toggleRulers)="showRulers.update(v => !v)"
+					(toggleGuides)="showGuides.update(v => !v)"
 					/>
 				}
 
@@ -216,6 +222,9 @@ const ZOOM_MAX = 3;
 							[zoom]="zoom()"
 							[editable]="canEdit()"
 							[selectedIds]="editor.selectedIds()"
+							[showGrid]="showGrid()"
+							[showRulers]="showRulers()"
+							[showGuides]="showGuides()"
 							(elementSelect)="onElementSelect($event)"
 							(backgroundClick)="onBackgroundClick()"
 							(marqueeSelect)="editor.select($event)"
@@ -596,6 +605,12 @@ export class PowerPointViewerComponent {
 	protected readonly contextMenuPos = signal<{ x: number; y: number } | null>(null);
 	/** Id of the element being inline text-edited, or null. */
 	protected readonly editingId = signal<string | null>(null);
+	/** Whether the dot-grid overlay is visible on the editor canvas. */
+	protected readonly showGrid = signal(false);
+	/** Whether ruler strips are visible on the editor canvas. */
+	protected readonly showRulers = signal(false);
+	/** Whether center-crosshair guide lines are visible on the editor canvas. */
+	protected readonly showGuides = signal(false);
 	/**
 	 * Stable, always-truthy key for the slide-properties form. Changes only when
 	 * the active slide changes, so the `@if` recreates (and reseeds) the
