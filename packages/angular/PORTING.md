@@ -675,13 +675,20 @@ Office-style ribbon…` + `…bottom status bar`): new `RibbonComponent`
     notes/sorter + zoom). Tailwind component classes via `@layer components` +
     `@apply` in the global sheet. Verified visually against React; build +
     typecheck + lint + 2108 tests green.
-  - **Remaining ribbon work:** **Draw / Design / Transitions / Animations** tab
-    bodies are placeholders — they need Angular editor ops that don't exist yet
-    (freehand drawing tools, theme gallery/editor, transition + animation
-    authoring), plus the deeper controls (SmartArt/Table/Equation insert,
-    eyedropper, selection pane, grid/rulers/guides, custom shows). Those ops must
-    be ported alongside their controls. The font-size/family dropdowns reflect
-    the selection; verify they write back when a text element is selected.
+  - **Advanced ribbon tabs — LANDED** (`merge(angular): port Draw/Design/
+Transitions/Animations ribbon tabs`): the 4 placeholder tabs now have real
+    content. **Transitions** (preset gallery + duration + Apply-to-all) and
+    **Animations** (add entrance/emphasis/exit + remove, via
+    `animation-author-helpers` + `EditorStateService.updateSlide`) are **fully
+    wired**. **Design** is partial — Slide Size / Format Background open the
+    existing properties dialog / slide inspector (new `toggleInspector` output);
+    theme gallery is React-only and left as a documented stub. **Draw** is
+    **UI-only** — the tool selector / colour / width have signal state + a
+    `drawToolChange` output, but there is no editor freehand-ink backend yet
+    (documented no-op `onDrawToolChange`). Build + typecheck + lint + 2108 tests
+    green. Still TODO: deeper controls (SmartArt/Table/Equation insert,
+    eyedropper, selection pane, grid/rulers/guides, custom shows) and a real
+    freehand-draw backend + theme gallery.
   - **e2e after the ribbon** (`fix(angular): restore e2e contract…` + `…clear
 selection when entering presentation`): replacing the header + rendering live
     thumbnails broke the framework-neutral contract; fixed by (a) an
@@ -705,9 +712,9 @@ selection when entering presentation`): replacing the header + rendering live
     canvas sizing reconciled with React (or the mobile notes sheet raised).
   - **Merged to `main`** (no-ff merge `merge(angular): Tailwind 4 Office ribbon
     - pt→px font fix`) — the merge was conflict-free (the parallel work was
-React/Vue/e2e, this was Angular). On `main`: ng-packagr build + Tailwind
-compile, typecheck, lint, and **2108** unit tests pass; the pt→px font fix
-now ships to all Angular users. **Still open on `main`:** the 2 mobile e2e
-failures and the Draw/Design/Transitions/Animations tab bodies (need new
-editor ops). The `angular-ribbon` worktree branch is left in place for
-      reference.
+    React/Vue/e2e, this was Angular). On `main`: ng-packagr build + Tailwind
+    compile, typecheck, lint, and **2108** unit tests pass; the pt→px font fix
+    now ships to all Angular users. **Still open on `main`:** the 2 mobile e2e
+    failures and the Draw/Design/Transitions/Animations tab bodies (need new
+    editor ops). The `angular-ribbon` worktree branch is left in place for
+    reference.
