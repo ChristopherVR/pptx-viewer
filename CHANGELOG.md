@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.4.9](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.9) - 2026-06-18
+
+### Features
+
+- **angular:** Mobile chrome parity — run the React mobile e2e on Angular (by @ChristopherVR) ([7b22220](https://github.com/ChristopherVR/pptx-viewer/commit/7b22220dd68fe08a5c04c249fe98393a5a260bff))
+
+### Dependencies
+
+- **deps:** Bump all workspace manifest floors to latest (by @ChristopherVR) ([890c33d](https://github.com/ChristopherVR/pptx-viewer/commit/890c33d667a39480a69e6a3da893964382993b29))
+
 ## [1.4.8](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.8) - 2026-06-18
 
 ### Refactor
@@ -13,6 +23,7 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### Documentation
 
 - Require ≤300 LOC per file + default logic to pptx-viewer-shared (by @ChristopherVR) ([b2e9c6e](https://github.com/ChristopherVR/pptx-viewer/commit/b2e9c6eaa64fa95df35abe19a04fccac165bd5cc))
+- **changelog:** Update for v1.4.8 [skip ci] (by @github-actions[bot]) ([88ce4ef](https://github.com/ChristopherVR/pptx-viewer/commit/88ce4ef3d1878de5ee55a7a426b8a2c7843fe4aa))
 
 ### Testing
 
