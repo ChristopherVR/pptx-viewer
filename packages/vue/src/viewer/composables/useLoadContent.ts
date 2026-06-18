@@ -78,6 +78,8 @@ export interface UseLoadContentResult {
 	canvasSize: Ref<CanvasSize>;
 	/** Resolved presentation theme. */
 	theme: ShallowRef<PptxTheme | undefined>;
+	/** Theme colour map (`accent1`→hex, …) used to re-resolve colours on theme switch. */
+	themeColorMap: ShallowRef<Record<string, string> | undefined>;
 	/** Slide masters (for placeholder/background resolution). */
 	slideMasters: ShallowRef<PptxSlideMaster[]>;
 	/** Slide-layout choices for the New-Slide gallery (`{ path, name }`). */
@@ -131,6 +133,7 @@ export function useLoadContent(
 		height: DEFAULT_CANVAS_HEIGHT,
 	});
 	const theme = shallowRef<PptxTheme | undefined>(undefined);
+	const themeColorMap = shallowRef<Record<string, string> | undefined>(undefined);
 	const slideMasters = shallowRef<PptxSlideMaster[]>([]);
 	const layoutOptions = shallowRef<PptxLayoutOption[]>([]);
 	const mediaDataUrls = shallowRef<Map<string, string>>(new Map());
@@ -320,6 +323,7 @@ export function useLoadContent(
 				height: parsed.height ?? DEFAULT_CANVAS_HEIGHT,
 			};
 			theme.value = parsed.theme;
+			themeColorMap.value = parsed.themeColorMap;
 			slideMasters.value = parsed.slideMasters ?? [];
 			layoutOptions.value = parsed.layoutOptions ?? [];
 			coreProperties.value = parsed.coreProperties;
@@ -390,6 +394,7 @@ export function useLoadContent(
 		layoutOptions,
 		canvasSize,
 		theme,
+		themeColorMap,
 		slideMasters,
 		mediaDataUrls,
 		loading,

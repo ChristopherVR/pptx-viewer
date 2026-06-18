@@ -14,6 +14,7 @@
  *  - `theme` context      → `provideViewerTheme` + `useThemeStyle`.
  */
 import {
+	applyThemeToData,
 	cloneElement,
 	createEditorId,
 	createGroupElement,
@@ -23,10 +24,12 @@ import {
 } from 'pptx-viewer-core';
 import type {
 	MasterViewTab,
+	PptxData,
 	PptxElement,
 	PptxHeaderFooter,
 	PptxSlide,
 	PptxSlideTransition,
+	PptxThemePreset,
 	TextStyle,
 } from 'pptx-viewer-core';
 import type { AlignEdge } from 'pptx-viewer-shared';
@@ -81,6 +84,7 @@ import SlideSorter from './components/SlideSorter.vue';
 import SlidesPaneSidebar from './components/SlidesPaneSidebar.vue';
 import SlideStage from './components/SlideStage.vue';
 import StatusBar from './components/StatusBar.vue';
+import ThemeGallery from './components/ThemeGallery.vue';
 import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
 import { DEFAULT_VIEWER_SETTINGS } from './components/viewer-settings';
 import type { ViewerSettings } from './components/viewer-settings';
@@ -164,6 +168,7 @@ const {
 	notesMaster,
 	handoutMaster,
 	theme: pptxTheme,
+	themeColorMap,
 	handler,
 	getContent,
 } = useLoadContent(() => props.content);
@@ -1531,6 +1536,32 @@ const showGrid = ref(false);
 const snapToGrid = ref(false);
 /** Grid spacing in px (matches React's GRID_SIZE). */
 const GRID_SIZE = 8;
+/** Design ▸ Themes gallery overlay. */
+const themeGalleryOpen = ref(false);
+
+/**
+ * Apply a built-in theme preset to the whole deck — re-themes via core's pure
+ * `applyThemeToData` (re-resolves slide colours against the new scheme) and
+ * writes the new slides/theme/colour-map back (history-aware). The active
+ * colour scheme is provided to tables via `pptxTheme`, so banding updates too.
+ */
+function applyThemePreset(preset: PptxThemePreset): void {
+	history.pushHistory();
+	const result = applyThemeToData(
+		{
+			slides: slides.value,
+			theme: pptxTheme.value,
+			themeColorMap: themeColorMap.value,
+		} as unknown as PptxData,
+		preset.colorScheme,
+		preset.fontScheme,
+		preset.name,
+	);
+	slides.value = result.slides;
+	pptxTheme.value = result.theme;
+	themeColorMap.value = result.themeColorMap;
+	themeGalleryOpen.value = false;
+}
 
 const ribbonMode = computed<ViewerMode>(() =>
 	presenting.value
@@ -1646,7 +1677,7 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	isCurrentSlideInActiveShow: false,
 	hasMacros: false,
 	isThemeEditorOpen: false,
-	isThemeGalleryOpen: false,
+	isThemeGalleryOpen: themeGalleryOpen.value,
 	isCommentsPanelOpen: showComments.value,
 	slideCommentCount: activeComments.value.length,
 	formatPainterActive: formatPainterActive.value,
@@ -1801,7 +1832,9 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	onEnterPresenterView: undefined,
 	onEnterRehearsalMode: undefined,
 	onToggleThemeEditor: noop,
-	onToggleThemeGallery: noop,
+	onToggleThemeGallery: () => {
+		themeGalleryOpen.value = !themeGalleryOpen.value;
+	},
 	onCompare: undefined,
 	onToggleComments: () => {
 		showComments.value = !showComments.value;
@@ -2052,6 +2085,14 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				@toggle-notes="notesExpanded = !notesExpanded"
 				@toggle-slide-sorter="showSorter = true"
 				@set-mode="(m) => (m === 'present' ? startPresenting() : (presenting = false))"
+			/>
+
+			<!-- Design ▸ Themes gallery -->
+			<ThemeGallery
+				:open="themeGalleryOpen"
+				:active-name="pptxTheme?.name"
+				@apply="applyThemePreset"
+				@close="themeGalleryOpen = false"
 			/>
 
 			<!-- Element context menu (edit mode) -->
