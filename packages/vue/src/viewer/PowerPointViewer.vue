@@ -29,6 +29,8 @@ import type {
 	PptxHeaderFooter,
 	PptxSlide,
 	PptxSlideTransition,
+	PptxThemeColorScheme,
+	PptxThemeFontScheme,
 	PptxThemePreset,
 	TextStyle,
 } from 'pptx-viewer-core';
@@ -58,6 +60,7 @@ import InlineTextEditor from './components/InlineTextEditor.vue';
 import InsertSmartArtDialog from './components/InsertSmartArtDialog.vue';
 import InspectorPane from './components/inspector/InspectorPane.vue';
 import SlideInspector from './components/inspector/SlideInspector.vue';
+import ThemeEditorPanel from './components/inspector/ThemeEditorPanel.vue';
 import MasterViewSidebar from './components/MasterViewSidebar.vue';
 import MobileBottomBar from './components/MobileBottomBar.vue';
 import ModalDialog from './components/ModalDialog.vue';
@@ -1536,16 +1539,21 @@ const showGrid = ref(false);
 const snapToGrid = ref(false);
 /** Grid spacing in px (matches React's GRID_SIZE). */
 const GRID_SIZE = 8;
-/** Design ▸ Themes gallery overlay. */
+/** Design ▸ Themes gallery + theme editor overlays. */
 const themeGalleryOpen = ref(false);
+const themeEditorOpen = ref(false);
 
 /**
- * Apply a built-in theme preset to the whole deck — re-themes via core's pure
- * `applyThemeToData` (re-resolves slide colours against the new scheme) and
- * writes the new slides/theme/colour-map back (history-aware). The active
- * colour scheme is provided to tables via `pptxTheme`, so banding updates too.
+ * Re-theme the whole deck via core's pure `applyThemeToData` (re-resolves slide
+ * colours against the new scheme) and write the new slides/theme/colour-map back
+ * (history-aware). The active colour scheme is provided to tables via
+ * `pptxTheme`, so banding updates too.
  */
-function applyThemePreset(preset: PptxThemePreset): void {
+function applyTheme(
+	colorScheme: PptxThemeColorScheme,
+	fontScheme: PptxThemeFontScheme | undefined,
+	name: string,
+): void {
 	history.pushHistory();
 	const result = applyThemeToData(
 		{
@@ -1553,14 +1561,27 @@ function applyThemePreset(preset: PptxThemePreset): void {
 			theme: pptxTheme.value,
 			themeColorMap: themeColorMap.value,
 		} as unknown as PptxData,
-		preset.colorScheme,
-		preset.fontScheme,
-		preset.name,
+		colorScheme,
+		fontScheme,
+		name,
 	);
 	slides.value = result.slides;
 	pptxTheme.value = result.theme;
 	themeColorMap.value = result.themeColorMap;
+}
+/** Apply a built-in theme preset (Design ▸ Themes gallery). */
+function applyThemePreset(preset: PptxThemePreset): void {
+	applyTheme(preset.colorScheme, preset.fontScheme, preset.name);
 	themeGalleryOpen.value = false;
+}
+/** Apply edited theme colours/fonts/name (Design ▸ Edit theme). */
+function applyThemeEdit(payload: {
+	colorScheme: PptxThemeColorScheme;
+	fontScheme: PptxThemeFontScheme;
+	name: string;
+}): void {
+	applyTheme(payload.colorScheme, payload.fontScheme, payload.name);
+	themeEditorOpen.value = false;
 }
 
 const ribbonMode = computed<ViewerMode>(() =>
@@ -1676,7 +1697,7 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	activeCustomShowId: activeCustomShowId.value,
 	isCurrentSlideInActiveShow: false,
 	hasMacros: false,
-	isThemeEditorOpen: false,
+	isThemeEditorOpen: themeEditorOpen.value,
 	isThemeGalleryOpen: themeGalleryOpen.value,
 	isCommentsPanelOpen: showComments.value,
 	slideCommentCount: activeComments.value.length,
@@ -1831,7 +1852,9 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	},
 	onEnterPresenterView: undefined,
 	onEnterRehearsalMode: undefined,
-	onToggleThemeEditor: noop,
+	onToggleThemeEditor: () => {
+		themeEditorOpen.value = !themeEditorOpen.value;
+	},
 	onToggleThemeGallery: () => {
 		themeGalleryOpen.value = !themeGalleryOpen.value;
 	},
@@ -1919,9 +1942,11 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 			/>
 
 			<div class="pptx-vue-body">
-				<!-- Flat slide rail (React-parity): number-left thumbnails + Add Slide + context menu -->
+				<!-- Flat slide rail (React-parity): number-left thumbnails + Add Slide + context menu.
+				     Hidden on mobile, where it would otherwise collapse the slide canvas to
+				     zero height; mobile navigates slides via the bottom bar's prev/next. -->
 				<SlidesPaneSidebar
-					v-if="!hasSections"
+					v-if="!isMobile && !hasSections"
 					:slides="slides"
 					:active-index="activeSlideIndex"
 					:canvas-size="canvasSize"
@@ -1935,8 +1960,8 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					@delete="(i) => slideOps.deleteSlide(i)"
 					@toggle-hidden="toggleSlideHidden"
 				/>
-				<!-- Sectioned rail when the deck declares sections. -->
-				<nav v-else class="pptx-vue-thumbnails" aria-label="Slides">
+				<!-- Sectioned rail when the deck declares sections (desktop only). -->
+				<nav v-else-if="!isMobile" class="pptx-vue-thumbnails" aria-label="Slides">
 					<SectionList
 						:groups="sectionOps.slidesBySection.value"
 						:canvas-size="canvasSize"
@@ -2093,6 +2118,15 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				:active-name="pptxTheme?.name"
 				@apply="applyThemePreset"
 				@close="themeGalleryOpen = false"
+			/>
+
+			<!-- Design ▸ Edit theme -->
+			<ThemeEditorPanel
+				v-if="themeEditorOpen && props.canEdit"
+				:theme="pptxTheme"
+				:can-edit="props.canEdit"
+				@apply="applyThemeEdit"
+				@close="themeEditorOpen = false"
 			/>
 
 			<!-- Element context menu (edit mode) -->
