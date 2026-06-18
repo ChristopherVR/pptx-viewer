@@ -28,6 +28,49 @@ import type { SnapGuide } from './snap-guides';
 
 /** Pixels (screen-space) a pointer must move before a click becomes a drag. */
 const DRAG_THRESHOLD = 3;
+
+// ── Ruler constants ───────────────────────────────────────────────────────────
+
+/** Height/width (px) of the ruler strips — mirrors React's RULER_THICKNESS. */
+const RULER_THICKNESS = 20;
+/** Pixels per inch on the slide canvas (PPTX slides are 10" wide = 960 px). */
+const SLIDE_PX_PER_INCH = 96;
+
+/** A single tick mark on a ruler strip. */
+interface RulerTick {
+	/** Position in screen pixels along the ruler. */
+	position: number;
+	/** Whether this is a major (inch) tick. */
+	isMajor: boolean;
+	/** Label to display (only on major ticks, every N inches). */
+	label: string | null;
+}
+
+/**
+ * Generate ruler tick marks for a given slide dimension and scale.
+ * Produces ticks every 1/4 inch (minor) and every inch (major).
+ */
+function generateRulerTicks(slidePx: number, scale: number): ReadonlyArray<RulerTick> {
+	const scaledLength = slidePx * scale;
+	const quarterInchPx = (SLIDE_PX_PER_INCH / 4) * scale;
+	if (quarterInchPx < 2) {
+		return [];
+	}
+	const ticks: RulerTick[] = [];
+	let pos = 0;
+	let inchIndex = 0;
+	while (pos <= scaledLength + 0.5) {
+		const isMajor = inchIndex % 4 === 0;
+		ticks.push({
+			position: pos,
+			isMajor,
+			label: isMajor && inchIndex > 0 ? String(inchIndex / 4) : null,
+		});
+		pos += quarterInchPx;
+		inchIndex++;
+	}
+	return ticks;
+}
 /** Handle size in screen pixels (fine pointer — mouse/trackpad). */
 const HANDLE_SCREEN_PX_FINE = 9;
 /** Handle size in screen pixels (coarse pointer — touch); larger hit target. */
@@ -195,7 +238,175 @@ function plainText(el: PptxElement): string {
 							(keydown)="onEditorKeydown($event)"
 						></textarea>
 					}
+
+					<!--
+						View overlays — editor aids only, never on thumbnails/preview/presentation.
+						All are pointer-events:none so they never break selection/drag.
+						None carry data-pptx-element / aria-roledescription / data-pptx-viewport.
+					-->
+					@if (interactive() && showGrid()) {
+						<svg
+							class="pptx-ng-overlay-grid"
+							aria-hidden="true"
+							[attr.width]="canvasSize().width"
+							[attr.height]="canvasSize().height"
+						>
+							<defs>
+								<pattern
+									[attr.id]="gridPatternId"
+									[attr.width]="gridSpacingPx()"
+									[attr.height]="gridSpacingPx()"
+									patternUnits="userSpaceOnUse"
+								>
+									<circle
+										[attr.cx]="gridSpacingPx() / 2"
+										[attr.cy]="gridSpacingPx() / 2"
+										r="0.6"
+										fill="rgba(156,163,175,0.55)"
+									/>
+								</pattern>
+							</defs>
+							<rect
+								[attr.width]="canvasSize().width"
+								[attr.height]="canvasSize().height"
+								[attr.fill]="'url(#' + gridPatternId + ')'"
+							/>
+						</svg>
+					}
+
+					@if (interactive() && showGuides()) {
+						<!--
+							Center crosshair: one horizontal line and one vertical line
+							through the midpoint of the slide. Static — draggable guides
+							are a follow-up.
+						-->
+						<svg
+							class="pptx-ng-overlay-guides"
+							aria-hidden="true"
+							[attr.width]="canvasSize().width"
+							[attr.height]="canvasSize().height"
+						>
+							<!-- Horizontal center guide -->
+							<line
+								x1="0"
+								[attr.y1]="canvasSize().height / 2"
+								[attr.x2]="canvasSize().width"
+								[attr.y2]="canvasSize().height / 2"
+								stroke="rgba(99,102,241,0.7)"
+								stroke-width="1"
+								stroke-dasharray="6 3"
+							/>
+							<!-- Vertical center guide -->
+							<line
+								[attr.x1]="canvasSize().width / 2"
+								y1="0"
+								[attr.x2]="canvasSize().width / 2"
+								[attr.y2]="canvasSize().height"
+								stroke="rgba(99,102,241,0.7)"
+								stroke-width="1"
+								stroke-dasharray="6 3"
+							/>
+						</svg>
+					}
 				</div>
+
+				<!--
+					Ruler strips — siblings to the scaled stage inside the wrapper div,
+					absolutely positioned at top:0/left:0 within the wrapper's padding area.
+					The wrapper's padding (RULER_THICKNESS px top+left) reserves space for
+					these strips so the stage content starts below/right of them.
+					pointer-events:none so they never intercept element gestures.
+				-->
+				@if (interactive() && showRulers()) {
+					<!-- Corner square at the intersection of the two ruler strips -->
+					<div class="pptx-ng-ruler-corner" aria-hidden="true"></div>
+
+					<!-- Horizontal ruler — spans the top padding row of the wrapper -->
+					<svg
+						class="pptx-ng-ruler-h"
+						aria-hidden="true"
+						[attr.width]="canvasSize().width * effectiveScalePublic()"
+						[attr.height]="20"
+					>
+						<rect
+							[attr.width]="canvasSize().width * effectiveScalePublic()"
+							height="20"
+							fill="#1e293b"
+						/>
+						<line
+							x1="0"
+							y1="19.5"
+							[attr.x2]="canvasSize().width * effectiveScalePublic()"
+							y2="19.5"
+							stroke="rgba(255,255,255,0.15)"
+							stroke-width="1"
+						/>
+						@for (tick of hRulerTicks(); track tick.position) {
+							<line
+								[attr.x1]="tick.position"
+								y1="20"
+								[attr.x2]="tick.position"
+								[attr.y2]="tick.isMajor ? 8 : 14"
+								stroke="rgba(156,163,175,0.7)"
+								[attr.stroke-width]="tick.isMajor ? 1 : 0.5"
+							/>
+							@if (tick.label) {
+								<text
+									[attr.x]="tick.position + 2"
+									y="8"
+									font-size="7"
+									fill="rgba(156,163,175,0.9)"
+									style="font-family:system-ui,sans-serif"
+								>
+									{{ tick.label }}"
+								</text>
+							}
+						}
+					</svg>
+
+					<!-- Vertical ruler — spans the left padding column of the wrapper -->
+					<svg
+						class="pptx-ng-ruler-v"
+						aria-hidden="true"
+						[attr.width]="20"
+						[attr.height]="canvasSize().height * effectiveScalePublic()"
+					>
+						<rect
+							width="20"
+							[attr.height]="canvasSize().height * effectiveScalePublic()"
+							fill="#1e293b"
+						/>
+						<line
+							x1="19.5"
+							y1="0"
+							x2="19.5"
+							[attr.y2]="canvasSize().height * effectiveScalePublic()"
+							stroke="rgba(255,255,255,0.15)"
+							stroke-width="1"
+						/>
+						@for (tick of vRulerTicks(); track tick.position) {
+							<line
+								x1="20"
+								[attr.y1]="tick.position"
+								[attr.x2]="tick.isMajor ? 8 : 14"
+								[attr.y2]="tick.position"
+								stroke="rgba(156,163,175,0.7)"
+								[attr.stroke-width]="tick.isMajor ? 1 : 0.5"
+							/>
+							@if (tick.label) {
+								<text
+									x="2"
+									[attr.y]="tick.position + 9"
+									font-size="7"
+									fill="rgba(156,163,175,0.9)"
+									style="font-family:system-ui,sans-serif"
+								>
+									{{ tick.label }}"
+								</text>
+							}
+						}
+					</svg>
+				}
 			</div>
 		</div>
 	`,
@@ -207,6 +418,22 @@ export class SlideCanvasComponent {
 	readonly zoom = input<number>(1);
 	/** When true, elements are selectable and drag/resize handles are shown. */
 	readonly editable = input<boolean>(false);
+	/**
+	 * When true, render a dot-grid overlay on the slide stage.
+	 * Only active on the interactive (main editor) canvas — ignored on thumbnails.
+	 * Defaults false so nothing changes unless toggled from the ribbon View tab.
+	 */
+	readonly showGrid = input<boolean>(false);
+	/**
+	 * When true, render horizontal and vertical ruler strips along the top/left
+	 * of the slide viewport. Only active on the interactive canvas.
+	 */
+	readonly showRulers = input<boolean>(false);
+	/**
+	 * When true, render a static center-crosshair guide overlay on the slide stage.
+	 * Only active on the interactive canvas.
+	 */
+	readonly showGuides = input<boolean>(false);
 	/**
 	 * When true (default), the stage auto-fits the slide to the scroll viewport so
 	 * the user's `zoom` is relative to "fit". Thumbnail consumers (slides panel,
@@ -726,12 +953,52 @@ export class SlideCanvasComponent {
 	readonly wrapperStyle = computed<StyleMap>(() => {
 		const scale = this.effectiveScale();
 		const size = this.canvasSize();
+		const rulerOffset = this.interactive() && this.showRulers() ? RULER_THICKNESS : 0;
+		// The wrapper uses content-box sizing so that the padding area (ruler strips)
+		// and the content area (slide stage) are sized independently.
+		// Total rendered width = padding-left + content-width = rulerOffset + slide*scale.
 		return {
 			width: `${size.width * scale}px`,
 			height: `${size.height * scale}px`,
+			'padding-top': rulerOffset > 0 ? `${rulerOffset}px` : '0',
+			'padding-left': rulerOffset > 0 ? `${rulerOffset}px` : '0',
 			position: 'relative',
+			'box-sizing': 'content-box',
 			margin: '1rem auto',
 		};
+	});
+
+	/**
+	 * Public accessor of the internal effective scale for ruler/overlay sizing
+	 * inside the template. The field itself must stay private because it is
+	 * consumed by many internal methods — exposing it directly via `protected`
+	 * accessor avoids renaming all callers.
+	 */
+	readonly effectiveScalePublic = computed(() => this.effectiveScale());
+
+	/** Grid dot spacing (slide-local px, 8 px = matches React GRID_SIZE). */
+	readonly gridSpacingPx = computed(() => 8);
+
+	/**
+	 * SVG dot-grid pattern id — unique per instance so multiple canvases on the
+	 * same page do not share the same `<pattern>` definition.
+	 */
+	protected readonly gridPatternId = `pptx-ng-grid-${Math.random().toString(36).slice(2, 8)}`;
+
+	/** Tick marks for the horizontal ruler strip (scaled slide width). */
+	readonly hRulerTicks = computed<ReadonlyArray<RulerTick>>(() => {
+		if (!this.interactive() || !this.showRulers()) {
+			return [];
+		}
+		return generateRulerTicks(this.canvasSize().width, this.effectiveScale());
+	});
+
+	/** Tick marks for the vertical ruler strip (scaled slide height). */
+	readonly vRulerTicks = computed<ReadonlyArray<RulerTick>>(() => {
+		if (!this.interactive() || !this.showRulers()) {
+			return [];
+		}
+		return generateRulerTicks(this.canvasSize().height, this.effectiveScale());
 	});
 
 	readonly stageStyle = computed<StyleMap>(() => {
