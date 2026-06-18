@@ -703,8 +703,11 @@ selection when entering presentation`): replacing the header + rendering live
     falls outside the scaled stage / in the bottom-bar band. React's mobile
     layout renders the stage large enough for these coordinates; needs the mobile
     canvas sizing reconciled with React (or the mobile notes sheet raised).
-  - **Branch status:** all of the above is on `angular-ribbon` (worktree),
-    **not merged to `main`**. It is buildable/testable there. To merge: rebase/
-    merge onto `main` (reconciling with the parallel Vue ribbon + `bun.lock`),
-    apply the pt→px font fix to `main` too, resolve the 2 mobile e2e failures,
-    re-run `--project=angular`, then fast-forward.
+  - **Merged to `main`** (no-ff merge `merge(angular): Tailwind 4 Office ribbon
+    - pt→px font fix`) — the merge was conflict-free (the parallel work was
+React/Vue/e2e, this was Angular). On `main`: ng-packagr build + Tailwind
+compile, typecheck, lint, and **2108** unit tests pass; the pt→px font fix
+now ships to all Angular users. **Still open on `main`:** the 2 mobile e2e
+failures and the Draw/Design/Transitions/Animations tab bodies (need new
+editor ops). The `angular-ribbon` worktree branch is left in place for
+      reference.
