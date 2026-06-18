@@ -998,7 +998,15 @@ shape-adjustment,remap-text}.ts` + 56 ported tests; shared extraction deferred t
   clear on drop. Verified live: guides render at slide centre & drag; a shape dragged toward a
   sibling snapped its left edge 523→520px with red lines at the sibling's left/centre/right
   (centre also matching the vertical guide). +14 unit tests; typecheck + oxlint clean; full suite
-  **1269 passing**. **Remaining View-tab interactivity:** **spell-check** (spell engine + squiggles).
+  **1269 passing**.
+
+- **2026-06-18** — **View ▸ Spell** (the final View-tab stub). Spell-check here is the browser's
+  native squiggle pass on the editable surface — exactly as React does it (no custom engine):
+  `InlineTextEditor.vue` now binds the contentEditable's `spellcheck` attribute to a host-owned
+  `spellCheckEnabled` ref (default true) instead of a hard-coded `"true"`, wired through
+  `ribbonProps.spellCheckEnabled` / `onSetSpellCheckEnabled`. Verified live (the View ▸ Spell
+  toggle flips the live editor's `spellcheck` attribute). +2 unit tests; full suite **1271
+  passing**. **All ribbon View-tab interactivity is now done.**
 
 - **2026-06-18** — **Workspace unblocked.** The earlier emf/mtx break (parallel
   `refactor(core)!: consume emf-converter and mtx-decompressor from npm`, `2f6013d`) is resolved:
@@ -1009,7 +1017,7 @@ shape-adjustment,remap-text}.ts` + 56 ported tests; shared extraction deferred t
 
 > **Ribbon-action status: the data-driven stubs are done.** Wired: Insert (text/shape/table/
 > image/media/smartArt/equation/action-button/**layout gallery**), View (Grid + Snap-to-Grid),
-> Design (**theme gallery**), plus undo/selection fixed. **Genuinely-larger remaining work,
-> each its own subsystem:** **drawing tools** (Draw tab — pointer ink capture → ink elements),
-> **spell-check** (a spell engine + squiggles) — the last remaining subsystem. (Done since:
-> **theme editor**, **drawing tools**, **Rulers**, **Snap-to-Shape**, **H/V Guides**.)
+> Design (**theme gallery**), plus undo/selection fixed. **All previously-larger subsystems are
+> now done:** **drawing tools** (Draw tab — pointer ink capture → ink elements), **theme editor**,
+> **Rulers**, **Snap-to-Shape**, **H/V Guides**, and **spell-check** (native browser squiggles).
+> No ribbon-action stubs remain.
