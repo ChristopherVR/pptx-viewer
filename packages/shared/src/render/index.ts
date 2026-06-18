@@ -29,3 +29,6 @@ export * from './visual-3d';
 export * from './table-style';
 export * from './element-align';
 export * from './element-interaction';
+export * from './bullet-autonum';
+export * from './bullet-list';
+export * from './text-paragraphs';

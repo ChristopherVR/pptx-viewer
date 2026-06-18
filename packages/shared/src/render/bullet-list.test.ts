@@ -1,78 +1,7 @@
 import type { TextSegment } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import {
-	alphaLabel,
-	bulletIndentPx,
-	formatAutoNumber,
-	resolveParagraphBullet,
-	resolveParagraphIndent,
-	romanNumeral,
-} from './bullet-list';
-
-// ---------------------------------------------------------------------------
-// romanNumeral / alphaLabel
-// ---------------------------------------------------------------------------
-
-describe('romanNumeral', () => {
-	it('converts 1/4/9/40/2024', () => {
-		expect(romanNumeral(1)).toBe('I');
-		expect(romanNumeral(4)).toBe('IV');
-		expect(romanNumeral(9)).toBe('IX');
-		expect(romanNumeral(40)).toBe('XL');
-		expect(romanNumeral(2024)).toBe('MMXXIV');
-	});
-
-	it('clamps out-of-range values', () => {
-		expect(romanNumeral(0)).toBe('I');
-		expect(romanNumeral(-5)).toBe('I');
-		expect(romanNumeral(4000)).toBe('MMMCMXCIX');
-	});
-});
-
-describe('alphaLabel', () => {
-	it('converts 1/26/27/53 with wrap-around', () => {
-		expect(alphaLabel(1)).toBe('a');
-		expect(alphaLabel(26)).toBe('z');
-		expect(alphaLabel(27)).toBe('aa');
-		expect(alphaLabel(53)).toBe('ba');
-	});
-});
-
-// ---------------------------------------------------------------------------
-// formatAutoNumber
-// ---------------------------------------------------------------------------
-
-describe('formatAutoNumber', () => {
-	it('formats arabic variants', () => {
-		expect(formatAutoNumber('arabicPeriod', 1)).toBe('1.');
-		expect(formatAutoNumber('arabicParenR', 1)).toBe('1)');
-		expect(formatAutoNumber('arabicParenBoth', 3)).toBe('(3)');
-		expect(formatAutoNumber('arabicPlain', 5)).toBe('5');
-	});
-
-	it('formats alpha variants', () => {
-		expect(formatAutoNumber('alphaLcPeriod', 3)).toBe('c.');
-		expect(formatAutoNumber('alphaUcPeriod', 26)).toBe('Z.');
-		expect(formatAutoNumber('alphaUcParenR', 2)).toBe('B)');
-		expect(formatAutoNumber('alphaLcParenBoth', 2)).toBe('(b)');
-	});
-
-	it('formats roman variants', () => {
-		expect(formatAutoNumber('romanLcPeriod', 4)).toBe('iv.');
-		expect(formatAutoNumber('romanUcPeriod', 9)).toBe('IX.');
-		expect(formatAutoNumber('romanUcParenBoth', 9)).toBe('(IX)');
-	});
-
-	it('falls back to "<n>." for unknown / undefined schemes', () => {
-		expect(formatAutoNumber('unknownScheme', 7)).toBe('7.');
-		expect(formatAutoNumber(undefined, 3)).toBe('3.');
-	});
-});
-
-// ---------------------------------------------------------------------------
-// resolveParagraphBullet
-// ---------------------------------------------------------------------------
+import { bulletIndentPx, resolveParagraphBullet, resolveParagraphIndent } from './bullet-list';
 
 function seg(overrides: Partial<TextSegment> = {}): TextSegment {
 	return { text: 'Hello', style: {}, ...overrides };
@@ -103,12 +32,7 @@ describe('resolveParagraphBullet', () => {
 	it('carries colour / font / size from bulletInfo', () => {
 		const result = resolveParagraphBullet(
 			seg({
-				bulletInfo: {
-					char: '→',
-					color: '#FF0000',
-					fontFamily: 'Wingdings',
-					sizePercent: 75,
-				},
+				bulletInfo: { char: '→', color: '#FF0000', fontFamily: 'Wingdings', sizePercent: 75 },
 			}),
 		);
 		expect(result?.marker).toBe('→');
@@ -137,10 +61,6 @@ describe('resolveParagraphBullet', () => {
 		expect(resolveParagraphBullet(seg({ bulletInfo: { imageRelId: 'rId1' } }))).toBeUndefined();
 	});
 });
-
-// ---------------------------------------------------------------------------
-// bulletIndentPx / resolveParagraphIndent
-// ---------------------------------------------------------------------------
 
 describe('bulletIndentPx', () => {
 	it('scales 18px per level, clamps undefined / negative to 0', () => {
