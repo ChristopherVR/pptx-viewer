@@ -14,6 +14,7 @@ import {
 } from '@angular/core';
 import { applyThemeToData } from 'pptx-viewer-core';
 import type {
+	InkPptxElement,
 	PptxComment,
 	PptxCoreProperties,
 	PptxData,
@@ -237,6 +238,9 @@ const ZOOM_MAX = 3;
 							[showGrid]="showGrid()"
 							[showRulers]="showRulers()"
 							[showGuides]="showGuides()"
+							[drawTool]="activeDrawTool()"
+							[drawColor]="activeDrawColor()"
+							[drawWidth]="activeDrawWidth()"
 							(elementSelect)="onElementSelect($event)"
 							(backgroundClick)="onBackgroundClick()"
 							(marqueeSelect)="editor.select($event)"
@@ -250,6 +254,8 @@ const ZOOM_MAX = 3;
 							(textEditStart)="editingId.set($event.id)"
 							(textCommit)="onTextCommit($event)"
 							(textCancel)="editingId.set(null)"
+							(inkStrokeComplete)="onInkStrokeComplete($event)"
+							(eraserHit)="onEraserHit($event)"
 						/>
 						@if (collab.connected()) {
 							<pptx-collaboration-cursors [cursors]="collab.cursors()" [zoom]="zoom()" />
@@ -595,6 +601,16 @@ export class PowerPointViewerComponent {
 
 	/** Find-and-replace bar state (edit mode only). */
 	protected readonly showFindReplace = signal(false);
+
+	// ── Draw tool state (forwarded to slide-canvas) ───────────────────────────
+	/** Active drawing tool (from the ribbon Draw tab). */
+	protected readonly activeDrawTool = signal<
+		'select' | 'pen' | 'highlighter' | 'eraser' | 'freeform'
+	>('select');
+	/** Active ink stroke colour. */
+	protected readonly activeDrawColor = signal<string>('#000000');
+	/** Active ink stroke width in stage pixels. */
+	protected readonly activeDrawWidth = signal<number>(3);
 	protected readonly findResults = signal<readonly FindResult[]>([]);
 	protected readonly findActiveIndex = signal(-1);
 	private findMatchCase = false;
@@ -958,14 +974,28 @@ export class PowerPointViewerComponent {
 		this.activePanel.update((current) => (current === panel ? null : panel));
 	}
 
-	/**
-	 * Receive draw-tool state changes from the ribbon Draw tab.
-	 * Currently UI-only — no ink/annotation layer is connected in the Angular
-	 * editor. This method exists so the template binding compiles cleanly and the
-	 * parent is ready to forward state to an ink layer once one is ported.
-	 */
-	protected onDrawToolChange(_state: { tool: string; color: string; width: number }): void {
-		// No-op: freehand drawing backend not yet implemented.
+	/** Receive draw-tool state changes from the ribbon Draw tab. */
+	protected onDrawToolChange(state: { tool: string; color: string; width: number }): void {
+		this.activeDrawTool.set(state.tool as 'select' | 'pen' | 'highlighter' | 'eraser' | 'freeform');
+		this.activeDrawColor.set(state.color);
+		this.activeDrawWidth.set(state.width);
+	}
+
+	/** Receive a completed ink stroke and append it to the active slide. */
+	protected onInkStrokeComplete(ink: InkPptxElement): void {
+		if (!this.canEdit()) {
+			return;
+		}
+		this.editor.addElement(this.activeSlideIndex(), ink);
+	}
+
+	/** Receive an eraser hit and delete the targeted ink element. */
+	protected onEraserHit(id: string): void {
+		if (!this.canEdit()) {
+			return;
+		}
+		this.editor.select([id]);
+		this.editor.deleteSelected(this.activeSlideIndex());
 	}
 
 	/** Append a comment to the active slide (one history entry). */
