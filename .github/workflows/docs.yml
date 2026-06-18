@@ -6,6 +6,8 @@ on:
     paths:
       - 'docs/**'
       - 'demos/demo-react/**'
+      - 'demos/demo-vue/**'
+      - 'demos/demo-angular/**'
       - 'packages/**'
       - '.github/workflows/docs.yml'
   # Allow manual runs from the Actions tab
@@ -49,13 +51,32 @@ jobs:
         env:
           DEMO_BASE: /pptx-viewer/demo/
 
-      # Fold the demo into the docs artifact so both ship as one Pages site.
-      # The 404.html copy lets the demo's client-side routing survive deep links.
-      - name: Bundle demo into docs site
+      # The Vue and Angular demos ship as their own Pages subpaths so each
+      # binding's README can link a "Try demo" for that framework specifically.
+      # They build after the workspace build above, which produces the library
+      # dist the Angular demo aliases against.
+      - name: Build Vue demo
+        run: bun run --filter 'pptx-vue-demo' build
+        env:
+          DEMO_BASE: /pptx-viewer/demo-vue/
+
+      - name: Build Angular demo
+        run: bun run --filter 'pptx-angular-demo' build
+        env:
+          DEMO_BASE: /pptx-viewer/demo-angular/
+
+      # Fold the demos into the docs artifact so they ship as one Pages site.
+      # Each gets a 404.html copy so the demo's client-side routing survives
+      # deep links under its subpath.
+      - name: Bundle demos into docs site
         run: |
-          mkdir -p docs/.vitepress/dist/demo
-          cp -r demos/demo-react/dist/. docs/.vitepress/dist/demo/
-          cp docs/.vitepress/dist/demo/index.html docs/.vitepress/dist/demo/404.html
+          for demo in react:demo vue:demo-vue angular:demo-angular; do
+            src="demos/demo-${demo%%:*}/dist"
+            dest="docs/.vitepress/dist/${demo##*:}"
+            mkdir -p "$dest"
+            cp -r "$src/." "$dest/"
+            cp "$dest/index.html" "$dest/404.html"
+          done
 
       - name: Setup Pages
         uses: actions/configure-pages@v6

@@ -18,6 +18,9 @@ import { defineConfig } from 'vite';
 const angularLibDist = resolve(__dirname, '../../packages/angular/dist');
 
 export default defineConfig({
+	// Served from a subpath (e.g. /pptx-viewer/demo-angular/) on GitHub Pages.
+	// CI sets DEMO_BASE so the demo's asset URLs resolve under that subpath.
+	base: process.env.DEMO_BASE ?? '/',
 	plugins: [angular({ tsconfig: './tsconfig.json' })],
 	resolve: {
 		alias: [

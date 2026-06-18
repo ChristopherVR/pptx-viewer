@@ -17,6 +17,9 @@ const pkg = (...p: string[]) => resolve(__dirname, '..', '..', 'packages', ...p)
 
 export default defineConfig({
 	root: __dirname,
+	// Served from a subpath (e.g. /pptx-viewer/demo-vue/) on GitHub Pages.
+	// CI sets DEMO_BASE so the demo's asset URLs resolve under that subpath.
+	base: process.env.DEMO_BASE ?? '/',
 	plugins: [vue(), tailwindcss()],
 	server: {
 		port: 4175,
