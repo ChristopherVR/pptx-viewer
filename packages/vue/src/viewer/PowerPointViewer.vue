@@ -667,6 +667,73 @@ function onImageFileSelected(e: Event): void {
 	};
 	reader.readAsDataURL(file);
 }
+
+// ── Media picker (Insert tab) — audio / video ──
+const mediaInputRef = ref<HTMLInputElement | null>(null);
+function openMediaPicker(): void {
+	mediaInputRef.value?.click();
+}
+function onMediaFileSelected(e: Event): void {
+	const input = e.target as HTMLInputElement;
+	const file = input.files?.[0];
+	input.value = '';
+	if (!file) {
+		return;
+	}
+	const mediaType: 'audio' | 'video' | null = file.type.startsWith('audio/')
+		? 'audio'
+		: file.type.startsWith('video/')
+			? 'video'
+			: null;
+	if (!mediaType) {
+		return;
+	}
+	const reader = new FileReader();
+	reader.onload = () => {
+		const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+		if (!dataUrl) {
+			return;
+		}
+		const insert = (width: number, height: number): void => {
+			const el = {
+				id: createEditorId('media'),
+				type: 'media',
+				mediaType,
+				mediaMimeType: file.type || undefined,
+				mediaData: dataUrl,
+				x: 0,
+				y: 0,
+				width,
+				height,
+			} as unknown as PptxElement;
+			centreNewElement(el, width, height);
+			ops.addElement(el);
+			selectedElementIds.value = [el.id];
+		};
+		// Audio: fixed control-bar box. Video: probe intrinsic size, cap at 640×360.
+		if (mediaType === 'audio') {
+			insert(420, 64);
+			return;
+		}
+		const probe = document.createElement('video');
+		probe.preload = 'metadata';
+		probe.onloadedmetadata = () => {
+			const maxW = 640;
+			const maxH = 360;
+			let w = probe.videoWidth || maxW;
+			let h = probe.videoHeight || maxH;
+			if (w > maxW || h > maxH) {
+				const scale = Math.min(maxW / w, maxH / h);
+				w = Math.round(w * scale);
+				h = Math.round(h * scale);
+			}
+			insert(w, h);
+		};
+		probe.onerror = () => insert(640, 360);
+		probe.src = dataUrl;
+	};
+	reader.readAsDataURL(file);
+}
 function deleteSelected(): void {
 	for (const id of [...selectedElementIds.value]) {
 		ops.removeElement(id);
@@ -1584,7 +1651,7 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	onAddActionButton: noop,
 	onInsertField: undefined,
 	onOpenImagePicker: openImagePicker,
-	onOpenMediaPicker: noop,
+	onOpenMediaPicker: openMediaPicker,
 	onSetActiveTool: (t) => {
 		activeTool.value = t;
 	},
@@ -1737,7 +1804,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 			<!-- Office-style ribbon (desktop) — full React-parity chrome -->
 			<RibbonToolbar v-if="!isMobile" v-bind="ribbonProps" />
 
-			<!-- Hidden picker for Insert ▸ Image -->
+			<!-- Hidden pickers for Insert ▸ Image / Media -->
 			<input
 				ref="imageInputRef"
 				type="file"
@@ -1745,6 +1812,14 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				aria-hidden="true"
 				style="display: none"
 				@change="onImageFileSelected"
+			/>
+			<input
+				ref="mediaInputRef"
+				type="file"
+				accept="audio/*,video/*"
+				aria-hidden="true"
+				style="display: none"
+				@change="onMediaFileSelected"
 			/>
 
 			<!-- Find & replace bar -->

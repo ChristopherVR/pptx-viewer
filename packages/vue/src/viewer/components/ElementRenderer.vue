@@ -72,6 +72,18 @@ const shapeDivStyle = computed<CSSProperties>(() => {
 });
 const textStyle = computed<CSSProperties>(() => getTextBlockStyle(props.element));
 const imageSrc = computed(() => getImageSrc(props.element, props.mediaDataUrls));
+/** Playable source (mediaData URL or resolved mediaPath) for a media element. */
+const mediaSrc = computed(() => {
+	const el = props.element;
+	if (el.type !== 'media') {
+		return undefined;
+	}
+	return el.mediaData ?? (el.mediaPath ? props.mediaDataUrls.get(el.mediaPath) : undefined);
+});
+/** Media kind (`video`/`audio`) for picking the playback element. */
+const mediaKind = computed(() =>
+	props.element.type === 'media' ? props.element.mediaType : undefined,
+);
 /** Computed CSS filter + SVG `<filter>` defs for picture/image effects. */
 const imageFx = computed(() => getComputedImageStyle(props.element));
 
@@ -222,7 +234,9 @@ const placeholderLabel = computed(() => {
 		/>
 	</div>
 
-	<!-- Media: poster frame only (playback not yet ported) -->
+	<!-- Media: play video/audio when a source is available, else poster, else placeholder.
+	     In the interactive (edit) canvas, controls are suppressed + pointer-events off so
+	     clicks select/move the element instead of scrubbing; preview/present play normally. -->
 	<div
 		v-else-if="element.type === 'media'"
 		class="pptx-vue-element pptx-vue-media"
@@ -230,8 +244,27 @@ const placeholderLabel = computed(() => {
 		:data-element-id="element.id"
 		:data-pptx-element="interactive ? 'true' : undefined"
 	>
+		<video
+			v-if="mediaSrc && mediaKind === 'video'"
+			:src="mediaSrc"
+			:controls="!interactive"
+			preload="metadata"
+			:style="{
+				width: '100%',
+				height: '100%',
+				objectFit: 'contain',
+				display: 'block',
+				pointerEvents: interactive ? 'none' : 'auto',
+			}"
+		/>
+		<audio
+			v-else-if="mediaSrc && mediaKind === 'audio'"
+			:src="mediaSrc"
+			controls
+			:style="{ width: '100%', pointerEvents: interactive ? 'none' : 'auto' }"
+		/>
 		<img
-			v-if="imageSrc"
+			v-else-if="imageSrc"
 			:src="imageSrc"
 			alt=""
 			style="width: 100%; height: 100%; object-fit: contain; display: block"

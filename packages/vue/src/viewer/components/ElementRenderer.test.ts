@@ -61,6 +61,50 @@ describe('elementRenderer', () => {
 		expect(img.attributes('src')).toBe('data:image/png;base64,AAAA');
 	});
 
+	it('renders a video media element with controls from mediaData', () => {
+		const wrapper = mountEl({
+			type: 'media',
+			id: 'm1',
+			x: 0,
+			y: 0,
+			width: 320,
+			height: 180,
+			mediaType: 'video',
+			mediaData: 'data:video/mp4;base64,AAAA',
+		} as PptxElement);
+		const video = wrapper.get('video');
+		expect(video.attributes('src')).toBe('data:video/mp4;base64,AAAA');
+	});
+
+	it('renders an audio media element from mediaData', () => {
+		const wrapper = mountEl({
+			type: 'media',
+			id: 'm2',
+			x: 0,
+			y: 0,
+			width: 420,
+			height: 64,
+			mediaType: 'audio',
+			mediaData: 'data:audio/mpeg;base64,AAAA',
+		} as PptxElement);
+		expect(wrapper.get('audio').attributes('src')).toBe('data:audio/mpeg;base64,AAAA');
+	});
+
+	it('falls back to the poster frame when a media element has no playable source', () => {
+		const wrapper = mountEl({
+			type: 'media',
+			id: 'm3',
+			x: 0,
+			y: 0,
+			width: 320,
+			height: 180,
+			mediaType: 'video',
+			posterFrameData: 'data:image/png;base64,BBBB',
+		} as PptxElement);
+		expect(wrapper.find('video').exists()).toBeFalsy();
+		expect(wrapper.get('img').attributes('src')).toBe('data:image/png;base64,BBBB');
+	});
+
 	it('recurses into group children', () => {
 		const wrapper = mountEl({
 			type: 'group',
