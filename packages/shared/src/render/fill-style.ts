@@ -250,12 +250,92 @@ function buildShapePathGradient(
 	return `radial-gradient(farthest-side at ${posX} ${posY}, ${stopStr})`;
 }
 
+// ---------------------------------------------------------------------------
+// Gradient tile/flip mode (from React `color-gradient.ts`)
+// ---------------------------------------------------------------------------
+
+/**
+ * OOXML gradient tile-flip mode from `a:gradFill/@flip`
+ * (`ShapeStyle['fillGradientFlip']`). Controls how the gradient tile is
+ * mirrored when tiled:
+ *  - `"none"` — clamp: gradient stops at 0% and 100%, no repeat.
+ *  - `"x"`    — flip horizontally on each tile.
+ *  - `"y"`    — flip vertically on each tile.
+ *  - `"xy"`   — flip both axes on each tile.
+ */
+export type GradientTileFlipMode = NonNullable<ShapeStyle['fillGradientFlip']>;
+
+/**
+ * Builds a CSS `background-size` + `background-repeat` pair that approximates
+ * gradient tiling with flip. Standard CSS does not natively support gradient
+ * flipping, so we approximate it by halving the background-size on the flipped
+ * axis and repeating; the gradient itself is built with reflected stops (see
+ * {@link buildReflectedGradientStops}).
+ *
+ * @param mode - The OOXML tile-flip mode.
+ * @returns CSS properties to apply, or `undefined` if no tiling is needed.
+ */
+export function getGradientTileFlipCss(
+	mode: GradientTileFlipMode | undefined,
+): { backgroundSize?: string; backgroundRepeat?: string } | undefined {
+	if (!mode || mode === 'none') {
+		return undefined;
+	}
+
+	switch (mode) {
+		case 'x':
+			return { backgroundSize: '50% 100%', backgroundRepeat: 'repeat-x' };
+		case 'y':
+			return { backgroundSize: '100% 50%', backgroundRepeat: 'repeat-y' };
+		case 'xy':
+			return { backgroundSize: '50% 50%', backgroundRepeat: 'repeat' };
+		default:
+			return undefined;
+	}
+}
+
+/**
+ * Creates a reflected (mirrored) copy of gradient stops for tile-flip
+ * rendering. The original stops run 0->100; the result packs one full
+ * forward-backward cycle into 0-100: a forward pass mapped to 0-50 and a
+ * mirrored pass mapped to 50-100. Combined with a halved `background-size`
+ * (see {@link getGradientTileFlipCss}) this approximates OOXML tile-flip.
+ *
+ * @param stops - Original sanitized gradient stops (positions 0-100).
+ * @returns A new stop array covering 0-100 with forward + mirrored stops.
+ */
+export function buildReflectedGradientStops(stops: SanitizedStop[]): SanitizedStop[] {
+	if (stops.length === 0) {
+		return [];
+	}
+
+	// Forward pass: map positions from 0-100 to 0-50.
+	const forward = stops.map((s) => ({
+		...s,
+		position: s.position / 2,
+	}));
+
+	// Reverse pass: map positions from 0-100 to 100-50 (mirrored).
+	const reversed = [...stops].reverse().map((s) => ({
+		...s,
+		position: 50 + (100 - s.position) / 2,
+	}));
+
+	return [...forward, ...reversed];
+}
+
 /**
  * Converts a structured OOXML gradient on a `ShapeStyle` to a CSS
  * `linear-gradient(...)` / `radial-gradient(...)` string.
  *
  * Falls back to the prebuilt `style.fillGradient` string when no structured
  * stops are present, and returns `undefined` when there is no gradient fill.
+ *
+ * When `fillGradientFlip` is `x`/`y`/`xy` the linear gradient is built from
+ * reflected stops so that, tiled via the matching {@link getGradientTileFlipCss}
+ * `background-size`/`background-repeat`, it mirrors per tile the way OOXML
+ * tile-flip does. Radial gradients are left unflipped (CSS cannot tile-mirror
+ * a radial), matching the React port.
  *
  * @param gradient - The shape style carrying gradient configuration.
  * @returns A CSS gradient string, or `undefined`.
@@ -289,7 +369,14 @@ export function buildGradientCss(gradient: ShapeStyle | undefined): string | und
 		typeof gradient.fillGradientAngle === 'number' && Number.isFinite(gradient.fillGradientAngle)
 			? gradient.fillGradientAngle
 			: 90;
-	return `linear-gradient(${Math.round(normalizedAngle)}deg, ${stops
+
+	// Tile-flip: reflect the stops so a single tile contains one mirrored
+	// forward-backward cycle. The repeating/halved tiling is applied by the
+	// caller via getGradientTileFlipCss (wired into getComputedFillStyle).
+	const flip = gradient.fillGradientFlip;
+	const linearStops = flip && flip !== 'none' ? buildReflectedGradientStops(stops) : stops;
+
+	return `linear-gradient(${Math.round(normalizedAngle)}deg, ${linearStops
 		.map(toCssGradientStop)
 		.join(', ')})`;
 }
@@ -806,6 +893,22 @@ export function getComputedFillStyle(element: PptxElement): ComputedFillStyle | 
 	const gradient =
 		buildGradientCss(ss) ?? (ss.fillMode === 'gradient' ? ss.fillGradient : undefined);
 	if (gradient) {
+		// Tile-flip applies only to structured linear gradients: buildGradientCss
+		// reflects the stops, and the matching halved/repeating background-size +
+		// background-repeat completes the per-tile mirror (CSS has no native
+		// gradient flip). Radial paths and prebuilt-string fallbacks are excluded.
+		const isStructuredLinear =
+			ss.fillMode === 'gradient' &&
+			(ss.fillGradientType || 'linear') === 'linear' &&
+			sanitizeGradientStops(ss.fillGradientStops).length > 0;
+		const tileFlip = isStructuredLinear ? getGradientTileFlipCss(ss.fillGradientFlip) : undefined;
+		if (tileFlip) {
+			return {
+				backgroundImage: gradient,
+				backgroundSize: tileFlip.backgroundSize,
+				backgroundRepeat: tileFlip.backgroundRepeat,
+			};
+		}
 		return { backgroundImage: gradient };
 	}
 

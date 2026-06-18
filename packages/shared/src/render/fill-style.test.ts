@@ -4,7 +4,9 @@ import { describe, expect, it } from 'vitest';
 import {
 	buildGradientCss,
 	buildPatternFill,
+	buildReflectedGradientStops,
 	getComputedFillStyle,
+	getGradientTileFlipCss,
 	getPatternSvg,
 	sanitizeGradientStops,
 	toCssGradientStop,
@@ -205,6 +207,125 @@ describe('buildGradientCss', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Gradient tile/flip mode
+// ---------------------------------------------------------------------------
+
+describe('getGradientTileFlipCss', () => {
+	it('returns undefined for "none" / undefined', () => {
+		expect(getGradientTileFlipCss('none')).toBeUndefined();
+		expect(getGradientTileFlipCss(undefined)).toBeUndefined();
+	});
+	it('returns horizontal repeat for "x"', () => {
+		expect(getGradientTileFlipCss('x')).toStrictEqual({
+			backgroundSize: '50% 100%',
+			backgroundRepeat: 'repeat-x',
+		});
+	});
+	it('returns vertical repeat for "y"', () => {
+		expect(getGradientTileFlipCss('y')).toStrictEqual({
+			backgroundSize: '100% 50%',
+			backgroundRepeat: 'repeat-y',
+		});
+	});
+	it('returns full repeat for "xy"', () => {
+		expect(getGradientTileFlipCss('xy')).toStrictEqual({
+			backgroundSize: '50% 50%',
+			backgroundRepeat: 'repeat',
+		});
+	});
+});
+
+describe('buildReflectedGradientStops', () => {
+	it('returns [] for empty input', () => {
+		expect(buildReflectedGradientStops([])).toStrictEqual([]);
+	});
+	it('produces forward (0-50) + mirrored (50-100) stops', () => {
+		const reflected = buildReflectedGradientStops([
+			{ color: '#ff0000', position: 0 },
+			{ color: '#0000ff', position: 100 },
+		]);
+		expect(reflected).toHaveLength(4);
+		expect(reflected[0]).toMatchObject({ color: '#ff0000', position: 0 });
+		expect(reflected[1]).toMatchObject({ color: '#0000ff', position: 50 });
+		expect(reflected[2]).toMatchObject({ color: '#0000ff', position: 50 });
+		expect(reflected[3]).toMatchObject({ color: '#ff0000', position: 100 });
+	});
+	it('preserves opacity on reflected stops', () => {
+		const reflected = buildReflectedGradientStops([
+			{ color: '#ff0000', position: 0, opacity: 0.5 },
+			{ color: '#0000ff', position: 100, opacity: 1 },
+		]);
+		expect(reflected[0].opacity).toBe(0.5);
+		expect(reflected[3].opacity).toBe(0.5);
+		expect(reflected[1].opacity).toBe(1);
+		expect(reflected[2].opacity).toBe(1);
+	});
+});
+
+describe('buildGradientCss tile-flip', () => {
+	const stops: ShapeStyle['fillGradientStops'] = [
+		{ color: '#ff0000', position: 0 },
+		{ color: '#0000ff', position: 100 },
+	];
+
+	it('leaves a non-flip gradient byte-for-byte unchanged', () => {
+		const base = buildGradientCss({
+			fillMode: 'gradient',
+			fillGradientAngle: 90,
+			fillGradientStops: stops,
+		});
+		const explicitNone = buildGradientCss({
+			fillMode: 'gradient',
+			fillGradientAngle: 90,
+			fillGradientFlip: 'none',
+			fillGradientStops: stops,
+		});
+		expect(base).toBe('linear-gradient(90deg, #ff0000 0%, #0000ff 100%)');
+		expect(explicitNone).toBe(base);
+	});
+
+	it('reflects the stops for flip "x"', () => {
+		const css = buildGradientCss({
+			fillMode: 'gradient',
+			fillGradientAngle: 90,
+			fillGradientFlip: 'x',
+			fillGradientStops: stops,
+		});
+		expect(css).toBe('linear-gradient(90deg, #ff0000 0%, #0000ff 50%, #0000ff 50%, #ff0000 100%)');
+	});
+
+	it('reflects the stops for flip "y"', () => {
+		const css = buildGradientCss({
+			fillMode: 'gradient',
+			fillGradientAngle: 90,
+			fillGradientFlip: 'y',
+			fillGradientStops: stops,
+		});
+		expect(css).toBe('linear-gradient(90deg, #ff0000 0%, #0000ff 50%, #0000ff 50%, #ff0000 100%)');
+	});
+
+	it('reflects the stops for flip "xy"', () => {
+		const css = buildGradientCss({
+			fillMode: 'gradient',
+			fillGradientAngle: 90,
+			fillGradientFlip: 'xy',
+			fillGradientStops: stops,
+		});
+		expect(css).toBe('linear-gradient(90deg, #ff0000 0%, #0000ff 50%, #0000ff 50%, #ff0000 100%)');
+	});
+
+	it('does not reflect radial gradients even when flip is set', () => {
+		const css = buildGradientCss({
+			fillMode: 'gradient',
+			fillGradientType: 'radial',
+			fillGradientFlip: 'xy',
+			fillGradientStops: stops,
+		});
+		expect(css).toBe('radial-gradient(circle at center center, #ff0000 0%, #0000ff 100%)');
+	});
+});
+
+// ---------------------------------------------------------------------------
 // getPatternSvg / buildPatternFill
 // ---------------------------------------------------------------------------
 
@@ -322,6 +443,85 @@ describe('getComputedFillStyle', () => {
 			shape({ fillMode: 'gradient', fillGradient: 'linear-gradient(red, blue)' }),
 		);
 		expect(result?.backgroundImage).toBe('linear-gradient(red, blue)');
+	});
+
+	it('emits no tile props for a non-flip structured gradient', () => {
+		const result = getComputedFillStyle(
+			shape({
+				fillMode: 'gradient',
+				fillGradientAngle: 90,
+				fillGradientStops: [
+					{ color: '#ff0000', position: 0 },
+					{ color: '#0000ff', position: 100 },
+				],
+			}),
+		);
+		expect(result?.backgroundSize).toBeUndefined();
+		expect(result?.backgroundRepeat).toBeUndefined();
+	});
+
+	it('emits reflected gradient + tile CSS for flip "x"', () => {
+		const result = getComputedFillStyle(
+			shape({
+				fillMode: 'gradient',
+				fillGradientAngle: 90,
+				fillGradientFlip: 'x',
+				fillGradientStops: [
+					{ color: '#ff0000', position: 0 },
+					{ color: '#0000ff', position: 100 },
+				],
+			}),
+		);
+		expect(result?.backgroundImage).toBe(
+			'linear-gradient(90deg, #ff0000 0%, #0000ff 50%, #0000ff 50%, #ff0000 100%)',
+		);
+		expect(result?.backgroundSize).toBe('50% 100%');
+		expect(result?.backgroundRepeat).toBe('repeat-x');
+	});
+
+	it('emits tile CSS for flip "y" and "xy"', () => {
+		const yResult = getComputedFillStyle(
+			shape({
+				fillMode: 'gradient',
+				fillGradientFlip: 'y',
+				fillGradientStops: [
+					{ color: '#ff0000', position: 0 },
+					{ color: '#0000ff', position: 100 },
+				],
+			}),
+		);
+		expect(yResult?.backgroundSize).toBe('100% 50%');
+		expect(yResult?.backgroundRepeat).toBe('repeat-y');
+
+		const xyResult = getComputedFillStyle(
+			shape({
+				fillMode: 'gradient',
+				fillGradientFlip: 'xy',
+				fillGradientStops: [
+					{ color: '#ff0000', position: 0 },
+					{ color: '#0000ff', position: 100 },
+				],
+			}),
+		);
+		expect(xyResult?.backgroundSize).toBe('50% 50%');
+		expect(xyResult?.backgroundRepeat).toBe('repeat');
+	});
+
+	it('does not emit tile CSS for a radial gradient with flip set', () => {
+		const result = getComputedFillStyle(
+			shape({
+				fillMode: 'gradient',
+				fillGradientType: 'radial',
+				fillGradientFlip: 'xy',
+				fillGradientStops: [
+					{ color: '#ff0000', position: 0 },
+					{ color: '#0000ff', position: 100 },
+				],
+			}),
+		);
+		expect(result?.backgroundImage).toContain('radial-gradient(');
+		expect(result?.backgroundSize).toBeUndefined();
+		expect(result?.backgroundRepeat).toBeUndefined();
 	});
 
 	it('resolves a pattern fill before solid', () => {
