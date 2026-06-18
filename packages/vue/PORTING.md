@@ -931,3 +931,21 @@ shape-adjustment,remap-text}.ts` + 56 ported tests; shared extraction deferred t
   reflect active state). +6 unit tests. **Remaining View no-ops:** Rulers, Snap to Shape,
   H/V Guides — all need ruler/guide overlay components (a larger port). Insert ▸ Media
   (video/audio) and the layout gallery are the other self-contained-ish stubs left.
+
+- **2026-06-18** — **Insert ▸ Media picker (audio/video) + media playback.** `onOpenMediaPicker`
+  → a hidden `accept="audio/*,video/*"` input reads the file as a data URL and inserts a
+  `media` element (mirrors React's `insert-file-handlers`): audio 420×64, video probed to its
+  intrinsic size capped at 640×360. `ElementRenderer`'s media branch now renders a playable
+  `<video>`/`<audio>` from `mediaData`/`mediaPath` (was poster-only) → falls back to poster →
+  placeholder; in the interactive edit canvas controls are suppressed + pointer-events off so
+  clicks select/move the element, preview/present plays normally (also upgrades existing decks'
+  media from a static poster to real playback). Verified live: a WAV inserts as a playable
+  `<audio>` (selected, inspector open). +3 ElementRenderer unit tests. **Insert/View ribbon
+  actions are now wired except:** drawing tools, theme gallery, action buttons, layout gallery,
+  spell-check, and Rulers / Snap-to-Shape / H+V Guides (the last three need ruler + guide
+  overlay components — the next cohesive port).
+
+> **⚠️ Pre-existing red test (not from this work):** `composables/useIsMobile.test.ts` fails on
+> `main` — the height-aware-breakpoint commit (`04580e8`) changed the media query to include a
+> `max-height` clause but the test still expects `(max-width: 640px)`. Update the test to match
+> the shipped query to get a green suite.
