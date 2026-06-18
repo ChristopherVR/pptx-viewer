@@ -4,30 +4,86 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.4.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.4) - 2026-06-18
+
+### Features
+
+- **angular:** Add snap-to-grid, draggable ruler guides, and eyedropper (by @ChristopherVR) ([2b40442](https://github.com/ChristopherVR/pptx-viewer/commit/2b404425414741711cc28a9f3ee508b4522fef8c))
+
+## [1.4.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.3) - 2026-06-18
+
+### Features
+
+- **angular:** Add Selection Pane and Custom Shows panels (by @ChristopherVR) ([7922508](https://github.com/ChristopherVR/pptx-viewer/commit/7922508b01644bfaa190341317053be65740a7ba))
+
+### Documentation
+
+- **changelog:** Update for v1.4.3 [skip ci] (by @github-actions[bot]) ([e320b3a](https://github.com/ChristopherVR/pptx-viewer/commit/e320b3a8e1d65c3c7e14f13f4df54af5b9159e56))
+
 ## [1.4.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.2) - 2026-06-18
 
 ### Features
 
 - **angular:** Implement freehand ink drawing backend for the Draw tab (by @ChristopherVR) ([cb72c7b](https://github.com/ChristopherVR/pptx-viewer/commit/cb72c7b82c45e512a94ee169928a20906d1c99c9))
 
+### Bug Fixes
+
+- **vue:** Drop duplicate theme declarations in PowerPointViewer (by @ChristopherVR) ([b0eefce](https://github.com/ChristopherVR/pptx-viewer/commit/b0eefced4f180a155b462e4dbbdb3ef5c4483e2a))
+
+### Documentation
+
+- **changelog:** Update for v1.4.2 [skip ci] (by @github-actions[bot]) ([2ddca66](https://github.com/ChristopherVR/pptx-viewer/commit/2ddca66cffc74c182c8439019b9fee79edb2f6fd))
+
+### Build & CI
+
+- **deps:** Lock emf-converter + mtx-decompressor to published 1.4.1 (by @ChristopherVR) ([c151d37](https://github.com/ChristopherVR/pptx-viewer/commit/c151d372a394db0dfde43602c784e3373f56fa3c))
+
 ## [1.4.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.1) - 2026-06-18
 
 ### Features
 
+- **vue:** Design ▸ Edit Theme panel (by @ChristopherVR) ([59fb336](https://github.com/ChristopherVR/pptx-viewer/commit/59fb33656bfe7124cc7022b4744e3c6dc8276192))
+- **vue:** Draw-tab ink tools (pen / highlighter / eraser) (by @ChristopherVR) ([bb855cc](https://github.com/ChristopherVR/pptx-viewer/commit/bb855ccf515ffc4526e7b3dfdc79c03acbdad3e6))
+- **vue:** View ▸ Rulers (horizontal + vertical ruler strips) (by @ChristopherVR) ([b1dad01](https://github.com/ChristopherVR/pptx-viewer/commit/b1dad018eea0d486f82341db16aa21c0f6be394c))
+- **angular:** Design tab theme gallery (apply built-in theme presets) (by @ChristopherVR) ([a8b42e8](https://github.com/ChristopherVR/pptx-viewer/commit/a8b42e8db3906cc3facc7206cf826cfb50bff02f))
+- **angular:** Implement freehand ink drawing backend for the Draw tab (by @ChristopherVR) ([c495775](https://github.com/ChristopherVR/pptx-viewer/commit/c4957756769859413ae313d88575ffa642588781))
 - **angular:** Add Table, SmartArt, and Equation insertion to ribbon Insert tab (by @ChristopherVR) ([3f310a8](https://github.com/ChristopherVR/pptx-viewer/commit/3f310a8bd74861599d94cde5861ff81846753835))
 - **angular:** Add grid, rulers, and guides overlays to View tab ribbon (by @ChristopherVR) ([7b556ba](https://github.com/ChristopherVR/pptx-viewer/commit/7b556ba6fea179c24fe224c6403d45217711490b))
 - **vue:** Design ▸ Themes gallery (apply built-in theme presets) (by @ChristopherVR) ([b16271a](https://github.com/ChristopherVR/pptx-viewer/commit/b16271a1e1b7a34f4a832f661f58e5bd8cc0eff6))
 - **angular:** Design tab theme gallery (apply built-in theme presets) (by @ChristopherVR) ([dc01108](https://github.com/ChristopherVR/pptx-viewer/commit/dc01108886959c49c9dfbbf9eb530cdb8a7914fa))
 
+### Bug Fixes
+
+- **vue:** Hide slides rail on mobile so the slide is visible (by @ChristopherVR) ([75d2b85](https://github.com/ChristopherVR/pptx-viewer/commit/75d2b85984a29fbb9299a058cdced401ee3cda13))
+
+### Refactor
+
+- **core:** Consume emf-converter and mtx-decompressor from npm (by @ChristopherVR) ([2f6013d](https://github.com/ChristopherVR/pptx-viewer/commit/2f6013d5b8fab0aef5b32901841d94c0fa886f24))
+
 ### Documentation
 
+- **vue:** Log theme editor + Draw-tab ink tools (by @ChristopherVR) ([37b81bf](https://github.com/ChristopherVR/pptx-viewer/commit/37b81bf074e97659d147518da1a8eb3789e361b3))
+- **vue:** Log View ▸ Rulers + flag the emf/mtx workspace break (by @ChristopherVR) ([70f76ec](https://github.com/ChristopherVR/pptx-viewer/commit/70f76ec8ecb2e60db10adb8e6d21af05b46fd663))
+- **angular:** Log Insert/View/Design/Draw depth landed (2148 tests, e2e 10/10) (by @ChristopherVR) ([cbe9dc7](https://github.com/ChristopherVR/pptx-viewer/commit/cbe9dc7cb1998d766def97fbb20db4169c869680))
 - **vue:** Log layout + theme galleries; ribbon data-stubs complete (by @ChristopherVR) ([3e1c556](https://github.com/ChristopherVR/pptx-viewer/commit/3e1c55683eeffb3c237d5c8f8bef3ab5a0ab9052))
 - **changelog:** Update for v1.4.1 [skip ci] (by @github-actions[bot]) ([fcc267e](https://github.com/ChristopherVR/pptx-viewer/commit/fcc267ee064be446aa66338ce4d813e37a8eee21))
 
 ## [1.1.25](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.25) - 2026-06-18
 
+### Features
+
+- **angular:** Add Table, SmartArt, and Equation insertion to ribbon Insert tab (by @ChristopherVR) ([07c8736](https://github.com/ChristopherVR/pptx-viewer/commit/07c873662d3aaf194d3a0a51a5eeceab7de5fece))
+- **angular:** Add grid, rulers, and guides overlays to View tab ribbon (by @ChristopherVR) ([3583d6f](https://github.com/ChristopherVR/pptx-viewer/commit/3583d6f864f31760a259771bfa3f62ea0c9e1155))
+- **vue:** Design ▸ Themes gallery (apply built-in theme presets) (by @ChristopherVR) ([40b8a51](https://github.com/ChristopherVR/pptx-viewer/commit/40b8a517e34b5a5feb2094af7654c4655fd7c773))
+
+### Other
+
+- **angular:** Insert tab — Table/SmartArt/Equation insertion (by @ChristopherVR) ([8c6c90c](https://github.com/ChristopherVR/pptx-viewer/commit/8c6c90c87a1b61df99bd2c0511daf6aaadf8eca0))
+- **angular:** View tab — grid/rulers/guides overlays (by @ChristopherVR) ([22f9b89](https://github.com/ChristopherVR/pptx-viewer/commit/22f9b895fecbff8cb1be4b98088973b083f07db7))
+
 ### Documentation
 
+- **vue:** Log layout + theme galleries; ribbon data-stubs complete (by @ChristopherVR) ([6aa01ab](https://github.com/ChristopherVR/pptx-viewer/commit/6aa01ab03d9ab8e3194942ac3fc12faa78180545))
 - **changelog:** Update for v1.1.25 [skip ci] (by @github-actions[bot]) ([fd233b8](https://github.com/ChristopherVR/pptx-viewer/commit/fd233b8ec2a571623a51215588006b4970ee0f0e))
 
 ## [1.1.24](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.24) - 2026-06-18
