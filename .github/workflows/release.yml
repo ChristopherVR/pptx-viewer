@@ -1,0 +1,169 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build all packages
+        run: bun run build
+
+      - name: Determine next version
+        id: version
+        run: |
+          # Find the highest existing semver tag (not just v1.0.*)
+          LATEST_TAG=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | head -n 1)
+          if [ -z "$LATEST_TAG" ]; then
+            LATEST_TAG_VER="0.0.0"
+          else
+            LATEST_TAG_VER=$(echo "$LATEST_TAG" | sed 's/^v//')
+          fi
+          echo "Highest git tag version: ${LATEST_TAG_VER}"
+
+          # Check npm for the highest published version across all packages
+          NPM_MAX="0.0.0"
+          for pkg in emf-converter mtx-decompressor pptx-viewer-core pptx-react-viewer pptx-viewer-mcp; do
+            NPM_VER=$(npm view "$pkg" version 2>/dev/null || echo "0.0.0")
+            echo "  $pkg npm version: $NPM_VER"
+            if [ "$(printf '%s\n%s' "$NPM_MAX" "$NPM_VER" | sort -V | tail -1)" = "$NPM_VER" ]; then
+              NPM_MAX="$NPM_VER"
+            fi
+          done
+          echo "Highest npm version: ${NPM_MAX}"
+
+          # Use the higher of git tag vs npm as baseline
+          if [ "$(printf '%s\n%s' "$LATEST_TAG_VER" "$NPM_MAX" | sort -V | tail -1)" = "$NPM_MAX" ]; then
+            BASELINE="$NPM_MAX"
+          else
+            BASELINE="$LATEST_TAG_VER"
+          fi
+          echo "Baseline version: ${BASELINE}"
+
+          # Increment patch version from baseline
+          MAJOR=$(echo "$BASELINE" | cut -d. -f1)
+          MINOR=$(echo "$BASELINE" | cut -d. -f2)
+          PATCH=$(echo "$BASELINE" | cut -d. -f3)
+          NEXT_PATCH=$((PATCH + 1))
+          VERSION="${MAJOR}.${MINOR}.${NEXT_PATCH}"
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Next version: ${VERSION}"
+
+      - name: Update package versions
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          for pkgdir in packages/emf-converter packages/mtx-decompressor packages/core packages/react packages/tools packages/vue packages/angular; do
+            node -e "
+              const fs = require('fs');
+              const p = '${pkgdir}/package.json';
+              const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+              data.version = '${VERSION}';
+              fs.writeFileSync(p, JSON.stringify(data, null, '\t') + '\n');
+            "
+          done
+
+      - name: Pack emf-converter
+        run: cd packages/emf-converter && bun pm pack
+
+      - name: Pack mtx-decompressor
+        run: cd packages/mtx-decompressor && bun pm pack
+
+      - name: Pack pptx-viewer-core
+        run: cd packages/core && bun pm pack
+
+      - name: Pack pptx-react-viewer
+        run: cd packages/react && bun pm pack
+
+      - name: Pack pptx-viewer-tools
+        run: cd packages/tools && bun pm pack
+
+      - name: Pack pptx-vue-viewer
+        run: cd packages/vue && bun pm pack
+
+      # The Angular library is published from its ng-packagr `dist/` (built
+      # above), NOT from the package root. dist/package.json carries the version
+      # and a concrete pptx-viewer-core range baked in at build time, so patch
+      # both to the release version before packing from dist/.
+      - name: Pack pptx-angular-viewer
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          node -e "
+            const fs = require('fs');
+            const p = 'packages/angular/dist/package.json';
+            const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+            data.version = '${VERSION}';
+            for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
+              const deps = data[field];
+              if (deps && deps['pptx-viewer-core']) deps['pptx-viewer-core'] = '^${VERSION}';
+            }
+            fs.writeFileSync(p, JSON.stringify(data, null, '\t') + '\n');
+          "
+          cd packages/angular/dist && bun pm pack
+
+      # ── Changelog (git-cliff, see cliff.toml) ────────────────────────
+      # Regenerate CHANGELOG.md treating the new commits as the next tag,
+      # commit it back to main, and reuse the latest section as the GitHub
+      # release body. The GITHUB_TOKEN push does not retrigger workflows, and
+      # `[skip ci]` guards against it regardless. NOTE: if `main` is protected
+      # against direct pushes, allow the actions bot or relax the rule.
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --tag ${{ steps.version.outputs.tag }} --output CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit changelog
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- CHANGELOG.md; then
+            echo "CHANGELOG.md unchanged — nothing to commit"
+          else
+            git add CHANGELOG.md
+            git commit -m "docs(changelog): update for ${{ steps.version.outputs.tag }} [skip ci]"
+            git push origin HEAD:main
+          fi
+
+      - name: Extract latest release notes
+        run: awk '/^## \[/{c++} c==1{print} c==2{exit}' CHANGELOG.md > "${RUNNER_TEMP}/release_notes.md"
+
+      - name: Create release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: main
+          name: v${{ steps.version.outputs.version }}
+          body_path: ${{ runner.temp }}/release_notes.md
+          files: |
+            packages/emf-converter/*.tgz
+            packages/mtx-decompressor/*.tgz
+            packages/core/*.tgz
+            packages/react/*.tgz
+            packages/tools/*.tgz
+            packages/vue/*.tgz
+            packages/angular/dist/*.tgz

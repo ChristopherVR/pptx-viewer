@@ -1,0 +1,275 @@
+name: Publish to npm
+
+# ──────────────────────────────────────────────────────────────
+# Publish to npm with provenance
+# Auth: OIDC trusted publishing (default) or NPM_TOKEN secret.
+#   - OIDC: requires Node 24+ (npm >= 11.5.1) and linked
+#     publishers configured on npmjs.com for each package.
+#   - Token fallback: set NPM_TOKEN secret in the "npm"
+#     environment to use token auth instead.
+#
+# Package → registry mapping:
+#   emf-converter       → https://www.npmjs.com/package/emf-converter
+#   mtx-decompressor    → https://www.npmjs.com/package/mtx-decompressor
+#   pptx-viewer-core    → https://www.npmjs.com/package/pptx-viewer-core
+#   pptx-react-viewer   → https://www.npmjs.com/package/pptx-react-viewer
+#   pptx-vue-viewer     → https://www.npmjs.com/package/pptx-vue-viewer
+#   pptx-angular-viewer → https://www.npmjs.com/package/pptx-angular-viewer
+#   pptx-viewer-mcp     → https://www.npmjs.com/package/pptx-viewer-mcp
+# ──────────────────────────────────────────────────────────────
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    if: vars.NPM_PUBLISH == 'true'
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write # Required for OIDC trusted publishing & provenance
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.release.tag_name }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build all packages
+        run: bun run build
+
+      - name: Determine version from release tag
+        id: version
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${VERSION#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Publishing version: ${VERSION}"
+
+      - name: Update package versions
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          for pkgdir in packages/emf-converter packages/mtx-decompressor packages/core packages/react packages/tools packages/vue packages/angular; do
+            node -e "
+              const fs = require('fs');
+              const p = '${pkgdir}/package.json';
+              const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+              data.version = '${VERSION}';
+              fs.writeFileSync(p, JSON.stringify(data, null, '\t') + '\n');
+            "
+          done
+
+      - name: Prepare react package for publish
+        # The react package is published as "pptx-react-viewer" on npm,
+        # but uses "pptx-viewer" locally for workspace resolution.
+        # Replace workspace:* runtime deps with real version ranges, and drop
+        # build-only workspace devDeps (pptx-viewer-core / pptx-viewer-shared
+        # are bundled into dist, so the published manifest must not reference
+        # these unpublished internal packages).
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          node -e "
+            const fs = require('fs');
+            const p = 'packages/react/package.json';
+            const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+            data.name = 'pptx-react-viewer';
+            if (data.dependencies) {
+              for (const [k, v] of Object.entries(data.dependencies)) {
+                if (v === 'workspace:*') data.dependencies[k] = '^${VERSION}';
+              }
+            }
+            if (data.devDependencies) {
+              for (const [k, v] of Object.entries(data.devDependencies)) {
+                if (typeof v === 'string' && v.startsWith('workspace:')) delete data.devDependencies[k];
+              }
+            }
+            fs.writeFileSync(p, JSON.stringify(data, null, '\t') + '\n');
+          "
+
+      - name: Prepare vue package for publish
+        # Published as "pptx-vue-viewer" (no rename needed).
+        # Replace workspace:* runtime deps with real version ranges, and drop
+        # build-only workspace devDeps (pptx-viewer-core / pptx-viewer-shared
+        # are bundled into dist, so the published manifest must not reference
+        # these unpublished internal packages).
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          node -e "
+            const fs = require('fs');
+            const p = 'packages/vue/package.json';
+            const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+            if (data.dependencies) {
+              for (const [k, v] of Object.entries(data.dependencies)) {
+                if (v === 'workspace:*') data.dependencies[k] = '^${VERSION}';
+              }
+            }
+            if (data.devDependencies) {
+              for (const [k, v] of Object.entries(data.devDependencies)) {
+                if (typeof v === 'string' && v.startsWith('workspace:')) delete data.devDependencies[k];
+              }
+            }
+            fs.writeFileSync(p, JSON.stringify(data, null, '\t') + '\n');
+          "
+
+      - name: Prepare angular package for publish
+        # Published from ng-packagr's dist/ (built above).
+        # Patch the baked-in version and pptx-viewer-core range to the release version.
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          node -e "
+            const fs = require('fs');
+            const p = 'packages/angular/dist/package.json';
+            const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+            data.version = '${VERSION}';
+            for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
+              const deps = data[field];
+              if (deps && deps['pptx-viewer-core']) deps['pptx-viewer-core'] = '^${VERSION}';
+            }
+            fs.writeFileSync(p, JSON.stringify(data, null, '\t') + '\n');
+          "
+
+      - name: Prepare tools package for publish
+        # Replace workspace:* references with real version ranges.
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          node -e "
+            const fs = require('fs');
+            const p = 'packages/tools/package.json';
+            const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+            if (data.peerDependencies) {
+              for (const [k, v] of Object.entries(data.peerDependencies)) {
+                if (v === 'workspace:*') data.peerDependencies[k] = '^${VERSION}';
+              }
+            }
+            if (data.devDependencies) {
+              for (const [k, v] of Object.entries(data.devDependencies)) {
+                if (v === 'workspace:*') data.devDependencies[k] = '^${VERSION}';
+              }
+            }
+            fs.writeFileSync(p, JSON.stringify(data, null, '\t') + '\n');
+          "
+
+      - name: Replace mermaid blocks with GitHub links in READMEs
+        run: |
+          REPO_URL="https://github.com/ChristopherVR/pptx-viewer"
+          for readme in packages/emf-converter/README.md packages/mtx-decompressor/README.md packages/core/README.md packages/react/README.md packages/tools/README.md packages/vue/README.md; do
+            if [ -f "$readme" ]; then
+              github_link="${REPO_URL}/blob/main/${readme}"
+              perl -0777 -i -pe "s|\`\`\`mermaid\n.*?\`\`\`|_See the [architecture diagrams on GitHub](${github_link}) for visual representations._|gs" "$readme"
+              echo "Processed $readme"
+            fi
+          done
+
+      # https://www.npmjs.com/package/emf-converter
+      - name: Publish emf-converter
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          EXISTING=$(npm view emf-converter@"$VERSION" version 2>/dev/null || echo "")
+          if [ "$EXISTING" = "$VERSION" ]; then
+            echo "emf-converter@$VERSION already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
+        working-directory: packages/emf-converter
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # https://www.npmjs.com/package/mtx-decompressor
+      - name: Publish mtx-decompressor
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          EXISTING=$(npm view mtx-decompressor@"$VERSION" version 2>/dev/null || echo "")
+          if [ "$EXISTING" = "$VERSION" ]; then
+            echo "mtx-decompressor@$VERSION already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
+        working-directory: packages/mtx-decompressor
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # https://www.npmjs.com/package/pptx-viewer-core
+      - name: Publish pptx-viewer-core
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          EXISTING=$(npm view pptx-viewer-core@"$VERSION" version 2>/dev/null || echo "")
+          if [ "$EXISTING" = "$VERSION" ]; then
+            echo "pptx-viewer-core@$VERSION already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
+        working-directory: packages/core
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # https://www.npmjs.com/package/pptx-react-viewer
+      - name: Publish pptx-react-viewer
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          EXISTING=$(npm view pptx-react-viewer@"$VERSION" version 2>/dev/null || echo "")
+          if [ "$EXISTING" = "$VERSION" ]; then
+            echo "pptx-react-viewer@$VERSION already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
+        working-directory: packages/react
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # https://www.npmjs.com/package/pptx-vue-viewer
+      - name: Publish pptx-vue-viewer
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          EXISTING=$(npm view pptx-vue-viewer@"$VERSION" version 2>/dev/null || echo "")
+          if [ "$EXISTING" = "$VERSION" ]; then
+            echo "pptx-vue-viewer@$VERSION already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
+        working-directory: packages/vue
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # https://www.npmjs.com/package/pptx-angular-viewer
+      # Published from ng-packagr's dist/ (see Prepare angular package step).
+      - name: Publish pptx-angular-viewer
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          EXISTING=$(npm view pptx-angular-viewer@"$VERSION" version 2>/dev/null || echo "")
+          if [ "$EXISTING" = "$VERSION" ]; then
+            echo "pptx-angular-viewer@$VERSION already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
+        working-directory: packages/angular/dist
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # https://www.npmjs.com/package/pptx-viewer-mcp
+      - name: Publish pptx-viewer-mcp
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          EXISTING=$(npm view pptx-viewer-mcp@"$VERSION" version 2>/dev/null || echo "")
+          if [ "$EXISTING" = "$VERSION" ]; then
+            echo "pptx-viewer-mcp@$VERSION already published, skipping"
+          else
+            npm publish --provenance --access public
+          fi
+        working-directory: packages/tools
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
