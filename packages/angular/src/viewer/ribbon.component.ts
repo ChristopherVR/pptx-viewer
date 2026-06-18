@@ -623,11 +623,41 @@ const TEXT_COLORS = [
 						}
 					}
 					@case ('view') {
+						<!-- Presentation views -->
 						<button type="button" class="pptx-rb-pill" (click)="openSorter.emit()">
 							Slide Sorter
 						</button>
 						<button type="button" class="pptx-rb-pill" (click)="toggleNotes.emit()">Notes</button>
 						<button type="button" class="pptx-rb-pill" (click)="print.emit()">Print</button>
+						<span class="pptx-rb-sep"></span>
+						<!-- Show / Hide overlays -->
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							[ngClass]="showGrid() ? 'bg-primary text-primary-foreground' : ''"
+							title="Toggle grid overlay"
+							(click)="toggleGrid.emit()"
+						>
+							Grid
+						</button>
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							[ngClass]="showRulers() ? 'bg-primary text-primary-foreground' : ''"
+							title="Toggle rulers"
+							(click)="toggleRulers.emit()"
+						>
+							Rulers
+						</button>
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							[ngClass]="showGuides() ? 'bg-primary text-primary-foreground' : ''"
+							title="Toggle center guide lines"
+							(click)="toggleGuides.emit()"
+						>
+							Guides
+						</button>
 					}
 					@case ('draw') {
 						<!--
@@ -1034,6 +1064,12 @@ export class RibbonComponent {
 	readonly formatPainterActive = input<boolean>(false);
 	readonly canActivateFormatPainter = input<boolean>(false);
 	readonly exporting = input<boolean>(false);
+	/** Current visibility state of the grid overlay (for active-state styling). */
+	readonly showGrid = input<boolean>(false);
+	/** Current visibility state of rulers (for active-state styling). */
+	readonly showRulers = input<boolean>(false);
+	/** Current visibility state of center guide lines (for active-state styling). */
+	readonly showGuides = input<boolean>(false);
 
 	readonly prev = output<void>();
 	readonly next = output<void>();
@@ -1070,6 +1106,12 @@ export class RibbonComponent {
 	 * Currently UI-only — no freehand-draw back-end exists in the Angular port.
 	 */
 	readonly drawToolChange = output<{ tool: DrawTool; color: string; width: number }>();
+	/** Emitted when the user toggles the grid overlay in the View tab. */
+	readonly toggleGrid = output<void>();
+	/** Emitted when the user toggles rulers in the View tab. */
+	readonly toggleRulers = output<void>();
+	/** Emitted when the user toggles center guide lines in the View tab. */
+	readonly toggleGuides = output<void>();
 
 	protected readonly tabs = TABS;
 	protected readonly fontFamilies = FONT_FAMILIES;
