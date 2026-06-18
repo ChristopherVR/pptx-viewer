@@ -12,7 +12,7 @@
         "lint-staged": "^17.0.7",
         "oxfmt": "^0.54.0",
         "oxlint": "^1.69.0",
-        "pptx-viewer": "workspace:*",
+        "pptx-react-viewer": "workspace:*",
         "pptx-viewer-core": "workspace:*",
         "typescript": "^6.0.3",
         "y-protocols": "^1.0.7",
@@ -59,7 +59,7 @@
         "jspdf": "^4.2.1",
         "jszip": "^3.10.1",
         "lucide-react": "^1.18.0",
-        "pptx-viewer": "workspace:*",
+        "pptx-react-viewer": "workspace:*",
         "pptx-viewer-core": "workspace:*",
         "react": "^19.2.7",
         "react-dom": "^19.2.7",
@@ -137,6 +137,10 @@
       "bin": {
         "pptx": "./dist/cli/index.mjs",
       },
+      "dependencies": {
+        "fast-xml-parser": "^5.8.0",
+        "jszip": "^3.10.1",
+      },
       "devDependencies": {
         "@types/node-forge": "^1.3.14",
         "@xmldom/xmldom": "^0.8.13",
@@ -150,8 +154,6 @@
       },
       "peerDependencies": {
         "@xmldom/xmldom": "^0.8.0",
-        "fast-xml-parser": "^5.8.0",
-        "jszip": "^3.10.1",
         "node-forge": "^1.3.0",
         "xml-crypto": "^6.0.0",
       },
@@ -180,7 +182,7 @@
       },
     },
     "packages/react": {
-      "name": "pptx-viewer",
+      "name": "pptx-react-viewer",
       "version": "1.5.0",
       "dependencies": {
         "clsx": "^2.1.1",
@@ -243,22 +245,23 @@
       },
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.29.0",
+        "fast-xml-parser": "^5.8.0",
+        "jszip": "^3.10.1",
+        "pptx-viewer-core": "^1.4.0",
         "zod": "^4.4.3",
       },
       "devDependencies": {
-        "fast-xml-parser": "^5.9.0",
-        "jszip": "^3.10.1",
-        "pptx-viewer-core": "^1.1.7",
         "tsup": "^8.5.1",
         "typescript": "^6.0.3",
         "vitest": "^4.1.8",
         "yjs": "^13.6.31",
       },
       "peerDependencies": {
-        "fast-xml-parser": "^5.5.0",
-        "jszip": "^3.10.0",
-        "pptx-viewer-core": "latest",
+        "yjs": "^13.6.31",
       },
+      "optionalPeers": [
+        "yjs",
+      ],
     },
     "packages/vue": {
       "name": "pptx-vue-viewer",
@@ -1548,7 +1551,7 @@
 
     "pptx-react-demo": ["pptx-react-demo@workspace:demos/demo-react"],
 
-    "pptx-viewer": ["pptx-viewer@workspace:packages/react"],
+    "pptx-react-viewer": ["pptx-react-viewer@workspace:packages/react"],
 
     "pptx-viewer-core": ["pptx-viewer-core@workspace:packages/core"],
 
