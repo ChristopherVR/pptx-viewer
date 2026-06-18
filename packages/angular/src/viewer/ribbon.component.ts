@@ -45,7 +45,13 @@ import {
 	setAnimationEntrance,
 	setAnimationExit,
 } from './animation-author-helpers';
-import { newShapeElement, newTextElement } from './editor-insert';
+import {
+	newEquationElement,
+	newShapeElement,
+	newSmartArtElement,
+	newTableElement,
+	newTextElement,
+} from './editor-insert';
 import { EditorStateService } from './editor-state.service';
 
 /** Ribbon tab identifiers (mirrors React `TOOLBAR_SECTIONS`). */
@@ -392,6 +398,7 @@ const TEXT_COLORS = [
 						<ng-container [ngTemplateOutlet]="paragraphControls" />
 					}
 					@case ('insert') {
+						<!-- Shapes group -->
 						<div class="pptx-rb-grp">
 							<button type="button" class="pptx-rb-gb" (click)="insertText()" title="Text box">
 								Text Box
@@ -414,6 +421,34 @@ const TEXT_COLORS = [
 							</button>
 							<button type="button" class="pptx-rb-gl" (click)="insertShape('line')" title="Line">
 								／ Line
+							</button>
+						</div>
+						<span class="pptx-rb-sep"></span>
+						<!-- Data / diagram group -->
+						<div class="pptx-rb-grp">
+							<button
+								type="button"
+								class="pptx-rb-gb"
+								(click)="insertTable()"
+								title="Insert 3×3 table"
+							>
+								⊞ Table
+							</button>
+							<button
+								type="button"
+								class="pptx-rb-gb"
+								(click)="insertSmartArt()"
+								title="Insert SmartArt diagram"
+							>
+								◈ SmartArt
+							</button>
+							<button
+								type="button"
+								class="pptx-rb-gl"
+								(click)="insertEquation()"
+								title="Insert equation (E = mc²)"
+							>
+								∑ Equation
 							</button>
 						</div>
 					}
@@ -1105,6 +1140,15 @@ export class RibbonComponent {
 	}
 	protected insertShape(kind: 'rect' | 'ellipse' | 'line'): void {
 		this.editor.addElement(this.slideIndex(), newShapeElement(kind));
+	}
+	protected insertTable(): void {
+		this.editor.addElement(this.slideIndex(), newTableElement());
+	}
+	protected insertSmartArt(): void {
+		this.editor.addElement(this.slideIndex(), newSmartArtElement());
+	}
+	protected insertEquation(): void {
+		this.editor.addElement(this.slideIndex(), newEquationElement());
 	}
 
 	// ── Text style ────────────────────────────────────────────────────────────
