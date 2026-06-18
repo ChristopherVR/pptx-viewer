@@ -175,6 +175,8 @@ const ZOOM_MAX = 3;
 					(exportGif)="exportGif()"
 					(exportVideo)="exportVideo()"
 					(replace)="openFindReplace()"
+					(toggleInspector)="activePanel.set(null)"
+					(drawToolChange)="onDrawToolChange($event)"
 					/>
 				}
 
@@ -879,6 +881,16 @@ export class PowerPointViewerComponent {
 	/** Toggle a right-docked tool panel (clicking the active one closes it). */
 	togglePanel(panel: 'comments' | 'accessibility' | 'signatures'): void {
 		this.activePanel.update((current) => (current === panel ? null : panel));
+	}
+
+	/**
+	 * Receive draw-tool state changes from the ribbon Draw tab.
+	 * Currently UI-only — no ink/annotation layer is connected in the Angular
+	 * editor. This method exists so the template binding compiles cleanly and the
+	 * parent is ready to forward state to an ink layer once one is ported.
+	 */
+	protected onDrawToolChange(_state: { tool: string; color: string; width: number }): void {
+		// No-op: freehand drawing backend not yet implemented.
 	}
 
 	/** Append a comment to the active slide (one history entry). */
