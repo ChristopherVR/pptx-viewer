@@ -704,17 +704,24 @@ selection when entering presentation`): replacing the header + rendering live
     **Branch e2e: 8 / 10 pass** (`--project=angular`; the worktree predates the
     parallel `mobile-audit` specs, so its suite is 10): format-painter ×4,
     text-rendering ×2, mobile-present, mobile-inline-edit(tap-another-element).
-  - **Known remaining failures (2, pre-merge):** `mobile-notes` (tap the notes
-    textarea) and `mobile-inline-edit`(tap empty canvas at {480,480}) time out on
-    touch. Not interception — on the fit-scaled mobile canvas the tap coordinate
-    falls outside the scaled stage / in the bottom-bar band. React's mobile
-    layout renders the stage large enough for these coordinates; needs the mobile
-    canvas sizing reconciled with React (or the mobile notes sheet raised).
-  - **Merged to `main`** (no-ff merge `merge(angular): Tailwind 4 Office ribbon
-    - pt→px font fix`) — the merge was conflict-free (the parallel work was
-    React/Vue/e2e, this was Angular). On `main`: ng-packagr build + Tailwind
-    compile, typecheck, lint, and **2108** unit tests pass; the pt→px font fix
-    now ships to all Angular users. **Still open on `main`:** the 2 mobile e2e
-    failures and the Draw/Design/Transitions/Animations tab bodies (need new
-    editor ops). The `angular-ribbon` worktree branch is left in place for
-    reference.
+  - **The 2 mobile failures are now FIXED — Angular e2e is 10/10.** Real root
+    cause (found on the correct base, not the earlier mis-diagnosis): the mobile
+    notes sheet was `position: fixed; bottom: 56px`, anchored to the **visual**
+    viewport (`innerHeight`), while the app sizes to the **layout** viewport
+    (`100vh`). On Pixel 7 that put the notes textarea _below_ the document, so
+    Playwright couldn't `scrollIntoView` a fixed element and `.tap()` retried to
+    timeout. Fix (`fix(angular): dock mobile notes sheet in flow…`): render the
+    sheet in normal flow directly above the bottom bar (`flex: 0 0 auto` instead
+    of `position: fixed`). `mobile-inline-edit`(empty-canvas) was already green
+    once the interactive/font fixes landed. Constrained-not-to-regress tests
+    stay green (mobile-present scrollLeft===0, format-painter ×4, text-rendering
+    ×2, mobile-inline-edit:31).
+  - **Merged to `main`** (Tailwind ribbon + tabs + pt→px + mobile fix). On
+    `main`: ng-packagr build + Tailwind compile, typecheck, lint, **2108** unit
+    tests, and **`--project=angular` e2e 10/10** (18 react-only specs skipped).
+    Also fixed a trunk breakage in the parallel session's react-only specs
+    (`(_, testInfo)` → `({}, testInfo)`; Playwright needs a destructuring
+    pattern — it had broken collection for _all_ projects). **Still open on
+    `main`:** deeper ribbon controls (real freehand-draw backend, theme gallery,
+    SmartArt/Table/Equation insert, eyedropper, selection pane, grid/rulers,
+    custom shows). The `angular-ribbon` worktree branch is left for reference.
