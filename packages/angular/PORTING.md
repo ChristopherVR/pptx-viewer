@@ -136,35 +136,35 @@ touch editing/present).
 
 **Verification (run before claiming green):** `bun run --filter pptx-angular-viewer build`
 (ng-packagr + Tailwind), `typecheck`, `test` (~2159), `bunx oxlint packages/angular/src`
-(`--deny-warnings`), and `npx playwright test --project=angular` (**27 passed / 1
-skipped**; the shared `e2e/*.spec.ts` run identically against React/Vue/Angular).
+(`--deny-warnings`), and `npx playwright test --project=angular` (**28 passed / 0
+skipped** — the shared `e2e/*.spec.ts` run identically against React/Vue/Angular;
+Angular skips none).
 
 ## What's still missing for full React parity
 
-1. **`mobile-table` e2e is React-scoped (1 skipped).** Angular's table-cell touch
-   editor works (`.pptx-ng-cell-input` on double-tap), but the spec's broad
-   `td input[type="text"]` selector also matches the inspector
-   `TableDataEditorComponent`'s per-cell inputs (which live in their own `<td>`s),
-   tripping Playwright strict mode. Fix: move the data-editor inputs out of `<td>`
-   (or gate their DOM presence), then drop the React-only skip so it runs on
-   Angular too.
-2. **File-size debt (CLAUDE.md ≤ 300 LOC rule).** Several Angular files now exceed
-   the limit and should be split: `ribbon.component.ts` (~1.2k LOC — extract each
-   tab's `@case` into its own section component + a tab-bar/primary-row/status-bar
-   split), `power-point-viewer.component.ts`, `slide-canvas.component.ts`,
-   `custom-shows.component.ts`. Lift inline logic into helpers/sub-components.
-3. **Shared-logic extraction (CLAUDE.md "share-first" rule).** Pure helpers that
-   were ported locally into `packages/angular` duplicate React/Vue: `format-painter.ts`,
+The remaining items are **quality/refactor debts and cosmetic polish, not
+behavioural gaps** — Angular is at functional parity (28/0 e2e, the same shared
+specs React passes).
+
+1. **File-size debt (CLAUDE.md ≤ 300 LOC rule).** Several Angular files exceed the
+   limit and should be split: `ribbon.component.ts` (~1.2k LOC — extract each
+   tab's `@case` into its own section component + split tab-bar / primary-row /
+   status-bar), `power-point-viewer.component.ts`, `slide-canvas.component.ts`,
+   `custom-shows.component.ts`. Large mechanical refactor (AOT-template risk) —
+   do as a dedicated, verified pass.
+2. **Shared-logic extraction (CLAUDE.md "share-first" rule).** Pure helpers ported
+   locally into `packages/angular` duplicate React/Vue: `format-painter.ts`,
    `omml-to-mathml.ts`, `color-gradient`/`color-patterns`, `visual-effects`,
    `shape-geometry`, `text-bullets`, `ink-drawing-helpers`, `snap-guides`, etc.
-   Hoist these into `pptx-viewer-shared` (`render/…`) and have all three bindings
-   import one copy. See the extraction-candidates list above.
-4. **Cosmetic pixel depth.** Individual ribbon/control styling uses the shared
-   Tailwind tokens but is not pixel-identical to every React control (spacing,
-   icons, split-button affordances, dropdown chrome). A visual-diff pass per tab
-   would close the remaining cosmetic gap.
-5. **Eyedropper fallback.** Uses the native `EyeDropper` API only (no-ops on
-   Firefox/Safari); add a rasterize-and-sample fallback for parity there.
-6. **Shared core bug (all frameworks).** The `&amp;` HTML entity renders
-   un-decoded in list text in React, Vue, and Angular alike — a core/converter
-   double-encoding fix, not Angular-specific.
+   Hoist into `pptx-viewer-shared` (`render/…`); one copy per binding. Touches
+   React + Vue imports too — do as its own focused change (see candidates above).
+3. **Cosmetic pixel depth.** Control styling uses the shared Tailwind tokens but
+   is not pixel-identical to every React control (spacing, icons, split-button
+   affordances, dropdown chrome). A per-tab visual-diff pass would close it.
+4. **Eyedropper fallback (minor).** Angular uses the native `EyeDropper` API only;
+   React adds a best-effort rasterize-and-sample fallback for Firefox/Safari
+   (itself a stub). Low value — port if exact parity is wanted.
+
+> Parity-neutral (NOT Angular-specific, so out of scope here): the `&amp;` HTML
+> entity renders un-decoded in list text in **React, Vue, and Angular alike** — a
+> core/converter double-encoding fix that affects all three equally.
