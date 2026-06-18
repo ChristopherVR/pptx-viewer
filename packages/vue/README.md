@@ -1,13 +1,23 @@
 # pptx-vue-viewer
 
+[![npm version](https://img.shields.io/npm/v/pptx-vue-viewer.svg)](https://www.npmjs.com/package/pptx-vue-viewer)
+[![license](https://img.shields.io/npm/l/pptx-vue-viewer.svg)](https://github.com/ChristopherVR/pptx-viewer/blob/main/LICENSE)
+
 Render Microsoft PowerPoint (`.pptx`) presentations directly in a Vue 3 app —
 no server, no conversion step, no PowerPoint install. Drop in a
 `<PowerPointViewer>` component, hand it the file bytes, and it parses and
 displays the slides as scalable HTML/CSS with slide navigation and zoom.
 
+![PowerPoint editor UI rendered in the browser](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/editor.png)
+
+> The screenshot shows the full-featured **React** editor. This Vue package is at
+> a **read-only viewer** milestone today — see [Limitations](#limitations).
+
 Parsing is powered by the framework-agnostic `pptx-viewer-core` engine
 (OpenXML → a structured slide model); this package is the Vue rendering layer on
-top of it.
+top of it, with the engine **bundled in**.
+
+<samp>**[▶️ Live demo](https://christophervr.github.io/pptx-viewer/demo/)** · **[📦 npm](https://www.npmjs.com/package/pptx-vue-viewer)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/)**</samp>
 
 ## Features
 
@@ -23,11 +33,18 @@ top of it.
 ## Installation
 
 ```bash
-npm install pptx-vue-viewer pptx-viewer-core
+npm install pptx-vue-viewer
 ```
 
-**Peer requirements:** Vue 3.5+, and `pptx-viewer-core` (plus its `jszip` /
-`fast-xml-parser` peers used by the engine).
+**Peer requirements:** Vue 3.5+ and the engine's `jszip` / `fast-xml-parser`
+peers:
+
+```bash
+npm install vue jszip fast-xml-parser
+```
+
+The `pptx-viewer-core` engine is **bundled in** — you don't install it
+separately unless you want to call the SDK directly.
 
 ## Usage
 
@@ -155,59 +172,23 @@ async function save() {
 
 ## Limitations
 
-This package is at a **read-only viewer** milestone. Today it renders the
-structural content of a slide; some visual effects and all editing are not yet
-wired up.
+This package is at a **read-only viewer** milestone — it renders the structural
+content of a slide, but some visual effects and all editing are not yet wired
+up.
 
-**Element coverage**
+- **Rendered:** text (rich runs), shapes (solid/gradient/image fills + stroke),
+  pictures/images, media poster frames, nested groups, and straight connectors.
+- **Placeholders:** tables, charts, SmartArt, ink, OLE objects, 3D models, and
+  zoom links are shown as labelled placeholders.
+- **Not yet implemented:** custom-geometry clip-paths and bent/curved
+  connectors, effects (shadows, glow, 3D, image filters), text warp / equations,
+  embedded-font injection, media playback, animations/transitions/presentation
+  mode, editing (selection, toolbar, inspector), and export.
 
-- ✅ Rendered: text (rich runs — bold/italic/underline/strike/color/size),
-  shapes (solid, gradient, and image fills + stroke), pictures/images, media
-  poster frames, nested groups, and straight connectors (SVG with arrowheads
-  and dashes).
-- ⚠️ Shown as labelled placeholders: tables, charts, SmartArt, ink, OLE objects,
-  3D models, and zoom links.
-
-**Rendering fidelity (current gaps)**
-
-- Connectors render straight only — bent/curved routing, compound lines, and
-  connector text are not yet drawn.
-- No custom-geometry clip-paths; only a few common preset shapes get rounded/
-  elliptical corners.
-- No shadows, glow, reflection, soft-edge, 3D bevels, or image effects.
-- No text warp / WordArt, and equations (OMML) are not rendered.
-- Fonts use whatever is available in the browser; embedded-font injection is not
-  yet wired up, which can affect text metrics.
-
-**Playback & interaction**
-
-- Media shows the poster frame only — audio/video playback is not implemented.
-- No animations, slide transitions, or presentation mode yet.
-- The viewer is read-only: no selection, editing, toolbar, or inspector.
-
-**Export**
-
-- No image/PDF/GIF/video export yet.
-
-If you need any of the above today, the underlying `pptx-viewer-core` engine
-already parses most of this data — you can read it from the parsed model even
-where this UI layer doesn't render it yet.
-
-## Roadmap
-
-Actively being worked on, roughly in priority order:
-
-1. **Richer rendering** — clip-paths for preset geometries, then tables,
-   full connector routing, and charts.
-2. **Effects** — shadows, glow, image effects, and 3D styling.
-3. **Editing** — selection, transform, and an editor chrome (toolbar/inspector),
-   unlocking `canEdit`, `dirty-change`, and `content-change`.
-4. **Animations, transitions, and presentation mode.**
-5. **Export** — PNG/PDF/GIF/video.
-6. **Real-time collaboration** (the `collaboration` prop).
-7. **Font embedding/injection** for higher text fidelity.
-
-Progress and design notes live in [`PORTING.md`](./PORTING.md).
+The underlying `pptx-viewer-core` engine already parses most of this data, so
+you can read it from the parsed model even where this UI layer doesn't render it
+yet. Progress, the roadmap, and design notes live in
+[`PORTING.md`](./PORTING.md).
 
 ## Build (contributing)
 
