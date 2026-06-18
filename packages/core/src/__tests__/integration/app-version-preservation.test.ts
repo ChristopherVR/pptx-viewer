@@ -18,7 +18,7 @@ import { PptxHandler } from '../../core/PptxHandler';
  * element text round-trips as a literal string.
  */
 describe('docProps/app.xml <AppVersion> round-trip preserves literal string', () => {
-	const fixturePath = path.resolve(__dirname, '../../../../../V8 Updated.pptx');
+	const fixturePath = path.resolve(__dirname, '../fixtures/embedded-assets-sample.pptx');
 	const hasFixture = existsSync(fixturePath);
 
 	it.skipIf(!hasFixture)(
@@ -32,22 +32,22 @@ describe('docProps/app.xml <AppVersion> round-trip preserves literal string', ()
 
 			const origZip = await JSZip.loadAsync(buf);
 			const origAppXml = await origZip.file('docProps/app.xml')!.async('string');
-			const origMatch = origAppXml.match(/<AppVersion>([^<]+)<\/AppVersion>/);
+			const origMatch = origAppXml.match(/<AppVersion>(?<version>[^<]+)<\/AppVersion>/u);
 			expect(origMatch, 'fixture is expected to declare <AppVersion>').not.toBeNull();
-			const origVersion = origMatch![1];
+			const origVersion = origMatch!.groups!.version;
 
 			const saved = await handler.save(data.slides);
 			const savedZip = await JSZip.loadAsync(saved);
 			const savedAppXml = await savedZip.file('docProps/app.xml')!.async('string');
-			const savedMatch = savedAppXml.match(/<AppVersion>([^<]+)<\/AppVersion>/);
+			const savedMatch = savedAppXml.match(/<AppVersion>(?<version>[^<]+)<\/AppVersion>/u);
 			expect(savedMatch, 'saved file must preserve <AppVersion>').not.toBeNull();
-			const savedVersion = savedMatch![1];
+			const savedVersion = savedMatch!.groups!.version;
 
 			expect(savedVersion).toBe(origVersion);
 			// PowerPoint also enforces the [0-9]+\.[0-9]{4} pattern even
 			// when a file didn't originate from Office; fail fast if the
 			// pipeline ever produces a non-matching literal.
-			expect(savedVersion).toMatch(/^\d+\.\d{4}$/);
+			expect(savedVersion).toMatch(/^\d+\.\d{4}$/u);
 		},
 		30000,
 	);

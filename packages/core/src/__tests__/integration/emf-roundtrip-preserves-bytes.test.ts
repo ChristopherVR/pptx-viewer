@@ -19,7 +19,7 @@ import { PptxHandler } from '../../core/PptxHandler';
  * already in the zip from load, so skipping the overwrite preserves them.
  */
 describe('eMF/WMF metafile round-trip preserves the original bytes', () => {
-	const fixturePath = path.resolve(__dirname, '../../../../../V8 Updated.pptx');
+	const fixturePath = path.resolve(__dirname, '../fixtures/embedded-assets-sample.pptx');
 	const hasFixture = existsSync(fixturePath);
 
 	it.skipIf(!hasFixture)(
@@ -34,11 +34,11 @@ describe('eMF/WMF metafile round-trip preserves the original bytes', () => {
 			const zip = await JSZip.loadAsync(saved);
 
 			const metafilePaths = Object.keys(zip.files).filter(
-				(p) => /\.(emf|wmf)$/i.test(p) && !zip.files[p].dir,
+				(p) => /\.(?:emf|wmf)$/iu.test(p) && !zip.files[p].dir,
 			);
 			expect(
 				metafilePaths,
-				'V8 Updated.pptx is expected to contain at least one EMF/WMF part',
+				'the fixture is expected to contain at least one EMF/WMF part',
 			).not.toHaveLength(0);
 
 			for (const p of metafilePaths) {

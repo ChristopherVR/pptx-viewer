@@ -17,7 +17,7 @@ import { PptxHandler } from '../../core/PptxHandler';
  */
 describe('background round-trip with rId-referenced blipFill (V8-Updated.pptx)', () => {
 	// Fixture lives at the repo root; tests run from packages/core.
-	const fixturePath = path.resolve(__dirname, '../../../../../V8-Updated.pptx');
+	const fixturePath = path.resolve(__dirname, '../fixtures/embedded-assets-sample.pptx');
 	const hasFixture = fs.existsSync(fixturePath);
 
 	it.skipIf(!hasFixture)(
@@ -42,9 +42,9 @@ describe('background round-trip with rId-referenced blipFill (V8-Updated.pptx)',
 				const xml = await entry!.async('string');
 
 				// 1. A <p:bg> with a blipFill must survive the round-trip.
-				const bgMatch = xml.match(/<p:bg\b[^>]*>([\s\S]*?)<\/p:bg>/);
+				const bgMatch = xml.match(/<p:bg\b[^>]*>(?<inner>[\s\S]*?)<\/p:bg>/u);
 				expect(bgMatch, `slide${slideNumber} has no <p:bg>`).toBeTruthy();
-				const bgInner = bgMatch![1];
+				const bgInner = bgMatch!.groups!.inner;
 				expect(bgInner, `slide${slideNumber} <p:bg> lost its <a:blipFill>`).toContain(
 					'<a:blipFill',
 				);
@@ -53,9 +53,9 @@ describe('background round-trip with rId-referenced blipFill (V8-Updated.pptx)',
 				//    (blipFill / solidFill / gradFill / pattFill / noFill / grpFill)
 				//    must precede any <a:effectLst>. No empty bgPr with only
 				//    effectLst.
-				const bgPrMatch = bgInner.match(/<p:bgPr\b[^>]*>([\s\S]*?)<\/p:bgPr>/);
+				const bgPrMatch = bgInner.match(/<p:bgPr\b[^>]*>(?<inner>[\s\S]*?)<\/p:bgPr>/u);
 				if (bgPrMatch) {
-					const bgPrInner = bgPrMatch[1];
+					const bgPrInner = bgPrMatch.groups!.inner;
 					const fillIdx = [
 						'<a:blipFill',
 						'<a:solidFill',
