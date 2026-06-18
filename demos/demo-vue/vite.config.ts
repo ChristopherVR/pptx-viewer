@@ -43,8 +43,6 @@ export default defineConfig({
 			},
 			{ find: 'pptx-viewer-core', replacement: pkg('core', 'src', 'index.ts') },
 			{ find: 'pptx-viewer-shared', replacement: pkg('shared', 'src', 'index.ts') },
-			{ find: 'emf-converter', replacement: pkg('emf-converter', 'src', 'index.ts') },
-			{ find: 'mtx-decompressor', replacement: pkg('mtx-decompressor', 'src', 'index.ts') },
 		],
 	},
 	optimizeDeps: {

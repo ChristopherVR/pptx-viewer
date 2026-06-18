@@ -151,54 +151,6 @@ jobs:
       - name: Test react
         run: cd packages/react && bun vitest run --reporter=verbose --reporter=github-actions
 
-  test-emf-converter:
-    needs: build
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-
-      - uses: oven-sh/setup-bun@v2
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: build-output
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Test emf-converter
-        run: cd packages/emf-converter && bun vitest run --reporter=verbose --reporter=github-actions
-
-  test-mtx-decompressor:
-    needs: build
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-
-      - uses: oven-sh/setup-bun@v2
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: build-output
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Test mtx-decompressor
-        run: cd packages/mtx-decompressor && bun vitest run --reporter=verbose --reporter=github-actions --passWithNoTests
-
   test-tools:
     needs: build
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository

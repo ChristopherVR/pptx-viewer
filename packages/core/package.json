@@ -65,14 +65,14 @@
 		"pack": "bun run build && bun pm pack"
 	},
 	"dependencies": {
+		"emf-converter": "^1.4.0",
 		"fast-xml-parser": "^5.8.0",
-		"jszip": "^3.10.1"
+		"jszip": "^3.10.1",
+		"mtx-decompressor": "^1.4.0"
 	},
 	"devDependencies": {
 		"@types/node-forge": "^1.3.14",
 		"@xmldom/xmldom": "^0.8.13",
-		"emf-converter": "workspace:*",
-		"mtx-decompressor": "workspace:*",
 		"node-forge": "^1.4.0",
 		"tsup": "^8.5.1",
 		"typescript": "^6.0.3",
