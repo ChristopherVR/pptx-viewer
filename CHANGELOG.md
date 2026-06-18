@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.4.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.2) - 2026-06-18
+
+### Features
+
+- **angular:** Implement freehand ink drawing backend for the Draw tab (by @ChristopherVR) ([cb72c7b](https://github.com/ChristopherVR/pptx-viewer/commit/cb72c7b82c45e512a94ee169928a20906d1c99c9))
+
 ## [1.4.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.1) - 2026-06-18
 
 ### Features
@@ -16,6 +22,7 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### Documentation
 
 - **vue:** Log layout + theme galleries; ribbon data-stubs complete (by @ChristopherVR) ([3e1c556](https://github.com/ChristopherVR/pptx-viewer/commit/3e1c55683eeffb3c237d5c8f8bef3ab5a0ab9052))
+- **changelog:** Update for v1.4.1 [skip ci] (by @github-actions[bot]) ([fcc267e](https://github.com/ChristopherVR/pptx-viewer/commit/fcc267ee064be446aa66338ce4d813e37a8eee21))
 
 ## [1.1.25](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.25) - 2026-06-18
 
