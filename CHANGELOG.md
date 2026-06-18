@@ -4,6 +4,20 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.4.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.5) - 2026-06-18
+
+### Features
+
+- **angular:** Present active custom show + correct inserted-equation OMML (by @ChristopherVR) ([178730d](https://github.com/ChristopherVR/pptx-viewer/commit/178730d3fb953aca1b7328f374c05e6f1c99c477))
+- **vue:** Wire remaining File/Slide-Show ribbon actions (by @ChristopherVR) ([f04ea3f](https://github.com/ChristopherVR/pptx-viewer/commit/f04ea3f2c9b6f046b9ddc83b51073b3ff3d2bda7))
+- **vue:** Wire Animations tab add/remove preset (by @ChristopherVR) ([6315f88](https://github.com/ChristopherVR/pptx-viewer/commit/6315f8821b908af9f7aa92120c9ec8e52713aaab))
+
+### Documentation
+
+- **angular:** Niche list complete — custom-show present + equation OMML; functional parity reached (by @ChristopherVR) ([ac719c7](https://github.com/ChristopherVR/pptx-viewer/commit/ac719c79af0a78d3d98902577c7c35a38c42423e))
+- **vue:** Log File/Slide-Show/Animations ribbon wiring (by @ChristopherVR) ([b59b6ad](https://github.com/ChristopherVR/pptx-viewer/commit/b59b6ad5ff87fdf963e49988c198acf3a956e0fc))
+- **changelog:** Update for v1.4.5 [skip ci] (by @github-actions[bot]) ([e068d54](https://github.com/ChristopherVR/pptx-viewer/commit/e068d54c0a101b043805702cbc3bf3e5635ab62e))
+
 ## [1.4.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.4) - 2026-06-18
 
 ### Features
