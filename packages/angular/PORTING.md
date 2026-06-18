@@ -634,3 +634,77 @@ frontier is **editing** and the remaining advanced subsystems.
     the Tailwind-4 pipeline adopted first to port the ~213 components 1:1). It is
     a large, multi-session effort and remains the single biggest visual-parity
     item.
+
+- **2026-06-18 (ribbon port — started, on branch `angular-ribbon`)** — Decision
+  taken: port React's Office ribbon to Angular **1:1 with the Tailwind 4
+  pipeline** (Open decision #1 resolved; matches the Vue session now building its
+  own `components/ribbon/`). Done in an isolated git worktree to avoid the shared
+  `bun.lock`/checkout hazard.
+  - **Landed — Tailwind 4 pipeline** (`build(angular): adopt Tailwind 4
+pipeline…`): `tailwindcss` + `@tailwindcss/cli` devDeps; `src/styles/theme.css`
+    (`@theme` mapping `--pptx-*` → Tailwind `--color-*`, identical to React/Vue);
+    `pptx-angular-viewer.css` rewired as the Tailwind entry (`@import
+'tailwindcss'; @source '../viewer/**/*.ts'; @import './theme.css';`) keeping
+    the hand-written `.pptx-ng-*` rules during migration; a `build:css`
+    post-ng-packagr step compiles the shipped CSS. ng-packagr build + tailwind
+    compile + typecheck + 2108 tests pass.
+  - **⚠️ Open before merge:** the Tailwind import pulls in **preflight**; its
+    visual impact on slide rendering must be confirmed against React (React ships
+    preflight and renders slides correctly, and the Angular renderer mirrors
+    React's structure, so risk is low — but unverified: the worktree demo env
+    could not be exercised due to a fresh-install bun hoisting quirk leaving
+    `jspdf`/`html2canvas-pro` unresolvable for the demo's vite, which does not
+    happen on `main`/CI). Verify on `main` (working demo) or fix the worktree
+    demo hoisting first.
+  - **Landed — preflight verified safe** (worktree demo got working once
+    `pptx-viewer-core` was built + the demo declared the lib's runtime deps
+    `jspdf`/`html2canvas-pro`/`jszip`/`fast-xml-parser`): with Tailwind +
+    preflight active, slide rendering is unchanged (Project-Atlas title, shapes,
+    live thumbnails all correct). Preflight risk **cleared**.
+  - **Landed — ribbon shell + core tabs** (`feat(angular): port React's
+Office-style ribbon…` + `…bottom status bar`): new `RibbonComponent`
+    replacing the flat header — primary quick-access row (nav, undo/redo, zoom,
+    Find · Present/Presenter/Share/Info), the full **tab bar** (File/Home/Insert/
+    Text/Arrange/Design/Transitions/Animations/Slide Show/Review/View/Help) with
+    active-tab underline, and per-tab content for **File** (export PNG/PDF/GIF/
+    Video, Print, Properties, Replace), **Home** (Clipboard incl. format painter,
+    Slides, Font family/size dropdowns + B/I/U/S + colour swatches, paragraph
+    align), **Insert** (text/rect/ellipse/line), **Text**, **Arrange** (z-order/
+    align/group/duplicate/delete), and **Slide Show/Review/View/Help** wired to
+    existing handlers. Plus a desktop **status bar** (slide counter + saved-state;
+    notes/sorter + zoom). Tailwind component classes via `@layer components` +
+    `@apply` in the global sheet. Verified visually against React; build +
+    typecheck + lint + 2108 tests green.
+  - **Remaining ribbon work:** **Draw / Design / Transitions / Animations** tab
+    bodies are placeholders — they need Angular editor ops that don't exist yet
+    (freehand drawing tools, theme gallery/editor, transition + animation
+    authoring), plus the deeper controls (SmartArt/Table/Equation insert,
+    eyedropper, selection pane, grid/rulers/guides, custom shows). Those ops must
+    be ported alongside their controls. The font-size/family dropdowns reflect
+    the selection; verify they write back when a text element is selected.
+  - **e2e after the ribbon** (`fix(angular): restore e2e contract…` + `…clear
+selection when entering presentation`): replacing the header + rendering live
+    thumbnails broke the framework-neutral contract; fixed by (a) an
+    `interactive` flag so only the main editor canvas exposes
+    `data-pptx-element`/`data-pptx-viewport`/`aria-roledescription` (thumbnails/
+    preview/presentation pass `false` — mirrors React's separate lightweight
+    thumbnail), (b) fixing a **pre-existing pt→px font-inflation bug**
+    (element-style + text-run/connector-text/presenter styles emitted `pt`,
+    rendering 54px→72px and overflowing boxes; **also present on `main` — fix it
+    there too**), (c) gating the ribbon + status bar to desktop, (d) inline-edit
+    caret-at-end (append, not replace), and (e) clearing the selection on
+    `present()` so no "Adjust shape" handle leaks into the show.
+    **Branch e2e: 8 / 10 pass** (`--project=angular`; the worktree predates the
+    parallel `mobile-audit` specs, so its suite is 10): format-painter ×4,
+    text-rendering ×2, mobile-present, mobile-inline-edit(tap-another-element).
+  - **Known remaining failures (2, pre-merge):** `mobile-notes` (tap the notes
+    textarea) and `mobile-inline-edit`(tap empty canvas at {480,480}) time out on
+    touch. Not interception — on the fit-scaled mobile canvas the tap coordinate
+    falls outside the scaled stage / in the bottom-bar band. React's mobile
+    layout renders the stage large enough for these coordinates; needs the mobile
+    canvas sizing reconciled with React (or the mobile notes sheet raised).
+  - **Branch status:** all of the above is on `angular-ribbon` (worktree),
+    **not merged to `main`**. It is buildable/testable there. To merge: rebase/
+    merge onto `main` (reconciling with the parallel Vue ribbon + `bun.lock`),
+    apply the pt→px font fix to `main` too, resolve the 2 mobile e2e failures,
+    re-run `--project=angular`, then fast-forward.

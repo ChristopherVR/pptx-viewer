@@ -1,18 +1,59 @@
 /**
- * Base styles for the Angular PowerPoint viewer chrome.
+ * Stylesheet for the Angular PowerPoint viewer.
  *
- * Minimal, self-contained CSS for the viewer-first milestone, mirroring the
- * Vue package's hand-written chrome. The React package uses Tailwind CSS 4
- * utility classes; the Angular port currently ships hand-written CSS scoped
- * under `.pptx-ng-viewer`. A Tailwind pipeline can be added later (see
- * PORTING.md) if the editor chrome is ported wholesale.
+ * Tailwind CSS 4 entry — mirrors the React `pptx-viewer.css` and Vue
+ * `pptx-vue-viewer.css`: pulls in Tailwind, tells it where to scan Angular
+ * inline component templates for utility-class usage, and imports the shared
+ * `@theme` token block. Compiled to a self-contained `dist/pptx-angular-viewer.css`
+ * by `bun run build:css` (the `@tailwindcss/cli` post-build step) and shipped as
+ * `pptx-angular-viewer/styles`.
  *
  * Theme tokens (`--pptx-*`) are emitted by `themeToCssVars` (from
- * pptx-viewer-shared) and bound to the root element via the `theme` input.
+ * pptx-viewer-shared) and bound to the root element via the `theme` input;
+ * `theme.css` maps them onto Tailwind's semantic `--color-*` tokens so the
+ * chrome uses the same utility classes as React/Vue.
  *
- * Import once in your app, e.g.:
- *   import 'pptx-angular-viewer/styles';   // or the asset path
+ * The hand-written `.pptx-ng-*` chrome rules below remain during the ribbon
+ * migration and are removed per area as each is converted to utilities.
+ *
+ * Import once in your app:
+ *   import 'pptx-angular-viewer/styles';
  */
+
+@import 'tailwindcss';
+
+@source '../viewer/**/*.ts';
+
+@import './theme.css';
+
+/* ── Ribbon chrome component classes (Office-style toolbar) ──────────────────
+   Defined here (not in component styles) because ng-packagr does not run
+   Tailwind on component styles, so @apply only works in this CLI-compiled
+   global sheet. Global classes still match emulated-encapsulated component
+   elements (same pattern as the .pptx-ng-* rules below). */
+@layer components {
+	.pptx-rb-icon {
+		@apply inline-flex h-7 min-w-7 items-center justify-center rounded text-[0.95rem] text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
+	}
+	.pptx-rb-pill {
+		@apply inline-flex items-center gap-1.5 rounded bg-muted px-2.5 py-1.5 text-xs text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
+	}
+	.pptx-rb-grp {
+		@apply inline-flex items-center overflow-hidden rounded bg-muted text-xs text-foreground;
+	}
+	.pptx-rb-gb {
+		@apply inline-flex items-center justify-center border-r border-border px-2.5 py-1.5 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
+	}
+	.pptx-rb-gl {
+		@apply inline-flex items-center justify-center px-2.5 py-1.5 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
+	}
+	.pptx-rb-sep {
+		@apply mx-1 w-px self-stretch bg-border/40;
+	}
+	.pptx-rb-select {
+		@apply rounded border border-border bg-card px-1 py-1 text-xs text-foreground;
+	}
+}
 
 .pptx-ng-viewer {
 	--pptx-background: #030712;

@@ -37,7 +37,7 @@ import { ConnectorTextOverlayComponent } from './connector-text-overlay.componen
 			class="pptx-ng-element pptx-ng-connector"
 			[style]="geo().wrapperStyle"
 			[attr.data-element-id]="element().id"
-			data-pptx-element="true"
+			[attr.data-pptx-element]="interactive() ? 'true' : null"
 		>
 			<svg
 				[attr.width]="geo().svgW"
@@ -127,6 +127,8 @@ export class ConnectorRendererComponent {
 	readonly obstacles = input<readonly Rect[]>([]);
 	readonly canvasWidth = input<number>(0);
 	readonly canvasHeight = input<number>(0);
+	/** See ElementRenderer.interactive — gates the data-pptx-element contract attr. */
+	readonly interactive = input<boolean>(true);
 
 	/** All derived geometry, recomputed on every input change. */
 	readonly geo = computed(() => {

@@ -1,0 +1,47 @@
+/*
+ * pptx-angular-viewer — theme tokens (mirrors React `theme.css` and Vue).
+ *
+ * Maps Tailwind v4 semantic colour tokens to the framework-agnostic --pptx-*
+ * custom properties (the same ones `pptx-viewer-shared/theme` emits from the
+ * `theme` input via `themeStyle`), so the Angular chrome uses the identical
+ * Tailwind utility classes as React and Vue and renders with the same look.
+ * All colours fall back to the dark palette when the --pptx-* properties are
+ * unset.
+ */
+
+@theme {
+	/* ── Semantic colors ─────────────────────────────────────────────── */
+	--color-background: var(--pptx-background, #030712);
+	--color-foreground: var(--pptx-foreground, #f3f4f6);
+
+	--color-card: var(--pptx-card, #111827);
+	--color-card-foreground: var(--pptx-card-foreground, #f3f4f6);
+
+	--color-popover: var(--pptx-popover, #111827);
+	--color-popover-foreground: var(--pptx-popover-foreground, #f3f4f6);
+
+	--color-primary: var(--pptx-primary, #6366f1);
+	--color-primary-foreground: var(--pptx-primary-foreground, #ffffff);
+
+	--color-secondary: var(--pptx-secondary, #1f2937);
+	--color-secondary-foreground: var(--pptx-secondary-foreground, #f3f4f6);
+
+	--color-muted: var(--pptx-muted, #1f2937);
+	--color-muted-foreground: var(--pptx-muted-foreground, #9ca3af);
+
+	--color-accent: var(--pptx-accent, #1f2937);
+	--color-accent-foreground: var(--pptx-accent-foreground, #f3f4f6);
+
+	--color-destructive: var(--pptx-destructive, #ef4444);
+	--color-destructive-foreground: var(--pptx-destructive-foreground, #ffffff);
+
+	--color-border: var(--pptx-border, #374151);
+	--color-input: var(--pptx-input, #374151);
+	--color-ring: var(--pptx-ring, #6366f1);
+
+	/* ── Radius ──────────────────────────────────────────────────────── */
+	--radius-sm: calc(var(--pptx-radius, 0.5rem) - 4px);
+	--radius-md: calc(var(--pptx-radius, 0.5rem) - 2px);
+	--radius-lg: var(--pptx-radius, 0.5rem);
+	--radius-xl: calc(var(--pptx-radius, 0.5rem) + 4px);
+}

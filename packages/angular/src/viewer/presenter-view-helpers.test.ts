@@ -301,7 +301,7 @@ describe('buildNotesSegments', () => {
 			segment('x', { color: '#ff0000', fontSize: 18, fontFamily: 'Arial' }),
 		]);
 		expect(out[0].style['color']).toBe('#ff0000');
-		expect(out[0].style['font-size']).toBe('18pt');
+		expect(out[0].style['font-size']).toBe('18px');
 		expect(out[0].style['font-family']).toBe('Arial');
 	});
 

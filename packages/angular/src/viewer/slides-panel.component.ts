@@ -62,6 +62,7 @@ const THUMB_W = 150;
 									[zoom]="thumbZoom()"
 									[editable]="false"
 									[autoFit]="false"
+									[interactive]="false"
 								/>
 							</div>
 						</button>

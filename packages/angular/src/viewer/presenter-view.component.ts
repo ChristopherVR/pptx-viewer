@@ -304,6 +304,7 @@ const CLOCK_TICK_MS = 1000;
 							[canvasSize]="canvasSize()"
 							[mediaDataUrls]="mediaDataUrls()"
 							[zoom]="1"
+							[interactive]="false"
 						/>
 					</div>
 					<div class="pptx-ng-presenter-slide-badge">{{ slideBadge() }}</div>
@@ -379,6 +380,7 @@ const CLOCK_TICK_MS = 1000;
 								[canvasSize]="canvasSize()"
 								[mediaDataUrls]="mediaDataUrls()"
 								[zoom]="1"
+								[interactive]="false"
 							/>
 						} @else {
 							<div class="pptx-ng-presenter-next-empty">End of presentation</div>

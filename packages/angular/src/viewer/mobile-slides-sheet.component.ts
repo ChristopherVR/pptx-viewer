@@ -75,6 +75,7 @@ const THUMB_W = 160;
 								[zoom]="thumbZoom()"
 								[editable]="false"
 								[autoFit]="false"
+								[interactive]="false"
 							/>
 						</div>
 
