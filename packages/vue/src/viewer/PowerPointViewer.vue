@@ -84,6 +84,7 @@ import StatusBar from './components/StatusBar.vue';
 import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
 import { DEFAULT_VIEWER_SETTINGS } from './components/viewer-settings';
 import type { ViewerSettings } from './components/viewer-settings';
+import { buildActionButtonElement } from './composables/action-buttons';
 import {
 	applyFormatToElement,
 	copyFormatFromElement,
@@ -733,6 +734,17 @@ function onMediaFileSelected(e: Event): void {
 		probe.src = dataUrl;
 	};
 	reader.readAsDataURL(file);
+}
+
+/** Insert an OOXML action button (Insert ▸ Action), centred + selected. */
+function addActionButton(shapeType: string): void {
+	const el = buildActionButtonElement(shapeType, createEditorId('action'));
+	if (!el) {
+		return;
+	}
+	centreNewElement(el, 120, 50);
+	ops.addElement(el);
+	selectedElementIds.value = [el.id];
 }
 function deleteSelected(): void {
 	for (const id of [...selectedElementIds.value]) {
@@ -1648,7 +1660,7 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	onAddEquation: () => {
 		showEquationEditor.value = true;
 	},
-	onAddActionButton: noop,
+	onAddActionButton: addActionButton,
 	onInsertField: undefined,
 	onOpenImagePicker: openImagePicker,
 	onOpenMediaPicker: openMediaPicker,
