@@ -3,14 +3,19 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 // ---------------------------------------------------------------------------
 // DebouncedColorInput
 // ---------------------------------------------------------------------------
-// A colour-picker that only commits when the user releases the picker or
-// blurs the input, avoiding noisy intermediate updates while dragging.
+// A colour-picker that commits live as the user moves through the picker, so
+// the canvas reflects fill / stroke / text-colour changes immediately. A local
+// state mirror keeps the swatch responsive; undo grouping is handled downstream
+// in useEditorHistory (snapshots are diffed and gated by pointer interaction),
+// so live commits do not flood the undo stack.
 // ---------------------------------------------------------------------------
 
 interface DebouncedColorInputProps {
 	value: string;
 	disabled?: boolean;
 	className?: string;
+	/** Accessible label for the colour control (defaults to "Color"). */
+	ariaLabel?: string;
 	onCommit: (hex: string) => void;
 }
 
@@ -18,6 +23,7 @@ export function DebouncedColorInput({
 	value,
 	disabled,
 	className,
+	ariaLabel,
 	onCommit,
 }: DebouncedColorInputProps): React.ReactElement {
 	const [local, setLocal] = useState(value);
@@ -29,38 +35,22 @@ export function DebouncedColorInput({
 		setLocal(value);
 	}, [value]);
 
+	// Commit live on every change so the canvas updates immediately, while
+	// mirroring the value locally to keep the picker swatch responsive.
 	const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-		setLocal(e.target.value);
-	}, []);
-
-	// Commit on blur or when the picker closes (which triggers blur)
-	const handleBlur = useCallback(() => {
-		commitRef.current(local);
-	}, [local]);
-
-	// Also commit on native "change" event end (mouse-up from the picker)
-	const inputRef = useRef<HTMLInputElement>(null);
-	useEffect(() => {
-		const el = inputRef.current;
-		if (!el) {
-			return;
-		}
-		const handler = () => {
-			commitRef.current(el.value);
-		};
-		el.addEventListener('change', handler);
-		return () => el.removeEventListener('change', handler);
+		const next = e.target.value;
+		setLocal(next);
+		commitRef.current(next);
 	}, []);
 
 	return (
 		<input
-			ref={inputRef}
 			type='color'
+			aria-label={ariaLabel ?? 'Color'}
 			disabled={disabled}
 			value={local}
 			className={className}
 			onChange={handleChange}
-			onBlur={handleBlur}
 		/>
 	);
 }
