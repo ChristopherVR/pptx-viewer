@@ -920,3 +920,14 @@ shape-adjustment,remap-text}.ts` + 56 ported tests; shared extraction deferred t
   green; typecheck + oxlint clean; e2e green. **Still no-op (need host capability):** drawing
   tools, grid/ruler/snap (need canvas overlays), theme gallery, action buttons, media (video/
   audio) picker, layout gallery, spell-check, guides.
+
+- **2026-06-18** — **View tab: grid overlay + snap-to-grid.** `GridOverlay.vue` (port of
+  React's `canvas/GridOverlay.tsx`) draws an SVG dot `<pattern>` at GRID_SIZE (8px) in
+  `SlideStage`'s scaled space (over content, under selection), toggled by **View ▸ Grid**.
+  **Snap-to-grid:** `composables/snap.ts` (`snapValue`/`snapBox`, mirroring React's
+  `Math.round(v/gs)*gs`) rounds an element's position + size in `patchActiveElementGeometry`
+  while **View ▸ Snap to Grid** is on (skipped during rotation; sizes clamp to ≥1 cell). Host
+  `showGrid`/`snapToGrid` refs replace the ribbon no-ops. Verified live (grid draws; toggles
+  reflect active state). +6 unit tests. **Remaining View no-ops:** Rulers, Snap to Shape,
+  H/V Guides — all need ruler/guide overlay components (a larger port). Insert ▸ Media
+  (video/audio) and the layout gallery are the other self-contained-ish stubs left.
