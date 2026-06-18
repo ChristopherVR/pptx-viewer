@@ -5,6 +5,7 @@ import { getComputedImageStyle, hasTextWarp } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
+import { resolveParagraphBullet, resolveParagraphIndent } from '../composables/bullet-list';
 import {
 	getContainerStyle,
 	getImageSrc,
@@ -140,35 +141,134 @@ function segmentStyle(seg: TextSegment): CSSProperties {
 	return style;
 }
 
+/** A single rendered run within a paragraph. */
+interface ParagraphRun {
+	text: string;
+	style: CSSProperties;
+}
+
 /**
- * Group text segments into paragraphs of runs. Paragraph breaks start a new
- * line; line breaks insert a newline within a paragraph.
+ * A rendered paragraph: its runs plus resolved bullet + hanging-indent
+ * metadata. Mirrors React's `text-paragraph-render.tsx` paragraph model.
  */
-const paragraphs = computed<Array<Array<{ text: string; style: CSSProperties }>>>(() => {
+interface Paragraph {
+	runs: ParagraphRun[];
+	/** Bullet glyph / number to render before the runs (or `undefined`). */
+	bulletMarker?: string;
+	/** Inline style for the bullet marker span (font / size / colour). */
+	bulletStyle: CSSProperties;
+	/** `margin-left` in px for the whole paragraph (hanging-indent layout). */
+	marginLeftPx?: number;
+	/** `text-indent` in px (first-line / hanging indent). */
+	textIndentPx?: number;
+}
+
+/**
+ * Group text segments into paragraphs of runs, enriching each paragraph with
+ * its leading segment's bullet glyph (or auto-number), bullet font/size/colour,
+ * and marginLeft/text-indent (hanging-indent) layout — mirroring React's
+ * `renderTextSegments` in `text-paragraph-render.tsx`.
+ *
+ * Paragraph separators are either `isParagraphBreak` segments (post-edit remap)
+ * or bare `"\n"` text segments (the slide-load path). Soft line breaks insert a
+ * newline within a paragraph. The core-inserted bullet segment (the first
+ * segment carrying `bulletInfo`, whose text is the precomputed marker) is
+ * skipped from the runs because the marker is rendered separately so it can pick
+ * up the bullet font/size/colour. Bullets are suppressed for paragraphs with no
+ * visible text content (matching PowerPoint / React).
+ */
+const paragraphs = computed<Paragraph[]>(() => {
 	const el = props.element;
 	if (!hasTextProperties(el)) {
 		return [];
 	}
 	const segments = el.textSegments;
 	if (!segments || segments.length === 0) {
-		return el.text ? [[{ text: el.text, style: {} }]] : [];
+		return el.text ? [{ runs: [{ text: el.text, style: {} }], bulletStyle: {} }] : [];
 	}
-	const out: Array<Array<{ text: string; style: CSSProperties }>> = [[]];
+
+	const paragraphIndents = el.paragraphIndents;
+	const out: Array<{ paraSegments: TextSegment[] }> = [{ paraSegments: [] }];
 	for (const seg of segments) {
-		if (seg.isParagraphBreak) {
-			out.push([]);
+		// Both the load path (`"\n"` text segments) and the edit-remap path
+		// (`isParagraphBreak`) terminate a paragraph.
+		if (seg.isParagraphBreak || (seg.text === '\n' && !seg.isLineBreak)) {
+			out.push({ paraSegments: [] });
 			continue;
 		}
-		const current = out[out.length - 1];
-		const text = seg.isLineBreak ? '\n' : seg.text;
-		if (text) {
-			current.push({ text, style: segmentStyle(seg) });
-		}
+		out[out.length - 1].paraSegments.push(seg);
 	}
-	return out.filter((p) => p.length > 0 || out.length === 1);
+
+	const result: Paragraph[] = out.map(({ paraSegments }, paraIndex) => {
+		const firstSeg = paraSegments[0];
+		const bulletResult = resolveParagraphBullet(firstSeg);
+
+		// The core slide-load path inserts a *dedicated* marker segment whose
+		// text is the precomputed glyph/number (e.g. "• " / "1."). We render the
+		// marker ourselves (so it can pick up bullet font/size/colour), so that
+		// dedicated segment must be dropped from the runs to avoid a doubled
+		// marker. A run that merely *carries* `bulletInfo` but holds real content
+		// text (the edit-remap path) is kept.
+		const markerSegment =
+			bulletResult && firstSeg?.bulletInfo && firstSeg.text.trim() === bulletResult.marker.trim()
+				? firstSeg
+				: undefined;
+
+		// Build runs, skipping the dedicated bullet-marker segment.
+		const runs: ParagraphRun[] = [];
+		for (const seg of paraSegments) {
+			if (seg === markerSegment) {
+				continue;
+			}
+			const text = seg.isLineBreak ? '\n' : seg.text;
+			if (text) {
+				runs.push({ text, style: segmentStyle(seg) });
+			}
+		}
+
+		// Suppress bullets for paragraphs with no visible text content (matches
+		// PowerPoint / React: empty bullet paragraphs render no glyph).
+		const hasVisibleTextContent = paraSegments.some(
+			(seg) => seg !== markerSegment && Boolean(seg.text) && seg.text.trim().length > 0,
+		);
+		const bullet = hasVisibleTextContent ? bulletResult : undefined;
+
+		const bulletStyle: CSSProperties = {};
+		if (bullet) {
+			if (bullet.color) {
+				bulletStyle.color = bullet.color;
+			}
+			if (bullet.fontFamily) {
+				bulletStyle.fontFamily = bullet.fontFamily;
+			}
+			// Bullet size: explicit points, else a percentage of the run font size.
+			const runFontSize = firstSeg?.style?.fontSize;
+			if (typeof bullet.sizePts === 'number') {
+				bulletStyle.fontSize = `${bullet.sizePts}px`;
+			} else if (typeof bullet.sizePercent === 'number' && typeof runFontSize === 'number') {
+				bulletStyle.fontSize = `${runFontSize * (bullet.sizePercent / 100)}px`;
+			}
+		}
+
+		const indent = resolveParagraphIndent(paragraphIndents?.[paraIndex], firstSeg?.paragraphLevel);
+
+		return {
+			runs,
+			bulletMarker: bullet?.marker,
+			bulletStyle,
+			marginLeftPx: indent.marginLeftPx,
+			textIndentPx: indent.textIndentPx,
+		};
+	});
+
+	return result.filter(
+		(p) => p.runs.length > 0 || p.bulletMarker !== undefined || result.length === 1,
+	);
 });
 
-const hasText = computed(() => paragraphs.value.some((p) => p.length > 0));
+const hasText = computed(() =>
+	paragraphs.value.some((p) => p.runs.length > 0 || p.bulletMarker !== undefined),
+);
 
 /** Friendly label for the placeholder rendered for not-yet-ported types. */
 const placeholderLabel = computed(() => {
@@ -354,8 +454,25 @@ const placeholderLabel = computed(() => {
 		<!-- Warped text (WordArt) renders as SVG textPath in place of plain runs -->
 		<WordArtText v-if="isWarpedText" :element="element" :z-index="0" />
 		<div v-else-if="hasText" class="pptx-vue-text" :style="textStyle">
-			<p v-for="(para, pi) in paragraphs" :key="pi" style="margin: 0">
-				<template v-for="(run, ri) in para" :key="ri">
+			<p
+				v-for="(para, pi) in paragraphs"
+				:key="pi"
+				class="pptx-vue-para"
+				:style="{
+					marginTop: 0,
+					marginRight: 0,
+					marginBottom: 0,
+					marginLeft: para.marginLeftPx !== undefined ? `${para.marginLeftPx}px` : 0,
+					textIndent: para.textIndentPx !== undefined ? `${para.textIndentPx}px` : undefined,
+				}"
+			>
+				<span
+					v-if="para.bulletMarker !== undefined"
+					class="pptx-vue-bullet"
+					:style="para.bulletStyle"
+					>{{ para.bulletMarker }}&nbsp;</span
+				>
+				<template v-for="(run, ri) in para.runs" :key="ri">
 					<br v-if="run.text === '\n'" />
 					<span v-else :style="run.style">{{ run.text }}</span>
 				</template>
