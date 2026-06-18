@@ -614,6 +614,9 @@ const TEXT_COLORS = [
 							Presenter View
 						</button>
 						<button type="button" class="pptx-rb-pill" (click)="broadcast.emit()">Broadcast</button>
+						<button type="button" class="pptx-rb-pill" (click)="openCustomShows.emit()">
+							Custom Shows
+						</button>
 					}
 					@case ('review') {
 						<button type="button" class="pptx-rb-pill" (click)="comments.emit()">Comments</button>
@@ -657,6 +660,15 @@ const TEXT_COLORS = [
 							(click)="toggleGuides.emit()"
 						>
 							Guides
+						</button>
+						<span class="pptx-rb-sep"></span>
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							title="Show/hide the Selection pane"
+							(click)="toggleSelectionPane.emit()"
+						>
+							Selection Pane
 						</button>
 					}
 					@case ('draw') {
@@ -1115,6 +1127,10 @@ export class RibbonComponent {
 	readonly toggleRulers = output<void>();
 	/** Emitted when the user toggles center guide lines in the View tab. */
 	readonly toggleGuides = output<void>();
+	/** Emitted when the user clicks "Selection Pane" in the View tab. */
+	readonly toggleSelectionPane = output<void>();
+	/** Emitted when the user clicks "Custom Shows" in the Slide Show tab. */
+	readonly openCustomShows = output<void>();
 
 	protected readonly tabs = TABS;
 	protected readonly fontFamilies = FONT_FAMILIES;
