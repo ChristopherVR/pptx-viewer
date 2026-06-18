@@ -24,8 +24,10 @@ import {
 } from 'pptx-viewer-core';
 import type {
 	MasterViewTab,
+	PptxAnimationPreset,
 	PptxData,
 	PptxElement,
+	PptxElementAnimation,
 	PptxHeaderFooter,
 	PptxSaveFormat,
 	PptxSlide,
@@ -96,6 +98,8 @@ import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
 import { DEFAULT_VIEWER_SETTINGS } from './components/viewer-settings';
 import type { ViewerSettings } from './components/viewer-settings';
 import { buildActionButtonElement } from './composables/action-buttons';
+import { applyAnimationPreset, removeElementAnimation } from './composables/element-animation';
+import type { AnimationGroup } from './composables/element-animation';
 import {
 	applyFormatToElement,
 	copyFormatFromElement,
@@ -1198,6 +1202,41 @@ function onApplyTransitionToAll(): void {
 	slides.value = slides.value.map((slide) => ({ ...slide, transition }));
 }
 
+/** Replace the active slide's animation list (history-aware). */
+function writeActiveSlideAnimations(animations: PptxElementAnimation[]): void {
+	const index = activeSlideIndex.value;
+	const slide = slides.value[index];
+	if (!slide) {
+		return;
+	}
+	history.pushHistory();
+	const nextSlides = slides.value.slice();
+	nextSlides[index] = { ...slide, animations };
+	slides.value = nextSlides;
+}
+
+/** Apply an entrance/emphasis/exit preset to the selected element (Animations tab). */
+function onAddAnimation(preset: string, group: AnimationGroup): void {
+	const el = selectedElements.value[0];
+	const slide = activeSlide.value;
+	if (!el || !slide) {
+		return;
+	}
+	writeActiveSlideAnimations(
+		applyAnimationPreset(slide.animations ?? [], el.id, group, preset as PptxAnimationPreset),
+	);
+}
+
+/** Remove the selected element's animation entry (Animations tab). */
+function onRemoveAnimation(): void {
+	const el = selectedElements.value[0];
+	const slide = activeSlide.value;
+	if (!el || !slide) {
+		return;
+	}
+	writeActiveSlideAnimations(removeElementAnimation(slide.animations ?? [], el.id));
+}
+
 // ── Align / group ─────────────────────────────────────────────────────
 const canGroup = computed(() => selectedElements.value.length >= 2);
 const canUngroup = computed(
@@ -1943,8 +1982,8 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	onOpenAnimationPanel: () => {
 		toolbarSection.value = 'animations';
 	},
-	onAddAnimation: noop,
-	onRemoveAnimation: noop,
+	onAddAnimation,
+	onRemoveAnimation,
 	onToggleCompactToolbar: noop,
 	onSetToolbarSection: (sec) => {
 		toolbarSection.value = sec;
