@@ -108,6 +108,9 @@ presentation (*).pptx
 *-saved.pptx
 _debug-*.pptx
 
+# Performance benchmark scratch dir (generated large .pptx fixtures)
+packages/core/.perf-tmp/
+
 # Playwright / scratch screenshots
 /test-results/
 playwright-report/
