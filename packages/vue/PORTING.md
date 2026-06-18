@@ -13,8 +13,8 @@ Ship a Vue 3 package, **`pptx-vue-viewer`** (npm), feature-equivalent to the Rea
 
 ## Status: **component- and feature-level parity is reached**
 
-The Vue port covers essentially the full React surface (**1275 unit tests green**,
-e2e green on react/vue/angular). Done and verified live:
+The Vue port covers essentially the full React surface (**1302 vue + 310 shared
+unit tests green**, e2e green on react/vue/angular). Done and verified live:
 
 - **Rendering** — every element type: text (rich runs), shapes (preset clip-path
   cascade, fill/stroke), images, tables (merges, banding, `tableStyleMap` GUIDs,
@@ -47,16 +47,22 @@ user-visible impact.
 
 ### Rendering fidelity
 
-| Gap                                                 | Where                                                                     | Notes                                                                                                                                                                                                                      |
-| --------------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Bulleted lists** ⚠ _visible_                      | `ElementRenderer.vue` paragraph loop                                      | No bullet glyphs/indents — `bulletInfo`/`paragraphIndents` are ignored, so e.g. the sample deck's slide-2 lists render flat. Highest-impact visible gap.                                                                   |
-| **Chart secondary / log / display-unit value axes** | `ChartRenderer.vue` + shared `chart-helpers.ts` + `chart/ChartChrome.vue` | Value axis is always a single linear primary axis. Needs right-hand 2nd-`axisId` series, log scale, display units, data tables, axis overlays. (Rethreads value→Y through every chart sub-component — see `// TODO(vue)`.) |
-| **Real CSS-3D extruded faces**                      | shared `visual-3d.ts` + `ElementRenderer.vue`                             | Extrusion is approximated with layered box-shadows; React's `Extrusion3DOverlay` (true extruded faces) is deferred.                                                                                                        |
-| **Image `clrChange` chroma-key**                    | `composables/image-effects.ts`                                            | Destructive colour-change / canvas re-encode deferred (recolour/duotone/artistic done).                                                                                                                                    |
-| **Exotic equations**                                | `composables/omml-to-mathml.ts`                                           | phantom / scaling OMML constructs deferred.                                                                                                                                                                                |
-| **Text-warp envelope presets**                      | `composables/text-warp.ts`                                                | `<textPath>` presets done; envelope / CSS-transform presets deferred.                                                                                                                                                      |
-| **Gradient flip/tiling**                            | `composables/fill-style.ts`                                               | linear/radial gradients + patterns done; flip/tile deferred.                                                                                                                                                               |
-| **Model3D real 3D / Zoom navigation**               | `Model3DRenderer`, `ZoomRenderer`                                         | three.js poster only; zoom element is a static link tile.                                                                                                                                                                  |
+| Gap                                                 | Where                                                                     | Notes                                                                                                                                                                                                                                                 |
+| --------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Chart secondary / log / display-unit value axes** | `ChartRenderer.vue` + shared `chart-helpers.ts` + `chart/ChartChrome.vue` | Value axis is always a single linear primary axis. Needs right-hand 2nd-`axisId` series, log scale, display units, data tables, axis overlays. (Rethreads value→Y through every chart sub-component — see `// TODO(vue)`.) **Scheduled cloud agent.** |
+| **Real CSS-3D extruded faces**                      | shared `visual-3d.ts` + `ElementRenderer.vue`                             | Extrusion is approximated with layered box-shadows; React's `Extrusion3DOverlay` (true extruded faces) is deferred. **Scheduled cloud agent.**                                                                                                        |
+| **Image `clrChange` chroma-key**                    | `composables/image-effects.ts`                                            | Destructive colour-change / canvas re-encode deferred (recolour/duotone/artistic done).                                                                                                                                                               |
+| **Model3D real 3D / Zoom navigation**               | `Model3DRenderer`, `ZoomRenderer`                                         | three.js poster only; zoom element is a static link tile.                                                                                                                                                                                             |
+
+> **Recently closed** (2026-06-18): **bulleted lists** (`composables/bullet-list.ts`
+>
+> - `ElementRenderer.vue` — glyphs/auto-numbers/indents, parity-verified live),
+>   **gradient tile-flip** (shared `fill-style.ts`), **text-warp envelope/simple
+>   CSS-transform presets** (shared `text-warp.ts` + `WordArtText.vue`).
+>
+> **Not a gap — at parity:** "exotic equations" (`m:phant`/scaling) are deferred in
+> **React too** (`omml-to-mathml.ts` has the identical case list), so this was never
+> a Vue-vs-React gap.
 
 ### Editing / chrome depth
 
