@@ -157,12 +157,14 @@ const {
 	signatures,
 	tableStyleMap,
 	slideMasters,
+	layoutOptions,
 	sections,
 	customShows,
 	headerFooter,
 	notesMaster,
 	handoutMaster,
 	theme: pptxTheme,
+	handler,
 	getContent,
 } = useLoadContent(() => props.content);
 
@@ -745,6 +747,40 @@ function addActionButton(shapeType: string): void {
 	centreNewElement(el, 120, 50);
 	ops.addElement(el);
 	selectedElementIds.value = [el.id];
+}
+
+/**
+ * Insert a new slide based on a chosen layout (New-Slide gallery). The draft
+ * carries `layoutPath` so placeholders render immediately; the handler then
+ * walks the layout XML to populate background/placeholders (mirrors React's
+ * `handleInsertSlideFromLayout`).
+ */
+async function insertSlideFromLayout(layoutPath: string, layoutName?: string): Promise<void> {
+	const insertAt = activeSlideIndex.value + 1;
+	history.pushHistory();
+	const draft = {
+		id: createEditorId('slide'),
+		rId: '',
+		slideNumber: slides.value.length + 1,
+		elements: [],
+		layoutPath,
+		...(layoutName ? { layoutName } : {}),
+	} as unknown as PptxSlide;
+	const next = slides.value.slice();
+	next.splice(insertAt, 0, draft);
+	slides.value = next;
+	activeSlideIndex.value = insertAt;
+	const h = handler.value;
+	if (!h) {
+		return;
+	}
+	// Returns the single updated slide (layout metadata/placeholders applied).
+	const updated = await h.applyLayoutToSlide(insertAt, layoutPath, slides.value).catch(() => null);
+	if (updated && updated.id === draft.id && slides.value[insertAt]?.id === draft.id) {
+		const merged = slides.value.slice();
+		merged[insertAt] = updated;
+		slides.value = merged;
+	}
 }
 function deleteSelected(): void {
 	for (const id of [...selectedElementIds.value]) {
@@ -1604,7 +1640,7 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	snapToGrid: snapToGrid.value,
 	snapToShape: false,
 	isOverflowMenuOpen: overflowOpen.value,
-	layoutOptions: [],
+	layoutOptions: layoutOptions.value,
 	customShows: customShows.value,
 	activeCustomShowId: activeCustomShowId.value,
 	isCurrentSlideInActiveShow: false,
@@ -1735,7 +1771,7 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	onSetOverflowMenuOpen: (o) => {
 		overflowOpen.value = o;
 	},
-	onInsertSlideFromLayout: () => slideOps.addSlide(),
+	onInsertSlideFromLayout: (path, name) => void insertSlideFromLayout(path, name),
 	onSetActiveCustomShowId: (id) => {
 		activeCustomShowId.value = id;
 	},

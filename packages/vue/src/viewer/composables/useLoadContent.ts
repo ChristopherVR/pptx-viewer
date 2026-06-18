@@ -10,6 +10,7 @@ import type {
 	PptxEmbeddedFont,
 	PptxHandoutMaster,
 	PptxHeaderFooter,
+	PptxLayoutOption,
 	PptxNotesMaster,
 	PptxSection,
 	PptxSlide,
@@ -79,6 +80,8 @@ export interface UseLoadContentResult {
 	theme: ShallowRef<PptxTheme | undefined>;
 	/** Slide masters (for placeholder/background resolution). */
 	slideMasters: ShallowRef<PptxSlideMaster[]>;
+	/** Slide-layout choices for the New-Slide gallery (`{ path, name }`). */
+	layoutOptions: ShallowRef<PptxLayoutOption[]>;
 	/** Archive-path → displayable URL map for media + poster frames. */
 	mediaDataUrls: ShallowRef<Map<string, string>>;
 	/** True while a load is in flight. */
@@ -129,6 +132,7 @@ export function useLoadContent(
 	});
 	const theme = shallowRef<PptxTheme | undefined>(undefined);
 	const slideMasters = shallowRef<PptxSlideMaster[]>([]);
+	const layoutOptions = shallowRef<PptxLayoutOption[]>([]);
 	const mediaDataUrls = shallowRef<Map<string, string>>(new Map());
 	const loading = ref(false);
 	const error = ref<string | null>(null);
@@ -317,6 +321,7 @@ export function useLoadContent(
 			};
 			theme.value = parsed.theme;
 			slideMasters.value = parsed.slideMasters ?? [];
+			layoutOptions.value = parsed.layoutOptions ?? [];
 			coreProperties.value = parsed.coreProperties;
 			customProperties.value = parsed.customProperties ?? [];
 			appProperties.value = parsed.appProperties;
@@ -382,6 +387,7 @@ export function useLoadContent(
 
 	return {
 		slides,
+		layoutOptions,
 		canvasSize,
 		theme,
 		slideMasters,
