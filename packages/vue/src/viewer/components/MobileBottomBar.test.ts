@@ -56,6 +56,12 @@ describe('mobileBottomBar', () => {
 		expect(wrapper.emitted('menu')).toHaveLength(1);
 	});
 
+	it('emits save from the Save button', async () => {
+		const wrapper = mountBar();
+		await wrapper.get('button[aria-label="Save"]').trigger('click');
+		expect(wrapper.emitted('save')).toHaveLength(1);
+	});
+
 	it('disables prev at the first slide and next at the last', () => {
 		const first = mountBar({ slideIndex: 0, slideCount: 3 });
 		expect(first.get('button[aria-label="Previous slide"]').attributes('disabled')).toBeDefined();

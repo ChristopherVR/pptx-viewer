@@ -2543,6 +2543,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				@zoom-in="zoomIn"
 				@zoom-out="zoomOut"
 				@present="present"
+				@save="downloadAs('pptx')"
 				@notes="mobileNotesOpen = !mobileNotesOpen"
 				@menu="showSorter = true"
 			/>

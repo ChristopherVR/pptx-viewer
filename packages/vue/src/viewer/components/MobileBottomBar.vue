@@ -35,6 +35,7 @@ const emit = defineEmits<{
 	'zoom-in': [];
 	'zoom-out': [];
 	present: [];
+	save: [];
 	notes: [];
 	menu: [];
 }>();
@@ -129,6 +130,17 @@ const MOBILE_LABEL =
 			@click="emit('present')"
 		>
 			<span aria-hidden="true">▶</span>
+		</button>
+
+		<button
+			type="button"
+			class="pptx-vue-mobile-btn"
+			:class="MOBILE_BTN"
+			aria-label="Save"
+			title="Save (.pptx)"
+			@click="emit('save')"
+		>
+			<span aria-hidden="true">⤓</span>
 		</button>
 
 		<button
