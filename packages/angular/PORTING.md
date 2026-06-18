@@ -682,8 +682,29 @@ Office-style ribbon…` + `…bottom status bar`): new `RibbonComponent`
     eyedropper, selection pane, grid/rulers/guides, custom shows). Those ops must
     be ported alongside their controls. The font-size/family dropdowns reflect
     the selection; verify they write back when a text element is selected.
+  - **e2e after the ribbon** (`fix(angular): restore e2e contract…` + `…clear
+selection when entering presentation`): replacing the header + rendering live
+    thumbnails broke the framework-neutral contract; fixed by (a) an
+    `interactive` flag so only the main editor canvas exposes
+    `data-pptx-element`/`data-pptx-viewport`/`aria-roledescription` (thumbnails/
+    preview/presentation pass `false` — mirrors React's separate lightweight
+    thumbnail), (b) fixing a **pre-existing pt→px font-inflation bug**
+    (element-style + text-run/connector-text/presenter styles emitted `pt`,
+    rendering 54px→72px and overflowing boxes; **also present on `main` — fix it
+    there too**), (c) gating the ribbon + status bar to desktop, (d) inline-edit
+    caret-at-end (append, not replace), and (e) clearing the selection on
+    `present()` so no "Adjust shape" handle leaks into the show.
+    **Branch e2e: 8 / 10 pass** (`--project=angular`; the worktree predates the
+    parallel `mobile-audit` specs, so its suite is 10): format-painter ×4,
+    text-rendering ×2, mobile-present, mobile-inline-edit(tap-another-element).
+  - **Known remaining failures (2, pre-merge):** `mobile-notes` (tap the notes
+    textarea) and `mobile-inline-edit`(tap empty canvas at {480,480}) time out on
+    touch. Not interception — on the fit-scaled mobile canvas the tap coordinate
+    falls outside the scaled stage / in the bottom-bar band. React's mobile
+    layout renders the stage large enough for these coordinates; needs the mobile
+    canvas sizing reconciled with React (or the mobile notes sheet raised).
   - **Branch status:** all of the above is on `angular-ribbon` (worktree),
     **not merged to `main`**. It is buildable/testable there. To merge: rebase/
     merge onto `main` (reconciling with the parallel Vue ribbon + `bun.lock`),
-    re-run the e2e suite (`--project=angular`) to confirm the contract still
-    holds with the new chrome, then fast-forward.
+    apply the pt→px font fix to `main` too, resolve the 2 mobile e2e failures,
+    re-run `--project=angular`, then fast-forward.
