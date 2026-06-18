@@ -56,19 +56,19 @@ commit_preprocessors = [
 
 # Map commit types → changelog sections. Order here = order in the output.
 commit_parsers = [
-	{ message = "^feat", group = "<!-- 0 -->🚀 Features" },
-	{ message = "^fix", group = "<!-- 1 -->🐛 Bug Fixes" },
-	{ message = "^perf", group = "<!-- 2 -->⚡ Performance" },
-	{ message = "^refactor", group = "<!-- 3 -->♻️ Refactor" },
-	{ message = "^docs", group = "<!-- 4 -->📚 Documentation" },
-	{ message = "^test", group = "<!-- 5 -->🧪 Testing" },
-	{ message = "^(build|ci)", group = "<!-- 6 -->🛠️ Build & CI" },
-	{ message = "^style", group = "<!-- 7 -->🎨 Styling" },
+	{ message = "^feat", group = "<!-- 0 -->Features" },
+	{ message = "^fix", group = "<!-- 1 -->Bug Fixes" },
+	{ message = "^perf", group = "<!-- 2 -->Performance" },
+	{ message = "^refactor", group = "<!-- 3 -->Refactor" },
+	{ message = "^docs", group = "<!-- 4 -->Documentation" },
+	{ message = "^test", group = "<!-- 5 -->Testing" },
+	{ message = "^(build|ci)", group = "<!-- 6 -->Build & CI" },
+	{ message = "^style", group = "<!-- 7 -->Styling" },
 	{ message = "^chore\\(release\\)", skip = true },
-	{ message = "^chore\\(deps\\)", group = "<!-- 8 -->📦 Dependencies" },
-	{ message = "^chore", group = "<!-- 9 -->🧹 Chores" },
-	{ message = "^revert", group = "<!-- 10 -->⏪ Reverts" },
-	{ body = ".*security", group = "<!-- 11 -->🔒 Security" },
+	{ message = "^chore\\(deps\\)", group = "<!-- 8 -->Dependencies" },
+	{ message = "^chore", group = "<!-- 9 -->Chores" },
+	{ message = "^revert", group = "<!-- 10 -->Reverts" },
+	{ body = ".*security", group = "<!-- 11 -->Security" },
 	# Anything left over that still parsed as conventional.
 	{ message = ".*", group = "<!-- 12 -->Other" },
 ]
