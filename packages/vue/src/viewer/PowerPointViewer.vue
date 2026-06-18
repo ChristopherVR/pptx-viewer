@@ -1577,6 +1577,8 @@ const showGrid = ref(false);
 const snapToGrid = ref(false);
 /** View ▸ Rulers — horizontal/vertical rulers along the slide edges. */
 const showRulers = ref(false);
+/** View ▸ Spell — draw the browser's native spell-check squiggles while editing. */
+const spellCheckEnabled = ref(true);
 /** View ▸ Snap to Shape — snap dragged elements to other elements' edges/centres. */
 const snapToShape = ref(false);
 /** Transient red snap-alignment lines shown during a snap-to-shape drag. */
@@ -1807,7 +1809,7 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	drawingColor: drawingColor.value,
 	drawingWidth: drawingWidth.value,
 	clipboardPayload: clipboard.value ? { kind: 'element' } : null,
-	spellCheckEnabled: false,
+	spellCheckEnabled: spellCheckEnabled.value,
 	showGrid: showGrid.value,
 	showRulers: showRulers.value,
 	snapToGrid: snapToGrid.value,
@@ -1883,7 +1885,9 @@ const ribbonProps = computed<RibbonProps>(() => ({
 		drawingWidth.value = w;
 	},
 	onSetEditTemplateMode: noop,
-	onSetSpellCheckEnabled: noop,
+	onSetSpellCheckEnabled: (enabled) => {
+		spellCheckEnabled.value = enabled;
+	},
 	onSetShowGrid: (enabled) => {
 		showGrid.value = enabled;
 	},
@@ -2160,6 +2164,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						<InlineTextEditor
 							v-if="props.canEdit && inlineEditingElement"
 							:element="inlineEditingElement"
+							:spell-check="spellCheckEnabled"
 							@change="(t) => (inlineEditingText = t)"
 							@commit="commitInlineEdit"
 							@cancel="cancelInlineEdit"

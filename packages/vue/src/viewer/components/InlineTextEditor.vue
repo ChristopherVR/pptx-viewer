@@ -15,9 +15,14 @@ import type { PptxElement } from 'pptx-viewer-core';
 import type { CSSProperties } from 'vue';
 import { computed, onMounted, ref } from 'vue';
 
-const props = defineProps<{
-	element: PptxElement;
-}>();
+const props = withDefaults(
+	defineProps<{
+		element: PptxElement;
+		/** Draw the browser's native red spell-check squiggles while editing (View ▸ Spell). */
+		spellCheck?: boolean;
+	}>(),
+	{ spellCheck: true },
+);
 
 const emit = defineEmits<{
 	change: [text: string];
@@ -109,7 +114,7 @@ function onKeydown(event: KeyboardEvent): void {
 		class="pptx-vue-inline-editor"
 		data-inline-editor
 		contenteditable="true"
-		spellcheck="true"
+		:spellcheck="props.spellCheck"
 		role="textbox"
 		aria-label="Edit text"
 		:style="editorStyle"
