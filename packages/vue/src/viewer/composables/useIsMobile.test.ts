@@ -54,11 +54,14 @@ describe('useIsMobile', () => {
 		scope.stop();
 	});
 
-	it('uses the provided breakpoint in the media query', () => {
+	it('uses the provided breakpoint + a landscape-phone clause in the media query', () => {
 		const { mql } = installMatchMedia(false);
 		const scope = effectScope();
 		scope.run(() => useIsMobile(640));
-		expect(mql.media).toBe('(max-width: 640px)');
+		// Width breakpoint OR a short, coarse-pointer, sub-tablet viewport (landscape phone).
+		expect(mql.media).toBe(
+			'(max-width: 640px), (max-height: 499px) and (pointer: coarse) and (max-width: 1023px)',
+		);
 		scope.stop();
 	});
 
