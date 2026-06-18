@@ -4,11 +4,29 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.4.10](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.10) - 2026-06-18
+
+### Bug Fixes
+
+- **angular:** Mobile save button and wider sheet swipe region (by @ChristopherVR) ([d6eaa99](https://github.com/ChristopherVR/pptx-viewer/commit/d6eaa99bb7a15a697235576042c7c6346f877903))
+- **vue:** Add Save to the mobile bottom bar (by @ChristopherVR) ([9d0ed2c](https://github.com/ChristopherVR/pptx-viewer/commit/9d0ed2c8b906b68d4c760944da5e4a6f1724f63b))
+
 ## [1.4.9](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.9) - 2026-06-18
 
 ### Features
 
 - **angular:** Mobile chrome parity — run the React mobile e2e on Angular (by @ChristopherVR) ([7b22220](https://github.com/ChristopherVR/pptx-viewer/commit/7b22220dd68fe08a5c04c249fe98393a5a260bff))
+
+### Bug Fixes
+
+- **angular:** Un-skip mobile-table e2e — inspector table editor as div-grid (by @ChristopherVR) ([b6265e2](https://github.com/ChristopherVR/pptx-viewer/commit/b6265e22fc2c371ac9fcd5d66a9137f05be3c544))
+- **react:** Mobile sheet swipe-to-close, save button, theme picker (by @ChristopherVR) ([6b6ce2b](https://github.com/ChristopherVR/pptx-viewer/commit/6b6ce2b298039c699d2b84e732add2083fb7f056))
+
+### Documentation
+
+- **angular:** Trim PORTING.md to status + what's-missing (drop session log) (by @ChristopherVR) ([393d5e2](https://github.com/ChristopherVR/pptx-viewer/commit/393d5e2e10361cd9158cf502c2f15e67bbe9e09c))
+- **angular:** E2e now 28/0 (no skips); remaining = refactor/cosmetic debts only (by @ChristopherVR) ([7817092](https://github.com/ChristopherVR/pptx-viewer/commit/7817092780173c1a288029addfadc6c6e571e871))
+- **changelog:** Update for v1.4.9 [skip ci] (by @github-actions[bot]) ([0f56fbf](https://github.com/ChristopherVR/pptx-viewer/commit/0f56fbf949567676cbe1c05a66463fbecf928960))
 
 ### Dependencies
 
