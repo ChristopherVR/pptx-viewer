@@ -48,6 +48,7 @@ import type { ShapePreset } from './components/EditorToolbar.vue';
 import EquationEditorDialog from './components/EquationEditorDialog.vue';
 import FindReplaceBar from './components/FindReplaceBar.vue';
 import FollowModeBar from './components/FollowModeBar.vue';
+import GridOverlay from './components/GridOverlay.vue';
 import HeaderFooterPanel from './components/HeaderFooterPanel.vue';
 import HyperlinkDialog from './components/HyperlinkDialog.vue';
 import InlineTextEditor from './components/InlineTextEditor.vue';
@@ -261,13 +262,14 @@ const zoomReset = () => {
 };
 const zoomPercent = computed(() => Math.round(zoom.value * 100));
 
-// Effective on-screen scale = the user's zoom. The slide renders at its authored
-// size scaled by the zoom and the canvas viewport scrolls when it overflows
-// (matching the React viewer, whose edit canvas is authored-size + scrollable —
-// this keeps the slide's coordinate space stable across frameworks so the same
-// e2e position-based interactions work). All scaled rendering and pointer→slide
-// coordinate math must use `effectiveZoom`.
-const effectiveZoom = computed(() => zoom.value);
+// Fit-to-viewport scale (≤ 1) reported by SlideCanvas's ResizeObserver, so the
+// whole slide is visible by default instead of overflowing small/mobile
+// viewports. Folded into the effective scale as `fitScale × userZoom`, matching
+// the React and Angular viewers (where "100%" means "fit to viewport").
+const fitScale = ref(1);
+// Effective on-screen scale = fit-to-viewport × the user's zoom. All scaled
+// rendering and pointer→slide coordinate math must use `effectiveZoom`.
+const effectiveZoom = computed(() => fitScale.value * zoom.value);
 
 // ── Thumbnail previews ────────────────────────────────────────────────
 const THUMB_WIDTH = 104; // px — matches the thumbnail rail content width
@@ -511,14 +513,22 @@ function patchActiveElementGeometry(payload: TransformPayload): void {
 	if (!slide) {
 		return;
 	}
+	// Snap-to-grid (View tab): round position + size to the grid. Skipped while
+	// rotating (rounding a rotated box's x/y fights the rotation).
+	const snap = (v: number): number => Math.round(v / GRID_SIZE) * GRID_SIZE;
+	const useSnap = snapToGrid.value && !payload.rotation;
+	const x = useSnap ? snap(payload.x) : payload.x;
+	const y = useSnap ? snap(payload.y) : payload.y;
+	const width = useSnap ? Math.max(GRID_SIZE, snap(payload.width)) : payload.width;
+	const height = useSnap ? Math.max(GRID_SIZE, snap(payload.height)) : payload.height;
 	const nextElements = slide.elements.map((el) =>
 		el.id === payload.id
 			? {
 					...el,
-					x: payload.x,
-					y: payload.y,
-					width: payload.width,
-					height: payload.height,
+					x,
+					y,
+					width,
+					height,
 					rotation: payload.rotation,
 				}
 			: el,
@@ -1402,6 +1412,11 @@ const inspectorOpen = ref(true);
 const overflowOpen = ref(false);
 /** Status-bar Notes toggle: expands/collapses the desktop notes panel. */
 const notesExpanded = ref(true);
+/** View-tab canvas aids: dot grid overlay + snap-to-grid during drag/resize. */
+const showGrid = ref(false);
+const snapToGrid = ref(false);
+/** Grid spacing in px (matches React's GRID_SIZE). */
+const GRID_SIZE = 8;
 
 const ribbonMode = computed<ViewerMode>(() =>
 	presenting.value
@@ -1506,9 +1521,9 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	drawingWidth: drawingWidth.value,
 	clipboardPayload: clipboard.value ? { kind: 'element' } : null,
 	spellCheckEnabled: false,
-	showGrid: false,
+	showGrid: showGrid.value,
 	showRulers: false,
-	snapToGrid: false,
+	snapToGrid: snapToGrid.value,
 	snapToShape: false,
 	isOverflowMenuOpen: overflowOpen.value,
 	layoutOptions: [],
@@ -1582,9 +1597,13 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	},
 	onSetEditTemplateMode: noop,
 	onSetSpellCheckEnabled: noop,
-	onSetShowGrid: noop,
+	onSetShowGrid: (enabled) => {
+		showGrid.value = enabled;
+	},
 	onSetShowRulers: noop,
-	onSetSnapToGrid: noop,
+	onSetSnapToGrid: (enabled) => {
+		snapToGrid.value = enabled;
+	},
 	onSetSnapToShape: noop,
 	onAddGuide: noop,
 	onAlignElements: (edge) => {
@@ -1793,6 +1812,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						:canvas-size="canvasSize"
 						:media-data-urls="mediaDataUrls"
 						:zoom="effectiveZoom"
+						@update:fit-scale="fitScale = $event"
 					>
 						<SelectionOverlay
 							v-if="props.canEdit && !inlineEditingElementId && !presenting"
