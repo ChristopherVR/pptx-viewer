@@ -945,7 +945,15 @@ shape-adjustment,remap-text}.ts` + 56 ported tests; shared extraction deferred t
   spell-check, and Rulers / Snap-to-Shape / H+V Guides (the last three need ruler + guide
   overlay components — the next cohesive port).
 
-> **⚠️ Pre-existing red test (not from this work):** `composables/useIsMobile.test.ts` fails on
-> `main` — the height-aware-breakpoint commit (`04580e8`) changed the media query to include a
-> `max-height` clause but the test still expects `(max-width: 640px)`. Update the test to match
-> the shipped query to get a green suite.
+- **2026-06-18** — **Insert ▸ Action buttons** wired (`onAddActionButton` was a no-op).
+  `composables/action-buttons.ts` (`buildActionButtonElement`/`isActionButton`) builds the 12
+  OOXML built-in action buttons as a labelled `#4472C4` `shape` carrying a slide-navigation
+  `actionClick` for the nav presets (back/forward/beginning/end/return/home →
+  `ppaction://hlinkshowjump?jump=…`), no action for the rest — mirroring React's
+  `handleAddActionButton`. Host centres + selects it. Verified live ("Forward / Next" inserts a
+  labelled action shape, selected). +4 unit tests. **Also fixed the parallel session's red test**
+  `useIsMobile.test.ts` (aligned the spec to the shipped height-aware media query) → **full suite
+  green: 1240 vue tests.** **Insert/View ribbon actions now wired except:** drawing tools, theme
+  gallery, layout gallery, spell-check, and Rulers / Snap-to-Shape / H+V Guides (the cohesive
+  ruler+guide overlay port — touches the parallel session's `SlideCanvas` layout, best done once
+  that file settles).
