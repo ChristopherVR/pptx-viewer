@@ -69,6 +69,19 @@ function canvasToJpegBytes(canvas: HTMLCanvasElement, quality: number = 0.92): U
 @Injectable()
 export class ExportService {
 	/**
+	 * Trigger a browser download of serialized `.pptx` bytes.
+	 *
+	 * @param bytes    - The serialized presentation (from the viewer's `getContent`).
+	 * @param fileName - Suggested download file name (unsafe chars are stripped).
+	 */
+	savePptx(bytes: Uint8Array, fileName: string): void {
+		const blob = new Blob([bytes as unknown as BlobPart], {
+			type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+		});
+		downloadBlob(blob, sanitizeFileName(fileName));
+	}
+
+	/**
 	 * Rasterize a single DOM element to PNG and trigger a browser download.
 	 *
 	 * @param el       - The element to capture (e.g. the `.pptx-ng-canvas-stage`).

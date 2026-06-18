@@ -58,23 +58,28 @@ const DISMISS_THRESHOLD = 120;
 
 				<!-- Panel -->
 				<div class="pptx-ng-msheet-panel" [ngStyle]="panelStyle()">
-					<!-- Drag handle -->
+					<!--
+						Drag handle + header form a single swipe-to-dismiss grab
+						region so the gesture isn't limited to the thin pill.
+					-->
 					<div
-						class="pptx-ng-msheet-handle-row"
+						class="pptx-ng-msheet-grab"
 						(pointerdown)="onPointerDown($event)"
 						(pointermove)="onPointerMove($event)"
 						(pointerup)="onPointerUp($event)"
 						(pointercancel)="onPointerUp($event)"
 					>
-						<div class="pptx-ng-msheet-handle"></div>
-					</div>
-
-					<!-- Header -->
-					@if (title()) {
-						<div class="pptx-ng-msheet-header">
-							<span class="pptx-ng-msheet-title">{{ title() }}</span>
+						<div class="pptx-ng-msheet-handle-row">
+							<div class="pptx-ng-msheet-handle"></div>
 						</div>
-					}
+
+						<!-- Header -->
+						@if (title()) {
+							<div class="pptx-ng-msheet-header">
+								<span class="pptx-ng-msheet-title">{{ title() }}</span>
+							</div>
+						}
+					</div>
 
 					<!-- Body -->
 					<div class="pptx-ng-msheet-body">
@@ -150,18 +155,21 @@ const DISMISS_THRESHOLD = 120;
 
 			/* ── Drag handle row ── */
 
-			.pptx-ng-msheet-handle-row {
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				padding: 0.5rem 0 0.25rem;
+			.pptx-ng-msheet-grab {
 				cursor: grab;
 				touch-action: none;
 				flex-shrink: 0;
 			}
 
-			.pptx-ng-msheet-handle-row:active {
+			.pptx-ng-msheet-grab:active {
 				cursor: grabbing;
+			}
+
+			.pptx-ng-msheet-handle-row {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				padding: 0.5rem 0 0.25rem;
 			}
 
 			.pptx-ng-msheet-handle {

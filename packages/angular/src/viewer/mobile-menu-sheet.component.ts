@@ -243,6 +243,9 @@ export class MobileMenuSheetComponent {
 	/** Start the fullscreen presentation mode. */
 	readonly present = output<void>();
 
+	/** Save (download) the deck as a `.pptx` file. */
+	readonly savePptx = output<void>();
+
 	/** Export the current slide as PNG. */
 	readonly exportPng = output<void>();
 
@@ -349,6 +352,14 @@ export class MobileMenuSheetComponent {
 				emit: () => this.exportVideo.emit(),
 			},
 			// ── File ────────────────────────────────────────────────────────────
+			{
+				key: 'save-pptx',
+				label: 'Save',
+				sublabel: '.pptx',
+				svgPath: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3',
+				disabled: noSlides,
+				emit: () => this.savePptx.emit(),
+			},
 			{
 				key: 'print',
 				label: 'Print',

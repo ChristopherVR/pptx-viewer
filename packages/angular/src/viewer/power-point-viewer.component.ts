@@ -228,6 +228,7 @@ const ZOOM_MAX = 3;
 						(toggleMenu)="mobileSheet.set(mobileSheet() === 'menu' ? null : 'menu')"
 						(undo)="editor.undo()"
 						(redo)="editor.redo()"
+						(save)="saveAsPptx()"
 						(present)="present()"
 					/>
 				}
@@ -556,6 +557,7 @@ const ZOOM_MAX = 3;
 					(toggleNotes)="toggleNotes()"
 					(insertText)="onMobileInsert()"
 					(present)="present()"
+					(savePptx)="saveAsPptx()"
 					(exportPng)="exportPng()"
 					(exportPdf)="exportPdf()"
 					(exportGif)="exportGif()"
@@ -866,6 +868,16 @@ export class PowerPointViewerComponent {
 		// host so listeners wired to (contentChange) receive the latest bytes.
 		this.contentChange.emit(data);
 		return data;
+	}
+
+	/**
+	 * Serialise the current deck and trigger a browser download of the `.pptx`.
+	 * Surfaced on the mobile toolbar so saving is reachable without the desktop
+	 * ribbon's File tab.
+	 */
+	async saveAsPptx(): Promise<void> {
+		const bytes = await this.getContent();
+		this.exportSvc.savePptx(bytes, 'presentation.pptx');
 	}
 
 	goTo(index: number): void {

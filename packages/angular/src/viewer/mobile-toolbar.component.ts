@@ -112,6 +112,33 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 
 			<div class="pptx-ng-mtoolbar-spacer"></div>
 
+			<!--
+				Save / download — surfaced directly so it's reachable without the
+				Menu sheet, and available even in view-only mode where the editor
+				controls above are hidden.
+			-->
+			<button
+				type="button"
+				class="pptx-ng-mtoolbar-btn"
+				aria-label="Save"
+				title="Save"
+				(click)="save.emit()"
+			>
+				<svg
+					class="pptx-ng-mtoolbar-icon"
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3" />
+				</svg>
+			</button>
+
 			<button
 				type="button"
 				class="pptx-ng-mtoolbar-btn pptx-ng-mtoolbar-present"
@@ -226,6 +253,8 @@ export class MobileToolbarComponent {
 	readonly undo = output<void>();
 	/** User tapped Redo. */
 	readonly redo = output<void>();
+	/** User tapped Save (download as .pptx). */
+	readonly save = output<void>();
 	/** User tapped Present. */
 	readonly present = output<void>();
 }
