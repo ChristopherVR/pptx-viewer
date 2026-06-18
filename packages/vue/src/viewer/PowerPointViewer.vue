@@ -27,6 +27,7 @@ import type {
 	PptxData,
 	PptxElement,
 	PptxHeaderFooter,
+	PptxSaveFormat,
 	PptxSlide,
 	PptxSlideTransition,
 	PptxThemeColorScheme,
@@ -180,6 +181,7 @@ const {
 	themeColorMap,
 	handler,
 	getContent,
+	saveAs,
 } = useLoadContent(() => props.content);
 
 // Expose the presentation colour scheme + parsed table-style map to table
@@ -1091,6 +1093,41 @@ function onExportWebm(): void {
 	void mediaExport.exportWebm();
 }
 
+/** Serialise to a chosen OpenXML format and trigger a browser download. */
+async function downloadAs(format: PptxSaveFormat): Promise<void> {
+	try {
+		const bytes = await saveAs(format);
+		const blob = new Blob([bytes as unknown as BlobPart], {
+			type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+		});
+		const url = URL.createObjectURL(blob);
+		const anchor = document.createElement('a');
+		anchor.href = url;
+		anchor.download = `presentation.${format}`;
+		document.body.appendChild(anchor);
+		anchor.click();
+		anchor.remove();
+		setTimeout(() => URL.revokeObjectURL(url), 200);
+	} catch (err) {
+		console.error(`[PowerPointViewer] Save as .${format} failed:`, err);
+	}
+}
+
+/** Copy the active slide to the clipboard as a PNG image (File menu). */
+async function onCopySlideAsImage(): Promise<void> {
+	try {
+		const canvas = await rasterizeSlide(activeSlideIndex.value);
+		const blob = await new Promise<Blob | null>((resolve) => {
+			canvas.toBlob((b) => resolve(b), 'image/png');
+		});
+		if (blob && typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+			await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+		}
+	} catch (err) {
+		console.error('[PowerPointViewer] Copy slide as image failed:', err);
+	}
+}
+
 // ── Print (dialog + rasterised print window) ──────────────────────────
 // Reuses the same off-screen `rasterizeSlide` the export path drives.
 const printer = usePrint({ slides, activeSlideIndex, rasterizeSlide });
@@ -1146,6 +1183,19 @@ function applySlideTransition(transition: PptxSlideTransition | undefined): void
 	const nextSlides = slides.value.slice();
 	nextSlides[index] = { ...slide, transition };
 	slides.value = nextSlides;
+}
+
+/** Merge a partial transition patch into the active slide (Transitions ribbon). */
+function onTransitionChange(updates: Partial<PptxSlideTransition>): void {
+	const current = (activeSlide.value?.transition ?? {}) as PptxSlideTransition;
+	applySlideTransition({ ...current, ...updates });
+}
+
+/** Copy the active slide's transition onto every slide (Apply To All). */
+function onApplyTransitionToAll(): void {
+	const transition = activeSlide.value?.transition;
+	history.pushHistory();
+	slides.value = slides.value.map((slide) => ({ ...slide, transition }));
 }
 
 // ── Align / group ─────────────────────────────────────────────────────
@@ -1421,6 +1471,50 @@ function onDeleteCustomShow(showId: string): void {
 	}
 }
 
+/** The active slide's relationship id (custom shows reference slides by rId). */
+const activeSlideRId = computed(() => (activeSlide.value as { rId?: string } | undefined)?.rId);
+/** Whether the active slide is part of the active custom show (ribbon toggle state). */
+const isCurrentSlideInActiveShow = computed(() => {
+	const id = activeCustomShowId.value;
+	const rId = activeSlideRId.value;
+	if (id === null || rId === undefined) {
+		return false;
+	}
+	return customShows.value.find((s) => s.id === id)?.slideRIds.includes(rId) ?? false;
+});
+/** Rename the active custom show (Slide Show ribbon). */
+function onRenameActiveCustomShow(): void {
+	const id = activeCustomShowId.value;
+	if (id === null) {
+		return;
+	}
+	const show = customShows.value.find((s) => s.id === id);
+	const next = window.prompt('Rename custom show', show?.name ?? '')?.trim();
+	if (next) {
+		customShowOps.renameCustomShow(id, next);
+	}
+}
+/** Delete the active custom show after confirmation (Slide Show ribbon). */
+function onDeleteActiveCustomShow(): void {
+	const id = activeCustomShowId.value;
+	if (id === null) {
+		return;
+	}
+	const show = customShows.value.find((s) => s.id === id);
+	if (window.confirm(`Delete custom show "${show?.name ?? ''}"?`)) {
+		onDeleteCustomShow(id);
+	}
+}
+/** Add/remove the active slide from the active custom show (Slide Show ribbon). */
+function onToggleCurrentSlideInActiveShow(): void {
+	const id = activeCustomShowId.value;
+	const rId = activeSlideRId.value;
+	if (id === null || rId === undefined) {
+		return;
+	}
+	customShowOps.toggleSlideInShow(id, rId);
+}
+
 // ── Version history + compare ─────────────────────────────────────────
 // Snapshots accrue on each autosave (see the autosave `onSave` below).
 const versionHistory = useVersionHistory({ slides, pushHistory: history.pushHistory });
@@ -1569,6 +1663,8 @@ const activeTool = ref<DrawingTool>('select');
 const drawingColor = ref('#000000');
 const drawingWidth = ref(2);
 const inspectorOpen = ref(true);
+/** Left slides-rail collapse (Quick-Access sidebar toggle). */
+const sidebarCollapsed = ref(false);
 const overflowOpen = ref(false);
 /** Status-bar Notes toggle: expands/collapses the desktop notes panel. */
 const notesExpanded = ref(true);
@@ -1791,7 +1887,7 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	mode: ribbonMode.value,
 	canEdit: props.canEdit,
 	isNarrowViewport: isMobile.value,
-	isSidebarCollapsed: false,
+	isSidebarCollapsed: sidebarCollapsed.value,
 	isInspectorPaneOpen: inspectorOpen.value,
 	isCompactToolbarOpen: true,
 	toolbarSection: toolbarSection.value,
@@ -1818,7 +1914,7 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	layoutOptions: layoutOptions.value,
 	customShows: customShows.value,
 	activeCustomShowId: activeCustomShowId.value,
-	isCurrentSlideInActiveShow: false,
+	isCurrentSlideInActiveShow: isCurrentSlideInActiveShow.value,
 	hasMacros: false,
 	isThemeEditorOpen: themeEditorOpen.value,
 	isThemeGalleryOpen: themeGalleryOpen.value,
@@ -1838,7 +1934,9 @@ const ribbonProps = computed<RibbonProps>(() => ({
 			presenting.value = false;
 		}
 	},
-	onToggleSidebar: noop,
+	onToggleSidebar: () => {
+		sidebarCollapsed.value = !sidebarCollapsed.value;
+	},
 	onToggleInspector: () => {
 		inspectorOpen.value = !inspectorOpen.value;
 	},
@@ -1931,10 +2029,10 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	onOpenShareDialog: () => {
 		shareOpen.value = true;
 	},
-	onSaveAsPptx: noop,
-	onSaveAsPpsx: noop,
-	onSaveAsPptm: noop,
-	onCopySlideAsImage: noop,
+	onSaveAsPptx: () => void downloadAs('pptx'),
+	onSaveAsPpsx: () => void downloadAs('ppsx'),
+	onSaveAsPptm: () => void downloadAs('pptm'),
+	onCopySlideAsImage: () => void onCopySlideAsImage(),
 	onPrint: printer.openPrintDialog,
 	onToggleShortcuts: () => {
 		showShortcuts.value = !showShortcuts.value;
@@ -1959,9 +2057,9 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	onCreateCustomShow: () => {
 		showCustomShows.value = true;
 	},
-	onRenameActiveCustomShow: noop,
-	onDeleteActiveCustomShow: noop,
-	onToggleCurrentSlideInActiveShow: noop,
+	onRenameActiveCustomShow,
+	onDeleteActiveCustomShow,
+	onToggleCurrentSlideInActiveShow,
 	onToggleVersionHistory: () => {
 		showVersionHistory.value = true;
 	},
@@ -1999,8 +2097,8 @@ const ribbonProps = computed<RibbonProps>(() => ({
 		broadcastOpen.value = true;
 	},
 	onToggleSubtitles: undefined,
-	onTransitionChange: noop,
-	onApplyTransitionToAll: noop,
+	onTransitionChange,
+	onApplyTransitionToAll,
 }));
 
 // ── Imperative surface (mirrors the React forwardRef handle) ──────────
@@ -2075,7 +2173,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				     Hidden on mobile, where it would otherwise collapse the slide canvas to
 				     zero height; mobile navigates slides via the bottom bar's prev/next. -->
 				<SlidesPaneSidebar
-					v-if="!isMobile && !hasSections"
+					v-if="!isMobile && !hasSections && !sidebarCollapsed"
 					:slides="slides"
 					:active-index="activeSlideIndex"
 					:canvas-size="canvasSize"
@@ -2090,7 +2188,11 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					@toggle-hidden="toggleSlideHidden"
 				/>
 				<!-- Sectioned rail when the deck declares sections (desktop only). -->
-				<nav v-else-if="!isMobile" class="pptx-vue-thumbnails" aria-label="Slides">
+				<nav
+					v-else-if="!isMobile && !sidebarCollapsed"
+					class="pptx-vue-thumbnails"
+					aria-label="Slides"
+				>
 					<SectionList
 						:groups="sectionOps.slidesBySection.value"
 						:canvas-size="canvasSize"

@@ -12,6 +12,7 @@ import type {
 	PptxHeaderFooter,
 	PptxLayoutOption,
 	PptxNotesMaster,
+	PptxSaveFormat,
 	PptxSection,
 	PptxSlide,
 	PptxSlideMaster,
@@ -122,6 +123,8 @@ export interface UseLoadContentResult {
 	handoutMaster: ShallowRef<PptxHandoutMaster | undefined>;
 	/** Serialise the current presentation back to `.pptx` bytes. */
 	getContent: () => Promise<Uint8Array>;
+	/** Serialise to a specific OpenXML format (pptx / ppsx / pptm). */
+	saveAs: (format: PptxSaveFormat) => Promise<Uint8Array>;
 }
 
 export function useLoadContent(
@@ -355,12 +358,12 @@ export function useLoadContent(
 		}
 	};
 
-	const getContent = async (): Promise<Uint8Array> => {
+	const saveAs = async (format: PptxSaveFormat): Promise<Uint8Array> => {
 		if (!handler.value) {
 			throw new Error('No presentation is loaded.');
 		}
 		// Persist edited document metadata (core properties, sections, custom
-		// shows, header/footer) into the saved `.pptx`.
+		// shows, header/footer) into the saved file.
 		return handler.value.save(slides.value, {
 			coreProperties: coreProperties.value,
 			customProperties: customProperties.value,
@@ -368,8 +371,11 @@ export function useLoadContent(
 			sections: sections.value,
 			customShows: customShows.value,
 			headerFooter: headerFooter.value,
+			outputFormat: format,
 		});
 	};
+
+	const getContent = (): Promise<Uint8Array> => saveAs('pptx');
 
 	watch(
 		() => toValue(content),
@@ -412,6 +418,7 @@ export function useLoadContent(
 		headerFooter,
 		notesMaster,
 		handoutMaster,
+		saveAs,
 		getContent,
 	};
 }
