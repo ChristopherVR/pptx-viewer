@@ -4,11 +4,21 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.4.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.4) - 2026-06-18
+
+### Features
+
+- **angular:** Add snap-to-grid, draggable ruler guides, and eyedropper (by @ChristopherVR) ([2b40442](https://github.com/ChristopherVR/pptx-viewer/commit/2b404425414741711cc28a9f3ee508b4522fef8c))
+
 ## [1.4.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.3) - 2026-06-18
 
 ### Features
 
 - **angular:** Add Selection Pane and Custom Shows panels (by @ChristopherVR) ([7922508](https://github.com/ChristopherVR/pptx-viewer/commit/7922508b01644bfaa190341317053be65740a7ba))
+
+### Documentation
+
+- **changelog:** Update for v1.4.3 [skip ci] (by @github-actions[bot]) ([e320b3a](https://github.com/ChristopherVR/pptx-viewer/commit/e320b3a8e1d65c3c7e14f13f4df54af5b9159e56))
 
 ## [1.4.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.2) - 2026-06-18
 
