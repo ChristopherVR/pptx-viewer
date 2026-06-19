@@ -4,6 +4,15 @@ import React from 'react';
 import { ConnectorPathGeometry } from '../types';
 import { clampUnitInterval } from './color';
 
+// Connection-site geometry + compound-line helpers now live in
+// `pptx-viewer-shared`; re-export them here to preserve the historical import
+// surface for downstream connector code.
+export {
+	getConnectionSites,
+	getCompoundLineOffsets,
+	getCompoundLineWidths,
+} from 'pptx-viewer-shared';
+
 export function getConnectorAdjustment(
 	element: PptxElementWithShapeStyle,
 	key: string,
@@ -178,73 +187,4 @@ export function renderConnectorMarker(
 			)}
 		</marker>
 	);
-}
-
-/**
- * Compute parallel offsets for compound (double/triple) line styles.
- * Returns an array of offset distances from the center line.
- */
-export function getCompoundLineOffsets(
-	compoundLine: string | undefined,
-	strokeWidth: number,
-): number[] {
-	if (!compoundLine || compoundLine === 'sng') {
-		return [0];
-	}
-	const gap = Math.max(strokeWidth * 0.6, 1.5);
-	if (compoundLine === 'dbl') {
-		return [-gap, gap];
-	}
-	if (compoundLine === 'thickThin') {
-		return [-gap * 0.6, gap];
-	}
-	if (compoundLine === 'thinThick') {
-		return [-gap, gap * 0.6];
-	}
-	if (compoundLine === 'tri') {
-		return [-gap, 0, gap];
-	}
-	return [0];
-}
-
-/**
- * Get stroke widths for each parallel path in a compound line.
- */
-export function getCompoundLineWidths(
-	compoundLine: string | undefined,
-	strokeWidth: number,
-): number[] {
-	const base = Math.max(strokeWidth, 1);
-	if (!compoundLine || compoundLine === 'sng') {
-		return [base];
-	}
-	if (compoundLine === 'dbl') {
-		return [base * 0.5, base * 0.5];
-	}
-	if (compoundLine === 'thickThin') {
-		return [base * 0.7, base * 0.3];
-	}
-	if (compoundLine === 'thinThick') {
-		return [base * 0.3, base * 0.7];
-	}
-	if (compoundLine === 'tri') {
-		return [base * 0.3, base * 0.4, base * 0.3];
-	}
-	return [base];
-}
-
-/**
- * Compute connection sites for a rectangular bounding box.
- * Returns positions in element-local coordinates (top, right, bottom, left midpoints).
- */
-export function getConnectionSites(
-	width: number,
-	height: number,
-): Array<{ x: number; y: number; index: number }> {
-	return [
-		{ x: width / 2, y: 0, index: 0 }, // top center
-		{ x: width, y: height / 2, index: 1 }, // right center
-		{ x: width / 2, y: height, index: 2 }, // bottom center
-		{ x: 0, y: height / 2, index: 3 }, // left center
-	];
 }

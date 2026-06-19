@@ -14,6 +14,9 @@
  * - tables:     `table-style` (cell style + banding → CSS).
  * - editing:    `element-align` (align/distribute), `element-interaction`
  *               (drag/resize/rotate math).
+ * - connectors: `connector-router` (orthogonal A* obstacle-avoiding routing +
+ *               SVG path serialisation), `connector-reroute` (dynamic endpoint
+ *               recalculation when connected shapes move + connection sites).
  */
 export * from './shape-geometry';
 export * from './fill-style';
@@ -32,3 +35,6 @@ export * from './element-interaction';
 export * from './bullet-autonum';
 export * from './bullet-list';
 export * from './text-paragraphs';
+export * from './connector-router';
+export * from './connector-reroute';
+export * from './connector-style';
