@@ -134,8 +134,12 @@ export function toCssGradientStop(stop: SanitizedStop): string {
 /**
  * Computes the gradient center (as percentages) from a fillToRect and an
  * optional focalPoint offset.
+ *
+ * The fillToRect defines an inner rectangle; the gradient center defaults to
+ * the center of that rectangle. When a focalPoint is also provided, it offsets
+ * the center within the fillToRect bounds (averaged to avoid extreme shifts).
  */
-function computeGradientCenter(
+export function computeGradientCenter(
 	fillToRect?: ShapeStyle['fillGradientFillToRect'],
 	focalPoint?: ShapeStyle['fillGradientFocalPoint'],
 ): { cx: number; cy: number } {
@@ -158,7 +162,7 @@ function computeGradientCenter(
 }
 
 /** Builds a CSS radial-gradient for `path="circle"` gradients. */
-function buildCirclePathGradient(
+export function buildCirclePathGradient(
 	stops: SanitizedStop[],
 	focalPoint?: ShapeStyle['fillGradientFocalPoint'],
 	fillToRect?: ShapeStyle['fillGradientFillToRect'],
@@ -179,7 +183,7 @@ function buildCirclePathGradient(
 }
 
 /** Builds a CSS radial-gradient for `path="rect"` gradients. */
-function buildRectPathGradient(
+export function buildRectPathGradient(
 	stops: SanitizedStop[],
 	focalPoint?: ShapeStyle['fillGradientFocalPoint'],
 	fillToRect?: ShapeStyle['fillGradientFillToRect'],
@@ -213,7 +217,7 @@ function buildRectPathGradient(
 }
 
 /** Builds a CSS gradient approximation for `path="shape"` gradients. */
-function buildShapePathGradient(
+export function buildShapePathGradient(
 	stops: SanitizedStop[],
 	focalPoint?: ShapeStyle['fillGradientFocalPoint'],
 	fillToRect?: ShapeStyle['fillGradientFillToRect'],
@@ -380,6 +384,19 @@ export function buildGradientCss(gradient: ShapeStyle | undefined): string | und
 		.map(toCssGradientStop)
 		.join(', ')})`;
 }
+
+/**
+ * Alias of {@link buildGradientCss} preserved for the per-binding gradient
+ * modules (React/Angular `color-gradient.ts`) whose public symbol was named
+ * `buildCssGradientFromShapeStyle`. Both bindings shim onto this name so their
+ * existing consumers and colocated tests keep importing the same symbol.
+ *
+ * Note: unlike the original per-binding `buildCssGradientFromShapeStyle`, this
+ * resolver also applies gradient tile-flip stop reflection for structured
+ * linear gradients (see {@link buildGradientCss}); the matching halved/repeating
+ * `background-size`/`background-repeat` is applied by {@link getComputedFillStyle}.
+ */
+export const buildCssGradientFromShapeStyle = buildGradientCss;
 
 // ---------------------------------------------------------------------------
 // Pattern fills (from React `color-patterns.ts`)
@@ -837,6 +854,104 @@ export function buildPatternFill(
 		backgroundColor: bg,
 	};
 }
+
+/**
+ * Builds a CSS `background-image` + `background-color` pair for an OOXML pattern
+ * fill (`a:pattFill`) directly from a `ShapeStyle`. This is the
+ * binding-friendly variant (no `elementId`, no `svgFilter`) that the React and
+ * Angular `color-*` modules historically exposed as `buildPatternFillCss`.
+ *
+ * Returns `undefined` when the style is not a pattern fill or the preset is
+ * unknown. Mirrors {@link buildPatternFill} minus the filter-id namespacing.
+ *
+ * @param style - Resolved shape style.
+ */
+export function buildPatternFillCss(
+	style: ShapeStyle | undefined,
+): { backgroundImage: string; backgroundColor: string } | undefined {
+	if (!style || style.fillMode !== 'pattern' || !style.fillPatternPreset) {
+		return undefined;
+	}
+
+	const fg = normalizeHexColor(style.fillColor, '#000000');
+	const bg = normalizeHexColor(style.fillPatternBackgroundColor, '#ffffff');
+
+	const svgPattern = getPatternSvg(style.fillPatternPreset, fg, bg);
+	if (!svgPattern) {
+		return undefined;
+	}
+
+	const encoded = encodeURIComponent(svgPattern);
+	return {
+		backgroundImage: `url("data:image/svg+xml,${encoded}")`,
+		backgroundColor: bg,
+	};
+}
+
+/**
+ * All 52 OOXML pattern fill presets.
+ * Reference: ECMA-376 §20.1.10.33 (ST_PresetPatternVal).
+ */
+export const OOXML_PATTERN_PRESETS = [
+	'pct5',
+	'pct10',
+	'pct20',
+	'pct25',
+	'pct30',
+	'pct40',
+	'pct50',
+	'pct60',
+	'pct70',
+	'pct75',
+	'pct80',
+	'pct90',
+	'horz',
+	'vert',
+	'ltHorz',
+	'ltVert',
+	'dkHorz',
+	'dkVert',
+	'narHorz',
+	'narVert',
+	'wdHorz',
+	'wdVert',
+	'dashHorz',
+	'dashVert',
+	'cross',
+	'dnDiag',
+	'upDiag',
+	'ltDnDiag',
+	'ltUpDiag',
+	'dkDnDiag',
+	'dkUpDiag',
+	'wdDnDiag',
+	'wdUpDiag',
+	'dashDnDiag',
+	'dashUpDiag',
+	'diagCross',
+	'smCheck',
+	'lgCheck',
+	'smGrid',
+	'lgGrid',
+	'dotGrid',
+	'smConfetti',
+	'lgConfetti',
+	'horzBrick',
+	'diagBrick',
+	'solidDmnd',
+	'openDmnd',
+	'dotDmnd',
+	'plaid',
+	'sphere',
+	'weave',
+	'divot',
+	'shingle',
+	'wave',
+	'trellis',
+	'zigZag',
+] as const;
+
+export type OoxmlPatternPreset = (typeof OOXML_PATTERN_PRESETS)[number];
 
 // ---------------------------------------------------------------------------
 // Aggregate fill resolver
