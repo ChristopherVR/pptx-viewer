@@ -49,7 +49,8 @@ export function isUrlSafe(url: string | undefined): boolean {
 		.replace(/[\s​﻿]/gu, '')
 		.replace(/‌/gu, '')
 		.replace(/‍/gu, '')
-		.replaceAll(String.fromCharCode(0), '');
+		.split(String.fromCharCode(0))
+		.join('');
 
 	for (const protocol of BLOCKED_PROTOCOLS) {
 		if (stripped.startsWith(protocol)) {
