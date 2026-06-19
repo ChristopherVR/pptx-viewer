@@ -356,7 +356,7 @@ function ringOutsidePath(w: number, h: number, t: number, adj?: number): string 
 }
 
 /** Cascading up — lines tilt from lower-left to upper-right. */
-function cascadeUpPath(w: number, h: number, t: number, adj?: number): string {
+export function cascadeUpPath(w: number, h: number, t: number, adj?: number): string {
 	const adjFactor = adj !== undefined ? adj / 44444 : 1;
 	const tilt = 0.2 * clamp4(adjFactor);
 	const yMid = h * (0.2 + t * 0.6);
@@ -366,7 +366,7 @@ function cascadeUpPath(w: number, h: number, t: number, adj?: number): string {
 }
 
 /** Cascading down — lines tilt from upper-left to lower-right. */
-function cascadeDownPath(w: number, h: number, t: number, adj?: number): string {
+export function cascadeDownPath(w: number, h: number, t: number, adj?: number): string {
 	const adjFactor = adj !== undefined ? adj / 44444 : 1;
 	const tilt = 0.2 * clamp4(adjFactor);
 	const yMid = h * (0.2 + t * 0.6);
@@ -685,6 +685,13 @@ export function buildWarpPath(
 	const y = height * (0.2 + t * 0.6);
 	return `M 0,${y} L ${width},${y}`;
 }
+
+/**
+ * Alias for {@link buildWarpPath}, kept under the original React/Angular symbol
+ * name (`getWarpPath`) so binding renderers can import it directly from shared
+ * without renaming their call sites.
+ */
+export const getWarpPath = buildWarpPath;
 
 // ── CSS-transform approximation (envelope / simple) ─────────────────────
 
