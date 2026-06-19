@@ -189,6 +189,10 @@ export interface ValueRange {
 	min: number;
 	max: number;
 	span: number;
+	/** When true, the range represents log-scaled values (see `chart-axis.ts`). */
+	logScale?: boolean;
+	/** Logarithmic base (e.g. 10, 2, Math.E). Only meaningful when logScale is true. */
+	logBase?: number;
 }
 
 /** Compute a Y-axis range that always includes zero. */
@@ -205,9 +209,21 @@ export function computeValueRange(series: ReadonlyArray<PptxChartSeries>): Value
 	return { min, max, span };
 }
 
-/** Map a data value to a Y pixel coordinate (top = max, bottom = min). */
+/**
+ * Map a data value to a Y pixel coordinate (top = max, bottom = min).
+ * Routes through logarithmic scaling when `range.logScale` is set (the log
+ * helpers live in `chart-axis.ts`; the branch is inlined here to avoid a
+ * circular import).
+ */
 export function valueToY(val: number, range: ValueRange, topY: number, bottomY: number): number {
 	const usable = bottomY - topY;
+	if (range.logScale && range.logBase) {
+		const base = range.logBase;
+		const clampedVal = Math.max(val, range.min);
+		const logVal = Math.log(clampedVal) / Math.log(base);
+		const logMin = Math.log(range.min) / Math.log(base);
+		return bottomY - ((logVal - logMin) / range.span) * usable;
+	}
 	return bottomY - ((val - range.min) / range.span) * usable;
 }
 
@@ -239,9 +255,20 @@ export interface PlotLayout {
 }
 
 /**
+ * Reserved-space options for `computeLayout` (secondary axes + data table).
+ * Structurally identical to `LayoutOptions` in `chart-axis.ts`; declared here
+ * as a plain shape to avoid a circular import (chart-axis depends on this file).
+ */
+export interface ComputeLayoutOptions {
+	hasSecondaryValueAxis?: boolean;
+	hasSecondaryCategoryAxis?: boolean;
+	hasDataTable?: boolean;
+	dataTableRowCount?: number;
+}
+
+/**
  * Compute the plot rectangle within the SVG, reserving room for axes, title,
- * and legend. Mirrors the React `computeLayout` (without the secondary-axis /
- * data-table extensions, which the deferred chart types would need).
+ * legend, optional secondary axes, and an optional data table.
  */
 export function computeLayout(
 	elementWidth: number,
@@ -249,6 +276,7 @@ export function computeLayout(
 	style: PptxChartStyle | undefined,
 	hasAxes: boolean,
 	legendPos: string,
+	options?: ComputeLayoutOptions,
 ): PlotLayout {
 	const svgWidth = Math.max(320, elementWidth);
 	const svgHeight = Math.max(180, elementHeight);
@@ -270,6 +298,20 @@ export function computeLayout(
 		} else if (legendPos === 'l') {
 			plotLeft += 80;
 		}
+	}
+
+	// Reserve space for a secondary value axis on the right.
+	if (options?.hasSecondaryValueAxis) {
+		plotRight -= 40;
+	}
+	// Reserve space for a secondary category axis on the top.
+	if (options?.hasSecondaryCategoryAxis) {
+		plotTop += 16;
+	}
+	// Reserve space for a data table below the chart.
+	if (options?.hasDataTable) {
+		const rowCount = options.dataTableRowCount ?? 1;
+		plotBottom -= 14 + rowCount * 14;
 	}
 
 	const pw = Math.max(plotRight - plotLeft, 1);

@@ -27,6 +27,81 @@ export * from './omml-to-mathml';
 export * from './latex-to-omml';
 export * from './chart-helpers';
 export * from './chart-trendlines';
+export * from './chart-axis';
+export * from './chart-palette';
+export * from './chart-sparkline';
+// SVG-primitive chart engine. Its low-level helpers `ValueRange` / `PlotLayout`
+// / `valueToY` / `formatAxisValue` / `computeValueRange` / `seriesColor` /
+// `paletteColor` duplicate (with deliberately different signatures) the ones in
+// `chart-helpers.ts`, so they are NOT re-exported through the barrel — import
+// them from `chart-view-model` directly. The rest of the engine surface is
+// safe to flatten here.
+export {
+	buildChartViewModel,
+	buildFallbackViewModel,
+	buildGridlinesAndLabels,
+	buildZeroLine,
+	buildCategoryLabels,
+	buildLegend,
+	computeStackedValueRange,
+	computePlotLayout,
+	computeBarRects,
+	computeStackedBarRects,
+	computeLinePoints,
+	linePointsToSvgString,
+	computePieSlicePath,
+	computePieLayout,
+	computePieSlices,
+	computeScatterDots,
+	computeBubbleRadius,
+	radarAngle,
+	computeRadarPoints,
+	radarRingPoints,
+	resolveChartKind,
+	DEFAULT_PALETTE,
+} from './chart-view-model';
+export type {
+	ChartViewModel,
+	SvgRect,
+	SvgPath,
+	SvgPolyline,
+	SvgCircle,
+	SvgLine,
+	SvgText,
+	SvgPolygon,
+	SvgAreaGradient,
+	SvgPrimitive,
+	LegendEntry,
+	BarRect,
+	LinePoint,
+	PieSliceGeometry,
+	ScatterDot,
+	RadarPoint,
+	SupportedChartKind,
+} from './chart-view-model';
+export { buildComboViewModel, buildStockViewModel } from './chart-combo-stock';
+export { buildSurfaceViewModel, buildTreemapViewModel } from './chart-surface-treemap';
+export {
+	buildWaterfallViewModel,
+	buildRegionMapViewModel,
+	resolveRegionCode,
+	sequentialColorScale,
+	normalizeValue,
+} from './chart-waterfall-map';
+export {
+	computeTrendlinePrimitives,
+	computeErrorBarPrimitives,
+	computeAxisTitlePrimitives,
+	computeDataTablePrimitives,
+	computeLinearRegression,
+	fitPolynomial,
+	computeRSquared,
+	DATA_TABLE_ROW_H,
+	DATA_TABLE_HEADER_H,
+	DATA_TABLE_KEY_W,
+	DATA_TABLE_PADDING,
+} from './chart-overlays';
+export type { LinearFit } from './chart-overlays';
 export * from './animation-css';
 export * from './visual-3d';
 export * from './table-style';

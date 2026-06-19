@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import type { PlotLayout, ValueRange } from './chart-renderer-helpers';
+import type { PlotLayout, ValueRange } from './chart-view-model';
 import {
 	buildChartViewModel,
 	buildFallbackViewModel,
@@ -33,7 +33,7 @@ import {
 	resolveChartKind,
 	seriesColor,
 	valueToY,
-} from './chart-renderer-helpers';
+} from './chart-view-model';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Palette helpers

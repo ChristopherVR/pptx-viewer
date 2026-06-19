@@ -1,161 +1,16 @@
 import type { PptxElement, PptxChartData } from 'pptx-viewer-core';
+import { normalizeValue, resolveRegionCode, sequentialColorScale } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { formatAxisValue } from './chart-helpers';
 
-// ── Region code matching ─────────────────────────────────────────
-
-/**
- * Mapping from common category labels (country names, ISO codes, etc.)
- * to our internal region keys.  Case-insensitive lookup.
- */
-const REGION_ALIAS_MAP: Record<string, string> = {
-	// United States
-	us: 'US',
-	usa: 'US',
-	'united states': 'US',
-	'united states of america': 'US',
-	// Canada
-	ca: 'CA',
-	can: 'CA',
-	canada: 'CA',
-	// Brazil
-	br: 'BR',
-	bra: 'BR',
-	brazil: 'BR',
-	// United Kingdom
-	gb: 'GB',
-	gbr: 'GB',
-	uk: 'GB',
-	'united kingdom': 'GB',
-	// France
-	fr: 'FR',
-	fra: 'FR',
-	france: 'FR',
-	// Germany
-	de: 'DE',
-	deu: 'DE',
-	germany: 'DE',
-	// Italy
-	it: 'IT',
-	ita: 'IT',
-	italy: 'IT',
-	// Spain
-	es: 'ES',
-	esp: 'ES',
-	spain: 'ES',
-	// Russia
-	ru: 'RU',
-	rus: 'RU',
-	russia: 'RU',
-	// China
-	cn: 'CN',
-	chn: 'CN',
-	china: 'CN',
-	// India
-	in: 'IN',
-	ind: 'IN',
-	india: 'IN',
-	// Japan
-	jp: 'JP',
-	jpn: 'JP',
-	japan: 'JP',
-	// South Korea
-	kr: 'KR',
-	kor: 'KR',
-	'south korea': 'KR',
-	korea: 'KR',
-	// Australia
-	au: 'AU',
-	aus: 'AU',
-	australia: 'AU',
-	// Mexico
-	mx: 'MX',
-	mex: 'MX',
-	mexico: 'MX',
-	// Indonesia
-	id: 'ID',
-	idn: 'ID',
-	indonesia: 'ID',
-	// Turkey
-	tr: 'TR',
-	tur: 'TR',
-	turkey: 'TR',
-	// Saudi Arabia
-	sa: 'SA',
-	sau: 'SA',
-	'saudi arabia': 'SA',
-	// South Africa
-	za: 'ZA',
-	zaf: 'ZA',
-	'south africa': 'ZA',
-	// Argentina
-	ar: 'AR',
-	arg: 'AR',
-	argentina: 'AR',
-	// Nigeria
-	ng: 'NG',
-	nga: 'NG',
-	nigeria: 'NG',
-	// Egypt
-	eg: 'EG',
-	egy: 'EG',
-	egypt: 'EG',
-};
-
-/**
- * Resolve a category label to a region key.
- * Returns undefined if no match found.
- */
-export function resolveRegionCode(label: string): string | undefined {
-	const normalized = label.trim().toLowerCase();
-	return REGION_ALIAS_MAP[normalized];
-}
-
-// ── Color scale ──────────────────────────────────────────────────
-
-/**
- * Interpolate between two hex colors by ratio t in [0, 1].
- */
-function lerpColor(a: string, b: string, t: number): string {
-	const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
-	const parse = (hex: string) => {
-		const h = hex.replace('#', '');
-		return [
-			parseInt(h.substring(0, 2), 16),
-			parseInt(h.substring(2, 4), 16),
-			parseInt(h.substring(4, 6), 16),
-		];
-	};
-	const [r1, g1, b1] = parse(a);
-	const [r2, g2, b2] = parse(b);
-	const r = clamp(r1 + (r2 - r1) * t);
-	const g = clamp(g1 + (g2 - g1) * t);
-	const bl = clamp(b1 + (b2 - b1) * t);
-	return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${bl.toString(16).padStart(2, '0')}`;
-}
-
-/**
- * Sequential 3-stop color scale: light (#dbeafe) -> mid (#3b82f6) -> dark (#1e3a5f).
- * Returns a hex color for a normalised value t in [0, 1].
- */
-export function sequentialColorScale(t: number): string {
-	const clamped = Math.max(0, Math.min(1, t));
-	if (clamped <= 0.5) {
-		return lerpColor('#dbeafe', '#3b82f6', clamped * 2);
-	}
-	return lerpColor('#3b82f6', '#1e3a5f', (clamped - 0.5) * 2);
-}
-
-/**
- * Compute the normalised [0, 1] value for a data point given a min/max range.
- */
-export function normalizeValue(value: number, min: number, max: number): number {
-	if (max === min) {
-		return 0.5;
-	}
-	return (value - min) / (max - min);
-}
+// ── Region helpers (consolidated into pptx-viewer-shared) ─────────
+// `resolveRegionCode`, `sequentialColorScale` and `normalizeValue` (plus the
+// region-alias map and the internal `lerpColor`) now live in
+// `pptx-viewer-shared` (`render/chart-waterfall-map.ts`). They are imported for
+// local use here and re-exported so this module's colocated test and any
+// importers keep the same surface.
+export { normalizeValue, resolveRegionCode, sequentialColorScale };
 
 // ── Simplified SVG paths ─────────────────────────────────────────
 // Each path is drawn on a 1000 x 500 viewBox (equirectangular-ish).

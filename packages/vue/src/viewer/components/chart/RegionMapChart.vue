@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import type { PptxChartData } from 'pptx-viewer-core';
 import type { PlotLayout } from 'pptx-viewer-shared';
-import { formatAxisValue } from 'pptx-viewer-shared';
+import {
+	formatAxisValue,
+	normalizeValue,
+	resolveRegionCode,
+	sequentialColorScale,
+} from 'pptx-viewer-shared';
 import { computed } from 'vue';
 
 /**
@@ -9,148 +14,17 @@ import { computed } from 'vue';
  * Rendered inside the parent chart `<svg>` as a `<g>` group.
  * Uses a 1000x500 coordinate system for region outlines and scales them
  * to fit the available layout area.
+ *
+ * The region-alias lookup (`resolveRegionCode`), sequential colour scale
+ * (`sequentialColorScale`) and `normalizeValue` were consolidated into
+ * `pptx-viewer-shared` (`render/chart-waterfall-map.ts`) and are imported here
+ * rather than redefined locally.
  */
 const props = defineProps<{
 	chartData: PptxChartData;
 	layout: PlotLayout;
 	categories: ReadonlyArray<string>;
 }>();
-
-// ── Region code matching ──────────────────────────────────────────
-
-const REGION_ALIAS_MAP: Record<string, string> = {
-	// United States
-	us: 'US',
-	usa: 'US',
-	'united states': 'US',
-	'united states of america': 'US',
-	// Canada
-	ca: 'CA',
-	can: 'CA',
-	canada: 'CA',
-	// Brazil
-	br: 'BR',
-	bra: 'BR',
-	brazil: 'BR',
-	// United Kingdom
-	gb: 'GB',
-	gbr: 'GB',
-	uk: 'GB',
-	'united kingdom': 'GB',
-	// France
-	fr: 'FR',
-	fra: 'FR',
-	france: 'FR',
-	// Germany
-	de: 'DE',
-	deu: 'DE',
-	germany: 'DE',
-	// Italy
-	it: 'IT',
-	ita: 'IT',
-	italy: 'IT',
-	// Spain
-	es: 'ES',
-	esp: 'ES',
-	spain: 'ES',
-	// Russia
-	ru: 'RU',
-	rus: 'RU',
-	russia: 'RU',
-	// China
-	cn: 'CN',
-	chn: 'CN',
-	china: 'CN',
-	// India
-	in: 'IN',
-	ind: 'IN',
-	india: 'IN',
-	// Japan
-	jp: 'JP',
-	jpn: 'JP',
-	japan: 'JP',
-	// South Korea
-	kr: 'KR',
-	kor: 'KR',
-	'south korea': 'KR',
-	korea: 'KR',
-	// Australia
-	au: 'AU',
-	aus: 'AU',
-	australia: 'AU',
-	// Mexico
-	mx: 'MX',
-	mex: 'MX',
-	mexico: 'MX',
-	// Indonesia
-	id: 'ID',
-	idn: 'ID',
-	indonesia: 'ID',
-	// Turkey
-	tr: 'TR',
-	tur: 'TR',
-	turkey: 'TR',
-	// Saudi Arabia
-	sa: 'SA',
-	sau: 'SA',
-	'saudi arabia': 'SA',
-	// South Africa
-	za: 'ZA',
-	zaf: 'ZA',
-	'south africa': 'ZA',
-	// Argentina
-	ar: 'AR',
-	arg: 'AR',
-	argentina: 'AR',
-	// Nigeria
-	ng: 'NG',
-	nga: 'NG',
-	nigeria: 'NG',
-	// Egypt
-	eg: 'EG',
-	egy: 'EG',
-	egypt: 'EG',
-};
-
-function resolveRegionCode(label: string): string | undefined {
-	const normalized = label.trim().toLowerCase();
-	return REGION_ALIAS_MAP[normalized];
-}
-
-// ── Color scale ───────────────────────────────────────────────────
-
-function lerpColor(a: string, b: string, t: number): string {
-	const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
-	const parse = (hex: string) => {
-		const h = hex.replace('#', '');
-		return [
-			parseInt(h.substring(0, 2), 16),
-			parseInt(h.substring(2, 4), 16),
-			parseInt(h.substring(4, 6), 16),
-		];
-	};
-	const [r1, g1, b1] = parse(a);
-	const [r2, g2, b2] = parse(b);
-	const r = clamp(r1 + (r2 - r1) * t);
-	const g = clamp(g1 + (g2 - g1) * t);
-	const bl = clamp(b1 + (b2 - b1) * t);
-	return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${bl.toString(16).padStart(2, '0')}`;
-}
-
-function sequentialColorScale(t: number): string {
-	const clamped = Math.max(0, Math.min(1, t));
-	if (clamped <= 0.5) {
-		return lerpColor('#dbeafe', '#3b82f6', clamped * 2);
-	}
-	return lerpColor('#3b82f6', '#1e3a5f', (clamped - 0.5) * 2);
-}
-
-function normalizeValue(value: number, min: number, max: number): number {
-	if (max === min) {
-		return 0.5;
-	}
-	return (value - min) / (max - min);
-}
 
 // ── SVG path data ─────────────────────────────────────────────────
 // Simplified world region outlines on a 1000x500 coordinate system.

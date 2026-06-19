@@ -36,7 +36,7 @@ import {
 	computeTrendlinePrimitives,
 	fitPolynomial,
 } from './chart-overlays';
-import type { PlotLayout, ValueRange } from './chart-renderer-helpers';
+import type { PlotLayout, ValueRange } from './chart-view-model';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared fixtures
