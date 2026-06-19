@@ -105,6 +105,15 @@ export {
 } from './chart-overlays';
 export type { LinearFit } from './chart-overlays';
 export * from './animation-css';
+// Editor element-animation preset model — distinct from the native OOXML
+// `p:timing` timeline below. `animation-authoring` holds the immutable
+// slide-`animations[]` patch builders + value-only option catalogs for the
+// authoring panel; `animation-playback` holds the pure click-group / reveal /
+// pending-style maths that drives the editor preview. Both build on
+// `animation-css` for the preset → CSS keyframe mapping. The stateful hooks /
+// services / RAF loops stay in each binding.
+export * from './animation-authoring';
+export * from './animation-playback';
 // Native-animation (OOXML `p:timing` tree) timeline engine — preset tables,
 // keyframe definitions, colour interpolation, dynamic/static keyframe
 // generation, sequencing, click-group timeline + stateful playback controller,
