@@ -4,12 +4,32 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.4.11](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.11) - 2026-06-19
+
+### Refactor
+
+- **shared:** Consolidate warp-path generation into text-warp (by @ChristopherVR) ([2085f75](https://github.com/ChristopherVR/pptx-viewer/commit/2085f75c3d22b4f553f8117055fa538dca305242))
+- **react:** Shim warp-path-generators to shared (by @ChristopherVR) ([bc034f5](https://github.com/ChristopherVR/pptx-viewer/commit/bc034f5365435caad0d0f98ebe641a92a8d03f7e))
+- **angular:** Consume shared for warp, visual-effects, omml-to-mathml (by @ChristopherVR) ([a74ea17](https://github.com/ChristopherVR/pptx-viewer/commit/a74ea17b4734c76697fc4f1a8cd720e5a937dcf6))
+- **shared:** Consolidate color/gradient/pattern logic into fill-style (by @ChristopherVR) ([0eb26ad](https://github.com/ChristopherVR/pptx-viewer/commit/0eb26ad39af81d6b4cf8bb502ffd94b9b3c589b2))
+- **shared:** Extract connector routing/reroute/style into shared (by @ChristopherVR) ([8dde327](https://github.com/ChristopherVR/pptx-viewer/commit/8dde327a0ab32b1f4b8024e1c99fdc731eb26017))
+- **shared:** Extract chart engine/geometry/overlays into shared (by @ChristopherVR) ([ab470b3](https://github.com/ChristopherVR/pptx-viewer/commit/ab470b35d0176c5a127db3fe0540735bf2cd9ed6))
+- **react:** Shim OMML/LaTeX math conversion to shared (by @ChristopherVR) ([4cc176a](https://github.com/ChristopherVR/pptx-viewer/commit/4cc176abdbb74f73afb3e39986de322efd386b02))
+
 ## [1.4.10](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.10) - 2026-06-18
+
+### Features
+
+- **vue:** Mobile bottom-sheet layer for format & comments (by @ChristopherVR) ([87f581f](https://github.com/ChristopherVR/pptx-viewer/commit/87f581f159127f1f12a46348e89c7fa5da71c68d))
 
 ### Bug Fixes
 
 - **angular:** Mobile save button and wider sheet swipe region (by @ChristopherVR) ([d6eaa99](https://github.com/ChristopherVR/pptx-viewer/commit/d6eaa99bb7a15a697235576042c7c6346f877903))
 - **vue:** Add Save to the mobile bottom bar (by @ChristopherVR) ([9d0ed2c](https://github.com/ChristopherVR/pptx-viewer/commit/9d0ed2c8b906b68d4c760944da5e4a6f1724f63b))
+
+### Documentation
+
+- **changelog:** Update for v1.4.10 [skip ci] (by @github-actions[bot]) ([2284ae0](https://github.com/ChristopherVR/pptx-viewer/commit/2284ae0e31b2e6cd3e2475b59b973561c6ccbfb1))
 
 ## [1.4.9](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.9) - 2026-06-18
 
