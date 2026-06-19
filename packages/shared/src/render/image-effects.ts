@@ -237,6 +237,12 @@ export function getImageFilterCss(
 	return filters.length > 0 ? filters.join(' ') : undefined;
 }
 
+/**
+ * Legacy alias of {@link getImageFilterCss}, preserved for the React
+ * `shape-visual-effects` shim whose public symbol was `getImageEffectsFilter`.
+ */
+export const getImageEffectsFilter = getImageFilterCss;
+
 /** CSS-only approximations for the simpler artistic effects. */
 function buildSimpleArtisticCss(effect: string, radius: number): string {
 	switch (effect) {

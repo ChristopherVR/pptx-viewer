@@ -21,7 +21,7 @@
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 
-import { DEFAULT_FILL_COLOR } from '../constants';
+import { DEFAULT_FILL_COLOR, DEFAULT_TEXT_COLOR } from '../constants';
 
 // ---------------------------------------------------------------------------
 // Color primitives (inlined from React `color-core.ts`)
@@ -30,8 +30,16 @@ import { DEFAULT_FILL_COLOR } from '../constants';
 /**
  * Normalizes an arbitrary colour string to a 6-digit hex value (`#RRGGBB`).
  * Returns the fallback when the input is missing, "transparent", or invalid.
+ *
+ * `fallback` is optional and defaults to {@link DEFAULT_TEXT_COLOR}; this is the
+ * single canonical normaliser consumed by every binding. React's `color-core`
+ * re-exports this so its historical single-arg call sites (which relied on a
+ * `DEFAULT_TEXT_COLOR` default) keep working without a duplicate definition.
  */
-export function normalizeHexColor(value: string | undefined, fallback: string): string {
+export function normalizeHexColor(
+	value: string | undefined,
+	fallback: string = DEFAULT_TEXT_COLOR,
+): string {
 	if (!value || value === 'transparent') {
 		return fallback;
 	}
@@ -45,7 +53,7 @@ export function clampUnitInterval(value: number): number {
 }
 
 /** Parses a 6-digit hex colour into R/G/B channels (0-255), or `null`. */
-function hexToRgbChannels(color: string): { r: number; g: number; b: number } | null {
+export function hexToRgbChannels(color: string): { r: number; g: number; b: number } | null {
 	const normalized = color.replace('#', '');
 	if (!/^[0-9a-fA-F]{6}$/u.test(normalized)) {
 		return null;
@@ -70,6 +78,28 @@ export function colorWithOpacity(color: string, opacity: number | undefined): st
 		return color;
 	}
 	return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${clampUnitInterval(opacity)})`;
+}
+
+/**
+ * Clamps an image crop value (fractional 0-1) to a safe range. Returns 0 for
+ * non-finite or missing values, and caps at 0.95 to prevent the image from
+ * being fully cropped away.
+ */
+export function clampCropValue(value: number | undefined): number {
+	if (typeof value !== 'number' || !Number.isFinite(value)) {
+		return 0;
+	}
+	return Math.max(0, Math.min(0.95, value));
+}
+
+/**
+ * Creates a detached copy of a `Uint8Array` as an `ArrayBuffer`. Useful for
+ * transferring binary data without shared-memory side-effects.
+ */
+export function createArrayBufferCopy(bytes: Uint8Array): ArrayBuffer {
+	const copy = new Uint8Array(bytes.byteLength);
+	copy.set(bytes);
+	return copy.buffer;
 }
 
 // ---------------------------------------------------------------------------

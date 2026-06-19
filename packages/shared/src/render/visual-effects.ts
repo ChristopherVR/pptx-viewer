@@ -250,6 +250,22 @@ export function getBoxShadowCss(
 	return parts.length > 0 ? parts.join(', ') : undefined;
 }
 
+// ── Per-binding name aliases (shadow box-shadow builders) ──────────────────
+// React's `color-core.ts` historically exposed these builders under the names
+// below; the binding shims re-export them so existing consumers/colocated tests
+// keep importing the same symbols.
+
+/** Alias of {@link getOuterShadowCss} (React `buildShadowCssFromShapeStyle`). */
+export const buildShadowCssFromShapeStyle = getOuterShadowCss;
+/** Alias of {@link getInnerShadowCss} (React `buildInnerShadowCssFromShapeStyle`). */
+export const buildInnerShadowCssFromShapeStyle = getInnerShadowCss;
+/** Alias of {@link getMultiLayerShadowCss} (React `buildMultiLayerShadowCss`). */
+export const buildMultiLayerShadowCss = getMultiLayerShadowCss;
+/** Alias of {@link getGlowBoxShadowCss} (React `buildGlowBoxShadow`). */
+export const buildGlowBoxShadow = getGlowBoxShadowCss;
+/** Alias of {@link buildReflectionCssValue} (React `buildReflectionCss`). */
+export const buildReflectionCss = buildReflectionCssValue;
+
 // ── Glow / soft-edge / blur / DAG (CSS filter) ─────────────────────────────
 
 /**
@@ -315,6 +331,36 @@ export function getEffectDagCssFilter(
 	}
 
 	return filters.length > 0 ? filters.join(' ') : undefined;
+}
+
+/**
+ * Legacy alias of {@link getEffectDagCssFilter}, preserved for the React
+ * `effect-dag-filters` shim.
+ */
+export const getEffectDagFilter = getEffectDagCssFilter;
+
+/**
+ * Whether a {@link ShapeStyle} carries any active effect-DAG property. Useful
+ * for short-circuiting rendering logic when no DAG effects apply.
+ */
+export function hasEffectDagProperties(style: ShapeStyle | undefined): boolean {
+	if (!style) {
+		return false;
+	}
+	return Boolean(
+		style.dagGrayscale ||
+		typeof style.dagBiLevel === 'number' ||
+		typeof style.dagLumBrightness === 'number' ||
+		typeof style.dagLumContrast === 'number' ||
+		typeof style.dagHslHue === 'number' ||
+		typeof style.dagHslSaturation === 'number' ||
+		typeof style.dagHslLuminance === 'number' ||
+		typeof style.dagAlphaModFix === 'number' ||
+		typeof style.dagTintHue === 'number' ||
+		typeof style.dagTintAmount === 'number' ||
+		style.dagDuotone ||
+		style.dagFillOverlayBlend,
+	);
 }
 
 /**
@@ -567,6 +613,52 @@ export function getDuotoneSvgFilter(
 	].join('');
 
 	return { id, cssReference: `url(#${id})`, filterMarkup };
+}
+
+/**
+ * Build a self-contained, hidden `<svg>` wrapper containing a duotone
+ * `<filter>` (BT.709 grayscale → linear two-colour ramp), suitable for direct
+ * injection into the DOM in non-React contexts (tests, SSR, string templates).
+ *
+ * Unlike {@link getDuotoneSvgFilter} (which returns just the `<filter>` markup),
+ * this wraps the filter in `<svg width="0" height="0" …>` so the returned
+ * string can be inserted as-is. Mirrors React's `getDuotoneSvgFilterMarkup`.
+ *
+ * @param filterId - The `<filter>` element id.
+ * @param color1   - Shadow colour (hex).
+ * @param color2   - Highlight colour (hex).
+ */
+export function getDuotoneSvgFilterMarkup(
+	filterId: string,
+	color1: string,
+	color2: string,
+): string {
+	const c1 = hexToRgbUnit(color1);
+	const c2 = hexToRgbUnit(color2);
+
+	const grayscaleMatrix = [
+		0.2126, 0.7152, 0.0722, 0, 0, 0.2126, 0.7152, 0.0722, 0, 0, 0.2126, 0.7152, 0.0722, 0, 0, 0, 0,
+		0, 1, 0,
+	].join(' ');
+
+	const slopeR = c2.r - c1.r;
+	const slopeG = c2.g - c1.g;
+	const slopeB = c2.b - c1.b;
+
+	return [
+		`<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">`,
+		`<defs>`,
+		`<filter id="${filterId}" color-interpolation-filters="sRGB">`,
+		`<feColorMatrix type="matrix" values="${grayscaleMatrix}"/>`,
+		`<feComponentTransfer>`,
+		`<feFuncR type="linear" slope="${slopeR}" intercept="${c1.r}"/>`,
+		`<feFuncG type="linear" slope="${slopeG}" intercept="${c1.g}"/>`,
+		`<feFuncB type="linear" slope="${slopeB}" intercept="${c1.b}"/>`,
+		`</feComponentTransfer>`,
+		`</filter>`,
+		`</defs>`,
+		`</svg>`,
+	].join('');
 }
 
 // ── Aggregate convenience API ──────────────────────────────────────────────
