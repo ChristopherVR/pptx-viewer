@@ -126,3 +126,12 @@ export * from './remap-text';
 export * from './shape-adjustment';
 export * from './hyperlink-security';
 export * from './slide-compare';
+// Morph (PowerPoint Morph transition) — pure element-matching, SVG-path /
+// colour interpolation, text tokenisation, and CSS keyframe generation. The
+// DOM injection of the generated keyframes stays in each binding.
+export * from './morph-types';
+export * from './morph-color';
+export * from './morph-svg-path';
+export * from './morph-matching';
+export * from './morph-text';
+export * from './morph-animation';

@@ -2,28 +2,20 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
 import {
-	matchMorphElements,
-	matchMorphElementsFull,
 	generateMorphAnimations,
 	generateUnmatchedFadeOutAnimations,
 	generateUnmatchedFadeInAnimations,
 	generateTextMorphAnimations,
 	generateFullMorphTransition,
-	parseHexColor,
-	lerpColor,
-	rgbaToHex,
-	parseSvgPath,
-	serializeSvgPath,
-	equalizePaths,
-	interpolatePaths,
-	tokenizeText,
-	matchTextTokens,
 	buildColorInterpolationProps,
 	buildStrokeInterpolationProps,
-	getElementMorphName,
-	MORPH_EASING,
-} from './morph-transition';
-import type { MorphPair, RgbaColor, SvgPathCommand } from './morph-transition';
+} from './morph-animation';
+import { parseHexColor, lerpColor, rgbaToHex } from './morph-color';
+import { matchMorphElements, matchMorphElementsFull, getElementMorphName } from './morph-matching';
+import { parseSvgPath, serializeSvgPath, equalizePaths, interpolatePaths } from './morph-svg-path';
+import { tokenizeText, matchTextTokens } from './morph-text';
+import { MORPH_EASING } from './morph-types';
+import type { MorphPair, RgbaColor, SvgPathCommand } from './morph-types';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1359,6 +1351,6 @@ describe('generateFullMorphTransition', () => {
 
 describe('mORPH_EASING', () => {
 	it('is a cubic-bezier string', () => {
-		expect(MORPH_EASING).toMatch(/^cubic-bezier\(/);
+		expect(MORPH_EASING).toMatch(/^cubic-bezier\(/u);
 	});
 });
