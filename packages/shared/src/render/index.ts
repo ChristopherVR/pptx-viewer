@@ -121,3 +121,8 @@ export * from './text-paragraphs';
 export * from './connector-router';
 export * from './connector-reroute';
 export * from './connector-style';
+export * from './format-painter';
+export * from './remap-text';
+export * from './shape-adjustment';
+export * from './hyperlink-security';
+export * from './slide-compare';
