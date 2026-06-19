@@ -15,6 +15,12 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 - **shared:** Extract connector routing/reroute/style into shared (by @ChristopherVR) ([8dde327](https://github.com/ChristopherVR/pptx-viewer/commit/8dde327a0ab32b1f4b8024e1c99fdc731eb26017))
 - **shared:** Extract chart engine/geometry/overlays into shared (by @ChristopherVR) ([ab470b3](https://github.com/ChristopherVR/pptx-viewer/commit/ab470b35d0176c5a127db3fe0540735bf2cd9ed6))
 - **react:** Shim OMML/LaTeX math conversion to shared (by @ChristopherVR) ([4cc176a](https://github.com/ChristopherVR/pptx-viewer/commit/4cc176abdbb74f73afb3e39986de322efd386b02))
+- **shared:** Make visual-3d the superset; shim React shape-3d (by @ChristopherVR) ([a9c8a97](https://github.com/ChristopherVR/pptx-viewer/commit/a9c8a971821bd52c9cbd89fbc7ddec7c82e488c3))
+- **shared:** Extract table merge/layout structural ops into shared (by @ChristopherVR) ([9e151d4](https://github.com/ChristopherVR/pptx-viewer/commit/9e151d4b45a52f61287ba90cccece5007a226084))
+
+### Documentation
+
+- **changelog:** Update for v1.4.11 [skip ci] (by @github-actions[bot]) ([22c702b](https://github.com/ChristopherVR/pptx-viewer/commit/22c702b98ae296e16b1ae7519965c0564a09f9c0))
 
 ## [1.4.10](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.10) - 2026-06-18
 
