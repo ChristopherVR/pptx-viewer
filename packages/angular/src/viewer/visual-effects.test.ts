@@ -17,7 +17,7 @@ import {
 	getOuterShadowCss,
 	getReflectionCss,
 	normalizeHexColor,
-} from './visual-effects';
+} from '../internal/shared';
 
 function shape(shapeStyle?: ShapeStyle, overrides: Partial<PptxElement> = {}): PptxElement {
 	return {

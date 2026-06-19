@@ -15,7 +15,7 @@
  */
 import type { ShapeStyle } from 'pptx-viewer-core';
 
-import { normalizeHexColor } from './visual-effects';
+import { normalizeHexColor } from '../internal/shared';
 
 // ---------------------------------------------------------------------------
 // Internal SVG helpers

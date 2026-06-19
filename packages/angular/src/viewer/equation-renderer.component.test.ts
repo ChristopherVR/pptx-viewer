@@ -20,7 +20,8 @@
 import type { SafeHtml } from '@angular/platform-browser';
 import { describe, expect, it } from 'vitest';
 
-import { ommlToMathml } from './omml-to-mathml';
+import type { OmmlNode } from '../internal/shared';
+import { ommlToMathml } from '../internal/shared';
 
 // ---------------------------------------------------------------------------
 // Stub DomSanitizer
@@ -54,7 +55,7 @@ function makeComponent(
 	// We cannot use Angular signals outside a reactive context in plain Vitest,
 	// so we exercise the underlying pure function directly and verify the
 	// sanitizer wiring manually.
-	const mathml = ommlToMathml(equationXml);
+	const mathml = ommlToMathml(equationXml as OmmlNode);
 	const safe = stubSanitizer.bypassSecurityTrustHtml(mathml);
 
 	return {

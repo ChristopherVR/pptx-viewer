@@ -83,7 +83,7 @@ export {
 export { applyMove, applyResize, RESIZE_HANDLES, type ResizeHandle, type Box } from './drag-resize';
 export { resolveParagraphBullet, formatAutoNumber, bulletIndentPx } from './text-bullets';
 export { EquationRendererComponent } from './equation-renderer.component';
-export { ommlToMathml, convertOmmlToMathMl } from './omml-to-mathml';
+export { ommlToMathml, convertOmmlToMathMl } from '../internal/shared';
 export { LoadContentService } from './load-content.service';
 
 // Comments

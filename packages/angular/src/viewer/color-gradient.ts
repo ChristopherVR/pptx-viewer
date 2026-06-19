@@ -14,8 +14,8 @@
  */
 import type { ShapeStyle } from 'pptx-viewer-core';
 
+import { colorWithOpacity, normalizeHexColor } from '../internal/shared';
 import { DEFAULT_FILL_COLOR } from './constants';
-import { colorWithOpacity, normalizeHexColor } from './visual-effects';
 
 // ---------------------------------------------------------------------------
 // Internal helpers

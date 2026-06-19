@@ -1,13 +1,16 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 
-import { DEFAULT_STROKE_COLOR, DEFAULT_TEXT_COLOR } from '../internal/shared';
+import {
+	DEFAULT_STROKE_COLOR,
+	DEFAULT_TEXT_COLOR,
+	getComputedEffectStyle,
+} from '../internal/shared';
 import { buildCssGradientFromShapeStyle } from './color-gradient';
 import { buildPatternFillCss } from './color-patterns';
 import { buildDuotoneFilter } from './duotone-filter';
 import type { DuotoneFilterDef } from './duotone-filter';
 import { getResolvedShapeClipPath } from './shape-geometry';
-import { getComputedEffectStyle } from './visual-effects';
 
 /**
  * Basic, framework-agnostic style computation for slide elements, returning

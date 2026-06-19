@@ -2,7 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { DomSanitizer } from '@angular/platform-browser';
 import type { SafeHtml } from '@angular/platform-browser';
 
-import { ommlToMathml } from './omml-to-mathml';
+import type { OmmlNode } from '../internal/shared';
+import { ommlToMathml } from '../internal/shared';
 
 /**
  * EquationRendererComponent — Angular port of the Vue `EquationRenderer.vue`
@@ -90,6 +91,8 @@ export class EquationRendererComponent {
 	 * stripping it.
 	 */
 	readonly safeMathml = computed<SafeHtml>(() =>
-		this.sanitizer.bypassSecurityTrustHtml(ommlToMathml(this.equationXml())),
+		// `equationXml` is typed `Record<string, unknown>` on the core segment; the
+		// shared converter walks it as an `OmmlNode` (core's recursive `XmlObject`).
+		this.sanitizer.bypassSecurityTrustHtml(ommlToMathml(this.equationXml() as OmmlNode)),
 	);
 }
