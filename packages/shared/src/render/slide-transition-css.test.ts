@@ -1,21 +1,25 @@
 import type { PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { getP14TransitionAnimations } from './p14-transition-css';
+import { P14_TRANSITION_KEYFRAMES_ALL } from './p14-transition-keyframes';
+import {
+	getSlideTransitionAnimations,
+	resolveSlideTransition,
+	resolveTransitionDurationMs,
+} from './slide-transition-css';
+import { SLIDE_TRANSITION_KEYFRAMES } from './slide-transition-keyframes';
 import {
 	DEFAULT_TRANSITION_DURATION_MS,
-	getSlideTransitionAnimations,
 	INSTANT,
 	RANDOM_ELIGIBLE_TYPES,
 	resolveDirection,
 	resolveDirection8,
 	resolveOrientation,
-	resolveSlideTransition,
-	resolveTransitionDurationMs,
-	SLIDE_TRANSITION_KEYFRAMES_CSS,
-} from './slide-transition-css';
+} from './slide-transition-types';
 
 describe('resolveDirection', () => {
-	it('maps the four OOXML cardinal tokens', () => {
+	it('maps the four ooxml cardinal tokens', () => {
 		expect(resolveDirection('l', 'right')).toBe('left');
 		expect(resolveDirection('r', 'left')).toBe('right');
 		expect(resolveDirection('u', 'left')).toBe('up');
@@ -25,6 +29,7 @@ describe('resolveDirection', () => {
 	it('falls back to the default for unknown/diagonal tokens', () => {
 		expect(resolveDirection(undefined, 'down')).toBe('down');
 		expect(resolveDirection('lu', 'right')).toBe('right');
+		expect(resolveDirection('', 'up')).toBe('up');
 	});
 });
 
@@ -32,6 +37,8 @@ describe('resolveDirection8', () => {
 	it('maps cardinals and the four diagonals', () => {
 		expect(resolveDirection8('l', 'right')).toBe('left');
 		expect(resolveDirection8('lu', 'left')).toBe('lu');
+		expect(resolveDirection8('ld', 'left')).toBe('ld');
+		expect(resolveDirection8('ru', 'left')).toBe('ru');
 		expect(resolveDirection8('rd', 'left')).toBe('rd');
 	});
 
@@ -51,6 +58,15 @@ describe('resolveOrientation', () => {
 
 	it('defaults to horz', () => {
 		expect(resolveOrientation(undefined, undefined)).toBe('horz');
+		expect(resolveOrientation('', '')).toBe('horz');
+	});
+});
+
+describe('random-eligible types', () => {
+	it('excludes none, cut, and random', () => {
+		expect(RANDOM_ELIGIBLE_TYPES).not.toContain('none');
+		expect(RANDOM_ELIGIBLE_TYPES).not.toContain('cut');
+		expect(RANDOM_ELIGIBLE_TYPES).not.toContain('random');
 	});
 });
 
@@ -192,8 +208,32 @@ describe('getSlideTransitionAnimations', () => {
 		expect(result.incoming).toContain('pptx-tr-fade-in');
 	});
 
-	it('falls back to a cross-fade for unmodelled cinematic types', () => {
-		for (const type of ['cube', 'flip', 'rotate', 'orbit', 'conveyor', 'vortex'] as const) {
+	it('approximates exotic types with the closest 2-d case', () => {
+		// conveyor/gallery/pan -> push, reveal -> wipe, doors -> split,
+		// switch/flythrough/ferris/prism -> zoom, ripple/honeycomb/glitter/shred
+		// -> dissolve, flash -> fade.
+		expect(getSlideTransitionAnimations('conveyor', 400, 'l').outgoing).toContain(
+			'pptx-tr-push-out-to-left',
+		);
+		expect(getSlideTransitionAnimations('reveal', 400, 'l').incoming).toContain(
+			'pptx-tr-wipe-from-left',
+		);
+		expect(getSlideTransitionAnimations('doors', 400, undefined, 'vert').incoming).toContain(
+			'pptx-tr-split-v-out',
+		);
+		expect(getSlideTransitionAnimations('switch', 400, undefined).incoming).toContain(
+			'pptx-tr-zoom-in',
+		);
+		expect(getSlideTransitionAnimations('ripple', 400, undefined).incoming).toContain(
+			'pptx-tr-dissolve-in',
+		);
+		expect(getSlideTransitionAnimations('flash', 400, undefined).incoming).toContain(
+			'pptx-tr-fade-in',
+		);
+	});
+
+	it('falls back to a cross-fade for truly-unknown cinematic types', () => {
+		for (const type of ['cube', 'flip', 'rotate', 'orbit'] as const) {
 			const result = getSlideTransitionAnimations(type as PptxTransitionType, 400, undefined);
 			expect(result.incoming).toContain('pptx-tr-fade-in');
 			expect(result.outgoing).toContain('pptx-tr-fade-out');
@@ -213,8 +253,7 @@ describe('getSlideTransitionAnimations', () => {
 		});
 	});
 
-	it('references only keyframes that exist in the injected CSS', () => {
-		// Every non-`none` animation name must have a matching @keyframes block.
+	it('references only keyframes that exist in the injected css', () => {
 		const types: PptxTransitionType[] = [
 			'fade',
 			'push',
@@ -243,7 +282,7 @@ describe('getSlideTransitionAnimations', () => {
 					continue;
 				}
 				const name = shorthand.split(' ')[0];
-				expect(SLIDE_TRANSITION_KEYFRAMES_CSS).toContain(`@keyframes ${name}`);
+				expect(SLIDE_TRANSITION_KEYFRAMES).toContain(`@keyframes ${name}`);
 			}
 		}
 	});
@@ -292,5 +331,92 @@ describe('resolveTransitionDurationMs', () => {
 		expect(resolveTransitionDurationMs({ type: 'fade', durationMs: -5 })).toBe(
 			DEFAULT_TRANSITION_DURATION_MS,
 		);
+	});
+});
+
+describe('getP14TransitionAnimations', () => {
+	it('returns undefined for non-p14 types', () => {
+		expect(getP14TransitionAnimations('fade', 500, undefined)).toBeUndefined();
+		expect(getP14TransitionAnimations('push', 500, undefined)).toBeUndefined();
+	});
+
+	it('resolves conveyor left/right with the dedicated keyframes', () => {
+		const left = getP14TransitionAnimations('conveyor', 500, 'l');
+		expect(left?.outgoing).toContain('pptx-tr-conveyor-out-to-left');
+		expect(left?.incoming).toContain('pptx-tr-conveyor-in-from-right');
+		const right = getP14TransitionAnimations('conveyor', 500, 'r');
+		expect(right?.outgoing).toContain('pptx-tr-conveyor-out-to-right');
+	});
+
+	it('resolves doors by orientation', () => {
+		expect(getP14TransitionAnimations('doors', 800, 'horz')?.incoming).toContain(
+			'pptx-tr-doors-horz',
+		);
+		expect(getP14TransitionAnimations('doors', 800, 'vert')?.incoming).toContain(
+			'pptx-tr-doors-vert',
+		);
+	});
+
+	it('resolves the reverse variants of flythrough and warp via direction "out"', () => {
+		expect(getP14TransitionAnimations('flythrough', 1000, 'out')?.incoming).toContain(
+			'pptx-tr-flythrough-reverse-in',
+		);
+		expect(getP14TransitionAnimations('warp', 1000, 'out')?.incoming).toContain(
+			'pptx-tr-warp-reverse-in',
+		);
+	});
+
+	it('resolves pan via directionalPair to its cardinal keyframes', () => {
+		const left = getP14TransitionAnimations('pan', 500, 'l');
+		expect(left?.outgoing).toContain('pptx-tr-pan-to-left');
+		expect(left?.incoming).toContain('pptx-tr-pan-from-right');
+		expect(P14_TRANSITION_KEYFRAMES_ALL).toContain('@keyframes pptx-tr-pan-to-left');
+		expect(P14_TRANSITION_KEYFRAMES_ALL).toContain('@keyframes pptx-tr-pan-from-right');
+	});
+
+	it('resolves shred rectangles vs strips pattern', () => {
+		expect(getP14TransitionAnimations('shred', 600, 'rectangles')?.incoming).toContain(
+			'pptx-tr-shred-rectangles-in',
+		);
+		expect(getP14TransitionAnimations('shred', 600, 'strips')?.incoming).toContain(
+			'pptx-tr-shred-strips-in',
+		);
+	});
+
+	it('references only keyframes that exist in the p14 css', () => {
+		// `pan`/`prism` go through `directionalPair`, which emits cardinal-only
+		// suffixes (`-to-left`/`-from-right`); only `pan`'s keyframes use that
+		// naming, so they are checked separately below and excluded here.
+		const types: PptxTransitionType[] = [
+			'conveyor',
+			'doors',
+			'ferris',
+			'flash',
+			'flythrough',
+			'gallery',
+			'glitter',
+			'honeycomb',
+			'reveal',
+			'ripple',
+			'shred',
+			'switch',
+			'vortex',
+			'warp',
+			'wheelReverse',
+			'window',
+		];
+		// `pptx-tr-fade-out` (used by glitter outgoing) lives in the core block.
+		const css = `${P14_TRANSITION_KEYFRAMES_ALL}\n${SLIDE_TRANSITION_KEYFRAMES}`;
+		for (const type of types) {
+			const result = getP14TransitionAnimations(type, 300, 'l', 'horz');
+			expect(result).toBeDefined();
+			for (const shorthand of [result?.outgoing, result?.incoming]) {
+				if (!shorthand || shorthand === 'none') {
+					continue;
+				}
+				const name = shorthand.split(' ')[0];
+				expect(css).toContain(`@keyframes ${name}`);
+			}
+		}
 	});
 });

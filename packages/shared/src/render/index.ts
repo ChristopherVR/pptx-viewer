@@ -157,6 +157,19 @@ export * from './morph-svg-path';
 export * from './morph-matching';
 export * from './morph-text';
 export * from './morph-animation';
+// Slide-transition (slide-to-slide swap) CSS/keyframe generation — pure mapping
+// from a `PptxSlideTransition` to the outgoing/incoming `animation` shorthands
+// plus the `@keyframes` strings each binding injects once. Keyframe names use
+// the `pptx-tr-*` family (distinct from element-animation `pptx-vue-*` and
+// native-timeline `pptx-tl-*`). The DOM overlay + RAF/timer/sound playback
+// driver stays in each binding. `p14-transition-*` adds faithful PowerPoint
+// 2010 effect keyframes/resolver; the core resolver approximates the same
+// exotic types with 2-D fallbacks.
+export * from './slide-transition-types';
+export * from './slide-transition-keyframes';
+export * from './slide-transition-css';
+export * from './p14-transition-keyframes';
+export * from './p14-transition-css';
 // SmartArt SVG-fallback layout engine — pure node geometry/positioning for the
 // 10 layout families (list/process/cycle/hierarchy/matrix/radial/pyramid/venn/
 // funnel/target), producing fully-styled `RenderedNode` / `RenderedConnector`
