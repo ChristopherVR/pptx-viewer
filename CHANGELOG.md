@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.4.14](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.14) - 2026-06-19
+
+### Features
+
+- **viewer:** Mobile notes swipe-dismiss + File ▸ Open across bindings (by @ChristopherVR) ([f6505c9](https://github.com/ChristopherVR/pptx-viewer/commit/f6505c97fe711efb5a9042b8c2159096c1fd4895))
+
+### Refactor
+
+- **shared:** Extract slide-transition CSS/keyframes into shared (by @ChristopherVR) ([fabb975](https://github.com/ChristopherVR/pptx-viewer/commit/fabb975951dce40e3fea4ae6feeffa64f243d05b))
+- **shared:** Extract element-animation authoring/playback into shared (by @ChristopherVR) ([fa0a4c3](https://github.com/ChristopherVR/pptx-viewer/commit/fa0a4c350a8d68ce6d8592a63f4f3875087592ab))
+
 ## [1.4.13](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.13) - 2026-06-19
 
 ### Features
@@ -22,6 +33,10 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 - **shared:** Extract native animation timeline engine into shared (by @ChristopherVR) ([d92af95](https://github.com/ChristopherVR/pptx-viewer/commit/d92af957721ac193964a5f700bb0c272a9e50a3b))
 - **shared:** Extract snap-guide and ruler geometry into shared (by @ChristopherVR) ([fbe2bce](https://github.com/ChristopherVR/pptx-viewer/commit/fbe2bceb165e5e484f03de978751144250998564))
 - **shared:** Extract SmartArt layout engine into shared (by @ChristopherVR) ([3b3136e](https://github.com/ChristopherVR/pptx-viewer/commit/3b3136ecf05133ff45b6c678d7dfc97b89563926))
+
+### Documentation
+
+- **changelog:** Update for v1.4.13 [skip ci] (by @github-actions[bot]) ([865e715](https://github.com/ChristopherVR/pptx-viewer/commit/865e715fd9027bd2349da24e10c74d3fb65dcb4e))
 
 ## [1.4.12](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.12) - 2026-06-19
 
