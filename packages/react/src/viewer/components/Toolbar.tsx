@@ -109,6 +109,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 				>
 					{sFil && (
 						<FileSection
+							onOpenFile={p.onOpenFile}
 							onExportPng={p.onExportPng}
 							onExportPdf={p.onExportPdf}
 							onExportVideo={p.onExportVideo}

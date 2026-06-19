@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * RibbonToolbar — Vue port of React's `components/Toolbar.tsx`.
+ * RibbonToolbar: Vue port of React's `components/Toolbar.tsx`.
  *
  * The Office-style ribbon shell: a quick-access primary row, the tab bar
  * (File / Home / Insert / … / Help), and the active tab's section content.
@@ -85,6 +85,7 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 		>
 			<FileSection
 				v-if="s === 'file'"
+				:on-open-file="props.onOpenFile"
 				:on-export-png="props.onExportPng"
 				:on-export-pdf="props.onExportPdf"
 				:on-export-video="props.onExportVideo"

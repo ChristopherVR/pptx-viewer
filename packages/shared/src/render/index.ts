@@ -186,3 +186,7 @@ export * from './p14-transition-css';
 // (`smartart-layout-types`), helpers, and per-family computers, so a single
 // barrel entry exposes the whole surface. Each binding renders the view-models.
 export * from './smartart-layout';
+// Native file-open picker — framework-agnostic `<input type=file>` helper +
+// default `.pptx/.ppsx/.pptm/.potx` accept list, used by every binding's
+// File ▸ Open action to load another presentation.
+export * from './open-file-picker';

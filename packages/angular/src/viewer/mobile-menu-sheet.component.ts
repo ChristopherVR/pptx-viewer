@@ -1,32 +1,32 @@
 /**
- * mobile-menu-sheet.component.ts — Mobile slide-up sheet for overflow actions.
+ * mobile-menu-sheet.component.ts: Mobile slide-up sheet for overflow actions.
  *
  * Ported from: packages/react/src/viewer/components/mobile/MobileMenuSheet.tsx
  *
- * Presents actions that don't fit the bottom bar — export, find, slide sorter,
- * speaker notes, presenter view, print — as a list of tappable rows inside a
+ * Presents actions that don't fit the bottom bar (export, find, slide sorter,
+ * speaker notes, presenter view, print) as a list of tappable rows inside a
  * `MobileSheetComponent`. Each row emits an `output()` event so the orchestrator
  * can route it to the matching existing handler without this component knowing
  * about service internals.
  *
  * Inputs
- *   open        — controls sheet visibility
- *   slideCount  — used to disable export/present actions on empty decks
- *   exporting   — when true, disables export actions and shows a spinner label
- *   showNotes   — whether the notes panel is currently visible (for toggling)
- *   canEdit     — gates editor-only actions (find-replace, sorter)
+ *   open        : controls sheet visibility
+ *   slideCount  : used to disable export/present actions on empty decks
+ *   exporting   : when true, disables export actions and shows a spinner label
+ *   showNotes   : whether the notes panel is currently visible (for toggling)
+ *   canEdit     : gates editor-only actions (find-replace, sorter)
  *
  * Outputs
- *   closed        — user dismissed the sheet
- *   openFind      — open the find-in-slides bar
- *   openSorter    — open the slide-sorter overlay
- *   toggleNotes   — toggle the speaker-notes panel
- *   present       — start the fullscreen presentation
- *   exportPng     — export current slide as PNG
- *   exportPdf     — export deck as PDF
- *   exportGif     — export deck as animated GIF
- *   exportVideo   — export deck as video
- *   print         — open print dialog
+ *   closed        : user dismissed the sheet
+ *   openFind      : open the find-in-slides bar
+ *   openSorter    : open the slide-sorter overlay
+ *   toggleNotes   : toggle the speaker-notes panel
+ *   present       : start the fullscreen presentation
+ *   exportPng     : export current slide as PNG
+ *   exportPdf     : export deck as PDF
+ *   exportGif     : export deck as animated GIF
+ *   exportVideo   : export deck as video
+ *   print         : open print dialog
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
@@ -211,7 +211,7 @@ export class MobileMenuSheetComponent {
 	/** Whether the sheet is visible. */
 	readonly open = input<boolean>(false);
 
-	/** Total slide count — gates export/present actions. */
+	/** Total slide count: gates export/present actions. */
 	readonly slideCount = input<number>(0);
 
 	/** True while an export is running (labels update, actions are disabled). */
@@ -242,6 +242,9 @@ export class MobileMenuSheetComponent {
 
 	/** Start the fullscreen presentation mode. */
 	readonly present = output<void>();
+
+	/** Open another presentation (File ▸ Open). */
+	readonly openFile = output<void>();
 
 	/** Save (download) the deck as a `.pptx` file. */
 	readonly savePptx = output<void>();
@@ -352,6 +355,14 @@ export class MobileMenuSheetComponent {
 				emit: () => this.exportVideo.emit(),
 			},
 			// ── File ────────────────────────────────────────────────────────────
+			{
+				key: 'open-file',
+				label: 'Open',
+				sublabel: '.pptx',
+				svgPath: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z',
+				disabled: false,
+				emit: () => this.openFile.emit(),
+			},
 			{
 				key: 'save-pptx',
 				label: 'Save',

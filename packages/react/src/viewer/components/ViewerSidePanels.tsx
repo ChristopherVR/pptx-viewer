@@ -1,5 +1,5 @@
 /**
- * ViewerSidePanels — Inspector pane, selection pane, theme editor panel,
+ * ViewerSidePanels: Inspector pane, selection pane, theme editor panel,
  * and theme gallery that appear alongside the slide canvas.
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
@@ -15,6 +15,7 @@ import type { ViewerState } from '../hooks/useViewerState';
 import type { CanvasSize } from '../types';
 import type { ViewerMode } from '../types-core';
 import { ThemeEditorPanel } from './inspector/ThemeEditorPanel';
+import { MobileDismissSheet } from './mobile/MobileDismissSheet';
 import { ResizeHandle } from './ResizeHandle';
 import type { ThemeDefinition } from './toolbar/ThemeGallery';
 import { ThemeGallery } from './toolbar/ThemeGallery';
@@ -126,7 +127,10 @@ export function ViewerSidePanels(props: ViewerSidePanelsProps) {
 			/>
 
 			{s.isSelectionPaneOpen && (mode === 'edit' || mode === 'master') && (
-				<div className='absolute right-0 top-0 z-30 h-full max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:h-auto max-md:max-h-[50vh]'>
+				<MobileDismissSheet
+					onClose={() => s.setIsSelectionPaneOpen(false)}
+					className='absolute right-0 top-0 z-30 h-full max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:h-auto max-md:max-h-[50vh] max-md:rounded-t-xl max-md:border-t max-md:border-border max-md:shadow-2xl max-md:bg-background'
+				>
 					<SelectionPane
 						slides={slides}
 						activeSlideIndex={activeSlideIndex}
@@ -139,11 +143,14 @@ export function ViewerSidePanels(props: ViewerSidePanelsProps) {
 						markDirty={history.markDirty}
 						onClose={() => s.setIsSelectionPaneOpen(false)}
 					/>
-				</div>
+				</MobileDismissSheet>
 			)}
 
 			{s.isThemeEditorOpen && mode === 'edit' && (
-				<div className='absolute right-0 top-0 z-30 h-full w-72 overflow-y-auto border-l border-border bg-card p-2.5 shadow-xl max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:h-auto max-md:max-h-[60vh] max-md:rounded-t-xl max-md:border-t max-md:border-l-0'>
+				<MobileDismissSheet
+					onClose={() => s.setIsThemeEditorOpen(false)}
+					className='absolute right-0 top-0 z-30 h-full w-72 overflow-y-auto border-l border-border bg-card p-2.5 shadow-xl max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:h-auto max-md:max-h-[60vh] max-md:rounded-t-xl max-md:border-t max-md:border-l-0'
+				>
 					<ThemeEditorPanel
 						theme={s.theme}
 						canEdit={canEdit}
@@ -153,7 +160,7 @@ export function ViewerSidePanels(props: ViewerSidePanelsProps) {
 						onApplyToPresentation={themeHandlers.handleApplyThemeToPresentation}
 						onClose={() => s.setIsThemeEditorOpen(false)}
 					/>
-				</div>
+				</MobileDismissSheet>
 			)}
 
 			<ThemeGallery

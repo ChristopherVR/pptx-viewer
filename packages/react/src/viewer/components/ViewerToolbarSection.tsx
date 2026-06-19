@@ -7,7 +7,7 @@ import type {
 	PptxAnimationPreset,
 } from 'pptx-viewer-core';
 /**
- * ViewerToolbarSection — Renders the top toolbar, signature badge,
+ * ViewerToolbarSection: Renders the top toolbar, signature badge,
  * and hidden file-input elements.
  */
 import React, { useCallback } from 'react';
@@ -119,6 +119,7 @@ export interface ViewerToolbarSectionProps {
 	onEnterRehearsalMode: () => void;
 	onOpenSettings?: () => void;
 	onOpenShareDialog?: () => void;
+	onOpenFile?: () => void;
 	onToggleFormatPainter?: () => void;
 }
 
@@ -149,6 +150,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 		onEnterRehearsalMode,
 		onOpenSettings,
 		onOpenShareDialog,
+		onOpenFile,
 		onToggleFormatPainter: onToggleFormatPainterProp,
 	} = props;
 
@@ -296,6 +298,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onExportVideo={exportHandlers.handleExportVideo}
 				onExportGif={exportHandlers.handleExportGif}
 				onPackageForSharing={exportHandlers.handlePackageForSharing}
+				onOpenFile={onOpenFile}
 				onOpenShareDialog={onOpenShareDialog}
 				onSaveAsPptx={exportHandlers.handleSaveAsPptx}
 				onSaveAsPpsx={exportHandlers.handleSaveAsPpsx}

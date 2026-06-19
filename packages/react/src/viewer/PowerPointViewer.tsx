@@ -1,6 +1,6 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 /**
- * PowerPoint Viewer Plugin — Top-level Orchestrator Component.
+ * PowerPoint Viewer Plugin: Top-level Orchestrator Component.
  *
  * This is the main entry point for rendering and editing PowerPoint (.pptx) files.
  * It composes the full viewer UI from sub-components (toolbar, canvas, dialogs,
@@ -19,6 +19,7 @@ import type { PptxSlide } from 'pptx-viewer-core';
  * The component exposes a `PowerPointViewerHandle` via `forwardRef` so host
  * applications can call `getContent()` to retrieve the current file bytes.
  */
+import { openPptxFile } from 'pptx-viewer-shared';
 import { forwardRef, useCallback, useEffect, useState } from 'react';
 
 import { ViewerThemeProvider, useThemeStyle } from '../theme';
@@ -85,6 +86,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			onContentChange,
 			onDirtyChange,
 			onActiveSlideChange,
+			onOpenFile: hostOpenFile,
 			theme,
 			authorName,
 			collaboration,
@@ -101,6 +103,21 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		useEffect(() => {
 			setContent(incomingContent);
 		}, [incomingContent]);
+
+		// File ▸ Open: let the host override (`onOpenFile` prop); otherwise fall
+		// back to a built-in native picker that loads the chosen deck in place.
+		const handleOpenFile = useCallback(() => {
+			if (hostOpenFile) {
+				hostOpenFile();
+				return;
+			}
+			void (async () => {
+				const picked = await openPptxFile();
+				if (picked) {
+					setContent(picked.buffer);
+				}
+			})();
+		}, [hostOpenFile]);
 
 		// ── Settings dialog ─────────────────────────────────────────
 		const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -221,7 +238,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			history,
 		});
 
-		// ── Touch gestures — pinch-to-zoom on canvas viewport ──────
+		// ── Touch gestures: pinch-to-zoom on canvas viewport ──────
 		useTouchGestures({
 			targetRef: zoom.canvasViewportRef,
 			currentScale: zoom.scale,
@@ -398,7 +415,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 				data-pptx-viewer=''
 				className='h-full w-full bg-background text-foreground flex flex-col relative overflow-hidden outline-none'
 			>
-				{/* Clean background — no decorative gradient */}
+				{/* Clean background, no decorative gradient */}
 
 				{mode !== 'present' && (
 					<ViewerToolbarSection
@@ -423,6 +440,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 						onEnterRehearsalMode={handleEnterRehearsalMode}
 						onOpenSettings={() => setIsSettingsOpen(true)}
 						onOpenShareDialog={() => setIsShareDialogOpen(true)}
+						onOpenFile={handleOpenFile}
 					/>
 				)}
 
@@ -458,7 +476,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					onResizeRight={isMobile ? undefined : resizablePanels.onResizeRight}
 				/>
 
-				{/* Keep the bottom panels mounted while the notes panel is expanded —
+				{/* Keep the bottom panels mounted while the notes panel is expanded:
 				    focusing the notes textbox opens the virtual keyboard, and
 				    unmounting on `isVirtualKeyboardOpen` would yank the textbox the
 				    user just tapped out from under them. When notes is collapsed we

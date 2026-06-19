@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * PowerPointViewer — Vue port of the React `PowerPointViewer.tsx`.
+ * PowerPointViewer: Vue port of the React `PowerPointViewer.tsx`.
  *
  * Top-level orchestrator that loads `.pptx` bytes and renders the slides with
  * navigation and zoom. This is the viewer-first milestone of the port: the
@@ -38,7 +38,7 @@ import type {
 	TextStyle,
 } from 'pptx-viewer-core';
 import type { AlignEdge } from 'pptx-viewer-shared';
-import { alignElements, applyDragDelta } from 'pptx-viewer-shared';
+import { alignElements, applyDragDelta, openPptxFile } from 'pptx-viewer-shared';
 import { computed, nextTick, provide, ref, toRef, watch } from 'vue';
 
 import { provideViewerTheme, useThemeStyle } from '../theme';
@@ -162,6 +162,33 @@ provideViewerTheme(theme);
 const themeStyle = useThemeStyle(theme);
 
 // ── Load + parse content ──────────────────────────────────────────────
+// `internalContent` lets the built-in File ▸ Open picker swap the deck in place
+// without a host round-trip. It is cleared whenever the host supplies a fresh
+// `content` prop so external reloads always win.
+const internalContent = ref<Uint8Array | ArrayBuffer | null>(null);
+watch(
+	() => props.content,
+	() => {
+		internalContent.value = null;
+	},
+);
+const activeContent = computed(() => internalContent.value ?? props.content);
+
+// File ▸ Open: host override (`onOpenFile` prop) takes precedence; otherwise a
+// built-in native picker loads the chosen presentation in place.
+function handleOpenFile(): void {
+	if (props.onOpenFile) {
+		props.onOpenFile();
+		return;
+	}
+	void (async () => {
+		const picked = await openPptxFile();
+		if (picked) {
+			internalContent.value = new Uint8Array(picked.buffer);
+		}
+	})();
+}
+
 const {
 	slides,
 	canvasSize,
@@ -187,7 +214,7 @@ const {
 	handler,
 	getContent,
 	saveAs,
-} = useLoadContent(() => props.content);
+} = useLoadContent(() => activeContent.value);
 
 // Expose the presentation colour scheme + parsed table-style map to table
 // cells (banded/header colour resolution by table-style GUID) via
@@ -206,18 +233,15 @@ const activeSlideIndex = ref(0);
 const slideCount = computed(() => slides.value.length);
 const activeSlide = computed(() => slides.value[activeSlideIndex.value]);
 
-// Reset view state only when a NEW document is loaded — keyed off the `content`
+// Reset view state only when a NEW document is loaded, keyed off the `content`
 // input, not `slides`. Editing reassigns `slides.value` (so watching it here
 // would wrongly clear the selection + undo history on every edit); the input
 // changes only on a real load.
-watch(
-	() => props.content,
-	() => {
-		activeSlideIndex.value = 0;
-		selectedElementIds.value = [];
-		history.clearHistory();
-	},
-);
+watch(activeContent, () => {
+	activeSlideIndex.value = 0;
+	selectedElementIds.value = [];
+	history.clearHistory();
+});
 watch(activeSlideIndex, (index) => {
 	emit('active-slide-change', index);
 	selectedElementIds.value = [];
@@ -297,12 +321,12 @@ const fitScale = ref(1);
 const effectiveZoom = computed(() => fitScale.value * zoom.value);
 
 // ── Thumbnail previews ────────────────────────────────────────────────
-const THUMB_WIDTH = 104; // px — matches the thumbnail rail content width
+const THUMB_WIDTH = 104; // px - matches the thumbnail rail content width
 
 // ── Editing: selection, history, operations ───────────────────────────
 // Composed unconditionally (cheap); the toolbar/overlay/handlers only act when
 // `props.canEdit` is true. `slides` is the writable `ShallowRef` from
-// `useLoadContent`, and `getContent` serialises it — so edits flow to export.
+// `useLoadContent`, and `getContent` serialises it, so edits flow to export.
 const selectedElementIds = ref<string[]>([]);
 const history = useEditorHistory(slides);
 const ops = useEditorOperations({
@@ -724,7 +748,7 @@ function onImageFileSelected(e: Event): void {
 	reader.readAsDataURL(file);
 }
 
-// ── Media picker (Insert tab) — audio / video ──
+// ── Media picker (Insert tab): audio / video ──
 const mediaInputRef = ref<HTMLInputElement | null>(null);
 function openMediaPicker(): void {
 	mediaInputRef.value?.click();
@@ -864,7 +888,7 @@ const inspectorElement = computed<PptxElement | undefined>(() =>
 	selectedElements.value.length === 1 ? selectedElements.value[0] : undefined,
 );
 // Animations are stored on the slide (`slide.animations`, keyed by `elementId`),
-// not on the element — surface this element's animations to the inspector by
+// not on the element; surface this element's animations to the inspector by
 // augmenting the element object the panels receive.
 const inspectorElementForPanels = computed<PptxElement | undefined>(() => {
 	const el = inspectorElement.value;
@@ -1177,7 +1201,7 @@ function toggleSlideHidden(index: number): void {
 	slides.value = nextSlides;
 }
 
-/** Apply a transition (or clear it) on the active slide — from the SlideInspector. */
+/** Apply a transition (or clear it) on the active slide, from the SlideInspector. */
 function applySlideTransition(transition: PptxSlideTransition | undefined): void {
 	const index = activeSlideIndex.value;
 	const slide = slides.value[index];
@@ -1461,7 +1485,7 @@ function present(): void {
 // ── Document properties dialog ────────────────────────────────────────
 const propertiesOpen = ref(false);
 function onPropertiesSave(patch: DocumentPropertiesSavePatch): void {
-	// Persist the edited core / custom / app properties — `getContent` forwards
+	// Persist the edited core / custom / app properties; `getContent` forwards
 	// all three to `handler.save`, so they round-trip into the saved `.pptx`.
 	coreProperties.value = { ...coreProperties.value, ...patch.core };
 	customProperties.value = patch.custom;
@@ -1705,7 +1729,7 @@ function onEditorKeydown(event: KeyboardEvent): void {
 // The desktop chrome is the full Office ribbon. This block adapts the host's
 // existing state + handlers to the `RibbonProps` contract. Capabilities the
 // host does not yet expose (drawing tools, grid/ruler/snap, theme gallery,
-// flip, action buttons, layout gallery) are wired as no-ops for now — the
+// flip, action buttons, layout gallery) are wired as no-ops for now; the
 // ribbon renders faithfully and the core actions are live.
 const toolbarSection = ref<ToolbarSection>('home');
 const newShapeType = ref<SupportedShapeType>('rect');
@@ -1721,15 +1745,15 @@ const notesExpanded = ref(true);
 /** View-tab canvas aids: dot grid overlay + snap-to-grid during drag/resize. */
 const showGrid = ref(false);
 const snapToGrid = ref(false);
-/** View ▸ Rulers — horizontal/vertical rulers along the slide edges. */
+/** View ▸ Rulers: horizontal/vertical rulers along the slide edges. */
 const showRulers = ref(false);
-/** View ▸ Spell — draw the browser's native spell-check squiggles while editing. */
+/** View ▸ Spell: draw the browser's native spell-check squiggles while editing. */
 const spellCheckEnabled = ref(true);
-/** View ▸ Snap to Shape — snap dragged elements to other elements' edges/centres. */
+/** View ▸ Snap to Shape: snap dragged elements to other elements' edges/centres. */
 const snapToShape = ref(false);
 /** Transient red snap-alignment lines shown during a snap-to-shape drag. */
 const snapLines = ref<Array<{ axis: 'x' | 'y'; position: number }>>([]);
-/** View ▸ H/V Guides — draggable alignment guides (authored slide px). */
+/** View ▸ H/V Guides: draggable alignment guides (authored slide px). */
 const guides = ref<Guide[]>([]);
 /** Add a centred horizontal/vertical guide (View ▸ H/V Guide buttons). */
 function addGuide(axis: 'h' | 'v'): void {
@@ -1752,7 +1776,7 @@ const themeGalleryOpen = ref(false);
 const drawingActive = computed(
 	() => props.canEdit && !presenting.value && activeTool.value !== 'select',
 );
-/** Turn a captured stroke into an `ink` element (no select — keep drawing). */
+/** Turn a captured stroke into an `ink` element (no select, keep drawing). */
 function addInkStroke(payload: {
 	points: Array<{ x: number; y: number }>;
 	color: string;
@@ -2069,6 +2093,7 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	onMoveLayerToEdge: ribbonMoveToEdge,
 	onDuplicate: duplicateSelected,
 	onDelete: deleteSelected,
+	onOpenFile: handleOpenFile,
 	onExportPng,
 	onExportPdf,
 	onExportVideo: onExportWebm,
@@ -2182,7 +2207,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 
 		<!-- Viewer -->
 		<template v-else>
-			<!-- Office-style ribbon (desktop) — full React-parity chrome -->
+			<!-- Office-style ribbon (desktop): full React-parity chrome -->
 			<RibbonToolbar v-if="!isMobile" v-bind="ribbonProps" />
 
 			<!-- Hidden pickers for Insert ▸ Image / Media -->
@@ -2276,7 +2301,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						:show-rulers="showRulers && !presenting"
 						@update:fit-scale="fitScale = $event"
 					>
-						<!-- Dot grid overlay (View ▸ Grid) — sits over content, under selection -->
+						<!-- Dot grid overlay (View ▸ Grid): sits over content, under selection -->
 						<GridOverlay :canvas-size="canvasSize" :visible="showGrid && !presenting" />
 						<!-- Draggable H/V alignment guides (View ▸ Guides) -->
 						<CanvasGuides
@@ -2288,7 +2313,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						/>
 						<!-- Transient snap-to-shape alignment lines (during drag) -->
 						<SnapLinesOverlay v-if="snapLines.length > 0" :snap-lines="snapLines" />
-						<!-- Ink capture (Draw tab) — pointer-events on only while a tool is armed -->
+						<!-- Ink capture (Draw tab): pointer-events on only while a tool is armed -->
 						<DrawingOverlay
 							v-if="props.canEdit"
 							:canvas-size="canvasSize"
@@ -2349,7 +2374,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					@update="onInspectorUpdate"
 				/>
 
-				<!-- Slide-level inspector (no element selected) — slide transition, etc. -->
+				<!-- Slide-level inspector (no element selected): slide transition, etc. -->
 				<SlideInspector
 					v-else-if="props.canEdit && !isMobile && inspectorOpen && slideCount > 0"
 					:slide="activeSlide"
@@ -2399,7 +2424,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				/>
 			</div>
 
-			<!-- Bottom status bar (desktop) — React-parity chrome -->
+			<!-- Bottom status bar (desktop): React-parity chrome -->
 			<StatusBar
 				v-if="!isMobile && slideCount > 0"
 				:slide-count="slideCount"
@@ -2563,25 +2588,16 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				@menu="showSorter = true"
 			/>
 
-			<!-- Mobile speaker-notes sheet (toggled from the bottom bar) -->
-			<div
-				v-if="isMobile && mobileNotesOpen"
-				class="pptx-vue-mobile-notes-sheet"
-				style="
-					position: fixed;
-					left: 0;
-					right: 0;
-					bottom: 56px;
-					z-index: 29;
-					max-height: 50vh;
-					overflow: auto;
-					background: #ffffff;
-					border-top: 1px solid rgba(0, 0, 0, 0.15);
-					box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.18);
-				"
+			<!-- Mobile speaker-notes sheet (toggled from the bottom bar). Uses the
+			     shared MobileSheet so it swipe-dismisses like Format/Comments. -->
+			<MobileSheet
+				v-if="isMobile"
+				:open="mobileNotesOpen"
+				title="Notes"
+				@close="mobileNotesOpen = false"
 			>
 				<NotesPanel :slide="activeSlide" @update="onNotesUpdate" />
-			</div>
+			</MobileSheet>
 
 			<!-- Mobile Format / properties sheet (right-rail inspector on desktop) -->
 			<MobileSheet

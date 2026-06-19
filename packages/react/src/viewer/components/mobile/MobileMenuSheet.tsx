@@ -86,7 +86,7 @@ export function MobileMenuSheet(props: MobileMenuSheetProps): React.ReactElement
 	return (
 		<MobileSheet open={open} onClose={onClose} autoHeight title='Menu'>
 			<div className='flex flex-col'>
-				{/* Section selector — chips wrap so every section stays reachable
+				{/* Section selector: chips wrap so every section stays reachable
 				    without horizontal scrolling (which hid the trailing sections). */}
 				<div className='sticky top-0 z-10 bg-background border-b border-border'>
 					<div className='flex flex-wrap gap-1.5 px-3 py-2'>
@@ -310,6 +310,7 @@ function MobileSectionBody({
 			return (
 				<div className={wrap}>
 					<FileSection
+						onOpenFile={p.onOpenFile}
 						onExportPng={p.onExportPng}
 						onExportPdf={p.onExportPdf}
 						onExportVideo={p.onExportVideo}

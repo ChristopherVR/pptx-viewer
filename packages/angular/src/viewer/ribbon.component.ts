@@ -1,5 +1,5 @@
 /**
- * ribbon.component.ts — Office-style tabbed ribbon for the Angular editor chrome.
+ * ribbon.component.ts: Office-style tabbed ribbon for the Angular editor chrome.
  *
  * 1:1 port of React's `viewer/components/Toolbar.tsx` + its `toolbar/*Section`
  * components, built with the Tailwind 4 utility classes shared across the
@@ -291,6 +291,15 @@ const TEXT_COLORS = [
 			<div class="flex flex-nowrap items-stretch gap-1.5 overflow-x-auto px-2 py-1.5">
 				@switch (activeTab()) {
 					@case ('file') {
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							(click)="openFile.emit()"
+							title="Open another presentation"
+						>
+							Open
+						</button>
+						<span class="pptx-rb-sep"></span>
 						<div class="pptx-rb-grp">
 							<button
 								type="button"
@@ -869,7 +878,7 @@ const TEXT_COLORS = [
 							>
 								✨ Add Animation ▾
 							</button>
-							<!-- Dropdown panel — shown on group hover -->
+							<!-- Dropdown panel: shown on group hover -->
 							<div class="absolute left-0 top-full z-50 hidden w-44 pt-1 group-hover:block">
 								<div class="rounded-lg border border-border bg-card py-1 shadow-2xl">
 									<!-- Entrance group -->
@@ -1114,6 +1123,7 @@ export class RibbonComponent {
 	readonly presenter = output<void>();
 	readonly share = output<void>();
 	readonly broadcast = output<void>();
+	readonly openFile = output<void>();
 	readonly info = output<void>();
 	readonly print = output<void>();
 	readonly comments = output<void>();
@@ -1136,7 +1146,7 @@ export class RibbonComponent {
 	/**
 	 * Emitted whenever the Draw tab tool state changes (tool / colour / width).
 	 * The parent may connect this to an annotation / ink layer when available.
-	 * Currently UI-only — no freehand-draw back-end exists in the Angular port.
+	 * Currently UI-only; no freehand-draw back-end exists in the Angular port.
 	 */
 	readonly drawToolChange = output<{ tool: DrawTool; color: string; width: number }>();
 	/**
@@ -1172,7 +1182,7 @@ export class RibbonComponent {
 	protected readonly activeTab = signal<RibbonTab>('home');
 
 	// ── Draw tab state ────────────────────────────────────────────────────────
-	/** Active drawing tool (UI state only — no ink back-end yet). */
+	/** Active drawing tool (UI state only; no ink back-end yet). */
 	protected readonly activeTool = signal<DrawTool>('select');
 	/** Drawing pen colour (UI state only). */
 	protected readonly drawingColor = signal<string>('#000000');

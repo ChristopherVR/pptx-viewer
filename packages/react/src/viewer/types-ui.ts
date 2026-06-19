@@ -237,13 +237,20 @@ export interface AnimationPresetOption {
 export interface PowerPointViewerProps {
 	/** PowerPoint content as Uint8Array */
 	content: Uint8Array;
-	/** Original file path — used for autosave recovery */
+	/** Original file path, used for autosave recovery */
 	filePath?: string;
 	/** Callback when content has unsaved changes */
 	onDirtyChange?: (isDirty: boolean) => void;
 	onContentChange?: (content: Uint8Array) => void;
 	/** Callback when active slide changes */
 	onActiveSlideChange?: (slideIndex: number) => void;
+	/**
+	 * Host override for the File ▸ Open action. When provided, the built-in
+	 * native file picker is bypassed and this is invoked instead; the host is
+	 * then responsible for supplying a new `content` buffer. When omitted, the
+	 * viewer opens its own picker and loads the chosen presentation in place.
+	 */
+	onOpenFile?: () => void;
 
 	/** Whether editing actions are enabled */
 	canEdit?: boolean;

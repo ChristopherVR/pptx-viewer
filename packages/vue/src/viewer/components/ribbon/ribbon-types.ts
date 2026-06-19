@@ -1,5 +1,5 @@
 /**
- * Ribbon UI types — the Vue counterpart of React's `types-ui.ts` / `types-core.ts`
+ * Ribbon UI types: the Vue counterpart of React's `types-ui.ts` / `types-core.ts`
  * subset that the Office-style ribbon needs, plus the aggregate `RibbonProps`
  * contract (mirrors React's `ToolbarProps`).
  *
@@ -73,10 +73,10 @@ export type SupportedShapeType =
 	| 'connector'
 	| 'freeform';
 
-/** Opaque clipboard payload — only its presence gates the Paste button. */
+/** Opaque clipboard payload: only its presence gates the Paste button. */
 export type ElementClipboardPayload = Record<string, unknown>;
 
-/** Table inline-edit state — present while a table cell is being edited. */
+/** Table inline-edit state: present while a table cell is being edited. */
 export interface TableCellEditorState {
 	elementId: string;
 	rowIndex: number;
@@ -180,6 +180,8 @@ export interface RibbonProps {
 	onMoveLayerToEdge: (direction: string) => void;
 	onDuplicate: () => void;
 	onDelete: () => void;
+	/** Open another presentation (File ▸ Open). Hidden when not provided. */
+	onOpenFile?: () => void;
 	onExportPng: () => void;
 	onExportPdf: () => void;
 	onExportVideo: () => void;

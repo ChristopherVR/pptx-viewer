@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * FileSection — the Vue 3 port of React's `toolbar/FileSection.tsx`. Renders the
+ * FileSection: the Vue 3 port of React's `toolbar/FileSection.tsx`. Renders the
  * File ribbon tab's Save/Export/Print/Info pill buttons. A faithful, mechanical
  * port for visual + behavioral parity: class strings are copied verbatim, the
  * `react-icons/lu` glyphs become their `lucide-vue-next` equivalents, and React's
@@ -14,6 +14,7 @@ import {
 	Image,
 	Info,
 	Lock,
+	Package,
 	Play,
 	Printer,
 	ShieldAlert,
@@ -24,6 +25,8 @@ import {
 import { ic, pill, SEP } from './ribbon-constants';
 
 interface Props {
+	/** Open another presentation. Hidden when not provided. */
+	onOpenFile?: () => void;
 	onExportPng: () => void;
 	onExportPdf: () => void;
 	onExportVideo: () => void;
@@ -45,6 +48,15 @@ const props = defineProps<Props>();
 </script>
 
 <template>
+	<!-- Open another presentation -->
+	<template v-if="props.onOpenFile">
+		<button :class="pill" title="Open another presentation" @click="props.onOpenFile()">
+			<FolderOpen :class="ic" />
+			Open
+		</button>
+		<div :class="SEP" />
+	</template>
+
 	<!-- Save & Export -->
 	<button :class="pill" title="Save as Presentation (.pptx)" @click="props.onSaveAsPptx()">
 		<Download :class="ic" />
@@ -64,7 +76,7 @@ const props = defineProps<Props>();
 		Save .pptm
 	</button>
 	<button :class="pill" title="Package for Sharing" @click="props.onPackageForSharing()">
-		<FolderOpen :class="ic" />
+		<Package :class="ic" />
 		Package
 	</button>
 

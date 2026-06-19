@@ -31,7 +31,7 @@ export type { CanvasSize, CollaborationConfig, CollaborationRole };
 export interface PowerPointViewerProps {
 	/** PowerPoint content as Uint8Array (or ArrayBuffer). */
 	content: Uint8Array | ArrayBuffer;
-	/** Original file path — used for autosave recovery. */
+	/** Original file path, used for autosave recovery. */
 	filePath?: string;
 	/** Whether editing actions are enabled. */
 	canEdit?: boolean;
@@ -57,7 +57,7 @@ export interface PowerPointViewerProps {
 	theme?: ViewerTheme;
 	/**
 	 * Optional real-time collaboration configuration. (Not yet implemented in
-	 * the Vue port — accepted for API parity.)
+	 * the Vue port, accepted for API parity.)
 	 */
 	collaboration?: CollaborationConfig;
 	/** Default values for the Share dialog fields. */
@@ -66,6 +66,13 @@ export interface PowerPointViewerProps {
 		userName?: string;
 		serverUrl?: string;
 	};
+	/**
+	 * Host override for the File ▸ Open action. When provided, the built-in
+	 * native file picker is bypassed and this is invoked instead; the host is
+	 * then responsible for supplying a new `content` value. When omitted, the
+	 * viewer opens its own picker and loads the chosen presentation in place.
+	 */
+	onOpenFile?: () => void;
 }
 
 /**
@@ -80,7 +87,7 @@ export interface PowerPointViewerEmits {
 	/** Fired when the unsaved-changes flag toggles. */
 	(e: 'dirty-change', isDirty: boolean): void;
 	/**
-	 * Fired with serialised bytes — on each in-memory content change (after
+	 * Fired with serialised bytes on each in-memory content change (after
 	 * edits) and when autosave persists the presentation.
 	 */
 	(e: 'content-change' | 'autosave', content: Uint8Array): void;

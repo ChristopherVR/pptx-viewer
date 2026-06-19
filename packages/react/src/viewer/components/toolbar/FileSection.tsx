@@ -7,6 +7,7 @@ import {
 	LuImage,
 	LuInfo,
 	LuLock,
+	LuPackage,
 	LuPlay,
 	LuPrinter,
 	LuShieldAlert,
@@ -17,6 +18,8 @@ import {
 import { ic, pill, sep } from './toolbar-constants';
 
 export interface FileSectionProps {
+	/** Open another presentation. Hidden when not provided. */
+	onOpenFile?: () => void;
 	onExportPng: () => void;
 	onExportPdf: () => void;
 	onExportVideo: () => void;
@@ -37,6 +40,17 @@ export interface FileSectionProps {
 export function FileSection(p: FileSectionProps): React.ReactElement {
 	return (
 		<>
+			{/* Open another presentation */}
+			{p.onOpenFile && (
+				<>
+					<button onClick={p.onOpenFile} className={pill} title='Open another presentation'>
+						<LuFolderOpen className={ic} />
+						Open
+					</button>
+					{sep}
+				</>
+			)}
+
 			{/* Save & Export */}
 			<button onClick={p.onSaveAsPptx} className={pill} title='Save as Presentation (.pptx)'>
 				<LuDownload className={ic} />
@@ -53,7 +67,7 @@ export function FileSection(p: FileSectionProps): React.ReactElement {
 				</button>
 			)}
 			<button onClick={p.onPackageForSharing} className={pill} title='Package for Sharing'>
-				<LuFolderOpen className={ic} />
+				<LuPackage className={ic} />
 				Package
 			</button>
 

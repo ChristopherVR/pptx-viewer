@@ -24,6 +24,7 @@ import type {
 } from 'pptx-viewer-core';
 
 import type { ViewerTheme } from '../internal/shared';
+import { openPptxFile } from '../internal/shared';
 import { themeStyle } from '../theme/viewer-theme';
 import { AccessibilityPanelComponent } from './accessibility-panel.component';
 import { AccessibilityService } from './accessibility.service';
@@ -88,7 +89,7 @@ const ZOOM_MIN = 0.2;
 const ZOOM_MAX = 3;
 
 /**
- * PowerPointViewerComponent — Angular port of the React `PowerPointViewer.tsx`
+ * PowerPointViewerComponent: Angular port of the React `PowerPointViewer.tsx`
  * and Vue `PowerPointViewer.vue`.
  *
  * Top-level orchestrator that loads `.pptx` bytes and renders the slides with
@@ -186,6 +187,7 @@ const ZOOM_MAX = 3;
 					(presenter)="presentPresenter()"
 					(share)="showShare.set(true)"
 					(broadcast)="showBroadcast.set(true)"
+					(openFile)="openFile()"
 					(info)="showProperties.set(true)"
 					(print)="print.openDialog()"
 					(comments)="togglePanel('comments')"
@@ -346,7 +348,7 @@ const ZOOM_MAX = 3;
 						<aside class="pptx-ng-inspector-host" aria-label="Slide properties">
 							<!--
 								Keyed on the active index so the inputs are recreated (and reseeded)
-								only when the slide changes — never on every change-detection pass
+								only when the slide changes, never on every change-detection pass
 								while typing. This keeps the on-screen keyboard open and the caret
 								stable on mobile.
 							-->
@@ -557,6 +559,7 @@ const ZOOM_MAX = 3;
 					(toggleNotes)="toggleNotes()"
 					(insertText)="onMobileInsert()"
 					(present)="present()"
+					(openFile)="openFile()"
 					(savePptx)="saveAsPptx()"
 					(exportPng)="exportPng()"
 					(exportPdf)="exportPdf()"
@@ -569,12 +572,27 @@ const ZOOM_MAX = 3;
 				     inside the isMobile() gate so it stays mounted when the on-screen
 				     keyboard shrinks the viewport (coarse pointer keeps isMobile true).
 				     Docked in normal flow *above* the bottom bar (not position:fixed) so it
-				     lives inside the app's layout-viewport bounds — a fixed sheet anchored to
+				     lives inside the app's layout-viewport bounds; a fixed sheet anchored to
 				     the visual viewport ends up below the document on mobile (100vh layout
 				     viewport < dynamic viewport), leaving its textarea unreachable to taps.
 				     Mirrors React, where the notes panel is a flow sibling below the canvas. -->
 				@if (showNotes()) {
-					<div class="pptx-ng-mobile-notes-sheet">
+					<div
+						class="pptx-ng-mobile-notes-sheet"
+						[style.transform]="notesDragY() > 0 ? 'translateY(' + notesDragY() + 'px)' : null"
+						[style.transition]="notesDragging() ? 'none' : 'transform 150ms ease-out'"
+					>
+						<!-- Swipe-down-to-dismiss grab handle (kept in-flow so the keyboard
+						     can't push the textarea out of reach). -->
+						<div
+							class="pptx-ng-mnotes-grab"
+							(pointerdown)="onNotesPointerDown($event)"
+							(pointermove)="onNotesPointerMove($event)"
+							(pointerup)="onNotesPointerUp($event)"
+							(pointercancel)="onNotesPointerUp($event)"
+						>
+							<div class="pptx-ng-mnotes-handle"></div>
+						</div>
 						<pptx-notes-panel [slide]="activeSlide()" (update)="onNotesUpdate($event)" />
 					</div>
 				}
@@ -604,6 +622,13 @@ export class PowerPointViewerComponent {
 	readonly theme = input<ViewerTheme | undefined>(undefined);
 	/** Optional real-time collaboration config; when set, connects and shows remote cursors. */
 	readonly collaboration = input<CollaborationConfig | undefined>(undefined);
+	/**
+	 * Host override for the File ▸ Open action. When set, the built-in native
+	 * file picker is bypassed and this is invoked instead; the host then supplies
+	 * a new `content` value. When omitted, the viewer opens its own picker and
+	 * loads the chosen presentation in place.
+	 */
+	readonly onOpenFile = input<(() => void) | undefined>(undefined);
 
 	/** Fired when the active slide changes. */
 	readonly activeSlideChange = output<number>();
@@ -777,7 +802,7 @@ export class PowerPointViewerComponent {
 	/**
 	 * Stable, always-truthy key for the slide-properties form. Changes only when
 	 * the active slide changes, so the `@if` recreates (and reseeds) the
-	 * uncontrolled notes/background inputs on navigation — but never mid-typing.
+	 * uncontrolled notes/background inputs on navigation, but never mid-typing.
 	 * String-prefixed so slide index 0 stays truthy under `@if (…; as key)`.
 	 */
 	protected readonly slidePropsKey = computed(() => `slide-${this.activeSlideIndex()}`);
@@ -802,10 +827,23 @@ export class PowerPointViewerComponent {
 		hasCopyableFormat(this.selectedElement()),
 	);
 
+	/**
+	 * Built-in File ▸ Open override of the `content` input. The native picker
+	 * sets this to swap the deck in place; a fresh `content` input clears it so
+	 * external reloads always win.
+	 */
+	private readonly contentOverride = signal<Uint8Array | ArrayBuffer | null>(null);
+
 	constructor() {
-		// Load whenever the `content` input changes.
+		// A new host `content` input supersedes any in-place picked file.
 		effect(() => {
-			const content = this.content();
+			this.content();
+			this.contentOverride.set(null);
+		});
+
+		// Load whenever the active content (picked override, else input) changes.
+		effect(() => {
+			const content = this.contentOverride() ?? this.content();
 			void this.loader.load(content);
 		});
 
@@ -1098,7 +1136,7 @@ export class PowerPointViewerComponent {
 		this.activeSlideIndex.set(fullIndex >= 0 ? fullIndex : index);
 	}
 
-	/** Open the presenter (speaker) view — current+next slide, notes, timer. */
+	/** Open the presenter (speaker) view: current+next slide, notes, timer. */
 	presentPresenter(): void {
 		if (this.slideCount() > 0) {
 			this.presenterStartTime.set(Date.now());
@@ -1114,6 +1152,61 @@ export class PowerPointViewerComponent {
 	/** Toggle the speaker-notes strip. */
 	toggleNotes(): void {
 		this.showNotes.update((v) => !v);
+	}
+
+	/**
+	 * File ▸ Open: host override (`onOpenFile` input) takes precedence; otherwise
+	 * a built-in native picker loads the chosen presentation in place.
+	 */
+	openFile(): void {
+		const override = this.onOpenFile();
+		if (override) {
+			override();
+			return;
+		}
+		void (async () => {
+			const picked = await openPptxFile();
+			if (picked) {
+				this.contentOverride.set(new Uint8Array(picked.buffer));
+			}
+		})();
+	}
+
+	// ── Mobile notes swipe-to-dismiss ─────────────────────────────────────────
+	// The notes sheet stays in normal flow (see template/CSS notes), so the drag
+	// gesture is wired here rather than via the fixed-overlay `pptx-mobile-sheet`.
+	/** Live downward drag offset for the notes sheet (px; 0 when idle). */
+	protected readonly notesDragY = signal(0);
+	/** True while a notes-sheet drag is in progress (disables the snap-back transition). */
+	protected readonly notesDragging = signal(false);
+	private notesDragStartY: number | null = null;
+
+	protected onNotesPointerDown(event: PointerEvent): void {
+		this.notesDragStartY = event.clientY;
+		this.notesDragging.set(true);
+		(event.target as HTMLElement).setPointerCapture?.(event.pointerId);
+	}
+
+	protected onNotesPointerMove(event: PointerEvent): void {
+		if (this.notesDragStartY === null) {
+			return;
+		}
+		this.notesDragY.set(Math.max(0, event.clientY - this.notesDragStartY));
+	}
+
+	protected onNotesPointerUp(event: PointerEvent): void {
+		if (this.notesDragStartY === null) {
+			return;
+		}
+		const delta = event.clientY - this.notesDragStartY;
+		this.notesDragStartY = null;
+		this.notesDragging.set(false);
+		(event.target as HTMLElement).releasePointerCapture?.(event.pointerId);
+		// 120 px matches `pptx-mobile-sheet`'s DISMISS_THRESHOLD for consistency.
+		if (delta > 120) {
+			this.showNotes.set(false);
+		}
+		this.notesDragY.set(0);
 	}
 
 	/**
@@ -1223,7 +1316,7 @@ export class PowerPointViewerComponent {
 
 	/**
 	 * Persist a document-properties edit from the Info dialog. Gated on
-	 * {@link canEdit} — viewers may inspect properties but not mutate them
+	 * {@link canEdit}: viewers may inspect properties but not mutate them
 	 * (mirrors the comments / hyperlink edit paths).
 	 */
 	onPropertiesSave(patch: Partial<PptxCoreProperties>): void {

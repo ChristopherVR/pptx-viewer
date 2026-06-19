@@ -88,6 +88,8 @@ export interface ToolbarProps {
 	onMoveLayerToEdge: (direction: string) => void;
 	onDuplicate: () => void;
 	onDelete: () => void;
+	/** Open another presentation (File ▸ Open). Hidden when not provided. */
+	onOpenFile?: () => void;
 	onExportPng: () => void;
 	onExportPdf: () => void;
 	onExportVideo: () => void;
