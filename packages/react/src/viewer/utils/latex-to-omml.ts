@@ -1,14 +1,14 @@
 /**
- * latex-to-omml.ts - Barrel re-export
+ * latex-to-omml.ts — thin re-export shim over `pptx-viewer-shared`.
  *
- * Converts a subset of LaTeX math notation into Office MathML (OMML) XML
- * objects compatible with the fast-xml-parser structure used in the PPTX editor.
+ * The LaTeX ↔ OMML conversion logic (formerly split across
+ * `latex-to-omml-{constants,constructs,parser,reverse}.ts`) is consolidated in
+ * `pptx-viewer-shared` (`packages/shared/src/render/latex-to-omml.ts`), consumed
+ * identically by the React, Vue, and Angular bindings. This module preserves the
+ * historical React import path / symbol surface (`convertLatexToOmml`,
+ * `convertOmmlToLatex`) so consumers keep importing unchanged names.
  *
- * Implementation split into:
- *   - latex-to-omml-constants.ts  - maps, token types, tokenizer
- *   - latex-to-omml-constructs.ts - nary / delimiter / func / script helpers
- *   - latex-to-omml-parser.ts     - LatexParser class + convertLatexToOmml
- *   - latex-to-omml-reverse.ts    - convertOmmlToLatex + reverse helpers
+ * No deliberate divergence — React's previous local modules were behaviourally
+ * equivalent to shared's consolidated implementation.
  */
-export { convertLatexToOmml } from './latex-to-omml-parser';
-export { convertOmmlToLatex } from './latex-to-omml-reverse';
+export { convertLatexToOmml, convertOmmlToLatex } from 'pptx-viewer-shared';
