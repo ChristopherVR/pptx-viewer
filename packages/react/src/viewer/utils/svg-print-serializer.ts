@@ -15,55 +15,24 @@
  * @module svg-print-serializer
  */
 
-/* ------------------------------------------------------------------ */
-/*  Types                                                              */
-/* ------------------------------------------------------------------ */
-
-/** Options for SVG print serialization. */
-export interface SvgPrintOptions {
-	/** Slide width in pixels. */
-	width: number;
-	/** Slide height in pixels. */
-	height: number;
-	/** Optional background colour for the slide. */
-	backgroundColor?: string;
-	/** Whether to inline all computed styles. Default: true. */
-	inlineStyles?: boolean;
-	/** Whether to embed external images as base64. Default: true. */
-	embedImages?: boolean;
-	/** Custom CSS to inject into the SVG. */
-	customCss?: string;
-}
-
-/** Result of serializing a slide to SVG for printing. */
-export interface SvgPrintResult {
-	/** The complete SVG XML string. */
-	svg: string;
-	/** The width of the SVG in pixels. */
-	width: number;
-	/** The height of the SVG in pixels. */
-	height: number;
-}
-
-/* ------------------------------------------------------------------ */
-/*  HTML Escaping                                                      */
-/* ------------------------------------------------------------------ */
-
-/** Characters that need escaping in XML attribute values. */
-const XML_ESCAPE_MAP: Record<string, string> = {
-	'&': '&amp;',
-	'<': '&lt;',
-	'>': '&gt;',
-	'"': '&quot;',
-	"'": '&apos;',
-};
-
-/**
- * Escape a string for safe inclusion in XML/SVG content.
+/*
+ * The pure string-assembly / escaping helpers (escapeXml, buildPrintStyleSheet,
+ * buildPrintDocument, svgToDataUrl) plus the SvgPrintOptions / SvgPrintResult
+ * shapes now live once in `pptx-viewer-shared` (`export/svg-print`); they are
+ * re-exported here so consumers keep their historical import path. Only the
+ * DOM-bound driver code (style collection, image fetching, element cloning /
+ * serialization, Blob wrapping) remains local below.
  */
-export function escapeXml(text: string): string {
-	return text.replace(/[&<>"']/g, (ch) => XML_ESCAPE_MAP[ch] || ch);
-}
+import {
+	buildPrintDocument,
+	buildPrintStyleSheet,
+	escapeXml,
+	svgToDataUrl,
+} from 'pptx-viewer-shared';
+import type { SvgPrintOptions, SvgPrintResult } from 'pptx-viewer-shared';
+
+export { escapeXml, buildPrintStyleSheet, buildPrintDocument, svgToDataUrl };
+export type { SvgPrintOptions, SvgPrintResult };
 
 /* ------------------------------------------------------------------ */
 /*  Style Collection                                                   */
@@ -220,9 +189,9 @@ export function collectImageUrls(root: HTMLElement): string[] {
 		const computed = window.getComputedStyle(htmlEl);
 		const bgImage = computed.getPropertyValue('background-image');
 		if (bgImage && bgImage !== 'none') {
-			const urlMatch = bgImage.match(/url\(["']?([^"')]+)["']?\)/);
-			if (urlMatch?.[1]) {
-				urls.push(urlMatch[1]);
+			const urlMatch = bgImage.match(/url\(["']?(?<bgUrl>[^"')]+)["']?\)/u);
+			if (urlMatch?.groups?.bgUrl) {
+				urls.push(urlMatch.groups.bgUrl);
 			}
 		}
 	}
@@ -233,33 +202,6 @@ export function collectImageUrls(root: HTMLElement): string[] {
 /* ------------------------------------------------------------------ */
 /*  SVG Print Document Construction                                    */
 /* ------------------------------------------------------------------ */
-
-/**
- * Build print-ready CSS rules to inject into the SVG foreignObject.
- * These override browser defaults and ensure clean print output.
- */
-export function buildPrintStyleSheet(width: number, height: number, customCss?: string): string {
-	return `
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    :host, :root {
-      width: ${width}px;
-      height: ${height}px;
-      overflow: hidden;
-    }
-    img { display: block; max-width: 100%; }
-    /* Force backgrounds to print */
-    * {
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-    /* Remove scrollbars */
-    *::-webkit-scrollbar { display: none !important; }
-    * { scrollbar-width: none !important; }
-    /* Remove interactive-only elements */
-    [data-export-ignore="true"] { display: none !important; }
-    ${customCss || ''}
-  `.trim();
-}
 
 /**
  * Serialize an HTML element subtree to a self-contained SVG string
@@ -363,123 +305,12 @@ function inlineComputedStyles(original: HTMLElement, clone: HTMLElement): void {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Multi-slide SVG Print Document                                     */
+/*  Utility: SVG to Blob                                               */
 /* ------------------------------------------------------------------ */
 
 /**
- * Generate a multi-page SVG document containing all slides,
- * suitable for print-to-PDF conversion.
- *
- * Each slide is placed in its own SVG group with a page-break
- * marker, allowing browsers to split them across pages.
- *
- * @param svgs   - Array of per-slide SVG strings.
- * @param width  - Slide width in pixels.
- * @param height - Slide height in pixels.
- * @returns A single HTML document string ready for printing.
- */
-export function buildPrintDocument(
-	svgs: string[],
-	width: number,
-	height: number,
-	options: {
-		title?: string;
-		orientation?: 'landscape' | 'portrait';
-		colorFilter?: string;
-	} = {},
-): string {
-	const { title = 'Print', orientation = 'landscape', colorFilter = '' } = options;
-
-	const slidePages = svgs
-		.map(
-			(svg, i) =>
-				`<section class="print-slide-page" aria-label="Slide ${i + 1}">
-  ${svg}
-</section>`,
-		)
-		.join('\n');
-
-	return `<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>${escapeXml(title)}</title>
-  <style>
-    :root { color-scheme: light; }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: #fff;
-      ${colorFilter}
-    }
-    .print-slide-page {
-      page-break-after: always;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100vw;
-      height: 100vh;
-      padding: 5mm;
-    }
-    .print-slide-page:last-child {
-      page-break-after: auto;
-    }
-    .print-slide-page svg {
-      max-width: 100%;
-      max-height: 100%;
-      width: auto;
-      height: auto;
-    }
-    @page {
-      size: ${orientation};
-      margin: 5mm;
-    }
-    @media print {
-      body {
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-    }
-    @media screen {
-      body {
-        background: #e5e7eb;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 16px;
-        padding: 16px;
-      }
-      .print-slide-page {
-        background: #fff;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        border-radius: 4px;
-        page-break-after: auto;
-        width: ${orientation === 'landscape' ? '297mm' : '210mm'};
-        height: ${orientation === 'landscape' ? '210mm' : '297mm'};
-      }
-    }
-  </style>
-</head>
-<body>
-  ${slidePages}
-</body>
-</html>`;
-}
-
-/* ------------------------------------------------------------------ */
-/*  Utility: SVG to Blob / Data URL                                    */
-/* ------------------------------------------------------------------ */
-
-/**
- * Convert an SVG string to a Blob.
+ * Convert an SVG string to a Blob. (DOM-bound; stays in the binding.)
  */
 export function svgToBlob(svg: string): Blob {
 	return new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
-}
-
-/**
- * Convert an SVG string to a data URL.
- */
-export function svgToDataUrl(svg: string): string {
-	const encoded = encodeURIComponent(svg);
-	return `data:image/svg+xml;charset=utf-8,${encoded}`;
 }
