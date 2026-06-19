@@ -147,3 +147,167 @@ export function distributeElements(
 
 	return result;
 }
+
+// ---------------------------------------------------------------------------
+// "Skip-unchanged" variants (Angular surface)
+//
+// `alignElements` / `distributeElements` above emit an entry for *every*
+// element so a caller can apply the whole map uniformly. The Angular binding
+// historically exposed `computeAlign` / `computeDistribute`, which differ in
+// two ways and are preserved here verbatim so its consumers/tests are
+// unchanged:
+//   1. They omit elements that are already on the target line (`newX === box.x`)
+//      — the returned map only carries elements that actually move.
+//   2. They use Angular's `AlignMode` / `DistributeMode` / `AlignBox` /
+//      `PositionUpdate` names (structurally identical to the types above).
+// The two pairs share no maths divergence beyond the skip-unchanged filter.
+// ---------------------------------------------------------------------------
+
+/** Horizontal or vertical alignment mode (alias of {@link AlignEdge}). */
+export type AlignMode = AlignEdge;
+
+/** Axis along which to distribute spacing evenly (alias of {@link DistributeAxis}). */
+export type DistributeMode = DistributeAxis;
+
+/** An axis-aligned bounding box with a stable element id (alias of {@link BoundingBoxElement}). */
+export type AlignBox = BoundingBoxElement;
+
+/** The partial position update for a single element (alias of {@link ElementPosition}). */
+export type PositionUpdate = ElementPosition;
+
+/**
+ * Compute new positions to align every box to the group bounding box, emitting
+ * an entry **only** for boxes that actually move.
+ *
+ * Behaves like {@link alignElements} but filters out elements already sitting
+ * on the target edge/centre. Returns an empty map for fewer than two boxes.
+ */
+export function computeAlign(
+	boxes: readonly AlignBox[],
+	mode: AlignMode,
+): Map<string, PositionUpdate> {
+	const result = new Map<string, PositionUpdate>();
+	if (boxes.length < 2) {
+		return result;
+	}
+
+	let groupLeft = boxes[0]!.x;
+	let groupTop = boxes[0]!.y;
+	let groupRight = boxes[0]!.x + boxes[0]!.width;
+	let groupBottom = boxes[0]!.y + boxes[0]!.height;
+
+	for (let i = 1; i < boxes.length; i++) {
+		const b = boxes[i]!;
+		if (b.x < groupLeft) {
+			groupLeft = b.x;
+		}
+		if (b.y < groupTop) {
+			groupTop = b.y;
+		}
+		if (b.x + b.width > groupRight) {
+			groupRight = b.x + b.width;
+		}
+		if (b.y + b.height > groupBottom) {
+			groupBottom = b.y + b.height;
+		}
+	}
+
+	const groupCenterH = groupLeft + (groupRight - groupLeft) / 2;
+	const groupCenterV = groupTop + (groupBottom - groupTop) / 2;
+
+	for (const box of boxes) {
+		switch (mode) {
+			case 'left':
+				if (groupLeft !== box.x) {
+					result.set(box.id, { x: groupLeft });
+				}
+				break;
+			case 'centerH': {
+				const newX = groupCenterH - box.width / 2;
+				if (newX !== box.x) {
+					result.set(box.id, { x: newX });
+				}
+				break;
+			}
+			case 'right': {
+				const newX = groupRight - box.width;
+				if (newX !== box.x) {
+					result.set(box.id, { x: newX });
+				}
+				break;
+			}
+			case 'top':
+				if (groupTop !== box.y) {
+					result.set(box.id, { y: groupTop });
+				}
+				break;
+			case 'middle': {
+				const newY = groupCenterV - box.height / 2;
+				if (newY !== box.y) {
+					result.set(box.id, { y: newY });
+				}
+				break;
+			}
+			case 'bottom': {
+				const newY = groupBottom - box.height;
+				if (newY !== box.y) {
+					result.set(box.id, { y: newY });
+				}
+				break;
+			}
+		}
+	}
+
+	return result;
+}
+
+/**
+ * Compute new positions to distribute boxes with equal gaps along an axis,
+ * emitting an entry **only** for boxes that actually move.
+ *
+ * Behaves like {@link distributeElements} but filters out elements whose
+ * leading edge does not change. Returns an empty map for fewer than three
+ * boxes.
+ */
+export function computeDistribute(
+	boxes: readonly AlignBox[],
+	mode: DistributeMode,
+): Map<string, PositionUpdate> {
+	const result = new Map<string, PositionUpdate>();
+	if (boxes.length < 3) {
+		return result;
+	}
+
+	const horizontal = mode === 'horizontal';
+	const start = (b: AlignBox): number => (horizontal ? b.x : b.y);
+	const size = (b: AlignBox): number => (horizontal ? b.width : b.height);
+
+	const sorted = boxes.slice().sort((a, b) => start(a) - start(b));
+	const firstBox = sorted[0]!;
+	const lastBox = sorted[sorted.length - 1]!;
+
+	const spanStart = start(firstBox);
+	const spanEnd = start(lastBox) + size(lastBox);
+
+	let totalSize = 0;
+	for (const box of sorted) {
+		totalSize += size(box);
+	}
+
+	const gap = (spanEnd - spanStart - totalSize) / (sorted.length - 1);
+
+	let cursor = spanStart;
+	for (const box of sorted) {
+		const pos = cursor;
+		if (pos !== start(box)) {
+			if (horizontal) {
+				result.set(box.id, { x: pos });
+			} else {
+				result.set(box.id, { y: pos });
+			}
+		}
+		cursor += size(box) + gap;
+	}
+
+	return result;
+}

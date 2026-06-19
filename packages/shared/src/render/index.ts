@@ -131,6 +131,12 @@ export * from './table-merge';
 export * from './table-layout';
 export * from './element-align';
 export * from './element-interaction';
+// Editor snap geometry: snap-to-shape (siblings + guides → snap lines, React/Vue
+// model), snap-to-box (closest-per-axis span guides, Angular model), grid
+// snapping. Pure maths; the pointer/drag driver stays in each binding.
+export * from './snap-guides';
+// Ruler tick generation + constants (View ▸ Ruler). Pure; each binding renders.
+export * from './ruler';
 export * from './bullet-autonum';
 export * from './bullet-list';
 export * from './text-paragraphs';

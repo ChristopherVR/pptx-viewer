@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { alignElements, distributeElements } from './element-align';
-import type { BoundingBoxElement } from './element-align';
+import {
+	alignElements,
+	computeAlign,
+	computeDistribute,
+	distributeElements,
+} from './element-align';
+import type { AlignBox, BoundingBoxElement } from './element-align';
 
 function box(id: string, x: number, y: number, width = 100, height = 50): BoundingBoxElement {
 	return { id, x, y, width, height };
@@ -95,5 +100,103 @@ describe('distributeElements', () => {
 		expect(gap1).toBeCloseTo(gap2);
 		expect(ax).toBe(0);
 		expect(cx).toBe(400);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// computeAlign / computeDistribute — skip-unchanged variants (Angular surface)
+// ---------------------------------------------------------------------------
+
+const threeBoxes: readonly AlignBox[] = [
+	{ id: 'a', x: 0, y: 0, width: 50, height: 30 },
+	{ id: 'b', x: 100, y: 50, width: 60, height: 40 },
+	{ id: 'c', x: 200, y: 110, width: 40, height: 20 },
+];
+
+const twoBoxes: readonly AlignBox[] = [
+	{ id: 'a', x: 10, y: 20, width: 80, height: 60 },
+	{ id: 'b', x: 150, y: 90, width: 100, height: 40 },
+];
+
+const oneBox: readonly AlignBox[] = [{ id: 'a', x: 5, y: 5, width: 50, height: 50 }];
+
+describe('computeAlign — guards and skip-unchanged', () => {
+	it('returns an empty map for fewer than two boxes', () => {
+		expect(computeAlign([], 'left').size).toBe(0);
+		expect(computeAlign(oneBox, 'left').size).toBe(0);
+	});
+
+	it('omits boxes already on the target edge (left)', () => {
+		const map = computeAlign(twoBoxes, 'left');
+		expect(map.get('a')).toBeUndefined();
+		expect(map.get('b')).toStrictEqual({ x: 10 });
+	});
+
+	it('aligns to group right, omitting the box already at the right edge', () => {
+		const map = computeAlign(twoBoxes, 'right');
+		expect(map.get('a')).toStrictEqual({ x: 170 });
+		expect(map.get('b')).toBeUndefined();
+	});
+
+	it('centres boxes on the group horizontal centre', () => {
+		const map = computeAlign(threeBoxes, 'centerH');
+		expect(map.get('a')).toStrictEqual({ x: 95 });
+		expect(map.get('b')).toStrictEqual({ x: 90 });
+		expect(map.get('c')).toStrictEqual({ x: 100 });
+	});
+
+	it('aligns to bottom, omitting the box already at the bottom edge', () => {
+		const map = computeAlign(threeBoxes, 'bottom');
+		expect(map.get('a')).toStrictEqual({ y: 100 });
+		expect(map.get('b')).toStrictEqual({ y: 90 });
+		expect(map.get('c')).toBeUndefined();
+	});
+
+	it('left mode never sets y', () => {
+		for (const [, pos] of computeAlign(threeBoxes, 'left')) {
+			expect(pos).not.toHaveProperty('y');
+		}
+	});
+});
+
+describe('computeDistribute — guards and skip-unchanged', () => {
+	it('returns an empty map for fewer than three boxes', () => {
+		expect(computeDistribute([], 'horizontal').size).toBe(0);
+		expect(computeDistribute(twoBoxes, 'horizontal').size).toBe(0);
+	});
+
+	it('keeps extremes fixed and equally spaces three equal-width boxes', () => {
+		const boxes: readonly AlignBox[] = [
+			{ id: 'a', x: 0, y: 0, width: 100, height: 50 },
+			{ id: 'b', x: 50, y: 0, width: 100, height: 50 },
+			{ id: 'c', x: 300, y: 0, width: 100, height: 50 },
+		];
+		const map = computeDistribute(boxes, 'horizontal');
+		expect(map.get('a')).toBeUndefined();
+		expect(map.get('b')).toStrictEqual({ x: 150 });
+		expect(map.get('c')).toBeUndefined();
+	});
+
+	it('distributes vertically, keeping the extremes fixed', () => {
+		const boxes: readonly AlignBox[] = [
+			{ id: 'a', x: 0, y: 0, width: 50, height: 50 },
+			{ id: 'b', x: 0, y: 30, width: 50, height: 50 },
+			{ id: 'c', x: 0, y: 200, width: 50, height: 50 },
+		];
+		const map = computeDistribute(boxes, 'vertical');
+		expect(map.get('a')).toBeUndefined();
+		expect(map.get('b')).toStrictEqual({ y: 100 });
+		expect(map.get('c')).toBeUndefined();
+	});
+
+	it('horizontal distribute never sets y', () => {
+		const boxes: readonly AlignBox[] = [
+			{ id: 'a', x: 0, y: 0, width: 50, height: 30 },
+			{ id: 'b', x: 70, y: 0, width: 50, height: 30 },
+			{ id: 'c', x: 200, y: 0, width: 50, height: 30 },
+		];
+		for (const [, pos] of computeDistribute(boxes, 'horizontal')) {
+			expect(pos).not.toHaveProperty('y');
+		}
 	});
 });
