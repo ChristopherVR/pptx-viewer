@@ -103,6 +103,10 @@ export {
 } from './chart-overlays';
 export type { LinearFit } from './chart-overlays';
 export * from './animation-css';
+// `visual-3d` is the public surface; it re-exports the symbols from its sibling
+// modules (`visual-3d-camera`, `visual-3d-materials`, `visual-3d-extrusion`,
+// `visual-3d-color`, `visual-3d-constants`), so they are NOT flattened here to
+// avoid duplicate-export conflicts.
 export * from './visual-3d';
 export * from './table-style';
 export * from './element-align';

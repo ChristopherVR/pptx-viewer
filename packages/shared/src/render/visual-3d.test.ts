@@ -8,7 +8,14 @@ import {
 	getBevelStyle,
 	getMaterialFilter,
 	getComputed3dStyle,
+	apply3dEffects,
+	getCameraTransform,
+	get3DBevelShadow,
+	get3DMaterialFilter,
+	get3DTransformStyle,
+	getLightRigCss,
 } from './visual-3d';
+import type { MutableCss } from './visual-3d';
 
 function shape3dEl(scene3d?: Pptx3DScene, shape3d?: Pptx3DShape): PptxElement {
 	return {
@@ -243,5 +250,210 @@ describe('getComputed3dStyle', () => {
 		expect(result?.boxShadow).toContain('inset');
 		expect(result?.filter).toBeDefined();
 		expect(result?.backgroundImage).toContain('linear-gradient');
+	});
+});
+
+// ── getCameraTransform (React-compatible alias) ──────────────────────────
+
+describe('getCameraTransform', () => {
+	it('returns zeros when scene3d is undefined', () => {
+		const result = getCameraTransform(undefined);
+		expect(result.perspective).toBeUndefined();
+		expect(result.rotateX).toBe(0);
+		expect(result.rotateY).toBe(0);
+		expect(result.rotateZ).toBe(0);
+	});
+
+	it('maps perspectiveAbove to rotateX -20deg with 1000px perspective', () => {
+		const result = getCameraTransform({ cameraPreset: 'perspectiveAbove' });
+		expect(result.perspective).toBe('1000px');
+		expect(result.rotateX).toBe(-20);
+	});
+
+	it('explicit rotation angles override preset defaults', () => {
+		const result = getCameraTransform({
+			cameraPreset: 'perspectiveFront',
+			cameraRotX: 1800000,
+			cameraRotY: 2700000,
+		});
+		expect(result.rotateX).toBe(-30);
+		expect(result.rotateY).toBe(45);
+	});
+
+	it('applies default 800px perspective for explicit rotations without preset', () => {
+		const result = getCameraTransform({ cameraRotX: 600000 });
+		expect(result.perspective).toBe('800px');
+		expect(result.rotateX).toBe(-10);
+	});
+});
+
+// ── get3DBevelShadow (React-compatible string-only bevel) ────────────────
+
+describe('get3DBevelShadow', () => {
+	it('returns undefined when no shape3d or no bevel', () => {
+		expect(get3DBevelShadow(undefined)).toBeUndefined();
+		expect(get3DBevelShadow({})).toBeUndefined();
+		expect(get3DBevelShadow({ bevelTopType: 'none' })).toBeUndefined();
+	});
+
+	it('generates inset shadow for circle bevel', () => {
+		const result = get3DBevelShadow({
+			bevelTopType: 'circle',
+			bevelTopWidth: 28575,
+			bevelTopHeight: 28575,
+		});
+		expect(result).toContain('inset');
+		expect(result).toContain('rgba(255,255,255,');
+	});
+
+	it('handles both top and bottom bevel simultaneously', () => {
+		const result = get3DBevelShadow({
+			bevelTopType: 'circle',
+			bevelBottomType: 'hardEdge',
+		});
+		const layers = (result ?? '').split(', inset');
+		expect(layers.length).toBeGreaterThanOrEqual(3);
+	});
+});
+
+// ── get3DMaterialFilter (React-compatible alias) ─────────────────────────
+
+describe('get3DMaterialFilter', () => {
+	it('returns undefined when no material', () => {
+		expect(get3DMaterialFilter(undefined)).toBeUndefined();
+		expect(get3DMaterialFilter({})).toBeUndefined();
+	});
+
+	it('returns combined filters for metal', () => {
+		const result = get3DMaterialFilter({ presetMaterial: 'metal' });
+		expect(result).toContain('brightness');
+		expect(result).toContain('saturate');
+	});
+
+	it('returns undefined for flat', () => {
+		expect(get3DMaterialFilter({ presetMaterial: 'flat' })).toBeUndefined();
+	});
+});
+
+// ── get3DTransformStyle (React-compatible plain-object) ──────────────────
+
+describe('get3DTransformStyle', () => {
+	it('returns empty object when no params', () => {
+		expect(Object.keys(get3DTransformStyle(undefined))).toHaveLength(0);
+	});
+
+	it('includes perspective + willChange for a camera preset', () => {
+		const result = get3DTransformStyle({ cameraPreset: 'perspectiveFront' });
+		expect(result.perspective).toBe('1000px');
+		expect(result.willChange).toBe('transform');
+	});
+
+	it('sets willChange when shape3d exists', () => {
+		expect(get3DTransformStyle(undefined, { presetMaterial: 'metal' }).willChange).toBe(
+			'transform',
+		);
+	});
+});
+
+// ── getLightRigCss ───────────────────────────────────────────────────────
+
+describe('getLightRigCss', () => {
+	it('returns empty for undefined rig type', () => {
+		const result = getLightRigCss(undefined, undefined);
+		expect(result.backgroundImage).toBeUndefined();
+		expect(result.filter).toBeUndefined();
+	});
+
+	it('returns a multi-layer gradient for threePt', () => {
+		const result = getLightRigCss('threePt', undefined);
+		expect(result.backgroundImage).toContain('linear-gradient');
+		const layers = (result.backgroundImage ?? '').split('linear-gradient');
+		expect(layers.length).toBeGreaterThanOrEqual(3);
+	});
+
+	it('rotates gradient angles for an explicit direction', () => {
+		const resultRight = getLightRigCss('threePt', 'r');
+		expect(resultRight.backgroundImage).toContain('270deg');
+		expect(resultRight.backgroundImage).toContain('90deg');
+	});
+
+	it('returns empty for an unknown rig', () => {
+		expect(getLightRigCss('unknownRig', undefined).backgroundImage).toBeUndefined();
+	});
+});
+
+// ── apply3dEffects (mutator integration) ─────────────────────────────────
+
+describe('apply3dEffects', () => {
+	it('does not modify base when no 3D params provided', () => {
+		const base: MutableCss = {};
+		apply3dEffects(base, undefined, undefined);
+		expect(base.transform).toBeUndefined();
+		expect(base.perspective).toBeUndefined();
+	});
+
+	it('applies perspective + rotateX for a camera X rotation', () => {
+		const base: MutableCss = {};
+		apply3dEffects(base, { cameraRotX: 1800000 }, undefined);
+		expect(base.perspective).toBe('800px');
+		expect(base.transform).toContain('rotateX(-30deg)');
+	});
+
+	it('adds extrusion depth as stacked box-shadows', () => {
+		const base: MutableCss = {};
+		apply3dEffects(base, undefined, { extrusionHeight: 95250, extrusionColor: '#888888' });
+		expect(base.boxShadow).toContain('#888888');
+	});
+
+	it('adds backdrop ground-plane shadow', () => {
+		const base: MutableCss = {};
+		apply3dEffects(base, { hasBackdrop: true }, undefined);
+		expect(base.boxShadow).toContain('rgba(0,0,0,0.25)');
+	});
+
+	it('applies material opacity for clear material', () => {
+		const base: MutableCss = {};
+		apply3dEffects(base, undefined, { presetMaterial: 'clear' });
+		expect(base.opacity).toBe(0.7);
+	});
+
+	it('composes with existing transform and preserves existing boxShadow', () => {
+		const base: MutableCss = { transform: 'scaleX(-1)', boxShadow: '2px 2px 4px rgba(0,0,0,0.5)' };
+		apply3dEffects(
+			base,
+			{ cameraPreset: 'perspectiveAbove' },
+			{
+				extrusionHeight: 28575,
+				extrusionColor: '#000',
+			},
+		);
+		expect(base.transform).toContain('scaleX(-1)');
+		expect(base.transform).toContain('rotateX(-20deg)');
+		expect(base.boxShadow).toContain('2px 2px 4px rgba(0,0,0,0.5)');
+		expect(base.boxShadow).toContain('#000');
+	});
+
+	it('combines all 3D effects without conflicts', () => {
+		const base: MutableCss = {};
+		apply3dEffects(
+			base,
+			{ cameraPreset: 'perspectiveAbove', lightRigType: 'threePt', hasBackdrop: true },
+			{
+				extrusionHeight: 47625,
+				extrusionColor: '#4472C4',
+				bevelTopType: 'circle',
+				bevelTopWidth: 19050,
+				bevelTopHeight: 19050,
+				presetMaterial: 'plastic',
+			},
+		);
+		expect(base.perspective).toBe('1000px');
+		expect(base.transform).toContain('rotateX(-20deg)');
+		expect(base.boxShadow).toContain('#4472C4');
+		expect(base.boxShadow).toContain('inset');
+		expect(base.boxShadow).toContain('rgba(0,0,0,0.25)');
+		expect(base.filter).toContain('brightness');
+		expect(base.backgroundImage).toContain('linear-gradient');
+		expect(base.willChange).toBe('transform');
 	});
 });

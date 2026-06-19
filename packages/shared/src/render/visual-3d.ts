@@ -1,250 +1,69 @@
 /**
  * CSS-based 3D approximation for PPTX shapes (framework-agnostic).
  *
- * Self-contained module that translates OOXML scene3d/shape3d properties
- * (camera/perspective, extrusion depth, contour, bevel, material, light rig)
- * into the CSS pieces a renderer can apply. It mirrors the React layer
- * (`packages/react/src/viewer/utils/shape-3d-styles.ts` +
- * `shape-visual-3d.ts`) closely enough that every binding produces the same
- * visual output, while staying framework-agnostic (plain TS, unit-testable).
+ * Translates OOXML scene3d/shape3d properties (camera/perspective, extrusion
+ * depth, contour, bevel, material, light rig) into the CSS pieces a renderer
+ * can apply. This is the single source of truth consumed by every binding —
+ * React, Vue, and Angular re-export it (the React layer used to reimplement
+ * the whole engine; it now shims onto this module).
  *
- * The aggregate {@link getComputed3dStyle} returns plain string/number CSS
- * pieces — no framework `CSSProperties` type — so React, Vue, and Angular can
- * each merge them into their own style object. The extrusion box-shadow is
- * returned as a SEPARATE `extrusionBoxShadow` value (rather than folded into
- * `boxShadow`) so the caller can comma-join it with any pre-existing effect
- * shadow instead of clobbering it.
+ * Two complementary output shapes are provided:
+ *
+ * 1. **Neutral pieces** — {@link getComputed3dStyle} returns plain
+ *    string/number CSS pieces (no framework `CSSProperties` type) so each
+ *    binding can merge them into its own style object. The extrusion box-shadow
+ *    is returned SEPARATELY as `extrusionBoxShadow` so callers can comma-join it
+ *    with any pre-existing effect shadow rather than clobbering it.
+ * 2. **Mutator helpers** — {@link apply3dEffects} folds the same effects into a
+ *    caller-supplied mutable style object (the legacy React integration point).
+ *    React/Vue/Angular pass their own `CSSProperties`-typed object in.
+ *
+ * Sibling modules keep this file small and reusable:
+ * `visual-3d-camera` (camera presets), `visual-3d-materials` (material presets
+ * + camera-aware overlay), `visual-3d-extrusion` (CSS 3D side panels),
+ * `visual-3d-color` / `visual-3d-constants` (shared helpers).
  *
  * @module render/visual-3d
  */
 
-import type { PptxElement, Pptx3DScene, Pptx3DShape } from 'pptx-viewer-core';
+import type { PptxElement, Pptx3DScene, Pptx3DShape, MaterialPresetType } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 
-/**
- * EMU per CSS pixel. PowerPoint stores 3D dimensions in English Metric Units;
- * the React layer uses the same constant (9525). Defined locally to keep this
- * module self-contained.
- */
-const EMU_PER_PX = 9525;
+import { getCameraTransform } from './visual-3d-camera';
+import type { Scene3dParams } from './visual-3d-camera';
+import { darkenColor } from './visual-3d-color';
+import { EMU_PER_PX, MAX_EXTRUSION_LAYERS } from './visual-3d-constants';
+import { getMaterialCssOverrides } from './visual-3d-materials';
 
-/**
- * Maximum stacked shadow layers for extrusion (performance guard). Matches the
- * React engine — each layer is a single box-shadow, so 40 is still performant.
- */
-const MAX_EXTRUSION_LAYERS = 40;
+export { getCameraTransform } from './visual-3d-camera';
+export type { Scene3dParams, CameraTransform } from './visual-3d-camera';
+export {
+	getMaterialCssOverrides,
+	getMaterialGradientOverlay,
+	getLightAngleFromCamera,
+} from './visual-3d-materials';
+export type { MaterialCssOverrides } from './visual-3d-materials';
+export { build3DExtrusionData } from './visual-3d-extrusion';
+export type {
+	Extrusion3DData,
+	ExtrusionPanel,
+	Extrusion3dCss,
+	Shape3dExtrusionParams,
+} from './visual-3d-extrusion';
 
-// ── Material preset → CSS overrides ──────────────────────────────────────
-
-/** CSS overrides that approximate an OOXML 3D material preset. */
-interface MaterialCssOverrides {
-	filter?: string;
-	opacity?: number;
-	boxShadow?: string;
-	backgroundImage?: string;
-}
-
-const MATERIAL_MAP: Record<string, MaterialCssOverrides> = {
-	matte: {
-		filter: 'brightness(0.95) saturate(0.9)',
-		backgroundImage:
-			'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 40%, rgba(0,0,0,0.03) 100%)',
-	},
-	warmMatte: {
-		filter: 'brightness(1.0) saturate(0.85) sepia(0.08)',
-		backgroundImage:
-			'linear-gradient(180deg, rgba(255,240,220,0.06) 0%, transparent 50%, rgba(0,0,0,0.03) 100%)',
-	},
-	plastic: {
-		filter: 'brightness(1.05) contrast(1.05)',
-		boxShadow:
-			'inset -2px -2px 6px rgba(255,255,255,0.35), inset 1px 1px 3px rgba(255,255,255,0.15)',
-		backgroundImage:
-			'radial-gradient(ellipse 40% 30% at 25% 20%, rgba(255,255,255,0.18) 0%, transparent 70%)',
-	},
-	metal: {
-		filter: 'brightness(1.1) contrast(1.15) saturate(1.2)',
-		boxShadow:
-			'inset -3px -3px 8px rgba(255,255,255,0.45), inset 2px 2px 4px rgba(255,255,255,0.2), inset 0 0 2px rgba(0,0,0,0.15)',
-		backgroundImage:
-			'linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.08) 20%, transparent 45%, rgba(0,0,0,0.06) 75%, rgba(255,255,255,0.1) 100%)',
-	},
-	dkEdge: {
-		filter: 'brightness(0.85) contrast(1.2)',
-		boxShadow: 'inset 0 0 8px rgba(0,0,0,0.2), inset 0 0 2px rgba(0,0,0,0.1)',
-		backgroundImage:
-			'radial-gradient(ellipse at center, rgba(255,255,255,0.06) 0%, transparent 50%, rgba(0,0,0,0.1) 100%)',
-	},
-	softEdge: {
-		filter: 'brightness(1.05) contrast(0.9)',
-		backgroundImage:
-			'radial-gradient(ellipse at center, rgba(255,255,255,0.06) 0%, transparent 60%)',
-	},
-	flat: {},
-	softmetal: {
-		filter: 'brightness(1.05) contrast(1.08) saturate(1.1)',
-		boxShadow:
-			'inset -2px -2px 6px rgba(255,255,255,0.3), inset 1px 1px 3px rgba(255,255,255,0.12)',
-		backgroundImage:
-			'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.04) 25%, transparent 50%, rgba(0,0,0,0.04) 85%, rgba(255,255,255,0.06) 100%)',
-	},
-	clear: {
-		opacity: 0.7,
-		filter: 'brightness(1.15)',
-		boxShadow: 'inset -1px -1px 4px rgba(255,255,255,0.3), inset 1px 1px 2px rgba(255,255,255,0.2)',
-		backgroundImage:
-			'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 40%, rgba(255,255,255,0.08) 100%)',
-	},
-	powder: {
-		filter: 'brightness(1.1) contrast(0.85) saturate(0.8)',
-		backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 50%)',
-	},
-	translucentPowder: {
-		opacity: 0.75,
-		filter: 'brightness(1.1) contrast(0.85)',
-		backgroundImage:
-			'radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.1) 0%, transparent 60%)',
-	},
-	legacyMatte: {
-		filter: 'brightness(0.92) saturate(0.85)',
-		backgroundImage:
-			'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 50%, rgba(0,0,0,0.04) 100%)',
-	},
-	legacyPlastic: {
-		filter: 'brightness(1.02) contrast(1.03)',
-		boxShadow: 'inset -2px -2px 5px rgba(255,255,255,0.3)',
-		backgroundImage:
-			'radial-gradient(ellipse 35% 25% at 25% 20%, rgba(255,255,255,0.15) 0%, transparent 70%)',
-	},
-	legacyMetal: {
-		filter: 'brightness(1.05) contrast(1.1) saturate(1.1)',
-		boxShadow:
-			'inset -2px -2px 6px rgba(255,255,255,0.35), inset 1px 1px 3px rgba(255,255,255,0.15)',
-		backgroundImage:
-			'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.06) 25%, transparent 50%, rgba(0,0,0,0.05) 80%)',
-	},
-	legacyWireframe: {
-		filter: 'brightness(1) contrast(1.4) saturate(0.6)',
-		boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.4)',
-	},
-};
-
-/** CSS overrides for a material preset; empty object for unknown/undefined. */
-function getMaterialCssOverrides(material: string | undefined): MaterialCssOverrides {
-	if (!material) {
-		return {};
-	}
-	return MATERIAL_MAP[material] ?? {};
-}
-
-// ── Camera preset mapping ────────────────────────────────────────────────
-
-interface CameraPresetConfig {
-	perspective?: string;
-	rotateX: number;
-	rotateY: number;
-	rotateZ: number;
-}
-
-const CAMERA_PRESET_MAP: Record<string, CameraPresetConfig> = {
-	orthographicFront: { rotateX: 0, rotateY: 0, rotateZ: 0 },
-	perspectiveFront: { perspective: '1000px', rotateX: 0, rotateY: 0, rotateZ: 0 },
-	perspectiveAbove: { perspective: '1000px', rotateX: -20, rotateY: 0, rotateZ: 0 },
-	perspectiveBelow: { perspective: '1000px', rotateX: 20, rotateY: 0, rotateZ: 0 },
-	perspectiveLeft: { perspective: '1000px', rotateX: 0, rotateY: 20, rotateZ: 0 },
-	perspectiveRight: { perspective: '1000px', rotateX: 0, rotateY: -20, rotateZ: 0 },
-	perspectiveAboveLeftFacing: { perspective: '1000px', rotateX: -20, rotateY: 25, rotateZ: 0 },
-	perspectiveAboveRightFacing: { perspective: '1000px', rotateX: -20, rotateY: -25, rotateZ: 0 },
-	perspectiveContrastingLeftFacing: { perspective: '800px', rotateX: -15, rotateY: 30, rotateZ: 0 },
-	perspectiveContrastingRightFacing: {
-		perspective: '800px',
-		rotateX: -15,
-		rotateY: -30,
-		rotateZ: 0,
-	},
-	perspectiveHeroicLeftFacing: { perspective: '600px', rotateX: -10, rotateY: 35, rotateZ: 0 },
-	perspectiveHeroicRightFacing: { perspective: '600px', rotateX: -10, rotateY: -35, rotateZ: 0 },
-	perspectiveHeroicExtremeLeftFacing: {
-		perspective: '500px',
-		rotateX: -8,
-		rotateY: 45,
-		rotateZ: 0,
-	},
-	perspectiveHeroicExtremeRightFacing: {
-		perspective: '500px',
-		rotateX: -8,
-		rotateY: -45,
-		rotateZ: 0,
-	},
-	perspectiveRelaxed: { perspective: '1200px', rotateX: -10, rotateY: 0, rotateZ: 0 },
-	perspectiveRelaxedModerately: { perspective: '1400px', rotateX: -5, rotateY: 0, rotateZ: 0 },
-	isometricLeftDown: { perspective: '1200px', rotateX: -35, rotateY: 45, rotateZ: 0 },
-	isometricRightUp: { perspective: '1200px', rotateX: -35, rotateY: -45, rotateZ: 0 },
-	isometricTopUp: { perspective: '1200px', rotateX: -55, rotateY: 0, rotateZ: 45 },
-	isometricTopDown: { perspective: '1200px', rotateX: -55, rotateY: 0, rotateZ: -45 },
-	isometricBottomUp: { perspective: '1200px', rotateX: 55, rotateY: 0, rotateZ: 45 },
-	isometricBottomDown: { perspective: '1200px', rotateX: 55, rotateY: 0, rotateZ: -45 },
-	isometricOffAxis1Left: { perspective: '1200px', rotateX: -30, rotateY: 30, rotateZ: 0 },
-	isometricOffAxis1Right: { perspective: '1200px', rotateX: -30, rotateY: -30, rotateZ: 0 },
-	isometricOffAxis1Top: { perspective: '1200px', rotateX: -45, rotateY: 0, rotateZ: 30 },
-	isometricOffAxis2Left: { perspective: '1200px', rotateX: -30, rotateY: 20, rotateZ: 0 },
-	isometricOffAxis2Right: { perspective: '1200px', rotateX: -30, rotateY: -20, rotateZ: 0 },
-	isometricOffAxis2Top: { perspective: '1200px', rotateX: -45, rotateY: 0, rotateZ: -30 },
-	isometricOffAxis3Left: { perspective: '1200px', rotateX: -25, rotateY: 35, rotateZ: 0 },
-	isometricOffAxis3Right: { perspective: '1200px', rotateX: -25, rotateY: -35, rotateZ: 0 },
-	isometricOffAxis3Bottom: { perspective: '1200px', rotateX: 45, rotateY: 0, rotateZ: 30 },
-	isometricOffAxis4Left: { perspective: '1200px', rotateX: -25, rotateY: 25, rotateZ: 0 },
-	isometricOffAxis4Right: { perspective: '1200px', rotateX: -25, rotateY: -25, rotateZ: 0 },
-	isometricOffAxis4Bottom: { perspective: '1200px', rotateX: 45, rotateY: 0, rotateZ: -30 },
-	obliqueTopLeft: { perspective: '900px', rotateX: -20, rotateY: 20, rotateZ: 0 },
-	obliqueTop: { perspective: '900px', rotateX: -25, rotateY: 0, rotateZ: 0 },
-	obliqueTopRight: { perspective: '900px', rotateX: -20, rotateY: -20, rotateZ: 0 },
-	obliqueLeft: { perspective: '900px', rotateX: 0, rotateY: 25, rotateZ: 0 },
-	obliqueRight: { perspective: '900px', rotateX: 0, rotateY: -25, rotateZ: 0 },
-	obliqueBottomLeft: { perspective: '900px', rotateX: 20, rotateY: 20, rotateZ: 0 },
-	obliqueBottom: { perspective: '900px', rotateX: 25, rotateY: 0, rotateZ: 0 },
-	obliqueBottomRight: { perspective: '900px', rotateX: 20, rotateY: -20, rotateZ: 0 },
-};
-
-interface CameraTransform {
-	perspective?: string;
-	rotateX: number;
-	rotateY: number;
-	rotateZ: number;
-}
-
-/**
- * Resolve a camera preset name + explicit rotation overrides into final CSS
- * perspective and rotation (degrees). Explicit `cameraRot*` (1/60000 deg)
- * override preset defaults; the X axis is negated to match CSS conventions.
- */
-function getCameraTransform(scene3d: Pptx3DScene | undefined): CameraTransform {
-	if (!scene3d) {
-		return { rotateX: 0, rotateY: 0, rotateZ: 0 };
-	}
-
-	const preset = scene3d.cameraPreset ? CAMERA_PRESET_MAP[scene3d.cameraPreset] : undefined;
-
-	let perspective = preset?.perspective;
-	let rotateX = preset?.rotateX ?? 0;
-	let rotateY = preset?.rotateY ?? 0;
-	let rotateZ = preset?.rotateZ ?? 0;
-
-	if (scene3d.cameraRotX) {
-		rotateX = -(scene3d.cameraRotX / 60000);
-	}
-	if (scene3d.cameraRotY) {
-		rotateY = scene3d.cameraRotY / 60000;
-	}
-	if (scene3d.cameraRotZ) {
-		rotateZ = scene3d.cameraRotZ / 60000;
-	}
-
-	if (!perspective && (rotateX !== 0 || rotateY !== 0 || rotateZ !== 0)) {
-		perspective = '800px';
-	}
-
-	return { perspective, rotateX, rotateY, rotateZ };
+/** Structural subset of `Pptx3DShape` consumed by the 3D helpers. */
+export interface Shape3dParams {
+	extrusionHeight?: number;
+	extrusionColor?: string;
+	contourWidth?: number;
+	contourColor?: string;
+	bevelTopType?: string;
+	bevelTopWidth?: number;
+	bevelTopHeight?: number;
+	bevelBottomType?: string;
+	bevelBottomWidth?: number;
+	bevelBottomHeight?: number;
+	presetMaterial?: string;
 }
 
 // ── Light rig mapping ────────────────────────────────────────────────────
@@ -426,7 +245,7 @@ function rotateGradientAngles(backgroundImage: string, angleDelta: number): stri
 }
 
 /** Resolve light rig CSS overrides for a given rig type + direction. */
-function getLightRigCss(
+export function getLightRigCss(
 	lightRigType: string | undefined,
 	lightRigDirection: string | undefined,
 ): LightRigCssConfig {
@@ -563,15 +382,6 @@ function getBevelShadow(bevelType: string, bW: number, bH: number, isBottom: boo
 
 // ── Extrusion shadow generation ──────────────────────────────────────────
 
-/** Darken a hex colour by a factor (0 = black, 1 = unchanged). */
-function darkenColor(hex: string, factor: number): string {
-	const clean = hex.replace('#', '');
-	const r = Math.round(parseInt(clean.slice(0, 2), 16) * factor);
-	const g = Math.round(parseInt(clean.slice(2, 4), 16) * factor);
-	const b = Math.round(parseInt(clean.slice(4, 6), 16) * factor);
-	return `rgb(${r},${g},${b})`;
-}
-
 /** Compute (dx, dy) extrusion offset direction from camera rotation. */
 function getExtrusionDirection(rotateX: number, rotateY: number): { dx: number; dy: number } {
 	let dx = 1;
@@ -661,9 +471,12 @@ export function get3dTransformCss(
  * Extrusion depth → layered `box-shadow`. Stacks up to {@link MAX_EXTRUSION_LAYERS}
  * offset shadows (radiating per camera angle) with a final soft shadow for
  * depth perception. Returns `undefined` when there is no extrusion.
+ *
+ * Exported under two names: {@link getExtrusionBoxShadow} (neutral pieces API)
+ * and the React-compatible alias {@link getExtrusionShadow}.
  */
 export function getExtrusionBoxShadow(
-	shape3d: Pptx3DShape | undefined,
+	shape3d: Shape3dParams | undefined,
 	cameraRotX = 0,
 	cameraRotY = 0,
 ): string | undefined {
@@ -699,8 +512,11 @@ export function getExtrusionBoxShadow(
 	return depthShadows.join(', ');
 }
 
+/** React-compatible alias for {@link getExtrusionBoxShadow}. */
+export const getExtrusionShadow = getExtrusionBoxShadow;
+
 /** Contour (outline ring) → box-shadow. Returns `undefined` when no contour. */
-export function getContourBoxShadow(shape3d: Pptx3DShape | undefined): string | undefined {
+export function getContourBoxShadow(shape3d: Shape3dParams | undefined): string | undefined {
 	if (!shape3d?.contourWidth || shape3d.contourWidth <= 0) {
 		return undefined;
 	}
@@ -720,7 +536,7 @@ export interface BevelCss {
  * optional background gradient for presets that benefit from one
  * (convex/divot/softRound). Returns `undefined` when no bevel is present.
  */
-export function getBevelStyle(shape3d: Pptx3DShape | undefined): BevelCss | undefined {
+export function getBevelStyle(shape3d: Shape3dParams | undefined): BevelCss | undefined {
 	if (!shape3d) {
 		return undefined;
 	}
@@ -769,12 +585,224 @@ export function getBevelStyle(shape3d: Pptx3DShape | undefined): BevelCss | unde
 	return { boxShadow: parts.join(', '), background };
 }
 
+/**
+ * Bevel preset → inset `box-shadow` string only (top + bottom combined). The
+ * React-compatible counterpart to {@link getBevelStyle} that returns just the
+ * shadow (no background gradient). Returns `undefined` when no bevel is present.
+ */
+export function get3DBevelShadow(shape3d: Shape3dParams | undefined): string | undefined {
+	if (!shape3d) {
+		return undefined;
+	}
+
+	const parts: string[] = [];
+
+	if (shape3d.bevelTopType && shape3d.bevelTopType !== 'none') {
+		const bW = shape3d.bevelTopWidth
+			? Math.max(1, Math.round(shape3d.bevelTopWidth / EMU_PER_PX))
+			: 3;
+		const bH = shape3d.bevelTopHeight
+			? Math.max(1, Math.round(shape3d.bevelTopHeight / EMU_PER_PX))
+			: 3;
+		parts.push(getBevelShadow(shape3d.bevelTopType, bW, bH, false));
+	}
+
+	if (shape3d.bevelBottomType && shape3d.bevelBottomType !== 'none') {
+		const bW = shape3d.bevelBottomWidth
+			? Math.max(1, Math.round(shape3d.bevelBottomWidth / EMU_PER_PX))
+			: 3;
+		const bH = shape3d.bevelBottomHeight
+			? Math.max(1, Math.round(shape3d.bevelBottomHeight / EMU_PER_PX))
+			: 3;
+		parts.push(getBevelShadow(shape3d.bevelBottomType, bW, bH, true));
+	}
+
+	return parts.length > 0 ? parts.join(', ') : undefined;
+}
+
 /** Material preset → CSS `filter`. Returns `undefined` when none/flat. */
-export function getMaterialFilter(shape3d: Pptx3DShape | undefined): string | undefined {
+export function getMaterialFilter(shape3d: Shape3dParams | undefined): string | undefined {
 	if (!shape3d?.presetMaterial) {
 		return undefined;
 	}
-	return getMaterialCssOverrides(shape3d.presetMaterial).filter;
+	return getMaterialCssOverrides(shape3d.presetMaterial as MaterialPresetType).filter;
+}
+
+/** React-compatible alias for {@link getMaterialFilter}. */
+export const get3DMaterialFilter = getMaterialFilter;
+
+/**
+ * Camera/perspective → mutable CSS transform fields. React-compatible helper:
+ * returns a plain object with `perspective`/`transform`/`willChange`. Unlike
+ * {@link get3dTransformCss} this does NOT append an extrusion `translateZ`
+ * (that is handled by {@link apply3dEffects}).
+ */
+export function get3DTransformStyle(
+	scene3d: Scene3dParams | undefined,
+	shape3d?: Shape3dParams | undefined,
+): Record<string, string> {
+	if (!scene3d && !shape3d) {
+		return {};
+	}
+
+	const { perspective, rotateX, rotateY, rotateZ } = getCameraTransform(scene3d);
+
+	const style: Record<string, string> = {};
+
+	if (perspective) {
+		style.perspective = perspective;
+	}
+
+	const hasRotation = rotateX !== 0 || rotateY !== 0 || rotateZ !== 0;
+	const has3D = hasRotation || Boolean(perspective) || Boolean(shape3d);
+
+	if (hasRotation) {
+		const transforms: string[] = [];
+		if (rotateX !== 0) {
+			transforms.push(`rotateX(${rotateX}deg)`);
+		}
+		if (rotateY !== 0) {
+			transforms.push(`rotateY(${rotateY}deg)`);
+		}
+		if (rotateZ !== 0) {
+			transforms.push(`rotateZ(${rotateZ}deg)`);
+		}
+		style.transform = transforms.join(' ');
+	}
+
+	if (has3D) {
+		style.willChange = 'transform';
+	}
+
+	return style;
+}
+
+/**
+ * A mutable CSS style object the {@link apply3dEffects} mutator folds effects
+ * into. Framework-neutral (string/number map); bindings pass their own
+ * `CSSProperties`-typed object, which structurally satisfies this.
+ */
+export type MutableCss = {
+	transform?: string;
+	transformStyle?: string;
+	perspective?: string | number;
+	willChange?: string;
+	boxShadow?: string;
+	background?: string;
+	backgroundImage?: string;
+	filter?: string;
+	opacity?: number;
+};
+
+/**
+ * Apply 3D effects (perspective, rotation, extrusion, bevel, material, light
+ * rig, contour, backdrop) to a mutable CSS properties object. The legacy React
+ * integration point: each binding passes its own `CSSProperties` object (which
+ * structurally satisfies {@link MutableCss}) and the fields are folded in,
+ * preserving any pre-existing `transform`/`boxShadow`/`filter`/`backgroundImage`.
+ */
+export function apply3dEffects(
+	base: MutableCss,
+	scene3d: Scene3dParams | undefined,
+	shape3d: Shape3dParams | undefined,
+): void {
+	if (!scene3d && !shape3d) {
+		return;
+	}
+
+	const { perspective, rotateX, rotateY, rotateZ } = getCameraTransform(scene3d);
+
+	if (perspective) {
+		base.perspective = perspective;
+	}
+
+	const hasRotation = rotateX !== 0 || rotateY !== 0 || rotateZ !== 0;
+
+	if (hasRotation) {
+		const transforms: string[] = [];
+		if (rotateX !== 0) {
+			transforms.push(`rotateX(${rotateX}deg)`);
+		}
+		if (rotateY !== 0) {
+			transforms.push(`rotateY(${rotateY}deg)`);
+		}
+		if (rotateZ !== 0) {
+			transforms.push(`rotateZ(${rotateZ}deg)`);
+		}
+		const rotation3d = transforms.join(' ');
+		// Compose with any existing transform (e.g. flip/rotation).
+		base.transform = base.transform ? `${base.transform} ${rotation3d}` : rotation3d;
+	}
+
+	// When extrusion is active, push the front face forward in Z-space so the
+	// stacked box-shadow extrusion appears behind it.
+	if (shape3d?.extrusionHeight && shape3d.extrusionHeight > 0) {
+		const depthPx = Math.max(1, Math.round(shape3d.extrusionHeight / EMU_PER_PX));
+		const halfDepth = Math.min(depthPx, 80) / 2;
+		const zTranslate = `translateZ(${halfDepth}px)`;
+		base.transform = base.transform ? `${base.transform} ${zTranslate}` : zTranslate;
+	}
+
+	if (hasRotation || perspective || shape3d) {
+		base.willChange = 'transform';
+		base.transformStyle = 'preserve-3d';
+	}
+
+	// ── Extrusion depth → stacked box-shadow ──
+	const extrusionShadow = getExtrusionBoxShadow(shape3d, rotateX, rotateY);
+	if (extrusionShadow) {
+		base.boxShadow = base.boxShadow ? `${base.boxShadow}, ${extrusionShadow}` : extrusionShadow;
+	}
+
+	// ── Contour (outline ring) ──
+	const contourShadow = getContourBoxShadow(shape3d);
+	if (contourShadow) {
+		base.boxShadow = base.boxShadow ? `${base.boxShadow}, ${contourShadow}` : contourShadow;
+	}
+
+	// ── Bevel highlights/shadows ──
+	const bevelShadow = get3DBevelShadow(shape3d);
+	if (bevelShadow) {
+		base.boxShadow = base.boxShadow ? `${base.boxShadow}, ${bevelShadow}` : bevelShadow;
+	}
+
+	// ── Backdrop plane → ground-plane shadow ──
+	if (scene3d?.hasBackdrop) {
+		const backdropShadow = '0px 8px 24px -4px rgba(0,0,0,0.25)';
+		base.boxShadow = base.boxShadow ? `${base.boxShadow}, ${backdropShadow}` : backdropShadow;
+	}
+
+	// ── Material preset → CSS filter/opacity/gradient ──
+	if (shape3d?.presetMaterial) {
+		const matOverrides = getMaterialCssOverrides(shape3d.presetMaterial as MaterialPresetType);
+		if (matOverrides.filter) {
+			base.filter = base.filter ? `${base.filter} ${matOverrides.filter}` : matOverrides.filter;
+		}
+		if (matOverrides.opacity !== undefined) {
+			base.opacity = matOverrides.opacity;
+		}
+		if (matOverrides.boxShadow) {
+			base.boxShadow = base.boxShadow
+				? `${base.boxShadow}, ${matOverrides.boxShadow}`
+				: matOverrides.boxShadow;
+		}
+		if (matOverrides.backgroundImage) {
+			base.backgroundImage = base.backgroundImage
+				? `${matOverrides.backgroundImage}, ${base.backgroundImage}`
+				: matOverrides.backgroundImage;
+		}
+	}
+
+	// ── Light rig → gradient overlay and filter adjustment ──
+	const lightRig = getLightRigCss(scene3d?.lightRigType, scene3d?.lightRigDirection);
+	if (lightRig.filter) {
+		base.filter = base.filter ? `${base.filter} ${lightRig.filter}` : lightRig.filter;
+	}
+	if (lightRig.backgroundImage) {
+		base.backgroundImage = base.backgroundImage
+			? `${lightRig.backgroundImage}, ${base.backgroundImage}`
+			: lightRig.backgroundImage;
+	}
 }
 
 /**
@@ -862,7 +890,7 @@ export function getComputed3dStyle(el: PptxElement): Computed3dStyle | undefined
 	const filterParts: string[] = [];
 	const bgParts: string[] = [];
 	if (shape3d?.presetMaterial) {
-		const mat = getMaterialCssOverrides(shape3d.presetMaterial);
+		const mat = getMaterialCssOverrides(shape3d.presetMaterial as MaterialPresetType);
 		if (mat.filter) {
 			filterParts.push(mat.filter);
 		}
