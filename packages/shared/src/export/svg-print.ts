@@ -1,0 +1,193 @@
+/**
+ * Pure SVG-print string helpers — shared by bindings that offer a vector print
+ * path (currently React). These build self-contained SVG / print-HTML strings
+ * and escape text; they touch no DOM.
+ *
+ * The DOM-bound driver pieces (cloning the live element tree, reading
+ * `getComputedStyle`, fetching images to base64, `Blob` wrapping) stay in the
+ * binding — only the string assembly and escaping live here.
+ */
+
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
+
+/** Options for SVG print serialization. */
+export interface SvgPrintOptions {
+	/** Slide width in pixels. */
+	width: number;
+	/** Slide height in pixels. */
+	height: number;
+	/** Optional background colour for the slide. */
+	backgroundColor?: string;
+	/** Whether to inline all computed styles. Default: true. */
+	inlineStyles?: boolean;
+	/** Whether to embed external images as base64. Default: true. */
+	embedImages?: boolean;
+	/** Custom CSS to inject into the SVG. */
+	customCss?: string;
+}
+
+/** Result of serializing a slide to SVG for printing. */
+export interface SvgPrintResult {
+	/** The complete SVG XML string. */
+	svg: string;
+	/** The width of the SVG in pixels. */
+	width: number;
+	/** The height of the SVG in pixels. */
+	height: number;
+}
+
+/** Options for {@link buildPrintDocument}. */
+export interface PrintDocumentOptions {
+	title?: string;
+	orientation?: 'landscape' | 'portrait';
+	colorFilter?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/*  XML escaping                                                       */
+/* ------------------------------------------------------------------ */
+
+/** Characters that need escaping in XML attribute values. */
+const XML_ESCAPE_MAP: Record<string, string> = {
+	'&': '&amp;',
+	'<': '&lt;',
+	'>': '&gt;',
+	'"': '&quot;',
+	"'": '&apos;',
+};
+
+/** Escape a string for safe inclusion in XML/SVG content. */
+export function escapeXml(text: string): string {
+	return text.replace(/[&<>"']/gu, (ch) => XML_ESCAPE_MAP[ch] || ch);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Print stylesheet / document construction                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Build print-ready CSS rules to inject into the SVG foreignObject. These
+ * override browser defaults and ensure clean print output.
+ */
+export function buildPrintStyleSheet(width: number, height: number, customCss?: string): string {
+	return `
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :host, :root {
+      width: ${width}px;
+      height: ${height}px;
+      overflow: hidden;
+    }
+    img { display: block; max-width: 100%; }
+    /* Force backgrounds to print */
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    /* Remove scrollbars */
+    *::-webkit-scrollbar { display: none !important; }
+    * { scrollbar-width: none !important; }
+    /* Remove interactive-only elements */
+    [data-export-ignore="true"] { display: none !important; }
+    ${customCss || ''}
+  `.trim();
+}
+
+/**
+ * Generate a multi-page HTML document embedding all per-slide SVG strings,
+ * suitable for print-to-PDF conversion. Each slide is placed in its own page
+ * section with a page-break marker.
+ *
+ * @param svgs Array of per-slide SVG strings.
+ * @param width Slide width in pixels.
+ * @param height Slide height in pixels.
+ */
+export function buildPrintDocument(
+	svgs: string[],
+	width: number,
+	height: number,
+	options: PrintDocumentOptions = {},
+): string {
+	const { title = 'Print', orientation = 'landscape', colorFilter = '' } = options;
+
+	const slidePages = svgs
+		.map(
+			(svg, i) =>
+				`<section class="print-slide-page" aria-label="Slide ${i + 1}">
+  ${svg}
+</section>`,
+		)
+		.join('\n');
+
+	return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>${escapeXml(title)}</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #fff;
+      ${colorFilter}
+    }
+    .print-slide-page {
+      page-break-after: always;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100vw;
+      height: 100vh;
+      padding: 5mm;
+    }
+    .print-slide-page:last-child {
+      page-break-after: auto;
+    }
+    .print-slide-page svg {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+    }
+    @page {
+      size: ${orientation};
+      margin: 5mm;
+    }
+    @media print {
+      body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+    @media screen {
+      body {
+        background: #e5e7eb;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        padding: 16px;
+      }
+      .print-slide-page {
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        border-radius: 4px;
+        page-break-after: auto;
+        width: ${orientation === 'landscape' ? '297mm' : '210mm'};
+        height: ${orientation === 'landscape' ? '210mm' : '297mm'};
+      }
+    }
+  </style>
+</head>
+<body>
+  ${slidePages}
+</body>
+</html>`;
+}
+
+/** Convert an SVG string to a data URL. */
+export function svgToDataUrl(svg: string): string {
+	const encoded = encodeURIComponent(svg);
+	return `data:image/svg+xml;charset=utf-8,${encoded}`;
+}

@@ -21,3 +21,4 @@ export * from './loader';
 export * from './types';
 export * from './constants';
 export * from './render';
+export * from './export';
