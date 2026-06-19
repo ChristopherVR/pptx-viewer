@@ -157,3 +157,10 @@ export * from './morph-svg-path';
 export * from './morph-matching';
 export * from './morph-text';
 export * from './morph-animation';
+// SmartArt SVG-fallback layout engine — pure node geometry/positioning for the
+// 10 layout families (list/process/cycle/hierarchy/matrix/radial/pyramid/venn/
+// funnel/target), producing fully-styled `RenderedNode` / `RenderedConnector`
+// view-models. `smartart-layout` re-exports the geometry types
+// (`smartart-layout-types`), helpers, and per-family computers, so a single
+// barrel entry exposes the whole surface. Each binding renders the view-models.
+export * from './smartart-layout';
