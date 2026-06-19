@@ -105,6 +105,22 @@ export {
 } from './chart-overlays';
 export type { LinearFit } from './chart-overlays';
 export * from './animation-css';
+// Native-animation (OOXML `p:timing` tree) timeline engine — preset tables,
+// keyframe definitions, colour interpolation, dynamic/static keyframe
+// generation, sequencing, click-group timeline + stateful playback controller,
+// and editor preview descriptors. Pure maths; the RAF playback loop, DOM style
+// injection, audio playback, and file reading stay in each binding.
+export * from './animation-timeline-types';
+export * from './animation-presets';
+export * from './animation-keyframes';
+export * from './animation-color';
+export * from './animation-timeline-helpers';
+export * from './animation-timeline-text-build';
+export * from './animation-effects';
+export * from './animation-sequencer';
+export * from './animation-timeline-builder';
+export * from './animation-timeline-engine';
+export * from './animation-preview';
 // `visual-3d` is the public surface; it re-exports the symbols from its sibling
 // modules (`visual-3d-camera`, `visual-3d-materials`, `visual-3d-extrusion`,
 // `visual-3d-color`, `visual-3d-constants`), so they are NOT flattened here to
