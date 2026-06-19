@@ -1,32 +1,13 @@
 import type { PptxTableCellStyle } from 'pptx-viewer-core';
+// `ooxmlDashToCssBorderStyle` is the framework-agnostic OOXML-dash → CSS map;
+// it lives in `pptx-viewer-shared` and is re-exported here so this module's
+// public surface (and colocated tests) stay unchanged.
+import { ooxmlDashToCssBorderStyle } from 'pptx-viewer-shared';
 import type React from 'react';
 
 import { getPatternSvg, normalizeHexColor } from './color';
 
-/**
- * Map OOXML dash preset to CSS border-style.
- */
-export function ooxmlDashToCssBorderStyle(dashVal: string | undefined): string {
-	if (!dashVal) {
-		return 'solid';
-	}
-	switch (dashVal) {
-		case 'dot':
-		case 'sysDot':
-			return 'dotted';
-		case 'dash':
-		case 'sysDash':
-		case 'lgDash':
-		case 'dashDot':
-		case 'lgDashDot':
-		case 'sysDashDot':
-		case 'lgDashDotDot':
-		case 'sysDashDotDot':
-			return 'dashed';
-		default:
-			return 'solid';
-	}
-}
+export { ooxmlDashToCssBorderStyle };
 
 export function cellStyleToCss(style?: PptxTableCellStyle): React.CSSProperties {
 	if (!style) {

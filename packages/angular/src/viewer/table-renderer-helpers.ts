@@ -18,7 +18,13 @@ import type {
 	TablePptxElement,
 } from 'pptx-viewer-core';
 
+// The OOXML-dash → CSS-border-style map is framework-agnostic and lives in
+// `pptx-viewer-shared`; re-exported here so this module's public surface
+// (and colocated tests) keep importing `ooxmlDashToCssBorderStyle` unchanged.
+import { ooxmlDashToCssBorderStyle } from '../internal/shared';
 import type { StyleMap } from './element-style';
+
+export { ooxmlDashToCssBorderStyle };
 
 // ==========================================================================
 // Rich-text cell paragraph / run types
@@ -52,33 +58,6 @@ export type CellParagraph = CellTextRun[];
 // ==========================================================================
 // Border dash mapping
 // ==========================================================================
-
-/**
- * Map an OOXML border-dash preset to a CSS border-style keyword.
- *
- * Mirrors `ooxmlDashToCssBorderStyle` in table-render-helpers.ts.
- */
-export function ooxmlDashToCssBorderStyle(dashVal: string | undefined): string {
-	if (!dashVal) {
-		return 'solid';
-	}
-	switch (dashVal) {
-		case 'dot':
-		case 'sysDot':
-			return 'dotted';
-		case 'dash':
-		case 'sysDash':
-		case 'lgDash':
-		case 'dashDot':
-		case 'lgDashDot':
-		case 'sysDashDot':
-		case 'lgDashDotDot':
-		case 'sysDashDotDot':
-			return 'dashed';
-		default:
-			return 'solid';
-	}
-}
 
 // ==========================================================================
 // Cell style → StyleMap

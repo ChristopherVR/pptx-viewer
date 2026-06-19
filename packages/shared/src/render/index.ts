@@ -11,7 +11,9 @@
  *               (regression overlays).
  * - animation:  `animation-css` (preset → CSS keyframes).
  * - 3d:         `visual-3d` (scene3d/shape3d → CSS transform/shadow pieces).
- * - tables:     `table-style` (cell style + banding → CSS).
+ * - tables:     `table-style` (cell style + banding → CSS), `table-merge`
+ *               (cell merge/split/selection rect math), `table-layout`
+ *               (merge-aware row/column insert/delete over `PptxTableData`).
  * - editing:    `element-align` (align/distribute), `element-interaction`
  *               (drag/resize/rotate math).
  * - connectors: `connector-router` (orthogonal A* obstacle-avoiding routing +
@@ -109,6 +111,8 @@ export * from './animation-css';
 // avoid duplicate-export conflicts.
 export * from './visual-3d';
 export * from './table-style';
+export * from './table-merge';
+export * from './table-layout';
 export * from './element-align';
 export * from './element-interaction';
 export * from './bullet-autonum';
