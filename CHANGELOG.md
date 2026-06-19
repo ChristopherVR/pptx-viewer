@@ -4,6 +4,35 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.4.13](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.13) - 2026-06-19
+
+### Features
+
+- **shared:** Add framework-agnostic export pure-logic modules (by @ChristopherVR) ([7be9dee](https://github.com/ChristopherVR/pptx-viewer/commit/7be9deef7082655a33b8074176133767a89542e1))
+
+### Bug Fixes
+
+- **shared:** Avoid String.replaceAll in hyperlink-security (by @ChristopherVR) ([325657c](https://github.com/ChristopherVR/pptx-viewer/commit/325657c935e95a2894e9f11bd3392e72f931011c))
+
+### Refactor
+
+- **shared:** Extract morph transition logic into shared (by @ChristopherVR) ([c335ee2](https://github.com/ChristopherVR/pptx-viewer/commit/c335ee2feddd2f7aba0fdcbe88f4c3fc7249efb1))
+- Shim binding export modules to shared/export pure helpers (by @ChristopherVR) ([c6fde4b](https://github.com/ChristopherVR/pptx-viewer/commit/c6fde4bfd6f197072e03e6f719ed5b7bbf5a908f))
+- **shared:** Consolidate React effect/colour primitives into shared (by @ChristopherVR) ([0a84f88](https://github.com/ChristopherVR/pptx-viewer/commit/0a84f88aa4b6f0652ae91c509ec282d79f681149))
+- **shared:** Extract native animation timeline engine into shared (by @ChristopherVR) ([d92af95](https://github.com/ChristopherVR/pptx-viewer/commit/d92af957721ac193964a5f700bb0c272a9e50a3b))
+- **shared:** Extract snap-guide and ruler geometry into shared (by @ChristopherVR) ([fbe2bce](https://github.com/ChristopherVR/pptx-viewer/commit/fbe2bceb165e5e484f03de978751144250998564))
+- **shared:** Extract SmartArt layout engine into shared (by @ChristopherVR) ([3b3136e](https://github.com/ChristopherVR/pptx-viewer/commit/3b3136ecf05133ff45b6c678d7dfc97b89563926))
+
+## [1.4.12](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.12) - 2026-06-19
+
+### Refactor
+
+- **shared:** Consolidate small duplicated helpers into shared (by @ChristopherVR) ([c765620](https://github.com/ChristopherVR/pptx-viewer/commit/c765620d52fff503afaeafa773b77d4b883ef5cd))
+
+### Documentation
+
+- **changelog:** Update for v1.4.12 [skip ci] (by @github-actions[bot]) ([8d0d47e](https://github.com/ChristopherVR/pptx-viewer/commit/8d0d47eaf839fadcace48dcc55ba826786b47992))
+
 ## [1.4.11](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.11) - 2026-06-19
 
 ### Refactor
