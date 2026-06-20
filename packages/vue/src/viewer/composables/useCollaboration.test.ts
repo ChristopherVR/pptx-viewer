@@ -191,4 +191,78 @@ describe('useCollaboration', () => {
 		expect(collab.active.value).toBeFalsy();
 		scope.stop();
 	});
+
+	it('rejects a malformed room id without connecting', async () => {
+		const slides = ref<PptxSlide[]>([slide('1')]);
+		const scope = effectScope();
+		const collab = scope.run(() => useCollaboration({ slides, onRemoteSlides: vi.fn() }))!;
+
+		await collab.start({ roomId: 'bad room id', serverUrl: 'wss://x', userName: 'Ada' });
+		expect(collab.status.value).toBe('error');
+		expect(collab.active.value).toBeFalsy();
+		scope.stop();
+	});
+
+	it('reflects connection status and counts participants', async () => {
+		state.mapValues.clear();
+		state.awarenessStates.clear();
+		const slides = ref<PptxSlide[]>([slide('1')]);
+		const scope = effectScope();
+		const collab = scope.run(() => useCollaboration({ slides, onRemoteSlides: vi.fn() }))!;
+
+		await collab.start(config);
+		expect(collab.status.value).toBe('connecting');
+		expect(collab.connectedCount.value).toBe(1); // self only
+
+		state.statusCb?.({ status: 'connected' });
+		expect(collab.status.value).toBe('connected');
+
+		state.awarenessStates.set(2, { user: { name: 'Bob', color: '#ff0000' } });
+		state.awarenessChange?.();
+		expect(collab.connectedCount.value).toBe(2); // self + Bob
+		scope.stop();
+	});
+
+	it('exposes the broadcaster active slide to viewers', async () => {
+		state.mapValues.clear();
+		state.awarenessStates.clear();
+		const slides = ref<PptxSlide[]>([slide('1')]);
+		const scope = effectScope();
+		const collab = scope.run(() => useCollaboration({ slides, onRemoteSlides: vi.fn() }))!;
+		await collab.start({ ...config, role: 'viewer' });
+
+		expect(collab.broadcasterSlideIndex.value).toBeNull();
+
+		// A peer with the owner (broadcaster) role publishes their active slide.
+		state.awarenessStates.set(2, {
+			user: { name: 'Host', color: '#00ff00', role: 'owner' },
+			activeSlide: 5,
+		});
+		state.awarenessChange?.();
+		expect(collab.broadcasterSlideIndex.value).toBe(5);
+		scope.stop();
+	});
+
+	it('clamps and sanitises incoming cursor + colour', async () => {
+		state.mapValues.clear();
+		state.awarenessStates.clear();
+		const slides = ref<PptxSlide[]>([slide('1')]);
+		const scope = effectScope();
+		const collab = scope.run(() =>
+			useCollaboration({ slides, onRemoteSlides: vi.fn(), canvasWidth: 100, canvasHeight: 100 }),
+		)!;
+		await collab.start(config);
+
+		state.awarenessStates.set(2, {
+			user: { name: 'Mallory', color: 'not-a-color' },
+			cursor: { x: 99999, y: -99999 },
+		});
+		state.awarenessChange?.();
+
+		const cursor = collab.cursors.value[0];
+		expect(cursor.x).toBe(120); // clamped to width + 20px margin
+		expect(cursor.y).toBe(-20); // clamped to 0 - 20px margin
+		expect(cursor.color).toBe('#4c8bf5'); // invalid colour -> safe fallback
+		scope.stop();
+	});
 });

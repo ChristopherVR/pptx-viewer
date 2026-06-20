@@ -46,6 +46,7 @@ import AccessibilityPanel from './components/AccessibilityPanel.vue';
 import BroadcastDialog from './components/BroadcastDialog.vue';
 import CanvasGuides from './components/CanvasGuides.vue';
 import CollaborationCursors from './components/CollaborationCursors.vue';
+import CollaborationStatusIndicator from './components/CollaborationStatusIndicator.vue';
 import CommentsPanel from './components/CommentsPanel.vue';
 import ComparePanel from './components/ComparePanel.vue';
 import ContextMenu from './components/ContextMenu.vue';
@@ -1385,11 +1386,16 @@ function commitComments(next: ReturnType<typeof commentsApi.addComment>): void {
 }
 
 // ── Collaboration (Yjs) ───────────────────────────────────────────────
+const collabCanvasWidth = computed(() => canvasSize.value.width);
+const collabCanvasHeight = computed(() => canvasSize.value.height);
 const collab = useCollaboration({
 	slides,
 	onRemoteSlides: (remote) => {
 		slides.value = remote;
 	},
+	userColor: props.collaboration?.userColor,
+	canvasWidth: collabCanvasWidth,
+	canvasHeight: collabCanvasHeight,
 });
 const shareOpen = ref(false);
 const collabActive = collab.active;
@@ -1410,10 +1416,18 @@ watch(collab.followedSlideIndex, (index) => {
 		goTo(index);
 	}
 });
+// Viewers in a one-way broadcast auto-follow the broadcaster's active slide.
+watch(collab.broadcasterSlideIndex, (index) => {
+	if (index !== null && collab.followedClientId.value === null) {
+		goTo(index);
+	}
+});
 
 function onShareStart(config: CollaborationConfig): void {
-	void collab.start(config);
-	emit('start-collaboration', config);
+	// Two-way collaboration: peers edit together (default role).
+	const collaboratorConfig: CollaborationConfig = { role: 'collaborator', ...config };
+	void collab.start(collaboratorConfig);
+	emit('start-collaboration', collaboratorConfig);
 	shareOpen.value = false;
 }
 function onShareStop(): void {
@@ -1454,8 +1468,15 @@ const broadcastViewerUrl = computed(() => {
 });
 function onBroadcastStart(config: { roomId: string; serverUrl: string }): void {
 	broadcastConfig.value = config;
-	void collab.start({ ...config, userName: props.authorName ?? 'Presenter' });
-	emit('start-collaboration', { ...config, userName: props.authorName ?? 'Presenter' });
+	// One-way broadcast: the presenter owns navigation; viewers auto-follow via
+	// `broadcasterSlideIndex`. The presenter joins with the `owner` role.
+	const broadcastSession: CollaborationConfig = {
+		...config,
+		userName: props.authorName ?? 'Presenter',
+		role: 'owner',
+	};
+	void collab.start(broadcastSession);
+	emit('start-collaboration', broadcastSession);
 	broadcastOpen.value = false;
 }
 function onBroadcastStop(): void {
@@ -2408,6 +2429,18 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					:followed-client-id="collab.followedClientId.value"
 					@follow="collab.followUser"
 				/>
+
+				<!-- Collaboration connection / participant status pill -->
+				<div
+					v-if="collabActive"
+					class="pptx-vue-collab-status-pill pointer-events-auto absolute bottom-2 right-2 z-50 rounded-full border border-border bg-background/90 px-2.5 py-1 shadow-sm backdrop-blur"
+				>
+					<CollaborationStatusIndicator
+						:status="collab.status.value"
+						:connected-count="collab.connectedCount.value"
+						@retry="collab.retry"
+					/>
+				</div>
 
 				<!-- Custom shows -->
 				<CustomShowsPanel

@@ -176,6 +176,12 @@ export * from './format-painter';
 export * from './remap-text';
 export * from './shape-adjustment';
 export * from './hyperlink-security';
+// Real-time collaboration presence: pure validators + sanitisers for inbound
+// Yjs awareness data (room id, username/colour/avatar, cursor clamping, stale
+// drop), deterministic per-user colour, mixed-content (ws:// from https)
+// detection, and the `RemoteCursor` projection. The stateful Yjs provider /
+// awareness lifecycle stays in each binding.
+export * from './collaboration-presence';
 export * from './slide-compare';
 // Morph (PowerPoint Morph transition) — pure element-matching, SVG-path /
 // colour interpolation, text tokenisation, and CSS keyframe generation. The
