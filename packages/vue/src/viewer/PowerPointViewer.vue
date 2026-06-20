@@ -70,6 +70,8 @@ import ThemeEditorPanel from './components/inspector/ThemeEditorPanel.vue';
 import MasterViewSidebar from './components/MasterViewSidebar.vue';
 import MobileBottomBar from './components/MobileBottomBar.vue';
 import MobileSheet from './components/MobileSheet.vue';
+import MobileSlidesSheet from './components/MobileSlidesSheet.vue';
+import MobileToolbar from './components/MobileToolbar.vue';
 import ModalDialog from './components/ModalDialog.vue';
 import NotesPanel from './components/NotesPanel.vue';
 import PresentationMode from './components/PresentationMode.vue';
@@ -1492,12 +1494,24 @@ const mobileNotesOpen = ref(false);
 /** Mobile-only bottom sheets for panels that are right-rail sidebars on desktop. */
 const mobileInspectorOpen = ref(false);
 const mobileCommentsOpen = ref(false);
+/** Mobile-only slide-rail sheet (the slides panel is a left rail on desktop). */
+const mobileSlidesOpen = ref(false);
 
 /** Open one mobile sheet at a time so they don't stack over each other. */
-function openMobileSheet(which: 'format' | 'comments' | 'notes'): void {
+function openMobileSheet(which: 'slides' | 'format' | 'comments' | 'notes'): void {
+	mobileSlidesOpen.value = which === 'slides';
 	mobileInspectorOpen.value = which === 'format';
 	mobileCommentsOpen.value = which === 'comments';
 	mobileNotesOpen.value = which === 'notes';
+}
+
+/**
+ * Quick-insert from the mobile bottom bar: a text box is the most common
+ * starter element on a phone; the full Insert section lives in the top-bar
+ * Menu sheet. Mirrors React's MobileBottomBar `onOpenInsert`.
+ */
+function mobileQuickInsert(): void {
+	addText();
 }
 function present(): void {
 	presenting.value = true;
@@ -2231,6 +2245,12 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 			<!-- Office-style ribbon (desktop): full React-parity chrome -->
 			<RibbonToolbar v-if="!isMobile" v-bind="ribbonProps" />
 
+			<!-- Compact mobile top bar (menu / undo / redo / save / present /
+			     share). The hamburger opens the MobileMenuSheet, which exposes
+			     every ribbon section so the editing tools stay reachable on a
+			     phone where the desktop ribbon is hidden. -->
+			<MobileToolbar v-if="isMobile" v-bind="ribbonProps" />
+
 			<!-- Hidden pickers for Insert ▸ Image / Media -->
 			<input
 				ref="imageInputRef"
@@ -2614,11 +2634,33 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				@zoom-in="zoomIn"
 				@zoom-out="zoomOut"
 				@present="present"
+				@slides="mobileSlidesOpen ? (mobileSlidesOpen = false) : openMobileSheet('slides')"
+				@insert="mobileQuickInsert"
 				@format="mobileInspectorOpen ? (mobileInspectorOpen = false) : openMobileSheet('format')"
 				@comments="mobileCommentsOpen ? (mobileCommentsOpen = false) : openMobileSheet('comments')"
 				@save="downloadAs('pptx')"
 				@notes="mobileNotesOpen ? (mobileNotesOpen = false) : openMobileSheet('notes')"
 				@menu="showSorter = true"
+			/>
+
+			<!-- Mobile slide-rail sheet (the slides panel is a left rail on
+			     desktop, hidden inline on mobile). Reuses SlidesPaneSidebar inside
+			     the shared swipe-dismiss MobileSheet; selecting a slide closes it. -->
+			<MobileSlidesSheet
+				v-if="isMobile"
+				:open="mobileSlidesOpen"
+				:slides="slides"
+				:active-index="activeSlideIndex"
+				:canvas-size="canvasSize"
+				:media-data-urls="mediaDataUrls"
+				:can-edit="props.canEdit"
+				@close="mobileSlidesOpen = false"
+				@select="goTo"
+				@reorder="(p) => slideOps.moveSlide(p.from, p.to)"
+				@add-slide="slideOps.addSlide()"
+				@duplicate="(i) => slideOps.duplicateSlide(i)"
+				@delete="(i) => slideOps.deleteSlide(i)"
+				@toggle-hidden="toggleSlideHidden"
 			/>
 
 			<!-- Mobile speaker-notes sheet (toggled from the bottom bar). Uses the

@@ -29,6 +29,7 @@ import { themeStyle } from '../theme/viewer-theme';
 import { AccessibilityPanelComponent } from './accessibility-panel.component';
 import { AccessibilityService } from './accessibility.service';
 import { BroadcastDialogComponent } from './broadcast-dialog.component';
+import { buildBroadcastViewerUrl } from './broadcast-helpers';
 import type { BroadcastConfig } from './broadcast-helpers';
 import { CollaborationCursorsComponent } from './collaboration-cursors.component';
 import { CollaborationService } from './collaboration.service';
@@ -75,6 +76,7 @@ import { PropertiesDialogComponent } from './properties-dialog.component';
 import { RibbonComponent } from './ribbon.component';
 import { SelectionPaneComponent } from './selection-pane.component';
 import { ShareDialogComponent } from './share-dialog.component';
+import { buildShareUrl } from './share-helpers';
 import { SignaturesPanelComponent } from './signatures-panel.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
@@ -533,7 +535,10 @@ const ZOOM_MAX = 3;
 
 			<pptx-share-dialog
 				[open]="showShare()"
-				[active]="collab.connected()"
+				[active]="collab.active()"
+				[connected]="collab.connected()"
+				[userCount]="collab.connectedCount()"
+				[shareUrl]="shareUrl()"
 				(start)="onShareStart($event)"
 				(stop)="onShareStop()"
 				(close)="showShare.set(false)"
@@ -541,7 +546,10 @@ const ZOOM_MAX = 3;
 
 			<pptx-broadcast-dialog
 				[open]="showBroadcast()"
-				[active]="collab.connected()"
+				[active]="collab.active()"
+				[connected]="collab.connected()"
+				[viewerCount]="collab.presence().length"
+				[viewerUrl]="broadcastViewerUrl()"
 				(start)="onBroadcastStart($event)"
 				(stop)="onBroadcastStop()"
 				(close)="showBroadcast.set(false)"
@@ -817,6 +825,31 @@ export class PowerPointViewerComponent {
 	protected readonly showShare = signal(false);
 	/** Broadcast dialog visibility. */
 	protected readonly showBroadcast = signal(false);
+	/**
+	 * Room/server of the currently active session, used to build the shareable
+	 * join/follow links shown in the dialogs. Null when no session is active.
+	 */
+	protected readonly activeSession = signal<{ roomId: string; serverUrl: string } | null>(null);
+
+	/** Browser location used to assemble share/follow URLs (omitted in SSR). */
+	private readonly browserLocation = (): { origin: string; pathname: string } | undefined =>
+		typeof window === 'undefined'
+			? undefined
+			: { origin: window.location.origin, pathname: window.location.pathname };
+
+	/** Shareable join link for the active collaboration session. */
+	protected readonly shareUrl = computed<string>(() => {
+		const session = this.activeSession();
+		return session ? buildShareUrl(session.roomId, session.serverUrl, this.browserLocation()) : '';
+	});
+
+	/** Shareable follow link for the active broadcast. */
+	protected readonly broadcastViewerUrl = computed<string>(() => {
+		const session = this.activeSession();
+		return session
+			? buildBroadcastViewerUrl(session.roomId, session.serverUrl, this.browserLocation())
+			: '';
+	});
 	/** Local overrides applied to document properties via the Info dialog. */
 	private readonly coreOverride = signal<Partial<PptxCoreProperties>>({});
 	/** Comments on the active slide. */
@@ -976,13 +1009,15 @@ export class PowerPointViewerComponent {
 			this.accessibility.setSlides([...this.displaySlides()]);
 		});
 
-		// Connect / disconnect real-time collaboration when the config changes.
+		// Connect / disconnect real-time collaboration when the host config changes.
 		effect(() => {
 			const config = this.collaboration();
 			if (config) {
+				this.activeSession.set({ roomId: config.roomId, serverUrl: config.serverUrl });
 				void this.collab.connect(config);
 			} else {
 				this.collab.disconnect();
+				this.activeSession.set(null);
 			}
 		});
 	}
@@ -1118,12 +1153,13 @@ export class PowerPointViewerComponent {
 
 	/** Start a real-time collaboration session from the share dialog config. */
 	protected onShareStart(config: CollaborationConfig): void {
+		this.activeSession.set({ roomId: config.roomId, serverUrl: config.serverUrl });
 		void this.collab.connect(config);
-		this.showShare.set(false);
 	}
 
 	protected onShareStop(): void {
 		this.collab.disconnect();
+		this.activeSession.set(null);
 	}
 
 	/** Start broadcasting (presenter as session owner) from the broadcast config. */
@@ -1134,12 +1170,13 @@ export class PowerPointViewerComponent {
 			userName: 'Presenter',
 			role: 'owner',
 		};
+		this.activeSession.set({ roomId: config.roomId, serverUrl: config.serverUrl });
 		void this.collab.connect(collabConfig);
-		this.showBroadcast.set(false);
 	}
 
 	protected onBroadcastStop(): void {
 		this.collab.disconnect();
+		this.activeSession.set(null);
 	}
 
 	/** Horizontal-swipe tracking start coordinates (touch begins on the canvas). */

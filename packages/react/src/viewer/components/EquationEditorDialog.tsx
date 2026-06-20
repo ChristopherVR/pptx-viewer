@@ -265,7 +265,7 @@ export function EquationEditorDialog({
 		>
 			<div
 				style={panelStyle}
-				className='bg-background border border-border rounded-xl shadow-2xl w-[640px] max-h-[85vh] flex flex-col overflow-hidden'
+				className='bg-background border border-border rounded-xl shadow-2xl w-[640px] max-h-[85vh] flex flex-col overflow-hidden max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:max-h-[88dvh] max-md:rounded-t-2xl max-md:rounded-b-none max-md:border-x-0 max-md:border-b-0 max-md:pb-[max(env(safe-area-inset-bottom),0px)]'
 				onClick={(e) => e.stopPropagation()}
 			>
 				{/* Header — also a swipe-down-to-dismiss grab region on touch. */}

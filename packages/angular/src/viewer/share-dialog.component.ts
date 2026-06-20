@@ -23,6 +23,7 @@ import {
 } from '@angular/core';
 
 import type { CollaborationConfig } from '../internal/shared';
+import { canUseClipboard } from './broadcast-helpers';
 import { ModalDialogComponent } from './modal-dialog.component';
 import { buildCollaborationConfig, canStartShare, seedShareFields } from './share-helpers';
 import type { ShareDefaults } from './share-helpers';
@@ -40,7 +41,40 @@ import type { ShareDefaults } from './share-helpers';
 		>
 			@if (active()) {
 				<div class="pptx-ng-share-active">
-					<p class="pptx-ng-share-desc">A collaboration session is currently active.</p>
+					<div class="pptx-ng-share-status-row">
+						<span class="pptx-ng-share-status-dot" [class.is-on]="connected()"></span>
+						<span class="pptx-ng-share-status-text">
+							{{ connected() ? 'Connected' : 'Connecting' }}
+						</span>
+						<span class="pptx-ng-share-count">
+							{{ userCount() }} {{ userCount() === 1 ? 'participant' : 'participants' }}
+						</span>
+					</div>
+
+					@if (shareUrl()) {
+						<div class="pptx-ng-share-field">
+							<label class="pptx-ng-share-label">Share link</label>
+							<div class="pptx-ng-share-link-row">
+								<input
+									class="pptx-ng-share-input"
+									type="text"
+									readonly
+									[value]="shareUrl()"
+									(focus)="selectAll($event)"
+								/>
+								<button
+									type="button"
+									class="pptx-ng-share-btn"
+									[disabled]="!canCopy()"
+									(click)="onCopyLink()"
+								>
+									{{ copied() ? 'Copied' : 'Copy link' }}
+								</button>
+							</div>
+							<p class="pptx-ng-share-hint">Anyone with this link can join and edit with you.</p>
+						</div>
+					}
+
 					<button type="button" class="pptx-ng-share-stop" (click)="handleStop()">
 						Stop sharing
 					</button>
@@ -184,6 +218,46 @@ import type { ShareDefaults } from './share-helpers';
 			.pptx-ng-share-stop:hover {
 				background: rgba(239, 68, 68, 0.2);
 			}
+
+			.pptx-ng-share-status-row {
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				font-size: 0.8125rem;
+			}
+
+			.pptx-ng-share-status-dot {
+				width: 0.5rem;
+				height: 0.5rem;
+				border-radius: 9999px;
+				background: var(--pptx-muted-foreground, #9a9a9a);
+			}
+
+			.pptx-ng-share-status-dot.is-on {
+				background: #22c55e;
+			}
+
+			.pptx-ng-share-status-text {
+				font-weight: 500;
+				color: var(--pptx-foreground, #e5e5e5);
+			}
+
+			.pptx-ng-share-count {
+				margin-left: auto;
+				color: var(--pptx-muted-foreground, #9a9a9a);
+			}
+
+			.pptx-ng-share-link-row {
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+			}
+
+			.pptx-ng-share-hint {
+				margin: 0;
+				font-size: 0.6875rem;
+				color: var(--pptx-muted-foreground, #9a9a9a);
+			}
 		`,
 	],
 })
@@ -194,8 +268,17 @@ export class ShareDialogComponent {
 	/** Prefilled values for the form fields. */
 	readonly defaults = input<ShareDefaults>();
 
-	/** Whether a collaboration session is currently active. */
+	/** Whether a collaboration session is currently active (provider constructed). */
 	readonly active = input<boolean>(false);
+
+	/** Whether the websocket has reported a `connected` status. */
+	readonly connected = input<boolean>(false);
+
+	/** Total connected participants (self + remote peers). */
+	readonly userCount = input<number>(0);
+
+	/** Shareable join link surfaced while the session is active. */
+	readonly shareUrl = input<string>('');
 
 	/** Fired with the assembled config when the user starts sharing. */
 	readonly start = output<CollaborationConfig>();
@@ -209,6 +292,7 @@ export class ShareDialogComponent {
 	readonly roomId = signal('');
 	readonly userName = signal('');
 	readonly serverUrl = signal('');
+	readonly copied = signal(false);
 
 	readonly canStart = computed(() =>
 		canStartShare({
@@ -216,6 +300,10 @@ export class ShareDialogComponent {
 			userName: this.userName(),
 			serverUrl: this.serverUrl(),
 		}),
+	);
+
+	readonly canCopy = computed(() =>
+		canUseClipboard(typeof navigator !== 'undefined' ? navigator : undefined),
 	);
 
 	constructor() {
@@ -232,6 +320,24 @@ export class ShareDialogComponent {
 
 	asValue(event: Event): string {
 		return (event.target as HTMLInputElement).value;
+	}
+
+	selectAll(event: Event): void {
+		(event.target as HTMLInputElement).select();
+	}
+
+	onCopyLink(): void {
+		const url = this.shareUrl();
+		if (!url || !this.canCopy()) {
+			return;
+		}
+		void Promise.resolve(navigator.clipboard.writeText(url)).then(() => {
+			this.copied.set(true);
+			window.setTimeout(() => {
+				this.copied.set(false);
+			}, 2000);
+			return undefined;
+		});
 	}
 
 	handleStart(): void {

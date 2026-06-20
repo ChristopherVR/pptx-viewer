@@ -166,6 +166,34 @@ import {
 			.pptx-ng-modal-footer:empty {
 				display: none;
 			}
+
+			/*
+			 * Mobile: dock the panel full-width at the bottom as a bottom sheet
+			 * (rounded top, dvh-capped height with internal scroll, safe-area
+			 * padding). The backdrop stops centering so the panel can pin itself
+			 * to the bottom edge. Desktop keeps the centered card above.
+			 */
+			@media (max-width: 640px), (pointer: coarse) {
+				.pptx-ng-modal-backdrop {
+					align-items: flex-end;
+					justify-content: stretch;
+				}
+
+				.pptx-ng-modal-panel {
+					min-width: 0;
+					max-width: none;
+					width: 100%;
+					max-height: 88dvh;
+					border-left: none;
+					border-right: none;
+					border-bottom: none;
+					border-top-left-radius: 16px;
+					border-top-right-radius: 16px;
+					border-bottom-left-radius: 0;
+					border-bottom-right-radius: 0;
+					padding-bottom: max(env(safe-area-inset-bottom), 0px);
+				}
+			}
 		`,
 	],
 })
