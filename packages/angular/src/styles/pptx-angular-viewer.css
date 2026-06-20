@@ -313,6 +313,19 @@
 	background: rgba(0, 0, 0, 0.02);
 }
 
+/* Swipe-down grab handle for the inspector host — only meaningful on mobile,
+   where the host docks as a bottom drawer. Hidden on desktop (side panel). */
+.pptx-ng-idrawer-grab {
+	display: none;
+}
+
+.pptx-ng-idrawer-handle {
+	width: 40px;
+	height: 4px;
+	border-radius: 9999px;
+	background: rgba(0, 0, 0, 0.25);
+}
+
 .pptx-ng-slide-props {
 	padding: 0.75rem;
 	display: flex;
@@ -655,6 +668,21 @@
 		max-height: 40vh;
 		border-left: none;
 		border-top: 1px solid var(--pptx-border);
+	}
+
+	/* Reveal the swipe-down grab handle when the host is a mobile bottom drawer. */
+	.pptx-ng-idrawer-grab {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 8px 0 4px;
+		cursor: grab;
+		touch-action: none;
+		-webkit-user-select: none;
+		user-select: none;
+		position: sticky;
+		top: 0;
+		background: inherit;
 	}
 
 	/* Give the canvas the bulk of the vertical space. */

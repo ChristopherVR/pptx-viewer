@@ -309,71 +309,97 @@ const ZOOM_MAX = 3;
 						}
 					</main>
 
-					@if (activePanel() === 'accessibility') {
-						<aside class="pptx-ng-inspector-host" aria-label="Accessibility checker">
-							<pptx-accessibility-panel
-								[issues]="accessibility.issues()"
-								(selectSlide)="goTo($event)"
-							/>
-						</aside>
-					} @else if (activePanel() === 'signatures') {
-						<aside class="pptx-ng-inspector-host" aria-label="Digital signatures">
-							<pptx-signatures-panel [signatures]="loader.signatures()" />
-						</aside>
-					} @else if (activePanel() === 'comments' && canEdit()) {
-						<aside class="pptx-ng-inspector-host" aria-label="Comments">
-							<pptx-comments-panel
-								[comments]="activeComments()"
-								(add)="onCommentAdd($event)"
-								(remove)="onCommentRemove($event)"
-								(resolve)="onCommentResolve($event)"
-							/>
-						</aside>
-					} @else if (activePanel() === 'selection' && canEdit()) {
-						<aside class="pptx-ng-inspector-host" aria-label="Selection pane">
-							<pptx-selection-pane
-								[elements]="activeSlide()?.elements ?? []"
-								[selectedIds]="editor.selectedIds()"
-								(selectElement)="editor.select([$event])"
-								(bringForward)="onSelectionPaneBringForward($event)"
-								(sendBackward)="onSelectionPaneSendBackward($event)"
-								(toggleHidden)="onToggleElementHidden($event)"
-							/>
-						</aside>
-					} @else if (canEdit() && selectedElement(); as el) {
-						<aside class="pptx-ng-inspector-host" aria-label="Element properties">
-							<pptx-inspector-panel [element]="el" [slideIndex]="activeSlideIndex()" />
-						</aside>
-					} @else if (canEdit() && activeSlide(); as sl) {
-						<aside class="pptx-ng-inspector-host" aria-label="Slide properties">
-							<!--
-								Keyed on the active index so the inputs are recreated (and reseeded)
-								only when the slide changes, never on every change-detection pass
-								while typing. This keeps the on-screen keyboard open and the caret
-								stable on mobile.
-							-->
-							@if (slidePropsKey(); as key) {
-								<div class="pptx-ng-slide-props" [attr.data-slide-key]="key">
-									<h2 class="pptx-ng-notes-title">Slide</h2>
-									<label class="pptx-ng-prop-row">
-										<span>Background</span>
-										<input
-											type="color"
-											[attr.value]="sl.backgroundColor || '#ffffff'"
-											(change)="onSlideBackground($event)"
-										/>
-									</label>
-									<label class="pptx-ng-prop-row pptx-ng-prop-col">
-										<span>Notes</span>
-										<textarea
-											rows="5"
-											placeholder="Speaker notes…"
-											(change)="onSlideNotes($event)"
-											(blur)="onSlideNotes($event)"
-											>{{ sl.notes || '' }}</textarea
-										>
-									</label>
-								</div>
+					<!--
+						Single inspector host for every right-rail panel. On mobile it docks
+						full-width below the canvas and is swipe-dismissable (the grab handle
+						feeds onInspectorPointerDown/Move/Up); a downward swipe past the
+						threshold sets mobileInspectorHidden so the user reclaims the canvas.
+					-->
+					@if (visibleInspectorKind(); as kind) {
+						<aside
+							class="pptx-ng-inspector-host"
+							[attr.aria-label]="inspectorLabel()"
+							[style.transform]="
+								inspectorDragY() > 0 ? 'translateY(' + inspectorDragY() + 'px)' : null
+							"
+							[style.transition]="inspectorDragging() ? 'none' : 'transform 150ms ease-out'"
+						>
+							<!-- Swipe-down-to-dismiss grab handle (mobile only; hidden on desktop). -->
+							<div
+								class="pptx-ng-idrawer-grab"
+								(pointerdown)="onInspectorPointerDown($event)"
+								(pointermove)="onInspectorPointerMove($event)"
+								(pointerup)="onInspectorPointerUp($event)"
+								(pointercancel)="onInspectorPointerUp($event)"
+							>
+								<div class="pptx-ng-idrawer-handle"></div>
+							</div>
+							@switch (kind) {
+								@case ('accessibility') {
+									<pptx-accessibility-panel
+										[issues]="accessibility.issues()"
+										(selectSlide)="goTo($event)"
+									/>
+								}
+								@case ('signatures') {
+									<pptx-signatures-panel [signatures]="loader.signatures()" />
+								}
+								@case ('comments') {
+									<pptx-comments-panel
+										[comments]="activeComments()"
+										(add)="onCommentAdd($event)"
+										(remove)="onCommentRemove($event)"
+										(resolve)="onCommentResolve($event)"
+									/>
+								}
+								@case ('selection') {
+									<pptx-selection-pane
+										[elements]="activeSlide()?.elements ?? []"
+										[selectedIds]="editor.selectedIds()"
+										(selectElement)="editor.select([$event])"
+										(bringForward)="onSelectionPaneBringForward($event)"
+										(sendBackward)="onSelectionPaneSendBackward($event)"
+										(toggleHidden)="onToggleElementHidden($event)"
+									/>
+								}
+								@case ('element') {
+									@if (selectedElement(); as el) {
+										<pptx-inspector-panel [element]="el" [slideIndex]="activeSlideIndex()" />
+									}
+								}
+								@case ('slide') {
+									<!--
+										Keyed on the active index so the inputs are recreated (and reseeded)
+										only when the slide changes, never on every change-detection pass
+										while typing. This keeps the on-screen keyboard open and the caret
+										stable on mobile.
+									-->
+									@if (activeSlide(); as sl) {
+										@if (slidePropsKey(); as key) {
+											<div class="pptx-ng-slide-props" [attr.data-slide-key]="key">
+												<h2 class="pptx-ng-notes-title">Slide</h2>
+												<label class="pptx-ng-prop-row">
+													<span>Background</span>
+													<input
+														type="color"
+														[attr.value]="sl.backgroundColor || '#ffffff'"
+														(change)="onSlideBackground($event)"
+													/>
+												</label>
+												<label class="pptx-ng-prop-row pptx-ng-prop-col">
+													<span>Notes</span>
+													<textarea
+														rows="5"
+														placeholder="Speaker notes…"
+														(change)="onSlideNotes($event)"
+														(blur)="onSlideNotes($event)"
+														>{{ sl.notes || '' }}</textarea
+													>
+												</label>
+											</div>
+										}
+									}
+								}
 							}
 						</aside>
 					}
@@ -704,6 +730,65 @@ export class PowerPointViewerComponent {
 	>(null);
 
 	/**
+	 * Which panel the single inspector host should show, applying the original
+	 * first-match precedence (explicit tool panels → element → slide default).
+	 * `accessibility`/`signatures` render regardless of edit mode; the rest need
+	 * `canEdit`.
+	 */
+	protected readonly inspectorContent = computed<
+		'accessibility' | 'signatures' | 'comments' | 'selection' | 'element' | 'slide' | null
+	>(() => {
+		const panel = this.activePanel();
+		if (panel === 'accessibility') {
+			return 'accessibility';
+		}
+		if (panel === 'signatures') {
+			return 'signatures';
+		}
+		if (!this.canEdit()) {
+			return null;
+		}
+		if (panel === 'comments') {
+			return 'comments';
+		}
+		if (panel === 'selection') {
+			return 'selection';
+		}
+		if (this.selectedElement()) {
+			return 'element';
+		}
+		if (this.activeSlide()) {
+			return 'slide';
+		}
+		return null;
+	});
+
+	/** Inspector content, but null on mobile once the user has swiped it away. */
+	protected readonly visibleInspectorKind = computed(() =>
+		this.mobile.isMobile() && this.mobileInspectorHidden() ? null : this.inspectorContent(),
+	);
+
+	/** Accessible label for the inspector host, by active content. */
+	protected readonly inspectorLabel = computed(() => {
+		switch (this.inspectorContent()) {
+			case 'accessibility':
+				return 'Accessibility checker';
+			case 'signatures':
+				return 'Digital signatures';
+			case 'comments':
+				return 'Comments';
+			case 'selection':
+				return 'Selection pane';
+			case 'element':
+				return 'Element properties';
+			case 'slide':
+				return 'Slide properties';
+			default:
+				return '';
+		}
+	});
+
+	/**
 	 * Which mobile bottom-bar slot is currently "active" (highlighted). The
 	 * comments panel maps to the Comments slot; an open notes strip maps to
 	 * Notes; the open slides sheet maps to Slides; otherwise, when an element is
@@ -853,6 +938,14 @@ export class PowerPointViewerComponent {
 			const slides = this.loader.slides();
 			this.editor.setSlides(slides);
 			this.activeSlideIndex.set(0);
+		});
+
+		// Selecting an element re-opens the inspector if a prior swipe had hidden
+		// it on mobile — tapping a shape to edit it should surface its properties.
+		effect(() => {
+			if (this.selectedElement()) {
+				this.mobileInspectorHidden.set(false);
+			}
 		});
 
 		// Emit navigation changes.
@@ -1209,6 +1302,45 @@ export class PowerPointViewerComponent {
 		this.notesDragY.set(0);
 	}
 
+	// ── Mobile inspector (Format/Comments/Selection/…) swipe-to-dismiss ─────────
+	// The inspector host docks in-flow below the canvas on mobile (same keyboard-
+	// reachability reason as the notes sheet), so the swipe gesture is wired here.
+	/** True once the user swiped the inspector away on mobile (until reopened). */
+	protected readonly mobileInspectorHidden = signal(false);
+	/** Live downward drag offset for the inspector host (px; 0 when idle). */
+	protected readonly inspectorDragY = signal(0);
+	/** True while an inspector-host drag is in progress. */
+	protected readonly inspectorDragging = signal(false);
+	private inspectorDragStartY: number | null = null;
+
+	protected onInspectorPointerDown(event: PointerEvent): void {
+		this.inspectorDragStartY = event.clientY;
+		this.inspectorDragging.set(true);
+		(event.target as HTMLElement).setPointerCapture?.(event.pointerId);
+	}
+
+	protected onInspectorPointerMove(event: PointerEvent): void {
+		if (this.inspectorDragStartY === null) {
+			return;
+		}
+		this.inspectorDragY.set(Math.max(0, event.clientY - this.inspectorDragStartY));
+	}
+
+	protected onInspectorPointerUp(event: PointerEvent): void {
+		if (this.inspectorDragStartY === null) {
+			return;
+		}
+		const delta = event.clientY - this.inspectorDragStartY;
+		this.inspectorDragStartY = null;
+		this.inspectorDragging.set(false);
+		(event.target as HTMLElement).releasePointerCapture?.(event.pointerId);
+		if (delta > 120) {
+			this.mobileInspectorHidden.set(true);
+			this.activePanel.set(null);
+		}
+		this.inspectorDragY.set(0);
+	}
+
 	/**
 	 * Mobile quick-insert: drop a text box on the active slide. Mirrors React's
 	 * mobile bottom-bar "Insert" slot (a text box is the most common starter
@@ -1233,11 +1365,15 @@ export class PowerPointViewerComponent {
 	protected onMobileFormat(): void {
 		this.activePanel.set(null);
 		this.mobileSheet.set(null);
+		// Reopen the inspector if a prior swipe-down had dismissed it.
+		this.mobileInspectorHidden.set(false);
 	}
 
 	/** Toggle a right-docked tool panel (clicking the active one closes it). */
 	togglePanel(panel: 'comments' | 'accessibility' | 'signatures' | 'selection'): void {
 		this.activePanel.update((current) => (current === panel ? null : panel));
+		// Tapping a panel button re-opens the host even after a swipe-dismiss.
+		this.mobileInspectorHidden.set(false);
 	}
 
 	/** Receive draw-tool state changes from the ribbon Draw tab. */
