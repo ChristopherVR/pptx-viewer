@@ -7,6 +7,7 @@ import type {
 	PptxChartView3D,
 	PptxTableData,
 } from '../../types';
+import { applyChartAxisGridlinesToXml } from '../../utils/chart-axis-gridlines-serializer';
 import { upsertChartAxisChild } from '../../utils/chart-axis-parser';
 import { applyChartAxisTitleToXml } from '../../utils/chart-axis-title-serializer';
 import { applyChartDataLabelsToXml } from '../../utils/chart-data-labels-serializer';
@@ -468,7 +469,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// numFmt, majorUnit, minorUnit, tickLblPos. Other parsed-but-not-
 				// written chart fields (surfaces/dataTable/dropLines/hiLowLines/
 				// marker/per-point dataLabels/explosion/smooth/
-				// colorPalette/colorMethod, axis txPr/axPos/gridlines) are
+				// colorPalette/colorMethod, axis txPr/axPos/dispUnits) are
 				// preserved via the original XML passthrough but lose any edits
 				// — see OPENXML_PARITY.md M-tier.
 				if (chartData.axes) {
@@ -569,6 +570,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 							// Axis title (undefined = no edit, '' = remove)
 							applyChartAxisTitleToXml(axisNode, matchingAxis.titleText, (key) =>
+								this.compatibilityService.getXmlLocalName(key),
+							);
+
+							// Major/minor gridlines (undefined = no edit)
+							applyChartAxisGridlinesToXml(axisNode, matchingAxis, (key) =>
 								this.compatibilityService.getXmlLocalName(key),
 							);
 						}

@@ -2,12 +2,12 @@ import type { PptxChartAxisFormatting, PptxChart3DSurface, XmlObject } from '../
 import { parseShapeProps } from './chart-series-detail-parser';
 
 interface XmlLookupLike {
-	getChildByLocalName(parent: XmlObject | undefined, name: string): XmlObject | undefined;
-	getChildrenArrayByLocalName(parent: XmlObject | undefined, name: string): XmlObject[];
+	getChildByLocalName: (parent: XmlObject | undefined, name: string) => XmlObject | undefined;
+	getChildrenArrayByLocalName: (parent: XmlObject | undefined, name: string) => XmlObject[];
 }
 
 interface ColorParserLike {
-	parseColor(fillNode: XmlObject | undefined, placeholderColor?: string): string | undefined;
+	parseColor: (fillNode: XmlObject | undefined, placeholderColor?: string) => string | undefined;
 }
 
 function safeInt(val: unknown): number | undefined {
@@ -184,6 +184,7 @@ function parseSingleAxis(
 	// Gridlines
 	const majorGrid = xmlLookup.getChildByLocalName(axisNode, 'majorGridlines');
 	if (majorGrid) {
+		result.majorGridlines = true;
 		result.majorGridlinesSpPr = parseShapeProps(
 			xmlLookup.getChildByLocalName(majorGrid, 'spPr'),
 			xmlLookup,
@@ -193,6 +194,7 @@ function parseSingleAxis(
 
 	const minorGrid = xmlLookup.getChildByLocalName(axisNode, 'minorGridlines');
 	if (minorGrid) {
+		result.minorGridlines = true;
 		result.minorGridlinesSpPr = parseShapeProps(
 			xmlLookup.getChildByLocalName(minorGrid, 'spPr'),
 			xmlLookup,

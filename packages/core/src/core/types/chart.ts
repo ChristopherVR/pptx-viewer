@@ -238,6 +238,10 @@ export interface PptxChartAxisFormatting {
 	fontSize?: number;
 	fontBold?: boolean;
 	fontColor?: string;
+	/** Whether major gridlines are present (`c:majorGridlines`). */
+	majorGridlines?: boolean;
+	/** Whether minor gridlines are present (`c:minorGridlines`). */
+	minorGridlines?: boolean;
 	majorGridlinesSpPr?: PptxChartShapeProps;
 	minorGridlinesSpPr?: PptxChartShapeProps;
 	/** Minimum axis value override (c:min/@val). */

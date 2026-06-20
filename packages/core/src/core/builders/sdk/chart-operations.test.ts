@@ -809,6 +809,14 @@ describe('setChartAxis', () => {
 		expect(el.chartData?.axes?.[0].titleText).toBe('');
 	});
 
+	it('toggles major and minor gridlines', () => {
+		const el = makeTestChart();
+		setChartAxis(el, 'valAx', { majorGridlines: true, minorGridlines: false });
+		const axis = el.chartData?.axes?.find((a) => a.axisType === 'valAx');
+		expect(axis?.majorGridlines).toBeTruthy();
+		expect(axis?.minorGridlines).toBeFalsy();
+	});
+
 	it('leaves unspecified fields unchanged', () => {
 		const el = makeTestChart();
 		el.chartData!.axes = [{ axisType: 'valAx', min: 1, max: 9, majorUnit: 2 }];

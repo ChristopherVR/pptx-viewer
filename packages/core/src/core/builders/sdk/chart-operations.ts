@@ -343,6 +343,10 @@ export interface ChartAxisEdit {
 	tickLabelPosition?: 'high' | 'low' | 'nextTo' | 'none';
 	/** Axis title text. Pass `null` or `''` to remove the title. */
 	title?: string | null;
+	/** Toggle major gridlines. */
+	majorGridlines?: boolean;
+	/** Toggle minor gridlines. */
+	minorGridlines?: boolean;
 }
 
 /**
@@ -396,6 +400,12 @@ export function setChartAxis(
 	if (edit.title !== undefined) {
 		// '' (or null) is retained as a clear marker the save pipeline removes.
 		axis.titleText = edit.title ?? '';
+	}
+	if (edit.majorGridlines !== undefined) {
+		axis.majorGridlines = edit.majorGridlines;
+	}
+	if (edit.minorGridlines !== undefined) {
+		axis.minorGridlines = edit.minorGridlines;
 	}
 }
 
