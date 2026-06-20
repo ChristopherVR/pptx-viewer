@@ -111,7 +111,10 @@ export class SmartArt3DRendererComponent implements OnDestroy {
 			data.resolvedLayoutType,
 			data.layout,
 		);
-		return buildSmartArt3DModel(layout, { background: data.chrome?.backgroundColor });
+		return buildSmartArt3DModel(layout, {
+			background: data.chrome?.backgroundColor,
+			spatial: true,
+		});
 	});
 
 	constructor() {
