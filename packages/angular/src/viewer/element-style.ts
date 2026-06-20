@@ -7,6 +7,7 @@ import {
 	getComputedEffectStyle,
 	getContainerStyle as sharedGetContainerStyle,
 	getImageSrc as sharedGetImageSrc,
+	px,
 } from '../internal/shared';
 import { buildCssGradientFromShapeStyle } from './color-gradient';
 import { buildPatternFillCss } from './color-patterns';
@@ -42,9 +43,6 @@ export function getDuotoneFilterDef(el: PptxElement): DuotoneFilterDef | undefin
 
 /** `[ngStyle]`-compatible style map. */
 export type StyleMap = Record<string, string | number>;
-
-/** Map a number to a CSS pixel string. */
-const px = (n: number): string => `${n}px`;
 
 /**
  * Absolute container style: position, size, rotation, flip, opacity, z-index.

@@ -19,7 +19,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import type { CssStyleMap } from './element-style-transform';
 
 /** Map a number to a CSS pixel string. */
-function px(n: number): string {
+export function px(n: number): string {
 	return `${n}px`;
 }
 

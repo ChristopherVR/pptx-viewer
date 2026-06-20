@@ -11,6 +11,7 @@ import {
 	getContainerStyle as sharedGetContainerStyle,
 	getImageSrc as sharedGetImageSrc,
 	getResolvedShapeClipPath,
+	px,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 
@@ -31,9 +32,6 @@ import { getComputed3dStyle, merge3dStyle } from './visual-3d';
  * hoisted into a shared, framework-agnostic package so all three UI bindings
  * reuse one implementation.
  */
-
-/** Map a value to a CSS pixel string. */
-const px = (n: number): string => `${n}px`;
 
 /**
  * Default text-body insets, in px. Mirrors React's `DEFAULT_BODY_INSET_*_PX`
