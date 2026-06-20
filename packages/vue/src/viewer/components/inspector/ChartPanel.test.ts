@@ -108,4 +108,34 @@ describe('chartPanel', () => {
 		expect(next.grouping).toBe('stacked');
 		expect(next.chartType).toBe('bar');
 	});
+
+	it('renders a colour swatch per series', () => {
+		const wrapper = mount(ChartPanel, {
+			props: {
+				element: chartElement({
+					series: [
+						{ name: 'A', values: [1] },
+						{ name: 'B', values: [2] },
+					],
+				}),
+			},
+		});
+		expect(wrapper.findAll('[data-testid="chart-series-color"]')).toHaveLength(2);
+	});
+
+	it('picking a series colour emits chartData with that colour set on the series', async () => {
+		const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
+		await wrapper.get('[data-testid="chart-series-color"]').setValue('#ff0000');
+
+		const next = lastChartData(wrapper.emitted('update'));
+		expect(next.series[0].color).toBe('#ff0000');
+	});
+
+	it('does not mutate the original element when picking a colour', async () => {
+		const el = chartElement();
+		const wrapper = mount(ChartPanel, { props: { element: el } });
+		await wrapper.get('[data-testid="chart-series-color"]').setValue('#00ff00');
+
+		expect((el as { chartData?: PptxChartData }).chartData?.series[0].color).toBeUndefined();
+	});
 });

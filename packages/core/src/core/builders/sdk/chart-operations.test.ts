@@ -18,6 +18,7 @@ import {
 	updateChartDataPoint,
 	addChartCategory,
 	removeChartCategory,
+	setChartSeriesColor,
 } from './chart-operations';
 import { createChartElement, resetIdCounter } from './ElementFactory';
 
@@ -669,6 +670,60 @@ describe('combined with new operations', () => {
 
 		removeChartSeries(el, 2);
 		expect(el.chartData!.series).toHaveLength(2);
+	});
+});
+
+// ===========================================================================
+// setChartSeriesColor
+// ===========================================================================
+
+describe('setChartSeriesColor', () => {
+	it('sets a series colour from a #-prefixed hex', () => {
+		const el = makeTestChart();
+		setChartSeriesColor(el, 0, '#FF0000');
+		expect(el.chartData?.series[0].color).toBe('#FF0000');
+	});
+
+	it('normalises a bare hex by prefixing #', () => {
+		const el = makeTestChart();
+		setChartSeriesColor(el, 1, '00FF00');
+		expect(el.chartData?.series[1].color).toBe('#00FF00');
+	});
+
+	it('trims surrounding whitespace before normalising', () => {
+		const el = makeTestChart();
+		setChartSeriesColor(el, 0, '  #123456  ');
+		expect(el.chartData?.series[0].color).toBe('#123456');
+	});
+
+	it('clears the colour when passed null', () => {
+		const el = makeTestChart();
+		setChartSeriesColor(el, 0, null);
+		expect(el.chartData?.series[0].color).toBeUndefined();
+	});
+
+	it('clears the colour when passed undefined', () => {
+		const el = makeTestChart();
+		setChartSeriesColor(el, 0, undefined);
+		expect(el.chartData?.series[0].color).toBeUndefined();
+	});
+
+	it('only affects the targeted series', () => {
+		const el = makeTestChart();
+		const otherBefore = el.chartData!.series[1].color;
+		setChartSeriesColor(el, 0, '#ABCDEF');
+		expect(el.chartData?.series[1].color).toBe(otherBefore);
+	});
+
+	it('throws RangeError for an out-of-range series index', () => {
+		const el = makeTestChart();
+		expect(() => setChartSeriesColor(el, 9, '#FFFFFF')).toThrow(RangeError);
+		expect(() => setChartSeriesColor(el, -1, '#FFFFFF')).toThrow(RangeError);
+	});
+
+	it('throws when chartData is missing', () => {
+		const el = makeEmptyChart();
+		expect(() => setChartSeriesColor(el, 0, '#FFFFFF')).toThrow(/no chartData/u);
 	});
 });
 

@@ -280,20 +280,28 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						this.updateChartCacheValues(valNode, true, seriesData.values.map(String));
 					}
 
-					// Update series colour
+					// Update series colour. Create `c:spPr`/`a:solidFill` when the
+					// loaded series has none so an inspector-edited colour always
+					// round-trips, not just when an original fill was present.
 					if (seriesData.color) {
-						const spPr = this.xmlLookupService.getChildByLocalName(seriesNode, 'spPr');
+						const hex = seriesData.color.replace('#', '');
+						const spPr = this.xmlLookupService.getChildByLocalName(seriesNode, 'spPr') as
+							| XmlObject
+							| undefined;
 						if (spPr) {
-							const solidFillKey = Object.keys(spPr).find(
-								(k) => this.compatibilityService.getXmlLocalName(k) === 'solidFill',
-							);
-							if (solidFillKey) {
-								(spPr as XmlObject)[solidFillKey] = {
-									'a:srgbClr': {
-										'@_val': seriesData.color.replace('#', ''),
-									},
-								};
-							}
+							const solidFillKey =
+								Object.keys(spPr).find(
+									(k) => this.compatibilityService.getXmlLocalName(k) === 'solidFill',
+								) ?? 'a:solidFill';
+							spPr[solidFillKey] = { 'a:srgbClr': { '@_val': hex } };
+						} else {
+							const spPrKey =
+								Object.keys(seriesNode).find(
+									(k) => this.compatibilityService.getXmlLocalName(k) === 'spPr',
+								) ?? 'c:spPr';
+							(seriesNode as XmlObject)[spPrKey] = {
+								'a:solidFill': { 'a:srgbClr': { '@_val': hex } },
+							};
 						}
 					}
 

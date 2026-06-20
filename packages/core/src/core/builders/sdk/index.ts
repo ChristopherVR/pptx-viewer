@@ -49,6 +49,7 @@ export {
 	updateChartDataPoint,
 	addChartCategory,
 	removeChartCategory,
+	setChartSeriesColor,
 } from './chart-operations';
 export type { PptxChartLegendPosition, PptxChartAxisType, ChartAxisEdit } from './chart-operations';
 

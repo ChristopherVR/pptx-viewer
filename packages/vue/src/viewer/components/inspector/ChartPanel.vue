@@ -1,6 +1,17 @@
 <script setup lang="ts">
-import type { ChartPptxElement, PptxChartData, PptxChartType, PptxElement } from 'pptx-viewer-core';
-import { chartDataChangeType, setChartGrouping, setChartTitle } from 'pptx-viewer-core';
+import type {
+	ChartPptxElement,
+	PptxChartData,
+	PptxChartSeries,
+	PptxChartType,
+	PptxElement,
+} from 'pptx-viewer-core';
+import {
+	chartDataChangeType,
+	setChartGrouping,
+	setChartSeriesColor,
+	setChartTitle,
+} from 'pptx-viewer-core';
 import { computed } from 'vue';
 
 /**
@@ -60,6 +71,12 @@ const chartData = computed<PptxChartData | null>(() => {
 	return (props.element as ChartPptxElement).chartData ?? null;
 });
 
+/** Series of the current chart, for the per-series colour pickers. */
+const series = computed<readonly PptxChartSeries[]>(() => chartData.value?.series ?? []);
+
+/** Default swatch colour shown for series with no explicit colour set. */
+const DEFAULT_SERIES_COLOR = '#4472c4';
+
 const currentType = computed<PptxChartType | ''>(() => chartData.value?.chartType ?? '');
 const currentTitle = computed<string>(() => chartData.value?.title ?? '');
 const currentGrouping = computed<string>(() => chartData.value?.grouping ?? 'clustered');
@@ -108,6 +125,34 @@ function onTitleInput(event: Event): void {
 	if (next) {
 		emitChartData(next);
 	}
+}
+
+/**
+ * Set or clear a series colour. Builds a chart clone with a fresh series array
+ * (so the SDK op's in-place mutation never touches the live element) and emits
+ * the resulting chart data.
+ */
+function applySeriesColor(seriesIndex: number, color: string | null): void {
+	const data = chartData.value;
+	if (!data) {
+		return;
+	}
+	const clone: ChartPptxElement = {
+		...(props.element as ChartPptxElement),
+		chartData: { ...data, series: data.series.map((s) => ({ ...s })) },
+	};
+	setChartSeriesColor(clone, seriesIndex, color);
+	if (clone.chartData) {
+		emitChartData(clone.chartData);
+	}
+}
+
+function onSeriesColorInput(event: Event, seriesIndex: number): void {
+	applySeriesColor(seriesIndex, (event.target as HTMLInputElement).value);
+}
+
+function onClearSeriesColor(seriesIndex: number): void {
+	applySeriesColor(seriesIndex, null);
 }
 
 function onGroupingChange(event: Event): void {
@@ -174,6 +219,34 @@ function onGroupingChange(event: Event): void {
 					</option>
 				</select>
 			</label>
+
+			<div v-if="series.length > 0" class="pptx-vue-chart-field flex flex-col gap-1">
+				<span class="pptx-vue-chart-label font-semibold text-muted-foreground">Series colours</span>
+				<div
+					v-for="(s, si) in series"
+					:key="`${s.name}-${si}`"
+					class="pptx-vue-chart-series-color flex items-center gap-2"
+				>
+					<span class="flex-1 truncate" :title="s.name">{{ s.name }}</span>
+					<input
+						type="color"
+						class="pptx-vue-chart-swatch h-6 w-8 cursor-pointer rounded border border-border bg-muted p-0"
+						data-testid="chart-series-color"
+						:value="s.color || DEFAULT_SERIES_COLOR"
+						:aria-label="`${s.name} colour`"
+						@input="onSeriesColorInput($event, si)"
+					/>
+					<button
+						v-if="s.color"
+						type="button"
+						class="pptx-vue-chart-clear text-muted-foreground hover:text-red-400 shrink-0"
+						title="Clear series colour"
+						@click="onClearSeriesColor(si)"
+					>
+						×
+					</button>
+				</div>
+			</div>
 		</template>
 	</div>
 </template>

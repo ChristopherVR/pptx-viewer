@@ -494,3 +494,37 @@ export function removeChartCategory(element: ChartPptxElement, categoryIndex: nu
 		series.values.splice(categoryIndex, 1);
 	}
 }
+
+/**
+ * Set (or clear) the solid fill colour of a chart series. Edits round-trip to
+ * the saved `.pptx` (`c:spPr > a:solidFill > a:srgbClr` inside the series).
+ *
+ * Pass a hex colour (`#RRGGBB` or `RRGGBB`, case-insensitive) to set the
+ * series colour, or `null`/`undefined` to clear it so the series falls back to
+ * its automatic theme colour.
+ *
+ * @param element - The chart element to modify.
+ * @param seriesIndex - Zero-based index of the series to recolour.
+ * @param color - Hex colour string, or `null`/`undefined` to clear.
+ * @throws {RangeError} If `seriesIndex` is out of bounds.
+ *
+ * @example
+ * ```ts
+ * setChartSeriesColor(chartEl, 0, "#4472C4");
+ * setChartSeriesColor(chartEl, 0, null); // clear -> back to theme colour
+ * ```
+ */
+export function setChartSeriesColor(
+	element: ChartPptxElement,
+	seriesIndex: number,
+	color: string | null | undefined,
+): void {
+	validateSeriesIndex(element, seriesIndex);
+	const series = element.chartData!.series[seriesIndex];
+	if (!color) {
+		series.color = undefined;
+		return;
+	}
+	const trimmed = color.trim();
+	series.color = trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
+}

@@ -38,6 +38,7 @@ import {
 	removeCategory,
 	removeSeries,
 	setCategoryLabel,
+	setSeriesColor,
 	setSeriesName,
 	setSeriesValue,
 } from './chart-data-helpers';
@@ -118,6 +119,28 @@ import {
 												×
 											</button>
 										}
+										<!-- Series colour picker -->
+										<span class="pptx-chart-editor__color-wrap">
+											<input
+												type="color"
+												class="pptx-chart-editor__color-input"
+												[disabled]="!canEdit()"
+												[value]="s.color || '#4472c4'"
+												title="Series {{ si + 1 }} colour"
+												aria-label="Series {{ si + 1 }} colour"
+												(input)="onSeriesColorChange($event, si)"
+											/>
+											@if (canEdit() && s.color) {
+												<button
+													type="button"
+													class="pptx-chart-editor__remove-btn"
+													title="Clear series {{ si + 1 }} colour"
+													(click)="onClearSeriesColor(si)"
+												>
+													×
+												</button>
+											}
+										</span>
 									</th>
 								}
 							</tr>
@@ -277,6 +300,29 @@ import {
 			vertical-align: middle;
 		}
 
+		.pptx-chart-editor__color-wrap {
+			display: inline-flex;
+			align-items: center;
+			gap: 1px;
+			margin-left: 2px;
+			vertical-align: middle;
+		}
+
+		.pptx-chart-editor__color-input {
+			width: 22px;
+			height: 18px;
+			padding: 0;
+			border: 1px solid var(--pptx-inspector-border, #444);
+			border-radius: 3px;
+			background: transparent;
+			cursor: pointer;
+		}
+
+		.pptx-chart-editor__color-input:disabled {
+			opacity: 0.6;
+			cursor: not-allowed;
+		}
+
 		.pptx-chart-editor__cat-cell {
 			border: 1px solid var(--pptx-inspector-border, #333);
 			padding: 1px;
@@ -377,6 +423,18 @@ export class ChartDataEditorComponent {
 			return;
 		}
 		this.elementChange.emit(setSeriesName(this.element(), seriesIndex, name));
+	}
+
+	protected onSeriesColorChange(event: Event, seriesIndex: number): void {
+		const color = stringFromEvent(event);
+		if (color === null) {
+			return;
+		}
+		this.elementChange.emit(setSeriesColor(this.element(), seriesIndex, color));
+	}
+
+	protected onClearSeriesColor(seriesIndex: number): void {
+		this.elementChange.emit(setSeriesColor(this.element(), seriesIndex, null));
 	}
 
 	protected onCategoryLabelChange(event: Event, catIndex: number): void {

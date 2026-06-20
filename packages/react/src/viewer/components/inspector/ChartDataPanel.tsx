@@ -24,6 +24,7 @@ import { ChartDataGrid } from './ChartDataGrid';
 import { ChartDataLabelOptions } from './ChartDataLabelOptions';
 import { ChartDisplayOptions } from './ChartDisplayOptions';
 import { ChartErrorBarOptions } from './ChartErrorBarOptions';
+import { ChartSeriesColorOptions } from './ChartSeriesColorOptions';
 import { ChartTrendlineOptions } from './ChartTrendlineOptions';
 import { ChartTypeSelector } from './ChartTypeSelector';
 
@@ -150,6 +151,14 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 		[series, updateChartData],
 	);
 
+	// ── Chart series colour (delimited block; keep merge-friendly) ──
+	const setSeriesColor = useCallback(
+		(index: number, color: string | null) => {
+			updateSeries(index, { color: color ?? undefined });
+		},
+		[updateSeries],
+	);
+
 	const updateCategoryLabel = useCallback(
 		(catIndex: number, value: string) => {
 			if (!categories) {
@@ -251,6 +260,9 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 				canEdit={canEdit}
 				onSetErrorBars={setSeriesErrorBars}
 			/>
+
+			{/* ── Series colour picker (delimited block; keep merge-friendly) ── */}
+			<ChartSeriesColorOptions series={series} canEdit={canEdit} onSetColor={setSeriesColor} />
 
 			<ChartDataGrid
 				categories={categories}
