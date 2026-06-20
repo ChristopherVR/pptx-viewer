@@ -38,6 +38,7 @@
 		"changelog": "bunx git-cliff --output CHANGELOG.md",
 		"changelog:latest": "bunx git-cliff --latest --strip header",
 		"changelog:unreleased": "bunx git-cliff --unreleased",
+		"release:plan": "node scripts/release-plan.mjs",
 		"outdated": "bun outdated --filter '*'",
 		"update": "bun update --latest",
 		"collab": "bun demos/demo-react/collab-server.mjs",

@@ -59,20 +59,16 @@ jobs:
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Publishing version: ${VERSION}"
 
-      - name: Update package versions
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          for pkgdir in packages/core packages/react packages/tools packages/vue packages/angular; do
-            node -e "
-              const fs = require('fs');
-              const p = '${pkgdir}/package.json';
-              const data = JSON.parse(fs.readFileSync(p, 'utf8'));
-              data.version = '${VERSION}';
-              fs.writeFileSync(p, JSON.stringify(data, null, '\t') + '\n');
-            "
-          done
+      # Recompute the same release plan the Release workflow used (the changed
+      # set is deterministic from the tag's history), so only packages that were
+      # actually part of this release are versioned and published. `--write`
+      # stamps the release version into each released package's package.json.
+      - name: Plan publish
+        id: plan
+        run: node scripts/release-plan.mjs --write --version ${{ steps.version.outputs.version }}
 
       - name: Prepare react package for publish
+        if: steps.plan.outputs.release_react == 'true'
         # The react package is published as "pptx-react-viewer" on npm,
         # but uses "pptx-viewer" locally for workspace resolution.
         # Replace workspace:* runtime deps with real version ranges, and drop
@@ -100,6 +96,7 @@ jobs:
           "
 
       - name: Prepare vue package for publish
+        if: steps.plan.outputs.release_vue == 'true'
         # Published as "pptx-vue-viewer" (no rename needed).
         # Replace workspace:* runtime deps with real version ranges, and drop
         # build-only workspace devDeps (pptx-viewer-core / pptx-viewer-shared
@@ -125,10 +122,13 @@ jobs:
           "
 
       - name: Prepare angular package for publish
-        # Published from ng-packagr's dist/ (built above).
-        # Patch the baked-in version and pptx-viewer-core range to the release version.
+        if: steps.plan.outputs.release_angular == 'true'
+        # Published from ng-packagr's dist/ (built above). Patch the baked-in
+        # version (release version) and the pptx-viewer-core range (the live core
+        # version, which may differ when core was not part of this release).
         run: |
           VERSION="${{ steps.version.outputs.version }}"
+          CORE_VERSION="${{ steps.plan.outputs.core_version }}"
           node -e "
             const fs = require('fs');
             const p = 'packages/angular/dist/package.json';
@@ -136,12 +136,13 @@ jobs:
             data.version = '${VERSION}';
             for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
               const deps = data[field];
-              if (deps && deps['pptx-viewer-core']) deps['pptx-viewer-core'] = '^${VERSION}';
+              if (deps && deps['pptx-viewer-core']) deps['pptx-viewer-core'] = '^${CORE_VERSION}';
             }
             fs.writeFileSync(p, JSON.stringify(data, null, '\t') + '\n');
           "
 
       - name: Prepare tools package for publish
+        if: steps.plan.outputs.release_tools == 'true'
         # Replace workspace:* references with real version ranges.
         run: |
           VERSION="${{ steps.version.outputs.version }}"
@@ -175,6 +176,7 @@ jobs:
 
       # https://www.npmjs.com/package/pptx-viewer-core
       - name: Publish pptx-viewer-core
+        if: steps.plan.outputs.release_core == 'true'
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           EXISTING=$(npm view pptx-viewer-core@"$VERSION" version 2>/dev/null || echo "")
@@ -189,6 +191,7 @@ jobs:
 
       # https://www.npmjs.com/package/pptx-react-viewer
       - name: Publish pptx-react-viewer
+        if: steps.plan.outputs.release_react == 'true'
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           EXISTING=$(npm view pptx-react-viewer@"$VERSION" version 2>/dev/null || echo "")
@@ -203,6 +206,7 @@ jobs:
 
       # https://www.npmjs.com/package/pptx-vue-viewer
       - name: Publish pptx-vue-viewer
+        if: steps.plan.outputs.release_vue == 'true'
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           EXISTING=$(npm view pptx-vue-viewer@"$VERSION" version 2>/dev/null || echo "")
@@ -218,6 +222,7 @@ jobs:
       # https://www.npmjs.com/package/pptx-angular-viewer
       # Published from ng-packagr's dist/ (see Prepare angular package step).
       - name: Publish pptx-angular-viewer
+        if: steps.plan.outputs.release_angular == 'true'
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           EXISTING=$(npm view pptx-angular-viewer@"$VERSION" version 2>/dev/null || echo "")
@@ -232,6 +237,7 @@ jobs:
 
       # https://www.npmjs.com/package/pptx-viewer-mcp
       - name: Publish pptx-viewer-mcp
+        if: steps.plan.outputs.release_tools == 'true'
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           EXISTING=$(npm view pptx-viewer-mcp@"$VERSION" version 2>/dev/null || echo "")
