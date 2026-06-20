@@ -38,6 +38,7 @@ import {
 	useCollaboration,
 	CollaborationStatusIndicator,
 } from './components/collaboration';
+import { SmartArt3DContext } from './components/elements/smart-art-3d-context';
 import { MobileChromeOverlay } from './components/mobile/MobileChromeOverlay';
 import { SettingsDialog } from './components/SettingsDialog';
 import { ViewerDialogGroup } from './components/ViewerDialogGroup';
@@ -93,6 +94,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			onStartCollaboration,
 			onStopCollaboration,
 			shareDefaults,
+			smartArt3D = false,
 		} = props;
 
 		const themeStyle = useThemeStyle(theme);
@@ -625,25 +627,27 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		);
 
 		return (
-			<ViewerThemeProvider theme={theme}>
-				{collaboration ? (
-					<CollaborationProvider
-						config={collaboration}
-						canvasWidth={canvasSize.width}
-						canvasHeight={canvasSize.height}
-					>
-						<CollaborationDocumentSync slides={slides} setSlides={state.setSlides} />
-						<BroadcastFollowerSync
-							activeSlideIndex={activeSlideIndex}
-							setActiveSlideIndex={state.setActiveSlideIndex}
-							slideCount={slides.length}
-						/>
-						{viewerContent}
-					</CollaborationProvider>
-				) : (
-					viewerContent
-				)}
-			</ViewerThemeProvider>
+			<SmartArt3DContext.Provider value={smartArt3D}>
+				<ViewerThemeProvider theme={theme}>
+					{collaboration ? (
+						<CollaborationProvider
+							config={collaboration}
+							canvasWidth={canvasSize.width}
+							canvasHeight={canvasSize.height}
+						>
+							<CollaborationDocumentSync slides={slides} setSlides={state.setSlides} />
+							<BroadcastFollowerSync
+								activeSlideIndex={activeSlideIndex}
+								setActiveSlideIndex={state.setActiveSlideIndex}
+								slideCount={slides.length}
+							/>
+							{viewerContent}
+						</CollaborationProvider>
+					) : (
+						viewerContent
+					)}
+				</ViewerThemeProvider>
+			</SmartArt3DContext.Provider>
 		);
 	},
 );

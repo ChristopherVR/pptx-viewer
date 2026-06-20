@@ -36,7 +36,7 @@ import { renderImg } from './ImageRenderer';
 import { renderInk, renderGroup, renderContentPart, renderOleElement } from './InkGroupRenderers';
 import { InlineTextEditor } from './InlineTextEditor';
 import { Model3DRenderer } from './Model3DRenderer';
-import { SmartArtRenderer } from './SmartArtRenderer';
+import { SmartArtElement } from './SmartArtElement';
 import { ZoomElementRenderer } from './ZoomElementRenderer';
 
 export function renderBody(
@@ -145,7 +145,7 @@ export function renderBody(
 		return renderChartElement(el);
 	}
 	if (el.type === 'smartArt') {
-		return <SmartArtRenderer element={el} />;
+		return <SmartArtElement element={el} />;
 	}
 	if (el.type === 'media') {
 		return renderMediaElement(el, media, {
