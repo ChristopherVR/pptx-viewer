@@ -160,6 +160,14 @@ export * from './table-merge';
 export * from './table-layout';
 export * from './element-align';
 export * from './element-interaction';
+// Editor lifecycle foundation: `editor-insert` (pure factory functions that
+// build new `PptxElement`s with `id: ''` for the caller to assign), `element-
+// operations` (immutable array transforms: update/move/resize/delete/duplicate
+// + z-order), and `editor-history` (generic `EditorHistory<T>` undo/redo
+// command stack). Each binding wires these into its own editor state layer.
+export * from './editor-insert';
+export * from './element-operations';
+export * from './editor-history';
 // Editor snap geometry: snap-to-shape (siblings + guides → snap lines, React/Vue
 // model), snap-to-box (closest-per-axis span guides, Angular model), grid
 // snapping. Pure maths; the pointer/drag driver stays in each binding.
