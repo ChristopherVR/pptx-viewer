@@ -76,19 +76,19 @@ Binary EMF/WMF → GDI record replay onto Canvas 2D → PNG data URL. Supports 3
 
 - **Mixin pattern**: Runtime modules are in `PptxHandlerRuntime*.ts` files. Each handles one concern. New capabilities are added as new mixins.
 - **Barrel exports**: Every directory has `index.ts`. Import from barrels, not individual files.
-- **Type narrowing**: Always use the `type` discriminant for `PptxElement` — e.g., `if (element.type === "image")`.
+- **Type narrowing**: Always use the `type` discriminant for `PptxElement`, e.g. `if (element.type === "image")`.
 - **EMU units**: PowerPoint uses English Metric Units internally. Conversion constants in `core/constants.ts` (`EMU_PER_INCH = 914400`, `EMU_PER_POINT = 12700`, `EMU_PER_PIXEL = 9525`).
 - **Service interfaces**: Services define `I*` interfaces for DI/testability.
 - **File naming**: kebab-case for utilities, PascalCase for classes. Tests colocated with source (`.test.ts` suffix).
-- **File size — keep every source file ≤ 300 LOC.** No `.vue` / `.ts` / `.tsx`
+- **File size: keep every source file ≤ 300 LOC.** No `.vue` / `.ts` / `.tsx`
   source file should exceed ~300 lines (tests excluded). When a file approaches
   the limit, **split it out** rather than letting it grow: extract pure logic into
   a focused module, lift sub-views into their own components, and group related
   helpers into their own files. A component SFC that declares its own `interface`s
-  or non-trivial computation is a smell — that logic belongs in a composable or a
+  or non-trivial computation is a smell; that logic belongs in a composable or a
   shared module, leaving the SFC as thin presentation. Prefer many small,
   single-purpose files over one large one.
-- **Share framework-agnostic logic — default to `pptx-viewer-shared`.** The vast
+- **Share framework-agnostic logic; default to `pptx-viewer-shared`.** The vast
   majority of each binding's code (React/Vue/Angular) is _not_ framework-specific:
   geometry, style/colour/gradient resolution, text/paragraph/bullet building,
   chart/axis maths, connector routing, animation, OMML/LaTeX, export data, etc.
@@ -96,12 +96,20 @@ Binary EMF/WMF → GDI record replay onto Canvas 2D → PNG data URL. Supports 3
   consumed by every binding. Only the actual view layer (SFC templates / JSX /
   Angular templates + the thin reactive wiring) should live in a binding. When
   porting or adding a feature, put the logic in shared **first**, then have each
-  binding import it — do not reimplement it per framework. Treat a pure helper
+  binding import it, do not reimplement it per framework. Treat a pure helper
   sitting inside `packages/{vue,react,angular}` as an extraction candidate.
+- **No em-dashes; use ASCII punctuation.** Never write the em-dash character
+  (`—`, U+2014) anywhere: source, comments, JSDoc, docs/READMEs, commit
+  messages, or UI copy. Use a colon, comma, semicolon, parentheses, or a
+  spaced hyphen (`-`) instead, whichever reads naturally. The only
+  exception is functional UI/test content that intentionally renders or
+  asserts the character (e.g. a `'—'` "no value" marker, a placeholder
+  option label). The pre-commit tooling does not catch em-dashes, so keeping
+  them out is on you.
 
 ## Branching & Git Workflow
 
-This repo uses **trunk-based development** — commit directly to `main`. **Do not
+This repo uses **trunk-based development**: commit directly to `main`. **Do not
 create feature branches unless the user explicitly asks for one.** This overrides
 any default "branch before committing" assumption.
 
@@ -118,7 +126,7 @@ any default "branch before committing" assumption.
 Commits **must** follow [Conventional Commits](https://www.conventionalcommits.org).
 `CHANGELOG.md` is generated from the commit history by [git-cliff](https://git-cliff.org)
 (config: `cliff.toml`), and the release pipeline derives release notes the same
-way — non-conforming commits are silently dropped from the changelog, so the
+way, so non-conforming commits are silently dropped from the changelog; the
 format is load-bearing, not cosmetic.
 
 Format:
@@ -131,16 +139,16 @@ Format:
 <footer>
 ```
 
-- **type** — one of: `feat`, `fix`, `perf`, `refactor`, `docs`, `test`,
+- **type**: one of `feat`, `fix`, `perf`, `refactor`, `docs`, `test`,
   `build`, `ci`, `style`, `chore`, `revert`. These map to changelog sections
   (see `cliff.toml` → `commit_parsers`). `feat`/`fix`/`perf`/`refactor` are
   user-facing; `chore(deps)` groups dependency bumps.
-- **scope** — optional, the affected package/area: `core`, `react`, `vue`,
-  `shared`, `emf`, `mtx`, `tools`, `ci`, `deps`, etc. Use it — the changelog
+- **scope**: optional, the affected package/area: `core`, `react`, `vue`,
+  `shared`, `emf`, `mtx`, `tools`, `ci`, `deps`, etc. Use it; the changelog
   bolds it.
-- **subject** — imperative mood, lower-case, no trailing period. Keep the first
+- **subject**: imperative mood, lower-case, no trailing period. Keep the first
   line ≤ ~72 chars.
-- **breaking changes** — append `!` after the type/scope (`feat(core)!: …`) or
+- **breaking changes**: append `!` after the type/scope (`feat(core)!: …`) or
   add a `BREAKING CHANGE:` footer.
 
 Examples (from history): `feat(core): typed xml-access helpers`,
@@ -148,7 +156,7 @@ Examples (from history): `feat(core): typed xml-access helpers`,
 dependencies to latest`.
 
 **Authoring tip (tooling):** when committing via a multi-line message, use a
-real heredoc or `git commit -F <file>` — do **not** wrap the message in
+real heredoc or `git commit -F <file>`; do **not** wrap the message in
 `@'…'@` (PowerShell here-string syntax); under `bash`/`sh` the stray `@`
 characters leak into the subject and break Conventional Commit parsing. End
 commit messages with the required `Co-Authored-By:` trailer.
@@ -159,7 +167,7 @@ commit messages with the required `Co-Authored-By:` trailer.
 - **React 19**, **Framer Motion**, **Tailwind CSS 4**, **Lucide React**
 - **Vitest** (testing), **JSZip** (ZIP), **fast-xml-parser** (XML), **html2canvas** + **jsPDF** (export)
 - **Vite** (demo app dev server)
-- **oxfmt** (formatting), **oxlint** (linting) — both from the [oxc](https://oxc.rs) toolchain
+- **oxfmt** (formatting), **oxlint** (linting): both from the [oxc](https://oxc.rs) toolchain
 
 ## Adding a New Element Type
 
