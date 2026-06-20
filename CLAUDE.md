@@ -101,7 +101,7 @@ Binary EMF/WMF → GDI record replay onto Canvas 2D → PNG data URL. Supports 3
 - **No em-dashes; use ASCII punctuation.** Never write the em-dash character
   (`—`, U+2014) anywhere: source, comments, JSDoc, docs/READMEs, commit
   messages, or UI copy. Use a colon, comma, semicolon, parentheses, or a
-  spaced hyphen (`-`) instead, whichever reads naturally. The only
+  spaced hyphen instead, whichever reads naturally. The only
   exception is functional UI/test content that intentionally renders or
   asserts the character (e.g. a `'—'` "no value" marker, a placeholder
   option label). The pre-commit tooling does not catch em-dashes, so keeping
