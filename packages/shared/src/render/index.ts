@@ -84,6 +84,21 @@ export type {
 export { buildComboViewModel, buildStockViewModel } from './chart-combo-stock';
 export { buildSurfaceViewModel, buildTreemapViewModel } from './chart-surface-treemap';
 export {
+	buildFunnelViewModel,
+	buildSunburstViewModel,
+	computeFunnelSegments,
+	computeSunburstArcs,
+} from './chart-funnel-sunburst';
+export type { FunnelSegment, SunburstArc } from './chart-funnel-sunburst';
+export {
+	buildHistogramViewModel,
+	buildBoxWhiskerViewModel,
+	computeHistogramBars,
+	computeBoxStats,
+	computeBoxWhiskerGeometry,
+} from './chart-distribution';
+export type { HistogramBar, BoxStats, BoxWhiskerGeometry } from './chart-distribution';
+export {
 	buildWaterfallViewModel,
 	buildRegionMapViewModel,
 	resolveRegionCode,

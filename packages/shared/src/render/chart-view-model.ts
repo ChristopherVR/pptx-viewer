@@ -29,6 +29,7 @@
  *   bubble -> circle dots sized by a 3rd series
  *   radar / radar3D -> polar polygons + spokes
  *   combo / stock / surface / treemap / waterfall / regionMap -> sibling modules
+ *   funnel / sunburst / histogram / boxWhisker -> sibling modules
  *
  * Supported chart kinds (viewer-first):
  *   bar / column (clustered, stacked, percentStacked) -> bar rects
@@ -40,8 +41,7 @@
  *   radar / radar3D -> polar polygons + spokes
  *
  * Deferred (fallback box rendered instead):
- *   sunburst, funnel, boxWhisker, histogram, bar3D (complex 3-D shading),
- *   secondary axes.
+ *   bar3D (complex 3-D shading), secondary axes.
  *
  * @module chart-view-model
  */
@@ -54,6 +54,8 @@ import type {
 } from 'pptx-viewer-core';
 
 import { buildComboViewModel, buildStockViewModel } from './chart-combo-stock';
+import { buildBoxWhiskerViewModel, buildHistogramViewModel } from './chart-distribution';
+import { buildFunnelViewModel, buildSunburstViewModel } from './chart-funnel-sunburst';
 import {
 	computeAxisTitlePrimitives,
 	computeDataTablePrimitives,
@@ -262,6 +264,7 @@ export interface SvgPath {
 	fill: string;
 	stroke?: string;
 	strokeWidth?: number;
+	opacity?: number;
 }
 
 export interface SvgPolyline {
@@ -784,7 +787,11 @@ export type SupportedChartKind =
 	| 'surface'
 	| 'treemap'
 	| 'waterfall'
-	| 'regionMap';
+	| 'regionMap'
+	| 'funnel'
+	| 'sunburst'
+	| 'histogram'
+	| 'boxWhisker';
 
 export function resolveChartKind(chartType: string): SupportedChartKind | 'unsupported' {
 	switch (chartType) {
@@ -823,6 +830,14 @@ export function resolveChartKind(chartType: string): SupportedChartKind | 'unsup
 			return 'waterfall';
 		case 'regionMap':
 			return 'regionMap';
+		case 'funnel':
+			return 'funnel';
+		case 'sunburst':
+			return 'sunburst';
+		case 'histogram':
+			return 'histogram';
+		case 'boxWhisker':
+			return 'boxWhisker';
 		default:
 			return 'unsupported';
 	}
@@ -881,6 +896,18 @@ export function buildChartViewModel(element: PptxElement): ChartViewModel {
 	}
 	if (kind === 'regionMap') {
 		return buildRegionMapViewModel(element, chartData, categoryLabels);
+	}
+	if (kind === 'funnel') {
+		return buildFunnelViewModel(element, chartData, categoryLabels);
+	}
+	if (kind === 'sunburst') {
+		return buildSunburstViewModel(element, chartData, categoryLabels);
+	}
+	if (kind === 'histogram') {
+		return buildHistogramViewModel(element, chartData, categoryLabels);
+	}
+	if (kind === 'boxWhisker') {
+		return buildBoxWhiskerViewModel(element, chartData, categoryLabels);
 	}
 
 	return buildCartesianViewModel(element, chartData, categoryLabels, kind);

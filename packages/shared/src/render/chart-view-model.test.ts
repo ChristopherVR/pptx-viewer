@@ -580,12 +580,16 @@ describe('resolveChartKind', () => {
 		expect(resolveChartKind('radar3D')).toBe('radar');
 	});
 
+	it('maps funnel, sunburst, histogram and boxWhisker to their own kinds', () => {
+		expect(resolveChartKind('funnel')).toBe('funnel');
+		expect(resolveChartKind('sunburst')).toBe('sunburst');
+		expect(resolveChartKind('histogram')).toBe('histogram');
+		expect(resolveChartKind('boxWhisker')).toBe('boxWhisker');
+	});
+
 	it('maps unknown types to "unsupported"', () => {
-		expect(resolveChartKind('sunburst')).toBe('unsupported');
 		expect(resolveChartKind('unknown')).toBe('unsupported');
-		expect(resolveChartKind('funnel')).toBe('unsupported');
-		expect(resolveChartKind('histogram')).toBe('unsupported');
-		expect(resolveChartKind('boxWhisker')).toBe('unsupported');
+		expect(resolveChartKind('bar3D')).toBe('bar');
 	});
 });
 
@@ -847,7 +851,7 @@ describe('buildChartViewModel - unsupported chart type', () => {
 		width: 400,
 		height: 300,
 		chartData: {
-			chartType: 'funnel' as const,
+			chartType: 'unknown',
 			categories: [],
 			series: [{ name: 'S', values: [1, 2, 3] }],
 		} satisfies PptxChartData,
