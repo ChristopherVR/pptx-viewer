@@ -46,13 +46,57 @@ export interface SmartArt3DHandle {
 
 const FOV = 42;
 
-/** Camera distance that frames a `width x height` plane at the given FOV. */
-function frameDistance(width: number, height: number, aspect: number): number {
+/** A bounding sphere of the 3D content (centre + radius). */
+interface ContentSphere {
+	cx: number;
+	cy: number;
+	cz: number;
+	radius: number;
+}
+
+/** Bounding sphere of all meshes (expanded by footprint/depth) + connectors. */
+function contentSphere(model: SmartArt3DModel): ContentSphere {
+	let minX = Infinity;
+	let minY = Infinity;
+	let minZ = Infinity;
+	let maxX = -Infinity;
+	let maxY = -Infinity;
+	let maxZ = -Infinity;
+	const expand = (x: number, y: number, z: number, r: number): void => {
+		minX = Math.min(minX, x - r);
+		minY = Math.min(minY, y - r);
+		minZ = Math.min(minZ, z - r);
+		maxX = Math.max(maxX, x + r);
+		maxY = Math.max(maxY, y + r);
+		maxZ = Math.max(maxZ, z + r);
+	};
+	for (const m of model.meshes) {
+		const r = Math.max(m.halfWidth, m.halfHeight) + m.depth + m.bevel;
+		expand(m.position.x, m.position.y, m.position.z, r);
+	}
+	for (const c of model.connectors) {
+		for (const p of c.points) {
+			expand(p.x, p.y, p.z, 1);
+		}
+	}
+	if (!Number.isFinite(minX)) {
+		const fallback = Math.max(model.bounds.width, model.bounds.height) / 2 || 1;
+		return { cx: 0, cy: 0, cz: 0, radius: fallback };
+	}
+	return {
+		cx: (minX + maxX) / 2,
+		cy: (minY + maxY) / 2,
+		cz: (minZ + maxZ) / 2,
+		radius: 0.5 * Math.hypot(maxX - minX, maxY - minY, maxZ - minZ) || 1,
+	};
+}
+
+/** Camera distance that frames a bounding sphere of `radius` at the given FOV. */
+function frameDistance(radius: number, aspect: number): number {
 	const vFov = (FOV * Math.PI) / 180;
-	const fitH = height / 2 / Math.tan(vFov / 2);
 	const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
-	const fitW = width / 2 / Math.tan(hFov / 2);
-	return Math.max(fitH, fitW) * 1.18;
+	const minFov = Math.min(vFov, hFov);
+	return (radius / Math.sin(minFov / 2)) * 1.1;
 }
 
 /**
@@ -81,21 +125,22 @@ export function mountSmartArt3D(
 		scene.background = new Color(options.background);
 	}
 
-	const { width: bw, height: bh } = model.bounds;
+	const { cx, cy, cz, radius } = contentSphere(model);
 	const aspect = width / Math.max(1, height);
-	const dist = frameDistance(bw, bh, aspect);
+	const dist = frameDistance(radius, aspect);
 
-	const camera = new PerspectiveCamera(FOV, aspect, 0.1, dist * 8 + 1000);
-	// Slight offset gives the extrusion a readable 3D presence.
-	camera.position.set(bw * 0.12, bh * 0.1, dist);
-	camera.lookAt(0, 0, 0);
+	const camera = new PerspectiveCamera(FOV, aspect, 0.1, dist * 8 + radius * 4);
+	// A slight elevation + offset gives the extrusion/spatial depth a readable
+	// three-quarter presence, framing the content's own centroid.
+	camera.position.set(cx + radius * 0.25, cy + radius * 0.3, cz + dist);
+	camera.lookAt(cx, cy, cz);
 
 	scene.add(new AmbientLight(0xffffff, 0.62));
 	const key = new DirectionalLight(0xffffff, 0.95);
-	key.position.set(bw * 0.4, bh * 0.6, dist);
+	key.position.set(cx + radius, cy + radius * 1.4, cz + dist);
 	scene.add(key);
 	const fill = new DirectionalLight(0xffffff, 0.3);
-	fill.position.set(-bw * 0.5, -bh * 0.3, dist * 0.6);
+	fill.position.set(cx - radius, cy - radius * 0.6, cz + dist * 0.6);
 	scene.add(fill);
 
 	const built = buildMeshGroup(model);
@@ -106,7 +151,7 @@ export function mountSmartArt3D(
 		if (on && !controls) {
 			controls = new OrbitControls(camera, canvas);
 			controls.enablePan = false;
-			controls.target.set(0, 0, 0);
+			controls.target.set(cx, cy, cz);
 			controls.minDistance = dist * 0.4;
 			controls.maxDistance = dist * 3;
 			controls.update();

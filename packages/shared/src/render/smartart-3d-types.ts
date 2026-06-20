@@ -52,6 +52,12 @@ export interface SmartArt3DMesh {
 	opacity: number;
 	/** World-space centre of the mesh (y-up, z = 0 base plane). */
 	position: Vec3;
+	/**
+	 * Euler rotation (radians, XYZ order) applied to the mesh. `{0,0,0}` for the
+	 * extruded (phase 1) layout, where every block faces +z; spatial layouts
+	 * (e.g. the cycle carousel) rotate blocks to face along the arrangement.
+	 */
+	rotation: Vec3;
 	/** Text label drawn on the front (+z) face. */
 	text: string;
 	/** Text colour, `#rrggbb`. */
@@ -81,11 +87,26 @@ export interface SmartArt3DBounds {
 	height: number;
 }
 
+/** The layout family the model was built from (drives the spatial transform). */
+export type SmartArt3DFamily =
+	| 'list'
+	| 'process'
+	| 'cycle'
+	| 'hierarchy'
+	| 'matrix'
+	| 'radial'
+	| 'pyramid'
+	| 'venn'
+	| 'funnel'
+	| 'target';
+
 /** The complete pure 3D model for one SmartArt element. */
 export interface SmartArt3DModel {
 	meshes: SmartArt3DMesh[];
 	connectors: SmartArt3DConnector[];
 	bounds: SmartArt3DBounds;
+	/** Layout family, used to choose a spatial arrangement. */
+	family?: SmartArt3DFamily;
 	/** Optional background chrome colour, `#rrggbb`. */
 	background?: string;
 }
@@ -103,4 +124,11 @@ export interface SmartArt3DModelOptions {
 	bevelRatio?: number;
 	/** Background chrome colour, `#rrggbb`. */
 	background?: string;
+	/**
+	 * Arrange nodes in genuine 3D space per layout family (cycle -> carousel
+	 * ring, hierarchy -> layered tree, pyramid -> stacked tiers) instead of the
+	 * flat extruded layout. Families without a spatial form keep the flat
+	 * layout. Default `false` (phase 1 extruded behaviour).
+	 */
+	spatial?: boolean;
 }

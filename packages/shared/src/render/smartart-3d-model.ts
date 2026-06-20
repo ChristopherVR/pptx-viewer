@@ -15,6 +15,7 @@ import {
 	parseViewBox,
 	roundedRectOutline,
 } from './smartart-3d-geom';
+import { applySpatialLayout } from './smartart-3d-spatial';
 import type {
 	Point2,
 	SmartArt3DConnector,
@@ -98,6 +99,7 @@ function meshForNode(
 		strokeWidth: node.strokeWidth,
 		opacity: node.opacity,
 		position: { x: worldX(centerX), y: worldY(centerY), z: 0 },
+		rotation: { x: 0, y: 0, z: 0 },
 		text: node.text,
 		textColor: contrastTextColor(node.fill),
 		fontSize: node.fontSize,
@@ -140,10 +142,13 @@ export function buildSmartArt3DModel(
 		});
 	}
 
-	return {
+	const model: SmartArt3DModel = {
 		meshes,
 		connectors,
 		bounds: { width: w, height: h },
+		family: layout.family,
 		background: options.background,
 	};
+
+	return options.spatial ? applySpatialLayout(model) : model;
 }

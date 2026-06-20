@@ -11,6 +11,7 @@ import {
 	BufferGeometry,
 	Color,
 	EdgesGeometry,
+	Euler,
 	ExtrudeGeometry,
 	Group,
 	Line,
@@ -74,6 +75,7 @@ function addBlock(group: Group, disposables: Disposable[], m: SmartArt3DMesh): E
 	});
 	const mesh = new Mesh(geo, material);
 	mesh.position.set(m.position.x, m.position.y, m.position.z);
+	mesh.rotation.set(m.rotation.x, m.rotation.y, m.rotation.z);
 	group.add(mesh);
 	disposables.push(geo, material);
 
@@ -82,6 +84,7 @@ function addBlock(group: Group, disposables: Disposable[], m: SmartArt3DMesh): E
 		const lineMaterial = new LineBasicMaterial({ color: new Color(m.stroke) });
 		const line = new LineSegments(edges, lineMaterial);
 		line.position.copy(mesh.position);
+		line.rotation.copy(mesh.rotation);
 		group.add(line);
 		disposables.push(edges, lineMaterial);
 	}
@@ -104,9 +107,12 @@ function addLabel(group: Group, disposables: Disposable[], m: SmartArt3DMesh): v
 		depthWrite: false,
 	});
 	const plane = new Mesh(planeGeo, planeMaterial);
-	// Float just past the front (+z) face, clearing any bevel.
-	const frontZ = m.position.z + m.depth + m.bevel + 0.4;
-	plane.position.set(m.position.x, m.position.y, frontZ);
+	// Float just past the front (+z) face, clearing any bevel, following the
+	// mesh's rotation so the label sits flat on the (possibly rotated) face.
+	const euler = new Euler(m.rotation.x, m.rotation.y, m.rotation.z);
+	const offset = new Vector3(0, 0, m.depth + m.bevel + 0.4).applyEuler(euler);
+	plane.position.set(m.position.x + offset.x, m.position.y + offset.y, m.position.z + offset.z);
+	plane.rotation.copy(euler);
 	group.add(plane);
 	disposables.push(planeGeo, planeMaterial, tex.texture);
 }
