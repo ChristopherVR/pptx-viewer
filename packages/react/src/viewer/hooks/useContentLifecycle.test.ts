@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 // ---------------------------------------------------------------------------
-// useContentLifecycle is a pure composition hook — it delegates to
+// useContentLifecycle is a pure composition hook - it delegates to
 // useLoadContent, useFontInjection, useSerialize, and useAutosave.
 // There is no standalone logic to extract. Instead we verify the
 // exported types compile correctly and the interface contracts match

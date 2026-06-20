@@ -1,5 +1,5 @@
 /**
- * useElementManipulation — Clipboard (copy/cut/paste/duplicate), group/ungroup,
+ * useElementManipulation: Clipboard (copy/cut/paste/duplicate), group/ungroup,
  * delete, flip, align, layer-order, and context-menu dispatch handlers.
  *
  * Handler logic is split across sub-hooks; this module composes them and

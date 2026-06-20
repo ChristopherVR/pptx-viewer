@@ -1,5 +1,5 @@
 /**
- * useBroadcastFollower — Automatically follows the broadcaster's active
+ * useBroadcastFollower: Automatically follows the broadcaster's active
  * slide when the local user has the `viewer` role.
  *
  * Detects the first remote user with `role === 'broadcaster'` and syncs

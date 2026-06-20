@@ -1,5 +1,5 @@
 /**
- * KeepAnnotationsDialog — Prompted when the user exits presentation mode
+ * KeepAnnotationsDialog: Prompted when the user exits presentation mode
  * with ink annotations present. Offers to persist annotations as ink
  * elements on the respective slides, or discard them.
  */

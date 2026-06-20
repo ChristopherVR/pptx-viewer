@@ -1,6 +1,6 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 /**
- * PresenterView — Split-screen presenter layout with current slide,
+ * PresenterView: Split-screen presenter layout with current slide,
  * next slide preview, speaker notes, timer, and navigation controls.
  *
  * Rendered as an absolute overlay when presenterMode is active during
@@ -11,7 +11,7 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
  * `postMessage()` cross-window communication.
  *
  * Keyboard navigation (arrows, space, escape) is handled by the parent
- * `usePresentationKeyboard` hook — this component does NOT register its
+ * `usePresentationKeyboard` hook; this component does NOT register its
  * own keydown listener to avoid double-handling.
  */
 import React, { useCallback, useEffect, useState } from 'react';

@@ -13,7 +13,7 @@ export interface ResizeHandlesProps {
 	forcePointerEvents?: boolean;
 	/** Current element rotation in degrees (the rotate-handle drag baseline). */
 	rotation?: number;
-	/** Element transform sans rotation (flips/skews) — the live-preview base. */
+	/** Element transform sans rotation (flips/skews); the live-preview base. */
 	nonRotationTransform?: string;
 	/** Commit a new rotation (degrees) for the element. Omit to hide the handle. */
 	onRotate?: (elementId: string, rotationDeg: number) => void;
@@ -133,7 +133,7 @@ export function ResizeHandles({
 		if (pointerId !== undefined) {
 			btn.setPointerCapture?.(pointerId);
 		}
-		// Track via Pointer Events only — they fire for both mouse and touch,
+		// Track via Pointer Events only; they fire for both mouse and touch,
 		// matching the rest of the canvas (usePointerHandlers). A plain
 		// `mousemove` listener would miss the touch drag entirely.
 		const apply = (clientX: number, clientY: number, shift: boolean): void => {
@@ -161,7 +161,7 @@ export function ResizeHandles({
 
 	return (
 		<>
-			{/* Corner handles — circular dots */}
+			{/* Corner handles: circular dots */}
 			{CORNER_HANDLES.map(({ handle, posClass, cursor }) => (
 				<button
 					key={handle}
@@ -181,7 +181,7 @@ export function ResizeHandles({
 				</button>
 			))}
 
-			{/* Edge midpoint handles — small rectangles */}
+			{/* Edge midpoint handles: small rectangles */}
 			{EDGE_HANDLES.map(({ handle, posClass, cursor, sizeClass }) => (
 				<button
 					key={handle}
@@ -201,7 +201,7 @@ export function ResizeHandles({
 				</button>
 			))}
 
-			{/* Rotate handle — knob straddling the top-centre edge. It overlaps the
+			{/* Rotate handle: knob straddling the top-centre edge. It overlaps the
 			    element box (bottom half inside) so it stays reliably hit-testable;
 			    children positioned entirely outside the box are not. An invisible
 			    extension enlarges the finger target without moving the visual. */}

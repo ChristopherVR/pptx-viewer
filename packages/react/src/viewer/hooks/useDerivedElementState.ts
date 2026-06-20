@@ -7,7 +7,7 @@ import type {
 	PptxSlideMaster,
 } from 'pptx-viewer-core';
 /**
- * useDerivedElementState — Memoised element and master-view derived state.
+ * useDerivedElementState: Memoised element and master-view derived state.
  *
  * Extracted from useViewerCoreState to keep files under the 300-line limit.
  */

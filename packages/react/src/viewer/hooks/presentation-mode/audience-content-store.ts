@@ -1,5 +1,5 @@
 /**
- * audience-content-store — IndexedDB-based storage for sharing PPTX content
+ * audience-content-store: IndexedDB-based storage for sharing PPTX content
  * between the presenter tab and audience tab.
  *
  * When the presenter opens an audience window, the PPTX bytes are stored in
@@ -97,7 +97,7 @@ export async function loadAudienceContent(): Promise<Uint8Array | null> {
 					}
 					return;
 				}
-				// Legacy format (raw bytes without timestamp) — reject for safety.
+				// Legacy format (raw bytes without timestamp): reject for safety.
 				resolve(null);
 			};
 			request.onerror = () => {

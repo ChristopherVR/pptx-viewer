@@ -1,7 +1,7 @@
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import type { PptxHandler, PptxSlide, PptxElement, TextStyle } from 'pptx-viewer-core';
 /**
- * useEditorOperations — Composes all editor-interaction hooks (element ops,
+ * useEditorOperations: Composes all editor-interaction hooks (element ops,
  * section ops, find/replace, comments, canvas interactions, insert, manipulate,
  * slide management, table operations) into a single return value.
  */

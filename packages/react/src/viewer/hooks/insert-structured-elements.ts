@@ -1,5 +1,5 @@
 /**
- * insert-structured-elements — Factory for SmartArt, equation, hyperlink,
+ * insert-structured-elements: Factory for SmartArt, equation, hyperlink,
  * field, and action-button insertion handlers used by useInsertElements.
  */
 import type {

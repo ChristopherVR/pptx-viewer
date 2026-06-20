@@ -118,7 +118,7 @@ export const HeaderFooterPanel: React.FC<HeaderFooterPanelProps> = ({
 						label={t('pptx.headerFooter.footer')}
 					/>
 
-					{/* Footer text input — only visible when footer is enabled */}
+					{/* Footer text input: only visible when footer is enabled */}
 					{showFooter && (
 						<div className='pl-6'>
 							<input

@@ -62,7 +62,7 @@ function initDocStructure(doc: Y.Doc) {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('collaboration — Yjs CRDT sync', () => {
+describe('collaboration - Yjs CRDT sync', () => {
 	let doc1: Y.Doc;
 	let doc2: Y.Doc;
 
@@ -393,7 +393,7 @@ describe('collaboration — Yjs CRDT sync', () => {
 			expect(elMap1.has('user1-el')).toBeTruthy();
 			expect(elMap1.has('user2-el')).toBeTruthy();
 
-			// User 1 undoes — should only remove user1-el
+			// User 1 undoes: should only remove user1-el
 			um1.undo();
 
 			expect(elMap1.has('user1-el')).toBeFalsy();
@@ -529,7 +529,7 @@ describe('collaboration — Yjs CRDT sync', () => {
 
 			expect(presenceMap2.has('user-1')).toBeTruthy();
 
-			// User disconnects — remove presence
+			// User disconnects: remove presence
 			presenceMap1.delete('user-1');
 
 			expect(presenceMap2.has('user-1')).toBeFalsy();

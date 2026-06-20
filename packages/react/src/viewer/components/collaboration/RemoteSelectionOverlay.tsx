@@ -1,5 +1,5 @@
 /**
- * RemoteSelectionOverlay — Renders colored outlines around elements that
+ * RemoteSelectionOverlay: Renders colored outlines around elements that
  * remote collaborators have selected, with a small name label.
  *
  * Similar to Google Slides / PowerPoint Online collaboration indicators.
@@ -18,7 +18,7 @@ import { useCollaboration } from './CollaborationProvider';
 export interface RemoteSelectionOverlayProps {
 	/** Elements on the active slide (used to look up position/size). */
 	elements: PptxElement[];
-	/** The current slide index — only show selections on the same slide. */
+	/** The current slide index; only show selections on the same slide. */
 	activeSlideIndex: number;
 }
 

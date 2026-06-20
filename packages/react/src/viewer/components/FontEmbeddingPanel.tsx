@@ -16,7 +16,7 @@ export interface FontEmbeddingPanelProps {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers — browser font detection via document.fonts
+// Helpers: browser font detection via document.fonts
 // ---------------------------------------------------------------------------
 
 function checkFontAvailable(family: string): boolean {

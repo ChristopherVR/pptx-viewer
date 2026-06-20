@@ -1,5 +1,5 @@
 /*
- * pptx-viewer — self-contained stylesheet
+ * pptx-viewer: self-contained stylesheet
  *
  * Import this file if your project does NOT already provide Tailwind CSS
  * with the semantic color tokens (background, foreground, primary, etc.).
@@ -11,7 +11,7 @@
  * properties in your own CSS.
  *
  * If your project already uses Tailwind CSS with shadcn/ui-style tokens,
- * you do NOT need to import this file — just pass a `theme` prop if you
+ * you do NOT need to import this file; just pass a `theme` prop if you
  * want to override specific values.
  */
 

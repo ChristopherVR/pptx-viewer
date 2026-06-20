@@ -1,5 +1,5 @@
 /**
- * ResizeHandle — A draggable edge handle for resizing panels.
+ * ResizeHandle: A draggable edge handle for resizing panels.
  *
  * Renders a thin interactive strip along one edge of a panel that can
  * be dragged to resize. Uses pointer events for mouse + touch support.
@@ -79,7 +79,7 @@ export function ResizeHandle({
 			)}
 			onPointerDown={handlePointerDown}
 		>
-			{/* Visible thin line — centered within the wider hit area */}
+			{/* Visible thin line: centered within the wider hit area */}
 			<div
 				className={cn(
 					'absolute transition-colors',

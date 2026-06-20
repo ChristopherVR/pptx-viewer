@@ -375,10 +375,10 @@ describe('sanitizePresence', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Edge cases — additional coverage
+// Edge cases: additional coverage
 // ---------------------------------------------------------------------------
 
-describe('validateRoomId — edge cases', () => {
+describe('validateRoomId - edge cases', () => {
 	it('accepts single-character room IDs', () => {
 		expect(validateRoomId('a')).toBe('a');
 		expect(validateRoomId('Z')).toBe('Z');
@@ -403,7 +403,7 @@ describe('validateRoomId — edge cases', () => {
 	});
 });
 
-describe('sanitizeUserName — edge cases', () => {
+describe('sanitizeUserName - edge cases', () => {
 	it('handles nested HTML tags', () => {
 		expect(sanitizeUserName('<div><span>Name</span></div>')).toBe('Name');
 	});
@@ -428,11 +428,11 @@ describe('sanitizeUserName — edge cases', () => {
 	});
 });
 
-describe('clampCursorPosition — edge cases', () => {
+describe('clampCursorPosition - edge cases', () => {
 	it('clamps exactly at the boundary', () => {
-		// At max (960) — should be within bounds since max+20 = 980
+		// At max (960): should be within bounds since max+20 = 980
 		expect(clampCursorPosition(960, 0, 960)).toBe(960);
-		// At min (0) — within bounds since min-20 = -20
+		// At min (0): within bounds since min-20 = -20
 		expect(clampCursorPosition(0, 0, 960)).toBe(0);
 	});
 
@@ -457,7 +457,7 @@ describe('clampCursorPosition — edge cases', () => {
 	});
 });
 
-describe('sanitizeColor — edge cases', () => {
+describe('sanitizeColor - edge cases', () => {
 	it('rejects 3-character shorthand hex', () => {
 		expect(sanitizeColor('#abc')).toBe('#6366f1');
 	});
@@ -483,7 +483,7 @@ describe('sanitizeColor — edge cases', () => {
 	});
 });
 
-describe('sanitizeAvatarUrl — edge cases', () => {
+describe('sanitizeAvatarUrl - edge cases', () => {
 	it('rejects ftp: URLs', () => {
 		expect(sanitizeAvatarUrl('ftp://evil.com/file.png')).toBeUndefined();
 	});
@@ -512,7 +512,7 @@ describe('sanitizeAvatarUrl — edge cases', () => {
 	});
 });
 
-describe('sanitizeSlideIndex — edge cases', () => {
+describe('sanitizeSlideIndex - edge cases', () => {
 	it('handles very large numbers', () => {
 		expect(sanitizeSlideIndex(999999)).toBe(999999);
 	});

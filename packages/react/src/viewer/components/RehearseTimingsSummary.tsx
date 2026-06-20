@@ -1,6 +1,6 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 /**
- * RehearseTimingsSummary — Dialog shown after rehearsal ends.
+ * RehearseTimingsSummary: Dialog shown after rehearsal ends.
  * Displays recorded per-slide timings and total time, with
  * Save / Discard actions.
  */

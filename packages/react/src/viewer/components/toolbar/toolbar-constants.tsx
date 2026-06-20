@@ -34,7 +34,7 @@ import {
 
 import type { DrawingTool, ViewerMode } from '../../types';
 
-/* Style tokens — touch-friendly variants use min-h/min-w of 44px (WCAG 2.5.8)
+/* Style tokens: touch-friendly variants use min-h/min-w of 44px (WCAG 2.5.8)
  * via the `touch:` variant which maps to `@media (pointer: coarse)`.
  * Since Tailwind CSS 4 doesn't include a built-in `touch:` variant, we use
  * responsive `max-md:` prefixes as a proxy (mobile viewports are touch). */

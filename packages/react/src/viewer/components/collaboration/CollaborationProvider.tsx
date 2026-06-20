@@ -1,5 +1,5 @@
 /**
- * CollaborationProvider — React context provider for real-time collaboration.
+ * CollaborationProvider: React context provider for real-time collaboration.
  *
  * Wraps the viewer content and exposes collaboration state (connection status,
  * remote user presence, broadcast function) to all child components via

@@ -1,9 +1,9 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 /**
- * NotesPageLayout — Renders a print-ready preview of slides in notes page format.
+ * NotesPageLayout: Renders a print-ready preview of slides in notes page format.
  *
  * Each page shows one slide thumbnail on the top half and the slide's
- * speaker notes text below — the standard PowerPoint "Notes Page" print layout.
+ * speaker notes text below: the standard PowerPoint "Notes Page" print layout.
  */
 import React from 'react';
 import { useTranslation } from 'react-i18next';

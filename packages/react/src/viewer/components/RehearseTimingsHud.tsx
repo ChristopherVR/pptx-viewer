@@ -1,5 +1,5 @@
 /**
- * RehearseTimingsHud — Timing overlay shown during rehearsal mode.
+ * RehearseTimingsHud: Timing overlay shown during rehearsal mode.
  * Displays per-slide time, total elapsed time, and a pause button.
  */
 import React, { useEffect, useState } from 'react';
@@ -58,7 +58,7 @@ export function RehearseTimingsHud({
 	const slideElapsed = slideStartTime !== null ? now - slideStartTime : 0;
 	const totalElapsed = presentationStartTime !== null ? now - presentationStartTime : 0;
 
-	// Suppress unused variable warning — tick drives re-renders
+	// Suppress unused variable warning: tick drives re-renders
 	void tick;
 
 	return (

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 // ---------------------------------------------------------------------------
 // We test the *exported types and logic paths* of useAutosave by extracting
 // and exercising the pure decision points. The actual React hook wiring
-// (useState, useEffect, useRef, useCallback) is not tested here — those are
+// (useState, useEffect, useRef, useCallback) is not tested here - those are
 // React framework responsibilities.  Instead we verify:
 //   1. The AutosaveStatus type shape / discriminated union.
 //   2. Integration with computeAutosaveIntervalMs (via re-import).
@@ -16,7 +16,7 @@ import {
 } from './useAutosave-helpers';
 
 // ---------------------------------------------------------------------------
-// getElectronApi — pure logic test (typeof window branch)
+// getElectronApi: pure logic test (typeof window branch)
 // ---------------------------------------------------------------------------
 
 function getElectronApi(

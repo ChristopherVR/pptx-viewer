@@ -1,4 +1,4 @@
-/** PrintSettingsPanel — Settings form for the print dialog. */
+/** PrintSettingsPanel: Settings form for the print dialog. */
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuFileText, LuGrid2X2, LuStickyNote, LuList } from 'react-icons/lu';
@@ -196,7 +196,7 @@ export function PrintSettingsPanel({
 				</div>
 			</fieldset>
 
-			{/* Orientation — only for full-page slides */}
+			{/* Orientation: only for full-page slides */}
 			{printWhat === 'slides' && (
 				<fieldset>
 					<legend className='text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide'>

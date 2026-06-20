@@ -629,7 +629,7 @@ export function renderOleElement(el: OlePptxElement) {
 		);
 	}
 
-	// No preview image — render a type-specific styled placeholder.
+	// No preview image; render a type-specific styled placeholder.
 	const color = getOleTypeColor(oleType);
 	const label = getOleTypeLabel(oleType);
 	const displayName = el.fileName ?? label;

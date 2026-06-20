@@ -1,7 +1,7 @@
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide, ShapeStyle, TextStyle } from 'pptx-viewer-core';
 /**
- * useElementOperations — Element update callbacks for PowerPointViewer.
+ * useElementOperations: Element update callbacks for PowerPointViewer.
  *
  * Provides selection helpers and element mutation functions that act on
  * the current slide / template layer.
@@ -170,7 +170,7 @@ export function useElementOperations(input: UseElementOperationsInput): ElementO
 				return;
 			}
 
-			// No inline selection — apply to the entire element (existing behavior)
+			// No inline selection: apply to the entire element (existing behavior)
 			const newTextStyle = { ...selectedElement.textStyle, ...updates };
 			const newSegments = selectedElement.textSegments?.map((seg: { style: TextStyle }) => ({
 				...seg,
@@ -197,7 +197,7 @@ export function useElementOperations(input: UseElementOperationsInput): ElementO
 	// placeholder here that the main component can override or skip.
 	const serializeSlides = useCallback(async (): Promise<Uint8Array | null> => {
 		// Actual serialisation is handled in PowerPointViewer.tsx via
-		// handlerRef.current.save() — this hook does not own the handler.
+		// handlerRef.current.save(): this hook does not own the handler.
 		return null;
 	}, []);
 

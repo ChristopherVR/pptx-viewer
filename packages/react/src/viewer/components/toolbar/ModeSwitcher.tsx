@@ -46,7 +46,7 @@ export function ModeSwitcher({
 		);
 	}
 
-	// Present dropdown only — view mode buttons moved to status bar
+	// Present dropdown only; view mode buttons moved to status bar
 	return (
 		<PresentDropdown
 			isActive={mode === 'present'}

@@ -1,6 +1,6 @@
 import type { PptxSlide, PptxElement } from 'pptx-viewer-core';
 /**
- * Tests for useYjsDocumentSync — verifies the synchronisation logic between
+ * Tests for useYjsDocumentSync: verifies the synchronisation logic between
  * local PptxSlide[] state and a Yjs Y.Map for real-time collaboration.
  *
  * Since the hook is driven by useEffect callbacks, we test the underlying
@@ -98,7 +98,7 @@ function makeSlides(count: number): PptxSlide[] {
 }
 
 // ---------------------------------------------------------------------------
-// Sync helpers — extracted logic mirroring useYjsDocumentSync internals
+// Sync helpers: extracted logic mirroring useYjsDocumentSync internals
 // ---------------------------------------------------------------------------
 
 /**
@@ -208,7 +208,7 @@ describe('useYjsDocumentSync (logic)', () => {
 	describe('when doc is null', () => {
 		it('does not error and performs no writes', () => {
 			const slides = makeSlides(2);
-			// Using null doc directly — should not throw
+			// Using null doc directly: should not throw
 			const result = syncLocalToDoc(null as unknown as MockYDoc, slides, {
 				isConnected: true,
 				isApplyingRemote: false,
@@ -500,7 +500,7 @@ describe('useYjsDocumentSync (logic)', () => {
 				map.set(`slide-${i}`, JSON.stringify(hostSlides[i]));
 			}
 
-			// Joiner reads the data — simulating the handleUpdate() call
+			// Joiner reads the data: simulating the handleUpdate() call
 			// that runs on first connect
 			const result = readRemoteFromDoc(doc, '');
 			expect(result).not.toBeNull();

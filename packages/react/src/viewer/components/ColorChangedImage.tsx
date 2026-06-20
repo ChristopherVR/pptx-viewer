@@ -3,7 +3,7 @@ import type { PptxImageEffects } from 'pptx-viewer-core';
  * React component that renders an image with the `<a:clrChange>` colour
  * replacement effect applied via an offscreen canvas.
  *
- * Processing is asynchronous — the original image is shown briefly while the
+ * Processing is asynchronous: the original image is shown briefly while the
  * canvas work completes, then the processed image replaces it. Results are
  * cached so subsequent renders are instant.
  */
@@ -61,7 +61,7 @@ export function ColorChangedImage({
 	const [processedSrc, setProcessedSrc] = useState<string | null>(cached ?? null);
 
 	useEffect(() => {
-		// Already cached — nothing to do.
+		// Already cached, nothing to do.
 		if (getCachedResult(cacheKey)) {
 			setProcessedSrc(getCachedResult(cacheKey) ?? null);
 			return;

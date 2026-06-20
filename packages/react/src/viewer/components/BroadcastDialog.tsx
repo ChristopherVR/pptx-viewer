@@ -1,5 +1,5 @@
 /**
- * BroadcastDialog — Modal dialog for starting / managing a live broadcast.
+ * BroadcastDialog: Modal dialog for starting / managing a live broadcast.
  *
  * A broadcast is a collaboration session where the presenter (broadcaster)
  * shares their slide navigation and cursor with viewers in real-time.

@@ -1,5 +1,5 @@
 /**
- * ViewerMainContent — The primary content area containing sidebars,
+ * ViewerMainContent: The primary content area containing sidebars,
  * canvas, context menu, and side panels.
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';

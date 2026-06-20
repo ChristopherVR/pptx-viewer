@@ -1,5 +1,5 @@
 /**
- * CollaborationStatusIndicator — A small status pill that shows the
+ * CollaborationStatusIndicator: A small status pill that shows the
  * WebSocket connection state and connected user count.
  *
  * Designed to sit in the status bar area at the bottom of the viewer.

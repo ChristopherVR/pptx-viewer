@@ -1,5 +1,5 @@
 /**
- * LinkTooltip — PowerPoint-style tooltip for actionable elements and hyperlinks.
+ * LinkTooltip: PowerPoint-style tooltip for actionable elements and hyperlinks.
  *
  * Shows the link destination and a "Ctrl+Click to follow link" hint.
  * Uses CSS group-hover for zero-state, zero-rerender display logic.

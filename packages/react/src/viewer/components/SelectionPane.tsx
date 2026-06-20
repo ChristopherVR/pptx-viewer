@@ -1,7 +1,7 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 /**
- * Selection Pane — lists all elements on the active slide with
+ * Selection Pane: lists all elements on the active slide with
  * visibility toggles, rename-on-double-click, and drag-to-reorder.
  */
 import React, { useState, useCallback, useRef } from 'react';
@@ -128,7 +128,7 @@ export function SelectionPane({
 	);
 
 	const commitRename = useCallback(() => {
-		// Renaming is cosmetic — we don't have a `name` field on PptxElement,
+		// Renaming is cosmetic; we don't have a `name` field on PptxElement,
 		// so we just clear the editing state. In a full implementation this
 		// would persist to element metadata.
 		setEditingId(null);

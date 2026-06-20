@@ -121,7 +121,7 @@ beforeEach(() => {
 // ---------------------------------------------------------------------------
 // 1. Renders start session form when not active
 // ---------------------------------------------------------------------------
-describe('shareDialog — start session form', () => {
+describe('shareDialog - start session form', () => {
 	it('renders session name, display name, and server URL inputs when not active', () => {
 		const html = render(React.createElement(ShareDialog, createProps()));
 
@@ -152,7 +152,7 @@ describe('shareDialog — start session form', () => {
 // ---------------------------------------------------------------------------
 // 2. Start button disabled when fields empty
 // ---------------------------------------------------------------------------
-describe('shareDialog — start button validation', () => {
+describe('shareDialog - start button validation', () => {
 	it('disables start button when userName is empty', () => {
 		// Default props have no userName set (empty string)
 		const html = render(
@@ -190,7 +190,7 @@ describe('shareDialog — start button validation', () => {
 // ---------------------------------------------------------------------------
 // 3. Renders active session view when connected
 // ---------------------------------------------------------------------------
-describe('shareDialog — active session view', () => {
+describe('shareDialog - active session view', () => {
 	it('shows Collaboration Active header when connected', () => {
 		mockCollabValue = createConnectedCollab();
 		const html = render(React.createElement(ShareDialog, createProps()));
@@ -228,7 +228,7 @@ describe('shareDialog — active session view', () => {
 // ---------------------------------------------------------------------------
 // 4. Copy URL contains room and server params
 // ---------------------------------------------------------------------------
-describe('shareDialog — share URL', () => {
+describe('shareDialog - share URL', () => {
 	it('renders room ID and server URL in the session details', () => {
 		// In SSR (typeof window === 'undefined'), the share link URL falls
 		// back to just collab.config.roomId. We verify the room and server
@@ -263,7 +263,7 @@ describe('shareDialog — share URL', () => {
 // ---------------------------------------------------------------------------
 // 5. Shows user count when active
 // ---------------------------------------------------------------------------
-describe('shareDialog — user count', () => {
+describe('shareDialog - user count', () => {
 	it('shows "1 user" when only local user is connected', () => {
 		mockCollabValue = createConnectedCollab({ connectedCount: 1 });
 		const html = render(React.createElement(ShareDialog, createProps()));
@@ -304,7 +304,7 @@ describe('shareDialog — user count', () => {
 // ---------------------------------------------------------------------------
 // 6. Preconfigured mode makes fields readonly
 // ---------------------------------------------------------------------------
-describe('shareDialog — preconfigured mode', () => {
+describe('shareDialog - preconfigured mode', () => {
 	it('sets input fields to readonly when preconfigured is true', () => {
 		const html = render(
 			React.createElement(
@@ -336,7 +336,7 @@ describe('shareDialog — preconfigured mode', () => {
 // ---------------------------------------------------------------------------
 // 7. Close button calls onClose (structural check)
 // ---------------------------------------------------------------------------
-describe('shareDialog — close button', () => {
+describe('shareDialog - close button', () => {
 	it('renders a close button with aria-label', () => {
 		const html = render(React.createElement(ShareDialog, createProps()));
 		expect(html).toContain('aria-label="Close"');
@@ -356,7 +356,7 @@ describe('shareDialog — close button', () => {
 // ---------------------------------------------------------------------------
 // 8. Shows default values
 // ---------------------------------------------------------------------------
-describe('shareDialog — default values', () => {
+describe('shareDialog - default values', () => {
 	it('populates session name from defaultRoomId', () => {
 		const html = render(
 			React.createElement(ShareDialog, createProps({ defaultRoomId: 'custom-room-42' })),
@@ -387,7 +387,7 @@ describe('shareDialog — default values', () => {
 // ---------------------------------------------------------------------------
 // 9. Returns null when not open
 // ---------------------------------------------------------------------------
-describe('shareDialog — closed state', () => {
+describe('shareDialog - closed state', () => {
 	it('returns empty HTML when open is false', () => {
 		const html = render(React.createElement(ShareDialog, createProps({ open: false })));
 		// renderToStaticMarkup returns empty string for null
@@ -398,7 +398,7 @@ describe('shareDialog — closed state', () => {
 // ---------------------------------------------------------------------------
 // 10. Dialog accessibility
 // ---------------------------------------------------------------------------
-describe('shareDialog — accessibility', () => {
+describe('shareDialog - accessibility', () => {
 	it('renders with dialog role and aria-modal', () => {
 		const html = render(React.createElement(ShareDialog, createProps()));
 		expect(html).toContain('role="dialog"');
@@ -414,7 +414,7 @@ describe('shareDialog — accessibility', () => {
 // ---------------------------------------------------------------------------
 // 11. Session details when active
 // ---------------------------------------------------------------------------
-describe('shareDialog — session details', () => {
+describe('shareDialog - session details', () => {
 	it('shows room and server info', () => {
 		mockCollabValue = createConnectedCollab({
 			config: {

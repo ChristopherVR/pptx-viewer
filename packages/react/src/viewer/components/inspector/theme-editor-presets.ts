@@ -1,7 +1,7 @@
 import type { PptxThemeColorScheme } from 'pptx-viewer-core';
 
 // ---------------------------------------------------------------------------
-// Preset theme definitions — actual Microsoft Office colour palettes
+// Preset theme definitions: actual Microsoft Office colour palettes
 // ---------------------------------------------------------------------------
 
 export interface PresetTheme {

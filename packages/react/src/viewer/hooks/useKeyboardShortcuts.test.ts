@@ -14,7 +14,7 @@ const NUDGE_SMALL = 2;
 const NUDGE_LARGE = 20;
 
 // ---------------------------------------------------------------------------
-// Extracted pure dispatch function — mirrors the handleKeyDown closure
+// Extracted pure dispatch function: mirrors the handleKeyDown closure
 // ---------------------------------------------------------------------------
 
 interface ShortcutInput {
@@ -73,7 +73,7 @@ function resolveShortcutAction(
 		return { action: null };
 	}
 
-	// Escape — always handled
+	// Escape: always handled
 	if (key === 'Escape') {
 		return { action: 'escape' };
 	}
@@ -169,7 +169,7 @@ function defaultInput(overrides: Partial<ShortcutInput> = {}): ShortcutInput {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('useKeyboardShortcuts — shortcut dispatch logic', () => {
+describe('useKeyboardShortcuts: shortcut dispatch logic', () => {
 	// ── Guard conditions ──────────────────────────────────────────────
 	describe('guard conditions', () => {
 		it('should return null in present mode', () => {

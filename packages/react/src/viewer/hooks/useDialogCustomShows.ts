@@ -1,6 +1,6 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 /**
- * Custom shows dialog handlers — extracted from useViewerDialogs.
+ * Custom shows dialog handlers: extracted from useViewerDialogs.
  */
 import { useMemo } from 'react';
 

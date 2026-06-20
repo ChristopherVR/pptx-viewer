@@ -1,5 +1,5 @@
 /**
- * HandoutLayout — Renders a print-ready preview of slides in handout format.
+ * HandoutLayout: Renders a print-ready preview of slides in handout format.
  *
  * Supports 1, 2, 3, 4, 6, and 9 slides per page.
  * The 3-per-page layout includes ruled note lines on the right.

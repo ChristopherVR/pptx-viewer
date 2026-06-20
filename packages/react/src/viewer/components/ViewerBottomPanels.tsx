@@ -1,5 +1,5 @@
 /**
- * ViewerBottomPanels — SlideNotesPanel + StatusBar wrapper.
+ * ViewerBottomPanels: SlideNotesPanel + StatusBar wrapper.
  *
  * Renders the bottom section of the viewer (notes panel and status bar)
  * when the viewer is not in presentation mode.

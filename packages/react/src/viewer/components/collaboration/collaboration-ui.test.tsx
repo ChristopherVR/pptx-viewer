@@ -1,6 +1,6 @@
 import React from 'react';
 /**
- * Tests for collaboration UI components — pure logic and rendering checks.
+ * Tests for collaboration UI components: pure logic and rendering checks.
  *
  * Tests verify component logic and output via direct React element creation,
  * structure validation, and renderToStaticMarkup for HTML output assertions.
@@ -276,10 +276,10 @@ describe('collaborationStatusIndicator', () => {
 });
 
 // ---------------------------------------------------------------------------
-// RemoteUserCursors — extended tests
+// RemoteUserCursors: extended tests
 // ---------------------------------------------------------------------------
 
-describe('remoteUserCursors — extended', () => {
+describe('remoteUserCursors - extended', () => {
 	it('uses user color for cursor path fill', () => {
 		const html = render(
 			<RemoteUserCursors
@@ -375,10 +375,10 @@ describe('remoteUserCursors — extended', () => {
 });
 
 // ---------------------------------------------------------------------------
-// UserAvatarBar — extended tests
+// UserAvatarBar: extended tests
 // ---------------------------------------------------------------------------
 
-describe('userAvatarBar — extended', () => {
+describe('userAvatarBar - extended', () => {
 	it('renders when status is connecting', () => {
 		const result = UserAvatarBar({
 			remoteUsers: [],
@@ -509,10 +509,10 @@ describe('userAvatarBar — extended', () => {
 });
 
 // ---------------------------------------------------------------------------
-// CollaborationStatusIndicator — extended tests
+// CollaborationStatusIndicator: extended tests
 // ---------------------------------------------------------------------------
 
-describe('collaborationStatusIndicator — extended', () => {
+describe('collaborationStatusIndicator - extended', () => {
 	it('renders correct text content for connected status', () => {
 		const html = render(<CollaborationStatusIndicator status='connected' connectedCount={5} />);
 		expect(html).toContain('5 users');

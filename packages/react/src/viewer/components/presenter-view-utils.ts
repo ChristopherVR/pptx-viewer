@@ -1,6 +1,6 @@
 import type { TextSegment } from 'pptx-viewer-core';
 /**
- * Utility functions for PresenterView — time formatting, notes rendering,
+ * Utility functions for PresenterView: time formatting, notes rendering,
  * and font-size controls.
  */
 import React from 'react';

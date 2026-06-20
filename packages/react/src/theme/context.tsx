@@ -21,7 +21,7 @@ export interface ViewerThemeProviderProps {
 /**
  * Provides a `ViewerTheme` to all descendant viewer components.
  *
- * Typically you do **not** need to use this directly — passing a `theme`
+ * Typically you do **not** need to use this directly; passing a `theme`
  * prop to `<PowerPointViewer>` is sufficient. This provider is exposed
  * for advanced use-cases where you want to wrap multiple viewers or
  * share a theme across a wider subtree.

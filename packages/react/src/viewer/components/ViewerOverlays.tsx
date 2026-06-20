@@ -1,5 +1,5 @@
 /**
- * ViewerOverlays — Shortcut, Accessibility, and Slide Sorter overlay panels.
+ * ViewerOverlays: Shortcut, Accessibility, and Slide Sorter overlay panels.
  *
  * Consolidates the three overlay panels that render on top of the viewer
  * so the main orchestrator component stays lean.

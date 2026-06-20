@@ -1,5 +1,5 @@
 /**
- * ViewerPresentationLayer — Renders presenter-view, rehearsal HUD, and
+ * ViewerPresentationLayer: Renders presenter-view, rehearsal HUD, and
  * rehearsal summary overlays that sit above the main editor UI.
  */
 import type { PptxSlide, PptxElement } from 'pptx-viewer-core';

@@ -1,6 +1,6 @@
 import type { PptxElement } from 'pptx-viewer-core';
 /**
- * Inspector panel for the duotone image effect — two colour pickers
+ * Inspector panel for the duotone image effect: two colour pickers
  * (shadow + highlight) plus quick-apply presets.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';

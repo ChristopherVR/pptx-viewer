@@ -177,7 +177,7 @@ export function HyperlinkTabContent({
 				</div>
 			)}
 
-			{/* Tooltip — shared across all types */}
+			{/* Tooltip: shared across all types */}
 			<div>
 				<label className='block text-xs text-muted-foreground mb-1'>
 					{t('pptx.hyperlink.tooltipLabel')}

@@ -10,7 +10,7 @@ import { describe, it, expect, vi } from 'vitest';
 import type { ElementContextMenuAction } from '../types';
 
 // ---------------------------------------------------------------------------
-// Extracted pure dispatch — mirrors handleContextMenuAction
+// Extracted pure dispatch: mirrors handleContextMenuAction
 // ---------------------------------------------------------------------------
 
 interface Handlers {
@@ -103,7 +103,7 @@ function createMockHandlers(): Handlers {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('useElementManipulation — context menu dispatch', () => {
+describe('useElementManipulation - context menu dispatch', () => {
 	it("should dispatch 'copy' to handleCopy", () => {
 		const h = createMockHandlers();
 		dispatchContextMenuAction('copy', h);

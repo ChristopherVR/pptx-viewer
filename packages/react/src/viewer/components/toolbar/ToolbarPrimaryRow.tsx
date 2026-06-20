@@ -186,7 +186,7 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 
 			{sep}
 
-			{/* Share button — shows user count when collaborating */}
+			{/* Share button: shows user count when collaborating */}
 			{(mode === 'edit' || mode === 'master') && (
 				<button
 					type='button'

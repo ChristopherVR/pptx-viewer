@@ -308,7 +308,7 @@ export function SlidesPaneSidebar({
 			className='flex h-full flex-col border-r border-border bg-secondary/30'
 			style={panelWidth ? { width: panelWidth, flexShrink: 0 } : undefined}
 		>
-			{/* Scrollable list — virtualized for large decks */}
+			{/* Scrollable list: virtualized for large decks */}
 			{shouldVirtualize ? renderVirtualized() : renderNonVirtualized()}
 
 			{/* Bottom: Add Slide button */}

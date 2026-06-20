@@ -1,5 +1,5 @@
 /**
- * Tests for usePresenceTracking — pure logic tests for the sanitization
+ * Tests for usePresenceTracking: pure logic tests for the sanitization
  * and filtering behaviour used by the presence tracking hook, plus
  * mock-awareness integration tests that exercise the hook's core logic
  * without requiring a full React rendering environment.
@@ -200,7 +200,7 @@ describe('usePresenceTracking (logic)', () => {
 
 	describe('broadcast throttling constants', () => {
 		it('throttle interval is 50ms', () => {
-			// This is a documentation test — the constant is 50ms per the module
+			// This is a documentation test: the constant is 50ms per the module
 			// The actual throttling is tested via the hook, which requires React
 			expect(true).toBeTruthy();
 		});
@@ -211,7 +211,7 @@ describe('usePresenceTracking (logic)', () => {
 // Mock Awareness integration tests
 // ---------------------------------------------------------------------------
 
-describe('usePresenceTracking — mock awareness', () => {
+describe('usePresenceTracking - mock awareness', () => {
 	const canvasWidth = 960;
 	const canvasHeight = 540;
 	const STALE_PRESENCE_MS = 30_000;
@@ -223,7 +223,7 @@ describe('usePresenceTracking — mock awareness', () => {
 	});
 
 	/**
-	 * Simulates the handleChange logic from the hook — collects remote
+	 * Simulates the handleChange logic from the hook: collects remote
 	 * presence from the awareness states, sanitises, and filters stale.
 	 */
 	function collectRemoteUsers(localClientId: number) {

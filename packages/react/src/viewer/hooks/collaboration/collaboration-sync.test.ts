@@ -116,7 +116,7 @@ class SimulatedRelay {
 		this.awarenessHandlers.delete(id);
 		this.clients.delete(id);
 
-		// Tell remaining peers this client's awareness is gone — mirrors the
+		// Tell remaining peers this client's awareness is gone: mirrors the
 		// collab-server, which calls removeAwarenessStates on disconnect.
 		const removedClientId = client.awareness.clientID;
 		for (const other of this.clients.values()) {
@@ -157,7 +157,7 @@ function collectRemoteUsers(
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('collaboration sync — two clients over a simulated relay', () => {
+describe('collaboration sync - two clients over a simulated relay', () => {
 	let relay: SimulatedRelay;
 	let docA: Y.Doc;
 	let docB: Y.Doc;

@@ -1,5 +1,5 @@
 /**
- * useClipboardHandlers — Copy, cut, paste, duplicate, and delete handlers
+ * useClipboardHandlers: Copy, cut, paste, duplicate, and delete handlers
  * extracted from useElementManipulation.
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';

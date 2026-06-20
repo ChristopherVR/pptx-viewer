@@ -1,5 +1,5 @@
 /**
- * PresentationTouchControls — Always-visible, touch-friendly controls for
+ * PresentationTouchControls: Always-visible, touch-friendly controls for
  * presentation (slide-show) mode.
  *
  * The existing `PresentationToolbar` only reveals itself on mouse movement, so
@@ -43,7 +43,7 @@ export function PresentationTouchControls({
 		return null;
 	}
 
-	// Shared geometry — 44px minimum hit target per WCAG, circular, translucent.
+	// Shared geometry: 44px minimum hit target per WCAG, circular, translucent.
 	const btnClass =
 		'pointer-events-auto flex items-center justify-center w-11 h-11 min-w-11 min-h-11 rounded-full bg-black/55 text-white shadow-lg active:bg-black/75';
 

@@ -1,5 +1,5 @@
 /**
- * useExportHandlers — Export to PNG, PDF, Video, GIF, "Package for Sharing",
+ * useExportHandlers: Export to PNG, PDF, Video, GIF, "Package for Sharing",
  * "Copy slide as image", and "Save As" format handlers.
  *
  * Types live in ./export-handler-types.ts;

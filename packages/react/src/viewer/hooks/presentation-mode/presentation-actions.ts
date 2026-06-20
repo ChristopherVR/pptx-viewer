@@ -59,13 +59,13 @@ export function handlePresentationActionImpl(
 	}
 
 	// Slide-jump action (ppaction://hlinksldjump) without targetSlideIndex
-	// falls through — the targetSlideIndex case above should handle it,
+	// falls through: the targetSlideIndex case above should handle it,
 	// but if for some reason it wasn't resolved, ignore gracefully.
 	if (actionStr.includes('hlinksldjump')) {
 		return;
 	}
 
-	// External URL — open in a new tab/window (with security validation)
+	// External URL: open in a new tab/window (with security validation)
 	if (action.url && !actionStr.includes('hlinksldjump')) {
 		if (isUrlSafe(action.url)) {
 			window.open(action.url, '_blank', 'noopener,noreferrer');

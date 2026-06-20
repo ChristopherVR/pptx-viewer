@@ -1,6 +1,6 @@
 import type { PptxElement } from 'pptx-viewer-core';
 /**
- * useCanvasEventHandlers — Event delegation, guide-drag state, find-result
+ * useCanvasEventHandlers: Event delegation, guide-drag state, find-result
  * highlights, and selected-element bounds for the slide canvas.
  */
 import React, { useCallback, useMemo, useRef, useState } from 'react';
@@ -44,7 +44,7 @@ export interface CanvasEventHandlers {
 	handleStageClick: (e: React.MouseEvent) => void;
 	handleStageDblClick: (e: React.MouseEvent) => void;
 	handleStageMouseDown: (e: React.MouseEvent) => void;
-	/** Touch/pen press on the stage — mirrors handleStageMouseDown for coarse pointers. */
+	/** Touch/pen press on the stage; mirrors handleStageMouseDown for coarse pointers. */
 	handleStagePointerDown: (e: React.PointerEvent) => void;
 	handleStageContextMenu: (e: React.MouseEvent) => void;
 	/* guide dragging */

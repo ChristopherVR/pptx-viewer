@@ -1,5 +1,5 @@
 /*
- * pptx-viewer — theme tokens
+ * pptx-viewer: theme tokens
  *
  * Reusable @theme block that maps Tailwind semantic color tokens to --pptx-*
  * CSS custom properties.  Import this file into any Tailwind v4 entry-point

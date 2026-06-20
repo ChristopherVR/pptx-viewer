@@ -78,7 +78,7 @@ export interface SlideCanvasProps {
 	guides: Array<{ id: string; axis: 'h' | 'v'; position: number }>;
 	presentationElementStates?: Map<string, ElementAnimationState>;
 	presentationKeyframesCss?: string;
-	// Callbacks (element-scoped — SlideCanvas wraps to include element ID)
+	// Callbacks (element-scoped; SlideCanvas wraps to include element ID)
 	onClick: (elementId: string, e: React.MouseEvent) => void;
 	onDoubleClick: (elementId: string, e: React.MouseEvent) => void;
 	onMouseDown: (elementId: string, e: React.MouseEvent) => void;

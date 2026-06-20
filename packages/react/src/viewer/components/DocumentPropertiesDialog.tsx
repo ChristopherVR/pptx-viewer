@@ -39,7 +39,7 @@ type TabId = 'summary' | 'custom' | 'statistics';
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Field definitions for the Summary tab — maps core property keys to i18n labels. */
+/** Field definitions for the Summary tab: maps core property keys to i18n labels. */
 const SUMMARY_FIELDS: Array<{
 	key: keyof PptxCoreProperties;
 	labelKey: string;

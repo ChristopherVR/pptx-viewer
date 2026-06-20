@@ -1,11 +1,11 @@
 /**
- * useCollaborativeHistory — Extends the standard editor history with
+ * useCollaborativeHistory: Extends the standard editor history with
  * awareness of collaborative editing sessions.
  *
  * When collaboration is active, undo/redo operations are scoped to
  * the local user's changes only (other users' changes are not undone).
  *
- * This is a lightweight wrapper — the actual undo/redo stack is still
+ * This is a lightweight wrapper: the actual undo/redo stack is still
  * managed by `useEditorHistory`. This hook adds collaborative metadata
  * (who made each change) for future multi-user undo filtering.
  *

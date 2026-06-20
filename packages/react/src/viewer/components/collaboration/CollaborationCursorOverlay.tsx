@@ -1,5 +1,5 @@
 /**
- * CollaborationCursorOverlay — Reads from the collaboration context,
+ * CollaborationCursorOverlay: Reads from the collaboration context,
  * broadcasts local cursor position on mouse move, and renders
  * `RemoteUserCursors` for other participants.
  *
@@ -86,7 +86,7 @@ export function CollaborationCursorOverlay({
 			data-export-ignore='true'
 			style={{ display: 'contents' }}
 		>
-			{/* Remote cursor SVG overlay — pointer-events: none so it doesn't block interactions */}
+			{/* Remote cursor SVG overlay: pointer-events: none so it doesn't block interactions */}
 			<RemoteUserCursors
 				remoteUsers={collab.remoteUsers}
 				activeSlideIndex={activeSlideIndex}

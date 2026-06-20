@@ -81,7 +81,7 @@ export const ACTION_BUTTON_PRESETS: ActionButtonPreset[] = [
 		shapeType: 'actionButtonBlank',
 		label: 'Custom',
 		defaultAction: 'none',
-		// No glyph — empty path. The button still renders as a rounded rect via clip-path.
+		// No glyph: empty path. The button still renders as a rounded rect via clip-path.
 		iconPath: '',
 	},
 ];

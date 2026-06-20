@@ -1,5 +1,5 @@
 /**
- * ShareDialog — Modal dialog for starting/managing real-time collaboration.
+ * ShareDialog: Modal dialog for starting/managing real-time collaboration.
  *
  * When collaboration is NOT active, shows controls to configure and start a
  * collaboration session (room name, user name, server URL).
@@ -77,7 +77,7 @@ export function ShareDialog({
 	const isActive = collab !== null && collab.status !== 'disconnected' && collab.status !== 'error';
 	const { t } = useTranslation();
 
-	// Form state for starting a new session — all defaults come from host app
+	// Form state for starting a new session; all defaults come from host app
 	const [roomId, setRoomId] = useState(defaultRoomId ?? '');
 	const [userName, setUserName] = useState(defaultUserName ?? '');
 	const [serverUrl, setServerUrl] = useState(defaultServerUrl ?? '');
@@ -272,7 +272,7 @@ function StartSessionForm({
 				{preconfigured ? t('pptx.share.preconfiguredDescription') : t('pptx.share.description')}
 			</p>
 
-			{/* Connection error banner — surfaced when a previous attempt failed
+			{/* Connection error banner: surfaced when a previous attempt failed
 			    (e.g. unreachable server, or a blocked ws:// socket on an https
 			    page). Keeps the failure visible instead of silently resetting. */}
 			{connectionFailed && (

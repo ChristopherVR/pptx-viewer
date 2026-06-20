@@ -1,5 +1,5 @@
 /**
- * ExportProgressModal — A modal overlay that shows export progress
+ * ExportProgressModal: A modal overlay that shows export progress
  * for video, GIF, and package-for-sharing operations.
  */
 import { useTranslation } from 'react-i18next';

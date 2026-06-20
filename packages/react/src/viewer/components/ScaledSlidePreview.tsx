@@ -1,7 +1,7 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 /**
- * ScaledSlidePreview — renders a slide at any size by scaling the native
+ * ScaledSlidePreview: renders a slide at any size by scaling the native
  * canvas dimensions into a container-determined bounding box.
  *
  * Used by PresenterView for current-slide and next-slide previews.

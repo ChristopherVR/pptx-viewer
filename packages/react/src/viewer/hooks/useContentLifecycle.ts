@@ -1,6 +1,6 @@
 import type { PptxHandler, PptxSlide } from 'pptx-viewer-core';
 /**
- * useContentLifecycle — Composes content loading, font injection,
+ * useContentLifecycle: Composes content loading, font injection,
  * serialisation, and autosave into a single hook.
  */
 import { useEffect } from 'react';

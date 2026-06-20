@@ -1,6 +1,6 @@
 import type { PptxSlide, PptxSlideMaster, PptxSlideLayout } from 'pptx-viewer-core';
 /**
- * useDerivedSlideState — Memoised computed values derived from slide and
+ * useDerivedSlideState: Memoised computed values derived from slide and
  * presentation state.  Keeps the orchestrator component slim by hosting
  * the four most expensive `useMemo` blocks in one place.
  */

@@ -1,6 +1,6 @@
 import type { PptxSlide, PptxHandler } from 'pptx-viewer-core';
 /**
- * useIOHandlers — Composes export, print, theme, and property-handler hooks
+ * useIOHandlers: Composes export, print, theme, and property-handler hooks
  * into a single grouped return value for the orchestrator component.
  */
 import type React from 'react';

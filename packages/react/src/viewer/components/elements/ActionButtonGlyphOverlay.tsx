@@ -2,7 +2,7 @@
  * Renders the inner glyph (home, help, sound, movie, info, etc.) on top of an
  * `actionButton*` shape. Without this, all 14 OOXML action-button presets render
  * as identical rounded rectangles because their geometry is intentionally just
- * a rounded rect — the spec leaves the glyph to the renderer.
+ * a rounded rect; the spec leaves the glyph to the renderer.
  *
  * The icon SVG paths come from {@link ACTION_BUTTON_PRESETS} so the slide
  * renderer and the toolbar's "Insert Action Button" picker stay in sync.

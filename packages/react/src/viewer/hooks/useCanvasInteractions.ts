@@ -1,6 +1,6 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
-/** useCanvasInteractions — Canvas interaction handlers for the PowerPoint editor. */
+/** useCanvasInteractions: Canvas interaction handlers for the PowerPoint editor. */
 import { useRef } from 'react';
 
 import type {
@@ -129,7 +129,7 @@ export function useCanvasInteractions(
 		} else if (selectedElementIdSet.has(elementId) && !inlineEditingElementId) {
 			// Only enter inline editing if the element was already selected before
 			// this mouseDown+click sequence. If justSelectedRef is true, this click
-			// was the initial selection click — skip inline editing so resize handles
+			// was the initial selection click - skip inline editing so resize handles
 			// remain visible.
 			if (justSelectedRef.current) {
 				justSelectedRef.current = false;

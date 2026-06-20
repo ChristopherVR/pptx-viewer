@@ -1,6 +1,6 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 /**
- * NotesPagePreview — Renders a miniature preview of the notes page layout
+ * NotesPagePreview: Renders a miniature preview of the notes page layout
  * inside the PrintDialog.
  *
  * Shows a scaled-down page with a slide placeholder on the top half

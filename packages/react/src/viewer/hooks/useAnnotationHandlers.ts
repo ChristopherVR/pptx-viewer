@@ -1,6 +1,6 @@
 import type { InkPptxElement, PptxSlide } from 'pptx-viewer-core';
 /**
- * useAnnotationHandlers — Mode-switching callbacks that interact with
+ * useAnnotationHandlers: Mode-switching callbacks that interact with
  * presentation annotations.  Extracted to keep the orchestrator lean.
  */
 import { useCallback, useRef, useState } from 'react';

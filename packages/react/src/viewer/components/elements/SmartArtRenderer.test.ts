@@ -115,7 +115,7 @@ describe('chevronPoints', () => {
 
 	it('includes the right-side point at the midpoint height', () => {
 		const points = chevronPoints(0, 0, 100, 60);
-		// The chevron tip should be at (100, 30) — right edge at mid-height
+		// The chevron tip should be at (100, 30): right edge at mid-height
 		const pairs = points.split(' ');
 		expect(pairs[2]).toBe('100,30');
 	});
@@ -430,7 +430,7 @@ describe('smartArtRenderer module', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Drawing shapes — shape type handling
+// Drawing shapes: shape type handling
 // ---------------------------------------------------------------------------
 
 describe('drawing shape types', () => {

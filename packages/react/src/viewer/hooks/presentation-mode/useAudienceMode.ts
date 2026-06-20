@@ -1,5 +1,5 @@
 /**
- * useAudienceMode — Detects when the viewer is running as an audience tab
+ * useAudienceMode: Detects when the viewer is running as an audience tab
  * (opened by the presenter via the audience window button) and auto-enters
  * fullscreen presentation mode, syncing slides via BroadcastChannel.
  */
@@ -98,7 +98,7 @@ export function useAudienceMode(input: UseAudienceModeInput): void {
 				try {
 					window.close();
 				} catch {
-					// Can't close — user will close manually
+					// Can't close: user will close manually
 				}
 			}
 		};

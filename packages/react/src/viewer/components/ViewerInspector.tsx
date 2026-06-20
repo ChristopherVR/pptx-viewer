@@ -1,5 +1,5 @@
 /**
- * ViewerInspector — Wrapper that wires InspectorPane props.
+ * ViewerInspector: Wrapper that wires InspectorPane props.
  *
  * Accepts a simplified set of props and derives the verbose prop
  * bag required by InspectorPane internally, keeping the main

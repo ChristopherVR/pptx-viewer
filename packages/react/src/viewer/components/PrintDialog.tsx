@@ -1,5 +1,5 @@
 /**
- * PrintDialog — Full-featured print dialog for PowerPoint presentations.
+ * PrintDialog: Full-featured print dialog for PowerPoint presentations.
  *
  * Options: print what (slides/handouts/notes/outline), slides per page,
  * orientation, colour mode, frame slides, slide range.

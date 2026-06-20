@@ -1,5 +1,5 @@
 /**
- * Load-pipeline helpers — moved to the framework-agnostic `pptx-viewer-shared`
+ * Load-pipeline helpers: moved to the framework-agnostic `pptx-viewer-shared`
  * package so the React, Vue, and Angular bindings share one copy.
  *
  * Re-exported here to keep existing import paths stable.

@@ -1,5 +1,5 @@
 /**
- * Table structure handlers — cell editing, column / row resize,
+ * Table structure handlers: cell editing, column / row resize,
  * insert / delete rows and columns.
  *
  * Structural operations (insert/delete row/column) handle merge span

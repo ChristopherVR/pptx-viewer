@@ -295,7 +295,7 @@ describe('buildResizeState', () => {
  * Regression guard: if the clicked element wasn't already selected, the drag
  * must target only the clicked element. `effectiveSelectedIds` is the previous
  * render's selection because `applySelection` only schedules a React state
- * update — using it here would drag the previously-selected element while
+ * update - using it here would drag the previously-selected element while
  * focus moves to the new one.
  */
 function computeMouseDownDragIds(
@@ -330,7 +330,7 @@ describe('computeMouseDownDragIds', () => {
 
 	it('falls back to the clicked element when selection state is empty', () => {
 		// Defensive path: selectedElementIdSet says it is selected but
-		// effectiveSelectedIds is empty — drag the clicked element only.
+		// effectiveSelectedIds is empty - drag the clicked element only.
 		const result = computeMouseDownDragIds('A', new Set(['A']), []);
 		expect(result).toStrictEqual(['A']);
 	});

@@ -1,5 +1,5 @@
 /**
- * useInsertElements — Handlers for inserting new elements (text, shape,
+ * useInsertElements: Handlers for inserting new elements (text, shape,
  * table, SmartArt, equation, field, action button, ink, freeform)
  * and image/media file picking.
  */

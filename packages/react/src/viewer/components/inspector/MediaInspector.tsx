@@ -100,7 +100,7 @@ export function validateTrimRange(
 }
 
 // ---------------------------------------------------------------------------
-// TrimTimeInput — a mm:ss text input with validation
+// TrimTimeInput: a mm:ss text input with validation
 // ---------------------------------------------------------------------------
 
 interface TrimTimeInputProps {
@@ -176,7 +176,7 @@ function TrimTimeInput({
 }
 
 // ---------------------------------------------------------------------------
-// MediaTrimInspector — focused trim UI component
+// MediaTrimInspector: focused trim UI component
 // ---------------------------------------------------------------------------
 
 export interface MediaInspectorProps {

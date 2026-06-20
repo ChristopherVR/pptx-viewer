@@ -160,7 +160,7 @@ export function AnimationPanel({
 				</select>
 			</label>
 
-			{/* Effect options — only show when an animation is set */}
+			{/* Effect options: only show when an animation is set */}
 			{hasAnimation && (
 				<>
 					{/* Direction picker */}

@@ -95,7 +95,7 @@ function SlideItemInner({
 			onDragOver={onDragOver}
 			onDrop={(e) => onDrop(e, slideIndex)}
 		>
-			{/* Slide number + presence dots — left of thumbnail */}
+			{/* Slide number + presence dots: left of thumbnail */}
 			<div className='flex flex-col items-center gap-0.5 w-5 shrink-0'>
 				<span
 					className={cn(

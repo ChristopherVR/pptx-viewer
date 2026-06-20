@@ -1,6 +1,6 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 /**
- * LazyThumbnail — Defers rendering of a SlideThumbnail until its
+ * LazyThumbnail: Defers rendering of a SlideThumbnail until its
  * container enters (or is near) the viewport.
  *
  * Uses IntersectionObserver with a generous rootMargin so thumbnails
@@ -55,7 +55,7 @@ function LazyThumbnailInner({
 			([entry]) => {
 				if (entry?.isIntersecting) {
 					setIsVisible(true);
-					// Once visible, stop observing — we don't unload thumbnails
+					// Once visible, stop observing; we don't unload thumbnails
 					observer.disconnect();
 				}
 			},

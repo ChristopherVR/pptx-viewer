@@ -2,7 +2,7 @@
  * presentation-toolbar-utils
  *
  * Pure utility functions for the PresentationToolbar component.
- * Extracted for testability — visibility logic, elapsed time formatting, etc.
+ * Extracted for testability: visibility logic, elapsed time formatting, etc.
  */
 
 // ---------------------------------------------------------------------------

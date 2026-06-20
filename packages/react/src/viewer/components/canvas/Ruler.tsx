@@ -1,5 +1,5 @@
 /**
- * Ruler — Horizontal and vertical rulers for the PowerPoint slide canvas.
+ * Ruler: Horizontal and vertical rulers for the PowerPoint slide canvas.
  *
  * Renders inch/centimetre tick marks adjacent to the slide area,
  * adapting to zoom level so marks remain readable. When an element
@@ -43,7 +43,7 @@ export interface RulerProps {
 /* ------------------------------------------------------------------ */
 
 /**
- * Ruler — renders a horizontal ruler, vertical ruler, and corner square.
+ * Ruler: renders a horizontal ruler, vertical ruler, and corner square.
  *
  * Designed to be placed as a sibling of the scaled canvas stage inside
  * the edit-wrapper. It is **not** scaled by the CSS transform; instead
@@ -177,7 +177,7 @@ export function Ruler({
 
 	return (
 		<>
-			{/* Corner square — sits at the intersection of the two rulers */}
+			{/* Corner square: sits at the intersection of the two rulers */}
 			<div
 				className='absolute z-[51] bg-gray-100 dark:bg-gray-800 border-r border-b border-border'
 				style={{
@@ -187,7 +187,7 @@ export function Ruler({
 					height: RULER_THICKNESS,
 				}}
 			/>
-			{/* Horizontal ruler — across the top (drag down to create h-guide) */}
+			{/* Horizontal ruler across the top (drag down to create h-guide) */}
 			<div
 				ref={hRulerRef}
 				className='absolute z-[50] overflow-visible'
@@ -203,7 +203,7 @@ export function Ruler({
 			>
 				<HorizontalRuler ticks={hTicks} widthPx={scaledWidth} highlight={hHighlight} />
 			</div>
-			{/* Vertical ruler — down the left side (drag right to create v-guide) */}
+			{/* Vertical ruler down the left side (drag right to create v-guide) */}
 			<div
 				ref={vRulerRef}
 				className='absolute z-[50] overflow-visible'

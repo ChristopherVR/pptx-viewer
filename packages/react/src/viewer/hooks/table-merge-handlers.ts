@@ -1,5 +1,5 @@
 /**
- * Table merge / split handlers — merge right, merge down,
+ * Table merge / split handlers: merge right, merge down,
  * merge selected cells, split cell.
  */
 import type { TablePptxElement } from 'pptx-viewer-core';

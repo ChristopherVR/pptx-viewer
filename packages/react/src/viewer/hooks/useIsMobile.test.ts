@@ -139,7 +139,7 @@ describe('virtual keyboard detection logic', () => {
 	});
 
 	it('edge case: exactly 70% ratio is not open', () => {
-		// 560 / 800 = 0.7 — not less than 0.7
+		// 560 / 800 = 0.7, not less than 0.7
 		expect(isVirtualKeyboardOpen(800, 560)).toBeFalsy();
 	});
 

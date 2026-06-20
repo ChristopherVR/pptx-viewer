@@ -52,12 +52,12 @@ export function useSlideNotes({
 	// True when the pending draftSegments change came from the user typing inside
 	// the rich editor (handleRichInput). In that case the contentEditable DOM
 	// already reflects the new content, so the seeding effect must NOT rewrite
-	// innerHTML — doing so collapses the caret to offset 0 and every subsequent
+	// innerHTML; doing so collapses the caret to offset 0 and every subsequent
 	// keystroke lands at the start, producing reversed text. See handleRichInput.
 	const isInternalInputRef = useRef(false);
 	// The plain text of the most recent debounced save we pushed to the parent.
 	// When that save echoes back as a new activeSlide.notes value, the slide-sync
-	// effect below must NOT rebuild draftSegments — a fresh array would re-run the
+	// effect below must NOT rebuild draftSegments; a fresh array would re-run the
 	// seeding effect mid-typing and collapse the caret. We only re-sync on genuine
 	// external changes (slide switch, programmatic edits).
 	const lastSavedTextRef = useRef<string | null>(null);
@@ -81,7 +81,7 @@ export function useSlideNotes({
 		if (!isRichEditEnabled || !isExpanded || !canEdit || !richEditorRef.current) {
 			return;
 		}
-		// Skip re-seeding when the change originated from the user's own typing —
+		// Skip re-seeding when the change originated from the user's own typing;
 		// the DOM is already correct and rewriting innerHTML would reset the caret.
 		if (isInternalInputRef.current) {
 			isInternalInputRef.current = false;

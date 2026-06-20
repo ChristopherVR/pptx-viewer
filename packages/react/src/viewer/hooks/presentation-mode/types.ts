@@ -13,7 +13,7 @@ export interface UsePresentationModeInput {
 	visibleSlideIndexes: number[];
 	activeSlideIndex: number;
 	containerRef: React.RefObject<HTMLElement | null>;
-	/** Raw PPTX bytes — forwarded to audience window for content sharing. */
+	/** Raw PPTX bytes: forwarded to audience window for content sharing. */
 	content?: ArrayBuffer | Uint8Array | null;
 	onSetMode: (mode: ViewerMode) => void;
 	onSetActiveSlideIndex: (index: number) => void;
@@ -69,7 +69,7 @@ export interface UsePresentationModeResult {
 	enterPresenterView: () => void;
 	/** Toggle between fullscreen and presenter view during presentation. */
 	togglePresenterView: () => void;
-	/** Timestamp (ms) when the presentation started — used for elapsed timer. */
+	/** Timestamp (ms) when the presentation started: used for elapsed timer. */
 	presentationStartTime: number | null;
 	// --- Rehearse Timings ---
 	/** Whether the current presentation session is in rehearse-timings mode. */

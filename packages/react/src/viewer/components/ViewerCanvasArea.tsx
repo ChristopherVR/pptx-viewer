@@ -1,6 +1,6 @@
 import type { PptxAction, PptxElement, PptxSlide } from 'pptx-viewer-core';
 /**
- * ViewerCanvasArea — The `<main>` element containing the slide canvas,
+ * ViewerCanvasArea: The `<main>` element containing the slide canvas,
  * find/replace panel, and presentation annotation / toolbar overlays.
  */
 import { useCallback, useMemo, useRef } from 'react';
@@ -393,7 +393,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 			)}
 
 			{/* Always-visible touch controls (close + prev/next) for slideshow on
-			    touch devices — the mouse toolbar below is hidden without a pointer
+			    touch devices: the mouse toolbar below is hidden without a pointer
 			    move, leaving no way to exit or navigate on mobile. */}
 			{mode === 'present' && (
 				<PresentationTouchControls

@@ -1,5 +1,5 @@
 /**
- * GridOverlay — Renders a dotted grid pattern over the slide canvas.
+ * GridOverlay: Renders a dotted grid pattern over the slide canvas.
  *
  * Uses an SVG <pattern> element to render a subtle dot grid that matches
  * PowerPoint's built-in grid display. The grid spacing can be configured

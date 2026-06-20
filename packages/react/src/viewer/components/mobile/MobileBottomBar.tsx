@@ -29,7 +29,7 @@ interface Action {
 }
 
 /**
- * Persistent mobile bottom action bar — five primary navigation targets that
+ * Persistent mobile bottom action bar: five primary navigation targets that
  * each open a bottom sheet (slides / inspector / comments / notes) or trigger
  * an action (insert). Mirrors the navigation pattern of Office Mobile and
  * Google Slides on small screens.
@@ -81,7 +81,7 @@ export function MobileBottomBar({
 		<nav
 			aria-label='Editor actions'
 			// Visibility is owned by the parent (rendered only when `isMobile`), so
-			// no width-based `md:hidden` here — that would wrongly hide the bar on a
+			// no width-based `md:hidden` here; that would wrongly hide the bar on a
 			// wide-but-short landscape phone, which is still mobile.
 			className='flex items-stretch justify-around border-t border-border bg-secondary/80 backdrop-blur supports-[backdrop-filter]:bg-secondary/60 pb-[max(env(safe-area-inset-bottom),0px)]'
 		>

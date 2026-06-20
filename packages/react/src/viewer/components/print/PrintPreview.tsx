@@ -1,5 +1,5 @@
 /**
- * PrintPreview — Renders a miniature preview of the handout layout
+ * PrintPreview: Renders a miniature preview of the handout layout
  * inside the PrintDialog.
  *
  * Shows a scaled-down page with numbered placeholder cells

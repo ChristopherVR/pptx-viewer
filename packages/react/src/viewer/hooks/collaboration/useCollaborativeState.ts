@@ -1,6 +1,6 @@
 import { sanitizeColor } from './sanitize';
 /**
- * useCollaborativeState — Composes the Yjs provider and presence tracking
+ * useCollaborativeState: Composes the Yjs provider and presence tracking
  * into a single hook for the collaboration system.
  *
  * This is the primary hook consumed by the `CollaborationProvider` context.

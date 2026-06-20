@@ -104,7 +104,7 @@ function SlideCardImpl({
 /**
  * Memo comparator: skips re-renders when neither the slide identity, its
  * mutability flags, nor any of the selection/active/drag state changed.
- * Handlers are intentionally compared by reference — callers should pass
+ * Handlers are intentionally compared by reference; callers should pass
  * stable callbacks (useCallback) to keep this effective.
  */
 function arePropsEqual(prev: SlideCardProps, next: SlideCardProps): boolean {

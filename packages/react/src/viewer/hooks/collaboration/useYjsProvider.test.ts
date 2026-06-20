@@ -1,11 +1,11 @@
 /**
- * Tests for useYjsProvider — the transport layer of the collaboration system.
+ * Tests for useYjsProvider: the transport layer of the collaboration system.
  *
  * The hook itself owns React effect lifecycle, which this package's test setup
  * (node environment, no DOM renderer) cannot drive directly. So, following the
  * pattern in `usePresenceTracking.test.ts`, these tests exercise the hook's
  * extractable logic and a faithful reproduction of its connection state machine
- * against a mock WebSocket provider — no real server or socket is involved.
+ * against a mock WebSocket provider: no real server or socket is involved.
  *
  * Coverage:
  *  - Mixed-content guard (the GitHub Pages / https → ws:// failure mode)
@@ -46,7 +46,7 @@ function stubLocation(protocol: string, hostname = 'example.com'): () => void {
 // Mixed-content guard (GitHub Pages / https mixed-content fix)
 // ---------------------------------------------------------------------------
 
-describe('useYjsProvider — isMixedContentBlocked', () => {
+describe('useYjsProvider - isMixedContentBlocked', () => {
 	let restore: (() => void) | null = null;
 
 	afterEach(() => {
@@ -77,7 +77,7 @@ describe('useYjsProvider — isMixedContentBlocked', () => {
 	});
 
 	it('does not block when there is no window (SSR / node)', () => {
-		// No stub installed — window is undefined in the node test env.
+		// No stub installed: window is undefined in the node test env.
 		expect(isMixedContentBlocked('ws://collab.example.com:1234')).toBeFalsy();
 	});
 
@@ -88,7 +88,7 @@ describe('useYjsProvider — isMixedContentBlocked', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Mock WebSocket provider — faithful reproduction of the y-websocket surface
+// Mock WebSocket provider: faithful reproduction of the y-websocket surface
 // the hook relies on (status events, wsconnected, awareness, destroy).
 // ---------------------------------------------------------------------------
 
@@ -189,7 +189,7 @@ function createConnectionMachine(provider: MockWebsocketProvider, timeoutMs: num
 	};
 }
 
-describe('useYjsProvider — connection lifecycle', () => {
+describe('useYjsProvider - connection lifecycle', () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
 	});
@@ -233,7 +233,7 @@ describe('useYjsProvider — connection lifecycle', () => {
 		machine.start();
 		expect(machine.getStatus()).toBe('connecting');
 
-		// Never connects — advance past the timeout.
+		// Never connects: advance past the timeout.
 		vi.advanceTimersByTime(30_000);
 
 		expect(machine.getStatus()).toBe('error');
@@ -288,7 +288,7 @@ describe('useYjsProvider — connection lifecycle', () => {
 // Server / room URL handling
 // ---------------------------------------------------------------------------
 
-describe('useYjsProvider — server/room URL handling', () => {
+describe('useYjsProvider - server/room URL handling', () => {
 	it('passes the configured server URL and room ID through to the provider', () => {
 		const provider = new MockWebsocketProvider('wss://collab.example.com:9000', 'my-room');
 		expect(provider.serverUrl).toBe('wss://collab.example.com:9000');

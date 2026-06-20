@@ -1,5 +1,5 @@
 /**
- * RemoteUserCursors — Renders other users' cursors as an SVG overlay
+ * RemoteUserCursors: Renders other users' cursors as an SVG overlay
  * on the slide canvas.
  *
  * Each remote user's cursor is drawn as a coloured pointer arrow with

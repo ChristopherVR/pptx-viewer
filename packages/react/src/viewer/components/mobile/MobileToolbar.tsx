@@ -74,7 +74,7 @@ export function MobileToolbar(props: ToolbarProps): React.ReactElement {
 			{/* Flexible spacer (could hold filename later) */}
 			<div className='flex-1' />
 
-			{/* Save / download — surfaced directly so it's reachable without
+			{/* Save / download: surfaced directly so it's reachable without
 			    digging into Menu → File, and available even in view-only mode
 			    where the Menu button is hidden. */}
 			<button

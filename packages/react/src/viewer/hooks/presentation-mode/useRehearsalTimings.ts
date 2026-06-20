@@ -113,7 +113,7 @@ export function useRehearsalTimings(input: UseRehearsalTimingsInput): UseRehears
 	const toggleRehearsalPause = useCallback(() => {
 		setRehearsalPaused((prev) => {
 			if (prev) {
-				// Resuming — accumulate paused time
+				// Resuming: accumulate paused time
 				if (pauseStartRef.current !== null) {
 					pauseAccumulatedRef.current += Date.now() - pauseStartRef.current;
 					pauseStartRef.current = null;

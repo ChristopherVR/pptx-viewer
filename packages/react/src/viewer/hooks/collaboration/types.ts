@@ -1,5 +1,5 @@
 /**
- * Collaboration types — Shared type definitions for the real-time
+ * Collaboration types: Shared type definitions for the real-time
  * collaboration infrastructure (Yjs-backed CRDT sync, presence tracking,
  * collaborative editing).
  *
@@ -35,7 +35,7 @@ export interface CollaborationConfig {
 	userColor?: string;
 	/** Optional authentication token sent with the WebSocket handshake. */
 	authToken?: string;
-	/** Role in the session — defaults to `'collaborator'`. */
+	/** Role in the session: defaults to `'collaborator'`. */
 	role?: CollaborationRole;
 }
 

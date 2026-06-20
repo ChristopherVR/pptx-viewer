@@ -5,7 +5,7 @@
 import type { ShapeQuickStyle } from '../types';
 
 export const SHAPE_QUICK_STYLES: ShapeQuickStyle[] = [
-	// Row 1 — Solid fills (theme-inspired palette)
+	// Row 1: Solid fills (theme-inspired palette)
 	{
 		name: 'Blue Fill',
 		style: {
@@ -60,7 +60,7 @@ export const SHAPE_QUICK_STYLES: ShapeQuickStyle[] = [
 			strokeWidth: 1,
 		},
 	},
-	// Row 2 — Outline-only styles
+	// Row 2: Outline-only styles
 	{
 		name: 'Blue Outline',
 		style: {
@@ -115,7 +115,7 @@ export const SHAPE_QUICK_STYLES: ShapeQuickStyle[] = [
 			strokeWidth: 2,
 		},
 	},
-	// Row 3 — Fills with shadow
+	// Row 3: Fills with shadow
 	{
 		name: 'Blue Shadow',
 		style: {

@@ -1,5 +1,5 @@
 /**
- * useIsMobile — Detects viewport size and touch capability for responsive layout.
+ * useIsMobile: Detects viewport size and touch capability for responsive layout.
  *
  * Provides reactive breakpoint flags (`isMobile`, `isTablet`, `isDesktop`) and
  * a `isTouchDevice` flag. Uses `ResizeObserver` on the container element (if
@@ -22,17 +22,17 @@ import { useState, useEffect, useSyncExternalStore } from 'react';
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Mobile breakpoint — below this width is considered mobile. */
+/** Mobile breakpoint: below this width is considered mobile. */
 export const MOBILE_BREAKPOINT = 768;
 
-/** Tablet breakpoint — below this width (but >= MOBILE) is tablet. */
+/** Tablet breakpoint: below this width (but >= MOBILE) is tablet. */
 export const TABLET_BREAKPOINT = 1024;
 
 /**
  * Max viewport height (px) at which a *touch* device is treated as mobile
  * regardless of width. Catches landscape phones (e.g. 915×412), which are wide
  * enough to fall in the "tablet" width band but far too short for the desktop
- * ribbon + side panels — they need the mobile chrome. Tablets in landscape are
+ * ribbon + side panels; they need the mobile chrome. Tablets in landscape are
  * taller (~760px+) so they stay on the desktop layout.
  */
 export const MOBILE_LANDSCAPE_MAX_HEIGHT = 500;
@@ -65,7 +65,7 @@ function getIsTouchDevice(): boolean {
 	return (
 		'ontouchstart' in window ||
 		navigator.maxTouchPoints > 0 ||
-		// @ts-expect-error — legacy IE/Edge check
+		// @ts-expect-error - legacy IE/Edge check
 		(navigator.msMaxTouchPoints !== null && navigator.msMaxTouchPoints > 0)
 	);
 }
@@ -130,7 +130,7 @@ export interface UseIsMobileInput {
 export function useIsMobile(input?: UseIsMobileInput): UseIsMobileResult {
 	const containerRef = input?.containerRef;
 
-	// Touch capability — uses useSyncExternalStore for SSR safety
+	// Touch capability: uses useSyncExternalStore for SSR safety
 	const isTouchDevice = useSyncExternalStore(
 		subscribeTouchCapability,
 		getIsTouchDevice,
@@ -145,7 +145,7 @@ export function useIsMobile(input?: UseIsMobileInput): UseIsMobileResult {
 		return containerRef?.current?.clientWidth ?? window.innerWidth;
 	});
 
-	// Container/viewport height — used to detect short landscape phones.
+	// Container/viewport height: used to detect short landscape phones.
 	const [containerHeight, setContainerHeight] = useState(() => {
 		if (typeof window === 'undefined') {
 			return 768;
@@ -216,7 +216,7 @@ export function useIsMobile(input?: UseIsMobileInput): UseIsMobileResult {
 		};
 	}, []);
 
-	// Virtual keyboard detection — when viewport height shrinks by > 30% on a
+	// Virtual keyboard detection: when viewport height shrinks by > 30% on a
 	// touch device, it's very likely the virtual keyboard appeared.
 	useEffect(() => {
 		if (!isTouchDevice || typeof window === 'undefined') {

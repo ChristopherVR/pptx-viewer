@@ -1,5 +1,5 @@
 /**
- * ViewerDialogGroup — Renders all modal / dialog overlays used by the
+ * ViewerDialogGroup: Renders all modal / dialog overlays used by the
  * PowerPoint viewer.  Keeps the orchestrator component focused on layout.
  */
 import type {

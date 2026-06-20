@@ -1,5 +1,5 @@
 /**
- * useGroupAlignLayerHandlers — Group/ungroup, flip, alignment,
+ * useGroupAlignLayerHandlers: Group/ungroup, flip, alignment,
  * layer-order, and merge shapes handlers extracted from useElementManipulation.
  */
 import type { PptxElement, PptxSlide, GroupPptxElement } from 'pptx-viewer-core';

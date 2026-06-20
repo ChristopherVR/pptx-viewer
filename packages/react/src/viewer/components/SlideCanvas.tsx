@@ -1,5 +1,5 @@
 import { getShapeAdjustmentHandleDescriptor } from '../utils';
-/** SlideCanvas — Central canvas area for the PowerPoint editor. */
+/** SlideCanvas: Central canvas area for the PowerPoint editor. */
 import type { SlideCanvasProps } from './canvas/canvas-types';
 import {
 	CanvasGuides,

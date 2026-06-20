@@ -3,7 +3,7 @@ import type { PptxImageEffects } from 'pptx-viewer-core';
  * React component that renders an image with the `<a:duotone>` effect
  * applied via an offscreen canvas (true per-pixel luminance mapping).
  *
- * Processing is asynchronous — the original image is shown briefly while the
+ * Processing is asynchronous: the original image is shown briefly while the
  * canvas work completes, then the processed image replaces it. Results are
  * cached so subsequent renders are instant.
  */
@@ -50,7 +50,7 @@ export function DuotoneImage({
 	const [processedSrc, setProcessedSrc] = useState<string | null>(cached ?? null);
 
 	useEffect(() => {
-		// Already cached — nothing to do.
+		// Already cached, nothing to do.
 		const cachedResult = getDuotoneCachedResult(cacheKey);
 		if (cachedResult) {
 			setProcessedSrc(cachedResult);

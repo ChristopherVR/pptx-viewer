@@ -9,7 +9,7 @@ import type {
 	CustomGeometrySegment,
 } from 'pptx-viewer-core';
 /**
- * SlideCanvas — Type definitions for the canvas component props.
+ * SlideCanvas: Type definitions for the canvas component props.
  */
 import type React from 'react';
 

@@ -37,7 +37,7 @@ import {
 import { wrapChrome, fitFontSize, chevronPoints } from './smartart-renderer-utils';
 
 /**
- * SmartArtRenderer — Phase 2 Implementation
+ * SmartArtRenderer: Phase 2 Implementation
  *
  * Renders SmartArt diagrams with proper positioned shapes, styling,
  * connector lines between nodes, and layout-specific shape rendering.
@@ -98,7 +98,7 @@ function SmartArtRendererImpl({
 	const palette = resolvePalette(element);
 	const style = resolveStyle(element);
 
-	// Prefer pre-computed drawing shapes when available — these reflect
+	// Prefer pre-computed drawing shapes when available; these reflect
 	// PowerPoint's actual layout engine output and are the most accurate.
 	if (drawingShapes && drawingShapes.length > 0) {
 		return wrapChrome(

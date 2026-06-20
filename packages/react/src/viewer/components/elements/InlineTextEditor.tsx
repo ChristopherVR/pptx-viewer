@@ -10,7 +10,7 @@ import {
 } from '../../utils/inline-selection-utils';
 
 /**
- * Rich inline text editor — uses a `contentEditable` div that renders the same
+ * Rich inline text editor: uses a `contentEditable` div that renders the same
  * rich text segments as view mode so formatting (per-run fonts, sizes, colors,
  * bullets, paragraph indentation, text effects) is preserved while editing.
  *
@@ -45,7 +45,7 @@ export function InlineTextEditor({
 	textStyle: React.CSSProperties;
 	/** Raw TextStyle object for computing warp transforms. */
 	textStyleRaw?: TextStyle;
-	/** Layout style from getTextLayoutStyle — provides flex vertical alignment. */
+	/** Layout style from getTextLayoutStyle; provides flex vertical alignment. */
 	layoutStyle: React.CSSProperties;
 	element: PptxElement;
 	onCommit: () => void;
@@ -110,7 +110,7 @@ export function InlineTextEditor({
 	// which destroys the DOM selection. Restore it from the pending info.
 	const mountedRef = useRef(false);
 	useLayoutEffect(() => {
-		// Skip the initial mount — cursor is already placed by the effect above.
+		// Skip the initial mount; cursor is already placed by the effect above.
 		if (!mountedRef.current) {
 			mountedRef.current = true;
 			return;
@@ -210,7 +210,7 @@ export function InlineTextEditor({
 					onCommit();
 				}
 			}}
-			// Prevent paste from inserting HTML — paste as plain text only
+			// Prevent paste from inserting HTML: paste as plain text only
 			onPaste={(e) => {
 				e.preventDefault();
 				const text = e.clipboardData.getData('text/plain');

@@ -20,7 +20,7 @@ interface AnnotationStroke {
 }
 
 // ---------------------------------------------------------------------------
-// Extracted pure conversion — mirrors handleKeepAnnotations' inner map
+// Extracted pure conversion: mirrors handleKeepAnnotations' inner map
 // ---------------------------------------------------------------------------
 
 function strokeToInkElement(stroke: AnnotationStroke): InkPptxElement {
@@ -71,7 +71,7 @@ function strokeToInkElement(stroke: AnnotationStroke): InkPptxElement {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('useAnnotationHandlers — strokeToInkElement', () => {
+describe('useAnnotationHandlers - strokeToInkElement', () => {
 	// ── Bounding box ──────────────────────────────────────────────────
 	describe('bounding box', () => {
 		it('should compute bounding box from stroke points', () => {

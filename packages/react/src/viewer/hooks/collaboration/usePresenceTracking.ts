@@ -1,5 +1,5 @@
 /**
- * usePresenceTracking — Broadcasts local cursor/selection state and
+ * usePresenceTracking: Broadcasts local cursor/selection state and
  * collects remote user presence via the Yjs awareness protocol.
  *
  * Features:
@@ -92,7 +92,7 @@ export function usePresenceTracking({
 			};
 
 			if (elapsed >= BROADCAST_THROTTLE_MS) {
-				// Enough time has passed — send immediately
+				// Enough time has passed: send immediately
 				if (pendingBroadcastRef.current) {
 					clearTimeout(pendingBroadcastRef.current);
 					pendingBroadcastRef.current = null;
@@ -184,7 +184,7 @@ export function usePresenceTracking({
 		};
 	}, [awareness, localClientId, canvasWidth, canvasHeight]);
 
-	// ── Heartbeat — keep presence fresh so stale filter doesn't expire us
+	// ── Heartbeat: keep presence fresh so stale filter doesn't expire us
 	useEffect(() => {
 		if (!awareness) {
 			return;

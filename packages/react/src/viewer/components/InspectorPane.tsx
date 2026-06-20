@@ -16,7 +16,7 @@ import { SlideBackgroundPanel } from './inspector/SlideBackgroundPanel';
 import { ResizeHandle } from './ResizeHandle';
 
 // ---------------------------------------------------------------------------
-// Main Inspector Pane (thin shell — delegates to extracted sub-panels)
+// Main Inspector Pane (thin shell, delegates to extracted sub-panels)
 // ---------------------------------------------------------------------------
 
 export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
@@ -84,7 +84,7 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 	const { t } = useTranslation();
 
 	// Swipe-down-to-dismiss for the mobile bottom-sheet presentation. The grab
-	// region is `md:hidden`, so `dragY` only ever moves on mobile — the inline
+	// region is `md:hidden`, so `dragY` only ever moves on mobile: the inline
 	// transform below is therefore a no-op on desktop where this is a side panel.
 	const { dragY, handlers: dragHandlers } = useSheetDismissDrag(onClose);
 
@@ -112,7 +112,7 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 
 	return (
 		<>
-			{/* Mobile backdrop — tap to dismiss the bottom sheet. */}
+			{/* Mobile backdrop: tap to dismiss the bottom sheet. */}
 			{isOpen && (
 				<button
 					type='button'
@@ -139,7 +139,7 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 					...(dragY > 0 ? { transform: `translateY(${dragY}px)`, transition: 'none' } : {}),
 				}}
 			>
-				{/* Mobile drag handle — swipe down past the threshold to dismiss. */}
+				{/* Mobile drag handle: swipe down past the threshold to dismiss. */}
 				<div
 					className='md:hidden flex items-center justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none'
 					onPointerDown={dragHandlers.onPointerDown}
@@ -304,7 +304,7 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 					)}
 				</div>
 
-				{/* Animation panel — always visible at bottom when element selected */}
+				{/* Animation panel: always visible at bottom when element selected */}
 				{hasSelection && selectedElement && activeSlide && (
 					<>
 						<ResizeHandle direction='vertical' onResize={onResizeAnim} />

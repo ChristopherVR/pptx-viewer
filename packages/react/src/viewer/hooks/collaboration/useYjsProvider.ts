@@ -1,10 +1,10 @@
 /**
- * useYjsProvider — Manages the Yjs document and WebSocket provider lifecycle.
+ * useYjsProvider: Manages the Yjs document and WebSocket provider lifecycle.
  *
  * Creates a Y.Doc and connects via WebSocketProvider to the collaboration
  * server. Exposes connection status and cleanup on unmount.
  *
- * This hook is intentionally thin — it only manages the transport layer.
+ * This hook is intentionally thin: it only manages the transport layer.
  * Application-level collaboration logic lives in useCollaborativeState
  * and usePresenceTracking.
  *
@@ -130,7 +130,7 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 		setStatus('connecting');
 
 		try {
-			// Dynamic imports — zero bundle cost when unused
+			// Dynamic imports: zero bundle cost when unused
 			const [Y, { WebsocketProvider }] = await Promise.all([import('yjs'), import('y-websocket')]);
 
 			const yDoc: YDoc = new Y.Doc();
@@ -143,7 +143,7 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 			const handleStatus = (event: { status: string }) => {
 				if (event.status === 'connected') {
 					connected = true;
-					// Clear timeout — we connected successfully
+					// Clear timeout: we connected successfully
 					if (timeoutRef.current) {
 						clearTimeout(timeoutRef.current);
 						timeoutRef.current = null;
@@ -161,7 +161,7 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 				setStatus('connected');
 			}
 
-			// Start connection timeout — if we don't connect within the limit,
+			// Start connection timeout: if we don't connect within the limit,
 			// tear down the provider and surface an error so the user can retry.
 			if (!connected) {
 				timeoutRef.current = setTimeout(() => {

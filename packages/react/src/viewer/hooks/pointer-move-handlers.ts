@@ -56,7 +56,7 @@ export function computeResizeGeometry(
 			newW = Math.max(MIN_ELEMENT_SIZE, startWidth - dx);
 			newH = Math.max(MIN_ELEMENT_SIZE, startHeight - dy);
 			break;
-		// Edge handles — single-axis resize
+		// Edge handles - single-axis resize
 		case 'n':
 			newY = startY + dy;
 			newH = Math.max(MIN_ELEMENT_SIZE, startHeight - dy);
