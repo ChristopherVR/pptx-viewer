@@ -59,10 +59,13 @@ describe('chartRenderer', () => {
 				zIndex: 0,
 			},
 		});
-		// Stacked rects have no rx="1"; background rect has fill #0f172a11.
+		// Shared-engine convergence: stacked bars now route through the shared
+		// `buildBars` (grouping 'stacked'), which gives stacked rects `rx: 1`
+		// (the bespoke Vue stacked renderer drew square corners). 2 series x 3
+		// categories = 6 stacked segments, each a non-background rect with rx="1".
 		const bars = wrapper
 			.findAll('rect')
-			.filter((r) => r.attributes('fill') !== '#0f172a11' && r.attributes('rx') === undefined);
+			.filter((r) => r.attributes('fill') !== '#0f172a11' && r.attributes('rx') === '1');
 		expect(bars.length).toBeGreaterThanOrEqual(6);
 	});
 
@@ -89,12 +92,17 @@ describe('chartRenderer', () => {
 		expect(wrapper.findAll('polyline')).toHaveLength(2);
 	});
 
-	it('renders a filled polygon + polyline for an area chart', () => {
+	it('renders a filled area band + outline polyline per series for an area chart', () => {
 		const wrapper = mount(ChartRenderer, {
 			props: { element: chartElement(data('area')), zIndex: 0 },
 		});
-		expect(wrapper.findAll('polygon')).toHaveLength(2);
-		expect(wrapper.findAll('polyline')).toHaveLength(2);
+		// Shared-engine convergence: the shared `buildAreas` draws the filled band
+		// as a `polyline` (baseline + points, with fill + 0.25 opacity) rather than
+		// the bespoke Vue renderer's `<polygon>`, plus a separate outline polyline.
+		// So an area chart now emits 0 polygons and 2 polylines per series
+		// (2 series = 4 polylines), and no <polygon>.
+		expect(wrapper.findAll('polygon')).toHaveLength(0);
+		expect(wrapper.findAll('polyline')).toHaveLength(4);
 	});
 
 	it('shows series names in the legend', () => {

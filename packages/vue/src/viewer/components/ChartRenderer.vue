@@ -1,29 +1,19 @@
 <script setup lang="ts">
 import type { PptxChartData, PptxChartType, PptxElement } from 'pptx-viewer-core';
 import type { ChartViewModel, PlotLayout, ValueRange } from 'pptx-viewer-shared';
-import {
-	computeLayout,
-	computeValueRange,
-	formatAxisValue,
-	resolveCategoryLabels,
-	seriesColor,
-	valueToY,
-} from 'pptx-viewer-shared';
+import { computeLayout, computeValueRange, resolveCategoryLabels } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
 import { getContainerStyle } from '../composables/element-style';
 import BoxWhiskerChart from './chart/BoxWhiskerChart.vue';
-import BubbleChart from './chart/BubbleChart.vue';
 import { buildVueChartViewModel } from './chart/chart-view-model';
 import ChartChrome from './chart/ChartChrome.vue';
-import ChartTrendlines from './chart/ChartTrendlines.vue';
 import ChartViewModelSvg from './chart/ChartViewModelSvg.vue';
 import ComboChart from './chart/ComboChart.vue';
 import FunnelChart from './chart/FunnelChart.vue';
 import HistogramChart from './chart/HistogramChart.vue';
 import RegionMapChart from './chart/RegionMapChart.vue';
-import ScatterChart from './chart/ScatterChart.vue';
 import StockChart from './chart/StockChart.vue';
 import SunburstChart from './chart/SunburstChart.vue';
 import SurfaceChart from './chart/SurfaceChart.vue';
@@ -34,32 +24,19 @@ import WaterfallChart from './chart/WaterfallChart.vue';
  * ChartRenderer: Vue port of the React chart renderer (`viewer/utils/chart.tsx`
  * and friends). Renders a PPTX chart element as an inline SVG.
  *
- * Implemented chart types:
- *   - bar / column (clustered)        - React `chart-bar.tsx`
- *   - stacked + 100%-stacked bar      - React `chart-stacked-bar.tsx`
- *   - line / line3D                   - React `chart-area-line.tsx`
- *   - area / area3D                   - React `chart-area-line.tsx`
- *   - pie / doughnut / pie3D          - shared `buildChartViewModel` engine
- *   - radar                           - shared `buildChartViewModel` engine
- *   - scatter                         - React `chart-scatter-bubble.tsx`
- *   - bubble                          - React `chart-scatter-bubble.tsx`
- *   - waterfall                       - React `chart-waterfall-combo.tsx`
- *   - funnel                          - React `chart-sunburst-funnel.tsx`
- *   - treemap                         - React `chart-surface-treemap.tsx`
- *   - sunburst                        - React `chart-sunburst-funnel.tsx`
- *   - combo (column+line)             - React `chart-waterfall-combo.tsx`
- *   - stock (HLC / OHLC)              - React `chart-stock.tsx`
- *   - histogram                       - React `chart-bar.tsx`
- *   - boxWhisker                      - React `chart-bar.tsx`
- *   - surface                         - isometric SVG mesh (`SurfaceChart.vue`)
- *   - regionMap                       - choropleth map (`RegionMapChart.vue`)
- *   - trendlines (regression overlays) - React `chart-trendlines.tsx`
- *   - chrome (title, axes, gridlines, legend, data labels) - `chart-chrome.tsx`
+ * Chart types via the shared `buildChartViewModel` engine (`ChartViewModelSvg`):
+ *   - bar / column (clustered, stacked, percentStacked)
+ *   - line / line3D, area / area3D, scatter, bubble
+ *   - pie / doughnut / pie3D, radar
+ *   These honour secondary value axes, log / display-unit axes, and trendline /
+ *   error-bar / axis-title / data-table overlays inside the shared engine.
  *
- * Remaining TODOs:
- *   // TODO(vue): port secondary axes (right-hand value axis for series on a
- *   //   second axisId) + data tables. Log/display-unit value axes are also not
- *   //   yet honoured: the value axis is always linear.
+ * Chart types still on bespoke Vue components:
+ *   - waterfall / combo / stock  - axis `<svg>` + `ChartChrome` + own component
+ *   - funnel / sunburst          - own no-axis components
+ *   - treemap / surface          - own SVG mesh / rectangles
+ *   - histogram / boxWhisker     - own shared-backed components
+ *   - regionMap                  - choropleth map (`RegionMapChart.vue`)
  */
 const props = defineProps<{
 	element: PptxElement;
@@ -181,12 +158,9 @@ const placeholderLabel = computed(() => `Chart: ${chartType.value}`);
 // ── Shared layout ────────────────────────────────────────────────
 
 const style = computed(() => chartData.value?.style);
-const styleId = computed(() => chartData.value?.style?.styleId);
-const colorPalette = computed(() => chartData.value?.colorPalette);
 const legendPos = computed(() => style.value?.legendPosition || 'b');
-const hasDataLabels = computed(() => Boolean(style.value?.hasDataLabels));
 
-/** Plot layout for axis-based charts (bar/line/area/stacked and most exotic types). */
+/** Plot layout for axis-based charts (combo / stock / waterfall / surface). */
 const layout = computed<PlotLayout>(() =>
 	computeLayout(props.element.width, props.element.height, style.value, true, legendPos.value),
 );
@@ -199,269 +173,44 @@ const noAxisLayout = computed<PlotLayout>(() =>
 const svgWidth = computed(() => layout.value.svgWidth);
 const svgHeight = computed(() => layout.value.svgHeight);
 
-const categoryAxisStyle = computed<'bar' | 'line'>(() =>
-	renderKind.value === 'line' || renderKind.value === 'area' ? 'line' : 'bar',
-);
-
-// ── Bar (clustered) ──────────────────────────────────────────────
-
-interface BarRect {
-	x: number;
-	y: number;
-	width: number;
-	height: number;
-	fill: string;
-	labelX?: number;
-	labelY?: number;
-	labelText?: string;
-}
-
+/** Value range for the bespoke combo / stock / waterfall / surface overlays. */
 const barRange = computed<ValueRange>(() =>
 	chartData.value ? computeValueRange(chartData.value.series) : { min: 0, max: 1, span: 1 },
 );
 
-const barRects = computed<BarRect[]>(() => {
-	const data = chartData.value;
-	if (!data || renderKind.value !== 'bar') {
-		return [];
-	}
-	const l = layout.value;
-	const range = barRange.value;
-	const catCount = Math.max(categoryLabels.value.length, 1);
-	const seriesCount = data.series.length;
-	const barGroupWidth = l.plotWidth / catCount;
-	const singleBarWidth = (barGroupWidth * 0.7) / Math.max(seriesCount, 1);
-	const groupOffset = (barGroupWidth - singleBarWidth * seriesCount) / 2;
-
-	const out: BarRect[] = [];
-	for (let ci = 0; ci < catCount; ci++) {
-		data.series.forEach((series, si) => {
-			const val = series.values[ci] ?? 0;
-			const x = l.plotLeft + barGroupWidth * ci + groupOffset + singleBarWidth * si;
-			const zeroY = valueToY(0, range, l.plotTop, l.plotBottom);
-			const valY = valueToY(val, range, l.plotTop, l.plotBottom);
-			const y = Math.min(zeroY, valY);
-			const h = Math.max(Math.abs(zeroY - valY), 1);
-			out.push({
-				x,
-				y,
-				width: singleBarWidth,
-				height: h,
-				fill: seriesColor(series, si, styleId.value, colorPalette.value),
-				labelX: hasDataLabels.value ? x + singleBarWidth / 2 : undefined,
-				labelY: hasDataLabels.value ? (val >= 0 ? y - 4 : y + h + 10) : undefined,
-				labelText: hasDataLabels.value ? formatAxisValue(val) : undefined,
-			});
-		});
-	}
-	return out;
-});
-
-// ── Stacked bar ──────────────────────────────────────────────────
-
-interface StackRect {
-	x: number;
-	y: number;
-	width: number;
-	height: number;
-	fill: string;
-	labelX?: number;
-	labelY?: number;
-	labelText?: string;
-}
-
-const isPercentStacked = computed(() => chartData.value?.grouping === 'percentStacked');
-
-const stackRange = computed<ValueRange>(() => {
-	const data = chartData.value;
-	if (!data || renderKind.value !== 'stackedBar') {
-		return { min: 0, max: 1, span: 1 };
-	}
-	const catCount = Math.max(categoryLabels.value.length, 1);
-	let stackMax = 0;
-	let stackMin = 0;
-	if (isPercentStacked.value) {
-		stackMax = 100;
-		stackMin = 0;
-	} else {
-		for (let ci = 0; ci < catCount; ci++) {
-			let posSum = 0;
-			let negSum = 0;
-			data.series.forEach((s) => {
-				const v = s.values[ci] ?? 0;
-				if (v >= 0) {
-					posSum += v;
-				} else {
-					negSum += v;
-				}
-			});
-			stackMax = Math.max(stackMax, posSum);
-			stackMin = Math.min(stackMin, negSum);
-		}
-	}
-	const min = Math.min(stackMin, 0);
-	const max = Math.max(stackMax, 0);
-	return { min, max, span: Math.max(max - min, 1) };
-});
-
-const stackRects = computed<StackRect[]>(() => {
-	const data = chartData.value;
-	if (!data || renderKind.value !== 'stackedBar') {
-		return [];
-	}
-	const l = layout.value;
-	const range = stackRange.value;
-	const catCount = Math.max(categoryLabels.value.length, 1);
-	const barGroupWidth = l.plotWidth / catCount;
-	const barWidth = barGroupWidth * 0.6;
-	const barOffset = (barGroupWidth - barWidth) / 2;
-	const percent = isPercentStacked.value;
-
-	const out: StackRect[] = [];
-	for (let ci = 0; ci < catCount; ci++) {
-		let posRunning = 0;
-		let negRunning = 0;
-		const catTotal = data.series.reduce((sum, s) => sum + Math.abs(s.values[ci] ?? 0), 0) || 1;
-
-		data.series.forEach((series, si) => {
-			const rawVal = series.values[ci] ?? 0;
-			const val = percent ? (catTotal > 0 ? (rawVal / catTotal) * 100 : 0) : rawVal;
-			const isNeg = val < 0;
-			const base = isNeg ? negRunning : posRunning;
-			const top = base + val;
-
-			const x = l.plotLeft + barGroupWidth * ci + barOffset;
-			const baseY = valueToY(base, range, l.plotTop, l.plotBottom);
-			const topY = valueToY(top, range, l.plotTop, l.plotBottom);
-			const y = Math.min(baseY, topY);
-			const h = Math.max(Math.abs(baseY - topY), 0.5);
-
-			out.push({
-				x,
-				y,
-				width: barWidth,
-				height: h,
-				fill: seriesColor(series, si, styleId.value, colorPalette.value),
-				labelX: hasDataLabels.value && Math.abs(val) > 0 ? x + barWidth / 2 : undefined,
-				labelY: hasDataLabels.value && Math.abs(val) > 0 ? y + h / 2 + 3 : undefined,
-				labelText:
-					hasDataLabels.value && Math.abs(val) > 0
-						? percent
-							? `${Math.round(val)}%`
-							: formatAxisValue(val)
-						: undefined,
-			});
-
-			if (isNeg) {
-				negRunning += val;
-			} else {
-				posRunning += val;
-			}
-		});
-	}
-	return out;
-});
-
-// ── Line / Area ──────────────────────────────────────────────────
-
-interface SeriesPoint {
-	x: number;
-	y: number;
-	value: number;
-}
-
-interface LineSeries {
-	color: string;
-	points: SeriesPoint[];
-	polylinePoints: string;
-	areaPolygonPoints?: string;
-}
-
-const lineRange = computed<ValueRange>(() =>
-	chartData.value ? computeValueRange(chartData.value.series) : { min: 0, max: 1, span: 1 },
-);
-
-const lineSeries = computed<LineSeries[]>(() => {
-	const data = chartData.value;
-	if (!data || (renderKind.value !== 'line' && renderKind.value !== 'area')) {
-		return [];
-	}
-	const l = layout.value;
-	const range = lineRange.value;
-	const catCount = Math.max(categoryLabels.value.length, 2);
-	const baselineY = valueToY(0, range, l.plotTop, l.plotBottom);
-	const isArea = renderKind.value === 'area';
-
-	const out: LineSeries[] = [];
-	data.series.forEach((series, si) => {
-		if (series.values.length === 0) {
-			return;
-		}
-		const points = series.values.map((value, vi) => {
-			const nx = catCount > 1 ? vi / (catCount - 1) : 0;
-			const x = l.plotLeft + l.plotWidth * nx;
-			const y = valueToY(value, range, l.plotTop, l.plotBottom);
-			return { x, y, value };
-		});
-		const polylinePoints = points.map((p) => `${p.x},${p.y}`).join(' ');
-		const color = seriesColor(series, si, styleId.value, colorPalette.value);
-		const last = points[points.length - 1];
-		out.push({
-			color,
-			points,
-			polylinePoints,
-			areaPolygonPoints: isArea
-				? `${l.plotLeft},${baselineY} ${polylinePoints} ${last.x},${baselineY}`
-				: undefined,
-		});
-	});
-	return out;
-});
-
-// ── Pie / Doughnut / Radar (shared view-model engine) ────────────
+// ── Shared view-model engine (pie / doughnut / radar + cartesian) ─
 //
-// Pie / doughnut and radar are fully covered by the framework-agnostic
-// `buildChartViewModel` engine in pptx-viewer-shared, so Vue projects its
+// Pie / doughnut, radar, and the whole cartesian family (bar / column / line /
+// area / scatter / bubble, including clustered / stacked / percentStacked and
+// log / display-unit / secondary value axes plus trendline / error-bar /
+// axis-title / data-table overlays) are fully covered by the framework-agnostic
+// `buildChartViewModel` engine in pptx-viewer-shared. Vue projects its
 // view-model through `ChartViewModelSvg.vue` (mirroring React's
-// `renderPieChart` / `renderRadarChart`). Vue's style-id palette is threaded
-// in via `buildVueChartViewModel`, so only geometry aligns across frameworks,
-// not colour.
+// `renderChartViewModel`), so React / Vue / Angular share one geometry / layout
+// engine. Vue's style-id palette is threaded in via `buildVueChartViewModel`,
+// so only colour stays Vue-specific, not geometry.
 
-/** Shared view-model for pie / doughnut, with Vue's palette threaded in. */
-const pieViewModel = computed<ChartViewModel | undefined>(() =>
-	renderKind.value === 'pie' ? buildVueChartViewModel(props.element) : undefined,
-);
-
-/** Shared view-model for radar, with Vue's palette threaded in. */
-const radarViewModel = computed<ChartViewModel | undefined>(() =>
-	renderKind.value === 'radar' ? buildVueChartViewModel(props.element) : undefined,
-);
-
-// ── Trendlines (regression overlays) ─────────────────────────────
-
-/** Whether trendline overlays apply to the active (axis-based) render kind. */
-const showTrendlines = computed(
+/** Render kinds projected through the shared view-model engine. */
+const usesSharedViewModel = computed(
 	() =>
+		renderKind.value === 'pie' ||
+		renderKind.value === 'radar' ||
 		renderKind.value === 'bar' ||
 		renderKind.value === 'stackedBar' ||
 		renderKind.value === 'line' ||
-		renderKind.value === 'area',
+		renderKind.value === 'area' ||
+		renderKind.value === 'scatter' ||
+		renderKind.value === 'bubble',
 );
 
-/** The value range the active axis plot is drawn against. */
-const trendlineRange = computed<ValueRange>(() => {
-	if (renderKind.value === 'stackedBar') {
-		return stackRange.value;
-	}
-	if (renderKind.value === 'line' || renderKind.value === 'area') {
-		return lineRange.value;
-	}
-	return barRange.value;
-});
+/** Shared view-model for the kinds above, with Vue's palette threaded in. */
+const sharedViewModel = computed<ChartViewModel | undefined>(() =>
+	usesSharedViewModel.value ? buildVueChartViewModel(props.element) : undefined,
+);
 
-/** Bar-mode plots centre on category slots; line/area anchor at points. */
-const trendlineMode = computed<'line' | 'bar'>(() =>
-	renderKind.value === 'line' || renderKind.value === 'area' ? 'line' : 'bar',
+/** Pie / doughnut / radar keep their square `xMidYMid meet` aspect ratio. */
+const sharedAspectRatio = computed<'none' | 'xMidYMid meet'>(() =>
+	renderKind.value === 'pie' || renderKind.value === 'radar' ? 'xMidYMid meet' : 'none',
 );
 </script>
 
@@ -476,20 +225,16 @@ const trendlineMode = computed<'line' | 'bar'>(() =>
 			{{ placeholderLabel }}
 		</div>
 
-		<!-- Pie / doughnut: shared view-model engine, square viewBox -->
+		<!-- Shared view-model engine: pie / doughnut / radar + the cartesian
+		     family (bar / column / line / area / scatter / bubble, incl.
+		     clustered / stacked / percentStacked, secondary / log /
+		     display-unit axes, and trendline / error-bar / axis-title /
+		     data-table overlays). Pie / radar keep a square aspect ratio. -->
 		<ChartViewModelSvg
-			v-else-if="renderKind === 'pie' && pieViewModel"
+			v-else-if="usesSharedViewModel && sharedViewModel"
 			:element-id="element.id"
-			:vm="pieViewModel"
-			preserve-aspect-ratio="xMidYMid meet"
-		/>
-
-		<!-- Radar: shared view-model engine, spider-web layout (no axes) -->
-		<ChartViewModelSvg
-			v-else-if="renderKind === 'radar' && radarViewModel"
-			:element-id="element.id"
-			:vm="radarViewModel"
-			preserve-aspect-ratio="xMidYMid meet"
+			:vm="sharedViewModel"
+			:preserve-aspect-ratio="sharedAspectRatio"
 		/>
 
 		<!-- Sunburst: concentric rings (no axes), shared view-model engine -->
@@ -580,8 +325,9 @@ const trendlineMode = computed<'line' | 'bar'>(() =>
 			/>
 		</svg>
 
-		<!-- Axis-based charts: bar / stacked / line / area / scatter / bubble /
-		     waterfall / combo / stock -->
+		<!-- Bespoke axis-based charts the shared engine does not yet cover:
+		     waterfall / combo / stock. Chrome (gridlines / axes / category
+		     labels / legend) is drawn by ChartChrome around the plot. -->
 		<svg
 			v-else
 			class="pptx-vue-chart-svg"
@@ -594,137 +340,14 @@ const trendlineMode = computed<'line' | 'bar'>(() =>
 				v-if="chartData"
 				:chart-data="chartData"
 				:layout="layout"
-				:range="
-					renderKind === 'stackedBar'
-						? stackRange
-						: renderKind === 'line' || renderKind === 'area'
-							? lineRange
-							: barRange
-				"
+				:range="barRange"
 				:categories="categoryLabels"
-				:category-axis-style="categoryAxisStyle"
-			/>
-
-			<!-- Clustered bars -->
-			<template v-if="renderKind === 'bar'">
-				<rect
-					v-for="(b, i) in barRects"
-					:key="`bar-${i}`"
-					:x="b.x"
-					:y="b.y"
-					:width="b.width"
-					:height="b.height"
-					:fill="b.fill"
-					rx="1"
-				/>
-				<text
-					v-for="(b, i) in barRects.filter((r) => r.labelText !== undefined)"
-					:key="`bar-dl-${i}`"
-					:x="b.labelX"
-					:y="b.labelY"
-					text-anchor="middle"
-					font-size="7"
-					fill="#334155"
-				>
-					{{ b.labelText }}
-				</text>
-			</template>
-
-			<!-- Stacked bars -->
-			<template v-else-if="renderKind === 'stackedBar'">
-				<rect
-					v-for="(b, i) in stackRects"
-					:key="`sbar-${i}`"
-					:x="b.x"
-					:y="b.y"
-					:width="b.width"
-					:height="b.height"
-					:fill="b.fill"
-				/>
-				<text
-					v-for="(b, i) in stackRects.filter((r) => r.labelText !== undefined)"
-					:key="`sbar-dl-${i}`"
-					:x="b.labelX"
-					:y="b.labelY"
-					text-anchor="middle"
-					font-size="7"
-					font-weight="600"
-					fill="#fff"
-				>
-					{{ b.labelText }}
-				</text>
-			</template>
-
-			<!-- Area -->
-			<template v-else-if="renderKind === 'area'">
-				<g v-for="(s, si) in lineSeries" :key="`area-${si}`">
-					<polygon :points="s.areaPolygonPoints" :fill="s.color" opacity="0.25" />
-					<polyline fill="none" :stroke="s.color" stroke-width="2" :points="s.polylinePoints" />
-				</g>
-				<template v-if="hasDataLabels">
-					<template v-for="(s, si) in lineSeries" :key="`area-dlg-${si}`">
-						<text
-							v-for="(p, vi) in s.points"
-							:key="`area-dl-${si}-${vi}`"
-							:x="p.x"
-							:y="p.y - 6"
-							text-anchor="middle"
-							font-size="7"
-							fill="#334155"
-						>
-							{{ formatAxisValue(p.value) }}
-						</text>
-					</template>
-				</template>
-			</template>
-
-			<!-- Line -->
-			<template v-else-if="renderKind === 'line'">
-				<g v-for="(s, si) in lineSeries" :key="`line-${si}`">
-					<polyline fill="none" :stroke="s.color" stroke-width="2.4" :points="s.polylinePoints" />
-					<circle
-						v-for="(p, vi) in s.points"
-						:key="`line-dot-${si}-${vi}`"
-						:cx="p.x"
-						:cy="p.y"
-						r="2.5"
-						:fill="s.color"
-					/>
-					<template v-if="hasDataLabels">
-						<text
-							v-for="(p, vi) in s.points"
-							:key="`line-dl-${si}-${vi}`"
-							:x="p.x"
-							:y="p.y - 7"
-							text-anchor="middle"
-							font-size="7"
-							fill="#334155"
-						>
-							{{ formatAxisValue(p.value) }}
-						</text>
-					</template>
-				</g>
-			</template>
-
-			<!-- Scatter -->
-			<ScatterChart
-				v-else-if="renderKind === 'scatter' && chartData"
-				:chart-data="chartData"
-				:layout="layout"
-				:range="barRange"
-			/>
-
-			<!-- Bubble -->
-			<BubbleChart
-				v-else-if="renderKind === 'bubble' && chartData"
-				:chart-data="chartData"
-				:layout="layout"
-				:range="barRange"
+				category-axis-style="bar"
 			/>
 
 			<!-- Waterfall -->
 			<WaterfallChart
-				v-else-if="renderKind === 'waterfall' && chartData"
+				v-if="renderKind === 'waterfall' && chartData"
 				:chart-data="chartData"
 				:layout="layout"
 				:range="barRange"
@@ -747,17 +370,6 @@ const trendlineMode = computed<'line' | 'bar'>(() =>
 				:layout="layout"
 				:range="barRange"
 				:categories="categoryLabels"
-			/>
-
-			<!-- Trendline overlays (drawn on top of bar / stacked / line / area). -->
-			<ChartTrendlines
-				v-if="showTrendlines && chartData"
-				:chart-data="chartData"
-				:layout="layout"
-				:range="trendlineRange"
-				:mode="trendlineMode"
-				:style-id="styleId"
-				:color-palette="colorPalette"
 			/>
 		</svg>
 	</div>

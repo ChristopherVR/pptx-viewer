@@ -1,157 +1,48 @@
 import type { PptxElement, PptxChartData } from 'pptx-viewer-core';
 import React from 'react';
 
-import {
-	renderTitle,
-	renderGridlines,
-	renderValueAxis,
-	renderZeroLine,
-	renderLegend,
-	renderOverlays,
-} from './chart-chrome';
-import { renderChartDataTable } from './chart-data-table';
-import { computeValueRangeForChart, valueToY, seriesColor, formatAxisValue } from './chart-helpers';
-import { computeLayout } from './chart-layout';
+import { buildReactChartViewModel, renderChartViewModel } from './chart-view-model-render';
 
-/** Render a scatter (XY) chart. */
+/**
+ * Render a scatter (XY) chart.
+ *
+ * Geometry, layout, chrome (gridlines / value axis / zero line / legend), and
+ * overlays flow through the framework-agnostic `buildChartViewModel` engine in
+ * `pptx-viewer-shared` (dispatched on `chartType === 'scatter'`). React's
+ * style-id palette is threaded in via `buildReactChartViewModel`, so only colour
+ * stays React-specific; geometry is identical across React / Vue / Angular.
+ *
+ * The `chartData` / `categoryLabels` parameters are retained for `chart.tsx`
+ * dispatcher signature stability; the shared builder derives its own.
+ */
 export function renderScatterChart(
 	element: PptxElement,
-	chartData: PptxChartData,
+	_chartData: PptxChartData,
 	_categoryLabels: ReadonlyArray<string>,
 ): React.ReactNode {
-	const style = chartData.style;
-	const legendPos = style?.legendPosition || 'b';
-	const range = computeValueRangeForChart(chartData.series, chartData.axes);
-	const layout = computeLayout(element.width, element.height, style, true, legendPos);
-	const allX = chartData.series.flatMap((s) => s.values.map((_v, i) => i));
-	const maxX = Math.max(1, ...allX);
-
-	return (
-		<>
-			<svg
-				className='w-full h-full pointer-events-none'
-				viewBox={`0 0 ${layout.svgWidth} ${layout.svgHeight}`}
-				preserveAspectRatio='none'
-			>
-				<rect x={0} y={0} width={layout.svgWidth} height={layout.svgHeight} fill='#0f172a11' />
-				{renderTitle(element.id, style, chartData.title, layout.svgWidth)}
-				{renderGridlines(element.id, style, range, layout)}
-				{renderValueAxis(element.id, range, layout)}
-				{renderZeroLine(element.id, range, layout)}
-				{renderLegend(element.id, style, chartData.series, layout)}
-				{chartData.series.map((series, si) =>
-					series.values.map((val, vi) => {
-						const px = layout.plotLeft + (maxX > 0 ? vi / maxX : 0) * layout.plotWidth;
-						const py = valueToY(val, range, layout.plotTop, layout.plotBottom);
-						return (
-							<circle
-								key={`${element.id}-scatter-${si}-${vi}`}
-								cx={px}
-								cy={py}
-								r={4}
-								fill={seriesColor(series, si, chartData.style?.styleId, chartData.colorPalette)}
-								opacity={0.85}
-							/>
-						);
-					}),
-				)}
-				{style?.hasDataLabels &&
-					chartData.series.map((series, si) =>
-						series.values.map((val, vi) => {
-							const px = layout.plotLeft + (maxX > 0 ? vi / maxX : 0) * layout.plotWidth;
-							const py = valueToY(val, range, layout.plotTop, layout.plotBottom);
-							return (
-								<text
-									key={`${element.id}-scatter-dl-${si}-${vi}`}
-									x={px}
-									y={py - 6}
-									textAnchor='middle'
-									fontSize={7}
-									fill='#334155'
-								>
-									{formatAxisValue(val)}
-								</text>
-							);
-						}),
-					)}
-				{renderOverlays(element.id, chartData, layout, range, 'line')}
-			</svg>
-			{renderChartDataTable(element.id, chartData, layout.svgWidth)}
-		</>
-	);
+	return renderChartViewModel(element.id, buildReactChartViewModel(element));
 }
 
-/** Render a bubble chart. */
+/**
+ * Render a bubble chart.
+ *
+ * Geometry (first two series as points, a third as bubble size), layout, chrome,
+ * and overlays flow through the framework-agnostic `buildChartViewModel` engine
+ * in `pptx-viewer-shared` (dispatched on `chartType === 'bubble'`). React's
+ * style-id palette is threaded in via `buildReactChartViewModel`.
+ *
+ * Note: the shared engine fills bubbles with no stroke outline (its `SvgCircle`
+ * primitive carries no stroke), so converging drops the thin same-colour outline
+ * the bespoke React renderer drew. Angular already renders bubbles strokeless via
+ * the same engine, so this aligns all three frameworks.
+ *
+ * The `chartData` / `categoryLabels` parameters are retained for `chart.tsx`
+ * dispatcher signature stability; the shared builder derives its own.
+ */
 export function renderBubbleChart(
 	element: PptxElement,
-	chartData: PptxChartData,
+	_chartData: PptxChartData,
 	_categoryLabels: ReadonlyArray<string>,
 ): React.ReactNode {
-	const style = chartData.style;
-	const legendPos = style?.legendPosition || 'b';
-	const range = computeValueRangeForChart(chartData.series, chartData.axes);
-	const layout = computeLayout(element.width, element.height, style, true, legendPos);
-	const allX = chartData.series.flatMap((s) => s.values.map((_v, i) => i));
-	const maxX = Math.max(1, ...allX);
-
-	const bubbleSizeSeries = chartData.series.length >= 3 ? chartData.series[2] : undefined;
-	const maxBubble = bubbleSizeSeries ? Math.max(1, ...bubbleSizeSeries.values.map(Math.abs)) : 1;
-	const medianRadius = Math.min(layout.plotWidth, layout.plotHeight) * 0.04;
-
-	return (
-		<svg
-			className='w-full h-full pointer-events-none'
-			viewBox={`0 0 ${layout.svgWidth} ${layout.svgHeight}`}
-			preserveAspectRatio='none'
-		>
-			<rect x={0} y={0} width={layout.svgWidth} height={layout.svgHeight} fill='#0f172a11' />
-			{renderTitle(element.id, style, chartData.title, layout.svgWidth)}
-			{renderGridlines(element.id, style, range, layout)}
-			{renderValueAxis(element.id, range, layout)}
-			{renderZeroLine(element.id, range, layout)}
-			{renderLegend(element.id, style, chartData.series, layout)}
-			{chartData.series.slice(0, 2).map((series, si) =>
-				series.values.map((val, vi) => {
-					const px = layout.plotLeft + (maxX > 0 ? vi / maxX : 0) * layout.plotWidth;
-					const py = valueToY(val, range, layout.plotTop, layout.plotBottom);
-					const bubbleVal = bubbleSizeSeries?.values[vi];
-					const r =
-						bubbleVal !== undefined
-							? medianRadius * 0.5 + (Math.abs(bubbleVal) / maxBubble) * medianRadius * 1.5
-							: medianRadius;
-					return (
-						<circle
-							key={`${element.id}-bubble-${si}-${vi}`}
-							cx={px}
-							cy={py}
-							r={r}
-							fill={seriesColor(series, si, chartData.style?.styleId, chartData.colorPalette)}
-							opacity={0.6}
-							stroke={seriesColor(series, si, chartData.style?.styleId, chartData.colorPalette)}
-							strokeWidth={1}
-						/>
-					);
-				}),
-			)}
-			{style?.hasDataLabels &&
-				chartData.series.slice(0, 2).map((series, si) =>
-					series.values.map((val, vi) => {
-						const px = layout.plotLeft + (maxX > 0 ? vi / maxX : 0) * layout.plotWidth;
-						const py = valueToY(val, range, layout.plotTop, layout.plotBottom);
-						return (
-							<text
-								key={`${element.id}-bubble-dl-${si}-${vi}`}
-								x={px}
-								y={py - 10}
-								textAnchor='middle'
-								fontSize={7}
-								fill='#334155'
-							>
-								{formatAxisValue(val)}
-							</text>
-						);
-					}),
-				)}
-		</svg>
-	);
+	return renderChartViewModel(element.id, buildReactChartViewModel(element));
 }

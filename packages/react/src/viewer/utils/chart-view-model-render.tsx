@@ -180,6 +180,8 @@ function renderText(t: SvgText, key: string): React.ReactNode {
 			fill={t.fill}
 			fontWeight={t.fontWeight ?? 'normal'}
 			dominantBaseline={t.dominantBaseline as React.SVGProps<SVGTextElement>['dominantBaseline']}
+			opacity={t.opacity ?? 1}
+			transform={t.transform}
 		>
 			{t.text}
 		</text>
@@ -194,6 +196,13 @@ function renderText(t: SvgText, key: string): React.ReactNode {
  * `preserveAspectRatio` defaults to `none` (cartesian charts stretch to fill
  * the element box). Square chart kinds (pie / doughnut / radar) pass
  * `xMidYMid meet` so they stay circular regardless of the element's aspect.
+ *
+ * Secondary value axis: `secondaryGridlines` / `secondaryAxisLabels` are
+ * rendered explicitly (dashed right-side gridlines + right-anchored labels).
+ * Overlays (trendlines / error bars / axis titles) and the data-table block are
+ * already appended to `vm.primitives` by the shared cartesian builder, so they
+ * flow through the `vm.primitives` switch below; `vm.overlays` / `vm.dataTable`
+ * are surfaced on the view-model only for projectors that want to segregate them.
  */
 export function renderChartViewModel(
 	elementId: string,
@@ -234,7 +243,23 @@ export function renderChartViewModel(
 				/>
 			))}
 
+			{(vm.secondaryGridlines ?? []).map((gl, i) => (
+				<line
+					key={`${elementId}-sgl-${i}`}
+					x1={gl.x1}
+					y1={gl.y1}
+					x2={gl.x2}
+					y2={gl.y2}
+					stroke={gl.stroke}
+					strokeWidth={gl.strokeWidth}
+					strokeDasharray={gl.dashArray}
+					opacity={gl.opacity ?? 1}
+				/>
+			))}
+
 			{vm.axisLabels.map((lbl, i) => renderText(lbl, `${elementId}-al-${i}`))}
+
+			{(vm.secondaryAxisLabels ?? []).map((lbl, i) => renderText(lbl, `${elementId}-sal-${i}`))}
 
 			{vm.zeroLine && (
 				<line

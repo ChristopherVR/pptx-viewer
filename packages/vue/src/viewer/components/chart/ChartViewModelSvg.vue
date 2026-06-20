@@ -18,14 +18,24 @@ import { computed } from 'vue';
  * descriptors plus chrome) to Vue template SVG, mirroring React's
  * `renderChartViewModel` in `chart-view-model-render.tsx`.
  *
- * Used for the chart kinds the shared engine fully covers (pie / doughnut /
- * radar). Richer Vue renderers (bar / line / area / combo / stock / surface /
- * region map / box-whisker / histogram / sunburst / funnel, plus log/secondary
- * axes and interactive overlays) stay on their bespoke Vue components.
+ * Used for the chart kinds the shared engine fully covers: pie / doughnut /
+ * radar and the cartesian family (bar / column / line / area / scatter / bubble,
+ * including clustered / stacked / percentStacked and log / display-unit /
+ * secondary value axes plus trendline / error-bar / axis-title / data-table
+ * overlays). The remaining bespoke Vue renderers (combo / stock / surface /
+ * region map / box-whisker / histogram / sunburst / funnel) stay on their own
+ * components.
  *
  * `preserveAspectRatio` defaults to `none` (cartesian charts stretch to fill
  * the element box). Square chart kinds (pie / doughnut / radar) pass
  * `xMidYMid meet` so they stay circular regardless of the element's aspect.
+ *
+ * Secondary value axis: `secondaryGridlines` / `secondaryAxisLabels` render as
+ * dashed right-side gridlines + right-anchored labels. Overlays (trendlines /
+ * error bars / axis titles) and the data-table block are already appended to
+ * `vm.primitives` by the shared cartesian builder, so they flow through the
+ * `vm.primitives` switch; `vm.overlays` / `vm.dataTable` are surfaced on the
+ * view-model only for projectors that want to segregate them.
  */
 const props = withDefaults(
 	defineProps<{
@@ -112,6 +122,19 @@ const legendItems = computed<LegendLayout[]>(() => {
 			:stroke-width="gl.strokeWidth"
 		/>
 
+		<line
+			v-for="(gl, i) in vm.secondaryGridlines ?? []"
+			:key="`${elementId}-sgl-${i}`"
+			:x1="gl.x1"
+			:y1="gl.y1"
+			:x2="gl.x2"
+			:y2="gl.y2"
+			:stroke="gl.stroke"
+			:stroke-width="gl.strokeWidth"
+			:stroke-dasharray="gl.dashArray"
+			:opacity="gl.opacity ?? 1"
+		/>
+
 		<text
 			v-for="(lbl, i) in vm.axisLabels"
 			:key="`${elementId}-al-${i}`"
@@ -122,6 +145,24 @@ const legendItems = computed<LegendLayout[]>(() => {
 			:fill="lbl.fill"
 			:font-weight="lbl.fontWeight ?? 'normal'"
 			:dominant-baseline="lbl.dominantBaseline"
+			:opacity="lbl.opacity ?? 1"
+			:transform="lbl.transform"
+		>
+			{{ lbl.text }}
+		</text>
+
+		<text
+			v-for="(lbl, i) in vm.secondaryAxisLabels ?? []"
+			:key="`${elementId}-sal-${i}`"
+			:x="lbl.x"
+			:y="lbl.y"
+			:text-anchor="lbl.textAnchor"
+			:font-size="lbl.fontSize"
+			:fill="lbl.fill"
+			:font-weight="lbl.fontWeight ?? 'normal'"
+			:dominant-baseline="lbl.dominantBaseline"
+			:opacity="lbl.opacity ?? 1"
+			:transform="lbl.transform"
 		>
 			{{ lbl.text }}
 		</text>

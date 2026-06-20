@@ -1,21 +1,7 @@
 import type { PptxElement, PptxChartData } from 'pptx-viewer-core';
 import React from 'react';
 
-import { renderChrome, renderOverlays } from './chart-chrome';
-import { renderChartDataTable } from './chart-data-table';
-import {
-	computeValueRange,
-	computeValueRangeForChart,
-	valueToY,
-	formatAxisValue,
-	seriesColor,
-} from './chart-helpers';
-import {
-	computeLayout,
-	computeLayoutOptions,
-	splitSeriesByAxis,
-	getSecondaryValueAxis,
-} from './chart-layout';
+import { formatAxisValue } from './chart-helpers';
 import { buildReactChartViewModel, renderChartViewModel } from './chart-view-model-render';
 
 /**
@@ -187,7 +173,7 @@ export function renderMapChartFallback(
 					fontSize={fontSize}
 					fill='#475569'
 				>
-					{val !== undefined ? formatAxisValue(val) : '—'}
+					{val !== undefined ? formatAxisValue(val) : '-'}
 				</text>,
 			);
 		});
@@ -256,109 +242,24 @@ export function renderMapChartFallback(
 	);
 }
 
-/** Render a grouped bar chart (default fallback). */
+/**
+ * Render a grouped (clustered) bar / column chart.
+ *
+ * Geometry, layout, chrome (gridlines / axes / category labels / legend),
+ * secondary value axis, log / display-unit axes, and overlays (trendlines /
+ * error bars / axis titles / data table) all flow through the framework-agnostic
+ * `buildChartViewModel` engine in `pptx-viewer-shared` (dispatched on
+ * `chartType === 'bar'` / `'column'` with a non-stacked grouping). React's
+ * style-id palette is threaded in via `buildReactChartViewModel`, so only colour
+ * stays React-specific; geometry is identical across React / Vue / Angular.
+ *
+ * The `chartData` / `categoryLabels` parameters are retained for `chart.tsx`
+ * dispatcher signature stability; the shared builder derives its own.
+ */
 export function renderDefaultBarChart(
 	element: PptxElement,
-	chartData: PptxChartData,
-	categoryLabels: ReadonlyArray<string>,
+	_chartData: PptxChartData,
+	_categoryLabels: ReadonlyArray<string>,
 ): React.ReactNode {
-	const style = chartData.style;
-	const legendPos = style?.legendPosition || 'b';
-
-	// Compute layout with secondary axis & data table awareness
-	const layoutOpts = computeLayoutOptions(
-		chartData.axes,
-		chartData.dataTable,
-		chartData.series.length,
-	);
-	const layout = computeLayout(element.width, element.height, style, true, legendPos, layoutOpts);
-
-	// Split series by axis for primary/secondary range computation
-	const { primary, secondary } = splitSeriesByAxis(chartData.series, chartData.axes);
-	const primarySeries = primary.length > 0 ? primary.map((e) => e.series) : chartData.series;
-	const secondarySeries = secondary.map((e) => e.series);
-
-	const range = computeValueRangeForChart(primarySeries, chartData.axes);
-	const secondaryRange =
-		secondarySeries.length > 0 ? computeValueRange(secondarySeries) : undefined;
-	const secondaryAxisFmt = getSecondaryValueAxis(chartData.axes);
-
-	const catCount = Math.max(categoryLabels.length, 1);
-	const seriesCount = chartData.series.length;
-	const barGroupWidth = layout.plotWidth / catCount;
-	const singleBarWidth = (barGroupWidth * 0.7) / Math.max(seriesCount, 1);
-	const groupOffset = (barGroupWidth - singleBarWidth * seriesCount) / 2;
-
-	const bars: React.ReactNode[] = [];
-	const dlElements: React.ReactNode[] = [];
-
-	for (let ci = 0; ci < catCount; ci++) {
-		chartData.series.forEach((series, si) => {
-			const val = series.values[ci] ?? 0;
-			const x = layout.plotLeft + barGroupWidth * ci + groupOffset + singleBarWidth * si;
-
-			// Use the correct range for this series (primary vs secondary)
-			const isSecondary = secondary.some((e) => e.index === si);
-			const activeRange = isSecondary && secondaryRange ? secondaryRange : range;
-
-			const zeroY = valueToY(0, activeRange, layout.plotTop, layout.plotBottom);
-			const valY = valueToY(val, activeRange, layout.plotTop, layout.plotBottom);
-			const barY = Math.min(zeroY, valY);
-			const barH = Math.max(Math.abs(zeroY - valY), 1);
-
-			bars.push(
-				<rect
-					key={`${element.id}-bar-${ci}-s${si}`}
-					x={x}
-					y={barY}
-					width={singleBarWidth}
-					height={barH}
-					fill={seriesColor(series, si, chartData.style?.styleId, chartData.colorPalette)}
-					rx={1}
-				/>,
-			);
-
-			if (style?.hasDataLabels) {
-				dlElements.push(
-					<text
-						key={`${element.id}-bar-dl-${ci}-s${si}`}
-						x={x + singleBarWidth / 2}
-						y={val >= 0 ? barY - 4 : barY + barH + 10}
-						textAnchor='middle'
-						fontSize={7}
-						fill='#334155'
-					>
-						{formatAxisValue(val)}
-					</text>,
-				);
-			}
-		});
-	}
-
-	return (
-		<>
-			<svg
-				className='w-full h-full pointer-events-none'
-				viewBox={`0 0 ${layout.svgWidth} ${layout.svgHeight}`}
-				preserveAspectRatio='none'
-			>
-				<rect x={0} y={0} width={layout.svgWidth} height={layout.svgHeight} fill='#0f172a11' />
-				{renderChrome(
-					element.id,
-					chartData,
-					layout,
-					range,
-					categoryLabels,
-					{ categoryAxisStyle: 'bar' },
-					secondaryRange
-						? { secondaryRange, secondaryAxisFormatting: secondaryAxisFmt }
-						: undefined,
-				)}
-				{bars}
-				{dlElements}
-				{renderOverlays(element.id, chartData, layout, range, 'bar')}
-			</svg>
-			{renderChartDataTable(element.id, chartData, layout.svgWidth)}
-		</>
-	);
+	return renderChartViewModel(element.id, buildReactChartViewModel(element));
 }
