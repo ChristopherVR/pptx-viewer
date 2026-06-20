@@ -17,6 +17,7 @@ import {
 	removeCategory,
 	removeSeries,
 	setCategoryLabel,
+	setSeriesColor,
 	setSeriesName,
 	setSeriesValue,
 } from './chart-data-helpers';
@@ -271,5 +272,48 @@ describe('patchChartData', () => {
 		const el = makeChart(['A'], ['x']);
 		patchChartData(el, { title: 'Changed' });
 		expect(el.chartData?.title).toBeUndefined();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// setSeriesColor
+// ---------------------------------------------------------------------------
+
+describe('setSeriesColor', () => {
+	it('sets a series colour from a #-prefixed hex', () => {
+		const el = makeChart(['A', 'B'], ['x']);
+		const result = setSeriesColor(el, 0, '#FF0000');
+		expect(result.chartData?.series[0].color).toBe('#FF0000');
+	});
+
+	it('normalises a bare hex by prefixing #', () => {
+		const el = makeChart(['A'], ['x']);
+		const result = setSeriesColor(el, 0, '00FF00');
+		expect(result.chartData?.series[0].color).toBe('#00FF00');
+	});
+
+	it('clears the colour when passed null', () => {
+		const el = makeChart(['A'], ['x']);
+		const colored = setSeriesColor(el, 0, '#123456');
+		const cleared = setSeriesColor(colored, 0, null);
+		expect(cleared.chartData?.series[0].color).toBeUndefined();
+	});
+
+	it('only affects the targeted series', () => {
+		const el = makeChart(['A', 'B'], ['x']);
+		const result = setSeriesColor(el, 1, '#ABCDEF');
+		expect(result.chartData?.series[0].color).toBeUndefined();
+		expect(result.chartData?.series[1].color).toBe('#ABCDEF');
+	});
+
+	it('does not mutate the original', () => {
+		const el = makeChart(['A'], ['x']);
+		setSeriesColor(el, 0, '#FF0000');
+		expect(el.chartData?.series[0].color).toBeUndefined();
+	});
+
+	it('returns the element unchanged when chartData is missing', () => {
+		const el = { type: 'chart', id: 'x', x: 0, y: 0, width: 1, height: 1 } as ChartPptxElement;
+		expect(setSeriesColor(el, 0, '#FFFFFF')).toBe(el);
 	});
 });

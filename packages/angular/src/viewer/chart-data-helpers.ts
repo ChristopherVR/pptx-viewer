@@ -260,6 +260,50 @@ export function setCategoryLabel(
 }
 
 // ---------------------------------------------------------------------------
+// setSeriesColor
+// ---------------------------------------------------------------------------
+
+/**
+ * Set (or clear) the solid fill colour of a chart series, returning a new
+ * `ChartPptxElement`. Pass a hex string (`#RRGGBB` or `RRGGBB`) to set the
+ * colour, or `null` to clear it so the series falls back to its theme colour.
+ *
+ * Mirrors the headless `setChartSeriesColor` SDK op (which mutates in place)
+ * with an immutable element-level wrapper for the inspector.
+ *
+ * @param element - The source chart element (not mutated).
+ * @param seriesIndex - Zero-based index of the series to recolour.
+ * @param color - Hex colour string, or `null` to clear.
+ * @returns A new `ChartPptxElement`.
+ *
+ * @example
+ * ```ts
+ * const updated = setSeriesColor(el, 0, "#4472C4");
+ * ```
+ */
+export function setSeriesColor(
+	element: ChartPptxElement,
+	seriesIndex: number,
+	color: string | null,
+): ChartPptxElement {
+	const chartData = element.chartData;
+	if (!chartData) {
+		return element;
+	}
+	const normalized = color ? normalizeHex(color) : undefined;
+	const series = chartData.series.map(
+		(s, i): PptxChartSeries => (i === seriesIndex ? { ...s, color: normalized } : s),
+	);
+	return { ...element, chartData: { ...chartData, series } };
+}
+
+/** Normalise a hex colour to a `#`-prefixed form, trimming whitespace. */
+function normalizeHex(color: string): string {
+	const trimmed = color.trim();
+	return trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
+}
+
+// ---------------------------------------------------------------------------
 // patchChartStyle
 // ---------------------------------------------------------------------------
 
