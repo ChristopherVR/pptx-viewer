@@ -88,6 +88,21 @@ export function ChartAxisOptions({ axes, canEdit, onUpdateAxis }: ChartAxisOptio
 					)}
 
 					<div className='space-y-1.5 ml-2'>
+						{/* Axis title */}
+						<label className='flex items-center gap-2 text-[11px]'>
+							<span className='w-16 text-muted-foreground shrink-0'>
+								{t('pptx.chart.axisTitle')}
+							</span>
+							<input
+								type='text'
+								disabled={!canEdit}
+								className={INPUT}
+								value={axis.titleText ?? ''}
+								placeholder={t('pptx.chart.axisTitlePlaceholder')}
+								onChange={(e) => onUpdateAxis(type, { titleText: e.target.value })}
+							/>
+						</label>
+
 						{/* Number format */}
 						<label className='flex items-center gap-2 text-[11px]'>
 							<span className='w-16 text-muted-foreground shrink-0'>

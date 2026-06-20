@@ -341,6 +341,8 @@ export interface ChartAxisEdit {
 	minorUnit?: number | null;
 	numberFormat?: string;
 	tickLabelPosition?: 'high' | 'low' | 'nextTo' | 'none';
+	/** Axis title text. Pass `null` or `''` to remove the title. */
+	title?: string | null;
 }
 
 /**
@@ -390,6 +392,10 @@ export function setChartAxis(
 	}
 	if (edit.tickLabelPosition !== undefined) {
 		axis.tickLblPos = edit.tickLabelPosition;
+	}
+	if (edit.title !== undefined) {
+		// '' (or null) is retained as a clear marker the save pipeline removes.
+		axis.titleText = edit.title ?? '';
 	}
 }
 

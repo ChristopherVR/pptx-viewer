@@ -796,6 +796,19 @@ describe('setChartAxis', () => {
 		expect(axis?.tickLblPos).toBe('low');
 	});
 
+	it('sets the axis title', () => {
+		const el = makeTestChart();
+		setChartAxis(el, 'valAx', { title: 'Revenue' });
+		expect(el.chartData?.axes?.find((a) => a.axisType === 'valAx')?.titleText).toBe('Revenue');
+	});
+
+	it('clears the axis title to an empty string when passed null', () => {
+		const el = makeTestChart();
+		el.chartData!.axes = [{ axisType: 'valAx', titleText: 'Revenue' }];
+		setChartAxis(el, 'valAx', { title: null });
+		expect(el.chartData?.axes?.[0].titleText).toBe('');
+	});
+
 	it('leaves unspecified fields unchanged', () => {
 		const el = makeTestChart();
 		el.chartData!.axes = [{ axisType: 'valAx', min: 1, max: 9, majorUnit: 2 }];
