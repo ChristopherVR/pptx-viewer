@@ -3,6 +3,7 @@ import type {
 	ChartPptxElement,
 	PptxChartAxisFormatting,
 	PptxChartData,
+	PptxChartMarkerSymbol,
 	PptxChartSeries,
 	PptxChartErrBars,
 	PptxChartStyle,
@@ -16,14 +17,25 @@ import {
 	chartDataChangeType,
 	chartDataAddCategory,
 	chartDataRemoveCategory,
+	setChartAxisLogScale,
+	setChartAxisTitleStyle,
+	setChartAxisGridlineStyle,
+	setChartSeriesMarker,
+	setChartSeriesChartType,
+	setChartDataPointFill,
+	setChartDataPointExplosion,
 } from 'pptx-viewer-core';
 import { useCallback } from 'react';
 
 import { ChartAxisOptions } from './ChartAxisOptions';
+import { ChartAxisStyleOptions } from './ChartAxisStyleOptions';
+import { ChartComboTypeOptions } from './ChartComboTypeOptions';
 import { ChartDataGrid } from './ChartDataGrid';
 import { ChartDataLabelOptions } from './ChartDataLabelOptions';
+import { ChartDataPointOptions } from './ChartDataPointOptions';
 import { ChartDisplayOptions } from './ChartDisplayOptions';
 import { ChartErrorBarOptions } from './ChartErrorBarOptions';
+import { ChartMarkerOptions } from './ChartMarkerOptions';
 import { ChartTrendlineOptions } from './ChartTrendlineOptions';
 import { ChartTypeSelector } from './ChartTypeSelector';
 
@@ -215,6 +227,78 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 		[chartData, series, replaceChartData],
 	);
 
+	// ── SDK-op helpers (clone, mutate via core op, emit) ────────
+	// The headless chart ops mutate in place; run them against a deep clone of
+	// the chart data so React sees a fresh reference and history stays clean.
+	const applyChartOp = useCallback(
+		(mutate: (el: ChartPptxElement) => void) => {
+			if (!chartData) {
+				return;
+			}
+			const clone: ChartPptxElement = {
+				...selectedElement,
+				chartData: structuredClone(chartData),
+			};
+			mutate(clone);
+			replaceChartData(clone.chartData!);
+		},
+		[chartData, selectedElement, replaceChartData],
+	);
+
+	const setAxisLogScale = useCallback(
+		(axisType: PptxChartAxisFormatting['axisType'], opts: { enabled: boolean; base?: number }) =>
+			applyChartOp((el) => setChartAxisLogScale(el, axisType, opts)),
+		[applyChartOp],
+	);
+
+	const setAxisTitleStyle = useCallback(
+		(
+			axisType: PptxChartAxisFormatting['axisType'],
+			edit: {
+				fontFamily?: string | null;
+				fontSize?: number | null;
+				fontBold?: boolean;
+				fontColor?: string | null;
+			},
+		) => applyChartOp((el) => setChartAxisTitleStyle(el, axisType, edit)),
+		[applyChartOp],
+	);
+
+	const setGridlineStyle = useCallback(
+		(
+			axisType: PptxChartAxisFormatting['axisType'],
+			which: 'major' | 'minor',
+			edit: { color?: string | null; width?: number | null; dashStyle?: string | null },
+		) => applyChartOp((el) => setChartAxisGridlineStyle(el, axisType, which, edit)),
+		[applyChartOp],
+	);
+
+	const setSeriesMarker = useCallback(
+		(
+			index: number,
+			marker: { symbol?: PptxChartMarkerSymbol; size?: number; fillColor?: string } | null,
+		) => applyChartOp((el) => setChartSeriesMarker(el, index, marker)),
+		[applyChartOp],
+	);
+
+	const setSeriesType = useCallback(
+		(index: number, seriesType: PptxChartType | null) =>
+			applyChartOp((el) => setChartSeriesChartType(el, index, seriesType)),
+		[applyChartOp],
+	);
+
+	const setPointFill = useCallback(
+		(seriesIndex: number, pointIndex: number, color: string | null) =>
+			applyChartOp((el) => setChartDataPointFill(el, seriesIndex, pointIndex, color)),
+		[applyChartOp],
+	);
+
+	const setPointExplosion = useCallback(
+		(seriesIndex: number, pointIndex: number, explosion: number | null) =>
+			applyChartOp((el) => setChartDataPointExplosion(el, seriesIndex, pointIndex, explosion)),
+		[applyChartOp],
+	);
+
 	// ── Render ──────────────────────────────────────────────────
 	if (!chartData || !categories || !series) {
 		return null;
@@ -237,6 +321,41 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 			<ChartDataLabelOptions style={style} canEdit={canEdit} onUpdateStyle={updateStyle} />
 
 			<ChartAxisOptions axes={chartData.axes} canEdit={canEdit} onUpdateAxis={updateAxis} />
+
+			{/* ── Axis styling: log scale, title font, gridline lines ── */}
+			<ChartAxisStyleOptions
+				axes={chartData.axes}
+				canEdit={canEdit}
+				onSetLogScale={setAxisLogScale}
+				onSetTitleStyle={setAxisTitleStyle}
+				onSetGridlineStyle={setGridlineStyle}
+			/>
+
+			{/* ── Per-series markers (line/scatter/bubble/radar) ── */}
+			<ChartMarkerOptions
+				chartType={chartType!}
+				series={series}
+				canEdit={canEdit}
+				onSetMarker={setSeriesMarker}
+			/>
+
+			{/* ── Per-series combo chart types ── */}
+			<ChartComboTypeOptions
+				chartType={chartType!}
+				series={series}
+				canEdit={canEdit}
+				onSetSeriesType={setSeriesType}
+			/>
+
+			{/* ── Per-data-point formatting (fill + pie explosion) ── */}
+			<ChartDataPointOptions
+				chartType={chartType!}
+				categories={categories}
+				series={series}
+				canEdit={canEdit}
+				onSetPointFill={setPointFill}
+				onSetPointExplosion={setPointExplosion}
+			/>
 
 			<ChartTrendlineOptions
 				chartType={chartType!}

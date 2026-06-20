@@ -16,7 +16,14 @@ import {
 	patchChartStyle,
 	removeCategory,
 	removeSeries,
+	setAxisLogScale,
+	setAxisTitleStyle,
 	setCategoryLabel,
+	setDataPointExplosion,
+	setDataPointFill,
+	setGridlineStyle,
+	setSeriesChartType,
+	setSeriesMarker,
 	setSeriesName,
 	setSeriesValue,
 } from './chart-data-helpers';
@@ -271,5 +278,93 @@ describe('patchChartData', () => {
 		const el = makeChart(['A'], ['x']);
 		patchChartData(el, { title: 'Changed' });
 		expect(el.chartData?.title).toBeUndefined();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Advanced formatting wrappers
+// ---------------------------------------------------------------------------
+
+describe('advanced chart formatting wrappers', () => {
+	function pieChart(): ChartPptxElement {
+		const el = makeChart(['Rev', 'Cost'], ['Q1', 'Q2', 'Q3']);
+		el.chartData!.chartType = 'pie';
+		return el;
+	}
+
+	it('setAxisLogScale enables log scaling immutably', () => {
+		const el = makeChart(['Rev'], ['Q1']);
+		const result = setAxisLogScale(el, 'valAx', { enabled: true, base: 10 });
+		expect(result).not.toBe(el);
+		const axis = result.chartData?.axes?.find((a) => a.axisType === 'valAx');
+		expect(axis?.logScale).toBeTruthy();
+		expect(axis?.logBase).toBe(10);
+		expect(el.chartData?.axes).toBeUndefined();
+	});
+
+	it('setAxisTitleStyle sets font props', () => {
+		const el = makeChart(['Rev'], ['Q1']);
+		const result = setAxisTitleStyle(el, 'valAx', {
+			fontFamily: 'Arial',
+			fontSize: 11,
+			fontBold: true,
+		});
+		const axis = result.chartData?.axes?.find((a) => a.axisType === 'valAx');
+		expect(axis?.fontFamily).toBe('Arial');
+		expect(axis?.fontSize).toBe(11);
+		expect(axis?.fontBold).toBeTruthy();
+	});
+
+	it('setGridlineStyle sets gridline line styling', () => {
+		const el = makeChart(['Rev'], ['Q1']);
+		const result = setGridlineStyle(el, 'valAx', 'major', { color: '#CCCCCC', width: 0.75 });
+		const axis = result.chartData?.axes?.find((a) => a.axisType === 'valAx');
+		expect(axis?.majorGridlinesSpPr?.strokeColor).toBe('#CCCCCC');
+		expect(axis?.majorGridlinesSpPr?.strokeWidth).toBe(0.75);
+	});
+
+	it('setSeriesMarker sets and clears a marker', () => {
+		const el = makeChart(['Rev'], ['Q1']);
+		const set = setSeriesMarker(el, 0, { symbol: 'circle', size: 6, fillColor: '#FF0000' });
+		expect(set.chartData?.series[0].marker?.symbol).toBe('circle');
+		expect(set.chartData?.series[0].marker?.spPr?.fillColor).toBe('#FF0000');
+		const cleared = setSeriesMarker(set, 0, null);
+		expect(cleared.chartData?.series[0].marker).toBeUndefined();
+	});
+
+	it('setSeriesChartType promotes to combo', () => {
+		const el = makeChart(['Rev', 'Cost'], ['Q1']);
+		const result = setSeriesChartType(el, 1, 'line');
+		expect(result.chartData?.series[1].seriesChartType).toBe('line');
+		expect(result.chartData?.chartType).toBe('combo');
+	});
+
+	it('setDataPointFill sets and clears a per-point fill', () => {
+		const el = pieChart();
+		const set = setDataPointFill(el, 0, 1, '#123456');
+		expect(set.chartData?.series[0].dataPoints?.find((p) => p.idx === 1)?.spPr?.fillColor).toBe(
+			'#123456',
+		);
+		const cleared = setDataPointFill(set, 0, 1, null);
+		expect(cleared.chartData?.series[0].dataPoints).toBeUndefined();
+	});
+
+	it('setDataPointExplosion sets a pie slice explosion', () => {
+		const el = pieChart();
+		const result = setDataPointExplosion(el, 0, 2, 25);
+		expect(result.chartData?.series[0].dataPoints?.find((p) => p.idx === 2)?.explosion).toBe(25);
+	});
+
+	it('returns the element unchanged when chartData is missing', () => {
+		const el: ChartPptxElement = {
+			type: 'chart',
+			id: 'x',
+			x: 0,
+			y: 0,
+			width: 1,
+			height: 1,
+			chartData: undefined,
+		};
+		expect(setAxisLogScale(el, 'valAx', { enabled: true })).toBe(el);
 	});
 });

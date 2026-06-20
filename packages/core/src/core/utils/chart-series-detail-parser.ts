@@ -8,12 +8,12 @@ import type {
 } from '../types';
 
 interface XmlLookupLike {
-	getChildByLocalName(parent: XmlObject | undefined, name: string): XmlObject | undefined;
-	getChildrenArrayByLocalName(parent: XmlObject | undefined, name: string): XmlObject[];
+	getChildByLocalName: (parent: XmlObject | undefined, name: string) => XmlObject | undefined;
+	getChildrenArrayByLocalName: (parent: XmlObject | undefined, name: string) => XmlObject[];
 }
 
 interface ColorParserLike {
-	parseColor(fillNode: XmlObject | undefined, placeholderColor?: string): string | undefined;
+	parseColor: (fillNode: XmlObject | undefined, placeholderColor?: string) => string | undefined;
 }
 
 function safeInt(val: unknown): number | undefined {
@@ -66,6 +66,12 @@ export function parseShapeProps(
 		const w = safeInt(ln['@_w']);
 		if (w !== undefined) {
 			result.strokeWidth = w / 12700;
+			hasProps = true;
+		}
+		const prstDash = xmlLookup.getChildByLocalName(ln, 'prstDash');
+		const dash = prstDash?.['@_val'];
+		if (dash !== undefined && dash !== null && String(dash).length > 0) {
+			result.strokeDashStyle = String(dash);
 			hasProps = true;
 		}
 	}

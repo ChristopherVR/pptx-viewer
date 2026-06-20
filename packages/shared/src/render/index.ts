@@ -31,6 +31,7 @@ export * from './chart-helpers';
 export * from './chart-trendlines';
 export * from './chart-axis';
 export * from './chart-palette';
+export * from './chart-datapoint-style';
 export * from './chart-sparkline';
 // SVG-primitive chart engine. Its low-level helpers `ValueRange` / `PlotLayout`
 // / `valueToY` / `formatAxisValue` / `computeValueRange` / `seriesColor` /
