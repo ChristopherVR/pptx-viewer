@@ -176,6 +176,43 @@ export function setChartGrouping(
 }
 
 /**
+ * Legend placement, matching OOXML `ST_LegendPos`.
+ * `b` bottom, `tr` top-right, `l` left, `r` right, `t` top.
+ */
+export type PptxChartLegendPosition = 'b' | 'tr' | 'l' | 'r' | 't';
+
+/**
+ * Show/hide the chart legend and/or set its position. Edits round-trip to
+ * the saved `.pptx` (`c:legend` / `c:legendPos`).
+ *
+ * @param element - The chart element to modify.
+ * @param options - `show` toggles legend visibility; `position` sets placement.
+ *   Setting a `position` without an explicit `show` turns the legend on.
+ *
+ * @example
+ * ```ts
+ * setChartLegend(chartEl, { show: true, position: "r" });
+ * setChartLegend(chartEl, { show: false });
+ * ```
+ */
+export function setChartLegend(
+	element: ChartPptxElement,
+	options: { show?: boolean; position?: PptxChartLegendPosition },
+): void {
+	ensureChartData(element);
+	const style = (element.chartData.style ??= {});
+	if (options.show !== undefined) {
+		style.hasLegend = options.show;
+	}
+	if (options.position !== undefined) {
+		style.legendPosition = options.position;
+		if (style.hasLegend === undefined) {
+			style.hasLegend = true;
+		}
+	}
+}
+
+/**
  * Update a single data point value in a chart series.
  *
  * @param element - The chart element to modify.

@@ -10,6 +10,7 @@ import {
 	updateChartSeriesValues,
 	setChartTitle,
 	setChartGrouping,
+	setChartLegend,
 	updateChartDataPoint,
 	addChartCategory,
 	removeChartCategory,
@@ -115,7 +116,7 @@ describe('setChartType', () => {
 
 	it('throws when chartData is missing', () => {
 		const el = makeEmptyChart();
-		expect(() => setChartType(el, 'line')).toThrow(/no chartData/);
+		expect(() => setChartType(el, 'line')).toThrow(/no chartData/u);
 	});
 });
 
@@ -172,7 +173,7 @@ describe('addChartSeries', () => {
 
 	it('throws when chartData is missing', () => {
 		const el = makeEmptyChart();
-		expect(() => addChartSeries(el, { name: 'X', values: [1] })).toThrow(/no chartData/);
+		expect(() => addChartSeries(el, { name: 'X', values: [1] })).toThrow(/no chartData/u);
 	});
 });
 
@@ -224,7 +225,7 @@ describe('removeChartSeries', () => {
 
 	it('throws when chartData is missing', () => {
 		const el = makeEmptyChart();
-		expect(() => removeChartSeries(el, 0)).toThrow(/no chartData/);
+		expect(() => removeChartSeries(el, 0)).toThrow(/no chartData/u);
 	});
 
 	it('can remove all series one by one', () => {
@@ -273,7 +274,7 @@ describe('setChartCategories', () => {
 
 	it('throws when chartData is missing', () => {
 		const el = makeEmptyChart();
-		expect(() => setChartCategories(el, ['A'])).toThrow(/no chartData/);
+		expect(() => setChartCategories(el, ['A'])).toThrow(/no chartData/u);
 	});
 });
 
@@ -328,7 +329,7 @@ describe('updateChartSeriesValues', () => {
 
 	it('throws when chartData is missing', () => {
 		const el = makeEmptyChart();
-		expect(() => updateChartSeriesValues(el, 0, [1])).toThrow(/no chartData/);
+		expect(() => updateChartSeriesValues(el, 0, [1])).toThrow(/no chartData/u);
 	});
 });
 
@@ -357,7 +358,7 @@ describe('setChartTitle', () => {
 
 	it('throws when chartData is missing', () => {
 		const el = makeEmptyChart();
-		expect(() => setChartTitle(el, 'Title')).toThrow(/no chartData/);
+		expect(() => setChartTitle(el, 'Title')).toThrow(/no chartData/u);
 	});
 });
 
@@ -392,7 +393,7 @@ describe('setChartGrouping', () => {
 
 	it('throws when chartData is missing', () => {
 		const el = makeEmptyChart();
-		expect(() => setChartGrouping(el, 'stacked')).toThrow(/no chartData/);
+		expect(() => setChartGrouping(el, 'stacked')).toThrow(/no chartData/u);
 	});
 });
 
@@ -528,7 +529,7 @@ describe('updateChartDataPoint', () => {
 
 	it('throws when chartData is missing', () => {
 		const el = makeEmptyChart();
-		expect(() => updateChartDataPoint(el, 0, 0, 1)).toThrow(/no chartData/);
+		expect(() => updateChartDataPoint(el, 0, 0, 1)).toThrow(/no chartData/u);
 	});
 });
 
@@ -570,7 +571,7 @@ describe('addChartCategory', () => {
 
 	it('throws when chartData is missing', () => {
 		const el = makeEmptyChart();
-		expect(() => addChartCategory(el, 'X')).toThrow(/no chartData/);
+		expect(() => addChartCategory(el, 'X')).toThrow(/no chartData/u);
 	});
 });
 
@@ -618,7 +619,7 @@ describe('removeChartCategory', () => {
 
 	it('throws when chartData is missing', () => {
 		const el = makeEmptyChart();
-		expect(() => removeChartCategory(el, 0)).toThrow(/no chartData/);
+		expect(() => removeChartCategory(el, 0)).toThrow(/no chartData/u);
 	});
 
 	it('can remove all categories one by one', () => {
@@ -664,5 +665,67 @@ describe('combined with new operations', () => {
 
 		removeChartSeries(el, 2);
 		expect(el.chartData!.series).toHaveLength(2);
+	});
+});
+
+// ===========================================================================
+// setChartLegend
+// ===========================================================================
+
+describe('setChartLegend', () => {
+	it('shows the legend', () => {
+		const el = makeTestChart();
+		setChartLegend(el, { show: true });
+		expect(el.chartData?.style?.hasLegend).toBeTruthy();
+	});
+
+	it('hides the legend', () => {
+		const el = makeTestChart();
+		setChartLegend(el, { show: false });
+		expect(el.chartData?.style?.hasLegend).toBeFalsy();
+	});
+
+	it('sets the legend position', () => {
+		const el = makeTestChart();
+		setChartLegend(el, { position: 'r' });
+		expect(el.chartData?.style?.legendPosition).toBe('r');
+	});
+
+	it('turns the legend on when a position is set without an explicit show', () => {
+		const el = makeTestChart();
+		setChartLegend(el, { position: 't' });
+		expect(el.chartData?.style?.hasLegend).toBeTruthy();
+		expect(el.chartData?.style?.legendPosition).toBe('t');
+	});
+
+	it('does not override an explicit show=false when a position is given', () => {
+		const el = makeTestChart();
+		setChartLegend(el, { show: false, position: 'b' });
+		expect(el.chartData?.style?.hasLegend).toBeFalsy();
+		expect(el.chartData?.style?.legendPosition).toBe('b');
+	});
+
+	it('initialises style when absent', () => {
+		const el = makeTestChart();
+		delete el.chartData!.style;
+		setChartLegend(el, { show: true, position: 'l' });
+		expect(el.chartData?.style).toStrictEqual({ hasLegend: true, legendPosition: 'l' });
+	});
+
+	it('preserves other style fields', () => {
+		const el = makeTestChart();
+		el.chartData!.style = { hasTitle: true, hasGridlines: true };
+		setChartLegend(el, { show: true, position: 'tr' });
+		expect(el.chartData?.style).toStrictEqual({
+			hasTitle: true,
+			hasGridlines: true,
+			hasLegend: true,
+			legendPosition: 'tr',
+		});
+	});
+
+	it('throws when chartData is missing', () => {
+		const el = makeEmptyChart();
+		expect(() => setChartLegend(el, { show: true })).toThrow(/no chartData/u);
 	});
 });

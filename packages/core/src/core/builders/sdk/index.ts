@@ -41,10 +41,12 @@ export {
 	updateChartSeriesValues,
 	setChartTitle,
 	setChartGrouping,
+	setChartLegend,
 	updateChartDataPoint,
 	addChartCategory,
 	removeChartCategory,
 } from './chart-operations';
+export type { PptxChartLegendPosition } from './chart-operations';
 
 // Layout operations
 export {

@@ -8,6 +8,7 @@ import type {
 	PptxTableData,
 } from '../../types';
 import { upsertChartAxisChild } from '../../utils/chart-axis-parser';
+import { applyChartLegendToXml } from '../../utils/chart-legend-serializer';
 import { xmlChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveTableStyles';
 import {
@@ -430,11 +431,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					this.applyChartChrome(chartRoot, chartData.chartChrome);
 				}
 
+				// ── Legend round-trip (c:legend / c:legendPos) ────────────
+				if (chartData.style) {
+					applyChartLegendToXml(chartRoot, chartData.style, (key) =>
+						this.compatibilityService.getXmlLocalName(key),
+					);
+				}
+
 				// Update axis fields (Phase 5 Stream A item 4).
 				// Currently writes back: scaling.min/max, scaling.logBase,
 				// numFmt, majorUnit, tickLblPos. Other parsed-but-not-written
 				// chart fields (surfaces/dataTable/dropLines/hiLowLines/
-				// trendlines/errBars/marker/dataLabels/explosion/smooth/legend/
+				// trendlines/errBars/marker/dataLabels/explosion/smooth/
 				// colorPalette/colorMethod, axis title/txPr/axPos/minorUnit) are
 				// preserved via the original XML passthrough but lose any edits
 				// — see OPENXML_PARITY.md M-tier.
