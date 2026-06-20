@@ -35,6 +35,7 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 - **readme:** Npm-friendly READMEs — hero image, capabilities & install first (by @ChristopherVR) ([c843d19](https://github.com/ChristopherVR/pptx-viewer/commit/c843d1934b846f901bba92e63d2b01f9479594d0))
 - Streamline npm READMEs and add badges, screenshots, demo links (by @ChristopherVR) ([92e980d](https://github.com/ChristopherVR/pptx-viewer/commit/92e980d434900abd223c4d70c6cae19a623f9ca8))
 - Remove em-dashes and clarify demo link in viewer packages (by @ChristopherVR) ([f52afff](https://github.com/ChristopherVR/pptx-viewer/commit/f52afffd935016b747116a9909c523021b492225))
+- **changelog:** Update package changelogs [skip ci] (by @github-actions[bot]) ([8915f26](https://github.com/ChristopherVR/pptx-viewer/commit/8915f26744b01645152c1c371becff9473d1d6d6))
 
 ### Build & CI
 

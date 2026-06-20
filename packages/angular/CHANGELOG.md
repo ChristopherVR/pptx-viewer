@@ -63,6 +63,7 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 - **angular:** Trim PORTING.md to status + what's-missing (drop session log) (by @ChristopherVR) ([393d5e2](https://github.com/ChristopherVR/pptx-viewer/commit/393d5e2e10361cd9158cf502c2f15e67bbe9e09c))
 - **angular:** E2e now 28/0 (no skips); remaining = refactor/cosmetic debts only (by @ChristopherVR) ([7817092](https://github.com/ChristopherVR/pptx-viewer/commit/7817092780173c1a288029addfadc6c6e571e871))
 - Remove em-dashes and clarify demo link in viewer packages (by @ChristopherVR) ([f52afff](https://github.com/ChristopherVR/pptx-viewer/commit/f52afffd935016b747116a9909c523021b492225))
+- **changelog:** Update package changelogs [skip ci] (by @github-actions[bot]) ([8915f26](https://github.com/ChristopherVR/pptx-viewer/commit/8915f26744b01645152c1c371becff9473d1d6d6))
 
 ### Build & CI
 

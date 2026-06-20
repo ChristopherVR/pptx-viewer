@@ -81,6 +81,7 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 - **vue:** Trim PORTING.md to a parity-gap view (1042→175 lines) (by @ChristopherVR) ([e04848c](https://github.com/ChristopherVR/pptx-viewer/commit/e04848c1016838e58f3159bcab9c6c353d6a3c38))
 - **vue:** Mark bullets/gradient-flip/text-warp done; drop non-gap equations (by @ChristopherVR) ([d22cddb](https://github.com/ChristopherVR/pptx-viewer/commit/d22cddbf4fcfc614dd5eaf4cecef11a43a6b9567))
 - Remove em-dashes and clarify demo link in viewer packages (by @ChristopherVR) ([f52afff](https://github.com/ChristopherVR/pptx-viewer/commit/f52afffd935016b747116a9909c523021b492225))
+- **changelog:** Update package changelogs [skip ci] (by @github-actions[bot]) ([8915f26](https://github.com/ChristopherVR/pptx-viewer/commit/8915f26744b01645152c1c371becff9473d1d6d6))
 
 ### Testing
 
