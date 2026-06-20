@@ -158,6 +158,7 @@ function MobileSectionBody({
 						onAddTextBox={p.onAddTextBox}
 						onAddShape={p.onAddShape}
 						onAddTable={p.onAddTable}
+						onAddChart={p.onAddChart}
 						onAddSmartArt={p.onAddSmartArt}
 						onAddEquation={p.onAddEquation}
 						onAddActionButton={p.onAddActionButton}
