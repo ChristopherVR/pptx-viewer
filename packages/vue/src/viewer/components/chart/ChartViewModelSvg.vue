@@ -167,6 +167,7 @@ const legendItems = computed<LegendLayout[]>(() => {
 				:fill="prim.fill"
 				:stroke="prim.stroke ?? 'none'"
 				:stroke-width="prim.strokeWidth ?? 0"
+				:fill-opacity="prim.opacity ?? 1"
 			/>
 			<polyline
 				v-else-if="isPolyline(prim)"

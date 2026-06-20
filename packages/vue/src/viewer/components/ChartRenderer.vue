@@ -492,33 +492,8 @@ const trendlineMode = computed<'line' | 'bar'>(() =>
 			preserve-aspect-ratio="xMidYMid meet"
 		/>
 
-		<!-- Sunburst: concentric rings (no axes) -->
-		<svg
-			v-else-if="renderKind === 'sunburst'"
-			class="pptx-vue-chart-svg"
-			:viewBox="`0 0 ${noAxisLayout.svgWidth} ${noAxisLayout.svgHeight}`"
-			preserveAspectRatio="xMidYMid meet"
-		>
-			<rect
-				:x="0"
-				:y="0"
-				:width="noAxisLayout.svgWidth"
-				:height="noAxisLayout.svgHeight"
-				fill="#0f172a11"
-			/>
-			<text
-				v-if="style?.hasTitle"
-				:x="noAxisLayout.svgWidth / 2"
-				y="14"
-				text-anchor="middle"
-				font-size="12"
-				font-weight="600"
-				fill="#1e293b"
-			>
-				{{ chartData?.title || 'Chart' }}
-			</text>
-			<SunburstChart v-if="chartData" :chart-data="chartData" :layout="noAxisLayout" />
-		</svg>
+		<!-- Sunburst: concentric rings (no axes), shared view-model engine -->
+		<SunburstChart v-else-if="renderKind === 'sunburst'" :element="element" />
 
 		<!-- Treemap: hierarchical rectangles (no axes) -->
 		<svg
@@ -553,38 +528,14 @@ const trendlineMode = computed<'line' | 'bar'>(() =>
 			/>
 		</svg>
 
-		<!-- Funnel: descending trapezoids (no axes) -->
-		<svg
-			v-else-if="renderKind === 'funnel'"
-			class="pptx-vue-chart-svg"
-			:viewBox="`0 0 ${noAxisLayout.svgWidth} ${noAxisLayout.svgHeight}`"
-			preserveAspectRatio="none"
-		>
-			<rect
-				:x="0"
-				:y="0"
-				:width="noAxisLayout.svgWidth"
-				:height="noAxisLayout.svgHeight"
-				fill="#0f172a11"
-			/>
-			<text
-				v-if="style?.hasTitle"
-				:x="noAxisLayout.svgWidth / 2"
-				y="14"
-				text-anchor="middle"
-				font-size="12"
-				font-weight="600"
-				fill="#1e293b"
-			>
-				{{ chartData?.title || 'Chart' }}
-			</text>
-			<FunnelChart
-				v-if="chartData"
-				:chart-data="chartData"
-				:layout="noAxisLayout"
-				:categories="categoryLabels"
-			/>
-		</svg>
+		<!-- Funnel: descending trapezoids (no axes), shared view-model engine -->
+		<FunnelChart v-else-if="renderKind === 'funnel'" :element="element" />
+
+		<!-- Histogram: contiguous bars, shared view-model engine -->
+		<HistogramChart v-else-if="renderKind === 'histogram'" :element="element" />
+
+		<!-- Box-and-whisker: shared view-model engine -->
+		<BoxWhiskerChart v-else-if="renderKind === 'boxWhisker'" :element="element" />
 
 		<!-- Surface: isometric 2.5D mesh (own SVG, no axis chrome) -->
 		<svg
@@ -630,7 +581,7 @@ const trendlineMode = computed<'line' | 'bar'>(() =>
 		</svg>
 
 		<!-- Axis-based charts: bar / stacked / line / area / scatter / bubble /
-		     waterfall / combo / stock / histogram / boxWhisker -->
+		     waterfall / combo / stock -->
 		<svg
 			v-else
 			class="pptx-vue-chart-svg"
@@ -792,24 +743,6 @@ const trendlineMode = computed<'line' | 'bar'>(() =>
 			<!-- Stock (OHLC candlestick) -->
 			<StockChart
 				v-else-if="renderKind === 'stock' && chartData"
-				:chart-data="chartData"
-				:layout="layout"
-				:range="barRange"
-				:categories="categoryLabels"
-			/>
-
-			<!-- Histogram -->
-			<HistogramChart
-				v-else-if="renderKind === 'histogram' && chartData"
-				:chart-data="chartData"
-				:layout="layout"
-				:range="barRange"
-				:categories="categoryLabels"
-			/>
-
-			<!-- Box-and-whisker -->
-			<BoxWhiskerChart
-				v-else-if="renderKind === 'boxWhisker' && chartData"
 				:chart-data="chartData"
 				:layout="layout"
 				:range="barRange"

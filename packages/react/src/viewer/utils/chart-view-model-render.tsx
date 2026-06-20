@@ -90,6 +90,7 @@ function renderPrimitive(prim: SvgPrimitive, key: string): React.ReactNode {
 					fill={p.fill}
 					stroke={p.stroke ?? 'none'}
 					strokeWidth={p.strokeWidth ?? 0}
+					fillOpacity={p.opacity ?? 1}
 				/>
 			);
 		}

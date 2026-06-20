@@ -3,9 +3,7 @@ import React from 'react';
 
 import { renderChrome, renderOverlays } from './chart-chrome';
 import { renderChartDataTable } from './chart-data-table';
-import type { ValueRange } from './chart-helpers';
 import {
-	PALETTE,
 	computeValueRange,
 	computeValueRangeForChart,
 	valueToY,
@@ -18,209 +16,40 @@ import {
 	splitSeriesByAxis,
 	getSecondaryValueAxis,
 } from './chart-layout';
+import { buildReactChartViewModel, renderChartViewModel } from './chart-view-model-render';
 
-/** Render a box-and-whisker chart. */
+/**
+ * Render a box-and-whisker chart.
+ *
+ * Geometry, layout and palette now flow through the framework-agnostic
+ * `buildBoxWhiskerViewModel` engine in `pptx-viewer-shared` (dispatched by
+ * `buildChartViewModel` on `chartType === 'boxWhisker'`). React's style-id
+ * palette is threaded in via `buildReactChartViewModel`. The `chartData` /
+ * `categoryLabels` parameters are retained for `chart.tsx` dispatcher signature
+ * stability; the shared builder derives its own category labels.
+ */
 export function renderBoxWhiskerChart(
 	element: PptxElement,
-	chartData: PptxChartData,
-	categoryLabels: ReadonlyArray<string>,
+	_chartData: PptxChartData,
+	_categoryLabels: ReadonlyArray<string>,
 ): React.ReactNode {
-	const style = chartData.style;
-	const legendPos = style?.legendPosition || 'b';
-	const layout = computeLayout(element.width, element.height, style, true, legendPos);
-	const allVals = chartData.series.flatMap((s) => s.values);
-	const rangeMin = Math.min(...allVals, 0);
-	const rangeMax = Math.max(...allVals, 1);
-	const range: ValueRange = {
-		min: rangeMin,
-		max: rangeMax,
-		span: Math.max(rangeMax - rangeMin, 1),
-	};
-	const catCount = Math.max(categoryLabels.length, 1);
-	const boxGroupW = layout.plotWidth / catCount;
-	const boxW = boxGroupW * 0.5;
-	const boxOffset = (boxGroupW - boxW) / 2;
-
-	const boxes: React.ReactNode[] = [];
-
-	for (let ci = 0; ci < catCount; ci++) {
-		const catVals = chartData.series.map((s) => s.values[ci] ?? 0).sort((a, b) => a - b);
-		if (catVals.length < 2) {
-			continue;
-		}
-
-		const minV = catVals[0];
-		const maxV = catVals[catVals.length - 1];
-		const q1Idx = Math.floor(catVals.length * 0.25);
-		const q3Idx = Math.floor(catVals.length * 0.75);
-		const medIdx = Math.floor(catVals.length * 0.5);
-		const q1 = catVals[q1Idx];
-		const q3 = catVals[q3Idx];
-		const median = catVals[medIdx];
-
-		const x = layout.plotLeft + boxGroupW * ci + boxOffset;
-		const xMid = x + boxW / 2;
-		const yMin = valueToY(minV, range, layout.plotTop, layout.plotBottom);
-		const yMax = valueToY(maxV, range, layout.plotTop, layout.plotBottom);
-		const yQ1 = valueToY(q1, range, layout.plotTop, layout.plotBottom);
-		const yQ3 = valueToY(q3, range, layout.plotTop, layout.plotBottom);
-		const yMed = valueToY(median, range, layout.plotTop, layout.plotBottom);
-
-		// Whisker lines
-		boxes.push(
-			<line
-				key={`${element.id}-bw-wh-${ci}`}
-				x1={xMid}
-				y1={yMax}
-				x2={xMid}
-				y2={yQ3}
-				stroke='#64748b'
-				strokeWidth={1}
-			/>,
-			<line
-				key={`${element.id}-bw-wl-${ci}`}
-				x1={xMid}
-				y1={yQ1}
-				x2={xMid}
-				y2={yMin}
-				stroke='#64748b'
-				strokeWidth={1}
-			/>,
-		);
-		// Whisker caps
-		boxes.push(
-			<line
-				key={`${element.id}-bw-ct-${ci}`}
-				x1={x + boxW * 0.25}
-				y1={yMax}
-				x2={x + boxW * 0.75}
-				y2={yMax}
-				stroke='#64748b'
-				strokeWidth={1}
-			/>,
-			<line
-				key={`${element.id}-bw-cb-${ci}`}
-				x1={x + boxW * 0.25}
-				y1={yMin}
-				x2={x + boxW * 0.75}
-				y2={yMin}
-				stroke='#64748b'
-				strokeWidth={1}
-			/>,
-		);
-		// Box (Q1 to Q3)
-		boxes.push(
-			<rect
-				key={`${element.id}-bw-box-${ci}`}
-				x={x}
-				y={Math.min(yQ1, yQ3)}
-				width={boxW}
-				height={Math.abs(yQ1 - yQ3)}
-				fill={PALETTE[ci % PALETTE.length]}
-				stroke='#334155'
-				strokeWidth={1}
-				opacity={0.8}
-				rx={1}
-			/>,
-		);
-		// Median line
-		boxes.push(
-			<line
-				key={`${element.id}-bw-med-${ci}`}
-				x1={x}
-				y1={yMed}
-				x2={x + boxW}
-				y2={yMed}
-				stroke='#1e293b'
-				strokeWidth={2}
-			/>,
-		);
-	}
-
-	return (
-		<svg
-			className='w-full h-full pointer-events-none'
-			viewBox={`0 0 ${layout.svgWidth} ${layout.svgHeight}`}
-			preserveAspectRatio='none'
-		>
-			<rect x={0} y={0} width={layout.svgWidth} height={layout.svgHeight} fill='#0f172a11' />
-			{renderChrome(element.id, chartData, layout, range, categoryLabels, {
-				categoryAxisStyle: 'bar',
-			})}
-			{boxes}
-		</svg>
-	);
+	return renderChartViewModel(element.id, buildReactChartViewModel(element));
 }
 
-/** Render a histogram chart: contiguous bars with no gaps. */
+/**
+ * Render a histogram chart: contiguous bars with no gaps.
+ *
+ * Geometry, layout and palette now flow through the framework-agnostic
+ * `buildHistogramViewModel` engine in `pptx-viewer-shared` (dispatched by
+ * `buildChartViewModel` on `chartType === 'histogram'`). React's style-id palette
+ * is threaded in via `buildReactChartViewModel`.
+ */
 export function renderHistogramChart(
 	element: PptxElement,
-	chartData: PptxChartData,
-	categoryLabels: ReadonlyArray<string>,
+	_chartData: PptxChartData,
+	_categoryLabels: ReadonlyArray<string>,
 ): React.ReactNode {
-	const style = chartData.style;
-	const legendPos = style?.legendPosition || 'b';
-	const layout = computeLayout(element.width, element.height, style, true, legendPos);
-	const values = chartData.series[0]?.values ?? [];
-	const range = computeValueRangeForChart(chartData.series, chartData.axes);
-	const catCount = Math.max(categoryLabels.length, values.length, 1);
-	const barWidth = layout.plotWidth / catCount;
-
-	const bars: React.ReactNode[] = [];
-	const dlElements: React.ReactNode[] = [];
-
-	values.forEach((val, i) => {
-		const x = layout.plotLeft + barWidth * i;
-		const zeroY = valueToY(0, range, layout.plotTop, layout.plotBottom);
-		const valY = valueToY(val, range, layout.plotTop, layout.plotBottom);
-		const y = Math.min(zeroY, valY);
-		const h = Math.max(Math.abs(zeroY - valY), 1);
-		const color = chartData.series[0]?.color || PALETTE[i % PALETTE.length];
-
-		bars.push(
-			<rect
-				key={`${element.id}-hist-${i}`}
-				x={x}
-				y={y}
-				width={Math.max(barWidth - 0.5, 1)}
-				height={h}
-				fill={color}
-				stroke='#fff'
-				strokeWidth={0.5}
-				opacity={0.85}
-			/>,
-		);
-
-		if (style?.hasDataLabels) {
-			dlElements.push(
-				<text
-					key={`${element.id}-hist-dl-${i}`}
-					x={x + barWidth / 2}
-					y={y - 4}
-					textAnchor='middle'
-					fontSize={7}
-					fill='#334155'
-				>
-					{formatAxisValue(val)}
-				</text>,
-			);
-		}
-	});
-
-	return (
-		<svg
-			className='w-full h-full pointer-events-none'
-			viewBox={`0 0 ${layout.svgWidth} ${layout.svgHeight}`}
-			preserveAspectRatio='none'
-		>
-			<rect x={0} y={0} width={layout.svgWidth} height={layout.svgHeight} fill='#0f172a11' />
-			{renderChrome(element.id, chartData, layout, range, categoryLabels, {
-				categoryAxisStyle: 'bar',
-			})}
-			{bars}
-			{dlElements}
-		</svg>
-	);
+	return renderChartViewModel(element.id, buildReactChartViewModel(element));
 }
 
 /** Render a geographic map chart fallback as a data table/legend. */
