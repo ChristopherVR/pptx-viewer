@@ -649,7 +649,13 @@ const ZOOM_MAX = 3;
 					</div>
 				}
 
+				<!-- Lift the fixed bottom bar above the on-screen keyboard so its
+				     actions stay reachable instead of sitting under the keyboard. -->
 				<pptx-mobile-bottom-bar
+					[style.transform]="
+						mobile.keyboardInset() > 0 ? 'translateY(-' + mobile.keyboardInset() + 'px)' : null
+					"
+					[style.transition]="mobile.keyboardInset() > 0 ? 'transform 150ms ease-out' : null"
 					[slideCount]="slideCount()"
 					[commentCount]="activeComments().length"
 					[activeSheet]="mobileBarSheet()"

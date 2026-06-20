@@ -2,6 +2,7 @@ import type { PptxSlide } from 'pptx-viewer-core';
 import React from 'react';
 
 import type { EditorOperationsResult } from '../../hooks/useEditorOperations';
+import { useKeyboardInsets } from '../../hooks/useKeyboardInsets';
 import type { UsePresentationModeResult } from '../../hooks/usePresentationMode';
 import type { ViewerState } from '../../hooks/useViewerState';
 import type { CanvasSize, SlideSectionGroup } from '../../types';
@@ -38,6 +39,10 @@ export function MobileChromeOverlay(props: MobileChromeOverlayProps): React.Reac
 		canEdit,
 		commentCount,
 	} = props;
+
+	// Track the on-screen-keyboard inset so the fixed bottom bar can lift above
+	// the keyboard (and the focused field is scrolled into view by the hook).
+	const { keyboardInset, isKeyboardOpen } = useKeyboardInsets();
 
 	// Determine which mobile sheet is currently active for bar highlighting.
 	const activeSheet: 'slides' | 'inspector' | 'comments' | 'notes' | null = s.isSlidesPaneOpen
@@ -107,31 +112,48 @@ export function MobileChromeOverlay(props: MobileChromeOverlayProps): React.Reac
 				}
 			/>
 
-			<MobileBottomBar
-				activeSheet={activeSheet}
-				commentCount={commentCount}
-				onOpenSlides={() =>
-					s.isSlidesPaneOpen ? s.setIsSlidesPaneOpen(false) : openSheet('slides')
+			{/* Lift the fixed bottom bar above the on-screen keyboard so its
+			    actions stay reachable instead of sitting under the keyboard. */}
+			<div
+				className='contents'
+				style={
+					keyboardInset > 0
+						? {
+								display: 'block',
+								transform: `translateY(-${keyboardInset}px)`,
+								transition: 'transform 150ms ease-out',
+								willChange: 'transform',
+							}
+						: undefined
 				}
-				onOpenInsert={() => {
-					// Quick-insert: a text box is the most common starter element
-					// on mobile. Full Insert section lives in the top-bar menu.
-					editorOps.insertHandlers.handleAddTextBox();
-				}}
-				onOpenInspector={() =>
-					s.isInspectorPaneOpen && s.sidebarPanelMode !== 'comments'
-						? s.setIsInspectorPaneOpen(false)
-						: openSheet('inspector')
-				}
-				onOpenComments={() =>
-					s.isInspectorPaneOpen && s.sidebarPanelMode === 'comments'
-						? s.setIsInspectorPaneOpen(false)
-						: openSheet('comments')
-				}
-				onToggleNotes={() =>
-					!s.isSlideNotesCollapsed ? s.setIsSlideNotesCollapsed(true) : openSheet('notes')
-				}
-			/>
+				data-keyboard-open={isKeyboardOpen ? 'true' : undefined}
+			>
+				<MobileBottomBar
+					activeSheet={activeSheet}
+					commentCount={commentCount}
+					onOpenSlides={() =>
+						s.isSlidesPaneOpen ? s.setIsSlidesPaneOpen(false) : openSheet('slides')
+					}
+					onOpenInsert={() => {
+						// Quick-insert: a text box is the most common starter element
+						// on mobile. Full Insert section lives in the top-bar menu.
+						editorOps.insertHandlers.handleAddTextBox();
+					}}
+					onOpenInspector={() =>
+						s.isInspectorPaneOpen && s.sidebarPanelMode !== 'comments'
+							? s.setIsInspectorPaneOpen(false)
+							: openSheet('inspector')
+					}
+					onOpenComments={() =>
+						s.isInspectorPaneOpen && s.sidebarPanelMode === 'comments'
+							? s.setIsInspectorPaneOpen(false)
+							: openSheet('comments')
+					}
+					onToggleNotes={() =>
+						!s.isSlideNotesCollapsed ? s.setIsSlideNotesCollapsed(true) : openSheet('notes')
+					}
+				/>
+			</div>
 		</>
 	);
 }

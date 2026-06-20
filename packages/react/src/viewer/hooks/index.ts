@@ -149,3 +149,6 @@ export { MOBILE_BREAKPOINT, TABLET_BREAKPOINT, MIN_TOUCH_TARGET } from './useIsM
 
 export { useTouchGestures } from './useTouchGestures';
 export type { UseTouchGesturesInput, TouchGestureCallbacks } from './useTouchGestures';
+
+export { useKeyboardInsets } from './useKeyboardInsets';
+export type { UseKeyboardInsetsResult } from './useKeyboardInsets';

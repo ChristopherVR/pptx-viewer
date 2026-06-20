@@ -222,3 +222,8 @@ export * from './export-progress';
 // default `.pptx/.ppsx/.pptm/.potx` accept list, used by every binding's
 // File ▸ Open action to load another presentation.
 export * from './open-file-picker';
+// Virtual-keyboard inset maths: from a VisualViewport snapshot, compute how many
+// CSS pixels the on-screen keyboard covers, whether it counts as open, and how
+// far to scroll the focused field into the area above the keyboard. Each binding
+// wires the visualViewport resize listener; the maths is shared here.
+export * from './mobile-keyboard';

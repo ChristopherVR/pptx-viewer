@@ -32,7 +32,25 @@ const props = defineProps<{
 	zoomPercent: number;
 	/** When true, surface the editor-only Format / Comments sheet triggers. */
 	canEdit?: boolean;
+	/**
+	 * CSS pixels the on-screen keyboard covers. When > 0 the fixed bar lifts by
+	 * this amount so it stays above the keyboard instead of under it.
+	 */
+	keyboardInset?: number;
 }>();
+
+/** Translate the fixed bar up above the on-screen keyboard, if one is open. */
+const barStyle = computed(() => {
+	const inset = props.keyboardInset ?? 0;
+	if (inset <= 0) {
+		return undefined;
+	}
+	return {
+		transform: `translateY(-${inset}px)`,
+		transition: 'transform 150ms ease-out',
+		willChange: 'transform',
+	};
+});
 
 const emit = defineEmits<{
 	prev: [];
@@ -69,6 +87,7 @@ const MOBILE_LABEL =
 <template>
 	<nav
 		class="pptx-vue-mobile-bar fixed bottom-0 left-0 right-0 z-40 flex items-stretch justify-between overflow-hidden p-1 pb-[max(env(safe-area-inset-bottom),0.25rem)] border-t border-border bg-secondary/90 backdrop-blur-md"
+		:style="barStyle"
 		aria-label="Slide controls"
 	>
 		<button

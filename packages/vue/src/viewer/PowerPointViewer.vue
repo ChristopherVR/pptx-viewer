@@ -131,6 +131,7 @@ import { useExport } from './composables/useExport';
 import { useExportProgress } from './composables/useExportProgress';
 import { useFindReplace } from './composables/useFindReplace';
 import { useIsMobile } from './composables/useIsMobile';
+import { useKeyboardInsets } from './composables/useKeyboardInsets';
 import { useKeyboardShortcuts } from './composables/useKeyboardShortcuts';
 import { useLoadContent } from './composables/useLoadContent';
 import { useMediaExport } from './composables/useMediaExport';
@@ -1493,6 +1494,9 @@ function onBroadcastStop(): void {
 
 // ── Responsive / mobile chrome ────────────────────────────────────────
 const { isMobile } = useIsMobile();
+// Keep the focused field visible when the on-screen keyboard opens, and lift
+// the fixed bottom bar above the keyboard.
+const { keyboardInset } = useKeyboardInsets();
 const mobileNotesOpen = ref(false);
 /** Mobile-only bottom sheets for panels that are right-rail sidebars on desktop. */
 const mobileInspectorOpen = ref(false);
@@ -2632,6 +2636,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				:slide-count="slideCount"
 				:zoom-percent="zoomPercent"
 				:can-edit="props.canEdit"
+				:keyboard-inset="keyboardInset"
 				@prev="goPrev"
 				@next="goNext"
 				@zoom-in="zoomIn"
