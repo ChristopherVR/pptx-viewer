@@ -103,7 +103,7 @@ onBeforeUnmount(() => {
 			@click="onBackdropClick"
 		>
 			<div
-				class="pptx-vue-modal-panel flex max-h-[88vh] min-w-[320px] max-w-[min(92vw,480px)] flex-col overflow-hidden rounded-lg border border-border bg-popover text-foreground shadow-2xl"
+				class="pptx-vue-modal-panel flex max-h-[88vh] min-w-[320px] max-w-[min(92vw,480px)] flex-col overflow-hidden rounded-lg border border-border bg-popover text-foreground shadow-2xl max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:min-w-0 max-md:max-w-none max-md:max-h-[88dvh] max-md:rounded-b-none max-md:rounded-t-2xl max-md:border-x-0 max-md:border-b-0 max-md:pb-[max(env(safe-area-inset-bottom),0px)]"
 				role="dialog"
 				aria-modal="true"
 				:aria-label="title"

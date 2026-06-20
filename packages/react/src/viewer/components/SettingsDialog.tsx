@@ -131,7 +131,7 @@ export function SettingsDialog({
 			>
 				<div
 					style={panelStyle}
-					className='pointer-events-auto w-[min(32rem,calc(100%-2rem))] rounded-xl border border-border bg-popover backdrop-blur-xl shadow-2xl'
+					className='pointer-events-auto w-[min(32rem,calc(100%-2rem))] rounded-xl border border-border bg-popover backdrop-blur-xl shadow-2xl max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:max-h-[88dvh] max-md:overflow-y-auto max-md:rounded-t-2xl max-md:rounded-b-none max-md:border-x-0 max-md:border-b-0 max-md:pb-[max(env(safe-area-inset-bottom),0px)]'
 				>
 					{/* Header — also a swipe-down-to-dismiss grab region on touch. */}
 					<div
