@@ -57,6 +57,13 @@ jobs:
             bunx git-cliff --config cliff.toml --tag-pattern "^${npm}@" $inc --tag "$tag" --output "$dir/CHANGELOG.md"
           done
 
+      # Regenerate the root CHANGELOG.md using all per-package and legacy v* tags
+      # so it stays a consolidated view of every release across all packages.
+      - name: Generate root changelog
+        if: steps.plan.outputs.any_changed == 'true'
+        run: |
+          bunx git-cliff --config cliff-root.toml --output CHANGELOG.md
+
       - name: Commit changelogs
         if: steps.plan.outputs.any_changed == 'true'
         # The GITHUB_TOKEN push does not retrigger workflows, and `[skip ci]`
@@ -65,9 +72,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Stage only the changelogs (the --write version bumps are deliberately
-          # left uncommitted; tags + npm are the source of truth for versions).
-          git add packages/*/CHANGELOG.md
+          # Stage per-package changelogs and the root consolidated changelog.
+          # The --write version bumps are deliberately left uncommitted; tags + npm
+          # are the source of truth for versions.
+          git add packages/*/CHANGELOG.md CHANGELOG.md
           if git diff --cached --quiet; then
             echo "No changelog changes to commit"
           else

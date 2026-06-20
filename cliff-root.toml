@@ -1,22 +1,17 @@
-# git-cliff configuration: generates per-package CHANGELOG.md from Conventional
-# Commits.
+# git-cliff configuration for the root consolidated CHANGELOG.md.
 #
-# Packages are versioned independently, each with `<npm-name>@<version>` tags.
-# The Release workflow runs git-cliff once per changed package, overriding the
-# `tag_pattern` below with `--tag-pattern "^<npm-name>@"` and scoping commits via
-# `--include-path packages/<pkg>/**` (plus bundled deps), writing each package's
-# own packages/<pkg>/CHANGELOG.md. The version header strips a leading `v` and
-# any `<name>@` prefix so it renders just the number.
+# Extends cliff.toml but uses a tag_pattern that covers BOTH the legacy
+# global v* tags (v1.x.y) and the current per-package tags
+# (pptx-viewer-core@x.y.z, pptx-react-viewer@x.y.z, etc.).
 #
-# The `tag_pattern` default here is used only by per-package changelog runs
-# triggered by the Release workflow (each run overrides it with the package tag).
-# Root changelog scripts use cliff-root.toml instead (broader tag_pattern that
-# covers both legacy v* tags and current per-package pptx-*@ tags).
+# Used by:
+#   bun run changelog             # regenerate CHANGELOG.md
+#   bun run changelog:unreleased  # preview unreleased commits
 #
-# Conventional Commit format is documented in CLAUDE.md, "Commit Conventions".
+# The Release workflow also runs `bunx git-cliff --config cliff-root.toml`
+# after cutting per-package tags so the root file stays up to date.
 
 [changelog]
-# Rendered once at the top of the file.
 header = """
 # Changelog
 
@@ -24,10 +19,6 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.\n
 """
-# Tera template rendered once per release (tag).
-# Repo URL is hard-coded so commit/release links render without needing a
-# GITHUB_TOKEN (the [remote.github] block enriches author handles when a token
-# is available, but is not required for the file to generate).
 body = """
 {% set repo = "https://github.com/ChristopherVR/pptx-viewer" %}\
 {% if version %}\
@@ -50,22 +41,18 @@ trim = true
 postprocessors = []
 
 [git]
-# Parse Conventional Commits and drop anything that does not match.
 conventional_commits = true
 filter_unconventional = true
 split_commits = false
 
-# Tidy up raw subjects before grouping.
 commit_preprocessors = [
-	# Turn "#123" issue refs into links to the repo.
 	{ pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](https://github.com/ChristopherVR/pptx-viewer/issues/${2}))" },
 ]
 
-# Map commit types → changelog sections. Order here = order in the output.
 commit_parsers = [
 	# Skip the CI changelog-update commits FIRST (before any type-based grouping).
-	# These commits touch packages/*/CHANGELOG.md, so git-cliff includes them when
-	# filtering by --include-path; skipping here prevents them polluting the log.
+	# These commits touch packages/*/CHANGELOG.md and CHANGELOG.md, so git-cliff
+	# includes them; skipping here prevents them polluting every release section.
 	{ message = "\\[skip ci\\]", skip = true },
 	{ message = "^chore\\(release\\)", skip = true },
 	{ message = "^feat", group = "<!-- 0 -->Features" },
@@ -80,18 +67,16 @@ commit_parsers = [
 	{ message = "^chore", group = "<!-- 9 -->Chores" },
 	{ message = "^revert", group = "<!-- 10 -->Reverts" },
 	{ body = ".*security", group = "<!-- 11 -->Security" },
-	# Anything left over that still parsed as conventional.
 	{ message = ".*", group = "<!-- 12 -->Other" },
 ]
 
-# Skip merge commits and the CI changelog-update commits to avoid noise/loops.
 filter_commits = false
 protect_breaking_commits = false
 topo_order = false
 sort_commits = "oldest"
-# Only consider semver tags like v1.2.3 as releases.
-tag_pattern = "v[0-9]*.[0-9]*.[0-9]*"
-# Never treat the auto-generated changelog commit as a feature/fix.
+# Cover both the legacy global v* tags and the current per-package tags.
+# This keeps the root CHANGELOG.md growing as new per-package releases are cut.
+tag_pattern = "^(pptx-[a-z-]+@|v)[0-9]"
 skip_tags = ""
 ignore_tags = ""
 

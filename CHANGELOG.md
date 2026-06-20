@@ -4,6 +4,93 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.29](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.29) - 2026-06-20
+
+### Features
+
+- **chart:** Edit value-axis display units in the inspector (by @ChristopherVR) ([88d9758](https://github.com/ChristopherVR/pptx-viewer/commit/88d9758eba7c42377403dd75f678f7cd11cf45a9))
+- **collab:** Implement C3 collaboration hardening ([f4a27cf](https://github.com/ChristopherVR/pptx-viewer/commit/f4a27cfa37de3d8b72cb2a6554a415303f269f2f))
+
+### Documentation
+
+- **collab:** Add C3 collaboration-hardening design proposal (by @ChristopherVR) ([f0b50ad](https://github.com/ChristopherVR/pptx-viewer/commit/f0b50adfcfc5e51a6edffac454496ead2bdee246))
+- **collab:** Add Hocuspocus example and production deployment guide ([45df385](https://github.com/ChristopherVR/pptx-viewer/commit/45df38510392431484749872ff134da2508d9045))
+
+## [1.1.28](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.28) - 2026-06-20
+
+### Features
+
+- **viewer:** Mobile-adapted presenter view (by @ChristopherVR) ([93de717](https://github.com/ChristopherVR/pptx-viewer/commit/93de717cb0f8fa2a4d06ddb15ffd3ebb63863c9b))
+
+### Bug Fixes
+
+- **core:** Generate chart parts so SDK-created charts round-trip (by @ChristopherVR) ([a0243fa](https://github.com/ChristopherVR/pptx-viewer/commit/a0243fa73f752a8fc2343cc2dfbe35b598e01781))
+
+### Documentation
+
+- **roadmap:** Mark mobile + collaboration items shipped (by @ChristopherVR) ([6680a6a](https://github.com/ChristopherVR/pptx-viewer/commit/6680a6abf6b8b9aaf8a9dda0877fec059f5bd07d))
+
+## [1.1.27](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.27) - 2026-06-20
+
+### Features
+
+- **viewer:** Keep the focused field visible when the mobile keyboard opens (by @ChristopherVR) ([0e0a27d](https://github.com/ChristopherVR/pptx-viewer/commit/0e0a27d6e7108694995deb329d6af003fca01641))
+
+## [1.1.26](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.26) - 2026-06-20
+
+### Features
+
+- **chart:** Edit axis titles in the inspector (by @ChristopherVR) ([97045ba](https://github.com/ChristopherVR/pptx-viewer/commit/97045baa940b621fee65f6a825f5bfcd3267b7ab))
+- **chart:** Toggle axis major/minor gridlines in the inspector (by @ChristopherVR) ([938dc7f](https://github.com/ChristopherVR/pptx-viewer/commit/938dc7fb19c83355a4714577fc820c41de391bb1))
+- **viewer:** Export progress and cancel (by @ChristopherVR) ([b0d1161](https://github.com/ChristopherVR/pptx-viewer/commit/b0d1161449404c2ecbab146ee7fba6e917d1735a))
+
+### Bug Fixes
+
+- **core:** Enrich chart data on load so charts render from a pptx (by @ChristopherVR) ([59646fb](https://github.com/ChristopherVR/pptx-viewer/commit/59646fb5a5865a374d7d72e144af8f9557788d16))
+
+## [1.1.25](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.25) - 2026-06-20
+
+### Features
+
+- **chart:** Edit chart-level data labels in the inspector (by @ChristopherVR) ([88348da](https://github.com/ChristopherVR/pptx-viewer/commit/88348da7d48c287030ad916a202e99df8597d5c8))
+- **chart:** Edit per-series trendlines in the inspector (by @ChristopherVR) ([b558221](https://github.com/ChristopherVR/pptx-viewer/commit/b5582215857eb7f1d66c3bccdb776896f8c10a08))
+- **chart:** Edit per-series error bars in the inspector (by @ChristopherVR) ([c9392ae](https://github.com/ChristopherVR/pptx-viewer/commit/c9392ae57f5f94458fc7b5fc2a352f5f88ece03c))
+- **vue:** Real-time collaboration (yjs provider, presence, document sync) (by @ChristopherVR) ([26db3f8](https://github.com/ChristopherVR/pptx-viewer/commit/26db3f8372f3e8af415b396a1231ce4bf410f34b))
+
+## [1.1.24](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.24) - 2026-06-20
+
+### Features
+
+- **shared:** Add funnel/sunburst/histogram/boxWhisker chart builders (by @ChristopherVR) ([2031e73](https://github.com/ChristopherVR/pptx-viewer/commit/2031e73daa491984cf03ca98910d71cc01b68cf9))
+- **shared:** Wire log/secondary axes, display units, percentStacked, overlays (by @ChristopherVR) ([bbca4fb](https://github.com/ChristopherVR/pptx-viewer/commit/bbca4fb77951a479ccbd0f495210d7c19df0ef92))
+- **tools:** Re-export core engine so no separate pptx-viewer-core install (by @ChristopherVR) ([d0ed793](https://github.com/ChristopherVR/pptx-viewer/commit/d0ed79302729adde8951821b10d2394b88e964d7))
+- **core:** Persist chart legend visibility and position on save (by @ChristopherVR) ([92f1403](https://github.com/ChristopherVR/pptx-viewer/commit/92f14039d3f428f86da141f123f9c1e902219534))
+- **vue:** Real-time collaboration (yjs provider, presence, document sync) (by @ChristopherVR) ([bb78631](https://github.com/ChristopherVR/pptx-viewer/commit/bb78631d6943e4a8eb62f1729666529ba6b3f8c1))
+- **chart:** Edit value/category axis formatting in the inspector (by @ChristopherVR) ([ccbdadc](https://github.com/ChristopherVR/pptx-viewer/commit/ccbdadc79059a77fd4078db74e02694fe82aabec))
+- **angular:** Share and broadcast collaboration dialog status (by @ChristopherVR) ([bd15732](https://github.com/ChristopherVR/pptx-viewer/commit/bd1573210421ce896dfb952179684f698b1c8b65))
+- **viewer:** Responsive bottom-sheet dialogs on mobile (by @ChristopherVR) ([6d3bfb5](https://github.com/ChristopherVR/pptx-viewer/commit/6d3bfb50ec6958b3e525f3407658b4ee4aff3604))
+- **vue:** Mobile editing chrome (toolbar, menu sheet, slides sheet) (by @ChristopherVR) ([4c0888d](https://github.com/ChristopherVR/pptx-viewer/commit/4c0888d69c4d9bdd222091b4daf645c2fbb1c0db))
+
+### Bug Fixes
+
+- **angular:** Render secondary value axis in the chart component (by @ChristopherVR) ([9eff953](https://github.com/ChristopherVR/pptx-viewer/commit/9eff953a2852211db567f56a1331f30821377aaa))
+- **deps:** Unblock install after the 1.1.23 version alignment (by @ChristopherVR) ([542a92d](https://github.com/ChristopherVR/pptx-viewer/commit/542a92dcafe2041e8b1c3cb4b371ef0353a470c9))
+
+### Refactor
+
+- **react,vue:** Align funnel/sunburst/histogram/boxWhisker on shared engine (by @ChristopherVR) ([13b47ae](https://github.com/ChristopherVR/pptx-viewer/commit/13b47ae93be91388cef5bbfd176ca06a5e6b7ac1))
+- **react,vue:** Align cartesian charts on the shared engine (by @ChristopherVR) ([694ca8b](https://github.com/ChristopherVR/pptx-viewer/commit/694ca8b5adccf0fcb76a66bf622cfca0d31229a7))
+
+### Documentation
+
+- Drop emf-converter and mtx-decompressor as in-repo packages (by @ChristopherVR) ([589f469](https://github.com/ChristopherVR/pptx-viewer/commit/589f4694966e9f2723a15e8fa636614f4b75c06e))
+- Add mobile-first and collaboration roadmap (by @ChristopherVR) ([455b60a](https://github.com/ChristopherVR/pptx-viewer/commit/455b60a1de1b7c761a45a4dfce5de73abffd9399))
+- **tools:** Make MCP first-class in README and drop em-dashes (by @ChristopherVR) ([89ebd64](https://github.com/ChristopherVR/pptx-viewer/commit/89ebd6453719cf46a4e655dfe689c9d5fae19549))
+
+### Build & CI
+
+- Independent per-package versioning, tags, and changelogs (by @ChristopherVR) ([79595d9](https://github.com/ChristopherVR/pptx-viewer/commit/79595d972d7c4102e8b1e1e3926f439486f76ba1))
+
 ## [1.4.17](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.17) - 2026-06-20
 
 ### Refactor
@@ -34,10 +121,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 - **react:** Remove em-dashes from smartart-process JSDoc (by @ChristopherVR) ([139317a](https://github.com/ChristopherVR/pptx-viewer/commit/139317ab3314b5bbec5b4b3c0003fd38b56b923c))
 - Remove em-dashes from transition shim doc comments (by @ChristopherVR) ([e2fa40b](https://github.com/ChristopherVR/pptx-viewer/commit/e2fa40b31ed8cee032e08ab3533ff5241533f9f5))
 
-### Documentation
-
-- **changelog:** Update for v1.4.16 [skip ci] (by @github-actions[bot]) ([4563872](https://github.com/ChristopherVR/pptx-viewer/commit/45638727a0d2cc4f31eb0e5bbcf366e4d9ad4bb1))
-
 ## [1.4.15](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.15) - 2026-06-20
 
 ### Features
@@ -55,7 +138,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### Documentation
 
 - Remove em-dashes and clarify demo link in viewer packages (by @ChristopherVR) ([f52afff](https://github.com/ChristopherVR/pptx-viewer/commit/f52afffd935016b747116a9909c523021b492225))
-- **changelog:** Update for v1.4.15 [skip ci] (by @github-actions[bot]) ([8c5c358](https://github.com/ChristopherVR/pptx-viewer/commit/8c5c35854cf5f2eeb52ad6f3d66a73e2ff1ee020))
 
 ## [1.4.14](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.14) - 2026-06-19
 
@@ -67,10 +149,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 - **shared:** Extract slide-transition CSS/keyframes into shared (by @ChristopherVR) ([fabb975](https://github.com/ChristopherVR/pptx-viewer/commit/fabb975951dce40e3fea4ae6feeffa64f243d05b))
 - **shared:** Extract element-animation authoring/playback into shared (by @ChristopherVR) ([fa0a4c3](https://github.com/ChristopherVR/pptx-viewer/commit/fa0a4c350a8d68ce6d8592a63f4f3875087592ab))
-
-### Documentation
-
-- **changelog:** Update for v1.4.14 [skip ci] (by @github-actions[bot]) ([7d4b6f8](https://github.com/ChristopherVR/pptx-viewer/commit/7d4b6f867759569057faef00b9c4cf744e67aad5))
 
 ## [1.4.13](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.13) - 2026-06-19
 
@@ -91,19 +169,11 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 - **shared:** Extract snap-guide and ruler geometry into shared (by @ChristopherVR) ([fbe2bce](https://github.com/ChristopherVR/pptx-viewer/commit/fbe2bceb165e5e484f03de978751144250998564))
 - **shared:** Extract SmartArt layout engine into shared (by @ChristopherVR) ([3b3136e](https://github.com/ChristopherVR/pptx-viewer/commit/3b3136ecf05133ff45b6c678d7dfc97b89563926))
 
-### Documentation
-
-- **changelog:** Update for v1.4.13 [skip ci] (by @github-actions[bot]) ([865e715](https://github.com/ChristopherVR/pptx-viewer/commit/865e715fd9027bd2349da24e10c74d3fb65dcb4e))
-
 ## [1.4.12](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.12) - 2026-06-19
 
 ### Refactor
 
 - **shared:** Consolidate small duplicated helpers into shared (by @ChristopherVR) ([c765620](https://github.com/ChristopherVR/pptx-viewer/commit/c765620d52fff503afaeafa773b77d4b883ef5cd))
-
-### Documentation
-
-- **changelog:** Update for v1.4.12 [skip ci] (by @github-actions[bot]) ([8d0d47e](https://github.com/ChristopherVR/pptx-viewer/commit/8d0d47eaf839fadcace48dcc55ba826786b47992))
 
 ## [1.4.11](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.11) - 2026-06-19
 
@@ -119,10 +189,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 - **shared:** Make visual-3d the superset; shim React shape-3d (by @ChristopherVR) ([a9c8a97](https://github.com/ChristopherVR/pptx-viewer/commit/a9c8a971821bd52c9cbd89fbc7ddec7c82e488c3))
 - **shared:** Extract table merge/layout structural ops into shared (by @ChristopherVR) ([9e151d4](https://github.com/ChristopherVR/pptx-viewer/commit/9e151d4b45a52f61287ba90cccece5007a226084))
 
-### Documentation
-
-- **changelog:** Update for v1.4.11 [skip ci] (by @github-actions[bot]) ([22c702b](https://github.com/ChristopherVR/pptx-viewer/commit/22c702b98ae296e16b1ae7519965c0564a09f9c0))
-
 ## [1.4.10](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.10) - 2026-06-18
 
 ### Features
@@ -133,10 +199,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 - **angular:** Mobile save button and wider sheet swipe region (by @ChristopherVR) ([d6eaa99](https://github.com/ChristopherVR/pptx-viewer/commit/d6eaa99bb7a15a697235576042c7c6346f877903))
 - **vue:** Add Save to the mobile bottom bar (by @ChristopherVR) ([9d0ed2c](https://github.com/ChristopherVR/pptx-viewer/commit/9d0ed2c8b906b68d4c760944da5e4a6f1724f63b))
-
-### Documentation
-
-- **changelog:** Update for v1.4.10 [skip ci] (by @github-actions[bot]) ([2284ae0](https://github.com/ChristopherVR/pptx-viewer/commit/2284ae0e31b2e6cd3e2475b59b973561c6ccbfb1))
 
 ## [1.4.9](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.9) - 2026-06-18
 
@@ -153,7 +215,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 - **angular:** Trim PORTING.md to status + what's-missing (drop session log) (by @ChristopherVR) ([393d5e2](https://github.com/ChristopherVR/pptx-viewer/commit/393d5e2e10361cd9158cf502c2f15e67bbe9e09c))
 - **angular:** E2e now 28/0 (no skips); remaining = refactor/cosmetic debts only (by @ChristopherVR) ([7817092](https://github.com/ChristopherVR/pptx-viewer/commit/7817092780173c1a288029addfadc6c6e571e871))
-- **changelog:** Update for v1.4.9 [skip ci] (by @github-actions[bot]) ([0f56fbf](https://github.com/ChristopherVR/pptx-viewer/commit/0f56fbf949567676cbe1c05a66463fbecf928960))
 
 ### Dependencies
 
@@ -168,7 +229,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### Documentation
 
 - Require ≤300 LOC per file + default logic to pptx-viewer-shared (by @ChristopherVR) ([b2e9c6e](https://github.com/ChristopherVR/pptx-viewer/commit/b2e9c6eaa64fa95df35abe19a04fccac165bd5cc))
-- **changelog:** Update for v1.4.8 [skip ci] (by @github-actions[bot]) ([88ce4ef](https://github.com/ChristopherVR/pptx-viewer/commit/88ce4ef3d1878de5ee55a7a426b8a2c7843fe4aa))
 
 ### Testing
 
@@ -194,13 +254,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 - **vue:** Trim PORTING.md to a parity-gap view (1042→175 lines) (by @ChristopherVR) ([e04848c](https://github.com/ChristopherVR/pptx-viewer/commit/e04848c1016838e58f3159bcab9c6c353d6a3c38))
 - **vue:** Mark bullets/gradient-flip/text-warp done; drop non-gap equations (by @ChristopherVR) ([d22cddb](https://github.com/ChristopherVR/pptx-viewer/commit/d22cddbf4fcfc614dd5eaf4cecef11a43a6b9567))
-- **changelog:** Update for v1.4.7 [skip ci] (by @github-actions[bot]) ([92b6e55](https://github.com/ChristopherVR/pptx-viewer/commit/92b6e5554306342b9a6d5f1eeb5b87a5d52ccdfc))
-
-## [1.4.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.6) - 2026-06-18
-
-### Documentation
-
-- **changelog:** Update for v1.4.6 [skip ci] (by @github-actions[bot]) ([20fb856](https://github.com/ChristopherVR/pptx-viewer/commit/20fb856b1414d872a4178ca8a37bbf8bb216224f))
 
 ## [1.4.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.5) - 2026-06-18
 
@@ -214,17 +267,12 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 - **angular:** Niche list complete — custom-show present + equation OMML; functional parity reached (by @ChristopherVR) ([ac719c7](https://github.com/ChristopherVR/pptx-viewer/commit/ac719c79af0a78d3d98902577c7c35a38c42423e))
 - **vue:** Log File/Slide-Show/Animations ribbon wiring (by @ChristopherVR) ([b59b6ad](https://github.com/ChristopherVR/pptx-viewer/commit/b59b6ad5ff87fdf963e49988c198acf3a956e0fc))
-- **changelog:** Update for v1.4.5 [skip ci] (by @github-actions[bot]) ([e068d54](https://github.com/ChristopherVR/pptx-viewer/commit/e068d54c0a101b043805702cbc3bf3e5635ab62e))
 
 ## [1.4.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.4) - 2026-06-18
 
 ### Features
 
 - **angular:** Add snap-to-grid, draggable ruler guides, and eyedropper (by @ChristopherVR) ([2b40442](https://github.com/ChristopherVR/pptx-viewer/commit/2b404425414741711cc28a9f3ee508b4522fef8c))
-
-### Documentation
-
-- **changelog:** Update for v1.4.4 [skip ci] (by @github-actions[bot]) ([ab9393c](https://github.com/ChristopherVR/pptx-viewer/commit/ab9393c41bd237f46a10b4c80ceec005e75e6be3))
 
 ## [1.4.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.3) - 2026-06-18
 
@@ -241,7 +289,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 - **vue:** Log H/V Guides + Snap to Shape; clear the emf/mtx break flag (by @ChristopherVR) ([99b6315](https://github.com/ChristopherVR/pptx-viewer/commit/99b6315c2a4923668549bbc48455c67190f82303))
 - **angular:** Log niche wave (snap-to-grid/guides/eyedropper/selection-pane/custom-shows); 2161 tests, e2e 10/10 (by @ChristopherVR) ([fa77b49](https://github.com/ChristopherVR/pptx-viewer/commit/fa77b497938ea9bae60aa3794902f16f710efe54))
 - **vue:** Log View ▸ Spell; all ribbon View-tab stubs now done (by @ChristopherVR) ([60673f8](https://github.com/ChristopherVR/pptx-viewer/commit/60673f8215749ed3a5379c1b9d236f82fe510fbe))
-- **changelog:** Update for v1.4.3 [skip ci] (by @github-actions[bot]) ([e320b3a](https://github.com/ChristopherVR/pptx-viewer/commit/e320b3a8e1d65c3c7e14f13f4df54af5b9159e56))
 
 ## [1.4.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.2) - 2026-06-18
 
@@ -252,10 +299,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### Bug Fixes
 
 - **vue:** Drop duplicate theme declarations in PowerPointViewer (by @ChristopherVR) ([b0eefce](https://github.com/ChristopherVR/pptx-viewer/commit/b0eefced4f180a155b462e4dbbdb3ef5c4483e2a))
-
-### Documentation
-
-- **changelog:** Update for v1.4.2 [skip ci] (by @github-actions[bot]) ([2ddca66](https://github.com/ChristopherVR/pptx-viewer/commit/2ddca66cffc74c182c8439019b9fee79edb2f6fd))
 
 ### Build & CI
 
@@ -289,7 +332,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 - **vue:** Log View ▸ Rulers + flag the emf/mtx workspace break (by @ChristopherVR) ([70f76ec](https://github.com/ChristopherVR/pptx-viewer/commit/70f76ec8ecb2e60db10adb8e6d21af05b46fd663))
 - **angular:** Log Insert/View/Design/Draw depth landed (2148 tests, e2e 10/10) (by @ChristopherVR) ([cbe9dc7](https://github.com/ChristopherVR/pptx-viewer/commit/cbe9dc7cb1998d766def97fbb20db4169c869680))
 - **vue:** Log layout + theme galleries; ribbon data-stubs complete (by @ChristopherVR) ([3e1c556](https://github.com/ChristopherVR/pptx-viewer/commit/3e1c55683eeffb3c237d5c8f8bef3ab5a0ab9052))
-- **changelog:** Update for v1.4.1 [skip ci] (by @github-actions[bot]) ([fcc267e](https://github.com/ChristopherVR/pptx-viewer/commit/fcc267ee064be446aa66338ce4d813e37a8eee21))
 
 ## [1.1.25](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.25) - 2026-06-18
 
@@ -307,7 +349,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### Documentation
 
 - **vue:** Log layout + theme galleries; ribbon data-stubs complete (by @ChristopherVR) ([6aa01ab](https://github.com/ChristopherVR/pptx-viewer/commit/6aa01ab03d9ab8e3194942ac3fc12faa78180545))
-- **changelog:** Update for v1.1.25 [skip ci] (by @github-actions[bot]) ([fd233b8](https://github.com/ChristopherVR/pptx-viewer/commit/fd233b8ec2a571623a51215588006b4970ee0f0e))
 
 ## [1.1.24](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.24) - 2026-06-18
 
@@ -358,7 +399,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 - **vue:** Log action buttons + suite-green note (by @ChristopherVR) ([b5a7ef6](https://github.com/ChristopherVR/pptx-viewer/commit/b5a7ef6f479ca26c4f21e481f5697c67ab0b3c0e))
 - **angular:** Log advanced ribbon tabs landed (Transitions/Animations wired, Design partial, Draw UI-only) (by @ChristopherVR) ([deeb6c1](https://github.com/ChristopherVR/pptx-viewer/commit/deeb6c1adfd25516b3d3effe19b136721c9ee8a1))
 - **angular:** Mobile e2e now 10/10 (notes-sheet flow fix); log trunk spec fix (by @ChristopherVR) ([92f4c44](https://github.com/ChristopherVR/pptx-viewer/commit/92f4c44a931233258981e452ecaccd5fe25f1a39))
-- **changelog:** Update for v1.1.24 [skip ci] (by @github-actions[bot]) ([4ebbac6](https://github.com/ChristopherVR/pptx-viewer/commit/4ebbac632ad85d51c2b8d7e79c60fbfc69b7aded))
 
 ### Testing
 
@@ -424,7 +464,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 - **vue:** Log slide-level inspector (transition editing restored) (by @ChristopherVR) ([df15436](https://github.com/ChristopherVR/pptx-viewer/commit/df15436b070f81520881756f6135c2cb52ca53e7))
 - **vue:** Log table/image insert + undo/selection bugfix (by @ChristopherVR) ([61b6ef6](https://github.com/ChristopherVR/pptx-viewer/commit/61b6ef6cb8b9083a0d7b9b227f418867b9fef224))
 - **vue:** Log View-tab grid overlay + snap-to-grid (by @ChristopherVR) ([55b8c78](https://github.com/ChristopherVR/pptx-viewer/commit/55b8c7813e1211ff1d4d416b58e35e62fe4809aa))
-- **changelog:** Update for v1.1.23 [skip ci] (by @github-actions[bot]) ([5e16ff3](https://github.com/ChristopherVR/pptx-viewer/commit/5e16ff333a4fe067d9a40d44a8451da280cd350b))
 
 ### Testing
 
@@ -437,19 +476,11 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 - Development on visual parity for Vue (by @ChristopherVR) ([7d6d787](https://github.com/ChristopherVR/pptx-viewer/commit/7d6d7871075b4d31a69663e8f922076dbba5ee57))
 
-### Documentation
-
-- **changelog:** Update for v1.1.22 [skip ci] (by @github-actions[bot]) ([0df5b94](https://github.com/ChristopherVR/pptx-viewer/commit/0df5b947371083985a6cafb95a605c8aca68df3e))
-
 ### Build & CI
 
 - **vue:** Adopt Tailwind 4 pipeline for chrome visual parity with React (by @ChristopherVR) ([451dacc](https://github.com/ChristopherVR/pptx-viewer/commit/451dacc831d41e620749f8403a2183d4e8b853df))
 
 ## [1.1.21](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.21) - 2026-06-16
-
-### Documentation
-
-- **changelog:** Update for v1.1.21 [skip ci] (by @github-actions[bot]) ([833cdb5](https://github.com/ChristopherVR/pptx-viewer/commit/833cdb59f619f9aaee3ed01a17162e43da4feb2f))
 
 ### Testing
 
@@ -466,7 +497,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### Documentation
 
 - **angular:** Record depth batch (chart overlays, text warp, annotations, transitions) (by @ChristopherVR) ([e68f07e](https://github.com/ChristopherVR/pptx-viewer/commit/e68f07e3a56ba881bbd0f178e518695baf34d139))
-- **changelog:** Update for v1.1.20 [skip ci] (by @github-actions[bot]) ([d4e0a95](https://github.com/ChristopherVR/pptx-viewer/commit/d4e0a956a782ef52cc30a7d2fd4958c8146ff773))
 
 ### Testing
 
@@ -489,17 +519,12 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### Documentation
 
 - **angular:** Record full feature parity (animation playback/authoring, mobile chrome) (by @ChristopherVR) ([e48a258](https://github.com/ChristopherVR/pptx-viewer/commit/e48a258e0e2a873f75121aaeff906d56de5b43c6))
-- **changelog:** Update for v1.1.19 [skip ci] (by @github-actions[bot]) ([61849f2](https://github.com/ChristopherVR/pptx-viewer/commit/61849f23b77f5be028147f1df2779292d5e6e67f))
 
 ## [1.1.18](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.18) - 2026-06-15
 
 ### Features
 
 - **vue:** Version history/compare, insert-SmartArt & equation dialogs, settings (by @ChristopherVR) ([ba40c85](https://github.com/ChristopherVR/pptx-viewer/commit/ba40c8584297166d73496a8f78d97e22adf7f393))
-
-### Documentation
-
-- **changelog:** Update for v1.1.18 [skip ci] (by @github-actions[bot]) ([c847b8d](https://github.com/ChristopherVR/pptx-viewer/commit/c847b8da76430d18e6dafd649a749f9e51e3a003))
 
 ## [1.1.17](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.17) - 2026-06-15
 
@@ -524,7 +549,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### Documentation
 
 - **angular:** Record parity push (charts, connectors, duotone, editor, export, subsystem wiring) (by @ChristopherVR) ([127a233](https://github.com/ChristopherVR/pptx-viewer/commit/127a2333f84eeb0ffb0956dd2a2d15518f18269e))
-- **changelog:** Update for v1.1.17 [skip ci] (by @github-actions[bot]) ([2eb76cf](https://github.com/ChristopherVR/pptx-viewer/commit/2eb76cf73fe2381be6c81cb097f33d85dab8e2e5))
 
 ### Chores
 
@@ -546,7 +570,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### Documentation
 
 - **angular:** Record bubble & radar chart kinds in PORTING.md (by @ChristopherVR) ([ea8dd22](https://github.com/ChristopherVR/pptx-viewer/commit/ea8dd226cca868fec18e1c6a2375d25ad942a03f))
-- **changelog:** Update for v1.1.16 [skip ci] (by @github-actions[bot]) ([8e832ab](https://github.com/ChristopherVR/pptx-viewer/commit/8e832ab327d5bbd2870324d5acf94b20ab419c4a))
 
 ## [1.1.15](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.15) - 2026-06-15
 
@@ -560,7 +583,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### Documentation
 
 - **vue:** Record batch 17 (table GUIDs, connector labels, charts) (by @ChristopherVR) ([318b41a](https://github.com/ChristopherVR/pptx-viewer/commit/318b41aecd988eb364bded1038406ed8860eb181))
-- **changelog:** Update for v1.1.15 [skip ci] (by @github-actions[bot]) ([f2fa365](https://github.com/ChristopherVR/pptx-viewer/commit/f2fa365ccb80d18183062668aa47edca2180bab2))
 
 ## [1.1.14](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.14) - 2026-06-15
 
@@ -587,7 +609,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 - **vue:** Record batch 16 render-fidelity work in PORTING.md (by @ChristopherVR) ([643fef9](https://github.com/ChristopherVR/pptx-viewer/commit/643fef94d8f334a155c42b029bbeec744344d472))
 - **angular:** Record advanced-subsystem waves 1-2 in PORTING.md (by @ChristopherVR) ([63c78ff](https://github.com/ChristopherVR/pptx-viewer/commit/63c78ff996efe208540a1825d9c301feebb36956))
 - **angular:** Record advanced-subsystem wiring in PORTING.md (by @ChristopherVR) ([ebc72a7](https://github.com/ChristopherVR/pptx-viewer/commit/ebc72a79bf5edb1c13d58a70b7b96a3cecc8a810))
-- **changelog:** Update for v1.1.14 [skip ci] (by @github-actions[bot]) ([11eb8e1](https://github.com/ChristopherVR/pptx-viewer/commit/11eb8e1a671d7d7dfb617f968ac7fa712b6159a5))
 
 ### Styling
 
@@ -600,10 +621,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 - **vue:** Fit slide to viewport on mobile (by @ChristopherVR) ([d210975](https://github.com/ChristopherVR/pptx-viewer/commit/d21097549a92a94c4f6a8d89134c2cf013abd71d))
 - **angular:** Boot demo under Vite by loading the JIT compiler (by @ChristopherVR) ([1cf4d97](https://github.com/ChristopherVR/pptx-viewer/commit/1cf4d97d21db90bf7ac78976d300117c82ef0cac))
 
-### Documentation
-
-- **changelog:** Update for v1.1.13 [skip ci] (by @github-actions[bot]) ([91ec1b0](https://github.com/ChristopherVR/pptx-viewer/commit/91ec1b03739f3e249fb5fc610436141609b4f57a))
-
 ## [1.1.12](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.12) - 2026-06-15
 
 ### Bug Fixes
@@ -613,10 +630,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### Refactor
 
 - **shared:** Extract 3D + table render helpers (wave 2) (by @ChristopherVR) ([0348d81](https://github.com/ChristopherVR/pptx-viewer/commit/0348d819a407a6d615ad78ce373f16cefcebf803))
-
-### Documentation
-
-- **changelog:** Update for v1.1.12 [skip ci] (by @github-actions[bot]) ([ae0761d](https://github.com/ChristopherVR/pptx-viewer/commit/ae0761d3649c989fe9b9da3367d403e9178934c2))
 
 ## [1.1.11](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.11) - 2026-06-15
 
@@ -689,7 +702,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 - **angular:** Record editor chrome (panels, toolbar, clipboard, align) (by @ChristopherVR) ([69ba935](https://github.com/ChristopherVR/pptx-viewer/commit/69ba9354218ea9ce3066ea84fa4fa60659ff85d8))
 - **angular:** Record rotation/marquee/group + direct-manipulation complete (by @ChristopherVR) ([bb45ccd](https://github.com/ChristopherVR/pptx-viewer/commit/bb45ccd938b83881d735f205a245c1eb1df3d8c3))
 - **angular:** Record snap guides + slide props; parity summary (by @ChristopherVR) ([f748b18](https://github.com/ChristopherVR/pptx-viewer/commit/f748b1871307c97e2c81b2fa64cc9611f2b559d1))
-- **changelog:** Update for v1.1.11 [skip ci] (by @github-actions[bot]) ([53a3f16](https://github.com/ChristopherVR/pptx-viewer/commit/53a3f167e67660a564e12c5cb4d7590c33d4dca5))
 
 ## [1.1.10](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.10) - 2026-06-14
 
@@ -707,7 +719,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### Documentation
 
 - Adopt trunk-based development workflow (by @ChristopherVR) ([eb19ac5](https://github.com/ChristopherVR/pptx-viewer/commit/eb19ac5ab21db04fb069bc164994634b91ca53bf))
-- **changelog:** Update for v1.1.10 [skip ci] (by @github-actions[bot]) ([711b9f2](https://github.com/ChristopherVR/pptx-viewer/commit/711b9f2bc10c62bf9a3b15aa1fa2853ef1774213))
 
 ### Build & CI
 
@@ -718,10 +729,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### Bug Fixes
 
 - Format issues (by @ChristopherVR) ([cc84180](https://github.com/ChristopherVR/pptx-viewer/commit/cc84180ed35b273283fb679b667be15d82ef2a55))
-
-### Documentation
-
-- **changelog:** Update for v1.1.9 [skip ci] (by @github-actions[bot]) ([f850c0e](https://github.com/ChristopherVR/pptx-viewer/commit/f850c0e33a16de303b2eee8b34abe09b304ef0fd))
 
 ## [1.1.8](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.1.8) - 2026-06-14
 
@@ -752,11 +759,9 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 - **site:** Fix package naming, license, and add a showcase to VitePress (by @ChristopherVR) ([04f9674](https://github.com/ChristopherVR/pptx-viewer/commit/04f96745b91540060ab725392d2a7910b3fa16d1))
 - **assets:** Replace editor.png with a logo-free sample deck (by @ChristopherVR) ([08cbbed](https://github.com/ChristopherVR/pptx-viewer/commit/08cbbedc7bbe29716c17e298d91589f2e690d276))
 - Remove obsolete followup notes (by @ChristopherVR) ([69c2439](https://github.com/ChristopherVR/pptx-viewer/commit/69c2439dc1d273af9be890076a483f1f81a40e89))
-- **changelog:** Update for v1.1.8 [skip ci] (by @github-actions[bot]) ([494fbe5](https://github.com/ChristopherVR/pptx-viewer/commit/494fbe5ea5be1e4584695cf51eb8b412da1a1b09))
 
 ### Build & CI
 
-- **changelog:** Generate CHANGELOG.md with git-cliff (by @ChristopherVR) ([8168866](https://github.com/ChristopherVR/pptx-viewer/commit/816886629a48111b0095c108fdfa6e1883766790))
 - **react,vue:** Self-contained, minified, precompressed dist + vue CI (by @ChristopherVR) ([aa28df9](https://github.com/ChristopherVR/pptx-viewer/commit/aa28df916eee064ac502c01be3445e8c84ad37f6))
 - Add dependabot config (by @ChristopherVR) ([660c80a](https://github.com/ChristopherVR/pptx-viewer/commit/660c80a15dcf2d40782c506b07424f27d385ba8f))
 
