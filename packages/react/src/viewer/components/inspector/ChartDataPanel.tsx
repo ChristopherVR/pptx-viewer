@@ -19,6 +19,7 @@ import { useCallback } from 'react';
 
 import { ChartAxisOptions } from './ChartAxisOptions';
 import { ChartDataGrid } from './ChartDataGrid';
+import { ChartDataLabelOptions } from './ChartDataLabelOptions';
 import { ChartDisplayOptions } from './ChartDisplayOptions';
 import { ChartTypeSelector } from './ChartTypeSelector';
 
@@ -202,6 +203,8 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 			/>
 
 			<ChartDisplayOptions style={style} canEdit={canEdit} onUpdateStyle={updateStyle} />
+
+			<ChartDataLabelOptions style={style} canEdit={canEdit} onUpdateStyle={updateStyle} />
 
 			<ChartAxisOptions axes={chartData.axes} canEdit={canEdit} onUpdateAxis={updateAxis} />
 

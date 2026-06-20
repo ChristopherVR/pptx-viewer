@@ -312,6 +312,30 @@ export interface PptxChartSeries {
 }
 
 /**
+ * Chart-level data-label options (`c:dLbls` directly under a chart-type
+ * container, applying to every series). Mirrors the OOXML `c:show*` flags
+ * and `c:dLblPos`.
+ */
+export interface PptxChartDataLabelOptions {
+	/** Show the numeric value (`c:showVal`). */
+	showValue?: boolean;
+	/** Show the category name (`c:showCatName`). */
+	showCategory?: boolean;
+	/** Show the series name (`c:showSerName`). */
+	showSeriesName?: boolean;
+	/** Show the percentage (`c:showPercent`, pie/doughnut). */
+	showPercent?: boolean;
+	/** Show the legend key swatch (`c:showLegendKey`). */
+	showLegendKey?: boolean;
+	/**
+	 * Label position (`c:dLblPos`). Valid values depend on the chart type
+	 * (`ctr`, `inEnd`, `inBase`, `outEnd`, `bestFit`, `l`, `r`, `t`, `b`).
+	 * Omit to let PowerPoint use the type default.
+	 */
+	position?: 'ctr' | 'inEnd' | 'inBase' | 'outEnd' | 'bestFit' | 'l' | 'r' | 't' | 'b';
+}
+
+/**
  * Style / formatting metadata for a chart.
  *
  * @example
@@ -338,6 +362,8 @@ export interface PptxChartStyle {
 	hasGridlines?: boolean;
 	/** Whether data labels are shown. */
 	hasDataLabels?: boolean;
+	/** Chart-level data-label content/position options (when `hasDataLabels`). */
+	dataLabels?: PptxChartDataLabelOptions;
 }
 
 /**

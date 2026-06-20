@@ -182,23 +182,33 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 					// Check chart-level dLbls (applies to all series)
 					const chartDLbls = this.xmlLookupService.getChildByLocalName(ctNode, 'dLbls');
-					if (chartDLbls) {
-						const showVal = this.xmlLookupService.getChildByLocalName(chartDLbls, 'showVal');
-						const showCatName = this.xmlLookupService.getChildByLocalName(
-							chartDLbls,
-							'showCatName',
-						);
-						const showSerName = this.xmlLookupService.getChildByLocalName(
-							chartDLbls,
-							'showSerName',
-						);
-						if (
-							showVal?.['@_val'] === '1' ||
-							showCatName?.['@_val'] === '1' ||
-							showSerName?.['@_val'] === '1'
-						) {
+					if (chartDLbls && !style.dataLabels) {
+						const flag = (name: string): boolean =>
+							this.xmlLookupService.getChildByLocalName(chartDLbls, name)?.['@_val'] === '1';
+						const showValue = flag('showVal');
+						const showCategory = flag('showCatName');
+						const showSeriesName = flag('showSerName');
+						const showPercent = flag('showPercent');
+						const showLegendKey = flag('showLegendKey');
+						if (showValue || showCategory || showSeriesName || showPercent || showLegendKey) {
 							style.hasDataLabels = true;
 							hasStyle = true;
+							const dataLabels: NonNullable<PptxChartStyle['dataLabels']> = {
+								showValue,
+								showCategory,
+								showSeriesName,
+								showPercent,
+								showLegendKey,
+							};
+							const pos = this.xmlLookupService.getChildByLocalName(chartDLbls, 'dLblPos')?.[
+								'@_val'
+							];
+							if (pos !== undefined) {
+								dataLabels.position = String(pos) as NonNullable<
+									PptxChartStyle['dataLabels']
+								>['position'];
+							}
+							style.dataLabels = dataLabels;
 						}
 					}
 

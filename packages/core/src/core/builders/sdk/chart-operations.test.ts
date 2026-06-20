@@ -12,6 +12,7 @@ import {
 	setChartGrouping,
 	setChartLegend,
 	setChartAxis,
+	setChartDataLabels,
 	updateChartDataPoint,
 	addChartCategory,
 	removeChartCategory,
@@ -815,5 +816,76 @@ describe('setChartAxis', () => {
 	it('throws when chartData is missing', () => {
 		const el = makeEmptyChart();
 		expect(() => setChartAxis(el, 'valAx', { min: 0 })).toThrow(/no chartData/u);
+	});
+});
+
+// ===========================================================================
+// setChartDataLabels
+// ===========================================================================
+
+describe('setChartDataLabels', () => {
+	it('shows data labels', () => {
+		const el = makeTestChart();
+		setChartDataLabels(el, { show: true });
+		expect(el.chartData?.style?.hasDataLabels).toBeTruthy();
+	});
+
+	it('hides data labels', () => {
+		const el = makeTestChart();
+		setChartDataLabels(el, { show: false });
+		expect(el.chartData?.style?.hasDataLabels).toBeFalsy();
+	});
+
+	it('sets content flags', () => {
+		const el = makeTestChart();
+		setChartDataLabels(el, { showValue: true, showPercent: true });
+		expect(el.chartData?.style?.dataLabels).toStrictEqual({
+			showValue: true,
+			showPercent: true,
+		});
+	});
+
+	it('turns labels on when a content flag is set without an explicit show', () => {
+		const el = makeTestChart();
+		setChartDataLabels(el, { showCategory: true });
+		expect(el.chartData?.style?.hasDataLabels).toBeTruthy();
+	});
+
+	it('sets the label position', () => {
+		const el = makeTestChart();
+		setChartDataLabels(el, { show: true, position: 'outEnd' });
+		expect(el.chartData?.style?.dataLabels?.position).toBe('outEnd');
+	});
+
+	it('clears the position when passed undefined-like empty', () => {
+		const el = makeTestChart();
+		setChartDataLabels(el, { position: 'ctr' });
+		setChartDataLabels(el, { position: undefined });
+		// position untouched (undefined leaves it unchanged)
+		expect(el.chartData?.style?.dataLabels?.position).toBe('ctr');
+	});
+
+	it('merges content edits without dropping prior flags', () => {
+		const el = makeTestChart();
+		setChartDataLabels(el, { showValue: true });
+		setChartDataLabels(el, { showCategory: true });
+		expect(el.chartData?.style?.dataLabels).toStrictEqual({
+			showValue: true,
+			showCategory: true,
+		});
+	});
+
+	it('preserves other style fields', () => {
+		const el = makeTestChart();
+		el.chartData!.style = { hasLegend: true, legendPosition: 'r' };
+		setChartDataLabels(el, { show: true, showValue: true });
+		expect(el.chartData?.style?.hasLegend).toBeTruthy();
+		expect(el.chartData?.style?.legendPosition).toBe('r');
+		expect(el.chartData?.style?.hasDataLabels).toBeTruthy();
+	});
+
+	it('throws when chartData is missing', () => {
+		const el = makeEmptyChart();
+		expect(() => setChartDataLabels(el, { show: true })).toThrow(/no chartData/u);
 	});
 });

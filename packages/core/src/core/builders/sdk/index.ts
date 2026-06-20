@@ -43,6 +43,7 @@ export {
 	setChartGrouping,
 	setChartLegend,
 	setChartAxis,
+	setChartDataLabels,
 	updateChartDataPoint,
 	addChartCategory,
 	removeChartCategory,

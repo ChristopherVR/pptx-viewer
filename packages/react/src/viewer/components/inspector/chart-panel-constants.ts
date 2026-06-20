@@ -70,5 +70,28 @@ export const EDITABLE_AXIS_TYPES: ReadonlyArray<{
 	{ value: 'catAx', labelKey: 'pptx.chart.categoryAxis' },
 ];
 
+export const DATA_LABEL_CONTENT_OPTIONS: ReadonlyArray<{
+	key: 'showValue' | 'showCategory' | 'showSeriesName' | 'showPercent' | 'showLegendKey';
+	labelKey: string;
+}> = [
+	{ key: 'showValue', labelKey: 'pptx.chart.labelValue' },
+	{ key: 'showCategory', labelKey: 'pptx.chart.labelCategory' },
+	{ key: 'showSeriesName', labelKey: 'pptx.chart.labelSeriesName' },
+	{ key: 'showPercent', labelKey: 'pptx.chart.labelPercent' },
+	{ key: 'showLegendKey', labelKey: 'pptx.chart.labelLegendKey' },
+];
+
+export const DATA_LABEL_POSITION_OPTIONS: ReadonlyArray<{
+	value: '' | 'ctr' | 'inEnd' | 'inBase' | 'outEnd' | 'bestFit';
+	labelKey: string;
+}> = [
+	{ value: '', labelKey: 'pptx.chart.labelPosDefault' },
+	{ value: 'ctr', labelKey: 'pptx.chart.labelPosCenter' },
+	{ value: 'inEnd', labelKey: 'pptx.chart.labelPosInsideEnd' },
+	{ value: 'inBase', labelKey: 'pptx.chart.labelPosInsideBase' },
+	{ value: 'outEnd', labelKey: 'pptx.chart.labelPosOutsideEnd' },
+	{ value: 'bestFit', labelKey: 'pptx.chart.labelPosBestFit' },
+];
+
 /** Chart types that support grouping modes. */
 export const GROUPING_SUPPORTED_TYPES = new Set<PptxChartType>(['bar', 'line', 'area']);

@@ -9,7 +9,11 @@
  * @module sdk/chart-operations
  */
 
-import type { PptxChartAxisFormatting, PptxChartType } from '../../types/chart';
+import type {
+	PptxChartAxisFormatting,
+	PptxChartDataLabelOptions,
+	PptxChartType,
+} from '../../types/chart';
 import type { ChartPptxElement } from '../../types/elements';
 
 // ---------------------------------------------------------------------------
@@ -208,6 +212,64 @@ export function setChartLegend(
 		style.legendPosition = options.position;
 		if (style.hasLegend === undefined) {
 			style.hasLegend = true;
+		}
+	}
+}
+
+/**
+ * Show/hide chart-level data labels and/or set their content and position.
+ * Edits round-trip to the saved `.pptx` (`c:dLbls` under each chart-type
+ * container).
+ *
+ * @param element - The chart element to modify.
+ * @param edit - `show` toggles all data labels; the `show*` flags pick which
+ *   content appears; `position` sets placement. Setting any content flag or a
+ *   position turns labels on when not already set.
+ *
+ * @example
+ * ```ts
+ * setChartDataLabels(chartEl, { show: true, showValue: true, position: "outEnd" });
+ * setChartDataLabels(chartEl, { show: false });
+ * ```
+ */
+export function setChartDataLabels(
+	element: ChartPptxElement,
+	edit: {
+		show?: boolean;
+		showValue?: boolean;
+		showCategory?: boolean;
+		showSeriesName?: boolean;
+		showPercent?: boolean;
+		showLegendKey?: boolean;
+		position?: PptxChartDataLabelOptions['position'];
+	},
+): void {
+	ensureChartData(element);
+	const style = (element.chartData.style ??= {});
+	if (edit.show !== undefined) {
+		style.hasDataLabels = edit.show;
+	}
+	const contentKeys = [
+		'showValue',
+		'showCategory',
+		'showSeriesName',
+		'showPercent',
+		'showLegendKey',
+	] as const;
+	const hasContentEdit =
+		contentKeys.some((k) => edit[k] !== undefined) || edit.position !== undefined;
+	if (hasContentEdit) {
+		const opts = (style.dataLabels ??= {});
+		for (const k of contentKeys) {
+			if (edit[k] !== undefined) {
+				opts[k] = edit[k];
+			}
+		}
+		if (edit.position !== undefined) {
+			opts.position = edit.position || undefined;
+		}
+		if (style.hasDataLabels === undefined) {
+			style.hasDataLabels = true;
 		}
 	}
 }

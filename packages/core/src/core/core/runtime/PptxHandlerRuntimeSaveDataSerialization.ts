@@ -8,6 +8,7 @@ import type {
 	PptxTableData,
 } from '../../types';
 import { upsertChartAxisChild } from '../../utils/chart-axis-parser';
+import { applyChartDataLabelsToXml } from '../../utils/chart-data-labels-serializer';
 import { applyChartLegendToXml } from '../../utils/chart-legend-serializer';
 import { xmlChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveTableStyles';
@@ -438,11 +439,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					);
 				}
 
+				// ── Data labels round-trip (chart-level c:dLbls) ──────────
+				if (chartData.style) {
+					applyChartDataLabelsToXml(plotArea, chartData.style, (key) =>
+						this.compatibilityService.getXmlLocalName(key),
+					);
+				}
+
 				// Update axis fields (Phase 5 Stream A item 4).
 				// Currently writes back: scaling.min/max, scaling.logBase,
 				// numFmt, majorUnit, minorUnit, tickLblPos. Other parsed-but-not-
 				// written chart fields (surfaces/dataTable/dropLines/hiLowLines/
-				// trendlines/errBars/marker/dataLabels/explosion/smooth/
+				// trendlines/errBars/marker/per-point dataLabels/explosion/smooth/
 				// colorPalette/colorMethod, axis title/txPr/axPos) are
 				// preserved via the original XML passthrough but lose any edits
 				// — see OPENXML_PARITY.md M-tier.
