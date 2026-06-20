@@ -29,13 +29,24 @@ permissions:
 
 jobs:
   publish:
-    if: vars.NPM_PUBLISH == 'true'
     runs-on: ubuntu-latest
     environment: npm
     permissions:
       contents: read
       id-token: write # Required for OIDC trusted publishing & provenance
     steps:
+      # A release tag was already cut (GitHub release + `<npm>@<version>` tag), so
+      # silently skipping the publish leaves npm stranded behind the tags with no
+      # signal (exactly how 1.1.24-1.1.29 never reached npm). Fail loudly instead.
+      # Set the NPM_PUBLISH repo variable to 'true' to enable publishing.
+      - name: Verify publishing is enabled
+        if: vars.NPM_PUBLISH != 'true'
+        run: |
+          echo "::error::NPM_PUBLISH repository variable is not 'true' - refusing to skip silently."
+          echo "Release '${{ github.event.release.tag_name }}' was published but npm publishing is disabled."
+          echo "Set the NPM_PUBLISH repository variable to 'true' to publish, or delete the release if unintended."
+          exit 1
+
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
