@@ -1,12 +1,18 @@
 {
 	"name": "pptx-viewer-mcp",
 	"version": "1.1.23",
-	"description": "PPTX manipulation tools, MCP server, and collaboration codec for pptx-viewer-core.",
+	"description": "PowerPoint PPTX tools and MCP server: manipulate, convert, and collaborate on .pptx files from AI agents.",
 	"keywords": [
 		"ai",
+		"collaboration",
+		"converter",
 		"mcp",
+		"office",
+		"openxml",
 		"powerpoint",
+		"ppt",
 		"pptx",
+		"presentation",
 		"tools"
 	],
 	"homepage": "https://github.com/ChristopherVR/pptx-viewer",

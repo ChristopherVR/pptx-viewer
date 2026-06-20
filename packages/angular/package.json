@@ -1,14 +1,20 @@
 {
 	"name": "pptx-angular-viewer",
 	"version": "1.1.23",
-	"description": "Angular PowerPoint viewer/editor component, depends on pptx-viewer-core. Angular counterpart of the React `pptx-viewer` and Vue `pptx-vue-viewer` packages.",
+	"description": "Angular PowerPoint viewer and editor component: render, edit, and export PPTX slides in the browser.",
 	"keywords": [
 		"angular",
+		"angular-component",
 		"editor",
+		"export",
+		"office",
 		"openxml",
 		"powerpoint",
+		"ppt",
 		"pptx",
 		"presentation",
+		"slides",
+		"slideshow",
 		"viewer"
 	],
 	"homepage": "https://github.com/ChristopherVR/pptx-viewer",

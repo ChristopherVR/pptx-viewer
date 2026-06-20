@@ -1,15 +1,21 @@
 {
 	"name": "pptx-vue-viewer",
 	"version": "1.1.23",
-	"description": "Vue 3 PowerPoint viewer/editor component â€” depends on pptx-viewer-core. Vue counterpart of the React `pptx-viewer` package.",
+	"description": "Vue 3 PowerPoint viewer and editor component: render, edit, and export PPTX slides in the browser.",
 	"keywords": [
 		"editor",
+		"export",
+		"office",
 		"openxml",
 		"powerpoint",
+		"ppt",
 		"pptx",
 		"presentation",
+		"slides",
+		"slideshow",
 		"viewer",
 		"vue",
+		"vue-component",
 		"vue3"
 	],
 	"homepage": "https://github.com/ChristopherVR/pptx-viewer",
