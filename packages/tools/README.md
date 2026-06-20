@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/pptx-viewer-mcp.svg)](https://www.npmjs.com/package/pptx-viewer-mcp)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-PPTX manipulation for AI agents. It ships a ready-to-run [MCP](https://modelcontextprotocol.io) server exposing 25 PowerPoint editing tools, plus the same tools as plain functions, Zod input schemas, and a Y.Doc collaboration codec. The [`pptx-viewer-core`](https://www.npmjs.com/package/pptx-viewer-core) engine is bundled in as a dependency, so a single install gives you everything. You never install the core separately.
+Edit PowerPoint files from an AI agent. It ships a ready-to-run [MCP](https://modelcontextprotocol.io) server that gives an agent 25 PowerPoint editing tools (for example "add a slide" or "replace text"). The same tools are also available as plain functions you can call yourself, along with their Zod input schemas and a codec for real-time collaboration (Y.Doc). The [`pptx-viewer-core`](https://www.npmjs.com/package/pptx-viewer-core) engine is bundled in, so a single install gives you everything and you never install the core separately.
 
 - **Live demo:** https://christophervr.github.io/pptx-viewer/demo/
 - **Docs:** https://christophervr.github.io/pptx-viewer/
@@ -93,7 +93,7 @@ These APIs back the MCP server. Reach for them when you embed PPTX editing direc
 
 ### Call tools directly
 
-Every tool is a pure function, with no file I/O and no framework dependencies. The basic load, edit, save loop is shown in [Use as a library (advanced)](#2-use-as-a-library-advanced) above.
+Each tool is a plain function: it takes the presentation data in and returns the changed data out, without reading or writing files itself and without depending on any framework. The basic load, edit, save loop is shown in [Use as a library (advanced)](#2-use-as-a-library-advanced) above.
 
 ### Wrap load, tool, and save with `executeToolWithContext`
 
@@ -120,7 +120,7 @@ const result = await executeToolWithContext('deck.pptx', { filesystem }, (ctx) =
 console.log(result.replacements, result.savedToDisk);
 ```
 
-When `collaboration` is provided on the `ExecutionContext`, the current Y.Doc state is dehydrated before the tool runs and re-hydrated after saving, so remote peers receive the change without a file reload.
+When you supply `collaboration` on the `ExecutionContext`, the tool reads the current shared (Y.Doc) state before running and writes the result back into it after saving, so other people in the session see the change without reloading the file.
 
 ## Architecture
 

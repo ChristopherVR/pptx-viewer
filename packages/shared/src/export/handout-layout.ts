@@ -1,5 +1,5 @@
 /**
- * Pure handout layout calculations — shared by every binding's print path.
+ * Pure handout layout calculations, shared by every binding's print path.
  *
  * Handles distributing slides across pages, computing grid dimensions, and
  * positioning cells within A4 page space. No DOM/framework dependency: callers
@@ -84,6 +84,11 @@ export const A4_LANDSCAPE: PageDimensions = {
 
 /** Available slides-per-page choices. */
 export const HANDOUT_OPTIONS: HandoutSlidesPerPage[] = [1, 2, 3, 4, 6, 9];
+
+/** Type guard: is the given number one of the supported slides-per-page values? */
+export function isHandoutSlidesPerPage(value: number): value is HandoutSlidesPerPage {
+	return (HANDOUT_OPTIONS as number[]).includes(value);
+}
 
 /** Gap between cells in mm. */
 const CELL_GAP = 4;

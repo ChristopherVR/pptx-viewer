@@ -164,6 +164,28 @@ export function computeSlideIndices(
 	return Array.from({ length: slideCount }, (_, i) => i);
 }
 
+/**
+ * Number of slides selected by the given range. Custom ranges use 1-based,
+ * inclusive `from`/`to` clamped to `[1, slideCount]`; an inverted range
+ * collapses to a single slide.
+ */
+export function computeSlideCount(
+	slideRange: PrintSlideRange,
+	slideCount: number,
+	customRangeFrom: number,
+	customRangeTo: number,
+): number {
+	if (slideRange === 'all') {
+		return slideCount;
+	}
+	if (slideRange === 'current') {
+		return 1;
+	}
+	const from = Math.max(1, Math.min(customRangeFrom, slideCount));
+	const to = Math.max(from, Math.min(customRangeTo, slideCount));
+	return to - from + 1;
+}
+
 /** CSS `filter:` declaration for the chosen colour mode (empty for full colour). */
 export function computeColorFilter(colorMode: PrintColorMode): string {
 	if (colorMode === 'grayscale') {

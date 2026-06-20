@@ -1,66 +1,18 @@
 /**
- * presentation-toolbar-utils: pure helpers for `PresentationToolbar.vue`.
+ * Thin re-export shim → `pptx-viewer-shared` (`render/presentation-toolbar`).
  *
- * Visibility (bottom-trigger-zone) math, auto-hide timing, and slide-counter
- * formatting. Extracted for testability. Mirrors the React
- * `presentation-toolbar-utils`.
- *
- * @module composables/presentation-toolbar-utils
+ * The pure presentation-toolbar helpers (trigger-zone math, auto-hide timing,
+ * colour swatches, slide-counter formatting) now live in shared, consumed by
+ * every binding. This file preserves the historical Vue import surface so
+ * `PresentationToolbar.vue` and the colocated tests are unchanged.
  */
 
-/** Toolbar auto-hides after this many milliseconds of no mouse movement. */
-export const AUTO_HIDE_DELAY_MS = 3000;
-
-/**
- * The toolbar is shown when the mouse is within this fraction of the screen
- * height from the bottom (e.g., 0.15 = bottom 15%).
- */
-export const BOTTOM_TRIGGER_FRACTION = 0.15;
-
-/** Pen-tool colour swatches. */
-export const PEN_COLORS = [
-	'#ff0000',
-	'#0000ff',
-	'#00aa00',
-	'#ff8800',
-	'#ffffff',
-	'#000000',
-	'#ff00ff',
-	'#00cccc',
-];
-
-/** Highlighter-tool colour swatches. */
-export const HIGHLIGHTER_COLORS = [
-	'#ffff00',
-	'#00ff00',
-	'#ff69b4',
-	'#00bfff',
-	'#ff8c00',
-	'#adff2f',
-	'#ff6347',
-	'#87ceeb',
-];
-
-/**
- * Whether the toolbar should become visible based on mouse position relative to
- * the container's bottom trigger zone.
- */
-export function isInBottomTriggerZone(
-	mouseY: number,
-	containerHeight: number,
-	containerTop: number,
-): boolean {
-	const relativeY = mouseY - containerTop;
-	const threshold = containerHeight * (1 - BOTTOM_TRIGGER_FRACTION);
-	return relativeY >= threshold && relativeY <= containerHeight;
-}
-
-/** Whether enough time has passed since the last move to auto-hide. */
-export function shouldAutoHide(lastMoveTimestamp: number, now: number): boolean {
-	return now - lastMoveTimestamp >= AUTO_HIDE_DELAY_MS;
-}
-
-/** Format a slide counter string like `"3 / 12"` (one-based). */
-export function formatSlideCounter(currentSlide: number, totalSlides: number): string {
-	return `${currentSlide + 1} / ${totalSlides}`;
-}
+export {
+	AUTO_HIDE_DELAY_MS,
+	BOTTOM_TRIGGER_FRACTION,
+	PEN_COLORS,
+	HIGHLIGHTER_COLORS,
+	isInBottomTriggerZone,
+	shouldAutoHide,
+	formatSlideCounter,
+} from 'pptx-viewer-shared';
