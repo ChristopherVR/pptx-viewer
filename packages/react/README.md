@@ -4,13 +4,15 @@
 [![license](https://img.shields.io/npm/l/pptx-react-viewer.svg)](https://github.com/ChristopherVR/pptx-viewer/blob/main/LICENSE)
 [![types](https://img.shields.io/npm/types/pptx-react-viewer.svg)](https://www.npmjs.com/package/pptx-react-viewer)
 
-> A drop-in **React** component that turns a `.pptx` file into a fully interactive PowerPoint — **view, edit, present, collaborate, and export**, entirely in the browser.
+> A drop-in **React** component that turns a `.pptx` file into a fully interactive PowerPoint: **view, edit, present, collaborate, and export**, entirely in the browser.
 
 ![The pptx-react-viewer editor: ribbon toolbar, slide thumbnails, and a slide rendered on the canvas](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/editor.png)
 
-Slides render with real **HTML/CSS** (not `<canvas>`), so text stays crisp at any zoom, is selectable and screen-reader accessible, and every element is directly editable. The parsing/editing engine ([`pptx-viewer-core`](https://www.npmjs.com/package/pptx-viewer-core)) is **bundled in** — you install one package.
+Slides render with real **HTML/CSS** (not `<canvas>`), so text stays crisp at any zoom, is selectable and screen-reader accessible, and every element is directly editable. The parsing/editing engine ([`pptx-viewer-core`](https://www.npmjs.com/package/pptx-viewer-core)) is **bundled in**, so you install just one package.
 
-<samp>**[▶️ Live demo](https://christophervr.github.io/pptx-viewer/demo/)** · **[📦 npm](https://www.npmjs.com/package/pptx-react-viewer)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/)** · **[🧩 Core SDK](https://www.npmjs.com/package/pptx-viewer-core)**</samp>
+<samp>**[▶️ Try the live demo](https://christophervr.github.io/pptx-viewer/demo/)** · **[📦 npm](https://www.npmjs.com/package/pptx-react-viewer)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/)** · **[🧩 Core SDK](https://www.npmjs.com/package/pptx-viewer-core)**</samp>
+
+> **[▶️ Try the live demo](https://christophervr.github.io/pptx-viewer/demo/)**: open a `.pptx` in your browser and view, edit, present, and export it. No install required.
 
 ---
 
@@ -26,7 +28,7 @@ Then add the React peer dependencies your app uses:
 npm install react react-dom framer-motion lucide-react react-icons jspdf jszip fast-xml-parser i18next react-i18next
 ```
 
-> The package is named **`pptx-react-viewer`** on npm. `pptx-viewer-core` (the engine) is **bundled in** — you don't install it separately unless you want to call the SDK directly.
+> The package is named **`pptx-react-viewer`** on npm. `pptx-viewer-core` (the engine) is **bundled in**, so you don't install it separately unless you want to call the SDK directly.
 > **Optional:** `three @react-three/fiber @react-three/drei` for 3D models/charts · `yjs y-websocket` for real-time collaboration.
 
 ## Quick start
@@ -56,7 +58,7 @@ export default function App() {
 }
 ```
 
-The component fills its parent, so give the parent a height. That's the whole setup — open a file and you have a working viewer/editor.
+The component fills its parent, so give the parent a height. That's the whole setup: open a file and you have a working viewer/editor.
 
 To read the edited presentation back out as bytes, pass a `ref` and call `getContent()`:
 
@@ -94,12 +96,12 @@ const bytes = await viewerRef.current?.getContent(); // Uint8Array of a valid .p
 | Prop                  | Type                                | Default  | Description                                                       |
 | --------------------- | ----------------------------------- | -------- | ----------------------------------------------------------------- |
 | `content`             | `ArrayBuffer \| Uint8Array \| null` | required | Raw .pptx file bytes                                              |
-| `filePath`            | `string`                            | —        | Optional file path (for display and autosave)                     |
+| `filePath`            | `string`                            | n/a      | Optional file path (for display and autosave)                     |
 | `canEdit`             | `boolean`                           | `false`  | Enable editing mode                                               |
-| `onContentChange`     | `(dirty: boolean) => void`          | —        | Called when content changes                                       |
-| `onDirtyChange`       | `(isDirty: boolean) => void`        | —        | Called when dirty state changes                                   |
-| `onActiveSlideChange` | `(index: number) => void`           | —        | Called when the active slide changes                              |
-| `theme`               | `ViewerTheme`                       | —        | Theme configuration for customising colours, radius, and CSS vars |
+| `onContentChange`     | `(dirty: boolean) => void`          | n/a      | Called when content changes                                       |
+| `onDirtyChange`       | `(isDirty: boolean) => void`        | n/a      | Called when dirty state changes                                   |
+| `onActiveSlideChange` | `(index: number) => void`           | n/a      | Called when the active slide changes                              |
+| `theme`               | `ViewerTheme`                       | n/a      | Theme configuration for customising colours, radius, and CSS vars |
 
 ### `PowerPointViewerHandle` (via `ref`)
 
@@ -123,9 +125,9 @@ const canvas = await renderToCanvas(element, options); // => HTMLCanvasElement
 
 The viewer's UI references **CSS custom properties** (`--pptx-*`, the shadcn/ui token convention) for every visual token, so it works three ways:
 
-- **Tailwind CSS v4 project** — the viewer classes resolve through your existing Tailwind tokens. No extra CSS import needed.
-- **No Tailwind** — import the bundled stylesheet once at your app entry: `import 'pptx-react-viewer/styles';`
-- **CSS custom properties** — define the `--pptx-*` properties yourself for full control.
+- **Tailwind CSS v4 project**: the viewer classes resolve through your existing Tailwind tokens. No extra CSS import needed.
+- **No Tailwind**: import the bundled stylesheet once at your app entry: `import 'pptx-react-viewer/styles';`
+- **CSS custom properties**: define the `--pptx-*` properties yourself for full control.
 
 Override specific values with the `theme` prop:
 
@@ -139,7 +141,7 @@ Override specific values with the `theme` prop:
 />
 ```
 
-All `ViewerTheme.colors` keys are optional — override only what you need. Helpers `defaultThemeColors`, `defaultRadius`, `themeToCssVars`, `defaultCssVars`, `ViewerThemeProvider`, and `useViewerTheme` are exported for advanced use. See the [full docs](https://christophervr.github.io/pptx-viewer/) for the complete token list.
+All `ViewerTheme.colors` keys are optional; override only what you need. Helpers `defaultThemeColors`, `defaultRadius`, `themeToCssVars`, `defaultCssVars`, `ViewerThemeProvider`, and `useViewerTheme` are exported for advanced use. See the [full docs](https://christophervr.github.io/pptx-viewer/) for the complete token list.
 
 ## Localization (i18n)
 

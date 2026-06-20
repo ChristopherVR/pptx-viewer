@@ -2,7 +2,7 @@
 
 > **Living document.** Update the status tables as you port. This is the
 > hand-off contract between sessions and the Angular sibling of
-> [`packages/vue/PORTING.md`](../vue/PORTING.md). Keep it accurate — future
+> [`packages/vue/PORTING.md`](../vue/PORTING.md). Keep it accurate; future
 > sessions trust it instead of re-scanning the ~100k-line React package.
 
 ## Goal
@@ -17,11 +17,11 @@ cross-framework logic via **`pptx-viewer-shared`**.
 
 | Concern       | Choice                                                                                                                   |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Angular       | **22.x** (latest) — standalone components, signals, native control flow (`@if`/`@for`)                                   |
+| Angular       | **22.x** (latest): standalone components, signals, native control flow (`@if`/`@for`)                                    |
 | TypeScript    | `^6.0.3` (matches the monorepo; Angular 22 / ng-packagr 22 peer-depend on TS `>=6.0 <6.1`)                               |
 | Library build | **ng-packagr** → Angular Package Format (partial-Ivy FESM + d.ts) in `dist/`                                             |
 | Unit tests    | **vitest** (happy-dom) for the pure helpers; component/TestBed tests via `@analogjs/vite-plugin-angular` are a follow-up |
-| Demo          | `demo-angular/` — Vite + `@analogjs/vite-plugin-angular` (mirrors the React `demo/`)                                     |
+| Demo          | `demo-angular/`: Vite + `@analogjs/vite-plugin-angular` (mirrors the React `demo/`)                                      |
 
 ## Conventions (React / Vue → Angular)
 
@@ -38,7 +38,7 @@ cross-framework logic via **`pptx-viewer-shared`**.
 | `React.memo`                         | (Vue reactivity)        | `ChangeDetectionStrategy.OnPush` + signals                                |
 | Tailwind utility classes             | hand-written scoped CSS | hand-written CSS scoped under `.pptx-ng-viewer` (Tailwind optional later) |
 
-## Shared-code extraction — **`pptx-viewer-shared`** ✅ (in progress, landed)
+## Shared-code extraction: **`pptx-viewer-shared`** ✅ (in progress, landed)
 
 The high-leverage win: framework-agnostic logic that used to be duplicated in
 `packages/react` (and copied again into `packages/vue`) now lives once in
@@ -55,7 +55,7 @@ one copy.
 | Scalar viewer defaults           | `pptx-viewer-shared`              | `DEFAULT_CANVAS_WIDTH/HEIGHT`, `DEFAULT_TEXT/FILL/STROKE_COLOR`                                               |
 
 > `pptx-viewer-shared` is a **private, non-published** package (`"private": true`).
-> It is **inlined** into each binding — by tsup/vite for React/Vue, and for
+> It is **inlined** into each binding: by tsup/vite for React/Vue, and for
 > Angular by **vendoring its source at build time** (`scripts/inline-shared.mjs`
 > copies `packages/shared/src` → `src/internal/shared-src`, a git-ignored dir, so
 > ng-packagr compiles it as local source). It therefore never appears in any
@@ -68,16 +68,16 @@ one copy.
 - `color-core.ts`, `color-gradient.ts`, `color-patterns.ts`, `color.ts`
 - `geometry*.ts`, `resolved-shape-clip-path.ts` (shape path generation)
 - `connector-router*.ts`, `connector-reroute.ts`
-- `animation-*.ts` (timeline / sequencer / keyframes / presets — the engine, not JSX)
+- `animation-*.ts` (timeline / sequencer / keyframes / presets: the engine, not JSX)
 - `morph-*.ts`, `warp-path-*.ts`, `latex-to-omml*.ts`, `omml-*.ts`
 - `table-merge-core.ts`, `table-selection-utils.ts`
 - `image-effects.ts`, `duotone-effects.ts`, `effect-dag-filters.ts`
 - `clone.ts`, `compare.ts`, `generate-id.ts`, `hyperlink-security.ts`,
   `unicode-script-detection.ts`, `kinsoku-styles.ts`, `tab-leader.ts`
 - `element-style.ts` logic (only the return-type/CSS-map shape differs per
-  framework — a neutral core could be hoisted)
+  framework; a neutral core could be hoisted)
 
-> ⚠️ Each extraction touches `packages/react` imports — do it as its own
+> ⚠️ Each extraction touches `packages/react` imports; do it as its own
 > focused, verified change (build shared → repoint via shims → typecheck React +
 > Vue + Angular). Coordinate with the React/Vue sessions.
 
@@ -89,7 +89,7 @@ packages/react/src/                          packages/angular/src/
   utils.ts (cn)                                utils.ts                             ✅
   theme/{types,defaults,css-vars}.ts           → pptx-viewer-shared                 ✅ (moved)
   theme/context.tsx (createContext)            theme/viewer-theme.ts (InjectionToken) ✅
-  lib/canvas-export.ts                          —  (TODO)
+  lib/canvas-export.ts                          -  (TODO)
   viewer/PowerPointViewer.tsx                  viewer/power-point-viewer.component.ts ◑ viewer-first
   viewer/components/SlideCanvas.tsx            viewer/slide-canvas.component.ts     ◑ basic
   viewer/components/ElementRenderer.tsx        viewer/element-renderer.component.ts ◑ basic
@@ -106,7 +106,7 @@ Legend: ✅ done · ◑ partial/basic · ☐ not started
 
 ## Demo
 
-`demo-angular/` — Vite + `@analogjs/vite-plugin-angular`. Pick a `.pptx` file and
+`demo-angular/`: Vite + `@analogjs/vite-plugin-angular`. Pick a `.pptx` file and
 render it with `<pptx-viewer>`:
 
 ```bash
@@ -137,34 +137,34 @@ touch editing/present).
 **Verification (run before claiming green):** `bun run --filter pptx-angular-viewer build`
 (ng-packagr + Tailwind), `typecheck`, `test` (~2159), `bunx oxlint packages/angular/src`
 (`--deny-warnings`), and `npx playwright test --project=angular` (**28 passed / 0
-skipped** — the shared `e2e/*.spec.ts` run identically against React/Vue/Angular;
+skipped** - the shared `e2e/*.spec.ts` run identically against React/Vue/Angular;
 Angular skips none).
 
 ## What's still missing for full React parity
 
 The remaining items are **quality/refactor debts and cosmetic polish, not
-behavioural gaps** — Angular is at functional parity (28/0 e2e, the same shared
+behavioural gaps** - Angular is at functional parity (28/0 e2e, the same shared
 specs React passes).
 
 1. **File-size debt (CLAUDE.md ≤ 300 LOC rule).** Several Angular files exceed the
-   limit and should be split: `ribbon.component.ts` (~1.2k LOC — extract each
+   limit and should be split: `ribbon.component.ts` (~1.2k LOC, extract each
    tab's `@case` into its own section component + split tab-bar / primary-row /
    status-bar), `power-point-viewer.component.ts`, `slide-canvas.component.ts`,
-   `custom-shows.component.ts`. Large mechanical refactor (AOT-template risk) —
+   `custom-shows.component.ts`. Large mechanical refactor (AOT-template risk),
    do as a dedicated, verified pass.
 2. **Shared-logic extraction (CLAUDE.md "share-first" rule).** Pure helpers ported
    locally into `packages/angular` duplicate React/Vue: `format-painter.ts`,
    `omml-to-mathml.ts`, `color-gradient`/`color-patterns`, `visual-effects`,
    `shape-geometry`, `text-bullets`, `ink-drawing-helpers`, `snap-guides`, etc.
    Hoist into `pptx-viewer-shared` (`render/…`); one copy per binding. Touches
-   React + Vue imports too — do as its own focused change (see candidates above).
+   React + Vue imports too; do as its own focused change (see candidates above).
 3. **Cosmetic pixel depth.** Control styling uses the shared Tailwind tokens but
    is not pixel-identical to every React control (spacing, icons, split-button
    affordances, dropdown chrome). A per-tab visual-diff pass would close it.
 4. **Eyedropper fallback (minor).** Angular uses the native `EyeDropper` API only;
    React adds a best-effort rasterize-and-sample fallback for Firefox/Safari
-   (itself a stub). Low value — port if exact parity is wanted.
+   (itself a stub). Low value; port if exact parity is wanted.
 
 > Parity-neutral (NOT Angular-specific, so out of scope here): the `&amp;` HTML
-> entity renders un-decoded in list text in **React, Vue, and Angular alike** — a
+> entity renders un-decoded in list text in **React, Vue, and Angular alike** - a
 > core/converter double-encoding fix that affects all three equally.

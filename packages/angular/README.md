@@ -3,7 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/pptx-angular-viewer.svg)](https://www.npmjs.com/package/pptx-angular-viewer)
 [![license](https://img.shields.io/npm/l/pptx-angular-viewer.svg)](https://github.com/ChristopherVR/pptx-viewer/blob/main/LICENSE)
 
-Render Microsoft PowerPoint (`.pptx`) presentations directly in an Angular app —
+Render Microsoft PowerPoint (`.pptx`) presentations directly in an Angular app:
 no server, no conversion step, no PowerPoint install. Drop in a `<pptx-viewer>`
 component, hand it the file bytes, and it parses and displays the slides as
 scalable HTML/CSS with slide navigation and zoom.
@@ -11,25 +11,27 @@ scalable HTML/CSS with slide navigation and zoom.
 ![PowerPoint editor UI rendered in the browser](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/editor.png)
 
 > The screenshot shows the full-featured **React** editor. This Angular package
-> is at a **read-only viewer** milestone today — see [Limitations](#limitations).
+> is at a **read-only viewer** milestone today; see [Limitations](#limitations).
 
 Parsing is powered by the framework-agnostic `pptx-viewer-core` engine
 (OpenXML → a structured slide model); this package is the Angular rendering
 layer on top of it.
 
-<samp>**[▶️ Live demo](https://christophervr.github.io/pptx-viewer/demo-angular/)** · **[📦 npm](https://www.npmjs.com/package/pptx-angular-viewer)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/)**</samp>
+<samp>**[▶️ Try the live demo](https://christophervr.github.io/pptx-viewer/demo-angular/)** · **[📦 npm](https://www.npmjs.com/package/pptx-angular-viewer)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/)**</samp>
+
+> **[▶️ Try the live demo](https://christophervr.github.io/pptx-viewer/demo-angular/)**: open a `.pptx` and render it in your browser, no install required.
 
 ## Features
 
-- **Standalone component** — `<pptx-viewer>`, no NgModule required.
-- **Signals-based & zoneless-friendly** — `OnPush` everywhere, built on the
+- **Standalone component**: `<pptx-viewer>`, no NgModule required.
+- **Signals-based & zoneless-friendly**: `OnPush` everywhere, built on the
   Angular signals API.
-- **CSS rendering** — slides are real DOM (scaled HTML/SVG), so text stays sharp
+- **CSS rendering**: slides are real DOM (scaled HTML/SVG), so text stays sharp
   at any zoom and is selectable/accessible.
-- **Slide navigation** — thumbnail rail, prev/next, slide counter.
-- **Zoom** — in/out/reset.
-- **Themeable** — semantic color tokens via CSS custom properties.
-- **Loads from anywhere** — `ArrayBuffer` / `Uint8Array` from a file input,
+- **Slide navigation**: thumbnail rail, prev/next, slide counter.
+- **Zoom**: in/out/reset.
+- **Themeable**: semantic color tokens via CSS custom properties.
+- **Loads from anywhere**: `ArrayBuffer` / `Uint8Array` from a file input,
   `fetch`, drag-and-drop, etc.
 
 ## Installation
@@ -127,10 +129,10 @@ async save() {
 | Input           | Type                                | Default | Description                                                 |
 | --------------- | ----------------------------------- | ------- | ----------------------------------------------------------- |
 | `content`       | `Uint8Array \| ArrayBuffer \| null` | `null`  | The `.pptx` bytes to render.                                |
-| `theme`         | `ViewerTheme`                       | —       | Color/radius overrides applied as CSS custom properties.    |
+| `theme`         | `ViewerTheme`                       | n/a     | Color/radius overrides applied as CSS custom properties.    |
 | `class`         | `string`                            | `''`    | Class applied to the root element.                          |
 | `canEdit`       | `boolean`                           | `false` | Reserved for the editor (not yet implemented).              |
-| `collaboration` | `CollaborationConfig`               | —       | Reserved for real-time collaboration (not yet implemented). |
+| `collaboration` | `CollaborationConfig`               | n/a     | Reserved for real-time collaboration (not yet implemented). |
 
 ### Outputs
 
@@ -154,7 +156,7 @@ async save() {
 
 ## Limitations
 
-This package is at a **read-only viewer** milestone — it renders the structural
+This package is at a **read-only viewer** milestone: it renders the structural
 content of a slide, but rich visual effects and editing are not yet wired up.
 
 - **Rendered:** text (rich runs), shapes (solid fill, stroke, basic preset

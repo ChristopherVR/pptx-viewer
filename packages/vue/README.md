@@ -3,7 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/pptx-vue-viewer.svg)](https://www.npmjs.com/package/pptx-vue-viewer)
 [![license](https://img.shields.io/npm/l/pptx-vue-viewer.svg)](https://github.com/ChristopherVR/pptx-viewer/blob/main/LICENSE)
 
-Render Microsoft PowerPoint (`.pptx`) presentations directly in a Vue 3 app —
+Render Microsoft PowerPoint (`.pptx`) presentations directly in a Vue 3 app:
 no server, no conversion step, no PowerPoint install. Drop in a
 `<PowerPointViewer>` component, hand it the file bytes, and it parses and
 displays the slides as scalable HTML/CSS with slide navigation and zoom.
@@ -11,23 +11,25 @@ displays the slides as scalable HTML/CSS with slide navigation and zoom.
 ![PowerPoint editor UI rendered in the browser](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/editor.png)
 
 > The screenshot shows the full-featured **React** editor. This Vue package is at
-> a **read-only viewer** milestone today — see [Limitations](#limitations).
+> a **read-only viewer** milestone today; see [Limitations](#limitations).
 
 Parsing is powered by the framework-agnostic `pptx-viewer-core` engine
 (OpenXML → a structured slide model); this package is the Vue rendering layer on
 top of it, with the engine **bundled in**.
 
-<samp>**[▶️ Live demo](https://christophervr.github.io/pptx-viewer/demo-vue/)** · **[📦 npm](https://www.npmjs.com/package/pptx-vue-viewer)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/)**</samp>
+<samp>**[▶️ Try the live demo](https://christophervr.github.io/pptx-viewer/demo-vue/)** · **[📦 npm](https://www.npmjs.com/package/pptx-vue-viewer)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/)**</samp>
+
+> **[▶️ Try the live demo](https://christophervr.github.io/pptx-viewer/demo-vue/)**: open a `.pptx` and render it in your browser, no install required.
 
 ## Features
 
-- **Composition API component** — `<PowerPointViewer>`, `<script setup>` style.
-- **CSS rendering** — slides are real DOM (scaled HTML/SVG), so text stays sharp
+- **Composition API component**: `<PowerPointViewer>`, `<script setup>` style.
+- **CSS rendering**: slides are real DOM (scaled HTML/SVG), so text stays sharp
   at any zoom and is selectable/accessible.
-- **Slide navigation** — live thumbnail previews, prev/next, slide counter.
-- **Zoom** — in/out/reset.
-- **Themeable** — semantic color tokens via CSS custom properties.
-- **Loads from anywhere** — `ArrayBuffer` / `Uint8Array` from a file input,
+- **Slide navigation**: live thumbnail previews, prev/next, slide counter.
+- **Zoom**: in/out/reset.
+- **Themeable**: semantic color tokens via CSS custom properties.
+- **Loads from anywhere**: `ArrayBuffer` / `Uint8Array` from a file input,
   `fetch`, drag-and-drop, etc.
 
 ## Installation
@@ -43,7 +45,7 @@ peers:
 npm install vue jszip fast-xml-parser
 ```
 
-The `pptx-viewer-core` engine is **bundled in** — you don't install it
+The `pptx-viewer-core` engine is **bundled in**, so you don't install it
 separately unless you want to call the SDK directly.
 
 ## Usage
@@ -142,13 +144,13 @@ async function save() {
 
 | Prop            | Type                        | Default | Description                                                 |
 | --------------- | --------------------------- | ------- | ----------------------------------------------------------- |
-| `content`       | `Uint8Array \| ArrayBuffer` | —       | The `.pptx` bytes to render. **Required.**                  |
-| `theme`         | `ViewerTheme`               | —       | Color/radius overrides applied as CSS custom properties.    |
-| `class`         | `string`                    | —       | Class applied to the root element.                          |
+| `content`       | `Uint8Array \| ArrayBuffer` | n/a     | The `.pptx` bytes to render. **Required.**                  |
+| `theme`         | `ViewerTheme`               | n/a     | Color/radius overrides applied as CSS custom properties.    |
+| `class`         | `string`                    | n/a     | Class applied to the root element.                          |
 | `canEdit`       | `boolean`                   | `false` | Reserved for the editor (not yet implemented).              |
-| `filePath`      | `string`                    | —       | Reserved for autosave recovery.                             |
-| `authorName`    | `string`                    | —       | Reserved for comments/annotations.                          |
-| `collaboration` | `CollaborationConfig`       | —       | Reserved for real-time collaboration (not yet implemented). |
+| `filePath`      | `string`                    | n/a     | Reserved for autosave recovery.                             |
+| `authorName`    | `string`                    | n/a     | Reserved for comments/annotations.                          |
+| `collaboration` | `CollaborationConfig`       | n/a     | Reserved for real-time collaboration (not yet implemented). |
 
 ### Events
 
@@ -172,7 +174,7 @@ async function save() {
 
 ## Limitations
 
-This package is at a **read-only viewer** milestone — it renders the structural
+This package is at a **read-only viewer** milestone: it renders the structural
 content of a slide, but some visual effects and all editing are not yet wired
 up.
 

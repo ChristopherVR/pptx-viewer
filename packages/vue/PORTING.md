@@ -1,6 +1,6 @@
 # Porting `pptx-viewer` (React) → `pptx-vue-viewer` (Vue 3)
 
-> **Living document & hand-off contract.** Keep it accurate — future sessions
+> **Living document & hand-off contract.** Keep it accurate; future sessions
 > trust it instead of re-scanning the ~100k-line React package. Per-batch detail
 > lives in git history; this file tracks **what's done vs. what's left for parity**.
 
@@ -16,7 +16,7 @@ Ship a Vue 3 package, **`pptx-vue-viewer`** (npm), feature-equivalent to the Rea
 The Vue port covers essentially the full React surface (**1302 vue + 310 shared
 unit tests green**, e2e green on react/vue/angular). Done and verified live:
 
-- **Rendering** — every element type: text (rich runs), shapes (preset clip-path
+- **Rendering**: every element type: text (rich runs), shapes (preset clip-path
   cascade, fill/stroke), images, tables (merges, banding, `tableStyleMap` GUIDs,
   pattern fills, rich cell text), charts (bar/line/area/pie + radar/scatter/bubble/
   waterfall/funnel/sunburst/treemap/combo/stock/histogram/boxWhisker **+ surface +
@@ -24,16 +24,16 @@ unit tests green**, e2e green on react/vue/angular). Done and verified live:
   fallback), connectors (straight/bent/curved/compound + text overlay), ink, OLE,
   equations (OMML→MathML), WordArt/text-warp, structured fills, shape effects
   (shadow/glow/soft-edge/reflection), shape 3D (approximate), image effects.
-- **Editing** — select/drag/resize/rotate, align/distribute/group/flip/z-order,
+- **Editing**: select/drag/resize/rotate, align/distribute/group/flip/z-order,
   undo-redo, snap-to-grid, **snap-to-shape**, **H/V guides**, **rulers**, grid,
   **drawing/ink tools**, inline text editing, format painter, shape-adjustment handles.
-- **Chrome** — full Office-style **ribbon** (all tabs, all actions wired), **status
+- **Chrome**: full Office-style **ribbon** (all tabs, all actions wired), **status
   bar**, **slides rail** (React-parity), **inspector** (element + slide properties),
   context menu, dialogs. Tailwind 4 pipeline adopted for visual parity.
-- **Modes & I/O** — presentation mode (animation playback, presenter view, ink,
+- **Modes & I/O**: presentation mode (animation playback, presenter view, ink,
   rehearse timings, subtitles, slide transitions), export (PNG/PDF/GIF/WebM),
   print, **Save As** (pptx/ppsx/pptm), copy-slide-as-image.
-- **Collab & docs** — Yjs collaboration (whole-doc + cursors + selection presence
+- **Collab & docs**: Yjs collaboration (whole-doc + cursors + selection presence
   - follow-mode), comments, find/replace, autosave, version history/compare,
     accessibility panel, document properties (full round-trip), hyperlink/settings/
     insert-SmartArt/equation-editor dialogs, master views, header/footer, sections,
@@ -47,36 +47,36 @@ user-visible impact.
 
 ### Rendering fidelity
 
-| Gap                                                 | Where                                                                     | Notes                                                                                                                                                                                                                                                 |
-| --------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Chart secondary / log / display-unit value axes** | `ChartRenderer.vue` + shared `chart-helpers.ts` + `chart/ChartChrome.vue` | Value axis is always a single linear primary axis. Needs right-hand 2nd-`axisId` series, log scale, display units, data tables, axis overlays. (Rethreads value→Y through every chart sub-component — see `// TODO(vue)`.) **Scheduled cloud agent.** |
-| **Real CSS-3D extruded faces**                      | shared `visual-3d.ts` + `ElementRenderer.vue`                             | Extrusion is approximated with layered box-shadows; React's `Extrusion3DOverlay` (true extruded faces) is deferred. **Scheduled cloud agent.**                                                                                                        |
-| **Image `clrChange` chroma-key**                    | `composables/image-effects.ts`                                            | Destructive colour-change / canvas re-encode deferred (recolour/duotone/artistic done).                                                                                                                                                               |
-| **Model3D real 3D / Zoom navigation**               | `Model3DRenderer`, `ZoomRenderer`                                         | three.js poster only; zoom element is a static link tile.                                                                                                                                                                                             |
+| Gap                                                 | Where                                                                     | Notes                                                                                                                                                                                                                                                |
+| --------------------------------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Chart secondary / log / display-unit value axes** | `ChartRenderer.vue` + shared `chart-helpers.ts` + `chart/ChartChrome.vue` | Value axis is always a single linear primary axis. Needs right-hand 2nd-`axisId` series, log scale, display units, data tables, axis overlays. (Rethreads value→Y through every chart sub-component, see `// TODO(vue)`.) **Scheduled cloud agent.** |
+| **Real CSS-3D extruded faces**                      | shared `visual-3d.ts` + `ElementRenderer.vue`                             | Extrusion is approximated with layered box-shadows; React's `Extrusion3DOverlay` (true extruded faces) is deferred. **Scheduled cloud agent.**                                                                                                       |
+| **Image `clrChange` chroma-key**                    | `composables/image-effects.ts`                                            | Destructive colour-change / canvas re-encode deferred (recolour/duotone/artistic done).                                                                                                                                                              |
+| **Model3D real 3D / Zoom navigation**               | `Model3DRenderer`, `ZoomRenderer`                                         | three.js poster only; zoom element is a static link tile.                                                                                                                                                                                            |
 
 > **Recently closed** (2026-06-18): **bulleted lists** (`composables/bullet-list.ts`
 >
-> - `ElementRenderer.vue` — glyphs/auto-numbers/indents, parity-verified live),
+> - `ElementRenderer.vue`: glyphs/auto-numbers/indents, parity-verified live),
 >   **gradient tile-flip** (shared `fill-style.ts`), **text-warp envelope/simple
 >   CSS-transform presets** (shared `text-warp.ts` + `WordArtText.vue`).
 >
-> **Not a gap — at parity:** "exotic equations" (`m:phant`/scaling) are deferred in
+> **Not a gap, at parity:** "exotic equations" (`m:phant`/scaling) are deferred in
 > **React too** (`omml-to-mathml.ts` has the identical case list), so this was never
 > a Vue-vs-React gap.
 
 ### Editing / chrome depth
 
-| Gap                            | Where                           | Notes                                                                                                                                                                                                         |
-| ------------------------------ | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Master/template editing**    | `onSetEditTemplateMode` (no-op) | Needs the edit-routing pipeline that sends edits to template/master elements (React gates pointer handlers on `editTemplateMode`). The flag stays a no-op until this lands — toggling it alone would mislead. |
-| **Slide-properties inspector** | `inspector/SlideInspector.vue`  | Transition type/duration/advance done. Deferred: background, slide size, theme override; transition direction/orientation/spokes/preview (core direction-constant tables aren't exported).                    |
-| **`onToggleCompactToolbar`**   | ribbon                          | Trivial — currently has **no ribbon consumer**; wire a consumer or drop the prop. Not a real gap.                                                                                                             |
+| Gap                            | Where                           | Notes                                                                                                                                                                                                        |
+| ------------------------------ | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Master/template editing**    | `onSetEditTemplateMode` (no-op) | Needs the edit-routing pipeline that sends edits to template/master elements (React gates pointer handlers on `editTemplateMode`). The flag stays a no-op until this lands; toggling it alone would mislead. |
+| **Slide-properties inspector** | `inspector/SlideInspector.vue`  | Transition type/duration/advance done. Deferred: background, slide size, theme override; transition direction/orientation/spokes/preview (core direction-constant tables aren't exported).                   |
+| **`onToggleCompactToolbar`**   | ribbon                          | Trivial: currently has **no ribbon consumer**; wire a consumer or drop the prop. Not a real gap.                                                                                                             |
 
 ### Infrastructure (not user-facing parity)
 
-- **Fine-grained CRDT collaboration** — current model is whole-doc last-write-wins
+- **Fine-grained CRDT collaboration**: current model is whole-doc last-write-wins
   with presence/follow on top; conflict-resolving merge is the depth item.
-- **Shared-code extraction** — pure framework-agnostic helpers should keep moving
+- **Shared-code extraction**: pure framework-agnostic helpers should keep moving
   from `packages/vue/.../composables` into `pptx-viewer-shared/render` so React/
   Angular reuse them. Outstanding candidates: the vendored **GIF encoder** (each
   binding carries a copy), plus color/connector-router/animation-engine utils not
@@ -85,7 +85,7 @@ user-visible impact.
 ### Known cross-framework bug (not Vue-specific)
 
 - **`&` renders as `&amp;`** in slide text (double-encoding) on **both** React and
-  Vue — a `pptx-viewer-core` text-decoding issue. Fix belongs in core.
+  Vue: a `pptx-viewer-core` text-decoding issue. Fix belongs in core.
 
 ## Conventions (React → Vue 3)
 
@@ -130,7 +130,7 @@ Legend: ✅ done · ◑ partial/ongoing · ☐ not started
 ## Shared-code model
 
 `packages/shared` (`pptx-viewer-shared`) holds framework-agnostic logic. It is
-**bundled, not published** — each binding lists it as a devDependency and inlines
+**bundled, not published**: each binding lists it as a devDependency and inlines
 it into its own `dist` (JS + `.d.ts`); npm never sees it. `pptx-viewer-core` is
 inlined the same way for React/Vue (Angular keeps core a peerDependency and
 vendors shared source at build time via `scripts/inline-shared.mjs`).
@@ -145,9 +145,9 @@ Vue inlining: Vite omits internal packages from `rollupOptions.external` (JS) an
   (+ trendlines), animation-css, element-align, element-interaction, visual-3d,
   table-style, latex-to-omml. When porting/adding a pure helper, **put it in shared
   first**, then import from there in both bindings. Coordinate moves out of
-  `packages/react` with the other sessions — do it as its own focused change.
+  `packages/react` with the other sessions; do it as its own focused change.
 
-> **Geometry already lives in core — don't re-extract it.** The ECMA-376 preset
+> **Geometry already lives in core, don't re-extract it.** The ECMA-376 preset
 > evaluator, adjustment-aware table, cloud paths, and static preset table are
 > exported from `pptx-viewer-core` (`getShapeClipPathFromPreset`,
 > `getAdjustmentAwareShapeClipPath`, `getCloudPathForRendering`, `getShapeClipPath`,
@@ -158,25 +158,25 @@ Vue inlining: Vite omits internal packages from `rollupOptions.external` (JS) an
 Built incrementally **2026-06-14 → 06-18** in ~25 batches (full per-batch detail in
 git log / `git show`):
 
-1. **Foundation** — package scaffold, theme provide/inject, `useLoadContent`, base
+1. **Foundation**: package scaffold, theme provide/inject, `useLoadContent`, base
    renderer; `pptx-viewer-shared` introduced; demo-vue (port 4175).
-2. **Rendering** — every element type + effects/3D/equations/warp/fills; charts
+2. **Rendering**: every element type + effects/3D/equations/warp/fills; charts
    (incl. surface/regionMap/trendlines); connectors (all variants + labels); tables
    (GUIDs, patterns, rich text); SmartArt (10-family fallback).
-3. **Editing core** — selection/drag/resize/rotate, history, operations, align/
+3. **Editing core**: selection/drag/resize/rotate, history, operations, align/
    group/flip/z-order, snap-to-grid/shape, guides, rulers, grid, drawing tools.
-4. **Inspector + dialogs** — 9 element panels + slide panel, context menu,
+4. **Inspector + dialogs**: 9 element panels + slide panel, context menu,
    hyperlink/properties/share/settings/insert dialogs.
-5. **Presentation/print/export** — present mode + animation playback, presenter
+5. **Presentation/print/export**: present mode + animation playback, presenter
    view/ink/rehearse/subtitles/transitions, PNG/PDF/GIF/WebM, print, Save As.
-6. **Collab & docs** — Yjs (cursors/presence/follow), comments, find/replace,
+6. **Collab & docs**: Yjs (cursors/presence/follow), comments, find/replace,
    autosave, version history/compare, accessibility, signatures, embedded fonts,
    master views, sections, custom shows, mobile chrome, keyboard shortcuts.
-7. **Chrome parity** — Office-style ribbon + status bar + slides rail (Tailwind 4),
+7. **Chrome parity**: Office-style ribbon + status bar + slides rail (Tailwind 4),
    all ribbon actions wired (Insert/View/Design/Draw/File/Slide-Show/Animations),
    spell-check; fidelity fixes (px font sizing, table text colour).
-8. **Shared extraction waves** — render helpers + 3D + table-style + latex-to-omml
+8. **Shared extraction waves**: render helpers + 3D + table-style + latex-to-omml
    hoisted to `pptx-viewer-shared`.
 
 A scheduled cloud agent (2026-06-19) targets the remaining chart secondary/log axes
-and CSS-3D extruded faces (surface/regionMap are already done — see _Remaining_).
+and CSS-3D extruded faces (surface/regionMap are already done; see _Remaining_).
