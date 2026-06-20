@@ -106,6 +106,36 @@ const LEGEND_ITEM_WIDTH = 80;
 				</text>
 			}
 
+			<!-- Secondary value-axis gridlines -->
+			@for (gl of vm().secondaryGridlines ?? []; track $index) {
+				<line
+					[attr.x1]="gl.x1"
+					[attr.y1]="gl.y1"
+					[attr.x2]="gl.x2"
+					[attr.y2]="gl.y2"
+					[attr.stroke]="gl.stroke"
+					[attr.stroke-width]="gl.strokeWidth"
+					[attr.stroke-dasharray]="gl.dashArray"
+					[attr.opacity]="gl.opacity ?? 1"
+				/>
+			}
+
+			<!-- Secondary value-axis labels -->
+			@for (lbl of vm().secondaryAxisLabels ?? []; track $index) {
+				<text
+					[attr.x]="lbl.x"
+					[attr.y]="lbl.y"
+					[attr.text-anchor]="lbl.textAnchor"
+					[attr.font-size]="lbl.fontSize"
+					[attr.fill]="lbl.fill"
+					[attr.dominant-baseline]="lbl.dominantBaseline ?? 'auto'"
+					[attr.opacity]="lbl.opacity ?? 1"
+					[attr.transform]="lbl.transform"
+				>
+					{{ lbl.text }}
+				</text>
+			}
+
 			<!-- Zero line -->
 			@if (vm().zeroLine) {
 				<line
