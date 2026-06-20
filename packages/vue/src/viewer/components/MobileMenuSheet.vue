@@ -1,0 +1,294 @@
+<script setup lang="ts">
+/**
+ * MobileMenuSheet - Vue port of React's
+ * `components/mobile/MobileMenuSheet.tsx`.
+ *
+ * Drawer-style sheet that exposes every ribbon section (File / Home / Insert /
+ * Text / Draw / Arrange / Design / Transitions / Animations / Slide Show /
+ * Review / View) in a single mobile-friendly scroll. Tapping a section chip
+ * selects it; the matching desktop ribbon section component is then rendered
+ * below in a wrapping, larger-touch-target layout. The section SFCs are reused
+ * verbatim (same prop contract as `RibbonToolbar.vue`), so behaviour matches
+ * the desktop ribbon.
+ *
+ * The host (`PowerPointViewer.vue`) passes the same aggregate `RibbonProps`
+ * bundle it already assembles for the desktop ribbon, plus `open` + a `close`
+ * emit, exactly like React threads `ToolbarProps` through.
+ */
+import {
+	ClipboardList,
+	File as FileIcon,
+	LayoutGrid,
+	Paintbrush,
+	Plus,
+	Presentation,
+	Settings,
+	Shapes,
+	Sparkles,
+	TextCursorInput,
+	Type,
+	Wand,
+} from 'lucide-vue-next';
+import type { Component } from 'vue';
+import { ref } from 'vue';
+
+import { cn } from '../../utils';
+import MobileSheet from './MobileSheet.vue';
+import AnimationsSection from './ribbon/AnimationsSection.vue';
+import ArrangeSection from './ribbon/ArrangeSection.vue';
+import DesignSection from './ribbon/DesignSection.vue';
+import DrawSection from './ribbon/DrawSection.vue';
+import FileSection from './ribbon/FileSection.vue';
+import HomeSection from './ribbon/HomeSection.vue';
+import InsertSection from './ribbon/InsertSection.vue';
+import ReviewSection from './ribbon/ReviewSection.vue';
+import type { RibbonProps, ToolbarSection } from './ribbon/ribbon-types';
+import SlideShowSection from './ribbon/SlideShowSection.vue';
+import TextSection from './ribbon/TextSection.vue';
+import TransitionsSection from './ribbon/TransitionsSection.vue';
+import ViewSection from './ribbon/ViewSection.vue';
+
+/** Sections surfaced as chips, in the same order as React's MENU_ITEMS. */
+type MenuKey = Exclude<ToolbarSection, 'help'>;
+
+interface Props extends RibbonProps {
+	open: boolean;
+}
+
+const props = defineProps<Props>();
+const emit = defineEmits<{ close: [] }>();
+
+const MENU_ITEMS: Array<{ key: MenuKey; label: string; icon: Component }> = [
+	{ key: 'home', label: 'Home', icon: ClipboardList },
+	{ key: 'insert', label: 'Insert', icon: Plus },
+	{ key: 'text', label: 'Text', icon: Type },
+	{ key: 'draw', label: 'Draw', icon: Paintbrush },
+	{ key: 'arrange', label: 'Arrange', icon: Shapes },
+	{ key: 'design', label: 'Design', icon: LayoutGrid },
+	{ key: 'transitions', label: 'Transitions', icon: Sparkles },
+	{ key: 'animations', label: 'Animations', icon: Wand },
+	{ key: 'slideShow', label: 'Slide Show', icon: Presentation },
+	{ key: 'review', label: 'Review', icon: TextCursorInput },
+	{ key: 'view', label: 'View', icon: Settings },
+	{ key: 'file', label: 'File', icon: FileIcon },
+];
+
+const active = ref<MenuKey | null>('home');
+function toggle(key: MenuKey): void {
+	active.value = active.value === key ? null : key;
+}
+
+/** Wrapping, larger-touch-target body layout (React's `wrap`). */
+const WRAP = 'flex flex-wrap items-center gap-2';
+</script>
+
+<template>
+	<MobileSheet :open="props.open" title="Menu" @close="emit('close')">
+		<div class="flex flex-col">
+			<!-- Section chips: wrap so every section stays reachable without
+			     horizontal scrolling (mirrors React's wrapping chip row). -->
+			<div class="sticky top-0 z-10 border-b border-border bg-background">
+				<div class="flex flex-wrap gap-1.5 px-3 py-2">
+					<button
+						v-for="item in MENU_ITEMS"
+						:key="item.key"
+						type="button"
+						:class="
+							cn(
+								'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-[12px] font-medium transition-colors min-h-[36px]',
+								active === item.key
+									? 'border-primary bg-primary text-white'
+									: 'border-border text-muted-foreground hover:bg-accent/40 hover:text-foreground',
+							)
+						"
+						@click="toggle(item.key)"
+					>
+						<component :is="item.icon" class="h-4 w-4" />
+						{{ item.label }}
+					</button>
+				</div>
+			</div>
+
+			<!-- Active section body: reuses the desktop ribbon section SFCs. -->
+			<div class="p-3">
+				<div v-if="active === 'home'" :class="WRAP">
+					<HomeSection
+						:can-edit="props.canEdit"
+						:clipboard-payload="props.clipboardPayload"
+						:format-painter-active="props.formatPainterActive"
+						:can-activate-format-painter="props.canActivateFormatPainter"
+						:on-copy="props.onCopy"
+						:on-cut="props.onCut"
+						:on-paste="props.onPaste"
+						:on-toggle-format-painter="props.onToggleFormatPainter"
+						:layout-options="props.layoutOptions"
+						:on-insert-slide-from-layout="props.onInsertSlideFromLayout"
+						:selected-element="props.selectedElement"
+						:on-update-text-style="props.onUpdateTextStyle"
+					/>
+				</div>
+
+				<div v-else-if="active === 'insert'" :class="WRAP">
+					<InsertSection
+						:can-edit="props.canEdit"
+						:new-shape-type="props.newShapeType"
+						:on-set-new-shape-type="props.onSetNewShapeType"
+						:on-add-text-box="props.onAddTextBox"
+						:on-add-shape="props.onAddShape"
+						:on-add-table="props.onAddTable"
+						:on-add-smart-art="props.onAddSmartArt"
+						:on-add-equation="props.onAddEquation"
+						:on-add-action-button="props.onAddActionButton"
+						:on-insert-field="props.onInsertField"
+						:on-open-image-picker="props.onOpenImagePicker"
+						:on-open-media-picker="props.onOpenMediaPicker"
+					/>
+				</div>
+
+				<div v-else-if="active === 'text'" :class="WRAP">
+					<TextSection
+						:can-edit="props.canEdit"
+						:selected-element="props.selectedElement"
+						:table-editor-state="props.tableEditorState"
+						:on-update-text-style="props.onUpdateTextStyle"
+					/>
+				</div>
+
+				<div v-else-if="active === 'draw'" :class="WRAP">
+					<DrawSection
+						:active-tool="props.activeTool"
+						:drawing-color="props.drawingColor"
+						:drawing-width="props.drawingWidth"
+						:on-set-active-tool="props.onSetActiveTool"
+						:on-set-drawing-color="props.onSetDrawingColor"
+						:on-set-drawing-width="props.onSetDrawingWidth"
+					/>
+				</div>
+
+				<div v-else-if="active === 'arrange'" :class="WRAP">
+					<ArrangeSection
+						:can-edit="props.canEdit"
+						:selected-element="props.selectedElement"
+						:clipboard-payload="props.clipboardPayload"
+						:on-align-elements="props.onAlignElements"
+						:on-copy="props.onCopy"
+						:on-cut="props.onCut"
+						:on-paste="props.onPaste"
+						:on-flip="props.onFlip"
+						:on-move-layer="props.onMoveLayer"
+						:on-move-layer-to-edge="props.onMoveLayerToEdge"
+						:on-duplicate="props.onDuplicate"
+						:on-delete="props.onDelete"
+						:format-painter-active="props.formatPainterActive"
+						:on-toggle-format-painter="props.onToggleFormatPainter"
+						:can-activate-format-painter="props.canActivateFormatPainter"
+					/>
+				</div>
+
+				<div v-else-if="active === 'design'" :class="WRAP">
+					<DesignSection
+						:can-edit="props.canEdit"
+						:on-toggle-theme-gallery="props.onToggleThemeGallery"
+						:is-theme-gallery-open="props.isThemeGalleryOpen"
+						:on-toggle-theme-editor="props.onToggleThemeEditor"
+						:is-theme-editor-open="props.isThemeEditorOpen"
+						:on-open-document-properties="props.onOpenDocumentProperties"
+						:on-toggle-inspector="props.onToggleInspector"
+						:is-inspector-pane-open="props.isInspectorPaneOpen"
+					/>
+				</div>
+
+				<div v-else-if="active === 'transitions'" :class="WRAP">
+					<TransitionsSection
+						:is-inspector-pane-open="props.isInspectorPaneOpen"
+						:on-toggle-inspector="props.onToggleInspector"
+					/>
+				</div>
+
+				<div v-else-if="active === 'animations'" :class="WRAP">
+					<AnimationsSection
+						:can-edit="props.canEdit"
+						:selected-element="props.selectedElement"
+						:is-inspector-pane-open="props.isInspectorPaneOpen"
+						:on-toggle-inspector="props.onToggleInspector"
+						:on-open-animation-panel="props.onOpenAnimationPanel"
+						:on-add-animation="props.onAddAnimation"
+						:on-remove-animation="props.onRemoveAnimation"
+					/>
+				</div>
+
+				<div v-else-if="active === 'slideShow'" :class="WRAP">
+					<SlideShowSection
+						:on-present="() => props.onSetMode('present')"
+						:on-enter-presenter-view="props.onEnterPresenterView ?? (() => {})"
+						:on-enter-rehearsal-mode="props.onEnterRehearsalMode ?? (() => {})"
+						:on-open-set-up-slide-show="props.onOpenSetUpSlideShow ?? (() => {})"
+						:on-open-broadcast-dialog="props.onOpenBroadcastDialog ?? (() => {})"
+						:on-toggle-subtitles="props.onToggleSubtitles ?? (() => {})"
+						:show-subtitles="props.showSubtitles ?? false"
+						:on-set-mode="props.onSetMode"
+					/>
+				</div>
+
+				<div v-else-if="active === 'review'" :class="WRAP">
+					<ReviewSection
+						:can-edit="props.canEdit"
+						:spell-check-enabled="props.spellCheckEnabled"
+						:on-set-spell-check-enabled="props.onSetSpellCheckEnabled"
+						:on-toggle-comments="props.onToggleComments"
+						:is-comments-panel-open="props.isCommentsPanelOpen"
+						:slide-comment-count="props.slideCommentCount"
+						:on-compare="props.onCompare"
+					/>
+				</div>
+
+				<div v-else-if="active === 'view'" :class="WRAP">
+					<ViewSection
+						:can-edit="props.canEdit"
+						:edit-template-mode="props.editTemplateMode"
+						:on-set-edit-template-mode="props.onSetEditTemplateMode"
+						:spell-check-enabled="props.spellCheckEnabled"
+						:on-set-spell-check-enabled="props.onSetSpellCheckEnabled"
+						:show-grid="props.showGrid"
+						:show-rulers="props.showRulers"
+						:snap-to-grid="props.snapToGrid"
+						:snap-to-shape="props.snapToShape"
+						:on-set-show-grid="props.onSetShowGrid"
+						:on-set-show-rulers="props.onSetShowRulers"
+						:on-set-snap-to-grid="props.onSetSnapToGrid"
+						:on-set-snap-to-shape="props.onSetSnapToShape"
+						:on-add-guide="props.onAddGuide"
+						:on-enter-master-view="props.onEnterMasterView"
+						:is-selection-pane-open="props.isSelectionPaneOpen"
+						:on-toggle-selection-pane="props.onToggleSelectionPane"
+						:eyedropper-active="props.eyedropperActive"
+						:on-toggle-eyedropper="props.onToggleEyedropper"
+					/>
+				</div>
+
+				<div v-else-if="active === 'file'" :class="WRAP">
+					<FileSection
+						:on-open-file="props.onOpenFile"
+						:on-export-png="props.onExportPng"
+						:on-export-pdf="props.onExportPdf"
+						:on-export-video="props.onExportVideo"
+						:on-export-gif="props.onExportGif"
+						:on-package-for-sharing="props.onPackageForSharing"
+						:on-save-as-pptx="props.onSaveAsPptx"
+						:on-save-as-ppsx="props.onSaveAsPpsx"
+						:on-save-as-pptm="props.onSaveAsPptm"
+						:has-macros="props.hasMacros"
+						:on-copy-slide-as-image="props.onCopySlideAsImage"
+						:on-print="props.onPrint"
+						:on-open-document-properties="props.onOpenDocumentProperties"
+						:on-open-password-protection="props.onOpenPasswordProtection"
+						:on-open-font-embedding="props.onOpenFontEmbedding"
+						:on-open-digital-signatures="props.onOpenDigitalSignatures"
+					/>
+				</div>
+
+				<p v-else class="py-8 text-center text-sm text-muted-foreground">Select a section above</p>
+			</div>
+		</div>
+	</MobileSheet>
+</template>

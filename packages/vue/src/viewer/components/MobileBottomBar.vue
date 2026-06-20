@@ -5,10 +5,13 @@
  *
  * Mirrors the control set of the React mobile chrome
  * (`packages/react/src/viewer/components/mobile/`): slide navigation, a slide
- * counter, zoom in/out, a present action, and an overflow ("⋯") button that
- * surfaces everything that does not fit on a phone. All glyphs reuse the
- * Unicode characters from the desktop `PowerPointViewer.vue` header (‹ › − +)
- * so the two chromes read as one design language.
+ * counter, zoom in/out, a present action, the React bottom-bar edit targets
+ * (Slides / Insert / Format / Comments / Notes, gated on `canEdit`), Save, and
+ * an overflow ("⋯") button that surfaces everything that does not fit on a
+ * phone. The companion MobileToolbar carries the menu / undo / redo / share
+ * controls. Glyphs reuse the Unicode characters from the desktop
+ * `PowerPointViewer.vue` header (‹ › − +) so the two chromes read as one design
+ * language.
  *
  * Conventions vs. React:
  *  - function-prop callbacks → emits.
@@ -37,6 +40,8 @@ const emit = defineEmits<{
 	'zoom-in': [];
 	'zoom-out': [];
 	present: [];
+	slides: [];
+	insert: [];
 	format: [];
 	comments: [];
 	save: [];
@@ -134,6 +139,29 @@ const MOBILE_LABEL =
 			@click="emit('present')"
 		>
 			<span aria-hidden="true">▶</span>
+		</button>
+
+		<button
+			type="button"
+			class="pptx-vue-mobile-btn"
+			:class="MOBILE_BTN"
+			aria-label="Slides"
+			title="Slides panel"
+			@click="emit('slides')"
+		>
+			<span aria-hidden="true">▦</span>
+		</button>
+
+		<button
+			v-if="props.canEdit"
+			type="button"
+			class="pptx-vue-mobile-btn"
+			:class="MOBILE_BTN"
+			aria-label="Insert"
+			title="Insert"
+			@click="emit('insert')"
+		>
+			<span aria-hidden="true">＋</span>
 		</button>
 
 		<button
