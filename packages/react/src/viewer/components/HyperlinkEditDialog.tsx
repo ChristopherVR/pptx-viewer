@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuX } from 'react-icons/lu';
 
+import { useModalDismissDrag } from '../hooks';
 import { cn } from '../utils';
 import type { HyperlinkTargetType, HyperlinkActionVerb } from './hyperlink-edit-types';
 import { ACTION_VERB_MAP } from './hyperlink-edit-types';
@@ -53,6 +54,7 @@ export function HyperlinkEditDialog({
 	onCancel,
 }: HyperlinkEditDialogProps): React.ReactElement | null {
 	const { t } = useTranslation();
+	const { panelStyle, handlers: dragHandlers } = useModalDismissDrag(onCancel);
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	const detectedType = detectTargetType(initialUrl, initialAction);
@@ -117,11 +119,15 @@ export function HyperlinkEditDialog({
 				className='fixed inset-0 flex items-center justify-center pointer-events-none'
 			>
 				<div
+					style={panelStyle}
 					className='pointer-events-auto w-[440px] rounded-lg border border-border bg-popover shadow-2xl'
 					onClick={(e) => e.stopPropagation()}
 				>
-					{/* Header */}
-					<div className='flex items-center justify-between px-4 py-3 border-b border-border'>
+					{/* Header — also a swipe-down-to-dismiss grab region on touch. */}
+					<div
+						{...dragHandlers}
+						className='flex items-center justify-between px-4 py-3 border-b border-border touch-none'
+					>
 						<h2 className='text-sm font-semibold text-foreground'>
 							{t('pptx.hyperlink.editTitle')}
 						</h2>

@@ -3,6 +3,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuFileText, LuX } from 'react-icons/lu';
 
+import { useModalDismissDrag } from '../hooks';
 import { DocumentPropertiesCustomTab } from './DocumentPropertiesCustomTab';
 import { DocumentPropertiesStatisticsTab } from './DocumentPropertiesStatisticsTab';
 
@@ -147,6 +148,7 @@ export function DocumentPropertiesDialog({
 	const handleClose = useCallback(() => {
 		onClose();
 	}, [onClose]);
+	const { panelStyle, handlers: dragHandlers } = useModalDismissDrag(handleClose);
 
 	if (!isOpen) {
 		return null;
@@ -173,9 +175,15 @@ export function DocumentPropertiesDialog({
 				style={{ zIndex: 1201 }}
 				className='fixed inset-0 flex items-center justify-center pointer-events-none'
 			>
-				<div className='pointer-events-auto w-[520px] rounded-xl border border-border bg-popover backdrop-blur-xl shadow-2xl'>
-					{/* Header */}
-					<div className='flex items-center justify-between px-5 py-4 border-b border-border/60'>
+				<div
+					style={panelStyle}
+					className='pointer-events-auto w-[520px] rounded-xl border border-border bg-popover backdrop-blur-xl shadow-2xl'
+				>
+					{/* Header — also a swipe-down-to-dismiss grab region on touch. */}
+					<div
+						{...dragHandlers}
+						className='flex items-center justify-between px-5 py-4 border-b border-border/60 touch-none'
+					>
 						<div className='flex items-center gap-2'>
 							<LuFileText className='w-5 h-5 text-primary' />
 							<h2 className='text-sm font-semibold text-foreground'>

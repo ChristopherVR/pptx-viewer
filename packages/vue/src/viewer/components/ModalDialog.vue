@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { onBeforeUnmount, watch } from 'vue';
 
+import { useSheetDismissDrag } from '../composables/useSheetDismissDrag';
+
 /**
  * ModalDialog - a reusable, accessible modal dialog for the Vue viewer.
  *
@@ -31,6 +33,27 @@ const emit = defineEmits<{
 
 function requestClose(): void {
 	emit('close');
+}
+
+// Swipe-down-to-dismiss for touch users — drag the header down past the
+// threshold to close. The drag is wired through the same composable the mobile
+// sheets use so the gesture feels identical.
+const { dragY, dragging, onPointerDown, onPointerMove, onPointerUp } =
+	useSheetDismissDrag(requestClose);
+
+/**
+ * Only start a header drag for touch/pen, and never when the gesture begins on
+ * an interactive control (the × button, form fields), so clicks/taps and a
+ * desktop mouse are entirely unaffected.
+ */
+function onHeaderPointerDown(event: PointerEvent): void {
+	if (event.pointerType === 'mouse') {
+		return;
+	}
+	if ((event.target as HTMLElement).closest('button, a, input, select, textarea')) {
+		return;
+	}
+	onPointerDown(event);
 }
 
 /** Close on `Escape`, regardless of where focus currently sits. */
@@ -84,10 +107,18 @@ onBeforeUnmount(() => {
 				role="dialog"
 				aria-modal="true"
 				:aria-label="title"
+				:style="{
+					transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
+					transition: dragging ? 'none' : 'transform 150ms ease-out',
+				}"
 				@click.stop
 			>
 				<header
-					class="pptx-vue-modal-header flex items-center justify-between gap-3 border-b border-border px-4 py-3"
+					class="pptx-vue-modal-header flex touch-none items-center justify-between gap-3 border-b border-border px-4 py-3"
+					@pointerdown="onHeaderPointerDown"
+					@pointermove="onPointerMove"
+					@pointerup="onPointerUp"
+					@pointercancel="onPointerUp"
 				>
 					<h2 v-if="title" class="pptx-vue-modal-title text-sm font-semibold leading-snug">
 						{{ title }}

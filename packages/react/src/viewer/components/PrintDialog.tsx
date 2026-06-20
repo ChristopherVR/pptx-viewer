@@ -8,6 +8,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuPrinter, LuX } from 'react-icons/lu';
 
+import { useModalDismissDrag } from '../hooks';
 import { PrintPreview, NotesPagePreview } from './print';
 import type {
 	PrintWhat,
@@ -34,6 +35,7 @@ export function PrintDialog({
 	defaultFrameSlides,
 }: PrintDialogProps): React.ReactElement | null {
 	const { t } = useTranslation();
+	const { panelStyle, handlers: dragHandlers } = useModalDismissDrag(onClose);
 
 	// ── State ───────────────────────────────────────────────────────────
 	const [printWhat, setPrintWhat] = useState<PrintWhat>('slides');
@@ -132,9 +134,15 @@ export function PrintDialog({
 			style={{ zIndex: 1200 }}
 			className='fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm'
 		>
-			<div className='w-[780px] max-h-[90vh] rounded-xl border border-border bg-background shadow-2xl flex flex-col'>
-				{/* Header */}
-				<div className='flex items-center justify-between px-5 py-4 border-b border-border'>
+			<div
+				style={panelStyle}
+				className='w-[780px] max-h-[90vh] rounded-xl border border-border bg-background shadow-2xl flex flex-col'
+			>
+				{/* Header — also a swipe-down-to-dismiss grab region on touch. */}
+				<div
+					{...dragHandlers}
+					className='flex items-center justify-between px-5 py-4 border-b border-border touch-none'
+				>
 					<div className='flex items-center gap-2'>
 						<LuPrinter className='w-4 h-4 text-muted-foreground' />
 						<h2 className='text-sm font-semibold text-foreground'>{t('pptx.print.title')}</h2>

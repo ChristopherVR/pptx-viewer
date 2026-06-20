@@ -25,7 +25,14 @@
  * ```
  */
 
-import { ChangeDetectionStrategy, Component, HostListener, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	HostListener,
+	input,
+	output,
+	signal,
+} from '@angular/core';
 
 @Component({
 	selector: 'pptx-modal-dialog',
@@ -39,9 +46,17 @@ import { ChangeDetectionStrategy, Component, HostListener, input, output } from 
 					role="dialog"
 					aria-modal="true"
 					[attr.aria-label]="title() || null"
+					[style.transform]="dragY() > 0 ? 'translateY(' + dragY() + 'px)' : null"
+					[style.transition]="dragging() ? 'none' : 'transform 150ms ease-out'"
 					(click)="$event.stopPropagation()"
 				>
-					<header class="pptx-ng-modal-header">
+					<header
+						class="pptx-ng-modal-header"
+						(pointerdown)="onHeaderPointerDown($event)"
+						(pointermove)="onHeaderPointerMove($event)"
+						(pointerup)="onHeaderPointerUp($event)"
+						(pointercancel)="onHeaderPointerUp($event)"
+					>
 						@if (title()) {
 							<h2 class="pptx-ng-modal-title">{{ title() }}</h2>
 						} @else {
@@ -101,6 +116,9 @@ import { ChangeDetectionStrategy, Component, HostListener, input, output } from 
 				gap: 12px;
 				padding: 12px 16px;
 				border-bottom: 1px solid var(--pptx-border, #e5e7eb);
+				/* Lets touch users swipe the header down to dismiss without the
+				   browser hijacking the gesture for scrolling. */
+				touch-action: none;
 			}
 
 			.pptx-ng-modal-title {
@@ -183,5 +201,48 @@ export class ModalDialogComponent {
 	 */
 	onBackdropClick(): void {
 		this.requestClose();
+	}
+
+	// ── Swipe-down-to-dismiss (touch/pen only) ─────────────────────────────────
+	/** Live downward drag offset for the panel (px; 0 when idle). */
+	readonly dragY = signal(0);
+	/** True while a header drag is in progress (suppresses the snap-back transition). */
+	readonly dragging = signal(false);
+	private dragStartY: number | null = null;
+
+	onHeaderPointerDown(event: PointerEvent): void {
+		// Touch/pen only, and never from the × button or a form control, so a
+		// desktop mouse and header clicks are entirely unaffected.
+		if (event.pointerType === 'mouse') {
+			return;
+		}
+		if ((event.target as HTMLElement).closest('button, a, input, select, textarea')) {
+			return;
+		}
+		this.dragStartY = event.clientY;
+		this.dragging.set(true);
+		(event.target as HTMLElement).setPointerCapture?.(event.pointerId);
+	}
+
+	onHeaderPointerMove(event: PointerEvent): void {
+		if (this.dragStartY === null) {
+			return;
+		}
+		this.dragY.set(Math.max(0, event.clientY - this.dragStartY));
+	}
+
+	onHeaderPointerUp(event: PointerEvent): void {
+		if (this.dragStartY === null) {
+			return;
+		}
+		const delta = event.clientY - this.dragStartY;
+		this.dragStartY = null;
+		this.dragging.set(false);
+		(event.target as HTMLElement).releasePointerCapture?.(event.pointerId);
+		// 120 px matches the mobile-sheet DISMISS_THRESHOLD for consistency.
+		if (delta > 120) {
+			this.requestClose();
+		}
+		this.dragY.set(0);
 	}
 }

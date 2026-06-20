@@ -3,6 +3,7 @@ import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuX } from 'react-icons/lu';
 
+import { useModalDismissDrag } from '../hooks';
 import { cn } from '../utils';
 import type { SmartArtCategory } from './smart-art-presets';
 import { PRESETS, CATEGORIES } from './smart-art-presets';
@@ -22,6 +23,7 @@ export function InsertSmartArtDialog({
 	onInsert,
 }: InsertSmartArtDialogProps): React.ReactElement | null {
 	const { t } = useTranslation();
+	const { panelStyle, handlers: dragHandlers } = useModalDismissDrag(onClose);
 	const [activeCategory, setActiveCategory] = useState<SmartArtCategory>('list');
 	const [selectedLayout, setSelectedLayout] = useState<SmartArtLayout | null>(null);
 
@@ -60,13 +62,17 @@ export function InsertSmartArtDialog({
 				className='fixed inset-0 flex items-center justify-center pointer-events-none'
 			>
 				<div
+					style={panelStyle}
 					className='pointer-events-auto w-[600px] max-w-[90vw] max-h-[80vh] rounded-lg border border-border bg-background shadow-2xl flex flex-col'
 					role='dialog'
 					aria-modal='true'
 					aria-label={t('pptx.smartart.insertTitle')}
 				>
-					{/* Header */}
-					<div className='flex items-center justify-between px-4 py-3 border-b border-border'>
+					{/* Header — also a swipe-down-to-dismiss grab region on touch. */}
+					<div
+						{...dragHandlers}
+						className='flex items-center justify-between px-4 py-3 border-b border-border touch-none'
+					>
 						<h2 className='text-sm font-medium text-foreground'>
 							{t('pptx.smartart.insertTitle')}
 						</h2>

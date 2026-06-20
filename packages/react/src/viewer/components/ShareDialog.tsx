@@ -13,6 +13,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuCopy, LuCheck, LuUsers, LuWifi, LuWifiOff } from 'react-icons/lu';
 
+import { useModalDismissDrag } from '../hooks';
 import type { CollaborationConfig } from '../hooks/collaboration/types';
 import { useCollaboration } from './collaboration';
 
@@ -83,6 +84,7 @@ export function ShareDialog({
 	const [serverUrl, setServerUrl] = useState(defaultServerUrl ?? '');
 	const [copied, setCopied] = useState(false);
 	const dialogRef = useRef<HTMLDivElement>(null);
+	const { panelStyle, handlers: dragHandlers } = useModalDismissDrag(onClose);
 
 	// Sync from active config if provided
 	useEffect(() => {
@@ -167,10 +169,14 @@ export function ShareDialog({
 					aria-modal='true'
 					aria-label={t('pptx.share.title')}
 					tabIndex={-1}
+					style={panelStyle}
 					className='pointer-events-auto w-full max-w-md rounded-xl border border-border bg-popover text-foreground shadow-2xl outline-none'
 				>
-					{/* Header */}
-					<div className='flex items-center justify-between px-5 py-3 border-b border-border'>
+					{/* Header — also a swipe-down-to-dismiss grab region on touch. */}
+					<div
+						{...dragHandlers}
+						className='flex items-center justify-between px-5 py-3 border-b border-border touch-none'
+					>
 						<h2 className='text-sm font-semibold text-foreground'>
 							{isActive ? t('pptx.share.collaborationActive') : t('pptx.share.title')}
 						</h2>

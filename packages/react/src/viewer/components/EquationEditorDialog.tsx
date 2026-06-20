@@ -3,6 +3,7 @@ import React, { useState, useMemo, useCallback, useRef, useEffect, useDeferredVa
 import { useTranslation } from 'react-i18next';
 import { LuX } from 'react-icons/lu';
 
+import { useModalDismissDrag } from '../hooks';
 import { cn } from '../utils';
 import { convertLatexToOmml, convertOmmlToLatex } from '../utils/latex-to-omml';
 import { convertOmmlToMathMl } from '../utils/omml-to-mathml';
@@ -180,6 +181,7 @@ export function EquationEditorDialog({
 	existingOmml,
 }: EquationEditorDialogProps): React.ReactElement | null {
 	const { t } = useTranslation();
+	const { panelStyle, handlers: dragHandlers } = useModalDismissDrag(onClose);
 
 	// Derive initial LaTeX from existing OMML if provided
 	const initialLatex = useMemo(() => {
@@ -262,11 +264,15 @@ export function EquationEditorDialog({
 			onKeyDown={handleKeyDown}
 		>
 			<div
+				style={panelStyle}
 				className='bg-background border border-border rounded-xl shadow-2xl w-[640px] max-h-[85vh] flex flex-col overflow-hidden'
 				onClick={(e) => e.stopPropagation()}
 			>
-				{/* Header */}
-				<div className='flex items-center justify-between px-5 py-3 border-b border-border'>
+				{/* Header — also a swipe-down-to-dismiss grab region on touch. */}
+				<div
+					{...dragHandlers}
+					className='flex items-center justify-between px-5 py-3 border-b border-border touch-none'
+				>
 					<h2 className='text-sm font-semibold text-foreground'>
 						{isEditing
 							? t('pptx.equation.editTitle', 'Edit Equation')

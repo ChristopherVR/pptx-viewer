@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { LuSettings, LuX } from 'react-icons/lu';
 
 import { SHORTCUT_REFERENCE_ITEMS } from '../constants';
+import { useModalDismissDrag } from '../hooks';
 import { cn } from '../utils';
 
 // ---------------------------------------------------------------------------
@@ -85,6 +86,7 @@ export function SettingsDialog({
 	const [activeTab, setActiveTab] = useState<SettingsTab>('general');
 	const [autoSave, setAutoSave] = useState(true);
 	const { t } = useTranslation();
+	const { panelStyle, handlers: dragHandlers } = useModalDismissDrag(onClose);
 
 	// Close on Escape
 	const handleKeyDown = useCallback(
@@ -127,9 +129,15 @@ export function SettingsDialog({
 				style={{ zIndex: 1201 }}
 				className='fixed inset-0 flex items-center justify-center pointer-events-none'
 			>
-				<div className='pointer-events-auto w-[min(32rem,calc(100%-2rem))] rounded-xl border border-border bg-popover backdrop-blur-xl shadow-2xl'>
-					{/* Header */}
-					<div className='flex items-center justify-between px-5 py-4 border-b border-border/60'>
+				<div
+					style={panelStyle}
+					className='pointer-events-auto w-[min(32rem,calc(100%-2rem))] rounded-xl border border-border bg-popover backdrop-blur-xl shadow-2xl'
+				>
+					{/* Header — also a swipe-down-to-dismiss grab region on touch. */}
+					<div
+						{...dragHandlers}
+						className='flex items-center justify-between px-5 py-4 border-b border-border/60 touch-none'
+					>
 						<div className='flex items-center gap-2'>
 							<LuSettings className='w-5 h-5 text-primary' />
 							<h2 className='text-sm font-semibold text-foreground'>{t('pptx.settings.title')}</h2>
