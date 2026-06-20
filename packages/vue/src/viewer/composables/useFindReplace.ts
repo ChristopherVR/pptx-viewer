@@ -8,8 +8,8 @@ import { computed, ref } from 'vue';
  *
  * The match is element-level (not per-occurrence): an element appears once in
  * the {@link UseFindReplaceResult.matches | matches} list regardless of how many
- * times the query occurs inside its text. This keeps navigation predictable —
- * `next()`/`prev()` cycle through matching elements/slides — while `replaceAll`
+ * times the query occurs inside its text. This keeps navigation predictable:
+ * `next()`/`prev()` cycle through matching elements/slides, while `replaceAll`
  * still rewrites every occurrence within each element.
  */
 export interface FindMatch {

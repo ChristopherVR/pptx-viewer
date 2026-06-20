@@ -2,7 +2,7 @@
 import { onBeforeUnmount, watch } from 'vue';
 
 /**
- * ModalDialog — a reusable, accessible modal dialog for the Vue viewer.
+ * ModalDialog - a reusable, accessible modal dialog for the Vue viewer.
  *
  * Vue counterpart of the React package's ad-hoc dialog shells (e.g.
  * `HyperlinkEditDialog.tsx`), factored into a single reusable component.
@@ -15,7 +15,7 @@ import { onBeforeUnmount, watch } from 'vue';
  *    slot for action buttons.
  *  - Emits `close` on backdrop click, on the `×` button, and on `Escape`.
  *
- * The component is presentational — the parent owns the `open` flag and
+ * The component is presentational: the parent owns the `open` flag and
  * decides what `close` means (typically setting `open` back to `false`).
  */
 const props = defineProps<{
@@ -43,7 +43,7 @@ function onKeydown(event: KeyboardEvent): void {
 
 /**
  * Backdrop clicks close the dialog, but clicks that bubble up from the panel
- * must not — the panel stops propagation in the template, so this handler only
+ * must not; the panel stops propagation in the template, so this handler only
  * ever fires for the backdrop itself.
  */
 function onBackdropClick(): void {

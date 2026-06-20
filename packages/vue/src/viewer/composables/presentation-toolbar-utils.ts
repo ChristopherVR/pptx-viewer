@@ -1,5 +1,5 @@
 /**
- * presentation-toolbar-utils — pure helpers for `PresentationToolbar.vue`.
+ * presentation-toolbar-utils: pure helpers for `PresentationToolbar.vue`.
  *
  * Visibility (bottom-trigger-zone) math, auto-hide timing, and slide-counter
  * formatting. Extracted for testability. Mirrors the React

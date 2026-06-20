@@ -5,7 +5,7 @@ import { formatAxisValue, seriesColor } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 
 /**
- * RadarChart — Vue port of React `chart-radar.tsx`.
+ * RadarChart: Vue port of React `chart-radar.tsx`.
  * Rendered inside the parent chart `<svg>` (emits a `<g>` group).
  */
 const props = defineProps<{

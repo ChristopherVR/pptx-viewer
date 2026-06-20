@@ -48,7 +48,7 @@ function resolveBaseName(fileName: UseExportOptions['fileName']): string {
 }
 
 /**
- * Export composable — render slides to PNG / PDF.
+ * Export composable: render slides to PNG / PDF.
  *
  * Rasterisation is delegated to the injected `rasterizeSlide` (the host wires
  * `html2canvas-pro` over an off-screen slide stage). `jspdf` is loaded lazily so

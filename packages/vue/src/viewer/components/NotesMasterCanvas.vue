@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
- * NotesMasterCanvas — a faithful preview of the notes master page.
+ * NotesMasterCanvas - a faithful preview of the notes master page.
  *
  * Vue port of the React `NotesMasterCanvas.tsx`. The notes master is rendered as
  * a portrait page with labelled placeholder regions (slide image, body, header,
  * footer, date, page number). Unlike a slide master, a notes master has no
- * full-bleed element tree to render via {@link SlideStage} — its `placeholders`
+ * full-bleed element tree to render via {@link SlideStage}; its `placeholders`
  * are typed regions, so we draw a lighter-weight page with positioned region
  * boxes (matching React, which never used the slide renderer here either).
  *

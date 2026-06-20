@@ -72,7 +72,7 @@ describe('useEditorHistory', () => {
 		expect(restored.x).toBe(10);
 
 		// Mutating the restored object must not be reflected in any retained
-		// snapshot — a subsequent redo/undo round-trip stays clean.
+		// snapshot: a subsequent redo/undo round-trip stays clean.
 		restored.x = -1;
 		expect(slides.value[0].elements[0].x).toBe(-1);
 	});

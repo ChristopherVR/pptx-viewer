@@ -3,10 +3,10 @@
  * Tests for the central keyboard-shortcut registry.
  *
  * Two layers:
- *  1. `resolveShortcutAction` — the pure dispatch logic (ported verbatim from
+ *  1. `resolveShortcutAction`: the pure dispatch logic (ported verbatim from
  *     the React `useKeyboardShortcuts.test.ts`); covers every guard, combo,
  *     nudge, and slide-nav branch.
- *  2. `useKeyboardShortcuts` — the composable wiring: `matchShortcut` over real
+ *  2. `useKeyboardShortcuts`: the composable wiring: `matchShortcut` over real
  *     `KeyboardEvent`s, `handleKeyDown` dispatch + `preventDefault`, reactive
  *     guard flags, the catalog grouping, and `attach`/`autoAttach`.
  */
@@ -28,7 +28,7 @@ import type {
 } from './useKeyboardShortcuts';
 
 // ---------------------------------------------------------------------------
-// Pure dispatch logic — ported from React useKeyboardShortcuts.test.ts
+// Pure dispatch logic: ported from React useKeyboardShortcuts.test.ts
 // ---------------------------------------------------------------------------
 
 function defaultGuard(overrides: Partial<ShortcutGuardState> = {}): ShortcutGuardState {
@@ -44,7 +44,7 @@ function defaultGuard(overrides: Partial<ShortcutGuardState> = {}): ShortcutGuar
 	};
 }
 
-describe('resolveShortcutAction — pure dispatch logic', () => {
+describe('resolveShortcutAction - pure dispatch logic', () => {
 	describe('guard conditions', () => {
 		it('returns null in present mode', () => {
 			expect(

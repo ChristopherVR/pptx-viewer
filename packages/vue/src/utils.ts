@@ -5,7 +5,7 @@ import { twMerge } from 'tailwind-merge';
 /**
  * Utility for combining Tailwind CSS classes with conflict resolution.
  *
- * Ported verbatim from the React package — framework-agnostic.
+ * Ported verbatim from the React package; framework-agnostic.
  */
 export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));

@@ -28,7 +28,7 @@ function mountEl(element: PptxElement) {
 	});
 }
 
-describe('elementRenderer — bulleted lists', () => {
+describe('elementRenderer - bulleted lists', () => {
 	it('renders a "•" character bullet glyph before its text', () => {
 		const el = textElement([
 			{ text: '• ', style: {}, bulletInfo: { char: '•' } },
@@ -38,7 +38,7 @@ describe('elementRenderer — bulleted lists', () => {
 		const bullets = wrapper.findAll('.pptx-vue-bullet');
 		expect(bullets).toHaveLength(1);
 		expect(bullets[0].text()).toBe('•');
-		// The marker text is rendered separately from the run text — not doubled.
+		// The marker text is rendered separately from the run text, not doubled.
 		expect(wrapper.find('.pptx-vue-text').text()).toContain('First item');
 	});
 

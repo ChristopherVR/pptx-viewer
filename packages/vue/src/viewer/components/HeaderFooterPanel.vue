@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * HeaderFooterPanel — edit the presentation's header/footer placeholders.
+ * HeaderFooterPanel: edit the presentation's header/footer placeholders.
  *
  * Vue port of the React `HeaderFooterPanel.tsx`, adapted to the Vue port's
  * data-driven contract: instead of a bundle of separate boolean/text props +

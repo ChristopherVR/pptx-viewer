@@ -10,7 +10,7 @@ import {
 	RemoveFormatting,
 } from 'lucide-vue-next';
 /**
- * Text ribbon section — the Vue port of React's `toolbar/TextSection.tsx`.
+ * Text ribbon section: the Vue port of React's `toolbar/TextSection.tsx`.
  *
  * Mirrors the React `TextSection` for visual + behavioral parity: character
  * formatting toggles (B/I/U/strikethrough), font-size step/clear, font-colour

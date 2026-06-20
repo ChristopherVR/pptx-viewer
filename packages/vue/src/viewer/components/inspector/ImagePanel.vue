@@ -4,7 +4,7 @@ import { isImageLikeElement } from 'pptx-viewer-core';
 import { computed } from 'vue';
 
 /**
- * ImagePanel — inspector panel for image-like elements (`image` / `picture`).
+ * ImagePanel: inspector panel for image-like elements (`image` / `picture`).
  *
  * Uniform inspector contract:
  *  - Props: `{ element }`.
@@ -45,7 +45,7 @@ const brightness = computed<number>(() => effects.value?.brightness ?? 0);
 const contrast = computed<number>(() => effects.value?.contrast ?? 0);
 const saturation = computed<number>(() => effects.value?.saturation ?? 0);
 
-/** True when any adjustment is set — gates the reset button. */
+/** True when any adjustment is set; gates the reset button. */
 const hasAdjustments = computed<boolean>(() => effects.value !== undefined);
 
 // ── emitters ───────────────────────────────────────────────────────────────

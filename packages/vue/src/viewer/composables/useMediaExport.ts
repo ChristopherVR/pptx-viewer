@@ -7,7 +7,7 @@ import type { GifFrame } from './gif-encoder';
  * Rasterise the slide at `index` to an `HTMLCanvasElement`. Supplied by the host
  * (it owns the DOM + `html2canvas-pro` integration over an off-screen
  * `SlideStage`); keeping it injected makes `useMediaExport` DOM-free and
- * unit-testable — exactly the contract `useExport` uses for PNG/PDF.
+ * unit-testable: exactly the contract `useExport` uses for PNG/PDF.
  */
 export type RasterizeSlide = (index: number) => Promise<HTMLCanvasElement>;
 
@@ -150,12 +150,12 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
 }
 
 /**
- * Media-export composable — render slides to an animated **GIF** or a **WebM**
+ * Media-export composable: render slides to an animated **GIF** or a **WebM**
  * video. Vue port of the React `useExportHandlers` GIF/video paths
  * (`export-gif.ts` / `export-video.ts`).
  *
  * Rasterisation is delegated to the injected `rasterizeSlide` (the host wires
- * `html2canvas-pro` over an off-screen slide stage — the same injection
+ * `html2canvas-pro` over an off-screen slide stage, the same injection
  * `useExport` uses for PNG/PDF). The GIF encoder is a self-contained pure-JS
  * GIF89a implementation loaded via a dynamic `import()` so it stays out of the
  * main chunk; WebM is recorded with the browser-built-in `MediaRecorder`. Both

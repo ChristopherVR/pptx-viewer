@@ -5,10 +5,10 @@ import type { Ref } from 'vue';
 /**
  * Autosave status, surfaced for status-pill rendering.
  *
- *  - `idle`   — nothing has been saved yet (or no edits since mount).
- *  - `saving` — an `onSave` invocation is currently in flight.
- *  - `saved`  — the most recent save succeeded.
- *  - `error`  — the most recent save threw.
+ *  - `idle`  : nothing has been saved yet (or no edits since mount).
+ *  - `saving`: an `onSave` invocation is currently in flight.
+ *  - `saved` : the most recent save succeeded.
+ *  - `error` : the most recent save threw.
  */
 export type AutosaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -27,7 +27,7 @@ export interface UseAutosaveOptions {
 	/**
 	 * The editor's reactive slide array. Because the editor reassigns this
 	 * array immutably on every edit, a shallow `watch(slides, …)` fires per
-	 * edit — no `deep` needed.
+	 * edit, no `deep` needed.
 	 */
 	slides: Ref<PptxSlide[]>;
 	/** Master on/off switch. When falsy the debounce timer never fires. */
@@ -35,7 +35,7 @@ export interface UseAutosaveOptions {
 	/** Debounce window in milliseconds (e.g. `2000`). */
 	intervalMs: number;
 	/**
-	 * Host save callback — typically calls `getContent()` and persists/emits
+	 * Host save callback: typically calls `getContent()` and persists/emits
 	 * the resulting bytes. May be sync or async; rejections flip status to
 	 * `'error'`.
 	 */
@@ -63,7 +63,7 @@ const defaultTimers: AutosaveTimerApi = {
 };
 
 /**
- * `useAutosave` — debounced autosave for the Vue editor.
+ * `useAutosave`: debounced autosave for the Vue editor.
  *
  * Watches `slides`; on each change it marks the document dirty and
  * (re)arms a debounce timer. When the timer fires (and autosave is
@@ -146,7 +146,7 @@ export function useAutosave(options: UseAutosaveOptions): UseAutosaveResult {
 			}
 		},
 		// Flush synchronously so an edit immediately marks the document dirty
-		// and arms the debounce timer — matching the React effect-on-change
+		// and arms the debounce timer, matching the React effect-on-change
 		// behaviour and keeping fake-timer tests deterministic.
 		{ flush: 'sync' },
 	);

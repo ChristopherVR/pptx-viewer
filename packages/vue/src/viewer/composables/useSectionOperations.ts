@@ -3,21 +3,21 @@ import { computed } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
 /**
- * `useSectionOperations` — CRUD + grouping for slide sections in the Vue editor.
+ * `useSectionOperations`: CRUD + grouping for slide sections in the Vue editor.
  *
  * Vue port of the React `useSectionOperations` hook (`packages/react/src/
  * viewer/hooks/useSectionOperations.ts`). It mirrors that hook's operation set
  * and semantics:
  *
- *  - `addSection` — insert a new section after a slide, claiming the run of
+ *  - `addSection`: insert a new section after a slide, claiming the run of
  *    contiguous slides that share the slide's current section.
- *  - `renameSection` — rename a section and propagate the name to its slides.
- *  - `deleteSection` — remove a section, merging its slides into the previous
+ *  - `renameSection`: rename a section and propagate the name to its slides.
+ *  - `deleteSection`: remove a section, merging its slides into the previous
  *    section (or clearing the section on its slides when it was the first).
- *  - `moveSectionUp` / `moveSectionDown` — reorder a section by one position.
- *  - `moveSlidesToSection` — reassign a set of slides (by index) to a section.
- *  - `toggleSectionCollapse` — flip the `collapsed` flag on a section.
- *  - `slidesBySection` — a computed grouping of slides keyed by their section.
+ *  - `moveSectionUp` / `moveSectionDown`: reorder a section by one position.
+ *  - `moveSlidesToSection`: reassign a set of slides (by index) to a section.
+ *  - `toggleSectionCollapse`: flip the `collapsed` flag on a section.
+ *  - `slidesBySection`: a computed grouping of slides keyed by their section.
  *
  * The composable is DOM-free and operates purely on the reactive model so it is
  * unit-testable in isolation. Each mutating operation snapshots undo/redo

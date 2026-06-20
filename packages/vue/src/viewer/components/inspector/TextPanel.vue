@@ -4,7 +4,7 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import { computed } from 'vue';
 
 /**
- * TextPanel — typography inspector for the Vue `pptx-vue-viewer` editor.
+ * TextPanel: typography inspector for the Vue `pptx-vue-viewer` editor.
  *
  * Exposes character/paragraph formatting (`fontFamily`, `fontSize`, `bold`,
  * `italic`, `underline`, `strikethrough`, `color`, `align`, `vAlign`) read from

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
- * GridOverlay — Vue port of React's `canvas/GridOverlay.tsx`.
+ * GridOverlay: Vue port of React's `canvas/GridOverlay.tsx`.
  *
  * A subtle dot grid drawn over the slide via an SVG `<pattern>`, matching
  * PowerPoint's grid display. Rendered inside `SlideStage`'s scaled space (sized
  * to the unscaled canvas), so it lines up with the slide content at any zoom.
- * Purely decorative — `pointer-events-none` so it never intercepts editing.
+ * Purely decorative: `pointer-events-none` so it never intercepts editing.
  */
 import { computed } from 'vue';
 

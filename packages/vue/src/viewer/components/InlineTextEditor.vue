@@ -1,12 +1,12 @@
 <script setup lang="ts">
 /**
- * InlineTextEditor — a `contentEditable` overlay for editing an element's text
+ * InlineTextEditor: a `contentEditable` overlay for editing an element's text
  * in place (Vue port of the React `elements/InlineTextEditor.tsx`).
  *
  * It is mounted inside the scaled slide stage (same coordinate space as
  * {@link SelectionOverlay}), positioned over the element's box, and seeded once
  * from the element's plain text. It does NOT re-bind its value while the user
- * types — the DOM owns the text during an edit — and only reports changes via
+ * types (the DOM owns the text during an edit) and only reports changes via
  * `change`, committing on blur (`commit`) or cancelling on Escape (`cancel`).
  * The host commits the typed text back onto the element's rich `textSegments`
  * (via `remapTextToSegments`) so per-run styling is preserved.

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * SlideTextBlock — renders an element's rich text as paragraphs of styled runs
+ * SlideTextBlock - renders an element's rich text as paragraphs of styled runs
  * with bullet markers + hanging indents. The paragraph model is built by the
  * shared, framework-agnostic `buildParagraphs`; this component is pure
  * presentation. Extracted from `ElementRenderer` to keep it thin.

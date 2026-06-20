@@ -5,7 +5,7 @@ import { computeChartTrendlines } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 
 /**
- * ChartTrendlines — Vue port of the React `renderTrendlines`
+ * ChartTrendlines: Vue port of the React `renderTrendlines`
  * (`viewer/utils/chart-trendlines.tsx`).
  *
  * Renders the per-series regression trendlines (linear / exponential /

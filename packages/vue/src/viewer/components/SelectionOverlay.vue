@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
- * SelectionOverlay — the editing interaction layer.
+ * SelectionOverlay - the editing interaction layer.
  *
  * Renders, for every selected element, a selection rectangle with 8 resize
  * handles (nw, n, ne, e, se, s, sw, w) and a rotate handle above the box. It
  * lives in the SAME coordinate space as the (already scaled) slide canvas, so
- * it must be mounted inside the scaled stage — the element x/y/width/height it
+ * it must be mounted inside the scaled stage; the element x/y/width/height it
  * reads are unscaled element px, and the parent CSS `scale(zoom)` makes them
  * line up visually. The `zoom` prop is still needed to convert raw pointer
  * deltas (which are in screen px) back into element px.
@@ -15,9 +15,9 @@
  *
  * Emitted events
  * --------------
- * - `transformStart` { id }                     — gesture begins.
- * - `transform`      { id, x, y, width, height, rotation } — live, every move.
- * - `transformEnd`   { id, x, y, width, height, rotation } — gesture ends.
+ * - `transformStart` { id }                     : gesture begins.
+ * - `transform`      { id, x, y, width, height, rotation } : live, every move.
+ * - `transformEnd`   { id, x, y, width, height, rotation } : gesture ends.
  *
  * Consumers should apply `transform` live (for a responsive preview) and treat
  * `transformEnd` as the commit point for history/undo.
@@ -67,7 +67,7 @@ const emit = defineEmits<{
 	adjustStart: [payload: { id: string }];
 	adjust: [payload: AdjustPayload];
 	adjustEnd: [payload: AdjustPayload];
-	/** A tap (no drag) on an already-selected element — enter inline edit. */
+	/** A tap (no drag) on an already-selected element: enter inline edit. */
 	requestEdit: [payload: { id: string }];
 }>();
 
@@ -132,7 +132,7 @@ interface Gesture {
 	handle?: ResizeHandleId;
 	/** Whether the gesture has moved past the dead-zone threshold. */
 	moved: boolean;
-	/** Shift held — used for rotation snap. */
+	/** Shift held: used for rotation snap. */
 	shift: boolean;
 	last: TransformPayload;
 	/** Start state for an `adjust` gesture (round-rect corner radius). */
@@ -273,7 +273,7 @@ function onPointerMove(event: PointerEvent): void {
 		return;
 	}
 
-	// Round-rect corner-radius adjustment — emits `adjust`, not a geometry transform.
+	// Round-rect corner-radius adjustment: emits `adjust`, not a geometry transform.
 	if (g.kind === 'adjust' && g.adjust) {
 		const deltaXel = dxScreen / (props.zoom || 1);
 		const value = getDraggedShapeAdjustmentValue(
@@ -342,7 +342,7 @@ function detachGlobalListeners(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Handle metadata (placement only — visual offset handled by CSS classes)
+// Handle metadata (placement only; visual offset handled by CSS classes)
 // ---------------------------------------------------------------------------
 
 interface HandleMeta {
@@ -452,7 +452,7 @@ function adjustHandleStyle(box: SelectedBox): Record<string, string> {
 				@pointerdown="(e) => beginGesture('resize', box.id, e, meta.id)"
 			/>
 
-			<!-- Shape adjustment handle (amber diamond) — round-rect corner radius -->
+			<!-- Shape adjustment handle (amber diamond): round-rect corner radius -->
 			<button
 				v-if="adjustDescriptorFor(box.id)"
 				type="button"
@@ -486,7 +486,7 @@ function adjustHandleStyle(box: SelectedBox): Record<string, string> {
 .pptx-vue-selection-body {
 	position: absolute;
 	inset: 0;
-	/* The body never intercepts pointer events — move + inline-edit entry are
+	/* The body never intercepts pointer events; move + inline-edit entry are
 	   driven from the element itself (host pointer delegation), so taps reach the
 	   underlying element (required for e2e actionability + double-tap-to-edit).
 	   Only the resize/rotate/adjust handles capture. */
@@ -549,7 +549,7 @@ function adjustHandleStyle(box: SelectedBox): Record<string, string> {
 	margin: -12px 0 0 -12px;
 }
 
-/* Shape-adjustment handle — amber diamond (rotate 45°), mirrors React. */
+/* Shape-adjustment handle: amber diamond (rotate 45°), mirrors React. */
 .pptx-vue-adjust-handle {
 	position: absolute;
 	width: 10px;

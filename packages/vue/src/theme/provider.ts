@@ -16,7 +16,7 @@ const ViewerThemeKey: InjectionKey<MaybeRefOrGetter<ViewerTheme | undefined>> =
 /**
  * Provide a `ViewerTheme` to all descendant viewer components.
  *
- * Typically you do **not** need to call this directly — passing a `theme`
+ * Typically you do **not** need to call this directly; passing a `theme`
  * prop to `<PowerPointViewer>` is sufficient. This is exposed for advanced
  * use-cases where you want to share a theme across a wider subtree.
  *

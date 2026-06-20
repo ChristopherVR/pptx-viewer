@@ -1,5 +1,5 @@
 /**
- * `useRehearseTimings` — Vue composable for rehearsal-mode timing.
+ * `useRehearseTimings`: Vue composable for rehearsal-mode timing.
  *
  * Tracks the elapsed time on the current slide and the total elapsed time since
  * the presentation started, with pause/resume support and per-slide recording.
@@ -197,7 +197,7 @@ export function useRehearseTimings(
 		// elapsed computeds re-evaluate immediately after the toggle.
 		tick.value += 1;
 		if (paused.value) {
-			// Resuming — fold the open pause segment into the accumulator.
+			// Resuming: fold the open pause segment into the accumulator.
 			if (pauseStart !== null) {
 				pauseAccumulated += now() - pauseStart;
 				pauseStart = null;

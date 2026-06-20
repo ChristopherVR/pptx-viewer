@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
- * SlideMastersList — the list of slide masters and their layouts in the master
+ * SlideMastersList - the list of slide masters and their layouts in the master
  * view, each shown as a scaled live preview.
  *
  * Vue port of the React `SlideMastersList.tsx`. A `PptxSlideMaster` /
  * `PptxSlideLayout` carries `elements` + `backgroundColor`/`backgroundImage`, so
- * each is render-compatible with {@link SlideStage} — we build a pseudo
+ * each is render-compatible with {@link SlideStage}; we build a pseudo
  * `PptxSlide` (mirroring React's `masterToSlide` / `layoutToSlide`) and render it
  * scaled down, giving a faithful preview that reuses the real renderer instead
  * of a lighter-weight approximation.

@@ -84,7 +84,7 @@ describe('useEmbeddedFonts', () => {
 	it('de-obfuscates obfuscated bytes when no data URL is present', async () => {
 		const guid = 'F7A0C94A-3F90-4C3A-AE50-B05A7B0F6C65';
 		const clear = makeTtfBytes();
-		// obfuscateFont === deobfuscateFont (XOR self-inverse) — produce the
+		// obfuscateFont === deobfuscateFont (XOR self-inverse): produce the
 		// scrambled bytes a PPTX would have stored on disk.
 		const obfuscated = obfuscateFont(clear, guid);
 

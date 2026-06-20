@@ -1,13 +1,13 @@
 <script setup lang="ts">
 /**
- * SlideSorter — a full-overlay grid overview of every slide with
+ * SlideSorter - a full-overlay grid overview of every slide with
  * drag-to-reorder support.
  *
  * Each tile renders the real slide via {@link SlideStage} scaled down to a
  * small fixed width, so the overview stays visually faithful to the canvas
  * and thumbnail rail. Tiles are reordered with native HTML5 drag-and-drop
  * (`draggable` + `dragstart`/`dragover`/`drop`); the component itself never
- * mutates the slide list — it emits `reorder(from, to)` and lets the host
+ * mutates the slide list; it emits `reorder(from, to)` and lets the host
  * apply the move (e.g. via `slideOps.moveSlide`).
  *
  * Conventions:

@@ -20,12 +20,12 @@ import type {
 import { computeSmartArtLayout } from '../composables/smartart-layout';
 
 /**
- * SmartArtRenderer — Vue port of the React SmartArt renderer
+ * SmartArtRenderer - Vue port of the React SmartArt renderer
  * (`viewer/utils/smartart*.tsx`).
  *
  * Data path: this component renders from the **pre-computed drawing shapes**
  * (`smartArtData.drawingShapes`) extracted by the core engine from
- * `ppt/diagrams/drawing*.xml` — mirroring React's `smartart-drawing.tsx`.
+ * `ppt/diagrams/drawing*.xml`, mirroring React's `smartart-drawing.tsx`.
  * That is the path React prefers when drawing shapes are present, and it
  * avoids reimplementing the ~2800 LOC of layout math in the
  * `smartart-cycle/process/hierarchy/...` family.

@@ -5,7 +5,7 @@ import { formatAxisValue, seriesColor, valueToY } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 
 /**
- * ScatterChart — Vue port of React `chart-scatter-bubble.tsx` scatter variant.
+ * ScatterChart: Vue port of React `chart-scatter-bubble.tsx` scatter variant.
  * Rendered inside the parent chart `<svg>` (emits a `<g>` group).
  */
 const props = defineProps<{

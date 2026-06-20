@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * ElementMediaBox — the `media` branch of `ElementRenderer`, extracted to keep
+ * ElementMediaBox: the `media` branch of `ElementRenderer`, extracted to keep
  * the dispatcher thin. Plays a `<video>`/`<audio>` when a source is available,
  * else a poster `<img>`, else a placeholder. On the interactive (edit) canvas
  * controls are suppressed + pointer-events off so clicks select/move the

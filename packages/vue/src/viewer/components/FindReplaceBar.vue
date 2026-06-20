@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * FindReplaceBar — compact find-and-replace bar for the Vue editor.
+ * FindReplaceBar: compact find-and-replace bar for the Vue editor.
  *
  * Purely presentational: it owns no search state. The parent wires it to a
  * {@link useFindReplace} instance via `v-model:query`, `v-model:replacement`,
@@ -36,10 +36,10 @@ const counter = computed(() => {
 
 const hasMatches = computed(() => props.matchCount > 0);
 
-/** Shared input classes — mirrors React's find/replace inputs. */
+/** Shared input classes: mirrors React's find/replace inputs. */
 const FR_INPUT =
 	'flex-1 min-w-32 rounded border border-border bg-muted px-2 py-1 text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none';
-/** Shared icon-button classes — ghost buttons matching React's nav controls. */
+/** Shared icon-button classes: ghost buttons matching React's nav controls. */
 const FR_BTN =
 	'inline-flex items-center justify-center min-w-7 h-7 rounded border border-border bg-muted px-2 leading-none text-foreground cursor-pointer hover:bg-accent disabled:opacity-45 disabled:cursor-not-allowed';
 </script>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * MobileSheet — reusable slide-up bottom sheet for the Vue `pptx-vue-viewer`.
+ * MobileSheet - reusable slide-up bottom sheet for the Vue `pptx-vue-viewer`.
  *
  * Vue port of `packages/react/src/viewer/components/mobile/MobileSheet.tsx`:
  *   - a tap-to-close backdrop,

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * PrintDialog — full-featured print options dialog for the Vue viewer.
+ * PrintDialog - full-featured print options dialog for the Vue viewer.
  *
  * Vue port of the React `PrintDialog.tsx`. Owns the print-settings state and,
  * on confirm, emits a resolved {@link PrintSettings} for the host to feed into
@@ -9,15 +9,15 @@
  * shown for the handout / notes layouts.
  *
  * Props:
- *  - `open`                  — visibility flag (host-owned).
- *  - `slides`                — the slides, for range bounds + outline preview.
- *  - `activeSlideIndex`      — current slide (for "current slide" range).
- *  - `defaultSlidesPerPage?` — seed from presentation props (clamped to valid).
- *  - `defaultFrameSlides?`   — seed from presentation props.
+ *  - `open`                  : visibility flag (host-owned).
+ *  - `slides`                : the slides, for range bounds + outline preview.
+ *  - `activeSlideIndex`      : current slide (for "current slide" range).
+ *  - `defaultSlidesPerPage?` : seed from presentation props (clamped to valid).
+ *  - `defaultFrameSlides?`   : seed from presentation props.
  *
  * Emits:
- *  - `print` — `PrintSettings` — the user confirmed; run the print flow.
- *  - `close` — the dialog was dismissed.
+ *  - `print` : `PrintSettings`, the user confirmed; run the print flow.
+ *  - `close` : the dialog was dismissed.
  */
 import type { PptxSlide } from 'pptx-viewer-core';
 import { computed, ref, watch } from 'vue';

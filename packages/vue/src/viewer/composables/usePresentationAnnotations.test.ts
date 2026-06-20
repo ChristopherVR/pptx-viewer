@@ -173,11 +173,11 @@ describe('usePresentationAnnotations', () => {
 		a.handlePointerUp();
 		expect(a.annotationStrokes.value).toHaveLength(1);
 
-		// Move to slide 1 — its strokes are empty.
+		// Move to slide 1: its strokes are empty.
 		idx.value = 1;
 		expect(a.annotationStrokes.value).toHaveLength(0);
 
-		// Move back — slide 0's stroke is restored.
+		// Move back: slide 0's stroke is restored.
 		idx.value = 0;
 		expect(a.annotationStrokes.value).toHaveLength(1);
 

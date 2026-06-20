@@ -6,7 +6,7 @@ import { computed } from 'vue';
 import { getContainerStyle } from '../composables/element-style';
 
 /**
- * OleRenderer — Vue port of the React `renderOleElement`
+ * OleRenderer - Vue port of the React `renderOleElement`
  * (in `InkGroupRenderers.tsx`), viewer-first subset.
  *
  * Renders an embedded OLE object (`OlePptxElement`). When a decoded preview

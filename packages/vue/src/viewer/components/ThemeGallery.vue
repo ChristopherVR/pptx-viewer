@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Check } from 'lucide-vue-next';
 /**
- * ThemeGallery — Design ▸ Themes. A teleported overlay of the core
+ * ThemeGallery - Design ▸ Themes. A teleported overlay of the core
  * `THEME_PRESETS` (Office / Facet / Ion / …) shown as accent-swatch thumbnails;
  * clicking one emits `apply(preset)` so the host re-themes the deck via core's
  * `applyThemeToData`. Vue port of React's `toolbar/ThemeGallery`.

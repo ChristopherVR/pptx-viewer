@@ -4,7 +4,7 @@ import { computed, shallowRef } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
 /**
- * useVersionHistory — named, restorable snapshots of the live slide model.
+ * useVersionHistory: named, restorable snapshots of the live slide model.
  *
  * Vue port of the React version-history subsystem. Where the React
  * `VersionHistoryPanel` reads serialised `.pptx` blobs out of the autosave
@@ -13,7 +13,7 @@ import type { ComputedRef, Ref } from 'vue';
  * caller-supplied label and timestamp.
  *
  * Design notes:
- *  - **Pure capture path.** `capture` does *not* call `Date.now()` — the caller
+ *  - **Pure capture path.** `capture` does *not* call `Date.now()`; the caller
  *    passes a `label` and `now` (epoch ms). This keeps snapshot creation
  *    deterministic and unit-testable; the UI layer supplies `Date.now()`.
  *  - **History-aware restore.** `restore` snapshots the current live state onto
@@ -110,7 +110,7 @@ export function useVersionHistory(options: UseVersionHistoryOptions): UseVersion
 	const { slides, pushHistory } = options;
 	const maxVersions = Math.max(1, options.maxVersions ?? DEFAULT_MAX_VERSIONS);
 
-	// `shallowRef` is sufficient — the list is always replaced wholesale, never
+	// `shallowRef` is sufficient: the list is always replaced wholesale, never
 	// mutated in place, and each snapshot is an opaque cloned array.
 	const versions = shallowRef<SlideVersion[]>([]);
 
@@ -142,7 +142,7 @@ export function useVersionHistory(options: UseVersionHistoryOptions): UseVersion
 		// History-aware: push the current live state so restore is undoable.
 		pushHistory();
 		// Clone again so the live ref never shares references with the stored
-		// snapshot — a subsequent edit must not corrupt the retained version.
+		// snapshot: a subsequent edit must not corrupt the retained version.
 		slides.value = snapshot(version.slides);
 		return true;
 	};

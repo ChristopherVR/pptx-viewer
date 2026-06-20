@@ -4,7 +4,7 @@ import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
 /**
- * ConnectorTextOverlay — Vue port of the React `ConnectorTextOverlay`.
+ * ConnectorTextOverlay: Vue port of the React `ConnectorTextOverlay`.
  *
  * Renders a connector's label text centred over its bounding box. PowerPoint
  * lets authors attach a text run to a connector (`<p:cxnSp>` with a non-empty

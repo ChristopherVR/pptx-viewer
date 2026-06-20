@@ -1,6 +1,6 @@
 <script lang="ts">
 /**
- * ContextMenu — generic right-click menu for the Vue editor.
+ * ContextMenu: generic right-click menu for the Vue editor.
  *
  * Vue port of the React `ContextMenu` component (see
  * `packages/react/src/viewer/components/ContextMenu.tsx`), generalised into a

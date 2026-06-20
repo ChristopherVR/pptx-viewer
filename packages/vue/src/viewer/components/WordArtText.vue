@@ -11,7 +11,7 @@ import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
 /**
- * WordArtText — Vue port of the React `WarpedText` SVG renderer.
+ * WordArtText - Vue port of the React `WarpedText` SVG renderer.
  *
  * Renders warped (WordArt) text. The strategy depends on the preset's
  * {@link classifyTextWarp} category, mirroring React:
@@ -22,10 +22,10 @@ import { computed } from 'vue';
  *  - `envelope` (inflate/deflate/can) and `simple` (slant/fade/cascade): SVG
  *    `<textPath>` cannot bend individual glyphs, so the text is laid out flat
  *    and a CSS `transform` (+ `transform-origin`) from {@link getWarpCssTransform}
- *    approximates the warp — the same approach React uses.
+ *    approximates the warp, the same approach React uses.
  *
  * Presets that are not classified (`textNoShape`, `textPlain`, unknown values)
- * cause the component to render nothing — callers fall back to flat text. The
+ * cause the component to render nothing; callers fall back to flat text. The
  * overlay is absolutely positioned to fill the host box and is
  * `pointer-events: none` so it overlays without intercepting interaction.
  */
@@ -88,7 +88,7 @@ const category = computed(() => classifyTextWarp(preset.value));
 
 /**
  * `path` presets render along an SVG `<textPath>` baseline. `envelope`/`simple`
- * presets are excluded here even though they also pass {@link shouldUseSvgWarp} —
+ * presets are excluded here even though they also pass {@link shouldUseSvgWarp}:
  * they use the CSS-transform branch instead, matching React.
  */
 const usesTextPath = computed(
@@ -190,7 +190,7 @@ function pathFor(i: number): string {
 }
 
 /**
- * CSS-transform style for `envelope`/`simple` presets — the warp `transform`
+ * CSS-transform style for `envelope`/`simple` presets: the warp `transform`
  * plus its `transform-origin`, applied to the flat-text overlay. `undefined`
  * for `path`/`none` presets.
  */

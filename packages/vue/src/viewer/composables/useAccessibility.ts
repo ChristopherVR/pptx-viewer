@@ -11,7 +11,7 @@ import type { ComputedRef, MaybeRefOrGetter } from 'vue';
 import { computed, toValue } from 'vue';
 
 /**
- * `useAccessibility` — reactive WCAG / PowerPoint-style accessibility checker
+ * `useAccessibility`: reactive WCAG / PowerPoint-style accessibility checker
  * for the Vue viewer/editor.
  *
  * Mirrors `pptx-viewer-core`'s {@link checkPresentation} entry point, but

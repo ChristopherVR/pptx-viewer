@@ -9,17 +9,17 @@ import RulerStrips from './RulerStrips.vue';
 import SlideStage from './SlideStage.vue';
 
 /**
- * SlideCanvas — Vue port of the React `SlideCanvas.tsx` (viewer-first subset).
+ * SlideCanvas - Vue port of the React `SlideCanvas.tsx` (viewer-first subset).
  *
  * Centres a {@link SlideStage} in a scrollable viewport with a drop shadow.
  * The React version additionally layered in rulers, grid, guides, marquee/
- * selection, connector-creation, drawing, and collaboration overlays — all
+ * selection, connector-creation, drawing, and collaboration overlays, all
  * tracked in PORTING.md.
  *
  * Responsive sizing: the slide has a fixed authored pixel size (e.g. 1280×720),
  * which overflows small/mobile viewports. We measure the scroll viewport and
  * emit a `fitScale` (how much the slide must shrink to fit, capped at 1, never
- * upscaling) so the parent can fold it into the effective zoom — mirroring the
+ * upscaling) so the parent can fold it into the effective zoom, mirroring the
  * React viewer's `fitScale * scale` model where "100%" means "fit to viewport".
  */
 const props = defineProps<{

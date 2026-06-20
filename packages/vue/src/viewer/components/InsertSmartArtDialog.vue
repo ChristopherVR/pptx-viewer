@@ -13,7 +13,7 @@ import { CATEGORIES, PRESETS } from './smart-art-presets';
 import SmartArtPreviews from './SmartArtPreviews.vue';
 
 /**
- * InsertSmartArtDialog — gallery + node-text entry for inserting a SmartArt
+ * InsertSmartArtDialog: gallery + node-text entry for inserting a SmartArt
  * graphic.
  *
  * Vue port of the React `InsertSmartArtDialog.tsx`. Built on
@@ -23,7 +23,7 @@ import SmartArtPreviews from './SmartArtPreviews.vue';
  * lines before inserting.
  *
  * On insert it builds a fully-formed core {@link SmartArtPptxElement} (so
- * `SmartArtRenderer.vue` can render it directly, with no further core call —
+ * `SmartArtRenderer.vue` can render it directly, with no further core call;
  * there is no `createSmartArtElement` factory in core, so the literal is built
  * here exactly as the React `handleInsertSmartArt` handler does) and emits it
  * via the `insert` event. The host routes the payload to `ops.addElement`.

@@ -11,7 +11,7 @@
  * so the dialog can take one `settings` prop and emit one `update(settings)`
  * payload, which is easier to wire into a host's reactive state.
  *
- * These are pure data — no framework imports — so the type/defaults stay
+ * These are pure data (no framework imports) so the type/defaults stay
  * trivially reusable and unit-testable.
  */
 
@@ -31,7 +31,7 @@ export interface ViewerSettings {
 	reducedMotion: boolean;
 }
 
-/** Default viewer settings — matches the React dialog's initial state. */
+/** Default viewer settings: matches the React dialog's initial state. */
 export const DEFAULT_VIEWER_SETTINGS: ViewerSettings = {
 	autoSave: true,
 	spellCheck: false,

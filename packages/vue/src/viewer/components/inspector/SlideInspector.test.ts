@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import SlideInspector from './SlideInspector.vue';
 
 /**
- * SlideInspector (Vue) — slide-level inspector hosting the transition controls,
+ * SlideInspector (Vue): slide-level inspector hosting the transition controls,
  * shown when no element is selected.
  */
 function slide(transition?: PptxSlideTransition): PptxSlide {

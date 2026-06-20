@@ -4,7 +4,7 @@ import { computed, onScopeDispose, toValue, watch } from 'vue';
 import type { ComputedRef, MaybeRefOrGetter } from 'vue';
 
 /**
- * `useEmbeddedFonts` — Vue port of the embedded-font injection logic in the
+ * `useEmbeddedFonts`: Vue port of the embedded-font injection logic in the
  * React `useFontInjection` hook (the `@font-face` half).
  *
  * Given the embedded fonts parsed out of a `.pptx` by `pptx-viewer-core`, this
@@ -16,7 +16,7 @@ import type { ComputedRef, MaybeRefOrGetter } from 'vue';
  * de-obfuscates the OOXML XOR layer and produces a ready-to-use `dataUrl` for
  * each style variant. One {@link PptxEmbeddedFont} therefore corresponds to a
  * single style variant (regular / bold / italic / boldItalic), distinguished by
- * its `bold` and `italic` flags — a font with regular + bold data yields two
+ * its `bold` and `italic` flags: a font with regular + bold data yields two
  * entries and two `@font-face` rules.
  *
  * As a defence-in-depth fallback, if an entry arrives without a usable

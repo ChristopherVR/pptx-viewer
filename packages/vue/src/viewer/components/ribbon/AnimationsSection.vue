@@ -1,5 +1,5 @@
 <!--
-	Animations ribbon section — Vue port of React's `toolbar/AnimationsSection.tsx`.
+	Animations ribbon section: Vue port of React's `toolbar/AnimationsSection.tsx`.
 	Faithful, mechanical port for visual + behavioral parity: a Preview button with
 	a transient active flash, a hover-revealed "Add Animation" preset menu, a
 	Remove button, and an Animation-Panel toggle. Class strings copied verbatim.

@@ -5,7 +5,7 @@ import { computed } from 'vue';
 import { useSignatures } from '../composables/useSignatures';
 
 /**
- * SignaturesPanel — read-only digital-signature status panel.
+ * SignaturesPanel - read-only digital-signature status panel.
  *
  * Lists each signature in the package (signer/certificate info, validity
  * status, signing timestamp) under an overall "Signed / Invalid / Not signed"

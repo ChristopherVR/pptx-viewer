@@ -64,7 +64,7 @@ describe('useAnimationPlayback', () => {
 		expect(elementStyles.value.has('t3')).toBeTruthy();
 		expect(isComplete.value).toBeTruthy();
 
-		// No more groups — advance returns false so the host can navigate slides.
+		// No more groups: advance returns false so the host can navigate slides.
 		expect(advance()).toBeFalsy();
 	});
 

@@ -10,7 +10,7 @@ import {
 import { computed } from 'vue';
 
 /**
- * RegionMapChart — Vue port of React `chart-map.tsx` choropleth map renderer.
+ * RegionMapChart: Vue port of React `chart-map.tsx` choropleth map renderer.
  * Rendered inside the parent chart `<svg>` as a `<g>` group.
  * Uses a 1000x500 coordinate system for region outlines and scales them
  * to fit the available layout area.

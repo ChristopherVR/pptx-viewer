@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * AutosaveIndicator — a tiny status pill for the editor toolbar.
+ * AutosaveIndicator: a tiny status pill for the editor toolbar.
  *
  * Reflects the autosave lifecycle (`status`) and the unsaved-edits flag
  * (`isDirty`) as a short label: "Saving…", "Saved", "Save failed", or

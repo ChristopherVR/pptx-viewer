@@ -4,7 +4,7 @@ import { formatCommentTimestamp } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
 
 /**
- * CommentsPanel — side panel listing the active slide's comments.
+ * CommentsPanel: side panel listing the active slide's comments.
  *
  * Presentational only: it renders the supplied `comments` (already filtered to
  * the active slide by the host) and surfaces add / remove / resolve intents via

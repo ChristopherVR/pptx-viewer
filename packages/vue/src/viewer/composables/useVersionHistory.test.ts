@@ -44,7 +44,7 @@ describe('useVersionHistory', () => {
 		expect(history.hasVersions.value).toBeTruthy();
 	});
 
-	it('captures a deep clone — later edits do not mutate the stored version', () => {
+	it('captures a deep clone - later edits do not mutate the stored version', () => {
 		const live = el('a', 10);
 		const slides = shallowRef<PptxSlide[]>([slide('s1', [live])]);
 		const history = useVersionHistory({ slides, pushHistory: vi.fn() });

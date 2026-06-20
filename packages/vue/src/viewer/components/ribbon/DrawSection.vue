@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * DrawSection — the Vue 3 port of React's `toolbar/DrawSection.tsx`. Renders the
+ * DrawSection: the Vue 3 port of React's `toolbar/DrawSection.tsx`. Renders the
  * Draw ribbon tab: the inking-tool button cluster (Select / Pen / Highlighter /
  * Eraser / Freeform) plus the pen-colour swatch and stroke-width slider. A
- * faithful, mechanical port for visual + behavioral parity — class strings are
+ * faithful, mechanical port for visual + behavioral parity: class strings are
  * copied verbatim and `cn` composes the active-tool highlight, exactly as React.
  * The shared `DRAW_TOOLS` table supplies lucide icon component refs, rendered via
  * `<component :is="…" />`.

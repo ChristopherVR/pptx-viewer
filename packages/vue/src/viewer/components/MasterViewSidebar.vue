@@ -1,13 +1,13 @@
 <script setup lang="ts">
 /**
- * MasterViewSidebar — the master-view navigation sidebar.
+ * MasterViewSidebar - the master-view navigation sidebar.
  *
  * Vue port of the React `MasterViewSidebar.tsx`. A three-tab sidebar (slide
  * masters / notes master / handout master) with a collapse button. The active
  * tab swaps the body between {@link SlideMastersList}, {@link NotesMasterPanel},
  * and {@link HandoutMasterPanel}.
  *
- * Presentational only — all selection/state is owned by the host and surfaced
+ * Presentational only: all selection/state is owned by the host and surfaced
  * via emits (React passed equivalent `onX` callbacks).
  *
  * Props : `{ slideMasters, activeMasterIndex, activeLayoutIndex, canvasSize,

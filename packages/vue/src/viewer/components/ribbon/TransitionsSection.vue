@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Copy, PanelRight, Play } from 'lucide-vue-next';
 /**
- * TransitionsSection — the Vue 3 port of React's `TransitionsSection` from
+ * TransitionsSection: the Vue 3 port of React's `TransitionsSection` from
  * `toolbar/DesignTransitionsReviewSection.tsx`. Renders the Transitions ribbon
  * tab: a Preview button, the transition-preset gallery, a duration input, an
  * Apply-to-All button and the Inspector toggle. A faithful, mechanical port for

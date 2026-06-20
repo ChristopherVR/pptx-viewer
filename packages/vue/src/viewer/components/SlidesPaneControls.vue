@@ -1,10 +1,10 @@
 <script setup lang="ts">
 /**
- * SlidesPaneControls — compact button row for slide-level editing.
+ * SlidesPaneControls - compact button row for slide-level editing.
  *
  * Renders Add / Duplicate / Delete actions and emits the corresponding
  * events. The Delete button is disabled (and `delete` suppressed) when
- * `canDelete` is false — i.e. when removing the last remaining slide
+ * `canDelete` is false, i.e. when removing the last remaining slide
  * would leave the deck empty. Purely presentational: all state lives in
  * the parent, which wires these events to `useSlideOperations`.
  */

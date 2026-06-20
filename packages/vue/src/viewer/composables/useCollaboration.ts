@@ -10,7 +10,7 @@ import type { CollaborationConfig } from '../types';
  *
  * Scope: the slide model is broadcast as a whole-document JSON value in a shared
  * `Y.Map` (last-write-wins, not per-field CRDT) and remote collaborators'
- * **presence** — cursor position, selected element ids and active slide index —
+ * **presence** (cursor position, selected element ids and active slide index)
  * is surfaced via the y-websocket **awareness** channel. `yjs`/`y-websocket` are
  * imported lazily so they stay out of the main chunk and are only loaded when a
  * session actually starts.
@@ -55,7 +55,7 @@ export interface UseCollaborationResult {
 	connected: Ref<boolean>;
 	/** Remote collaborators' live cursors (excludes self). */
 	cursors: Ref<RemoteCursor[]>;
-	/** Remote collaborators' full presence — cursor + selection + slide (excludes self). */
+	/** Remote collaborators' full presence: cursor + selection + slide (excludes self). */
 	remotePresences: Ref<RemotePresence[]>;
 	/** Whether a session is currently active. */
 	active: Ref<boolean>;
@@ -262,7 +262,7 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 			stopWatch = watch(options.slides, pushLocalSlides, { deep: false });
 			active.value = true;
 		} catch {
-			// yjs/y-websocket unavailable or connection failed — degrade silently.
+			// yjs/y-websocket unavailable or connection failed: degrade silently.
 			stop();
 		}
 	}

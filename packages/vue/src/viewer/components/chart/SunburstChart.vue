@@ -5,7 +5,7 @@ import { paletteColor } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 
 /**
- * SunburstChart — Vue port of React `chart-sunburst-funnel.tsx` sunburst variant.
+ * SunburstChart: Vue port of React `chart-sunburst-funnel.tsx` sunburst variant.
  * Rendered inside the parent chart `<svg>` (emits a `<g>` group).
  * Draws concentric arc rings, one per series.
  */

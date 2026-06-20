@@ -1,5 +1,5 @@
 /*
- * pptx-vue-viewer — theme tokens (mirrors the React `packages/react/src/styles/theme.css`).
+ * pptx-vue-viewer: theme tokens (mirrors the React `packages/react/src/styles/theme.css`).
  *
  * Maps Tailwind v4 semantic colour tokens to the framework-agnostic --pptx-*
  * custom properties (the same ones `pptx-viewer-shared/theme` emits from the

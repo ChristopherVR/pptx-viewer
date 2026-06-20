@@ -31,7 +31,7 @@ import {
 	Video,
 } from 'lucide-vue-next';
 /**
- * Shared style tokens + data tables for the Office-style ribbon — the Vue port
+ * Shared style tokens + data tables for the Office-style ribbon: the Vue port
  * of React's `toolbar/toolbar-constants.tsx`. Class strings are copied verbatim
  * so the Vue ribbon renders pixel-for-pixel with React's Tailwind chrome; the
  * JSX icon arrays become arrays of `lucide-vue-next` component references
@@ -41,7 +41,7 @@ import type { Component } from 'vue';
 
 import type { DrawingTool, ToolbarSection, ViewerMode } from './ribbon-types';
 
-/* Style tokens — touch-friendly variants use min-h/min-w of 44px (WCAG 2.5.8).
+/* Style tokens: touch-friendly variants use min-h/min-w of 44px (WCAG 2.5.8).
  * Tailwind 4 has no built-in `touch:` variant, so `max-md:` is used as a proxy
  * (mobile viewports are touch). Copied verbatim from React for visual parity. */
 export const BTN_BASE =

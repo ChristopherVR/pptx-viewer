@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { EyeOff, MessageSquare, Plus } from 'lucide-vue-next';
 /**
- * SlidesPaneSidebar — Vue port of React's `SlidesPaneSidebar` + `SlideItem`.
+ * SlidesPaneSidebar - Vue port of React's `SlidesPaneSidebar` + `SlideItem`.
  *
  * The flat slide rail: a scrollable list of number-left thumbnails (active slide
  * gets a left primary bar + accent background), drag-to-reorder, a right-click

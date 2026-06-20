@@ -9,7 +9,7 @@ import { computed, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
 /**
- * useEditorOperations — element CRUD + transform operations over the active
+ * useEditorOperations: element CRUD + transform operations over the active
  * slide of a reactive `PptxSlide[]`.
  *
  * This is the Vue port of the editing foundation that lives across the React
@@ -54,7 +54,7 @@ export interface UseEditorOperationsInput {
 	pushHistory: () => void;
 	/**
 	 * Optional selection state (element ids). When provided, operations keep it
-	 * in sync — newly added/duplicated elements become selected, removed ones are
+	 * in sync: newly added/duplicated elements become selected, removed ones are
 	 * deselected. When omitted, an internally-owned selection ref is used.
 	 */
 	selectedElementIds?: Ref<string[]>;
@@ -74,7 +74,7 @@ export interface EditorOperations {
 	removeElement: (elementId: string) => void;
 	/** Patch an element's geometry (x/y/width/height/rotation). */
 	transformElement: (elementId: string, transform: ElementTransform) => void;
-	/** Alias of {@link transformElement} — mirrors the React "move" semantics. */
+	/** Alias of {@link transformElement}: mirrors the React "move" semantics. */
 	moveElement: (elementId: string, transform: ElementTransform) => void;
 	/**
 	 * Deep-clone an element (new ids via core `duplicateElement`), offset it

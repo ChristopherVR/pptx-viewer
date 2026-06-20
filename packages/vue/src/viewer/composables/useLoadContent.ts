@@ -54,7 +54,7 @@ async function parseSignaturesFromBuffer(buffer: ArrayBuffer): Promise<ParsedSig
 }
 
 /**
- * `useLoadContent` — Vue port of the React hook of the same name.
+ * `useLoadContent`: Vue port of the React hook of the same name.
  *
  * Watches a reactive `content` source and parses it into reactive viewer
  * state via the framework-agnostic `PptxHandler` from `pptx-viewer-core`.
@@ -187,7 +187,7 @@ export function useLoadContent(
 				raw instanceof Uint8Array
 					? raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength)
 					: raw;
-			// Keep an independent copy for signature parsing — the handler may
+			// Keep an independent copy for signature parsing; the handler may
 			// consume/transfer `buffer` during load.
 			const signatureBuffer = buffer.slice(0);
 

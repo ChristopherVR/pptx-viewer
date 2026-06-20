@@ -13,7 +13,7 @@ import {
 import type { PrintSettings } from '../components/print-dialog-types';
 
 /**
- * usePrint — print-dialog state + the print-with-settings flow for the Vue
+ * usePrint: print-dialog state + the print-with-settings flow for the Vue
  * viewer. Vue port of the React `usePrintHandlers` (raster path).
  *
  * The DOM-touching pieces are injected so the composable is unit-testable with

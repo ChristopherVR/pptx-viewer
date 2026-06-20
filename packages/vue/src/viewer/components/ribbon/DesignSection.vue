@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * DesignSection — the Vue 3 port of React's `DesignSection` from
+ * DesignSection: the Vue 3 port of React's `DesignSection` from
  * `toolbar/DesignTransitionsReviewSection.tsx`. Renders the Design ribbon tab's
  * Themes (Browse/Edit Theme) and Customize (Slide Size / Format Background)
  * buttons. A faithful, mechanical port for visual + behavioral parity: class

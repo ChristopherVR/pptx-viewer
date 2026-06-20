@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * SlideInspector — the slide-level property inspector, shown in the right pane
+ * SlideInspector: the slide-level property inspector, shown in the right pane
  * when no element is selected (mirrors React's inspector, which swaps element
  * panels for slide properties). Currently hosts the Slide Transition section
  * (React's `SlideTransitionSection`), restoring per-slide transition editing

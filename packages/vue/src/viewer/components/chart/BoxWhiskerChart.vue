@@ -5,7 +5,7 @@ import { paletteColor, valueToY } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 
 /**
- * BoxWhiskerChart — Vue port of React `chart-bar.tsx` box-whisker variant.
+ * BoxWhiskerChart: Vue port of React `chart-bar.tsx` box-whisker variant.
  * Rendered inside the parent chart `<svg>` (emits a `<g>` group).
  * Cross-series values per category form the whisker statistics.
  */

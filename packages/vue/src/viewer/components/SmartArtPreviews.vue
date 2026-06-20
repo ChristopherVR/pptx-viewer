@@ -3,7 +3,7 @@ import type { SmartArtLayout } from 'pptx-viewer-core';
 import { computed } from 'vue';
 
 /**
- * SmartArtPreviews — a tiny SVG thumbnail for a SmartArt {@link SmartArtLayout}.
+ * SmartArtPreviews - a tiny SVG thumbnail for a SmartArt {@link SmartArtLayout}.
  *
  * Vue port of the React `SmartArtPreviews.tsx` `getPreviewForLayout` resolver.
  * Each layout maps to one of a handful of schematic glyphs (block list, chevron

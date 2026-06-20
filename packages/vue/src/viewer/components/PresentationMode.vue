@@ -15,7 +15,7 @@ import PresenterView from './PresenterView.vue';
 import SlideStage from './SlideStage.vue';
 
 /**
- * PresentationMode — a full-viewport slideshow overlay.
+ * PresentationMode - a full-viewport slideshow overlay.
  *
  * Renders the active slide via {@link SlideStage}, scaled to fit the viewport
  * while preserving aspect ratio, centered on a black background. Mounted into
@@ -145,10 +145,10 @@ function close(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Presentation chrome — ink annotations, toolbar, presenter view, captions
+// Presentation chrome: ink annotations, toolbar, presenter view, captions
 // ---------------------------------------------------------------------------
 
-/** Timestamp (ms) the show started — drives the toolbar/presenter timers. */
+/** Timestamp (ms) the show started: drives the toolbar/presenter timers. */
 const presentationStartTime = ref<number | null>(null);
 /** Whether the presenter view (notes + next-slide preview) is shown. */
 const presenterMode = ref(false);
@@ -162,7 +162,7 @@ const annotations = usePresentationAnnotations({
 
 /**
  * Tap-to-advance, but only when no drawing tool is armed and the presenter
- * view is not covering the stage — otherwise a pen stroke or a presenter-view
+ * view is not covering the stage; otherwise a pen stroke or a presenter-view
  * click would skip slides.
  */
 function onOverlayClick(): void {
@@ -391,7 +391,7 @@ onBeforeUnmount(() => {
 				/>
 			</div>
 
-			<!-- Presenter view (notes + next-slide preview) — covers the stage. -->
+			<!-- Presenter view (notes + next-slide preview): covers the stage. -->
 			<PresenterView
 				v-if="presenterMode"
 				:slides="slides"
@@ -444,7 +444,7 @@ onBeforeUnmount(() => {
 			</button>
 
 			<!--
-				Edge navigation buttons — the primary touch affordance for moving
+				Edge navigation buttons: the primary touch affordance for moving
 				between slides. They stop propagation so a tap on a control never
 				falls through to the overlay's tap-to-advance handler.
 			-->

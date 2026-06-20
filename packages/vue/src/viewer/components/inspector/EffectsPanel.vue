@@ -4,15 +4,15 @@ import { hasShapeProperties } from 'pptx-viewer-core';
 import { computed } from 'vue';
 
 /**
- * EffectsPanel — element opacity plus outer-shadow and outer-glow controls.
+ * EffectsPanel: element opacity plus outer-shadow and outer-glow controls.
  *
  * Opacity is an element-level field and is emitted as a SHALLOW patch
  * (`{ opacity }`). Shadow and glow live on `element.shapeStyle` as FLAT fields
- * (core `ShapeStyle` has no nested `outerShadow`/`glow` objects — see below), so
+ * (core `ShapeStyle` has no nested `outerShadow`/`glow` objects; see below), so
  * those controls emit the FULL merged sub-object: `{ shapeStyle: { ...current,
  * <fields> } }`. The parent merges every patch via `ops.updateElement(id, patch)`.
  *
- * Core `ShapeStyle` field mapping (authoritative — mirrors the React renderer's
+ * Core `ShapeStyle` field mapping (authoritative; mirrors the React renderer's
  * shape-visual-style.ts and fill-stroke effect configs):
  *   Outer shadow → `shadowColor`, `shadowOpacity`, `shadowBlur`, `shadowAngle`,
  *                  `shadowDistance` (a shadow is "on" when `shadowColor` is set

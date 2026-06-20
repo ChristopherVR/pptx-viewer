@@ -4,7 +4,7 @@ import type { PlotLayout, ValueRange } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 
 /**
- * SurfaceChart — Vue port of the isometric SVG surface renderer from
+ * SurfaceChart: Vue port of the isometric SVG surface renderer from
  * `packages/react/src/viewer/utils/chart-surface-treemap.tsx`.
  *
  * Renders both `surface` and `surface3D` chart types as an isometric/2.5D
@@ -94,7 +94,7 @@ const isoQuads = computed<IsoQuad[]>(() => {
 	const cellByHeight = (l.plotHeight * 0.65) / (gridSpan * ISO_SIN30);
 	const cellSize = Math.min(cellByWidth, cellByHeight);
 
-	// Z (height) headroom — 30% of plot height for value displacement.
+	// Z (height) headroom: 30% of plot height for value displacement.
 	const zScale = range.span > 0 ? l.plotHeight * 0.3 : 0;
 
 	// Compute all vertex screen positions so we can centre the projection.

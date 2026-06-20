@@ -1,5 +1,5 @@
 /**
- * guides — pure helpers for the View ▸ H/V Guides feature (draggable alignment
+ * guides: pure helpers for the View ▸ H/V Guides feature (draggable alignment
  * guides). Vue port of the guide logic in React's `useViewerDialogs` /
  * `ViewerCanvasArea`. Kept framework-free so it can be unit-tested in isolation.
  */
@@ -13,7 +13,7 @@ export interface Guide {
 }
 
 /**
- * Build a new guide centred on the slide — horizontal guides sit at half the
+ * Build a new guide centred on the slide: horizontal guides sit at half the
  * slide height, vertical guides at half the width (mirrors React's
  * `handleAddGuide`). `id` is supplied by the caller so the source stays pure.
  */

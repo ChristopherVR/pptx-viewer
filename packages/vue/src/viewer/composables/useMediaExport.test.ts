@@ -58,7 +58,7 @@ function makeRecorderFactory(): {
 	};
 }
 
-describe('useMediaExport — GIF', () => {
+describe('useMediaExport - GIF', () => {
 	it('rasterises every slide, encodes a GIF, and downloads it', async () => {
 		const rasterizeSlide = vi.fn().mockResolvedValue(fakeCanvas());
 		const encodeGif = vi.fn((frames: GifFrame[]) => new Uint8Array([frames.length]));
@@ -119,7 +119,7 @@ describe('useMediaExport — GIF', () => {
 	});
 });
 
-describe('useMediaExport — WebM', () => {
+describe('useMediaExport - WebM', () => {
 	it('records every slide and downloads a webm blob', async () => {
 		vi.useFakeTimers();
 		const recorder = makeRecorderFactory();
@@ -176,7 +176,7 @@ describe('useMediaExport — WebM', () => {
 	});
 });
 
-describe('useMediaExport — real GIF encoder', () => {
+describe('useMediaExport - real GIF encoder', () => {
 	it('produces a valid GIF89a header via the lazy-loaded encoder', async () => {
 		const downloadBlob = vi.fn();
 		const { exportGif } = useMediaExport({

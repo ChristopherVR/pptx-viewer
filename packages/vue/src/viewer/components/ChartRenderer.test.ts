@@ -39,7 +39,7 @@ describe('chartRenderer', () => {
 			props: { element: chartElement(data('bar')), zIndex: 1 },
 		});
 		// 2 series × 3 categories = 6 data bars. (Plus a background rect.)
-		// Count only rects with rx="1" — those are the bars.
+		// Count only rects with rx="1": those are the bars.
 		const bars = wrapper.findAll('rect').filter((r) => r.attributes('rx') === '1');
 		expect(bars).toHaveLength(6);
 	});

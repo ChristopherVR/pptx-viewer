@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 
 /**
- * ExportMenu — a small dropdown offering PNG (current slide), PDF, animated GIF
+ * ExportMenu: a small dropdown offering PNG (current slide), PDF, animated GIF
  * and WebM video exports. Emits intent; the host runs the actual export via
  * `useExport` / `useMediaExport`.
  */

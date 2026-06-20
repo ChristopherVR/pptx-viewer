@@ -25,7 +25,7 @@ import { getComputed3dStyle, merge3dStyle } from './visual-3d';
  * images. Advanced visuals (gradients, custom geometry clip-paths, shadows,
  * 3D, image effects, text warp) are tracked in PORTING.md.
  *
- * Long-term these helpers — and their richer React counterparts — should be
+ * Long-term these helpers (and their richer React counterparts) should be
  * hoisted into a shared, framework-agnostic package so all three UI bindings
  * reuse one implementation.
  */
@@ -46,7 +46,7 @@ const DEFAULT_BODY_INSET_TB_PX = 45720 / 9525;
  * renders as a fixed `Xpt`; otherwise the proportional multiplier (`a:spcPct`)
  * is used, defaulting to 1.25 (1.35 when the block carries italics, which sit
  * slightly taller). Returning a unitless multiplier lets it scale with the
- * resolved font size — matching React, which never relies on the browser's
+ * resolved font size, matching React, which never relies on the browser's
  * font-dependent `normal` (≈1.2–1.5).
  */
 function resolveLineHeight(
@@ -119,7 +119,7 @@ export function getShapeFillStrokeStyle(el: PptxElement): CSSProperties {
 	const style: CSSProperties = {};
 
 	if (ss) {
-		// Fill: resolve in React's order via the structured fill builder —
+		// Fill: resolve in React's order via the structured fill builder;
 		//   image → structured gradient (falls back to prebuilt `fillGradient`)
 		//   → preset pattern → solid (with `fillOpacity`).
 		const fill = getComputedFillStyle(el);
@@ -184,7 +184,7 @@ export function getShapeFillStrokeStyle(el: PptxElement): CSSProperties {
 	// rotation/flip transform is composed separately in `ElementRenderer`.
 	merge3dStyle(style, getComputed3dStyle(el));
 
-	// Geometry: mirror the React `getShapeVisualStyle` priority cascade —
+	// Geometry: mirror the React `getShapeVisualStyle` priority cascade:
 	// connector → roundRect (radius) → ellipse → clip-path → line → cylinder.
 	const normalizedShapeType = getShapeType(el.shapeType);
 
@@ -275,7 +275,7 @@ export function getTextBlockStyle(el: PptxElement): CSSProperties {
 	if (typeof ts.fontSize === 'number') {
 		style.fontSize = px(ts.fontSize);
 	}
-	// Line spacing — without this the browser's font-dependent `normal`
+	// Line spacing: without this the browser's font-dependent `normal`
 	// (≈1.2–1.5) loosens multi-line text and pushes it out of its box.
 	style.lineHeight = resolveLineHeight(ts, Boolean(ts.italic));
 	if (ts.bold) {

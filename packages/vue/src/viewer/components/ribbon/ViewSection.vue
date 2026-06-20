@@ -2,7 +2,7 @@
 import { List, Pipette } from 'lucide-vue-next';
 
 /**
- * ViewSection — the Vue 3 port of React's `toolbar/ViewSection.tsx`. Renders the
+ * ViewSection: the Vue 3 port of React's `toolbar/ViewSection.tsx`. Renders the
  * View ribbon tab's Presentation Views, Master Views and Zoom groups plus the
  * standalone toggles for template editing, selection pane, eyedropper, grid,
  * rulers, snap-to-grid/shape, horizontal/vertical guides and spell check. A

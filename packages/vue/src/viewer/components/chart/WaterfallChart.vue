@@ -5,7 +5,7 @@ import { formatAxisValue, valueToY } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 
 /**
- * WaterfallChart — Vue port of React `chart-waterfall-combo.tsx` waterfall variant.
+ * WaterfallChart: Vue port of React `chart-waterfall-combo.tsx` waterfall variant.
  * Rendered inside the parent chart `<svg>` (emits a `<g>` group).
  */
 const props = defineProps<{

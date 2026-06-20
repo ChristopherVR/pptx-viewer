@@ -4,7 +4,7 @@ import { computed } from 'vue';
 import type { DocumentStatistics } from '../composables/useDocumentStatistics';
 
 /**
- * DocumentPropertiesStatisticsTab — read-only computed statistics.
+ * DocumentPropertiesStatisticsTab: read-only computed statistics.
  *
  * Vue counterpart of React's `DocumentPropertiesStatisticsTab`, but the counts
  * are computed live from the slide model (see `useDocumentStatistics`) rather

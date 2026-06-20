@@ -1,7 +1,7 @@
 import type { SmartArtLayout } from 'pptx-viewer-core';
 
 /**
- * smart-art-presets — the SmartArt insert-gallery catalogue.
+ * smart-art-presets: the SmartArt insert-gallery catalogue.
  *
  * Vue port of the React package's `smart-art-presets.ts`. Pure data + types,
  * kept framework-agnostic and unit-testable; consumed by `SmartArtPreviews.vue`

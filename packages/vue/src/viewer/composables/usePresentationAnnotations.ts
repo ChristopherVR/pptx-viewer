@@ -1,5 +1,5 @@
 /**
- * `usePresentationAnnotations` — Vue port of the React
+ * `usePresentationAnnotations`: Vue port of the React
  * `usePresentationAnnotations` hook.
  *
  * Provides pen, highlighter, eraser, and laser-pointer tools that overlay the
@@ -52,7 +52,7 @@ export type SlideAnnotationMap = Map<number, AnnotationStroke[]>;
 export interface UsePresentationAnnotationsOptions {
 	/** Whether presentation mode (and thus annotation capture) is active. */
 	isActive: MaybeRefOrGetter<boolean>;
-	/** Current slide index — used to track which slide annotations belong to. */
+	/** Current slide index, used to track which slide annotations belong to. */
 	activeSlideIndex: MaybeRefOrGetter<number>;
 }
 
@@ -212,7 +212,7 @@ export function usePresentationAnnotations(
 	);
 
 	// Reset transient state when presentation mode deactivates. Strokes are NOT
-	// cleared — they persist until the caller keeps or discards them.
+	// cleared; they persist until the caller keeps or discards them.
 	watch(
 		() => toValue(options.isActive),
 		(active) => {

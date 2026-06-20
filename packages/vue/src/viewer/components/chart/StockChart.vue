@@ -5,7 +5,7 @@ import { formatAxisValue, valueToY } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 
 /**
- * StockChart — Vue port of React `chart-stock.tsx`.
+ * StockChart: Vue port of React `chart-stock.tsx`.
  * Rendered inside the parent chart `<svg>` (emits a `<g>` group).
  * Supports 3-series (H/L/C) and 4-series (O/H/L/C) OHLC candlestick charts.
  */

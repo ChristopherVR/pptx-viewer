@@ -11,7 +11,7 @@ import type { ComputedRef, MaybeRefOrGetter } from 'vue';
  * counts directly from the live `PptxSlide[]` model instead, and pairs them
  * with the timestamps/revision carried on `PptxCoreProperties`.
  *
- * @see `DocumentPropertiesStatisticsTab` (React) — the visual reference.
+ * @see `DocumentPropertiesStatisticsTab` (React): the visual reference.
  */
 export interface DocumentStatistics {
 	/** Total number of slides. */
@@ -166,7 +166,7 @@ export function computeDocumentStatistics(
 }
 
 /**
- * `useDocumentStatistics` — reactive wrapper around
+ * `useDocumentStatistics`: reactive wrapper around
  * {@link computeDocumentStatistics}. Recomputes whenever the slide list or
  * core properties change.
  *

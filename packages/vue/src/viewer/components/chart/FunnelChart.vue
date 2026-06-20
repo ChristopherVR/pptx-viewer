@@ -5,7 +5,7 @@ import { formatAxisValue, paletteColor } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 
 /**
- * FunnelChart — Vue port of React `chart-sunburst-funnel.tsx` funnel variant.
+ * FunnelChart: Vue port of React `chart-sunburst-funnel.tsx` funnel variant.
  * Rendered inside the parent chart `<svg>` (emits a `<g>` group).
  */
 const props = defineProps<{

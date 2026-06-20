@@ -15,11 +15,11 @@ import {
 	Video,
 } from 'lucide-vue-next';
 /**
- * InsertSection — the Vue 3 port of React's `toolbar/InsertSection.tsx`. Renders
+ * InsertSection: the Vue 3 port of React's `toolbar/InsertSection.tsx`. Renders
  * the Insert ribbon tab: Text box, the Shape-type `<select>` + Add-shape cluster,
  * Image / Media / Table / SmartArt / Equation pills, and the hover-driven Action
  * Button and Insert Field dropdowns plus the Date/Time picker modal. A faithful,
- * mechanical port for visual + behavioral parity — class strings are copied
+ * mechanical port for visual + behavioral parity: class strings are copied
  * verbatim and the date-picker's `useState`/`useEffect(mousedown)` plumbing
  * becomes local `ref`s with a backdrop-click + outside-click guard.
  *
@@ -186,7 +186,7 @@ const activeShapePreset = computed(() =>
 	SHAPE_PRESETS.find((sp) => sp.type === props.newShapeType),
 );
 
-/* Date/Time picker modal state — React's local `useState` + outside-click. */
+/* Date/Time picker modal state: React's local `useState` + outside-click. */
 const datePickerOpen = ref(false);
 const datePickerValue = ref('');
 const dateFormat = ref('locale');

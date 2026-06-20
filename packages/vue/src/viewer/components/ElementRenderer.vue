@@ -25,7 +25,7 @@ import WordArtText from './WordArtText.vue';
 import ZoomRenderer from './ZoomRenderer.vue';
 
 /**
- * ElementRenderer — Vue port of the React `ElementRenderer.tsx`.
+ * ElementRenderer: Vue port of the React `ElementRenderer.tsx`.
  *
  * A thin dispatcher: renders a slide element by its `type` discriminant,
  * delegating each non-trivial type to a dedicated renderer component. The text
@@ -38,7 +38,7 @@ const props = defineProps<{
 	zIndex: number;
 	/**
 	 * When true, emit the `data-pptx-element` test/interaction hook. Only the
-	 * primary editable canvas sets this — thumbnails, the sorter, the export
+	 * primary editable canvas sets this; thumbnails, the sorter, the export
 	 * stage and presentation mode render without it.
 	 */
 	interactive?: boolean;
@@ -177,7 +177,7 @@ const hasText = computed(() =>
 		:z-index="zIndex"
 	/>
 
-	<!-- Equation (OMML → MathML) — equation text boxes delegate wholesale -->
+	<!-- Equation (OMML → MathML): equation text boxes delegate wholesale -->
 	<EquationRenderer
 		v-else-if="hasEquation"
 		:element="element"

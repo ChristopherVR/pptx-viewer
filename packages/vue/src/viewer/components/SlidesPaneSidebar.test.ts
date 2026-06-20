@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import SlidesPaneSidebar from './SlidesPaneSidebar.vue';
 
 /**
- * SlidesPaneSidebar (Vue port of React's slide rail) — number-left thumbnails,
+ * SlidesPaneSidebar (Vue port of React's slide rail) - number-left thumbnails,
  * active highlight, Add Slide button, drag-reorder, and the slide context menu.
  */
 function slide(id: string): PptxSlide {

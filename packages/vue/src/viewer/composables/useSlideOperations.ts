@@ -3,7 +3,7 @@ import { cloneSlide } from 'pptx-viewer-core';
 import type { Ref } from 'vue';
 
 /**
- * `useSlideOperations` — slide-level CRUD for the Vue editor.
+ * `useSlideOperations`: slide-level CRUD for the Vue editor.
  *
  * Vue port of the slide-management subset of the React
  * `useSlideManagement` hook. Each operation snapshots undo/redo history

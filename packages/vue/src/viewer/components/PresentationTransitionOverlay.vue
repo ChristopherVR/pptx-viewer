@@ -12,7 +12,7 @@ import type { CanvasSize } from '../types';
 import SlideStage from './SlideStage.vue';
 
 /**
- * PresentationTransitionOverlay — animates a slide change in presentation mode.
+ * PresentationTransitionOverlay - animates a slide change in presentation mode.
  *
  * It stacks two {@link SlideStage} layers, both scaled-to-fit identically to the
  * underlying presentation frame:

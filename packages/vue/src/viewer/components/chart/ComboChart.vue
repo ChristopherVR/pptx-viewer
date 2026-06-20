@@ -5,7 +5,7 @@ import { formatAxisValue, seriesColor, valueToY } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 
 /**
- * ComboChart — Vue port of React `chart-waterfall-combo.tsx` combo variant.
+ * ComboChart: Vue port of React `chart-waterfall-combo.tsx` combo variant.
  * Rendered inside the parent chart `<svg>` (emits a `<g>` group).
  * First series renders as bars; remaining series render as lines with dots.
  */

@@ -28,7 +28,7 @@ describe('presentationToolbar', () => {
 	it('emits move on nav buttons and end-presentation', async () => {
 		const wrapper = mountToolbar();
 		const navButtons = wrapper.findAll('.pptx-vue-ptb-btn');
-		// First nav button is "prev" (enabled — not on slide 0).
+		// First nav button is "prev" (enabled, not on slide 0).
 		await navButtons[0]?.trigger('click');
 		expect(wrapper.emitted('move')?.[0]).toStrictEqual([-1]);
 

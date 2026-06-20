@@ -5,7 +5,7 @@ import { computed, ref, watch } from 'vue';
 import ModalDialog from './ModalDialog.vue';
 
 /**
- * HyperlinkDialog — set or clear an element's click hyperlink.
+ * HyperlinkDialog: set or clear an element's click hyperlink.
  *
  * Mirrors the React app's hyperlink editing, which stores the link on the
  * element-level `actionClick` field (a `PptxAction`). The core type for that
@@ -15,7 +15,7 @@ import ModalDialog from './ModalDialog.vue';
  * interface PptxAction {
  *   url?: string;      // resolved external URL / file path
  *   tooltip?: string;  // hover tooltip text
- *   action?: string;   // OOXML ppaction verb (slide jumps etc.) — preserved
+ *   action?: string;   // OOXML ppaction verb (slide jumps etc.), preserved
  *   // …rId, soundRId, targetSlideIndex, highlightClick
  * }
  * ```

@@ -4,7 +4,7 @@ import { Captions, Cast, Clock, Monitor, Play, Settings } from 'lucide-vue-next'
 import { cn } from '../../../utils';
 import { ic, pill, SEP } from './ribbon-constants';
 /**
- * SlideShowSection — the Vue 3 port of React's `toolbar/SlideShowSection.tsx`.
+ * SlideShowSection: the Vue 3 port of React's `toolbar/SlideShowSection.tsx`.
  * Renders the Slide Show ribbon tab's Start (From Beginning / From Current
  * Slide), Presenter (Presenter View / Rehearse Timings), Set Up (Set Up Slide
  * Show / Broadcast) and Captions (Subtitles) groups. A faithful, mechanical port

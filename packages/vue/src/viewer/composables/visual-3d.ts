@@ -1,5 +1,5 @@
 /**
- * visual-3d.ts — Vue adapter over the shared 3D engine.
+ * visual-3d.ts: Vue adapter over the shared 3D engine.
  *
  * The pure scene3d/shape3d → CSS computation lives in `pptx-viewer-shared`
  * (`render/visual-3d`) so React, Vue, and Angular share one implementation.

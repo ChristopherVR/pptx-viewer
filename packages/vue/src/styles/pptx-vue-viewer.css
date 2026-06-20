@@ -254,7 +254,7 @@
 		flex: 0 0 auto;
 	}
 
-	/* Emphasise the prev/next controls — primary on-screen navigation. */
+	/* Emphasise the prev/next controls: primary on-screen navigation. */
 	.pptx-vue-nav button {
 		font-size: 1.5rem;
 		font-weight: 600;
@@ -262,7 +262,7 @@
 
 	/*
 	 * Hide the desktop slide-thumbnail rail (and the inline slides/transition
-	 * controls it hosts) on phones — they don't fit a narrow viewport and would
+	 * controls it hosts) on phones; they don't fit a narrow viewport and would
 	 * overflow the page horizontally, which mis-anchors the fixed bottom bar.
 	 * Mobile navigation is handled by the bottom bar + the slide-sorter overlay
 	 * (mirrors the React mobile chrome, which hides desktop chrome under 768px).

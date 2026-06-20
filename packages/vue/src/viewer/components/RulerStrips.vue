@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * RulerStrips — horizontal + vertical rulers (View ▸ Rulers), drawn along the
+ * RulerStrips - horizontal + vertical rulers (View ▸ Rulers), drawn along the
  * top and left edges of the slide. Tick positions come from the pure
  * `generateTicks` helper (scaled px from the slide origin), so they track the
  * zoom. Positioned absolutely inside `SlideCanvas`'s slide wrapper, so they sit

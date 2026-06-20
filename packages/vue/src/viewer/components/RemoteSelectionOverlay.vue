@@ -1,6 +1,6 @@
 <script lang="ts">
 /**
- * RemoteSelectionOverlay — presentational overlay that draws a coloured
+ * RemoteSelectionOverlay - presentational overlay that draws a coloured
  * rectangle around each element a remote collaborator has selected, labelled
  * with that peer's name in their colour (Google-Slides-style presence).
  *
@@ -46,7 +46,7 @@ const props = defineProps<{
 	presences: RemotePresence[];
 	/** Elements on the active slide (used to resolve selected ids → geometry). */
 	elements: PptxElement[];
-	/** The current slide index — only peers on this slide are drawn. */
+	/** The current slide index: only peers on this slide are drawn. */
 	activeSlideIndex: number;
 	/** Current canvas zoom factor; geometry scales by this. */
 	zoom: number;

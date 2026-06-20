@@ -1,5 +1,5 @@
 /**
- * Dropdown open-state + outside-click dismissal — the Vue replacement for the
+ * Dropdown open-state + outside-click dismissal: the Vue replacement for the
  * `useState` + `useEffect(mousedown)` pattern each React ribbon section repeats.
  *
  * Bind `root` to the dropdown's wrapper element (`ref="…"` /

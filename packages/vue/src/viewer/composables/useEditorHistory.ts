@@ -4,12 +4,12 @@ import { computed, shallowRef } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
 /**
- * useEditorHistory — framework-idiomatic undo/redo stack over `PptxSlide[]`.
+ * useEditorHistory: framework-idiomatic undo/redo stack over `PptxSlide[]`.
  *
  * This is the Vue port of the React `useEditorHistory` hook, reduced to its
  * load-bearing core: an undo (`past`) and redo (`future`) stack of deep-cloned
  * slide snapshots. Unlike the React version it does **not** track canvas size
- * or template-element layers — the Vue editor foundation operates purely on the
+ * or template-element layers; the Vue editor foundation operates purely on the
  * `PptxSlide[]` model, so a snapshot is simply a cloned slide array.
  *
  * Usage pattern (push-before-mutate):
@@ -24,7 +24,7 @@ import type { ComputedRef, Ref } from 'vue';
  * ```
  *
  * `pushHistory` snapshots the *current* slide state onto the past stack and
- * clears the redo stack — callers invoke it immediately before committing a new
+ * clears the redo stack; callers invoke it immediately before committing a new
  * `slides.value`. `undo`/`redo` swap snapshots in and out of the live ref.
  */
 
@@ -66,7 +66,7 @@ export interface EditorHistoryResult {
  *               A `shallowRef` is recommended for large decks.
  */
 export function useEditorHistory(slides: Ref<PptxSlide[]>): EditorHistoryResult {
-	// Undo / redo stacks of deep-cloned snapshots. `shallowRef` is sufficient —
+	// Undo / redo stacks of deep-cloned snapshots. `shallowRef` is sufficient:
 	// we always replace the whole array, never mutate it in place.
 	const past = shallowRef<PptxSlide[][]>([]);
 	const future = shallowRef<PptxSlide[][]>([]);

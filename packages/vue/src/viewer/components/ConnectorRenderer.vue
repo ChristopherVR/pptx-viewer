@@ -14,7 +14,7 @@ import { DEFAULT_STROKE_COLOR } from '../constants';
 import ConnectorTextOverlay from './ConnectorTextOverlay.vue';
 
 /**
- * ConnectorRenderer — Vue port of the React `ConnectorElementRenderer`.
+ * ConnectorRenderer: Vue port of the React `ConnectorElementRenderer`.
  *
  * Renders straight, bent, and curved connectors as an inline SVG spanning the
  * element's bounding box, with stroke colour/width/dash, start/end arrowheads,
@@ -97,7 +97,7 @@ const pathGeometry = computed(() => {
 	return getConnectorPathGeometry(el);
 });
 
-// Straight connector endpoints (used when !usePathRouting) — mirrored by flips.
+// Straight connector endpoints (used when !usePathRouting), mirrored by flips.
 const x1 = computed(() => (props.element.flipHorizontal ? w.value : 0));
 const y1 = computed(() => (props.element.flipVertical ? h.value : 0));
 const x2 = computed(() => (props.element.flipHorizontal ? 0 : w.value));

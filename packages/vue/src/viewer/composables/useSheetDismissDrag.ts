@@ -15,7 +15,7 @@ export interface SheetDismissDrag {
  * Drag-to-dismiss logic for mobile bottom sheets. Dragging the grab region down
  * past `threshold` px invokes `onClose`; a shorter drag snaps back.
  *
- * Vue port of the React `useSheetDismissDrag` hook — keeps every Vue mobile
+ * Vue port of the React `useSheetDismissDrag` hook; keeps every Vue mobile
  * sheet (notes / format / comments) consistent with the React viewer.
  */
 export function useSheetDismissDrag(onClose: () => void, threshold = 120): SheetDismissDrag {

@@ -1,5 +1,5 @@
 /**
- * presenter-view-utils — pure helpers for `PresenterView.vue`.
+ * presenter-view-utils: pure helpers for `PresenterView.vue`.
  *
  * Time formatting, notes font-size clamping, and rich-text notes → render-spec
  * conversion. DOM-free so it can be unit-tested directly (the Vue component

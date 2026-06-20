@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * ToolbarPrimaryRow — Vue port of React's `toolbar/ToolbarPrimaryRow.tsx`.
+ * ToolbarPrimaryRow: Vue port of React's `toolbar/ToolbarPrimaryRow.tsx`.
  *
  * The ribbon's quick-access strip: slides-pane toggle, undo/redo, find, then a
  * right cluster of comments, mode switcher, custom-show controls, share,
@@ -8,7 +8,7 @@
  *
  * The React row also renders inline collaboration avatars from a
  * `useCollaboration()` context; in Vue collaboration is host-instantiated (not a
- * ribbon-level context), so that purely-decorative avatar cluster is omitted —
+ * ribbon-level context), so that purely-decorative avatar cluster is omitted;
  * the Share button still reflects/launches sharing via `onOpenShareDialog`.
  */
 import {

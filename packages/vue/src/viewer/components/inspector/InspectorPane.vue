@@ -14,7 +14,7 @@ import TablePanel from './TablePanel.vue';
 import TextPanel from './TextPanel.vue';
 
 /**
- * InspectorPane — the right-hand property inspector for the editor.
+ * InspectorPane: the right-hand property inspector for the editor.
  *
  * Composes the per-concern property panels (arrange / fill / stroke / text /
  * effects) for the currently-selected element and relays each panel's `update`

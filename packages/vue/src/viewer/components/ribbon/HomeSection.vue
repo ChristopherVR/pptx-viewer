@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ChevronDown, ClipboardPaste, Copy, Paintbrush, Plus, Scissors } from 'lucide-vue-next';
 /**
- * HomeSection — the Vue 3 port of React's
+ * HomeSection: the Vue 3 port of React's
  * `toolbar/HomeSection.tsx`. Renders the Home ribbon tab's Clipboard, Slides and
  * Font groups (Paste/Cut/Copy/Format Painter, New Slide + layout picker, and the
  * font-family / font-size dropdowns). A faithful, mechanical port for visual +

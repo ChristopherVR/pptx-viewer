@@ -6,11 +6,11 @@ import { computed } from 'vue';
 import { getContainerStyle } from '../composables/element-style';
 
 /**
- * Model3DRenderer — Vue port of the React `Model3DRenderer` / `PosterFallback`
+ * Model3DRenderer - Vue port of the React `Model3DRenderer` / `PosterFallback`
  * (in `Model3DRenderer.tsx`), poster-only subset.
  *
  * Interactive 3D rendering (three.js) is intentionally OUT OF SCOPE for the Vue
- * port — see PORTING.md. This component always renders the poster/preview image
+ * port; see PORTING.md. This component always renders the poster/preview image
  * (`posterImage`, falling back to `imageData`); when neither exists it draws a
  * labelled "3D model" placeholder, exactly like the React poster fallback.
  */

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * ModeSwitcher — the Vue 3 port of React's `ModeSwitcher` from
+ * ModeSwitcher: the Vue 3 port of React's `ModeSwitcher` from
  * `toolbar/ModeSwitcher.tsx`. In master mode it renders the "Master View" badge
  * + Close button; otherwise it delegates to `PresentDropdown` (view-mode buttons
  * live in the status bar). A faithful, mechanical port for visual + behavioral
@@ -40,7 +40,7 @@ const props = defineProps<Props>();
 			Close
 		</button>
 	</div>
-	<!-- Present dropdown only — view mode buttons moved to status bar -->
+	<!-- Present dropdown only; view mode buttons moved to status bar -->
 	<PresentDropdown
 		v-else
 		:is-active="props.mode === 'present'"

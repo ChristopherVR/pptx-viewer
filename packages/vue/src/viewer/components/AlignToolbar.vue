@@ -2,13 +2,13 @@
 import type { AlignEdge, DistributeAxis } from 'pptx-viewer-shared';
 
 /**
- * AlignToolbar — a compact, purely presentational button row for the editor's
+ * AlignToolbar: a compact, purely presentational button row for the editor's
  * align / distribute / group operations.
  *
  * It owns no state and performs no geometry: every button emits an intent and
  * the host (PowerPointViewer) applies it against the current selection. Group
  * is disabled until two or more elements are selected; Ungroup is disabled
- * unless a single group element is selected — both gated by props.
+ * unless a single group element is selected; both gated by props.
  *
  * Icons are inline SVG glyphs (no external icon dependency) so the toolbar is
  * self-contained. Styling is scoped with the `pptx-vue-` class prefix.
@@ -46,7 +46,7 @@ const alignButtons: readonly AlignButton[] = [
 ];
 
 /**
- * Shared ghost icon-button classes — mirrors React's toolbar align buttons
+ * Shared ghost icon-button classes: mirrors React's toolbar align buttons
  * (`hover:bg-accent`, focus ring, disabled fade) over semantic tokens.
  */
 const ALIGN_BTN =

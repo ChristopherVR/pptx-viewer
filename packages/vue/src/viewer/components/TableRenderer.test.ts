@@ -187,7 +187,7 @@ describe('tableRenderer', () => {
 		// Note: @vue/test-utils .text() trims surrounding whitespace.
 		expect(spans[0].text()).toBe('Bold');
 		expect(spans[0].attributes('style')).toContain('font-weight: bold');
-		// The second run has a leading space — check via element innerHTML to avoid trim.
+		// The second run has a leading space; check via element innerHTML to avoid trim.
 		expect(spans[1].element.textContent).toBe(' plain');
 		expect(spans[2].element.textContent).toBe(' italic');
 		expect(spans[2].attributes('style')).toContain('font-style: italic');
@@ -326,7 +326,7 @@ describe('tableRenderer', () => {
 			lt1: '#FFFFFF',
 			dk2: '#1F497D',
 			lt2: '#EEECE1',
-			accent1: '#C0504D', // red-ish — distinct from the default blue fallback
+			accent1: '#C0504D', // red-ish, distinct from the default blue fallback
 			accent2: '#9BBB59',
 			accent3: '#4BACC6',
 			accent4: '#8064A2',

@@ -2,7 +2,7 @@
 import { formatRehearseMs } from '../composables/useRehearseTimings';
 
 /**
- * RehearseTimingsHud — floating timing overlay shown during rehearsal mode.
+ * RehearseTimingsHud - floating timing overlay shown during rehearsal mode.
  * Displays per-slide time, total elapsed time, and a pause/resume button. Vue
  * port of the React `RehearseTimingsHud`.
  *

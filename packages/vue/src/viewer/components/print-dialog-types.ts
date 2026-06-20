@@ -62,7 +62,7 @@ const HANDOUT_GRID_MAP: Record<number, HandoutGrid> = {
 };
 
 // ---------------------------------------------------------------------------
-// Pure logic — range / page / preview math
+// Pure logic: range / page / preview math
 // ---------------------------------------------------------------------------
 
 /** Type guard: is the given number one of the supported slides-per-page values? */

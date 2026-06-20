@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * PresentDropdown — the Vue 3 port of React's `PresentDropdown` from
+ * PresentDropdown: the Vue 3 port of React's `PresentDropdown` from
  * `toolbar/PresentDropdown.tsx`. Renders the split Present button plus its
  * options menu (Presenter View, Rehearse Timings, Set Up Slide Show, Present
  * Online, Subtitles). A faithful, mechanical port for visual + behavioral

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * ElementImageBox — the picture/image branch of `ElementRenderer`, extracted to
+ * ElementImageBox: the picture/image branch of `ElementRenderer`, extracted to
  * keep the dispatcher thin. Renders an `<img>` (object-fit contain) with the
  * computed CSS filter + any SVG `<filter>` defs for duotone/artistic effects.
  */

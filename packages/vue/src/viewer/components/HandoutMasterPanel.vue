@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * HandoutMasterPanel — settings panel for the handout master.
+ * HandoutMasterPanel: settings panel for the handout master.
  *
  * Vue port of the React `HandoutMasterPanel.tsx`. Lets the user pick the
  * slides-per-page layout (1/2/3/4/6/9) and shows the background swatch plus the

@@ -27,20 +27,20 @@ export interface DocumentPropertiesSavePatch {
 	core: PptxCoreProperties;
 	/** Full edited custom-properties list. */
 	custom: PptxCustomProperty[];
-	/** Edited app properties (manager/company) — omitted when unchanged. */
+	/** Edited app properties (manager/company); omitted when unchanged. */
 	app?: Pick<PptxAppProperties, 'manager' | 'company'>;
 }
 
 /**
- * DocumentPropertiesDialog — the full tabbed Document Properties dialog.
+ * DocumentPropertiesDialog: the full tabbed Document Properties dialog.
  *
  * Vue port of React's `DocumentPropertiesDialog`, built on `ModalDialog`. Three
  * tabs:
- *  - **General** — editable core metadata (title/subject/author/keywords/
+ *  - **General**: editable core metadata (title/subject/author/keywords/
  *    comments/category) plus app-level manager/company.
- *  - **Statistics** — read-only counts computed live from the slide model
+ *  - **Statistics**: read-only counts computed live from the slide model
  *    (`computeDocumentStatistics`) + timestamps/revision from core properties.
- *  - **Custom** — add/remove/edit user-defined custom properties.
+ *  - **Custom**: add/remove/edit user-defined custom properties.
  *
  * Draft state is held locally and re-seeded each time the dialog opens; nothing
  * is committed until the user clicks Save, which emits a single
@@ -53,7 +53,7 @@ const props = defineProps<{
 	coreProperties: PptxCoreProperties | undefined;
 	/** Parsed custom properties (defaults to empty). */
 	customProperties?: PptxCustomProperty[];
-	/** Parsed app properties — only manager/company are editable here. */
+	/** Parsed app properties; only manager/company are editable here. */
 	appProperties?: PptxAppProperties;
 	/** Live slide model, used to compute the Statistics tab. */
 	slides: PptxSlide[];

@@ -3,13 +3,13 @@ import { computed, toValue } from 'vue';
 import type { ComputedRef, MaybeRefOrGetter } from 'vue';
 
 /**
- * `useComments` — Vue composable backing the comments panel/editor.
+ * `useComments`: Vue composable backing the comments panel/editor.
  *
  * ## Data model & how comments link to slides
  *
  * In `pptx-viewer-core`, comments are stored **per slide** on
  * `PptxSlide.comments?: PptxComment[]`. The {@link PptxComment} interface itself
- * carries **no** slide-reference field (no `slideId`/`slideIndex`) — a comment's
+ * carries **no** slide-reference field (no `slideId`/`slideIndex`); a comment's
  * owning slide is implied purely by which slide's `comments` array it lives in.
  *
  * Because of that, the "deck-wide list filtered to the active slide" is realised

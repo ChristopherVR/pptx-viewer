@@ -4,7 +4,7 @@ import { hasShapeProperties } from 'pptx-viewer-core';
 import { computed } from 'vue';
 
 /**
- * StrokePanel — line/border inspector for the Vue `pptx-vue-viewer` editor.
+ * StrokePanel: line/border inspector for the Vue `pptx-vue-viewer` editor.
  *
  * Exposes the three core stroke properties (`strokeColor`, `strokeWidth`,
  * `strokeDash`) read from `element.shapeStyle`. Each control emits a SHALLOW

@@ -10,7 +10,7 @@
  * and the colocated tests are unchanged.
  */
 
-// Core geometry — one import point for callers.
+// Core geometry: one import point for callers.
 export { getConnectorPathGeometry, getConnectorAdjustment } from 'pptx-viewer-core';
 export type { ConnectorPathGeometry } from 'pptx-viewer-core';
 

@@ -3,7 +3,7 @@ import type { Ref } from 'vue';
 
 /**
  * Max viewport height (px) at which a *touch* device is treated as mobile
- * regardless of width — catches landscape phones (e.g. 915×412), which are wide
+ * regardless of width: catches landscape phones (e.g. 915×412), which are wide
  * enough to look like a tablet but far too short for the desktop chrome.
  * Mirrors the React `MOBILE_LANDSCAPE_MAX_HEIGHT`.
  */
@@ -13,7 +13,7 @@ export const MOBILE_LANDSCAPE_MAX_HEIGHT = 500;
 const TABLET_BREAKPOINT = 1024;
 
 /**
- * `useIsMobile` — reactive viewport predicate for switching between the desktop
+ * `useIsMobile`: reactive viewport predicate for switching between the desktop
  * chrome and the compact mobile bottom bar.
  *
  * Mobile when the viewport is narrow (≤ `breakpoint`) OR a short touch viewport
@@ -28,7 +28,7 @@ const TABLET_BREAKPOINT = 1024;
  *
  * @param breakpoint - Max viewport width (px) considered "mobile". Defaults to
  *   768 to match the React `md:` Tailwind breakpoint used by the mobile chrome.
- * @returns `{ isMobile }` — a read-only `Ref<boolean>` that updates as the
+ * @returns `{ isMobile }` - a read-only `Ref<boolean>` that updates as the
  *   media query matches or stops matching.
  */
 export interface UseIsMobileResult {

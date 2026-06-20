@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * StatusBar — Vue port of React's `components/StatusBar.tsx`.
+ * StatusBar - Vue port of React's `components/StatusBar.tsx`.
  *
  * The bottom strip: slide counter + language + autosave status on the left, then
  * a Notes toggle, the view-mode buttons (Normal / Slide Sorter / Slide Show),

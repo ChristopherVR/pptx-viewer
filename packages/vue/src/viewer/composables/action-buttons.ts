@@ -1,6 +1,6 @@
 /**
  * Action-button insertion (Insert ▸ Action). Builds the OOXML built-in
- * action-button shapes — a labelled `#4472C4` button carrying a slide-navigation
+ * action-button shapes: a labelled `#4472C4` button carrying a slide-navigation
  * `actionClick` for the nav presets (mirrors React's `handleAddActionButton`).
  */
 import type { PptxElement } from 'pptx-viewer-core';
@@ -36,7 +36,7 @@ export function isActionButton(shapeType: string): boolean {
 
 /**
  * Build an action-button `shape` element, or `null` for an unknown shape type.
- * The element is positioned at (0,0) at default size — the caller centres it.
+ * The element is positioned at (0,0) at default size; the caller centres it.
  */
 export function buildActionButtonElement(shapeType: string, id: string): PptxElement | null {
 	const def = ACTION_BUTTONS[shapeType];

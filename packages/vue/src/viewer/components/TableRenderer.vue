@@ -27,7 +27,7 @@ import { injectTableTheme, resolveTableTheme } from '../composables/table-theme'
 import { DEFAULT_TEXT_COLOR } from '../constants';
 
 /**
- * TableRenderer — Vue port of the React table renderer
+ * TableRenderer - Vue port of the React table renderer
  * (`viewer/utils/table-render.tsx` + `table-render-data.tsx`).
  *
  * Read-only, viewer-first. Renders a PPTX `table` element as a real HTML
@@ -170,7 +170,7 @@ const rows = computed<RenderableRow[]>(() => {
 			// Default body-cell text to the dark slide-text colour when nothing
 			// (cell style, band/header emphasis, or per-run colour) sets one.
 			// Otherwise the cell inherits the dark-UI chrome `foreground`
-			// (near-white), rendering invisible on a light table — React resolves
+			// (near-white), rendering invisible on a light table; React resolves
 			// these cells to DEFAULT_TEXT_COLOR (#111827). Per-run colours still win
 			// because their `<span>` overrides this cascaded `<td>` colour.
 			if (style.color === undefined) {

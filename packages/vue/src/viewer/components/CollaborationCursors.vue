@@ -1,6 +1,6 @@
 <script lang="ts">
 /**
- * CollaborationCursors — presentational overlay that renders remote
+ * CollaborationCursors: presentational overlay that renders remote
  * collaborators' cursors above the slide canvas.
  *
  * This component is purely visual: it owns no network/Yjs logic. The

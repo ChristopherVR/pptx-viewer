@@ -8,7 +8,7 @@ import { getContainerStyle } from '../composables/element-style';
 import { DEFAULT_STROKE_COLOR } from '../constants';
 
 /**
- * InkRenderer — Vue port of the React `renderInk` (in `InkGroupRenderers.tsx`),
+ * InkRenderer: Vue port of the React `renderInk` (in `InkGroupRenderers.tsx`),
  * viewer-first subset.
  *
  * Renders freehand ink strokes (`InkPptxElement.inkPaths`) as inline SVG

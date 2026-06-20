@@ -7,11 +7,11 @@ import type { CanvasSize } from '../types';
 import ElementRenderer from './ElementRenderer.vue';
 
 /**
- * SlideStage — the fixed-size slide surface (background + absolutely-positioned
+ * SlideStage - the fixed-size slide surface (background + absolutely-positioned
  * elements) rendered at a given `scale`.
  *
  * Extracted so it can be reused at full size by `SlideCanvas` and at tiny scale
- * by the thumbnail rail. It owns no chrome (no centering, margins, or shadow) —
+ * by the thumbnail rail. It owns no chrome (no centering, margins, or shadow);
  * the host decides layout.
  */
 const props = withDefaults(

@@ -6,7 +6,7 @@ import type { ViewerSettings } from './viewer-settings';
 import { SETTING_TOGGLES, SHORTCUT_REFERENCE_ITEMS } from './viewer-settings';
 
 /**
- * SettingsDialog — viewer/editor preferences on a tabbed `ModalDialog`.
+ * SettingsDialog - viewer/editor preferences on a tabbed `ModalDialog`.
  *
  * Vue counterpart of the React package's `SettingsDialog.tsx`. It exposes the
  * same boolean preferences (autosave, spell-check, show-grid, show-rulers,
@@ -20,7 +20,7 @@ import { SETTING_TOGGLES, SHORTCUT_REFERENCE_ITEMS } from './viewer-settings';
  * owns persistence; this component is purely presentational.
  *
  * The form is seeded from `settings` each time the dialog opens, so a host can
- * pass a live reactive object or re-feed it on every open — both work.
+ * pass a live reactive object or re-feed it on every open; both work.
  */
 const props = defineProps<{
 	/** Whether the dialog is visible. */

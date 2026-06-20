@@ -10,8 +10,8 @@ import { computed, toValue } from 'vue';
  * {@link import('pptx-viewer-core').SignatureDetectionResult} internally and
  * surfaces `hasDigitalSignatures` / `digitalSignatureCount` on `PptxData`), but
  * it does NOT expose the fully-parsed signatures. The host obtains the parsed
- * `ParsedSignature[]` itself — by reading each `_xmlsignatures/sig*.xml` part
- * and running the core `parseSignatureXml(...)` helper — then feeds the result
+ * `ParsedSignature[]` itself, by reading each `_xmlsignatures/sig*.xml` part
+ * and running the core `parseSignatureXml(...)` helper, then feeds the result
  * in here. This composable is purely presentational state derivation: it never
  * signs, strips, or mutates anything.
  *

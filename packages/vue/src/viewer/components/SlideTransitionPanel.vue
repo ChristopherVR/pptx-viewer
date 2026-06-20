@@ -3,7 +3,7 @@ import type { PptxSlide, PptxSlideTransition, PptxTransitionType } from 'pptx-vi
 import { computed } from 'vue';
 
 /**
- * SlideTransitionPanel — lets the user pick the transition effect and duration
+ * SlideTransitionPanel - lets the user pick the transition effect and duration
  * for the current slide.
  *
  * It reads the slide's existing `transition` field to prefill the controls and
@@ -113,7 +113,7 @@ function onDurationChange(event: Event): void {
 	const raw = Number.parseInt((event.target as HTMLInputElement).value, 10);
 	const ms = Number.isFinite(raw) && raw >= 0 ? raw : 0;
 	const existing = current.value;
-	// Editing duration with no active effect is a no-op — there is nothing to update.
+	// Editing duration with no active effect is a no-op; there is nothing to update.
 	if (!existing || existing.type === 'none') {
 		return;
 	}

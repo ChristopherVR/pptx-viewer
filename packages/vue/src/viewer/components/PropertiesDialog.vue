@@ -16,7 +16,7 @@ export type DocumentProperties = Pick<
 >;
 
 /**
- * PropertiesDialog — view and edit document core metadata.
+ * PropertiesDialog - view and edit document core metadata.
  *
  * Editable: title, author (`creator`), subject, keywords. Read-only:
  * `created` / `modified` timestamps. Edits are held in a local draft and only

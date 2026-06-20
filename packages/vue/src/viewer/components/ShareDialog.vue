@@ -5,7 +5,7 @@ import { computed, ref, watch } from 'vue';
 import ModalDialog from './ModalDialog.vue';
 
 /**
- * ShareDialog — Vue port of the React `ShareDialog`.
+ * ShareDialog - Vue port of the React `ShareDialog`.
  *
  * Configures and starts a real-time collaboration session (room id, display
  * name, server URL), or stops an active one. Field defaults are supplied by

@@ -30,7 +30,7 @@ const CORE_FIELDS: GeneralField[] = [
 ];
 
 /**
- * DocumentPropertiesGeneralTab — the editable metadata tab.
+ * DocumentPropertiesGeneralTab: the editable metadata tab.
  *
  * Edits the core-property fields (title/subject/author/keywords/comments/
  * category) plus the app-level manager/company. The parent owns the draft

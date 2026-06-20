@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import StatusBar from './StatusBar.vue';
 
 /**
- * StatusBar (Vue port of React's `StatusBar.tsx`) — slide counter, autosave
+ * StatusBar (Vue port of React's `StatusBar.tsx`) - slide counter, autosave
  * status, view-mode + zoom controls.
  */
 describe('statusBar', () => {

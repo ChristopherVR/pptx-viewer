@@ -1,5 +1,5 @@
 /**
- * `useAnimationPlayback` — reactive, click-stepped animation playback for
+ * `useAnimationPlayback`: reactive, click-stepped animation playback for
  * presentation mode.
  *
  * A slide carries an ordered list of {@link PptxElementAnimation}s. PowerPoint
@@ -49,7 +49,7 @@ export interface UseAnimationPlaybackOptions {
 	 * The externally-controlled playback step (e.g. derived from a parent
 	 * `clickIndex`). When provided it seeds and keeps the internal step in sync;
 	 * the returned {@link UseAnimationPlaybackResult.advance} / `reset` also
-	 * mutate the internal step. Optional — playback also works standalone.
+	 * mutate the internal step. Optional: playback also works standalone.
 	 */
 	currentIndex?: MaybeRefOrGetter<number | undefined>;
 }

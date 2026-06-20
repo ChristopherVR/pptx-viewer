@@ -1,7 +1,7 @@
 /**
  * Unit tests for the SmartArt layout engine (smartart-layout.ts).
  *
- * These tests exercise the pure geometry functions — no Vue, no DOM.
+ * These tests exercise the pure geometry functions: no Vue, no DOM.
  */
 
 import type { PptxSmartArtNode } from 'pptx-viewer-core';
@@ -76,7 +76,7 @@ describe('truncate', () => {
 
 describe('fitFontSize', () => {
 	it('respects baseSize cap', () => {
-		// Very large box — should use baseSize
+		// Very large box: should use baseSize
 		expect(fitFontSize('Hi', 1000, 1000, 12)).toBe(12);
 	});
 

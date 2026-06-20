@@ -1,10 +1,10 @@
 <script setup lang="ts">
 /**
- * BroadcastDialog — start / stop a one-way live broadcast for the Vue viewer.
+ * BroadcastDialog: start / stop a one-way live broadcast for the Vue viewer.
  *
  * A broadcast is a one-way collaboration session: the presenter drives slide
  * navigation and viewers follow along via a shareable link. This dialog only
- * owns the start/stop UI — the host (`PowerPointViewer.vue`) is responsible for
+ * owns the start/stop UI; the host (`PowerPointViewer.vue`) is responsible for
  * actually opening a collaboration session in response to the `start` event and
  * for supplying the resolved `viewerUrl` while the broadcast is `active`.
  *
@@ -12,15 +12,15 @@
  * presenter/viewer flow, built on the local {@link ModalDialog} shell.
  *
  * Props:
- *  - `open`      — whether the dialog is visible.
- *  - `defaults`  — optional `{ roomId, serverUrl }` seed for the start form.
- *  - `active`    — whether a broadcast is currently running.
- *  - `viewerUrl` — the shareable follow link (shown while `active`).
+ *  - `open`      : whether the dialog is visible.
+ *  - `defaults`  : optional `{ roomId, serverUrl }` seed for the start form.
+ *  - `active`    : whether a broadcast is currently running.
+ *  - `viewerUrl` : the shareable follow link (shown while `active`).
  *
  * Emits:
- *  - `start` — `{ roomId, serverUrl }` — the presenter started a broadcast.
- *  - `stop`  — the presenter stopped the active broadcast.
- *  - `close` — the dialog was dismissed.
+ *  - `start` : `{ roomId, serverUrl }`, the presenter started a broadcast.
+ *  - `stop`  : the presenter stopped the active broadcast.
+ *  - `close` : the dialog was dismissed.
  */
 import { computed, ref, watch } from 'vue';
 

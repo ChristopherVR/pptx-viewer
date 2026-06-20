@@ -1,5 +1,5 @@
 /**
- * Scalar viewer defaults — moved to the framework-agnostic
+ * Scalar viewer defaults: moved to the framework-agnostic
  * `pptx-viewer-shared` package. Re-exported here to keep import paths stable.
  */
 export {

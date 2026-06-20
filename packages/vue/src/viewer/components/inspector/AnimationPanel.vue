@@ -35,7 +35,7 @@ function catalogIdToPreset(catalogId: string): PptxAnimationPreset {
 }
 
 /**
- * AnimationPanel — Vue inspector panel for an element's animation list.
+ * AnimationPanel: Vue inspector panel for an element's animation list.
  *
  * Mirrors the uniform inspector-panel contract used by the other
  * `components/inspector/` panels: it receives the selected {@link PptxElement}

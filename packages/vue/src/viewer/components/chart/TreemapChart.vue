@@ -5,7 +5,7 @@ import { paletteColor } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 
 /**
- * TreemapChart — Vue port of React `chart-surface-treemap.tsx` treemap variant.
+ * TreemapChart: Vue port of React `chart-surface-treemap.tsx` treemap variant.
  * Rendered inside the parent chart `<svg>` (emits a `<g>` group).
  * Uses a greedy horizontal/vertical cut layout.
  */

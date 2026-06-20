@@ -1,10 +1,10 @@
 <script setup lang="ts">
 /**
- * NotesMasterPanel — settings/summary panel for the notes master.
+ * NotesMasterPanel - settings/summary panel for the notes master.
  *
  * Vue port of the React `NotesMasterPanel.tsx`. Read-only: shows the notes
  * master background swatch and the list of its placeholders. Purely
- * presentational — no emits (the React panel had none either).
+ * presentational: no emits (the React panel had none either).
  *
  * Props : `{ notesMaster: PptxNotesMaster | undefined }`
  */

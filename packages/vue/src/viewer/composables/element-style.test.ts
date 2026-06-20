@@ -76,8 +76,8 @@ describe('getShapeFillStrokeStyle', () => {
 	});
 
 	it('clips a sized line shape via the preset path (matches React order)', () => {
-		// The preset evaluator returns a `path()` for `line`, which — exactly as
-		// in the React `getShapeVisualStyle` cascade — wins ahead of the bare
+		// The preset evaluator returns a `path()` for `line`, which (exactly as
+		// in the React `getShapeVisualStyle` cascade) wins ahead of the bare
 		// top-edge fallback. The fallback only applies when no clip-path resolves
 		// (e.g. degenerate dimensions).
 		const style = getShapeFillStrokeStyle(
@@ -114,7 +114,7 @@ describe('getTextBlockStyle', () => {
 		const style = getTextBlockStyle(
 			shape({ textStyle: { fontSize: 18, bold: true, align: 'center', vAlign: 'middle' } }),
 		);
-		// Font size is emitted in CSS px (unitless React convention), not pt —
+		// Font size is emitted in CSS px (unitless React convention), not pt;
 		// appending pt would inflate every glyph by ~1.33× and overflow the box.
 		expect(style.fontSize).toBe('18px');
 		expect(style.fontWeight).toBe('bold');

@@ -3,7 +3,7 @@ import type { PptxSlide } from 'pptx-viewer-core';
 import { computed, onMounted, ref, watch } from 'vue';
 
 /**
- * NotesPanel — collapsible speaker-notes panel for the Vue editor.
+ * NotesPanel - collapsible speaker-notes panel for the Vue editor.
  *
  * Renders below the slide canvas and shows/edits the current slide's speaker
  * notes. Reads the real core field `PptxSlide.notes` (a plain string populated
@@ -17,11 +17,11 @@ import { computed, onMounted, ref, watch } from 'vue';
  * ref exactly once per slide and never re-bound (`:value`) while the user types.
  * If we re-bound `:value` to a ref that the host's history-aware reassignment
  * mutated on every keystroke, the on-screen keyboard could dismiss and the
- * caret could jump — so instead the DOM owns the text during an edit and we
+ * caret could jump, so instead the DOM owns the text during an edit and we
  * only commit on `change`/`blur` (history entry per edit, not per keystroke).
  *
  * Props : `{ slide: PptxSlide | undefined }`
- * Emits : `update: [notes: string]` — the new notes text from the textarea.
+ * Emits : `update: [notes: string]` - the new notes text from the textarea.
  */
 const props = defineProps<{
 	slide: PptxSlide | undefined;
@@ -33,7 +33,7 @@ const emit = defineEmits<{
 
 const collapsed = ref(false);
 
-/** The textarea element — the source of truth for in-progress edits. */
+/** The textarea element: the source of truth for in-progress edits. */
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 
 /** Write the committed notes for the current slide into the uncontrolled field. */
@@ -48,7 +48,7 @@ function seedTextarea(): void {
 onMounted(seedTextarea);
 
 /**
- * Re-seed the textarea whenever the active slide changes — e.g. navigating
+ * Re-seed the textarea whenever the active slide changes, e.g. navigating
  * between slides or a history undo/redo replacing the slide. We key on the
  * slide id so re-seeding only happens on a genuine slide swap, never on each
  * keystroke (which would steal focus / reset the caret on touch).
@@ -60,7 +60,7 @@ const hasSlide = computed<boolean>(() => props.slide !== undefined);
 /**
  * Commit the notes text. Fired on `change` (blur / Enter-out) rather than every
  * keystroke so the host's history-aware reassignment doesn't remount this field
- * mid-typing — which on mobile dismisses the on-screen keyboard.
+ * mid-typing, which on mobile dismisses the on-screen keyboard.
  */
 function onCommit(event: Event): void {
 	const target = event.target as HTMLTextAreaElement;

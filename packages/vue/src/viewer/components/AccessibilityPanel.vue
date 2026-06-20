@@ -7,7 +7,7 @@ import type {
 import { computed } from 'vue';
 
 /**
- * AccessibilityPanel — lists accessibility issues for the current
+ * AccessibilityPanel: lists accessibility issues for the current
  * presentation, grouped by severity (errors first, then warnings, then tips).
  *
  * Each issue shows a human-readable type label, its message, and which slide

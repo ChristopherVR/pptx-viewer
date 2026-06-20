@@ -5,12 +5,12 @@ import { formatAxisValue, seriesColor, valueToY } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 
 /**
- * ChartChrome — Vue port of the React `chart-chrome.tsx` common chrome:
+ * ChartChrome: Vue port of the React `chart-chrome.tsx` common chrome:
  * title, gridlines, value axis, zero line, category axis, and legend.
  *
  * Rendered inside the parent chart `<svg>` (so it emits a `<g>` group, not a
  * standalone svg). Secondary axes, display-unit labels, log-scale ticks, and
- * overlays (trendlines / error bars / drop / hi-low lines) are not ported —
+ * overlays (trendlines / error bars / drop / hi-low lines) are not ported;
  * see the `// TODO(vue):` markers in ChartRenderer.vue.
  */
 const props = defineProps<{

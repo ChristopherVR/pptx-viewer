@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * HandoutMasterCanvas — a faithful preview of the handout master page.
+ * HandoutMasterCanvas: a faithful preview of the handout master page.
  *
  * Vue port of the React `HandoutMasterCanvas.tsx`. Renders a portrait page with
  * N slide placeholder slots arranged for the chosen slides-per-page (1/2/3/4/6/9)

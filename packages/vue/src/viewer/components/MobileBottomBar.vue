@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * MobileBottomBar — compact, touch-first bottom toolbar for the Vue
+ * MobileBottomBar - compact, touch-first bottom toolbar for the Vue
  * `pptx-vue-viewer` on small screens.
  *
  * Mirrors the control set of the React mobile chrome
@@ -51,7 +51,7 @@ const counterLabel = computed(
 );
 
 /**
- * Shared mobile-button utility classes — each control gets an equal flex share,
+ * Shared mobile-button utility classes: each control gets an equal flex share,
  * a ≥44px touch target, and React-style ghost hover/active states over semantic
  * tokens.
  */

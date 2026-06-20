@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * ReviewSection — the Vue 3 port of React's `ReviewSection` from
+ * ReviewSection: the Vue 3 port of React's `ReviewSection` from
  * `toolbar/DesignTransitionsReviewSection.tsx`. Renders the Review ribbon tab's
  * Comments (with slide comment-count badge), Spelling toggle and Compare
  * buttons. A faithful, mechanical port for visual + behavioral parity: class

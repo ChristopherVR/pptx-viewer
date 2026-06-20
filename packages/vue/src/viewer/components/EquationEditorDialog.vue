@@ -8,7 +8,7 @@ import { computed, ref, watch } from 'vue';
 import ModalDialog from './ModalDialog.vue';
 
 /**
- * EquationEditorDialog — LaTeX input with a live MathML preview for inserting or
+ * EquationEditorDialog: LaTeX input with a live MathML preview for inserting or
  * editing an OMML equation.
  *
  * Vue port of the React `EquationEditorDialog.tsx`. The user types LaTeX (or
@@ -16,11 +16,11 @@ import ModalDialog from './ModalDialog.vue';
  * (`convertOmmlToMathMl`, reused from `pptx-viewer-shared`, the same path
  * `EquationRenderer` uses) for the live preview. On confirm it emits both:
  *
- *  - `insert(element)` — a ready-to-add core {@link PptxElement} (a shape
+ *  - `insert(element)`: a ready-to-add core {@link PptxElement} (a shape
  *    carrying the equation as a `textSegments[].equationXml` OMML tree, so
  *    `SmartArtRenderer`/`EquationRenderer` render it directly). Route to
  *    `ops.addElement`.
- *  - `apply(segment)` — the equation {@link TextSegment} alone, for updating an
+ *  - `apply(segment)`: the equation {@link TextSegment} alone, for updating an
  *    existing equation in place. Route to `ops.updateText` / a segment patch.
  *
  * When `existingOmml` is supplied the dialog opens in edit mode, seeding the
@@ -293,7 +293,7 @@ function onTextareaKeydown(event: KeyboardEvent): void {
 </template>
 
 <style scoped>
-/* Math glyph font — not expressible as a Tailwind utility. Matches React's
+/* Math glyph font: not expressible as a Tailwind utility. Matches React's
    inline `fontFamily: '"Cambria Math", "STIX Two Math", serif'`. */
 .pptx-vue-equation-preview-math,
 .pptx-vue-equation-template-math {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * ThemeEditorPanel — Design ▸ Edit theme. A right-side panel for editing the
+ * ThemeEditorPanel: Design ▸ Edit theme. A right-side panel for editing the
  * presentation theme: the 12 scheme colours, the major/minor fonts, and the
  * theme name. "Apply to Presentation" re-themes the deck via the host's
  * `applyThemeToData` path. A compact single-component port of React's

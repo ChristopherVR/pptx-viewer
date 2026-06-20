@@ -7,7 +7,7 @@ import { computed } from 'vue';
 import { getContainerStyle } from '../composables/element-style';
 
 /**
- * ZoomRenderer — Vue port of the React `ZoomElementRenderer`, static
+ * ZoomRenderer - Vue port of the React `ZoomElementRenderer`, static
  * viewer-first subset.
  *
  * Renders a Slide-Zoom / Section-Zoom tile (`ZoomPptxElement`): the element's
@@ -16,7 +16,7 @@ import { getContainerStyle } from '../composables/element-style';
  * is drawn in the corner.
  *
  * Navigation (click-to-jump in presentation mode) and live target-slide preview
- * rendering are NOT ported — this is a static link tile only (see PORTING.md).
+ * rendering are NOT ported; this is a static link tile only (see PORTING.md).
  * The `slides` array is not threaded through, so the fallback uses the target
  * slide index rather than the real target background.
  */

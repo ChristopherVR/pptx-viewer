@@ -1,5 +1,5 @@
 <!--
-	Arrange ribbon section — Vue port of React's `toolbar/ArrangeSection.tsx`.
+	Arrange ribbon section: Vue port of React's `toolbar/ArrangeSection.tsx`.
 	Faithful, mechanical port for visual + behavioral parity: align cluster,
 	clipboard cluster, optional format-painter toggle, flip, layer ordering,
 	duplicate, and delete. Class strings copied verbatim from React.

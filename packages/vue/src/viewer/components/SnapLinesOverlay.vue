@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * SnapLinesOverlay — transient red alignment lines shown while dragging with
+ * SnapLinesOverlay - transient red alignment lines shown while dragging with
  * View ▸ Snap to Shape on. Vue port of React's `SnapLinesOverlay`. Lines are in
  * authored slide pixels (`axis: 'x'` → vertical line at left=position) and live
  * inside the scaled {@link SlideStage} slot, so the parent transform handles zoom.

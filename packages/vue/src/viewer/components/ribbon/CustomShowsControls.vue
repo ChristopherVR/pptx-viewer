@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * CustomShowsControls — the Vue 3 port of React's `CustomShowsControls` from
+ * CustomShowsControls: the Vue 3 port of React's `CustomShowsControls` from
  * `toolbar/CustomShowsControls.tsx`. Renders the custom-show selector and (when
  * editable) the +Show / Rename / Delete / Add-Slide controls. A faithful,
  * mechanical port for visual + behavioral parity: class strings are copied

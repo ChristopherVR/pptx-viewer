@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * EditorToolbar — Vue port of a viewer-first subset of React's `Toolbar.tsx`.
+ * EditorToolbar: Vue port of a viewer-first subset of React's `Toolbar.tsx`.
  *
  * A compact, self-contained editing ribbon. It contains no business logic:
  * every button maps to a typed emit that the parent (`PowerPointViewer.vue`)
@@ -8,7 +8,7 @@
  * enablement state via its props (`canUndo`, `canRedo`, `hasSelection`) and
  * displays the current zoom level (`zoomPercent`).
  *
- * Icons are minimal inline SVG / unicode glyphs — no external icon dependency
+ * Icons are minimal inline SVG / unicode glyphs (no external icon dependency)
  * (React uses lucide; the Vue port stays dependency-free here).
  */
 
@@ -56,7 +56,7 @@ const SHAPE_PRESETS: ReadonlyArray<{ preset: ShapePreset; label: string }> = [
 ];
 
 /**
- * Shared toolbar-button utility classes — mirrors React's bordered icon button
+ * Shared toolbar-button utility classes: mirrors React's bordered icon button
  * (semantic tokens: border, foreground, primary hover) so the Vue chrome reads
  * identically. Applied alongside the `pptx-vue-tb-btn` test hook.
  */

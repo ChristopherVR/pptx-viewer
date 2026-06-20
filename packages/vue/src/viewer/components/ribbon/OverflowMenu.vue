@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * OverflowMenu — the Vue 3 port of React's `toolbar/OverflowMenu.tsx`. Renders
+ * OverflowMenu: the Vue 3 port of React's `toolbar/OverflowMenu.tsx`. Renders
  * the "More actions" ellipsis button and its popover, driven by the OV table.
  * A faithful, mechanical port for visual + behavioral parity: class strings are
  * copied verbatim, open state stays prop-driven (`isOverflowMenuOpen` /

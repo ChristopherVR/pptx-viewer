@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * CanvasGuides — draggable horizontal/vertical alignment guides (View ▸ H/V
+ * CanvasGuides: draggable horizontal/vertical alignment guides (View ▸ H/V
  * Guides). Vue port of React's `CanvasGuides` (CanvasOverlays.tsx).
  *
  * Rendered inside the scaled {@link SlideStage} slot, so guide `position`s are
@@ -51,7 +51,7 @@ function onPointerUp(e: PointerEvent): void {
 	try {
 		(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
 	} catch {
-		// Capture may already be released — ignore.
+		// Capture may already be released; ignore.
 	}
 	dragId = null;
 }

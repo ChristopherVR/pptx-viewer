@@ -1,12 +1,12 @@
 /**
- * useKeyboardShortcuts — central, config-driven keyboard-shortcut registry for
+ * useKeyboardShortcuts: central, config-driven keyboard-shortcut registry for
  * the Vue PowerPoint editor.
  *
  * This is the Vue port of the React `useKeyboardShortcuts` hook
  * (`packages/react/src/viewer/hooks/useKeyboardShortcuts.ts`). Where the React
  * hook hard-codes a `switch` over key combos, the Vue version is built around a
- * **typed shortcut catalog** — a list of `{ id, combo, when, run, description,
- * group }` entries — so the same data drives both dispatch (`handleKeyDown`) and
+ * **typed shortcut catalog**: a list of `{ id, combo, when, run, description,
+ * group }` entries, so the same data drives both dispatch (`handleKeyDown`) and
  * the help overlay (`ShortcutPanel.vue`).
  *
  * Design goals:
@@ -18,7 +18,7 @@
  *    registry knows nothing about the viewer's state shape.
  *  - **Self-attach option.** Passing `{ autoAttach: true }` (or calling the
  *    returned `attach`) wires the handler to `window` on mount and tears it down
- *    on scope dispose — but the shell may also wire `handleKeyDown` itself.
+ *    on scope dispose, but the shell may also wire `handleKeyDown` itself.
  *
  * Combo-matching mirrors the React hook exactly:
  *  - shortcuts are only active when `canEdit` is true and `isPresenting` is false
@@ -64,7 +64,7 @@ export type ShortcutActionName =
 	| 'escape';
 
 /**
- * Action callbacks the registry dispatches to. All are optional — a missing
+ * Action callbacks the registry dispatches to. All are optional; a missing
  * callback simply means the corresponding shortcut is a no-op (but it is still
  * matched/suppressed, so the browser default is still prevented).
  */
@@ -91,7 +91,7 @@ export interface ShortcutActions {
 	prevSlide?: () => void;
 	/** Navigate to the next slide (ArrowRight, no selection). */
 	nextSlide?: () => void;
-	/** Escape — clear selection / close menus / cancel inline edit. */
+	/** Escape: clear selection / close menus / cancel inline edit. */
 	escape?: () => void;
 }
 
@@ -114,7 +114,7 @@ export interface UseKeyboardShortcutsOptions {
 	inlineEditingElementId?: MaybeRefOrGetter<string | null>;
 	/** Whether a table cell is actively being edited. Suppresses shortcuts. */
 	tableEditorIsEditing?: MaybeRefOrGetter<boolean>;
-	/** Active drawing tool — shortcuts are suppressed unless `'select'`. */
+	/** Active drawing tool; shortcuts are suppressed unless `'select'`. */
 	activeTool?: MaybeRefOrGetter<string>;
 
 	/**
@@ -265,7 +265,7 @@ export function groupShortcutCatalog(
 /*  Pure matcher                                                      */
 /* ------------------------------------------------------------------ */
 
-/** Resolved guard state — the plain (de-reffed) snapshot the matcher reads. */
+/** Resolved guard state: the plain (de-reffed) snapshot the matcher reads. */
 export interface ShortcutGuardState {
 	canEdit: boolean;
 	isPresenting: boolean;
@@ -277,7 +277,7 @@ export interface ShortcutGuardState {
 }
 
 /**
- * Pure dispatch logic — mirrors the React `handleKeyDown` closure (and the
+ * Pure dispatch logic: mirrors the React `handleKeyDown` closure (and the
  * `resolveShortcutAction` test helper) exactly. DOM-free and side-effect-free,
  * so it can be unit-tested with synthetic inputs.
  */
@@ -302,7 +302,7 @@ export function resolveShortcutAction(
 		return { action: null };
 	}
 
-	// Escape — always handled.
+	// Escape: always handled.
 	if (key === 'Escape') {
 		return { action: 'escape' };
 	}

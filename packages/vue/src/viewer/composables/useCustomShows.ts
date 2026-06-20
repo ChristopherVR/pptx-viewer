@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
 /**
- * `useCustomShows` — list/create/rename/delete custom slide shows plus editing
+ * `useCustomShows`: list/create/rename/delete custom slide shows plus editing
  * the ordered slide-id list of a show.
  *
  * Vue port of the React `useDialogCustomShows` hook (`packages/react/src/

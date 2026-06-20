@@ -4,7 +4,7 @@ import { chartDataChangeType, setChartGrouping, setChartTitle } from 'pptx-viewe
 import { computed } from 'vue';
 
 /**
- * ChartPanel — inspector panel for chart elements.
+ * ChartPanel: inspector panel for chart elements.
  *
  * Mirrors the uniform inspector-panel contract used by the other
  * `components/inspector/` panels:

@@ -16,7 +16,7 @@ import dts from 'vite-plugin-dts';
  * the bundle stays slim and host apps dedupe a single Vue instance.
  *
  * The internal workspace packages (`pptx-viewer-core`, `pptx-viewer-shared`)
- * are intentionally NOT external — they are bundled in so consumers can
+ * are intentionally NOT external; they are bundled in so consumers can
  * install just `pptx-vue-viewer` without pulling them from npm. Their `.d.ts`
  * types are likewise inlined via vite-plugin-dts `bundledPackages`, matching
  * the React package's tsup `noExternal` behaviour.
@@ -47,7 +47,7 @@ export default defineConfig({
 		// Vite's built-in minify (esbuild or terser) is NOT applied to the ESM
 		// output in lib mode, leaving the .js bundle ~50% larger than the .cjs
 		// one. Run terser as a rollup output plugin instead so every emitted
-		// chunk — ESM and CJS — is minified uniformly. `minify: false` avoids a
+		// chunk (ESM and CJS) is minified uniformly. `minify: false` avoids a
 		// redundant esbuild pass on the CJS output.
 		minify: false,
 		rollupOptions: {

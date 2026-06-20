@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * DrawingOverlay — Draw-tab ink capture. When a pen/highlighter/eraser tool is
+ * DrawingOverlay: Draw-tab ink capture. When a pen/highlighter/eraser tool is
  * armed, an SVG over the slide (in `SlideStage`'s scaled space) captures pointer
  * strokes: pen/highlighter emit a `stroke` (point list + style) the host turns
  * into an `ink` element; eraser emits `erase` with the slide-space point for the
@@ -24,7 +24,7 @@ const props = defineProps<{
 	tool: string;
 	color: string;
 	width: number;
-	/** Effective zoom (fitScale × user zoom) — to map client px → slide px. */
+	/** Effective zoom (fitScale × user zoom), to map client px → slide px. */
 	scale: number;
 }>();
 

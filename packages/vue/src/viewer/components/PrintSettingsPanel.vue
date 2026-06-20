@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * PrintSettingsPanel — the settings fieldset shown inside {@link PrintDialog}.
+ * PrintSettingsPanel - the settings fieldset shown inside {@link PrintDialog}.
  *
  * Vue port of the React `PrintSettingsPanel.tsx`. Presentational: the parent
  * (`PrintDialog`) owns all state via `v-model`-style props + `update:*` emits.
@@ -210,7 +210,7 @@ function onCustomToInput(event: Event): void {
 			</div>
 		</fieldset>
 
-		<!-- Orientation — only for full-page slides -->
+		<!-- Orientation: only for full-page slides -->
 		<fieldset
 			v-if="props.printWhat === 'slides'"
 			class="pptx-vue-print-fieldset m-0 border-none p-0"

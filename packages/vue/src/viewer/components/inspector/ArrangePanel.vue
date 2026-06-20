@@ -3,7 +3,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { computed } from 'vue';
 
 /**
- * ArrangePanel — position, size, rotation and flip controls.
+ * ArrangePanel: position, size, rotation and flip controls.
  *
  * Applicable to every element (all carry `x`/`y`/`width`/`height`/`rotation`
  * and the flip flags). Emits SHALLOW patches that the parent merges onto the

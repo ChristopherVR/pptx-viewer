@@ -5,7 +5,7 @@ import { formatAxisValue, paletteColor, valueToY } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 
 /**
- * HistogramChart — Vue port of React `chart-bar.tsx` histogram variant.
+ * HistogramChart: Vue port of React `chart-bar.tsx` histogram variant.
  * Rendered inside the parent chart `<svg>` (emits a `<g>` group).
  * Contiguous bars with no gaps, from a single series.
  */

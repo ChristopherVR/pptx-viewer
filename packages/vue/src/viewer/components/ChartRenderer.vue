@@ -31,35 +31,35 @@ import TreemapChart from './chart/TreemapChart.vue';
 import WaterfallChart from './chart/WaterfallChart.vue';
 
 /**
- * ChartRenderer — Vue port of the React chart renderer (`viewer/utils/chart.tsx`
+ * ChartRenderer: Vue port of the React chart renderer (`viewer/utils/chart.tsx`
  * and friends). Renders a PPTX chart element as an inline SVG.
  *
  * Implemented chart types:
- *   - bar / column (clustered)        — React `chart-bar.tsx`
- *   - stacked + 100%-stacked bar      — React `chart-stacked-bar.tsx`
- *   - line / line3D                   — React `chart-area-line.tsx`
- *   - area / area3D                   — React `chart-area-line.tsx`
- *   - pie / doughnut / pie3D          — React `chart-pie.tsx`
- *   - radar                           — React `chart-radar.tsx`
- *   - scatter                         — React `chart-scatter-bubble.tsx`
- *   - bubble                          — React `chart-scatter-bubble.tsx`
- *   - waterfall                       — React `chart-waterfall-combo.tsx`
- *   - funnel                          — React `chart-sunburst-funnel.tsx`
- *   - treemap                         — React `chart-surface-treemap.tsx`
- *   - sunburst                        — React `chart-sunburst-funnel.tsx`
- *   - combo (column+line)             — React `chart-waterfall-combo.tsx`
- *   - stock (HLC / OHLC)              — React `chart-stock.tsx`
- *   - histogram                       — React `chart-bar.tsx`
- *   - boxWhisker                      — React `chart-bar.tsx`
- *   - surface                         — isometric SVG mesh (`SurfaceChart.vue`)
- *   - regionMap                       — choropleth map (`RegionMapChart.vue`)
- *   - trendlines (regression overlays) — React `chart-trendlines.tsx`
- *   - chrome (title, axes, gridlines, legend, data labels) — `chart-chrome.tsx`
+ *   - bar / column (clustered)        - React `chart-bar.tsx`
+ *   - stacked + 100%-stacked bar      - React `chart-stacked-bar.tsx`
+ *   - line / line3D                   - React `chart-area-line.tsx`
+ *   - area / area3D                   - React `chart-area-line.tsx`
+ *   - pie / doughnut / pie3D          - React `chart-pie.tsx`
+ *   - radar                           - React `chart-radar.tsx`
+ *   - scatter                         - React `chart-scatter-bubble.tsx`
+ *   - bubble                          - React `chart-scatter-bubble.tsx`
+ *   - waterfall                       - React `chart-waterfall-combo.tsx`
+ *   - funnel                          - React `chart-sunburst-funnel.tsx`
+ *   - treemap                         - React `chart-surface-treemap.tsx`
+ *   - sunburst                        - React `chart-sunburst-funnel.tsx`
+ *   - combo (column+line)             - React `chart-waterfall-combo.tsx`
+ *   - stock (HLC / OHLC)              - React `chart-stock.tsx`
+ *   - histogram                       - React `chart-bar.tsx`
+ *   - boxWhisker                      - React `chart-bar.tsx`
+ *   - surface                         - isometric SVG mesh (`SurfaceChart.vue`)
+ *   - regionMap                       - choropleth map (`RegionMapChart.vue`)
+ *   - trendlines (regression overlays) - React `chart-trendlines.tsx`
+ *   - chrome (title, axes, gridlines, legend, data labels) - `chart-chrome.tsx`
  *
  * Remaining TODOs:
  *   // TODO(vue): port secondary axes (right-hand value axis for series on a
  *   //   second axisId) + data tables. Log/display-unit value axes are also not
- *   //   yet honoured — the value axis is always linear.
+ *   //   yet honoured: the value axis is always linear.
  */
 const props = defineProps<{
 	element: PptxElement;

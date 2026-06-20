@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * ShortcutPanel — grouped, searchable keyboard-shortcut help overlay.
+ * ShortcutPanel - grouped, searchable keyboard-shortcut help overlay.
  *
  * Vue port of the React `ShortcutPanel.tsx`. Where the React panel renders a
  * flat `SHORTCUT_REFERENCE_ITEMS` list, this version renders the
@@ -38,7 +38,7 @@ watch(
 	},
 );
 
-/** True on macOS — drives the ⌘ vs Ctrl glyph. */
+/** True on macOS: drives the ⌘ vs Ctrl glyph. */
 const isMac = computed(() => {
 	if (typeof navigator === 'undefined') {
 		return false;

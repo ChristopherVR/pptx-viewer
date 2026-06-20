@@ -10,14 +10,14 @@ import { computed } from 'vue';
 import { getContainerStyle } from '../composables/element-style';
 
 /**
- * EquationRenderer — renders an element's math equation(s) as inline MathML.
+ * EquationRenderer: renders an element's math equation(s) as inline MathML.
  *
  * Vue port of the React equation rendering path
  * (`text-segment-helpers.tsx#renderEquationSegment`). Equations live on text
  * elements as {@link TextSegment} entries whose `equationXml` field holds the
  * parsed OMML (`m:oMathPara` / `m:oMath`) tree. Each such segment is converted
  * to MathML via {@link convertOmmlToMathMl}, sanitised, and injected with
- * `v-html` — MathML is namespaced HTML, so browsers render `<math>` natively.
+ * `v-html`: MathML is namespaced HTML, so browsers render `<math>` natively.
  *
  * The wrapper uses {@link getContainerStyle} for absolute positioning, matching
  * every other element renderer.

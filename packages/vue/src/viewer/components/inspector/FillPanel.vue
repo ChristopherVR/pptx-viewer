@@ -4,7 +4,7 @@ import { hasShapeProperties } from 'pptx-viewer-core';
 import { computed } from 'vue';
 
 /**
- * FillPanel — shape fill controls (mode, solid colour, opacity).
+ * FillPanel: shape fill controls (mode, solid colour, opacity).
  *
  * Only meaningful for shape-like elements (`hasShapeProperties`). When the
  * element has no shape properties a muted "No fill options" note is shown.

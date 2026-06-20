@@ -9,7 +9,7 @@ import type {
 import { computed } from 'vue';
 
 /**
- * TablePanel — inspector panel for table elements (`element.type === 'table'`).
+ * TablePanel: inspector panel for table elements (`element.type === 'table'`).
  *
  * Vue 3 port of the React table structure controls. Provides row/column
  * insert + delete operations on the table grid.
@@ -21,8 +21,8 @@ import { computed } from 'vue';
  *   `tableData` object is emitted under the real field name (`tableData`).
  *
  * Table model (mirrors `pptx-viewer-core` `PptxTableData`):
- * - `tableData.rows: PptxTableRow[]` — each `{ height?, cells: PptxTableCell[] }`.
- * - `tableData.columnWidths: number[]` — per-column proportion (sums to 1).
+ * - `tableData.rows: PptxTableRow[]`: each `{ height?, cells: PptxTableCell[] }`.
+ * - `tableData.columnWidths: number[]`: per-column proportion (sums to 1).
  * - Cells: `PptxTableCell` `{ text, style?, gridSpan?, rowSpan?, vMerge?, hMerge? }`.
  *
  * The core row/column helpers (`addTableRow` / `removeTableRow` /
@@ -31,8 +31,8 @@ import { computed } from 'vue';
  * manipulation directly on a deep-cloned `tableData`, mirroring their logical
  * behaviour (blank cells matching the cell shape, width re-normalisation).
  *
- * Active-cell choice: the inspector contract passes only `{ element }` — the
- * table model does not track a selected/active cell here — so insert/delete
+ * Active-cell choice: the inspector contract passes only `{ element }`; the
+ * table model does not track a selected/active cell here, so insert/delete
  * operations act on the LAST row / LAST column (inserts can target above/below
  * or left/right of that reference). Delete is disabled when only one row /
  * column remains.

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * CustomShowsPanel — list / create / rename / delete custom slide shows and
+ * CustomShowsPanel: list / create / rename / delete custom slide shows and
  * edit the ordered slide list of the selected show.
  *
  * Vue counterpart of the React custom-show controls (`CustomShowsControls.tsx`
@@ -8,7 +8,7 @@
  * toggling each slide's checkbox; ordering uses up/down arrows. Naming uses a
  * tiny inline form (the React version used `window.prompt`).
  *
- * Presentational only — all state lives in the host, which wires the emits to
+ * Presentational only; all state lives in the host, which wires the emits to
  * `useCustomShows`. Emits: `create`, `rename`, `delete`, `select`,
  * `toggle-slide`, `move-slide`.
  */

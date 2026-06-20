@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * SectionList — collapsible section headers grouping the slide thumbnails.
+ * SectionList - collapsible section headers grouping the slide thumbnails.
  *
  * Vue counterpart of the React slides-pane section UI (`SectionHeader.tsx` +
  * `SectionContextMenu.tsx`). It renders one header per section group (plus a
@@ -11,7 +11,7 @@
  *  - up/down/delete affordances on hover.
  *  - an "Add section" button at the foot of each group's first slide.
  *
- * Presentational only — all state lives in the host. It receives the
+ * Presentational only: all state lives in the host. It receives the
  * `slidesBySection` grouping from `useSectionOperations` and emits the
  * operations back: `toggle-collapse`, `rename`, `move-up`, `move-down`,
  * `delete`, `add-section` (after a slide index), and `select` (a slide).

@@ -10,12 +10,12 @@ const CUSTOM_PROPERTY_TYPES: Array<{ value: string; label: string }> = [
 ];
 
 /**
- * DocumentPropertiesCustomTab — add/remove/edit user-defined custom properties.
+ * DocumentPropertiesCustomTab: add/remove/edit user-defined custom properties.
  *
  * Vue counterpart of React's `DocumentPropertiesCustomTab`. Renders an editable
  * grid of name/value/type rows. Boolean-typed properties render a yes/no
  * dropdown; numeric types use a `number` input. The parent owns the draft
- * array — every mutation emits the full updated list.
+ * array; every mutation emits the full updated list.
  */
 const props = defineProps<{
 	/** Current draft list of custom properties. */

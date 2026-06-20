@@ -16,7 +16,7 @@ import type { CanvasSize } from '../types';
 import SlideStage from './SlideStage.vue';
 
 /**
- * PresenterView — split-screen presenter layout: current slide (left, 70%) plus
+ * PresenterView - split-screen presenter layout: current slide (left, 70%) plus
  * a control rail (right, 30%) with the wall-clock time, elapsed timer, prev/next
  * navigation, a next-slide preview, scalable speaker notes, and a 5-minute
  * timer progress bar. Vue port of the React `PresenterView`.

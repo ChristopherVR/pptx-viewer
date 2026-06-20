@@ -1,5 +1,5 @@
 /**
- * useSelection — reactive selection state for the editor.
+ * useSelection: reactive selection state for the editor.
  *
  * Tracks which element ids are currently selected and exposes the usual
  * single / additive / toggle / clear operations. Mirrors the React
@@ -49,7 +49,7 @@ export function useSelection(initial: readonly string[] = []): UseSelectionResul
 			}
 			return;
 		}
-		// Replace selection — but avoid a needless write when already exactly this.
+		// Replace selection, but avoid a needless write when already exactly this.
 		if (selectedIds.value.length === 1 && selectedIds.value[0] === id) {
 			return;
 		}
