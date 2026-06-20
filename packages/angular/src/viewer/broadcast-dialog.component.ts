@@ -42,6 +42,16 @@ import { ModalDialogComponent } from './modal-dialog.component';
 			@if (active()) {
 				<!-- Active: share the follow link + stop control -->
 				<div class="pptx-ng-broadcast">
+					<div class="pptx-ng-broadcast-status-row">
+						<span class="pptx-ng-broadcast-status-dot" [class.is-on]="connected()"></span>
+						<span class="pptx-ng-broadcast-status-text">
+							{{ connected() ? 'Broadcasting' : 'Connecting' }}
+						</span>
+						<span class="pptx-ng-broadcast-count">
+							{{ viewerCount() }} {{ viewerCount() === 1 ? 'viewer' : 'viewers' }}
+						</span>
+					</div>
+
 					<p class="pptx-ng-broadcast-desc">
 						Your broadcast is live. Share this link so viewers can follow along.
 					</p>
@@ -228,6 +238,34 @@ import { ModalDialogComponent } from './modal-dialog.component';
 			.pptx-ng-broadcast-stop:hover {
 				background: rgba(239, 68, 68, 0.2);
 			}
+
+			.pptx-ng-broadcast-status-row {
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				font-size: 0.8125rem;
+			}
+
+			.pptx-ng-broadcast-status-dot {
+				width: 0.5rem;
+				height: 0.5rem;
+				border-radius: 9999px;
+				background: var(--pptx-muted-foreground, #9ca3af);
+			}
+
+			.pptx-ng-broadcast-status-dot.is-on {
+				background: #22c55e;
+			}
+
+			.pptx-ng-broadcast-status-text {
+				font-weight: 500;
+				color: var(--pptx-foreground, #f3f4f6);
+			}
+
+			.pptx-ng-broadcast-count {
+				margin-left: auto;
+				color: var(--pptx-muted-foreground, #9ca3af);
+			}
 		`,
 	],
 })
@@ -238,8 +276,14 @@ export class BroadcastDialogComponent {
 	/** Optional `{ roomId, serverUrl }` seed for the start form. */
 	readonly defaults = input<BroadcastDefaults>();
 
-	/** Whether a broadcast is currently running. */
+	/** Whether a broadcast is currently running (provider constructed). */
 	readonly active = input<boolean>(false);
+
+	/** Whether the websocket has reported a `connected` status. */
+	readonly connected = input<boolean>(false);
+
+	/** Number of viewers currently following the broadcast. */
+	readonly viewerCount = input<number>(0);
 
 	/** The shareable follow link (shown while `active`). */
 	readonly viewerUrl = input<string>();
