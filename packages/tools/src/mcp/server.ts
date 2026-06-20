@@ -20,7 +20,7 @@ export function createServer(): McpServer {
 	server.registerTool(
 		'get_slide',
 		{
-			description: 'Inspect a single slide — returns layout, notes, elements',
+			description: 'Inspect a single slide: returns layout, notes, elements',
 			inputSchema: schemas.GetSlideSchema.shape,
 		},
 		async (params) => {

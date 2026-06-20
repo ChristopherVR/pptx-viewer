@@ -48,7 +48,7 @@ export async function loadTestPptxData(bytes: Uint8Array): Promise<PptxData> {
 }
 
 /**
- * Create a PptxData from real PPTX bytes — ready for tool functions.
+ * Create a PptxData from real PPTX bytes, ready for tool functions.
  */
 export async function createTestPptxData(slideCount = 2): Promise<PptxData> {
 	const bytes = await createTestPptxBytes(slideCount);

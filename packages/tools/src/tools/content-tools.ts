@@ -10,14 +10,14 @@ import { validateSlideIndex } from './helpers.js';
 const MAX_REGEX_LEN = 200;
 
 /**
- * Reject patterns containing nested unbounded quantifiers — the classic
+ * Reject patterns containing nested unbounded quantifiers, the classic
  * "evil regex" shape (e.g. `(a+)+`, `(a*)+`, `(a+)*`) that produces
  * exponential backtracking.
  */
 function hasNestedUnboundedQuantifier(pattern: string): boolean {
 	// Match a parenthesised group whose body ends with `+` or `*`, immediately
 	// followed by another `+` or `*` outside the group.
-	return /\([^)]*[+*]\)[+*]/.test(pattern);
+	return /\([^)]*[+*]\)[+*]/u.test(pattern);
 }
 
 function buildSearchRegex(query: string, useRegex: boolean, caseSensitive: boolean): RegExp | null {
@@ -29,7 +29,7 @@ function buildSearchRegex(query: string, useRegex: boolean, caseSensitive: boole
 			return null;
 		}
 	}
-	const pattern = useRegex ? query : query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	const pattern = useRegex ? query : query.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 	const flags = caseSensitive ? 'g' : 'gi';
 	try {
 		return new RegExp(pattern, flags);
@@ -68,7 +68,7 @@ export function findText(ctx: ToolContext, params: FindTextParams): ToolResult<F
 		params.caseSensitive === true,
 	);
 
-	// Invalid / unsafe regex — return empty result rather than throwing.
+	// Invalid / unsafe regex: return empty result rather than throwing.
 	if (!regex) {
 		return {
 			pptxData: ctx.pptxData,

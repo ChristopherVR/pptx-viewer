@@ -10,9 +10,9 @@ export const ORIGIN_FILE_LOAD = 'file-load';
 export interface FormatCodec {
 	readonly formatId: string;
 	readonly extensions: string[];
-	hydrate(ydoc: YDoc, bytes: Uint8Array, origin?: string): Promise<void>;
-	dehydrate(ydoc: YDoc, dirtyPaths?: string[]): Promise<Uint8Array>;
-	observe(ydoc: YDoc, onChange: () => void): () => void;
+	hydrate: (ydoc: YDoc, bytes: Uint8Array, origin?: string) => Promise<void>;
+	dehydrate: (ydoc: YDoc, dirtyPaths?: string[]) => Promise<Uint8Array>;
+	observe: (ydoc: YDoc, onChange: () => void) => () => void;
 }
 
 const SCALAR_ELEMENT_KEYS = new Set([
@@ -226,7 +226,7 @@ export class PptxCodec implements FormatCodec {
 				try {
 					slide[original] = JSON.parse(value);
 				} catch {
-					// Corrupt or non-JSON value — leave field undefined to keep
+					// Corrupt or non-JSON value: leave field undefined to keep
 					// dehydration safe rather than aborting the whole document.
 				}
 			}
@@ -266,7 +266,7 @@ export class PptxCodec implements FormatCodec {
 				try {
 					element[REVERSE_COMPLEX_MAP[key]] = JSON.parse(value as string);
 				} catch {
-					// Corrupt JSON in Y.Doc — skip rather than throwing so the
+					// Corrupt JSON in Y.Doc: skip rather than throwing so the
 					// element still hydrates with whatever scalar fields parsed.
 				}
 			} else {

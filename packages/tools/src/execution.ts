@@ -37,7 +37,7 @@ export async function loadPresentation(
 }
 
 /**
- * Save mutated PptxData back — routes through collaboration Y.Doc or disk.
+ * Save mutated PptxData back: routes through collaboration Y.Doc or disk.
  */
 export async function savePresentation(
 	filePath: string,

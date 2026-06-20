@@ -66,7 +66,7 @@ export function createMcpContext(_options?: McpContextOptions): ExecutionContext
 }
 
 /**
- * Run a tool via MCP — uses the shared collaboration-aware execution pipeline.
+ * Run a tool via MCP, using the shared collaboration-aware execution pipeline.
  * Returns the inner result value (not the full ToolResult wrapper).
  *
  * `filePath` is validated and resolved against the configured rootDir

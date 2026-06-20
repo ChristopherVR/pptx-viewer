@@ -82,7 +82,7 @@ describe('pptxCodec hydrate', () => {
 
 		// Each slide map should have an id
 		for (let i = 0; i < slidesArray.length; i++) {
-			const slideMap = slidesArray.get(i) as { get(key: string): unknown };
+			const slideMap = slidesArray.get(i) as { get: (key: string) => unknown };
 			expect(slideMap.get('id')).toBeTruthy();
 		}
 	});
@@ -163,7 +163,7 @@ describe('pptxCodec dehydrate', () => {
 	it('throws when no source bytes available', async () => {
 		const codec = new PptxCodec();
 		const ydoc = new YDoc();
-		// Don't hydrate — just try to dehydrate an empty doc
+		// Don't hydrate, just try to dehydrate an empty doc
 		await expect(codec.dehydrate(ydoc)).rejects.toThrow();
 	});
 });
@@ -243,7 +243,7 @@ describe('pptxCodec round-trip', () => {
 
 		// Modify a slide in the Y.Doc
 		const slidesArray = ydoc.getArray('pptx:slides');
-		const slideMap = slidesArray.get(0) as { set(k: string, v: unknown): void };
+		const slideMap = slidesArray.get(0) as { set: (k: string, v: unknown) => void };
 		slideMap.set('notes', 'Updated notes');
 
 		expect(callCount).toBeGreaterThan(0);
