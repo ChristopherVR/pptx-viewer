@@ -3,9 +3,10 @@ import React from 'react';
 
 import { colour, nodeOpacity, styleShadow, styleStroke, truncate } from './smartart-helpers';
 import { renderUpwardArrow } from './smartart-upward-arrow';
+
 export { renderUpwardArrow } from './smartart-upward-arrow';
 
-/** basicChevronProcess — pointed arrow chevrons. */
+/** basicChevronProcess: pointed arrow chevrons. */
 export function renderChevronProcess(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],
@@ -71,7 +72,7 @@ export function renderChevronProcess(
 	);
 }
 
-/** segmentedProcess — rounded rectangles with small triangle connectors. */
+/** segmentedProcess: rounded rectangles with small triangle connectors. */
 export function renderSegmentedProcess(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],
@@ -140,7 +141,7 @@ export function renderSegmentedProcess(
 	);
 }
 
-/** continuousBlockProcess — parallelogram blocks that visually flow. */
+/** continuousBlockProcess: parallelogram blocks that visually flow. */
 export function renderContinuousBlockProcess(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],
