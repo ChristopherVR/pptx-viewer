@@ -1,11 +1,26 @@
 import { XmlObject } from '../../types';
 import type {
+	ChartPptxElement,
 	InkPptxElement,
 	GroupPptxElement,
 	OlePptxElement,
 	TablePptxElement,
 } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveElements';
+
+/** Relationship type for chart parts. */
+export const CHART_RELATIONSHIP_TYPE =
+	'http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart';
+
+/** URI for charts in `<a:graphicData>`. */
+const CHART_GRAPHIC_DATA_URI = 'http://schemas.openxmlformats.org/drawingml/2006/chart';
+
+/** Content type for a chart part in `[Content_Types].xml`. */
+export const CHART_CONTENT_TYPE =
+	'application/vnd.openxmlformats-officedocument.drawingml.chart+xml';
+
+const CHART_NS_C = 'http://schemas.openxmlformats.org/drawingml/2006/chart';
+const CHART_NS_R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 
 /**
  * Relationship type for embedded / linked OLE binary parts.
@@ -77,6 +92,41 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			},
 		};
 	}
+	/**
+	 * Build a `p:graphicFrame` envelope for a chart element, referencing the
+	 * chart part via `relId`. The chart part itself (`ppt/charts/chartN.xml`)
+	 * and the slide relationship are created by the caller.
+	 */
+	protected createChartGraphicFrameXml(el: ChartPptxElement, relId: string): XmlObject {
+		const EMU = PptxHandlerRuntime.EMU_PER_PX;
+		const offX = String(Math.round(el.x * EMU));
+		const offY = String(Math.round(el.y * EMU));
+		const extCx = String(Math.round(Math.max(el.width, 1) * EMU));
+		const extCy = String(Math.round(Math.max(el.height, 1) * EMU));
+
+		return {
+			'p:nvGraphicFramePr': {
+				'p:cNvPr': { '@_id': '0', '@_name': el.name || 'Chart' },
+				'p:cNvGraphicFramePr': {},
+				'p:nvPr': {},
+			},
+			'p:xfrm': {
+				'a:off': { '@_x': offX, '@_y': offY },
+				'a:ext': { '@_cx': extCx, '@_cy': extCy },
+			},
+			'a:graphic': {
+				'a:graphicData': {
+					'@_uri': CHART_GRAPHIC_DATA_URI,
+					'c:chart': {
+						'@_xmlns:c': CHART_NS_C,
+						'@_xmlns:r': CHART_NS_R,
+						'@_r:id': relId,
+					},
+				},
+			},
+		};
+	}
+
 	/**
 	 * Build a `p:graphicFrame` XML skeleton for an OLE object element.
 	 *
@@ -239,7 +289,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (!oleTarget) {
 			return undefined;
 		}
-		const normalisedTarget = oleTarget.replace(/^ppt\//, '../').replace(/^\/+/, '');
+		const normalisedTarget = oleTarget.replace(/^ppt\//u, '../').replace(/^\/+/u, '');
 		const lowerTarget = normalisedTarget.toLowerCase();
 		for (const rel of slideRelationships) {
 			const relType = String(rel?.['@_Type'] || '');
@@ -285,10 +335,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const xmlPaths: XmlObject[] = el.inkPaths.map((svgPath) => {
 			const moveToList: XmlObject[] = [];
 			const lnToList: XmlObject[] = [];
-			const tokens = svgPath.match(/[ML]\s*[\d.eE+-]+\s+[\d.eE+-]+/g);
+			const tokens = svgPath.match(/[ML]\s*[\d.eE+-]+\s+[\d.eE+-]+/gu);
 			if (tokens) {
 				for (const token of tokens) {
-					const parts = token.trim().split(/\s+/);
+					const parts = token.trim().split(/\s+/u);
 					const cmd = parts[0];
 					const x = parseFloat(parts[1]);
 					const y = parseFloat(parts[2]);

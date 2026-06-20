@@ -2,6 +2,7 @@ import { hasShapeProperties, hasTextProperties } from '../../types';
 import type {
 	XmlObject,
 	PptxElement,
+	ChartPptxElement,
 	GroupPptxElement,
 	InkPptxElement,
 	MediaPptxElement,
@@ -9,9 +10,11 @@ import type {
 	PptxImageLikeElement,
 	TablePptxElement,
 } from '../../types';
+import { buildChartSpaceXml } from '../../utils/chart-xml-generator';
 import { BLIP_FILL_ORDER, SP_PR_ORDER, reorderObjectKeys } from '../../utils/xml-reorder';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveElementEmbedding';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
+import { CHART_CONTENT_TYPE, CHART_RELATIONSHIP_TYPE } from './PptxHandlerRuntimeSaveShapeXml';
 
 export type { SaveSlideContext };
 
@@ -30,6 +33,86 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/** Whether a shape XML represents a graphic frame. */
 	protected isGraphicFrameShape(shape: XmlObject): boolean {
 		return Boolean(shape['p:nvGraphicFramePr'] || (shape['a:graphic'] && shape['p:xfrm']));
+	}
+
+	/** Part paths of SDK-created charts written this save (need content-type overrides). */
+	protected pendingChartPartPaths?: string[];
+
+	/** Pick the next free `ppt/charts/chartN.xml` path (reads the zip + pending writes). */
+	protected nextChartPartPath(): string {
+		const used = new Set<number>();
+		const re = /^ppt\/charts\/chart(?<n>\d+)\.xml$/u;
+		const collect = (name: string): void => {
+			const m = re.exec(name);
+			if (m?.groups?.n) {
+				used.add(Number.parseInt(m.groups.n, 10));
+			}
+		};
+		for (const name of Object.keys(this.zip.files)) {
+			collect(name);
+		}
+		for (const p of this.pendingChartPartPaths ?? []) {
+			collect(p);
+		}
+		let n = 1;
+		while (used.has(n)) {
+			n += 1;
+		}
+		return `ppt/charts/chart${n}.xml`;
+	}
+
+	/**
+	 * Generate a self-contained chart part for an SDK-created chart, register a
+	 * slide relationship to it, and return the `p:graphicFrame` envelope. The
+	 * content-type override is added later from {@link pendingChartPartPaths}.
+	 */
+	protected createChartElementXml(el: ChartPptxElement, ctx: SaveSlideContext): XmlObject {
+		const partPath = this.nextChartPartPath();
+		this.zip.file(partPath, this.builder.build(buildChartSpaceXml(el.chartData!)));
+		(this.pendingChartPartPaths ??= []).push(partPath);
+
+		const relId = ctx.slideRelationshipRegistry.nextRelationshipId();
+		ctx.slideRelationships.push({
+			'@_Id': relId,
+			'@_Type': CHART_RELATIONSHIP_TYPE,
+			'@_Target': `../charts/${partPath.slice(partPath.lastIndexOf('/') + 1)}`,
+		});
+		return this.createChartGraphicFrameXml(el, relId);
+	}
+
+	/**
+	 * Add `[Content_Types].xml` Override entries for any chart parts generated
+	 * for SDK-created charts this save. Called from the save pipeline after
+	 * element writing; a no-op when no charts were generated.
+	 */
+	protected async ensureChartPartContentTypes(): Promise<void> {
+		const paths = this.pendingChartPartPaths;
+		this.pendingChartPartPaths = undefined;
+		if (!paths || paths.length === 0) {
+			return;
+		}
+		const ctXml = await this.zip.file('[Content_Types].xml')?.async('string');
+		if (!ctXml) {
+			return;
+		}
+		const ctData = this.parser.parse(ctXml) as XmlObject;
+		const typesRoot = (ctData['Types'] || {}) as XmlObject;
+		const overrides = Array.isArray(typesRoot['Override'])
+			? (typesRoot['Override'] as XmlObject[])
+			: typesRoot['Override']
+				? [typesRoot['Override'] as XmlObject]
+				: [];
+		const have = new Set(overrides.map((o) => String(o?.['@_PartName'] || '')));
+		for (const p of paths) {
+			const partName = `/${p}`;
+			if (!have.has(partName)) {
+				overrides.push({ '@_PartName': partName, '@_ContentType': CHART_CONTENT_TYPE });
+				have.add(partName);
+			}
+		}
+		typesRoot['Override'] = overrides;
+		ctData['Types'] = typesRoot;
+		this.zip.file('[Content_Types].xml', this.builder.build(ctData));
 	}
 
 	/**
@@ -169,6 +252,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// the element falls through to SAVE_ELEMENT_SKIPPED and the
 			// table is silently dropped from the saved slide.
 			shape = this.createTableGraphicFrameXml(el as TablePptxElement);
+		}
+		if (!shape && el.type === 'chart' && (el as ChartPptxElement).chartData) {
+			// SDK-created charts (via `SlideBuilder.addChart`) have no rawXml and
+			// no chart part. Generate a self-contained chart.xml, register a slide
+			// relationship + content-type override, and fabricate the graphic
+			// frame; without this the chart falls through to SAVE_ELEMENT_SKIPPED
+			// and is dropped from the saved slide.
+			shape = this.createChartElementXml(el as ChartPptxElement, ctx);
 		}
 		if (el.type === 'ole') {
 			// OLE round-trip strategy:

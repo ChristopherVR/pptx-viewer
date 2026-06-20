@@ -673,7 +673,7 @@ describe('error Handling', () => {
 		const ole = new Uint8Array(512);
 		// OLE magic: D0 CF 11 E0 A1 1B 1A E1
 		ole.set([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0x1b, 0x1a, 0xe1]);
-		await expect(handler.load(ole.buffer as ArrayBuffer)).rejects.toThrow(/encrypted/i);
+		await expect(handler.load(ole.buffer as ArrayBuffer)).rejects.toThrow(/encrypted/iu);
 	});
 
 	it('rejects a valid ZIP that is not a PPTX (missing parts)', async () => {
@@ -1493,6 +1493,91 @@ describe('chart Variants', () => {
 		// Save should not crash
 		const bytes = await handler.save(data.slides);
 		expect(bytes.length).toBeGreaterThan(0);
+	});
+
+	it('builder bar chart survives save and reload with its data', async () => {
+		const { handler, data, createSlide } = await createBlank();
+		data.slides.push(
+			createSlide('Blank')
+				.addChart(
+					'bar',
+					{
+						series: [
+							{ name: 'Revenue', values: [100, 200, 300] },
+							{ name: 'Cost', values: [80, 160, 240] },
+						],
+						categories: ['Jan', 'Feb', 'Mar'],
+						title: 'Q1 Performance',
+					},
+					{ x: 50, y: 50, width: 500, height: 300 },
+				)
+				.build(),
+		);
+
+		const { data: reloaded } = await saveAndReload(handler, data.slides);
+		const chart = reloaded.slides.flatMap((s) => s.elements).find((e) => e.type === 'chart') as
+			| ChartPptxElement
+			| undefined;
+
+		expect(chart).toBeDefined();
+		expect(chart!.chartData!.chartType).toBe('bar');
+		expect(chart!.chartData!.title).toBe('Q1 Performance');
+		expect(chart!.chartData!.categories).toStrictEqual(['Jan', 'Feb', 'Mar']);
+		expect(chart!.chartData!.series).toHaveLength(2);
+		expect(chart!.chartData!.series[0].name).toBe('Revenue');
+		expect(chart!.chartData!.series[0].values).toStrictEqual([100, 200, 300]);
+		expect(chart!.chartData!.series[1].values).toStrictEqual([80, 160, 240]);
+	});
+
+	it('builder pie chart survives save and reload', async () => {
+		const { handler, data, createSlide } = await createBlank();
+		data.slides.push(
+			createSlide('Blank')
+				.addChart(
+					'pie',
+					{
+						series: [{ name: 'Share', values: [40, 30, 20, 10] }],
+						categories: ['A', 'B', 'C', 'D'],
+					},
+					{ x: 50, y: 50, width: 400, height: 400 },
+				)
+				.build(),
+		);
+
+		const { data: reloaded } = await saveAndReload(handler, data.slides);
+		const chart = reloaded.slides.flatMap((s) => s.elements).find((e) => e.type === 'chart') as
+			| ChartPptxElement
+			| undefined;
+
+		expect(chart?.chartData?.chartType).toBe('pie');
+		expect(chart?.chartData?.categories).toStrictEqual(['A', 'B', 'C', 'D']);
+		expect(chart?.chartData?.series[0].values).toStrictEqual([40, 30, 20, 10]);
+	});
+
+	it('builder line chart with a legend round-trips', async () => {
+		const { handler, data, createSlide } = await createBlank();
+		const slide = createSlide('Blank')
+			.addChart(
+				'line',
+				{
+					series: [{ name: 'Trend', values: [10, 30, 20, 40] }],
+					categories: ['W1', 'W2', 'W3', 'W4'],
+				},
+				{ x: 50, y: 50, width: 500, height: 300 },
+			)
+			.build();
+		const chartEl = slide.elements.find((e) => e.type === 'chart') as ChartPptxElement;
+		chartEl.chartData!.style = { hasLegend: true, legendPosition: 'b' };
+		data.slides.push(slide);
+
+		const { data: reloaded } = await saveAndReload(handler, data.slides);
+		const chart = reloaded.slides.flatMap((s) => s.elements).find((e) => e.type === 'chart') as
+			| ChartPptxElement
+			| undefined;
+
+		expect(chart?.chartData?.chartType).toBe('line');
+		expect(chart?.chartData?.style?.hasLegend).toBeTruthy();
+		expect(chart?.chartData?.style?.legendPosition).toBe('b');
 	});
 });
 

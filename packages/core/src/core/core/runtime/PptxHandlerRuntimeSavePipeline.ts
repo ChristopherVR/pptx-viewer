@@ -175,6 +175,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		await this.applyHandoutMasterChanges(options?.handoutMaster);
 		await this.applyHandoutMasterStructuralChanges(options?.handoutMaster);
 		await this.processPendingChartUpdates();
+		await this.ensureChartPartContentTypes();
 		await this.processPendingSmartArtUpdates();
 		this.applyCustomXmlPartsPreservation();
 
