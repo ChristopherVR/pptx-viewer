@@ -8,6 +8,8 @@ import {
 import {
 	getComputedEffectStyle,
 	getComputedFillStyle,
+	getContainerStyle as sharedGetContainerStyle,
+	getImageSrc as sharedGetImageSrc,
 	getResolvedShapeClipPath,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
@@ -75,36 +77,7 @@ function cssBorderDashStyle(strokeDash: string | undefined): 'solid' | 'dotted' 
  * Mirrors the essentials of the React `getContainerStyle`.
  */
 export function getContainerStyle(el: PptxElement, zIndex: number): CSSProperties {
-	const transforms: string[] = [];
-	if (el.rotation) {
-		transforms.push(`rotate(${el.rotation}deg)`);
-	}
-	if (el.flipHorizontal) {
-		transforms.push('scaleX(-1)');
-	}
-	if (el.flipVertical) {
-		transforms.push('scaleY(-1)');
-	}
-
-	const style: CSSProperties = {
-		position: 'absolute',
-		left: px(el.x),
-		top: px(el.y),
-		width: px(el.width),
-		height: px(el.height),
-		zIndex,
-		boxSizing: 'border-box',
-	};
-	if (transforms.length > 0) {
-		style.transform = transforms.join(' ');
-	}
-	if (typeof el.opacity === 'number') {
-		style.opacity = el.opacity;
-	}
-	if (el.hidden) {
-		style.display = 'none';
-	}
-	return style;
+	return sharedGetContainerStyle(el, zIndex) as CSSProperties;
 }
 
 /**
@@ -329,13 +302,5 @@ export function getImageSrc(
 	el: PptxElement,
 	mediaDataUrls: Map<string, string>,
 ): string | undefined {
-	if (el.type === 'picture' || el.type === 'image') {
-		return el.imageData ?? (el.imagePath ? mediaDataUrls.get(el.imagePath) : undefined);
-	}
-	if (el.type === 'media') {
-		return (
-			el.posterFrameData ?? (el.posterFramePath ? mediaDataUrls.get(el.posterFramePath) : undefined)
-		);
-	}
-	return undefined;
+	return sharedGetImageSrc(el, mediaDataUrls);
 }
