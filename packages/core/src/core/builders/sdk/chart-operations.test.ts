@@ -13,6 +13,7 @@ import {
 	setChartLegend,
 	setChartAxis,
 	setChartDataLabels,
+	setChartSeriesTrendline,
 	updateChartDataPoint,
 	addChartCategory,
 	removeChartCategory,
@@ -887,5 +888,52 @@ describe('setChartDataLabels', () => {
 	it('throws when chartData is missing', () => {
 		const el = makeEmptyChart();
 		expect(() => setChartDataLabels(el, { show: true })).toThrow(/no chartData/u);
+	});
+});
+
+// ===========================================================================
+// setChartSeriesTrendline
+// ===========================================================================
+
+describe('setChartSeriesTrendline', () => {
+	it('adds a trendline to a series', () => {
+		const el = makeTestChart();
+		setChartSeriesTrendline(el, 0, { trendlineType: 'linear' });
+		expect(el.chartData?.series[0].trendlines).toStrictEqual([{ trendlineType: 'linear' }]);
+	});
+
+	it('replaces an existing trendline', () => {
+		const el = makeTestChart();
+		setChartSeriesTrendline(el, 0, { trendlineType: 'linear' });
+		setChartSeriesTrendline(el, 0, { trendlineType: 'movingAvg', period: 3 });
+		expect(el.chartData?.series[0].trendlines).toStrictEqual([
+			{ trendlineType: 'movingAvg', period: 3 },
+		]);
+	});
+
+	it('removes the trendline when passed null', () => {
+		const el = makeTestChart();
+		setChartSeriesTrendline(el, 0, { trendlineType: 'linear' });
+		setChartSeriesTrendline(el, 0, null);
+		expect(el.chartData?.series[0].trendlines).toStrictEqual([]);
+	});
+
+	it('only affects the targeted series', () => {
+		const el = makeTestChart();
+		setChartSeriesTrendline(el, 1, { trendlineType: 'power' });
+		expect(el.chartData?.series[0].trendlines).toBeUndefined();
+		expect(el.chartData?.series[1].trendlines).toStrictEqual([{ trendlineType: 'power' }]);
+	});
+
+	it('throws RangeError for an out-of-range series index', () => {
+		const el = makeTestChart();
+		expect(() => setChartSeriesTrendline(el, 9, { trendlineType: 'linear' })).toThrow(RangeError);
+	});
+
+	it('throws when chartData is missing', () => {
+		const el = makeEmptyChart();
+		expect(() => setChartSeriesTrendline(el, 0, { trendlineType: 'linear' })).toThrow(
+			/no chartData/u,
+		);
 	});
 });

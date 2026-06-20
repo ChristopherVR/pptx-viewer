@@ -93,5 +93,27 @@ export const DATA_LABEL_POSITION_OPTIONS: ReadonlyArray<{
 	{ value: 'bestFit', labelKey: 'pptx.chart.labelPosBestFit' },
 ];
 
+export const TRENDLINE_TYPE_OPTIONS: ReadonlyArray<{
+	value: '' | 'linear' | 'exponential' | 'logarithmic' | 'polynomial' | 'power' | 'movingAvg';
+	labelKey: string;
+}> = [
+	{ value: '', labelKey: 'pptx.chart.trendlineNone' },
+	{ value: 'linear', labelKey: 'pptx.chart.trendlineLinear' },
+	{ value: 'exponential', labelKey: 'pptx.chart.trendlineExponential' },
+	{ value: 'logarithmic', labelKey: 'pptx.chart.trendlineLogarithmic' },
+	{ value: 'polynomial', labelKey: 'pptx.chart.trendlinePolynomial' },
+	{ value: 'power', labelKey: 'pptx.chart.trendlinePower' },
+	{ value: 'movingAvg', labelKey: 'pptx.chart.trendlineMovingAvg' },
+];
+
+/** Chart types where trendlines are meaningful. */
+export const TRENDLINE_SUPPORTED_TYPES = new Set<PptxChartType>([
+	'bar',
+	'line',
+	'area',
+	'scatter',
+	'bubble',
+]);
+
 /** Chart types that support grouping modes. */
 export const GROUPING_SUPPORTED_TYPES = new Set<PptxChartType>(['bar', 'line', 'area']);

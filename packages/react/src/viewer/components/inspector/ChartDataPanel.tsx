@@ -5,6 +5,7 @@ import type {
 	PptxChartData,
 	PptxChartSeries,
 	PptxChartStyle,
+	PptxChartTrendline,
 	PptxChartType,
 } from 'pptx-viewer-core';
 import {
@@ -21,6 +22,7 @@ import { ChartAxisOptions } from './ChartAxisOptions';
 import { ChartDataGrid } from './ChartDataGrid';
 import { ChartDataLabelOptions } from './ChartDataLabelOptions';
 import { ChartDisplayOptions } from './ChartDisplayOptions';
+import { ChartTrendlineOptions } from './ChartTrendlineOptions';
 import { ChartTypeSelector } from './ChartTypeSelector';
 
 // ---------------------------------------------------------------------------
@@ -120,6 +122,19 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 		[series, updateChartData],
 	);
 
+	const setSeriesTrendline = useCallback(
+		(index: number, trendline: PptxChartTrendline | null) => {
+			if (!series) {
+				return;
+			}
+			const updated = series.map((s, i) =>
+				i === index ? { ...s, trendlines: trendline ? [trendline] : [] } : s,
+			);
+			updateChartData({ series: updated });
+		},
+		[series, updateChartData],
+	);
+
 	const updateCategoryLabel = useCallback(
 		(catIndex: number, value: string) => {
 			if (!categories) {
@@ -207,6 +222,13 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 			<ChartDataLabelOptions style={style} canEdit={canEdit} onUpdateStyle={updateStyle} />
 
 			<ChartAxisOptions axes={chartData.axes} canEdit={canEdit} onUpdateAxis={updateAxis} />
+
+			<ChartTrendlineOptions
+				chartType={chartType!}
+				series={series}
+				canEdit={canEdit}
+				onSetTrendline={setSeriesTrendline}
+			/>
 
 			<ChartDataGrid
 				categories={categories}

@@ -12,6 +12,7 @@
 import type {
 	PptxChartAxisFormatting,
 	PptxChartDataLabelOptions,
+	PptxChartTrendline,
 	PptxChartType,
 } from '../../types/chart';
 import type { ChartPptxElement } from '../../types/elements';
@@ -272,6 +273,30 @@ export function setChartDataLabels(
 			style.hasDataLabels = true;
 		}
 	}
+}
+
+/**
+ * Set (or clear) the primary trendline on a chart series. Edits round-trip to
+ * the saved `.pptx` (`c:trendline` inside the series).
+ *
+ * Pass a {@link PptxChartTrendline} to add/replace the series' trendline, or
+ * `null` to remove it. This manages a single trendline per series (the common
+ * case); charts with multiple trendlines on one series can be edited via the
+ * `series.trendlines` array directly.
+ *
+ * @example
+ * ```ts
+ * setChartSeriesTrendline(chartEl, 0, { trendlineType: "linear", displayEq: true });
+ * setChartSeriesTrendline(chartEl, 0, null); // remove
+ * ```
+ */
+export function setChartSeriesTrendline(
+	element: ChartPptxElement,
+	seriesIndex: number,
+	trendline: PptxChartTrendline | null,
+): void {
+	validateSeriesIndex(element, seriesIndex);
+	element.chartData!.series[seriesIndex].trendlines = trendline ? [trendline] : [];
 }
 
 /** Axis kinds that can be addressed by {@link setChartAxis}. */
