@@ -67,3 +67,37 @@ describe('applyChartAxisGridlinesToXml', () => {
 		expect(minorCount).toBe(1);
 	});
 });
+
+describe('applyChartAxisGridlinesToXml styling', () => {
+	function axisNode2(): XmlObject {
+		return { 'c:axId': { '@_val': '1' }, 'c:scaling': {}, 'c:axPos': { '@_val': 'l' } };
+	}
+
+	it('applies stroke colour/width/dash onto an existing major gridline spPr', () => {
+		const node = axisNode2();
+		applyChartAxisGridlinesToXml(
+			node,
+			{
+				majorGridlines: true,
+				majorGridlinesSpPr: { strokeColor: '#CCCCCC', strokeWidth: 0.75, strokeDashStyle: 'dash' },
+			},
+			getLocalName,
+		);
+		const grid = node['c:majorGridlines'] as XmlObject;
+		const ln = (grid['c:spPr'] as XmlObject)['a:ln'] as XmlObject;
+		expect(ln['@_w']).toBe(String(Math.round(0.75 * 12700)));
+		const fill = ln['a:solidFill'] as XmlObject;
+		expect((fill['a:srgbClr'] as XmlObject)['@_val']).toBe('CCCCCC');
+		expect((ln['a:prstDash'] as XmlObject)['@_val']).toBe('dash');
+	});
+
+	it('does not apply style when the gridline element is absent', () => {
+		const node = axisNode2();
+		applyChartAxisGridlinesToXml(
+			node,
+			{ minorGridlinesSpPr: { strokeColor: '#EEEEEE' } },
+			getLocalName,
+		);
+		expect(node['c:minorGridlines']).toBeUndefined();
+	});
+});

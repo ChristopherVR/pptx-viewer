@@ -19,6 +19,13 @@ import {
 	addChartCategory,
 	removeChartCategory,
 	setChartSeriesColor,
+	setChartAxisLogScale,
+	setChartAxisTitleStyle,
+	setChartAxisGridlineStyle,
+	setChartSeriesMarker,
+	setChartSeriesChartType,
+	setChartDataPointFill,
+	setChartDataPointExplosion,
 } from './chart-operations';
 import { createChartElement, resetIdCounter } from './ElementFactory';
 
@@ -1096,5 +1103,219 @@ describe('setChartSeriesErrorBars', () => {
 				val: 1,
 			}),
 		).toThrow(/no chartData/u);
+	});
+});
+
+// ===========================================================================
+// setChartAxisLogScale
+// ===========================================================================
+
+describe('setChartAxisLogScale', () => {
+	it('enables log scale with default base 10', () => {
+		const el = makeTestChart();
+		setChartAxisLogScale(el, 'valAx', { enabled: true });
+		const axis = el.chartData?.axes?.find((a) => a.axisType === 'valAx');
+		expect(axis?.logScale).toBeTruthy();
+		expect(axis?.logBase).toBe(10);
+	});
+
+	it('enables log scale with explicit base', () => {
+		const el = makeTestChart();
+		setChartAxisLogScale(el, 'valAx', { enabled: true, base: 2 });
+		const axis = el.chartData?.axes?.find((a) => a.axisType === 'valAx');
+		expect(axis?.logBase).toBe(2);
+	});
+
+	it('disabling clears the log base', () => {
+		const el = makeTestChart();
+		setChartAxisLogScale(el, 'valAx', { enabled: true, base: 10 });
+		setChartAxisLogScale(el, 'valAx', { enabled: false });
+		const axis = el.chartData?.axes?.find((a) => a.axisType === 'valAx');
+		expect(axis?.logScale).toBeFalsy();
+		expect(axis?.logBase).toBeUndefined();
+	});
+
+	it('creates the axis entry when missing', () => {
+		const el = makeTestChart();
+		el.chartData!.axes = undefined;
+		setChartAxisLogScale(el, 'valAx', { enabled: true });
+		expect(el.chartData?.axes?.length).toBe(1);
+	});
+});
+
+// ===========================================================================
+// setChartAxisTitleStyle
+// ===========================================================================
+
+describe('setChartAxisTitleStyle', () => {
+	it('sets font family, size, bold, colour', () => {
+		const el = makeTestChart();
+		setChartAxisTitleStyle(el, 'valAx', {
+			fontFamily: 'Calibri',
+			fontSize: 12,
+			fontBold: true,
+			fontColor: '#FF0000',
+		});
+		const axis = el.chartData?.axes?.find((a) => a.axisType === 'valAx');
+		expect(axis?.fontFamily).toBe('Calibri');
+		expect(axis?.fontSize).toBe(12);
+		expect(axis?.fontBold).toBeTruthy();
+		expect(axis?.fontColor).toBe('#FF0000');
+	});
+
+	it('clears fields with null', () => {
+		const el = makeTestChart();
+		setChartAxisTitleStyle(el, 'valAx', { fontFamily: 'Arial', fontSize: 10 });
+		setChartAxisTitleStyle(el, 'valAx', { fontFamily: null, fontSize: null });
+		const axis = el.chartData?.axes?.find((a) => a.axisType === 'valAx');
+		expect(axis?.fontFamily).toBeUndefined();
+		expect(axis?.fontSize).toBeUndefined();
+	});
+});
+
+// ===========================================================================
+// setChartAxisGridlineStyle
+// ===========================================================================
+
+describe('setChartAxisGridlineStyle', () => {
+	it('sets major gridline colour/width/dash and turns gridlines on', () => {
+		const el = makeTestChart();
+		setChartAxisGridlineStyle(el, 'valAx', 'major', {
+			color: '#CCCCCC',
+			width: 0.75,
+			dashStyle: 'dash',
+		});
+		const axis = el.chartData?.axes?.find((a) => a.axisType === 'valAx');
+		expect(axis?.majorGridlines).toBeTruthy();
+		expect(axis?.majorGridlinesSpPr?.strokeColor).toBe('#CCCCCC');
+		expect(axis?.majorGridlinesSpPr?.strokeWidth).toBe(0.75);
+		expect(axis?.majorGridlinesSpPr?.strokeDashStyle).toBe('dash');
+	});
+
+	it('targets minor gridlines independently', () => {
+		const el = makeTestChart();
+		setChartAxisGridlineStyle(el, 'valAx', 'minor', { color: '#EEEEEE' });
+		const axis = el.chartData?.axes?.find((a) => a.axisType === 'valAx');
+		expect(axis?.minorGridlinesSpPr?.strokeColor).toBe('#EEEEEE');
+		expect(axis?.majorGridlinesSpPr).toBeUndefined();
+	});
+
+	it('clears style when all props nulled', () => {
+		const el = makeTestChart();
+		setChartAxisGridlineStyle(el, 'valAx', 'major', { color: '#CCCCCC' });
+		setChartAxisGridlineStyle(el, 'valAx', 'major', { color: null });
+		const axis = el.chartData?.axes?.find((a) => a.axisType === 'valAx');
+		expect(axis?.majorGridlinesSpPr).toBeUndefined();
+	});
+});
+
+// ===========================================================================
+// setChartSeriesMarker
+// ===========================================================================
+
+describe('setChartSeriesMarker', () => {
+	it('sets a marker from a partial patch', () => {
+		const el = makeTestChart({ chartType: 'line' });
+		setChartSeriesMarker(el, 0, { symbol: 'circle', size: 7, fillColor: '#FF0000' });
+		const m = el.chartData?.series[0].marker;
+		expect(m?.symbol).toBe('circle');
+		expect(m?.size).toBe(7);
+		expect(m?.spPr?.fillColor).toBe('#FF0000');
+	});
+
+	it('merges into an existing marker', () => {
+		const el = makeTestChart({ chartType: 'line' });
+		setChartSeriesMarker(el, 0, { symbol: 'square', size: 5 });
+		setChartSeriesMarker(el, 0, { fillColor: '#00FF00' });
+		const m = el.chartData?.series[0].marker;
+		expect(m?.symbol).toBe('square');
+		expect(m?.size).toBe(5);
+		expect(m?.spPr?.fillColor).toBe('#00FF00');
+	});
+
+	it('removes the marker with null', () => {
+		const el = makeTestChart({ chartType: 'line' });
+		setChartSeriesMarker(el, 0, { symbol: 'diamond' });
+		setChartSeriesMarker(el, 0, null);
+		expect(el.chartData?.series[0].marker).toBeUndefined();
+	});
+
+	it('throws on out-of-range series index', () => {
+		const el = makeTestChart();
+		expect(() => setChartSeriesMarker(el, 99, { symbol: 'circle' })).toThrow(RangeError);
+	});
+});
+
+// ===========================================================================
+// setChartSeriesChartType
+// ===========================================================================
+
+describe('setChartSeriesChartType', () => {
+	it('sets a per-series type and promotes chart to combo', () => {
+		const el = makeTestChart({ chartType: 'bar' });
+		setChartSeriesChartType(el, 1, 'line');
+		expect(el.chartData?.series[1].seriesChartType).toBe('line');
+		expect(el.chartData?.chartType).toBe('combo');
+	});
+
+	it('does not promote to combo when all effective types match', () => {
+		const el = makeTestChart({ chartType: 'bar' });
+		setChartSeriesChartType(el, 0, 'bar');
+		expect(el.chartData?.chartType).toBe('bar');
+	});
+
+	it('clears per-series type with null', () => {
+		const el = makeTestChart({ chartType: 'bar' });
+		setChartSeriesChartType(el, 1, 'line');
+		setChartSeriesChartType(el, 1, null);
+		expect(el.chartData?.series[1].seriesChartType).toBeUndefined();
+	});
+});
+
+// ===========================================================================
+// setChartDataPointFill / setChartDataPointExplosion
+// ===========================================================================
+
+describe('setChartDataPointFill', () => {
+	it('sets a per-point fill colour', () => {
+		const el = makeTestChart({ chartType: 'pie' });
+		setChartDataPointFill(el, 0, 2, '#123456');
+		const dp = el.chartData?.series[0].dataPoints?.find((p) => p.idx === 2);
+		expect(dp?.spPr?.fillColor).toBe('#123456');
+	});
+
+	it('removes the point override when fill is cleared and nothing else set', () => {
+		const el = makeTestChart({ chartType: 'pie' });
+		setChartDataPointFill(el, 0, 2, '#123456');
+		setChartDataPointFill(el, 0, 2, null);
+		expect(el.chartData?.series[0].dataPoints).toBeUndefined();
+	});
+
+	it('keeps the override when explosion is also set', () => {
+		const el = makeTestChart({ chartType: 'pie' });
+		setChartDataPointFill(el, 0, 1, '#123456');
+		setChartDataPointExplosion(el, 0, 1, 25);
+		setChartDataPointFill(el, 0, 1, null);
+		const dp = el.chartData?.series[0].dataPoints?.find((p) => p.idx === 1);
+		expect(dp?.explosion).toBe(25);
+		expect(dp?.spPr).toBeUndefined();
+	});
+});
+
+describe('setChartDataPointExplosion', () => {
+	it('sets and clears pie slice explosion', () => {
+		const el = makeTestChart({ chartType: 'pie' });
+		setChartDataPointExplosion(el, 0, 0, 30);
+		expect(el.chartData?.series[0].dataPoints?.[0].explosion).toBe(30);
+		setChartDataPointExplosion(el, 0, 0, null);
+		expect(el.chartData?.series[0].dataPoints).toBeUndefined();
+	});
+
+	it('keeps points sorted by idx', () => {
+		const el = makeTestChart({ chartType: 'pie' });
+		setChartDataPointExplosion(el, 0, 2, 10);
+		setChartDataPointExplosion(el, 0, 0, 20);
+		const idxs = el.chartData?.series[0].dataPoints?.map((p) => p.idx);
+		expect(idxs).toStrictEqual([0, 2]);
 	});
 });

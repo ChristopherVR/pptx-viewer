@@ -185,6 +185,8 @@ export interface PptxChartShapeProps {
 	fillColor?: string;
 	strokeColor?: string;
 	strokeWidth?: number;
+	/** Line dash style (a:prstDash/@val), e.g. 'solid', 'dash', 'dot', 'lgDash'. */
+	strokeDashStyle?: string;
 }
 
 /** Marker appearance on a chart series or data point. */
@@ -313,6 +315,15 @@ export interface PptxChartSeries {
 	explosion?: number;
 	/** Axis ID this series is plotted against (links to PptxChartAxisFormatting.axisId). */
 	axisId?: number;
+	/**
+	 * Per-series chart type, used for combo charts where individual series are
+	 * plotted with different chart types (e.g. a bar series and a line series in
+	 * the same chart). Maps to the OOXML chart-type container that holds the
+	 * series (`c:barChart`, `c:lineChart`, etc.). Omitted for single-type charts,
+	 * where the chart-level {@link PptxChartData.chartType} applies to every
+	 * series.
+	 */
+	seriesChartType?: PptxChartType;
 }
 
 /**

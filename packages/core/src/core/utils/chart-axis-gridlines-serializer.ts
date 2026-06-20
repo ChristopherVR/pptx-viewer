@@ -10,7 +10,7 @@
  * @module utils/chart-axis-gridlines-serializer
  */
 
-import type { XmlObject } from '../types';
+import type { PptxChartShapeProps, XmlObject } from '../types';
 
 type GetLocalName = (key: string) => string;
 
@@ -91,7 +91,12 @@ function applyOne(
  */
 export function applyChartAxisGridlinesToXml(
 	axisNode: XmlObject,
-	opts: { majorGridlines?: boolean; minorGridlines?: boolean },
+	opts: {
+		majorGridlines?: boolean;
+		minorGridlines?: boolean;
+		majorGridlinesSpPr?: PptxChartShapeProps;
+		minorGridlinesSpPr?: PptxChartShapeProps;
+	},
 	getLocalName: GetLocalName,
 ): void {
 	applyOne(
@@ -110,4 +115,63 @@ export function applyChartAxisGridlinesToXml(
 		AFTER_MINOR,
 		getLocalName,
 	);
+	applyGridlineStyle(axisNode, 'majorGridlines', opts.majorGridlinesSpPr, getLocalName);
+	applyGridlineStyle(axisNode, 'minorGridlines', opts.minorGridlinesSpPr, getLocalName);
+}
+
+function hex(color: string): string {
+	return color.replace(/^#/u, '').toUpperCase();
+}
+
+/** Build a `c:spPr` carrying the modeled gridline line styling (colour/width/dash). */
+function buildGridlineSpPr(
+	existing: XmlObject | undefined,
+	style: PptxChartShapeProps,
+	getLocalName: GetLocalName,
+): XmlObject {
+	const spPr: XmlObject = existing ? { ...existing } : {};
+	const lnKey = findKey(spPr, 'ln', getLocalName) ?? 'a:ln';
+	const ln: XmlObject = { ...((spPr[lnKey] as XmlObject | undefined) ?? {}) };
+	if (style.strokeWidth !== undefined) {
+		// EMU: 1 pt = 12700 EMU.
+		ln['@_w'] = String(Math.round(style.strokeWidth * 12700));
+	}
+	if (style.strokeColor) {
+		const fillKey = findKey(ln, 'solidFill', getLocalName) ?? 'a:solidFill';
+		const noFillKey = findKey(ln, 'noFill', getLocalName);
+		if (noFillKey) {
+			delete ln[noFillKey];
+		}
+		ln[fillKey] = { 'a:srgbClr': { '@_val': hex(style.strokeColor) } };
+	}
+	if (style.strokeDashStyle) {
+		const dashKey = findKey(ln, 'prstDash', getLocalName) ?? 'a:prstDash';
+		ln[dashKey] = { '@_val': style.strokeDashStyle };
+	}
+	spPr[lnKey] = ln;
+	return spPr;
+}
+
+/**
+ * Apply line styling onto an existing gridlines element's `c:spPr`. The
+ * gridlines element must already be present (toggled on via
+ * {@link applyChartAxisGridlinesToXml}). `undefined` style is a passthrough.
+ */
+function applyGridlineStyle(
+	axisNode: XmlObject,
+	local: string,
+	style: PptxChartShapeProps | undefined,
+	getLocalName: GetLocalName,
+): void {
+	if (!style) {
+		return;
+	}
+	const gridKey = findKey(axisNode, local, getLocalName);
+	if (!gridKey) {
+		return;
+	}
+	const grid: XmlObject = { ...((axisNode[gridKey] as XmlObject | undefined) ?? {}) };
+	const spPrKey = findKey(grid, 'spPr', getLocalName) ?? 'c:spPr';
+	grid[spPrKey] = buildGridlineSpPr(grid[spPrKey] as XmlObject | undefined, style, getLocalName);
+	axisNode[gridKey] = grid;
 }

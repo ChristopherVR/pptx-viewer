@@ -22,10 +22,21 @@ import {
 	chartDataRemoveCategory,
 	chartDataRemoveSeries,
 	chartDataUpdatePoint,
+	setChartAxisGridlineStyle,
+	setChartAxisLogScale,
+	setChartAxisTitleStyle,
+	setChartDataPointExplosion,
+	setChartDataPointFill,
+	setChartSeriesChartType,
+	setChartSeriesMarker,
 } from 'pptx-viewer-core';
 import type {
+	ChartAxisTitleStyleEdit,
+	ChartGridlineStyleEdit,
 	ChartPptxElement,
+	PptxChartAxisType,
 	PptxChartData,
+	PptxChartMarkerSymbol,
 	PptxChartSeries,
 	PptxChartStyle,
 	PptxChartType,
@@ -40,6 +51,102 @@ export {
 	chartDataRemoveSeries,
 	chartDataUpdatePoint,
 };
+
+// ---------------------------------------------------------------------------
+// Advanced formatting wrappers (log scale, title/gridline style, markers,
+// combo per-series type, per-point fill/explosion).
+//
+// Each clones the element, runs the in-place core op, and returns a new
+// `ChartPptxElement` so the Angular editor's immutable contract is preserved.
+// These make the new chart-editing ops consumable from the Angular binding even
+// though the dedicated inspector controls for them are not yet ported.
+// ---------------------------------------------------------------------------
+
+/** Apply an in-place core chart op to a deep clone of `element`. */
+function withClonedChart(
+	element: ChartPptxElement,
+	mutate: (clone: ChartPptxElement) => void,
+): ChartPptxElement {
+	if (!element.chartData) {
+		return element;
+	}
+	const clone: ChartPptxElement = {
+		...element,
+		chartData: structuredClone(element.chartData),
+	};
+	mutate(clone);
+	return clone;
+}
+
+/** Enable/disable logarithmic scaling on an axis. */
+export function setAxisLogScale(
+	element: ChartPptxElement,
+	axisType: PptxChartAxisType,
+	opts: { enabled: boolean; base?: number },
+): ChartPptxElement {
+	return withClonedChart(element, (el) => setChartAxisLogScale(el, axisType, opts));
+}
+
+/** Edit an axis title's font styling. */
+export function setAxisTitleStyle(
+	element: ChartPptxElement,
+	axisType: PptxChartAxisType,
+	edit: ChartAxisTitleStyleEdit,
+): ChartPptxElement {
+	return withClonedChart(element, (el) => setChartAxisTitleStyle(el, axisType, edit));
+}
+
+/** Edit major/minor gridline line styling for an axis. */
+export function setGridlineStyle(
+	element: ChartPptxElement,
+	axisType: PptxChartAxisType,
+	which: 'major' | 'minor',
+	edit: ChartGridlineStyleEdit,
+): ChartPptxElement {
+	return withClonedChart(element, (el) => setChartAxisGridlineStyle(el, axisType, which, edit));
+}
+
+/** Set or clear a series marker. */
+export function setSeriesMarker(
+	element: ChartPptxElement,
+	seriesIndex: number,
+	marker: { symbol?: PptxChartMarkerSymbol; size?: number; fillColor?: string } | null,
+): ChartPptxElement {
+	return withClonedChart(element, (el) => setChartSeriesMarker(el, seriesIndex, marker));
+}
+
+/** Set or clear a per-series chart type (combo charts). */
+export function setSeriesChartType(
+	element: ChartPptxElement,
+	seriesIndex: number,
+	seriesType: PptxChartType | null,
+): ChartPptxElement {
+	return withClonedChart(element, (el) => setChartSeriesChartType(el, seriesIndex, seriesType));
+}
+
+/** Set or clear a per-data-point fill colour. */
+export function setDataPointFill(
+	element: ChartPptxElement,
+	seriesIndex: number,
+	pointIndex: number,
+	color: string | null,
+): ChartPptxElement {
+	return withClonedChart(element, (el) =>
+		setChartDataPointFill(el, seriesIndex, pointIndex, color),
+	);
+}
+
+/** Set or clear a per-data-point pie/doughnut slice explosion. */
+export function setDataPointExplosion(
+	element: ChartPptxElement,
+	seriesIndex: number,
+	pointIndex: number,
+	explosion: number | null,
+): ChartPptxElement {
+	return withClonedChart(element, (el) =>
+		setChartDataPointExplosion(el, seriesIndex, pointIndex, explosion),
+	);
+}
 
 // ---------------------------------------------------------------------------
 // addSeries

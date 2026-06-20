@@ -175,3 +175,90 @@ export const ERROR_BAR_SUPPORTED_TYPES = new Set<PptxChartType>([
 
 /** Chart types that support grouping modes. */
 export const GROUPING_SUPPORTED_TYPES = new Set<PptxChartType>(['bar', 'line', 'area']);
+
+// ---------------------------------------------------------------------------
+// Marker options (line / scatter / bubble / radar)
+// ---------------------------------------------------------------------------
+
+export const MARKER_SYMBOL_OPTIONS: ReadonlyArray<{
+	value:
+		| ''
+		| 'none'
+		| 'circle'
+		| 'square'
+		| 'diamond'
+		| 'triangle'
+		| 'x'
+		| 'star'
+		| 'plus'
+		| 'dot'
+		| 'dash';
+	labelKey: string;
+}> = [
+	{ value: '', labelKey: 'pptx.chart.markerAuto' },
+	{ value: 'none', labelKey: 'pptx.chart.markerNone' },
+	{ value: 'circle', labelKey: 'pptx.chart.markerCircle' },
+	{ value: 'square', labelKey: 'pptx.chart.markerSquare' },
+	{ value: 'diamond', labelKey: 'pptx.chart.markerDiamond' },
+	{ value: 'triangle', labelKey: 'pptx.chart.markerTriangle' },
+	{ value: 'x', labelKey: 'pptx.chart.markerX' },
+	{ value: 'star', labelKey: 'pptx.chart.markerStar' },
+	{ value: 'plus', labelKey: 'pptx.chart.markerPlus' },
+	{ value: 'dot', labelKey: 'pptx.chart.markerDot' },
+	{ value: 'dash', labelKey: 'pptx.chart.markerDash' },
+];
+
+/** Chart types where series markers are meaningful. */
+export const MARKER_SUPPORTED_TYPES = new Set<PptxChartType>([
+	'line',
+	'scatter',
+	'bubble',
+	'radar',
+]);
+
+// ---------------------------------------------------------------------------
+// Gridline line styling
+// ---------------------------------------------------------------------------
+
+export const GRIDLINE_DASH_OPTIONS: ReadonlyArray<{
+	value: '' | 'solid' | 'dash' | 'dot' | 'dashDot' | 'lgDash' | 'sysDash' | 'sysDot';
+	labelKey: string;
+}> = [
+	{ value: '', labelKey: 'pptx.chart.dashDefault' },
+	{ value: 'solid', labelKey: 'pptx.chart.dashSolid' },
+	{ value: 'dash', labelKey: 'pptx.chart.dashDash' },
+	{ value: 'dot', labelKey: 'pptx.chart.dashDot' },
+	{ value: 'dashDot', labelKey: 'pptx.chart.dashDashDot' },
+	{ value: 'lgDash', labelKey: 'pptx.chart.dashLong' },
+];
+
+// ---------------------------------------------------------------------------
+// Per-series combo chart types
+// ---------------------------------------------------------------------------
+
+/** Chart types selectable per-series within a combo chart. */
+export const COMBO_SERIES_TYPE_OPTIONS: ReadonlyArray<{
+	value: '' | PptxChartType;
+	labelKey: string;
+}> = [
+	{ value: '', labelKey: 'pptx.chart.comboDefault' },
+	{ value: 'bar', labelKey: 'pptx.chart.typeBar' },
+	{ value: 'line', labelKey: 'pptx.chart.typeLine' },
+	{ value: 'area', labelKey: 'pptx.chart.typeArea' },
+	{ value: 'scatter', labelKey: 'pptx.chart.typeScatter' },
+];
+
+/** Cartesian chart types where a per-series combo type makes sense. */
+export const COMBO_SUPPORTED_TYPES = new Set<PptxChartType>(['bar', 'line', 'area', 'combo']);
+
+// ---------------------------------------------------------------------------
+// Per-data-point formatting
+// ---------------------------------------------------------------------------
+
+/** Chart types where per-point slice explosion (pull-out) is meaningful. */
+export const EXPLOSION_SUPPORTED_TYPES = new Set<PptxChartType>([
+	'pie',
+	'pie3D',
+	'doughnut',
+	'ofPie',
+]);

@@ -12,7 +12,11 @@
 import type {
 	PptxChartAxisFormatting,
 	PptxChartDataLabelOptions,
+	PptxChartDataPoint,
 	PptxChartErrBars,
+	PptxChartMarker,
+	PptxChartMarkerSymbol,
+	PptxChartShapeProps,
 	PptxChartTrendline,
 	PptxChartType,
 } from '../../types/chart';
@@ -527,4 +531,344 @@ export function setChartSeriesColor(
 	}
 	const trimmed = color.trim();
 	series.color = trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
+}
+
+// ---------------------------------------------------------------------------
+// Axis log scaling, title styling, gridline styling
+// ---------------------------------------------------------------------------
+
+/**
+ * Find (or create) the first axis of `axisType` in `chartData.axes`.
+ * Mirrors the lookup that {@link setChartAxis} performs.
+ */
+function ensureAxis(
+	element: ChartPptxElement,
+	axisType: PptxChartAxisType,
+): PptxChartAxisFormatting {
+	ensureChartData(element);
+	const axes = (element.chartData.axes ??= []);
+	let axis = axes.find((a) => a.axisType === axisType);
+	if (!axis) {
+		axis = { axisType };
+		axes.push(axis);
+	}
+	return axis;
+}
+
+/**
+ * Enable or disable logarithmic scaling on an axis, optionally setting the log
+ * base. Round-trips to the saved `.pptx` (`c:scaling/c:logBase`).
+ *
+ * Pass `{ enabled: true, base: 10 }` to turn on a base-10 log scale, or
+ * `{ enabled: false }` to revert to linear scaling (which removes `c:logBase`).
+ *
+ * @example
+ * ```ts
+ * setChartAxisLogScale(chartEl, "valAx", { enabled: true, base: 10 });
+ * setChartAxisLogScale(chartEl, "valAx", { enabled: false });
+ * ```
+ */
+export function setChartAxisLogScale(
+	element: ChartPptxElement,
+	axisType: PptxChartAxisType,
+	opts: { enabled: boolean; base?: number },
+): void {
+	const axis = ensureAxis(element, axisType);
+	axis.logScale = opts.enabled;
+	if (opts.enabled) {
+		// Default to base 10 (the most common log base) when none provided.
+		axis.logBase = opts.base ?? axis.logBase ?? 10;
+	} else {
+		axis.logBase = undefined;
+	}
+}
+
+/** Editable axis-title font styling. Omit a field to leave it unchanged; pass `null` to clear it. */
+export interface ChartAxisTitleStyleEdit {
+	fontFamily?: string | null;
+	fontSize?: number | null;
+	fontBold?: boolean;
+	fontColor?: string | null;
+}
+
+/**
+ * Edit the font styling (family, size, bold, colour) of an axis title. The
+ * title TEXT itself is edited via {@link setChartAxis}'s `title` field; this
+ * controls only its appearance. Round-trips to the saved `.pptx`
+ * (`c:title/c:txPr` run properties).
+ *
+ * @example
+ * ```ts
+ * setChartAxisTitleStyle(chartEl, "valAx", { fontFamily: "Calibri", fontSize: 12, fontBold: true });
+ * ```
+ */
+export function setChartAxisTitleStyle(
+	element: ChartPptxElement,
+	axisType: PptxChartAxisType,
+	edit: ChartAxisTitleStyleEdit,
+): void {
+	const axis = ensureAxis(element, axisType);
+	if (edit.fontFamily !== undefined) {
+		axis.fontFamily = edit.fontFamily ?? undefined;
+	}
+	if (edit.fontSize !== undefined) {
+		axis.fontSize = edit.fontSize ?? undefined;
+	}
+	if (edit.fontBold !== undefined) {
+		axis.fontBold = edit.fontBold;
+	}
+	if (edit.fontColor !== undefined) {
+		axis.fontColor = edit.fontColor ?? undefined;
+	}
+}
+
+/** Editable gridline line styling (colour, width in points, dash style). */
+export interface ChartGridlineStyleEdit {
+	color?: string | null;
+	width?: number | null;
+	dashStyle?: string | null;
+}
+
+/**
+ * Edit the line styling (colour, width, dash style) of an axis's major or minor
+ * gridlines. Setting any style implicitly turns the gridlines on. Round-trips
+ * to the saved `.pptx` (`c:majorGridlines/c:spPr` or `c:minorGridlines/c:spPr`).
+ *
+ * @example
+ * ```ts
+ * setChartAxisGridlineStyle(chartEl, "valAx", "major", { color: "#CCCCCC", width: 0.75, dashStyle: "dash" });
+ * ```
+ */
+export function setChartAxisGridlineStyle(
+	element: ChartPptxElement,
+	axisType: PptxChartAxisType,
+	which: 'major' | 'minor',
+	edit: ChartGridlineStyleEdit,
+): void {
+	const axis = ensureAxis(element, axisType);
+	const key = which === 'major' ? 'majorGridlinesSpPr' : 'minorGridlinesSpPr';
+	const flagKey = which === 'major' ? 'majorGridlines' : 'minorGridlines';
+	const props: PptxChartShapeProps = { ...(axis[key] ?? {}) };
+	if (edit.color !== undefined) {
+		props.strokeColor = edit.color ?? undefined;
+	}
+	if (edit.width !== undefined) {
+		props.strokeWidth = edit.width ?? undefined;
+	}
+	if (edit.dashStyle !== undefined) {
+		props.strokeDashStyle = edit.dashStyle ?? undefined;
+	}
+	const hasAnyProp =
+		props.strokeColor !== undefined ||
+		props.strokeWidth !== undefined ||
+		props.strokeDashStyle !== undefined ||
+		props.fillColor !== undefined;
+	axis[key] = hasAnyProp ? props : undefined;
+	if (hasAnyProp) {
+		axis[flagKey] = true;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Series markers, per-series combo type
+// ---------------------------------------------------------------------------
+
+/**
+ * Set (or clear) the marker on a chart series. Markers apply to line, scatter,
+ * bubble, and radar charts. Round-trips to the saved `.pptx` (`c:marker` inside
+ * the series).
+ *
+ * Pass a {@link PptxChartMarker} to set the marker, a partial marker patch to
+ * merge into the existing one, or `null` to remove the marker entirely.
+ *
+ * @example
+ * ```ts
+ * setChartSeriesMarker(chartEl, 0, { symbol: "circle", size: 7, spPr: { fillColor: "#FF0000" } });
+ * setChartSeriesMarker(chartEl, 1, { symbol: "none" });
+ * setChartSeriesMarker(chartEl, 0, null); // remove
+ * ```
+ */
+export function setChartSeriesMarker(
+	element: ChartPptxElement,
+	seriesIndex: number,
+	marker:
+		| PptxChartMarker
+		| { symbol?: PptxChartMarkerSymbol; size?: number; fillColor?: string }
+		| null,
+): void {
+	validateSeriesIndex(element, seriesIndex);
+	const series = element.chartData!.series[seriesIndex];
+	if (marker === null) {
+		series.marker = undefined;
+		return;
+	}
+	const existing = series.marker;
+	if ('symbol' in marker && 'spPr' in marker) {
+		series.marker = marker as PptxChartMarker;
+		return;
+	}
+	const patch = marker as { symbol?: PptxChartMarkerSymbol; size?: number; fillColor?: string };
+	const next: PptxChartMarker = {
+		symbol: patch.symbol ?? existing?.symbol ?? 'circle',
+		size: patch.size ?? existing?.size,
+		spPr: existing?.spPr ? { ...existing.spPr } : undefined,
+	};
+	if (patch.fillColor !== undefined) {
+		next.spPr = { ...(next.spPr ?? {}), fillColor: patch.fillColor };
+	}
+	series.marker = next;
+}
+
+/**
+ * Set (or clear) the per-series chart type for a combo chart. When set, the
+ * series is plotted with `seriesType` (e.g. a `line` series within an otherwise
+ * `bar` chart). Pass `null` to clear it so the series uses the chart-level type.
+ *
+ * Setting a per-series type also promotes the chart to `combo` so that the save
+ * pipeline emits multiple chart-type containers.
+ *
+ * @example
+ * ```ts
+ * setChartSeriesChartType(chartEl, 1, "line");
+ * setChartSeriesChartType(chartEl, 1, null); // revert to chart-level type
+ * ```
+ */
+export function setChartSeriesChartType(
+	element: ChartPptxElement,
+	seriesIndex: number,
+	seriesType: PptxChartType | null,
+): void {
+	validateSeriesIndex(element, seriesIndex);
+	const data = element.chartData!;
+	data.series[seriesIndex].seriesChartType = seriesType ?? undefined;
+	// Promote to combo when at least two distinct effective types exist.
+	const effective = new Set(
+		data.series.map((s) => s.seriesChartType ?? data.chartType).filter((t) => t !== 'combo'),
+	);
+	if (effective.size > 1) {
+		data.chartType = 'combo';
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Per-data-point formatting overrides (c:dPt)
+// ---------------------------------------------------------------------------
+
+/** Find (or create) the `c:dPt` override for `pointIndex` in a series. */
+function ensureDataPoint(
+	series: { dataPoints?: PptxChartDataPoint[] },
+	pointIndex: number,
+): PptxChartDataPoint {
+	const points = (series.dataPoints ??= []);
+	let dp = points.find((p) => p.idx === pointIndex);
+	if (!dp) {
+		dp = { idx: pointIndex };
+		points.push(dp);
+		points.sort((a, b) => a.idx - b.idx);
+	}
+	return dp;
+}
+
+/**
+ * Set (or clear) the fill colour of a single data point, overriding the series
+ * colour for that point only. Round-trips to the saved `.pptx`
+ * (`c:dPt/c:spPr/a:solidFill` keyed by `c:idx`).
+ *
+ * Pass a hex colour to set the fill, or `null` to remove the per-point fill
+ * (dropping the whole `c:dPt` override when nothing else is set on it).
+ *
+ * @example
+ * ```ts
+ * setChartDataPointFill(chartEl, 0, 2, "#FF0000");
+ * setChartDataPointFill(chartEl, 0, 2, null); // clear
+ * ```
+ */
+export function setChartDataPointFill(
+	element: ChartPptxElement,
+	seriesIndex: number,
+	pointIndex: number,
+	color: string | null,
+): void {
+	validateSeriesIndex(element, seriesIndex);
+	const series = element.chartData!.series[seriesIndex];
+	if (color === null) {
+		const dp = series.dataPoints?.find((p) => p.idx === pointIndex);
+		if (!dp) {
+			return;
+		}
+		if (dp.spPr) {
+			dp.spPr = { ...dp.spPr, fillColor: undefined };
+			if (
+				dp.spPr.fillColor === undefined &&
+				dp.spPr.strokeColor === undefined &&
+				dp.spPr.strokeWidth === undefined &&
+				dp.spPr.strokeDashStyle === undefined
+			) {
+				dp.spPr = undefined;
+			}
+		}
+		removeEmptyDataPoint(series, pointIndex);
+		return;
+	}
+	const dp = ensureDataPoint(series, pointIndex);
+	dp.spPr = { ...(dp.spPr ?? {}), fillColor: color };
+}
+
+/**
+ * Set (or clear) the explosion (slice pull-out distance, 0-100) of a single pie
+ * or doughnut data point. Round-trips to the saved `.pptx`
+ * (`c:dPt/c:explosion` keyed by `c:idx`).
+ *
+ * Pass `null` to remove the explosion (dropping the `c:dPt` override when
+ * nothing else is set on it).
+ *
+ * @example
+ * ```ts
+ * setChartDataPointExplosion(chartEl, 0, 1, 25);
+ * setChartDataPointExplosion(chartEl, 0, 1, null); // clear
+ * ```
+ */
+export function setChartDataPointExplosion(
+	element: ChartPptxElement,
+	seriesIndex: number,
+	pointIndex: number,
+	explosion: number | null,
+): void {
+	validateSeriesIndex(element, seriesIndex);
+	const series = element.chartData!.series[seriesIndex];
+	if (explosion === null) {
+		const dp = series.dataPoints?.find((p) => p.idx === pointIndex);
+		if (dp) {
+			dp.explosion = undefined;
+			removeEmptyDataPoint(series, pointIndex);
+		}
+		return;
+	}
+	const dp = ensureDataPoint(series, pointIndex);
+	dp.explosion = explosion;
+}
+
+/** Drop a `c:dPt` override that no longer carries any formatting. */
+function removeEmptyDataPoint(
+	series: { dataPoints?: PptxChartDataPoint[] },
+	pointIndex: number,
+): void {
+	if (!series.dataPoints) {
+		return;
+	}
+	const dp = series.dataPoints.find((p) => p.idx === pointIndex);
+	if (!dp) {
+		return;
+	}
+	const empty =
+		dp.spPr === undefined &&
+		dp.explosion === undefined &&
+		dp.invertIfNegative === undefined &&
+		dp.marker === undefined;
+	if (empty) {
+		series.dataPoints = series.dataPoints.filter((p) => p.idx !== pointIndex);
+		if (series.dataPoints.length === 0) {
+			series.dataPoints = undefined;
+		}
+	}
 }

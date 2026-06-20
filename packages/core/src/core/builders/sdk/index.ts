@@ -50,8 +50,21 @@ export {
 	addChartCategory,
 	removeChartCategory,
 	setChartSeriesColor,
+	setChartAxisLogScale,
+	setChartAxisTitleStyle,
+	setChartAxisGridlineStyle,
+	setChartSeriesMarker,
+	setChartSeriesChartType,
+	setChartDataPointFill,
+	setChartDataPointExplosion,
 } from './chart-operations';
-export type { PptxChartLegendPosition, PptxChartAxisType, ChartAxisEdit } from './chart-operations';
+export type {
+	PptxChartLegendPosition,
+	PptxChartAxisType,
+	ChartAxisEdit,
+	ChartAxisTitleStyleEdit,
+	ChartGridlineStyleEdit,
+} from './chart-operations';
 
 // Layout operations
 export {
