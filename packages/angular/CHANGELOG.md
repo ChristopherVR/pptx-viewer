@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.26](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.26) - 2026-06-20
+
+### Documentation
+
+- **changelog:** Update package changelogs [skip ci] (by @github-actions[bot]) ([ab19f68](https://github.com/ChristopherVR/pptx-viewer/commit/ab19f680ef596a3855a680ab3ad5ab4891b0b773))
+
+## [1.1.25](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.25) - 2026-06-20
+
+### Documentation
+
+- **changelog:** Update package changelogs [skip ci] (by @github-actions[bot]) ([6b96cb1](https://github.com/ChristopherVR/pptx-viewer/commit/6b96cb1b2fe9cc76dc2eafbfe1710b8953499bfb))
+
 ## [1.1.24](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.24) - 2026-06-20
 
 ### Features

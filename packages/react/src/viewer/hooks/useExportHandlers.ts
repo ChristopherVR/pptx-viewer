@@ -5,6 +5,14 @@
  * Types live in ./export-handler-types.ts;
  * Save-as / packaging logic lives in ./useExportSaveAs.ts.
  */
+import {
+	EXPORT_ASSEMBLING_PERCENT,
+	EXPORT_DONE_PERCENT,
+	isExportAbortError,
+	recordProgressPercent,
+	slideProgressPercent,
+	slideStatusLabel,
+} from 'pptx-viewer-shared';
 import { useState, useRef, useCallback } from 'react';
 
 import { downloadBlob } from '../utils/dom-helpers';
@@ -119,21 +127,21 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 				{
 					scale: 2,
 					onProgress: (current, total) => {
-						setExportProgress(Math.round((current / total) * 90));
-						setExportStatusMessage(`Rendering slide ${current + 1} of ${total}...`);
+						setExportProgress(slideProgressPercent(current, total));
+						setExportStatusMessage(slideStatusLabel('Rendering', current, total));
 					},
 					signal: abortCtrl.signal,
 				},
 			);
-			setExportProgress(95);
+			setExportProgress(EXPORT_ASSEMBLING_PERCENT);
 			setExportStatusMessage('Building PDF...');
 			await new Promise<void>((r) => {
 				setTimeout(r, 100);
 			});
-			setExportProgress(100);
+			setExportProgress(EXPORT_DONE_PERCENT);
 			setExportStatusMessage('Done!');
 		} catch (err) {
-			if ((err as DOMException).name !== 'AbortError') {
+			if (!isExportAbortError(err)) {
 				console.error('[PowerPointViewer] PDF export failed:', err);
 			}
 		} finally {
@@ -164,21 +172,21 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 				{
 					scale: 2,
 					onProgress: (current, total) => {
-						setExportProgress(Math.round((current / total) * 90));
-						setExportStatusMessage(`Rendering slide ${current + 1} of ${total}...`);
+						setExportProgress(slideProgressPercent(current, total));
+						setExportStatusMessage(slideStatusLabel('Rendering', current, total));
 					},
 					signal: abortCtrl.signal,
 				},
 			);
-			setExportProgress(95);
+			setExportProgress(EXPORT_ASSEMBLING_PERCENT);
 			setExportStatusMessage('Building PDF...');
 			await new Promise<void>((r) => {
 				setTimeout(r, 100);
 			});
-			setExportProgress(100);
+			setExportProgress(EXPORT_DONE_PERCENT);
 			setExportStatusMessage('Done!');
 		} catch (err) {
-			if ((err as DOMException).name !== 'AbortError') {
+			if (!isExportAbortError(err)) {
 				console.error('[PowerPointViewer] Notes PDF export failed:', err);
 			}
 		} finally {
@@ -221,22 +229,22 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 					scale: 1,
 					slideDurationMs: 3000,
 					onProgress: (current, total) => {
-						setExportProgress(Math.round((current / total) * 45));
-						setExportStatusMessage(`Capturing slide ${current + 1} of ${total}...`);
+						setExportProgress(slideProgressPercent(current, total, 45));
+						setExportStatusMessage(slideStatusLabel('Capturing', current, total));
 					},
 					onRecordProgress: (current, total) => {
-						setExportProgress(45 + Math.round((current / total) * 45));
-						setExportStatusMessage(`Recording slide ${current + 1} of ${total}...`);
+						setExportProgress(recordProgressPercent(current, total));
+						setExportStatusMessage(slideStatusLabel('Recording', current, total));
 					},
 					signal: abortCtrl.signal,
 				},
 			);
-			setExportProgress(95);
+			setExportProgress(EXPORT_ASSEMBLING_PERCENT);
 			setExportStatusMessage('Saving file...');
 			downloadBlob(blob, 'presentation.webm');
-			setExportProgress(100);
+			setExportProgress(EXPORT_DONE_PERCENT);
 		} catch (err) {
-			if ((err as DOMException).name !== 'AbortError') {
+			if (!isExportAbortError(err)) {
 				console.error('[PowerPointViewer] Video export failed:', err);
 			}
 		} finally {
@@ -265,18 +273,18 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 					scale: 0.5,
 					slideDurationMs: 2000,
 					onProgress: (current, total) => {
-						setExportProgress(Math.round((current / total) * 90));
-						setExportStatusMessage(`Encoding slide ${current + 1} of ${total}...`);
+						setExportProgress(slideProgressPercent(current, total));
+						setExportStatusMessage(slideStatusLabel('Encoding', current, total));
 					},
 					signal: abortCtrl.signal,
 				},
 			);
-			setExportProgress(95);
+			setExportProgress(EXPORT_ASSEMBLING_PERCENT);
 			setExportStatusMessage('Saving file...');
 			downloadBlob(blob, 'presentation.gif');
-			setExportProgress(100);
+			setExportProgress(EXPORT_DONE_PERCENT);
 		} catch (err) {
-			if ((err as DOMException).name !== 'AbortError') {
+			if (!isExportAbortError(err)) {
 				console.error('[PowerPointViewer] GIF export failed:', err);
 			}
 		} finally {

@@ -57,6 +57,7 @@ import type { DocumentPropertiesSavePatch } from './components/DocumentPropertie
 import DrawingOverlay from './components/DrawingOverlay.vue';
 import type { ShapePreset } from './components/EditorToolbar.vue';
 import EquationEditorDialog from './components/EquationEditorDialog.vue';
+import ExportProgressModal from './components/ExportProgressModal.vue';
 import FindReplaceBar from './components/FindReplaceBar.vue';
 import FollowModeBar from './components/FollowModeBar.vue';
 import GridOverlay from './components/GridOverlay.vue';
@@ -127,8 +128,10 @@ import { useEditorHistory } from './composables/useEditorHistory';
 import { useEditorOperations } from './composables/useEditorOperations';
 import { useEmbeddedFonts } from './composables/useEmbeddedFonts';
 import { useExport } from './composables/useExport';
+import { useExportProgress } from './composables/useExportProgress';
 import { useFindReplace } from './composables/useFindReplace';
 import { useIsMobile } from './composables/useIsMobile';
+import { useKeyboardInsets } from './composables/useKeyboardInsets';
 import { useKeyboardShortcuts } from './composables/useKeyboardShortcuts';
 import { useLoadContent } from './composables/useLoadContent';
 import { useMediaExport } from './composables/useMediaExport';
@@ -1111,18 +1114,19 @@ async function rasterizeSlide(index: number): Promise<HTMLCanvasElement> {
 
 const exporter = useExport({ slides, canvasSize, rasterizeSlide });
 const mediaExport = useMediaExport({ slideCount, rasterizeSlide });
+const exportProgressCtl = useExportProgress({ exporter, mediaExport });
 const isExporting = computed(() => exporter.exporting.value || mediaExport.exporting.value);
 function onExportPng(): void {
 	void exporter.exportSlidePng(activeSlideIndex.value);
 }
 function onExportPdf(): void {
-	void exporter.exportPdf();
+	void exportProgressCtl.runPdf();
 }
 function onExportGif(): void {
-	void mediaExport.exportGif();
+	void exportProgressCtl.runGif();
 }
 function onExportWebm(): void {
-	void mediaExport.exportWebm();
+	void exportProgressCtl.runWebm();
 }
 
 /** Serialise to a chosen OpenXML format and trigger a browser download. */
@@ -1490,6 +1494,9 @@ function onBroadcastStop(): void {
 
 // ── Responsive / mobile chrome ────────────────────────────────────────
 const { isMobile } = useIsMobile();
+// Keep the focused field visible when the on-screen keyboard opens, and lift
+// the fixed bottom bar above the keyboard.
+const { keyboardInset } = useKeyboardInsets();
 const mobileNotesOpen = ref(false);
 /** Mobile-only bottom sheets for panels that are right-rail sidebars on desktop. */
 const mobileInspectorOpen = ref(false);
@@ -2629,6 +2636,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				:slide-count="slideCount"
 				:zoom-percent="zoomPercent"
 				:can-edit="props.canEdit"
+				:keyboard-inset="keyboardInset"
 				@prev="goPrev"
 				@next="goNext"
 				@zoom-in="zoomIn"
@@ -2728,6 +2736,15 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				/>
 			</div>
 		</template>
+
+		<!-- Export progress overlay (PDF / GIF / WebM) -->
+		<ExportProgressModal
+			:open="exportProgressCtl.exportModalOpen.value"
+			:title="exportProgressCtl.exportModalTitle.value"
+			:progress="exportProgressCtl.exportProgress.value"
+			:status-message="exportProgressCtl.exportStatusMessage.value"
+			@cancel="exportProgressCtl.cancelExport"
+		/>
 
 		<!-- Slide sorter overlay -->
 		<SlideSorter

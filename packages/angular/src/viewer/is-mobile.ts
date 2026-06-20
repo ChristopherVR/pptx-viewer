@@ -16,6 +16,13 @@
 
 import { DestroyRef, inject, Injectable, signal } from '@angular/core';
 
+import {
+	computeKeyboardInset,
+	computeScrollDelta,
+	isKeyboardOpen as isKeyboardOpenInset,
+	readViewportMetrics,
+} from '../internal/shared';
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -114,6 +121,16 @@ export class IsMobileService {
 	/** True when the viewport is in the tablet range (desktop pointer only). */
 	readonly isTablet = signal<boolean>(false);
 
+	/**
+	 * CSS pixels the on-screen keyboard currently covers at the bottom of the
+	 * layout viewport (0 when no keyboard is open). The orchestrator lifts the
+	 * fixed mobile bottom bar by this amount so it stays above the keyboard.
+	 */
+	readonly keyboardInset = signal<number>(0);
+
+	/** True while {@link keyboardInset} is large enough to count as "open". */
+	readonly isKeyboardOpen = signal<boolean>(false);
+
 	constructor() {
 		const destroyRef = inject(DestroyRef);
 
@@ -121,6 +138,8 @@ export class IsMobileService {
 		if (typeof matchMedia !== 'function' || typeof window === 'undefined') {
 			return;
 		}
+
+		this._wireKeyboardInset(destroyRef);
 
 		// ── Coarse-pointer media query (drives the touch flag) ───────────────────
 		const coarseMql = matchMedia('(pointer: coarse)');
@@ -162,5 +181,74 @@ export class IsMobileService {
 		this.isNarrowViewport.set(width < MOBILE_BREAKPOINT);
 		this.isMobile.set(computeIsMobile(width, height, touch));
 		this.isTablet.set(computeIsTablet(width, height, touch));
+	}
+
+	/**
+	 * Track the on-screen-keyboard inset via the `VisualViewport` API and keep the
+	 * focused editable visible: when the keyboard shrinks the visual viewport,
+	 * update {@link keyboardInset} / {@link isKeyboardOpen} and scroll the active
+	 * input / textarea / contenteditable into the area above the keyboard. No-op
+	 * when `visualViewport` is unavailable (desktop / SSR), so desktop is unchanged.
+	 */
+	private _wireKeyboardInset(destroyRef: DestroyRef): void {
+		const vv = window.visualViewport;
+		if (!vv) {
+			return;
+		}
+
+		const update = (): void => {
+			const metrics = readViewportMetrics(window);
+			const inset = metrics ? computeKeyboardInset(metrics) : 0;
+			this.keyboardInset.set(inset);
+			this.isKeyboardOpen.set(isKeyboardOpenInset(inset));
+			if (inset > 0) {
+				window.requestAnimationFrame(() => this._scrollFocusedIntoView(inset));
+			}
+		};
+
+		const onFocusIn = (): void => {
+			window.requestAnimationFrame(() => {
+				const metrics = readViewportMetrics(window);
+				const inset = metrics ? computeKeyboardInset(metrics) : 0;
+				if (inset > 0) {
+					this._scrollFocusedIntoView(inset);
+				}
+			});
+		};
+
+		update();
+		vv.addEventListener('resize', update);
+		vv.addEventListener('scroll', update);
+		document.addEventListener('focusin', onFocusIn);
+
+		destroyRef.onDestroy(() => {
+			vv.removeEventListener('resize', update);
+			vv.removeEventListener('scroll', update);
+			document.removeEventListener('focusin', onFocusIn);
+		});
+	}
+
+	/** Scroll the focused editable into the area above the keyboard, if needed. */
+	private _scrollFocusedIntoView(keyboardInset: number): void {
+		if (keyboardInset <= 0 || typeof document === 'undefined') {
+			return;
+		}
+		const active = document.activeElement;
+		if (!(active instanceof HTMLElement)) {
+			return;
+		}
+		const tag = active.tagName;
+		if (tag !== 'INPUT' && tag !== 'TEXTAREA' && !active.isContentEditable) {
+			return;
+		}
+		const rect = active.getBoundingClientRect();
+		const delta = computeScrollDelta(
+			{ top: rect.top, bottom: rect.bottom },
+			window.innerHeight,
+			keyboardInset,
+		);
+		if (delta !== 0) {
+			window.scrollBy({ top: delta, behavior: 'smooth' });
+		}
 	}
 }

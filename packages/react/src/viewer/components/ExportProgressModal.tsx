@@ -2,6 +2,7 @@
  * ExportProgressModal: A modal overlay that shows export progress
  * for video, GIF, and package-for-sharing operations.
  */
+import { clampPercent } from 'pptx-viewer-shared';
 import { useTranslation } from 'react-i18next';
 
 /* ------------------------------------------------------------------ */
@@ -38,7 +39,7 @@ export function ExportProgressModal({
 		return null;
 	}
 
-	const clampedProgress = Math.min(100, Math.max(0, Math.round(progress)));
+	const clampedProgress = clampPercent(progress);
 
 	return (
 		<div
