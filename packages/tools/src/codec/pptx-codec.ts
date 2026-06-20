@@ -1,11 +1,20 @@
 import { PptxHandler } from 'pptx-viewer-core';
 import type { PptxSlide, PptxElement } from 'pptx-viewer-core';
-import { Doc as YDoc, Array as YArray, Map as YMap } from 'yjs';
+import { Doc as YDoc, Array as YArray, Map as YMap, Text as YText } from 'yjs';
+
+import { encodeTextBodyToYText, decodeTextBodyFromYText } from './text-body-codec.js';
 
 export const ORIGIN_FILE_LOAD = 'file-load';
 
 /**
  * Bidirectional format codec: file bytes <-> Y.Doc shared types.
+ *
+ * Y.Doc schema:
+ *   pptx:meta    Y.Map  - width, height, widthEmu, heightEmu, sourceBytes
+ *   pptx:slides  Y.Array<Y.Map> - one map per slide
+ *     Each slide Y.Map: scalar fields + `_`-prefixed JSON blobs + `elements` Y.Array<Y.Map>
+ *     Each element Y.Map: scalar fields + `_`-prefixed JSON blobs + `textBody` Y.Text
+ *     textBody Y.Text: one delta op per TextSegment (see text-body-codec.ts)
  */
 export interface FormatCodec {
 	readonly formatId: string;
@@ -44,8 +53,8 @@ const SCALAR_ELEMENT_KEYS = new Set([
 	'promptText',
 ]);
 
+// textSegments is handled as Y.Text (textBody key); all others remain JSON blobs.
 const COMPLEX_FIELD_MAP: Record<string, string> = {
-	textSegments: '_textSegments',
 	textStyle: '_textStyle',
 	shapeStyle: '_shapeStyle',
 	shapeAdjustments: '_shapeAdjustments',
@@ -137,26 +146,24 @@ export class PptxCodec implements FormatCodec {
 			sourceBytesArr.insert(0, Array.from(bytes));
 			meta.set('sourceBytes', sourceBytesArr);
 
-			const slidesArray = ydoc.getArray('pptx:slides');
+			const slidesArray = ydoc.getArray<YMap<unknown>>('pptx:slides');
 			if (slidesArray.length > 0) {
 				slidesArray.delete(0, slidesArray.length);
 			}
 
 			for (const slide of pptxData.slides) {
-				const slideMap = this._slideToYMap(slide);
-				slidesArray.push([slideMap]);
+				slidesArray.push([this._slideToYMap(slide)]);
 			}
 		}, effectiveOrigin);
 	}
 
 	async dehydrate(ydoc: YDoc, _dirtyPaths?: string[]): Promise<Uint8Array> {
 		const meta = ydoc.getMap('pptx:meta');
-		const slidesArray = ydoc.getArray('pptx:slides');
+		const slidesArray = ydoc.getArray<YMap<unknown>>('pptx:slides');
 
 		const slides: PptxSlide[] = [];
 		for (let i = 0; i < slidesArray.length; i++) {
-			const slideMap = slidesArray.get(i) as YMap<unknown>;
-			slides.push(this._yMapToSlide(slideMap));
+			slides.push(this._yMapToSlide(slidesArray.get(i)));
 		}
 
 		const sourceBytesArr = meta.get('sourceBytes') as YArray<number> | undefined;
@@ -180,28 +187,25 @@ export class PptxCodec implements FormatCodec {
 	observe(ydoc: YDoc, onChange: () => void): () => void {
 		const slidesArray = ydoc.getArray('pptx:slides');
 		const meta = ydoc.getMap('pptx:meta');
-		const handler = () => onChange();
-		slidesArray.observeDeep(handler);
-		meta.observeDeep(handler);
+		slidesArray.observeDeep(onChange);
+		meta.observeDeep(onChange);
 		return () => {
-			slidesArray.unobserveDeep(handler);
-			meta.unobserveDeep(handler);
+			slidesArray.unobserveDeep(onChange);
+			meta.unobserveDeep(onChange);
 		};
 	}
 
 	private _slideToYMap(slide: PptxSlide): YMap<unknown> {
 		const slideMap = new YMap<unknown>();
-		const slideRecord = slide as unknown as Record<string, unknown>;
+		const rec = slide as unknown as Record<string, unknown>;
 		for (const key of SCALAR_SLIDE_KEYS) {
-			const value = slideRecord[key];
-			if (value !== undefined) {
-				slideMap.set(key, value);
+			if (rec[key] !== undefined) {
+				slideMap.set(key, rec[key]);
 			}
 		}
 		for (const [original, prefixed] of Object.entries(COMPLEX_SLIDE_FIELD_MAP)) {
-			const value = slideRecord[original];
-			if (value !== undefined) {
-				slideMap.set(prefixed, JSON.stringify(value));
+			if (rec[original] !== undefined) {
+				slideMap.set(prefixed, JSON.stringify(rec[original]));
 			}
 		}
 		const elementsArray = new YArray<YMap<unknown>>();
@@ -226,8 +230,7 @@ export class PptxCodec implements FormatCodec {
 				try {
 					slide[original] = JSON.parse(value);
 				} catch {
-					// Corrupt or non-JSON value: leave field undefined to keep
-					// dehydration safe rather than aborting the whole document.
+					/* skip */
 				}
 			}
 		}
@@ -235,11 +238,10 @@ export class PptxCodec implements FormatCodec {
 		const elements: PptxElement[] = [];
 		if (elementsArray) {
 			for (let i = 0; i < elementsArray.length; i++) {
-				const elemMap = elementsArray.get(i) as YMap<unknown>;
-				elements.push(this._yMapToElement(elemMap));
+				elements.push(this._yMapToElement(elementsArray.get(i)));
 			}
 		}
-		slide['elements'] = elements;
+		slide.elements = elements;
 		return slide as unknown as PptxSlide;
 	}
 
@@ -250,7 +252,13 @@ export class PptxCodec implements FormatCodec {
 			if (value === undefined) {
 				continue;
 			}
-			if (SCALAR_ELEMENT_KEYS.has(key)) {
+			if (key === 'textSegments') {
+				if (Array.isArray(value)) {
+					const ytext = new YText();
+					encodeTextBodyToYText(value, ytext);
+					elemMap.set('textBody', ytext);
+				}
+			} else if (SCALAR_ELEMENT_KEYS.has(key)) {
 				elemMap.set(key, value);
 			} else if (COMPLEX_FIELD_MAP[key]) {
 				elemMap.set(COMPLEX_FIELD_MAP[key], JSON.stringify(value));
@@ -262,12 +270,13 @@ export class PptxCodec implements FormatCodec {
 	private _yMapToElement(elemMap: YMap<unknown>): PptxElement {
 		const element: Record<string, unknown> = {};
 		elemMap.forEach((value: unknown, key: string) => {
-			if (REVERSE_COMPLEX_MAP[key]) {
+			if (key === 'textBody' && value instanceof YText) {
+				element.textSegments = decodeTextBodyFromYText(value);
+			} else if (REVERSE_COMPLEX_MAP[key]) {
 				try {
 					element[REVERSE_COMPLEX_MAP[key]] = JSON.parse(value as string);
 				} catch {
-					// Corrupt JSON in Y.Doc: skip rather than throwing so the
-					// element still hydrates with whatever scalar fields parsed.
+					/* skip */
 				}
 			} else {
 				element[key] = value;

@@ -1,27 +1,24 @@
-import type { PptxSlide } from 'pptx-viewer-core';
 /**
- * useYjsDocumentSync -- Syncs PptxSlide[] state with a Yjs Y.Map for
- * real-time collaboration. Each slide is stored as a JSON-serialized
- * entry keyed by its index in the Y.Map.
+ * useYjsDocumentSync -- Syncs PptxSlide[] state with a Yjs Y.Doc using the
+ * granular `pptx:slides` Y.Array structure (one Y.Map per slide, per-element
+ * Y.Maps, and Y.Text for textSegments). This matches the schema defined by
+ * PptxCodec in packages/tools so all bindings and the codec are interoperable.
  *
- * - Local changes: detects diffs in slides array and writes changed slides to Y.Map
- * - Remote changes: observes Y.Map updates and applies them to local state via setSlides
- * - Uses a flag to prevent infinite update loops
- *
- * @module collaboration/useYjsDocumentSync
+ * Write-back (Area 3): when the collaboration role is `'owner'`, the hook
+ * debounces Y.Doc changes and calls `config.onWriteBack` with the serialized
+ * PPTX bytes so the host can persist a durable snapshot.
  */
+
+import type { PptxSlide } from 'pptx-viewer-core';
+import type { CollaborationConfig, YjsFactories } from 'pptx-viewer-shared';
+import { writeSlidesToYDoc, readSlidesFromYDoc, observeYDocSlides } from 'pptx-viewer-shared';
 import { useCallback, useEffect, useRef } from 'react';
-import type { Doc as YDoc, Map as YMap } from 'yjs';
+import type { Doc as YDoc } from 'yjs';
 
-// The Y.Map stores `count` as a number and `slide-<i>` keys as JSON strings.
-type SlidesDataMap = YMap<number | string>;
-
-// ---------------------------------------------------------------------------
-// Input
-// ---------------------------------------------------------------------------
+const WRITE_BACK_DEBOUNCE_DEFAULT_MS = 5_000;
 
 export interface UseYjsDocumentSyncInput {
-	/** The Yjs document (from useCollaboration). null when not collaborating. */
+	/** The Yjs document (from useYjsProvider). null when not collaborating. */
 	doc: YDoc | null;
 	/** Current slides state. */
 	slides: PptxSlide[];
@@ -29,110 +26,110 @@ export interface UseYjsDocumentSyncInput {
 	setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
 	/** Whether collaboration is active (status === 'connected'). */
 	isConnected: boolean;
+	/** Collaboration config (for role and write-back). */
+	config?: Pick<CollaborationConfig, 'role' | 'onWriteBack' | 'writeBackDebounceMs'>;
+	/**
+	 * Return the source PPTX bytes for write-back serialization. Only called
+	 * when role === 'owner' and onWriteBack is set.
+	 */
+	getSourceBytes?: () => Uint8Array | null;
 }
-
-// ---------------------------------------------------------------------------
-// Hook
-// ---------------------------------------------------------------------------
 
 export function useYjsDocumentSync({
 	doc,
 	slides,
 	setSlides,
 	isConnected,
+	config,
+	getSourceBytes,
 }: UseYjsDocumentSyncInput): void {
-	// Flag to prevent sync loops: when we're applying a remote update,
-	// don't re-sync it back to Y.Doc
 	const isApplyingRemoteRef = useRef(false);
-	// Track last synced slide data to detect actual changes
-	const lastSyncedRef = useRef<string>('');
-	// Track if we're the initial loader (host vs joiner)
+	const lastSyncedRef = useRef('');
 	const hasInitializedRef = useRef(false);
+	const writeBackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const factoriesRef = useRef<YjsFactories | null>(null);
 
-	// Get the Y.Map from the doc
-	const getDocMap = useCallback((): SlidesDataMap | null => {
-		if (!doc) {
-			return null;
+	// Lazily build the factories once we have a live Yjs import.
+	const getFactories = useCallback(async (): Promise<YjsFactories> => {
+		if (factoriesRef.current) {
+			return factoriesRef.current;
 		}
-		return doc.getMap<number | string>('slides-data');
-	}, [doc]);
+		const Y = await import('yjs');
+		const factories: YjsFactories = {
+			createMap: () => new Y.Map(),
+			createArray: () => new Y.Array(),
+			createText: () => new Y.Text(),
+		};
+		factoriesRef.current = factories;
+		return factories;
+	}, []);
 
-	// --- Sync local changes TO Y.Doc ---
+	// Schedule a debounced write-back for the elected writer (role === 'owner').
+	const scheduleWriteBack = useCallback(() => {
+		if (!config?.onWriteBack || config.role !== 'owner' || !doc) {
+			return;
+		}
+		if (writeBackTimerRef.current !== null) {
+			clearTimeout(writeBackTimerRef.current);
+		}
+		const debounceMs = config.writeBackDebounceMs ?? WRITE_BACK_DEBOUNCE_DEFAULT_MS;
+		writeBackTimerRef.current = setTimeout(async () => {
+			writeBackTimerRef.current = null;
+			if (!doc || !config.onWriteBack) {
+				return;
+			}
+			const sourceBytes = getSourceBytes?.();
+			if (!sourceBytes) {
+				return;
+			}
+			try {
+				const { PptxHandler } = await import('pptx-viewer-core');
+				const handler = new PptxHandler();
+				await handler.load(sourceBytes.buffer as ArrayBuffer);
+				const currentSlides = readSlidesFromYDoc(
+					doc as unknown as Parameters<typeof readSlidesFromYDoc>[0],
+				);
+				const bytes = await handler.save(currentSlides);
+				config.onWriteBack(bytes);
+			} catch {
+				/* write-back failures are non-fatal */
+			}
+		}, debounceMs);
+	}, [doc, config, getSourceBytes]);
+
+	// Sync local slide changes -> Y.Doc
 	useEffect(() => {
-		if (!isConnected || !doc) {
-			return;
-		}
-		if (isApplyingRemoteRef.current) {
-			return;
-		}
-		if (slides.length === 0) {
+		if (!isConnected || !doc || isApplyingRemoteRef.current || slides.length === 0) {
 			return;
 		}
 
-		const map = getDocMap();
-		if (!map) {
-			return;
-		}
-
-		// Serialize current slides
 		const serialized = JSON.stringify(slides);
-
-		// Skip if nothing changed
 		if (serialized === lastSyncedRef.current) {
 			return;
 		}
 		lastSyncedRef.current = serialized;
 
-		// Write to Y.Doc inside a transaction
-		doc.transact(() => {
-			// Clear extra entries if slide count decreased
-			const currentCount = map.get('count');
-			if (typeof currentCount === 'number' && currentCount > slides.length) {
-				for (let i = slides.length; i < currentCount; i++) {
-					map.delete(`slide-${i}`);
-				}
-			}
-			map.set('count', slides.length);
-			for (let i = 0; i < slides.length; i++) {
-				const slideJson = JSON.stringify(slides[i]);
-				const existing = map.get(`slide-${i}`);
-				if (existing !== slideJson) {
-					map.set(`slide-${i}`, slideJson);
-				}
-			}
-		});
-	}, [doc, slides, isConnected, getDocMap]);
+		void (async () => {
+			const factories = await getFactories();
+			writeSlidesToYDoc(
+				slides,
+				doc as unknown as Parameters<typeof writeSlidesToYDoc>[1],
+				factories,
+			);
+			scheduleWriteBack();
+		})();
+	}, [doc, slides, isConnected, getFactories, scheduleWriteBack]);
 
-	// --- Sync remote changes FROM Y.Doc ---
+	// Sync remote Y.Doc changes -> local state
 	useEffect(() => {
 		if (!isConnected || !doc) {
 			return;
 		}
 
-		const map = getDocMap();
-		if (!map) {
-			return;
-		}
-
-		const handleUpdate = () => {
-			const count = map.get('count');
-			if (typeof count !== 'number' || count === 0) {
-				return;
-			}
-
-			// Reconstruct slides from Y.Map
-			const remoteSlides: PptxSlide[] = [];
-			for (let i = 0; i < count; i++) {
-				const slideJson = map.get(`slide-${i}`);
-				if (typeof slideJson === 'string') {
-					try {
-						remoteSlides.push(JSON.parse(slideJson));
-					} catch {
-						// Skip malformed entries
-					}
-				}
-			}
-
+		const handleChange = () => {
+			const remoteSlides = readSlidesFromYDoc(
+				doc as unknown as Parameters<typeof readSlidesFromYDoc>[0],
+			);
 			if (remoteSlides.length === 0) {
 				return;
 			}
@@ -143,29 +140,36 @@ export function useYjsDocumentSync({
 			}
 			lastSyncedRef.current = serialized;
 
-			// Apply remote changes to local state
 			isApplyingRemoteRef.current = true;
 			setSlides(remoteSlides);
-			// Reset flag after React processes the update
 			requestAnimationFrame(() => {
 				isApplyingRemoteRef.current = false;
 			});
+			scheduleWriteBack();
 		};
 
-		map.observe(handleUpdate);
+		const unobserve = observeYDocSlides(
+			doc as unknown as Parameters<typeof observeYDocSlides>[0],
+			handleChange,
+		);
 
-		// On first connect, if the Y.Map already has data (we're a joiner),
-		// load it
+		// Late-joiner: if the Y.Doc already has slides, load them immediately.
 		if (!hasInitializedRef.current) {
 			hasInitializedRef.current = true;
-			const count = map.get('count');
-			if (typeof count === 'number' && count > 0) {
-				handleUpdate();
+			const arr = (doc as unknown as { getArray: (k: string) => { length: number } }).getArray(
+				'pptx:slides',
+			);
+			if (arr.length > 0) {
+				handleChange();
 			}
 		}
 
 		return () => {
-			map.unobserve(handleUpdate);
+			unobserve();
+			if (writeBackTimerRef.current !== null) {
+				clearTimeout(writeBackTimerRef.current);
+				writeBackTimerRef.current = null;
+			}
 		};
-	}, [doc, isConnected, getDocMap, setSlides]);
+	}, [doc, isConnected, setSlides, scheduleWriteBack]);
 }

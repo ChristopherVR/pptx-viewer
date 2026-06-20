@@ -1,8 +1,30 @@
-# C3: collaboration hardening proposal
+# C3: collaboration hardening
 
-Design proposal for roadmap item C3. Reacts to three weaknesses in the current
-real-time collaboration stack and proposes a phased path. Nothing here is built
-yet; this is for a decision before implementation.
+Design proposal and implementation status for roadmap item C3. Addresses three
+weaknesses in the real-time collaboration stack.
+
+## Implementation status (as of 2026-06-21)
+
+- **Area 1 (structural CRDT)**: DONE. `pptx:slides` is a `Y.Array` of slide
+  `Y.Map`s; each element has a `Y.Map` with scalar fields, JSON blobs for
+  complex data, and a `Y.Text` (`textBody`) for text segments. Schema defined in
+  `packages/shared/src/render/collaboration-sync.ts` and mirrored in
+  `packages/tools/src/codec/pptx-codec.ts`. All three bindings (React, Vue,
+  Angular) use the shared `writeSlidesToYDoc` / `readSlidesFromYDoc` /
+  `observeYDocSlides` helpers. Fidelity test in `packages/tools/src/__tests__/codec/pptx-codec.test.ts`.
+- **Area 2 (server auth)**: DONE (doc + example). Contract documented in
+  `docs/COLLAB-PRODUCTION.md`. Hocuspocus example in
+  `demos/collab-server-hocuspocus.example.mjs`. Token/room/identity contract
+  is clear; the reference demo server is explicitly labelled as demo-grade.
+- **Area 3 (elected writer write-back)**: DONE. When `config.role === 'owner'`,
+  the composable/service debounces Y.Doc changes (default 5 s, configurable via
+  `writeBackDebounceMs`) and calls `config.onWriteBack(bytes)` with serialized
+  PPTX bytes. Implemented in `useYjsDocumentSync` (React), `useCollaboration`
+  (Vue), and `CollaborationService` (Angular).
+
+---
+
+## Original proposal
 
 ## Where we are today
 

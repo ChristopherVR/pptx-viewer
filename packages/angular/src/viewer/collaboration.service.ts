@@ -1,29 +1,25 @@
 /**
- * collaboration.service.ts: Angular port of the Vue `useCollaboration`
- * composable and the React `usePresenceTracking` / `useYjsProvider` hooks.
+ * CollaborationService: Angular port of the Vue `useCollaboration` composable.
  *
- * Minimal real-time collaboration over Yjs + y-websocket:
- *  - the slide model is broadcast as a whole-document JSON value in a shared
- *    `Y.Map` (last-write-wins, not per-field CRDT);
- *  - remote collaborators' cursors/selection/presence are surfaced via the
- *    y-websocket **awareness** channel.
+ * Changes from the original:
+ *  - Slide sync uses the granular `pptx:slides` Y.Array (structural CRDT) via
+ *    the shared `writeSlidesToYDoc` / `readSlidesFromYDoc` / `observeYDocSlides`
+ *    helpers, replacing the monolithic JSON blob in 'presentation'.
+ *  - Elected-writer write-back: when role === 'owner', changes are debounced
+ *    and `config.onWriteBack` receives serialized PPTX bytes for persistence.
  *
- * `yjs`/`y-websocket` are imported lazily so they stay out of the main chunk
- * and are only loaded when a session actually starts. All connection failures
- * degrade silently (the viewer remains a normal single-user viewer).
- *
- * Reactive surface is exposed as Angular signals. The Yjs doc + awareness +
- * provider lifecycle is torn down both on `disconnect()` and automatically via
- * `DestroyRef.onDestroy` (mirroring how `LoadContentService` cleans up).
- *
- * Provide it at the component level so its lifetime tracks the host viewer:
- * `@Component({ providers: [CollaborationService] })`.
+ * Provide at the component level: `@Component({ providers: [CollaborationService] })`.
  */
 
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
-import type { CollaborationConfig } from '../internal/shared';
+import type {
+	CollaborationConfig,
+	YjsFactories,
+	YDocLike as SharedYDocLike,
+} from '../internal/shared';
+import { writeSlidesToYDoc, readSlidesFromYDoc, observeYDocSlides } from '../internal/shared';
 import {
 	DEFAULT_CURSOR_COLOR,
 	derivePresenceList,
@@ -33,8 +29,7 @@ import {
 import type { RemoteCursor, RemotePresence } from './collaboration-helpers';
 
 // ---------------------------------------------------------------------------
-// Loose structural types for the lazily-imported yjs / y-websocket surface.
-// (Kept minimal so we never take a static dependency on those modules.)
+// Loose structural types for lazily-imported yjs / y-websocket.
 // ---------------------------------------------------------------------------
 
 interface AwarenessLike {
@@ -45,14 +40,7 @@ interface AwarenessLike {
 	off?: (event: string, cb: () => void) => void;
 }
 
-interface YMapLike {
-	set: (key: string, value: unknown) => void;
-	get: (key: string) => unknown;
-	observe: (cb: () => void) => void;
-}
-
-interface YDocLike {
-	getMap: (name: string) => YMapLike;
+interface YDocLike extends SharedYDocLike {
 	destroy: () => void;
 }
 
@@ -63,7 +51,6 @@ interface ProviderLike {
 	on: (event: string, cb: (payload: { status?: string }) => void) => void;
 }
 
-/** Minimal shape of the lazily-imported `y-websocket` module. */
 interface WebsocketProviderModule {
 	WebsocketProvider: new (
 		serverUrl: string,
@@ -73,53 +60,47 @@ interface WebsocketProviderModule {
 	) => unknown;
 }
 
-/** Options the host viewer supplies when wiring collaboration. */
 export interface ConnectOptions {
-	/** Called when a remote peer broadcasts a newer slide set. */
 	onRemoteSlides?: (slides: PptxSlide[]) => void;
-	/**
-	 * Canvas dimensions (unscaled slide px) used to clamp incoming cursor
-	 * coordinates. Defaults to a generous bound when omitted.
-	 */
 	canvasWidth?: number;
 	canvasHeight?: number;
+	getSourceBytes?: () => Uint8Array | null;
 }
 
 const DEFAULT_CANVAS_BOUND = 100_000;
+const WRITE_BACK_DEBOUNCE_MS = 5_000;
 
 @Injectable()
 export class CollaborationService {
-	// ── Reactive state ────────────────────────────────────────────────
-	/** True once the websocket provider reports a `connected` status. */
+	// Reactive state
 	readonly connected = signal(false);
-	/** True while a session is active (provider constructed, not yet stopped). */
 	readonly active = signal(false);
-	/** Sanitised remote presence list (excludes the local user, stale dropped). */
 	readonly presence = signal<RemotePresence[]>([]);
-
-	/** Remote collaborators' live cursors, derived from presence. */
 	readonly cursors = computed<RemoteCursor[]>(() => presenceToCursors(this.presence()));
-
-	/** Total connected participants (remote + self when active). */
 	readonly connectedCount = computed<number>(
 		() => this.presence().length + (this.active() ? 1 : 0),
 	);
 
-	// ── Internal handles ──────────────────────────────────────────────
+	// Internal handles
 	private ydoc: YDocLike | null = null;
 	private provider: ProviderLike | null = null;
-	private ymap: YMapLike | null = null;
 	private awareness: AwarenessLike | null = null;
 	private selfId = -1;
 	private applyingRemote = false;
+	private yFactories: YjsFactories | null = null;
+	private lastSynced = '';
+	private writeBackTimer: ReturnType<typeof setTimeout> | null = null;
+	private unobserveSlides: (() => void) | null = null;
 
 	private onRemoteSlides: ((slides: PptxSlide[]) => void) | null = null;
 	private canvasWidth = DEFAULT_CANVAS_BOUND;
 	private canvasHeight = DEFAULT_CANVAS_BOUND;
+	private getSourceBytes: (() => Uint8Array | null) | null = null;
 	private userName = 'Anonymous';
 	private userColor = DEFAULT_CURSOR_COLOR;
 	private userAvatar: string | undefined;
 	private role: string | undefined;
+	private currentConfig: CollaborationConfig | null = null;
 
 	private readonly refreshPresence = (): void => {
 		if (!this.awareness) {
@@ -140,15 +121,8 @@ export class CollaborationService {
 		inject(DestroyRef).onDestroy(() => this.disconnect());
 	}
 
-	/**
-	 * Connect to a room and begin syncing. Any existing session is torn down
-	 * first. Returns when the session has been established (or silently when
-	 * yjs/y-websocket are unavailable / the connection fails).
-	 */
 	async connect(config: CollaborationConfig, options: ConnectOptions = {}): Promise<void> {
 		this.disconnect();
-
-		// Reject malformed room ids before touching the network.
 		try {
 			validateRoomId(config.roomId);
 		} catch {
@@ -158,16 +132,14 @@ export class CollaborationService {
 		this.onRemoteSlides = options.onRemoteSlides ?? null;
 		this.canvasWidth = options.canvasWidth ?? DEFAULT_CANVAS_BOUND;
 		this.canvasHeight = options.canvasHeight ?? DEFAULT_CANVAS_BOUND;
+		this.getSourceBytes = options.getSourceBytes ?? null;
 		this.userName = config.userName;
 		this.userColor = config.userColor ?? DEFAULT_CURSOR_COLOR;
 		this.userAvatar = config.userAvatar;
 		this.role = config.role;
+		this.currentConfig = config;
 
 		try {
-			// `y-websocket` is loaded through an indirected specifier so it stays
-			// out of the static import graph (it is an optional peer; the package
-			// degrades gracefully when it is not installed, and the bundler / lib
-			// target never hard-links it).
 			const wsModule = 'y-websocket';
 			const [Y, yws] = await Promise.all([
 				import('yjs'),
@@ -175,8 +147,11 @@ export class CollaborationService {
 			]);
 			const doc = new Y.Doc() as unknown as YDocLike;
 			this.ydoc = doc;
-			const map = doc.getMap('presentation');
-			this.ymap = map;
+			this.yFactories = {
+				createMap: () => new Y.Map(),
+				createArray: () => new Y.Array(),
+				createText: () => new Y.Text(),
+			};
 
 			const wsProvider = new yws.WebsocketProvider(
 				config.serverUrl,
@@ -188,23 +163,7 @@ export class CollaborationService {
 			this.awareness = wsProvider.awareness;
 			this.selfId = this.awareness.clientID ?? -1;
 
-			// Announce our presence so peers can render us immediately.
-			this.awareness.setLocalStateField('presence', {
-				userName: this.userName,
-				userColor: this.userColor,
-				userAvatar: this.userAvatar,
-				role: this.role,
-				activeSlideIndex: 0,
-				cursorX: 0,
-				cursorY: 0,
-				lastUpdated: new Date().toISOString(),
-			});
-			// Also publish the foundational `user` field used by the lightweight path.
-			this.awareness.setLocalStateField('user', {
-				name: this.userName,
-				color: this.userColor,
-			});
-
+			this._publishAwareness();
 			this.awareness.on('change', this.refreshPresence);
 			this.awareness.on('update', this.refreshPresence);
 
@@ -212,30 +171,35 @@ export class CollaborationService {
 				this.connected.set(payload.status === 'connected');
 			});
 
-			map.observe(() => {
-				const raw = map.get('slides');
-				if (typeof raw === 'string' && this.onRemoteSlides) {
-					try {
-						this.applyingRemote = true;
-						this.onRemoteSlides(JSON.parse(raw) as PptxSlide[]);
-					} catch {
-						// Malformed payload; ignore.
-					} finally {
-						this.applyingRemote = false;
-					}
+			// Observe remote slide changes
+			this.unobserveSlides = observeYDocSlides(doc, () => {
+				if (this.applyingRemote || !this.ydoc) {
+					return;
 				}
+				const remote = readSlidesFromYDoc(this.ydoc);
+				if (remote.length === 0) {
+					return;
+				}
+				this.applyingRemote = true;
+				this.onRemoteSlides?.(remote);
+				this.applyingRemote = false;
+				this._scheduleWriteBack();
 			});
 
 			this.active.set(true);
 			this.refreshPresence();
 		} catch {
-			// yjs/y-websocket unavailable or connection failed; degrade silently.
 			this.disconnect();
 		}
 	}
 
-	/** Disconnect and tear down the session, resetting all reactive state. */
 	disconnect(): void {
+		if (this.writeBackTimer !== null) {
+			clearTimeout(this.writeBackTimer);
+			this.writeBackTimer = null;
+		}
+		this.unobserveSlides?.();
+		this.unobserveSlides = null;
 		this.awareness?.off?.('change', this.refreshPresence);
 		this.awareness?.off?.('update', this.refreshPresence);
 		this.provider?.disconnect();
@@ -244,63 +208,96 @@ export class CollaborationService {
 
 		this.provider = null;
 		this.ydoc = null;
-		this.ymap = null;
 		this.awareness = null;
 		this.selfId = -1;
 		this.applyingRemote = false;
+		this.yFactories = null;
+		this.lastSynced = '';
 		this.onRemoteSlides = null;
+		this.currentConfig = null;
 
 		this.connected.set(false);
 		this.active.set(false);
 		this.presence.set([]);
 	}
 
-	/**
-	 * Broadcast the local slide set to peers (no-op while applying a remote
-	 * update, to avoid an echo loop). Call this whenever the editor's slides
-	 * change.
-	 */
+	/** Broadcast the local slide set to peers via the pptx:slides Y.Array. */
 	broadcastSlides(slides: readonly PptxSlide[]): void {
-		if (this.ymap && !this.applyingRemote) {
-			this.ymap.set('slides', JSON.stringify(slides));
+		if (!this.ydoc || !this.yFactories || this.applyingRemote) {
+			return;
 		}
+		const s = JSON.stringify(slides);
+		if (s === this.lastSynced) {
+			return;
+		}
+		this.lastSynced = s;
+		writeSlidesToYDoc([...slides], this.ydoc, this.yFactories);
+		this._scheduleWriteBack();
 	}
 
-	/**
-	 * Publish this user's cursor position (unscaled slide px) plus the slide
-	 * they're viewing. Updates both the foundational `cursor` field and the full
-	 * `presence` record so either consumer path sees it.
-	 */
 	setCursor(x: number, y: number, activeSlideIndex = 0): void {
 		if (!this.awareness) {
 			return;
 		}
 		this.awareness.setLocalStateField('cursor', { x, y });
-		this.awareness.setLocalStateField('presence', {
-			userName: this.userName,
-			userColor: this.userColor,
-			userAvatar: this.userAvatar,
-			role: this.role,
-			activeSlideIndex,
-			cursorX: x,
-			cursorY: y,
-			lastUpdated: new Date().toISOString(),
-		});
+		this._publishAwareness(activeSlideIndex, x, y);
 	}
 
-	/** Broadcast the local user's currently selected element ids. */
 	setSelection(selectedElementId: string | undefined, activeSlideIndex = 0): void {
 		if (!this.awareness) {
 			return;
 		}
-		this.awareness.setLocalStateField('presence', {
+		this._publishAwareness(activeSlideIndex, undefined, undefined, selectedElementId);
+	}
+
+	private _publishAwareness(
+		activeSlideIndex = 0,
+		cursorX = 0,
+		cursorY = 0,
+		selectedElementId?: string,
+	): void {
+		this.awareness?.setLocalStateField('presence', {
 			userName: this.userName,
 			userColor: this.userColor,
 			userAvatar: this.userAvatar,
 			role: this.role,
 			activeSlideIndex,
+			cursorX,
+			cursorY,
 			selectedElementId,
 			lastUpdated: new Date().toISOString(),
 		});
+		this.awareness?.setLocalStateField('user', { name: this.userName, color: this.userColor });
+	}
+
+	private _scheduleWriteBack(): void {
+		const config = this.currentConfig;
+		if (!config?.onWriteBack || config.role !== 'owner' || !this.ydoc) {
+			return;
+		}
+		if (this.writeBackTimer !== null) {
+			clearTimeout(this.writeBackTimer);
+		}
+		const ms = config.writeBackDebounceMs ?? WRITE_BACK_DEBOUNCE_MS;
+		this.writeBackTimer = setTimeout(async () => {
+			this.writeBackTimer = null;
+			if (!this.ydoc || !config.onWriteBack) {
+				return;
+			}
+			const sourceBytes = this.getSourceBytes?.();
+			if (!sourceBytes) {
+				return;
+			}
+			try {
+				const { PptxHandler } = await import('pptx-viewer-core');
+				const handler = new PptxHandler();
+				await handler.load(sourceBytes.buffer as ArrayBuffer);
+				const slides = readSlidesFromYDoc(this.ydoc);
+				const bytes = await handler.save(slides);
+				config.onWriteBack(bytes);
+			} catch {
+				/* non-fatal */
+			}
+		}, ms);
 	}
 }

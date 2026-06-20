@@ -182,6 +182,7 @@ export * from './hyperlink-security';
 // detection, and the `RemoteCursor` projection. The stateful Yjs provider /
 // awareness lifecycle stays in each binding.
 export * from './collaboration-presence';
+export * from './collaboration-sync';
 export * from './slide-compare';
 // Morph (PowerPoint Morph transition) — pure element-matching, SVG-path /
 // colour interpolation, text tokenisation, and CSS keyframe generation. The

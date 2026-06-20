@@ -291,30 +291,101 @@ describe('mapAwarenessCursors (foundational path)', () => {
 
 const { hoisted } = vi.hoisted(() => ({
 	hoisted: {
-		mapValues: new Map<string, unknown>(),
-		mapObserver: null as null | (() => void),
+		slidesArray: null as {
+			length: number;
+			push: (items: unknown[]) => void;
+			delete: (i: number, n: number) => void;
+			get: (i: number) => unknown;
+			toArray: () => unknown[];
+			observeDeep: (cb: () => void) => void;
+			unobserveDeep: (cb: () => void) => void;
+		} | null,
+		slidesObserverCb: null as null | (() => void),
 		awarenessStates: new Map<number, Record<string, unknown>>(),
 		awarenessChange: null as null | (() => void),
 		statusCb: null as null | ((p: { status?: string }) => void),
 	},
 }));
 
-vi.mock(import('yjs'), () => ({
-	Doc: class {
-		getMap() {
-			return {
-				set: (k: string, v: unknown) => {
-					hoisted.mapValues.set(k, v);
-				},
-				get: (k: string) => hoisted.mapValues.get(k),
-				observe: (cb: () => void) => {
-					hoisted.mapObserver = cb;
-				},
-			};
+vi.mock(import('yjs'), () => {
+	class YMap {
+		private _data = new Map<string, unknown>();
+		set(k: string, v: unknown) {
+			this._data.set(k, v);
 		}
-		destroy() {}
-	},
-}));
+		get(k: string) {
+			return this._data.get(k);
+		}
+		forEach(cb: (v: unknown, k: string) => void) {
+			this._data.forEach((v, k) => cb(v, k));
+		}
+	}
+	class YArray {
+		private _items: unknown[] = [];
+		get length() {
+			return this._items.length;
+		}
+		push(items: unknown[]) {
+			this._items.push(...items);
+		}
+		delete(index: number, len = 1) {
+			this._items.splice(index, len);
+		}
+		insert(index: number, items: unknown[]) {
+			this._items.splice(index, 0, ...items);
+		}
+		get(i: number) {
+			return this._items[i];
+		}
+		toArray() {
+			return [...this._items];
+		}
+		observe(_cb: () => void) {}
+		unobserve(_cb: () => void) {}
+		observeDeep(cb: () => void) {
+			hoisted.slidesObserverCb = cb;
+		}
+		unobserveDeep(cb: () => void) {
+			if (hoisted.slidesObserverCb === cb) {
+				hoisted.slidesObserverCb = null;
+			}
+		}
+	}
+	class YText {
+		private _delta: { insert: string; attributes?: Record<string, string> }[] = [];
+		insert(_index: number, text: string, attrs?: Record<string, string>) {
+			this._delta.push({ insert: text, ...(attrs ? { attributes: attrs } : {}) });
+		}
+		toDelta() {
+			return this._delta;
+		}
+		toString() {
+			return this._delta.map((d) => d.insert).join('');
+		}
+	}
+	return {
+		Doc: class {
+			private _arrays = new Map<string, YArray>();
+			getArray(name: string): YArray {
+				if (!this._arrays.has(name)) {
+					const arr = new YArray();
+					if (name === 'pptx:slides') {
+						hoisted.slidesArray = arr;
+					}
+					this._arrays.set(name, arr);
+				}
+				return this._arrays.get(name)!;
+			}
+			transact(fn: () => void) {
+				fn();
+			}
+			destroy() {}
+		},
+		Map: YMap,
+		Array: YArray,
+		Text: YText,
+	};
+});
 
 vi.mock(import('y-websocket'), () => ({
 	WebsocketProvider: class {
@@ -368,9 +439,9 @@ const config = { roomId: 'room-1', serverUrl: 'wss://x', userName: 'Ada' };
 
 describe('collaborationService', () => {
 	function reset(): void {
-		hoisted.mapValues.clear();
+		hoisted.slidesArray = null;
+		hoisted.slidesObserverCb = null;
 		hoisted.awarenessStates.clear();
-		hoisted.mapObserver = null;
 		hoisted.awarenessChange = null;
 		hoisted.statusCb = null;
 	}
@@ -385,6 +456,7 @@ describe('collaborationService', () => {
 		hoisted.statusCb?.({ status: 'connected' });
 		expect(svc.connected()).toBeTruthy();
 
+		// Angular service uses the `presence` key in awareness state.
 		hoisted.awarenessStates.set(2, {
 			presence: {
 				userName: 'Bob',
@@ -397,8 +469,10 @@ describe('collaborationService', () => {
 		hoisted.awarenessChange?.();
 
 		expect(svc.presence()).toHaveLength(1);
-		expect(svc.cursors()).toHaveLength(1);
-		expect(svc.cursors()[0]).toMatchObject({ userName: 'Bob', x: 10, y: 20, color: '#ff0000' });
+		// cursors() derives from presence; only peers with cursorX/Y appear.
+		const cursors = svc.cursors();
+		expect(cursors).toHaveLength(1);
+		expect(cursors[0]).toMatchObject({ userName: 'Bob', x: 10, y: 20, color: '#ff0000' });
 		expect(svc.connectedCount()).toBe(2);
 
 		destroy();
@@ -412,17 +486,69 @@ describe('collaborationService', () => {
 		destroy();
 	});
 
-	it('broadcasts local slides and applies remote ones', async () => {
+	it('broadcasts local slides via pptx:slides Y.Array', async () => {
 		reset();
 		const onRemoteSlides = vi.fn();
 		const { svc, destroy } = makeService();
 		await svc.connect(config, { onRemoteSlides });
 
+		// broadcastSlides calls writeSlidesToYDoc which populates the Y.Array.
 		svc.broadcastSlides([slide('1'), slide('2')]);
-		expect(hoisted.mapValues.get('slides')).toBeTypeOf('string');
+		expect(hoisted.slidesArray?.length).toBeGreaterThan(0);
 
-		hoisted.mapValues.set('slides', JSON.stringify([slide('9')]));
-		hoisted.mapObserver?.();
+		destroy();
+	});
+
+	it('applies remote slides when pptx:slides Y.Array observer fires', async () => {
+		reset();
+		const onRemoteSlides = vi.fn();
+		const { svc, destroy } = makeService();
+		await svc.connect(config, { onRemoteSlides });
+
+		// Simulate a remote peer pushing a slide into the Y.Array.
+		const remoteSlideMap = {
+			get: (k: string) => {
+				if (k === 'id') {
+					return '9';
+				}
+				if (k === 'elements') {
+					return {
+						length: 0,
+						get: () => undefined,
+						push: () => {},
+						delete: () => {},
+						insert: () => {},
+						toArray: () => [],
+						observe: () => {},
+						unobserve: () => {},
+						observeDeep: () => {},
+						unobserveDeep: () => {},
+					};
+				}
+				return undefined;
+			},
+			set: () => {},
+			forEach: (_cb: (v: unknown, k: string) => void) => {
+				_cb('9', 'id');
+				_cb(
+					{
+						length: 0,
+						get: () => undefined,
+						push: () => {},
+						delete: () => {},
+						insert: () => {},
+						toArray: () => [],
+						observe: () => {},
+						unobserve: () => {},
+						observeDeep: () => {},
+						unobserveDeep: () => {},
+					},
+					'elements',
+				);
+			},
+		};
+		hoisted.slidesArray?.push([remoteSlideMap]);
+		hoisted.slidesObserverCb?.();
 		expect(onRemoteSlides).toHaveBeenCalledWith([expect.objectContaining({ id: '9' })]);
 
 		destroy();
@@ -435,6 +561,7 @@ describe('collaborationService', () => {
 
 		svc.setCursor(33, 44, 1);
 		const self = hoisted.awarenessStates.get(1);
+		// Angular service sets `cursor` and `presence` fields on awareness.
 		expect(self?.cursor).toStrictEqual({ x: 33, y: 44 });
 		expect(self?.presence).toMatchObject({ cursorX: 33, cursorY: 44, activeSlideIndex: 1 });
 
