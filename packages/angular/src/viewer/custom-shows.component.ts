@@ -1,5 +1,5 @@
 /**
- * custom-shows.component.ts — Modal dialog for managing custom PowerPoint shows.
+ * custom-shows.component.ts: Modal dialog for managing custom PowerPoint shows.
  *
  * Selector: `pptx-custom-shows`
  *

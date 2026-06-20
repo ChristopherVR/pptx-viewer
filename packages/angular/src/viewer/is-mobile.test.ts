@@ -1,5 +1,5 @@
 /**
- * is-mobile.test.ts — Unit tests for the pure helpers in is-mobile.ts.
+ * is-mobile.test.ts: Unit tests for the pure helpers in is-mobile.ts.
  *
  * Tests are Vitest-only (no Angular TestBed) because `computeIsMobile` and
  * `computeIsTablet` are pure functions with no DOM or DI dependencies.

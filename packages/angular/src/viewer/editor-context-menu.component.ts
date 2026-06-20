@@ -1,5 +1,5 @@
 /**
- * editor-context-menu.component.ts — Right-click context menu for the Angular
+ * editor-context-menu.component.ts: Right-click context menu for the Angular
  * PPTX editor.
  *
  * Selector: `pptx-editor-context-menu`
@@ -8,7 +8,7 @@
  * EditorStateService. Closes on:
  *  - Escape key (via @HostListener)
  *  - A pointerdown event whose target is outside this component's host element
- *    (also via @HostListener — the very first outside-pointerdown that would
+ *    (also via @HostListener; the very first outside-pointerdown that would
  *    have opened the menu is guarded by Angular's own event-propagation order:
  *    the host is mounted before the listener fires, so `!host.contains(target)`
  *    is always correct without any extra first-event guard).

@@ -1,12 +1,12 @@
 /**
- * table-data-editor.component.ts — Presentational table data editor panel.
+ * table-data-editor.component.ts: Presentational table data editor panel.
  *
  * Selector: `pptx-table-data-editor`
  *
  * Renders a compact spreadsheet-like grid for editing table cell text plus
  * row/column add and remove buttons.  All mutations are performed by the
  * pure helpers in `table-data-helpers.ts` and emitted as a complete new
- * `TablePptxElement` via the `elementChange` output — no internal state is
+ * `TablePptxElement` via the `elementChange` output; no internal state is
  * kept.
  *
  * The parent (typically `InspectorPanelComponent`) receives the emitted

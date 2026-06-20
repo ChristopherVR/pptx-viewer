@@ -1,7 +1,7 @@
 /**
  * Tests for smart-art-layouts.ts
  *
- * All assertions target pure geometry logic — no Angular, no DOM, no TestBed.
+ * All assertions target pure geometry logic: no Angular, no DOM, no TestBed.
  * Each family is exercised for positional correctness and bounds containment.
  */
 import type { PptxSmartArtData, PptxSmartArtNode } from 'pptx-viewer-core';
@@ -91,7 +91,7 @@ describe('resolveSmartArtFamily', () => {
 // List layout
 // ==========================================================================
 
-describe('layoutSmartArtNodes — list', () => {
+describe('layoutSmartArtNodes - list', () => {
 	it('returns one node per input node', () => {
 		const data = makeData({
 			nodes: [makeNode('1', 'Alpha'), makeNode('2', 'Beta'), makeNode('3', 'Gamma')],
@@ -172,7 +172,7 @@ describe('layoutSmartArtNodes — list', () => {
 // Process layout
 // ==========================================================================
 
-describe('layoutSmartArtNodes — process', () => {
+describe('layoutSmartArtNodes - process', () => {
 	it('returns one node per input node', () => {
 		const data = makeData({
 			nodes: [makeNode('1', 'Step 1'), makeNode('2', 'Step 2'), makeNode('3', 'Step 3')],
@@ -248,7 +248,7 @@ describe('layoutSmartArtNodes — process', () => {
 // Cycle layout
 // ==========================================================================
 
-describe('layoutSmartArtNodes — cycle', () => {
+describe('layoutSmartArtNodes - cycle', () => {
 	it('returns one node per input node', () => {
 		const data = makeData({
 			nodes: [makeNode('1', 'A'), makeNode('2', 'B'), makeNode('3', 'C'), makeNode('4', 'D')],
@@ -270,7 +270,7 @@ describe('layoutSmartArtNodes — cycle', () => {
 		}
 	});
 
-	it('places nodes around a circle — all at roughly equal radial distance from centre', () => {
+	it('places nodes around a circle - all at roughly equal radial distance from centre', () => {
 		const SIZE = 300;
 		const cx = SIZE / 2;
 		const cy = SIZE / 2;
@@ -340,7 +340,7 @@ describe('layoutSmartArtNodes — cycle', () => {
 // Hierarchy layout
 // ==========================================================================
 
-describe('layoutSmartArtNodes — hierarchy', () => {
+describe('layoutSmartArtNodes - hierarchy', () => {
 	it('returns one node per node in the tree', () => {
 		// root → [child1, child2]
 		const data = makeData({
@@ -452,7 +452,7 @@ describe('layoutSmartArtNodes — hierarchy', () => {
 // Cross-family / edge-case tests
 // ==========================================================================
 
-describe('layoutSmartArtNodes — edge cases', () => {
+describe('layoutSmartArtNodes - edge cases', () => {
 	it('handles a single node in each family without throwing', () => {
 		const families: Array<'list' | 'process' | 'cycle' | 'hierarchy'> = [
 			'list',

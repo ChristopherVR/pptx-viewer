@@ -1,11 +1,11 @@
 /**
- * collaboration-helpers.test.ts — Unit tests for the pure collaboration
+ * collaboration-helpers.test.ts: Unit tests for the pure collaboration
  * helpers and (with mocked yjs/y-websocket) the `CollaborationService` wiring.
  *
  * vitest + happy-dom, no TestBed. The service is built inside a minimal
  * injection context via `runInInjectionContext` (it calls `inject(DestroyRef)`
  * in its constructor) with a capturing `DestroyRef` stub. yjs + y-websocket are
- * replaced with the minimum surface the service uses — no real network or
+ * replaced with the minimum surface the service uses: no real network or
  * websocket is opened.
  *
  * Mirrors the Vue `useCollaboration.test.ts` + `CollaborationCursors.test.ts`

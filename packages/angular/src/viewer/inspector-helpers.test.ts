@@ -1,5 +1,5 @@
 /**
- * inspector-helpers.test.ts — Vitest unit tests for the pure inspector helpers.
+ * inspector-helpers.test.ts: Vitest unit tests for the pure inspector helpers.
  */
 
 import type { PptxElement } from 'pptx-viewer-core';

@@ -1,5 +1,5 @@
 /**
- * embedded-fonts.service.test.ts — Unit tests for the DOM-injection side
+ * embedded-fonts.service.test.ts: Unit tests for the DOM-injection side
  * effects of EmbeddedFontsService (vitest + happy-dom, no TestBed).
  *
  * The service calls `inject(DestroyRef)` in its constructor, so it is built

@@ -1,12 +1,12 @@
 /**
- * presentation-annotations-helpers.ts — Pure geometry helpers for presentation
+ * presentation-annotations-helpers.ts: Pure geometry helpers for presentation
  * ink annotations (pen, highlighter, eraser, laser).
  *
  * Ported from React:
  *   packages/react/src/viewer/components/PresentationAnnotationOverlay.tsx
  *   packages/react/src/viewer/hooks/usePresentationAnnotations.ts
  *
- * No Angular dependencies — all functions are pure so they can be unit-tested
+ * No Angular dependencies; all functions are pure so they can be unit-tested
  * without TestBed.
  */
 
@@ -67,7 +67,7 @@ export function nextStrokeId(): string {
 }
 
 /**
- * Reset the stroke-id counter. Exposed for tests only — never call from
+ * Reset the stroke-id counter. Exposed for tests only; never call from
  * production code.
  */
 export function resetStrokeIdCounter(): void {
@@ -80,7 +80,7 @@ export function resetStrokeIdCounter(): void {
 
 /**
  * Convert a sequence of points to an SVG path `d` attribute string using
- * M + L commands (no bezier smoothing — matches the React original).
+ * M + L commands (no bezier smoothing, matches the React original).
  *
  * Returns an empty string for an empty point array.
  *

@@ -10,12 +10,12 @@
  * `TextWarpDef` that the Angular template can consume without any React/HTML
  * string injection.  The descriptor selects one of two rendering strategies:
  *
- *   - `'path'`    — SVG `<textPath>` along a curved/arc/circle path.
+ *   - `'path'`    : SVG `<textPath>` along a curved/arc/circle path.
  *                   The `pathLines` array contains one entry per paragraph with a
  *                   pre-computed SVG `d` attribute.  The template renders an inline
  *                   `<svg>` with `<defs><path>` + `<text><textPath href>`.
  *
- *   - `'css'`     — A whole-block CSS transform approximation.  The template
+ *   - `'css'`     : A whole-block CSS transform approximation.  The template
  *                   applies `cssTransform` and `cssTransformOrigin` to the
  *                   existing `div.pptx-ng-text` wrapper (or a parent div) via
  *                   `[ngStyle]`.  No SVG required.

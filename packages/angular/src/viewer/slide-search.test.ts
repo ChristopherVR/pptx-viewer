@@ -1,5 +1,5 @@
 /**
- * slide-search.test.ts — Unit tests for the pure search helpers.
+ * slide-search.test.ts: Unit tests for the pure search helpers.
  */
 
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
@@ -243,7 +243,7 @@ describe('searchSlides', () => {
 
 	it('counts multiple occurrences on the same slide', () => {
 		// Slide 2 table: "Angular" appears once, and "Vue" once
-		// Slide 1 text: "Angular" once — just check matchCount >= 1
+		// Slide 1 text: "Angular" once; just check matchCount >= 1
 		const results = searchSlides(slides, 'angular');
 		for (const r of results) {
 			expect(r.matchCount).toBeGreaterThanOrEqual(1);

@@ -1,5 +1,5 @@
 /**
- * Scalar viewer defaults — shared across the React, Vue, and Angular bindings
+ * Scalar viewer defaults, shared across the React, Vue, and Angular bindings
  * via `pptx-viewer-shared`. Re-exported here for ergonomic local imports.
  */
 export {

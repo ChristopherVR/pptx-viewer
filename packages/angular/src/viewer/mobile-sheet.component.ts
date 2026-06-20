@@ -1,5 +1,5 @@
 /**
- * mobile-sheet.component.ts — Reusable slide-up bottom sheet for mobile.
+ * mobile-sheet.component.ts: Reusable slide-up bottom sheet for mobile.
  *
  * Ported from: packages/react/src/viewer/components/mobile/MobileSheet.tsx
  *
@@ -10,13 +10,13 @@
  *   - Escape key closes the sheet
  *
  * Inputs
- *   open          — controls visibility
- *   title         — optional header text
- *   heightFraction — initial height as fraction of dvh (default 0.6)
- *   fullScreen    — when true, the sheet covers the full viewport height
+ *   open          : controls visibility
+ *   title         : optional header text
+ *   heightFraction : initial height as fraction of dvh (default 0.6)
+ *   fullScreen    : when true, the sheet covers the full viewport height
  *
  * Outputs
- *   closed — emits when the user dismisses the sheet
+ *   closed : emits when the user dismisses the sheet
  *
  * Content is projected via `<ng-content>`.
  */

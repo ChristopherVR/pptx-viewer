@@ -1,5 +1,5 @@
 /**
- * find-replace-helpers.test.ts — Unit tests for find-replace-helpers.ts.
+ * find-replace-helpers.test.ts: Unit tests for find-replace-helpers.ts.
  *
  * Ported/adapted from:
  *   packages/react/src/viewer/hooks/useFindReplace.test.ts
@@ -207,7 +207,7 @@ describe('applyFindReplacements', () => {
 			{ slideIndex: 0, elementId: 'e1', segmentIndex: 0, startOffset: 1, length: 2 },
 		];
 		// Applying both in one go: second (offset 1) applied first, then first (offset 0).
-		// After offset-1 replace: 'a' + 'b' + '' → 'ab' wait — we need stable text;
+		// After offset-1 replace: 'a' + 'b' + '' → 'ab' wait, we need stable text;
 		// the important contract is: no panic / no index out of range.
 		const result = applyFindReplacements([slide], matches, 'b');
 		expect(result.replacements).toBe(2);

@@ -45,7 +45,7 @@ function ensureTransitionKeyframes(): void {
 }
 
 /**
- * PresentationTransitionOverlayComponent — plays a PowerPoint slide transition
+ * PresentationTransitionOverlayComponent: plays a PowerPoint slide transition
  * over the presentation stage.
  *
  * Renders the *outgoing* (previous) slide as an absolutely-positioned layer
@@ -58,15 +58,15 @@ function ensureTransitionKeyframes(): void {
  * Selector: `pptx-presentation-transition-overlay`
  *
  * Inputs:
- *   - `outgoingSlide`    (required) — the leaving slide to animate
- *   - `canvasSize`       (required) — logical slide dimensions (px)
- *   - `transition`       (required) — the transition definition (from the slide)
- *   - `templateElements` — master/layout elements behind the outgoing slide
- *   - `mediaDataUrls`    — data-URL map for media assets
- *   - `durationMs`       — explicit override; otherwise derived from `transition`
+ *   - `outgoingSlide`    (required): the leaving slide to animate
+ *   - `canvasSize`       (required): logical slide dimensions (px)
+ *   - `transition`       (required): the transition definition (from the slide)
+ *   - `templateElements`: master/layout elements behind the outgoing slide
+ *   - `mediaDataUrls`   : data-URL map for media assets
+ *   - `durationMs`      : explicit override; otherwise derived from `transition`
  *
  * Outputs:
- *   - `complete` — emits void when the transition animation completes
+ *   - `complete`: emits void when the transition animation completes
  *
  * Designed to compose with `PresentationOverlayComponent` WITHOUT editing it:
  * the orchestrator stacks this overlay on top of the stage while a transition
@@ -192,7 +192,7 @@ export class PresentationTransitionOverlayComponent {
 		return { ...slide, elements: [...template, ...slide.elements] };
 	});
 
-	/** Layer container style — animation + stacking relative to the stage. */
+	/** Layer container style: animation + stacking relative to the stage. */
 	protected readonly layerStyle = computed<StyleMap>(() => {
 		const anims = this.animations();
 		const style: StyleMap = {

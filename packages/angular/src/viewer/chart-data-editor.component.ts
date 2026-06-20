@@ -1,5 +1,5 @@
 /**
- * chart-data-editor.component.ts — Presentational chart data editor panel.
+ * chart-data-editor.component.ts: Presentational chart data editor panel.
  *
  * Selector: `pptx-chart-data-editor`
  *
@@ -7,7 +7,7 @@
  * labels, and the value matrix.  Also provides buttons to add/remove series
  * and categories.  All mutations use the pure helpers in
  * `chart-data-helpers.ts` and are emitted via the `elementChange` output as
- * a complete new `ChartPptxElement` — the component holds no mutable state.
+ * a complete new `ChartPptxElement`; the component holds no mutable state.
  *
  * The parent (typically `InspectorPanelComponent`) receives the emitted
  * element and commits it to `EditorStateService.updateElement()` as a single

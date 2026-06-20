@@ -4,8 +4,8 @@
  * Angular TestBed requires the full compiler pipeline which is not available in
  * Vitest. Following the established Angular-package pattern (see
  * `connector-renderer.component.test.ts`, `ink-renderer.component.test.ts`),
- * we test the pure conversion layer directly — the same layer the component
- * calls — and verify the component class wiring with a lightweight stub
+ * we test the pure conversion layer directly (the same layer the component
+ * calls) and verify the component class wiring with a lightweight stub
  * DomSanitizer so no TestBed or DOM is needed.
  *
  * The intent mirrors the Vue `EquationRenderer.test.ts`:
@@ -65,7 +65,7 @@ function makeComponent(
 }
 
 // ---------------------------------------------------------------------------
-// ommlToMathml — pure conversion (mirrors Vue test coverage)
+// ommlToMathml: pure conversion (mirrors Vue test coverage)
 // ---------------------------------------------------------------------------
 
 describe('ommlToMathml (pure converter)', () => {
@@ -111,7 +111,7 @@ describe('ommlToMathml (pure converter)', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Component wiring — stub-based (no TestBed)
+// Component wiring: stub-based (no TestBed)
 // ---------------------------------------------------------------------------
 
 describe('equationRendererComponent (stub wiring)', () => {

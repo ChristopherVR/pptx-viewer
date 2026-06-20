@@ -38,7 +38,7 @@ export function nextVisibleIndex(current: number, slides: readonly PptxSlide[]):
 			return candidate;
 		}
 	}
-	// All remaining slides are hidden — stay at current.
+	// All remaining slides are hidden; stay at current.
 	return current;
 }
 
@@ -57,7 +57,7 @@ export function prevVisibleIndex(current: number, slides: readonly PptxSlide[]):
 			return candidate;
 		}
 	}
-	// All preceding slides are hidden — stay at current.
+	// All preceding slides are hidden; stay at current.
 	return current;
 }
 

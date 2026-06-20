@@ -1,5 +1,5 @@
 /**
- * accessibility-helpers.test.ts — Unit tests for the pure accessibility
+ * accessibility-helpers.test.ts: Unit tests for the pure accessibility
  * helpers, plus the signal-based service and presentational panel component
  * (instantiated directly, no TestBed).
  *
@@ -188,7 +188,7 @@ describe('accessibilityService', () => {
 //
 // The `AccessibilityPanelComponent` is a thin shell over these pure functions;
 // testing them here keeps the suite TestBed-free (component tests need the
-// Angular compiler — a follow-up, see PORTING.md).
+// Angular compiler; a follow-up, see PORTING.md).
 // ---------------------------------------------------------------------------
 
 describe('groupIssuesBySeverity', () => {

@@ -1,5 +1,5 @@
 /**
- * inspector-panel.component.ts — Editor inspector panel for the PPTX viewer.
+ * inspector-panel.component.ts: Editor inspector panel for the PPTX viewer.
  *
  * Selector: `pptx-inspector-panel`
  *
@@ -62,7 +62,7 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 			<input> only when a *different* element is selected, seeding its initial
 			value once. While the user types, the [value] binding is NOT re-evaluated
 			against the live (just-patched) element, so .value is never rewritten
-			mid-edit — the caret stays put and the on-screen keyboard does not dismiss.
+			mid-edit: the caret stays put and the on-screen keyboard does not dismiss.
 			All commits happen on (change) (blur), reading event.target.value.
 		-->
 		<aside class="pptx-ng-inspector" aria-label="Element properties">
@@ -579,7 +579,7 @@ export class InspectorPanelComponent {
 	/** Whether the element supports text-style editing. */
 	protected readonly hasText = computed(() => hasTextProperties(this.el()));
 
-	// ── Computed display values (toggles only — buttons, no caret risk) ───────
+	// -- Computed display values (toggles only: buttons, no caret risk) -------
 
 	protected readonly currentBold = computed(() => isBold(this.el()));
 	protected readonly currentItalic = computed(() => isItalic(this.el()));

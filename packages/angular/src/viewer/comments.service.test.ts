@@ -1,8 +1,8 @@
 /**
- * comments.service.test.ts — Unit tests for `CommentsService`.
+ * comments.service.test.ts: Unit tests for `CommentsService`.
  *
  * The service is a thin signal wrapper over the pure helpers, so these tests
- * exercise it by instantiating it directly (no Angular TestBed required — the
+ * exercise it by instantiating it directly (no Angular TestBed required; the
  * constructor has no DI dependencies).
  */
 
@@ -90,7 +90,7 @@ describe('commentsService', () => {
 		const svc = new CommentsService();
 		svc.setComments([comment({ id: 'a' })]);
 		svc.addComment('new one');
-		// The service does not write back — the host owns that.
+		// The service does not write back; the host owns that.
 		expect(svc.slideComments()).toHaveLength(1);
 	});
 

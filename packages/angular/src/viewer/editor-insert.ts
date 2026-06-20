@@ -1,5 +1,5 @@
 /**
- * editor-insert.ts — Pure factory functions for creating new slide elements.
+ * editor-insert.ts: Pure factory functions for creating new slide elements.
  *
  * Framework-agnostic: no Angular imports. Each factory returns a `PptxElement`
  * with `id: ''` so that `EditorStateService.addElement` can assign a real id
@@ -27,7 +27,7 @@ const SHAPE_HEIGHT = 120;
 const TABLE_WIDTH = 600;
 /** Default table height (px). */
 const TABLE_HEIGHT = 250;
-/** Default table y offset (px) — slightly below the title area. */
+/** Default table y offset (px): slightly below the title area. */
 const TABLE_DEFAULT_Y = 150;
 /** Default SmartArt width (px). */
 const SMART_ART_WIDTH = 600;
@@ -203,7 +203,7 @@ export function newSmartArtElement(
  * Create a new equation element with a simple default OMML expression.
  *
  * Following the React approach the equation is stored as a `shape` element
- * whose single text segment carries an `equationXml` field — the same
+ * whose single text segment carries an `equationXml` field: the same
  * structure the `EquationRendererComponent` consumes when rendering inline
  * equations within a text paragraph. The OMML payload encodes the expression
  * `E = mc²` as a minimal Office Math Markup Language object tree.

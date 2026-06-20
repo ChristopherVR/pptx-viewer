@@ -1,5 +1,5 @@
 /**
- * selection-pane.component.ts — Side panel listing all elements on the active slide.
+ * selection-pane.component.ts: Side panel listing all elements on the active slide.
  *
  * Selector: `pptx-selection-pane`
  *

@@ -1,7 +1,7 @@
 /**
- * hyperlink-dialog-helpers.test.ts — Unit tests for the hyperlink-dialog
+ * hyperlink-dialog-helpers.test.ts: Unit tests for the hyperlink-dialog
  * helpers. Ports the Vue `HyperlinkDialog.test.ts` coverage (prefill, set /
- * clear / empty-as-clear, action-verb preservation) plus URL-safety guarding —
+ * clear / empty-as-clear, action-verb preservation) plus URL-safety guarding,
  * against the pure helpers, no Angular TestBed.
  */
 

@@ -4,7 +4,7 @@
  * All assertions target functions exported from `table-renderer-helpers.ts`
  * (the Angular-free layer). This avoids loading `@angular/common` / the JIT
  * compiler, which is not available in the plain vitest environment (see
- * PORTING.md — component/TestBed tests are a follow-up with
+ * PORTING.md: component/TestBed tests are a follow-up with
  * @analogjs/vite-plugin-angular).
  */
 import type { PptxElement, PptxTableCell, PptxTableCellStyle } from 'pptx-viewer-core';
@@ -226,10 +226,10 @@ describe('cellTdStyle', () => {
 });
 
 // ==========================================================================
-// buildTableViewModel — 2×2 simple table
+// buildTableViewModel: 2×2 simple table
 // ==========================================================================
 
-describe('buildTableViewModel — simple 2×2 table', () => {
+describe('buildTableViewModel - simple 2×2 table', () => {
 	const el = tableElement(
 		[{ cells: [{ text: 'A' }, { text: 'B' }] }, { cells: [{ text: 'C' }, { text: 'D' }] }],
 		[0.5, 0.5],
@@ -266,10 +266,10 @@ describe('buildTableViewModel — simple 2×2 table', () => {
 });
 
 // ==========================================================================
-// buildTableViewModel — merged cell (hMerge / gridSpan)
+// buildTableViewModel: merged cell (hMerge / gridSpan)
 // ==========================================================================
 
-describe('buildTableViewModel — horizontal merge', () => {
+describe('buildTableViewModel - horizontal merge', () => {
 	/**
 	 * 2 rows × 3 columns; top row has a cell spanning columns 0–1.
 	 *
@@ -280,7 +280,7 @@ describe('buildTableViewModel — horizontal merge', () => {
 		[
 			{
 				cells: [
-					{ text: 'A', gridSpan: 2 }, // origin — spans cols 0+1
+					{ text: 'A', gridSpan: 2 }, // origin: spans cols 0+1
 					{ text: '', hMerge: true }, // merged away
 					{ text: 'B' },
 				],
@@ -315,10 +315,10 @@ describe('buildTableViewModel — horizontal merge', () => {
 });
 
 // ==========================================================================
-// buildTableViewModel — vertical merge (vMerge / rowSpan)
+// buildTableViewModel: vertical merge (vMerge / rowSpan)
 // ==========================================================================
 
-describe('buildTableViewModel — vertical merge', () => {
+describe('buildTableViewModel - vertical merge', () => {
 	/**
 	 * 3 rows × 2 columns; first column top cell spans rows 0–1.
 	 *
@@ -355,10 +355,10 @@ describe('buildTableViewModel — vertical merge', () => {
 });
 
 // ==========================================================================
-// buildTableViewModel — cell fill color
+// buildTableViewModel: cell fill color
 // ==========================================================================
 
-describe('buildTableViewModel — cell fill color', () => {
+describe('buildTableViewModel - cell fill color', () => {
 	it('solid fill color appears in tdStyle', () => {
 		const el = tableElement([
 			{
@@ -399,10 +399,10 @@ describe('buildTableViewModel — cell fill color', () => {
 });
 
 // ==========================================================================
-// buildTableViewModel — non-table element
+// buildTableViewModel: non-table element
 // ==========================================================================
 
-describe('buildTableViewModel — non-table element', () => {
+describe('buildTableViewModel - non-table element', () => {
 	it('returns empty array for non-table elements', () => {
 		const el: PptxElement = {
 			type: 'shape',
@@ -450,10 +450,10 @@ describe('buildColStyles', () => {
 });
 
 // ==========================================================================
-// buildTableViewModel — empty cell text uses non-breaking space
+// buildTableViewModel: empty cell text uses non-breaking space
 // ==========================================================================
 
-describe('buildTableViewModel — empty cell display text', () => {
+describe('buildTableViewModel - empty cell display text', () => {
 	it('uses non-breaking space for empty text to preserve row height', () => {
 		const el = tableElement([{ cells: [{ text: '' }] }]);
 		const rows = buildTableViewModel(el);

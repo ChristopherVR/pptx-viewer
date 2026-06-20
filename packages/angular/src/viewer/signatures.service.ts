@@ -1,13 +1,13 @@
 /**
- * signatures.service.ts — Read-only digital-signature inspection service.
+ * signatures.service.ts: Read-only digital-signature inspection service.
  *
  * Angular port of the Vue `useSignatures` composable. Digital signatures in
  * OOXML packages live under `_xmlsignatures/`. The core `PptxHandler` detects
  * their presence at load time (surfacing `hasDigitalSignatures` /
  * `digitalSignatureCount` on `PptxData`), but it does NOT expose the
  * fully-parsed signatures. The host obtains the parsed `ParsedSignature[]`
- * itself — by reading each `_xmlsignatures/sig*.xml` part and running the core
- * `parseSignatureXml(...)` helper — then feeds the result in here via
+ * itself, by reading each `_xmlsignatures/sig*.xml` part and running the core
+ * `parseSignatureXml(...)` helper, then feeds the result in here via
  * {@link SignaturesService.setSignatures}.
  *
  * This service is purely presentational state derivation: it never signs,

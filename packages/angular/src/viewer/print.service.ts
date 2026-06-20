@@ -1,5 +1,5 @@
 /**
- * PrintService — print orchestration for the Angular viewer.
+ * PrintService: print orchestration for the Angular viewer.
  *
  * Pure layout/markup maths live in `./print-helpers` and are unit-tested in
  * isolation. This service holds the only DOM side effects: capturing each
@@ -10,7 +10,7 @@
  * `captureSlide(index)` callback that flips the live stage to `index` and
  * rasterises it (typically via {@link ExportService.renderElement} +
  * `canvas.toDataURL`). The viewer owns the one reused stage node, so capture
- * must be sequential — exactly as the React raster path does.
+ * must be sequential, exactly as the React raster path does.
  *
  * Dialog open/close state and the active settings are exposed as signals so
  * the toolbar and dialog component can bind to them directly.
@@ -37,7 +37,7 @@ import type { PrintSettings } from './print-helpers';
 
 /**
  * Captures the slide at `index` (zero-based) to a PNG `data:` URL. The viewer
- * supplies this — it flips the live stage to `index` and rasterises it.
+ * supplies this: it flips the live stage to `index` and rasterises it.
  * Returning `null`/empty for a slide skips it.
  */
 export type CaptureSlideFn = (index: number) => Promise<string | null>;
@@ -170,7 +170,7 @@ export class PrintService {
 	}
 
 	/* ---------------------------------------------------------------- */
-	/*  Internal — print-window side effects (DOM only)                 */
+	/*  Internal: print-window side effects (DOM only)                  */
 	/* ---------------------------------------------------------------- */
 
 	/**

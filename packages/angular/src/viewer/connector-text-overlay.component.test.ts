@@ -187,7 +187,7 @@ describe('buildSegmentStyle', () => {
 	it('inherits paragraph-level bold when the run does not set bold itself', () => {
 		// ts has bold: true; the run style has bold: false (not explicitly set by author).
 		// The Vue reference mirrors this: `s?.bold ? 'bold' : ts?.bold ? 'bold' : 'normal'`
-		// — a run-style `bold: false` still inherits paragraph bold because the ternary
+		// a run-style `bold: false` still inherits paragraph bold because the ternary
 		// evaluates `ts?.bold` as the fallback when `s?.bold` is falsy.
 		const ts: TextStyle = { bold: true };
 		const s = seg('inherits bold', { bold: false });

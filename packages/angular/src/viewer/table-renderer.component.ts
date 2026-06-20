@@ -33,7 +33,7 @@ interface EditingCell {
 }
 
 /**
- * TableRendererComponent — Angular port of the React `renderTableFromTableData`
+ * TableRendererComponent: Angular port of the React `renderTableFromTableData`
  * (packages/react/src/viewer/utils/table-render-data.tsx).
  *
  * Renders a `<table>` from the typed `PptxTableData` structure that the core

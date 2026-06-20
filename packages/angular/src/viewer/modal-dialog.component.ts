@@ -1,5 +1,5 @@
 /**
- * modal-dialog.component.ts — Reusable, accessible modal dialog shell.
+ * modal-dialog.component.ts: Reusable, accessible modal dialog shell.
  *
  * Selector: `pptx-modal-dialog`
  *

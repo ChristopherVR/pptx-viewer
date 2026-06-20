@@ -1,7 +1,7 @@
 /**
  * Pure helpers for the slide-sorter overlay thumbnail grid.
  *
- * No Angular imports — safe to use in both component and vitest contexts.
+ * No Angular imports, safe to use in both component and vitest contexts.
  */
 
 /**

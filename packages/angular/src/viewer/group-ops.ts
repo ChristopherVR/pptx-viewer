@@ -1,5 +1,5 @@
 /**
- * group-ops — Pure, immutable group/ungroup operations for the slide element tree.
+ * group-ops: Pure, immutable group/ungroup operations for the slide element tree.
  *
  * No Angular imports. No mutation of inputs. No `any` types.
  *

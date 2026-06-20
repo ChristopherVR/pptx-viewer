@@ -24,10 +24,10 @@ const twoBoxes: readonly AlignBox[] = [
 const oneBox: readonly AlignBox[] = [{ id: 'a', x: 5, y: 5, width: 50, height: 50 }];
 
 // ---------------------------------------------------------------------------
-// computeAlign — guard: <2 boxes
+// computeAlign: guard: <2 boxes
 // ---------------------------------------------------------------------------
 
-describe('computeAlign — fewer than 2 boxes', () => {
+describe('computeAlign: fewer than 2 boxes', () => {
 	it('returns an empty map for zero boxes', () => {
 		expect(computeAlign([], 'left').size).toBe(0);
 	});
@@ -38,14 +38,14 @@ describe('computeAlign — fewer than 2 boxes', () => {
 });
 
 // ---------------------------------------------------------------------------
-// computeAlign — horizontal modes
+// computeAlign: horizontal modes
 // ---------------------------------------------------------------------------
 
-describe('computeAlign — left', () => {
+describe('computeAlign: left', () => {
 	it('moves all boxes so their left edge equals the group left edge (min x)', () => {
 		// group left = 0
 		const map = computeAlign(twoBoxes, 'left');
-		// box a is already at x=10, group min x = 10 — gets moved to 10
+		// box a is already at x=10, group min x = 10, gets moved to 10
 		// box b is at x=150, gets moved to 10
 		// group min = 10
 		expect(map.get('a')).toBeUndefined(); // already at left
@@ -61,7 +61,7 @@ describe('computeAlign — left', () => {
 	});
 });
 
-describe('computeAlign — right', () => {
+describe('computeAlign: right', () => {
 	it('aligns boxes so their right edges meet the group right edge', () => {
 		// twoBoxes: right edges are 10+80=90, 150+100=250; group right = 250
 		const map = computeAlign(twoBoxes, 'right');
@@ -77,7 +77,7 @@ describe('computeAlign — right', () => {
 	});
 });
 
-describe('computeAlign — centerH', () => {
+describe('computeAlign: centerH', () => {
 	it('centres boxes on the group horizontal centre', () => {
 		// threeBoxes: left=0, right=240, centre=120
 		const map = computeAlign(threeBoxes, 'centerH');
@@ -91,10 +91,10 @@ describe('computeAlign — centerH', () => {
 });
 
 // ---------------------------------------------------------------------------
-// computeAlign — vertical modes
+// computeAlign: vertical modes
 // ---------------------------------------------------------------------------
 
-describe('computeAlign — top', () => {
+describe('computeAlign: top', () => {
 	it('moves all boxes to the group top edge (min y)', () => {
 		// threeBoxes: min y = 0
 		const map = computeAlign(threeBoxes, 'top');
@@ -104,7 +104,7 @@ describe('computeAlign — top', () => {
 	});
 });
 
-describe('computeAlign — bottom', () => {
+describe('computeAlign: bottom', () => {
 	it('aligns boxes so their bottom edges meet the group bottom edge', () => {
 		// threeBoxes: bottom edges are 30, 90, 130; group bottom = 130
 		const map = computeAlign(threeBoxes, 'bottom');
@@ -114,7 +114,7 @@ describe('computeAlign — bottom', () => {
 	});
 });
 
-describe('computeAlign — middle', () => {
+describe('computeAlign: middle', () => {
 	it('centres boxes on the group vertical centre', () => {
 		// threeBoxes: top=0, bottom=130, centre=65
 		const map = computeAlign(threeBoxes, 'middle');
@@ -128,10 +128,10 @@ describe('computeAlign — middle', () => {
 });
 
 // ---------------------------------------------------------------------------
-// computeAlign — only the relevant axis key is returned
+// computeAlign: only the relevant axis key is returned
 // ---------------------------------------------------------------------------
 
-describe('computeAlign — axis isolation', () => {
+describe('computeAlign: axis isolation', () => {
 	it('left mode never sets y', () => {
 		for (const [, pos] of computeAlign(threeBoxes, 'left')) {
 			expect(pos).not.toHaveProperty('y');
@@ -146,10 +146,10 @@ describe('computeAlign — axis isolation', () => {
 });
 
 // ---------------------------------------------------------------------------
-// computeDistribute — guard: <3 boxes
+// computeDistribute: guard: <3 boxes
 // ---------------------------------------------------------------------------
 
-describe('computeDistribute — fewer than 3 boxes', () => {
+describe('computeDistribute: fewer than 3 boxes', () => {
 	it('returns an empty map for zero boxes', () => {
 		expect(computeDistribute([], 'horizontal').size).toBe(0);
 	});
@@ -164,10 +164,10 @@ describe('computeDistribute — fewer than 3 boxes', () => {
 });
 
 // ---------------------------------------------------------------------------
-// computeDistribute — horizontal
+// computeDistribute: horizontal
 // ---------------------------------------------------------------------------
 
-describe('computeDistribute — horizontal', () => {
+describe('computeDistribute: horizontal', () => {
 	it('keeps extremes fixed and equally spaces three equal-width boxes', () => {
 		// Three boxes, each width=100, gaps to equalise.
 		// Initial: a(x=0), b(x=50), c(x=300)
@@ -190,7 +190,7 @@ describe('computeDistribute — horizontal', () => {
 	});
 
 	it('produces equal gaps between all adjacent boxes', () => {
-		// Boxes of varying widths — use the distributed positions to measure gaps.
+		// Boxes of varying widths: use the distributed positions to measure gaps.
 		const boxes: readonly AlignBox[] = [
 			{ id: 'a', x: 0, y: 0, width: 50, height: 10 },
 			{ id: 'b', x: 20, y: 0, width: 30, height: 10 },
@@ -244,10 +244,10 @@ describe('computeDistribute — horizontal', () => {
 });
 
 // ---------------------------------------------------------------------------
-// computeDistribute — vertical
+// computeDistribute: vertical
 // ---------------------------------------------------------------------------
 
-describe('computeDistribute — vertical', () => {
+describe('computeDistribute: vertical', () => {
 	it('keeps extremes fixed and equally spaces three equal-height boxes', () => {
 		// Three boxes, each height=50.
 		// Initial: a(y=0), b(y=30), c(y=200)

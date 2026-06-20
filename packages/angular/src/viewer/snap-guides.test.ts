@@ -184,7 +184,7 @@ describe('no snap when others list is empty', () => {
 describe('closest candidate wins on X axis', () => {
 	// moving box: x=0, w=100 → left=0, centreX=50, right=100
 	// other1 left=3 (dist from moving.left=3), other2 left=48 (dist from moving.centreX=2)
-	// threshold=5 — both hit, but other2/centre is closer
+	// threshold=5: both hit, but other2/centre is closer
 	const moving = box(0, 0, 100, 50);
 	const other1 = box(3, 0, 100, 50); // dist(left→left) = 3
 	const other2 = box(48, 0, 100, 50); // dist(centreX→left) = |50-48| = 2  ← closer

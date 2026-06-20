@@ -76,7 +76,7 @@ async function blobUrlToDataUrl(blobUrl: string): Promise<string | null> {
 async function convertBlobUrlsToDataUrls(root: HTMLElement): Promise<void> {
 	const promises: Promise<void>[] = [];
 
-	// 1. <img> elements with blob: src — REPLACE the element to clear currentSrc
+	// 1. <img> elements with blob: src: REPLACE the element to clear currentSrc
 	const images = root.querySelectorAll<HTMLImageElement>('img[src^="blob:"]');
 	for (const img of images) {
 		const blobUrl = img.src;
@@ -103,7 +103,7 @@ async function convertBlobUrlsToDataUrls(root: HTMLElement): Promise<void> {
 	}
 
 	// 2. Elements with background-image containing blob: URLs
-	//    (CSS background-image has no currentSrc issue — style replacement works)
+	//    (CSS background-image has no currentSrc issue, so style replacement works)
 	const allElements = root.querySelectorAll('*');
 	for (const el of allElements) {
 		const htmlEl = el as HTMLElement;
@@ -192,7 +192,7 @@ function resolveColorToSrgb(value: string): string {
 	ctx.fillStyle = SENTINEL;
 	ctx.fillStyle = value.trim();
 	const result = ctx.fillStyle;
-	// Canvas ignores invalid colours — fillStyle stays at the sentinel.
+	// Canvas ignores invalid colours, so fillStyle stays at the sentinel.
 	return result === SENTINEL ? value : result;
 }
 
@@ -268,7 +268,7 @@ function resolveUnsupportedColours(root: HTMLElement): void {
 
 		const computed = window.getComputedStyle(htmlEl);
 
-		// Simple colour properties — convert the whole value.
+		// Simple colour properties: convert the whole value.
 		for (const prop of COLOR_PROPERTIES) {
 			const value = computed.getPropertyValue(prop);
 			if (value && UNSUPPORTED_COLOR_RE.test(value)) {
@@ -276,7 +276,7 @@ function resolveUnsupportedColours(root: HTMLElement): void {
 			}
 		}
 
-		// Complex properties — replace colour functions in-place.
+		// Complex properties: replace colour functions in-place.
 		for (const prop of COMPLEX_COLOR_PROPERTIES) {
 			const value = computed.getPropertyValue(prop);
 			if (value && UNSUPPORTED_COLOR_RE.test(value)) {
@@ -358,7 +358,7 @@ function patchStylesheets(doc: Document): void {
 }
 
 /* ------------------------------------------------------------------ */
-/*  CSS preprocessing — flatten html2canvas-incompatible features     */
+/*  CSS preprocessing: flatten html2canvas-incompatible features      */
 /* ------------------------------------------------------------------ */
 
 /** Matches 3D transform functions in a CSS transform value. */
@@ -580,7 +580,7 @@ function preprocessCssForCapture(root: HTMLElement): void {
 /* ------------------------------------------------------------------ */
 
 /**
- * @internal Exported for unit testing only — not part of the public API.
+ * @internal Exported for unit testing only, not part of the public API.
  */
 export const _testing = {
 	UNSUPPORTED_COLOR_RE,
@@ -642,7 +642,7 @@ export async function renderToCanvas(
 			resolveRootCustomProperties(doc);
 			resolveUnsupportedColours(clonedEl);
 
-			// Phase 2: CSS preprocessing — flatten backdrop-filter, mix-blend-mode,
+			// Phase 2: CSS preprocessing, flatten backdrop-filter, mix-blend-mode,
 			// 3D transforms, and remove unsupported features
 			preprocessCssForCapture(clonedEl);
 

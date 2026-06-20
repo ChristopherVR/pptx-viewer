@@ -1,5 +1,5 @@
 /**
- * presentation-subtitle-helpers.test.ts — unit tests for pure caption helpers.
+ * presentation-subtitle-helpers.test.ts: unit tests for pure caption helpers.
  * No TestBed, no DOM access.
  *
  * Ported from React:
@@ -61,7 +61,7 @@ describe('mergeCaptionResults', () => {
 		expect(result).toBe('Final part.  interim guess');
 	});
 
-	it('respects resultIndex — skips earlier results', () => {
+	it('respects resultIndex: skips earlier results', () => {
 		const list = makeResultList([makeResult('Ignored. ', true), makeResult('Included', true)]);
 		expect(mergeCaptionResults(1, list)).toBe('Included');
 	});

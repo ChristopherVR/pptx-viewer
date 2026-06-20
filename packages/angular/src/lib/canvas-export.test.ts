@@ -47,13 +47,13 @@ function createMockCtx(colorMap: Record<string, string> = {}): CanvasRenderingCo
 			if (trimmed in colorMap) {
 				_fillStyle = colorMap[trimmed];
 			}
-			// Otherwise: invalid colour — leave fillStyle unchanged.
+			// Otherwise: invalid colour, leave fillStyle unchanged.
 		},
 	} as unknown as CanvasRenderingContext2D;
 }
 
 /* ------------------------------------------------------------------ */
-/*  UNSUPPORTED_COLOR_RE — detection regex                            */
+/*  UNSUPPORTED_COLOR_RE: detection regex                             */
 /* ------------------------------------------------------------------ */
 
 describe('uNSUPPORTED_COLOR_RE', () => {
@@ -130,12 +130,12 @@ describe('uNSUPPORTED_COLOR_RE', () => {
 });
 
 /* ------------------------------------------------------------------ */
-/*  UNSUPPORTED_COLOR_FN_RE — extraction regex                        */
+/*  UNSUPPORTED_COLOR_FN_RE: extraction regex                         */
 /* ------------------------------------------------------------------ */
 
 describe('uNSUPPORTED_COLOR_FN_RE', () => {
 	beforeEach(() => {
-		// Reset lastIndex — the regex is /g so it's stateful.
+		// Reset lastIndex; the regex is /g so it's stateful.
 		UNSUPPORTED_COLOR_FN_RE.lastIndex = 0;
 	});
 
@@ -186,7 +186,7 @@ describe('uNSUPPORTED_COLOR_FN_RE', () => {
 	});
 
 	describe('should handle nested parentheses (calc() etc.)', () => {
-		it('extracts oklch with calc() — captures through closing paren of nested group', () => {
+		it('extracts oklch with calc(): captures through closing paren of nested group', () => {
 			const input = 'oklch(calc(0.5 + 0.2) 0.15 180)';
 			const matches = input.match(UNSUPPORTED_COLOR_FN_RE);
 			expect(matches).not.toBeNull();
@@ -200,7 +200,7 @@ describe('uNSUPPORTED_COLOR_FN_RE', () => {
 			expect(matches![0]).toBe('oklch(50% 0.15 calc(180)');
 		});
 
-		it('extracts color() with nested function — partial match', () => {
+		it('extracts color() with nested function: partial match', () => {
 			const input = 'color(display-p3 calc(1 - 0.2) 0 0)';
 			const matches = input.match(UNSUPPORTED_COLOR_FN_RE);
 			expect(matches).not.toBeNull();

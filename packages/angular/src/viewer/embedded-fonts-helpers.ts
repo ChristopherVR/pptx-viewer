@@ -1,5 +1,5 @@
 /**
- * embedded-fonts-helpers.ts — Pure (no Angular, no DOM-injection) helpers for
+ * embedded-fonts-helpers.ts: Pure (no Angular, no DOM-injection) helpers for
  * the embedded-font subsystem.
  *
  * Angular port of the string-building / format-mapping half of the Vue

@@ -1,11 +1,11 @@
 /**
- * is-mobile.ts — Injectable signal-based mobile-detection service plus a
+ * is-mobile.ts: Injectable signal-based mobile-detection service plus a
  * pure `computeIsMobile` helper for unit-testing.
  *
  * Ported from: packages/react/src/viewer/hooks/useIsMobile.ts
  *
  * The service tracks two independent media conditions:
- *   - `(pointer: coarse)` — primary pointer is a touch screen / stylus
+ *   - `(pointer: coarse)`: primary pointer is a touch screen / stylus
  *   - viewport width below {@link MOBILE_BREAKPOINT}
  *
  * Both conditions are evaluated once at construction time and then kept live
@@ -23,27 +23,27 @@ import { DestroyRef, inject, Injectable, signal } from '@angular/core';
 /** Viewport width (px) below which the UI switches to mobile layout. */
 export const MOBILE_BREAKPOINT = 768;
 
-/** Tablet breakpoint — below this width (but >= MOBILE) is tablet. */
+/** Tablet breakpoint: below this width (but >= MOBILE) is tablet. */
 export const TABLET_BREAKPOINT = 1024;
 
 /**
  * Max viewport height (px) at which a *touch* device is treated as mobile
  * regardless of width. Catches landscape phones (e.g. 915×412), which are wide
  * enough to fall in the "tablet" width band but far too short for the desktop
- * ribbon + side panels — they need the mobile chrome. Tablets in landscape are
+ * ribbon + side panels, so they need the mobile chrome. Tablets in landscape are
  * taller (~760px+) so they stay on the desktop layout. Mirrors React's
  * `MOBILE_LANDSCAPE_MAX_HEIGHT` in useIsMobile.ts.
  */
 export const MOBILE_LANDSCAPE_MAX_HEIGHT = 500;
 
 // ---------------------------------------------------------------------------
-// Pure helpers (no Angular deps — safe in vitest without a DOM)
+// Pure helpers (no Angular deps, safe in vitest without a DOM)
 // ---------------------------------------------------------------------------
 
 /**
  * Decide whether the current environment should use the mobile layout:
  * - a narrow viewport (`width < MOBILE_BREAKPOINT`), OR
- * - a short *touch* viewport below the tablet width — a landscape phone, which
+ * - a short *touch* viewport below the tablet width: a landscape phone, which
  *   is wide enough to look like a tablet but far too short for the desktop
  *   ribbon + side panels.
  *
@@ -51,7 +51,7 @@ export const MOBILE_LANDSCAPE_MAX_HEIGHT = 500;
  * frameworks switch chrome at the same breakpoints (and the shared mobile e2e
  * specs pass identically). A tall touch tablet (e.g. 820×1180) is NOT mobile.
  *
- * @pure — no side effects, fully testable without a DOM.
+ * @pure: no side effects, fully testable without a DOM.
  */
 export function computeIsMobile(width: number, height: number, isTouch: boolean): boolean {
 	if (width < MOBILE_BREAKPOINT) {
@@ -79,11 +79,11 @@ export function computeIsTablet(width: number, height: number, isTouch: boolean)
 // ---------------------------------------------------------------------------
 
 /**
- * `IsMobileService` — provides reactive signals for the current viewport /
+ * `IsMobileService`: provides reactive signals for the current viewport /
  * pointer kind so components can switch between mobile and desktop chrome
  * without subscribing to resize events themselves.
  *
- * Inject at the component level (or provide at root) — the service cleans up
+ * Inject at the component level (or provide at root); the service cleans up
  * its `MediaQueryList` listeners automatically via `DestroyRef`.
  *
  * ```ts

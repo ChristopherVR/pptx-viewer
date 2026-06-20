@@ -1,5 +1,5 @@
 /**
- * table-data-helpers.test.ts — Vitest unit tests for table-data-helpers.ts.
+ * table-data-helpers.test.ts: Vitest unit tests for table-data-helpers.ts.
  *
  * All tests are pure (no TestBed, no Angular imports) and run in Node.
  *

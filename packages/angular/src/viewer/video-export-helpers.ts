@@ -5,13 +5,13 @@
  *
  * Split into two concerns:
  *   1. Pure, browser-free planning helpers (frame-segment timing, MIME-type
- *      selection) — fully unit-testable with no DOM/MediaRecorder dependency.
+ *      selection): fully unit-testable with no DOM/MediaRecorder dependency.
  *   2. A thin browser-facing `recordWebm()` function that drives a
  *      `MediaRecorder` over a canvas `captureStream()` to produce a WebM Blob.
  *      The caller (ExportService) supplies the pre-rendered slide canvases and
  *      a `recordingCanvas` for compositing.
  *
- * No new npm dependency is needed — `MediaRecorder` is a browser built-in.
+ * No new npm dependency is needed; `MediaRecorder` is a browser built-in.
  */
 
 /* ================================================================== */
@@ -103,7 +103,7 @@ export function pickSupportedMimeType(candidates: string[]): string {
 	}
 
 	if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') {
-		// SSR / non-browser environments — just return the first candidate.
+		// SSR / non-browser environments: just return the first candidate.
 		return candidates[0];
 	}
 

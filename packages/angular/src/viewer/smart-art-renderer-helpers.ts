@@ -3,7 +3,7 @@
  *
  * Ported from the Vue component
  *   packages/vue/src/viewer/components/SmartArtRenderer.vue
- * (viewer-first subset — drawing-shapes path + stacked-block fallback).
+ * (viewer-first subset: drawing-shapes path + stacked-block fallback).
  *
  * No Angular imports: all exports are plain TypeScript functions / types so
  * they can be unit-tested with vitest without TestBed or the Angular compiler.

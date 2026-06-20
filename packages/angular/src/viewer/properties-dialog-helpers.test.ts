@@ -1,7 +1,7 @@
 /**
- * properties-dialog-helpers.test.ts — Unit tests for the document-properties
+ * properties-dialog-helpers.test.ts: Unit tests for the document-properties
  * helpers. Ports the Vue `PropertiesDialog.test.ts` coverage (prefill, change
- * diffing, read-only timestamps) against the pure helpers — no Angular TestBed.
+ * diffing, read-only timestamps) against the pure helpers; no Angular TestBed.
  */
 
 import type { PptxCoreProperties } from 'pptx-viewer-core';

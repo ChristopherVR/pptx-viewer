@@ -6,7 +6,7 @@
  *   packages/react/src/viewer/utils/connector-router-graph.test.ts
  *   packages/react/src/viewer/utils/connector-router-astar.test.ts
  *
- * All tests exercise pure functions — no Angular TestBed or DOM required.
+ * All tests exercise pure functions: no Angular TestBed or DOM required.
  */
 import { describe, expect, it } from 'vitest';
 
@@ -58,7 +58,7 @@ describe('inflateRect', () => {
 		expect(r.height).toBe(60);
 	});
 
-	it('handles zero padding — returns an identical rect', () => {
+	it('handles zero padding: returns an identical rect', () => {
 		const r = inflateRect(rect(10, 20, 100, 50), 0);
 		expect(r).toStrictEqual(rect(10, 20, 100, 50));
 	});
@@ -225,7 +225,7 @@ describe('simplifyPath', () => {
 	});
 
 	it('removes a collinear intermediate point', () => {
-		// All three points are on y=0 — the middle one is collinear.
+		// All three points are on y=0; the middle one is collinear.
 		const pts: Point[] = [
 			{ x: 0, y: 0 },
 			{ x: 50, y: 0 },
@@ -360,7 +360,7 @@ describe('waypointsToPathD', () => {
 });
 
 // ---------------------------------------------------------------------------
-// routeOrthogonalConnector — integration tests
+// routeOrthogonalConnector: integration tests
 // ---------------------------------------------------------------------------
 
 describe('routeOrthogonalConnector', () => {
@@ -396,7 +396,7 @@ describe('routeOrthogonalConnector', () => {
 	it('returns a 3-point elbow when the direct path is blocked but elbows are clear', () => {
 		const start: Point = { x: 10, y: 50 };
 		const end: Point = { x: 200, y: 150 };
-		// Diagonal obstacle — blocks direct, but a horizontal elbow clears it.
+		// Diagonal obstacle: blocks direct, but a horizontal elbow clears it.
 		const result = routeOrthogonalConnector(start, end, [rect(80, 80, 40, 40)], {
 			...canvas,
 			padding: 0,
@@ -413,7 +413,7 @@ describe('routeOrthogonalConnector', () => {
 	it('routes around an obstacle using A* when elbows are blocked', () => {
 		const start: Point = { x: 10, y: 100 };
 		const end: Point = { x: 300, y: 100 };
-		// Large obstacle spanning full height — blocks both elbows
+		// Large obstacle spanning full height: blocks both elbows
 		const obs = [rect(100, 50, 100, 100)];
 		const result = routeOrthogonalConnector(start, end, obs, canvas);
 		expect(result[0]).toStrictEqual(start);

@@ -1,5 +1,5 @@
 /**
- * text-advanced-helpers.ts — Pure (no Angular) helpers for TextAdvancedPanelComponent.
+ * text-advanced-helpers.ts: Pure (no Angular) helpers for TextAdvancedPanelComponent.
  *
  * Ported from / models the patterns in:
  *   packages/react/src/viewer/components/inspector/TextPropertiesHelpers.tsx

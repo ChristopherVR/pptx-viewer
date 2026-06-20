@@ -99,7 +99,7 @@ export function cellStyleToStyleMap(style: PptxTableCellStyle | undefined): Styl
 	// --- Background fill ---
 	// Priority: gradient (prebuilt CSS string) → solid backgroundColor.
 	// Pattern fills (SVG-based) require color-core extraction from shared;
-	// deferred — see PORTING.md "Strong remaining extraction candidates".
+	// deferred; see PORTING.md "Strong remaining extraction candidates".
 	if (style.gradientFillCss) {
 		map['background'] = style.gradientFillCss;
 	} else if (style.backgroundColor) {
@@ -293,7 +293,7 @@ export function cellRunStyle(style: PptxTableCellStyle | undefined): StyleMap {
 	if (style.underline) {
 		deco.push('underline');
 	}
-	// PptxTableCellStyle does not have a strikethrough field — reserved for when
+	// PptxTableCellStyle does not have a strikethrough field; reserved for when
 	// the core type gains per-run strikethrough on cells.
 	if (deco.length > 0) {
 		map['text-decoration'] = deco.join(' ');
@@ -317,7 +317,7 @@ export function cellRunStyle(style: PptxTableCellStyle | undefined): StyleMap {
  *    (an empty `<p>` still takes up vertical space).
  *
  * Returns an empty array when `cell.text` is empty AND there is no cell style
- * that would add meaningful formatting — signalling the template to fall back to
+ * that would add meaningful formatting, signalling the template to fall back to
  * the `displayText` non-breaking-space placeholder (which keeps the row height).
  *
  * When there is at least one non-empty paragraph OR a style is present the array
@@ -362,7 +362,7 @@ export interface TableCellViewModel {
 	/** Pre-computed `[ngStyle]` map for this cell's `<td>`. */
 	tdStyle: StyleMap;
 	/**
-	 * Display text — non-breaking space when the cell is empty to keep the row
+	 * Display text: non-breaking space when the cell is empty to keep the row
 	 * height. Used as fallback when `paragraphs` is empty (no text AND no style).
 	 */
 	displayText: string;

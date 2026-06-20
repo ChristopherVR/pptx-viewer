@@ -1,5 +1,5 @@
 /**
- * signatures-helpers.test.ts — Unit tests for the pure signature helpers.
+ * signatures-helpers.test.ts: Unit tests for the pure signature helpers.
  *
  * Ports the coverage of the Vue `useSignatures.test.ts` (status aggregation)
  * and the presentation-formatting assertions from `SignaturesPanel.test.ts`.

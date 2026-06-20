@@ -1,5 +1,5 @@
 /**
- * editor-history.test.ts — Unit tests for EditorHistory<T>.
+ * editor-history.test.ts: Unit tests for EditorHistory<T>.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -23,7 +23,7 @@ function snap(value: number): Snap {
 // Construction & defaults
 // ---------------------------------------------------------------------------
 
-describe('editorHistory — construction', () => {
+describe('editorHistory: construction', () => {
 	it('starts empty with canUndo=false and canRedo=false', () => {
 		const h = new EditorHistory<Snap>();
 		expect(h.canUndo).toBeFalsy();
@@ -46,7 +46,7 @@ describe('editorHistory — construction', () => {
 // record
 // ---------------------------------------------------------------------------
 
-describe('editorHistory — record', () => {
+describe('editorHistory: record', () => {
 	it('record makes canUndo true', () => {
 		const h = new EditorHistory<Snap>();
 		h.record(snap(1), 'first');
@@ -84,7 +84,7 @@ describe('editorHistory — record', () => {
 // undo
 // ---------------------------------------------------------------------------
 
-describe('editorHistory — undo', () => {
+describe('editorHistory: undo', () => {
 	it('returns undefined when nothing to undo', () => {
 		const h = new EditorHistory<Snap>();
 		expect(h.undo(snap(0))).toBeUndefined();
@@ -140,7 +140,7 @@ describe('editorHistory — undo', () => {
 // redo
 // ---------------------------------------------------------------------------
 
-describe('editorHistory — redo', () => {
+describe('editorHistory: redo', () => {
 	it('returns undefined when nothing to redo', () => {
 		const h = new EditorHistory<Snap>();
 		expect(h.redo(snap(0))).toBeUndefined();
@@ -194,7 +194,7 @@ describe('editorHistory — redo', () => {
 // Round-trip: record → undo → redo
 // ---------------------------------------------------------------------------
 
-describe('editorHistory — round-trip', () => {
+describe('editorHistory: round-trip', () => {
 	it('undo then redo restores the correct snapshot sequence', () => {
 		const h = new EditorHistory<Snap>();
 
@@ -247,7 +247,7 @@ describe('editorHistory — round-trip', () => {
 // Redo cleared on new record after undo
 // ---------------------------------------------------------------------------
 
-describe('editorHistory — redo cleared by new record', () => {
+describe('editorHistory: redo cleared by new record', () => {
 	it('recording after undo wipes the redo stack', () => {
 		const h = new EditorHistory<Snap>();
 		h.record(snap(1), 'a');
@@ -274,7 +274,7 @@ describe('editorHistory — redo cleared by new record', () => {
 // maxDepth cap
 // ---------------------------------------------------------------------------
 
-describe('editorHistory — maxDepth', () => {
+describe('editorHistory: maxDepth', () => {
 	it('does not exceed maxDepth entries', () => {
 		const h = new EditorHistory<Snap>({ maxDepth: 3 });
 		h.record(snap(1), 'a');
@@ -290,7 +290,7 @@ describe('editorHistory — maxDepth', () => {
 		h.record(snap(2), 'second');
 		h.record(snap(3), 'third');
 
-		// Stack should now hold [second, third] — 'first' was evicted.
+		// Stack should now hold [second, third]; 'first' was evicted.
 		// Undo twice: expect labels 'third' then 'second'.
 		const r1 = h.undo(snap(10));
 		expect(r1?.label).toBe('third');
@@ -328,7 +328,7 @@ describe('editorHistory — maxDepth', () => {
 // clear
 // ---------------------------------------------------------------------------
 
-describe('editorHistory — clear', () => {
+describe('editorHistory: clear', () => {
 	it('clear empties the undo stack', () => {
 		const h = new EditorHistory<Snap>();
 		h.record(snap(1), 'a');
@@ -384,7 +384,7 @@ describe('editorHistory — clear', () => {
 // Edge cases
 // ---------------------------------------------------------------------------
 
-describe('editorHistory — edge cases', () => {
+describe('editorHistory: edge cases', () => {
 	it('multiple consecutive undos do not go below empty', () => {
 		const h = new EditorHistory<Snap>();
 		h.record(snap(1), 'a');

@@ -31,20 +31,20 @@ import { PresentationTransitionOverlayComponent } from './presentation-transitio
 import { SlideCanvasComponent } from './slide-canvas.component';
 
 /**
- * PresentationOverlayComponent — full-viewport black overlay that renders
+ * PresentationOverlayComponent: full-viewport black overlay that renders
  * slides in presentation (kiosk) mode.
  *
  * Selector: `pptx-presentation-overlay`
  *
  * Inputs:
- *   - `slides`         (required) — all slides in the deck
- *   - `canvasSize`     (required) — logical canvas dimensions in pixels
- *   - `mediaDataUrls`  — data-URL map for media assets (default: empty Map)
- *   - `startIndex`     — zero-based slide to show first (default: 0)
+ *   - `slides`         (required): all slides in the deck
+ *   - `canvasSize`     (required): logical canvas dimensions in pixels
+ *   - `mediaDataUrls` : data-URL map for media assets (default: empty Map)
+ *   - `startIndex`    : zero-based slide to show first (default: 0)
  *
  * Outputs:
- *   - `indexChange` — emits the new index on every navigation
- *   - `closed`      — emits void when the overlay should be dismissed
+ *   - `indexChange`: emits the new index on every navigation
+ *   - `closed`     : emits void when the overlay should be dismissed
  *
  * Keyboard bindings (document-level so no focusable element is required):
  *   ArrowRight / Space / PageDown → next visible slide
@@ -136,7 +136,7 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 			(touchend)="onTouchEnd($event)"
 		>
 			<!--
-				Slide counter — rendered first in DOM (before slide content) so a
+				Slide counter, rendered first in DOM (before slide content) so a
 				generic "N / M" text query resolves to it rather than to any slide-text
 				run that happens to read like "24 / 7". Position is fixed, so DOM order
 				does not affect its on-screen placement.
@@ -302,7 +302,7 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 	/** Whether the live-caption bar is shown. */
 	protected readonly subtitlesVisible = signal(false);
 
-	/** The slide stage root — animation styles are applied to its elements. */
+	/** The slide stage root; animation styles are applied to its elements. */
 	private readonly stageRef = viewChild<ElementRef<HTMLElement>>('stage');
 
 	constructor() {
@@ -358,7 +358,7 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 		});
 	}
 
-	/** Viewport dimensions — updated on resize. */
+	/** Viewport dimensions, updated on resize. */
 	private readonly viewportW = signal(0);
 	private readonly viewportH = signal(0);
 
@@ -532,7 +532,7 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 	}
 
 	// ------------------------------------------------------------------
-	// Keyboard navigation (document-level — works even when nothing is focused)
+	// Keyboard navigation (document-level: works even when nothing is focused)
 	// ------------------------------------------------------------------
 
 	@HostListener('document:keydown', ['$event'])
@@ -576,7 +576,7 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 		if (event.button !== 0) {
 			return;
 		}
-		// A drawing tool owns pointer gestures — don't hijack them to advance.
+		// A drawing tool owns pointer gestures; don't hijack them to advance.
 		if (this.annotations.tool() !== 'none') {
 			return;
 		}
@@ -593,14 +593,14 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 		this.subtitlesVisible.update((v) => !v);
 	}
 
-	/** Close button click — stop propagation so it does not also advance. */
+	/** Close button click: stop propagation so it does not also advance. */
 	protected onClose(event: MouseEvent): void {
 		event.stopPropagation();
 		this.emitClosed();
 	}
 
 	/**
-	 * Close button touch — stop propagation and prevent the synthesized click
+	 * Close button touch: stop propagation and prevent the synthesized click
 	 * so a tap exits without bubbling to the tap-advance handler.
 	 */
 	protected onCloseTouch(event: TouchEvent): void {
@@ -609,7 +609,7 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 		this.emitClosed();
 	}
 
-	/** Previous-edge button — stop propagation so the tap does not double-fire. */
+	/** Previous-edge button: stop propagation so the tap does not double-fire. */
 	protected onPrev(event: MouseEvent): void {
 		event.stopPropagation();
 		this.navigate('prev');
@@ -621,7 +621,7 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 		this.navigate('prev');
 	}
 
-	/** Next-edge button — stop propagation so the tap does not double-fire. */
+	/** Next-edge button: stop propagation so the tap does not double-fire. */
 	protected onNext(event: MouseEvent): void {
 		event.stopPropagation();
 		this.navigate('next');
@@ -740,7 +740,7 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 
 		if (next !== current) {
 			// Play the incoming slide's transition (if any) over the new slide,
-			// animating the outgoing slide out. Forward navigation only — matching
+			// animating the outgoing slide out. Forward navigation only, matching
 			// PowerPoint, which does not replay transitions when stepping back.
 			const incoming = slides[next];
 			const outgoing = slides[current];

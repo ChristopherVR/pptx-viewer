@@ -1,5 +1,5 @@
 /**
- * find-replace-bar.component.ts — Floating find-and-replace bar.
+ * find-replace-bar.component.ts: Floating find-and-replace bar.
  *
  * Selector: `pptx-find-replace-bar`
  *

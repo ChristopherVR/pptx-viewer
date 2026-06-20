@@ -1,5 +1,5 @@
 /**
- * collaboration-helpers.ts — Pure, framework-agnostic logic for the real-time
+ * collaboration-helpers.ts: Pure, framework-agnostic logic for the real-time
  * collaboration subsystem (Yjs-backed presence + remote cursors).
  *
  * Everything here is a plain function with no Angular / Yjs dependency so it can
@@ -171,7 +171,7 @@ export function sanitizeAvatarUrl(url: unknown): string | undefined {
 			return url;
 		}
 	} catch {
-		// invalid URL — fall through
+		// invalid URL, fall through
 	}
 	return undefined;
 }

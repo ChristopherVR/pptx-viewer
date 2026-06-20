@@ -12,7 +12,7 @@ describe('getPatternSvg', () => {
 		expect(getPatternSvg('__unknown__', '#000000', '#ffffff')).toBeUndefined();
 	});
 
-	it('pct5 — includes fg colour and is an SVG string', () => {
+	it('pct5: includes fg colour and is an SVG string', () => {
 		const result = getPatternSvg('pct5', '#ff0000', '#0000ff');
 		expect(result).toBeDefined();
 		expect(result).toContain('<svg');
@@ -20,20 +20,20 @@ describe('getPatternSvg', () => {
 		expect(result).toContain('#0000ff');
 	});
 
-	it('horz — contains a horizontal band rect in the fg colour', () => {
+	it('horz: contains a horizontal band rect in the fg colour', () => {
 		const result = getPatternSvg('horz', '#111111', '#eeeeee');
 		expect(result).toBeDefined();
 		expect(result).toContain('#111111');
 		expect(result).toContain('#eeeeee');
 	});
 
-	it('vert — contains a vertical band rect in the fg colour', () => {
+	it('vert: contains a vertical band rect in the fg colour', () => {
 		const result = getPatternSvg('vert', '#aabbcc', '#ffffff');
 		expect(result).toBeDefined();
 		expect(result).toContain('#aabbcc');
 	});
 
-	it('cross — covers both horizontal and vertical bands', () => {
+	it('cross: covers both horizontal and vertical bands', () => {
 		const result = getPatternSvg('cross', '#123456', '#abcdef');
 		expect(result).toBeDefined();
 		// cross must reference fg twice (one horizontal + one vertical rect)
@@ -41,62 +41,62 @@ describe('getPatternSvg', () => {
 		expect(count).toBeGreaterThanOrEqual(2);
 	});
 
-	it('diagCross — produces line elements for fg colour', () => {
+	it('diagCross: produces line elements for fg colour', () => {
 		const result = getPatternSvg('diagCross', '#222222', '#ffffff');
 		expect(result).toBeDefined();
 		expect(result).toContain('<line');
 		expect(result).toContain('#222222');
 	});
 
-	it('dnDiag — produces line elements', () => {
+	it('dnDiag: produces line elements', () => {
 		const result = getPatternSvg('dnDiag', '#ff00ff', '#ffffff');
 		expect(result).toBeDefined();
 		expect(result).toContain('<line');
 	});
 
-	it('upDiag — produces line elements', () => {
+	it('upDiag: produces line elements', () => {
 		const result = getPatternSvg('upDiag', '#00ff00', '#000000');
 		expect(result).toBeDefined();
 		expect(result).toContain('<line');
 	});
 
-	it('smCheck — produces two foreground rects on background', () => {
+	it('smCheck: produces two foreground rects on background', () => {
 		const result = getPatternSvg('smCheck', '#ff0000', '#0000ff');
 		expect(result).toBeDefined();
 		expect(result).toContain('#ff0000');
 	});
 
-	it('lgCheck — produces two foreground rects on background', () => {
+	it('lgCheck: produces two foreground rects on background', () => {
 		const result = getPatternSvg('lgCheck', '#ff0000', '#0000ff');
 		expect(result).toBeDefined();
 		expect(result).toContain('#ff0000');
 	});
 
-	it('sphere — contains a radialGradient element', () => {
+	it('sphere: contains a radialGradient element', () => {
 		const result = getPatternSvg('sphere', '#ff0000', '#ffffff');
 		expect(result).toBeDefined();
 		expect(result).toContain('radialGradient');
 	});
 
-	it('wave — contains path elements', () => {
+	it('wave: contains path elements', () => {
 		const result = getPatternSvg('wave', '#0000ff', '#ffffff');
 		expect(result).toBeDefined();
 		expect(result).toContain('<path');
 	});
 
-	it('zigZag — contains path elements', () => {
+	it('zigZag: contains path elements', () => {
 		const result = getPatternSvg('zigZag', '#cc0000', '#ffffff');
 		expect(result).toBeDefined();
 		expect(result).toContain('<path');
 	});
 
-	it('trellis — contains a grid of rects', () => {
+	it('trellis: contains a grid of rects', () => {
 		const result = getPatternSvg('trellis', '#333333', '#cccccc');
 		expect(result).toBeDefined();
 		expect(result).toContain('<rect');
 	});
 
-	it('pct50 — checkerboard 2x2 tile', () => {
+	it('pct50: checkerboard 2x2 tile', () => {
 		const result = getPatternSvg('pct50', '#000000', '#ffffff');
 		expect(result).toBeDefined();
 		// 2x2 tile: width="2" height="2"
@@ -104,25 +104,25 @@ describe('getPatternSvg', () => {
 		expect(result).toContain('height="2"');
 	});
 
-	it('dotGrid — contains circle elements', () => {
+	it('dotGrid: contains circle elements', () => {
 		const result = getPatternSvg('dotGrid', '#ff0000', '#ffffff');
 		expect(result).toBeDefined();
 		expect(result).toContain('<circle');
 	});
 
-	it('solidDmnd — contains a polygon element', () => {
+	it('solidDmnd: contains a polygon element', () => {
 		const result = getPatternSvg('solidDmnd', '#ff0000', '#ffffff');
 		expect(result).toBeDefined();
 		expect(result).toContain('<polygon');
 	});
 
-	it('dashDnDiag — contains a stroke-dasharray attribute', () => {
+	it('dashDnDiag: contains a stroke-dasharray attribute', () => {
 		const result = getPatternSvg('dashDnDiag', '#000000', '#ffffff');
 		expect(result).toBeDefined();
 		expect(result).toContain('stroke-dasharray');
 	});
 
-	it('dashUpDiag — contains a stroke-dasharray attribute', () => {
+	it('dashUpDiag: contains a stroke-dasharray attribute', () => {
 		const result = getPatternSvg('dashUpDiag', '#000000', '#ffffff');
 		expect(result).toBeDefined();
 		expect(result).toContain('stroke-dasharray');

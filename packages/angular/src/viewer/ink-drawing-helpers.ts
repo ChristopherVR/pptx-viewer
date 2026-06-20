@@ -1,5 +1,5 @@
 /**
- * ink-drawing-helpers.ts — Pure, framework-agnostic helpers for freehand ink
+ * ink-drawing-helpers.ts: Pure, framework-agnostic helpers for freehand ink
  * drawing in the Angular viewer.
  *
  * No Angular dependency: these can be unit-tested without TestBed.

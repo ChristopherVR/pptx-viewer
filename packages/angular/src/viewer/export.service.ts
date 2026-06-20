@@ -1,5 +1,5 @@
 /**
- * ExportService — PNG and PDF export for the Angular viewer.
+ * ExportService: PNG and PDF export for the Angular viewer.
  *
  * Rasterisation is delegated to `renderToCanvas` (an html2canvas-pro wrapper
  * from `../lib/canvas-export`).  PDF assembly uses jsPDF.  Pure logic
@@ -20,7 +20,7 @@ import type { GifFrame } from './gif-export-helpers';
 import { recordWebm } from './video-export-helpers';
 
 /* ------------------------------------------------------------------ */
-/*  Internal helpers (DOM only — not exported)                          */
+/*  Internal helpers (DOM only, not exported)                          */
 /* ------------------------------------------------------------------ */
 
 /**
@@ -106,7 +106,7 @@ export class ExportService {
 
 	/**
 	 * Rasterize a single element to a canvas (passthrough to html2canvas-pro).
-	 * Capture each slide's canvas *while that slide is the live DOM* — the
+	 * Capture each slide's canvas *while that slide is the live DOM*: the
 	 * viewer reuses one stage node, so a deferred capture would yield the same
 	 * (last) slide for every page.
 	 */

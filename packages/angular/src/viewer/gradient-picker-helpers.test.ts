@@ -1,5 +1,5 @@
 /**
- * gradient-picker-helpers.test.ts — Unit tests for gradient-picker-helpers.ts.
+ * gradient-picker-helpers.test.ts: Unit tests for gradient-picker-helpers.ts.
  *
  * All tests are pure (no TestBed / DOM). They drive the helper functions
  * directly against synthetic PptxElement stubs.

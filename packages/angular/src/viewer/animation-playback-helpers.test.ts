@@ -1,7 +1,7 @@
 /**
- * animation-playback-helpers.test.ts — unit tests for the pure playback step
+ * animation-playback-helpers.test.ts: unit tests for the pure playback step
  * helpers. Ported from the Vue `useAnimationPlayback.test.ts` coverage and the
- * React `animation-helpers` tests. No TestBed, no real timers — only the pure
+ * React `animation-helpers` tests. No TestBed, no real timers; only the pure
  * step-derivation / advance / clamp / state-mapping logic is exercised.
  */
 

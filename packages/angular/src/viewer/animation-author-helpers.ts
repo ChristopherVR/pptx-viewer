@@ -1,5 +1,5 @@
 /**
- * animation-author-helpers.ts — Angular shim over the shared element-animation
+ * animation-author-helpers.ts: Angular shim over the shared element-animation
  * authoring model.
  *
  * The pure, immutable `PptxElementAnimation[]` readers + patch builders now live
@@ -49,7 +49,7 @@ export {
 export type { AnimationGroup } from '../internal/shared';
 
 // ==========================================================================
-// Option catalogs (Angular display labels — view metadata, not shared)
+// Option catalogs (Angular display labels: view metadata, not shared)
 // ==========================================================================
 
 /** Subset of entrance presets surfaced in the authoring UI. */

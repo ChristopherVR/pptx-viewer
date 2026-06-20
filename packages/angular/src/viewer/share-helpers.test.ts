@@ -1,7 +1,7 @@
 /**
- * share-helpers.test.ts — Unit tests for the Share-dialog helpers. Ports the
+ * share-helpers.test.ts: Unit tests for the Share-dialog helpers. Ports the
  * Vue `ShareDialog.test.ts` coverage (prefill, config assembly, validation)
- * plus the React share-link builder — against the pure helpers, no TestBed.
+ * plus the React share-link builder, against the pure helpers, no TestBed.
  */
 
 import { describe, expect, it } from 'vitest';

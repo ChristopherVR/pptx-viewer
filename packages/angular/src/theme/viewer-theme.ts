@@ -19,7 +19,7 @@ export const VIEWER_THEME = new InjectionToken<ViewerTheme | undefined>('PPTX_VI
 /**
  * Provide a `ViewerTheme` to a subtree.
  *
- * Typically you do **not** need this — passing a `theme` input to
+ * Typically you do **not** need this: passing a `theme` input to
  * `<pptx-viewer>` is sufficient. Use this to share a theme across multiple
  * viewers or a wider component subtree.
  *

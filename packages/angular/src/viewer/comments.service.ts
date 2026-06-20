@@ -1,12 +1,12 @@
 /**
- * comments.service.ts — Angular port of the Vue `useComments` composable and
+ * comments.service.ts: Angular port of the Vue `useComments` composable and
  * the React `useComments` hook (viewer-first subset).
  *
  * ## Data model & how comments link to slides
  *
  * In `pptx-viewer-core`, comments are stored **per slide** on
  * `PptxSlide.comments?: PptxComment[]`. The {@link PptxComment} interface itself
- * carries **no** slide-reference field (no `slideId`/`slideIndex`) — a comment's
+ * carries **no** slide-reference field (no `slideId`/`slideIndex`); a comment's
  * owning slide is implied purely by which slide's `comments` array it lives in.
  *
  * Because of that, the "deck-wide list filtered to the active slide" is realised

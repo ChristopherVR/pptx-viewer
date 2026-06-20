@@ -30,7 +30,7 @@ export async function openNativeEyeDropper(): Promise<string | null> {
 		const result = await dropper.open();
 		return result.sRGBHex;
 	} catch {
-		// User cancelled (AbortError) or unexpected error — treat as no-op
+		// User cancelled (AbortError) or unexpected error: treat as no-op
 		return null;
 	}
 }

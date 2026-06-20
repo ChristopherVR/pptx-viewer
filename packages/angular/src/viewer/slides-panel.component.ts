@@ -10,7 +10,7 @@ import { thumbnailHeight, thumbnailZoom } from './slide-sorter-overlay-helpers';
 const THUMB_W = 150;
 
 /**
- * SlidesPanelComponent — vertical slide-strip for the editor sidebar.
+ * SlidesPanelComponent: vertical slide-strip for the editor sidebar.
  *
  * Renders the live editable deck (from {@link EditorStateService}) as a
  * scrollable vertical list of numbered thumbnail cards. Clicking a card emits
@@ -312,10 +312,10 @@ const THUMB_W = 150;
 	],
 })
 export class SlidesPanelComponent {
-	/** Natural (100 %) canvas dimensions — forwarded to each SlideCanvasComponent. */
+	/** Natural (100 %) canvas dimensions, forwarded to each SlideCanvasComponent. */
 	readonly canvasSize = input.required<CanvasSize>();
 
-	/** Media asset lookup table — forwarded to each SlideCanvasComponent. */
+	/** Media asset lookup table, forwarded to each SlideCanvasComponent. */
 	readonly mediaDataUrls = input<Map<string, string>>(new Map());
 
 	/** Zero-based index of the currently active slide (highlighted in blue). */

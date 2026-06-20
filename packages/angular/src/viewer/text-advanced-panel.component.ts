@@ -1,5 +1,5 @@
 /**
- * text-advanced-panel.component.ts — Standalone Angular component for editing
+ * text-advanced-panel.component.ts: Standalone Angular component for editing
  * advanced text properties (letter spacing, line spacing, paragraph alignment,
  * indent, text direction, vertical anchor) on a selected PPTX element.
  *
@@ -11,8 +11,8 @@
  *   packages/angular/src/viewer/inspector-panel.component.ts
  *
  * Contract:
- *   [element]     — the selected PptxElement (required)
- *   (patch)       — emits a Partial<PptxElement> for the orchestrator to
+ *   [element]     : the selected PptxElement (required)
+ *   (patch)       : emits a Partial<PptxElement> for the orchestrator to
  *                   commit via EditorStateService.updateElement
  *
  * @module viewer/text-advanced-panel

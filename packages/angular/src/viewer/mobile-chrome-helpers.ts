@@ -1,10 +1,10 @@
 /**
- * mobile-chrome-helpers.ts — Pure helper logic for mobile chrome state.
+ * mobile-chrome-helpers.ts: Pure helper logic for mobile chrome state.
  *
  * Ported from: packages/react/src/viewer/components/mobile/MobileChromeOverlay.tsx
  *             and packages/react/src/viewer/components/mobile/MobileBottomBar.tsx
  *
- * No Angular imports — safe to use in both component and vitest contexts.
+ * No Angular imports, safe to use in both component and vitest contexts.
  *
  * These helpers capture the sheet open/close state machine that governs which
  * sheet is visible at any given time and which bottom-bar button appears active.

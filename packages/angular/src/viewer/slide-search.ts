@@ -1,5 +1,5 @@
 /**
- * slide-search.ts — Pure text-search helpers for PPTX slides.
+ * slide-search.ts: Pure text-search helpers for PPTX slides.
  *
  * No Angular imports; safe to use in web workers or server-side code.
  *
@@ -55,10 +55,10 @@ function collectSmartArtNodeText(node: PptxSmartArtNode): string {
 /**
  * Collect all visible text from a single {@link PptxElement}.
  *
- * - `text` / `shape` / `connector` — flat `text` field + `textSegments[].text`.
- * - `table` — iterates `tableData.rows[].cells[].text`.
- * - `smartArt` — recursively collects `smartArtData.nodes[].text`.
- * - `group` — recurses into `children`.
+ * - `text` / `shape` / `connector`: flat `text` field + `textSegments[].text`.
+ * - `table`: iterates `tableData.rows[].cells[].text`.
+ * - `smartArt`: recursively collects `smartArtData.nodes[].text`.
+ * - `group`: recurses into `children`.
  * - All other element types produce an empty string.
  */
 export function collectElementText(element: PptxElement): string {

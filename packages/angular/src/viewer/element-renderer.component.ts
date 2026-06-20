@@ -51,7 +51,7 @@ interface Paragraph {
 }
 
 /**
- * ElementRendererComponent — Angular port of the React `ElementRenderer.tsx`
+ * ElementRendererComponent: Angular port of the React `ElementRenderer.tsx`
  * and the Vue `ElementRenderer.vue`.
  *
  * Renders a single slide element by its `type` discriminant (viewer-first
@@ -66,7 +66,7 @@ interface Paragraph {
  *  - `model3d`           → poster / placeholder (no three.js)
  *  - `zoom`              → slide/section zoom thumbnail
  *  - `picture` / `image` → `<img>`
- *  - `media`             → poster frame (`<img>`) — playback TODO
+ *  - `media`             → poster frame (`<img>`); playback TODO
  *  - `group`             → recursive children (self-referencing selector)
  *  - everything else     → labelled placeholder (TODO, see PORTING.md)
  *
@@ -351,7 +351,7 @@ export class ElementRendererComponent {
 	 * When true (default), the element host carries the framework-neutral
 	 * `data-pptx-element="true"` contract attribute (used by selection + the
 	 * shared e2e specs). Thumbnail / preview / presentation canvases pass `false`
-	 * so they don't pollute the contract selectors — mirroring React, where only
+	 * so they don't pollute the contract selectors, mirroring React, where only
 	 * the main editing canvas exposes the element contract (thumbnails use a
 	 * separate lightweight renderer).
 	 */

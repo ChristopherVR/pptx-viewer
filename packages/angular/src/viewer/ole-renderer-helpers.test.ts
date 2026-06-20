@@ -3,8 +3,8 @@
  *
  * All assertions target functions exported from `ole-renderer-helpers.ts`
  * (the Angular-free layer). This avoids loading `@angular/common` / the JIT
- * compiler, which is not available in the plain vitest environment — see
- * PORTING.md (component/TestBed tests are a follow-up with
+ * compiler, which is not available in the plain vitest environment (see
+ * PORTING.md); component/TestBed tests are a follow-up with
  * @analogjs/vite-plugin-angular).
  *
  * The test suite mirrors the React `ole-element.test.ts` and the Vue

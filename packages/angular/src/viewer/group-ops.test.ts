@@ -26,10 +26,10 @@ function ids(elements: readonly PptxElement[]): string[] {
 }
 
 // ---------------------------------------------------------------------------
-// groupElements — basic grouping of 2 elements
+// groupElements: basic grouping of 2 elements
 // ---------------------------------------------------------------------------
 
-describe('groupElements — two elements', () => {
+describe('groupElements: two elements', () => {
 	const elA = makeShape('a', 10, 20, 100, 50); // right=110, bottom=70
 	const elB = makeShape('b', 60, 40, 80, 60); // right=140, bottom=100
 	const elements: PptxElement[] = [elA, elB];
@@ -80,10 +80,10 @@ describe('groupElements — two elements', () => {
 });
 
 // ---------------------------------------------------------------------------
-// groupElements — insertion position tracks the first grouped element
+// groupElements: insertion position tracks the first grouped element
 // ---------------------------------------------------------------------------
 
-describe('groupElements — insertion order', () => {
+describe('groupElements: insertion order', () => {
 	// Elements: [x, a, b, y]. Group 'a' and 'b'. Group should be inserted at
 	// index 1 (where 'a' was), with x before and y after.
 	const elX = makeShape('x', 0, 0, 10, 10);
@@ -100,10 +100,10 @@ describe('groupElements — insertion order', () => {
 });
 
 // ---------------------------------------------------------------------------
-// groupElements — no-op: fewer than 2 ids
+// groupElements: no-op: fewer than 2 ids
 // ---------------------------------------------------------------------------
 
-describe('groupElements — no-op with fewer than 2 ids', () => {
+describe('groupElements: no-op with fewer than 2 ids', () => {
 	const elements: PptxElement[] = [makeShape('a', 0, 0, 100, 100)];
 
 	it('returns the original elements when only 1 id is provided', () => {
@@ -133,10 +133,10 @@ describe('groupElements — no-op with fewer than 2 ids', () => {
 });
 
 // ---------------------------------------------------------------------------
-// ungroupElements — basic ungrouping
+// ungroupElements: basic ungrouping
 // ---------------------------------------------------------------------------
 
-describe('ungroupElements — basic', () => {
+describe('ungroupElements: basic', () => {
 	// Construct a group manually (children are group-relative).
 	const groupEl: PptxElement = {
 		type: 'group',
@@ -180,10 +180,10 @@ describe('ungroupElements — basic', () => {
 });
 
 // ---------------------------------------------------------------------------
-// ungroupElements — group surrounded by other elements preserves order
+// ungroupElements: group surrounded by other elements preserves order
 // ---------------------------------------------------------------------------
 
-describe('ungroupElements — insertion order', () => {
+describe('ungroupElements: insertion order', () => {
 	const elX = makeShape('x', 0, 0, 10, 10);
 	const groupEl: PptxElement = {
 		type: 'group',
@@ -206,10 +206,10 @@ describe('ungroupElements — insertion order', () => {
 });
 
 // ---------------------------------------------------------------------------
-// ungroupElements — no-op cases
+// ungroupElements: no-op cases
 // ---------------------------------------------------------------------------
 
-describe('ungroupElements — no-op', () => {
+describe('ungroupElements: no-op', () => {
 	const elements: PptxElement[] = [makeShape('a', 0, 0, 100, 100)];
 
 	it('returns the original elements when groupId is not found', () => {

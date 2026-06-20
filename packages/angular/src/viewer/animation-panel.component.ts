@@ -1,5 +1,5 @@
 /**
- * animation-panel.component.ts — presentational animation **playback** panel.
+ * animation-panel.component.ts: presentational animation **playback** panel.
  *
  * Selector: `pptx-animation-panel`
  *
@@ -14,16 +14,16 @@
  * concerns, drives playback rather than editing.
  *
  * Inputs:
- *   - `groups`     (required) — the slide's click groups (one per step)
- *   - `step`       — the current step (groups revealed so far); default 0
- *   - `isPlaying`  — whether auto-playback is running; default false
+ *   - `groups`     (required): the slide's click groups (one per step)
+ *   - `step`       : the current step (groups revealed so far); default 0
+ *   - `isPlaying`  : whether auto-playback is running; default false
  *
  * Outputs:
- *   - `playRequested`   — user pressed Play (reveal/auto-advance)
- *   - `pauseRequested`  — user pressed Pause
- *   - `stepRequested`   — user pressed Step (advance one group)
- *   - `resetRequested`  — user pressed Reset (back to before the first group)
- *   - `seek`            — user clicked a step row (jump to that step index)
+ *   - `playRequested`   : user pressed Play (reveal/auto-advance)
+ *   - `pauseRequested`  : user pressed Pause
+ *   - `stepRequested`   : user pressed Step (advance one group)
+ *   - `resetRequested`  : user pressed Reset (back to before the first group)
+ *   - `seek`            : user clicked a step row (jump to that step index)
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
@@ -259,7 +259,7 @@ export class AnimationPanelComponent {
 	readonly isPlaying = input<boolean>(false);
 
 	// ------------------------------------------------------------------
-	// Outputs (intents — the host drives AnimationPlaybackService)
+	// Outputs (intents: the host drives AnimationPlaybackService)
 	// ------------------------------------------------------------------
 
 	readonly playRequested = output<void>();

@@ -35,32 +35,32 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 const CLOCK_TICK_MS = 1000;
 
 /**
- * PresenterViewComponent — split-screen presenter layout with the current
+ * PresenterViewComponent: split-screen presenter layout with the current
  * slide, a next-slide preview, speaker notes (rich or plain), a live clock +
  * elapsed timer, font-size controls, and navigation controls.
  *
  * Angular port of the React `PresenterView.tsx`. Keyboard navigation is owned
  * by the orchestrator (mirroring React, where `usePresentationKeyboard` handles
- * keys) — this component registers no document keydown listener. Slide previews
+ * keys); this component registers no document keydown listener. Slide previews
  * reuse `pptx-slide-canvas` (the master/layout elements are prepended to each
  * slide's own elements, like the React `templateElements` merge).
  *
  * Selector: `pptx-presenter-view`
  *
  * Inputs:
- *   - `slides`                (required) — all slides in the deck
- *   - `currentSlideIndex`     (required) — zero-based active slide index
- *   - `canvasSize`            (required) — logical slide dimensions (px)
- *   - `templateElements`      — master/layout elements behind every slide
- *   - `mediaDataUrls`         — data-URL map for media assets
- *   - `presentationStartTime` — epoch ms when the presentation began (or null)
- *   - `isAudienceWindowOpen`  — whether a separate audience window is open
+ *   - `slides`                (required): all slides in the deck
+ *   - `currentSlideIndex`     (required): zero-based active slide index
+ *   - `canvasSize`            (required): logical slide dimensions (px)
+ *   - `templateElements`     : master/layout elements behind every slide
+ *   - `mediaDataUrls`        : data-URL map for media assets
+ *   - `presentationStartTime`: epoch ms when the presentation began (or null)
+ *   - `isAudienceWindowOpen` : whether a separate audience window is open
  *
  * Outputs:
- *   - `movePresentationSlide` — emits +1 / -1 to step the active slide
- *   - `exit`                  — emits void to end the presentation
- *   - `openAudienceWindow`    — request opening the audience display window
- *   - `closeAudienceWindow`   — request closing the audience display window
+ *   - `movePresentationSlide`: emits +1 / -1 to step the active slide
+ *   - `exit`                 : emits void to end the presentation
+ *   - `openAudienceWindow`   : request opening the audience display window
+ *   - `closeAudienceWindow`  : request closing the audience display window
  */
 @Component({
 	selector: 'pptx-presenter-view',

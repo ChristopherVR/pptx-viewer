@@ -1,5 +1,5 @@
 /**
- * collaboration.service.ts — Angular port of the Vue `useCollaboration`
+ * collaboration.service.ts: Angular port of the Vue `useCollaboration`
  * composable and the React `usePresenceTracking` / `useYjsProvider` hooks.
  *
  * Minimal real-time collaboration over Yjs + y-websocket:
@@ -165,7 +165,7 @@ export class CollaborationService {
 
 		try {
 			// `y-websocket` is loaded through an indirected specifier so it stays
-			// out of the static import graph (it is an optional peer — the package
+			// out of the static import graph (it is an optional peer; the package
 			// degrades gracefully when it is not installed, and the bundler / lib
 			// target never hard-links it).
 			const wsModule = 'y-websocket';
@@ -219,7 +219,7 @@ export class CollaborationService {
 						this.applyingRemote = true;
 						this.onRemoteSlides(JSON.parse(raw) as PptxSlide[]);
 					} catch {
-						// Malformed payload — ignore.
+						// Malformed payload; ignore.
 					} finally {
 						this.applyingRemote = false;
 					}
@@ -229,7 +229,7 @@ export class CollaborationService {
 			this.active.set(true);
 			this.refreshPresence();
 		} catch {
-			// yjs/y-websocket unavailable or connection failed — degrade silently.
+			// yjs/y-websocket unavailable or connection failed; degrade silently.
 			this.disconnect();
 		}
 	}

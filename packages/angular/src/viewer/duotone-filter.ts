@@ -84,7 +84,7 @@ export interface FeComponentTransferChannel {
  */
 export interface FeComponentTransferPrimitive {
 	kind: 'feComponentTransfer';
-	/** Exactly three entries — R, G, B in that order. */
+	/** Exactly three entries: R, G, B in that order. */
 	channels: [FeComponentTransferChannel, FeComponentTransferChannel, FeComponentTransferChannel];
 }
 
@@ -144,7 +144,7 @@ export type DuotoneFilterPrimitive = FeColorMatrixPrimitive | FeComponentTransfe
  * const duotone = buildDuotoneFilter(el);
  * const dagFilter = getEffectFilterCss(el.shapeStyle, el.id);
  * if (dagFilter) {
- *   // duotone url(#…) is now meaningful — keep it
+ *   // duotone url(#…) is now meaningful, keep it
  *   style['filter'] = dagFilter;
  * } else if (duotone) {
  *   style['filter'] = duotone.cssFilter;
@@ -163,8 +163,8 @@ export interface DuotoneFilterDef {
 	/**
 	 * Ordered list of SVG filter primitives that make up the `<filter>` body.
 	 * Always contains exactly two entries:
-	 *   0. `feColorMatrix`        — BT.709 luminance-to-grayscale matrix
-	 *   1. `feComponentTransfer`  — per-channel linear ramp (shadow → highlight)
+	 *   0. `feColorMatrix`        : BT.709 luminance-to-grayscale matrix
+	 *   1. `feComponentTransfer`  : per-channel linear ramp (shadow → highlight)
 	 */
 	primitives: [FeColorMatrixPrimitive, FeComponentTransferPrimitive];
 
@@ -229,7 +229,7 @@ export function buildDuotoneFilterId(elementId: string): string {
  * Derive a fully structured duotone `<filter>` descriptor from a
  * `PptxElement`.
  *
- * The function reads `element.shapeStyle.dagDuotone` — the parsed
+ * The function reads `element.shapeStyle.dagDuotone`: the parsed
  * `<a:duotone>` colour pair populated by the core parser.  Returns
  * `undefined` when the element carries no duotone effect.
  *

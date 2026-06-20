@@ -1,5 +1,5 @@
 /**
- * text-advanced-helpers.test.ts — Unit tests for text-advanced-helpers.ts.
+ * text-advanced-helpers.test.ts: Unit tests for text-advanced-helpers.ts.
  *
  * All tests are pure (no TestBed / DOM). They exercise the reader and
  * patch-builder functions directly.

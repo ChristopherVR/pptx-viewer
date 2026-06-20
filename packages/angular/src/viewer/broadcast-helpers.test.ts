@@ -1,7 +1,7 @@
 /**
- * broadcast-helpers.test.ts — Unit tests for the Broadcast-dialog helpers.
+ * broadcast-helpers.test.ts: Unit tests for the Broadcast-dialog helpers.
  * Ports the Vue/React `BroadcastDialog` coverage (room-id generation, start
- * config, viewer-link building, clipboard detection) — pure helpers, no
+ * config, viewer-link building, clipboard detection): pure helpers, no
  * Angular TestBed.
  */
 

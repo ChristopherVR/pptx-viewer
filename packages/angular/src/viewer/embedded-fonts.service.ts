@@ -1,5 +1,5 @@
 /**
- * `EmbeddedFontsService` — Angular port of the Vue `useEmbeddedFonts`
+ * `EmbeddedFontsService`: Angular port of the Vue `useEmbeddedFonts`
  * composable (the `@font-face` half of the React `useFontInjection` hook).
  *
  * Given the embedded fonts parsed out of a `.pptx` by `pptx-viewer-core`, this

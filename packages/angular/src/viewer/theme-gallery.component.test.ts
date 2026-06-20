@@ -2,7 +2,7 @@
  * Unit tests for ThemeGalleryComponent (Angular).
  *
  * Tests the pure helpers (swatch extraction) and the component's output
- * contract — applyTheme emits the selected preset; close emits on Cancel /
+ * contract: applyTheme emits the selected preset; close emits on Cancel /
  * backdrop click.  Uses Angular TestBed with ComponentFixture.
  */
 import { THEME_PRESETS } from 'pptx-viewer-core';

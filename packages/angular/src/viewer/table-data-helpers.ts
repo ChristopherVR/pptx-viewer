@@ -1,5 +1,5 @@
 /**
- * table-data-helpers.ts — Pure immutable helpers for table data editing.
+ * table-data-helpers.ts: Pure immutable helpers for table data editing.
  *
  * Ported from the React inspector's table editing logic in:
  *   packages/react/src/viewer/components/inspector/table-cell-merge-helpers.ts
@@ -146,7 +146,7 @@ export function addTableRow(element: TablePptxElement, afterRowIndex: number): T
 /**
  * Return a new `TablePptxElement` with the row at `rowIndex` removed.
  *
- * Requires at least 2 rows — returns the element unchanged if the table
+ * Requires at least 2 rows; returns the element unchanged if the table
  * already has only one row.  Merge state is cleared from the entire table
  * to avoid orphaned merge markers.
  *
@@ -221,7 +221,7 @@ export function addTableColumn(element: TablePptxElement, afterColIndex: number)
 /**
  * Return a new `TablePptxElement` with the column at `colIndex` removed.
  *
- * Requires at least 2 columns — returns the element unchanged if the table
+ * Requires at least 2 columns; returns the element unchanged if the table
  * already has only one column.  Column widths are renormalised to sum to 1
  * after removal.  Merge state is cleared.
  *

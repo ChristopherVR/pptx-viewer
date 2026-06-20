@@ -1,5 +1,5 @@
 /**
- * find-bar.component.ts — Floating text-search bar for the PPTX viewer.
+ * find-bar.component.ts: Floating text-search bar for the PPTX viewer.
  *
  * Selector: `pptx-find-bar`
  *

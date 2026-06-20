@@ -17,7 +17,7 @@ import {
 import type { DrawingViewBox, FallbackBlock, RenderedShape } from './smart-art-renderer-helpers';
 
 /**
- * SmartArtRendererComponent — Angular port of the Vue `SmartArtRenderer.vue`
+ * SmartArtRendererComponent: Angular port of the Vue `SmartArtRenderer.vue`
  * (packages/vue/src/viewer/components/SmartArtRenderer.vue).
  *
  * Viewer-first subset: renders from pre-computed drawing shapes
@@ -26,7 +26,7 @@ import type { DrawingViewBox, FallbackBlock, RenderedShape } from './smart-art-r
  * "SmartArt" placeholder is shown.
  *
  * Editing, interaction, and the full family-specific layout renderers
- * (hierarchy / cycle / process / …) are out of scope — tracked in PORTING.md.
+ * (hierarchy / cycle / process / …) are out of scope; tracked in PORTING.md.
  */
 @Component({
 	selector: 'pptx-smart-art-renderer',

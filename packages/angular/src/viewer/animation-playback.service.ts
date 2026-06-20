@@ -1,5 +1,5 @@
 /**
- * animation-playback.service.ts — Angular port of the Vue
+ * animation-playback.service.ts: Angular port of the Vue
  * `useAnimationPlayback` composable and the React `useAnimationPlayback` hook.
  *
  * Drives click-stepped animation playback for presentation mode. A slide's

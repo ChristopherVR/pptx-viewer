@@ -1,7 +1,7 @@
 /**
  * Tests for smart-art-renderer-helpers.ts
  *
- * All assertions target pure TypeScript exports — no Angular, no DOM, no
+ * All assertions target pure TypeScript exports: no Angular, no DOM, no
  * TestBed.  Mirrors the Vue test coverage in
  *   packages/vue/src/viewer/components/SmartArtRenderer.test.ts
  * where applicable, adapted to the helper-function API.

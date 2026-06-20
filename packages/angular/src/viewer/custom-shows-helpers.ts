@@ -1,5 +1,5 @@
 /**
- * custom-shows-helpers.ts — Immutable helpers and types for custom PowerPoint show lists.
+ * custom-shows-helpers.ts: Immutable helpers and types for custom PowerPoint show lists.
  *
  * A "custom show" is a named subset of slides presented in a user-defined order.
  * This module is framework-agnostic: it has no Angular, React, or Vue imports.

@@ -1,12 +1,12 @@
 /**
- * editor-toolbar.component.ts — Horizontal insert/format toolbar for the
+ * editor-toolbar.component.ts: Horizontal insert/format toolbar for the
  * Angular PPTX editor.
  *
  * Selector: `pptx-editor-toolbar`
  *
  * Renders two groups separated by a visual divider:
- *  1. Insert — Text box, Rectangle, Ellipse, Line
- *  2. Arrange / Selection — Duplicate, Delete, Bring to Front, Send to Back,
+ *  1. Insert: Text box, Rectangle, Ellipse, Line
+ *  2. Arrange / Selection: Duplicate, Delete, Bring to Front, Send to Back,
  *                           Bring Forward, Send Backward
  *
  * All arrange/selection actions are disabled when no element is selected.

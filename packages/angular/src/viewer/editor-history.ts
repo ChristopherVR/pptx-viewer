@@ -1,5 +1,5 @@
 /**
- * editor-history.ts — Generic undo/redo history stack.
+ * editor-history.ts: Generic undo/redo history stack.
  *
  * Framework-agnostic: no Angular, React, or any other framework imports.
  * Designed to be consumed by an Angular service (e.g. EditorStateService).
@@ -64,7 +64,7 @@ export interface EditorHistoryOptions {
  * `T` is the snapshot type; the caller decides what constitutes a snapshot
  * (e.g. `PptxSlide[]`, a plain state object, etc.).
  *
- * No deep-cloning is performed inside this class — the caller must pass
+ * No deep-cloning is performed inside this class; the caller must pass
  * already-cloned snapshots.
  */
 export class EditorHistory<T> {
@@ -127,7 +127,7 @@ export class EditorHistory<T> {
 	 *
 	 * When the stack length exceeds `maxDepth`, the oldest entry is dropped.
 	 *
-	 * The caller must pass an already-cloned snapshot — this method does NOT
+	 * The caller must pass an already-cloned snapshot; this method does NOT
 	 * deep-clone.
 	 */
 	record(snapshot: T, label: string): void {
@@ -150,7 +150,7 @@ export class EditorHistory<T> {
 	 *
 	 * Returns `undefined` when there is nothing to undo (`canUndo === false`).
 	 *
-	 * The caller must pass an already-cloned snapshot for `current` — this
+	 * The caller must pass an already-cloned snapshot for `current`; this
 	 * method does NOT deep-clone.
 	 */
 	undo(current: T): UndoRedoResult<T> | undefined {
@@ -173,7 +173,7 @@ export class EditorHistory<T> {
 	 *
 	 * Returns `undefined` when there is nothing to redo (`canRedo === false`).
 	 *
-	 * The caller must pass an already-cloned snapshot for `current` — this
+	 * The caller must pass an already-cloned snapshot for `current`; this
 	 * method does NOT deep-clone.
 	 */
 	redo(current: T): UndoRedoResult<T> | undefined {

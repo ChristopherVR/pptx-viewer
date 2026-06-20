@@ -1,5 +1,5 @@
 /**
- * accessibility.service.ts — Angular port of the React `useAccessibility` hook
+ * accessibility.service.ts: Angular port of the React `useAccessibility` hook
  * and the Vue `useAccessibility` composable.
  *
  * Exposes the detected accessibility issue list and a few derived summaries as

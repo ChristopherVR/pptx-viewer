@@ -1,5 +1,5 @@
 /**
- * presentation-subtitle-bar.component.ts — Live caption/subtitle bar for
+ * presentation-subtitle-bar.component.ts: Live caption/subtitle bar for
  * presentation mode, driven by the Web Speech API when available.
  *
  * Ported from React:
@@ -8,7 +8,7 @@
  * Selector: `pptx-presentation-subtitle-bar`
  *
  * Inputs:
- *   - `visible` (required) — show/hide the bar and start/stop recognition.
+ *   - `visible` (required): show/hide the bar and start/stop recognition.
  *
  * When `visible` is false the component renders nothing and stops the
  * recognition session. When the Web Speech API is unavailable the bar still
@@ -45,7 +45,7 @@ import type { SpeechRecognitionLite, SpeechSupportState } from './presentation-s
 		:host {
 			display: block;
 			position: absolute;
-			bottom: 3.5rem; /* 56 px — clear the slide-counter / nav row */
+			bottom: 3.5rem; /* 56 px: clear the slide-counter / nav row */
 			left: 50%;
 			transform: translateX(-50%);
 			z-index: 70;
@@ -59,7 +59,7 @@ import type { SpeechRecognitionLite, SpeechSupportState } from './presentation-s
 			border-radius: 0.5rem;
 			background: rgba(0, 0, 0, 0.75);
 			border: 1px solid rgba(255, 255, 255, 0.1);
-			/* Very light blur — safe to omit if the browser doesn't support it. */
+			/* Very light blur, safe to omit if the browser doesn't support it. */
 			backdrop-filter: blur(4px);
 		}
 

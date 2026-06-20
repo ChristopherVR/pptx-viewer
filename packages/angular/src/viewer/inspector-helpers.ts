@@ -1,5 +1,5 @@
 /**
- * inspector-helpers.ts — Pure (no Angular) helpers for the inspector panel.
+ * inspector-helpers.ts: Pure (no Angular) helpers for the inspector panel.
  *
  * Readers extract display values from a PptxElement (with sensible defaults),
  * and patch builders produce shallow-merge-ready Partial<PptxElement> objects
@@ -95,7 +95,7 @@ export function isUnderline(el: PptxElement): boolean {
 // ── Patch builders ───────────────────────────────────────────────────────────
 
 /**
- * Changes to apply to shapeStyle — a subset of ShapeStyle fields editable
+ * Changes to apply to shapeStyle: a subset of ShapeStyle fields editable
  * from the inspector panel.
  */
 export interface ShapeStyleChanges {
@@ -120,7 +120,7 @@ export function shapeStylePatch(el: PptxElement, changes: ShapeStyleChanges): Pa
 }
 
 /**
- * Changes to apply to textStyle — a subset of TextStyle fields editable
+ * Changes to apply to textStyle: a subset of TextStyle fields editable
  * from the inspector panel.
  */
 export interface TextStyleChanges {

@@ -1,5 +1,5 @@
 /**
- * chart-data-helpers.test.ts — Vitest unit tests for chart-data-helpers.ts.
+ * chart-data-helpers.test.ts: Vitest unit tests for chart-data-helpers.ts.
  *
  * All tests are pure (no TestBed, no Angular imports).
  *

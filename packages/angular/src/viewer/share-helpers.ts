@@ -1,5 +1,5 @@
 /**
- * share-helpers.ts — Pure (no Angular) helpers for the Share dialog.
+ * share-helpers.ts: Pure (no Angular) helpers for the Share dialog.
  *
  * Mirrors the form-validation / config-assembly logic of the Vue
  * `ShareDialog.vue` plus the share-link builder from the React `ShareDialog`.

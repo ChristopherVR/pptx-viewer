@@ -1,10 +1,10 @@
 /**
- * element-operations — Pure array-transformation functions for slide elements.
+ * element-operations: Pure array-transformation functions for slide elements.
  *
  * All functions are framework-agnostic (no Angular imports). Each takes a
  * `readonly PptxElement[]` representing the ordered element list for a slide
  * (array index 0 = back, last index = front/top in paint order) and returns a
- * NEW array — the input is never mutated.
+ * NEW array; the input is never mutated.
  *
  * Callers supply a `newId` wherever a new element identity is needed, keeping
  * these functions deterministic and side-effect-free.
@@ -150,7 +150,7 @@ export function deleteElementsByIds(
  * `newId` as the copy's identity.  The copy is nudged by `offset` on both
  * axes so it does not exactly overlap the original.
  *
- * The caller is responsible for supplying a unique `newId` — keeping this
+ * The caller is responsible for supplying a unique `newId`, keeping this
  * function pure and deterministic.
  *
  * @example

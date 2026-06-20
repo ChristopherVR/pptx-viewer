@@ -172,9 +172,9 @@ describe('groupIntoParagraphs', () => {
 	});
 });
 
-// ── getTextWarp — no warp cases ─────────────────────────────────────────
+// ── getTextWarp: no warp cases ─────────────────────────────────────────
 
-describe('getTextWarp — no warp', () => {
+describe('getTextWarp - no warp', () => {
 	it('returns undefined for a non-text element', () => {
 		expect(getTextWarp(makeNonTextElement())).toBeUndefined();
 	});
@@ -201,9 +201,9 @@ describe('getTextWarp — no warp', () => {
 	});
 });
 
-// ── getTextWarp — path strategy ─────────────────────────────────────────
+// ── getTextWarp: path strategy ─────────────────────────────────────────
 
-describe('getTextWarp — strategy: path', () => {
+describe('getTextWarp - strategy: path', () => {
 	const el = makeTextElement('textArchUp', { text: 'WordArt' });
 
 	it('returns a TextWarpPathDef for textArchUp', () => {
@@ -276,9 +276,9 @@ describe('getTextWarp — strategy: path', () => {
 	});
 });
 
-// ── getTextWarp — css strategy ──────────────────────────────────────────
+// ── getTextWarp: css strategy ──────────────────────────────────────────
 
-describe('getTextWarp — strategy: css', () => {
+describe('getTextWarp - strategy: css', () => {
 	it('returns TextWarpCssDef for textSlantUp', () => {
 		const el = makeTextElement('textSlantUp', { text: 'hi' });
 		const def = getTextWarp(el) as TextWarpCssDef;
@@ -330,9 +330,9 @@ describe('getTextWarp — strategy: css', () => {
 	});
 });
 
-// ── getTextWarp — path strategy covers all SVG presets ─────────────────
+// ── getTextWarp: path strategy covers all SVG presets ─────────────────
 
-describe('getTextWarp — all SVG path presets produce valid path defs', () => {
+describe('getTextWarp - all SVG path presets produce valid path defs', () => {
 	// Drive directly from the canonical path-preset set so the test stays in
 	// sync with the renderer's routing (envelope/simple presets are CSS, not
 	// textPath, and are covered by the css-strategy describe block).

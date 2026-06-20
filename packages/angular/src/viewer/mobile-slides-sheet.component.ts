@@ -1,5 +1,5 @@
 /**
- * mobile-slides-sheet.component.ts — Mobile bottom sheet for slide thumbnails.
+ * mobile-slides-sheet.component.ts: Mobile bottom sheet for slide thumbnails.
  *
  * Ported from: packages/react/src/viewer/components/mobile/MobileSlidesSheet.tsx
  *
@@ -10,18 +10,18 @@
  * so thumbnails are live (not static images).
  *
  * The sheet occupies 70 % of the viewport height so the active canvas remains
- * partially visible — matching the React `heightFraction={0.7}` default.
+ * partially visible, matching the React `heightFraction={0.7}` default.
  *
  * Inputs
- *   open          — controls sheet visibility
- *   slides        — the full slide array (viewer or editor deck)
- *   canvasSize    — natural canvas dimensions forwarded to SlideCanvasComponent
- *   mediaDataUrls — asset lookup forwarded to SlideCanvasComponent
- *   activeIndex   — currently displayed slide (highlighted in the grid)
+ *   open          : controls sheet visibility
+ *   slides        : the full slide array (viewer or editor deck)
+ *   canvasSize    : natural canvas dimensions forwarded to SlideCanvasComponent
+ *   mediaDataUrls : asset lookup forwarded to SlideCanvasComponent
+ *   activeIndex   : currently displayed slide (highlighted in the grid)
  *
  * Outputs
- *   closed        — user dismissed the sheet without selecting a slide
- *   jumpToSlide   — user tapped a thumbnail; value is the zero-based slide index
+ *   closed        : user dismissed the sheet without selecting a slide
+ *   jumpToSlide   : user tapped a thumbnail; value is the zero-based slide index
  */
 
 import { NgStyle } from '@angular/common';

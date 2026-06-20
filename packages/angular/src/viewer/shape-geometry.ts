@@ -5,16 +5,16 @@
  * pipeline. Implements a priority cascade so renderers always pick the
  * highest-fidelity geometry available for a given element:
  *
- *   1. **Adjustment-aware** — if `shapeAdjustments` exist, consult
+ *   1. **Adjustment-aware**: if `shapeAdjustments` exist, consult
  *      {@link getAdjustmentAwareShapeClipPath} so shapes like `pie`, `arc`,
  *      `donut`, `blockArc`, and the wedge callouts respond to their
  *      adjustment values.
- *   2. **Spec-correct preset evaluator** — {@link getShapeClipPathFromPreset}
+ *   2. **Spec-correct preset evaluator**: {@link getShapeClipPathFromPreset}
  *      uses the ECMA-376 `pathLst` evaluator to produce a `path('…')`
  *      clip-path for any shape covered by the preset table.
- *   3. **Cloud Bezier path** — {@link getCloudPathForRendering} produces a
+ *   3. **Cloud Bezier path**: {@link getCloudPathForRendering} produces a
  *      DPI-stable cubic-Bezier `path('…')` for `cloud` / `cloudCallout`.
- *   4. **Static polygon table** — {@link getShapeClipPath} (the core preset
+ *   4. **Static polygon table**: {@link getShapeClipPath} (the core preset
  *      table) is the final fallback for shapes none of the higher-fidelity
  *      APIs cover.
  *

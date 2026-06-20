@@ -1,7 +1,7 @@
 /**
  * presenter-view-helpers.ts
  *
- * Pure (framework-free) helpers for `PresenterViewComponent` — time/elapsed
+ * Pure (framework-free) helpers for `PresenterViewComponent`: time/elapsed
  * formatting, notes font-size clamping, rich-notes segment → view-model
  * derivation, and current/next-slide selection.
  *

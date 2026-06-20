@@ -1,5 +1,5 @@
 /**
- * gradient-picker.component.ts — Standalone Angular component for editing a
+ * gradient-picker.component.ts: Standalone Angular component for editing a
  * structured gradient fill on a selected PPTX element.
  *
  * Selector: `pptx-gradient-picker`
@@ -10,8 +10,8 @@
  *   packages/angular/src/viewer/inspector-panel.component.ts
  *
  * Contract:
- *   [element]     — the selected PptxElement (required)
- *   (patch)       — emits a Partial<PptxElement> for the orchestrator to
+ *   [element]     : the selected PptxElement (required)
+ *   (patch)       : emits a Partial<PptxElement> for the orchestrator to
  *                   commit via EditorStateService.updateElement
  *
  * @module viewer/gradient-picker

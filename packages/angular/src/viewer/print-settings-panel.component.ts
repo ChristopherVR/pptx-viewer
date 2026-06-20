@@ -1,5 +1,5 @@
 /**
- * print-settings-panel.component.ts — Settings form for the print dialog.
+ * print-settings-panel.component.ts: Settings form for the print dialog.
  *
  * Selector: `pptx-print-settings-panel`
  *

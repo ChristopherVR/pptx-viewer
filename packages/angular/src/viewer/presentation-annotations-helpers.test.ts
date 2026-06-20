@@ -1,5 +1,5 @@
 /**
- * presentation-annotations-helpers.test.ts — unit tests for the pure annotation
+ * presentation-annotations-helpers.test.ts: unit tests for the pure annotation
  * geometry helpers. No TestBed, no DOM.
  *
  * Ported from React:

@@ -1,11 +1,11 @@
 /**
- * broadcast-dialog.component.ts — Start / stop a one-way live broadcast.
+ * broadcast-dialog.component.ts: Start / stop a one-way live broadcast.
  *
  * Selector: `pptx-broadcast-dialog`
  *
  * Angular port of the Vue `BroadcastDialog.vue`. A broadcast is a one-way
  * collaboration session: the presenter drives slide navigation and viewers
- * follow along via a shareable link. This dialog owns only the start/stop UI —
+ * follow along via a shareable link. This dialog owns only the start/stop UI;
  * the host opens the collaboration session in response to `start` and supplies
  * the resolved `viewerUrl` while the broadcast is `active`.
  *

@@ -80,7 +80,7 @@ describe('alphaLabel', () => {
 });
 
 // ---------------------------------------------------------------------------
-// formatAutoNumber — Arabic variants
+// formatAutoNumber: Arabic variants
 // ---------------------------------------------------------------------------
 
 describe('formatAutoNumber – arabic', () => {
@@ -110,7 +110,7 @@ describe('formatAutoNumber – arabic', () => {
 });
 
 // ---------------------------------------------------------------------------
-// formatAutoNumber — Alpha lower-case variants
+// formatAutoNumber: Alpha lower-case variants
 // ---------------------------------------------------------------------------
 
 describe('formatAutoNumber – alpha lower-case', () => {
@@ -140,7 +140,7 @@ describe('formatAutoNumber – alpha lower-case', () => {
 });
 
 // ---------------------------------------------------------------------------
-// formatAutoNumber — Alpha upper-case variants
+// formatAutoNumber: Alpha upper-case variants
 // ---------------------------------------------------------------------------
 
 describe('formatAutoNumber – alpha upper-case', () => {
@@ -162,7 +162,7 @@ describe('formatAutoNumber – alpha upper-case', () => {
 });
 
 // ---------------------------------------------------------------------------
-// formatAutoNumber — Roman lower-case variants
+// formatAutoNumber: Roman lower-case variants
 // ---------------------------------------------------------------------------
 
 describe('formatAutoNumber – roman lower-case', () => {
@@ -192,7 +192,7 @@ describe('formatAutoNumber – roman lower-case', () => {
 });
 
 // ---------------------------------------------------------------------------
-// formatAutoNumber — Roman upper-case variants
+// formatAutoNumber: Roman upper-case variants
 // ---------------------------------------------------------------------------
 
 describe('formatAutoNumber – roman upper-case', () => {
@@ -222,7 +222,7 @@ describe('formatAutoNumber – roman upper-case', () => {
 });
 
 // ---------------------------------------------------------------------------
-// formatAutoNumber — fallback
+// formatAutoNumber: fallback
 // ---------------------------------------------------------------------------
 
 describe('formatAutoNumber – fallback', () => {

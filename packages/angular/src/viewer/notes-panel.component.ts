@@ -1,5 +1,5 @@
 /**
- * notes-panel.component.ts — collapsible, editable speaker-notes panel.
+ * notes-panel.component.ts: collapsible, editable speaker-notes panel.
  *
  * Ported from: packages/vue/src/viewer/components/NotesPanel.vue
  * (itself the Vue mirror of the React `SlideNotesPanel`).
@@ -20,7 +20,7 @@
  * The textarea is UNCONTROLLED: its value is seeded imperatively via a view-child
  * ref exactly once per slide and never re-bound while the user types. Re-binding
  * `value` to a signal the host mutated on every keystroke would dismiss the
- * on-screen keyboard and jump the caret — so the DOM owns the text during an edit
+ * on-screen keyboard and jump the caret, so the DOM owns the text during an edit
  * and we only commit on `change` / `blur` (one history entry per edit).
  */
 

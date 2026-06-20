@@ -1,5 +1,5 @@
 /**
- * presentation-annotations.service.ts — Signal-based service that manages ink
+ * presentation-annotations.service.ts: Signal-based service that manages ink
  * annotation state during presentation mode.
  *
  * Ported from React:
@@ -352,7 +352,7 @@ export class PresentationAnnotationsService {
 
 	/**
 	 * Reset transient presentation state (tool, current stroke, laser, toolbar
-	 * timer). Does NOT clear stored strokes — those persist for the
+	 * timer). Does NOT clear stored strokes; those persist for the
 	 * keep/discard dialog.
 	 */
 	resetForExit(): void {

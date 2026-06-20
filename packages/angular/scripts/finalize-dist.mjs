@@ -7,7 +7,7 @@
  * ng-packagr library is published from `dist/`, which is NOT a workspace member,
  * so `workspace:*` cannot be resolved there. This script reproduces that
  * resolution at build time by reading each referenced workspace package's
- * current version and writing `^<version>` into the dist manifest — so the
+ * current version and writing `^<version>` into the dist manifest, so the
  * source keeps `workspace:*` (tracking the workspace) and the published artifact
  * carries real version ranges.
  */

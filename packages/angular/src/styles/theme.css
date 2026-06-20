@@ -1,5 +1,5 @@
 /*
- * pptx-angular-viewer — theme tokens (mirrors React `theme.css` and Vue).
+ * pptx-angular-viewer: theme tokens (mirrors React `theme.css` and Vue).
  *
  * Maps Tailwind v4 semantic colour tokens to the framework-agnostic --pptx-*
  * custom properties (the same ones `pptx-viewer-shared/theme` emits from the

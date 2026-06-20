@@ -1,5 +1,5 @@
 /**
- * hyperlink-dialog-helpers.ts — Pure (no Angular) helpers for the hyperlink
+ * hyperlink-dialog-helpers.ts: Pure (no Angular) helpers for the hyperlink
  * dialog.
  *
  * Mirrors the URL + tooltip editing of the Vue `HyperlinkDialog.vue`, which

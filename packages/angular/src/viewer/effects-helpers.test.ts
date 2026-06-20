@@ -1,5 +1,5 @@
 /**
- * effects-helpers.test.ts — Unit tests for effects-helpers.ts.
+ * effects-helpers.test.ts: Unit tests for effects-helpers.ts.
  *
  * All tests are pure (no TestBed / DOM). They exercise the reader and
  * patch-builder functions directly.

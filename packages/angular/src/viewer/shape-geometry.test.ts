@@ -7,7 +7,7 @@ import { getResolvedShapeClipPath, getResolvedShapeClipPathFor } from './shape-g
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Minimal element factory — only fields read by the helpers are needed. */
+/** Minimal element factory: only fields read by the helpers are needed. */
 function shapeElement(overrides: Partial<PptxElement> = {}): PptxElement {
 	return {
 		type: 'shape',
@@ -32,7 +32,7 @@ describe('getResolvedShapeClipPathFor', () => {
 
 	it('returns a clip-path or undefined for a plain rectangle', () => {
 		// The spec-correct preset evaluator may produce a path() for rect; the
-		// static fallback returns undefined. Either outcome is acceptable — the
+		// static fallback returns undefined. Either outcome is acceptable; the
 		// renderer applies clip-path only when the value is a non-empty string.
 		const result = getResolvedShapeClipPathFor('rect', 200, 100);
 		expect(result === undefined || typeof result === 'string').toBeTruthy();
@@ -76,7 +76,7 @@ describe('getResolvedShapeClipPathFor', () => {
 	});
 
 	it('ignores empty adjustments object and proceeds to preset/static cascade', () => {
-		// Empty adjustments — should still return a clip-path via preset/static path
+		// Empty adjustments: should still return a clip-path via preset/static path
 		const result = getResolvedShapeClipPathFor('triangle', 200, 100, {});
 		expect(result).toBeTypeOf('string');
 	});
@@ -102,13 +102,13 @@ describe('getResolvedShapeClipPathFor', () => {
 describe('getResolvedShapeClipPath', () => {
 	it('returns undefined when the element has no shapeType', () => {
 		const el = shapeElement({ type: 'shape' });
-		// PptxElement union — cast needed because shapeType is on specific subtypes
+		// PptxElement union: cast needed because shapeType is on specific subtypes
 		expect(getResolvedShapeClipPath(el)).toBeUndefined();
 	});
 
 	it('extracts shapeType and dimensions from the element', () => {
 		const el = shapeElement({ width: 200, height: 100 });
-		// Inject shapeType via cast — mirrors how the react helper accesses it
+		// Inject shapeType via cast: mirrors how the react helper accesses it
 		(el as unknown as Record<string, unknown>)['shapeType'] = 'triangle';
 		const result = getResolvedShapeClipPath(el);
 		expect(result).toBeTypeOf('string');
@@ -140,7 +140,7 @@ describe('getResolvedShapeClipPath', () => {
 	});
 
 	it('returns a clip-path or undefined for a plain rectangle element', () => {
-		// Mirrors the getResolvedShapeClipPathFor rect test — either a path()
+		// Mirrors the getResolvedShapeClipPathFor rect test: either a path()
 		// from the preset evaluator or undefined from the static table is valid.
 		const el = shapeElement({ width: 200, height: 100 });
 		(el as unknown as Record<string, unknown>)['shapeType'] = 'rect';

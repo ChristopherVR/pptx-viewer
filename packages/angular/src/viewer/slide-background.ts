@@ -8,7 +8,7 @@
  *
  * Precedence (highest first): image fill → gradient → pattern → solid colour.
  * Pattern fills currently approximate to their background colour (the SVG
- * pattern preset renderer — `color-patterns.ts` in React — is a shared
+ * pattern preset renderer, `color-patterns.ts` in React, is a shared
  * extraction candidate; see PORTING.md).
  */
 import type { PptxSlide } from 'pptx-viewer-core';

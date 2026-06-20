@@ -1,5 +1,5 @@
 /**
- * mobile-bottom-bar.component.ts — Persistent mobile bottom action bar.
+ * mobile-bottom-bar.component.ts: Persistent mobile bottom action bar.
  *
  * Ported from: packages/react/src/viewer/components/mobile/MobileBottomBar.tsx
  *
@@ -17,16 +17,16 @@
  * (`getByRole('navigation', { name: 'Editor actions' })`).
  *
  * Inputs
- *   slideCount    — total number of slides (gates Slides/Format/Insert)
- *   commentCount  — number of comments on the active slide (badge)
- *   activeSheet   — currently-active sheet, for highlighting the bar button
+ *   slideCount    : total number of slides (gates Slides/Format/Insert)
+ *   commentCount  : number of comments on the active slide (badge)
+ *   activeSheet   : currently-active sheet, for highlighting the bar button
  *
  * Outputs
- *   openSlides    — user tapped the Slides button
- *   insert        — user tapped the Insert button
- *   openFormat    — user tapped the Format button
- *   openComments  — user tapped the Comments button
- *   notes         — user tapped the Notes button
+ *   openSlides    : user tapped the Slides button
+ *   insert        : user tapped the Insert button
+ *   openFormat    : user tapped the Format button
+ *   openComments  : user tapped the Comments button
+ *   notes         : user tapped the Notes button
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';

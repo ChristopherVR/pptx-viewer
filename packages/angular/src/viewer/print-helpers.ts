@@ -1,5 +1,5 @@
 /**
- * Pure print helper utilities — no Angular, no DOM side effects, no
+ * Pure print helper utilities: no Angular, no DOM side effects, no
  * `window.print()`. Everything here is deterministic and unit-testable in
  * isolation (vitest + happy-dom, no TestBed).
  *
@@ -274,7 +274,7 @@ export function computePageCount(slideCount: number, slidesPerPage: HandoutSlide
 }
 
 /**
- * Estimate the printed page count for the full settings object — slides and
+ * Estimate the printed page count for the full settings object: slides and
  * notes are one page each; outline is a single page; handouts paginate.
  */
 export function estimatePageCount(

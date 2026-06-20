@@ -186,7 +186,7 @@ describe('clampGifDimensions', () => {
 });
 
 /* ================================================================== */
-/*  encodeGif — structural validation                                  */
+/*  encodeGif: structural validation                                  */
 /* ================================================================== */
 
 describe('encodeGif', () => {

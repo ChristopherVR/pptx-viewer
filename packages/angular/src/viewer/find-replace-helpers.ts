@@ -1,11 +1,11 @@
 /**
- * find-replace-helpers.ts — Pure find & replace helpers for PPTX slides.
+ * find-replace-helpers.ts: Pure find & replace helpers for PPTX slides.
  *
  * Ported from:
  *   packages/react/src/viewer/hooks/useFindReplace.ts  (findInSlides, applyFindReplacements)
  *
  * No Angular imports; safe to use in web workers or server-side code.
- * All functions are immutable — they never mutate their input arrays.
+ * All functions are immutable; they never mutate their input arrays.
  *
  * @module find-replace-helpers
  */

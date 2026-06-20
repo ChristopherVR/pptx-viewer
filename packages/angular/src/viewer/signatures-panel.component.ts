@@ -1,5 +1,5 @@
 /**
- * signatures-panel.component.ts — Read-only digital-signature status panel.
+ * signatures-panel.component.ts: Read-only digital-signature status panel.
  *
  * Selector: `pptx-signatures-panel`
  *

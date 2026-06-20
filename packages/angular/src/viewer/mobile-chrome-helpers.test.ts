@@ -1,7 +1,7 @@
 /**
- * mobile-chrome-helpers.test.ts — Unit tests for mobile chrome pure helpers.
+ * mobile-chrome-helpers.test.ts: Unit tests for mobile chrome pure helpers.
  *
- * No Angular TestBed — pure functions only.
+ * No Angular TestBed, pure functions only.
  *
  * Source: packages/angular/src/viewer/mobile-chrome-helpers.ts
  */

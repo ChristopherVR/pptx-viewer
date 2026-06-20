@@ -1,5 +1,5 @@
 /**
- * hyperlink-dialog.component.ts — Set or clear an element's click hyperlink.
+ * hyperlink-dialog.component.ts: Set or clear an element's click hyperlink.
  *
  * Selector: `pptx-hyperlink-dialog`
  *

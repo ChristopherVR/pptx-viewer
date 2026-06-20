@@ -1,9 +1,9 @@
 /**
- * signatures.service.test.ts — Unit tests for the SignaturesService signals.
+ * signatures.service.test.ts: Unit tests for the SignaturesService signals.
  *
  * Mirrors the reactive-source assertions of the Vue `useSignatures.test.ts`
  * (the Angular equivalent of a changing ref is calling `setSignatures`).
- * No TestBed — the service has no DI dependencies, so it is constructed
+ * No TestBed: the service has no DI dependencies, so it is constructed
  * directly.
  */
 

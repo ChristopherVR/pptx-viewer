@@ -1,5 +1,5 @@
 /**
- * comments-panel.component.ts — Side panel listing the active slide's comments.
+ * comments-panel.component.ts: Side panel listing the active slide's comments.
  *
  * Selector: `pptx-comments-panel`
  *

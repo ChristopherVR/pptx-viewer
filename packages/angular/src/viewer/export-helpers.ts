@@ -1,10 +1,10 @@
 /**
- * Pure export helper utilities — no Angular, no DOM, no jsPDF, no html2canvas.
+ * Pure export helper utilities: no Angular, no DOM, no jsPDF, no html2canvas.
  *
  * These are extracted from the service so that they can be unit-tested in
  * isolation and potentially reused by other parts of the package.
  *
- * All page-size values are in **points (pt)** — the unit used natively by
+ * All page-size values are in **points (pt)**: the unit used natively by
  * jsPDF. 1 pt = 1/72 inch. The slide pixel dimensions passed in are treated
  * as a logical size for aspect-ratio maths only; the resulting PDF pages are
  * scaled to fit within standard A4.

@@ -1,5 +1,5 @@
 /**
- * EditorStateService — signal-based editing state for the Angular viewer.
+ * EditorStateService: signal-based editing state for the Angular viewer.
  *
  * The Angular counterpart of React's `useEditorOperations` / `useViewerState`
  * editing layer: it holds an editable copy of the slides, the current

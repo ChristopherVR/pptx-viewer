@@ -1,5 +1,5 @@
 /**
- * accessibility-panel.component.ts — Lists accessibility issues for the current
+ * accessibility-panel.component.ts: Lists accessibility issues for the current
  * presentation, grouped by severity (errors first, then warnings, then tips).
  *
  * Selector: `pptx-accessibility-panel`

@@ -6,7 +6,7 @@ import type { OmmlNode } from '../internal/shared';
 import { ommlToMathml } from '../internal/shared';
 
 /**
- * EquationRendererComponent — Angular port of the Vue `EquationRenderer.vue`
+ * EquationRendererComponent: Angular port of the Vue `EquationRenderer.vue`
  * (single-equation variant).
  *
  * Renders one parsed OMML equation tree as inline MathML via Angular's

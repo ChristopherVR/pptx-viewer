@@ -1,5 +1,5 @@
 /**
- * properties-dialog.component.ts — View and edit document core metadata.
+ * properties-dialog.component.ts: View and edit document core metadata.
  *
  * Selector: `pptx-properties-dialog`
  *

@@ -1,5 +1,5 @@
 /**
- * Connector text overlay — Angular port of the Vue `ConnectorTextOverlay.vue`
+ * Connector text overlay: Angular port of the Vue `ConnectorTextOverlay.vue`
  * (packages/vue/src/viewer/components/ConnectorTextOverlay.vue).
  *
  * Renders a connector's label text centred over the connector's bounding box.
@@ -9,7 +9,7 @@
  * element's bounding box.
  *
  * The overlay is an absolutely-positioned flex container rendered as a sibling
- * of the SVG connector — NOT part of the SVG — so per-segment rich text
+ * of the SVG connector (NOT part of the SVG), so per-segment rich text
  * renders with standard HTML text layout. It is `pointer-events: none` and
  * never intercepts selection or hit-testing on the connector beneath it.
  *
@@ -120,7 +120,7 @@ export interface StyledSegment {
 // ---------------------------------------------------------------------------
 
 /**
- * `<pptx-connector-text-overlay>` — renders a connector's text label.
+ * `<pptx-connector-text-overlay>`: renders a connector's text label.
  *
  * **Usage** (inside `ConnectorRendererComponent`'s host wrapper `<div>`):
  * ```html

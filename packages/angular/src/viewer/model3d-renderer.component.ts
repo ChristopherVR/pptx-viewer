@@ -7,11 +7,11 @@ import { buildModel3DContainerStyle, buildModel3DViewModel } from './model3d-ren
 import type { Model3DViewModel } from './model3d-renderer-helpers';
 
 /**
- * Model3DRendererComponent — Angular port of the Vue `Model3DRenderer.vue`
+ * Model3DRendererComponent: Angular port of the Vue `Model3DRenderer.vue`
  * (and the React `Model3DRenderer` / `PosterFallback`), poster-only subset.
  *
  * Interactive 3D rendering (three.js) is intentionally OUT OF SCOPE for the
- * Angular port — see PORTING.md. This component always renders the
+ * Angular port (see PORTING.md). This component always renders the
  * poster/preview image (`posterImage`, falling back to `imageData`); when
  * neither exists it draws a labelled "3D Model" placeholder, exactly like the
  * React poster fallback.

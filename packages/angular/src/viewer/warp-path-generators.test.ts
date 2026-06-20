@@ -36,7 +36,7 @@ describe('shouldUseSvgWarp', () => {
 	});
 });
 
-// ── getWarpPath — path structure ────────────────────────────────────────
+// ── getWarpPath: path structure ────────────────────────────────────────
 
 describe('getWarpPath', () => {
 	const W = 400;

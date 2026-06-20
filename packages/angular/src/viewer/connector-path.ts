@@ -3,7 +3,7 @@
  *
  * These are extracted from the component so they can be unit-tested without
  * the Angular compiler or TestBed (the vitest setup for this package is
- * plain happy-dom, no Analog plugin yet — see PORTING.md).
+ * plain happy-dom, no Analog plugin yet; see PORTING.md).
  *
  * Mirror of the Vue `ConnectorRenderer.vue` helpers and the React
  * `ConnectorElementRenderer` path logic (basic straight-line subset).
@@ -102,7 +102,7 @@ export function buildConnectorGeometry(
 	let pathD = buildConnectorPathD(shapeType, x1, y1, x2, y2, connectorBendFraction(element));
 
 	// Obstacle-avoiding A* routing for bent connectors. Routes in absolute slide
-	// coordinates (so it can detour outside the connector's own bounding box —
+	// coordinates (so it can detour outside the connector's own bounding box;
 	// the SVG uses `overflow: visible`), then translates waypoints back to
 	// element-local space for the path data.
 	if (

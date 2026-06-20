@@ -1,7 +1,7 @@
 /**
  * Pure paragraph bullet / list-marker helpers for the Angular text renderer.
  *
- * No Angular imports — all exports are plain TypeScript functions suitable for
+ * No Angular imports: all exports are plain TypeScript functions suitable for
  * use inside computed signals or template helper calls.
  *
  * Numbering schemes follow the OOXML `ST_TextAutonumberScheme` enumeration
@@ -180,10 +180,10 @@ export function formatAutoNumber(autoNumType: string | undefined, n: number): st
 /**
  * Resolved bullet marker for a single paragraph.
  *
- * `marker`     — the text to prepend (e.g. "•", "1.", "a)").
- * `isNumbered` — true for auto-numbered lists; false for character bullets.
- * `color`      — optional explicit bullet colour (hex string from `BulletInfo.color`).
- * `fontFamily` — optional explicit bullet font (from `BulletInfo.fontFamily`).
+ * `marker`     : the text to prepend (e.g. "•", "1.", "a)").
+ * `isNumbered` : true for auto-numbered lists; false for character bullets.
+ * `color`      : optional explicit bullet colour (hex string from `BulletInfo.color`).
+ * `fontFamily` : optional explicit bullet font (from `BulletInfo.fontFamily`).
  */
 export interface ParagraphBulletResult {
 	marker: string;
@@ -256,7 +256,7 @@ export function resolveParagraphBullet(
 		};
 	}
 
-	// Picture bullets and unsupported cases — no marker to show as text.
+	// Picture bullets and unsupported cases: no marker to show as text.
 	return undefined;
 }
 

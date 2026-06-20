@@ -1,5 +1,5 @@
 /**
- * theme-gallery.component.ts — Angular port of React's `ThemeGallery.tsx` /
+ * theme-gallery.component.ts: Angular port of React's `ThemeGallery.tsx` /
  * Vue's `ThemeGallery.vue`.
  *
  * Shows a grid of built-in deck-theme presets (`THEME_PRESETS` from
@@ -8,7 +8,7 @@
  * the live deck via `applyThemeToData`.
  *
  * Rendered as a fixed overlay (like Vue's `<Teleport to="body">`).  The
- * component is `OnPush` and purely presentational — all state lives in signals.
+ * component is `OnPush` and purely presentational; all state lives in signals.
  */
 import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';

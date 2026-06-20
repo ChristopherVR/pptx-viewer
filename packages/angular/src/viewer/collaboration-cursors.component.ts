@@ -1,5 +1,5 @@
 /**
- * collaboration-cursors.component.ts — Angular port of the Vue
+ * collaboration-cursors.component.ts: Angular port of the Vue
  * `CollaborationCursors.vue` presentational overlay.
  *
  * Selector: `pptx-collaboration-cursors`
@@ -18,8 +18,8 @@
  * The overlay sets `pointer-events: none` so it never intercepts canvas input.
  *
  * Inputs:
- *   - `cursors` — remote collaborators to render (unscaled slide coords)
- *   - `zoom`    — current canvas zoom factor (default: 1)
+ *   - `cursors`: remote collaborators to render (unscaled slide coords)
+ *   - `zoom`: current canvas zoom factor (default: 1)
  */
 
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';

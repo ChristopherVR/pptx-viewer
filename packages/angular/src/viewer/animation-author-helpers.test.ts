@@ -1,8 +1,8 @@
 /**
- * animation-author-helpers.test.ts — Vitest unit tests for the pure authoring
+ * animation-author-helpers.test.ts: Vitest unit tests for the pure authoring
  * helpers in animation-author-helpers.ts.
  *
- * No TestBed — these are plain function tests that run in a Node/happy-dom env.
+ * No TestBed: these are plain function tests that run in a Node/happy-dom env.
  */
 
 import type { PptxElementAnimation } from 'pptx-viewer-core';

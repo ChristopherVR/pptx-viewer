@@ -1,5 +1,5 @@
 /**
- * presentation-subtitle-helpers.ts — Pure helpers for the subtitle/caption bar.
+ * presentation-subtitle-helpers.ts: Pure helpers for the subtitle/caption bar.
  *
  * Isolates all text-segment logic so it can be unit-tested without DOM or
  * Angular dependencies.
@@ -22,7 +22,7 @@ export interface SpeechAlternative {
 }
 
 /**
- * One result from the recognition engine — array of alternatives plus a
+ * One result from the recognition engine: array of alternatives plus a
  * `isFinal` flag that indicates whether this result is stable (true) or
  * still being refined (false, i.e. interim).
  */
@@ -41,7 +41,7 @@ export interface SpeechResultList {
 }
 
 /**
- * Subset of `SpeechRecognitionEvent` — just what we need.
+ * Subset of `SpeechRecognitionEvent`: just what we need.
  */
 export interface SpeechRecognitionEventLite {
 	readonly resultIndex: number;
@@ -78,8 +78,8 @@ export type SpeechRecognitionCtor = new () => SpeechRecognitionLite;
  * suffix. Both are joined and the combined string is trimmed.
  *
  * @param event        The recognition event from `onresult`.
- * @param resultIndex  `event.resultIndex` — the first new result index.
- * @param results      `event.results` — the full results list.
+ * @param resultIndex  `event.resultIndex`: the first new result index.
+ * @param results      `event.results`: the full results list.
  * @returns            The merged caption string, or `''` if nothing recognised.
  */
 export function mergeCaptionResults(resultIndex: number, results: SpeechResultList): string {

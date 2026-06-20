@@ -1,5 +1,5 @@
 /**
- * comments-helpers.test.ts — Unit tests for the pure comment-array transforms.
+ * comments-helpers.test.ts: Unit tests for the pure comment-array transforms.
  *
  * Ports the Vue/React coverage (add / remove / resolve / id-generation /
  * blank-text edge cases). No Angular TestBed required.

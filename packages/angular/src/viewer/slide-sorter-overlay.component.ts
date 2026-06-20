@@ -20,7 +20,7 @@ const THUMB_W = 200;
 const GRID_GAP = 16;
 
 /**
- * SlideSorterOverlayComponent — Angular port of the React `SlideSorterOverlay`.
+ * SlideSorterOverlayComponent: Angular port of the React `SlideSorterOverlay`.
  *
  * Renders a fixed full-screen modal overlay containing a responsive grid of
  * scaled slide previews. Clicking a thumbnail emits `select(index)`; pressing
@@ -252,10 +252,10 @@ export class SlideSorterOverlayComponent {
 	/** Full list of slides to display. */
 	readonly slides = input.required<PptxSlide[]>();
 
-	/** Natural (100 %) canvas dimensions — passed through to SlideCanvasComponent. */
+	/** Natural (100 %) canvas dimensions, passed through to SlideCanvasComponent. */
 	readonly canvasSize = input.required<CanvasSize>();
 
-	/** Media asset lookup table — forwarded to each SlideCanvasComponent. */
+	/** Media asset lookup table, forwarded to each SlideCanvasComponent. */
 	readonly mediaDataUrls = input<Map<string, string>>(new Map());
 
 	/** Zero-based index of the currently active slide (highlighted in blue). */

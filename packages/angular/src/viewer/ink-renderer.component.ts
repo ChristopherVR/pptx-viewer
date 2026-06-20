@@ -7,7 +7,7 @@ import { buildInkContainerStyle, buildInkStrokes, inkViewBox } from './ink-rende
 import type { InkStroke } from './ink-renderer-helpers';
 
 /**
- * InkRendererComponent — Angular port of the Vue `InkRenderer.vue`
+ * InkRendererComponent: Angular port of the Vue `InkRenderer.vue`
  * (and the React `renderInk` inside `InkGroupRenderers.tsx`), viewer-first
  * subset.
  *

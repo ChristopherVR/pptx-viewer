@@ -1,5 +1,5 @@
 /**
- * accessibility-helpers.ts — Pure WCAG / PowerPoint-style accessibility checks
+ * accessibility-helpers.ts: Pure WCAG / PowerPoint-style accessibility checks
  * for the PPTX viewer.
  *
  * No Angular imports; safe to use in web workers or server-side code.

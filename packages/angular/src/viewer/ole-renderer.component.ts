@@ -16,7 +16,7 @@ import {
 import type { ResolvedOleType } from './ole-renderer-helpers';
 
 /**
- * OleRendererComponent — Angular port of the React `renderOleElement`
+ * OleRendererComponent: Angular port of the React `renderOleElement`
  * (packages/react/src/viewer/components/elements/InkGroupRenderers.tsx) and
  * the Vue `OleRenderer.vue`.
  *
@@ -352,7 +352,7 @@ export class OleRendererComponent {
 		getContainerStyle(this.element(), this.zIndex()),
 	);
 
-	/** Narrowed OLE element — undefined when the input is not `type === 'ole'`. */
+	/** Narrowed OLE element: undefined when the input is not `type === 'ole'`. */
 	private readonly ole = computed<OlePptxElement | undefined>(() => {
 		const el = this.element();
 		return el.type === 'ole' ? el : undefined;

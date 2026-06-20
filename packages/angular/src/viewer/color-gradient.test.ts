@@ -255,7 +255,7 @@ describe('buildShapePathGradient', () => {
 });
 
 // ---------------------------------------------------------------------------
-// buildCssGradientFromShapeStyle — top-level integration
+// buildCssGradientFromShapeStyle: top-level integration
 // ---------------------------------------------------------------------------
 
 describe('buildCssGradientFromShapeStyle', () => {

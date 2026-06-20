@@ -7,7 +7,7 @@
  * `packages/shared/src` into `packages/angular/src/internal/shared-src` (a
  * generated, git-ignored directory) and import it locally. The result is that
  * the shared code ships **inlined** in the FESM and `pptx-viewer-shared` never
- * appears in the published `package.json` — it stays a private workspace
+ * appears in the published `package.json`; it stays a private workspace
  * package.
  *
  * Runs before `build`, `typecheck`, and `test`. Test files are excluded.

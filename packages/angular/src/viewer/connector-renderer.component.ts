@@ -7,7 +7,7 @@ import type { Rect } from './connector-routing';
 import { ConnectorTextOverlayComponent } from './connector-text-overlay.component';
 
 /**
- * ConnectorRendererComponent — Angular port of the Vue `ConnectorRenderer.vue`
+ * ConnectorRendererComponent: Angular port of the Vue `ConnectorRenderer.vue`
  * (and the React `ConnectorElementRenderer`, basic subset).
  *
  * Renders straight connectors/lines as an inline SVG spanning the element's
@@ -127,7 +127,7 @@ export class ConnectorRendererComponent {
 	readonly obstacles = input<readonly Rect[]>([]);
 	readonly canvasWidth = input<number>(0);
 	readonly canvasHeight = input<number>(0);
-	/** See ElementRenderer.interactive — gates the data-pptx-element contract attr. */
+	/** See ElementRenderer.interactive: gates the data-pptx-element contract attr. */
 	readonly interactive = input<boolean>(true);
 
 	/** All derived geometry, recomputed on every input change. */

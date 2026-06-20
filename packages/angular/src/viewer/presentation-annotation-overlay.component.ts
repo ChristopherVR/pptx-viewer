@@ -1,5 +1,5 @@
 /**
- * presentation-annotation-overlay.component.ts — SVG overlay that captures
+ * presentation-annotation-overlay.component.ts: SVG overlay that captures
  * pointer events and renders ink strokes + laser dot during presentation mode.
  *
  * Ported from React:

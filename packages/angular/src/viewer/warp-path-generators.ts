@@ -10,7 +10,7 @@
  * renderer (`text-warp.ts`) treats only this *narrow* set as `<textPath>`-routed
  * presets and CSS-approximates the envelope/simple families. Shared's
  * `SVG_WARP_PRESETS` is a broader set (every path-renderable preset), so it must
- * not be substituted here — doing so would route envelope/simple presets to
+ * not be substituted here; doing so would route envelope/simple presets to
  * `<textPath>` and break the css-strategy routing (and its tests).
  */
 import type { PptxTextWarpPreset } from 'pptx-viewer-core';
@@ -21,7 +21,7 @@ export type { WarpPathGenerator } from '../internal/shared';
 /**
  * Presets that the Angular renderer draws with SVG `<textPath>` along a
  * curved/circular path. Envelope (inflate/deflate/can) and simple (slant/fade/
- * cascade) presets are intentionally absent — they are CSS-approximated by
+ * cascade) presets are intentionally absent; they are CSS-approximated by
  * `text-warp.ts`. This set must stay in sync with that file's `PATH_PRESETS`.
  */
 export const SVG_WARP_PRESETS: ReadonlySet<string> = new Set([

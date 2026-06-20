@@ -1,5 +1,5 @@
 /**
- * properties-dialog-helpers.ts — Pure (no Angular) helpers for the document
+ * properties-dialog-helpers.ts: Pure (no Angular) helpers for the document
  * properties dialog.
  *
  * Mirrors the read / format / diff logic of the Vue `PropertiesDialog.vue`:

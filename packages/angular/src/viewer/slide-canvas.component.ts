@@ -34,7 +34,7 @@ const DRAG_THRESHOLD = 3;
 
 // ── Ruler constants ───────────────────────────────────────────────────────────
 
-/** Height/width (px) of the ruler strips — mirrors React's RULER_THICKNESS. */
+/** Height/width (px) of the ruler strips: mirrors React's RULER_THICKNESS. */
 const RULER_THICKNESS = 20;
 /** Pixels per inch on the slide canvas (PPTX slides are 10" wide = 960 px). */
 const SLIDE_PX_PER_INCH = 96;
@@ -74,9 +74,9 @@ function generateRulerTicks(slidePx: number, scale: number): ReadonlyArray<Ruler
 	}
 	return ticks;
 }
-/** Handle size in screen pixels (fine pointer — mouse/trackpad). */
+/** Handle size in screen pixels (fine pointer: mouse/trackpad). */
 const HANDLE_SCREEN_PX_FINE = 9;
-/** Handle size in screen pixels (coarse pointer — touch); larger hit target. */
+/** Handle size in screen pixels (coarse pointer: touch); larger hit target. */
 const HANDLE_SCREEN_PX_COARSE = 20;
 /** Snap distance (screen pixels) for alignment guides. */
 const SNAP_SCREEN_PX = 6;
@@ -128,7 +128,7 @@ function plainText(el: PptxElement): string {
 }
 
 /**
- * SlideCanvasComponent — Angular port of the React `SlideCanvas.tsx` and Vue
+ * SlideCanvasComponent: Angular port of the React `SlideCanvas.tsx` and Vue
  * `SlideCanvas.vue`.
  *
  * Renders the active slide as a fixed-size stage scaled by `zoom`, with each
@@ -272,7 +272,7 @@ function plainText(el: PptxElement): string {
 					}
 
 					<!--
-						View overlays — editor aids only, never on thumbnails/preview/presentation.
+						View overlays: editor aids only, never on thumbnails/preview/presentation.
 						All are pointer-events:none so they never break selection/drag.
 						None carry data-pptx-element / aria-roledescription / data-pptx-viewport.
 					-->
@@ -309,7 +309,7 @@ function plainText(el: PptxElement): string {
 					@if (interactive() && showGuides()) {
 						<!--
 							Center crosshair: one horizontal line and one vertical line
-							through the midpoint of the slide. Static — draggable guides
+							through the midpoint of the slide. Static; draggable guides
 							are a follow-up.
 						-->
 						<svg
@@ -346,7 +346,7 @@ function plainText(el: PptxElement): string {
 							drag handle. Double-click the handle to delete the guide.
 						-->
 						@for (g of rulerGuides(); track g.id) {
-							<!-- Guide line body — pointer-events:none -->
+							<!-- Guide line body: pointer-events:none -->
 							<div
 								class="pptx-ng-ruler-guide-line"
 								[style.left.px]="g.axis === 'x' ? g.pos : 0"
@@ -354,7 +354,7 @@ function plainText(el: PptxElement): string {
 								[style.width]="g.axis === 'x' ? '1px' : '100%'"
 								[style.height]="g.axis === 'y' ? '1px' : '100%'"
 							></div>
-							<!-- Drag handle — pointer-events:auto -->
+							<!-- Drag handle: pointer-events:auto -->
 							<div
 								class="pptx-ng-ruler-guide-handle"
 								[style.left.px]="g.axis === 'x' ? g.pos - 4 : 0"
@@ -370,7 +370,7 @@ function plainText(el: PptxElement): string {
 					}
 
 					<!--
-						Live ink stroke preview — shown while the user is drawing.
+						Live ink stroke preview: shown while the user is drawing.
 						pointer-events:none so it never intercepts element gestures.
 						No data-pptx-element / aria-roledescription / data-pptx-viewport.
 					-->
@@ -396,7 +396,7 @@ function plainText(el: PptxElement): string {
 				</div>
 
 				<!--
-					Ruler strips — siblings to the scaled stage inside the wrapper div,
+					Ruler strips: siblings to the scaled stage inside the wrapper div,
 					absolutely positioned at top:0/left:0 within the wrapper's padding area.
 					The wrapper's padding (RULER_THICKNESS px top+left) reserves space for
 					these strips so the stage content starts below/right of them.
@@ -406,7 +406,7 @@ function plainText(el: PptxElement): string {
 					<!-- Corner square at the intersection of the two ruler strips -->
 					<div class="pptx-ng-ruler-corner" aria-hidden="true"></div>
 
-					<!-- Horizontal ruler — spans the top padding row of the wrapper -->
+					<!-- Horizontal ruler: spans the top padding row of the wrapper -->
 					<svg
 						class="pptx-ng-ruler-h"
 						aria-hidden="true"
@@ -451,7 +451,7 @@ function plainText(el: PptxElement): string {
 						}
 					</svg>
 
-					<!-- Vertical ruler — spans the left padding column of the wrapper -->
+					<!-- Vertical ruler: spans the left padding column of the wrapper -->
 					<svg
 						class="pptx-ng-ruler-v"
 						aria-hidden="true"
@@ -509,7 +509,7 @@ export class SlideCanvasComponent {
 	readonly editable = input<boolean>(false);
 	/**
 	 * When true, render a dot-grid overlay on the slide stage.
-	 * Only active on the interactive (main editor) canvas — ignored on thumbnails.
+	 * Only active on the interactive (main editor) canvas; ignored on thumbnails.
 	 * Defaults false so nothing changes unless toggled from the ribbon View tab.
 	 */
 	readonly showGrid = input<boolean>(false);
@@ -536,7 +536,7 @@ export class SlideCanvasComponent {
 	 * When true (default), the stage auto-fits the slide to the scroll viewport so
 	 * the user's `zoom` is relative to "fit". Thumbnail consumers (slides panel,
 	 * slide sorter) pass an explicit fit-to-width `zoom` and set this `false`, so
-	 * their `zoom` is the sole scale — otherwise the two scales compound and the
+	 * their `zoom` is the sole scale; otherwise the two scales compound and the
 	 * thumbnail shrinks to near-invisible.
 	 */
 	readonly autoFit = input<boolean>(true);
@@ -697,7 +697,7 @@ export class SlideCanvasComponent {
 	 * reserving the 1rem gutter + drop shadow. Sets fitScale to 1 when unmeasured.
 	 */
 	private recomputeFit(): void {
-		// Thumbnail consumers manage their own scale via `zoom` — keep fit at 1 so
+		// Thumbnail consumers manage their own scale via `zoom`; keep fit at 1 so
 		// the two scales don't compound.
 		if (!this.autoFit()) {
 			this.fitScale.set(1);
@@ -816,14 +816,14 @@ export class SlideCanvasComponent {
 		}
 		// A press that reaches the stage started OUTSIDE the inline text editor
 		// (the textarea stops its own pointerdown). Flush the edit synchronously by
-		// blurring it — this routes through commitText → textCommit now, instead of
+		// blurring it: this routes through commitText → textCommit now, instead of
 		// relying on the native blur firing before pointerup clears selection, which
 		// is unreliable on touch.
 		if (this.editingId()) {
 			this.textEditor()?.nativeElement.blur();
 		}
 
-		// ── DRAW BRANCH — must come before the select/marquee/drag path ─────────
+		// ── DRAW BRANCH: must come before the select/marquee/drag path ─────────
 		// When a draw tool is active, pointer gestures capture strokes; none of
 		// the select/marquee/drag logic should run.
 		if (this.drawTool() !== 'select') {
@@ -1156,7 +1156,7 @@ export class SlideCanvasComponent {
 			box = { ...box, x: snap.x, y: snap.y };
 			this.snapGuides.set(snap.guides);
 
-			// Grid snap — applied after element-edge snap so grid takes precedence.
+			// Grid snap: applied after element-edge snap so grid takes precedence.
 			if (this.snapToGrid()) {
 				const step = this.gridSpacingPx();
 				box = {
@@ -1166,7 +1166,7 @@ export class SlideCanvasComponent {
 				};
 			}
 
-			// Guide snap — snap the moving element to the nearest user guide.
+			// Guide snap: snap the moving element to the nearest user guide.
 			if (this.snapToGuides()) {
 				const guides = this.rulerGuides();
 				const thr = SNAP_SCREEN_PX / zoom;
@@ -1330,7 +1330,7 @@ export class SlideCanvasComponent {
 	/**
 	 * Public accessor of the internal effective scale for ruler/overlay sizing
 	 * inside the template. The field itself must stay private because it is
-	 * consumed by many internal methods — exposing it directly via `protected`
+	 * consumed by many internal methods; exposing it directly via `protected`
 	 * accessor avoids renaming all callers.
 	 */
 	readonly effectiveScalePublic = computed(() => this.effectiveScale());
@@ -1339,7 +1339,7 @@ export class SlideCanvasComponent {
 	readonly gridSpacingPx = computed(() => 8);
 
 	/**
-	 * SVG dot-grid pattern id — unique per instance so multiple canvases on the
+	 * SVG dot-grid pattern id: unique per instance so multiple canvases on the
 	 * same page do not share the same `<pattern>` definition.
 	 */
 	protected readonly gridPatternId = `pptx-ng-grid-${Math.random().toString(36).slice(2, 8)}`;

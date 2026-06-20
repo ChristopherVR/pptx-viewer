@@ -21,7 +21,7 @@ import {
 import type { CanvasSize } from '../internal/shared';
 
 /**
- * `LoadContentService` — Angular port of the React `useLoadContent` hook and
+ * `LoadContentService`: Angular port of the React `useLoadContent` hook and
  * the Vue `useLoadContent` composable.
  *
  * Parses `.pptx` bytes into reactive signals via the framework-agnostic
@@ -131,7 +131,7 @@ export class LoadContentService {
 				);
 			}
 
-			// Keep an independent copy for signature parsing — the handler may
+			// Keep an independent copy for signature parsing; the handler may
 			// detach/consume the ArrayBuffer during load.
 			const sigBuffer = (buffer as ArrayBuffer).slice(0);
 

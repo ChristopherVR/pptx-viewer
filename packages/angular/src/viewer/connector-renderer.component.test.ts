@@ -3,7 +3,7 @@
  *
  * The Angular compiler (TestBed) requires `@analogjs/vite-plugin-angular` which
  * is a follow-up (see PORTING.md). These tests exercise the pure helpers in
- * `connector-path.ts` directly — no TestBed, no DOM — mirroring the coverage
+ * `connector-path.ts` directly (no TestBed, no DOM), mirroring the coverage
  * of the Vue `ConnectorRenderer.test.ts`.
  */
 import type { PptxElement } from 'pptx-viewer-core';
@@ -164,7 +164,7 @@ describe('buildWrapperStyle', () => {
 });
 
 // ---------------------------------------------------------------------------
-// buildConnectorGeometry — integration / mirrors Vue test coverage
+// buildConnectorGeometry: integration / mirrors Vue test coverage
 // ---------------------------------------------------------------------------
 
 describe('buildConnectorGeometry', () => {

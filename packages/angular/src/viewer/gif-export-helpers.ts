@@ -1,5 +1,5 @@
 /**
- * GIF export helpers for the Angular viewer — thin re-export shim.
+ * GIF export helpers for the Angular viewer: thin re-export shim.
  *
  * The pure GIF89a byte encoder (median-cut quantisation + LZW) and the
  * browser-free planning helpers (frame ordering, per-frame delay, dimension

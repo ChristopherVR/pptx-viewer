@@ -1,5 +1,5 @@
 /**
- * animation-playback-helpers.ts — Angular shim over the shared element-animation
+ * animation-playback-helpers.ts: Angular shim over the shared element-animation
  * playback model.
  *
  * The pure click-group / reveal / pending-style maths now lives in

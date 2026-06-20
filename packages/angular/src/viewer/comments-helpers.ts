@@ -1,5 +1,5 @@
 /**
- * comments-helpers.ts — Pure, framework-agnostic comment-array transforms.
+ * comments-helpers.ts: Pure, framework-agnostic comment-array transforms.
  *
  * Mirrors the mutation logic in the Vue `useComments` composable and the React
  * `useComments-helpers`, but operating on a single slide's comment list (the

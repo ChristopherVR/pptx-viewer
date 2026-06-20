@@ -7,7 +7,7 @@
  *   - fpsToFrameIntervalMs
  *   - segmentFrameCount
  *
- * `recordWebm` drives MediaRecorder and a live canvas — those integration
+ * `recordWebm` drives MediaRecorder and a live canvas; those integration
  * tests belong in an e2e suite and are not included here.
  */
 

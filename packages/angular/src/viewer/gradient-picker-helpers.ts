@@ -1,5 +1,5 @@
 /**
- * gradient-picker-helpers.ts — Pure (no Angular) helpers for GradientPickerComponent.
+ * gradient-picker-helpers.ts: Pure (no Angular) helpers for GradientPickerComponent.
  *
  * Ported from / models the patterns in:
  *   packages/react/src/viewer/components/inspector/FillAdvancedControls.tsx
@@ -10,7 +10,7 @@
  * sensible defaults), and patch-builders produce shallow-merge-ready
  * Partial<PptxElement> objects safe to pass to EditorStateService.updateElement.
  *
- * No `any` — every type is concrete or `unknown` + narrowed.
+ * No `any`; every type is concrete or `unknown` + narrowed.
  */
 
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';

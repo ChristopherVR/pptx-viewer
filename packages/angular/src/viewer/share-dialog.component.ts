@@ -1,5 +1,5 @@
 /**
- * share-dialog.component.ts — Start / stop a real-time collaboration session.
+ * share-dialog.component.ts: Start / stop a real-time collaboration session.
  *
  * Selector: `pptx-share-dialog`
  *

@@ -23,8 +23,8 @@ import { getResolvedShapeClipPath } from './shape-geometry';
  * (the structured gradient builder, pattern fills, custom geometry clip-paths,
  * shadows, 3D, image effects, text warp) are tracked in PORTING.md.
  *
- * Long term the *logic* here is a shared-extraction candidate — only the
- * return type (CSS map shape) differs per framework — so a future refactor
+ * Long term the *logic* here is a shared-extraction candidate; only the
+ * return type (CSS map shape) differs per framework, so a future refactor
  * could hoist a neutral core into `pptx-viewer-shared`.
  */
 
@@ -136,7 +136,7 @@ export function getShapeFillStrokeStyle(el: PptxElement): StyleMap {
 	// reflection, blend mode, effect-DAG alpha). Applied to every return path
 	// below. Mirrors the Vue port's `getComputedEffectStyle` integration. The
 	// duotone DAG `url(#…)` reference is kept only when the matching SVG
-	// <filter> def is actually rendered (i.e. the element has a duotone effect —
+	// <filter> def is actually rendered (i.e. the element has a duotone effect;
 	// the renderer injects the def); otherwise the dangling ref is stripped.
 	const duotone = buildDuotoneFilter(el);
 	const fx = getComputedEffectStyle(el);

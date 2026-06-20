@@ -1,5 +1,5 @@
 /**
- * mobile-toolbar.component.ts — Compact mobile top toolbar.
+ * mobile-toolbar.component.ts: Compact mobile top toolbar.
  *
  * Ported from: packages/react/src/viewer/components/mobile/MobileToolbar.tsx
  *
@@ -17,17 +17,17 @@
  * (`getByRole('toolbar', { name: 'Toolbar' })`).
  *
  * Inputs
- *   canUndo    — whether the undo action is available
- *   canRedo    — whether the redo action is available
- *   canPresent — whether the Present action should be enabled
- *   canEdit    — whether editor-only controls (menu/undo/redo) should render
- *   menuOpen   — whether the mobile menu sheet is currently open
+ *   canUndo    : whether the undo action is available
+ *   canRedo    : whether the redo action is available
+ *   canPresent : whether the Present action should be enabled
+ *   canEdit    : whether editor-only controls (menu/undo/redo) should render
+ *   menuOpen   : whether the mobile menu sheet is currently open
  *
  * Outputs
- *   toggleMenu — user tapped the Menu (hamburger) button
- *   undo       — user tapped Undo
- *   redo       — user tapped Redo
- *   present    — user tapped Present
+ *   toggleMenu : user tapped the Menu (hamburger) button
+ *   undo       : user tapped Undo
+ *   redo       : user tapped Redo
+ *   present    : user tapped Present
  */
 
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
@@ -113,7 +113,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 			<div class="pptx-ng-mtoolbar-spacer"></div>
 
 			<!--
-				Save / download — surfaced directly so it's reachable without the
+				Save / download: surfaced directly so it's reachable without the
 				Menu sheet, and available even in view-only mode where the editor
 				controls above are hidden.
 			-->

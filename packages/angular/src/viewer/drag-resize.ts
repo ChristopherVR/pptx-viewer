@@ -1,7 +1,7 @@
 /**
  * Pure geometry for interactive element drag/resize.
  *
- * Stage-space deltas in, a new bounding box out — no DOM, no framework, so the
+ * Stage-space deltas in, a new bounding box out: no DOM, no framework, so the
  * SlideCanvas pointer wiring stays thin and the maths is unit-testable.
  */
 

@@ -5,7 +5,7 @@
  * Angular `SmartArtRendererComponent` can lay out nodes when no explicit
  * drawing-shapes are present.
  *
- * No Angular imports — all exports are plain TypeScript so they can be
+ * No Angular imports: all exports are plain TypeScript so they can be
  * unit-tested with vitest without TestBed or the Angular compiler.
  *
  * Geometry ported from the React renderers:
@@ -41,7 +41,7 @@ export interface PositionedNode {
 	 */
 	level: number;
 	/**
-	 * Node radius — only set for cycle nodes (rendered as `<circle>`).
+	 * Node radius: only set for cycle nodes (rendered as `<circle>`).
 	 * When defined the caller should render a circle at (x + r, y + r) instead
 	 * of a rect.
 	 */
@@ -421,7 +421,7 @@ function layoutHierarchy(
  * SmartArt diagram described by `data`, fitted inside the given `width` ×
  * `height` viewport.
  *
- * This is a **pure function** — it only reads `data` and produces geometry.
+ * This is a **pure function**: it only reads `data` and produces geometry.
  * Callers are responsible for rendering (`<rect>`/`<circle>` + `<text>` per
  * node, `<line>` per connector).
  *
@@ -453,7 +453,7 @@ export function layoutSmartArtNodes(
 }
 
 /**
- * Depth-first flatten — only the immediate root nodes are used for flat
+ * Depth-first flatten: only the immediate root nodes are used for flat
  * families (process / cycle / list). Children are included so that, for
  * example, a process diagram that happens to have nested nodes still renders
  * every node as a step.

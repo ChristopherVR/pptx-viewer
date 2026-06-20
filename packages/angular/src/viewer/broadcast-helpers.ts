@@ -1,5 +1,5 @@
 /**
- * broadcast-helpers.ts — Pure (no Angular) helpers for the Broadcast dialog.
+ * broadcast-helpers.ts: Pure (no Angular) helpers for the Broadcast dialog.
  *
  * A broadcast is a one-way collaboration session: the presenter drives slide
  * navigation and viewers follow along via a shareable link. These helpers

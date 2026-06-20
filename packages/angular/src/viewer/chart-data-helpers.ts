@@ -1,5 +1,5 @@
 /**
- * chart-data-helpers.ts — Pure immutable helpers for chart data editing.
+ * chart-data-helpers.ts: Pure immutable helpers for chart data editing.
  *
  * Thin wrappers / re-exports around the framework-agnostic core utilities in
  * `pptx-viewer-core` (`chartDataAddSeries`, `chartDataRemoveSeries`, etc.)

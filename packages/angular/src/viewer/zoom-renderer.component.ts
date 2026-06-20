@@ -7,7 +7,7 @@ import { buildZoomContainerStyle, buildZoomViewModel } from './zoom-renderer-hel
 import type { ZoomViewModel } from './zoom-renderer-helpers';
 
 /**
- * ZoomRendererComponent — Angular port of the Vue `ZoomRenderer.vue`
+ * ZoomRendererComponent: Angular port of the Vue `ZoomRenderer.vue`
  * (and the React `ZoomElementRenderer`), static viewer-first subset.
  *
  * Renders a Slide-Zoom / Section-Zoom tile (`ZoomPptxElement`): the element's
@@ -16,7 +16,7 @@ import type { ZoomViewModel } from './zoom-renderer-helpers';
  * is drawn in the corner.
  *
  * Navigation (click-to-jump in presentation mode) and live target-slide preview
- * rendering are NOT ported — this is a static link tile only (see PORTING.md).
+ * rendering are NOT ported; this is a static link tile only (see PORTING.md).
  * The `slides` array is not threaded through, so the fallback uses the target
  * slide index rather than the real target background.
  *

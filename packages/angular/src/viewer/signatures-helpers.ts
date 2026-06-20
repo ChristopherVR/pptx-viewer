@@ -1,10 +1,10 @@
 /**
- * signatures-helpers.ts — Pure functions for digital-signature status
+ * signatures-helpers.ts: Pure functions for digital-signature status
  * derivation and presentation.
  *
  * Angular port of the logic in the Vue `useSignatures` composable and
  * `SignaturesPanel.vue`. These functions are framework-agnostic and fully
- * unit-testable: they never sign, strip, or mutate anything — they only
+ * unit-testable: they never sign, strip, or mutate anything; they only
  * inspect a supplied list of already-parsed signatures and derive display
  * state.
  *

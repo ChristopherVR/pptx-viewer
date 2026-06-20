@@ -1,5 +1,5 @@
 /**
- * embedded-fonts-helpers.test.ts — Unit tests for the pure embedded-font
+ * embedded-fonts-helpers.test.ts: Unit tests for the pure embedded-font
  * helpers (vitest + happy-dom, no TestBed). Ports the Vue `useEmbeddedFonts`
  * coverage to the pure string-building layer.
  */
@@ -74,7 +74,7 @@ describe('isInjectableUrl', () => {
 
 	it('rejects empty / non-string input', () => {
 		expect(isInjectableUrl('')).toBeFalsy();
-		// @ts-expect-error — guarding the runtime non-string path
+		// @ts-expect-error: guarding the runtime non-string path
 		expect(isInjectableUrl(null)).toBeFalsy();
 	});
 
@@ -212,7 +212,7 @@ describe('buildEmbeddedFontStyles', () => {
 	it('de-obfuscates obfuscated bytes when no data URL is present', () => {
 		const guid = 'F7A0C94A-3F90-4C3A-AE50-B05A7B0F6C65';
 		const clear = makeTtfBytes();
-		// obfuscateFont === deobfuscateFont (XOR self-inverse) — produce the
+		// obfuscateFont === deobfuscateFont (XOR self-inverse); produce the
 		// scrambled bytes a PPTX would have stored on disk.
 		const obfuscated = obfuscateFont(clear, guid);
 

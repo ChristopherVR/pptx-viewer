@@ -1,5 +1,5 @@
 /**
- * print-dialog.component.ts — Full-featured print dialog for the PPTX viewer.
+ * print-dialog.component.ts: Full-featured print dialog for the PPTX viewer.
  *
  * Selector: `pptx-print-dialog`
  *

@@ -1,5 +1,5 @@
 /**
- * animation-author-panel.component.ts — Animation authoring inspector sub-panel.
+ * animation-author-panel.component.ts: Animation authoring inspector sub-panel.
  *
  * Selector: `pptx-animation-author-panel`
  *
@@ -10,11 +10,11 @@
  *
  * Contract
  * ────────
- *   [element]           — the selected PptxElement (required)
- *   [slideIndex]        — zero-based index of the active slide (required)
- *   [animations]        — the active slide's PptxElementAnimation[] (required)
- *   [canEdit]           — whether editing is permitted (default: true)
- *   (animationsChange)  — emits the full updated PptxElementAnimation[] for the
+ *   [element]           : the selected PptxElement (required)
+ *   [slideIndex]        : zero-based index of the active slide (required)
+ *   [animations]        : the active slide's PptxElementAnimation[] (required)
+ *   [canEdit]           : whether editing is permitted (default: true)
+ *   (animationsChange)  : emits the full updated PptxElementAnimation[] for the
  *                         orchestrator to commit via
  *                         EditorStateService.updateSlide(slideIndex, { animations })
  *
@@ -138,7 +138,7 @@ import {
 				</select>
 			</section>
 
-			<!-- ── Effect options — only shown when an animation is set ─────── -->
+			<!-- ── Effect options: only shown when an animation is set ─────── -->
 			@if (currentHasAnimation()) {
 				<!-- ── Direction picker (directional presets only) ──────────── -->
 				@if (currentShowDirection()) {
@@ -521,7 +521,7 @@ export class AnimationAuthorPanelComponent {
 
 	/**
 	 * The active slide's full `PptxElementAnimation[]` array. Animations are
-	 * stored on the slide, NOT on the element — this component reads and
+	 * stored on the slide, NOT on the element; this component reads and
 	 * emits the entire array.
 	 */
 	readonly animations = input.required<readonly PptxElementAnimation[]>();
@@ -575,7 +575,7 @@ export class AnimationAuthorPanelComponent {
 	);
 
 	/**
-	 * Stable seed for number inputs — recomputed only on element change so
+	 * Stable seed for number inputs, recomputed only on element change so
 	 * live typing does not reset the input value while the user is mid-edit.
 	 */
 	protected readonly seed = computed(() => {
@@ -600,7 +600,7 @@ export class AnimationAuthorPanelComponent {
 	});
 
 	/**
-	 * Elements on the slide excluding the selected element — used to populate
+	 * Elements on the slide excluding the selected element, used to populate
 	 * the trigger-shape selector. The slide's elements are not available in this
 	 * component's inputs, so the orchestrator must pass them in via
 	 * `[animations]` indirectly; here we surface only what we have access to.

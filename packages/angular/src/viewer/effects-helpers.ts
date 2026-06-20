@@ -1,5 +1,5 @@
 /**
- * effects-helpers.ts — Pure (no Angular) helpers for EffectsPanelComponent.
+ * effects-helpers.ts: Pure (no Angular) helpers for EffectsPanelComponent.
  *
  * Ported from / models the patterns in:
  *   packages/react/src/viewer/components/inspector/fill-stroke-effect-configs.ts
