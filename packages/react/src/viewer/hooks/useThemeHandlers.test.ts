@@ -10,7 +10,7 @@ import { describe, it, expect, vi } from 'vitest';
 import type { ThemeHandlersResult, UseThemeHandlersInput } from './useThemeHandlers';
 
 // ---------------------------------------------------------------------------
-// Type-level assertions — ensure the new methods exist in the result type
+// Type-level assertions: ensure the new methods exist in the result type
 // ---------------------------------------------------------------------------
 
 describe('themeHandlersResult type contract', () => {

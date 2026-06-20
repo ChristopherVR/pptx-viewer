@@ -45,7 +45,7 @@ function makeGradientImageData(width: number, height: number): ImageData {
 }
 
 // ---------------------------------------------------------------------------
-// encodeGif — structural validation
+// encodeGif: structural validation
 // ---------------------------------------------------------------------------
 
 describe('encodeGif', () => {

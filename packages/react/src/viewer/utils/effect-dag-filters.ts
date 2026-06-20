@@ -1,5 +1,5 @@
 /**
- * Effect DAG filter rendering — thin re-export shim over
+ * Effect DAG filter rendering: thin re-export shim over
  * `pptx-viewer-shared`'s `visual-effects`.
  *
  * Maps parsed `a:effectDag` properties from `ShapeStyle` to CSS filter strings,

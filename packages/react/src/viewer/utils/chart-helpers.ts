@@ -4,8 +4,8 @@
  * Value-range / Y-mapping / axis formatting / palette helpers were consolidated
  * into `pptx-viewer-shared` (`render/chart-helpers.ts` for the linear basics and
  * `render/chart-axis.ts` for log-scale + display-unit helpers). This shim
- * preserves the historical React import surface — including the `PALETTE` alias
- * (= `DEFAULT_CHART_PALETTE`) — so the chart `.tsx` renderers and colocated
+ * preserves the historical React import surface, including the `PALETTE` alias
+ * (= `DEFAULT_CHART_PALETTE`), so the chart `.tsx` renderers and colocated
  * tests keep importing the same names unchanged.
  */
 import { DEFAULT_CHART_PALETTE } from 'pptx-viewer-shared';

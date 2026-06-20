@@ -1,5 +1,5 @@
 /**
- * useTouchGestures — Multi-touch gesture detection for the viewer canvas.
+ * useTouchGestures: Multi-touch gesture detection for the viewer canvas.
  *
  * Supports:
  *   - **Pinch-to-zoom**: Two-finger spread/pinch to zoom in/out.
@@ -33,7 +33,7 @@ export interface TouchGestureCallbacks {
 export interface UseTouchGesturesInput {
 	/** The element to attach touch listeners to. */
 	targetRef: React.RefObject<HTMLElement | null>;
-	/** Current zoom scale — used as the baseline for pinch gestures. */
+	/** Current zoom scale: used as the baseline for pinch gestures. */
 	currentScale: number;
 	/** Callbacks for gesture events. */
 	callbacks: TouchGestureCallbacks;

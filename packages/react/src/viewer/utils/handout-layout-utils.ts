@@ -1,5 +1,5 @@
 /**
- * Handout layout calculations — thin re-export shim.
+ * Handout layout calculations: thin re-export shim.
  *
  * The pure layout math (grid mapping, A4 page geometry, cell positioning,
  * pagination) lives once in `pptx-viewer-shared` (`export/handout-layout`).

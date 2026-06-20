@@ -1,5 +1,5 @@
 /**
- * useSwipeNavigation — Horizontal-swipe slide navigation for touch devices.
+ * useSwipeNavigation: Horizontal-swipe slide navigation for touch devices.
  *
  * Returns `touchstart`/`touchend` handlers to spread onto a container. A
  * predominantly horizontal drag past the threshold fires `onNext` (swipe left)

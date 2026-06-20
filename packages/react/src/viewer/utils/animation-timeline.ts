@@ -1,5 +1,5 @@
 /**
- * Animation Timeline Engine — GAP-04
+ * Animation Timeline Engine: GAP-04
  *
  * Barrel re-export. Implementation split into:
  *   - animation-timeline-types.ts    (interfaces)

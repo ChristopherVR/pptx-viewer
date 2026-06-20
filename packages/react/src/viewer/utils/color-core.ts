@@ -1,5 +1,5 @@
 /**
- * Core color utility functions for the PowerPoint viewer/editor — thin
+ * Core color utility functions for the PowerPoint viewer/editor: thin
  * re-export shim over `pptx-viewer-shared`.
  *
  * The low-level hex/rgb/opacity primitives and the CSS shadow/glow/reflection
@@ -12,7 +12,7 @@
  * `normalizeHexColor` now takes an *optional* `fallback` defaulting to
  * `DEFAULT_TEXT_COLOR` (`#111827`, identical to this binding's constant), so the
  * React single-arg call sites that relied on a default keep working from the
- * single canonical implementation — no duplicate definition, no barrel clash.
+ * single canonical implementation: no duplicate definition, no barrel clash.
  */
 export {
 	createArrayBufferCopy,

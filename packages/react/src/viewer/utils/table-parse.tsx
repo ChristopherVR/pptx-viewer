@@ -1,4 +1,4 @@
-// Barrel re-export — all table parsing helpers.
+// Barrel re-export: all table parsing helpers.
 // Split into domain-focused modules for maintainability (max 300 lines each).
 
 export { parseGradientFillCss, parsePatternFillCss, parseCellBorders } from './table-cell-fill';

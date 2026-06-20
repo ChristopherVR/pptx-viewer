@@ -2,8 +2,8 @@
  * Thin adapter shim. The pure native-animation helpers (`resolveEffect`,
  * `buildDynamicKeyframes`, `cssKeyframeName`, `defaultDuration`,
  * `fillModeForClass`) now live in `pptx-viewer-shared`
- * (`render/animation-timeline-helpers`). Only `readFileAsDataUrl` — which uses
- * the DOM `FileReader` — stays in the React binding.
+ * (`render/animation-timeline-helpers`). Only `readFileAsDataUrl`, which uses
+ * the DOM `FileReader`, stays in the React binding.
  */
 export {
 	resolveEffect,
@@ -14,7 +14,7 @@ export {
 } from 'pptx-viewer-shared';
 
 // ==========================================================================
-// File reading utility (DOM `FileReader` — binding-only)
+// File reading utility (DOM `FileReader`, binding-only)
 // ==========================================================================
 
 export async function readFileAsDataUrl(file: File): Promise<string> {

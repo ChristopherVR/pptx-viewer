@@ -1,13 +1,13 @@
 /**
- * Animation utilities — barrel re-export.
+ * Animation utilities: barrel re-export.
  *
  * Implementation split into sub-modules:
- *   animation-types.ts     — AnimationStep interface, EffectName type
- *   animation-presets.ts   — PRESET_ID_TO_EFFECT mapping
- *   animation-keyframes.ts — CSS @keyframes definitions
- *   animation-effects.ts   — entrance effects, initial style helpers
- *   animation-helpers.ts   — resolveEffect, dynamic keyframes, readFileAsDataUrl
- *   animation-sequencer.ts — AnimationSequencer class
+ *   animation-types.ts     - AnimationStep interface, EffectName type
+ *   animation-presets.ts   - PRESET_ID_TO_EFFECT mapping
+ *   animation-keyframes.ts - CSS @keyframes definitions
+ *   animation-effects.ts   - entrance effects, initial style helpers
+ *   animation-helpers.ts   - resolveEffect, dynamic keyframes, readFileAsDataUrl
+ *   animation-sequencer.ts - AnimationSequencer class
  */
 export type { AnimationStep } from './animation-types';
 export { PRESET_ID_TO_EFFECT } from './animation-presets';

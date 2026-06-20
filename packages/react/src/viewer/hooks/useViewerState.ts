@@ -1,5 +1,5 @@
 /**
- * useViewerState — Barrel hook composing core + UI state.
+ * useViewerState: Barrel hook composing core + UI state.
  *
  * This is the top-level state hook for the PowerPoint Viewer. It delegates
  * to {@link useViewerCoreState} (slides, elements, refs, presentation data)
@@ -30,7 +30,7 @@ export interface UseViewerStateInput {
 }
 
 /**
- * The unified viewer state — intersection of core state (slides, elements,
+ * The unified viewer state: intersection of core state (slides, elements,
  * refs, presentation metadata) and UI state (panel toggles, tools, grid/snap).
  */
 export type ViewerState = ViewerCoreState & ViewerUIState;

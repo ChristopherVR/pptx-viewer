@@ -1,5 +1,5 @@
 /**
- * Slide export utilities — PNG, PDF, SVG, Video (WebM), GIF, and Package export.
+ * Slide export utilities: PNG, PDF, SVG, Video (WebM), GIF, and Package export.
  *
  * Barrel re-export. Implementation split into:
  *   - export-helpers.ts   (types + shared helpers)

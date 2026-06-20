@@ -1,5 +1,5 @@
 /**
- * Thin adapter shim — the initial-style resolution now lives in
+ * Thin adapter shim: the initial-style resolution now lives in
  * `pptx-viewer-shared` (`render/animation-effects`). Shared returns a neutral
  * `AnimationStyle` (camelCase inline-style map); these wrappers re-type the
  * result as `React.CSSProperties` so React consumers/tests are unchanged.

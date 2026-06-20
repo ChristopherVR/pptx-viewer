@@ -1,5 +1,5 @@
 /**
- * latex-to-omml.ts — thin re-export shim over `pptx-viewer-shared`.
+ * latex-to-omml.ts: thin re-export shim over `pptx-viewer-shared`.
  *
  * The LaTeX ↔ OMML conversion logic (formerly split across
  * `latex-to-omml-{constants,constructs,parser,reverse}.ts`) is consolidated in
@@ -8,7 +8,7 @@
  * historical React import path / symbol surface (`convertLatexToOmml`,
  * `convertOmmlToLatex`) so consumers keep importing unchanged names.
  *
- * No deliberate divergence — React's previous local modules were behaviourally
+ * No deliberate divergence: React's previous local modules were behaviourally
  * equivalent to shared's consolidated implementation.
  */
 export { convertLatexToOmml, convertOmmlToLatex } from 'pptx-viewer-shared';

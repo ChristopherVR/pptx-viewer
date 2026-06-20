@@ -3,7 +3,7 @@ import React from 'react';
 
 import { colour, nodeOpacity, styleShadow, styleStroke, truncate } from './smartart-helpers';
 
-/** upwardArrow — vertical column, bottom-to-top, with upward arrow. */
+/** upwardArrow: vertical column, bottom-to-top, with upward arrow. */
 export function renderUpwardArrow(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],

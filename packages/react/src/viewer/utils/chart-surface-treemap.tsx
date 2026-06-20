@@ -96,7 +96,7 @@ function renderIsometricSurfaceChart(
 	const cols = catCount - 1;
 	const rows = seriesCount - 1;
 
-	// Isometric cell size — scale so the projected grid fits in the plot area.
+	// Isometric cell size: scale so the projected grid fits in the plot area.
 	// The isometric bounding box of a (cols x rows) grid with cellSize s:
 	//   width  = (cols + rows) * s * cos30
 	//   height = (cols + rows) * s * sin30 + zRange * zScale
@@ -316,7 +316,7 @@ export function renderSurfaceChart(
 	return renderFlatSurfaceChart(element, chartData, categoryLabels);
 }
 
-/** Render a treemap chart — hierarchical rectangles. */
+/** Render a treemap chart: hierarchical rectangles. */
 export function renderTreemapChart(
 	element: PptxElement,
 	chartData: PptxChartData,

@@ -1,7 +1,7 @@
 /**
  * Re-export of applyJoinCapCompound for stroke serialization tests.
  * The canonical implementation lives in shape-style-line-helpers.ts in the
- * pptx-editor core builders — this thin wrapper exposes it for tests.
+ * pptx-editor core builders; this thin wrapper exposes it for tests.
  */
 
 import type { ShapeStyle, XmlObject } from 'pptx-viewer-core';

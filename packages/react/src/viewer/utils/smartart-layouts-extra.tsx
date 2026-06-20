@@ -12,7 +12,7 @@ import { colour, nodeOpacity, styleShadow, styleStroke, truncate } from './smart
 
 // ── Step-Down Process ───────────────────────────────────────────────────────
 
-/** stepDownProcess — diagonal descending steps. */
+/** stepDownProcess: diagonal descending steps. */
 export function renderStepDownProcess(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],
@@ -88,7 +88,7 @@ export function renderStepDownProcess(
 
 // ── Alternating Flow ────────────────────────────────────────────────────────
 
-/** alternatingFlow — nodes alternate left/right of a central spine. */
+/** alternatingFlow: nodes alternate left/right of a central spine. */
 export function renderAlternatingFlow(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],
@@ -174,7 +174,7 @@ export function renderAlternatingFlow(
 
 // ── Descending Process ──────────────────────────────────────────────────────
 
-/** descendingProcess — top-to-bottom with progressively narrower boxes. */
+/** descendingProcess: top-to-bottom with progressively narrower boxes. */
 export function renderDescendingProcess(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],
@@ -257,7 +257,7 @@ export function renderDescendingProcess(
 
 // ── Picture Accent List ─────────────────────────────────────────────────────
 
-/** pictureAccentList — list with accent circles and text boxes. */
+/** pictureAccentList: list with accent circles and text boxes. */
 export function renderPictureAccentList(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],
@@ -345,7 +345,7 @@ export function renderPictureAccentList(
 
 // ── Vertical Block List ─────────────────────────────────────────────────────
 
-/** verticalBlockList — numbered header bars with body text. */
+/** verticalBlockList: numbered header bars with body text. */
 export function renderVerticalBlockList(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],
@@ -435,7 +435,7 @@ export function renderVerticalBlockList(
 
 // ── Grouped List ────────────────────────────────────────────────────────────
 
-/** groupedList — items grouped into columns with a header. */
+/** groupedList: items grouped into columns with a header. */
 export function renderGroupedList(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],
@@ -542,7 +542,7 @@ export function renderGroupedList(
 
 // ── Pyramid List ────────────────────────────────────────────────────────────
 
-/** pyramidList — pyramid segments on left with text callouts on right. */
+/** pyramidList: pyramid segments on left with text callouts on right. */
 export function renderPyramidList(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],
@@ -631,7 +631,7 @@ export function renderPyramidList(
 
 // ── Horizontal Picture List ─────────────────────────────────────────────────
 
-/** horizontalPictureList — row of circles with text labels below. */
+/** horizontalPictureList: row of circles with text labels below. */
 export function renderHorizontalPictureList(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],
@@ -708,7 +708,7 @@ export function renderHorizontalPictureList(
 
 // ── Accent Process ──────────────────────────────────────────────────────────
 
-/** accentProcess — process with accent circles behind boxes. */
+/** accentProcess: process with accent circles behind boxes. */
 export function renderAccentProcess(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],
@@ -795,7 +795,7 @@ export function renderAccentProcess(
 
 // ── Vertical Chevron List ───────────────────────────────────────────────────
 
-/** verticalChevronList — vertically stacked chevron arrows. */
+/** verticalChevronList: vertically stacked chevron arrows. */
 export function renderVerticalChevronList(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],

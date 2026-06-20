@@ -19,7 +19,7 @@ function gearPath(cx: number, cy: number, outerR: number, innerR: number, teeth:
 	return segments.join(' ');
 }
 
-/** interlockingGears — gear shapes with label sidebar. */
+/** interlockingGears: gear shapes with label sidebar. */
 export function renderGear(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],

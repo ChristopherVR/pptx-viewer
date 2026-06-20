@@ -246,7 +246,7 @@ export function usePresentationAnnotations(
 			setPresentationToolState('none');
 			setCurrentStroke(null);
 			setLaserPosition(null);
-			// Note: We do NOT clear annotations here — they persist until the
+			// Note: We do NOT clear annotations here; they persist until the
 			// user decides to keep or discard them via the dialog.
 			return;
 		}

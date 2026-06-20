@@ -221,7 +221,7 @@ export function extractTableCellStyle(
 		}
 	}
 
-	// Text direction from `vert` attribute — apply CSS writing-mode + text-orientation
+	// Text direction from `vert` attribute: apply CSS writing-mode + text-orientation
 	if (cellProperties?.['@_vert']) {
 		const vert = String(cellProperties['@_vert']);
 		switch (vert) {

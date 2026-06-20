@@ -5,7 +5,7 @@ import { renderTitle, renderLegend } from './chart-chrome';
 import { formatAxisValue, paletteColor } from './chart-helpers';
 import { computeLayout } from './chart-layout';
 
-/** Render a sunburst chart — concentric ring arcs. */
+/** Render a sunburst chart: concentric ring arcs. */
 export function renderSunburstChart(
 	element: PptxElement,
 	chartData: PptxChartData,
@@ -71,7 +71,7 @@ export function renderSunburstChart(
 	);
 }
 
-/** Render a funnel chart — descending trapezoids. */
+/** Render a funnel chart: descending trapezoids. */
 export function renderFunnelChart(
 	element: PptxElement,
 	chartData: PptxChartData,

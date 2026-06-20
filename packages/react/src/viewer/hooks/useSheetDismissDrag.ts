@@ -22,7 +22,7 @@ export interface SheetDismissDrag {
  * region down past `threshold` px invokes `onClose`; anything less snaps back.
  *
  * Centralising this keeps every sheet (menu, slides, inspector/format,
- * comments) consistent — previously only the `MobileSheet`-based sheets could
+ * comments) consistent: previously only the `MobileSheet`-based sheets could
  * be swiped closed while the inspector's handle was purely decorative.
  */
 export function useSheetDismissDrag(onClose: () => void, threshold = 120): SheetDismissDrag {

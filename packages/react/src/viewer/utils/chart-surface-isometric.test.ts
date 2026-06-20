@@ -69,7 +69,7 @@ describe('isometric projection: isoProject', () => {
 		expect(screenY).toBeCloseTo((-5 + -3) * ISO_SIN30 - 2, 10);
 	});
 
-	it('should be linear — sum of projections equals projection of sum', () => {
+	it('should be linear: sum of projections equals projection of sum', () => {
 		const a = isoProject(3, 4, 1);
 		const b = isoProject(2, 1, 3);
 		const sum = isoProject(3 + 2, 4 + 1, 1 + 3);

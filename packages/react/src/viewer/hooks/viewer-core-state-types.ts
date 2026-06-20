@@ -79,9 +79,9 @@ export interface ViewerCoreState {
 	mediaInputRef: React.RefObject<HTMLInputElement | null>;
 	/** Mutable ref mirroring `activeSlideIndex` for use in event handlers that must not re-subscribe on index change. */
 	activeSlideIndexRef: React.MutableRefObject<number>;
-	/** Mutable ref mirroring `inlineEditingElementId` — always current without waiting for a re-render. */
+	/** Mutable ref mirroring `inlineEditingElementId`: always current without waiting for a re-render. */
 	inlineEditingElementIdRef: React.MutableRefObject<string | null>;
-	/** Mutable ref mirroring `inlineEditingText` — always current without waiting for a re-render. */
+	/** Mutable ref mirroring `inlineEditingText`: always current without waiting for a re-render. */
 	inlineEditingTextRef: React.MutableRefObject<string>;
 	/** Tracks the in-progress drag operation (move) for element(s). */
 	dragStateRef: React.MutableRefObject<DragState | null>;
@@ -238,7 +238,7 @@ export interface ViewerCoreState {
 	elementLookup: Map<string, PptxElement>;
 	/** The single primarily-selected element, resolved from `selectedElementId`. */
 	selectedElement: PptxElement | null;
-	/** Union of `selectedElementIds` and `selectedElementId` — the canonical list of selected ids. */
+	/** Union of `selectedElementIds` and `selectedElementId`: the canonical list of selected ids. */
 	effectiveSelectedIds: string[];
 	/** Set form of `effectiveSelectedIds` for O(1) membership checks. */
 	selectedElementIdSet: Set<string>;

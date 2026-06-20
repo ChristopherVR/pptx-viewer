@@ -2,7 +2,7 @@ import type { MediaPptxElement, MediaCaptionTrack, MediaMetadata } from 'pptx-vi
 import React, { useEffect, useState } from 'react';
 
 // ---------------------------------------------------------------------------
-// MediaMetadataExtractor — extracts duration, resolution, codec from
+// MediaMetadataExtractor: extracts duration, resolution, codec from
 // HTMLMediaElement and writes back to element.metadata lazily.
 // ---------------------------------------------------------------------------
 
@@ -62,7 +62,7 @@ export function useMediaMetadataExtraction(
 }
 
 // ---------------------------------------------------------------------------
-// CaptionTrackRenderer — renders <track> elements for closed captions
+// CaptionTrackRenderer: renders <track> elements for closed captions
 // ---------------------------------------------------------------------------
 
 interface CaptionTrackRendererProps {
@@ -99,7 +99,7 @@ export function CaptionTrackRenderer({
 }
 
 // ---------------------------------------------------------------------------
-// MediaNotFoundPlaceholder — shown when media file is missing/broken
+// MediaNotFoundPlaceholder: shown when media file is missing/broken
 // ---------------------------------------------------------------------------
 
 interface MediaNotFoundPlaceholderProps {
@@ -139,7 +139,7 @@ export function MediaNotFoundPlaceholder({
 }
 
 // ---------------------------------------------------------------------------
-// VideoWithMetadata — wraps video element and extracts metadata
+// VideoWithMetadata: wraps video element and extracts metadata
 // ---------------------------------------------------------------------------
 
 interface VideoWithMetadataProps {
@@ -193,7 +193,7 @@ export function VideoWithMetadata({
 }
 
 // ---------------------------------------------------------------------------
-// AudioWithMetadata — wraps audio element and extracts metadata
+// AudioWithMetadata: wraps audio element and extracts metadata
 // ---------------------------------------------------------------------------
 
 interface AudioWithMetadataProps {

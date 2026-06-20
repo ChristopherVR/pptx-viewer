@@ -12,7 +12,7 @@ import type {
 } from 'pptx-viewer-core';
 import { guidePxToEmu, hasTextProperties } from 'pptx-viewer-core';
 /**
- * useSerialize — Builds the `serializeSlides` callback that persists the
+ * useSerialize: Builds the `serializeSlides` callback that persists the
  * current slide deck (including header/footer, properties, etc.) via the
  * PptxHandler.
  */

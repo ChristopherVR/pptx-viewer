@@ -3,7 +3,7 @@ import React from 'react';
 
 import { colour, nodeOpacity, styleShadow } from './smartart-helpers';
 
-/** basicMatrix — grid of coloured cells. */
+/** basicMatrix: grid of coloured cells. */
 export function renderMatrix(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],

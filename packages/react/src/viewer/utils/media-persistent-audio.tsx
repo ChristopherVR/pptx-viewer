@@ -1,7 +1,7 @@
 import type { MediaPptxElement } from 'pptx-viewer-core';
 
 // ---------------------------------------------------------------------------
-// Persistent Audio Manager — keeps audio playing across slide transitions
+// Persistent Audio Manager: keeps audio playing across slide transitions
 // ---------------------------------------------------------------------------
 
 /** Tracks a persistent audio element that spans multiple slides. */
@@ -54,7 +54,7 @@ export function registerPersistentAudio(
 	});
 }
 
-/** Stop all persistent audio — call when leaving presentation mode. */
+/** Stop all persistent audio; call when leaving presentation mode. */
 export function stopAllPersistentAudio(): void {
 	for (const entry of persistentAudioMap.values()) {
 		entry.audio.pause();

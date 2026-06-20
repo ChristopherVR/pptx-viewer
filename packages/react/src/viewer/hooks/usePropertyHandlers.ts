@@ -8,7 +8,7 @@ import type {
 } from 'pptx-viewer-core';
 import { PptxHandler } from 'pptx-viewer-core';
 /**
- * usePropertyHandlers — Handlers for notes, slide props, presentation
+ * usePropertyHandlers: Handlers for notes, slide props, presentation
  * properties (core / app / custom), version history, and compare.
  */
 import { useState, useCallback, useMemo } from 'react';

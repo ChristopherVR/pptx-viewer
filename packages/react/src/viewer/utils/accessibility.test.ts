@@ -472,7 +472,7 @@ describe('getReducedMotionStyles', () => {
 // Reading order integration scenarios
 // ===========================================================================
 
-describe('computeReadingOrder — integration scenarios', () => {
+describe('computeReadingOrder: integration scenarios', () => {
 	it('handles a typical slide layout (title, subtitle, content)', () => {
 		const elements = [
 			makeElement({

@@ -1,5 +1,5 @@
 /**
- * useKeyboardShortcuts — Global keyboard shortcut handler for the PowerPoint editor.
+ * useKeyboardShortcuts: Global keyboard shortcut handler for the PowerPoint editor.
  *
  * Listens for keydown on the container element and dispatches to the
  * appropriate handler (delete, copy, paste, undo, redo, nudge, etc.).
@@ -26,7 +26,7 @@ const NUDGE_LARGE = 20;
 /* ------------------------------------------------------------------ */
 
 export interface UseKeyboardShortcutsInput {
-	/** Container element ref — used to scope the listener. */
+	/** Container element ref: used to scope the listener. */
 	containerRef: React.RefObject<HTMLDivElement | null>;
 
 	mode: ViewerMode;
@@ -36,7 +36,7 @@ export interface UseKeyboardShortcutsInput {
 	inlineEditingElementId: string | null;
 	/** Whether a table cell is being edited. */
 	tableEditorState: TableCellEditorState | null;
-	/** Current drawing tool — shortcuts are suppressed when drawing. */
+	/** Current drawing tool: shortcuts are suppressed when drawing. */
 	activeTool: DrawingTool;
 
 	/** Whether at least one element is selected. */
@@ -106,7 +106,7 @@ export function useKeyboardShortcuts(input: UseKeyboardShortcutsInput): void {
 		const isTextInput =
 			target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable;
 
-		// ── Escape — always handled ─────────────────────────────────
+		// ── Escape: always handled ─────────────────────────────────
 		if (e.key === 'Escape') {
 			e.preventDefault();
 			onEscape();

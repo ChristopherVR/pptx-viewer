@@ -66,7 +66,7 @@ export function getTextLayoutStyle(element: PptxElement): React.CSSProperties {
 	// Text wrapping mode
 	const textWrapNone = element.textStyle?.textWrap === 'none';
 
-	// Paragraph indentation — applied at global level only when no per-paragraph
+	// Paragraph indentation: applied at global level only when no per-paragraph
 	// indents are available (backward compat / single-level text).
 	const hasParagraphIndents =
 		hasTextProperties(element) && element.paragraphIndents && element.paragraphIndents.length > 0;

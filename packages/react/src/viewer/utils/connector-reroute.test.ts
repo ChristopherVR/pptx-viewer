@@ -67,14 +67,14 @@ describe('rerouteConnectorsForMovedElements', () => {
 			makeShape('s2', 200, 0, 100, 100),
 			makeConnector('c1', 50, 0, 150, 50, 's1', 0, 's2', 0),
 		];
-		// Move s3 which doesn't exist — no connectors reference it
+		// Move s3 which doesn't exist; no connectors reference it
 		const result = rerouteConnectorsForMovedElements(elements, new Set(['s3']));
 		expect(result).toStrictEqual([]);
 	});
 
 	it('reroutes connector when start shape is moved', () => {
-		// Shape s1 at (100, 100), 200x100 — site 0 (top center) = (200, 100)
-		// Shape s2 at (400, 300), 200x100 — site 2 (bottom center) = (500, 400)
+		// Shape s1 at (100, 100), 200x100: site 0 (top center) = (200, 100)
+		// Shape s2 at (400, 300), 200x100: site 2 (bottom center) = (500, 400)
 		const elements = [
 			makeShape('s1', 100, 100, 200, 100),
 			makeShape('s2', 400, 300, 200, 100),
@@ -151,7 +151,7 @@ describe('rerouteConnectorsForMovedElements', () => {
 		const result = rerouteConnectorsForMovedElements(elements, new Set(['s1']));
 		expect(result).toHaveLength(1);
 		// s1 site 0 (top center) = (0+100, 0+0) = (100, 0)
-		// No end connection — use existing: (100+200, 0+200) = (300, 200)
+		// No end connection; use existing: (100+200, 0+200) = (300, 200)
 		expect(result[0].x).toBe(100);
 		expect(result[0].y).toBe(0);
 		expect(result[0].width).toBe(200);
@@ -167,7 +167,7 @@ describe('rerouteConnectorsForMovedElements', () => {
 
 		const result = rerouteConnectorsForMovedElements(elements, new Set(['s2']));
 		expect(result).toHaveLength(1);
-		// No start connection — use existing: (50, 50)
+		// No start connection; use existing: (50, 50)
 		// s2 site 2 (bottom center) = (300+100, 300+100) = (400, 400)
 		expect(result[0].x).toBe(50);
 		expect(result[0].y).toBe(50);
@@ -241,7 +241,7 @@ describe('rerouteConnectorsForMovedElements', () => {
 			makeConnector('c_bc', 0, 0, 10, 10, 'b', 1, 'c', 3),
 		];
 
-		// Move shape b — both connectors reference it
+		// Move shape b; both connectors reference it
 		const result = rerouteConnectorsForMovedElements(elements, new Set(['b']));
 		expect(result).toHaveLength(2);
 		expect(result.map((r) => r.id).sort()).toStrictEqual(['c_ab', 'c_bc']);
@@ -260,7 +260,7 @@ describe('rerouteConnectorsForMovedElements', () => {
 			elements.push(makeConnector(`c${i}`, 0, 0, 10, 10, `s${i}`, 1, `s${i + 1}`, 3));
 		}
 
-		// Move shape s0 — should affect only c0
+		// Move shape s0; should affect only c0
 		const result = rerouteConnectorsForMovedElements(elements, new Set(['s0']));
 		expect(result).toHaveLength(1);
 		expect(result[0].id).toBe('c0');
@@ -821,7 +821,7 @@ describe('integration: reroute and apply', () => {
 			'a',
 			1, // right center: (300, 200)
 			'b',
-			1, // right center: (300, 200) — same
+			1, // right center: (300, 200), same
 		);
 
 		const elements = [shapeA, shapeB, connector];
@@ -870,7 +870,7 @@ describe('integration: reroute and apply', () => {
 
 		const elements = [a, b, c, cAB, cBC];
 
-		// Move shape b — both connectors should reroute
+		// Move shape b; both connectors should reroute
 		const rerouted = rerouteConnectorsForMovedElements(elements, new Set(['b']));
 		expect(rerouted).toHaveLength(2);
 

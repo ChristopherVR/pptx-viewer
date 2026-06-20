@@ -4,7 +4,7 @@ import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { registerPersistentAudio } from './media-persistent-audio';
 
 // ---------------------------------------------------------------------------
-// PresentationMediaController — manages trim, fade, volume at runtime
+// PresentationMediaController: manages trim, fade, volume at runtime
 // ---------------------------------------------------------------------------
 
 interface PresentationMediaControllerProps {
@@ -176,7 +176,7 @@ export function PresentationMediaController({
 				}
 			}
 		} else if (fadeOut > 0) {
-			// No trim end but has fade-out — listen for near-end
+			// No trim end but has fade-out; listen for near-end
 			const handleTimeUpdate = (): void => {
 				if (!Number.isFinite(el.duration)) {
 					return;

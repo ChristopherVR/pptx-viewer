@@ -21,7 +21,7 @@ function makeShapeElement(
 	} as PptxElement;
 }
 
-describe('getResolvedShapeClipPathFor — priority cascade', () => {
+describe('getResolvedShapeClipPathFor: priority cascade', () => {
 	it('returns undefined when shapeType is missing', () => {
 		expect(getResolvedShapeClipPathFor(undefined, W, H)).toBeUndefined();
 	});
@@ -35,7 +35,7 @@ describe('getResolvedShapeClipPathFor — priority cascade', () => {
 	});
 
 	it('uses the adjustment-aware path when adjustments are supplied for pie', () => {
-		// pie is in the 12 adjustment-aware shapes — different adjustments must
+		// pie is in the 12 adjustment-aware shapes; different adjustments must
 		// produce different clip-paths, and the result must NOT match the
 		// static polygon table (which is the legacy non-adjustment-aware
 		// output).
@@ -66,7 +66,7 @@ describe('getResolvedShapeClipPathFor — priority cascade', () => {
 		// React-side polygon entry.
 		const result = getResolvedShapeClipPathFor('parallelogram', W, H);
 		const fallback = getShapeClipPath('parallelogram', undefined, W, H);
-		// We accept either the spec-correct path('…') or the static polygon —
+		// We accept either the spec-correct path('…') or the static polygon;
 		// what matters is that we get *some* clip-path back and never undefined
 		// when the static fallback exists.
 		expect(result).toBeDefined();
@@ -76,7 +76,7 @@ describe('getResolvedShapeClipPathFor — priority cascade', () => {
 	});
 
 	it('returns a clip-path for a preset-evaluator shape without adjustments', () => {
-		// roundRect is covered by the preset evaluator — should produce a
+		// roundRect is covered by the preset evaluator; should produce a
 		// path('…') string driven by the spec-correct evaluator, distinct
 		// from the static fallback.
 		const result = getResolvedShapeClipPathFor('roundRect', W, H);
@@ -84,15 +84,15 @@ describe('getResolvedShapeClipPathFor — priority cascade', () => {
 	});
 
 	it('returns undefined for shapes that no tier of the cascade covers', () => {
-		// A bogus shape name traverses every tier and falls off the end —
+		// A bogus shape name traverses every tier and falls off the end:
 		// adjustment-aware misses (no adjustments anyway), preset evaluator
 		// has no entry, cloud helper rejects it, and the static polygon
-		// table has no match — so the resolver yields undefined.
+		// table has no match, so the resolver yields undefined.
 		expect(getResolvedShapeClipPathFor('definitely-not-a-real-shape', W, H)).toBeUndefined();
 	});
 });
 
-describe('getResolvedShapeClipPath — element-level wrapper', () => {
+describe('getResolvedShapeClipPath: element-level wrapper', () => {
 	it('returns undefined when the element has no shapeType', () => {
 		const el = makeShapeElement();
 		expect(getResolvedShapeClipPath(el)).toBeUndefined();

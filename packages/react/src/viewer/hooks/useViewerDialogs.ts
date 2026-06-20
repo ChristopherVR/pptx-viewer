@@ -1,6 +1,6 @@
 import type { PptxPresentationProperties } from 'pptx-viewer-core';
 /**
- * useViewerDialogs — Dialog open/close state, mode switching with annotation
+ * useViewerDialogs: Dialog open/close state, mode switching with annotation
  * check, master view, custom shows, guide, slide-show settings, password,
  * accessibility check, font embedding, and misc UI flags.
  */

@@ -1,5 +1,5 @@
 /**
- * useRecoveryDetection — Checks for recent autosave recovery versions on mount
+ * useRecoveryDetection: Checks for recent autosave recovery versions on mount
  * and opens the version-history panel if a recovery entry exists.
  */
 import { useEffect, useRef } from 'react';

@@ -37,7 +37,7 @@ export function parseGradientFillCss(gradFill: XmlObject | undefined): string | 
 
 	const stopStrings = parsed.map((s) => `${s.color} ${s.pos.toFixed(1)}%`).join(', ');
 
-	// Linear gradient — extract angle from `a:lin`
+	// Linear gradient: extract angle from `a:lin`
 	const lin = gradFill['a:lin'] as XmlObject | undefined;
 	if (lin) {
 		const angRaw = Number.parseInt(String(lin['@_ang'] || '0'), 10);
@@ -45,7 +45,7 @@ export function parseGradientFillCss(gradFill: XmlObject | undefined): string | 
 		return `linear-gradient(${angleDeg}deg, ${stopStrings})`;
 	}
 
-	// Path gradient — map to radial with fillToRect positioning
+	// Path gradient: map to radial with fillToRect positioning
 	const path = gradFill['a:path'] as XmlObject | undefined;
 	if (path) {
 		const pathType = String(path['@_path'] || 'circle');

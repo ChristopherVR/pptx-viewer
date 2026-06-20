@@ -3,7 +3,7 @@ import React from 'react';
 
 import { colour, nodeOpacity, styleShadow, styleStroke, truncate } from './smartart-helpers';
 
-/** basicBlockList / stackedList — stacked coloured blocks. */
+/** basicBlockList / stackedList: stacked coloured blocks. */
 export function renderStackedBlockList(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],
@@ -34,7 +34,7 @@ export function renderStackedBlockList(
 	);
 }
 
-/** horizontalBulletList — equal boxes laid out in a horizontal row. */
+/** horizontalBulletList: equal boxes laid out in a horizontal row. */
 export function renderHorizontalBulletList(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],
@@ -65,7 +65,7 @@ export function renderHorizontalBulletList(
 	);
 }
 
-/** tableList — table with a coloured header row and alternating body rows. */
+/** tableList: table with a coloured header row and alternating body rows. */
 export function renderTableList(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],
@@ -104,7 +104,7 @@ export function renderTableList(
 	);
 }
 
-/** trapezoidList — SVG parallelogram shapes. */
+/** trapezoidList: SVG parallelogram shapes. */
 export function renderTrapezoidList(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],
@@ -165,7 +165,7 @@ export function renderTrapezoidList(
 	);
 }
 
-/** alternatingHexagons — hexagon grid with offset rows. */
+/** alternatingHexagons: hexagon grid with offset rows. */
 export function renderAlternatingHexagons(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],

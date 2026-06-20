@@ -20,7 +20,7 @@ import type {
 } from 'pptx-viewer-core';
 import { PptxHandler, EncryptedFileError } from 'pptx-viewer-core';
 /**
- * useLoadContent — Handles loading/parsing PPTX content into viewer state.
+ * useLoadContent: Handles loading/parsing PPTX content into viewer state.
  *
  * Extracts the heavy loading useEffect from PowerPointViewer so the
  * orchestrator stays lean.
@@ -168,7 +168,7 @@ export function useLoadContent({
 					return;
 				}
 
-				// New load succeeded — now safe to dispose the previous handler.
+				// New load succeeded: now safe to dispose the previous handler.
 				if (previousHandler) {
 					previousHandler.dispose();
 				}

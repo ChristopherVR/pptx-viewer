@@ -80,13 +80,13 @@ function injectFontFaces(svg: string, fontFaces: FontFaceEntry[]): string {
 		return svg;
 	}
 
-	// Reject any font-face entries that contain a `</style` substring — these
+	// Reject any font-face entries that contain a `</style` substring; these
 	// could prematurely terminate the surrounding `<style>` block and allow
 	// arbitrary markup to escape into the SVG document.
 	const safeFontFaces = fontFaces.filter((f) => {
 		if (f.css.toLowerCase().includes('</style')) {
 			console.warn(
-				`[export-svg] Dropping @font-face entry for "${f.family}" containing "</style" — would break out of the <style> block.`,
+				`[export-svg] Dropping @font-face entry for "${f.family}" containing "</style" - would break out of the <style> block.`,
 			);
 			return false;
 		}

@@ -352,7 +352,7 @@ describe('animationSequencer', () => {
 						presetClass: 'entr',
 						presetId: 1,
 						trigger: 'onClick',
-						// no durationMs — should default to 500 for entr
+						// no durationMs, should default to 500 for entr
 					},
 				]),
 			);

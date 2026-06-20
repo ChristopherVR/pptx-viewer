@@ -1,5 +1,5 @@
 /**
- * Artistic effects rendering — SVG filter definitions for complex effects
+ * Artistic effects rendering: SVG filter definitions for complex effects
  * that cannot be adequately approximated with CSS filters alone.
  *
  * For simple effects (blur, grayscale, contrast, brightness, saturate),
@@ -81,7 +81,7 @@ export function needsSvgArtisticFilter(effectName: string | undefined): boolean 
 // ── SVG filter renderer ───────────────────────────────────────────────────
 
 /**
- * Build the artistic effect descriptor — returns the CSS filter string
+ * Build the artistic effect descriptor: returns the CSS filter string
  * (which may reference an SVG filter via `url(#id)`) and whether an SVG
  * `<filter>` element needs to be rendered.
  *
@@ -305,7 +305,7 @@ function buildFilterPrimitives(effectName: string, radius: number): React.ReactN
 		}
 
 		// ── Mosaic / Mosaic Bubbles ─────────────────────────────────────────
-		// Pixelation effect — achieved via heavy blur + displacement noise.
+		// Pixelation effect: achieved via heavy blur + displacement noise.
 		// True pixelation requires image-rendering: pixelated + downscale
 		// but SVG filter gives a reasonable approximation.
 		case 'artisticMosaic':

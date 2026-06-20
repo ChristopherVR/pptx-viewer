@@ -1,6 +1,6 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 /**
- * useViewerIntegration — Wires pointer handling, content lifecycle,
+ * useViewerIntegration: Wires pointer handling, content lifecycle,
  * I/O, annotations, recovery, imperative handle, parent callbacks,
  * and keyboard shortcuts into the viewer orchestrator.
  */

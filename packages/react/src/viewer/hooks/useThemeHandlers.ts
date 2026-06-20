@@ -5,7 +5,7 @@ import type {
 	PptxHandler,
 } from 'pptx-viewer-core';
 /**
- * useThemeHandlers — Theme application, colour-scheme / font-scheme / name
+ * useThemeHandlers: Theme application, colour-scheme / font-scheme / name
  * updates, presentation-wide theme apply, and template background handling.
  */
 import type { RefObject } from 'react';

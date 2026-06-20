@@ -10,7 +10,7 @@ import type { RgbColor, ColorChangeResult } from './image-effects';
 import { parseHexToRgb } from './image-effects';
 
 // ---------------------------------------------------------------------------
-// Pixel mapping (pure logic — operates on raw Uint8ClampedArray)
+// Pixel mapping (pure logic, operates on raw Uint8ClampedArray)
 // ---------------------------------------------------------------------------
 
 /**
@@ -38,7 +38,7 @@ export function mapDuotonePixels(
 		data[i] = Math.round(shadow.r * oneMinusT + highlight.r * t);
 		data[i + 1] = Math.round(shadow.g * oneMinusT + highlight.g * t);
 		data[i + 2] = Math.round(shadow.b * oneMinusT + highlight.b * t);
-		// data[i + 3] — alpha preserved
+		// data[i + 3] - alpha preserved
 	}
 }
 

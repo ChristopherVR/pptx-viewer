@@ -30,7 +30,7 @@ export function cellStyleToCss(style?: PptxTableCellStyle): React.CSSProperties 
 		css.color = style.color;
 	}
 
-	// Cell background fill — gradient and pattern take precedence
+	// Cell background fill: gradient and pattern take precedence
 	if (style.gradientFillCss) {
 		css.background = style.gradientFillCss;
 	} else if (style.fillMode === 'pattern' && style.patternFillPreset) {
@@ -53,7 +53,7 @@ export function cellStyleToCss(style?: PptxTableCellStyle): React.CSSProperties 
 	if (style.vAlign) {
 		css.verticalAlign = style.vAlign;
 	}
-	// Vertical text direction — map all variants to CSS writing-mode + text-orientation
+	// Vertical text direction: map all variants to CSS writing-mode + text-orientation
 	if (style.textDirection) {
 		switch (style.textDirection) {
 			case 'vert':

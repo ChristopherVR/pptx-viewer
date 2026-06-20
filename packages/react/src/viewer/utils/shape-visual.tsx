@@ -1,11 +1,11 @@
 /**
- * shape-visual.tsx — Barrel re-export
+ * shape-visual.tsx: Barrel re-export
  *
  * Implementation split into:
- *   - shape-visual-effects.ts   — getImageEffectsFilter, getImageEffectsOpacity
- *   - shape-visual-filters.tsx  — duotone SVG filters, line effects, DAG helpers
- *   - shape-visual-3d.ts        — apply3dEffects (internal helper)
- *   - shape-visual-style.ts     — getShapeVisualStyle
+ *   - shape-visual-effects.ts   - getImageEffectsFilter, getImageEffectsOpacity
+ *   - shape-visual-filters.tsx  - duotone SVG filters, line effects, DAG helpers
+ *   - shape-visual-3d.ts        - apply3dEffects (internal helper)
+ *   - shape-visual-style.ts     - getShapeVisualStyle
  */
 export { getImageEffectsFilter, getImageEffectsOpacity } from './shape-visual-effects';
 

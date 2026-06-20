@@ -5,14 +5,14 @@ import type {
 	PptxTableCellStyle,
 } from 'pptx-viewer-core';
 /**
- * table-render.tsx — Barrel + renderTableElement
+ * table-render.tsx: Barrel + renderTableElement
  *
  * Implementation split into:
- *   - table-render-helpers.ts     — ooxmlDashToCssBorderStyle, cellStyleToCss
- *   - table-render-cell-input.tsx — TableCellInput inline editor
- *   - table-render-resize.tsx     — TableResizeOverlay drag overlay
- *   - table-render-data.tsx       — renderTableFromTableData (programmatic tables)
- *   - table-render.tsx            — renderTableElement (XML-based tables)
+ *   - table-render-helpers.ts     - ooxmlDashToCssBorderStyle, cellStyleToCss
+ *   - table-render-cell-input.tsx - TableCellInput inline editor
+ *   - table-render-resize.tsx     - TableResizeOverlay drag overlay
+ *   - table-render-data.tsx       - renderTableFromTableData (programmatic tables)
+ *   - table-render.tsx            - renderTableElement (XML-based tables)
  */
 import React from 'react';
 

@@ -1,6 +1,6 @@
 import type { PptxSection, PptxSlide } from 'pptx-viewer-core';
 /**
- * useSectionOperations — CRUD operations for slide sections.
+ * useSectionOperations: CRUD operations for slide sections.
  */
 import { useCallback } from 'react';
 

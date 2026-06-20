@@ -11,7 +11,7 @@ import { segmentByScript, resolveFontForScript } from './unicode-script-detectio
  *
  * In browser environments DOMPurify ships with `sanitize` ready to go. In
  * non-DOM contexts (node-based tests, SSR without jsdom) DOMPurify returns
- * a factory that lacks `sanitize` until handed a window — there we fall
+ * a factory that lacks `sanitize` until handed a window; there we fall
  * back to the raw input. The XSS surface only matters in the browser, so
  * this fallback is safe for non-DOM consumers.
  */
@@ -63,7 +63,7 @@ export function renderScriptAwareText(
 
 	const runs = segmentByScript(text);
 	if (runs.length <= 1) {
-		// Single script — resolve font for that script inline
+		// Single script: resolve font for that script inline
 		if (runs.length === 1) {
 			const font = resolveFontForScript(runs[0].script, scriptFonts);
 			if (font && font !== baseFontFamily) {
@@ -102,7 +102,7 @@ export function renderSegmentContent(
 ): React.ReactNode {
 	const segHl = findHighlights?.get(segmentIndex);
 	if (!segHl || segHl.length === 0) {
-		// Fast path: no highlights — render lines with script-aware fonts
+		// Fast path: no highlights, render lines with script-aware fonts
 		return lines.map((line: string, lineIndex: number) => (
 			<React.Fragment key={`${elementId}-seg-${segmentIndex}-line-${lineIndex}`}>
 				{renderScriptAwareText(

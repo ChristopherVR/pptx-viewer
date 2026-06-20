@@ -1,7 +1,7 @@
 /**
  * CSS-based slide transition definitions for PowerPoint presentation mode.
  *
- * Barrel re-export — implementation split into:
+ * Barrel re-export; implementation split into:
  *   - transition-keyframes.ts  (CSS @keyframes + types)
  *   - transition-helpers.ts    (direction resolvers + constants)
  *   - transition-resolver.ts   (main resolver function)

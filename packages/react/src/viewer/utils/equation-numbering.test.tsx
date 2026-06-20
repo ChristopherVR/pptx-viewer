@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 
 import { renderEquationSegment } from './text-segment-helpers';
 
-describe('renderEquationSegment — equation numbering', () => {
+describe('renderEquationSegment: equation numbering', () => {
 	const elementId = 'eq-el-1';
 	const segmentIndex = 0;
 
@@ -55,7 +55,7 @@ describe('renderEquationSegment — equation numbering', () => {
 		const children = result.props.children;
 		expect(children).toHaveLength(3);
 
-		// The right-aligned number (third child) — React renders JSX
+		// The right-aligned number (third child); React renders JSX
 		// `({equationNumber})` as an array: ["(", "42", ")"]
 		const numberSpan = children[2] as React.ReactElement;
 		const numberChildren = numberSpan.props.children;

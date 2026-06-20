@@ -5,7 +5,7 @@ import { colour, nodeOpacity, styleShadow, truncate } from './smartart-helpers';
 
 export { renderMatrix } from './smartart-matrix';
 
-/** basicPyramid / invertedPyramid — expanding width blocks. */
+/** basicPyramid / invertedPyramid: expanding width blocks. */
 export function renderPyramid(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],
@@ -38,7 +38,7 @@ export function renderPyramid(
 	);
 }
 
-/** basicVenn / linearVenn — overlapping circles. */
+/** basicVenn / linearVenn: overlapping circles. */
 export function renderVenn(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],
@@ -128,7 +128,7 @@ export function renderVenn(
 	);
 }
 
-/** basicFunnel — narrowing trapezoid stages. */
+/** basicFunnel: narrowing trapezoid stages. */
 export function renderFunnel(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],
@@ -192,7 +192,7 @@ export function renderFunnel(
 	);
 }
 
-/** basicTarget / bullseye — concentric rings with labels. */
+/** basicTarget / bullseye: concentric rings with labels. */
 export function renderTarget(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],

@@ -133,7 +133,7 @@ describe('canMergeCells', () => {
 
 	it('should return false when bounding rect is a single cell', () => {
 		const table = makeTable(3, 3);
-		// Two identical cells — bounding rect is 1x1
+		// Two identical cells: bounding rect is 1x1
 		expect(
 			canMergeCells(
 				[

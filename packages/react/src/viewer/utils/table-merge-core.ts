@@ -1,5 +1,5 @@
 /**
- * table-merge-core.ts — thin re-export shim.
+ * table-merge-core.ts: thin re-export shim.
  *
  * The cell merge / split / bounding-rect math now lives in
  * `pptx-viewer-shared` (`render/table-merge.ts`) so React, Vue and Angular

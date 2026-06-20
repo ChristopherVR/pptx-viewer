@@ -271,7 +271,7 @@ function inlineComputedStyles(original: HTMLElement, clone: HTMLElement): void {
 	const origChildren = original.querySelectorAll('*');
 	const cloneChildren = clone.querySelectorAll('*');
 
-	// PHASE 1 — read pass.
+	// PHASE 1: read pass.
 	// Walk the live tree once, collect every getComputedStyle() result into a
 	// Map keyed by element index. Doing all reads up-front avoids interleaving
 	// layout reads with the writes in phase 2 (which would otherwise force
@@ -286,7 +286,7 @@ function inlineComputedStyles(original: HTMLElement, clone: HTMLElement): void {
 		styleMap.set(i, collectInlineStyles(origEl));
 	}
 
-	// PHASE 2 — write pass.
+	// PHASE 2: write pass.
 	// The clone is detached from the live document, so setAttribute calls
 	// here do not trigger layout on the original tree.
 	if (rootStyle) {

@@ -3,8 +3,8 @@
  *
  * The pure CSS-keyframe generators now live in `pptx-viewer-shared`
  * (`render/morph-animation`) and are re-exported here. The only genuinely
- * view/DOM-bound pieces — injecting and cleaning up the generated `<style>`
- * keyframes in the document — stay in this binding.
+ * view/DOM-bound pieces (injecting and cleaning up the generated `<style>`
+ * keyframes in the document) stay in this binding.
  *
  * @module utils/morph-animation
  */
@@ -21,7 +21,7 @@ export {
 } from 'pptx-viewer-shared';
 
 // ---------------------------------------------------------------------------
-// Inject morph keyframes into the document (DOM-bound — stays in React)
+// Inject morph keyframes into the document (DOM-bound; stays in React)
 // ---------------------------------------------------------------------------
 
 let morphStyleElement: HTMLStyleElement | null = null;

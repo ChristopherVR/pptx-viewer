@@ -19,7 +19,7 @@ import type {
 	ParsedTableStyleMap,
 } from 'pptx-viewer-core';
 /**
- * useViewerCoreState — Core state declarations for PowerPointViewer.
+ * useViewerCoreState: Core state declarations for PowerPointViewer.
  *
  * This hook owns every piece of "document-level" React state: slides,
  * elements, selection, canvas dimensions, presentation metadata
@@ -61,7 +61,7 @@ export type { UseViewerCoreStateInput, ViewerCoreState } from './viewer-core-sta
  * and derived element/master state).
  *
  * @param _input - Content and edit-mode flag (used by upstream wiring; the
- *   hook itself does not consume them directly — they flow through
+ *   hook itself does not consume them directly; they flow through
  *   useContentLifecycle).
  * @returns A {@link ViewerCoreState} object containing every ref, state
  *   value, setter, and derived field.
@@ -70,7 +70,7 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 	// ── Refs ──────────────────────────────────────────────────────────
 	// Stable refs that persist across renders without causing re-renders.
 
-	/** Root container div — used for ResizeObserver, focus management, and coordinate calculations. */
+	/** Root container div: used for ResizeObserver, focus management, and coordinate calculations. */
 	const containerRef = useRef<HTMLDivElement>(null);
 	/** Hidden file input for image insertion. */
 	const imageInputRef = useRef<HTMLInputElement>(null);
@@ -79,7 +79,7 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 	/** Mirror of activeSlideIndex for use in event handlers to avoid stale closures. */
 	const activeSlideIndexRef = useRef(0);
 
-	// Pointer interaction refs — mutable refs used by pointer-move/up handlers
+	// Pointer interaction refs: mutable refs used by pointer-move/up handlers
 	// to track ongoing drag, resize, adjustment, and marquee operations without
 	// triggering React re-renders on every mousemove event.
 	const dragStateRef = useRef<DragState | null>(null);

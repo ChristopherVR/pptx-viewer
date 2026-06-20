@@ -1,6 +1,6 @@
 import type { PptxHandler, PptxSlide } from 'pptx-viewer-core';
 /**
- * usePresentationSetup — Wires up `usePresentationAnnotations` and
+ * usePresentationSetup: Wires up `usePresentationAnnotations` and
  * `usePresentationMode` together with the annotation-aware mode-switching
  * logic.  Returns both hook results plus the shared `actionSoundHandlerRef`.
  */
@@ -26,7 +26,7 @@ export interface UsePresentationSetupInput {
 	visibleSlideIndexes: number[];
 	activeSlideIndex: number;
 	containerRef: React.RefObject<HTMLElement | null>;
-	/** Raw PPTX bytes — forwarded to audience window for content sharing. */
+	/** Raw PPTX bytes: forwarded to audience window for content sharing. */
 	content?: ArrayBuffer | Uint8Array | null;
 	mediaDataUrls: Map<string, string>;
 	presentationProperties: {

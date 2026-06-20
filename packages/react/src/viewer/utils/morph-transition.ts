@@ -1,5 +1,5 @@
 /**
- * Morph transition — matches elements on consecutive slides by name
+ * Morph transition: matches elements on consecutive slides by name
  * (!! prefix convention), element name property, or element ID, then
  * produces per-element CSS keyframe animation data to smoothly
  * interpolate position, size, opacity, rotation, fill colors, stroke

@@ -129,10 +129,10 @@ describe('resolveCssTextAlign', () => {
 });
 
 // =======================================================================
-// 4. renderTextSegments — paragraph-level BiDi
+// 4. renderTextSegments: paragraph-level BiDi
 // =======================================================================
 
-describe('renderTextSegments — paragraph-level BiDi', () => {
+describe('renderTextSegments: paragraph-level BiDi', () => {
 	it('sets direction:rtl and textAlign:right on a pure RTL paragraph', () => {
 		const el = makeTextElement(
 			{ rtl: true },
@@ -222,10 +222,10 @@ describe('renderTextSegments — paragraph-level BiDi', () => {
 });
 
 // =======================================================================
-// 5. renderSingleSegment — run-level BiDi
+// 5. renderSingleSegment: run-level BiDi
 // =======================================================================
 
-describe('renderSingleSegment — run-level BiDi override', () => {
+describe('renderSingleSegment: run-level BiDi override', () => {
 	const baseElement = makeTextElement({});
 	const fallbackColor = '#000000';
 
@@ -314,7 +314,7 @@ describe('renderSingleSegment — run-level BiDi override', () => {
 // 6. Mixed RTL/LTR runs in a paragraph
 // =======================================================================
 
-describe('renderTextSegments — mixed RTL/LTR runs', () => {
+describe('renderTextSegments: mixed RTL/LTR runs', () => {
 	it('renders mixed RTL and LTR runs in an RTL paragraph', () => {
 		const el = makeTextElement(
 			{ rtl: true },
@@ -355,7 +355,7 @@ describe('renderTextSegments — mixed RTL/LTR runs', () => {
 // 7. Embedded numbers in RTL text
 // =======================================================================
 
-describe('renderTextSegments — embedded numbers in RTL text', () => {
+describe('renderTextSegments: embedded numbers in RTL text', () => {
 	it('uses embed unicode-bidi for RTL paragraph (numbers render LTR naturally)', () => {
 		const el = makeTextElement(
 			{ rtl: true },
@@ -441,10 +441,10 @@ describe('bullet alignment in RTL paragraphs', () => {
 });
 
 // =======================================================================
-// 9. Nested BiDi — multiple paragraphs with different directions
+// 9. Nested BiDi: multiple paragraphs with different directions
 // =======================================================================
 
-describe('renderTextSegments — nested/multi-paragraph BiDi', () => {
+describe('renderTextSegments: nested/multi-paragraph BiDi', () => {
 	it('renders paragraphs with alternating directions', () => {
 		const el = makeTextElement(
 			{},

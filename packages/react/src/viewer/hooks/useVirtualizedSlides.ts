@@ -1,5 +1,5 @@
 /**
- * useVirtualizedSlides — Virtual scrolling for the slide panel sidebar.
+ * useVirtualizedSlides: Virtual scrolling for the slide panel sidebar.
  *
  * Calculates the visible range of slides based on the scroll container's
  * scroll position and viewport height, then returns only the indices

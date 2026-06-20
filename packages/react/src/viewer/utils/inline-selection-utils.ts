@@ -267,7 +267,7 @@ export function applyStyleToSelectedSegments(
 			continue;
 		}
 
-		// Middle segment — entirely within selection
+		// Middle segment: entirely within selection
 		result.push({ ...seg, style: { ...seg.style, ...updates } });
 	}
 

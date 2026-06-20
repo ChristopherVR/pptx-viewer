@@ -3,7 +3,7 @@ import React from 'react';
 
 import { colour, nodeOpacity, styleShadow, styleStroke, truncate } from './smartart-helpers';
 
-/** basicTimeline — horizontal line with alternating labels. */
+/** basicTimeline: horizontal line with alternating labels. */
 export function renderTimeline(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],
@@ -75,7 +75,7 @@ export function renderTimeline(
 	);
 }
 
-/** bendingProcess — snake / zigzag layout with connectors. */
+/** bendingProcess: snake / zigzag layout with connectors. */
 export function renderBendingProcess(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],

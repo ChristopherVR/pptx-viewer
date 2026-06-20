@@ -1,5 +1,5 @@
 /**
- * CSS-based 3D approximation for PPTX shapes — React shim.
+ * CSS-based 3D approximation for PPTX shapes: React shim.
  *
  * The entire scene3d/shape3d → CSS engine (camera presets, extrusion depth,
  * bevel, material, light rig, contour, backdrop, and CSS 3D side-panel data)

@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { computeVirtualRange } from './useVirtualizedSlides';
 
 // ---------------------------------------------------------------------------
-// computeVirtualRange — pure function tests
+// computeVirtualRange: pure function tests
 // ---------------------------------------------------------------------------
 
 describe('computeVirtualRange', () => {

@@ -1,5 +1,5 @@
 /**
- * Image-effects CSS layer — thin re-export shim over `pptx-viewer-shared`'s
+ * Image-effects CSS layer: thin re-export shim over `pptx-viewer-shared`'s
  * `image-effects`.
  *
  * Maps the parsed `PptxImageEffects` on a picture/image element to a CSS

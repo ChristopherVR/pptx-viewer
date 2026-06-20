@@ -2,7 +2,7 @@
  * Scope the list of available layout options to the active slide's master.
  *
  * The full `layoutOptions` list returned by the core load pipeline
- * contains every layout in the deck — including duplicates from
+ * contains every layout in the deck, including duplicates from
  * additional masters imported by themes. The Slides dropdown only
  * needs the layouts that belong to the same master as the currently
  * selected slide.

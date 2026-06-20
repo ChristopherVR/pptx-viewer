@@ -1,5 +1,5 @@
 /**
- * Thin re-export shim — text-build expansion now lives in `pptx-viewer-shared`
+ * Thin re-export shim: text-build expansion now lives in `pptx-viewer-shared`
  * (`render/animation-timeline-text-build`).
  */
 export type { TextBuildSegmentCounts } from 'pptx-viewer-shared';

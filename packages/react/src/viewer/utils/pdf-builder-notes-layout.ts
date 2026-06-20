@@ -1,5 +1,5 @@
 /**
- * Notes-page PDF layout / text helpers — thin re-export shim.
+ * Notes-page PDF layout / text helpers: thin re-export shim.
  *
  * The pure point-geometry calculation, text wrapping, PDF content-stream
  * fragments, and escaping live once in `pptx-viewer-shared`

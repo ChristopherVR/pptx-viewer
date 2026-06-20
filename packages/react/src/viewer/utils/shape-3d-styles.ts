@@ -196,8 +196,8 @@ export function computeCameraTransform(preset?: string, lat?: number, lon?: numb
 
 /**
  * Compute a complete `React.CSSProperties` object that combines all 3D
- * effects — extrusion shadows, bevel inset highlights, material filters,
- * camera perspective/rotation, and light-rig overlays — into a single
+ * effects (extrusion shadows, bevel inset highlights, material filters,
+ * camera perspective/rotation, and light-rig overlays) into a single
  * style that can be spread onto a React element.
  *
  * Accepts the raw OOXML types `Pptx3DShape` and `Pptx3DScene` directly.

@@ -339,17 +339,17 @@ function getLightRigShadowAngle(direction: string | undefined): number {
  *
  * The shadow stack is built from three independent components:
  *
- * 1. **Extrusion depth** — N shadow layers (capped between {@link MIN_EXTRUSION_LAYERS}
+ * 1. **Extrusion depth**: N shadow layers (capped between {@link MIN_EXTRUSION_LAYERS}
  *    and {@link MAX_EXTRUSION_LAYERS}) stacked in the extrusion direction. The colour
  *    of each layer darkens progressively from the base toward the back, with the
  *    gradient curve controlled by the active {@link MaterialConfig}.
  *
- * 2. **Bevel edges** — Highlight and shadow layers that simulate a bevelled edge on
+ * 2. **Bevel edges**: Highlight and shadow layers that simulate a bevelled edge on
  *    the face of the text. The bevel preset type determines the highlight/shadow
  *    intensities and blur, and optionally adds extra sharp edge highlights for
  *    pronounced bevel types like `hardEdge` or `angle`.
  *
- * 3. **Specular highlight** (material-dependent) — Materials like `plastic` and
+ * 3. **Specular highlight** (material-dependent): Materials like `plastic` and
  *    `metal` add a bright specular highlight shadow opposite the extrusion
  *    direction to simulate a shiny surface.
  *
@@ -406,7 +406,7 @@ export function buildText3DShadowCss(style: TextStyle): string | undefined {
 			);
 		}
 
-		// Material specular highlight — bright spot on the lit edge
+		// Material specular highlight: bright spot on the lit edge
 		if (material.specular && depthPx > 0) {
 			const highlightColor = lightenHex(baseColor, material.specularOpacity);
 			layers.push(`${-dx}px ${-dy}px ${material.specularBlur}px ${highlightColor}`);
@@ -417,7 +417,7 @@ export function buildText3DShadowCss(style: TextStyle): string | undefined {
 			}
 		}
 
-		// Ambient occlusion shadow at base of extrusion — subtle ground contact shadow
+		// Ambient occlusion shadow at base of extrusion: subtle ground contact shadow
 		if (depthPx >= 3) {
 			layers.push(
 				`${dx * (depthPx + 2)}px ${dy * (depthPx + 2)}px ${Math.max(3, Math.round(depthPx * 0.6))}px rgba(0,0,0,0.12)`,

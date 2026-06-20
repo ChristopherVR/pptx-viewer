@@ -12,7 +12,7 @@ export function getPresentationTransitionStyle(
 	const transition = `opacity ${duration}ms ease, transform ${duration}ms ease, clip-path ${duration}ms ease, filter ${duration}ms ease`;
 
 	if (!visible) {
-		// Exit animation — each type gets a visually distinct hidden state
+		// Exit animation: each type gets a visually distinct hidden state
 		switch (transitionType) {
 			case 'push': {
 				const dir = direction || 'l';
@@ -21,7 +21,7 @@ export function getPresentationTransitionStyle(
 				return { opacity: 0, transform: `translate(${translate})`, transition };
 			}
 			case 'cover': {
-				// Cover: new slide covers old — old stays, fades slightly
+				// Cover: new slide covers old; old stays, fades slightly
 				const dir = direction || 'l';
 				const translate =
 					dir === 'r' ? '30%, 0' : dir === 'u' ? '0, -30%' : dir === 'd' ? '0, 30%' : '-30%, 0';
@@ -169,7 +169,7 @@ export function getPresentationTransitionStyle(
 		}
 	}
 
-	// Enter animation — visible state (rest position)
+	// Enter animation: visible state (rest position)
 	const baseEnter: React.CSSProperties = {
 		opacity: 1,
 		transform: 'translate(0, 0) scale(1) rotate(0deg)',

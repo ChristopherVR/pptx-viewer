@@ -1,5 +1,5 @@
 /**
- * usePointerHandlers — Global pointer move/up handlers for drag, resize,
+ * usePointerHandlers: Global pointer move/up handlers for drag, resize,
  * marquee selection, and shape-adjustment interactions.
  *
  * Heavy logic is extracted into:

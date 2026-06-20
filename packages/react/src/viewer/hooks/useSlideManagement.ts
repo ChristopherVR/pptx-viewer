@@ -1,5 +1,5 @@
 /**
- * useSlideManagement — Slide CRUD operations: add, move, delete,
+ * useSlideManagement: Slide CRUD operations: add, move, delete,
  * duplicate, toggle-hide, insert-from-layout, and context menu.
  */
 import type { PptxHandler, PptxSlide } from 'pptx-viewer-core';
@@ -79,7 +79,7 @@ export function useSlideManagement(input: UseSlideManagementInput): SlideManagem
 	};
 
 	const handleSlideContextMenu = (_e: React.MouseEvent, _index: number) => {
-		// Slide context menu — handled inside SlideSorterOverlay's own context menu.
+		// Slide context menu: handled inside SlideSorterOverlay's own context menu.
 	};
 
 	const handleDeleteSlides = (indexes: number[]) => {
@@ -174,7 +174,7 @@ export function useSlideManagement(input: UseSlideManagementInput): SlideManagem
 
 		// Ask the handler to populate layoutName/background by walking the
 		// chosen layout XML. If the handler isn't loaded yet we keep the
-		// draft as-is — the slide already carries the layoutPath so the
+		// draft as-is; the slide already carries the layoutPath so the
 		// renderer can still pick up placeholders.
 		const handler = handlerRef?.current;
 		if (handler) {

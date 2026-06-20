@@ -135,7 +135,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 	});
 
 	// -----------------------------------------------------------------------
-	// Enter present mode — call from a click handler so requestFullscreen works
+	// Enter present mode: call from a click handler so requestFullscreen works
 	// -----------------------------------------------------------------------
 
 	const enterPresentMode = useCallback(() => {
@@ -169,7 +169,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 	 */
 	const togglePresenterView = useCallback(() => {
 		if (!presenterMode) {
-			// Switch from fullscreen to presenter view — exit fullscreen first.
+			// Switch from fullscreen to presenter view: exit fullscreen first.
 			// Set the guard so the fullscreenchange listener doesn't exit
 			// present mode when it sees fullscreen disappear.
 			switchingToPresenterRef.current = true;
@@ -240,14 +240,14 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		if (mode === 'present') {
 			// Only runs when entering present mode (mode changes to "present").
 			// Slide-to-slide navigation during presentation is handled entirely
-			// by executeSlideTransition — re-running here on every activeSlideIndex
+			// by executeSlideTransition; re-running here on every activeSlideIndex
 			// change would duplicate entrance animations and cause visible lag.
 			const idx = activeSlideIndexRef.current;
 			setPresentationSlideIndex(idx);
 			runEntranceAnimationsRef.current(idx);
 			scheduleAutoAdvanceRef.current(idx);
 		}
-		// NOTE: fullscreen exit is handled by the dedicated effect below —
+		// NOTE: fullscreen exit is handled by the dedicated effect below -
 		// doing it here would fire on every dependency change (e.g. slide
 		// navigation) and race with the fullscreenchange listener.
 	}, [mode]);

@@ -18,7 +18,7 @@ export interface RenderMediaOptions {
 }
 
 // ---------------------------------------------------------------------------
-// renderMediaElement — main public entry point
+// renderMediaElement: main public entry point
 // ---------------------------------------------------------------------------
 
 /**
@@ -141,7 +141,7 @@ export function renderMediaElement(
 				</PresentationMediaController>
 			);
 		}
-		// Fallback placeholder — show poster frame if available
+		// Fallback placeholder: show poster frame if available
 		if (posterUrl) {
 			return (
 				<div className='w-full h-full relative pointer-events-none'>

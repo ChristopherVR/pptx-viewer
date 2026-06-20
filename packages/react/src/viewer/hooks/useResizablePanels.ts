@@ -1,5 +1,5 @@
 /**
- * useResizablePanels — Manages widths/heights for resizable viewer panels.
+ * useResizablePanels: Manages widths/heights for resizable viewer panels.
  *
  * Stores the current sizes for the left sidebar, right inspector, and
  * bottom notes panel. Provides resize callbacks that enforce min/max

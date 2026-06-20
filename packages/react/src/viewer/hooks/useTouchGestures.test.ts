@@ -124,20 +124,20 @@ describe('swipe detection logic', () => {
 	});
 
 	it('accepts diagonal swipe within vertical tolerance', () => {
-		// 60px horizontal, 30px vertical — within tolerance
+		// 60px horizontal, 30px vertical: within tolerance
 		expect(detectSwipe(100, 200, 160, 230)).toBe(1);
 	});
 
-	it('exact threshold values — at threshold is accepted', () => {
+	it('exact threshold values: at threshold is accepted', () => {
 		// deltaX = exactly SWIPE_THRESHOLD_PX
 		expect(detectSwipe(0, 0, SWIPE_THRESHOLD_PX, 0)).toBe(1);
 	});
 
-	it('exact threshold values — just below threshold is rejected', () => {
+	it('exact threshold values: just below threshold is rejected', () => {
 		expect(detectSwipe(0, 0, SWIPE_THRESHOLD_PX - 1, 0)).toBeNull();
 	});
 
-	it('vertical at threshold — exactly at max vertical is rejected', () => {
+	it('vertical at threshold: exactly at max vertical is rejected', () => {
 		// deltaY = exactly SWIPE_MAX_VERTICAL_PX → not less than, so rejected
 		expect(detectSwipe(0, 0, SWIPE_THRESHOLD_PX, SWIPE_MAX_VERTICAL_PX)).toBeNull();
 	});

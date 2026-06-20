@@ -64,7 +64,7 @@ export function truncate(text: string, max: number): string {
 	return `${text.slice(0, max - 1)}\u2026`;
 }
 
-/** Resolve palette from smartArtData — prefers color-transform fills. */
+/** Resolve palette from smartArtData; prefers color-transform fills. */
 export function resolvePalette(el: PptxElement): string[] {
 	if (el.type !== 'smartArt' || !el.smartArtData) {
 		return DEFAULT_PALETTE;

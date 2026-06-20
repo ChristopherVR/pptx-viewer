@@ -3,7 +3,7 @@ import React from 'react';
 
 import { colour, nodeOpacity, styleShadow, styleStroke, truncate } from './smartart-helpers';
 
-/** basicCycle — circles arranged in a ring with connector lines. */
+/** basicCycle: circles arranged in a ring with connector lines. */
 export function renderRingCycle(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],
@@ -71,7 +71,7 @@ export function renderRingCycle(
 	);
 }
 
-/** basicPie — pie chart with labelled sectors. */
+/** basicPie: pie chart with labelled sectors. */
 export function renderSmartArtPieChart(
 	element: PptxElement,
 	nodes: PptxSmartArtNode[],

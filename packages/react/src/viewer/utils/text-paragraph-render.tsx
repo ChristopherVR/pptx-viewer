@@ -172,7 +172,7 @@ export function renderTextSegments(
 		// In PowerPoint, empty bullet paragraphs (e.g. residual first paragraphs
 		// or line breaks with no text) don't render a bullet character.
 		const hasVisibleTextContent = paraSegments.some(({ segment }) => {
-			// Skip the bullet segment itself — it only contains the marker text
+			// Skip the bullet segment itself: it only contains the marker text
 			if (segment.bulletInfo) {
 				return false;
 			}

@@ -292,7 +292,7 @@ export function getElementTransform(element: PptxElement): string | undefined {
 /**
  * Builds the element's CSS transform WITHOUT its rotation component
  * (flips + skews only). Used as the stable base while a live rotate-handle
- * drag appends its own `rotate(...)` for preview — recomputing the full
+ * drag appends its own `rotate(...)` for preview; recomputing the full
  * transform from {@link getElementTransform} ordering keeps flipped/skewed
  * shapes rendering correctly mid-rotation.
  * @param element - The element whose non-rotation transform is built.

@@ -1,7 +1,7 @@
 /**
  * SVG textPath-based text warp (WordArt) rendering engine.
  *
- * Barrel re-export — implementation split into:
+ * Barrel re-export; implementation split into:
  *   - warp-path-generators.ts  (SVG path generators + presets)
  *   - warp-text-renderer.tsx   (React component + styling helpers)
  */

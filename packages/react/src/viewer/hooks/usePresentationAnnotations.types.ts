@@ -22,7 +22,7 @@ export type SlideAnnotationMap = Map<number, AnnotationStroke[]>;
 
 export interface UsePresentationAnnotationsInput {
 	isActive: boolean;
-	/** Current slide index — used to track which slide annotations belong to. */
+	/** Current slide index: used to track which slide annotations belong to. */
 	activeSlideIndex: number;
 }
 

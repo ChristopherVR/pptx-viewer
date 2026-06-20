@@ -36,7 +36,7 @@ export function isTemplateElementId(elementId: string): boolean {
 }
 
 /**
- * Returns true if the element is a connector or line — i.e. it renders
+ * Returns true if the element is a connector or line, i.e. it renders
  * as an SVG path rather than a filled rectangular box.  These elements
  * need special hit-testing and selection treatment.
  */

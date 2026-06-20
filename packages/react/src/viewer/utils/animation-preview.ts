@@ -1,5 +1,5 @@
 /**
- * Animation Preview — DOM player + pure descriptor re-exports.
+ * Animation Preview: DOM player + pure descriptor re-exports.
  *
  * The pure preview-descriptor construction (`timingCurveToCss`,
  * `buildPreviewAnimation`, `parseOoxmlBezierCurve`, `AnimationPreviewDescriptor`)

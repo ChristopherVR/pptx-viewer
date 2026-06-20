@@ -98,7 +98,7 @@ export function renderChartElement(element: PptxElement): React.ReactNode {
 		return renderHistogramChart(element, chartData, categoryLabels);
 	}
 
-	// Geographic map charts — render as SVG choropleth
+	// Geographic map charts: render as SVG choropleth
 	if (chartType === 'regionMap') {
 		return renderMapChart(element, chartData, categoryLabels);
 	}

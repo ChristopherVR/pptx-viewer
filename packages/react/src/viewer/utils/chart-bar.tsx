@@ -152,7 +152,7 @@ export function renderBoxWhiskerChart(
 	);
 }
 
-/** Render a histogram chart — contiguous bars with no gaps. */
+/** Render a histogram chart: contiguous bars with no gaps. */
 export function renderHistogramChart(
 	element: PptxElement,
 	chartData: PptxChartData,

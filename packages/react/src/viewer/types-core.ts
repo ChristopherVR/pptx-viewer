@@ -115,7 +115,7 @@ export interface DragState {
 	domEls: Map<string, HTMLElement>;
 	/** Whether the pointer has actually moved since the drag started. */
 	moved: boolean;
-	/** Accumulated delta — stored during DOM-only drag, committed on pointerup. */
+	/** Accumulated delta, stored during DOM-only drag, committed on pointerup. */
 	lastDx: number;
 	lastDy: number;
 }
@@ -149,7 +149,7 @@ export interface ResizeState {
 	moved: boolean;
 	/** DOM element cached at resize-start to avoid per-frame querySelector calls. */
 	domEl: HTMLElement | null;
-	/** Accumulated final geometry — committed on pointerup. */
+	/** Accumulated final geometry, committed on pointerup. */
 	lastX: number;
 	lastY: number;
 	lastWidth: number;

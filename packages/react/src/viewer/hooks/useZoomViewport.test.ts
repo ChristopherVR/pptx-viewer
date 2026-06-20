@@ -14,7 +14,7 @@ import {
 } from '../constants';
 
 // ---------------------------------------------------------------------------
-// Extracted pure helpers — mirrors the logic inside the hook
+// Extracted pure helpers: mirrors the logic inside the hook
 // ---------------------------------------------------------------------------
 
 /** Compute the fit-scale exactly as `useZoomViewport` does in its `useMemo`. */
@@ -114,7 +114,7 @@ function computeZoomToSelectionScale(
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('useZoomViewport — pure logic', () => {
+describe('useZoomViewport: pure logic', () => {
 	// ── computeFitScale ───────────────────────────────────────────────
 	describe('computeFitScale', () => {
 		it('should return 1 when editor equals canvas size', () => {

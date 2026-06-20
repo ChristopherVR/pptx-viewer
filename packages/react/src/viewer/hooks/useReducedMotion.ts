@@ -1,5 +1,5 @@
 /**
- * useReducedMotion — Reactive hook for the `prefers-reduced-motion` media query.
+ * useReducedMotion: Reactive hook for the `prefers-reduced-motion` media query.
  *
  * Provides both OS-level detection and a manual override toggle.
  * When reduced motion is active (either via OS preference or manual toggle),

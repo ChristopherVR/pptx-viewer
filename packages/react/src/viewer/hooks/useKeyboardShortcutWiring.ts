@@ -1,5 +1,5 @@
 /**
- * useKeyboardShortcutWiring — Wires the composed editor results into the
+ * useKeyboardShortcutWiring: Wires the composed editor results into the
  * generic `useKeyboardShortcuts` hook.  Keeps the orchestrator lean.
  */
 import type { PptxSlide } from 'pptx-viewer-core';

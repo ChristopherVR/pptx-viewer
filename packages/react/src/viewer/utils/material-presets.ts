@@ -1,5 +1,5 @@
 /**
- * CSS approximation of OOXML 3D material presets — React shim.
+ * CSS approximation of OOXML 3D material presets: React shim.
  *
  * The material map + `getMaterialCssOverrides` now live in the framework-neutral
  * `pptx-viewer-shared` (`render/visual-3d-materials`) so React, Vue, and Angular

@@ -1,5 +1,5 @@
 /**
- * useViewerUIState — UI panel and miscellaneous state for PowerPointViewer.
+ * useViewerUIState: UI panel and miscellaneous state for PowerPointViewer.
  *
  * Separated from core state to keep each hook focused and under 300 lines.
  */
