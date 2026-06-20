@@ -1,6 +1,6 @@
 {
 	"name": "pptx-vue-viewer",
-	"version": "0.1.0",
+	"version": "1.1.23",
 	"description": "Vue 3 PowerPoint viewer/editor component â€” depends on pptx-viewer-core. Vue counterpart of the React `pptx-viewer` package.",
 	"keywords": [
 		"editor",
