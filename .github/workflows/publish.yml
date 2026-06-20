@@ -41,9 +41,11 @@ jobs:
       # Set the NPM_PUBLISH repo variable to 'true' to enable publishing.
       - name: Verify publishing is enabled
         if: vars.NPM_PUBLISH != 'true'
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           echo "::error::NPM_PUBLISH repository variable is not 'true' - refusing to skip silently."
-          echo "Release '${{ github.event.release.tag_name }}' was published but npm publishing is disabled."
+          echo "Release '${RELEASE_TAG}' was published but npm publishing is disabled."
           echo "Set the NPM_PUBLISH repository variable to 'true' to publish, or delete the release if unintended."
           exit 1
 
@@ -64,8 +66,10 @@ jobs:
       # step below is skipped.
       - name: Parse release tag
         id: tag
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          TAG="${{ github.event.release.tag_name }}"
+          TAG="$RELEASE_TAG"
           echo "name=${TAG%@*}" >> "$GITHUB_OUTPUT"
           echo "version=${TAG##*@}" >> "$GITHUB_OUTPUT"
           echo "Release tag: $TAG"
