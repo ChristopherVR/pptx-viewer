@@ -73,6 +73,7 @@ import { LoadContentService } from './load-content.service';
 import { MobileBottomBarComponent } from './mobile-bottom-bar.component';
 import type { MobileBarSheet } from './mobile-bottom-bar.component';
 import { MobileMenuSheetComponent } from './mobile-menu-sheet.component';
+import { MobilePresenterViewComponent } from './mobile-presenter-view.component';
 import { MobileSlidesSheetComponent } from './mobile-slides-sheet.component';
 import { MobileToolbarComponent } from './mobile-toolbar.component';
 import { NotesPanelComponent } from './notes-panel.component';
@@ -136,6 +137,7 @@ const ZOOM_MAX = 3;
 		SlideCanvasComponent,
 		PresentationOverlayComponent,
 		PresenterViewComponent,
+		MobilePresenterViewComponent,
 		SlideSorterOverlayComponent,
 		FindBarComponent,
 		FindReplaceBarComponent,
@@ -468,18 +470,31 @@ const ZOOM_MAX = 3;
 			}
 
 			@if (presentingPresenter()) {
-				<pptx-presenter-view
-					[slides]="loader.slides()"
-					[currentSlideIndex]="activeSlideIndex()"
-					[canvasSize]="loader.canvasSize()"
-					[mediaDataUrls]="loader.mediaDataUrls()"
-					[presentationStartTime]="presenterStartTime()"
-					[isAudienceWindowOpen]="presenting()"
-					(movePresentationSlide)="goTo(activeSlideIndex() + $event)"
-					(openAudienceWindow)="present()"
-					(closeAudienceWindow)="presenting.set(false)"
-					(exit)="exitPresenter()"
-				/>
+				@if (mobile.isMobile()) {
+					<!-- Single-column mobile presenter layout (phones / landscape phones). -->
+					<pptx-mobile-presenter-view
+						[slides]="loader.slides()"
+						[currentSlideIndex]="activeSlideIndex()"
+						[canvasSize]="loader.canvasSize()"
+						[mediaDataUrls]="loader.mediaDataUrls()"
+						[presentationStartTime]="presenterStartTime()"
+						(movePresentationSlide)="goTo(activeSlideIndex() + $event)"
+						(exit)="exitPresenter()"
+					/>
+				} @else {
+					<pptx-presenter-view
+						[slides]="loader.slides()"
+						[currentSlideIndex]="activeSlideIndex()"
+						[canvasSize]="loader.canvasSize()"
+						[mediaDataUrls]="loader.mediaDataUrls()"
+						[presentationStartTime]="presenterStartTime()"
+						[isAudienceWindowOpen]="presenting()"
+						(movePresentationSlide)="goTo(activeSlideIndex() + $event)"
+						(openAudienceWindow)="present()"
+						(closeAudienceWindow)="presenting.set(false)"
+						(exit)="exitPresenter()"
+					/>
+				}
 			}
 
 			@if (showFind()) {

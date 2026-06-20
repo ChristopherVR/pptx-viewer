@@ -8,6 +8,7 @@ import { PresenterView, RehearseTimingsHud, RehearseTimingsSummary } from '.';
 import type { UsePresentationModeResult } from '../hooks/usePresentationMode';
 import type { CanvasSize } from '../types';
 import type { ViewerMode } from '../types-core';
+import { MobilePresenterView } from './MobilePresenterView';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -20,6 +21,8 @@ export interface ViewerPresentationLayerProps {
 	templateElements: PptxElement[];
 	presentation: UsePresentationModeResult;
 	onExitPresentation: () => void;
+	/** Use the single-column mobile presenter layout instead of the desktop one. */
+	isMobile?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -27,24 +30,38 @@ export interface ViewerPresentationLayerProps {
 // ---------------------------------------------------------------------------
 
 export function ViewerPresentationLayer(props: ViewerPresentationLayerProps) {
-	const { mode, slides, canvasSize, templateElements, presentation, onExitPresentation } = props;
+	const { mode, slides, canvasSize, templateElements, presentation, onExitPresentation, isMobile } =
+		props;
+
+	const presenterActive = mode === 'present' && presentation.presenterMode;
 
 	return (
 		<>
-			{mode === 'present' && presentation.presenterMode && (
-				<PresenterView
-					slides={slides}
-					currentSlideIndex={presentation.presentationSlideIndex}
-					canvasSize={canvasSize}
-					templateElements={templateElements}
-					presentationStartTime={presentation.presentationStartTime}
-					onMovePresentationSlide={presentation.movePresentationSlide}
-					onExit={onExitPresentation}
-					onOpenAudienceWindow={presentation.openAudienceWindow}
-					onCloseAudienceWindow={presentation.closeAudienceWindow}
-					isAudienceWindowOpen={presentation.isAudienceWindowOpen()}
-				/>
-			)}
+			{presenterActive &&
+				(isMobile ? (
+					<MobilePresenterView
+						slides={slides}
+						currentSlideIndex={presentation.presentationSlideIndex}
+						canvasSize={canvasSize}
+						templateElements={templateElements}
+						presentationStartTime={presentation.presentationStartTime}
+						onMovePresentationSlide={presentation.movePresentationSlide}
+						onExit={onExitPresentation}
+					/>
+				) : (
+					<PresenterView
+						slides={slides}
+						currentSlideIndex={presentation.presentationSlideIndex}
+						canvasSize={canvasSize}
+						templateElements={templateElements}
+						presentationStartTime={presentation.presentationStartTime}
+						onMovePresentationSlide={presentation.movePresentationSlide}
+						onExit={onExitPresentation}
+						onOpenAudienceWindow={presentation.openAudienceWindow}
+						onCloseAudienceWindow={presentation.closeAudienceWindow}
+						isAudienceWindowOpen={presentation.isAudienceWindowOpen()}
+					/>
+				))}
 
 			{mode === 'present' && presentation.rehearsing && (
 				<RehearseTimingsHud

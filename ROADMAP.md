@@ -6,6 +6,9 @@ from. React (`packages/react`) is the reference; Vue and Angular are ports.
 
 Status legend: ✅ done · 🟡 partial · ❌ missing.
 
+Progress: M1-M5 and C1-C2 are shipped across React, Vue, and Angular. Only C3
+(collaboration hardening) remains, gated on a design decision.
+
 ## Mobile / touch
 
 ### M1. Vue mobile editing chrome (priority)
