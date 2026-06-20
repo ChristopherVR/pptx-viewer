@@ -1,0 +1,46 @@
+name: Prune releases
+
+# Retention for the GitHub Releases list: keep only the newest N releases per
+# published package (tagged `<npm-name>@x.y.z`) and delete the older Release
+# entries. Git tags and npm versions are left intact - only the Release page and
+# its uploaded assets are removed. See scripts/prune-releases.mjs.
+
+on:
+  schedule:
+    # Weekly, Monday 04:00 UTC.
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+    inputs:
+      keep:
+        description: 'Number of newest releases to keep per package'
+        required: false
+        default: '5'
+      dry_run:
+        description: 'List what would be deleted without deleting'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Prune old GitHub Releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          keep="${{ github.event.inputs.keep || '5' }}"
+          dry=""
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            dry="--dry-run"
+          fi
+          node scripts/prune-releases.mjs --keep "$keep" $dry
