@@ -7,11 +7,9 @@
  * the binding writes the returned HTML string into a print window. The handout
  * grid geometry lives in `handout-layout`; this module reuses it.
  *
- * ng-packagr constraints honoured here (the Angular binding inlines this source
- * and compiles it through ng-packagr):
- *   - NO `String.prototype.replaceAll` (use `.split(x).join(y)`).
- *   - NO regex named-capture groups.
- *   - All regexes carry the `/u` flag.
+ * ng-packagr constraint honoured here (the Angular binding inlines this source
+ * and compiles it through ng-packagr): NO `String.prototype.replaceAll`
+ * (`escapeHtml` uses `.split(x).join(y)` instead).
  */
 
 import type { PptxSlide } from 'pptx-viewer-core';
