@@ -374,6 +374,11 @@ function App() {
 	);
 	// eslint-disable-next-line react/hook-use-state
 	const [urlName] = useState(() => new URLSearchParams(window.location.search).get('name'));
+	// Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`.
+	// eslint-disable-next-line react/hook-use-state
+	const [smartArt3D] = useState(
+		() => new URLSearchParams(window.location.search).get('smartArt3D') === '1',
+	);
 
 	// Generate stable defaults for the Share dialog — these are demo-specific
 	const autoRoomId = useMemo(() => {
@@ -647,6 +652,7 @@ function App() {
 				<PowerPointViewer
 					content={content}
 					canEdit
+					smartArt3D={smartArt3D}
 					authorName={collaborationConfig?.userName ?? autoName}
 					collaboration={collaborationConfig ?? undefined}
 					onStartCollaboration={handleStartCollaboration}

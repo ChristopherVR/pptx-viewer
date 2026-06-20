@@ -22,6 +22,15 @@
  */
 export * from './shape-geometry';
 export * from './fill-style';
+// Stroke/dash normalisation, compound-line box-shadow + dasharray, element
+// transform strings (flip/rotation/skew), and OOXML drawing-percent parsing.
+export * from './element-style-transform';
+// OOXML drawing-colour resolution: colour-choice parsing (srgb/scrgb/sys/scheme/
+// hsl/preset), the 26 colour transforms via core, scheme inheritance, alpha.
+export * from './drawing-color';
+// Unicode script detection for font fallback (latin/eastAsia/complexScript/
+// symbol classification + run segmentation + per-script font resolution).
+export * from './unicode-script-detection';
 export * from './visual-effects';
 export * from './image-effects';
 export * from './text-warp';
@@ -161,6 +170,17 @@ export * from './table-merge';
 export * from './table-layout';
 export * from './element-align';
 export * from './element-interaction';
+// Element CSS-style builders: absolute container style (position/transform/
+// opacity/z-index) + displayable image-source resolution, shared by every
+// binding's element renderer. Each binding casts the neutral CSS map to its
+// framework's style type.
+export * from './element-style';
+// Pure, immutable group/ungroup tree operations (union bbox, slide-absolute <->
+// group-relative coordinate conversion) for the editor.
+export * from './group-ops';
+// Slide-background style cascade: resolved background fields -> CSS map
+// (image -> gradient -> pattern -> solid colour precedence).
+export * from './slide-background';
 // Editor lifecycle foundation: `editor-insert` (pure factory functions that
 // build new `PptxElement`s with `id: ''` for the caller to assign), `element-
 // operations` (immutable array transforms: update/move/resize/delete/duplicate
@@ -178,9 +198,20 @@ export * from './ruler';
 export * from './bullet-autonum';
 export * from './bullet-list';
 export * from './text-paragraphs';
+export * from './text-advanced';
+export * from './text-theme';
+export * from './kinsoku-styles';
+export * from './tab-leader';
+export * from './inline-selection-utils';
+export * from './linked-text-box-overflow';
 export * from './connector-router';
 export * from './connector-reroute';
 export * from './connector-style';
+// Connector SVG-geometry builder: from a connector `PptxElement`, derive stroke
+// style, flip-adjusted endpoints, bent/curved path data (with optional A*
+// obstacle routing), and arrow `<marker>` shapes. Re-uses `connectorKind` from
+// `connector-style`. The `<svg>`/`<path>` emission stays in each binding.
+export * from './connector-path';
 export * from './format-painter';
 export * from './remap-text';
 export * from './shape-adjustment';
@@ -222,6 +253,46 @@ export * from './p14-transition-css';
 // (`smartart-layout-types`), helpers, and per-family computers, so a single
 // barrel entry exposes the whole surface. Each binding renders the view-models.
 export * from './smartart-layout';
+// Three.js SmartArt - pure model types, geometry/colour helpers, and the
+// `buildSmartArt3DModel` converter that turns a 2D `SmartArtLayoutResult` into
+// an extruded 3D model (meshes + connectors). No `three` import; the vanilla
+// three scene builder that consumes this lives behind the `pptx-viewer-shared/
+// smartart-3d` subpath so `three` stays an optional, lazily-loaded dependency.
+export * from './smartart-3d-types';
+export * from './smartart-3d-geom';
+export * from './smartart-3d-model';
+// SmartArt pre-computed drawing-shapes projection (the `smartArtData.
+// drawingShapes` path the core engine extracts from `ppt/diagrams/drawing*.xml`,
+// preferred over the SVG-fallback layout engine when present): palette
+// resolution, chrome style, viewBox fitting, and `RenderedShape` projection.
+// `DEFAULT_PALETTE` is re-exported as `SMARTART_DEFAULT_PALETTE` to avoid
+// colliding with the chart palette of the same name.
+export {
+	PALETTES,
+	DEFAULT_PALETTE as SMARTART_DEFAULT_PALETTE,
+	paletteColour,
+	resolvePalette,
+	buildChromeStyle,
+	computeDrawingViewBox,
+	projectDrawingShapes,
+	styleShadowFilter,
+} from './smartart-drawing';
+export type { RenderedShape, DrawingViewBox } from './smartart-drawing';
+// Inspector panel: shapeStyle/textStyle value readers + shallow-merge patch
+// builders (fill/stroke/colour/font-size/bold/italic/underline).
+export * from './inspector-helpers';
+// Effects panel: shadow/inner-shadow/glow/reflection/soft-edge state readers +
+// enable/disable/update shapeStyle merge patch builders.
+export * from './effects-helpers';
+// Embedded-font @font-face assembly: URL/format validation, XOR de-obfuscation
+// fallback, and the resolved-variant -> stylesheet/family-list build (the
+// managed <style> id + object-URL minting stay per-binding).
+export * from './embedded-fonts';
+// Pure slide text search: per-element/-slide text collection + case-insensitive
+// substring search with match counts and context snippets.
+export * from './slide-search';
+// Custom shows: named slide-subset list type + immutable id/create helpers.
+export * from './custom-shows';
 // Export-progress maths shared by every binding's export handlers: the
 // `(current, total)` slide cursor → 0-100 percentage mapping (single-phase and
 // two-phase capture+record), the "verb slide N of M" status label, and the
@@ -243,6 +314,45 @@ export * from './presenter-mobile';
 // far to scroll the focused field into the area above the keyboard. Each binding
 // wires the visualViewport resize listener; the maths is shared here.
 export * from './mobile-keyboard';
+// Presenter view: notes font-size clamp + step constants, clock/elapsed-time
+// formatting, and rich-text notes -> framework-agnostic `NotesSpan[]` render
+// spec. Each binding renders the spec into its own nodes.
+export * from './presenter-view';
+// Presentation toolbar: bottom-trigger-zone visibility math, auto-hide timing,
+// pen/highlighter colour swatches, and slide-counter formatting.
+export * from './presentation-toolbar';
+// Insert > Action: OOXML built-in action-button catalogue + element factory
+// (labelled nav buttons carrying an `actionClick` slide jump).
+export * from './action-buttons';
+// SmartArt insert-gallery catalogue: preset entries (layout/label/category/
+// default node texts) + the sidebar category list.
+export * from './smart-art-presets';
+// Draggable alignment guides (View > H/V Guides): persistent guide-list CRUD
+// (`Guide` carries an `id`). Distinct from `snap-guides` drag-time snapping.
+export * from './alignment-guides';
+// Canvas/pixel image effects: chroma-key colour change (`<a:clrChange>`) +
+// duotone luminance mapping (`<a:duotone>`). Distinct from the SVG-`<filter>`
+// duotone descriptor in `image-effects`; this is the canvas pixel path with
+// caches + duotone presets. Each binding draws onto its own `<canvas>`.
+export * from './image-color-change';
+export * from './image-duotone-canvas';
+// Hyperlink-edit dialog patch-builders: turn a URL+tooltip draft into an
+// `{ actionClick }` element merge patch, reusing `hyperlink-security` guards.
+export * from './hyperlink-dialog';
+// Find & replace across slide text segments (immutable transforms).
+export * from './find-replace';
+// Accessibility issue aggregation over a slide array (mirrors core's
+// `checkPresentation`) + severity grouping/labels for the panel.
+export * from './accessibility-issues';
+// Freehand ink: points -> SVG path `d`, completed-stroke -> `InkPptxElement`.
+export * from './ink-drawing';
+// Mobile chrome sheet state machine + bottom-bar action descriptors.
+export * from './mobile-chrome';
+// Gradient-picker editor model: read `GradientState` off an element + build
+// fillMode='gradient' shapeStyle merge patches (add/remove/update stops).
+export * from './gradient-picker';
+// Active-slide comment-array transforms (add/remove/toggle-resolved).
+export * from './comments-list';
 // Insert-chart factory: a sensible DEFAULT new `ChartPptxElement` (three sample
 // categories, one "Series 1", legend on, default position) plus the chart-type
 // list shown in the insert dropdown. The single source of truth every binding's

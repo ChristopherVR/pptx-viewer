@@ -80,7 +80,7 @@ const bytes = await viewerRef.current?.getContent(); // Uint8Array of a valid .p
 | **Edit**           | Insert/move/resize/delete elements, edit text inline, modify styles, manage slides                                                        |
 | **Present**        | Fullscreen slideshow with 40+ animations, 42 transitions (including morph), speaker notes, presenter view with timer                      |
 | **Export**         | PNG/JPEG/SVG/PDF/GIF/video slide export, save-as PPTX                                                                                     |
-| **Collaborate**    | Real-time multi-user editing via Yjs CRDT with presence tracking, remote cursors, and user avatars                                        |
+| **Collaborate**    | Real-time multi-user editing (powered by Yjs) with live presence, remote cursors, and user avatars                                        |
 | **Print**          | Print dialog with handout layouts and notes page formatting with overflow pagination                                                      |
 | **Annotate**       | Pen/highlighter/laser pointer tools during presentations                                                                                  |
 | **Find & Replace** | Cross-slide text search with regex support                                                                                                |
@@ -147,9 +147,9 @@ All `ViewerTheme.colors` keys are optional; override only what you need. Helpers
 
 UI labels go through [i18next](https://www.i18next.com/) / [react-i18next](https://react.i18next.com/) with dotted keys such as `pptx.statusBar.allSaved`. Initialise an i18next instance and wrap your app in `I18nextProvider` (the demo's `demo/i18n.ts` shows a minimal config, including a `parseMissingKeyHandler` that derives Title Case labels for any key you don't explicitly translate). Add a new language by supplying a resource bundle under its language code.
 
-## Architecture & internals
+## How it's built
 
-The component is a `forwardRef` orchestrator composing 67+ custom hooks over a presentational component tree; slides render via CSS positioning/transforms, charts as inline SVG, tables as HTML `<table>`. For the component tree, hook composition, rendering pipeline, animation/transition engine, connector routing, collaboration, and full file-structure maps, see the [full documentation](https://christophervr.github.io/pptx-viewer/).
+You only need the `<PowerPointViewer>` component; everything else is internal. Behind it, the logic lives in many small, focused React hooks, and the components themselves just draw what those hooks produce. Slides are rendered as ordinary HTML and CSS (charts as inline SVG, tables as real `<table>` elements), which is why text stays sharp, selectable, and accessible. For the full component tree, the rendering pipeline, the animation and transition engine, connector routing, collaboration, and a file-by-file map, see the [full documentation](https://christophervr.github.io/pptx-viewer/).
 
 ## Limitations
 

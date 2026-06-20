@@ -1,0 +1,28 @@
+/**
+ * SmartArt element dispatcher.
+ *
+ * Chooses between the Three.js renderer (when the host opts in via the
+ * `smartArt3D` prop, surfaced through {@link SmartArt3DContext}) and the default
+ * SVG {@link SmartArtRenderer}. The 3D path itself falls back to SVG when the
+ * optional `three` dependency is absent.
+ */
+
+import type { PptxElement } from 'pptx-viewer-core';
+import React, { useContext } from 'react';
+
+import { SmartArt3DContext } from './smart-art-3d-context';
+import { SmartArt3DRenderer } from './SmartArt3DRenderer';
+import { SmartArtRenderer } from './SmartArtRenderer';
+
+interface SmartArtElementProps {
+	element: PptxElement;
+	className?: string;
+}
+
+export function SmartArtElement({ element, className }: SmartArtElementProps): React.ReactElement {
+	const use3D = useContext(SmartArt3DContext);
+	if (use3D) {
+		return <SmartArt3DRenderer element={element} className={className} />;
+	}
+	return <SmartArtRenderer element={element} className={className} />;
+}

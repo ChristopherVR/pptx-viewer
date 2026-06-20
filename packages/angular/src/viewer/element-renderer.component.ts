@@ -1,5 +1,5 @@
 import { NgStyle } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
@@ -19,6 +19,8 @@ import { resolveHyperlinkHref } from './hyperlink';
 import { InkRendererComponent } from './ink-renderer.component';
 import { Model3DRendererComponent } from './model3d-renderer.component';
 import { OleRendererComponent } from './ole-renderer.component';
+import { SmartArt3DRendererComponent } from './smart-art-3d-renderer.component';
+import { SmartArt3DService } from './smart-art-3d.service';
 import { SmartArtRendererComponent } from './smart-art-renderer.component';
 import { TableRendererComponent } from './table-renderer.component';
 import type { TableCellCommit } from './table-renderer.component';
@@ -82,6 +84,7 @@ interface Paragraph {
 		TableRendererComponent,
 		ChartRendererComponent,
 		SmartArtRendererComponent,
+		SmartArt3DRendererComponent,
 		InkRendererComponent,
 		OleRendererComponent,
 		Model3DRendererComponent,
@@ -120,6 +123,9 @@ interface Paragraph {
 					[zIndex]="zIndex()"
 					[mediaDataUrls]="mediaDataUrls()"
 				/>
+			}
+			@case (element().type === 'smartArt' && smartArt3D()) {
+				<pptx-smart-art-3d-renderer [element]="element()" [zIndex]="zIndex()" />
 			}
 			@case (element().type === 'smartArt') {
 				<div
@@ -343,6 +349,14 @@ export class ElementRendererComponent {
 	readonly element = input.required<PptxElement>();
 	readonly mediaDataUrls = input<Map<string, string>>(new Map());
 	readonly zIndex = input<number>(0);
+
+	/**
+	 * Host opt-in to the Three.js SmartArt renderer, surfaced via the
+	 * viewer-scoped {@link SmartArt3DService}. Optional so renderers used outside
+	 * the viewer subtree (thumbnails, export) default to the SVG renderer.
+	 */
+	private readonly smartArt3DService = inject(SmartArt3DService, { optional: true });
+	readonly smartArt3D = computed(() => this.smartArt3DService?.enabled() ?? false);
 	/** Obstacle rects (absolute slide coords) for connector A* routing. */
 	readonly obstacles = input<readonly Rect[]>([]);
 	readonly canvasWidth = input<number>(0);

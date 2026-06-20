@@ -91,6 +91,7 @@ import { SignaturesPanelComponent } from './signatures-panel.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
 import { SlidesPanelComponent } from './slides-panel.component';
+import { SmartArt3DService } from './smart-art-3d.service';
 import { setCellText } from './table-data-helpers';
 import type { TableCellCommit } from './table-renderer.component';
 import { ThemeGalleryComponent } from './theme-gallery.component';
@@ -130,6 +131,7 @@ const ZOOM_MAX = 3;
 		AccessibilityService,
 		PrintService,
 		IsMobileService,
+		SmartArt3DService,
 	],
 	imports: [
 		NgClass,
@@ -702,6 +704,14 @@ export class PowerPointViewerComponent {
 	 * loads the chosen presentation in place.
 	 */
 	readonly onOpenFile = input<(() => void) | undefined>(undefined);
+	/**
+	 * Opt in to the experimental Three.js SmartArt renderer. When `true`,
+	 * SmartArt diagrams render as extruded 3D blocks on a WebGL canvas instead
+	 * of flat SVG. Requires the optional `three` peer dependency; when it is not
+	 * installed (or the diagram has no geometry), the viewer transparently falls
+	 * back to the SVG SmartArt renderer. Default `false`.
+	 */
+	readonly smartArt3D = input<boolean>(false);
 
 	/** Fired when the active slide changes. */
 	readonly activeSlideChange = output<number>();
@@ -720,6 +730,7 @@ export class PowerPointViewerComponent {
 	protected readonly accessibility = inject(AccessibilityService);
 	protected readonly print = inject(PrintService);
 	protected readonly mobile = inject(IsMobileService);
+	private readonly smartArt3DSvc = inject(SmartArt3DService);
 
 	/** The `<main>` host; used to locate the live `.pptx-ng-canvas-stage`. */
 	private readonly mainEl = viewChild<ElementRef<HTMLElement>>('mainEl');
@@ -1000,6 +1011,12 @@ export class PowerPointViewerComponent {
 	private readonly contentOverride = signal<Uint8Array | ArrayBuffer | null>(null);
 
 	constructor() {
+		// Surface the `smartArt3D` opt-in to the element dispatcher via the
+		// viewer-scoped SmartArt3DService.
+		effect(() => {
+			this.smartArt3DSvc.enabled.set(this.smartArt3D());
+		});
+
 		// A new host `content` input supersedes any in-place picked file.
 		effect(() => {
 			this.content();

@@ -78,7 +78,12 @@ import 'pptx-angular-viewer/styles';
 		</div>
 		<div class="viewer-host">
 			@if (content()) {
-				<pptx-viewer [content]="content()" [theme]="theme" [canEdit]="true" />
+				<pptx-viewer
+					[content]="content()"
+					[theme]="theme"
+					[canEdit]="true"
+					[smartArt3D]="smartArt3D"
+				/>
 			} @else {
 				<div class="empty">Choose a .pptx file to preview it.</div>
 			}
@@ -89,6 +94,8 @@ export class AppComponent {
 	readonly content = signal<ArrayBuffer | null>(null);
 	readonly fileName = signal<string>('');
 	readonly theme: ViewerTheme = { colors: { primary: '#6366f1' } };
+	/** Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`. */
+	readonly smartArt3D = new URLSearchParams(window.location.search).get('smartArt3D') === '1';
 
 	async onFile(event: Event): Promise<void> {
 		const input = event.target as HTMLInputElement;

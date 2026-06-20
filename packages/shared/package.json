@@ -46,6 +46,11 @@
 			"types": "./dist/loader/index.d.ts",
 			"import": "./dist/loader/index.mjs",
 			"require": "./dist/loader/index.js"
+		},
+		"./smartart-3d": {
+			"types": "./dist/smartart-3d/index.d.ts",
+			"import": "./dist/smartart-3d/index.mjs",
+			"require": "./dist/smartart-3d/index.js"
 		}
 	},
 	"scripts": {
@@ -57,12 +62,20 @@
 		"pack": "bun run build && bun pm pack"
 	},
 	"devDependencies": {
+		"@types/three": "^0.184.1",
 		"pptx-viewer-core": "workspace:*",
+		"three": "^0.184.0",
 		"tsup": "^8.5.1",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.9"
 	},
 	"peerDependencies": {
-		"pptx-viewer-core": "workspace:*"
+		"pptx-viewer-core": "workspace:*",
+		"three": "^0.184.0"
+	},
+	"peerDependenciesMeta": {
+		"three": {
+			"optional": true
+		}
 	}
 }

@@ -3,19 +3,20 @@
 [![npm version](https://img.shields.io/npm/v/pptx-vue-viewer.svg)](https://www.npmjs.com/package/pptx-vue-viewer)
 [![license](https://img.shields.io/npm/l/pptx-vue-viewer.svg)](https://github.com/ChristopherVR/pptx-viewer/blob/main/LICENSE)
 
-Render Microsoft PowerPoint (`.pptx`) presentations directly in a Vue 3 app:
-no server, no conversion step, no PowerPoint install. Drop in a
-`<PowerPointViewer>` component, hand it the file bytes, and it parses and
-displays the slides as scalable HTML/CSS with slide navigation and zoom.
+Show Microsoft PowerPoint (`.pptx`) presentations directly in a Vue 3 app:
+no server, no conversion step, no PowerPoint install required. Drop in a
+`<PowerPointViewer>` component, hand it the file's bytes, and it reads and
+displays the slides as real HTML and CSS, with slide navigation and zoom.
 
 ![PowerPoint editor UI rendered in the browser](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/editor.png)
 
 > The screenshot shows the full-featured **React** editor. This Vue package is at
 > a **read-only viewer** milestone today; see [Limitations](#limitations).
 
-Parsing is powered by the framework-agnostic `pptx-viewer-core` engine
-(OpenXML → a structured slide model); this package is the Vue rendering layer on
-top of it, with the engine **bundled in**.
+The reading is done by the framework-agnostic `pptx-viewer-core` engine, which
+turns a `.pptx` file into a structured slide model. This package is the Vue layer
+that draws that model on screen, and the engine is **bundled in**, so you install
+just one package.
 
 <samp>**[▶️ Try the live demo](https://christophervr.github.io/pptx-viewer/demo-vue/)** · **[📦 npm](https://www.npmjs.com/package/pptx-vue-viewer)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/)**</samp>
 
@@ -23,14 +24,14 @@ top of it, with the engine **bundled in**.
 
 ## Features
 
-- **Composition API component**: `<PowerPointViewer>`, `<script setup>` style.
-- **CSS rendering**: slides are real DOM (scaled HTML/SVG), so text stays sharp
-  at any zoom and is selectable/accessible.
-- **Slide navigation**: live thumbnail previews, prev/next, slide counter.
-- **Zoom**: in/out/reset.
-- **Themeable**: semantic color tokens via CSS custom properties.
-- **Loads from anywhere**: `ArrayBuffer` / `Uint8Array` from a file input,
-  `fetch`, drag-and-drop, etc.
+- **A single component**: `<PowerPointViewer>`, written in `<script setup>` style.
+- **Real HTML rendering**: slides are drawn as ordinary HTML and SVG, not as a
+  picture, so text stays sharp at any zoom and is selectable and accessible.
+- **Slide navigation**: live thumbnail previews, previous/next, and a slide counter.
+- **Zoom**: in, out, and reset.
+- **Themeable**: change colours through CSS custom properties.
+- **Loads from anywhere**: an `ArrayBuffer` or `Uint8Array` from a file input,
+  a `fetch`, drag-and-drop, and so on.
 
 ## Installation
 
@@ -126,7 +127,7 @@ provideViewerTheme({ colors: { primary: '#6366f1' } });
 
 ### Reading the current presentation back
 
-`getContent()` serialises the in-memory presentation to `.pptx` bytes. Reach it
+`getContent()` turns the current presentation back into `.pptx` bytes. Reach it
 through a template `ref`:
 
 ```ts
@@ -174,23 +175,22 @@ async function save() {
 
 ## Limitations
 
-This package is at a **read-only viewer** milestone: it renders the structural
-content of a slide, but some visual effects and all editing are not yet wired
-up.
+This package is at a **read-only viewer** milestone: it shows the content of a
+slide, but some visual effects and all editing are not built yet.
 
-- **Rendered:** text (rich runs), shapes (solid/gradient/image fills + stroke),
-  pictures/images, media poster frames, nested groups, and straight connectors.
-- **Placeholders:** tables, charts, SmartArt, ink, OLE objects, 3D models, and
-  zoom links are shown as labelled placeholders.
-- **Not yet implemented:** custom-geometry clip-paths and bent/curved
-  connectors, effects (shadows, glow, 3D, image filters), text warp / equations,
-  embedded-font injection, media playback, animations/transitions/presentation
-  mode, editing (selection, toolbar, inspector), and export.
+- **Shown today:** text (with mixed formatting), shapes (solid, gradient, and
+  image fills, plus outlines), pictures and images, the still frame of a video,
+  nested groups, and straight connectors.
+- **Shown as placeholders:** tables, charts, SmartArt, ink, OLE objects, 3D
+  models, and zoom links appear as labelled boxes for now.
+- **Not built yet:** custom shape outlines and bent or curved connectors;
+  effects (shadows, glow, 3D, image filters); warped text and equations;
+  embedded fonts; video and audio playback; animations, transitions, and
+  presentation mode; editing (selecting, the toolbar, the inspector); and export.
 
-The underlying `pptx-viewer-core` engine already parses most of this data, so
-you can read it from the parsed model even where this UI layer doesn't render it
-yet. Progress, the roadmap, and design notes live in
-[`PORTING.md`](./PORTING.md).
+The `pptx-viewer-core` engine already reads most of this data, so you can get it
+from the parsed model even where this UI does not draw it yet. Progress, the
+roadmap, and design notes live in [`PORTING.md`](./PORTING.md).
 
 ## Build (contributing)
 

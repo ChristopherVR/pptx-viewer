@@ -74,6 +74,7 @@
 		"@rollup/plugin-terser": "^1.0.0",
 		"@tailwindcss/cli": "^4.3.1",
 		"@types/dompurify": "^3.2.0",
+		"@types/three": "^0.184.1",
 		"@vitejs/plugin-vue": "^6.0.7",
 		"@vue/test-utils": "^2.4.11",
 		"happy-dom": "^20.10.6",
@@ -81,6 +82,7 @@
 		"pptx-viewer-shared": "workspace:*",
 		"tailwindcss": "^4.3.1",
 		"terser": "^5.48.0",
+		"three": "^0.184.0",
 		"typescript": "^6.0.3",
 		"vite": "^8.0.16",
 		"vite-plugin-dts": "^5.0.2",
@@ -90,9 +92,16 @@
 	"peerDependencies": {
 		"fast-xml-parser": "^5.8.0",
 		"jszip": "^3.10.1",
+		"three": "^0.184.0",
 		"vue": "^3.5.0"
 	},
+	"peerDependenciesMeta": {
+		"three": {
+			"optional": true
+		}
+	},
 	"optionalDependencies": {
+		"three": "^0.184.0",
 		"y-websocket": "^3.0.0",
 		"yjs": "^13.6.31"
 	}

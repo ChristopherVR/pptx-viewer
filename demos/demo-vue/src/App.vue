@@ -66,6 +66,9 @@ const themeKey = ref<string>('dark');
 const isBusy = ref(false);
 const viewer = ref<PowerPointViewerExpose>();
 
+// Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`.
+const smartArt3D = new URLSearchParams(window.location.search).get('smartArt3D') === '1';
+
 const activeTheme = computed(() => themes[themeKey.value]?.theme ?? themes.dark.theme);
 
 function loadFile(file: File): void {
@@ -158,6 +161,7 @@ async function download(): Promise<void> {
 				:content="content"
 				:theme="activeTheme"
 				can-edit
+				:smartArt3D="smartArt3D"
 				@active-slide-change="(i: number) => console.log('slide', i)"
 			/>
 		</div>
