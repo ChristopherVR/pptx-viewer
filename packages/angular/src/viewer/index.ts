@@ -246,6 +246,7 @@ export type { AnnotationStroke, PresentationTool } from './presentation-annotati
 // Presentation transitions + presenter view
 export { PresentationTransitionOverlayComponent } from './presentation-transition-overlay.component';
 export { PresenterViewComponent } from './presenter-view.component';
+export { MobilePresenterViewComponent } from './mobile-presenter-view.component';
 export {
 	getSlideTransitionAnimations,
 	resolveTransitionDuration,

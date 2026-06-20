@@ -222,6 +222,12 @@ export * from './export-progress';
 // default `.pptx/.ppsx/.pptm/.potx` accept list, used by every binding's
 // File ▸ Open action to load another presentation.
 export * from './open-file-picker';
+// Mobile-adapted presenter view: pure geometry (next-slide thumbnail scaling),
+// slide-counter / first-last labels, and elapsed-time formatting for the
+// single-column phone presenter layout. The desktop split-screen presenter
+// keeps its own per-binding helpers; only the phone layout is shared here. Each
+// binding renders these values into its own template / JSX.
+export * from './presenter-mobile';
 // Virtual-keyboard inset maths: from a VisualViewport snapshot, compute how many
 // CSS pixels the on-screen keyboard covers, whether it counts as open, and how
 // far to scroll the focused field into the area above the keyboard. Each binding

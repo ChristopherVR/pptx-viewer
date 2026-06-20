@@ -33,6 +33,7 @@ export { SignatureStatusBadge } from './SignatureStatusBadge';
 export { SignatureStrippedDialog } from './SignatureStrippedDialog';
 export { EncryptedFileDialog } from './EncryptedFileDialog';
 export { PresenterView } from './PresenterView';
+export { MobilePresenterView } from './MobilePresenterView';
 export { RehearseTimingsHud } from './RehearseTimingsHud';
 export { RehearseTimingsSummary } from './RehearseTimingsSummary';
 

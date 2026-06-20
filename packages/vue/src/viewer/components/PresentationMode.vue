@@ -5,8 +5,10 @@ import type { CSSProperties } from 'vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import { useAnimationPlayback } from '../composables/useAnimationPlayback';
+import { useIsMobile } from '../composables/useIsMobile';
 import { usePresentationAnnotations } from '../composables/usePresentationAnnotations';
 import type { CanvasSize } from '../types';
+import MobilePresenterView from './MobilePresenterView.vue';
 import PresentationAnnotationOverlay from './PresentationAnnotationOverlay.vue';
 import PresentationSubtitleBar from './PresentationSubtitleBar.vue';
 import PresentationToolbar from './PresentationToolbar.vue';
@@ -152,6 +154,8 @@ function close(): void {
 const presentationStartTime = ref<number | null>(null);
 /** Whether the presenter view (notes + next-slide preview) is shown. */
 const presenterMode = ref(false);
+/** On a phone, the presenter view uses a single-column mobile layout. */
+const { isMobile } = useIsMobile();
 /** Whether the live-caption (subtitle) bar is shown. */
 const subtitlesOn = ref(false);
 
@@ -391,9 +395,22 @@ onBeforeUnmount(() => {
 				/>
 			</div>
 
-			<!-- Presenter view (notes + next-slide preview): covers the stage. -->
+			<!-- Presenter view (notes + next-slide preview): covers the stage.
+			     On a phone, a single-column mobile layout replaces the desktop
+			     split-screen layout. -->
+			<MobilePresenterView
+				v-if="presenterMode && isMobile"
+				:slides="slides"
+				:current-slide-index="currentIndex"
+				:canvas-size="canvasSize"
+				:media-data-urls="mediaDataUrls"
+				:presentation-start-time="presentationStartTime"
+				@click.stop
+				@move="onToolbarMove"
+				@exit="presenterMode = false"
+			/>
 			<PresenterView
-				v-if="presenterMode"
+				v-else-if="presenterMode"
 				:slides="slides"
 				:current-slide-index="currentIndex"
 				:canvas-size="canvasSize"
