@@ -68,7 +68,10 @@ const model = computed<SmartArt3DModel | null>(() => {
 		data.resolvedLayoutType,
 		data.layout,
 	);
-	return buildSmartArt3DModel(layout, { background: chrome.value?.backgroundColor });
+	return buildSmartArt3DModel(layout, {
+		background: chrome.value?.backgroundColor,
+		spatial: true,
+	});
 });
 
 /** `true` once we know the 3D scene cannot run; render the SVG fallback. */
