@@ -45,6 +45,7 @@ export {
 	setChartAxis,
 	setChartDataLabels,
 	setChartSeriesTrendline,
+	setChartSeriesErrorBars,
 	updateChartDataPoint,
 	addChartCategory,
 	removeChartCategory,

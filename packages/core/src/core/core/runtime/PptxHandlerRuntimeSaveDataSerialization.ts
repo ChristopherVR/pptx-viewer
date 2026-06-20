@@ -9,6 +9,7 @@ import type {
 } from '../../types';
 import { upsertChartAxisChild } from '../../utils/chart-axis-parser';
 import { applyChartDataLabelsToXml } from '../../utils/chart-data-labels-serializer';
+import { applySeriesErrBarsToXml } from '../../utils/chart-errbars-serializer';
 import { applyChartLegendToXml } from '../../utils/chart-legend-serializer';
 import { applySeriesTrendlinesToXml } from '../../utils/chart-trendline-serializer';
 import { xmlChild, xmlPath } from '../../utils/xml-access';
@@ -299,6 +300,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 							this.compatibilityService.getXmlLocalName(key),
 						);
 					}
+
+					// Error bars (per-series). Undefined = no edit / passthrough.
+					if (seriesData.errBars !== undefined) {
+						applySeriesErrBarsToXml(seriesNode, seriesData.errBars, (key) =>
+							this.compatibilityService.getXmlLocalName(key),
+						);
+					}
 				}
 
 				// ── Add new series (when data has more series than XML) ───
@@ -458,7 +466,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// Currently writes back: scaling.min/max, scaling.logBase,
 				// numFmt, majorUnit, minorUnit, tickLblPos. Other parsed-but-not-
 				// written chart fields (surfaces/dataTable/dropLines/hiLowLines/
-				// errBars/marker/per-point dataLabels/explosion/smooth/
+				// marker/per-point dataLabels/explosion/smooth/
 				// colorPalette/colorMethod, axis title/txPr/axPos) are
 				// preserved via the original XML passthrough but lose any edits
 				// — see OPENXML_PARITY.md M-tier.

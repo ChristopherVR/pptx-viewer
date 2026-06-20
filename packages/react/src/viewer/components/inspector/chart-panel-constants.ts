@@ -115,5 +115,37 @@ export const TRENDLINE_SUPPORTED_TYPES = new Set<PptxChartType>([
 	'bubble',
 ]);
 
+export const ERROR_BAR_VALTYPE_OPTIONS: ReadonlyArray<{
+	value: '' | 'fixedVal' | 'percentage' | 'stdDev' | 'stdErr';
+	labelKey: string;
+}> = [
+	{ value: '', labelKey: 'pptx.chart.errorBarNone' },
+	{ value: 'fixedVal', labelKey: 'pptx.chart.errorBarFixed' },
+	{ value: 'percentage', labelKey: 'pptx.chart.errorBarPercentage' },
+	{ value: 'stdDev', labelKey: 'pptx.chart.errorBarStdDev' },
+	{ value: 'stdErr', labelKey: 'pptx.chart.errorBarStdErr' },
+];
+
+export const ERROR_BAR_TYPE_OPTIONS: ReadonlyArray<{
+	value: 'both' | 'plus' | 'minus';
+	labelKey: string;
+}> = [
+	{ value: 'both', labelKey: 'pptx.chart.errorBarBoth' },
+	{ value: 'plus', labelKey: 'pptx.chart.errorBarPlus' },
+	{ value: 'minus', labelKey: 'pptx.chart.errorBarMinus' },
+];
+
+/** Value types that take a numeric amount/multiplier (stdErr does not). */
+export const ERROR_BAR_VALUE_TYPES = new Set(['fixedVal', 'percentage', 'stdDev']);
+
+/** Chart types where error bars are meaningful. */
+export const ERROR_BAR_SUPPORTED_TYPES = new Set<PptxChartType>([
+	'bar',
+	'line',
+	'area',
+	'scatter',
+	'bubble',
+]);
+
 /** Chart types that support grouping modes. */
 export const GROUPING_SUPPORTED_TYPES = new Set<PptxChartType>(['bar', 'line', 'area']);

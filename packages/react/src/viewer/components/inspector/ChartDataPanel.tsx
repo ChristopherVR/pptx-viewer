@@ -4,6 +4,7 @@ import type {
 	PptxChartAxisFormatting,
 	PptxChartData,
 	PptxChartSeries,
+	PptxChartErrBars,
 	PptxChartStyle,
 	PptxChartTrendline,
 	PptxChartType,
@@ -22,6 +23,7 @@ import { ChartAxisOptions } from './ChartAxisOptions';
 import { ChartDataGrid } from './ChartDataGrid';
 import { ChartDataLabelOptions } from './ChartDataLabelOptions';
 import { ChartDisplayOptions } from './ChartDisplayOptions';
+import { ChartErrorBarOptions } from './ChartErrorBarOptions';
 import { ChartTrendlineOptions } from './ChartTrendlineOptions';
 import { ChartTypeSelector } from './ChartTypeSelector';
 
@@ -135,6 +137,19 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 		[series, updateChartData],
 	);
 
+	const setSeriesErrorBars = useCallback(
+		(index: number, errBars: PptxChartErrBars | null) => {
+			if (!series) {
+				return;
+			}
+			const updated = series.map((s, i) =>
+				i === index ? { ...s, errBars: errBars ? [errBars] : [] } : s,
+			);
+			updateChartData({ series: updated });
+		},
+		[series, updateChartData],
+	);
+
 	const updateCategoryLabel = useCallback(
 		(catIndex: number, value: string) => {
 			if (!categories) {
@@ -228,6 +243,13 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 				series={series}
 				canEdit={canEdit}
 				onSetTrendline={setSeriesTrendline}
+			/>
+
+			<ChartErrorBarOptions
+				chartType={chartType!}
+				series={series}
+				canEdit={canEdit}
+				onSetErrorBars={setSeriesErrorBars}
 			/>
 
 			<ChartDataGrid

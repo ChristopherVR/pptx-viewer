@@ -14,6 +14,7 @@ import {
 	setChartAxis,
 	setChartDataLabels,
 	setChartSeriesTrendline,
+	setChartSeriesErrorBars,
 	updateChartDataPoint,
 	addChartCategory,
 	removeChartCategory,
@@ -935,5 +936,81 @@ describe('setChartSeriesTrendline', () => {
 		expect(() => setChartSeriesTrendline(el, 0, { trendlineType: 'linear' })).toThrow(
 			/no chartData/u,
 		);
+	});
+});
+
+// ===========================================================================
+// setChartSeriesErrorBars
+// ===========================================================================
+
+describe('setChartSeriesErrorBars', () => {
+	it('adds error bars to a series', () => {
+		const el = makeTestChart();
+		setChartSeriesErrorBars(el, 0, {
+			direction: 'y',
+			barType: 'both',
+			valType: 'percentage',
+			val: 5,
+		});
+		expect(el.chartData?.series[0].errBars).toStrictEqual([
+			{ direction: 'y', barType: 'both', valType: 'percentage', val: 5 },
+		]);
+	});
+
+	it('replaces existing error bars', () => {
+		const el = makeTestChart();
+		setChartSeriesErrorBars(el, 0, {
+			direction: 'y',
+			barType: 'both',
+			valType: 'fixedVal',
+			val: 1,
+		});
+		setChartSeriesErrorBars(el, 0, { direction: 'y', barType: 'plus', valType: 'stdErr' });
+		expect(el.chartData?.series[0].errBars).toStrictEqual([
+			{ direction: 'y', barType: 'plus', valType: 'stdErr' },
+		]);
+	});
+
+	it('removes error bars when passed null', () => {
+		const el = makeTestChart();
+		setChartSeriesErrorBars(el, 0, {
+			direction: 'y',
+			barType: 'both',
+			valType: 'fixedVal',
+			val: 1,
+		});
+		setChartSeriesErrorBars(el, 0, null);
+		expect(el.chartData?.series[0].errBars).toStrictEqual([]);
+	});
+
+	it('only affects the targeted series', () => {
+		const el = makeTestChart();
+		setChartSeriesErrorBars(el, 1, { direction: 'y', barType: 'both', valType: 'stdDev', val: 2 });
+		expect(el.chartData?.series[0].errBars).toBeUndefined();
+		expect(el.chartData?.series[1].errBars).toHaveLength(1);
+	});
+
+	it('throws RangeError for an out-of-range series index', () => {
+		const el = makeTestChart();
+		expect(() =>
+			setChartSeriesErrorBars(el, 9, {
+				direction: 'y',
+				barType: 'both',
+				valType: 'fixedVal',
+				val: 1,
+			}),
+		).toThrow(RangeError);
+	});
+
+	it('throws when chartData is missing', () => {
+		const el = makeEmptyChart();
+		expect(() =>
+			setChartSeriesErrorBars(el, 0, {
+				direction: 'y',
+				barType: 'both',
+				valType: 'fixedVal',
+				val: 1,
+			}),
+		).toThrow(/no chartData/u);
 	});
 });

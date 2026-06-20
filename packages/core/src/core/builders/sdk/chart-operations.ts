@@ -12,6 +12,7 @@
 import type {
 	PptxChartAxisFormatting,
 	PptxChartDataLabelOptions,
+	PptxChartErrBars,
 	PptxChartTrendline,
 	PptxChartType,
 } from '../../types/chart';
@@ -297,6 +298,30 @@ export function setChartSeriesTrendline(
 ): void {
 	validateSeriesIndex(element, seriesIndex);
 	element.chartData!.series[seriesIndex].trendlines = trendline ? [trendline] : [];
+}
+
+/**
+ * Set (or clear) the error bars on a chart series. Edits round-trip to the
+ * saved `.pptx` (`c:errBars` inside the series).
+ *
+ * Pass a {@link PptxChartErrBars} to add/replace the series' error bars, or
+ * `null` to remove them. This manages a single error-bar definition per series
+ * (the common case); charts with both X and Y error bars can be edited via the
+ * `series.errBars` array directly.
+ *
+ * @example
+ * ```ts
+ * setChartSeriesErrorBars(chartEl, 0, { direction: "y", barType: "both", valType: "percentage", val: 5 });
+ * setChartSeriesErrorBars(chartEl, 0, null); // remove
+ * ```
+ */
+export function setChartSeriesErrorBars(
+	element: ChartPptxElement,
+	seriesIndex: number,
+	errBars: PptxChartErrBars | null,
+): void {
+	validateSeriesIndex(element, seriesIndex);
+	element.chartData!.series[seriesIndex].errBars = errBars ? [errBars] : [];
 }
 
 /** Axis kinds that can be addressed by {@link setChartAxis}. */
