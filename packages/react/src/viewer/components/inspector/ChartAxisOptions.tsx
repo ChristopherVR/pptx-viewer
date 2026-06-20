@@ -1,7 +1,13 @@
 import type { PptxChartAxisFormatting } from 'pptx-viewer-core';
 import { useTranslation } from 'react-i18next';
 
-import { CARD, HEADING, INPUT, TICK_LABEL_POSITION_OPTIONS } from './chart-panel-constants';
+import {
+	CARD,
+	DISPLAY_UNITS_OPTIONS,
+	HEADING,
+	INPUT,
+	TICK_LABEL_POSITION_OPTIONS,
+} from './chart-panel-constants';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -84,6 +90,30 @@ export function ChartAxisOptions({ axes, canEdit, onUpdateAxis }: ChartAxisOptio
 							{numberField(type, 'pptx.chart.max', axis.max, 'max')}
 							{numberField(type, 'pptx.chart.majorUnit', axis.majorUnit, 'majorUnit')}
 							{numberField(type, 'pptx.chart.minorUnit', axis.minorUnit, 'minorUnit')}
+
+							{/* Display units */}
+							<label className='flex items-center gap-2 text-[11px]'>
+								<span className='w-16 text-muted-foreground shrink-0'>
+									{t('pptx.chart.displayUnits')}
+								</span>
+								<select
+									disabled={!canEdit}
+									className={INPUT}
+									value={axis.displayUnits ?? ''}
+									onChange={(e) =>
+										onUpdateAxis(type, {
+											displayUnits: (e.target.value ||
+												undefined) as PptxChartAxisFormatting['displayUnits'],
+										})
+									}
+								>
+									{DISPLAY_UNITS_OPTIONS.map((opt) => (
+										<option key={opt.value} value={opt.value}>
+											{t(opt.labelKey)}
+										</option>
+									))}
+								</select>
+							</label>
 						</div>
 					)}
 

@@ -347,6 +347,10 @@ export interface ChartAxisEdit {
 	majorGridlines?: boolean;
 	/** Toggle minor gridlines. */
 	minorGridlines?: boolean;
+	/** Value-axis display units (built-in scale name or `'custom'`); `null` clears. */
+	displayUnits?: PptxChartAxisFormatting['displayUnits'] | null;
+	/** Custom display-unit divisor (used when `displayUnits` is `'custom'`). */
+	displayUnitsValue?: number | null;
 }
 
 /**
@@ -406,6 +410,12 @@ export function setChartAxis(
 	}
 	if (edit.minorGridlines !== undefined) {
 		axis.minorGridlines = edit.minorGridlines;
+	}
+	if (edit.displayUnits !== undefined) {
+		axis.displayUnits = edit.displayUnits ?? undefined;
+	}
+	if (edit.displayUnitsValue !== undefined) {
+		axis.displayUnitsValue = edit.displayUnitsValue ?? undefined;
 	}
 }
 

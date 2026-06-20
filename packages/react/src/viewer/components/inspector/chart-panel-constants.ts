@@ -61,6 +61,32 @@ export const TICK_LABEL_POSITION_OPTIONS: ReadonlyArray<{
 	{ value: 'none', labelKey: 'pptx.chart.tickNone' },
 ];
 
+export const DISPLAY_UNITS_OPTIONS: ReadonlyArray<{
+	value:
+		| ''
+		| 'hundreds'
+		| 'thousands'
+		| 'tenThousands'
+		| 'hundredThousands'
+		| 'millions'
+		| 'tenMillions'
+		| 'hundredMillions'
+		| 'billions'
+		| 'trillions';
+	labelKey: string;
+}> = [
+	{ value: '', labelKey: 'pptx.chart.unitsNone' },
+	{ value: 'hundreds', labelKey: 'pptx.chart.unitsHundreds' },
+	{ value: 'thousands', labelKey: 'pptx.chart.unitsThousands' },
+	{ value: 'tenThousands', labelKey: 'pptx.chart.unitsTenThousands' },
+	{ value: 'hundredThousands', labelKey: 'pptx.chart.unitsHundredThousands' },
+	{ value: 'millions', labelKey: 'pptx.chart.unitsMillions' },
+	{ value: 'tenMillions', labelKey: 'pptx.chart.unitsTenMillions' },
+	{ value: 'hundredMillions', labelKey: 'pptx.chart.unitsHundredMillions' },
+	{ value: 'billions', labelKey: 'pptx.chart.unitsBillions' },
+	{ value: 'trillions', labelKey: 'pptx.chart.unitsTrillions' },
+];
+
 /** Axis kinds the inspector exposes for editing, with a label key each. */
 export const EDITABLE_AXIS_TYPES: ReadonlyArray<{
 	value: 'valAx' | 'catAx';

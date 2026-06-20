@@ -817,6 +817,14 @@ describe('setChartAxis', () => {
 		expect(axis?.minorGridlines).toBeFalsy();
 	});
 
+	it('sets and clears display units', () => {
+		const el = makeTestChart();
+		setChartAxis(el, 'valAx', { displayUnits: 'thousands' });
+		expect(el.chartData?.axes?.find((a) => a.axisType === 'valAx')?.displayUnits).toBe('thousands');
+		setChartAxis(el, 'valAx', { displayUnits: null });
+		expect(el.chartData?.axes?.find((a) => a.axisType === 'valAx')?.displayUnits).toBeUndefined();
+	});
+
 	it('leaves unspecified fields unchanged', () => {
 		const el = makeTestChart();
 		el.chartData!.axes = [{ axisType: 'valAx', min: 1, max: 9, majorUnit: 2 }];
