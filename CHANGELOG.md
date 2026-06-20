@@ -4,6 +4,24 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.4.15](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.15) - 2026-06-20
+
+### Features
+
+- **angular:** Swipe-dismiss the mobile inspector drawer (by @ChristopherVR) ([37b0e02](https://github.com/ChristopherVR/pptx-viewer/commit/37b0e02462ed5b387b136e290eed526ae602c0b8))
+
+### Refactor
+
+- **angular:** Remove em-dashes from code comments and prose (by @ChristopherVR) ([0166321](https://github.com/ChristopherVR/pptx-viewer/commit/01663210fd84f60b29c7c6176def02951e3903f3))
+- **vue:** Remove em-dashes from code comments and prose (by @ChristopherVR) ([e306df9](https://github.com/ChristopherVR/pptx-viewer/commit/e306df9ed3d8ee65cc6de6f94ace8789682aa0bb))
+- **react:** Remove em-dashes from code comments and prose (1/2) (by @ChristopherVR) ([863e941](https://github.com/ChristopherVR/pptx-viewer/commit/863e94132c19751d5c7327baa520244c53e7c115))
+- **react:** Remove em-dashes from code comments and prose (2/2) (by @ChristopherVR) ([2544c13](https://github.com/ChristopherVR/pptx-viewer/commit/2544c1361643cb338be87a89d5123a8ac666aada))
+- **core:** Move OOXML table XML read/write from React into core (by @ChristopherVR) ([66ee49b](https://github.com/ChristopherVR/pptx-viewer/commit/66ee49b9a9f65a6c0e09f7dd0fb90447ea105e43))
+
+### Documentation
+
+- Remove em-dashes and clarify demo link in viewer packages (by @ChristopherVR) ([f52afff](https://github.com/ChristopherVR/pptx-viewer/commit/f52afffd935016b747116a9909c523021b492225))
+
 ## [1.4.14](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.14) - 2026-06-19
 
 ### Features
@@ -14,6 +32,10 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 - **shared:** Extract slide-transition CSS/keyframes into shared (by @ChristopherVR) ([fabb975](https://github.com/ChristopherVR/pptx-viewer/commit/fabb975951dce40e3fea4ae6feeffa64f243d05b))
 - **shared:** Extract element-animation authoring/playback into shared (by @ChristopherVR) ([fa0a4c3](https://github.com/ChristopherVR/pptx-viewer/commit/fa0a4c350a8d68ce6d8592a63f4f3875087592ab))
+
+### Documentation
+
+- **changelog:** Update for v1.4.14 [skip ci] (by @github-actions[bot]) ([7d4b6f8](https://github.com/ChristopherVR/pptx-viewer/commit/7d4b6f867759569057faef00b9c4cf744e67aad5))
 
 ## [1.4.13](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.13) - 2026-06-19
 
