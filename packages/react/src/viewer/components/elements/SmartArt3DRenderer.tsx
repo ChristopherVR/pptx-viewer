@@ -106,7 +106,10 @@ export function SmartArt3DRenderer({
 			resolvedLayoutType,
 			layout,
 		);
-		return buildSmartArt3DModel(layoutResult, { background: chrome?.backgroundColor });
+		return buildSmartArt3DModel(layoutResult, {
+			background: chrome?.backgroundColor,
+			spatial: true,
+		});
 	}, [element]);
 
 	const svgFallback = <SmartArtRenderer element={element} className={className} />;
