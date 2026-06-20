@@ -1,5 +1,5 @@
 /**
- * `slide-transition-css` — thin re-export shim over the framework-agnostic
+ * `slide-transition-css`: thin re-export shim over the framework-agnostic
  * slide-transition CSS/keyframe generator in `pptx-viewer-shared`.
  *
  * The pure logic (direction/orientation resolution, the `pptx-tr-*` keyframe

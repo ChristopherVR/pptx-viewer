@@ -4,10 +4,10 @@
  * Thin re-export shim over the framework-agnostic slide-transition CSS/keyframe
  * generator in `pptx-viewer-shared` (vendored via `../internal/shared`).
  *
- * The pure logic — direction/orientation resolution, the `pptx-tr-*` keyframe
+ * The pure logic (direction/orientation resolution, the `pptx-tr-*` keyframe
  * block (`SLIDE_TRANSITION_KEYFRAMES`), and the type→`animation` resolver
  * (`getSlideTransitionAnimations`, including the exotic/3-D 2-D approximations
- * that originated here) — now lives in shared and is consumed by every binding.
+ * that originated here) now lives in shared and is consumed by every binding.
  *
  * Angular keeps its OWN duration policy locally: the presentation overlay floors
  * very short authored durations and uses a smaller default than React/Vue, so

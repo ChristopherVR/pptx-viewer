@@ -1,5 +1,5 @@
 /**
- * Thin re-export shim — the direction/orientation resolvers and the
+ * Thin re-export shim: the direction/orientation resolvers and the
  * `RANDOM_ELIGIBLE_TYPES` / `INSTANT` constants now live in
  * `pptx-viewer-shared`. Kept so existing importers (`transition-resolver`,
  * tests) resolve unchanged.
