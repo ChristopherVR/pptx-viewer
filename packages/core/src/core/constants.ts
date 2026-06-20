@@ -27,6 +27,11 @@ export const DEFAULT_STROKE_COLOR = '#1f2937';
 export const DEFAULT_FONT_FAMILY = '"Segoe UI", "Helvetica Neue", Arial, sans-serif';
 export const DEFAULT_TEXT_FONT_SIZE = 24;
 
+/** Minimum allowed number of rows/columns when creating a table. */
+export const MIN_TABLE_DIMENSION = 1;
+/** Maximum allowed number of rows/columns when creating a table. */
+export const MAX_TABLE_DIMENSION = 100;
+
 export const POWERPOINT_PRESENCE_KEY = 'pptx-presence-v1';
 
 // ---------------------------------------------------------------------------

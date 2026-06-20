@@ -22,3 +22,16 @@ export type {
 	PptxSaveFormat,
 } from './types';
 export { DEFAULT_MAX_UNCOMPRESSED_BYTES, MAX_ZIP_ENTRY_COUNT, ZipBombError } from './types';
+
+// Framework-agnostic table XML builders and raw-XML mutation operations,
+// consumed by the viewer bindings (insert tables, edit cell text/style,
+// sync rawXml on merge/structure changes).
+export {
+	createTableCellXml,
+	createTableGraphicFrameRawXml,
+	applyTableCellTextAndStyle,
+	updateCellTextInRawXml,
+	updateCellTextStyleInRawXml,
+	updateMergeAttrsInRawXml,
+	rebuildTableStructureInRawXml,
+} from './runtime/table-structural-ops';

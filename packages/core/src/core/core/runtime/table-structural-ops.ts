@@ -28,3 +28,18 @@ export {
 	ensureA16NamespaceOnSlideRoot,
 	slideContainsA16Element,
 } from './table-xml-rebuild';
+
+// New-table / cell XML builders
+export {
+	createTableCellXml,
+	createTableGraphicFrameRawXml,
+	applyTableCellTextAndStyle,
+} from './table-create-xml';
+
+// Raw-XML cell/merge/structure mutations
+export {
+	updateCellTextInRawXml,
+	updateCellTextStyleInRawXml,
+	updateMergeAttrsInRawXml,
+	rebuildTableStructureInRawXml,
+} from './table-cell-rawxml-ops';
