@@ -65,7 +65,7 @@ describe('connectorRenderer', () => {
 
 // ── Bent connector routing ────────────────────────────────────────────────────
 
-describe('connectorRenderer — bent connectors', () => {
+describe('connectorRenderer - bent connectors', () => {
 	it('renders a <path> (not a <line>) for bentConnector2', () => {
 		const wrapper = mount(ConnectorRenderer, {
 			props: {
@@ -78,7 +78,7 @@ describe('connectorRenderer — bent connectors', () => {
 			},
 		});
 		expect(wrapper.find('path').exists()).toBeTruthy();
-		// No plain <line> elements — multi-segment replaces them
+		// No plain <line> elements: multi-segment replaces them
 		expect(wrapper.find('line').exists()).toBeFalsy();
 	});
 
@@ -96,7 +96,7 @@ describe('connectorRenderer — bent connectors', () => {
 		const path = wrapper.get('path');
 		const d = path.attributes('d') ?? '';
 		// Must contain at least 3 L segments (not a straight diagonal)
-		const lCount = (d.match(/\bL\b/g) ?? []).length;
+		const lCount = (d.match(/\bL\b/gu) ?? []).length;
 		expect(lCount).toBeGreaterThanOrEqual(3);
 	});
 
@@ -149,7 +149,7 @@ describe('connectorRenderer — bent connectors', () => {
 
 // ── Curved connector routing ──────────────────────────────────────────────────
 
-describe('connectorRenderer — curved connectors', () => {
+describe('connectorRenderer - curved connectors', () => {
 	it('renders a <path> with Q (quadratic Bezier) for curvedConnector2', () => {
 		const wrapper = mount(ConnectorRenderer, {
 			props: {
@@ -162,7 +162,7 @@ describe('connectorRenderer — curved connectors', () => {
 			},
 		});
 		const path = wrapper.get('path');
-		expect(path.attributes('d')).toMatch(/Q/);
+		expect(path.attributes('d')).toMatch(/Q/u);
 		expect(wrapper.find('line').exists()).toBeFalsy();
 	});
 
@@ -178,7 +178,7 @@ describe('connectorRenderer — curved connectors', () => {
 			},
 		});
 		const path = wrapper.get('path');
-		expect(path.attributes('d')).toMatch(/C/);
+		expect(path.attributes('d')).toMatch(/C/u);
 		expect(wrapper.find('line').exists()).toBeFalsy();
 	});
 
@@ -193,7 +193,7 @@ describe('connectorRenderer — curved connectors', () => {
 				zIndex: 0,
 			},
 		});
-		expect(wrapper.get('path').attributes('d')).toMatch(/C/);
+		expect(wrapper.get('path').attributes('d')).toMatch(/C/u);
 	});
 
 	it('renders a <path> with C for curvedConnector5', () => {
@@ -207,13 +207,13 @@ describe('connectorRenderer — curved connectors', () => {
 				zIndex: 0,
 			},
 		});
-		expect(wrapper.get('path').attributes('d')).toMatch(/C/);
+		expect(wrapper.get('path').attributes('d')).toMatch(/C/u);
 	});
 });
 
 // ── Compound line rendering ───────────────────────────────────────────────────
 
-describe('connectorRenderer — compound lines', () => {
+describe('connectorRenderer - compound lines', () => {
 	it('renders two <line> elements for a straight dbl compound connector', () => {
 		const wrapper = mount(ConnectorRenderer, {
 			props: {
@@ -291,7 +291,7 @@ describe('connectorRenderer — compound lines', () => {
 
 // ── Dash array ────────────────────────────────────────────────────────────────
 
-describe('connectorRenderer — dash array', () => {
+describe('connectorRenderer - dash array', () => {
 	it('applies stroke-dasharray for dot dash', () => {
 		const wrapper = mount(ConnectorRenderer, {
 			props: {

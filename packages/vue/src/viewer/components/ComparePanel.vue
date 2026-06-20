@@ -6,7 +6,7 @@ import type { CanvasSize } from '../types';
 import SlideDiffRow from './SlideDiffRow.vue';
 
 /**
- * ComparePanel — side panel showing slide-level diffs between two versions.
+ * ComparePanel: side panel showing slide-level diffs between two versions.
  *
  * Vue port of the React `ComparePanel.tsx`. Lists each non-trivial
  * {@link SlideDiff} as a {@link SlideDiffRow}; the user can accept/reject
@@ -25,10 +25,8 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-	(e: 'close'): void;
-	(e: 'accept-slide', diffIndex: number): void;
-	(e: 'reject-slide', diffIndex: number): void;
-	(e: 'accept-all'): void;
+	(e: 'close' | 'accept-all'): void;
+	(e: 'accept-slide' | 'reject-slide', diffIndex: number): void;
 }>();
 
 const accepted = ref<Record<number, boolean>>({});

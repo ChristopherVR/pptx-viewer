@@ -11,7 +11,7 @@ import { buildStrokePathD } from '../composables/usePresentationAnnotations';
 import type { CanvasSize } from '../types';
 
 /**
- * PresentationAnnotationOverlay — transparent SVG overlay drawn on top of the
+ * PresentationAnnotationOverlay - transparent SVG overlay drawn on top of the
  * slide during presentation mode. Captures pointer events for the
  * pen/highlighter/eraser tools and renders the laser-pointer dot. Vue port of
  * the React `PresentationAnnotationOverlay`.
@@ -31,12 +31,8 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-	(e: 'pointer-down', x: number, y: number): void;
-	(e: 'pointer-move', x: number, y: number): void;
-	(e: 'pointer-up'): void;
-	(e: 'laser-move', x: number, y: number): void;
-	(e: 'laser-leave'): void;
-	(e: 'erase', x: number, y: number): void;
+	(e: 'pointer-down' | 'pointer-move' | 'laser-move' | 'erase', x: number, y: number): void;
+	(e: 'pointer-up' | 'laser-leave'): void;
 }>();
 
 const svgRef = ref<SVGSVGElement | null>(null);

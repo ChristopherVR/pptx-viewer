@@ -64,9 +64,9 @@ describe('connectorNeedsPath', () => {
 	});
 });
 
-// ── getConnectorPathGeometry — straight ──────────────────────────────────────
+// ── getConnectorPathGeometry: straight ──────────────────────────────────────
 
-describe('getConnectorPathGeometry — straight / default', () => {
+describe('getConnectorPathGeometry: straight / default', () => {
 	it('produces a straight M…L path from (0,0) to (W,H)', () => {
 		const geo = getConnectorPathGeometry(makeConnector({ width: 100, height: 50 }));
 		expect(geo.pathData).toBe('M 0 0 L 100 50');
@@ -83,43 +83,43 @@ describe('getConnectorPathGeometry — straight / default', () => {
 		expect(geo.startX).toBe(100);
 		expect(geo.endX).toBe(0);
 		// Path should start at (W,0) and end at (0,H)
-		expect(geo.pathData).toMatch(/^M 100 0/);
-		expect(geo.pathData).toMatch(/L 0 50$/);
+		expect(geo.pathData).toMatch(/^M 100 0/u);
+		expect(geo.pathData).toMatch(/L 0 50$/u);
 	});
 });
 
-// ── getConnectorPathGeometry — bentConnector2 ─────────────────────────────────
+// ── getConnectorPathGeometry: bentConnector2 ─────────────────────────────────
 
-describe('getConnectorPathGeometry — bentConnector2', () => {
+describe('getConnectorPathGeometry: bentConnector2', () => {
 	it('produces an L-shaped (3 point) path', () => {
 		const geo = getConnectorPathGeometry(
 			makeConnector({ shapeType: 'bentConnector2', width: 200, height: 100 }),
 		);
-		// M start L corner L end — 3 segments
-		const segments = geo.pathData.match(/[ML]/g) ?? [];
+		// M start L corner L end: 3 segments
+		const segments = geo.pathData.match(/[ML]/gu) ?? [];
 		expect(segments).toHaveLength(3);
-		expect(geo.pathData).toMatch(/^M /);
+		expect(geo.pathData).toMatch(/^M /u);
 	});
 
 	it('is not a single straight line', () => {
 		const geo = getConnectorPathGeometry(
 			makeConnector({ shapeType: 'bentConnector2', width: 200, height: 100 }),
 		);
-		// A straight line would be "M x1 y1 L x2 y2" — only 2 L/M commands total
-		const segments = geo.pathData.match(/[ML]/g) ?? [];
+		// A straight line would be "M x1 y1 L x2 y2": only 2 L/M commands total
+		const segments = geo.pathData.match(/[ML]/gu) ?? [];
 		expect(segments.length).toBeGreaterThan(2);
 	});
 });
 
-// ── getConnectorPathGeometry — bentConnector3 ─────────────────────────────────
+// ── getConnectorPathGeometry: bentConnector3 ─────────────────────────────────
 
-describe('getConnectorPathGeometry — bentConnector3', () => {
+describe('getConnectorPathGeometry: bentConnector3', () => {
 	it('produces a 4-point Z-shaped path (default adj)', () => {
 		const geo = getConnectorPathGeometry(
 			makeConnector({ shapeType: 'bentConnector3', width: 200, height: 100 }),
 		);
 		// M + 3×L = 4 command tokens
-		const segments = geo.pathData.match(/[ML]/g) ?? [];
+		const segments = geo.pathData.match(/[ML]/gu) ?? [];
 		expect(segments).toHaveLength(4);
 	});
 
@@ -141,55 +141,55 @@ describe('getConnectorPathGeometry — bentConnector3', () => {
 		const geo = getConnectorPathGeometry(
 			makeConnector({ shapeType: 'bentConnector3', width: 200, height: 100 }),
 		);
-		expect(geo.pathData).not.toMatch(/[CQA]/);
+		expect(geo.pathData).not.toMatch(/[CQA]/u);
 	});
 });
 
-// ── getConnectorPathGeometry — bentConnector4 ─────────────────────────────────
+// ── getConnectorPathGeometry: bentConnector4 ─────────────────────────────────
 
-describe('getConnectorPathGeometry — bentConnector4', () => {
+describe('getConnectorPathGeometry: bentConnector4', () => {
 	it('produces a 5-point path', () => {
 		const geo = getConnectorPathGeometry(
 			makeConnector({ shapeType: 'bentConnector4', width: 200, height: 100 }),
 		);
-		const segments = geo.pathData.match(/[ML]/g) ?? [];
+		const segments = geo.pathData.match(/[ML]/gu) ?? [];
 		expect(segments).toHaveLength(5);
 	});
 });
 
-// ── getConnectorPathGeometry — bentConnector5 ─────────────────────────────────
+// ── getConnectorPathGeometry: bentConnector5 ─────────────────────────────────
 
-describe('getConnectorPathGeometry — bentConnector5', () => {
+describe('getConnectorPathGeometry: bentConnector5', () => {
 	it('produces a 6-point path', () => {
 		const geo = getConnectorPathGeometry(
 			makeConnector({ shapeType: 'bentConnector5', width: 200, height: 100 }),
 		);
-		const segments = geo.pathData.match(/[ML]/g) ?? [];
+		const segments = geo.pathData.match(/[ML]/gu) ?? [];
 		expect(segments).toHaveLength(6);
 	});
 });
 
-// ── getConnectorPathGeometry — curvedConnector2 ───────────────────────────────
+// ── getConnectorPathGeometry: curvedConnector2 ───────────────────────────────
 
-describe('getConnectorPathGeometry — curvedConnector2', () => {
+describe('getConnectorPathGeometry: curvedConnector2', () => {
 	it('produces a quadratic Bezier (Q command)', () => {
 		const geo = getConnectorPathGeometry(
 			makeConnector({ shapeType: 'curvedConnector2', width: 200, height: 100 }),
 		);
-		expect(geo.pathData).toMatch(/Q/);
-		expect(geo.pathData).not.toMatch(/L/);
+		expect(geo.pathData).toMatch(/Q/u);
+		expect(geo.pathData).not.toMatch(/L/u);
 	});
 });
 
-// ── getConnectorPathGeometry — curvedConnector3 ───────────────────────────────
+// ── getConnectorPathGeometry: curvedConnector3 ───────────────────────────────
 
-describe('getConnectorPathGeometry — curvedConnector3', () => {
+describe('getConnectorPathGeometry: curvedConnector3', () => {
 	it('produces cubic Bezier curves (C command, no L)', () => {
 		const geo = getConnectorPathGeometry(
 			makeConnector({ shapeType: 'curvedConnector3', width: 200, height: 100 }),
 		);
-		expect(geo.pathData).toMatch(/C/);
-		expect(geo.pathData).not.toMatch(/\bL\b/);
+		expect(geo.pathData).toMatch(/C/u);
+		expect(geo.pathData).not.toMatch(/\bL\b/u);
 	});
 
 	it('path starts at (0,0) and ends at (W,H) by default', () => {
@@ -203,24 +203,24 @@ describe('getConnectorPathGeometry — curvedConnector3', () => {
 	});
 });
 
-// ── getConnectorPathGeometry — curvedConnector4 & 5 ──────────────────────────
+// ── getConnectorPathGeometry: curvedConnector4 & 5 ──────────────────────────
 
-describe('getConnectorPathGeometry — curvedConnector4', () => {
+describe('getConnectorPathGeometry: curvedConnector4', () => {
 	it('produces multiple cubic Bezier segments', () => {
 		const geo = getConnectorPathGeometry(
 			makeConnector({ shapeType: 'curvedConnector4', width: 200, height: 100 }),
 		);
-		const cCount = (geo.pathData.match(/C/g) ?? []).length;
+		const cCount = (geo.pathData.match(/C/gu) ?? []).length;
 		expect(cCount).toBeGreaterThanOrEqual(2);
 	});
 });
 
-describe('getConnectorPathGeometry — curvedConnector5', () => {
+describe('getConnectorPathGeometry: curvedConnector5', () => {
 	it('produces multiple cubic Bezier segments', () => {
 		const geo = getConnectorPathGeometry(
 			makeConnector({ shapeType: 'curvedConnector5', width: 200, height: 100 }),
 		);
-		const cCount = (geo.pathData.match(/C/g) ?? []).length;
+		const cCount = (geo.pathData.match(/C/gu) ?? []).length;
 		expect(cCount).toBeGreaterThanOrEqual(3);
 	});
 });

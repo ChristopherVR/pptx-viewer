@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 /**
- * PresentationSubtitleBar — live subtitle/caption bar shown during presentation
+ * PresentationSubtitleBar - live subtitle/caption bar shown during presentation
  * mode. Uses the Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`)
  * when available and falls back to a "not supported" message otherwise. Vue port
  * of the React `PresentationSubtitleBar`.
@@ -19,13 +19,13 @@ interface SpeechRecognitionAlternativeLite {
 interface SpeechRecognitionResultLite {
 	readonly isFinal: boolean;
 	readonly length: number;
-	item(index: number): SpeechRecognitionAlternativeLite;
+	item: (index: number) => SpeechRecognitionAlternativeLite;
 	[index: number]: SpeechRecognitionAlternativeLite;
 }
 
 interface SpeechRecognitionResultListLite {
 	readonly length: number;
-	item(index: number): SpeechRecognitionResultLite;
+	item: (index: number) => SpeechRecognitionResultLite;
 	[index: number]: SpeechRecognitionResultLite;
 }
 
@@ -41,8 +41,8 @@ interface SpeechRecognitionLite extends EventTarget {
 	onresult: ((event: SpeechRecognitionEventLite) => void) | null;
 	onerror: ((event: Event) => void) | null;
 	onend: (() => void) | null;
-	start(): void;
-	stop(): void;
+	start: () => void;
+	stop: () => void;
 }
 
 type SpeechRecognitionCtor = new () => SpeechRecognitionLite;

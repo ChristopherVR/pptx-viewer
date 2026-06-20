@@ -6,7 +6,7 @@ import type { CanvasSize } from '../types';
 import SlideStage from './SlideStage.vue';
 
 /**
- * SlideDiffRow — a single expandable slide-diff entry.
+ * SlideDiffRow - a single expandable slide-diff entry.
  *
  * Vue port of the React `SlideDiffRow.tsx`. Shows the slide's status badge,
  * change count, and (when expanded) side-by-side base/incoming thumbnails plus
@@ -23,8 +23,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-	(e: 'accept', index: number): void;
-	(e: 'reject', index: number): void;
+	(e: 'accept' | 'reject', index: number): void;
 }>();
 
 const expanded = ref(props.diff.status === 'changed');

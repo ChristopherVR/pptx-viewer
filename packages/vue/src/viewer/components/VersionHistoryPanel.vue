@@ -6,7 +6,7 @@ import type { CanvasSize } from '../types';
 import SlideStage from './SlideStage.vue';
 
 /**
- * VersionHistoryPanel — lists captured slide-version snapshots.
+ * VersionHistoryPanel - lists captured slide-version snapshots.
  *
  * Vue port of the React `VersionHistoryPanel.tsx`, adapted to the Vue port's
  * in-memory version model (the React panel read serialised blobs from the
@@ -30,9 +30,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
 	(e: 'close'): void;
-	(e: 'restore', id: string): void;
-	(e: 'delete', id: string): void;
-	(e: 'compare', id: string): void;
+	(e: 'restore' | 'delete' | 'compare', id: string): void;
 }>();
 
 /** Id of the version currently expanded for preview, or `null`. */

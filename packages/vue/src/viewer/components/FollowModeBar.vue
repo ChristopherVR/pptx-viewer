@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * FollowModeBar — presentational control that lists the active remote peers
+ * FollowModeBar: presentational control that lists the active remote peers
  * and lets the local user follow one of them (mirroring that peer's active
  * slide) or stop following.
  *
@@ -28,7 +28,7 @@ const emit = defineEmits<{
 
 /** First-letter / two-char initials for the avatar chip. */
 function initials(name: string): string {
-	const parts = name.trim().split(/\s+/);
+	const parts = name.trim().split(/\s+/u);
 	if (parts.length >= 2 && parts[0] && parts[parts.length - 1]) {
 		return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 	}

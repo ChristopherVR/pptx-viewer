@@ -10,7 +10,7 @@ import { formatElapsed } from '../composables/presenter-view-utils';
 import type { PresentationTool } from '../composables/usePresentationAnnotations';
 
 /**
- * PresentationToolbar — floating control bar shown during presentation mode.
+ * PresentationToolbar - floating control bar shown during presentation mode.
  *
  * Contains prev/next navigation, a slide counter, an elapsed timer, the
  * annotation-tool toggles (laser / pen / highlighter / eraser) with colour
@@ -40,12 +40,9 @@ const props = withDefaults(
 
 const emit = defineEmits<{
 	(e: 'set-tool', tool: PresentationTool): void;
-	(e: 'set-pen-color', color: string): void;
-	(e: 'set-highlighter-color', color: string): void;
-	(e: 'clear-annotations'): void;
+	(e: 'set-pen-color' | 'set-highlighter-color', color: string): void;
+	(e: 'clear-annotations' | 'end-presentation' | 'toggle-presenter-view'): void;
 	(e: 'move', direction: 1 | -1): void;
-	(e: 'end-presentation'): void;
-	(e: 'toggle-presenter-view'): void;
 }>();
 
 const showPenColors = ref(false);
