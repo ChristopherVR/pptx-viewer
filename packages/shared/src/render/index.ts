@@ -80,7 +80,12 @@ export type {
 	ScatterDot,
 	RadarPoint,
 	SupportedChartKind,
+	PlotLayoutOptions,
 } from './chart-view-model';
+// Enriched cartesian builder (log axis / display units / secondary value axis /
+// percentStacked / overlays) + its value-axis gridline/label primitive builders.
+export { buildCartesianViewModel } from './chart-cartesian';
+export { buildPrimaryAxis, buildSecondaryAxis } from './chart-axis-render';
 export { buildComboViewModel, buildStockViewModel } from './chart-combo-stock';
 export { buildSurfaceViewModel, buildTreemapViewModel } from './chart-surface-treemap';
 export {

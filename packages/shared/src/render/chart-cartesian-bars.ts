@@ -1,0 +1,198 @@
+/**
+ * chart-cartesian-bars.ts: bar / column plot-primitive builders for the enriched
+ * cartesian chart engine (clustered, stacked, percentStacked).
+ *
+ * Split out of `chart-cartesian-plots.ts` to keep each module within the repo's
+ * ~300-LOC limit. Pure helpers consumed by `buildCartesianViewModel`. Clustered
+ * bars honour a secondary value range; non-percent stacked reuses the original
+ * `computeStackedBarRects` geometry byte-for-byte; percentStacked normalises each
+ * category to 100% with in-bar percent labels (matching React).
+ *
+ * @module chart-cartesian-bars
+ */
+import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
+
+import type { SeriesPlotResult } from './chart-cartesian-plots';
+import type { PlotLayout, SvgPrimitive, SvgRect, SvgText, ValueRange } from './chart-view-model';
+import { computeStackedBarRects, formatAxisValue, seriesColor, valueToY } from './chart-view-model';
+
+/** Per-category absolute totals (for percentStacked normalisation). */
+function categoryTotals(series: ReadonlyArray<PptxChartSeries>, catCount: number): number[] {
+	return Array.from({ length: catCount }, (_, ci) =>
+		series.reduce((sum, s) => sum + Math.abs(s.values[ci] ?? 0), 0),
+	);
+}
+
+/**
+ * Bar primitives for clustered / stacked / percentStacked, honouring a secondary
+ * value range for secondary-mapped series (clustered only). Returns rects + data
+ * labels. Mirrors React's `renderDefaultBarChart` / `renderStackedBarChart`.
+ */
+export function buildBars(
+	chartData: PptxChartData,
+	catCount: number,
+	layout: PlotLayout,
+	primaryRange: ValueRange,
+	secondaryRange: ValueRange | undefined,
+	secondaryIdx: ReadonlySet<number>,
+	grouping: 'clustered' | 'stacked' | 'percentStacked',
+): SeriesPlotResult {
+	const primitives: SvgPrimitive[] = [];
+	const dataLabels: SvgText[] = [];
+	const series = chartData.series;
+	const palette = chartData.colorPalette;
+	const showLabels = chartData.style?.hasDataLabels;
+
+	if (grouping === 'clustered') {
+		const seriesCount = Math.max(series.length, 1);
+		const barGroupWidth = layout.plotWidth / Math.max(catCount, 1);
+		const singleBarWidth = (barGroupWidth * 0.7) / seriesCount;
+		const groupOffset = (barGroupWidth - singleBarWidth * seriesCount) / 2;
+
+		for (let ci = 0; ci < catCount; ci++) {
+			for (let si = 0; si < series.length; si++) {
+				const val = series[si].values[ci] ?? 0;
+				const x = layout.plotLeft + barGroupWidth * ci + groupOffset + singleBarWidth * si;
+				const activeRange = secondaryIdx.has(si) && secondaryRange ? secondaryRange : primaryRange;
+				const zeroY = valueToY(0, activeRange, layout.plotTop, layout.plotBottom);
+				const valY = valueToY(val, activeRange, layout.plotTop, layout.plotBottom);
+				const y = Math.min(zeroY, valY);
+				const h = Math.max(Math.abs(zeroY - valY), 1);
+				primitives.push({
+					kind: 'rect',
+					x,
+					y,
+					w: singleBarWidth,
+					h,
+					fill: seriesColor(series[si], si, palette),
+					rx: 1,
+				} satisfies SvgRect);
+
+				if (showLabels) {
+					dataLabels.push({
+						kind: 'text',
+						x: x + singleBarWidth / 2,
+						y: val >= 0 ? y - 4 : y + h + 10,
+						text: formatAxisValue(val),
+						fontSize: 7,
+						fill: '#334155',
+						textAnchor: 'middle',
+					});
+				}
+			}
+		}
+		return { primitives, dataLabels };
+	}
+
+	// Non-percent stacked: preserve the original `computeStackedBarRects` geometry
+	// byte-for-byte (bar width 0.7, running from the zero line), with the original
+	// abs-value data labels. Only percentStacked uses the normalised running-sum
+	// path below (matching React's `renderStackedBarChart`).
+	if (grouping === 'stacked') {
+		const rects = computeStackedBarRects(series, catCount, layout, primaryRange, palette);
+		for (const r of rects) {
+			primitives.push({ kind: 'rect', x: r.x, y: r.y, w: r.w, h: r.h, fill: r.fill, rx: 1 });
+		}
+		if (showLabels) {
+			pushClusteredStackedLabels(series, catCount, layout, primaryRange, dataLabels);
+		}
+		return { primitives, dataLabels };
+	}
+
+	// percentStacked: normalise each category to 100% with in-bar percent labels.
+	const barGroupWidth = layout.plotWidth / Math.max(catCount, 1);
+	const barW = barGroupWidth * 0.6;
+	const barOffset = (barGroupWidth - barW) / 2;
+	const totals = categoryTotals(series, catCount);
+
+	for (let ci = 0; ci < catCount; ci++) {
+		let posRunning = 0;
+		let negRunning = 0;
+		const catTotal = totals[ci] || 1;
+
+		for (let si = 0; si < series.length; si++) {
+			const rawVal = series[si].values[ci] ?? 0;
+			const val = catTotal > 0 ? (rawVal / catTotal) * 100 : 0;
+			const isNeg = val < 0;
+			const base = isNeg ? negRunning : posRunning;
+			const top = base + val;
+			const x = layout.plotLeft + barGroupWidth * ci + barOffset;
+			const baseY = valueToY(base, primaryRange, layout.plotTop, layout.plotBottom);
+			const topY = valueToY(top, primaryRange, layout.plotTop, layout.plotBottom);
+			const y = Math.min(baseY, topY);
+			const h = Math.max(Math.abs(baseY - topY), 0.5);
+
+			primitives.push({
+				kind: 'rect',
+				x,
+				y,
+				w: barW,
+				h,
+				fill: seriesColor(series[si], si, palette),
+			} satisfies SvgRect);
+
+			if (showLabels && Math.abs(val) > 0) {
+				dataLabels.push({
+					kind: 'text',
+					x: x + barW / 2,
+					y: y + h / 2 + 3,
+					text: `${Math.round(val)}%`,
+					fontSize: 7,
+					fill: '#ffffff',
+					textAnchor: 'middle',
+					fontWeight: 'bold',
+				});
+			}
+
+			if (isNeg) {
+				negRunning += val;
+			} else {
+				posRunning += val;
+			}
+		}
+	}
+	return { primitives, dataLabels };
+}
+
+/**
+ * Push the abs-value stacked data labels matching the original cartesian builder:
+ * one label per (category x series) at the bar mid, only when data labels are on.
+ * The original builder emitted clustered-style labels for stacked too, so this
+ * reproduces that exact output for byte-identity.
+ */
+function pushClusteredStackedLabels(
+	series: ReadonlyArray<PptxChartSeries>,
+	catCount: number,
+	layout: PlotLayout,
+	range: ValueRange,
+	dataLabels: SvgText[],
+): void {
+	const barGroupWidth = layout.plotWidth / catCount;
+	const seriesCount = Math.max(series.length, 1);
+	const singleBarWidth = (barGroupWidth * 0.7) / seriesCount;
+	const groupOffset = (barGroupWidth - singleBarWidth * seriesCount) / 2;
+
+	for (let ci = 0; ci < catCount; ci++) {
+		for (let si = 0; si < series.length; si++) {
+			const val = series[si].values[ci] ?? 0;
+			const x =
+				layout.plotLeft +
+				barGroupWidth * ci +
+				groupOffset +
+				singleBarWidth * si +
+				singleBarWidth / 2;
+			const zeroY = valueToY(0, range, layout.plotTop, layout.plotBottom);
+			const valY = valueToY(val, range, layout.plotTop, layout.plotBottom);
+			const labelY = val >= 0 ? Math.min(zeroY, valY) - 4 : Math.max(zeroY, valY) + 10;
+			dataLabels.push({
+				kind: 'text',
+				x,
+				y: labelY,
+				text: formatAxisValue(val),
+				fontSize: 7,
+				fill: '#334155',
+				textAnchor: 'middle',
+			});
+		}
+	}
+}

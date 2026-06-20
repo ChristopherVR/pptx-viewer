@@ -1,10 +1,10 @@
 ﻿/**
- * chart-view-model.ts — framework-agnostic SVG-primitive chart engine.
+ * chart-view-model.ts - framework-agnostic SVG-primitive chart engine.
  *
  * A single `buildChartViewModel(element)` projects a chart `PptxElement` into a
  * `ChartViewModel` of pure `SvgPrimitive` descriptors (rect / path / polyline /
  * circle / line / polygon / text). Each binding (React / Vue / Angular) iterates
- * that descriptor list to emit its own SVG — only the EMISSION is per-framework;
+ * that descriptor list to emit its own SVG; only the EMISSION is per-framework;
  * all geometry / data / palette / layout math lives here.
  *
  * Originally extracted from the Angular `chart-renderer-helpers.ts`, which was
@@ -53,15 +53,10 @@ import type {
 	PptxElement,
 } from 'pptx-viewer-core';
 
+import { buildCartesianViewModel } from './chart-cartesian';
 import { buildComboViewModel, buildStockViewModel } from './chart-combo-stock';
 import { buildBoxWhiskerViewModel, buildHistogramViewModel } from './chart-distribution';
 import { buildFunnelViewModel, buildSunburstViewModel } from './chart-funnel-sunburst';
-import {
-	computeAxisTitlePrimitives,
-	computeDataTablePrimitives,
-	computeErrorBarPrimitives,
-	computeTrendlinePrimitives,
-} from './chart-overlays';
 import { buildSurfaceViewModel, buildTreemapViewModel } from './chart-surface-treemap';
 import { buildRegionMapViewModel, buildWaterfallViewModel } from './chart-waterfall-map';
 
@@ -108,6 +103,10 @@ export interface ValueRange {
 	min: number;
 	max: number;
 	span: number;
+	/** When true, the range is log-scaled (min/max are data-space power-of-base bounds, span is in log-space). */
+	logScale?: boolean;
+	/** Logarithmic base (e.g. 10, 2, Math.E). Only meaningful when logScale is true. */
+	logBase?: number;
 }
 
 /** Compute a Y-axis range that always includes zero. */
@@ -151,9 +150,21 @@ export function computeStackedValueRange(
 	return { min, max, span };
 }
 
-/** Map a data value to a Y pixel coordinate (top = max, bottom = min). */
+/**
+ * Map a data value to a Y pixel coordinate (top = max, bottom = min).
+ * Routes through logarithmic scaling when `range.logScale` is set (the branch is
+ * inlined here, mirroring `valueToYLog` in `chart-axis.ts`, to avoid a circular
+ * import). Linear behaviour is unchanged when `logScale`/`logBase` are absent.
+ */
 export function valueToY(val: number, range: ValueRange, topY: number, bottomY: number): number {
 	const usable = bottomY - topY;
+	if (range.logScale && range.logBase) {
+		const base = range.logBase;
+		const clampedVal = Math.max(val, range.min);
+		const logVal = Math.log(clampedVal) / Math.log(base);
+		const logMin = Math.log(range.min) / Math.log(base);
+		return bottomY - ((logVal - logMin) / range.span) * usable;
+	}
 	return bottomY - ((val - range.min) / range.span) * usable;
 }
 
@@ -192,15 +203,30 @@ export interface PlotLayout {
 }
 
 /**
+ * Reserved-space options for `computePlotLayout` (secondary axes + data table).
+ * Structurally identical to `LayoutOptions` in `chart-axis.ts`; declared locally
+ * to avoid a circular import (chart-axis depends on this module's `ValueRange`).
+ */
+export interface PlotLayoutOptions {
+	hasSecondaryValueAxis?: boolean;
+	hasSecondaryCategoryAxis?: boolean;
+	hasDataTable?: boolean;
+	dataTableRowCount?: number;
+}
+
+/**
  * Compute the plot layout for a chart element.
- * Mirrors `computeLayout` from chart-layout.ts (React), simplified to the
- * viewer-first subset (no secondary axes, no data table reservation).
+ * Mirrors `computeLayout` from chart-layout.ts (React). When `options` is omitted
+ * (or all its flags are falsy) the output is byte-identical to the original
+ * viewer-first single-axis layout; the secondary-axis / data-table reservations
+ * only apply when explicitly requested.
  */
 export function computePlotLayout(
 	elementWidth: number,
 	elementHeight: number,
 	chartData: PptxChartData,
 	hasAxes: boolean,
+	options?: PlotLayoutOptions,
 ): PlotLayout {
 	const svgWidth = Math.max(320, elementWidth);
 	const svgHeight = Math.max(180, elementHeight);
@@ -226,6 +252,20 @@ export function computePlotLayout(
 		} else if (legendPos === 'l') {
 			plotLeft += 80;
 		}
+	}
+
+	// Secondary value axis on the right.
+	if (options?.hasSecondaryValueAxis) {
+		plotRight -= 40;
+	}
+	// Secondary category axis on the top.
+	if (options?.hasSecondaryCategoryAxis) {
+		plotTop += 16;
+	}
+	// Data table below the chart.
+	if (options?.hasDataTable) {
+		const rowCount = options.dataTableRowCount ?? 1;
+		plotBottom -= 14 + rowCount * 14;
 	}
 
 	const plotWidth = Math.max(plotRight - plotLeft, 1);
@@ -367,6 +407,25 @@ export interface ChartViewModel {
 	legendX: number;
 	legendY: number;
 	legendAnchor: 'start' | 'middle' | 'end';
+	/**
+	 * Right-side (secondary) value-axis gridlines, emitted only when one or more
+	 * series are mapped to a secondary value axis. Absent otherwise so existing
+	 * projectors that ignore this field keep working unchanged.
+	 */
+	secondaryGridlines?: SvgLine[];
+	/** Right-side (secondary) value-axis tick labels. Present only with a secondary axis. */
+	secondaryAxisLabels?: SvgText[];
+	/**
+	 * Overlay primitives (regression trendlines, error bars, axis titles) layered
+	 * on top of the base cartesian primitives. Already appended to `primitives`;
+	 * surfaced separately so a projector can style/segregate them if desired.
+	 */
+	overlays?: SvgPrimitive[];
+	/**
+	 * Data-table primitives rendered below the plot area (when `chartData.dataTable`
+	 * is set). Already appended to `primitives`; surfaced separately for projectors.
+	 */
+	dataTable?: SvgPrimitive[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1035,300 +1094,6 @@ function buildPieViewModel(
 		axisLabels: [],
 		zeroLine: undefined,
 		categoryLabels: [],
-		primitives,
-		dataLabels,
-		legend: chartData.style?.hasLegend ? legend : [],
-		legendX,
-		legendY,
-		legendAnchor,
-	};
-}
-
-function buildCartesianViewModel(
-	element: PptxElement,
-	chartData: PptxChartData,
-	categoryLabels: ReadonlyArray<string>,
-	kind: SupportedChartKind,
-): ChartViewModel {
-	const layout = computePlotLayout(element.width, element.height, chartData, true);
-	const catCount = Math.max(categoryLabels.length, 1);
-
-	const isStacked =
-		kind === 'bar' && (chartData.grouping === 'stacked' || chartData.grouping === 'percentStacked');
-	const range = isStacked
-		? computeStackedValueRange(chartData.series, catCount)
-		: computeValueRange(chartData.series);
-
-	const { gridlines, axisLabels } = buildGridlinesAndLabels(range, layout);
-	const zeroLine = buildZeroLine(range, layout);
-	const catAxisStyle =
-		kind === 'line' || kind === 'area' || kind === 'scatter' || kind === 'bubble' ? 'line' : 'bar';
-	const catLabels = buildCategoryLabels(categoryLabels, layout, catAxisStyle);
-
-	const legendPos = chartData.style?.legendPosition ?? 'b';
-	const { legend, legendX, legendY, legendAnchor } = buildLegend(
-		chartData.series,
-		chartData.colorPalette,
-		layout.svgWidth,
-		legendPos,
-		layout.svgHeight,
-		layout.plotTop,
-	);
-
-	const primitives: SvgPrimitive[] = [];
-	const dataLabels: SvgText[] = [];
-
-	if (kind === 'bar') {
-		const rects = isStacked
-			? computeStackedBarRects(chartData.series, catCount, layout, range, chartData.colorPalette)
-			: computeBarRects(chartData.series, catCount, layout, range, chartData.colorPalette);
-
-		for (const r of rects) {
-			primitives.push({
-				kind: 'rect',
-				x: r.x,
-				y: r.y,
-				w: r.w,
-				h: r.h,
-				fill: r.fill,
-				rx: 1,
-			} satisfies SvgRect);
-		}
-
-		if (chartData.style?.hasDataLabels) {
-			const barGroupWidth = layout.plotWidth / catCount;
-			const seriesCount = Math.max(chartData.series.length, 1);
-			const singleBarWidth = (barGroupWidth * 0.7) / seriesCount;
-			const groupOffset = (barGroupWidth - singleBarWidth * seriesCount) / 2;
-
-			for (let ci = 0; ci < catCount; ci++) {
-				for (let si = 0; si < chartData.series.length; si++) {
-					const val = chartData.series[si].values[ci] ?? 0;
-					const x =
-						layout.plotLeft +
-						barGroupWidth * ci +
-						groupOffset +
-						singleBarWidth * si +
-						singleBarWidth / 2;
-					const zeroY = valueToY(0, range, layout.plotTop, layout.plotBottom);
-					const valY = valueToY(val, range, layout.plotTop, layout.plotBottom);
-					const labelY = val >= 0 ? Math.min(zeroY, valY) - 4 : Math.max(zeroY, valY) + 10;
-					dataLabels.push({
-						kind: 'text',
-						x,
-						y: labelY,
-						text: formatAxisValue(val),
-						fontSize: 7,
-						fill: '#334155',
-						textAnchor: 'middle',
-					});
-				}
-			}
-		}
-	} else if (kind === 'line') {
-		for (let si = 0; si < chartData.series.length; si++) {
-			const series = chartData.series[si];
-			if (series.values.length === 0) {
-				continue;
-			}
-			const pts = computeLinePoints(series.values, catCount, layout, range);
-			const c = seriesColor(series, si, chartData.colorPalette);
-			const pointsStr = linePointsToSvgString(pts);
-
-			primitives.push({
-				kind: 'polyline',
-				points: pointsStr,
-				stroke: c,
-				strokeWidth: 2.4,
-				fill: 'none',
-			} satisfies SvgPolyline);
-			for (const pt of pts) {
-				primitives.push({
-					kind: 'circle',
-					cx: pt.x,
-					cy: pt.y,
-					r: 2.5,
-					fill: c,
-				} satisfies SvgCircle);
-			}
-
-			if (chartData.style?.hasDataLabels) {
-				series.values.forEach((val, vi) => {
-					const pt = pts[vi];
-					if (!pt) {
-						return;
-					}
-					dataLabels.push({
-						kind: 'text',
-						x: pt.x,
-						y: pt.y - 7,
-						text: formatAxisValue(val),
-						fontSize: 7,
-						fill: '#334155',
-						textAnchor: 'middle',
-					});
-				});
-			}
-		}
-	} else if (kind === 'area') {
-		const baselineY = valueToY(0, range, layout.plotTop, layout.plotBottom);
-		for (let si = 0; si < chartData.series.length; si++) {
-			const series = chartData.series[si];
-			if (series.values.length === 0) {
-				continue;
-			}
-			const pts = computeLinePoints(series.values, catCount, layout, range);
-			const c = seriesColor(series, si, chartData.colorPalette);
-			const lineStr = linePointsToSvgString(pts);
-			const firstPt = pts[0];
-			const lastPt = pts[pts.length - 1];
-
-			if (firstPt && lastPt) {
-				primitives.push({
-					kind: 'polyline',
-					points: `${layout.plotLeft.toFixed(2)},${baselineY.toFixed(2)} ${lineStr} ${lastPt.x.toFixed(2)},${baselineY.toFixed(2)}`,
-					stroke: 'none',
-					strokeWidth: 0,
-					fill: c,
-					opacity: 0.25,
-				} satisfies SvgPolyline);
-			}
-			primitives.push({
-				kind: 'polyline',
-				points: lineStr,
-				stroke: c,
-				strokeWidth: 2,
-				fill: 'none',
-			} satisfies SvgPolyline);
-
-			if (chartData.style?.hasDataLabels) {
-				series.values.forEach((val, vi) => {
-					const pt = pts[vi];
-					if (!pt) {
-						return;
-					}
-					dataLabels.push({
-						kind: 'text',
-						x: pt.x,
-						y: pt.y - 6,
-						text: formatAxisValue(val),
-						fontSize: 7,
-						fill: '#334155',
-						textAnchor: 'middle',
-					});
-				});
-			}
-		}
-	} else if (kind === 'scatter') {
-		const allIndices = chartData.series.flatMap((s) => s.values.map((_, i) => i));
-		const maxXIndex = Math.max(1, ...allIndices);
-
-		for (let si = 0; si < chartData.series.length; si++) {
-			const series = chartData.series[si];
-			const c = seriesColor(series, si, chartData.colorPalette);
-			const dots = computeScatterDots(series.values, maxXIndex, layout, range);
-			for (const dot of dots) {
-				primitives.push({
-					kind: 'circle',
-					cx: dot.cx,
-					cy: dot.cy,
-					r: 4,
-					fill: c,
-					opacity: 0.85,
-				} satisfies SvgCircle);
-			}
-
-			if (chartData.style?.hasDataLabels) {
-				series.values.forEach((val, vi) => {
-					const dot = dots[vi];
-					if (!dot) {
-						return;
-					}
-					dataLabels.push({
-						kind: 'text',
-						x: dot.cx,
-						y: dot.cy - 6,
-						text: formatAxisValue(val),
-						fontSize: 7,
-						fill: '#334155',
-						textAnchor: 'middle',
-					});
-				});
-			}
-		}
-	} else if (kind === 'bubble') {
-		// X = category index, Y = first/second series value, size = third series.
-		const allIndices = chartData.series.flatMap((s) => s.values.map((_, i) => i));
-		const maxXIndex = Math.max(1, ...allIndices);
-		const sizeSeries = chartData.series.length >= 3 ? chartData.series[2] : undefined;
-		const maxBubble = sizeSeries ? Math.max(1, ...sizeSeries.values.map((v) => Math.abs(v))) : 1;
-		const medianRadius = Math.min(layout.plotWidth, layout.plotHeight) * 0.04;
-		const pointSeries = chartData.series.slice(0, 2);
-
-		for (let si = 0; si < pointSeries.length; si++) {
-			const series = pointSeries[si];
-			const c = seriesColor(series, si, chartData.colorPalette);
-			const dots = computeScatterDots(series.values, maxXIndex, layout, range);
-			dots.forEach((dot, vi) => {
-				const r = computeBubbleRadius(sizeSeries?.values[vi], maxBubble, medianRadius);
-				primitives.push({
-					kind: 'circle',
-					cx: dot.cx,
-					cy: dot.cy,
-					r,
-					fill: c,
-					opacity: 0.6,
-				} satisfies SvgCircle);
-			});
-
-			if (chartData.style?.hasDataLabels) {
-				series.values.forEach((val, vi) => {
-					const dot = dots[vi];
-					if (!dot) {
-						return;
-					}
-					dataLabels.push({
-						kind: 'text',
-						x: dot.cx,
-						y: dot.cy - 10,
-						text: formatAxisValue(val),
-						fontSize: 7,
-						fill: '#334155',
-						textAnchor: 'middle',
-					});
-				});
-			}
-		}
-	}
-
-	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
-
-	// Overlays (depth): regression trendlines, error bars, axis titles, data
-	// table — appended on top of the base cartesian primitives.
-	primitives.push(
-		...computeTrendlinePrimitives(
-			chartData,
-			catCount,
-			layout,
-			range,
-			catAxisStyle,
-			chartData.colorPalette,
-		),
-		...computeErrorBarPrimitives(chartData, catCount, layout, range, catAxisStyle),
-		...computeAxisTitlePrimitives(chartData, layout),
-		...computeDataTablePrimitives(chartData, layout, chartData.colorPalette),
-	);
-
-	return {
-		svgWidth: layout.svgWidth,
-		svgHeight: layout.svgHeight,
-		title,
-		titleX: layout.svgWidth / 2,
-		titleY: 12,
-		gridlines,
-		axisLabels,
-		zeroLine,
-		categoryLabels: catLabels,
 		primitives,
 		dataLabels,
 		legend: chartData.style?.hasLegend ? legend : [],
