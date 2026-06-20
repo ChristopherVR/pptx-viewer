@@ -1,12 +1,18 @@
-# git-cliff configuration — generates CHANGELOG.md from Conventional Commits.
+# git-cliff configuration: generates per-package CHANGELOG.md from Conventional
+# Commits.
 #
-# Usage:
-#   bun run changelog            # regenerate the full CHANGELOG.md
-#   bun run changelog:latest     # print notes for the latest release only
-#   bunx git-cliff --unreleased  # preview notes for commits since the last tag
+# Packages are versioned independently, each with `<npm-name>@<version>` tags.
+# The Release workflow runs git-cliff once per changed package, overriding the
+# `tag_pattern` below with `--tag-pattern "^<npm-name>@"` and scoping commits via
+# `--include-path packages/<pkg>/**` (plus bundled deps), writing each package's
+# own packages/<pkg>/CHANGELOG.md. The version header strips a leading `v` and
+# any `<name>@` prefix so it renders just the number.
 #
-# CI regenerates this on release (see .github/workflows/ci.yml → release job).
-# Conventional Commit format is documented in CLAUDE.md → "Commit Conventions".
+# The `tag_pattern` default here is used only by the manual root scripts:
+#   bun run changelog            # legacy global CHANGELOG.md (old vX.Y.Z tags)
+#   bunx git-cliff --unreleased  # preview commits since the last v-tag
+#
+# Conventional Commit format is documented in CLAUDE.md, "Commit Conventions".
 
 [changelog]
 # Rendered once at the top of the file.
@@ -24,7 +30,7 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.\n
 body = """
 {% set repo = "https://github.com/ChristopherVR/pptx-viewer" %}\
 {% if version %}\
-    ## [{{ version | trim_start_matches(pat="v") }}]({{ repo }}/releases/tag/{{ version }}) - {{ timestamp | date(format="%Y-%m-%d") }}
+    ## [{{ version | split(pat="@") | last | trim_start_matches(pat="v") }}]({{ repo }}/releases/tag/{{ version }}) - {{ timestamp | date(format="%Y-%m-%d") }}
 {% else %}\
     ## [Unreleased]
 {% endif %}\

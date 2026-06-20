@@ -30,99 +30,99 @@ jobs:
       - name: Build all packages
         run: bun run build
 
-      # Decide which packages actually changed since the last release and the
-      # next version. Only changed packages are versioned, packed, and released;
-      # unchanged ones keep their published version and are skipped. See
-      # scripts/release-plan.mjs for the dependency model. `--write` stamps the
-      # new version into each released package's package.json.
+      # Decide, per package, whether it changed since its own last tag and what
+      # its next INDEPENDENT version is. Each package carries its own version and
+      # `<npm-name>@<version>` tag; unchanged packages are skipped entirely. See
+      # scripts/release-plan.mjs. `--write` stamps each released version into its
+      # package.json; the full plan is written to release-plan.json.
       - name: Plan release
-        id: version
+        id: plan
         run: node scripts/release-plan.mjs --write
 
-      - name: Pack pptx-viewer-core
-        if: steps.version.outputs.release_core == 'true'
-        run: cd packages/core && bun pm pack
-
-      - name: Pack pptx-react-viewer
-        if: steps.version.outputs.release_react == 'true'
-        run: cd packages/react && bun pm pack
-
-      - name: Pack pptx-viewer-tools
-        if: steps.version.outputs.release_tools == 'true'
-        run: cd packages/tools && bun pm pack
-
-      - name: Pack pptx-vue-viewer
-        if: steps.version.outputs.release_vue == 'true'
-        run: cd packages/vue && bun pm pack
-
-      # The Angular library is published from its ng-packagr `dist/` (built
-      # above), NOT from the package root. dist/package.json carries the version
-      # and a concrete pptx-viewer-core range baked in at build time, so patch
-      # the version (release version) and the core range (the live core version,
-      # which may differ when core itself was not part of this release).
-      - name: Pack pptx-angular-viewer
-        if: steps.version.outputs.release_angular == 'true'
+      # Regenerate each released package's own CHANGELOG.md from the commits that
+      # touch it (or a bundled dependency), labelling unreleased commits with the
+      # new per-package tag. git-cliff fully regenerates the file each time, so it
+      # stays idempotent.
+      - name: Generate per-package changelogs
+        if: steps.plan.outputs.any_changed == 'true'
         run: |
-          VERSION="${{ steps.version.outputs.next_version }}"
-          CORE_VERSION="${{ steps.version.outputs.core_version }}"
-          node -e "
-            const fs = require('fs');
-            const p = 'packages/angular/dist/package.json';
-            const data = JSON.parse(fs.readFileSync(p, 'utf8'));
-            data.version = '${VERSION}';
-            for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
-              const deps = data[field];
-              if (deps && deps['pptx-viewer-core']) deps['pptx-viewer-core'] = '^${CORE_VERSION}';
-            }
-            fs.writeFileSync(p, JSON.stringify(data, null, '\t') + '\n');
-          "
-          cd packages/angular/dist && bun pm pack
+          for key in core react vue angular tools; do
+            release=$(node -p "require('./release-plan.json').packages.$key.release")
+            [ "$release" = "true" ] || continue
+            dir=$(node -p "require('./release-plan.json').packages.$key.dir")
+            npm=$(node -p "require('./release-plan.json').packages.$key.npm")
+            tag=$(node -p "require('./release-plan.json').packages.$key.tag")
+            inc=$(node -e "console.log(require('./release-plan.json').packages.$key.includePaths.map(p => '--include-path ' + p).join(' '))")
+            echo "Changelog for $npm -> $tag"
+            bunx git-cliff --config cliff.toml --tag-pattern "^${npm}@" $inc --tag "$tag" --output "$dir/CHANGELOG.md"
+          done
 
-      # ── Changelog (git-cliff, see cliff.toml) ────────────────────────
-      # Regenerate CHANGELOG.md treating the new commits as the next tag,
-      # commit it back to main, and reuse the latest section as the GitHub
-      # release body. The GITHUB_TOKEN push does not retrigger workflows, and
-      # `[skip ci]` guards against it regardless. NOTE: if `main` is protected
-      # against direct pushes, allow the actions bot or relax the rule.
-      - name: Generate changelog
-        if: steps.version.outputs.any_changed == 'true'
-        uses: orhun/git-cliff-action@v4
-        with:
-          config: cliff.toml
-          args: --tag ${{ steps.version.outputs.tag }} --output CHANGELOG.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Commit changelog
-        if: steps.version.outputs.any_changed == 'true'
+      - name: Commit changelogs
+        if: steps.plan.outputs.any_changed == 'true'
+        # The GITHUB_TOKEN push does not retrigger workflows, and `[skip ci]`
+        # guards against it regardless. NOTE: if `main` is protected against
+        # direct pushes, allow the actions bot or relax the rule.
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet -- CHANGELOG.md; then
-            echo "CHANGELOG.md unchanged — nothing to commit"
+          # Stage only the changelogs (the --write version bumps are deliberately
+          # left uncommitted; tags + npm are the source of truth for versions).
+          git add packages/*/CHANGELOG.md
+          if git diff --cached --quiet; then
+            echo "No changelog changes to commit"
           else
-            git add CHANGELOG.md
-            git commit -m "docs(changelog): update for ${{ steps.version.outputs.tag }} [skip ci]"
+            git commit -m "docs(changelog): update package changelogs [skip ci]"
             git push origin HEAD:main
           fi
 
-      - name: Extract latest release notes
-        if: steps.version.outputs.any_changed == 'true'
-        run: awk '/^## \[/{c++} c==1{print} c==2{exit}' CHANGELOG.md > "${RUNNER_TEMP}/release_notes.md"
+      # Pack each changed package and cut a per-package tag + GitHub release. The
+      # tag points at the (pushed) changelog commit; the release body is that
+      # package's newest changelog section. Each published release fires the
+      # Publish workflow for exactly that one package.
+      - name: Tag and release changed packages
+        if: steps.plan.outputs.any_changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          COMMIT=$(git rev-parse HEAD)
+          CORE_VERSION=$(node -p "require('./release-plan.json').coreVersion")
+          for key in core react vue angular tools; do
+            release=$(node -p "require('./release-plan.json').packages.$key.release")
+            [ "$release" = "true" ] || continue
+            dir=$(node -p "require('./release-plan.json').packages.$key.dir")
+            packdir=$(node -p "require('./release-plan.json').packages.$key.packDir")
+            version=$(node -p "require('./release-plan.json').packages.$key.version")
+            tag=$(node -p "require('./release-plan.json').packages.$key.tag")
 
-      # Only the packed (changed) packages have a .tgz; the other globs simply
-      # match nothing (fail_on_unmatched_files defaults to false).
-      - name: Create release
-        if: steps.version.outputs.any_changed == 'true'
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          target_commitish: main
-          name: ${{ steps.version.outputs.tag }}
-          body_path: ${{ runner.temp }}/release_notes.md
-          files: |
-            packages/core/*.tgz
-            packages/react/*.tgz
-            packages/tools/*.tgz
-            packages/vue/*.tgz
-            packages/angular/dist/*.tgz
+            if gh release view "$tag" >/dev/null 2>&1; then
+              echo "Release $tag already exists, skipping"
+              continue
+            fi
+
+            # Angular ships from its ng-packagr dist/: stamp the version, point
+            # the core range at the live core version (which differs from angular's
+            # own version, and from the release version when core did not change),
+            # and copy the changelog into dist so it ships in the tarball.
+            if [ "$key" = "angular" ]; then
+              node -e "
+                const fs = require('fs');
+                const p = 'packages/angular/dist/package.json';
+                const d = JSON.parse(fs.readFileSync(p, 'utf8'));
+                d.version = '${version}';
+                for (const f of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
+                  if (d[f] && d[f]['pptx-viewer-core']) d[f]['pptx-viewer-core'] = '^${CORE_VERSION}';
+                }
+                fs.writeFileSync(p, JSON.stringify(d, null, '\t') + '\n');
+              "
+              cp "$dir/CHANGELOG.md" packages/angular/dist/CHANGELOG.md
+            fi
+
+            (cd "$packdir" && bun pm pack)
+            awk '/^## \[/{c++} c==1{print} c==2{exit}' "$dir/CHANGELOG.md" > "${RUNNER_TEMP}/notes.md"
+            gh release create "$tag" \
+              --target "$COMMIT" \
+              --title "$tag" \
+              --notes-file "${RUNNER_TEMP}/notes.md" \
+              "$packdir"/*.tgz
+            echo "Released $tag"
+          done

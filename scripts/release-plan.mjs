@@ -1,22 +1,21 @@
 #!/usr/bin/env node
 /**
- * release-plan.mjs: decide which packages to version + publish for a release.
+ * release-plan.mjs: decide which packages to version + publish for a release,
+ * with an INDEPENDENT version line per package.
  *
- * The monorepo publishes five packages from one repo. Previously every release
- * bumped and published all of them to the same new version, even ones with no
- * changes. This script computes, from the git history since the last release
- * tag, exactly which packages actually changed (directly or through a bundled
- * dependency) and should therefore be released. Unchanged packages keep their
- * already-published version and are skipped, so no redundant npm publish or
- * GitHub release asset is produced for them.
+ * The monorepo publishes five packages from one repo. Each one carries its own
+ * version and its own git tag of the form `<npm-name>@<version>` (e.g.
+ * `pptx-viewer-core@1.6.0`), bumped only when that package actually changes.
+ * This script computes, from the git history since each package's last tag,
+ * which packages changed (directly or through a bundled dependency) and the
+ * next version for each. Unchanged packages keep their published version and
+ * get no tag, no GitHub release, and no npm publish.
  *
- * It is the single source of truth shared by `.github/workflows/release.yml`
- * (tag + GitHub release) and `publish.yml` (npm publish), and is fully runnable
- * locally for inspection:
+ * It is the single source of truth for `.github/workflows/release.yml` (tags +
+ * GitHub releases + per-package changelogs) and is fully runnable locally:
  *
  *   node scripts/release-plan.mjs                 # print the plan (dry run)
  *   node scripts/release-plan.mjs --no-npm        # skip npm lookups (offline)
- *   node scripts/release-plan.mjs --version 1.2.3 # force the target version
  *   node scripts/release-plan.mjs --write         # apply versions to package.json
  *
  * Dependency model (what forces a dependent to re-release):
@@ -29,7 +28,8 @@
  *   - everything else re-releases only when its own published files change.
  *
  * Output: writes `release-plan.json` at the repo root, prints a summary, and
- * (when running under GitHub Actions) appends key/value pairs to `$GITHUB_OUTPUT`.
+ * (under GitHub Actions) appends `any_changed` to `$GITHUB_OUTPUT`. The rich
+ * per-package detail is consumed from `release-plan.json` via `jq`.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -39,28 +39,46 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** Publishable packages: dir under packages/, and the name they ship to npm as. */
-const PACKAGES = {
-	core: { dir: 'packages/core', npm: 'pptx-viewer-core' },
-	react: { dir: 'packages/react', npm: 'pptx-react-viewer' },
-	vue: { dir: 'packages/vue', npm: 'pptx-vue-viewer' },
-	angular: { dir: 'packages/angular', npm: 'pptx-angular-viewer' },
-	tools: { dir: 'packages/tools', npm: 'pptx-viewer-mcp' },
-};
-
 /** Internal, non-published package whose changes propagate into bundlers. */
 const SHARED_DIR = 'packages/shared';
 
 /**
- * For each publishable package, the set of OTHER package dirs whose change also
- * forces it to re-release (because their code is compiled into its artifact).
+ * Publishable packages. `dir` is the source dir, `npm` the published name,
+ * `packDir` where `bun pm pack` runs (angular ships from its ng-packagr dist),
+ * and `triggers` the OTHER dirs whose change also forces a re-release (their
+ * code is compiled into this package's artifact).
  */
-const TRIGGERS = {
-	core: [],
-	react: [SHARED_DIR, PACKAGES.core.dir],
-	vue: [SHARED_DIR, PACKAGES.core.dir],
-	angular: [SHARED_DIR],
-	tools: [],
+const PACKAGES = {
+	core: {
+		dir: 'packages/core',
+		npm: 'pptx-viewer-core',
+		packDir: 'packages/core',
+		triggers: [],
+	},
+	react: {
+		dir: 'packages/react',
+		npm: 'pptx-react-viewer',
+		packDir: 'packages/react',
+		triggers: [SHARED_DIR, 'packages/core'],
+	},
+	vue: {
+		dir: 'packages/vue',
+		npm: 'pptx-vue-viewer',
+		packDir: 'packages/vue',
+		triggers: [SHARED_DIR, 'packages/core'],
+	},
+	angular: {
+		dir: 'packages/angular',
+		npm: 'pptx-angular-viewer',
+		packDir: 'packages/angular/dist',
+		triggers: [SHARED_DIR],
+	},
+	tools: {
+		dir: 'packages/tools',
+		npm: 'pptx-viewer-mcp',
+		packDir: 'packages/tools',
+		triggers: [],
+	},
 };
 
 function git(args) {
@@ -96,19 +114,33 @@ function maxSemver(versions) {
 	return versions.reduce((best, v) => (cmpSemver(v, best) > 0 ? v : best), '0.0.0');
 }
 
-/** Strict `vX.Y.Z` tags only; excludes date-stamped or pre-release tags. */
-function semverTags() {
-	const out = git(['tag', '--list', 'v[0-9]*.[0-9]*.[0-9]*', '--sort=-version:refname']);
+function bumpPatch(version) {
+	const [maj, min, patch] = version.split('.').map(Number);
+	return `${maj}.${min}.${patch + 1}`;
+}
+
+/** All `<npmName>@x.y.z` versions that already have a git tag, newest first. */
+function taggedVersions(npmName) {
+	const out = git(['tag', '--list', `${npmName}@*`]);
 	return out
 		.split('\n')
 		.map((t) => t.trim())
-		.filter((t) => /^v\d+\.\d+\.\d+$/u.test(t));
+		.filter((t) => t.startsWith(`${npmName}@`))
+		.map((t) => t.slice(npmName.length + 1))
+		.filter((v) => /^\d+\.\d+\.\d+$/u.test(v));
 }
 
-/** Newest strict-semver tag that is an ancestor of HEAD but not HEAD itself. */
-function baselineTag() {
+/**
+ * Per-package baseline ref to diff against: the newest `<npmName>@*` tag that is
+ * an ancestor of HEAD (and not HEAD itself). Falls back to null (first release).
+ */
+function baselineTag(npmName) {
 	const headSha = git(['rev-parse', 'HEAD']);
-	for (const tag of semverTags()) {
+	const tags = git(['tag', '--list', `${npmName}@*`, '--sort=-version:refname'])
+		.split('\n')
+		.map((t) => t.trim())
+		.filter((t) => /^.+@\d+\.\d+\.\d+$/u.test(t));
+	for (const tag of tags) {
 		let sha;
 		try {
 			sha = git(['rev-list', '-n', '1', tag]);
@@ -122,7 +154,7 @@ function baselineTag() {
 			git(['merge-base', '--is-ancestor', tag, 'HEAD']);
 			return tag;
 		} catch {
-			// Not an ancestor (tag on another line of history); keep looking.
+			// Tag on another line of history; keep looking.
 		}
 	}
 	return null;
@@ -139,9 +171,8 @@ function isPublishedFile(path) {
 	return true;
 }
 
-function changedDirs(base) {
-	const range = base ? `${base}..HEAD` : null;
-	const out = range ? git(['diff', '--name-only', range]) : git(['ls-files']); // no baseline: treat everything as new
+function changedFiles(base) {
+	const out = base ? git(['diff', '--name-only', `${base}..HEAD`]) : git(['ls-files']);
 	return out
 		.split('\n')
 		.map((f) => f.trim())
@@ -154,17 +185,12 @@ function dirTouched(files, dir) {
 }
 
 function parseArgs(argv) {
-	const args = { write: false, npm: true, version: null, base: null };
-	for (let i = 0; i < argv.length; i++) {
-		const a = argv[i];
+	const args = { write: false, npm: true };
+	for (const a of argv) {
 		if (a === '--write') {
 			args.write = true;
 		} else if (a === '--no-npm') {
 			args.npm = false;
-		} else if (a === '--version') {
-			args.version = argv[++i];
-		} else if (a === '--base') {
-			args.base = argv[++i];
 		}
 	}
 	return args;
@@ -178,102 +204,76 @@ function writeJson(path, data) {
 	writeFileSync(path, `${JSON.stringify(data, null, '\t')}\n`);
 }
 
+/** Published baseline version for a package: highest of its tags and npm. */
+function publishedVersion(meta, useNpm) {
+	const fromTags = maxSemver(taggedVersions(meta.npm));
+	const fromNpm = useNpm ? npmVersion(meta.npm) : '0.0.0';
+	const fromPkg = readJson(join(ROOT, meta.dir, 'package.json')).version || '0.0.0';
+	return maxSemver([fromTags, fromNpm, fromPkg]);
+}
+
 function main() {
 	const args = parseArgs(process.argv.slice(2));
-	const base = args.base ?? baselineTag();
-	const files = changedDirs(base);
 
-	// Resolve the target version: explicit override, else patch-bump the highest
-	// of all existing semver tags and the five published npm versions.
-	let nextVersion = args.version;
-	if (!nextVersion) {
-		const tagMax = maxSemver(semverTags().map((t) => t.slice(1)));
-		const npmMax = args.npm
-			? maxSemver(Object.values(PACKAGES).map((p) => npmVersion(p.npm)))
-			: '0.0.0';
-		const baseline = cmpSemver(tagMax, npmMax) >= 0 ? tagMax : npmMax;
-		const [maj, min, patch] = baseline.split('.').map(Number);
-		nextVersion = `${maj}.${min}.${patch + 1}`;
-	}
-
-	const sharedChanged = dirTouched(files, SHARED_DIR);
-
-	// Decide release per publishable package: own dir OR any trigger dir touched.
-	// With no baseline (first release) everything releases.
-	const release = {};
+	// First pass: per-package change decision and own-version computation.
+	const packages = {};
 	for (const [key, meta] of Object.entries(PACKAGES)) {
-		if (!base) {
-			release[key] = true;
-			continue;
-		}
+		const base = baselineTag(meta.npm);
+		const files = changedFiles(base);
 		const own = dirTouched(files, meta.dir);
-		const viaTrigger = TRIGGERS[key].some((dir) => dirTouched(files, dir));
-		release[key] = own || viaTrigger;
+		const viaTrigger = meta.triggers.some((dir) => dirTouched(files, dir));
+		const release = base ? own || viaTrigger : true;
+		const current = publishedVersion(meta, args.npm);
+		const version = release ? bumpPatch(current) : current;
+		const includePaths = [meta.dir, ...meta.triggers].map((d) => `${d}/**`);
+		packages[key] = {
+			npm: meta.npm,
+			dir: meta.dir,
+			packDir: meta.packDir,
+			baseline: base,
+			release,
+			currentVersion: current,
+			version,
+			tag: `${meta.npm}@${version}`,
+			includePaths,
+		};
 	}
 
-	const anyChanged = Object.values(release).some(Boolean);
+	const anyChanged = Object.values(packages).some((p) => p.release);
+	// Range angular bakes for the published core: the new version when core is
+	// part of this release, otherwise core's current published version.
+	const coreVersion = packages.core.release ? packages.core.version : packages.core.currentVersion;
 
-	// Range angular bakes for the published core: the new version if core is part
-	// of this release, otherwise core's current published version.
-	const coreVersion = release.core
-		? nextVersion
-		: args.npm
-			? npmVersion(PACKAGES.core.npm)
-			: readJson(join(ROOT, PACKAGES.core.dir, 'package.json')).version;
-
-	const plan = {
-		baseline: base,
-		nextVersion,
-		tag: `v${nextVersion}`,
-		anyChanged,
-		coreVersion,
-		sharedChanged,
-		release,
-	};
-
+	const plan = { anyChanged, coreVersion, packages };
 	writeJson(join(ROOT, 'release-plan.json'), plan);
 
-	// Stamp the release version into each released package's source package.json.
-	// Cross-package dependency ranges are intentionally left as-is: react/vue
-	// bundle their deps (no runtime range to update) and angular's published
-	// core range is patched in its dist by the workflow using `coreVersion`.
+	// Stamp each released package's own version into its source package.json.
+	// Cross-package ranges are left as-is: react/vue bundle their deps and
+	// angular's published core range is patched in its dist by the workflow.
 	if (args.write) {
 		for (const [key, meta] of Object.entries(PACKAGES)) {
-			if (!release[key]) {
+			if (!packages[key].release) {
 				continue;
 			}
 			const pkgPath = join(ROOT, meta.dir, 'package.json');
 			const data = readJson(pkgPath);
-			data.version = nextVersion;
+			data.version = packages[key].version;
 			writeJson(pkgPath, data);
 		}
 	}
 
-	// Human-readable summary.
-	const releasing = Object.entries(release)
-		.filter(([, v]) => v)
-		.map(([k]) => k);
-	console.log(`baseline: ${base ?? '(none — first release)'}`);
-	console.log(`version:  ${nextVersion}`);
-	console.log(`core dep: ^${coreVersion}`);
-	console.log(`shared changed: ${sharedChanged}`);
-	console.log(`releasing: ${releasing.length ? releasing.join(', ') : '(nothing)'}`);
+	console.log('Release plan (independent per-package versions):');
+	for (const [key, p] of Object.entries(packages)) {
+		const arrow = p.release ? `${p.currentVersion} -> ${p.version}` : `${p.currentVersion} (skip)`;
+		console.log(`  ${key.padEnd(8)} ${arrow}${p.release ? `  tag ${p.tag}` : ''}`);
+	}
+	console.log(`core dep range: ^${coreVersion}`);
 	if (args.write) {
 		console.log('(wrote versions to released package.json files)');
 	}
 
-	// Expose to GitHub Actions.
 	if (process.env.GITHUB_OUTPUT) {
-		const lines = [
-			`next_version=${nextVersion}`,
-			`tag=v${nextVersion}`,
-			`any_changed=${anyChanged}`,
-			`core_version=${coreVersion}`,
-		];
-		for (const key of Object.keys(PACKAGES)) {
-			lines.push(`release_${key}=${release[key]}`);
-		}
-		appendFileSync(process.env.GITHUB_OUTPUT, `${lines.join('\n')}\n`);
+		appendFileSync(process.env.GITHUB_OUTPUT, `any_changed=${anyChanged}\n`);
 	}
 }
 

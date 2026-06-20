@@ -124,10 +124,16 @@ any default "branch before committing" assumption.
 ## Commit Conventions
 
 Commits **must** follow [Conventional Commits](https://www.conventionalcommits.org).
-`CHANGELOG.md` is generated from the commit history by [git-cliff](https://git-cliff.org)
-(config: `cliff.toml`), and the release pipeline derives release notes the same
-way, so non-conforming commits are silently dropped from the changelog; the
-format is load-bearing, not cosmetic.
+Each published package is versioned and released **independently**: the release
+pipeline (`scripts/release-plan.mjs`) bumps a package only when files under its
+directory (or a bundled dependency) change since its own last
+`<npm-name>@<version>` tag, then generates that package's own
+`packages/<pkg>/CHANGELOG.md` with [git-cliff](https://git-cliff.org) (config:
+`cliff.toml`) scoped to the same paths, and cuts a `<npm-name>@<version>` tag +
+GitHub release that publishes just that package. Non-conforming commits are
+silently dropped from the changelog, so the format is load-bearing, not
+cosmetic. Which package(s) a commit lands in is determined by the **paths** it
+touches, so keep a commit's changes within one package where practical.
 
 Format:
 
