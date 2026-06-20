@@ -22,6 +22,15 @@
  */
 export * from './shape-geometry';
 export * from './fill-style';
+// Stroke/dash normalisation, compound-line box-shadow + dasharray, element
+// transform strings (flip/rotation/skew), and OOXML drawing-percent parsing.
+export * from './element-style-transform';
+// OOXML drawing-colour resolution: colour-choice parsing (srgb/scrgb/sys/scheme/
+// hsl/preset), the 26 colour transforms via core, scheme inheritance, alpha.
+export * from './drawing-color';
+// Unicode script detection for font fallback (latin/eastAsia/complexScript/
+// symbol classification + run segmentation + per-script font resolution).
+export * from './unicode-script-detection';
 export * from './visual-effects';
 export * from './image-effects';
 export * from './text-warp';
@@ -188,6 +197,12 @@ export * from './ruler';
 export * from './bullet-autonum';
 export * from './bullet-list';
 export * from './text-paragraphs';
+export * from './text-advanced';
+export * from './text-theme';
+export * from './kinsoku-styles';
+export * from './tab-leader';
+export * from './inline-selection-utils';
+export * from './linked-text-box-overflow';
 export * from './connector-router';
 export * from './connector-reroute';
 export * from './connector-style';
@@ -237,6 +252,14 @@ export * from './p14-transition-css';
 // (`smartart-layout-types`), helpers, and per-family computers, so a single
 // barrel entry exposes the whole surface. Each binding renders the view-models.
 export * from './smartart-layout';
+// Three.js SmartArt - pure model types, geometry/colour helpers, and the
+// `buildSmartArt3DModel` converter that turns a 2D `SmartArtLayoutResult` into
+// an extruded 3D model (meshes + connectors). No `three` import; the vanilla
+// three scene builder that consumes this lives behind the `pptx-viewer-shared/
+// smartart-3d` subpath so `three` stays an optional, lazily-loaded dependency.
+export * from './smartart-3d-types';
+export * from './smartart-3d-geom';
+export * from './smartart-3d-model';
 // SmartArt pre-computed drawing-shapes projection (the `smartArtData.
 // drawingShapes` path the core engine extracts from `ppt/diagrams/drawing*.xml`,
 // preferred over the SVG-fallback layout engine when present): palette
@@ -300,9 +323,6 @@ export * from './presentation-toolbar';
 // Insert > Action: OOXML built-in action-button catalogue + element factory
 // (labelled nav buttons carrying an `actionClick` slide jump).
 export * from './action-buttons';
-// Print dialog: range/page/preview-index math, handout grid mapping, colour
-// filter, and HTML-escaping helpers for the outline/print window markup.
-export * from './print-dialog';
 // SmartArt insert-gallery catalogue: preset entries (layout/label/category/
 // default node texts) + the sidebar category list.
 export * from './smart-art-presets';
