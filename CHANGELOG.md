@@ -4,6 +4,20 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.4.16](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.16) - 2026-06-20
+
+### Features
+
+- **viewer:** Swipe-down-to-dismiss for centered modal dialogs (by @ChristopherVR) ([3f37f62](https://github.com/ChristopherVR/pptx-viewer/commit/3f37f62d9e43a664fcf0e0d1bb55e30aa9892395))
+
+### Refactor
+
+- **angular:** Render SmartArt via the shared layout engine (by @ChristopherVR) ([0ec1975](https://github.com/ChristopherVR/pptx-viewer/commit/0ec1975a6ff715567ab1da5d61b3301b1af1c082))
+- **react:** Remove em-dashes and clear pre-existing lint warnings (by @ChristopherVR) ([20e0903](https://github.com/ChristopherVR/pptx-viewer/commit/20e090301c3caadc181284e5f92f751d80c7cb2d))
+- **vue:** Remove em-dashes and clear pre-existing lint warnings (by @ChristopherVR) ([5353396](https://github.com/ChristopherVR/pptx-viewer/commit/5353396f45e89baccbcf3fe81edf070509e5c20f))
+- **react:** Remove em-dashes from smartart-process JSDoc (by @ChristopherVR) ([139317a](https://github.com/ChristopherVR/pptx-viewer/commit/139317ab3314b5bbec5b4b3c0003fd38b56b923c))
+- Remove em-dashes from transition shim doc comments (by @ChristopherVR) ([e2fa40b](https://github.com/ChristopherVR/pptx-viewer/commit/e2fa40b31ed8cee032e08ab3533ff5241533f9f5))
+
 ## [1.4.15](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.15) - 2026-06-20
 
 ### Features
@@ -21,6 +35,7 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### Documentation
 
 - Remove em-dashes and clarify demo link in viewer packages (by @ChristopherVR) ([f52afff](https://github.com/ChristopherVR/pptx-viewer/commit/f52afffd935016b747116a9909c523021b492225))
+- **changelog:** Update for v1.4.15 [skip ci] (by @github-actions[bot]) ([8c5c358](https://github.com/ChristopherVR/pptx-viewer/commit/8c5c35854cf5f2eeb52ad6f3d66a73e2ff1ee020))
 
 ## [1.4.14](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.14) - 2026-06-19
 
