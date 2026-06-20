@@ -116,6 +116,7 @@ import type { Guide } from './composables/guides';
 import { remapTextToSegments } from './composables/remap-text';
 import { compareSlides } from './composables/slide-compare';
 import type { CompareResult } from './composables/slide-compare';
+import { SmartArt3DKey } from './composables/smart-art-3d';
 import { snapBox } from './composables/snap';
 import { computeSnapToShape } from './composables/snap-shape';
 import { TableThemeKey } from './composables/table-theme';
@@ -159,12 +160,15 @@ interface TransformPayload {
 
 const props = withDefaults(defineProps<PowerPointViewerProps>(), {
 	canEdit: false,
+	smartArt3D: false,
 });
 const emit = defineEmits<PowerPointViewerEmits>();
 
 // ── Theme ─────────────────────────────────────────────────────────────
 const theme = toRef(props, 'theme');
 provideViewerTheme(theme);
+// SmartArt 3D opt-in: surface the prop to the element dispatcher via inject.
+provide(SmartArt3DKey, props.smartArt3D);
 const themeStyle = useThemeStyle(theme);
 
 // ── Load + parse content ──────────────────────────────────────────────

@@ -64,6 +64,11 @@ export default defineConfig({
 				'tailwind-merge',
 				'yjs',
 				'y-websocket',
+				// Optional peer behind the lazily-imported `pptx-viewer-shared/
+				// smartart-3d` scene; keep it external so it is never bundled and
+				// the SmartArt 3D chunk resolves it from the host's node_modules.
+				'three',
+				/^three\//u,
 			],
 			output: {
 				globals: { vue: 'Vue' },

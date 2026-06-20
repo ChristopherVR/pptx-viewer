@@ -73,6 +73,14 @@ export interface PowerPointViewerProps {
 	 * viewer opens its own picker and loads the chosen presentation in place.
 	 */
 	onOpenFile?: () => void;
+	/**
+	 * Opt in to the experimental Three.js SmartArt renderer. When `true`,
+	 * SmartArt diagrams render as extruded 3D blocks on a WebGL canvas instead
+	 * of flat SVG. Requires the optional `three` peer dependency; when it is not
+	 * installed (or the diagram has no geometry), the viewer transparently falls
+	 * back to the SVG SmartArt renderer. Default `false`.
+	 */
+	smartArt3D?: boolean;
 }
 
 /**

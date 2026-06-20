@@ -10,6 +10,7 @@ import {
 	getShapeFillStrokeStyle,
 	getTextBlockStyle,
 } from '../composables/element-style';
+import { useSmartArt3D } from '../composables/smart-art-3d';
 import ChartRenderer from './ChartRenderer.vue';
 import ConnectorRenderer from './ConnectorRenderer.vue';
 import ElementImageBox from './ElementImageBox.vue';
@@ -19,6 +20,7 @@ import InkRenderer from './InkRenderer.vue';
 import Model3DRenderer from './Model3DRenderer.vue';
 import OleRenderer from './OleRenderer.vue';
 import SlideTextBlock from './SlideTextBlock.vue';
+import SmartArt3DRenderer from './SmartArt3DRenderer.vue';
 import SmartArtRenderer from './SmartArtRenderer.vue';
 import TableRenderer from './TableRenderer.vue';
 import WordArtText from './WordArtText.vue';
@@ -43,6 +45,9 @@ const props = defineProps<{
 	 */
 	interactive?: boolean;
 }>();
+
+/** Host opt-in to the Three.js SmartArt renderer (provided by PowerPointViewer). */
+const smartArt3D = useSmartArt3D();
 
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
@@ -142,6 +147,12 @@ const hasText = computed(() =>
 	/>
 	<ChartRenderer
 		v-else-if="element.type === 'chart'"
+		:element="element"
+		:media-data-urls="mediaDataUrls"
+		:z-index="zIndex"
+	/>
+	<SmartArt3DRenderer
+		v-else-if="element.type === 'smartArt' && smartArt3D"
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
