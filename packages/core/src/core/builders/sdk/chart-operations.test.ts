@@ -11,6 +11,7 @@ import {
 	setChartTitle,
 	setChartGrouping,
 	setChartLegend,
+	setChartAxis,
 	updateChartDataPoint,
 	addChartCategory,
 	removeChartCategory,
@@ -727,5 +728,92 @@ describe('setChartLegend', () => {
 	it('throws when chartData is missing', () => {
 		const el = makeEmptyChart();
 		expect(() => setChartLegend(el, { show: true })).toThrow(/no chartData/u);
+	});
+});
+
+// ===========================================================================
+// setChartAxis
+// ===========================================================================
+
+describe('setChartAxis', () => {
+	it('creates the axes array and a value axis entry when none exists', () => {
+		const el = makeTestChart();
+		setChartAxis(el, 'valAx', { min: 0, max: 100 });
+		const axis = el.chartData?.axes?.find((a) => a.axisType === 'valAx');
+		expect(axis).toBeDefined();
+		expect(axis?.min).toBe(0);
+		expect(axis?.max).toBe(100);
+	});
+
+	it('updates an existing axis in place, preserving its id and other fields', () => {
+		const el = makeTestChart();
+		el.chartData!.axes = [{ axisType: 'valAx', axisId: 111, majorUnit: 5 }];
+		setChartAxis(el, 'valAx', { min: 10 });
+		const axis = el.chartData?.axes?.[0];
+		expect(axis?.axisId).toBe(111);
+		expect(axis?.majorUnit).toBe(5);
+		expect(axis?.min).toBe(10);
+	});
+
+	it('sets major and minor units', () => {
+		const el = makeTestChart();
+		setChartAxis(el, 'valAx', { majorUnit: 20, minorUnit: 4 });
+		const axis = el.chartData?.axes?.find((a) => a.axisType === 'valAx');
+		expect(axis?.majorUnit).toBe(20);
+		expect(axis?.minorUnit).toBe(4);
+	});
+
+	it('clears a numeric field when passed null', () => {
+		const el = makeTestChart();
+		el.chartData!.axes = [{ axisType: 'valAx', min: 5, max: 50 }];
+		setChartAxis(el, 'valAx', { min: null });
+		const axis = el.chartData?.axes?.[0];
+		expect(axis?.min).toBeUndefined();
+		expect(axis?.max).toBe(50);
+	});
+
+	it('sets the number format from a format code', () => {
+		const el = makeTestChart();
+		setChartAxis(el, 'valAx', { numberFormat: '0.00%' });
+		const axis = el.chartData?.axes?.find((a) => a.axisType === 'valAx');
+		expect(axis?.numFmt).toStrictEqual({ formatCode: '0.00%', sourceLinked: false });
+	});
+
+	it('clears the number format when passed an empty string', () => {
+		const el = makeTestChart();
+		el.chartData!.axes = [{ axisType: 'valAx', numFmt: { formatCode: '0.00' } }];
+		setChartAxis(el, 'valAx', { numberFormat: '' });
+		expect(el.chartData?.axes?.[0].numFmt).toBeUndefined();
+	});
+
+	it('sets the tick label position', () => {
+		const el = makeTestChart();
+		setChartAxis(el, 'catAx', { tickLabelPosition: 'low' });
+		const axis = el.chartData?.axes?.find((a) => a.axisType === 'catAx');
+		expect(axis?.tickLblPos).toBe('low');
+	});
+
+	it('leaves unspecified fields unchanged', () => {
+		const el = makeTestChart();
+		el.chartData!.axes = [{ axisType: 'valAx', min: 1, max: 9, majorUnit: 2 }];
+		setChartAxis(el, 'valAx', { max: 12 });
+		const axis = el.chartData?.axes?.[0];
+		expect(axis?.min).toBe(1);
+		expect(axis?.max).toBe(12);
+		expect(axis?.majorUnit).toBe(2);
+	});
+
+	it('keeps value and category axes independent', () => {
+		const el = makeTestChart();
+		setChartAxis(el, 'valAx', { min: 0 });
+		setChartAxis(el, 'catAx', { tickLabelPosition: 'none' });
+		expect(el.chartData?.axes).toHaveLength(2);
+		expect(el.chartData?.axes?.find((a) => a.axisType === 'valAx')?.min).toBe(0);
+		expect(el.chartData?.axes?.find((a) => a.axisType === 'catAx')?.tickLblPos).toBe('none');
+	});
+
+	it('throws when chartData is missing', () => {
+		const el = makeEmptyChart();
+		expect(() => setChartAxis(el, 'valAx', { min: 0 })).toThrow(/no chartData/u);
 	});
 });

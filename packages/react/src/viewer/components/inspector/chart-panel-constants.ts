@@ -51,5 +51,24 @@ export const LEGEND_POSITION_OPTIONS: ReadonlyArray<{
 	{ value: 'r', labelKey: 'pptx.chart.legendRight' },
 ];
 
+export const TICK_LABEL_POSITION_OPTIONS: ReadonlyArray<{
+	value: 'nextTo' | 'high' | 'low' | 'none';
+	labelKey: string;
+}> = [
+	{ value: 'nextTo', labelKey: 'pptx.chart.tickNextTo' },
+	{ value: 'high', labelKey: 'pptx.chart.tickHigh' },
+	{ value: 'low', labelKey: 'pptx.chart.tickLow' },
+	{ value: 'none', labelKey: 'pptx.chart.tickNone' },
+];
+
+/** Axis kinds the inspector exposes for editing, with a label key each. */
+export const EDITABLE_AXIS_TYPES: ReadonlyArray<{
+	value: 'valAx' | 'catAx';
+	labelKey: string;
+}> = [
+	{ value: 'valAx', labelKey: 'pptx.chart.valueAxis' },
+	{ value: 'catAx', labelKey: 'pptx.chart.categoryAxis' },
+];
+
 /** Chart types that support grouping modes. */
 export const GROUPING_SUPPORTED_TYPES = new Set<PptxChartType>(['bar', 'line', 'area']);

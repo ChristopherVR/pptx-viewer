@@ -9,7 +9,7 @@
  * @module sdk/chart-operations
  */
 
-import type { PptxChartType } from '../../types/chart';
+import type { PptxChartAxisFormatting, PptxChartType } from '../../types/chart';
 import type { ChartPptxElement } from '../../types/elements';
 
 // ---------------------------------------------------------------------------
@@ -209,6 +209,75 @@ export function setChartLegend(
 		if (style.hasLegend === undefined) {
 			style.hasLegend = true;
 		}
+	}
+}
+
+/** Axis kinds that can be addressed by {@link setChartAxis}. */
+export type PptxChartAxisType = PptxChartAxisFormatting['axisType'];
+
+/**
+ * Editable axis-formatting properties. Each field is optional:
+ * - omit a field to leave it unchanged,
+ * - pass a value to set it,
+ * - pass `null` (for the numeric fields) or `''` (for `numberFormat`) to
+ *   clear it so the axis falls back to its automatic behaviour.
+ */
+export interface ChartAxisEdit {
+	min?: number | null;
+	max?: number | null;
+	majorUnit?: number | null;
+	minorUnit?: number | null;
+	numberFormat?: string;
+	tickLabelPosition?: 'high' | 'low' | 'nextTo' | 'none';
+}
+
+/**
+ * Edit value/category axis formatting that round-trips to the saved `.pptx`
+ * (`c:min`/`c:max` scaling, `c:majorUnit`/`c:minorUnit`, `c:numFmt`,
+ * `c:tickLblPos`).
+ *
+ * Finds the first axis of `axisType` in `chartData.axes`, creating an entry
+ * if none exists. Note that newly created axes only serialize for charts that
+ * already contain a matching axis in the source XML (the save pipeline links
+ * edits by the parsed axis id), which is the normal case for loaded charts.
+ *
+ * @example
+ * ```ts
+ * setChartAxis(chartEl, "valAx", { min: 0, max: 100, majorUnit: 20 });
+ * setChartAxis(chartEl, "valAx", { min: null }); // clear the override
+ * ```
+ */
+export function setChartAxis(
+	element: ChartPptxElement,
+	axisType: PptxChartAxisType,
+	edit: ChartAxisEdit,
+): void {
+	ensureChartData(element);
+	const axes = (element.chartData.axes ??= []);
+	let axis = axes.find((a) => a.axisType === axisType);
+	if (!axis) {
+		axis = { axisType };
+		axes.push(axis);
+	}
+	if (edit.min !== undefined) {
+		axis.min = edit.min ?? undefined;
+	}
+	if (edit.max !== undefined) {
+		axis.max = edit.max ?? undefined;
+	}
+	if (edit.majorUnit !== undefined) {
+		axis.majorUnit = edit.majorUnit ?? undefined;
+	}
+	if (edit.minorUnit !== undefined) {
+		axis.minorUnit = edit.minorUnit ?? undefined;
+	}
+	if (edit.numberFormat !== undefined) {
+		axis.numFmt = edit.numberFormat
+			? { formatCode: edit.numberFormat, sourceLinked: false }
+			: undefined;
+	}
+	if (edit.tickLabelPosition !== undefined) {
+		axis.tickLblPos = edit.tickLabelPosition;
 	}
 }
 

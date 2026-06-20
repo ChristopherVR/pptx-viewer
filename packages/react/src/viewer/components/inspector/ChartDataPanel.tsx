@@ -1,6 +1,7 @@
 import type {
 	PptxElement,
 	ChartPptxElement,
+	PptxChartAxisFormatting,
 	PptxChartData,
 	PptxChartSeries,
 	PptxChartStyle,
@@ -16,6 +17,7 @@ import {
 } from 'pptx-viewer-core';
 import { useCallback } from 'react';
 
+import { ChartAxisOptions } from './ChartAxisOptions';
 import { ChartDataGrid } from './ChartDataGrid';
 import { ChartDisplayOptions } from './ChartDisplayOptions';
 import { ChartTypeSelector } from './ChartTypeSelector';
@@ -87,6 +89,23 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 			} as Partial<PptxElement>);
 		},
 		[chartData, style, onUpdateElement],
+	);
+
+	const updateAxis = useCallback(
+		(axisType: PptxChartAxisFormatting['axisType'], patch: Partial<PptxChartAxisFormatting>) => {
+			if (!chartData) {
+				return;
+			}
+			const axes = chartData.axes ? [...chartData.axes] : [];
+			const index = axes.findIndex((a) => a.axisType === axisType);
+			if (index === -1) {
+				axes.push({ axisType, ...patch });
+			} else {
+				axes[index] = { ...axes[index], ...patch };
+			}
+			updateChartData({ axes });
+		},
+		[chartData, updateChartData],
 	);
 
 	const updateSeries = useCallback(
@@ -183,6 +202,8 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 			/>
 
 			<ChartDisplayOptions style={style} canEdit={canEdit} onUpdateStyle={updateStyle} />
+
+			<ChartAxisOptions axes={chartData.axes} canEdit={canEdit} onUpdateAxis={updateAxis} />
 
 			<ChartDataGrid
 				categories={categories}

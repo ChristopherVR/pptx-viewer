@@ -42,11 +42,12 @@ export {
 	setChartTitle,
 	setChartGrouping,
 	setChartLegend,
+	setChartAxis,
 	updateChartDataPoint,
 	addChartCategory,
 	removeChartCategory,
 } from './chart-operations';
-export type { PptxChartLegendPosition } from './chart-operations';
+export type { PptxChartLegendPosition, PptxChartAxisType, ChartAxisEdit } from './chart-operations';
 
 // Layout operations
 export {

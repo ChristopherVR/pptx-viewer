@@ -440,10 +440,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 				// Update axis fields (Phase 5 Stream A item 4).
 				// Currently writes back: scaling.min/max, scaling.logBase,
-				// numFmt, majorUnit, tickLblPos. Other parsed-but-not-written
-				// chart fields (surfaces/dataTable/dropLines/hiLowLines/
+				// numFmt, majorUnit, minorUnit, tickLblPos. Other parsed-but-not-
+				// written chart fields (surfaces/dataTable/dropLines/hiLowLines/
 				// trendlines/errBars/marker/dataLabels/explosion/smooth/
-				// colorPalette/colorMethod, axis title/txPr/axPos/minorUnit) are
+				// colorPalette/colorMethod, axis title/txPr/axPos) are
 				// preserved via the original XML passthrough but lose any edits
 				// — see OPENXML_PARITY.md M-tier.
 				if (chartData.axes) {
@@ -521,6 +521,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 								axisNode,
 								'majorUnit',
 								matchingAxis.majorUnit !== undefined ? String(matchingAxis.majorUnit) : undefined,
+							);
+
+							// minorUnit
+							this.upsertChartAxisChild(
+								axisNode,
+								'minorUnit',
+								matchingAxis.minorUnit !== undefined ? String(matchingAxis.minorUnit) : undefined,
 							);
 
 							// tickLblPos
