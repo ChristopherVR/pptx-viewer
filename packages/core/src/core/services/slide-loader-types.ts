@@ -9,6 +9,7 @@ import type JSZip from 'jszip';
 
 import type {
 	PptxActiveXControl,
+	PptxChartData,
 	PptxComment,
 	PptxCustomerData,
 	PptxElement,
@@ -158,6 +159,11 @@ export interface PptxSlideLoaderParams {
 		slidePath: string,
 		graphicFrame: XmlObject | undefined,
 	) => Promise<PptxSmartArtData | undefined>;
+	/** Resolve chart data for a graphic frame element. */
+	getChartDataForGraphicFrame: (
+		slidePath: string,
+		graphicFrame: XmlObject | undefined,
+	) => Promise<PptxChartData | undefined>;
 	/** Parse customer data tags from a slide's `p:custDataLst`. */
 	parseSlideCustomerData: (slideXml: XmlObject, slidePath: string) => Promise<PptxCustomerData[]>;
 	/** Parse ActiveX control references from a slide's `p:controls`. */
@@ -173,5 +179,5 @@ export interface IPptxSlideLoaderService {
 	 * @param params - Bundle of dependencies and callbacks for slide parsing.
 	 * @returns Array of fully parsed slide objects in presentation order.
 	 */
-	loadSlides(params: PptxSlideLoaderParams): Promise<PptxSlide[]>;
+	loadSlides: (params: PptxSlideLoaderParams) => Promise<PptxSlide[]>;
 }

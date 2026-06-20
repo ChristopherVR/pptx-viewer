@@ -10,6 +10,7 @@
 import type { PptxSlide, XmlObject } from '../types';
 import { parseSlideDrawingGuides } from '../utils/guide-utils';
 import type { IPptxSlideLoaderService, PptxSlideLoaderParams } from './slide-loader-types';
+
 export type {
 	PptxMediaTimingEntry,
 	PptxMediaTimingMap,
@@ -71,6 +72,8 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 
 		// Post-process: enrich SmartArt elements with diagram data
 		await this.enrichSmartArtData(slides, params);
+		// Post-process: enrich chart elements with parsed chart data
+		await this.enrichChartData(slides, params);
 		return slides;
 	}
 
@@ -287,6 +290,40 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 					}
 				} catch {
 					// Non-critical — SmartArt will render as placeholder if enrichment fails
+				}
+			}
+		}
+	}
+
+	/**
+	 * Post-process loaded slides to enrich chart elements with parsed data.
+	 *
+	 * Mirrors {@link enrichSmartArtData}: iterates every element, and for any
+	 * chart element that lacks `chartData`, resolves it from the graphic frame
+	 * XML via the chart parser. Without this pass a chart loaded from a `.pptx`
+	 * has no `chartData`, so every binding renders the neutral "Chart"
+	 * placeholder instead of the real chart. Failures are silently caught since
+	 * chart enrichment is non-critical (the placeholder remains).
+	 *
+	 * @param slides - Array of loaded slides to enrich.
+	 * @param params - Loader params providing the chart extraction callback.
+	 */
+	private async enrichChartData(slides: PptxSlide[], params: PptxSlideLoaderParams): Promise<void> {
+		for (const slide of slides) {
+			for (const element of slide.elements) {
+				if (element.type !== 'chart' || element.chartData) {
+					continue;
+				}
+				try {
+					const chartData = await params.getChartDataForGraphicFrame(
+						slide.id,
+						element.rawXml as XmlObject,
+					);
+					if (chartData) {
+						element.chartData = chartData;
+					}
+				} catch {
+					// Non-critical: chart will render as placeholder if enrichment fails
 				}
 			}
 		}

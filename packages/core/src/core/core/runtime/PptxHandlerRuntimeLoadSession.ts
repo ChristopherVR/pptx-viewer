@@ -180,7 +180,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 */
 	protected async parseCustomXmlParts(): Promise<void> {
 		const parts: PptxCustomXmlPart[] = [];
-		const itemPattern = /^customXml\/item(\d+)\.xml$/i;
+		const itemPattern = /^customXml\/item(?<index>\d+)\.xml$/iu;
 
 		const entries: string[] = [];
 		this.zip.forEach((relativePath) => {
@@ -351,6 +351,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			parseNativeAnimations: (slideXml) => this.parseNativeAnimations(slideXml),
 			getSmartArtDataForGraphicFrame: (slidePath, graphicFrame) =>
 				this.getSmartArtDataForGraphicFrame(slidePath, graphicFrame),
+			getChartDataForGraphicFrame: (slidePath, graphicFrame) =>
+				this.getChartDataForGraphicFrame(slidePath, graphicFrame),
 			parseSlideCustomerData: (slideXml, slidePath) =>
 				this.parseSlideCustomerData(slideXml, slidePath),
 			parseSlideActiveXControls: (slideXml) => this.parseSlideActiveXControls(slideXml),
