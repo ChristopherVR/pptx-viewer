@@ -4,6 +4,22 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.4.17](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.17) - 2026-06-20
+
+### Refactor
+
+- **react:** Render pie/radar charts via the shared view-model engine (by @ChristopherVR) ([75c892d](https://github.com/ChristopherVR/pptx-viewer/commit/75c892dd476aeeaff36717dec151854c57b61783))
+- **vue:** Render pie/radar charts via the shared view-model engine (by @ChristopherVR) ([a8b537d](https://github.com/ChristopherVR/pptx-viewer/commit/a8b537d228753e3532995b0080a644457f4440a8))
+
+### Documentation
+
+- Ban em-dashes in CLAUDE.md conventions (by @ChristopherVR) ([026d655](https://github.com/ChristopherVR/pptx-viewer/commit/026d655e7e25f9b73543589234b84539eacef423))
+- Fix em-dash rule wording in CLAUDE.md (by @ChristopherVR) ([952a8b4](https://github.com/ChristopherVR/pptx-viewer/commit/952a8b4ce3725d65d2a9115d85d21508f4654599))
+
+### Build & CI
+
+- Release and publish only the packages that changed (by @ChristopherVR) ([eed9e58](https://github.com/ChristopherVR/pptx-viewer/commit/eed9e58156cf81cbe8dd9eb691bc3834a08e3dd1))
+
 ## [1.4.16](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.16) - 2026-06-20
 
 ### Features
@@ -17,6 +33,10 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 - **vue:** Remove em-dashes and clear pre-existing lint warnings (by @ChristopherVR) ([5353396](https://github.com/ChristopherVR/pptx-viewer/commit/5353396f45e89baccbcf3fe81edf070509e5c20f))
 - **react:** Remove em-dashes from smartart-process JSDoc (by @ChristopherVR) ([139317a](https://github.com/ChristopherVR/pptx-viewer/commit/139317ab3314b5bbec5b4b3c0003fd38b56b923c))
 - Remove em-dashes from transition shim doc comments (by @ChristopherVR) ([e2fa40b](https://github.com/ChristopherVR/pptx-viewer/commit/e2fa40b31ed8cee032e08ab3533ff5241533f9f5))
+
+### Documentation
+
+- **changelog:** Update for v1.4.16 [skip ci] (by @github-actions[bot]) ([4563872](https://github.com/ChristopherVR/pptx-viewer/commit/45638727a0d2cc4f31eb0e5bbcf366e4d9ad4bb1))
 
 ## [1.4.15](https://github.com/ChristopherVR/pptx-viewer/releases/tag/v1.4.15) - 2026-06-20
 
