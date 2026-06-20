@@ -9,8 +9,6 @@
 [![pptx-vue-viewer](https://img.shields.io/npm/v/pptx-vue-viewer?label=pptx-vue-viewer)](https://www.npmjs.com/package/pptx-vue-viewer)
 [![pptx-angular-viewer](https://img.shields.io/npm/v/pptx-angular-viewer?label=pptx-angular-viewer)](https://www.npmjs.com/package/pptx-angular-viewer)
 [![pptx-viewer-mcp](https://img.shields.io/npm/v/pptx-viewer-mcp?label=pptx-viewer-mcp)](https://www.npmjs.com/package/pptx-viewer-mcp)
-[![emf-converter](https://img.shields.io/npm/v/emf-converter?label=emf-converter)](https://www.npmjs.com/package/emf-converter)
-[![mtx-decompressor](https://img.shields.io/npm/v/mtx-decompressor?label=mtx-decompressor)](https://www.npmjs.com/package/mtx-decompressor)
 
 > A TypeScript toolkit to **parse, render, edit, present, and convert** Microsoft PowerPoint (`.pptx`) files - in the browser **and** Node.js. No PowerPoint install, no server round-trips, no native dependencies.
 
@@ -71,20 +69,17 @@ packages/
   react/             pptx-react-viewer    - React-based viewer/editor component
   vue/               pptx-vue-viewer      - Vue 3 viewer component
   angular/           pptx-angular-viewer  - Angular viewer component
-  emf-converter/     emf-converter        - EMF/WMF metafile to PNG converter
-  mtx-decompressor/  mtx-decompressor     - MicroType Express font decompressor
+  tools/             pptx-viewer-mcp      - CLI / MCP server and tool functions for AI agents
 ```
 
-| Package                                            | npm                                                                                                               | Description                                                                                                | README                                               |
-| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| **[pptx-viewer-core](packages/core/)**             | [![npm](https://img.shields.io/npm/v/pptx-viewer-core.svg)](https://www.npmjs.com/package/pptx-viewer-core)       | Core PPTX engine - parse, create, edit, serialize, and convert PowerPoint files. Framework-agnostic.       | [Documentation](packages/core/README.md)             |
-| **[pptx-viewer-shared](packages/shared/)**         | _(internal - not published)_                                                                                      | Framework-agnostic viewer logic (theme, load helpers, types) shared by the React, Vue, and Angular UIs.    | [Documentation](packages/shared/README.md)           |
-| **[pptx-react-viewer](packages/react/)**           | [![npm](https://img.shields.io/npm/v/pptx-react-viewer.svg)](https://www.npmjs.com/package/pptx-react-viewer)     | React-based PowerPoint viewer, editor, and presenter with toolbar, inspector, collaboration, and export.   | [Documentation](packages/react/README.md)            |
-| **[pptx-vue-viewer](packages/vue/)**               | [![npm](https://img.shields.io/npm/v/pptx-vue-viewer.svg)](https://www.npmjs.com/package/pptx-vue-viewer)         | Vue 3 PowerPoint viewer component. Counterpart of the React package (viewer-first; porting in progress).   | [Documentation](packages/vue/README.md)              |
-| **[pptx-angular-viewer](packages/angular/)**       | [![npm](https://img.shields.io/npm/v/pptx-angular-viewer.svg)](https://www.npmjs.com/package/pptx-angular-viewer) | Angular PowerPoint viewer component. Counterpart of the React package (viewer-first; porting in progress). | [Documentation](packages/angular/README.md)          |
-| **[pptx-viewer-mcp](packages/tools/)**             | [![npm](https://img.shields.io/npm/v/pptx-viewer-mcp.svg)](https://www.npmjs.com/package/pptx-viewer-mcp)         | CLI / MCP server and pure tool functions for AI agents to parse, edit, and convert PPTX files.             | [Documentation](packages/tools/README.md)            |
-| **[emf-converter](packages/emf-converter/)**       | [![npm](https://img.shields.io/npm/v/emf-converter.svg)](https://www.npmjs.com/package/emf-converter)             | Convert EMF/WMF metafile binaries to PNG data URLs using Canvas 2D. Handles EMF, EMF+, and WMF formats.    | [Documentation](packages/emf-converter/README.md)    |
-| **[mtx-decompressor](packages/mtx-decompressor/)** | [![npm](https://img.shields.io/npm/v/mtx-decompressor.svg)](https://www.npmjs.com/package/mtx-decompressor)       | Decompress MicroType Express (MTX) compressed fonts from EOT containers into TrueType.                     | [Documentation](packages/mtx-decompressor/README.md) |
+| Package                                      | npm                                                                                                               | Description                                                                                                | README                                      |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| **[pptx-viewer-core](packages/core/)**       | [![npm](https://img.shields.io/npm/v/pptx-viewer-core.svg)](https://www.npmjs.com/package/pptx-viewer-core)       | Core PPTX engine - parse, create, edit, serialize, and convert PowerPoint files. Framework-agnostic.       | [Documentation](packages/core/README.md)    |
+| **[pptx-viewer-shared](packages/shared/)**   | _(internal - not published)_                                                                                      | Framework-agnostic viewer logic (theme, load helpers, types) shared by the React, Vue, and Angular UIs.    | [Documentation](packages/shared/README.md)  |
+| **[pptx-react-viewer](packages/react/)**     | [![npm](https://img.shields.io/npm/v/pptx-react-viewer.svg)](https://www.npmjs.com/package/pptx-react-viewer)     | React-based PowerPoint viewer, editor, and presenter with toolbar, inspector, collaboration, and export.   | [Documentation](packages/react/README.md)   |
+| **[pptx-vue-viewer](packages/vue/)**         | [![npm](https://img.shields.io/npm/v/pptx-vue-viewer.svg)](https://www.npmjs.com/package/pptx-vue-viewer)         | Vue 3 PowerPoint viewer component. Counterpart of the React package (viewer-first; porting in progress).   | [Documentation](packages/vue/README.md)     |
+| **[pptx-angular-viewer](packages/angular/)** | [![npm](https://img.shields.io/npm/v/pptx-angular-viewer.svg)](https://www.npmjs.com/package/pptx-angular-viewer) | Angular PowerPoint viewer component. Counterpart of the React package (viewer-first; porting in progress). | [Documentation](packages/angular/README.md) |
+| **[pptx-viewer-mcp](packages/tools/)**       | [![npm](https://img.shields.io/npm/v/pptx-viewer-mcp.svg)](https://www.npmjs.com/package/pptx-viewer-mcp)         | CLI / MCP server and pure tool functions for AI agents to parse, edit, and convert PPTX files.             | [Documentation](packages/tools/README.md)   |
 
 ### Dependency Graph
 
@@ -92,10 +87,10 @@ packages/
 pptx-react-viewer   ┐
 pptx-vue-viewer     ├── pptx-viewer-shared ──┐
 pptx-angular-viewer ┘                        ├── pptx-viewer-core
-                                             │         ├── emf-converter
-                                             │         └── mtx-decompressor
                     (each UI binding) ───────┘
 ```
+
+> `pptx-viewer-core` also depends on the standalone **`emf-converter`** (EMF/WMF to PNG) and **`mtx-decompressor`** (MicroType Express fonts) packages, published separately from their own repositories.
 
 ---
 
@@ -124,15 +119,6 @@ pptx-angular-viewer ┘                        ├── pptx-viewer-core
 - **3D models** - Rendering GLB/GLTF 3D models requires optional peer dependencies (`three`, `@react-three/fiber`, `@react-three/drei`). Without them, the element falls back to its poster image.
 - **Vue / Angular feature parity** - The Vue and Angular bindings are viewer-first. Full editing, presenter mode, collaboration, and export features are available in the React package first and being ported incrementally.
 
-### EMF Converter (`emf-converter`)
-
-- **Gradient brushes are simplified** - GDI+ `LinearGradient` and `PathGradient` brush types extract only the primary colour rather than rendering full multi-stop gradient fills. The Canvas 2D API does not have a direct equivalent for GDI+ path gradients.
-- **No raster operations (ROP)** - `SetROP2` is acknowledged but GDI raster operation blending modes (XOR, NOT, AND, etc.) have no direct Canvas 2D equivalent and are not applied.
-- **Limited clipping** - `IntersectClipRect` and `SelectClipPath` are supported. Complex GDI region clipping (combining multiple regions with union/intersect/exclude operations) is not, as Canvas 2D only supports a single clip path.
-- **Maximum canvas size** - Output is clamped to 4096x4096 pixels to prevent excessive memory usage from malformed or very large metafiles.
-- **Font rendering** - Text is rendered using the browser's font engine with CSS font matching, so glyph metrics and kerning may differ from the original Windows GDI text rendering.
-- **Canvas API required** - The library needs either `OffscreenCanvas` (for Web Worker support) or `HTMLCanvasElement` to be available in the runtime environment. Pure Node.js without a canvas polyfill is not supported.
-
 ---
 
 ## Getting Started
@@ -152,7 +138,7 @@ cd pptx-viewer
 # Install dependencies
 bun install
 
-# Build all packages (order: emf-converter -> mtx-decompressor -> core -> react)
+# Build all packages (order: core -> shared -> react / vue / angular)
 bun run build
 
 # Run tests
@@ -333,16 +319,6 @@ const out = await handler.save(updated.slides);
 await fs.writeFile('deck.pptx', out);
 ```
 
-### EMF/WMF Conversion
-
-```typescript
-import { convertEmfToDataUrl, convertWmfToDataUrl } from 'emf-converter';
-
-const emfBuffer: ArrayBuffer = /* read from PPTX media part */;
-const pngDataUrl = await convertEmfToDataUrl(emfBuffer);
-// => "data:image/png;base64,iVBORw0K..."
-```
-
 > For full API references, architecture deep dives, and advanced usage, see each package's README linked in the [Packages](#packages) table above.
 
 ---
@@ -389,17 +365,10 @@ const pngDataUrl = await convertEmfToDataUrl(emfBuffer);
 |  |  | System  |  |  Engine  |  |  Engine  |  | (SDK)    |       |  |
 |  |  +---------+  +----------+  +---------+  +----------+        |  |
 |  +--------------------------------------------------------------+  |
-+---------------------------+----------------------------------------+
-                            | imports
-+---------------------------+----------------------------------------+
-|          EMF Converter Package (emf-converter)                     |
-|  Binary EMF/WMF parsing -> GDI record replay -> Canvas -> PNG      |
-+--------------------------------------------------------------------+
-+--------------------------------------------------------------------+
-|       MTX Decompressor Package (mtx-decompressor)                  |
-|  EOT/MTX compressed fonts -> LZ decompression -> CTF -> TrueType   |
 +--------------------------------------------------------------------+
 ```
+
+> `pptx-viewer-core` also pulls in the standalone `emf-converter` (EMF/WMF metafiles to PNG) and `mtx-decompressor` (MicroType Express font decompression) packages as external dependencies.
 
 ### Key Design Decisions
 
@@ -420,7 +389,7 @@ const pngDataUrl = await convertEmfToDataUrl(emfBuffer);
 
 ```bash
 bun install                  # Install all workspace dependencies
-bun run build                # Build all packages (emf-converter -> mtx-decompressor -> core -> react)
+bun run build                # Build all packages (core -> shared -> react / vue / angular)
 bun run test                 # Run vitest across all packages
 bun run typecheck            # Type-check all packages
 bun run fmt                  # Format all files with oxfmt
@@ -432,7 +401,7 @@ bun run demo:vue             # Start the Vue demo dev server (Vite, port 4175)
 bun run demo:angular         # Start the Angular demo dev server (Vite, port 4174)
 ```
 
-Build order matters: **emf-converter -> mtx-decompressor -> core -> react**
+Build order matters: **core -> shared -> react / vue / angular**
 
 ### Per-Package Commands
 
@@ -446,10 +415,11 @@ cd packages/core && bun run typecheck # Type-check package
 ### Pack for npm Distribution
 
 ```bash
-bun run pack:emf     # packages/emf-converter
-bun run pack:mtx     # packages/mtx-decompressor
 bun run pack:core    # packages/core
+bun run pack:shared  # packages/shared
 bun run pack:react   # packages/react
+bun run pack:vue     # packages/vue
+bun run pack:angular # packages/angular
 ```
 
 ### Tech Stack
