@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import type { PptxChartData, PptxChartType, PptxElement } from 'pptx-viewer-core';
-import type { PlotLayout, ValueRange } from 'pptx-viewer-shared';
+import type { ChartViewModel, PlotLayout, ValueRange } from 'pptx-viewer-shared';
 import {
 	computeLayout,
 	computeValueRange,
 	formatAxisValue,
-	paletteColor,
 	resolveCategoryLabels,
 	seriesColor,
 	valueToY,
@@ -16,12 +15,13 @@ import { computed } from 'vue';
 import { getContainerStyle } from '../composables/element-style';
 import BoxWhiskerChart from './chart/BoxWhiskerChart.vue';
 import BubbleChart from './chart/BubbleChart.vue';
+import { buildVueChartViewModel } from './chart/chart-view-model';
 import ChartChrome from './chart/ChartChrome.vue';
 import ChartTrendlines from './chart/ChartTrendlines.vue';
+import ChartViewModelSvg from './chart/ChartViewModelSvg.vue';
 import ComboChart from './chart/ComboChart.vue';
 import FunnelChart from './chart/FunnelChart.vue';
 import HistogramChart from './chart/HistogramChart.vue';
-import RadarChart from './chart/RadarChart.vue';
 import RegionMapChart from './chart/RegionMapChart.vue';
 import ScatterChart from './chart/ScatterChart.vue';
 import StockChart from './chart/StockChart.vue';
@@ -39,8 +39,8 @@ import WaterfallChart from './chart/WaterfallChart.vue';
  *   - stacked + 100%-stacked bar      - React `chart-stacked-bar.tsx`
  *   - line / line3D                   - React `chart-area-line.tsx`
  *   - area / area3D                   - React `chart-area-line.tsx`
- *   - pie / doughnut / pie3D          - React `chart-pie.tsx`
- *   - radar                           - React `chart-radar.tsx`
+ *   - pie / doughnut / pie3D          - shared `buildChartViewModel` engine
+ *   - radar                           - shared `buildChartViewModel` engine
  *   - scatter                         - React `chart-scatter-bubble.tsx`
  *   - bubble                          - React `chart-scatter-bubble.tsx`
  *   - waterfall                       - React `chart-waterfall-combo.tsx`
@@ -418,112 +418,24 @@ const lineSeries = computed<LineSeries[]>(() => {
 	return out;
 });
 
-// ── Pie / Doughnut ───────────────────────────────────────────────
+// ── Pie / Doughnut / Radar (shared view-model engine) ────────────
+//
+// Pie / doughnut and radar are fully covered by the framework-agnostic
+// `buildChartViewModel` engine in pptx-viewer-shared, so Vue projects its
+// view-model through `ChartViewModelSvg.vue` (mirroring React's
+// `renderPieChart` / `renderRadarChart`). Vue's style-id palette is threaded
+// in via `buildVueChartViewModel`, so only geometry aligns across frameworks,
+// not colour.
 
-interface PieSlice {
-	d: string;
-	fill: string;
-	labelX?: number;
-	labelY?: number;
-	labelText?: string;
-}
+/** Shared view-model for pie / doughnut, with Vue's palette threaded in. */
+const pieViewModel = computed<ChartViewModel | undefined>(() =>
+	renderKind.value === 'pie' ? buildVueChartViewModel(props.element) : undefined,
+);
 
-interface PieLegendItem {
-	x: number;
-	y: number;
-	color: string;
-	label: string;
-}
-
-/** Pie charts use a square viewBox sized to the smaller element dimension. */
-const pieSize = computed(() => Math.min(props.element.width, props.element.height));
-
-const pieGeometry = computed(() => {
-	const data = chartData.value;
-	const size = pieSize.value;
-	const titleOffset = style.value?.hasTitle ? 20 : 0;
-	const legendOffset = style.value?.hasLegend ? 20 : 0;
-	const cx = size / 2;
-	const cy = titleOffset + (size - titleOffset - legendOffset) / 2;
-	const outerR = (size - titleOffset - legendOffset) * 0.42;
-	const innerR = chartType.value === 'doughnut' ? outerR * 0.55 : 0;
-	const values = data?.series[0]?.values ?? [];
-	const total = values.reduce((sum, v) => sum + Math.abs(v), 0) || 1;
-	return { size, titleOffset, legendOffset, cx, cy, outerR, innerR, values, total };
-});
-
-const pieSlices = computed<PieSlice[]>(() => {
-	const data = chartData.value;
-	if (!data || renderKind.value !== 'pie') {
-		return [];
-	}
-	const { cx, cy, outerR, innerR, values, total } = pieGeometry.value;
-	const seriesColorOverride = data.series[0]?.color;
-	let cumulativeAngle = -Math.PI / 2;
-
-	return values.map((val, i) => {
-		const sliceAngle = (Math.abs(val) / total) * Math.PI * 2;
-		const startAngle = cumulativeAngle;
-		cumulativeAngle += sliceAngle;
-		const endAngle = cumulativeAngle;
-		const largeArc = sliceAngle > Math.PI ? 1 : 0;
-		const x1 = cx + outerR * Math.cos(startAngle);
-		const y1 = cy + outerR * Math.sin(startAngle);
-		const x2 = cx + outerR * Math.cos(endAngle);
-		const y2 = cy + outerR * Math.sin(endAngle);
-		const ix1 = cx + innerR * Math.cos(startAngle);
-		const iy1 = cy + innerR * Math.sin(startAngle);
-		const ix2 = cx + innerR * Math.cos(endAngle);
-		const iy2 = cy + innerR * Math.sin(endAngle);
-
-		const d =
-			innerR > 0
-				? `M${x1},${y1} A${outerR},${outerR} 0 ${largeArc} 1 ${x2},${y2} L${ix2},${iy2} A${innerR},${innerR} 0 ${largeArc} 0 ${ix1},${iy1} Z`
-				: `M${cx},${cy} L${x1},${y1} A${outerR},${outerR} 0 ${largeArc} 1 ${x2},${y2} Z`;
-
-		let labelX: number | undefined;
-		let labelY: number | undefined;
-		let labelText: string | undefined;
-		if (hasDataLabels.value) {
-			const midAngle = startAngle + sliceAngle / 2;
-			const labelR = outerR * 0.7;
-			labelX = cx + labelR * Math.cos(midAngle);
-			labelY = cy + labelR * Math.sin(midAngle);
-			labelText = formatAxisValue(val);
-		}
-
-		return {
-			d,
-			fill: seriesColorOverride || paletteColor(i, styleId.value, colorPalette.value),
-			labelX,
-			labelY,
-			labelText,
-		};
-	});
-});
-
-const pieLegend = computed<PieLegendItem[]>(() => {
-	if (renderKind.value !== 'pie' || !style.value?.hasLegend || categoryLabels.value.length === 0) {
-		return [];
-	}
-	const { size } = pieGeometry.value;
-	const ly = legendPos.value === 't' ? (style.value?.hasTitle ? 24 : 6) : size - 10;
-	const charW = 6;
-	const gapW = 20;
-	const totalW = categoryLabels.value.reduce((w, c) => w + c.length * charW + gapW, 0);
-	let sx = (size - totalW) / 2;
-	const out: PieLegendItem[] = [];
-	categoryLabels.value.forEach((cat, i) => {
-		out.push({
-			x: sx,
-			y: ly,
-			color: paletteColor(i, styleId.value, colorPalette.value),
-			label: cat,
-		});
-		sx += cat.length * charW + gapW;
-	});
-	return out;
-});
+/** Shared view-model for radar, with Vue's palette threaded in. */
+const radarViewModel = computed<ChartViewModel | undefined>(() =>
+	renderKind.value === 'radar' ? buildVueChartViewModel(props.element) : undefined,
+);
 
 // ── Trendlines (regression overlays) ─────────────────────────────
 
@@ -564,83 +476,21 @@ const trendlineMode = computed<'line' | 'bar'>(() =>
 			{{ placeholderLabel }}
 		</div>
 
-		<!-- Pie / doughnut: square viewBox -->
-		<svg
-			v-else-if="renderKind === 'pie'"
-			class="pptx-vue-chart-svg"
-			:viewBox="`0 0 ${pieGeometry.size} ${pieGeometry.size}`"
-			preserveAspectRatio="xMidYMid meet"
-		>
-			<text
-				v-if="style?.hasTitle"
-				:x="pieGeometry.size / 2"
-				y="14"
-				text-anchor="middle"
-				font-size="12"
-				font-weight="600"
-				fill="#1e293b"
-			>
-				{{ chartData?.title || 'Chart' }}
-			</text>
-			<path
-				v-for="(slice, i) in pieSlices"
-				:key="`slice-${i}`"
-				:d="slice.d"
-				:fill="slice.fill"
-				stroke="white"
-				stroke-width="1.5"
-			/>
-			<text
-				v-for="(slice, i) in pieSlices.filter((s) => s.labelText !== undefined)"
-				:key="`slice-dl-${i}`"
-				:x="slice.labelX"
-				:y="slice.labelY"
-				text-anchor="middle"
-				dominant-baseline="central"
-				font-size="8"
-				font-weight="600"
-				fill="#fff"
-			>
-				{{ slice.labelText }}
-			</text>
-			<template v-for="(item, i) in pieLegend" :key="`pie-leg-${i}`">
-				<rect :x="item.x" :y="item.y - 5" width="10" height="10" rx="2" :fill="item.color" />
-				<text :x="item.x + 14" :y="item.y + 4" font-size="9" fill="#475569">{{ item.label }}</text>
-			</template>
-		</svg>
+		<!-- Pie / doughnut: shared view-model engine, square viewBox -->
+		<ChartViewModelSvg
+			v-else-if="renderKind === 'pie' && pieViewModel"
+			:element-id="element.id"
+			:vm="pieViewModel"
+			preserve-aspect-ratio="xMidYMid meet"
+		/>
 
-		<!-- Radar: spider-web layout (no axes) -->
-		<svg
-			v-else-if="renderKind === 'radar'"
-			class="pptx-vue-chart-svg"
-			:viewBox="`0 0 ${noAxisLayout.svgWidth} ${noAxisLayout.svgHeight}`"
-			preserveAspectRatio="xMidYMid meet"
-		>
-			<rect
-				:x="0"
-				:y="0"
-				:width="noAxisLayout.svgWidth"
-				:height="noAxisLayout.svgHeight"
-				fill="#0f172a11"
-			/>
-			<text
-				v-if="style?.hasTitle"
-				:x="noAxisLayout.svgWidth / 2"
-				y="14"
-				text-anchor="middle"
-				font-size="12"
-				font-weight="600"
-				fill="#1e293b"
-			>
-				{{ chartData?.title || 'Chart' }}
-			</text>
-			<RadarChart
-				v-if="chartData"
-				:chart-data="chartData"
-				:layout="noAxisLayout"
-				:categories="categoryLabels"
-			/>
-		</svg>
+		<!-- Radar: shared view-model engine, spider-web layout (no axes) -->
+		<ChartViewModelSvg
+			v-else-if="renderKind === 'radar' && radarViewModel"
+			:element-id="element.id"
+			:vm="radarViewModel"
+			preserve-aspect-ratio="xMidYMid meet"
+		/>
 
 		<!-- Sunburst: concentric rings (no axes) -->
 		<svg
