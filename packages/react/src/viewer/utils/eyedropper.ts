@@ -68,7 +68,7 @@ export function sampleColorFromSlide(
 				return pixelToResult(pixel);
 			}
 		} catch {
-			// Cross-origin or tainted canvas — fall through
+			// Cross-origin or tainted canvas; fall through
 		}
 	}
 
@@ -112,13 +112,13 @@ function pixelToResult(data: Uint8ClampedArray): EyedropperResult {
 }
 
 function parseRgbaString(str: string): EyedropperResult | null {
-	const match = str.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
-	if (!match) {
+	const match = str.match(/rgba?\(\s*(?<r>\d+)\s*,\s*(?<g>\d+)\s*,\s*(?<b>\d+)/u);
+	if (!match?.groups) {
 		return null;
 	}
-	const r = parseInt(match[1], 10);
-	const g = parseInt(match[2], 10);
-	const b = parseInt(match[3], 10);
+	const r = parseInt(match.groups.r, 10);
+	const g = parseInt(match.groups.g, 10);
+	const b = parseInt(match.groups.b, 10);
 	return {
 		r,
 		g,

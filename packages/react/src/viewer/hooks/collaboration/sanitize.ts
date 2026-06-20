@@ -1,5 +1,5 @@
 /**
- * sanitize — Security utilities for collaboration data.
+ * sanitize: Security utilities for collaboration data.
  *
  * Validates and sanitises all incoming presence data to prevent XSS,
  * injection attacks, and out-of-bounds rendering.
@@ -12,7 +12,7 @@
 // ---------------------------------------------------------------------------
 
 /** Room IDs must be alphanumeric with hyphens/underscores, 1–128 chars. */
-const ROOM_ID_REGEX = /^[a-zA-Z0-9_-]{1,128}$/;
+const ROOM_ID_REGEX = /^[a-zA-Z0-9_-]{1,128}$/u;
 
 /**
  * Validate a room ID. Returns the room ID if valid, throws otherwise.
@@ -36,7 +36,7 @@ export function sanitizeUserName(name: unknown): string {
 		return 'Anonymous';
 	}
 	// Strip HTML tags
-	const stripped = name.replace(/<[^>]*>/g, '');
+	const stripped = name.replace(/<[^>]*>/gu, '');
 	// Trim whitespace and limit to 64 chars
 	const trimmed = stripped.trim().slice(0, 64);
 	return trimmed || 'Anonymous';
@@ -62,7 +62,7 @@ export function clampCursorPosition(value: unknown, min: number, max: number): n
 // Color validation
 // ---------------------------------------------------------------------------
 
-const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
+const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/u;
 
 /** Validate a hex colour string. Returns a default if invalid. */
 export function sanitizeColor(color: unknown, fallback = '#6366f1'): string {
@@ -76,7 +76,7 @@ export function sanitizeColor(color: unknown, fallback = '#6366f1'): string {
 // Avatar URL validation
 // ---------------------------------------------------------------------------
 
-/** Validate an avatar URL — only allow http(s) and data: URIs. */
+/** Validate an avatar URL: only allow http(s) and data: URIs. */
 export function sanitizeAvatarUrl(url: unknown): string | undefined {
 	if (typeof url !== 'string') {
 		return undefined;

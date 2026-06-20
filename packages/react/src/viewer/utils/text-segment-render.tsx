@@ -213,7 +213,7 @@ export function renderSingleSegment(
 		spanStyle.direction = runRtl ? 'rtl' : 'ltr';
 		spanStyle.unicodeBidi = 'bidi-override';
 	} else if (runRtl !== undefined && runRtl === paragraphRtl) {
-		// Run direction matches paragraph but is explicitly set — use embed
+		// Run direction matches paragraph but is explicitly set: use embed
 		// to reinforce the embedding level for proper number rendering.
 		spanStyle.direction = runRtl ? 'rtl' : 'ltr';
 		spanStyle.unicodeBidi = 'embed';
@@ -313,7 +313,7 @@ export function renderSingleSegment(
 	if (hyperlinkUrl && onHyperlinkClick) {
 		// Strip ppaction:// protocol for display; show clean URL to user
 		const displayUrl = hyperlinkUrl.startsWith('ppaction://')
-			? hyperlinkUrl.replace(/^ppaction:\/\//, '').split('?')[0]
+			? hyperlinkUrl.replace(/^ppaction:\/\//u, '').split('?')[0]
 			: hyperlinkUrl;
 
 		return (

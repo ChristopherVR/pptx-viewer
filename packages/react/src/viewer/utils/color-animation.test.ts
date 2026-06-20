@@ -174,7 +174,7 @@ describe('hslToRgb', () => {
 });
 
 // ==========================================================================
-// interpolateColor — RGB mode
+// interpolateColor: RGB mode
 // ==========================================================================
 
 describe('interpolateColor (RGB)', () => {
@@ -208,7 +208,7 @@ describe('interpolateColor (RGB)', () => {
 });
 
 // ==========================================================================
-// interpolateColor — HSL mode
+// interpolateColor: HSL mode
 // ==========================================================================
 
 describe('interpolateColor (HSL)', () => {
@@ -282,7 +282,7 @@ describe('buildColorAnimationKeyframes', () => {
 		const css = buildColorAnimationKeyframes(anim, 'test-color', 4);
 		expect(css).toBeDefined();
 		// 4 steps means 5 stops: 0%, 25%, 50%, 75%, 100%
-		const stops = css!.match(/\d+% \{/g);
+		const stops = css!.match(/\d+% \{/gu);
 		expect(stops).toHaveLength(5);
 	});
 
@@ -354,7 +354,7 @@ describe('buildColorAnimationKeyframes', () => {
 		const css = buildColorAnimationKeyframes(anim, 'min-steps', 1);
 		expect(css).toBeDefined();
 		// Should still produce at least 0% and 100%
-		const stops = css!.match(/\d+% \{/g);
+		const stops = css!.match(/\d+% \{/gu);
 		expect(stops!.length).toBeGreaterThanOrEqual(2);
 	});
 
@@ -367,7 +367,7 @@ describe('buildColorAnimationKeyframes', () => {
 		const css = buildColorAnimationKeyframes(anim, 'default-steps');
 		expect(css).toBeDefined();
 		// 10 steps = 11 stops
-		const stops = css!.match(/\d+% \{/g);
+		const stops = css!.match(/\d+% \{/gu);
 		expect(stops).toHaveLength(11);
 	});
 
@@ -480,7 +480,7 @@ describe('buildDynamicKeyframe with colorAnimation', () => {
 });
 
 // ==========================================================================
-// buildColorAnimationKeyframes — targetAttribute CSS property mapping
+// buildColorAnimationKeyframes: targetAttribute CSS property mapping
 // ==========================================================================
 
 describe('buildColorAnimationKeyframes targetAttribute', () => {

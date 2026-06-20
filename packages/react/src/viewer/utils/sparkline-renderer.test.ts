@@ -7,28 +7,28 @@ import type { SparklineData } from './sparkline-renderer';
 
 /** Parse an SVG string and return basic info about its structure. */
 function parseSvg(svg: string) {
-	const widthMatch = svg.match(/width="(\d+)"/);
-	const heightMatch = svg.match(/height="(\d+)"/);
-	const polylineMatch = svg.match(/<polyline[^/]*\/>/);
-	const rects = [...svg.matchAll(/<rect[^/]*\/>/g)];
-	const fillMatches = [...svg.matchAll(/fill="([^"]*)"/g)];
-	const strokeMatch = svg.match(/stroke="([^"]*)"/);
-	const pointsMatch = svg.match(/points="([^"]*)"/);
+	const widthMatch = svg.match(/width="(?<value>\d+)"/u);
+	const heightMatch = svg.match(/height="(?<value>\d+)"/u);
+	const polylineMatch = svg.match(/<polyline[^/]*\/>/u);
+	const rects = [...svg.matchAll(/<rect[^/]*\/>/gu)];
+	const fillMatches = [...svg.matchAll(/fill="(?<value>[^"]*)"/gu)];
+	const strokeMatch = svg.match(/stroke="(?<value>[^"]*)"/u);
+	const pointsMatch = svg.match(/points="(?<value>[^"]*)"/u);
 	return {
-		width: widthMatch ? Number(widthMatch[1]) : undefined,
-		height: heightMatch ? Number(heightMatch[1]) : undefined,
+		width: widthMatch ? Number(widthMatch.groups?.value) : undefined,
+		height: heightMatch ? Number(heightMatch.groups?.value) : undefined,
 		hasPolyline: Boolean(polylineMatch),
 		rectCount: rects.length,
-		fills: fillMatches.map((m) => m[1]),
-		stroke: strokeMatch ? strokeMatch[1] : undefined,
-		points: pointsMatch ? pointsMatch[1] : undefined,
+		fills: fillMatches.map((m) => m.groups?.value),
+		stroke: strokeMatch ? strokeMatch.groups?.value : undefined,
+		points: pointsMatch ? pointsMatch.groups?.value : undefined,
 		raw: svg,
 	};
 }
 
 // ── Line sparkline tests ────────────────────────────────────────────────
 
-describe('renderSparklineSvg — line type', () => {
+describe('renderSparklineSvg: line type', () => {
 	it('should return an SVG with a polyline for line type', () => {
 		const data: SparklineData = { values: [1, 3, 2, 5, 4], type: 'line' };
 		const svg = renderSparklineSvg(data);
@@ -108,7 +108,7 @@ describe('renderSparklineSvg — line type', () => {
 
 // ── Bar sparkline tests ─────────────────────────────────────────────────
 
-describe('renderSparklineSvg — bar type', () => {
+describe('renderSparklineSvg: bar type', () => {
 	it('should render rect elements for each value', () => {
 		const data: SparklineData = { values: [1, 3, 2, 5], type: 'bar' };
 		const info = parseSvg(renderSparklineSvg(data));
@@ -180,7 +180,7 @@ describe('renderSparklineSvg — bar type', () => {
 
 // ── Win/Loss sparkline tests ────────────────────────────────────────────
 
-describe('renderSparklineSvg — winLoss type', () => {
+describe('renderSparklineSvg: winLoss type', () => {
 	it('should render rect elements for each value', () => {
 		const data: SparklineData = { values: [1, -1, 1, -1, 1], type: 'winLoss' };
 		const info = parseSvg(renderSparklineSvg(data));
@@ -217,9 +217,9 @@ describe('renderSparklineSvg — winLoss type', () => {
 			height: 20,
 		};
 		const svg = renderSparklineSvg(data);
-		const heightMatches = [...svg.matchAll(/height="([^"]*)"/g)];
+		const heightMatches = [...svg.matchAll(/height="(?<value>[^"]*)"/gu)];
 		// First match is the SVG element itself; remaining are the rect elements
-		const rectHeights = heightMatches.slice(1).map((m) => parseFloat(m[1]));
+		const rectHeights = heightMatches.slice(1).map((m) => parseFloat(m.groups?.value ?? ''));
 		// All bars should have the same height (half of drawing area)
 		expect(new Set(rectHeights).size).toBe(1);
 	});
@@ -231,9 +231,9 @@ describe('renderSparklineSvg — winLoss type', () => {
 			height: 20,
 		};
 		const svg = renderSparklineSvg(data);
-		const yMatch = svg.match(/<rect[^>]*y="([^"]*)"/);
+		const yMatch = svg.match(/<rect[^>]*y="(?<value>[^"]*)"/u);
 		expect(yMatch).toBeTruthy();
-		const y = parseFloat(yMatch![1]);
+		const y = parseFloat(yMatch!.groups!.value);
 		// With padding=2 and height=20, the positive bar should start at PADDING (2)
 		expect(y).toBe(2);
 	});
@@ -245,9 +245,9 @@ describe('renderSparklineSvg — winLoss type', () => {
 			height: 20,
 		};
 		const svg = renderSparklineSvg(data);
-		const yMatch = svg.match(/<rect[^>]*y="([^"]*)"/);
+		const yMatch = svg.match(/<rect[^>]*y="(?<value>[^"]*)"/u);
 		expect(yMatch).toBeTruthy();
-		const y = parseFloat(yMatch![1]);
+		const y = parseFloat(yMatch!.groups!.value);
 		// With padding=2 and height=20, halfH = 8, negative bar at PADDING + halfH = 10
 		expect(y).toBe(10);
 	});
@@ -255,7 +255,7 @@ describe('renderSparklineSvg — winLoss type', () => {
 
 // ── Edge cases ──────────────────────────────────────────────────────────
 
-describe('renderSparklineSvg — edge cases', () => {
+describe('renderSparklineSvg: edge cases', () => {
 	it('should return an empty SVG for empty values array', () => {
 		const data: SparklineData = { values: [], type: 'line' };
 		const svg = renderSparklineSvg(data);

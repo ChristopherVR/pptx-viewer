@@ -17,7 +17,7 @@ import {
  * containing CSS-attribute control characters (semicolons, quotes, parens,
  * angle brackets) is dropped to prevent CSS-injection or attribute-break-out.
  */
-const CSS_VALUE_SAFE = /^[a-zA-Z0-9 _,.\-+#'%/]{1,100}$/;
+const CSS_VALUE_SAFE = /^[a-zA-Z0-9 _,.\-+#'%/]{1,100}$/u;
 function isCssValueSafe(value: string | number | undefined | null): boolean {
 	if (value === undefined || value === null) {
 		return false;
@@ -206,7 +206,7 @@ export function segmentsToEditorHtml(segments: TextSegment[]): string {
 
 					const text = escapeHtml(segment.text);
 
-					// Render hyperlinks as anchor tags — only when the URL passes the
+					// Render hyperlinks as anchor tags, only when the URL passes the
 					// scheme allowlist. javascript:/data:/vbscript: etc. would otherwise
 					// execute when the user Ctrl+clicks the link in the notes editor.
 					if (segment.style.hyperlink && isUrlSafe(segment.style.hyperlink)) {

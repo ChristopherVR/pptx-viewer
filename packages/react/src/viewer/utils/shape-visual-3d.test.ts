@@ -88,7 +88,7 @@ describe('getCameraTransform', () => {
 
 	it('returns fallback for unknown preset with no rotation', () => {
 		const result = getCameraTransform({ cameraPreset: 'unknownPreset' });
-		// Unknown preset — no perspective, no rotation
+		// Unknown preset: no perspective, no rotation
 		expect(result.perspective).toBeUndefined();
 		expect(result.rotateX).toBe(0);
 	});
@@ -124,7 +124,7 @@ describe('getExtrusionShadow', () => {
 		expect(result).toBeDefined();
 		// Count shadow entries by looking for "px" offset pairs followed by spread or blur
 		// Each shadow entry starts with a pixel offset like "1px 1px"
-		const entryCount = (result!.match(/\d+px -?\d+px/g) ?? []).length;
+		const entryCount = (result!.match(/\d+px -?\d+px/gu) ?? []).length;
 		// 40 depth layers + 1 soft shadow = 41
 		expect(entryCount).toBeLessThanOrEqual(42);
 		expect(entryCount).toBeGreaterThanOrEqual(30);

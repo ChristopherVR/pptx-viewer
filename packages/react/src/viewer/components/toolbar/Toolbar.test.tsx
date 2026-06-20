@@ -240,7 +240,7 @@ const { ArrangeSection } = await import('./ArrangeSection');
 // 1. Tab Navigation Tests
 // ===========================================================================
 
-describe('toolbar — tab navigation', () => {
+describe('toolbar - tab navigation', () => {
 	it('renders the toolbar with role="toolbar"', () => {
 		const html = render(React.createElement(Toolbar, createMockToolbarProps()));
 		expect(html).toContain('role="toolbar"');
@@ -286,7 +286,7 @@ describe('toolbar — tab navigation', () => {
 	it('file tab has special primary styling', () => {
 		const html = render(React.createElement(Toolbar, createMockToolbarProps()));
 		// File tab should have bg-primary in its class
-		expect(html).toMatch(/bg-primary[^"]*">File<\/button>/);
+		expect(html).toMatch(/bg-primary[^"]*">File<\/button>/u);
 	});
 
 	it('active tab has the after pseudo-element indicator class', () => {
@@ -294,7 +294,7 @@ describe('toolbar — tab navigation', () => {
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'insert' })),
 		);
 		// Active tab (Insert) should have after:bg-primary
-		expect(html).toMatch(/after:bg-primary[^"]*">Insert<\/button>/);
+		expect(html).toMatch(/after:bg-primary[^"]*">Insert<\/button>/u);
 	});
 
 	it('inactive tabs have muted text styling', () => {
@@ -302,7 +302,7 @@ describe('toolbar — tab navigation', () => {
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'home' })),
 		);
 		// Draw tab (not active) should have text-muted-foreground
-		expect(html).toMatch(/text-muted-foreground[^"]*">Draw<\/button>/);
+		expect(html).toMatch(/text-muted-foreground[^"]*">Draw<\/button>/u);
 	});
 });
 
@@ -310,7 +310,7 @@ describe('toolbar — tab navigation', () => {
 // 2. Home Tab Tests
 // ===========================================================================
 
-describe('toolbar — Home tab', () => {
+describe('toolbar - Home tab', () => {
 	it('renders clipboard group with Paste, Cut, Copy, Format Painter', () => {
 		const html = render(
 			React.createElement(HomeSection, {
@@ -416,7 +416,7 @@ describe('toolbar — Home tab', () => {
 				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toMatch(/disabled[^>]*title="Paste"/);
+		expect(html).toMatch(/disabled[^>]*title="Paste"/u);
 	});
 
 	it('font group label is present', () => {
@@ -441,7 +441,7 @@ describe('toolbar — Home tab', () => {
 // 3. File Tab Tests
 // ===========================================================================
 
-describe('toolbar — File tab', () => {
+describe('toolbar - File tab', () => {
 	const createFileProps = (overrides = {}) => ({
 		onExportPng: vi.fn<() => void>(),
 		onExportPdf: vi.fn<() => void>(),
@@ -530,7 +530,7 @@ describe('toolbar — File tab', () => {
 // 4. Insert Tab Tests
 // ===========================================================================
 
-describe('toolbar — Insert tab', () => {
+describe('toolbar - Insert tab', () => {
 	const createInsertProps = (overrides = {}) => ({
 		canEdit: true,
 		newShapeType: 'rect' as const,
@@ -585,7 +585,7 @@ describe('toolbar — Insert tab', () => {
 
 	it('buttons are disabled when canEdit is false', () => {
 		const html = render(React.createElement(InsertSection, createInsertProps({ canEdit: false })));
-		expect(html).toMatch(/disabled[^>]*title="Add text box"/);
+		expect(html).toMatch(/disabled[^>]*title="Add text box"/u);
 	});
 });
 
@@ -593,7 +593,7 @@ describe('toolbar — Insert tab', () => {
 // 5. Draw Tab Tests
 // ===========================================================================
 
-describe('toolbar — Draw tab', () => {
+describe('toolbar - Draw tab', () => {
 	it('renders five drawing tool buttons (Select, Pen, Highlighter, Eraser, Freeform)', () => {
 		const html = render(
 			React.createElement(DrawSection, {
@@ -624,7 +624,7 @@ describe('toolbar — Draw tab', () => {
 			}),
 		);
 		// The pen button should have bg-accent class since pen is active
-		expect(html).toMatch(/bg-accent[^"]*"[^>]*title="Pen"/);
+		expect(html).toMatch(/bg-accent[^"]*"[^>]*title="Pen"/u);
 	});
 
 	it('renders color picker input', () => {
@@ -677,7 +677,7 @@ describe('toolbar — Draw tab', () => {
 // 6. Design Tab Tests
 // ===========================================================================
 
-describe('toolbar — Design tab', () => {
+describe('toolbar - Design tab', () => {
 	it('renders Browse Themes button', () => {
 		const html = render(
 			React.createElement(DesignSection, {
@@ -747,7 +747,7 @@ describe('toolbar — Design tab', () => {
 			}),
 		);
 		// The browse themes button should have bg-primary
-		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="Browse and apply built-in themes"/);
+		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="Browse and apply built-in themes"/u);
 	});
 
 	it('does not render Slide Size when handler is undefined', () => {
@@ -768,7 +768,7 @@ describe('toolbar — Design tab', () => {
 // 7. Transitions Tab Tests
 // ===========================================================================
 
-describe('toolbar — Transitions tab', () => {
+describe('toolbar - Transitions tab', () => {
 	it('renders Preview button', () => {
 		const html = render(
 			React.createElement(TransitionsSection, {
@@ -834,7 +834,9 @@ describe('toolbar — Transitions tab', () => {
 				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="Open Inspector for full transition options"/);
+		expect(html).toMatch(
+			/bg-primary[^"]*"[^>]*title="Open Inspector for full transition options"/u,
+		);
 	});
 });
 
@@ -842,7 +844,7 @@ describe('toolbar — Transitions tab', () => {
 // 8. Animations Tab Tests
 // ===========================================================================
 
-describe('toolbar — Animations tab', () => {
+describe('toolbar - Animations tab', () => {
 	it('renders Preview button', () => {
 		const html = render(
 			React.createElement(AnimationsSection, {
@@ -904,9 +906,9 @@ describe('toolbar — Animations tab', () => {
 				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toMatch(/disabled[^>]*title="Preview animation on selected element"/);
-		expect(html).toMatch(/disabled[^>]*title="Add animation to selected element"/);
-		expect(html).toMatch(/disabled[^>]*title="Remove animation from selected element"/);
+		expect(html).toMatch(/disabled[^>]*title="Preview animation on selected element"/u);
+		expect(html).toMatch(/disabled[^>]*title="Add animation to selected element"/u);
+		expect(html).toMatch(/disabled[^>]*title="Remove animation from selected element"/u);
 	});
 
 	it('animation Panel button shows active state when inspector is open', () => {
@@ -918,7 +920,7 @@ describe('toolbar — Animations tab', () => {
 				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="Open Animation Panel in Inspector"/);
+		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="Open Animation Panel in Inspector"/u);
 	});
 
 	it('animation presets list includes Entrance, Emphasis, and Exit groups', () => {
@@ -940,7 +942,7 @@ describe('toolbar — Animations tab', () => {
 // 9. Slide Show Tab Tests
 // ===========================================================================
 
-describe('toolbar — Slide Show tab', () => {
+describe('toolbar - Slide Show tab', () => {
 	const createSlideShowProps = () => ({
 		onPresent: vi.fn<() => void>(),
 		onSetMode: vi.fn<() => void>() as (mode: 'edit' | 'present' | 'preview' | 'master') => void,
@@ -998,7 +1000,7 @@ describe('toolbar — Slide Show tab', () => {
 		const props = createSlideShowProps();
 		props.showSubtitles = true;
 		const html = render(React.createElement(SlideShowSection, props));
-		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="Toggle subtitles"/);
+		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="Toggle subtitles"/u);
 	});
 });
 
@@ -1006,7 +1008,7 @@ describe('toolbar — Slide Show tab', () => {
 // 10. Review Tab Tests
 // ===========================================================================
 
-describe('toolbar — Review tab', () => {
+describe('toolbar - Review tab', () => {
 	it('renders Comments button', () => {
 		const html = render(
 			React.createElement(ReviewSection, {
@@ -1077,7 +1079,7 @@ describe('toolbar — Review tab', () => {
 			}),
 		);
 		// No badge with rounded-full class should exist
-		expect(html).not.toMatch(/rounded-full[^"]*"[^>]*>[0-9]+<\/span>/);
+		expect(html).not.toMatch(/rounded-full[^"]*"[^>]*>[0-9]+<\/span>/u);
 	});
 
 	it('comments button has active styling when panel is open', () => {
@@ -1090,7 +1092,7 @@ describe('toolbar — Review tab', () => {
 				isCommentsPanelOpen: true,
 			}),
 		);
-		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="Toggle comments panel"/);
+		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="Toggle comments panel"/u);
 	});
 
 	it('spelling button has active styling when enabled', () => {
@@ -1101,7 +1103,7 @@ describe('toolbar — Review tab', () => {
 				onSetSpellCheckEnabled: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="Toggle spell check"/);
+		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="Toggle spell check"/u);
 	});
 
 	it('does not render Comments if onToggleComments is undefined', () => {
@@ -1131,7 +1133,7 @@ describe('toolbar — Review tab', () => {
 // 11. View Tab Tests
 // ===========================================================================
 
-describe('toolbar — View tab', () => {
+describe('toolbar - View tab', () => {
 	const createViewProps = (overrides = {}) => ({
 		canEdit: true,
 		editTemplateMode: false,
@@ -1196,7 +1198,7 @@ describe('toolbar — View tab', () => {
 
 	it('grid button has active styling when showGrid is true', () => {
 		const html = render(React.createElement(ViewSection, createViewProps({ showGrid: true })));
-		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="pptx.grid.toggleGrid"/);
+		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="pptx.grid.toggleGrid"/u);
 	});
 
 	it('renders Selection pane button', () => {
@@ -1229,7 +1231,7 @@ describe('toolbar — View tab', () => {
 
 	it('slide Master is disabled when canEdit is false', () => {
 		const html = render(React.createElement(ViewSection, createViewProps({ canEdit: false })));
-		expect(html).toMatch(/disabled[^>]*title="Edit slide masters and layouts"/);
+		expect(html).toMatch(/disabled[^>]*title="Edit slide masters and layouts"/u);
 	});
 });
 
@@ -1237,7 +1239,7 @@ describe('toolbar — View tab', () => {
 // 12. Quick Access Bar (ToolbarPrimaryRow) Tests
 // ===========================================================================
 
-describe('toolbar — Quick Access Bar (ToolbarPrimaryRow)', () => {
+describe('toolbar - Quick Access Bar (ToolbarPrimaryRow)', () => {
 	it('renders Undo and Redo buttons', () => {
 		const html = render(React.createElement(ToolbarPrimaryRow, createMockToolbarProps()));
 		expect(html).toContain('aria-label="Undo"');
@@ -1248,14 +1250,14 @@ describe('toolbar — Quick Access Bar (ToolbarPrimaryRow)', () => {
 		const html = render(
 			React.createElement(ToolbarPrimaryRow, createMockToolbarProps({ canUndo: false })),
 		);
-		expect(html).toMatch(/disabled[^>]*aria-label="Undo"/);
+		expect(html).toMatch(/disabled[^>]*aria-label="Undo"/u);
 	});
 
 	it('redo button is disabled when canRedo is false', () => {
 		const html = render(
 			React.createElement(ToolbarPrimaryRow, createMockToolbarProps({ canRedo: false })),
 		);
-		expect(html).toMatch(/disabled[^>]*aria-label="Redo"/);
+		expect(html).toMatch(/disabled[^>]*aria-label="Redo"/u);
 	});
 
 	it('renders sidebar toggle button', () => {
@@ -1277,7 +1279,7 @@ describe('toolbar — Quick Access Bar (ToolbarPrimaryRow)', () => {
 		const html = render(
 			React.createElement(ToolbarPrimaryRow, createMockToolbarProps({ findReplaceOpen: true })),
 		);
-		expect(html).toMatch(/text-foreground[^"]*"[^>]*aria-label="Find and Replace"/);
+		expect(html).toMatch(/text-foreground[^"]*"[^>]*aria-label="Find and Replace"/u);
 	});
 
 	it('shows Read-only badge when canEdit is false', () => {
@@ -1327,7 +1329,7 @@ describe('toolbar — Quick Access Bar (ToolbarPrimaryRow)', () => {
 // Arrange Tab Tests
 // ===========================================================================
 
-describe('toolbar — Arrange tab', () => {
+describe('toolbar - Arrange tab', () => {
 	const createArrangeProps = (overrides = {}) => ({
 		canEdit: true,
 		selectedElement: { type: 'shape', id: 'test', x: 0, y: 0, width: 100, height: 100 } as never,
@@ -1392,12 +1394,12 @@ describe('toolbar — Arrange tab', () => {
 		const html = render(
 			React.createElement(ArrangeSection, createArrangeProps({ selectedElement: null })),
 		);
-		expect(html).toMatch(/disabled[^>]*title="Align left"/);
+		expect(html).toMatch(/disabled[^>]*title="Align left"/u);
 	});
 
 	it('delete button has red styling', () => {
 		const html = render(React.createElement(ArrangeSection, createArrangeProps()));
-		expect(html).toMatch(/bg-red[^"]*"[^>]*title="Delete"/);
+		expect(html).toMatch(/bg-red[^"]*"[^>]*title="Delete"/u);
 	});
 });
 
@@ -1405,7 +1407,7 @@ describe('toolbar — Arrange tab', () => {
 // Text Tab Tests
 // ===========================================================================
 
-describe('toolbar — Text tab', () => {
+describe('toolbar - Text tab', () => {
 	it('renders formatting buttons (Bold, Italic, Underline, Strikethrough)', () => {
 		const html = render(
 			React.createElement(TextSection, {
@@ -1453,7 +1455,7 @@ describe('toolbar — Text tab', () => {
 				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toMatch(/disabled[^>]*title="Bold"/);
+		expect(html).toMatch(/disabled[^>]*title="Bold"/u);
 	});
 });
 
@@ -1461,7 +1463,7 @@ describe('toolbar — Text tab', () => {
 // Main Toolbar integration: section rendering
 // ===========================================================================
 
-describe('toolbar — section content rendering', () => {
+describe('toolbar - section content rendering', () => {
 	it('renders HomeSection content when toolbarSection is home', () => {
 		const html = render(
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'home' })),

@@ -39,7 +39,7 @@ export function getElementTextContent(element: PptxElement): string {
 }
 
 export function stripListPrefix(line: string): string {
-	return line.replace(/^\s*(?:[-*•◦▪]\s+|\d+[.)]\s+)/, '');
+	return line.replace(/^\s*(?:[-*•◦▪]\s+|\d+[.)]\s+)/u, '');
 }
 
 export function detectListMode(text: string): ListMode {
@@ -50,11 +50,11 @@ export function detectListMode(text: string): ListMode {
 	if (lines.length === 0) {
 		return 'none';
 	}
-	const allBullets = lines.every((line) => /^[-*•◦▪]\s+/.test(line));
+	const allBullets = lines.every((line) => /^[-*•◦▪]\s+/u.test(line));
 	if (allBullets) {
 		return 'bullet';
 	}
-	const allNumbers = lines.every((line) => /^\d+[.)]\s+/.test(line));
+	const allNumbers = lines.every((line) => /^\d+[.)]\s+/u.test(line));
 	if (allNumbers) {
 		return 'number';
 	}
@@ -134,7 +134,7 @@ export function getTextStyleForElement(
 		verticalDirection || (isRtl ? 'rtl' : 'ltr');
 	const resolvedUnicodeBidi: React.CSSProperties['unicodeBidi'] = isRtl ? 'plaintext' : undefined;
 
-	// Element-level highlight only applies as a fallback for segmentless text —
+	// Element-level highlight only applies as a fallback for segmentless text;
 	// with segments each run carries its own backgroundColor.
 	const hasSegments = (element.textSegments?.length ?? 0) > 0;
 	return {
@@ -177,7 +177,7 @@ export function getTextStyleForElement(
 					const baseFontSize = element.textStyle?.fontSize || DEFAULT_TEXT_FONT_SIZE;
 					const result: React.CSSProperties = {};
 
-					// normAutofit with explicit fontScale — use the exact percentage
+					// normAutofit with explicit fontScale: use the exact percentage
 					if (
 						element.textStyle?.autoFitFontScale !== undefined &&
 						element.textStyle.autoFitFontScale > 0 &&
@@ -188,7 +188,7 @@ export function getTextStyleForElement(
 							Math.round(baseFontSize * element.textStyle.autoFitFontScale),
 						);
 					} else if (element.textStyle?.autoFitMode !== 'normal') {
-						// spAutoFit (shrink) — heuristic estimation
+						// spAutoFit (shrink): heuristic estimation
 						const textLength = (element.text ?? '').length;
 						const lineHeight = element.textStyle?.lineSpacingExactPt
 							? element.textStyle.lineSpacingExactPt / baseFontSize
@@ -206,7 +206,7 @@ export function getTextStyleForElement(
 						}
 					}
 
-					// normAutofit with lnSpcReduction — reduce line height
+					// normAutofit with lnSpcReduction: reduce line height
 					if (
 						element.textStyle?.autoFitLineSpacingReduction !== undefined &&
 						element.textStyle.autoFitLineSpacingReduction > 0
@@ -271,7 +271,7 @@ export function toCssWritingMode(
  * | `"horizontal"`    | undefined            |
  *
  * - `"vertical"` / `"eaVert"`: CJK glyphs stay upright, Latin rotated (`mixed`).
- * - `"vertical270"`: text rotated 270deg — all glyphs rotated (`mixed`).
+ * - `"vertical270"`: text rotated 270deg, all glyphs rotated (`mixed`).
  * - `"wordArtVert"`: all glyphs rendered upright, stacked vertically (`upright`).
  * - `"wordArtVertRtl"`: same as vertical-rl with RTL direction (`mixed`).
  * - `"mongolianVert"`: Mongolian vertical, left-to-right columns (`mixed`).

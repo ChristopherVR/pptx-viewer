@@ -38,7 +38,7 @@ function createMockCtx(colorMap: Record<string, string> = {}): CanvasRenderingCo
 		},
 		set fillStyle(value: string) {
 			// If the value is a plain hex colour, accept it as-is (sentinel).
-			if (/^#[0-9a-f]{6}$/i.test(value)) {
+			if (/^#[0-9a-f]{6}$/iu.test(value)) {
 				_fillStyle = value.toLowerCase();
 				return;
 			}
@@ -47,13 +47,13 @@ function createMockCtx(colorMap: Record<string, string> = {}): CanvasRenderingCo
 			if (trimmed in colorMap) {
 				_fillStyle = colorMap[trimmed];
 			}
-			// Otherwise: invalid colour — leave fillStyle unchanged.
+			// Otherwise: invalid colour, leave fillStyle unchanged.
 		},
 	} as unknown as CanvasRenderingContext2D;
 }
 
 /* ------------------------------------------------------------------ */
-/*  UNSUPPORTED_COLOR_RE — detection regex                            */
+/*  UNSUPPORTED_COLOR_RE: detection regex                             */
 /* ------------------------------------------------------------------ */
 
 describe('uNSUPPORTED_COLOR_RE', () => {
@@ -135,12 +135,12 @@ describe('uNSUPPORTED_COLOR_RE', () => {
 });
 
 /* ------------------------------------------------------------------ */
-/*  UNSUPPORTED_COLOR_FN_RE — extraction regex                        */
+/*  UNSUPPORTED_COLOR_FN_RE: extraction regex                         */
 /* ------------------------------------------------------------------ */
 
 describe('uNSUPPORTED_COLOR_FN_RE', () => {
 	beforeEach(() => {
-		// Reset lastIndex — the regex is /g so it's stateful.
+		// Reset lastIndex: the regex is /g so it's stateful.
 		UNSUPPORTED_COLOR_FN_RE.lastIndex = 0;
 	});
 
@@ -191,7 +191,7 @@ describe('uNSUPPORTED_COLOR_FN_RE', () => {
 	});
 
 	describe('should handle nested parentheses (calc() etc.)', () => {
-		it('extracts oklch with calc() — captures through closing paren of nested group', () => {
+		it('extracts oklch with calc(): captures through closing paren of nested group', () => {
 			// The regex `[^)]*(?:\([^)]*\)[^)]*)*` handles one level of nesting.
 			// When calc() appears first, the initial `[^)]*` consumes up to calc's
 			// closing `)`, then the alternation captures the remaining content.
@@ -208,14 +208,14 @@ describe('uNSUPPORTED_COLOR_FN_RE', () => {
 		it('handles nested parens when they follow content after a closing paren', () => {
 			// The `(?:\([^)]*\)[^)]*)*` group handles the pattern:
 			// closeParen, content, openParen, content, closeParen.
-			// e.g. `oklch(50% 0.15 calc(180))` — the inner calc(180) comes after
+			// e.g. `oklch(50% 0.15 calc(180))`: the inner calc(180) comes after
 			// content that doesn't contain `)`.
 			const input = 'oklch(50% 0.15 calc(180))';
 			const matches = input.match(UNSUPPORTED_COLOR_FN_RE);
 			expect(matches).not.toBeNull();
 			// `[^)]*` matches `50% 0.15 calc(180`, then `)` is matched,
 			// then the outer `)` matches.
-			// Result: `oklch(50% 0.15 calc(180))`  — but wait, `[^)]*` eats
+			// Result: `oklch(50% 0.15 calc(180))`, but wait, `[^)]*` eats
 			// `50% 0.15 calc(180` (the `(` in calc is fine since it's not `)`),
 			// then `)` closes. Then the optional group `\([^)]*\)` can't match
 			// since next char is `)` not `(`. So outer `)` matches the `)`.
@@ -223,7 +223,7 @@ describe('uNSUPPORTED_COLOR_FN_RE', () => {
 			expect(matches![0]).toBe('oklch(50% 0.15 calc(180)');
 		});
 
-		it('extracts color() with nested function — partial match', () => {
+		it('extracts color() with nested function: partial match', () => {
 			const input = 'color(display-p3 calc(1 - 0.2) 0 0)';
 			const matches = input.match(UNSUPPORTED_COLOR_FN_RE);
 			expect(matches).not.toBeNull();
@@ -519,7 +519,7 @@ describe('resolveUnsupportedColours', () => {
 			{
 				get(target, prop, receiver) {
 					// Numeric index access: style[0], style[1], etc.
-					if (typeof prop === 'string' && /^\d+$/.test(prop)) {
+					if (typeof prop === 'string' && /^\d+$/u.test(prop)) {
 						return _inlineKeys[Number(prop)];
 					}
 					return Reflect.get(target, prop, receiver);
@@ -552,7 +552,7 @@ describe('resolveUnsupportedColours', () => {
 		// Mock window.getComputedStyle
 		const origGetComputed = globalThis.window?.getComputedStyle;
 		// @ts-expect-error - mock
-		globalThis.window = globalThis.window ?? {};
+		globalThis.window ??= {};
 		// @ts-expect-error - mock
 		globalThis.window.getComputedStyle = (target: unknown) => ({
 			getPropertyValue(prop: string) {
@@ -585,7 +585,7 @@ describe('resolveUnsupportedColours', () => {
 
 		const origGetComputed = globalThis.window?.getComputedStyle;
 		// @ts-expect-error - mock
-		globalThis.window = globalThis.window ?? {};
+		globalThis.window ??= {};
 		// @ts-expect-error - mock
 		globalThis.window.getComputedStyle = (target: unknown) => ({
 			getPropertyValue(prop: string) {
@@ -616,7 +616,7 @@ describe('resolveUnsupportedColours', () => {
 
 		const origGetComputed = globalThis.window?.getComputedStyle;
 		// @ts-expect-error - mock
-		globalThis.window = globalThis.window ?? {};
+		globalThis.window ??= {};
 		// @ts-expect-error - mock
 		globalThis.window.getComputedStyle = (_target: unknown) => ({
 			getPropertyValue(_prop: string) {
@@ -644,7 +644,7 @@ describe('resolveUnsupportedColours', () => {
 
 		const origGetComputed = globalThis.window?.getComputedStyle;
 		// @ts-expect-error - mock
-		globalThis.window = globalThis.window ?? {};
+		globalThis.window ??= {};
 		// @ts-expect-error - mock
 		globalThis.window.getComputedStyle = (target: unknown) => ({
 			getPropertyValue(prop: string) {
@@ -679,7 +679,7 @@ describe('resolveUnsupportedColours', () => {
 
 		const origGetComputed = globalThis.window?.getComputedStyle;
 		// @ts-expect-error - mock
-		globalThis.window = globalThis.window ?? {};
+		globalThis.window ??= {};
 		// @ts-expect-error - mock
 		globalThis.window.getComputedStyle = (target: unknown) => ({
 			getPropertyValue(prop: string) {
@@ -709,7 +709,7 @@ describe('resolveUnsupportedColours', () => {
 
 		const origGetComputed = globalThis.window?.getComputedStyle;
 		// @ts-expect-error - mock
-		globalThis.window = globalThis.window ?? {};
+		globalThis.window ??= {};
 		// @ts-expect-error - mock
 		globalThis.window.getComputedStyle = () => ({
 			getPropertyValue() {
@@ -1141,7 +1141,7 @@ describe('scratch context lifecycle', () => {
 		setScratchCtx(null);
 		resetScratchCtx();
 		// After reset, next call to getScratchCtx will try document.createElement
-		// which doesn't exist in this test environment — but the reset itself
+		// which doesn't exist in this test environment, but the reset itself
 		// should not throw.
 		expect(true).toBeTruthy();
 	});
@@ -1187,7 +1187,7 @@ describe('complex CSS value replacement', () => {
 		});
 		setScratchCtx(ctx);
 
-		// One shadow uses oklch, the other uses rgb — only oklch is replaced.
+		// One shadow uses oklch, the other uses rgb; only oklch is replaced.
 		const input = '0 2px 4px oklch(0.3 0 0 / 0.2), 0 4px 8px rgb(0, 0, 0)';
 		const result = replaceUnsupportedColors(input);
 		expect(result).toBe('0 2px 4px rgba(30, 30, 30, 0.2), 0 4px 8px rgb(0, 0, 0)');

@@ -77,7 +77,7 @@ describe('dEFAULT_SCHEME_COLOR_MAP', () => {
 
 	it('all values are valid hex colour strings', () => {
 		for (const value of Object.values(DEFAULT_SCHEME_COLOR_MAP)) {
-			expect(value).toMatch(/^#[0-9A-Fa-f]{6}$/);
+			expect(value).toMatch(/^#[0-9A-Fa-f]{6}$/u);
 		}
 	});
 
@@ -100,7 +100,7 @@ describe('applyDrawingColorTransforms', () => {
 	});
 
 	it('applies shade transform (darken toward black)', () => {
-		// shade=50000 means 50% — each channel multiplied by 0.5
+		// shade=50000 means 50%: each channel multiplied by 0.5
 		const result = applyDrawingColorTransforms('#FF0000', {
 			'a:shade': { '@_val': '50000' },
 		});
@@ -108,7 +108,7 @@ describe('applyDrawingColorTransforms', () => {
 	});
 
 	it('applies tint transform (lighten toward white)', () => {
-		// tint=50000 means 50% — mix 50% toward white
+		// tint=50000 means 50%: mix 50% toward white
 		// R: 0+(255-0)*0.5=128, G: 0+(255-0)*0.5=128, B: 255+(255-255)*0.5=255
 		const result = applyDrawingColorTransforms('#0000FF', {
 			'a:tint': { '@_val': '50000' },
@@ -351,7 +351,7 @@ describe('parseDrawingColorChoice', () => {
 		it('resolves folHlink (case-insensitive lookup converts to lowercase)', () => {
 			// The function lowercases the scheme value, so "folHlink" becomes "folhlink".
 			// Since the map key is "folHlink" (camelCase), the lookup fails.
-			// This is a known limitation — the map keys are case-sensitive but
+			// This is a known limitation: the map keys are case-sensitive but
 			// the function lowercases the input.
 			const node: XmlObject = {
 				'a:schemeClr': { '@_val': 'folHlink' },

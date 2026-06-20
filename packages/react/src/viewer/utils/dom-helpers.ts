@@ -1,14 +1,14 @@
 /**
- * DOM utility helpers — escapeHtml, safePrompt, safeConfirm, downloadBlob.
+ * DOM utility helpers: escapeHtml, safePrompt, safeConfirm, downloadBlob.
  */
 
 export function escapeHtml(value: string): string {
 	return value
-		.replace(/&/g, '&amp;')
-		.replace(/</g, '&lt;')
-		.replace(/>/g, '&gt;')
-		.replace(/"/g, '&quot;')
-		.replace(/'/g, '&#39;');
+		.replace(/&/gu, '&amp;')
+		.replace(/</gu, '&lt;')
+		.replace(/>/gu, '&gt;')
+		.replace(/"/gu, '&quot;')
+		.replace(/'/gu, '&#39;');
 }
 
 export function safePrompt(message: string, defaultValue?: string): string | null {
@@ -42,9 +42,9 @@ export function sanitizeDownloadFilename(input: string | undefined | null): stri
 	}
 	let cleaned = input
 		// eslint-disable-next-line no-control-regex
-		.replace(/[\x00-\x1f\x7f"\\/:*?<>|]/g, '_')
-		.replace(/\.\./g, '__')
-		.replace(/^\.+/, '')
+		.replace(/[\x00-\x1f\x7f"\\/:*?<>|]/gu, '_')
+		.replace(/\.\./gu, '__')
+		.replace(/^\.+/u, '')
 		.trim();
 	if (cleaned.length === 0) {
 		return 'presentation.pptx';

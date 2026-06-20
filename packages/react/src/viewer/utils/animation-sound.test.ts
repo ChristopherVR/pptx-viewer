@@ -35,9 +35,10 @@ beforeEach(() => {
 	// Reset module-level singleton by calling stop
 	stopAnimationSound();
 
-	// Install mock Audio constructor — vitest 4 requires `function` for `new`
+	// Install mock Audio constructor: vitest 4 requires `function` for `new`
 	vi.stubGlobal(
 		'Audio',
+		// eslint-disable-next-line prefer-arrow-callback -- must be a `function` so `new Audio()` works
 		vi.fn(function (src: string) {
 			return createMockAudio(src);
 		}),
@@ -73,6 +74,7 @@ describe('playAnimationSound', () => {
 	it('handles play() rejection gracefully (autoplay restrictions)', () => {
 		vi.stubGlobal(
 			'Audio',
+			// eslint-disable-next-line prefer-arrow-callback -- must be a `function` so `new Audio()` works
 			vi.fn(function (src: string) {
 				const audio: MockAudio = {
 					src,

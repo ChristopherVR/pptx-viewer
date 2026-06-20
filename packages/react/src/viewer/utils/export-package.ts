@@ -1,5 +1,5 @@
 /**
- * Package-for-sharing export — bundles PPTX file + media assets.
+ * Package-for-sharing export: bundles PPTX file + media assets.
  */
 
 import type { ExportProgressCallback } from './export-helpers';
@@ -63,7 +63,7 @@ export function collectMediaAssets(
 			}
 			seen.add(src);
 			// Extract filename from path
-			const parts = src.replace(/\\/g, '/').split('/');
+			const parts = src.replace(/\\/gu, '/').split('/');
 			const filename = parts[parts.length - 1] || `media-${assets.length}`;
 			assets.push({ sourcePath: src, filename });
 		}

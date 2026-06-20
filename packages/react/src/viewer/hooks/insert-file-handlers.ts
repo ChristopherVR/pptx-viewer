@@ -1,5 +1,5 @@
 /**
- * insert-file-handlers — Factory functions for image and media file-picking
+ * insert-file-handlers: Factory functions for image and media file-picking
  * handlers used by useInsertElements.
  */
 import type { PptxElement, PptxSlide, ImagePptxElement, MediaPptxElement } from 'pptx-viewer-core';
@@ -101,7 +101,7 @@ export function createFileHandlers(deps: FileHandlerDeps): FileHandlers {
 		};
 
 		if (elFilePath) {
-			let normalized = elFilePath.replace(/\\/g, '/');
+			let normalized = elFilePath.replace(/\\/gu, '/');
 			if (!normalized.startsWith('/')) {
 				normalized = `/${normalized}`;
 			}

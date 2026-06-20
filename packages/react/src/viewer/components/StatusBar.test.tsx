@@ -78,7 +78,7 @@ function createMockStatusBarProps(overrides: Partial<StatusBarProps> = {}): Stat
 // Slide count display
 // ===========================================================================
 
-describe('statusBar — slide count', () => {
+describe('statusBar - slide count', () => {
 	it('displays correct slide number and total', () => {
 		const html = render(
 			React.createElement(
@@ -124,7 +124,7 @@ describe('statusBar — slide count', () => {
 // Language indicator
 // ===========================================================================
 
-describe('statusBar — language indicator', () => {
+describe('statusBar - language indicator', () => {
 	it('shows language indicator', () => {
 		const html = render(React.createElement(StatusBar, createMockStatusBarProps()));
 		expect(html).toContain('English (U.S.)');
@@ -135,7 +135,7 @@ describe('statusBar — language indicator', () => {
 // Autosave status
 // ===========================================================================
 
-describe('statusBar — autosave status', () => {
+describe('statusBar - autosave status', () => {
 	it('shows "Saving..." when autosave state is saving', () => {
 		const html = render(
 			React.createElement(
@@ -200,7 +200,7 @@ describe('statusBar — autosave status', () => {
 				}),
 			),
 		);
-		expect(html).toMatch(/text-red-400/);
+		expect(html).toMatch(/text-red-400/u);
 	});
 
 	it('saving status has yellow text styling', () => {
@@ -210,7 +210,7 @@ describe('statusBar — autosave status', () => {
 				createMockStatusBarProps({ autosaveStatus: { state: 'saving' } }),
 			),
 		);
-		expect(html).toMatch(/text-yellow-400/);
+		expect(html).toMatch(/text-yellow-400/u);
 	});
 });
 
@@ -218,7 +218,7 @@ describe('statusBar — autosave status', () => {
 // Notes toggle
 // ===========================================================================
 
-describe('statusBar — notes toggle', () => {
+describe('statusBar - notes toggle', () => {
 	it('renders notes toggle button when handler is provided', () => {
 		const html = render(
 			React.createElement(
@@ -253,7 +253,7 @@ describe('statusBar — notes toggle', () => {
 				createMockStatusBarProps({ onToggleNotes: vi.fn<() => void>(), isNotesExpanded: true }),
 			),
 		);
-		expect(html).toMatch(/text-primary[^"]*"[^>]*title="Toggle notes"/);
+		expect(html).toMatch(/text-primary[^"]*"[^>]*title="Toggle notes"/u);
 	});
 });
 
@@ -261,7 +261,7 @@ describe('statusBar — notes toggle', () => {
 // View mode buttons
 // ===========================================================================
 
-describe('statusBar — view mode buttons', () => {
+describe('statusBar - view mode buttons', () => {
 	it('renders Normal view button', () => {
 		const html = render(React.createElement(StatusBar, createMockStatusBarProps()));
 		expect(html).toContain('aria-label="Normal view"');
@@ -284,14 +284,14 @@ describe('statusBar — view mode buttons', () => {
 
 	it('normal view button has primary text when mode is edit', () => {
 		const html = render(React.createElement(StatusBar, createMockStatusBarProps({ mode: 'edit' })));
-		expect(html).toMatch(/text-primary[^"]*"[^>]*title="Normal view"/);
+		expect(html).toMatch(/text-primary[^"]*"[^>]*title="Normal view"/u);
 	});
 
 	it('slide show button has primary text when mode is present', () => {
 		const html = render(
 			React.createElement(StatusBar, createMockStatusBarProps({ mode: 'present' })),
 		);
-		expect(html).toMatch(/text-primary[^"]*"[^>]*title="Slide show"/);
+		expect(html).toMatch(/text-primary[^"]*"[^>]*title="Slide show"/u);
 	});
 
 	it('does not render view mode buttons when onSetMode is undefined', () => {
@@ -306,7 +306,7 @@ describe('statusBar — view mode buttons', () => {
 // Zoom controls
 // ===========================================================================
 
-describe('statusBar — zoom controls', () => {
+describe('statusBar - zoom controls', () => {
 	it('renders zoom out button', () => {
 		const html = render(
 			React.createElement(
@@ -378,22 +378,22 @@ describe('statusBar — zoom controls', () => {
 // Full width rendering
 // ===========================================================================
 
-describe('statusBar — layout', () => {
+describe('statusBar - layout', () => {
 	it('has w-full class on the root element', () => {
 		const html = render(React.createElement(StatusBar, createMockStatusBarProps()));
-		expect(html).toMatch(/^<div class="[^"]*w-full/);
+		expect(html).toMatch(/^<div class="[^"]*w-full/u);
 	});
 
 	it('has border-t class for top border', () => {
 		const html = render(React.createElement(StatusBar, createMockStatusBarProps()));
-		expect(html).toMatch(/^<div class="[^"]*border-t/);
+		expect(html).toMatch(/^<div class="[^"]*border-t/u);
 	});
 
 	it('has flex layout', () => {
 		const html = render(React.createElement(StatusBar, createMockStatusBarProps()));
-		const rootClassMatch = html.match(/^<div class="([^"]*)"/);
+		const rootClassMatch = html.match(/^<div class="(?<cls>[^"]*)"/u);
 		expect(rootClassMatch).not.toBeNull();
-		const className = rootClassMatch![1];
+		const className = rootClassMatch!.groups?.cls;
 		expect(className).toContain('flex');
 		expect(className).toContain('items-center');
 	});

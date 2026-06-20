@@ -23,7 +23,7 @@ describe('getChartStylePalette', () => {
 		const palette = getChartStylePalette(1);
 		expect(palette).toHaveLength(8);
 		palette.forEach((c) => {
-			expect(c).toMatch(/^#[0-9a-f]{6}$/i);
+			expect(c).toMatch(/^#[0-9a-f]{6}$/iu);
 		});
 	});
 
@@ -48,7 +48,7 @@ describe('getChartStylePalette', () => {
 			const palette = getChartStylePalette(id);
 			expect(palette).toHaveLength(8);
 			palette.forEach((c) => {
-				expect(c).toMatch(/^#[0-9a-f]{6}$/i);
+				expect(c).toMatch(/^#[0-9a-f]{6}$/iu);
 			});
 		}
 	});
@@ -102,7 +102,7 @@ describe('tint', () => {
 
 	it('should lighten a colour', () => {
 		const result = tint('#4472C4', 0.5);
-		// Should be lighter than original — check the R channel
+		// Should be lighter than original, check the R channel
 		const r = parseInt(result.slice(1, 3), 16);
 		expect(r).toBeGreaterThan(0x44);
 	});
@@ -119,7 +119,7 @@ describe('shade', () => {
 
 	it('should darken a colour', () => {
 		const result = shade('#4472C4', 0.5);
-		// Should be darker — check the R channel
+		// Should be darker, check the R channel
 		const r = parseInt(result.slice(1, 3), 16);
 		expect(r).toBeLessThan(0x44);
 	});

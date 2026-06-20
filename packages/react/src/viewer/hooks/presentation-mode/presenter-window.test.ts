@@ -102,7 +102,7 @@ describe('isPresenterMessage', () => {
 });
 
 // ---------------------------------------------------------------------------
-// isAudienceTab — requires a browser environment
+// isAudienceTab: requires a browser environment
 // ---------------------------------------------------------------------------
 
 describe('isAudienceTab', () => {
@@ -116,7 +116,7 @@ describe('isAudienceTab', () => {
 });
 
 // ---------------------------------------------------------------------------
-// PresenterWindowManager — simulates the hook's window management logic
+// PresenterWindowManager: simulates the hook's window management logic
 // ---------------------------------------------------------------------------
 
 interface MockWindow {
@@ -285,7 +285,7 @@ describe('presenterWindowManager', () => {
 			expect.objectContaining({ type: 'presenter-exit' }),
 			'*',
 		);
-		expect(firstWin.close).toHaveBeenCalled();
+		expect(firstWin.close).toHaveBeenCalledWith();
 
 		// Second window should now be the active one
 		expect(manager.isAudienceWindowOpen()).toBeTruthy();
@@ -360,7 +360,7 @@ describe('presenterWindowManager', () => {
 		expect(mockWin.close).toHaveBeenCalledOnce();
 	});
 
-	it('is idempotent — calling close twice does not throw', () => {
+	it('is idempotent - calling close twice does not throw', () => {
 		manager.openAudienceWindow(mockWin, 0);
 		manager.closeAudienceWindow();
 		// Calling close again should be safe

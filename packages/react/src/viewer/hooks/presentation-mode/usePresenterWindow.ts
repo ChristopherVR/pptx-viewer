@@ -1,5 +1,5 @@
 /**
- * usePresenterWindow — Manages a secondary browser tab for audience display.
+ * usePresenterWindow: Manages a secondary browser tab for audience display.
  *
  * Opens the same app URL in a new tab with a `#pptx-audience` hash. The
  * audience tab loads the full viewer (same presentation file) and auto-enters
@@ -56,7 +56,7 @@ export function parseAudienceNonce(): string | null {
 		return null;
 	}
 	// Strip leading separator (& or ;) then parse as URLSearchParams.
-	const params = new URLSearchParams(trailing.replace(/^[&;?]/, ''));
+	const params = new URLSearchParams(trailing.replace(/^[&;?]/u, ''));
 	return params.get(AUDIENCE_NONCE_KEY);
 }
 

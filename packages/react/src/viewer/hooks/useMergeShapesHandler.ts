@@ -1,5 +1,5 @@
 /**
- * useMergeShapesHandler — Merge shapes (boolean operations) handler.
+ * useMergeShapesHandler: Merge shapes (boolean operations) handler.
  *
  * Provides handlers for PowerPoint-style Merge Shapes operations:
  * Union, Intersect, Subtract, Fragment, and Combine.
@@ -84,16 +84,16 @@ function resolveShapePath(el: PptxElement): string {
  * Handles `polygon(x1% y1%, x2% y2%, ...)` format.
  */
 function clipPathToSvgPath(clipPath: string, width: number, height: number): string | null {
-	const match = clipPath.match(/polygon\(([^)]+)\)/i);
-	if (!match) {
+	const match = clipPath.match(/polygon\((?<points>[^)]+)\)/iu);
+	if (!match?.groups) {
 		return null;
 	}
 
-	const pairs = match[1].split(',').map((s) => s.trim());
+	const pairs = match.groups.points.split(',').map((s) => s.trim());
 	const points: Array<{ x: number; y: number }> = [];
 
 	for (const pair of pairs) {
-		const parts = pair.split(/\s+/);
+		const parts = pair.split(/\s+/u);
 		if (parts.length < 2) {
 			continue;
 		}

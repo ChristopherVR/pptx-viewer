@@ -265,6 +265,7 @@ export function PresentationToolbar({
 							<button
 								key={color}
 								type='button'
+								aria-label={`${t('pptx.presentation.pen')} ${color}`}
 								className={`w-9 h-9 rounded-full border-2 transition-transform hover:scale-110 ${
 									penColor === color ? 'border-white' : 'border-white/20'
 								}`}
@@ -314,6 +315,7 @@ export function PresentationToolbar({
 							<button
 								key={color}
 								type='button'
+								aria-label={`${t('pptx.presentation.highlighter')} ${color}`}
 								className={`w-9 h-9 rounded-full border-2 transition-transform hover:scale-110 ${
 									highlighterColor === color ? 'border-white' : 'border-white/20'
 								}`}
@@ -391,7 +393,7 @@ export function PresentationToolbar({
 }
 
 // ---------------------------------------------------------------------------
-// Auto-hide wrapper — renders PresentationToolbar with show/hide behavior.
+// Auto-hide wrapper: renders PresentationToolbar with show/hide behavior.
 // ---------------------------------------------------------------------------
 
 export interface PresentationToolbarWrapperProps extends PresentationToolbarProps {

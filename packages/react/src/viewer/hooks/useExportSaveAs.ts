@@ -2,7 +2,7 @@ import JSZip from 'jszip';
 import type { PptxSlide, PptxSaveFormat, PptxHandler } from 'pptx-viewer-core';
 import { guidePxToEmu } from 'pptx-viewer-core';
 /**
- * useExportSaveAs — Save-As format and Package-for-Sharing handlers.
+ * useExportSaveAs: Save-As format and Package-for-Sharing handlers.
  */
 import type { RefObject } from 'react';
 
@@ -97,7 +97,7 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 			setExportStatusMessage('Adding presentation...');
 			const pptxData = await serializeSlides();
 			const pptxFilename = filePath
-				? (filePath.replace(/\\/g, '/').split('/').pop() ?? 'presentation.pptx')
+				? (filePath.replace(/\\/gu, '/').split('/').pop() ?? 'presentation.pptx')
 				: 'presentation.pptx';
 			if (pptxData) {
 				pkgFolder.file(pptxFilename, pptxData);
@@ -118,7 +118,7 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 
 			setExportProgress(95);
 			setExportStatusMessage('Downloading...');
-			const baseName = pptxFilename.replace(/\.[^.]+$/, '');
+			const baseName = pptxFilename.replace(/\.[^.]+$/u, '');
 			downloadBlob(zipBlob, `${baseName}-package.zip`);
 			setExportProgress(100);
 		} catch (err) {
@@ -139,10 +139,10 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 		const ext = format === 'ppsx' ? 'ppsx' : format === 'pptm' ? 'pptm' : 'pptx';
 		const baseName = filePath
 			? (filePath
-					.replace(/\\/g, '/')
+					.replace(/\\/gu, '/')
 					.split('/')
 					.pop()
-					?.replace(/\.[^.]+$/, '') ?? 'presentation')
+					?.replace(/\.[^.]+$/u, '') ?? 'presentation')
 			: 'presentation';
 		try {
 			const data = await buildSaveAsData(handler, format);

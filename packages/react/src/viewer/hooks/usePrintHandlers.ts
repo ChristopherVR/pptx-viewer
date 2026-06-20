@@ -52,11 +52,11 @@ export interface PrintHandlersResult {
  */
 function escapeHtmlAttr(value: string): string {
 	return value
-		.replace(/&/g, '&amp;')
-		.replace(/</g, '&lt;')
-		.replace(/>/g, '&gt;')
-		.replace(/"/g, '&quot;')
-		.replace(/'/g, '&#39;');
+		.replace(/&/gu, '&amp;')
+		.replace(/</gu, '&lt;')
+		.replace(/>/gu, '&gt;')
+		.replace(/"/gu, '&quot;')
+		.replace(/'/gu, '&#39;');
 }
 
 /**
@@ -66,7 +66,7 @@ function escapeHtmlAttr(value: string): string {
  */
 function safeDataImageSrc(src: string): string {
 	if (typeof src !== 'string' || !src.startsWith('data:image/')) {
-		// Transparent 1x1 PNG fallback — keeps the layout stable but emits
+		// Transparent 1x1 PNG fallback: keeps the layout stable but emits
 		// nothing exploitable.
 		return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgAAIAAAUAAen63NgAAAAASUVORK5CYII=';
 	}

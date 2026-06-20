@@ -1,5 +1,5 @@
 /**
- * Canvas-based image effects — colour change (chroma keying).
+ * Canvas-based image effects: colour change (chroma keying).
  *
  * Used for the PowerPoint `<a:clrChange>` element which replaces one colour
  * range in an image with another (like green-screen removal).
@@ -16,7 +16,7 @@ export interface RgbColor {
 	b: number;
 }
 
-/** Result of `applyColorChange` — the processed data-URL plus dimensions. */
+/** Result of `applyColorChange`: the processed data-URL plus dimensions. */
 export interface ColorChangeResult {
 	dataUrl: string;
 	width: number;
@@ -32,7 +32,7 @@ export interface ColorChangeResult {
  * Returns `null` if the string is not a valid 6-digit hex colour.
  */
 export function parseHexToRgb(hex: string): RgbColor | null {
-	const cleaned = hex.replace(/^#/, '');
+	const cleaned = hex.replace(/^#/u, '');
 	if (cleaned.length !== 6) {
 		return null;
 	}
@@ -75,7 +75,7 @@ export function toleranceToThreshold(tolerancePct: number): number {
 }
 
 // ---------------------------------------------------------------------------
-// Pixel replacement (pure logic — operates on raw Uint8ClampedArray)
+// Pixel replacement (pure logic, operates on raw Uint8ClampedArray)
 // ---------------------------------------------------------------------------
 
 /**

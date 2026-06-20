@@ -1,5 +1,5 @@
 /**
- * RulerStrips — Horizontal and vertical SVG ruler sub-components.
+ * RulerStrips: Horizontal and vertical SVG ruler sub-components.
  *
  * Pure presentation components that render tick marks and optional
  * element-position highlight ranges. Extracted from Ruler.tsx to
@@ -35,11 +35,7 @@ interface VerticalRulerProps {
 /*  HorizontalRuler                                                   */
 /* ------------------------------------------------------------------ */
 
-export const HorizontalRuler = React.memo(function HorizontalRuler({
-	ticks,
-	widthPx,
-	highlight,
-}: HorizontalRulerProps) {
+export const HorizontalRuler = React.memo(({ ticks, widthPx, highlight }: HorizontalRulerProps) => {
 	return (
 		<svg width={widthPx} height={RULER_THICKNESS} className='block select-none' aria-hidden='true'>
 			{/* Background */}
@@ -94,15 +90,13 @@ export const HorizontalRuler = React.memo(function HorizontalRuler({
 	);
 });
 
+HorizontalRuler.displayName = 'HorizontalRuler';
+
 /* ------------------------------------------------------------------ */
 /*  VerticalRuler                                                     */
 /* ------------------------------------------------------------------ */
 
-export const VerticalRuler = React.memo(function VerticalRuler({
-	ticks,
-	heightPx,
-	highlight,
-}: VerticalRulerProps) {
+export const VerticalRuler = React.memo(({ ticks, heightPx, highlight }: VerticalRulerProps) => {
 	return (
 		<svg width={RULER_THICKNESS} height={heightPx} className='block select-none' aria-hidden='true'>
 			{/* Background */}
@@ -160,3 +154,5 @@ export const VerticalRuler = React.memo(function VerticalRuler({
 		</svg>
 	);
 });
+
+VerticalRuler.displayName = 'VerticalRuler';

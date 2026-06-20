@@ -1,5 +1,5 @@
 /**
- * UserAvatarBar — Displays connected collaborators as a row of avatar circles
+ * UserAvatarBar: Displays connected collaborators as a row of avatar circles
  * in the toolbar area.
  *
  * Shows up to 5 avatar circles with a "+N" overflow indicator.
@@ -17,7 +17,7 @@ import type { UserPresence, ConnectionStatus } from '../../hooks/collaboration/t
 // ---------------------------------------------------------------------------
 
 function getInitials(name: string): string {
-	const parts = name.trim().split(/\s+/);
+	const parts = name.trim().split(/\s+/u);
 	if (parts.length >= 2) {
 		return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 	}

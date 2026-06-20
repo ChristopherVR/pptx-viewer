@@ -43,7 +43,7 @@ export function ThemeEditorPanel({
 }: ThemeEditorPanelProps): React.ReactElement {
 	const { t } = useTranslation();
 
-	// Local editing state — seeded from the current theme
+	// Local editing state, seeded from the current theme
 	const [editColors, setEditColors] = useState<PptxThemeColorScheme>(
 		() => theme?.colorScheme ?? PRESET_THEMES[0].colorScheme,
 	);
@@ -144,6 +144,7 @@ export function ThemeEditorPanel({
 					onClick={onClose}
 					className='rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground'
 					title={t('pptx.themeEditor.close')}
+					aria-label={t('pptx.themeEditor.close')}
 				>
 					<svg
 						className='h-4 w-4'

@@ -1,7 +1,7 @@
 import type { PptxEmbeddedFont, PptxSlide } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 /**
- * useFontInjection — Injects @font-face declarations for embedded PPTX fonts
+ * useFontInjection: Injects @font-face declarations for embedded PPTX fonts
  * and loads Google Fonts fallbacks for well-known font families.
  */
 import { useEffect, useMemo } from 'react';
@@ -101,7 +101,7 @@ export interface UseFontInjectionInput {
 // <style> textContent that the browser parses as CSS. Without validation,
 // a hostile PPTX can break out of the @font-face rule via `"; }` and inject
 // global selectors that exfiltrate data via `url()` or deface the page.
-const FONT_NAME_UNSAFE_CHARS = /["\\\n\r;}<>]/;
+const FONT_NAME_UNSAFE_CHARS = /["\\\n\r;}<>]/u;
 const FONT_FORMAT_ALLOWED = new Set([
 	'truetype',
 	'opentype',
@@ -111,7 +111,7 @@ const FONT_FORMAT_ALLOWED = new Set([
 	'embedded-opentype',
 ]);
 const FONT_DATA_URL_PATTERN =
-	/^data:font\/[a-z0-9+.-]+(?:;charset=[a-z0-9-]+)?;base64,[A-Za-z0-9+/=]+$/i;
+	/^data:font\/[a-z0-9+.-]+(?:;charset=[a-z0-9-]+)?;base64,[A-Za-z0-9+/=]+$/iu;
 function isFontDataUrlSafe(url: string): boolean {
 	if (typeof url !== 'string' || url.length === 0) {
 		return false;

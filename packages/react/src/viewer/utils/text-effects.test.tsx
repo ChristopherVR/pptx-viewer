@@ -362,8 +362,8 @@ describe('buildText3DShadowCss', () => {
 		// softEdge specularOpacity = 0.30 (< 0.5), no bloom
 		// Should have -1px -1px (specular) but no -2px -2px (bloom)
 		expect(result).toContain('-1px -1px');
-		// Count occurrences of "-2px -2px" — should be zero
-		const bloomMatches = (result!.match(/-2px -2px/g) ?? []).length;
+		// Count occurrences of "-2px -2px": should be zero
+		const bloomMatches = (result!.match(/-2px -2px/gu) ?? []).length;
 		expect(bloomMatches).toBe(0);
 	});
 

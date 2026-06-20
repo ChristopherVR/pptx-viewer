@@ -74,7 +74,7 @@ async function blobUrlToDataUrl(blobUrl: string): Promise<string | null> {
 async function convertBlobUrlsToDataUrls(root: HTMLElement): Promise<void> {
 	const promises: Promise<void>[] = [];
 
-	// 1. <img> elements with blob: src — REPLACE the element to clear currentSrc
+	// 1. <img> elements with blob: src: REPLACE the element to clear currentSrc
 	const images = root.querySelectorAll<HTMLImageElement>('img[src^="blob:"]');
 	for (const img of images) {
 		const blobUrl = img.src;
@@ -101,15 +101,15 @@ async function convertBlobUrlsToDataUrls(root: HTMLElement): Promise<void> {
 	}
 
 	// 2. Elements with background-image containing blob: URLs
-	//    (CSS background-image has no currentSrc issue — style replacement works)
+	//    (CSS background-image has no currentSrc issue, style replacement works)
 	const allElements = root.querySelectorAll('*');
 	for (const el of allElements) {
 		const htmlEl = el as HTMLElement;
 		const bg = htmlEl.style.backgroundImage;
 		if (bg && bg.includes('blob:')) {
-			const match = bg.match(/url\(["']?(blob:[^"')]+)["']?\)/);
-			if (match) {
-				const blobUrl = match[1];
+			const match = bg.match(/url\(["']?(?<blob>blob:[^"')]+)["']?\)/u);
+			const blobUrl = match?.groups?.blob;
+			if (blobUrl) {
 				promises.push(
 					blobUrlToDataUrl(blobUrl).then((dataUrl) => {
 						if (dataUrl) {
@@ -125,9 +125,9 @@ async function convertBlobUrlsToDataUrls(root: HTMLElement): Promise<void> {
 	// 3. Check the root element itself for background-image blob URLs
 	const rootBg = root.style.backgroundImage;
 	if (rootBg && rootBg.includes('blob:')) {
-		const match = rootBg.match(/url\(["']?(blob:[^"')]+)["']?\)/);
-		if (match) {
-			const blobUrl = match[1];
+		const match = rootBg.match(/url\(["']?(?<blob>blob:[^"')]+)["']?\)/u);
+		const blobUrl = match?.groups?.blob;
+		if (blobUrl) {
 			promises.push(
 				blobUrlToDataUrl(blobUrl).then((dataUrl) => {
 					if (dataUrl) {
@@ -147,7 +147,7 @@ async function convertBlobUrlsToDataUrls(root: HTMLElement): Promise<void> {
 /* ------------------------------------------------------------------ */
 
 /** Matches colour functions that html2canvas cannot parse. */
-const UNSUPPORTED_COLOR_RE = /oklch|oklab|lch\(|lab\(|color\(/i;
+const UNSUPPORTED_COLOR_RE = /oklch|oklab|lch\(|lab\(|color\(/iu;
 
 /**
  * Matches full colour-function calls for regex replacement inside
@@ -155,7 +155,7 @@ const UNSUPPORTED_COLOR_RE = /oklch|oklab|lch\(|lab\(|color\(/i;
  * Handles one level of nested parentheses (e.g. `calc()` inside
  * colour functions).
  */
-const UNSUPPORTED_COLOR_FN_RE = /(?:oklch|oklab|lch|lab|color)\([^)]*(?:\([^)]*\)[^)]*)*\)/gi;
+const UNSUPPORTED_COLOR_FN_RE = /(?:oklch|oklab|lch|lab|color)\([^)]*(?:\([^)]*\)[^)]*)*\)/giu;
 
 /* ------------------------------------------------------------------ */
 /*  Canvas 2D colour conversion                                      */
@@ -190,7 +190,7 @@ function resolveColorToSrgb(value: string): string {
 	ctx.fillStyle = SENTINEL;
 	ctx.fillStyle = value.trim();
 	const result = ctx.fillStyle;
-	// Canvas ignores invalid colours — fillStyle stays at the sentinel.
+	// Canvas ignores invalid colours; fillStyle stays at the sentinel.
 	return result === SENTINEL ? value : result;
 }
 
@@ -266,7 +266,7 @@ function resolveUnsupportedColours(root: HTMLElement): void {
 
 		const computed = window.getComputedStyle(htmlEl);
 
-		// Simple colour properties — convert the whole value.
+		// Simple colour properties: convert the whole value.
 		for (const prop of COLOR_PROPERTIES) {
 			const value = computed.getPropertyValue(prop);
 			if (value && UNSUPPORTED_COLOR_RE.test(value)) {
@@ -274,7 +274,7 @@ function resolveUnsupportedColours(root: HTMLElement): void {
 			}
 		}
 
-		// Complex properties — replace colour functions in-place.
+		// Complex properties: replace colour functions in-place.
 		for (const prop of COMPLEX_COLOR_PROPERTIES) {
 			const value = computed.getPropertyValue(prop);
 			if (value && UNSUPPORTED_COLOR_RE.test(value)) {
@@ -360,7 +360,7 @@ function patchStylesheets(doc: Document): void {
 /* ------------------------------------------------------------------ */
 
 /**
- * @internal Exported for unit testing only — not part of the public API.
+ * @internal Exported for unit testing only; not part of the public API.
  */
 export const _testing = {
 	UNSUPPORTED_COLOR_RE,
@@ -422,7 +422,7 @@ export async function renderToCanvas(
 			resolveRootCustomProperties(doc);
 			resolveUnsupportedColours(clonedEl);
 
-			// Phase 2: CSS preprocessing — flatten backdrop-filter, mix-blend-mode,
+			// Phase 2: CSS preprocessing: flatten backdrop-filter, mix-blend-mode,
 			// 3D transforms, and remove unsupported features
 			preprocessCssForCapture(clonedEl);
 

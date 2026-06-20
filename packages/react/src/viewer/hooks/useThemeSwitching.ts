@@ -7,7 +7,7 @@ import type {
 	PptxThemePreset,
 } from 'pptx-viewer-core';
 /**
- * useThemeSwitching — React hook for switching presentation themes.
+ * useThemeSwitching: React hook for switching presentation themes.
  *
  * Provides a list of built-in theme presets and functions to apply them
  * to the current presentation, updating all element colours immediately.
@@ -68,7 +68,7 @@ function colorSchemesMatch(a: PptxThemeColorScheme | undefined, b: PptxThemeColo
 	if (!a) {
 		return false;
 	}
-	const normalize = (hex: string) => hex.replace(/^#/, '').toUpperCase().slice(0, 6);
+	const normalize = (hex: string) => hex.replace(/^#/u, '').toUpperCase().slice(0, 6);
 	return (
 		normalize(a.dk1) === normalize(b.dk1) &&
 		normalize(a.lt1) === normalize(b.lt1) &&

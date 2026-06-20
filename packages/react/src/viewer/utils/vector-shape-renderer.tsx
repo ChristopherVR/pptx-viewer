@@ -142,7 +142,7 @@ export function renderVectorShape(
 						overflow: 'visible',
 					}}
 				>
-					{/* Accent bar — horizontal line at top of shape */}
+					{/* Accent bar: horizontal line at top of shape */}
 					{geometry.hasAccent && (
 						<line
 							x1={0}
@@ -178,7 +178,7 @@ export function renderVectorShape(
 		const viewWidth = Math.max(element.width, 1);
 		const viewHeight = Math.max(element.height, 1);
 		const { pathData } = getConnectorPathGeometry(element);
-		const markerSeed = element.id.replace(/[^a-zA-Z0-9_-]/g, '_');
+		const markerSeed = element.id.replace(/[^a-zA-Z0-9_-]/gu, '_');
 		const startMarkerId = `${markerSeed}-start-arrow`;
 		const endMarkerId = `${markerSeed}-end-arrow`;
 		const startArrow = element.shapeStyle?.connectorStartArrow;
@@ -188,7 +188,7 @@ export function renderVectorShape(
 		const endArrowW = element.shapeStyle?.connectorEndArrowWidth;
 		const endArrowL = element.shapeStyle?.connectorEndArrowLength;
 		const compoundLine = element.shapeStyle?.compoundLine;
-		// Hit target width — wide invisible stroke so thin lines are easy to click
+		// Hit target width: wide invisible stroke so thin lines are easy to click
 		const hitTargetWidth = Math.max(strokeWidth * 3, 12);
 		const offsets = getCompoundLineOffsets(compoundLine, strokeWidth);
 		const widths = getCompoundLineWidths(compoundLine, strokeWidth);
@@ -204,7 +204,7 @@ export function renderVectorShape(
 					{renderConnectorMarker(startMarkerId, startArrow, strokePaint, startArrowW, startArrowL)}
 					{renderConnectorMarker(endMarkerId, endArrow, strokePaint, endArrowW, endArrowL)}
 				</defs>
-				{/* Invisible fat hit-target path — catches pointer events */}
+				{/* Invisible fat hit-target path: catches pointer events */}
 				<path
 					d={pathData}
 					fill='none'
@@ -214,7 +214,7 @@ export function renderVectorShape(
 					strokeLinejoin='round'
 					style={{ pointerEvents: 'stroke' }}
 				/>
-				{/* Visible connector stroke(s) — compound lines render as parallel paths */}
+				{/* Visible connector stroke(s): compound lines render as parallel paths */}
 				{offsets.map((offset, idx) => (
 					<path
 						key={idx}
