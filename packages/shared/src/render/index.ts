@@ -233,3 +233,8 @@ export * from './presenter-mobile';
 // far to scroll the focused field into the area above the keyboard. Each binding
 // wires the visualViewport resize listener; the maths is shared here.
 export * from './mobile-keyboard';
+// Insert-chart factory: a sensible DEFAULT new `ChartPptxElement` (three sample
+// categories, one "Series 1", legend on, default position) plus the chart-type
+// list shown in the insert dropdown. The single source of truth every binding's
+// "Insert > Chart" toolbar action calls; wraps core's `createChartElement`.
+export * from './insert-chart';

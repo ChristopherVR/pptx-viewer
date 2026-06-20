@@ -1,3 +1,5 @@
+import type { PptxChartType } from 'pptx-viewer-core';
+import { INSERT_CHART_TYPES, DEFAULT_INSERT_CHART_TYPE } from 'pptx-viewer-shared';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -21,6 +23,7 @@ export interface InsertSectionProps {
 	onAddTextBox: () => void;
 	onAddShape: () => void;
 	onAddTable: () => void;
+	onAddChart?: (chartType: PptxChartType) => void;
 	onAddSmartArt: () => void;
 	onAddEquation: () => void;
 	onAddActionButton: (shapeType: string) => void;
@@ -35,6 +38,7 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 	const [datePickerOpen, setDatePickerOpen] = useState(false);
 	const [datePickerValue, setDatePickerValue] = useState('');
 	const [dateFormat, setDateFormat] = useState('locale');
+	const [newChartType, setNewChartType] = useState<PptxChartType>(DEFAULT_INSERT_CHART_TYPE);
 	const datePickerRef = useRef<HTMLDivElement>(null);
 
 	const openDatePicker = useCallback(() => {
@@ -153,6 +157,44 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 				<LuDatabase className={ic} />
 				Table
 			</button>
+			{p.onAddChart && (
+				<div className={grp}>
+					<select
+						value={newChartType}
+						onChange={(e) => setNewChartType(e.target.value as PptxChartType)}
+						className='bg-transparent py-1.5 pl-2 pr-1 outline-none text-xs'
+						title='Chart type'
+					>
+						{INSERT_CHART_TYPES.map((ct) => (
+							<option key={ct.type} value={ct.type} className='bg-background'>
+								{ct.label}
+							</option>
+						))}
+					</select>
+					<button
+						onClick={() => p.onAddChart!(newChartType)}
+						disabled={!canEdit}
+						className='inline-flex items-center gap-1.5 px-2.5 py-1.5 border-l border-border hover:bg-accent transition-colors text-xs'
+						title='Insert chart'
+					>
+						<svg
+							className={ic}
+							viewBox='0 0 24 24'
+							fill='none'
+							stroke='currentColor'
+							strokeWidth='2'
+							strokeLinecap='round'
+							strokeLinejoin='round'
+						>
+							<path d='M3 3v18h18' />
+							<rect x='7' y='11' width='3' height='6' />
+							<rect x='12' y='7' width='3' height='10' />
+							<rect x='17' y='13' width='3' height='4' />
+						</svg>
+						Chart
+					</button>
+				</div>
+			)}
 			<button
 				onClick={p.onAddSmartArt}
 				disabled={!canEdit}

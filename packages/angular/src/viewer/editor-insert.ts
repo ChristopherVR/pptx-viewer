@@ -9,7 +9,15 @@
  * typically 960 × 540 px in the viewer's coordinate space).
  */
 
-import type { PptxElement, PptxSmartArtNode, PptxTableCell, PptxTableRow } from 'pptx-viewer-core';
+import type {
+	PptxChartType,
+	PptxElement,
+	PptxSmartArtNode,
+	PptxTableCell,
+	PptxTableRow,
+} from 'pptx-viewer-core';
+
+import { createDefaultChartElement } from '../internal/shared';
 
 /** Default x position for newly inserted elements (px). */
 const DEFAULT_X = 100;
@@ -247,4 +255,19 @@ export function newEquationElement(
 			},
 		],
 	} as PptxElement;
+}
+
+/**
+ * Create a new chart element with sensible defaults.
+ *
+ * Delegates to the shared `createDefaultChartElement` (the single source of
+ * truth every binding uses): three sample categories, one "Series 1" with
+ * sample values, the legend on, and a default position/size. The id is cleared
+ * to `''` so `EditorStateService.addElement` assigns a real id, matching the
+ * other factories in this module.
+ *
+ * @param chartType - The chart family to create (bar, line, pie, etc.).
+ */
+export function newChartElement(chartType: PptxChartType): PptxElement {
+	return { ...createDefaultChartElement(chartType), id: '' } as PptxElement;
 }
