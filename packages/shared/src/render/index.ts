@@ -212,6 +212,12 @@ export * from './p14-transition-css';
 // (`smartart-layout-types`), helpers, and per-family computers, so a single
 // barrel entry exposes the whole surface. Each binding renders the view-models.
 export * from './smartart-layout';
+// Export-progress maths shared by every binding's export handlers: the
+// `(current, total)` slide cursor → 0-100 percentage mapping (single-phase and
+// two-phase capture+record), the "verb slide N of M" status label, and the
+// cooperative-cancellation `AbortError` helpers. The stateful modal + the
+// capture/encode loop that calls these stay in each binding.
+export * from './export-progress';
 // Native file-open picker — framework-agnostic `<input type=file>` helper +
 // default `.pptx/.ppsx/.pptm/.potx` accept list, used by every binding's
 // File ▸ Open action to load another presentation.

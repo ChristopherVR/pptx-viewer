@@ -1,4 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
+import { exportAbortError } from 'pptx-viewer-shared';
 import { ref } from 'vue';
 import type { Ref } from 'vue';
 
@@ -19,13 +20,24 @@ export interface UseExportOptions {
 	fileName?: Ref<string> | string;
 }
 
+/** Per-slide progress callback: `(currentSlideIndex, totalSlides)`. */
+export type ExportProgress = (current: number, total: number) => void;
+
+/** Options for the multi-slide PDF export (progress + cooperative cancel). */
+export interface ExportPdfOptions {
+	/** Capture-phase progress callback: `(currentSlide, totalSlides)`. */
+	onProgress?: ExportProgress;
+	/** Abort the export early; the loop checks this between slides. */
+	signal?: AbortSignal;
+}
+
 export interface UseExportResult {
 	/** True while an export is running (disable UI / show a spinner). */
 	exporting: Ref<boolean>;
 	/** Export a single slide as a PNG download. Defaults to the given index. */
 	exportSlidePng: (index: number) => Promise<void>;
 	/** Export every slide as a multi-page PDF (one slide per page). */
-	exportPdf: () => Promise<void>;
+	exportPdf: (options?: ExportPdfOptions) => Promise<void>;
 }
 
 /** Trigger a browser download for a data URL. */
@@ -75,17 +87,23 @@ export function useExport(options: UseExportOptions): UseExportResult {
 		}
 	}
 
-	async function exportPdf(): Promise<void> {
+	async function exportPdf(opts: ExportPdfOptions = {}): Promise<void> {
 		if (exporting.value || slides.value.length === 0) {
 			return;
 		}
+		const { onProgress, signal } = opts;
 		exporting.value = true;
 		try {
 			const { jsPDF } = await import('jspdf');
 			const { width, height } = canvasSize.value;
 			const orientation = width >= height ? 'landscape' : 'portrait';
 			const pdf = new jsPDF({ orientation, unit: 'px', format: [width, height], compress: true });
-			for (let i = 0; i < slides.value.length; i++) {
+			const total = slides.value.length;
+			for (let i = 0; i < total; i++) {
+				if (signal?.aborted) {
+					throw exportAbortError();
+				}
+				onProgress?.(i, total);
 				const canvas = await rasterizeSlide(i);
 				if (i > 0) {
 					pdf.addPage([width, height], orientation);

@@ -24,7 +24,15 @@ import type {
 } from 'pptx-viewer-core';
 
 import type { ViewerTheme } from '../internal/shared';
-import { openPptxFile } from '../internal/shared';
+import {
+	EXPORT_ASSEMBLING_PERCENT,
+	EXPORT_DONE_PERCENT,
+	isExportAbortError,
+	openPptxFile,
+	recordProgressPercent,
+	slideProgressPercent,
+	slideStatusLabel,
+} from '../internal/shared';
 import { themeStyle } from '../theme/viewer-theme';
 import { AccessibilityPanelComponent } from './accessibility-panel.component';
 import { AccessibilityService } from './accessibility.service';
@@ -48,6 +56,7 @@ import { EditorStateService } from './editor-state.service';
 import { EditorToolbarComponent } from './editor-toolbar.component';
 import { EmbeddedFontsService } from './embedded-fonts.service';
 import { slideFileName } from './export-helpers';
+import { ExportProgressModalComponent } from './export-progress-modal.component';
 import { ExportService } from './export.service';
 import { openNativeEyeDropper } from './eyedropper';
 import { FindBarComponent } from './find-bar.component';
@@ -134,6 +143,7 @@ const ZOOM_MAX = 3;
 		SlidesPanelComponent,
 		EditorToolbarComponent,
 		EditorContextMenuComponent,
+		ExportProgressModalComponent,
 		CommentsPanelComponent,
 		SignaturesPanelComponent,
 		AccessibilityPanelComponent,
@@ -533,6 +543,14 @@ const ZOOM_MAX = 3;
 				/>
 			}
 
+			<pptx-export-progress-modal
+				[open]="exportModalOpen()"
+				[title]="exportModalTitle()"
+				[progress]="exportProgress()"
+				[statusMessage]="exportStatusMessage()"
+				(cancel)="onCancelExport()"
+			/>
+
 			<pptx-share-dialog
 				[open]="showShare()"
 				[active]="collab.active()"
@@ -686,6 +704,14 @@ export class PowerPointViewerComponent {
 	private readonly mainEl = viewChild<ElementRef<HTMLElement>>('mainEl');
 	/** True while a PNG/PDF export is in progress (disables the buttons). */
 	protected readonly exporting = signal(false);
+
+	/** Export-progress modal state (PDF / GIF / WebM). */
+	protected readonly exportModalOpen = signal(false);
+	protected readonly exportModalTitle = signal('');
+	protected readonly exportProgress = signal(0);
+	protected readonly exportStatusMessage = signal('');
+	/** Cooperative cancellation: the capture loop checks `signal.aborted`. */
+	private exportAbort: AbortController | null = null;
 
 	protected readonly activeSlideIndex = signal(0);
 	/** Slides to display: the editable deck when `canEdit`, else the loaded deck. */
@@ -1837,45 +1863,54 @@ export class PowerPointViewerComponent {
 	}
 
 	/**
-	 * Export every slide to a multi-page PDF. Each slide is made the live stage,
-	 * given a render tick to settle, captured to a canvas, then the original
-	 * slide is restored.
+	 * Open the progress modal and arm a fresh `AbortController` for an export.
+	 * Returns the controller whose `signal` the capture loop checks per slide.
 	 */
-	async exportPdf(): Promise<void> {
-		const total = this.slideCount();
-		if (total === 0 || this.exporting()) {
-			return;
-		}
+	private beginExport(title: string): AbortController {
+		const controller = new AbortController();
+		this.exportAbort = controller;
+		this.exportModalTitle.set(title);
+		this.exportStatusMessage.set('Capturing slides...');
+		this.exportProgress.set(0);
+		this.exportModalOpen.set(true);
 		this.exporting.set(true);
-		const original = this.activeSlideIndex();
-		const { width, height } = this.loader.canvasSize();
-		const canvases: HTMLCanvasElement[] = [];
-		try {
-			for (let i = 0; i < total; i++) {
-				this.activeSlideIndex.set(i);
-				await new Promise<void>((resolve) => {
-					setTimeout(resolve, 150);
-				});
-				const el = this.stageElement();
-				if (el) {
-					canvases.push(await this.exportSvc.renderElement(el));
-				}
-			}
-			this.activeSlideIndex.set(original);
-			this.exportSvc.exportCanvasesToPdf(canvases, width, height, 'presentation.pdf');
-		} finally {
-			this.activeSlideIndex.set(original);
-			this.exporting.set(false);
-		}
+		return controller;
 	}
 
-	/** Render every slide to a canvas (each made the live stage in turn). */
-	private async renderAllSlideCanvases(): Promise<HTMLCanvasElement[]> {
+	/** Tear down the progress modal + export-in-flight state. */
+	private endExport(): void {
+		this.exportAbort = null;
+		this.exportModalOpen.set(false);
+		this.exporting.set(false);
+	}
+
+	/** User pressed Cancel: abort the loop and close the modal. */
+	onCancelExport(): void {
+		this.exportAbort?.abort();
+		this.exportAbort = null;
+		this.exportModalOpen.set(false);
+		this.exportProgress.set(0);
+	}
+
+	/**
+	 * Render every slide to a canvas (each made the live stage in turn), reporting
+	 * per-slide progress and bailing out cooperatively when `abortSignal.aborted`.
+	 */
+	private async captureSlideCanvases(
+		abortSignal: AbortSignal,
+		verb: string,
+		span: number,
+	): Promise<HTMLCanvasElement[]> {
 		const total = this.slideCount();
 		const original = this.activeSlideIndex();
 		const canvases: HTMLCanvasElement[] = [];
 		try {
 			for (let i = 0; i < total; i++) {
+				if (abortSignal.aborted) {
+					throw new DOMException('Export cancelled', 'AbortError');
+				}
+				this.exportProgress.set(slideProgressPercent(i, total, span));
+				this.exportStatusMessage.set(slideStatusLabel(verb, i, total));
 				this.activeSlideIndex.set(i);
 				await new Promise<void>((resolve) => {
 					setTimeout(resolve, 150);
@@ -1891,17 +1926,50 @@ export class PowerPointViewerComponent {
 		return canvases;
 	}
 
+	/**
+	 * Export every slide to a multi-page PDF. Each slide is made the live stage,
+	 * given a render tick to settle, captured to a canvas, then the original
+	 * slide is restored. Progress + Cancel drive the export-progress modal.
+	 */
+	async exportPdf(): Promise<void> {
+		if (this.slideCount() === 0 || this.exporting()) {
+			return;
+		}
+		const controller = this.beginExport('Export as PDF');
+		const { width, height } = this.loader.canvasSize();
+		try {
+			const canvases = await this.captureSlideCanvases(controller.signal, 'Rendering', 90);
+			this.exportProgress.set(EXPORT_ASSEMBLING_PERCENT);
+			this.exportStatusMessage.set('Building PDF...');
+			this.exportSvc.exportCanvasesToPdf(canvases, width, height, 'presentation.pdf');
+			this.exportProgress.set(EXPORT_DONE_PERCENT);
+		} catch (err) {
+			if (!isExportAbortError(err)) {
+				console.error('[PowerPointViewer] PDF export failed:', err);
+			}
+		} finally {
+			this.endExport();
+		}
+	}
+
 	/** Export every slide as an animated GIF (2s per slide). */
 	async exportGif(): Promise<void> {
 		if (this.slideCount() === 0 || this.exporting()) {
 			return;
 		}
-		this.exporting.set(true);
+		const controller = this.beginExport('Export as GIF');
 		try {
-			const canvases = await this.renderAllSlideCanvases();
+			const canvases = await this.captureSlideCanvases(controller.signal, 'Encoding', 90);
+			this.exportProgress.set(EXPORT_ASSEMBLING_PERCENT);
+			this.exportStatusMessage.set('Saving file...');
 			this.exportSvc.exportCanvasesToGif(canvases, 2000, 'presentation.gif');
+			this.exportProgress.set(EXPORT_DONE_PERCENT);
+		} catch (err) {
+			if (!isExportAbortError(err)) {
+				console.error('[PowerPointViewer] GIF export failed:', err);
+			}
 		} finally {
-			this.exporting.set(false);
+			this.endExport();
 		}
 	}
 
@@ -1910,12 +1978,28 @@ export class PowerPointViewerComponent {
 		if (this.slideCount() === 0 || this.exporting()) {
 			return;
 		}
-		this.exporting.set(true);
+		const controller = this.beginExport('Export as Video');
 		try {
-			const canvases = await this.renderAllSlideCanvases();
-			await this.exportSvc.exportCanvasesToWebm(canvases, 3000, 'presentation.webm');
+			const canvases = await this.captureSlideCanvases(controller.signal, 'Capturing', 45);
+			this.exportProgress.set(EXPORT_ASSEMBLING_PERCENT);
+			this.exportStatusMessage.set('Recording video...');
+			await this.exportSvc.exportCanvasesToWebm(
+				canvases,
+				3000,
+				'presentation.webm',
+				controller.signal,
+				(current, total) => {
+					this.exportProgress.set(recordProgressPercent(current, total));
+					this.exportStatusMessage.set(slideStatusLabel('Recording', current, total));
+				},
+			);
+			this.exportProgress.set(EXPORT_DONE_PERCENT);
+		} catch (err) {
+			if (!isExportAbortError(err)) {
+				console.error('[PowerPointViewer] Video export failed:', err);
+			}
 		} finally {
-			this.exporting.set(false);
+			this.endExport();
 		}
 	}
 }

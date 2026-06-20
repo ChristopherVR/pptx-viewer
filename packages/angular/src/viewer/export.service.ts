@@ -201,17 +201,20 @@ export class ExportService {
 	 * @param slideDurationMs - Display time per slide in milliseconds.
 	 * @param fileName        - Suggested download file name.
 	 * @param signal          - Optional abort signal to cancel recording.
+	 * @param onProgress      - Optional per-slide recording progress callback
+	 *                          `(currentSlide, totalSlides)`.
 	 */
 	async exportCanvasesToWebm(
 		canvases: HTMLCanvasElement[],
 		slideDurationMs: number,
 		fileName: string,
 		signal?: AbortSignal,
+		onProgress?: (current: number, total: number) => void,
 	): Promise<void> {
 		if (canvases.length === 0) {
 			throw new Error('[ExportService] No slide canvases provided for video export');
 		}
-		const blob = await recordWebm(canvases, { slideDurationMs, signal });
+		const blob = await recordWebm(canvases, { slideDurationMs, signal, onProgress });
 		downloadBlob(blob, sanitizeFileName(fileName));
 	}
 }
