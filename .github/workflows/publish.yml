@@ -1,25 +1,39 @@
-name: Publish to npm
+name: Publish to npm (manual)
 
 # ──────────────────────────────────────────────────────────────
-# Publish to npm with provenance
+# MANUAL re-publish fallback for a specific tag.
+#
+# Automatic publishing is handled by the `publish` job inside release.yml,
+# which runs immediately after GitHub releases are cut. That job sidesteps
+# the GitHub limitation where GITHUB_TOKEN-triggered `release` events do not
+# fire other workflows.
+#
+# Use this workflow when you need to re-publish a tag that was skipped or
+# failed in the automated run:
+#
+#   gh workflow run publish.yml -f tag=pptx-viewer-core@1.2.3
+#
 # Auth: OIDC trusted publishing (default) or NPM_TOKEN secret.
 #   - OIDC: requires Node 24+ (npm >= 11.5.1) and linked
 #     publishers configured on npmjs.com for each package.
 #   - Token fallback: set NPM_TOKEN secret in the "npm"
 #     environment to use token auth instead.
 #
-# Packages are versioned and released INDEPENDENTLY: every GitHub release
-# carries a `<npm-name>@<version>` tag and triggers this workflow, which
-# publishes exactly that one package at that version.
-#
-#   pptx-viewer-core    → https://www.npmjs.com/package/pptx-viewer-core
-#   pptx-react-viewer   → https://www.npmjs.com/package/pptx-react-viewer
-#   pptx-vue-viewer     → https://www.npmjs.com/package/pptx-vue-viewer
-#   pptx-angular-viewer → https://www.npmjs.com/package/pptx-angular-viewer
-#   pptx-viewer-mcp     → https://www.npmjs.com/package/pptx-viewer-mcp
+# Packages published per tag:
+#   pptx-viewer-core    → pptx-viewer-core + @christophervr/pptx-viewer
+#   pptx-react-viewer   → pptx-react-viewer
+#   pptx-vue-viewer     → pptx-vue-viewer
+#   pptx-angular-viewer → pptx-angular-viewer
+#   pptx-viewer-mcp     → pptx-viewer-mcp
 # ──────────────────────────────────────────────────────────────
 
 on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish (e.g. pptx-viewer-core@1.2.3)'
+        required: true
+        type: string
   release:
     types: [published]
 
@@ -67,7 +81,7 @@ jobs:
       - name: Parse release tag
         id: tag
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
         run: |
           TAG="$RELEASE_TAG"
           echo "name=${TAG%@*}" >> "$GITHUB_OUTPUT"
@@ -106,6 +120,7 @@ jobs:
           done
 
       # https://www.npmjs.com/package/pptx-viewer-core
+      # https://www.npmjs.com/package/@christophervr/pptx-viewer
       - name: Publish pptx-viewer-core
         if: steps.tag.outputs.name == 'pptx-viewer-core'
         working-directory: packages/core
@@ -119,6 +134,17 @@ jobs:
             echo "pptx-viewer-core@$VERSION already published, skipping"
           else
             npm publish --provenance --access public
+          fi
+          # Also publish as scoped alias @christophervr/pptx-viewer so consumers
+          # using that scope stay in sync. OIDC trusted publishing for this name
+          # must be configured separately on npmjs.com.
+          SCOPED_EXISTING=$(npm view @christophervr/pptx-viewer@"$VERSION" version 2>/dev/null || echo "")
+          if [ "$SCOPED_EXISTING" = "$VERSION" ]; then
+            echo "@christophervr/pptx-viewer@$VERSION already published, skipping"
+          else
+            npm pkg set name="@christophervr/pptx-viewer"
+            npm publish --provenance --access public
+            npm pkg set name="pptx-viewer-core"
           fi
 
       # https://www.npmjs.com/package/pptx-react-viewer
