@@ -127,6 +127,7 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				:on-add-text-box="props.onAddTextBox"
 				:on-add-shape="props.onAddShape"
 				:on-add-table="props.onAddTable"
+				:on-add-chart="props.onAddChart"
 				:on-add-smart-art="props.onAddSmartArt"
 				:on-add-equation="props.onAddEquation"
 				:on-add-action-button="props.onAddActionButton"

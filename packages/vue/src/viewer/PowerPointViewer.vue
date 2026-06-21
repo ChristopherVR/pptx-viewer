@@ -25,6 +25,7 @@ import {
 import type {
 	MasterViewTab,
 	PptxAnimationPreset,
+	PptxChartType,
 	PptxData,
 	PptxElement,
 	PptxElementAnimation,
@@ -38,7 +39,12 @@ import type {
 	TextStyle,
 } from 'pptx-viewer-core';
 import type { AlignEdge } from 'pptx-viewer-shared';
-import { alignElements, applyDragDelta, openPptxFile } from 'pptx-viewer-shared';
+import {
+	alignElements,
+	applyDragDelta,
+	createDefaultChartElement,
+	openPptxFile,
+} from 'pptx-viewer-shared';
 import { computed, nextTick, provide, ref, toRef, watch } from 'vue';
 
 import { provideViewerTheme, useThemeStyle } from '../theme';
@@ -711,6 +717,14 @@ function addTable(): void {
 		},
 	} as unknown as PptxElement;
 	centreNewElement(el, 600, 250);
+	ops.addElement(el);
+	selectedElementIds.value = [el.id];
+}
+
+/** Insert a default chart of the given type, centred on the slide. */
+function addChart(chartType: PptxChartType): void {
+	const el = createDefaultChartElement(chartType) as PptxElement;
+	centreNewElement(el, el.width, el.height);
 	ops.addElement(el);
 	selectedElementIds.value = [el.id];
 }
@@ -2083,6 +2097,7 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	onAddTextBox: addText,
 	onAddShape: () => addShape(toShapePreset(newShapeType.value)),
 	onAddTable: addTable,
+	onAddChart: addChart,
 	onAddSmartArt: () => {
 		showInsertSmartArt.value = true;
 	},

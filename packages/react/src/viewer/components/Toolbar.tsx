@@ -153,6 +153,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							onAddTextBox={p.onAddTextBox}
 							onAddShape={p.onAddShape}
 							onAddTable={p.onAddTable}
+							onAddChart={p.onAddChart}
 							onAddSmartArt={p.onAddSmartArt}
 							onAddEquation={p.onAddEquation}
 							onAddActionButton={p.onAddActionButton}

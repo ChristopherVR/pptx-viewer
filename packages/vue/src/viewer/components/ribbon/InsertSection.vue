@@ -30,7 +30,8 @@ import {
  * CSS `group-hover` (no state), exactly as React; only the Date/Time modal keeps
  * reactive state.
  */
-import type { ActionButtonPreset } from 'pptx-viewer-core';
+import type { ActionButtonPreset, PptxChartType } from 'pptx-viewer-core';
+import { DEFAULT_INSERT_CHART_TYPE, INSERT_CHART_TYPES } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import type { Component } from 'vue';
 
@@ -44,6 +45,7 @@ interface Props {
 	onAddTextBox: () => void;
 	onAddShape: () => void;
 	onAddTable: () => void;
+	onAddChart?: (chartType: PptxChartType) => void;
 	onAddSmartArt: () => void;
 	onAddEquation: () => void;
 	onAddActionButton: (shapeType: string) => void;
@@ -186,6 +188,10 @@ const activeShapePreset = computed(() =>
 	SHAPE_PRESETS.find((sp) => sp.type === props.newShapeType),
 );
 
+/** The chart type chosen in the insert dropdown (mirrors React's `newChartType`). */
+const newChartType = ref<PptxChartType>(DEFAULT_INSERT_CHART_TYPE);
+const chartTypes = INSERT_CHART_TYPES;
+
 /* Date/Time picker modal state: React's local `useState` + outside-click. */
 const datePickerOpen = ref(false);
 const datePickerValue = ref('');
@@ -327,6 +333,40 @@ function previewTime(): string {
 		<Database :class="ic" />
 		Table
 	</button>
+	<div v-if="props.onAddChart" :class="grp">
+		<select
+			:value="newChartType"
+			class="bg-transparent py-1.5 pl-2 pr-1 outline-none text-xs"
+			title="Chart type"
+			@change="newChartType = ($event.target as HTMLSelectElement).value as PptxChartType"
+		>
+			<option v-for="ct in chartTypes" :key="ct.type" :value="ct.type" class="bg-background">
+				{{ ct.label }}
+			</option>
+		</select>
+		<button
+			:disabled="!canEdit"
+			class="inline-flex items-center gap-1.5 px-2.5 py-1.5 border-l border-border hover:bg-accent transition-colors text-xs"
+			title="Insert chart"
+			@click="props.onAddChart(newChartType)"
+		>
+			<svg
+				:class="ic"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
+				<path d="M3 3v18h18" />
+				<rect x="7" y="11" width="3" height="6" />
+				<rect x="12" y="7" width="3" height="10" />
+				<rect x="17" y="13" width="3" height="4" />
+			</svg>
+			Chart
+		</button>
+	</div>
 	<button :disabled="!canEdit" :class="pill" title="Insert SmartArt" @click="props.onAddSmartArt()">
 		<Layers :class="ic" />
 		SmartArt

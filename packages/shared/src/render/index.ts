@@ -40,6 +40,7 @@ export * from './chart-helpers';
 export * from './chart-trendlines';
 export * from './chart-axis';
 export * from './chart-palette';
+export * from './chart-datapoint-style';
 export * from './chart-sparkline';
 // SVG-primitive chart engine. Its low-level helpers `ValueRange` / `PlotLayout`
 // / `valueToY` / `formatAxisValue` / `computeValueRange` / `seriesColor` /
@@ -353,3 +354,8 @@ export * from './mobile-chrome';
 export * from './gradient-picker';
 // Active-slide comment-array transforms (add/remove/toggle-resolved).
 export * from './comments-list';
+// Insert-chart factory: a sensible DEFAULT new `ChartPptxElement` (three sample
+// categories, one "Series 1", legend on, default position) plus the chart-type
+// list shown in the insert dropdown. The single source of truth every binding's
+// "Insert > Chart" toolbar action calls; wraps core's `createChartElement`.
+export * from './insert-chart';

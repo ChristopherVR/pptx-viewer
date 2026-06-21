@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 
 import type { XmlObject } from '../types';
-import { applyChartAxisTitleToXml } from './chart-axis-title-serializer';
+import {
+	applyChartAxisTitleToXml,
+	applyChartAxisTitleStyleToXml,
+} from './chart-axis-title-serializer';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -94,5 +97,49 @@ describe('applyChartAxisTitleToXml', () => {
 		const before = JSON.stringify(node);
 		applyChartAxisTitleToXml(node, '', getLocalName);
 		expect(JSON.stringify(node)).toBe(before);
+	});
+});
+
+describe('applyChartAxisTitleStyleToXml', () => {
+	function axisWithTitle(): XmlObject {
+		return {
+			'c:axId': { '@_val': '1' },
+			'c:scaling': {},
+			'c:title': {
+				'c:tx': { 'c:rich': { 'a:p': { 'a:r': { 'a:t': 'Sales' } } } },
+				'c:overlay': { '@_val': '0' },
+			},
+		};
+	}
+
+	it('writes font family/size/bold/colour into title txPr defRPr', () => {
+		const node = axisWithTitle();
+		applyChartAxisTitleStyleToXml(
+			node,
+			{ fontFamily: 'Calibri', fontSize: 12, fontBold: true, fontColor: '#FF0000' },
+			getLocalName,
+		);
+		const title = node['c:title'] as XmlObject;
+		const txPr = title['c:txPr'] as XmlObject;
+		const p = txPr['a:p'] as XmlObject;
+		const defRPr = (p['a:pPr'] as XmlObject)['a:defRPr'] as XmlObject;
+		expect(defRPr['@_sz']).toBe('1200');
+		expect(defRPr['@_b']).toBe('1');
+		expect((defRPr['a:latin'] as XmlObject)['@_typeface']).toBe('Calibri');
+		const fill = defRPr['a:solidFill'] as XmlObject;
+		expect((fill['a:srgbClr'] as XmlObject)['@_val']).toBe('FF0000');
+	});
+
+	it('no-ops when no style fields are provided', () => {
+		const node = axisWithTitle();
+		const before = JSON.stringify(node);
+		applyChartAxisTitleStyleToXml(node, {}, getLocalName);
+		expect(JSON.stringify(node)).toBe(before);
+	});
+
+	it('no-ops when the axis has no title', () => {
+		const node: XmlObject = { 'c:axId': { '@_val': '1' }, 'c:scaling': {} };
+		applyChartAxisTitleStyleToXml(node, { fontSize: 10 }, getLocalName);
+		expect(node['c:title']).toBeUndefined();
 	});
 });

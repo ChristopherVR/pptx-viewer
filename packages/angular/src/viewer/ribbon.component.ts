@@ -30,12 +30,14 @@ import {
 } from '@angular/core';
 import type {
 	PptxAnimationPreset,
+	PptxChartType,
 	PptxElement,
 	PptxSlide,
 	PptxTransitionType,
 } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
+import { INSERT_CHART_TYPES, DEFAULT_INSERT_CHART_TYPE } from '../internal/shared';
 import {
 	EMPHASIS_PRESETS,
 	ENTRANCE_PRESETS,
@@ -46,6 +48,7 @@ import {
 	setAnimationExit,
 } from './animation-author-helpers';
 import {
+	newChartElement,
 	newEquationElement,
 	newShapeElement,
 	newSmartArtElement,
@@ -450,6 +453,19 @@ const TEXT_COLORS = [
 								title="Insert SmartArt diagram"
 							>
 								◈ SmartArt
+							</button>
+							<select
+								class="pptx-rb-gl"
+								title="Chart type"
+								[value]="newChartType()"
+								(change)="setNewChartType($event)"
+							>
+								@for (ct of chartTypes; track ct.type) {
+									<option [value]="ct.type">{{ ct.label }}</option>
+								}
+							</select>
+							<button type="button" class="pptx-rb-gb" (click)="insertChart()" title="Insert chart">
+								▥ Chart
 							</button>
 							<button
 								type="button"
@@ -1181,6 +1197,12 @@ export class RibbonComponent {
 
 	protected readonly activeTab = signal<RibbonTab>('home');
 
+	// ── Insert tab state ──────────────────────────────────────────────────────
+	/** Chart types offered in the Insert tab dropdown (shared source of truth). */
+	protected readonly chartTypes = INSERT_CHART_TYPES;
+	/** The chart type currently chosen in the Insert tab dropdown. */
+	protected readonly newChartType = signal<PptxChartType>(DEFAULT_INSERT_CHART_TYPE);
+
 	// ── Draw tab state ────────────────────────────────────────────────────────
 	/** Active drawing tool (UI state only; no ink back-end yet). */
 	protected readonly activeTool = signal<DrawTool>('select');
@@ -1244,6 +1266,12 @@ export class RibbonComponent {
 	}
 	protected insertSmartArt(): void {
 		this.editor.addElement(this.slideIndex(), newSmartArtElement());
+	}
+	protected setNewChartType(event: Event): void {
+		this.newChartType.set((event.target as HTMLSelectElement).value as PptxChartType);
+	}
+	protected insertChart(): void {
+		this.editor.addElement(this.slideIndex(), newChartElement(this.newChartType()));
 	}
 	protected insertEquation(): void {
 		this.editor.addElement(this.slideIndex(), newEquationElement());

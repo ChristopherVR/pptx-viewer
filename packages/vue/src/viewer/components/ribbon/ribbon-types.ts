@@ -10,6 +10,7 @@
  * them, so the ribbon degrades gracefully during the incremental wire-up.
  */
 import type {
+	PptxChartType,
 	PptxCustomShow,
 	PptxElement,
 	PptxSlide,
@@ -155,6 +156,7 @@ export interface RibbonProps {
 	onAddTextBox: () => void;
 	onAddShape: () => void;
 	onAddTable: () => void;
+	onAddChart?: (chartType: PptxChartType) => void;
 	onAddSmartArt: () => void;
 	onAddEquation: () => void;
 	onAddActionButton: (shapeType: string) => void;

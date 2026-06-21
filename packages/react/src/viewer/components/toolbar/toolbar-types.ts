@@ -2,6 +2,7 @@ import type {
 	PptxElement,
 	PptxSlide,
 	PptxSlideTransition,
+	PptxChartType,
 	TextStyle,
 	PptxCustomShow,
 } from 'pptx-viewer-core';
@@ -58,6 +59,7 @@ export interface ToolbarProps {
 	onAddTextBox: () => void;
 	onAddShape: () => void;
 	onAddTable: () => void;
+	onAddChart?: (chartType: PptxChartType) => void;
 	onAddSmartArt: () => void;
 	onAddEquation: () => void;
 	onAddActionButton: (shapeType: string) => void;

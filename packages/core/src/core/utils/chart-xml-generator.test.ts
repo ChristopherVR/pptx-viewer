@@ -107,4 +107,34 @@ describe('buildChartSpaceXml', () => {
 			'@_val': '1',
 		});
 	});
+
+	it('writes a series colour as a solidFill srgbClr (hex without #, upper-cased)', () => {
+		const pa = plotArea(
+			buildChartSpaceXml(
+				makeData({ series: [{ name: 'Revenue', values: [1], color: '#4472c4' }] }),
+			),
+		);
+		const ser = (pa['c:barChart'] as XmlObject)['c:ser'] as XmlObject[];
+		const spPr = ser[0]['c:spPr'] as XmlObject;
+		const fill = spPr['a:solidFill'] as XmlObject;
+		expect((fill['a:srgbClr'] as XmlObject)['@_val']).toBe('4472C4');
+	});
+
+	it('wraps a line-series colour in a:ln for line charts', () => {
+		const pa = plotArea(
+			buildChartSpaceXml(
+				makeData({ chartType: 'line', series: [{ name: 'A', values: [1], color: '#FF0000' }] }),
+			),
+		);
+		const ser = (pa['c:lineChart'] as XmlObject)['c:ser'] as XmlObject[];
+		const spPr = ser[0]['c:spPr'] as XmlObject;
+		const ln = spPr['a:ln'] as XmlObject;
+		expect(((ln['a:solidFill'] as XmlObject)['a:srgbClr'] as XmlObject)['@_val']).toBe('FF0000');
+	});
+
+	it('omits c:spPr when a series has no colour', () => {
+		const pa = plotArea(buildChartSpaceXml(makeData()));
+		const ser = (pa['c:barChart'] as XmlObject)['c:ser'] as XmlObject[];
+		expect(ser[0]['c:spPr']).toBeUndefined();
+	});
 });

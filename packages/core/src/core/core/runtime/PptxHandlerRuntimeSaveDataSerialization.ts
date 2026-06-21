@@ -10,10 +10,16 @@ import type {
 import { applyChartAxisDisplayUnitsToXml } from '../../utils/chart-axis-dispunits-serializer';
 import { applyChartAxisGridlinesToXml } from '../../utils/chart-axis-gridlines-serializer';
 import { upsertChartAxisChild } from '../../utils/chart-axis-parser';
-import { applyChartAxisTitleToXml } from '../../utils/chart-axis-title-serializer';
+import {
+	applyChartAxisTitleToXml,
+	applyChartAxisTitleStyleToXml,
+} from '../../utils/chart-axis-title-serializer';
+import { applyComboSeriesTypesToXml } from '../../utils/chart-combo-serializer';
 import { applyChartDataLabelsToXml } from '../../utils/chart-data-labels-serializer';
+import { applySeriesDataPointsToXml } from '../../utils/chart-datapoint-serializer';
 import { applySeriesErrBarsToXml } from '../../utils/chart-errbars-serializer';
 import { applyChartLegendToXml } from '../../utils/chart-legend-serializer';
+import { applySeriesMarkerToXml } from '../../utils/chart-marker-serializer';
 import { applySeriesTrendlinesToXml } from '../../utils/chart-trendline-serializer';
 import { xmlChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveTableStyles';
@@ -280,20 +286,28 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						this.updateChartCacheValues(valNode, true, seriesData.values.map(String));
 					}
 
-					// Update series colour
+					// Update series colour. Create `c:spPr`/`a:solidFill` when the
+					// loaded series has none so an inspector-edited colour always
+					// round-trips, not just when an original fill was present.
 					if (seriesData.color) {
-						const spPr = this.xmlLookupService.getChildByLocalName(seriesNode, 'spPr');
+						const hex = seriesData.color.replace('#', '');
+						const spPr = this.xmlLookupService.getChildByLocalName(seriesNode, 'spPr') as
+							| XmlObject
+							| undefined;
 						if (spPr) {
-							const solidFillKey = Object.keys(spPr).find(
-								(k) => this.compatibilityService.getXmlLocalName(k) === 'solidFill',
-							);
-							if (solidFillKey) {
-								(spPr as XmlObject)[solidFillKey] = {
-									'a:srgbClr': {
-										'@_val': seriesData.color.replace('#', ''),
-									},
-								};
-							}
+							const solidFillKey =
+								Object.keys(spPr).find(
+									(k) => this.compatibilityService.getXmlLocalName(k) === 'solidFill',
+								) ?? 'a:solidFill';
+							spPr[solidFillKey] = { 'a:srgbClr': { '@_val': hex } };
+						} else {
+							const spPrKey =
+								Object.keys(seriesNode).find(
+									(k) => this.compatibilityService.getXmlLocalName(k) === 'spPr',
+								) ?? 'c:spPr';
+							(seriesNode as XmlObject)[spPrKey] = {
+								'a:solidFill': { 'a:srgbClr': { '@_val': hex } },
+							};
 						}
 					}
 
@@ -307,6 +321,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					// Error bars (per-series). Undefined = no edit / passthrough.
 					if (seriesData.errBars !== undefined) {
 						applySeriesErrBarsToXml(seriesNode, seriesData.errBars, (key) =>
+							this.compatibilityService.getXmlLocalName(key),
+						);
+					}
+
+					// Marker (per-series, line/scatter/bubble/radar). Undefined = passthrough.
+					if (seriesData.marker !== undefined) {
+						applySeriesMarkerToXml(seriesNode, seriesData.marker, (key) =>
+							this.compatibilityService.getXmlLocalName(key),
+						);
+					}
+
+					// Per-data-point overrides (c:dPt). Undefined = passthrough.
+					if (seriesData.dataPoints !== undefined) {
+						applySeriesDataPointsToXml(seriesNode, seriesData.dataPoints, (key) =>
 							this.compatibilityService.getXmlLocalName(key),
 						);
 					}
@@ -352,6 +380,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					if (chartData.series.length === 1) {
 						chartTypeContainer[seriesKey] = (chartTypeContainer[seriesKey] as XmlObject[])[0];
 					}
+				}
+
+				// ── Per-series combo types ────────────────────────────
+				// When series carry differing `seriesChartType` values, split the
+				// single chart-type container into per-type sibling containers under
+				// c:plotArea (PowerPoint's combo-chart shape).
+				if (chartData.series.some((s) => s.seriesChartType !== undefined)) {
+					applyComboSeriesTypesToXml(
+						plotArea,
+						chartTypeKey,
+						chartData.series,
+						chartData.chartType,
+						(key) => this.compatibilityService.getXmlLocalName(key),
+					);
 				}
 
 				// Update chart title
@@ -572,6 +614,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 							// Axis title (undefined = no edit, '' = remove)
 							applyChartAxisTitleToXml(axisNode, matchingAxis.titleText, (key) =>
 								this.compatibilityService.getXmlLocalName(key),
+							);
+
+							// Axis title font styling (family/size/bold/colour) onto c:txPr
+							applyChartAxisTitleStyleToXml(
+								axisNode,
+								{
+									fontFamily: matchingAxis.fontFamily,
+									fontSize: matchingAxis.fontSize,
+									fontBold: matchingAxis.fontBold,
+									fontColor: matchingAxis.fontColor,
+								},
+								(key) => this.compatibilityService.getXmlLocalName(key),
 							);
 
 							// Major/minor gridlines (undefined = no edit)

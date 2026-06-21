@@ -140,3 +140,86 @@ export function applyChartAxisTitleToXml(
 	}
 	insertTitleOrdered(axisNode, buildTitle(titleText), getLocalName);
 }
+
+/** Font styling applied to an axis title's text runs. */
+export interface ChartAxisTitleStyle {
+	fontFamily?: string;
+	fontSize?: number;
+	fontBold?: boolean;
+	fontColor?: string;
+}
+
+function hex(color: string): string {
+	return color.replace(/^#/u, '').toUpperCase();
+}
+
+/** Build the `a:defRPr` run-properties carrying the modeled font styling. */
+function buildDefRPr(style: ChartAxisTitleStyle): XmlObject {
+	const rPr: XmlObject = {};
+	if (style.fontSize !== undefined) {
+		// OOXML font size is in hundredths of a point.
+		rPr['@_sz'] = String(Math.round(style.fontSize * 100));
+	}
+	if (style.fontBold !== undefined) {
+		rPr['@_b'] = style.fontBold ? '1' : '0';
+	}
+	if (style.fontColor) {
+		rPr['a:solidFill'] = { 'a:srgbClr': { '@_val': hex(style.fontColor) } };
+	}
+	if (style.fontFamily) {
+		rPr['a:latin'] = { '@_typeface': style.fontFamily };
+	}
+	return rPr;
+}
+
+/**
+ * Apply font styling (family/size/bold/colour) onto an axis title's `c:txPr`.
+ * Requires a `c:title` to be present already (set via
+ * {@link applyChartAxisTitleToXml}); no-ops otherwise. When no style fields are
+ * provided this leaves the node untouched. Mutates `axisNode` in place.
+ */
+export function applyChartAxisTitleStyleToXml(
+	axisNode: XmlObject,
+	style: ChartAxisTitleStyle,
+	getLocalName: GetLocalName,
+): void {
+	const hasAny =
+		style.fontFamily !== undefined ||
+		style.fontSize !== undefined ||
+		style.fontBold !== undefined ||
+		style.fontColor !== undefined;
+	if (!hasAny) {
+		return;
+	}
+	const titleKey = findKey(axisNode, 'title', getLocalName);
+	if (!titleKey) {
+		return;
+	}
+	const title: XmlObject = { ...((axisNode[titleKey] as XmlObject | undefined) ?? {}) };
+	const txPrKey = findKey(title, 'txPr', getLocalName) ?? 'c:txPr';
+	const txPr: XmlObject = { ...((title[txPrKey] as XmlObject | undefined) ?? {}) };
+
+	// c:txPr := a:bodyPr, a:lstStyle, a:p (> a:pPr > a:defRPr). The run defaults
+	// that carry font styling live in a:p/a:pPr/a:defRPr, never directly on txPr.
+	if (!txPr[findKey(txPr, 'bodyPr', getLocalName) ?? 'a:bodyPr']) {
+		txPr['a:bodyPr'] = {};
+	}
+	if (!txPr[findKey(txPr, 'lstStyle', getLocalName) ?? 'a:lstStyle']) {
+		txPr['a:lstStyle'] = {};
+	}
+	const pKey = findKey(txPr, 'p', getLocalName) ?? 'a:p';
+	const existingP = txPr[pKey];
+	const para: XmlObject = {
+		...((Array.isArray(existingP) ? existingP[0] : (existingP as XmlObject | undefined)) ?? {}),
+	};
+	const pPrKey = findKey(para, 'pPr', getLocalName) ?? 'a:pPr';
+	const pPr: XmlObject = { ...((para[pPrKey] as XmlObject | undefined) ?? {}) };
+	const defRPrKey = findKey(pPr, 'defRPr', getLocalName) ?? 'a:defRPr';
+	const existingDefRPr = (pPr[defRPrKey] as XmlObject | undefined) ?? {};
+	pPr[defRPrKey] = { ...existingDefRPr, ...buildDefRPr(style) };
+	para[pPrKey] = pPr;
+	txPr[pKey] = para;
+
+	title[txPrKey] = txPr;
+	axisNode[titleKey] = title;
+}

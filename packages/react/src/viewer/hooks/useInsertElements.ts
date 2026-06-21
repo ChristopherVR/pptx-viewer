@@ -6,11 +6,13 @@
 import type {
 	PptxElement,
 	PptxSlide,
+	PptxChartType,
 	TextPptxElement,
 	ShapePptxElement,
 	InkPptxElement,
 	SmartArtLayout,
 } from 'pptx-viewer-core';
+import { createDefaultChartElement } from 'pptx-viewer-shared';
 
 import type { HyperlinkEditData } from '../components/hyperlink-edit-types';
 import { DEFAULT_TABLE_ROWS, DEFAULT_TABLE_COLUMNS, DEFAULT_TEXT_FONT_SIZE } from '../constants';
@@ -35,6 +37,7 @@ export interface InsertElementHandlers {
 	handleAddTextBox: () => void;
 	handleAddShape: () => void;
 	handleAddTable: () => void;
+	handleAddChart: (chartType: PptxChartType) => void;
 	handleInsertSmartArt: (layout: SmartArtLayout, defaultItems: string[]) => void;
 	handleInsertEquation: (omml: Record<string, unknown>) => void;
 	handleHyperlinkConfirm: (data: HyperlinkEditData) => void;
@@ -129,6 +132,13 @@ export function useInsertElements(input: UseInsertElementsInput): InsertElementH
 		} as PptxElement);
 	};
 
+	const handleAddChart = (chartType: PptxChartType) => {
+		if (!activeSlide) {
+			return;
+		}
+		addElement(createDefaultChartElement(chartType));
+	};
+
 	const structured = createStructuredElementHandlers({
 		activeSlide,
 		activeSlideIndex,
@@ -179,6 +189,7 @@ export function useInsertElements(input: UseInsertElementsInput): InsertElementH
 		handleAddTextBox,
 		handleAddShape,
 		handleAddTable,
+		handleAddChart,
 		...structured,
 		handleAddInkElement,
 		handleAddFreeformShape,
