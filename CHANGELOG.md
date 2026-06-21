@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [Unreleased]
+
+### Features
+
+- **core:** Round-trip any Strict OOXML namespace via structural derivation (by @ChristopherVR) ([6992489](https://github.com/ChristopherVR/pptx-viewer/commit/69924894a5e0bddf80291702c9315caae276cba6))
+
+### Documentation
+
+- Mark Strict OOXML conformance as fully round-tripping (by @ChristopherVR) ([ed06a4a](https://github.com/ChristopherVR/pptx-viewer/commit/ed06a4a6e3cb69ef7bd6bb2b4925eaa4fea39220))
+
 ## [1.1.33](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.33) - 2026-06-21
 
 ### Documentation
