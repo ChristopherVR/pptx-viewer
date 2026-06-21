@@ -257,15 +257,92 @@ const TRANSITIONAL_TO_STRICT_NS: ReadonlyMap<string, string> = new Map(
 );
 
 // ---------------------------------------------------------------------------
+// Algorithmic Strict ↔ Transitional derivation
+// ---------------------------------------------------------------------------
+//
+// The explicit map above enumerates the well-known pairs, but the Strict and
+// Transitional namespace forms are related by a deterministic structural rule,
+// not an arbitrary lookup:
+//
+//   Strict:        http://purl.oclc.org/ooxml/<family>/<tail...>
+//   Transitional:  http://schemas.openxmlformats.org/<family>/2006/<tail...>
+//
+// i.e. the host changes and a `2006` version segment is inserted right after
+// the family segment. Deriving the pair algorithmically lets ANY namespace in
+// a remapped family round-trip, not just the ones spelled out in the map, so a
+// strict-only relationship type or DrawingML sub-namespace that is not
+// enumerated still normalises on load and converts back on save.
+
+const STRICT_BASE = 'http://purl.oclc.org/ooxml/';
+const TRANSITIONAL_BASE = 'http://schemas.openxmlformats.org/';
+
+/**
+ * Namespace families that follow the uniform host-swap + `2006`-segment rule.
+ *
+ * The Open Packaging Conventions (`package/*`) and Markup Compatibility
+ * (`markup-compatibility/2006`) families are intentionally excluded: OPC parts
+ * are conformance-independent and MCE carries its own trailing `2006` segment,
+ * so deriving them structurally would mis-spell URIs the spec does not remap.
+ * Those families are covered exhaustively by the explicit map instead, which
+ * stays authoritative.
+ */
+const ALGORITHMIC_FAMILIES: ReadonlySet<string> = new Set([
+	'presentationml',
+	'drawingml',
+	'spreadsheetml',
+	'wordprocessingml',
+	'officeDocument',
+]);
+
+/**
+ * Derive the Transitional form of a Strict URI in a remapped family, or
+ * `undefined` if the URI is not a Strict URI in one of those families.
+ */
+function deriveTransitionalUri(uri: string): string | undefined {
+	if (!uri.startsWith(STRICT_BASE)) {
+		return undefined;
+	}
+	const segments = uri.slice(STRICT_BASE.length).split('/');
+	if (segments.length < 2 || !ALGORITHMIC_FAMILIES.has(segments[0])) {
+		return undefined;
+	}
+	// Insert the `2006` version segment after the family (idempotent if present).
+	if (segments[1] !== '2006') {
+		segments.splice(1, 0, '2006');
+	}
+	return TRANSITIONAL_BASE + segments.join('/');
+}
+
+/**
+ * Derive the Strict form of a Transitional URI in a remapped family, or
+ * `undefined` if the URI is not a versioned Transitional URI in one of them.
+ * This is the exact inverse of {@link deriveTransitionalUri} on that domain.
+ */
+function deriveStrictUri(uri: string): string | undefined {
+	if (!uri.startsWith(TRANSITIONAL_BASE)) {
+		return undefined;
+	}
+	const segments = uri.slice(TRANSITIONAL_BASE.length).split('/');
+	if (segments.length < 3 || !ALGORITHMIC_FAMILIES.has(segments[0]) || segments[1] !== '2006') {
+		return undefined;
+	}
+	// Remove the `2006` version segment that sits after the family.
+	segments.splice(1, 1);
+	return STRICT_BASE + segments.join('/');
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
 /**
  * Convert a Strict Open XML namespace URI to its Transitional equivalent.
- * If the URI is already Transitional (or unknown), it is returned unchanged.
+ * The explicit map takes precedence; any other Strict URI in a remapped family
+ * is derived structurally. If the URI is already Transitional (or unknown), it
+ * is returned unchanged.
  */
 export function normalizeNamespaceUri(uri: string): string {
-	return STRICT_TO_TRANSITIONAL_NS.get(uri) ?? uri;
+	return STRICT_TO_TRANSITIONAL_NS.get(uri) ?? deriveTransitionalUri(uri) ?? uri;
 }
 
 /**
@@ -323,29 +400,20 @@ export function normalizeStrictXml(node: Record<string, unknown>): Record<string
 		// Normalize namespace declaration attribute values
 		if (key.startsWith('@_xmlns')) {
 			if (typeof value === 'string') {
-				const mapped = STRICT_TO_TRANSITIONAL_NS.get(value);
-				if (mapped) {
-					node[key] = mapped;
-				}
+				node[key] = normalizeNamespaceUri(value);
 			}
 			continue;
 		}
 
 		// Normalize relationship type attribute values
 		if (key === '@_Type' && typeof value === 'string') {
-			const mapped = STRICT_TO_TRANSITIONAL_NS.get(value);
-			if (mapped) {
-				node[key] = mapped;
-			}
+			node[key] = normalizeNamespaceUri(value);
 			continue;
 		}
 
 		// Normalize @_uri attribute values (e.g., on extension elements)
 		if (key === '@_uri' && typeof value === 'string') {
-			const mapped = STRICT_TO_TRANSITIONAL_NS.get(value);
-			if (mapped) {
-				node[key] = mapped;
-			}
+			node[key] = normalizeNamespaceUri(value);
 			continue;
 		}
 
@@ -371,17 +439,20 @@ export function normalizeStrictXml(node: Record<string, unknown>): Record<string
 
 /**
  * Convert a Transitional Open XML namespace URI to its Strict equivalent.
- * If the URI is already Strict (or unknown), it is returned unchanged.
+ * The explicit map takes precedence; any other versioned Transitional URI in a
+ * remapped family is derived structurally. If the URI is already Strict (or
+ * unknown), it is returned unchanged.
  */
 export function toStrictNamespaceUri(uri: string): string {
-	return TRANSITIONAL_TO_STRICT_NS.get(uri) ?? uri;
+	return TRANSITIONAL_TO_STRICT_NS.get(uri) ?? deriveStrictUri(uri) ?? uri;
 }
 
 /**
- * Check whether a URI belongs to the Transitional Open XML namespace family.
+ * Check whether a URI belongs to the Transitional Open XML namespace family,
+ * either by explicit mapping or by the structural family rule.
  */
 export function isTransitionalNamespaceUri(uri: string): boolean {
-	return TRANSITIONAL_TO_STRICT_NS.has(uri);
+	return TRANSITIONAL_TO_STRICT_NS.has(uri) || deriveStrictUri(uri) !== undefined;
 }
 
 /**
@@ -420,29 +491,20 @@ export function convertXmlToStrict(
 		// Convert namespace declaration attribute values
 		if (key.startsWith('@_xmlns')) {
 			if (typeof value === 'string') {
-				const mapped = TRANSITIONAL_TO_STRICT_NS.get(value);
-				if (mapped) {
-					node[key] = mapped;
-				}
+				node[key] = toStrictNamespaceUri(value);
 			}
 			continue;
 		}
 
 		// Convert relationship type attribute values
 		if (key === '@_Type' && typeof value === 'string') {
-			const mapped = TRANSITIONAL_TO_STRICT_NS.get(value);
-			if (mapped) {
-				node[key] = mapped;
-			}
+			node[key] = toStrictNamespaceUri(value);
 			continue;
 		}
 
 		// Convert @_uri attribute values
 		if (key === '@_uri' && typeof value === 'string') {
-			const mapped = TRANSITIONAL_TO_STRICT_NS.get(value);
-			if (mapped) {
-				node[key] = mapped;
-			}
+			node[key] = toStrictNamespaceUri(value);
 			continue;
 		}
 

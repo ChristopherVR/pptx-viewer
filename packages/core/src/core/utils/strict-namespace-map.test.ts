@@ -549,6 +549,124 @@ describe('convertXmlToStrict', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Algorithmic derivation for namespaces outside the explicit map
+// ---------------------------------------------------------------------------
+
+describe('algorithmic Strict <-> Transitional derivation', () => {
+	// Strict URIs in remapped families that are NOT enumerated in the explicit
+	// map. Each should still normalize on load and round-trip back on save.
+	const unmappedFamilyPairs: ReadonlyArray<[string, string]> = [
+		// A relationship type not in the map
+		[
+			'http://purl.oclc.org/ooxml/officeDocument/relationships/calcChain',
+			'http://schemas.openxmlformats.org/officeDocument/2006/relationships/calcChain',
+		],
+		// A DrawingML sub-namespace not in the map
+		[
+			'http://purl.oclc.org/ooxml/drawingml/compatibility',
+			'http://schemas.openxmlformats.org/drawingml/2006/compatibility',
+		],
+		// A deeper officeDocument content namespace not in the map
+		[
+			'http://purl.oclc.org/ooxml/officeDocument/customXml',
+			'http://schemas.openxmlformats.org/officeDocument/2006/customXml',
+		],
+		// A SpreadsheetML sub-namespace not in the map
+		[
+			'http://purl.oclc.org/ooxml/spreadsheetml/sheetMetadata',
+			'http://schemas.openxmlformats.org/spreadsheetml/2006/sheetMetadata',
+		],
+	];
+
+	it('normalizes unmapped Strict family URIs to Transitional', () => {
+		for (const [strict, transitional] of unmappedFamilyPairs) {
+			expect(normalizeNamespaceUri(strict)).toBe(transitional);
+		}
+	});
+
+	it('converts unmapped Transitional family URIs back to Strict', () => {
+		for (const [strict, transitional] of unmappedFamilyPairs) {
+			expect(toStrictNamespaceUri(transitional)).toBe(strict);
+		}
+	});
+
+	it('round-trips unmapped family URIs losslessly (Strict -> Transitional -> Strict)', () => {
+		for (const [strict] of unmappedFamilyPairs) {
+			expect(toStrictNamespaceUri(normalizeNamespaceUri(strict))).toBe(strict);
+		}
+	});
+
+	it('recognises derived Transitional family URIs', () => {
+		for (const [, transitional] of unmappedFamilyPairs) {
+			expect(isTransitionalNamespaceUri(transitional)).toBeTruthy();
+		}
+	});
+
+	it('does NOT derive OPC / package family URIs outside the explicit map', () => {
+		// Open Packaging Conventions are conformance-independent; an unmapped
+		// package URI must be left untouched, not structurally rewritten.
+		const unmappedPackage = 'http://purl.oclc.org/ooxml/package/relationships/metadata/thumbnail';
+		expect(normalizeNamespaceUri(unmappedPackage)).toBe(unmappedPackage);
+
+		const unmappedPackageTransitional =
+			'http://schemas.openxmlformats.org/package/2006/metadata/core-properties';
+		expect(toStrictNamespaceUri(unmappedPackageTransitional)).toBe(unmappedPackageTransitional);
+		expect(isTransitionalNamespaceUri(unmappedPackageTransitional)).toBeFalsy();
+	});
+
+	it('does NOT derive markup-compatibility outside the explicit map', () => {
+		// MCE carries its own trailing version segment; only the explicit map
+		// entry (terminal 2006) converts it, never the structural rule.
+		const mcStrict = 'http://purl.oclc.org/ooxml/markup-compatibility/2007';
+		expect(normalizeNamespaceUri(mcStrict)).toBe(mcStrict);
+	});
+
+	it('leaves non-OOXML namespaces untouched in both directions', () => {
+		const microsoft = 'http://schemas.microsoft.com/office/powerpoint/2010/main';
+		const dublinCore = 'http://purl.org/dc/elements/1.1/';
+		expect(normalizeNamespaceUri(microsoft)).toBe(microsoft);
+		expect(toStrictNamespaceUri(microsoft)).toBe(microsoft);
+		expect(normalizeNamespaceUri(dublinCore)).toBe(dublinCore);
+		expect(toStrictNamespaceUri(dublinCore)).toBe(dublinCore);
+		expect(isTransitionalNamespaceUri(microsoft)).toBeFalsy();
+	});
+
+	it('normalizes unmapped family namespaces inside an XML tree', () => {
+		const xml: Record<string, unknown> = {
+			'p:sld': {
+				'@_xmlns:cc': 'http://purl.oclc.org/ooxml/drawingml/compatibility',
+				rel: { '@_Type': 'http://purl.oclc.org/ooxml/officeDocument/relationships/calcChain' },
+			},
+		};
+		normalizeStrictXml(xml);
+		const slide = xml['p:sld'] as Record<string, unknown>;
+		expect(slide['@_xmlns:cc']).toBe(
+			'http://schemas.openxmlformats.org/drawingml/2006/compatibility',
+		);
+		expect((slide['rel'] as Record<string, unknown>)['@_Type']).toBe(
+			'http://schemas.openxmlformats.org/officeDocument/2006/relationships/calcChain',
+		);
+	});
+
+	it('converts unmapped family namespaces inside an XML tree back to Strict', () => {
+		const xml: Record<string, unknown> = {
+			'p:sld': {
+				'@_xmlns:cc': 'http://schemas.openxmlformats.org/drawingml/2006/compatibility',
+				rel: {
+					'@_Type': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/calcChain',
+				},
+			},
+		};
+		convertXmlToStrict(xml);
+		const slide = xml['p:sld'] as Record<string, unknown>;
+		expect(slide['@_xmlns:cc']).toBe('http://purl.oclc.org/ooxml/drawingml/compatibility');
+		expect((slide['rel'] as Record<string, unknown>)['@_Type']).toBe(
+			'http://purl.oclc.org/ooxml/officeDocument/relationships/calcChain',
+		);
+	});
+});
+
+// ---------------------------------------------------------------------------
 // Round-trip: normalizeStrictXml -> convertXmlToStrict
 // ---------------------------------------------------------------------------
 
