@@ -46,8 +46,18 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      # Foundation packages must always build cleanly.
+      # Run the release plan FIRST (before any builds) -- it only reads git
+      # history and the npm registry, so no built artifacts are needed.
+      # `workflow_run` does not support paths: filtering, so this is also our
+      # early-exit gate: if no packages changed the plan outputs
+      # any_changed=false and all subsequent build + release steps are skipped.
+      - name: Plan release
+        id: plan
+        run: node scripts/release-plan.mjs --write
+
+      # Foundation packages must always build cleanly before framework builds.
       - name: Build foundation packages
+        if: steps.plan.outputs.any_changed == 'true'
         run: |
           bun run --filter 'pptx-viewer-core' build
           bun run --filter 'pptx-viewer-shared' build
@@ -56,27 +66,21 @@ jobs:
       # Framework bindings: each can fail without blocking the others.
       - name: Build React
         id: build-react
+        if: steps.plan.outputs.any_changed == 'true'
         run: bun run --filter 'pptx-react-viewer' build
         continue-on-error: true
 
       - name: Build Vue
         id: build-vue
+        if: steps.plan.outputs.any_changed == 'true'
         run: bun run --filter 'pptx-vue-viewer' build
         continue-on-error: true
 
       - name: Build Angular
         id: build-angular
+        if: steps.plan.outputs.any_changed == 'true'
         run: bun run --filter 'pptx-angular-viewer' build
         continue-on-error: true
-
-      # Decide, per package, whether it changed since its own last tag and what
-      # its next INDEPENDENT version is. Each package carries its own version and
-      # `<npm-name>@<version>` tag; unchanged packages are skipped entirely. See
-      # scripts/release-plan.mjs. `--write` stamps each released version into its
-      # package.json; the full plan is written to release-plan.json.
-      - name: Plan release
-        id: plan
-        run: node scripts/release-plan.mjs --write
 
       # Regenerate each released package's own CHANGELOG.md from the commits that
       # touch it (or a bundled dependency), labelling unreleased commits with the
