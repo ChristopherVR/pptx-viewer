@@ -165,7 +165,7 @@ export function flattenNodes(roots: PptxSmartArtNode[]): PptxSmartArtNode[] {
 // ── Layout family selector ────────────────────────────────────────────────────
 
 /** Canonical mapping of SmartArt named layouts → LayoutFamily. */
-const LAYOUT_FAMILY_MAP: Partial<Record<SmartArtLayout, LayoutFamily>> = {
+export const LAYOUT_FAMILY_MAP: Partial<Record<SmartArtLayout, LayoutFamily>> = {
 	basicBlockList: 'list',
 	alternatingHexagons: 'list',
 	horizontalBulletList: 'list',

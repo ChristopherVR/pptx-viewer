@@ -193,6 +193,57 @@ export const PRESETS: SmartArtPreset[] = [
 		category: 'process',
 		defaultItems: ['Phase 1', 'Phase 2', 'Phase 3'],
 	},
+	{
+		layout: 'basicTimeline',
+		label: 'Basic Timeline',
+		category: 'process',
+		defaultItems: ['2021', '2022', '2023'],
+	},
+	{
+		layout: 'bendingProcess',
+		label: 'Bending Process',
+		category: 'process',
+		defaultItems: ['Step 1', 'Step 2', 'Step 3', 'Step 4'],
+	},
+	// Relationship: target / matrix / pyramid / funnel / gear families.
+	// These share the dialog's "relationship" sidebar tab (PowerPoint groups
+	// matrix/pyramid under separate tabs, which this gallery folds into one).
+	{
+		layout: 'basicTarget',
+		label: 'Basic Target',
+		category: 'relationship',
+		defaultItems: ['Outer', 'Middle', 'Inner'],
+	},
+	{
+		layout: 'interlockingGears',
+		label: 'Interlocking Gears',
+		category: 'relationship',
+		defaultItems: ['Gear 1', 'Gear 2', 'Gear 3'],
+	},
+	{
+		layout: 'basicMatrix',
+		label: 'Basic Matrix',
+		category: 'relationship',
+		defaultItems: ['Quadrant 1', 'Quadrant 2', 'Quadrant 3', 'Quadrant 4'],
+	},
+	{
+		layout: 'basicPyramid',
+		label: 'Basic Pyramid',
+		category: 'relationship',
+		defaultItems: ['Top', 'Middle', 'Base'],
+	},
+	{
+		layout: 'invertedPyramid',
+		label: 'Inverted Pyramid',
+		category: 'relationship',
+		defaultItems: ['Wide', 'Narrower', 'Tip'],
+	},
+	{
+		layout: 'basicFunnel',
+		label: 'Basic Funnel',
+		category: 'relationship',
+		defaultItems: ['Input 1', 'Input 2', 'Input 3', 'Result'],
+	},
 ];
 
 /** Sidebar tabs, in display order. `label` is a (best-effort) i18n key. */
