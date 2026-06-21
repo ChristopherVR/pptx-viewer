@@ -46,8 +46,6 @@ export default defineConfig({
 						text: 'Angular (pptx-angular-viewer)',
 						link: 'https://www.npmjs.com/package/pptx-angular-viewer',
 					},
-					{ text: 'EMF Converter', link: '/packages/emf-converter' },
-					{ text: 'MTX Decompressor', link: '/packages/mtx-decompressor' },
 					{ text: 'MCP & Tools', link: '/packages/mcp' },
 				],
 			},
@@ -157,11 +155,7 @@ export default defineConfig({
 			'/packages/': [
 				{
 					text: 'Supporting Packages',
-					items: [
-						{ text: 'EMF Converter', link: '/packages/emf-converter' },
-						{ text: 'MTX Decompressor', link: '/packages/mtx-decompressor' },
-						{ text: 'MCP & Tools', link: '/packages/mcp' },
-					],
+					items: [{ text: 'MCP & Tools', link: '/packages/mcp' }],
 				},
 			],
 
