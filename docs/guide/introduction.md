@@ -27,17 +27,15 @@ The engine handles the full OpenXML specification including 16 element types, 18
 
 ## The packages
 
-The monorepo ships seven published packages.
+The monorepo ships five published packages.
 
-| Package              | npm name              | Purpose                                                                                       |
-| -------------------- | --------------------- | --------------------------------------------------------------------------------------------- |
-| **Core**             | `pptx-viewer-core`    | Parse, create, edit, serialize, and convert PPTX files. Framework-agnostic.                   |
-| **React**            | `pptx-react-viewer`   | React-based viewer, editor, and presenter with toolbar, inspector, collaboration, and export. |
-| **Vue 3**            | `pptx-vue-viewer`     | Vue 3 viewer component (viewer-first; editor features being ported).                          |
-| **Angular**          | `pptx-angular-viewer` | Angular viewer component (viewer-first; editor features being ported).                        |
-| **EMF converter**    | `emf-converter`       | Convert EMF/WMF metafile binaries to PNG data URLs using Canvas 2D.                           |
-| **MTX decompressor** | `mtx-decompressor`    | Decompress MicroType Express (MTX) fonts from EOT containers into TrueType.                   |
-| **Tools / MCP**      | `pptx-viewer-mcp`     | 24 PPTX tool functions, an MCP server for AI agents, and the Y.Doc collaboration codec.       |
+| Package         | npm name              | Purpose                                                                                       |
+| --------------- | --------------------- | --------------------------------------------------------------------------------------------- |
+| **Core**        | `pptx-viewer-core`    | Parse, create, edit, serialize, and convert PPTX files. Framework-agnostic.                   |
+| **React**       | `pptx-react-viewer`   | React-based viewer, editor, and presenter with toolbar, inspector, collaboration, and export. |
+| **Vue 3**       | `pptx-vue-viewer`     | Vue 3 viewer component (viewer-first; editor features being ported).                          |
+| **Angular**     | `pptx-angular-viewer` | Angular viewer component (viewer-first; editor features being ported).                        |
+| **Tools / MCP** | `pptx-viewer-mcp`     | 24 PPTX tool functions, an MCP server for AI agents, and the Y.Doc collaboration codec.       |
 
 ### Dependency graph
 

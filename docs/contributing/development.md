@@ -72,11 +72,11 @@ cd packages/core && bun run typecheck  # Type-check this package
 `bun run build` compiles packages in dependency order:
 
 ```
-emf-converter → mtx-decompressor → core → react
+core → shared → react / vue / angular
 ```
 
 ::: warning
-The order is **not** arbitrary. The dependency graph is `react → core → { emf-converter, mtx-decompressor }`. Each package consumes the built output of the packages below it, so a downstream package must be built before anything that imports it. Building out of order (for example, building `core` before `emf-converter`) will fail or pick up stale artifacts.
+The order is **not** arbitrary. The dependency graph is `{ react, vue, angular } → shared → core`. Each package consumes the built output of the packages below it, so a downstream package must be built before anything that imports it. Building out of order (for example, building a binding before `core`) will fail or pick up stale artifacts. (`emf-converter` and `mtx-decompressor` are external npm dependencies of `core`, not built in this repo.)
 :::
 
 The root `build` script chains the per-package builds with Bun's `--filter` so the order is enforced for you - you normally just run `bun run build` at the root.
@@ -90,8 +90,6 @@ packages/
   react/            pptx-viewer          – React viewer/editor/presenter component
   vue/              pptx-vue-viewer      – Vue 3 viewer/editor component
   angular/          pptx-angular-viewer  – Angular viewer/editor component
-  emf-converter/    emf-converter        – EMF/WMF metafile → PNG converter
-  mtx-decompressor/ mtx-decompressor     – MicroType Express font decompressor
   tools/            pptx-viewer-mcp      – Supporting tooling / MCP server
 demos/
   demo-react/                            – Vite + React demo app
@@ -181,10 +179,11 @@ Never introduce `any`. Use concrete types, `unknown` plus narrowing, or the `Xml
 Each publishable package has a `pack` script, surfaced at the root for convenience:
 
 ```bash
-bun run pack:emf     # packages/emf-converter
-bun run pack:mtx     # packages/mtx-decompressor
 bun run pack:core    # packages/core
+bun run pack:shared  # packages/shared
 bun run pack:react   # packages/react
+bun run pack:vue     # packages/vue
+bun run pack:angular # packages/angular
 ```
 
 ::: tip

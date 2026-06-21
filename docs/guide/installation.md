@@ -252,7 +252,7 @@ bun run typecheck
 Packages must be built in dependency order:
 
 ```
-emf-converter -> mtx-decompressor -> shared -> core -> react / vue / angular
+core -> shared -> react / vue / angular
 ```
 
 `bun run build` from the repo root handles this for you. When building a single package manually (`cd packages/<pkg> && bun run build`), make sure its dependencies are built first.
