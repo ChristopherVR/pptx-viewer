@@ -52,7 +52,7 @@
 		"@types/three": "^0.184.1",
 		"husky": "^9.1.7",
 		"lib0": "^0.2.117",
-		"lint-staged": "^17.0.7",
+		"lint-staged": "^17.0.8",
 		"oxfmt": "^0.55.0",
 		"oxlint": "^1.70.0",
 		"pptx-react-viewer": "workspace:*",
