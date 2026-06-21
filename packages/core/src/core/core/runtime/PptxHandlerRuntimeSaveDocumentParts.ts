@@ -10,7 +10,8 @@ import { convertXmlToStrict } from '../../utils';
 import { obfuscateFont, generateFontGuid } from '../../utils/font-deobfuscation';
 import type { PptxSaveFormat } from '../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveDataSerialization';
-import { buildSmartArtPointXml, buildSmartArtConnectionXml } from './smartart-xml-builders';
+import { applySmartArtChrome } from './smartart-save-chrome';
+import { mergeSmartArtPointXml, buildSmartArtConnectionXml } from './smartart-xml-builders';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/** Pending SmartArt data updates to process during save. */
@@ -41,14 +42,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return;
 		}
 
-		for (const { element } of this.pendingSmartArtUpdates) {
+		for (const { element, slidePath: capturedSlidePath } of this.pendingSmartArtUpdates) {
 			const smartArtData = element.smartArtData;
 			if (!smartArtData?.dataRelId) {
 				continue;
 			}
 
-			// Resolve the diagram data part path from the slide relationships
-			const slidePath = element.rawXml ? this.findSlidePathForElement(element) : undefined;
+			// Use the slide path captured when the update was queued. The element
+			// already knows which slide it lives on; recomputing via
+			// findSlidePathForElement (a heuristic that returns the first slide)
+			// would corrupt diagrams on any slide but the first. Fall back to the
+			// heuristic only when no path was captured.
+			const slidePath =
+				capturedSlidePath && capturedSlidePath.length > 0
+					? capturedSlidePath
+					: this.findSlidePathForElement(element);
 			if (!slidePath) {
 				continue;
 			}
@@ -72,7 +80,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					continue;
 				}
 
-				// Rebuild dgm:ptLst from the node data
+				// Surgically merge the node data into the EXISTING dgm:ptLst so
+				// presentation points (type="pres"), the doc point, and every
+				// point's prSet / spPr / extLst survive the round-trip.
 				const ptListKey = Object.keys(dataModel).find(
 					(k) => this.compatibilityService.getXmlLocalName(k) === 'ptLst',
 				);
@@ -82,7 +92,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						(k) => this.compatibilityService.getXmlLocalName(k) === 'pt',
 					);
 					if (ptKey) {
-						ptList[ptKey] = buildSmartArtPointXml(smartArtData.nodes);
+						const existingPts = this.ensureArray(ptList[ptKey]) as XmlObject[];
+						ptList[ptKey] = mergeSmartArtPointXml(existingPts, smartArtData.nodes);
 					}
 				}
 
@@ -101,6 +112,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						}
 					}
 				}
+
+				// Persist chrome (background / outline) onto dgm:bg and
+				// dgm:whole/a:ln when present on the in-memory data.
+				applySmartArtChrome(dataModel, smartArtData.chrome, (k) =>
+					this.compatibilityService.getXmlLocalName(k),
+				);
 
 				this.zip.file(dataPartPath, this.builder.build(parsed));
 			} catch (e) {
@@ -256,7 +273,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// (e.g. "1/../../docProps/app") that would let a hostile input file
 		// overwrite arbitrary parts in the saved ZIP. Fall back to a safe
 		// sequential index for any rejected id.
-		const SAFE_ID = /^[A-Za-z0-9_-]+$/;
+		const SAFE_ID = /^[A-Za-z0-9_-]+$/u;
 		let fallbackIndex = 1;
 		for (const part of this.customXmlParts) {
 			const rawId = String(part.id);
@@ -396,7 +413,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		let maxId = 0;
 		for (const rel of relationships) {
 			const id = String(rel?.['@_Id'] || '');
-			const num = parseInt(id.replace(/^rId/, ''), 10);
+			const num = parseInt(id.replace(/^rId/u, ''), 10);
 			if (Number.isFinite(num) && num > maxId) {
 				maxId = num;
 			}
@@ -577,7 +594,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		let maxId = 0;
 		for (const rel of relationships) {
 			const id = String(rel?.['@_Id'] || '');
-			const num = parseInt(id.replace(/^rId/, ''), 10);
+			const num = parseInt(id.replace(/^rId/u, ''), 10);
 			if (Number.isFinite(num) && num > maxId) {
 				maxId = num;
 			}
@@ -620,7 +637,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			(this as unknown as { _originalParser?: unknown })._originalParser || this.parser;
 		const parse =
 			typeof (rawParser as { parse?: unknown }).parse === 'function'
-				? (rawParser as { parse(s: string): unknown }).parse.bind(rawParser)
+				? (rawParser as { parse: (s: string) => unknown }).parse.bind(rawParser)
 				: this.parser.parse.bind(this.parser);
 
 		for (const path of xmlPaths) {

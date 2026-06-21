@@ -1,6 +1,17 @@
 import type { XmlObject } from '../../types';
 
 /**
+ * Maximum number of SmartArt content nodes parsed from a single diagram.
+ *
+ * PowerPoint diagrams are practically bounded well below this; the cap exists
+ * only as a guard against pathological / hostile input (a data model with
+ * millions of synthetic points) rather than to truncate real presentations.
+ * Raised from the historical value of 50, which silently dropped nodes from
+ * large but legitimate org charts and process flows.
+ */
+export const MAX_SMARTART_NODES = 2000;
+
+/**
  * Extract text content from a SmartArt point node.
  * Traverses the `dgm:t` element and collects text from all `a:t` elements
  * within the paragraph structure (`a:p` / `a:r` / `a:t`).

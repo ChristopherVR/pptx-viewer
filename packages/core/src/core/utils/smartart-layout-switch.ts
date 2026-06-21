@@ -3,17 +3,30 @@ import type { PptxSmartArtData, SmartArtLayoutType } from '../types';
 /**
  * Supported layout types for the visual layout switcher.
  *
- * These are the layout categories that have dedicated renderers
- * in SmartArtRenderer and can be switched between while preserving
- * node data and connections.
+ * These are the layout categories that have a working reflow implementation in
+ * `reflowSmartArtLayout` (see `smartart-editing-reflow*`), so switching to any
+ * of them re-lays-out the diagram while preserving node data and connections.
+ * Every entry below has a matching `case` in the reflow dispatcher:
+ *   list, process, hierarchy, cycle, matrix, pyramid, funnel, target, gear,
+ *   venn, timeline, relationship, chevron, bending.
+ *
+ * `unknown` is intentionally excluded (it has no meaningful target layout).
  */
 export const SWITCHABLE_LAYOUT_TYPES: readonly SmartArtLayoutType[] = [
+	'list',
 	'process',
 	'hierarchy',
 	'cycle',
 	'matrix',
 	'pyramid',
-	'list',
+	'funnel',
+	'target',
+	'gear',
+	'venn',
+	'timeline',
+	'relationship',
+	'chevron',
+	'bending',
 ] as const;
 
 /**

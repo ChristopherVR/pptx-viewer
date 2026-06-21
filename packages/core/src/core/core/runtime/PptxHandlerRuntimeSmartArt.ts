@@ -4,6 +4,7 @@ import type {
 	PptxSmartArtConnection,
 	PptxSmartArtDrawingShape,
 } from '../../types';
+import { MAX_SMARTART_NODES } from '../builders/smart-art-text-helpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtParsing';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -64,7 +65,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				};
 			})
 			.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
-			.slice(0, 50);
+			.slice(0, MAX_SMARTART_NODES);
 
 		if (nodes.length === 0) {
 			return undefined;
@@ -80,7 +81,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			layoutPart?.partPath
 				?.split('/')
 				.pop()
-				?.replace(/\.[^.]+$/, '') || undefined;
+				?.replace(/\.[^.]+$/u, '') || undefined;
 
 		// ── Parse background (dgm:bg) and outline (dgm:whole) ───────────
 		const chrome = this.parseSmartArtChrome(dataModel);
@@ -154,7 +155,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const dataPath = this.resolveImagePath(slidePath, dataTarget);
 		// Compute the rels file alongside the data part:
 		//   ppt/diagrams/data1.xml → ppt/diagrams/_rels/data1.xml.rels
-		const dataDir = dataPath.replace(/\/[^/]+$/, '');
+		const dataDir = dataPath.replace(/\/[^/]+$/u, '');
 		const dataFile = dataPath.split('/').pop() ?? '';
 		const dataRelsPath = `${dataDir}/_rels/${dataFile}.rels`;
 

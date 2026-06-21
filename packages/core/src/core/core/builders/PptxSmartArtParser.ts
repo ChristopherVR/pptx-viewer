@@ -5,7 +5,7 @@ import type {
 	SmartArtLayoutType,
 	XmlObject,
 } from '../../types';
-import { extractTextFromPoint } from './smart-art-text-helpers';
+import { extractTextFromPoint, MAX_SMARTART_NODES } from './smart-art-text-helpers';
 
 /**
  * Parser for SmartArt DiagramML data structures.
@@ -73,7 +73,7 @@ export class PptxSmartArtParser {
 			});
 		}
 
-		return nodes.slice(0, 50); // Limit for safety
+		return nodes.slice(0, MAX_SMARTART_NODES); // Guard against pathological input
 	}
 
 	/**
@@ -162,7 +162,7 @@ export class PptxSmartArtParser {
 			if (node.parentId) {
 				const parent = nodeMap.get(node.parentId);
 				if (parent) {
-					parent.children = parent.children || [];
+					parent.children ||= [];
 					parent.children.push(node);
 				}
 			}
@@ -276,4 +276,5 @@ export {
 	collectLocalTextValues,
 	extractParagraphText,
 	getLocalName,
+	MAX_SMARTART_NODES,
 } from './smart-art-text-helpers';

@@ -372,8 +372,21 @@ describe('isSwitchableLayoutType', () => {
 
 	it('returns false for unsupported layout types', () => {
 		expect(isSwitchableLayoutType('unknown')).toBeFalsy();
-		expect(isSwitchableLayoutType('funnel')).toBeFalsy();
-		expect(isSwitchableLayoutType('gear')).toBeFalsy();
+	});
+
+	it('returns true for every layout type that has reflow support', () => {
+		for (const t of [
+			'funnel',
+			'target',
+			'gear',
+			'venn',
+			'timeline',
+			'relationship',
+			'chevron',
+			'bending',
+		] as const) {
+			expect(isSwitchableLayoutType(t)).toBeTruthy();
+		}
 	});
 });
 
@@ -382,16 +395,29 @@ describe('isSwitchableLayoutType', () => {
 // ---------------------------------------------------------------------------
 
 describe('sWITCHABLE_LAYOUT_TYPES', () => {
-	it('contains the expected layout types', () => {
-		expect(SWITCHABLE_LAYOUT_TYPES).toContain('process');
-		expect(SWITCHABLE_LAYOUT_TYPES).toContain('hierarchy');
-		expect(SWITCHABLE_LAYOUT_TYPES).toContain('cycle');
-		expect(SWITCHABLE_LAYOUT_TYPES).toContain('matrix');
-		expect(SWITCHABLE_LAYOUT_TYPES).toContain('pyramid');
-		expect(SWITCHABLE_LAYOUT_TYPES).toContain('list');
+	it('contains every layout type that has a reflow implementation', () => {
+		for (const t of [
+			'list',
+			'process',
+			'hierarchy',
+			'cycle',
+			'matrix',
+			'pyramid',
+			'funnel',
+			'target',
+			'gear',
+			'venn',
+			'timeline',
+			'relationship',
+			'chevron',
+			'bending',
+		] as const) {
+			expect(SWITCHABLE_LAYOUT_TYPES).toContain(t);
+		}
 	});
 
-	it('has exactly 6 entries', () => {
-		expect(SWITCHABLE_LAYOUT_TYPES).toHaveLength(6);
+	it('has exactly 14 entries and excludes "unknown"', () => {
+		expect(SWITCHABLE_LAYOUT_TYPES).toHaveLength(14);
+		expect(SWITCHABLE_LAYOUT_TYPES).not.toContain('unknown');
 	});
 });
