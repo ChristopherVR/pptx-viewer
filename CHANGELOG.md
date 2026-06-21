@@ -8,6 +8,20 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **core:** Make SmartArt editing round-trip lossless (by @ChristopherVR) ([15000f5](https://github.com/ChristopherVR/pptx-viewer/commit/15000f591ed43bd75bbc0ed345badef6c2591951))
+- **shared:** Make all mapped SmartArt layouts insertable and add render tests (by @ChristopherVR) ([db9ed12](https://github.com/ChristopherVR/pptx-viewer/commit/db9ed12e36956b372a4d633c34aa996da213e637))
+- **react:** Close production gaps in the SmartArt editor (by @ChristopherVR) ([1112227](https://github.com/ChristopherVR/pptx-viewer/commit/1112227c0cceb44875921ae8429d95d1874b67c9))
+- **vue:** Add full SmartArt editing inspector (by @ChristopherVR) ([06ea167](https://github.com/ChristopherVR/pptx-viewer/commit/06ea167d9ea3b4cff96fd50a043768ee355daf62))
+- **angular:** Add full SmartArt editing inspector (by @ChristopherVR) ([c7ab8e2](https://github.com/ChristopherVR/pptx-viewer/commit/c7ab8e24ff3965dae0d18cc9f7373bfc510a62c4))
+
+### Documentation
+
+- Reflect SmartArt reflow, lossless round-trip, and cross-binding editing (by @ChristopherVR) ([0db30d3](https://github.com/ChristopherVR/pptx-viewer/commit/0db30d36fb5f06037e1bd51dfecef357707444b9))
+
+## [1.1.35](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.35) - 2026-06-21
+
+### Features
+
 - **core:** Round-trip any Strict OOXML namespace via structural derivation (by @ChristopherVR) ([6992489](https://github.com/ChristopherVR/pptx-viewer/commit/69924894a5e0bddf80291702c9315caae276cba6))
 
 ### Documentation

@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.35](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.35) - 2026-06-21
+
+### Features
+
+- **angular:** Add full SmartArt editing inspector (by @ChristopherVR) ([c7ab8e2](https://github.com/ChristopherVR/pptx-viewer/commit/c7ab8e24ff3965dae0d18cc9f7373bfc510a62c4))
+
 ## [1.1.32](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.32) - 2026-06-21
 
 ### Dependencies
