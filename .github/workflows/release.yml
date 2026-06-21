@@ -298,10 +298,11 @@ jobs:
       - name: Build released framework packages
         env:
           RELEASED_KEYS: ${{ needs.release.outputs.released_keys }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TAG="${{ inputs.tag }}"
-            NAME="${TAG%@*}"
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            NAME="${INPUT_TAG%@*}"
             case "$NAME" in
               pptx-react-viewer)   bun run --filter 'pptx-react-viewer' build ;;
               pptx-vue-viewer)     bun run --filter 'pptx-vue-viewer' build ;;
@@ -332,14 +333,23 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           RELEASED_KEYS: ${{ needs.release.outputs.released_keys }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
         run: |
           # Resolve the list of keys to publish and a version for each.
           # In manual mode: parse key + version from the tag input.
           # In auto mode: read from the release-plan.json artifact.
           declare -A VERSIONS
 
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TAG="${{ inputs.tag }}"
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            TAG="$INPUT_TAG"
+            # Validate: only allow characters legal in an npm tag (<name>@<semver>).
+            case "$TAG" in
+              *[!A-Za-z0-9.@/_-]*)
+                echo "::error::Invalid tag format: '$TAG'. Expected <npm-name>@<semver>."
+                exit 1
+                ;;
+            esac
             NAME="${TAG%@*}"
             VERSION="${TAG##*@}"
             case "$NAME" in
