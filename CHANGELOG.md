@@ -8,6 +8,22 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **shared:** Add framework-agnostic touch-gesture recognizer (by @ChristopherVR) ([477e5b4](https://github.com/ChristopherVR/pptx-viewer/commit/477e5b4a1a3c0f75f5be84d9235b860278e61f7b))
+- **vue:** Mobile touch parity (pinch, long-press, presentation controls) (by @ChristopherVR) ([df5f310](https://github.com/ChristopherVR/pptx-viewer/commit/df5f310af4aa311efb73aad43da13265020fa03f))
+- **angular:** Mobile touch parity (pinch-to-zoom and long-press) (by @ChristopherVR) ([9186bb1](https://github.com/ChristopherVR/pptx-viewer/commit/9186bb1f7b56309c253c87049e85079b376e77de))
+
+### Bug Fixes
+
+- **react:** Keep mobile table-cell edits from being lost on tap (by @ChristopherVR) ([230b846](https://github.com/ChristopherVR/pptx-viewer/commit/230b84667f195ae500ec74f7235cbe7d6e3f8dbb))
+
+### Refactor
+
+- **react:** Consume shared touch-gesture recognizer (by @ChristopherVR) ([c2090ba](https://github.com/ChristopherVR/pptx-viewer/commit/c2090ba7cd7a94cf6b292921f34020ba3d568dcb))
+
+## [1.1.36](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.36) - 2026-06-21
+
+### Features
+
 - **core:** Make SmartArt editing round-trip lossless (by @ChristopherVR) ([15000f5](https://github.com/ChristopherVR/pptx-viewer/commit/15000f591ed43bd75bbc0ed345badef6c2591951))
 - **shared:** Make all mapped SmartArt layouts insertable and add render tests (by @ChristopherVR) ([db9ed12](https://github.com/ChristopherVR/pptx-viewer/commit/db9ed12e36956b372a4d633c34aa996da213e637))
 - **react:** Close production gaps in the SmartArt editor (by @ChristopherVR) ([1112227](https://github.com/ChristopherVR/pptx-viewer/commit/1112227c0cceb44875921ae8429d95d1874b67c9))
