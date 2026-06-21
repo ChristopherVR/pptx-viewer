@@ -51,6 +51,11 @@ export default defineConfig({
 		// redundant esbuild pass on the CJS output.
 		minify: false,
 		rollupOptions: {
+			// Rolldown (Vite 8) panics when tree-shaking symbols that span the
+			// entry-point / dynamic-chunk boundary created by the SmartArt3D
+			// lazy import + three.js external. Disabling tree-shaking keeps every
+			// symbol in its declaring chunk and avoids the finalizer panic.
+			treeshake: false,
 			plugins: [terser({ format: { comments: false } })],
 			external: [
 				'vue',

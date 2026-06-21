@@ -44,38 +44,67 @@ jobs:
       - name: Build docs with VitePress
         run: bun run docs:build
 
-      # Builds the workspace packages and the React demo. DEMO_BASE makes the
-      # demo's asset URLs resolve under the Pages subpath it is served from.
-      - name: Build packages + React demo
-        run: bun run build
+      # Build foundation packages first (hard failure — everything else depends on them).
+      - name: Build foundation packages
+        run: |
+          bun run --filter 'pptx-viewer-core' build
+          bun run --filter 'pptx-viewer-shared' build
+          bun run --filter 'pptx-viewer-mcp' build
+
+      # Build each framework binding independently. A binding failure means its
+      # demo is skipped but the others still deploy.
+      - name: Build React
+        id: build-react
+        run: bun run --filter 'pptx-react-viewer' build
+        continue-on-error: true
+
+      - name: Build Vue
+        id: build-vue
+        run: bun run --filter 'pptx-vue-viewer' build
+        continue-on-error: true
+
+      - name: Build Angular
+        id: build-angular
+        run: bun run --filter 'pptx-angular-viewer' build
+        continue-on-error: true
+
+      # Build each demo; skip silently if its library did not build.
+      - name: Build React demo
+        if: steps.build-react.outcome == 'success'
+        run: bun run --filter 'pptx-react-demo' build
+        continue-on-error: true
         env:
           DEMO_BASE: /pptx-viewer/demo/
 
-      # The Vue and Angular demos ship as their own Pages subpaths so each
-      # binding's README can link a "Try demo" for that framework specifically.
-      # They build after the workspace build above, which produces the library
-      # dist the Angular demo aliases against.
       - name: Build Vue demo
+        if: steps.build-vue.outcome == 'success'
         run: bun run --filter 'pptx-vue-demo' build
+        continue-on-error: true
         env:
           DEMO_BASE: /pptx-viewer/demo-vue/
 
       - name: Build Angular demo
+        if: steps.build-angular.outcome == 'success'
         run: bun run --filter 'pptx-angular-demo' build
+        continue-on-error: true
         env:
           DEMO_BASE: /pptx-viewer/demo-angular/
 
-      # Fold the demos into the docs artifact so they ship as one Pages site.
-      # Each gets a 404.html copy so the demo's client-side routing survives
-      # deep links under its subpath.
+      # Fold whichever demos succeeded into the docs artifact. Missing dists are
+      # skipped gracefully so the page still deploys with whatever is available.
       - name: Bundle demos into docs site
         run: |
           for demo in react:demo vue:demo-vue angular:demo-angular; do
-            src="demos/demo-${demo%%:*}/dist"
+            framework="${demo%%:*}"
+            src="demos/demo-${framework}/dist"
             dest="docs/.vitepress/dist/${demo##*:}"
-            mkdir -p "$dest"
-            cp -r "$src/." "$dest/"
-            cp "$dest/index.html" "$dest/404.html"
+            if [ -d "$src" ]; then
+              mkdir -p "$dest"
+              cp -r "$src/." "$dest/"
+              cp "$dest/index.html" "$dest/404.html"
+            else
+              echo "Skipping ${framework} demo (dist not found)"
+            fi
           done
 
       - name: Setup Pages

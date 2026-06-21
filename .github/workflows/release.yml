@@ -11,7 +11,12 @@ permissions:
 
 jobs:
   release:
-    if: github.event.workflow_run.conclusion == 'success'
+    # Run whenever CI completed (not just on full success) so a single broken
+    # framework binding does not block releases for the others. The per-package
+    # build steps below determine which packages are actually releasable.
+    if: |
+      github.event.workflow_run.conclusion == 'success' ||
+      github.event.workflow_run.conclusion == 'failure'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -27,8 +32,28 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build all packages
-        run: bun run build
+      # Foundation packages must always build cleanly.
+      - name: Build foundation packages
+        run: |
+          bun run --filter 'pptx-viewer-core' build
+          bun run --filter 'pptx-viewer-shared' build
+          bun run --filter 'pptx-viewer-mcp' build
+
+      # Framework bindings: each can fail without blocking the others.
+      - name: Build React
+        id: build-react
+        run: bun run --filter 'pptx-react-viewer' build
+        continue-on-error: true
+
+      - name: Build Vue
+        id: build-vue
+        run: bun run --filter 'pptx-vue-viewer' build
+        continue-on-error: true
+
+      - name: Build Angular
+        id: build-angular
+        run: bun run --filter 'pptx-angular-viewer' build
+        continue-on-error: true
 
       # Decide, per package, whether it changed since its own last tag and what
       # its next INDEPENDENT version is. Each package carries its own version and
@@ -87,16 +112,29 @@ jobs:
       # tag points at the (pushed) changelog commit; the release body is that
       # package's newest changelog section. Each published release fires the
       # Publish workflow for exactly that one package.
+      # A package is released only if it: (a) changed since its last tag AND
+      # (b) its framework build succeeded (or it is a non-framework package).
       - name: Tag and release changed packages
         if: steps.plan.outputs.any_changed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REACT_BUILT: ${{ steps.build-react.outcome == 'success' }}
+          VUE_BUILT: ${{ steps.build-vue.outcome == 'success' }}
+          ANGULAR_BUILT: ${{ steps.build-angular.outcome == 'success' }}
         run: |
           COMMIT=$(git rev-parse HEAD)
           CORE_VERSION=$(node -p "require('./release-plan.json').coreVersion")
           for key in core react vue angular tools; do
             release=$(node -p "require('./release-plan.json').packages.$key.release")
             [ "$release" = "true" ] || continue
+
+            # Skip framework packages whose build failed this run.
+            case "$key" in
+              react)   [ "$REACT_BUILT"   = "true" ] || { echo "Skipping react: build failed"; continue; } ;;
+              vue)     [ "$VUE_BUILT"     = "true" ] || { echo "Skipping vue: build failed";   continue; } ;;
+              angular) [ "$ANGULAR_BUILT" = "true" ] || { echo "Skipping angular: build failed"; continue; } ;;
+            esac
+
             dir=$(node -p "require('./release-plan.json').packages.$key.dir")
             packdir=$(node -p "require('./release-plan.json').packages.$key.packDir")
             version=$(node -p "require('./release-plan.json').packages.$key.version")

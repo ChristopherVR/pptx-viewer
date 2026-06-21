@@ -1,16 +1,10 @@
-import {
-	DEFAULT_CANVAS_WIDTH as _W,
-	DEFAULT_CANVAS_HEIGHT as _H,
-	DEFAULT_TEXT_COLOR as _TC,
-	DEFAULT_FILL_COLOR as _FC,
-	DEFAULT_STROKE_COLOR as _SC,
-} from 'pptx-viewer-shared';
-
-// Re-assigned as local constants to avoid a Rolldown chunk-membership panic
-// that occurs when symbols are re-exported directly from a bundled workspace
-// package through a local barrel file.
-export const DEFAULT_CANVAS_WIDTH = _W;
-export const DEFAULT_CANVAS_HEIGHT = _H;
-export const DEFAULT_TEXT_COLOR = _TC;
-export const DEFAULT_FILL_COLOR = _FC;
-export const DEFAULT_STROKE_COLOR = _SC;
+// These mirror the values in pptx-viewer-shared/constants.ts. They are
+// hardcoded here rather than imported because the Vite 8 Rolldown bundler
+// panics when symbols from a bundled workspace package are referenced
+// across the entry-point / dynamic-chunk boundary created by the
+// SmartArt3DRenderer lazy import.
+export const DEFAULT_CANVAS_WIDTH = 1280;
+export const DEFAULT_CANVAS_HEIGHT = 720;
+export const DEFAULT_TEXT_COLOR = '#111827';
+export const DEFAULT_FILL_COLOR = '#3b82f6';
+export const DEFAULT_STROKE_COLOR = '#1f2937';

@@ -77,8 +77,22 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build all packages
-        run: bun run build
+      # Build only the packages required to publish this specific tag rather
+      # than the entire monorepo. This lets Angular and React publish even when
+      # an unrelated package (e.g. Vue) has a build failure.
+      - name: Build required packages
+        run: |
+          # Foundation — always needed.
+          bun run --filter 'pptx-viewer-core' build
+          bun run --filter 'pptx-viewer-shared' build
+          bun run --filter 'pptx-viewer-mcp' build
+
+          # Build the specific framework binding being published.
+          case "${{ steps.tag.outputs.name }}" in
+            pptx-react-viewer)   bun run --filter 'pptx-react-viewer' build ;;
+            pptx-vue-viewer)     bun run --filter 'pptx-vue-viewer' build ;;
+            pptx-angular-viewer) bun run --filter 'pptx-angular-viewer' build ;;
+          esac
 
       - name: Replace mermaid blocks with GitHub links in READMEs
         run: |

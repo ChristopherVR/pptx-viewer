@@ -4,9 +4,9 @@
  * Holds the framework-agnostic, binding-identical portions of each binding's
  * element-style layer: the absolute container style (position / size / flip +
  * rotation transform / opacity / z-index / hidden) and the displayable
- * image-source resolution. Returns a neutral CSS map keyed in kebab-case (both
- * Vue `CSSProperties` and Angular `[ngStyle]` accept kebab keys), which each
- * binding casts to its framework's style type.
+ * image-source resolution. Returns a neutral CSS map keyed in camelCase (both
+ * Vue `CSSProperties` and Angular `[ngStyle]` accept camelCase keys), which
+ * each binding casts to its framework's style type.
  *
  * The fill/stroke/geometry and text-block builders are intentionally NOT shared
  * here: the Vue and Angular implementations diverge (Vue resolves fills via the
@@ -45,8 +45,8 @@ export function getContainerStyle(el: PptxElement, zIndex: number): CssStyleMap 
 		top: px(el.y),
 		width: px(el.width),
 		height: px(el.height),
-		'z-index': zIndex,
-		'box-sizing': 'border-box',
+		zIndex,
+		boxSizing: 'border-box',
 	};
 	if (transforms.length > 0) {
 		style['transform'] = transforms.join(' ');

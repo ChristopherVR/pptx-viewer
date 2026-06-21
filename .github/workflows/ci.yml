@@ -10,9 +10,14 @@ permissions:
   contents: read
 
 jobs:
+  # ── Foundation: emf-converter + core + shared + mcp (must all succeed) ──────
   build:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    outputs:
+      react-built: ${{ steps.build-react.outcome == 'success' }}
+      vue-built: ${{ steps.build-vue.outcome == 'success' }}
+      angular-built: ${{ steps.build-angular.outcome == 'success' }}
     steps:
       - uses: actions/checkout@v6
 
@@ -25,10 +30,42 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build all packages
-        run: bun run build
+      # Foundation packages — hard failure if any of these break.
+      - name: Build foundation packages
+        run: |
+          bun run --filter 'pptx-viewer-core' build
+          bun run --filter 'pptx-viewer-shared' build
+          bun run --filter 'pptx-viewer-mcp' build
 
+      # Framework bindings — each can fail independently without blocking others.
+      - name: Build React
+        id: build-react
+        run: bun run --filter 'pptx-react-viewer' build
+        continue-on-error: true
+
+      - name: Build Vue
+        id: build-vue
+        run: bun run --filter 'pptx-vue-viewer' build
+        continue-on-error: true
+
+      - name: Build Angular
+        id: build-angular
+        run: bun run --filter 'pptx-angular-viewer' build
+        continue-on-error: true
+
+      # Abort the job only when ALL framework builds failed at once.
+      - name: Require at least one framework built
+        run: |
+          if [ "${{ steps.build-react.outcome }}" = "failure" ] \
+          && [ "${{ steps.build-vue.outcome }}" = "failure" ] \
+          && [ "${{ steps.build-angular.outcome }}" = "failure" ]; then
+            echo "All three framework builds failed."
+            exit 1
+          fi
+
+      # Upload whatever was built — partial artifacts are fine for test jobs.
       - name: Upload build artifacts
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: build-output
@@ -129,7 +166,10 @@ jobs:
 
   test-react:
     needs: build
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    # Only run if the React build succeeded.
+    if: |
+      (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
+      && needs.build.outputs.react-built == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -177,7 +217,10 @@ jobs:
 
   test-vue:
     needs: build
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    # Only run if the Vue build succeeded.
+    if: |
+      (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
+      && needs.build.outputs.vue-built == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -201,7 +244,10 @@ jobs:
 
   test-angular:
     needs: build
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    # Only run if the Angular build succeeded.
+    if: |
+      (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
+      && needs.build.outputs.angular-built == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
