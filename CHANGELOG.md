@@ -6,6 +6,21 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [Unreleased]
 
+### Documentation
+
+- Remove emf-converter and mtx-decompressor package pages (by @ChristopherVR) ([377bfbe](https://github.com/ChristopherVR/pptx-viewer/commit/377bfbe180ec9d49ccf911ad5a530326e9543460))
+- Scrub stale in-repo references to emf-converter and mtx-decompressor (by @ChristopherVR) ([fe21e26](https://github.com/ChristopherVR/pptx-viewer/commit/fe21e26a1fd3f04e2b5ba0577f99ac46a4e858ea))
+
+### Dependencies
+
+- **deps:** Update dependencies within semver ranges (by @ChristopherVR) ([d472b58](https://github.com/ChristopherVR/pptx-viewer/commit/d472b58dfd47628b5c682bd5f4dc2014ec29b421))
+
+### Chores
+
+- Removed old documents (by @ChristopherVR) ([098b420](https://github.com/ChristopherVR/pptx-viewer/commit/098b420e1aec91ebe31d0398aeee9104ab38596f))
+
+## [1.1.32](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.32) - 2026-06-21
+
 ### Bug Fixes
 
 - **angular:** Replace bare file input with styled dropzone in demo (by @ChristopherVR) ([d47a4a5](https://github.com/ChristopherVR/pptx-viewer/commit/d47a4a538c8e7f7cd057ac652b2dbede527d92e3))
