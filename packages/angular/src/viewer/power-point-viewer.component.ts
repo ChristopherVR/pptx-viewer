@@ -1,8 +1,10 @@
 import { NgClass, NgStyle } from '@angular/common';
 import {
+	afterNextRender,
 	ChangeDetectionStrategy,
 	Component,
 	computed,
+	DestroyRef,
 	effect,
 	ElementRef,
 	HostListener,
@@ -95,6 +97,7 @@ import { SmartArt3DService } from './smart-art-3d.service';
 import { setCellText } from './table-data-helpers';
 import type { TableCellCommit } from './table-renderer.component';
 import { ThemeGalleryComponent } from './theme-gallery.component';
+import { attachTouchGestures } from './touch-gestures';
 import type { CollaborationConfig } from './types';
 
 const ZOOM_STEP = 0.1;
@@ -274,12 +277,7 @@ const ZOOM_MAX = 3;
 						</nav>
 					}
 
-					<main
-						class="pptx-ng-main"
-						#mainEl
-						(touchstart)="onMainTouchStart($event)"
-						(touchend)="onMainTouchEnd($event)"
-					>
+					<main class="pptx-ng-main" #mainEl>
 						<pptx-slide-canvas
 							[slide]="activeSlide()"
 							[canvasSize]="loader.canvasSize()"
@@ -1084,6 +1082,10 @@ export class PowerPointViewerComponent {
 				this.activeSession.set(null);
 			}
 		});
+
+		// Attach multi-touch gestures (pinch-zoom / swipe-nav / long-press menu)
+		// to the canvas host once it is rendered. See setupTouchGestures().
+		this.setupTouchGestures();
 	}
 
 	/**
@@ -1243,55 +1245,59 @@ export class PowerPointViewerComponent {
 		this.activeSession.set(null);
 	}
 
-	/** Horizontal-swipe tracking start coordinates (touch begins on the canvas). */
-	private swipeStartX: number | null = null;
-	private swipeStartY: number | null = null;
-
 	/**
-	 * Begin tracking a horizontal swipe for slide navigation.
+	 * Wire the framework-agnostic touch-gesture recogniser to the `<main>` canvas
+	 * host once it is in the DOM. Mirrors React's `useTouchGestures` wiring:
+	 *   - pinch-to-zoom always updates the zoom signal (clamped to the viewer
+	 *     range), with `preventDefault()` on the pinch path to suppress the
+	 *     browser's native pinch-zoom;
+	 *   - horizontal swipe navigates slides, but only when editing is off
+	 *     (`!canEdit()`): in edit mode single-finger gestures belong to element
+	 *     manipulation (move/resize/rotate), so we never hijack them. The large
+	 *     ‹ › buttons remain available for explicit navigation in all modes;
+	 *   - long-press in edit mode opens the editor context menu at the press
+	 *     point for the current selection (mirrors React's onLongPress path).
 	 *
-	 * To disambiguate a navigation swipe from an element drag, swipe-nav is only
-	 * armed when editing is off (`!canEdit()`). When `canEdit()` is true,
-	 * pointer/touch gestures belong to element manipulation (move/resize/rotate),
-	 * so we never hijack them. The large ‹ › buttons remain available in all
-	 * modes for explicit navigation.
+	 * The recogniser's swipe/long-press callbacks check the live `canEdit()` /
+	 * selection state, so a single attach handles every mode without re-binding.
 	 */
-	onMainTouchStart(event: TouchEvent): void {
-		if (this.canEdit() || event.changedTouches.length !== 1) {
-			this.swipeStartX = null;
-			this.swipeStartY = null;
-			return;
-		}
-		const touch = event.changedTouches[0];
-		this.swipeStartX = touch.clientX;
-		this.swipeStartY = touch.clientY;
-	}
-
-	/**
-	 * Complete a swipe: a predominantly horizontal drag of at least the threshold
-	 * navigates to the previous (swipe right) or next (swipe left) slide.
-	 */
-	onMainTouchEnd(event: TouchEvent): void {
-		const startX = this.swipeStartX;
-		const startY = this.swipeStartY;
-		this.swipeStartX = null;
-		this.swipeStartY = null;
-		if (startX === null || startY === null || event.changedTouches.length !== 1) {
-			return;
-		}
-		const touch = event.changedTouches[0];
-		const dx = touch.clientX - startX;
-		const dy = touch.clientY - startY;
-		const SWIPE_THRESHOLD = 50;
-		// Ignore vertical-dominant gestures (scrolling) and short drags.
-		if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) <= Math.abs(dy)) {
-			return;
-		}
-		if (dx < 0) {
-			this.goNext();
-		} else {
-			this.goPrev();
-		}
+	private setupTouchGestures(): void {
+		const destroyRef = inject(DestroyRef);
+		afterNextRender(() => {
+			const el = this.mainEl()?.nativeElement;
+			if (!el) {
+				return;
+			}
+			const teardown = attachTouchGestures(el, {
+				getScale: () => this.zoom(),
+				callbacks: {
+					onPinchZoom: (newScale) => this.zoom.set(newScale),
+					onSwipe: (direction) => {
+						// Edit mode: leave single-finger gestures to element manipulation.
+						if (this.canEdit()) {
+							return;
+						}
+						// direction 1 = swipe right (previous), -1 = swipe left (next).
+						if (direction === 1) {
+							this.goPrev();
+						} else {
+							this.goNext();
+						}
+					},
+					onLongPress: (x, y) => {
+						if (!this.canEdit() || this.presenting()) {
+							return;
+						}
+						const selected = this.selectedElement();
+						if (!selected) {
+							return;
+						}
+						this.contextMenuPos.set({ x, y });
+					},
+				},
+			});
+			destroyRef.onDestroy(teardown);
+		});
 	}
 
 	zoomIn(): void {
