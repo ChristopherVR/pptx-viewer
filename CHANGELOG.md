@@ -8,6 +8,12 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Bug Fixes
 
+- **angular:** Replace bare file input with styled dropzone in demo (by @ChristopherVR) ([d47a4a5](https://github.com/ChristopherVR/pptx-viewer/commit/d47a4a538c8e7f7cd057ac652b2dbede527d92e3))
+
+## [1.1.31](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.31) - 2026-06-21
+
+### Bug Fixes
+
 - **angular:** Update element-style test to use camelCase zIndex key (by @ChristopherVR) ([7808808](https://github.com/ChristopherVR/pptx-viewer/commit/78088086b848499cc9ea1b68003a56d6a6956aa4))
 - **angular:** Bundle pptx-viewer-core and fix demo JIT + Vue demo alias (by @ChristopherVR) ([78838ec](https://github.com/ChristopherVR/pptx-viewer/commit/78838ec900fe2d8c90bc39333636d788c52c3161))
 
