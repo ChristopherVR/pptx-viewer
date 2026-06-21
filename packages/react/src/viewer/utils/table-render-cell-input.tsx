@@ -37,6 +37,13 @@ export function TableCellInput({
 				margin: 0,
 				border: 'none',
 			}}
+			// Touch surfaces drive canvas drag/marquee through onPointerDown (see
+			// useCanvasEventHandlers.handleStagePointerDown). Without stopping it
+			// here, tapping inside the cell editor to reposition the caret would
+			// bubble to the stage, steal pointer capture, and blur the input,
+			// committing/discarding the cell before the edit is kept. This mirrors
+			// the guard in InlineTextEditor.
+			onPointerDown={(e) => e.stopPropagation()}
 			onMouseDown={(e) => e.stopPropagation()}
 			onClick={(e) => e.stopPropagation()}
 			onDoubleClick={(e) => e.stopPropagation()}
