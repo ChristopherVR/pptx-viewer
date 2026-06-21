@@ -4,6 +4,8 @@
 [![license](https://img.shields.io/npm/l/pptx-viewer-core.svg)](https://github.com/ChristopherVR/pptx-viewer/blob/main/LICENSE)
 [![types](https://img.shields.io/npm/types/pptx-viewer-core.svg)](https://www.npmjs.com/package/pptx-viewer-core)
 
+> **Also published as [`@christophervr/pptx-viewer`](https://www.npmjs.com/package/@christophervr/pptx-viewer)** -- the two package names are identical releases of the same code. Use whichever name you prefer; they are always published together and kept in sync.
+
 > A TypeScript library that **reads, creates, edits, and saves** PowerPoint (`.pptx`) files. It runs in the browser and in Node.js, with no native or system dependencies.
 
 Hand it the bytes of a `.pptx` file and it gives you back a structured, fully typed object that describes every slide: text, shapes, images, charts, tables, and more. Change anything in that object and write it back to a valid `.pptx`. You can also build new presentations from scratch with a simple chainable API, or turn a deck into Markdown.

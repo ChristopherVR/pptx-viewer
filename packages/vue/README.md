@@ -13,10 +13,7 @@ displays the slides as real HTML and CSS, with slide navigation and zoom.
 > The screenshot shows the full-featured **React** editor. This Vue package is at
 > a **read-only viewer** milestone today; see [Limitations](#limitations).
 
-The reading is done by the framework-agnostic `pptx-viewer-core` engine, which
-turns a `.pptx` file into a structured slide model. This package is the Vue layer
-that draws that model on screen, and the engine is **bundled in**, so you install
-just one package.
+The reading is done by the framework-agnostic [`pptx-viewer-core`](https://www.npmjs.com/package/pptx-viewer-core) engine (also published as [`@christophervr/pptx-viewer`](https://www.npmjs.com/package/@christophervr/pptx-viewer) -- the two names are identical releases), which turns a `.pptx` file into a structured slide model. This package is the Vue layer that draws that model on screen, and the engine is **bundled in**, so you install just one package.
 
 <samp>**[▶️ Try the live demo](https://christophervr.github.io/pptx-viewer/demo-vue/)** · **[📦 npm](https://www.npmjs.com/package/pptx-vue-viewer)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/)**</samp>
 

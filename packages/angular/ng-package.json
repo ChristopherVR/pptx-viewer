@@ -1,7 +1,13 @@
 {
 	"$schema": "../../node_modules/ng-packagr/ng-package.schema.json",
 	"dest": "dist",
-	"allowedNonPeerDependencies": ["html2canvas-pro", "jspdf", "jszip", "fast-xml-parser"],
+	"allowedNonPeerDependencies": [
+		"html2canvas-pro",
+		"jspdf",
+		"jszip",
+		"fast-xml-parser",
+		"pptx-viewer-core"
+	],
 	"assets": [
 		"NOTICE",
 		"README.md",

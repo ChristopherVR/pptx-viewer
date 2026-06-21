@@ -21,10 +21,9 @@
  * Dependency model (what forces a dependent to re-release):
  *   - `shared` (private, never published) is inlined/vendored into react, vue
  *     and angular, so a shared change re-releases all three.
- *   - `core` is bundled into react and vue, so a core change re-releases those
- *     two. angular depends on the published core via a caret range and tools via
- *     a loose peer range, so a core patch resolves forward for them with no
- *     re-release needed.
+ *   - `core` is bundled into react, vue, and angular, so a core change
+ *     re-releases all three. tools has a loose peer range on core, so a core
+ *     patch resolves forward for tools with no re-release needed.
  *   - everything else re-releases only when its own published files change.
  *
  * Output: writes `release-plan.json` at the repo root, prints a summary, and
@@ -71,7 +70,7 @@ const PACKAGES = {
 		dir: 'packages/angular',
 		npm: 'pptx-angular-viewer',
 		packDir: 'packages/angular/dist',
-		triggers: [SHARED_DIR],
+		triggers: [SHARED_DIR, 'packages/core'],
 	},
 	tools: {
 		dir: 'packages/tools',

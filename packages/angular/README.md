@@ -13,9 +13,7 @@ the slides as real HTML and CSS, with slide navigation and zoom.
 > The screenshot shows the full-featured **React** editor. This Angular package
 > is at a **read-only viewer** milestone today; see [Limitations](#limitations).
 
-The reading is done by the framework-agnostic `pptx-viewer-core` engine, which
-turns a `.pptx` file into a structured slide model. This package is the Angular
-layer that draws that model on screen.
+The reading is done by the framework-agnostic [`pptx-viewer-core`](https://www.npmjs.com/package/pptx-viewer-core) engine (also published as [`@christophervr/pptx-viewer`](https://www.npmjs.com/package/@christophervr/pptx-viewer) -- the two names are identical releases), which turns a `.pptx` file into a structured slide model. This package is the Angular layer that draws that model on screen, and the engine is **bundled in**, so you install just one package.
 
 <samp>**[▶️ Try the live demo](https://christophervr.github.io/pptx-viewer/demo-angular/)** · **[📦 npm](https://www.npmjs.com/package/pptx-angular-viewer)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/)**</samp>
 
@@ -36,11 +34,10 @@ layer that draws that model on screen.
 ## Installation
 
 ```bash
-npm install pptx-angular-viewer pptx-viewer-core
+npm install pptx-angular-viewer
 ```
 
-**Peer requirements:** Angular 22+ (`@angular/core`, `@angular/common`),
-`rxjs`, and `pptx-viewer-core`.
+**Peer requirements:** Angular 22+ (`@angular/core`, `@angular/common`) and `rxjs`.
 
 ## Usage
 
