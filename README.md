@@ -67,19 +67,19 @@ packages/
   core/              pptx-viewer-core     - Parse, create, edit, serialize PPTX files (framework-agnostic)
   shared/            pptx-viewer-shared   - Framework-agnostic viewer logic shared by the UI bindings
   react/             pptx-react-viewer    - React-based viewer/editor component
-  vue/               pptx-vue-viewer      - Vue 3 viewer component
-  angular/           pptx-angular-viewer  - Angular viewer component
+  vue/               pptx-vue-viewer      - Vue 3 viewer/editor component
+  angular/           pptx-angular-viewer  - Angular viewer/editor component
   tools/             pptx-viewer-mcp      - CLI / MCP server and tool functions for AI agents
 ```
 
-| Package                                      | npm                                                                                                               | Description                                                                                                | README                                      |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| **[pptx-viewer-core](packages/core/)**       | [![npm](https://img.shields.io/npm/v/pptx-viewer-core.svg)](https://www.npmjs.com/package/pptx-viewer-core)       | Core PPTX engine - parse, create, edit, serialize, and convert PowerPoint files. Framework-agnostic.       | [Documentation](packages/core/README.md)    |
-| **[pptx-viewer-shared](packages/shared/)**   | _(internal - not published)_                                                                                      | Framework-agnostic viewer logic (theme, load helpers, types) shared by the React, Vue, and Angular UIs.    | [Documentation](packages/shared/README.md)  |
-| **[pptx-react-viewer](packages/react/)**     | [![npm](https://img.shields.io/npm/v/pptx-react-viewer.svg)](https://www.npmjs.com/package/pptx-react-viewer)     | React-based PowerPoint viewer, editor, and presenter with toolbar, inspector, collaboration, and export.   | [Documentation](packages/react/README.md)   |
-| **[pptx-vue-viewer](packages/vue/)**         | [![npm](https://img.shields.io/npm/v/pptx-vue-viewer.svg)](https://www.npmjs.com/package/pptx-vue-viewer)         | Vue 3 PowerPoint viewer component. Counterpart of the React package (viewer-first; porting in progress).   | [Documentation](packages/vue/README.md)     |
-| **[pptx-angular-viewer](packages/angular/)** | [![npm](https://img.shields.io/npm/v/pptx-angular-viewer.svg)](https://www.npmjs.com/package/pptx-angular-viewer) | Angular PowerPoint viewer component. Counterpart of the React package (viewer-first; porting in progress). | [Documentation](packages/angular/README.md) |
-| **[pptx-viewer-mcp](packages/tools/)**       | [![npm](https://img.shields.io/npm/v/pptx-viewer-mcp.svg)](https://www.npmjs.com/package/pptx-viewer-mcp)         | CLI / MCP server and pure tool functions for AI agents to parse, edit, and convert PPTX files.             | [Documentation](packages/tools/README.md)   |
+| Package                                      | npm                                                                                                               | Description                                                                                              | README                                      |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| **[pptx-viewer-core](packages/core/)**       | [![npm](https://img.shields.io/npm/v/pptx-viewer-core.svg)](https://www.npmjs.com/package/pptx-viewer-core)       | Core PPTX engine - parse, create, edit, serialize, and convert PowerPoint files. Framework-agnostic.     | [Documentation](packages/core/README.md)    |
+| **[pptx-viewer-shared](packages/shared/)**   | _(internal - not published)_                                                                                      | Framework-agnostic viewer logic (theme, load helpers, types) shared by the React, Vue, and Angular UIs.  | [Documentation](packages/shared/README.md)  |
+| **[pptx-react-viewer](packages/react/)**     | [![npm](https://img.shields.io/npm/v/pptx-react-viewer.svg)](https://www.npmjs.com/package/pptx-react-viewer)     | React-based PowerPoint viewer, editor, and presenter with toolbar, inspector, collaboration, and export. | [Documentation](packages/react/README.md)   |
+| **[pptx-vue-viewer](packages/vue/)**         | [![npm](https://img.shields.io/npm/v/pptx-vue-viewer.svg)](https://www.npmjs.com/package/pptx-vue-viewer)         | Vue 3 PowerPoint viewer/editor component. Feature-equivalent counterpart of the React package.           | [Documentation](packages/vue/README.md)     |
+| **[pptx-angular-viewer](packages/angular/)** | [![npm](https://img.shields.io/npm/v/pptx-angular-viewer.svg)](https://www.npmjs.com/package/pptx-angular-viewer) | Angular PowerPoint viewer/editor component. Feature-equivalent counterpart of the React package.         | [Documentation](packages/angular/README.md) |
+| **[pptx-viewer-mcp](packages/tools/)**       | [![npm](https://img.shields.io/npm/v/pptx-viewer-mcp.svg)](https://www.npmjs.com/package/pptx-viewer-mcp)         | CLI / MCP server and pure tool functions for AI agents to parse, edit, and convert PPTX files.           | [Documentation](packages/tools/README.md)   |
 
 ### Dependency Graph
 
@@ -117,7 +117,7 @@ pptx-angular-viewer ┘                        ├── pptx-viewer-core
 - **Maximum export resolution** - Canvas-based exports are constrained by the browser's maximum canvas size (typically 16384x16384 or 32768x32768 pixels depending on browser and GPU).
 - **Mobile support** - Touch interactions (drag, pinch-zoom) are supported but the toolbar, inspector panels, and dialogs are designed for desktop viewport sizes.
 - **3D models** - Rendering GLB/GLTF 3D models requires optional peer dependencies (`three`, `@react-three/fiber`, `@react-three/drei`). Without them, the element falls back to its poster image.
-- **Vue / Angular feature parity** - The Vue and Angular bindings are viewer-first. Full editing, presenter mode, collaboration, and export features are available in the React package first and being ported incrementally.
+- **Vue / Angular feature parity** - The Vue and Angular bindings are functionally equivalent to the React package for editing, presenter mode, collaboration, and export. Minor cosmetic differences remain (pixel-level toolbar polish), and master/template editing is not yet wired in either binding.
 
 ---
 
@@ -266,7 +266,7 @@ const content = ref<ArrayBuffer | null>(null);
 </script>
 
 <template>
-	<PowerPointViewer :content="content" />
+	<PowerPointViewer :content="content" can-edit />
 </template>
 ```
 
