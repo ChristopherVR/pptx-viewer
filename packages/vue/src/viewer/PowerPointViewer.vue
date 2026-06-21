@@ -146,6 +146,7 @@ import { usePrint } from './composables/usePrint';
 import { useSectionOperations } from './composables/useSectionOperations';
 import { useSignatures } from './composables/useSignatures';
 import { useSlideOperations } from './composables/useSlideOperations';
+import { useTouchGestures } from './composables/useTouchGestures';
 import { useVersionHistory } from './composables/useVersionHistory';
 import type {
 	CollaborationConfig,
@@ -1511,10 +1512,41 @@ function onBroadcastStop(): void {
 }
 
 // ── Responsive / mobile chrome ────────────────────────────────────────
-const { isMobile } = useIsMobile();
+const { isMobile, isTouchDevice } = useIsMobile();
 // Keep the focused field visible when the on-screen keyboard opens, and lift
 // the fixed bottom bar above the keyboard.
 const { keyboardInset } = useKeyboardInsets();
+
+// ── Touch gestures (pinch-zoom + long-press) on the main canvas ────────
+// The gesture state machine is framework-agnostic (pptx-viewer-shared); this
+// composable owns only the native-listener lifecycle. Swipe navigation in view
+// mode keeps its own inline handler (onMainTouchStart/End) below; pinch-zoom
+// and long-press-to-context-menu are routed through the shared recogniser here.
+const mainRef = ref<HTMLElement | null>(null);
+useTouchGestures({
+	targetRef: mainRef,
+	currentScale: zoom,
+	minScale: ZOOM_MIN,
+	maxScale: ZOOM_MAX,
+	enabled: isTouchDevice,
+	callbacks: {
+		onPinchZoom: (newScale) => {
+			zoom.value = Number(newScale.toFixed(2));
+		},
+		onLongPress: (clientX, clientY) => {
+			// Mirror React: long-press opens the element context menu, but only in
+			// edit mode with an element already selected.
+			if (!props.canEdit || presenting.value) {
+				return;
+			}
+			const id = selectedElementIds.value[0];
+			if (!id) {
+				return;
+			}
+			contextMenu.value = { open: true, x: clientX, y: clientY, elementId: id };
+		},
+	},
+});
 const mobileNotesOpen = ref(false);
 /** Mobile-only bottom sheets for panels that are right-rail sidebars on desktop. */
 const mobileInspectorOpen = ref(false);
@@ -2352,6 +2384,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				</nav>
 
 				<main
+					ref="mainRef"
 					class="pptx-vue-main"
 					:class="{ 'is-editable': props.canEdit }"
 					@pointerdown="onCanvasPointerDown"
@@ -2656,6 +2689,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				:zoom-percent="zoomPercent"
 				:can-edit="props.canEdit"
 				:keyboard-inset="keyboardInset"
+				:comment-count="activeComments.length"
 				@prev="goPrev"
 				@next="goNext"
 				@zoom-in="zoomIn"

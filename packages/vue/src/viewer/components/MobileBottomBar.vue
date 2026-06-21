@@ -37,7 +37,18 @@ const props = defineProps<{
 	 * this amount so it stays above the keyboard instead of under it.
 	 */
 	keyboardInset?: number;
+	/** Number of comments on the active slide (renders a badge, capped at 99+). */
+	commentCount?: number;
 }>();
+
+/** Comment-count badge text, capped at "99+" like the React mobile bar. */
+const commentBadge = computed(() => {
+	const count = props.commentCount ?? 0;
+	if (count <= 0) {
+		return null;
+	}
+	return count > 99 ? '99+' : String(count);
+});
 
 /** Translate the fixed bar up above the on-screen keyboard, if one is open. */
 const barStyle = computed(() => {
@@ -198,13 +209,19 @@ const MOBILE_LABEL =
 		<button
 			v-if="props.canEdit"
 			type="button"
-			class="pptx-vue-mobile-btn"
+			class="pptx-vue-mobile-btn relative"
 			:class="MOBILE_BTN"
 			aria-label="Comments"
 			title="Comments"
 			@click="emit('comments')"
 		>
 			<span aria-hidden="true">💬</span>
+			<span
+				v-if="commentBadge"
+				class="pptx-vue-mobile-badge absolute top-1 right-1/4 flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-primary text-[9px] font-semibold text-white"
+				aria-hidden="true"
+				>{{ commentBadge }}</span
+			>
 		</button>
 
 		<button

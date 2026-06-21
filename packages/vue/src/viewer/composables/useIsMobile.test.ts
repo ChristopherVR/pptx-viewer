@@ -97,5 +97,35 @@ describe('useIsMobile', () => {
 			expect(result.isMobile.value).toBeFalsy();
 			scope.stop();
 		});
+
+		it('exposes the additive signals with safe defaults', () => {
+			const scope = effectScope();
+			const result = scope.run(() => useIsMobile())!;
+			expect(result.isTouchDevice.value).toBeFalsy();
+			expect(['portrait', 'landscape']).toContain(result.orientation.value);
+			expect(result.isVirtualKeyboardOpen.value).toBeFalsy();
+			scope.stop();
+		});
+	});
+
+	describe('additive signals', () => {
+		it('reports touch capability from navigator.maxTouchPoints', () => {
+			installMatchMedia(false);
+			Object.defineProperty(navigator, 'maxTouchPoints', { value: 5, configurable: true });
+			const scope = effectScope();
+			const result = scope.run(() => useIsMobile())!;
+			expect(result.isTouchDevice.value).toBeTruthy();
+			scope.stop();
+			Object.defineProperty(navigator, 'maxTouchPoints', { value: 0, configurable: true });
+		});
+
+		it('derives orientation from the viewport aspect ratio', () => {
+			installMatchMedia(false);
+			const scope = effectScope();
+			const result = scope.run(() => useIsMobile())!;
+			const expected = window.innerHeight > window.innerWidth ? 'portrait' : 'landscape';
+			expect(result.orientation.value).toBe(expected);
+			scope.stop();
+		});
 	});
 });

@@ -78,6 +78,27 @@ describe('mobileBottomBar', () => {
 		expect(wrapper.emitted('comments')).toHaveLength(1);
 	});
 
+	it('renders a comment-count badge when editable and count > 0', () => {
+		const wrapper = mount(MobileBottomBar, {
+			props: { slideIndex: 0, slideCount: 1, zoomPercent: 100, canEdit: true, commentCount: 3 },
+		});
+		expect(wrapper.get('.pptx-vue-mobile-badge').text()).toBe('3');
+	});
+
+	it('caps the comment badge at 99+', () => {
+		const wrapper = mount(MobileBottomBar, {
+			props: { slideIndex: 0, slideCount: 1, zoomPercent: 100, canEdit: true, commentCount: 150 },
+		});
+		expect(wrapper.get('.pptx-vue-mobile-badge').text()).toBe('99+');
+	});
+
+	it('omits the comment badge when count is 0', () => {
+		const wrapper = mount(MobileBottomBar, {
+			props: { slideIndex: 0, slideCount: 1, zoomPercent: 100, canEdit: true, commentCount: 0 },
+		});
+		expect(wrapper.find('.pptx-vue-mobile-badge').exists()).toBeFalsy();
+	});
+
 	it('disables prev at the first slide and next at the last', () => {
 		const first = mountBar({ slideIndex: 0, slideCount: 3 });
 		expect(first.get('button[aria-label="Previous slide"]').attributes('disabled')).toBeDefined();

@@ -7,11 +7,13 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useAnimationPlayback } from '../composables/useAnimationPlayback';
 import { useIsMobile } from '../composables/useIsMobile';
 import { usePresentationAnnotations } from '../composables/usePresentationAnnotations';
+import { useTouchGestures } from '../composables/useTouchGestures';
 import type { CanvasSize } from '../types';
 import MobilePresenterView from './MobilePresenterView.vue';
 import PresentationAnnotationOverlay from './PresentationAnnotationOverlay.vue';
 import PresentationSubtitleBar from './PresentationSubtitleBar.vue';
 import PresentationToolbar from './PresentationToolbar.vue';
+import PresentationTouchControls from './PresentationTouchControls.vue';
 import PresentationTransitionOverlay from './PresentationTransitionOverlay.vue';
 import PresenterView from './PresenterView.vue';
 import SlideStage from './SlideStage.vue';
@@ -155,7 +157,7 @@ const presentationStartTime = ref<number | null>(null);
 /** Whether the presenter view (notes + next-slide preview) is shown. */
 const presenterMode = ref(false);
 /** On a phone, the presenter view uses a single-column mobile layout. */
-const { isMobile } = useIsMobile();
+const { isMobile, isTouchDevice } = useIsMobile();
 /** Whether the live-caption (subtitle) bar is shown. */
 const subtitlesOn = ref(false);
 
@@ -268,42 +270,31 @@ function handleResize(): void {
 // ---------------------------------------------------------------------------
 // Touch / swipe navigation (mobile has no keyboard, so Esc/arrows are absent)
 // ---------------------------------------------------------------------------
-
-const SWIPE_THRESHOLD = 50;
-const touchStart = ref<{ x: number; y: number } | null>(null);
-
-function onTouchStart(event: TouchEvent): void {
-	const touch = event.changedTouches[0];
-	touchStart.value = touch ? { x: touch.clientX, y: touch.clientY } : null;
-}
-
-function onTouchEnd(event: TouchEvent): void {
-	const start = touchStart.value;
-	touchStart.value = null;
-	if (!start) {
-		return;
-	}
-	const touch = event.changedTouches[0];
-	if (!touch) {
-		return;
-	}
-	const dx = touch.clientX - start.x;
-	const dy = touch.clientY - start.y;
-	// Require a predominantly-horizontal gesture past the threshold.
-	if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) <= Math.abs(dy)) {
-		return;
-	}
-	if (dx < 0) {
-		next();
-	} else {
-		prev();
-	}
-}
-
-const atFirst = computed(() => currentIndex.value <= 0);
-const atLast = computed(() => currentIndex.value >= props.slides.length - 1);
+// A horizontal swipe steps between slides. The gesture math is delegated to the
+// shared `createTouchGestureRecognizer` (via `useTouchGestures`); a rightward
+// swipe (direction 1) goes to the previous slide, a leftward swipe (direction
+// -1) to the next, matching the React present-mode mapping. Pinch-zoom is a
+// no-op here (the stage is already fit-to-viewport), so `currentScale` is a
+// constant 1 and the pinch callback is omitted.
 
 const overlayRef = ref<HTMLDivElement | null>(null);
+const presentScale = ref(1);
+
+useTouchGestures({
+	targetRef: overlayRef,
+	currentScale: presentScale,
+	minScale: 1,
+	maxScale: 1,
+	callbacks: {
+		onSwipe: (direction) => {
+			if (direction === 1) {
+				prev();
+			} else {
+				next();
+			}
+		},
+	},
+});
 
 function requestFullscreen(): void {
 	const el = overlayRef.value;
@@ -351,13 +342,7 @@ onBeforeUnmount(() => {
 
 <template>
 	<Teleport to="body">
-		<div
-			ref="overlayRef"
-			class="pptx-vue-presentation"
-			@click="onOverlayClick"
-			@touchstart="onTouchStart"
-			@touchend="onTouchEnd"
-		>
+		<div ref="overlayRef" class="pptx-vue-presentation" @click="onOverlayClick">
 			<!-- Inject the animation @keyframes once for this overlay. -->
 			<component :is="'style'">{{ ANIMATION_KEYFRAMES_CSS }}</component>
 			<div ref="frameRef" class="pptx-vue-presentation-frame" :style="frameStyle">
@@ -445,46 +430,22 @@ onBeforeUnmount(() => {
 				@toggle-presenter-view="presenterMode = !presenterMode"
 			/>
 
-			<div class="pptx-vue-presentation-counter" @click.stop>
+			<!-- Mouse users get a slide counter; the auto-hiding PresentationToolbar
+			     already carries their nav + end controls. -->
+			<div v-if="!isTouchDevice" class="pptx-vue-presentation-counter" @click.stop>
 				{{ currentIndex + 1 }} / {{ slides.length }}
 			</div>
 
-			<!-- Always-visible exit control (touch devices have no Escape key). -->
-			<button
-				type="button"
-				class="pptx-vue-presentation-close"
-				aria-label="Exit presentation"
-				@click.stop="close"
-				@touchend.stop.prevent="close"
-			>
-				&times;
-			</button>
-
-			<!--
-				Edge navigation buttons: the primary touch affordance for moving
-				between slides. They stop propagation so a tap on a control never
-				falls through to the overlay's tap-to-advance handler.
-			-->
-			<button
-				type="button"
-				class="pptx-vue-presentation-nav pptx-vue-presentation-prev"
-				aria-label="Previous slide"
-				:disabled="atFirst"
-				@click.stop="prev"
-				@touchend.stop.prevent="prev"
-			>
-				&#x2039;
-			</button>
-			<button
-				type="button"
-				class="pptx-vue-presentation-nav pptx-vue-presentation-next"
-				aria-label="Next slide"
-				:disabled="atLast"
-				@click.stop="next"
-				@touchend.stop.prevent="next"
-			>
-				&#x203A;
-			</button>
+			<!-- Persistent touch controls (close + prev/next + counter): the primary
+			     touch affordance for exiting / navigating the slideshow, since the
+			     mouse toolbar stays hidden without a pointer move and a phone has no
+			     Escape key. Touch-only and safe-area aware. -->
+			<PresentationTouchControls
+				:current-slide-index="currentIndex"
+				:total-slides="slides.length"
+				@move="onToolbarMove"
+				@end="close"
+			/>
 		</div>
 	</Teleport>
 </template>
@@ -527,73 +488,5 @@ onBeforeUnmount(() => {
 	line-height: 1.4;
 	user-select: none;
 	pointer-events: none;
-}
-
-.pptx-vue-presentation-close {
-	position: fixed;
-	top: calc(env(safe-area-inset-top, 0px) + 12px);
-	right: calc(env(safe-area-inset-right, 0px) + 12px);
-	width: 44px;
-	height: 44px;
-	min-width: 44px;
-	min-height: 44px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	border: none;
-	border-radius: 50%;
-	background-color: rgba(0, 0, 0, 0.55);
-	color: #ffffff;
-	font-size: 24px;
-	line-height: 1;
-	cursor: pointer;
-	pointer-events: auto;
-	touch-action: manipulation;
-	z-index: 2147483002;
-}
-
-.pptx-vue-presentation-close:hover {
-	background-color: rgba(255, 255, 255, 0.2);
-}
-
-/* ── Edge navigation buttons (touch-friendly, ≥44px) ─────────────────── */
-.pptx-vue-presentation-nav {
-	position: fixed;
-	top: 50%;
-	transform: translateY(-50%);
-	width: 44px;
-	height: 44px;
-	min-width: 44px;
-	min-height: 44px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	border: none;
-	border-radius: 50%;
-	background-color: rgba(0, 0, 0, 0.45);
-	color: #ffffff;
-	font-size: 28px;
-	line-height: 1;
-	cursor: pointer;
-	pointer-events: auto;
-	touch-action: manipulation;
-	z-index: 2147483001;
-}
-
-.pptx-vue-presentation-nav:hover:not(:disabled) {
-	background-color: rgba(255, 255, 255, 0.2);
-}
-
-.pptx-vue-presentation-nav:disabled {
-	opacity: 0.3;
-	cursor: not-allowed;
-}
-
-.pptx-vue-presentation-prev {
-	left: calc(env(safe-area-inset-left, 0px) + 12px);
-}
-
-.pptx-vue-presentation-next {
-	right: calc(env(safe-area-inset-right, 0px) + 12px);
 }
 </style>

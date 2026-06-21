@@ -91,12 +91,18 @@ describe('presentationMode', () => {
 		wrapper.unmount();
 	});
 
-	it('emits close when the close button is clicked', async () => {
+	it('emits close when the touch close button is clicked', async () => {
+		// The persistent close control lives in the touch-only
+		// PresentationTouchControls overlay, so make the device report touch.
+		const original = navigator.maxTouchPoints;
+		Object.defineProperty(navigator, 'maxTouchPoints', { value: 5, configurable: true });
 		const wrapper = mountMode([makeSlide('s1')]);
-		const button = document.querySelector<HTMLButtonElement>('.pptx-vue-presentation-close');
+		await wrapper.vm.$nextTick();
+		const button = document.querySelector<HTMLButtonElement>('.pptx-vue-pt-close');
 		button?.click();
 		expect(wrapper.emitted('close')).toHaveLength(1);
 		wrapper.unmount();
+		Object.defineProperty(navigator, 'maxTouchPoints', { value: original, configurable: true });
 	});
 
 	it('advances when the overlay is clicked', async () => {
