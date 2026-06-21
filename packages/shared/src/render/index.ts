@@ -354,6 +354,12 @@ export * from './mobile-chrome';
 export * from './gradient-picker';
 // Active-slide comment-array transforms (add/remove/toggle-resolved).
 export * from './comments-list';
+// Touch-gesture state machine: pinch-to-zoom (two-finger distance ratio),
+// single-finger horizontal swipe, and long-press recognition driven purely by
+// DOM `TouchEvent`-shaped objects. Each binding owns the listener attach/detach
+// lifecycle; the recogniser and its pure helpers (getTouchDistance/clampScale)
+// are shared here.
+export * from './touch-gestures';
 // Insert-chart factory: a sensible DEFAULT new `ChartPptxElement` (three sample
 // categories, one "Series 1", legend on, default position) plus the chart-type
 // list shown in the insert dropdown. The single source of truth every binding's
