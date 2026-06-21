@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.27](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@1.1.27) - 2026-06-21
+
+### Bug Fixes
+
+- **angular:** Bundle pptx-viewer-core and fix demo JIT + Vue demo alias (by @ChristopherVR) ([78838ec](https://github.com/ChristopherVR/pptx-viewer/commit/78838ec900fe2d8c90bc39333636d788c52c3161))
+
 ## [1.1.26](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@1.1.26) - 2026-06-21
 
 ### Documentation

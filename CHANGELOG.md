@@ -6,6 +6,20 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [Unreleased]
 
+### Bug Fixes
+
+- **angular:** Update element-style test to use camelCase zIndex key (by @ChristopherVR) ([7808808](https://github.com/ChristopherVR/pptx-viewer/commit/78088086b848499cc9ea1b68003a56d6a6956aa4))
+- **angular:** Bundle pptx-viewer-core and fix demo JIT + Vue demo alias (by @ChristopherVR) ([78838ec](https://github.com/ChristopherVR/pptx-viewer/commit/78838ec900fe2d8c90bc39333636d788c52c3161))
+
+### Build & CI
+
+- **release:** Inline npm publish into release workflow; add scoped package (by @ChristopherVR) ([6cdae4d](https://github.com/ChristopherVR/pptx-viewer/commit/6cdae4dcef675a3907fe80a875c59d56bd7847a2))
+- **release:** Merge publish.yml into release.yml for OIDC (by @ChristopherVR) ([feff67c](https://github.com/ChristopherVR/pptx-viewer/commit/feff67cac840a6379e6956db333ed17ce438bf41))
+- **release:** Fix script injection in publish job run steps (by @ChristopherVR) ([a46db0d](https://github.com/ChristopherVR/pptx-viewer/commit/a46db0d3cad1cec59792a2e15a694046886c3cde))
+- **release:** Move plan before builds to skip expensive steps on no-op runs (by @ChristopherVR) ([443ac75](https://github.com/ChristopherVR/pptx-viewer/commit/443ac758e418d7306526857026367af0ced9f4f7))
+
+## [1.1.30](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.30) - 2026-06-21
+
 ### Features
 
 - **shared:** Add Three.js SmartArt 3D model + scene runtime (by @ChristopherVR) ([f949213](https://github.com/ChristopherVR/pptx-viewer/commit/f949213b33ed0dca4c52d5d1ab414c3dba67efe7))
