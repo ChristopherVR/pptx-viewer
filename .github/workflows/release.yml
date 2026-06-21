@@ -5,19 +5,29 @@ on:
     workflows: [CI]
     types: [completed]
     branches: [main]
+  # Manual re-publish: runs only the publish job for a specific tag without
+  # going through the full release pipeline. Useful for re-publishing a tag
+  # that was skipped or failed in an automated run:
+  #   gh workflow run release.yml -f tag=pptx-viewer-core@1.2.3
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to (re-)publish, e.g. pptx-viewer-core@1.2.3'
+        required: true
+        type: string
 
 permissions:
   contents: write
-  id-token: write # Required for OIDC npm provenance in the publish job
+  id-token: write # Required for OIDC npm trusted publishing and provenance
 
 jobs:
   release:
-    # Run whenever CI completed (not just on full success) so a single broken
-    # framework binding does not block releases for the others. The per-package
-    # build steps below determine which packages are actually releasable.
+    # Only create releases when triggered by CI completing, not manual dispatch.
     if: |
-      github.event.workflow_run.conclusion == 'success' ||
-      github.event.workflow_run.conclusion == 'failure'
+      github.event_name == 'workflow_run' && (
+        github.event.workflow_run.conclusion == 'success' ||
+        github.event.workflow_run.conclusion == 'failure'
+      )
     runs-on: ubuntu-latest
     outputs:
       any_released: ${{ steps.tagged.outputs.any_released || 'false' }}
@@ -186,9 +196,8 @@ jobs:
           fi
           echo "released_keys=${RELEASED_KEYS}" >> "$GITHUB_OUTPUT"
 
-      # Stash the release plan so the publish job can read package versions
-      # and keys without re-running the planner. Artifact names are unique
-      # per run so concurrent runs never collide.
+      # Stash the release plan so the publish job can resolve package versions
+      # without re-running the planner. Artifact names are unique per run.
       - name: Upload release plan for publish job
         if: steps.tagged.outputs.any_released == 'true'
         uses: actions/upload-artifact@v4
@@ -198,43 +207,71 @@ jobs:
           retention-days: 1
 
   # ── Publish to npm ─────────────────────────────────────────────────────────
-  # NOTE: This job runs directly after `release` to sidestep the GitHub
-  # limitation where workflows cannot trigger other workflows via GITHUB_TOKEN
-  # events. The separate publish.yml is kept for manual re-publishes only.
+  # Runs in two modes:
   #
-  # Packages published:
+  # AUTO (workflow_run): triggered after the `release` job above; reads the
+  #   released package list and versions from the release-plan.json artifact.
+  #
+  # MANUAL (workflow_dispatch): skips the `release` job entirely and publishes
+  #   exactly the tag supplied via the `tag` input. Checks out at that tag so
+  #   the build matches the released snapshot.
+  #
+  # Auth: OIDC trusted publishing (default) or NPM_TOKEN secret.
+  #   - OIDC: requires Node 24+ (npm >= 11.5.1) and publishers linked on
+  #     npmjs.com for each package pointing to THIS workflow file
+  #     (.github/workflows/release.yml).
+  #   - Token fallback: set NPM_TOKEN in the "npm" environment.
+  #
+  # Packages published per core release:
   #   pptx-viewer-core       https://www.npmjs.com/package/pptx-viewer-core
   #   @christophervr/pptx-viewer  https://www.npmjs.com/package/@christophervr/pptx-viewer
-  #   pptx-react-viewer      https://www.npmjs.com/package/pptx-react-viewer
-  #   pptx-vue-viewer        https://www.npmjs.com/package/pptx-vue-viewer
-  #   pptx-angular-viewer    https://www.npmjs.com/package/pptx-angular-viewer
-  #   pptx-viewer-mcp        https://www.npmjs.com/package/pptx-viewer-mcp
   publish:
-    needs: release
-    if: needs.release.outputs.any_released == 'true'
+    needs: [release]
+    # `always()` lets this job run even when `release` was skipped (manual dispatch).
+    # Guard: release must not have failed outright, and either something was
+    # released or this is a manual dispatch.
+    if: |
+      always() &&
+      needs.release.result != 'failure' && (
+        needs.release.outputs.any_released == 'true' ||
+        github.event_name == 'workflow_dispatch'
+      )
     runs-on: ubuntu-latest
     environment: npm
     permissions:
       contents: read
-      id-token: write # Required for npm OIDC trusted publishing and provenance
+      id-token: write # Required for OIDC trusted publishing and provenance
     steps:
       # A release tag was already cut (GitHub release + `<npm>@<version>` tag), so
       # silently skipping the publish leaves npm stranded behind the tags with no
-      # signal. Fail loudly instead so the problem is visible.
-      # Set the NPM_PUBLISH repo variable to 'true' to enable publishing.
+      # signal. Fail loudly instead. Set the NPM_PUBLISH repo variable to 'true'.
       - name: Verify publishing is enabled
         if: vars.NPM_PUBLISH != 'true'
         run: |
           echo "::error::NPM_PUBLISH repository variable is not 'true' - npm publishing is disabled."
-          echo "Packages were released (GitHub releases cut) but npm publishing is disabled."
-          echo "Set the NPM_PUBLISH repository variable to 'true' to enable, or trigger publish.yml manually for each tag."
+          echo "Packages were released but npm publishing is disabled."
+          echo "Set the NPM_PUBLISH repository variable to 'true' to enable, or re-run this job."
           exit 1
 
-      - uses: actions/checkout@v6
+      # Auto mode: check out HEAD so the build includes the changelog commit.
+      - name: Checkout (automated)
+        if: github.event_name != 'workflow_dispatch'
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
+      # Manual mode: check out at the exact tag so the build matches the release.
+      - name: Checkout at tag (manual)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.tag }}
+
+      # Download the release plan uploaded by the release job (auto mode only).
+      # In manual mode the version comes directly from the tag input.
       - name: Download release plan
+        if: github.event_name != 'workflow_dispatch'
         uses: actions/download-artifact@v4
         with:
           name: release-plan-${{ github.run_id }}
@@ -257,18 +294,28 @@ jobs:
           bun run --filter 'pptx-viewer-shared' build
           bun run --filter 'pptx-viewer-mcp' build
 
-      # Only build the framework bindings that were actually released this run.
+      # Build only the framework bindings that need to be published.
       - name: Build released framework packages
         env:
           RELEASED_KEYS: ${{ needs.release.outputs.released_keys }}
         run: |
-          for key in $RELEASED_KEYS; do
-            case "$key" in
-              react)   bun run --filter 'pptx-react-viewer' build ;;
-              vue)     bun run --filter 'pptx-vue-viewer' build ;;
-              angular) bun run --filter 'pptx-angular-viewer' build ;;
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+            NAME="${TAG%@*}"
+            case "$NAME" in
+              pptx-react-viewer)   bun run --filter 'pptx-react-viewer' build ;;
+              pptx-vue-viewer)     bun run --filter 'pptx-vue-viewer' build ;;
+              pptx-angular-viewer) bun run --filter 'pptx-angular-viewer' build ;;
             esac
-          done
+          else
+            for key in $RELEASED_KEYS; do
+              case "$key" in
+                react)   bun run --filter 'pptx-react-viewer' build ;;
+                vue)     bun run --filter 'pptx-vue-viewer' build ;;
+                angular) bun run --filter 'pptx-angular-viewer' build ;;
+              esac
+            done
+          fi
 
       - name: Replace mermaid blocks with GitHub links in READMEs
         run: |
@@ -286,10 +333,39 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           RELEASED_KEYS: ${{ needs.release.outputs.released_keys }}
         run: |
-          CORE_VERSION=$(node -p "require('./release-plan.json').coreVersion")
+          # Resolve the list of keys to publish and a version for each.
+          # In manual mode: parse key + version from the tag input.
+          # In auto mode: read from the release-plan.json artifact.
+          declare -A VERSIONS
 
-          for key in $RELEASED_KEYS; do
-            VERSION=$(node -p "require('./release-plan.json').packages['${key}'].version")
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+            NAME="${TAG%@*}"
+            VERSION="${TAG##*@}"
+            case "$NAME" in
+              pptx-viewer-core)    KEY="core"    ;;
+              pptx-react-viewer)   KEY="react"   ;;
+              pptx-vue-viewer)     KEY="vue"     ;;
+              pptx-angular-viewer) KEY="angular" ;;
+              pptx-viewer-mcp)     KEY="tools"   ;;
+              *)
+                echo "::error::Unknown package name: $NAME (from tag: $TAG)"
+                exit 1
+                ;;
+            esac
+            KEYS="$KEY"
+            VERSIONS[$KEY]="$VERSION"
+            CORE_VERSION=$(npm view pptx-viewer-core version 2>/dev/null || echo "")
+          else
+            KEYS="$RELEASED_KEYS"
+            CORE_VERSION=$(node -p "require('./release-plan.json').coreVersion")
+            for key in $KEYS; do
+              VERSIONS[$key]=$(node -p "require('./release-plan.json').packages['${key}'].version")
+            done
+          fi
+
+          for key in $KEYS; do
+            VERSION="${VERSIONS[$key]}"
             echo "--- Publishing $key @ $VERSION ---"
 
             case "$key" in
@@ -305,10 +381,10 @@ jobs:
                   (cd packages/core && npm publish --provenance --access public)
                 fi
 
-                # Also publish as the scoped alias so consumers using the
-                # @christophervr scope stay in sync.
-                # NOTE: OIDC trusted publishing for @christophervr/pptx-viewer
-                # must be configured on npmjs.com to match this repo/workflow.
+                # Always publish the scoped alias alongside core so both
+                # package names stay in sync at the same version.
+                # NOTE: configure OIDC trusted publishing for @christophervr/pptx-viewer
+                # on npmjs.com pointing to this workflow file.
                 SCOPED_EXISTING=$(npm view @christophervr/pptx-viewer@"$VERSION" version 2>/dev/null || echo "")
                 if [ "$SCOPED_EXISTING" = "$VERSION" ]; then
                   echo "@christophervr/pptx-viewer@$VERSION already published, skipping"
