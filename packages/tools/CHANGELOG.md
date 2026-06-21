@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.26](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@1.1.26) - 2026-06-21
+
+### Features
+
+- Extracted more shared logic into the shared package (by @ChristopherVR) ([977c608](https://github.com/ChristopherVR/pptx-viewer/commit/977c608ecdb142908b38aaa37104d983275b705b))
+
+### Documentation
+
+- Sharpen npm descriptions and keywords for discoverability (by @ChristopherVR) ([8fea56d](https://github.com/ChristopherVR/pptx-viewer/commit/8fea56d7650f7dc2f3167dea97b94b612a03a4e7))
+
 ## [1.1.24](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@1.1.24) - 2026-06-20
 
 ### Features
@@ -19,7 +29,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 - Streamline npm READMEs and add badges, screenshots, demo links (by @ChristopherVR) ([92e980d](https://github.com/ChristopherVR/pptx-viewer/commit/92e980d434900abd223c4d70c6cae19a623f9ca8))
 - **tools:** Make MCP first-class in README and drop em-dashes (by @ChristopherVR) ([89ebd64](https://github.com/ChristopherVR/pptx-viewer/commit/89ebd6453719cf46a4e655dfe689c9d5fae19549))
-- **changelog:** Update package changelogs [skip ci] (by @github-actions[bot]) ([8915f26](https://github.com/ChristopherVR/pptx-viewer/commit/8915f26744b01645152c1c371becff9473d1d6d6))
 
 ### Build & CI
 

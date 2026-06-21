@@ -4,17 +4,64 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [Unreleased]
+
+### Features
+
+- **shared:** Add Three.js SmartArt 3D model + scene runtime (by @ChristopherVR) ([f949213](https://github.com/ChristopherVR/pptx-viewer/commit/f949213b33ed0dca4c52d5d1ab414c3dba67efe7))
+- **react:** Opt-in Three.js SmartArt renderer (by @ChristopherVR) ([ed1fc3a](https://github.com/ChristopherVR/pptx-viewer/commit/ed1fc3a4902ab93099a094415dc31ff520b80274))
+- **vue:** Opt-in Three.js SmartArt renderer (by @ChristopherVR) ([2d59be3](https://github.com/ChristopherVR/pptx-viewer/commit/2d59be365bee62521b1cfa670f9d5d5468418488))
+- **angular:** Opt-in Three.js SmartArt renderer (by @ChristopherVR) ([be6d858](https://github.com/ChristopherVR/pptx-viewer/commit/be6d85818b4a2f70cf644ee91467fd44dc4506de))
+- **shared:** Spatial 3D SmartArt layouts (phase 2) (by @ChristopherVR) ([eab4ed2](https://github.com/ChristopherVR/pptx-viewer/commit/eab4ed23a96539aafee1654f5be9628bcbaf563f))
+- **react:** Use spatial 3D SmartArt layouts (by @ChristopherVR) ([1835631](https://github.com/ChristopherVR/pptx-viewer/commit/183563172af0c44ac5e867ee72a51a85af700581))
+- **vue:** Use spatial 3D SmartArt layouts (by @ChristopherVR) ([a5f028e](https://github.com/ChristopherVR/pptx-viewer/commit/a5f028e35d20ed220e526ad3ba9afc5321720630))
+- **angular:** Use spatial 3D SmartArt layouts (by @ChristopherVR) ([6faf9ad](https://github.com/ChristopherVR/pptx-viewer/commit/6faf9ad980f013daa9f77cd9f7790c6620fa0630))
+- Extracted more shared logic into the shared package (by @ChristopherVR) ([977c608](https://github.com/ChristopherVR/pptx-viewer/commit/977c608ecdb142908b38aaa37104d983275b705b))
+- **chart:** Insert new charts from the editor toolbar (by @ChristopherVR) ([6a14691](https://github.com/ChristopherVR/pptx-viewer/commit/6a1469152bb1502e6816284104f5d0e74ea4b607))
+- **chart:** Edit per-series colour in the inspector (by @ChristopherVR) ([d54152e](https://github.com/ChristopherVR/pptx-viewer/commit/d54152e3e25122acd4f48e27ec7116d93b8a67f3))
+- **chart:** Edit log scale, markers, combo, gridline/title style, dPt (by @ChristopherVR) ([df1dc7a](https://github.com/ChristopherVR/pptx-viewer/commit/df1dc7a3eff39e6c35a38f2ae33ff5da639fe31b))
+
+### Bug Fixes
+
+- **shared,vue:** Remove smartart-3d cross-chunk re-export; Rolldown constant workaround (by @ChristopherVR) ([f2e4a22](https://github.com/ChristopherVR/pptx-viewer/commit/f2e4a2274d3f28757293addf7f10beae748612be))
+- **vue,ci:** Fix Rolldown build panic and isolate per-framework CI failures (by @ChristopherVR) ([7d282ee](https://github.com/ChristopherVR/pptx-viewer/commit/7d282eeadeb130814dca84996b0434568f2f5e0e))
+
+### Refactor
+
+- **shared:** Extract editor lifecycle foundation to shared (by @ChristopherVR) ([3dd4382](https://github.com/ChristopherVR/pptx-viewer/commit/3dd43821804b6a90be0656d65737d30907435b44))
+- **shared:** Extract text utilities to shared (by @ChristopherVR) ([7e962be](https://github.com/ChristopherVR/pptx-viewer/commit/7e962be84fb82e037eaf5b4207198e61609fc3f2))
+- **shared:** Export Phase 6 effects and dialog helpers from barrel (by @ChristopherVR) ([5bb0bf4](https://github.com/ChristopherVR/pptx-viewer/commit/5bb0bf454bdfebd7693d706727b1a092f264c477))
+- **shared:** Extract export pipeline to shared (by @ChristopherVR) ([4ce9adc](https://github.com/ChristopherVR/pptx-viewer/commit/4ce9adc9517470b419b9bcf61d398d4bee0c49c9))
+- **shared:** Extract rendering math and style builders to shared (by @ChristopherVR) ([081d333](https://github.com/ChristopherVR/pptx-viewer/commit/081d3337e74af583ef28a6fff6f0ae9fdbec96db))
+- **shared:** Share px helper across element-style bindings (by @ChristopherVR) ([764be4f](https://github.com/ChristopherVR/pptx-viewer/commit/764be4fad1e0775f8b5af1b3ee12cb050914234a))
+
+### Documentation
+
+- Sharpen npm descriptions and keywords for discoverability (by @ChristopherVR) ([8fea56d](https://github.com/ChristopherVR/pptx-viewer/commit/8fea56d7650f7dc2f3167dea97b94b612a03a4e7))
+- **core:** Reword README in plain language (by @ChristopherVR) ([793c26e](https://github.com/ChristopherVR/pptx-viewer/commit/793c26ec7e2415c66f34c637cb541483bf395a11))
+- **react:** Soften jargon in README internals (by @ChristopherVR) ([74c28ec](https://github.com/ChristopherVR/pptx-viewer/commit/74c28ec5519ffd8704fd3c0aa4588ce76861e68b))
+- **vue:** Reword README in plain language (by @ChristopherVR) ([3afac93](https://github.com/ChristopherVR/pptx-viewer/commit/3afac9321206ab492d8cd6d63babc6cedef7292f))
+- **angular:** Reword README in plain language (by @ChristopherVR) ([ba72266](https://github.com/ChristopherVR/pptx-viewer/commit/ba722668b0c4846e86837b2cf255198231ab2631))
+- **shared:** Correct print-document module comment (by @ChristopherVR) ([a5e0e0d](https://github.com/ChristopherVR/pptx-viewer/commit/a5e0e0d4a5afaf0c44a009ba188ea44884a50781))
+- **chart:** Update limitations for full chart editing and insert (by @ChristopherVR) ([f788147](https://github.com/ChristopherVR/pptx-viewer/commit/f788147daded697a0b913d5cb0798bce38cb0a41))
+
+### Build & CI
+
+- **release:** Add GitHub Release retention pruning (by @ChristopherVR) ([616fb52](https://github.com/ChristopherVR/pptx-viewer/commit/616fb52f8846633ba685ac50864988da6bd9f0a7))
+- **release:** Fail loudly when npm publishing is disabled (by @ChristopherVR) ([80b7c52](https://github.com/ChristopherVR/pptx-viewer/commit/80b7c52909bef91e7d6744cd9876363e2c19045e))
+- **release:** Avoid script injection from release tag in publish (by @ChristopherVR) ([c514f4b](https://github.com/ChristopherVR/pptx-viewer/commit/c514f4be25c75f9b96d30aa87ed6ff307b7468d0))
+
 ## [1.1.29](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.29) - 2026-06-20
 
 ### Features
 
 - **chart:** Edit value-axis display units in the inspector (by @ChristopherVR) ([88d9758](https://github.com/ChristopherVR/pptx-viewer/commit/88d9758eba7c42377403dd75f678f7cd11cf45a9))
-- **collab:** Implement C3 collaboration hardening ([f4a27cf](https://github.com/ChristopherVR/pptx-viewer/commit/f4a27cfa37de3d8b72cb2a6554a415303f269f2f))
+- **collab:** Implement C3 collaboration hardening (by @ChristopherVR) ([f4a27cf](https://github.com/ChristopherVR/pptx-viewer/commit/f4a27cfa37de3d8b72cb2a6554a415303f269f2f))
 
 ### Documentation
 
 - **collab:** Add C3 collaboration-hardening design proposal (by @ChristopherVR) ([f0b50ad](https://github.com/ChristopherVR/pptx-viewer/commit/f0b50adfcfc5e51a6edffac454496ead2bdee246))
-- **collab:** Add Hocuspocus example and production deployment guide ([45df385](https://github.com/ChristopherVR/pptx-viewer/commit/45df38510392431484749872ff134da2508d9045))
+- **collab:** Add Hocuspocus example and production deployment guide (by @ChristopherVR) ([45df385](https://github.com/ChristopherVR/pptx-viewer/commit/45df38510392431484749872ff134da2508d9045))
 
 ## [1.1.28](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.28) - 2026-06-20
 

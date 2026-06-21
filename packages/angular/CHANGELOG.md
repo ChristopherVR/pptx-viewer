@@ -4,23 +4,17 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
-## [1.1.27](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.27) - 2026-06-20
+## [1.1.29](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.29) - 2026-06-21
+
+### Features
+
+- **shared:** Add Three.js SmartArt 3D model + scene runtime (by @ChristopherVR) ([f949213](https://github.com/ChristopherVR/pptx-viewer/commit/f949213b33ed0dca4c52d5d1ab414c3dba67efe7))
+- **angular:** Opt-in Three.js SmartArt renderer (by @ChristopherVR) ([be6d858](https://github.com/ChristopherVR/pptx-viewer/commit/be6d85818b4a2f70cf644ee91467fd44dc4506de))
 
 ### Documentation
 
-- **changelog:** Update package changelogs [skip ci] (by @github-actions[bot]) ([fc52d85](https://github.com/ChristopherVR/pptx-viewer/commit/fc52d854639267f9c322b2b03f3da442aace71ac))
-
-## [1.1.26](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.26) - 2026-06-20
-
-### Documentation
-
-- **changelog:** Update package changelogs [skip ci] (by @github-actions[bot]) ([ab19f68](https://github.com/ChristopherVR/pptx-viewer/commit/ab19f680ef596a3855a680ab3ad5ab4891b0b773))
-
-## [1.1.25](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.25) - 2026-06-20
-
-### Documentation
-
-- **changelog:** Update package changelogs [skip ci] (by @github-actions[bot]) ([6b96cb1](https://github.com/ChristopherVR/pptx-viewer/commit/6b96cb1b2fe9cc76dc2eafbfe1710b8953499bfb))
+- Sharpen npm descriptions and keywords for discoverability (by @ChristopherVR) ([8fea56d](https://github.com/ChristopherVR/pptx-viewer/commit/8fea56d7650f7dc2f3167dea97b94b612a03a4e7))
+- **angular:** Reword README in plain language (by @ChristopherVR) ([ba72266](https://github.com/ChristopherVR/pptx-viewer/commit/ba722668b0c4846e86837b2cf255198231ab2631))
 
 ## [1.1.24](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.24) - 2026-06-20
 
@@ -81,7 +75,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 - **angular:** Trim PORTING.md to status + what's-missing (drop session log) (by @ChristopherVR) ([393d5e2](https://github.com/ChristopherVR/pptx-viewer/commit/393d5e2e10361cd9158cf502c2f15e67bbe9e09c))
 - **angular:** E2e now 28/0 (no skips); remaining = refactor/cosmetic debts only (by @ChristopherVR) ([7817092](https://github.com/ChristopherVR/pptx-viewer/commit/7817092780173c1a288029addfadc6c6e571e871))
 - Remove em-dashes and clarify demo link in viewer packages (by @ChristopherVR) ([f52afff](https://github.com/ChristopherVR/pptx-viewer/commit/f52afffd935016b747116a9909c523021b492225))
-- **changelog:** Update package changelogs [skip ci] (by @github-actions[bot]) ([8915f26](https://github.com/ChristopherVR/pptx-viewer/commit/8915f26744b01645152c1c371becff9473d1d6d6))
 
 ### Build & CI
 
