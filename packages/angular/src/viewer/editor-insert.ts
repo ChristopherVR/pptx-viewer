@@ -21,6 +21,28 @@ export {
 } from '../internal/shared';
 
 /**
+ * SmartArt data-model editing operations, re-exported from `pptx-viewer-core`.
+ *
+ * These are the single source of truth for SmartArt mutations (add / remove /
+ * text / reorder / promote / demote / layout switch); the Angular SmartArt
+ * inspector (`smart-art-properties.component.ts` and its pure helper
+ * `smart-art-properties-helpers.ts`) imports them from this barrel so the
+ * binding never reimplements editing logic. Each returns a new immutable
+ * `PptxSmartArtData` and clears `drawingShapes` to trigger layout reflow.
+ */
+export {
+	addSmartArtNode,
+	addSmartArtNodeAsChild,
+	removeSmartArtNode,
+	updateSmartArtNodeText,
+	reorderSmartArtNode,
+	promoteSmartArtNode,
+	demoteSmartArtNode,
+	switchSmartArtLayout,
+	SWITCHABLE_LAYOUT_TYPES,
+} from 'pptx-viewer-core';
+
+/**
  * Create a new chart element with sensible defaults.
  *
  * Delegates to the shared `createDefaultChartElement` (the single source of

@@ -99,6 +99,8 @@ packages/react/src/                          packages/angular/src/
   viewer/constants/scalar.ts                   → pptx-viewer-shared + constants.ts  ✅ (subset)
   viewer/types-ui.ts                           viewer/types.ts (+ shared)           ◑ public subset
   viewer/components/{toolbar,inspector,...}    viewer/ribbon.component.ts (+ panels)  ✅
+  inspector/SmartArtPropertiesPanel.tsx        viewer/smart-art-properties.component.ts ✅
+  inspector/SmartArtLayoutSwitcher.tsx         (folded into smart-art-properties)     ✅
   styles/pptx-viewer.css (Tailwind)            styles/pptx-angular-viewer.css       ✅ Tailwind 4
 ```
 
@@ -128,7 +130,10 @@ freehand ink, Arrange, Design incl. theme gallery, Transitions, Animations,
 Slide Show incl. custom shows, Review, View incl. grid/rulers/guides/snap/
 eyedropper/selection-pane) + status bar; the editor (select/move/resize/rotate/
 marquee, inline + table-cell touch edit, clipboard, align/distribute, group,
-z-order, slide CRUD, inspector, undo/redo, save); presentation mode (transitions,
+z-order, slide CRUD, inspector incl. **SmartArt editing** (per-node text, add
+item / add sub-item, remove, promote/demote, reorder up/down, colour-scheme
+select, style flat/moderate/intense, and the layout switcher), undo/redo, save);
+presentation mode (transitions,
 presenter view, custom-show playback); the advanced subsystems (comments,
 signatures, accessibility, embedded fonts, collaboration, print, export
 PNG/PDF/GIF/WebM); and the **mobile chrome** (toolbar + bottom bar + sheets,

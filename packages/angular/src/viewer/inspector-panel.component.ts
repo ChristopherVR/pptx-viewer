@@ -20,6 +20,8 @@ import type {
 	ChartPptxElement,
 	PptxElement,
 	PptxElementAnimation,
+	PptxSmartArtData,
+	SmartArtPptxElement,
 	TablePptxElement,
 } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
@@ -40,6 +42,7 @@ import {
 	textColorOf,
 	textStylePatch,
 } from './inspector-helpers';
+import { SmartArtPropertiesComponent } from './smart-art-properties.component';
 import { TableDataEditorComponent } from './table-data-editor.component';
 import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 
@@ -53,6 +56,7 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 		TextAdvancedPanelComponent,
 		TableDataEditorComponent,
 		ChartDataEditorComponent,
+		SmartArtPropertiesComponent,
 		AnimationAuthorPanelComponent,
 	],
 	template: `
@@ -305,6 +309,16 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 					<summary class="pptx-ng-inspector__summary">Chart data</summary>
 					<pptx-chart-data-editor [element]="c" (elementChange)="onElementReplace($event)" />
 				</details>
+			}
+
+			<!-- ── SmartArt editing ───────────────────────────────────────────── -->
+			@if (smartArtData(); as sa) {
+				<section class="pptx-ng-inspector__section">
+					<pptx-smart-art-properties
+						[smartArtData]="sa"
+						(smartArtDataChange)="onSmartArtDataChange($event)"
+					/>
+				</section>
 			}
 
 			<!-- ── Animation authoring ────────────────────────────────────────── -->
@@ -593,6 +607,28 @@ export class InspectorPanelComponent {
 	protected readonly chartEl = computed(() =>
 		this.el().type === 'chart' ? (this.el() as ChartPptxElement) : undefined,
 	);
+
+	/** The selected element narrowed to SmartArt, or undefined. */
+	protected readonly smartArtEl = computed(() =>
+		this.el().type === 'smartArt' ? (this.el() as SmartArtPptxElement) : undefined,
+	);
+
+	/** The selected SmartArt element's data model, or undefined. */
+	protected readonly smartArtData = computed<PptxSmartArtData | undefined>(
+		() => this.smartArtEl()?.smartArtData,
+	);
+
+	/**
+	 * Commit an updated SmartArt data model as one history entry. Patching only
+	 * `smartArtData` routes through the same `EditorStateService.updateElement`
+	 * path as every other inspector section, so undo/redo and persistence work
+	 * identically.
+	 */
+	protected onSmartArtDataChange(smartArtData: PptxSmartArtData): void {
+		this.editor.updateElement(this.slideIndex(), this.el().id, {
+			smartArtData,
+		} as Partial<PptxElement>);
+	}
 
 	/** Commit a partial-element patch from an advanced sub-panel as one history entry. */
 	protected onPatch(patch: Partial<PptxElement>): void {
