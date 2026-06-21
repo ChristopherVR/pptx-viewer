@@ -28,7 +28,7 @@ describe('getContainerStyle', () => {
 		expect(style['top']).toBe('20px');
 		expect(style['width']).toBe('100px');
 		expect(style['height']).toBe('50px');
-		expect(style['z-index']).toBe(3);
+		expect(style['zIndex']).toBe(3);
 	});
 
 	it('emits a transform for rotation and flips', () => {
