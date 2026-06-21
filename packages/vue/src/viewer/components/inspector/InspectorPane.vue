@@ -9,6 +9,7 @@ import ChartPanel from './ChartPanel.vue';
 import EffectsPanel from './EffectsPanel.vue';
 import FillPanel from './FillPanel.vue';
 import ImagePanel from './ImagePanel.vue';
+import SmartArtPropertiesPanel from './SmartArtPropertiesPanel.vue';
 import StrokePanel from './StrokePanel.vue';
 import TablePanel from './TablePanel.vue';
 import TextPanel from './TextPanel.vue';
@@ -32,6 +33,7 @@ const isText = computed(() => hasTextProperties(props.element));
 const isImage = computed(() => isImageLikeElement(props.element));
 const isTable = computed(() => props.element.type === 'table');
 const isChart = computed(() => props.element.type === 'chart');
+const isSmartArt = computed(() => props.element.type === 'smartArt');
 
 function relay(patch: Partial<PptxElement>): void {
 	emit('update', patch);
@@ -96,6 +98,15 @@ function relay(patch: Partial<PptxElement>): void {
 				Animations
 			</h3>
 			<AnimationPanel :element="element" @update="relay" />
+		</div>
+
+		<div v-if="isSmartArt" class="pptx-vue-inspector-section py-2 border-b border-border">
+			<h3
+				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+			>
+				SmartArt
+			</h3>
+			<SmartArtPropertiesPanel :element="element" @update="relay" />
 		</div>
 
 		<div v-if="isShape" class="pptx-vue-inspector-section py-2 border-b border-border">

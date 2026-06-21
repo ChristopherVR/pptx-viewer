@@ -28,8 +28,11 @@ unit tests green**, e2e green on react/vue/angular). Done and verified live:
   undo-redo, snap-to-grid, **snap-to-shape**, **H/V guides**, **rulers**, grid,
   **drawing/ink tools**, inline text editing, format painter, shape-adjustment handles.
 - **Chrome**: full Office-style **ribbon** (all tabs, all actions wired), **status
-  bar**, **slides rail** (React-parity), **inspector** (element + slide properties),
-  context menu, dialogs. Tailwind 4 pipeline adopted for visual parity.
+  bar**, **slides rail** (React-parity), **inspector** (element + slide properties,
+  incl. a full **SmartArt editing panel**: per-node text, add item / add sub-item,
+  remove, promote/demote via Tab/Shift+Tab + buttons, reorder up/down, colour-scheme
+  select, style toggle, and a layout switcher), context menu, dialogs. Tailwind 4
+  pipeline adopted for visual parity.
 - **Modes & I/O**: presentation mode (animation playback, presenter view, ink,
   rehearse timings, subtitles, slide transitions), export (PNG/PDF/GIF/WebM),
   print, **Save As** (pptx/ppsx/pptm), copy-slide-as-image.
@@ -165,8 +168,13 @@ git log / `git show`):
    (GUIDs, patterns, rich text); SmartArt (10-family fallback).
 3. **Editing core**: selection/drag/resize/rotate, history, operations, align/
    group/flip/z-order, snap-to-grid/shape, guides, rulers, grid, drawing tools.
-4. **Inspector + dialogs**: 9 element panels + slide panel, context menu,
-   hyperlink/properties/share/settings/insert dialogs.
+4. **Inspector + dialogs**: 9 element panels + slide panel + **SmartArt editing
+   panel** (`SmartArtPropertiesPanel.vue` + `SmartArtLayoutSwitcher.vue` driven by
+   the `useSmartArtEditing` composable over core `addSmartArtNode*` /
+   `removeSmartArtNode` / `updateSmartArtNodeText` / `reorderSmartArtNode` /
+   `promote`/`demoteSmartArtNode` / `switchSmartArtLayout`; updates flow through the
+   history-tracked `useEditorOperations.updateElement`, so undo/redo works), context
+   menu, hyperlink/properties/share/settings/insert dialogs.
 5. **Presentation/print/export**: present mode + animation playback, presenter
    view/ink/rehearse/subtitles/transitions, PNG/PDF/GIF/WebM, print, Save As.
 6. **Collab & docs**: Yjs (cursors/presence/follow), comments, find/replace,
