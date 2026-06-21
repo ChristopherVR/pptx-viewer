@@ -5,12 +5,11 @@
  * optional dependency: when it is not installed the dynamic import rejects and
  * the binding falls back to the SVG `SmartArtRenderer`. The pure model builder
  * (`buildSmartArt3DModel`) and its types live in the main barrel
- * (`pptx-viewer-shared`) and are re-exported here for convenience.
+ * (`pptx-viewer-shared`) and should be imported from there directly.
  */
 
 export { mountSmartArt3D } from './scene';
 export type { SmartArt3DHandle, SmartArt3DViewOptions } from './scene';
-export { buildSmartArt3DModel } from '../render/smartart-3d-model';
 export type {
 	SmartArt3DModel,
 	SmartArt3DModelOptions,
