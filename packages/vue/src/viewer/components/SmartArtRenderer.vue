@@ -7,10 +7,17 @@ import type {
 	SmartArtColorScheme,
 	SmartArtStyle,
 } from 'pptx-viewer-core';
+import { shouldCommitSmartArtNodeText } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
-import { computed } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 
 import { getContainerStyle } from '../composables/element-style';
+import {
+	inlineEditorRect,
+	nodeIdsInRenderOrder,
+	textNodeIdsInRenderOrder,
+	useSmartArtInlineEditState,
+} from '../composables/smartart-inline-edit';
 import type {
 	RenderedCircleNode,
 	RenderedPolygonNode,
@@ -18,6 +25,7 @@ import type {
 	SmartArtLayoutResult as ComputedLayout,
 } from '../composables/smartart-layout';
 import { computeSmartArtLayout } from '../composables/smartart-layout';
+import { injectSmartArtNodeEdit } from '../composables/smartart-node-edit';
 
 /**
  * SmartArtRenderer - Vue port of the React SmartArt renderer
@@ -139,6 +147,8 @@ const hasDrawingShapes = computed(() => drawingShapes.value.length > 0);
 
 interface RenderedShape {
 	key: string;
+	/** Source SmartArt node id for inline editing, when this shape carries text. */
+	nodeId?: string;
 	isEllipse: boolean;
 	x: number;
 	y: number;
@@ -197,6 +207,10 @@ const renderedShapes = computed<RenderedShape[]>(() => {
 	const { minX, minY } = drawingViewBox.value;
 	const sw = styleStroke(style.value);
 	const pal = palette.value;
+	// Text-bearing shapes map positionally to text-bearing source nodes so a
+	// double-click on a labelled shape targets the right node id.
+	const textIds = textNodeIdsInRenderOrder(nodes.value);
+	let textShapeIndex = 0;
 
 	return shapes.map((shape, i): RenderedShape => {
 		const fill = shape.fillColor ?? colour(i, pal);
@@ -208,9 +222,11 @@ const renderedShapes = computed<RenderedShape[]>(() => {
 		const cy = relY + shape.height / 2;
 		const stroke = shape.strokeColor ?? (sw > 0 ? 'rgba(255,255,255,0.3)' : 'none');
 		const transform = shape.rotation ? `rotate(${shape.rotation} ${cx} ${cy})` : undefined;
+		const nodeId = shape.text ? textIds[textShapeIndex++] : undefined;
 
 		return {
 			key: `${props.element.id}-dsp-${shape.id}-${i}`,
+			nodeId,
 			isEllipse,
 			x: relX,
 			y: relY,
@@ -256,6 +272,61 @@ const fallbackLayout = computed<ComputedLayout | undefined>(() => {
 });
 
 const isEmpty = computed(() => nodes.value.length === 0 && !hasDrawingShapes.value);
+
+// ── Inline on-canvas node text editing ───────────────────────────────────────
+//
+// A node-edit context, when provided by the host (edit mode, not presenting),
+// lets a double-click on a node open an inline <textarea> over it. Commit flows
+// through the SAME core op the inspector uses (`updateSmartArtNodeText` via
+// `updateElement`), so undo/redo and save round-trip are identical.
+
+const nodeEdit = injectSmartArtNodeEdit();
+const editable = computed(() => Boolean(nodeEdit?.canEdit()));
+
+/** Source node ids in fallback render order (index-aligned with layout nodes). */
+const fallbackNodeIds = computed<string[]>(() =>
+	fallbackLayout.value ? nodeIdsInRenderOrder(nodes.value) : [],
+);
+
+const edit = useSmartArtInlineEditState();
+const rootEl = ref<HTMLElement | null>(null);
+const editorEl = ref<HTMLTextAreaElement | null>(null);
+
+/**
+ * Enter edit mode for a node. Projects the double-clicked SVG node's on-screen
+ * rect into container-relative pixels (shared `computeInlineEditorRect`) so the
+ * overlay textarea sits exactly over the node, independent of canvas zoom.
+ */
+function beginEdit(nodeId: string | undefined, text: string, event: Event): void {
+	if (!editable.value || !nodeId) {
+		return;
+	}
+	const target = event.currentTarget as Element | null;
+	const host = rootEl.value;
+	if (!target || !host) {
+		return;
+	}
+	const rect = inlineEditorRect(target.getBoundingClientRect(), host.getBoundingClientRect());
+	edit.begin(nodeId, text, rect);
+	void nextTick(() => {
+		editorEl.value?.focus();
+		editorEl.value?.select();
+	});
+}
+
+/** Commit the draft text through the host op, skipping no-op edits. */
+function commitEdit(): void {
+	const nodeId = edit.editingNodeId.value;
+	const data = smartArtData.value;
+	if (nodeId && data && nodeEdit && shouldCommitSmartArtNodeText(data, nodeId, edit.draft.value)) {
+		nodeEdit.commit(props.element.id, nodeId, edit.draft.value);
+	}
+	edit.cancel();
+}
+
+function cancelEdit(): void {
+	edit.cancel();
+}
 </script>
 
 <template>
@@ -264,7 +335,7 @@ const isEmpty = computed(() => nodes.value.length === 0 && !hasDrawingShapes.val
 		:style="containerStyle"
 		:data-element-id="element.id"
 	>
-		<div class="pptx-vue-smartart-chrome" :style="chromeStyle">
+		<div ref="rootEl" class="pptx-vue-smartart-chrome" :style="chromeStyle">
 			<!-- Empty / no-data placeholder -->
 			<div v-if="isEmpty" class="pptx-vue-smartart-placeholder">SmartArt</div>
 
@@ -278,7 +349,12 @@ const isEmpty = computed(() => nodes.value.length === 0 && !hasDrawingShapes.val
 				<g
 					v-for="shape in renderedShapes"
 					:key="shape.key"
+					:class="{ 'pptx-vue-smartart-editable': editable && shape.nodeId }"
+					:data-node-id="shape.nodeId"
+					:tabindex="editable && shape.nodeId ? 0 : undefined"
 					:style="shadowFilter ? { filter: shadowFilter } : undefined"
+					@dblclick="beginEdit(shape.nodeId, shape.text ?? '', $event)"
+					@keydown.enter.prevent="beginEdit(shape.nodeId, shape.text ?? '', $event)"
 				>
 					<ellipse
 						v-if="shape.isEllipse"
@@ -337,9 +413,14 @@ const isEmpty = computed(() => nodes.value.length === 0 && !hasDrawingShapes.val
 				/>
 				<!-- Rendered nodes -->
 				<g
-					v-for="node in fallbackLayout.nodes"
+					v-for="(node, i) in fallbackLayout.nodes"
 					:key="node.key"
+					:class="{ 'pptx-vue-smartart-editable': editable && fallbackNodeIds[i] }"
+					:data-node-id="fallbackNodeIds[i]"
+					:tabindex="editable && fallbackNodeIds[i] ? 0 : undefined"
 					:style="fallbackLayout.shadowFilter ? { filter: fallbackLayout.shadowFilter } : undefined"
+					@dblclick="beginEdit(fallbackNodeIds[i], node.text, $event)"
+					@keydown.enter.prevent="beginEdit(fallbackNodeIds[i], node.text, $event)"
 				>
 					<!-- Circle nodes (cycle, radial, venn, target) -->
 					<template v-if="node.kind === 'circle'">
@@ -409,12 +490,30 @@ const isEmpty = computed(() => nodes.value.length === 0 && !hasDrawingShapes.val
 					</template>
 				</g>
 			</svg>
+
+			<!-- Inline node text editor overlay (edit mode only) -->
+			<textarea
+				v-if="edit.isEditing.value && edit.rect.value"
+				ref="editorEl"
+				v-model="edit.draft.value"
+				class="pptx-vue-smartart-node-editor"
+				:style="{
+					left: `${edit.rect.value.left}px`,
+					top: `${edit.rect.value.top}px`,
+					width: `${edit.rect.value.width}px`,
+					height: `${edit.rect.value.height}px`,
+				}"
+				@keydown.enter.prevent="commitEdit"
+				@keydown.esc.prevent="cancelEdit"
+				@blur="commitEdit"
+			/>
 		</div>
 	</div>
 </template>
 
 <style scoped>
 .pptx-vue-smartart-chrome {
+	position: relative;
 	box-sizing: border-box;
 	overflow: hidden;
 }
@@ -423,6 +522,31 @@ const isEmpty = computed(() => nodes.value.length === 0 && !hasDrawingShapes.val
 	width: 100%;
 	height: 100%;
 	pointer-events: none;
+}
+
+/* Editable node groups opt back into pointer events so a double-click can
+   enter inline edit mode without breaking element selection/drag elsewhere. */
+.pptx-vue-smartart-editable {
+	pointer-events: auto;
+	cursor: text;
+}
+
+.pptx-vue-smartart-node-editor {
+	position: absolute;
+	z-index: 2;
+	margin: 0;
+	padding: 2px;
+	border: 1px solid #2563eb;
+	border-radius: 3px;
+	box-sizing: border-box;
+	resize: none;
+	overflow: hidden;
+	font: inherit;
+	font-size: 12px;
+	line-height: 1.2;
+	text-align: center;
+	color: #111;
+	background: #fff;
 }
 
 .pptx-vue-smartart-placeholder {

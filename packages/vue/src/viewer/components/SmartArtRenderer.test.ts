@@ -5,9 +5,29 @@ import type {
 	PptxSmartArtDrawingShape,
 	PptxSmartArtNode,
 } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import type { SmartArtNodeEditContext } from '../composables/smartart-node-edit';
+import { SmartArtNodeEditKey } from '../composables/smartart-node-edit';
 import SmartArtRenderer from './SmartArtRenderer.vue';
+
+/** Mount with an injected node-edit context (commit spy + canEdit gate). */
+function mountEditable(
+	data: PptxSmartArtData,
+	opts: { canEdit?: boolean } = {},
+): { wrapper: ReturnType<typeof mount>; commit: ReturnType<typeof vi.fn> } {
+	const commit = vi.fn();
+	const ctx: SmartArtNodeEditContext = {
+		canEdit: () => opts.canEdit ?? true,
+		commit,
+	};
+	const wrapper = mount(SmartArtRenderer, {
+		props: { element: smartArt(data), zIndex: 0 },
+		attachTo: document.body,
+		global: { provide: { [SmartArtNodeEditKey as symbol]: ctx } },
+	});
+	return { wrapper, commit };
+}
 
 function smartArt(data?: PptxSmartArtData, overrides: Partial<PptxElement> = {}): PptxElement {
 	return {
@@ -285,5 +305,68 @@ describe('smartArtRenderer', () => {
 			expect(textContent).toContain('Beta');
 			expect(textContent).toContain('Gamma');
 		}
+	});
+});
+
+describe('smartArtRenderer inline node editing', () => {
+	const data: PptxSmartArtData = { nodes: [node('1', 'Alpha'), node('2', 'Beta')] };
+
+	it('exposes editable node groups (data-node-id) only when a context allows it', () => {
+		const { wrapper } = mountEditable(data, { canEdit: true });
+		const editable = wrapper.findAll('g[data-node-id]');
+		expect(editable).toHaveLength(2);
+		expect(editable[0]?.attributes('data-node-id')).toBe('1');
+		expect(editable[1]?.attributes('data-node-id')).toBe('2');
+	});
+
+	it('does not expose editable groups when no edit context is provided', () => {
+		const wrapper = mount(SmartArtRenderer, {
+			props: { element: smartArt(data), zIndex: 0 },
+		});
+		expect(wrapper.find('.pptx-vue-smartart-editable').exists()).toBeFalsy();
+		expect(wrapper.find('textarea').exists()).toBeFalsy();
+	});
+
+	it('does not expose editable groups when the context disables editing', () => {
+		const { wrapper } = mountEditable(data, { canEdit: false });
+		expect(wrapper.find('.pptx-vue-smartart-editable').exists()).toBeFalsy();
+	});
+
+	it('double-clicking a node opens an inline editor seeded with the node text', async () => {
+		const { wrapper } = mountEditable(data, { canEdit: true });
+		const group = wrapper.findAll('g[data-node-id]')[0];
+		await group?.trigger('dblclick');
+		const editor = wrapper.find('textarea.pptx-vue-smartart-node-editor');
+		expect(editor.exists()).toBeTruthy();
+		expect((editor.element as HTMLTextAreaElement).value).toBe('Alpha');
+	});
+
+	it('commits the edited text via the injected context on Enter', async () => {
+		const { wrapper, commit } = mountEditable(data, { canEdit: true });
+		await wrapper.findAll('g[data-node-id]')[0]?.trigger('dblclick');
+		const editor = wrapper.find('textarea.pptx-vue-smartart-node-editor');
+		await editor.setValue('Renamed');
+		await editor.trigger('keydown', { key: 'Enter' });
+		expect(commit).toHaveBeenCalledWith('dgm 1', '1', 'Renamed');
+		// Editor closes after commit.
+		expect(wrapper.find('textarea.pptx-vue-smartart-node-editor').exists()).toBeFalsy();
+	});
+
+	it('skips the commit when the text is unchanged (no history churn)', async () => {
+		const { wrapper, commit } = mountEditable(data, { canEdit: true });
+		await wrapper.findAll('g[data-node-id]')[0]?.trigger('dblclick');
+		const editor = wrapper.find('textarea.pptx-vue-smartart-node-editor');
+		await editor.trigger('keydown', { key: 'Enter' });
+		expect(commit).not.toHaveBeenCalled();
+	});
+
+	it('cancels on Escape without committing', async () => {
+		const { wrapper, commit } = mountEditable(data, { canEdit: true });
+		await wrapper.findAll('g[data-node-id]')[0]?.trigger('dblclick');
+		const editor = wrapper.find('textarea.pptx-vue-smartart-node-editor');
+		await editor.setValue('Discarded');
+		await editor.trigger('keydown', { key: 'Escape' });
+		expect(commit).not.toHaveBeenCalled();
+		expect(wrapper.find('textarea.pptx-vue-smartart-node-editor').exists()).toBeFalsy();
 	});
 });
