@@ -4,6 +4,7 @@ import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
 import { getContainerStyle } from '../composables/element-style';
+import { formatBytes, isBrowserOpenableMime } from '../composables/ole-actions';
 
 /**
  * OleRenderer - Vue port of the React `renderOleElement`
@@ -85,11 +86,75 @@ const typeLabel = computed(() => TYPE_LABELS[oleType.value]);
 
 const previewSrc = computed<string | undefined>(() => ole.value?.previewImageData);
 const fileName = computed<string | undefined>(() => ole.value?.fileName);
-const displayName = computed(() => fileName.value ?? typeLabel.value);
+
+/** Recovered embedded payload data-URL, if core extracted one on load. */
+const embeddedData = computed<string | undefined>(() => ole.value?.oleEmbeddedData);
+
+/** Name to use for the download / info caption: embedded name wins, then the
+ * OLE link file name, then a type-derived default. */
+const downloadName = computed<string>(
+	() => ole.value?.oleEmbeddedFileName ?? fileName.value ?? `${typeLabel.value}`,
+);
+
+const displayName = computed(
+	() => ole.value?.oleEmbeddedFileName ?? fileName.value ?? typeLabel.value,
+);
+
+/** Human-readable size of the embedded payload, if known. */
+const sizeLabel = computed<string | undefined>(() => formatBytes(ole.value?.oleEmbeddedByteSize));
+
+/** The embedded MIME type, if known. */
+const mimeType = computed<string | undefined>(() => ole.value?.oleEmbeddedMimeType);
+
+/** Whether to offer an inline "Open" action (browser-renderable payload). */
+const canOpenInBrowser = computed<boolean>(
+	() => Boolean(embeddedData.value) && isBrowserOpenableMime(mimeType.value),
+);
+
+/** The application that produced the object (progId), if known. */
+const application = computed<string | undefined>(() => ole.value?.oleProgId);
+
+/** Multi-line info caption / accessible description: type, name, size, app. */
+const infoLines = computed<string[]>(() => {
+	const lines = [typeLabel.value];
+	const name = ole.value?.oleEmbeddedFileName ?? fileName.value;
+	if (name) {
+		lines.push(name);
+	}
+	if (sizeLabel.value) {
+		lines.push(sizeLabel.value);
+	}
+	if (application.value) {
+		lines.push(application.value);
+	}
+	return lines;
+});
+
+const infoTitle = computed<string>(() => infoLines.value.join('\n'));
 
 const ariaLabel = computed(() =>
 	fileName.value ? `${typeLabel.value}: ${fileName.value}` : typeLabel.value,
 );
+
+/**
+ * Open the embedded payload in a new browser tab. Used for browser-renderable
+ * MIME types only. The anchor `target="_blank"` would suffice, but routing
+ * through a handler lets us stop the pointer/click from bubbling to the editor
+ * selection/drag layer.
+ */
+function openEmbedded(): void {
+	const data = embeddedData.value;
+	if (!data) {
+		return;
+	}
+	window.open(data, '_blank', 'noopener,noreferrer');
+}
+
+/** Swallow pointer/mouse interactions on the action bar so clicking an action
+ * does not start a selection / drag in the editor. */
+function stopInteraction(event: Event): void {
+	event.stopPropagation();
+}
 
 /** Short uppercase badge text for the preview overlay. */
 const badgeLabel = computed(() =>
@@ -108,9 +173,9 @@ const placeholderStyle = computed<CSSProperties>(() => ({
 		class="pptx-vue-element pptx-vue-ole"
 		:style="containerStyle"
 		:data-element-id="element.id"
-		role="img"
+		role="group"
 		:aria-label="ariaLabel"
-		title="Double-click to open"
+		:title="infoTitle"
 	>
 		<!-- Preview image with type badge overlay -->
 		<div v-if="previewSrc" class="pptx-vue-ole-preview">
@@ -308,6 +373,42 @@ const placeholderStyle = computed<CSSProperties>(() => ({
 			<span class="pptx-vue-ole-name" :style="{ color: typeColor }">{{ displayName }}</span>
 			<span v-if="fileName" class="pptx-vue-ole-sublabel">{{ typeLabel }}</span>
 		</div>
+
+		<!--
+			Action bar: Download (and, for browser-openable types, Open) the
+			recovered embedded payload, plus a compact info caption. Only shown
+			when core extracted an embedded payload. pointer-events are enabled
+			here (the visuals above are pointer-events:none) and interactions are
+			stopped from bubbling so they do not start an editor selection/drag.
+		-->
+		<div
+			v-if="embeddedData"
+			class="pptx-vue-ole-actions"
+			@pointerdown="stopInteraction"
+			@mousedown="stopInteraction"
+			@click="stopInteraction"
+		>
+			<span v-if="sizeLabel" class="pptx-vue-ole-meta">{{ sizeLabel }}</span>
+			<a
+				class="pptx-vue-ole-action"
+				:href="embeddedData"
+				:download="downloadName"
+				:aria-label="`Download ${downloadName}`"
+				:title="`Download ${downloadName}`"
+			>
+				Download
+			</a>
+			<button
+				v-if="canOpenInBrowser"
+				type="button"
+				class="pptx-vue-ole-action"
+				:aria-label="`Open ${downloadName}`"
+				:title="`Open ${downloadName}`"
+				@click="openEmbedded"
+			>
+				Open
+			</button>
+		</div>
 	</div>
 </template>
 
@@ -363,5 +464,53 @@ const placeholderStyle = computed<CSSProperties>(() => ({
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.pptx-vue-ole-actions {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 6px;
+	padding: 4px 6px;
+	box-sizing: border-box;
+	background: rgba(255, 255, 255, 0.82);
+	border-top: 1px solid rgba(0, 0, 0, 0.08);
+	font-size: 11px;
+	/* Re-enable pointing on the action bar; the preview/icon above stay inert. */
+	pointer-events: auto;
+}
+
+.pptx-vue-ole-meta {
+	margin-right: auto;
+	color: rgba(0, 0, 0, 0.55);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.pptx-vue-ole-action {
+	flex: none;
+	padding: 2px 8px;
+	border: 1px solid rgba(0, 0, 0, 0.18);
+	border-radius: 4px;
+	background: #fff;
+	color: #1a1a1a;
+	font: inherit;
+	line-height: 1.4;
+	cursor: pointer;
+	text-decoration: none;
+}
+
+.pptx-vue-ole-action:hover {
+	background: #f2f2f2;
+}
+
+.pptx-vue-ole-action:focus-visible {
+	outline: 2px solid #2b6cb0;
+	outline-offset: 1px;
 }
 </style>
