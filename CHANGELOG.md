@@ -8,6 +8,19 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **shared:** OLE download/open helpers (file-size + browser-openable MIME) (by @ChristopherVR) ([097580c](https://github.com/ChristopherVR/pptx-viewer/commit/097580c10538be3bad6b49968a27cbfb2fb06cfd))
+- **react:** OLE download/open actions and richer info (by @ChristopherVR) ([dca209f](https://github.com/ChristopherVR/pptx-viewer/commit/dca209f46f14ccb832b311deedd95c879e007998))
+- **vue:** OLE download/open actions and richer info (by @ChristopherVR) ([c80c4fb](https://github.com/ChristopherVR/pptx-viewer/commit/c80c4fbc12f8d7ba9cfe553e8665a10c172dc217))
+- **angular:** OLE download/open actions and richer info (by @ChristopherVR) ([7dfb1cc](https://github.com/ChristopherVR/pptx-viewer/commit/7dfb1cceb9cc5fd5beaa24136c676c1be6953ca4))
+
+### Documentation
+
+- OLE objects now offer download/open and richer info (by @ChristopherVR) ([b57ab97](https://github.com/ChristopherVR/pptx-viewer/commit/b57ab974060ae72837471a90c02ce78c3988b268))
+
+## [1.1.44](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.44) - 2026-06-22
+
+### Features
+
 - **react:** Render GLB/GLTF models with vanilla three (no @react-three) (by @ChristopherVR) ([c8b047e](https://github.com/ChristopherVR/pptx-viewer/commit/c8b047e679ad202813f13e7fe28249a7018f9576))
 - **core:** Extract embedded OLE payload for download/open and richer info (by @ChristopherVR) ([2c025f3](https://github.com/ChristopherVR/pptx-viewer/commit/2c025f338280955d76529cfb9ce389a862e766dd))
 - **react:** 3D surface charts on vanilla three; drop @react-three peer deps (by @ChristopherVR) ([a8a1004](https://github.com/ChristopherVR/pptx-viewer/commit/a8a10048169678fa7bf559198d36c9f6023d2be0))
