@@ -127,7 +127,7 @@ describe('formatCommentTimestamp', () => {
 		const result = formatCommentTimestamp('2024-03-07T10:30:00Z');
 		expect(result.length).toBeGreaterThan(0);
 		// Should contain some recognizable date component
-		expect(result).toMatch(/\d/);
+		expect(result).toMatch(/\d/u);
 	});
 
 	it('returns empty string for whitespace-only input', () => {

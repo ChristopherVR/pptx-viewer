@@ -178,9 +178,18 @@ export * from './table-layout';
 // Immutable single-cell text edit (`setCellText`) for inline cell editing,
 // shared by every binding's table renderer.
 export * from './table-cell-edit';
+// Inline (on-canvas) SmartArt node text editing: node-text lookup, no-op commit
+// detection, and overlay-editor rect projection. Pure; the text mutation itself
+// stays in `pptx-viewer-core` (`updateSmartArtNodeText`).
+export * from './smartart-inline-edit';
 // Pure deep-clone builders for editor undo/redo (elements, slides, styles,
 // chart/smartart data, history snapshots, raw XML). Each binding imports these.
 export * from './clone';
+// Element helpers: template-origin detection, inline-text eligibility, display
+// labels, comment timestamp/marker positioning, connection-site geometry.
+// (isConnectorOrLineElement stays per-binding: it needs the binding's
+// shape-type classifier, not a core export.)
+export * from './element';
 export * from './element-align';
 export * from './element-interaction';
 // Element CSS-style builders: absolute container style (position/transform/
