@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [Unreleased]
+
+### Features
+
+- **shared:** Add immutable setCellText table-cell helper (by @ChristopherVR) ([7b5ace0](https://github.com/ChristopherVR/pptx-viewer/commit/7b5ace0dcf11e0d4bdc1674da4ab017183eaf290))
+- **vue:** Inline table-cell editing (parity with React/Angular) (by @ChristopherVR) ([f30ac5b](https://github.com/ChristopherVR/pptx-viewer/commit/f30ac5b454e43098a1b8d5f870ae98b7532ea32c))
+
 ## [1.1.37](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.37) - 2026-06-21
 
 ### Features
