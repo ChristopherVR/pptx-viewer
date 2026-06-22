@@ -19,10 +19,11 @@ import {
 	getDiagonalBorders,
 	getTableCellBandStyle,
 } from 'pptx-viewer-shared';
-import type { CSSProperties } from 'vue';
-import { computed } from 'vue';
+import type { ComponentPublicInstance, CSSProperties } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 
 import { getContainerStyle } from '../composables/element-style';
+import { injectTableCellEdit } from '../composables/table-edit';
 import { injectTableTheme, resolveTableTheme } from '../composables/table-theme';
 import { DEFAULT_TEXT_COLOR } from '../constants';
 
@@ -103,6 +104,9 @@ function resolvePatternFill(style: PptxTableCellStyle): CellPatternFillCss | nul
 
 interface RenderableCell {
 	key: string;
+	/** Original grid coordinates (used as the edit target / commit key). */
+	rowIndex: number;
+	colIndex: number;
 	colSpan?: number;
 	rowSpan?: number;
 	/** Base style (band + explicit, minus pattern-fill overrides). */
@@ -191,6 +195,8 @@ const rows = computed<RenderableRow[]>(() => {
 
 			cells.push({
 				key: `${id}-cell-${rowIndex}-${cellIndex}`,
+				rowIndex,
+				colIndex: cellIndex,
 				colSpan,
 				rowSpan,
 				style,
@@ -238,6 +244,87 @@ function tdStyle(cell: RenderableCell): TableCellCss {
 function runStyle(run: CellTextRun): TableCellCss {
 	return cellRunStyle(run);
 }
+
+// ---------------------------------------------------------------------------
+// Inline cell editing (mirrors React TableCellInput + Angular TableRenderer).
+// Provided once at the viewer root; absent in a read-only viewer, in which case
+// the table renders without any edit affordance.
+// ---------------------------------------------------------------------------
+
+const cellEdit = injectTableCellEdit();
+
+/** The cell currently being edited (original grid coords), or null. */
+const editingCell = ref<{ rowIndex: number; colIndex: number } | null>(null);
+/** Live text for the active edit, seeded from the cell on entry. */
+const editText = ref('');
+/** The mounted `<input>` for the active edit, focused + select-all on mount. */
+const cellInputRef = ref<HTMLInputElement | null>(null);
+
+/**
+ * Function template ref: the input lives inside a `v-for`, so a string ref
+ * would collect an array. Only one cell edits at a time (guarded by `v-if`),
+ * so capture the single element here and clear it on unmount.
+ */
+function setCellInput(el: Element | ComponentPublicInstance | null): void {
+	cellInputRef.value = el instanceof HTMLInputElement ? el : null;
+}
+
+const editingEnabled = computed(() => cellEdit?.canEdit() ?? false);
+
+function isEditing(cell: RenderableCell): boolean {
+	const e = editingCell.value;
+	return e !== null && e.rowIndex === cell.rowIndex && e.colIndex === cell.colIndex;
+}
+
+/** Double-tap / double-click on a cell enters inline edit mode. */
+function onCellDblClick(event: Event, cell: RenderableCell): void {
+	if (!editingEnabled.value) {
+		return;
+	}
+	event.stopPropagation();
+	editText.value = cell.text === ' ' ? '' : cell.text;
+	editingCell.value = { rowIndex: cell.rowIndex, colIndex: cell.colIndex };
+}
+
+/** Commit the current edit (called on blur). No-ops if already cancelled. */
+function commitCellEdit(): void {
+	const cell = editingCell.value;
+	if (!cell) {
+		return;
+	}
+	editingCell.value = null;
+	cellEdit?.commit(props.element.id, cell.rowIndex, cell.colIndex, editText.value);
+}
+
+/** Enter / Tab commit; Escape cancels. Stops propagation so the canvas ignores it. */
+function onCellInputKeydown(event: KeyboardEvent): void {
+	event.stopPropagation();
+	if (event.key === 'Enter' || event.key === 'Tab') {
+		event.preventDefault();
+		// Commit directly: commitCellEdit clears editingCell first, so the
+		// ensuing blur (when the input unmounts) finds null and no-ops.
+		commitCellEdit();
+	} else if (event.key === 'Escape') {
+		event.preventDefault();
+		// Clear first so the ensuing blur's commitCellEdit no-ops (discards edit).
+		editingCell.value = null;
+	}
+}
+
+// Focus + select-all the input as soon as it mounts (mirrors React's
+// TableCellInput useEffect: focus(); select();).
+watch(editingCell, (cell) => {
+	if (!cell) {
+		return;
+	}
+	void nextTick(() => {
+		const el = cellInputRef.value;
+		if (el) {
+			el.focus();
+			el.select();
+		}
+	});
+});
 </script>
 
 <template>
@@ -268,6 +355,7 @@ function runStyle(run: CellTextRun): TableCellCss {
 						:colspan="cell.colSpan"
 						:rowspan="cell.rowSpan"
 						:style="tdStyle(cell)"
+						@dblclick="onCellDblClick($event, cell)"
 					>
 						<svg
 							v-if="cell.diagonals"
@@ -296,11 +384,31 @@ function runStyle(run: CellTextRun): TableCellCss {
 						</svg>
 
 						<!--
+							Inline cell editor: a double-tap / double-click enters edit
+							mode (edit context provided). The input MUST stop propagation
+							of pointerdown/mousedown/click/dblclick so that on touch the
+							canvas stage's pointer handler does not steal focus and discard
+							the edit (mirrors React TableCellInput + Angular TableRenderer).
+						-->
+						<input
+							v-if="isEditing(cell)"
+							:ref="setCellInput"
+							v-model="editText"
+							type="text"
+							class="pptx-vue-table__cell-input"
+							@pointerdown.stop
+							@mousedown.stop
+							@click.stop
+							@dblclick.stop
+							@blur="commitCellEdit"
+							@keydown="onCellInputKeydown"
+						/>
+						<!--
 							Rich per-run text: when `textRuns` is present each run is
 							a styled <span>. Paragraph breaks become block-level <div>s;
 							line breaks become <br> within a paragraph.
 						-->
-						<template v-if="cell.textRuns">
+						<template v-else-if="cell.textRuns">
 							<template v-for="(run, ri) in cell.textRuns" :key="`${cell.key}-run-${ri}`">
 								<div v-if="run.isParagraphBreak" class="pptx-vue-table__para-break" />
 								<br v-else-if="run.isLineBreak" />
@@ -362,5 +470,16 @@ function runStyle(run: CellTextRun): TableCellCss {
 .pptx-vue-table__para-break {
 	display: block;
 	height: 0;
+}
+
+.pptx-vue-table__cell-input {
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	outline: none;
 }
 </style>

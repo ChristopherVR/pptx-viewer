@@ -44,6 +44,7 @@ import {
 	applyDragDelta,
 	createDefaultChartElement,
 	openPptxFile,
+	setCellText,
 } from 'pptx-viewer-shared';
 import { computed, nextTick, provide, ref, toRef, watch } from 'vue';
 
@@ -125,6 +126,7 @@ import type { CompareResult } from './composables/slide-compare';
 import { SmartArt3DKey } from './composables/smart-art-3d';
 import { snapBox } from './composables/snap';
 import { computeSnapToShape } from './composables/snap-shape';
+import { TableCellEditKey } from './composables/table-edit';
 import { TableThemeKey } from './composables/table-theme';
 import { useAccessibility } from './composables/useAccessibility';
 import { useAutosave } from './composables/useAutosave';
@@ -241,6 +243,14 @@ provide(TableThemeKey, () => ({
 	colorScheme: pptxTheme.value?.colorScheme,
 	tableStyleMap: tableStyleMap.value,
 }));
+
+// Inline table-cell editing context for `TableRenderer` (double-tap a cell ->
+// inline input -> commit). The closures run post-setup, so referencing the
+// later-declared `ops`/`presenting` is safe.
+provide(TableCellEditKey, {
+	canEdit: () => props.canEdit && !presenting.value,
+	commit: commitTableCell,
+});
 
 // Inject embedded fonts as @font-face (side effect; auto-cleaned on unmount).
 useEmbeddedFonts(embeddedFonts);
@@ -449,6 +459,27 @@ function commitInlineEdit(): void {
 }
 function cancelInlineEdit(): void {
 	inlineEditingElementId.value = null;
+}
+/**
+ * Commit an inline table-cell edit: resolve the table element, apply the
+ * immutable `setCellText` update, and record it through the history-tracked
+ * editor op so undo/redo works (mirrors React/Angular cell-commit handlers).
+ */
+function commitTableCell(
+	elementId: string,
+	rowIndex: number,
+	colIndex: number,
+	text: string,
+): void {
+	if (!props.canEdit) {
+		return;
+	}
+	const el = activeSlide.value?.elements.find((e) => e.id === elementId);
+	if (!el || el.type !== 'table') {
+		return;
+	}
+	const updated = setCellText(el, rowIndex, colIndex, text);
+	ops.updateElement(elementId, { tableData: updated.tableData } as Partial<PptxElement>);
 }
 /** Apply the copied format to a target element (shape/text style only). */
 function applyFormatToTarget(id: string): void {

@@ -8,10 +8,29 @@ import type {
 	PptxThemeColorScheme,
 } from 'pptx-viewer-core';
 import type { CellTextRun } from 'pptx-viewer-shared';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import type { TableCellEditContext } from '../composables/table-edit';
+import { TableCellEditKey } from '../composables/table-edit';
 import { TableThemeKey } from '../composables/table-theme';
 import TableRenderer from './TableRenderer.vue';
+
+/** Mount with an injected cell-edit context (commit spy + canEdit gate). */
+function mountEditable(
+	tableData: PptxTableData,
+	opts: { canEdit?: boolean } = {},
+): { wrapper: ReturnType<typeof mount>; commit: ReturnType<typeof vi.fn> } {
+	const commit = vi.fn();
+	const ctx: TableCellEditContext = {
+		canEdit: () => opts.canEdit ?? true,
+		commit,
+	};
+	const wrapper = mount(TableRenderer, {
+		props: { element: table(tableData), zIndex: 0 },
+		global: { provide: { [TableCellEditKey as symbol]: ctx } },
+	});
+	return { wrapper, commit };
+}
 
 function table(tableData: PptxTableData, overrides: Partial<PptxElement> = {}): PptxElement {
 	return {
@@ -422,6 +441,74 @@ describe('tableRenderer', () => {
 		// The injected accent1 colour (#C0504D) resolves the header fill.
 		expect(style).toContain('#C0504D');
 		expect(style).not.toContain('rgba(68, 114, 196');
+	});
+
+	// ── Inline cell editing ──────────────────────────────────────────────────
+
+	it('does not render a cell input until a cell is double-clicked', () => {
+		const { wrapper } = mountEditable(basicGrid);
+		expect(wrapper.find('input.pptx-vue-table__cell-input').exists()).toBeFalsy();
+	});
+
+	it('enters edit mode on double-click, seeding the input from the cell text', async () => {
+		const { wrapper } = mountEditable(basicGrid);
+		await wrapper.findAll('td')[1].trigger('dblclick');
+		const input = wrapper.get('input.pptx-vue-table__cell-input');
+		expect((input.element as HTMLInputElement).value).toBe('B1');
+	});
+
+	it('commits the edited text on blur with the original grid coordinates', async () => {
+		const { wrapper, commit } = mountEditable(basicGrid);
+		await wrapper.findAll('td')[2].trigger('dblclick'); // row 1, col 0 ("A2")
+		const input = wrapper.get('input.pptx-vue-table__cell-input');
+		await input.setValue('A2 edited');
+		await input.trigger('blur');
+		expect(commit).toHaveBeenCalledExactlyOnceWith('tbl 1', 1, 0, 'A2 edited');
+		// The input is unmounted after commit.
+		expect(wrapper.find('input.pptx-vue-table__cell-input').exists()).toBeFalsy();
+	});
+
+	it('commits on Enter', async () => {
+		const { wrapper, commit } = mountEditable(basicGrid);
+		await wrapper.findAll('td')[0].trigger('dblclick');
+		const input = wrapper.get('input.pptx-vue-table__cell-input');
+		await input.setValue('A1!');
+		await input.trigger('keydown', { key: 'Enter' });
+		expect(commit).toHaveBeenCalledExactlyOnceWith('tbl 1', 0, 0, 'A1!');
+	});
+
+	it('discards the edit on Escape without committing', async () => {
+		const { wrapper, commit } = mountEditable(basicGrid);
+		await wrapper.findAll('td')[0].trigger('dblclick');
+		const input = wrapper.get('input.pptx-vue-table__cell-input');
+		await input.setValue('throwaway');
+		await input.trigger('keydown', { key: 'Escape' });
+		// Escape clears editing state; the ensuing blur must not commit.
+		await input.trigger('blur');
+		expect(commit).not.toHaveBeenCalled();
+		expect(wrapper.find('input.pptx-vue-table__cell-input').exists()).toBeFalsy();
+	});
+
+	it('does not enter edit mode when editing is disabled', async () => {
+		const { wrapper } = mountEditable(basicGrid, { canEdit: false });
+		await wrapper.findAll('td')[0].trigger('dblclick');
+		expect(wrapper.find('input.pptx-vue-table__cell-input').exists()).toBeFalsy();
+	});
+
+	it('does not enter edit mode when no edit context is provided (read-only viewer)', async () => {
+		const wrapper = mount(TableRenderer, { props: { element: table(basicGrid), zIndex: 0 } });
+		await wrapper.findAll('td')[0].trigger('dblclick');
+		expect(wrapper.find('input.pptx-vue-table__cell-input').exists()).toBeFalsy();
+	});
+
+	it('stops pointerdown propagation from the cell input so the canvas cannot steal focus', async () => {
+		const { wrapper } = mountEditable(basicGrid);
+		await wrapper.findAll('td')[0].trigger('dblclick');
+		const input = wrapper.get('input.pptx-vue-table__cell-input');
+		const onParentPointerDown = vi.fn();
+		wrapper.element.addEventListener('pointerdown', onParentPointerDown);
+		await input.trigger('pointerdown');
+		expect(onParentPointerDown).not.toHaveBeenCalled();
 	});
 
 	it('resolves band row colour from theme when tableStyleMap has band1HFill', () => {
