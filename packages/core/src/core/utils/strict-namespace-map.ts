@@ -9,7 +9,23 @@
  *  - Load: normalize Strict URIs to Transitional for internal processing
  *  - Save: convert Transitional URIs back to Strict for round-trip fidelity
  *
- * Reference: ECMA-376 5th Edition, Part 1, Annex A & B.
+ * Only the markup-language families defined by ISO/IEC 29500-1 (Fundamentals
+ * and Markup Language Reference) are remapped between conformance classes:
+ * `presentationml`, `drawingml`, `spreadsheetml`, `wordprocessingml`,
+ * `officeDocument` (including its relationship-type URIs), `schemaLibrary`, and
+ * `descriptions`. This matches the authoritative translation table the Open XML
+ * SDK applies when opening a Strict package.
+ *
+ * The Open Packaging Conventions (ISO/IEC 29500-2: `package/*` content-types and
+ * relationships, and the OPC-defined relationship types such as
+ * core-properties and digital-signature) and Markup Compatibility & Extensibility
+ * (ISO/IEC 29500-3: `markup-compatibility/2006`) are SHARED, conformance-INDEPENDENT
+ * specifications. Real Office "Strict Open XML" files keep those namespaces and
+ * relationship types in their canonical `schemas.openxmlformats.org` form even
+ * though the markup inside the parts uses Strict (`purl.oclc.org`) namespaces.
+ * They are therefore intentionally NOT remapped here, in either direction.
+ *
+ * Reference: ECMA-376 5th Edition, Part 1, Annex A & B; ISO/IEC 29500 Parts 2-4.
  */
 
 /** OOXML conformance class. */
@@ -200,26 +216,29 @@ const NAMESPACE_PAIRS: ReadonlyArray<[string, string]> = [
 		'http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes',
 	],
 
-	// -- Package-level relationships --
+	// -- OfficeDocument document relationship --
+	// (Other OPC-defined relationship types - package/relationships,
+	// core-properties, digital-signature - are conformance-independent and
+	// intentionally omitted; see the module header.)
 	[
 		'http://purl.oclc.org/ooxml/officeDocument/relationships/officeDocument',
 		'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument',
 	],
+
+	// -- Schema Library --
 	[
-		'http://purl.oclc.org/ooxml/package/relationships',
-		'http://schemas.openxmlformats.org/package/2006/relationships',
+		'http://purl.oclc.org/ooxml/schemaLibrary/main',
+		'http://schemas.openxmlformats.org/schemaLibrary/2006/main',
+	],
+
+	// -- Content-type descriptions (note the distinct transitional host) --
+	[
+		'http://purl.oclc.org/ooxml/descriptions/base',
+		'http://descriptions.openxmlformats.org/description/base',
 	],
 	[
-		'http://purl.oclc.org/ooxml/package/relationships/metadata/core-properties',
-		'http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties',
-	],
-	[
-		'http://purl.oclc.org/ooxml/package/relationships/digital-signature/origin',
-		'http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin',
-	],
-	[
-		'http://purl.oclc.org/ooxml/package/relationships/digital-signature/signature',
-		'http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/signature',
+		'http://purl.oclc.org/ooxml/descriptions/full',
+		'http://descriptions.openxmlformats.org/description/full',
 	],
 
 	// -- SpreadsheetML (for embedded charts / workbooks) --
@@ -232,12 +251,6 @@ const NAMESPACE_PAIRS: ReadonlyArray<[string, string]> = [
 	[
 		'http://purl.oclc.org/ooxml/wordprocessingml/main',
 		'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
-	],
-
-	// -- Markup Compatibility --
-	[
-		'http://purl.oclc.org/ooxml/markup-compatibility/2006',
-		'http://schemas.openxmlformats.org/markup-compatibility/2006',
 	],
 ];
 
@@ -277,14 +290,18 @@ const STRICT_BASE = 'http://purl.oclc.org/ooxml/';
 const TRANSITIONAL_BASE = 'http://schemas.openxmlformats.org/';
 
 /**
- * Namespace families that follow the uniform host-swap + `2006`-segment rule.
+ * Markup-language families that follow the uniform host-swap + `2006`-segment
+ * rule and ARE remapped between conformance classes.
  *
- * The Open Packaging Conventions (`package/*`) and Markup Compatibility
- * (`markup-compatibility/2006`) families are intentionally excluded: OPC parts
- * are conformance-independent and MCE carries its own trailing `2006` segment,
- * so deriving them structurally would mis-spell URIs the spec does not remap.
- * Those families are covered exhaustively by the explicit map instead, which
- * stays authoritative.
+ * Three kinds of family are intentionally excluded from the structural rule:
+ *  - The Open Packaging Conventions (`package/*`) and Markup Compatibility
+ *    (`markup-compatibility/2006`) are conformance-independent shared specs, so
+ *    they are not remapped at all (and are absent from the explicit map too).
+ *  - `descriptions` is remapped but uses a different transitional host
+ *    (`descriptions.openxmlformats.org`), so it cannot be derived structurally
+ *    and lives in the explicit map only.
+ *
+ * `schemaLibrary` does follow the uniform rule, so it is included here.
  */
 const ALGORITHMIC_FAMILIES: ReadonlySet<string> = new Set([
 	'presentationml',
@@ -292,6 +309,7 @@ const ALGORITHMIC_FAMILIES: ReadonlySet<string> = new Set([
 	'spreadsheetml',
 	'wordprocessingml',
 	'officeDocument',
+	'schemaLibrary',
 ]);
 
 /**

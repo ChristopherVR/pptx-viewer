@@ -34,7 +34,12 @@ describe('save constants with strict conformance', () => {
 		expect(isStrictNamespaceUri(strictConstants.slideAudioRelationshipType)).toBeTruthy();
 		expect(isStrictNamespaceUri(strictConstants.slideCommentRelationshipType)).toBeTruthy();
 		expect(isStrictNamespaceUri(strictConstants.slideNotesRelationshipType)).toBeTruthy();
-		expect(isStrictNamespaceUri(strictConstants.relationshipsNamespace)).toBeTruthy();
+		// The OPC relationships namespace is conformance-independent: even under
+		// strict conformance it keeps its canonical (non-strict) form.
+		expect(isStrictNamespaceUri(strictConstants.relationshipsNamespace)).toBeFalsy();
+		expect(strictConstants.relationshipsNamespace).toBe(
+			'http://schemas.openxmlformats.org/package/2006/relationships',
+		);
 	});
 
 	it('transitional constants have no strict URIs', () => {
@@ -108,10 +113,12 @@ describe('simulated strict OOXML round-trip', () => {
 	});
 
 	it('preserves strict namespaces through a load-save cycle for .rels', () => {
-		// Simulated _rels/.rels from a Strict OOXML file
+		// Real _rels/.rels from a Strict OOXML file: the OPC namespace and the
+		// OPC-defined core-properties relationship type stay canonical, while the
+		// officeDocument-family relationship types use the Strict form.
 		const parsedRels: Record<string, unknown> = {
 			Relationships: {
-				'@_xmlns': 'http://purl.oclc.org/ooxml/package/relationships',
+				'@_xmlns': 'http://schemas.openxmlformats.org/package/2006/relationships',
 				Relationship: [
 					{
 						'@_Id': 'rId1',
@@ -120,7 +127,8 @@ describe('simulated strict OOXML round-trip', () => {
 					},
 					{
 						'@_Id': 'rId2',
-						'@_Type': 'http://purl.oclc.org/ooxml/package/relationships/metadata/core-properties',
+						'@_Type':
+							'http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties',
 						'@_Target': 'docProps/core.xml',
 					},
 					{
@@ -138,10 +146,15 @@ describe('simulated strict OOXML round-trip', () => {
 		// Normalize to transitional
 		normalizeStrictXml(parsedRels);
 		const root = parsedRels['Relationships'] as Record<string, unknown>;
+		// OPC namespace is untouched (it was already canonical).
 		expect(root['@_xmlns']).toBe('http://schemas.openxmlformats.org/package/2006/relationships');
 		const rels = root['Relationship'] as Record<string, unknown>[];
 		expect(rels[0]['@_Type']).toBe(
 			'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument',
+		);
+		// The OPC-defined core-properties type stays canonical in both directions.
+		expect(rels[1]['@_Type']).toBe(
+			'http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties',
 		);
 
 		// Convert back to strict
@@ -201,7 +214,7 @@ describe('simulated strict OOXML round-trip', () => {
 	it('preserves strict namespaces through a load-save cycle for slide .rels', () => {
 		const parsedSlideRels: Record<string, unknown> = {
 			Relationships: {
-				'@_xmlns': 'http://purl.oclc.org/ooxml/package/relationships',
+				'@_xmlns': 'http://schemas.openxmlformats.org/package/2006/relationships',
 				Relationship: [
 					{
 						'@_Id': 'rId1',
@@ -345,8 +358,9 @@ describe('mixed content preservation', () => {
 		const slide = xml['p:sld'] as Record<string, unknown>;
 		// Mapped namespace gets converted
 		expect(slide['@_xmlns:p']).toBe('http://purl.oclc.org/ooxml/presentationml/main');
-		// Markup compatibility gets converted
-		expect(slide['@_xmlns:mc']).toBe('http://purl.oclc.org/ooxml/markup-compatibility/2006');
+		// Markup Compatibility is a conformance-independent shared spec and is
+		// preserved in its canonical form even under strict conformance.
+		expect(slide['@_xmlns:mc']).toBe('http://schemas.openxmlformats.org/markup-compatibility/2006');
 		// Microsoft extension namespaces are NOT in the mapping and should be preserved
 		expect(slide['@_xmlns:p14']).toBe('http://schemas.microsoft.com/office/powerpoint/2010/main');
 		expect(slide['@_xmlns:p15']).toBe('http://schemas.microsoft.com/office/powerpoint/2012/main');
@@ -395,7 +409,8 @@ describe('mixed content preservation', () => {
 		convertXmlToStrict(xml);
 
 		const root = xml['Relationships'] as Record<string, unknown>;
-		expect(root['@_xmlns']).toBe('http://purl.oclc.org/ooxml/package/relationships');
+		// OPC relationships namespace is conformance-independent: stays canonical.
+		expect(root['@_xmlns']).toBe('http://schemas.openxmlformats.org/package/2006/relationships');
 		const rels = root['Relationship'] as Record<string, unknown>[];
 		// OOXML relationship gets converted
 		expect(rels[0]['@_Type']).toBe('http://purl.oclc.org/ooxml/officeDocument/relationships/slide');

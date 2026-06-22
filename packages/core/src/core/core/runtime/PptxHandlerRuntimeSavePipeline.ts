@@ -156,6 +156,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				xmlLookupService: this.xmlLookupService,
 			});
 			this.deduplicateExtensionLists(this.presentationData);
+			// Keep the `conformance` attribute consistent with the effective class.
+			// A file loaded as Strict carries conformance="strict" on its root; when
+			// the save downgrades to Transitional we must drop it (a Transitional
+			// document with conformance="strict" is self-contradictory). The Strict
+			// case sets it during convertZipToStrictConformance.
+			if (effectiveConformance === 'transitional') {
+				const presentationNode = this.presentationData['p:presentation'] as XmlObject | undefined;
+				if (presentationNode && '@_conformance' in presentationNode) {
+					delete presentationNode['@_conformance'];
+				}
+			}
 			const presentationXml = this.builder.build(this.presentationData);
 			this.zip.file('ppt/presentation.xml', presentationXml);
 		}

@@ -275,10 +275,24 @@ describe('toStrictNamespaceUri', () => {
 		).toBe('http://purl.oclc.org/ooxml/officeDocument/relationships/image');
 	});
 
-	it('converts Transitional package relationships URI to Strict', () => {
-		expect(
-			toStrictNamespaceUri('http://schemas.openxmlformats.org/package/2006/relationships'),
-		).toBe('http://purl.oclc.org/ooxml/package/relationships');
+	it('leaves the OPC package relationships namespace unchanged (conformance-independent)', () => {
+		const opc = 'http://schemas.openxmlformats.org/package/2006/relationships';
+		expect(toStrictNamespaceUri(opc)).toBe(opc);
+	});
+
+	it('converts Transitional SchemaLibrary URI to Strict', () => {
+		expect(toStrictNamespaceUri('http://schemas.openxmlformats.org/schemaLibrary/2006/main')).toBe(
+			'http://purl.oclc.org/ooxml/schemaLibrary/main',
+		);
+	});
+
+	it('converts Transitional content-type description URIs to Strict', () => {
+		expect(toStrictNamespaceUri('http://descriptions.openxmlformats.org/description/base')).toBe(
+			'http://purl.oclc.org/ooxml/descriptions/base',
+		);
+		expect(toStrictNamespaceUri('http://descriptions.openxmlformats.org/description/full')).toBe(
+			'http://purl.oclc.org/ooxml/descriptions/full',
+		);
 	});
 
 	it('converts Transitional SpreadsheetML URI to Strict', () => {
@@ -301,10 +315,9 @@ describe('toStrictNamespaceUri', () => {
 		).toBe('http://purl.oclc.org/ooxml/officeDocument/relationships/chart');
 	});
 
-	it('converts Transitional markup compatibility URI to Strict', () => {
-		expect(
-			toStrictNamespaceUri('http://schemas.openxmlformats.org/markup-compatibility/2006'),
-		).toBe('http://purl.oclc.org/ooxml/markup-compatibility/2006');
+	it('leaves the Markup Compatibility namespace unchanged (conformance-independent)', () => {
+		const mce = 'http://schemas.openxmlformats.org/markup-compatibility/2006';
+		expect(toStrictNamespaceUri(mce)).toBe(mce);
 	});
 
 	it('returns Strict URI unchanged', () => {
@@ -347,10 +360,22 @@ describe('isTransitionalNamespaceUri', () => {
 		).toBeTruthy();
 	});
 
-	it('returns true for Transitional package relationships URI', () => {
+	it('returns true for Transitional SchemaLibrary URI', () => {
+		expect(
+			isTransitionalNamespaceUri('http://schemas.openxmlformats.org/schemaLibrary/2006/main'),
+		).toBeTruthy();
+	});
+
+	it('returns false for the conformance-independent OPC relationships namespace', () => {
 		expect(
 			isTransitionalNamespaceUri('http://schemas.openxmlformats.org/package/2006/relationships'),
-		).toBeTruthy();
+		).toBeFalsy();
+	});
+
+	it('returns false for the conformance-independent Markup Compatibility namespace', () => {
+		expect(
+			isTransitionalNamespaceUri('http://schemas.openxmlformats.org/markup-compatibility/2006'),
+		).toBeFalsy();
 	});
 
 	it('returns false for Strict namespace URIs', () => {
@@ -535,7 +560,8 @@ describe('convertXmlToStrict', () => {
 		};
 		convertXmlToStrict(xml);
 		const root = xml['Relationships'] as Record<string, unknown>;
-		expect(root['@_xmlns']).toBe('http://purl.oclc.org/ooxml/package/relationships');
+		// The OPC relationships namespace is conformance-independent: it stays.
+		expect(root['@_xmlns']).toBe('http://schemas.openxmlformats.org/package/2006/relationships');
 		const rels = root['Relationship'] as Record<string, unknown>[];
 		expect(rels[0]['@_Type']).toBe('http://purl.oclc.org/ooxml/officeDocument/relationships/slide');
 		expect(rels[1]['@_Type']).toBe('http://purl.oclc.org/ooxml/officeDocument/relationships/theme');
@@ -733,10 +759,14 @@ describe('round-trip: Strict -> Transitional -> Strict', () => {
 		expect(JSON.stringify(original)).toBe(JSON.stringify(originalClone));
 	});
 
-	it('round-trips a relationships file', () => {
+	it('round-trips a realistic strict relationships file', () => {
+		// Mirrors a real Office "Strict Open XML" package-level .rels: the OPC
+		// namespace and the OPC-defined core-properties relationship type stay in
+		// their canonical (schemas.openxmlformats.org) form, while the
+		// officeDocument relationship type uses the Strict (purl.oclc.org) form.
 		const original: Record<string, unknown> = {
 			Relationships: {
-				'@_xmlns': 'http://purl.oclc.org/ooxml/package/relationships',
+				'@_xmlns': 'http://schemas.openxmlformats.org/package/2006/relationships',
 				Relationship: [
 					{
 						'@_Id': 'rId1',
@@ -745,7 +775,8 @@ describe('round-trip: Strict -> Transitional -> Strict', () => {
 					},
 					{
 						'@_Id': 'rId2',
-						'@_Type': 'http://purl.oclc.org/ooxml/package/relationships/metadata/core-properties',
+						'@_Type':
+							'http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties',
 						'@_Target': 'docProps/core.xml',
 					},
 				],
@@ -754,9 +785,22 @@ describe('round-trip: Strict -> Transitional -> Strict', () => {
 
 		const originalClone = JSON.parse(JSON.stringify(original));
 
+		// Loading normalizes the Strict officeDocument rel type to Transitional;
+		// the OPC namespace and core-properties type are left untouched.
 		normalizeStrictXml(original);
-		convertXmlToStrict(original);
+		const root = original['Relationships'] as Record<string, unknown>;
+		expect(root['@_xmlns']).toBe('http://schemas.openxmlformats.org/package/2006/relationships');
+		const rels = root['Relationship'] as Record<string, unknown>[];
+		expect(rels[0]['@_Type']).toBe(
+			'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument',
+		);
+		expect(rels[1]['@_Type']).toBe(
+			'http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties',
+		);
 
+		// Saving converts the officeDocument rel type back to Strict, restoring
+		// the original document byte-for-byte.
+		convertXmlToStrict(original);
 		expect(JSON.stringify(original)).toBe(JSON.stringify(originalClone));
 	});
 
@@ -768,10 +812,10 @@ describe('round-trip: Strict -> Transitional -> Strict', () => {
 			'http://purl.oclc.org/ooxml/drawingml/chart',
 			'http://purl.oclc.org/ooxml/officeDocument/relationships',
 			'http://purl.oclc.org/ooxml/officeDocument/relationships/slide',
-			'http://purl.oclc.org/ooxml/package/relationships',
+			'http://purl.oclc.org/ooxml/schemaLibrary/main',
+			'http://purl.oclc.org/ooxml/descriptions/base',
 			'http://purl.oclc.org/ooxml/spreadsheetml/main',
 			'http://purl.oclc.org/ooxml/wordprocessingml/main',
-			'http://purl.oclc.org/ooxml/markup-compatibility/2006',
 		];
 
 		for (const strictUri of strictUris) {

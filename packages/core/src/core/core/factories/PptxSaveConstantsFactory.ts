@@ -37,7 +37,11 @@ export class PptxSaveConstantsFactory implements IFactory<
 					'http://purl.oclc.org/ooxml/officeDocument/relationships/comments',
 				slideNotesRelationshipType:
 					'http://purl.oclc.org/ooxml/officeDocument/relationships/notesSlide',
-				relationshipsNamespace: 'http://purl.oclc.org/ooxml/package/relationships',
+				// The OPC relationships namespace (the xmlns of .rels parts) is
+				// conformance-independent: real Strict packages keep the canonical
+				// schemas.openxmlformats.org form. Only the relationship *type*
+				// URIs above switch to Strict. See strict-namespace-map.ts.
+				relationshipsNamespace: 'http://schemas.openxmlformats.org/package/2006/relationships',
 				// Content types are NOT namespace-dependent; they stay the same
 				// in both Strict and Transitional conformance.
 				slideContentType: 'application/vnd.openxmlformats-officedocument.presentationml.slide+xml',

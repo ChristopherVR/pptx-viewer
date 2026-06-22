@@ -70,11 +70,14 @@ describe('pptxSaveConstantsFactory', () => {
 	});
 
 	describe('create() with strict conformance', () => {
-		it('returns strict namespace URIs', () => {
+		it('returns strict relationship-type URIs but a conformance-independent OPC namespace', () => {
 			const constants = factory.create('strict');
 			expect(constants.conformance).toBe('strict');
+			// Relationship *type* URIs (officeDocument family) switch to Strict.
 			expect(constants.slideRelationshipType).toContain('purl.oclc.org');
-			expect(constants.relationshipsNamespace).toContain('purl.oclc.org');
+			// The OPC relationships namespace (xmlns of .rels parts) is shared
+			// across conformance classes and stays in its canonical form.
+			expect(constants.relationshipsNamespace).toContain('schemas.openxmlformats.org');
 		});
 
 		it('returns strict slide relationship type', () => {
@@ -91,10 +94,16 @@ describe('pptxSaveConstantsFactory', () => {
 			);
 		});
 
-		it('returns strict relationships namespace', () => {
+		it('keeps the OPC relationships namespace fixed under strict conformance', () => {
 			const constants = factory.create('strict');
 			expect(constants.relationshipsNamespace).toBe(
-				'http://purl.oclc.org/ooxml/package/relationships',
+				'http://schemas.openxmlformats.org/package/2006/relationships',
+			);
+		});
+
+		it('uses the same OPC relationships namespace for both conformance classes', () => {
+			expect(factory.create('strict').relationshipsNamespace).toBe(
+				factory.create('transitional').relationshipsNamespace,
 			);
 		});
 
