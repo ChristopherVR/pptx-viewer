@@ -15,7 +15,7 @@
  */
 
 import { XmlObject } from '../../types';
-import type { PptxChartData } from '../../types';
+import type { PptxChartData, PptxChartType } from '../../types';
 import {
 	parseSeriesTrendlines,
 	parseSeriesErrBars,
@@ -23,6 +23,7 @@ import {
 	parseLineStyle,
 } from '../../utils/chart-advanced-parser';
 import { parseChartAxes, parseChart3DSurfaces } from '../../utils/chart-axis-parser';
+import { chartContainerLocalNameToType } from '../../utils/chart-container-type-map';
 import { parseCxChartSeries } from '../../utils/chart-cx-parser';
 import {
 	parseSeriesDataPoints,
@@ -72,9 +73,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		const chartType = this.detectChartType(plotArea);
-		const seriesContainerKey = Object.keys(plotArea).find((key) =>
+
+		// A combo chart's plotArea holds several sibling chart-type containers
+		// (e.g. c:barChart + c:lineChart), each with a subset of the series.
+		// Gather ALL of them, not just the first, so every series loads and can
+		// round-trip under the correct container.
+		const chartContainerKeys = Object.keys(plotArea).filter((key) =>
 			this.compatibilityService.getXmlLocalName(key).endsWith('Chart'),
 		);
+		const seriesContainerKey = chartContainerKeys[0];
 
 		// cx: namespace (Office 2016+) charts use plotAreaRegion instead of *Chart
 		if (!seriesContainerKey) {
@@ -89,23 +96,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		const seriesContainer = plotArea[seriesContainerKey] as XmlObject | undefined;
-		const seriesList = this.xmlLookupService.getChildrenArrayByLocalName(seriesContainer, 'ser');
-		if (seriesList.length === 0) {
+
+		const { categories, series } = this.parseAllChartContainers(
+			plotArea,
+			chartContainerKeys,
+			chartType,
+		);
+		if (series.length === 0) {
 			return undefined;
 		}
-
-		const categoriesFromFirstSeries = this.extractChartPointValues(
-			this.xmlLookupService.getChildByLocalName(seriesList[0], 'cat'),
-			false,
-		);
-		const categories = categoriesFromFirstSeries.length
-			? categoriesFromFirstSeries
-			: this.extractChartPointValues(
-					this.xmlLookupService.getChildByLocalName(seriesList[0], 'xVal'),
-					false,
-				);
-
-		const series = this.buildChartSeries(seriesList, categories);
 
 		const titleNode = this.xmlLookupService.getChildByLocalName(chartRoot, 'title');
 		const titleTextValues: string[] = [];
@@ -242,6 +241,64 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
+	 * Parse every chart-type container in the plot area into a single flat
+	 * series list plus a shared category list.
+	 *
+	 * For a single-type chart this parses the one container exactly as before.
+	 * For a combo chart (multiple `c:*Chart` siblings) each container's series
+	 * are parsed and tagged with the container's chart type via
+	 * {@link PptxChartSeries.seriesChartType}, so the combo serializer can
+	 * re-emit each series under the correct container on save. Series keep the
+	 * document order of their containers.
+	 *
+	 * @param plotArea - The `c:plotArea` XML object.
+	 * @param containerKeys - All chart-type container keys, in document order.
+	 * @param chartLevelType - The detected chart-level type. When this is
+	 *   `combo`, each series is tagged with its own container type; otherwise no
+	 *   per-series type is set (the chart-level type applies to every series).
+	 * @returns The merged categories and series.
+	 */
+	private parseAllChartContainers(
+		plotArea: XmlObject,
+		containerKeys: string[],
+		chartLevelType: PptxChartType,
+	): { categories: string[]; series: PptxChartData['series'] } {
+		const isCombo = chartLevelType === 'combo';
+		let categories: string[] = [];
+		const series: PptxChartData['series'] = [];
+
+		for (const containerKey of containerKeys) {
+			const container = plotArea[containerKey] as XmlObject | undefined;
+			const seriesList = this.xmlLookupService.getChildrenArrayByLocalName(container, 'ser');
+			if (seriesList.length === 0) {
+				continue;
+			}
+
+			// Use the first series with categories found across all containers.
+			if (categories.length === 0) {
+				const fromCat = this.extractChartPointValues(
+					this.xmlLookupService.getChildByLocalName(seriesList[0], 'cat'),
+					false,
+				);
+				categories = fromCat.length
+					? fromCat
+					: this.extractChartPointValues(
+							this.xmlLookupService.getChildByLocalName(seriesList[0], 'xVal'),
+							false,
+						);
+			}
+
+			const containerType = isCombo
+				? chartContainerLocalNameToType(this.compatibilityService.getXmlLocalName(containerKey))
+				: undefined;
+
+			series.push(...this.buildChartSeries(seriesList, categories, containerType));
+		}
+
+		return { categories, series };
+	}
+
+	/**
 	 * Build the series array from raw OOXML `c:ser` nodes.
 	 *
 	 * For each series, extracts the name, numeric values, fill color,
@@ -250,9 +307,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 *
 	 * @param seriesList - Array of `c:ser` XML objects from the chart container.
 	 * @param categories - Pre-parsed category labels (used for fallback values).
+	 * @param seriesChartType - When set (combo charts), tags every series in this
+	 *   container with its source chart type for round-trip.
 	 * @returns The series array matching `PptxChartData["series"]`.
 	 */
-	private buildChartSeries(seriesList: XmlObject[], categories: string[]): PptxChartData['series'] {
+	private buildChartSeries(
+		seriesList: XmlObject[],
+		categories: string[],
+		seriesChartType?: PptxChartType,
+	): PptxChartData['series'] {
 		return seriesList.map((seriesNode, seriesIndex) => {
 			const seriesName = this.extractChartSeriesName(seriesNode);
 			const values = this.extractChartPointValues(
@@ -309,6 +372,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				...(seriesMarker ? { marker: seriesMarker } : {}),
 				...(dataLabels.length > 0 ? { dataLabels } : {}),
 				...(explosion !== undefined ? { explosion } : {}),
+				...(seriesChartType ? { seriesChartType } : {}),
 			};
 		});
 	}

@@ -26,6 +26,7 @@ import {
 	setChartSeriesChartType,
 	setChartDataPointFill,
 	setChartDataPointExplosion,
+	setChartDataPointLabel,
 } from './chart-operations';
 import { createChartElement, resetIdCounter } from './ElementFactory';
 
@@ -1317,5 +1318,58 @@ describe('setChartDataPointExplosion', () => {
 		setChartDataPointExplosion(el, 0, 0, 20);
 		const idxs = el.chartData?.series[0].dataPoints?.map((p) => p.idx);
 		expect(idxs).toStrictEqual([0, 2]);
+	});
+});
+
+describe('setChartDataPointLabel', () => {
+	it('adds a per-point label override for a series', () => {
+		const chart = makeTestChart();
+		setChartDataPointLabel(chart, 0, 2, { showValue: true, position: 'outEnd' });
+		const labels = chart.chartData!.series[0].dataLabels;
+		expect(labels).toHaveLength(1);
+		expect(labels![0]).toMatchObject({ idx: 2, showVal: true, position: 'outEnd' });
+	});
+
+	it('merges into an existing override for the same point', () => {
+		const chart = makeTestChart();
+		setChartDataPointLabel(chart, 0, 1, { showValue: true });
+		setChartDataPointLabel(chart, 0, 1, { showCategory: true, text: 'Hi' });
+		const labels = chart.chartData!.series[0].dataLabels!;
+		expect(labels).toHaveLength(1);
+		expect(labels[0]).toMatchObject({ idx: 1, showVal: true, showCatName: true, text: 'Hi' });
+	});
+
+	it('keeps overrides sorted by idx', () => {
+		const chart = makeTestChart();
+		setChartDataPointLabel(chart, 0, 2, { showValue: true });
+		setChartDataPointLabel(chart, 0, 0, { showValue: true });
+		expect(chart.chartData!.series[0].dataLabels!.map((l) => l.idx)).toStrictEqual([0, 2]);
+	});
+
+	it('clears empty text back to undefined', () => {
+		const chart = makeTestChart();
+		setChartDataPointLabel(chart, 0, 0, { text: 'X' });
+		setChartDataPointLabel(chart, 0, 0, { text: '' });
+		expect(chart.chartData!.series[0].dataLabels![0].text).toBeUndefined();
+	});
+
+	it('removes the override when passed null', () => {
+		const chart = makeTestChart();
+		setChartDataPointLabel(chart, 0, 1, { showValue: true });
+		setChartDataPointLabel(chart, 0, 1, null);
+		expect(chart.chartData!.series[0].dataLabels).toBeUndefined();
+	});
+
+	it('removing one of several overrides keeps the rest', () => {
+		const chart = makeTestChart();
+		setChartDataPointLabel(chart, 0, 0, { showValue: true });
+		setChartDataPointLabel(chart, 0, 1, { showValue: true });
+		setChartDataPointLabel(chart, 0, 0, null);
+		expect(chart.chartData!.series[0].dataLabels!.map((l) => l.idx)).toStrictEqual([1]);
+	});
+
+	it('throws RangeError for an out-of-range series index', () => {
+		const chart = makeTestChart();
+		expect(() => setChartDataPointLabel(chart, 9, 0, { showValue: true })).toThrow(RangeError);
 	});
 });

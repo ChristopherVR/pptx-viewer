@@ -57,6 +57,7 @@ export {
 	setChartSeriesChartType,
 	setChartDataPointFill,
 	setChartDataPointExplosion,
+	setChartDataPointLabel,
 } from './chart-operations';
 export type {
 	PptxChartLegendPosition,
@@ -64,6 +65,7 @@ export type {
 	ChartAxisEdit,
 	ChartAxisTitleStyleEdit,
 	ChartGridlineStyleEdit,
+	ChartDataPointLabelEdit,
 } from './chart-operations';
 
 // Layout operations

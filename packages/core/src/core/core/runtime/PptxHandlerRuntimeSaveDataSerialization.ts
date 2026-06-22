@@ -14,12 +14,16 @@ import {
 	applyChartAxisTitleToXml,
 	applyChartAxisTitleStyleToXml,
 } from '../../utils/chart-axis-title-serializer';
-import { applyComboSeriesTypesToXml } from '../../utils/chart-combo-serializer';
+import {
+	applyComboSeriesTypesToXml,
+	consolidateComboContainersInXml,
+} from '../../utils/chart-combo-serializer';
 import { applyChartDataLabelsToXml } from '../../utils/chart-data-labels-serializer';
 import { applySeriesDataPointsToXml } from '../../utils/chart-datapoint-serializer';
 import { applySeriesErrBarsToXml } from '../../utils/chart-errbars-serializer';
 import { applyChartLegendToXml } from '../../utils/chart-legend-serializer';
 import { applySeriesMarkerToXml } from '../../utils/chart-marker-serializer';
+import { applySeriesDataLabelsToXml } from '../../utils/chart-series-datalabel-serializer';
 import { applySeriesTrendlinesToXml } from '../../utils/chart-trendline-serializer';
 import { xmlChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveTableStyles';
@@ -196,6 +200,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					continue;
 				}
 
+				// Combo charts load as several sibling chart-type containers whose
+				// series flatten into one index-aligned model list. Consolidate them
+				// back into a single container so the generic per-series update runs
+				// over the full list; the combo split below re-emits per type.
+				consolidateComboContainersInXml(plotArea, (key) =>
+					this.compatibilityService.getXmlLocalName(key),
+				);
+
 				// Find the chart type container (e.g. c:barChart, c:lineChart)
 				let chartTypeKey = Object.keys(plotArea).find((key) =>
 					this.compatibilityService.getXmlLocalName(key).endsWith('Chart'),
@@ -335,6 +347,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					// Per-data-point overrides (c:dPt). Undefined = passthrough.
 					if (seriesData.dataPoints !== undefined) {
 						applySeriesDataPointsToXml(seriesNode, seriesData.dataPoints, (key) =>
+							this.compatibilityService.getXmlLocalName(key),
+						);
+					}
+
+					// Per-data-point label overrides (c:dLbl inside c:ser's c:dLbls).
+					// Undefined = passthrough.
+					if (seriesData.dataLabels !== undefined) {
+						applySeriesDataLabelsToXml(seriesNode, seriesData.dataLabels, (key) =>
 							this.compatibilityService.getXmlLocalName(key),
 						);
 					}

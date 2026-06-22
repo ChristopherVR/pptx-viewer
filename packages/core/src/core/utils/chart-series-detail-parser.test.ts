@@ -235,6 +235,32 @@ describe('parseSeriesDataLabels', () => {
 		});
 	});
 
+	it('should parse dLbl nested inside the series dLbls container', () => {
+		const series: XmlObject = {
+			'c:dLbls': {
+				'c:dLbl': {
+					'c:idx': { '@_val': '1' },
+					'c:dLblPos': { '@_val': 'ctr' },
+					'c:showVal': { '@_val': '1' },
+				},
+				// Series-level group settings sit after the per-point overrides.
+				'c:showVal': { '@_val': '1' },
+			},
+		};
+		const result = parseSeriesDataLabels(series, xmlLookup);
+		expect(result).toStrictEqual([{ idx: 1, showVal: true, position: 'ctr' }]);
+	});
+
+	it('should model a deleted per-point label as an override with no flags', () => {
+		const series: XmlObject = {
+			'c:dLbls': {
+				'c:dLbl': { 'c:idx': { '@_val': '2' }, 'c:delete': { '@_val': '1' } },
+			},
+		};
+		const result = parseSeriesDataLabels(series, xmlLookup);
+		expect(result).toStrictEqual([{ idx: 2 }]);
+	});
+
 	it('should return empty array when no dLbl', () => {
 		expect(parseSeriesDataLabels({}, xmlLookup)).toStrictEqual([]);
 	});

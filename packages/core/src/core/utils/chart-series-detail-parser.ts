@@ -171,12 +171,21 @@ export function parseSeriesDataPoints(
 		.filter((dp): dp is PptxChartDataPoint => dp !== undefined);
 }
 
-/** Parse individual data label overrides (c:dLbl). */
+/**
+ * Parse individual data label overrides (`c:dLbl`).
+ *
+ * Per the schema these live inside the series' `c:dLbls` container (ahead of the
+ * series-level group settings), so we look there first; a few producers emit
+ * `c:dLbl` directly under `c:ser`, which is also handled.
+ */
 export function parseSeriesDataLabels(
 	seriesNode: XmlObject,
 	xmlLookup: XmlLookupLike,
 ): PptxChartDataLabel[] {
-	const dLblNodes = xmlLookup.getChildrenArrayByLocalName(seriesNode, 'dLbl');
+	const dLblsNode = xmlLookup.getChildByLocalName(seriesNode, 'dLbls');
+	const dLblNodes = dLblsNode
+		? xmlLookup.getChildrenArrayByLocalName(dLblsNode, 'dLbl')
+		: xmlLookup.getChildrenArrayByLocalName(seriesNode, 'dLbl');
 	if (dLblNodes.length === 0) {
 		return [];
 	}
@@ -187,6 +196,13 @@ export function parseSeriesDataLabels(
 			const idx = safeInt(idxNode?.['@_val']);
 			if (idx === undefined) {
 				return undefined;
+			}
+
+			// A `<c:dLbl><c:idx/><c:delete val="1"/></c:dLbl>` suppresses the auto
+			// label for that point; model it as an override with no content flags.
+			const deleteNode = xmlLookup.getChildByLocalName(node, 'delete');
+			if (deleteNode?.['@_val'] === '1' || deleteNode?.['@_val'] === 'true') {
+				return { idx };
 			}
 
 			const result: PptxChartDataLabel = { idx };

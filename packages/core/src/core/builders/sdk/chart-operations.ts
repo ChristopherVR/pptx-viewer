@@ -11,6 +11,7 @@
 
 import type {
 	PptxChartAxisFormatting,
+	PptxChartDataLabel,
 	PptxChartDataLabelOptions,
 	PptxChartDataPoint,
 	PptxChartErrBars,
@@ -846,6 +847,102 @@ export function setChartDataPointExplosion(
 	}
 	const dp = ensureDataPoint(series, pointIndex);
 	dp.explosion = explosion;
+}
+
+// ---------------------------------------------------------------------------
+// Per-data-point label overrides (c:dLbl)
+// ---------------------------------------------------------------------------
+
+/** Editable per-data-point label fields. Omit a field to leave it unchanged. */
+export interface ChartDataPointLabelEdit {
+	/** Show the numeric value (`c:showVal`). */
+	showValue?: boolean;
+	/** Show the category name (`c:showCatName`). */
+	showCategory?: boolean;
+	/** Show the series name (`c:showSerName`). */
+	showSeriesName?: boolean;
+	/** Show the percentage (`c:showPercent`). */
+	showPercent?: boolean;
+	/** Show the legend key swatch (`c:showLegendKey`). */
+	showLegendKey?: boolean;
+	/** Label position (`c:dLblPos`). */
+	position?: PptxChartDataLabel['position'];
+	/** Custom label text override (`c:tx`). Pass `''` to clear it. */
+	text?: string;
+}
+
+/** Map a {@link ChartDataPointLabelEdit} onto an existing/new label override. */
+function applyLabelEdit(label: PptxChartDataLabel, edit: ChartDataPointLabelEdit): void {
+	if (edit.showValue !== undefined) {
+		label.showVal = edit.showValue;
+	}
+	if (edit.showCategory !== undefined) {
+		label.showCatName = edit.showCategory;
+	}
+	if (edit.showSeriesName !== undefined) {
+		label.showSerName = edit.showSeriesName;
+	}
+	if (edit.showPercent !== undefined) {
+		label.showPercent = edit.showPercent;
+	}
+	if (edit.showLegendKey !== undefined) {
+		label.showLegendKey = edit.showLegendKey;
+	}
+	if (edit.position !== undefined) {
+		label.position = edit.position;
+	}
+	if (edit.text !== undefined) {
+		label.text = edit.text === '' ? undefined : edit.text;
+	}
+}
+
+/**
+ * Set (or clear) the individual data-label override for a single data point of a
+ * series, independent of the series-level data labels. Round-trips to the saved
+ * `.pptx` (`c:dLbl` keyed by `c:idx` inside the series' `c:dLbls`).
+ *
+ * Pass a {@link ChartDataPointLabelEdit} to add/merge the override for that
+ * point, or `null` to remove it (reverting the point to the series default).
+ *
+ * @param element - The chart element to modify.
+ * @param seriesIndex - Zero-based index of the series.
+ * @param pointIndex - Zero-based index of the data point (category).
+ * @param edit - The label fields to set, or `null` to remove the override.
+ * @throws {RangeError} If `seriesIndex` is out of bounds.
+ *
+ * @example
+ * ```ts
+ * setChartDataPointLabel(chartEl, 0, 2, { showValue: true, position: "outEnd" });
+ * setChartDataPointLabel(chartEl, 0, 2, { text: "Peak" });
+ * setChartDataPointLabel(chartEl, 0, 2, null); // remove the override
+ * ```
+ */
+export function setChartDataPointLabel(
+	element: ChartPptxElement,
+	seriesIndex: number,
+	pointIndex: number,
+	edit: ChartDataPointLabelEdit | null,
+): void {
+	validateSeriesIndex(element, seriesIndex);
+	const series = element.chartData!.series[seriesIndex];
+	if (edit === null) {
+		if (!series.dataLabels) {
+			return;
+		}
+		series.dataLabels = series.dataLabels.filter((l) => l.idx !== pointIndex);
+		if (series.dataLabels.length === 0) {
+			series.dataLabels = undefined;
+		}
+		return;
+	}
+	const labels = (series.dataLabels ??= []);
+	let label = labels.find((l) => l.idx === pointIndex);
+	if (!label) {
+		label = { idx: pointIndex };
+		labels.push(label);
+		labels.sort((a, b) => a.idx - b.idx);
+	}
+	applyLabelEdit(label, edit);
 }
 
 /** Drop a `c:dPt` override that no longer carries any formatting. */

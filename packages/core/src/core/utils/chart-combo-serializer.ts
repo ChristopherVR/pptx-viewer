@@ -43,6 +43,58 @@ function ensureArray<T>(v: T | T[] | undefined): T[] {
 }
 
 /**
+ * Collapse every `c:*Chart` sibling container in a combo plot area into the
+ * first one, concatenating their `c:ser` nodes (in document order) and removing
+ * the now-empty extra containers. Returns the surviving container key, or
+ * `undefined` when the plot area holds no chart-type container.
+ *
+ * This is the inverse of {@link applyComboSeriesTypesToXml}: a combo chart loads
+ * as multiple containers whose series flatten into a single index-aligned model
+ * list, so on save we first consolidate back to one container, let the generic
+ * per-series update run over the full list, then re-split by `seriesChartType`.
+ *
+ * Mutates `plotArea` in place. The first container's non-series children
+ * (grouping, axId, etc.) are kept as the shared template for the later split.
+ */
+export function consolidateComboContainersInXml(
+	plotArea: XmlObject,
+	getLocalName: GetLocalName,
+): string | undefined {
+	const containerKeys = Object.keys(plotArea).filter((k) => getLocalName(k).endsWith('Chart'));
+	if (containerKeys.length === 0) {
+		return undefined;
+	}
+	const primaryKey = containerKeys[0];
+	if (containerKeys.length === 1) {
+		return primaryKey;
+	}
+
+	const primary = plotArea[primaryKey] as XmlObject | undefined;
+	if (!primary) {
+		return primaryKey;
+	}
+	const serKey = findKey(primary, 'ser', getLocalName) ?? 'c:ser';
+
+	const allSeries: XmlObject[] = [];
+	for (const key of containerKeys) {
+		const container = plotArea[key] as XmlObject | undefined;
+		if (!container) {
+			continue;
+		}
+		const containerSerKey = findKey(container, 'ser', getLocalName);
+		if (containerSerKey) {
+			allSeries.push(...(ensureArray(container[containerSerKey]) as XmlObject[]));
+		}
+		if (key !== primaryKey) {
+			delete plotArea[key];
+		}
+	}
+
+	primary[serKey] = allSeries.length === 1 ? allSeries[0] : allSeries;
+	return primaryKey;
+}
+
+/**
  * Determine the effective per-series container local name for each series.
  * Falls back to `chartLevelType` when a series has no explicit type.
  */
