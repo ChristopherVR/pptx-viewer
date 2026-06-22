@@ -2,10 +2,11 @@ import { NgStyle } from '@angular/common';
 import {
 	ChangeDetectionStrategy,
 	Component,
+	DestroyRef,
 	ElementRef,
 	HostListener,
-	OnDestroy,
 	OnInit,
+	afterNextRender,
 	computed,
 	effect,
 	inject,
@@ -29,6 +30,7 @@ import {
 import { PresentationSubtitleBarComponent } from './presentation-subtitle-bar.component';
 import { PresentationTransitionOverlayComponent } from './presentation-transition-overlay.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
+import { attachTouchGestures } from './touch-gestures';
 
 /**
  * PresentationOverlayComponent: full-viewport black overlay that renders
@@ -129,12 +131,7 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 		}
 	`,
 	template: `
-		<div
-			class="pptx-ng-presentation-root"
-			(touchstart)="onTouchStart($event)"
-			(touchmove)="onTouchMove($event)"
-			(touchend)="onTouchEnd($event)"
-		>
+		<div #root class="pptx-ng-presentation-root">
 			<!--
 				Slide counter, rendered first in DOM (before slide content) so a
 				generic "N / M" text query resolves to it rather than to any slide-text
@@ -261,7 +258,7 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 		</div>
 	`,
 })
-export class PresentationOverlayComponent implements OnInit, OnDestroy {
+export class PresentationOverlayComponent implements OnInit {
 	// ------------------------------------------------------------------
 	// Inputs
 	// ------------------------------------------------------------------
@@ -305,7 +302,12 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 	/** The slide stage root; animation styles are applied to its elements. */
 	private readonly stageRef = viewChild<ElementRef<HTMLElement>>('stage');
 
+	/** The overlay root; the shared touch-gesture recogniser attaches here. */
+	private readonly rootRef = viewChild<ElementRef<HTMLElement>>('root');
+
 	constructor() {
+		this.setupTouchGestures();
+
 		// Feed the current slide's element animations into playback (resets to the
 		// pre-build state so entrance-animated elements start hidden).
 		effect(() => {
@@ -479,23 +481,37 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 	};
 
 	// ------------------------------------------------------------------
-	// Touch / swipe tracking
+	// Touch / swipe handling (delegated to the shared gesture recogniser)
 	// ------------------------------------------------------------------
 
-	/** Horizontal swipe distance (px) required to trigger navigation. */
-	private static readonly SWIPE_THRESHOLD = 50;
-
-	/** X coordinate captured on touchstart, or null when no swipe is active. */
-	private touchStartX: number | null = null;
-	private touchStartY: number | null = null;
 	/**
-	 * Last position seen during the gesture (updated on every touchmove). Some
-	 * touch dispatchers (e.g. CDP `Input.dispatchTouchEvent`) fire `touchEnd`
-	 * with an empty `changedTouches` list, so we fall back to the final move
-	 * coordinates to compute the swipe delta.
+	 * Wire the shared touch-gesture recogniser to the overlay root so a
+	 * horizontal swipe navigates: swipe left (direction -1) advances to the
+	 * next visible slide, swipe right (direction 1) returns to the previous,
+	 * matching the prior bespoke handler's semantics. Pinch is made inert
+	 * (equal min/max scale, no-op getScale) and there is no long-press in
+	 * presentation mode. Attach happens once the root node is live
+	 * (afterNextRender) and is torn down on destroy.
 	 */
-	private touchLastX: number | null = null;
-	private touchLastY: number | null = null;
+	private setupTouchGestures(): void {
+		const destroyRef = inject(DestroyRef);
+		afterNextRender(() => {
+			const el = this.rootRef()?.nativeElement;
+			if (!el) {
+				return;
+			}
+			const teardown = attachTouchGestures(el, {
+				getScale: () => 1,
+				callbacks: {
+					onSwipe: (direction) => {
+						// direction 1 = swipe right (previous), -1 = swipe left (next).
+						this.navigate(direction === 1 ? 'prev' : 'next');
+					},
+				},
+			});
+			destroyRef.onDestroy(teardown);
+		});
+	}
 
 	// ------------------------------------------------------------------
 	// Lifecycle
@@ -508,10 +524,6 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 
 		// Snapshot the viewport dimensions on mount (SSR-safe guard).
 		this.snapViewport();
-	}
-
-	ngOnDestroy(): void {
-		// Nothing to clean up; HostListeners are removed automatically.
 	}
 
 	// ------------------------------------------------------------------
@@ -631,76 +643,6 @@ export class PresentationOverlayComponent implements OnInit, OnDestroy {
 		event.stopPropagation();
 		event.preventDefault();
 		this.navigate('next');
-	}
-
-	// ------------------------------------------------------------------
-	// Swipe handling (touch devices have no keyboard)
-	// ------------------------------------------------------------------
-
-	/** Record the initial touch position. */
-	protected onTouchStart(event: TouchEvent): void {
-		const touch = event.changedTouches[0];
-		if (!touch) {
-			this.touchStartX = null;
-			this.touchStartY = null;
-			this.touchLastX = null;
-			this.touchLastY = null;
-			return;
-		}
-		this.touchStartX = touch.clientX;
-		this.touchStartY = touch.clientY;
-		this.touchLastX = touch.clientX;
-		this.touchLastY = touch.clientY;
-	}
-
-	/** Track the latest gesture position so touchend can compute the delta even
-	 *  when the touchend event carries no `changedTouches`. */
-	protected onTouchMove(event: TouchEvent): void {
-		const touch = event.changedTouches[0] ?? event.touches[0];
-		if (touch) {
-			this.touchLastX = touch.clientX;
-			this.touchLastY = touch.clientY;
-		}
-	}
-
-	/**
-	 * On touchend, treat a predominantly horizontal drag past the threshold as a
-	 * swipe: left-swipe → next, right-swipe → prev.
-	 */
-	protected onTouchEnd(event: TouchEvent): void {
-		const startX = this.touchStartX;
-		const startY = this.touchStartY;
-		const lastX = this.touchLastX;
-		const lastY = this.touchLastY;
-		this.touchStartX = null;
-		this.touchStartY = null;
-		this.touchLastX = null;
-		this.touchLastY = null;
-		if (startX === null || startY === null) {
-			return;
-		}
-		// Prefer the touchend coordinates; fall back to the last touchmove
-		// position (CDP dispatches touchEnd with an empty changedTouches list).
-		const touch = event.changedTouches[0];
-		const endX = touch ? touch.clientX : lastX;
-		const endY = touch ? touch.clientY : lastY;
-		if (endX === null || endY === null) {
-			return;
-		}
-		const dx = endX - startX;
-		const dy = endY - startY;
-		// Require a mostly-horizontal gesture past the threshold.
-		if (Math.abs(dx) < PresentationOverlayComponent.SWIPE_THRESHOLD) {
-			return;
-		}
-		if (Math.abs(dx) <= Math.abs(dy)) {
-			return;
-		}
-		if (dx < 0) {
-			this.navigate('next');
-		} else {
-			this.navigate('prev');
-		}
 	}
 
 	// ------------------------------------------------------------------
