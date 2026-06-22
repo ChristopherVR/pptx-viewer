@@ -10,6 +10,8 @@ import { convertXmlToStrict } from '../../utils';
 import { obfuscateFont, generateFontGuid } from '../../utils/font-deobfuscation';
 import type { PptxSaveFormat } from '../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveDataSerialization';
+import { applySmartArtColorTransform } from './smartart-colors-builder';
+import { applySmartArtQuickStyle } from './smartart-quickstyle-builder';
 import { applySmartArtChrome } from './smartart-save-chrome';
 import { mergeSmartArtPointXml, buildSmartArtConnectionXml } from './smartart-xml-builders';
 
@@ -123,9 +125,102 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			} catch (e) {
 				console.warn(`Failed to save SmartArt data at ${dataPartPath}:`, e);
 			}
+
+			// Regenerate the colours and quick-style diagram parts so a
+			// colour-scheme or style change persists across a round-trip
+			// instead of PowerPoint re-deriving the old values on open.
+			await this.regenerateSmartArtColorPart(slidePath, smartArtData);
+			await this.regenerateSmartArtQuickStylePart(slidePath, smartArtData);
 		}
 
 		this.pendingSmartArtUpdates = undefined;
+	}
+
+	/**
+	 * Merge the in-memory colour transform back into `ppt/diagrams/colors*.xml`.
+	 *
+	 * Resolves the part via the SmartArt `colorsRelId` relationship alongside
+	 * the data part, merges surgically (preserving unknown content), and skips
+	 * gracefully when the rel or part is absent. No-op when the in-memory data
+	 * carries no colour transform.
+	 */
+	protected async regenerateSmartArtColorPart(
+		slidePath: string,
+		smartArtData: SmartArtPptxElement['smartArtData'],
+	): Promise<void> {
+		const transform = smartArtData?.colorTransform;
+		if (!smartArtData?.colorsRelId || !transform) {
+			return;
+		}
+		await this.mergeSmartArtDiagramPart(
+			slidePath,
+			smartArtData.colorsRelId,
+			'colorsDef',
+			'colours',
+			(colorsDef) =>
+				applySmartArtColorTransform(colorsDef, transform, (k) =>
+					this.compatibilityService.getXmlLocalName(k),
+				),
+		);
+	}
+
+	/**
+	 * Merge the in-memory quick style back into `ppt/diagrams/quickStyles*.xml`.
+	 *
+	 * Resolves the part via the SmartArt `styleRelId` relationship, merges
+	 * surgically, and skips gracefully when the rel or part is absent. No-op
+	 * when the in-memory data carries no quick style.
+	 */
+	protected async regenerateSmartArtQuickStylePart(
+		slidePath: string,
+		smartArtData: SmartArtPptxElement['smartArtData'],
+	): Promise<void> {
+		const quickStyle = smartArtData?.quickStyle;
+		if (!smartArtData?.styleRelId || !quickStyle) {
+			return;
+		}
+		await this.mergeSmartArtDiagramPart(
+			slidePath,
+			smartArtData.styleRelId,
+			'styleDef',
+			'quick style',
+			(styleDef) => applySmartArtQuickStyle(styleDef, quickStyle),
+		);
+	}
+
+	/**
+	 * Read a SmartArt diagram part by slide relationship id, locate its root
+	 * definition element by local name, apply a surgical merge callback, and
+	 * write the part back only when the callback reports a change. Skips
+	 * gracefully when the rel, part, or root element is absent.
+	 */
+	private async mergeSmartArtDiagramPart(
+		slidePath: string,
+		relId: string,
+		defLocalName: string,
+		label: string,
+		merge: (def: XmlObject) => boolean,
+	): Promise<void> {
+		const relationships = this.slideRelsMap.get(slidePath);
+		const target = relationships?.get(relId);
+		if (!target) {
+			return;
+		}
+		const partPath = this.resolveImagePath(slidePath, target);
+		const existingXml = await this.zip.file(partPath)?.async('string');
+		if (!existingXml) {
+			return;
+		}
+
+		try {
+			const parsed = this.parser.parse(existingXml) as XmlObject;
+			const def = this.xmlLookupService.getChildByLocalName(parsed, defLocalName);
+			if (def && merge(def)) {
+				this.zip.file(partPath, this.builder.build(parsed));
+			}
+		} catch (e) {
+			console.warn(`Failed to save SmartArt ${label} at ${partPath}:`, e);
+		}
 	}
 
 	/**

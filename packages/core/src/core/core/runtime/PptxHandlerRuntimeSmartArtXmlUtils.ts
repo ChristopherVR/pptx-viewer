@@ -1,5 +1,9 @@
 import { XmlObject } from '../../types';
-import type { PptxSmartArtChrome, PptxSmartArtColorTransform } from '../../types';
+import type {
+	PptxSmartArtChrome,
+	PptxSmartArtColorTransform,
+	PptxSmartArtTextRun,
+} from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeComments';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -69,6 +73,49 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Extract the per-run text + run-properties of a SmartArt content point's
+	 * first paragraph (`dgm:t/a:p/a:r`).
+	 *
+	 * Each `a:r` yields one {@link PptxSmartArtTextRun} carrying its joined
+	 * `a:t` text and a verbatim copy of its `a:rPr` properties (when present).
+	 * Only the first paragraph is captured: SmartArt content points are
+	 * single-paragraph in practice, and the round-trip save path rebuilds a
+	 * single paragraph from these runs. Returns undefined when there is fewer
+	 * than one run worth preserving (a single run is still returned so per-run
+	 * formatting like a bold sole run survives).
+	 */
+	protected extractSmartArtNodeRuns(point: XmlObject): PptxSmartArtTextRun[] | undefined {
+		const tBody = this.xmlLookupService.getChildByLocalName(point, 't');
+		if (!tBody) {
+			return undefined;
+		}
+		const paragraph = this.xmlLookupService.getChildrenArrayByLocalName(tBody, 'p')[0];
+		if (!paragraph) {
+			return undefined;
+		}
+		const runNodes = this.xmlLookupService.getChildrenArrayByLocalName(paragraph, 'r');
+		if (runNodes.length === 0) {
+			return undefined;
+		}
+
+		const runs: PptxSmartArtTextRun[] = [];
+		for (const run of runNodes) {
+			const textValues: string[] = [];
+			this.collectLocalTextValues(run, 't', textValues);
+			const text = textValues.join('');
+			const rPrNode = this.xmlLookupService.getChildByLocalName(run, 'rPr');
+			const entry: PptxSmartArtTextRun = { text };
+			if (rPrNode) {
+				// Deep clone so later in-memory edits cannot mutate the parsed tree.
+				entry.rPr = JSON.parse(JSON.stringify(rPrNode)) as Record<string, unknown>;
+			}
+			runs.push(entry);
+		}
+
+		return runs.length > 0 ? runs : undefined;
 	}
 
 	/**

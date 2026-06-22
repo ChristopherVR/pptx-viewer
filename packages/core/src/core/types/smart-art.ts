@@ -110,6 +110,31 @@ export type SmartArtColorScheme =
 export type SmartArtStyle = 'flat' | 'moderate' | 'intense';
 
 /**
+ * A single run of text inside a SmartArt node, capturing the run text and the
+ * raw `a:rPr` run-properties object verbatim so per-run formatting (bold,
+ * colour, size, etc.) survives a load -> edit -> save round-trip instead of
+ * collapsing to a single unstyled run.
+ *
+ * @example
+ * ```ts
+ * const run: PptxSmartArtTextRun = {
+ *   text: "Bold",
+ *   rPr: { "@_b": "1", "@_lang": "en-US" },
+ * };
+ * // => satisfies PptxSmartArtTextRun
+ * ```
+ */
+export interface PptxSmartArtTextRun {
+	/** Run text content. */
+	text: string;
+	/**
+	 * Raw parsed `a:rPr` run-properties object, preserved verbatim for
+	 * round-trip. Untyped XML, hence the loose record shape.
+	 */
+	rPr?: Record<string, unknown>;
+}
+
+/**
  * A single node in the SmartArt data model.
  *
  * @example
@@ -132,6 +157,14 @@ export interface PptxSmartArtNode {
 	children?: PptxSmartArtNode[];
 	/** Node type from `@_type` attribute (e.g. "doc", "node", "asst", "pres"). */
 	nodeType?: string;
+	/**
+	 * Per-run text + run-properties for the node's first paragraph, captured at
+	 * parse time. When the joined run text still equals {@link text} (the node
+	 * was not edited, or was edited only in ways that preserve the run split),
+	 * the save path rebuilds the paragraph from these runs so per-run rich text
+	 * is not flattened. When {@link text} diverges, the runs are ignored.
+	 */
+	runs?: PptxSmartArtTextRun[];
 }
 
 /**

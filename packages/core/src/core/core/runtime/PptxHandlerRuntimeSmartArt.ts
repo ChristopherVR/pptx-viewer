@@ -57,11 +57,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					return null;
 				}
 
+				// Capture per-run formatting so a load -> edit -> save round-trip
+				// keeps a node's individual runs (bold / colour / size) instead of
+				// flattening them to a single unstyled run on save.
+				const runs = this.extractSmartArtNodeRuns(point);
+
 				return {
 					id: pointId,
 					text: resolvedText.trim(),
 					parentId: parentByNodeId.get(pointId),
 					nodeType,
+					runs,
 				};
 			})
 			.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))

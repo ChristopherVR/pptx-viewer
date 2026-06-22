@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import type { XmlObject, PptxSmartArtChrome } from '../../types';
+import type { XmlObject, PptxSmartArtChrome, PptxSmartArtTextRun } from '../../types';
 
 // ---------------------------------------------------------------------------
 // Extracted from PptxHandlerRuntimeSmartArtXmlUtils
@@ -8,7 +8,7 @@ import type { XmlObject, PptxSmartArtChrome } from '../../types';
 // ---------------------------------------------------------------------------
 
 /**
- * Stub for parseColor — extracts hex from a:srgbClr/@_val.
+ * Stub for parseColor: extracts hex from a:srgbClr/@_val.
  */
 function parseColor(node: unknown): string | null {
 	if (!node || typeof node !== 'object') {
@@ -23,7 +23,7 @@ function parseColor(node: unknown): string | null {
 }
 
 /**
- * Stub for xmlLookupService.getChildByLocalName — finds first child key
+ * Stub for xmlLookupService.getChildByLocalName: finds first child key
  * matching the given local name (after the colon prefix).
  */
 function getChildByLocalName(
@@ -41,6 +41,69 @@ function getChildByLocalName(
 		}
 	}
 	return undefined;
+}
+
+/**
+ * Stub for xmlLookupService.getChildrenArrayByLocalName: collects child
+ * objects whose local name matches, normalising a single object to a 1-array.
+ */
+function getChildrenArrayByLocalName(
+	parent: XmlObject | undefined,
+	localName: string,
+): XmlObject[] {
+	if (!parent) {
+		return [];
+	}
+	for (const [key, value] of Object.entries(parent)) {
+		const colonIdx = key.indexOf(':');
+		const keyLocal = colonIdx >= 0 ? key.slice(colonIdx + 1) : key;
+		if (keyLocal !== localName) {
+			continue;
+		}
+		if (Array.isArray(value)) {
+			return value.filter(
+				(entry): entry is XmlObject =>
+					typeof entry === 'object' && entry !== null && !Array.isArray(entry),
+			);
+		}
+		if (value && typeof value === 'object') {
+			return [value as XmlObject];
+		}
+	}
+	return [];
+}
+
+/**
+ * Extracted from PptxHandlerRuntimeSmartArtXmlUtils.extractSmartArtNodeRuns.
+ */
+function extractSmartArtNodeRuns(point: XmlObject): PptxSmartArtTextRun[] | undefined {
+	const tBody = getChildByLocalName(point, 't');
+	if (!tBody) {
+		return undefined;
+	}
+	const paragraph = getChildrenArrayByLocalName(tBody, 'p')[0];
+	if (!paragraph) {
+		return undefined;
+	}
+	const runNodes = getChildrenArrayByLocalName(paragraph, 'r');
+	if (runNodes.length === 0) {
+		return undefined;
+	}
+
+	const runs: PptxSmartArtTextRun[] = [];
+	for (const run of runNodes) {
+		const textValues: string[] = [];
+		collectLocalTextValues(run, 't', textValues);
+		const text = textValues.join('');
+		const rPrNode = getChildByLocalName(run, 'rPr');
+		const entry: PptxSmartArtTextRun = { text };
+		if (rPrNode) {
+			entry.rPr = JSON.parse(JSON.stringify(rPrNode)) as Record<string, unknown>;
+		}
+		runs.push(entry);
+	}
+
+	return runs.length > 0 ? runs : undefined;
 }
 
 /**
@@ -325,5 +388,74 @@ describe('collectLocalTextValues', () => {
 		const output: string[] = [];
 		collectLocalTextValues({ 'a:r': 'NotText' }, 't', output);
 		expect(output).toStrictEqual([]);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// extractSmartArtNodeRuns
+// ---------------------------------------------------------------------------
+describe('extractSmartArtNodeRuns', () => {
+	it('returns undefined when the point has no dgm:t body', () => {
+		expect(extractSmartArtNodeRuns({ '@_modelId': '1' })).toBeUndefined();
+	});
+
+	it('captures a single run with its rPr', () => {
+		const point: XmlObject = {
+			'dgm:t': {
+				'a:bodyPr': {},
+				'a:p': { 'a:r': { 'a:rPr': { '@_b': '1' }, 'a:t': 'Bold' } },
+			},
+		};
+		const runs = extractSmartArtNodeRuns(point);
+		expect(runs).toHaveLength(1);
+		expect(runs![0].text).toBe('Bold');
+		expect(runs![0].rPr).toStrictEqual({ '@_b': '1' });
+	});
+
+	it('captures multiple runs with per-run properties', () => {
+		const point: XmlObject = {
+			'dgm:t': {
+				'a:p': {
+					'a:r': [
+						{ 'a:rPr': { '@_b': '1' }, 'a:t': 'Bold' },
+						{ 'a:rPr': { '@_i': '1' }, 'a:t': 'Italic' },
+					],
+				},
+			},
+		};
+		const runs = extractSmartArtNodeRuns(point);
+		expect(runs).toHaveLength(2);
+		expect(runs![0].text).toBe('Bold');
+		expect(runs![1].text).toBe('Italic');
+		expect(runs![1].rPr).toStrictEqual({ '@_i': '1' });
+	});
+
+	it('captures a run without rPr (no rPr field set)', () => {
+		const point: XmlObject = {
+			'dgm:t': { 'a:p': { 'a:r': { 'a:t': 'Plain' } } },
+		};
+		const runs = extractSmartArtNodeRuns(point);
+		expect(runs).toHaveLength(1);
+		expect(runs![0].text).toBe('Plain');
+		expect(runs![0].rPr).toBeUndefined();
+	});
+
+	it('only reads the first paragraph', () => {
+		const point: XmlObject = {
+			'dgm:t': {
+				'a:p': [{ 'a:r': { 'a:t': 'One' } }, { 'a:r': { 'a:t': 'Two' } }],
+			},
+		};
+		const runs = extractSmartArtNodeRuns(point);
+		expect(runs).toHaveLength(1);
+		expect(runs![0].text).toBe('One');
+	});
+
+	it('deep-clones rPr so later edits do not mutate the source tree', () => {
+		const rPr = { '@_sz': '1800' };
+		const point: XmlObject = { 'dgm:t': { 'a:p': { 'a:r': { 'a:rPr': rPr, 'a:t': 'X' } } } };
+		const runs = extractSmartArtNodeRuns(point)!;
+		(runs[0].rPr as Record<string, unknown>)['@_sz'] = '9999';
+		expect(rPr['@_sz']).toBe('1800');
 	});
 });

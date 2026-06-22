@@ -1,5 +1,9 @@
 import type { XmlObject } from '../../types';
-import type { PptxSmartArtNode, PptxSmartArtConnection } from '../../types/smart-art';
+import type {
+	PptxSmartArtNode,
+	PptxSmartArtConnection,
+	PptxSmartArtTextRun,
+} from '../../types/smart-art';
 
 /**
  * Point `@_type` values that are NOT user-editable content nodes.
@@ -52,18 +56,99 @@ function buildPointText(text: string): XmlObject {
 	};
 }
 
+/** Join the text of an in-memory run list. */
+function joinRunText(runs: PptxSmartArtTextRun[] | undefined): string {
+	return (runs ?? []).map((run) => run.text).join('');
+}
+
+/**
+ * Build a multi-run `a:p` body from preserved per-run text + properties,
+ * keeping each run's `a:rPr` verbatim so per-run formatting survives.
+ */
+function buildMultiRunParagraph(runs: PptxSmartArtTextRun[]): XmlObject {
+	const runObjects: XmlObject[] = runs.map((run) => {
+		const rObj: XmlObject = {};
+		rObj['a:rPr'] = (run.rPr as XmlObject | undefined) ?? { '@_lang': 'en-US', '@_dirty': '0' };
+		rObj['a:t'] = run.text;
+		return rObj;
+	});
+	return { 'a:r': runObjects.length === 1 ? runObjects[0] : runObjects };
+}
+
+/**
+ * Decide whether the node's preserved per-run formatting should be rebuilt.
+ *
+ * Runs are only honoured when there is genuine per-run structure to preserve
+ * (more than one run, or a single run carrying its own `a:rPr`) AND the joined
+ * run text still equals the node's current text. When the user edits the node,
+ * `node.text` diverges from the joined run text, so we fall back to the
+ * single-run path and do not resurrect stale runs.
+ */
+function shouldRebuildFromRuns(node: PptxSmartArtNode): node is PptxSmartArtNode & {
+	runs: PptxSmartArtTextRun[];
+} {
+	const runs = node.runs;
+	if (!runs || runs.length === 0) {
+		return false;
+	}
+	const hasRichRun = runs.length > 1 || Boolean(runs[0]?.rPr);
+	if (!hasRichRun) {
+		return false;
+	}
+	return joinRunText(runs) === node.text;
+}
+
+/**
+ * Build a `dgm:t` text body from preserved per-run text + properties.
+ */
+function buildPointFromRuns(runs: PptxSmartArtTextRun[]): XmlObject {
+	return {
+		'a:bodyPr': {},
+		'a:lstStyle': {},
+		'a:p': buildMultiRunParagraph(runs),
+	};
+}
+
+/**
+ * Rebuild the first paragraph of an EXISTING `dgm:t` body from preserved runs
+ * while keeping the surrounding `a:bodyPr` / `a:lstStyle` keys that already
+ * exist on the point.
+ */
+function applyRunsToExistingBody(pt: XmlObject, tKey: string, runs: PptxSmartArtTextRun[]): void {
+	const body = pt[tKey];
+	if (!body || typeof body !== 'object' || Array.isArray(body)) {
+		pt[tKey] = buildPointFromRuns(runs);
+		return;
+	}
+	const bodyObj = body as XmlObject;
+	const pKey = Object.keys(bodyObj).find((k) => stripPrefix(k) === 'p');
+	bodyObj[pKey ?? 'a:p'] = buildMultiRunParagraph(runs);
+}
+
 /**
  * Replace the run text of an EXISTING point's `dgm:t` in place while keeping
  * the rest of the point (prSet, spPr, extLst, run properties, etc.) intact.
+ *
+ * When the node carries preserved per-run formatting whose joined text still
+ * matches the current node text, the paragraph is rebuilt from those runs so
+ * per-run rich text is not flattened to a single run. Otherwise the existing
+ * single-run text is updated in place.
  *
  * When the point has no recognisable run, the whole `dgm:t` is rebuilt; that
  * only happens for points that never carried editable text, so nothing of
  * value is lost.
  */
-function applyTextToExistingPoint(pt: XmlObject, text: string): void {
+function applyTextToExistingPoint(pt: XmlObject, node: PptxSmartArtNode): void {
+	const text = node.text;
+	const rebuildFromRuns = shouldRebuildFromRuns(node);
 	const tKey = Object.keys(pt).find((k) => stripPrefix(k) === 't');
 	if (!tKey) {
-		pt['dgm:t'] = buildPointText(text);
+		pt['dgm:t'] = rebuildFromRuns ? buildPointFromRuns(node.runs) : buildPointText(text);
+		return;
+	}
+
+	if (rebuildFromRuns) {
+		applyRunsToExistingBody(pt, tKey, node.runs);
 		return;
 	}
 
@@ -180,8 +265,9 @@ export function mergeSmartArtPointXml(
 			continue;
 		}
 
-		// Update the text in place, keeping prSet / spPr / extLst intact.
-		applyTextToExistingPoint(pt, desired.text);
+		// Update the text in place, keeping prSet / spPr / extLst intact and
+		// preserving per-run formatting when the node was not text-edited.
+		applyTextToExistingPoint(pt, desired);
 		seenContentIds.add(modelId);
 		merged.push(pt);
 	}
@@ -196,7 +282,9 @@ export function mergeSmartArtPointXml(
 		if (node.nodeType && !NON_CONTENT_POINT_TYPES.has(node.nodeType)) {
 			ptNode['@_type'] = node.nodeType;
 		}
-		ptNode['dgm:t'] = buildPointText(node.text);
+		ptNode['dgm:t'] = shouldRebuildFromRuns(node)
+			? buildPointFromRuns(node.runs)
+			: buildPointText(node.text);
 		merged.push(ptNode);
 	}
 

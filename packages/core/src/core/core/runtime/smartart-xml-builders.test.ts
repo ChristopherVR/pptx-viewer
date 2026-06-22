@@ -358,6 +358,61 @@ describe('mergeSmartArtPointXml', () => {
 		expect(merged[0]['@_type']).toBe('asst');
 	});
 
+	it('rebuilds multiple runs when joined run text still equals node text', () => {
+		const existing = parseSamplePts();
+		const merged = mergeSmartArtPointXml(existing, [
+			{
+				id: '100',
+				text: 'BoldNormal',
+				runs: [
+					{ text: 'Bold', rPr: { '@_b': '1', '@_lang': 'en-US' } },
+					{ text: 'Normal', rPr: { '@_lang': 'en-US' } },
+				],
+			},
+			{ id: '200', text: 'Second' },
+		]);
+
+		const pt100 = ptById(merged, '100')!;
+		const t = pt100['dgm:t'] as XmlObject;
+		const p = t['a:p'] as XmlObject;
+		const runs = p['a:r'] as XmlObject[];
+		expect(runs).toHaveLength(2);
+		expect((runs[0]['a:rPr'] as XmlObject)['@_b']).toBe('1');
+		expect(runs[0]['a:t']).toBe('Bold');
+		expect(runs[1]['a:t']).toBe('Normal');
+		// prSet preserved through the run rebuild.
+		expect(pt100['dgm:prSet']).toBeDefined();
+	});
+
+	it('preserves a single run rPr when text is unchanged', () => {
+		const existing = parseSamplePts();
+		const merged = mergeSmartArtPointXml(existing, [
+			{ id: '100', text: 'First', runs: [{ text: 'First', rPr: { '@_sz': '1800' } }] },
+			{ id: '200', text: 'Second' },
+		]);
+		const pt100 = ptById(merged, '100')!;
+		const t = pt100['dgm:t'] as XmlObject;
+		const p = t['a:p'] as XmlObject;
+		const r = p['a:r'] as XmlObject;
+		expect((r['a:rPr'] as XmlObject)['@_sz']).toBe('1800');
+		expect(r['a:t']).toBe('First');
+	});
+
+	it('falls back to single-run text when an edit diverges from preserved runs', () => {
+		const existing = parseSamplePts();
+		const merged = mergeSmartArtPointXml(existing, [
+			{
+				id: '100',
+				text: 'Edited text', // diverges from joined run text
+				runs: [{ text: 'Bold', rPr: { '@_b': '1' } }, { text: 'Normal' }],
+			},
+			{ id: '200', text: 'Second' },
+		]);
+		const pt100 = ptById(merged, '100')!;
+		// Stale runs must not be resurrected: a single run carries the edited text.
+		expect(textOf(pt100)).toBe('Edited text');
+	});
+
 	it('round-trips through build -> parse without corrupting structural points', () => {
 		const existing = parseSamplePts();
 		const merged = mergeSmartArtPointXml(existing, [
