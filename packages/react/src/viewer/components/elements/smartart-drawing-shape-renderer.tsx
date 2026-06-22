@@ -1,8 +1,9 @@
-import type { PptxSmartArtDrawingShape, SmartArtStyle } from 'pptx-viewer-core';
+import type { PptxSmartArtDrawingShape, PptxSmartArtNode, SmartArtStyle } from 'pptx-viewer-core';
+import { resolveDrawingShapeNodeId } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { colour, styleShadow, styleStroke, truncate } from '../../utils/smartart-helpers';
-import { fitFontSize, chevronPoints } from './smartart-renderer-utils';
+import { fitFontSize, chevronPoints, smartArtNodeGroupProps } from './smartart-renderer-utils';
 
 // ── Props ───────────────────────────────────────────────────────────────────
 
@@ -16,6 +17,11 @@ interface DrawingShapeRendererProps {
 	style: SmartArtStyle;
 	/** Resolved colour palette. */
 	palette: string[];
+	/**
+	 * Model nodes, used to map a clicked drawing shape back to a node id for
+	 * inline editing. When omitted, shapes are not tagged as editable.
+	 */
+	nodes?: readonly PptxSmartArtNode[];
 }
 
 // ── Component ───────────────────────────────────────────────────────────────
@@ -33,6 +39,7 @@ export function DrawingShapeRenderer({
 	shapes,
 	style,
 	palette,
+	nodes,
 }: DrawingShapeRendererProps): React.ReactElement {
 	let minX = Infinity;
 	let minY = Infinity;
@@ -80,8 +87,13 @@ export function DrawingShapeRenderer({
 				const fontSize =
 					shape.fontSize ?? fitFontSize(shape.text ?? '', shape.width * 0.85, shape.height, 14);
 
+				const nodeId = nodes ? resolveDrawingShapeNodeId(shape, i, shapes, nodes) : undefined;
+				const groupProps = nodeId
+					? smartArtNodeGroupProps(nodeId, shadow)
+					: { style: { filter: shadow } };
+
 				return (
-					<g key={`${elementId}-dsp-${shape.id}-${i}`} style={{ filter: shadow }}>
+					<g key={`${elementId}-dsp-${shape.id}-${i}`} {...groupProps}>
 						{isEllipse ? (
 							<ellipse
 								cx={relX + shape.width / 2}

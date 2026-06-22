@@ -11,7 +11,7 @@ import React from 'react';
 
 import { colour, nodeOpacity, styleShadow, truncate } from '../../utils/smartart-helpers';
 import type { LayoutRendererProps } from './smartart-renderer-types';
-import { fitFontSize, gearPath } from './smartart-renderer-utils';
+import { fitFontSize, gearPath, smartArtNodeGroupProps } from './smartart-renderer-utils';
 
 /**
  * Renders up to 3 SmartArt nodes as interlocking gear shapes, with any
@@ -48,7 +48,10 @@ export function GearRenderer({
 				const fontSize = fitFontSize(node.text, innerR * 1.2, innerR * 2, 11);
 
 				return (
-					<g key={`${element.id}-gear-${node.id}-${i}`} style={{ filter: shadow }}>
+					<g
+						key={`${element.id}-gear-${node.id}-${i}`}
+						{...smartArtNodeGroupProps(node.id, shadow)}
+					>
 						<path
 							d={gearPath(gx, gy, gearR, innerR, teethCount)}
 							fill={colour(i, palette)}

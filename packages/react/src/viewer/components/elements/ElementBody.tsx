@@ -85,6 +85,10 @@ export function renderBody(
 	tableStyleContext?: TableStyleContext,
 	/** Callback for inline formatting (Ctrl+B/I/U while editing). */
 	onFormatText?: (updates: Partial<TextStyle>) => void,
+	/** Whether inline SmartArt node editing is permitted for this element. */
+	canEditSmartArt?: boolean,
+	/** Commit a SmartArt node text edit (scoped to this element). */
+	onUpdateSmartArtElement?: (updates: Partial<PptxElement>) => void,
 ): React.ReactNode {
 	if (el.type === 'model3d') {
 		return (
@@ -146,7 +150,13 @@ export function renderBody(
 		return renderChartElement(el);
 	}
 	if (el.type === 'smartArt') {
-		return <SmartArtElement element={el} />;
+		return (
+			<SmartArtElement
+				element={el}
+				canEdit={canEditSmartArt}
+				onUpdateElement={onUpdateSmartArtElement}
+			/>
+		);
 	}
 	if (el.type === 'media') {
 		return renderMediaElement(el, media, {

@@ -19,7 +19,7 @@ import {
 	truncate,
 } from '../../utils/smartart-helpers';
 import type { LayoutRendererProps } from './smartart-renderer-types';
-import { fitFontSize } from './smartart-renderer-utils';
+import { fitFontSize, smartArtNodeGroupProps } from './smartart-renderer-utils';
 
 /**
  * Renders SmartArt nodes in a snake / bending-process layout.
@@ -116,7 +116,10 @@ export function BendingProcessRenderer({
 				}
 
 				return (
-					<g key={`${element.id}-snake-${node.id}-${i}`} style={{ filter: shadow }}>
+					<g
+						key={`${element.id}-snake-${node.id}-${i}`}
+						{...smartArtNodeGroupProps(node.id, shadow)}
+					>
 						{arrow}
 						<rect
 							x={nodeCx - boxW / 2}

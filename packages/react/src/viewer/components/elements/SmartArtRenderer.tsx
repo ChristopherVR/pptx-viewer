@@ -1,4 +1,6 @@
 import type { PptxElement, PptxSmartArtNode, SmartArtStyle } from 'pptx-viewer-core';
+import { updateSmartArtNodeText } from 'pptx-viewer-core';
+import { shouldCommitSmartArtNodeText } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { resolvePalette, resolveStyle, layoutToCategory } from '../../utils/smartart-helpers';
@@ -35,6 +37,7 @@ import {
 } from './smartart-layout-renderers-tertiary';
 // Sub-module imports
 import { wrapChrome, fitFontSize, chevronPoints } from './smartart-renderer-utils';
+import { SmartArtEditableLayer } from './SmartArtEditableLayer';
 
 /**
  * SmartArtRenderer: Phase 2 Implementation
@@ -61,6 +64,17 @@ interface SmartArtRendererProps {
 	element: PptxElement;
 	/** Optional className for styling */
 	className?: string;
+	/**
+	 * When true, double-clicking a node opens an inline text editor. Disabled
+	 * during presentation / readonly. Defaults to false.
+	 */
+	canEdit?: boolean;
+	/**
+	 * Commit a partial element update (e.g. new `smartArtData` after a node text
+	 * edit) through the host's element-update path (undo/redo + save round-trip).
+	 * Required for editing to take effect.
+	 */
+	onUpdateElement?: (updates: Partial<PptxElement>) => void;
 }
 
 /**
@@ -72,6 +86,8 @@ interface SmartArtRendererProps {
 function SmartArtRendererImpl({
 	element,
 	className = '',
+	canEdit = false,
+	onUpdateElement,
 }: SmartArtRendererProps): React.ReactElement {
 	if (element.type !== 'smartArt' || !element.smartArtData) {
 		return (
@@ -83,7 +99,8 @@ function SmartArtRendererImpl({
 		);
 	}
 
-	const { nodes, drawingShapes, chrome } = element.smartArtData;
+	const smartArtData = element.smartArtData;
+	const { nodes, drawingShapes, chrome } = smartArtData;
 
 	if (nodes.length === 0) {
 		return (
@@ -98,34 +115,55 @@ function SmartArtRendererImpl({
 	const palette = resolvePalette(element);
 	const style = resolveStyle(element);
 
+	const editable = canEdit && Boolean(onUpdateElement);
+
+	// Commit an inline node text edit through the host's element-update path,
+	// reusing the same core op the inspector uses (undo/redo + save round-trip).
+	const handleCommitNodeText = (nodeId: string, text: string): void => {
+		if (!onUpdateElement || !shouldCommitSmartArtNodeText(smartArtData, nodeId, text)) {
+			return;
+		}
+		onUpdateElement({
+			smartArtData: updateSmartArtNodeText(smartArtData, nodeId, text),
+		} as Partial<PptxElement>);
+	};
+
 	// Prefer pre-computed drawing shapes when available; these reflect
 	// PowerPoint's actual layout engine output and are the most accurate.
+	let content: React.ReactElement;
 	if (drawingShapes && drawingShapes.length > 0) {
-		return wrapChrome(
-			chrome,
+		content = (
 			<DrawingShapeRenderer
 				elementId={element.id}
 				shapes={drawingShapes}
 				style={style}
 				palette={palette}
-			/>,
-			className,
+				nodes={editable ? nodes : undefined}
+			/>
 		);
+	} else {
+		// Determine the layout category for algorithmic rendering
+		const namedLayout = smartArtData.layout;
+		const layoutType = namedLayout
+			? layoutToCategory(namedLayout)
+			: (smartArtData.resolvedLayoutType ?? smartArtData.layoutType ?? 'list').toLowerCase();
+
+		content = renderLayout(layoutType, element, nodes, palette, style);
 	}
 
-	// Determine the layout category for algorithmic rendering
-	const namedLayout = element.smartArtData.layout;
-	const layoutType = namedLayout
-		? layoutToCategory(namedLayout)
-		: (
-				element.smartArtData.resolvedLayoutType ??
-				element.smartArtData.layoutType ??
-				'list'
-			).toLowerCase();
+	const body = editable ? (
+		<SmartArtEditableLayer
+			smartArtData={smartArtData}
+			canEdit={editable}
+			onCommitNodeText={handleCommitNodeText}
+		>
+			{content}
+		</SmartArtEditableLayer>
+	) : (
+		content
+	);
 
-	const content = renderLayout(layoutType, element, nodes, palette, style);
-
-	return wrapChrome(chrome, content, className);
+	return wrapChrome(chrome, body, className);
 }
 
 // ── Layout dispatch ─────────────────────────────────────────────────────────
@@ -231,6 +269,12 @@ function renderLayout(
  */
 function arePropsEqual(prev: SmartArtRendererProps, next: SmartArtRendererProps): boolean {
 	if (prev.className !== next.className) {
+		return false;
+	}
+	if (prev.canEdit !== next.canEdit) {
+		return false;
+	}
+	if (prev.onUpdateElement !== next.onUpdateElement) {
 		return false;
 	}
 	if (prev.element.id !== next.element.id) {

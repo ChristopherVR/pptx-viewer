@@ -1,6 +1,31 @@
 import type { PptxSmartArtChrome } from 'pptx-viewer-core';
 import React from 'react';
 
+// ── Inline-edit node tagging ──────────────────────────────────────────────────
+
+/**
+ * Props applied to each rendered SmartArt node group (`<g>`) so the inline
+ * editing layer ({@link ../SmartArtEditableLayer}) can map a double-click back
+ * to a node id and position an editor over it.
+ *
+ * `pointerEvents: 'auto'` re-enables hit-testing on the group (the parent
+ * `<svg>` sets `pointer-events: none`); clicks still bubble to the element
+ * container, so selection / drag of the SmartArt element are unaffected.
+ *
+ * @param nodeId - The SmartArt model node id this group represents.
+ * @param shadow - The CSS `filter` string the group already applies (may be
+ *                 empty); preserved so styling is unchanged.
+ */
+export function smartArtNodeGroupProps(
+	nodeId: string,
+	shadow?: string,
+): { 'data-smartart-node-id': string; style: React.CSSProperties } {
+	return {
+		'data-smartart-node-id': nodeId,
+		style: { filter: shadow, pointerEvents: 'auto' },
+	};
+}
+
 // ── Font sizing ─────────────────────────────────────────────────────────────
 
 /**

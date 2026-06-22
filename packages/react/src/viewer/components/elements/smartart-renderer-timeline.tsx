@@ -12,7 +12,7 @@ import React from 'react';
 
 import { colour, nodeOpacity, styleShadow, truncate } from '../../utils/smartart-helpers';
 import type { LayoutRendererProps } from './smartart-renderer-types';
-import { fitFontSize } from './smartart-renderer-utils';
+import { fitFontSize, smartArtNodeGroupProps } from './smartart-renderer-utils';
 
 /**
  * Renders SmartArt nodes along a horizontal timeline axis.
@@ -62,7 +62,10 @@ export function TimelineRenderer({
 				const fontSize = fitFontSize(node.text, (lineLen / nodes.length) * 0.9, labelOffset, 10);
 
 				return (
-					<g key={`${element.id}-timeline-${node.id}-${i}`} style={{ filter: shadow }}>
+					<g
+						key={`${element.id}-timeline-${node.id}-${i}`}
+						{...smartArtNodeGroupProps(node.id, shadow)}
+					>
 						<line
 							x1={x}
 							y1={stemEndY}

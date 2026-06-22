@@ -17,12 +17,30 @@ import { SmartArtRenderer } from './SmartArtRenderer';
 interface SmartArtElementProps {
 	element: PptxElement;
 	className?: string;
+	/** Enables inline (on-canvas) node text editing. */
+	canEdit?: boolean;
+	/** Commit element updates (node text edits) through the host editor path. */
+	onUpdateElement?: (updates: Partial<PptxElement>) => void;
 }
 
-export function SmartArtElement({ element, className }: SmartArtElementProps): React.ReactElement {
+export function SmartArtElement({
+	element,
+	className,
+	canEdit,
+	onUpdateElement,
+}: SmartArtElementProps): React.ReactElement {
 	const use3D = useContext(SmartArt3DContext);
 	if (use3D) {
+		// The 3D renderer is presentation-only; inline editing falls back to the
+		// inspector for now.
 		return <SmartArt3DRenderer element={element} className={className} />;
 	}
-	return <SmartArtRenderer element={element} className={className} />;
+	return (
+		<SmartArtRenderer
+			element={element}
+			className={className}
+			canEdit={canEdit}
+			onUpdateElement={onUpdateElement}
+		/>
+	);
 }

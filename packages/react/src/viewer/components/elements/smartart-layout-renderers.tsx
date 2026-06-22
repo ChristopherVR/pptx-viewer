@@ -15,7 +15,7 @@ import {
 	truncate,
 } from '../../utils/smartart-helpers';
 import type { LayoutRendererProps } from './smartart-renderer-types';
-import { fitFontSize } from './smartart-renderer-utils';
+import { fitFontSize, smartArtNodeGroupProps } from './smartart-renderer-utils';
 
 // ── List Renderer ───────────────────────────────────────────────────────────
 
@@ -53,7 +53,10 @@ export function ListRenderer({
 				const y = pad + i * (itemH + gap);
 				const fontSize = fitFontSize(node.text, itemW * 0.9, itemH, 12);
 				return (
-					<g key={`${element.id}-list-${node.id}-${i}`} style={{ filter: shadow }}>
+					<g
+						key={`${element.id}-list-${node.id}-${i}`}
+						{...smartArtNodeGroupProps(node.id, shadow)}
+					>
 						<rect
 							x={pad}
 							y={y}
@@ -132,7 +135,10 @@ export function ProcessRenderer({
 				const fontSize = fitFontSize(node.text, itemW * 0.7, itemH, 12);
 
 				return (
-					<g key={`${element.id}-process-${node.id}-${i}`} style={{ filter: shadow }}>
+					<g
+						key={`${element.id}-process-${node.id}-${i}`}
+						{...smartArtNodeGroupProps(node.id, shadow)}
+					>
 						<polygon
 							points={points}
 							fill={colour(i, palette)}
@@ -226,7 +232,10 @@ export function CycleRenderer({
 				const fontSize = fitFontSize(node.text, nodeR * 1.4, nodeR * 2, 11);
 
 				return (
-					<g key={`${element.id}-cycle-${node.id}-${i}`} style={{ filter: shadow }}>
+					<g
+						key={`${element.id}-cycle-${node.id}-${i}`}
+						{...smartArtNodeGroupProps(node.id, shadow)}
+					>
 						<circle
 							cx={nx}
 							cy={ny}
@@ -297,7 +306,10 @@ export function MatrixRenderer({
 				const fontSize = fitFontSize(node.text, cellW * 0.85, cellH, 12);
 
 				return (
-					<g key={`${element.id}-matrix-${node.id}-${i}`} style={{ filter: shadow }}>
+					<g
+						key={`${element.id}-matrix-${node.id}-${i}`}
+						{...smartArtNodeGroupProps(node.id, shadow)}
+					>
 						<rect
 							x={x}
 							y={y}

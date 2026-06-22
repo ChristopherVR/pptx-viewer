@@ -51,6 +51,12 @@ export interface ElementRendererProps {
 	onInlineEditCancel: () => void;
 	onTableCellSelect?: (cell: TableCellEditorState | null, elementId: string) => void;
 	onCommitCellEdit?: (elementId: string, rowIndex: number, colIndex: number, text: string) => void;
+	/**
+	 * Commit a partial update to a SmartArt element from inline (on-canvas) node
+	 * editing. Wired to the same element-update path the inspector uses. When
+	 * absent, inline SmartArt editing is disabled.
+	 */
+	onUpdateSmartArtElement?: (elementId: string, updates: Partial<PptxElement>) => void;
 	onResizeTableColumns?: (elementId: string, newWidths: number[]) => void;
 	onResizeTableRow?: (elementId: string, rowIndex: number, newHeight: number) => void;
 	/** Per-segment highlight ranges produced by Find & Replace. */

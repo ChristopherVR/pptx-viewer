@@ -22,7 +22,7 @@ import {
 import type { TreeNode } from '../../utils/smartart-helpers';
 import { ListRenderer } from './smartart-layout-renderers';
 import type { LayoutRendererProps } from './smartart-renderer-types';
-import { fitFontSize } from './smartart-renderer-utils';
+import { fitFontSize, smartArtNodeGroupProps } from './smartart-renderer-utils';
 
 /**
  * Renders SmartArt nodes as a tree / org-chart hierarchy with L-shaped
@@ -95,7 +95,10 @@ export function HierarchyRenderer({
 
 		// Draw the box with rounded corners and shadow
 		elements.push(
-			<g key={`${element.id}-hier-group-${t.node.id}`} style={{ filter: shadow }}>
+			<g
+				key={`${element.id}-hier-group-${t.node.id}`}
+				{...smartArtNodeGroupProps(t.node.id, shadow)}
+			>
 				<rect
 					x={nodeCx - boxW / 2}
 					y={nodeCy - boxH / 2}

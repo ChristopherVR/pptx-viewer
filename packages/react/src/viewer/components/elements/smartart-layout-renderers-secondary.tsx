@@ -15,7 +15,7 @@ import {
 	truncate,
 } from '../../utils/smartart-helpers';
 import type { LayoutRendererProps } from './smartart-renderer-types';
-import { fitFontSize } from './smartart-renderer-utils';
+import { fitFontSize, smartArtNodeGroupProps } from './smartart-renderer-utils';
 
 // ── Pyramid Renderer ────────────────────────────────────────────────────────
 
@@ -72,7 +72,10 @@ export function PyramidRenderer({
 				const fontSize = fitFontSize(node.text, topW * 0.85, bandH, 12);
 
 				return (
-					<g key={`${element.id}-pyramid-${node.id}-${i}`} style={{ filter: shadow }}>
+					<g
+						key={`${element.id}-pyramid-${node.id}-${i}`}
+						{...smartArtNodeGroupProps(node.id, shadow)}
+					>
 						<polygon
 							points={points}
 							fill={colour(i, palette)}
@@ -136,7 +139,10 @@ export function VennRenderer({
 					const fontSize = fitFontSize(node.text, r * 1.2, r * 2, 11);
 
 					return (
-						<g key={`${element.id}-venn-${node.id}-${i}`} style={{ filter: shadow }}>
+						<g
+							key={`${element.id}-venn-${node.id}-${i}`}
+							{...smartArtNodeGroupProps(node.id, shadow)}
+						>
 							<circle cx={nx} cy={ny} r={r} fill={colour(i, palette)} opacity={0.35} />
 							<text
 								x={nx}
@@ -176,7 +182,10 @@ export function VennRenderer({
 				const fontSize = fitFontSize(node.text, r * 1.2, r * 2, 10);
 
 				return (
-					<g key={`${element.id}-venn-${node.id}-${i}`} style={{ filter: shadow }}>
+					<g
+						key={`${element.id}-venn-${node.id}-${i}`}
+						{...smartArtNodeGroupProps(node.id, shadow)}
+					>
 						<circle cx={nx} cy={cy} r={r} fill={colour(i, palette)} opacity={0.35} />
 						<text
 							x={nx}
@@ -243,7 +252,10 @@ export function FunnelRenderer({
 				const fontSize = fitFontSize(node.text, topWidth * 0.85, stageH, 11);
 
 				return (
-					<g key={`${element.id}-funnel-${node.id}-${i}`} style={{ filter: shadow }}>
+					<g
+						key={`${element.id}-funnel-${node.id}-${i}`}
+						{...smartArtNodeGroupProps(node.id, shadow)}
+					>
 						<polygon
 							points={points}
 							fill={colour(i, palette)}
@@ -298,7 +310,10 @@ export function TargetRenderer({
 			{nodes.map((node, i) => {
 				const r = maxR * ((nodes.length - i) / nodes.length);
 				return (
-					<g key={`${element.id}-target-${node.id}-${i}`} style={{ filter: shadow }}>
+					<g
+						key={`${element.id}-target-${node.id}-${i}`}
+						{...smartArtNodeGroupProps(node.id, shadow)}
+					>
 						<circle
 							cx={cx}
 							cy={cy}
