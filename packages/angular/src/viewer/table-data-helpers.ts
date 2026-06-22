@@ -21,6 +21,13 @@ import type {
 	TablePptxElement,
 } from 'pptx-viewer-core';
 
+// `setCellText` is the framework-agnostic single-cell text edit. It lives in
+// `pptx-viewer-shared` (`render/table-cell-edit`) so the three bindings share
+// one copy; Angular consumes the vendored, inlined copy under
+// `../internal/shared-src`. Re-exported here so existing consumers and the
+// colocated test keep importing it from this module unchanged.
+export { setCellText } from '../internal/shared-src/render/table-cell-edit';
+
 // ---------------------------------------------------------------------------
 // Internal utilities
 // ---------------------------------------------------------------------------
@@ -61,46 +68,6 @@ function clearAllMerges(rows: readonly PptxTableRow[]): PptxTableRow[] {
 		...row,
 		cells: row.cells.map((cell) => (isMergeParticipant(cell) ? unmergedCell(cell) : { ...cell })),
 	}));
-}
-
-// ---------------------------------------------------------------------------
-// setCellText
-// ---------------------------------------------------------------------------
-
-/**
- * Return a new `TablePptxElement` with the text of a single cell updated.
- *
- * @param element - The source table element (not mutated).
- * @param rowIndex - Zero-based row index.
- * @param colIndex - Zero-based column index.
- * @param text - New text content for the cell.
- * @returns A new `TablePptxElement`.
- *
- * @example
- * ```ts
- * const updated = setCellText(el, 0, 1, "Revenue");
- * ```
- */
-export function setCellText(
-	element: TablePptxElement,
-	rowIndex: number,
-	colIndex: number,
-	text: string,
-): TablePptxElement {
-	const tableData = element.tableData;
-	if (!tableData) {
-		return element;
-	}
-	const rows = tableData.rows.map((row, ri) => {
-		if (ri !== rowIndex) {
-			return row;
-		}
-		return {
-			...row,
-			cells: row.cells.map((cell, ci) => (ci === colIndex ? { ...cell, text } : cell)),
-		};
-	});
-	return { ...element, tableData: { ...tableData, rows } };
 }
 
 // ---------------------------------------------------------------------------
