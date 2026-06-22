@@ -212,6 +212,43 @@ describe('createTouchGestureRecognizer: swipe', () => {
 // Long-press
 // ---------------------------------------------------------------------------
 
+describe('createTouchGestureRecognizer: swipe (empty changedTouches fallback)', () => {
+	function setup(onSwipe: (d: -1 | 1) => void) {
+		return createTouchGestureRecognizer({
+			getScale: () => 1,
+			minScale: MIN,
+			maxScale: MAX,
+			callbacks: { onSwipe },
+		});
+	}
+
+	it('measures the swipe from the last move position when touchend omits changedTouches', () => {
+		const onSwipe = vi.fn();
+		const r = setup(onSwipe);
+		r.onTouchStart(makeEvent([point(200, 200)]));
+		r.onTouchMove(makeEvent([point(120, 205)])); // moved left, within vertical tolerance
+		r.onTouchEnd(makeEvent([], [])); // synthetic dispatcher: no changedTouches
+		expect(onSwipe).toHaveBeenCalledWith(-1);
+	});
+
+	it('still prefers changedTouches when present (move tracking does not override)', () => {
+		const onSwipe = vi.fn();
+		const r = setup(onSwipe);
+		r.onTouchStart(makeEvent([point(100, 200)]));
+		r.onTouchMove(makeEvent([point(150, 200)]));
+		r.onTouchEnd(makeEvent([], [point(200, 200)])); // changedTouches wins -> end at 200
+		expect(onSwipe).toHaveBeenCalledWith(1);
+	});
+
+	it('does not emit when no move occurred and changedTouches is empty', () => {
+		const onSwipe = vi.fn();
+		const r = setup(onSwipe);
+		r.onTouchStart(makeEvent([point(100, 100)]));
+		r.onTouchEnd(makeEvent([], [])); // delta 0 -> no swipe
+		expect(onSwipe).not.toHaveBeenCalled();
+	});
+});
+
 describe('createTouchGestureRecognizer: long-press', () => {
 	beforeEach(() => {
 		vi.useFakeTimers();

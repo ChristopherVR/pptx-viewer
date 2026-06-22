@@ -119,6 +119,13 @@ export function createTouchGestureRecognizer(config: TouchGestureConfig): TouchG
 	// Swipe state.
 	let swipeStartX = 0;
 	let swipeStartY = 0;
+	// Most recent single-finger position. Lets a swipe still be measured when
+	// `touchend` arrives with an empty `changedTouches` list (some synthetic
+	// dispatchers, e.g. CDP `Input.dispatchTouchEvent`, omit it). Real
+	// browsers always populate `changedTouches`, so their behaviour is
+	// unchanged.
+	let swipeLastX = 0;
+	let swipeLastY = 0;
 
 	// Long-press state.
 	let longPressTimer: ReturnType<typeof setTimeout> | null = null;
@@ -144,6 +151,8 @@ export function createTouchGestureRecognizer(config: TouchGestureConfig): TouchG
 			// Potential swipe or long-press.
 			swipeStartX = e.touches[0].clientX;
 			swipeStartY = e.touches[0].clientY;
+			swipeLastX = swipeStartX;
+			swipeLastY = swipeStartY;
 
 			longPressStartX = e.touches[0].clientX;
 			longPressStartY = e.touches[0].clientY;
@@ -166,6 +175,8 @@ export function createTouchGestureRecognizer(config: TouchGestureConfig): TouchG
 				callbacks.onPinchZoom?.(newScale);
 			}
 		} else if (e.touches.length === 1) {
+			swipeLastX = e.touches[0].clientX;
+			swipeLastY = e.touches[0].clientY;
 			// Cancel the long-press if the finger moved too far.
 			const dx = e.touches[0].clientX - longPressStartX;
 			const dy = e.touches[0].clientY - longPressStartY;
@@ -187,10 +198,13 @@ export function createTouchGestureRecognizer(config: TouchGestureConfig): TouchG
 
 		cancelLongPress();
 
-		// Detect a swipe from the touch that just ended.
-		if (e.changedTouches.length === 1 && e.touches.length === 0) {
-			const endX = e.changedTouches[0].clientX;
-			const endY = e.changedTouches[0].clientY;
+		// Detect a swipe from the touch that just ended, but only once every
+		// finger is up. Prefer the lifted touch's coordinates; fall back to the
+		// last tracked move position when `changedTouches` is empty (synthetic
+		// dispatchers), so a swipe is not silently dropped.
+		if (e.touches.length === 0) {
+			const endX = e.changedTouches.length >= 1 ? e.changedTouches[0].clientX : swipeLastX;
+			const endY = e.changedTouches.length >= 1 ? e.changedTouches[0].clientY : swipeLastY;
 			const deltaX = endX - swipeStartX;
 			const deltaY = endY - swipeStartY;
 
