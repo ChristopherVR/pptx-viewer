@@ -1543,7 +1543,11 @@ function onBroadcastStop(): void {
 }
 
 // ── Responsive / mobile chrome ────────────────────────────────────────
-const { isMobile, isTouchDevice } = useIsMobile();
+// The viewer root element drives breakpoints from the CONTAINER width (so an
+// embedded viewer in a narrow sidebar gets mobile chrome), falling back to the
+// viewport when unmounted / no ResizeObserver. Mirrors React's containerRef.
+const viewerRootRef = ref<HTMLElement | null>(null);
+const { isMobile, isTouchDevice } = useIsMobile(768, viewerRootRef);
 // Keep the focused field visible when the on-screen keyboard opens, and lift
 // the fixed bottom bar above the keyboard.
 const { keyboardInset } = useKeyboardInsets();
@@ -2306,6 +2310,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 
 <template>
 	<div
+		ref="viewerRootRef"
 		class="pptx-vue-viewer"
 		:class="props.class"
 		:style="themeStyle"
