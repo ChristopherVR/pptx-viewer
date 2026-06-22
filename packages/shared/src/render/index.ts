@@ -285,6 +285,12 @@ export * from './smartart-3d-types';
 export * from './smartart-3d-geom';
 export * from './smartart-3d-model';
 export * from './smartart-3d-spatial';
+// Vanilla three.js GLTF/GLB model scene controller: mounts an interactive 3D
+// model into a container element (auto-centre/fit, lights, OrbitControls, RAF
+// loop) and exposes resize()/dispose(). `three` is dynamically imported and
+// optional; returns a no-op sentinel handle when it is not installed, so the
+// barrel stays three-free and each binding (React interactive 3D) can mount it.
+export * from './model3d-scene';
 // SmartArt pre-computed drawing-shapes projection (the `smartArtData.
 // drawingShapes` path the core engine extracts from `ppt/diagrams/drawing*.xml`,
 // preferred over the SVG-fallback layout engine when present): palette

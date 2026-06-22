@@ -1,55 +1,23 @@
 /**
  * Inner Three.js scene component for rendering 3D models (GLB/GLTF).
  *
- * This file is lazy-loaded by {@link Model3DRenderer} so that Three.js
- * is never bundled when the consumer does not install the optional
- * `three` / `@react-three/fiber` / `@react-three/drei` peer dependencies.
+ * This file is lazy-loaded by {@link Model3DRenderer} so that the shared
+ * vanilla-three controller (and `three` itself) is never bundled when the
+ * consumer does not install the optional `three` peer dependency.
+ *
+ * It mounts the framework-agnostic {@link mountModel3D} controller from
+ * `pptx-viewer-shared` into a container `<div>` via an effect, and disposes it
+ * on unmount or when its inputs change. No `@react-three/*` dependencies.
  *
  * @module Model3DScene
  */
 
-import { OrbitControls, Center, useGLTF } from '@react-three/drei';
-import { Canvas } from '@react-three/fiber';
-import React, { Suspense, useRef, useEffect } from 'react';
-import type { Group } from 'three';
-import { Box3, Vector3 } from 'three';
+import { mountModel3D } from 'pptx-viewer-shared';
+import type { Model3DHandle } from 'pptx-viewer-shared';
+import React, { useRef, useEffect } from 'react';
 
 // ---------------------------------------------------------------------------
-// ModelLoader – loads the GLB/GLTF and auto-scales to fit
-// ---------------------------------------------------------------------------
-
-function ModelLoader({ url }: { url: string }) {
-	const { scene } = useGLTF(url);
-	const groupRef = useRef<Group>(null);
-
-	useEffect(() => {
-		if (!groupRef.current) {
-			return;
-		}
-		// Auto-fit: normalise the model so it fills roughly a 2-unit cube
-		const box = new Box3().setFromObject(groupRef.current);
-		const size = new Vector3();
-		box.getSize(size);
-		const maxDim = Math.max(size.x, size.y, size.z);
-		if (maxDim > 0) {
-			const scale = 2 / maxDim;
-			groupRef.current.scale.setScalar(scale);
-		}
-		// Centre the model at the origin
-		const center = new Vector3();
-		box.getCenter(center);
-		groupRef.current.position.sub(center.multiplyScalar(groupRef.current.scale.x));
-	}, [scene]);
-
-	return (
-		<group ref={groupRef}>
-			<primitive object={scene} />
-		</group>
-	);
-}
-
-// ---------------------------------------------------------------------------
-// Model3DScene – the exported default used by React.lazy()
+// Model3DScene - the exported default used by React.lazy()
 // ---------------------------------------------------------------------------
 
 export interface Model3DSceneProps {
@@ -60,28 +28,53 @@ export interface Model3DSceneProps {
 }
 
 export default function Model3DScene({ modelUrl, interactive, width, height }: Model3DSceneProps) {
+	const containerRef = useRef<HTMLDivElement>(null);
+	const handleRef = useRef<Model3DHandle | null>(null);
+
+	// Mount the shared controller for the current model URL. Recreated when the
+	// URL changes; interactivity/size changes are applied without a remount.
+	useEffect(() => {
+		const container = containerRef.current;
+		if (!container) {
+			return;
+		}
+		let disposed = false;
+		void mountModel3D(container, modelUrl, { width, height, interactive }).then((handle) => {
+			if (disposed) {
+				handle.dispose();
+			} else {
+				handleRef.current = handle;
+			}
+			return undefined;
+		});
+		return () => {
+			disposed = true;
+			handleRef.current?.dispose();
+			handleRef.current = null;
+		};
+		// Intentionally keyed on modelUrl only: size/interactivity are pushed to
+		// the live handle by the effects below to avoid a costly scene remount.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [modelUrl]);
+
+	// Apply interactivity toggles to the live handle.
+	useEffect(() => {
+		handleRef.current?.setInteractive(interactive);
+	}, [interactive]);
+
+	// Apply size changes to the live handle.
+	useEffect(() => {
+		handleRef.current?.resize(width, height);
+	}, [width, height]);
+
 	return (
-		<Canvas
-			camera={{ position: [0, 0, 5], fov: 50 }}
+		<div
+			ref={containerRef}
 			style={{
 				width,
 				height,
 				willChange: 'transform',
 			}}
-			// Disable default resize observer to avoid layout thrashing
-			resize={{ debounce: 100 }}
-		>
-			<ambientLight intensity={0.5} />
-			<directionalLight position={[5, 5, 5]} intensity={1} />
-			<directionalLight position={[-3, -3, 2]} intensity={0.3} />
-			<Suspense fallback={null}>
-				<Center>
-					<ModelLoader url={modelUrl} />
-				</Center>
-			</Suspense>
-			{interactive && (
-				<OrbitControls enablePan={false} enableZoom enableRotate minDistance={2} maxDistance={20} />
-			)}
-		</Canvas>
+		/>
 	);
 }

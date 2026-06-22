@@ -2,8 +2,7 @@
  * Wrapper component for rendering 3D model elements (GLB/GLTF).
  *
  * Lazy-loads {@link Model3DScene} so Three.js is never bundled when
- * the consumer does not install the optional peer dependencies
- * (`three`, `@react-three/fiber`, `@react-three/drei`).
+ * the consumer does not install the optional `three` peer dependency.
  *
  * Falls back to the poster/preview image when:
  * - Three.js is not installed
@@ -59,8 +58,8 @@ export function dataUrlToBlobUrl(dataUrl: string | undefined): string | undefine
 
 		const meta = dataUrl.slice(0, commaIdx);
 		const base64 = dataUrl.slice(commaIdx + 1);
-		const mimeMatch = meta.match(/data:([^;]+)/);
-		const mime = mimeMatch?.[1] ?? 'application/octet-stream';
+		const mimeMatch = meta.match(/data:(?<mime>[^;]+)/u);
+		const mime = mimeMatch?.groups?.mime ?? 'application/octet-stream';
 
 		const binary = atob(base64);
 		const bytes = new Uint8Array(binary.length);
@@ -179,7 +178,7 @@ export function Model3DRenderer({ element, width, height, interactive }: Model3D
 	// Probe for Three.js availability once on mount.
 	useEffect(() => {
 		let cancelled = false;
-		import('@react-three/fiber')
+		import('three')
 			.then(() => {
 				if (!cancelled) {
 					setThreeAvailable(true);
