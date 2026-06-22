@@ -75,4 +75,27 @@ describe('modalDialog', () => {
 		await wrapper.vm.$nextTick();
 		expect(wrapper.emitted('close')).toHaveLength(1);
 	});
+
+	it('carries the mobile bottom-sheet layout classes on the panel', () => {
+		mount(ModalDialog, { props: { open: true, title: 'X' }, attachTo: document.body });
+		const panel = document.body.querySelector<HTMLElement>('.pptx-vue-modal-panel');
+		const cls = panel?.className ?? '';
+		// On mobile the panel docks to the bottom as a full-width, dvh-bounded
+		// sheet with a rounded top and no rigid min-width (so it cannot overflow
+		// a 360px phone).
+		expect(cls).toContain('max-md:fixed');
+		expect(cls).toContain('max-md:bottom-0');
+		expect(cls).toContain('max-md:max-h-[88dvh]');
+		expect(cls).toContain('max-md:rounded-t-2xl');
+		expect(cls).toContain('max-md:min-w-0');
+		expect(cls).toContain('max-md:max-w-none');
+	});
+
+	it('gives the close button a 44px touch target on mobile', () => {
+		mount(ModalDialog, { props: { open: true, title: 'X' }, attachTo: document.body });
+		const closeBtn = document.body.querySelector<HTMLElement>('.pptx-vue-modal-close');
+		const cls = closeBtn?.className ?? '';
+		expect(cls).toContain('max-md:h-11');
+		expect(cls).toContain('max-md:w-11');
+	});
 });

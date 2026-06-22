@@ -135,7 +135,9 @@ function close(): void {
 
 <template>
 	<ModalDialog :open="open" title="Insert SmartArt" @close="close">
-		<div class="pptx-vue-smartart-dialog flex h-[min(60vh,440px)] w-[min(78vw,600px)] gap-3">
+		<div
+			class="pptx-vue-smartart-dialog flex h-[min(60vh,440px)] w-[min(78vw,600px)] gap-3 max-md:h-[min(60dvh,440px)] max-md:w-full"
+		>
 			<!-- Category sidebar -->
 			<nav
 				class="pptx-vue-smartart-sidebar flex w-[130px] flex-shrink-0 flex-col gap-0.5 border-r border-border pr-2"

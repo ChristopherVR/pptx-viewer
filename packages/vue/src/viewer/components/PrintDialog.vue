@@ -132,7 +132,7 @@ function confirmPrint(): void {
 
 <template>
 	<ModalDialog :open="open" title="Print" @close="close">
-		<div class="pptx-vue-print-body flex min-w-[480px] gap-5">
+		<div class="pptx-vue-print-body flex min-w-[480px] gap-5 max-md:min-w-0 max-md:flex-col">
 			<PrintSettingsPanel
 				:print-what="printWhat"
 				:orientation="orientation"
@@ -157,7 +157,7 @@ function confirmPrint(): void {
 			<!-- Lightweight preview for handout / notes layouts -->
 			<div
 				v-if="showHandoutPreview || showNotesPreview"
-				class="pptx-vue-print-preview flex w-[180px] shrink-0 flex-col items-center gap-2.5 border-l border-border pl-4"
+				class="pptx-vue-print-preview flex w-[180px] shrink-0 flex-col items-center gap-2.5 border-l border-border pl-4 max-md:w-full max-md:border-l-0 max-md:border-t max-md:pl-0 max-md:pt-4"
 			>
 				<span
 					class="pptx-vue-print-preview-title text-[10px] uppercase tracking-wide text-muted-foreground"

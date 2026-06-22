@@ -161,7 +161,7 @@ function handleSave(): void {
 
 <template>
 	<ModalDialog :open="open" title="Document properties" @close="emit('close')">
-		<div class="pptx-vue-docprops flex min-w-[360px] flex-col gap-3">
+		<div class="pptx-vue-docprops flex min-w-[360px] flex-col gap-3 max-md:min-w-0">
 			<div class="pptx-vue-docprops-tabs flex border-b border-border/60" role="tablist">
 				<button
 					v-for="tab in TABS"

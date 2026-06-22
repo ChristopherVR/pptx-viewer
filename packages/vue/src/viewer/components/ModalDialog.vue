@@ -126,7 +126,7 @@ onBeforeUnmount(() => {
 					<span v-else />
 					<button
 						type="button"
-						class="pptx-vue-modal-close inline-flex h-6 w-6 items-center justify-center rounded text-lg leading-none text-muted-foreground hover:bg-muted hover:text-foreground"
+						class="pptx-vue-modal-close inline-flex h-6 w-6 items-center justify-center rounded text-lg leading-none text-muted-foreground hover:bg-muted hover:text-foreground max-md:h-11 max-md:w-11 max-md:text-2xl"
 						aria-label="Close"
 						@click="requestClose"
 					>
