@@ -30,13 +30,13 @@ function getPasswordStrength(password: string): number {
 	if (password.length >= 12) {
 		score++;
 	}
-	if (/[A-Z]/.test(password) && /[a-z]/.test(password)) {
+	if (/[A-Z]/u.test(password) && /[a-z]/u.test(password)) {
 		score++;
 	}
-	if (/\d/.test(password)) {
+	if (/\d/u.test(password)) {
 		score++;
 	}
-	if (/[^A-Za-z0-9]/.test(password)) {
+	if (/[^A-Za-z0-9]/u.test(password)) {
 		score++;
 	}
 	return Math.min(score, 4);
@@ -134,7 +134,7 @@ export function PasswordProtectionDialog({
 				style={{ zIndex: 1201 }}
 				className='fixed inset-0 flex items-center justify-center pointer-events-none'
 			>
-				<div className='pointer-events-auto w-[420px] rounded-xl border border-border bg-popover backdrop-blur-xl shadow-2xl'>
+				<div className='pointer-events-auto w-[420px] rounded-xl border border-border bg-popover backdrop-blur-xl shadow-2xl max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:max-h-[88dvh] max-md:overflow-y-auto max-md:rounded-t-2xl max-md:rounded-b-none max-md:border-x-0 max-md:border-b-0 max-md:pb-[max(env(safe-area-inset-bottom),0px)]'>
 					{/* Header */}
 					<div className='flex items-center justify-between px-5 py-4 border-b border-border/60'>
 						<div className='flex items-center gap-2'>

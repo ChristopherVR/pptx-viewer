@@ -95,7 +95,7 @@ export function FontEmbeddingPanel({
 				style={{ zIndex: 1201 }}
 				className='fixed inset-0 flex items-center justify-center pointer-events-none'
 			>
-				<div className='pointer-events-auto w-[460px] max-h-[80vh] rounded-xl border border-border bg-popover backdrop-blur-xl shadow-2xl flex flex-col'>
+				<div className='pointer-events-auto w-[460px] max-h-[80vh] rounded-xl border border-border bg-popover backdrop-blur-xl shadow-2xl flex flex-col max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:max-w-none max-md:max-h-[88dvh] max-md:rounded-t-2xl max-md:rounded-b-none max-md:border-x-0 max-md:border-b-0 max-md:pb-[max(env(safe-area-inset-bottom),0px)]'>
 					{/* Header */}
 					<div className='flex items-center justify-between px-5 py-4 border-b border-border/60 shrink-0'>
 						<div className='flex items-center gap-2'>

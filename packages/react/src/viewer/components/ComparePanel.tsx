@@ -111,7 +111,7 @@ export function ComparePanel({
 	const nonTrivialDiffs = compareResult.diffs.filter((d) => d.status !== 'unchanged');
 
 	return (
-		<div className='fixed inset-y-0 right-0 z-50 flex flex-col w-[440px] border-l border-border bg-popover backdrop-blur-lg shadow-2xl'>
+		<div className='fixed inset-y-0 right-0 z-50 flex flex-col w-[440px] max-w-full border-l border-border bg-popover backdrop-blur-lg shadow-2xl'>
 			{/* Header */}
 			<div className='flex items-center justify-between px-4 py-3 border-b border-border'>
 				<div>

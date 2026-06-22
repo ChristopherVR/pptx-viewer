@@ -98,7 +98,7 @@ export function NotesPrintDialog({
 
 	return (
 		<div className='fixed inset-0 z-50 flex items-center justify-center bg-black/60'>
-			<div className='bg-background border border-border rounded-lg shadow-xl w-[640px] max-h-[80vh] flex flex-col'>
+			<div className='bg-background border border-border rounded-lg shadow-xl w-[640px] max-h-[80vh] flex flex-col max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:max-w-none max-md:max-h-[88dvh] max-md:rounded-t-2xl max-md:rounded-b-none max-md:border-x-0 max-md:border-b-0 max-md:pb-[max(env(safe-area-inset-bottom),0px)]'>
 				<div className='flex items-center justify-between px-4 py-3 border-b border-border'>
 					<span className='text-sm font-medium text-foreground'>{t('pptx.notes.printNotes')}</span>
 					<button

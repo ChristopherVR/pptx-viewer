@@ -74,9 +74,9 @@ export function SetUpSlideShowDialog({
 				style={{ zIndex: 1201 }}
 				className='fixed inset-0 flex items-center justify-center pointer-events-none'
 			>
-				<div className='pointer-events-auto w-[440px] rounded-xl border border-border bg-background shadow-2xl'>
+				<div className='pointer-events-auto flex flex-col w-[440px] max-h-[90vh] rounded-xl border border-border bg-background shadow-2xl max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:max-w-none max-md:max-h-[88dvh] max-md:rounded-t-2xl max-md:rounded-b-none max-md:border-x-0 max-md:border-b-0 max-md:pb-[max(env(safe-area-inset-bottom),0px)]'>
 					{/* Header */}
-					<div className='flex items-center justify-between px-5 py-3 border-b border-border'>
+					<div className='flex items-center justify-between px-5 py-3 border-b border-border shrink-0'>
 						<h2 className='text-sm font-semibold text-foreground'>
 							{t('pptx.slideShow.setUpTitle')}
 						</h2>
@@ -91,7 +91,7 @@ export function SetUpSlideShowDialog({
 					</div>
 
 					{/* Body */}
-					<div className='px-5 py-4 space-y-5 text-[12px] text-foreground max-h-[70vh] overflow-y-auto'>
+					<div className='flex-1 px-5 py-4 space-y-5 text-[12px] text-foreground overflow-y-auto'>
 						{/* Show Type */}
 						<fieldset className='space-y-1.5'>
 							<legend className='text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1'>
@@ -164,7 +164,7 @@ export function SetUpSlideShowDialog({
 					</div>
 
 					{/* Footer */}
-					<div className='flex justify-end gap-2 px-5 py-3 border-t border-border'>
+					<div className='flex justify-end gap-2 px-5 py-3 border-t border-border shrink-0'>
 						<button
 							type='button'
 							onClick={onClose}

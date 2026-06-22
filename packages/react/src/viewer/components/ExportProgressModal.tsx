@@ -46,7 +46,7 @@ export function ExportProgressModal({
 			style={{ zIndex: 1200 }}
 			className='fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm'
 		>
-			<div className='w-96 rounded-xl border border-border bg-background p-6 shadow-2xl'>
+			<div className='w-96 max-w-[calc(100%-2rem)] rounded-xl border border-border bg-background p-6 shadow-2xl'>
 				<h3 className='mb-4 text-sm font-semibold text-foreground'>{title}</h3>
 
 				{/* Progress bar */}
