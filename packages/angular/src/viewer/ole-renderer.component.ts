@@ -5,6 +5,7 @@ import type { OlePptxElement, PptxElement } from 'pptx-viewer-core';
 import { getContainerStyle } from './element-style';
 import type { StyleMap } from './element-style';
 import {
+	buildOleActionModel,
 	getOleAriaLabel,
 	getOleBadgeLabel,
 	getOleDisplayName,
@@ -13,7 +14,7 @@ import {
 	getPlaceholderStyle,
 	resolveOleType,
 } from './ole-renderer-helpers';
-import type { ResolvedOleType } from './ole-renderer-helpers';
+import type { OleActionModel, ResolvedOleType } from './ole-renderer-helpers';
 
 /**
  * OleRendererComponent: Angular port of the React `renderOleElement`
@@ -42,7 +43,7 @@ import type { ResolvedOleType } from './ole-renderer-helpers';
 			[attr.data-element-id]="element().id"
 			role="img"
 			[attr.aria-label]="ariaLabel()"
-			title="Embedded object"
+			[attr.title]="infoTitle()"
 		>
 			@if (previewSrc()) {
 				<!-- Preview image with type-badge overlay -->
@@ -287,6 +288,41 @@ import type { ResolvedOleType } from './ole-renderer-helpers';
 					}
 				</div>
 			}
+			@if (actions().canDownload) {
+				<!--
+					Download / Open actions for the recovered embedded payload.
+					Pointer events are isolated so clicking an action never starts a
+					selection/drag of the underlying element; the controls are
+					keyboard-focusable and only paint on hover / focus-within.
+				-->
+				<div
+					class="pptx-ng-ole-actions"
+					(pointerdown)="$event.stopPropagation()"
+					(mousedown)="$event.stopPropagation()"
+				>
+					<a
+						class="pptx-ng-ole-action"
+						[href]="actions().downloadHref"
+						[attr.download]="actions().downloadFileName"
+						[attr.aria-label]="'Download ' + actions().downloadFileName"
+						(click)="$event.stopPropagation()"
+					>
+						Download
+					</a>
+					@if (actions().canOpen) {
+						<a
+							class="pptx-ng-ole-action"
+							[href]="actions().downloadHref"
+							target="_blank"
+							rel="noopener noreferrer"
+							[attr.aria-label]="'Open ' + actions().downloadFileName + ' in a new tab'"
+							(click)="$event.stopPropagation()"
+						>
+							Open
+						</a>
+					}
+				</div>
+			}
 		</div>
 	`,
 	styles: [
@@ -337,6 +373,41 @@ import type { ResolvedOleType } from './ole-renderer-helpers';
 				overflow: hidden;
 				text-overflow: ellipsis;
 				white-space: nowrap;
+			}
+			.pptx-ng-ole-actions {
+				position: absolute;
+				bottom: 4px;
+				left: 4px;
+				display: flex;
+				gap: 4px;
+				z-index: 11;
+				opacity: 0;
+				transition: opacity 0.12s ease-in-out;
+			}
+			/* Reveal on hover, or whenever a control inside is keyboard-focused. */
+			.pptx-ng-ole:hover .pptx-ng-ole-actions,
+			.pptx-ng-ole-actions:focus-within {
+				opacity: 1;
+			}
+			.pptx-ng-ole-action {
+				font-size: 11px;
+				line-height: 1;
+				padding: 4px 8px;
+				border-radius: 4px;
+				background-color: rgba(0, 0, 0, 0.72);
+				color: #fff;
+				text-decoration: none;
+				cursor: pointer;
+				white-space: nowrap;
+				/* Capture pointer events on the controls only. */
+				pointer-events: auto;
+			}
+			.pptx-ng-ole-action:hover {
+				background-color: rgba(0, 0, 0, 0.85);
+			}
+			.pptx-ng-ole-action:focus-visible {
+				outline: 2px solid #fff;
+				outline-offset: 1px;
 			}
 		`,
 	],
@@ -393,4 +464,37 @@ export class OleRendererComponent {
 
 	/** Border + background style for the placeholder box. */
 	readonly placeholderStyle = computed<StyleMap>(() => getPlaceholderStyle(this.oleType()));
+
+	/**
+	 * Download / Open action model derived from the recovered embedded payload.
+	 * When the input is not an OLE element, every action is disabled.
+	 */
+	readonly actions = computed<OleActionModel>(() => {
+		const el = this.ole();
+		if (!el) {
+			return {
+				canDownload: false,
+				canOpen: false,
+				downloadHref: undefined,
+				downloadFileName: 'embedded-object',
+				sizeLabel: undefined,
+				info: [],
+			};
+		}
+		return buildOleActionModel(el);
+	});
+
+	/**
+	 * Descriptive tooltip for the wrapper: the info rows joined as
+	 * "Label: value" pairs (e.g. "Type: Excel Spreadsheet, File: budget.xlsx,
+	 * Size: 2.3 KB, Application: Excel.Sheet.12"). Falls back to the aria label
+	 * when no rows are available.
+	 */
+	readonly infoTitle = computed<string>(() => {
+		const rows = this.actions().info;
+		if (rows.length === 0) {
+			return this.ariaLabel();
+		}
+		return rows.map((row) => `${row.label}: ${row.value}`).join(', ');
+	});
 }

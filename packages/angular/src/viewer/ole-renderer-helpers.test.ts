@@ -15,12 +15,17 @@ import type { OlePptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import {
+	buildOleActionModel,
+	buildOleInfoRows,
+	formatBytes,
 	getOleAriaLabel,
 	getOleBadgeLabel,
 	getOleDisplayName,
+	getOleDownloadFileName,
 	getOleTypeColor,
 	getOleTypeLabel,
 	getPlaceholderStyle,
+	isBrowserOpenableMime,
 	resolveOleType,
 } from './ole-renderer-helpers';
 import type { ResolvedOleType } from './ole-renderer-helpers';
@@ -338,5 +343,221 @@ describe('oLE helper consistency', () => {
 			expect(resolveOleType(el)).toBe(expected);
 			expect(getOleTypeLabel(expected).length).toBeGreaterThan(0);
 		}
+	});
+});
+
+// ==========================================================================
+// getOleDownloadFileName
+// ==========================================================================
+
+describe('getOleDownloadFileName', () => {
+	it('prefers the recovered embedded file name', () => {
+		expect(
+			getOleDownloadFileName(
+				makeOle({ oleEmbeddedFileName: 'recovered.xlsx', fileName: 'authored.xlsx' }),
+			),
+		).toBe('recovered.xlsx');
+	});
+
+	it('falls back to the authored file name', () => {
+		expect(getOleDownloadFileName(makeOle({ fileName: 'authored.xlsx' }))).toBe('authored.xlsx');
+	});
+
+	it('uses a generic fallback when no name is known', () => {
+		expect(getOleDownloadFileName(makeOle({}))).toBe('embedded-object');
+	});
+});
+
+// ==========================================================================
+// buildOleInfoRows
+// ==========================================================================
+
+describe('buildOleInfoRows', () => {
+	it('always includes a type row', () => {
+		const rows = buildOleInfoRows(makeOle({ oleObjectType: 'excel' }));
+		expect(rows[0]).toStrictEqual({ key: 'type', label: 'Type', value: 'Excel Spreadsheet' });
+	});
+
+	it('includes file, size, and application rows when known', () => {
+		const rows = buildOleInfoRows(
+			makeOle({
+				oleObjectType: 'excel',
+				oleEmbeddedFileName: 'budget.xlsx',
+				oleEmbeddedByteSize: 2048,
+				oleProgId: 'Excel.Sheet.12',
+			}),
+		);
+		const byKey = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+		expect(byKey['file']).toBe('budget.xlsx');
+		expect(byKey['size']).toBe('2 KB');
+		expect(byKey['application']).toBe('Excel.Sheet.12');
+	});
+
+	it('prefers the embedded file name over the authored one', () => {
+		const rows = buildOleInfoRows(
+			makeOle({ oleEmbeddedFileName: 'recovered.bin', fileName: 'authored.bin' }),
+		);
+		const fileRow = rows.find((r) => r.key === 'file');
+		expect(fileRow?.value).toBe('recovered.bin');
+	});
+
+	it('omits the file row when no file name is known', () => {
+		const rows = buildOleInfoRows(makeOle({}));
+		expect(rows.some((r) => r.key === 'file')).toBeFalsy();
+	});
+
+	it('omits the size row when byte size is absent', () => {
+		const rows = buildOleInfoRows(makeOle({}));
+		expect(rows.some((r) => r.key === 'size')).toBeFalsy();
+	});
+
+	it('omits the application row when no progId is present', () => {
+		const rows = buildOleInfoRows(makeOle({}));
+		expect(rows.some((r) => r.key === 'application')).toBeFalsy();
+	});
+});
+
+// ==========================================================================
+// buildOleActionModel
+// ==========================================================================
+
+describe('buildOleActionModel', () => {
+	it('enables download when an embedded data-URL is present', () => {
+		const model = buildOleActionModel(
+			makeOle({
+				oleObjectType: 'excel',
+				oleEmbeddedData: 'data:application/octet-stream;base64,AAAA',
+				oleEmbeddedFileName: 'budget.xlsx',
+			}),
+		);
+		expect(model.canDownload).toBeTruthy();
+		expect(model.downloadHref).toBe('data:application/octet-stream;base64,AAAA');
+		expect(model.downloadFileName).toBe('budget.xlsx');
+	});
+
+	it('does not enable download when no embedded data is present', () => {
+		const model = buildOleActionModel(makeOle({ oleObjectType: 'excel' }));
+		expect(model.canDownload).toBeFalsy();
+		expect(model.canOpen).toBeFalsy();
+		expect(model.downloadHref).toBeUndefined();
+	});
+
+	it('treats an empty embedded data-URL as not downloadable', () => {
+		const model = buildOleActionModel(makeOle({ oleEmbeddedData: '' }));
+		expect(model.canDownload).toBeFalsy();
+	});
+
+	it('enables open for a browser-openable mime (PDF)', () => {
+		const model = buildOleActionModel(
+			makeOle({
+				oleEmbeddedData: 'data:application/pdf;base64,AAAA',
+				oleEmbeddedMimeType: 'application/pdf',
+			}),
+		);
+		expect(model.canDownload).toBeTruthy();
+		expect(model.canOpen).toBeTruthy();
+	});
+
+	it('does not enable open for a binary office mime', () => {
+		const model = buildOleActionModel(
+			makeOle({
+				oleEmbeddedData: 'data:application/vnd...;base64,AAAA',
+				oleEmbeddedMimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+			}),
+		);
+		expect(model.canDownload).toBeTruthy();
+		expect(model.canOpen).toBeFalsy();
+	});
+
+	it('exposes a human-readable size label when known', () => {
+		const model = buildOleActionModel(
+			makeOle({ oleEmbeddedData: 'data:text/plain;base64,AAAA', oleEmbeddedByteSize: 1536 }),
+		);
+		expect(model.sizeLabel).toBe('1.5 KB');
+	});
+
+	it('carries the info rows', () => {
+		const model = buildOleActionModel(makeOle({ oleObjectType: 'word' }));
+		expect(model.info[0]?.value).toBe('Word Document');
+	});
+});
+
+// ==========================================================================
+// formatBytes
+// ==========================================================================
+
+describe('formatBytes', () => {
+	it('returns undefined for undefined input', () => {
+		expect(formatBytes(undefined)).toBeUndefined();
+	});
+
+	it('returns undefined for negative input', () => {
+		expect(formatBytes(-1)).toBeUndefined();
+	});
+
+	it('returns undefined for non-finite input', () => {
+		expect(formatBytes(Number.NaN)).toBeUndefined();
+		expect(formatBytes(Number.POSITIVE_INFINITY)).toBeUndefined();
+	});
+
+	it('renders a singular byte', () => {
+		expect(formatBytes(1)).toBe('1 byte');
+	});
+
+	it('renders whole bytes below 1 KB', () => {
+		expect(formatBytes(0)).toBe('0 bytes');
+		expect(formatBytes(512)).toBe('512 bytes');
+	});
+
+	it('renders KB with one decimal place, trimming a trailing .0', () => {
+		expect(formatBytes(1024)).toBe('1 KB');
+		expect(formatBytes(1536)).toBe('1.5 KB');
+	});
+
+	it('renders MB and GB', () => {
+		expect(formatBytes(1024 * 1024)).toBe('1 MB');
+		expect(formatBytes(1024 * 1024 * 1024)).toBe('1 GB');
+	});
+});
+
+// ==========================================================================
+// isBrowserOpenableMime
+// ==========================================================================
+
+describe('isBrowserOpenableMime', () => {
+	it('returns false for undefined or empty', () => {
+		expect(isBrowserOpenableMime(undefined)).toBeFalsy();
+		expect(isBrowserOpenableMime('')).toBeFalsy();
+	});
+
+	it('opens PDF', () => {
+		expect(isBrowserOpenableMime('application/pdf')).toBeTruthy();
+	});
+
+	it('opens any image type', () => {
+		expect(isBrowserOpenableMime('image/png')).toBeTruthy();
+		expect(isBrowserOpenableMime('image/svg+xml')).toBeTruthy();
+	});
+
+	it('opens any text type', () => {
+		expect(isBrowserOpenableMime('text/plain')).toBeTruthy();
+		expect(isBrowserOpenableMime('text/html')).toBeTruthy();
+	});
+
+	it('opens common application text formats', () => {
+		expect(isBrowserOpenableMime('application/json')).toBeTruthy();
+		expect(isBrowserOpenableMime('application/xml')).toBeTruthy();
+	});
+
+	it('does not open binary office formats', () => {
+		expect(
+			isBrowserOpenableMime('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+		).toBeFalsy();
+		expect(isBrowserOpenableMime('application/octet-stream')).toBeFalsy();
+	});
+
+	it('is case-insensitive and ignores charset parameters', () => {
+		expect(isBrowserOpenableMime('TEXT/Plain; charset=UTF-8')).toBeTruthy();
+		expect(isBrowserOpenableMime('Application/PDF')).toBeTruthy();
 	});
 });
