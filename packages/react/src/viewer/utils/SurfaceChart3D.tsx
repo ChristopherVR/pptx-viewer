@@ -3,8 +3,7 @@
  *
  * Lazy-loads the Three.js scene ({@link SurfaceChart3DScene}) so that
  * Three.js is never bundled when the consumer does not install the
- * optional peer dependencies (`three`, `@react-three/fiber`,
- * `@react-three/drei`).
+ * optional `three` peer dependency.
  *
  * Falls back to the existing SVG isometric renderer when Three.js is
  * not available or fails to load.
@@ -158,68 +157,67 @@ export interface SurfaceChart3DProps {
  * Falls back to the provided `fallback` (typically the SVG isometric
  * renderer) when Three.js is not installed or an error occurs.
  */
-export const SurfaceChart3D = React.memo(function SurfaceChart3D({
-	element,
-	chartData,
-	categoryLabels,
-	fallback,
-}: SurfaceChart3DProps) {
-	const [threeAvailable, setThreeAvailable] = useState<boolean | null>(null);
+export const SurfaceChart3D = React.memo(
+	({ element, chartData, categoryLabels, fallback }: SurfaceChart3DProps) => {
+		const [threeAvailable, setThreeAvailable] = useState<boolean | null>(null);
 
-	// Probe for Three.js availability once on mount.
-	useEffect(() => {
-		let cancelled = false;
-		import('@react-three/fiber')
-			.then(() => {
-				if (!cancelled) {
-					setThreeAvailable(true);
-				}
-				return undefined;
-			})
-			.catch(() => {
-				if (!cancelled) {
-					setThreeAvailable(false);
-				}
-			});
-		return () => {
-			cancelled = true;
-		};
-	}, []);
+		// Probe for Three.js availability once on mount.
+		useEffect(() => {
+			let cancelled = false;
+			import('three')
+				.then(() => {
+					if (!cancelled) {
+						setThreeAvailable(true);
+					}
+					return undefined;
+				})
+				.catch(() => {
+					if (!cancelled) {
+						setThreeAvailable(false);
+					}
+				});
+			return () => {
+				cancelled = true;
+			};
+		}, []);
 
-	// Prepare surface data arrays.
-	const surfaceData = useMemo(
-		() => buildSurfaceData(chartData, categoryLabels),
-		[chartData, categoryLabels],
-	);
+		// Prepare surface data arrays.
+		const surfaceData = useMemo(
+			() => buildSurfaceData(chartData, categoryLabels),
+			[chartData, categoryLabels],
+		);
 
-	const seriesNames = useMemo(() => chartData.series.map((s) => s.name), [chartData.series]);
+		const seriesNames = useMemo(() => chartData.series.map((s) => s.name), [chartData.series]);
 
-	// Still probing -- show loading placeholder.
-	if (threeAvailable === null) {
-		return <LoadingPlaceholder width={element.width} height={element.height} />;
-	}
+		// Still probing -- show loading placeholder.
+		if (threeAvailable === null) {
+			return <LoadingPlaceholder width={element.width} height={element.height} />;
+		}
 
-	// Three.js not available -- use the 2D fallback.
-	if (!threeAvailable) {
-		return fallback;
-	}
+		// Three.js not available -- use the 2D fallback.
+		if (!threeAvailable) {
+			return fallback;
+		}
 
-	return (
-		<SurfaceChart3DErrorBoundary fallback={fallback}>
-			<Suspense fallback={<LoadingPlaceholder width={element.width} height={element.height} />}>
-				<LazySurfaceChart3DScene
-					cols={surfaceData.cols}
-					rows={surfaceData.rows}
-					heightMap={surfaceData.heightMap}
-					colorMap={surfaceData.colorMap}
-					wireframe
-					categoryLabels={categoryLabels}
-					seriesNames={seriesNames}
-					title={chartData.title}
-					width={element.width}
-					height={element.height}
-				/>
-			</Suspense>
-		</SurfaceChart3DErrorBoundary>
-	);
-});
+		return (
+			<SurfaceChart3DErrorBoundary fallback={fallback}>
+				<Suspense fallback={<LoadingPlaceholder width={element.width} height={element.height} />}>
+					<LazySurfaceChart3DScene
+						cols={surfaceData.cols}
+						rows={surfaceData.rows}
+						heightMap={surfaceData.heightMap}
+						colorMap={surfaceData.colorMap}
+						wireframe
+						categoryLabels={categoryLabels}
+						seriesNames={seriesNames}
+						title={chartData.title}
+						width={element.width}
+						height={element.height}
+					/>
+				</Suspense>
+			</SurfaceChart3DErrorBoundary>
+		);
+	},
+);
+
+SurfaceChart3D.displayName = 'SurfaceChart3D';
