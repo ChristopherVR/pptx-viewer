@@ -108,7 +108,7 @@ Packages link to one another with the `workspace:*` protocol, and the Bun worksp
 | **UI**            | React 19, Framer Motion, Tailwind CSS 4, Lucide React                |
 | **Parsing**       | JSZip (ZIP), fast-xml-parser (XML)                                   |
 | **Export**        | html2canvas + jsPDF (PDF), custom GIF encoder, MediaRecorder (video) |
-| **3D**            | Three.js, @react-three/fiber, @react-three/drei (optional)           |
+| **3D**            | Three.js (optional)                                                  |
 | **Collaboration** | Yjs (CRDT), y-websocket (optional)                                   |
 | **Crypto**        | Web Crypto API (AES-128/256 for PPTX encryption)                     |
 | **Testing**       | Vitest (unit/integration), Playwright (end-to-end)                   |

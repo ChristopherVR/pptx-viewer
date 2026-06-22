@@ -29,7 +29,7 @@ npm install react react-dom framer-motion lucide-react react-icons jspdf jszip f
 ```
 
 > The package is named **`pptx-react-viewer`** on npm. `pptx-viewer-core` (the engine) is **bundled in**, so you don't install it separately unless you want to call the SDK directly.
-> **Optional:** `three @react-three/fiber @react-three/drei` for 3D models/charts · `yjs y-websocket` for real-time collaboration.
+> **Optional:** `three` for 3D models/charts · `yjs y-websocket` for real-time collaboration.
 
 ## Quick start
 

@@ -116,7 +116,7 @@ pptx-angular-viewer ┘                        ├── pptx-viewer-core
 - **Print and export fidelity** - Raster exports (PNG/JPEG/PDF) go through `html2canvas`, which does not support `backdrop-filter`, CSS custom properties (`var()`), or CSS 3D transforms. The library preprocesses CSS to approximate these, but some fidelity is lost. An SVG export path is available as a vector alternative.
 - **Maximum export resolution** - Canvas-based exports are constrained by the browser's maximum canvas size (typically 16384x16384 or 32768x32768 pixels depending on browser and GPU).
 - **Mobile support** - Touch interactions (drag, pinch-zoom) are supported but the toolbar, inspector panels, and dialogs are designed for desktop viewport sizes.
-- **3D models** - Rendering GLB/GLTF 3D models requires optional peer dependencies (`three`, `@react-three/fiber`, `@react-three/drei`). Without them, the element falls back to its poster image.
+- **3D models** - Rendering GLB/GLTF 3D models requires the single optional `three` peer dependency. Without it, the element falls back to its poster image.
 - **Vue / Angular feature parity** - The Vue and Angular bindings are functionally equivalent to the React package for editing, presenter mode, collaboration, and export. Minor cosmetic differences remain (pixel-level toolbar polish), and master/template editing is not yet wired in either binding.
 
 ---
@@ -431,7 +431,7 @@ bun run pack:angular # packages/angular
 | **UI**            | React 19 / Vue 3 / Angular, Framer Motion, Tailwind CSS 4, Lucide    |
 | **Parsing**       | JSZip (ZIP), fast-xml-parser (XML)                                   |
 | **Export**        | html2canvas + jsPDF (PDF), custom GIF encoder, MediaRecorder (video) |
-| **3D**            | Three.js, @react-three/fiber, @react-three/drei (optional)           |
+| **3D**            | Three.js (optional)                                                  |
 | **Collaboration** | Yjs (CRDT), y-websocket (optional)                                   |
 | **Crypto**        | Web Crypto API (AES-128/256 for PPTX encryption)                     |
 | **Testing**       | Vitest (11,900+ tests across 419 files)                              |

@@ -203,27 +203,27 @@ bun add emf-converter mtx-decompressor
 
 Some features in the React package activate only when their optional peers are present.
 
-| Feature                     | Optional peers                                     | Notes                                                      |
-| --------------------------- | -------------------------------------------------- | ---------------------------------------------------------- |
-| **3D models** (GLB/GLTF)    | `three`, `@react-three/fiber`, `@react-three/drei` | Without them, 3D elements fall back to their poster image. |
-| **Real-time collaboration** | `yjs`, `y-websocket`                               | Yjs CRDT with presence tracking.                           |
+| Feature                     | Optional peers       | Notes                                                      |
+| --------------------------- | -------------------- | ---------------------------------------------------------- |
+| **3D models** (GLB/GLTF)    | `three`              | Without them, 3D elements fall back to their poster image. |
+| **Real-time collaboration** | `yjs`, `y-websocket` | Yjs CRDT with presence tracking.                           |
 
 ::: code-group
 
 ```bash [npm]
-npm install three @react-three/fiber @react-three/drei yjs y-websocket
+npm install three yjs y-websocket
 ```
 
 ```bash [pnpm]
-pnpm add three @react-three/fiber @react-three/drei yjs y-websocket
+pnpm add three yjs y-websocket
 ```
 
 ```bash [yarn]
-yarn add three @react-three/fiber @react-three/drei yjs y-websocket
+yarn add three yjs y-websocket
 ```
 
 ```bash [bun]
-bun add three @react-three/fiber @react-three/drei yjs y-websocket
+bun add three yjs y-websocket
 ```
 
 :::

@@ -43,7 +43,7 @@ the framework-agnostic engine you may also use directly).
 
 **Optional dependencies** (only needed for specific features):
 
-- `three`, `@react-three/fiber`, `@react-three/drei` - GLB/GLTF 3D models and 3D surface charts
+- `three` - GLB/GLTF 3D models and 3D surface charts
 - `yjs`, `y-websocket` - real-time collaboration
 
 ::: tip
