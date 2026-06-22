@@ -202,6 +202,9 @@ export * from './slide-background';
 export * from './editor-insert';
 export * from './element-operations';
 export * from './editor-history';
+// OLE download/open helpers: file-size formatting + browser-openable MIME check
+// for the binding OLE renderers' download/open actions.
+export * from './ole-actions';
 // Editor snap geometry: snap-to-shape (siblings + guides → snap lines, React/Vue
 // model), snap-to-box (closest-per-axis span guides, Angular model), grid
 // snapping. Pure maths; the pointer/drag driver stays in each binding.
