@@ -4,6 +4,24 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [Unreleased]
+
+### Features
+
+- **shared:** Extract pure element helpers to shared; React re-exports (by @ChristopherVR) ([df8c4d4](https://github.com/ChristopherVR/pptx-viewer/commit/df8c4d48e3d902805921a3e62c6bfd19ea8925ae))
+- **shared:** Inline SmartArt node-edit helpers (lookup, commit-guard, geometry) (by @ChristopherVR) ([9ad6fe1](https://github.com/ChristopherVR/pptx-viewer/commit/9ad6fe1cc056eea5b46566494b49a9530bf979b1))
+- **react:** Inline on-canvas SmartArt node text editing (by @ChristopherVR) ([83c8135](https://github.com/ChristopherVR/pptx-viewer/commit/83c813543e693b75c595f91f3764e836315e3b86))
+- **vue:** Inline on-canvas SmartArt node text editing (by @ChristopherVR) ([cd8158f](https://github.com/ChristopherVR/pptx-viewer/commit/cd8158fc26a509d33e72972bfeb2734fc4e3ce7a))
+- **angular:** Inline on-canvas SmartArt node text editing (by @ChristopherVR) ([a54ac88](https://github.com/ChristopherVR/pptx-viewer/commit/a54ac889c7c928898b60841afad7e216a03029d8))
+
+### Bug Fixes
+
+- **vue:** Add missing OLE actions helper used by OleRenderer (by @ChristopherVR) ([3aebe37](https://github.com/ChristopherVR/pptx-viewer/commit/3aebe3739d45c05092cf861832dc935ae8322a8f))
+
+### Documentation
+
+- SmartArt node text is editable on-canvas (double-click) in all bindings (by @ChristopherVR) ([2c17a55](https://github.com/ChristopherVR/pptx-viewer/commit/2c17a55b9a80f56aeaac90407b3d675cdc194b9f))
+
 ## [1.1.44](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.44) - 2026-06-22
 
 ### Features
