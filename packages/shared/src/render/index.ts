@@ -168,6 +168,9 @@ export * from './visual-3d';
 export * from './table-style';
 export * from './table-merge';
 export * from './table-layout';
+// Immutable single-cell text edit (`setCellText`) for inline cell editing,
+// shared by every binding's table renderer.
+export * from './table-cell-edit';
 export * from './element-align';
 export * from './element-interaction';
 // Element CSS-style builders: absolute container style (position/transform/
