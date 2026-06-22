@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.43](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.43) - 2026-06-22
+
+### Features
+
+- **react:** 3D surface charts on vanilla three; drop @react-three peer deps (by @ChristopherVR) ([a8a1004](https://github.com/ChristopherVR/pptx-viewer/commit/a8a10048169678fa7bf559198d36c9f6023d2be0))
+
+### Documentation
+
+- 3D models/charts need only the single optional `three` peer dep (by @ChristopherVR) ([0b05f85](https://github.com/ChristopherVR/pptx-viewer/commit/0b05f857100cb71eb9db10fdc23dfbafc21dbb5d))
+
 ## [1.1.32](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.32) - 2026-06-21
 
 ### Dependencies

@@ -8,6 +8,18 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **react:** Render GLB/GLTF models with vanilla three (no @react-three) (by @ChristopherVR) ([c8b047e](https://github.com/ChristopherVR/pptx-viewer/commit/c8b047e679ad202813f13e7fe28249a7018f9576))
+- **core:** Extract embedded OLE payload for download/open and richer info (by @ChristopherVR) ([2c025f3](https://github.com/ChristopherVR/pptx-viewer/commit/2c025f338280955d76529cfb9ce389a862e766dd))
+- **react:** 3D surface charts on vanilla three; drop @react-three peer deps (by @ChristopherVR) ([a8a1004](https://github.com/ChristopherVR/pptx-viewer/commit/a8a10048169678fa7bf559198d36c9f6023d2be0))
+
+### Documentation
+
+- 3D models/charts need only the single optional `three` peer dep (by @ChristopherVR) ([0b05f85](https://github.com/ChristopherVR/pptx-viewer/commit/0b05f857100cb71eb9db10fdc23dfbafc21dbb5d))
+
+## [1.1.43](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.43) - 2026-06-22
+
+### Features
+
 - **shared:** Extract accessibility helpers to shared; React re-exports (by @ChristopherVR) ([64da687](https://github.com/ChristopherVR/pptx-viewer/commit/64da6874609e18d7b958cdeeb79d5a066a67d092))
 
 ### Bug Fixes
