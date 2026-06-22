@@ -8,6 +8,22 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **shared:** Extract accessibility helpers to shared; React re-exports (by @ChristopherVR) ([64da687](https://github.com/ChristopherVR/pptx-viewer/commit/64da6874609e18d7b958cdeeb79d5a066a67d092))
+
+### Bug Fixes
+
+- **react:** Make remaining dialogs fit mobile viewports (by @ChristopherVR) ([acc334d](https://github.com/ChristopherVR/pptx-viewer/commit/acc334d0421dc0db027dfa8dafc016c1cd02bfd1))
+- **vue:** Make dialogs fit mobile viewports via the shared modal shell (by @ChristopherVR) ([f06e65c](https://github.com/ChristopherVR/pptx-viewer/commit/f06e65c70df395fbd2a367982923fe2825d420eb))
+- **angular:** Responsive modal shell and inspector on mobile (by @ChristopherVR) ([fb0f7be](https://github.com/ChristopherVR/pptx-viewer/commit/fb0f7be20eda13b943ed44c830c7e5bfcad6da37))
+
+### Documentation
+
+- Mobile UI now responsive across dialogs, inspector, and toolbar (by @ChristopherVR) ([6a1db5c](https://github.com/ChristopherVR/pptx-viewer/commit/6a1db5cf519a57bbf45fd7e30093a81345e76f03))
+
+## [1.1.42](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.42) - 2026-06-22
+
+### Features
+
 - **shared:** Compound animation triggers and advanced morph transitions (by @ChristopherVR) ([2b8aa8b](https://github.com/ChristopherVR/pptx-viewer/commit/2b8aa8b5211711899b7dda27a5599d344d5b2969))
 - **core:** Regenerate SmartArt colors/quickStyles on save and preserve per-run text (by @ChristopherVR) ([3f70e6d](https://github.com/ChristopherVR/pptx-viewer/commit/3f70e6d2a4ab1a52ca1957faf7317a54e579b819))
 - **core:** Multi-container combo chart load and per-data-point label overrides (by @ChristopherVR) ([32dc2d7](https://github.com/ChristopherVR/pptx-viewer/commit/32dc2d715b09ac9fce2223ae886d4332b82d5688))
