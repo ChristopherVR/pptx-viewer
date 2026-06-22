@@ -553,7 +553,7 @@ export function GenericOleIcon(color: string, size = 32) {
 /**
  * Return the appropriate SVG icon JSX for the given OLE type.
  */
-function getOleIcon(type: ResolvedOleType, color: string, size = 32) {
+export function getOleIcon(type: ResolvedOleType, color: string, size = 32) {
 	switch (type) {
 		case 'excel':
 			return ExcelIcon(color, size);
@@ -586,7 +586,7 @@ export function getOleAriaLabel(el: OlePptxElement): string {
 /**
  * Render an OLE badge overlay for preview images.
  */
-function renderOleBadge(oleType: ResolvedOleType) {
+export function renderOleBadge(oleType: ResolvedOleType) {
 	const color = getOleTypeColor(oleType);
 	const shortLabel = oleType === 'unknown' ? 'OLE' : oleType.toUpperCase();
 	return (
@@ -603,56 +603,5 @@ function renderOleBadge(oleType: ResolvedOleType) {
 				{shortLabel}
 			</text>
 		</svg>
-	);
-}
-
-export function renderOleElement(el: OlePptxElement) {
-	const oleType = resolveOleType(el);
-	const ariaLabel = getOleAriaLabel(el);
-
-	if (el.previewImageData) {
-		return (
-			<div
-				className='relative w-full h-full'
-				role='img'
-				aria-label={ariaLabel}
-				title='Double-click to open'
-			>
-				<img
-					src={el.previewImageData}
-					alt={ariaLabel}
-					className='pointer-events-none select-none w-full h-full object-contain'
-					draggable={false}
-				/>
-				{renderOleBadge(oleType)}
-			</div>
-		);
-	}
-
-	// No preview image; render a type-specific styled placeholder.
-	const color = getOleTypeColor(oleType);
-	const label = getOleTypeLabel(oleType);
-	const displayName = el.fileName ?? label;
-
-	return (
-		<div
-			className='w-full h-full flex flex-col items-center justify-center pointer-events-none'
-			role='img'
-			aria-label={ariaLabel}
-			title='Double-click to open'
-			style={{
-				border: `2px solid ${color}33`,
-				borderRadius: 6,
-				backgroundColor: `${color}0D`,
-			}}
-		>
-			{getOleIcon(oleType, color, 36)}
-			<span className='mt-2 text-[12px] font-medium max-w-[90%] truncate' style={{ color }}>
-				{displayName}
-			</span>
-			{el.fileName && (
-				<span className='mt-0.5 text-[10px] text-white/50 max-w-[90%] truncate'>{label}</span>
-			)}
-		</div>
 	);
 }

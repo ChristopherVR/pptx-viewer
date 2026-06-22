@@ -33,9 +33,10 @@ import type { ElementFindHighlights } from '../../utils/text-segment-helpers';
 import { shouldUseSvgWarp, WarpedText } from '../../utils/text-warp';
 import { ActionButtonGlyphOverlay, isActionButtonShape } from './ActionButtonGlyphOverlay';
 import { renderImg } from './ImageRenderer';
-import { renderInk, renderGroup, renderContentPart, renderOleElement } from './InkGroupRenderers';
+import { renderInk, renderGroup, renderContentPart } from './InkGroupRenderers';
 import { InlineTextEditor } from './InlineTextEditor';
 import { Model3DRenderer } from './Model3DRenderer';
+import { OleRenderer } from './OleRenderer';
 import { SmartArtElement } from './SmartArtElement';
 import { ZoomElementRenderer } from './ZoomElementRenderer';
 
@@ -167,7 +168,7 @@ export function renderBody(
 		});
 	}
 	if (el.type === 'ole') {
-		return renderOleElement(el as OlePptxElement);
+		return <OleRenderer element={el as OlePptxElement} />;
 	}
 	if (doGrp && el.type === 'group' && (el as GroupPptxElement).children) {
 		return renderGroup((el as GroupPptxElement).children);
