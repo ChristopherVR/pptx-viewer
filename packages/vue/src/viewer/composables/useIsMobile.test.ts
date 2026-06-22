@@ -1,6 +1,6 @@
 // oxlint-disable react-hooks/rules-of-hooks
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { effectScope } from 'vue';
+import { effectScope, ref } from 'vue';
 
 import { useIsMobile } from './useIsMobile';
 
@@ -39,6 +39,47 @@ function installMatchMedia(initialMatches: boolean): {
 		handler?.({ matches } as MediaQueryListEvent);
 	};
 	return { mql, emit };
+}
+
+type ResizeCallback = (entries: ResizeObserverEntry[]) => void;
+
+interface ResizeObserverHandle {
+	/** Drive an observed-size change through the most recent observer. */
+	emit: (width: number, height: number) => void;
+	disconnect: ReturnType<typeof vi.fn>;
+	observe: ReturnType<typeof vi.fn>;
+}
+
+/**
+ * happy-dom does not implement `ResizeObserver`, so stub a minimal one that
+ * lets a test push contentRect dimensions into the composable's callback.
+ */
+function installResizeObserver(): ResizeObserverHandle {
+	let callback: ResizeCallback | undefined;
+	const disconnect = vi.fn();
+	const observe = vi.fn();
+	class FakeResizeObserver {
+		constructor(cb: ResizeCallback) {
+			callback = cb;
+		}
+		observe = observe;
+		unobserve = vi.fn();
+		disconnect = disconnect;
+	}
+	vi.stubGlobal('ResizeObserver', FakeResizeObserver);
+
+	const emit = (width: number, height: number): void => {
+		const entry = { contentRect: { width, height } } as ResizeObserverEntry;
+		callback?.([entry]);
+	};
+	return { emit, disconnect, observe };
+}
+
+function makeContainer(width: number, height: number): HTMLElement {
+	const el = document.createElement('div');
+	Object.defineProperty(el, 'clientWidth', { value: width, configurable: true });
+	Object.defineProperty(el, 'clientHeight', { value: height, configurable: true });
+	return el;
 }
 
 afterEach(() => {
@@ -125,6 +166,99 @@ describe('useIsMobile', () => {
 			const result = scope.run(() => useIsMobile())!;
 			const expected = window.innerHeight > window.innerWidth ? 'portrait' : 'landscape';
 			expect(result.orientation.value).toBe(expected);
+			scope.stop();
+		});
+	});
+
+	describe('container-ref path (ResizeObserver-driven breakpoints)', () => {
+		it('classifies a narrow container as mobile and exposes its width', () => {
+			installMatchMedia(false);
+			const ro = installResizeObserver();
+			const container = ref<HTMLElement | null>(makeContainer(320, 600));
+			const scope = effectScope();
+			const result = scope.run(() => useIsMobile(768, container))!;
+			expect(ro.observe).toHaveBeenCalledExactlyOnceWith(container.value);
+			expect(result.containerWidth.value).toBe(320);
+			expect(result.isMobile.value).toBeTruthy();
+			expect(result.isTablet.value).toBeFalsy();
+			expect(result.isDesktop.value).toBeFalsy();
+			scope.stop();
+		});
+
+		it('classifies a mid-width container as tablet', () => {
+			installMatchMedia(false);
+			installResizeObserver();
+			const container = ref<HTMLElement | null>(makeContainer(900, 700));
+			const scope = effectScope();
+			const result = scope.run(() => useIsMobile(768, container))!;
+			expect(result.isMobile.value).toBeFalsy();
+			expect(result.isTablet.value).toBeTruthy();
+			expect(result.isDesktop.value).toBeFalsy();
+			expect(result.containerWidth.value).toBe(900);
+			scope.stop();
+		});
+
+		it('classifies a wide container as desktop', () => {
+			installMatchMedia(false);
+			installResizeObserver();
+			const container = ref<HTMLElement | null>(makeContainer(1280, 800));
+			const scope = effectScope();
+			const result = scope.run(() => useIsMobile(768, container))!;
+			expect(result.isMobile.value).toBeFalsy();
+			expect(result.isTablet.value).toBeFalsy();
+			expect(result.isDesktop.value).toBeTruthy();
+			scope.stop();
+		});
+
+		it('reclassifies when the observed container width changes', () => {
+			installMatchMedia(false);
+			const ro = installResizeObserver();
+			const container = ref<HTMLElement | null>(makeContainer(1280, 800));
+			const scope = effectScope();
+			const result = scope.run(() => useIsMobile(768, container))!;
+			expect(result.isDesktop.value).toBeTruthy();
+
+			ro.emit(500, 600);
+			expect(result.containerWidth.value).toBe(500);
+			expect(result.isMobile.value).toBeTruthy();
+			expect(result.isDesktop.value).toBeFalsy();
+
+			ro.emit(900, 700);
+			expect(result.isTablet.value).toBeTruthy();
+			expect(result.isMobile.value).toBeFalsy();
+			scope.stop();
+		});
+
+		it('accepts a plain getter as the container source', () => {
+			installMatchMedia(false);
+			installResizeObserver();
+			const el = makeContainer(400, 600);
+			const scope = effectScope();
+			const result = scope.run(() => useIsMobile(768, () => el))!;
+			expect(result.containerWidth.value).toBe(400);
+			expect(result.isMobile.value).toBeTruthy();
+			scope.stop();
+		});
+
+		it('disconnects the observer on scope dispose', () => {
+			installMatchMedia(false);
+			const ro = installResizeObserver();
+			const container = ref<HTMLElement | null>(makeContainer(1280, 800));
+			const scope = effectScope();
+			scope.run(() => useIsMobile(768, container));
+			scope.stop();
+			expect(ro.disconnect).toHaveBeenCalledOnce();
+		});
+
+		it('falls back to the matchMedia viewport path when the ref is empty', () => {
+			const { mql } = installMatchMedia(true);
+			installResizeObserver();
+			const container = ref<HTMLElement | null>(null);
+			const scope = effectScope();
+			const result = scope.run(() => useIsMobile(768, container))!;
+			// No element to observe: matchMedia drives isMobile instead.
+			expect(mql.addEventListener).toHaveBeenCalledOnce();
+			expect(result.isMobile.value).toBeTruthy();
 			scope.stop();
 		});
 	});
