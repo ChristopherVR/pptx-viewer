@@ -432,7 +432,12 @@ const inlineEditingElement = computed<PptxElement | undefined>(() =>
 );
 function enterInlineEdit(id: string): void {
 	const el = activeSlide.value?.elements.find((e) => e.id === id);
-	if (!el) {
+	// Only elements that carry text (text boxes / shapes) get the element-level
+	// inline text editor, and only when text editing is not locked. Mirrors
+	// React's gate (useCanvasInteractions: `hasTextProperties(el) &&
+	// !el.locks?.noTextEdit`). Without this, tapping a selected table opened the
+	// whole-table text editor and masked the per-cell <td> editor.
+	if (!el || !hasTextProperties(el) || el.locks?.noTextEdit) {
 		return;
 	}
 	inlineEditingElementId.value = id;

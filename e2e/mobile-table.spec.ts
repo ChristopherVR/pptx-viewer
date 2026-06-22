@@ -1,6 +1,6 @@
 /* oxlint-disable vitest/prefer-importing-vitest-globals -- Playwright spec, `test`/`expect` come from @playwright/test */
 /**
- * Table-cell touch editing (React).
+ * Table-cell touch editing (React, Angular, Vue).
  *
  * On touch a cell is edited with a double-tap (which mounts a text <input>).
  * Verified end-to-end on the sample deck's "Plans" table (slide 5), reached
@@ -21,14 +21,14 @@ import type { Page } from '@playwright/test';
 
 test.use({ ...devices['Pixel 7'] });
 
-// React + Angular both support table-cell touch editing (double-tap mounts a
-// text input in the slide's `<td>`). The Angular inspector table editor was
-// switched to a non-<table> grid so it no longer collides with this spec's
-// `td input[type="text"]` selector. Vue's mobile chrome differs, so skip vue.
-// oxlint-disable-next-line no-empty-pattern -- Playwright requires the first beforeEach arg to be a destructuring pattern
-test.beforeEach(({}, testInfo) => {
-	test.skip(testInfo.project.name === 'vue', 'Vue mobile chrome differs');
-});
+// React, Angular, and Vue all support table-cell touch editing: a double-tap
+// mounts a text input in the slide's `<td>`. (The Angular inspector table
+// editor uses a non-<table> grid so it does not collide with this spec's
+// `td input[type="text"]` selector.) Vue previously masked this because its
+// inline-edit entry opened a whole-element text editor for every element type
+// on the second tap; that entry is now gated to text-bearing elements (mirroring
+// React's hasTextProperties gate), so the `<td>` double-tap reaches the cell
+// editor on Vue too.
 
 const deck = resolve(fileURLToPath(new URL('../.github/assets/sample-deck.pptx', import.meta.url)));
 const shotDir = fileURLToPath(new URL('../test-results/mobile-table/', import.meta.url));
