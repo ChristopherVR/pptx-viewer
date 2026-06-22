@@ -174,6 +174,9 @@ export * from './table-layout';
 // Immutable single-cell text edit (`setCellText`) for inline cell editing,
 // shared by every binding's table renderer.
 export * from './table-cell-edit';
+// Pure deep-clone builders for editor undo/redo (elements, slides, styles,
+// chart/smartart data, history snapshots, raw XML). Each binding imports these.
+export * from './clone';
 export * from './element-align';
 export * from './element-interaction';
 // Element CSS-style builders: absolute container style (position/transform/
@@ -376,6 +379,10 @@ export * from './comments-list';
 // lifecycle; the recogniser and its pure helpers (getTouchDistance/clampScale)
 // are shared here.
 export * from './touch-gestures';
+// Chart-inspector option catalogues: the pure value/label lists and supported-
+// type Sets that drive the advanced chart editor selects + conditional sections,
+// shared so each binding's chart inspector consumes one source of truth.
+export * from './chart-editor-options';
 // Insert-chart factory: a sensible DEFAULT new `ChartPptxElement` (three sample
 // categories, one "Series 1", legend on, default position) plus the chart-type
 // list shown in the insert dropdown. The single source of truth every binding's
