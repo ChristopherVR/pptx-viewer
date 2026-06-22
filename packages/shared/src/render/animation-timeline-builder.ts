@@ -8,6 +8,7 @@
 
 import type { PptxNativeAnimation, PptxAnimationTrigger } from 'pptx-viewer-core';
 
+import { resolveAnimationStart } from './animation-advanced-triggers';
 import { getEffectKeyframes } from './animation-keyframes';
 import {
 	resolveEffect,
@@ -109,10 +110,20 @@ export function buildTimeline(
 			}
 
 			const elementId = singleAnim.targetId ?? '';
-			const trigger: PptxAnimationTrigger = singleAnim.trigger ?? 'onClick';
+			// Honour the FULL start-condition OR-set (compound / simultaneous
+			// triggers) rather than the collapsed single trigger. The effective
+			// condition drives grouping and supplies the governing start delay.
+			const effective = resolveAnimationStart(singleAnim);
+			const trigger: PptxAnimationTrigger = effective.trigger;
 			const duration = singleAnim.durationMs ?? defaultDuration(singleAnim.presetClass);
 			const animDelay = singleAnim.delayMs ?? 0;
-			const triggerDelay = singleAnim.triggerDelayMs ?? 0;
+			// Use the governing condition delay when conditions were present;
+			// otherwise fall back to the simple triggerDelayMs (afterDelay) so
+			// existing single-condition slides are unchanged.
+			const triggerDelay =
+				singleAnim.startConditions && singleAnim.startConditions.length > 0
+					? effective.delayMs
+					: (singleAnim.triggerDelayMs ?? 0);
 			const presetClass = singleAnim.presetClass ?? 'entr';
 			const fill = fillModeForClass(singleAnim.presetClass);
 
@@ -125,8 +136,10 @@ export function buildTimeline(
 				entranceIds.add(elementId);
 			}
 
-			// Determine whether to start a new click-group
-			const isOnClick = trigger === 'onClick';
+			// Determine whether to start a new click-group. A compound condition
+			// that resolves to a click (onClick, or an inline shape click that was
+			// not split into an interactive sequence) also starts a new group.
+			const isOnClick = trigger === 'onClick' || trigger === 'onShapeClick';
 			const isFirstAnimation = clickGroups.length === 0 && currentGroup.length === 0;
 
 			if (isOnClick || isFirstAnimation) {

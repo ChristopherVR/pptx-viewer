@@ -15,8 +15,10 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { hasTextProperties, hasShapeProperties } from 'pptx-viewer-core';
 
 import { parseHexColor, lerpColor } from './morph-color';
+import { generateGeometryMorphAnimation } from './morph-geometry-keyframes';
 import { matchMorphElementsFull } from './morph-matching';
-import { tokenizeText, matchTextTokens } from './morph-text';
+import { tokenizeText } from './morph-text';
+import { buildTokenMorphAnimations, diffTokens } from './morph-text-tokens';
 import type { MorphAnimationStyle, MorphMode, MorphPair } from './morph-types';
 import { MORPH_EASING } from './morph-types';
 
@@ -272,72 +274,16 @@ export function generateTextMorphAnimations(
 		return [];
 	}
 
-	const tokenPairs = matchTextTokens(fromTokens, toTokens);
-	const animations: MorphAnimationStyle[] = [];
-
-	for (let ti = 0; ti < tokenPairs.length; ti++) {
-		const tp = tokenPairs[ti];
-		const safeName = `pptx-morph-text-${pairIndex}-${ti}`;
-
-		if (tp.from && tp.to) {
-			// Matched token: animate position, size, color
-			const fromX = tp.from.x * 100;
-			const toX = tp.to.x * 100;
-			const fromColor = parseHexColor(tp.from.color);
-			const toColor = parseHexColor(tp.to.color);
-			const fromColorStr = fromColor ? lerpColor(fromColor, fromColor, 0) : tp.from.color;
-			const toColorStr = toColor ? lerpColor(toColor, toColor, 0) : tp.to.color;
-
-			const keyframes = `
-@keyframes ${safeName} {
-\tfrom {
-\t\tleft: ${fromX}%;
-\t\tfont-size: ${tp.from.fontSize}pt;
-\t\tfont-weight: ${tp.from.fontWeight};
-\t\tcolor: ${fromColorStr};
-\t\topacity: 1;
-\t}
-\tto {
-\t\tleft: ${toX}%;
-\t\tfont-size: ${tp.to.fontSize}pt;
-\t\tfont-weight: ${tp.to.fontWeight};
-\t\tcolor: ${toColorStr};
-\t\topacity: 1;
-\t}
-}`;
-			animations.push({
-				elementId: `${pair.toElement.id}__token_${ti}`,
-				animation: `${safeName} ${durationMs}ms ${MORPH_EASING} forwards`,
-				keyframes,
-			});
-		} else if (tp.from && !tp.to) {
-			// Disappearing token: fade out
-			const keyframes = `
-@keyframes ${safeName} {
-\tfrom { opacity: 1; }
-\tto { opacity: 0; }
-}`;
-			animations.push({
-				elementId: `${pair.fromElement.id}__token_${ti}`,
-				animation: `${safeName} ${durationMs}ms ${MORPH_EASING} forwards`,
-				keyframes,
-			});
-		} else if (!tp.from && tp.to) {
-			// Appearing token: fade in
-			const keyframes = `
-@keyframes ${safeName} {
-\tfrom { opacity: 0; }
-\tto { opacity: 1; }
-}`;
-			animations.push({
-				elementId: `${pair.toElement.id}__token_${ti}`,
-				animation: `${safeName} ${durationMs}ms ${MORPH_EASING} forwards`,
-				keyframes,
-			});
-		}
-	}
-
-	return animations;
+	// Order-preserving LCS diff: shared tokens slide/restyle between positions,
+	// added tokens fade in, removed tokens fade out (intelligent token morph).
+	const ops = diffTokens(fromTokens, toTokens);
+	return buildTokenMorphAnimations(
+		ops,
+		pair.fromElement.id,
+		pair.toElement.id,
+		durationMs,
+		pairIndex,
+	);
 }
 
 // ---------------------------------------------------------------------------
@@ -368,6 +314,16 @@ export function generateFullMorphTransition(
 	// Generate main element morph animations
 	const pairAnims = generateMorphAnimations(matchResult.pairs, durationMs, mode);
 	allAnimations.push(...pairAnims);
+
+	// Shape-geometry morph: for matched pairs whose shape outline changes
+	// (different shape type or adjustment outline), interpolate the resolved
+	// outlines instead of relying on a plain crossfade.
+	for (let i = 0; i < matchResult.pairs.length; i++) {
+		const geo = generateGeometryMorphAnimation(matchResult.pairs[i], durationMs, i);
+		if (geo) {
+			allAnimations.push(geo);
+		}
+	}
 
 	// Generate text morph animations for text-bearing matched pairs
 	if (mode === 'word' || mode === 'character') {

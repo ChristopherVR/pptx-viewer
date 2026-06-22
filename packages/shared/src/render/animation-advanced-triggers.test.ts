@@ -1,6 +1,7 @@
-import type { PptxNativeAnimation } from 'pptx-viewer-core';
+import type { PptxNativeAnimation, PptxSlide } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
+import { AnimationSequencer } from './animation-sequencer';
 import { buildTimeline } from './animation-timeline-builder';
 import { TimelineEngine } from './animation-timeline-engine';
 import type {
@@ -747,5 +748,125 @@ describe('timelineEngine.fromAnimations - integration', () => {
 
 		expect(engine.hasInteractiveSequence('btn1')).toBeTruthy();
 		expect(engine.hasHoverSequence('el2')).toBeTruthy();
+	});
+});
+
+// ==========================================================================
+// Compound / simultaneous start conditions drive playback (buildTimeline)
+// ==========================================================================
+
+describe('buildTimeline - compound start conditions', () => {
+	it('plays an effect after a delay when its OR-set is click-OR-delay', () => {
+		// el2 has a stCondLst of {onClick} OR {delay 1500}. The auto timeline
+		// should schedule it after 1500ms even though its simple trigger is the
+		// inherited withPrevious. The delay must come from the condition set.
+		const result = buildTimeline([
+			makeAnim({ targetId: 'el1', trigger: 'onClick', durationMs: 500 }),
+			makeAnim({
+				targetId: 'el2',
+				trigger: 'withPrevious',
+				durationMs: 300,
+				delayMs: 0,
+				triggerDelayMs: 0,
+				startConditions: [{ event: 'onClick', delay: 0 }, { delay: 1500 }],
+			} as PptxNativeAnimation),
+		]);
+		// el2 resolves to onClick (compound), so it starts its own click-group
+		// with the governing 1500ms delay.
+		expect(result.clickGroups).toHaveLength(2);
+		const el2Step = result.clickGroups[1].steps[0];
+		expect(el2Step.elementId).toBe('el2');
+		expect(el2Step.delayMs).toBe(1500);
+	});
+
+	it('sequences after the previous step when waiting on a time-node end', () => {
+		// el2 has no nodeType-derived afterPrevious, only a tn-end condition.
+		// The builder must still place it after el1 finishes.
+		const result = buildTimeline([
+			makeAnim({ targetId: 'el1', trigger: 'onClick', durationMs: 500, delayMs: 0 }),
+			makeAnim({
+				targetId: 'el2',
+				trigger: 'onClick', // simple/collapsed trigger (would split a group)
+				durationMs: 300,
+				delayMs: 0,
+				startConditions: [{ event: 'onEnd', delay: 0, targetTimeNodeId: 99 }],
+			} as PptxNativeAnimation),
+		]);
+		// With compound resolution el2 becomes afterPrevious and stays in el1's
+		// group, delayed by el1's duration.
+		expect(result.clickGroups).toHaveLength(1);
+		const steps = result.clickGroups[0].steps;
+		expect(steps).toHaveLength(2);
+		expect(steps[1].elementId).toBe('el2');
+		expect(steps[1].delayMs).toBe(500);
+	});
+
+	it('respects a pure delay condition (afterDelay) without a click split', () => {
+		const result = buildTimeline([
+			makeAnim({ targetId: 'el1', trigger: 'onClick', durationMs: 400, delayMs: 0 }),
+			makeAnim({
+				targetId: 'el2',
+				trigger: 'onClick',
+				durationMs: 200,
+				delayMs: 0,
+				startConditions: [{ delay: 1000 }],
+			} as PptxNativeAnimation),
+		]);
+		// el2 resolves to afterDelay -> stays in the same group, delay =
+		// prev.delay(0) + prev.duration(400) + condDelay(1000) = 1400.
+		expect(result.clickGroups).toHaveLength(1);
+		const steps = result.clickGroups[0].steps;
+		expect(steps[1].delayMs).toBe(1400);
+	});
+});
+
+// ==========================================================================
+// Compound start conditions drive playback (AnimationSequencer)
+// ==========================================================================
+
+describe('animationSequencer - compound start conditions', () => {
+	function makeSlide(nativeAnimations: PptxNativeAnimation[]): PptxSlide {
+		return {
+			id: 'slide-1',
+			elements: [],
+			nativeAnimations,
+		} as unknown as PptxSlide;
+	}
+
+	it('uses the governing delay from a compound condition set', () => {
+		const seq = new AnimationSequencer(
+			makeSlide([
+				makeAnim({ targetId: 'el1', trigger: 'onClick', durationMs: 500 }),
+				makeAnim({
+					targetId: 'el2',
+					trigger: 'onClick',
+					durationMs: 300,
+					delayMs: 0,
+					startConditions: [{ event: 'onClick', delay: 0 }, { delay: 2000 }],
+				} as PptxNativeAnimation),
+			]),
+		);
+		const steps = seq.buildTimeline();
+		expect(steps).toHaveLength(2);
+		// el2 effective trigger is onClick (resets cumulative), delay 2000.
+		expect(steps[1].delayMs).toBe(2000);
+	});
+
+	it('chains after the previous effect for a time-node end dependency', () => {
+		const seq = new AnimationSequencer(
+			makeSlide([
+				makeAnim({ targetId: 'el1', trigger: 'onClick', durationMs: 500, delayMs: 0 }),
+				makeAnim({
+					targetId: 'el2',
+					trigger: 'onClick',
+					durationMs: 300,
+					delayMs: 0,
+					startConditions: [{ event: 'onEnd', delay: 0, targetTimeNodeId: 42 }],
+				} as PptxNativeAnimation),
+			]),
+		);
+		const steps = seq.buildTimeline();
+		// el2 -> afterPrevious: starts after el1 (delay 0 + dur 500) = 500.
+		expect(steps[1].delayMs).toBe(500);
 	});
 });

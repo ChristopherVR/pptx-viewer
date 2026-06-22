@@ -9,6 +9,7 @@
 
 import type { PptxSlide, PptxElement, PptxAnimationTrigger } from 'pptx-viewer-core';
 
+import { resolveAnimationStart } from './animation-advanced-triggers';
 import { getInitialStyleForEffect } from './animation-effects';
 import { getEffectKeyframes } from './animation-keyframes';
 import {
@@ -87,10 +88,17 @@ export class AnimationSequencer {
 			}
 
 			const elementId = anim.targetId ?? '';
-			const trigger: PptxAnimationTrigger = anim.trigger ?? 'onClick';
+			// Resolve compound / simultaneous start conditions (the OR-set in
+			// p:stCondLst) into the effective sequencing trigger + governing
+			// delay, instead of the single collapsed trigger.
+			const effective = resolveAnimationStart(anim);
+			const trigger: PptxAnimationTrigger = effective.trigger;
 			const duration = anim.durationMs ?? defaultDuration(anim.presetClass);
 			const animDelay = anim.delayMs ?? 0;
-			const triggerDelay = anim.triggerDelayMs ?? 0;
+			const triggerDelay =
+				anim.startConditions && anim.startConditions.length > 0
+					? effective.delayMs
+					: (anim.triggerDelayMs ?? 0);
 			const fill = fillModeForClass(anim.presetClass);
 
 			// Compute repeat / direction from the native animation
@@ -101,8 +109,9 @@ export class AnimationSequencer {
 			let stepDelay: number;
 			switch (trigger) {
 				case 'onClick':
+				case 'onShapeClick':
 				case 'onHover':
-					// onClick / onHover resets the timeline — delay only from explicit delay values.
+					// onClick / onShapeClick / onHover reset the timeline: delay only from explicit delay values.
 					cumulativeMs = 0;
 					stepDelay = animDelay + triggerDelay;
 					break;

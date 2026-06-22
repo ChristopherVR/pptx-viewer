@@ -154,6 +154,9 @@ export * from './animation-presets';
 export * from './animation-keyframes';
 export * from './animation-color';
 export * from './animation-timeline-helpers';
+// Compound / simultaneous OOXML start+end condition evaluation (p:stCondLst /
+// p:endCondLst OR-sets), consumed by the sequencer + timeline builder.
+export * from './animation-advanced-triggers';
 export * from './animation-timeline-text-build';
 export * from './animation-effects';
 export * from './animation-sequencer';
@@ -235,6 +238,16 @@ export * from './morph-color';
 export * from './morph-svg-path';
 export * from './morph-matching';
 export * from './morph-text';
+// Intelligent token-level text morph: LCS diff (shared/added/removed) + per-
+// token slide/fade keyframe building, consumed by `morph-animation`.
+export * from './morph-text-tokens';
+// Shape-geometry morphing: resolve element outlines to polygons
+// (`morph-geometry`), resample/align/interpolate them (`morph-geometry-interp`),
+// and bake the outline tween into a `clip-path` keyframe animation
+// (`morph-geometry-keyframes`) for shape-type changes between matched elements.
+export * from './morph-geometry';
+export * from './morph-geometry-interp';
+export * from './morph-geometry-keyframes';
 export * from './morph-animation';
 // Slide-transition (slide-to-slide swap) CSS/keyframe generation — pure mapping
 // from a `PptxSlideTransition` to the outgoing/incoming `animation` shorthands
