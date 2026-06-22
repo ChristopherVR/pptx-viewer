@@ -8,6 +8,16 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **shared:** Swipe falls back to last move position without changedTouches (by @ChristopherVR) ([d42309a](https://github.com/ChristopherVR/pptx-viewer/commit/d42309addb8c422502747abd873924b09350c02d))
+
+### Testing
+
+- **e2e:** Cover mobile table-cell commit on tap-away (by @ChristopherVR) ([e624cab](https://github.com/ChristopherVR/pptx-viewer/commit/e624cab2659ad1271f94480a9fece0d7295d9811))
+
+## [1.1.40](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.40) - 2026-06-22
+
+### Features
+
 - **vue:** Container-ref ResizeObserver path for useIsMobile (React parity) (by @ChristopherVR) ([72fb2ee](https://github.com/ChristopherVR/pptx-viewer/commit/72fb2ee027176648c48e2c5eb81a20a1fefecb49))
 - **vue:** Drive mobile breakpoints from the viewer container (by @ChristopherVR) ([7ac1554](https://github.com/ChristopherVR/pptx-viewer/commit/7ac1554ffd863dc04c0b60b8f08e42f259b96b88))
 
