@@ -42,6 +42,7 @@ import {
 	textColorOf,
 	textStylePatch,
 } from './inspector-helpers';
+import { IsMobileService } from './is-mobile';
 import { SmartArtPropertiesComponent } from './smart-art-properties.component';
 import { TableDataEditorComponent } from './table-data-editor.component';
 import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
@@ -59,6 +60,7 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 		SmartArtPropertiesComponent,
 		AnimationAuthorPanelComponent,
 	],
+	providers: [IsMobileService],
 	template: `
 		<!--
 			NOTE (mobile-safe inputs): every numeric / colour input is keyed on the
@@ -69,7 +71,7 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 			mid-edit: the caret stays put and the on-screen keyboard does not dismiss.
 			All commits happen on (change) (blur), reading event.target.value.
 		-->
-		<aside class="pptx-ng-inspector" aria-label="Element properties">
+		<aside [class]="inspectorClass()" aria-label="Element properties">
 			<!-- ── Transform: Position & Size ─────────────────────────────────── -->
 			<section class="pptx-ng-inspector__section">
 				<h3 class="pptx-ng-inspector__heading">Transform</h3>
@@ -461,8 +463,63 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 			font-size: 12px;
 		}
 
-		/* ── Touch / mobile: larger hit targets + full-width inputs ─────────── */
-		@media (pointer: coarse), (max-width: 640px) {
+		/*
+		 * Touch / mobile: larger hit targets, full-width inputs, and a
+		 * full-width box-sized panel so the inspector works as a bottom sheet
+		 * even when used standalone (the orchestrator host adds the drawer
+		 * positioning + backdrop + swipe-to-dismiss around it).
+		 *
+		 * Driven by the .is-mobile class (IsMobileService, the canonical 768px
+		 * breakpoint) and mirrored by a media query as a no-JS fallback.
+		 */
+		.pptx-ng-inspector.is-mobile {
+			width: 100%;
+			min-width: 0;
+			box-sizing: border-box;
+			font-size: 14px;
+		}
+
+		.pptx-ng-inspector.is-mobile .pptx-ng-inspector__row {
+			flex-wrap: wrap;
+			gap: 0.5rem;
+		}
+
+		.pptx-ng-inspector.is-mobile .pptx-ng-inspector__label {
+			min-width: 28px;
+		}
+
+		.pptx-ng-inspector.is-mobile .pptx-ng-inspector__input {
+			flex: 1 1 auto;
+			min-height: 40px;
+			font-size: 16px; /* prevents iOS auto-zoom on focus */
+			padding: 6px 8px;
+		}
+
+		.pptx-ng-inspector.is-mobile .pptx-ng-inspector__input--number {
+			width: auto;
+			min-width: 72px;
+		}
+
+		.pptx-ng-inspector.is-mobile .pptx-ng-inspector__color {
+			width: 44px;
+			height: 40px;
+		}
+
+		.pptx-ng-inspector.is-mobile .pptx-ng-inspector__toggle {
+			min-width: 44px;
+			width: auto;
+			flex: 1 1 auto;
+			height: 40px;
+			font-size: 15px;
+		}
+
+		.pptx-ng-inspector.is-mobile .pptx-ng-inspector__btn {
+			min-height: 40px;
+			padding: 8px 10px;
+			font-size: 13px;
+		}
+
+		@media (pointer: coarse), (max-width: 767px) {
 			.pptx-ng-inspector {
 				width: 100%;
 				min-width: 0;
@@ -550,6 +607,16 @@ export class InspectorPanelComponent {
 	readonly slideIndex = input.required<number>();
 
 	protected readonly editor = inject(EditorStateService);
+
+	/** Reactive viewport / pointer flags (drives the bottom-sheet layout). */
+	protected readonly mobile = inject(IsMobileService);
+
+	/**
+	 * Root class list: gains the `is-mobile` modifier under the mobile
+	 * breakpoint so the panel becomes a full-width, touch-sized bottom sheet.
+	 * See {@link inspectorRootClass}.
+	 */
+	protected readonly inspectorClass = computed(() => inspectorRootClass(this.mobile.isMobile()));
 
 	/** Alias so the template can call el() without conflicting with Angular internals. */
 	protected readonly el = computed(() => this.element());
@@ -771,6 +838,17 @@ export class InspectorPanelComponent {
 			textStylePatch(cur, { underline: !this.currentUnderline() }),
 		);
 	}
+}
+
+// ── Pure helpers (no Angular / DOM; unit-testable without TestBed) ────────────
+
+/**
+ * Map the mobile flag to the inspector root class list. On mobile the panel
+ * gains the `is-mobile` modifier that makes it a full-width, touch-sized
+ * bottom-sheet body (the orchestrator host wraps it with the drawer chrome).
+ */
+export function inspectorRootClass(isMobile: boolean): string {
+	return isMobile ? 'pptx-ng-inspector is-mobile' : 'pptx-ng-inspector';
 }
 
 // ── Module-private helpers ───────────────────────────────────────────────────

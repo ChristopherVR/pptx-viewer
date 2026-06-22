@@ -29,20 +29,40 @@ import {
 	ChangeDetectionStrategy,
 	Component,
 	HostListener,
+	computed,
+	inject,
 	input,
 	output,
 	signal,
 } from '@angular/core';
 
+import { IsMobileService } from './is-mobile';
+
+/**
+ * Map the mobile flag to the modal-panel class list. Pure (no Angular / DOM) so
+ * it can be unit-tested without TestBed: on mobile the panel gets the
+ * `is-mobile` modifier that turns it into a bottom sheet (matching the CSS media
+ * query, but driven by the {@link IsMobileService} 768px breakpoint so the three
+ * frameworks switch chrome at the same width).
+ */
+export function modalPanelClass(isMobile: boolean): string {
+	return isMobile ? 'pptx-ng-modal-panel is-mobile' : 'pptx-ng-modal-panel';
+}
+
 @Component({
 	selector: 'pptx-modal-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	providers: [IsMobileService],
 	template: `
 		@if (open()) {
-			<div class="pptx-ng-modal-backdrop" (click)="onBackdropClick()">
+			<div
+				class="pptx-ng-modal-backdrop"
+				[class.is-mobile]="mobile.isMobile()"
+				(click)="onBackdropClick()"
+			>
 				<div
-					class="pptx-ng-modal-panel"
+					[class]="panelClass()"
 					role="dialog"
 					aria-modal="true"
 					[attr.aria-label]="title() || null"
@@ -172,8 +192,33 @@ import {
 			 * (rounded top, dvh-capped height with internal scroll, safe-area
 			 * padding). The backdrop stops centering so the panel can pin itself
 			 * to the bottom edge. Desktop keeps the centered card above.
+			 *
+			 * Driven two ways that share the same declarations: the .is-mobile
+			 * class (set from IsMobileService, the canonical 768px breakpoint) and
+			 * a CSS media query as a no-JS fallback. Keeping both means the sheet
+			 * appears even if the service has not yet wired up.
 			 */
-			@media (max-width: 640px), (pointer: coarse) {
+			.pptx-ng-modal-backdrop.is-mobile {
+				align-items: flex-end;
+				justify-content: stretch;
+			}
+
+			.pptx-ng-modal-panel.is-mobile {
+				min-width: 0;
+				max-width: none;
+				width: 100%;
+				max-height: 88dvh;
+				border-left: none;
+				border-right: none;
+				border-bottom: none;
+				border-top-left-radius: 16px;
+				border-top-right-radius: 16px;
+				border-bottom-left-radius: 0;
+				border-bottom-right-radius: 0;
+				padding-bottom: max(env(safe-area-inset-bottom), 0px);
+			}
+
+			@media (max-width: 767px), (pointer: coarse) {
 				.pptx-ng-modal-backdrop {
 					align-items: flex-end;
 					justify-content: stretch;
@@ -206,6 +251,15 @@ export class ModalDialogComponent {
 
 	/** Fired on backdrop click, the `×` button, and `Escape`. */
 	readonly close = output<void>();
+
+	/** Reactive viewport / pointer flags (drives the bottom-sheet layout). */
+	protected readonly mobile = inject(IsMobileService);
+
+	/**
+	 * Panel class list: gains the `is-mobile` bottom-sheet modifier under the
+	 * mobile breakpoint. See {@link modalPanelClass}.
+	 */
+	protected readonly panelClass = computed(() => modalPanelClass(this.mobile.isMobile()));
 
 	/** Close on `Escape`, regardless of where focus currently sits. */
 	@HostListener('document:keydown', ['$event'])

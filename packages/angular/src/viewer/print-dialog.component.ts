@@ -29,12 +29,14 @@ import {
 	HostListener,
 	computed,
 	effect,
+	inject,
 	input,
 	output,
 	signal,
 } from '@angular/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
+import { IsMobileService } from './is-mobile';
 import {
 	DEFAULT_PRINT_SETTINGS,
 	computeSlideIndices,
@@ -45,20 +47,31 @@ import {
 import type { PrintSettings } from './print-helpers';
 import { PrintSettingsPanelComponent } from './print-settings-panel.component';
 
+/**
+ * Map the mobile flag to the print-dialog panel class list. Pure (no Angular /
+ * DOM) so it can be unit-tested without TestBed. On mobile the dialog gains the
+ * `is-mobile` modifier that turns it into a full-width bottom sheet.
+ */
+export function printDialogClass(isMobile: boolean): string {
+	return isMobile ? 'pptx-ng-print-dialog is-mobile' : 'pptx-ng-print-dialog';
+}
+
 @Component({
 	selector: 'pptx-print-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [PrintSettingsPanelComponent],
+	providers: [IsMobileService],
 	template: `
 		<div
 			class="pptx-ng-print-dialog__backdrop"
+			[class.is-mobile]="mobile.isMobile()"
 			role="dialog"
 			aria-modal="true"
 			aria-label="Print"
 			(click)="onBackdropClick($event)"
 		>
-			<div class="pptx-ng-print-dialog">
+			<div [class]="dialogClass()">
 				<!-- Header -->
 				<div class="pptx-ng-print-dialog__header">
 					<h2 class="pptx-ng-print-dialog__title">Print</h2>
@@ -221,6 +234,51 @@ import { PrintSettingsPanelComponent } from './print-settings-panel.component';
 			.pptx-ng-print-dialog__btn--primary:hover {
 				background: #2f6fd6;
 			}
+
+			/*
+			 * Mobile: dock the dialog full-width at the bottom as a sheet (rounded
+			 * top, dvh-capped height with internal scroll, safe-area padding) so
+			 * the 780px desktop card never overflows a phone. Driven by the
+			 * .is-mobile class (IsMobileService 768px breakpoint) and mirrored by a
+			 * media query as a no-JS fallback.
+			 */
+			.pptx-ng-print-dialog__backdrop.is-mobile {
+				align-items: flex-end;
+			}
+
+			.pptx-ng-print-dialog.is-mobile {
+				width: 100%;
+				max-width: none;
+				max-height: 88dvh;
+				border-left: none;
+				border-right: none;
+				border-bottom: none;
+				border-top-left-radius: 1rem;
+				border-top-right-radius: 1rem;
+				border-bottom-left-radius: 0;
+				border-bottom-right-radius: 0;
+				padding-bottom: max(env(safe-area-inset-bottom), 0px);
+			}
+
+			@media (max-width: 767px), (pointer: coarse) {
+				.pptx-ng-print-dialog__backdrop {
+					align-items: flex-end;
+				}
+
+				.pptx-ng-print-dialog {
+					width: 100%;
+					max-width: none;
+					max-height: 88dvh;
+					border-left: none;
+					border-right: none;
+					border-bottom: none;
+					border-top-left-radius: 1rem;
+					border-top-right-radius: 1rem;
+					border-bottom-left-radius: 0;
+					border-bottom-right-radius: 0;
+					padding-bottom: max(env(safe-area-inset-bottom), 0px);
+				}
+			}
 		`,
 	],
 })
@@ -246,6 +304,15 @@ export class PrintDialogComponent {
 
 	/** Emits when the dialog is dismissed (Cancel / Escape / backdrop). */
 	readonly cancel = output<void>();
+
+	/** Reactive viewport / pointer flags (drives the bottom-sheet layout). */
+	protected readonly mobile = inject(IsMobileService);
+
+	/**
+	 * Dialog class list: gains the `is-mobile` bottom-sheet modifier under the
+	 * mobile breakpoint. See {@link printDialogClass}.
+	 */
+	protected readonly dialogClass = computed(() => printDialogClass(this.mobile.isMobile()));
 
 	// -------------------------------------------------------------------------
 	// State
