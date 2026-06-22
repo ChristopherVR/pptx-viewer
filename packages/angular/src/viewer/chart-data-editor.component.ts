@@ -32,6 +32,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import type { ChartPptxElement } from 'pptx-viewer-core';
 
+import { AdvancedChartEditorComponent } from './advanced-chart-editor.component';
 import {
 	addCategory,
 	addSeries,
@@ -46,6 +47,7 @@ import {
 @Component({
 	selector: 'pptx-chart-data-editor',
 	standalone: true,
+	imports: [AdvancedChartEditorComponent],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
 		<section class="pptx-chart-editor" aria-label="Chart data editor">
@@ -187,6 +189,11 @@ import {
 						</tbody>
 					</table>
 				</div>
+				<pptx-advanced-chart-editor
+					[element]="element()"
+					[canEdit]="canEdit()"
+					(elementChange)="elementChange.emit($event)"
+				/>
 			} @else {
 				<p class="pptx-chart-editor__empty">No chart data available.</p>
 			}
