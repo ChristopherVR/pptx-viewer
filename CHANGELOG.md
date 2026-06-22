@@ -4,7 +4,7 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
-## [Unreleased]
+## [1.1.45](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.45) - 2026-06-22
 
 ### Features
 
@@ -21,6 +21,10 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### Documentation
 
 - SmartArt node text is editable on-canvas (double-click) in all bindings (by @ChristopherVR) ([2c17a55](https://github.com/ChristopherVR/pptx-viewer/commit/2c17a55b9a80f56aeaac90407b3d675cdc194b9f))
+
+### Chores
+
+- Added fixtures (by @ChristopherVR) ([af8f1d5](https://github.com/ChristopherVR/pptx-viewer/commit/af8f1d5198b83efc60fcc590af66ac9fcab414d8))
 
 ## [1.1.44](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.44) - 2026-06-22
 
