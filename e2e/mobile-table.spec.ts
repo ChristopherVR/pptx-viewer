@@ -82,3 +82,61 @@ test('double-tapping a table cell opens an editor and accepts input', async ({ p
 	);
 	expect(hasFree).toBe(true);
 });
+
+test('committing a cell edit by tapping away keeps the typed value', async ({ page }) => {
+	// Regression: on touch the canvas stage drives selection through a
+	// pointerdown handler that captures the pointer and re-delegates to the
+	// table element. The cell <input> must stop pointerdown propagation, else
+	// tapping away (or repositioning the caret) stole focus and DISCARDED the
+	// edit before it was kept ("table cells lose their value" on mobile).
+	await page.goto('/');
+	await page.locator('#file-input').setInputFiles(deck);
+	await page.locator('[data-pptx-element="true"]').first().waitFor();
+	await page.waitForTimeout(500);
+
+	await page.getByRole('button', { name: 'Slides' }).tap();
+	await page.waitForTimeout(300);
+	await page.getByText('Plans', { exact: true }).first().tap();
+	await page.waitForTimeout(600);
+
+	const starter = await cellPoint(page, 'Starter');
+	expect(starter).not.toBeNull();
+	await page.touchscreen.tap(starter!.x, starter!.y);
+	await page.touchscreen.tap(starter!.x, starter!.y);
+
+	const input = page.locator('td input[type="text"]');
+	await expect(input).toBeVisible();
+
+	await page.keyboard.type('Renamed');
+	// Commit by tapping a DIFFERENT cell (the bug path), not Enter. The
+	// different-cell pointerdown bubbles to the stage and blurs the input,
+	// which must commit rather than discard. Pick any other non-editing cell
+	// on-screen rather than hard-coding a label that may not exist in the deck.
+	const other = await page.evaluate(() => {
+		const vw = window.innerWidth;
+		for (const td of document.querySelectorAll('td')) {
+			if (td.querySelector('input')) {
+				continue; // skip the cell currently being edited
+			}
+			if (!td.textContent?.trim()) {
+				continue;
+			}
+			const r = td.getBoundingClientRect();
+			if (r.width === 0 || r.x > vw - 4) {
+				continue;
+			}
+			const x = Math.min(Math.max(r.x + 16, 4), vw - 4);
+			return { x: Math.round(x), y: Math.round(r.y + r.height / 2) };
+		}
+		return null;
+	});
+	expect(other).not.toBeNull();
+	await page.touchscreen.tap(other!.x, other!.y);
+	await page.waitForTimeout(250);
+
+	await expect(input).toBeHidden();
+	const kept = await page.evaluate(() =>
+		[...document.querySelectorAll('td')].some((t) => t.textContent?.includes('Renamed')),
+	);
+	expect(kept).toBe(true);
+});
