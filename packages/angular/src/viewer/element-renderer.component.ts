@@ -134,7 +134,11 @@ interface Paragraph {
 					[attr.data-element-id]="element().id"
 					[attr.data-pptx-element]="interactive() ? 'true' : null"
 				>
-					<pptx-smart-art-renderer [element]="element()" [zIndex]="zIndex()" />
+					<pptx-smart-art-renderer
+						[element]="element()"
+						[zIndex]="zIndex()"
+						[editable]="interactive() && editable()"
+					/>
 				</div>
 			}
 			@case (element().type === 'ole') {

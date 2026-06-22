@@ -1,8 +1,20 @@
 import { NgStyle } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import {
+	afterNextRender,
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	effect,
+	ElementRef,
+	inject,
+	Injector,
+	input,
+	signal,
+	viewChild,
+} from '@angular/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
-import { computeSmartArtLayout } from '../internal/shared';
+import { computeSmartArtLayout, flattenNodes } from '../internal/shared';
 import type {
 	RenderedCircleNode,
 	RenderedNode,
@@ -10,6 +22,7 @@ import type {
 	RenderedRectNode,
 	SmartArtLayoutResult,
 } from '../internal/shared';
+import { EditorStateService } from './editor-state.service';
 import type { StyleMap } from './element-style';
 import { getContainerStyle } from './element-style';
 import {
@@ -20,6 +33,13 @@ import {
 	styleShadowFilter,
 } from './smart-art-drawing';
 import type { DrawingViewBox, RenderedShape } from './smart-art-drawing';
+import {
+	beginNodeEdit,
+	commitNodeText,
+	findSlideIndexByElementId,
+	nodeIdFromKey,
+} from './smart-art-inline-edit';
+import type { InlineEditState } from './smart-art-inline-edit';
 
 /**
  * SmartArtRendererComponent: Angular SmartArt renderer.
@@ -114,7 +134,15 @@ import type { DrawingViewBox, RenderedShape } from './smart-art-drawing';
 							/>
 						}
 						@for (node of layout().nodes; track node.key) {
-							<g [ngStyle]="shadowFilter() ? { filter: shadowFilter() } : {}">
+							<g
+								[ngStyle]="shadowFilter() ? { filter: shadowFilter() } : {}"
+								[class.pptx-ng-smartart-node--editable]="canEditNodes()"
+								[attr.tabindex]="canEditNodes() ? 0 : null"
+								[attr.role]="canEditNodes() ? 'button' : null"
+								[attr.aria-label]="canEditNodes() ? 'Edit node: ' + node.text : null"
+								(dblclick)="onNodeDblClick($event, node)"
+								(keydown)="onNodeKeydown($event, node)"
+							>
 								@if (asCircle(node); as c) {
 									<circle
 										[attr.cx]="c.cx"
@@ -182,6 +210,30 @@ import type { DrawingViewBox, RenderedShape } from './smart-art-drawing';
 				} @else {
 					<div class="pptx-ng-smartart-placeholder">SmartArt</div>
 				}
+
+				<!--
+					Inline node-text editor. Positioned in element-local px (== viewBox
+					units, since the SVG viewBox matches the element pixel size and the
+					svg fills the chrome) over the double-clicked node. Commits via the
+					shared EditorStateService.updateElement path on Enter / blur.
+				-->
+				@if (editState(); as edit) {
+					<textarea
+						#nodeEditor
+						class="pptx-ng-smartart-node-editor"
+						[style.left.px]="edit.box.x"
+						[style.top.px]="edit.box.y"
+						[style.width.px]="edit.box.width"
+						[style.height.px]="edit.box.height"
+						[value]="edit.text"
+						(pointerdown)="$event.stopPropagation()"
+						(mousedown)="$event.stopPropagation()"
+						(click)="$event.stopPropagation()"
+						(dblclick)="$event.stopPropagation()"
+						(blur)="commitEdit($event)"
+						(keydown)="onEditorKeydown($event)"
+					></textarea>
+				}
 			</div>
 		</div>
 	`,
@@ -189,12 +241,36 @@ import type { DrawingViewBox, RenderedShape } from './smart-art-drawing';
 		.pptx-ng-smartart-chrome {
 			box-sizing: border-box;
 			overflow: hidden;
+			position: relative;
 		}
 
 		.pptx-ng-smartart-svg {
 			width: 100%;
 			height: 100%;
 			pointer-events: none;
+		}
+
+		/* Editable nodes accept pointer + keyboard interaction for inline editing. */
+		.pptx-ng-smartart-node--editable {
+			pointer-events: auto;
+			cursor: text;
+		}
+
+		.pptx-ng-smartart-node-editor {
+			position: absolute;
+			box-sizing: border-box;
+			margin: 0;
+			padding: 1px 2px;
+			border: 1px solid var(--pptx-inspector-active, #0078d4);
+			border-radius: 2px;
+			background: #fff;
+			color: #111;
+			font-size: 11px;
+			line-height: 1.1;
+			text-align: center;
+			resize: none;
+			overflow: hidden;
+			z-index: 2;
 		}
 
 		.pptx-ng-smartart-placeholder {
@@ -213,6 +289,50 @@ export class SmartArtRendererComponent {
 	/** The smartArt element to render. Must be `type === 'smartArt'`. */
 	readonly element = input.required<PptxElement>();
 	readonly zIndex = input<number>(0);
+
+	/**
+	 * Whether inline on-canvas node-text editing is enabled. False in
+	 * presentation / read-only / thumbnail contexts (mirrors the table renderer's
+	 * `editable` input). Double-clicking a node only enters edit mode when true.
+	 */
+	readonly editable = input<boolean>(false);
+
+	/**
+	 * The editor state layer. Optional: the renderer is also used outside the
+	 * editing viewer (thumbnails, export), where this service is not provided.
+	 * Inline editing commits through `updateElement` here, the exact channel the
+	 * inspector's SmartArt panel uses, so undo/redo + save round-trip are shared.
+	 */
+	private readonly editor = inject(EditorStateService, { optional: true });
+	private readonly injector = inject(Injector);
+
+	/** The node currently being edited on the canvas, or null. */
+	private readonly editState = signal<InlineEditState | null>(null);
+
+	/** The mounted `<textarea>` for the active node edit, if any. */
+	private readonly nodeEditor = viewChild<ElementRef<HTMLTextAreaElement>>('nodeEditor');
+
+	/** Whether node double-click / Enter enters inline edit (editable + has editor). */
+	readonly canEditNodes = computed(() => this.editable() && this.editor !== null);
+
+	constructor() {
+		// Focus + select-all the editor as soon as it mounts (mirrors the table
+		// renderer's cell-input effect).
+		effect(() => {
+			if (this.editState()) {
+				afterNextRender(
+					() => {
+						const el = this.nodeEditor()?.nativeElement;
+						if (el) {
+							el.focus();
+							el.select();
+						}
+					},
+					{ injector: this.injector },
+				);
+			}
+		});
+	}
 
 	private readonly smartArtData = computed(() => {
 		const el = this.element();
@@ -288,6 +408,90 @@ export class SmartArtRendererComponent {
 	/** Narrow a `RenderedNode` to a rect, or `undefined`. */
 	asRect(node: RenderedNode): RenderedRectNode | undefined {
 		return node.kind === 'rect' ? node : undefined;
+	}
+
+	// ── Inline node-text editing ───────────────────────────────────────────
+
+	/** Double-click a node enters inline edit mode (when editable). */
+	onNodeDblClick(event: Event, node: RenderedNode): void {
+		if (!this.canEditNodes()) {
+			return;
+		}
+		event.stopPropagation();
+		this.enterEdit(node);
+	}
+
+	/** Enter / F2 on a focused node enters inline edit mode (when editable). */
+	onNodeKeydown(event: KeyboardEvent, node: RenderedNode): void {
+		if (!this.canEditNodes() || (event.key !== 'Enter' && event.key !== 'F2')) {
+			return;
+		}
+		event.preventDefault();
+		event.stopPropagation();
+		this.enterEdit(node);
+	}
+
+	/** Commit the current edit (called on blur). */
+	commitEdit(event: Event): void {
+		const edit = this.editState();
+		if (!edit) {
+			return;
+		}
+		const value = (event.target as HTMLTextAreaElement).value;
+		this.editState.set(null);
+		this.applyCommit(edit.nodeId, value);
+	}
+
+	/** Enter commits (Shift+Enter inserts a newline); Escape cancels. */
+	onEditorKeydown(event: KeyboardEvent): void {
+		event.stopPropagation();
+		if (event.key === 'Enter' && !event.shiftKey) {
+			event.preventDefault();
+			// Commit via blur so the single commit path runs once.
+			(event.target as HTMLTextAreaElement).blur();
+		} else if (event.key === 'Escape') {
+			event.preventDefault();
+			this.editState.set(null);
+		}
+	}
+
+	/** Resolve the node id + geometry and open the editor seeded with full text. */
+	private enterEdit(node: RenderedNode): void {
+		const elementId = this.element().id;
+		const seed = beginNodeEdit(node, elementId, this.rawNodeText(node));
+		if (seed) {
+			this.editState.set(seed);
+		}
+	}
+
+	/** The node's full (untruncated) data-model text, falling back to rendered text. */
+	private rawNodeText(node: RenderedNode): string {
+		const nodeId = nodeIdFromKey(node.key, this.element().id);
+		if (nodeId === null) {
+			return node.text;
+		}
+		const match = flattenNodes(this.nodes()).find((n) => n.id === nodeId);
+		return match ? match.text : node.text;
+	}
+
+	/** Commit edited text through the shared editor state (one history entry). */
+	private applyCommit(nodeId: string, text: string): void {
+		const data = this.smartArtData();
+		const editor = this.editor;
+		if (!data || !editor) {
+			return;
+		}
+		const next = commitNodeText(data, nodeId, text);
+		if (next === data) {
+			return;
+		}
+		const slideIndex = findSlideIndexByElementId(editor.slides(), this.element().id);
+		if (slideIndex < 0) {
+			return;
+		}
+		editor.updateElement(slideIndex, this.element().id, {
+			smartArtData: next,
+		} as Partial<PptxElement>);
 	}
 
 	// ── Empty / no-data state ──────────────────────────────────────────────
