@@ -368,6 +368,10 @@ export * from './find-replace';
 // Accessibility issue aggregation over a slide array (mirrors core's
 // `checkPresentation`) + severity grouping/labels for the panel.
 export * from './accessibility-issues';
+// Per-element accessibility: reading-order computation, ARIA role / label /
+// role-description mapping, and reduced-motion detection. Each binding's element
+// renderer applies these to its DOM nodes.
+export * from './accessibility';
 // Freehand ink: points -> SVG path `d`, completed-stroke -> `InkPptxElement`.
 export * from './ink-drawing';
 // Mobile chrome sheet state machine + bottom-bar action descriptors.
