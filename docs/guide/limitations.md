@@ -11,8 +11,8 @@ description: What is and isn't supported across the core engine, the React viewe
 
 ## Core engine (`pptx-viewer-core`)
 
-::: warning Embedded OLE objects are read-only
-OLE objects (embedded Excel, Word, etc.) are recognised and their preview images are displayed, but their internal content **cannot be edited**. OLE2 is an opaque binary container; deserialising and re-serialising the internal object structure (e.g. an embedded Excel workbook) would require embedding the full application runtime.
+::: warning Embedded OLE objects cannot be edited in-app
+OLE objects (embedded Excel, Word, etc.) are recognised and their preview images are displayed. On load the engine now also recovers the embedded payload (unwrapping the OLE2 `Package` stream to its original file) and exposes it, so the viewer offers **Download** / **Open in a new tab** for the embedded file plus richer info (object type, original file name, size, source application). Their internal content still **cannot be edited in place**: a browser cannot launch the native desktop application, and deserialising/re-serialising the internal object structure (e.g. an embedded Excel workbook) would require embedding the full application runtime.
 :::
 
 - **SmartArt editing reflows and round-trips losslessly** - SmartArt diagrams are decomposed into individual positioned shapes, preferring PowerPoint's own pre-computed drawing data and falling back to an algorithmic layout engine (linear, snake, hierarchy, cycle, pyramid, matrix) covering every layout category. Node add/remove/reorder/promote/demote and text edits automatically reflow the layout, and the diagram data part (`data*.xml`) is merged surgically on save so the data model (nodes, connections, text) plus presentation/doc points and per-point `prSet`/`spPr` survive a round-trip; background and outline chrome persist too. The colour (`colors*.xml`) and quick-style (`quickStyles*.xml`) parts are now regenerated and merged on save, so a colour-scheme or style-intensity change persists and PowerPoint honours it on open, and per-run rich text inside a node is preserved when its text is edited.
