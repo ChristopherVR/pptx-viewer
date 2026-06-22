@@ -42,6 +42,10 @@ export * from './chart-axis';
 export * from './chart-palette';
 export * from './chart-datapoint-style';
 export * from './chart-sparkline';
+// Pure option lists + chart-type capability Sets for the chart inspector
+// controls (type/grouping/legend/axis/data-label/trendline/error-bar/marker/
+// gridline/combo selectors), shared by every binding's chart editor.
+export * from './chart-editor-options';
 // SVG-primitive chart engine. Its low-level helpers `ValueRange` / `PlotLayout`
 // / `valueToY` / `formatAxisValue` / `computeValueRange` / `seriesColor` /
 // `paletteColor` duplicate (with deliberately different signatures) the ones in
@@ -379,10 +383,6 @@ export * from './comments-list';
 // lifecycle; the recogniser and its pure helpers (getTouchDistance/clampScale)
 // are shared here.
 export * from './touch-gestures';
-// Chart-inspector option catalogues: the pure value/label lists and supported-
-// type Sets that drive the advanced chart editor selects + conditional sections,
-// shared so each binding's chart inspector consumes one source of truth.
-export * from './chart-editor-options';
 // Insert-chart factory: a sensible DEFAULT new `ChartPptxElement` (three sample
 // categories, one "Series 1", legend on, default position) plus the chart-type
 // list shown in the insert dropdown. The single source of truth every binding's
