@@ -138,4 +138,128 @@ describe('chartPanel', () => {
 
 		expect((el as { chartData?: PptxChartData }).chartData?.series[0].color).toBeUndefined();
 	});
+
+	// ── Advanced controls (parity with the React chart editor) ─────────
+
+	it('toggling show-legend emits style with hasLegend set', async () => {
+		const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
+		await wrapper.get('[data-testid="chart-show-legend"]').setValue(true);
+
+		const next = lastChartData(wrapper.emitted('update'));
+		expect(next.style?.hasLegend).toBeTruthy();
+	});
+
+	it('legend position only appears once a legend is enabled', async () => {
+		const off = mount(ChartPanel, { props: { element: chartElement() } });
+		expect(off.find('[data-testid="chart-legend-position"]').exists()).toBeFalsy();
+
+		const on = mount(ChartPanel, {
+			props: { element: chartElement({ style: { hasLegend: true } }) },
+		});
+		expect(on.find('[data-testid="chart-legend-position"]').exists()).toBeTruthy();
+	});
+
+	it('enabling data labels emits style with hasDataLabels and reveals content flags', async () => {
+		const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
+		expect(wrapper.find('[data-testid="chart-data-label-content"]').exists()).toBeFalsy();
+
+		await wrapper.get('[data-testid="chart-show-data-labels"]').setValue(true);
+		const next = lastChartData(wrapper.emitted('update'));
+		expect(next.style?.hasDataLabels).toBeTruthy();
+
+		const labelled = mount(ChartPanel, {
+			props: { element: chartElement({ style: { hasDataLabels: true } }) },
+		});
+		expect(labelled.find('[data-testid="chart-data-label-content"]').exists()).toBeTruthy();
+	});
+
+	it('editing an axis min emits chartData with that axis scale', async () => {
+		const wrapper = mount(ChartPanel, {
+			props: { element: chartElement({ axes: [{ axisType: 'valAx' }] }) },
+		});
+		await wrapper.get('[data-testid="chart-axis-scale"]').setValue('5');
+
+		const next = lastChartData(wrapper.emitted('update'));
+		const valAx = next.axes?.find((a) => a.axisType === 'valAx');
+		expect(valAx?.min).toBe(5);
+	});
+
+	it('enabling log scale emits chartData with logScale on the value axis', async () => {
+		const wrapper = mount(ChartPanel, {
+			props: { element: chartElement({ axes: [{ axisType: 'valAx' }] }) },
+		});
+		await wrapper.get('[data-testid="chart-axis-log-scale"]').setValue(true);
+
+		const next = lastChartData(wrapper.emitted('update'));
+		const valAx = next.axes?.find((a) => a.axisType === 'valAx');
+		expect(valAx?.logScale).toBeTruthy();
+	});
+
+	it('shows markers for line charts and applies a chosen symbol', async () => {
+		const wrapper = mount(ChartPanel, { props: { element: chartElement({ chartType: 'line' }) } });
+		const select = wrapper.get('[data-testid="chart-marker-symbol"]');
+		await select.setValue('circle');
+
+		const next = lastChartData(wrapper.emitted('update'));
+		expect(next.series[0].marker?.symbol).toBe('circle');
+	});
+
+	it('hides markers for bar charts', () => {
+		const wrapper = mount(ChartPanel, { props: { element: chartElement({ chartType: 'bar' }) } });
+		expect(wrapper.find('[data-testid="chart-marker-symbol"]').exists()).toBeFalsy();
+	});
+
+	it('shows combo per-series type when there are two or more series', async () => {
+		const wrapper = mount(ChartPanel, {
+			props: {
+				element: chartElement({
+					chartType: 'bar',
+					series: [
+						{ name: 'A', values: [1] },
+						{ name: 'B', values: [2] },
+					],
+				}),
+			},
+		});
+		const selects = wrapper.findAll('[data-testid="chart-combo-type"]');
+		expect(selects).toHaveLength(2);
+
+		await selects[1].setValue('line');
+		const next = lastChartData(wrapper.emitted('update'));
+		expect(next.series[1].seriesChartType).toBe('line');
+	});
+
+	it('applies a trendline to a series', async () => {
+		const wrapper = mount(ChartPanel, { props: { element: chartElement({ chartType: 'line' }) } });
+		await wrapper.get('[data-testid="chart-trendline-type"]').setValue('linear');
+
+		const next = lastChartData(wrapper.emitted('update'));
+		expect(next.series[0].trendlines?.[0]?.trendlineType).toBe('linear');
+	});
+
+	it('applies error bars to a series', async () => {
+		const wrapper = mount(ChartPanel, { props: { element: chartElement({ chartType: 'bar' }) } });
+		await wrapper.get('[data-testid="chart-error-bar-valtype"]').setValue('percentage');
+
+		const next = lastChartData(wrapper.emitted('update'));
+		expect(next.series[0].errBars?.[0]?.valType).toBe('percentage');
+	});
+
+	it('shows per-point explosion for pie charts and applies it', async () => {
+		const wrapper = mount(ChartPanel, { props: { element: chartElement({ chartType: 'pie' }) } });
+		const inputs = wrapper.findAll('[data-testid="chart-point-explosion"]');
+		expect(inputs).toHaveLength(3);
+
+		await inputs[0].setValue('30');
+		const next = lastChartData(wrapper.emitted('update'));
+		expect(next.series[0].dataPoints?.find((p) => p.idx === 0)?.explosion).toBe(30);
+	});
+
+	it('applies a per-point fill', async () => {
+		const wrapper = mount(ChartPanel, { props: { element: chartElement({ chartType: 'pie' }) } });
+		await wrapper.findAll('[data-testid="chart-point-fill"]')[1].setValue('#abcdef');
+
+		const next = lastChartData(wrapper.emitted('update'));
+		expect(next.series[0].dataPoints?.find((p) => p.idx === 1)?.spPr?.fillColor).toBe('#abcdef');
+	});
 });
