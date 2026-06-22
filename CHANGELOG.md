@@ -8,6 +8,21 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **vue:** Container-ref ResizeObserver path for useIsMobile (React parity) (by @ChristopherVR) ([72fb2ee](https://github.com/ChristopherVR/pptx-viewer/commit/72fb2ee027176648c48e2c5eb81a20a1fefecb49))
+- **vue:** Drive mobile breakpoints from the viewer container (by @ChristopherVR) ([7ac1554](https://github.com/ChristopherVR/pptx-viewer/commit/7ac1554ffd863dc04c0b60b8f08e42f259b96b88))
+
+### Bug Fixes
+
+- **core:** Align strict OOXML save with real packages (OPC/MCE are conformance-independent) (by @ChristopherVR) ([c6b69e0](https://github.com/ChristopherVR/pptx-viewer/commit/c6b69e08d44d783c2533a807b037c91448d1cd42))
+
+### Refactor
+
+- **angular:** Consume shared setCellText (share-first dedup) (by @ChristopherVR) ([874b69e](https://github.com/ChristopherVR/pptx-viewer/commit/874b69edf7d151f146da7ef302a3a70827108162))
+
+## [1.1.39](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.39) - 2026-06-22
+
+### Features
+
 - **shared:** Add immutable setCellText table-cell helper (by @ChristopherVR) ([7b5ace0](https://github.com/ChristopherVR/pptx-viewer/commit/7b5ace0dcf11e0d4bdc1674da4ab017183eaf290))
 - **vue:** Inline table-cell editing (parity with React/Angular) (by @ChristopherVR) ([f30ac5b](https://github.com/ChristopherVR/pptx-viewer/commit/f30ac5b454e43098a1b8d5f870ae98b7532ea32c))
 
