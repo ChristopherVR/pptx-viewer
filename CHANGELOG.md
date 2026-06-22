@@ -8,6 +8,31 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **shared:** Compound animation triggers and advanced morph transitions (by @ChristopherVR) ([2b8aa8b](https://github.com/ChristopherVR/pptx-viewer/commit/2b8aa8b5211711899b7dda27a5599d344d5b2969))
+- **core:** Regenerate SmartArt colors/quickStyles on save and preserve per-run text (by @ChristopherVR) ([3f70e6d](https://github.com/ChristopherVR/pptx-viewer/commit/3f70e6d2a4ab1a52ca1957faf7317a54e579b819))
+- **core:** Multi-container combo chart load and per-data-point label overrides (by @ChristopherVR) ([32dc2d7](https://github.com/ChristopherVR/pptx-viewer/commit/32dc2d715b09ac9fce2223ae886d4332b82d5688))
+- **shared:** Extract pure clone helpers to shared; React re-exports (by @ChristopherVR) ([436d708](https://github.com/ChristopherVR/pptx-viewer/commit/436d7084267ac31d0ea9905ad3522dd0cd04c01b))
+- **shared:** Chart-editor option constants and supported-type sets (by @ChristopherVR) ([dd67c0e](https://github.com/ChristopherVR/pptx-viewer/commit/dd67c0e39e835f4f32931adcadd71c8a168bb737))
+- **vue:** Advanced chart editor parity with React (by @ChristopherVR) ([e57afac](https://github.com/ChristopherVR/pptx-viewer/commit/e57afac90a2b6e93d73366c38bc1414da057a12e))
+- **angular:** Advanced chart editor parity with React (by @ChristopherVR) ([bf237d1](https://github.com/ChristopherVR/pptx-viewer/commit/bf237d14161318ed06efac623f1c08767bf1a195))
+
+### Bug Fixes
+
+- **vue:** Gate inline text editor to text-bearing elements (by @ChristopherVR) ([7c31be5](https://github.com/ChristopherVR/pptx-viewer/commit/7c31be53ad20bdfe5c81dac52d2a95a7e77d160b))
+
+### Refactor
+
+- **angular:** Route present-mode swipe through shared recognizer (by @ChristopherVR) ([9d2d375](https://github.com/ChristopherVR/pptx-viewer/commit/9d2d375df65b43ff84363e8ae28c835e4496ef94))
+
+### Documentation
+
+- Mark SmartArt, chart, animation, morph, and strict-OOXML limitations closed (by @ChristopherVR) ([e3426bc](https://github.com/ChristopherVR/pptx-viewer/commit/e3426bcd6c66edd64f632642ccd37cf5ee611314))
+- Chart editor and framework parity complete across React/Vue/Angular (by @ChristopherVR) ([966d86c](https://github.com/ChristopherVR/pptx-viewer/commit/966d86ccfec97996df53b1a4a80ecd2582dd61ce))
+
+## [1.1.41](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.41) - 2026-06-22
+
+### Features
+
 - **shared:** Swipe falls back to last move position without changedTouches (by @ChristopherVR) ([d42309a](https://github.com/ChristopherVR/pptx-viewer/commit/d42309addb8c422502747abd873924b09350c02d))
 
 ### Testing
