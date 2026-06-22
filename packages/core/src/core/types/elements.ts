@@ -242,6 +242,23 @@ export interface OlePptxElement extends PptxElementBase {
 	oleImgW?: number;
 	/** Authored display height of the OLE object preview, in EMU (`@imgH`). */
 	oleImgH?: number;
+	/**
+	 * The recovered embedded payload as a data-URL (e.g.
+	 * `data:application/vnd...;base64,...`), suitable for download or
+	 * open-in-new-tab. For a generic "Package" OLE object this is the unwrapped
+	 * inner file; for a plain embedded file (e.g. `.xlsx`) it is that file
+	 * directly. Undefined when the embedding is missing or unreadable.
+	 *
+	 * Stored as a data-URL string to mirror how images store decoded bytes
+	 * ({@link ImagePptxElement.imageData}) and to stay serialization-safe.
+	 */
+	oleEmbeddedData?: string;
+	/** Original file name of the embedded payload when recoverable. */
+	oleEmbeddedFileName?: string;
+	/** MIME type of the embedded payload, derived from its extension/ProgID. */
+	oleEmbeddedMimeType?: string;
+	/** Size of the embedded payload in bytes. */
+	oleEmbeddedByteSize?: number;
 	/** Unrecognised graphicFrame extLst extensions, captured verbatim for round-trip. */
 	extensionXml?: PptxGraphicFrameExtension[];
 }

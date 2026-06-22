@@ -120,6 +120,8 @@ export interface PptxSlideLoaderParams {
 		elements: PptxElement[],
 		timingMap: PptxMediaTimingMap,
 	) => Promise<void>;
+	/** Recover and attach embedded binaries for OLE elements (download/open). */
+	enrichOleElementsWithEmbeddedData: (elements: PptxElement[], slidePath: string) => Promise<void>;
 	/** Extract solid background color from slide XML. */
 	extractBackgroundColor: (slideXml: XmlObject) => string | undefined;
 	/** Get background color from the slide's layout (fallback). */

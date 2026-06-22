@@ -33,6 +33,7 @@ function createMockParams(overrides?: Partial<PptxSlideLoaderParams>): PptxSlide
 		parseSlide: vi.fn(async () => []),
 		extractMediaTimingMap: vi.fn(() => new Map()),
 		enrichMediaElementsWithTiming: vi.fn(async () => {}),
+		enrichOleElementsWithEmbeddedData: vi.fn(async () => {}),
 		extractBackgroundColor: vi.fn(() => undefined),
 		getLayoutBackgroundColor: vi.fn(async () => undefined),
 		extractBackgroundGradient: vi.fn(() => undefined),
@@ -400,7 +401,7 @@ describe('pptxSlideLoaderService', () => {
 			});
 
 			await service.loadSlides(params);
-			expect(restoreFn).toHaveBeenCalled();
+			expect(restoreFn).toHaveBeenCalledWith();
 		});
 
 		it('resets color map override after loading a slide', async () => {

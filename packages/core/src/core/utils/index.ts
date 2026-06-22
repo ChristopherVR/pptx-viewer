@@ -49,7 +49,16 @@ export {
 	detectOleObjectType,
 	inferOleExtensionFromTarget,
 	getOleObjectTypeLabel,
+	mimeTypeForOleFile,
 } from './ole-utils';
+
+export {
+	unwrapOleEmbedding,
+	decodeOle10Native,
+	isOle2CompoundFile,
+	oleBytesToDataUrl,
+	type OleUnwrapResult,
+} from './ole-embedded-extract';
 
 export { decomposeSmartArt } from './smartart-decompose';
 

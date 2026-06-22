@@ -8,15 +8,15 @@ const PROG_ID_MAP: ReadonlyArray<{
 	type: OleObjectType;
 	extension: string;
 }> = [
-	{ pattern: /^Excel\./i, type: 'excel', extension: 'xlsx' },
-	{ pattern: /^Word\./i, type: 'word', extension: 'docx' },
-	{ pattern: /^PowerPoint\./i, type: 'excel', extension: 'pptx' },
-	{ pattern: /^Visio\./i, type: 'visio', extension: 'vsdx' },
-	{ pattern: /^Equation\./i, type: 'mathtype', extension: 'wmf' },
-	{ pattern: /^MathType/i, type: 'mathtype', extension: 'wmf' },
-	{ pattern: /^AcroExch\./i, type: 'pdf', extension: 'pdf' },
-	{ pattern: /^Acrobat\./i, type: 'pdf', extension: 'pdf' },
-	{ pattern: /^Package$/i, type: 'package', extension: 'bin' },
+	{ pattern: /^Excel\./iu, type: 'excel', extension: 'xlsx' },
+	{ pattern: /^Word\./iu, type: 'word', extension: 'docx' },
+	{ pattern: /^PowerPoint\./iu, type: 'excel', extension: 'pptx' },
+	{ pattern: /^Visio\./iu, type: 'visio', extension: 'vsdx' },
+	{ pattern: /^Equation\./iu, type: 'mathtype', extension: 'wmf' },
+	{ pattern: /^MathType/iu, type: 'mathtype', extension: 'wmf' },
+	{ pattern: /^AcroExch\./iu, type: 'pdf', extension: 'pdf' },
+	{ pattern: /^Acrobat\./iu, type: 'pdf', extension: 'pdf' },
+	{ pattern: /^Package$/iu, type: 'package', extension: 'bin' },
 ];
 
 /**
@@ -55,7 +55,7 @@ export function detectOleObjectType(
 	}
 
 	if (clsId) {
-		const normalised = clsId.replace(/[{}]/g, '').toUpperCase().trim();
+		const normalised = clsId.replace(/[{}]/gu, '').toUpperCase().trim();
 		const match = CLSID_MAP.get(normalised);
 		if (match) {
 			return { oleObjectType: match.type, oleFileExtension: match.extension };
@@ -83,6 +83,50 @@ export function inferOleExtensionFromTarget(oleTarget: string | undefined): stri
 		return ext;
 	}
 	return undefined;
+}
+
+/**
+ * Map of well-known file extensions to MIME types for embedded OLE payloads.
+ * Lower-case extension (no leading dot) -> MIME type.
+ */
+const OLE_EXTENSION_MIME_MAP: ReadonlyMap<string, string> = new Map([
+	['xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+	['xlsm', 'application/vnd.ms-excel.sheet.macroEnabled.12'],
+	['xls', 'application/vnd.ms-excel'],
+	['docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+	['docm', 'application/vnd.ms-word.document.macroEnabled.12'],
+	['doc', 'application/msword'],
+	['pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'],
+	['ppt', 'application/vnd.ms-powerpoint'],
+	['vsdx', 'application/vnd.ms-visio.drawing'],
+	['vsd', 'application/vnd.visio'],
+	['pdf', 'application/pdf'],
+	['rtf', 'application/rtf'],
+	['txt', 'text/plain'],
+	['csv', 'text/csv'],
+	['png', 'image/png'],
+	['jpg', 'image/jpeg'],
+	['jpeg', 'image/jpeg'],
+	['gif', 'image/gif'],
+	['wmf', 'image/wmf'],
+	['emf', 'image/emf'],
+	['zip', 'application/zip'],
+]);
+
+/**
+ * Resolve a MIME type for an embedded OLE payload from its file name or
+ * extension. Falls back to `application/octet-stream` when unknown.
+ */
+export function mimeTypeForOleFile(fileNameOrExtension: string | undefined): string {
+	const fallback = 'application/octet-stream';
+	if (!fileNameOrExtension) {
+		return fallback;
+	}
+	const lastDot = fileNameOrExtension.lastIndexOf('.');
+	const ext = (lastDot === -1 ? fileNameOrExtension : fileNameOrExtension.slice(lastDot + 1))
+		.toLowerCase()
+		.trim();
+	return OLE_EXTENSION_MIME_MAP.get(ext) ?? fallback;
 }
 
 /**

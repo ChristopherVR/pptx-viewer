@@ -185,6 +185,11 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 				await params.enrichMediaElementsWithTiming(slideElements, mediaTimingMap);
 			}
 
+			// Recover embedded OLE binaries so callers can download / open the
+			// real inner file. Operates on slide-authored elements (layout
+			// shapes never carry OLE objects).
+			await params.enrichOleElementsWithEmbeddedData(slideElements, path);
+
 			// Merge layout elements (behind) with slide elements (on top)
 			const elements = [...layoutElements, ...slideElements];
 			const backgroundColor =

@@ -4,6 +4,7 @@ import {
 	detectOleObjectType,
 	inferOleExtensionFromTarget,
 	getOleObjectTypeLabel,
+	mimeTypeForOleFile,
 } from './ole-utils';
 
 // ---------------------------------------------------------------------------
@@ -163,5 +164,35 @@ describe('getOleObjectTypeLabel', () => {
 
 	it('returns default label for unknown type', () => {
 		expect(getOleObjectTypeLabel('unknown')).toBe('Embedded Object');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// mimeTypeForOleFile
+// ---------------------------------------------------------------------------
+
+describe('mimeTypeForOleFile', () => {
+	it('maps a modern Office file name to its OOXML mime type', () => {
+		expect(mimeTypeForOleFile('budget.xlsx')).toBe(
+			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		);
+		expect(mimeTypeForOleFile('report.docx')).toBe(
+			'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+		);
+	});
+
+	it('maps a PDF and is case-insensitive', () => {
+		expect(mimeTypeForOleFile('manual.PDF')).toBe('application/pdf');
+	});
+
+	it('accepts a bare extension', () => {
+		expect(mimeTypeForOleFile('pptx')).toBe(
+			'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+		);
+	});
+
+	it('falls back to octet-stream for unknown or missing input', () => {
+		expect(mimeTypeForOleFile('file.unknownext')).toBe('application/octet-stream');
+		expect(mimeTypeForOleFile(undefined)).toBe('application/octet-stream');
 	});
 });

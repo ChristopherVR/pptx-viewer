@@ -1,11 +1,21 @@
 import JSZip from 'jszip';
 
 import { XmlObject } from '../../types';
-import type { PptxSection, PptxCustomXmlPart } from '../../types';
+import type { PptxElement, PptxSection, PptxCustomXmlPart } from '../../types';
+import { oleBytesToDataUrl, unwrapOleEmbedding } from '../../utils/ole-embedded-extract';
+import { mimeTypeForOleFile } from '../../utils/ole-utils';
 import { detectDigitalSignatures } from '../../utils/signature-detection';
 import type { PptxHandlerLoadOptions } from '../types';
 import { DEFAULT_MAX_UNCOMPRESSED_BYTES, MAX_ZIP_ENTRY_COUNT, ZipBombError } from '../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeEmbeddedFonts';
+
+/**
+ * Per-embedding size cap for eager OLE payload extraction. Embeddings larger
+ * than this are left undefined (callers can still re-derive from `oleTarget`)
+ * to avoid building a multi-megabyte base64 string on load. The whole-archive
+ * zip-bomb guard already bounds total size; this is a finer per-object bound.
+ */
+const MAX_OLE_EMBEDDING_BYTES = 25 * 1024 * 1024;
 
 /**
  * Minimal shape of JSZip's internal `_data` field that exposes the
@@ -298,6 +308,70 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		};
 	}
 
+	/**
+	 * Recover and attach the real embedded binary for each OLE element on a
+	 * slide so callers can download / open the inner file.
+	 *
+	 * For each embedded (non-linked) OLE object: resolve its relationship
+	 * target to a zip path (same resolution as images), read the bytes, unwrap
+	 * a generic "Package" wrapper (recovering the original file name) when
+	 * present, derive a MIME type, and expose the payload as a data-URL on the
+	 * element. Linked objects, missing targets, oversized payloads, and parse
+	 * failures are skipped silently so existing behaviour is preserved.
+	 */
+	protected async enrichOleElementsWithEmbeddedData(
+		elements: PptxElement[],
+		slidePath: string,
+		depth: number = 0,
+	): Promise<void> {
+		const MAX_OLE_DEPTH = 32;
+		if (depth > MAX_OLE_DEPTH) {
+			return;
+		}
+		for (const el of elements) {
+			if (el.type === 'group' && el.children) {
+				await this.enrichOleElementsWithEmbeddedData(el.children, slidePath, depth + 1);
+				continue;
+			}
+			if (el.type !== 'ole' || el.isLinked || !el.oleTarget) {
+				continue;
+			}
+			try {
+				const embeddingPath = this.resolveImagePath(slidePath, el.oleTarget);
+				if (!embeddingPath) {
+					continue;
+				}
+				const file = this.zip.file(embeddingPath);
+				if (!file) {
+					continue;
+				}
+				const buffer = await file.async('arraybuffer');
+				if (buffer.byteLength === 0 || buffer.byteLength > MAX_OLE_EMBEDDING_BYTES) {
+					continue;
+				}
+				const unwrapped = unwrapOleEmbedding(new Uint8Array(buffer));
+				if (unwrapped.data.length === 0) {
+					continue;
+				}
+				// Prefer the recovered inner file name; otherwise synthesise one
+				// from the element name and detected extension.
+				const fileName =
+					unwrapped.fileName ??
+					el.fileName ??
+					(el.oleName && el.oleFileExtension ? `${el.oleName}.${el.oleFileExtension}` : undefined);
+				const mimeType = mimeTypeForOleFile(fileName ?? `x.${el.oleFileExtension ?? 'bin'}`);
+				el.oleEmbeddedData = oleBytesToDataUrl(unwrapped.data, mimeType);
+				el.oleEmbeddedByteSize = unwrapped.data.length;
+				el.oleEmbeddedMimeType = mimeType;
+				if (fileName) {
+					el.oleEmbeddedFileName = fileName;
+				}
+			} catch {
+				// Non-critical: leave OLE embedding fields undefined on failure.
+			}
+		}
+	}
+
 	protected async loadSlidesForPresentation(
 		sectionBySlideId: Map<string, { sectionId: string; sectionName: string }>,
 	): Promise<import('../../types').PptxSlide[]> {
@@ -331,6 +405,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				this.extractMediaTimingMap(slideXml, slidePath),
 			enrichMediaElementsWithTiming: (elements, timingMap) =>
 				this.enrichMediaElementsWithTiming(elements, timingMap),
+			enrichOleElementsWithEmbeddedData: (elements, slidePath) =>
+				this.enrichOleElementsWithEmbeddedData(elements, slidePath),
 			extractBackgroundColor: (slideXml) => this.extractBackgroundColor(slideXml),
 			getLayoutBackgroundColor: (slidePath) => this.getLayoutBackgroundColor(slidePath),
 			extractBackgroundGradient: (slideXml) => this.extractBackgroundGradient(slideXml),
