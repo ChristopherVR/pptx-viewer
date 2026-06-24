@@ -8,6 +8,12 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **vue:** Interactive GLB/GLTF Model3D rendering (by @ChristopherVR) ([c7d2b3d](https://github.com/ChristopherVR/pptx-viewer/commit/c7d2b3d2e61e9d3ce12cc65ab2e6f34cbc364c72))
+
+## [1.1.46](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.46) - 2026-06-24
+
+### Features
+
 - **shared:** SmartArt accessibility metadata and per-node fill override (by @ChristopherVR) ([16afd94](https://github.com/ChristopherVR/pptx-viewer/commit/16afd94db612be96977cde806aca7f50de3f4a8c))
 - **core:** Per-node SmartArt colour and emphasis override with round-trip (by @ChristopherVR) ([7e74e13](https://github.com/ChristopherVR/pptx-viewer/commit/7e74e13b51a64970833e6d73df38486e68ab961e))
 
