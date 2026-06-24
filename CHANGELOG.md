@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [Unreleased]
+
+### Features
+
+- **shared:** SmartArt accessibility metadata and per-node fill override (by @ChristopherVR) ([16afd94](https://github.com/ChristopherVR/pptx-viewer/commit/16afd94db612be96977cde806aca7f50de3f4a8c))
+- **core:** Per-node SmartArt colour and emphasis override with round-trip (by @ChristopherVR) ([7e74e13](https://github.com/ChristopherVR/pptx-viewer/commit/7e74e13b51a64970833e6d73df38486e68ab961e))
+
 ## [1.1.45](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.45) - 2026-06-22
 
 ### Features
