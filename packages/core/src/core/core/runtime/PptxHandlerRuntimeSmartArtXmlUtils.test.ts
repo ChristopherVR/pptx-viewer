@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 
-import type { XmlObject, PptxSmartArtChrome, PptxSmartArtTextRun } from '../../types';
+import type {
+	XmlObject,
+	PptxSmartArtChrome,
+	PptxSmartArtNodeStyle,
+	PptxSmartArtTextRun,
+} from '../../types';
 
 // ---------------------------------------------------------------------------
 // Extracted from PptxHandlerRuntimeSmartArtXmlUtils
@@ -104,6 +109,64 @@ function extractSmartArtNodeRuns(point: XmlObject): PptxSmartArtTextRun[] | unde
 	}
 
 	return runs.length > 0 ? runs : undefined;
+}
+
+/** Mirror of PptxHandlerRuntimeSmartArtXmlUtils.xmlBoolean. */
+function xmlBoolean(value: unknown): boolean {
+	const v = String(value ?? '')
+		.trim()
+		.toLowerCase();
+	return v === '1' || v === 'true' || v === 'on';
+}
+
+/** Mirror of PptxHandlerRuntimeSmartArtXmlUtils.firstRunProperties. */
+function firstRunProperties(point: XmlObject): XmlObject | undefined {
+	const tBody = getChildByLocalName(point, 't');
+	if (!tBody) {
+		return undefined;
+	}
+	const paragraph = getChildrenArrayByLocalName(tBody, 'p')[0];
+	if (!paragraph) {
+		return undefined;
+	}
+	const run = getChildrenArrayByLocalName(paragraph, 'r')[0];
+	if (!run) {
+		return undefined;
+	}
+	return getChildByLocalName(run, 'rPr');
+}
+
+/** Mirror of PptxHandlerRuntimeSmartArtXmlUtils.extractSmartArtNodeStyle. */
+function extractSmartArtNodeStyle(point: XmlObject): PptxSmartArtNodeStyle | undefined {
+	const style: PptxSmartArtNodeStyle = {};
+	const spPr = getChildByLocalName(point, 'spPr');
+	if (spPr) {
+		const fill = parseColor(getChildByLocalName(spPr, 'solidFill'));
+		if (fill) {
+			style.fillColor = fill;
+		}
+		const ln = getChildByLocalName(spPr, 'ln');
+		if (ln) {
+			const lineColor = parseColor(getChildByLocalName(ln, 'solidFill'));
+			if (lineColor) {
+				style.lineColor = lineColor;
+			}
+		}
+	}
+	const rPr = firstRunProperties(point);
+	if (rPr) {
+		if (xmlBoolean(rPr['@_b'])) {
+			style.bold = true;
+		}
+		if (xmlBoolean(rPr['@_i'])) {
+			style.italic = true;
+		}
+		const fontColor = parseColor(getChildByLocalName(rPr, 'solidFill'));
+		if (fontColor) {
+			style.fontColor = fontColor;
+		}
+	}
+	return Object.keys(style).length > 0 ? style : undefined;
 }
 
 /**
@@ -457,5 +520,64 @@ describe('extractSmartArtNodeRuns', () => {
 		const runs = extractSmartArtNodeRuns(point)!;
 		(runs[0].rPr as Record<string, unknown>)['@_sz'] = '9999';
 		expect(rPr['@_sz']).toBe('1800');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// extractSmartArtNodeStyle
+// ---------------------------------------------------------------------------
+describe('extractSmartArtNodeStyle', () => {
+	it('returns undefined for a bare point with no spPr / rPr', () => {
+		expect(extractSmartArtNodeStyle({ '@_modelId': '1' })).toBeUndefined();
+	});
+
+	it('reads spPr fill and line colour', () => {
+		const point: XmlObject = {
+			'dgm:spPr': {
+				'a:solidFill': { 'a:srgbClr': { '@_val': 'FF0000' } },
+				'a:ln': { 'a:solidFill': { 'a:srgbClr': { '@_val': '00FF00' } } },
+			},
+		};
+		expect(extractSmartArtNodeStyle(point)).toStrictEqual({
+			fillColor: '#FF0000',
+			lineColor: '#00FF00',
+		});
+	});
+
+	it('reads bold / italic / font colour from the first run rPr', () => {
+		const point: XmlObject = {
+			'dgm:t': {
+				'a:p': {
+					'a:r': {
+						'a:rPr': {
+							'@_b': '1',
+							'@_i': 'true',
+							'a:solidFill': { 'a:srgbClr': { '@_val': '112233' } },
+						},
+						'a:t': 'X',
+					},
+				},
+			},
+		};
+		expect(extractSmartArtNodeStyle(point)).toStrictEqual({
+			bold: true,
+			italic: true,
+			fontColor: '#112233',
+		});
+	});
+
+	it('combines shape and run overrides', () => {
+		const point: XmlObject = {
+			'dgm:spPr': { 'a:solidFill': { 'a:srgbClr': { '@_val': 'ABCDEF' } } },
+			'dgm:t': { 'a:p': { 'a:r': { 'a:rPr': { '@_b': '1' }, 'a:t': 'X' } } },
+		};
+		expect(extractSmartArtNodeStyle(point)).toStrictEqual({ fillColor: '#ABCDEF', bold: true });
+	});
+
+	it('ignores bold="0" (treats only truthy OOXML booleans as set)', () => {
+		const point: XmlObject = {
+			'dgm:t': { 'a:p': { 'a:r': { 'a:rPr': { '@_b': '0' }, 'a:t': 'X' } } },
+		};
+		expect(extractSmartArtNodeStyle(point)).toBeUndefined();
 	});
 });

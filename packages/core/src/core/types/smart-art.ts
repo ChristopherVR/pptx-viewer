@@ -6,6 +6,18 @@
  * @module pptx-types/smart-art
  */
 
+import type { PptxSmartArtNode } from './smart-art-node';
+
+// Node-related types (PptxSmartArtTextRun, PptxSmartArtNodeStyle,
+// PptxSmartArtNode) live in `smart-art-node.ts` to keep this file within the
+// per-file line budget. They are re-exported here so existing imports from
+// `smart-art` (and the `types` barrel) keep working unchanged.
+export type {
+	PptxSmartArtTextRun,
+	PptxSmartArtNodeStyle,
+	PptxSmartArtNode,
+} from './smart-art-node';
+
 // ==========================================================================
 // SmartArt types
 // ==========================================================================
@@ -108,64 +120,6 @@ export type SmartArtColorScheme =
  * ```
  */
 export type SmartArtStyle = 'flat' | 'moderate' | 'intense';
-
-/**
- * A single run of text inside a SmartArt node, capturing the run text and the
- * raw `a:rPr` run-properties object verbatim so per-run formatting (bold,
- * colour, size, etc.) survives a load -> edit -> save round-trip instead of
- * collapsing to a single unstyled run.
- *
- * @example
- * ```ts
- * const run: PptxSmartArtTextRun = {
- *   text: "Bold",
- *   rPr: { "@_b": "1", "@_lang": "en-US" },
- * };
- * // => satisfies PptxSmartArtTextRun
- * ```
- */
-export interface PptxSmartArtTextRun {
-	/** Run text content. */
-	text: string;
-	/**
-	 * Raw parsed `a:rPr` run-properties object, preserved verbatim for
-	 * round-trip. Untyped XML, hence the loose record shape.
-	 */
-	rPr?: Record<string, unknown>;
-}
-
-/**
- * A single node in the SmartArt data model.
- *
- * @example
- * ```ts
- * const node: PptxSmartArtNode = {
- *   id: "1",
- *   text: "CEO",
- *   children: [
- *     { id: "2", text: "VP Marketing", parentId: "1" },
- *     { id: "3", text: "VP Engineering", parentId: "1" },
- *   ],
- * };
- * // => satisfies PptxSmartArtNode
- * ```
- */
-export interface PptxSmartArtNode {
-	id: string;
-	text: string;
-	parentId?: string;
-	children?: PptxSmartArtNode[];
-	/** Node type from `@_type` attribute (e.g. "doc", "node", "asst", "pres"). */
-	nodeType?: string;
-	/**
-	 * Per-run text + run-properties for the node's first paragraph, captured at
-	 * parse time. When the joined run text still equals {@link text} (the node
-	 * was not edited, or was edited only in ways that preserve the run split),
-	 * the save path rebuilds the paragraph from these runs so per-run rich text
-	 * is not flattened. When {@link text} diverges, the runs are ignored.
-	 */
-	runs?: PptxSmartArtTextRun[];
-}
 
 /**
  * A connection between two SmartArt data-model nodes.

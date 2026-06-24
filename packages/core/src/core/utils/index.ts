@@ -73,6 +73,7 @@ export {
 	reorderSmartArtNodeToIndex,
 	promoteSmartArtNode,
 	demoteSmartArtNode,
+	setSmartArtNodeStyle,
 	resetSmartArtEditCounter,
 	reflowSmartArtLayout,
 	type ReflowedNodePosition,

@@ -2,6 +2,7 @@ import { XmlObject } from '../../types';
 import type {
 	PptxSmartArtChrome,
 	PptxSmartArtColorTransform,
+	PptxSmartArtNodeStyle,
 	PptxSmartArtTextRun,
 } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeComments';
@@ -116,6 +117,79 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		return runs.length > 0 ? runs : undefined;
+	}
+
+	/**
+	 * Extract a content point's per-node visual override.
+	 *
+	 * Reads the point's presentation `spPr` solid fill and line colour, and the
+	 * first run's `rPr` bold / italic / solid fill, into a
+	 * {@link PptxSmartArtNodeStyle}. Every field is optional and only set when
+	 * present, so an unstyled point yields `undefined` (never throws on missing
+	 * structure). This lets the editing UI display the node's current colours.
+	 */
+	protected extractSmartArtNodeStyle(point: XmlObject): PptxSmartArtNodeStyle | undefined {
+		const style: PptxSmartArtNodeStyle = {};
+
+		const spPr = this.xmlLookupService.getChildByLocalName(point, 'spPr');
+		if (spPr) {
+			const fill = this.parseColor(this.xmlLookupService.getChildByLocalName(spPr, 'solidFill'));
+			if (fill) {
+				style.fillColor = fill;
+			}
+			const ln = this.xmlLookupService.getChildByLocalName(spPr, 'ln');
+			if (ln) {
+				const lineColor = this.parseColor(
+					this.xmlLookupService.getChildByLocalName(ln, 'solidFill'),
+				);
+				if (lineColor) {
+					style.lineColor = lineColor;
+				}
+			}
+		}
+
+		const rPr = this.firstRunProperties(point);
+		if (rPr) {
+			if (this.xmlBoolean(rPr['@_b'])) {
+				style.bold = true;
+			}
+			if (this.xmlBoolean(rPr['@_i'])) {
+				style.italic = true;
+			}
+			const fontColor = this.parseColor(
+				this.xmlLookupService.getChildByLocalName(rPr, 'solidFill'),
+			);
+			if (fontColor) {
+				style.fontColor = fontColor;
+			}
+		}
+
+		return Object.keys(style).length > 0 ? style : undefined;
+	}
+
+	/** Read the first run's `rPr` of a content point's first paragraph. */
+	private firstRunProperties(point: XmlObject): XmlObject | undefined {
+		const tBody = this.xmlLookupService.getChildByLocalName(point, 't');
+		if (!tBody) {
+			return undefined;
+		}
+		const paragraph = this.xmlLookupService.getChildrenArrayByLocalName(tBody, 'p')[0];
+		if (!paragraph) {
+			return undefined;
+		}
+		const run = this.xmlLookupService.getChildrenArrayByLocalName(paragraph, 'r')[0];
+		if (!run) {
+			return undefined;
+		}
+		return this.xmlLookupService.getChildByLocalName(run, 'rPr');
+	}
+
+	/** Interpret an OOXML boolean attribute ("1"/"true"/"on" => true). */
+	private xmlBoolean(value: unknown): boolean {
+		const v = String(value ?? '')
+			.trim()
+			.toLowerCase();
+		return v === '1' || v === 'true' || v === 'on';
 	}
 
 	/**

@@ -62,12 +62,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// flattening them to a single unstyled run on save.
 				const runs = this.extractSmartArtNodeRuns(point);
 
+				// Capture any per-node colour / emphasis override so the editing
+				// UI can display current values and the save path round-trips it.
+				const style = this.extractSmartArtNodeStyle(point);
+
 				return {
 					id: pointId,
 					text: resolvedText.trim(),
 					parentId: parentByNodeId.get(pointId),
 					nodeType,
 					runs,
+					style,
 				};
 			})
 			.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))

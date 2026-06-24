@@ -4,6 +4,7 @@ import type {
 	PptxSmartArtConnection,
 	PptxSmartArtTextRun,
 } from '../../types/smart-art';
+import { applySmartArtNodeStyleToPoint } from './smartart-style-xml';
 
 /**
  * Point `@_type` values that are NOT user-editable content nodes.
@@ -268,6 +269,8 @@ export function mergeSmartArtPointXml(
 		// Update the text in place, keeping prSet / spPr / extLst intact and
 		// preserving per-run formatting when the node was not text-edited.
 		applyTextToExistingPoint(pt, desired);
+		// Write any per-node colour / emphasis override so it round-trips.
+		applySmartArtNodeStyleToPoint(pt, desired.style);
 		seenContentIds.add(modelId);
 		merged.push(pt);
 	}
@@ -285,6 +288,7 @@ export function mergeSmartArtPointXml(
 		ptNode['dgm:t'] = shouldRebuildFromRuns(node)
 			? buildPointFromRuns(node.runs)
 			: buildPointText(node.text);
+		applySmartArtNodeStyleToPoint(ptNode, node.style);
 		merged.push(ptNode);
 	}
 

@@ -30,6 +30,8 @@ export {
 	reorderSmartArtNodeToIndex,
 } from './smartart-editing-node-ops';
 
+export { setSmartArtNodeStyle } from './smartart-editing-node-style';
+
 // ── Layout reflow ────────────────────────────────────────────────────────
 
 export {

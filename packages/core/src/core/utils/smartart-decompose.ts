@@ -49,6 +49,7 @@ import {
 	layoutVerticalChevronList,
 } from './smartart-layouts-extra';
 import { layoutHierarchy, layoutRelationship } from './smartart-layouts-tree';
+import { applyNodeStylesToElements } from './smartart-node-style-apply';
 
 // ── Pre-computed drawing shape conversion ────────────────────────────────
 
@@ -211,10 +212,23 @@ export function decomposeSmartArt(
 	if (namedLayout) {
 		const namedResult = dispatchNamedLayout(namedLayout, nodes, containerBounds, effectiveThemeMap);
 		if (namedResult) {
-			return namedResult;
+			// Per-node colour / emphasis overrides win over the cycled palette.
+			return applyNodeStylesToElements(namedResult, nodes);
 		}
 	}
 
+	const algorithmic = dispatchLayoutByType(layoutType, nodes, containerBounds, effectiveThemeMap);
+	// Per-node colour / emphasis overrides win over the cycled palette.
+	return algorithmic ? applyNodeStylesToElements(algorithmic, nodes) : algorithmic;
+}
+
+/** Dispatch an algorithmic SmartArt layout by its resolved category. */
+function dispatchLayoutByType(
+	layoutType: SmartArtLayoutType,
+	nodes: PptxSmartArtNode[],
+	containerBounds: DrawingBounds,
+	effectiveThemeMap: Record<string, string> | undefined,
+): PptxElement[] | undefined {
 	switch (layoutType) {
 		case 'list':
 			return layoutList(nodes, containerBounds, effectiveThemeMap);
