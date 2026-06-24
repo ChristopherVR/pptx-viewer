@@ -28,6 +28,24 @@ export function colour(index: number, palette: string[]): string {
 	return palette[index % palette.length];
 }
 
+/**
+ * Resolve the effective fill for a node: an explicit per-node
+ * `node.style.fillColor` override wins, otherwise the cycled palette colour.
+ */
+export function nodeFill(node: PptxSmartArtNode, index: number, palette: string[]): string {
+	const override = node.style?.fillColor;
+	return override && override.length > 0 ? override : colour(index, palette);
+}
+
+/**
+ * Resolve the effective outline stroke for a node: an explicit per-node
+ * `node.style.lineColor` override wins, otherwise the style-derived default.
+ */
+export function nodeStroke(node: PptxSmartArtNode, defaultStroke: string): string {
+	const override = node.style?.lineColor;
+	return override && override.length > 0 ? override : defaultStroke;
+}
+
 /** Compute a fading opacity for progressive nodes. */
 export function nodeOpacity(index: number, total: number, style: SmartArtStyle): number {
 	const base = style === 'intense' ? 1.0 : style === 'moderate' ? 0.92 : 0.85;

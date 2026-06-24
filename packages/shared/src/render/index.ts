@@ -297,6 +297,10 @@ export * from './smartart-3d-types';
 export * from './smartart-3d-geom';
 export * from './smartart-3d-model';
 export * from './smartart-3d-spatial';
+// SmartArt accessibility metadata: pure screen-reader description of the whole
+// diagram, per-node ARIA labels, and the `SmartArtA11y` view-model each binding
+// maps onto `role="img"` + `aria-label` + per-node `<title>`/`aria-label`.
+export * from './smartart-accessibility';
 // Vanilla three.js GLTF/GLB model scene controller: mounts an interactive 3D
 // model into a container element (auto-centre/fit, lights, OrbitControls, RAF
 // loop) and exposes resize()/dispose(). `three` is dynamically imported and
