@@ -1,3 +1,8 @@
+import {
+	DEFAULT_BROADCAST_SERVER_URL,
+	buildBroadcastViewerUrl,
+	generateBroadcastRoomId,
+} from 'pptx-viewer-shared';
 /**
  * BroadcastDialog: Modal dialog for starting / managing a live broadcast.
  *
@@ -61,7 +66,7 @@ export function BroadcastDialog({
 		collab !== null &&
 		collab.status !== 'disconnected' &&
 		collab.status !== 'error' &&
-		collab.config.role === 'broadcaster';
+		collab.config.role === 'owner';
 
 	// Form state
 	const [roomId, setRoomId] = useState('');
@@ -77,10 +82,10 @@ export function BroadcastDialog({
 			// Generate a broadcast-specific room ID
 			const broadcastRoom = defaultRoomId
 				? `broadcast-${defaultRoomId}`
-				: `broadcast-${Math.random().toString(36).slice(2, 10)}`;
+				: generateBroadcastRoomId();
 			setRoomId(broadcastRoom);
 			setUserName(defaultUserName ?? '');
-			setServerUrl(defaultServerUrl ?? 'ws://localhost:1234');
+			setServerUrl(defaultServerUrl ?? DEFAULT_BROADCAST_SERVER_URL);
 		}
 	}, [open, isBroadcasting, defaultRoomId, defaultUserName, defaultServerUrl]);
 
@@ -105,10 +110,12 @@ export function BroadcastDialog({
 		}
 	}, [open]);
 
+	const activeRoomId = isBroadcasting ? collab.config.roomId : roomId;
+	const activeServerUrl = isBroadcasting ? collab.config.serverUrl : serverUrl;
 	const broadcastUrl =
 		typeof window !== 'undefined'
-			? `${window.location.origin}${window.location.pathname}?broadcast=${encodeURIComponent(isBroadcasting ? collab.config.roomId : roomId)}&server=${encodeURIComponent(isBroadcasting ? collab.config.serverUrl : serverUrl)}`
-			: roomId;
+			? buildBroadcastViewerUrl(activeRoomId, activeServerUrl, window.location)
+			: activeRoomId;
 
 	const handleCopyUrl = useCallback(() => {
 		void navigator.clipboard.writeText(broadcastUrl).then(() => {
@@ -126,7 +133,7 @@ export function BroadcastDialog({
 			roomId: roomId.trim(),
 			serverUrl: serverUrl.trim(),
 			userName: userName.trim(),
-			role: 'broadcaster',
+			role: 'owner',
 		});
 		// Enter presentation mode after a short delay for connection
 		setTimeout(() => {

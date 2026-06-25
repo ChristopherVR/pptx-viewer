@@ -1,3 +1,4 @@
+import { formatVersionTimestamp as formatTimestamp, formatRelativeTime } from 'pptx-viewer-shared';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuClock, LuDownload, LuTrash2, LuX } from 'react-icons/lu';
@@ -97,33 +98,6 @@ function formatFileSize(bytes: number): string {
 		return `${(bytes / 1024).toFixed(1)} KB`;
 	}
 	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatTimestamp(ts: number): string {
-	const date = new Date(ts);
-	return date.toLocaleString(undefined, {
-		month: 'short',
-		day: 'numeric',
-		hour: '2-digit',
-		minute: '2-digit',
-	});
-}
-
-function formatRelativeTime(ts: number): string {
-	const diff = Date.now() - ts;
-	const minutes = Math.floor(diff / 60_000);
-	if (minutes < 1) {
-		return 'Just now';
-	}
-	if (minutes < 60) {
-		return `${minutes}m ago`;
-	}
-	const hours = Math.floor(minutes / 60);
-	if (hours < 24) {
-		return `${hours}h ago`;
-	}
-	const days = Math.floor(hours / 24);
-	return `${days}d ago`;
 }
 
 // ---------------------------------------------------------------------------

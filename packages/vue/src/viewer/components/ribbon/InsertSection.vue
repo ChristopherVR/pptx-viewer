@@ -24,14 +24,19 @@ import {
  * becomes local `ref`s with a backdrop-click + outside-click guard.
  *
  * The shape presets (lucide icon component refs, mirroring React's
- * `SHAPE_PRESETS`) and the OOXML action-button presets (`iconPath` SVG glyphs,
- * mirroring React's `ACTION_BUTTON_PRESETS`) are inlined here since the shared
- * ribbon scaffold does not export them. The Action / Field dropdowns stay pure
- * CSS `group-hover` (no state), exactly as React; only the Date/Time modal keeps
+ * `SHAPE_PRESETS`) are inlined here since the shared ribbon scaffold does not
+ * export them. The OOXML action-button presets (`iconPath` SVG glyphs) come
+ * from `pptx-viewer-shared` (`ACTION_BUTTON_PRESETS`), the single source of
+ * truth shared with React. The Action / Field dropdowns stay pure CSS
+ * `group-hover` (no state), exactly as React; only the Date/Time modal keeps
  * reactive state.
  */
-import type { ActionButtonPreset, PptxChartType } from 'pptx-viewer-core';
-import { DEFAULT_INSERT_CHART_TYPE, INSERT_CHART_TYPES } from 'pptx-viewer-shared';
+import type { PptxChartType } from 'pptx-viewer-core';
+import {
+	ACTION_BUTTON_PRESETS,
+	DEFAULT_INSERT_CHART_TYPE,
+	INSERT_CHART_TYPES,
+} from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import type { Component } from 'vue';
 
@@ -105,82 +110,6 @@ const SHAPE_PRESETS: Array<{
 	{ type: 'teardrop', label: 'Teardrop', icon: Circle, iconClass: 'w-3.5 h-3.5' },
 	{ type: 'line', label: 'Line', icon: Minus, iconClass: 'w-3.5 h-3.5' },
 	{ type: 'connector', label: 'Connector', icon: MoveRight, iconClass: 'w-3.5 h-3.5' },
-];
-
-/** OOXML built-in action button presets. Mirrors React's `ACTION_BUTTON_PRESETS`. */
-const ACTION_BUTTON_PRESETS: ActionButtonPreset[] = [
-	{
-		shapeType: 'actionButtonBackPrevious',
-		label: 'Back / Previous',
-		defaultAction: 'prevSlide',
-		iconPath: 'M16 4 L4 12 L16 20 Z',
-	},
-	{
-		shapeType: 'actionButtonForwardNext',
-		label: 'Forward / Next',
-		defaultAction: 'nextSlide',
-		iconPath: 'M8 4 L20 12 L8 20 Z',
-	},
-	{
-		shapeType: 'actionButtonBeginning',
-		label: 'Home / First',
-		defaultAction: 'firstSlide',
-		iconPath: 'M4 4 L4 20 M6 12 L18 4 L18 20 Z',
-	},
-	{
-		shapeType: 'actionButtonEnd',
-		label: 'End / Last',
-		defaultAction: 'lastSlide',
-		iconPath: 'M20 4 L20 20 M18 12 L6 4 L6 20 Z',
-	},
-	{
-		shapeType: 'actionButtonReturn',
-		label: 'Return',
-		defaultAction: 'prevSlide',
-		iconPath: 'M18 8 L18 14 L6 14 M6 14 L10 10 M6 14 L10 18',
-	},
-	{
-		shapeType: 'actionButtonHome',
-		label: 'Home',
-		defaultAction: 'firstSlide',
-		iconPath: 'M12 4 L20 11 L20 20 L14 20 L14 14 L10 14 L10 20 L4 20 L4 11 Z',
-	},
-	{
-		shapeType: 'actionButtonHelp',
-		label: 'Help',
-		defaultAction: 'none',
-		iconPath: 'M9 9 a3 3 0 1 1 4 2.8 c-1 0.4 -1 1.2 -1 2 M12 17 v0.5',
-	},
-	{
-		shapeType: 'actionButtonInformation',
-		label: 'Information',
-		defaultAction: 'none',
-		iconPath: 'M12 6 v0.01 M12 10 v8',
-	},
-	{
-		shapeType: 'actionButtonDocument',
-		label: 'Document',
-		defaultAction: 'none',
-		iconPath: 'M6 4 L14 4 L18 8 L18 20 L6 20 Z M14 4 L14 8 L18 8',
-	},
-	{
-		shapeType: 'actionButtonSound',
-		label: 'Sound',
-		defaultAction: 'none',
-		iconPath: 'M4 10 L4 14 L8 14 L12 18 L12 6 L8 10 Z M16 9 a4 4 0 0 1 0 6 M18 7 a7 7 0 0 1 0 10',
-	},
-	{
-		shapeType: 'actionButtonMovie',
-		label: 'Movie',
-		defaultAction: 'none',
-		iconPath: 'M4 6 L20 6 L20 18 L4 18 Z M10 9 L15 12 L10 15 Z',
-	},
-	{
-		shapeType: 'actionButtonBlank',
-		label: 'Custom',
-		defaultAction: 'none',
-		iconPath: '',
-	},
 ];
 
 /** The preset whose icon shows in the Add-shape button (the currently chosen type). */

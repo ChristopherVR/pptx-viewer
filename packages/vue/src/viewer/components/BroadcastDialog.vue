@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { DEFAULT_BROADCAST_SERVER_URL, generateBroadcastRoomId } from 'pptx-viewer-shared';
 /**
  * BroadcastDialog: start / stop a one-way live broadcast for the Vue viewer.
  *
@@ -49,16 +50,8 @@ const emit = defineEmits<{
 	close: [];
 }>();
 
-const DEFAULT_SERVER_URL = 'ws://localhost:1234';
-
-/** Generate a fresh, broadcast-scoped room id. */
-function generateRoomId(): string {
-	const suffix = Math.random().toString(36).slice(2, 10);
-	return `broadcast-${suffix}`;
-}
-
 const roomId = ref('');
-const serverUrl = ref(DEFAULT_SERVER_URL);
+const serverUrl = ref(DEFAULT_BROADCAST_SERVER_URL);
 const copied = ref(false);
 
 // Seed the form whenever the dialog opens for a fresh (non-active) broadcast.
@@ -66,8 +59,8 @@ watch(
 	() => props.open,
 	(open) => {
 		if (open && !props.active) {
-			roomId.value = props.defaults?.roomId ?? generateRoomId();
-			serverUrl.value = props.defaults?.serverUrl ?? DEFAULT_SERVER_URL;
+			roomId.value = props.defaults?.roomId ?? generateBroadcastRoomId();
+			serverUrl.value = props.defaults?.serverUrl ?? DEFAULT_BROADCAST_SERVER_URL;
 			copied.value = false;
 		}
 	},

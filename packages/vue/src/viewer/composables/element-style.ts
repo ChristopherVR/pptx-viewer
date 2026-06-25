@@ -9,9 +9,16 @@ import {
 	getComputedEffectStyle,
 	getComputedFillStyle,
 	getContainerStyle as sharedGetContainerStyle,
+	getCssBorderDashStyle,
 	getImageSrc as sharedGetImageSrc,
 	getResolvedShapeClipPath,
+	isVerticalTextDirection,
 	px,
+	resolveCssTextAlign,
+	resolveLineHeight,
+	toCssTextOrientation,
+	toCssVerticalDirection,
+	toCssWritingMode,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 
@@ -40,35 +47,9 @@ import { getComputed3dStyle, merge3dStyle } from './visual-3d';
 const DEFAULT_BODY_INSET_LR_PX = 91440 / 9525;
 const DEFAULT_BODY_INSET_TB_PX = 45720 / 9525;
 
-/**
- * Resolve the CSS `line-height` for a text block, mirroring React's
- * `resolveLineHeight`: an exact point spacing (`a:lnSpc > a:spcPts`) wins and
- * renders as a fixed `Xpt`; otherwise the proportional multiplier (`a:spcPct`)
- * is used, defaulting to 1.25 (1.35 when the block carries italics, which sit
- * slightly taller). Returning a unitless multiplier lets it scale with the
- * resolved font size, matching React, which never relies on the browser's
- * font-dependent `normal` (≈1.2–1.5).
- */
-function resolveLineHeight(
-	ts: { lineSpacing?: number; lineSpacingExactPt?: number } | undefined,
-	hasItalic: boolean,
-): string | number {
-	if (typeof ts?.lineSpacingExactPt === 'number' && ts.lineSpacingExactPt > 0) {
-		return `${ts.lineSpacingExactPt}pt`;
-	}
-	return ts?.lineSpacing ?? (hasItalic ? 1.35 : 1.25);
-}
-
-/** Map an OOXML stroke-dash value to a CSS `border-style` keyword. */
-function cssBorderDashStyle(strokeDash: string | undefined): 'solid' | 'dotted' | 'dashed' {
-	if (!strokeDash || strokeDash === 'solid') {
-		return 'solid';
-	}
-	if (strokeDash === 'dot' || strokeDash === 'sysDot') {
-		return 'dotted';
-	}
-	return 'dashed';
-}
+// `resolveLineHeight` (exact-pt vs proportional multiplier, italic-aware
+// default) now lives in pptx-viewer-shared (render/text-style-helpers), shared
+// with React.
 
 /**
  * Absolute container style: position, size, rotation, flip, opacity, z-index.
@@ -112,7 +93,7 @@ export function getShapeFillStrokeStyle(el: PptxElement): CSSProperties {
 		// Stroke.
 		const strokeWidth = Math.max(0, ss.strokeWidth ?? 0);
 		if (strokeWidth > 0) {
-			style.border = `${px(strokeWidth)} ${cssBorderDashStyle(ss.strokeDash)} ${ss.strokeColor ?? DEFAULT_STROKE_COLOR}`;
+			style.border = `${px(strokeWidth)} ${getCssBorderDashStyle(ss.strokeDash)} ${ss.strokeColor ?? DEFAULT_STROKE_COLOR}`;
 		}
 	}
 
@@ -190,7 +171,7 @@ export function getShapeFillStrokeStyle(el: PptxElement): CSSProperties {
 		const strokeWidth = Math.max(0, el.shapeStyle?.strokeWidth ?? 0);
 		style.backgroundColor = 'transparent';
 		style.border = 'none';
-		style.borderTop = `${px(Math.max(strokeWidth, 2))} ${cssBorderDashStyle(el.shapeStyle?.strokeDash)} ${el.shapeStyle?.strokeColor ?? DEFAULT_STROKE_COLOR}`;
+		style.borderTop = `${px(Math.max(strokeWidth, 2))} ${getCssBorderDashStyle(el.shapeStyle?.strokeDash)} ${el.shapeStyle?.strokeColor ?? DEFAULT_STROKE_COLOR}`;
 		return style;
 	}
 
@@ -267,18 +248,33 @@ export function getTextBlockStyle(el: PptxElement): CSSProperties {
 		style.textDecoration = decorations.join(' ');
 	}
 
-	switch (ts.align) {
-		case 'center':
-			style.textAlign = 'center';
-			break;
-		case 'right':
-			style.textAlign = 'right';
-			break;
-		case 'justify':
-			style.textAlign = 'justify';
-			break;
-		default:
-			style.textAlign = 'left';
+	// Alignment: the special OOXML values justLow / dist / thaiDist all map to
+	// CSS `justify`, and an unset alignment defaults to `right` for RTL text.
+	// Mirrors React's `getTextStyleForElement` align branch + `resolveCssTextAlign`.
+	const isRtl = ts.rtl === true;
+	style.textAlign = resolveCssTextAlign(ts.align, isRtl) ?? 'left';
+
+	// Vertical text direction: writing-mode / text-orientation / direction.
+	// Mirrors React's `getTextStyleForElement` vertical-text branch. Only the
+	// `wordArtVertRtl` mode forces `direction: rtl`; otherwise paragraph-level
+	// RTL drives the direction.
+	if (isVerticalTextDirection(ts.textDirection)) {
+		const writingMode = toCssWritingMode(ts.textDirection);
+		const textOrientation = toCssTextOrientation(ts.textDirection);
+		const verticalDirection = toCssVerticalDirection(ts.textDirection);
+		if (writingMode) {
+			style.writingMode = writingMode;
+		}
+		if (textOrientation) {
+			style.textOrientation = textOrientation;
+		}
+		if (verticalDirection) {
+			style.direction = verticalDirection;
+		} else if (isRtl) {
+			style.direction = 'rtl';
+		}
+	} else if (isRtl) {
+		style.direction = 'rtl';
 	}
 
 	switch (ts.vAlign) {

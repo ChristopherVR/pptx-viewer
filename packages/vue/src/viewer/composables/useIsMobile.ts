@@ -1,34 +1,21 @@
+import {
+	detectOrientation,
+	detectTouchDevice,
+	isMobileViewport,
+	MOBILE_BREAKPOINT,
+	MOBILE_LANDSCAPE_MAX_HEIGHT,
+	TABLET_BREAKPOINT,
+} from 'pptx-viewer-shared';
+import type { DeviceOrientation } from 'pptx-viewer-shared';
 import { onScopeDispose, readonly, ref } from 'vue';
 import type { Ref } from 'vue';
 
-/** Mobile breakpoint: below this width is considered mobile. Mirrors React. */
-export const MOBILE_BREAKPOINT = 768;
-
-/** Tablet breakpoint: below this width (but >= MOBILE) is tablet. Mirrors React. */
-export const TABLET_BREAKPOINT = 1024;
-
-/**
- * Max viewport height (px) at which a *touch* device is treated as mobile
- * regardless of width: catches landscape phones (e.g. 915×412), which are wide
- * enough to look like a tablet but far too short for the desktop chrome.
- * Mirrors the React `MOBILE_LANDSCAPE_MAX_HEIGHT`.
- */
-export const MOBILE_LANDSCAPE_MAX_HEIGHT = 500;
-
-/** Device orientation as reported by the screen / viewport aspect ratio. */
-export type DeviceOrientation = 'portrait' | 'landscape';
-
-/**
- * Whether a width/height/touch combination should use the mobile layout: a
- * narrow viewport, OR a short touch viewport below the tablet width (a
- * landscape phone). Mirrors the React `isMobileViewport`.
- */
-export function isMobileViewport(width: number, height: number, isTouch: boolean): boolean {
-	if (width < MOBILE_BREAKPOINT) {
-		return true;
-	}
-	return isTouch && height > 0 && height < MOBILE_LANDSCAPE_MAX_HEIGHT && width < TABLET_BREAKPOINT;
-}
+// The viewport breakpoint maths and the touch / orientation probes live in
+// shared (`render/mobile-viewport.ts`) so React, Vue and Angular switch chrome
+// at exactly the same thresholds. Re-exported here to preserve this module's
+// public surface.
+export { MOBILE_BREAKPOINT, TABLET_BREAKPOINT, MOBILE_LANDSCAPE_MAX_HEIGHT, isMobileViewport };
+export type { DeviceOrientation };
 
 /**
  * Source of the container element observed for container-based breakpoints:
@@ -92,34 +79,6 @@ export interface UseIsMobileResult {
 	isVirtualKeyboardOpen: Readonly<Ref<boolean>>;
 	/** The measured container (or viewport) width in pixels. */
 	containerWidth: Readonly<Ref<number>>;
-}
-
-function detectTouchDevice(): boolean {
-	if (typeof window === 'undefined') {
-		return false;
-	}
-	if ('ontouchstart' in window) {
-		return true;
-	}
-	if (typeof navigator === 'undefined') {
-		return false;
-	}
-	if (navigator.maxTouchPoints > 0) {
-		return true;
-	}
-	// Legacy IE/Edge: `msMaxTouchPoints` is not in lib.dom's `Navigator`.
-	const legacy = (navigator as Navigator & { msMaxTouchPoints?: number }).msMaxTouchPoints;
-	return typeof legacy === 'number' && legacy > 0;
-}
-
-function detectOrientation(): DeviceOrientation {
-	if (typeof window === 'undefined') {
-		return 'landscape';
-	}
-	if (typeof screen !== 'undefined' && screen.orientation) {
-		return screen.orientation.type.startsWith('portrait') ? 'portrait' : 'landscape';
-	}
-	return window.innerHeight > window.innerWidth ? 'portrait' : 'landscape';
 }
 
 function resolveContainer(source: ContainerSource | undefined): HTMLElement | null {

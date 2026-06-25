@@ -18,7 +18,14 @@ import type { InkPptxElement, PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
-import { applyMove, applyResize, handleAnchor, handleCursor, RESIZE_HANDLES } from './drag-resize';
+import {
+	applyMove,
+	applyResize,
+	handleAnchor,
+	handleCursor,
+	marqueeHitIds,
+	RESIZE_HANDLES,
+} from './drag-resize';
 import type { Box, ResizeHandle } from './drag-resize';
 import { ElementRendererComponent } from './element-renderer.component';
 import type { StyleMap } from './element-style';
@@ -1230,15 +1237,7 @@ export class SlideCanvasComponent {
 		if (marquee) {
 			const rect = this.marqueeRect();
 			if (marquee.started && rect) {
-				const ids = this.elements()
-					.filter(
-						(el) =>
-							rect.x < el.x + el.width &&
-							rect.x + rect.width > el.x &&
-							rect.y < el.y + el.height &&
-							rect.y + rect.height > el.y,
-					)
-					.map((el) => el.id);
+				const ids = marqueeHitIds(rect, this.elements());
 				this.marqueeSelect.emit(ids);
 			} else {
 				this.backgroundClick.emit();

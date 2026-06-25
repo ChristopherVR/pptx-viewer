@@ -1,5 +1,6 @@
 import type { PptxElement, PptxElementWithText, TextSegment, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties, getSubstituteFontFamily } from 'pptx-viewer-core';
+import { groupIntoParagraphs as sharedGroupIntoParagraphs } from 'pptx-viewer-shared';
 /**
  * SVG textPath-based text warp (WordArt) React component.
  *
@@ -15,11 +16,9 @@ import { substituteFieldText } from './text-field-substitution';
 import type { ElementFindHighlights } from './text-segment-helpers';
 import { shouldUseSvgWarp, getWarpPath } from './warp-path-generators';
 
-// ── Paragraph grouping helper ──────────────────────────────────────────
-
-interface WarpParagraph {
-	segments: TextSegment[];
-}
+// Paragraph grouping helper. The pure splitter now lives in pptx-viewer-shared
+// (render/text-warp `groupIntoParagraphs`); React keeps its field-substitution
+// concern by passing a per-segment transform that resolves field text.
 
 /**
  * Group an element's text segments into paragraphs (delimited by
@@ -28,36 +27,21 @@ interface WarpParagraph {
 function groupIntoParagraphs(
 	element: PptxElementWithText,
 	fieldContext?: FieldSubstitutionContext,
-): WarpParagraph[] {
-	if (!element.textSegments || element.textSegments.length === 0) {
-		if (element.text) {
-			return [{ segments: [{ text: element.text, style: {} }] }];
-		}
-		return [];
-	}
-	const paragraphs: WarpParagraph[] = [];
-	let current: TextSegment[] = [];
-	for (const seg of element.textSegments) {
-		if (seg.isParagraphBreak) {
-			if (current.length > 0) {
-				paragraphs.push({ segments: current });
-			}
-			current = [];
-		} else {
-			let effective: TextSegment = seg;
-			if (seg.fieldType && fieldContext) {
-				const substituted = substituteFieldText(seg.text, seg.fieldType, fieldContext);
-				if (substituted !== seg.text) {
-					effective = { ...seg, text: substituted };
+): Array<{ segments: TextSegment[] }> {
+	return sharedGroupIntoParagraphs(
+		element,
+		fieldContext
+			? (seg) => {
+					if (seg.fieldType) {
+						const substituted = substituteFieldText(seg.text, seg.fieldType, fieldContext);
+						if (substituted !== seg.text) {
+							return { ...seg, text: substituted };
+						}
+					}
+					return seg;
 				}
-			}
-			current.push(effective);
-		}
-	}
-	if (current.length > 0) {
-		paragraphs.push({ segments: current });
-	}
-	return paragraphs;
+			: undefined,
+	);
 }
 
 // ── SVG text-styling helpers ───────────────────────────────────────────

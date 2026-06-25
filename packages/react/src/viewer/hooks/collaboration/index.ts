@@ -40,4 +40,4 @@ export {
 	sanitizeAvatarUrl,
 	sanitizeSlideIndex,
 	sanitizePresence,
-} from './sanitize';
+} from 'pptx-viewer-shared';

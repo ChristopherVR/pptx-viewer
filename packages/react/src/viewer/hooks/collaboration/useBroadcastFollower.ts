@@ -2,8 +2,8 @@
  * useBroadcastFollower: Automatically follows the broadcaster's active
  * slide when the local user has the `viewer` role.
  *
- * Detects the first remote user with `role === 'broadcaster'` and syncs
- * the local `activeSlideIndex` to match theirs.
+ * Detects the first remote user with `role === 'owner'` (the broadcaster is
+ * the session owner) and syncs the local `activeSlideIndex` to match theirs.
  *
  * @module collaboration/useBroadcastFollower
  */
@@ -48,8 +48,8 @@ export function useBroadcastFollower({
 			return;
 		}
 
-		// Find the broadcaster
-		const broadcaster = collab.remoteUsers.find((u) => u.role === 'broadcaster');
+		// Find the broadcaster (the session owner)
+		const broadcaster = collab.remoteUsers.find((u) => u.role === 'owner');
 		if (!broadcaster) {
 			return;
 		}

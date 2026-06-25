@@ -1,4 +1,12 @@
 import type { PptxSection, PptxSlide } from 'pptx-viewer-core';
+import {
+	addSection as addSectionTransform,
+	deleteSection as deleteSectionTransform,
+	moveSectionDown as moveSectionDownTransform,
+	moveSectionUp as moveSectionUpTransform,
+	moveSlidesToSection as moveSlidesToSectionTransform,
+	renameSection as renameSectionTransform,
+} from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
@@ -74,30 +82,6 @@ export interface UseSectionOperationsResult {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Generate a GUID-like id matching typical OOXML section ids. */
-function generateSectionId(): string {
-	const hex = (): string =>
-		Math.floor(Math.random() * 0x10000)
-			.toString(16)
-			.padStart(4, '0');
-	return `{${hex()}${hex()}-${hex()}-${hex()}-${hex()}-${hex()}${hex()}${hex()}}`;
-}
-
-/**
- * Resolve the OOXML slide id used inside a section's `slideIds` list. Mirrors
- * the React hook: prefer the raw `p:sld/@_id`, then the slide number, then a
- * 1-based index fallback.
- */
-function resolveSlideId(slide: PptxSlide | undefined, index: number): string {
-	const rawXml = slide?.rawXml as Record<string, unknown> | undefined;
-	const cSld = rawXml?.['p:sld'] as Record<string, unknown> | undefined;
-	return String(cSld?.['@_id'] || slide?.slideNumber || index + 1);
-}
-
-// ---------------------------------------------------------------------------
 // Composable
 // ---------------------------------------------------------------------------
 
@@ -110,90 +94,26 @@ export function useSectionOperations(input: UseSectionOperationsInput): UseSecti
 
 	const addSection = (name: string, afterSlideIndex: number): void => {
 		pushHistory();
-
-		const slideList = slides.value;
-		const slideAtIndex = slideList[afterSlideIndex];
-		const currentSectionId = slideAtIndex?.sectionId;
-		const newId = generateSectionId();
-
-		// The new section claims slides starting at `afterSlideIndex` onward that
-		// belong to the same current section, until the next different section.
-		const claimedSlideIndexes: number[] = [];
-		for (let i = afterSlideIndex; i < slideList.length; i++) {
-			if (i === afterSlideIndex || slideList[i].sectionId === currentSectionId) {
-				claimedSlideIndexes.push(i);
-			} else {
-				break;
-			}
-		}
-
-		// Reassign claimed slides to the new section.
-		slides.value = slideList.map((s, i) =>
-			claimedSlideIndexes.includes(i) ? { ...s, sectionId: newId, sectionName: name } : s,
-		);
-
-		// Insert the new section after the current section, moving the claimed
-		// slide ids out of the old section and into the new one.
-		const insertIndex =
-			currentSectionId !== undefined
-				? sections.value.findIndex((sec) => sec.id === currentSectionId) + 1
-				: sections.value.length;
-
-		const newSectionSlideIds = claimedSlideIndexes.map((i) => resolveSlideId(slideList[i], i));
-
-		const updated = sections.value.map((sec) =>
-			sec.id === currentSectionId
-				? { ...sec, slideIds: sec.slideIds.filter((sid) => !newSectionSlideIds.includes(sid)) }
-				: sec,
-		);
-
-		const newSection: PptxSection = { id: newId, name, slideIds: newSectionSlideIds };
-		const result = [...updated];
-		result.splice(insertIndex, 0, newSection);
-		sections.value = result;
+		const result = addSectionTransform(sections.value, slides.value, name, afterSlideIndex);
+		slides.value = result.slides;
+		sections.value = result.sections;
 	};
 
 	const renameSection = (sectionId: string, newName: string): void => {
 		pushHistory();
-		sections.value = sections.value.map((sec) =>
-			sec.id === sectionId ? { ...sec, name: newName } : sec,
-		);
-		slides.value = slides.value.map((s) =>
-			s.sectionId === sectionId ? { ...s, sectionName: newName } : s,
-		);
+		const result = renameSectionTransform(sections.value, slides.value, sectionId, newName);
+		sections.value = result.sections;
+		slides.value = result.slides;
 	};
 
 	const deleteSection = (sectionId: string): void => {
-		const current = sections.value;
-		const idx = current.findIndex((sec) => sec.id === sectionId);
-		if (idx === -1) {
+		if (sections.value.findIndex((sec) => sec.id === sectionId) === -1) {
 			return;
 		}
 		pushHistory();
-
-		const deletedSection = current[idx];
-		const prevSection = idx > 0 ? current[idx - 1] : undefined;
-
-		const filtered = current.filter((sec) => sec.id !== sectionId);
-		sections.value =
-			prevSection !== undefined
-				? filtered.map((sec) =>
-						sec.id === prevSection.id
-							? { ...sec, slideIds: [...sec.slideIds, ...deletedSection.slideIds] }
-							: sec,
-					)
-				: filtered;
-
-		// Move the deleted section's slides to the previous section, or clear them.
-		slides.value = slides.value.map((s) => {
-			if (s.sectionId !== sectionId) {
-				return s;
-			}
-			if (prevSection !== undefined) {
-				return { ...s, sectionId: prevSection.id, sectionName: prevSection.name };
-			}
-			return { ...s, sectionId: undefined, sectionName: undefined };
-		});
+		const result = deleteSectionTransform(sections.value, slides.value, sectionId);
+		sections.value = result.sections;
+		slides.value = result.slides;
 	};
 
 	const moveSectionUp = (sectionId: string): void => {
@@ -203,9 +123,7 @@ export function useSectionOperations(input: UseSectionOperationsInput): UseSecti
 			return;
 		}
 		pushHistory();
-		const next = [...current];
-		[next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
-		sections.value = next;
+		sections.value = moveSectionUpTransform(current, sectionId);
 	};
 
 	const moveSectionDown = (sectionId: string): void => {
@@ -215,38 +133,22 @@ export function useSectionOperations(input: UseSectionOperationsInput): UseSecti
 			return;
 		}
 		pushHistory();
-		const next = [...current];
-		[next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
-		sections.value = next;
+		sections.value = moveSectionDownTransform(current, sectionId);
 	};
 
 	const moveSlidesToSection = (slideIndexes: number[], targetSectionId: string): void => {
-		const targetSection = sections.value.find((sec) => sec.id === targetSectionId);
-		if (!targetSection) {
+		if (!sections.value.some((sec) => sec.id === targetSectionId)) {
 			return;
 		}
 		pushHistory();
-
-		const slideList = slides.value;
-		slides.value = slideList.map((s, i) =>
-			slideIndexes.includes(i)
-				? { ...s, sectionId: targetSectionId, sectionName: targetSection.name }
-				: s,
+		const result = moveSlidesToSectionTransform(
+			sections.value,
+			slides.value,
+			slideIndexes,
+			targetSectionId,
 		);
-
-		const movedSlideIds = slideIndexes.map((i) => resolveSlideId(slideList[i], i));
-		sections.value = sections.value.map((sec) => {
-			if (sec.id === targetSectionId) {
-				return {
-					...sec,
-					slideIds: [
-						...sec.slideIds,
-						...movedSlideIds.filter((sid) => !sec.slideIds.includes(sid)),
-					],
-				};
-			}
-			return { ...sec, slideIds: sec.slideIds.filter((sid) => !movedSlideIds.includes(sid)) };
-		});
+		slides.value = result.slides;
+		sections.value = result.sections;
 	};
 
 	const toggleSectionCollapse = (sectionId: string): void => {

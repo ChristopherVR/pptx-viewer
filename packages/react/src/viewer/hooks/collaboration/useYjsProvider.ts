@@ -10,50 +10,20 @@
  *
  * @module collaboration/useYjsProvider
  */
+import { CONNECTION_TIMEOUT_MS, isMixedContentBlocked, validateRoomId } from 'pptx-viewer-shared';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Awareness } from 'y-protocols/awareness';
 import type { WebsocketProvider } from 'y-websocket';
 import type { Doc as YDoc } from 'yjs';
 
-import { validateRoomId } from './sanitize';
 import type { CollaborationConfig, ConnectionStatus } from './types';
 
 // Re-export the upstream type aliases for downstream consumers.
 export type { YDoc, Awareness };
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-/** Maximum time (ms) to wait for an initial WebSocket connection before giving up. */
-const CONNECTION_TIMEOUT_MS = 30_000;
-
-/**
- * Returns true if connecting to `serverUrl` would be blocked as mixed content:
- * an insecure `ws://` socket opened from a secure `https://` page. Browsers
- * exempt loopback hosts (localhost / 127.0.0.1 / [::1]) as potentially
- * trustworthy, so those are allowed.
- *
- * Detecting this up front lets us fail fast with a clear `'error'` status
- * instead of waiting out the full connection timeout on a socket the browser
- * will never open.
- */
-export function isMixedContentBlocked(serverUrl: string): boolean {
-	if (typeof window === 'undefined' || window.location.protocol !== 'https:') {
-		return false;
-	}
-	let parsed: URL;
-	try {
-		parsed = new URL(serverUrl);
-	} catch {
-		return false;
-	}
-	if (parsed.protocol !== 'ws:') {
-		return false;
-	}
-	const loopbackHosts = ['localhost', '127.0.0.1', '[::1]'];
-	return !loopbackHosts.includes(parsed.hostname);
-}
+// Re-export the shared mixed-content guard so existing importers (and the
+// colocated test) keep their `./useYjsProvider` import path.
+export { isMixedContentBlocked };
 
 // ---------------------------------------------------------------------------
 // Hook input / output

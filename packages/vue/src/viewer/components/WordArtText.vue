@@ -5,8 +5,11 @@ import {
 	buildWarpPath,
 	classifyTextWarp,
 	getWarpCssTransform,
+	groupIntoParagraphs,
+	normalizeHexColor,
 	shouldUseSvgWarp,
 } from 'pptx-viewer-shared';
+import type { WarpParagraph } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
@@ -40,42 +43,9 @@ const DEFAULT_FONT_FAMILY = '"Segoe UI", "Helvetica Neue", Arial, sans-serif';
 const DEFAULT_TEXT_FONT_SIZE = 24;
 const HYPERLINK_COLOR = '#0563C1';
 
-/** Normalise a colour to a 6-digit `#rrggbb` hex, or return the fallback. */
-function normalizeHexColor(value: string | undefined, fallback: string): string {
-	if (!value || value === 'transparent') {
-		return fallback;
-	}
-	const candidate = value.startsWith('#') ? value : `#${value}`;
-	return /^#[0-9A-Fa-f]{6}$/u.test(candidate) ? candidate : fallback;
-}
-
-interface WarpParagraph {
-	segments: TextSegment[];
-}
-
-/** Group an element's text segments into paragraphs delimited by breaks. */
-function groupIntoParagraphs(element: PptxElementWithText): WarpParagraph[] {
-	const segments = element.textSegments;
-	if (!segments || segments.length === 0) {
-		return element.text ? [{ segments: [{ text: element.text, style: {} }] }] : [];
-	}
-	const paragraphs: WarpParagraph[] = [];
-	let current: TextSegment[] = [];
-	for (const seg of segments) {
-		if (seg.isParagraphBreak) {
-			if (current.length > 0) {
-				paragraphs.push({ segments: current });
-			}
-			current = [];
-		} else if (seg.text) {
-			current.push(seg);
-		}
-	}
-	if (current.length > 0) {
-		paragraphs.push({ segments: current });
-	}
-	return paragraphs;
-}
+// Paragraph splitting now uses the shared pure helper
+// (pptx-viewer-shared render/text-warp `groupIntoParagraphs`), shared with the
+// React + Angular warp renderers.
 
 const textEl = computed<PptxElementWithText | null>(() =>
 	hasTextProperties(props.element) ? props.element : null,

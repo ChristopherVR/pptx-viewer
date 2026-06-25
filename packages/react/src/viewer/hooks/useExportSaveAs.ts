@@ -1,6 +1,7 @@
 import JSZip from 'jszip';
 import type { PptxSlide, PptxSaveFormat, PptxHandler } from 'pptx-viewer-core';
 import { guidePxToEmu } from 'pptx-viewer-core';
+import { downloadBlob } from 'pptx-viewer-shared';
 /**
  * useExportSaveAs: Save-As format and Package-for-Sharing handlers.
  */
@@ -39,19 +40,6 @@ export interface ExportSaveAsResult {
 	handleSaveAsPptx: () => void;
 	handleSaveAsPpsx: () => void;
 	handleSaveAsPptm: () => void;
-}
-
-function downloadBlob(blob: Blob, filename: string): void {
-	const url = URL.createObjectURL(blob);
-	const a = document.createElement('a');
-	a.href = url;
-	a.download = filename;
-	document.body.appendChild(a);
-	a.click();
-	setTimeout(() => {
-		document.body.removeChild(a);
-		URL.revokeObjectURL(url);
-	}, 200);
 }
 
 export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult {

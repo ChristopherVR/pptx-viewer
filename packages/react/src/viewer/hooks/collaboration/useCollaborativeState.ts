@@ -1,4 +1,5 @@
-import { sanitizeColor } from './sanitize';
+import { sanitizeColor } from 'pptx-viewer-shared';
+
 /**
  * useCollaborativeState: Composes the Yjs provider and presence tracking
  * into a single hook for the collaboration system.

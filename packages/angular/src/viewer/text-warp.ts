@@ -26,141 +26,42 @@
 import type { PptxElement, PptxTextWarpPreset, TextSegment } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
+import {
+	ALL_CLASSIFIED_PRESETS as SHARED_ALL_CLASSIFIED_PRESETS,
+	classifyTextWarp,
+	getEnvelopeCssTransform,
+	getSimpleCssTransform,
+	groupIntoParagraphs,
+} from '../internal/shared';
+import type { WarpCategory as SharedWarpCategory, WarpParagraph } from '../internal/shared';
 import { getWarpPath, shouldUseSvgWarp } from './warp-path-generators';
 
 // ── Warp category classifier ───────────────────────────────────────────
-// (mirrors text-warp-classifier.ts from React)
+// Re-exported from shared `render/text-warp.ts` (classifyTextWarp /
+// ALL_CLASSIFIED_PRESETS) under the local symbol names Angular consumers use.
 
 /** The four rendering strategy families. */
-export type WarpCategory = 'path' | 'envelope' | 'simple' | 'none';
-
-const NONE_PRESETS = new Set<string>(['textNoShape', 'textPlain']);
-
-/** Presets that render best with SVG textPath along curved/circular paths. */
-const PATH_PRESETS = new Set<string>([
-	'textArchUp',
-	'textArchDown',
-	'textCircle',
-	'textWave1',
-	'textWave2',
-	'textWave4',
-	'textDoubleWave1',
-	'textCurveUp',
-	'textCurveDown',
-	'textArchUpPour',
-	'textArchDownPour',
-	'textCirclePour',
-	'textButton',
-	'textButtonPour',
-	'textRingInside',
-	'textRingOutside',
-	'textTriangle',
-	'textTriangleInverted',
-	'textChevron',
-	'textChevronInverted',
-	'textStop',
-]);
-
-/**
- * Envelope presets stretch text non-uniformly (wider/narrower per line).
- * CSS transforms approximate the visual effect per text block.
- */
-const ENVELOPE_PRESETS = new Set<string>([
-	'textInflate',
-	'textDeflate',
-	'textInflateBottom',
-	'textInflateTop',
-	'textDeflateBottom',
-	'textDeflateTop',
-	'textDeflateInflate',
-	'textDeflateInflateDeflate',
-	'textCanUp',
-	'textCanDown',
-]);
-
-/** Simple presets that work with basic 2D CSS transforms (skew, perspective). */
-const SIMPLE_PRESETS = new Set<string>([
-	'textSlantUp',
-	'textSlantDown',
-	'textFadeRight',
-	'textFadeLeft',
-	'textFadeUp',
-	'textFadeDown',
-	'textCascadeUp',
-	'textCascadeDown',
-]);
+export type WarpCategory = SharedWarpCategory;
 
 /** All known classified presets (excludes `none`-family). */
-export const ALL_CLASSIFIED_PRESETS: ReadonlySet<string> = new Set([
-	...NONE_PRESETS,
-	...PATH_PRESETS,
-	...ENVELOPE_PRESETS,
-	...SIMPLE_PRESETS,
-]);
+export const ALL_CLASSIFIED_PRESETS: ReadonlySet<string> = SHARED_ALL_CLASSIFIED_PRESETS;
 
 /**
  * Classify a warp preset into a rendering strategy category.
  *
  * Returns `'none'` for unknown or empty presets so callers can safely
- * skip rendering without an explicit allowlist check.
+ * skip rendering without an explicit allowlist check. Thin alias for the
+ * shared `classifyTextWarp` helper.
  */
-export function getWarpCategory(preset: string | undefined): WarpCategory {
-	if (!preset || NONE_PRESETS.has(preset)) {
-		return 'none';
-	}
-	if (PATH_PRESETS.has(preset)) {
-		return 'path';
-	}
-	if (ENVELOPE_PRESETS.has(preset)) {
-		return 'envelope';
-	}
-	if (SIMPLE_PRESETS.has(preset)) {
-		return 'simple';
-	}
-	return 'none';
-}
+export const getWarpCategory: (preset: string | undefined) => WarpCategory = classifyTextWarp;
 
 // ── Paragraph helper ───────────────────────────────────────────────────
+// `groupIntoParagraphs` + `WarpParagraph` now live in pptx-viewer-shared
+// (render/text-warp), shared with the React + Vue warp renderers. Re-exported
+// here under the same names so existing Angular import paths keep working.
 
-/** A paragraph extracted from an element's textSegments. */
-export interface WarpParagraph {
-	/** Text segments belonging to this paragraph (no paragraph-break segments). */
-	segments: TextSegment[];
-}
-
-/**
- * Split an element's `textSegments` into paragraphs.
- * Paragraph-break segments are used as delimiters and excluded from output.
- * Falls back to a single synthetic paragraph when only `element.text` is set.
- */
-export function groupIntoParagraphs(el: {
-	text?: string;
-	textSegments?: TextSegment[];
-}): WarpParagraph[] {
-	const segs = el.textSegments;
-	if (!segs || segs.length === 0) {
-		if (el.text) {
-			return [{ segments: [{ text: el.text, style: {} }] }];
-		}
-		return [];
-	}
-	const paragraphs: WarpParagraph[] = [];
-	let current: TextSegment[] = [];
-	for (const seg of segs) {
-		if (seg.isParagraphBreak) {
-			if (current.length > 0) {
-				paragraphs.push({ segments: current });
-			}
-			current = [];
-		} else {
-			current.push(seg);
-		}
-	}
-	if (current.length > 0) {
-		paragraphs.push({ segments: current });
-	}
-	return paragraphs;
-}
+export type { WarpParagraph };
+export { groupIntoParagraphs };
 
 // ── TextWarpDef shape ──────────────────────────────────────────────────
 
@@ -229,167 +130,8 @@ export interface TextWarpCssDef {
 export type TextWarpDef = TextWarpPathDef | TextWarpCssDef;
 
 // ── CSS transform generators ───────────────────────────────────────────
-// (mirrors text-warp-classifier.ts getEnvelopeCssTransform / getSimpleCssTransform)
-
-/** Default OOXML adjustment values for envelope presets (raw 1/60000th units). */
-const ENVELOPE_DEFAULTS: Record<string, number> = {
-	textInflate: 18750,
-	textDeflate: 18750,
-	textInflateBottom: 18750,
-	textInflateTop: 18750,
-	textDeflateBottom: 18750,
-	textDeflateTop: 18750,
-	textDeflateInflate: 18750,
-	textDeflateInflateDeflate: 18750,
-	textCanUp: 18750,
-	textCanDown: 18750,
-};
-
-interface CssDef {
-	transform: string;
-	transformOrigin: string;
-}
-
-/** Resolve CSS transform + origin for envelope-family presets. */
-function envelopeCss(preset: string, adj1?: number): CssDef | undefined {
-	const defaultAdj = ENVELOPE_DEFAULTS[preset] ?? 18750;
-	const a1 = adj1 ?? defaultAdj;
-	const intensity = Math.max(0, Math.min(a1 / 18750, 4));
-
-	switch (preset) {
-		case 'textInflate':
-			return {
-				transform: `scaleY(${1 + 0.15 * intensity}) scaleX(${1 + 0.05 * intensity})`,
-				transformOrigin: 'center center',
-			};
-		case 'textInflateBottom':
-			return {
-				transform: `perspective(${600 - 100 * intensity}px) rotateX(${-8 * intensity}deg)`,
-				transformOrigin: 'center bottom',
-			};
-		case 'textInflateTop':
-			return {
-				transform: `perspective(${600 - 100 * intensity}px) rotateX(${8 * intensity}deg)`,
-				transformOrigin: 'center top',
-			};
-		case 'textDeflate':
-			return {
-				transform: `scaleY(${1 - 0.12 * intensity}) scaleX(${1 - 0.05 * intensity})`,
-				transformOrigin: 'center center',
-			};
-		case 'textDeflateBottom':
-			return {
-				transform: `perspective(${600 - 100 * intensity}px) rotateX(${6 * intensity}deg)`,
-				transformOrigin: 'center bottom',
-			};
-		case 'textDeflateTop':
-			return {
-				transform: `perspective(${600 - 100 * intensity}px) rotateX(${-6 * intensity}deg)`,
-				transformOrigin: 'center top',
-			};
-		case 'textDeflateInflate':
-			return {
-				transform: `scaleY(${1 - 0.08 * intensity}) scaleX(${1 + 0.04 * intensity})`,
-				transformOrigin: 'center center',
-			};
-		case 'textDeflateInflateDeflate':
-			return {
-				transform: `scaleY(${1 - 0.15 * intensity}) scaleX(${1 + 0.06 * intensity})`,
-				transformOrigin: 'center center',
-			};
-		case 'textCanUp':
-			return {
-				transform: `perspective(${500 - 80 * intensity}px) rotateX(${-6 * intensity}deg)`,
-				transformOrigin: 'center center',
-			};
-		case 'textCanDown':
-			return {
-				transform: `perspective(${500 - 80 * intensity}px) rotateX(${6 * intensity}deg)`,
-				transformOrigin: 'center center',
-			};
-		default:
-			return undefined;
-	}
-}
-
-/** Default OOXML adjustment values for simple presets (raw 1/60000th units). */
-const SIMPLE_DEFAULTS: Record<string, number> = {
-	textSlantUp: 55000,
-	textSlantDown: 55000,
-	textFadeRight: 50000,
-	textFadeLeft: 50000,
-	textFadeUp: 50000,
-	textFadeDown: 50000,
-	textCascadeUp: 44444,
-	textCascadeDown: 44444,
-};
-
-/** Resolve CSS transform + origin for simple-family presets. */
-function simpleCss(preset: string, adj1?: number): CssDef | undefined {
-	const defaultAdj = SIMPLE_DEFAULTS[preset] ?? 50000;
-	const a1 = adj1 ?? defaultAdj;
-
-	switch (preset) {
-		case 'textSlantUp': {
-			const skew = -4 * (a1 / 55000);
-			return {
-				transform: `perspective(500px) rotateY(${8 * (a1 / 55000)}deg) skewY(${skew}deg)`,
-				transformOrigin: 'left center',
-			};
-		}
-		case 'textSlantDown': {
-			const skew = 4 * (a1 / 55000);
-			return {
-				transform: `perspective(500px) rotateY(${-8 * (a1 / 55000)}deg) skewY(${skew}deg)`,
-				transformOrigin: 'right center',
-			};
-		}
-		case 'textFadeRight': {
-			const angle = 10 * (a1 / 50000);
-			return {
-				transform: `perspective(400px) rotateY(${-angle}deg)`,
-				transformOrigin: 'left center',
-			};
-		}
-		case 'textFadeLeft': {
-			const angle = 10 * (a1 / 50000);
-			return {
-				transform: `perspective(400px) rotateY(${angle}deg)`,
-				transformOrigin: 'right center',
-			};
-		}
-		case 'textFadeUp': {
-			const angle = 10 * (a1 / 50000);
-			return {
-				transform: `perspective(400px) rotateX(${-angle}deg)`,
-				transformOrigin: 'center bottom',
-			};
-		}
-		case 'textFadeDown': {
-			const angle = 10 * (a1 / 50000);
-			return {
-				transform: `perspective(400px) rotateX(${angle}deg)`,
-				transformOrigin: 'center top',
-			};
-		}
-		case 'textCascadeUp': {
-			const skew = -8 * (a1 / 44444);
-			return {
-				transform: `skewY(${skew}deg)`,
-				transformOrigin: 'left top',
-			};
-		}
-		case 'textCascadeDown': {
-			const skew = 8 * (a1 / 44444);
-			return {
-				transform: `skewY(${skew}deg)`,
-				transformOrigin: 'left top',
-			};
-		}
-		default:
-			return undefined;
-	}
-}
+// Envelope / simple CSS approximations are provided by shared
+// `getEnvelopeCssTransform` / `getSimpleCssTransform` (render/text-warp.ts).
 
 // ── SVG alignment helpers ──────────────────────────────────────────────
 
@@ -476,11 +218,11 @@ export function getTextWarp(element: PptxElement): TextWarpDef | undefined {
 	// ── Strategy: CSS transform ─────────────────────────────────────────
 	const category = getWarpCategory(preset);
 
-	let cssDef: CssDef | undefined;
+	let cssDef: { transform: string; transformOrigin: string } | undefined;
 	if (category === 'envelope') {
-		cssDef = envelopeCss(preset, adj1);
+		cssDef = getEnvelopeCssTransform(preset, adj1, adj2);
 	} else if (category === 'simple') {
-		cssDef = simpleCss(preset, adj1);
+		cssDef = getSimpleCssTransform(preset, adj1);
 	}
 
 	if (!cssDef) {
