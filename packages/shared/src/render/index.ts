@@ -211,6 +211,14 @@ export * from './slide-background';
 export * from './editor-insert';
 export * from './element-operations';
 export * from './editor-history';
+// Section CRUD: pure immutable transforms over the sections + slides arrays
+// (add/rename/delete/move section, move-slides-to-section) + GUID-like section
+// id + OOXML slide-id resolution. Each binding wires its reactive state through
+// these.
+export * from './section-operations';
+// Slide CRUD factories: blank-slide builder + `slide-<ts>-<rand>` id helper
+// (with optional id override). Each binding's slide-management layer calls these.
+export * from './slide-operations';
 // OLE download/open helpers: file-size formatting + browser-openable MIME check
 // for the binding OLE renderers' download/open actions.
 export * from './ole-actions';

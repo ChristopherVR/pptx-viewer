@@ -1,5 +1,6 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import { cloneSlide } from 'pptx-viewer-core';
+import { createBlankSlide, makeSlideId } from 'pptx-viewer-shared';
 import type { Ref } from 'vue';
 
 /**
@@ -36,21 +37,6 @@ export interface UseSlideOperationsResult {
 	duplicateSlide: (index: number) => void;
 	/** Reorder the slide at `from` to position `to`. */
 	moveSlide: (from: number, to: number) => void;
-}
-
-/** Generate a collision-resistant slide id. */
-function makeSlideId(): string {
-	return `slide-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-}
-
-/** Build a fresh, empty {@link PptxSlide}. */
-function createBlankSlide(slideNumber: number): PptxSlide {
-	return {
-		id: makeSlideId(),
-		rId: '',
-		slideNumber,
-		elements: [],
-	};
 }
 
 export function useSlideOperations(input: UseSlideOperationsInput): UseSlideOperationsResult {
