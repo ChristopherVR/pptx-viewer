@@ -1276,6 +1276,19 @@ function applySlideTransition(transition: PptxSlideTransition | undefined): void
 	slides.value = nextSlides;
 }
 
+/** Merge a partial patch (e.g. background colour/image) into the active slide. */
+function applySlideBackgroundPatch(patch: Partial<PptxSlide>): void {
+	const index = activeSlideIndex.value;
+	const slide = slides.value[index];
+	if (!slide) {
+		return;
+	}
+	history.pushHistory();
+	const nextSlides = slides.value.slice();
+	nextSlides[index] = { ...slide, ...patch };
+	slides.value = nextSlides;
+}
+
 /** Merge a partial transition patch into the active slide (Transitions ribbon). */
 function onTransitionChange(updates: Partial<PptxSlideTransition>): void {
 	const current = (activeSlide.value?.transition ?? {}) as PptxSlideTransition;
@@ -2519,7 +2532,9 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				<SlideInspector
 					v-else-if="props.canEdit && !isMobile && inspectorOpen && slideCount > 0"
 					:slide="activeSlide"
+					:can-edit="props.canEdit"
 					@transition-update="applySlideTransition"
+					@slide-update="applySlideBackgroundPatch"
 				/>
 
 				<!-- Accessibility checker -->
@@ -2793,7 +2808,9 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					v-else-if="slideCount > 0"
 					mobile
 					:slide="activeSlide"
+					:can-edit="props.canEdit"
 					@transition-update="applySlideTransition"
+					@slide-update="applySlideBackgroundPatch"
 				/>
 				<p v-else class="px-4 py-6 text-center text-xs text-muted-foreground">No slide selected.</p>
 			</MobileSheet>
