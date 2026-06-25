@@ -27,6 +27,8 @@ import {
 	validateRoomId,
 } from './collaboration-helpers';
 import type { RemoteCursor, RemotePresence } from './collaboration-helpers';
+import { buildSaveSlides } from './template-mode';
+import type { TemplateElementsBySlideId } from './template-mode';
 
 // ---------------------------------------------------------------------------
 // Loose structural types for lazily-imported yjs / y-websocket.
@@ -65,6 +67,13 @@ export interface ConnectOptions {
 	canvasWidth?: number;
 	canvasHeight?: number;
 	getSourceBytes?: () => Uint8Array | null;
+	/**
+	 * Returns the editor's separated template (master/layout) elements keyed by
+	 * slide id, so the elected-writer write-back can merge them back into the
+	 * broadcast (template-free) slides before serializing. Without this, template
+	 * edits would be dropped from the persisted deck.
+	 */
+	getTemplateElements?: () => TemplateElementsBySlideId;
 }
 
 const DEFAULT_CANVAS_BOUND = 100_000;
@@ -96,6 +105,7 @@ export class CollaborationService {
 	private canvasWidth = DEFAULT_CANVAS_BOUND;
 	private canvasHeight = DEFAULT_CANVAS_BOUND;
 	private getSourceBytes: (() => Uint8Array | null) | null = null;
+	private getTemplateElements: (() => TemplateElementsBySlideId) | null = null;
 	private userName = 'Anonymous';
 	private userColor = DEFAULT_CURSOR_COLOR;
 	private userAvatar: string | undefined;
@@ -133,6 +143,7 @@ export class CollaborationService {
 		this.canvasWidth = options.canvasWidth ?? DEFAULT_CANVAS_BOUND;
 		this.canvasHeight = options.canvasHeight ?? DEFAULT_CANVAS_BOUND;
 		this.getSourceBytes = options.getSourceBytes ?? null;
+		this.getTemplateElements = options.getTemplateElements ?? null;
 		this.userName = config.userName;
 		this.userColor = config.userColor ?? DEFAULT_CURSOR_COLOR;
 		this.userAvatar = config.userAvatar;
@@ -292,7 +303,12 @@ export class CollaborationService {
 				const { PptxHandler } = await import('pptx-viewer-core');
 				const handler = new PptxHandler();
 				await handler.load(sourceBytes.buffer as ArrayBuffer);
-				const slides = readSlidesFromYDoc(this.ydoc);
+				// Merge the editor's separated template (master/layout) elements back
+				// into the broadcast (template-free) slides so template edits persist.
+				const slides = buildSaveSlides(
+					readSlidesFromYDoc(this.ydoc),
+					this.getTemplateElements?.() ?? {},
+				);
 				const bytes = await handler.save(slides);
 				config.onWriteBack(bytes);
 			} catch {

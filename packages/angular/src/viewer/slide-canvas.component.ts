@@ -182,7 +182,14 @@ function plainText(el: PptxElement): string {
 					(contextmenu)="onContextMenu($event)"
 					(dblclick)="onDblClick($event)"
 				>
-					@for (element of elements(); track element.id; let i = $index) {
+					<!--
+						Template layer: inherited master/layout elements, rendered BEHIND
+						the slide's own elements (lower z-index). Interactive + given the
+						amber editable affordance only while editTemplateMode is on; when
+						off they render inertly with no affordance, exactly as core
+						delivered them.
+					-->
+					@for (element of templateElements(); track element.id; let i = $index) {
 						<pptx-element-renderer
 							[element]="element"
 							[mediaDataUrls]="mediaDataUrls()"
@@ -190,10 +197,25 @@ function plainText(el: PptxElement): string {
 							[obstacles]="connectorObstacles()"
 							[canvasWidth]="canvasSize().width"
 							[canvasHeight]="canvasSize().height"
+							[interactive]="interactive() && editTemplateMode()"
+							[editable]="editable() && editTemplateMode()"
+							[fieldContext]="fieldContext()"
+							[editTemplateMode]="editTemplateMode()"
+							(cellCommit)="cellCommit.emit($event)"
+						/>
+					}
+					@for (element of elements(); track element.id; let i = $index) {
+						<pptx-element-renderer
+							[element]="element"
+							[mediaDataUrls]="mediaDataUrls()"
+							[zIndex]="templateElements().length + i"
+							[obstacles]="connectorObstacles()"
+							[canvasWidth]="canvasSize().width"
+							[canvasHeight]="canvasSize().height"
 							[interactive]="interactive()"
 							[editable]="editable()"
 							[fieldContext]="fieldContext()"
-							[editTemplateMode]="editTemplateMode()"
+							[editTemplateMode]="false"
 							(cellCommit)="cellCommit.emit($event)"
 						/>
 					}
@@ -571,6 +593,12 @@ export class SlideCanvasComponent {
 	 * slide editing never disturbs the shared template.
 	 */
 	readonly editTemplateMode = input<boolean>(false);
+	/**
+	 * Inherited master/layout (template) elements for this slide, separated out of
+	 * `slide.elements` by the editor. Rendered as a dedicated layer BEHIND the
+	 * slide's own elements; interactive only while {@link editTemplateMode} is on.
+	 */
+	readonly templateElements = input<readonly PptxElement[]>([]);
 
 	// ── Draw tool inputs ──────────────────────────────────────────────────────
 	/** Active draw tool. When not 'select', pointer gestures draw ink strokes. */
@@ -740,6 +768,16 @@ export class SlideCanvasComponent {
 	readonly elements = computed(() => this.slide()?.elements ?? []);
 
 	/**
+	 * Template elements + the slide's own elements, template first (behind). Used
+	 * for every id-based lookup (hit-testing, selection boxes, inline-edit box) so
+	 * a selected/dragged template element resolves the same as a normal one.
+	 */
+	readonly allElements = computed<readonly PptxElement[]>(() => [
+		...this.templateElements(),
+		...this.elements(),
+	]);
+
+	/**
 	 * OOXML field-substitution context for the slide being rendered. Built from
 	 * the viewer-scoped {@link FieldContextService} (header/footer + custom doc
 	 * properties) folded with this slide's number + title. `optional` injection
@@ -754,7 +792,7 @@ export class SlideCanvasComponent {
 	 * around these instead of cutting straight through neighbouring shapes.
 	 */
 	readonly connectorObstacles = computed(() =>
-		this.elements()
+		this.allElements()
 			.filter((e) => e.type !== 'connector' && e.width > 0 && e.height > 0)
 			.map((e) => ({ x: e.x, y: e.y, width: e.width, height: e.height })),
 	);
@@ -765,7 +803,7 @@ export class SlideCanvasComponent {
 		if (selected.size === 0) {
 			return [];
 		}
-		return this.elements()
+		return this.allElements()
 			.filter((el) => selected.has(el.id))
 			.map((el) => ({ id: el.id, x: el.x, y: el.y, width: el.width, height: el.height }));
 	});
@@ -776,7 +814,7 @@ export class SlideCanvasComponent {
 		if (ids.length !== 1) {
 			return null;
 		}
-		const el = this.elements().find((e) => e.id === ids[0]);
+		const el = this.allElements().find((e) => e.id === ids[0]);
 		return el ? { id: el.id, x: el.x, y: el.y, width: el.width, height: el.height } : null;
 	});
 
@@ -850,7 +888,7 @@ export class SlideCanvasComponent {
 		if (!id) {
 			return null;
 		}
-		const el = this.elements().find((e) => e.id === id);
+		const el = this.allElements().find((e) => e.id === id);
 		if (!el) {
 			return null;
 		}
@@ -961,7 +999,7 @@ export class SlideCanvasComponent {
 			return;
 		}
 		this.elementSelect.emit({ id, additive: event.shiftKey || event.ctrlKey || event.metaKey });
-		const el = this.elements().find((e) => e.id === id);
+		const el = this.allElements().find((e) => e.id === id);
 		if (!el) {
 			return;
 		}
@@ -982,7 +1020,7 @@ export class SlideCanvasComponent {
 		if (!id || !this.editable()) {
 			return null;
 		}
-		const el = this.elements().find((e) => e.id === id);
+		const el = this.allElements().find((e) => e.id === id);
 		if (!el) {
 			return null;
 		}
@@ -1057,7 +1095,7 @@ export class SlideCanvasComponent {
 		if (!box || !stage) {
 			return;
 		}
-		const el = this.elements().find((e) => e.id === box.id);
+		const el = this.allElements().find((e) => e.id === box.id);
 		const zoom = this.effectiveScale() || 1;
 		const rect = stage.getBoundingClientRect();
 		const centerX = box.x + box.width / 2;
@@ -1193,7 +1231,7 @@ export class SlideCanvasComponent {
 
 		// Snap a move to nearby element edges/centres and show alignment guides.
 		if (drag.mode === 'move') {
-			const others = this.elements()
+			const others = this.allElements()
 				.filter((el) => el.id !== drag.id)
 				.map((el) => ({ x: el.x, y: el.y, width: el.width, height: el.height }));
 			const snap = computeSnap(box, others, SNAP_SCREEN_PX / zoom);
@@ -1276,7 +1314,7 @@ export class SlideCanvasComponent {
 			if (marquee.started && rect) {
 				// Only rubber-band-select elements the gate considers interactive, so
 				// inert template elements are never swept up when editTemplateMode is off.
-				const selectable = this.elements().filter((el) =>
+				const selectable = this.allElements().filter((el) =>
 					isElementInteractive(el, true, this.editTemplateMode()),
 				);
 				const ids = marqueeHitIds(rect, selectable);

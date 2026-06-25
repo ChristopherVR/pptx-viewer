@@ -57,6 +57,7 @@ const THUMB_W = 150;
 							<div class="pptx-ng-spanel-clip" [ngStyle]="clipStyle()">
 								<pptx-slide-canvas
 									[slide]="slide"
+									[templateElements]="editor.templateElementsBySlideId()[slide.id] ?? []"
 									[canvasSize]="canvasSize()"
 									[mediaDataUrls]="mediaDataUrls()"
 									[zoom]="thumbZoom()"
