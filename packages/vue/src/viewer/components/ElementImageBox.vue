@@ -4,12 +4,14 @@
  * keep the dispatcher thin. Renders an `<img>` (object-fit contain) with the
  * computed CSS filter + any SVG `<filter>` defs for duotone/artistic effects.
  */
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, PptxImageEffects } from 'pptx-viewer-core';
 import { getComputedImageStyle } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
 import { getContainerStyle, getImageSrc } from '../composables/element-style';
+import { useColorChangeImage } from '../composables/use-color-change-image';
+import type { ClrChangeEffect } from '../composables/use-color-change-image';
 
 const props = defineProps<{
 	element: PptxElement;
@@ -23,6 +25,17 @@ const containerStyle = computed<CSSProperties>(() =>
 );
 const imageSrc = computed(() => getImageSrc(props.element, props.mediaDataUrls));
 const imageFx = computed(() => getComputedImageStyle(props.element));
+
+// The `<a:clrChange>` chroma-key effect, if present (with a valid `clrFrom`).
+const clrChange = computed<ClrChangeEffect | undefined>(() => {
+	const effects = (props.element as { imageEffects?: PptxImageEffects }).imageEffects;
+	const effect = effects?.clrChange;
+	return effect?.clrFrom ? effect : undefined;
+});
+
+// Recoloured source (offscreen-canvas pixel swap); falls back to the original
+// `imageSrc` while processing, on failure, or when no clrChange is present.
+const { displaySrc } = useColorChangeImage({ src: imageSrc, clrChange });
 </script>
 
 <template>
@@ -47,7 +60,7 @@ const imageFx = computed(() => getComputedImageStyle(props.element));
 		</svg>
 		<img
 			v-if="imageSrc"
-			:src="imageSrc"
+			:src="displaySrc ?? imageSrc"
 			alt=""
 			:style="{
 				width: '100%',
