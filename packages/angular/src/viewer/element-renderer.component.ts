@@ -4,6 +4,9 @@ import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
 import { ChartRendererComponent } from './chart-renderer.component';
+import { getClrChangeParams } from './color-changed-image-helpers';
+import type { ClrChangeParams } from './color-changed-image-helpers';
+import { ColorChangedImageComponent } from './color-changed-image.component';
 import { ConnectorRendererComponent } from './connector-renderer.component';
 import type { Rect } from './connector-routing';
 import {
@@ -90,6 +93,7 @@ interface Paragraph {
 		Model3DRendererComponent,
 		ZoomRendererComponent,
 		EquationRendererComponent,
+		ColorChangedImageComponent,
 	],
 	template: `
 		@switch (true) {
@@ -199,8 +203,17 @@ interface Paragraph {
 					[attr.data-element-id]="element().id"
 					[attr.data-pptx-element]="interactive() ? 'true' : null"
 				>
-					@if (imageSrc()) {
-						<img [src]="imageSrc()" alt="" class="pptx-ng-img" />
+					@if (imageSrc(); as src) {
+						@if (clrChangeParams(); as cc) {
+							<pptx-color-changed-image
+								[src]="src"
+								[clrChange]="cc"
+								alt=""
+								imgClass="pptx-ng-img"
+							/>
+						} @else {
+							<img [src]="src" alt="" class="pptx-ng-img" />
+						}
 					}
 				</div>
 			}
@@ -211,8 +224,17 @@ interface Paragraph {
 					[attr.data-element-id]="element().id"
 					[attr.data-pptx-element]="interactive() ? 'true' : null"
 				>
-					@if (imageSrc()) {
-						<img [src]="imageSrc()" alt="" class="pptx-ng-img" />
+					@if (imageSrc(); as src) {
+						@if (clrChangeParams(); as cc) {
+							<pptx-color-changed-image
+								[src]="src"
+								[clrChange]="cc"
+								alt=""
+								imgClass="pptx-ng-img"
+							/>
+						} @else {
+							<img [src]="src" alt="" class="pptx-ng-img" />
+						}
 					} @else {
 						<div class="pptx-ng-placeholder">{{ placeholderLabel() }}</div>
 					}
@@ -393,6 +415,16 @@ export class ElementRendererComponent {
 	}));
 	readonly textStyle = computed<StyleMap>(() => getTextBlockStyle(this.element()));
 	readonly imageSrc = computed(() => getImageSrc(this.element(), this.mediaDataUrls()));
+
+	/**
+	 * Parsed `<a:clrChange>` colour-change effect for this element, or
+	 * `undefined` when it carries none. When present the image / media branch
+	 * renders via {@link ColorChangedImageComponent} (offscreen-canvas chroma
+	 * key) instead of a plain `<img>`.
+	 */
+	readonly clrChangeParams = computed<ClrChangeParams | undefined>(() =>
+		getClrChangeParams(this.element()),
+	);
 
 	/** Text-warp (WordArt) descriptor for the element, if any. */
 	readonly textWarp = computed(() => getTextWarp(this.element()));
