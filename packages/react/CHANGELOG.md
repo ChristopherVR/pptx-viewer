@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.55](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.55) - 2026-06-25
+
+### Other
+
+- **smartart:** Snapshot in-progress SmartArt session work (by @ChristopherVR) ([0cac22f](https://github.com/ChristopherVR/pptx-viewer/commit/0cac22f5b1a0ecc33960f4712ff2ef691beb3f65))
+
 ## [1.1.48](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.48) - 2026-06-25
 
 ### Refactor
