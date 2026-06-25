@@ -14,12 +14,13 @@ import {
 } from '@angular/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
-import { computeSmartArtLayout, flattenNodes } from '../internal/shared';
+import { buildSmartArtA11y, computeSmartArtLayout, flattenNodes } from '../internal/shared';
 import type {
 	RenderedCircleNode,
 	RenderedNode,
 	RenderedPolygonNode,
 	RenderedRectNode,
+	SmartArtA11y,
 	SmartArtLayoutResult,
 } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
@@ -67,7 +68,12 @@ import type { InlineEditState } from './smart-art-inline-edit';
 			[ngStyle]="containerStyle()"
 			[attr.data-element-id]="element().id"
 		>
-			<div class="pptx-ng-smartart-chrome" [ngStyle]="chromeStyle()">
+			<div
+				class="pptx-ng-smartart-chrome"
+				[ngStyle]="chromeStyle()"
+				[attr.role]="a11y() ? a11y()!.role : null"
+				[attr.aria-label]="a11y()?.label ?? null"
+			>
 				@if (isEmpty()) {
 					<div class="pptx-ng-smartart-placeholder">SmartArt</div>
 				} @else if (hasDrawingShapes()) {
@@ -138,11 +144,14 @@ import type { InlineEditState } from './smart-art-inline-edit';
 								[ngStyle]="shadowFilter() ? { filter: shadowFilter() } : {}"
 								[class.pptx-ng-smartart-node--editable]="canEditNodes()"
 								[attr.tabindex]="canEditNodes() ? 0 : null"
-								[attr.role]="canEditNodes() ? 'button' : null"
-								[attr.aria-label]="canEditNodes() ? 'Edit node: ' + node.text : null"
+								[attr.role]="canEditNodes() ? 'button' : 'img'"
+								[attr.aria-label]="nodeAriaLabel(node) ?? node.text"
 								(dblclick)="onNodeDblClick($event, node)"
 								(keydown)="onNodeKeydown($event, node)"
 							>
+								@if (nodeAriaLabel(node); as title) {
+									<title>{{ title }}</title>
+								}
 								@if (asCircle(node); as c) {
 									<circle
 										[attr.cx]="c.cx"
@@ -234,6 +243,9 @@ import type { InlineEditState } from './smart-art-inline-edit';
 						(keydown)="onEditorKeydown($event)"
 					></textarea>
 				}
+
+				<!-- Polite live region: announces node-text edit commits to AT. -->
+				<span class="pptx-ng-sr-only" aria-live="polite" role="status">{{ liveMessage() }}</span>
 			</div>
 		</div>
 	`,
@@ -283,6 +295,19 @@ import type { InlineEditState } from './smart-art-inline-edit';
 			color: rgba(255, 255, 255, 0.8);
 			pointer-events: none;
 		}
+
+		/* Visually hidden but available to assistive technology. */
+		.pptx-ng-sr-only {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			padding: 0;
+			margin: -1px;
+			overflow: hidden;
+			clip: rect(0, 0, 0, 0);
+			white-space: nowrap;
+			border: 0;
+		}
 	`,
 })
 export class SmartArtRendererComponent {
@@ -307,7 +332,7 @@ export class SmartArtRendererComponent {
 	private readonly injector = inject(Injector);
 
 	/** The node currently being edited on the canvas, or null. */
-	private readonly editState = signal<InlineEditState | null>(null);
+	protected readonly editState = signal<InlineEditState | null>(null);
 
 	/** The mounted `<textarea>` for the active node edit, if any. */
 	private readonly nodeEditor = viewChild<ElementRef<HTMLTextAreaElement>>('nodeEditor');
@@ -394,6 +419,42 @@ export class SmartArtRendererComponent {
 	});
 
 	readonly hasLayout = computed(() => this.layout().nodes.length > 0);
+
+	// ── Accessibility view-model (shared) ───────────────────────────────────
+
+	/**
+	 * Screen-reader metadata for the whole diagram, derived by the shared
+	 * `buildSmartArtA11y`. The container SVG gets `role="img"` + this `label`;
+	 * each node gets a per-node `aria-label` + `<title>` resolved by node id.
+	 */
+	readonly a11y = computed<SmartArtA11y | undefined>(() => {
+		const data = this.smartArtData();
+		return data ? buildSmartArtA11y(data) : undefined;
+	});
+
+	/** Map of node id -> accessibility label (for per-node `<title>` lookup). */
+	private readonly a11yLabelById = computed<Map<string, string>>(() => {
+		const map = new Map<string, string>();
+		for (const node of this.a11y()?.nodes ?? []) {
+			map.set(node.id, node.label);
+		}
+		return map;
+	});
+
+	/** Resolve the accessibility label for a rendered node (by parsed node id). */
+	nodeAriaLabel(node: RenderedNode): string | null {
+		const nodeId = nodeIdFromKey(node.key, this.element().id);
+		if (nodeId === null) {
+			return null;
+		}
+		return this.a11yLabelById().get(nodeId) ?? null;
+	}
+
+	/**
+	 * Polite live-region message announcing the most recent node-text commit.
+	 * Empty between commits so assistive tech only speaks on change.
+	 */
+	readonly liveMessage = signal<string>('');
 
 	/** Narrow a `RenderedNode` to a circle, or `undefined`. */
 	asCircle(node: RenderedNode): RenderedCircleNode | undefined {
@@ -492,6 +553,10 @@ export class SmartArtRendererComponent {
 		editor.updateElement(slideIndex, this.element().id, {
 			smartArtData: next,
 		} as Partial<PptxElement>);
+		// Announce the commit to assistive technology via the polite live region.
+		this.liveMessage.set(
+			text.trim().length > 0 ? `Node updated to ${text.trim()}` : 'Node cleared',
+		);
 	}
 
 	// ── Empty / no-data state ──────────────────────────────────────────────

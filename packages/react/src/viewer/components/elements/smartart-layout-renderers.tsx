@@ -7,13 +7,8 @@
 
 import React from 'react';
 
-import {
-	colour,
-	nodeOpacity,
-	styleShadow,
-	styleStroke,
-	truncate,
-} from '../../utils/smartart-helpers';
+import { nodeOpacity, styleShadow, styleStroke, truncate } from '../../utils/smartart-helpers';
+import { resolveNodeStyle } from './smartart-node-style';
 import type { LayoutRendererProps } from './smartart-renderer-types';
 import { fitFontSize, smartArtNodeGroupProps } from './smartart-renderer-utils';
 
@@ -30,6 +25,7 @@ export function ListRenderer({
 	nodes,
 	palette,
 	style,
+	nodeLabels,
 }: LayoutRendererProps): React.ReactElement {
 	const w = element.width;
 	const h = element.height;
@@ -52,20 +48,23 @@ export function ListRenderer({
 			{nodes.map((node, i) => {
 				const y = pad + i * (itemH + gap);
 				const fontSize = fitFontSize(node.text, itemW * 0.9, itemH, 12);
+				const ns = resolveNodeStyle(node, i, palette);
+				const label = nodeLabels?.get(node.id);
 				return (
 					<g
 						key={`${element.id}-list-${node.id}-${i}`}
-						{...smartArtNodeGroupProps(node.id, shadow)}
+						{...smartArtNodeGroupProps(node.id, shadow, label)}
 					>
+						{label ? <title>{label}</title> : null}
 						<rect
 							x={pad}
 							y={y}
 							width={itemW}
 							height={itemH}
 							rx={rx}
-							fill={colour(i, palette)}
+							fill={ns.fill}
 							opacity={nodeOpacity(i, nodes.length, style)}
-							stroke={sw > 0 ? 'rgba(255,255,255,0.3)' : 'none'}
+							stroke={ns.strokeColor ?? (sw > 0 ? 'rgba(255,255,255,0.3)' : 'none')}
 							strokeWidth={sw}
 						/>
 						<text
@@ -73,7 +72,9 @@ export function ListRenderer({
 							y={y + itemH / 2}
 							textAnchor='middle'
 							dominantBaseline='central'
-							fill='white'
+							fill={ns.fontColor}
+							fontWeight={ns.fontWeight}
+							fontStyle={ns.fontStyle}
 							fontSize={fontSize}
 							className='pointer-events-none'
 						>
@@ -99,6 +100,7 @@ export function ProcessRenderer({
 	nodes,
 	palette,
 	style,
+	nodeLabels,
 }: LayoutRendererProps): React.ReactElement {
 	const w = element.width;
 	const h = element.height;
@@ -133,17 +135,20 @@ export function ProcessRenderer({
 						: `${x},${yMid - halfH} ${x + itemW - chevronDepth},${yMid - halfH} ${x + itemW},${yMid} ${x + itemW - chevronDepth},${yMid + halfH} ${x},${yMid + halfH} ${x + chevronDepth},${yMid}`;
 
 				const fontSize = fitFontSize(node.text, itemW * 0.7, itemH, 12);
+				const ns = resolveNodeStyle(node, i, palette);
+				const label = nodeLabels?.get(node.id);
 
 				return (
 					<g
 						key={`${element.id}-process-${node.id}-${i}`}
-						{...smartArtNodeGroupProps(node.id, shadow)}
+						{...smartArtNodeGroupProps(node.id, shadow, label)}
 					>
+						{label ? <title>{label}</title> : null}
 						<polygon
 							points={points}
-							fill={colour(i, palette)}
+							fill={ns.fill}
 							opacity={nodeOpacity(i, nodes.length, style)}
-							stroke={sw > 0 ? 'rgba(255,255,255,0.3)' : 'none'}
+							stroke={ns.strokeColor ?? (sw > 0 ? 'rgba(255,255,255,0.3)' : 'none')}
 							strokeWidth={sw}
 						/>
 						<text
@@ -151,7 +156,9 @@ export function ProcessRenderer({
 							y={yMid}
 							textAnchor='middle'
 							dominantBaseline='central'
-							fill='white'
+							fill={ns.fontColor}
+							fontWeight={ns.fontWeight}
+							fontStyle={ns.fontStyle}
 							fontSize={fontSize}
 							className='pointer-events-none'
 						>
@@ -175,6 +182,7 @@ export function CycleRenderer({
 	nodes,
 	palette,
 	style,
+	nodeLabels,
 }: LayoutRendererProps): React.ReactElement {
 	const w = element.width;
 	const h = element.height;
@@ -230,19 +238,22 @@ export function CycleRenderer({
 				const nx = cx + radius * Math.cos(angle);
 				const ny = cy + radius * Math.sin(angle);
 				const fontSize = fitFontSize(node.text, nodeR * 1.4, nodeR * 2, 11);
+				const ns = resolveNodeStyle(node, i, palette);
+				const label = nodeLabels?.get(node.id);
 
 				return (
 					<g
 						key={`${element.id}-cycle-${node.id}-${i}`}
-						{...smartArtNodeGroupProps(node.id, shadow)}
+						{...smartArtNodeGroupProps(node.id, shadow, label)}
 					>
+						{label ? <title>{label}</title> : null}
 						<circle
 							cx={nx}
 							cy={ny}
 							r={nodeR}
-							fill={colour(i, palette)}
+							fill={ns.fill}
 							opacity={nodeOpacity(i, nodes.length, style)}
-							stroke={sw > 0 ? 'rgba(255,255,255,0.3)' : 'none'}
+							stroke={ns.strokeColor ?? (sw > 0 ? 'rgba(255,255,255,0.3)' : 'none')}
 							strokeWidth={sw}
 						/>
 						<text
@@ -250,7 +261,9 @@ export function CycleRenderer({
 							y={ny}
 							textAnchor='middle'
 							dominantBaseline='central'
-							fill='white'
+							fill={ns.fontColor}
+							fontWeight={ns.fontWeight}
+							fontStyle={ns.fontStyle}
 							fontSize={fontSize}
 							className='pointer-events-none'
 						>
@@ -276,6 +289,7 @@ export function MatrixRenderer({
 	nodes,
 	palette,
 	style,
+	nodeLabels,
 }: LayoutRendererProps): React.ReactElement {
 	const w = element.width;
 	const h = element.height;
@@ -304,21 +318,24 @@ export function MatrixRenderer({
 				const x = pad + col * (cellW + gap);
 				const y = pad + row * (cellH + gap);
 				const fontSize = fitFontSize(node.text, cellW * 0.85, cellH, 12);
+				const ns = resolveNodeStyle(node, i, palette);
+				const label = nodeLabels?.get(node.id);
 
 				return (
 					<g
 						key={`${element.id}-matrix-${node.id}-${i}`}
-						{...smartArtNodeGroupProps(node.id, shadow)}
+						{...smartArtNodeGroupProps(node.id, shadow, label)}
 					>
+						{label ? <title>{label}</title> : null}
 						<rect
 							x={x}
 							y={y}
 							width={cellW}
 							height={cellH}
 							rx={rx}
-							fill={colour(i, palette)}
+							fill={ns.fill}
 							opacity={nodeOpacity(i, nodes.length, style)}
-							stroke={sw > 0 ? 'rgba(255,255,255,0.3)' : 'none'}
+							stroke={ns.strokeColor ?? (sw > 0 ? 'rgba(255,255,255,0.3)' : 'none')}
 							strokeWidth={sw}
 						/>
 						<text
@@ -326,9 +343,10 @@ export function MatrixRenderer({
 							y={y + cellH / 2}
 							textAnchor='middle'
 							dominantBaseline='central'
-							fill='white'
+							fill={ns.fontColor}
+							fontWeight={ns.fontWeight ?? 500}
+							fontStyle={ns.fontStyle}
 							fontSize={fontSize}
-							fontWeight={500}
 							className='pointer-events-none'
 						>
 							{truncate(node.text, 30)}

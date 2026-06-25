@@ -6,6 +6,7 @@
 		"jspdf",
 		"jszip",
 		"fast-xml-parser",
+		"dompurify",
 		"pptx-viewer-core"
 	],
 	"assets": [

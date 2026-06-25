@@ -1,10 +1,9 @@
 import {
 	addSmartArtNode,
 	addSmartArtNodeAsChild,
-	demoteSmartArtNode,
 	promoteSmartArtNode,
 	removeSmartArtNode,
-	reorderSmartArtNode,
+	setSmartArtNodeStyle,
 	switchSmartArtLayout,
 	updateSmartArtNodeText,
 } from 'pptx-viewer-core';
@@ -12,62 +11,62 @@ import type {
 	PptxElement,
 	PptxSmartArtData,
 	PptxSmartArtNode,
+	PptxSmartArtNodeStyle,
 	SmartArtColorScheme,
 	SmartArtLayoutType,
 	SmartArtStyle,
 } from 'pptx-viewer-core';
 import { computed } from 'vue';
-import type { ComputedRef } from 'vue';
+import type { ComputedRef, Ref } from 'vue';
+
+import {
+	canAddTopLevelNode,
+	canRemoveTopLevelNode,
+	describeSmartArtBounds,
+} from './smartart-node-limits';
+import {
+	addSiblingAfter,
+	countTopLevel,
+	demoteNode,
+	extraConnectionCount,
+	removeEmptyNode,
+	reorderNode,
+	siblingCount,
+	siblingIndex,
+} from './smartart-node-pane-handlers';
+import { useSmartArtFocus } from './useSmartArtFocus';
 
 /**
- * useSmartArtEditing: framework-agnostic-ish editing logic for the Vue SmartArt
- * inspector panel, extracted out of the SFC so the component stays thin.
- *
- * Every mutation defers to a real `pptx-viewer-core` op (no re-implementation)
- * and emits a SHALLOW `Partial<PptxElement>` patch (`{ smartArtData }`) through
- * the supplied `apply` callback, matching the uniform inspector-panel contract
- * (`emit('update', patch)` -> `useEditorOperations.updateElement`). Going
- * through that single history-tracked path keeps undo/redo working.
+ * useSmartArtEditing: editing logic for the Vue SmartArt inspector panel,
+ * extracted out of the SFC so the component stays thin. Every mutation defers
+ * to a real `pptx-viewer-core` op (no re-implementation) and emits a SHALLOW
+ * `Partial<PptxElement>` patch (`{ smartArtData }`) through the supplied `apply`
+ * callback, matching the inspector-panel contract (`emit('update', patch)` ->
+ * `useEditorOperations.updateElement`), so undo/redo keeps working.
  */
 
-export const SMARTART_COLOR_SCHEMES: readonly SmartArtColorScheme[] = [
-	'colorful1',
-	'colorful2',
-	'colorful3',
-	'monochromatic1',
-	'monochromatic2',
-];
-
-export const SMARTART_STYLE_OPTIONS: readonly SmartArtStyle[] = ['flat', 'moderate', 'intense'];
-
-/** Human labels for switchable layout categories. Falls back to the raw key. */
-const SMARTART_LAYOUT_LABEL_MAP: Partial<Record<SmartArtLayoutType, string>> = {
-	list: 'List',
-	process: 'Process',
-	cycle: 'Cycle',
-	hierarchy: 'Hierarchy',
-	matrix: 'Matrix',
-	pyramid: 'Pyramid',
-	relationship: 'Relationship',
-	venn: 'Venn',
-	funnel: 'Funnel',
-	target: 'Target',
-	gear: 'Gear',
-	timeline: 'Timeline',
-	chevron: 'Chevron',
-	bending: 'Bending',
-};
-
-/** Title-case fallback for any layout type without an explicit label. */
-export function smartArtLayoutLabel(layout: SmartArtLayoutType): string {
-	return SMARTART_LAYOUT_LABEL_MAP[layout] ?? layout.charAt(0).toUpperCase() + layout.slice(1);
-}
+// Re-export the static option lists + layout-label helper from their dedicated
+// module so existing callers can keep importing them from this barrel.
+export {
+	SMARTART_COLOR_SCHEMES,
+	SMARTART_STYLE_OPTIONS,
+	smartArtLayoutLabel,
+} from './smartart-editing-constants';
 
 /** A node enriched with display metadata for the text-pane list. */
 export interface SmartArtNodeRow {
 	node: PptxSmartArtNode;
+	/** Zero-based position in the flat node list. */
 	index: number;
+	/** 1-based display number among top-level nodes (0 for child rows). */
+	displayIndex: number;
 	isChild: boolean;
+	/** Disable the move-up control (already first among siblings). */
+	moveUpDisabled: boolean;
+	/** Disable the move-down control (already last among siblings). */
+	moveDownDisabled: boolean;
+	/** Disable the remove control (last node, or layout minimum reached). */
+	removeDisabled: boolean;
 }
 
 export interface UseSmartArtEditingInput {
@@ -83,8 +82,21 @@ export interface SmartArtEditingApi {
 	colorScheme: ComputedRef<SmartArtColorScheme>;
 	style: ComputedRef<SmartArtStyle>;
 	currentLayout: ComputedRef<SmartArtLayoutType>;
+	/** Number of top-level (parent-less) nodes. */
+	topLevelCount: ComputedRef<number>;
+	/** Whether the layout's max allows another top-level node. */
+	canAdd: ComputedRef<boolean>;
+	/** Human bounds hint for the active layout, or `undefined`. */
+	boundsHint: ComputedRef<string | undefined>;
+	/** Count of non-tree connections (read-only awareness note). */
+	extraConnections: ComputedRef<number>;
+	/** Id of the node input to focus after a structural edit (via input ref + nextTick). */
+	pendingFocusId: Ref<string | null>;
+	/** Register / unregister a node's `<input>` element for focus management. */
+	setInputEl: (nodeId: string, el: HTMLInputElement | null) => void;
 
 	updateNodeText: (nodeId: string, text: string) => void;
+	setNodeStyle: (nodeId: string, style: Partial<PptxSmartArtNodeStyle>) => void;
 	addItem: () => void;
 	addSubItem: (parentId: string) => void;
 	removeNode: (nodeId: string) => void;
@@ -92,6 +104,8 @@ export interface SmartArtEditingApi {
 	demote: (nodeId: string) => void;
 	moveUp: (nodeId: string) => void;
 	moveDown: (nodeId: string) => void;
+	/** Keyboard handler for a node input (Enter/Backspace/Delete/Tab). */
+	onNodeKeyDown: (event: KeyboardEvent, nodeId: string) => void;
 	setColorScheme: (scheme: SmartArtColorScheme) => void;
 	setStyle: (style: SmartArtStyle) => void;
 	switchLayout: (layout: SmartArtLayoutType) => void;
@@ -102,14 +116,6 @@ export function useSmartArtEditing(input: UseSmartArtEditingInput): SmartArtEdit
 
 	const nodes = computed<readonly PptxSmartArtNode[]>(() => smartArtData.value.nodes ?? []);
 
-	const rows = computed<readonly SmartArtNodeRow[]>(() =>
-		nodes.value.map((node, index) => ({
-			node,
-			index,
-			isChild: Boolean(node.parentId),
-		})),
-	);
-
 	const colorScheme = computed<SmartArtColorScheme>(
 		() => smartArtData.value.colorScheme ?? 'colorful1',
 	);
@@ -117,10 +123,41 @@ export function useSmartArtEditing(input: UseSmartArtEditingInput): SmartArtEdit
 	const currentLayout = computed<SmartArtLayoutType>(
 		() => smartArtData.value.resolvedLayoutType ?? 'list',
 	);
+	const topLevelCount = computed(() => countTopLevel(smartArtData.value));
+	const canAdd = computed(() => canAddTopLevelNode(currentLayout.value, topLevelCount.value));
+	const boundsHint = computed(() => describeSmartArtBounds(currentLayout.value));
+	const extraConnections = computed(() => extraConnectionCount(smartArtData.value));
+
+	const rows = computed<readonly SmartArtNodeRow[]>(() => {
+		const data = smartArtData.value;
+		const canRemoveTop = canRemoveTopLevelNode(currentLayout.value, topLevelCount.value);
+		let topDisplay = 0;
+		return nodes.value.map((node, index) => {
+			const isChild = Boolean(node.parentId);
+			if (!isChild) {
+				topDisplay += 1;
+			}
+			const sIdx = siblingIndex(data, node.id);
+			const sCount = siblingCount(data, node.id);
+			return {
+				node,
+				index,
+				displayIndex: isChild ? 0 : topDisplay,
+				isChild,
+				moveUpDisabled: sIdx <= 0,
+				moveDownDisabled: sIdx < 0 || sIdx >= sCount - 1,
+				removeDisabled: nodes.value.length <= 1 || (!isChild && !canRemoveTop),
+			};
+		});
+	});
+
+	// Refocus the node input after a structural edit (React `pendingFocusId`).
+	const { pendingFocusId, setInputEl, focusNode } = useSmartArtFocus();
 
 	/** Emit a whole new SmartArt-data object as the element patch. */
-	function applyData(next: PptxSmartArtData): void {
+	function applyData(next: PptxSmartArtData, focusId?: string): void {
 		apply({ smartArtData: next } as Partial<PptxElement>);
+		focusNode(focusId);
 	}
 
 	/** Emit a partial merge into the current SmartArt data. */
@@ -132,7 +169,18 @@ export function useSmartArtEditing(input: UseSmartArtEditingInput): SmartArtEdit
 		applyData(updateSmartArtNodeText(smartArtData.value, nodeId, text));
 	}
 
+	function setNodeStyle(nodeId: string, nodeStyle: Partial<PptxSmartArtNodeStyle>): void {
+		const next = setSmartArtNodeStyle(smartArtData.value, nodeId, nodeStyle);
+		if (next === smartArtData.value) {
+			return;
+		}
+		applyData(next);
+	}
+
 	function addItem(): void {
+		if (!canAdd.value) {
+			return;
+		}
 		applyData(addSmartArtNode(smartArtData.value, `Item ${nodes.value.length + 1}`));
 	}
 
@@ -140,27 +188,71 @@ export function useSmartArtEditing(input: UseSmartArtEditingInput): SmartArtEdit
 		applyData(addSmartArtNodeAsChild(smartArtData.value, parentId, 'Sub-item'));
 	}
 
-	function removeNode(nodeId: string): void {
+	/** Whether removing `nodeId` is currently permitted by count + bounds. */
+	function canRemove(nodeId: string): boolean {
 		if (nodes.value.length <= 1) {
+			return false;
+		}
+		const isTop = !nodes.value.find((n) => n.id === nodeId)?.parentId;
+		return !isTop || canRemoveTopLevelNode(currentLayout.value, topLevelCount.value);
+	}
+
+	function removeNode(nodeId: string): void {
+		if (!canRemove(nodeId)) {
 			return;
 		}
 		applyData(removeSmartArtNode(smartArtData.value, nodeId));
 	}
 
 	function promote(nodeId: string): void {
-		applyData(promoteSmartArtNode(smartArtData.value, nodeId));
+		const next = promoteSmartArtNode(smartArtData.value, nodeId);
+		if (next !== smartArtData.value) {
+			applyData(next, nodeId);
+		}
 	}
 
 	function demote(nodeId: string): void {
-		applyData(demoteSmartArtNode(smartArtData.value, nodeId));
+		const next = demoteNode(smartArtData.value, nodeId);
+		if (next) {
+			applyData(next, nodeId);
+		}
 	}
 
-	function moveUp(nodeId: string): void {
-		applyData(reorderSmartArtNode(smartArtData.value, nodeId, -1));
+	function move(nodeId: string, direction: 1 | -1): void {
+		const next = reorderNode(smartArtData.value, nodeId, direction);
+		if (next) {
+			applyData(next, nodeId);
+		}
 	}
 
-	function moveDown(nodeId: string): void {
-		applyData(reorderSmartArtNode(smartArtData.value, nodeId, 1));
+	const moveUp = (nodeId: string): void => move(nodeId, -1);
+	const moveDown = (nodeId: string): void => move(nodeId, 1);
+
+	function onNodeKeyDown(event: KeyboardEvent, nodeId: string): void {
+		const node = nodes.value.find((n) => n.id === nodeId);
+		const isEmpty = !node?.text;
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			const result = addSiblingAfter(smartArtData.value, nodeId);
+			if (result) {
+				applyData(result.data, result.focusNodeId);
+			}
+		} else if ((event.key === 'Backspace' || event.key === 'Delete') && isEmpty) {
+			if (!canRemove(nodeId)) {
+				return;
+			}
+			event.preventDefault();
+			const result = removeEmptyNode(smartArtData.value, nodeId);
+			if (result) {
+				applyData(result.data, result.focusNodeId);
+			}
+		} else if (event.key === 'Tab' && !event.shiftKey) {
+			event.preventDefault();
+			demote(nodeId);
+		} else if (event.key === 'Tab' && event.shiftKey) {
+			event.preventDefault();
+			promote(nodeId);
+		}
 	}
 
 	function setColorScheme(scheme: SmartArtColorScheme): void {
@@ -195,7 +287,14 @@ export function useSmartArtEditing(input: UseSmartArtEditingInput): SmartArtEdit
 		colorScheme,
 		style,
 		currentLayout,
+		topLevelCount,
+		canAdd,
+		boundsHint,
+		extraConnections,
+		pendingFocusId,
+		setInputEl,
 		updateNodeText,
+		setNodeStyle,
 		addItem,
 		addSubItem,
 		removeNode,
@@ -203,6 +302,7 @@ export function useSmartArtEditing(input: UseSmartArtEditingInput): SmartArtEdit
 		demote,
 		moveUp,
 		moveDown,
+		onNodeKeyDown,
 		setColorScheme,
 		setStyle,
 		switchLayout,

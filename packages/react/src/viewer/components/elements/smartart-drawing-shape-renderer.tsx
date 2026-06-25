@@ -22,6 +22,12 @@ interface DrawingShapeRendererProps {
 	 * inline editing. When omitted, shapes are not tagged as editable.
 	 */
 	nodes?: readonly PptxSmartArtNode[];
+	/**
+	 * Per-node accessibility labels keyed by node id (from the shared
+	 * `buildSmartArtA11y` view-model). When present, each shape with a resolvable
+	 * node id gains `role="img"` + `aria-label` and an SVG `<title>`.
+	 */
+	nodeLabels?: Map<string, string>;
 }
 
 // ── Component ───────────────────────────────────────────────────────────────
@@ -40,6 +46,7 @@ export function DrawingShapeRenderer({
 	style,
 	palette,
 	nodes,
+	nodeLabels,
 }: DrawingShapeRendererProps): React.ReactElement {
 	let minX = Infinity;
 	let minY = Infinity;
@@ -88,12 +95,14 @@ export function DrawingShapeRenderer({
 					shape.fontSize ?? fitFontSize(shape.text ?? '', shape.width * 0.85, shape.height, 14);
 
 				const nodeId = nodes ? resolveDrawingShapeNodeId(shape, i, shapes, nodes) : undefined;
+				const nodeLabel = nodeId ? nodeLabels?.get(nodeId) : undefined;
 				const groupProps = nodeId
-					? smartArtNodeGroupProps(nodeId, shadow)
+					? smartArtNodeGroupProps(nodeId, shadow, nodeLabel)
 					: { style: { filter: shadow } };
 
 				return (
 					<g key={`${elementId}-dsp-${shape.id}-${i}`} {...groupProps}>
+						{nodeLabel ? <title>{nodeLabel}</title> : null}
 						{isEllipse ? (
 							<ellipse
 								cx={relX + shape.width / 2}

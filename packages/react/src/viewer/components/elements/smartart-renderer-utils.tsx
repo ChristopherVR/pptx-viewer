@@ -3,27 +3,48 @@ import React from 'react';
 
 // ── Inline-edit node tagging ──────────────────────────────────────────────────
 
+/** Props applied to a rendered SmartArt node group (`<g>`). */
+export interface SmartArtNodeGroupProps {
+	'data-smartart-node-id': string;
+	style: React.CSSProperties;
+	/** Accessibility role so each node is announced as a discrete graphic. */
+	role?: 'img';
+	/** Per-node `aria-label` (from the shared a11y view-model), when known. */
+	'aria-label'?: string;
+}
+
 /**
  * Props applied to each rendered SmartArt node group (`<g>`) so the inline
  * editing layer ({@link ../SmartArtEditableLayer}) can map a double-click back
- * to a node id and position an editor over it.
+ * to a node id and position an editor over it, and so assistive technology can
+ * announce the node.
  *
  * `pointerEvents: 'auto'` re-enables hit-testing on the group (the parent
  * `<svg>` sets `pointer-events: none`); clicks still bubble to the element
  * container, so selection / drag of the SmartArt element are unaffected.
  *
+ * When `label` is supplied the group gains `role="img"` + `aria-label`; pair it
+ * with an SVG `<title>` inside the group for browsers that surface it.
+ *
  * @param nodeId - The SmartArt model node id this group represents.
  * @param shadow - The CSS `filter` string the group already applies (may be
  *                 empty); preserved so styling is unchanged.
+ * @param label  - Optional per-node accessibility label.
  */
 export function smartArtNodeGroupProps(
 	nodeId: string,
 	shadow?: string,
-): { 'data-smartart-node-id': string; style: React.CSSProperties } {
-	return {
+	label?: string,
+): SmartArtNodeGroupProps {
+	const props: SmartArtNodeGroupProps = {
 		'data-smartart-node-id': nodeId,
 		style: { filter: shadow, pointerEvents: 'auto' },
 	};
+	if (label) {
+		props.role = 'img';
+		props['aria-label'] = label;
+	}
+	return props;
 }
 
 // ── Font sizing ─────────────────────────────────────────────────────────────
@@ -116,19 +137,30 @@ export function gearPath(
 
 // ── Chrome wrapper ──────────────────────────────────────────────────────────
 
+/** Container-level accessibility metadata for the SmartArt chrome wrapper. */
+export interface SmartArtChromeA11y {
+	/** ARIA role for the container. Always `"img"`. */
+	role: 'img';
+	/** Container `aria-label` (the full diagram description). */
+	label: string;
+}
+
 /**
  * Wrap SmartArt content in a chrome container that applies optional
- * background colour and outline border from the diagram's chrome settings.
+ * background colour and outline border from the diagram's chrome settings, plus
+ * container-level accessibility (`role="img"` + `aria-label`) when supplied.
  *
  * @param chrome    - Optional chrome styling (background, outline).
  * @param content   - The React element to wrap.
  * @param className - Additional CSS classes for the wrapper `<div>`.
+ * @param a11y      - Optional container role / aria-label for assistive tech.
  * @returns A `<div>` wrapping the content with chrome styles applied.
  */
 export function wrapChrome(
 	chrome: PptxSmartArtChrome | undefined,
 	content: React.ReactElement,
 	className: string,
+	a11y?: SmartArtChromeA11y,
 ): React.ReactElement {
 	const wrapperStyle: React.CSSProperties = {};
 	if (chrome?.backgroundColor) {
@@ -139,7 +171,12 @@ export function wrapChrome(
 	}
 
 	return (
-		<div className={`w-full h-full ${className}`} style={wrapperStyle}>
+		<div
+			className={`w-full h-full ${className}`}
+			style={wrapperStyle}
+			role={a11y?.role}
+			aria-label={a11y?.label}
+		>
 			{content}
 		</div>
 	);

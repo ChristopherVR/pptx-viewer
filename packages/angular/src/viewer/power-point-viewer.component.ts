@@ -70,6 +70,8 @@ import type { FindResult } from './find-replace-helpers';
 import { applyFormatToElement, copyFormatFromElement, hasCopyableFormat } from './format-painter';
 import type { CopiedFormat } from './format-painter';
 import { HyperlinkDialogComponent } from './hyperlink-dialog.component';
+import { InsertSmartArtDialogComponent } from './insert-smart-art-dialog.component';
+import type { SmartArtInsertEvent } from './insert-smart-art-dialog.component';
 import { InspectorPanelComponent } from './inspector-panel.component';
 import { IsMobileService } from './is-mobile';
 import { LoadContentService } from './load-content.service';
@@ -95,6 +97,7 @@ import { SlideCanvasComponent } from './slide-canvas.component';
 import { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
 import { SlidesPanelComponent } from './slides-panel.component';
 import { SmartArt3DService } from './smart-art-3d.service';
+import { buildSmartArtInsertElement } from './smart-art-insert-helpers';
 import { setCellText } from './table-data-helpers';
 import type { TableCellCommit } from './table-renderer.component';
 import { buildSaveSlides } from './template-mode';
@@ -172,6 +175,7 @@ const ZOOM_MAX = 3;
 		ThemeGalleryComponent,
 		SelectionPaneComponent,
 		CustomShowsComponent,
+		InsertSmartArtDialogComponent,
 	],
 	template: `
 		<div class="pptx-ng-viewer" [ngClass]="class()" [ngStyle]="rootStyle()">
@@ -240,6 +244,7 @@ const ZOOM_MAX = 3;
 					(toggleThemeGallery)="showThemeGallery.update(v => !v)"
 					(toggleSelectionPane)="togglePanel('selection')"
 					(openCustomShows)="showCustomShows.set(true)"
+					(openSmartArtDialog)="showSmartArtInsert.set(true)"
 					/>
 				}
 
@@ -606,6 +611,13 @@ const ZOOM_MAX = 3;
 					(setActive)="activeCustomShowId.set($event)"
 					(close)="showCustomShows.set(false)"
 				/>
+
+				<!-- ── Insert SmartArt gallery dialog ─────────────────────────── -->
+				<pptx-insert-smart-art-dialog
+					[open]="showSmartArtInsert()"
+					(insert)="onInsertSmartArt($event)"
+					(close)="showSmartArtInsert.set(false)"
+				/>
 			}
 
 			<!-- ── Mobile chrome (narrow / touch viewports only) ─────────────── -->
@@ -960,6 +972,8 @@ export class PowerPointViewerComponent {
 	protected readonly showThemeGallery = signal(false);
 	/** Whether the custom-shows dialog is open. */
 	protected readonly showCustomShows = signal(false);
+	/** Whether the Insert SmartArt gallery dialog is open. */
+	protected readonly showSmartArtInsert = signal(false);
 	/** The list of user-defined custom shows for this session. */
 	protected readonly customShows = signal<readonly CustomShow[]>([]);
 	/** The id of the currently active custom show, or null. */
@@ -1760,6 +1774,19 @@ export class PowerPointViewerComponent {
 		if (el) {
 			this.editor.updateElement(this.activeSlideIndex(), id, { hidden: !el.hidden });
 		}
+	}
+
+	// ── Insert SmartArt ────────────────────────────────────────────────────────
+
+	/**
+	 * Insert a new SmartArt element built from the dialog's chosen preset + item
+	 * texts. The element id is left empty so `EditorStateService.addElement`
+	 * assigns one; the insert is a single undo/redo history entry.
+	 */
+	protected onInsertSmartArt(event: SmartArtInsertEvent): void {
+		const element = buildSmartArtInsertElement(event.layout, event.items);
+		this.editor.addElement(this.activeSlideIndex(), element);
+		this.showSmartArtInsert.set(false);
 	}
 
 	// ── Custom shows handlers ──────────────────────────────────────────────────

@@ -1,12 +1,14 @@
 import type {
 	PptxElement,
 	PptxSmartArtData,
+	PptxSmartArtNodeStyle,
 	SmartArtColorScheme,
 	SmartArtStyle,
 } from 'pptx-viewer-core';
 import {
 	addSmartArtNodeAsChild,
 	removeSmartArtNode,
+	setSmartArtNodeStyle,
 	updateSmartArtNodeText,
 } from 'pptx-viewer-core';
 import React from 'react';
@@ -99,6 +101,13 @@ export function SmartArtPropertiesPanel({
 		applySmartArtData(updateSmartArtNodeText(smartArtData, nodeId, text));
 	};
 
+	const handleChangeNodeStyle = (nodeId: string, patch: Partial<PptxSmartArtNodeStyle>) => {
+		const next = setSmartArtNodeStyle(smartArtData, nodeId, patch);
+		if (next !== smartArtData) {
+			applySmartArtData(next);
+		}
+	};
+
 	const addNode = () => {
 		if (!canAddTopLevelNode(layout, topLevelCount)) {
 			return;
@@ -175,6 +184,10 @@ export function SmartArtPropertiesPanel({
 	const extraConnections = (smartArtData.connections ?? []).filter(
 		(c) => !TREE_CONNECTION_TYPES.has(c.type),
 	);
+	// Human-readable summary of the distinct relationship types, e.g. "presOf, presParOf".
+	const extraConnectionSummary = Array.from(
+		new Set(extraConnections.map((c) => c.type ?? 'unknown')),
+	).join(', ');
 
 	let topDisplayIndex = 0;
 
@@ -271,20 +284,27 @@ export function SmartArtPropertiesPanel({
 								moveUpDisabled={sIdx <= 0}
 								moveDownDisabled={sIdx < 0 || sIdx >= sCount - 1}
 								inputRef={setInputRef(node.id)}
+								style={node.style}
 								onChangeText={handleUpdateNodeText}
 								onKeyDown={handleKeyDown}
 								onAddSubItem={addSubItem}
 								onMoveUp={(id) => moveNode(id, -1)}
 								onMoveDown={(id) => moveNode(id, 1)}
 								onRemove={removeNode}
+								onChangeStyle={handleChangeNodeStyle}
 							/>
 						);
 					})}
 				</div>
 
 				{extraConnections.length > 0 && (
-					<div className='text-[9px] text-muted-foreground' role='note'>
+					<div
+						className='text-[9px] text-muted-foreground'
+						role='note'
+						aria-label={`${extraConnections.length} non-tree relationship connection(s): ${extraConnectionSummary}`}
+					>
 						{t('pptx.smartart.extraConnections', { count: extraConnections.length })}
+						<span className='block opacity-80'>{extraConnectionSummary}</span>
 					</div>
 				)}
 

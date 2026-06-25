@@ -51,7 +51,6 @@ import {
 	newChartElement,
 	newEquationElement,
 	newShapeElement,
-	newSmartArtElement,
 	newTableElement,
 	newTextElement,
 } from './editor-insert';
@@ -1210,6 +1209,12 @@ export class RibbonComponent {
 	readonly toggleSnapToGrid = output<void>();
 	/** Emitted when the user activates the eyedropper in the View tab. */
 	readonly toggleEyedropper = output<void>();
+	/**
+	 * Emitted when the user clicks "SmartArt" in the Insert tab. The host opens
+	 * the Insert SmartArt gallery dialog and performs the actual insert, so the
+	 * ribbon stays free of the dialog state and node-building logic.
+	 */
+	readonly openSmartArtDialog = output<void>();
 
 	protected readonly tabs = TABS;
 	protected readonly fontFamilies = FONT_FAMILIES;
@@ -1294,7 +1299,8 @@ export class RibbonComponent {
 		this.editor.addElement(this.slideIndex(), newTableElement());
 	}
 	protected insertSmartArt(): void {
-		this.editor.addElement(this.slideIndex(), newSmartArtElement());
+		// Open the Insert SmartArt gallery dialog (host owns the dialog + insert).
+		this.openSmartArtDialog.emit();
 	}
 	protected setNewChartType(event: Event): void {
 		this.newChartType.set((event.target as HTMLSelectElement).value as PptxChartType);

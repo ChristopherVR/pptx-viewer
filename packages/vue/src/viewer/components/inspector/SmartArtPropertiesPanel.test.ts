@@ -192,4 +192,80 @@ describe('smartArtPropertiesPanel', () => {
 		await wrapper.get('[data-testid="smartart-add-item"]').trigger('click');
 		expect(data.nodes).toHaveLength(3);
 	});
+
+	it('pressing Enter in a node input inserts a sibling', async () => {
+		const wrapper = mount(SmartArtPropertiesPanel, { props: { element: smartArtElement() } });
+		const input = wrapper.findAll('[data-testid="smartart-node-text"]')[0];
+		await input.trigger('keydown', { key: 'Enter' });
+
+		const next = lastSmartArtData(wrapper.emitted('update'));
+		expect(next.nodes).toHaveLength(4);
+	});
+
+	it('backspace on an empty node removes it', async () => {
+		const data = smartArtData({
+			nodes: [node('n1', 'First'), node('n2', ''), node('n3', 'Third')],
+		});
+		const wrapper = mount(SmartArtPropertiesPanel, { props: { element: smartArtElement(data) } });
+		const input = wrapper.findAll('[data-testid="smartart-node-text"]')[1];
+		await input.trigger('keydown', { key: 'Backspace' });
+
+		const next = lastSmartArtData(wrapper.emitted('update'));
+		expect(next.nodes.map((n) => n.id)).toStrictEqual(['n1', 'n3']);
+	});
+
+	it('disables Add and shows a bounds hint for a fixed-size layout', () => {
+		const data = smartArtData({
+			nodes: [node('n1', 'A'), node('n2', 'B'), node('n3', 'C'), node('n4', 'D')],
+			resolvedLayoutType: 'matrix',
+		});
+		const wrapper = mount(SmartArtPropertiesPanel, { props: { element: smartArtElement(data) } });
+		const add = wrapper.get('[data-testid="smartart-add-item"]');
+		expect((add.element as HTMLButtonElement).disabled).toBeTruthy();
+		expect(wrapper.get('[data-testid="smartart-bounds-hint"]').text()).toContain('exactly 4');
+	});
+
+	it('shows a read-only note for non-tree connections', () => {
+		const data = smartArtData({
+			connections: [{ sourceId: 'n1', destId: 'n2', type: 'sibTrans' }],
+		});
+		const wrapper = mount(SmartArtPropertiesPanel, { props: { element: smartArtElement(data) } });
+		expect(wrapper.find('[data-testid="smartart-extra-connections"]').exists()).toBeTruthy();
+	});
+
+	it('exposes accessibility roles on the panel and node list', () => {
+		const wrapper = mount(SmartArtPropertiesPanel, { props: { element: smartArtElement() } });
+		expect(wrapper.get('[data-testid="smartart-panel"]').attributes('role')).toBe('group');
+		expect(wrapper.get('[data-testid="smartart-node-list"]').attributes('role')).toBe('list');
+		expect(wrapper.findAll('[role="listitem"]')).toHaveLength(3);
+		expect(wrapper.get('[data-testid="smartart-color-scheme"]').attributes('aria-label')).toBe(
+			'Colour scheme',
+		);
+	});
+
+	it('changing a node fill colour emits a per-node style override', async () => {
+		const wrapper = mount(SmartArtPropertiesPanel, { props: { element: smartArtElement() } });
+		const fill = wrapper.findAll('[data-testid="smartart-node-fill"]')[0];
+		await fill.setValue('#ff0000');
+
+		const next = lastSmartArtData(wrapper.emitted('update'));
+		expect(next.nodes.find((n) => n.id === 'n1')?.style?.fillColor).toBe('#ff0000');
+	});
+
+	it('toggling node bold emits a per-node style override', async () => {
+		const wrapper = mount(SmartArtPropertiesPanel, { props: { element: smartArtElement() } });
+		await wrapper.findAll('[data-testid="smartart-node-bold"]')[1].trigger('click');
+
+		const next = lastSmartArtData(wrapper.emitted('update'));
+		expect(next.nodes.find((n) => n.id === 'n2')?.style?.bold).toBeTruthy();
+	});
+
+	it('node bold button reflects the current node style via aria-pressed', () => {
+		const data = smartArtData({
+			nodes: [node('n1', 'First'), { id: 'n2', text: 'Second', style: { italic: true } }],
+		});
+		const wrapper = mount(SmartArtPropertiesPanel, { props: { element: smartArtElement(data) } });
+		const italic = wrapper.findAll('[data-testid="smartart-node-italic"]')[1];
+		expect(italic.attributes('aria-pressed')).toBe('true');
+	});
 });
