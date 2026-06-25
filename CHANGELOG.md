@@ -8,6 +8,16 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **vue:** Collapsible ribbon toggle (wire isCompactToolbarOpen) (by @ChristopherVR) ([974ac16](https://github.com/ChristopherVR/pptx-viewer/commit/974ac16dcd6b9002fe3cdfc0e9760cd8500773b2))
+
+### Bug Fixes
+
+- **core:** Decode XML text entities so '&' no longer renders as '&amp;' (by @ChristopherVR) ([3c86556](https://github.com/ChristopherVR/pptx-viewer/commit/3c865564e75dd4aeb1233347a3005cadb710f021))
+
+## [1.1.52](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.52) - 2026-06-25
+
+### Features
+
 - **vue:** Per-slide theme colour override in the slide inspector (by @ChristopherVR) ([e26a519](https://github.com/ChristopherVR/pptx-viewer/commit/e26a519119070fbdb14f4b202f1c05b93dd8d0bb))
 
 ### Documentation
