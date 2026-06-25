@@ -12,8 +12,13 @@ import {
 	getCssBorderDashStyle,
 	getImageSrc as sharedGetImageSrc,
 	getResolvedShapeClipPath,
+	isVerticalTextDirection,
 	px,
+	resolveCssTextAlign,
 	resolveLineHeight,
+	toCssTextOrientation,
+	toCssVerticalDirection,
+	toCssWritingMode,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 
@@ -243,18 +248,33 @@ export function getTextBlockStyle(el: PptxElement): CSSProperties {
 		style.textDecoration = decorations.join(' ');
 	}
 
-	switch (ts.align) {
-		case 'center':
-			style.textAlign = 'center';
-			break;
-		case 'right':
-			style.textAlign = 'right';
-			break;
-		case 'justify':
-			style.textAlign = 'justify';
-			break;
-		default:
-			style.textAlign = 'left';
+	// Alignment: the special OOXML values justLow / dist / thaiDist all map to
+	// CSS `justify`, and an unset alignment defaults to `right` for RTL text.
+	// Mirrors React's `getTextStyleForElement` align branch + `resolveCssTextAlign`.
+	const isRtl = ts.rtl === true;
+	style.textAlign = resolveCssTextAlign(ts.align, isRtl) ?? 'left';
+
+	// Vertical text direction: writing-mode / text-orientation / direction.
+	// Mirrors React's `getTextStyleForElement` vertical-text branch. Only the
+	// `wordArtVertRtl` mode forces `direction: rtl`; otherwise paragraph-level
+	// RTL drives the direction.
+	if (isVerticalTextDirection(ts.textDirection)) {
+		const writingMode = toCssWritingMode(ts.textDirection);
+		const textOrientation = toCssTextOrientation(ts.textDirection);
+		const verticalDirection = toCssVerticalDirection(ts.textDirection);
+		if (writingMode) {
+			style.writingMode = writingMode;
+		}
+		if (textOrientation) {
+			style.textOrientation = textOrientation;
+		}
+		if (verticalDirection) {
+			style.direction = verticalDirection;
+		} else if (isRtl) {
+			style.direction = 'rtl';
+		}
+	} else if (isRtl) {
+		style.direction = 'rtl';
 	}
 
 	switch (ts.vAlign) {

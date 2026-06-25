@@ -7,8 +7,13 @@ import {
 	getComputedEffectStyle,
 	getContainerStyle as sharedGetContainerStyle,
 	getImageSrc as sharedGetImageSrc,
+	isVerticalTextDirection,
 	px,
+	resolveCssTextAlign,
 	resolveLineHeight,
+	toCssTextOrientation,
+	toCssVerticalDirection,
+	toCssWritingMode,
 } from '../internal/shared';
 import { buildCssGradientFromShapeStyle } from './color-gradient';
 import { buildPatternFillCss } from './color-patterns';
@@ -212,18 +217,33 @@ export function getTextBlockStyle(el: PptxElement): StyleMap {
 		style['text-decoration'] = decorations.join(' ');
 	}
 
-	switch (ts.align) {
-		case 'center':
-			style['text-align'] = 'center';
-			break;
-		case 'right':
-			style['text-align'] = 'right';
-			break;
-		case 'justify':
-			style['text-align'] = 'justify';
-			break;
-		default:
-			style['text-align'] = 'left';
+	// Alignment: the special OOXML values justLow / dist / thaiDist all map to
+	// CSS `justify`, and an unset alignment defaults to `right` for RTL text.
+	// Mirrors React's `getTextStyleForElement` align branch + `resolveCssTextAlign`.
+	const isRtl = ts.rtl === true;
+	style['text-align'] = resolveCssTextAlign(ts.align, isRtl) ?? 'left';
+
+	// Vertical text direction: writing-mode / text-orientation / direction.
+	// Mirrors React's `getTextStyleForElement` vertical-text branch. Only the
+	// `wordArtVertRtl` mode forces `direction: rtl`; otherwise paragraph-level
+	// RTL drives the direction.
+	if (isVerticalTextDirection(ts.textDirection)) {
+		const writingMode = toCssWritingMode(ts.textDirection);
+		const textOrientation = toCssTextOrientation(ts.textDirection);
+		const verticalDirection = toCssVerticalDirection(ts.textDirection);
+		if (writingMode) {
+			style['writing-mode'] = writingMode;
+		}
+		if (textOrientation) {
+			style['text-orientation'] = textOrientation;
+		}
+		if (verticalDirection) {
+			style['direction'] = verticalDirection;
+		} else if (isRtl) {
+			style['direction'] = 'rtl';
+		}
+	} else if (isRtl) {
+		style['direction'] = 'rtl';
 	}
 
 	switch (ts.vAlign) {
