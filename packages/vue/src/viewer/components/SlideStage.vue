@@ -3,7 +3,6 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
-import { isElementInteractive, isTemplateEditingHighlight } from '../composables/template-editing';
 import type { CanvasSize } from '../types';
 import ElementRenderer from './ElementRenderer.vue';
 
@@ -14,6 +13,11 @@ import ElementRenderer from './ElementRenderer.vue';
  * Extracted so it can be reused at full size by `SlideCanvas` and at tiny scale
  * by the thumbnail rail. It owns no chrome (no centering, margins, or shadow);
  * the host decides layout.
+ *
+ * Template (master/layout) elements are rendered in a DEDICATED layer behind the
+ * slide content (lower z), supplied separately via `templateElements`. They are
+ * interactive (and gain the editable affordance) only while `editTemplateMode`
+ * is on; otherwise they render but are locked.
  */
 const props = withDefaults(
 	defineProps<{
@@ -24,28 +28,34 @@ const props = withDefaults(
 		/** Mark elements with the `data-pptx-element` interaction hook (main canvas only). */
 		interactive?: boolean;
 		/**
-		 * When on, master/layout (template) elements become interactive and get a
-		 * visual affordance; when off they render but are locked. Only the main
-		 * editable canvas threads this through.
+		 * Master/layout elements pulled out of the slide at load time, rendered in a
+		 * dedicated layer behind the slide content.
+		 */
+		templateElements?: PptxElement[];
+		/**
+		 * When on, the template-layer elements become interactive and gain a visual
+		 * affordance; when off they render but are locked. Only the main editable
+		 * canvas threads this through.
 		 */
 		editTemplateMode?: boolean;
 	}>(),
 	{ scale: 1 },
 );
 
-/**
- * Per-element interactivity: the single canvas-wide `interactive` flag is gated
- * down for template elements unless edit-template mode is on. Computed here (not
- * inline in the template) so the SFC stays presentational.
- */
-function effectiveInteractive(element: PptxElement): boolean {
-	return isElementInteractive(element, props.interactive ?? false, props.editTemplateMode ?? false);
-}
+/** Template elements render behind the slide content; default to none. */
+const templateElements = computed<PptxElement[]>(() => props.templateElements ?? []);
 
-/** Whether to draw the editable-template affordance on this element. */
-function templateEditing(element: PptxElement): boolean {
-	return isTemplateEditingHighlight(element, props.editTemplateMode ?? false);
-}
+/** Number of template elements, used to offset the main layer's z-index above them. */
+const templateCount = computed(() => templateElements.value.length);
+
+/**
+ * The template layer is interactive only when the canvas as a whole is
+ * interactive AND edit-template mode is on. Computed here (not inline in the
+ * template) so the SFC stays presentational.
+ */
+const templateLayerInteractive = computed(
+	() => (props.interactive ?? false) && (props.editTemplateMode ?? false),
+);
 
 const stageStyle = computed<CSSProperties>(() => ({
 	width: `${props.canvasSize.width}px`,
@@ -65,14 +75,24 @@ const stageStyle = computed<CSSProperties>(() => ({
 
 <template>
 	<div class="pptx-vue-stage" :style="stageStyle">
+		<!-- Template (master/layout) layer: behind the slide content (lower z). -->
+		<ElementRenderer
+			v-for="(element, index) in templateElements"
+			:key="element.id"
+			:element="element"
+			:media-data-urls="mediaDataUrls"
+			:z-index="index"
+			:interactive="templateLayerInteractive"
+			:template-editing="editTemplateMode ?? false"
+		/>
+		<!-- Slide content (template-free after the load-time partition). -->
 		<ElementRenderer
 			v-for="(element, index) in slide?.elements ?? []"
 			:key="element.id"
 			:element="element"
 			:media-data-urls="mediaDataUrls"
-			:z-index="index"
-			:interactive="effectiveInteractive(element)"
-			:template-editing="templateEditing(element)"
+			:z-index="index + templateCount"
+			:interactive="interactive ?? false"
 		/>
 		<!-- Optional editing overlay (selection handles, etc.) shares this scaled space -->
 		<slot />

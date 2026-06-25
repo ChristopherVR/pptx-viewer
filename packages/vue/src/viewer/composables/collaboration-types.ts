@@ -27,6 +27,11 @@ export interface UseCollaborationOptions {
 	 * when role === 'owner' and config.onWriteBack is provided.
 	 */
 	getSourceBytes?: () => Uint8Array | null;
+	/**
+	 * Return the separate per-slide master/layout (template) element store so the
+	 * elected-writer write-back can merge template edits back into the saved file.
+	 */
+	getTemplateElements?: () => Record<string, import('pptx-viewer-core').PptxElement[]>;
 }
 
 /**

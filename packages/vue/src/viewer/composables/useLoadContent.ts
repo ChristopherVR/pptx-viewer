@@ -26,6 +26,8 @@ import type { MaybeRefOrGetter, Ref, ShallowRef } from 'vue';
 import { DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH } from '../constants';
 import type { CanvasSize } from '../types';
 import { collectImagePaths, collectMediaElements } from './load-content-helpers';
+import type { TemplateElementMap } from './template-editing';
+import { buildSaveSlides, partitionTemplateElements } from './template-editing';
 
 /**
  * Parse digital signatures from a `.pptx` ZIP buffer (best-effort; returns an
@@ -73,8 +75,14 @@ async function parseSignaturesFromBuffer(buffer: ArrayBuffer): Promise<ParsedSig
  * added here as the corresponding features are ported.
  */
 export interface UseLoadContentResult {
-	/** Parsed slides (with image Blob URLs patched in). */
+	/** Parsed slides (with image Blob URLs patched in), template elements removed. */
 	slides: ShallowRef<PptxSlide[]>;
+	/**
+	 * Master/layout (template) elements pulled out of each slide at load time,
+	 * keyed by `slide.id`. Edited in `editTemplateMode` and merged back (behind the
+	 * slide content) by every save path via {@link buildSaveSlides}.
+	 */
+	templateElementsBySlideId: ShallowRef<TemplateElementMap>;
 	/** Slide canvas size in pixels. */
 	canvasSize: Ref<CanvasSize>;
 	/** Resolved presentation theme. */
@@ -131,6 +139,7 @@ export function useLoadContent(
 	content: MaybeRefOrGetter<Uint8Array | ArrayBuffer | null | undefined>,
 ): UseLoadContentResult {
 	const slides = shallowRef<PptxSlide[]>([]);
+	const templateElementsBySlideId = shallowRef<TemplateElementMap>({});
 	const canvasSize = ref<CanvasSize>({
 		width: DEFAULT_CANVAS_WIDTH,
 		height: DEFAULT_CANVAS_HEIGHT,
@@ -315,11 +324,16 @@ export function useLoadContent(
 				}
 			}
 
+			// Pull master/layout (template) elements out of each slide into their own
+			// store so the editor can gate / route / merge them back independently.
+			const partitioned = partitionTemplateElements(nextSlides);
+
 			// Commit reactive state.
 			revokeBlobUrls(activeBlobUrls);
 			activeBlobUrls = loadBlobUrls;
 			handler.value = newHandler;
-			slides.value = nextSlides;
+			slides.value = partitioned.slides;
+			templateElementsBySlideId.value = partitioned.templateElementsBySlideId;
 			mediaDataUrls.value = nextMediaUrls;
 			canvasSize.value = {
 				width: parsed.width ?? DEFAULT_CANVAS_WIDTH,
@@ -362,9 +376,11 @@ export function useLoadContent(
 		if (!handler.value) {
 			throw new Error('No presentation is loaded.');
 		}
-		// Persist edited document metadata (core properties, sections, custom
-		// shows, header/footer) into the saved file.
-		return handler.value.save(slides.value, {
+		// Merge the separately-stored template (master/layout) elements back in
+		// front of (behind) each slide's content before serialising, so template
+		// edits persist. Persist edited document metadata (core properties,
+		// sections, custom shows, header/footer) into the saved file.
+		return handler.value.save(buildSaveSlides(slides.value, templateElementsBySlideId.value), {
 			coreProperties: coreProperties.value,
 			customProperties: customProperties.value,
 			appProperties: appProperties.value,
@@ -397,6 +413,7 @@ export function useLoadContent(
 
 	return {
 		slides,
+		templateElementsBySlideId,
 		layoutOptions,
 		canvasSize,
 		theme,
