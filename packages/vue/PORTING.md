@@ -70,7 +70,7 @@ user-visible impact.
 | Gap                            | Where                           | Notes                                                                                                                                                                                                        |
 | ------------------------------ | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Master/template editing**    | `onSetEditTemplateMode` (no-op) | Needs the edit-routing pipeline that sends edits to template/master elements (React gates pointer handlers on `editTemplateMode`). The flag stays a no-op until this lands; toggling it alone would mislead. |
-| **Slide-properties inspector** | `inspector/SlideInspector.vue`  | Transition type/duration/advance done. Deferred: background, slide size, theme override; transition direction/orientation/spokes/preview (core direction-constant tables aren't exported).                   |
+| **Slide-properties inspector** | `inspector/SlideInspector.vue`  | Background (colour/image/clear), transition type/duration/advance, and transition direction/orientation/spokes are done. Deferred: slide size, theme override, transition preview animation.                 |
 | **`onToggleCompactToolbar`**   | ribbon                          | Trivial: currently has **no ribbon consumer**; wire a consumer or drop the prop. Not a real gap.                                                                                                             |
 
 ### Infrastructure (not user-facing parity)
