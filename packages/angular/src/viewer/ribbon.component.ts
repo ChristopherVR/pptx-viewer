@@ -288,10 +288,23 @@ const TEXT_COLORS = [
 						{{ t.label }}
 					</button>
 				}
+				<div class="flex-1"></div>
+				<button
+					type="button"
+					class="mr-1 rounded px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+					[attr.aria-pressed]="!ribbonExpanded()"
+					[title]="ribbonExpanded() ? 'Collapse the ribbon' : 'Expand the ribbon'"
+					(click)="ribbonExpanded.set(!ribbonExpanded())"
+				>
+					{{ ribbonExpanded() ? '▴' : '▾' }}
+				</button>
 			</div>
 
-			<!-- ── Ribbon content ────────────────────────────────────────────── -->
-			<div class="flex flex-nowrap items-stretch gap-1.5 overflow-x-auto px-2 py-1.5">
+			<!-- ── Ribbon content (collapsible via the ribbon toggle) ──────────── -->
+			<div
+				class="flex flex-nowrap items-stretch gap-1.5 overflow-x-auto px-2 py-1.5"
+				[style.display]="ribbonExpanded() ? null : 'none'"
+			>
 				@switch (activeTab()) {
 					@case ('file') {
 						<button
@@ -1196,6 +1209,9 @@ export class RibbonComponent {
 	protected readonly exitPresets = EXIT_PRESETS;
 
 	protected readonly activeTab = signal<RibbonTab>('home');
+
+	/** Ribbon content expanded (true) vs collapsed to just the tab bar (false). */
+	protected readonly ribbonExpanded = signal(true);
 
 	// ── Insert tab state ──────────────────────────────────────────────────────
 	/** Chart types offered in the Insert tab dropdown (shared source of truth). */
