@@ -8,6 +8,17 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **vue,angular:** Substitute OOXML text fields (slide number, date, footer) (by @ChristopherVR) ([27b2d83](https://github.com/ChristopherVR/pptx-viewer/commit/27b2d83cb526670470d837277ca286b9c259d3c2))
+- **vue,angular:** Render per-run text effects (fill, shadow, 3D, glow, reflection) (by @ChristopherVR) ([7d5b342](https://github.com/ChristopherVR/pptx-viewer/commit/7d5b342e3af28fae6f6ae726d6e290c621ed8c8b))
+
+### Bug Fixes
+
+- **core:** Preserve field/equation/ruby runs whose style matches neighbours (by @ChristopherVR) ([196bd9e](https://github.com/ChristopherVR/pptx-viewer/commit/196bd9e1ba2bdeee2381c3a9791ec81be741064b))
+
+## [1.1.55](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.55) - 2026-06-25
+
+### Features
+
 - **core:** Expose per-slide template elements + verify master/layout edit round-trip (by @ChristopherVR) ([4da26b6](https://github.com/ChristopherVR/pptx-viewer/commit/4da26b642297f59c71959348e1e7032079b00f61))
 
 ## [1.1.54](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.54) - 2026-06-25
