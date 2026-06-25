@@ -1,7 +1,7 @@
 import type JSZip from 'jszip';
 
 import { PptxXmlBuilder } from '../../builders/fluent';
-import { PptxData, PptxSlide, PptxCompatibilityWarning, XmlObject } from '../../types';
+import { PptxData, PptxSlide, PptxCompatibilityWarning, PptxElement, XmlObject } from '../../types';
 import type { PptxSection, PptxLayoutOption } from '../../types';
 import { parsePresentationDrawingGuides } from '../../utils/guide-utils';
 import { resolveLayoutDisplayName } from '../../utils/layout-display-name';
@@ -307,6 +307,38 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return undefined;
 		}
 		return this.findMasterPathForLayout(layoutPath);
+	}
+
+	/**
+	 * Resolve the editable template (master + layout) elements a slide
+	 * inherits, each carrying a `master-` / `layout-` prefixed id.
+	 *
+	 * This is the canonical entry point for an "edit template/master"
+	 * feature: it returns the same decorative master/layout shapes that the
+	 * loader already merges in front of slide-authored content (master shapes
+	 * behind, layout shapes on top), reusing the cached
+	 * {@link getLayoutElements} parse. Resolving a slide that has not been
+	 * loaded yet (no relationships cached) yields an empty array.
+	 *
+	 * Important scope notes for callers:
+	 *  - Placeholder shapes (`<p:ph>`) are intentionally excluded; those are
+	 *    resolved separately into each slide's own placeholders. Only
+	 *    non-placeholder decorations (shapes, pictures, graphic frames) are
+	 *    returned, which is exactly what the save writeback path supports.
+	 *  - The returned elements are shared by every slide that inherits the
+	 *    same layout/master. Editing one element and saving updates the shared
+	 *    layout/master part, so the change is visible on all sibling slides.
+	 *  - To persist an edit the binding must keep the mutated template element
+	 *    inside the `slide.elements` array it passes to {@link save}; the save
+	 *    writer reads template elements from `ctx.slide.elements` and writes
+	 *    their shape XML back into the owning `p:spTree`.
+	 *
+	 * @param slideId - The slide's archive path (the `PptxSlide.id`, e.g.
+	 *   `ppt/slides/slide1.xml`).
+	 * @returns Master + layout elements with prefixed ids (may be empty).
+	 */
+	async getTemplateElementsForSlide(slideId: string): Promise<PptxElement[]> {
+		return this.getLayoutElements(slideId);
 	}
 
 	/**

@@ -47,6 +47,7 @@
 		"typescript/no-misused-promises": "off",
 		// ── Typescript-plugin stylistic rules: noisy and not worth churn ──
 		"typescript/array-type": "off",
+		"typescript/method-signature-style": "off",
 		"typescript/consistent-type-imports": "off",
 		"typescript/no-inferrable-types": "off",
 		"typescript/consistent-generic-constructors": "off",

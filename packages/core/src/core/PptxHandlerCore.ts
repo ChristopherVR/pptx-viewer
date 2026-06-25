@@ -9,6 +9,7 @@ import type {
 import type {
 	PptxChartData,
 	PptxCompatibilityWarning,
+	PptxElement,
 	PptxExportOptions,
 	PptxLayoutOption,
 	PptxData,
@@ -508,6 +509,40 @@ export class PptxHandlerCore {
 		slides: PptxSlide[],
 	): Promise<PptxLayoutOption[]> {
 		return this.runtime.getAvailableLayoutsForSlide(slideIndex, slides);
+	}
+
+	/**
+	 * Resolve the editable template (master + layout) elements a slide
+	 * inherits, each carrying a `master-` / `layout-` prefixed id.
+	 *
+	 * This is the foundation for an "edit template/master" feature. The
+	 * returned elements are the decorative master/layout shapes the loader
+	 * already merges behind slide-authored content (master shapes behind,
+	 * layout shapes on top); placeholders are excluded. The same elements are
+	 * shared by every slide inheriting the layout/master, so editing one and
+	 * saving updates the shared part.
+	 *
+	 * To persist an edit, keep the mutated template element inside the
+	 * `slide.elements` array passed to {@link save}; the save writer reads
+	 * template elements from there and writes their shape XML back into the
+	 * owning layout/master `p:spTree`.
+	 *
+	 * @param slideId - The slide's archive path (the `PptxSlide.id`).
+	 * @returns Master + layout elements with prefixed ids (may be empty).
+	 *
+	 * @example
+	 * ```ts
+	 * const templateEls = await handler.getTemplateElementsForSlide(slide.id);
+	 * const logo = templateEls.find((e) => e.id.startsWith("master-"));
+	 * if (logo) {
+	 *   logo.x += 10;
+	 *   slide.elements = [...slide.elements, logo];
+	 *   await handler.save(data.slides);
+	 * }
+	 * ```
+	 */
+	public async getTemplateElementsForSlide(slideId: string): Promise<PptxElement[]> {
+		return this.runtime.getTemplateElementsForSlide(slideId);
 	}
 
 	/**

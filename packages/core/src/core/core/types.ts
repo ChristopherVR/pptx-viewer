@@ -11,6 +11,7 @@ import type {
 	PptxHandoutMaster,
 	PptxLayoutOption,
 	PptxData,
+	PptxElement,
 	PptxHeaderFooter,
 	PptxKinsoku,
 	PptxModifyVerifier,
@@ -218,6 +219,14 @@ export interface IPptxHandlerRuntime {
 	 * @returns Array of layout options belonging to the same slide master.
 	 */
 	getAvailableLayoutsForSlide(slideIndex: number, slides: PptxSlide[]): Promise<PptxLayoutOption[]>;
+	/**
+	 * Resolve the editable template (master + layout) elements a slide
+	 * inherits, each carrying a `master-` / `layout-` prefixed id. Excludes
+	 * placeholders; returns only decorative shapes/pictures/graphic frames.
+	 *
+	 * @param slideId - The slide's archive path (`PptxSlide.id`).
+	 */
+	getTemplateElementsForSlide(slideId: string): Promise<PptxElement[]>;
 	/**
 	 * Scan the loaded PPTX archive for all theme parts.
 	 */
