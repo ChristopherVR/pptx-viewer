@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.49](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.49) - 2026-06-25
+
+### Documentation
+
+- **vue:** Mark zoom-element navigation done in the parity tracker (by @ChristopherVR) ([8cc7075](https://github.com/ChristopherVR/pptx-viewer/commit/8cc7075aedbed35257b03141d22c06fb5ec388e6))
+
 ## [1.1.48](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.48) - 2026-06-25
 
 ### Documentation

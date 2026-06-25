@@ -8,6 +8,17 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **vue:** Zoom-element click-to-navigate in presentation mode (by @ChristopherVR) ([30dcb3f](https://github.com/ChristopherVR/pptx-viewer/commit/30dcb3f433955c2e2ed3a7bd538937b2a27f024c))
+- **angular:** Zoom-element click-to-navigate in presentation mode (by @ChristopherVR) ([f3d7852](https://github.com/ChristopherVR/pptx-viewer/commit/f3d785258d30d8541ce1062d2e209dd8cb4c87e1))
+
+### Documentation
+
+- **vue:** Mark zoom-element navigation done in the parity tracker (by @ChristopherVR) ([8cc7075](https://github.com/ChristopherVR/pptx-viewer/commit/8cc7075aedbed35257b03141d22c06fb5ec388e6))
+
+## [1.1.48](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.48) - 2026-06-25
+
+### Features
+
 - **angular:** Interactive GLB/GLTF Model3D rendering (by @ChristopherVR) ([54f72c2](https://github.com/ChristopherVR/pptx-viewer/commit/54f72c2e714a071a945876623188df904cb297f7))
 - **vue:** Render the a:clrChange image color-change effect (by @ChristopherVR) ([3035857](https://github.com/ChristopherVR/pptx-viewer/commit/303585777000f43f629276a28f5d708a4ea1abc3))
 - **angular:** Render the a:clrChange image color-change effect (by @ChristopherVR) ([b4a22ec](https://github.com/ChristopherVR/pptx-viewer/commit/b4a22ece09419203d5b8b4b7c57f4035c5fc8ee4))
