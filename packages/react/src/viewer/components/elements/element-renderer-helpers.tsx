@@ -46,6 +46,8 @@ interface ContainerStyleParams {
 	shapeVisualStyle: CSSProperties;
 	/** Whether the element has active CSS 3D extrusion panels. */
 	has3DExtrusion?: boolean;
+	/** Draw the editable-template affordance (amber dashed ring + transparency). */
+	templateEditing?: boolean;
 }
 
 /** Builds the `style` object for the outermost element container `<div>`. */
@@ -58,6 +60,7 @@ export function getContainerStyle({
 	animationState,
 	shapeVisualStyle,
 	has3DExtrusion,
+	templateEditing,
 }: ContainerStyleParams): CSSProperties {
 	// For 3D-extruded shapes the side panels extend beyond the element bounds,
 	// so overflow must be visible and the container needs `perspective` to
@@ -87,6 +90,13 @@ export function getContainerStyle({
 			: undefined,
 		borderColor: isFullscreenMedia ? 'transparent' : undefined,
 		...shapeVisualStyle,
+		// Editable-template affordance: a distinct amber dashed ring + slight
+		// transparency so inherited master/layout shapes read as "template" while
+		// edit-template mode is on. Applied after the shape style so it wins; never
+		// set for normal slide content or while the mode is off.
+		...(templateEditing
+			? { outline: '2px dashed rgb(217, 119, 6)', outlineOffset: '1px', opacity: opacity ?? 0.95 }
+			: {}),
 	};
 }
 

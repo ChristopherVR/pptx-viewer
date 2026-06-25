@@ -19,7 +19,6 @@ interface ClipboardInput {
 	setClipboardPayload: React.Dispatch<
 		React.SetStateAction<{ element: PptxElement; isTemplate: boolean } | null>
 	>;
-	setTemplateElementsBySlideId: React.Dispatch<React.SetStateAction<Record<string, PptxElement[]>>>;
 	ops: ElementOperations;
 	history: EditorHistoryResult;
 }
@@ -33,7 +32,6 @@ export function useClipboardHandlers(input: ClipboardInput): ClipboardHandlers {
 		editTemplateMode,
 		clipboardPayload,
 		setClipboardPayload,
-		setTemplateElementsBySlideId,
 		ops,
 		history,
 	} = input;
@@ -54,24 +52,16 @@ export function useClipboardHandlers(input: ClipboardInput): ClipboardHandlers {
 			return;
 		}
 		const idSet = new Set(idsToDelete);
-		if (editTemplateMode) {
-			setTemplateElementsBySlideId((prev) => {
-				const slideId = activeSlide.id;
-				const existing = prev[slideId] ?? [];
-				return {
-					...prev,
-					[slideId]: existing.filter((el) => !idSet.has(el.id)),
-				};
-			});
-		} else {
-			ops.updateSlides((prev) =>
-				prev.map((s, i) =>
-					i === activeSlideIndex
-						? { ...s, elements: s.elements.filter((el) => !idSet.has(el.id)) }
-						: s,
-				),
-			);
-		}
+		// Template (master/layout) elements live in `slide.elements` too, so every
+		// delete flows through the same slides path; deleting a template element
+		// persists to the shared part via the core save writer.
+		ops.updateSlides((prev) =>
+			prev.map((s, i) =>
+				i === activeSlideIndex
+					? { ...s, elements: s.elements.filter((el) => !idSet.has(el.id)) }
+					: s,
+			),
+		);
 		ops.clearSelection();
 		history.markDirty();
 	};

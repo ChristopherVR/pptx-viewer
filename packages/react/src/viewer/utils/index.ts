@@ -5,6 +5,7 @@ export * from './style';
 export * from './drawing-color';
 export * from './text';
 export * from './element';
+export * from './template-editing';
 export * from './shape-types';
 export * from './shape-visual';
 export * from './shape-connector';

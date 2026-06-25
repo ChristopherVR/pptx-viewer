@@ -35,6 +35,12 @@ export interface ElementRendererProps {
 	selectionColorClass: 'blue-400' | 'blue-500';
 	showHoverBorder: boolean;
 	opacity?: number;
+	/**
+	 * When true, draw the "editable template" affordance (amber dashed outline +
+	 * slight transparency) on this element. Set only for master/layout template
+	 * elements while edit-template mode is on; never for normal slide elements.
+	 */
+	templateEditing?: boolean;
 	/** Explicit z-index for document-order stacking (painter's algorithm). */
 	zIndex?: number;
 	imageAltText: string;

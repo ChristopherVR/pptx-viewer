@@ -21,7 +21,6 @@ export interface UseElementManipulationInput {
 		React.SetStateAction<{ element: PptxElement; isTemplate: boolean } | null>
 	>;
 	setSelectedElementIds: React.Dispatch<React.SetStateAction<string[]>>;
-	setTemplateElementsBySlideId: React.Dispatch<React.SetStateAction<Record<string, PptxElement[]>>>;
 	setIsInspectorPaneOpen: React.Dispatch<React.SetStateAction<boolean>>;
 	setSidebarPanelMode: React.Dispatch<React.SetStateAction<string>>;
 	ops: ElementOperations;

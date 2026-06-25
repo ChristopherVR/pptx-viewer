@@ -8,7 +8,6 @@ import type { PptxElement, PptxSlide, ShapeStyle, TextStyle } from 'pptx-viewer-
  */
 import { useCallback } from 'react';
 
-import { isTemplateElementId } from '../utils';
 import {
 	getInlineEditorSelection,
 	applyStyleToSelectedSegments,
@@ -26,10 +25,8 @@ export interface UseElementOperationsInput {
 	activeSlideIndex: number;
 	selectedElement: PptxElement | null;
 	selectedElementId: string | null;
-	templateElementsBySlideId: Record<string, PptxElement[]>;
 	history: EditorHistoryResult;
 	setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
-	setTemplateElementsBySlideId: React.Dispatch<React.SetStateAction<Record<string, PptxElement[]>>>;
 	setSelectedElementId: React.Dispatch<React.SetStateAction<string | null>>;
 	setSelectedElementIds: React.Dispatch<React.SetStateAction<string[]>>;
 	setInlineEditingElementId: React.Dispatch<React.SetStateAction<string | null>>;
@@ -55,13 +52,11 @@ export interface ElementOperations {
 
 export function useElementOperations(input: UseElementOperationsInput): ElementOperations {
 	const {
-		activeSlide,
 		activeSlideIndex,
 		selectedElement,
 		selectedElementId,
 		history,
 		setSlides,
-		setTemplateElementsBySlideId,
 		setSelectedElementId,
 		setSelectedElementIds,
 		setInlineEditingElementId,
@@ -84,45 +79,32 @@ export function useElementOperations(input: UseElementOperationsInput): ElementO
 	}, [applySelection, setInlineEditingElementId, setContextMenuState]);
 
 	// ── Element Updates ───────────────────────────────────────────────
+	// Template (master/layout) elements are merged into `slide.elements` by the
+	// core loader, so every element - template or not - updates through the same
+	// `slides[].elements` path. Edits to a `layout-`/`master-` element therefore
+	// persist back to the shared master/layout part via the core save writer.
 	const updateElementById = useCallback(
 		(elementId: string, updates: Partial<PptxElement>) => {
-			const isTemplate = isTemplateElementId(elementId);
-			if (isTemplate) {
-				setTemplateElementsBySlideId((prev) => {
-					const slideId = activeSlide?.id;
-					if (!slideId) {
-						return prev;
-					}
-					const elements = prev[slideId] ?? [];
-					return {
-						...prev,
-						[slideId]: elements.map((el) =>
-							el.id === elementId ? ({ ...el, ...updates } as PptxElement) : el,
-						),
-					};
-				});
-			} else {
-				setSlides((prev) =>
-					prev.map((s, i) =>
-						i !== activeSlideIndex
-							? s
-							: {
-									...s,
-									elements: s.elements.map((el) =>
-										el.id === elementId
-											? ({
-													...el,
-													...updates,
-												} as PptxElement)
-											: el,
-									),
-								},
-					),
-				);
-			}
+			setSlides((prev) =>
+				prev.map((s, i) =>
+					i !== activeSlideIndex
+						? s
+						: {
+								...s,
+								elements: s.elements.map((el) =>
+									el.id === elementId
+										? ({
+												...el,
+												...updates,
+											} as PptxElement)
+										: el,
+								),
+							},
+				),
+			);
 			history.markDirty();
 		},
-		[activeSlide?.id, activeSlideIndex, history, setSlides, setTemplateElementsBySlideId],
+		[activeSlideIndex, history, setSlides],
 	);
 
 	const updateSelectedElement = useCallback(

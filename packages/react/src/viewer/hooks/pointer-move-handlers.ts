@@ -81,8 +81,6 @@ export function processPointerMove(
 		snapToGrid,
 		snapToShape,
 		gridSpacingPx,
-		editTemplateMode,
-		templateElements,
 		activeSlide,
 		guides,
 		elementLookup,
@@ -117,8 +115,6 @@ export function processPointerMove(
 			snapToGrid,
 			snapToShape,
 			gridSpacingPx,
-			editTemplateMode,
-			templateElements,
 			activeSlide,
 			guides,
 			elementLookup,
@@ -169,8 +165,6 @@ function processDragMove(
 	snapToGrid: boolean,
 	snapToShape: boolean,
 	gridSpacingPx: number,
-	editTemplateMode: boolean,
-	templateElements: PptxElement[],
 	activeSlide: UsePointerHandlersInput['activeSlide'],
 	guides: UsePointerHandlersInput['guides'],
 	elementLookup: UsePointerHandlersInput['elementLookup'],
@@ -201,7 +195,9 @@ function processDragMove(
 			targetY = Math.round(targetY / gridSpacingPx) * gridSpacingPx;
 		}
 		if (snapToShape) {
-			const siblingSource = editTemplateMode ? templateElements : (activeSlide?.elements ?? []);
+			// Template elements are part of `slide.elements`, so snap siblings are
+			// always the active slide's elements (no separate template list).
+			const siblingSource = activeSlide?.elements ?? [];
 			const siblings = siblingSource.map((el) => ({
 				id: el.id,
 				x: el.x,

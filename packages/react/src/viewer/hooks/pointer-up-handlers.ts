@@ -2,7 +2,6 @@
  * Extracted pointer-up (commit) logic for usePointerHandlers.
  * Commits marquee selections, drag moves, resizes, and resets state.
  */
-import type { PptxElement } from 'pptx-viewer-core';
 import { computeMarqueeHitIds, mergeAdditiveSelection } from 'pptx-viewer-shared';
 import type { MarqueeElementRect, MarqueeRect as SharedMarqueeRect } from 'pptx-viewer-shared';
 
@@ -30,8 +29,6 @@ export { computeMarqueeHitIds, mergeAdditiveSelection };
 
 export function processPointerUp(input: UsePointerHandlersInput): void {
 	const {
-		editTemplateMode,
-		templateElements,
 		activeSlide,
 		activeSlideIndex,
 		marqueeStateRef,
@@ -40,7 +37,6 @@ export function processPointerUp(input: UsePointerHandlersInput): void {
 		shapeAdjustmentDragStateRef,
 		setMarqueeSelectionState,
 		setSnapLines,
-		setTemplateElementsBySlideId,
 		setPointerCommitNonce,
 		applySelection,
 		clearSelection,
@@ -55,27 +51,13 @@ export function processPointerUp(input: UsePointerHandlersInput): void {
 	const adj = shapeAdjustmentDragStateRef.current;
 
 	if (marquee) {
-		commitMarquee(
-			marquee,
-			editTemplateMode,
-			templateElements,
-			activeSlide,
-			applySelection,
-			clearSelection,
-		);
+		commitMarquee(marquee, activeSlide, applySelection, clearSelection);
 		marqueeStateRef.current = null;
 		setMarqueeSelectionState(null);
 	}
 
 	if (drag?.moved) {
-		commitDrag(
-			drag,
-			editTemplateMode,
-			activeSlide,
-			activeSlideIndex,
-			setTemplateElementsBySlideId,
-			updateSlides,
-		);
+		commitDrag(drag, activeSlideIndex, updateSlides);
 	}
 
 	if (rs?.moved) {
@@ -126,13 +108,14 @@ export function processPointerUp(input: UsePointerHandlersInput): void {
 
 function commitMarquee(
 	marquee: NonNullable<UsePointerHandlersInput['marqueeStateRef']['current']>,
-	editTemplateMode: boolean,
-	templateElements: PptxElement[],
 	activeSlide: UsePointerHandlersInput['activeSlide'],
 	applySelection: UsePointerHandlersInput['applySelection'],
 	clearSelection: UsePointerHandlersInput['clearSelection'],
 ): void {
-	const sourceElements = editTemplateMode ? templateElements : (activeSlide?.elements ?? []);
+	// Template elements are part of `slide.elements`; marquee hit-testing runs
+	// over the same list. Whether they end up selected is gated separately by the
+	// per-element interactivity check at render time.
+	const sourceElements = activeSlide?.elements ?? [];
 	const hitIds = computeMarqueeHitIds(marquee, sourceElements);
 	if (marquee.additive) {
 		const merged = mergeAdditiveSelection(marquee.baseSelectionIds, hitIds);
@@ -152,57 +135,34 @@ function commitMarquee(
 
 function commitDrag(
 	drag: NonNullable<UsePointerHandlersInput['dragStateRef']['current']>,
-	editTemplateMode: boolean,
-	activeSlide: UsePointerHandlersInput['activeSlide'],
 	activeSlideIndex: number,
-	setTemplateElementsBySlideId: UsePointerHandlersInput['setTemplateElementsBySlideId'],
 	updateSlides: UsePointerHandlersInput['updateSlides'],
 ): void {
 	const dx = drag.lastDx,
 		dy = drag.lastDy;
-	if (editTemplateMode) {
-		const movedIds = new Set(Object.keys(drag.startPositionsById));
-		setTemplateElementsBySlideId((prev: Record<string, PptxElement[]>) => {
-			const slideId = activeSlide?.id;
-			if (!slideId) {
-				return prev;
+	// Template (master/layout) elements live in `slide.elements`, so dragging one
+	// commits through the same slides path as any other element and persists to
+	// the shared part via the core save writer.
+	const movedIds = new Set(Object.keys(drag.startPositionsById));
+	updateSlides((prev) =>
+		prev.map((s, i) => {
+			if (i !== activeSlideIndex) {
+				return s;
 			}
-			const els = prev[slideId] ?? [];
-			const movedElements = els.map((el) => {
+			// First apply the drag positions
+			const movedElements = s.elements.map((el) => {
 				const start = drag.startPositionsById[el.id];
 				if (!start) {
 					return el;
 				}
 				return { ...el, x: start.x + dx, y: start.y + dy };
 			});
+			// Then reroute any connectors attached to the moved shapes
 			const rerouted = rerouteConnectorsForMovedElements(movedElements, movedIds);
 			return {
-				...prev,
-				[slideId]: applyReroutedConnectors(movedElements, rerouted),
+				...s,
+				elements: applyReroutedConnectors(movedElements, rerouted),
 			};
-		});
-	} else {
-		const movedIds = new Set(Object.keys(drag.startPositionsById));
-		updateSlides((prev) =>
-			prev.map((s, i) => {
-				if (i !== activeSlideIndex) {
-					return s;
-				}
-				// First apply the drag positions
-				const movedElements = s.elements.map((el) => {
-					const start = drag.startPositionsById[el.id];
-					if (!start) {
-						return el;
-					}
-					return { ...el, x: start.x + dx, y: start.y + dy };
-				});
-				// Then reroute any connectors attached to the moved shapes
-				const rerouted = rerouteConnectorsForMovedElements(movedElements, movedIds);
-				return {
-					...s,
-					elements: applyReroutedConnectors(movedElements, rerouted),
-				};
-			}),
-		);
-	}
+		}),
+	);
 }

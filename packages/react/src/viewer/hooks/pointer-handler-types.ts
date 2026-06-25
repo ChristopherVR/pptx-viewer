@@ -22,15 +22,12 @@ export interface UsePointerHandlersInput {
 	resizeStateRef: React.MutableRefObject<ResizeState | null>;
 	shapeAdjustmentDragStateRef: React.MutableRefObject<ShapeAdjustmentDragState | null>;
 	marqueeStateRef: React.MutableRefObject<MarqueeSelectionState | null>;
-	editTemplateMode: boolean;
 	snapToGrid: boolean;
 	snapToShape: boolean;
 	guides: Array<{ id: string; axis: 'h' | 'v'; position: number }>;
-	templateElements: PptxElement[];
 	elementLookup: Map<string, PptxElement>;
 	setMarqueeSelectionState: React.Dispatch<React.SetStateAction<MarqueeSelectionState | null>>;
 	setSnapLines: React.Dispatch<React.SetStateAction<Array<{ axis: string; position: number }>>>;
-	setTemplateElementsBySlideId: React.Dispatch<React.SetStateAction<Record<string, PptxElement[]>>>;
 	setPointerCommitNonce: React.Dispatch<React.SetStateAction<number>>;
 	effectiveSelectedIds: string[];
 	applySelection: (primaryId: string | null, ids?: string[]) => void;
