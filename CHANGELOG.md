@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [Unreleased]
+
+### Features
+
+- **vue:** Per-slide theme colour override in the slide inspector (by @ChristopherVR) ([e26a519](https://github.com/ChristopherVR/pptx-viewer/commit/e26a519119070fbdb14f4b202f1c05b93dd8d0bb))
+
+### Documentation
+
+- **vue:** Slide-properties inspector parity essentially complete (by @ChristopherVR) ([d0ddcd1](https://github.com/ChristopherVR/pptx-viewer/commit/d0ddcd18b455451cc5a3fb10a38c8f21b39ea9f8))
+
 ## [1.1.50](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.50) - 2026-06-25
 
 ### Features
