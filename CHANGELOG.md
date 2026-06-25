@@ -42,6 +42,11 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 - **core:** Expose per-slide template elements + verify master/layout edit round-trip (by @ChristopherVR) ([4da26b6](https://github.com/ChristopherVR/pptx-viewer/commit/4da26b642297f59c71959348e1e7032079b00f61))
 
+### Bug Fixes
+
+- **react:** Clear selection on empty viewport background click (by @ChristopherVR) ([064f1aa](https://github.com/ChristopherVR/pptx-viewer/commit/064f1aa95192fef5b90057f268cf90b549d54371))
+- **angular:** Clear selection on empty viewport background click (by @ChristopherVR) ([1690ffe](https://github.com/ChristopherVR/pptx-viewer/commit/1690ffe9500721b409e3d81e7759df537a577ba8))
+
 ## [1.1.54](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.54) - 2026-06-25
 
 ### Features
