@@ -44,6 +44,7 @@ import {
 	applyDragDelta,
 	buildBroadcastViewerUrl,
 	createDefaultChartElement,
+	downloadBlob,
 	openPptxFile,
 	setCellText,
 } from 'pptx-viewer-shared';
@@ -1192,14 +1193,7 @@ async function downloadAs(format: PptxSaveFormat): Promise<void> {
 		const blob = new Blob([bytes as unknown as BlobPart], {
 			type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 		});
-		const url = URL.createObjectURL(blob);
-		const anchor = document.createElement('a');
-		anchor.href = url;
-		anchor.download = `presentation.${format}`;
-		document.body.appendChild(anchor);
-		anchor.click();
-		anchor.remove();
-		setTimeout(() => URL.revokeObjectURL(url), 200);
+		downloadBlob(blob, `presentation.${format}`);
 	} catch (err) {
 		console.error(`[PowerPointViewer] Save as .${format} failed:`, err);
 	}
