@@ -47,4 +47,46 @@ describe('slideInspector', () => {
 		expect(last?.advanceOnClick).toBeFalsy();
 		expect(last?.type).toBe('fade');
 	});
+
+	it('shows a direction picker for directional transitions and emits the choice', async () => {
+		const wrapper = mount(SlideInspector, {
+			props: { slide: slide({ type: 'push', durationMs: 500 }) },
+		});
+		expect(wrapper.text()).toContain('Direction');
+		await wrapper.get('button[title="r"]').trigger('click');
+		const last = wrapper.emitted('transition-update')?.at(-1)?.[0] as PptxSlideTransition;
+		expect(last.direction).toBe('r');
+		expect(last.type).toBe('push');
+	});
+
+	it('shows orientation buttons for orientation transitions and emits orient', async () => {
+		const wrapper = mount(SlideInspector, {
+			props: { slide: slide({ type: 'blinds', durationMs: 500 }) },
+		});
+		expect(wrapper.text()).toContain('Orientation');
+		// No directional picker for orientation types.
+		expect(wrapper.find('button[title="r"]').exists()).toBeFalsy();
+		const vert = wrapper.findAll('button').find((b) => b.text() === 'Vertical');
+		await vert!.trigger('click');
+		const last = wrapper.emitted('transition-update')?.at(-1)?.[0] as PptxSlideTransition;
+		expect(last.orient).toBe('vert');
+	});
+
+	it('shows a spokes input for the wheel transition and clamps the value', async () => {
+		const wrapper = mount(SlideInspector, {
+			props: { slide: slide({ type: 'wheel', durationMs: 500 }) },
+		});
+		expect(wrapper.text()).toContain('Spokes');
+		const input = wrapper.get('[data-testid="transition-spokes"]');
+		await input.setValue('12');
+		const last = wrapper.emitted('transition-update')?.at(-1)?.[0] as PptxSlideTransition;
+		expect(last.spokes).toBe(8);
+	});
+
+	it('does not render direction/orientation/spokes when no transition is set', () => {
+		const wrapper = mount(SlideInspector, { props: { slide: slide() } });
+		expect(wrapper.text()).not.toContain('Direction');
+		expect(wrapper.text()).not.toContain('Orientation');
+		expect(wrapper.text()).not.toContain('Spokes');
+	});
 });
