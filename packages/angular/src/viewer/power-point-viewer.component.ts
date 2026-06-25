@@ -193,6 +193,7 @@ const ZOOM_MAX = 3;
 					<pptx-ribbon
 					[slideIndex]="activeSlideIndex()"
 					[slideCount]="slideCount()"
+					[canEdit]="canEdit()"
 					[selectedElement]="selectedElement()"
 					[zoomPercent]="zoomPercent()"
 					[formatPainterActive]="formatPainterActive()"
@@ -295,6 +296,7 @@ const ZOOM_MAX = 3;
 							[drawTool]="activeDrawTool()"
 							[drawColor]="activeDrawColor()"
 							[drawWidth]="activeDrawWidth()"
+							[editTemplateMode]="editor.editTemplateMode()"
 							(elementSelect)="onElementSelect($event)"
 							(backgroundClick)="onBackgroundClick()"
 							(marqueeSelect)="editor.select($event)"

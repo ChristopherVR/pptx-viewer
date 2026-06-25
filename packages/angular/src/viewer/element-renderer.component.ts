@@ -35,6 +35,7 @@ import { SmartArt3DService } from './smart-art-3d.service';
 import { SmartArtRendererComponent } from './smart-art-renderer.component';
 import { TableRendererComponent } from './table-renderer.component';
 import type { TableCellCommit } from './table-renderer.component';
+import { showsTemplateAffordance } from './template-mode';
 import { bulletIndentPx, resolveParagraphBullet } from './text-bullets';
 import { getTextWarp } from './text-warp';
 import type { TextWarpPathDef } from './text-warp';
@@ -456,18 +457,46 @@ export class ElementRendererComponent {
 	 */
 	readonly fieldContext = input<FieldSubstitutionContext | undefined>(undefined);
 
+	/**
+	 * When true, inherited master/layout (template) elements get a visual
+	 * affordance (amber outline ring + slightly reduced opacity) signalling that
+	 * they are now directly editable. Has no effect on normal slide elements, and
+	 * no effect at all when false, so default rendering is untouched.
+	 */
+	readonly editTemplateMode = input<boolean>(false);
+
 	/** Emitted when a table cell's text edit is committed. */
 	readonly cellCommit = output<{ id: string; commit: TableCellCommit }>();
 
 	/** Duotone SVG `<filter>` descriptor for this element, if any. */
 	readonly duotoneFilter = computed(() => getDuotoneFilterDef(this.element()));
 
-	readonly containerStyle = computed<StyleMap>(() =>
-		getContainerStyle(this.element(), this.zIndex()),
-	);
+	/**
+	 * Outline ring + slight transparency applied to inherited template
+	 * (master/layout) elements while editTemplateMode is on. Empty otherwise, so
+	 * normal rendering is never altered.
+	 */
+	readonly templateAffordanceStyle = computed<StyleMap>(() => {
+		const empty: StyleMap = {};
+		if (!showsTemplateAffordance(this.element(), this.editTemplateMode())) {
+			return empty;
+		}
+		const active: StyleMap = {
+			outline: '1px dashed #f59e0b',
+			'outline-offset': '1px',
+			opacity: '0.95',
+		};
+		return active;
+	});
+
+	readonly containerStyle = computed<StyleMap>(() => ({
+		...getContainerStyle(this.element(), this.zIndex()),
+		...this.templateAffordanceStyle(),
+	}));
 	readonly shapeContainerStyle = computed<StyleMap>(() => ({
-		...this.containerStyle(),
+		...getContainerStyle(this.element(), this.zIndex()),
 		...getShapeFillStrokeStyle(this.element()),
+		...this.templateAffordanceStyle(),
 	}));
 	readonly textStyle = computed<StyleMap>(() => getTextBlockStyle(this.element()));
 	readonly imageSrc = computed(() => getImageSrc(this.element(), this.mediaDataUrls()));

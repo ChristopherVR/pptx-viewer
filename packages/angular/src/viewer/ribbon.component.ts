@@ -721,6 +721,17 @@ const TEXT_COLORS = [
 						<button
 							type="button"
 							class="pptx-rb-pill"
+							[disabled]="!canEdit()"
+							[ngClass]="editor.editTemplateMode() ? 'pptx-rb-template-active' : ''"
+							title="Edit inherited master/layout (template) elements"
+							(click)="editor.setEditTemplateMode(!editor.editTemplateMode())"
+						>
+							{{ editor.editTemplateMode() ? 'Templates On' : 'Templates Off' }}
+						</button>
+						<span class="pptx-rb-sep"></span>
+						<button
+							type="button"
+							class="pptx-rb-pill"
 							[ngClass]="eyedropperActive() ? 'pptx-rb-eyedropper-active' : ''"
 							title="Pick colour from screen (EyeDropper)"
 							(click)="toggleEyedropper.emit()"
@@ -1124,6 +1135,8 @@ export class RibbonComponent {
 
 	readonly slideIndex = input<number>(0);
 	readonly slideCount = input<number>(0);
+	/** Whether the deck is editable (gates the template-editing toggle). */
+	readonly canEdit = input<boolean>(false);
 	readonly selectedElement = input<PptxElement | null>(null);
 	readonly zoomPercent = input<number>(100);
 	readonly formatPainterActive = input<boolean>(false);

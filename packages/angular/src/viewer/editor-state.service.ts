@@ -47,6 +47,15 @@ export class EditorStateService {
 	readonly selectedIds = signal<readonly string[]>([]);
 	/** Whether the deck has unsaved edits. */
 	readonly dirty = signal(false);
+	/**
+	 * When true, inherited master/layout (template) elements become interactive:
+	 * selectable, draggable, deletable, and editable. When false (default) they
+	 * render but are inert, so normal slide editing never disturbs the template.
+	 *
+	 * Note: a template element is shared by every slide inheriting the same
+	 * layout/master, so editing one updates the shared part for all of them.
+	 */
+	readonly editTemplateMode = signal(false);
 
 	readonly canUndo = signal(false);
 	readonly canRedo = signal(false);
@@ -79,6 +88,11 @@ export class EditorStateService {
 		this.slides.set(this.clone(newSlides));
 		this.dirty.set(true);
 		this.syncHistory();
+	}
+
+	/** Toggle whether inherited template (master/layout) elements are editable. */
+	setEditTemplateMode(mode: boolean): void {
+		this.editTemplateMode.set(mode);
 	}
 
 	// ── Selection ───────────────────────────────────────────────────────────

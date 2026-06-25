@@ -36,6 +36,7 @@ import { getSlideBackgroundStyle } from './slide-background';
 import { computeSnap, snapToGridStep } from './snap-guides';
 import type { SnapGuide } from './snap-guides';
 import type { TableCellCommit } from './table-renderer.component';
+import { isElementInteractive } from './template-mode';
 
 /** Pixels (screen-space) a pointer must move before a click becomes a drag. */
 const DRAG_THRESHOLD = 3;
@@ -192,6 +193,7 @@ function plainText(el: PptxElement): string {
 							[interactive]="interactive()"
 							[editable]="editable()"
 							[fieldContext]="fieldContext()"
+							[editTemplateMode]="editTemplateMode()"
 							(cellCommit)="cellCommit.emit($event)"
 						/>
 					}
@@ -562,6 +564,13 @@ export class SlideCanvasComponent {
 	readonly selectedIds = input<readonly string[]>([]);
 	/** Id of the element currently being text-edited inline (or null). */
 	readonly editingId = input<string | null>(null);
+	/**
+	 * When true, inherited master/layout (template) elements become interactive
+	 * (selectable/draggable/deletable/editable) and show the editable affordance.
+	 * When false (default) template elements still render but are inert, so normal
+	 * slide editing never disturbs the shared template.
+	 */
+	readonly editTemplateMode = input<boolean>(false);
 
 	// ── Draw tool inputs ──────────────────────────────────────────────────────
 	/** Active draw tool. When not 'select', pointer gestures draw ink strokes. */
@@ -828,6 +837,26 @@ export class SlideCanvasComponent {
 		return { left: box.x - offset - size / 2, top: box.y - offset - size / 2, size };
 	});
 
+	/**
+	 * Resolve the id of the interactive element under a pointer target, or null.
+	 * An element host carries `data-element-id`, but template (master/layout)
+	 * elements are only interactive while editTemplateMode is on; when off they
+	 * are reported as null so the canvas treats them as background (no
+	 * select/drag/context-menu/inline-edit).
+	 */
+	private interactiveElementIdAt(target: EventTarget | null): string | null {
+		const host = (target as HTMLElement | null)?.closest('[data-element-id]') as HTMLElement | null;
+		const id = host?.getAttribute('data-element-id');
+		if (!id) {
+			return null;
+		}
+		const el = this.elements().find((e) => e.id === id);
+		if (!el) {
+			return null;
+		}
+		return isElementInteractive(el, true, this.editTemplateMode()) ? id : null;
+	}
+
 	onStagePointerDown(event: PointerEvent): void {
 		if (!this.editable()) {
 			return;
@@ -893,9 +922,10 @@ export class SlideCanvasComponent {
 		// the finger drifts off the original target (essential on touch, where the
 		// browser would otherwise route the gesture elsewhere).
 		(event.target as Element | null)?.setPointerCapture?.(event.pointerId);
-		const target = event.target as HTMLElement | null;
-		const host = target?.closest('[data-element-id]') as HTMLElement | null;
-		const id = host?.getAttribute('data-element-id');
+		// Template (master/layout) elements are inert unless editTemplateMode is on;
+		// the resolver returns null for them so they fall through to the marquee/
+		// background path instead of being selected or dragged.
+		const id = this.interactiveElementIdAt(event.target);
 		// Synthetic double-tap: two TOUCH/PEN presses on the same element within
 		// DOUBLE_TAP_MS begin inline text editing (native dblclick is unreliable
 		// on touch). Desktop dblclick is handled separately in onDblClick. Mouse
@@ -963,9 +993,7 @@ export class SlideCanvasComponent {
 		if (!this.editable()) {
 			return;
 		}
-		const target = event.target as HTMLElement | null;
-		const host = target?.closest('[data-element-id]') as HTMLElement | null;
-		const id = host?.getAttribute('data-element-id');
+		const id = this.interactiveElementIdAt(event.target);
 		if (id) {
 			event.preventDefault();
 			this.textEditStart.emit({ id });
@@ -999,9 +1027,7 @@ export class SlideCanvasComponent {
 			return;
 		}
 		event.preventDefault();
-		const target = event.target as HTMLElement | null;
-		const host = target?.closest('[data-element-id]') as HTMLElement | null;
-		const id = host?.getAttribute('data-element-id') ?? null;
+		const id = this.interactiveElementIdAt(event.target);
 		this.contextMenu.emit({ id, x: event.clientX, y: event.clientY });
 	}
 
@@ -1248,7 +1274,12 @@ export class SlideCanvasComponent {
 		if (marquee) {
 			const rect = this.marqueeRect();
 			if (marquee.started && rect) {
-				const ids = marqueeHitIds(rect, this.elements());
+				// Only rubber-band-select elements the gate considers interactive, so
+				// inert template elements are never swept up when editTemplateMode is off.
+				const selectable = this.elements().filter((el) =>
+					isElementInteractive(el, true, this.editTemplateMode()),
+				);
+				const ids = marqueeHitIds(rect, selectable);
 				this.marqueeSelect.emit(ids);
 			} else {
 				this.backgroundClick.emit();
