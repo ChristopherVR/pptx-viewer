@@ -1,4 +1,4 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 /**
  * PowerPoint Viewer Plugin: Top-level Orchestrator Component.
  *
@@ -635,7 +635,11 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 							canvasWidth={canvasSize.width}
 							canvasHeight={canvasSize.height}
 						>
-							<CollaborationDocumentSync slides={slides} setSlides={state.setSlides} />
+							<CollaborationDocumentSync
+								slides={slides}
+								templateElementsBySlideId={templateElementsBySlideId}
+								setSlides={state.setSlides}
+							/>
 							<BroadcastFollowerSync
 								activeSlideIndex={activeSlideIndex}
 								setActiveSlideIndex={state.setActiveSlideIndex}
@@ -682,15 +686,18 @@ function CollaborationStatusStrip() {
  */
 function CollaborationDocumentSync({
 	slides,
+	templateElementsBySlideId,
 	setSlides,
 }: {
 	slides: PptxSlide[];
+	templateElementsBySlideId: Record<string, PptxElement[]>;
 	setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
 }) {
 	const collab = useCollaboration();
 	useYjsDocumentSync({
 		doc: collab?.doc ?? null,
 		slides,
+		templateElementsBySlideId,
 		setSlides,
 		isConnected: collab?.status === 'connected',
 	});

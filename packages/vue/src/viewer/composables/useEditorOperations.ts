@@ -5,8 +5,12 @@ import {
 	updateSmartArtNodeText,
 } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { isTemplateElementId } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
+
+import type { TemplateElementMap } from './template-editing';
+import { setTemplateElements } from './template-editing';
 
 /**
  * useEditorOperations: element CRUD + transform operations over the active
@@ -58,6 +62,13 @@ export interface UseEditorOperationsInput {
 	 * deselected. When omitted, an internally-owned selection ref is used.
 	 */
 	selectedElementIds?: Ref<string[]>;
+	/**
+	 * Optional separate store of the per-slide master/layout (template) elements.
+	 * When provided, id-routed operations (update / remove / transform / text /
+	 * z-order) targeting a template id (`master-` / `layout-` prefix) mutate this
+	 * store for the active slide instead of `slides`.
+	 */
+	templateElementsBySlideId?: Ref<TemplateElementMap>;
 }
 
 export interface EditorOperations {
@@ -125,6 +136,52 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		);
 	};
 
+	const templateMap = input.templateElementsBySlideId;
+
+	/** Rebuild the active slide's template store via `mapElements` (history-tracked). */
+	const commitTemplateElements = (
+		mapElements: (elements: PptxElement[]) => PptxElement[],
+	): void => {
+		const slide = slides.value[activeSlideIndex.value];
+		if (!templateMap || !slide) {
+			return;
+		}
+		const current = templateMap.value[slide.id];
+		if (!current) {
+			return;
+		}
+		pushHistory();
+		templateMap.value = setTemplateElements(templateMap.value, slide.id, mapElements(current));
+	};
+
+	/**
+	 * Route an id-keyed element mutation to the correct store: template ids
+	 * (`master-` / `layout-` prefix) mutate the separate template store for the
+	 * active slide; everything else mutates the slide's `elements`.
+	 */
+	const commitForId = (
+		elementId: string,
+		mapElements: (elements: PptxElement[]) => PptxElement[],
+	): void => {
+		if (templateMap && isTemplateElementId(elementId)) {
+			commitTemplateElements(mapElements);
+			return;
+		}
+		commitElements(mapElements);
+	};
+
+	/** The element array (slide or template store) that an id currently lives in. */
+	const elementsForId = (elementId: string): PptxElement[] => {
+		const slide = slides.value[activeSlideIndex.value];
+		if (!slide) {
+			return [];
+		}
+		if (templateMap && isTemplateElementId(elementId)) {
+			return templateMap.value[slide.id] ?? [];
+		}
+		return slide.elements;
+	};
+
 	// -- CRUD --------------------------------------------------------------
 
 	const addElement = (element: PptxElement): void => {
@@ -134,7 +191,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 	};
 
 	const updateElement = (elementId: string, updates: Partial<PptxElement>): void => {
-		commitElements((elements) =>
+		commitForId(elementId, (elements) =>
 			elements.map((el) =>
 				el.id === elementId ? ({ ...cloneElement(el), ...updates } as PptxElement) : el,
 			),
@@ -142,7 +199,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 	};
 
 	const removeElement = (elementId: string): void => {
-		commitElements((elements) => elements.filter((el) => el.id !== elementId));
+		commitForId(elementId, (elements) => elements.filter((el) => el.id !== elementId));
 		if (selectedElementIds.value.includes(elementId)) {
 			selectedElementIds.value = selectedElementIds.value.filter((id) => id !== elementId);
 		}
@@ -173,13 +230,13 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 	// -- Duplicate ---------------------------------------------------------
 
 	const duplicateElementById = (elementId: string): string | undefined => {
-		const slide = slides.value[activeSlideIndex.value];
-		const source = slide?.elements.find((el) => el.id === elementId);
+		const source = elementsForId(elementId).find((el) => el.id === elementId);
 		if (!source) {
 			return undefined;
 		}
 		// Core `duplicateElement` deep-clones and re-assigns ids (incl. group
-		// children). Offset by 20px so the copy is visibly distinct.
+		// children). Offset by 20px so the copy is visibly distinct. The copy gets a
+		// fresh (non-template) id, so it always lands on the slide as real content.
 		const copy = duplicateElement(source);
 		copy.x += 20;
 		copy.y += 20;
@@ -191,19 +248,16 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 	// -- Z-order -----------------------------------------------------------
 
 	const swapLayer = (elementId: string, direction: 1 | -1): void => {
-		const slide = slides.value[activeSlideIndex.value];
-		if (!slide) {
-			return;
-		}
-		const index = slide.elements.findIndex((el) => el.id === elementId);
+		const layer = elementsForId(elementId);
+		const index = layer.findIndex((el) => el.id === elementId);
 		if (index === -1) {
 			return;
 		}
 		const target = index + direction;
-		if (target < 0 || target >= slide.elements.length) {
+		if (target < 0 || target >= layer.length) {
 			return;
 		}
-		commitElements((elements) => {
+		commitForId(elementId, (elements) => {
 			const next = [...elements];
 			const tmp = next[index];
 			next[index] = next[target];
@@ -216,19 +270,16 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 	const sendBackward = (elementId: string): void => swapLayer(elementId, -1);
 
 	const reorder = (elementId: string, toIndex: number): void => {
-		const slide = slides.value[activeSlideIndex.value];
-		if (!slide) {
-			return;
-		}
-		const from = slide.elements.findIndex((el) => el.id === elementId);
+		const layer = elementsForId(elementId);
+		const from = layer.findIndex((el) => el.id === elementId);
 		if (from === -1) {
 			return;
 		}
-		const clamped = Math.max(0, Math.min(toIndex, slide.elements.length - 1));
+		const clamped = Math.max(0, Math.min(toIndex, layer.length - 1));
 		if (clamped === from) {
 			return;
 		}
-		commitElements((elements) => {
+		commitForId(elementId, (elements) => {
 			const next = [...elements];
 			const [moved] = next.splice(from, 1);
 			next.splice(clamped, 0, moved);
@@ -239,7 +290,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 	// -- Text --------------------------------------------------------------
 
 	const updateElementText = (elementId: string, text: string, nodeId?: string): void => {
-		commitElements((elements) =>
+		commitForId(elementId, (elements) =>
 			elements.map((el) => {
 				if (el.id !== elementId) {
 					return el;

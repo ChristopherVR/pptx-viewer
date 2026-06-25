@@ -3,7 +3,14 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
-import { resolveUnderlineDecorationStyle, segmentStyleToCss } from '../internal/shared';
+import {
+	buildRunEffectStyle,
+	buildTextBody3DSceneStyle,
+	resolveUnderlineDecorationStyle,
+	segmentStyleToCss,
+	substituteFieldText,
+} from '../internal/shared';
+import type { FieldSubstitutionContext } from '../internal/shared';
 import { ChartRendererComponent } from './chart-renderer.component';
 import { getClrChangeParams } from './color-changed-image-helpers';
 import type { ClrChangeParams } from './color-changed-image-helpers';
@@ -28,6 +35,7 @@ import { SmartArt3DService } from './smart-art-3d.service';
 import { SmartArtRendererComponent } from './smart-art-renderer.component';
 import { TableRendererComponent } from './table-renderer.component';
 import type { TableCellCommit } from './table-renderer.component';
+import { showsTemplateAffordance } from './template-mode';
 import { bulletIndentPx, resolveParagraphBullet } from './text-bullets';
 import { getTextWarp } from './text-warp';
 import type { TextWarpPathDef } from './text-warp';
@@ -64,6 +72,10 @@ function runStyleFromSegment(seg: TextSegment): StyleMap {
 				style['text-underline-offset'] = deco.textUnderlineOffset;
 			}
 		}
+		// Per-run text effects (gradient/pattern fill, outer/inner shadow, 3D
+		// extrusion text-shadow, blur, HSL, alpha opacity, glow, reflection),
+		// mirroring React's per-run span style. No-op {} for plain runs.
+		Object.assign(style, buildRunEffectStyle(s));
 	}
 	return style;
 }
@@ -228,6 +240,7 @@ interface Paragraph {
 							[mediaDataUrls]="mediaDataUrls()"
 							[zIndex]="$index"
 							[interactive]="interactive()"
+							[fieldContext]="fieldContext()"
 						/>
 					}
 				</div>
@@ -436,18 +449,54 @@ export class ElementRendererComponent {
 	/** Whether inline editing (e.g. table-cell text input) is enabled. */
 	readonly editable = input<boolean>(false);
 
+	/**
+	 * OOXML field-substitution context (slide number, date/time, header/footer,
+	 * slide title, custom doc properties). Built once per slide by the slide
+	 * canvas and threaded down (including to recursive group children) so field
+	 * runs resolve to display text, mirroring React's `fieldContext`.
+	 */
+	readonly fieldContext = input<FieldSubstitutionContext | undefined>(undefined);
+
+	/**
+	 * When true, inherited master/layout (template) elements get a visual
+	 * affordance (amber outline ring + slightly reduced opacity) signalling that
+	 * they are now directly editable. Has no effect on normal slide elements, and
+	 * no effect at all when false, so default rendering is untouched.
+	 */
+	readonly editTemplateMode = input<boolean>(false);
+
 	/** Emitted when a table cell's text edit is committed. */
 	readonly cellCommit = output<{ id: string; commit: TableCellCommit }>();
 
 	/** Duotone SVG `<filter>` descriptor for this element, if any. */
 	readonly duotoneFilter = computed(() => getDuotoneFilterDef(this.element()));
 
-	readonly containerStyle = computed<StyleMap>(() =>
-		getContainerStyle(this.element(), this.zIndex()),
-	);
+	/**
+	 * Outline ring + slight transparency applied to inherited template
+	 * (master/layout) elements while editTemplateMode is on. Empty otherwise, so
+	 * normal rendering is never altered.
+	 */
+	readonly templateAffordanceStyle = computed<StyleMap>(() => {
+		const empty: StyleMap = {};
+		if (!showsTemplateAffordance(this.element(), this.editTemplateMode())) {
+			return empty;
+		}
+		const active: StyleMap = {
+			outline: '1px dashed #f59e0b',
+			'outline-offset': '1px',
+			opacity: '0.95',
+		};
+		return active;
+	});
+
+	readonly containerStyle = computed<StyleMap>(() => ({
+		...getContainerStyle(this.element(), this.zIndex()),
+		...this.templateAffordanceStyle(),
+	}));
 	readonly shapeContainerStyle = computed<StyleMap>(() => ({
-		...this.containerStyle(),
+		...getContainerStyle(this.element(), this.zIndex()),
 		...getShapeFillStrokeStyle(this.element()),
+		...this.templateAffordanceStyle(),
 	}));
 	readonly textStyle = computed<StyleMap>(() => getTextBlockStyle(this.element()));
 	readonly imageSrc = computed(() => getImageSrc(this.element(), this.mediaDataUrls()));
@@ -463,20 +512,37 @@ export class ElementRendererComponent {
 	);
 
 	/** Text-warp (WordArt) descriptor for the element, if any. */
-	readonly textWarp = computed(() => getTextWarp(this.element()));
+	readonly textWarp = computed(() => getTextWarp(this.element(), this.fieldContext()));
 	/** Only the SVG-textPath warp variant (for the `<svg>` overlay branch). */
 	readonly pathWarp = computed<TextWarpPathDef | undefined>(() => {
 		const w = this.textWarp();
 		return w?.strategy === 'path' ? w : undefined;
 	});
-	/** Text block style, folding in a CSS-transform warp when present. */
+	/** Text block 3D scene style (a:bodyPr/a:scene3d), mirroring React's ElementBody. */
+	readonly scene3dStyle = computed<StyleMap | undefined>(() => {
+		const el = this.element();
+		const textStyleRaw = hasTextProperties(el) ? el.textStyle : undefined;
+		return buildTextBody3DSceneStyle(textStyleRaw);
+	});
+
+	/**
+	 * Text block style, folding in a CSS-transform warp and the 3D scene
+	 * (perspective + rotation) when present. The warp transform and the scene
+	 * transform are composed rather than clobbering each other.
+	 */
 	readonly warpedTextStyle = computed<StyleMap>(() => {
 		const base = this.textStyle();
+		const scene = this.scene3dStyle();
+		const merged: StyleMap = scene ? { ...base, ...scene } : { ...base };
 		const w = this.textWarp();
 		if (w?.strategy === 'css') {
-			return { ...base, transform: w.cssTransform, 'transform-origin': w.cssTransformOrigin };
+			const sceneTransform = scene?.transform;
+			merged.transform = sceneTransform
+				? `${w.cssTransform} ${String(sceneTransform)}`
+				: w.cssTransform;
+			merged['transform-origin'] = w.cssTransformOrigin;
 		}
-		return base;
+		return merged;
 	});
 
 	readonly children = computed<PptxElement[]>(() => {
@@ -535,7 +601,13 @@ export class ElementRendererComponent {
 				});
 				continue;
 			}
-			const text = seg.isLineBreak ? '\n' : seg.text;
+			const rawText = seg.isLineBreak ? '\n' : seg.text;
+			// Resolve OOXML field runs (slide number, date/time, header/footer,
+			// slide title, docproperty) to their display text, mirroring React's
+			// per-run `substituteFieldText` in `text-segment-render`.
+			const text = seg.fieldType
+				? substituteFieldText(rawText, seg.fieldType, this.fieldContext())
+				: rawText;
 			if (text) {
 				const href = resolveHyperlinkHref(seg.style?.hyperlink);
 				current.runs.push({

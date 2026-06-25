@@ -201,6 +201,8 @@ function processDragMove(
 			targetY = Math.round(targetY / gridSpacingPx) * gridSpacingPx;
 		}
 		if (snapToShape) {
+			// While editing templates the snap siblings come from the template
+			// store; otherwise from the active slide's elements.
 			const siblingSource = editTemplateMode ? templateElements : (activeSlide?.elements ?? []);
 			const siblings = siblingSource.map((el) => ({
 				id: el.id,

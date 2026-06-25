@@ -80,4 +80,29 @@ describe('buildParagraphs', () => {
 		const paras = buildParagraphs(textEl([{ text: '', style: {}, bulletInfo: { char: '•' } }]));
 		expect(paras.every((p) => p.bulletMarker === undefined)).toBeTruthy();
 	});
+
+	it('substitutes field-run text when a fieldContext is supplied', () => {
+		const paras = buildParagraphs(
+			textEl([
+				{ text: 'Page ', style: {} },
+				{ text: '0', style: {}, fieldType: 'slidenum' },
+			]),
+			{ slideNumber: 7 },
+		);
+		expect(paras[0].runs.map((r) => r.text)).toStrictEqual(['Page ', '7']);
+	});
+
+	it('leaves runs unchanged when no fieldContext is supplied', () => {
+		const segments: TextSegment[] = [
+			{ text: 'Page ', style: {} },
+			{ text: '0', style: {}, fieldType: 'slidenum' },
+		];
+		expect(buildParagraphs(textEl(segments))).toStrictEqual(
+			buildParagraphs(textEl(segments), undefined),
+		);
+		expect(buildParagraphs(textEl(segments))[0].runs.map((r) => r.text)).toStrictEqual([
+			'Page ',
+			'0',
+		]);
+	});
 });

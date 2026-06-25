@@ -9,11 +9,13 @@
  * PPTX bytes so the host can persist a durable snapshot.
  */
 
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type { CollaborationConfig, YjsFactories } from 'pptx-viewer-shared';
 import { writeSlidesToYDoc, readSlidesFromYDoc, observeYDocSlides } from 'pptx-viewer-shared';
 import { useCallback, useEffect, useRef } from 'react';
 import type { Doc as YDoc } from 'yjs';
+
+import { buildSaveSlides } from '../../utils/template-editing';
 
 const WRITE_BACK_DEBOUNCE_DEFAULT_MS = 5_000;
 
@@ -22,6 +24,8 @@ export interface UseYjsDocumentSyncInput {
 	doc: YDoc | null;
 	/** Current slides state. */
 	slides: PptxSlide[];
+	/** Separated master/layout (template) elements, merged back on write-back. */
+	templateElementsBySlideId: Record<string, PptxElement[]>;
 	/** React state setter for slides. */
 	setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
 	/** Whether collaboration is active (status === 'connected'). */
@@ -38,6 +42,7 @@ export interface UseYjsDocumentSyncInput {
 export function useYjsDocumentSync({
 	doc,
 	slides,
+	templateElementsBySlideId,
 	setSlides,
 	isConnected,
 	config,
@@ -89,13 +94,16 @@ export function useYjsDocumentSync({
 				const currentSlides = readSlidesFromYDoc(
 					doc as unknown as Parameters<typeof readSlidesFromYDoc>[0],
 				);
-				const bytes = await handler.save(currentSlides);
+				// Merge the separated template (master/layout) elements back so any
+				// edit-template-mode changes persist into the write-back snapshot.
+				const slidesToSave = buildSaveSlides(currentSlides, templateElementsBySlideId);
+				const bytes = await handler.save(slidesToSave);
 				config.onWriteBack(bytes);
 			} catch {
 				/* write-back failures are non-fatal */
 			}
 		}, debounceMs);
-	}, [doc, config, getSourceBytes]);
+	}, [doc, config, getSourceBytes, templateElementsBySlideId]);
 
 	// Sync local slide changes -> Y.Doc
 	useEffect(() => {

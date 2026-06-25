@@ -15,6 +15,9 @@ import { hasTextProperties } from 'pptx-viewer-core';
 
 import { resolveParagraphBullet, resolveParagraphIndent } from './bullet-list';
 import { resolveUnderlineDecorationStyle } from './text-decoration';
+import type { FieldSubstitutionContext } from './text-field-substitution';
+import { substituteFieldText } from './text-field-substitution';
+import { buildRunEffectStyle } from './text-run-effects';
 
 /** A plain CSS style map (keys are CSS properties; binding-agnostic). */
 export type RunStyle = Record<string, string | number>;
@@ -112,8 +115,17 @@ function applyUnderlineVariant(style: RunStyle, seg: TextSegment): void {
  * separators are `isParagraphBreak` segments (post-edit remap) or bare `"\n"`
  * text segments (the slide-load path); soft line breaks insert a newline within
  * a paragraph. Bullets are suppressed for paragraphs with no visible text.
+ *
+ * When a `fieldContext` is supplied, any segment carrying a `fieldType`
+ * (slide number, date/time, header/footer, slide title, docproperty) has its
+ * run text replaced via {@link substituteFieldText}, matching React's
+ * per-run substitution in `text-segment-render`. When omitted, the output is
+ * byte-identical to the no-context path (substitution is a strict no-op).
  */
-export function buildParagraphs(element: PptxElement): RenderParagraph[] {
+export function buildParagraphs(
+	element: PptxElement,
+	fieldContext?: FieldSubstitutionContext,
+): RenderParagraph[] {
 	if (!hasTextProperties(element)) {
 		return [];
 	}
@@ -150,10 +162,20 @@ export function buildParagraphs(element: PptxElement): RenderParagraph[] {
 			if (seg === markerSegment) {
 				continue;
 			}
-			const text = seg.isLineBreak ? '\n' : seg.text;
+			const rawText = seg.isLineBreak ? '\n' : seg.text;
+			const text = seg.fieldType
+				? substituteFieldText(rawText, seg.fieldType, fieldContext)
+				: rawText;
 			if (text) {
 				const style = segmentStyleToCss(seg);
 				applyUnderlineVariant(style, seg);
+				// Per-run text effects (gradient/pattern fill, outer/inner shadow,
+				// 3D extrusion text-shadow, blur, HSL, alpha opacity, glow,
+				// reflection), mirroring React per-run span style. No-op {} for
+				// plain runs, so ordinary text is unchanged.
+				if (seg.style) {
+					Object.assign(style, buildRunEffectStyle(seg.style));
+				}
 				runs.push({ text, style });
 			}
 		}

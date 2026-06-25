@@ -205,6 +205,18 @@
 	box-sizing: border-box;
 }
 
+/*
+ * Edit-template affordance: while the viewer is in editTemplateMode, the
+ * master/layout (template) shapes a slide inherits become editable. Give them a
+ * distinct amber ring + slight transparency so the user can tell them apart from
+ * normal slide content. Only applied when the mode is on (never in OFF state).
+ */
+.pptx-vue-template-editing {
+	outline: 2px dashed rgb(217, 119, 6);
+	outline-offset: 1px;
+	opacity: 0.95;
+}
+
 .pptx-vue-placeholder {
 	display: flex;
 	align-items: center;

@@ -29,6 +29,7 @@ import { useEffect, useRef } from 'react';
 
 import { DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH } from '../constants';
 import type { CanvasSize } from '../types';
+import { partitionTemplateElements } from '../utils/template-editing';
 import {
 	collectMediaElements,
 	collectImagePaths,
@@ -286,8 +287,13 @@ export function useLoadContent({
 				}
 
 				handlerRef.current = handler;
-				setSlides(nextSlides);
-				setTemplateElementsBySlideId({});
+				// Separate the inherited master/layout (template) elements that the
+				// core loader merged into `slide.elements` into their own per-slide
+				// store. They get a dedicated, gated render layer and are merged back
+				// at save time (buildSaveSlides) so edits to them persist.
+				const partition = partitionTemplateElements(nextSlides);
+				setSlides(partition.slides);
+				setTemplateElementsBySlideId(partition.templateElementsBySlideId);
 				setCanvasSize({
 					width: parsed.width ?? DEFAULT_CANVAS_WIDTH,
 					height: parsed.height ?? DEFAULT_CANVAS_HEIGHT,

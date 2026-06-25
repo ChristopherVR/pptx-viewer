@@ -229,6 +229,19 @@ describe('getTextWarp - strategy: path', () => {
 		expect(def.pathLines[0].d).toMatch(/^M /u);
 	});
 
+	it('substitutes field-run text in warp paragraphs when a field context is given', () => {
+		const segs: TextSegment[] = [
+			{ text: 'Slide ', style: {} },
+			{ text: '0', style: {}, fieldType: 'slidenum' },
+		];
+		const fieldEl = makeTextElement('textArchUp', { textSegments: segs });
+		const withCtx = getTextWarp(fieldEl, { slideNumber: 4 }) as TextWarpPathDef;
+		expect(withCtx.pathLines[0].segments.map((s) => s.text)).toStrictEqual(['Slide ', '4']);
+		// No context -> raw field text is preserved.
+		const noCtx = getTextWarp(fieldEl) as TextWarpPathDef;
+		expect(noCtx.pathLines[0].segments.map((s) => s.text)).toStrictEqual(['Slide ', '0']);
+	});
+
 	it('pathId is unique per line', () => {
 		const segs: TextSegment[] = [
 			{ text: 'a', style: {} },

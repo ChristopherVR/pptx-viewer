@@ -29,6 +29,7 @@ export {
 	getTextAlphaOpacity,
 	buildTextGlowFilter,
 	buildTextReflectionCss,
+	buildTextRunFilterChain,
 } from 'pptx-viewer-shared';
 
 /** Build CSS properties for gradient or pattern text fills. */

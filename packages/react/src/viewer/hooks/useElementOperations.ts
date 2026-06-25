@@ -26,7 +26,10 @@ export interface UseElementOperationsInput {
 	activeSlideIndex: number;
 	selectedElement: PptxElement | null;
 	selectedElementId: string | null;
-	templateElementsBySlideId: Record<string, PptxElement[]>;
+	/** When true, element operations target the template store, not slide.elements. */
+	editTemplateMode: boolean;
+	/** Template (master/layout) elements for the active slide. */
+	templateElements: PptxElement[];
 	history: EditorHistoryResult;
 	setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
 	setTemplateElementsBySlideId: React.Dispatch<React.SetStateAction<Record<string, PptxElement[]>>>;
@@ -46,6 +49,16 @@ export interface ElementOperations {
 	updateSelectedShapeStyle: (updates: Partial<ShapeStyle>) => void;
 	updateSelectedTextStyle: (updates: Partial<TextStyle>) => void;
 	updateSlides: (updater: (s: PptxSlide[]) => PptxSlide[]) => void;
+	/**
+	 * The element list currently being edited: the template store for the active
+	 * slide while edit-template mode is on, otherwise the active slide's elements.
+	 */
+	activeElements: PptxElement[];
+	/**
+	 * Replace the active element list (template store or slide.elements depending
+	 * on edit-template mode). Does not mark the document dirty; callers do.
+	 */
+	updateActiveElements: (updater: (els: PptxElement[]) => PptxElement[]) => void;
 	serializeSlides: () => Promise<Uint8Array | null>;
 }
 
@@ -59,6 +72,8 @@ export function useElementOperations(input: UseElementOperationsInput): ElementO
 		activeSlideIndex,
 		selectedElement,
 		selectedElementId,
+		editTemplateMode,
+		templateElements,
 		history,
 		setSlides,
 		setTemplateElementsBySlideId,
@@ -84,23 +99,23 @@ export function useElementOperations(input: UseElementOperationsInput): ElementO
 	}, [applySelection, setInlineEditingElementId, setContextMenuState]);
 
 	// ── Element Updates ───────────────────────────────────────────────
+	// Template (master/layout) elements live in their own per-slide store (the
+	// separate-state architecture), so edits route by id prefix: a `layout-` /
+	// `master-` id updates the template store; any other id updates the active
+	// slide's elements. Template edits are merged back into the saved deck by
+	// buildSaveSlides so they persist to the shared master/layout part.
 	const updateElementById = useCallback(
 		(elementId: string, updates: Partial<PptxElement>) => {
-			const isTemplate = isTemplateElementId(elementId);
-			if (isTemplate) {
-				setTemplateElementsBySlideId((prev) => {
-					const slideId = activeSlide?.id;
-					if (!slideId) {
-						return prev;
-					}
-					const elements = prev[slideId] ?? [];
-					return {
+			if (isTemplateElementId(elementId)) {
+				const slideId = activeSlide?.id;
+				if (slideId) {
+					setTemplateElementsBySlideId((prev) => ({
 						...prev,
-						[slideId]: elements.map((el) =>
+						[slideId]: (prev[slideId] ?? []).map((el) =>
 							el.id === elementId ? ({ ...el, ...updates } as PptxElement) : el,
 						),
-					};
-				});
+					}));
+				}
 			} else {
 				setSlides((prev) =>
 					prev.map((s, i) =>
@@ -192,6 +207,34 @@ export function useElementOperations(input: UseElementOperationsInput): ElementO
 		[setSlides],
 	);
 
+	// ── Active-store helpers ──────────────────────────────────────────
+	// Element-list operations (group, ungroup, layer-order, paste, delete) act on
+	// whichever store is being edited: the template store while edit-template mode
+	// is on, otherwise the active slide's elements.
+	const activeElements = editTemplateMode ? templateElements : (activeSlide?.elements ?? []);
+
+	const updateActiveElements = useCallback(
+		(updater: (els: PptxElement[]) => PptxElement[]) => {
+			if (editTemplateMode) {
+				const slideId = activeSlide?.id;
+				if (!slideId) {
+					return;
+				}
+				setTemplateElementsBySlideId((prev) => ({
+					...prev,
+					[slideId]: updater(prev[slideId] ?? []),
+				}));
+			} else {
+				setSlides((prev) =>
+					prev.map((s, i) =>
+						i === activeSlideIndex ? { ...s, elements: updater(s.elements) } : s,
+					),
+				);
+			}
+		},
+		[editTemplateMode, activeSlide?.id, activeSlideIndex, setSlides, setTemplateElementsBySlideId],
+	);
+
 	// Note: serializeSlides is intentionally kept in the main component
 	// because it depends on handlerRef and headerFooter. We return a
 	// placeholder here that the main component can override or skip.
@@ -209,6 +252,8 @@ export function useElementOperations(input: UseElementOperationsInput): ElementO
 		updateSelectedShapeStyle,
 		updateSelectedTextStyle,
 		updateSlides,
+		activeElements,
+		updateActiveElements,
 		serializeSlides,
 	};
 }

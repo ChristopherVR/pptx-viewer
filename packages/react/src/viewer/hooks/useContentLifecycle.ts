@@ -101,6 +101,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 
 	const serializeSlides = useSerialize({
 		slides,
+		templateElementsBySlideId: state.templateElementsBySlideId,
 		activeSlideIndex: state.activeSlideIndex,
 		guides: state.guides,
 		headerFooter: state.headerFooter,

@@ -85,7 +85,18 @@ const dist = makeFeatureElement(
 
 const field = makeFeatureElement('feat-field', 820, 540, 120, 30, [
 	{ text: 'Slide ', style: { fontSize: 16, color: '#5f6368' } },
-	{ text: '1', style: { fontSize: 16, color: '#5f6368' }, fieldType: 'slidenum' },
+	// Literal placeholder differs from the resolved number so field substitution
+	// is observable: an unsubstituted renderer shows "Slide #", a substituting
+	// one shows "Slide 1" (this element is on slide 1).
+	{
+		text: '#',
+		style: { fontSize: 16, color: '#5f6368' },
+		fieldType: 'slidenum',
+		// a:fld requires a GUID; without it the writer cannot emit the field and
+		// the segments flatten to a plain "Slide #" run on round-trip.
+		fieldGuid: '{F8166F1F-CE9B-4651-A6AA-CD717754DC9D}',
+		fieldGuidAttr: 'id',
+	},
 ]);
 
 slide.elements.push(vertical, underline, wavy, dist, field);

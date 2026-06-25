@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type { CSSProperties } from 'vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
@@ -30,6 +30,16 @@ const props = defineProps<{
 	zoom?: number;
 	/** Show the horizontal/vertical rulers along the slide edges (View ▸ Rulers). */
 	showRulers?: boolean;
+	/**
+	 * Master/layout (template) elements for the active slide, rendered by
+	 * {@link SlideStage} in a dedicated layer behind the slide content.
+	 */
+	templateElements?: PptxElement[];
+	/**
+	 * When on, master/layout (template) elements become interactive on the canvas
+	 * and gain a visual affordance. Threaded down to {@link SlideStage}.
+	 */
+	editTemplateMode?: boolean;
 }>();
 
 const emit = defineEmits<{ 'update:fitScale': [number] }>();
@@ -105,6 +115,8 @@ watch(() => [props.canvasSize.width, props.canvasSize.height], recomputeFit);
 				:canvas-size="canvasSize"
 				:media-data-urls="mediaDataUrls"
 				:scale="scale"
+				:template-elements="templateElements"
+				:edit-template-mode="editTemplateMode"
 				interactive
 			>
 				<slot />

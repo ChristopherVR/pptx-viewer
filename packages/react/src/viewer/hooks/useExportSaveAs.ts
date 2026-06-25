@@ -1,5 +1,5 @@
 import JSZip from 'jszip';
-import type { PptxSlide, PptxSaveFormat, PptxHandler } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide, PptxSaveFormat, PptxHandler } from 'pptx-viewer-core';
 import { guidePxToEmu } from 'pptx-viewer-core';
 import { downloadBlob } from 'pptx-viewer-shared';
 /**
@@ -8,10 +8,13 @@ import { downloadBlob } from 'pptx-viewer-shared';
 import type { RefObject } from 'react';
 
 import { generatePackageReadme } from '../utils/export';
+import { buildSaveSlides } from '../utils/template-editing';
 import type { ExportModalControls } from './export-handler-types';
 
 export interface UseExportSaveAsInput {
 	slides: PptxSlide[];
+	/** Separated master/layout (template) elements, merged back at save time. */
+	templateElementsBySlideId: Record<string, PptxElement[]>;
 	filePath: string | undefined;
 	handlerRef: RefObject<PptxHandler | null>;
 	serializeSlides: () => Promise<Uint8Array | null>;
@@ -45,6 +48,7 @@ export interface ExportSaveAsResult {
 export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult {
 	const {
 		slides,
+		templateElementsBySlideId,
 		filePath,
 		handlerRef,
 		serializeSlides,
@@ -161,6 +165,9 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 				guides: pptxGuides.length > 0 ? pptxGuides : undefined,
 			};
 		});
+		// Merge the separated template (master/layout) elements back so edits made
+		// in edit-template mode persist into the saved package.
+		const slidesToSave = buildSaveSlides(slidesWithGuides, templateElementsBySlideId);
 		const saveOptions = {
 			headerFooter,
 			presentationProperties,
@@ -173,7 +180,7 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 			handoutMaster,
 			outputFormat: format,
 		};
-		return handler.save(slidesWithGuides, saveOptions as Parameters<typeof handler.save>[1]);
+		return handler.save(slidesToSave, saveOptions as Parameters<typeof handler.save>[1]);
 	};
 
 	const handleSaveAsPptx = () => {

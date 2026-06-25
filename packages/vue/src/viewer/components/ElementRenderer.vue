@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
-import { buildParagraphs, hasTextWarp } from 'pptx-viewer-shared';
+import { buildParagraphs, buildTextBody3DSceneStyle, hasTextWarp } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
@@ -10,6 +10,7 @@ import {
 	getShapeFillStrokeStyle,
 	getTextBlockStyle,
 } from '../composables/element-style';
+import { injectFieldContext, resolveFieldContext } from '../composables/field-context';
 import { useSmartArt3D } from '../composables/smart-art-3d';
 import ChartRenderer from './ChartRenderer.vue';
 import ConnectorRenderer from './ConnectorRenderer.vue';
@@ -44,10 +45,19 @@ const props = defineProps<{
 	 * stage and presentation mode render without it.
 	 */
 	interactive?: boolean;
+	/**
+	 * When true, this element belongs to the slide layout/master and the viewer is
+	 * in edit-template mode: draw a visual affordance so the user can tell apart
+	 * the (now editable) shared template shapes from normal slide content.
+	 */
+	templateEditing?: boolean;
 }>();
 
 /** Host opt-in to the Three.js SmartArt renderer (provided by PowerPointViewer). */
 const smartArt3D = useSmartArt3D();
+
+/** OOXML field-substitution context (slide number, date/time, etc.), provided by the viewer root. */
+const fieldContextSource = injectFieldContext();
 
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
@@ -67,7 +77,22 @@ const shapeDivStyle = computed<CSSProperties>(() => {
 	}
 	return merged;
 });
-const textStyle = computed<CSSProperties>(() => getTextBlockStyle(props.element));
+const textStyle = computed<CSSProperties>(() => {
+	const base = getTextBlockStyle(props.element);
+	// Text body 3D scene (a:bodyPr/a:scene3d -> perspective + rotate transform),
+	// mirroring React's ElementBody. Compose its transform with any existing
+	// text-block transform rather than clobbering it. No-op when absent.
+	const textStyleRaw = hasTextProperties(props.element) ? props.element.textStyle : undefined;
+	const scene3d = buildTextBody3DSceneStyle(textStyleRaw) as CSSProperties | undefined;
+	if (!scene3d) {
+		return base;
+	}
+	const merged: CSSProperties = { ...base, ...scene3d };
+	if (base.transform && scene3d.transform) {
+		merged.transform = `${String(base.transform)} ${String(scene3d.transform)}`;
+	}
+	return merged;
+});
 
 const isShapeLike = computed(() => props.element.type === 'text' || props.element.type === 'shape');
 const isImageLike = computed(
@@ -88,10 +113,15 @@ const hasEquation = computed(
 const isWarpedText = computed(() => hasTextWarp(props.element));
 
 /** Rendered paragraphs (runs + bullet/indent), built by shared logic. */
-const paragraphs = computed(() => buildParagraphs(props.element));
+const paragraphs = computed(() =>
+	buildParagraphs(props.element, resolveFieldContext(fieldContextSource)),
+);
 const hasText = computed(() =>
 	paragraphs.value.some((p) => p.runs.length > 0 || p.bulletMarker !== undefined),
 );
+
+/** Affordance class toggled on for editable template (master/layout) elements. */
+const templateClass = computed(() => (props.templateEditing ? 'pptx-vue-template-editing' : null));
 </script>
 
 <template>
@@ -99,6 +129,7 @@ const hasText = computed(() =>
 	<div
 		v-if="element.type === 'group'"
 		class="pptx-vue-element pptx-vue-group"
+		:class="templateClass"
 		:style="containerStyle"
 		:data-element-id="element.id"
 		:data-pptx-element="interactive ? 'true' : undefined"
@@ -120,6 +151,7 @@ const hasText = computed(() =>
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
 		:interactive="interactive"
+		:class="templateClass"
 	/>
 
 	<!-- Media (video/audio/poster) -->
@@ -129,6 +161,7 @@ const hasText = computed(() =>
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
 		:interactive="interactive"
+		:class="templateClass"
 	/>
 
 	<!-- Connector / line -->
@@ -200,6 +233,7 @@ const hasText = computed(() =>
 	<div
 		v-else-if="isShapeLike"
 		class="pptx-vue-element pptx-vue-shape"
+		:class="templateClass"
 		:style="shapeDivStyle"
 		:data-element-id="element.id"
 		:data-pptx-element="interactive ? 'true' : undefined"
@@ -212,6 +246,7 @@ const hasText = computed(() =>
 	<div
 		v-else
 		class="pptx-vue-element pptx-vue-unsupported"
+		:class="templateClass"
 		:style="containerStyle"
 		:data-element-id="element.id"
 		:data-pptx-element="interactive ? 'true' : undefined"

@@ -32,8 +32,13 @@ import {
 	getEnvelopeCssTransform,
 	getSimpleCssTransform,
 	groupIntoParagraphs,
+	substituteFieldText,
 } from '../internal/shared';
-import type { WarpCategory as SharedWarpCategory, WarpParagraph } from '../internal/shared';
+import type {
+	FieldSubstitutionContext,
+	WarpCategory as SharedWarpCategory,
+	WarpParagraph,
+} from '../internal/shared';
 import { getWarpPath, shouldUseSvgWarp } from './warp-path-generators';
 
 // ── Warp category classifier ───────────────────────────────────────────
@@ -163,10 +168,17 @@ const DEFAULT_COLOR = '#000000';
  *
  * @param element  Any `PptxElement`.  Elements without text properties always
  *                 return `undefined`.
+ * @param fieldContext  Optional OOXML field-substitution context. When given,
+ *                 field runs (slide number, date/time, footer, ...) in the warp
+ *                 paragraphs are resolved to their display text, mirroring
+ *                 React's warp-text-renderer.
  * @returns  A `TextWarpDef` with `strategy: 'path'` for SVG textPath warps, or
  *           `strategy: 'css'` for CSS-transform approximations.
  */
-export function getTextWarp(element: PptxElement): TextWarpDef | undefined {
+export function getTextWarp(
+	element: PptxElement,
+	fieldContext?: FieldSubstitutionContext,
+): TextWarpDef | undefined {
 	if (!hasTextProperties(element)) {
 		return undefined;
 	}
@@ -183,7 +195,15 @@ export function getTextWarp(element: PptxElement): TextWarpDef | undefined {
 
 	// ── Strategy: SVG path ──────────────────────────────────────────────
 	if (shouldUseSvgWarp(preset)) {
-		const paragraphs = groupIntoParagraphs(element);
+		const paragraphs = groupIntoParagraphs(element, (seg) => {
+			if (seg.fieldType) {
+				const substituted = substituteFieldText(seg.text, seg.fieldType, fieldContext);
+				if (substituted !== seg.text) {
+					return { ...seg, text: substituted };
+				}
+			}
+			return seg;
+		});
 		if (paragraphs.length === 0) {
 			return undefined;
 		}

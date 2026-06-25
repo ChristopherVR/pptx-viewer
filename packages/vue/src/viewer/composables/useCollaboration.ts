@@ -35,6 +35,7 @@ import type {
 	AwarenessCursor,
 	RemotePresence,
 } from './collaboration-types';
+import { buildSaveSlides } from './template-editing';
 
 const DEFAULT_CANVAS_BOUND = 100_000;
 const WRITE_BACK_DEBOUNCE_MS = 5_000;
@@ -197,7 +198,10 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 				const handler = new PptxHandler();
 				await handler.load(sourceBytes.buffer as ArrayBuffer);
 				const slides = readSlidesFromYDoc(currentYDoc);
-				const bytes = await handler.save(slides);
+				// Merge the separately-stored template (master/layout) elements back
+				// (behind each slide's content) so template edits persist.
+				const merged = buildSaveSlides(slides, options.getTemplateElements?.() ?? {});
+				const bytes = await handler.save(merged);
 				config.onWriteBack(bytes);
 			} catch {
 				/* non-fatal */

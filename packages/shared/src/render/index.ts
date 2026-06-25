@@ -250,6 +250,10 @@ export * from './text-field-substitution';
 export * from './text-fill';
 export * from './text-effects';
 export * from './text-effects-3d';
+// Per-run text-effect composer: folds fill + shadow (incl. 3D) + filter chain
+// (glow/inner-shadow/blur/HSL) + alpha opacity + reflection into ONE neutral
+// CSS record (no-op `{}` for plain runs), mirroring React's per-run span style.
+export * from './text-run-effects';
 // MathML/SVG sanitisation (DOMPurify wrapper, non-DOM fallback) for equation
 // rendering. React + Vue consume it; Angular uses its own DomSanitizer.
 export * from './mathml-sanitize';

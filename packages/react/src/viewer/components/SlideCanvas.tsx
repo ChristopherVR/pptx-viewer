@@ -260,6 +260,7 @@ export function SlideCanvas({
 							selectionColorClass='blue-400'
 							showHoverBorder={false}
 							opacity={0.95}
+							templateEditing={editTemplateMode}
 							zIndex={index}
 							imageAltText='Template element'
 							showResizeHandles={
@@ -302,7 +303,7 @@ export function SlideCanvas({
 							isSelected={selectedElementIdSet.has(element.id)}
 							isInlineEditing={inlineEditingElementId === element.id}
 							inlineEditingText={inlineEditingText}
-							canInteract={(mode === 'edit' || mode === 'master') && canEdit}
+							canInteract={isEditableCanvas}
 							spellCheckEnabled={spellCheckEnabled}
 							mediaDataUrls={mediaDataUrls}
 							tableEditorState={tableEditorState}

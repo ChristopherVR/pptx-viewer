@@ -132,6 +132,8 @@ function commitMarquee(
 	applySelection: UsePointerHandlersInput['applySelection'],
 	clearSelection: UsePointerHandlersInput['clearSelection'],
 ): void {
+	// In edit-template mode the marquee hit-tests the template store (the only
+	// interactive layer); otherwise it runs over the active slide's elements.
 	const sourceElements = editTemplateMode ? templateElements : (activeSlide?.elements ?? []);
 	const hitIds = computeMarqueeHitIds(marquee, sourceElements);
 	if (marquee.additive) {
@@ -160,49 +162,36 @@ function commitDrag(
 ): void {
 	const dx = drag.lastDx,
 		dy = drag.lastDy;
-	if (editTemplateMode) {
-		const movedIds = new Set(Object.keys(drag.startPositionsById));
-		setTemplateElementsBySlideId((prev: Record<string, PptxElement[]>) => {
-			const slideId = activeSlide?.id;
-			if (!slideId) {
-				return prev;
+	const movedIds = new Set(Object.keys(drag.startPositionsById));
+	// Apply the drag positions and reroute attached connectors over an element
+	// list, returning the next list.
+	const moveElements = (elements: PptxElement[]): PptxElement[] => {
+		const movedElements = elements.map((el) => {
+			const start = drag.startPositionsById[el.id];
+			if (!start) {
+				return el;
 			}
-			const els = prev[slideId] ?? [];
-			const movedElements = els.map((el) => {
-				const start = drag.startPositionsById[el.id];
-				if (!start) {
-					return el;
-				}
-				return { ...el, x: start.x + dx, y: start.y + dy };
-			});
-			const rerouted = rerouteConnectorsForMovedElements(movedElements, movedIds);
-			return {
-				...prev,
-				[slideId]: applyReroutedConnectors(movedElements, rerouted),
-			};
+			return { ...el, x: start.x + dx, y: start.y + dy };
 		});
-	} else {
-		const movedIds = new Set(Object.keys(drag.startPositionsById));
-		updateSlides((prev) =>
-			prev.map((s, i) => {
-				if (i !== activeSlideIndex) {
-					return s;
-				}
-				// First apply the drag positions
-				const movedElements = s.elements.map((el) => {
-					const start = drag.startPositionsById[el.id];
-					if (!start) {
-						return el;
-					}
-					return { ...el, x: start.x + dx, y: start.y + dy };
-				});
-				// Then reroute any connectors attached to the moved shapes
-				const rerouted = rerouteConnectorsForMovedElements(movedElements, movedIds);
-				return {
-					...s,
-					elements: applyReroutedConnectors(movedElements, rerouted),
-				};
-			}),
-		);
+		const rerouted = rerouteConnectorsForMovedElements(movedElements, movedIds);
+		return applyReroutedConnectors(movedElements, rerouted);
+	};
+
+	if (editTemplateMode) {
+		// Dragging a template (master/layout) element commits to the template store;
+		// buildSaveSlides merges it back so the edit persists to the shared part.
+		const slideId = activeSlide?.id;
+		if (!slideId) {
+			return;
+		}
+		setTemplateElementsBySlideId((prev) => ({
+			...prev,
+			[slideId]: moveElements(prev[slideId] ?? []),
+		}));
+		return;
 	}
+
+	updateSlides((prev) =>
+		prev.map((s, i) => (i !== activeSlideIndex ? s : { ...s, elements: moveElements(s.elements) })),
+	);
 }

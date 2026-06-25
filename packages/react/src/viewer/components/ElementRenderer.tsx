@@ -61,6 +61,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		selectionColorClass: selClr,
 		showHoverBorder,
 		opacity,
+		templateEditing,
 		zIndex,
 		imageAltText,
 		showResizeHandles,
@@ -213,6 +214,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 					animationState,
 					shapeVisualStyle: ss,
 					has3DExtrusion: extrusionData.hasExtrusion,
+					templateEditing,
 				})}
 				onKeyDown={(e) => {
 					if (e.key === 'Enter' && isTxt && effectiveCanInteract && !effectiveIsInlineEditing) {

@@ -586,6 +586,14 @@
 	@apply bg-purple-600 text-white;
 }
 
+/*
+ * Template-editing active state: amber highlight to indicate that inherited
+ * master/layout (template) elements are currently directly editable.
+ */
+.pptx-rb-template-active {
+	@apply bg-amber-500 text-white;
+}
+
 /* ── Mobile / coarse-pointer ─────────────────────────────────────────── */
 /*
  * On small screens and touch devices the toolbar buttons are too small to tap

@@ -15,6 +15,7 @@
 import { computed, Injectable, signal } from '@angular/core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
+import { isTemplateElement, isTemplateElementId } from '../internal/shared';
 import { computeAlign, computeDistribute } from './align-distribute';
 import type { AlignMode, DistributeMode } from './align-distribute';
 import { EditorHistory } from './editor-history';
@@ -31,15 +32,27 @@ import {
 	updateElementById,
 } from './element-operations';
 import { groupElements, ungroupElements } from './group-ops';
+import { partitionSlides } from './template-mode';
+import type { TemplateElementsBySlideId } from './template-mode';
 
 /** Default nudge distance (px) for arrow-key moves. */
 const NUDGE_STEP = 1;
 /** Offset (px) applied to a duplicated element so it is visible. */
 const DUPLICATE_OFFSET = 12;
 
+/**
+ * A complete editor snapshot recorded on the undo/redo stack: the editable
+ * (template-free) deck plus the separated template store, so undoing a template
+ * edit restores the template store alongside the slides.
+ */
+interface EditorSnapshot {
+	slides: readonly PptxSlide[];
+	templateElementsBySlideId: TemplateElementsBySlideId;
+}
+
 @Injectable()
 export class EditorStateService {
-	private readonly history = new EditorHistory<readonly PptxSlide[]>();
+	private readonly history = new EditorHistory<EditorSnapshot>();
 
 	/** The editable slide deck (a clone of the loaded presentation). */
 	readonly slides = signal<readonly PptxSlide[]>([]);
@@ -47,6 +60,22 @@ export class EditorStateService {
 	readonly selectedIds = signal<readonly string[]>([]);
 	/** Whether the deck has unsaved edits. */
 	readonly dirty = signal(false);
+	/**
+	 * When true, inherited master/layout (template) elements become interactive:
+	 * selectable, draggable, deletable, and editable. When false (default) they
+	 * render but are inert, so normal slide editing never disturbs the template.
+	 *
+	 * Note: a template element is shared by every slide inheriting the same
+	 * layout/master, so editing one updates the shared part for all of them.
+	 */
+	readonly editTemplateMode = signal(false);
+	/**
+	 * Inherited master/layout (template) elements, separated out of every slide's
+	 * own elements at load time and keyed by slide id. They render as a dedicated
+	 * layer BEHIND the slide and are only mutated while {@link editTemplateMode} is
+	 * on; {@link buildSaveSlides} re-merges them for serialization.
+	 */
+	readonly templateElementsBySlideId = signal<TemplateElementsBySlideId>({});
 
 	readonly canUndo = signal(false);
 	readonly canRedo = signal(false);
@@ -55,16 +84,25 @@ export class EditorStateService {
 
 	readonly hasSelection = computed(() => this.selectedIds().length > 0);
 
-	/** Replace the editable deck (clones the source); resets selection + history. */
+	/**
+	 * Replace the editable deck (clones the source); resets selection + history.
+	 *
+	 * Inherited template (master/layout) elements are PARTITIONED out of each
+	 * slide here: the editable deck keeps only its own elements while the template
+	 * elements move into {@link templateElementsBySlideId}, rendered as a separate
+	 * layer and re-merged on save.
+	 */
 	setSlides(slides: readonly PptxSlide[]): void {
-		this.slides.set(this.clone(slides));
+		const partitioned = partitionSlides(this.clone(slides));
+		this.slides.set(partitioned.slides);
+		this.templateElementsBySlideId.set(partitioned.templateElementsBySlideId);
 		this.selectedIds.set([]);
 		this.history.clear();
 		this.dirty.set(false);
 		this.syncHistory();
 	}
 
-	/** Current editable slides as a fresh (cloned) array. */
+	/** Current editable (template-free) slides as a fresh (cloned) array. */
 	snapshot(): readonly PptxSlide[] {
 		return this.clone(this.slides());
 	}
@@ -75,10 +113,47 @@ export class EditorStateService {
 	 * preserves history and selection.
 	 */
 	applyReplacement(newSlides: readonly PptxSlide[], label = 'Replace'): void {
-		this.history.record(this.clone(this.slides()), label);
+		this.history.record(this.captureSnapshot(), label);
 		this.slides.set(this.clone(newSlides));
 		this.dirty.set(true);
 		this.syncHistory();
+	}
+
+	// ── Snapshot (deck + template store) ─────────────────────────────────────
+
+	/** Capture the current deck + template store as one undo/redo snapshot. */
+	private captureSnapshot(): EditorSnapshot {
+		return {
+			slides: this.clone(this.slides()),
+			templateElementsBySlideId: this.clone(this.templateElementsBySlideId()),
+		};
+	}
+
+	/** Restore both the deck and the template store from a snapshot. */
+	private restoreSnapshot(snapshot: EditorSnapshot): void {
+		this.slides.set(snapshot.slides);
+		this.templateElementsBySlideId.set(snapshot.templateElementsBySlideId);
+	}
+
+	/** The template (master/layout) elements separated out of a slide, by id. */
+	private templatesForSlide(slideId: string): readonly PptxElement[] {
+		return this.templateElementsBySlideId()[slideId] ?? [];
+	}
+
+	/** Replace a slide's template-element list (drops the entry when empty). */
+	private writeTemplatesForSlide(slideId: string, elements: readonly PptxElement[]): void {
+		const next: TemplateElementsBySlideId = { ...this.templateElementsBySlideId() };
+		if (elements.length > 0) {
+			next[slideId] = [...elements];
+		} else {
+			delete next[slideId];
+		}
+		this.templateElementsBySlideId.set(next);
+	}
+
+	/** Toggle whether inherited template (master/layout) elements are editable. */
+	setEditTemplateMode(mode: boolean): void {
+		this.editTemplateMode.set(mode);
 	}
 
 	// ── Selection ───────────────────────────────────────────────────────────
@@ -185,7 +260,7 @@ export class EditorStateService {
 
 	/** Record a single history snapshot at the start of a drag/resize gesture. */
 	beginTransform(label: string): void {
-		this.history.record(this.clone(this.slides()), label);
+		this.history.record(this.captureSnapshot(), label);
 		this.dirty.set(true);
 		this.syncHistory();
 	}
@@ -193,7 +268,8 @@ export class EditorStateService {
 	/**
 	 * Apply a live transform during a gesture WITHOUT recording history (the
 	 * gesture's snapshot was taken in {@link beginTransform}). Accepts any subset
-	 * of x/y/width/height.
+	 * of x/y/width/height. Routes by id: template (master/layout) elements mutate
+	 * the template store, normal elements mutate the slide.
 	 */
 	applyTransform(
 		slideIndex: number,
@@ -201,7 +277,15 @@ export class EditorStateService {
 		box: { x?: number; y?: number; width?: number; height?: number; rotation?: number },
 	): void {
 		const slides = this.slides();
-		if (!slides[slideIndex]) {
+		const target = slides[slideIndex];
+		if (!target) {
+			return;
+		}
+		if (isTemplateElementId(id)) {
+			this.writeTemplatesForSlide(
+				target.id,
+				updateElementById(this.templatesForSlide(target.id), id, box as Partial<PptxElement>),
+			);
 			return;
 		}
 		this.slides.set(
@@ -219,9 +303,9 @@ export class EditorStateService {
 	// ── Undo / redo ──────────────────────────────────────────────────────────
 
 	undo(): void {
-		const result = this.history.undo(this.clone(this.slides()));
+		const result = this.history.undo(this.captureSnapshot());
 		if (result) {
-			this.slides.set(result.snapshot);
+			this.restoreSnapshot(result.snapshot);
 			this.dirty.set(true);
 			this.selectedIds.set([]);
 			this.syncHistory();
@@ -229,9 +313,9 @@ export class EditorStateService {
 	}
 
 	redo(): void {
-		const result = this.history.redo(this.clone(this.slides()));
+		const result = this.history.redo(this.captureSnapshot());
 		if (result) {
-			this.slides.set(result.snapshot);
+			this.restoreSnapshot(result.snapshot);
 			this.dirty.set(true);
 			this.selectedIds.set([]);
 			this.syncHistory();
@@ -269,7 +353,7 @@ export class EditorStateService {
 		if (map.size === 0) {
 			return;
 		}
-		this.history.record(this.clone(this.slides()), label);
+		this.history.record(this.captureSnapshot(), label);
 		this.slides.set(
 			this.slides().map((s, i) =>
 				i === slideIndex
@@ -304,7 +388,7 @@ export class EditorStateService {
 		if (!groupId) {
 			return;
 		}
-		this.history.record(this.clone(slides), 'Group');
+		this.history.record(this.captureSnapshot(), 'Group');
 		this.slides.set(slides.map((s, i) => (i === slideIndex ? { ...s, elements } : s)));
 		this.selectedIds.set([groupId]);
 		this.dirty.set(true);
@@ -328,7 +412,7 @@ export class EditorStateService {
 		}
 		const childIds = (group.children ?? []).map(() => this.newId());
 		const { elements, childIds: used } = ungroupElements(slide.elements, ids[0], childIds);
-		this.history.record(this.clone(slides), 'Ungroup');
+		this.history.record(this.captureSnapshot(), 'Ungroup');
 		this.slides.set(slides.map((s, i) => (i === slideIndex ? { ...s, elements } : s)));
 		this.selectedIds.set(used);
 		this.dirty.set(true);
@@ -371,7 +455,7 @@ export class EditorStateService {
 		if (!slides[slideIndex]) {
 			return;
 		}
-		this.history.record(this.clone(slides), 'Paste');
+		this.history.record(this.captureSnapshot(), 'Paste');
 		const newIds: string[] = [];
 		const additions = this.clipboard.map((el) => {
 			const id = this.newId();
@@ -397,7 +481,7 @@ export class EditorStateService {
 			return;
 		}
 		const withId: PptxElement = { ...element, id: element.id || this.newId() };
-		this.history.record(this.clone(slides), 'Insert');
+		this.history.record(this.captureSnapshot(), 'Insert');
 		this.slides.set(
 			slides.map((slide, i) =>
 				i === slideIndex ? { ...slide, elements: [...slide.elements, withId] } : slide,
@@ -416,7 +500,7 @@ export class EditorStateService {
 		if (!slides[slideIndex]) {
 			return;
 		}
-		this.history.record(this.clone(slides), 'Slide properties');
+		this.history.record(this.captureSnapshot(), 'Slide properties');
 		this.slides.set(slides.map((s, i) => (i === slideIndex ? { ...s, ...patch } : s)));
 		this.dirty.set(true);
 		this.syncHistory();
@@ -425,7 +509,7 @@ export class EditorStateService {
 	/** Insert a blank slide after `afterIndex` (records history). */
 	addSlide(afterIndex: number): void {
 		const slides = this.slides();
-		this.history.record(this.clone(slides), 'Add slide');
+		this.history.record(this.captureSnapshot(), 'Add slide');
 		const id = this.newId();
 		const blank = { id, rId: id, slideNumber: 0, elements: [] } as PptxSlide;
 		const next = [...slides];
@@ -442,7 +526,7 @@ export class EditorStateService {
 		if (slides.length <= 1 || !slides[index]) {
 			return;
 		}
-		this.history.record(this.clone(slides), 'Delete slide');
+		this.history.record(this.captureSnapshot(), 'Delete slide');
 		this.slides.set(this.renumber(slides.filter((_, i) => i !== index)));
 		this.selectedIds.set([]);
 		this.dirty.set(true);
@@ -455,7 +539,7 @@ export class EditorStateService {
 		if (!slides[index]) {
 			return;
 		}
-		this.history.record(this.clone(slides), 'Duplicate slide');
+		this.history.record(this.captureSnapshot(), 'Duplicate slide');
 		const id = this.newId();
 		const copy: PptxSlide = { ...this.clone(slides[index]), id, rId: id };
 		const next = [...slides];
@@ -471,7 +555,7 @@ export class EditorStateService {
 		if (from === to || !slides[from] || to < 0 || to >= slides.length) {
 			return;
 		}
-		this.history.record(this.clone(slides), 'Move slide');
+		this.history.record(this.captureSnapshot(), 'Move slide');
 		const next = [...slides];
 		const [moved] = next.splice(from, 1);
 		next.splice(to, 0, moved);
@@ -510,13 +594,20 @@ export class EditorStateService {
 		if (!target) {
 			return;
 		}
-		// Record the pre-mutation snapshot, then apply.
-		this.history.record(this.clone(slides), label);
+		// Record the pre-mutation snapshot, then apply. The mutation runs over the
+		// COMBINED list (template elements ahead of the slide's own), then the
+		// result is re-partitioned by id prefix back into the two stores. This
+		// routes every element-update operation (move/resize/edit/delete/duplicate/
+		// z-order) to the correct store, even for a mixed selection, without each
+		// caller having to branch on template vs. normal ids.
+		this.history.record(this.captureSnapshot(), label);
+		const combined = mutate([...this.templatesForSlide(target.id), ...target.elements]);
+		const nextTemplates = combined.filter((el) => isTemplateElement(el));
+		const nextNormal = combined.filter((el) => !isTemplateElement(el));
 		this.slides.set(
-			slides.map((slide, i) =>
-				i === slideIndex ? { ...slide, elements: mutate(slide.elements) } : slide,
-			),
+			slides.map((slide, i) => (i === slideIndex ? { ...slide, elements: nextNormal } : slide)),
 		);
+		this.writeTemplatesForSlide(target.id, nextTemplates);
 		this.dirty.set(true);
 		this.syncHistory();
 	}

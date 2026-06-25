@@ -22,10 +22,12 @@ export interface UsePointerHandlersInput {
 	resizeStateRef: React.MutableRefObject<ResizeState | null>;
 	shapeAdjustmentDragStateRef: React.MutableRefObject<ShapeAdjustmentDragState | null>;
 	marqueeStateRef: React.MutableRefObject<MarqueeSelectionState | null>;
+	/** When true, pointer commits target the per-slide template store. */
 	editTemplateMode: boolean;
 	snapToGrid: boolean;
 	snapToShape: boolean;
 	guides: Array<{ id: string; axis: 'h' | 'v'; position: number }>;
+	/** Template (master/layout) elements for the active slide (drag/marquee source while editing templates). */
 	templateElements: PptxElement[];
 	elementLookup: Map<string, PptxElement>;
 	setMarqueeSelectionState: React.Dispatch<React.SetStateAction<MarqueeSelectionState | null>>;

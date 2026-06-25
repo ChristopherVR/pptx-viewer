@@ -1,8 +1,10 @@
-import { cloneSlide } from 'pptx-viewer-core';
+import { cloneElement, cloneSlide } from 'pptx-viewer-core';
 import type { PptxSlide } from 'pptx-viewer-core';
 import { EditorHistory } from 'pptx-viewer-shared';
 import { computed, shallowRef } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
+
+import type { TemplateElementMap } from './template-editing';
 
 /**
  * useEditorHistory: framework-idiomatic undo/redo stack over `PptxSlide[]`.
@@ -68,13 +70,29 @@ export interface EditorHistoryResult {
 // ---------------------------------------------------------------------------
 
 /**
+ * One undoable snapshot: the slide array plus (optionally) the separate template
+ * (master/layout) element store, so edits in `editTemplateMode` undo/redo too.
+ */
+interface HistorySnapshot {
+	slides: PptxSlide[];
+	template: TemplateElementMap;
+}
+
+/**
  * @param slides Reactive reference to the live slide array the editor mutates.
  *               A `shallowRef` is recommended for large decks.
+ * @param templateElementsBySlideId Optional reactive store of the per-slide
+ *               master/layout (template) elements, snapshotted alongside slides
+ *               so edits in `editTemplateMode` are undoable.
  */
-export function useEditorHistory(slides: Ref<PptxSlide[]>): EditorHistoryResult {
+export function useEditorHistory(
+	slides: Ref<PptxSlide[]>,
+	templateElementsBySlideId?: Ref<TemplateElementMap>,
+): EditorHistoryResult {
 	// The shared, framework-agnostic command stack. It performs no cloning, so we
-	// snapshot with `cloneSlide` before every record/undo/redo round-trip.
-	const stack = new EditorHistory<PptxSlide[]>({ maxDepth: MAX_HISTORY_ENTRIES });
+	// snapshot with `cloneSlide` / `cloneElement` before every record/undo/redo
+	// round-trip.
+	const stack = new EditorHistory<HistorySnapshot>({ maxDepth: MAX_HISTORY_ENTRIES });
 
 	// A monotonically-increasing tick bumped on every mutation so the `computed`
 	// flags below re-evaluate against the (non-reactive) shared stack.
@@ -83,7 +101,25 @@ export function useEditorHistory(slides: Ref<PptxSlide[]>): EditorHistoryResult 
 		tick.value++;
 	};
 
-	const snapshot = (source: PptxSlide[]): PptxSlide[] => source.map(cloneSlide);
+	const cloneTemplateMap = (source: TemplateElementMap): TemplateElementMap => {
+		const next: TemplateElementMap = {};
+		for (const [slideId, elements] of Object.entries(source)) {
+			next[slideId] = elements.map(cloneElement);
+		}
+		return next;
+	};
+
+	const snapshot = (): HistorySnapshot => ({
+		slides: slides.value.map(cloneSlide),
+		template: cloneTemplateMap(templateElementsBySlideId?.value ?? {}),
+	});
+
+	const restore = (snap: HistorySnapshot): void => {
+		slides.value = snap.slides.map(cloneSlide);
+		if (templateElementsBySlideId) {
+			templateElementsBySlideId.value = cloneTemplateMap(snap.template);
+		}
+	};
 
 	const canUndo = computed(() => {
 		void tick.value;
@@ -95,25 +131,25 @@ export function useEditorHistory(slides: Ref<PptxSlide[]>): EditorHistoryResult 
 	});
 
 	const pushHistory = (): void => {
-		stack.record(snapshot(slides.value), '');
+		stack.record(snapshot(), '');
 		bump();
 	};
 
 	const undo = (): void => {
-		const result = stack.undo(snapshot(slides.value));
+		const result = stack.undo(snapshot());
 		if (!result) {
 			return;
 		}
-		slides.value = snapshot(result.snapshot);
+		restore(result.snapshot);
 		bump();
 	};
 
 	const redo = (): void => {
-		const result = stack.redo(snapshot(slides.value));
+		const result = stack.redo(snapshot());
 		if (!result) {
 			return;
 		}
-		slides.value = snapshot(result.snapshot);
+		restore(result.snapshot);
 		bump();
 	};
 

@@ -45,6 +45,7 @@ import {
 	createDefaultChartElement,
 	downloadBlob,
 	groupElements,
+	isTemplateElementId,
 	openPptxFile,
 	setCellText,
 	ungroupElements,
@@ -115,6 +116,7 @@ import type { ViewerSettings } from './components/viewer-settings';
 import { buildActionButtonElement } from './composables/action-buttons';
 import { applyAnimationPreset, removeElementAnimation } from './composables/element-animation';
 import type { AnimationGroup } from './composables/element-animation';
+import { FieldContextKey, resolveSlideTitle } from './composables/field-context';
 import {
 	applyFormatToElement,
 	copyFormatFromElement,
@@ -131,6 +133,11 @@ import { snapBox } from './composables/snap';
 import { computeSnapToShape } from './composables/snap-shape';
 import { TableCellEditKey } from './composables/table-edit';
 import { TableThemeKey } from './composables/table-theme';
+import {
+	buildSaveSlides,
+	isElementIdInteractive,
+	setTemplateElements,
+} from './composables/template-editing';
 import { useAccessibility } from './composables/useAccessibility';
 import { useAutosave } from './composables/useAutosave';
 import { useCollaboration } from './composables/useCollaboration';
@@ -213,6 +220,7 @@ function handleOpenFile(): void {
 
 const {
 	slides,
+	templateElementsBySlideId,
 	canvasSize,
 	mediaDataUrls,
 	loading,
@@ -246,6 +254,28 @@ provide(TableThemeKey, () => ({
 	colorScheme: pptxTheme.value?.colorScheme,
 	tableStyleMap: tableStyleMap.value,
 }));
+
+// Expose the OOXML field-substitution context (slide number, date/time,
+// header/footer, slide title, custom doc properties) to the text renderers via
+// provide/inject. Mirrors the React `fieldContext` built in `ViewerCanvasArea`.
+// A getter closure (run post-setup) safely references the later-declared
+// `activeSlide`, matching the TableThemeKey pattern above.
+provide(FieldContextKey, () => {
+	const hf = headerFooter.value;
+	const slide = activeSlide.value;
+	return {
+		slideNumber: slide?.slideNumber,
+		dateTimeText: hf?.dateTimeText,
+		dateFormat: hf?.dateFormat,
+		footerText: hf?.footerText,
+		headerText: hf?.headerText,
+		slideTitle: resolveSlideTitle(slide),
+		customProperties: customProperties.value.map((p) => ({
+			name: p.name,
+			value: p.value,
+		})),
+	};
+});
 
 // Inline table-cell editing context for `TableRenderer` (double-tap a cell ->
 // inline input -> commit). The closures run post-setup, so referencing the
@@ -358,19 +388,49 @@ const THUMB_WIDTH = 104; // px - matches the thumbnail rail content width
 // `props.canEdit` is true. `slides` is the writable `ShallowRef` from
 // `useLoadContent`, and `getContent` serialises it, so edits flow to export.
 const selectedElementIds = ref<string[]>([]);
-const history = useEditorHistory(slides);
+const history = useEditorHistory(slides, templateElementsBySlideId);
 const ops = useEditorOperations({
 	slides,
 	activeSlideIndex,
 	pushHistory: history.pushHistory,
 	selectedElementIds,
+	templateElementsBySlideId,
 });
 const hasSelection = computed(() => selectedElementIds.value.length > 0);
+
+/** The active slide's separate template (master/layout) element layer. */
+const activeTemplateElements = computed<PptxElement[]>(
+	() => templateElementsBySlideId.value[activeSlide.value?.id ?? ''] ?? [],
+);
+
+/**
+ * Resolve an element by id across both stores: template ids (`master-` /
+ * `layout-` prefix) come from the active slide's template layer, everything else
+ * from the slide content.
+ */
+function findActiveElement(id: string): PptxElement | undefined {
+	if (isTemplateElementId(id)) {
+		return activeTemplateElements.value.find((el) => el.id === id);
+	}
+	return activeSlide.value?.elements.find((el) => el.id === id);
+}
+
 const selectedElements = computed<PptxElement[]>(() => {
-	const elements = activeSlide.value?.elements ?? [];
 	const ids = new Set(selectedElementIds.value);
-	return elements.filter((el) => ids.has(el.id));
+	const slideHits = (activeSlide.value?.elements ?? []).filter((el) => ids.has(el.id));
+	const templateHits = activeTemplateElements.value.filter((el) => ids.has(el.id));
+	return [...templateHits, ...slideHits];
 });
+
+// Slides re-merged with their template (master/layout) layer in front of (behind)
+// the slide content. The editable canvas renders the partitioned `slides` + the
+// template layer separately; every other VISUAL surface (thumbnail rail, sorter,
+// presentation, off-screen export stage) renders these merged slides so the
+// inherited master/layout decorations still appear, matching the saved file.
+const mergedSlides = computed<PptxSlide[]>(() =>
+	buildSaveSlides(slides.value, templateElementsBySlideId.value),
+);
+const mergedSlideById = computed(() => new Map(mergedSlides.value.map((s) => [s.id, s])));
 
 function selectElement(id: string, additive: boolean): void {
 	if (additive) {
@@ -429,12 +489,10 @@ function onEscape(): void {
 const inlineEditingElementId = ref<string | null>(null);
 const inlineEditingText = ref('');
 const inlineEditingElement = computed<PptxElement | undefined>(() =>
-	inlineEditingElementId.value
-		? activeSlide.value?.elements.find((e) => e.id === inlineEditingElementId.value)
-		: undefined,
+	inlineEditingElementId.value ? findActiveElement(inlineEditingElementId.value) : undefined,
 );
 function enterInlineEdit(id: string): void {
-	const el = activeSlide.value?.elements.find((e) => e.id === id);
+	const el = findActiveElement(id);
 	// Only elements that carry text (text boxes / shapes) get the element-level
 	// inline text editor, and only when text editing is not locked. Mirrors
 	// React's gate (useCanvasInteractions: `hasTextProperties(el) &&
@@ -451,7 +509,7 @@ function commitInlineEdit(): void {
 	if (!id) {
 		return;
 	}
-	const el = activeSlide.value?.elements.find((e) => e.id === id) as
+	const el = findActiveElement(id) as
 		| (PptxElement & { textSegments?: unknown; textStyle?: unknown })
 		| undefined;
 	const text = inlineEditingText.value;
@@ -482,7 +540,7 @@ function commitTableCell(
 	if (!props.canEdit) {
 		return;
 	}
-	const el = activeSlide.value?.elements.find((e) => e.id === elementId);
+	const el = findActiveElement(elementId);
 	if (!el || el.type !== 'table') {
 		return;
 	}
@@ -492,7 +550,7 @@ function commitTableCell(
 /** Apply the copied format to a target element (shape/text style only). */
 function applyFormatToTarget(id: string): void {
 	const format = copiedFormat.value;
-	const target = activeSlide.value?.elements.find((e) => e.id === id);
+	const target = findActiveElement(id);
 	if (!format || !target) {
 		return;
 	}
@@ -516,7 +574,11 @@ function onCanvasPointerDown(event: PointerEvent): void {
 	}
 	const target = event.target as HTMLElement | null;
 	const host = target?.closest('[data-element-id]') as HTMLElement | null;
-	const id = host?.dataset.elementId;
+	const hitId = host?.dataset.elementId;
+	// Template (master/layout) elements are interaction-locked unless the user
+	// turns on edit-template mode; a click on a locked one behaves like an
+	// empty-canvas click (no select / drag / inline-edit).
+	const id = hitId && isElementIdInteractive(hitId, editTemplateMode.value) ? hitId : undefined;
 	// While inline-editing, a tap elsewhere (another element or empty canvas)
 	// commits the pending edit first (the typed text must be kept).
 	if (inlineEditingElementId.value && id !== inlineEditingElementId.value) {
@@ -559,7 +621,7 @@ interface ElementDragState {
 }
 let elementDrag: ElementDragState | null = null;
 function startElementDrag(id: string, event: PointerEvent, wasSelected: boolean): void {
-	const el = activeSlide.value?.elements.find((e) => e.id === id);
+	const el = findActiveElement(id);
 	if (!el) {
 		return;
 	}
@@ -594,7 +656,12 @@ function onElementDragMove(event: PointerEvent): void {
 	let nextY = box.y;
 	// Snap to other shapes' edges/centres (+ user guides), with visual snap lines.
 	if (snapToShape.value && !box.rotation) {
-		const siblings = (activeSlide.value?.elements ?? []).map((el) => ({
+		// Snap against siblings in the same store as the dragged element (slide
+		// content, or the template layer when dragging a template element).
+		const dragSiblings = isTemplateElementId(drag.id)
+			? activeTemplateElements.value
+			: (activeSlide.value?.elements ?? []);
+		const siblings = dragSiblings.map((el) => ({
 			id: el.id,
 			x: el.x,
 			y: el.y,
@@ -643,34 +710,52 @@ function onElementDragUp(): void {
 	}
 }
 
-/** Patch one element's geometry on the active slide WITHOUT a history entry. */
-function patchActiveElementGeometry(payload: TransformPayload): void {
+/**
+ * Map one element in its current store (slide content, or the active slide's
+ * template layer for `master-` / `layout-` ids) WITHOUT a history entry. Used by
+ * the live drag/resize/adjust patches (history is snapshotted at gesture start).
+ */
+function patchElementInStore(id: string, mapElement: (el: PptxElement) => PptxElement): void {
 	const index = activeSlideIndex.value;
 	const slide = slides.value[index];
 	if (!slide) {
 		return;
 	}
+	if (isTemplateElementId(id)) {
+		const current = templateElementsBySlideId.value[slide.id];
+		if (!current) {
+			return;
+		}
+		const next = current.map((el) => (el.id === id ? mapElement(el) : el));
+		templateElementsBySlideId.value = setTemplateElements(
+			templateElementsBySlideId.value,
+			slide.id,
+			next,
+		);
+		return;
+	}
+	const nextElements = slide.elements.map((el) => (el.id === id ? mapElement(el) : el));
+	const nextSlides = slides.value.slice();
+	nextSlides[index] = { ...slide, elements: nextElements };
+	slides.value = nextSlides;
+}
+
+/** Patch one element's geometry in its store WITHOUT a history entry. */
+function patchActiveElementGeometry(payload: TransformPayload): void {
 	// Snap-to-grid (View tab): round position + size to the grid. Skipped while
 	// rotating (rounding a rotated box's x/y fights the rotation).
 	const useSnap = snapToGrid.value && !payload.rotation;
 	const { x, y, width, height } = useSnap
 		? snapBox(payload, GRID_SIZE)
 		: { x: payload.x, y: payload.y, width: payload.width, height: payload.height };
-	const nextElements = slide.elements.map((el) =>
-		el.id === payload.id
-			? {
-					...el,
-					x,
-					y,
-					width,
-					height,
-					rotation: payload.rotation,
-				}
-			: el,
-	);
-	const nextSlides = slides.value.slice();
-	nextSlides[index] = { ...slide, elements: nextElements };
-	slides.value = nextSlides;
+	patchElementInStore(payload.id, (el) => ({
+		...el,
+		x,
+		y,
+		width,
+		height,
+		rotation: payload.rotation,
+	}));
 }
 
 // One history entry per gesture: snapshot on start, live-patch (no history)
@@ -687,25 +772,17 @@ function onTransformEnd(payload: TransformPayload): void {
 
 /** Patch an element's round-rect corner-radius adjustment WITHOUT a history entry. */
 function patchActiveElementAdjustment(id: string, value: number): void {
-	const index = activeSlideIndex.value;
-	const slide = slides.value[index];
-	if (!slide) {
-		return;
-	}
-	const nextElements = slide.elements.map((el) =>
-		el.id === id
-			? ({
-					...el,
-					shapeAdjustments: {
-						...(el as { shapeAdjustments?: Record<string, number> }).shapeAdjustments,
-						adj: value,
-					},
-				} as PptxElement)
-			: el,
+	patchElementInStore(
+		id,
+		(el) =>
+			({
+				...el,
+				shapeAdjustments: {
+					...(el as { shapeAdjustments?: Record<string, number> }).shapeAdjustments,
+					adj: value,
+				},
+			}) as PptxElement,
 	);
-	const nextSlides = slides.value.slice();
-	nextSlides[index] = { ...slide, elements: nextElements };
-	slides.value = nextSlides;
 }
 function onAdjustStart(): void {
 	history.pushHistory();
@@ -1069,7 +1146,8 @@ function onCanvasContextMenu(event: MouseEvent): void {
 		'[data-element-id]',
 	) as HTMLElement | null;
 	const id = host?.dataset.elementId;
-	if (!id) {
+	// Locked template elements (edit-template mode off) are not actionable.
+	if (!id || !isElementIdInteractive(id, editTemplateMode.value)) {
 		return;
 	}
 	event.preventDefault();
@@ -1148,7 +1226,9 @@ const find = useFindReplace({
 // drives it and snapshots it with `html2canvas-pro`.
 const exportStageRef = ref<HTMLElement | null>(null);
 const exportIndex = ref(0);
-const exportSlide = computed(() => slides.value[exportIndex.value]);
+// Rasterise the merged slide (template layer included) so exports/print match
+// the on-screen presentation and the saved file.
+const exportSlide = computed(() => mergedSlides.value[exportIndex.value]);
 
 async function rasterizeSlide(index: number): Promise<HTMLCanvasElement> {
 	exportIndex.value = index;
@@ -1453,6 +1533,7 @@ const collab = useCollaboration({
 	onRemoteSlides: (remote) => {
 		slides.value = remote;
 	},
+	getTemplateElements: () => templateElementsBySlideId.value,
 	userColor: props.collaboration?.userColor,
 	canvasWidth: collabCanvasWidth,
 	canvasHeight: collabCanvasHeight,
@@ -1655,6 +1736,14 @@ const sectionOps = useSectionOperations({
 	pushHistory: history.pushHistory,
 });
 const hasSections = computed(() => sections.value.length > 0);
+// Section-grouped thumbnails render the merged slides (template layer included)
+// so the rail matches the canvas; grouping/order still come from `sectionOps`.
+const mergedSlidesBySection = computed(() =>
+	sectionOps.slidesBySection.value.map((group) => ({
+		...group,
+		slides: group.slides.map((slide) => mergedSlideById.value.get(slide.id) ?? slide),
+	})),
+);
 
 // ── Custom shows ──────────────────────────────────────────────────────
 const showCustomShows = ref(false);
@@ -1879,6 +1968,14 @@ const showGrid = ref(false);
 const snapToGrid = ref(false);
 /** View ▸ Rulers: horizontal/vertical rulers along the slide edges. */
 const showRulers = ref(false);
+/**
+ * View ▸ Templates: when on, the master/layout shapes a slide inherits (already
+ * present in `slide.elements` with `layout-`/`master-` ids) become selectable,
+ * draggable and editable on the canvas instead of being interaction-locked.
+ * Editing one mutates the shared template part, so all slides inheriting it
+ * change together.
+ */
+const editTemplateMode = ref(false);
 /** View ▸ Spell: draw the browser's native spell-check squiggles while editing. */
 const spellCheckEnabled = ref(true);
 /** View ▸ Snap to Shape: snap dragged elements to other elements' edges/centres. */
@@ -2087,8 +2184,6 @@ function ribbonMoveToEdge(dir: string): void {
 	ops.reorder(id, toFront ? slide.elements.length - 1 : 0);
 }
 
-const noop = (): void => {};
-
 const ribbonProps = computed<RibbonProps>(() => ({
 	mode: ribbonMode.value,
 	canEdit: props.canEdit,
@@ -2105,7 +2200,7 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	findReplaceOpen: findOpen.value,
 	selectedElement: selectedElements.value[0] ?? null,
 	tableEditorState: null,
-	editTemplateMode: false,
+	editTemplateMode: editTemplateMode.value,
 	newShapeType: newShapeType.value,
 	activeTool: activeTool.value,
 	drawingColor: drawingColor.value,
@@ -2191,7 +2286,9 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	onSetDrawingWidth: (w) => {
 		drawingWidth.value = w;
 	},
-	onSetEditTemplateMode: noop,
+	onSetEditTemplateMode: (mode: boolean) => {
+		editTemplateMode.value = mode;
+	},
 	onSetSpellCheckEnabled: (enabled) => {
 		spellCheckEnabled.value = enabled;
 	},
@@ -2391,7 +2488,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				     zero height; mobile navigates slides via the bottom bar's prev/next. -->
 				<SlidesPaneSidebar
 					v-if="!isMobile && !hasSections && !sidebarCollapsed"
-					:slides="slides"
+					:slides="mergedSlides"
 					:active-index="activeSlideIndex"
 					:canvas-size="canvasSize"
 					:media-data-urls="mediaDataUrls"
@@ -2411,7 +2508,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					aria-label="Slides"
 				>
 					<SectionList
-						:groups="sectionOps.slidesBySection.value"
+						:groups="mergedSlidesBySection"
 						:canvas-size="canvasSize"
 						:media-data-urls="mediaDataUrls"
 						:active-index="activeSlideIndex"
@@ -2442,6 +2539,8 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						:media-data-urls="mediaDataUrls"
 						:zoom="effectiveZoom"
 						:show-rulers="showRulers && !presenting"
+						:template-elements="activeTemplateElements"
+						:edit-template-mode="editTemplateMode && !presenting"
 						@update:fit-scale="fitScale = $event"
 					>
 						<!-- Dot grid overlay (View ▸ Grid): sits over content, under selection -->
@@ -2756,7 +2855,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 			<MobileSlidesSheet
 				v-if="isMobile"
 				:open="mobileSlidesOpen"
-				:slides="slides"
+				:slides="mergedSlides"
 				:active-index="activeSlideIndex"
 				:canvas-size="canvasSize"
 				:media-data-urls="mediaDataUrls"
@@ -2851,7 +2950,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 		<!-- Slide sorter overlay -->
 		<SlideSorter
 			v-if="showSorter"
-			:slides="slides"
+			:slides="mergedSlides"
 			:canvas-size="canvasSize"
 			:media-data-urls="mediaDataUrls"
 			:active-index="activeSlideIndex"
@@ -2863,7 +2962,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 		<!-- Presentation / slideshow overlay -->
 		<PresentationMode
 			v-if="presenting"
-			:slides="slides"
+			:slides="mergedSlides"
 			:canvas-size="canvasSize"
 			:media-data-urls="mediaDataUrls"
 			:start-index="activeSlideIndex"

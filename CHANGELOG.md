@@ -4,7 +4,45 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
-## [Unreleased]
+## [1.1.58](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.58) - 2026-06-25
+
+### Features
+
+- **angular:** Wire the real separate-state editTemplateMode pipeline (load partition, dedicated layer, save merge-back) (by @ChristopherVR) ([2487538](https://github.com/ChristopherVR/pptx-viewer/commit/24875384e4d282b35e081d8824e40df90616c132))
+- **vue:** Wire the real separate-state editTemplateMode pipeline (load partition, dedicated layer, save merge-back) (by @ChristopherVR) ([4f324af](https://github.com/ChristopherVR/pptx-viewer/commit/4f324af3fb76d014c6b2e90c3677bb6f65092521))
+- **react:** Wire the real separate-state editTemplateMode pipeline (load partition, dedicated layer, save merge-back) (by @ChristopherVR) ([a3bff60](https://github.com/ChristopherVR/pptx-viewer/commit/a3bff6012ac9b5b2ec7d7b1b7a46ae705745e900))
+
+## [1.1.51](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.51) - 2026-06-25
+
+### Features
+
+- **react:** Real editTemplateMode gating; drop dead template-elements scaffold (by @ChristopherVR) ([a2ef59d](https://github.com/ChristopherVR/pptx-viewer/commit/a2ef59d3c8b1135d666d74c62b976f0edfdbeed3))
+
+## [1.1.57](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.57) - 2026-06-25
+
+### Features
+
+- **angular:** Real editTemplateMode gating for master/layout elements (by @ChristopherVR) ([ca0d405](https://github.com/ChristopherVR/pptx-viewer/commit/ca0d405fb5cfbc6f1beb788fdc1fe35c8329c8e1))
+- **vue:** Real editTemplateMode gating for master/layout elements (by @ChristopherVR) ([1418b53](https://github.com/ChristopherVR/pptx-viewer/commit/1418b536c788ba503c8cb775b5de29fe9cd03d5a))
+
+## [1.1.56](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.56) - 2026-06-25
+
+### Features
+
+- **vue,angular:** Substitute OOXML text fields (slide number, date, footer) (by @ChristopherVR) ([27b2d83](https://github.com/ChristopherVR/pptx-viewer/commit/27b2d83cb526670470d837277ca286b9c259d3c2))
+- **vue,angular:** Render per-run text effects (fill, shadow, 3D, glow, reflection) (by @ChristopherVR) ([7d5b342](https://github.com/ChristopherVR/pptx-viewer/commit/7d5b342e3af28fae6f6ae726d6e290c621ed8c8b))
+
+### Bug Fixes
+
+- **core:** Preserve field/equation/ruby runs whose style matches neighbours (by @ChristopherVR) ([196bd9e](https://github.com/ChristopherVR/pptx-viewer/commit/196bd9e1ba2bdeee2381c3a9791ec81be741064b))
+
+## [1.1.55](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.55) - 2026-06-25
+
+### Features
+
+- **core:** Expose per-slide template elements + verify master/layout edit round-trip (by @ChristopherVR) ([4da26b6](https://github.com/ChristopherVR/pptx-viewer/commit/4da26b642297f59c71959348e1e7032079b00f61))
+
+## [1.1.54](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.54) - 2026-06-25
 
 ### Features
 

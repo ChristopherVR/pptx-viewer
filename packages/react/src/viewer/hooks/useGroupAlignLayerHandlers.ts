@@ -13,7 +13,9 @@ import {
 } from 'pptx-viewer-shared';
 import type { AlignEdge } from 'pptx-viewer-shared';
 
+import { isTemplateElementId } from '../utils';
 import { generateElementId } from '../utils/generate-id';
+import { makeCloneId } from '../utils/template-editing';
 import type { GroupAlignLayerHandlers } from './element-manipulation-types';
 import type { EditorHistoryResult } from './useEditorHistory';
 import type { ElementOperations } from './useElementOperations';
@@ -59,13 +61,13 @@ export function useGroupAlignLayerHandlers(input: GroupAlignLayerInput): GroupAl
 		if (ids.length < 2 || !activeSlide) {
 			return;
 		}
-		const { elements, groupId } = groupElements(activeSlide.elements, ids, generateElementId());
+		// Group within whichever store is being edited (template store while
+		// edit-template mode is on, otherwise slide.elements).
+		const { elements, groupId } = groupElements(ops.activeElements, ids, generateElementId());
 		if (groupId === null) {
 			return;
 		}
-		ops.updateSlides((prev) =>
-			prev.map((s, i) => (i === activeSlideIndex ? { ...s, elements } : s)),
-		);
+		ops.updateActiveElements(() => elements);
 		ops.applySelection(groupId);
 		history.markDirty();
 	};
@@ -75,22 +77,16 @@ export function useGroupAlignLayerHandlers(input: GroupAlignLayerInput): GroupAl
 			return;
 		}
 		const group = selectedElement as GroupPptxElement;
+		const intoTemplate = isTemplateElementId(group.id);
 		const ungrouped: PptxElement[] = group.children.map((child) => ({
 			...structuredClone(child),
-			id: child.id || generateElementId(),
+			// Keep child ids in the same store as the group so later edits route
+			// correctly: template groups yield template-prefixed child ids.
+			id: intoTemplate ? makeCloneId(true, child.id || group.id) : child.id || generateElementId(),
 			x: child.x + group.x,
 			y: child.y + group.y,
 		}));
-		ops.updateSlides((prev) =>
-			prev.map((s, i) =>
-				i === activeSlideIndex
-					? {
-							...s,
-							elements: [...s.elements.filter((el) => el.id !== group.id), ...ungrouped],
-						}
-					: s,
-			),
-		);
+		ops.updateActiveElements((els) => [...els.filter((el) => el.id !== group.id), ...ungrouped]);
 		setSelectedElementIds(ungrouped.map((el) => el.id));
 		history.markDirty();
 	};
@@ -132,14 +128,12 @@ export function useGroupAlignLayerHandlers(input: GroupAlignLayerInput): GroupAl
 			return;
 		}
 		const id = selectedElement.id;
-		const newElements =
+		ops.updateActiveElements((els) =>
 			direction === 'forward'
-				? bringForward(activeSlide.elements, id)
+				? bringForward(els, id)
 				: direction === 'backward'
-					? sendBackward(activeSlide.elements, id)
-					: activeSlide.elements;
-		ops.updateSlides((prev) =>
-			prev.map((s, i) => (i === activeSlideIndex ? { ...s, elements: newElements } : s)),
+					? sendBackward(els, id)
+					: els,
 		);
 		history.markDirty();
 	};
@@ -149,12 +143,8 @@ export function useGroupAlignLayerHandlers(input: GroupAlignLayerInput): GroupAl
 			return;
 		}
 		const id = selectedElement.id;
-		const newElements =
-			direction === 'front'
-				? bringToFront(activeSlide.elements, id)
-				: sendToBack(activeSlide.elements, id);
-		ops.updateSlides((prev) =>
-			prev.map((s, i) => (i === activeSlideIndex ? { ...s, elements: newElements } : s)),
+		ops.updateActiveElements((els) =>
+			direction === 'front' ? bringToFront(els, id) : sendToBack(els, id),
 		);
 		history.markDirty();
 	};

@@ -61,6 +61,7 @@ import { slideFileName } from './export-helpers';
 import { ExportProgressModalComponent } from './export-progress-modal.component';
 import { ExportService } from './export.service';
 import { openNativeEyeDropper } from './eyedropper';
+import { FieldContextService } from './field-context.service';
 import { FindBarComponent } from './find-bar.component';
 import { FindReplaceBarComponent } from './find-replace-bar.component';
 import type { FindEvent, ReplaceEvent } from './find-replace-bar.component';
@@ -96,6 +97,7 @@ import { SlidesPanelComponent } from './slides-panel.component';
 import { SmartArt3DService } from './smart-art-3d.service';
 import { setCellText } from './table-data-helpers';
 import type { TableCellCommit } from './table-renderer.component';
+import { buildSaveSlides } from './template-mode';
 import { ThemeGalleryComponent } from './theme-gallery.component';
 import { attachTouchGestures } from './touch-gestures';
 import type { CollaborationConfig } from './types';
@@ -135,6 +137,7 @@ const ZOOM_MAX = 3;
 		PrintService,
 		IsMobileService,
 		SmartArt3DService,
+		FieldContextService,
 	],
 	imports: [
 		NgClass,
@@ -191,6 +194,7 @@ const ZOOM_MAX = 3;
 					<pptx-ribbon
 					[slideIndex]="activeSlideIndex()"
 					[slideCount]="slideCount()"
+					[canEdit]="canEdit()"
 					[selectedElement]="selectedElement()"
 					[zoomPercent]="zoomPercent()"
 					[formatPainterActive]="formatPainterActive()"
@@ -293,6 +297,8 @@ const ZOOM_MAX = 3;
 							[drawTool]="activeDrawTool()"
 							[drawColor]="activeDrawColor()"
 							[drawWidth]="activeDrawWidth()"
+							[editTemplateMode]="editor.editTemplateMode()"
+							[templateElements]="activeTemplateElements()"
 							(elementSelect)="onElementSelect($event)"
 							(backgroundClick)="onBackgroundClick()"
 							(marqueeSelect)="editor.select($event)"
@@ -749,9 +755,28 @@ export class PowerPointViewerComponent {
 		this.canEdit() ? this.editor.slides() : this.loader.slides(),
 	);
 	protected readonly slideCount = computed(() => this.displaySlides().length);
-	/** Mutable copy of the display deck for inputs that require a non-readonly array. */
-	protected readonly displaySlidesMut = computed<PptxSlide[]>(() => [...this.displaySlides()]);
+	/**
+	 * The deck with the separated template (master/layout) elements merged back
+	 * into each slide. The editable {@link displaySlides} is template-free; any
+	 * consumer that needs the COMPLETE slide (export, print, slide thumbnails,
+	 * accessibility) renders this instead so template elements are not lost.
+	 */
+	protected readonly mergedSlides = computed<readonly PptxSlide[]>(() =>
+		this.canEdit()
+			? buildSaveSlides(this.editor.slides(), this.editor.templateElementsBySlideId())
+			: this.loader.slides(),
+	);
+	/** Mutable copy of the merged display deck for inputs that require a non-readonly array. */
+	protected readonly displaySlidesMut = computed<PptxSlide[]>(() => [...this.mergedSlides()]);
 	protected readonly activeSlide = computed(() => this.displaySlides()[this.activeSlideIndex()]);
+	/** Inherited template (master/layout) elements for the active slide, when editing. */
+	protected readonly activeTemplateElements = computed<readonly PptxElement[]>(() => {
+		const slide = this.activeSlide();
+		if (!this.canEdit() || !slide) {
+			return [];
+		}
+		return this.editor.templateElementsBySlideId()[slide.id] ?? [];
+	});
 	protected readonly rootStyle = computed(() => themeStyle(this.theme()));
 
 	protected readonly zoom = signal(1);
@@ -986,7 +1011,14 @@ export class PowerPointViewerComponent {
 		if (ids.length !== 1) {
 			return null;
 		}
-		return this.activeSlide()?.elements.find((e) => e.id === ids[0]) ?? null;
+		const id = ids[0];
+		// A selected element may be a normal slide element or, in editTemplateMode,
+		// an inherited template element living in the separate template store.
+		return (
+			this.activeSlide()?.elements.find((e) => e.id === id) ??
+			this.activeTemplateElements().find((e) => e.id === id) ??
+			null
+		);
 	});
 
 	// ── Format painter ─────────────────────────────────────────────────────
@@ -1066,9 +1098,9 @@ export class PowerPointViewerComponent {
 			this.fonts.setFonts(this.loader.embeddedFonts());
 		});
 
-		// Feed the live deck to the accessibility checker.
+		// Feed the live deck (templates merged back) to the accessibility checker.
 		effect(() => {
-			this.accessibility.setSlides([...this.displaySlides()]);
+			this.accessibility.setSlides([...this.mergedSlides()]);
 		});
 
 		// Connect / disconnect real-time collaboration when the host config changes.
@@ -1076,7 +1108,9 @@ export class PowerPointViewerComponent {
 			const config = this.collaboration();
 			if (config) {
 				this.activeSession.set({ roomId: config.roomId, serverUrl: config.serverUrl });
-				void this.collab.connect(config);
+				void this.collab.connect(config, {
+					getTemplateElements: () => this.editor.templateElementsBySlideId(),
+				});
 			} else {
 				this.collab.disconnect();
 				this.activeSession.set(null);
@@ -1094,7 +1128,9 @@ export class PowerPointViewerComponent {
 	 */
 	async getContent(): Promise<Uint8Array> {
 		const data = this.canEdit()
-			? await this.loader.saveSlides(this.editor.slides())
+			? await this.loader.saveSlides(
+					buildSaveSlides(this.editor.slides(), this.editor.templateElementsBySlideId()),
+				)
 			: await this.loader.getContent();
 		// Mirror React's imperative handle: serialising the deck also notifies the
 		// host so listeners wired to (contentChange) receive the latest bytes.
@@ -1220,7 +1256,9 @@ export class PowerPointViewerComponent {
 	/** Start a real-time collaboration session from the share dialog config. */
 	protected onShareStart(config: CollaborationConfig): void {
 		this.activeSession.set({ roomId: config.roomId, serverUrl: config.serverUrl });
-		void this.collab.connect(config);
+		void this.collab.connect(config, {
+			getTemplateElements: () => this.editor.templateElementsBySlideId(),
+		});
 	}
 
 	protected onShareStop(): void {
@@ -1237,7 +1275,9 @@ export class PowerPointViewerComponent {
 			role: 'owner',
 		};
 		this.activeSession.set({ roomId: config.roomId, serverUrl: config.serverUrl });
-		void this.collab.connect(collabConfig);
+		void this.collab.connect(collabConfig, {
+			getTemplateElements: () => this.editor.templateElementsBySlideId(),
+		});
 	}
 
 	protected onBroadcastStop(): void {
@@ -1585,7 +1625,7 @@ export class PowerPointViewerComponent {
 	async onPrint(settings: PrintSettings): Promise<void> {
 		const original = this.activeSlideIndex();
 		try {
-			await this.print.print(settings, [...this.displaySlides()], original, (index) =>
+			await this.print.print(settings, [...this.mergedSlides()], original, (index) =>
 				this.captureSlideDataUrl(index),
 			);
 		} finally {
