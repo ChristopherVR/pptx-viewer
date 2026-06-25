@@ -4,6 +4,8 @@ import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
 import {
+	buildRunEffectStyle,
+	buildTextBody3DSceneStyle,
 	resolveUnderlineDecorationStyle,
 	segmentStyleToCss,
 	substituteFieldText,
@@ -69,6 +71,10 @@ function runStyleFromSegment(seg: TextSegment): StyleMap {
 				style['text-underline-offset'] = deco.textUnderlineOffset;
 			}
 		}
+		// Per-run text effects (gradient/pattern fill, outer/inner shadow, 3D
+		// extrusion text-shadow, blur, HSL, alpha opacity, glow, reflection),
+		// mirroring React's per-run span style. No-op {} for plain runs.
+		Object.assign(style, buildRunEffectStyle(s));
 	}
 	return style;
 }
@@ -483,14 +489,31 @@ export class ElementRendererComponent {
 		const w = this.textWarp();
 		return w?.strategy === 'path' ? w : undefined;
 	});
-	/** Text block style, folding in a CSS-transform warp when present. */
+	/** Text block 3D scene style (a:bodyPr/a:scene3d), mirroring React's ElementBody. */
+	readonly scene3dStyle = computed<StyleMap | undefined>(() => {
+		const el = this.element();
+		const textStyleRaw = hasTextProperties(el) ? el.textStyle : undefined;
+		return buildTextBody3DSceneStyle(textStyleRaw);
+	});
+
+	/**
+	 * Text block style, folding in a CSS-transform warp and the 3D scene
+	 * (perspective + rotation) when present. The warp transform and the scene
+	 * transform are composed rather than clobbering each other.
+	 */
 	readonly warpedTextStyle = computed<StyleMap>(() => {
 		const base = this.textStyle();
+		const scene = this.scene3dStyle();
+		const merged: StyleMap = scene ? { ...base, ...scene } : { ...base };
 		const w = this.textWarp();
 		if (w?.strategy === 'css') {
-			return { ...base, transform: w.cssTransform, 'transform-origin': w.cssTransformOrigin };
+			const sceneTransform = scene?.transform;
+			merged.transform = sceneTransform
+				? `${w.cssTransform} ${String(sceneTransform)}`
+				: w.cssTransform;
+			merged['transform-origin'] = w.cssTransformOrigin;
 		}
-		return base;
+		return merged;
 	});
 
 	readonly children = computed<PptxElement[]>(() => {

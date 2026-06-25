@@ -160,3 +160,108 @@ describe('elementRenderer', () => {
 		expect(wrapper.find('.pptx-vue-placeholder').text()).toBe('futureType');
 	});
 });
+
+describe('elementRenderer per-run text effects', () => {
+	it('applies a gradient text fill via background-clip to a run', () => {
+		const wrapper = mountEl({
+			type: 'text',
+			id: 'fx-fill',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 40,
+			textSegments: [
+				{ text: 'Gradient', style: { textFillGradient: 'linear-gradient(red, blue)' } },
+			],
+		} as PptxElement);
+		const span = wrapper.findAll('span').find((s) => s.text().includes('Gradient'));
+		const style = span?.attributes('style') ?? '';
+		// The gradient fill is applied via the background-clip:text technique.
+		// jsdom's CSS parser folds the camelCase background-clip into the
+		// `background` shorthand (dropping the -webkit-* props on serialisation),
+		// so we assert on the gradient and the clip `text` token that survive.
+		expect(style).toContain('linear-gradient(red, blue)');
+		expect(style).toContain('text');
+	});
+
+	it('applies an outer text-shadow to a run', () => {
+		const wrapper = mountEl({
+			type: 'text',
+			id: 'fx-shadow',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 40,
+			textSegments: [
+				{
+					text: 'Shadowed',
+					style: {
+						textShadowColor: '#000000',
+						textShadowBlur: 4,
+						textShadowOffsetX: 2,
+						textShadowOffsetY: 3,
+					},
+				},
+			],
+		} as PptxElement);
+		const span = wrapper.findAll('span').find((s) => s.text().includes('Shadowed'));
+		expect(span?.attributes('style')).toContain('text-shadow');
+	});
+
+	it('applies a glow + blur filter chain to a run', () => {
+		const wrapper = mountEl({
+			type: 'text',
+			id: 'fx-filter',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 40,
+			textSegments: [
+				{
+					text: 'Glowing',
+					style: { textGlowColor: '#ffff00', textGlowRadius: 6, textBlurRadius: 2 },
+				},
+			],
+		} as PptxElement);
+		const span = wrapper.findAll('span').find((s) => s.text().includes('Glowing'));
+		const style = span?.attributes('style') ?? '';
+		expect(style).toContain('drop-shadow');
+		expect(style).toContain('blur(2px)');
+	});
+
+	it('leaves a plain run free of effect styles', () => {
+		const wrapper = mountEl({
+			type: 'text',
+			id: 'fx-plain',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 40,
+			textSegments: [{ text: 'Plain', style: {} }],
+		} as PptxElement);
+		const span = wrapper.findAll('span').find((s) => s.text().includes('Plain'));
+		const style = span?.attributes('style') ?? '';
+		expect(style).not.toContain('text-shadow');
+		expect(style).not.toContain('filter');
+		expect(style).not.toContain('background-clip');
+	});
+
+	it('applies the text-body 3D scene transform to the text block', () => {
+		const wrapper = mountEl({
+			type: 'text',
+			id: 'fx-scene',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 40,
+			text: 'Scene',
+			textStyle: {
+				textBodyScene3d: { cameraPreset: 'perspectiveAbove' },
+			},
+		} as unknown as PptxElement);
+		const block = wrapper.find('.pptx-vue-text');
+		const style = block.attributes('style') ?? '';
+		expect(style).toContain('perspective');
+		expect(style).toContain('rotateX');
+	});
+});

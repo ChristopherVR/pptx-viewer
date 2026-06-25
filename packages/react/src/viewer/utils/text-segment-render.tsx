@@ -7,12 +7,9 @@ import { normalizeHexColor } from './color';
 import {
 	buildTextFillCss,
 	buildTextShadowCss,
-	buildTextGlowFilter,
 	buildTextReflectionCss,
-	buildTextInnerShadowCss,
-	buildTextBlurFilter,
-	buildTextHslFilter,
 	getTextAlphaOpacity,
+	buildTextRunFilterChain,
 } from './text-effects';
 import { substituteFieldText } from './text-field-substitution';
 import type { FieldSubstitutionContext } from './text-field-substitution';
@@ -24,28 +21,6 @@ import {
 } from './text-segment-helpers';
 import type { ElementFindHighlights } from './text-segment-helpers';
 import { hasDistinctScriptFonts } from './unicode-script-detection';
-
-/** Combine all text run CSS filter effects into a single chain. */
-function buildTextRunFilterChain(style: TextStyle): string | undefined {
-	const parts: string[] = [];
-	const glow = buildTextGlowFilter(style);
-	if (glow) {
-		parts.push(glow);
-	}
-	const innerShdw = buildTextInnerShadowCss(style);
-	if (innerShdw) {
-		parts.push(innerShdw);
-	}
-	const blur = buildTextBlurFilter(style);
-	if (blur) {
-		parts.push(blur);
-	}
-	const hsl = buildTextHslFilter(style);
-	if (hsl) {
-		parts.push(hsl);
-	}
-	return parts.length > 0 ? parts.join(' ') : undefined;
-}
 
 /**
  * Render a single text segment as a styled `<span>`.

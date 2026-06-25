@@ -17,6 +17,7 @@ import { resolveParagraphBullet, resolveParagraphIndent } from './bullet-list';
 import { resolveUnderlineDecorationStyle } from './text-decoration';
 import type { FieldSubstitutionContext } from './text-field-substitution';
 import { substituteFieldText } from './text-field-substitution';
+import { buildRunEffectStyle } from './text-run-effects';
 
 /** A plain CSS style map (keys are CSS properties; binding-agnostic). */
 export type RunStyle = Record<string, string | number>;
@@ -168,6 +169,13 @@ export function buildParagraphs(
 			if (text) {
 				const style = segmentStyleToCss(seg);
 				applyUnderlineVariant(style, seg);
+				// Per-run text effects (gradient/pattern fill, outer/inner shadow,
+				// 3D extrusion text-shadow, blur, HSL, alpha opacity, glow,
+				// reflection), mirroring React per-run span style. No-op {} for
+				// plain runs, so ordinary text is unchanged.
+				if (seg.style) {
+					Object.assign(style, buildRunEffectStyle(seg.style));
+				}
 				runs.push({ text, style });
 			}
 		}

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
-import { buildParagraphs, hasTextWarp } from 'pptx-viewer-shared';
+import { buildParagraphs, buildTextBody3DSceneStyle, hasTextWarp } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
@@ -71,7 +71,22 @@ const shapeDivStyle = computed<CSSProperties>(() => {
 	}
 	return merged;
 });
-const textStyle = computed<CSSProperties>(() => getTextBlockStyle(props.element));
+const textStyle = computed<CSSProperties>(() => {
+	const base = getTextBlockStyle(props.element);
+	// Text body 3D scene (a:bodyPr/a:scene3d -> perspective + rotate transform),
+	// mirroring React's ElementBody. Compose its transform with any existing
+	// text-block transform rather than clobbering it. No-op when absent.
+	const textStyleRaw = hasTextProperties(props.element) ? props.element.textStyle : undefined;
+	const scene3d = buildTextBody3DSceneStyle(textStyleRaw) as CSSProperties | undefined;
+	if (!scene3d) {
+		return base;
+	}
+	const merged: CSSProperties = { ...base, ...scene3d };
+	if (base.transform && scene3d.transform) {
+		merged.transform = `${String(base.transform)} ${String(scene3d.transform)}`;
+	}
+	return merged;
+});
 
 const isShapeLike = computed(() => props.element.type === 'text' || props.element.type === 'shape');
 const isImageLike = computed(
