@@ -8,6 +8,14 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **angular:** Wire the real separate-state editTemplateMode pipeline (load partition, dedicated layer, save merge-back) (by @ChristopherVR) ([2487538](https://github.com/ChristopherVR/pptx-viewer/commit/24875384e4d282b35e081d8824e40df90616c132))
+- **vue:** Wire the real separate-state editTemplateMode pipeline (load partition, dedicated layer, save merge-back) (by @ChristopherVR) ([4f324af](https://github.com/ChristopherVR/pptx-viewer/commit/4f324af3fb76d014c6b2e90c3677bb6f65092521))
+- **react:** Wire the real separate-state editTemplateMode pipeline (load partition, dedicated layer, save merge-back) (by @ChristopherVR) ([a3bff60](https://github.com/ChristopherVR/pptx-viewer/commit/a3bff6012ac9b5b2ec7d7b1b7a46ae705745e900))
+
+## [1.1.51](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.51) - 2026-06-25
+
+### Features
+
 - **react:** Real editTemplateMode gating; drop dead template-elements scaffold (by @ChristopherVR) ([a2ef59d](https://github.com/ChristopherVR/pptx-viewer/commit/a2ef59d3c8b1135d666d74c62b976f0edfdbeed3))
 
 ## [1.1.57](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.57) - 2026-06-25
