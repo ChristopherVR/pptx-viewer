@@ -6,9 +6,8 @@
  *
  * @module collaboration/usePresenceTracking.test
  */
+import { sanitizePresence } from 'pptx-viewer-shared';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-import { sanitizePresence } from './sanitize';
 
 // ---------------------------------------------------------------------------
 // Mock Awareness helper
@@ -130,7 +129,7 @@ describe('usePresenceTracking (logic)', () => {
 			);
 
 			expect(result?.userName).toBe("alert('xss')");
-			expect(result?.userColor).toBe('#6366f1'); // fallback
+			expect(result?.userColor).toBe('#4c8bf5'); // shared DEFAULT_CURSOR_COLOR fallback
 			expect(result?.cursorX).toBe(980); // clamped to max+margin
 			expect(result?.cursorY).toBe(-20); // clamped to -margin
 			expect(result?.activeSlideIndex).toBe(0); // clamped
@@ -459,7 +458,7 @@ describe('usePresenceTracking - mock awareness', () => {
 		const remoteUsers = collectRemoteUsers(1);
 		expect(remoteUsers).toHaveLength(1);
 		expect(remoteUsers[0]?.userName).toBe('EvilUser');
-		expect(remoteUsers[0]?.userColor).toBe('#6366f1'); // fallback
+		expect(remoteUsers[0]?.userColor).toBe('#4c8bf5'); // shared DEFAULT_CURSOR_COLOR fallback
 		expect(remoteUsers[0]?.userAvatar).toBeUndefined(); // blocked
 	});
 });

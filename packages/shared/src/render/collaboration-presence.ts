@@ -35,6 +35,9 @@ export const CONNECTION_TIMEOUT_MS = 30_000;
 /** Heartbeat interval (ms): re-publish presence so peers don't time us out. */
 export const PRESENCE_HEARTBEAT_MS = 10_000;
 
+/** Minimum interval (ms) between outgoing presence broadcasts (rate limiting). */
+export const BROADCAST_THROTTLE_MS = 50;
+
 // ---------------------------------------------------------------------------
 // View-model types
 // ---------------------------------------------------------------------------
@@ -382,4 +385,51 @@ export function presenceToCursors(
 		});
 	}
 	return cursors;
+}
+
+/**
+ * Map a raw awareness-state map into a `RemoteCursor[]` for the foundational
+ * sync path that stores a bare `{ cursor: { x, y }, user: { name, color } }`
+ * per client (no full {@link SanitizedPresence} record). Skips the local client
+ * and any entry without numeric cursor coordinates. Colours are passed through
+ * {@link sanitizeColor}; a missing name falls back to `'Guest'`.
+ *
+ * Used by the Angular collaboration service and the Vue collaboration
+ * composable's cursor projection, which share this flat awareness shape.
+ */
+export function mapAwarenessCursors(
+	states: Map<number, Record<string, unknown>>,
+	localClientId: number,
+): RemoteCursor[] {
+	const cursors: RemoteCursor[] = [];
+	for (const [clientId, state] of states) {
+		if (clientId === localClientId) {
+			continue;
+		}
+		const cursor = state?.cursor as { x?: unknown; y?: unknown } | undefined;
+		const user = state?.user as { name?: unknown; color?: unknown } | undefined;
+		if (!cursor || typeof cursor.x !== 'number' || typeof cursor.y !== 'number') {
+			continue;
+		}
+		cursors.push({
+			clientId,
+			userName: typeof user?.name === 'string' ? user.name : 'Guest',
+			color: sanitizeColor(user?.color),
+			x: cursor.x,
+			y: cursor.y,
+		});
+	}
+	return cursors;
+}
+
+/**
+ * Coerce an unknown awareness value into a string-id array, dropping any
+ * non-string entries. Used to validate the `selection` field broadcast by a
+ * collaborator before it is rendered as a remote selection.
+ */
+export function asSelectionIds(value: unknown): string[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+	return value.filter((entry): entry is string => typeof entry === 'string');
 }

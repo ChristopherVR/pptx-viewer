@@ -66,7 +66,7 @@ export function BroadcastDialog({
 		collab !== null &&
 		collab.status !== 'disconnected' &&
 		collab.status !== 'error' &&
-		collab.config.role === 'broadcaster';
+		collab.config.role === 'owner';
 
 	// Form state
 	const [roomId, setRoomId] = useState('');
@@ -133,7 +133,7 @@ export function BroadcastDialog({
 			roomId: roomId.trim(),
 			serverUrl: serverUrl.trim(),
 			userName: userName.trim(),
-			role: 'broadcaster',
+			role: 'owner',
 		});
 		// Enter presentation mode after a short delay for connection
 		setTimeout(() => {

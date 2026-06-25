@@ -10,6 +10,7 @@
  */
 import type { CollaborationConfig, YjsFactories } from 'pptx-viewer-shared';
 import {
+	asSelectionIds,
 	clampCursorPosition,
 	CONNECTION_TIMEOUT_MS,
 	DEFAULT_CURSOR_COLOR,
@@ -37,13 +38,6 @@ import type {
 
 const DEFAULT_CANVAS_BOUND = 100_000;
 const WRITE_BACK_DEBOUNCE_MS = 5_000;
-
-function asSelectionIds(value: unknown): string[] {
-	if (!Array.isArray(value)) {
-		return [];
-	}
-	return (value as unknown[]).filter((e): e is string => typeof e === 'string');
-}
 
 const VALID_ROLES = ['owner', 'collaborator', 'viewer'] as const;
 function asRole(v: unknown) {

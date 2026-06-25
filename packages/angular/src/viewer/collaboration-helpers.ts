@@ -14,12 +14,13 @@
  *    truncation, which differs from shared's three-dot (`...`) variant that the
  *    React binding expects. Kept local so the rendered label and the colocated
  *    test are unchanged.
- *  - `mapAwarenessCursors` is the foundational bare-`{ cursor, user }` mapping
- *    that has no shared equivalent yet.
+ *
+ * `mapAwarenessCursors` (the foundational bare-`{ cursor, user }` mapping) now
+ * lives in shared and is re-exported here so existing Angular imports are
+ * unchanged.
  */
 
-import { sanitizeColor, MAX_LABEL_CHARS } from '../internal/shared';
-import type { RemoteCursor } from '../internal/shared';
+import { MAX_LABEL_CHARS } from '../internal/shared';
 
 export type {
 	RemoteCursor,
@@ -43,6 +44,7 @@ export {
 	sanitizePresence,
 	derivePresenceList,
 	presenceToCursors,
+	mapAwarenessCursors,
 } from '../internal/shared';
 
 /**
@@ -51,34 +53,4 @@ export {
  */
 export function formatCursorLabel(userName: string, maxChars: number = MAX_LABEL_CHARS): string {
 	return userName.length > maxChars ? `${userName.slice(0, maxChars - 1)}…` : userName;
-}
-
-/**
- * Lightweight awareness-state → `RemoteCursor` mapping used by the foundational
- * sync path that stores a bare `{ cursor, user }` (no full presence record),
- * mirroring the Vue composable's `refreshCursors`.
- */
-export function mapAwarenessCursors(
-	states: Map<number, Record<string, unknown>>,
-	localClientId: number,
-): RemoteCursor[] {
-	const cursors: RemoteCursor[] = [];
-	for (const [clientId, state] of states) {
-		if (clientId === localClientId) {
-			continue;
-		}
-		const cursor = state?.cursor as { x?: unknown; y?: unknown } | undefined;
-		const user = state?.user as { name?: unknown; color?: unknown } | undefined;
-		if (!cursor || typeof cursor.x !== 'number' || typeof cursor.y !== 'number') {
-			continue;
-		}
-		cursors.push({
-			clientId,
-			userName: typeof user?.name === 'string' ? user.name : 'Guest',
-			color: sanitizeColor(user?.color),
-			x: cursor.x,
-			y: cursor.y,
-		});
-	}
-	return cursors;
 }
