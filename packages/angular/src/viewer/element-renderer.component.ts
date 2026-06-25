@@ -1,8 +1,9 @@
 import { NgStyle } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
-import type { PptxElement, TextSegment } from 'pptx-viewer-core';
+import type { PptxElement } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
+import { segmentStyleToCss } from '../internal/shared';
 import { ChartRendererComponent } from './chart-renderer.component';
 import { getClrChangeParams } from './color-changed-image-helpers';
 import type { ClrChangeParams } from './color-changed-image-helpers';
@@ -493,7 +494,7 @@ export class ElementRendererComponent {
 			if (seg.equationXml) {
 				current.runs.push({
 					text: '',
-					style: this.segmentStyle(seg),
+					style: segmentStyleToCss(seg),
 					equationXml: seg.equationXml,
 					equationNumber: seg.equationNumber,
 				});
@@ -504,7 +505,7 @@ export class ElementRendererComponent {
 				const href = resolveHyperlinkHref(seg.style?.hyperlink);
 				current.runs.push({
 					text,
-					style: this.segmentStyle(seg),
+					style: segmentStyleToCss(seg),
 					href,
 					tooltip: href ? seg.style?.hyperlinkTooltip : undefined,
 				});
@@ -524,35 +525,4 @@ export class ElementRendererComponent {
 		};
 		return map[this.element().type] ?? this.element().type;
 	});
-
-	private segmentStyle(seg: TextSegment): StyleMap {
-		const s = seg.style ?? {};
-		const style: StyleMap = {};
-		if (s.fontFamily) {
-			style['font-family'] = s.fontFamily;
-		}
-		if (typeof s.fontSize === 'number') {
-			style['font-size'] = `${s.fontSize}px`;
-		}
-		if (s.color) {
-			style['color'] = s.color;
-		}
-		if (s.bold) {
-			style['font-weight'] = 'bold';
-		}
-		if (s.italic) {
-			style['font-style'] = 'italic';
-		}
-		const deco: string[] = [];
-		if (s.underline) {
-			deco.push('underline');
-		}
-		if (s.strikethrough) {
-			deco.push('line-through');
-		}
-		if (deco.length > 0) {
-			style['text-decoration'] = deco.join(' ');
-		}
-		return style;
-	}
 }
