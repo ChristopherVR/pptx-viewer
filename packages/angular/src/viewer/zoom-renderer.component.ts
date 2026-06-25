@@ -1,9 +1,14 @@
 import { NgStyle } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
 import type { StyleMap } from './element-style';
-import { buildZoomContainerStyle, buildZoomViewModel } from './zoom-renderer-helpers';
+import { ZoomNavigationService } from './zoom-navigation.service';
+import {
+	buildZoomContainerStyle,
+	buildZoomViewModel,
+	isZoomActivationKey,
+} from './zoom-renderer-helpers';
 import type { ZoomViewModel } from './zoom-renderer-helpers';
 
 /**
@@ -15,10 +20,12 @@ import type { ZoomViewModel } from './zoom-renderer-helpers';
  * showing the target slide number. A small "Slide Zoom" / "Section Zoom" badge
  * is drawn in the corner.
  *
- * Navigation (click-to-jump in presentation mode) and live target-slide preview
- * rendering are NOT ported; this is a static link tile only (see PORTING.md).
- * The `slides` array is not threaded through, so the fallback uses the target
- * slide index rather than the real target background.
+ * In presentation mode the overlay provides a {@link ZoomNavigationService}, so
+ * clicking (or Enter/Space) jumps to the target slide. Outside presentation mode
+ * the service is not provided (optional injection yields `null`) and the tile
+ * stays a static link, exactly as before. Live target-slide preview rendering is
+ * still NOT ported; the `slides` array is not threaded through, so the fallback
+ * uses the target slide index rather than the real target background.
  *
  * All non-trivial pure computation lives in `zoom-renderer-helpers.ts` (no
  * Angular dependency) so it can be unit-tested without TestBed.
@@ -28,14 +35,29 @@ import type { ZoomViewModel } from './zoom-renderer-helpers';
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [NgStyle],
+	styles: `
+		.pptx-ng-zoom-interactive {
+			cursor: pointer;
+		}
+
+		.pptx-ng-zoom-interactive:focus-visible {
+			outline: 2px solid #2563eb;
+			outline-offset: 2px;
+		}
+	`,
 	template: `
 		<div
 			class="pptx-ng-element pptx-ng-zoom"
+			[class.pptx-ng-zoom-interactive]="interactive()"
 			[ngStyle]="containerStyle()"
 			[attr.data-element-id]="element().id"
 			[attr.data-zoom-type]="vm().zoomType"
 			[attr.data-zoom-target]="vm().targetSlideIndex"
 			[attr.aria-label]="vm().ariaLabel"
+			[attr.role]="interactive() ? 'button' : null"
+			[attr.tabindex]="interactive() ? 0 : null"
+			(click)="onClick($event)"
+			(keydown)="onKeydown($event)"
 		>
 			<div
 				style="position:relative;width:100%;height:100%;overflow:hidden;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.15)"
@@ -79,4 +101,43 @@ export class ZoomRendererComponent {
 	);
 
 	readonly vm = computed<ZoomViewModel>(() => buildZoomViewModel(this.element()));
+
+	/**
+	 * Zoom-navigation context, present only inside a running presentation (the
+	 * overlay provides it). `null` in the editor tree, where the tile stays
+	 * static.
+	 */
+	private readonly zoomNavigation = inject(ZoomNavigationService, { optional: true });
+
+	/** Interactive (click-to-jump) only when navigation is available for a zoom. */
+	protected readonly interactive = computed<boolean>(() =>
+		Boolean(this.zoomNavigation && this.vm().zoom),
+	);
+
+	/** Navigate to the zoom target; no-op when the tile is not interactive. */
+	private activate(): void {
+		const vm = this.vm();
+		if (!this.zoomNavigation || !vm.zoom) {
+			return;
+		}
+		this.zoomNavigation.navigateToZoomTarget(vm.targetSlideIndex);
+	}
+
+	protected onClick(event: MouseEvent): void {
+		if (!this.interactive()) {
+			return;
+		}
+		// Stop the stage's click-to-advance from also firing.
+		event.stopPropagation();
+		this.activate();
+	}
+
+	protected onKeydown(event: KeyboardEvent): void {
+		if (!this.interactive() || !isZoomActivationKey(event.key)) {
+			return;
+		}
+		event.preventDefault();
+		event.stopPropagation();
+		this.activate();
+	}
 }

@@ -31,6 +31,7 @@ import { PresentationSubtitleBarComponent } from './presentation-subtitle-bar.co
 import { PresentationTransitionOverlayComponent } from './presentation-transition-overlay.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { attachTouchGestures } from './touch-gestures';
+import { ZoomNavigationService } from './zoom-navigation.service';
 
 /**
  * PresentationOverlayComponent: full-viewport black overlay that renders
@@ -73,7 +74,7 @@ import { attachTouchGestures } from './touch-gestures';
 		PresentationAnnotationOverlayComponent,
 		PresentationSubtitleBarComponent,
 	],
-	providers: [AnimationPlaybackService, PresentationAnnotationsService],
+	providers: [AnimationPlaybackService, PresentationAnnotationsService, ZoomNavigationService],
 	styles: `
 		:host {
 			display: block;
@@ -296,6 +297,13 @@ export class PresentationOverlayComponent implements OnInit {
 
 	/** Ink-annotation state (pen/highlighter/eraser/laser) for the show. */
 	protected readonly annotations = inject(PresentationAnnotationsService);
+
+	/**
+	 * Zoom-navigation context (provided at this component level). The handler is
+	 * registered in the constructor so a descendant zoom tile can jump to its
+	 * target slide on click. Descendants resolve this same instance.
+	 */
+	private readonly zoomNavigation = inject(ZoomNavigationService);
 	/** Whether the live-caption bar is shown. */
 	protected readonly subtitlesVisible = signal(false);
 
@@ -307,6 +315,10 @@ export class PresentationOverlayComponent implements OnInit {
 
 	constructor() {
 		this.setupTouchGestures();
+
+		// Wire the zoom-navigation context to this overlay's slide navigation so a
+		// descendant zoom tile can jump to its target slide on click.
+		this.zoomNavigation.setHandler((index) => this.goToSlide(index));
 
 		// Feed the current slide's element animations into playback (resets to the
 		// pre-build state so entrance-animated elements start hidden).
@@ -695,6 +707,27 @@ export class PresentationOverlayComponent implements OnInit {
 			this.annotations.setActiveSlide(next);
 			this.indexChange.emit(next);
 		}
+	}
+
+	/**
+	 * Jump directly to `index` (clamped to the slide range), committing the same
+	 * way `navigate()` does its final step. Used by the zoom-navigation context
+	 * for a click-to-jump from a zoom tile: this is a transition-less jump, so it
+	 * does NOT replay the target slide's transition.
+	 */
+	private goToSlide(index: number): void {
+		const count = this.slides().length;
+		if (count === 0) {
+			return;
+		}
+		const next = clampIndex(index, count);
+		if (next === this.currentIndex()) {
+			return;
+		}
+		this.activeTransition.set(null);
+		this.currentIndex.set(next);
+		this.annotations.setActiveSlide(next);
+		this.indexChange.emit(next);
 	}
 
 	private emitClosed(): void {

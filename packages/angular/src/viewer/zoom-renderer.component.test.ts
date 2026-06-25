@@ -8,7 +8,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { buildZoomViewModel } from './zoom-renderer-helpers';
+import { buildZoomViewModel, isZoomActivationKey } from './zoom-renderer-helpers';
 
 // ---------------------------------------------------------------------------
 // Helper
@@ -87,5 +87,22 @@ describe('buildZoomViewModel', () => {
 		expect(vm.targetSlideIndex).toBe(0);
 		expect(vm.zoomType).toBe('slide');
 		expect(vm.previewSrc).toBeUndefined();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// isZoomActivationKey
+// ---------------------------------------------------------------------------
+
+describe('isZoomActivationKey', () => {
+	it('activates on Enter and Space', () => {
+		expect(isZoomActivationKey('Enter')).toBeTruthy();
+		expect(isZoomActivationKey(' ')).toBeTruthy();
+	});
+
+	it('ignores other keys', () => {
+		for (const key of ['ArrowRight', 'ArrowLeft', 'a', 'Escape', 'Tab', 'Spacebar']) {
+			expect(isZoomActivationKey(key)).toBeFalsy();
+		}
 	});
 });

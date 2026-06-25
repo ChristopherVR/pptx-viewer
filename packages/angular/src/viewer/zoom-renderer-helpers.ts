@@ -66,3 +66,11 @@ export function buildZoomViewModel(element: PptxElement): ZoomViewModel {
 export function buildZoomContainerStyle(element: PptxElement, zIndex: number): StyleMap {
 	return getContainerStyle(element, zIndex);
 }
+
+/**
+ * Whether a keyboard event should activate the zoom tile (Enter or Space).
+ * Other keys are ignored so they pass through to the presentation controller.
+ */
+export function isZoomActivationKey(key: string): boolean {
+	return key === 'Enter' || key === ' ';
+}
