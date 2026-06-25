@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.48](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.48) - 2026-06-25
+
+### Documentation
+
+- **vue:** Mark interactive Model3D done in the parity tracker (by @ChristopherVR) ([614ebb6](https://github.com/ChristopherVR/pptx-viewer/commit/614ebb6a381159b7f0457600f35f5494ed38cb94))
+- **vue:** Mark a:clrChange image effect done in the parity tracker (by @ChristopherVR) ([4833180](https://github.com/ChristopherVR/pptx-viewer/commit/4833180777b0dcb428da1270ebdd8c2e511b4335))
+
 ## [1.1.36](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.36) - 2026-06-21
 
 ### Features

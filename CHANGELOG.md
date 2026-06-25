@@ -8,6 +8,19 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **angular:** Interactive GLB/GLTF Model3D rendering (by @ChristopherVR) ([54f72c2](https://github.com/ChristopherVR/pptx-viewer/commit/54f72c2e714a071a945876623188df904cb297f7))
+- **vue:** Render the a:clrChange image color-change effect (by @ChristopherVR) ([3035857](https://github.com/ChristopherVR/pptx-viewer/commit/303585777000f43f629276a28f5d708a4ea1abc3))
+- **angular:** Render the a:clrChange image color-change effect (by @ChristopherVR) ([b4a22ec](https://github.com/ChristopherVR/pptx-viewer/commit/b4a22ece09419203d5b8b4b7c57f4035c5fc8ee4))
+
+### Documentation
+
+- **vue:** Mark interactive Model3D done in the parity tracker (by @ChristopherVR) ([614ebb6](https://github.com/ChristopherVR/pptx-viewer/commit/614ebb6a381159b7f0457600f35f5494ed38cb94))
+- **vue:** Mark a:clrChange image effect done in the parity tracker (by @ChristopherVR) ([4833180](https://github.com/ChristopherVR/pptx-viewer/commit/4833180777b0dcb428da1270ebdd8c2e511b4335))
+
+## [1.1.47](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.47) - 2026-06-24
+
+### Features
+
 - **vue:** Interactive GLB/GLTF Model3D rendering (by @ChristopherVR) ([c7d2b3d](https://github.com/ChristopherVR/pptx-viewer/commit/c7d2b3d2e61e9d3ce12cc65ab2e6f34cbc364c72))
 
 ## [1.1.46](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.46) - 2026-06-24
