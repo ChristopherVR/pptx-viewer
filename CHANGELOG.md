@@ -8,6 +8,13 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **angular:** Real editTemplateMode gating for master/layout elements (by @ChristopherVR) ([ca0d405](https://github.com/ChristopherVR/pptx-viewer/commit/ca0d405fb5cfbc6f1beb788fdc1fe35c8329c8e1))
+- **vue:** Real editTemplateMode gating for master/layout elements (by @ChristopherVR) ([1418b53](https://github.com/ChristopherVR/pptx-viewer/commit/1418b536c788ba503c8cb775b5de29fe9cd03d5a))
+
+## [1.1.56](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.56) - 2026-06-25
+
+### Features
+
 - **vue,angular:** Substitute OOXML text fields (slide number, date, footer) (by @ChristopherVR) ([27b2d83](https://github.com/ChristopherVR/pptx-viewer/commit/27b2d83cb526670470d837277ca286b9c259d3c2))
 - **vue,angular:** Render per-run text effects (fill, shadow, 3D, glow, reflection) (by @ChristopherVR) ([7d5b342](https://github.com/ChristopherVR/pptx-viewer/commit/7d5b342e3af28fae6f6ae726d6e290c621ed8c8b))
 
