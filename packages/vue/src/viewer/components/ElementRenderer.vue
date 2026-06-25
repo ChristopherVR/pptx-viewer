@@ -45,6 +45,12 @@ const props = defineProps<{
 	 * stage and presentation mode render without it.
 	 */
 	interactive?: boolean;
+	/**
+	 * When true, this element belongs to the slide layout/master and the viewer is
+	 * in edit-template mode: draw a visual affordance so the user can tell apart
+	 * the (now editable) shared template shapes from normal slide content.
+	 */
+	templateEditing?: boolean;
 }>();
 
 /** Host opt-in to the Three.js SmartArt renderer (provided by PowerPointViewer). */
@@ -113,6 +119,9 @@ const paragraphs = computed(() =>
 const hasText = computed(() =>
 	paragraphs.value.some((p) => p.runs.length > 0 || p.bulletMarker !== undefined),
 );
+
+/** Affordance class toggled on for editable template (master/layout) elements. */
+const templateClass = computed(() => (props.templateEditing ? 'pptx-vue-template-editing' : null));
 </script>
 
 <template>
@@ -120,6 +129,7 @@ const hasText = computed(() =>
 	<div
 		v-if="element.type === 'group'"
 		class="pptx-vue-element pptx-vue-group"
+		:class="templateClass"
 		:style="containerStyle"
 		:data-element-id="element.id"
 		:data-pptx-element="interactive ? 'true' : undefined"
@@ -141,6 +151,7 @@ const hasText = computed(() =>
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
 		:interactive="interactive"
+		:class="templateClass"
 	/>
 
 	<!-- Media (video/audio/poster) -->
@@ -150,6 +161,7 @@ const hasText = computed(() =>
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
 		:interactive="interactive"
+		:class="templateClass"
 	/>
 
 	<!-- Connector / line -->
@@ -221,6 +233,7 @@ const hasText = computed(() =>
 	<div
 		v-else-if="isShapeLike"
 		class="pptx-vue-element pptx-vue-shape"
+		:class="templateClass"
 		:style="shapeDivStyle"
 		:data-element-id="element.id"
 		:data-pptx-element="interactive ? 'true' : undefined"
@@ -233,6 +246,7 @@ const hasText = computed(() =>
 	<div
 		v-else
 		class="pptx-vue-element pptx-vue-unsupported"
+		:class="templateClass"
 		:style="containerStyle"
 		:data-element-id="element.id"
 		:data-pptx-element="interactive ? 'true' : undefined"

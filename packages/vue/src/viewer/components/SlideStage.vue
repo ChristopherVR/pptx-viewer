@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
+import { isElementInteractive, isTemplateEditingHighlight } from '../composables/template-editing';
 import type { CanvasSize } from '../types';
 import ElementRenderer from './ElementRenderer.vue';
 
@@ -22,9 +23,29 @@ const props = withDefaults(
 		scale?: number;
 		/** Mark elements with the `data-pptx-element` interaction hook (main canvas only). */
 		interactive?: boolean;
+		/**
+		 * When on, master/layout (template) elements become interactive and get a
+		 * visual affordance; when off they render but are locked. Only the main
+		 * editable canvas threads this through.
+		 */
+		editTemplateMode?: boolean;
 	}>(),
 	{ scale: 1 },
 );
+
+/**
+ * Per-element interactivity: the single canvas-wide `interactive` flag is gated
+ * down for template elements unless edit-template mode is on. Computed here (not
+ * inline in the template) so the SFC stays presentational.
+ */
+function effectiveInteractive(element: PptxElement): boolean {
+	return isElementInteractive(element, props.interactive ?? false, props.editTemplateMode ?? false);
+}
+
+/** Whether to draw the editable-template affordance on this element. */
+function templateEditing(element: PptxElement): boolean {
+	return isTemplateEditingHighlight(element, props.editTemplateMode ?? false);
+}
 
 const stageStyle = computed<CSSProperties>(() => ({
 	width: `${props.canvasSize.width}px`,
@@ -50,7 +71,8 @@ const stageStyle = computed<CSSProperties>(() => ({
 			:element="element"
 			:media-data-urls="mediaDataUrls"
 			:z-index="index"
-			:interactive="interactive"
+			:interactive="effectiveInteractive(element)"
+			:template-editing="templateEditing(element)"
 		/>
 		<!-- Optional editing overlay (selection handles, etc.) shares this scaled space -->
 		<slot />

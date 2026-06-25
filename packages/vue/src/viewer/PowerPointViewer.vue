@@ -132,6 +132,7 @@ import { snapBox } from './composables/snap';
 import { computeSnapToShape } from './composables/snap-shape';
 import { TableCellEditKey } from './composables/table-edit';
 import { TableThemeKey } from './composables/table-theme';
+import { isElementIdInteractive } from './composables/template-editing';
 import { useAccessibility } from './composables/useAccessibility';
 import { useAutosave } from './composables/useAutosave';
 import { useCollaboration } from './composables/useCollaboration';
@@ -539,7 +540,11 @@ function onCanvasPointerDown(event: PointerEvent): void {
 	}
 	const target = event.target as HTMLElement | null;
 	const host = target?.closest('[data-element-id]') as HTMLElement | null;
-	const id = host?.dataset.elementId;
+	const hitId = host?.dataset.elementId;
+	// Template (master/layout) elements are interaction-locked unless the user
+	// turns on edit-template mode; a click on a locked one behaves like an
+	// empty-canvas click (no select / drag / inline-edit).
+	const id = hitId && isElementIdInteractive(hitId, editTemplateMode.value) ? hitId : undefined;
 	// While inline-editing, a tap elsewhere (another element or empty canvas)
 	// commits the pending edit first (the typed text must be kept).
 	if (inlineEditingElementId.value && id !== inlineEditingElementId.value) {
@@ -1092,7 +1097,8 @@ function onCanvasContextMenu(event: MouseEvent): void {
 		'[data-element-id]',
 	) as HTMLElement | null;
 	const id = host?.dataset.elementId;
-	if (!id) {
+	// Locked template elements (edit-template mode off) are not actionable.
+	if (!id || !isElementIdInteractive(id, editTemplateMode.value)) {
 		return;
 	}
 	event.preventDefault();
@@ -1902,6 +1908,14 @@ const showGrid = ref(false);
 const snapToGrid = ref(false);
 /** View ▸ Rulers: horizontal/vertical rulers along the slide edges. */
 const showRulers = ref(false);
+/**
+ * View ▸ Templates: when on, the master/layout shapes a slide inherits (already
+ * present in `slide.elements` with `layout-`/`master-` ids) become selectable,
+ * draggable and editable on the canvas instead of being interaction-locked.
+ * Editing one mutates the shared template part, so all slides inheriting it
+ * change together.
+ */
+const editTemplateMode = ref(false);
 /** View ▸ Spell: draw the browser's native spell-check squiggles while editing. */
 const spellCheckEnabled = ref(true);
 /** View ▸ Snap to Shape: snap dragged elements to other elements' edges/centres. */
@@ -2110,8 +2124,6 @@ function ribbonMoveToEdge(dir: string): void {
 	ops.reorder(id, toFront ? slide.elements.length - 1 : 0);
 }
 
-const noop = (): void => {};
-
 const ribbonProps = computed<RibbonProps>(() => ({
 	mode: ribbonMode.value,
 	canEdit: props.canEdit,
@@ -2128,7 +2140,7 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	findReplaceOpen: findOpen.value,
 	selectedElement: selectedElements.value[0] ?? null,
 	tableEditorState: null,
-	editTemplateMode: false,
+	editTemplateMode: editTemplateMode.value,
 	newShapeType: newShapeType.value,
 	activeTool: activeTool.value,
 	drawingColor: drawingColor.value,
@@ -2214,7 +2226,9 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	onSetDrawingWidth: (w) => {
 		drawingWidth.value = w;
 	},
-	onSetEditTemplateMode: noop,
+	onSetEditTemplateMode: (mode: boolean) => {
+		editTemplateMode.value = mode;
+	},
 	onSetSpellCheckEnabled: (enabled) => {
 		spellCheckEnabled.value = enabled;
 	},
@@ -2465,6 +2479,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 						:media-data-urls="mediaDataUrls"
 						:zoom="effectiveZoom"
 						:show-rulers="showRulers && !presenting"
+						:edit-template-mode="editTemplateMode && !presenting"
 						@update:fit-scale="fitScale = $event"
 					>
 						<!-- Dot grid overlay (View ▸ Grid): sits over content, under selection -->

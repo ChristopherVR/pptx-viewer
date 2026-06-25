@@ -30,6 +30,11 @@ const props = defineProps<{
 	zoom?: number;
 	/** Show the horizontal/vertical rulers along the slide edges (View ▸ Rulers). */
 	showRulers?: boolean;
+	/**
+	 * When on, master/layout (template) elements become interactive on the canvas
+	 * and gain a visual affordance. Threaded down to {@link SlideStage}.
+	 */
+	editTemplateMode?: boolean;
 }>();
 
 const emit = defineEmits<{ 'update:fitScale': [number] }>();
@@ -105,6 +110,7 @@ watch(() => [props.canvasSize.width, props.canvasSize.height], recomputeFit);
 				:canvas-size="canvasSize"
 				:media-data-urls="mediaDataUrls"
 				:scale="scale"
+				:edit-template-mode="editTemplateMode"
 				interactive
 			>
 				<slot />
