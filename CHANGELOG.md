@@ -8,6 +8,12 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **core:** Expose per-slide template elements + verify master/layout edit round-trip (by @ChristopherVR) ([4da26b6](https://github.com/ChristopherVR/pptx-viewer/commit/4da26b642297f59c71959348e1e7032079b00f61))
+
+## [1.1.54](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.54) - 2026-06-25
+
+### Features
+
 - **vue,angular:** Render vertical text, underline variants and special alignment (by @ChristopherVR) ([d757f52](https://github.com/ChristopherVR/pptx-viewer/commit/d757f5225f09b1bf4450d15d55537521614b4e82))
 - **angular:** Collapsible ribbon toggle (by @ChristopherVR) ([0ed28ac](https://github.com/ChristopherVR/pptx-viewer/commit/0ed28ac0003e3e1c1ca049a559363f7924053b65))
 
