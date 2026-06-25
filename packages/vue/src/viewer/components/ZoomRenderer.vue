@@ -5,20 +5,21 @@ import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
 import { getContainerStyle } from '../composables/element-style';
+import { injectZoomNavigation } from '../composables/zoom-navigation';
 
 /**
- * ZoomRenderer - Vue port of the React `ZoomElementRenderer`, static
- * viewer-first subset.
+ * ZoomRenderer - Vue port of the React `ZoomElementRenderer`.
  *
  * Renders a Slide-Zoom / Section-Zoom tile (`ZoomPptxElement`): the element's
  * own preview thumbnail (`imageData`) when available, otherwise a fallback tile
  * showing the target slide number. A small "Slide Zoom" / "Section Zoom" badge
  * is drawn in the corner.
  *
- * Navigation (click-to-jump in presentation mode) and live target-slide preview
- * rendering are NOT ported; this is a static link tile only (see PORTING.md).
- * The `slides` array is not threaded through, so the fallback uses the target
- * slide index rather than the real target background.
+ * In presentation mode the controller provides a zoom-navigation context, so
+ * clicking (or Enter/Space) jumps to the target slide. Outside presentation mode
+ * no context is injected and the tile stays a static link, exactly as before.
+ * Live target-slide preview rendering is still not ported; the fallback uses the
+ * target slide index rather than the real target background.
  */
 const props = defineProps<{
 	element: PptxElement;
@@ -50,16 +51,50 @@ const ariaLabel = computed(() => {
 	}
 	return base;
 });
+
+// Present only inside a running presentation; absent (static tile) otherwise.
+const zoomNav = injectZoomNavigation();
+const interactive = computed(() => Boolean(zoomNav && zoom.value));
+
+function activate(): void {
+	if (!zoomNav || !zoom.value) {
+		return;
+	}
+	zoomNav.navigateToZoomTarget(targetSlideIndex.value);
+}
+
+function onClick(event: MouseEvent): void {
+	if (!interactive.value) {
+		return;
+	}
+	// Stop the stage's click-to-advance from also firing.
+	event.stopPropagation();
+	activate();
+}
+
+function onKeydown(event: KeyboardEvent): void {
+	if (!interactive.value || (event.key !== 'Enter' && event.key !== ' ')) {
+		return;
+	}
+	event.preventDefault();
+	event.stopPropagation();
+	activate();
+}
 </script>
 
 <template>
 	<div
 		class="pptx-vue-element pptx-vue-zoom"
+		:class="{ 'pptx-vue-zoom-interactive': interactive }"
 		:style="containerStyle"
 		:data-element-id="element.id"
 		:data-zoom-type="zoomType"
 		:data-zoom-target="targetSlideIndex"
 		:aria-label="ariaLabel"
+		:role="interactive ? 'button' : undefined"
+		:tabindex="interactive ? 0 : undefined"
+		@click="onClick"
+		@keydown="onKeydown"
 	>
 		<div class="pptx-vue-zoom-tile">
 			<img
@@ -87,6 +122,15 @@ const ariaLabel = computed(() => {
 	overflow: hidden;
 	border-radius: 4px;
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.pptx-vue-zoom-interactive {
+	cursor: pointer;
+}
+
+.pptx-vue-zoom-interactive:focus-visible {
+	outline: 2px solid #2563eb;
+	outline-offset: 2px;
 }
 
 .pptx-vue-zoom-img {

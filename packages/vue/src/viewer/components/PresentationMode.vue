@@ -8,6 +8,7 @@ import { useAnimationPlayback } from '../composables/useAnimationPlayback';
 import { useIsMobile } from '../composables/useIsMobile';
 import { usePresentationAnnotations } from '../composables/usePresentationAnnotations';
 import { useTouchGestures } from '../composables/useTouchGestures';
+import { provideZoomNavigation } from '../composables/zoom-navigation';
 import type { CanvasSize } from '../types';
 import MobilePresenterView from './MobilePresenterView.vue';
 import PresentationAnnotationOverlay from './PresentationAnnotationOverlay.vue';
@@ -105,6 +106,11 @@ function goTo(index: number): void {
 	}
 	currentIndex.value = target;
 }
+
+// Slide-Zoom / Section-Zoom tiles jump to their target slide when clicked. The
+// context is provided only here (during a running presentation), so the same
+// ZoomRenderer stays a static link in the editor/read-only tree.
+provideZoomNavigation({ navigateToZoomTarget: goTo });
 
 // Animation playback: each "next" first reveals the slide's next click-group of
 // element animations; only when the slide's builds are exhausted do we advance.
