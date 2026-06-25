@@ -22,6 +22,7 @@ import type {
 	IPptxTemplateBackgroundService,
 	IPptxXmlLookupService,
 } from '../../services';
+import { decodeXmlEntities } from '../../utils/xml-entities';
 
 export interface PptxRuntimeDependencyFactoryInput {
 	zip: JSZip;
@@ -65,7 +66,7 @@ export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFacto
 			// default), `<AppVersion>16.0000</AppVersion>` is coerced to the
 			// JS number 16, losing the trailing zeros. On save we write back
 			// "16", which fails PowerPoint's strict `[0-9]+\.[0-9]{4}` match
-			// on AppVersion — the loader rejects the package with HRESULT
+			// on AppVersion: the loader rejects the package with HRESULT
 			// 0x80070570 (ERROR_FILE_CORRUPT) and shows the repair dialog.
 			// More generally, OOXML element text is always an untyped string;
 			// downstream callers coerce where needed.
@@ -77,6 +78,14 @@ export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFacto
 			// regressions). v5.5.5 currently defaults to safe behaviour but
 			// pinning this makes the guarantee explicit and forward-stable.
 			processEntities: false,
+			// With entity processing disabled, the five predefined XML entities
+			// and numeric character references would survive ENCODED in element
+			// text (e.g. `Tom &amp; Jerry` renders the literal `&amp;` and
+			// double-encodes to `&amp;amp;` on save). Decode just those here -
+			// they cannot trigger entity expansion, so the security guarantee
+			// above is preserved - so text nodes hold their real characters and
+			// the builder re-encodes them symmetrically on save.
+			tagValueProcessor: (_tagName: string, tagValue: string) => decodeXmlEntities(tagValue),
 		});
 	}
 

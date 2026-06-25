@@ -185,6 +185,8 @@ export { normalizePartPath, resolveReferenceUriToPart } from './signature-refere
 
 export { computeDigestBase64 as computeDigestBase64WebCrypto } from './signature-digest';
 
+export { decodeXmlEntities } from './xml-entities';
+
 export { computeDetailStatus, computeVerificationStatus } from './signature-inspection-status';
 
 export {
