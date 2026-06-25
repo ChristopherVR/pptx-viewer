@@ -76,11 +76,21 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				{{ sec.label }}
 			</button>
 			<div class="flex-1" />
+			<button
+				type="button"
+				class="mr-1 rounded px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+				:aria-pressed="!props.isCompactToolbarOpen"
+				:title="props.isCompactToolbarOpen ? 'Collapse the ribbon' : 'Expand the ribbon'"
+				@click="props.onToggleCompactToolbar"
+			>
+				{{ props.isCompactToolbarOpen ? '▴' : '▾' }}
+			</button>
 		</div>
 
-		<!-- Ribbon Content -->
+		<!-- Ribbon Content (collapsible via the ribbon toggle) -->
 		<div
 			v-if="showRibbon"
+			v-show="props.isCompactToolbarOpen"
 			class="flex items-center gap-1.5 px-2 py-1 max-md:px-1 max-md:py-0.5 overflow-visible flex-nowrap"
 		>
 			<FileSection

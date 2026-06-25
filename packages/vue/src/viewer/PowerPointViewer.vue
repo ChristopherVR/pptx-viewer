@@ -1884,6 +1884,8 @@ const drawingWidth = ref(2);
 const inspectorOpen = ref(true);
 /** Left slides-rail collapse (Quick-Access sidebar toggle). */
 const sidebarCollapsed = ref(false);
+/** Ribbon content expanded (true) vs collapsed to just the tab bar (false). */
+const ribbonExpanded = ref(true);
 const overflowOpen = ref(false);
 /** Status-bar Notes toggle: expands/collapses the desktop notes panel. */
 const notesExpanded = ref(true);
@@ -2108,7 +2110,7 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	isNarrowViewport: isMobile.value,
 	isSidebarCollapsed: sidebarCollapsed.value,
 	isInspectorPaneOpen: inspectorOpen.value,
-	isCompactToolbarOpen: true,
+	isCompactToolbarOpen: ribbonExpanded.value,
 	toolbarSection: toolbarSection.value,
 	scale: zoom.value,
 	canUndo: history.canUndo.value,
@@ -2164,7 +2166,9 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	},
 	onAddAnimation,
 	onRemoveAnimation,
-	onToggleCompactToolbar: noop,
+	onToggleCompactToolbar: () => {
+		ribbonExpanded.value = !ribbonExpanded.value;
+	},
 	onSetToolbarSection: (sec) => {
 		toolbarSection.value = sec;
 	},
