@@ -8,6 +8,12 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **react:** Real editTemplateMode gating; drop dead template-elements scaffold (by @ChristopherVR) ([a2ef59d](https://github.com/ChristopherVR/pptx-viewer/commit/a2ef59d3c8b1135d666d74c62b976f0edfdbeed3))
+
+## [1.1.57](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.57) - 2026-06-25
+
+### Features
+
 - **angular:** Real editTemplateMode gating for master/layout elements (by @ChristopherVR) ([ca0d405](https://github.com/ChristopherVR/pptx-viewer/commit/ca0d405fb5cfbc6f1beb788fdc1fe35c8329c8e1))
 - **vue:** Real editTemplateMode gating for master/layout elements (by @ChristopherVR) ([1418b53](https://github.com/ChristopherVR/pptx-viewer/commit/1418b536c788ba503c8cb775b5de29fe9cd03d5a))
 
