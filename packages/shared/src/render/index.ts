@@ -368,6 +368,18 @@ export * from './presenter-mobile';
 // far to scroll the focused field into the area above the keyboard. Each binding
 // wires the visualViewport resize listener; the maths is shared here.
 export * from './mobile-keyboard';
+// Mobile viewport: breakpoint constants + the pure `isMobileViewport` /
+// `isTabletViewport` predicates and `detectTouchDevice` / `detectOrientation`
+// probes behind each binding's `useIsMobile`. The reactive wiring stays per
+// binding; the thresholds and DOM probes are shared so all three switch chrome
+// identically.
+export * from './mobile-viewport';
+// Format helpers: framework-agnostic date / timestamp display formatters for
+// the document-properties and version-history panels.
+export * from './format-helpers';
+// Broadcast helpers: room-id generation, start-form validation, and the
+// viewer-link builder for the one-way broadcast (presenter -> viewers) session.
+export * from './broadcast-helpers';
 // Presenter view: notes font-size clamp + step constants, clock/elapsed-time
 // formatting, and rich-text notes -> framework-agnostic `NotesSpan[]` render
 // spec. Each binding renders the spec into its own nodes.

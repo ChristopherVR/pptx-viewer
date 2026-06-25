@@ -42,6 +42,7 @@ import type { AlignEdge } from 'pptx-viewer-shared';
 import {
 	alignElements,
 	applyDragDelta,
+	buildBroadcastViewerUrl,
 	createDefaultChartElement,
 	openPptxFile,
 	setCellText,
@@ -1537,8 +1538,7 @@ const broadcastViewerUrl = computed(() => {
 		return '';
 	}
 	const { roomId, serverUrl } = broadcastConfig.value;
-	const base = `${window.location.origin}${window.location.pathname}`;
-	return `${base}?broadcast=${encodeURIComponent(roomId)}&server=${encodeURIComponent(serverUrl)}`;
+	return buildBroadcastViewerUrl(roomId, serverUrl, window.location);
 });
 function onBroadcastStart(config: { roomId: string; serverUrl: string }): void {
 	broadcastConfig.value = config;

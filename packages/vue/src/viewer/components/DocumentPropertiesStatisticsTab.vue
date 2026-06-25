@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatIsoDate as formatDate } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 
 import type { DocumentStatistics } from '../composables/useDocumentStatistics';
@@ -15,14 +16,6 @@ const props = defineProps<{
 	/** Computed statistics for the loaded presentation. */
 	statistics: DocumentStatistics;
 }>();
-
-function formatDate(value: string | undefined): string {
-	if (!value) {
-		return '—';
-	}
-	const date = new Date(value);
-	return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
-}
 
 interface StatRow {
 	label: string;

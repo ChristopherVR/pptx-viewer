@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PptxCoreProperties } from 'pptx-viewer-core';
+import { formatIsoDate as formatDate } from 'pptx-viewer-shared';
 import { ref, watch } from 'vue';
 
 import ModalDialog from './ModalDialog.vue';
@@ -59,14 +60,6 @@ watch(
 	},
 	{ immediate: true },
 );
-
-function formatDate(value: string | undefined): string {
-	if (!value) {
-		return '—';
-	}
-	const date = new Date(value);
-	return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
-}
 
 function handleSave(): void {
 	const next: Partial<PptxCoreProperties> = {};
