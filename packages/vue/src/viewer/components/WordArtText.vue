@@ -5,6 +5,7 @@ import {
 	buildWarpPath,
 	classifyTextWarp,
 	getWarpCssTransform,
+	normalizeHexColor,
 	shouldUseSvgWarp,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
@@ -39,15 +40,6 @@ const DEFAULT_TEXT_COLOR = '#111827';
 const DEFAULT_FONT_FAMILY = '"Segoe UI", "Helvetica Neue", Arial, sans-serif';
 const DEFAULT_TEXT_FONT_SIZE = 24;
 const HYPERLINK_COLOR = '#0563C1';
-
-/** Normalise a colour to a 6-digit `#rrggbb` hex, or return the fallback. */
-function normalizeHexColor(value: string | undefined, fallback: string): string {
-	if (!value || value === 'transparent') {
-		return fallback;
-	}
-	const candidate = value.startsWith('#') ? value : `#${value}`;
-	return /^#[0-9A-Fa-f]{6}$/u.test(candidate) ? candidate : fallback;
-}
 
 interface WarpParagraph {
 	segments: TextSegment[];

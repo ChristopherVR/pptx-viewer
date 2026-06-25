@@ -9,6 +9,7 @@ import {
 	getComputedEffectStyle,
 	getComputedFillStyle,
 	getContainerStyle as sharedGetContainerStyle,
+	getCssBorderDashStyle,
 	getImageSrc as sharedGetImageSrc,
 	getResolvedShapeClipPath,
 	px,
@@ -59,17 +60,6 @@ function resolveLineHeight(
 	return ts?.lineSpacing ?? (hasItalic ? 1.35 : 1.25);
 }
 
-/** Map an OOXML stroke-dash value to a CSS `border-style` keyword. */
-function cssBorderDashStyle(strokeDash: string | undefined): 'solid' | 'dotted' | 'dashed' {
-	if (!strokeDash || strokeDash === 'solid') {
-		return 'solid';
-	}
-	if (strokeDash === 'dot' || strokeDash === 'sysDot') {
-		return 'dotted';
-	}
-	return 'dashed';
-}
-
 /**
  * Absolute container style: position, size, rotation, flip, opacity, z-index.
  * Mirrors the essentials of the React `getContainerStyle`.
@@ -112,7 +102,7 @@ export function getShapeFillStrokeStyle(el: PptxElement): CSSProperties {
 		// Stroke.
 		const strokeWidth = Math.max(0, ss.strokeWidth ?? 0);
 		if (strokeWidth > 0) {
-			style.border = `${px(strokeWidth)} ${cssBorderDashStyle(ss.strokeDash)} ${ss.strokeColor ?? DEFAULT_STROKE_COLOR}`;
+			style.border = `${px(strokeWidth)} ${getCssBorderDashStyle(ss.strokeDash)} ${ss.strokeColor ?? DEFAULT_STROKE_COLOR}`;
 		}
 	}
 
@@ -190,7 +180,7 @@ export function getShapeFillStrokeStyle(el: PptxElement): CSSProperties {
 		const strokeWidth = Math.max(0, el.shapeStyle?.strokeWidth ?? 0);
 		style.backgroundColor = 'transparent';
 		style.border = 'none';
-		style.borderTop = `${px(Math.max(strokeWidth, 2))} ${cssBorderDashStyle(el.shapeStyle?.strokeDash)} ${el.shapeStyle?.strokeColor ?? DEFAULT_STROKE_COLOR}`;
+		style.borderTop = `${px(Math.max(strokeWidth, 2))} ${getCssBorderDashStyle(el.shapeStyle?.strokeDash)} ${el.shapeStyle?.strokeColor ?? DEFAULT_STROKE_COLOR}`;
 		return style;
 	}
 
