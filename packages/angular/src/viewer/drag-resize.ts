@@ -1,12 +1,26 @@
 /**
  * Pure geometry for interactive element drag/resize.
  *
- * Stage-space deltas in, a new bounding box out: no DOM, no framework, so the
- * SlideCanvas pointer wiring stays thin and the maths is unit-testable.
+ * Thin Angular-facing shim over the shared `element-interaction` math. The
+ * shared helpers carry a `zoom` and an optional `rotation`; the SlideCanvas
+ * already divides pointer deltas by the zoom before calling these and works in
+ * un-rotated stage space, so the shim adapts the call (zoom = 1, axis-aligned
+ * box) and returns a plain `Box` (no `rotation` field) to keep the existing
+ * call sites and tests unchanged.
+ *
+ * `handleCursor` / `handleAnchor` are render-display helpers used only by the
+ * Angular SlideCanvas, so they stay local here rather than in shared.
  */
+import {
+	applyDragDelta as sharedApplyDragDelta,
+	applyResize as sharedApplyResize,
+	computeMarqueeHitIds as sharedComputeMarqueeHitIds,
+	RESIZE_HANDLES as SHARED_RESIZE_HANDLES,
+} from '../internal/shared';
+import type { MarqueeElementRect, ResizeHandleId } from '../internal/shared';
 
 /** The eight resize-handle positions around a selection box. */
-export type ResizeHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
+export type ResizeHandle = ResizeHandleId;
 
 /** An axis-aligned box in stage (slide) coordinates. */
 export interface Box {
@@ -17,7 +31,7 @@ export interface Box {
 }
 
 /** All handles, in render order (corners + edge midpoints). */
-export const RESIZE_HANDLES: readonly ResizeHandle[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+export const RESIZE_HANDLES: readonly ResizeHandle[] = SHARED_RESIZE_HANDLES;
 
 /** Minimum element size (px) a resize is clamped to. */
 export const MIN_RESIZE = 8;
@@ -48,7 +62,8 @@ export function handleAnchor(handle: ResizeHandle): { fx: number; fy: number } {
 
 /** Translate a box by a stage-space delta. */
 export function applyMove(start: Box, dx: number, dy: number): Box {
-	return { x: start.x + dx, y: start.y + dy, width: start.width, height: start.height };
+	const r = sharedApplyDragDelta(start, dx, dy, 1);
+	return { x: r.x, y: r.y, width: r.width, height: r.height };
 }
 
 /**
@@ -63,35 +78,28 @@ export function applyResize(
 	dy: number,
 	min: number = MIN_RESIZE,
 ): Box {
-	let { x, y, width, height } = start;
+	const r = sharedApplyResize(start, handle, dx, dy, 1, { minSize: min });
+	return { x: r.x, y: r.y, width: r.width, height: r.height };
+}
 
-	if (handle.includes('e')) {
-		width = start.width + dx;
-	}
-	if (handle.includes('s')) {
-		height = start.height + dy;
-	}
-	if (handle.includes('w')) {
-		width = start.width - dx;
-		x = start.x + dx;
-	}
-	if (handle.includes('n')) {
-		height = start.height - dy;
-		y = start.y + dy;
-	}
-
-	if (width < min) {
-		if (handle.includes('w')) {
-			x = start.x + start.width - min;
-		}
-		width = min;
-	}
-	if (height < min) {
-		if (handle.includes('n')) {
-			y = start.y + start.height - min;
-		}
-		height = min;
-	}
-
-	return { x, y, width, height };
+/**
+ * Element ids hit by an already-normalised marquee rectangle (stage-space
+ * `{x, y, width, height}`), in element array order.
+ *
+ * Adapts the shared corner-based `computeMarqueeHitIds` to the SlideCanvas's
+ * normalised rect. `minSize` is 0 here (the SlideCanvas does not clamp tiny
+ * elements during marquee selection), preserving the previous inline AABB
+ * filter's behaviour.
+ */
+export function marqueeHitIds(rect: Box, elements: readonly MarqueeElementRect[]): string[] {
+	return sharedComputeMarqueeHitIds(
+		{
+			startX: rect.x,
+			startY: rect.y,
+			currentX: rect.x + rect.width,
+			currentY: rect.y + rect.height,
+		},
+		elements,
+		0,
+	);
 }
