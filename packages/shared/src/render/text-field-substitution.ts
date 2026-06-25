@@ -1,0 +1,190 @@
+/**
+ * Text-field placeholder substitution, shared by every binding's text
+ * renderer.
+ *
+ * Pure string logic: resolves OOXML field runs (slide number, date/time,
+ * header/footer, document properties, slide title) into their display text.
+ * Extracted from the React `viewer/utils/text-field-substitution` module so
+ * every binding substitutes identically.
+ */
+
+/** Context for substituting field placeholders (slide number, date/time, header/footer, etc.). */
+export interface FieldSubstitutionContext {
+	slideNumber?: number;
+	dateTimeText?: string;
+	/** OOXML date-format pattern from header/footer settings (e.g. "M/d/yyyy"). */
+	dateFormat?: string;
+	/** Footer text from PptxHeaderFooter settings. */
+	footerText?: string;
+	/** Header text from PptxHeaderFooter settings. */
+	headerText?: string;
+	/** Custom document properties for `docproperty` field substitution (keyed by property name). */
+	customProperties?: ReadonlyArray<{ name: string; value: string }>;
+	/** Locale string for date/time formatting (e.g. "en-US"). Falls back to browser default. */
+	locale?: string;
+	/** Title text extracted from the first title placeholder on the slide. */
+	slideTitle?: string;
+}
+
+/**
+ * Map OOXML predefined datetime field types (datetime1-datetime13) to format
+ * patterns as defined in ISO/IEC 29500 §19.7.26.
+ */
+const DATETIME_TYPE_FORMATS: Record<string, string> = {
+	datetime1: 'M/d/yyyy',
+	datetime2: 'EEEE, MMMM d, yyyy',
+	datetime3: 'd MMMM yyyy',
+	datetime4: 'MMMM d, yyyy',
+	datetime5: 'dd-MMM-yy',
+	datetime6: 'MMMM yy',
+	datetime7: 'MMM-yy',
+	datetime8: 'M/d/yyyy h:mm a',
+	datetime9: 'M/d/yyyy h:mm:ss a',
+	datetime10: 'H:mm',
+	datetime11: 'H:mm:ss',
+	datetime12: 'h:mm a',
+	datetime13: 'h:mm:ss a',
+};
+
+/**
+ * Format a Date using a simple OOXML-style date/time pattern.
+ *
+ * Supports tokens: yyyy, yy, EEEE (full weekday), EEE (abbr weekday),
+ * MMMM, MMM, MM, M, dd, d, HH, H, hh, h, mm, ss, a (AM/PM).
+ *
+ * Token replacement is done largest-first so shorter tokens don't clobber
+ * longer ones (e.g. M vs MM vs MMM vs MMMM).
+ */
+function formatDateWithPattern(date: Date, pattern: string): string {
+	const months = [
+		'January',
+		'February',
+		'March',
+		'April',
+		'May',
+		'June',
+		'July',
+		'August',
+		'September',
+		'October',
+		'November',
+		'December',
+	];
+	const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+	const pad = (n: number) => String(n).padStart(2, '0');
+	const h12 = (h: number) => (h === 0 ? 12 : h > 12 ? h - 12 : h);
+	const hours = date.getHours();
+
+	// Sequential replacement, longest tokens first so shorter tokens don't
+	// clobber the longer ones.
+	let result = pattern;
+
+	// Four-char tokens first
+	result = result.replace(/yyyy/gu, String(date.getFullYear()));
+	result = result.replace(/EEEE/gu, days[date.getDay()]);
+	result = result.replace(/MMMM/gu, months[date.getMonth()]);
+
+	// Three-char tokens
+	result = result.replace(/EEE/gu, days[date.getDay()].slice(0, 3));
+	result = result.replace(/MMM/gu, months[date.getMonth()].slice(0, 3));
+
+	// Two-char tokens
+	result = result.replace(/yy/gu, String(date.getFullYear()).slice(2));
+	result = result.replace(/MM/gu, pad(date.getMonth() + 1));
+	result = result.replace(/dd/gu, pad(date.getDate()));
+	result = result.replace(/HH/gu, pad(hours));
+	result = result.replace(/hh/gu, pad(h12(hours)));
+	result = result.replace(/mm/gu, pad(date.getMinutes()));
+	result = result.replace(/ss/gu, pad(date.getSeconds()));
+
+	// Single-char tokens (lookbehind/lookahead avoid matching inside longer tokens)
+	result = result.replace(/(?<![A-Za-z])M(?![A-Za-z])/gu, String(date.getMonth() + 1));
+	result = result.replace(/(?<![A-Za-z])d(?![A-Za-z])/gu, String(date.getDate()));
+	result = result.replace(/(?<![A-Za-z])H(?![A-Za-z])/gu, String(hours));
+	result = result.replace(/(?<![A-Za-z])h(?![A-Za-z])/gu, String(h12(hours)));
+
+	// AM/PM marker
+	result = result.replace(/\ba\b/gu, hours >= 12 ? 'PM' : 'AM');
+
+	return result;
+}
+
+/**
+ * Resolve a formatted date string for a given field type.
+ *
+ * Resolution order:
+ * 1. Explicit `dateFormat` from header/footer settings (the `@_dtFmt` attribute).
+ * 2. Predefined format from the field type (`datetime1`-`datetime13`).
+ * 3. Locale-aware fallback via `toLocaleDateString()`.
+ */
+export function resolveFieldDateText(fieldType: string, dateFormat?: string): string {
+	const now = new Date();
+	// Explicit format string from the PPTX header/footer settings
+	if (dateFormat) {
+		return formatDateWithPattern(now, dateFormat);
+	}
+	// Map known OOXML datetime field types to their predefined format
+	const knownFormat = DATETIME_TYPE_FORMATS[fieldType.toLowerCase()];
+	if (knownFormat) {
+		return formatDateWithPattern(now, knownFormat);
+	}
+	// Fallback: locale string
+	return now.toLocaleDateString();
+}
+
+/**
+ * Apply field substitution to a text segment if it has a `fieldType`.
+ * Returns the substituted text, or the original text if no substitution applies.
+ */
+export function substituteFieldText(
+	segmentText: string,
+	fieldType: string | undefined,
+	ctx?: FieldSubstitutionContext,
+): string {
+	if (!fieldType || !ctx) {
+		return segmentText;
+	}
+	const fl = fieldType.toLowerCase();
+	if (fl === 'slidenum' && ctx.slideNumber !== undefined) {
+		return String(ctx.slideNumber);
+	}
+	if (fl.startsWith('datetime')) {
+		// Use format-aware date text (prefer explicit dateFormat, then field type mapping)
+		return resolveFieldDateText(fl, ctx.dateFormat);
+	}
+	// Footer field -> resolve from header/footer settings
+	if (fl === 'footer' && ctx.footerText !== undefined) {
+		return ctx.footerText;
+	}
+	// Header field -> resolve from header/footer settings
+	if (fl === 'header' && ctx.headerText !== undefined) {
+		return ctx.headerText;
+	}
+	// Current date -> system date formatted with locale
+	if (fl === 'currentdate') {
+		return new Date().toLocaleDateString(ctx.locale);
+	}
+	// Current time -> system time formatted with locale
+	if (fl === 'currenttime') {
+		return new Date().toLocaleTimeString(ctx.locale);
+	}
+	// Slide title -> resolved from the first title placeholder on the slide
+	if (fl === 'slidetitle' && ctx.slideTitle !== undefined) {
+		return ctx.slideTitle;
+	}
+	// Document property -> look up by name from custom properties
+	if (fl.startsWith('docproperty') && ctx.customProperties) {
+		// Field type format: "docproperty" or "docproperty.PropertyName"
+		const dotIdx = fieldType.indexOf('.');
+		const propName = dotIdx >= 0 ? fieldType.substring(dotIdx + 1).trim() : '';
+		if (propName) {
+			const prop = ctx.customProperties.find(
+				(p) => p.name.toLowerCase() === propName.toLowerCase(),
+			);
+			if (prop) {
+				return prop.value;
+			}
+		}
+	}
+	return segmentText;
+}

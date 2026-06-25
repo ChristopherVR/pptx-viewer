@@ -31,8 +31,9 @@ import {
 	classifyTextWarp,
 	getEnvelopeCssTransform,
 	getSimpleCssTransform,
+	groupIntoParagraphs,
 } from '../internal/shared';
-import type { WarpCategory as SharedWarpCategory } from '../internal/shared';
+import type { WarpCategory as SharedWarpCategory, WarpParagraph } from '../internal/shared';
 import { getWarpPath, shouldUseSvgWarp } from './warp-path-generators';
 
 // ── Warp category classifier ───────────────────────────────────────────
@@ -55,46 +56,12 @@ export const ALL_CLASSIFIED_PRESETS: ReadonlySet<string> = SHARED_ALL_CLASSIFIED
 export const getWarpCategory: (preset: string | undefined) => WarpCategory = classifyTextWarp;
 
 // ── Paragraph helper ───────────────────────────────────────────────────
+// `groupIntoParagraphs` + `WarpParagraph` now live in pptx-viewer-shared
+// (render/text-warp), shared with the React + Vue warp renderers. Re-exported
+// here under the same names so existing Angular import paths keep working.
 
-/** A paragraph extracted from an element's textSegments. */
-export interface WarpParagraph {
-	/** Text segments belonging to this paragraph (no paragraph-break segments). */
-	segments: TextSegment[];
-}
-
-/**
- * Split an element's `textSegments` into paragraphs.
- * Paragraph-break segments are used as delimiters and excluded from output.
- * Falls back to a single synthetic paragraph when only `element.text` is set.
- */
-export function groupIntoParagraphs(el: {
-	text?: string;
-	textSegments?: TextSegment[];
-}): WarpParagraph[] {
-	const segs = el.textSegments;
-	if (!segs || segs.length === 0) {
-		if (el.text) {
-			return [{ segments: [{ text: el.text, style: {} }] }];
-		}
-		return [];
-	}
-	const paragraphs: WarpParagraph[] = [];
-	let current: TextSegment[] = [];
-	for (const seg of segs) {
-		if (seg.isParagraphBreak) {
-			if (current.length > 0) {
-				paragraphs.push({ segments: current });
-			}
-			current = [];
-		} else {
-			current.push(seg);
-		}
-	}
-	if (current.length > 0) {
-		paragraphs.push({ segments: current });
-	}
-	return paragraphs;
-}
+export type { WarpParagraph };
+export { groupIntoParagraphs };
 
 // ── TextWarpDef shape ──────────────────────────────────────────────────
 

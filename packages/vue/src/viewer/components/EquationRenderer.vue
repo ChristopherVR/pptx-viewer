@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import DOMPurify from 'dompurify';
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { OmmlNode } from 'pptx-viewer-shared';
-import { convertOmmlToMathMl } from 'pptx-viewer-shared';
+import { convertOmmlToMathMl, sanitizeMathMl } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
@@ -39,21 +38,8 @@ interface RenderedEquation {
 	number?: string;
 }
 
-/**
- * Sanitise a MathML markup string. Falls back to the raw input when
- * `DOMPurify.sanitize` is unavailable (e.g. non-DOM test environments); the
- * XSS surface only matters in real browsers. MathML + SVG profiles are enabled
- * so `<math>` / `<mfrac>` / `<msqrt>` … survive sanitisation.
- */
-function sanitizeMathMl(markup: string): string {
-	const purify = DOMPurify as unknown as {
-		sanitize?: (dirty: string, cfg?: Record<string, unknown>) => string;
-	};
-	if (typeof purify.sanitize !== 'function') {
-		return markup;
-	}
-	return purify.sanitize(markup, { USE_PROFILES: { mathMl: true, svg: true } });
-}
+// `sanitizeMathMl` (DOMPurify MathML+SVG wrapper with non-DOM fallback) is
+// shared with React via pptx-viewer-shared (render/mathml-sanitize).
 
 /** Extract + convert every equation segment on the element. */
 const equations = computed<RenderedEquation[]>(() => {

@@ -61,7 +61,11 @@
 		"test:watch": "vitest",
 		"pack": "bun run build && bun pm pack"
 	},
+	"dependencies": {
+		"dompurify": "^3.4.11"
+	},
 	"devDependencies": {
+		"@types/dompurify": "^3.2.0",
 		"@types/three": "^0.184.1",
 		"pptx-viewer-core": "workspace:*",
 		"three": "^0.184.0",

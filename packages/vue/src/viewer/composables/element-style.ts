@@ -13,6 +13,7 @@ import {
 	getImageSrc as sharedGetImageSrc,
 	getResolvedShapeClipPath,
 	px,
+	resolveLineHeight,
 } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 
@@ -41,24 +42,9 @@ import { getComputed3dStyle, merge3dStyle } from './visual-3d';
 const DEFAULT_BODY_INSET_LR_PX = 91440 / 9525;
 const DEFAULT_BODY_INSET_TB_PX = 45720 / 9525;
 
-/**
- * Resolve the CSS `line-height` for a text block, mirroring React's
- * `resolveLineHeight`: an exact point spacing (`a:lnSpc > a:spcPts`) wins and
- * renders as a fixed `Xpt`; otherwise the proportional multiplier (`a:spcPct`)
- * is used, defaulting to 1.25 (1.35 when the block carries italics, which sit
- * slightly taller). Returning a unitless multiplier lets it scale with the
- * resolved font size, matching React, which never relies on the browser's
- * font-dependent `normal` (≈1.2–1.5).
- */
-function resolveLineHeight(
-	ts: { lineSpacing?: number; lineSpacingExactPt?: number } | undefined,
-	hasItalic: boolean,
-): string | number {
-	if (typeof ts?.lineSpacingExactPt === 'number' && ts.lineSpacingExactPt > 0) {
-		return `${ts.lineSpacingExactPt}pt`;
-	}
-	return ts?.lineSpacing ?? (hasItalic ? 1.35 : 1.25);
-}
+// `resolveLineHeight` (exact-pt vs proportional multiplier, italic-aware
+// default) now lives in pptx-viewer-shared (render/text-style-helpers), shared
+// with React.
 
 /**
  * Absolute container style: position, size, rotation, flip, opacity, z-index.

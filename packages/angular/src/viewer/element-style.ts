@@ -8,6 +8,7 @@ import {
 	getContainerStyle as sharedGetContainerStyle,
 	getImageSrc as sharedGetImageSrc,
 	px,
+	resolveLineHeight,
 } from '../internal/shared';
 import { buildCssGradientFromShapeStyle } from './color-gradient';
 import { buildPatternFillCss } from './color-patterns';
@@ -188,6 +189,11 @@ export function getTextBlockStyle(el: PptxElement): StyleMap {
 		// overflowed text boxes and broke visual parity (e2e: text-rendering.spec).
 		style['font-size'] = `${ts.fontSize}px`;
 	}
+	// Line spacing: an exact-pt spacing wins (`Xpt`); else the proportional
+	// multiplier, defaulting to 1.25 (1.35 with italics). Without this Angular
+	// relied on the browser's font-dependent `normal` (~1.2-1.5), loosening
+	// multi-line text out of its box vs React/Vue. Shared with both bindings.
+	style['line-height'] = resolveLineHeight(ts, Boolean(ts.italic));
 	if (ts.bold) {
 		style['font-weight'] = 'bold';
 	}

@@ -9,8 +9,10 @@ export default defineConfig((options) => ({
 	clean: !options.watch,
 	// pptx-viewer-core is a peer of every UI binding; keep it external so the
 	// host app dedupes a single copy of the engine. `three` is an optional peer
-	// behind the `smartart-3d` entry; never bundle it.
-	external: ['pptx-viewer-core', 'three', /^three\//u],
+	// behind the `smartart-3d` entry; never bundle it. `dompurify` (MathML
+	// sanitisation) is likewise external: every binding already ships it, so the
+	// host app dedupes a single copy rather than inlining it into shared.
+	external: ['pptx-viewer-core', 'three', /^three\//u, 'dompurify'],
 	treeshake: true,
 	platform: 'neutral',
 }));

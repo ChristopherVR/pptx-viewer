@@ -234,6 +234,25 @@ export * from './snap-guides';
 export * from './ruler';
 export * from './bullet-autonum';
 export * from './bullet-list';
+// Text CSS-builder helpers (framework-agnostic, neutral CSS records/strings):
+// `text-style-helpers` (line-height + vertical writing-mode + auto-fit scale),
+// `text-decoration` (16 OOXML underline styles -> text-decoration), `text-
+// paragraph-style` (per-paragraph BiDi + text-align resolution), `text-field-
+// substitution` (slide-number/date/header-footer/docproperty field text), and
+// the text-effect builders `text-fill` (gradient/pattern background-clip:text),
+// `text-effects` (shadow/glow/blur/HSL/reflection/alpha), `text-effects-3d`
+// (extrusion/bevel text-shadow stack + scene perspective). Each binding casts
+// the neutral record to its own style type; React keeps the JSX (SVG filters).
+export * from './text-style-helpers';
+export * from './text-decoration';
+export * from './text-paragraph-style';
+export * from './text-field-substitution';
+export * from './text-fill';
+export * from './text-effects';
+export * from './text-effects-3d';
+// MathML/SVG sanitisation (DOMPurify wrapper, non-DOM fallback) for equation
+// rendering. React + Vue consume it; Angular uses its own DomSanitizer.
+export * from './mathml-sanitize';
 export * from './text-paragraphs';
 export * from './text-advanced';
 export * from './text-theme';
