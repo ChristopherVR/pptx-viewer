@@ -12,6 +12,20 @@ import type { ZoomViewport } from './canvas-types';
 /** Max delay (ms) between two taps to count as a double-tap on touch. */
 const DOUBLE_TAP_MS = 300;
 
+/**
+ * True only when the mouse-down landed directly on the scrollable viewport
+ * background (the event target is the bound element itself, not a bubbled child
+ * such as the slide stage, rulers, handles, or any nested content). Used to
+ * treat empty-workspace clicks around a centered slide as a selection-clearing
+ * click, mirroring empty slide-stage clicks.
+ */
+export function isViewportBackgroundMouseDownTarget(
+	target: EventTarget | null,
+	currentTarget: EventTarget | null,
+): boolean {
+	return target === currentTarget;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
@@ -44,6 +58,11 @@ export interface CanvasEventHandlers {
 	handleStageClick: (e: React.MouseEvent) => void;
 	handleStageDblClick: (e: React.MouseEvent) => void;
 	handleStageMouseDown: (e: React.MouseEvent) => void;
+	/**
+	 * Press on the scrollable viewport background (empty workspace around the
+	 * slide). Clears selection only for direct viewport-background clicks.
+	 */
+	handleViewportMouseDown: (e: React.MouseEvent) => void;
 	/** Touch/pen press on the stage; mirrors handleStageMouseDown for coarse pointers. */
 	handleStagePointerDown: (e: React.PointerEvent) => void;
 	handleStageContextMenu: (e: React.MouseEvent) => void;
@@ -166,6 +185,21 @@ export function useCanvasEventHandlers({
 		[cbRef, onCanvasMouseDown],
 	);
 
+	/* ── Viewport-background press (empty workspace) ──────────────── */
+	// The slide stage is centered inside a larger scrollable viewport, so clicks
+	// in the blank space around the slide land on the viewport container itself.
+	// Treat those direct hits like an empty stage click so selection clears;
+	// bubbled child events (stage, rulers, handles, content) are ignored.
+	const handleViewportMouseDown = useCallback(
+		(e: React.MouseEvent) => {
+			if (!isViewportBackgroundMouseDownTarget(e.target, e.currentTarget)) {
+				return;
+			}
+			onCanvasMouseDown?.(e);
+		},
+		[onCanvasMouseDown],
+	);
+
 	/* ── Touch/pen press on the stage ─────────────────────────────── */
 	// Mouse continues to use handleStageMouseDown (above) so desktop behaviour
 	// is untouched. For touch/pen we run the same delegation here: capture the
@@ -253,6 +287,7 @@ export function useCanvasEventHandlers({
 		handleStageClick,
 		handleStageDblClick,
 		handleStageMouseDown,
+		handleViewportMouseDown,
 		handleStagePointerDown,
 		handleStageContextMenu,
 		draggingGuide,

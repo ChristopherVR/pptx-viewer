@@ -129,6 +129,7 @@ export function SlideCanvas({
 		handleStageClick,
 		handleStageDblClick,
 		handleStageMouseDown,
+		handleViewportMouseDown,
 		handleStagePointerDown,
 		handleStageContextMenu,
 		setDraggingGuide,
@@ -182,6 +183,7 @@ export function SlideCanvas({
 			data-pptx-viewport
 			className='flex-1 overflow-auto relative'
 			style={{ touchAction: 'pan-x pan-y' }}
+			onMouseDown={handleViewportMouseDown}
 		>
 			<div
 				ref={zoom.editWrapperRef}
