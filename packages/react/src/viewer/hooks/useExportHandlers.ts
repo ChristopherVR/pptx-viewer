@@ -34,6 +34,7 @@ export { downloadBlob } from '../utils/dom-helpers';
 export function useExportHandlers(input: UseExportHandlersInput): ExportHandlersResult {
 	const {
 		slides,
+		templateElementsBySlideId,
 		activeSlide,
 		activeSlideIndex,
 		filePath,
@@ -76,6 +77,7 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		handleSaveAsPptm,
 	} = useExportSaveAs({
 		slides,
+		templateElementsBySlideId,
 		filePath,
 		handlerRef,
 		serializeSlides,

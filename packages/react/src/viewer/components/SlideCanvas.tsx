@@ -1,8 +1,4 @@
-import {
-	getShapeAdjustmentHandleDescriptor,
-	isElementInteractive,
-	isTemplateEditingHighlight,
-} from '../utils';
+import { getShapeAdjustmentHandleDescriptor } from '../utils';
 /** SlideCanvas: Central canvas area for the PowerPoint editor. */
 import type { SlideCanvasProps } from './canvas/canvas-types';
 import {
@@ -262,6 +258,7 @@ export function SlideCanvas({
 							selectionColorClass='blue-400'
 							showHoverBorder={false}
 							opacity={0.95}
+							templateEditing={editTemplateMode}
 							zIndex={index}
 							imageAltText='Template element'
 							showResizeHandles={
@@ -304,13 +301,12 @@ export function SlideCanvas({
 							isSelected={selectedElementIdSet.has(element.id)}
 							isInlineEditing={inlineEditingElementId === element.id}
 							inlineEditingText={inlineEditingText}
-							canInteract={isElementInteractive(element, isEditableCanvas, editTemplateMode)}
+							canInteract={isEditableCanvas}
 							spellCheckEnabled={spellCheckEnabled}
 							mediaDataUrls={mediaDataUrls}
 							tableEditorState={tableEditorState}
 							selectionColorClass='blue-500'
 							showHoverBorder
-							templateEditing={isTemplateEditingHighlight(element, editTemplateMode)}
 							zIndex={templateElements.length + index}
 							imageAltText='Slide element'
 							showResizeHandles={

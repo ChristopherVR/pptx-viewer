@@ -4,7 +4,7 @@
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
-import { generateElementId } from '../utils/generate-id';
+import { makeCloneId } from '../utils/template-editing';
 import type { ClipboardHandlers } from './element-manipulation-types';
 import type { EditorHistoryResult } from './useEditorHistory';
 import type { ElementOperations } from './useElementOperations';
@@ -26,7 +26,6 @@ interface ClipboardInput {
 export function useClipboardHandlers(input: ClipboardInput): ClipboardHandlers {
 	const {
 		activeSlide,
-		activeSlideIndex,
 		selectedElement,
 		effectiveSelectedIds,
 		editTemplateMode,
@@ -52,16 +51,10 @@ export function useClipboardHandlers(input: ClipboardInput): ClipboardHandlers {
 			return;
 		}
 		const idSet = new Set(idsToDelete);
-		// Template (master/layout) elements live in `slide.elements` too, so every
-		// delete flows through the same slides path; deleting a template element
-		// persists to the shared part via the core save writer.
-		ops.updateSlides((prev) =>
-			prev.map((s, i) =>
-				i === activeSlideIndex
-					? { ...s, elements: s.elements.filter((el) => !idSet.has(el.id)) }
-					: s,
-			),
-		);
+		// Route to whichever store is being edited: in edit-template mode the
+		// selected ids are template elements in the template store; otherwise they
+		// are normal slide elements. Template deletes persist via buildSaveSlides.
+		ops.updateActiveElements((els) => els.filter((el) => !idSet.has(el.id)));
 		ops.clearSelection();
 		history.markDirty();
 	};
@@ -76,12 +69,12 @@ export function useClipboardHandlers(input: ClipboardInput): ClipboardHandlers {
 			return;
 		}
 		const clone = structuredClone(clipboardPayload.element);
-		clone.id = generateElementId();
+		// In edit-template mode the clone is inserted into the template store, so
+		// keep a template-prefixed id so later edits route to the same store.
+		clone.id = makeCloneId(editTemplateMode, clipboardPayload.element.id);
 		clone.x += 20;
 		clone.y += 20;
-		ops.updateSlides((prev) =>
-			prev.map((s, i) => (i === activeSlideIndex ? { ...s, elements: [...s.elements, clone] } : s)),
-		);
+		ops.updateActiveElements((els) => [...els, clone]);
 		ops.applySelection(clone.id);
 		history.markDirty();
 	};
@@ -91,12 +84,10 @@ export function useClipboardHandlers(input: ClipboardInput): ClipboardHandlers {
 			return;
 		}
 		const clone = structuredClone(selectedElement);
-		clone.id = generateElementId();
+		clone.id = makeCloneId(editTemplateMode, selectedElement.id);
 		clone.x += 20;
 		clone.y += 20;
-		ops.updateSlides((prev) =>
-			prev.map((s, i) => (i === activeSlideIndex ? { ...s, elements: [...s.elements, clone] } : s)),
-		);
+		ops.updateActiveElements((els) => [...els, clone]);
 		ops.applySelection(clone.id);
 		history.markDirty();
 	};

@@ -72,6 +72,7 @@ export function useIOHandlers(input: UseIOHandlersInput): IOHandlersResult {
 
 	const exportHandlers = useExportHandlers({
 		slides,
+		templateElementsBySlideId: state.templateElementsBySlideId,
 		activeSlide: slides[activeSlideIndex],
 		activeSlideIndex,
 		filePath,

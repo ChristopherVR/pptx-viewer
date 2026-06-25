@@ -1,4 +1,5 @@
 import type {
+	PptxElement,
 	PptxSlide,
 	PptxHandler,
 	PptxHeaderFooter,
@@ -20,6 +21,7 @@ import { useCallback } from 'react';
 import type React from 'react';
 
 import { remapTextToSegments } from '../utils/remap-text';
+import { buildSaveSlides } from '../utils/template-editing';
 
 // ---------------------------------------------------------------------------
 // Input
@@ -27,6 +29,8 @@ import { remapTextToSegments } from '../utils/remap-text';
 
 export interface UseSerializeInput {
 	slides: PptxSlide[];
+	/** Separated master/layout (template) elements, merged back at save time. */
+	templateElementsBySlideId: Record<string, PptxElement[]>;
 	activeSlideIndex: number;
 	guides: Array<{ id: string; axis: 'h' | 'v'; position: number }>;
 	headerFooter: PptxHeaderFooter;
@@ -50,6 +54,7 @@ export interface UseSerializeInput {
 export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array | null> {
 	const {
 		slides,
+		templateElementsBySlideId,
 		activeSlideIndex,
 		guides,
 		headerFooter,
@@ -111,7 +116,11 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 			};
 		});
 
-		return handler.save(slidesWithGuides, {
+		// Merge the separated template (master/layout) elements back into each
+		// slide so edits made in edit-template mode persist to the shared part.
+		const slidesToSave = buildSaveSlides(slidesWithGuides, templateElementsBySlideId);
+
+		return handler.save(slidesToSave, {
 			headerFooter,
 			presentationProperties,
 			customShows: customShows.length > 0 ? customShows : undefined,
@@ -124,6 +133,7 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 		});
 	}, [
 		slides,
+		templateElementsBySlideId,
 		headerFooter,
 		presentationProperties,
 		customShows,

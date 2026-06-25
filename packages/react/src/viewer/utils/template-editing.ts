@@ -1,49 +1,95 @@
 /**
- * template-editing.ts: pure gating logic for the editTemplateMode feature.
+ * template-editing.ts: helpers for the separate-state editTemplateMode feature.
  *
  * Template elements (decorative shapes a slide inherits from its layout or
- * master) are merged into `slide.elements` by the core loader, each carrying a
- * `layout-` / `master-` id prefix. They render on every slide that inherits the
- * same template part, so editing one mutates the shared part. To avoid
- * accidental edits, they are interaction-locked unless the user explicitly
- * turns on "edit template" mode.
+ * master) carry a `layout-` / `master-` id prefix. The core loader merges them
+ * into `slide.elements`; at load time the React viewer partitions them OUT into
+ * a dedicated `templateElementsBySlideId` store so they get their own editable
+ * render layer that is interaction-locked unless the user turns on "edit
+ * template" mode. Because editing one mutates the shared master/layout part,
+ * the separate store is merged BACK in front of each slide's own elements at
+ * save time via {@link buildSaveSlides} so template edits persist.
  *
- * This module owns the gate so the components stay thin (repo rule:
- * presentation-only components, no non-trivial logic inline). It mirrors the
- * Vue / Angular bindings.
+ * This module owns the pure logic so the components and hooks stay thin (repo
+ * rule: presentation-only components, framework-agnostic logic shared). It
+ * mirrors the Vue / Angular bindings.
  *
  * @module utils/template-editing
  */
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { isTemplateElement } from 'pptx-viewer-shared';
 
-/**
- * Whether `element` may be selected / dragged / deleted / edited on the canvas.
- *
- * - The canvas as a whole must be interactive (`canvasInteractive`); thumbnails,
- *   the export stage and presentation mode pass `false` and gate everything off.
- * - Normal (non-template) slide elements are always interactive when the canvas
- *   is.
- * - Template elements are interactive only while `editTemplateMode` is on.
- */
-export function isElementInteractive(
-	element: PptxElement,
-	canvasInteractive: boolean,
-	editTemplateMode: boolean,
-): boolean {
-	if (!canvasInteractive) {
-		return false;
-	}
-	return isTemplateElement(element) ? editTemplateMode : true;
+import { generateElementId } from './generate-id';
+
+/** Result of {@link partitionTemplateElements}. */
+export interface TemplatePartition {
+	/** Slides with template (master/layout) elements removed from `elements`. */
+	slides: PptxSlide[];
+	/** The removed template elements, keyed by slide id, preserving order. */
+	templateElementsBySlideId: Record<string, PptxElement[]>;
 }
 
 /**
- * Whether the element should show the "editable template" visual affordance:
- * only template elements, and only while edit-template mode is on.
+ * Split the loaded deck into its own slide content and the inherited template
+ * (master/layout) elements.
+ *
+ * The core loader merges template elements (id prefixed `layout-` / `master-`)
+ * into `slide.elements`. The separate-state architecture moves them OUT into a
+ * dedicated per-slide store so they get their own gated, editable render layer;
+ * {@link buildSaveSlides} merges them back at save time. Relative order is
+ * preserved on both sides. Slides without template elements keep their original
+ * identity.
  */
-export function isTemplateEditingHighlight(
-	element: PptxElement,
-	editTemplateMode: boolean,
-): boolean {
-	return editTemplateMode && isTemplateElement(element);
+export function partitionTemplateElements(slides: PptxSlide[]): TemplatePartition {
+	const templateElementsBySlideId: Record<string, PptxElement[]> = {};
+	const nextSlides = slides.map((slide) => {
+		const template = slide.elements.filter((el) => isTemplateElement(el));
+		if (template.length === 0) {
+			return slide;
+		}
+		templateElementsBySlideId[slide.id] = template;
+		return { ...slide, elements: slide.elements.filter((el) => !isTemplateElement(el)) };
+	});
+	return { slides: nextSlides, templateElementsBySlideId };
+}
+
+/**
+ * Merge the separated template (master/layout) elements back into each slide's
+ * `elements` array so a `handler.save(...)` call persists template edits.
+ *
+ * Template elements are placed BEHIND the slide's own elements (first in
+ * document order), matching the order the core loader produced on load. Slides
+ * with no template elements are returned unchanged (referentially stable) so
+ * callers can keep cheap identity checks.
+ */
+export function buildSaveSlides(
+	slides: PptxSlide[],
+	templateElementsBySlideId: Record<string, PptxElement[]>,
+): PptxSlide[] {
+	return slides.map((slide) => {
+		const template = templateElementsBySlideId[slide.id];
+		if (!template || template.length === 0) {
+			return slide;
+		}
+		return { ...slide, elements: [...template, ...slide.elements] };
+	});
+}
+
+/**
+ * Build the id for a pasted / duplicated clone so that it routes to the same
+ * store it is inserted into.
+ *
+ * In edit-template mode the clone lands in the template store, so it must keep
+ * a template (`master-` / `layout-`) prefix; otherwise later edits (which route
+ * by id prefix) would target the wrong store and be lost. Outside template mode
+ * a normal id is generated.
+ */
+export function makeCloneId(intoTemplate: boolean, sourceId: string): string {
+	if (!intoTemplate) {
+		return generateElementId();
+	}
+	if (sourceId.startsWith('master-')) {
+		return `master-${generateElementId()}`;
+	}
+	return `layout-${generateElementId()}`;
 }

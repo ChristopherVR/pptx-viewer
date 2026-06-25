@@ -1,4 +1,4 @@
-import type { PptxSlide, PptxSaveFormat, PptxHandler } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide, PptxSaveFormat, PptxHandler } from 'pptx-viewer-core';
 /**
  * Types and utility helpers for export handlers.
  */
@@ -6,6 +6,8 @@ import type { RefObject, MutableRefObject, Dispatch, SetStateAction } from 'reac
 
 export interface UseExportHandlersInput {
 	slides: PptxSlide[];
+	/** Separated master/layout (template) elements, merged back at save time. */
+	templateElementsBySlideId: Record<string, PptxElement[]>;
 	activeSlide: PptxSlide | undefined;
 	activeSlideIndex: number;
 	filePath: string | undefined;
