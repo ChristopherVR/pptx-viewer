@@ -214,6 +214,10 @@ export * from './editor-history';
 // OLE download/open helpers: file-size formatting + browser-openable MIME check
 // for the binding OLE renderers' download/open actions.
 export * from './ole-actions';
+// OLE type-resolution helpers: resolve an OlePptxElement to a narrowed
+// application type + per-type brand colour / label / aria label / badge text /
+// display name / placeholder box style. The icon/badge JSX stays per binding.
+export * from './ole-renderer-helpers';
 // Editor snap geometry: snap-to-shape (siblings + guides → snap lines, React/Vue
 // model), snap-to-box (closest-per-axis span guides, Angular model), grid
 // snapping. Pure maths; the pointer/drag driver stays in each binding.

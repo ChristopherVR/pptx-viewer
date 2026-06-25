@@ -4,6 +4,13 @@ import type {
 	OlePptxElement,
 	PptxElement,
 } from 'pptx-viewer-core';
+import {
+	getOleBadgeLabel,
+	getOleTypeColor,
+	getOleTypeLabel,
+	resolveOleType,
+} from 'pptx-viewer-shared';
+import type { ResolvedOleType } from 'pptx-viewer-shared';
 
 import { DEFAULT_TEXT_COLOR, MIN_ELEMENT_SIZE } from '../../constants';
 import {
@@ -32,6 +39,11 @@ import {
 } from '../../utils/ink-rendering';
 import type { InkReplayConfig } from '../../utils/ink-rendering';
 import { shapeParams } from '../ElementRenderer';
+
+// Re-export the shared OLE type-resolution helpers so existing consumers (and
+// the colocated tests) keep importing them from this module.
+export { getOleTypeColor, getOleTypeLabel, resolveOleType };
+export type { ResolvedOleType };
 
 /**
  * Options for ink rendering.
@@ -292,92 +304,6 @@ export function renderContentPart(el: ContentPartPptxElement, options?: InkRende
 }
 
 // ---------------------------------------------------------------------------
-// OLE type resolution helpers (exported for testing)
-// ---------------------------------------------------------------------------
-
-/** Resolved OLE type for rendering purposes. */
-export type ResolvedOleType = 'excel' | 'word' | 'pdf' | 'visio' | 'mathtype' | 'unknown';
-
-/**
- * Resolve an OLE element's application type from its `oleObjectType` or by
- * heuristic matching against `oleProgId`.
- *
- * Returns a narrowed type suitable for choosing an icon and colour.
- */
-export function resolveOleType(element: OlePptxElement): ResolvedOleType {
-	// Prefer the pre-resolved oleObjectType when it is set and meaningful.
-	if (
-		element.oleObjectType &&
-		element.oleObjectType !== 'package' &&
-		element.oleObjectType !== 'unknown'
-	) {
-		return element.oleObjectType as ResolvedOleType;
-	}
-
-	// Fall back to heuristic matching on progId.
-	const progId = element.oleProgId?.toLowerCase() ?? '';
-	if (progId.includes('excel')) {
-		return 'excel';
-	}
-	if (progId.includes('word')) {
-		return 'word';
-	}
-	if (progId.includes('acroexch') || progId.includes('acrobat') || progId.includes('pdf')) {
-		return 'pdf';
-	}
-	if (progId.includes('visio')) {
-		return 'visio';
-	}
-	if (progId.includes('equation') || progId.includes('mathtype')) {
-		return 'mathtype';
-	}
-
-	return 'unknown';
-}
-
-/**
- * Return a branded colour associated with the given OLE type.
- */
-export function getOleTypeColor(type: ResolvedOleType): string {
-	switch (type) {
-		case 'excel':
-			return '#217346';
-		case 'word':
-			return '#2B579A';
-		case 'pdf':
-			return '#D4272E';
-		case 'visio':
-			return '#3955A3';
-		case 'mathtype':
-			return '#7B2D8E';
-		case 'unknown':
-		default:
-			return '#666666';
-	}
-}
-
-/**
- * Return a human-readable label for the given OLE type.
- */
-export function getOleTypeLabel(type: ResolvedOleType): string {
-	switch (type) {
-		case 'excel':
-			return 'Excel Spreadsheet';
-		case 'word':
-			return 'Word Document';
-		case 'pdf':
-			return 'PDF Document';
-		case 'visio':
-			return 'Visio Diagram';
-		case 'mathtype':
-			return 'Math Equation';
-		case 'unknown':
-		default:
-			return 'Embedded Object';
-	}
-}
-
-// ---------------------------------------------------------------------------
 // Inline SVG icon functions (return JSX, not components)
 // ---------------------------------------------------------------------------
 
@@ -588,7 +514,7 @@ export function getOleAriaLabel(el: OlePptxElement): string {
  */
 export function renderOleBadge(oleType: ResolvedOleType) {
 	const color = getOleTypeColor(oleType);
-	const shortLabel = oleType === 'unknown' ? 'OLE' : oleType.toUpperCase();
+	const shortLabel = getOleBadgeLabel(oleType);
 	return (
 		<svg width='24' height='24' viewBox='0 0 24 24' className='absolute bottom-1 right-1 z-10'>
 			<rect x='2' y='2' width='20' height='20' rx='3' fill={color} />

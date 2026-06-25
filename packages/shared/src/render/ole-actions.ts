@@ -39,18 +39,25 @@ export function formatBytes(bytes?: number): string | undefined {
 
 /**
  * Whether a payload of the given MIME type can be opened directly in a browser
- * tab (PDF, images, plain text, JSON, XML). Everything else is download-only.
+ * tab (PDF, images, plain text, JSON, XML, XHTML). Everything else is
+ * download-only. Matching is case-insensitive and ignores any trailing
+ * `; charset=...` (or other `;`-delimited) parameter.
  */
 export function isBrowserOpenableMime(mime?: string): boolean {
 	if (!mime) {
 		return false;
 	}
-	const value = mime.trim().toLowerCase();
-	if (value === 'application/pdf') {
-		return true;
+	const value = mime.split(';', 1)[0]?.trim().toLowerCase() ?? '';
+	if (value.length === 0) {
+		return false;
 	}
 	if (value.startsWith('image/') || value.startsWith('text/')) {
 		return true;
 	}
-	return value === 'application/json' || value === 'application/xml';
+	return (
+		value === 'application/pdf' ||
+		value === 'application/json' ||
+		value === 'application/xml' ||
+		value === 'application/xhtml+xml'
+	);
 }
