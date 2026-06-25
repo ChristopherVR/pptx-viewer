@@ -8,6 +8,17 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **vue:** Slide background editing in the slide-properties inspector (by @ChristopherVR) ([73f20ae](https://github.com/ChristopherVR/pptx-viewer/commit/73f20aeb9a5061a0a175cf7b7a26a412285279d3))
+- **vue:** Transition direction/orientation/spokes in the slide inspector (by @ChristopherVR) ([e533ce7](https://github.com/ChristopherVR/pptx-viewer/commit/e533ce7c1993f266283f76eb13c4b8ccd9bb412e))
+
+### Documentation
+
+- **vue:** Update slide-properties inspector parity status (by @ChristopherVR) ([ac6e395](https://github.com/ChristopherVR/pptx-viewer/commit/ac6e395965086bd281bf1ccd372b05ef42eb0b53))
+
+## [1.1.49](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.49) - 2026-06-25
+
+### Features
+
 - **vue:** Zoom-element click-to-navigate in presentation mode (by @ChristopherVR) ([30dcb3f](https://github.com/ChristopherVR/pptx-viewer/commit/30dcb3f433955c2e2ed3a7bd538937b2a27f024c))
 - **angular:** Zoom-element click-to-navigate in presentation mode (by @ChristopherVR) ([f3d7852](https://github.com/ChristopherVR/pptx-viewer/commit/f3d785258d30d8541ce1062d2e209dd8cb4c87e1))
 

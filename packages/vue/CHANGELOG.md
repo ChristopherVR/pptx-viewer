@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.50](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.50) - 2026-06-25
+
+### Documentation
+
+- **vue:** Update slide-properties inspector parity status (by @ChristopherVR) ([ac6e395](https://github.com/ChristopherVR/pptx-viewer/commit/ac6e395965086bd281bf1ccd372b05ef42eb0b53))
+
 ## [1.1.49](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.49) - 2026-06-25
 
 ### Documentation
