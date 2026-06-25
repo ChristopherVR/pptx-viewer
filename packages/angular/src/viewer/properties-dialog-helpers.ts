@@ -13,8 +13,6 @@
 
 import type { PptxCoreProperties } from 'pptx-viewer-core';
 
-import { formatIsoDate } from '../internal/shared';
-
 /**
  * Subset of {@link PptxCoreProperties} surfaced by the Properties dialog: the
  * editable metadata (title / creator / subject / keywords) plus read-only
@@ -47,13 +45,15 @@ export function seedPropertiesDraft(properties: DocumentProperties): PropertiesD
 }
 
 /**
- * Format a (possibly absent or invalid) ISO timestamp for display. Returns the
- * no-value marker for missing values and echoes the raw string for unparseable
- * ones. Delegates to the shared `formatIsoDate`; kept under this name for the
- * existing Angular call sites.
+ * Format a (possibly absent or invalid) ISO timestamp for display. Returns an
+ * em-dash for missing values and echoes the raw string for unparseable ones.
  */
 export function formatPropertyDate(value: string | undefined): string {
-	return formatIsoDate(value);
+	if (!value) {
+		return '—';
+	}
+	const date = new Date(value);
+	return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 }
 
 /**

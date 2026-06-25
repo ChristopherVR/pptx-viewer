@@ -3,9 +3,8 @@
  * Commits marquee selections, drag moves, resizes, and resets state.
  */
 import type { PptxElement } from 'pptx-viewer-core';
-import { computeMarqueeHitIds, mergeAdditiveSelection } from 'pptx-viewer-shared';
-import type { MarqueeElementRect, MarqueeRect as SharedMarqueeRect } from 'pptx-viewer-shared';
 
+import { MIN_ELEMENT_SIZE } from '../constants';
 import {
 	rerouteConnectorsForMovedElements,
 	applyReroutedConnectors,
@@ -13,16 +12,58 @@ import {
 import type { UsePointerHandlersInput } from './pointer-handler-types';
 
 // ---------------------------------------------------------------------------
-// Re-exported pure helpers (now backed by `pptx-viewer-shared`)
+// Pure helper functions (exported for testing)
 // ---------------------------------------------------------------------------
 
-/** A marquee drag described by its start and current corner (any order). */
-export type MarqueeRect = SharedMarqueeRect;
+export interface MarqueeRect {
+	startX: number;
+	startY: number;
+	currentX: number;
+	currentY: number;
+}
 
-/** An element reduced to its id + bounding box for marquee hit-testing. */
-export type ElementRect = MarqueeElementRect;
+export interface ElementRect {
+	id: string;
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}
 
-export { computeMarqueeHitIds, mergeAdditiveSelection };
+/**
+ * Compute which element IDs are hit by a marquee selection rectangle.
+ * Returns empty array if the marquee is too small (< 3px in both dimensions).
+ */
+export function computeMarqueeHitIds(marquee: MarqueeRect, elements: ElementRect[]): string[] {
+	const minX = Math.min(marquee.startX, marquee.currentX);
+	const minY = Math.min(marquee.startY, marquee.currentY);
+	const maxX = Math.max(marquee.startX, marquee.currentX);
+	const maxY = Math.max(marquee.startY, marquee.currentY);
+	const w = maxX - minX,
+		h = maxY - minY;
+	if (w <= 3 && h <= 3) {
+		return [];
+	}
+	return elements
+		.filter((el) => {
+			const eMinX = el.x,
+				eMinY = el.y;
+			const eMaxX = el.x + Math.max(el.width, MIN_ELEMENT_SIZE);
+			const eMaxY = el.y + Math.max(el.height, MIN_ELEMENT_SIZE);
+			return !(eMaxX < minX || eMinX > maxX || eMaxY < minY || eMinY > maxY);
+		})
+		.map((el) => el.id);
+}
+
+/**
+ * Merge additive (shift-click) marquee selections with newly hit IDs.
+ */
+export function mergeAdditiveSelection(
+	baseSelectionIds: string[] | undefined,
+	hitIds: string[],
+): string[] {
+	return Array.from(new Set([...(baseSelectionIds ?? []), ...hitIds]));
+}
 
 // ---------------------------------------------------------------------------
 // Main pointer-up processor

@@ -1,7 +1,8 @@
 /**
- * broadcast-helpers.test.ts: unit tests for the shared Broadcast-dialog
- * helpers (room-id generation, start config, viewer-link building, clipboard
- * detection). Pure helpers, no framework.
+ * broadcast-helpers.test.ts: Unit tests for the Broadcast-dialog helpers.
+ * Ports the Vue/React `BroadcastDialog` coverage (room-id generation, start
+ * config, viewer-link building, clipboard detection): pure helpers, no
+ * Angular TestBed.
  */
 
 import { describe, expect, it } from 'vitest';

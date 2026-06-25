@@ -18,20 +18,14 @@ import type { InkPptxElement, PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
-import {
-	applyMove,
-	applyResize,
-	handleAnchor,
-	handleCursor,
-	marqueeHitIds,
-	RESIZE_HANDLES,
-} from './drag-resize';
+import { applyMove, applyResize, handleAnchor, handleCursor, RESIZE_HANDLES } from './drag-resize';
 import type { Box, ResizeHandle } from './drag-resize';
 import { ElementRendererComponent } from './element-renderer.component';
 import type { StyleMap } from './element-style';
 import { pointsToSvgPathD, strokeToInkElement } from './ink-drawing-helpers';
 import type { InkPoint } from './ink-drawing-helpers';
 import { getSlideBackgroundStyle } from './slide-background';
+import { isViewportBackgroundPressTarget } from './slide-canvas-helpers';
 import { computeSnap, snapToGridStep } from './snap-guides';
 import type { SnapGuide } from './snap-guides';
 import type { TableCellCommit } from './table-renderer.component';
@@ -167,6 +161,7 @@ function plainText(el: PptxElement): string {
 			#viewport
 			class="pptx-ng-canvas-viewport"
 			[attr.data-pptx-viewport]="interactive() ? '' : null"
+			(pointerdown)="onViewportPointerDown($event)"
 		>
 			<div class="pptx-ng-canvas-wrapper" [ngStyle]="wrapperStyle()">
 				<div
@@ -935,6 +930,28 @@ export class SlideCanvasComponent {
 		};
 	}
 
+	/**
+	 * Press on the scrollable viewport background (the empty workspace around a
+	 * centered slide). The slide stage owns its own empty-press deselect, but
+	 * clicks outside the slide borders land on the viewport container instead, so
+	 * without this they would leave the current selection intact. Only direct hits
+	 * on the viewport itself deselect; bubbled child events (wrapper, stage,
+	 * rulers, handles, content) keep their existing behavior.
+	 */
+	onViewportPointerDown(event: PointerEvent): void {
+		if (!this.editable()) {
+			return;
+		}
+		if (!isViewportBackgroundPressTarget(event.target, event.currentTarget)) {
+			return;
+		}
+		// Flush any in-progress inline edit synchronously, matching onStagePointerDown.
+		if (this.editingId()) {
+			this.textEditor()?.nativeElement.blur();
+		}
+		this.backgroundClick.emit();
+	}
+
 	/** Box + current plain text for the element under inline edit, or null. */
 	readonly editingBox = computed(() => {
 		const id = this.editingId();
@@ -1237,7 +1254,15 @@ export class SlideCanvasComponent {
 		if (marquee) {
 			const rect = this.marqueeRect();
 			if (marquee.started && rect) {
-				const ids = marqueeHitIds(rect, this.elements());
+				const ids = this.elements()
+					.filter(
+						(el) =>
+							rect.x < el.x + el.width &&
+							rect.x + rect.width > el.x &&
+							rect.y < el.y + el.height &&
+							rect.y + rect.height > el.y,
+					)
+					.map((el) => el.id);
 				this.marqueeSelect.emit(ids);
 			} else {
 				this.backgroundClick.emit();

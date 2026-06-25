@@ -1,4 +1,3 @@
-import { sanitizePresence } from 'pptx-viewer-shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 /**
  * Tests for two-client collaboration sync over a *simulated transport*.
@@ -27,6 +26,7 @@ import {
 } from 'y-protocols/awareness';
 import * as Y from 'yjs';
 
+import { sanitizePresence } from './sanitize';
 import type { UserPresence } from './types';
 
 // ---------------------------------------------------------------------------
@@ -334,7 +334,7 @@ describe('collaboration sync - two clients over a simulated relay', () => {
 			const remote = collectRemoteUsers(awA, awA.clientID);
 			expect(remote).toHaveLength(1);
 			expect(remote[0]?.userName).toBe("alert('x')Eve");
-			expect(remote[0]?.userColor).toBe('#4c8bf5'); // shared DEFAULT_CURSOR_COLOR fallback
+			expect(remote[0]?.userColor).toBe('#6366f1'); // fallback
 			expect(remote[0]?.cursorX).toBe(980); // clamped to canvasWidth + margin
 		});
 	});

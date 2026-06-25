@@ -16,4 +16,10 @@ export interface LayoutRendererProps {
 	palette: string[];
 	/** Resolved SmartArt style (controls shadow, stroke, opacity behaviour). */
 	style: SmartArtStyle;
+	/**
+	 * Optional per-node accessibility label lookup, keyed by node id (from the
+	 * shared `buildSmartArtA11y` view-model). When provided, renderers tag each
+	 * node group with `role="img"` + `aria-label` and an SVG `<title>`.
+	 */
+	nodeLabels?: Map<string, string>;
 }

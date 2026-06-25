@@ -17,6 +17,7 @@ import {
 	applyThemeToData,
 	cloneElement,
 	createEditorId,
+	createGroupElement,
 	createShapeElement,
 	createTextElement,
 	hasTextProperties,
@@ -41,13 +42,9 @@ import type { AlignEdge } from 'pptx-viewer-shared';
 import {
 	alignElements,
 	applyDragDelta,
-	buildBroadcastViewerUrl,
 	createDefaultChartElement,
-	downloadBlob,
-	groupElements,
 	openPptxFile,
 	setCellText,
-	ungroupElements,
 } from 'pptx-viewer-shared';
 import { computed, nextTick, provide, ref, toRef, watch } from 'vue';
 
@@ -1194,7 +1191,14 @@ async function downloadAs(format: PptxSaveFormat): Promise<void> {
 		const blob = new Blob([bytes as unknown as BlobPart], {
 			type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 		});
-		downloadBlob(blob, `presentation.${format}`);
+		const url = URL.createObjectURL(blob);
+		const anchor = document.createElement('a');
+		anchor.href = url;
+		anchor.download = `presentation.${format}`;
+		document.body.appendChild(anchor);
+		anchor.click();
+		anchor.remove();
+		setTimeout(() => URL.revokeObjectURL(url), 200);
 	} catch (err) {
 		console.error(`[PowerPointViewer] Save as .${format} failed:`, err);
 	}
@@ -1375,19 +1379,27 @@ function onGroup(): void {
 	if (sel.length < 2 || !slide) {
 		return;
 	}
-	const { elements, groupId } = groupElements(
-		slide.elements,
-		sel.map((e) => e.id),
-		createEditorId('grp'),
-	);
-	if (groupId === null) {
-		return;
-	}
+	const minX = Math.min(...sel.map((e) => e.x));
+	const minY = Math.min(...sel.map((e) => e.y));
+	const maxX = Math.max(...sel.map((e) => e.x + e.width));
+	const maxY = Math.max(...sel.map((e) => e.y + e.height));
+	// Children store coordinates relative to the group's top-left.
+	const children = sel.map((e) => ({ ...e, x: e.x - minX, y: e.y - minY }));
+	const group = createGroupElement(children, {
+		x: minX,
+		y: minY,
+		width: maxX - minX,
+		height: maxY - minY,
+	});
 	history.pushHistory();
+	const selIds = new Set(sel.map((e) => e.id));
 	const nextSlides = slides.value.slice();
-	nextSlides[index] = { ...slide, elements };
+	nextSlides[index] = {
+		...slide,
+		elements: [...slide.elements.filter((e) => !selIds.has(e.id)), group],
+	};
 	slides.value = nextSlides;
-	selectedElementIds.value = [groupId];
+	selectedElementIds.value = [group.id];
 }
 function onUngroup(): void {
 	const g = selectedElements.value[0];
@@ -1396,14 +1408,16 @@ function onUngroup(): void {
 	if (!g || g.type !== 'group' || !slide) {
 		return;
 	}
-	// Keep the existing child ids (pass them through as the new ids).
-	const childIds = (g.children ?? []).map((c) => c.id);
-	const { elements, childIds: appliedIds } = ungroupElements(slide.elements, g.id, childIds);
+	// Re-absolutise children (inverse of the group-relative offset).
+	const restored = (g.children ?? []).map((c) => ({ ...c, x: c.x + g.x, y: c.y + g.y }));
 	history.pushHistory();
 	const nextSlides = slides.value.slice();
-	nextSlides[index] = { ...slide, elements };
+	nextSlides[index] = {
+		...slide,
+		elements: slide.elements.flatMap((e) => (e.id === g.id ? restored : [e])),
+	};
 	slides.value = nextSlides;
-	selectedElementIds.value = appliedIds;
+	selectedElementIds.value = restored.map((c) => c.id);
 }
 
 // ── Autosave ──────────────────────────────────────────────────────────
@@ -1523,7 +1537,8 @@ const broadcastViewerUrl = computed(() => {
 		return '';
 	}
 	const { roomId, serverUrl } = broadcastConfig.value;
-	return buildBroadcastViewerUrl(roomId, serverUrl, window.location);
+	const base = `${window.location.origin}${window.location.pathname}`;
+	return `${base}?broadcast=${encodeURIComponent(roomId)}&server=${encodeURIComponent(serverUrl)}`;
 });
 function onBroadcastStart(config: { roomId: string; serverUrl: string }): void {
 	broadcastConfig.value = config;

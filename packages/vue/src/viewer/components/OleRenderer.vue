@@ -1,18 +1,10 @@
 <script setup lang="ts">
 import type { OlePptxElement, PptxElement } from 'pptx-viewer-core';
-import {
-	formatBytes,
-	getOleBadgeLabel,
-	getOleTypeColor,
-	getOleTypeLabel,
-	isBrowserOpenableMime,
-	resolveOleType,
-} from 'pptx-viewer-shared';
-import type { ResolvedOleType } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
 import { getContainerStyle } from '../composables/element-style';
+import { formatBytes, isBrowserOpenableMime } from '../composables/ole-actions';
 
 /**
  * OleRenderer - Vue port of the React `renderOleElement`
@@ -41,14 +33,56 @@ const ole = computed<OlePptxElement | undefined>(() =>
 	props.element.type === 'ole' ? props.element : undefined,
 );
 
+type ResolvedOleType = 'excel' | 'word' | 'pdf' | 'visio' | 'mathtype' | 'unknown';
+
 /** Resolve the OLE application type from oleObjectType, falling back to progId. */
 const oleType = computed<ResolvedOleType>(() => {
 	const el = ole.value;
-	return el ? resolveOleType(el) : 'unknown';
+	if (!el) {
+		return 'unknown';
+	}
+	if (el.oleObjectType && el.oleObjectType !== 'package' && el.oleObjectType !== 'unknown') {
+		return el.oleObjectType;
+	}
+	const progId = el.oleProgId?.toLowerCase() ?? '';
+	if (progId.includes('excel')) {
+		return 'excel';
+	}
+	if (progId.includes('word')) {
+		return 'word';
+	}
+	if (progId.includes('acroexch') || progId.includes('acrobat') || progId.includes('pdf')) {
+		return 'pdf';
+	}
+	if (progId.includes('visio')) {
+		return 'visio';
+	}
+	if (progId.includes('equation') || progId.includes('mathtype')) {
+		return 'mathtype';
+	}
+	return 'unknown';
 });
 
-const typeColor = computed(() => getOleTypeColor(oleType.value));
-const typeLabel = computed(() => getOleTypeLabel(oleType.value));
+const TYPE_COLORS: Record<ResolvedOleType, string> = {
+	excel: '#217346',
+	word: '#2B579A',
+	pdf: '#D4272E',
+	visio: '#3955A3',
+	mathtype: '#7B2D8E',
+	unknown: '#666666',
+};
+
+const TYPE_LABELS: Record<ResolvedOleType, string> = {
+	excel: 'Excel Spreadsheet',
+	word: 'Word Document',
+	pdf: 'PDF Document',
+	visio: 'Visio Diagram',
+	mathtype: 'Math Equation',
+	unknown: 'Embedded Object',
+};
+
+const typeColor = computed(() => TYPE_COLORS[oleType.value]);
+const typeLabel = computed(() => TYPE_LABELS[oleType.value]);
 
 const previewSrc = computed<string | undefined>(() => ole.value?.previewImageData);
 const fileName = computed<string | undefined>(() => ole.value?.fileName);
@@ -123,7 +157,9 @@ function stopInteraction(event: Event): void {
 }
 
 /** Short uppercase badge text for the preview overlay. */
-const badgeLabel = computed(() => getOleBadgeLabel(oleType.value));
+const badgeLabel = computed(() =>
+	oleType.value === 'unknown' ? 'OLE' : oleType.value.toUpperCase(),
+);
 
 const placeholderStyle = computed<CSSProperties>(() => ({
 	border: `2px solid ${typeColor.value}33`,

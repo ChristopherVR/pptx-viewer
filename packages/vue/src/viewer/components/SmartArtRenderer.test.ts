@@ -370,3 +370,46 @@ describe('smartArtRenderer inline node editing', () => {
 		expect(wrapper.find('textarea.pptx-vue-smartart-node-editor').exists()).toBeFalsy();
 	});
 });
+
+describe('smartArtRenderer accessibility', () => {
+	it('labels the diagram container as an image with a description', () => {
+		const wrapper = mount(SmartArtRenderer, {
+			props: {
+				element: smartArt({
+					nodes: [node('1', 'Alpha'), node('2', 'Beta')],
+					resolvedLayoutType: 'list',
+				}),
+				zIndex: 0,
+			},
+		});
+		const chrome = wrapper.get('.pptx-vue-smartart-chrome');
+		expect(chrome.attributes('role')).toBe('img');
+		const label = chrome.attributes('aria-label') ?? '';
+		expect(label).toContain('List SmartArt diagram');
+		expect(label).toContain('Alpha');
+		expect(label).toContain('Beta');
+	});
+
+	it('labels each fallback node group with its position and text', () => {
+		const wrapper = mount(SmartArtRenderer, {
+			props: {
+				element: smartArt({
+					nodes: [node('1', 'Alpha'), node('2', 'Beta')],
+					resolvedLayoutType: 'list',
+				}),
+				zIndex: 0,
+			},
+		});
+		const groups = wrapper.findAll('g[data-node-id]');
+		expect(groups[0].attributes('aria-label')).toBe('Node 1 of 2: Alpha');
+		// A <title> mirrors the aria-label for SVG assistive tech.
+		expect(groups[0].find('title').text()).toBe('Node 1 of 2: Alpha');
+	});
+
+	it('omits the image role when there is no smartArtData', () => {
+		const wrapper = mount(SmartArtRenderer, {
+			props: { element: smartArt(undefined), zIndex: 0 },
+		});
+		expect(wrapper.get('.pptx-vue-smartart-chrome').attributes('role')).toBeUndefined();
+	});
+});

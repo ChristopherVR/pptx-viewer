@@ -1,6 +1,3 @@
-// These tests directly use the yjs library to verify CRDT behaviour
-// that underpins the collaboration hooks.
-import { sanitizeColor, validateRoomId } from 'pptx-viewer-shared';
 /**
  * Tests for the real-time collaboration infrastructure.
  *
@@ -15,8 +12,11 @@ import { sanitizeColor, validateRoomId } from 'pptx-viewer-shared';
  * (no WebSocket needed).
  */
 import { describe, it, expect, beforeEach, vi, expectTypeOf } from 'vitest';
+// These tests directly use the yjs library to verify CRDT behaviour
+// that underpins the collaboration hooks.
 import * as Y from 'yjs';
 
+import { validateRoomId, sanitizeColor } from './sanitize';
 import type {
 	CollaborationConfig,
 	ConnectionStatus,
@@ -660,8 +660,7 @@ describe('collaborationConfig validation', () => {
 			serverUrl: 'wss://collab.example.com',
 			userName: 'Alice',
 		};
-		// useCollaborativeState passes the app's '#6366f1' default explicitly.
-		expect(sanitizeColor(config.userColor, '#6366f1')).toBe('#6366f1');
+		expect(sanitizeColor(config.userColor)).toBe('#6366f1');
 	});
 
 	it('falls back when userColor is invalid in config', () => {
@@ -671,8 +670,7 @@ describe('collaborationConfig validation', () => {
 			userName: 'Alice',
 			userColor: 'not-valid',
 		};
-		// useCollaborativeState passes the app's '#6366f1' default explicitly.
-		expect(sanitizeColor(config.userColor, '#6366f1')).toBe('#6366f1');
+		expect(sanitizeColor(config.userColor)).toBe('#6366f1');
 	});
 
 	it('accepts config with all optional fields', () => {

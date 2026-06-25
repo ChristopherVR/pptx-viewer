@@ -4,12 +4,6 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
-## [1.1.45](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.45) - 2026-06-25
-
-### Refactor
-
-- **shared:** Extract text-rendering pure logic (line-height, warp, effects) (by @ChristopherVR) ([11c8d22](https://github.com/ChristopherVR/pptx-viewer/commit/11c8d22e9910dda9c8dfa18e0f6d7683577c7b9f))
-
 ## [1.1.35](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.35) - 2026-06-21
 
 ### Features

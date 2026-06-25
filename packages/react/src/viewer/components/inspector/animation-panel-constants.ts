@@ -115,5 +115,5 @@ export const SEQUENCE_OPTIONS: ReadonlyArray<{
 	{ value: 'byLetter', labelKey: 'pptx.animation.sequence.byLetter' },
 ];
 
-/** Presets that support direction picking (re-exported from shared). */
-export { DIRECTIONAL_PRESETS } from 'pptx-viewer-shared';
+/** Presets that support direction picking (fly-in/out). */
+export const DIRECTIONAL_PRESETS = new Set<string>(['flyIn', 'flyOut']);

@@ -1,17 +1,7 @@
 /**
  * Shared types and helper functions used by the export sub-modules.
- *
- * The browser download primitives (`downloadBlob`, `downloadDataUrl`) now live
- * once in `pptx-viewer-shared` (`export/download-helpers`); they are re-exported
- * here to preserve the historical `./export-helpers` import path. These do NOT
- * sanitize the filename (callers pass a known-safe name): the sanitizing variant
- * lives in `dom-helpers`.
  */
-import { downloadBlob, downloadDataUrl } from 'pptx-viewer-shared';
-
 import { renderToCanvas } from '../../lib/canvas-export';
-
-export { downloadBlob, downloadDataUrl };
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -59,6 +49,37 @@ export interface SlideCaptureOptions {
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */
 /* ------------------------------------------------------------------ */
+
+/**
+ * Trigger a browser download for a Blob.
+ */
+export function downloadBlob(blob: Blob, filename: string): void {
+	const url = URL.createObjectURL(blob);
+	const anchor = document.createElement('a');
+	anchor.href = url;
+	anchor.download = filename;
+	document.body.appendChild(anchor);
+	anchor.click();
+	// Defer cleanup so the browser has time to start the download.
+	setTimeout(() => {
+		document.body.removeChild(anchor);
+		URL.revokeObjectURL(url);
+	}, 200);
+}
+
+/**
+ * Trigger a browser download for a data-URL string.
+ */
+export function downloadDataUrl(dataUrl: string, filename: string): void {
+	const anchor = document.createElement('a');
+	anchor.href = dataUrl;
+	anchor.download = filename;
+	document.body.appendChild(anchor);
+	anchor.click();
+	setTimeout(() => {
+		document.body.removeChild(anchor);
+	}, 200);
+}
 
 /**
  * Render an HTML element to a canvas using html2canvas.

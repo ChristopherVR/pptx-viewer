@@ -1,8 +1,3 @@
-import {
-	downloadBlob as sharedDownloadBlob,
-	pickSupportedMimeType,
-	WEBM_MIME_CANDIDATES,
-} from 'pptx-viewer-shared';
 import { ref } from 'vue';
 import type { Ref } from 'vue';
 
@@ -97,6 +92,11 @@ const DEFAULT_GIF_DURATION_MS = 2000;
 const DEFAULT_WEBM_DURATION_MS = 3000;
 const DEFAULT_FPS = 30;
 const DEFAULT_VIDEO_BITS_PER_SECOND = 5_000_000;
+const WEBM_MIME_CANDIDATES = [
+	'video/webm;codecs=vp9',
+	'video/webm;codecs=vp8',
+	'video/webm',
+] as const;
 
 function resolveBaseName(fileName: UseMediaExportOptions['fileName']): string {
 	if (fileName === undefined) {
@@ -105,6 +105,33 @@ function resolveBaseName(fileName: UseMediaExportOptions['fileName']): string {
 	const value = typeof fileName === 'string' ? fileName : fileName.value;
 	const trimmed = value.trim().replace(/\.(?:pptx|pdf|png|gif|webm)$/iu, '');
 	return trimmed === '' ? 'presentation' : trimmed;
+}
+
+/** Default browser download: object-URL anchor click, deferred cleanup. */
+function defaultDownloadBlob(blob: Blob, fileName: string): void {
+	const url = URL.createObjectURL(blob);
+	const anchor = document.createElement('a');
+	anchor.href = url;
+	anchor.download = fileName;
+	document.body.appendChild(anchor);
+	anchor.click();
+	setTimeout(() => {
+		anchor.remove();
+		URL.revokeObjectURL(url);
+	}, 200);
+}
+
+/** Pick the first `MediaRecorder`-supported WebM MIME, else the last candidate. */
+function pickWebmMimeType(): string {
+	if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') {
+		return WEBM_MIME_CANDIDATES[0];
+	}
+	for (const mime of WEBM_MIME_CANDIDATES) {
+		if (MediaRecorder.isTypeSupported(mime)) {
+			return mime;
+		}
+	}
+	return WEBM_MIME_CANDIDATES[WEBM_MIME_CANDIDATES.length - 1];
 }
 
 function defaultCreateRecorder(
@@ -140,7 +167,7 @@ export function useMediaExport(options: UseMediaExportOptions): UseMediaExportRe
 		options.loadGifEncoder ?? (async () => (await import('./gif-encoder')).encodeGif);
 	const createRecorder = options.createRecorder ?? defaultCreateRecorder;
 	const createCanvas = options.createCanvas ?? (() => document.createElement('canvas'));
-	const downloadBlob = options.downloadBlob ?? sharedDownloadBlob;
+	const downloadBlob = options.downloadBlob ?? defaultDownloadBlob;
 
 	const exporting = ref(false);
 	const progress = ref(0);
@@ -239,7 +266,7 @@ export function useMediaExport(options: UseMediaExportOptions): UseMediaExportRe
 			}
 
 			const recorder = createRecorder(recordingCanvas, fps, {
-				mimeType: pickSupportedMimeType([...WEBM_MIME_CANDIDATES]),
+				mimeType: pickWebmMimeType(),
 				videoBitsPerSecond,
 			});
 

@@ -211,21 +211,9 @@ export * from './slide-background';
 export * from './editor-insert';
 export * from './element-operations';
 export * from './editor-history';
-// Section CRUD: pure immutable transforms over the sections + slides arrays
-// (add/rename/delete/move section, move-slides-to-section) + GUID-like section
-// id + OOXML slide-id resolution. Each binding wires its reactive state through
-// these.
-export * from './section-operations';
-// Slide CRUD factories: blank-slide builder + `slide-<ts>-<rand>` id helper
-// (with optional id override). Each binding's slide-management layer calls these.
-export * from './slide-operations';
 // OLE download/open helpers: file-size formatting + browser-openable MIME check
 // for the binding OLE renderers' download/open actions.
 export * from './ole-actions';
-// OLE type-resolution helpers: resolve an OlePptxElement to a narrowed
-// application type + per-type brand colour / label / aria label / badge text /
-// display name / placeholder box style. The icon/badge JSX stays per binding.
-export * from './ole-renderer-helpers';
 // Editor snap geometry: snap-to-shape (siblings + guides → snap lines, React/Vue
 // model), snap-to-box (closest-per-axis span guides, Angular model), grid
 // snapping. Pure maths; the pointer/drag driver stays in each binding.
@@ -234,25 +222,6 @@ export * from './snap-guides';
 export * from './ruler';
 export * from './bullet-autonum';
 export * from './bullet-list';
-// Text CSS-builder helpers (framework-agnostic, neutral CSS records/strings):
-// `text-style-helpers` (line-height + vertical writing-mode + auto-fit scale),
-// `text-decoration` (16 OOXML underline styles -> text-decoration), `text-
-// paragraph-style` (per-paragraph BiDi + text-align resolution), `text-field-
-// substitution` (slide-number/date/header-footer/docproperty field text), and
-// the text-effect builders `text-fill` (gradient/pattern background-clip:text),
-// `text-effects` (shadow/glow/blur/HSL/reflection/alpha), `text-effects-3d`
-// (extrusion/bevel text-shadow stack + scene perspective). Each binding casts
-// the neutral record to its own style type; React keeps the JSX (SVG filters).
-export * from './text-style-helpers';
-export * from './text-decoration';
-export * from './text-paragraph-style';
-export * from './text-field-substitution';
-export * from './text-fill';
-export * from './text-effects';
-export * from './text-effects-3d';
-// MathML/SVG sanitisation (DOMPurify wrapper, non-DOM fallback) for equation
-// rendering. React + Vue consume it; Angular uses its own DomSanitizer.
-export * from './mathml-sanitize';
 export * from './text-paragraphs';
 export * from './text-advanced';
 export * from './text-theme';
@@ -399,18 +368,6 @@ export * from './presenter-mobile';
 // far to scroll the focused field into the area above the keyboard. Each binding
 // wires the visualViewport resize listener; the maths is shared here.
 export * from './mobile-keyboard';
-// Mobile viewport: breakpoint constants + the pure `isMobileViewport` /
-// `isTabletViewport` predicates and `detectTouchDevice` / `detectOrientation`
-// probes behind each binding's `useIsMobile`. The reactive wiring stays per
-// binding; the thresholds and DOM probes are shared so all three switch chrome
-// identically.
-export * from './mobile-viewport';
-// Format helpers: framework-agnostic date / timestamp display formatters for
-// the document-properties and version-history panels.
-export * from './format-helpers';
-// Broadcast helpers: room-id generation, start-form validation, and the
-// viewer-link builder for the one-way broadcast (presenter -> viewers) session.
-export * from './broadcast-helpers';
 // Presenter view: notes font-size clamp + step constants, clock/elapsed-time
 // formatting, and rich-text notes -> framework-agnostic `NotesSpan[]` render
 // spec. Each binding renders the spec into its own nodes.

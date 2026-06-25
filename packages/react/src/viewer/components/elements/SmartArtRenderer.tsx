@@ -1,6 +1,6 @@
 import type { PptxElement, PptxSmartArtNode, SmartArtStyle } from 'pptx-viewer-core';
 import { updateSmartArtNodeText } from 'pptx-viewer-core';
-import { shouldCommitSmartArtNodeText } from 'pptx-viewer-shared';
+import { buildSmartArtA11y, shouldCommitSmartArtNodeText } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { resolvePalette, resolveStyle, layoutToCategory } from '../../utils/smartart-helpers';
@@ -115,6 +115,10 @@ function SmartArtRendererImpl({
 	const palette = resolvePalette(element);
 	const style = resolveStyle(element);
 
+	// Accessibility view-model (container description + per-node labels by id).
+	const a11y = buildSmartArtA11y(smartArtData);
+	const nodeLabels = new Map(a11y.nodes.map((n) => [n.id, n.label]));
+
 	const editable = canEdit && Boolean(onUpdateElement);
 
 	// Commit an inline node text edit through the host's element-update path,
@@ -138,7 +142,8 @@ function SmartArtRendererImpl({
 				shapes={drawingShapes}
 				style={style}
 				palette={palette}
-				nodes={editable ? nodes : undefined}
+				nodes={nodes}
+				nodeLabels={nodeLabels}
 			/>
 		);
 	} else {
@@ -148,7 +153,7 @@ function SmartArtRendererImpl({
 			? layoutToCategory(namedLayout)
 			: (smartArtData.resolvedLayoutType ?? smartArtData.layoutType ?? 'list').toLowerCase();
 
-		content = renderLayout(layoutType, element, nodes, palette, style);
+		content = renderLayout(layoutType, element, nodes, palette, style, nodeLabels);
 	}
 
 	const body = editable ? (
@@ -163,7 +168,7 @@ function SmartArtRendererImpl({
 		content
 	);
 
-	return wrapChrome(chrome, body, className);
+	return wrapChrome(chrome, body, className, { role: a11y.role, label: a11y.label });
 }
 
 // ── Layout dispatch ─────────────────────────────────────────────────────────
@@ -184,6 +189,7 @@ function renderLayout(
 	nodes: PptxSmartArtNode[],
 	palette: string[],
 	style: SmartArtStyle,
+	nodeLabels: Map<string, string>,
 ): React.ReactElement {
 	if (layoutType.includes('hierarchy') || layoutType.includes('org')) {
 		return <HierarchyRenderer element={element} nodes={nodes} palette={palette} style={style} />;
@@ -193,13 +199,37 @@ function renderLayout(
 		layoutType.includes('chevron') ||
 		layoutType.includes('arrow')
 	) {
-		return <ProcessRenderer element={element} nodes={nodes} palette={palette} style={style} />;
+		return (
+			<ProcessRenderer
+				element={element}
+				nodes={nodes}
+				palette={palette}
+				style={style}
+				nodeLabels={nodeLabels}
+			/>
+		);
 	}
 	if (layoutType.includes('cycle') || layoutType.includes('radial')) {
-		return <CycleRenderer element={element} nodes={nodes} palette={palette} style={style} />;
+		return (
+			<CycleRenderer
+				element={element}
+				nodes={nodes}
+				palette={palette}
+				style={style}
+				nodeLabels={nodeLabels}
+			/>
+		);
 	}
 	if (layoutType.includes('matrix')) {
-		return <MatrixRenderer element={element} nodes={nodes} palette={palette} style={style} />;
+		return (
+			<MatrixRenderer
+				element={element}
+				nodes={nodes}
+				palette={palette}
+				style={style}
+				nodeLabels={nodeLabels}
+			/>
+		);
 	}
 	if (layoutType.includes('pyramid')) {
 		return <PyramidRenderer element={element} nodes={nodes} palette={palette} style={style} />;
@@ -256,7 +286,15 @@ function renderLayout(
 		return <>{renderVerticalChevronList(element, nodes, palette, style)}</>;
 	}
 	// Default: list layout
-	return <ListRenderer element={element} nodes={nodes} palette={palette} style={style} />;
+	return (
+		<ListRenderer
+			element={element}
+			nodes={nodes}
+			palette={palette}
+			style={style}
+			nodeLabels={nodeLabels}
+		/>
+	);
 }
 
 // ── Memoized export ─────────────────────────────────────────────────────────

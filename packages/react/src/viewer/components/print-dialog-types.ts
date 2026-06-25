@@ -1,23 +1,38 @@
 /**
  * Shared types, interfaces, and constants for the PrintDialog family.
- *
- * The print settings types/constants now live in `pptx-viewer-shared`
- * (`export/print-document` and `export/handout-layout`) and are re-exported
- * here. Only the React-specific `PrintDialogProps` interface and the
- * `radioClass` Tailwind helper stay local.
  */
 import type { PptxSlide } from 'pptx-viewer-core';
-import type { PrintSettings } from 'pptx-viewer-shared';
 
-export type {
-	HandoutSlidesPerPage,
-	PrintColorMode,
-	PrintOrientation,
-	PrintSettings,
-	PrintSlideRange,
-	PrintWhat,
-} from 'pptx-viewer-shared';
-export { HANDOUT_OPTIONS } from 'pptx-viewer-shared';
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+/** What to print. */
+export type PrintWhat = 'slides' | 'handouts' | 'notes' | 'outline';
+
+/** Page orientation for the printed output. */
+export type PrintOrientation = 'portrait' | 'landscape';
+
+/** Colour mode for the printed output. */
+export type PrintColorMode = 'color' | 'grayscale' | 'blackAndWhite';
+
+/** Handout slides-per-page options. */
+export type HandoutSlidesPerPage = 1 | 2 | 3 | 4 | 6 | 9;
+
+/** Slide range mode. */
+export type PrintSlideRange = 'all' | 'current' | 'custom';
+
+/** Resolved print settings emitted on confirm. */
+export interface PrintSettings {
+	printWhat: PrintWhat;
+	orientation: PrintOrientation;
+	colorMode: PrintColorMode;
+	frameSlides: boolean;
+	slidesPerPage: HandoutSlidesPerPage;
+	slideRange: PrintSlideRange;
+	customRangeFrom: number;
+	customRangeTo: number;
+}
 
 // ---------------------------------------------------------------------------
 // Props
@@ -34,6 +49,12 @@ export interface PrintDialogProps {
 	/** Default frame-slides from presentation properties. */
 	defaultFrameSlides?: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+export const HANDOUT_OPTIONS: HandoutSlidesPerPage[] = [1, 2, 3, 4, 6, 9];
 
 // ---------------------------------------------------------------------------
 // Helpers

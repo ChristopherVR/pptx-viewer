@@ -3,7 +3,6 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
-import { resolveUnderlineDecorationStyle, segmentStyleToCss } from '../internal/shared';
 import { ChartRendererComponent } from './chart-renderer.component';
 import { getClrChangeParams } from './color-changed-image-helpers';
 import type { ClrChangeParams } from './color-changed-image-helpers';
@@ -32,41 +31,6 @@ import { bulletIndentPx, resolveParagraphBullet } from './text-bullets';
 import { getTextWarp } from './text-warp';
 import type { TextWarpPathDef } from './text-warp';
 import { ZoomRendererComponent } from './zoom-renderer.component';
-
-/**
- * Build a run's `[ngStyle]` map from a text segment, layering the underline /
- * double-strike *variant* decoration (`text-decoration-style` / `-thickness` /
- * `text-underline-offset`) on top of the shared `segmentStyleToCss` output.
- *
- * The shared helper only emits the boolean `text-decoration: underline`; this
- * mirrors React's segment renderer (`text-segment-render.tsx`), which applies
- * `resolveUnderlineDecorationStyle` over the boolean underline to make the 16
- * OOXML underline styles visually distinct. Kept additive in the Angular
- * renderer so the shared helper's contract stays stable for its other consumers.
- */
-function runStyleFromSegment(seg: TextSegment): StyleMap {
-	const style = segmentStyleToCss(seg);
-	const s = seg.style;
-	if (s) {
-		const isDoubleStrike = Boolean(s.strikethrough && s.strikeType === 'dblStrike');
-		const deco = resolveUnderlineDecorationStyle(
-			isDoubleStrike,
-			s.underline ? s.underlineStyle : undefined,
-		);
-		if (deco) {
-			if (deco.textDecorationStyle !== undefined) {
-				style['text-decoration-style'] = deco.textDecorationStyle;
-			}
-			if (deco.textDecorationThickness !== undefined) {
-				style['text-decoration-thickness'] = deco.textDecorationThickness;
-			}
-			if (deco.textUnderlineOffset !== undefined) {
-				style['text-underline-offset'] = deco.textUnderlineOffset;
-			}
-		}
-	}
-	return style;
-}
 
 interface TextRun {
 	text: string;
@@ -529,7 +493,7 @@ export class ElementRendererComponent {
 			if (seg.equationXml) {
 				current.runs.push({
 					text: '',
-					style: runStyleFromSegment(seg),
+					style: this.segmentStyle(seg),
 					equationXml: seg.equationXml,
 					equationNumber: seg.equationNumber,
 				});
@@ -540,7 +504,7 @@ export class ElementRendererComponent {
 				const href = resolveHyperlinkHref(seg.style?.hyperlink);
 				current.runs.push({
 					text,
-					style: runStyleFromSegment(seg),
+					style: this.segmentStyle(seg),
 					href,
 					tooltip: href ? seg.style?.hyperlinkTooltip : undefined,
 				});
@@ -560,4 +524,35 @@ export class ElementRendererComponent {
 		};
 		return map[this.element().type] ?? this.element().type;
 	});
+
+	private segmentStyle(seg: TextSegment): StyleMap {
+		const s = seg.style ?? {};
+		const style: StyleMap = {};
+		if (s.fontFamily) {
+			style['font-family'] = s.fontFamily;
+		}
+		if (typeof s.fontSize === 'number') {
+			style['font-size'] = `${s.fontSize}px`;
+		}
+		if (s.color) {
+			style['color'] = s.color;
+		}
+		if (s.bold) {
+			style['font-weight'] = 'bold';
+		}
+		if (s.italic) {
+			style['font-style'] = 'italic';
+		}
+		const deco: string[] = [];
+		if (s.underline) {
+			deco.push('underline');
+		}
+		if (s.strikethrough) {
+			deco.push('line-through');
+		}
+		if (deco.length > 0) {
+			style['text-decoration'] = deco.join(' ');
+		}
+		return style;
+	}
 }

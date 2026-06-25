@@ -9,10 +9,10 @@
  *
  * @module collaboration/usePresenceTracking
  */
-import { BROADCAST_THROTTLE_MS, derivePresenceList } from 'pptx-viewer-shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Awareness } from 'y-protocols/awareness';
 
+import { sanitizePresence } from './sanitize';
 import type { UserPresence } from './types';
 
 export interface UsePresenceTrackingInput {
@@ -33,6 +33,16 @@ export interface UsePresenceTrackingResult {
 	/** Broadcast a partial presence update for the local user. */
 	broadcastPresence: (update: Partial<Omit<UserPresence, 'clientId'>>) => void;
 }
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** Minimum interval between outgoing presence broadcasts (ms). */
+const BROADCAST_THROTTLE_MS = 50;
+
+/** Presence entries older than this are considered stale and filtered out. */
+const STALE_PRESENCE_MS = 30_000;
 
 // ---------------------------------------------------------------------------
 // Hook
@@ -124,14 +134,40 @@ export function usePresenceTracking({
 		}
 
 		const handleChange = () => {
-			// Sanitise + stale-drop + skip-local in one shared pass; the returned
-			// SanitizedPresence[] is structurally a UserPresence[].
-			const users = derivePresenceList(
-				awareness.getStates() as Map<number, Record<string, unknown>>,
-				localClientId,
-				canvasWidth,
-				canvasHeight,
-			);
+			const now = Date.now();
+			const states = awareness.getStates();
+			const users: UserPresence[] = [];
+
+			states.forEach((state, cid) => {
+				// Skip local user
+				if (cid === localClientId) {
+					return;
+				}
+
+				const stateRecord = state as Record<string, unknown> | null | undefined;
+				const raw = stateRecord?.presence;
+				if (!raw || typeof raw !== 'object') {
+					return;
+				}
+
+				const sanitized = sanitizePresence(
+					{ ...(raw as Record<string, unknown>), clientId: cid },
+					canvasWidth,
+					canvasHeight,
+				);
+				if (!sanitized) {
+					return;
+				}
+
+				// Filter stale entries
+				const updatedAt = new Date(sanitized.lastUpdated).getTime();
+				if (Number.isNaN(updatedAt) || now - updatedAt > STALE_PRESENCE_MS) {
+					return;
+				}
+
+				users.push(sanitized);
+			});
+
 			setRemoteUsers(users);
 		};
 

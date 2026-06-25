@@ -1,10 +1,29 @@
+import DOMPurify from 'dompurify';
 import type { BulletInfo } from 'pptx-viewer-core';
-import { sanitizeMathMl } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { convertOmmlToMathMl } from './omml-to-mathml';
 import type { OmmlNode } from './omml-to-mathml';
 import { segmentByScript, resolveFontForScript } from './unicode-script-detection';
+
+/**
+ * Safely sanitize a MathML/SVG markup string.
+ *
+ * In browser environments DOMPurify ships with `sanitize` ready to go. In
+ * non-DOM contexts (node-based tests, SSR without jsdom) DOMPurify returns
+ * a factory that lacks `sanitize` until handed a window; there we fall
+ * back to the raw input. The XSS surface only matters in the browser, so
+ * this fallback is safe for non-DOM consumers.
+ */
+function sanitizeMathMl(markup: string): string {
+	const purify = DOMPurify as unknown as {
+		sanitize?: (dirty: string, cfg?: Record<string, unknown>) => string;
+	};
+	if (typeof purify.sanitize !== 'function') {
+		return markup;
+	}
+	return purify.sanitize(markup, { USE_PROFILES: { mathMl: true, svg: true } });
+}
 
 /* Highlight info for a single segment, used by Find & Replace */
 export interface TextSegmentHighlight {
@@ -283,9 +302,120 @@ export function renderPictureBullet(
 	);
 }
 
-// Underline decoration (extracted to pptx-viewer-shared).
-// `resolveUnderlineDecorationStyle` + `UnderlineDecorationCss` now live in
-// `pptx-viewer-shared` (render/text-decoration). Re-exported here so existing
-// React import paths keep working.
-export type { UnderlineDecorationCss } from 'pptx-viewer-shared';
-export { resolveUnderlineDecorationStyle } from 'pptx-viewer-shared';
+/**
+ * CSS properties that fully describe the visual appearance of an underline
+ * or strikethrough decoration. Returned by {@link resolveUnderlineDecorationStyle}.
+ */
+export interface UnderlineDecorationCss {
+	textDecorationStyle?: React.CSSProperties['textDecorationStyle'];
+	textDecorationThickness?: string;
+	textUnderlineOffset?: string;
+}
+
+/**
+ * Resolve an OOXML underline / strikethrough style to a set of CSS
+ * text-decoration properties that make all 16 underline types visually
+ * distinct.
+ *
+ * CSS `text-decoration-style` only has 5 variants (solid, double, dotted,
+ * dashed, wavy), so we use `text-decoration-thickness` to differentiate
+ * heavy variants and `text-underline-offset` for additional visual
+ * separation where compound patterns (dotDash, dotDotDash, dashLong)
+ * share the same CSS base style.
+ */
+export function resolveUnderlineDecorationStyle(
+	isDoubleStrike: boolean,
+	underlineStyle?: string,
+): UnderlineDecorationCss | undefined {
+	if (isDoubleStrike) {
+		return { textDecorationStyle: 'double' };
+	}
+	if (!underlineStyle || underlineStyle === 'none') {
+		return undefined;
+	}
+
+	switch (underlineStyle) {
+		// ── Single / default ──
+		case 'sng':
+			return { textDecorationStyle: 'solid', textDecorationThickness: '1px' };
+
+		// ── Double ──
+		case 'dbl':
+			return { textDecorationStyle: 'double', textDecorationThickness: '1px' };
+
+		// ── Heavy (thick solid) ──
+		case 'heavy':
+			return { textDecorationStyle: 'solid', textDecorationThickness: '3px' };
+
+		// ── Dotted ──
+		case 'dotted':
+			return { textDecorationStyle: 'dotted', textDecorationThickness: '1px' };
+		case 'dottedHeavy':
+			return { textDecorationStyle: 'dotted', textDecorationThickness: '3px' };
+
+		// ── Dashed ──
+		case 'dash':
+			return { textDecorationStyle: 'dashed', textDecorationThickness: '1px' };
+		case 'dashHeavy':
+			return { textDecorationStyle: 'dashed', textDecorationThickness: '3px' };
+
+		// ── Long dashed (offset to distinguish from regular dash) ──
+		case 'dashLong':
+			return {
+				textDecorationStyle: 'dashed',
+				textDecorationThickness: '1px',
+				textUnderlineOffset: '3px',
+			};
+		case 'dashLongHeavy':
+			return {
+				textDecorationStyle: 'dashed',
+				textDecorationThickness: '3px',
+				textUnderlineOffset: '3px',
+			};
+
+		// ── Dot-dash (CSS closest: dashed with offset) ──
+		case 'dotDash':
+			return {
+				textDecorationStyle: 'dashed',
+				textDecorationThickness: '1px',
+				textUnderlineOffset: '2px',
+			};
+		case 'dotDashHeavy':
+			return {
+				textDecorationStyle: 'dashed',
+				textDecorationThickness: '3px',
+				textUnderlineOffset: '2px',
+			};
+
+		// ── Dot-dot-dash (CSS closest: dotted with offset) ──
+		case 'dotDotDash':
+			return {
+				textDecorationStyle: 'dotted',
+				textDecorationThickness: '1px',
+				textUnderlineOffset: '3px',
+			};
+		case 'dotDotDashHeavy':
+			return {
+				textDecorationStyle: 'dotted',
+				textDecorationThickness: '3px',
+				textUnderlineOffset: '3px',
+			};
+
+		// ── Wavy ──
+		case 'wavy':
+			return { textDecorationStyle: 'wavy', textDecorationThickness: '1px' };
+		case 'wavyHeavy':
+			return { textDecorationStyle: 'wavy', textDecorationThickness: '3px' };
+
+		// ── Wavy double (wavy + thicker as closest CSS approximation) ──
+		case 'wavyDbl':
+			return {
+				textDecorationStyle: 'wavy',
+				textDecorationThickness: '2px',
+				textUnderlineOffset: '1px',
+			};
+
+		default:
+			return undefined;
+	}
+}

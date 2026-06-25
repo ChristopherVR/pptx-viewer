@@ -32,12 +32,26 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import type {
 	PptxSmartArtData,
+	PptxSmartArtNode,
 	SmartArtColorScheme,
 	SmartArtLayoutType,
 	SmartArtStyle,
 } from 'pptx-viewer-core';
 
 import { SWITCHABLE_LAYOUT_TYPES } from './editor-insert';
+import {
+	canAddTopLevelNode,
+	canRemoveTopLevelNode,
+	describeSmartArtBounds,
+	nodeBold,
+	nodeFillColor,
+	nodeFontColor,
+	nodeItalic,
+	setNodeStyle,
+	toggleNodeBold,
+	toggleNodeItalic,
+	topLevelNodeCount,
+} from './smart-art-node-style-helpers';
 import {
 	addItem,
 	addSubItem,
@@ -126,12 +140,17 @@ import {
 				<button
 					type="button"
 					class="pptx-sa-props__btn"
-					[disabled]="!canEdit()"
+					[disabled]="!canEdit() || !canAddItem()"
+					[title]="canAddItem() ? 'Add item' : boundsHint()"
 					(click)="onAddItem()"
 				>
 					+ Item
 				</button>
 			</div>
+
+			@if (boundsHint()) {
+				<p class="pptx-sa-props__hint pptx-sa-props__hint--bounds">{{ boundsHint() }}</p>
+			}
 
 			<ul class="pptx-sa-props__nodes" role="list">
 				@for (node of nodes(); track node.id; let i = $index) {
@@ -201,11 +220,59 @@ import {
 							<button
 								type="button"
 								class="pptx-sa-props__icon pptx-sa-props__icon--danger"
-								title="Remove"
-								[disabled]="!canEdit() || nodes().length <= 1"
+								[title]="!isChild(node) && !canRemoveItem() ? boundsHint() : 'Remove'"
+								[disabled]="
+									!canEdit() || nodes().length <= 1 || (!isChild(node) && !canRemoveItem())
+								"
 								(click)="onRemove(node.id)"
 							>
 								&times;
+							</button>
+						</div>
+
+						<!-- Per-node style overrides: fill, font colour, bold, italic. -->
+						<div class="pptx-sa-props__node-style">
+							<label class="pptx-sa-props__swatch" title="Node fill colour">
+								<span class="pptx-sa-props__swatch-label">Fill</span>
+								<input
+									type="color"
+									class="pptx-sa-props__color"
+									[disabled]="!canEdit()"
+									[value]="nodeFill(node)"
+									(change)="onNodeFillColor($event, node.id)"
+								/>
+							</label>
+							<label class="pptx-sa-props__swatch" title="Node font colour">
+								<span class="pptx-sa-props__swatch-label">Font</span>
+								<input
+									type="color"
+									class="pptx-sa-props__color"
+									[disabled]="!canEdit()"
+									[value]="nodeFont(node)"
+									(change)="onNodeFontColor($event, node.id)"
+								/>
+							</label>
+							<button
+								type="button"
+								class="pptx-sa-props__icon pptx-sa-props__style-toggle"
+								title="Bold"
+								[class.is-active]="nodeIsBold(node)"
+								[attr.aria-pressed]="nodeIsBold(node)"
+								[disabled]="!canEdit()"
+								(click)="onNodeBold(node)"
+							>
+								<strong>B</strong>
+							</button>
+							<button
+								type="button"
+								class="pptx-sa-props__icon pptx-sa-props__style-toggle"
+								title="Italic"
+								[class.is-active]="nodeIsItalic(node)"
+								[attr.aria-pressed]="nodeIsItalic(node)"
+								[disabled]="!canEdit()"
+								(click)="onNodeItalic(node)"
+							>
+								<em>I</em>
 							</button>
 						</div>
 					</li>
@@ -311,11 +378,51 @@ import {
 
 		.pptx-sa-props__node {
 			display: flex;
+			flex-wrap: wrap;
 			align-items: center;
 			gap: 0.25rem;
 			padding: 2px;
 			border: 1px solid var(--pptx-inspector-border, #333);
 			border-radius: 3px;
+		}
+
+		.pptx-sa-props__node-style {
+			display: flex;
+			align-items: center;
+			gap: 0.3rem;
+			flex-basis: 100%;
+			padding-left: 16px;
+		}
+
+		.pptx-sa-props__swatch {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.15rem;
+		}
+
+		.pptx-sa-props__swatch-label {
+			font-size: 9px;
+			color: var(--pptx-inspector-muted, #888);
+		}
+
+		.pptx-sa-props__color {
+			width: 22px;
+			height: 18px;
+			padding: 0;
+			border: 1px solid var(--pptx-inspector-border, #444);
+			border-radius: 3px;
+			background: transparent;
+			cursor: pointer;
+		}
+
+		.pptx-sa-props__style-toggle.is-active {
+			background: var(--pptx-inspector-active, #0078d4);
+			border-color: var(--pptx-inspector-active, #0078d4);
+			color: #fff;
+		}
+
+		.pptx-sa-props__hint--bounds {
+			color: var(--pptx-inspector-active, #0078d4);
 		}
 
 		.pptx-sa-props__node--child {
@@ -397,6 +504,30 @@ export class SmartArtPropertiesComponent {
 
 	protected isChild = isChildNode;
 
+	// ── Node-count boundary constraints ──────────────────────────────────────
+	/** Count of top-level (parentless) nodes, for boundary checks. */
+	protected readonly topLevelCount = computed(() => topLevelNodeCount(this.smartArtData()));
+	/** Whether a new top-level item may be added without exceeding the layout max. */
+	protected readonly canAddItem = computed(() =>
+		canAddTopLevelNode(this.activeLayout(), this.topLevelCount()),
+	);
+	/** Whether a top-level node may be removed without dropping below the layout min. */
+	protected readonly canRemoveItem = computed(() =>
+		canRemoveTopLevelNode(this.activeLayout(), this.topLevelCount()),
+	);
+	/** Human-readable bounds hint for the active layout, or empty when none. */
+	protected readonly boundsHint = computed(() => describeSmartArtBounds(this.activeLayout()) ?? '');
+
+	// ── Per-node style accessors (template-bound) ────────────────────────────
+	protected nodeFill(node: PptxSmartArtNode): string {
+		return nodeFillColor(node) ?? '#4472c4';
+	}
+	protected nodeFont(node: PptxSmartArtNode): string {
+		return nodeFontColor(node) ?? '#ffffff';
+	}
+	protected nodeIsBold = nodeBold;
+	protected nodeIsItalic = nodeItalic;
+
 	// ── Event handlers (each emits a fresh data model) ───────────────────────
 	protected onLayout(layout: SmartArtLayoutType): void {
 		this.commit(setLayout(this.smartArtData(), layout));
@@ -415,6 +546,9 @@ export class SmartArtPropertiesComponent {
 	}
 
 	protected onAddItem(): void {
+		if (!this.canAddItem()) {
+			return;
+		}
 		this.commit(addItem(this.smartArtData()));
 	}
 
@@ -423,6 +557,11 @@ export class SmartArtPropertiesComponent {
 	}
 
 	protected onRemove(nodeId: string): void {
+		// Block removing a top-level node when at the layout's minimum bound.
+		const removed = this.nodes().find((n) => n.id === nodeId);
+		if (removed && !removed.parentId && !this.canRemoveItem()) {
+			return;
+		}
 		this.commit(removeNode(this.smartArtData(), nodeId));
 	}
 
@@ -440,6 +579,30 @@ export class SmartArtPropertiesComponent {
 
 	protected onMoveDown(nodeId: string): void {
 		this.commit(moveNodeDown(this.smartArtData(), nodeId));
+	}
+
+	protected onNodeFillColor(event: Event, nodeId: string): void {
+		const value = inputValue(event);
+		if (value === null) {
+			return;
+		}
+		this.commit(setNodeStyle(this.smartArtData(), nodeId, { fillColor: value }));
+	}
+
+	protected onNodeFontColor(event: Event, nodeId: string): void {
+		const value = inputValue(event);
+		if (value === null) {
+			return;
+		}
+		this.commit(setNodeStyle(this.smartArtData(), nodeId, { fontColor: value }));
+	}
+
+	protected onNodeBold(node: PptxSmartArtNode): void {
+		this.commit(toggleNodeBold(this.smartArtData(), node));
+	}
+
+	protected onNodeItalic(node: PptxSmartArtNode): void {
+		this.commit(toggleNodeItalic(this.smartArtData(), node));
 	}
 
 	protected onNodeText(event: Event, nodeId: string): void {

@@ -20,47 +20,65 @@ import {
 	computeKeyboardInset,
 	computeScrollDelta,
 	isKeyboardOpen as isKeyboardOpenInset,
-	isMobileViewport,
-	isTabletViewport,
-	MOBILE_BREAKPOINT,
-	MOBILE_LANDSCAPE_MAX_HEIGHT,
 	readViewportMetrics,
-	TABLET_BREAKPOINT,
 } from '../internal/shared';
 
 // ---------------------------------------------------------------------------
-// Constants + pure helpers
+// Constants
 // ---------------------------------------------------------------------------
 
-// The breakpoint maths and predicates live in shared
-// (`render/mobile-viewport.ts`) so React, Vue and Angular switch chrome at
-// exactly the same thresholds. Re-exported here to preserve this module's
-// public surface.
-export { MOBILE_BREAKPOINT, TABLET_BREAKPOINT, MOBILE_LANDSCAPE_MAX_HEIGHT };
+/** Viewport width (px) below which the UI switches to mobile layout. */
+export const MOBILE_BREAKPOINT = 768;
+
+/** Tablet breakpoint: below this width (but >= MOBILE) is tablet. */
+export const TABLET_BREAKPOINT = 1024;
 
 /**
- * Decide whether the current environment should use the mobile layout.
- * Delegates to the shared `isMobileViewport`; kept under this name for the
- * existing Angular barrel + test surface.
+ * Max viewport height (px) at which a *touch* device is treated as mobile
+ * regardless of width. Catches landscape phones (e.g. 915×412), which are wide
+ * enough to fall in the "tablet" width band but far too short for the desktop
+ * ribbon + side panels, so they need the mobile chrome. Tablets in landscape are
+ * taller (~760px+) so they stay on the desktop layout. Mirrors React's
+ * `MOBILE_LANDSCAPE_MAX_HEIGHT` in useIsMobile.ts.
+ */
+export const MOBILE_LANDSCAPE_MAX_HEIGHT = 500;
+
+// ---------------------------------------------------------------------------
+// Pure helpers (no Angular deps, safe in vitest without a DOM)
+// ---------------------------------------------------------------------------
+
+/**
+ * Decide whether the current environment should use the mobile layout:
+ * - a narrow viewport (`width < MOBILE_BREAKPOINT`), OR
+ * - a short *touch* viewport below the tablet width: a landscape phone, which
+ *   is wide enough to look like a tablet but far too short for the desktop
+ *   ribbon + side panels.
+ *
+ * This mirrors React's `isMobileViewport(width, height, isTouch)` so the three
+ * frameworks switch chrome at the same breakpoints (and the shared mobile e2e
+ * specs pass identically). A tall touch tablet (e.g. 820×1180) is NOT mobile.
  *
  * @pure: no side effects, fully testable without a DOM.
  */
 export function computeIsMobile(width: number, height: number, isTouch: boolean): boolean {
-	return isMobileViewport(width, height, isTouch);
+	if (width < MOBILE_BREAKPOINT) {
+		return true;
+	}
+	return isTouch && height > 0 && height < MOBILE_LANDSCAPE_MAX_HEIGHT && width < TABLET_BREAKPOINT;
 }
 
 /**
  * Decide whether the current environment is "tablet" (desktop chrome, but in
- * the 768-1023px width band). A short landscape-phone touch viewport is mobile,
+ * the 768–1023px width band). A short landscape-phone touch viewport is mobile,
  * not tablet (handled by {@link computeIsMobile}).
  *
  * @pure
  */
 export function computeIsTablet(width: number, height: number, isTouch: boolean): boolean {
-	if (isMobileViewport(width, height, isTouch)) {
+	if (computeIsMobile(width, height, isTouch)) {
 		return false;
 	}
-	return isTabletViewport(width);
+	return width >= MOBILE_BREAKPOINT && width < TABLET_BREAKPOINT;
 }
 
 // ---------------------------------------------------------------------------

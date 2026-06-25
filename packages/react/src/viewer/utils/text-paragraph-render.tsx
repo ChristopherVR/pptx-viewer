@@ -1,10 +1,5 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle, BulletInfo } from 'pptx-viewer-core';
-import {
-	resolveCssTextAlign,
-	resolveParagraphAlign,
-	resolveParagraphRtl,
-} from 'pptx-viewer-shared';
 import React from 'react';
 
 import type { ElementAnimationState } from './animation-timeline';
@@ -15,10 +10,62 @@ import type { FieldSubstitutionContext } from './text-field-substitution';
 import type { ElementFindHighlights } from './text-segment-helpers';
 import { renderSingleSegment } from './text-segment-render';
 
-// Per-paragraph BiDi direction + text-alignment resolution now lives in
-// pptx-viewer-shared (render/text-paragraph-style). Re-exported here so existing
-// React import paths keep working.
-export { resolveCssTextAlign, resolveParagraphAlign, resolveParagraphRtl };
+/**
+ * Resolve per-paragraph RTL direction from segment styles.
+ * Returns `true` for RTL, `false` for explicit LTR, or `undefined` when
+ * no explicit direction is set (inherits element-level default).
+ */
+export function resolveParagraphRtl(
+	paraSegments: ReadonlyArray<ParagraphEntry>,
+	elementRtl: boolean | undefined,
+): boolean | undefined {
+	for (const entry of paraSegments) {
+		const segRtl = entry.segment.style?.rtl;
+		if (segRtl !== undefined) {
+			return segRtl;
+		}
+	}
+	return elementRtl;
+}
+
+/**
+ * Resolve per-paragraph explicit text alignment from segment styles.
+ * Returns the OOXML alignment value if any segment carries an explicit `align`
+ * property, or `undefined` when no explicit alignment is set.
+ */
+export function resolveParagraphAlign(
+	paraSegments: ReadonlyArray<ParagraphEntry>,
+	elementAlign: TextStyle['align'] | undefined,
+): TextStyle['align'] | undefined {
+	for (const entry of paraSegments) {
+		const segAlign = entry.segment.style?.align;
+		if (segAlign !== undefined) {
+			return segAlign;
+		}
+	}
+	return elementAlign;
+}
+
+/**
+ * Map OOXML alignment + RTL direction to a CSS `textAlign` value.
+ *
+ * When no explicit alignment is set and the paragraph is RTL, defaults to
+ * `"right"`. For LTR, defaults to `"left"`. Special OOXML alignment values
+ * (`justLow`, `dist`, `thaiDist`) map to CSS `"justify"`.
+ */
+export function resolveCssTextAlign(
+	align: TextStyle['align'] | undefined,
+	isRtl: boolean,
+): React.CSSProperties['textAlign'] | undefined {
+	if (align === 'justLow' || align === 'dist' || align === 'thaiDist') {
+		return 'justify';
+	}
+	if (align) {
+		return align as React.CSSProperties['textAlign'];
+	}
+	// Default: RTL paragraphs align right, LTR paragraphs align left
+	return isRtl ? 'right' : undefined;
+}
 
 function groupSegmentsIntoParagraphs(
 	segments: ReadonlyArray<{

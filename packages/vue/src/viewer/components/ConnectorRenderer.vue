@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { ConnectorArrowType, PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-import { markerPath } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
@@ -146,6 +145,21 @@ const wrapperStyle = computed<CSSProperties>(() => {
 });
 
 // ── Marker shape helpers ──────────────────────────────────────────────────────
+
+/** Marker element shape per arrow type (viewBox 0 0 10 10). */
+function markerPath(type: ConnectorArrowType): { shape: 'path' | 'circle'; d?: string } {
+	switch (type) {
+		case 'diamond':
+			return { shape: 'path', d: 'M5 0 L10 5 L5 10 L0 5 Z' };
+		case 'oval':
+			return { shape: 'circle' };
+		case 'stealth':
+			return { shape: 'path', d: 'M0 0 L10 5 L0 10 L3 5 Z' };
+		// triangle / arrow / fallback
+		default:
+			return { shape: 'path', d: 'M0 0 L10 5 L0 10 Z' };
+	}
+}
 
 const startMarker = computed(() => (startArrow.value ? markerPath(startArrow.value) : null));
 const endMarker = computed(() => (endArrow.value ? markerPath(endArrow.value) : null));

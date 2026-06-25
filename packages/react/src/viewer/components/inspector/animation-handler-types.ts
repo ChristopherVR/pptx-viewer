@@ -61,7 +61,7 @@ export interface AnimationHandlers {
 // Shared constants
 // ---------------------------------------------------------------------------
 
-export { DIRECTIONAL_PRESETS } from 'pptx-viewer-shared';
+export const DIRECTIONAL_PRESETS = new Set<string>(['flyIn', 'flyOut']);
 
 // ---------------------------------------------------------------------------
 // Shared callback type used by sub-hooks

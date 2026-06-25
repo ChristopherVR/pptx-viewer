@@ -19,11 +19,8 @@ describe('dIRECTIONAL_PRESETS', () => {
 		expect(DIRECTIONAL_PRESETS.has('flyOut')).toBeTruthy();
 	});
 
-	it('contains the broader directional presets from shared', () => {
-		expect(DIRECTIONAL_PRESETS.has('wipeIn')).toBeTruthy();
-		expect(DIRECTIONAL_PRESETS.has('wipeOut')).toBeTruthy();
-		expect(DIRECTIONAL_PRESETS.has('floatIn')).toBeTruthy();
-		expect(DIRECTIONAL_PRESETS.has('peekIn')).toBeTruthy();
+	it('has exactly 2 entries', () => {
+		expect(DIRECTIONAL_PRESETS.size).toBe(2);
 	});
 
 	it('does not contain non-directional presets', () => {

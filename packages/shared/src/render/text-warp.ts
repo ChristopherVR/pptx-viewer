@@ -11,7 +11,7 @@
  * detect a warped element and {@link shouldUseSvgWarp} to decide whether the
  * SVG `<textPath>` renderer applies.
  */
-import type { PptxElement, PptxTextWarpPreset, TextSegment } from 'pptx-viewer-core';
+import type { PptxElement, PptxTextWarpPreset } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
 // ── Classifier ──────────────────────────────────────────────────────────
@@ -107,73 +107,6 @@ export const ALL_CLASSIFIED_PRESETS: ReadonlySet<string> = new Set([
 	...ENVELOPE_PRESETS,
 	...SIMPLE_PRESETS,
 ]);
-
-// ── Paragraph splitter ──────────────────────────────────────────────────
-
-/** A single warp/WordArt paragraph: the runs that flow along one baseline. */
-export interface WarpParagraph {
-	/** Text segments belonging to this paragraph (no paragraph-break segments). */
-	segments: TextSegment[];
-}
-
-/** Minimal element shape the warp paragraph splitter needs. */
-export interface WarpTextSource {
-	text?: string;
-	textSegments?: TextSegment[];
-}
-
-/**
- * Optional per-segment transform applied while grouping. Returns the segment to
- * emit for the given input segment; callers use it to substitute field text
- * (slide number / date / footer …). Returning the same segment is a no-op.
- */
-export type WarpSegmentTransform = (segment: TextSegment) => TextSegment;
-
-/**
- * Group an element's `textSegments` into paragraphs delimited by
- * `isParagraphBreak` segments (the break markers themselves are excluded).
- *
- * Falls back to a single synthetic paragraph carrying `element.text` when no
- * segments are present, and to an empty array when there is neither text nor
- * segments.
- *
- * When `transform` is supplied each non-break segment is passed through it
- * before being collected; this is how the React renderer substitutes field
- * values (slide number, date, footer, …) into warped text. The transform is a
- * separate concern kept out of this pure splitter so Vue/Angular can call it
- * without pulling in field-substitution logic.
- *
- * @param source    Element (or element-like) carrying `text` / `textSegments`.
- * @param transform Optional per-segment substitution callback.
- */
-export function groupIntoParagraphs(
-	source: WarpTextSource,
-	transform?: WarpSegmentTransform,
-): WarpParagraph[] {
-	const segments = source.textSegments;
-	if (!segments || segments.length === 0) {
-		if (source.text) {
-			return [{ segments: [{ text: source.text, style: {} }] }];
-		}
-		return [];
-	}
-	const paragraphs: WarpParagraph[] = [];
-	let current: TextSegment[] = [];
-	for (const seg of segments) {
-		if (seg.isParagraphBreak) {
-			if (current.length > 0) {
-				paragraphs.push({ segments: current });
-			}
-			current = [];
-		} else {
-			current.push(transform ? transform(seg) : seg);
-		}
-	}
-	if (current.length > 0) {
-		paragraphs.push({ segments: current });
-	}
-	return paragraphs;
-}
 
 // ── Path generators ─────────────────────────────────────────────────────
 

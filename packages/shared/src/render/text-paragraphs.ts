@@ -14,7 +14,6 @@ import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
 import { resolveParagraphBullet, resolveParagraphIndent } from './bullet-list';
-import { resolveUnderlineDecorationStyle } from './text-decoration';
 
 /** A plain CSS style map (keys are CSS properties; binding-agnostic). */
 export type RunStyle = Record<string, string | number>;
@@ -73,41 +72,6 @@ export function segmentStyleToCss(seg: TextSegment): RunStyle {
 }
 
 /**
- * Layer the underline-style / double-strike *variant* decoration CSS
- * (`text-decoration-style` / `-thickness` / `text-underline-offset`) onto a run
- * style. Kept separate from {@link segmentStyleToCss} so that helper's contract
- * (boolean `textDecoration` only) stays stable for its other consumers; this is
- * applied additively by {@link buildParagraphs} when building each run, mirroring
- * React's segment renderer (`text-segment-render.tsx`), which applies
- * `resolveUnderlineDecorationStyle` over the boolean underline.
- */
-function applyUnderlineVariant(style: RunStyle, seg: TextSegment): void {
-	const s = seg.style;
-	if (!s) {
-		return;
-	}
-	const isDoubleStrike = Boolean(s.strikethrough && s.strikeType === 'dblStrike');
-	// Only the underline path needs an explicit style token; a plain solid
-	// underline (or no underline) leaves the boolean `textDecoration` untouched.
-	const deco = resolveUnderlineDecorationStyle(
-		isDoubleStrike,
-		s.underline ? s.underlineStyle : undefined,
-	);
-	if (!deco) {
-		return;
-	}
-	if (deco.textDecorationStyle !== undefined) {
-		style.textDecorationStyle = deco.textDecorationStyle;
-	}
-	if (deco.textDecorationThickness !== undefined) {
-		style.textDecorationThickness = deco.textDecorationThickness;
-	}
-	if (deco.textUnderlineOffset !== undefined) {
-		style.textUnderlineOffset = deco.textUnderlineOffset;
-	}
-}
-
-/**
  * Group `element`'s text segments into rendered paragraphs. Paragraph
  * separators are `isParagraphBreak` segments (post-edit remap) or bare `"\n"`
  * text segments (the slide-load path); soft line breaks insert a newline within
@@ -152,9 +116,7 @@ export function buildParagraphs(element: PptxElement): RenderParagraph[] {
 			}
 			const text = seg.isLineBreak ? '\n' : seg.text;
 			if (text) {
-				const style = segmentStyleToCss(seg);
-				applyUnderlineVariant(style, seg);
-				runs.push({ text, style });
+				runs.push({ text, style: segmentStyleToCss(seg) });
 			}
 		}
 

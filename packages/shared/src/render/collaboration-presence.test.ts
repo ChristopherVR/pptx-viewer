@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-	asSelectionIds,
 	assignUserColor,
 	clampCursorPosition,
 	derivePresenceList,
@@ -9,7 +8,6 @@ import {
 	isMixedContentBlocked,
 	isPresenceFresh,
 	isValidRoomId,
-	mapAwarenessCursors,
 	presenceToCursors,
 	sanitizeAvatarUrl,
 	sanitizeColor,
@@ -150,27 +148,5 @@ describe('collaboration-presence: presence derivation', () => {
 		];
 		expect(presenceToCursors(presence, 0)).toHaveLength(1);
 		expect(presenceToCursors(presence)).toHaveLength(2);
-	});
-});
-
-describe('collaboration-presence: flat awareness helpers', () => {
-	it('maps a bare cursor/user awareness map, skipping local and cursorless entries', () => {
-		const states = new Map<number, Record<string, unknown>>([
-			[1, { cursor: { x: 1, y: 2 }, user: { name: 'self', color: '#ffffff' } }],
-			[2, { cursor: { x: 5, y: 6 }, user: { name: 'Ada', color: '#abcdef' } }],
-			[3, { user: { name: 'no-cursor' } }],
-			[4, { cursor: { x: 7, y: 8 } }],
-		]);
-		const cursors = mapAwarenessCursors(states, 1);
-		expect(cursors).toHaveLength(2);
-		expect(cursors[0]).toMatchObject({ clientId: 2, userName: 'Ada', color: '#abcdef', x: 5 });
-		// Missing user falls back to a 'Guest' name and the default colour.
-		expect(cursors[1]).toMatchObject({ clientId: 4, userName: 'Guest', color: '#4c8bf5' });
-	});
-
-	it('coerces an unknown selection value into a string id array', () => {
-		expect(asSelectionIds(['a', 1, 'b', null, 'c'])).toStrictEqual(['a', 'b', 'c']);
-		expect(asSelectionIds('not-an-array')).toStrictEqual([]);
-		expect(asSelectionIds(undefined)).toStrictEqual([]);
 	});
 });

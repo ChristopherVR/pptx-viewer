@@ -51,7 +51,6 @@ import {
 	newChartElement,
 	newEquationElement,
 	newShapeElement,
-	newSmartArtElement,
 	newTableElement,
 	newTextElement,
 } from './editor-insert';
@@ -288,23 +287,10 @@ const TEXT_COLORS = [
 						{{ t.label }}
 					</button>
 				}
-				<div class="flex-1"></div>
-				<button
-					type="button"
-					class="mr-1 rounded px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-					[attr.aria-pressed]="!ribbonExpanded()"
-					[title]="ribbonExpanded() ? 'Collapse the ribbon' : 'Expand the ribbon'"
-					(click)="ribbonExpanded.set(!ribbonExpanded())"
-				>
-					{{ ribbonExpanded() ? '▴' : '▾' }}
-				</button>
 			</div>
 
-			<!-- ── Ribbon content (collapsible via the ribbon toggle) ──────────── -->
-			<div
-				class="flex flex-nowrap items-stretch gap-1.5 overflow-x-auto px-2 py-1.5"
-				[style.display]="ribbonExpanded() ? null : 'none'"
-			>
+			<!-- ── Ribbon content ────────────────────────────────────────────── -->
+			<div class="flex flex-nowrap items-stretch gap-1.5 overflow-x-auto px-2 py-1.5">
 				@switch (activeTab()) {
 					@case ('file') {
 						<button
@@ -1197,6 +1183,12 @@ export class RibbonComponent {
 	readonly toggleSnapToGrid = output<void>();
 	/** Emitted when the user activates the eyedropper in the View tab. */
 	readonly toggleEyedropper = output<void>();
+	/**
+	 * Emitted when the user clicks "SmartArt" in the Insert tab. The host opens
+	 * the Insert SmartArt gallery dialog and performs the actual insert, so the
+	 * ribbon stays free of the dialog state and node-building logic.
+	 */
+	readonly openSmartArtDialog = output<void>();
 
 	protected readonly tabs = TABS;
 	protected readonly fontFamilies = FONT_FAMILIES;
@@ -1209,9 +1201,6 @@ export class RibbonComponent {
 	protected readonly exitPresets = EXIT_PRESETS;
 
 	protected readonly activeTab = signal<RibbonTab>('home');
-
-	/** Ribbon content expanded (true) vs collapsed to just the tab bar (false). */
-	protected readonly ribbonExpanded = signal(true);
 
 	// ── Insert tab state ──────────────────────────────────────────────────────
 	/** Chart types offered in the Insert tab dropdown (shared source of truth). */
@@ -1281,7 +1270,8 @@ export class RibbonComponent {
 		this.editor.addElement(this.slideIndex(), newTableElement());
 	}
 	protected insertSmartArt(): void {
-		this.editor.addElement(this.slideIndex(), newSmartArtElement());
+		// Open the Insert SmartArt gallery dialog (host owns the dialog + insert).
+		this.openSmartArtDialog.emit();
 	}
 	protected setNewChartType(event: Event): void {
 		this.newChartType.set((event.target as HTMLSelectElement).value as PptxChartType);

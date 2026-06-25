@@ -3,8 +3,6 @@
  * Handles marquee, drag, resize, and shape-adjustment interactions.
  */
 import type { PptxElement } from 'pptx-viewer-core';
-import { applyResize, snapBoxToGrid } from 'pptx-viewer-shared';
-import type { ResizeHandleId } from 'pptx-viewer-shared';
 
 import { MIN_ELEMENT_SIZE } from '../constants';
 import { computeSnapToShapeResult } from '../utils/geometry-selection';
@@ -21,15 +19,9 @@ export interface ResizeGeometry {
 	height: number;
 }
 
-/**
- * Compute new resize geometry from an (element-space) delta and handle position.
- *
- * The core 8-handle resize is the shared `applyResize` (called with `zoom = 1`
- * since `dx`/`dy` are already in element px and the element is axis-aligned),
- * followed by the shared per-edge grid snap when `snapToGrid` is set.
- */
+/** Compute new resize geometry from a delta and handle position. */
 export function computeResizeGeometry(
-	handle: ResizeHandleId,
+	handle: 'nw' | 'ne' | 'sw' | 'se' | 'n' | 's' | 'e' | 'w',
 	startX: number,
 	startY: number,
 	startWidth: number,
@@ -39,19 +31,73 @@ export function computeResizeGeometry(
 	snapToGrid: boolean,
 	gridSpacingPx: number,
 ): ResizeGeometry {
-	const resized = applyResize(
-		{ x: startX, y: startY, width: startWidth, height: startHeight },
-		handle,
-		dx,
-		dy,
-		1,
-		{ minSize: MIN_ELEMENT_SIZE },
-	);
-	const box = { x: resized.x, y: resized.y, width: resized.width, height: resized.height };
-	if (!snapToGrid) {
-		return box;
+	let newX = startX,
+		newY = startY,
+		newW = startWidth,
+		newH = startHeight;
+	switch (handle) {
+		case 'se':
+			newW = Math.max(MIN_ELEMENT_SIZE, startWidth + dx);
+			newH = Math.max(MIN_ELEMENT_SIZE, startHeight + dy);
+			break;
+		case 'sw':
+			newX = startX + dx;
+			newW = Math.max(MIN_ELEMENT_SIZE, startWidth - dx);
+			newH = Math.max(MIN_ELEMENT_SIZE, startHeight + dy);
+			break;
+		case 'ne':
+			newY = startY + dy;
+			newW = Math.max(MIN_ELEMENT_SIZE, startWidth + dx);
+			newH = Math.max(MIN_ELEMENT_SIZE, startHeight - dy);
+			break;
+		case 'nw':
+			newX = startX + dx;
+			newY = startY + dy;
+			newW = Math.max(MIN_ELEMENT_SIZE, startWidth - dx);
+			newH = Math.max(MIN_ELEMENT_SIZE, startHeight - dy);
+			break;
+		// Edge handles - single-axis resize
+		case 'n':
+			newY = startY + dy;
+			newH = Math.max(MIN_ELEMENT_SIZE, startHeight - dy);
+			break;
+		case 's':
+			newH = Math.max(MIN_ELEMENT_SIZE, startHeight + dy);
+			break;
+		case 'e':
+			newW = Math.max(MIN_ELEMENT_SIZE, startWidth + dx);
+			break;
+		case 'w':
+			newX = startX + dx;
+			newW = Math.max(MIN_ELEMENT_SIZE, startWidth - dx);
+			break;
 	}
-	return snapBoxToGrid(box, handle, gridSpacingPx, MIN_ELEMENT_SIZE);
+	if (snapToGrid) {
+		const gs = gridSpacingPx;
+		// Snap right edge
+		if (handle === 'se' || handle === 'ne' || handle === 'e') {
+			const right = Math.round((newX + newW) / gs) * gs;
+			newW = Math.max(MIN_ELEMENT_SIZE, right - newX);
+		}
+		// Snap left edge
+		if (handle === 'sw' || handle === 'nw' || handle === 'w') {
+			const snappedX = Math.round(newX / gs) * gs;
+			newW = Math.max(MIN_ELEMENT_SIZE, newW + (newX - snappedX));
+			newX = snappedX;
+		}
+		// Snap bottom edge
+		if (handle === 'se' || handle === 'sw' || handle === 's') {
+			const bottom = Math.round((newY + newH) / gs) * gs;
+			newH = Math.max(MIN_ELEMENT_SIZE, bottom - newY);
+		}
+		// Snap top edge
+		if (handle === 'ne' || handle === 'nw' || handle === 'n') {
+			const snappedY = Math.round(newY / gs) * gs;
+			newH = Math.max(MIN_ELEMENT_SIZE, newH + (newY - snappedY));
+			newY = snappedY;
+		}
+	}
+	return { x: newX, y: newY, width: newW, height: newH };
 }
 
 /** Compute new shape adjustment value from pointer delta. */

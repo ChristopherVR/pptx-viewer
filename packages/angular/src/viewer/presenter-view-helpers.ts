@@ -1,20 +1,14 @@
 /**
  * presenter-view-helpers.ts
  *
- * Helpers for `PresenterViewComponent`: time/elapsed formatting, notes
- * font-size clamping, rich-notes segment → view-model derivation, timer
- * progress, and current/next-slide selection.
+ * Pure (framework-free) helpers for `PresenterViewComponent`: time/elapsed
+ * formatting, notes font-size clamping, rich-notes segment → view-model
+ * derivation, and current/next-slide selection.
  *
- * The identical pure helpers (notes font-size constants, `clampNotesFontSize`,
- * `formatTime`) now live in `pptx-viewer-shared` and are re-exported here from
- * `../internal/shared` so existing Angular imports of
- * `./presenter-view-helpers` keep resolving.
- *
- * Kept LOCAL (intentionally diverging from shared):
- *  - `formatElapsed`: clamps negative input to zero (shared's does not).
- *  - `NotesSegmentViewModel` / `buildNotesSegments`: produce a kebab-case
- *    `StyleMap` with `px` font sizes for the Angular template, unlike shared's
- *    camelCase `NotesSpan` (`pt`).
+ * Angular port of the React `components/presenter-view-utils.ts`. The React
+ * `renderNotesSegments` produced React nodes; here we instead derive a plain
+ * `NotesSegmentViewModel[]` (text + style + break flag) so the logic stays
+ * testable without a renderer and the component template owns the markup.
  *
  * Kept TestBed-free (vitest + happy-dom). ng-packagr lib-target constraints:
  * no `String.prototype.replaceAll`, no regex named-capture-groups.
@@ -23,18 +17,43 @@ import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
 
 import type { StyleMap } from './element-style';
 
-export {
-	clampNotesFontSize,
-	formatTime,
-	NOTES_FONT_SIZE_DEFAULT,
-	NOTES_FONT_SIZE_MAX,
-	NOTES_FONT_SIZE_MIN,
-	NOTES_FONT_SIZE_STEP,
-} from '../internal/shared';
+// ---------------------------------------------------------------------------
+// Notes font-size constants
+// ---------------------------------------------------------------------------
+
+/** Minimum font size (px) for speaker notes in presenter view. */
+export const NOTES_FONT_SIZE_MIN = 10;
+
+/** Maximum font size (px) for speaker notes in presenter view. */
+export const NOTES_FONT_SIZE_MAX = 32;
+
+/** Step increment (px) when increasing/decreasing notes font size. */
+export const NOTES_FONT_SIZE_STEP = 2;
+
+/** Default font size (px) for speaker notes. */
+export const NOTES_FONT_SIZE_DEFAULT = 14;
+
+/**
+ * Clamp a notes font size value to the allowed range.
+ */
+export function clampNotesFontSize(size: number): number {
+	return Math.max(NOTES_FONT_SIZE_MIN, Math.min(NOTES_FONT_SIZE_MAX, size));
+}
 
 // ---------------------------------------------------------------------------
-// Time formatting (local: negative-clamping differs from shared)
+// Time formatting
 // ---------------------------------------------------------------------------
+
+/**
+ * Format a Date as a locale time string (HH:MM:SS).
+ */
+export function formatTime(date: Date): string {
+	return date.toLocaleTimeString([], {
+		hour: '2-digit',
+		minute: '2-digit',
+		second: '2-digit',
+	});
+}
 
 /**
  * Format a millisecond duration as MM:SS, or HH:MM:SS when the elapsed

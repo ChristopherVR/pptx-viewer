@@ -13,7 +13,6 @@
 import { Injectable } from '@angular/core';
 import { jsPDF } from 'jspdf';
 
-import { canvasToJpegData, downloadBlob } from '../internal/shared';
 import { renderToCanvas } from '../lib/canvas-export';
 import { pdfPageSize, sanitizeFileName } from './export-helpers';
 import { encodeGif, planGifFrames } from './gif-export-helpers';
@@ -25,15 +24,42 @@ import { recordWebm } from './video-export-helpers';
 /* ------------------------------------------------------------------ */
 
 /**
+ * Trigger a browser download for a Blob.
+ *
+ * @param blob     - The content to download.
+ * @param fileName - The suggested file name shown to the user.
+ */
+function downloadBlob(blob: Blob, fileName: string): void {
+	const url = URL.createObjectURL(blob);
+	const anchor = document.createElement('a');
+	anchor.href = url;
+	anchor.download = sanitizeFileName(fileName);
+	anchor.style.display = 'none';
+	document.body.appendChild(anchor);
+	anchor.click();
+	document.body.removeChild(anchor);
+	// Revoke asynchronously so the download has time to start.
+	setTimeout(() => {
+		URL.revokeObjectURL(url);
+	}, 10_000);
+}
+
+/**
  * Convert an HTMLCanvasElement to a JPEG `Uint8Array` immediately, then let
  * the canvas be GC'd.  This keeps peak memory manageable for multi-slide PDFs.
- * Delegates to the shared `canvasToJpegData` and takes its `bytes`.
  *
  * @param canvas  - The rendered slide canvas.
- * @param quality - JPEG quality 0-1 (default 0.92).
+ * @param quality - JPEG quality 0–1 (default 0.92).
  */
 function canvasToJpegBytes(canvas: HTMLCanvasElement, quality: number = 0.92): Uint8Array {
-	return canvasToJpegData(canvas, quality).bytes;
+	const dataUrl = canvas.toDataURL('image/jpeg', quality);
+	const base64 = dataUrl.split(',')[1] ?? '';
+	const raw = atob(base64);
+	const bytes = new Uint8Array(raw.length);
+	for (let i = 0; i < raw.length; i++) {
+		bytes[i] = raw.charCodeAt(i);
+	}
+	return bytes;
 }
 
 /* ------------------------------------------------------------------ */

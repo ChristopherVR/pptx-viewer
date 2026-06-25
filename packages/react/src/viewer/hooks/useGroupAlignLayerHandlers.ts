@@ -3,31 +3,12 @@
  * layer-order, and merge shapes handlers extracted from useElementManipulation.
  */
 import type { PptxElement, PptxSlide, GroupPptxElement } from 'pptx-viewer-core';
-import {
-	alignElements,
-	bringForward,
-	bringToFront,
-	groupElements,
-	sendBackward,
-	sendToBack,
-} from 'pptx-viewer-shared';
-import type { AlignEdge } from 'pptx-viewer-shared';
 
 import { generateElementId } from '../utils/generate-id';
 import type { GroupAlignLayerHandlers } from './element-manipulation-types';
 import type { EditorHistoryResult } from './useEditorHistory';
 import type { ElementOperations } from './useElementOperations';
 import { useMergeShapesHandler } from './useMergeShapesHandler';
-
-/** Map the React toolbar's align keys onto the shared {@link AlignEdge} names. */
-const ALIGN_EDGE_BY_KEY: Record<string, AlignEdge> = {
-	left: 'left',
-	center: 'centerH',
-	right: 'right',
-	top: 'top',
-	middle: 'middle',
-	bottom: 'bottom',
-};
 
 interface GroupAlignLayerInput {
 	activeSlide: PptxSlide | undefined;
@@ -59,14 +40,52 @@ export function useGroupAlignLayerHandlers(input: GroupAlignLayerInput): GroupAl
 		if (ids.length < 2 || !activeSlide) {
 			return;
 		}
-		const { elements, groupId } = groupElements(activeSlide.elements, ids, generateElementId());
-		if (groupId === null) {
+		const idSet = new Set(ids);
+		const targets = activeSlide.elements.filter((el) => idSet.has(el.id));
+		if (targets.length < 2) {
 			return;
 		}
+		let minX = Infinity,
+			minY = Infinity,
+			maxX = -Infinity,
+			maxY = -Infinity;
+		for (const el of targets) {
+			minX = Math.min(minX, el.x);
+			minY = Math.min(minY, el.y);
+			maxX = Math.max(maxX, el.x + el.width);
+			maxY = Math.max(maxY, el.y + el.height);
+		}
+		const children: PptxElement[] = targets.map((el) => ({
+			...structuredClone(el),
+			x: el.x - minX,
+			y: el.y - minY,
+		}));
+		const group: GroupPptxElement = {
+			id: generateElementId(),
+			type: 'group',
+			x: minX,
+			y: minY,
+			width: maxX - minX,
+			height: maxY - minY,
+			rotation: 0,
+			flipHorizontal: false,
+			flipVertical: false,
+			hidden: false,
+			opacity: 1,
+			rawXml: {},
+			children,
+		};
 		ops.updateSlides((prev) =>
-			prev.map((s, i) => (i === activeSlideIndex ? { ...s, elements } : s)),
+			prev.map((s, i) =>
+				i === activeSlideIndex
+					? {
+							...s,
+							elements: [...s.elements.filter((el) => !idSet.has(el.id)), group],
+						}
+					: s,
+			),
 		);
-		ops.applySelection(groupId);
+		ops.applySelection(group.id);
 		history.markDirty();
 	};
 
@@ -111,18 +130,47 @@ export function useGroupAlignLayerHandlers(input: GroupAlignLayerInput): GroupAl
 		if (selectedElements.length < 2) {
 			return;
 		}
-		const edge = ALIGN_EDGE_BY_KEY[align];
-		if (!edge) {
-			return;
-		}
-		const positions = alignElements(selectedElements, edge);
-		for (const [id, pos] of positions) {
-			const el = elementLookup.get(id);
+		const bounds = selectedElements.map((el) => ({
+			id: el.id,
+			left: el.x,
+			top: el.y,
+			right: el.x + el.width,
+			bottom: el.y + el.height,
+		}));
+		const groupLeft = Math.min(...bounds.map((b) => b.left));
+		const groupTop = Math.min(...bounds.map((b) => b.top));
+		const groupRight = Math.max(...bounds.map((b) => b.right));
+		const groupBottom = Math.max(...bounds.map((b) => b.bottom));
+		const groupCenterX = (groupLeft + groupRight) / 2;
+		const groupCenterY = (groupTop + groupBottom) / 2;
+		for (const b of bounds) {
+			const el = elementLookup.get(b.id);
 			if (!el) {
 				continue;
 			}
-			// `alignElements` only sets the touched axis; keep the other axis as-is.
-			ops.updateElementById(id, { x: pos.x ?? el.x, y: pos.y ?? el.y });
+			let newX = el.x,
+				newY = el.y;
+			switch (align) {
+				case 'left':
+					newX = groupLeft;
+					break;
+				case 'center':
+					newX = groupCenterX - el.width / 2;
+					break;
+				case 'right':
+					newX = groupRight - el.width;
+					break;
+				case 'top':
+					newY = groupTop;
+					break;
+				case 'middle':
+					newY = groupCenterY - el.height / 2;
+					break;
+				case 'bottom':
+					newY = groupBottom - el.height;
+					break;
+			}
+			ops.updateElementById(b.id, { x: newX, y: newY });
 		}
 		history.markDirty();
 	};
@@ -131,13 +179,17 @@ export function useGroupAlignLayerHandlers(input: GroupAlignLayerInput): GroupAl
 		if (!selectedElement || !activeSlide) {
 			return;
 		}
-		const id = selectedElement.id;
-		const newElements =
-			direction === 'forward'
-				? bringForward(activeSlide.elements, id)
-				: direction === 'backward'
-					? sendBackward(activeSlide.elements, id)
-					: activeSlide.elements;
+		const elements = activeSlide.elements;
+		const idx = elements.findIndex((el) => el.id === selectedElement.id);
+		if (idx === -1) {
+			return;
+		}
+		const newElements = [...elements];
+		if (direction === 'forward' && idx < elements.length - 1) {
+			[newElements[idx], newElements[idx + 1]] = [newElements[idx + 1], newElements[idx]];
+		} else if (direction === 'backward' && idx > 0) {
+			[newElements[idx], newElements[idx - 1]] = [newElements[idx - 1], newElements[idx]];
+		}
 		ops.updateSlides((prev) =>
 			prev.map((s, i) => (i === activeSlideIndex ? { ...s, elements: newElements } : s)),
 		);
@@ -148,11 +200,14 @@ export function useGroupAlignLayerHandlers(input: GroupAlignLayerInput): GroupAl
 		if (!selectedElement || !activeSlide) {
 			return;
 		}
-		const id = selectedElement.id;
-		const newElements =
-			direction === 'front'
-				? bringToFront(activeSlide.elements, id)
-				: sendToBack(activeSlide.elements, id);
+		const elements = activeSlide.elements;
+		const idx = elements.findIndex((el) => el.id === selectedElement.id);
+		if (idx === -1) {
+			return;
+		}
+		const el = elements[idx];
+		const rest = elements.filter((_, i) => i !== idx);
+		const newElements = direction === 'front' ? [...rest, el] : [el, ...rest];
 		ops.updateSlides((prev) =>
 			prev.map((s, i) => (i === activeSlideIndex ? { ...s, elements: newElements } : s)),
 		);

@@ -26,19 +26,13 @@ describe('formatBytes', () => {
 });
 
 describe('isBrowserOpenableMime', () => {
-	it('returns true for pdf, images, text, json, xml, xhtml', () => {
+	it('returns true for pdf, images, text, json, xml', () => {
 		expect(isBrowserOpenableMime('application/pdf')).toBeTruthy();
 		expect(isBrowserOpenableMime('image/png')).toBeTruthy();
 		expect(isBrowserOpenableMime('text/plain')).toBeTruthy();
 		expect(isBrowserOpenableMime('application/json')).toBeTruthy();
 		expect(isBrowserOpenableMime('application/xml')).toBeTruthy();
-		expect(isBrowserOpenableMime('application/xhtml+xml')).toBeTruthy();
 		expect(isBrowserOpenableMime('IMAGE/JPEG')).toBeTruthy();
-	});
-
-	it('is case-insensitive and ignores charset parameters', () => {
-		expect(isBrowserOpenableMime('TEXT/Plain; charset=UTF-8')).toBeTruthy();
-		expect(isBrowserOpenableMime('Application/PDF')).toBeTruthy();
 	});
 
 	it('returns false for office/binary types and missing input', () => {

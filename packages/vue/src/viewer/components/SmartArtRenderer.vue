@@ -7,7 +7,7 @@ import type {
 	SmartArtColorScheme,
 	SmartArtStyle,
 } from 'pptx-viewer-core';
-import { shouldCommitSmartArtNodeText } from 'pptx-viewer-shared';
+import { buildSmartArtA11y, shouldCommitSmartArtNodeText } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, nextTick, ref } from 'vue';
 
@@ -101,6 +101,30 @@ const smartArtData = computed(() =>
 );
 
 const nodes = computed<PptxSmartArtNode[]>(() => smartArtData.value?.nodes ?? []);
+
+// ── Accessibility (shared view-model) ────────────────────────────────────────
+//
+// The generated SVG is opaque to assistive technology, so we derive a
+// screen-reader description for the whole diagram (`role="img"` + aria-label on
+// the chrome container) and a per-node label looked up by node id, via the
+// framework-agnostic `buildSmartArtA11y` from pptx-viewer-shared.
+
+const a11y = computed(() =>
+	smartArtData.value ? buildSmartArtA11y(smartArtData.value) : undefined,
+);
+
+const nodeLabels = computed<Map<string, string>>(() => {
+	const map = new Map<string, string>();
+	for (const n of a11y.value?.nodes ?? []) {
+		map.set(n.id, n.label);
+	}
+	return map;
+});
+
+/** Per-node ARIA label / SVG <title> text, by node id (empty when unknown). */
+function nodeLabel(nodeId: string | undefined): string | undefined {
+	return nodeId ? nodeLabels.value.get(nodeId) : undefined;
+}
 
 const palette = computed<string[]>(() => {
 	const data = smartArtData.value;
@@ -335,7 +359,13 @@ function cancelEdit(): void {
 		:style="containerStyle"
 		:data-element-id="element.id"
 	>
-		<div ref="rootEl" class="pptx-vue-smartart-chrome" :style="chromeStyle">
+		<div
+			ref="rootEl"
+			class="pptx-vue-smartart-chrome"
+			:style="chromeStyle"
+			:role="a11y ? 'img' : undefined"
+			:aria-label="a11y?.label"
+		>
 			<!-- Empty / no-data placeholder -->
 			<div v-if="isEmpty" class="pptx-vue-smartart-placeholder">SmartArt</div>
 
@@ -352,10 +382,13 @@ function cancelEdit(): void {
 					:class="{ 'pptx-vue-smartart-editable': editable && shape.nodeId }"
 					:data-node-id="shape.nodeId"
 					:tabindex="editable && shape.nodeId ? 0 : undefined"
+					:role="nodeLabel(shape.nodeId) ? 'img' : undefined"
+					:aria-label="nodeLabel(shape.nodeId)"
 					:style="shadowFilter ? { filter: shadowFilter } : undefined"
 					@dblclick="beginEdit(shape.nodeId, shape.text ?? '', $event)"
 					@keydown.enter.prevent="beginEdit(shape.nodeId, shape.text ?? '', $event)"
 				>
+					<title v-if="nodeLabel(shape.nodeId)">{{ nodeLabel(shape.nodeId) }}</title>
 					<ellipse
 						v-if="shape.isEllipse"
 						:cx="shape.cx"
@@ -418,10 +451,13 @@ function cancelEdit(): void {
 					:class="{ 'pptx-vue-smartart-editable': editable && fallbackNodeIds[i] }"
 					:data-node-id="fallbackNodeIds[i]"
 					:tabindex="editable && fallbackNodeIds[i] ? 0 : undefined"
+					:role="nodeLabel(fallbackNodeIds[i]) ? 'img' : undefined"
+					:aria-label="nodeLabel(fallbackNodeIds[i])"
 					:style="fallbackLayout.shadowFilter ? { filter: fallbackLayout.shadowFilter } : undefined"
 					@dblclick="beginEdit(fallbackNodeIds[i], node.text, $event)"
 					@keydown.enter.prevent="beginEdit(fallbackNodeIds[i], node.text, $event)"
 				>
+					<title v-if="nodeLabel(fallbackNodeIds[i])">{{ nodeLabel(fallbackNodeIds[i]) }}</title>
 					<!-- Circle nodes (cycle, radial, venn, target) -->
 					<template v-if="node.kind === 'circle'">
 						<circle

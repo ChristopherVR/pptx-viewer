@@ -1,5 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import { downloadDataUrl, exportAbortError } from 'pptx-viewer-shared';
+import { exportAbortError } from 'pptx-viewer-shared';
 import { ref } from 'vue';
 import type { Ref } from 'vue';
 
@@ -38,6 +38,16 @@ export interface UseExportResult {
 	exportSlidePng: (index: number) => Promise<void>;
 	/** Export every slide as a multi-page PDF (one slide per page). */
 	exportPdf: (options?: ExportPdfOptions) => Promise<void>;
+}
+
+/** Trigger a browser download for a data URL. */
+function downloadDataUrl(dataUrl: string, fileName: string): void {
+	const link = document.createElement('a');
+	link.href = dataUrl;
+	link.download = fileName;
+	document.body.appendChild(link);
+	link.click();
+	link.remove();
 }
 
 function resolveBaseName(fileName: UseExportOptions['fileName']): string {

@@ -7,13 +7,7 @@ import {
 	getComputedEffectStyle,
 	getContainerStyle as sharedGetContainerStyle,
 	getImageSrc as sharedGetImageSrc,
-	isVerticalTextDirection,
 	px,
-	resolveCssTextAlign,
-	resolveLineHeight,
-	toCssTextOrientation,
-	toCssVerticalDirection,
-	toCssWritingMode,
 } from '../internal/shared';
 import { buildCssGradientFromShapeStyle } from './color-gradient';
 import { buildPatternFillCss } from './color-patterns';
@@ -194,11 +188,6 @@ export function getTextBlockStyle(el: PptxElement): StyleMap {
 		// overflowed text boxes and broke visual parity (e2e: text-rendering.spec).
 		style['font-size'] = `${ts.fontSize}px`;
 	}
-	// Line spacing: an exact-pt spacing wins (`Xpt`); else the proportional
-	// multiplier, defaulting to 1.25 (1.35 with italics). Without this Angular
-	// relied on the browser's font-dependent `normal` (~1.2-1.5), loosening
-	// multi-line text out of its box vs React/Vue. Shared with both bindings.
-	style['line-height'] = resolveLineHeight(ts, Boolean(ts.italic));
 	if (ts.bold) {
 		style['font-weight'] = 'bold';
 	}
@@ -217,33 +206,18 @@ export function getTextBlockStyle(el: PptxElement): StyleMap {
 		style['text-decoration'] = decorations.join(' ');
 	}
 
-	// Alignment: the special OOXML values justLow / dist / thaiDist all map to
-	// CSS `justify`, and an unset alignment defaults to `right` for RTL text.
-	// Mirrors React's `getTextStyleForElement` align branch + `resolveCssTextAlign`.
-	const isRtl = ts.rtl === true;
-	style['text-align'] = resolveCssTextAlign(ts.align, isRtl) ?? 'left';
-
-	// Vertical text direction: writing-mode / text-orientation / direction.
-	// Mirrors React's `getTextStyleForElement` vertical-text branch. Only the
-	// `wordArtVertRtl` mode forces `direction: rtl`; otherwise paragraph-level
-	// RTL drives the direction.
-	if (isVerticalTextDirection(ts.textDirection)) {
-		const writingMode = toCssWritingMode(ts.textDirection);
-		const textOrientation = toCssTextOrientation(ts.textDirection);
-		const verticalDirection = toCssVerticalDirection(ts.textDirection);
-		if (writingMode) {
-			style['writing-mode'] = writingMode;
-		}
-		if (textOrientation) {
-			style['text-orientation'] = textOrientation;
-		}
-		if (verticalDirection) {
-			style['direction'] = verticalDirection;
-		} else if (isRtl) {
-			style['direction'] = 'rtl';
-		}
-	} else if (isRtl) {
-		style['direction'] = 'rtl';
+	switch (ts.align) {
+		case 'center':
+			style['text-align'] = 'center';
+			break;
+		case 'right':
+			style['text-align'] = 'right';
+			break;
+		case 'justify':
+			style['text-align'] = 'justify';
+			break;
+		default:
+			style['text-align'] = 'left';
 	}
 
 	switch (ts.vAlign) {

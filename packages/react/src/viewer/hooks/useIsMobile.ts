@@ -1,12 +1,3 @@
-import {
-	isMobileViewport,
-	MOBILE_BREAKPOINT,
-	MOBILE_LANDSCAPE_MAX_HEIGHT,
-	TABLET_BREAKPOINT,
-	detectOrientation,
-	detectTouchDevice,
-} from 'pptx-viewer-shared';
-import type { DeviceOrientation } from 'pptx-viewer-shared';
 /**
  * useIsMobile: Detects viewport size and touch capability for responsive layout.
  *
@@ -31,12 +22,34 @@ import { useState, useEffect, useSyncExternalStore } from 'react';
 // Constants
 // ---------------------------------------------------------------------------
 
-// The viewport breakpoint maths and the touch / orientation probes live in
-// shared (`render/mobile-viewport.ts`) so React, Vue and Angular switch chrome
-// at exactly the same thresholds. Re-exported here to preserve this module's
-// public surface for existing importers.
-export { MOBILE_BREAKPOINT, TABLET_BREAKPOINT, MOBILE_LANDSCAPE_MAX_HEIGHT, isMobileViewport };
-export type { DeviceOrientation };
+/** Mobile breakpoint: below this width is considered mobile. */
+export const MOBILE_BREAKPOINT = 768;
+
+/** Tablet breakpoint: below this width (but >= MOBILE) is tablet. */
+export const TABLET_BREAKPOINT = 1024;
+
+/**
+ * Max viewport height (px) at which a *touch* device is treated as mobile
+ * regardless of width. Catches landscape phones (e.g. 915×412), which are wide
+ * enough to fall in the "tablet" width band but far too short for the desktop
+ * ribbon + side panels; they need the mobile chrome. Tablets in landscape are
+ * taller (~760px+) so they stay on the desktop layout.
+ */
+export const MOBILE_LANDSCAPE_MAX_HEIGHT = 500;
+
+/**
+ * Whether a viewport should use the mobile layout: a narrow viewport, OR a
+ * short touch viewport below the tablet width (a landscape phone, which is wide
+ * enough to look like a tablet but far too short for the desktop ribbon).
+ * Shared by `useIsMobile` and the toolbar's narrow-viewport detection so the
+ * mobile chrome switches consistently.
+ */
+export function isMobileViewport(width: number, height: number, isTouch: boolean): boolean {
+	if (width < MOBILE_BREAKPOINT) {
+		return true;
+	}
+	return isTouch && height > 0 && height < MOBILE_LANDSCAPE_MAX_HEIGHT && width < TABLET_BREAKPOINT;
+}
 
 /** Minimum touch target size (px) per WCAG accessibility guidelines. */
 export const MIN_TOUCH_TARGET = 44;
@@ -44,6 +57,18 @@ export const MIN_TOUCH_TARGET = 44;
 // ---------------------------------------------------------------------------
 // Touch capability detection
 // ---------------------------------------------------------------------------
+
+function getIsTouchDevice(): boolean {
+	if (typeof window === 'undefined') {
+		return false;
+	}
+	return (
+		'ontouchstart' in window ||
+		navigator.maxTouchPoints > 0 ||
+		// @ts-expect-error - legacy IE/Edge check
+		(navigator.msMaxTouchPoints !== null && navigator.msMaxTouchPoints > 0)
+	);
+}
 
 function subscribeTouchCapability(callback: () => void): () => void {
 	if (typeof window === 'undefined') {
@@ -54,6 +79,22 @@ function subscribeTouchCapability(callback: () => void): () => void {
 	const handler = () => callback();
 	window.addEventListener('pointerdown', handler, { once: true });
 	return () => window.removeEventListener('pointerdown', handler);
+}
+
+// ---------------------------------------------------------------------------
+// Orientation detection
+// ---------------------------------------------------------------------------
+
+export type DeviceOrientation = 'portrait' | 'landscape';
+
+function getOrientation(): DeviceOrientation {
+	if (typeof window === 'undefined') {
+		return 'landscape';
+	}
+	if (typeof screen !== 'undefined' && screen.orientation) {
+		return screen.orientation.type.startsWith('portrait') ? 'portrait' : 'landscape';
+	}
+	return window.innerHeight > window.innerWidth ? 'portrait' : 'landscape';
 }
 
 // ---------------------------------------------------------------------------
@@ -92,7 +133,7 @@ export function useIsMobile(input?: UseIsMobileInput): UseIsMobileResult {
 	// Touch capability: uses useSyncExternalStore for SSR safety
 	const isTouchDevice = useSyncExternalStore(
 		subscribeTouchCapability,
-		detectTouchDevice,
+		getIsTouchDevice,
 		() => false, // server snapshot
 	);
 
@@ -113,7 +154,7 @@ export function useIsMobile(input?: UseIsMobileInput): UseIsMobileResult {
 	});
 
 	// Orientation
-	const [orientation, setOrientation] = useState<DeviceOrientation>(detectOrientation);
+	const [orientation, setOrientation] = useState<DeviceOrientation>(getOrientation);
 
 	// Virtual keyboard detection
 	const [isVirtualKeyboardOpen, setIsVirtualKeyboardOpen] = useState(false);
@@ -159,7 +200,7 @@ export function useIsMobile(input?: UseIsMobileInput): UseIsMobileResult {
 		}
 
 		const handleOrientationChange = () => {
-			setOrientation(detectOrientation());
+			setOrientation(getOrientation());
 		};
 
 		if (screen.orientation) {

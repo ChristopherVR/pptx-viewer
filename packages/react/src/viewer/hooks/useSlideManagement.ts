@@ -3,7 +3,6 @@
  * duplicate, toggle-hide, insert-from-layout, and context menu.
  */
 import type { PptxHandler, PptxSlide } from 'pptx-viewer-core';
-import { createBlankSlide, makeSlideId } from 'pptx-viewer-shared';
 import type React from 'react';
 
 import type { EditorHistoryResult } from './useEditorHistory';
@@ -50,7 +49,12 @@ export function useSlideManagement(input: UseSlideManagementInput): SlideManagem
 	const { slides, activeSlideIndex, setActiveSlideIndex, ops, history, handlerRef } = input;
 
 	const handleAddSlide = () => {
-		const newSlide = createBlankSlide(slides.length + 1);
+		const newSlide: PptxSlide = {
+			id: `slide-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+			rId: '',
+			slideNumber: slides.length + 1,
+			elements: [],
+		};
 		ops.updateSlides((prev) => {
 			const next = [...prev];
 			next.splice(activeSlideIndex + 1, 0, newSlide);
@@ -118,7 +122,7 @@ export function useSlideManagement(input: UseSlideManagementInput): SlideManagem
 				}
 				const clone: PptxSlide = {
 					...src,
-					id: makeSlideId(),
+					id: `slide-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
 					elements: src.elements.map((el) => ({
 						...el,
 						id: `${el.id}-dup-${Math.random().toString(36).slice(2, 6)}`,
@@ -152,7 +156,10 @@ export function useSlideManagement(input: UseSlideManagementInput): SlideManagem
 	const handleInsertSlideFromLayout = (layoutPath: string, layoutName?: string) => {
 		const insertAt = activeSlideIndex + 1;
 		const draft: PptxSlide = {
-			...createBlankSlide(slides.length + 1),
+			id: `slide-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+			rId: '',
+			slideNumber: slides.length + 1,
+			elements: [],
 			layoutPath,
 			...(layoutName ? { layoutName } : {}),
 		};

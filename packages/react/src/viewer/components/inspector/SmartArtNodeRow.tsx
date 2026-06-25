@@ -1,7 +1,9 @@
+import type { PptxSmartArtNodeStyle } from 'pptx-viewer-core';
 import React from 'react';
 
 import { cn } from '../../utils';
 import { INPUT } from './inspector-pane-constants';
+import { SmartArtNodeStyleControls } from './SmartArtNodeStyleControls';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -22,12 +24,16 @@ export interface SmartArtNodeRowProps {
 	moveDownDisabled: boolean;
 	/** Ref callback so the parent can focus the input after structural edits. */
 	inputRef: (el: HTMLInputElement | null) => void;
+	/** Current per-node visual override (fill / font colour, bold / italic). */
+	style?: PptxSmartArtNodeStyle;
 	onChangeText: (nodeId: string, text: string) => void;
 	onKeyDown: (e: React.KeyboardEvent, nodeId: string) => void;
 	onAddSubItem: (nodeId: string) => void;
 	onMoveUp: (nodeId: string) => void;
 	onMoveDown: (nodeId: string) => void;
 	onRemove: (nodeId: string) => void;
+	/** Apply a partial per-node style change (routed to setSmartArtNodeStyle). */
+	onChangeStyle: (nodeId: string, patch: Partial<PptxSmartArtNodeStyle>) => void;
 }
 
 const MINI_BTN =
@@ -53,12 +59,14 @@ export function SmartArtNodeRow({
 	moveUpDisabled,
 	moveDownDisabled,
 	inputRef,
+	style,
 	onChangeText,
 	onKeyDown,
 	onAddSubItem,
 	onMoveUp,
 	onMoveDown,
 	onRemove,
+	onChangeStyle,
 }: SmartArtNodeRowProps): React.ReactElement {
 	const label = isChild
 		? `Sub-item: ${text || 'empty'}`
@@ -132,6 +140,13 @@ export function SmartArtNodeRow({
 					</button>
 				</div>
 			</div>
+			<SmartArtNodeStyleControls
+				nodeId={nodeId}
+				style={style}
+				label={label}
+				canEdit={canEdit}
+				onChangeStyle={onChangeStyle}
+			/>
 		</div>
 	);
 }

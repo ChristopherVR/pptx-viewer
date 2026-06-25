@@ -1,12 +1,6 @@
 /**
  * Video (WebM) export via MediaRecorder + captureStream().
  */
-import {
-	fpsToFrameIntervalMs,
-	pickSupportedMimeType,
-	segmentFrameCount,
-	WEBM_MIME_CANDIDATES,
-} from 'pptx-viewer-shared';
 import React from 'react';
 
 import type { ExportProgressCallback } from './export-helpers';
@@ -104,10 +98,9 @@ export async function exportAllSlidesAsVideo(
 		throw new Error('Failed to create 2D context for video recording');
 	}
 
-	const fps = 30;
-	const stream = recordingCanvas.captureStream(fps);
+	const stream = recordingCanvas.captureStream(30);
 	const recorder = new MediaRecorder(stream, {
-		mimeType: pickSupportedMimeType([...WEBM_MIME_CANDIDATES]),
+		mimeType: 'video/webm;codecs=vp9',
 		videoBitsPerSecond: 5_000_000,
 	});
 
@@ -140,8 +133,8 @@ export async function exportAllSlidesAsVideo(
 
 		// Hold the frame for the slide duration using a sleep loop
 		// that triggers redraws to feed the captureStream.
-		const frameInterval = fpsToFrameIntervalMs(fps);
-		const framesNeeded = segmentFrameCount(duration, fps);
+		const frameInterval = 33; // ~30fps
+		const framesNeeded = Math.ceil(duration / frameInterval);
 		for (let f = 0; f < framesNeeded; f++) {
 			if (signal?.aborted) {
 				recorder.stop();

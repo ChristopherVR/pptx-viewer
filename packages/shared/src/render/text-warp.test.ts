@@ -10,7 +10,6 @@ import {
 	getEnvelopeCssTransform,
 	getSimpleCssTransform,
 	getWarpCssTransform,
-	groupIntoParagraphs,
 	hasTextWarp,
 	shouldUseSvgWarp,
 } from './text-warp';
@@ -285,57 +284,5 @@ describe('getWarpCssTransform', () => {
 		expect(getWarpCssTransform('textArchUp')).toBeUndefined();
 		expect(getWarpCssTransform('textPlain')).toBeUndefined();
 		expect(getWarpCssTransform(undefined)).toBeUndefined();
-	});
-});
-
-describe('groupIntoParagraphs', () => {
-	it('returns an empty array when there is no text or segments', () => {
-		expect(groupIntoParagraphs({})).toStrictEqual([]);
-		expect(groupIntoParagraphs({ textSegments: [] })).toStrictEqual([]);
-	});
-
-	it('falls back to a single synthetic paragraph from element text', () => {
-		expect(groupIntoParagraphs({ text: 'hello' })).toStrictEqual([
-			{ segments: [{ text: 'hello', style: {} }] },
-		]);
-	});
-
-	it('splits segments on paragraph-break markers and drops the markers', () => {
-		const result = groupIntoParagraphs({
-			textSegments: [
-				{ text: 'a', style: {} },
-				{ text: 'b', style: {} },
-				{ text: '', style: {}, isParagraphBreak: true },
-				{ text: 'c', style: {} },
-			],
-		});
-		expect(result).toHaveLength(2);
-		expect(result[0].segments.map((s) => s.text)).toStrictEqual(['a', 'b']);
-		expect(result[1].segments.map((s) => s.text)).toStrictEqual(['c']);
-	});
-
-	it('ignores trailing and consecutive breaks without emitting empty paragraphs', () => {
-		const result = groupIntoParagraphs({
-			textSegments: [
-				{ text: 'a', style: {} },
-				{ text: '', style: {}, isParagraphBreak: true },
-				{ text: '', style: {}, isParagraphBreak: true },
-			],
-		});
-		expect(result).toHaveLength(1);
-		expect(result[0].segments.map((s) => s.text)).toStrictEqual(['a']);
-	});
-
-	it('applies the optional per-segment transform to non-break segments', () => {
-		const result = groupIntoParagraphs(
-			{
-				textSegments: [
-					{ text: 'raw', style: {}, fieldType: 'slidenum' },
-					{ text: 'keep', style: {} },
-				],
-			},
-			(seg) => (seg.fieldType ? { ...seg, text: '7' } : seg),
-		);
-		expect(result[0].segments.map((s) => s.text)).toStrictEqual(['7', 'keep']);
 	});
 });

@@ -1,6 +1,5 @@
 import { cloneSlide } from 'pptx-viewer-core';
 import type { PptxSlide } from 'pptx-viewer-core';
-import { EditorHistory } from 'pptx-viewer-shared';
 import { computed, shallowRef } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
@@ -8,15 +7,10 @@ import type { ComputedRef, Ref } from 'vue';
  * useEditorHistory: framework-idiomatic undo/redo stack over `PptxSlide[]`.
  *
  * This is the Vue port of the React `useEditorHistory` hook, reduced to its
- * load-bearing core: an undo / redo stack of deep-cloned slide snapshots.
- * Unlike the React version it does **not** track canvas size or
- * template-element layers; the Vue editor foundation operates purely on the
+ * load-bearing core: an undo (`past`) and redo (`future`) stack of deep-cloned
+ * slide snapshots. Unlike the React version it does **not** track canvas size
+ * or template-element layers; the Vue editor foundation operates purely on the
  * `PptxSlide[]` model, so a snapshot is simply a cloned slide array.
- *
- * The stack itself is the shared, framework-agnostic `EditorHistory<T>` command
- * stack (`pptx-viewer-shared`); this composable adds only the Vue reactivity
- * (`computed` canUndo/canRedo) and the `cloneSlide` deep-snapshotting the shared
- * class deliberately leaves to the caller.
  *
  * Usage pattern (push-before-mutate):
  *
@@ -72,54 +66,53 @@ export interface EditorHistoryResult {
  *               A `shallowRef` is recommended for large decks.
  */
 export function useEditorHistory(slides: Ref<PptxSlide[]>): EditorHistoryResult {
-	// The shared, framework-agnostic command stack. It performs no cloning, so we
-	// snapshot with `cloneSlide` before every record/undo/redo round-trip.
-	const stack = new EditorHistory<PptxSlide[]>({ maxDepth: MAX_HISTORY_ENTRIES });
+	// Undo / redo stacks of deep-cloned snapshots. `shallowRef` is sufficient:
+	// we always replace the whole array, never mutate it in place.
+	const past = shallowRef<PptxSlide[][]>([]);
+	const future = shallowRef<PptxSlide[][]>([]);
 
-	// A monotonically-increasing tick bumped on every mutation so the `computed`
-	// flags below re-evaluate against the (non-reactive) shared stack.
-	const tick = shallowRef(0);
-	const bump = (): void => {
-		tick.value++;
-	};
+	const canUndo = computed(() => past.value.length > 0);
+	const canRedo = computed(() => future.value.length > 0);
 
 	const snapshot = (source: PptxSlide[]): PptxSlide[] => source.map(cloneSlide);
 
-	const canUndo = computed(() => {
-		void tick.value;
-		return stack.canUndo;
-	});
-	const canRedo = computed(() => {
-		void tick.value;
-		return stack.canRedo;
-	});
-
 	const pushHistory = (): void => {
-		stack.record(snapshot(slides.value), '');
-		bump();
+		const next = [...past.value, snapshot(slides.value)];
+		// Bound the stack from the front when it overflows.
+		if (next.length > MAX_HISTORY_ENTRIES) {
+			next.shift();
+		}
+		past.value = next;
+		// Any fresh mutation invalidates the redo branch.
+		if (future.value.length > 0) {
+			future.value = [];
+		}
 	};
 
 	const undo = (): void => {
-		const result = stack.undo(snapshot(slides.value));
-		if (!result) {
+		if (past.value.length === 0) {
 			return;
 		}
-		slides.value = snapshot(result.snapshot);
-		bump();
+		const previous = past.value[past.value.length - 1];
+		// Move the current live state onto the redo stack before reverting.
+		future.value = [...future.value, snapshot(slides.value)];
+		past.value = past.value.slice(0, -1);
+		slides.value = snapshot(previous);
 	};
 
 	const redo = (): void => {
-		const result = stack.redo(snapshot(slides.value));
-		if (!result) {
+		if (future.value.length === 0) {
 			return;
 		}
-		slides.value = snapshot(result.snapshot);
-		bump();
+		const next = future.value[future.value.length - 1];
+		past.value = [...past.value, snapshot(slides.value)];
+		future.value = future.value.slice(0, -1);
+		slides.value = snapshot(next);
 	};
 
 	const clearHistory = (): void => {
-		stack.clear();
-		bump();
+		past.value = [];
+		future.value = [];
 	};
 
 	return {

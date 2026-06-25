@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { formatVersionTimestamp as formatTimestamp } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 
 import type { SlideVersion } from '../composables/useVersionHistory';
@@ -49,6 +48,15 @@ const previewStyle = computed(() => ({
 	width: `${PREVIEW_WIDTH}px`,
 	height: `${props.canvasSize.height * previewScale.value}px`,
 }));
+
+function formatTimestamp(ts: number): string {
+	return new Date(ts).toLocaleString(undefined, {
+		month: 'short',
+		day: 'numeric',
+		hour: '2-digit',
+		minute: '2-digit',
+	});
+}
 
 function togglePreview(id: string): void {
 	previewId.value = previewId.value === id ? null : id;

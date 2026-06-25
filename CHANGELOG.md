@@ -8,36 +8,6 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
-- **vue,angular:** Render vertical text, underline variants and special alignment (by @ChristopherVR) ([d757f52](https://github.com/ChristopherVR/pptx-viewer/commit/d757f5225f09b1bf4450d15d55537521614b4e82))
-- **angular:** Collapsible ribbon toggle (by @ChristopherVR) ([0ed28ac](https://github.com/ChristopherVR/pptx-viewer/commit/0ed28ac0003e3e1c1ca049a559363f7924053b65))
-
-### Refactor
-
-- **shared:** Extract mobile-viewport, formatters and broadcast helpers (by @ChristopherVR) ([9aeeb0a](https://github.com/ChristopherVR/pptx-viewer/commit/9aeeb0a7a2c37c8ef682c7cbd4df147314f169ef))
-- **shared:** Extract OLE type helpers; dedup OLE actions (by @ChristopherVR) ([f9f90e2](https://github.com/ChristopherVR/pptx-viewer/commit/f9f90e21a273ebe08b93522c5acf4908ebc8efcc))
-- **shared:** Consolidate download/jpeg/video export helpers (by @ChristopherVR) ([2cfdfd9](https://github.com/ChristopherVR/pptx-viewer/commit/2cfdfd94526135302fbecd67b6beda544d6e98c3))
-- Repoint geometry/connector stale copies onto shared (by @ChristopherVR) ([8385ecb](https://github.com/ChristopherVR/pptx-viewer/commit/8385ecb371dcdc70f4738ecc96c3da36cd36ae4a))
-- **angular:** Repoint text-warp/bullets/segment-style onto shared (by @ChristopherVR) ([2ac87e6](https://github.com/ChristopherVR/pptx-viewer/commit/2ac87e60be6c61920ae6f7b0fdb3cace8eaee13d))
-- Convert editor pre-shim originals to shared re-exports (by @ChristopherVR) ([c47394c](https://github.com/ChristopherVR/pptx-viewer/commit/c47394ccabb198d92624073d2958cf9ab56b93f1))
-- **shared:** Extract section, slide and action-button logic (by @ChristopherVR) ([7a70cd9](https://github.com/ChristopherVR/pptx-viewer/commit/7a70cd972e821e498db6d97a71863ab0c3bb1446))
-- **shared:** Consolidate resize/marquee/group/align/history interaction logic (by @ChristopherVR) ([023da76](https://github.com/ChristopherVR/pptx-viewer/commit/023da763c95f811c9b2c5cdd88a90e0ff4fe6097))
-- Collapse React collaboration onto shared; unify role model (by @ChristopherVR) ([f51f54e](https://github.com/ChristopherVR/pptx-viewer/commit/f51f54e0c51145d8bd77e1b3834372e49eec235c))
-- **shared:** Extract text-rendering pure logic (line-height, warp, effects) (by @ChristopherVR) ([11c8d22](https://github.com/ChristopherVR/pptx-viewer/commit/11c8d22e9910dda9c8dfa18e0f6d7683577c7b9f))
-
-## [1.1.53](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.53) - 2026-06-25
-
-### Features
-
-- **vue:** Collapsible ribbon toggle (wire isCompactToolbarOpen) (by @ChristopherVR) ([974ac16](https://github.com/ChristopherVR/pptx-viewer/commit/974ac16dcd6b9002fe3cdfc0e9760cd8500773b2))
-
-### Bug Fixes
-
-- **core:** Decode XML text entities so '&' no longer renders as '&amp;' (by @ChristopherVR) ([3c86556](https://github.com/ChristopherVR/pptx-viewer/commit/3c865564e75dd4aeb1233347a3005cadb710f021))
-
-## [1.1.52](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.52) - 2026-06-25
-
-### Features
-
 - **vue:** Per-slide theme colour override in the slide inspector (by @ChristopherVR) ([e26a519](https://github.com/ChristopherVR/pptx-viewer/commit/e26a519119070fbdb14f4b202f1c05b93dd8d0bb))
 
 ### Documentation

@@ -6,7 +6,6 @@
  * @module collaboration/types
  */
 
-import type { CollaborationRole } from 'pptx-viewer-shared';
 import type { Doc as YDoc } from 'yjs';
 
 // ---------------------------------------------------------------------------
@@ -20,15 +19,8 @@ import type { Doc as YDoc } from 'yjs';
  * `CollaborationProvider` and wires up presence tracking, remote cursors,
  * and CRDT-based state synchronisation.
  */
-/**
- * Role of a user within a collaboration or broadcast session.
- *
- * Re-exported from `pptx-viewer-shared` so the React binding shares the
- * canonical union (`'owner' | 'collaborator' | 'viewer'`). The session
- * "owner" is the broadcaster: whoever starts a broadcast owns the session,
- * and followers join as viewers.
- */
-export type { CollaborationRole };
+/** Role of a user within a collaboration or broadcast session. */
+export type CollaborationRole = 'collaborator' | 'broadcaster' | 'viewer';
 
 export interface CollaborationConfig {
 	/** Unique identifier for the collaboration room (alphanumeric, hyphens, underscores). */
@@ -81,7 +73,7 @@ export interface UserPresence {
 	lastUpdated: string;
 	/** Optional currently selected element ID. */
 	selectedElementId?: string;
-	/** Role in the session (owner, viewer, or collaborator). */
+	/** Role in the session (broadcaster, viewer, or collaborator). */
 	role?: CollaborationRole;
 }
 

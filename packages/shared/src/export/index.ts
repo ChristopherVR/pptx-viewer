@@ -16,11 +16,6 @@
  * - svg:      `svg-print` (self-contained SVG / print-HTML string assembly +
  *             XML escaping + data-URL).
  */
-// Browser download helpers (object-URL anchor click) + the rich download
-// filename sanitizer. The only DOM-touching helpers in this subtree.
-export * from './download-helpers';
-// Canvas -> JPEG byte extraction for PDF embedding.
-export * from './canvas-jpeg';
 export * from './gif-encoder';
 export * from './handout-layout';
 export * from './notes-page-layout';
