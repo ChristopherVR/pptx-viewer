@@ -2532,6 +2532,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				<SlideInspector
 					v-else-if="props.canEdit && !isMobile && inspectorOpen && slideCount > 0"
 					:slide="activeSlide"
+					:theme="pptxTheme"
 					:can-edit="props.canEdit"
 					@transition-update="applySlideTransition"
 					@slide-update="applySlideBackgroundPatch"
@@ -2808,6 +2809,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					v-else-if="slideCount > 0"
 					mobile
 					:slide="activeSlide"
+					:theme="pptxTheme"
 					:can-edit="props.canEdit"
 					@transition-update="applySlideTransition"
 					@slide-update="applySlideBackgroundPatch"

@@ -2,22 +2,28 @@
 /**
  * SlideInspector: the slide-level property inspector, shown in the right pane
  * when no element is selected (mirrors React's inspector, which swaps element
- * panels for slide properties). Hosts the slide Background section (React's
- * `SlideBackgroundPanel`, non-template part) and the Slide Transition section.
+ * panels for slide properties). Hosts the Background section (React's
+ * `SlideBackgroundPanel`, non-template part), the Slide Transition section
+ * (type/duration/advance plus direction/orientation/spokes, driven by the core
+ * `TRANSITION_VALID_DIRECTIONS` table), and the Theme Colours section (per-slide
+ * `clrMapOverride`, React's `SlideThemeOverridePanel`).
  *
- * Reuses the existing `SlideTransitionPanel` (type + duration), adds the
- * direction / orientation / spokes controls (parity with React's
- * `SlideTransitionSection`, driven by the core `TRANSITION_VALID_DIRECTIONS`
- * table), and the advance-on-click toggle. The slide-size / theme-override
- * sections from React are still deferred (deeper wiring).
+ * Slide size is still deferred (it does not persist to save in React either, so
+ * it is a display-only change); so is the transition preview animation.
  */
-import type { PptxSlide, PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
+import type {
+	PptxSlide,
+	PptxSlideTransition,
+	PptxTheme,
+	PptxTransitionType,
+} from 'pptx-viewer-core';
 import { TRANSITION_VALID_DIRECTIONS } from 'pptx-viewer-core';
 import { computed } from 'vue';
 
 import SlideTransitionPanel from '../SlideTransitionPanel.vue';
 import DirectionPicker from './DirectionPicker.vue';
 import SlideBackgroundPanel from './SlideBackgroundPanel.vue';
+import SlideThemeOverridePanel from './SlideThemeOverridePanel.vue';
 
 /** Transition types that pick a horz/vert orientation instead of a direction. */
 const ORIENTATION_TYPES: ReadonlySet<PptxTransitionType> = new Set([
@@ -28,7 +34,12 @@ const ORIENTATION_TYPES: ReadonlySet<PptxTransitionType> = new Set([
 ]);
 
 const props = withDefaults(
-	defineProps<{ slide: PptxSlide | undefined; mobile?: boolean; canEdit?: boolean }>(),
+	defineProps<{
+		slide: PptxSlide | undefined;
+		theme?: PptxTheme;
+		mobile?: boolean;
+		canEdit?: boolean;
+	}>(),
 	{ canEdit: true },
 );
 
@@ -103,6 +114,20 @@ function onAdvanceChange(e: Event): void {
 			<h3
 				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
 			>
+				Theme Colours
+			</h3>
+			<SlideThemeOverridePanel
+				:slide="slide"
+				:theme="theme"
+				:can-edit="canEdit"
+				@update="(patch) => emit('slide-update', patch)"
+			/>
+		</div>
+
+		<div class="pptx-vue-inspector-section py-2 border-b border-border">
+			<h3
+				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+			>
 				Slide Transition
 			</h3>
 			<SlideTransitionPanel :slide="slide" @update="(t) => emit('transition-update', t)" />
@@ -154,7 +179,12 @@ function onAdvanceChange(e: Event): void {
 				v-if="hasTransition"
 				class="mt-1 inline-flex items-center gap-2 px-2.5 text-xs text-foreground"
 			>
-				<input type="checkbox" :checked="advanceOnClick" @change="onAdvanceChange" />
+				<input
+					type="checkbox"
+					data-testid="transition-advance"
+					:checked="advanceOnClick"
+					@change="onAdvanceChange"
+				/>
 				Advance on click
 			</label>
 		</div>

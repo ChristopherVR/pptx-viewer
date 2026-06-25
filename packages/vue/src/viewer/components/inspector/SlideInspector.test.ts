@@ -40,7 +40,7 @@ describe('slideInspector', () => {
 		const wrapper = mount(SlideInspector, {
 			props: { slide: slide({ type: 'fade', durationMs: 500, advanceOnClick: true }) },
 		});
-		await wrapper.get('input[type="checkbox"]').setValue(false);
+		await wrapper.get('[data-testid="transition-advance"]').setValue(false);
 		const last = wrapper.emitted('transition-update')?.at(-1)?.[0] as
 			| PptxSlideTransition
 			| undefined;
