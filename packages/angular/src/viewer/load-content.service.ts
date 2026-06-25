@@ -3,8 +3,10 @@ import type {
 	MediaPptxElement,
 	ParsedSignature,
 	PptxCoreProperties,
+	PptxCustomProperty,
 	PptxElement,
 	PptxEmbeddedFont,
+	PptxHeaderFooter,
 	PptxSlide,
 	PptxSlideMaster,
 	PptxTheme,
@@ -59,6 +61,10 @@ export class LoadContentService {
 	readonly embeddedFonts = signal<PptxEmbeddedFont[]>([]);
 	/** Core document properties from `docProps/core.xml`. */
 	readonly coreProperties = signal<PptxCoreProperties | undefined>(undefined);
+	/** Custom document properties (used for `docproperty` field substitution). */
+	readonly customProperties = signal<PptxCustomProperty[]>([]);
+	/** Header/footer settings (footer/header/date-time text + format) for field substitution. */
+	readonly headerFooter = signal<PptxHeaderFooter | undefined>(undefined);
 	/** Whether the presentation contains digital signatures. */
 	/** Parsed digital signatures (empty when unsigned or parsing fails). */
 	readonly signatures = signal<ParsedSignature[]>([]);
@@ -260,6 +266,8 @@ export class LoadContentService {
 			this.slideMasters.set(parsed.slideMasters ?? []);
 			this.embeddedFonts.set(parsed.embeddedFonts ?? []);
 			this.coreProperties.set(parsed.coreProperties);
+			this.customProperties.set(parsed.customProperties ?? []);
+			this.headerFooter.set(parsed.headerFooter);
 			this.hasDigitalSignatures.set(parsed.hasDigitalSignatures ?? false);
 			this.digitalSignatureCount.set(parsed.digitalSignatureCount ?? 0);
 

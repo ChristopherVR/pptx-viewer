@@ -115,6 +115,7 @@ import type { ViewerSettings } from './components/viewer-settings';
 import { buildActionButtonElement } from './composables/action-buttons';
 import { applyAnimationPreset, removeElementAnimation } from './composables/element-animation';
 import type { AnimationGroup } from './composables/element-animation';
+import { FieldContextKey, resolveSlideTitle } from './composables/field-context';
 import {
 	applyFormatToElement,
 	copyFormatFromElement,
@@ -246,6 +247,28 @@ provide(TableThemeKey, () => ({
 	colorScheme: pptxTheme.value?.colorScheme,
 	tableStyleMap: tableStyleMap.value,
 }));
+
+// Expose the OOXML field-substitution context (slide number, date/time,
+// header/footer, slide title, custom doc properties) to the text renderers via
+// provide/inject. Mirrors the React `fieldContext` built in `ViewerCanvasArea`.
+// A getter closure (run post-setup) safely references the later-declared
+// `activeSlide`, matching the TableThemeKey pattern above.
+provide(FieldContextKey, () => {
+	const hf = headerFooter.value;
+	const slide = activeSlide.value;
+	return {
+		slideNumber: slide?.slideNumber,
+		dateTimeText: hf?.dateTimeText,
+		dateFormat: hf?.dateFormat,
+		footerText: hf?.footerText,
+		headerText: hf?.headerText,
+		slideTitle: resolveSlideTitle(slide),
+		customProperties: customProperties.value.map((p) => ({
+			name: p.name,
+			value: p.value,
+		})),
+	};
+});
 
 // Inline table-cell editing context for `TableRenderer` (double-tap a cell ->
 // inline input -> commit). The closures run post-setup, so referencing the

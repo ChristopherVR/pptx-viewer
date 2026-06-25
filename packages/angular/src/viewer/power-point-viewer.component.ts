@@ -61,6 +61,7 @@ import { slideFileName } from './export-helpers';
 import { ExportProgressModalComponent } from './export-progress-modal.component';
 import { ExportService } from './export.service';
 import { openNativeEyeDropper } from './eyedropper';
+import { FieldContextService } from './field-context.service';
 import { FindBarComponent } from './find-bar.component';
 import { FindReplaceBarComponent } from './find-replace-bar.component';
 import type { FindEvent, ReplaceEvent } from './find-replace-bar.component';
@@ -135,6 +136,7 @@ const ZOOM_MAX = 3;
 		PrintService,
 		IsMobileService,
 		SmartArt3DService,
+		FieldContextService,
 	],
 	imports: [
 		NgClass,

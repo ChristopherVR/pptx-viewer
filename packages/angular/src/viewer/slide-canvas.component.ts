@@ -29,6 +29,7 @@ import {
 import type { Box, ResizeHandle } from './drag-resize';
 import { ElementRendererComponent } from './element-renderer.component';
 import type { StyleMap } from './element-style';
+import { FieldContextService } from './field-context.service';
 import { pointsToSvgPathD, strokeToInkElement } from './ink-drawing-helpers';
 import type { InkPoint } from './ink-drawing-helpers';
 import { getSlideBackgroundStyle } from './slide-background';
@@ -190,6 +191,7 @@ function plainText(el: PptxElement): string {
 							[canvasHeight]="canvasSize().height"
 							[interactive]="interactive()"
 							[editable]="editable()"
+							[fieldContext]="fieldContext()"
 							(cellCommit)="cellCommit.emit($event)"
 						/>
 					}
@@ -727,6 +729,15 @@ export class SlideCanvasComponent {
 	}
 
 	readonly elements = computed(() => this.slide()?.elements ?? []);
+
+	/**
+	 * OOXML field-substitution context for the slide being rendered. Built from
+	 * the viewer-scoped {@link FieldContextService} (header/footer + custom doc
+	 * properties) folded with this slide's number + title. `optional` injection
+	 * means canvases used outside the viewer subtree get no substitution.
+	 */
+	private readonly fieldContextSvc = inject(FieldContextService, { optional: true });
+	readonly fieldContext = computed(() => this.fieldContextSvc?.forSlide(this.slide()));
 
 	/**
 	 * Obstacle rects (absolute slide coords) for connector A* routing: every

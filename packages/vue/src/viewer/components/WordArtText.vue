@@ -8,10 +8,13 @@ import {
 	groupIntoParagraphs,
 	normalizeHexColor,
 	shouldUseSvgWarp,
+	substituteFieldText,
 } from 'pptx-viewer-shared';
 import type { WarpParagraph } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
+
+import { injectFieldContext, resolveFieldContext } from '../composables/field-context';
 
 /**
  * WordArtText - Vue port of the React `WarpedText` SVG renderer.
@@ -79,9 +82,28 @@ const active = computed(() => usesTextPath.value || usesCssTransform.value);
 const width = computed(() => Math.max(props.element.width, 1));
 const height = computed(() => Math.max(props.element.height, 1));
 
-const paragraphs = computed<WarpParagraph[]>(() =>
-	textEl.value ? groupIntoParagraphs(textEl.value) : [],
-);
+/** OOXML field-substitution context (slide number, date/time, etc.), provided by the viewer root. */
+const fieldContextSource = injectFieldContext();
+
+const paragraphs = computed<WarpParagraph[]>(() => {
+	const el = textEl.value;
+	if (!el) {
+		return [];
+	}
+	// Mirror React's warp-text-renderer: substitute field-run text via a
+	// per-segment transform so warped WordArt resolves slide number / date /
+	// footer fields identically to flat text.
+	const ctx = resolveFieldContext(fieldContextSource);
+	return groupIntoParagraphs(el, (seg) => {
+		if (seg.fieldType) {
+			const substituted = substituteFieldText(seg.text, seg.fieldType, ctx);
+			if (substituted !== seg.text) {
+				return { ...seg, text: substituted };
+			}
+		}
+		return seg;
+	});
+});
 
 const pathIdPrefix = computed(() => `warp-${props.element.id.replace(/[^a-zA-Z0-9_-]/gu, '_')}`);
 

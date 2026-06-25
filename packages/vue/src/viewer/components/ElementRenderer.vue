@@ -10,6 +10,7 @@ import {
 	getShapeFillStrokeStyle,
 	getTextBlockStyle,
 } from '../composables/element-style';
+import { injectFieldContext, resolveFieldContext } from '../composables/field-context';
 import { useSmartArt3D } from '../composables/smart-art-3d';
 import ChartRenderer from './ChartRenderer.vue';
 import ConnectorRenderer from './ConnectorRenderer.vue';
@@ -48,6 +49,9 @@ const props = defineProps<{
 
 /** Host opt-in to the Three.js SmartArt renderer (provided by PowerPointViewer). */
 const smartArt3D = useSmartArt3D();
+
+/** OOXML field-substitution context (slide number, date/time, etc.), provided by the viewer root. */
+const fieldContextSource = injectFieldContext();
 
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
@@ -88,7 +92,9 @@ const hasEquation = computed(
 const isWarpedText = computed(() => hasTextWarp(props.element));
 
 /** Rendered paragraphs (runs + bullet/indent), built by shared logic. */
-const paragraphs = computed(() => buildParagraphs(props.element));
+const paragraphs = computed(() =>
+	buildParagraphs(props.element, resolveFieldContext(fieldContextSource)),
+);
 const hasText = computed(() =>
 	paragraphs.value.some((p) => p.runs.length > 0 || p.bulletMarker !== undefined),
 );

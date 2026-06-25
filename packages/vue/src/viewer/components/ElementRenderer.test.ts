@@ -1,12 +1,21 @@
 import { mount } from '@vue/test-utils';
 import type { PptxElement } from 'pptx-viewer-core';
+import type { FieldSubstitutionContext } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
 
+import { FieldContextKey } from '../composables/field-context';
 import ElementRenderer from './ElementRenderer.vue';
 
 function mountEl(element: PptxElement) {
 	return mount(ElementRenderer, {
 		props: { element, mediaDataUrls: new Map<string, string>(), zIndex: 1 },
+	});
+}
+
+function mountElWithFieldContext(element: PptxElement, ctx: FieldSubstitutionContext) {
+	return mount(ElementRenderer, {
+		props: { element, mediaDataUrls: new Map<string, string>(), zIndex: 1 },
+		global: { provide: { [FieldContextKey as symbol]: () => ctx } },
 	});
 }
 
@@ -45,6 +54,24 @@ describe('elementRenderer', () => {
 		expect(spans[0].attributes('style')).toContain('font-weight: bold');
 		expect(wrapper.text()).toContain('Bold');
 		expect(wrapper.text()).toContain('plain');
+	});
+
+	it('substitutes a slide-number field run from the injected field context', () => {
+		const element = {
+			type: 'text',
+			id: 'tf',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 40,
+			textSegments: [
+				{ text: 'Page ', style: {} },
+				{ text: '0', style: {}, fieldType: 'slidenum' },
+			],
+		} as PptxElement;
+		expect(mountElWithFieldContext(element, { slideNumber: 9 }).text()).toContain('Page 9');
+		// No context -> raw field text is left untouched.
+		expect(mountEl(element).text()).toContain('Page 0');
 	});
 
 	it('renders a picture element as an <img> from imageData', () => {

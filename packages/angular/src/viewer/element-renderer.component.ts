@@ -3,7 +3,12 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
-import { resolveUnderlineDecorationStyle, segmentStyleToCss } from '../internal/shared';
+import {
+	resolveUnderlineDecorationStyle,
+	segmentStyleToCss,
+	substituteFieldText,
+} from '../internal/shared';
+import type { FieldSubstitutionContext } from '../internal/shared';
 import { ChartRendererComponent } from './chart-renderer.component';
 import { getClrChangeParams } from './color-changed-image-helpers';
 import type { ClrChangeParams } from './color-changed-image-helpers';
@@ -228,6 +233,7 @@ interface Paragraph {
 							[mediaDataUrls]="mediaDataUrls()"
 							[zIndex]="$index"
 							[interactive]="interactive()"
+							[fieldContext]="fieldContext()"
 						/>
 					}
 				</div>
@@ -436,6 +442,14 @@ export class ElementRendererComponent {
 	/** Whether inline editing (e.g. table-cell text input) is enabled. */
 	readonly editable = input<boolean>(false);
 
+	/**
+	 * OOXML field-substitution context (slide number, date/time, header/footer,
+	 * slide title, custom doc properties). Built once per slide by the slide
+	 * canvas and threaded down (including to recursive group children) so field
+	 * runs resolve to display text, mirroring React's `fieldContext`.
+	 */
+	readonly fieldContext = input<FieldSubstitutionContext | undefined>(undefined);
+
 	/** Emitted when a table cell's text edit is committed. */
 	readonly cellCommit = output<{ id: string; commit: TableCellCommit }>();
 
@@ -463,7 +477,7 @@ export class ElementRendererComponent {
 	);
 
 	/** Text-warp (WordArt) descriptor for the element, if any. */
-	readonly textWarp = computed(() => getTextWarp(this.element()));
+	readonly textWarp = computed(() => getTextWarp(this.element(), this.fieldContext()));
 	/** Only the SVG-textPath warp variant (for the `<svg>` overlay branch). */
 	readonly pathWarp = computed<TextWarpPathDef | undefined>(() => {
 		const w = this.textWarp();
@@ -535,7 +549,13 @@ export class ElementRendererComponent {
 				});
 				continue;
 			}
-			const text = seg.isLineBreak ? '\n' : seg.text;
+			const rawText = seg.isLineBreak ? '\n' : seg.text;
+			// Resolve OOXML field runs (slide number, date/time, header/footer,
+			// slide title, docproperty) to their display text, mirroring React's
+			// per-run `substituteFieldText` in `text-segment-render`.
+			const text = seg.fieldType
+				? substituteFieldText(rawText, seg.fieldType, this.fieldContext())
+				: rawText;
 			if (text) {
 				const href = resolveHyperlinkHref(seg.style?.hyperlink);
 				current.runs.push({
