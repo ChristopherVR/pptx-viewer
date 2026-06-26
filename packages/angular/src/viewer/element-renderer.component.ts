@@ -177,7 +177,11 @@ interface Paragraph {
 				/>
 			}
 			@case (element().type === 'smartArt' && smartArt3D()) {
-				<pptx-smart-art-3d-renderer [element]="element()" [zIndex]="zIndex()" />
+				<pptx-smart-art-3d-renderer
+					[element]="element()"
+					[zIndex]="zIndex()"
+					[canEdit]="interactive() && editable()"
+				/>
 			}
 			@case (element().type === 'smartArt') {
 				<div

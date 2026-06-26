@@ -14,7 +14,12 @@ import {
 } from '@angular/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
-import { buildSmartArtA11y, computeSmartArtLayout, flattenNodes } from '../internal/shared';
+import {
+	buildSmartArtA11y,
+	computeSmartArtLayout,
+	flattenNodes,
+	resolveDrawingShapeNodeId,
+} from '../internal/shared';
 import type {
 	RenderedCircleNode,
 	RenderedNode,
@@ -82,8 +87,11 @@ import type { InlineEditState } from './smart-art-inline-edit';
 						[attr.viewBox]="svgViewBox()"
 						preserveAspectRatio="xMidYMid meet"
 					>
-						@for (shape of renderedShapes(); track shape.key) {
-							<g [ngStyle]="shadowFilter() ? { filter: shadowFilter() } : {}">
+						@for (shape of renderedShapes(); track shape.key; let i = $index) {
+							<g
+								[ngStyle]="shadowFilter() ? { filter: shadowFilter() } : {}"
+								[attr.data-smartart-node-id]="drawingShapeNodeIds()[i] ?? null"
+							>
 								@if (shape.isEllipse) {
 									<ellipse
 										[attr.cx]="shape.cx"
@@ -149,6 +157,7 @@ import type { InlineEditState } from './smart-art-inline-edit';
 								[attr.tabindex]="canEditNodes() ? 0 : null"
 								[attr.role]="canEditNodes() ? 'button' : 'img'"
 								[attr.aria-label]="nodeAriaLabel(node) ?? node.text"
+								[attr.data-smartart-node-id]="nodeIdFromKey(node.key, element().id)"
 								(dblclick)="onNodeDblClick($event, node)"
 								(keydown)="onNodeKeydown($event, node)"
 							>
@@ -423,6 +432,17 @@ export class SmartArtRendererComponent {
 			this.artStyle(),
 		),
 	);
+
+	/**
+	 * Node id for each drawing shape (index-aligned with `renderedShapes`).
+	 * Used to tag `<g>` elements with `data-smartart-node-id` so the 3D
+	 * renderer's hit-test overlay can resolve a click to a node.
+	 */
+	readonly drawingShapeNodeIds = computed<(string | undefined)[]>(() => {
+		const shapes = this.rawDrawingShapes();
+		const nodes = this.nodes();
+		return shapes.map((shape, i) => resolveDrawingShapeNodeId(shape, i, shapes, nodes));
+	});
 
 	// ── Shared SVG-fallback engine (no drawing shapes) ──────────────────────
 

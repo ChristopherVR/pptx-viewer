@@ -6,6 +6,8 @@ import {
 	computed,
 	effect,
 	ElementRef,
+	inject,
+	Injector,
 	input,
 	OnDestroy,
 	signal,
@@ -19,8 +21,11 @@ import type { SmartArt3DModel } from '../internal/shared';
 // optional `three` peer) is loaded lazily via dynamic import so it never lands
 // in the main bundle.
 import type { mountSmartArt3D as MountSmartArt3D } from '../internal/shared-src/smartart-3d/index';
+import { EditorStateService } from './editor-state.service';
 import { getContainerStyle } from './element-style';
 import type { StyleMap } from './element-style';
+import { commitNodeText, findSlideIndexByElementId } from './smart-art-inline-edit';
+import type { InlineEditState } from './smart-art-inline-edit';
 import { SmartArtRendererComponent } from './smart-art-renderer.component';
 
 type MountFn = typeof MountSmartArt3D;
@@ -42,6 +47,12 @@ const PALETTES: Record<SmartArtColorScheme, string[]> = {
  * `pptx-viewer-shared/smartart-3d` and mounts it on a canvas. `three` is an
  * optional peer dependency: when it is missing, the diagram has no geometry, or
  * the scene errors, the component falls back to the SVG SmartArt renderer.
+ *
+ * When `canEdit` is true and the 3D scene is active, an invisible
+ * `<pptx-smart-art-renderer>` overlay is stacked over the canvas. Double-clicking
+ * on the overlay uses `document.elementsFromPoint` to locate the `<g>` bearing
+ * `data-smartart-node-id`, then opens an inline textarea editor over that node
+ * (same commit path as the SVG renderer: `EditorStateService.updateElement`).
  */
 @Component({
 	selector: 'pptx-smart-art-3d-renderer',
@@ -53,11 +64,37 @@ const PALETTES: Record<SmartArtColorScheme, string[]> = {
 			<pptx-smart-art-renderer [element]="element()" [zIndex]="zIndex()" />
 		} @else {
 			<div
+				#container3d
 				class="pptx-ng-element pptx-ng-smartart-3d"
 				[ngStyle]="containerStyle()"
 				[attr.data-element-id]="element().id"
 			>
 				<canvas #canvas class="pptx-ng-smartart-3d-canvas"></canvas>
+				@if (canEdit()) {
+					<!-- Invisible SVG overlay: provides data-smartart-node-id hit targets -->
+					<div class="pptx-ng-smartart-3d-hittest" (dblclick)="onOverlayDblClick($event)">
+						<pptx-smart-art-renderer [element]="element()" [editable]="false" [zIndex]="0" />
+					</div>
+					@if (editState()) {
+						<textarea
+							#nodeEditor3d
+							class="pptx-ng-smartart-3d-node-editor"
+							[style.left.px]="editState()!.box.x"
+							[style.top.px]="editState()!.box.y"
+							[style.width.px]="editState()!.box.width"
+							[style.height.px]="editState()!.box.height"
+							[value]="editState()!.text"
+							spellcheck="false"
+							aria-label="Edit SmartArt node text"
+							(input)="updateDraft($event)"
+							(blur)="commitEdit()"
+							(keydown)="onEditorKeydown($event)"
+							(mousedown)="$event.stopPropagation()"
+							(click)="$event.stopPropagation()"
+							(dblclick)="$event.stopPropagation()"
+						></textarea>
+					}
+				}
 			</div>
 		}
 	`,
@@ -67,19 +104,59 @@ const PALETTES: Record<SmartArtColorScheme, string[]> = {
 			height: 100%;
 			display: block;
 		}
+
+		/* Invisible hit-test overlay: fills the canvas area, captures dblclicks */
+		.pptx-ng-smartart-3d-hittest {
+			position: absolute;
+			inset: 0;
+			opacity: 0;
+			pointer-events: auto;
+		}
+
+		/* Inline node text editor, positioned over the clicked node */
+		.pptx-ng-smartart-3d-node-editor {
+			position: absolute;
+			box-sizing: border-box;
+			margin: 0;
+			padding: 1px 2px;
+			border: 1px solid var(--pptx-inspector-active, #0078d4);
+			border-radius: 2px;
+			background: #fff;
+			color: #111;
+			font-size: 11px;
+			line-height: 1.1;
+			text-align: center;
+			resize: none;
+			overflow: hidden;
+			z-index: 20;
+			outline: none;
+		}
 	`,
 })
 export class SmartArt3DRendererComponent implements OnDestroy {
 	readonly element = input.required<PptxElement>();
 	readonly zIndex = input<number>(0);
+	/** When true and the 3D scene is active, enables inline node text editing. */
+	readonly canEdit = input<boolean>(false);
 
 	private readonly canvas = viewChild<ElementRef<HTMLCanvasElement>>('canvas');
+	private readonly containerEl = viewChild<ElementRef<HTMLElement>>('container3d');
+	private readonly nodeEditor3d = viewChild<ElementRef<HTMLTextAreaElement>>('nodeEditor3d');
 
 	/** `true` until the 3D scene is known to be mountable; renders the SVG fallback. */
 	readonly useFallback = signal(true);
 
 	private readonly mountFn = signal<MountFn | null>(null);
 	private handle: SceneHandle | null = null;
+
+	protected readonly editState = signal<InlineEditState | null>(null);
+	/** Live draft text, updated on every input event. */
+	protected draftText = '';
+	/** Guards against a cancel-triggered DOM-removal blur committing the edit. */
+	private editSettled = false;
+
+	private readonly editor = inject(EditorStateService, { optional: true });
+	private readonly injector = inject(Injector);
 
 	readonly containerStyle = computed<StyleMap>(() =>
 		getContainerStyle(this.element(), this.zIndex()),
@@ -141,6 +218,22 @@ export class SmartArt3DRendererComponent implements OnDestroy {
 			const el = this.element();
 			this.handle?.resize(el.width, el.height);
 		});
+
+		// Auto-focus the textarea when the editor opens.
+		effect(() => {
+			if (this.editState()) {
+				afterNextRender(
+					() => {
+						const el = this.nodeEditor3d()?.nativeElement;
+						if (el) {
+							el.focus();
+							el.select();
+						}
+					},
+					{ injector: this.injector },
+				);
+			}
+		});
 	}
 
 	private async loadScene(): Promise<void> {
@@ -155,6 +248,112 @@ export class SmartArt3DRendererComponent implements OnDestroy {
 		} catch {
 			this.useFallback.set(true);
 		}
+	}
+
+	/**
+	 * Locate the SmartArt node at the click position using `elementsFromPoint`
+	 * (which includes pointer-events:none SVG elements) and open the inline editor.
+	 */
+	onOverlayDblClick(event: MouseEvent): void {
+		const container = this.containerEl()?.nativeElement;
+		if (!container) {
+			return;
+		}
+
+		const data = this.smartArtData();
+		if (!data) {
+			return;
+		}
+
+		// document.elementsFromPoint includes elements with pointer-events:none,
+		// so we can find the <g data-smartart-node-id="..."> in the overlay SVG.
+		const elements = document.elementsFromPoint(event.clientX, event.clientY);
+		const nodeEl = elements.find(
+			(el): el is Element => el instanceof Element && el.hasAttribute('data-smartart-node-id'),
+		);
+		if (!nodeEl) {
+			return;
+		}
+
+		const nodeId = nodeEl.getAttribute('data-smartart-node-id');
+		if (!nodeId) {
+			return;
+		}
+
+		const currentText = data.nodes.find((n) => n.id === nodeId)?.text ?? '';
+		const nodeRect = nodeEl.getBoundingClientRect();
+		const containerRect = container.getBoundingClientRect();
+
+		this.draftText = currentText;
+		this.editSettled = false;
+		this.editState.set({
+			nodeId,
+			box: {
+				x: nodeRect.left - containerRect.left,
+				y: nodeRect.top - containerRect.top,
+				width: nodeRect.width,
+				height: nodeRect.height,
+			},
+			text: currentText,
+		});
+	}
+
+	/** Update the live draft text on each keystroke. */
+	updateDraft(event: Event): void {
+		this.draftText = (event.target as HTMLTextAreaElement).value;
+	}
+
+	/** Enter commits (via blur); Escape cancels. Propagation always stopped. */
+	onEditorKeydown(event: KeyboardEvent): void {
+		event.stopPropagation();
+		if (event.key === 'Enter' && !event.shiftKey) {
+			event.preventDefault();
+			// Commit via blur so the single commit path runs once.
+			(event.target as HTMLTextAreaElement).blur();
+		} else if (event.key === 'Escape') {
+			event.preventDefault();
+			this.cancelEdit();
+		}
+	}
+
+	/** Commit the current draft through EditorStateService (blur handler). */
+	commitEdit(): void {
+		if (this.editSettled) {
+			this.editSettled = false;
+			return;
+		}
+		const edit = this.editState();
+		if (!edit) {
+			return;
+		}
+		const text = this.draftText;
+		this.editState.set(null);
+		this.applyCommit(edit.nodeId, text);
+	}
+
+	/** Discard the current edit without committing. */
+	cancelEdit(): void {
+		// Mark as settled so the DOM-removal blur does not commit the cancelled edit.
+		this.editSettled = true;
+		this.editState.set(null);
+	}
+
+	private applyCommit(nodeId: string, text: string): void {
+		const data = this.smartArtData();
+		if (!data || !this.editor) {
+			return;
+		}
+		const next = commitNodeText(data, nodeId, text);
+		if (next === data) {
+			return;
+		} // no-op: text unchanged
+		const slideIndex = findSlideIndexByElementId(this.editor.slides(), this.element().id);
+		if (slideIndex < 0) {
+			return;
+		}
+		this.editor.updateElement(slideIndex, this.element().id, {
+			smartArtData: next,
+		} as Partial<PptxElement>);
 	}
 
 	ngOnDestroy(): void {
