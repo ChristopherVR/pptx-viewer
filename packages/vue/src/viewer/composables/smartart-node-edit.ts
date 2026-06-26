@@ -1,3 +1,4 @@
+import type { PptxElement } from 'pptx-viewer-core';
 import type { InjectionKey } from 'vue';
 import { inject } from 'vue';
 
@@ -20,6 +21,11 @@ export interface SmartArtNodeEditContext {
 	 * change through the history-tracked editor op.
 	 */
 	commit: (elementId: string, nodeId: string, text: string) => void;
+	/**
+	 * Commit a per-node style patch (e.g. fill colour) via `updateElement`.
+	 * Optional; absent in read-only viewers.
+	 */
+	commitStyle?: (elementId: string, patch: Partial<PptxElement>) => void;
 }
 
 /** Typed injection key for the SmartArt node-edit context. */

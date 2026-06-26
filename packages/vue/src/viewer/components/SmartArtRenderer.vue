@@ -7,6 +7,7 @@ import type {
 	SmartArtColorScheme,
 	SmartArtStyle,
 } from 'pptx-viewer-core';
+import { setSmartArtNodeStyle } from 'pptx-viewer-core';
 import { buildSmartArtA11y, shouldCommitSmartArtNodeText } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, nextTick, ref } from 'vue';
@@ -26,6 +27,8 @@ import type {
 } from '../composables/smartart-layout';
 import { computeSmartArtLayout } from '../composables/smartart-layout';
 import { injectSmartArtNodeEdit } from '../composables/smartart-node-edit';
+import { useSmartArtHoverRect } from '../composables/useSmartArtHoverRect';
+import SmartArtNodeStyleBar from './SmartArtNodeStyleBar.vue';
 
 /**
  * SmartArtRenderer - Vue port of the React SmartArt renderer
@@ -332,6 +335,7 @@ const fallbackNodeIds = computed<string[]>(() =>
 const edit = useSmartArtInlineEditState();
 const rootEl = ref<HTMLElement | null>(null);
 const editorEl = ref<HTMLTextAreaElement | null>(null);
+const { hoveredNodeId, hoveredNodeRect, onMouseMove, onMouseLeave } = useSmartArtHoverRect(rootEl);
 
 /**
  * Enter edit mode for a node. Projects the double-clicked SVG node's on-screen
@@ -369,6 +373,14 @@ function cancelEdit(): void {
 	edit.cancel();
 }
 
+/** Apply a fill colour to a node by id, routing through the host commitStyle op. */
+function handleChangeNodeStyle(nodeId: string, fill: string): void {
+	const data = smartArtData.value;
+	if (!data || !nodeEdit) return;
+	const next = setSmartArtNodeStyle(data, nodeId, { fillColor: fill });
+	if (next !== data) nodeEdit.commitStyle?.(props.element.id, { smartArtData: next } as Partial<PptxElement>);
+}
+
 /**
  * Stop all keydown bubbling so parent shortcuts (Delete, arrow keys, etc.)
  * do not fire while typing in the editor. Enter commits; Shift+Enter inserts
@@ -398,6 +410,8 @@ function onEditorKeydown(event: KeyboardEvent): void {
 			:style="chromeStyle"
 			:role="a11y ? 'img' : undefined"
 			:aria-label="a11y?.label"
+			@mousemove="onMouseMove"
+			@mouseleave="onMouseLeave"
 		>
 			<!-- Empty / no-data placeholder -->
 			<div v-if="isEmpty" class="pptx-vue-smartart-placeholder">SmartArt</div>
@@ -414,6 +428,7 @@ function onEditorKeydown(event: KeyboardEvent): void {
 					:key="shape.key"
 					:class="{ 'pptx-vue-smartart-editable': editable && shape.nodeId }"
 					:data-node-id="shape.nodeId"
+					:data-smartart-node-id="shape.nodeId || undefined"
 					:tabindex="editable && shape.nodeId ? 0 : undefined"
 					:role="nodeLabel(shape.nodeId) ? 'img' : undefined"
 					:aria-label="nodeLabel(shape.nodeId)"
@@ -489,6 +504,7 @@ function onEditorKeydown(event: KeyboardEvent): void {
 					:key="node.key"
 					:class="{ 'pptx-vue-smartart-editable': editable && fallbackNodeIds[i] }"
 					:data-node-id="fallbackNodeIds[i]"
+					:data-smartart-node-id="fallbackNodeIds[i] || undefined"
 					:tabindex="editable && fallbackNodeIds[i] ? 0 : undefined"
 					:role="nodeLabel(fallbackNodeIds[i]) ? 'img' : undefined"
 					:aria-label="nodeLabel(fallbackNodeIds[i])"
@@ -583,6 +599,19 @@ function onEditorKeydown(event: KeyboardEvent): void {
 					</template>
 				</g>
 			</svg>
+
+			<!-- Per-node fill colour picker (hover swatch bar, edit mode only) -->
+			<SmartArtNodeStyleBar
+				v-if="editable && hoveredNodeId && !edit.isEditing.value && hoveredNodeRect"
+				:palette="palette"
+				:style="{
+					position: 'absolute',
+					left: `${Math.max(0, (hoveredNodeRect?.left ?? 0) + (hoveredNodeRect?.width ?? 0) - 120)}px`,
+					top: `${Math.max(0, (hoveredNodeRect?.top ?? 0) - 22)}px`,
+					zIndex: 25,
+				}"
+				@pick-fill="handleChangeNodeStyle(hoveredNodeId!, $event)"
+			/>
 
 			<!-- Inline node text editor overlay (edit mode only) -->
 			<textarea

@@ -20,6 +20,7 @@ import {
 	createShapeElement,
 	createTextElement,
 	hasTextProperties,
+	updateSmartArtNodeText,
 } from 'pptx-viewer-core';
 import type {
 	MasterViewTab,
@@ -129,6 +130,7 @@ import { remapTextToSegments } from './composables/remap-text';
 import { compareSlides } from './composables/slide-compare';
 import type { CompareResult } from './composables/slide-compare';
 import { SmartArt3DKey } from './composables/smart-art-3d';
+import { SmartArtNodeEditKey } from './composables/smartart-node-edit';
 import { snapBox } from './composables/snap';
 import { computeSnapToShape } from './composables/snap-shape';
 import { TableCellEditKey } from './composables/table-edit';
@@ -283,6 +285,28 @@ provide(FieldContextKey, () => {
 provide(TableCellEditKey, {
 	canEdit: () => props.canEdit && !presenting.value,
 	commit: commitTableCell,
+});
+
+// Inline SmartArt node-text and per-node fill editing context.
+// Mirrors the TableCellEditKey pattern above. Closures run post-setup,
+// so referencing the later-declared `ops`, `presenting`, and
+// `findActiveElement` is safe.
+provide(SmartArtNodeEditKey, {
+	canEdit: () => props.canEdit && !presenting.value,
+	commit: (elementId: string, nodeId: string, text: string): void => {
+		if (!props.canEdit) return;
+		const el = findActiveElement(elementId);
+		if (!el || el.type !== 'smartArt') return;
+		const data = el.smartArtData;
+		if (!data) return;
+		ops.updateElement(elementId, {
+			smartArtData: updateSmartArtNodeText(data, nodeId, text),
+		} as Partial<PptxElement>);
+	},
+	commitStyle: (elementId: string, patch: Partial<PptxElement>): void => {
+		if (!props.canEdit) return;
+		ops.updateElement(elementId, patch);
+	},
 });
 
 // Inject embedded fonts as @font-face (side effect; auto-cleaned on unmount).
