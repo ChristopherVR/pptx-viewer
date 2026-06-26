@@ -1,9 +1,11 @@
 import React from 'react';
 import {
 	LuAlignCenter,
+	LuAlignHorizontalSpaceAround,
 	LuAlignJustify,
 	LuAlignLeft,
 	LuAlignRight,
+	LuAlignVerticalSpaceAround,
 	LuBold,
 	LuCheck,
 	LuChevronDown,
@@ -59,6 +61,11 @@ export const ALIGN_BTNS = [
 	{ k: 'top', el: <LuChevronUp className={ic} /> },
 	{ k: 'middle', el: <LuAlignCenter className={`${ic} rotate-90`} /> },
 	{ k: 'bottom', el: <LuChevronDown className={ic} /> },
+];
+
+export const DISTRIBUTE_BTNS = [
+	{ k: 'horizontal', el: <LuAlignHorizontalSpaceAround className={ic} /> },
+	{ k: 'vertical', el: <LuAlignVerticalSpaceAround className={ic} /> },
 ];
 
 export const DRAW_TOOLS: Array<{

@@ -4,12 +4,14 @@ import type {
 	TablePptxElement,
 	ChartPptxElement,
 	MediaPptxElement,
+	PptxShapeLocks,
 	ShapeStyle,
 	TextStyle,
 } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { LuLock, LuLockOpen } from 'react-icons/lu';
 
 import type { TableCellEditorState } from '../../types';
 import { ActionSettingsPanel } from './ActionSettingsPanel';
@@ -90,11 +92,41 @@ export function ElementInspectorBody({
 }: ElementInspectorBodyProps): React.ReactElement {
 	const { t } = useTranslation();
 
+	const isLocked = Boolean(selectedElement.locks?.noMove || selectedElement.locks?.noSelect);
+
+	const handleToggleLock = () => {
+		if (!canEdit) {
+			return;
+		}
+		if (isLocked) {
+			onUpdateElement({ locks: undefined } as Partial<PptxElement>);
+		} else {
+			const locks: PptxShapeLocks = { noMove: true, noResize: true, noSelect: true };
+			onUpdateElement({ locks } as Partial<PptxElement>);
+		}
+	};
+
 	return (
 		<>
 			{/* Position & Size */}
 			<div className={CARD}>
-				<div className={HEADING}>{t('pptx.inspector.element')}</div>
+				<div className='flex items-center justify-between'>
+					<div className={HEADING}>{t('pptx.inspector.element')}</div>
+					<button
+						type='button'
+						onClick={handleToggleLock}
+						disabled={!canEdit}
+						title={isLocked ? t('pptx.inspector.unlock') : t('pptx.inspector.lock')}
+						className='p-1 rounded hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
+						aria-pressed={isLocked}
+					>
+						{isLocked ? (
+							<LuLock className='w-3.5 h-3.5 text-amber-400' />
+						) : (
+							<LuLockOpen className='w-3.5 h-3.5 text-muted-foreground' />
+						)}
+					</button>
+				</div>
 				<div className='grid grid-cols-2 gap-1.5 text-[11px]'>
 					{POS_FIELDS.map(([label, key]) => (
 						<label key={key} className='flex items-center gap-1'>

@@ -189,6 +189,8 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							selectedElement={p.selectedElement}
 							clipboardPayload={p.clipboardPayload}
 							onAlignElements={p.onAlignElements}
+							onDistributeElements={p.onDistributeElements}
+							canDistribute={p.canDistribute}
 							onCopy={p.onCopy}
 							onCut={p.onCut}
 							onPaste={p.onPaste}

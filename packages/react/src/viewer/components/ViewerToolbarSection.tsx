@@ -286,6 +286,8 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onSetSnapToShape={s.setSnapToShape}
 				onAddGuide={dialogs.handleAddGuide}
 				onAlignElements={manipulation.handleAlignElements}
+				onDistributeElements={manipulation.handleDistributeElements}
+				canDistribute={manipulation.canDistribute}
 				onCopy={manipulation.handleCopy}
 				onCut={manipulation.handleCut}
 				onPaste={manipulation.handlePaste}
