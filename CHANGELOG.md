@@ -6,6 +6,16 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [Unreleased]
 
+### Features
+
+- **react:** Add hover cursor and node highlight to SmartArt inline editor (by @ChristopherVR) ([4ea588f](https://github.com/ChristopherVR/pptx-viewer/commit/4ea588fcc4b49b6d2756af6ea27deeec6535a304))
+
+### Bug Fixes
+
+- **react:** Ensure drawing-shape path correctly tags nodes for inline editing (by @ChristopherVR) ([191b780](https://github.com/ChristopherVR/pptx-viewer/commit/191b780935b3f01050cd7b7be4433f3eb73c168e))
+
+## [1.1.60](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.60) - 2026-06-25
+
 ### Other
 
 - **smartart:** Snapshot in-progress SmartArt session work (by @ChristopherVR) ([0cac22f](https://github.com/ChristopherVR/pptx-viewer/commit/0cac22f5b1a0ecc33960f4712ff2ef691beb3f65))
