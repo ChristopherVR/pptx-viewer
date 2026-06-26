@@ -155,14 +155,32 @@ export interface SmartArtNodeTextProps {
 	fontStyle?: string;
 	/** Optional CSS class applied to the outer `<text>` element. */
 	className?: string;
+	/**
+	 * Axis anchor point for multi-line layout. Defaults to `'middle'`.
+	 *
+	 * - `'middle'`: centre the block around `y` (`dominantBaseline='central'`).
+	 *   `startY = y - totalHeight/2 + lineHeight/2`.
+	 * - `'bottom'`: last line's baseline at `y` (`dominantBaseline='auto'`).
+	 *   `startY = y - (lines.length - 1) * lineHeight`. Matches
+	 *   `<text y={y} dominantBaseline='auto'>` for a single line.
+	 * - `'top'`: first line's top at `y` (`dominantBaseline='hanging'`).
+	 *   `startY = y`. Matches `<text y={y} dominantBaseline='hanging'>` for a
+	 *   single line.
+	 */
+	anchor?: 'top' | 'middle' | 'bottom';
 }
 
 /**
  * Render node text as one or more SVG `<tspan>` lines, splitting on `\n`.
  *
- * Centres the block vertically around `y`. When `text` has no newlines the
- * output is equivalent to a plain `<text x={x} y={y} dominantBaseline='central'>`,
- * preserving existing single-line rendering exactly.
+ * The `anchor` prop controls how the text block is positioned relative to `y`:
+ * - `'middle'` (default): centres the block around `y`.
+ * - `'bottom'`: the last line's baseline sits at `y`; lines stack upward.
+ * - `'top'`: the first line's top sits at `y`; lines stack downward.
+ *
+ * When `text` has no newlines the output is equivalent to the corresponding
+ * plain `<text>` with the matching `dominantBaseline`, preserving existing
+ * single-line rendering exactly.
  */
 export function SmartArtNodeText({
 	text,
@@ -173,16 +191,34 @@ export function SmartArtNodeText({
 	fontWeight,
 	fontStyle,
 	className,
+	anchor = 'middle',
 }: SmartArtNodeTextProps): React.ReactElement {
 	const lines = text.split('\n').filter((l) => l.length > 0);
 	const lineHeight = fontSize * 1.2;
-	const totalHeight = lines.length * lineHeight;
-	const startY = lines.length > 0 ? y - totalHeight / 2 + lineHeight / 2 : y;
+
+	let startY: number;
+	let dominantBaseline: string;
+
+	if (anchor === 'bottom') {
+		// Last line's baseline at y; stack lines upward.
+		startY = lines.length > 0 ? y - (lines.length - 1) * lineHeight : y;
+		dominantBaseline = 'auto';
+	} else if (anchor === 'top') {
+		// First line's top at y; stack lines downward.
+		startY = y;
+		dominantBaseline = 'hanging';
+	} else {
+		// middle: centre the block around y.
+		const totalHeight = lines.length * lineHeight;
+		startY = lines.length > 0 ? y - totalHeight / 2 + lineHeight / 2 : y;
+		dominantBaseline = 'central';
+	}
+
 	return (
 		<text
 			x={x}
 			textAnchor='middle'
-			dominantBaseline='central'
+			dominantBaseline={dominantBaseline}
 			fill={fill}
 			fontSize={fontSize}
 			fontWeight={fontWeight}
