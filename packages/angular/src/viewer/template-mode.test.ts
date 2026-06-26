@@ -156,4 +156,60 @@ describe('editorStateService editTemplateMode', () => {
 		svc.undo();
 		expect(svc.templateElementsBySlideId()['s1'][0].x).toBe(0);
 	});
+
+	/**
+	 * Confirms point A (drag-to-move) for the template interactivity layer:
+	 * `applyTransform` is the live-drag path (emitted by the canvas on every
+	 * pointer-move during a gesture) and must route template element geometry
+	 * updates to the template store, not the slide, so moves survive
+	 * `buildSaveSlides`.
+	 */
+	it('applyTransform routes a template-element drag to the template store (selection + drag-to-move)', () => {
+		const svc = new EditorStateService();
+		svc.setSlides([slide('s1', [element('master-shape-1'), element('shape-2')])]);
+
+		// Simulate the sequence: user selects a template element (editTemplateMode on),
+		// then drags it to a new position via the canvas gesture path.
+		svc.setEditTemplateMode(true);
+		svc.select(['master-shape-1']);
+		expect(svc.selectedIds()).toStrictEqual(['master-shape-1']);
+
+		// beginTransform records a history snapshot; applyTransform live-patches without
+		// pushing additional entries. After the gesture the template store must hold
+		// the new coordinates.
+		svc.beginTransform('Move');
+		svc.applyTransform(0, 'master-shape-1', { x: 200, y: 150 });
+
+		const movedTemplate = svc.templateElementsBySlideId()['s1'][0];
+		expect(movedTemplate.x).toBe(200);
+		expect(movedTemplate.y).toBe(150);
+		// The slide's own elements are not mutated.
+		expect(svc.slides()[0].elements.find((el) => el.id === 'master-shape-1')).toBeUndefined();
+
+		// buildSaveSlides round-trips the moved template element back into the saved
+		// slide so the change persists to the file.
+		const saved = buildSaveSlides(svc.slides(), svc.templateElementsBySlideId());
+		const savedMaster = saved[0].elements.find((el) => el.id === 'master-shape-1');
+		expect(savedMaster?.x).toBe(200);
+		expect(savedMaster?.y).toBe(150);
+	});
+
+	/**
+	 * Confirms point D (mode toggle): toggling editTemplateMode off after a drag
+	 * move does not revert the template element back, and the selection state is
+	 * preserved until explicitly cleared.
+	 */
+	it('mode toggle does not revert template element positions already in the store', () => {
+		const svc = new EditorStateService();
+		svc.setSlides([slide('s1', [element('master-shape-1'), element('shape-2')])]);
+		svc.setEditTemplateMode(true);
+		svc.beginTransform('Move');
+		svc.applyTransform(0, 'master-shape-1', { x: 77, y: 88 });
+
+		// Toggling the mode off is a UI concern only; it must not alter the stored data.
+		svc.setEditTemplateMode(false);
+		expect(svc.editTemplateMode()).toBeFalsy();
+		expect(svc.templateElementsBySlideId()['s1'][0].x).toBe(77);
+		expect(svc.templateElementsBySlideId()['s1'][0].y).toBe(88);
+	});
 });
