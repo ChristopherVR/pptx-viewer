@@ -12,7 +12,7 @@ import React from 'react';
 
 import { colour, nodeOpacity, styleShadow, truncate } from '../../utils/smartart-helpers';
 import type { LayoutRendererProps } from './smartart-renderer-types';
-import { fitFontSize, smartArtNodeGroupProps } from './smartart-renderer-utils';
+import { SmartArtNodeText, fitFontSize, smartArtNodeGroupProps } from './smartart-renderer-utils';
 
 /**
  * Renders SmartArt nodes along a horizontal timeline axis.
@@ -82,17 +82,15 @@ export function TimelineRenderer({
 							fill={colour(i, palette)}
 							opacity={nodeOpacity(i, nodes.length, style)}
 						/>
-						<text
+						<SmartArtNodeText
+							text={truncate(node.text, 20) ?? ''}
 							x={x}
 							y={textY}
-							textAnchor='middle'
-							dominantBaseline={above ? 'auto' : 'hanging'}
 							fill={colour(i, palette)}
 							fontSize={fontSize}
+							anchor={above ? 'bottom' : 'top'}
 							className='pointer-events-none'
-						>
-							{truncate(node.text, 20)}
-						</text>
+						/>
 					</g>
 				);
 			})}
