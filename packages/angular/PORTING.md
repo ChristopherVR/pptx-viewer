@@ -166,9 +166,13 @@ specs React passes).
 3. **Cosmetic pixel depth.** Control styling uses the shared Tailwind tokens but
    is not pixel-identical to every React control (spacing, icons, split-button
    affordances, dropdown chrome). A per-tab visual-diff pass would close it.
-4. **Eyedropper fallback (minor).** Angular uses the native `EyeDropper` API only;
-   React adds a best-effort rasterize-and-sample fallback for Firefox/Safari
-   (itself a stub). Low value; port if exact parity is wanted.
+
+> **Recently closed** (2026-06-27): **eyedropper fallback** (`eyedropper.ts` now
+> adds `sampleColorFromSlide` + a one-shot click-to-sample `pickColorByClickFallback`
+> used when the native `EyeDropper` API is absent, wired into `onToggleEyedropper`)
+> and **zoom target thumbnail** (`zoom-target.service.ts` feeds
+> `zoom-renderer.component.ts` the target slide's background, number, and section
+> name via the pure `buildZoomViewModel`, matching React's `ZoomSlideThumbnail`).
 
 > Parity-neutral (NOT Angular-specific, so out of scope here): the `&amp;` HTML
 > entity renders un-decoded in list text in **React, Vue, and Angular alike** - a

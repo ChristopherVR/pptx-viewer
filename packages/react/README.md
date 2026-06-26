@@ -153,7 +153,7 @@ You only need the `<PowerPointViewer>` component; everything else is internal. B
 
 ## Limitations
 
-CSS-based rendering trades a few visual effects for crisp text, accessibility, and DOM interactivity: `backdrop-filter` becomes semi-transparent backgrounds, `mix-blend-mode` maps to opacity, and CSS 3D transforms flatten in raster export. Text uses fonts available in the browser (embedded fonts are injected when present). Media playback depends on browser codec support. SmartArt is decomposed into editable shapes without a live reflow engine, and charts edit via the inspector data grid rather than the chart surface. 3D models need the optional Three.js peers. See the [full docs](https://christophervr.github.io/pptx-viewer/) for the complete list.
+CSS-based rendering trades a few visual effects for crisp text, accessibility, and DOM interactivity: `backdrop-filter` becomes semi-transparent backgrounds and path gradients approximate as elliptical radials, while `mix-blend-mode` and CSS 3D transforms render natively on screen but flatten in raster export. Text uses fonts available in the browser (embedded fonts are injected when present). Media playback depends on browser codec support. SmartArt is decomposed into editable shapes with a live reflow engine for structural edits, and charts edit via the inspector data grid rather than the chart surface. 3D models need the optional Three.js peer. See the [full docs](https://christophervr.github.io/pptx-viewer/) for the complete list.
 
 ## License
 

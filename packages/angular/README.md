@@ -164,19 +164,17 @@ async save() {
 ## Limitations
 
 The Angular package has reached functional parity with the React package: all 11
-element types render; the full Tailwind 4 Office ribbon is wired; editing,
-presentation, export, collaboration, comments, and mobile chrome all work. The
-remaining items are polish/cosmetic, not behavioural gaps:
+element types render; the full Tailwind 4 Office ribbon is wired; editing
+(including slide master/layout template editing), presentation, export,
+collaboration, comments, and mobile chrome all work. The remaining items are
+polish/cosmetic, not behavioural gaps:
 
-- **Master/template editing** - Editing routes to slide elements only; edits to
-  the slide master or layout template are not yet wired.
-- **Eyedropper on Firefox/Safari** - Angular uses the native `EyeDropper` API;
-  React adds a rasterize-and-sample fallback for browsers that don't support it.
 - **Pixel-level cosmetic differences** - Some toolbar controls are not pixel-
   identical to their React counterparts (spacing, split-button affordances,
   dropdown chrome).
-- **3D models** - GLB/GLTF models fall back to their poster image (requires
-  optional Three.js peer dependencies).
+- **3D models need the Three.js peer** - GLB/GLTF models render interactively when
+  the optional `three` peer dependency is installed, and fall back to their poster
+  image otherwise (the same as the React package).
 
 The `pptx-viewer-core` engine parses all element data, so you can access it from
 the model even where the UI does not expose it yet. Progress and design notes live

@@ -181,25 +181,20 @@ async function save() {
 
 ## Limitations
 
-The Vue package has reached feature parity with the React package for the vast
-majority of the editing and presentation surface. A few depth/fidelity items
-remain:
+The Vue package is at functional parity with the React package across the
+editing, rendering, and presentation surface: secondary/log/display-unit chart
+axes (with trendlines, error bars, and data tables), real CSS-3D extruded faces,
+image `clrChange` chroma-key and shape `effectDag` duotone, interactive GLB/GLTF
+3D models, slide master/layout template editing, and zoom tiles that show the
+target slide's background, number, and section name (matching React; as in React,
+the tile is a styled summary rather than a live re-render of the target slide).
 
-- **Secondary/log value axes** - Charts with a right-hand secondary value axis,
-  log scale, or display units show primary-axis data only. Data tables on charts
-  are also deferred.
-- **True CSS-3D extrusion** - Shape extrusion is approximated with layered
-  box-shadows; real extruded faces (as in the React renderer) are deferred.
-- **Image chroma-key** - Destructive `clrChange` colour-replacement on images is
-  not yet applied (recolour, duotone, and artistic effects are done).
-- **3D models / Zoom elements** - GLB/GLTF models fall back to their poster image;
-  zoom elements render as static link tiles.
-- **Master/template editing** - Editing routes to slide elements only; edits to
-  the slide master or layout template are not yet wired.
-
-The `pptx-viewer-core` engine parses all of this data, so you can access it from
-the model even where the UI does not expose it yet. Progress and design notes live
-in [`PORTING.md`](./PORTING.md).
+The only differences from React are the CSS-rendering approximations the two
+share by design (see the root README's Limitations: `backdrop-filter` and path
+gradients are approximated on screen, and a few effects flatten in raster export).
+The `pptx-viewer-core` engine parses all slide data, so anything not surfaced in
+the UI is still readable from the model. Progress and design notes live in
+[`PORTING.md`](./PORTING.md).
 
 ## Build (contributing)
 

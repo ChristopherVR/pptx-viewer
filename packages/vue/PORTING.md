@@ -50,10 +50,22 @@ user-visible impact.
 
 ### Rendering fidelity
 
-| Gap                                                 | Where                                                                     | Notes                                                                                                                                                                                                                                                |
-| --------------------------------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Chart secondary / log / display-unit value axes** | `ChartRenderer.vue` + shared `chart-helpers.ts` + `chart/ChartChrome.vue` | Value axis is always a single linear primary axis. Needs right-hand 2nd-`axisId` series, log scale, display units, data tables, axis overlays. (Rethreads value→Y through every chart sub-component, see `// TODO(vue)`.) **Scheduled cloud agent.** |
-| **Real CSS-3D extruded faces**                      | shared `visual-3d.ts` + `ElementRenderer.vue`                             | Extrusion is approximated with layered box-shadows; React's `Extrusion3DOverlay` (true extruded faces) is deferred. **Scheduled cloud agent.**                                                                                                       |
+No known rendering-fidelity gaps remain vs React. The only differences are the
+CSS-rendering approximations shared with React by design (`backdrop-filter` and
+path gradients approximated on screen; some effects flatten in raster export),
+documented in the root README.
+
+> **Recently closed** (2026-06-27, second pass): **zoom target thumbnail**
+> (`composables/zoom-target.ts` provide/inject feeds `ZoomRenderer.vue` the target
+> slide's background, number, and section name, matching React's `ZoomSlideThumbnail`)
+> and **shape `effectDag` duotone** (`DuotoneFilterDefs.vue` injects the shared
+> `getDuotoneSvgFilter` markup; `element-style.ts` no longer strips the `url(#)` ref).
+>
+> **Recently closed** (2026-06-27): **real CSS-3D extruded faces**
+> (`Extrusion3DOverlay.vue` + shared `build3DExtrusionData`, wired in
+> `ElementRenderer.vue`) and **chart secondary / log / display-unit value axes**
+> (shared `buildChartViewModel` → `chart/ChartViewModelSvg.vue`, with trendlines,
+> error bars, and data tables) reached parity with React.
 
 > **Recently closed** (2026-06-18): **bulleted lists** (`composables/bullet-list.ts`
 >
