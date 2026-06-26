@@ -82,6 +82,8 @@ export interface ToolbarProps {
 	onSetSnapToShape: (enabled: boolean) => void;
 	onAddGuide: (axis: 'h' | 'v') => void;
 	onAlignElements: (align: string) => void;
+	onDistributeElements: (axis: string) => void;
+	canDistribute: boolean;
 	onCopy: () => void;
 	onCut: () => void;
 	onPaste: () => void;

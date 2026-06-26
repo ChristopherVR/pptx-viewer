@@ -38,6 +38,8 @@ export interface ElementManipulationHandlers {
 	handleDelete: () => void;
 	handleFlip: (direction: 'horizontal' | 'vertical') => void;
 	handleAlignElements: (align: string) => void;
+	handleDistributeElements: (axis: string) => void;
+	canDistribute: boolean;
 	handleMoveLayer: (direction: string) => void;
 	handleMoveLayerToEdge: (direction: string) => void;
 	handleMergeShapes: (operation: MergeShapeOperation) => void;
@@ -58,6 +60,8 @@ export interface GroupAlignLayerHandlers {
 	handleUngroupElement: () => void;
 	handleFlip: (direction: 'horizontal' | 'vertical') => void;
 	handleAlignElements: (align: string) => void;
+	handleDistributeElements: (axis: string) => void;
+	canDistribute: boolean;
 	handleMoveLayer: (direction: string) => void;
 	handleMoveLayerToEdge: (direction: string) => void;
 	handleMergeShapes: (operation: MergeShapeOperation) => void;

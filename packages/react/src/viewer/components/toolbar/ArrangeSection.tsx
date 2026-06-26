@@ -12,13 +12,15 @@ import {
 
 import type { ElementClipboardPayload } from '../../types';
 import { cn } from '../../utils';
-import { gB, gL, grp, ic, pill, ALIGN_BTNS } from './toolbar-constants';
+import { gB, gL, grp, ic, pill, ALIGN_BTNS, DISTRIBUTE_BTNS } from './toolbar-constants';
 
 export interface ArrangeSectionProps {
 	canEdit: boolean;
 	selectedElement: PptxElement | null;
 	clipboardPayload: ElementClipboardPayload | null;
 	onAlignElements: (align: string) => void;
+	onDistributeElements: (axis: string) => void;
+	canDistribute: boolean;
 	onCopy: () => void;
 	onCut: () => void;
 	onPaste: () => void;
@@ -50,6 +52,20 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 						title={t('pptx.arrange.align', { direction: a.k })}
 					>
 						{a.el}
+					</button>
+				))}
+			</div>
+			<div className={grp}>
+				{DISTRIBUTE_BTNS.map((d, i, arr) => (
+					<button
+						key={d.k}
+						type='button'
+						onClick={() => p.onDistributeElements(d.k)}
+						disabled={!p.canEdit || !p.canDistribute}
+						className={i < arr.length - 1 ? gB : gL}
+						title={t(`pptx.arrange.distribute${d.k.charAt(0).toUpperCase()}${d.k.slice(1)}`)}
+					>
+						{d.el}
 					</button>
 				))}
 			</div>

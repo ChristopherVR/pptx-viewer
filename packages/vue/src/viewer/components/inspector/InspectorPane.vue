@@ -25,7 +25,7 @@ import TextPanel from './TextPanel.vue';
  * where `patch` is a shallow `Partial<PptxElement>` (nested style objects are
  * emitted pre-merged by the panel).
  */
-const props = defineProps<{ element: PptxElement; mobile?: boolean }>();
+const props = defineProps<{ element: PptxElement; mobile?: boolean; canEdit?: boolean }>();
 const emit = defineEmits<{ update: [patch: Partial<PptxElement>] }>();
 
 const isShape = computed(() => hasShapeProperties(props.element));
@@ -52,7 +52,7 @@ function relay(patch: Partial<PptxElement>): void {
 			>
 				Arrange
 			</h3>
-			<ArrangePanel :element="element" @update="relay" />
+			<ArrangePanel :element="element" :can-edit="props.canEdit" @update="relay" />
 		</div>
 
 		<div v-if="isText" class="pptx-vue-inspector-section py-2 border-b border-border">

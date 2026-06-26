@@ -7,11 +7,12 @@ import {
 	alignElements,
 	bringForward,
 	bringToFront,
+	distributeElements,
 	groupElements,
 	sendBackward,
 	sendToBack,
 } from 'pptx-viewer-shared';
-import type { AlignEdge } from 'pptx-viewer-shared';
+import type { AlignEdge, DistributeAxis } from 'pptx-viewer-shared';
 
 import { isTemplateElementId } from '../utils';
 import { generateElementId } from '../utils/generate-id';
@@ -123,6 +124,29 @@ export function useGroupAlignLayerHandlers(input: GroupAlignLayerInput): GroupAl
 		history.markDirty();
 	};
 
+	const handleDistributeElements = (axis: string) => {
+		if (selectedElements.length < 3) {
+			return;
+		}
+		const distAxis = (
+			axis === 'horizontal' || axis === 'vertical' ? axis : null
+		) as DistributeAxis | null;
+		if (!distAxis) {
+			return;
+		}
+		const positions = distributeElements(selectedElements, distAxis);
+		for (const [id, pos] of positions) {
+			const el = elementLookup.get(id);
+			if (!el) {
+				continue;
+			}
+			ops.updateElementById(id, { x: pos.x ?? el.x, y: pos.y ?? el.y });
+		}
+		history.markDirty();
+	};
+
+	const canDistribute = selectedElements.length >= 3;
+
 	const handleMoveLayer = (direction: string) => {
 		if (!selectedElement || !activeSlide) {
 			return;
@@ -164,6 +188,8 @@ export function useGroupAlignLayerHandlers(input: GroupAlignLayerInput): GroupAl
 		handleUngroupElement,
 		handleFlip,
 		handleAlignElements,
+		handleDistributeElements,
+		canDistribute,
 		handleMoveLayer,
 		handleMoveLayerToEdge,
 		handleMergeShapes,

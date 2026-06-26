@@ -1,8 +1,10 @@
 import {
 	AlignCenter,
+	AlignHorizontalSpaceAround,
 	AlignJustify,
 	AlignLeft,
 	AlignRight,
+	AlignVerticalSpaceAround,
 	Bold,
 	Check,
 	ChevronDown,
@@ -78,6 +80,11 @@ export const ALIGN_BTNS: Array<{ k: string; icon: Component; rotate?: boolean }>
 	{ k: 'top', icon: ChevronUp },
 	{ k: 'middle', icon: AlignCenter, rotate: true },
 	{ k: 'bottom', icon: ChevronDown },
+];
+
+export const DISTRIBUTE_BTNS: Array<{ k: string; icon: Component }> = [
+	{ k: 'horizontal', icon: AlignHorizontalSpaceAround },
+	{ k: 'vertical', icon: AlignVerticalSpaceAround },
 ];
 
 export const DRAW_TOOLS: Array<{ id: DrawingTool; icon: Component; t: string; ac?: string }> = [

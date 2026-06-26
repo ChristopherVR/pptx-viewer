@@ -20,6 +20,7 @@ import type {
 	ChartPptxElement,
 	PptxElement,
 	PptxElementAnimation,
+	PptxShapeLocks,
 	PptxSmartArtData,
 	SmartArtPptxElement,
 	TablePptxElement,
@@ -237,7 +238,22 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 
 			<!-- ── Arrange ────────────────────────────────────────────────────── -->
 			<section class="pptx-ng-inspector__section">
-				<h3 class="pptx-ng-inspector__heading">Arrange</h3>
+				<div
+					class="pptx-ng-inspector__row"
+					style="justify-content:space-between;margin-bottom:0.35rem"
+				>
+					<h3 class="pptx-ng-inspector__heading" style="margin:0">Arrange</h3>
+					<button
+						type="button"
+						class="pptx-ng-inspector__btn"
+						style="flex:0 0 auto;padding:2px 6px"
+						[attr.aria-pressed]="isLocked()"
+						[title]="isLocked() ? 'Unlock element' : 'Lock element'"
+						(click)="onLockToggle()"
+					>
+						{{ isLocked() ? 'Locked' : 'Lock' }}
+					</button>
+				</div>
 
 				<div class="pptx-ng-inspector__row">
 					<button
@@ -654,6 +670,11 @@ export class InspectorPanelComponent {
 		};
 	});
 
+	/** Whether the element has lock flags preventing move/select. */
+	protected readonly isLocked = computed(
+		() => Boolean(this.el().locks?.noMove) || Boolean(this.el().locks?.noSelect),
+	);
+
 	/** Whether the element supports shape-style (fill/stroke) editing. */
 	protected readonly hasShape = computed(() => hasShapeProperties(this.el()));
 
@@ -695,6 +716,16 @@ export class InspectorPanelComponent {
 		this.editor.updateElement(this.slideIndex(), this.el().id, {
 			smartArtData,
 		} as Partial<PptxElement>);
+	}
+
+	/** Toggle element lock (noMove + noResize + noSelect). */
+	protected onLockToggle(): void {
+		if (this.isLocked()) {
+			this.onPatch({ locks: undefined } as Partial<PptxElement>);
+		} else {
+			const locks: PptxShapeLocks = { noMove: true, noResize: true, noSelect: true };
+			this.onPatch({ locks } as Partial<PptxElement>);
+		}
 	}
 
 	/** Commit a partial-element patch from an advanced sub-panel as one history entry. */
