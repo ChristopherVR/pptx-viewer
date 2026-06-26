@@ -7,7 +7,7 @@
  * non-DOM environments (SSR / unit tests).
  */
 
-import { CanvasTexture, LinearFilter, SRGBColorSpace } from 'three';
+import { CanvasTexture, LinearFilter, RepeatWrapping, SRGBColorSpace } from 'three';
 
 /** A built label texture plus the world-space plane size it should fill. */
 export interface SmartArtTextTexture {
@@ -107,6 +107,16 @@ export function makeTextTexture(
 	texture.colorSpace = SRGBColorSpace;
 	texture.minFilter = LinearFilter;
 	texture.magFilter = LinearFilter;
+	// Disable GPU-side flip: WebGL2 does not allow UNPACK_FLIP_Y_WEBGL for
+	// texImage3D targets (depth buffers, LUTs, shadow maps). Leaving flipY=true
+	// (the Three.js default) pollutes the global pixel-store state and causes
+	// "INVALID_OPERATION: texImage3D: FLIP_Y or PREMULTIPLY_ALPHA isn't allowed"
+	// errors. Compensate in UV space instead.
+	texture.flipY = false;
+	texture.premultiplyAlpha = false;
+	texture.wrapT = RepeatWrapping;
+	texture.repeat.set(1, -1);
+	texture.offset.set(0, 1);
 	texture.needsUpdate = true;
 
 	return { texture, worldWidth, worldHeight };
