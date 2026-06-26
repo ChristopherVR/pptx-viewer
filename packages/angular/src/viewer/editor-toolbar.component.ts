@@ -253,7 +253,7 @@ import { EditorStateService } from './editor-state.service';
 			display: flex;
 			flex-direction: row;
 			align-items: center;
-			gap: 2px;
+			gap: 4px;
 		}
 
 		.pptx-ng-toolbar__group-label {
@@ -269,7 +269,7 @@ import { EditorStateService } from './editor-state.service';
 			width: 1px;
 			height: 20px;
 			background: var(--pptx-toolbar-border, #444);
-			margin: 0 6px;
+			margin: 0 4px;
 			flex-shrink: 0;
 		}
 
@@ -277,33 +277,32 @@ import { EditorStateService } from './editor-state.service';
 			display: inline-flex;
 			align-items: center;
 			justify-content: center;
-			width: 28px;
-			height: 26px;
-			padding: 0;
+			min-width: 28px;
+			height: 28px;
+			padding: 2px 8px;
 			background: transparent;
 			border: 1px solid transparent;
-			border-radius: 3px;
+			border-radius: 4px;
 			color: inherit;
 			font-size: 14px;
 			cursor: pointer;
-			transition:
-				background 0.1s,
-				border-color 0.1s;
+			transition: background 0.1s;
 			flex-shrink: 0;
 		}
 
 		.pptx-ng-toolbar__btn:hover:not(:disabled) {
 			background: var(--pptx-toolbar-hover, #3a3a3a);
-			border-color: var(--pptx-toolbar-border, #555);
 		}
 
 		.pptx-ng-toolbar__btn:active:not(:disabled) {
 			background: var(--pptx-toolbar-active-bg, #2a2a2a);
+			transform: scale(0.95);
+			opacity: 0.8;
 		}
 
 		.pptx-ng-toolbar__btn:disabled {
-			opacity: 0.35;
-			cursor: default;
+			opacity: 0.4;
+			cursor: not-allowed;
 		}
 
 		.pptx-ng-toolbar__btn--danger:not(:disabled) {
@@ -312,7 +311,6 @@ import { EditorStateService } from './editor-state.service';
 
 		.pptx-ng-toolbar__btn--danger:hover:not(:disabled) {
 			background: var(--pptx-toolbar-danger-hover, #4a1a1a);
-			border-color: var(--pptx-toolbar-danger-border, #6b2a2a);
 		}
 	`,
 })
