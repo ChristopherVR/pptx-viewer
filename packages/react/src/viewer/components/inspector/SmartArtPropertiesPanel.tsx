@@ -11,10 +11,13 @@ import {
 	setSmartArtNodeStyle,
 	updateSmartArtNodeText,
 } from 'pptx-viewer-core';
+import { rebuildDrawingShapesIfCleared } from 'pptx-viewer-shared';
+import type { BoundingBox } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '../../utils';
+import { resolveSmartArtDataPalette } from '../../utils/smartart-helpers';
 import { HEADING, CARD, INPUT, BTN } from './inspector-pane-constants';
 import {
 	canAddTopLevelNode,
@@ -41,6 +44,8 @@ interface SmartArtPropertiesPanelProps {
 	smartArtData: PptxSmartArtData;
 	canEdit: boolean;
 	onUpdateElement: (updates: Partial<PptxElement>) => void;
+	/** Pixel bounding box of the element, used to rebuild drawing shapes after structural edits. */
+	box?: BoundingBox;
 }
 
 // ---------------------------------------------------------------------------
@@ -68,6 +73,7 @@ export function SmartArtPropertiesPanel({
 	smartArtData,
 	canEdit,
 	onUpdateElement,
+	box,
 }: SmartArtPropertiesPanelProps): React.ReactElement {
 	const { t } = useTranslation();
 	const nodes = smartArtData.nodes ?? [];
@@ -90,7 +96,17 @@ export function SmartArtPropertiesPanel({
 		if (focusId) {
 			pendingFocusId.current = focusId;
 		}
-		onUpdateElement({ smartArtData: newData } as Partial<PptxElement>);
+		const reflowed = box
+			? rebuildDrawingShapesIfCleared(
+					newData,
+					newData.layout,
+					resolveSmartArtDataPalette(newData),
+					newData.style ?? 'flat',
+					'inspector',
+					box,
+				)
+			: newData;
+		onUpdateElement({ smartArtData: reflowed } as Partial<PptxElement>);
 	};
 
 	const updateSmartArt = (patch: Partial<PptxSmartArtData>) => {

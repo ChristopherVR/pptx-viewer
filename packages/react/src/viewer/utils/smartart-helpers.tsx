@@ -1,5 +1,6 @@
 import type {
 	PptxElement,
+	PptxSmartArtData,
 	PptxSmartArtNode,
 	PptxSmartArtChrome,
 	SmartArtColorScheme,
@@ -82,6 +83,15 @@ export function resolveStyle(el: PptxElement): SmartArtStyle {
 		return 'flat';
 	}
 	return el.smartArtData.style ?? 'flat';
+}
+
+/** Resolve palette directly from a PptxSmartArtData object. */
+export function resolveSmartArtDataPalette(data: PptxSmartArtData): string[] {
+	const ctFills = data.colorTransform?.fillColors;
+	if (ctFills && ctFills.length > 0) {
+		return ctFills;
+	}
+	return PALETTES[data.colorScheme ?? 'colorful1'] ?? DEFAULT_PALETTE;
 }
 
 // ── Tree helpers for hierarchy ─────────────────────────────────────────────

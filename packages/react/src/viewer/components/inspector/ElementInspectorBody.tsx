@@ -137,6 +137,7 @@ export function ElementInspectorBody({
 					smartArtData={selectedElement.smartArtData}
 					canEdit={canEdit}
 					onUpdateElement={onUpdateElement}
+					box={{ width: selectedElement.width, height: selectedElement.height }}
 				/>
 			)}
 
