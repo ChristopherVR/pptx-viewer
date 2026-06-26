@@ -24,6 +24,8 @@ import {
 	setChartSeriesChartType,
 	setChartDataPointFill,
 	setChartDataPointExplosion,
+	setChartDataPointMarker,
+	setChartDataPointLabel,
 } from 'pptx-viewer-core';
 import { useCallback } from 'react';
 
@@ -32,6 +34,7 @@ import { ChartAxisStyleOptions } from './ChartAxisStyleOptions';
 import { ChartComboTypeOptions } from './ChartComboTypeOptions';
 import { ChartDataGrid } from './ChartDataGrid';
 import { ChartDataLabelOptions } from './ChartDataLabelOptions';
+import { ChartDataPointMarkerOptions } from './ChartDataPointMarkerOptions';
 import { ChartDataPointOptions } from './ChartDataPointOptions';
 import { ChartDisplayOptions } from './ChartDisplayOptions';
 import { ChartErrorBarOptions } from './ChartErrorBarOptions';
@@ -308,6 +311,23 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 		[applyChartOp],
 	);
 
+	const setPointMarker = useCallback(
+		(
+			seriesIndex: number,
+			pointIndex: number,
+			marker: { symbol?: PptxChartMarkerSymbol; size?: number; fillColor?: string } | null,
+		) => applyChartOp((el) => setChartDataPointMarker(el, seriesIndex, pointIndex, marker)),
+		[applyChartOp],
+	);
+
+	const setPointLabel = useCallback(
+		(seriesIndex: number, pointIndex: number, text: string | null) =>
+			applyChartOp((el) =>
+				setChartDataPointLabel(el, seriesIndex, pointIndex, text !== null ? { text } : null),
+			),
+		[applyChartOp],
+	);
+
 	// ── Render ──────────────────────────────────────────────────
 	if (!chartData || !categories || !series) {
 		return null;
@@ -356,7 +376,7 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 				onSetSeriesType={setSeriesType}
 			/>
 
-			{/* ── Per-data-point formatting (fill + pie explosion) ── */}
+			{/* ── Per-data-point formatting (label text + fill + pie explosion) ── */}
 			<ChartDataPointOptions
 				chartType={chartType!}
 				categories={categories}
@@ -364,6 +384,16 @@ export function ChartDataPanel({ selectedElement, canEdit, onUpdateElement }: Ch
 				canEdit={canEdit}
 				onSetPointFill={setPointFill}
 				onSetPointExplosion={setPointExplosion}
+				onSetPointLabel={setPointLabel}
+			/>
+
+			{/* ── Per-data-point marker overrides (line/scatter/bubble/radar) ── */}
+			<ChartDataPointMarkerOptions
+				chartType={chartType!}
+				categories={categories}
+				series={series}
+				canEdit={canEdit}
+				onSetPointMarker={setPointMarker}
 			/>
 
 			<ChartTrendlineOptions
