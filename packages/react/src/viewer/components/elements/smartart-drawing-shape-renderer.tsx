@@ -3,7 +3,12 @@ import { resolveDrawingShapeNodeId } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { colour, styleShadow, styleStroke, truncate } from '../../utils/smartart-helpers';
-import { fitFontSize, chevronPoints, smartArtNodeGroupProps } from './smartart-renderer-utils';
+import {
+	fitFontSize,
+	chevronPoints,
+	smartArtNodeGroupProps,
+	SmartArtNodeText,
+} from './smartart-renderer-utils';
 
 // ── Props ───────────────────────────────────────────────────────────────────
 
@@ -136,17 +141,14 @@ export function DrawingShapeRenderer({
 							/>
 						)}
 						{shape.text ? (
-							<text
+							<SmartArtNodeText
 								x={relX + shape.width / 2}
 								y={relY + shape.height / 2}
-								textAnchor='middle'
-								dominantBaseline='central'
+								text={truncate(shape.text, 40)}
 								fill={shape.fontColor ?? 'white'}
 								fontSize={fontSize}
 								className='pointer-events-none'
-							>
-								{truncate(shape.text, 40)}
-							</text>
+							/>
 						) : null}
 					</g>
 				);

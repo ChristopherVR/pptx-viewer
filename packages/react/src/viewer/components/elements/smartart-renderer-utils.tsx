@@ -135,6 +135,69 @@ export function gearPath(
 	return segments.join(' ');
 }
 
+// ── Multi-line SVG node text ─────────────────────────────────────────────────
+
+/** Props for {@link SmartArtNodeText}. */
+export interface SmartArtNodeTextProps {
+	/** Node text content; split on `\n` for multi-line rendering. */
+	text: string;
+	/** X coordinate of the text block centre. */
+	x: number;
+	/** Y coordinate of the text block centre. */
+	y: number;
+	/** Text fill colour. */
+	fill: string;
+	/** Font size in pixels. */
+	fontSize: number;
+	/** Optional font weight (e.g. `'bold'`, `700`). */
+	fontWeight?: number | string;
+	/** Optional font style (e.g. `'italic'`). */
+	fontStyle?: string;
+	/** Optional CSS class applied to the outer `<text>` element. */
+	className?: string;
+}
+
+/**
+ * Render node text as one or more SVG `<tspan>` lines, splitting on `\n`.
+ *
+ * Centres the block vertically around `y`. When `text` has no newlines the
+ * output is equivalent to a plain `<text x={x} y={y} dominantBaseline='central'>`,
+ * preserving existing single-line rendering exactly.
+ */
+export function SmartArtNodeText({
+	text,
+	x,
+	y,
+	fill,
+	fontSize,
+	fontWeight,
+	fontStyle,
+	className,
+}: SmartArtNodeTextProps): React.ReactElement {
+	const lines = text.split('\n').filter((l) => l.length > 0);
+	const lineHeight = fontSize * 1.2;
+	const totalHeight = lines.length * lineHeight;
+	const startY = lines.length > 0 ? y - totalHeight / 2 + lineHeight / 2 : y;
+	return (
+		<text
+			x={x}
+			textAnchor='middle'
+			dominantBaseline='central'
+			fill={fill}
+			fontSize={fontSize}
+			fontWeight={fontWeight}
+			fontStyle={fontStyle}
+			className={className}
+		>
+			{lines.map((line, i) => (
+				<tspan key={i} x={x} y={startY + i * lineHeight}>
+					{line}
+				</tspan>
+			))}
+		</text>
+	);
+}
+
 // ── Chrome wrapper ──────────────────────────────────────────────────────────
 
 /** Container-level accessibility metadata for the SmartArt chrome wrapper. */

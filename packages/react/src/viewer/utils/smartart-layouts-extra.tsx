@@ -8,6 +8,7 @@ import type { PptxElement, PptxSmartArtNode, SmartArtStyle } from 'pptx-viewer-c
  */
 import React from 'react';
 
+import { SmartArtNodeText } from '../components/elements/smartart-renderer-utils';
 import { colour, nodeOpacity, styleShadow, styleStroke, truncate } from './smartart-helpers';
 
 // ── Step-Down Process ───────────────────────────────────────────────────────
@@ -68,17 +69,14 @@ export function renderStepDownProcess(
 							stroke={sw > 0 ? 'rgba(255,255,255,0.3)' : 'none'}
 							strokeWidth={sw}
 						/>
-						<text
+						<SmartArtNodeText
 							x={x + boxW / 2}
 							y={y + boxH / 2}
-							textAnchor='middle'
-							dominantBaseline='central'
+							text={truncate(node.text, 20)}
 							fill='white'
 							fontSize={fontSize}
 							className='pointer-events-none'
-						>
-							{truncate(node.text, 20)}
-						</text>
+						/>
 					</g>
 				);
 			})}
@@ -154,17 +152,14 @@ export function renderAlternatingFlow(
 							stroke={sw > 0 ? 'rgba(255,255,255,0.3)' : 'none'}
 							strokeWidth={sw}
 						/>
-						<text
+						<SmartArtNodeText
 							x={x + boxW / 2}
 							y={y + boxH / 2}
-							textAnchor='middle'
-							dominantBaseline='central'
+							text={truncate(node.text, 20)}
 							fill='white'
 							fontSize={fontSize}
 							className='pointer-events-none'
-						>
-							{truncate(node.text, 20)}
-						</text>
+						/>
 					</g>
 				);
 			})}
@@ -237,17 +232,14 @@ export function renderDescendingProcess(
 							stroke={sw > 0 ? 'rgba(255,255,255,0.3)' : 'none'}
 							strokeWidth={sw}
 						/>
-						<text
+						<SmartArtNodeText
 							x={w / 2}
 							y={y + itemH / 2}
-							textAnchor='middle'
-							dominantBaseline='central'
+							text={truncate(node.text, 30)}
 							fill='white'
 							fontSize={fontSize}
 							className='pointer-events-none'
-						>
-							{truncate(node.text, 30)}
-						</text>
+						/>
 					</g>
 				);
 			})}
@@ -519,17 +511,14 @@ export function renderGroupedList(
 										strokeWidth={1}
 										strokeOpacity={0.3}
 									/>
-									<text
+									<SmartArtNodeText
 										x={gx + groupW / 2}
 										y={sy + subItemH / 2}
-										textAnchor='middle'
-										dominantBaseline='central'
+										text={truncate(node.text, 20)}
 										fill={col}
 										fontSize={fontSize}
 										className='pointer-events-none'
-									>
-										{truncate(node.text, 20)}
-									</text>
+									/>
 								</g>
 							);
 						})}
@@ -756,17 +745,14 @@ export function renderAccentProcess(
 							stroke={sw > 0 ? 'rgba(255,255,255,0.3)' : 'none'}
 							strokeWidth={sw}
 						/>
-						<text
+						<SmartArtNodeText
 							x={cx}
 							y={yMid}
-							textAnchor='middle'
-							dominantBaseline='central'
+							text={truncate(node.text, 20)}
 							fill='white'
 							fontSize={fontSize}
 							className='pointer-events-none'
-						>
-							{truncate(node.text, 20)}
-						</text>
+						/>
 						{/* Arrow connector */}
 						{i < nodes.length - 1 && (
 							<>
@@ -863,17 +849,14 @@ export function renderVerticalChevronList(
 							stroke={sw > 0 ? 'rgba(255,255,255,0.3)' : 'none'}
 							strokeWidth={sw}
 						/>
-						<text
+						<SmartArtNodeText
 							x={x + usableW / 2}
 							y={y + itemH / 2}
-							textAnchor='middle'
-							dominantBaseline='central'
+							text={truncate(node.text, 30)}
 							fill='white'
 							fontSize={fontSize}
 							className='pointer-events-none'
-						>
-							{truncate(node.text, 30)}
-						</text>
+						/>
 					</g>
 				);
 			})}
