@@ -587,6 +587,12 @@ function onEditorKeydown(event: KeyboardEvent): void {
 	cursor: text;
 }
 
+/* Hover ring: outline does not render on SVG <g> elements in all browsers,
+   so drop-shadow is used as the visual confirmation that a node is editable. */
+.pptx-vue-smartart-editable:hover {
+	filter: drop-shadow(0 0 2px rgba(96, 165, 250, 0.8));
+}
+
 .pptx-vue-smartart-node-editor {
 	position: absolute;
 	z-index: 2;
