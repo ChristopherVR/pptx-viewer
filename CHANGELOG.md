@@ -6,6 +6,15 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [Unreleased]
 
+### Features
+
+- **vue:** Add hover outline ring to SmartArt editable nodes (by @ChristopherVR) ([0670588](https://github.com/ChristopherVR/pptx-viewer/commit/0670588214a297fe73d9197f440acc0606bff576))
+- **angular:** Add hover outline ring to SmartArt editable nodes (by @ChristopherVR) ([06acf00](https://github.com/ChristopherVR/pptx-viewer/commit/06acf0073f57f9da5c38569dc0c4f1412187074d))
+- **vue:** Support multi-line \n text in SmartArt SVG node renderers via tspan (by @ChristopherVR) ([944f671](https://github.com/ChristopherVR/pptx-viewer/commit/944f671b8e90be1cc1fc06bb69997d8a7e66e56a))
+- **angular:** Support multi-line \n text in SmartArt SVG node renderers via tspan (by @ChristopherVR) ([98a2f9d](https://github.com/ChristopherVR/pptx-viewer/commit/98a2f9d6b186d5f1deea3f82ffacf4817ab93195))
+
+## [1.1.62](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.62) - 2026-06-26
+
 ### Bug Fixes
 
 - **vue:** Stop event bubbling from SmartArt inline editor textarea (by @ChristopherVR) ([d32a2a4](https://github.com/ChristopherVR/pptx-viewer/commit/d32a2a451385e0d6b5bcba7e2c834a99fe68f7d3))
