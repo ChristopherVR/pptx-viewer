@@ -31,9 +31,14 @@ export function SmartArtElement({
 }: SmartArtElementProps): React.ReactElement {
 	const use3D = useContext(SmartArt3DContext);
 	if (use3D) {
-		// The 3D renderer is presentation-only; inline editing falls back to the
-		// inspector for now.
-		return <SmartArt3DRenderer element={element} className={className} />;
+		return (
+			<SmartArt3DRenderer
+				element={element}
+				className={className}
+				canEdit={canEdit}
+				onUpdateElement={onUpdateElement}
+			/>
+		);
 	}
 	return (
 		<SmartArtRenderer

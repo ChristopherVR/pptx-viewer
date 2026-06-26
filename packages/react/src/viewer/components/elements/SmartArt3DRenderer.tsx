@@ -7,14 +7,25 @@
  * {@link SmartArtRenderer} when `three` is unavailable, the diagram has no
  * geometry, or the scene errors.
  *
+ * When `canEdit` and `onUpdateElement` are both provided, an invisible SVG
+ * hit-test layer is overlaid on top of the 3D canvas. Double-clicking a node
+ * on that layer opens the same textarea overlay used in 2D mode; the commit
+ * flows through the standard `onUpdateElement` path (undo/redo + save).
+ *
  * @module SmartArt3DRenderer
  */
 
 import type { PptxElement } from 'pptx-viewer-core';
-import { buildSmartArt3DModel, computeSmartArtLayout } from 'pptx-viewer-shared';
+import { updateSmartArtNodeText } from 'pptx-viewer-core';
+import {
+	buildSmartArt3DModel,
+	computeSmartArtLayout,
+	shouldCommitSmartArtNodeText,
+} from 'pptx-viewer-shared';
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 
 import { resolvePalette, resolveStyle } from '../../utils/smartart-helpers';
+import { SmartArtEditableLayer } from './SmartArtEditableLayer';
 import { SmartArtRenderer } from './SmartArtRenderer';
 
 /** Stub rendered when the dynamic scene import fails. */
@@ -59,12 +70,18 @@ interface SmartArt3DRendererProps {
 	element: PptxElement;
 	className?: string;
 	interactive?: boolean;
+	/** Enables inline (on-canvas) node text editing via the SVG hit-test overlay. */
+	canEdit?: boolean;
+	/** Commit element updates (node text edits) through the host editor path. */
+	onUpdateElement?: (updates: Partial<PptxElement>) => void;
 }
 
 export function SmartArt3DRenderer({
 	element,
 	className,
 	interactive = false,
+	canEdit,
+	onUpdateElement,
 }: SmartArt3DRendererProps): React.ReactElement {
 	const [threeAvailable, setThreeAvailable] = useState<boolean | null>(null);
 
@@ -123,7 +140,7 @@ export function SmartArt3DRenderer({
 		return svgFallback;
 	}
 
-	return (
+	const sceneNode = (
 		<SceneErrorBoundary fallback={svgFallback}>
 			<Suspense fallback={svgFallback}>
 				<LazySmartArt3DScene
@@ -134,5 +151,37 @@ export function SmartArt3DRenderer({
 				/>
 			</Suspense>
 		</SceneErrorBoundary>
+	);
+
+	const editEnabled = canEdit && Boolean(onUpdateElement);
+	const smartArtData = element.type === 'smartArt' ? element.smartArtData : undefined;
+
+	if (!editEnabled || !smartArtData) {
+		return sceneNode;
+	}
+
+	const handleCommitNodeText = (nodeId: string, text: string): void => {
+		if (!shouldCommitSmartArtNodeText(smartArtData, nodeId, text)) {
+			return;
+		}
+		onUpdateElement!({
+			smartArtData: updateSmartArtNodeText(smartArtData, nodeId, text),
+		} as Partial<PptxElement>);
+	};
+
+	return (
+		<div className='relative' style={{ width: element.width, height: element.height }}>
+			{sceneNode}
+			{/* Invisible SVG hit-test layer: pointer-events fire on tagged node groups */}
+			<SmartArtEditableLayer
+				smartArtData={smartArtData}
+				canEdit
+				onCommitNodeText={handleCommitNodeText}
+			>
+				<div className='absolute inset-0 opacity-0'>
+					<SmartArtRenderer element={element} canEdit={false} />
+				</div>
+			</SmartArtEditableLayer>
+		</div>
 	);
 }
