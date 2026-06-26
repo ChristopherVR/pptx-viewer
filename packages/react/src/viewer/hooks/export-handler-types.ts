@@ -32,6 +32,7 @@ export interface UseExportHandlersInput {
 	handoutMaster: Record<string, unknown> | undefined;
 	guides: Array<{ id: string; axis: 'h' | 'v'; position: number }>;
 	activeSlideIndexForGuides: number;
+	password?: string;
 }
 
 export interface ExportHandlersResult {

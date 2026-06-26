@@ -45,6 +45,7 @@ export interface UseSerializeInput {
 	handlerRef: React.RefObject<PptxHandler | null>;
 	inlineEditingElementIdRef: React.MutableRefObject<string | null>;
 	inlineEditingTextRef: React.MutableRefObject<string>;
+	password?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -69,6 +70,7 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 		handlerRef,
 		inlineEditingElementIdRef,
 		inlineEditingTextRef,
+		password,
 	} = input;
 
 	return useCallback(async (): Promise<Uint8Array | null> => {
@@ -120,7 +122,7 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 		// slide so edits made in edit-template mode persist to the shared part.
 		const slidesToSave = buildSaveSlides(slidesWithGuides, templateElementsBySlideId);
 
-		return handler.save(slidesToSave, {
+		const saveOptions = {
 			headerFooter,
 			presentationProperties,
 			customShows: customShows.length > 0 ? customShows : undefined,
@@ -130,7 +132,12 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 			customProperties: customProperties.length > 0 ? customProperties : undefined,
 			notesMaster,
 			handoutMaster,
-		});
+		};
+
+		if (password) {
+			return handler.saveEncrypted(slidesToSave, password, saveOptions);
+		}
+		return handler.save(slidesToSave, saveOptions);
 	}, [
 		slides,
 		templateElementsBySlideId,
@@ -148,5 +155,6 @@ export function useSerialize(input: UseSerializeInput): () => Promise<Uint8Array
 		handlerRef,
 		inlineEditingElementIdRef,
 		inlineEditingTextRef,
+		password,
 	]);
 }

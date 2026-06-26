@@ -53,6 +53,7 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		handoutMaster,
 		guides,
 		activeSlideIndexForGuides,
+		password,
 	} = input;
 
 	const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -93,6 +94,7 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		guides,
 		activeSlideIndexForGuides,
 		modalControls,
+		password,
 	});
 
 	const handleExportPng = useCallback(async () => {

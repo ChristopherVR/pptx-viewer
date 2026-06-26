@@ -35,6 +35,7 @@ export interface UseExportSaveAsInput {
 	guides: Array<{ id: string; axis: 'h' | 'v'; position: number }>;
 	activeSlideIndexForGuides: number;
 	modalControls: ExportModalControls;
+	password?: string;
 }
 
 export interface ExportSaveAsResult {
@@ -64,6 +65,7 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 		guides,
 		activeSlideIndexForGuides,
 		modalControls,
+		password,
 	} = input;
 
 	const {
@@ -180,6 +182,13 @@ export function useExportSaveAs(input: UseExportSaveAsInput): ExportSaveAsResult
 			handoutMaster,
 			outputFormat: format,
 		};
+		if (password) {
+			return handler.saveEncrypted(
+				slidesToSave,
+				password,
+				saveOptions as Parameters<typeof handler.save>[1],
+			);
+		}
 		return handler.save(slidesToSave, saveOptions as Parameters<typeof handler.save>[1]);
 	};
 

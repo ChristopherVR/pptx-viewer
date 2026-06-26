@@ -37,6 +37,7 @@ export interface UseIOHandlersInput {
 	serializeSlides: () => Promise<Uint8Array | null>;
 	setContent: React.Dispatch<React.SetStateAction<ArrayBuffer | Uint8Array | null>>;
 	onContentChange: ((content: Uint8Array) => void) | undefined;
+	password?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -68,6 +69,7 @@ export function useIOHandlers(input: UseIOHandlersInput): IOHandlersResult {
 		serializeSlides,
 		setContent,
 		onContentChange,
+		password,
 	} = input;
 
 	const exportHandlers = useExportHandlers({
@@ -91,6 +93,7 @@ export function useIOHandlers(input: UseIOHandlersInput): IOHandlersResult {
 		handoutMaster: state.handoutMaster as unknown as Record<string, unknown> | undefined,
 		guides: state.guides,
 		activeSlideIndexForGuides: state.activeSlideIndex,
+		password,
 	});
 
 	const printHandlers = usePrintHandlers({

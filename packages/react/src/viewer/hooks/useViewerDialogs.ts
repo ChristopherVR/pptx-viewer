@@ -60,6 +60,7 @@ export function useViewerDialogs(input: UseViewerDialogsInput): ViewerDialogsRes
 	const [isSetUpSlideShowOpen, setIsSetUpSlideShowOpen] = useState(false);
 	const [isBroadcastDialogOpen, setIsBroadcastDialogOpen] = useState(false);
 	const [isPasswordProtected, setIsPasswordProtected] = useState(false);
+	const [presentationPassword, setPresentationPassword] = useState<string | null>(null);
 	const [editingEquationOmml, setEditingEquationOmml] = useState<Record<string, unknown> | null>(
 		null,
 	);
@@ -205,10 +206,12 @@ export function useViewerDialogs(input: UseViewerDialogsInput): ViewerDialogsRes
 	}, [setPresentationProperties, history]);
 
 	// ── Password ──────────────────────────────────────────────────────
-	const handleSetPassword = useCallback((_password: string) => {
+	const handleSetPassword = useCallback((password: string) => {
+		setPresentationPassword(password);
 		setIsPasswordProtected(true);
 	}, []);
 	const handleRemovePassword = useCallback(() => {
+		setPresentationPassword(null);
 		setIsPasswordProtected(false);
 	}, []);
 
@@ -261,6 +264,7 @@ export function useViewerDialogs(input: UseViewerDialogsInput): ViewerDialogsRes
 		isBroadcastDialogOpen,
 		setIsBroadcastDialogOpen,
 		isPasswordProtected,
+		presentationPassword,
 		editingEquationOmml,
 		setEditingEquationOmml,
 		embedFontsEnabled,

@@ -88,6 +88,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		annotations,
 		actionSoundHandlerRef,
 		editorOps,
+		dialogs,
 		gridSpacingPx,
 		content,
 		filePath,
@@ -147,6 +148,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		ops: editorOps.ops,
 		actionSoundHandlerRef,
 		setIsEncryptedDialogOpen,
+		password: dialogs.presentationPassword ?? undefined,
 	});
 
 	// ── I/O handlers (export, print, theme, properties) ───────────
@@ -163,6 +165,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		serializeSlides,
 		setContent,
 		onContentChange,
+		password: dialogs.presentationPassword ?? undefined,
 	});
 
 	// ── Mode switching with annotation awareness ──────────────────

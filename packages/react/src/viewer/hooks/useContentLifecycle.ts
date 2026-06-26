@@ -28,6 +28,7 @@ export interface UseContentLifecycleInput {
 	ops: ElementOperations;
 	actionSoundHandlerRef: React.MutableRefObject<PptxHandler | null>;
 	setIsEncryptedDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+	password?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -54,6 +55,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		ops,
 		actionSoundHandlerRef,
 		setIsEncryptedDialogOpen,
+		password,
 	} = input;
 
 	const { handlerRef } = useLoadContent({
@@ -116,6 +118,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		handlerRef,
 		inlineEditingElementIdRef: state.inlineEditingElementIdRef,
 		inlineEditingTextRef: state.inlineEditingTextRef,
+		password,
 	});
 
 	const { autosaveStatus } = useAutosave({

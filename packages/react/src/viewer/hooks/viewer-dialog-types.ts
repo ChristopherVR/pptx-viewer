@@ -124,6 +124,8 @@ export interface ViewerDialogsResult {
 	setIsBroadcastDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
 	/** Whether the presentation is currently password-protected. */
 	isPasswordProtected: boolean;
+	/** The active password, or null when the presentation is not protected. */
+	presentationPassword: string | null;
 	/** OMML data for the equation currently being edited, or null. */
 	editingEquationOmml: Record<string, unknown> | null;
 	setEditingEquationOmml: React.Dispatch<React.SetStateAction<Record<string, unknown> | null>>;
