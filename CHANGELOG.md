@@ -4,7 +4,7 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
-## [Unreleased]
+## [1.1.70](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.70) - 2026-06-26
 
 ### Features
 
@@ -13,6 +13,10 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 ### Bug Fixes
 
 - **vue:** Route template element keyboard nudge through template store (by @ChristopherVR) ([c364fa1](https://github.com/ChristopherVR/pptx-viewer/commit/c364fa1dc71a8e52a1a250e153aab2c5c66127d2))
+
+### Documentation
+
+- Remove resolved mobile support and Vue/Angular parity limitations (by @ChristopherVR) ([2029f8a](https://github.com/ChristopherVR/pptx-viewer/commit/2029f8a9247d4e6e6f7c3ec3986d8006a3543046))
 
 ### Testing
 
