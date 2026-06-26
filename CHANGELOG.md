@@ -6,6 +6,13 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [Unreleased]
 
+### Bug Fixes
+
+- **vue:** Stop event bubbling from SmartArt inline editor textarea (by @ChristopherVR) ([d32a2a4](https://github.com/ChristopherVR/pptx-viewer/commit/d32a2a451385e0d6b5bcba7e2c834a99fe68f7d3))
+- **angular:** Guard SmartArt inline editor against cancel-triggered blur commit (by @ChristopherVR) ([a06242f](https://github.com/ChristopherVR/pptx-viewer/commit/a06242f58f68d3f63b6dfcbdcde6fc4907966762))
+
+## [1.1.58](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.58) - 2026-06-26
+
 ### Features
 
 - **react:** Support multi-line text in timeline SmartArt renderer with axis-anchored tspan layout (by @ChristopherVR) ([55212fc](https://github.com/ChristopherVR/pptx-viewer/commit/55212fc427ce838264ddab54c09d3cf57a6a934e))
