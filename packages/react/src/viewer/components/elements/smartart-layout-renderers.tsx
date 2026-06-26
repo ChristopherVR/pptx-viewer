@@ -10,7 +10,7 @@ import React from 'react';
 import { nodeOpacity, styleShadow, styleStroke, truncate } from '../../utils/smartart-helpers';
 import { resolveNodeStyle } from './smartart-node-style';
 import type { LayoutRendererProps } from './smartart-renderer-types';
-import { fitFontSize, smartArtNodeGroupProps } from './smartart-renderer-utils';
+import { fitFontSize, smartArtNodeGroupProps, SmartArtNodeText } from './smartart-renderer-utils';
 
 // ── List Renderer ───────────────────────────────────────────────────────────
 
@@ -67,19 +67,16 @@ export function ListRenderer({
 							stroke={ns.strokeColor ?? (sw > 0 ? 'rgba(255,255,255,0.3)' : 'none')}
 							strokeWidth={sw}
 						/>
-						<text
+						<SmartArtNodeText
 							x={pad + itemW / 2}
 							y={y + itemH / 2}
-							textAnchor='middle'
-							dominantBaseline='central'
+							text={truncate(node.text, 40)}
 							fill={ns.fontColor}
 							fontWeight={ns.fontWeight}
 							fontStyle={ns.fontStyle}
 							fontSize={fontSize}
 							className='pointer-events-none'
-						>
-							{truncate(node.text, 40)}
-						</text>
+						/>
 					</g>
 				);
 			})}
@@ -151,19 +148,16 @@ export function ProcessRenderer({
 							stroke={ns.strokeColor ?? (sw > 0 ? 'rgba(255,255,255,0.3)' : 'none')}
 							strokeWidth={sw}
 						/>
-						<text
+						<SmartArtNodeText
 							x={x + itemW / 2}
 							y={yMid}
-							textAnchor='middle'
-							dominantBaseline='central'
+							text={truncate(node.text, 25)}
 							fill={ns.fontColor}
 							fontWeight={ns.fontWeight}
 							fontStyle={ns.fontStyle}
 							fontSize={fontSize}
 							className='pointer-events-none'
-						>
-							{truncate(node.text, 25)}
-						</text>
+						/>
 					</g>
 				);
 			})}
@@ -256,19 +250,16 @@ export function CycleRenderer({
 							stroke={ns.strokeColor ?? (sw > 0 ? 'rgba(255,255,255,0.3)' : 'none')}
 							strokeWidth={sw}
 						/>
-						<text
+						<SmartArtNodeText
 							x={nx}
 							y={ny}
-							textAnchor='middle'
-							dominantBaseline='central'
+							text={truncate(node.text, 20)}
 							fill={ns.fontColor}
 							fontWeight={ns.fontWeight}
 							fontStyle={ns.fontStyle}
 							fontSize={fontSize}
 							className='pointer-events-none'
-						>
-							{truncate(node.text, 20)}
-						</text>
+						/>
 					</g>
 				);
 			})}
@@ -338,19 +329,16 @@ export function MatrixRenderer({
 							stroke={ns.strokeColor ?? (sw > 0 ? 'rgba(255,255,255,0.3)' : 'none')}
 							strokeWidth={sw}
 						/>
-						<text
+						<SmartArtNodeText
 							x={x + cellW / 2}
 							y={y + cellH / 2}
-							textAnchor='middle'
-							dominantBaseline='central'
+							text={truncate(node.text, 30)}
 							fill={ns.fontColor}
 							fontWeight={ns.fontWeight ?? 500}
 							fontStyle={ns.fontStyle}
 							fontSize={fontSize}
 							className='pointer-events-none'
-						>
-							{truncate(node.text, 30)}
-						</text>
+						/>
 					</g>
 				);
 			})}

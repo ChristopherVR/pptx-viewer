@@ -22,7 +22,7 @@ import {
 import type { TreeNode } from '../../utils/smartart-helpers';
 import { ListRenderer } from './smartart-layout-renderers';
 import type { LayoutRendererProps } from './smartart-renderer-types';
-import { fitFontSize, smartArtNodeGroupProps } from './smartart-renderer-utils';
+import { fitFontSize, smartArtNodeGroupProps, SmartArtNodeText } from './smartart-renderer-utils';
 
 /**
  * Renders SmartArt nodes as a tree / org-chart hierarchy with L-shaped
@@ -110,17 +110,14 @@ export function HierarchyRenderer({
 					stroke={sw > 0 ? 'rgba(255,255,255,0.3)' : 'none'}
 					strokeWidth={sw}
 				/>
-				<text
+				<SmartArtNodeText
 					x={nodeCx}
 					y={nodeCy}
-					textAnchor='middle'
-					dominantBaseline='central'
+					text={truncate(t.node.text, 40)}
 					fill='white'
 					fontSize={fontSize}
 					className='pointer-events-none'
-				>
-					{truncate(t.node.text, 40)}
-				</text>
+				/>
 			</g>,
 		);
 

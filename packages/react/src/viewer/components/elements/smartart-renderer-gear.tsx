@@ -11,7 +11,12 @@ import React from 'react';
 
 import { colour, nodeOpacity, styleShadow, truncate } from '../../utils/smartart-helpers';
 import type { LayoutRendererProps } from './smartart-renderer-types';
-import { fitFontSize, gearPath, smartArtNodeGroupProps } from './smartart-renderer-utils';
+import {
+	fitFontSize,
+	gearPath,
+	smartArtNodeGroupProps,
+	SmartArtNodeText,
+} from './smartart-renderer-utils';
 
 /**
  * Renders up to 3 SmartArt nodes as interlocking gear shapes, with any
@@ -58,18 +63,15 @@ export function GearRenderer({
 							opacity={nodeOpacity(i, nodes.length, style)}
 						/>
 						<circle cx={gx} cy={gy} r={innerR * 0.5} fill='white' opacity={0.25} />
-						<text
+						<SmartArtNodeText
 							x={gx}
 							y={gy}
-							textAnchor='middle'
-							dominantBaseline='central'
+							text={truncate(node.text, 20)}
 							fill='white'
 							fontSize={fontSize}
 							fontWeight='bold'
 							className='pointer-events-none'
-						>
-							{truncate(node.text, 20)}
-						</text>
+						/>
 					</g>
 				);
 			})}

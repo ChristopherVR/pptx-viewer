@@ -15,7 +15,7 @@ import {
 	truncate,
 } from '../../utils/smartart-helpers';
 import type { LayoutRendererProps } from './smartart-renderer-types';
-import { fitFontSize, smartArtNodeGroupProps } from './smartart-renderer-utils';
+import { fitFontSize, smartArtNodeGroupProps, SmartArtNodeText } from './smartart-renderer-utils';
 
 // ── Pyramid Renderer ────────────────────────────────────────────────────────
 
@@ -83,17 +83,14 @@ export function PyramidRenderer({
 							stroke={sw > 0 ? 'rgba(255,255,255,0.3)' : 'none'}
 							strokeWidth={sw}
 						/>
-						<text
+						<SmartArtNodeText
 							x={w / 2}
 							y={y + bandH / 2}
-							textAnchor='middle'
-							dominantBaseline='central'
+							text={truncate(node.text, 30)}
 							fill='white'
 							fontSize={fontSize}
 							className='pointer-events-none'
-						>
-							{truncate(node.text, 30)}
-						</text>
+						/>
 					</g>
 				);
 			})}
@@ -144,18 +141,15 @@ export function VennRenderer({
 							{...smartArtNodeGroupProps(node.id, shadow)}
 						>
 							<circle cx={nx} cy={ny} r={r} fill={colour(i, palette)} opacity={0.35} />
-							<text
+							<SmartArtNodeText
 								x={nx}
 								y={ny}
-								textAnchor='middle'
-								dominantBaseline='central'
+								text={truncate(node.text, 20)}
 								fill='white'
 								fontSize={fontSize}
 								fontWeight='bold'
 								className='pointer-events-none'
-							>
-								{truncate(node.text, 20)}
-							</text>
+							/>
 						</g>
 					);
 				})}
@@ -187,18 +181,15 @@ export function VennRenderer({
 						{...smartArtNodeGroupProps(node.id, shadow)}
 					>
 						<circle cx={nx} cy={cy} r={r} fill={colour(i, palette)} opacity={0.35} />
-						<text
+						<SmartArtNodeText
 							x={nx}
 							y={cy}
-							textAnchor='middle'
-							dominantBaseline='central'
+							text={truncate(node.text, 20)}
 							fill='white'
 							fontSize={fontSize}
 							fontWeight='bold'
 							className='pointer-events-none'
-						>
-							{truncate(node.text, 20)}
-						</text>
+						/>
 					</g>
 				);
 			})}
@@ -261,17 +252,14 @@ export function FunnelRenderer({
 							fill={colour(i, palette)}
 							opacity={nodeOpacity(i, nodes.length, style)}
 						/>
-						<text
+						<SmartArtNodeText
 							x={w / 2}
 							y={y + stageH / 2}
-							textAnchor='middle'
-							dominantBaseline='central'
+							text={truncate(node.text, 30)}
 							fill='white'
 							fontSize={fontSize}
 							className='pointer-events-none'
-						>
-							{truncate(node.text, 30)}
-						</text>
+						/>
 					</g>
 				);
 			})}
