@@ -37,10 +37,21 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **react:** Add hover cursor and node highlight to SmartArt inline editor (by @ChristopherVR) ([c8c8ef4](https://github.com/ChristopherVR/pptx-viewer/commit/c8c8ef4f1469bb5c02b0cfb257f0c5995314ffb7))
+- **react:** Support multi-line text in SVG SmartArt node renderers via tspan splitting (by @ChristopherVR) ([af0d91f](https://github.com/ChristopherVR/pptx-viewer/commit/af0d91f1d12519a6f97dd858d4e42f37f97e12f7))
+- **react:** Add inline node text editing to 3D SmartArt renderer via SVG hit-test overlay (by @ChristopherVR) ([4a94964](https://github.com/ChristopherVR/pptx-viewer/commit/4a949640ec9df755bf540b196a6307325ac3d1c6))
+- **react:** Support multi-line text in timeline SmartArt renderer with axis-anchored tspan layout (by @ChristopherVR) ([cd0116b](https://github.com/ChristopherVR/pptx-viewer/commit/cd0116bfc4025d39ad083728e5fa4c185fe6eb0d))
+- **react:** Add per-node fill colour picker to SmartArt inline editing layer (by @ChristopherVR) ([dae323f](https://github.com/ChristopherVR/pptx-viewer/commit/dae323f40ac0cc8158e291a41b52c3393e13287e))
 - **react:** Add hover cursor and node highlight to SmartArt inline editor (by @ChristopherVR) ([4ea588f](https://github.com/ChristopherVR/pptx-viewer/commit/4ea588fcc4b49b6d2756af6ea27deeec6535a304))
 
 ### Bug Fixes
 
+- **react:** Wire password protection through to save pipeline (by @ChristopherVR) ([bd3cfb2](https://github.com/ChristopherVR/pptx-viewer/commit/bd3cfb298724f9a2cf12adfd93ca8cc531afe2e4))
+- **react:** Ensure drawing-shape path correctly tags nodes for inline editing (by @ChristopherVR) ([34c9be6](https://github.com/ChristopherVR/pptx-viewer/commit/34c9be650f4a5abd6d0e86f203a0d62c4919aec4))
+- **shared:** Disable texture flipY to suppress WebGL texImage3D pixel-store error (by @ChristopherVR) ([39b2236](https://github.com/ChristopherVR/pptx-viewer/commit/39b2236baa4d7e5b71fa27c70057b175cc96af0f))
+- **core,react:** Repair PPTX corruption from media/math save bugs (by @ChristopherVR) ([dfffd13](https://github.com/ChristopherVR/pptx-viewer/commit/dfffd131214f6db6488c70bf6d6c77a5efcedec0))
+- **vue:** Stop event bubbling from SmartArt inline editor textarea (by @ChristopherVR) ([898891e](https://github.com/ChristopherVR/pptx-viewer/commit/898891e98538f2c5eccbe0f78caa67e83f24966e))
+- **angular:** Guard SmartArt inline editor against cancel-triggered blur commit (by @ChristopherVR) ([c3acfb5](https://github.com/ChristopherVR/pptx-viewer/commit/c3acfb5e1627cb4eeac639d7e6a1afbce352a32d))
 - **react:** Ensure drawing-shape path correctly tags nodes for inline editing (by @ChristopherVR) ([191b780](https://github.com/ChristopherVR/pptx-viewer/commit/191b780935b3f01050cd7b7be4433f3eb73c168e))
 
 ## [1.1.60](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.60) - 2026-06-25
