@@ -337,6 +337,12 @@ export class SmartArtRendererComponent {
 	/** The mounted `<textarea>` for the active node edit, if any. */
 	private readonly nodeEditor = viewChild<ElementRef<HTMLTextAreaElement>>('nodeEditor');
 
+	/**
+	 * Guards against a cancel-triggered DOM-removal blur committing the edit.
+	 * Set to true before programmatic cancellation; reset to false on each new edit.
+	 */
+	private editSettled = false;
+
 	/** Whether node double-click / Enter enters inline edit (editable + has editor). */
 	readonly canEditNodes = computed(() => this.editable() && this.editor !== null);
 
@@ -494,6 +500,10 @@ export class SmartArtRendererComponent {
 
 	/** Commit the current edit (called on blur). */
 	commitEdit(event: Event): void {
+		if (this.editSettled) {
+			this.editSettled = false;
+			return;
+		}
 		const edit = this.editState();
 		if (!edit) {
 			return;
@@ -512,12 +522,15 @@ export class SmartArtRendererComponent {
 			(event.target as HTMLTextAreaElement).blur();
 		} else if (event.key === 'Escape') {
 			event.preventDefault();
+			// Mark as settled so the DOM-removal blur does not commit the cancelled edit.
+			this.editSettled = true;
 			this.editState.set(null);
 		}
 	}
 
 	/** Resolve the node id + geometry and open the editor seeded with full text. */
 	private enterEdit(node: RenderedNode): void {
+		this.editSettled = false;
 		const elementId = this.element().id;
 		const seed = beginNodeEdit(node, elementId, this.rawNodeText(node));
 		if (seed) {
