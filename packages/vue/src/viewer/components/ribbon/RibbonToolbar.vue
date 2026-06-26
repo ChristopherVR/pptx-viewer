@@ -170,6 +170,8 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				:selected-element="props.selectedElement"
 				:clipboard-payload="props.clipboardPayload"
 				:on-align-elements="props.onAlignElements"
+				:on-distribute-elements="props.onDistributeElements"
+				:can-distribute="props.canDistribute"
 				:on-copy="props.onCopy"
 				:on-cut="props.onCut"
 				:on-paste="props.onPaste"

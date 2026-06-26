@@ -10,7 +10,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { computed } from 'vue';
 
 import { cn } from '../../../utils';
-import { gB, gL, grp, ic, pill, ALIGN_BTNS } from './ribbon-constants';
+import { gB, gL, grp, ic, pill, ALIGN_BTNS, DISTRIBUTE_BTNS } from './ribbon-constants';
 import type { ElementClipboardPayload } from './ribbon-types';
 
 interface Props {
@@ -18,6 +18,8 @@ interface Props {
 	selectedElement: PptxElement | null;
 	clipboardPayload: ElementClipboardPayload | null;
 	onAlignElements: (align: string) => void;
+	onDistributeElements: (axis: string) => void;
+	canDistribute: boolean;
 	onCopy: () => void;
 	onCut: () => void;
 	onPaste: () => void;
@@ -49,6 +51,19 @@ const canMut = computed(() => hasSel.value && props.canEdit);
 			@click="props.onAlignElements(a.k)"
 		>
 			<component :is="a.icon" :class="[ic, a.rotate && 'rotate-90']" />
+		</button>
+	</div>
+	<div :class="grp">
+		<button
+			v-for="(d, i) in DISTRIBUTE_BTNS"
+			:key="d.k"
+			type="button"
+			:class="i < DISTRIBUTE_BTNS.length - 1 ? gB : gL"
+			:disabled="!props.canEdit || !props.canDistribute"
+			:title="`Distribute ${d.k}`"
+			@click="props.onDistributeElements(d.k)"
+		>
+			<component :is="d.icon" :class="ic" />
 		</button>
 	</div>
 	<div :class="grp">

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import type { PptxElement } from 'pptx-viewer-core';
+import { Lock, LockOpen } from 'lucide-vue-next';
+import type { PptxElement, PptxShapeLocks } from 'pptx-viewer-core';
 import { computed } from 'vue';
 
 /**
- * ArrangePanel: position, size, rotation and flip controls.
+ * ArrangePanel: position, size, rotation, flip controls and element lock toggle.
  *
  * Applicable to every element (all carry `x`/`y`/`width`/`height`/`rotation`
  * and the flip flags). Emits SHALLOW patches that the parent merges onto the
@@ -11,6 +12,7 @@ import { computed } from 'vue';
  */
 const props = defineProps<{
 	element: PptxElement;
+	canEdit?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -24,6 +26,20 @@ const height = computed(() => Math.round(props.element.height ?? 0));
 const rotation = computed(() => Math.round(props.element.rotation ?? 0));
 const flipHorizontal = computed(() => Boolean(props.element.flipHorizontal));
 const flipVertical = computed(() => Boolean(props.element.flipVertical));
+
+const isLocked = computed(
+	() => Boolean(props.element.locks?.noMove) || Boolean(props.element.locks?.noSelect),
+);
+
+function toggleLock(): void {
+	if (!props.canEdit) return;
+	if (isLocked.value) {
+		emit('update', { locks: undefined } as Partial<PptxElement>);
+	} else {
+		const locks: PptxShapeLocks = { noMove: true, noResize: true, noSelect: true };
+		emit('update', { locks } as Partial<PptxElement>);
+	}
+}
 
 const MIN_SIZE = 1;
 
@@ -67,6 +83,20 @@ function onFlipVertical(checked: boolean): void {
 
 <template>
 	<div class="pptx-vue-arrange flex flex-col gap-2 text-xs">
+		<div class="flex items-center justify-between">
+			<span class="text-muted-foreground font-medium">Position &amp; Size</span>
+			<button
+				type="button"
+				:disabled="!props.canEdit"
+				:title="isLocked ? 'Unlock element' : 'Lock element'"
+				:aria-pressed="isLocked"
+				class="p-1 rounded hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+				@click="toggleLock"
+			>
+				<Lock v-if="isLocked" class="w-3.5 h-3.5 text-amber-400" />
+				<LockOpen v-else class="w-3.5 h-3.5 text-muted-foreground" />
+			</button>
+		</div>
 		<div class="pptx-vue-arrange-grid grid grid-cols-2 gap-2">
 			<label class="pptx-vue-arrange-field flex flex-col gap-1">
 				<span class="pptx-vue-arrange-label text-muted-foreground">X</span>

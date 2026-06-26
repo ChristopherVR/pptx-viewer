@@ -38,12 +38,13 @@ import type {
 	PptxThemePreset,
 	TextStyle,
 } from 'pptx-viewer-core';
-import type { AlignEdge } from 'pptx-viewer-shared';
+import type { AlignEdge, DistributeAxis } from 'pptx-viewer-shared';
 import {
 	alignElements,
 	applyDragDelta,
 	buildBroadcastViewerUrl,
 	createDefaultChartElement,
+	distributeElements,
 	downloadBlob,
 	groupElements,
 	isTemplateElementId,
@@ -1472,6 +1473,10 @@ function applyPositionMap(map: Map<string, { x?: number; y?: number }>): void {
 function onAlign(edge: AlignEdge): void {
 	applyPositionMap(alignElements(selectedElements.value, edge));
 }
+function onDistribute(axis: DistributeAxis): void {
+	applyPositionMap(distributeElements(selectedElements.value, axis));
+}
+const canDistribute = computed(() => selectedElements.value.length >= 3);
 function onGroup(): void {
 	const sel = selectedElements.value;
 	const index = activeSlideIndex.value;
@@ -1936,9 +1941,7 @@ function nudgeSelected(dx: number, dy: number): void {
 			templateElementsBySlideId.value = setTemplateElements(
 				templateElementsBySlideId.value,
 				slide.id,
-				current.map((el) =>
-					templateIds.has(el.id) ? { ...el, x: el.x + dx, y: el.y + dy } : el,
-				),
+				current.map((el) => (templateIds.has(el.id) ? { ...el, x: el.x + dx, y: el.y + dy } : el)),
 			);
 		}
 	}
@@ -2357,6 +2360,12 @@ const ribbonProps = computed<RibbonProps>(() => ({
 			onAlign(e);
 		}
 	},
+	onDistributeElements: (axis) => {
+		if (axis === 'horizontal' || axis === 'vertical') {
+			onDistribute(axis as DistributeAxis);
+		}
+	},
+	canDistribute: canDistribute.value,
 	onCopy: copySelected,
 	onCut: cutSelected,
 	onPaste: pasteElement,
@@ -2659,6 +2668,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				<InspectorPane
 					v-if="props.canEdit && !isMobile && inspectorElementForPanels && inspectorOpen"
 					:element="inspectorElementForPanels"
+					:can-edit="props.canEdit"
 					@update="onInspectorUpdate"
 				/>
 
@@ -2937,6 +2947,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					v-if="inspectorElementForPanels"
 					mobile
 					:element="inspectorElementForPanels"
+					:can-edit="props.canEdit"
 					@update="onInspectorUpdate"
 				/>
 				<SlideInspector
