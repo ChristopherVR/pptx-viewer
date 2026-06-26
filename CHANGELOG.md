@@ -4,7 +4,46 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
-## [Unreleased]
+## [1.1.63](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.63) - 2026-06-26
+
+### Features
+
+- **vue:** Add hover outline ring to SmartArt editable nodes (by @ChristopherVR) ([0670588](https://github.com/ChristopherVR/pptx-viewer/commit/0670588214a297fe73d9197f440acc0606bff576))
+- **angular:** Add hover outline ring to SmartArt editable nodes (by @ChristopherVR) ([06acf00](https://github.com/ChristopherVR/pptx-viewer/commit/06acf0073f57f9da5c38569dc0c4f1412187074d))
+- **vue:** Support multi-line \n text in SmartArt SVG node renderers via tspan (by @ChristopherVR) ([944f671](https://github.com/ChristopherVR/pptx-viewer/commit/944f671b8e90be1cc1fc06bb69997d8a7e66e56a))
+- **angular:** Support multi-line \n text in SmartArt SVG node renderers via tspan (by @ChristopherVR) ([98a2f9d](https://github.com/ChristopherVR/pptx-viewer/commit/98a2f9d6b186d5f1deea3f82ffacf4817ab93195))
+
+## [1.1.62](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.62) - 2026-06-26
+
+### Bug Fixes
+
+- **vue:** Stop event bubbling from SmartArt inline editor textarea (by @ChristopherVR) ([d32a2a4](https://github.com/ChristopherVR/pptx-viewer/commit/d32a2a451385e0d6b5bcba7e2c834a99fe68f7d3))
+- **angular:** Guard SmartArt inline editor against cancel-triggered blur commit (by @ChristopherVR) ([a06242f](https://github.com/ChristopherVR/pptx-viewer/commit/a06242f58f68d3f63b6dfcbdcde6fc4907966762))
+
+## [1.1.58](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.58) - 2026-06-26
+
+### Features
+
+- **react:** Support multi-line text in timeline SmartArt renderer with axis-anchored tspan layout (by @ChristopherVR) ([55212fc](https://github.com/ChristopherVR/pptx-viewer/commit/55212fc427ce838264ddab54c09d3cf57a6a934e))
+- **react:** Add per-node fill colour picker to SmartArt inline editing layer (by @ChristopherVR) ([9bc9779](https://github.com/ChristopherVR/pptx-viewer/commit/9bc9779083416ad0b4f3f07f083ab93305ff7c80))
+
+## [1.1.57](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.57) - 2026-06-26
+
+### Features
+
+- **react:** Support multi-line text in SVG SmartArt node renderers via tspan splitting (by @ChristopherVR) ([1be63d8](https://github.com/ChristopherVR/pptx-viewer/commit/1be63d8ec9a9c440bedeb783d34c76e9bcdc3c0a))
+
+## [1.1.61](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.61) - 2026-06-26
+
+### Features
+
+- **react:** Add hover cursor and node highlight to SmartArt inline editor (by @ChristopherVR) ([4ea588f](https://github.com/ChristopherVR/pptx-viewer/commit/4ea588fcc4b49b6d2756af6ea27deeec6535a304))
+
+### Bug Fixes
+
+- **react:** Ensure drawing-shape path correctly tags nodes for inline editing (by @ChristopherVR) ([191b780](https://github.com/ChristopherVR/pptx-viewer/commit/191b780935b3f01050cd7b7be4433f3eb73c168e))
+
+## [1.1.60](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.60) - 2026-06-25
 
 ### Other
 

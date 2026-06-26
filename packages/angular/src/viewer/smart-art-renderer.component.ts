@@ -111,13 +111,16 @@ import type { InlineEditState } from './smart-art-inline-edit';
 								@if (shape.text) {
 									<text
 										[attr.x]="shape.textX"
-										[attr.y]="shape.textY"
 										text-anchor="middle"
 										dominant-baseline="central"
 										[attr.fill]="shape.fontColor"
 										[attr.font-size]="shape.fontSize"
 									>
-										{{ shape.text }}
+										@for (line of textLines(shape.text, shape.fontSize); track $index) {
+											<tspan [attr.x]="shape.textX" [attr.y]="shape.textY + line.offsetY">
+												{{ line.text }}
+											</tspan>
+										}
 									</text>
 								}
 							</g>
@@ -164,13 +167,14 @@ import type { InlineEditState } from './smart-art-inline-edit';
 									/>
 									<text
 										[attr.x]="c.cx"
-										[attr.y]="c.cy"
 										text-anchor="middle"
 										dominant-baseline="central"
 										fill="white"
 										[attr.font-size]="c.fontSize"
 									>
-										{{ c.text }}
+										@for (line of textLines(c.text, c.fontSize); track $index) {
+											<tspan [attr.x]="c.cx" [attr.y]="c.cy + line.offsetY">{{ line.text }}</tspan>
+										}
 									</text>
 								} @else if (asPolygon(node); as p) {
 									<polygon
@@ -182,13 +186,16 @@ import type { InlineEditState } from './smart-art-inline-edit';
 									/>
 									<text
 										[attr.x]="p.textX"
-										[attr.y]="p.textY"
 										text-anchor="middle"
 										dominant-baseline="central"
 										fill="white"
 										[attr.font-size]="p.fontSize"
 									>
-										{{ p.text }}
+										@for (line of textLines(p.text, p.fontSize); track $index) {
+											<tspan [attr.x]="p.textX" [attr.y]="p.textY + line.offsetY">
+												{{ line.text }}
+											</tspan>
+										}
 									</text>
 								} @else if (asRect(node); as r) {
 									<rect
@@ -204,13 +211,16 @@ import type { InlineEditState } from './smart-art-inline-edit';
 									/>
 									<text
 										[attr.x]="r.textX"
-										[attr.y]="r.textY"
 										text-anchor="middle"
 										dominant-baseline="central"
 										fill="white"
 										[attr.font-size]="r.fontSize"
 									>
-										{{ r.text }}
+										@for (line of textLines(r.text, r.fontSize); track $index) {
+											<tspan [attr.x]="r.textX" [attr.y]="r.textY + line.offsetY">
+												{{ line.text }}
+											</tspan>
+										}
 									</text>
 								}
 							</g>
@@ -266,6 +276,12 @@ import type { InlineEditState } from './smart-art-inline-edit';
 		.pptx-ng-smartart-node--editable {
 			pointer-events: auto;
 			cursor: text;
+		}
+
+		/* Hover ring: outline does not render on SVG <g> elements in all browsers,
+		   so drop-shadow is used as the visual confirmation that a node is editable. */
+		.pptx-ng-smartart-node--editable:hover {
+			filter: drop-shadow(0 0 2px rgba(96, 165, 250, 0.8));
 		}
 
 		.pptx-ng-smartart-node-editor {
@@ -475,6 +491,25 @@ export class SmartArtRendererComponent {
 	/** Narrow a `RenderedNode` to a rect, or `undefined`. */
 	asRect(node: RenderedNode): RenderedRectNode | undefined {
 		return node.kind === 'rect' ? node : undefined;
+	}
+
+	/**
+	 * Split node text on `\n` and compute per-line y offsets (in SVG px) that
+	 * centre the block around the node centre y (offset 0). Single-line text
+	 * produces one entry with offsetY=0, preserving the existing
+	 * `dominant-baseline="central"` behaviour exactly.
+	 */
+	protected textLines(text: string, fontSize: number): Array<{ text: string; offsetY: number }> {
+		const raw = (text ?? '').split('\n').filter((l) => l.length > 0);
+		if (raw.length === 0) {
+			return [{ text: '', offsetY: 0 }];
+		}
+		const lh = fontSize * 1.2;
+		const totalH = raw.length * lh;
+		return raw.map((line, i) => ({
+			text: line,
+			offsetY: -totalH / 2 + lh / 2 + i * lh,
+		}));
 	}
 
 	// ── Inline node-text editing ───────────────────────────────────────────
