@@ -8,7 +8,12 @@ import type { PptxSaveState, IPptxSlideRelationshipRegistry } from '../builders'
 import type { PptxSaveConstants } from '../factories';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveElementWriter';
 import type { SlideShapeCollectors, SaveSlideContext } from './PptxHandlerRuntimeSaveElementWriter';
-import { ensureA16NamespaceOnSlideRoot, slideContainsA16Element } from './table-structural-ops';
+import {
+	ensureA16NamespaceOnSlideRoot,
+	slideContainsA16Element,
+	ensureMathNamespaceOnSlideRoot,
+	slideContainsMathElement,
+} from './table-structural-ops';
 
 const shapeIdValidator = new PptxShapeIdValidator();
 
@@ -238,6 +243,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// own writer emits.
 		if (slideContainsA16Element(slideNode)) {
 			ensureA16NamespaceOnSlideRoot(slideNode);
+		}
+		if (slideContainsMathElement(slideNode)) {
+			ensureMathNamespaceOnSlideRoot(slideNode);
 		}
 
 		this.zip.file(slide.id, this.builder.build(xmlObj));

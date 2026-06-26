@@ -54,11 +54,66 @@ export function ensureA16NamespaceOnSlideRoot(slideRoot: XmlObject): void {
 		slideRoot['@_mc:Ignorable'] = 'a16';
 		return;
 	}
-	const tokens = existingIgnorable.split(/\s+/).filter((token) => token.length > 0);
+	const tokens = existingIgnorable.split(/\s+/u).filter((token) => token.length > 0);
 	if (!tokens.includes('a16')) {
 		tokens.push('a16');
 		slideRoot['@_mc:Ignorable'] = tokens.join(' ');
 	}
+}
+
+/**
+ * OOXML math namespace, required on the slide root whenever `m:oMath` /
+ * `m:oMathPara` (OMML) elements appear in the document.
+ */
+export const MATH_NAMESPACE = 'http://schemas.openxmlformats.org/officeDocument/2006/math';
+
+/**
+ * Declare `xmlns:m` on a slide root.
+ *
+ * Call after any save step that may emit `m:oMath` or `m:oMathPara` children
+ * (SDK-created equations on slides that never previously carried math). Without
+ * this, fast-xml-parser emits `<m:oMath>` with the `m:` prefix undeclared,
+ * which is invalid XML and causes PowerPoint to reject the file.
+ *
+ * Idempotent — safe to call repeatedly.
+ */
+export function ensureMathNamespaceOnSlideRoot(slideRoot: XmlObject): void {
+	if (!slideRoot['@_xmlns:m']) {
+		slideRoot['@_xmlns:m'] = MATH_NAMESPACE;
+	}
+}
+
+/**
+ * Detect whether any element under `node` uses an `m:` qualified name
+ * (OMML math content).
+ *
+ * Walks the parsed XML object tree (fast-xml-parser format). Bails out as
+ * soon as a match is found.
+ */
+export function slideContainsMathElement(node: unknown): boolean {
+	if (node === null || node === undefined) {
+		return false;
+	}
+	if (Array.isArray(node)) {
+		for (const entry of node) {
+			if (slideContainsMathElement(entry)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	if (typeof node !== 'object') {
+		return false;
+	}
+	for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+		if (key.startsWith('m:')) {
+			return true;
+		}
+		if (slideContainsMathElement(value)) {
+			return true;
+		}
+	}
+	return false;
 }
 
 /**

@@ -40,6 +40,7 @@ export interface InsertElementHandlers {
 	handleAddChart: (chartType: PptxChartType) => void;
 	handleInsertSmartArt: (layout: SmartArtLayout, defaultItems: string[]) => void;
 	handleInsertEquation: (omml: Record<string, unknown>) => void;
+	handleUpdateEquation: (omml: Record<string, unknown>) => void;
 	handleHyperlinkConfirm: (data: HyperlinkEditData) => void;
 	handleInsertField: (fieldType: string, value?: string) => void;
 	handleAddActionButton: (shapeType: string) => void;

@@ -179,7 +179,11 @@ export function ViewerDialogGroup(props: ViewerDialogGroupProps) {
 			<EquationEditorDialog
 				isOpen={dialogs.isEquationDialogOpen}
 				onClose={() => dialogs.setIsEquationDialogOpen(false)}
-				onInsert={insertHandlers.handleInsertEquation}
+				onInsert={
+					dialogs.editingEquationOmml
+						? insertHandlers.handleUpdateEquation
+						: insertHandlers.handleInsertEquation
+				}
 				existingOmml={dialogs.editingEquationOmml}
 			/>
 

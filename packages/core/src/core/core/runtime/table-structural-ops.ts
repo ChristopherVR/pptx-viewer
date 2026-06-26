@@ -27,6 +27,8 @@ export {
 	rebuildTableXmlFromData,
 	ensureA16NamespaceOnSlideRoot,
 	slideContainsA16Element,
+	ensureMathNamespaceOnSlideRoot,
+	slideContainsMathElement,
 } from './table-xml-rebuild';
 
 // New-table / cell XML builders

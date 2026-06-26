@@ -6,6 +6,7 @@ import type {
 	PptxElement,
 	PptxSlide,
 	ShapePptxElement,
+	TextSegment,
 	TextStyle,
 	SmartArtLayout,
 	PptxSmartArtNode,
@@ -31,6 +32,7 @@ export interface StructuredElementDeps {
 export interface StructuredElementHandlers {
 	handleInsertSmartArt: (layout: SmartArtLayout, defaultItems: string[]) => void;
 	handleInsertEquation: (omml: Record<string, unknown>) => void;
+	handleUpdateEquation: (omml: Record<string, unknown>) => void;
 	handleHyperlinkConfirm: (data: HyperlinkEditData) => void;
 	handleInsertField: (fieldType: string, value?: string) => void;
 	handleAddActionButton: (shapeType: string) => void;
@@ -92,6 +94,22 @@ export function createStructuredElementHandlers(
 				},
 			],
 		} as PptxElement);
+	};
+
+	const handleUpdateEquation = (omml: Record<string, unknown>) => {
+		const sel = selectedElements[0];
+		if (!sel) {
+			return;
+		}
+		const updatedSegments: TextSegment[] = [
+			{
+				text: '[Equation]',
+				style: { fontSize: 18, fontFamily: 'Cambria Math' } as TextStyle,
+				equationXml: omml,
+			},
+		];
+		ops.updateElementById(sel.id, { textSegments: updatedSegments });
+		history.markDirty();
 	};
 
 	const handleHyperlinkConfirm = (data: HyperlinkEditData) => {
@@ -194,6 +212,7 @@ export function createStructuredElementHandlers(
 	return {
 		handleInsertSmartArt,
 		handleInsertEquation,
+		handleUpdateEquation,
 		handleHyperlinkConfirm,
 		handleInsertField,
 		handleAddActionButton,

@@ -224,7 +224,18 @@ export function EquationEditorDialog({
 		if (!latex.trim()) {
 			return;
 		}
-		onInsert(omml);
+		// Recompute from the current `latex` value rather than the deferred `omml`
+		// to avoid inserting stale OMML when the user types and clicks quickly.
+		let insertOmml = omml;
+		try {
+			const fresh = convertLatexToOmml(latex);
+			if (fresh && Object.keys(fresh).length > 0) {
+				insertOmml = fresh;
+			}
+		} catch {
+			// fall back to deferred omml
+		}
+		onInsert(insertOmml);
 		onClose();
 	}, [latex, omml, onInsert, onClose]);
 

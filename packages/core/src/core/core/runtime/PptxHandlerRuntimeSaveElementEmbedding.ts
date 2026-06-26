@@ -128,7 +128,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (!targetImagePath) {
 				targetImagePath = ctx.saveSession.nextMediaPath(parsedImage.extension);
 				const relationshipId = ctx.slideRelationshipRegistry.nextRelationshipId();
-				const relativeMediaPath = targetImagePath.replace(/^ppt\//, '../');
+				const relativeMediaPath = targetImagePath.replace(/^ppt\//u, '../');
 				ctx.slideRelationships.push({
 					'@_Id': relationshipId,
 					'@_Type': ctx.slideImageRelationshipType,
@@ -145,7 +145,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// ERROR_FILE_CORRUPT (0x80070570) and show the repair dialog.
 				// The original metafile bytes are still in the zip from load,
 				// so skipping the overwrite preserves them verbatim.
-				const targetExt = targetImagePath.toLowerCase().match(/\.([^./\\]+)$/)?.[1];
+				const targetExt = targetImagePath.toLowerCase().match(/\.(?<ext>[^./\\]+)$/u)?.groups?.[
+					'ext'
+				];
 				const parsedExt = parsedImage.extension.toLowerCase();
 				const extensionMismatch =
 					targetExt !== undefined &&
@@ -194,13 +196,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					targetMediaPath = ctx.saveSession.nextMediaPath(parsedMedia.extension, mediaType);
 				}
 				this.zip.file(targetMediaPath, parsedMedia.bytes);
-				const relationshipTarget = targetMediaPath.replace(/^ppt\//, '../');
+				const relationshipTarget = targetMediaPath.replace(/^ppt\//u, '../');
 				if (!mediaRelationshipId) {
 					mediaRelationshipId = ctx.slideRelationshipRegistry.nextRelationshipId();
 				}
+				// Embedded media (bytes written into the package) must use the
+				// generic `media` relationship type regardless of media kind. The
+				// type-specific `video`/`audio` types are for *externally linked*
+				// media with TargetMode="External"; using them for embedded parts
+				// makes the relationship schema-invalid and causes PowerPoint to
+				// reject the file.
 				ctx.slideRelationshipRegistry.upsertRelationship(
 					mediaRelationshipId,
-					this.slideMediaRelationshipBuilder.resolveMediaRelationshipType(mediaType, relTypes),
+					relTypes.media,
 					relationshipTarget,
 				);
 				if (!shape) {
@@ -230,12 +238,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			typeof mediaElement.mediaPath === 'string' &&
 			mediaElement.mediaPath.length > 0
 		) {
-			const relationshipTarget = mediaElement.mediaPath.replace(/^ppt\//, '../');
-			mediaRelationshipId =
-				mediaRelationshipId || ctx.slideRelationshipRegistry.nextRelationshipId();
+			const relationshipTarget = mediaElement.mediaPath.replace(/^ppt\//u, '../');
+			mediaRelationshipId ||= ctx.slideRelationshipRegistry.nextRelationshipId();
+			// Linked media (external URL, isLinked=true) uses the type-specific
+			// relationship. Package-internal paths (isLinked falsy) use `media`.
+			const pathRelType = mediaElement.isLinked
+				? this.slideMediaRelationshipBuilder.resolveMediaRelationshipType(mediaType, relTypes)
+				: relTypes.media;
 			ctx.slideRelationshipRegistry.upsertRelationship(
 				mediaRelationshipId,
-				this.slideMediaRelationshipBuilder.resolveMediaRelationshipType(mediaType, relTypes),
+				pathRelType,
 				relationshipTarget,
 			);
 			shape = this.createMediaGraphicFrameXml(mediaElement, mediaRelationshipId);
