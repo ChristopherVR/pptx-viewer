@@ -351,6 +351,22 @@ function commitEdit(): void {
 function cancelEdit(): void {
 	edit.cancel();
 }
+
+/**
+ * Stop all keydown bubbling so parent shortcuts (Delete, arrow keys, etc.)
+ * do not fire while typing in the editor. Enter commits; Shift+Enter inserts
+ * a newline; Escape cancels.
+ */
+function onEditorKeydown(event: KeyboardEvent): void {
+	event.stopPropagation();
+	if (event.key === 'Enter' && !event.shiftKey) {
+		event.preventDefault();
+		commitEdit();
+	} else if (event.key === 'Escape') {
+		event.preventDefault();
+		cancelEdit();
+	}
+}
 </script>
 
 <template>
@@ -533,14 +549,18 @@ function cancelEdit(): void {
 				ref="editorEl"
 				v-model="edit.draft.value"
 				class="pptx-vue-smartart-node-editor"
+				spellcheck="false"
+				aria-label="Edit SmartArt node text"
 				:style="{
 					left: `${edit.rect.value.left}px`,
 					top: `${edit.rect.value.top}px`,
 					width: `${edit.rect.value.width}px`,
 					height: `${edit.rect.value.height}px`,
 				}"
-				@keydown.enter.prevent="commitEdit"
-				@keydown.esc.prevent="cancelEdit"
+				@keydown="onEditorKeydown"
+				@mousedown.stop
+				@click.stop
+				@dblclick.stop
 				@blur="commitEdit"
 			/>
 		</div>
