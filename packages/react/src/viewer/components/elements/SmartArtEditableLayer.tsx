@@ -57,6 +57,7 @@ export function SmartArtEditableLayer({
 }: SmartArtEditableLayerProps): React.ReactNode {
 	const containerRef = React.useRef<HTMLDivElement | null>(null);
 	const [edit, setEdit] = React.useState<{ nodeId: string; rect: InlineEditRect } | null>(null);
+	const [hoveredNodeId, setHoveredNodeId] = React.useState<string | null>(null);
 
 	const openEditor = React.useCallback((target: EventTarget | null): void => {
 		const nodeEl = findNodeIdFromEvent(target);
@@ -72,7 +73,13 @@ export function SmartArtEditableLayer({
 			nodeEl.getBoundingClientRect(),
 			container.getBoundingClientRect(),
 		);
+		setHoveredNodeId(null);
 		setEdit({ nodeId, rect });
+	}, []);
+
+	const handleMouseMove = React.useCallback((e: React.MouseEvent<HTMLDivElement>): void => {
+		const nodeEl = findNodeIdFromEvent(e.target);
+		setHoveredNodeId(nodeEl?.getAttribute(NODE_ID_ATTR) ?? null);
 	}, []);
 
 	if (!canEdit) {
@@ -85,6 +92,9 @@ export function SmartArtEditableLayer({
 		<div
 			ref={containerRef}
 			className='relative h-full w-full'
+			style={{ cursor: hoveredNodeId ? 'text' : undefined }}
+			onMouseMove={handleMouseMove}
+			onMouseLeave={() => setHoveredNodeId(null)}
 			// Editing is a deliberate double-click; single clicks still select /
 			// drag the SmartArt element via the parent handlers.
 			onDoubleClick={(e) => {
@@ -95,6 +105,9 @@ export function SmartArtEditableLayer({
 				}
 			}}
 		>
+			{!edit && (
+				<style>{`[data-smartart-node-id]:hover { outline: 2px solid rgba(96,165,250,0.6); outline-offset: 1px; }`}</style>
+			)}
 			{children}
 			{edit && (
 				<SmartArtInlineNodeEditor
