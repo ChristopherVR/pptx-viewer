@@ -8,6 +8,13 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **react:** Support multi-line text in timeline SmartArt renderer with axis-anchored tspan layout (by @ChristopherVR) ([55212fc](https://github.com/ChristopherVR/pptx-viewer/commit/55212fc427ce838264ddab54c09d3cf57a6a934e))
+- **react:** Add per-node fill colour picker to SmartArt inline editing layer (by @ChristopherVR) ([9bc9779](https://github.com/ChristopherVR/pptx-viewer/commit/9bc9779083416ad0b4f3f07f083ab93305ff7c80))
+
+## [1.1.57](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.57) - 2026-06-26
+
+### Features
+
 - **react:** Support multi-line text in SVG SmartArt node renderers via tspan splitting (by @ChristopherVR) ([1be63d8](https://github.com/ChristopherVR/pptx-viewer/commit/1be63d8ec9a9c440bedeb783d34c76e9bcdc3c0a))
 
 ## [1.1.61](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.61) - 2026-06-26
