@@ -115,9 +115,7 @@ pptx-angular-viewer ┘                        ├── pptx-viewer-core
 - **Chart interactivity** - Charts are rendered as static SVG with hover tooltips. They are not directly editable via the chart surface; use the inspector panel's chart data editor instead.
 - **Print and export fidelity** - Raster exports (PNG/JPEG/PDF) go through `html2canvas`, which does not support `backdrop-filter`, CSS custom properties (`var()`), or CSS 3D transforms. The library preprocesses CSS to approximate these, but some fidelity is lost. An SVG export path is available as a vector alternative.
 - **Maximum export resolution** - Canvas-based exports are constrained by the browser's maximum canvas size (typically 16384x16384 or 32768x32768 pixels depending on browser and GPU).
-- **Mobile support** - Touch interactions (drag, pinch-zoom) are supported but the toolbar, inspector panels, and dialogs are designed for desktop viewport sizes.
 - **3D models** - Rendering GLB/GLTF 3D models requires the single optional `three` peer dependency. Without it, the element falls back to its poster image.
-- **Vue / Angular feature parity** - The Vue and Angular bindings are functionally equivalent to the React package for editing, presenter mode, collaboration, and export, including SmartArt inline editing (hover ring, per-node fill picker, 3D overlay, multi-line text). Toolbar button sizing, active/disabled states, separators, and icon sizing are aligned across all three bindings. Master/template editing (`editTemplateMode`) is fully wired in the React binding; Vue and Angular expose the prop but do not yet populate the template element layer.
 
 ---
 
