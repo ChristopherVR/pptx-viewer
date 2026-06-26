@@ -246,6 +246,42 @@ describe('elementRenderer per-run text effects', () => {
 		expect(style).not.toContain('background-clip');
 	});
 
+	it('injects a duotone <filter> and keeps the url(#) shape filter reference', () => {
+		const wrapper = mountEl({
+			type: 'shape',
+			id: 'dt1',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			shapeType: 'rect',
+			shapeStyle: { dagDuotone: { color1: '#112233', color2: '#aabbcc' } },
+		} as unknown as PptxElement);
+		// The hidden SVG <filter> backing the duotone effect is injected with the
+		// id that matches the CSS url(#) reference.
+		const filterEl = wrapper.find('filter#dag-duotone-dt1');
+		expect(filterEl.exists()).toBeTruthy();
+		// The shape box keeps the url(#dag-duotone-dt1) filter reference.
+		const shape = wrapper.get('[data-element-id="dt1"]');
+		expect(shape.attributes('style')).toContain('url(#dag-duotone-dt1)');
+	});
+
+	it('renders no duotone <filter> for a shape without dagDuotone', () => {
+		const wrapper = mountEl({
+			type: 'shape',
+			id: 'dt2',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			shapeType: 'rect',
+			shapeStyle: { fillColor: '#ff0000' },
+		} as unknown as PptxElement);
+		expect(wrapper.find('filter').exists()).toBeFalsy();
+		const shape = wrapper.get('[data-element-id="dt2"]');
+		expect(shape.attributes('style') ?? '').not.toContain('url(#dag-duotone');
+	});
+
 	it('applies the text-body 3D scene transform to the text block', () => {
 		const wrapper = mountEl({
 			type: 'text',

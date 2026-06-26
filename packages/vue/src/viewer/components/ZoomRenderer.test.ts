@@ -3,7 +3,13 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ZoomNavigationKey } from '../composables/zoom-navigation';
+import type { ZoomTargetInfo, ZoomTargetLookup } from '../composables/zoom-target';
+import { ZoomTargetKey } from '../composables/zoom-target';
 import ZoomRenderer from './ZoomRenderer.vue';
+
+function targetLookup(byIndex: Record<number, ZoomTargetInfo>): ZoomTargetLookup {
+	return (index) => byIndex[index];
+}
 
 function zoom(overrides: Partial<PptxElement> = {}): PptxElement {
 	return {
@@ -66,6 +72,44 @@ describe('zoomRenderer', () => {
 		expect(wrapper.attributes('tabindex')).toBe('0');
 		await wrapper.trigger('click');
 		expect(navigateToZoomTarget).toHaveBeenCalledWith(5);
+	});
+
+	it('uses the target slide background, number and section name when a lookup is provided', () => {
+		const lookup = targetLookup({
+			4: { backgroundColor: '#123456', slideNumber: 9, sectionName: 'Chapter One' },
+		});
+		const wrapper = mount(ZoomRenderer, {
+			props: { element: zoom(), zIndex: 1 },
+			global: { provide: { [ZoomTargetKey as symbol]: lookup } },
+		});
+		const thumbnail = wrapper.get('.pptx-vue-zoom-thumbnail');
+		expect(thumbnail.attributes('style')).toContain('background-color: #123456');
+		// Uses the slide's own number (9), not targetSlideIndex + 1 (5).
+		expect(wrapper.text()).toContain('Slide 9');
+		expect(wrapper.text()).not.toContain('Slide 5');
+		expect(wrapper.text()).toContain('Chapter One');
+	});
+
+	it('prefers the friendly section name over the section GUID for section zooms', () => {
+		const lookup = targetLookup({ 4: { slideNumber: 3, sectionName: 'Intro Section' } });
+		const wrapper = mount(ZoomRenderer, {
+			props: { element: zoom({ zoomType: 'section', targetSectionId: 'GUID-123' }), zIndex: 0 },
+			global: { provide: { [ZoomTargetKey as symbol]: lookup } },
+		});
+		expect(wrapper.text()).toContain('Intro Section');
+		expect(wrapper.text()).not.toContain('GUID-123');
+	});
+
+	it('falls back to the target index and section GUID when the lookup misses the slide', () => {
+		const lookup = targetLookup({ 99: { slideNumber: 1 } });
+		const wrapper = mount(ZoomRenderer, {
+			props: { element: zoom({ zoomType: 'section', targetSectionId: 'GUID-xyz' }), zIndex: 0 },
+			global: { provide: { [ZoomTargetKey as symbol]: lookup } },
+		});
+		const thumbnail = wrapper.get('.pptx-vue-zoom-thumbnail');
+		expect(thumbnail.attributes('style')).toContain('background-color: #f0f0f0');
+		expect(wrapper.text()).toContain('Slide 5');
+		expect(wrapper.text()).toContain('GUID-xyz');
 	});
 
 	it('navigates on Enter and Space but ignores other keys', async () => {

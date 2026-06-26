@@ -106,14 +106,12 @@ export function getShapeFillStrokeStyle(el: PptxElement): CSSProperties {
 		style.boxShadow = fx.boxShadow;
 	}
 	if (fx.filter) {
-		// The duotone DAG effect emits a `url(#…)` reference to an SVG <filter>
-		// the Vue renderer does not inject yet. Strip it so the remaining CSS
-		// filter functions (glow, blur, grayscale, …) still apply and the element
-		// isn't hidden by a dangling filter reference. (Duotone deferred.)
-		const filter = fx.filter.replace(/\s*url\(#[^)]*\)/gu, '').trim();
-		if (filter) {
-			style.filter = filter;
-		}
+		// Keep the filter verbatim, including any duotone DAG `url(#dag-duotone-<id>)`
+		// reference (the only `url(#…)` token `getEffectFilterCss` can emit). The
+		// matching SVG <filter> is injected by ElementRenderer's DuotoneFilterDefs
+		// so the reference resolves; the remaining CSS filter functions (glow, blur,
+		// grayscale, …) apply alongside it.
+		style.filter = fx.filter;
 	}
 	if (fx.webkitBoxReflect) {
 		style.WebkitBoxReflect = fx.webkitBoxReflect;

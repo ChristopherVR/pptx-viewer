@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { PptxElement } from 'pptx-viewer-core';
-import { hasTextProperties } from 'pptx-viewer-core';
+import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import { buildParagraphs, buildTextBody3DSceneStyle, hasTextWarp } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
@@ -12,11 +12,14 @@ import {
 } from '../composables/element-style';
 import { injectFieldContext, resolveFieldContext } from '../composables/field-context';
 import { useSmartArt3D } from '../composables/smart-art-3d';
+import { build3DExtrusionData } from '../composables/visual-3d';
 import ChartRenderer from './ChartRenderer.vue';
 import ConnectorRenderer from './ConnectorRenderer.vue';
+import DuotoneFilterDefs from './DuotoneFilterDefs.vue';
 import ElementImageBox from './ElementImageBox.vue';
 import ElementMediaBox from './ElementMediaBox.vue';
 import EquationRenderer from './EquationRenderer.vue';
+import Extrusion3DOverlay from './Extrusion3DOverlay.vue';
 import InkRenderer from './InkRenderer.vue';
 import Model3DRenderer from './Model3DRenderer.vue';
 import OleRenderer from './OleRenderer.vue';
@@ -92,6 +95,24 @@ const textStyle = computed<CSSProperties>(() => {
 		merged.transform = `${String(base.transform)} ${String(scene3d.transform)}`;
 	}
 	return merged;
+});
+
+/**
+ * CSS 3D extrusion side-panel data for shapes with `a:sp3d` extrusion depth.
+ * Mirrors React's `ElementRenderer`: real extruded faces are rendered as
+ * `<div>` panels (the box-shadow approximation from `getShapeFillStrokeStyle`
+ * is kept underneath, as in React). `hasExtrusion` is false for the common
+ * no-3D case, so the overlay renders nothing.
+ */
+const extrusionData = computed(() => {
+	const ss = hasShapeProperties(props.element) ? props.element.shapeStyle : undefined;
+	return build3DExtrusionData(
+		ss?.shape3d,
+		ss?.scene3d,
+		ss?.fillColor,
+		props.element.width,
+		props.element.height,
+	);
 });
 
 const isShapeLike = computed(() => props.element.type === 'text' || props.element.type === 'shape');
@@ -238,6 +259,8 @@ const templateClass = computed(() => (props.templateEditing ? 'pptx-vue-template
 		:data-element-id="element.id"
 		:data-pptx-element="interactive ? 'true' : undefined"
 	>
+		<DuotoneFilterDefs :element="element" />
+		<Extrusion3DOverlay v-if="extrusionData.hasExtrusion" :data="extrusionData" />
 		<WordArtText v-if="isWarpedText" :element="element" :z-index="0" />
 		<SlideTextBlock v-else-if="hasText" :paragraphs="paragraphs" :text-style="textStyle" />
 	</div>

@@ -163,6 +163,7 @@ import { useSignatures } from './composables/useSignatures';
 import { useSlideOperations } from './composables/useSlideOperations';
 import { useTouchGestures } from './composables/useTouchGestures';
 import { useVersionHistory } from './composables/useVersionHistory';
+import { provideZoomTargetLookup, toZoomTargetInfo } from './composables/zoom-target';
 import type {
 	CollaborationConfig,
 	PowerPointViewerEmits,
@@ -258,6 +259,11 @@ provide(TableThemeKey, () => ({
 	tableStyleMap: tableStyleMap.value,
 }));
 
+// Expose a zoom-target lookup so Slide-Zoom / Section-Zoom tiles can render a
+// higher-fidelity fallback thumbnail (target slide's real background colour,
+// slide number and friendly section name) instead of the raw target index.
+provideZoomTargetLookup((targetSlideIndex) => toZoomTargetInfo(slides.value[targetSlideIndex]));
+
 // Expose the OOXML field-substitution context (slide number, date/time,
 // header/footer, slide title, custom doc properties) to the text renderers via
 // provide/inject. Mirrors the React `fieldContext` built in `ViewerCanvasArea`.
@@ -295,17 +301,25 @@ provide(TableCellEditKey, {
 provide(SmartArtNodeEditKey, {
 	canEdit: () => props.canEdit && !presenting.value,
 	commit: (elementId: string, nodeId: string, text: string): void => {
-		if (!props.canEdit) return;
+		if (!props.canEdit) {
+			return;
+		}
 		const el = findActiveElement(elementId);
-		if (!el || el.type !== 'smartArt') return;
+		if (!el || el.type !== 'smartArt') {
+			return;
+		}
 		const data = el.smartArtData;
-		if (!data) return;
+		if (!data) {
+			return;
+		}
 		ops.updateElement(elementId, {
 			smartArtData: updateSmartArtNodeText(data, nodeId, text),
 		} as Partial<PptxElement>);
 	},
 	commitStyle: (elementId: string, patch: Partial<PptxElement>): void => {
-		if (!props.canEdit) return;
+		if (!props.canEdit) {
+			return;
+		}
 		ops.updateElement(elementId, patch);
 	},
 });

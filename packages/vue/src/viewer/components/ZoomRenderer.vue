@@ -6,6 +6,7 @@ import { computed } from 'vue';
 
 import { getContainerStyle } from '../composables/element-style';
 import { injectZoomNavigation } from '../composables/zoom-navigation';
+import { injectZoomTargetLookup } from '../composables/zoom-target';
 
 /**
  * ZoomRenderer - Vue port of the React `ZoomElementRenderer`.
@@ -18,8 +19,10 @@ import { injectZoomNavigation } from '../composables/zoom-navigation';
  * In presentation mode the controller provides a zoom-navigation context, so
  * clicking (or Enter/Space) jumps to the target slide. Outside presentation mode
  * no context is injected and the tile stays a static link, exactly as before.
- * Live target-slide preview rendering is still not ported; the fallback uses the
- * target slide index rather than the real target background.
+ * When the viewer provides a zoom-target lookup, the fallback tile mirrors
+ * React's `ZoomSlideThumbnail`: the target slide's real background colour, its
+ * own slide number and friendly section name (no live mini-rendering). Without a
+ * provider it falls back to the target index and section GUID.
  */
 const props = defineProps<{
 	element: PptxElement;
@@ -42,7 +45,22 @@ const zoomType = computed<'slide' | 'section'>(() => zoom.value?.zoomType ?? 'sl
 const targetSectionId = computed<string | undefined>(() => zoom.value?.targetSectionId);
 
 const badgeText = computed(() => (zoomType.value === 'section' ? 'Section Zoom' : 'Slide Zoom'));
-const slideLabel = computed(() => `Slide ${targetSlideIndex.value + 1}`);
+
+// Resolve the target slide descriptor (when the viewer provides a lookup) so the
+// fallback tile mirrors React's `ZoomSlideThumbnail`: the target slide's real
+// background colour, its own slide number and the friendly section name.
+const targetLookup = injectZoomTargetLookup();
+const targetInfo = computed(() => targetLookup?.(targetSlideIndex.value));
+
+const thumbnailStyle = computed<CSSProperties>(() => ({
+	backgroundColor: targetInfo.value?.backgroundColor ?? '#f0f0f0',
+}));
+const slideLabel = computed(() =>
+	targetInfo.value?.slideNumber !== undefined
+		? `Slide ${targetInfo.value.slideNumber}`
+		: `Slide ${targetSlideIndex.value + 1}`,
+);
+const sectionLabel = computed(() => targetInfo.value?.sectionName ?? targetSectionId.value);
 
 const ariaLabel = computed(() => {
 	const base = `Zoom to slide ${targetSlideIndex.value + 1}`;
@@ -104,9 +122,9 @@ function onKeydown(event: KeyboardEvent): void {
 				class="pptx-vue-zoom-img"
 				draggable="false"
 			/>
-			<div v-else class="pptx-vue-zoom-thumbnail">
+			<div v-else class="pptx-vue-zoom-thumbnail" :style="thumbnailStyle">
 				<div class="pptx-vue-zoom-slide-label">{{ slideLabel }}</div>
-				<div v-if="targetSectionId" class="pptx-vue-zoom-section-label">{{ targetSectionId }}</div>
+				<div v-if="sectionLabel" class="pptx-vue-zoom-section-label">{{ sectionLabel }}</div>
 			</div>
 
 			<div class="pptx-vue-zoom-badge">{{ badgeText }}</div>
@@ -149,7 +167,6 @@ function onKeydown(event: KeyboardEvent): void {
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	background-color: #f0f0f0;
 	border: 1px solid rgba(0, 0, 0, 0.1);
 	box-sizing: border-box;
 }

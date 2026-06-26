@@ -18,8 +18,16 @@ export {
 	getBevelStyle,
 	getMaterialFilter,
 	getComputed3dStyle,
+	build3DExtrusionData,
 } from 'pptx-viewer-shared';
-export type { Transform3dCss, BevelCss, Computed3dStyle } from 'pptx-viewer-shared';
+export type {
+	Transform3dCss,
+	BevelCss,
+	Computed3dStyle,
+	Extrusion3DData,
+	ExtrusionPanel,
+	Extrusion3dCss,
+} from 'pptx-viewer-shared';
 
 /**
  * Merge a {@link Computed3dStyle} into an existing `CSSProperties` object,
