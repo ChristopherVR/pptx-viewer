@@ -593,6 +593,28 @@ const TEXT_COLORS = [
 							</button>
 						</div>
 						<span class="pptx-rb-sep"></span>
+						<!-- Distribute -->
+						<div class="pptx-rb-grp">
+							<button
+								type="button"
+								class="pptx-rb-gb"
+								[disabled]="!canDistribute()"
+								title="Distribute horizontally"
+								(click)="editor.distributeSelected(slideIndex(), 'horizontal')"
+							>
+								&#x2194; H
+							</button>
+							<button
+								type="button"
+								class="pptx-rb-gl"
+								[disabled]="!canDistribute()"
+								title="Distribute vertically"
+								(click)="editor.distributeSelected(slideIndex(), 'vertical')"
+							>
+								&#x2195; V
+							</button>
+						</div>
+						<span class="pptx-rb-sep"></span>
 						<!-- Group / edit -->
 						<div class="pptx-rb-grp">
 							<button
@@ -1257,6 +1279,10 @@ export class RibbonComponent {
 
 	protected hasSel(): boolean {
 		return this.editor.selectedIds().length > 0;
+	}
+
+	protected canDistribute(): boolean {
+		return this.editor.selectedIds().length >= 3;
 	}
 
 	protected isText(): boolean {
