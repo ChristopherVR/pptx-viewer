@@ -8,6 +8,12 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **react:** Support multi-line text in SVG SmartArt node renderers via tspan splitting (by @ChristopherVR) ([1be63d8](https://github.com/ChristopherVR/pptx-viewer/commit/1be63d8ec9a9c440bedeb783d34c76e9bcdc3c0a))
+
+## [1.1.61](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.61) - 2026-06-26
+
+### Features
+
 - **react:** Add hover cursor and node highlight to SmartArt inline editor (by @ChristopherVR) ([4ea588f](https://github.com/ChristopherVR/pptx-viewer/commit/4ea588fcc4b49b6d2756af6ea27deeec6535a304))
 
 ### Bug Fixes
