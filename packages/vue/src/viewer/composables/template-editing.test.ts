@@ -156,4 +156,32 @@ describe('useEditorOperations template routing', () => {
 		const stored = templateElementsBySlideId.value.s1 ?? [];
 		expect((stored[0] as TextHolder).text).toBe('layout-shape-3');
 	});
+
+	it('routes a template-id move (transformElement) to the template store', () => {
+		const slides = ref<PptxSlide[]>([slideWith([normalShape()])]);
+		const templateElementsBySlideId = ref<TemplateElementMap>({
+			s1: [{ ...templateShape(), x: 10, y: 20 }],
+		});
+		const activeSlideIndex = ref(0);
+		const ops = useEditorOperations({
+			slides,
+			activeSlideIndex,
+			pushHistory: () => {},
+			templateElementsBySlideId,
+		});
+
+		ops.transformElement('layout-shape-3', { x: 50, y: 60 });
+
+		// The move lands in the template store, not on the slide.
+		const stored = templateElementsBySlideId.value.s1 ?? [];
+		expect(stored[0].x).toBe(50);
+		expect(stored[0].y).toBe(60);
+		expect(slides.value[0].elements.some((el) => el.id === 'layout-shape-3')).toBeFalsy();
+
+		// buildSaveSlides round-trips the moved template element back.
+		const merged = buildSaveSlides(slides.value, templateElementsBySlideId.value);
+		const savedTemplate = merged[0].elements.find((el) => el.id === 'layout-shape-3');
+		expect(savedTemplate?.x).toBe(50);
+		expect(savedTemplate?.y).toBe(60);
+	});
 });
