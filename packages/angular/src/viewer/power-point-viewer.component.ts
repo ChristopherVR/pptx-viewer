@@ -60,7 +60,7 @@ import { EmbeddedFontsService } from './embedded-fonts.service';
 import { slideFileName } from './export-helpers';
 import { ExportProgressModalComponent } from './export-progress-modal.component';
 import { ExportService } from './export.service';
-import { openNativeEyeDropper } from './eyedropper';
+import { eyedropperAvailable, openNativeEyeDropper, pickColorByClickFallback } from './eyedropper';
 import { FieldContextService } from './field-context.service';
 import { FindBarComponent } from './find-bar.component';
 import { FindReplaceBarComponent } from './find-replace-bar.component';
@@ -104,6 +104,7 @@ import { buildSaveSlides } from './template-mode';
 import { ThemeGalleryComponent } from './theme-gallery.component';
 import { attachTouchGestures } from './touch-gestures';
 import type { CollaborationConfig } from './types';
+import { ZoomTargetService } from './zoom-target.service';
 
 const ZOOM_STEP = 0.1;
 const ZOOM_MIN = 0.2;
@@ -141,6 +142,7 @@ const ZOOM_MAX = 3;
 		IsMobileService,
 		SmartArt3DService,
 		FieldContextService,
+		ZoomTargetService,
 	],
 	imports: [
 		NgClass,
@@ -747,6 +749,7 @@ export class PowerPointViewerComponent {
 	protected readonly print = inject(PrintService);
 	protected readonly mobile = inject(IsMobileService);
 	private readonly smartArt3DSvc = inject(SmartArt3DService);
+	private readonly zoomTarget = inject(ZoomTargetService);
 
 	/** The `<main>` host; used to locate the live `.pptx-ng-canvas-stage`. */
 	private readonly mainEl = viewChild<ElementRef<HTMLElement>>('mainEl');
@@ -1115,6 +1118,13 @@ export class PowerPointViewerComponent {
 		// Feed the live deck (templates merged back) to the accessibility checker.
 		effect(() => {
 			this.accessibility.setSlides([...this.mergedSlides()]);
+		});
+
+		// Feed the deck to the zoom-target lookup so a zoom tile's fallback
+		// thumbnail can resolve its target slide's background / number / section
+		// name (mirrors React's ZoomSlideThumbnail).
+		effect(() => {
+			this.zoomTarget.setSlides(this.mergedSlides());
 		});
 
 		// Connect / disconnect real-time collaboration when the host config changes.
@@ -1562,28 +1572,37 @@ export class PowerPointViewerComponent {
 	}
 
 	/**
-	 * Activate the native EyeDropper API to pick a colour from the screen.
+	 * Activate the eyedropper to pick a colour from the screen. Uses the native
+	 * EyeDropper API where available (Chrome/Edge); on Firefox/Safari it falls
+	 * back to a one-shot click that samples the slide DOM under the pointer.
 	 * When a shape/text/connector/image element is selected, applies the colour
-	 * to its fill. Otherwise copies the colour to the clipboard. No-ops when
-	 * the EyeDropper API is not available or the user cancels.
+	 * to its fill; otherwise copies it to the clipboard. No-ops when the user
+	 * cancels (Escape) or nothing paintable is under the pointer.
 	 */
 	protected async onToggleEyedropper(): Promise<void> {
 		this.eyedropperActive.set(true);
 		try {
-			const color = await openNativeEyeDropper();
+			const color = eyedropperAvailable()
+				? await openNativeEyeDropper()
+				: await pickColorByClickFallback();
 			if (color) {
-				const sel = this.selectedElement();
-				const idx = this.activeSlideIndex();
-				if (sel !== null && hasShapeProperties(sel)) {
-					this.editor.updateElement(idx, sel.id, {
-						shapeStyle: { ...sel.shapeStyle, fillColor: color },
-					} as Partial<PptxElement>);
-				} else {
-					await navigator.clipboard.writeText(color).catch(() => undefined);
-				}
+				await this.applyEyedropperColor(color);
 			}
 		} finally {
 			this.eyedropperActive.set(false);
+		}
+	}
+
+	/** Apply a picked colour to the selected shape's fill, else copy to clipboard. */
+	private async applyEyedropperColor(color: string): Promise<void> {
+		const sel = this.selectedElement();
+		const idx = this.activeSlideIndex();
+		if (sel !== null && hasShapeProperties(sel)) {
+			this.editor.updateElement(idx, sel.id, {
+				shapeStyle: { ...sel.shapeStyle, fillColor: color },
+			} as Partial<PptxElement>);
+		} else {
+			await navigator.clipboard.writeText(color).catch(() => undefined);
 		}
 	}
 

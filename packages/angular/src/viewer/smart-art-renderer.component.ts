@@ -46,7 +46,12 @@ import {
 	nodeIdFromKey,
 } from './smart-art-inline-edit';
 import type { InlineEditState } from './smart-art-inline-edit';
-import { computeTextLines, narrowToCircle, narrowToPolygon, narrowToRect } from './smart-art-renderer-helpers';
+import {
+	computeTextLines,
+	narrowToCircle,
+	narrowToPolygon,
+	narrowToRect,
+} from './smart-art-renderer-helpers';
 
 /**
  * SmartArtRendererComponent: Angular SmartArt renderer.
@@ -95,7 +100,9 @@ import { computeTextLines, narrowToCircle, narrowToPolygon, narrowToRect } from 
 							<g
 								[ngStyle]="shadowFilter() ? { filter: shadowFilter() } : {}"
 								[attr.data-smartart-node-id]="drawingShapeNodeIds()[i] ?? null"
-								[class.pptx-ng-smartart-node--editable]="canEditNodes() && !!(drawingShapeNodeIds()[i])"
+								[class.pptx-ng-smartart-node--editable]="
+									canEditNodes() && !!drawingShapeNodeIds()[i]
+								"
 							>
 								@if (shape.isEllipse) {
 									<ellipse
@@ -162,7 +169,7 @@ import { computeTextLines, narrowToCircle, narrowToPolygon, narrowToRect } from 
 								[attr.tabindex]="canEditNodes() ? 0 : null"
 								[attr.role]="canEditNodes() ? 'button' : 'img'"
 								[attr.aria-label]="nodeAriaLabel(node) ?? node.text"
-								[attr.data-smartart-node-id]="nodeIdFromKey(node.key, element().id)"
+								[attr.data-smartart-node-id]="nodeKeyId(node)"
 								(dblclick)="onNodeDblClick($event, node)"
 								(keydown)="onNodeKeydown($event, node)"
 							>
@@ -245,12 +252,20 @@ import { computeTextLines, narrowToCircle, narrowToPolygon, narrowToRect } from 
 				}
 
 				@if (canEditNodes() && hoveredNodeId() && !editState() && styleBarStyle()) {
-					<div class="pptx-ng-smartart-style-bar" [ngStyle]="styleBarStyle()!"
-						(mousedown)="$event.stopPropagation()" (click)="$event.stopPropagation()">
+					<div
+						class="pptx-ng-smartart-style-bar"
+						[ngStyle]="styleBarStyle()!"
+						(mousedown)="$event.stopPropagation()"
+						(click)="$event.stopPropagation()"
+					>
 						@for (color of palette().slice(0, 6); track color) {
-							<button type="button" class="pptx-ng-smartart-swatch"
-								[attr.aria-label]="'Set fill to ' + color" [style.background]="color"
-								(click)="handleChangeNodeStyle(hoveredNodeId()!, color)"></button>
+							<button
+								type="button"
+								class="pptx-ng-smartart-swatch"
+								[attr.aria-label]="'Set fill to ' + color"
+								[style.background]="color"
+								(click)="handleChangeNodeStyle(hoveredNodeId()!, color)"
+							></button>
 						}
 					</div>
 				}
@@ -520,9 +535,18 @@ export class SmartArtRendererComponent {
 		return map;
 	});
 
+	/**
+	 * Parsed data-model node id for a rendered node (or `null` when the key does
+	 * not map to one). Exposed as a method so the template can use it: Angular
+	 * AOT templates can only call component members, not imported functions.
+	 */
+	nodeKeyId(node: RenderedNode): string | null {
+		return nodeIdFromKey(node.key, this.element().id);
+	}
+
 	/** Resolve the accessibility label for a rendered node (by parsed node id). */
 	nodeAriaLabel(node: RenderedNode): string | null {
-		const nodeId = nodeIdFromKey(node.key, this.element().id);
+		const nodeId = this.nodeKeyId(node);
 		if (nodeId === null) {
 			return null;
 		}
@@ -607,7 +631,7 @@ export class SmartArtRendererComponent {
 
 	/** The node's full (untruncated) data-model text, falling back to rendered text. */
 	private rawNodeText(node: RenderedNode): string {
-		const nodeId = nodeIdFromKey(node.key, this.element().id);
+		const nodeId = this.nodeKeyId(node);
 		if (nodeId === null) {
 			return node.text;
 		}
@@ -643,7 +667,9 @@ export class SmartArtRendererComponent {
 
 	protected readonly styleBarStyle = computed<Record<string, string> | null>(() => {
 		const rect = this.hoveredNodeRect();
-		if (!rect) return null;
+		if (!rect) {
+			return null;
+		}
 		return {
 			position: 'absolute',
 			left: `${Math.max(0, rect.left + rect.width - 120)}px`,
@@ -653,7 +679,9 @@ export class SmartArtRendererComponent {
 	});
 
 	protected onMouseMove(event: MouseEvent): void {
-		if (!this.canEditNodes()) return;
+		if (!this.canEditNodes()) {
+			return;
+		}
 		const nodeEl = this.findNodeEl(event.target as EventTarget);
 		const cnt = this.smartartContainer()?.nativeElement as HTMLElement | undefined;
 		const id = nodeEl?.getAttribute('data-smartart-node-id') ?? null;
@@ -673,7 +701,9 @@ export class SmartArtRendererComponent {
 	private findNodeEl(target: EventTarget | null): Element | null {
 		let el = target instanceof Element ? target : null;
 		while (el) {
-			if (el.hasAttribute('data-smartart-node-id')) return el;
+			if (el.hasAttribute('data-smartart-node-id')) {
+				return el;
+			}
 			el = el.parentElement;
 		}
 		return null;
@@ -681,11 +711,17 @@ export class SmartArtRendererComponent {
 
 	protected handleChangeNodeStyle(nodeId: string, fill: string): void {
 		const data = this.smartArtData();
-		if (!data || !this.editor) return;
+		if (!data || !this.editor) {
+			return;
+		}
 		const next = setSmartArtNodeStyle(data, nodeId, { fillColor: fill });
-		if (next === data) return;
+		if (next === data) {
+			return;
+		}
 		const slideIndex = findSlideIndexByElementId(this.editor.slides(), this.element().id);
-		if (slideIndex < 0) return;
+		if (slideIndex < 0) {
+			return;
+		}
 		this.editor.updateElement(slideIndex, this.element().id, {
 			smartArtData: next,
 		} as Partial<PptxElement>);

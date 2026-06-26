@@ -5,10 +5,15 @@
  * (the Angular-free layer). No TestBed or DOM involved, following the same
  * pattern as `connector-renderer.component.test.ts`.
  */
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { buildZoomViewModel, isZoomActivationKey } from './zoom-renderer-helpers';
+import {
+	buildZoomViewModel,
+	isZoomActivationKey,
+	zoomTargetSlideIndex,
+} from './zoom-renderer-helpers';
+import { ZoomTargetService } from './zoom-target.service';
 
 // ---------------------------------------------------------------------------
 // Helper
@@ -42,6 +47,32 @@ describe('buildZoomViewModel', () => {
 		expect(vm.slideLabel).toBe('Slide 5');
 		expect(vm.previewSrc).toBeUndefined();
 		expect(vm.targetSectionId).toBeUndefined();
+	});
+
+	it('falls back to grey background, index label, and section GUID without target info', () => {
+		const vm = buildZoomViewModel(
+			zoom({ zoomType: 'section', targetSectionId: '{GUID-123}', targetSlideIndex: 2 }),
+		);
+		expect(vm.thumbnailBackground).toBe('#f0f0f0');
+		expect(vm.slideLabel).toBe('Slide 3');
+		expect(vm.sectionCaption).toBe('{GUID-123}');
+	});
+
+	it('uses the target slide background, number, and section name when target info is supplied', () => {
+		const vm = buildZoomViewModel(zoom({ targetSlideIndex: 4, targetSectionId: '{GUID-123}' }), {
+			backgroundColor: '#112233',
+			slideNumber: 7,
+			sectionName: 'Chapter Two',
+		});
+		expect(vm.thumbnailBackground).toBe('#112233');
+		expect(vm.slideLabel).toBe('Slide 7');
+		expect(vm.sectionCaption).toBe('Chapter Two');
+	});
+
+	it('keeps the grey fallback when target info lacks a background colour', () => {
+		const vm = buildZoomViewModel(zoom(), { slideNumber: 3 });
+		expect(vm.thumbnailBackground).toBe('#f0f0f0');
+		expect(vm.slideLabel).toBe('Slide 3');
 	});
 
 	it('returns "Section Zoom" badge text for section zoom type', () => {
@@ -87,6 +118,69 @@ describe('buildZoomViewModel', () => {
 		expect(vm.targetSlideIndex).toBe(0);
 		expect(vm.zoomType).toBe('slide');
 		expect(vm.previewSrc).toBeUndefined();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// zoomTargetSlideIndex
+// ---------------------------------------------------------------------------
+
+describe('zoomTargetSlideIndex', () => {
+	it('returns the zoom element target index', () => {
+		expect(zoomTargetSlideIndex(zoom({ targetSlideIndex: 6 }))).toBe(6);
+	});
+
+	it('returns 0 for a non-zoom element', () => {
+		const shape: PptxElement = {
+			type: 'shape',
+			id: 's1',
+			name: '',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 50,
+		} as PptxElement;
+		expect(zoomTargetSlideIndex(shape)).toBe(0);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// ZoomTargetService.lookup
+// ---------------------------------------------------------------------------
+
+describe('zoomTargetService lookup', () => {
+	function slide(overrides: Partial<PptxSlide> = {}): PptxSlide {
+		return {
+			id: 's1',
+			rId: 'rId1',
+			slideNumber: 1,
+			elements: [],
+			...overrides,
+		} as PptxSlide;
+	}
+
+	it('maps a target index to the slide background, number, and section name', () => {
+		const svc = new ZoomTargetService();
+		svc.setSlides([
+			slide(),
+			slide({
+				id: 's2',
+				slideNumber: 9,
+				backgroundColor: '#abcdef',
+				sectionName: 'Appendix',
+			}),
+		]);
+		expect(svc.lookup(1)).toStrictEqual({
+			backgroundColor: '#abcdef',
+			slideNumber: 9,
+			sectionName: 'Appendix',
+		});
+	});
+
+	it('returns undefined for an out-of-range index', () => {
+		const svc = new ZoomTargetService();
+		svc.setSlides([slide()]);
+		expect(svc.lookup(5)).toBeUndefined();
 	});
 });
 

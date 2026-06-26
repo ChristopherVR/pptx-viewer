@@ -8,8 +8,10 @@ import {
 	buildZoomContainerStyle,
 	buildZoomViewModel,
 	isZoomActivationKey,
+	zoomTargetSlideIndex,
 } from './zoom-renderer-helpers';
 import type { ZoomViewModel } from './zoom-renderer-helpers';
+import { ZoomTargetService } from './zoom-target.service';
 
 /**
  * ZoomRendererComponent: Angular port of the Vue `ZoomRenderer.vue`
@@ -23,9 +25,15 @@ import type { ZoomViewModel } from './zoom-renderer-helpers';
  * In presentation mode the overlay provides a {@link ZoomNavigationService}, so
  * clicking (or Enter/Space) jumps to the target slide. Outside presentation mode
  * the service is not provided (optional injection yields `null`) and the tile
- * stays a static link, exactly as before. Live target-slide preview rendering is
- * still NOT ported; the `slides` array is not threaded through, so the fallback
- * uses the target slide index rather than the real target background.
+ * stays a static link, exactly as before.
+ *
+ * The fallback thumbnail (no embedded preview image) matches React's
+ * `ZoomSlideThumbnail`: when a {@link ZoomTargetService} is provided (by the
+ * viewer), it looks up the target slide and uses that slide's real background
+ * colour, its own 1-based number, and its friendly section name. A live
+ * mini-rendering of the target slide is intentionally NOT drawn. When the
+ * service is absent the tile keeps the neutral grey / index / section-GUID
+ * fallback.
  *
  * All non-trivial pure computation lives in `zoom-renderer-helpers.ts` (no
  * Angular dependency) so it can be unit-tested without TestBed.
@@ -71,13 +79,14 @@ import type { ZoomViewModel } from './zoom-renderer-helpers';
 					/>
 				} @else {
 					<div
-						style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background-color:#f0f0f0;border:1px solid rgba(0,0,0,0.1);box-sizing:border-box"
+						style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid rgba(0,0,0,0.1);box-sizing:border-box"
+						[style.background-color]="vm().thumbnailBackground"
 					>
 						<div style="font-size:14px;font-weight:600;color:rgba(0,0,0,0.5);margin-bottom:4px">
 							{{ vm().slideLabel }}
 						</div>
-						@if (vm().targetSectionId) {
-							<div style="font-size:10px;color:rgba(0,0,0,0.4)">{{ vm().targetSectionId }}</div>
+						@if (vm().sectionCaption) {
+							<div style="font-size:10px;color:rgba(0,0,0,0.4)">{{ vm().sectionCaption }}</div>
 						}
 					</div>
 				}
@@ -100,7 +109,18 @@ export class ZoomRendererComponent {
 		buildZoomContainerStyle(this.element(), this.zIndex()),
 	);
 
-	readonly vm = computed<ZoomViewModel>(() => buildZoomViewModel(this.element()));
+	/**
+	 * Target-slide lookup, provided by the viewer. `null` in trees that do not
+	 * provide it (e.g. isolated component tests), where the fallback thumbnail
+	 * stays on the neutral grey / index / section-GUID placeholder.
+	 */
+	private readonly zoomTarget = inject(ZoomTargetService, { optional: true });
+
+	readonly vm = computed<ZoomViewModel>(() => {
+		const element = this.element();
+		const targetSlideIndex = zoomTargetSlideIndex(element);
+		return buildZoomViewModel(element, this.zoomTarget?.lookup(targetSlideIndex));
+	});
 
 	/**
 	 * Zoom-navigation context, present only inside a running presentation (the
