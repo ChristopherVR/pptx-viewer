@@ -1,9 +1,18 @@
 import type { PptxElement, PptxSmartArtNode, SmartArtStyle } from 'pptx-viewer-core';
 import { updateSmartArtNodeText, setSmartArtNodeStyle } from 'pptx-viewer-core';
-import { buildSmartArtA11y, shouldCommitSmartArtNodeText } from 'pptx-viewer-shared';
+import {
+	buildSmartArtA11y,
+	shouldCommitSmartArtNodeText,
+	rebuildDrawingShapesIfCleared,
+} from 'pptx-viewer-shared';
 import React from 'react';
 
-import { resolvePalette, resolveStyle, layoutToCategory } from '../../utils/smartart-helpers';
+import {
+	resolvePalette,
+	resolveSmartArtDataPalette,
+	resolveStyle,
+	layoutToCategory,
+} from '../../utils/smartart-helpers';
 import {
 	renderStepDownProcess,
 	renderAlternatingFlow,
@@ -127,17 +136,36 @@ function SmartArtRendererImpl({
 		if (!onUpdateElement || !shouldCommitSmartArtNodeText(smartArtData, nodeId, text)) {
 			return;
 		}
-		onUpdateElement({
-			smartArtData: updateSmartArtNodeText(smartArtData, nodeId, text),
-		} as Partial<PptxElement>);
+		const updated = updateSmartArtNodeText(smartArtData, nodeId, text);
+		const box = { width: element.width, height: element.height };
+		const reflowed = rebuildDrawingShapesIfCleared(
+			updated,
+			smartArtData.layout,
+			resolveSmartArtDataPalette(updated),
+			style,
+			element.id,
+			box,
+		);
+		onUpdateElement({ smartArtData: reflowed } as Partial<PptxElement>);
 	};
 
 	// Commit a per-node fill colour change through the same element-update path.
 	const handleChangeNodeStyle = (nodeId: string, fill: string): void => {
-		if (!onUpdateElement) return;
+		if (!onUpdateElement) {
+			return;
+		}
 		const next = setSmartArtNodeStyle(smartArtData, nodeId, { fillColor: fill });
 		if (next !== smartArtData) {
-			onUpdateElement({ smartArtData: next } as Partial<PptxElement>);
+			const box = { width: element.width, height: element.height };
+			const reflowed = rebuildDrawingShapesIfCleared(
+				next,
+				smartArtData.layout,
+				resolveSmartArtDataPalette(next),
+				style,
+				element.id,
+				box,
+			);
+			onUpdateElement({ smartArtData: reflowed } as Partial<PptxElement>);
 		}
 	};
 
