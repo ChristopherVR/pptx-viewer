@@ -14,6 +14,8 @@ export interface ChartDataPointOptionsProps {
 	canEdit: boolean;
 	onSetPointFill: (seriesIndex: number, pointIndex: number, color: string | null) => void;
 	onSetPointExplosion: (seriesIndex: number, pointIndex: number, explosion: number | null) => void;
+	/** Set a custom label text for this point, or pass null to clear the override. */
+	onSetPointLabel: (seriesIndex: number, pointIndex: number, text: string | null) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -26,6 +28,7 @@ export function ChartDataPointOptions({
 	canEdit,
 	onSetPointFill,
 	onSetPointExplosion,
+	onSetPointLabel,
 }: ChartDataPointOptionsProps) {
 	const { t } = useTranslation();
 	const [seriesIndex, setSeriesIndex] = useState(0);
@@ -70,6 +73,20 @@ export function ChartDataPointOptions({
 							<span className='flex-1 truncate' title={cat}>
 								{cat}
 							</span>
+
+							{/* Per-point label text override */}
+							<input
+								type='text'
+								disabled={!canEdit}
+								title={t('pptx.chart.pointLabelOverride')}
+								className='w-20 bg-muted border border-border rounded px-1.5 py-0.5 text-[11px]'
+								value={activeSeries.dataLabels?.find((l) => l.idx === idx)?.text ?? ''}
+								placeholder={t('pptx.chart.auto')}
+								onChange={(e) => {
+									const raw = e.target.value;
+									onSetPointLabel(seriesIndex, idx, raw === '' ? null : raw);
+								}}
+							/>
 
 							{/* Per-point fill */}
 							<input

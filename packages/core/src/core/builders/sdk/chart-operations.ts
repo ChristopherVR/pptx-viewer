@@ -849,6 +849,49 @@ export function setChartDataPointExplosion(
 	dp.explosion = explosion;
 }
 
+/**
+ * Set (or clear) the marker override for a single data point, overriding the
+ * series-level marker for that point only. Round-trips to the saved `.pptx`
+ * (`c:dPt/c:marker` keyed by `c:idx`).
+ *
+ * Pass a marker patch to set/merge the override, or `null` to remove it
+ * (dropping the whole `c:dPt` override when nothing else is set on it).
+ *
+ * @example
+ * ```ts
+ * setChartDataPointMarker(chartEl, 0, 2, { symbol: "circle", size: 7, fillColor: "#FF0000" });
+ * setChartDataPointMarker(chartEl, 0, 2, null); // clear
+ * ```
+ */
+export function setChartDataPointMarker(
+	element: ChartPptxElement,
+	seriesIndex: number,
+	pointIndex: number,
+	marker: { symbol?: PptxChartMarkerSymbol; size?: number; fillColor?: string } | null,
+): void {
+	validateSeriesIndex(element, seriesIndex);
+	const series = element.chartData!.series[seriesIndex];
+	if (marker === null) {
+		const dp = series.dataPoints?.find((p) => p.idx === pointIndex);
+		if (dp) {
+			dp.marker = undefined;
+			removeEmptyDataPoint(series, pointIndex);
+		}
+		return;
+	}
+	const dp = ensureDataPoint(series, pointIndex);
+	const existing = dp.marker;
+	const next: PptxChartMarker = {
+		symbol: marker.symbol ?? existing?.symbol ?? 'circle',
+		size: marker.size ?? existing?.size,
+		spPr: existing?.spPr ? { ...existing.spPr } : undefined,
+	};
+	if (marker.fillColor !== undefined) {
+		next.spPr = { ...(next.spPr ?? {}), fillColor: marker.fillColor };
+	}
+	dp.marker = next;
+}
+
 // ---------------------------------------------------------------------------
 // Per-data-point label overrides (c:dLbl)
 // ---------------------------------------------------------------------------

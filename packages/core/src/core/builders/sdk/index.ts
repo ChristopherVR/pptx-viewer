@@ -57,6 +57,7 @@ export {
 	setChartSeriesChartType,
 	setChartDataPointFill,
 	setChartDataPointExplosion,
+	setChartDataPointMarker,
 	setChartDataPointLabel,
 } from './chart-operations';
 export type {
