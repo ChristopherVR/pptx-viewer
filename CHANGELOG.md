@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [Unreleased]
+
+### Features
+
+- **vue:** Add inline node text editing to SmartArt 3D renderer via SVG hit-test overlay (by @ChristopherVR) ([8e09f6f](https://github.com/ChristopherVR/pptx-viewer/commit/8e09f6f3840ff3dd1400ae2207f860f1af4dd592))
+- **angular:** Add inline node text editing to SmartArt 3D renderer via SVG hit-test overlay (by @ChristopherVR) ([1651933](https://github.com/ChristopherVR/pptx-viewer/commit/16519338b90b0e0c0ffc955de6b1dfc2f7632491))
+
 ## [1.1.63](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.63) - 2026-06-26
 
 ### Features
