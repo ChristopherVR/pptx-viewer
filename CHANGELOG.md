@@ -4,11 +4,15 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
-## [Unreleased]
+## [1.1.71](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.71) - 2026-06-26
 
 ### Features
 
 - **react:** Add per-point marker and label override UI to chart inspector (by @ChristopherVR) ([3579209](https://github.com/ChristopherVR/pptx-viewer/commit/3579209e2dfe2af1a78e5fe32945c973d1c48a45))
+
+### Documentation
+
+- Update chart, morph, and animation limitation bullets (by @ChristopherVR) ([da34dd4](https://github.com/ChristopherVR/pptx-viewer/commit/da34dd42ac71b00392558f095835db8a2da7e120))
 
 ### Testing
 
