@@ -94,6 +94,23 @@ function truncate(text: string, max: number): string {
 	return `${text.slice(0, max - 1)}…`;
 }
 
+/**
+ * Split node text on `\n` and compute per-line y offsets (in SVG px) that
+ * centre the block around the node centre y (offset 0). Single-line text
+ * produces one entry with y=0, preserving the existing
+ * `dominant-baseline="central"` behaviour exactly.
+ */
+function textLines(text: string, fontSize: number): Array<{ text: string; y: number }> {
+	const raw = (text ?? '').split('\n').filter((l) => l.length > 0);
+	if (raw.length === 0) return [{ text: '', y: 0 }];
+	const lh = fontSize * 1.2;
+	const totalH = raw.length * lh;
+	return raw.map((line, i) => ({
+		text: line,
+		y: -totalH / 2 + lh / 2 + i * lh,
+	}));
+}
+
 // ── Resolved SmartArt data ───────────────────────────────────────────────────
 
 const smartArtData = computed(() =>
@@ -431,13 +448,19 @@ function onEditorKeydown(event: KeyboardEvent): void {
 					<text
 						v-if="shape.text"
 						:x="shape.textX"
-						:y="shape.textY"
 						text-anchor="middle"
 						dominant-baseline="central"
 						:fill="shape.fontColor"
 						:font-size="shape.fontSize"
 					>
-						{{ shape.text }}
+						<tspan
+							v-for="(line, li) in textLines(shape.text, shape.fontSize)"
+							:key="li"
+							:x="shape.textX"
+							:y="shape.textY + line.y"
+						>
+							{{ line.text }}
+						</tspan>
 					</text>
 				</g>
 			</svg>
@@ -487,13 +510,19 @@ function onEditorKeydown(event: KeyboardEvent): void {
 						/>
 						<text
 							:x="(node as RenderedCircleNode).cx"
-							:y="(node as RenderedCircleNode).cy"
 							text-anchor="middle"
 							dominant-baseline="central"
 							fill="white"
 							:font-size="node.fontSize"
 						>
-							{{ node.text }}
+							<tspan
+								v-for="(line, li) in textLines(node.text, node.fontSize)"
+								:key="li"
+								:x="(node as RenderedCircleNode).cx"
+								:y="(node as RenderedCircleNode).cy + line.y"
+							>
+								{{ line.text }}
+							</tspan>
 						</text>
 					</template>
 					<!-- Polygon nodes (process, pyramid, funnel) -->
@@ -507,13 +536,19 @@ function onEditorKeydown(event: KeyboardEvent): void {
 						/>
 						<text
 							:x="(node as RenderedPolygonNode).textX"
-							:y="(node as RenderedPolygonNode).textY"
 							text-anchor="middle"
 							dominant-baseline="central"
 							fill="white"
 							:font-size="node.fontSize"
 						>
-							{{ node.text }}
+							<tspan
+								v-for="(line, li) in textLines(node.text, node.fontSize)"
+								:key="li"
+								:x="(node as RenderedPolygonNode).textX"
+								:y="(node as RenderedPolygonNode).textY + line.y"
+							>
+								{{ line.text }}
+							</tspan>
 						</text>
 					</template>
 					<!-- Rect nodes (list, matrix, hierarchy) -->
@@ -531,13 +566,19 @@ function onEditorKeydown(event: KeyboardEvent): void {
 						/>
 						<text
 							:x="(node as RenderedRectNode).textX"
-							:y="(node as RenderedRectNode).textY"
 							text-anchor="middle"
 							dominant-baseline="central"
 							fill="white"
 							:font-size="node.fontSize"
 						>
-							{{ node.text }}
+							<tspan
+								v-for="(line, li) in textLines(node.text, node.fontSize)"
+								:key="li"
+								:x="(node as RenderedRectNode).textX"
+								:y="(node as RenderedRectNode).textY + line.y"
+							>
+								{{ line.text }}
+							</tspan>
 						</text>
 					</template>
 				</g>
