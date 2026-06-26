@@ -13,18 +13,18 @@ import {
 	viewChild,
 } from '@angular/core';
 import type { PptxElement } from 'pptx-viewer-core';
+import { setSmartArtNodeStyle } from 'pptx-viewer-core';
 
 import {
 	buildSmartArtA11y,
+	computeInlineEditorRect,
 	computeSmartArtLayout,
 	flattenNodes,
 	resolveDrawingShapeNodeId,
 } from '../internal/shared';
 import type {
-	RenderedCircleNode,
+	InlineEditRect,
 	RenderedNode,
-	RenderedPolygonNode,
-	RenderedRectNode,
 	SmartArtA11y,
 	SmartArtLayoutResult,
 } from '../internal/shared';
@@ -46,21 +46,22 @@ import {
 	nodeIdFromKey,
 } from './smart-art-inline-edit';
 import type { InlineEditState } from './smart-art-inline-edit';
+import { computeTextLines, narrowToCircle, narrowToPolygon, narrowToRect } from './smart-art-renderer-helpers';
 
 /**
  * SmartArtRendererComponent: Angular SmartArt renderer.
  *
  * Data path mirrors the Vue `SmartArtRenderer.vue` and the React renderer:
- *  1. **Drawing shapes** (`smartArtData.drawingShapes`) — the preferred path
+ *  1. **Drawing shapes** (`smartArtData.drawingShapes`) -- the preferred path
  *     when the core extracted per-shape geometry from `ppt/diagrams/drawing*.xml`.
- *  2. **Shared SVG-fallback engine** (`computeSmartArtLayout`) — when no drawing
+ *  2. **Shared SVG-fallback engine** (`computeSmartArtLayout`) -- when no drawing
  *     shapes exist, the framework-agnostic engine in `pptx-viewer-shared`
  *     positions/styles the node tree across all 10 layout families (list /
  *     process / cycle / hierarchy / matrix / radial / pyramid / venn / funnel /
  *     target), returning `RenderedNode[]` (rect / circle / polygon) +
  *     `RenderedConnector[]` view-models. Every binding renders the same
  *     geometry; this maps those view-models to SVG exactly as Vue does.
- *  3. **Placeholder** — when there is neither data nor any nodes/shapes.
+ *  3. **Placeholder** -- when there is neither data nor any nodes/shapes.
  */
 @Component({
 	selector: 'pptx-smart-art-renderer',
@@ -74,10 +75,13 @@ import type { InlineEditState } from './smart-art-inline-edit';
 			[attr.data-element-id]="element().id"
 		>
 			<div
+				#smartartContainer
 				class="pptx-ng-smartart-chrome"
 				[ngStyle]="chromeStyle()"
 				[attr.role]="a11y() ? a11y()!.role : null"
 				[attr.aria-label]="a11y()?.label ?? null"
+				(mousemove)="onMouseMove($event)"
+				(mouseleave)="onMouseLeave()"
 			>
 				@if (isEmpty()) {
 					<div class="pptx-ng-smartart-placeholder">SmartArt</div>
@@ -91,6 +95,7 @@ import type { InlineEditState } from './smart-art-inline-edit';
 							<g
 								[ngStyle]="shadowFilter() ? { filter: shadowFilter() } : {}"
 								[attr.data-smartart-node-id]="drawingShapeNodeIds()[i] ?? null"
+								[class.pptx-ng-smartart-node--editable]="canEditNodes() && !!(drawingShapeNodeIds()[i])"
 							>
 								@if (shape.isEllipse) {
 									<ellipse
@@ -239,6 +244,17 @@ import type { InlineEditState } from './smart-art-inline-edit';
 					<div class="pptx-ng-smartart-placeholder">SmartArt</div>
 				}
 
+				@if (canEditNodes() && hoveredNodeId() && !editState() && styleBarStyle()) {
+					<div class="pptx-ng-smartart-style-bar" [ngStyle]="styleBarStyle()!"
+						(mousedown)="$event.stopPropagation()" (click)="$event.stopPropagation()">
+						@for (color of palette().slice(0, 6); track color) {
+							<button type="button" class="pptx-ng-smartart-swatch"
+								[attr.aria-label]="'Set fill to ' + color" [style.background]="color"
+								(click)="handleChangeNodeStyle(hoveredNodeId()!, color)"></button>
+						}
+					</div>
+				}
+
 				<!--
 					Inline node-text editor. Positioned in element-local px (== viewBox
 					units, since the SVG viewBox matches the element pixel size and the
@@ -333,6 +349,24 @@ import type { InlineEditState } from './smart-art-inline-edit';
 			white-space: nowrap;
 			border: 0;
 		}
+
+		.pptx-ng-smartart-style-bar {
+			position: absolute;
+			pointer-events: auto;
+		}
+
+		.pptx-ng-smartart-swatch {
+			width: 14px;
+			height: 14px;
+			border-radius: 50%;
+			border: 1px solid rgba(0, 0, 0, 0.1);
+			cursor: pointer;
+			transition: transform 0.1s;
+		}
+
+		.pptx-ng-smartart-swatch:hover {
+			transform: scale(1.25);
+		}
 	`,
 })
 export class SmartArtRendererComponent {
@@ -361,6 +395,9 @@ export class SmartArtRendererComponent {
 
 	/** The mounted `<textarea>` for the active node edit, if any. */
 	private readonly nodeEditor = viewChild<ElementRef<HTMLTextAreaElement>>('nodeEditor');
+
+	/** Container div ref used to project hover rects into local coordinates. */
+	private readonly smartartContainer = viewChild<ElementRef>('smartartContainer');
 
 	/**
 	 * Guards against a cancel-triggered DOM-removal blur committing the edit.
@@ -498,39 +535,14 @@ export class SmartArtRendererComponent {
 	 */
 	readonly liveMessage = signal<string>('');
 
-	/** Narrow a `RenderedNode` to a circle, or `undefined`. */
-	asCircle(node: RenderedNode): RenderedCircleNode | undefined {
-		return node.kind === 'circle' ? node : undefined;
-	}
+	protected readonly hoveredNodeId = signal<string | null>(null);
+	protected readonly hoveredNodeRect = signal<InlineEditRect | null>(null);
 
-	/** Narrow a `RenderedNode` to a polygon, or `undefined`. */
-	asPolygon(node: RenderedNode): RenderedPolygonNode | undefined {
-		return node.kind === 'polygon' ? node : undefined;
-	}
-
-	/** Narrow a `RenderedNode` to a rect, or `undefined`. */
-	asRect(node: RenderedNode): RenderedRectNode | undefined {
-		return node.kind === 'rect' ? node : undefined;
-	}
-
-	/**
-	 * Split node text on `\n` and compute per-line y offsets (in SVG px) that
-	 * centre the block around the node centre y (offset 0). Single-line text
-	 * produces one entry with offsetY=0, preserving the existing
-	 * `dominant-baseline="central"` behaviour exactly.
-	 */
-	protected textLines(text: string, fontSize: number): Array<{ text: string; offsetY: number }> {
-		const raw = (text ?? '').split('\n').filter((l) => l.length > 0);
-		if (raw.length === 0) {
-			return [{ text: '', offsetY: 0 }];
-		}
-		const lh = fontSize * 1.2;
-		const totalH = raw.length * lh;
-		return raw.map((line, i) => ({
-			text: line,
-			offsetY: -totalH / 2 + lh / 2 + i * lh,
-		}));
-	}
+	/** Narrowing helpers bound as class properties for template type-checking. */
+	protected readonly asCircle = narrowToCircle;
+	protected readonly asPolygon = narrowToPolygon;
+	protected readonly asRect = narrowToRect;
+	protected readonly textLines = computeTextLines;
 
 	// ── Inline node-text editing ───────────────────────────────────────────
 
@@ -625,6 +637,58 @@ export class SmartArtRendererComponent {
 		this.liveMessage.set(
 			text.trim().length > 0 ? `Node updated to ${text.trim()}` : 'Node cleared',
 		);
+	}
+
+	// ── Style bar & hover tracking ────────────────────────────────────────
+
+	protected readonly styleBarStyle = computed<Record<string, string> | null>(() => {
+		const rect = this.hoveredNodeRect();
+		if (!rect) return null;
+		return {
+			position: 'absolute',
+			left: `${Math.max(0, rect.left + rect.width - 120)}px`,
+			top: `${Math.max(0, rect.top - 22)}px`,
+			'z-index': '25',
+		};
+	});
+
+	protected onMouseMove(event: MouseEvent): void {
+		if (!this.canEditNodes()) return;
+		const nodeEl = this.findNodeEl(event.target as EventTarget);
+		const cnt = this.smartartContainer()?.nativeElement as HTMLElement | undefined;
+		const id = nodeEl?.getAttribute('data-smartart-node-id') ?? null;
+		this.hoveredNodeId.set(id);
+		this.hoveredNodeRect.set(
+			id && nodeEl && cnt
+				? computeInlineEditorRect(nodeEl.getBoundingClientRect(), cnt.getBoundingClientRect())
+				: null,
+		);
+	}
+
+	protected onMouseLeave(): void {
+		this.hoveredNodeId.set(null);
+		this.hoveredNodeRect.set(null);
+	}
+
+	private findNodeEl(target: EventTarget | null): Element | null {
+		let el = target instanceof Element ? target : null;
+		while (el) {
+			if (el.hasAttribute('data-smartart-node-id')) return el;
+			el = el.parentElement;
+		}
+		return null;
+	}
+
+	protected handleChangeNodeStyle(nodeId: string, fill: string): void {
+		const data = this.smartArtData();
+		if (!data || !this.editor) return;
+		const next = setSmartArtNodeStyle(data, nodeId, { fillColor: fill });
+		if (next === data) return;
+		const slideIndex = findSlideIndexByElementId(this.editor.slides(), this.element().id);
+		if (slideIndex < 0) return;
+		this.editor.updateElement(slideIndex, this.element().id, {
+			smartArtData: next,
+		} as Partial<PptxElement>);
 	}
 
 	// ── Empty / no-data state ──────────────────────────────────────────────
