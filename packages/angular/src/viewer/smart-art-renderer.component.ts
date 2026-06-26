@@ -268,6 +268,12 @@ import type { InlineEditState } from './smart-art-inline-edit';
 			cursor: text;
 		}
 
+		/* Hover ring: outline does not render on SVG <g> elements in all browsers,
+		   so drop-shadow is used as the visual confirmation that a node is editable. */
+		.pptx-ng-smartart-node--editable:hover {
+			filter: drop-shadow(0 0 2px rgba(96, 165, 250, 0.8));
+		}
+
 		.pptx-ng-smartart-node-editor {
 			position: absolute;
 			box-sizing: border-box;
