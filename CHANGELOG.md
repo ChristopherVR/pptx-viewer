@@ -4,11 +4,15 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
-## [Unreleased]
+## [1.1.68](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.68) - 2026-06-26
 
 ### Features
 
 - **react:** Wire editTemplateMode partition, render layer, and save merge for master/layout editing (by @ChristopherVR) ([c683ab1](https://github.com/ChristopherVR/pptx-viewer/commit/c683ab1ceb0a6942b4bdda87dda7104f2436e1e8))
+
+### Documentation
+
+- Update limitations section for live reflow engine and toolbar parity (by @ChristopherVR) ([7c77cd1](https://github.com/ChristopherVR/pptx-viewer/commit/7c77cd109b870b4abffbd7f9e2423b78ef72d8ee))
 
 ### Styling
 
@@ -21,6 +25,12 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 - **vue:** Add per-node fill colour picker to SmartArt inline editing layer (by @ChristopherVR) ([255cea6](https://github.com/ChristopherVR/pptx-viewer/commit/255cea68667689514a4dfec7309a0303b5bd151e))
 - **angular:** Add per-node fill colour picker to SmartArt inline editing layer (by @ChristopherVR) ([28c6592](https://github.com/ChristopherVR/pptx-viewer/commit/28c6592f07b977bb3756ef7dba8a56efb23670c5))
+- **shared:** Add reflowToDrawingShapes utility to convert layout result to drawing shapes (by @ChristopherVR) ([f8a2d9b](https://github.com/ChristopherVR/pptx-viewer/commit/f8a2d9bbb097edc9d010bbf9659cc1fa01c14ec0))
+- **react:** Rebuild drawing shapes after structural SmartArt edits for live reflow (by @ChristopherVR) ([c88257c](https://github.com/ChristopherVR/pptx-viewer/commit/c88257c16d58f5c11dbec7f75950611695838e72))
+
+### Documentation
+
+- Update limitations section to reflect SmartArt editing and Vue/Angular parity improvements (by @ChristopherVR) ([22a2115](https://github.com/ChristopherVR/pptx-viewer/commit/22a2115b2496269dade50221f06be0b15d0dad3f))
 
 ## [1.1.66](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.66) - 2026-06-26
 

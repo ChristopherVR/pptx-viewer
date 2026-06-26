@@ -70,13 +70,20 @@ const TB_BTN =
 </script>
 
 <template>
+	<!-- overflow-x-auto + flex-nowrap: scrolls horizontally on narrow viewports
+	     instead of wrapping onto a second line. Mirrors the max-md:overflow-x-auto
+	     behaviour on React's RibbonToolbar tab bar. -->
 	<div
-		class="pptx-vue-editor-toolbar flex flex-wrap items-center gap-1.5 px-2 py-1 border-b border-border bg-secondary/50"
+		class="pptx-vue-editor-toolbar flex flex-nowrap items-center gap-1.5 px-2 py-1 border-b border-border bg-secondary/50 overflow-x-auto scrollbar-none"
 		role="toolbar"
 		aria-label="Editing toolbar"
 	>
-		<!-- History -->
-		<div class="pptx-vue-tb-group flex items-center gap-1" role="group" aria-label="History">
+		<!-- History: always visible (core undo / redo). -->
+		<div
+			class="pptx-vue-tb-group flex shrink-0 items-center gap-1"
+			role="group"
+			aria-label="History"
+		>
 			<button
 				type="button"
 				class="pptx-vue-tb-btn"
@@ -119,10 +126,10 @@ const TB_BTN =
 			</button>
 		</div>
 
-		<span class="pptx-vue-tb-sep w-px self-stretch bg-border/40 mx-1" aria-hidden="true" />
+		<span class="pptx-vue-tb-sep w-px shrink-0 self-stretch bg-border/40 mx-1" aria-hidden="true" />
 
-		<!-- Zoom -->
-		<div class="pptx-vue-tb-group flex items-center gap-1" role="group" aria-label="Zoom">
+		<!-- Zoom: always visible. -->
+		<div class="pptx-vue-tb-group flex shrink-0 items-center gap-1" role="group" aria-label="Zoom">
 			<button
 				type="button"
 				class="pptx-vue-tb-btn"
@@ -155,10 +162,16 @@ const TB_BTN =
 			</button>
 		</div>
 
-		<span class="pptx-vue-tb-sep w-px self-stretch bg-border/40 mx-1" aria-hidden="true" />
+		<span class="pptx-vue-tb-sep w-px shrink-0 self-stretch bg-border/40 mx-1" aria-hidden="true" />
 
-		<!-- Insert -->
-		<div class="pptx-vue-tb-group flex items-center gap-1" role="group" aria-label="Insert">
+		<!-- Insert: text button always visible; shape presets hidden on very
+		     narrow viewports (< sm / 640px) to keep the primary actions
+		     reachable without scrolling. -->
+		<div
+			class="pptx-vue-tb-group flex shrink-0 items-center gap-1"
+			role="group"
+			aria-label="Insert"
+		>
 			<button
 				type="button"
 				class="pptx-vue-tb-btn pptx-vue-tb-text font-bold font-serif"
@@ -173,7 +186,7 @@ const TB_BTN =
 				v-for="s in SHAPE_PRESETS"
 				:key="s.preset"
 				type="button"
-				class="pptx-vue-tb-btn"
+				class="pptx-vue-tb-btn max-sm:hidden"
 				:class="TB_BTN"
 				:aria-label="`Add ${s.label}`"
 				:title="`Add ${s.label}`"
@@ -223,10 +236,13 @@ const TB_BTN =
 			</button>
 		</div>
 
-		<span class="pptx-vue-tb-sep w-px self-stretch bg-border/40 mx-1" aria-hidden="true" />
+		<span class="pptx-vue-tb-sep w-px shrink-0 self-stretch bg-border/40 mx-1" aria-hidden="true" />
 
-		<!-- Arrange (selection-gated) - extracted to ArrangeButtonGroup -->
+		<!-- Arrange (selection-gated): extracted to ArrangeButtonGroup.
+		     shrink-0 keeps the group from collapsing when the toolbar is
+		     narrower than its natural width. -->
 		<ArrangeButtonGroup
+			class="shrink-0"
 			:has-selection="props.hasSelection"
 			:format-painter-active="props.formatPainterActive"
 			:can-activate-format-painter="props.canActivateFormatPainter"

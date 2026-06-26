@@ -1923,13 +1923,35 @@ function nudgeSelected(dx: number, dy: number): void {
 		return;
 	}
 	const ids = new Set(selectedElementIds.value);
+	// Partition into template ids (master-/layout- prefix) and normal slide ids so
+	// the nudge routes through the correct store for each group. Without this split
+	// a selected template element is silently skipped (it lives in the template
+	// store, not in slide.elements) and the arrow-key move is lost.
+	const templateIds = new Set([...ids].filter((id) => isTemplateElementId(id)));
+	const slideIds = new Set([...ids].filter((id) => !isTemplateElementId(id)));
 	history.pushHistory();
-	const nextElements = slide.elements.map((el) =>
-		ids.has(el.id) ? { ...el, x: el.x + dx, y: el.y + dy } : el,
-	);
-	const nextSlides = slides.value.slice();
-	nextSlides[index] = { ...slide, elements: nextElements };
-	slides.value = nextSlides;
+	if (templateIds.size > 0) {
+		const current = templateElementsBySlideId.value[slide.id];
+		if (current) {
+			templateElementsBySlideId.value = setTemplateElements(
+				templateElementsBySlideId.value,
+				slide.id,
+				current.map((el) =>
+					templateIds.has(el.id) ? { ...el, x: el.x + dx, y: el.y + dy } : el,
+				),
+			);
+		}
+	}
+	if (slideIds.size > 0) {
+		const nextSlides = slides.value.slice();
+		nextSlides[index] = {
+			...slide,
+			elements: slide.elements.map((el) =>
+				slideIds.has(el.id) ? { ...el, x: el.x + dx, y: el.y + dy } : el,
+			),
+		};
+		slides.value = nextSlides;
+	}
 }
 
 const shortcuts = useKeyboardShortcuts({
@@ -2464,14 +2486,14 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 
 		<!-- Viewer -->
 		<template v-else>
-			<!-- Office-style ribbon (desktop): full React-parity chrome -->
+			<!-- Office-style ribbon on wide viewports; compact mobile top bar
+			     (menu / undo / redo / save / present / share) on narrow viewports
+			     (< 768px container width). Mirrors React's Toolbar.tsx which
+			     swaps in <MobileToolbar> when isNarrowViewport is true. The
+			     hamburger opens MobileMenuSheet so every ribbon section stays
+			     reachable on a phone where the desktop ribbon is hidden. -->
 			<RibbonToolbar v-if="!isMobile" v-bind="ribbonProps" />
-
-			<!-- Compact mobile top bar (menu / undo / redo / save / present /
-			     share). The hamburger opens the MobileMenuSheet, which exposes
-			     every ribbon section so the editing tools stay reachable on a
-			     phone where the desktop ribbon is hidden. -->
-			<MobileToolbar v-if="isMobile" v-bind="ribbonProps" />
+			<MobileToolbar v-else v-bind="ribbonProps" />
 
 			<!-- Hidden pickers for Insert ▸ Image / Media -->
 			<input
