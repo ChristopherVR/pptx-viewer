@@ -4,6 +4,15 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [Unreleased]
+
+### Features
+
+- **core:** Add setElementLocked SDK helper (by @ChristopherVR) ([cc82e06](https://github.com/ChristopherVR/pptx-viewer/commit/cc82e06128c7b6d6aa976cc73a2674b35fc500fd))
+- **react:** Add distribute buttons and element lock toggle (by @ChristopherVR) ([2981850](https://github.com/ChristopherVR/pptx-viewer/commit/29818502045b27f0eaf389664c1309a6caa751b0))
+- **vue:** Add distribute buttons and element lock toggle (by @ChristopherVR) ([36bbd72](https://github.com/ChristopherVR/pptx-viewer/commit/36bbd72ca12449cfd6f7a0f614a8bca39e40a0ed))
+- **angular:** Add distribute buttons and element lock toggle (by @ChristopherVR) ([2607f7e](https://github.com/ChristopherVR/pptx-viewer/commit/2607f7eddc814eebdaf3459caf81f4d1ac8f2ad5))
+
 ## [1.1.71](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.71) - 2026-06-26
 
 ### Features
