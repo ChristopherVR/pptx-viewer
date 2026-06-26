@@ -1,5 +1,5 @@
 import type { PptxElement, PptxSmartArtNode, SmartArtStyle } from 'pptx-viewer-core';
-import { updateSmartArtNodeText } from 'pptx-viewer-core';
+import { updateSmartArtNodeText, setSmartArtNodeStyle } from 'pptx-viewer-core';
 import { buildSmartArtA11y, shouldCommitSmartArtNodeText } from 'pptx-viewer-shared';
 import React from 'react';
 
@@ -132,6 +132,15 @@ function SmartArtRendererImpl({
 		} as Partial<PptxElement>);
 	};
 
+	// Commit a per-node fill colour change through the same element-update path.
+	const handleChangeNodeStyle = (nodeId: string, fill: string): void => {
+		if (!onUpdateElement) return;
+		const next = setSmartArtNodeStyle(smartArtData, nodeId, { fillColor: fill });
+		if (next !== smartArtData) {
+			onUpdateElement({ smartArtData: next } as Partial<PptxElement>);
+		}
+	};
+
 	// Prefer pre-computed drawing shapes when available; these reflect
 	// PowerPoint's actual layout engine output and are the most accurate.
 	let content: React.ReactElement;
@@ -161,6 +170,8 @@ function SmartArtRendererImpl({
 			smartArtData={smartArtData}
 			canEdit={editable}
 			onCommitNodeText={handleCommitNodeText}
+			palette={palette}
+			onChangeNodeStyle={handleChangeNodeStyle}
 		>
 			{content}
 		</SmartArtEditableLayer>

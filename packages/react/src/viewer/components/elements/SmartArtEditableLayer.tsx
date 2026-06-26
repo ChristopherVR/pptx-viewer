@@ -4,6 +4,12 @@ import type { InlineEditRect } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { SmartArtInlineNodeEditor } from './SmartArtInlineNodeEditor';
+import { SmartArtNodeStyleBar } from './SmartArtNodeStyleBar';
+import {
+	NODE_ID_ATTR,
+	findNodeIdFromEvent,
+	useSmartArtHoverState,
+} from './useSmartArtHoverState';
 
 // ── Props ───────────────────────────────────────────────────────────────────
 
@@ -14,25 +20,12 @@ interface SmartArtEditableLayerProps {
 	canEdit: boolean;
 	/** Commit edited node text through the host's element-update path. */
 	onCommitNodeText: (nodeId: string, text: string) => void;
+	/** Resolved palette colours (hex strings) for the swatch bar. */
+	palette?: string[];
+	/** Commit a per-node fill colour change. */
+	onChangeNodeStyle?: (nodeId: string, fill: string) => void;
 	/** The rendered SmartArt SVG content (node groups tagged with data attrs). */
 	children: React.ReactNode;
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-/** Attribute carried by each rendered node group so clicks map back to a node. */
-const NODE_ID_ATTR = 'data-smartart-node-id';
-
-/** Walk up from an event target to the nearest element bearing a node id. */
-function findNodeIdFromEvent(target: EventTarget | null): Element | null {
-	let el = target instanceof Element ? target : null;
-	while (el) {
-		if (el.hasAttribute(NODE_ID_ATTR)) {
-			return el;
-		}
-		el = el.parentElement;
-	}
-	return null;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -47,40 +40,48 @@ function findNodeIdFromEvent(target: EventTarget | null): Element | null {
  * flows through `onCommitNodeText`, which the host wires to the same element
  * update path the inspector uses (undo/redo + save round-trip).
  *
+ * When both `palette` and `onChangeNodeStyle` are provided, hovering a node
+ * also shows a {@link SmartArtNodeStyleBar} floating above it for quick
+ * per-node fill colour picking (single-click, no text editor needed).
+ *
+ * Hover tracking is delegated to {@link useSmartArtHoverState}.
+ *
  * When `canEdit` is false this is an inert pass-through wrapper.
  */
 export function SmartArtEditableLayer({
 	smartArtData,
 	canEdit,
 	onCommitNodeText,
+	palette,
+	onChangeNodeStyle,
 	children,
 }: SmartArtEditableLayerProps): React.ReactNode {
 	const containerRef = React.useRef<HTMLDivElement | null>(null);
 	const [edit, setEdit] = React.useState<{ nodeId: string; rect: InlineEditRect } | null>(null);
-	const [hoveredNodeId, setHoveredNodeId] = React.useState<string | null>(null);
 
-	const openEditor = React.useCallback((target: EventTarget | null): void => {
-		const nodeEl = findNodeIdFromEvent(target);
-		const container = containerRef.current;
-		if (!nodeEl || !container) {
-			return;
-		}
-		const nodeId = nodeEl.getAttribute(NODE_ID_ATTR);
-		if (!nodeId) {
-			return;
-		}
-		const rect = computeInlineEditorRect(
-			nodeEl.getBoundingClientRect(),
-			container.getBoundingClientRect(),
-		);
-		setHoveredNodeId(null);
-		setEdit({ nodeId, rect });
-	}, []);
+	const { hoveredNodeId, hoveredNodeRect, handleMouseMove, clearHover } =
+		useSmartArtHoverState(containerRef);
 
-	const handleMouseMove = React.useCallback((e: React.MouseEvent<HTMLDivElement>): void => {
-		const nodeEl = findNodeIdFromEvent(e.target);
-		setHoveredNodeId(nodeEl?.getAttribute(NODE_ID_ATTR) ?? null);
-	}, []);
+	const openEditor = React.useCallback(
+		(target: EventTarget | null): void => {
+			const nodeEl = findNodeIdFromEvent(target);
+			const container = containerRef.current;
+			if (!nodeEl || !container) {
+				return;
+			}
+			const nodeId = nodeEl.getAttribute(NODE_ID_ATTR);
+			if (!nodeId) {
+				return;
+			}
+			const rect = computeInlineEditorRect(
+				nodeEl.getBoundingClientRect(),
+				container.getBoundingClientRect(),
+			);
+			clearHover();
+			setEdit({ nodeId, rect });
+		},
+		[clearHover],
+	);
 
 	if (!canEdit) {
 		return children;
@@ -88,13 +89,20 @@ export function SmartArtEditableLayer({
 
 	const initialText = edit ? (findSmartArtNodeText(smartArtData, edit.nodeId) ?? '') : '';
 
+	const showStyleBar =
+		!edit &&
+		hoveredNodeId !== null &&
+		hoveredNodeRect !== null &&
+		palette !== undefined &&
+		onChangeNodeStyle !== undefined;
+
 	return (
 		<div
 			ref={containerRef}
 			className='relative h-full w-full'
 			style={{ cursor: hoveredNodeId ? 'text' : undefined }}
 			onMouseMove={handleMouseMove}
-			onMouseLeave={() => setHoveredNodeId(null)}
+			onMouseLeave={clearHover}
 			// Editing is a deliberate double-click; single clicks still select /
 			// drag the SmartArt element via the parent handlers.
 			onDoubleClick={(e) => {
@@ -109,6 +117,21 @@ export function SmartArtEditableLayer({
 				<style>{`[data-smartart-node-id]:hover { outline: 2px solid rgba(96,165,250,0.6); outline-offset: 1px; }`}</style>
 			)}
 			{children}
+			{showStyleBar && (
+				<div
+					style={{
+						position: 'absolute',
+						left: hoveredNodeRect.left + hoveredNodeRect.width - 120,
+						top: Math.max(0, hoveredNodeRect.top - 22),
+						zIndex: 10,
+					}}
+				>
+					<SmartArtNodeStyleBar
+						palette={palette}
+						onPickFill={(color) => onChangeNodeStyle(hoveredNodeId, color)}
+					/>
+				</div>
+			)}
 			{edit && (
 				<SmartArtInlineNodeEditor
 					key={edit.nodeId}
