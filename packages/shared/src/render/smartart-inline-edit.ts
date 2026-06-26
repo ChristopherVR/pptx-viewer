@@ -70,6 +70,16 @@ export function shouldCommitSmartArtNodeText(
  *
  * Returns the resolved node id, or `undefined` when no confident match exists
  * (in which case the shape is not made editable).
+ *
+ * Arrow/connector shapes (preset geometry names that end with `"Arrow"`, e.g.
+ * `rightArrow`, `leftRightArrow`, `downArrow`) that carry no text are always
+ * structural decorators in SmartArt - never editable node content. They are
+ * excluded before any heuristic runs so that reflow connector shapes with ids
+ * like `reflow-bending-arrow-n1` (which end with `-n1` and would otherwise
+ * match node `n1` via heuristic 1) are correctly left untagged.
+ *
+ * Arrow shapes that DO carry text (e.g. content nodes in an "Opposing Arrows"
+ * layout) are intentional content and are allowed through.
  */
 export function resolveDrawingShapeNodeId(
 	shape: PptxSmartArtDrawingShape,
@@ -77,6 +87,13 @@ export function resolveDrawingShapeNodeId(
 	shapes: readonly PptxSmartArtDrawingShape[],
 	nodes: readonly PptxSmartArtNode[],
 ): string | undefined {
+	// Arrow shapes without text are structural connector decorators and are
+	// never editable node content. All OOXML arrow preset geometry names end
+	// with "Arrow" (rightArrow, leftArrow, downArrow, leftRightArrow, etc.).
+	if (shape.shapeType?.endsWith('Arrow') && !shape.text) {
+		return undefined;
+	}
+
 	// 1. Reflow shapes embed the node id as the id suffix.
 	if (shape.id.startsWith('reflow-')) {
 		const match = nodes.find((n) => shape.id.endsWith(`-${n.id}`));
