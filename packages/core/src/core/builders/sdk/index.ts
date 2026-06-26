@@ -106,6 +106,9 @@ export {
 	serializeSvgPath,
 } from './shape-operations';
 
+// Element operations
+export { setElementLocked } from './element-operations';
+
 // Diff operations
 export { diffPresentations, diffSlides } from './diff-operations';
 export type { PresentationDiff, SlideDiff, ElementDiff, PropertyChange } from './diff-operations';
