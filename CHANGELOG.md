@@ -8,6 +8,17 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **react:** Wire editTemplateMode partition, render layer, and save merge for master/layout editing (by @ChristopherVR) ([c683ab1](https://github.com/ChristopherVR/pptx-viewer/commit/c683ab1ceb0a6942b4bdda87dda7104f2436e1e8))
+
+### Styling
+
+- **vue:** Align EditorToolbar button sizing, separators, and active states with React (by @ChristopherVR) ([9fcd0d1](https://github.com/ChristopherVR/pptx-viewer/commit/9fcd0d131fcf095e79784d563fd8e38e4a08fd89))
+- **angular:** Align editor-toolbar button sizing, separators, and active states with React (by @ChristopherVR) ([aacc9df](https://github.com/ChristopherVR/pptx-viewer/commit/aacc9dffa9ce24cc901bc909c31238a662957e54))
+
+## [1.1.67](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.67) - 2026-06-26
+
+### Features
+
 - **vue:** Add per-node fill colour picker to SmartArt inline editing layer (by @ChristopherVR) ([255cea6](https://github.com/ChristopherVR/pptx-viewer/commit/255cea68667689514a4dfec7309a0303b5bd151e))
 - **angular:** Add per-node fill colour picker to SmartArt inline editing layer (by @ChristopherVR) ([28c6592](https://github.com/ChristopherVR/pptx-viewer/commit/28c6592f07b977bb3756ef7dba8a56efb23670c5))
 

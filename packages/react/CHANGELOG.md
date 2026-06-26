@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.60](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.60) - 2026-06-26
+
+### Features
+
+- **react:** Wire editTemplateMode partition, render layer, and save merge for master/layout editing (by @ChristopherVR) ([c683ab1](https://github.com/ChristopherVR/pptx-viewer/commit/c683ab1ceb0a6942b4bdda87dda7104f2436e1e8))
+
 ## [1.1.55](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.55) - 2026-06-25
 
 ### Other
