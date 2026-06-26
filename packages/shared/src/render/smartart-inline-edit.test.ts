@@ -72,6 +72,45 @@ describe('resolveDrawingShapeNodeId', () => {
 		const shapes = [shape({ id: 'x' }), shape({ id: 'y' }), shape({ id: 'z' })];
 		expect(resolveDrawingShapeNodeId(shapes[0], 0, shapes, nodes)).toBeUndefined();
 	});
+
+	// Arrow connector shapes must never be made editable even when their id
+	// suffix coincidentally matches a node id (e.g. reflow-bending-arrow-n1
+	// ends with -n1 and would match node n1 without the connector guard).
+	it('returns undefined for reflow arrow connector shapes despite a matching id suffix', () => {
+		const shapes = [
+			shape({ id: 'reflow-bending-n1', shapeType: 'roundRect', text: 'One' }),
+			shape({ id: 'reflow-bending-arrow-n1', shapeType: 'rightArrow' }),
+			shape({ id: 'reflow-bending-n2', shapeType: 'roundRect', text: 'Two' }),
+		];
+		expect(resolveDrawingShapeNodeId(shapes[1], 1, shapes, nodes)).toBeUndefined();
+	});
+
+	it('correctly resolves content shapes mixed with reflow arrow connectors', () => {
+		const shapes = [
+			shape({ id: 'reflow-bending-n1', shapeType: 'roundRect', text: 'One' }),
+			shape({ id: 'reflow-bending-arrow-n1', shapeType: 'rightArrow' }),
+			shape({ id: 'reflow-bending-n2', shapeType: 'roundRect', text: 'Two' }),
+		];
+		expect(resolveDrawingShapeNodeId(shapes[0], 0, shapes, nodes)).toBe('n1');
+		expect(resolveDrawingShapeNodeId(shapes[2], 2, shapes, nodes)).toBe('n2');
+	});
+
+	it('returns undefined for a downArrow connector (bending layout vertical arrow)', () => {
+		const shapes = [shape({ id: 'reflow-bending-arrow-n1', shapeType: 'downArrow' })];
+		expect(resolveDrawingShapeNodeId(shapes[0], 0, shapes, nodes)).toBeUndefined();
+	});
+
+	it('returns undefined for a process layout rightArrow connector', () => {
+		const shapes = [shape({ id: 'reflow-proc-arrow-n1', shapeType: 'rightArrow' })];
+		expect(resolveDrawingShapeNodeId(shapes[0], 0, shapes, nodes)).toBeUndefined();
+	});
+
+	// An arrow-type shape WITH text is intentional node content (e.g. an
+	// "Opposing Arrows" layout where the arrow shape itself carries the label).
+	it('resolves an arrow-shaped content node that carries text', () => {
+		const shapes = [shape({ id: 'reflow-rel-n1', shapeType: 'rightArrow', text: 'One' })];
+		expect(resolveDrawingShapeNodeId(shapes[0], 0, shapes, nodes)).toBe('n1');
+	});
 });
 
 describe('computeInlineEditorRect', () => {
