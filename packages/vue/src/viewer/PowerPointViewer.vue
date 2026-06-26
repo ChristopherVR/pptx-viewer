@@ -2464,14 +2464,14 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 
 		<!-- Viewer -->
 		<template v-else>
-			<!-- Office-style ribbon (desktop): full React-parity chrome -->
+			<!-- Office-style ribbon on wide viewports; compact mobile top bar
+			     (menu / undo / redo / save / present / share) on narrow viewports
+			     (< 768px container width). Mirrors React's Toolbar.tsx which
+			     swaps in <MobileToolbar> when isNarrowViewport is true. The
+			     hamburger opens MobileMenuSheet so every ribbon section stays
+			     reachable on a phone where the desktop ribbon is hidden. -->
 			<RibbonToolbar v-if="!isMobile" v-bind="ribbonProps" />
-
-			<!-- Compact mobile top bar (menu / undo / redo / save / present /
-			     share). The hamburger opens the MobileMenuSheet, which exposes
-			     every ribbon section so the editing tools stay reachable on a
-			     phone where the desktop ribbon is hidden. -->
-			<MobileToolbar v-if="isMobile" v-bind="ribbonProps" />
+			<MobileToolbar v-else v-bind="ribbonProps" />
 
 			<!-- Hidden pickers for Insert ▸ Image / Media -->
 			<input
