@@ -56,6 +56,7 @@ export {
 } from './format-painter';
 export { SlidesPanelComponent } from './slides-panel.component';
 export { EditorToolbarComponent } from './editor-toolbar.component';
+export { StatusBarComponent } from './status-bar.component';
 export { EditorContextMenuComponent } from './editor-context-menu.component';
 export { collectElementText, collectSlideText, searchSlides } from './slide-search';
 export { ExportService } from './export.service';
@@ -275,6 +276,29 @@ export type {
 	PresenterNotes,
 	TimerProgress,
 } from './presenter-view-helpers';
+
+// Audience window handoff (opt-in, framework-agnostic; wire-compatible with
+// the React/Vue bindings via a shared IndexedDB database/store/key).
+export {
+	AUDIENCE_HASH,
+	isAudienceTab,
+	storeAudienceContent,
+	loadAudienceContent,
+	clearAudienceContent,
+} from './audience-content-store';
+export {
+	PresenterWindowService,
+	PRESENTER_CHANNEL_NAME,
+	PRESENTER_MSG_ORIGIN,
+	AUDIENCE_NONCE_KEY,
+	isPresenterMessage,
+	parseAudienceNonce,
+} from './presenter-window.service';
+export type {
+	PresenterMessage,
+	PresenterSlideChangeMessage,
+	PresenterExitMessage,
+} from './presenter-window.service';
 
 export type { CanvasSize, CollaborationConfig, CollaborationRole } from './types';
 export type { StyleMap } from './element-style';

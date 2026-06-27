@@ -11,15 +11,10 @@
  * component is `OnPush` and purely presentational; all state lives in signals.
  */
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
-import { THEME_PRESETS } from 'pptx-viewer-core';
+import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
 import type { PptxThemePreset } from 'pptx-viewer-core';
 
-/** Six representative swatch colours for a preset thumbnail (dk2 + accents 1–5). */
-function accentSwatches(p: PptxThemePreset): readonly string[] {
-	const c = p.colorScheme;
-	return [c.dk2, c.accent1, c.accent2, c.accent3, c.accent4, c.accent5];
-}
+import { GALLERY_THEME_PRESETS } from './theme-gallery-presets';
 
 @Component({
 	selector: 'pptx-theme-gallery',
@@ -41,46 +36,68 @@ function accentSwatches(p: PptxThemePreset): readonly string[] {
 					aria-label="Theme gallery"
 					aria-modal="true"
 				>
-					<!-- Header -->
-					<div class="flex items-center justify-between mb-3">
-						<h2 class="text-sm font-semibold text-foreground">Themes</h2>
+					<!-- Header: title + description + close icon -->
+					<div class="mb-3 flex items-start justify-between">
+						<div>
+							<h2 class="text-sm font-semibold text-foreground">Themes</h2>
+							<p class="text-xs text-muted-foreground">Pick a built-in theme for the deck.</p>
+						</div>
 						<button
 							type="button"
-							class="text-xs text-muted-foreground hover:text-foreground transition-colors"
+							class="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
 							(click)="close.emit()"
 							aria-label="Close theme gallery"
 						>
-							Close
+							✕
 						</button>
 					</div>
 
-					<!-- Swatch grid -->
+					<!-- Theme thumbnail grid (ThemeThumbnail parity) -->
 					<div class="grid grid-cols-4 gap-2">
 						@for (preset of presets; track preset.id) {
 							<button
 								type="button"
-								class="group relative flex flex-col rounded border border-border bg-card hover:border-primary transition-colors overflow-hidden"
-								[ngClass]="selected()?.id === preset.id ? 'ring-2 ring-primary border-primary' : ''"
+								class="group relative flex flex-col overflow-hidden rounded-lg border-2 transition-all"
+								[ngClass]="
+									selected()?.id === preset.id
+										? 'scale-[1.02] border-primary shadow-lg'
+										: 'border-border hover:border-primary/50 hover:shadow-md'
+								"
 								[title]="preset.name"
 								(click)="selectPreset(preset)"
 							>
-								<!-- Colour swatch strip -->
-								<div class="h-12 flex" [style.background-color]="preset.colorScheme.lt1">
-									@for (swatch of swatchesFor(preset.id); track $index) {
-										<span class="flex-1" [style.background-color]="swatch"></span>
-									}
+								<!-- Colour preview: accent header bars + dk2/lt2 content area -->
+								<div class="flex h-24 flex-col">
+									<div class="flex h-10">
+										<span
+											class="flex-1"
+											[style.background-color]="preset.colorScheme.accent1"
+										></span>
+										<span
+											class="flex-1"
+											[style.background-color]="preset.colorScheme.accent2"
+										></span>
+										<span
+											class="flex-1"
+											[style.background-color]="preset.colorScheme.accent3"
+										></span>
+									</div>
+									<div class="flex flex-1">
+										<span class="w-1/3" [style.background-color]="preset.colorScheme.dk2"></span>
+										<span class="flex-1" [style.background-color]="preset.colorScheme.lt2"></span>
+									</div>
 								</div>
 
-								<!-- Label -->
-								<span class="px-1.5 py-1 text-[11px] text-foreground truncate text-left">
-									{{ preset.name }}
-								</span>
+								<!-- Theme name footer -->
+								<div class="border-t border-border bg-background px-2 py-1.5">
+									<p class="text-center text-xs font-medium text-foreground">{{ preset.name }}</p>
+								</div>
 
-								<!-- Active check mark -->
-								@if (activeName() === preset.name) {
+								<!-- Active / selected check mark -->
+								@if (selected()?.id === preset.id || activeName() === preset.name) {
 									<span
-										class="absolute top-1 right-1 w-3.5 h-3.5 text-primary flex items-center justify-center text-[10px] font-bold"
-										aria-label="Active theme"
+										class="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white"
+										aria-label="Selected theme"
 										>✓</span
 									>
 								}
@@ -119,23 +136,10 @@ export class ThemeGalleryComponent {
 	/** Emitted when the user cancels (backdrop click, Close button, Cancel button). */
 	readonly close = output<void>();
 
-	protected readonly presets: readonly PptxThemePreset[] = THEME_PRESETS;
+	protected readonly presets: readonly PptxThemePreset[] = GALLERY_THEME_PRESETS;
 
 	/** The currently highlighted (not yet applied) preset, or null. */
 	protected readonly selected = signal<PptxThemePreset | null>(null);
-
-	/** Pre-computed swatch arrays keyed by preset id (avoids re-computing in template). */
-	private readonly swatchMap = computed<Map<string, readonly string[]>>(() => {
-		const m = new Map<string, readonly string[]>();
-		for (const p of THEME_PRESETS) {
-			m.set(p.id, accentSwatches(p));
-		}
-		return m;
-	});
-
-	protected swatchesFor(id: string): readonly string[] {
-		return this.swatchMap().get(id) ?? [];
-	}
 
 	protected selectPreset(preset: PptxThemePreset): void {
 		this.selected.set(preset);

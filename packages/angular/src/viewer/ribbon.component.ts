@@ -55,6 +55,7 @@ import {
 	newTextElement,
 } from './editor-insert';
 import { EditorStateService } from './editor-state.service';
+import { RibbonPrimaryRowComponent } from './ribbon-primary-row.component';
 
 /** Ribbon tab identifiers (mirrors React `TOOLBAR_SECTIONS`). */
 type RibbonTab =
@@ -151,125 +152,67 @@ const TEXT_COLORS = [
 	'#ec4899',
 ];
 
+/** Read a File as a base64 data URL, resolving to '' on failure. */
+function readAsDataUrl(file: File): Promise<string> {
+	return new Promise((resolve) => {
+		const reader = new FileReader();
+		reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+		reader.onerror = () => resolve('');
+		reader.readAsDataURL(file);
+	});
+}
+
+/** Resolve an image data URL's natural dimensions (falls back to 400x300). */
+function imageDimensions(dataUrl: string): Promise<{ width: number; height: number }> {
+	return new Promise((resolve) => {
+		const img = new Image();
+		img.onload = () =>
+			resolve({ width: img.naturalWidth || 400, height: img.naturalHeight || 300 });
+		img.onerror = () => resolve({ width: 400, height: 300 });
+		img.src = dataUrl;
+	});
+}
+
 @Component({
 	selector: 'pptx-ribbon',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgClass, NgTemplateOutlet],
+	imports: [NgClass, NgTemplateOutlet, RibbonPrimaryRowComponent],
 	template: `
 		<div
 			role="toolbar"
 			aria-label="Presentation toolbar"
 			class="relative z-20 overflow-visible border-b border-border bg-secondary/50"
 		>
-			<!-- ── Primary quick-access row ─────────────────────────────────── -->
-			<div class="flex items-center gap-1 px-2 py-1">
-				<button
-					type="button"
-					class="pptx-rb-icon"
-					aria-label="Previous slide"
-					[disabled]="slideIndex() <= 0"
-					(click)="prev.emit()"
-				>
-					‹
-				</button>
-				<span class="px-1 text-[11px] text-muted-foreground tabular-nums"
-					>{{ slideCount() === 0 ? 0 : slideIndex() + 1 }} / {{ slideCount() }}</span
-				>
-				<button
-					type="button"
-					class="pptx-rb-icon"
-					aria-label="Next slide"
-					[disabled]="slideIndex() >= slideCount() - 1"
-					(click)="next.emit()"
-				>
-					›
-				</button>
-
-				<span class="mx-1 h-5 w-px self-center bg-border/50"></span>
-
-				<button
-					type="button"
-					class="pptx-rb-icon"
-					aria-label="Undo"
-					[disabled]="!editor.canUndo()"
-					(click)="editor.undo()"
-				>
-					↶
-				</button>
-				<button
-					type="button"
-					class="pptx-rb-icon"
-					aria-label="Redo"
-					[disabled]="!editor.canRedo()"
-					(click)="editor.redo()"
-				>
-					↷
-				</button>
-
-				<span class="mx-1 h-5 w-px self-center bg-border/50"></span>
-
-				<button type="button" class="pptx-rb-icon" aria-label="Zoom out" (click)="zoomOut.emit()">
-					−
-				</button>
-				<button
-					type="button"
-					class="pptx-rb-pill min-w-12 justify-center tabular-nums"
-					(click)="zoomReset.emit()"
-				>
-					{{ zoomPercent() }}%
-				</button>
-				<button type="button" class="pptx-rb-icon" aria-label="Zoom in" (click)="zoomIn.emit()">
-					+
-				</button>
-
-				<span class="mx-1 h-5 w-px self-center bg-border/50"></span>
-
-				<button
-					type="button"
-					class="pptx-rb-pill"
-					(click)="find.emit()"
-					aria-label="Find in slides"
-				>
-					Find
-				</button>
-
-				<div class="flex-1"></div>
-
-				<button
-					type="button"
-					class="pptx-rb-pill"
-					[disabled]="slideCount() === 0"
-					(click)="present.emit()"
-				>
-					Present
-				</button>
-				<button
-					type="button"
-					class="pptx-rb-pill"
-					[disabled]="slideCount() === 0"
-					(click)="presenter.emit()"
-					aria-label="Presenter view"
-				>
-					Presenter
-				</button>
-				<button
-					type="button"
-					class="pptx-rb-pill"
-					(click)="share.emit()"
-					aria-label="Share for collaboration"
-				>
-					Share
-				</button>
-				<button
-					type="button"
-					class="pptx-rb-pill"
-					(click)="info.emit()"
-					aria-label="Document properties"
-				>
-					Info
-				</button>
-			</div>
+			<!-- ── Primary quick-access row (ToolbarPrimaryRow parity) ──── -->
+			<pptx-ribbon-primary-row
+				[slideCount]="slideCount()"
+				[canEdit]="canEdit()"
+				[sidebarCollapsed]="sidebarCollapsed()"
+				[inspectorOpen]="inspectorOpen()"
+				[commentsOpen]="commentsOpen()"
+				[commentCount]="commentCount()"
+				[findOpen]="findOpen()"
+				[collabConnected]="collabConnected()"
+				[connectedCount]="connectedCount()"
+				(toggleSidebar)="toggleSidebar.emit()"
+				(toggleFind)="replace.emit()"
+				(toggleComments)="comments.emit()"
+				(present)="present.emit()"
+				(presenter)="presenter.emit()"
+				(broadcast)="broadcast.emit()"
+				(openCustomShows)="openCustomShows.emit()"
+				(share)="share.emit()"
+				(toggleInspector)="toggleInspector.emit()"
+				(exportPng)="exportPng.emit()"
+				(exportPdf)="exportPdf.emit()"
+				(exportGif)="exportGif.emit()"
+				(exportVideo)="exportVideo.emit()"
+				(print)="print.emit()"
+				(info)="info.emit()"
+				(a11y)="a11y.emit()"
+				(save)="save.emit()"
+			/>
 
 			<!-- ── Tab bar ───────────────────────────────────────────────────── -->
 			<div class="flex items-center border-b border-border/60 px-1">
@@ -314,6 +257,15 @@ const TEXT_COLORS = [
 						>
 							Open
 						</button>
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							[disabled]="slideCount() === 0"
+							(click)="save.emit()"
+							title="Save as .pptx"
+						>
+							Save
+						</button>
 						<span class="pptx-rb-sep"></span>
 						<div class="pptx-rb-grp">
 							<button
@@ -356,70 +308,88 @@ const TEXT_COLORS = [
 						<span class="pptx-rb-sep"></span>
 						<button type="button" class="pptx-rb-pill" (click)="print.emit()">Print</button>
 						<button type="button" class="pptx-rb-pill" (click)="info.emit()">Properties</button>
+						<button type="button" class="pptx-rb-pill" (click)="signatures.emit()">
+							Signatures
+						</button>
 						<button type="button" class="pptx-rb-pill" (click)="replace.emit()">Replace</button>
 					}
 					@case ('home') {
 						<!-- Clipboard -->
-						<div class="pptx-rb-grp">
-							<button type="button" class="pptx-rb-gb" title="Paste" (click)="paste()">
-								Paste
-							</button>
-							<button
-								type="button"
-								class="pptx-rb-gb"
-								title="Cut"
-								[disabled]="!hasSel()"
-								(click)="cut()"
-							>
-								Cut
-							</button>
-							<button
-								type="button"
-								class="pptx-rb-gb"
-								title="Copy"
-								[disabled]="!hasSel()"
-								(click)="copy()"
-							>
-								Copy
-							</button>
-							<button
-								type="button"
-								class="pptx-rb-gl"
-								data-testid="format-painter-toggle"
-								[attr.data-active]="formatPainterActive() ? 'true' : 'false'"
-								[ngClass]="formatPainterActive() ? 'bg-primary text-primary-foreground' : ''"
-								[disabled]="!canActivateFormatPainter() && !formatPainterActive()"
-								title="Format painter"
-								(click)="toggleFormatPainter.emit()"
-							>
-								Painter
-							</button>
+						<div class="flex flex-col items-center gap-0.5">
+							<div class="pptx-rb-grp">
+								<button type="button" class="pptx-rb-gb" title="Paste" (click)="paste()">
+									Paste
+								</button>
+								<button
+									type="button"
+									class="pptx-rb-gb"
+									title="Cut"
+									[disabled]="!hasSel()"
+									(click)="cut()"
+								>
+									Cut
+								</button>
+								<button
+									type="button"
+									class="pptx-rb-gb"
+									title="Copy"
+									[disabled]="!hasSel()"
+									(click)="copy()"
+								>
+									Copy
+								</button>
+								<button
+									type="button"
+									class="pptx-rb-gl"
+									data-testid="format-painter-toggle"
+									[attr.data-active]="formatPainterActive() ? 'true' : 'false'"
+									[ngClass]="formatPainterActive() ? 'bg-primary text-primary-foreground' : ''"
+									[disabled]="!canActivateFormatPainter() && !formatPainterActive()"
+									title="Format painter"
+									(click)="toggleFormatPainter.emit()"
+								>
+									Painter
+								</button>
+							</div>
+							<span class="text-[9px] leading-none text-muted-foreground">Clipboard</span>
 						</div>
 						<span class="pptx-rb-sep"></span>
 						<!-- Slides -->
-						<div class="pptx-rb-grp">
-							<button
-								type="button"
-								class="pptx-rb-gb"
-								title="New slide"
-								(click)="editor.addSlide(slideIndex())"
-							>
-								＋ Slide
-							</button>
-							<button
-								type="button"
-								class="pptx-rb-gl"
-								title="Duplicate slide"
-								(click)="editor.duplicateSlide(slideIndex())"
-							>
-								Duplicate
-							</button>
+						<div class="flex flex-col items-center gap-0.5">
+							<div class="pptx-rb-grp">
+								<button
+									type="button"
+									class="pptx-rb-gb"
+									title="New slide"
+									(click)="editor.addSlide(slideIndex())"
+								>
+									＋ Slide
+								</button>
+								<button
+									type="button"
+									class="pptx-rb-gl"
+									title="Duplicate slide"
+									(click)="editor.duplicateSlide(slideIndex())"
+								>
+									Duplicate
+								</button>
+							</div>
+							<span class="text-[9px] leading-none text-muted-foreground">Slides</span>
 						</div>
 						<span class="pptx-rb-sep"></span>
 						<!-- Font -->
-						<ng-container [ngTemplateOutlet]="fontControls" />
+						<div class="flex flex-col items-center gap-0.5">
+							<div class="flex items-center gap-1">
+								<ng-container [ngTemplateOutlet]="fontControls" />
+							</div>
+							<span class="text-[9px] leading-none text-muted-foreground">Font</span>
+						</div>
 						<span class="pptx-rb-sep"></span>
-						<ng-container [ngTemplateOutlet]="paragraphControls" />
+						<!-- Paragraph -->
+						<div class="flex flex-col items-center gap-0.5">
+							<ng-container [ngTemplateOutlet]="paragraphControls" />
+							<span class="text-[9px] leading-none text-muted-foreground">Paragraph</span>
+						</div>
 					}
 					@case ('insert') {
 						<!-- Shapes group -->
@@ -443,8 +413,19 @@ const TEXT_COLORS = [
 							>
 								◯ Ellipse
 							</button>
-							<button type="button" class="pptx-rb-gl" (click)="insertShape('line')" title="Line">
+							<button type="button" class="pptx-rb-gb" (click)="insertShape('line')" title="Line">
 								／ Line
+							</button>
+							<button type="button" class="pptx-rb-gb" (click)="insertImage()" title="Insert image">
+								🖼 Image
+							</button>
+							<button
+								type="button"
+								class="pptx-rb-gl"
+								(click)="insertMedia()"
+								title="Insert audio or video"
+							>
+								🎬 Media
 							</button>
 						</div>
 						<span class="pptx-rb-sep"></span>
@@ -612,6 +593,65 @@ const TEXT_COLORS = [
 								(click)="editor.distributeSelected(slideIndex(), 'vertical')"
 							>
 								&#x2195; V
+							</button>
+						</div>
+						<span class="pptx-rb-sep"></span>
+						<!-- Clipboard -->
+						<div class="pptx-rb-grp">
+							<button
+								type="button"
+								class="pptx-rb-gb"
+								[disabled]="!hasSel()"
+								title="Copy"
+								(click)="copy()"
+							>
+								Copy
+							</button>
+							<button
+								type="button"
+								class="pptx-rb-gb"
+								[disabled]="!hasSel()"
+								title="Cut"
+								(click)="cut()"
+							>
+								Cut
+							</button>
+							<button type="button" class="pptx-rb-gl" title="Paste" (click)="paste()">
+								Paste
+							</button>
+						</div>
+						<span class="pptx-rb-sep"></span>
+						<!-- Format painter + flip -->
+						<div class="pptx-rb-grp">
+							<button
+								type="button"
+								class="pptx-rb-gb"
+								data-testid="format-painter-toggle"
+								[attr.data-active]="formatPainterActive() ? 'true' : 'false'"
+								[ngClass]="formatPainterActive() ? 'bg-primary text-primary-foreground' : ''"
+								[disabled]="!canActivateFormatPainter() && !formatPainterActive()"
+								title="Format painter"
+								(click)="toggleFormatPainter.emit()"
+							>
+								Painter
+							</button>
+							<button
+								type="button"
+								class="pptx-rb-gb"
+								[disabled]="!hasSel()"
+								title="Flip horizontally"
+								(click)="flipSelected('horizontal')"
+							>
+								Flip H
+							</button>
+							<button
+								type="button"
+								class="pptx-rb-gl"
+								[disabled]="!hasSel()"
+								title="Flip vertically"
+								(click)="flipSelected('vertical')"
+							>
+								Flip V
 							</button>
 						</div>
 						<span class="pptx-rb-sep"></span>
@@ -1052,6 +1092,35 @@ const TEXT_COLORS = [
 			<div class="pptx-rb-grp">
 				<button
 					type="button"
+					class="pptx-rb-gb"
+					[disabled]="!isText()"
+					title="Grow font"
+					(click)="stepFontSize(1)"
+				>
+					A▴
+				</button>
+				<button
+					type="button"
+					class="pptx-rb-gb"
+					[disabled]="!isText()"
+					title="Shrink font"
+					(click)="stepFontSize(-1)"
+				>
+					A▾
+				</button>
+				<button
+					type="button"
+					class="pptx-rb-gl"
+					[disabled]="!isText()"
+					title="Clear formatting"
+					(click)="clearFormatting()"
+				>
+					⌫
+				</button>
+			</div>
+			<div class="pptx-rb-grp">
+				<button
+					type="button"
 					class="pptx-rb-gb font-bold"
 					[disabled]="!isText()"
 					[ngClass]="curStyle()?.bold ? 'bg-accent' : ''"
@@ -1175,6 +1244,20 @@ export class RibbonComponent {
 	readonly eyedropperActive = input<boolean>(false);
 	/** Current visibility state of the theme gallery overlay (for active-state styling). */
 	readonly themeGalleryOpen = input<boolean>(false);
+	/** Whether the slides panel is collapsed (drives the top-bar toggle state). */
+	readonly sidebarCollapsed = input<boolean>(false);
+	/** Whether the right-docked inspector is open (top-bar toggle state). */
+	readonly inspectorOpen = input<boolean>(false);
+	/** Whether the comments panel is open (top-bar comments toggle state). */
+	readonly commentsOpen = input<boolean>(false);
+	/** Comment count on the active slide (top-bar comments badge). */
+	readonly commentCount = input<number>(0);
+	/** Whether the find/replace bar is open (top-bar find toggle state). */
+	readonly findOpen = input<boolean>(false);
+	/** Whether a collaboration session is connected (Share button styling). */
+	readonly collabConnected = input<boolean>(false);
+	/** Connected collaborator count (Share button label). */
+	readonly connectedCount = input<number>(0);
 
 	readonly prev = output<void>();
 	readonly next = output<void>();
@@ -1187,6 +1270,12 @@ export class RibbonComponent {
 	readonly share = output<void>();
 	readonly broadcast = output<void>();
 	readonly openFile = output<void>();
+	/** Emitted when the user clicks "Save" in the File tab (saves as .pptx). */
+	readonly save = output<void>();
+	/** Emitted when the user toggles the slides panel from the top bar. */
+	readonly toggleSidebar = output<void>();
+	/** Emitted when the user opens the Digital Signatures panel from the File tab. */
+	readonly signatures = output<void>();
 	readonly info = output<void>();
 	readonly print = output<void>();
 	readonly comments = output<void>();
@@ -1338,6 +1427,78 @@ export class RibbonComponent {
 		this.editor.addElement(this.slideIndex(), newEquationElement());
 	}
 
+	/** Pick an image file and add it as an inline image element (data-URL backed). */
+	protected insertImage(): void {
+		this.pickFile('image/*', (file) => void this.addImageFile(file));
+	}
+
+	/** Pick an audio/video file and add it as a media element (data-URL backed). */
+	protected insertMedia(): void {
+		this.pickFile('video/*,audio/*', (file) => void this.addMediaFile(file));
+	}
+
+	private async addImageFile(file: File): Promise<void> {
+		const dataUrl = await readAsDataUrl(file);
+		if (!dataUrl) {
+			return;
+		}
+		const dims = await imageDimensions(dataUrl);
+		const maxW = 400;
+		const scale = dims.width > maxW ? maxW / dims.width : 1;
+		const element: PptxElement = {
+			type: 'image',
+			id: '',
+			name: file.name || 'Image',
+			x: 100,
+			y: 100,
+			width: Math.round(dims.width * scale),
+			height: Math.round(dims.height * scale),
+			imageData: dataUrl,
+		} as PptxElement;
+		this.editor.addElement(this.slideIndex(), element);
+	}
+
+	private async addMediaFile(file: File): Promise<void> {
+		const dataUrl = await readAsDataUrl(file);
+		if (!dataUrl) {
+			return;
+		}
+		const isAudio = file.type.startsWith('audio/');
+		const element: PptxElement = {
+			type: 'media',
+			id: '',
+			name: file.name || 'Media',
+			x: 100,
+			y: 100,
+			width: isAudio ? 280 : 480,
+			height: isAudio ? 64 : 270,
+			mediaType: isAudio ? 'audio' : 'video',
+			mediaData: dataUrl,
+			mediaMimeType: file.type,
+		} as PptxElement;
+		this.editor.addElement(this.slideIndex(), element);
+	}
+
+	/** Open the native file picker for a single file of the given accept type. */
+	private pickFile(accept: string, onFile: (file: File) => void): void {
+		if (typeof document === 'undefined') {
+			return;
+		}
+		const fileInput = document.createElement('input');
+		fileInput.type = 'file';
+		fileInput.accept = accept;
+		fileInput.style.display = 'none';
+		fileInput.addEventListener('change', () => {
+			const file = fileInput.files?.[0];
+			if (file) {
+				onFile(file);
+			}
+			fileInput.remove();
+		});
+		document.body.appendChild(fileInput);
+		fileInput.click();
+	}
+
 	// ── Text style ────────────────────────────────────────────────────────────
 	private patchText(patch: Record<string, unknown>): void {
 		const el = this.selectedElement();
@@ -1362,6 +1523,50 @@ export class RibbonComponent {
 	}
 	protected setFontSize(event: Event): void {
 		this.patchText({ fontSize: Number((event.target as HTMLSelectElement).value) });
+	}
+	/** Step the selection's font size up or down through the FONT_SIZES ladder. */
+	protected stepFontSize(direction: 1 | -1): void {
+		const current = this.curFontSize();
+		const sizes = FONT_SIZES;
+		// Find the nearest ladder index to the current size, then step from it.
+		let idx = sizes.findIndex((s) => s >= current);
+		if (idx < 0) {
+			idx = sizes.length - 1;
+		}
+		const next = sizes[Math.min(sizes.length - 1, Math.max(0, idx + direction))];
+		if (next !== undefined) {
+			this.patchText({ fontSize: next });
+		}
+	}
+	/** Clear character formatting (bold/italic/underline/strikethrough) on the selection. */
+	protected clearFormatting(): void {
+		this.patchText({
+			bold: false,
+			italic: false,
+			underline: false,
+			strikethrough: false,
+		});
+	}
+
+	// ── Arrange: flip ─────────────────────────────────────────────────────────
+	/** Toggle horizontal/vertical flip on each selected element. */
+	protected flipSelected(axis: 'horizontal' | 'vertical'): void {
+		const idx = this.slideIndex();
+		const slide = this.editor.slides()[idx];
+		if (!slide) {
+			return;
+		}
+		for (const id of this.editor.selectedIds()) {
+			const el = slide.elements.find((e) => e.id === id);
+			if (!el) {
+				continue;
+			}
+			const patch: Partial<PptxElement> =
+				axis === 'horizontal'
+					? ({ flipHorizontal: !el.flipHorizontal } as Partial<PptxElement>)
+					: ({ flipVertical: !el.flipVertical } as Partial<PptxElement>);
+			this.editor.updateElement(idx, id, patch);
+		}
 	}
 
 	// ── Draw tab ─────────────────────────────────────────────────────────────

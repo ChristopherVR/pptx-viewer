@@ -84,6 +84,7 @@ import { MobileToolbarComponent } from './mobile-toolbar.component';
 import { NotesPanelComponent } from './notes-panel.component';
 import { PresentationOverlayComponent } from './presentation-overlay.component';
 import { PresenterViewComponent } from './presenter-view.component';
+import { PresenterWindowService } from './presenter-window.service';
 import { PrintDialogComponent } from './print-dialog.component';
 import type { PrintSettings } from './print-helpers';
 import { PrintService } from './print.service';
@@ -98,6 +99,7 @@ import { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
 import { SlidesPanelComponent } from './slides-panel.component';
 import { SmartArt3DService } from './smart-art-3d.service';
 import { buildSmartArtInsertElement } from './smart-art-insert-helpers';
+import { StatusBarComponent } from './status-bar.component';
 import { setCellText } from './table-data-helpers';
 import type { TableCellCommit } from './table-renderer.component';
 import { buildSaveSlides } from './template-mode';
@@ -156,6 +158,7 @@ const ZOOM_MAX = 3;
 		FindReplaceBarComponent,
 		InspectorPanelComponent,
 		SlidesPanelComponent,
+		StatusBarComponent,
 		EditorToolbarComponent,
 		EditorContextMenuComponent,
 		ExportProgressModalComponent,
@@ -206,6 +209,14 @@ const ZOOM_MAX = 3;
 					[formatPainterActive]="formatPainterActive()"
 					[canActivateFormatPainter]="canActivateFormatPainter()"
 					[exporting]="exporting()"
+					[sidebarCollapsed]="slidesPanelCollapsed()"
+					[inspectorOpen]="inspectorPaneOpen()"
+					[commentsOpen]="activePanel() === 'comments'"
+					[commentCount]="activeComments().length"
+					[findOpen]="showFind() || showFindReplace()"
+					[collabConnected]="collab.connected()"
+					[connectedCount]="collab.connectedCount()"
+					(toggleSidebar)="slidesPanelCollapsed.update(v => !v)"
 					(prev)="goPrev()"
 					(next)="goNext()"
 					(zoomIn)="zoomIn()"
@@ -217,9 +228,11 @@ const ZOOM_MAX = 3;
 					(share)="showShare.set(true)"
 					(broadcast)="showBroadcast.set(true)"
 					(openFile)="openFile()"
+					(save)="saveAsPptx()"
 					(info)="showProperties.set(true)"
 					(print)="print.openDialog()"
 					(comments)="togglePanel('comments')"
+					(signatures)="togglePanel('signatures')"
 					(a11y)="togglePanel('accessibility')"
 					(link)="showHyperlink.set(true)"
 					(openSorter)="showSorter.set(true)"
@@ -266,7 +279,7 @@ const ZOOM_MAX = 3;
 				}
 
 				<div class="pptx-ng-body">
-					@if (canEdit() && !mobile.isMobile()) {
+					@if (canEdit() && !mobile.isMobile() && !slidesPanelCollapsed()) {
 						<pptx-slides-panel
 							[canvasSize]="loader.canvasSize()"
 							[mediaDataUrls]="loader.mediaDataUrls()"
@@ -433,30 +446,23 @@ const ZOOM_MAX = 3;
 				</div>
 
 				@if (!mobile.isMobile()) {
-					<footer
-						class="flex items-center justify-between border-t border-border bg-secondary/50 px-3 py-1 text-[11px] text-muted-foreground"
-					>
-						<div class="flex items-center gap-3">
-							<span>Slide {{ slideCount() === 0 ? 0 : activeSlideIndex() + 1 }} of {{ slideCount() }}</span>
-							@if (canEdit()) {
-								<span>{{ editor.dirty() ? 'Unsaved changes' : 'All saved' }}</span>
-							}
-						</div>
-						<div class="flex items-center gap-1">
-							<button type="button" class="pptx-rb-icon" aria-label="Speaker notes" (click)="toggleNotes()">≣</button>
-							<button type="button" class="pptx-rb-icon" aria-label="Slide sorter" (click)="showSorter.set(true)">▦</button>
-							<span class="mx-1 h-4 w-px self-center bg-border/50"></span>
-							<button type="button" class="pptx-rb-icon" aria-label="Zoom out" (click)="zoomOut()">−</button>
-							<button
-								type="button"
-								class="pptx-rb-pill min-w-12 justify-center tabular-nums"
-								(click)="zoomReset()"
-							>
-								{{ zoomPercent() }}%
-							</button>
-							<button type="button" class="pptx-rb-icon" aria-label="Zoom in" (click)="zoomIn()">+</button>
-						</div>
-					</footer>
+					<pptx-status-bar
+						[slideIndex]="activeSlideIndex()"
+						[slideCount]="slideCount()"
+						[canEdit]="canEdit()"
+						[dirty]="editor.dirty()"
+						[notesOpen]="showNotes()"
+						[zoomPercent]="zoomPercent()"
+						[sorterActive]="showSorter()"
+						[presenting]="presenting()"
+						(toggleNotes)="toggleNotes()"
+						(normalView)="showSorter.set(false)"
+						(openSorter)="showSorter.set(true)"
+						(slideShow)="present()"
+						(zoomIn)="zoomIn()"
+						(zoomOut)="zoomOut()"
+						(zoomReset)="zoomReset()"
+					/>
 				}
 			}
 
@@ -501,10 +507,10 @@ const ZOOM_MAX = 3;
 						[canvasSize]="loader.canvasSize()"
 						[mediaDataUrls]="loader.mediaDataUrls()"
 						[presentationStartTime]="presenterStartTime()"
-						[isAudienceWindowOpen]="presenting()"
+						[isAudienceWindowOpen]="presenterWindow.isAudienceWindowOpen()"
 						(movePresentationSlide)="goTo(activeSlideIndex() + $event)"
-						(openAudienceWindow)="present()"
-						(closeAudienceWindow)="presenting.set(false)"
+						(openAudienceWindow)="openAudienceWindow()"
+						(closeAudienceWindow)="presenterWindow.closeAudienceWindow()"
 						(exit)="exitPresenter()"
 					/>
 				}
@@ -585,6 +591,7 @@ const ZOOM_MAX = 3;
 				[connected]="collab.connected()"
 				[userCount]="collab.connectedCount()"
 				[shareUrl]="shareUrl()"
+				[defaults]="shareDialogDefaults()"
 				(start)="onShareStart($event)"
 				(stop)="onShareStop()"
 				(close)="showShare.set(false)"
@@ -596,6 +603,7 @@ const ZOOM_MAX = 3;
 				[connected]="collab.connected()"
 				[viewerCount]="collab.presence().length"
 				[viewerUrl]="broadcastViewerUrl()"
+				[defaults]="{ serverUrl: shareDefaults()?.serverUrl }"
 				(start)="onBroadcastStart($event)"
 				(stop)="onBroadcastStop()"
 				(close)="showBroadcast.set(false)"
@@ -716,6 +724,20 @@ export class PowerPointViewerComponent {
 	/** Optional real-time collaboration config; when set, connects and shows remote cursors. */
 	readonly collaboration = input<CollaborationConfig | undefined>(undefined);
 	/**
+	 * Display name for the local user in collaboration/broadcast sessions and
+	 * presence avatars. Falls back to "You" (cursors/avatars) and "Presenter"
+	 * (broadcast owner) when omitted. Mirrors the React/Vue `authorName` prop.
+	 */
+	readonly authorName = input<string>();
+	/**
+	 * Seed values for the Share dialog's start form (and the broadcast server
+	 * URL). Lets the host pre-fill the room id / user name / server URL. Mirrors
+	 * the React/Vue `shareDefaults` prop.
+	 */
+	readonly shareDefaults = input<
+		{ roomId?: string; userName?: string; serverUrl?: string } | undefined
+	>(undefined);
+	/**
 	 * Host override for the File ▸ Open action. When set, the built-in native
 	 * file picker is bypassed and this is invoked instead; the host then supplies
 	 * a new `content` value. When omitted, the viewer opens its own picker and
@@ -739,6 +761,14 @@ export class PowerPointViewerComponent {
 	readonly contentChange = output<Uint8Array>();
 	/** Fired when the user edits document properties in the Info dialog. */
 	readonly propertiesChange = output<Partial<PptxCoreProperties>>();
+	/**
+	 * Fired when a collaboration/broadcast session starts, with the connected
+	 * config (role `collaborator` for Share, `owner` for Broadcast). Lets the
+	 * host rewrite the URL and publish the deck. Mirrors React/Vue.
+	 */
+	readonly startCollaboration = output<CollaborationConfig>();
+	/** Fired when the collaboration/broadcast session stops. Mirrors React/Vue. */
+	readonly stopCollaboration = output<void>();
 
 	protected readonly loader = inject(LoadContentService);
 	private readonly exportSvc = inject(ExportService);
@@ -750,6 +780,7 @@ export class PowerPointViewerComponent {
 	protected readonly mobile = inject(IsMobileService);
 	private readonly smartArt3DSvc = inject(SmartArt3DService);
 	private readonly zoomTarget = inject(ZoomTargetService);
+	protected readonly presenterWindow = inject(PresenterWindowService);
 
 	/** The `<main>` host; used to locate the live `.pptx-ng-canvas-stage`. */
 	private readonly mainEl = viewChild<ElementRef<HTMLElement>>('mainEl');
@@ -809,6 +840,8 @@ export class PowerPointViewerComponent {
 	protected readonly mobileSheet = signal<'slides' | 'menu' | null>(null);
 	/** Speaker-notes strip visibility. */
 	protected readonly showNotes = signal(false);
+	/** Whether the left slides panel is collapsed (top-bar sidebar toggle). */
+	protected readonly slidesPanelCollapsed = signal(false);
 	/** Find-in-slides bar visibility. */
 	protected readonly showFind = signal(false);
 
@@ -865,6 +898,15 @@ export class PowerPointViewerComponent {
 			return 'slide';
 		}
 		return null;
+	});
+
+	/**
+	 * Whether the right-docked inspector is showing the format panel (element or
+	 * slide properties). Drives the top-bar inspector-toggle active state.
+	 */
+	protected readonly inspectorPaneOpen = computed<boolean>(() => {
+		const content = this.inspectorContent();
+		return content === 'element' || content === 'slide';
 	});
 
 	/** Inspector content, but null on mobile once the user has swiped it away. */
@@ -945,6 +987,23 @@ export class PowerPointViewerComponent {
 		return session
 			? buildBroadcastViewerUrl(session.roomId, session.serverUrl, this.browserLocation())
 			: '';
+	});
+
+	/**
+	 * Seed values for the Share dialog: the host-supplied {@link shareDefaults},
+	 * with `userName` falling back to {@link authorName} (then "You") so the
+	 * local user's name pre-fills the form. Mirrors React/Vue.
+	 */
+	protected readonly shareDialogDefaults = computed<{
+		roomId?: string;
+		userName?: string;
+		serverUrl?: string;
+	}>(() => {
+		const defaults = this.shareDefaults() ?? {};
+		return {
+			...defaults,
+			userName: defaults.userName ?? this.authorName() ?? 'You',
+		};
 	});
 	/** Local overrides applied to document properties via the Info dialog. */
 	private readonly coreOverride = signal<Partial<PptxCoreProperties>>({});
@@ -1095,6 +1154,14 @@ export class PowerPointViewerComponent {
 		// Emit navigation changes.
 		effect(() => {
 			this.activeSlideChange.emit(this.activeSlideIndex());
+		});
+
+		// Keep an open audience tab in lock-step with the presenter's slide.
+		effect(() => {
+			const index = this.activeSlideIndex();
+			if (this.presenterWindow.isAudienceWindowOpen()) {
+				this.presenterWindow.syncSlideToAudience(index);
+			}
 		});
 
 		// Surface the editor's dirty flag to the host.
@@ -1279,15 +1346,26 @@ export class PowerPointViewerComponent {
 
 	/** Start a real-time collaboration session from the share dialog config. */
 	protected onShareStart(config: CollaborationConfig): void {
-		this.activeSession.set({ roomId: config.roomId, serverUrl: config.serverUrl });
-		void this.collab.connect(config, {
+		// Two-way collaboration: peers edit together (default `collaborator` role).
+		const collaboratorConfig: CollaborationConfig = {
+			role: 'collaborator',
+			...config,
+			userName: config.userName || (this.authorName() ?? 'You'),
+		};
+		this.activeSession.set({
+			roomId: collaboratorConfig.roomId,
+			serverUrl: collaboratorConfig.serverUrl,
+		});
+		void this.collab.connect(collaboratorConfig, {
 			getTemplateElements: () => this.editor.templateElementsBySlideId(),
 		});
+		this.startCollaboration.emit(collaboratorConfig);
 	}
 
 	protected onShareStop(): void {
 		this.collab.disconnect();
 		this.activeSession.set(null);
+		this.stopCollaboration.emit();
 	}
 
 	/** Start broadcasting (presenter as session owner) from the broadcast config. */
@@ -1295,18 +1373,20 @@ export class PowerPointViewerComponent {
 		const collabConfig: CollaborationConfig = {
 			roomId: config.roomId,
 			serverUrl: config.serverUrl,
-			userName: 'Presenter',
+			userName: this.authorName() ?? 'Presenter',
 			role: 'owner',
 		};
 		this.activeSession.set({ roomId: config.roomId, serverUrl: config.serverUrl });
 		void this.collab.connect(collabConfig, {
 			getTemplateElements: () => this.editor.templateElementsBySlideId(),
 		});
+		this.startCollaboration.emit(collabConfig);
 	}
 
 	protected onBroadcastStop(): void {
 		this.collab.disconnect();
 		this.activeSession.set(null);
+		this.stopCollaboration.emit();
 	}
 
 	/**
@@ -1400,6 +1480,15 @@ export class PowerPointViewerComponent {
 		this.activeSlideIndex.set(fullIndex >= 0 ? fullIndex : index);
 	}
 
+	/**
+	 * Open a separate audience tab and hand off the deck via the shared
+	 * IndexedDB store. Mirrors React's presenter "open audience window".
+	 */
+	openAudienceWindow(): void {
+		const content = this.contentOverride() ?? this.content();
+		this.presenterWindow.openAudienceWindow(content, this.activeSlideIndex());
+	}
+
 	/** Open the presenter (speaker) view: current+next slide, notes, timer. */
 	presentPresenter(): void {
 		if (this.slideCount() > 0) {
@@ -1408,10 +1497,11 @@ export class PowerPointViewerComponent {
 		}
 	}
 
-	/** Close the presenter view (and any audience overlay it opened). */
+	/** Close the presenter view (and any audience overlay/window it opened). */
 	exitPresenter(): void {
 		this.presentingPresenter.set(false);
 		this.presenting.set(false);
+		this.presenterWindow.closeAudienceWindow();
 	}
 	/** Toggle the speaker-notes strip. */
 	toggleNotes(): void {
