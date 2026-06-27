@@ -20,7 +20,6 @@ import type { ChartPptxElement } from 'pptx-viewer-core';
 import { ChartAxisOptionsComponent } from './chart-axis-options.component';
 import { ChartAxisStyleOptionsComponent } from './chart-axis-style-options.component';
 import { ChartComboTypeOptionsComponent } from './chart-combo-type-options.component';
-import { ChartDataEditorComponent } from './chart-data-editor.component';
 import { ChartDataLabelOptionsComponent } from './chart-data-label-options.component';
 import { ChartDatapointOptionsComponent } from './chart-datapoint-options.component';
 import { ChartDisplayOptionsComponent } from './chart-display-options.component';
@@ -33,7 +32,6 @@ import { ChartTrendlineOptionsComponent } from './chart-trendline-options.compon
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [
-		ChartDataEditorComponent,
 		ChartDisplayOptionsComponent,
 		ChartDataLabelOptionsComponent,
 		ChartAxisOptionsComponent,
@@ -87,11 +85,6 @@ import { ChartTrendlineOptionsComponent } from './chart-trendline-options.compon
 				(elementChange)="elementChange.emit($event)"
 			/>
 			<pptx-chart-error-bar-options
-				[element]="element()"
-				[canEdit]="canEdit()"
-				(elementChange)="elementChange.emit($event)"
-			/>
-			<pptx-chart-data-editor
 				[element]="element()"
 				[canEdit]="canEdit()"
 				(elementChange)="elementChange.emit($event)"
