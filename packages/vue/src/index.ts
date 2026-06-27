@@ -9,6 +9,15 @@ export type {
 	CanvasSize,
 } from './viewer';
 
+// ── Audience / presenter content sharing (IndexedDB, wire-compatible with React) ──
+export {
+	AUDIENCE_HASH,
+	isAudienceTab,
+	storeAudienceContent,
+	loadAudienceContent,
+	clearAudienceContent,
+} from './viewer';
+
 // ── Shared utilities ──
 export { cn } from './utils';
 

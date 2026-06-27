@@ -2774,6 +2774,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 			<ThemeGallery
 				:open="themeGalleryOpen"
 				:active-name="pptxTheme?.name"
+				:can-edit="props.canEdit"
 				@apply="applyThemePreset"
 				@close="themeGalleryOpen = false"
 			/>

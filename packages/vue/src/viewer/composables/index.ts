@@ -15,3 +15,10 @@ export {
 export { getResolvedShapeClipPath, getResolvedShapeClipPathFor } from 'pptx-viewer-shared';
 export { useEditorHistory } from './useEditorHistory';
 export { useEditorOperations } from './useEditorOperations';
+export {
+	AUDIENCE_HASH,
+	isAudienceTab,
+	storeAudienceContent,
+	loadAudienceContent,
+	clearAudienceContent,
+} from './audience-content-store';
