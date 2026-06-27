@@ -8,10 +8,22 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **vue:** Zoom renderer, 3D extrusion overlay, duotone filter, and element style improvements (by @ChristopherVR) ([85b9443](https://github.com/ChristopherVR/pptx-viewer/commit/85b9443985a024d7b564dd3609857b85c4aedd37))
+- **angular:** Zoom renderer, eyedropper, zoom-target service, and SmartArt refinements (by @ChristopherVR) ([adf754d](https://github.com/ChristopherVR/pptx-viewer/commit/adf754d2f2f088ab069920760a0e90629051612b))
+
+## [1.1.72](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.72) - 2026-06-26
+
+### Features
+
 - **core:** Add setElementLocked SDK helper (by @ChristopherVR) ([cc82e06](https://github.com/ChristopherVR/pptx-viewer/commit/cc82e06128c7b6d6aa976cc73a2674b35fc500fd))
 - **react:** Add distribute buttons and element lock toggle (by @ChristopherVR) ([2981850](https://github.com/ChristopherVR/pptx-viewer/commit/29818502045b27f0eaf389664c1309a6caa751b0))
 - **vue:** Add distribute buttons and element lock toggle (by @ChristopherVR) ([36bbd72](https://github.com/ChristopherVR/pptx-viewer/commit/36bbd72ca12449cfd6f7a0f614a8bca39e40a0ed))
 - **angular:** Add distribute buttons and element lock toggle (by @ChristopherVR) ([2607f7e](https://github.com/ChristopherVR/pptx-viewer/commit/2607f7eddc814eebdaf3459caf81f4d1ac8f2ad5))
+
+### Bug Fixes
+
+- Missing document links (by @ChristopherVR) ([f52bd6f](https://github.com/ChristopherVR/pptx-viewer/commit/f52bd6fd2fc4f564f018ecf5e84e64d24c8fd240))
+- **vue:** Thread distribute props through MobileMenuSheet to ArrangeSection (by @ChristopherVR) ([bf67c47](https://github.com/ChristopherVR/pptx-viewer/commit/bf67c47d48c106fff22f5134b57508c95e2429d5))
 
 ## [1.1.71](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.71) - 2026-06-26
 
