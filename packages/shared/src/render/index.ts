@@ -234,6 +234,11 @@ export * from './snap-guides';
 export * from './ruler';
 export * from './bullet-autonum';
 export * from './bullet-list';
+// Rich speaker-notes editor: segment/paragraph maths, contentEditable HTML
+// serialise/parse, caret-aware toolbar commands, and the print-notes document
+// builder. The view layer (contentEditable + textarea fallback) stays per
+// binding; `escapeHtml` is not re-exported (see notes/index.ts).
+export * from './notes';
 // Text CSS-builder helpers (framework-agnostic, neutral CSS records/strings):
 // `text-style-helpers` (line-height + vertical writing-mode + auto-fit scale),
 // `text-decoration` (16 OOXML underline styles -> text-decoration), `text-

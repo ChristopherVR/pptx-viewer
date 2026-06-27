@@ -1,27 +1,29 @@
 /**
  * notes-panel.component.ts: collapsible, editable speaker-notes panel.
  *
- * Ported from: packages/vue/src/viewer/components/NotesPanel.vue
- * (itself the Vue mirror of the React `SlideNotesPanel`).
+ * Ported from: packages/react/src/viewer/components/notes (rich editor) and the
+ * earlier Vue/Angular plain-textarea panel.
  *
- * Renders the active slide's speaker notes in an editable `<textarea>`. Reads the
- * real core field `PptxSlide.notes` (populated during parse and preserved through
- * `LoadContentService` / `EditorStateService`). The host writes the edited text
- * back via a history-aware update when {@link update} is emitted.
+ * Renders the active slide's speaker notes. The default surface is a
+ * contentEditable RICH editor (bold/italic/underline/strikethrough, bullet and
+ * numbered lists, indent, hyperlinks, print), mirroring the React viewer. On a
+ * mobile viewport it defaults to a plain `<textarea>` so the on-screen keyboard
+ * and caret behave (the documented mobile rationale); the toolbar's rich/plain
+ * toggle flips between the two on any device. All framework-agnostic logic lives
+ * in `pptx-viewer-shared`; this component is the view layer + signal wiring.
  *
  * Framework-neutral e2e contract
  * ------------------------------
- * The body wrapper carries `id="slide-notes-content"` and the editor is a
- * `textarea[name="slide-notes"]`, matching the React/Vue viewers so the shared
- * Playwright specs (`e2e/mobile-notes.spec.ts`) run unchanged against Angular.
+ * The body wrapper carries `id="slide-notes-content"` and the plain editor is a
+ * `textarea[name="slide-notes"]` (kept in the DOM via `[hidden]`, not `@if`),
+ * matching the React/Vue viewers so the shared Playwright specs run unchanged.
  *
  * Touch / focus correctness
  * -------------------------
- * The textarea is UNCONTROLLED: its value is seeded imperatively via a view-child
- * ref exactly once per slide and never re-bound while the user types. Re-binding
- * `value` to a signal the host mutated on every keystroke would dismiss the
- * on-screen keyboard and jump the caret, so the DOM owns the text during an edit
- * and we only commit on `change` / `blur` (one history entry per edit).
+ * Both surfaces are UNCONTROLLED: content is seeded imperatively (once per
+ * slide, keyed by slide id) and never re-bound while the user types. Rich edits
+ * are debounced; plain edits commit on `change` / `blur`. This keeps the host's
+ * per-keystroke history-aware update from remounting the field mid-typing.
  */
 
 import {
@@ -35,12 +37,31 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
+import type { NotesInlineCommand, NotesParagraphCommand } from 'pptx-viewer-shared';
+import {
+	DEBOUNCE_MS,
+	applyInlineCommand,
+	applyParagraphCommand,
+	buildNotesPrintHtml,
+	createPlainNotesSegments,
+	defaultRichEnabled,
+	handleEditorAnchorClick,
+	insertHyperlinkAtSelection,
+	normalizeNotesLinkUrl,
+	readEditorSegments,
+	resolveNotesSegments,
+	segmentsToEditorHtml,
+	segmentsToPlainText,
+} from 'pptx-viewer-shared';
+
+import { NotesToolbarComponent } from './notes-toolbar.component';
 
 @Component({
 	selector: 'pptx-notes-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [NotesToolbarComponent],
 	template: `
 		<section class="pptx-ng-notes-panel" [attr.data-collapsed]="collapsed()">
 			<button
@@ -55,16 +76,46 @@ import type { PptxSlide } from 'pptx-viewer-core';
 
 			@if (!collapsed()) {
 				<div id="slide-notes-content" class="pptx-ng-notes-body">
+					@if (slide()) {
+						<pptx-notes-toolbar
+							[isRichEnabled]="isRichEnabled()"
+							[showLinkPopover]="showLinkPopover()"
+							[savedSelectionText]="savedSelectionText()"
+							(inline)="inlineCommand($event)"
+							(paragraph)="paragraphCommand($event)"
+							(linkButtonClick)="openLinkPopover()"
+							(insertLink)="insertLink($event)"
+							(closeLinkPopover)="showLinkPopover.set(false)"
+							(print)="printNotes()"
+							(toggleRich)="toggleRich()"
+						/>
+					}
+
+					<div
+						#richEditor
+						class="pptx-ng-notes-rich"
+						[hidden]="!showRich()"
+						[attr.contenteditable]="slide() ? 'true' : 'false'"
+						role="textbox"
+						aria-multiline="true"
+						aria-label="Speaker notes"
+						(input)="onRichInput()"
+						(keydown)="onRichKeydown($event)"
+						(blur)="onRichInput()"
+						(click)="onEditorClick($event)"
+					></div>
+
 					<textarea
 						#textarea
 						name="slide-notes"
 						class="pptx-ng-notes-textarea"
+						[hidden]="showRich()"
 						[disabled]="!slide()"
 						[attr.placeholder]="slide() ? 'Add speaker notes…' : 'No slide selected'"
 						aria-label="Speaker notes"
 						spellcheck="true"
-						(change)="onCommit($event)"
-						(blur)="onCommit($event)"
+						(change)="onPlainCommit($event)"
+						(blur)="onPlainCommit($event)"
 					></textarea>
 				</div>
 			}
@@ -101,11 +152,11 @@ import type { PptxSlide } from 'pptx-viewer-core';
 			.pptx-ng-notes-body {
 				padding: 0 0.75rem 0.75rem;
 			}
+			.pptx-ng-notes-rich,
 			.pptx-ng-notes-textarea {
 				box-sizing: border-box;
 				width: 100%;
 				min-height: 5rem;
-				resize: vertical;
 				padding: 0.5rem;
 				border: 1px solid rgba(0, 0, 0, 0.15);
 				border-radius: 0.375rem;
@@ -115,6 +166,14 @@ import type { PptxSlide } from 'pptx-viewer-core';
 				line-height: 1.5;
 				color: #111827;
 			}
+			.pptx-ng-notes-rich {
+				overflow: auto;
+				resize: vertical;
+			}
+			.pptx-ng-notes-textarea {
+				resize: vertical;
+			}
+			.pptx-ng-notes-rich:focus,
 			.pptx-ng-notes-textarea:focus {
 				outline: none;
 				border-color: #6366f1;
@@ -131,51 +190,202 @@ export class NotesPanelComponent {
 	/** The active slide whose notes are shown / edited. */
 	readonly slide = input<PptxSlide | undefined>(undefined);
 
-	/** Emits the new notes text on commit (change / blur). */
+	/** Emits the new plain-text notes on commit. */
 	readonly update = output<string>();
 
-	/** Whether the panel body is collapsed (notes hidden). */
 	readonly collapsed = signal(false);
+	protected readonly isRichEnabled = signal<boolean>(defaultRichEnabled());
+	protected readonly showLinkPopover = signal(false);
+	protected readonly savedSelectionText = signal('');
 
+	private readonly richEditor = viewChild<ElementRef<HTMLDivElement>>('richEditor');
 	private readonly textarea = viewChild<ElementRef<HTMLTextAreaElement>>('textarea');
 
-	/** The slide id we've already seeded the textarea for. */
+	/** Show the rich surface only when a slide is selected. */
+	protected showRich(): boolean {
+		return this.isRichEnabled() && this.slide() !== undefined;
+	}
+
+	private draftSegments: TextSegment[] = resolveNotesSegments(undefined);
+	private draftText = '';
 	private seededId: string | null = null;
+	private debounceId: ReturnType<typeof setTimeout> | null = null;
 
 	constructor() {
-		// Seed (and re-seed) the uncontrolled textarea exactly once per slide.
-		// Keying on the slide id means we never overwrite in-progress typed text on
-		// an unrelated change-detection pass (which would steal focus on touch).
+		// Re-seed the uncontrolled surface exactly once per slide (keyed by id), so
+		// an in-progress edit is never overwritten on an unrelated change pass.
 		effect(() => {
-			const el = this.textarea()?.nativeElement;
 			const slide = this.slide();
-			if (!el) {
-				return;
-			}
 			const id = slide?.id ?? null;
-			if (this.seededId === id) {
+			if (id === this.seededId) {
 				return;
 			}
 			this.seededId = id;
-			el.value = slide?.notes ?? '';
+			this.draftSegments = resolveNotesSegments(slide);
+			this.draftText = segmentsToPlainText(this.draftSegments);
+			queueMicrotask(() => this.seedActiveSurface());
 		});
 
-		afterNextRender(() => {
-			const el = this.textarea()?.nativeElement;
-			if (el && this.seededId === null) {
-				this.seededId = this.slide()?.id ?? null;
-				el.value = this.slide()?.notes ?? '';
-			}
-		});
+		afterNextRender(() => this.seedActiveSurface());
 	}
 
-	/** Toggle the collapsed state. */
+	private seedActiveSurface(): void {
+		if (this.isRichEnabled()) {
+			const el = this.richEditor()?.nativeElement;
+			if (el) {
+				// Built by the shared sanitising serialiser (text escaped, links/CSS
+				// allow-listed), so assigning innerHTML here is safe.
+				el.innerHTML = segmentsToEditorHtml(this.draftSegments);
+			}
+		} else {
+			const el = this.textarea()?.nativeElement;
+			if (el) {
+				el.value = this.draftText;
+			}
+		}
+	}
+
+	private emitNow(text: string): void {
+		if (this.debounceId) {
+			clearTimeout(this.debounceId);
+			this.debounceId = null;
+		}
+		this.update.emit(text);
+	}
+
+	private scheduleSave(text: string): void {
+		if (this.debounceId) {
+			clearTimeout(this.debounceId);
+		}
+		this.debounceId = setTimeout(() => {
+			this.update.emit(text);
+			this.debounceId = null;
+		}, DEBOUNCE_MS);
+	}
+
 	toggle(): void {
 		this.collapsed.update((v) => !v);
 	}
 
-	/** Commit the edited notes text to the host. */
-	onCommit(event: Event): void {
-		this.update.emit((event.target as HTMLTextAreaElement).value);
+	/* --- Rich editor --- */
+
+	onRichInput(): void {
+		const el = this.richEditor()?.nativeElement;
+		if (!el) {
+			return;
+		}
+		const next = readEditorSegments(el);
+		this.draftSegments = next.segments;
+		this.draftText = next.text;
+		this.scheduleSave(next.text);
+	}
+
+	inlineCommand(command: NotesInlineCommand): void {
+		applyInlineCommand(command);
+		this.onRichInput();
+		this.richEditor()?.nativeElement.focus();
+	}
+
+	paragraphCommand(command: NotesParagraphCommand): void {
+		const el = this.richEditor()?.nativeElement;
+		if (!el) {
+			return;
+		}
+		const next = applyParagraphCommand(el, this.draftSegments, command);
+		this.draftSegments = next.segments;
+		this.draftText = next.text;
+		// List/indent changes block structure, so re-seed the DOM.
+		el.innerHTML = segmentsToEditorHtml(next.segments);
+		this.scheduleSave(next.text);
+		el.focus();
+	}
+
+	onRichKeydown(event: KeyboardEvent): void {
+		event.stopPropagation();
+		if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+			this.emitNow(this.draftText);
+			this.richEditor()?.nativeElement.blur();
+			return;
+		}
+		if (event.key === 'Tab') {
+			event.preventDefault();
+			this.paragraphCommand(event.shiftKey ? 'outdent' : 'indent');
+		}
+	}
+
+	onEditorClick(event: MouseEvent): void {
+		if (handleEditorAnchorClick(event.target, event.ctrlKey || event.metaKey)) {
+			event.preventDefault();
+		}
+	}
+
+	/* --- Hyperlink popover --- */
+
+	openLinkPopover(): void {
+		this.savedSelectionText.set(window.getSelection()?.toString() ?? '');
+		this.showLinkPopover.set(true);
+	}
+
+	insertLink(link: { url: string; displayText: string }): void {
+		this.showLinkPopover.set(false);
+		const el = this.richEditor()?.nativeElement;
+		if (!el) {
+			return;
+		}
+		el.focus();
+		const finalUrl = normalizeNotesLinkUrl(link.url);
+		insertHyperlinkAtSelection(finalUrl, link.displayText || finalUrl);
+		this.onRichInput();
+	}
+
+	/* --- Plain textarea --- */
+
+	onPlainCommit(event: Event): void {
+		const value = (event.target as HTMLTextAreaElement).value;
+		this.draftText = value;
+		this.draftSegments = createPlainNotesSegments(value);
+		this.emitNow(value);
+	}
+
+	/* --- Toggle + print --- */
+
+	toggleRich(): void {
+		const richEl = this.richEditor()?.nativeElement;
+		const plainEl = this.textarea()?.nativeElement;
+		if (this.isRichEnabled() && richEl) {
+			const next = readEditorSegments(richEl);
+			this.draftSegments = next.segments;
+			this.draftText = next.text;
+		} else if (!this.isRichEnabled() && plainEl) {
+			this.draftText = plainEl.value;
+			this.draftSegments = createPlainNotesSegments(this.draftText);
+		}
+		this.isRichEnabled.update((v) => !v);
+		queueMicrotask(() => this.seedActiveSurface());
+	}
+
+	printNotes(): void {
+		const slide = this.slide();
+		if (!slide || typeof document === 'undefined') {
+			return;
+		}
+		const html = buildNotesPrintHtml([slide], (n) => `Slide ${n}`);
+		const frame = document.createElement('iframe');
+		frame.setAttribute('aria-hidden', 'true');
+		frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+		document.body.appendChild(frame);
+		const doc = frame.contentWindow?.document;
+		if (!doc) {
+			frame.remove();
+			return;
+		}
+		doc.open();
+		doc.write(html);
+		doc.close();
+		setTimeout(() => {
+			frame.contentWindow?.focus();
+			frame.contentWindow?.print();
+			setTimeout(() => frame.remove(), 1000);
+		}, 200);
 	}
 }

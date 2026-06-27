@@ -55,6 +55,7 @@ import {
 	newTextElement,
 } from './editor-insert';
 import { EditorStateService } from './editor-state.service';
+import { RibbonInsertFieldsComponent } from './ribbon-insert-fields.component';
 import { RibbonPrimaryRowComponent } from './ribbon-primary-row.component';
 
 /** Ribbon tab identifiers (mirrors React `TOOLBAR_SECTIONS`). */
@@ -139,17 +140,32 @@ const FONT_FAMILIES = [
 	'Tahoma',
 ];
 const FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 54, 66, 80, 96];
-const TEXT_COLORS = [
+/** Font-colour swatches in the Home/Text colour popover (mirrors React/Vue). */
+const FONT_COLOR_PRESETS = [
 	'#000000',
 	'#ffffff',
-	'#ef4444',
-	'#f59e0b',
-	'#eab308',
-	'#22c55e',
-	'#3b82f6',
-	'#6366f1',
-	'#a855f7',
-	'#ec4899',
+	'#ff0000',
+	'#00aa00',
+	'#0000ff',
+	'#ff8800',
+	'#8800cc',
+	'#00cccc',
+	'#ff69b4',
+	'#808080',
+];
+
+/** Text-highlight swatches in the Home/Text highlight popover (mirrors React/Vue). */
+const HIGHLIGHT_COLOR_PRESETS = [
+	'#ffff00',
+	'#00ff00',
+	'#00ffff',
+	'#ff00ff',
+	'#0000ff',
+	'#ff0000',
+	'#000080',
+	'#008080',
+	'#008000',
+	'#800080',
 ];
 
 /** Read a File as a base64 data URL, resolving to '' on failure. */
@@ -177,7 +193,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 	selector: 'pptx-ribbon',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgClass, NgTemplateOutlet, RibbonPrimaryRowComponent],
+	imports: [NgClass, NgTemplateOutlet, RibbonPrimaryRowComponent, RibbonInsertFieldsComponent],
 	template: `
 		<div
 			role="toolbar"
@@ -469,6 +485,9 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 								∑ Equation
 							</button>
 						</div>
+						<span class="pptx-rb-sep"></span>
+						<!-- Action button + Field dropdowns -->
+						<pptx-ribbon-insert-fields [slideIndex]="slideIndex()" />
 					}
 					@case ('text') {
 						<ng-container [ngTemplateOutlet]="fontControls" />
@@ -1160,21 +1179,154 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 					S
 				</button>
 			</div>
-			<div class="flex items-center gap-0.5">
-				@for (c of textColors; track c) {
-					<button
-						type="button"
-						class="h-4 w-4 rounded-sm border border-border/60"
-						[disabled]="!isText()"
-						[style.background]="c"
-						[attr.aria-label]="'Text colour ' + c"
-						(click)="setColor(c)"
-					></button>
-				}
+			<!-- Font colour popover -->
+			<div class="group relative">
+				<button
+					type="button"
+					class="pptx-rb-pill"
+					[disabled]="!isText()"
+					title="Font colour"
+					(mousedown)="$event.preventDefault()"
+				>
+					<svg
+						class="h-3.5 w-3.5"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M6 20h12M9.5 4h5L18 16H6L9.5 4z" />
+					</svg>
+					<span class="-mt-0.5 block h-1 w-4 rounded-sm" [style.background]="curColor()"></span>
+				</button>
+				<div class="absolute left-0 top-full z-50 hidden pt-1 group-hover:block">
+					<div class="w-36 rounded-lg border border-border bg-card p-2 shadow-2xl">
+						<div class="mb-2 grid grid-cols-5 gap-1.5">
+							@for (c of fontColorPresets; track c) {
+								<button
+									type="button"
+									class="h-5 w-5 rounded-full border transition-transform hover:scale-125"
+									[ngClass]="
+										curColor().toLowerCase() === c
+											? 'border-primary ring-1 ring-primary'
+											: 'border-border'
+									"
+									[style.background]="c"
+									[attr.aria-label]="'Font colour ' + c"
+									(mousedown)="$event.preventDefault()"
+									(click)="setColor(c)"
+								></button>
+							}
+						</div>
+						<label
+							class="block w-full cursor-pointer py-1 text-center text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+						>
+							Custom colour...
+							<input
+								type="color"
+								class="sr-only"
+								[value]="curColor()"
+								(change)="setColor($any($event.target).value)"
+							/>
+						</label>
+					</div>
+				</div>
+			</div>
+			<!-- Text highlight popover -->
+			<div class="group relative">
+				<button
+					type="button"
+					class="pptx-rb-pill"
+					[disabled]="!isText()"
+					title="Text highlight colour"
+					(mousedown)="$event.preventDefault()"
+				>
+					<span class="font-bold">🖍</span>
+					<span class="-mt-0.5 block h-1 w-4 rounded-sm" [style.background]="curHighlight()"></span>
+				</button>
+				<div class="absolute left-0 top-full z-50 hidden pt-1 group-hover:block">
+					<div class="w-36 rounded-lg border border-border bg-card p-2 shadow-2xl">
+						<div class="mb-2 grid grid-cols-5 gap-1.5">
+							@for (c of highlightColorPresets; track c) {
+								<button
+									type="button"
+									class="h-5 w-5 rounded-full border transition-transform hover:scale-125"
+									[ngClass]="
+										curHighlight().toLowerCase() === c
+											? 'border-primary ring-1 ring-primary'
+											: 'border-border'
+									"
+									[style.background]="c"
+									[attr.aria-label]="'Highlight colour ' + c"
+									(mousedown)="$event.preventDefault()"
+									(click)="setHighlight(c)"
+								></button>
+							}
+						</div>
+						<label
+							class="block w-full cursor-pointer py-1 text-center text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+						>
+							Custom colour...
+							<input
+								type="color"
+								class="sr-only"
+								[value]="curHighlight()"
+								(change)="setHighlight($any($event.target).value)"
+							/>
+						</label>
+					</div>
+				</div>
 			</div>
 		</ng-template>
 
 		<ng-template #paragraphControls>
+			<!-- List style: bullets + numbering -->
+			<div class="pptx-rb-grp">
+				<button
+					type="button"
+					class="pptx-rb-gb"
+					[disabled]="!isText()"
+					[ngClass]="curStyle()?.listType === 'bullet' ? 'bg-accent' : ''"
+					title="Bullet list"
+					(click)="toggleList('bullet')"
+				>
+					•≡
+				</button>
+				<button
+					type="button"
+					class="pptx-rb-gl"
+					[disabled]="!isText()"
+					[ngClass]="curStyle()?.listType === 'numbered' ? 'bg-accent' : ''"
+					title="Numbered list"
+					(click)="toggleList('numbered')"
+				>
+					1.≡
+				</button>
+			</div>
+			<!-- Indent: outdent + indent -->
+			<div class="pptx-rb-grp">
+				<button
+					type="button"
+					class="pptx-rb-gb"
+					[disabled]="!isText()"
+					title="Decrease indent"
+					(click)="changeIndent(-24)"
+				>
+					⇤
+				</button>
+				<button
+					type="button"
+					class="pptx-rb-gl"
+					[disabled]="!isText()"
+					title="Increase indent"
+					(click)="changeIndent(24)"
+				>
+					⇥
+				</button>
+			</div>
+			<!-- Alignment -->
 			<div class="pptx-rb-grp">
 				<button
 					type="button"
@@ -1330,7 +1482,8 @@ export class RibbonComponent {
 	protected readonly tabs = TABS;
 	protected readonly fontFamilies = FONT_FAMILIES;
 	protected readonly fontSizes = FONT_SIZES;
-	protected readonly textColors = TEXT_COLORS;
+	protected readonly fontColorPresets = FONT_COLOR_PRESETS;
+	protected readonly highlightColorPresets = HIGHLIGHT_COLOR_PRESETS;
 	protected readonly drawTools = DRAW_TOOLS;
 	protected readonly transitionPresets = TRANSITION_PRESETS;
 	protected readonly entrancePresets = ENTRANCE_PRESETS;
@@ -1514,6 +1667,26 @@ export class RibbonComponent {
 	}
 	protected setColor(color: string): void {
 		this.patchText({ color });
+	}
+	protected setHighlight(highlightColor: string): void {
+		this.patchText({ highlightColor });
+	}
+	/** Current font colour of the selection (for the swatch + active-state ring). */
+	protected curColor(): string {
+		return this.curStyle()?.color ?? '#000000';
+	}
+	/** Current highlight colour of the selection (for the swatch + active-state ring). */
+	protected curHighlight(): string {
+		return this.curStyle()?.highlightColor ?? '#ffff00';
+	}
+	/** Toggle the paragraph list style (bullet / numbered) off when already set. */
+	protected toggleList(kind: 'bullet' | 'numbered'): void {
+		this.patchText({ listType: this.curStyle()?.listType === kind ? 'none' : kind });
+	}
+	/** Step the paragraph left-indent by `deltaPx` (clamped at 0). */
+	protected changeIndent(deltaPx: number): void {
+		const current = this.curStyle()?.paragraphMarginLeft ?? 0;
+		this.patchText({ paragraphMarginLeft: Math.max(0, current + deltaPx) });
 	}
 	protected setAlign(align: 'left' | 'center' | 'right' | 'justify'): void {
 		this.patchText({ align });

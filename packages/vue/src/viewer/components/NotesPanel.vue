@@ -1,27 +1,39 @@
 <script setup lang="ts">
 import type { PptxSlide } from 'pptx-viewer-core';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
+
+import NotesToolbar from './NotesToolbar.vue';
+import { useNotesEditor } from './useNotesEditor';
 
 /**
  * NotesPanel - collapsible speaker-notes panel for the Vue editor.
  *
  * Renders below the slide canvas and shows/edits the current slide's speaker
- * notes. Reads the real core field `PptxSlide.notes` (a plain string populated
- * by `PptxSlideLoaderService` during parse and preserved through
- * `useLoadContent`). The host is responsible for writing the edited text back
- * to the slide via a history-aware reassignment when `update` is emitted.
+ * notes. Reads the real core fields `PptxSlide.notes` (plain string) and
+ * `PptxSlide.notesSegments` (rich runs, when the deck was loaded from a .pptx).
+ * The host writes the edited text back to the slide via a history-aware
+ * reassignment when `update` is emitted.
+ *
+ * Rich vs plain
+ * -------------
+ * The default surface is a contentEditable RICH editor (bold/italic/underline/
+ * strikethrough, bullet/numbered lists, indent, hyperlinks), mirroring the
+ * React viewer. On a mobile viewport the editor defaults to a plain `<textarea>`
+ * so the on-screen keyboard and caret behave (the documented mobile rationale);
+ * the toolbar's rich/plain toggle flips between the two on any device. All
+ * framework-agnostic logic lives in `pptx-viewer-shared`; this SFC is the view
+ * layer and `useNotesEditor` is the thin reactive wiring.
  *
  * Touch / focus correctness
  * -------------------------
- * The textarea is UNCONTROLLED: its value is seeded imperatively via a template
- * ref exactly once per slide and never re-bound (`:value`) while the user types.
- * If we re-bound `:value` to a ref that the host's history-aware reassignment
- * mutated on every keystroke, the on-screen keyboard could dismiss and the
- * caret could jump, so instead the DOM owns the text during an edit and we
- * only commit on `change`/`blur` (history entry per edit, not per keystroke).
+ * Both surfaces are UNCONTROLLED: their content is seeded imperatively (once per
+ * slide, keyed by slide id) and never re-bound while the user types. Rich edits
+ * are debounced; plain edits commit on `change` / `blur`. This keeps the host's
+ * per-keystroke history-aware reassignment from remounting the field mid-typing,
+ * which on mobile would dismiss the keyboard and jump the caret.
  *
  * Props : `{ slide: PptxSlide | undefined }`
- * Emits : `update: [notes: string]` - the new notes text from the textarea.
+ * Emits : `update: [notes: string]` - the new plain-text notes.
  */
 const props = defineProps<{
 	slide: PptxSlide | undefined;
@@ -33,39 +45,35 @@ const emit = defineEmits<{
 
 const collapsed = ref(false);
 
-/** The textarea element: the source of truth for in-progress edits. */
-const textareaRef = ref<HTMLTextAreaElement | null>(null);
-
-/** Write the committed notes for the current slide into the uncontrolled field. */
-function seedTextarea(): void {
-	const el = textareaRef.value;
-	if (el) {
-		el.value = props.slide?.notes ?? '';
-	}
-}
-
-// Seed once on mount with the initial slide notes.
-onMounted(seedTextarea);
-
-/**
- * Re-seed the textarea whenever the active slide changes, e.g. navigating
- * between slides or a history undo/redo replacing the slide. We key on the
- * slide id so re-seeding only happens on a genuine slide swap, never on each
- * keystroke (which would steal focus / reset the caret on touch).
- */
-watch(() => props.slide?.id, seedTextarea);
-
 const hasSlide = computed<boolean>(() => props.slide !== undefined);
 
+const {
+	richEditorRef,
+	textareaRef,
+	isRichEnabled,
+	showLinkPopover,
+	savedSelectionText,
+	onRichInput,
+	inlineCommand,
+	paragraphCommand,
+	onRichKeydown,
+	onEditorClick,
+	openLinkPopover,
+	insertLink,
+	closeLinkPopover,
+	onPlainCommit,
+	toggleRich,
+	printNotes,
+} = useNotesEditor(
+	() => props.slide,
+	(notes) => emit('update', notes),
+);
+
 /**
- * Commit the notes text. Fired on `change` (blur / Enter-out) rather than every
- * keystroke so the host's history-aware reassignment doesn't remount this field
- * mid-typing, which on mobile dismisses the on-screen keyboard.
+ * Show the rich surface only when a slide is selected; with no slide we fall
+ * back to the disabled plain textarea (its "No slide selected" placeholder).
  */
-function onCommit(event: Event): void {
-	const target = event.target as HTMLTextAreaElement;
-	emit('update', target.value);
-}
+const showRich = computed<boolean>(() => hasSlide.value && isRichEnabled.value);
 
 function toggle(): void {
 	collapsed.value = !collapsed.value;
@@ -90,7 +98,42 @@ function toggle(): void {
 		</button>
 
 		<div v-show="!collapsed" id="slide-notes-content" class="pptx-vue-notes-body px-3 pb-3">
+			<NotesToolbar
+				v-if="hasSlide"
+				:is-rich-enabled="isRichEnabled"
+				:show-link-popover="showLinkPopover"
+				:saved-selection-text="savedSelectionText"
+				@inline="inlineCommand"
+				@toggle-bullet="paragraphCommand('bullet')"
+				@toggle-numbered="paragraphCommand('numbered')"
+				@indent="paragraphCommand('indent')"
+				@outdent="paragraphCommand('outdent')"
+				@link-button-click="openLinkPopover"
+				@insert-link="insertLink"
+				@close-link-popover="closeLinkPopover"
+				@print="printNotes"
+				@toggle-rich="toggleRich"
+			/>
+
+			<!-- Rich contentEditable surface (desktop default). Seeded imperatively
+			     via innerHTML built by the shared sanitising serialiser. -->
+			<div
+				v-show="showRich"
+				ref="richEditorRef"
+				:contenteditable="hasSlide"
+				role="textbox"
+				aria-multiline="true"
+				aria-label="Speaker notes"
+				class="pptx-vue-notes-rich box-border min-h-20 w-full resize-y overflow-auto rounded-md border border-border/50 bg-muted/60 p-2 text-[0.8125rem] leading-relaxed text-foreground focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/30"
+				@input="onRichInput"
+				@keydown="onRichKeydown"
+				@blur="onRichInput"
+				@click="onEditorClick"
+			/>
+
+			<!-- Plain textarea fallback (mobile default / toggle / no slide). -->
 			<textarea
+				v-show="!showRich"
 				ref="textareaRef"
 				name="slide-notes"
 				class="pptx-vue-notes-textarea box-border min-h-20 w-full resize-y rounded-md border border-border/50 bg-muted/60 p-2 text-[0.8125rem] leading-relaxed text-foreground transition-colors placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-60"
@@ -98,8 +141,8 @@ function toggle(): void {
 				:placeholder="hasSlide ? 'Add speaker notes…' : 'No slide selected'"
 				aria-label="Speaker notes"
 				spellcheck="true"
-				@change="onCommit"
-				@blur="onCommit"
+				@change="onPlainCommit"
+				@blur="onPlainCommit"
 			/>
 		</div>
 	</section>

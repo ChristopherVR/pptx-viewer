@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils';
 import type { PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
+import { nextTick } from 'vue';
 
 import NotesPanel from './NotesPanel.vue';
 
@@ -14,29 +15,47 @@ function makeSlide(overrides: Partial<PptxSlide> = {}): PptxSlide {
 	};
 }
 
+/** The toolbar rich/plain toggle button (labelled "Plain" when rich is active). */
+function toggleButton(wrapper: ReturnType<typeof mount>) {
+	return wrapper.findAll('button').find((b) => b.text() === 'Plain' || b.text() === 'Rich');
+}
+
 describe('notesPanel', () => {
-	it('prefills the textarea from the slide notes field', () => {
+	it('defaults to the rich contentEditable editor and seeds it from notes', async () => {
 		const wrapper = mount(NotesPanel, {
 			props: { slide: makeSlide({ notes: 'Remember quarterly goals.' }) },
 		});
-		const textarea = wrapper.get('textarea');
-		expect((textarea.element as HTMLTextAreaElement).value).toBe('Remember quarterly goals.');
+		await nextTick();
+		const rich = wrapper.get('.pptx-vue-notes-rich');
+		expect(rich.attributes('contenteditable')).toBe('true');
+		expect(rich.element.innerHTML).toContain('Remember quarterly goals.');
 	});
 
-	it('renders an empty textarea when the slide has no notes', () => {
-		const wrapper = mount(NotesPanel, { props: { slide: makeSlide() } });
-		const textarea = wrapper.get('textarea');
-		expect((textarea.element as HTMLTextAreaElement).value).toBe('');
+	it('honours rich notesSegments when present', async () => {
+		const wrapper = mount(NotesPanel, {
+			props: {
+				slide: makeSlide({
+					notes: 'Bold note',
+					notesSegments: [{ text: 'Bold note', style: { bold: true } }],
+				}),
+			},
+		});
+		await nextTick();
+		expect(wrapper.get('.pptx-vue-notes-rich').element.innerHTML).toContain('font-weight:700');
 	});
 
-	it('emits update with the new text when the edit is committed', async () => {
+	it('toggles to a plain textarea and emits the committed text', async () => {
 		const wrapper = mount(NotesPanel, {
 			props: { slide: makeSlide({ notes: 'old' }) },
 		});
+		await nextTick();
+
+		await toggleButton(wrapper)?.trigger('click');
+		await nextTick();
+
 		const textarea = wrapper.get('textarea');
-		// The field is uncontrolled and commits on `change`/`blur` (not per
-		// keystroke) so the host's history-aware reassignment cannot remount it
-		// mid-typing (which on mobile dismisses the on-screen keyboard).
+		expect((textarea.element as HTMLTextAreaElement).value).toBe('old');
+
 		(textarea.element as HTMLTextAreaElement).value = 'new notes text';
 		await textarea.trigger('change');
 
@@ -45,25 +64,29 @@ describe('notesPanel', () => {
 		expect(emitted?.at(-1)).toStrictEqual(['new notes text']);
 	});
 
-	it('re-syncs the textarea when the active slide changes', async () => {
+	it('re-seeds the rich editor when the active slide changes', async () => {
 		const wrapper = mount(NotesPanel, {
 			props: { slide: makeSlide({ id: 'a', notes: 'first' }) },
 		});
-		expect((wrapper.get('textarea').element as HTMLTextAreaElement).value).toBe('first');
+		await nextTick();
+		expect(wrapper.get('.pptx-vue-notes-rich').element.innerHTML).toContain('first');
 
 		await wrapper.setProps({ slide: makeSlide({ id: 'b', notes: 'second' }) });
-		expect((wrapper.get('textarea').element as HTMLTextAreaElement).value).toBe('second');
+		await nextTick();
+		expect(wrapper.get('.pptx-vue-notes-rich').element.innerHTML).toContain('second');
 	});
 
-	it('disables the textarea when no slide is selected', () => {
+	it('falls back to a disabled textarea when no slide is selected', () => {
 		const wrapper = mount(NotesPanel, { props: { slide: undefined } });
 		const textarea = wrapper.get('textarea');
 		expect((textarea.element as HTMLTextAreaElement).disabled).toBeTruthy();
+		// The toolbar is hidden with no slide to format.
+		expect(wrapper.find('.pptx-vue-notes-toolbar').exists()).toBeFalsy();
 	});
 
 	it('toggles collapse when the header is clicked', async () => {
 		const wrapper = mount(NotesPanel, { props: { slide: makeSlide() } });
-		const header = wrapper.get('button');
+		const header = wrapper.get('.pptx-vue-notes-header');
 		expect(header.attributes('aria-expanded')).toBe('true');
 		await header.trigger('click');
 		expect(header.attributes('aria-expanded')).toBe('false');
