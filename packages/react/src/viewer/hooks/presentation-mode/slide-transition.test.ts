@@ -51,7 +51,7 @@ describe('executeSlideTransition', () => {
 	it('should clear existing timers', () => {
 		const deps = createMockDeps();
 		executeSlideTransition(1, deps);
-		expect(deps.clearPresentationTimers).toHaveBeenCalled();
+		expect(deps.clearPresentationTimers).toHaveBeenCalledWith();
 	});
 
 	it('should play transition sound when slide has one', () => {

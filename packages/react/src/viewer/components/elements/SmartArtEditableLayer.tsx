@@ -5,11 +5,7 @@ import React from 'react';
 
 import { SmartArtInlineNodeEditor } from './SmartArtInlineNodeEditor';
 import { SmartArtNodeStyleBar } from './SmartArtNodeStyleBar';
-import {
-	NODE_ID_ATTR,
-	findNodeIdFromEvent,
-	useSmartArtHoverState,
-} from './useSmartArtHoverState';
+import { NODE_ID_ATTR, findNodeIdFromEvent, useSmartArtHoverState } from './useSmartArtHoverState';
 
 // ── Props ───────────────────────────────────────────────────────────────────
 

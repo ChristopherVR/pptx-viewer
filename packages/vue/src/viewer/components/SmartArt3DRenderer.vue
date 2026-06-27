@@ -110,7 +110,9 @@ const editState = useSmartArtInlineEditState();
 function findNodeEl(target: EventTarget | null): Element | null {
 	let el = target instanceof Element ? target : null;
 	while (el) {
-		if (el.hasAttribute('data-node-id')) return el;
+		if (el.hasAttribute('data-node-id')) {
+			return el;
+		}
 		el = el.parentElement;
 	}
 	return null;
@@ -119,11 +121,17 @@ function findNodeEl(target: EventTarget | null): Element | null {
 function onOverlayDblClick(e: MouseEvent): void {
 	const nodeEl = findNodeEl(e.target);
 	const container = containerRef.value;
-	if (!nodeEl || !container) return;
+	if (!nodeEl || !container) {
+		return;
+	}
 	const nodeId = nodeEl.getAttribute('data-node-id');
-	if (!nodeId || !nodeEdit) return;
+	if (!nodeId || !nodeEdit) {
+		return;
+	}
 	const data = smartArtData.value;
-	if (!data) return;
+	if (!data) {
+		return;
+	}
 	const currentText = data.nodes.find((n) => n.id === nodeId)?.text ?? '';
 	const rect = inlineEditorRect(nodeEl.getBoundingClientRect(), container.getBoundingClientRect());
 	editState.begin(nodeId, currentText, rect);

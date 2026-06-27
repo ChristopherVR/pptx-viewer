@@ -32,7 +32,9 @@ const isLocked = computed(
 );
 
 function toggleLock(): void {
-	if (!props.canEdit) return;
+	if (!props.canEdit) {
+		return;
+	}
 	if (isLocked.value) {
 		emit('update', { locks: undefined } as Partial<PptxElement>);
 	} else {

@@ -83,7 +83,7 @@ describe('createTableStructHandlers', () => {
 			const input = createMockInput();
 			const handlers = createTableStructHandlers(input);
 			handlers.handleCommitCellEdit('table-1', 0, 0, 'test');
-			expect(input.history.markDirty).toHaveBeenCalled();
+			expect(input.history.markDirty).toHaveBeenCalledWith();
 		});
 
 		it('should update table editor state after edit', () => {
@@ -138,7 +138,7 @@ describe('createTableStructHandlers', () => {
 					}),
 				}),
 			);
-			expect(input.history.markDirty).toHaveBeenCalled();
+			expect(input.history.markDirty).toHaveBeenCalledWith();
 		});
 
 		it('should do nothing if element is missing', () => {
@@ -185,7 +185,7 @@ describe('createTableStructHandlers', () => {
 			const input = createMockInput();
 			const handlers = createTableStructHandlers(input);
 			handlers.handleInsertTableRow('below');
-			expect(input.ops.updateSelectedElement).toHaveBeenCalled();
+			expect(input.ops.updateSelectedElement).toHaveBeenCalledWith();
 			const call = (input.ops.updateSelectedElement as ReturnType<typeof vi.fn>).mock.calls[0][0];
 			const td = call.tableData as PptxTableData;
 			expect(td.rows).toHaveLength(4); // was 3, now 4
@@ -195,7 +195,7 @@ describe('createTableStructHandlers', () => {
 			const input = createMockInput();
 			const handlers = createTableStructHandlers(input);
 			handlers.handleInsertTableRow('above');
-			expect(input.ops.updateSelectedElement).toHaveBeenCalled();
+			expect(input.ops.updateSelectedElement).toHaveBeenCalledWith();
 			const call = (input.ops.updateSelectedElement as ReturnType<typeof vi.fn>).mock.calls[0][0];
 			const td = call.tableData as PptxTableData;
 			expect(td.rows).toHaveLength(4);
@@ -232,7 +232,7 @@ describe('createTableStructHandlers', () => {
 			const input = createMockInput();
 			const handlers = createTableStructHandlers(input);
 			handlers.handleInsertTableRow('below');
-			expect(input.history.markDirty).toHaveBeenCalled();
+			expect(input.history.markDirty).toHaveBeenCalledWith();
 		});
 	});
 

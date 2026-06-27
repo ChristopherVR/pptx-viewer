@@ -105,7 +105,9 @@ function truncate(text: string, max: number): string {
  */
 function textLines(text: string, fontSize: number): Array<{ text: string; y: number }> {
 	const raw = (text ?? '').split('\n').filter((l) => l.length > 0);
-	if (raw.length === 0) return [{ text: '', y: 0 }];
+	if (raw.length === 0) {
+		return [{ text: '', y: 0 }];
+	}
 	const lh = fontSize * 1.2;
 	const totalH = raw.length * lh;
 	return raw.map((line, i) => ({
@@ -376,9 +378,13 @@ function cancelEdit(): void {
 /** Apply a fill colour to a node by id, routing through the host commitStyle op. */
 function handleChangeNodeStyle(nodeId: string, fill: string): void {
 	const data = smartArtData.value;
-	if (!data || !nodeEdit) return;
+	if (!data || !nodeEdit) {
+		return;
+	}
 	const next = setSmartArtNodeStyle(data, nodeId, { fillColor: fill });
-	if (next !== data) nodeEdit.commitStyle?.(props.element.id, { smartArtData: next } as Partial<PptxElement>);
+	if (next !== data) {
+		nodeEdit.commitStyle?.(props.element.id, { smartArtData: next } as Partial<PptxElement>);
+	}
 }
 
 /**

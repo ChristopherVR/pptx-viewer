@@ -99,7 +99,7 @@ describe('handleCancelExport logic', () => {
 		exportAbortRef.current?.abort();
 		exportAbortRef.current = null;
 
-		expect(abortSpy).toHaveBeenCalled();
+		expect(abortSpy).toHaveBeenCalledWith();
 		expect(exportAbortRef.current).toBeNull();
 	});
 

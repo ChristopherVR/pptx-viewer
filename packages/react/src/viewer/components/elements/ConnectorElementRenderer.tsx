@@ -20,10 +20,11 @@ import {
 import { ConnectorTextOverlay } from './ConnectorTextOverlay';
 import type { ConnectorRendererProps } from './element-renderer-types';
 import { ResizeHandles } from './ResizeHandles';
+
 export type { ConnectorRendererProps };
 
 export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.memo(
-	function ConnectorElementRendererInner({
+	({
 		el,
 		isSelected,
 		canInteract,
@@ -36,7 +37,7 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 		onResizePointerDown,
 		onAdjustmentPointerDown,
 		animationState,
-	}) {
+	}) => {
 		const shapeEl = hasShapeProperties(el) ? el : undefined;
 		const viewWidth = Math.max(el.width, 1);
 		const viewHeight = Math.max(el.height, 1);
@@ -53,7 +54,7 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 		const startArrow = ss?.connectorStartArrow;
 		const endArrow = ss?.connectorEndArrow;
 		const compoundLine = ss?.compoundLine;
-		const markerSeed = el.id.replace(/[^a-zA-Z0-9_-]/g, '_');
+		const markerSeed = el.id.replace(/[^a-zA-Z0-9_-]/gu, '_');
 		const startMarkerId = `${markerSeed}-sel-start`;
 		const endMarkerId = `${markerSeed}-sel-end`;
 
@@ -256,3 +257,4 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 		);
 	},
 );
+ConnectorElementRenderer.displayName = 'ConnectorElementRenderer';

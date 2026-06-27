@@ -112,7 +112,7 @@ describe('pptxCompatibilityService', () => {
 				scope: 'presentation',
 			});
 			expect(svc.getWarnings()[0].severity).toBe('info');
-			expect(infoSpy).toHaveBeenCalled();
+			expect(infoSpy).toHaveBeenCalledWith();
 			vi.restoreAllMocks();
 		});
 

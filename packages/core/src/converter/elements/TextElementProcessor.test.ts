@@ -121,7 +121,7 @@ describe('textElementProcessor', () => {
 		const renderSpy = vi.spyOn(renderer, 'render').mockReturnValue('**Hello**');
 
 		const result = await processor.process(el, makeCtx());
-		expect(renderSpy).toHaveBeenCalled();
+		expect(renderSpy).toHaveBeenCalledWith();
 		expect(result).toBe('**Hello**');
 	});
 

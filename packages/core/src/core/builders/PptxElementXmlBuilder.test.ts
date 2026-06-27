@@ -170,7 +170,7 @@ describe('pptxElementXmlBuilder.resetIdCounter', () => {
 		// to ensure the builder was properly reset.
 		// A more direct test: we can call createElementXml and verify factories were called.
 		builder.createElementXml(createTextElement());
-		expect(mockTextFactory.createXmlElement).toHaveBeenCalled();
+		expect(mockTextFactory.createXmlElement).toHaveBeenCalledWith();
 	});
 });
 

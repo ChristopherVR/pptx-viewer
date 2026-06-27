@@ -96,8 +96,8 @@ describe('createTableMergeHandlers', () => {
 			const input = createMockInput();
 			const handlers = createTableMergeHandlers(input);
 			handlers.handleMergeCellRight();
-			expect(input.ops.updateSelectedElement).toHaveBeenCalled();
-			expect(input.history.markDirty).toHaveBeenCalled();
+			expect(input.ops.updateSelectedElement).toHaveBeenCalledWith();
+			expect(input.history.markDirty).toHaveBeenCalledWith();
 		});
 
 		it('should do nothing if no selected element', () => {
@@ -158,8 +158,8 @@ describe('createTableMergeHandlers', () => {
 			const input = createMockInput();
 			const handlers = createTableMergeHandlers(input);
 			handlers.handleMergeCellDown();
-			expect(input.ops.updateSelectedElement).toHaveBeenCalled();
-			expect(input.history.markDirty).toHaveBeenCalled();
+			expect(input.ops.updateSelectedElement).toHaveBeenCalledWith();
+			expect(input.history.markDirty).toHaveBeenCalledWith();
 		});
 
 		it('should do nothing if at the last row', () => {
@@ -198,8 +198,8 @@ describe('createTableMergeHandlers', () => {
 			});
 			const handlers = createTableMergeHandlers(input);
 			handlers.handleMergeSelectedCells();
-			expect(input.ops.updateSelectedElement).toHaveBeenCalled();
-			expect(input.history.markDirty).toHaveBeenCalled();
+			expect(input.ops.updateSelectedElement).toHaveBeenCalledWith();
+			expect(input.history.markDirty).toHaveBeenCalledWith();
 		});
 
 		it('should do nothing if less than 2 cells selected', () => {
@@ -253,8 +253,8 @@ describe('createTableMergeHandlers', () => {
 			const input = createMockInput();
 			const handlers = createTableMergeHandlers(input);
 			handlers.handleSplitCell();
-			expect(input.ops.updateSelectedElement).toHaveBeenCalled();
-			expect(input.history.markDirty).toHaveBeenCalled();
+			expect(input.ops.updateSelectedElement).toHaveBeenCalledWith();
+			expect(input.history.markDirty).toHaveBeenCalledWith();
 		});
 
 		it('should do nothing if no table editor state', () => {

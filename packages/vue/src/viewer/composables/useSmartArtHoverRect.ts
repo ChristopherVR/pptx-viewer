@@ -8,7 +8,9 @@ const NODE_ID_ATTR = 'data-smartart-node-id';
 function findNodeEl(target: EventTarget | null): Element | null {
 	let el = target instanceof Element ? target : null;
 	while (el) {
-		if (el.hasAttribute(NODE_ID_ATTR)) return el;
+		if (el.hasAttribute(NODE_ID_ATTR)) {
+			return el;
+		}
 		el = el.parentElement;
 	}
 	return null;
