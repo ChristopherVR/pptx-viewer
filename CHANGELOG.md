@@ -4,6 +4,20 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [Unreleased]
+
+### Features
+
+- **angular:** Collaboration host API, audience exports, ribbon + theme parity (by @ChristopherVR) ([961ac76](https://github.com/ChristopherVR/pptx-viewer/commit/961ac76f7a20f0290af65a731054f43551c3357a))
+- **vue:** Theme gallery 10-theme parity and audience exports (by @ChristopherVR) ([a3eec9c](https://github.com/ChristopherVR/pptx-viewer/commit/a3eec9ce79aa632d2f1464fe2d2854eceb728849))
+- **demo-vue:** React-parity floating theme picker and collaboration wiring (by @ChristopherVR) ([ce64625](https://github.com/ChristopherVR/pptx-viewer/commit/ce64625370ae9a6d7e5928e260f7d709a87b32b8))
+- **demo-angular:** React-parity floating theme picker and collaboration wiring (by @ChristopherVR) ([3ee607f](https://github.com/ChristopherVR/pptx-viewer/commit/3ee607f34030c6ba318011ee33a8b1547e21ef0d))
+
+### Bug Fixes
+
+- **angular:** Break ChartDataEditorComponent circular-init crash (by @ChristopherVR) ([502d301](https://github.com/ChristopherVR/pptx-viewer/commit/502d3017625edbf647d6fa2b0d74088f5d6969f5))
+- Added additional I parity to angular and vue (by @ChristopherVR) ([ab5cba3](https://github.com/ChristopherVR/pptx-viewer/commit/ab5cba3cd85d9fbe5220c3867e63240240c66dce))
+
 ## [1.1.73](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.73) - 2026-06-27
 
 ### Features
