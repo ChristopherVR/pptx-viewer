@@ -4,12 +4,16 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
-## [Unreleased]
+## [1.1.73](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.73) - 2026-06-27
 
 ### Features
 
 - **vue:** Zoom renderer, 3D extrusion overlay, duotone filter, and element style improvements (by @ChristopherVR) ([85b9443](https://github.com/ChristopherVR/pptx-viewer/commit/85b9443985a024d7b564dd3609857b85c4aedd37))
 - **angular:** Zoom renderer, eyedropper, zoom-target service, and SmartArt refinements (by @ChristopherVR) ([adf754d](https://github.com/ChristopherVR/pptx-viewer/commit/adf754d2f2f088ab069920760a0e90629051612b))
+
+### Styling
+
+- **react,vue:** Lint and formatting fixes (by @ChristopherVR) ([6b39687](https://github.com/ChristopherVR/pptx-viewer/commit/6b396877f404a7af0259e43356e51d82413a76b0))
 
 ## [1.1.72](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.72) - 2026-06-26
 
