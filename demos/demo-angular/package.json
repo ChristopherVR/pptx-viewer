@@ -11,7 +11,7 @@
 	"dependencies": {
 		"@angular/common": "^22.0.2",
 		"@angular/core": "^22.0.2",
-		"@angular/platform-browser": "^22.0.2",
+		"@angular/platform-browser": "^22.0.4",
 		"fast-xml-parser": "^5.9.2",
 		"html2canvas-pro": "^2.0.4",
 		"jspdf": "^4.2.1",
