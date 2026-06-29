@@ -48,7 +48,7 @@
 		"prepare": "husky"
 	},
 	"devDependencies": {
-		"@playwright/test": "^1.61.0",
+		"@playwright/test": "^1.61.1",
 		"@types/three": "^0.184.1",
 		"husky": "^9.1.7",
 		"lib0": "^0.2.117",
