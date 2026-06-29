@@ -60,13 +60,13 @@
 		"@angular/core": "^22.0.2",
 		"@angular/platform-browser": "^22.0.2",
 		"@tailwindcss/cli": "^4.3.1",
-		"@types/three": "^0.184.1",
+		"@types/three": "^0.185.0",
 		"happy-dom": "^20.10.6",
 		"ng-packagr": "^22.0.0",
 		"pptx-viewer-core": "workspace:*",
 		"rxjs": "^7.8.2",
 		"tailwindcss": "^4.3.1",
-		"three": "^0.184.0",
+		"three": "^0.185.0",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.9",
 		"zone.js": "^0.16.2"
@@ -75,7 +75,7 @@
 		"@angular/common": "^22.0.1",
 		"@angular/core": "^22.0.1",
 		"rxjs": "^7.8.0",
-		"three": "^0.184.0"
+		"three": "^0.185.0"
 	},
 	"peerDependenciesMeta": {
 		"three": {

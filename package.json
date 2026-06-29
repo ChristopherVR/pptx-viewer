@@ -49,11 +49,11 @@
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.61.0",
-		"@types/three": "^0.184.1",
+		"@types/three": "^0.185.0",
 		"husky": "^9.1.7",
 		"lib0": "^0.2.117",
 		"lint-staged": "^17.0.8",
-		"oxfmt": "^0.55.0",
+		"oxfmt": "^0.56.0",
 		"oxlint": "^1.70.0",
 		"pptx-react-viewer": "workspace:*",
 		"pptx-viewer-core": "workspace:*",
@@ -64,7 +64,7 @@
 	"optionalDependencies": {
 		"@react-three/drei": "^10.7.7",
 		"@react-three/fiber": "^9.6.1",
-		"three": "^0.184.0"
+		"three": "^0.185.0"
 	},
 	"lint-staged": {
 		"*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,css,scss,less,html,vue,yaml,toml,md,mdx,graphql}": "oxfmt",
