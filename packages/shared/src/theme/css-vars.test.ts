@@ -28,10 +28,7 @@ describe('themeToCssVars', () => {
 	});
 
 	it('should not emit --color-* for colors that are omitted via omitDefaults', () => {
-		const vars = themeToCssVars(
-			{ colors: { primary: defaultThemeColors.primary } },
-			true,
-		);
+		const vars = themeToCssVars({ colors: { primary: defaultThemeColors.primary } }, true);
 		expect(vars['--color-primary']).toBeUndefined();
 	});
 

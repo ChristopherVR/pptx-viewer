@@ -48,8 +48,8 @@
 		"prepare": "husky"
 	},
 	"devDependencies": {
-		"@types/three": "^0.185.0",
 		"@playwright/test": "^1.61.1",
+		"@types/three": "^0.185.0",
 		"husky": "^9.1.7",
 		"lib0": "^0.2.117",
 		"lint-staged": "^17.0.8",
