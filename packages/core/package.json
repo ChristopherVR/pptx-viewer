@@ -73,7 +73,7 @@
 		"pack": "bun run build && bun pm pack"
 	},
 	"dependencies": {
-		"emf-converter": "^1.4.2",
+		"emf-converter": "^1.5.0",
 		"fast-xml-parser": "^5.9.3",
 		"jszip": "^3.10.1",
 		"mtx-decompressor": "^1.4.2"
