@@ -57,6 +57,9 @@ export function themeToCssVars(
 				continue;
 			}
 			vars[`--pptx-${cssSuffix}`] = value;
+			// Also set the Tailwind semantic token directly so it overrides the
+			// @theme :root declaration, which cannot see vars set on a child element.
+			vars[`--color-${cssSuffix}`] = value;
 		}
 	}
 
@@ -64,6 +67,12 @@ export function themeToCssVars(
 	if (theme.radius !== undefined) {
 		if (!omitDefaults || theme.radius !== defaultRadius) {
 			vars['--pptx-radius'] = theme.radius;
+			// Mirror the @theme derived tokens directly for the same reason as colors.
+			const r = theme.radius;
+			vars['--radius-sm'] = `calc(${r} - 4px)`;
+			vars['--radius-md'] = `calc(${r} - 2px)`;
+			vars['--radius-lg'] = r;
+			vars['--radius-xl'] = `calc(${r} + 4px)`;
 		}
 	}
 

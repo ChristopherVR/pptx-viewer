@@ -19,6 +19,22 @@ describe('themeToCssVars', () => {
 		expect(vars['--pptx-primary']).toBe('#FF0000');
 	});
 
+	it('should also emit --color-* alongside --pptx-* for each color', () => {
+		const vars = themeToCssVars({
+			colors: { primary: '#FF0000', background: '#FFFFFF' },
+		});
+		expect(vars['--color-primary']).toBe('#FF0000');
+		expect(vars['--color-background']).toBe('#FFFFFF');
+	});
+
+	it('should not emit --color-* for colors that are omitted via omitDefaults', () => {
+		const vars = themeToCssVars(
+			{ colors: { primary: defaultThemeColors.primary } },
+			true,
+		);
+		expect(vars['--color-primary']).toBeUndefined();
+	});
+
 	it('should convert camelCase keys to kebab-case CSS properties', () => {
 		const vars = themeToCssVars({
 			colors: {
@@ -35,6 +51,20 @@ describe('themeToCssVars', () => {
 	it('should include radius when specified', () => {
 		const vars = themeToCssVars({ radius: '0.75rem' });
 		expect(vars['--pptx-radius']).toBe('0.75rem');
+	});
+
+	it('should emit derived --radius-* tokens alongside --pptx-radius', () => {
+		const vars = themeToCssVars({ radius: '0.75rem' });
+		expect(vars['--radius-sm']).toBe('calc(0.75rem - 4px)');
+		expect(vars['--radius-md']).toBe('calc(0.75rem - 2px)');
+		expect(vars['--radius-lg']).toBe('0.75rem');
+		expect(vars['--radius-xl']).toBe('calc(0.75rem + 4px)');
+	});
+
+	it('should not emit --radius-* tokens when radius is omitted via omitDefaults', () => {
+		const vars = themeToCssVars({ radius: defaultRadius }, true);
+		expect(vars['--radius-sm']).toBeUndefined();
+		expect(vars['--radius-lg']).toBeUndefined();
 	});
 
 	it('should include escape-hatch cssVars', () => {
