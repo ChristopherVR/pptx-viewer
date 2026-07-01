@@ -169,8 +169,9 @@ describe('pptxElementXmlBuilder.resetIdCounter', () => {
 		// Since we have custom mock factories, we test via normalizePresetGeometry
 		// to ensure the builder was properly reset.
 		// A more direct test: we can call createElementXml and verify factories were called.
-		builder.createElementXml(createTextElement());
-		expect(mockTextFactory.createXmlElement).toHaveBeenCalledWith();
+		const element = createTextElement();
+		builder.createElementXml(element);
+		expect(mockTextFactory.createXmlElement).toHaveBeenCalledWith({ element });
 	});
 });
 
