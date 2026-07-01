@@ -66,16 +66,16 @@
 	},
 	"devDependencies": {
 		"@types/dompurify": "^3.2.0",
-		"@types/three": "^0.184.1",
+		"@types/three": "^0.185.0",
 		"pptx-viewer-core": "workspace:*",
-		"three": "^0.184.0",
+		"three": "^0.185.0",
 		"tsup": "^8.5.1",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.9"
 	},
 	"peerDependencies": {
 		"pptx-viewer-core": "workspace:*",
-		"three": "^0.184.0"
+		"three": "^0.185.0"
 	},
 	"peerDependenciesMeta": {
 		"three": {

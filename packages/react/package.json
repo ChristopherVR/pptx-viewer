@@ -95,7 +95,7 @@
 		"react-icons": "^5.6.0"
 	},
 	"optionalDependencies": {
-		"three": "^0.184.0",
+		"three": "^0.185.0",
 		"y-websocket": "^3.0.0",
 		"yjs": "^13.6.31"
 	}
