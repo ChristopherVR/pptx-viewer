@@ -197,7 +197,7 @@ export function SmartArtNodeText({
 	const lineHeight = fontSize * 1.2;
 
 	let startY: number;
-	let dominantBaseline: string;
+	let dominantBaseline: 'auto' | 'hanging' | 'central';
 
 	if (anchor === 'bottom') {
 		// Last line's baseline at y; stack lines upward.

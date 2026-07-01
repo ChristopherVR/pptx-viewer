@@ -96,7 +96,9 @@ describe('createTableMergeHandlers', () => {
 			const input = createMockInput();
 			const handlers = createTableMergeHandlers(input);
 			handlers.handleMergeCellRight();
-			expect(input.ops.updateSelectedElement).toHaveBeenCalledWith();
+			expect(input.ops.updateSelectedElement).toHaveBeenCalledWith(
+				expect.objectContaining({ rawXml: '<merged-xml/>' }),
+			);
 			expect(input.history.markDirty).toHaveBeenCalledWith();
 		});
 
@@ -158,7 +160,9 @@ describe('createTableMergeHandlers', () => {
 			const input = createMockInput();
 			const handlers = createTableMergeHandlers(input);
 			handlers.handleMergeCellDown();
-			expect(input.ops.updateSelectedElement).toHaveBeenCalledWith();
+			expect(input.ops.updateSelectedElement).toHaveBeenCalledWith(
+				expect.objectContaining({ rawXml: '<merged-xml/>' }),
+			);
 			expect(input.history.markDirty).toHaveBeenCalledWith();
 		});
 
@@ -198,7 +202,9 @@ describe('createTableMergeHandlers', () => {
 			});
 			const handlers = createTableMergeHandlers(input);
 			handlers.handleMergeSelectedCells();
-			expect(input.ops.updateSelectedElement).toHaveBeenCalledWith();
+			expect(input.ops.updateSelectedElement).toHaveBeenCalledWith(
+				expect.objectContaining({ rawXml: '<merged-xml/>' }),
+			);
 			expect(input.history.markDirty).toHaveBeenCalledWith();
 		});
 
@@ -253,7 +259,9 @@ describe('createTableMergeHandlers', () => {
 			const input = createMockInput();
 			const handlers = createTableMergeHandlers(input);
 			handlers.handleSplitCell();
-			expect(input.ops.updateSelectedElement).toHaveBeenCalledWith();
+			expect(input.ops.updateSelectedElement).toHaveBeenCalledWith(
+				expect.objectContaining({ rawXml: '<merged-xml/>' }),
+			);
 			expect(input.history.markDirty).toHaveBeenCalledWith();
 		});
 

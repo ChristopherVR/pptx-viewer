@@ -75,7 +75,7 @@ describe('mediaGraphicFrameXmlFactory', () => {
 			relationshipId: 'rId1',
 		});
 		const cNvPr = (result['p:nvGraphicFramePr'] as XmlObject)['p:cNvPr'] as XmlObject;
-		expect(cNvPr['@_name']).toMatch(/^Video \d+$/);
+		expect(cNvPr['@_name']).toMatch(/^Video \d+$/u);
 	});
 
 	it('names the element "Audio <id>" for audio media type', () => {
@@ -85,7 +85,7 @@ describe('mediaGraphicFrameXmlFactory', () => {
 			relationshipId: 'rId1',
 		});
 		const cNvPr = (result['p:nvGraphicFramePr'] as XmlObject)['p:cNvPr'] as XmlObject;
-		expect(cNvPr['@_name']).toMatch(/^Audio \d+$/);
+		expect(cNvPr['@_name']).toMatch(/^Audio \d+$/u);
 	});
 
 	it('uses a:videoFile tag for video media', () => {
@@ -96,9 +96,9 @@ describe('mediaGraphicFrameXmlFactory', () => {
 		});
 		const graphicData = (result['a:graphic'] as XmlObject)['a:graphicData'] as XmlObject;
 		expect(graphicData['a:videoFile']).toBeDefined();
-		// Default (embedded) emits r:embed, per CT_VideoFile.
-		expect((graphicData['a:videoFile'] as XmlObject)['@_r:embed']).toBe('rId5');
-		expect((graphicData['a:videoFile'] as XmlObject)['@_r:link']).toBeUndefined();
+		// CT_VideoFile only defines r:link; always emitted regardless of isLinked.
+		expect((graphicData['a:videoFile'] as XmlObject)['@_r:link']).toBe('rId5');
+		expect((graphicData['a:videoFile'] as XmlObject)['@_r:embed']).toBeUndefined();
 		expect(graphicData['a:audioFile']).toBeUndefined();
 	});
 
@@ -110,13 +110,13 @@ describe('mediaGraphicFrameXmlFactory', () => {
 		});
 		const graphicData = (result['a:graphic'] as XmlObject)['a:graphicData'] as XmlObject;
 		expect(graphicData['a:audioFile']).toBeDefined();
-		// Default (embedded) emits r:embed, per CT_AudioFile.
-		expect((graphicData['a:audioFile'] as XmlObject)['@_r:embed']).toBe('rId7');
-		expect((graphicData['a:audioFile'] as XmlObject)['@_r:link']).toBeUndefined();
+		// CT_AudioFile only defines r:link; always emitted regardless of isLinked.
+		expect((graphicData['a:audioFile'] as XmlObject)['@_r:link']).toBe('rId7');
+		expect((graphicData['a:audioFile'] as XmlObject)['@_r:embed']).toBeUndefined();
 		expect(graphicData['a:videoFile']).toBeUndefined();
 	});
 
-	it('emits r:link when the media element is marked as linked', () => {
+	it('still emits r:link when the media element is marked as linked', () => {
 		const factory = new MediaGraphicFrameXmlFactory(createMockContext());
 		const result = factory.createXmlElement({
 			element: createMediaElement({ mediaType: 'video', isLinked: true }),
@@ -127,15 +127,15 @@ describe('mediaGraphicFrameXmlFactory', () => {
 		expect((graphicData['a:videoFile'] as XmlObject)['@_r:embed']).toBeUndefined();
 	});
 
-	it('emits r:embed when isLinked is explicitly false', () => {
+	it('still emits r:link when isLinked is explicitly false', () => {
 		const factory = new MediaGraphicFrameXmlFactory(createMockContext());
 		const result = factory.createXmlElement({
 			element: createMediaElement({ mediaType: 'audio', isLinked: false }),
 			relationshipId: 'rIdEmbed',
 		});
 		const graphicData = (result['a:graphic'] as XmlObject)['a:graphicData'] as XmlObject;
-		expect((graphicData['a:audioFile'] as XmlObject)['@_r:embed']).toBe('rIdEmbed');
-		expect((graphicData['a:audioFile'] as XmlObject)['@_r:link']).toBeUndefined();
+		expect((graphicData['a:audioFile'] as XmlObject)['@_r:link']).toBe('rIdEmbed');
+		expect((graphicData['a:audioFile'] as XmlObject)['@_r:embed']).toBeUndefined();
 	});
 
 	it('defaults to video for "unknown" media type', () => {

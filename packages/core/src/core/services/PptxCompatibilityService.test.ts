@@ -112,7 +112,9 @@ describe('pptxCompatibilityService', () => {
 				scope: 'presentation',
 			});
 			expect(svc.getWarnings()[0].severity).toBe('info');
-			expect(infoSpy).toHaveBeenCalledWith();
+			expect(infoSpy).toHaveBeenCalledWith(
+				'[PptxHandler][info] INFO001 (presentation) Info message',
+			);
 			vi.restoreAllMocks();
 		});
 
