@@ -178,6 +178,21 @@ export * from './table-layout';
 // Immutable single-cell text edit (`setCellText`) for inline cell editing,
 // shared by every binding's table renderer.
 export * from './table-cell-edit';
+// Cursor-anchored cell merge/split helpers (`computeMergeCellRight` /
+// `computeMergeCellDown` / `computeSplitCell`): merge the neighbour to the
+// right/below the cursor cell, or split the merged cell under it. Complements
+// the selection-rect operations in `table-merge`.
+export * from './table-cell-merge';
+// Table quick-style preset catalogue (`TABLE_STYLE_PRESETS` + `TableStylePreset`)
+// for the table properties panel.
+export * from './table-style-presets';
+// Advanced (gradient/pattern) cell-fill inspector option lists + shared class
+// tokens (`FILL_MODE_OPTIONS` / `GRADIENT_TYPE_OPTIONS` / `PATTERN_OPTIONS`).
+export * from './table-advanced-fill';
+// Table drag-resize geometry: column-boundary positions, two-column width
+// redistribution (clamped + renormalised), and row-height clamping. Each binding
+// keeps its own drag overlay component.
+export * from './table-resize';
 // Inline (on-canvas) SmartArt node text editing: node-text lookup, no-op commit
 // detection, and overlay-editor rect projection. Pure; the text mutation itself
 // stays in `pptx-viewer-core` (`updateSmartArtNodeText`).
@@ -478,3 +493,12 @@ export * from './insert-chart';
 // SmartArt reflow: convert algorithmic layout results back to PptxSmartArtDrawingShape[]
 // so the drawing-shape renderer handles post-edit display and shapes round-trip through save.
 export * from './smartart-reflow-to-shapes';
+
+// Inspector preset catalogues (framework-free pure data): artistic image-effect
+// presets, text-warp gallery presets + preview-path generator, shape quick-style
+// gallery, and 3D-text bevel/material option lists. Each binding's inspector
+// gallery consumes these instead of duplicating the data.
+export * from './image-artistic-presets';
+export * from './text-warp-presets';
+export * from './shape-quick-styles';
+export * from './text-3d-presets';
