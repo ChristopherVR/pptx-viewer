@@ -185,7 +185,9 @@ describe('createTableStructHandlers', () => {
 			const input = createMockInput();
 			const handlers = createTableStructHandlers(input);
 			handlers.handleInsertTableRow('below');
-			expect(input.ops.updateSelectedElement).toHaveBeenCalledWith();
+			expect(input.ops.updateSelectedElement).toHaveBeenCalledWith(
+				expect.objectContaining({ rawXml: '<rebuilt-xml/>' }),
+			);
 			const call = (input.ops.updateSelectedElement as ReturnType<typeof vi.fn>).mock.calls[0][0];
 			const td = call.tableData as PptxTableData;
 			expect(td.rows).toHaveLength(4); // was 3, now 4
@@ -195,7 +197,9 @@ describe('createTableStructHandlers', () => {
 			const input = createMockInput();
 			const handlers = createTableStructHandlers(input);
 			handlers.handleInsertTableRow('above');
-			expect(input.ops.updateSelectedElement).toHaveBeenCalledWith();
+			expect(input.ops.updateSelectedElement).toHaveBeenCalledWith(
+				expect.objectContaining({ rawXml: '<rebuilt-xml/>' }),
+			);
 			const call = (input.ops.updateSelectedElement as ReturnType<typeof vi.fn>).mock.calls[0][0];
 			const td = call.tableData as PptxTableData;
 			expect(td.rows).toHaveLength(4);

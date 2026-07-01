@@ -307,7 +307,11 @@ describe('pptxSlideBackgroundBuilder', () => {
 		const blipFill = bgPr['a:blipFill'] as XmlObject;
 		// New rId from the registry mock; not the original.
 		expect((blipFill['a:blip'] as XmlObject)['@_r:embed']).toBe('rId10');
-		expect(input.relationshipRegistry.upsertRelationship).toHaveBeenCalledWith();
+		expect(input.relationshipRegistry.upsertRelationship).toHaveBeenCalledWith(
+			'rId10',
+			'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image',
+			'../media/image1.png',
+		);
 	});
 
 	// ── Schema child order ────────────────────────────────────────────────

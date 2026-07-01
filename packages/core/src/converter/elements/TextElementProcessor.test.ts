@@ -121,7 +121,11 @@ describe('textElementProcessor', () => {
 		const renderSpy = vi.spyOn(renderer, 'render').mockReturnValue('**Hello**');
 
 		const result = await processor.process(el, makeCtx());
-		expect(renderSpy).toHaveBeenCalledWith();
+		expect(renderSpy).toHaveBeenCalledWith(segments, {
+			htmlFormatting: false,
+			paragraphIndents: undefined,
+			slideNumber: 1,
+		});
 		expect(result).toBe('**Hello**');
 	});
 
