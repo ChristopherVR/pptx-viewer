@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.56](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.56) - 2026-07-02
+
+### Features
+
+- **shared:** Add canonical i18n translation dictionary (by @ChristopherVR) ([429e386](https://github.com/ChristopherVR/pptx-viewer/commit/429e386c7245fc5cf526ac72481fd5ab23b3e09d))
+- **angular:** Wire ngx-translate, convert hardcoded UI strings to translation keys (by @ChristopherVR) ([33bc42e](https://github.com/ChristopherVR/pptx-viewer/commit/33bc42e0f221a8c8644f1cc80cc314971abc9791))
+
 ## [1.1.54](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.54) - 2026-07-02
 
 ### Features

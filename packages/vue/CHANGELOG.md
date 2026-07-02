@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.80](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.80) - 2026-07-02
+
+### Features
+
+- **shared:** Add canonical i18n translation dictionary (by @ChristopherVR) ([429e386](https://github.com/ChristopherVR/pptx-viewer/commit/429e386c7245fc5cf526ac72481fd5ab23b3e09d))
+
+### Bug Fixes
+
+- **react:** Expose i18n dictionary via pptx-react-viewer, not the private shared package (by @ChristopherVR) ([09f49fe](https://github.com/ChristopherVR/pptx-viewer/commit/09f49fe68aa27d3305294f5896d5f53d3b52a160))
+- **vue:** Expose i18n dictionary via pptx-vue-viewer, not the private shared package (by @ChristopherVR) ([8577907](https://github.com/ChristopherVR/pptx-viewer/commit/8577907cf63af3190853b31e7810f477f394fad2))
+
 ## [1.1.78](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.78) - 2026-07-02
 
 ### Features

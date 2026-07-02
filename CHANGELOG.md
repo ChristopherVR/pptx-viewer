@@ -6,6 +6,33 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [Unreleased]
 
+### Features
+
+- **shared:** Add canonical i18n translation dictionary (by @ChristopherVR) ([429e386](https://github.com/ChristopherVR/pptx-viewer/commit/429e386c7245fc5cf526ac72481fd5ab23b3e09d))
+- **angular:** Wire ngx-translate, convert hardcoded UI strings to translation keys (by @ChristopherVR) ([33bc42e](https://github.com/ChristopherVR/pptx-viewer/commit/33bc42e0f221a8c8644f1cc80cc314971abc9791))
+- **shared:** Backfill i18n dictionary with keys React already calls (by @ChristopherVR) ([5e4760a](https://github.com/ChristopherVR/pptx-viewer/commit/5e4760a957056c366c01b7687e764599bf6f9bae))
+- **vue:** Finish remaining i18n sweep batches (by @ChristopherVR) ([d49a6b7](https://github.com/ChristopherVR/pptx-viewer/commit/d49a6b7ca0355ba2df4738dbf23ee0ca3dac991c))
+- **angular:** Finish remaining i18n sweep batches (by @ChristopherVR) ([f48779a](https://github.com/ChristopherVR/pptx-viewer/commit/f48779afaf53280f1436310d153f2501667cdb34))
+- **shared:** Merge newly-minted Vue/Angular i18n keys into dictionary (by @ChristopherVR) ([e16874f](https://github.com/ChristopherVR/pptx-viewer/commit/e16874f99267ea3e7f30bd9a519be9c32b3080cd))
+- **angular:** Convert power-point-viewer root component to i18n (by @ChristopherVR) ([1a254d2](https://github.com/ChristopherVR/pptx-viewer/commit/1a254d2efde1e06a2cdb7befc4522f57af134239))
+- **shared:** Merge Angular ribbon/mobile/notes/share i18n keys (by @ChristopherVR) ([c06259a](https://github.com/ChristopherVR/pptx-viewer/commit/c06259a74857c7418117a4b08e2969df3cb028dc))
+- **shared:** Add labelKey to chart option catalogues, backfill dictionary (by @ChristopherVR) ([e9f02aa](https://github.com/ChristopherVR/pptx-viewer/commit/e9f02aa82b7e9a5951af830f26fa011fae3efeb7))
+- **shared,vue:** Wire chart/SmartArt option labelKeys, add SmartArt i18n keys (by @ChristopherVR) ([f8f0e25](https://github.com/ChristopherVR/pptx-viewer/commit/f8f0e2551cb05b9f702bfd8c9c46f155d4afe080))
+- **angular:** Wire chart/SmartArt option labelKeys (by @ChristopherVR) ([4d47fdb](https://github.com/ChristopherVR/pptx-viewer/commit/4d47fdba8e4b4f877cdc73b5430c3b70f1e19c27))
+- **angular,shared:** I18n the animation-authoring option catalogs (by @ChristopherVR) ([b7464b9](https://github.com/ChristopherVR/pptx-viewer/commit/b7464b904e98e1cce224bfd18a93506eb97537e8))
+
+### Bug Fixes
+
+- **react:** Expose i18n dictionary via pptx-react-viewer, not the private shared package (by @ChristopherVR) ([09f49fe](https://github.com/ChristopherVR/pptx-viewer/commit/09f49fe68aa27d3305294f5896d5f53d3b52a160))
+- **vue:** Expose i18n dictionary via pptx-vue-viewer, not the private shared package (by @ChristopherVR) ([8577907](https://github.com/ChristopherVR/pptx-viewer/commit/8577907cf63af3190853b31e7810f477f394fad2))
+- **core:** Stop SmartArt edits from corrupting the saved pptx (by @ChristopherVR) ([507fe33](https://github.com/ChristopherVR/pptx-viewer/commit/507fe33d94af69ac657d6326cbe5a3cd089cedd0))
+
+### Refactor
+
+- **react:** Consume shared i18n dictionary in demo (by @ChristopherVR) ([35baf9e](https://github.com/ChristopherVR/pptx-viewer/commit/35baf9e05cdea56f4fa51b435406e075945625c2))
+
+## [1.1.79](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.79) - 2026-07-02
+
 ### Bug Fixes
 
 - **core:** Clear stale drawing shapes when switching smartart layout (by @ChristopherVR) ([c62959f](https://github.com/ChristopherVR/pptx-viewer/commit/c62959fab17e6cddea4ddb379f1add580aae1fd0))
