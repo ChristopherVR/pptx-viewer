@@ -29,6 +29,12 @@ export { GradientPickerComponent } from './gradient-picker.component';
 export { EffectsPanelComponent } from './effects-panel.component';
 export { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 export { TableDataEditorComponent } from './table-data-editor.component';
+export { TablePropertiesComponent } from './table-properties.component';
+export { TableCellFormattingComponent } from './table-cell-formatting.component';
+export { TableCellAdvancedFillComponent } from './table-cell-advanced-fill.component';
+export { TableResizeOverlayComponent } from './table-resize-overlay.component';
+export { TableSelectionService } from './table-selection.service';
+export type { TableCellSelection } from './table-selection.service';
 export { ChartDataEditorComponent } from './chart-data-editor.component';
 export { AdvancedChartEditorComponent } from './advanced-chart-editor.component';
 export { ChartDisplayOptionsComponent } from './chart-display-options.component';
@@ -222,6 +228,56 @@ export {
 	canUseClipboard,
 } from './broadcast-helpers';
 export type { BroadcastDefaults, BroadcastConfig } from './broadcast-helpers';
+
+// Secondary dialog suite (equation editor, set-up slide show, password
+// protection, encrypted-file notice, compare, font embedding, version history,
+// shortcut cheat-sheet, keep-annotations, signature-stripped warning)
+export { ViewerExtraDialogsComponent } from './viewer-extra-dialogs.component';
+export { ViewerDialogsService } from './viewer-dialogs.service';
+export { ViewerCompareService } from './viewer-compare.service';
+export { EquationEditorDialogComponent } from './equation-editor-dialog.component';
+export { EquationTemplateGalleryComponent } from './equation-template-gallery.component';
+export { TEMPLATES as EQUATION_TEMPLATES, latexToMathml } from './equation-editor-helpers';
+export type { EquationTemplate } from './equation-editor-helpers';
+export { SetUpSlideShowDialogComponent } from './set-up-slide-show-dialog.component';
+export { ShowOptionsFieldsetComponent } from './show-options-fieldset.component';
+export { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
+export { PasswordProtectionDialogComponent } from './password-protection-dialog.component';
+export { PasswordStrengthMeterComponent } from './password-strength-meter.component';
+export { getPasswordStrength, validatePassword } from './password-protection-helpers';
+export { EncryptedFileDialogComponent } from './encrypted-file-dialog.component';
+export { ComparePanelComponent } from './compare-panel.component';
+export { SlideDiffRowComponent } from './slide-diff-row.component';
+export { SlideDiffThumbnailsComponent } from './slide-diff-thumbnails.component';
+export { SlideDiffChangesComponent } from './slide-diff-changes.component';
+export {
+	changeCountLabel,
+	changeIcon,
+	slideNumberOf,
+	statusLabel as slideDiffStatusLabel,
+} from './slide-diff-helpers';
+export { FontEmbeddingPanelComponent } from './font-embedding-panel.component';
+export { FontEmbeddingListComponent } from './font-embedding-list.component';
+export { checkFontAvailable, scanAvailableFonts } from './font-embedding-helpers';
+export { VersionHistoryPanelComponent } from './version-history-panel.component';
+export {
+	deleteVersion as deleteRecoveryVersion,
+	formatFileSize,
+	getVersions as getRecoveryVersions,
+} from './version-history-helpers';
+export type { RecoveryVersion } from './version-history-helpers';
+export { ShortcutPanelComponent } from './shortcut-panel.component';
+export { KeepAnnotationsDialogComponent } from './keep-annotations-dialog.component';
+export { SignatureStrippedDialogComponent } from './signature-stripped-dialog.component';
+export {
+	annotationMapToInkInserts,
+	applyAcceptedDiff,
+	buildEquationElement,
+	buildEquationSegment,
+	collectUsedFontFamilies,
+	countAnnotationStrokes,
+} from './viewer-extra-dialogs-helpers';
+export type { AnnotationInkInsert } from './viewer-extra-dialogs-helpers';
 
 // Print
 export { PrintDialogComponent } from './print-dialog.component';

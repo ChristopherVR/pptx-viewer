@@ -19,9 +19,11 @@ import type {
 	InkPptxElement,
 	PptxComment,
 	PptxCoreProperties,
+	PptxCustomShow,
 	PptxData,
 	PptxElement,
 	PptxSlide,
+	PptxTableData,
 	PptxThemePreset,
 } from 'pptx-viewer-core';
 
@@ -82,6 +84,7 @@ import { MobilePresenterViewComponent } from './mobile-presenter-view.component'
 import { MobileSlidesSheetComponent } from './mobile-slides-sheet.component';
 import { MobileToolbarComponent } from './mobile-toolbar.component';
 import { NotesPanelComponent } from './notes-panel.component';
+import type { SlideAnnotationMap } from './presentation-annotations-helpers';
 import { PresentationOverlayComponent } from './presentation-overlay.component';
 import { PresenterViewComponent } from './presenter-view.component';
 import { PresenterWindowService } from './presenter-window.service';
@@ -102,10 +105,14 @@ import { buildSmartArtInsertElement } from './smart-art-insert-helpers';
 import { StatusBarComponent } from './status-bar.component';
 import { setCellText } from './table-data-helpers';
 import type { TableCellCommit } from './table-renderer.component';
+import { TableSelectionService } from './table-selection.service';
 import { buildSaveSlides } from './template-mode';
 import { ThemeGalleryComponent } from './theme-gallery.component';
 import { attachTouchGestures } from './touch-gestures';
 import type { CollaborationConfig } from './types';
+import { ViewerCompareService } from './viewer-compare.service';
+import { ViewerDialogsService } from './viewer-dialogs.service';
+import { ViewerExtraDialogsComponent } from './viewer-extra-dialogs.component';
 import { ZoomTargetService } from './zoom-target.service';
 
 const ZOOM_STEP = 0.1;
@@ -137,6 +144,7 @@ const ZOOM_MAX = 3;
 		LoadContentService,
 		ExportService,
 		EditorStateService,
+		TableSelectionService,
 		EmbeddedFontsService,
 		CollaborationService,
 		AccessibilityService,
@@ -145,6 +153,8 @@ const ZOOM_MAX = 3;
 		SmartArt3DService,
 		FieldContextService,
 		ZoomTargetService,
+		ViewerDialogsService,
+		ViewerCompareService,
 	],
 	imports: [
 		NgClass,
@@ -181,6 +191,7 @@ const ZOOM_MAX = 3;
 		SelectionPaneComponent,
 		CustomShowsComponent,
 		InsertSmartArtDialogComponent,
+		ViewerExtraDialogsComponent,
 	],
 	template: `
 		<div class="pptx-ng-viewer" [ngClass]="class()" [ngStyle]="rootStyle()">
@@ -260,6 +271,13 @@ const ZOOM_MAX = 3;
 					(toggleSelectionPane)="togglePanel('selection')"
 					(openCustomShows)="showCustomShows.set(true)"
 					(openSmartArtDialog)="showSmartArtInsert.set(true)"
+					(openEquationDialog)="dialogs.openEquationInsert()"
+					(openSetUpSlideShow)="dialogs.showSetUpSlideShow.set(true)"
+					(openCompare)="onOpenCompare()"
+					(openPassword)="dialogs.showPassword.set(true)"
+					(openFontEmbedding)="dialogs.showFontEmbedding.set(true)"
+					(openVersionHistory)="dialogs.showVersionHistory.set(true)"
+					(openShortcuts)="dialogs.showShortcuts.set(true)"
 					/>
 				}
 
@@ -329,12 +347,13 @@ const ZOOM_MAX = 3;
 							"
 							(contextMenu)="onContextMenu($event)"
 							[editingId]="editingId()"
-							(textEditStart)="editingId.set($event.id)"
+							(textEditStart)="onTextEditStart($event.id)"
 							(textCommit)="onTextCommit($event)"
 							(textCancel)="editingId.set(null)"
 							(inkStrokeComplete)="onInkStrokeComplete($event)"
 							(eraserHit)="onEraserHit($event)"
 							(cellCommit)="onTableCellCommit($event)"
+							(tableChange)="onTableChange($event)"
 						/>
 						@if (collab.connected()) {
 							<pptx-collaboration-cursors [cursors]="collab.cursors()" [zoom]="zoom()" />
@@ -484,6 +503,7 @@ const ZOOM_MAX = 3;
 					[mediaDataUrls]="loader.mediaDataUrls()"
 					[startIndex]="presentationStartIndex()"
 					(indexChange)="onPresentationIndexChange($event)"
+					(annotationsExit)="onPresentationAnnotationsExit($event)"
 					(closed)="presenting.set(false)"
 				/>
 			}
@@ -557,6 +577,17 @@ const ZOOM_MAX = 3;
 				[properties]="coreProperties()"
 				(save)="onPropertiesSave($event)"
 				(close)="showProperties.set(false)"
+			/>
+
+			<!-- Secondary dialogs / side panels (equation, set-up show, password,
+			     encrypted notice, compare, font embedding, version history,
+			     shortcuts, keep-annotations, signature-stripped). -->
+			<pptx-viewer-extra-dialogs
+				[activeSlideIndex]="activeSlideIndex()"
+				[selectedElementId]="selectedElement()?.id ?? null"
+				[filePath]="filePath()"
+				[customShows]="pptxCustomShows()"
+				(restoreContent)="onRestoreVersion($event)"
 			/>
 
 			@if (canEdit()) {
@@ -721,6 +752,12 @@ export class PowerPointViewerComponent {
 	readonly class = input<string>('');
 	/** Theme configuration for customising the viewer's appearance. */
 	readonly theme = input<ViewerTheme | undefined>(undefined);
+	/**
+	 * Host file path/identifier keying the version-history store. When omitted
+	 * the version-history panel shows its empty state. Mirrors React's
+	 * `filePath` prop.
+	 */
+	readonly filePath = input<string | undefined>(undefined);
 	/** Optional real-time collaboration config; when set, connects and shows remote cursors. */
 	readonly collaboration = input<CollaborationConfig | undefined>(undefined);
 	/**
@@ -781,6 +818,27 @@ export class PowerPointViewerComponent {
 	private readonly smartArt3DSvc = inject(SmartArt3DService);
 	private readonly zoomTarget = inject(ZoomTargetService);
 	protected readonly presenterWindow = inject(PresenterWindowService);
+	protected readonly dialogs = inject(ViewerDialogsService);
+	private readonly compareSvc = inject(ViewerCompareService);
+
+	/** Handle on the secondary-dialog host (keep-annotations prompt). */
+	private readonly extraDialogs = viewChild(ViewerExtraDialogsComponent);
+
+	/** Surface the encrypted-file notice dialog alongside the inline fallback. */
+	private readonly encryptedNotice = effect(() => {
+		if (this.loader.isEncrypted()) {
+			this.dialogs.showEncrypted.set(true);
+		}
+	});
+
+	/** Custom shows mapped to the core shape consumed by set-up-slide-show. */
+	protected readonly pptxCustomShows = computed<PptxCustomShow[]>(() =>
+		this.customShows().map((show) => ({
+			id: show.id,
+			name: show.name,
+			slideRIds: [...show.slideIds],
+		})),
+	);
 
 	/** The `<main>` host; used to locate the live `.pptx-ng-canvas-stage`. */
 	private readonly mainEl = viewChild<ElementRef<HTMLElement>>('mainEl');
@@ -1503,6 +1561,38 @@ export class PowerPointViewerComponent {
 		this.presenting.set(false);
 		this.presenterWindow.closeAudienceWindow();
 	}
+
+	/** Review ▸ Compare: pick a `.pptx` and diff it against the current deck. */
+	protected onOpenCompare(): void {
+		this.compareSvc.startCompare();
+	}
+
+	/**
+	 * Double-click text edit entry: equations open the equation editor instead
+	 * of the inline text editor (mirrors React's dbl-click-to-edit-equation).
+	 */
+	protected onTextEditStart(id: string): void {
+		const element = this.activeSlide()?.elements.find((el) => el.id === id);
+		const segments = element && 'textSegments' in element ? element.textSegments : undefined;
+		const equation = segments?.find((segment) => segment.equationXml);
+		if (this.canEdit() && equation?.equationXml) {
+			this.dialogs.openEquationEdit(id, equation.equationXml);
+			return;
+		}
+		this.editingId.set(id);
+	}
+
+	/** Presentation exited with ink on it: offer the keep/discard prompt. */
+	protected onPresentationAnnotationsExit(map: SlideAnnotationMap): void {
+		if (this.canEdit()) {
+			this.extraDialogs()?.promptKeepAnnotations(map);
+		}
+	}
+
+	/** Swap the deck for a restored version-history snapshot. */
+	protected onRestoreVersion(bytes: Uint8Array): void {
+		this.contentOverride.set(bytes);
+	}
 	/** Toggle the speaker-notes strip. */
 	toggleNotes(): void {
 		this.showNotes.update((v) => !v);
@@ -1951,6 +2041,19 @@ export class PowerPointViewerComponent {
 	}
 
 	/**
+	 * Persist a structural table change originating on the canvas (column / row
+	 * drag-resize) as one undoable history entry.
+	 */
+	protected onTableChange(event: { id: string; tableData: PptxTableData }): void {
+		if (!this.canEdit()) {
+			return;
+		}
+		this.editor.updateElement(this.activeSlideIndex(), event.id, {
+			tableData: event.tableData,
+		});
+	}
+
+	/**
 	 * Editing keyboard shortcuts (only when `canEdit` and not typing in a
 	 * field or presenting): Delete, Ctrl/Cmd+Z/Y undo/redo, Ctrl/Cmd+D
 	 * duplicate, arrow-key nudge (Shift = ×10).
@@ -1970,6 +2073,13 @@ export class PowerPointViewerComponent {
 		if (event.key === 'Escape' && this.formatPainterActive()) {
 			event.preventDefault();
 			this.cancelFormatPainter();
+			return;
+		}
+
+		// "?" opens the keyboard-shortcut cheat sheet (mirrors React).
+		if (event.key === '?' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+			event.preventDefault();
+			this.dialogs.showShortcuts.set(true);
 			return;
 		}
 

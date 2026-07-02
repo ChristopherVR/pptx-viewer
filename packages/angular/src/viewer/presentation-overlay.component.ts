@@ -21,6 +21,7 @@ import type { CanvasSize } from '../internal/shared';
 import { AnimationPlaybackService } from './animation-playback.service';
 import { PresentationAnnotationOverlayComponent } from './presentation-annotation-overlay.component';
 import { PresentationAnnotationsService } from './presentation-annotations.service';
+import type { SlideAnnotationMap } from './presentation-annotations.service';
 import {
 	clampIndex,
 	fitZoom,
@@ -275,6 +276,11 @@ export class PresentationOverlayComponent implements OnInit {
 
 	readonly indexChange = output<number>();
 	readonly closed = output<void>();
+	/**
+	 * Fired just before `closed` when the show carries ink annotations, so the
+	 * host can offer the keep/discard prompt (mirrors React's exit flow).
+	 */
+	readonly annotationsExit = output<SlideAnnotationMap>();
 
 	// ------------------------------------------------------------------
 	// Internal state
@@ -731,6 +737,9 @@ export class PresentationOverlayComponent implements OnInit {
 	}
 
 	private emitClosed(): void {
+		if (this.annotations.hasAnyAnnotations()) {
+			this.annotationsExit.emit(this.annotations.getAllSlideAnnotations());
+		}
 		this.closed.emit();
 	}
 }

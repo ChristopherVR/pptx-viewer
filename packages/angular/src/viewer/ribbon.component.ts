@@ -47,13 +47,7 @@ import {
 	setAnimationEntrance,
 	setAnimationExit,
 } from './animation-author-helpers';
-import {
-	newChartElement,
-	newEquationElement,
-	newShapeElement,
-	newTableElement,
-	newTextElement,
-} from './editor-insert';
+import { newChartElement, newShapeElement, newTableElement, newTextElement } from './editor-insert';
 import { EditorStateService } from './editor-state.service';
 import { RibbonInsertFieldsComponent } from './ribbon-insert-fields.component';
 import { RibbonPrimaryRowComponent } from './ribbon-primary-row.component';
@@ -328,6 +322,31 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 							Signatures
 						</button>
 						<button type="button" class="pptx-rb-pill" (click)="replace.emit()">Replace</button>
+						<span class="pptx-rb-sep"></span>
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							title="Protect with a password"
+							(click)="openPassword.emit()"
+						>
+							Protect
+						</button>
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							title="Manage embedded fonts"
+							(click)="openFontEmbedding.emit()"
+						>
+							Embed Fonts
+						</button>
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							title="Browse saved versions"
+							(click)="openVersionHistory.emit()"
+						>
+							Version History
+						</button>
 					}
 					@case ('home') {
 						<!-- Clipboard -->
@@ -735,10 +754,26 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 						<button type="button" class="pptx-rb-pill" (click)="openCustomShows.emit()">
 							Custom Shows
 						</button>
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							title="Set up how the show runs"
+							(click)="openSetUpSlideShow.emit()"
+						>
+							Set Up Show
+						</button>
 					}
 					@case ('review') {
 						<button type="button" class="pptx-rb-pill" (click)="comments.emit()">Comments</button>
 						<button type="button" class="pptx-rb-pill" (click)="a11y.emit()">Accessibility</button>
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							title="Compare with another presentation"
+							(click)="openCompare.emit()"
+						>
+							Compare
+						</button>
 						@if (hasSel()) {
 							<button type="button" class="pptx-rb-pill" (click)="link.emit()">Link</button>
 						}
@@ -750,6 +785,14 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 						</button>
 						<button type="button" class="pptx-rb-pill" (click)="toggleNotes.emit()">Notes</button>
 						<button type="button" class="pptx-rb-pill" (click)="print.emit()">Print</button>
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							title="Keyboard shortcut reference"
+							(click)="openShortcuts.emit()"
+						>
+							Shortcuts
+						</button>
 						<span class="pptx-rb-sep"></span>
 						<!-- Show / Hide overlays -->
 						<button
@@ -1478,6 +1521,20 @@ export class RibbonComponent {
 	 * ribbon stays free of the dialog state and node-building logic.
 	 */
 	readonly openSmartArtDialog = output<void>();
+	/** Emitted when the user clicks "Equation" in the Insert tab (opens the editor). */
+	readonly openEquationDialog = output<void>();
+	/** Emitted when the user clicks "Set Up Show" in the Slide Show tab. */
+	readonly openSetUpSlideShow = output<void>();
+	/** Emitted when the user clicks "Compare" in the Review tab. */
+	readonly openCompare = output<void>();
+	/** Emitted when the user clicks "Password" in the Review tab. */
+	readonly openPassword = output<void>();
+	/** Emitted when the user clicks "Fonts" in the Review tab. */
+	readonly openFontEmbedding = output<void>();
+	/** Emitted when the user clicks "Version History" in the Review tab. */
+	readonly openVersionHistory = output<void>();
+	/** Emitted when the user clicks "Shortcuts" in the Help tab. */
+	readonly openShortcuts = output<void>();
 
 	protected readonly tabs = TABS;
 	protected readonly fontFamilies = FONT_FAMILIES;
@@ -1577,7 +1634,8 @@ export class RibbonComponent {
 		this.editor.addElement(this.slideIndex(), newChartElement(this.newChartType()));
 	}
 	protected insertEquation(): void {
-		this.editor.addElement(this.slideIndex(), newEquationElement());
+		// Open the equation editor (host owns the dialog + insert), mirroring React.
+		this.openEquationDialog.emit();
 	}
 
 	/** Pick an image file and add it as an inline image element (data-URL backed). */

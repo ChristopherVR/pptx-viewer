@@ -127,8 +127,9 @@ lists, hyperlinks, equations, charts incl. bubble/radar/combo/stock/surface/
 treemap/waterfall, connectors with A\* routing); the full **Tailwind 4 Office
 ribbon** (File/Home/Insert incl. Table/SmartArt/Equation, Text, Draw incl.
 freehand ink, Arrange, Design incl. theme gallery, Transitions, Animations,
-Slide Show incl. custom shows, Review, View incl. grid/rulers/guides/snap/
-eyedropper/selection-pane) + status bar; the editor (select/move/resize/rotate/
+Slide Show incl. custom shows + **Set Up Show**, Review incl. **Compare**, View
+incl. grid/rulers/guides/snap/eyedropper/selection-pane + **Shortcuts**) + status
+bar; the editor (select/move/resize/rotate/
 marquee, inline + table-cell touch edit, clipboard, align/distribute, group,
 z-order, slide CRUD, inspector incl. **SmartArt editing** (per-node text, add
 item / add sub-item, remove, promote/demote, reorder up/down, colour-scheme
@@ -136,8 +137,13 @@ select, style flat/moderate/intense, and the layout switcher), undo/redo, save);
 presentation mode (transitions,
 presenter view, custom-show playback); the advanced subsystems (comments,
 signatures, accessibility, embedded fonts, collaboration, print, export
-PNG/PDF/GIF/WebM); and the **mobile chrome** (toolbar + bottom bar + sheets,
-touch editing/present).
+PNG/PDF/GIF/WebM); the **secondary dialog suite** (equation editor with LaTeX ->
+MathML preview + template gallery, Set Up Slide Show, password protection
+set/update/remove, encrypted-file notice, deck **compare/diff** with per-slide
+accept/reject, **Embed Fonts** with browser-availability scan, **Version
+History** recovery panel, keyboard-shortcut cheat-sheet, keep-annotations prompt,
+and the signature-stripped warning); and the **mobile chrome** (toolbar + bottom
+bar + sheets, touch editing/present).
 
 **Verification (run before claiming green):** `bun run --filter pptx-angular-viewer build`
 (ng-packagr + Tailwind), `typecheck`, `test` (~2159), `bunx oxlint packages/angular/src`
@@ -167,6 +173,24 @@ specs React passes).
    is not pixel-identical to every React control (spacing, icons, split-button
    affordances, dropdown chrome). A per-tab visual-diff pass would close it.
 
+> **Recently closed** (2026-07-02): the **secondary dialog suite** that was
+> previously absent (the earlier "whole surface" parity claim overstated this).
+> Now implemented as standalone components wired through `ViewerExtraDialogsComponent`
+> (host), `ViewerDialogsService` (open/close state) and `ViewerCompareService`:
+> equation editor (`equation-editor-dialog` + extracted `equation-editor-helpers`
+> / `equation-template-gallery`), `set-up-slide-show-dialog` (+ `show-options-fieldset`
+> / `show-slides-fieldset`), `password-protection-dialog` (+ `password-protection-helpers`
+> / `password-strength-meter`), `encrypted-file-dialog`, `compare-panel` +
+> `slide-diff-row` (split into `slide-diff-thumbnails` / `slide-diff-changes` /
+> `slide-diff-helpers`), `font-embedding-panel` (+ `font-embedding-helpers` /
+> `font-embedding-list`), `version-history-panel` (+ `version-history-helpers`),
+> `shortcut-panel` (also opened by the `?` key), `keep-annotations-dialog`, and
+> `signature-stripped-dialog`. Pure logic lives in `viewer-extra-dialogs-helpers.ts`
+> (equation insert, font collection, annotation -> ink, accepted-diff application),
+> unit tested alongside the extracted helpers. New ribbon entry points: File-tab
+> Protect / Embed Fonts / Version History, Slide Show-tab Set Up Show, Review-tab
+> Compare, View-tab Shortcuts.
+>
 > **Recently closed** (2026-06-27): **eyedropper fallback** (`eyedropper.ts` now
 > adds `sampleColorFromSlide` + a one-shot click-to-sample `pickColorByClickFallback`
 > used when the native `EyeDropper` API is absent, wired into `onToggleEyedropper`)
