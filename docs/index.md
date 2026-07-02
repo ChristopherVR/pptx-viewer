@@ -138,10 +138,9 @@ See the [MCP & Tools reference](/packages/mcp) for the full tool catalogue, Zod 
 
 Before adopting the library, read the [full limitations page](/guide/limitations). Key caveats:
 
-- **OLE objects are read-only** - embedded Excel/Word content can be displayed but not edited
-- **SmartArt is static** - shapes are fully editable but there is no live reflow engine
-- **CSS rendering approximates some effects** - backdrop-filter, mix-blend-mode, and CSS 3D transforms are not pixel-perfect
-- **Vue / Angular are viewer-first** - full editing, presenter mode, and export are React-only for now; they are being ported
+- **OLE objects are read-only** - embedded Excel/Word content can be displayed and downloaded but not edited in place
+- **CSS rendering approximates some effects** - backdrop-filter and path gradients are approximated on screen; more effects flatten in raster export
+- **Vue / Angular are at parity with React** - editing, presenter mode, export, dialogs, and table/SmartArt/chart editing are available in all three bindings; remaining differences are cosmetic
 - **EMF/WMF on Canvas only** - the EMF converter requires `HTMLCanvasElement` or `OffscreenCanvas`; pure Node.js needs a canvas polyfill
 
 ## Extending the viewer
