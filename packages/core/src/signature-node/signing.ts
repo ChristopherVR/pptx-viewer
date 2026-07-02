@@ -36,6 +36,9 @@ async function upsertRootOriginRelationship(zip: JSZip): Promise<void> {
 		'<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>';
 	const doc = parser.parseFromString(xml, 'text/xml');
 	const relationships = doc.documentElement;
+	if (!relationships) {
+		throw new Error('Unable to sign package: invalid _rels/.rels XML.');
+	}
 	const existing = Array.from(relationships.getElementsByTagName('Relationship')).find(
 		(node) => node.getAttribute('Type') === DIGITAL_SIGNATURE_ORIGIN_REL_TYPE,
 	);
@@ -59,6 +62,9 @@ async function upsertContentTypesForSignature(zip: JSZip, signaturePath: string)
 	}
 	const doc = parser.parseFromString(xml, 'text/xml');
 	const types = doc.documentElement;
+	if (!types) {
+		return;
+	}
 	const ensureOverride = (partName: string, contentType: string): void => {
 		const existing = Array.from(types.getElementsByTagName('Override')).find(
 			(node) => node.getAttribute('PartName') === partName,

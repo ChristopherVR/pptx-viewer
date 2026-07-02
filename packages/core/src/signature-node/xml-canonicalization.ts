@@ -5,6 +5,9 @@
  */
 
 import { DOMParser } from '@xmldom/xmldom';
+// xmldom 0.9 ships its own DOM types that no longer structurally match the DOM
+// lib; type this Node-only module against them (shadowing the global names).
+import type { Document, Element, Node } from '@xmldom/xmldom';
 import { SignedXml } from 'xml-crypto';
 
 interface LocalNameNode {
@@ -50,7 +53,9 @@ export function getFirstDescendantElementByLocalName(
  */
 export function canonicalizeNode(node: Node, algorithm: string): string {
 	const canonicalizer = new SignedXml();
-	return canonicalizer.getCanonXml([algorithm], node);
+	// xml-crypto consumes xmldom nodes at runtime; its declared parameter type
+	// is the DOM lib Node, so bridge the nominal gap here.
+	return canonicalizer.getCanonXml([algorithm], node as unknown as globalThis.Node);
 }
 
 /**

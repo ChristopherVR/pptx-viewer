@@ -6,6 +6,8 @@
  */
 
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
+// Shadow the DOM lib Element with xmldom's own type (Node-only module).
+import type { Element } from '@xmldom/xmldom';
 
 import {
 	OPC_RELATIONSHIP_TRANSFORM,
