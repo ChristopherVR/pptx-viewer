@@ -51,6 +51,11 @@
 			"import": "./dist/viewer/index.js",
 			"require": "./dist/viewer/index.cjs"
 		},
+		"./i18n": {
+			"types": "./dist/i18n.d.ts",
+			"import": "./dist/i18n.js",
+			"require": "./dist/i18n.cjs"
+		},
 		"./styles": "./dist/pptx-vue-viewer.css",
 		"./styles.css": "./dist/pptx-vue-viewer.css"
 	},

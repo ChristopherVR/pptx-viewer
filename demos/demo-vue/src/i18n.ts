@@ -1,4 +1,4 @@
-import { keyToLabel, translationsEn } from 'pptx-viewer-shared/i18n';
+import { keyToLabel, translationsEn } from 'pptx-vue-viewer/i18n';
 /**
  * vue-i18n configuration for the pptx-viewer Vue demo.
  *

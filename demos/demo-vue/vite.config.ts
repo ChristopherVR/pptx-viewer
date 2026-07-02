@@ -36,6 +36,7 @@ export default defineConfig({
 				replacement: pkg('vue', 'src', 'styles', 'pptx-vue-viewer.css'),
 			},
 			{ find: 'pptx-vue-viewer/viewer', replacement: pkg('vue', 'src', 'viewer', 'index.ts') },
+			{ find: 'pptx-vue-viewer/i18n', replacement: pkg('vue', 'src', 'i18n.ts') },
 			{ find: 'pptx-vue-viewer', replacement: pkg('vue', 'src', 'index.ts') },
 			{
 				find: 'pptx-viewer-core/converter',
