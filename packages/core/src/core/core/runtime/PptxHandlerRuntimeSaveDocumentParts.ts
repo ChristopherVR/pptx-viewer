@@ -11,9 +11,9 @@ import { obfuscateFont, generateFontGuid } from '../../utils/font-deobfuscation'
 import type { PptxSaveFormat } from '../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveDataSerialization';
 import { applySmartArtColorTransform } from './smartart-colors-builder';
-import { applySmartArtQuickStyle } from './smartart-quickstyle-builder';
+import { synthesizeNewSmartArtStructuralPoints } from './smartart-node-synthesis';
 import { applySmartArtChrome } from './smartart-save-chrome';
-import { mergeSmartArtPointXml, buildSmartArtConnectionXml } from './smartart-xml-builders';
+import { mergeSmartArtPointXml, mergeSmartArtConnectionXml } from './smartart-xml-builders';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/** Pending SmartArt data updates to process during save. */
@@ -82,37 +82,64 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					continue;
 				}
 
-				// Surgically merge the node data into the EXISTING dgm:ptLst so
-				// presentation points (type="pres"), the doc point, and every
-				// point's prSet / spPr / extLst survive the round-trip.
+				// Resolve both lists up front: grafting structural scaffolding for a
+				// brand-new node (see below) needs the point AND connection lists
+				// together, not one at a time.
 				const ptListKey = Object.keys(dataModel).find(
 					(k) => this.compatibilityService.getXmlLocalName(k) === 'ptLst',
 				);
-				if (ptListKey) {
-					const ptList = dataModel[ptListKey] as XmlObject;
-					const ptKey = Object.keys(ptList || {}).find(
-						(k) => this.compatibilityService.getXmlLocalName(k) === 'pt',
+				const cxnListKey = Object.keys(dataModel).find(
+					(k) => this.compatibilityService.getXmlLocalName(k) === 'cxnLst',
+				);
+				const ptList = ptListKey ? (dataModel[ptListKey] as XmlObject) : undefined;
+				const cxnList = cxnListKey ? (dataModel[cxnListKey] as XmlObject) : undefined;
+				const ptKey = ptList
+					? Object.keys(ptList).find((k) => this.compatibilityService.getXmlLocalName(k) === 'pt')
+					: undefined;
+				const cxnKey = cxnList
+					? Object.keys(cxnList).find((k) => this.compatibilityService.getXmlLocalName(k) === 'cxn')
+					: undefined;
+
+				let existingPts = ptKey && ptList ? (this.ensureArray(ptList[ptKey]) as XmlObject[]) : [];
+				let existingCxns =
+					cxnKey && cxnList ? (this.ensureArray(cxnList[cxnKey]) as XmlObject[]) : [];
+				// `smartArtData.connections` only tracks data-graph `parOf` edges; a
+				// synthesised node's presOf / presParOf wiring has no counterpart
+				// there, so it's grafted on separately (see synthesizeNewSmartArtStructuralPoints).
+				let desiredConnections = smartArtData.connections;
+
+				if (ptKey && cxnKey) {
+					// Graft the parTrans / sibTrans / presentation-point scaffolding a
+					// brand-new content node needs (see smartart-node-synthesis.ts) so
+					// the merges below see it as an already-existing point/connection
+					// and pass it through untouched instead of leaving it orphaned --
+					// an orphaned content point is schema-valid XML that PowerPoint
+					// still rejects as a corrupt file on open.
+					const synthesized = synthesizeNewSmartArtStructuralPoints(
+						existingPts,
+						existingCxns,
+						smartArtData.nodes,
+						smartArtData.connections,
 					);
-					if (ptKey) {
-						const existingPts = this.ensureArray(ptList[ptKey]) as XmlObject[];
-						ptList[ptKey] = mergeSmartArtPointXml(existingPts, smartArtData.nodes);
+					existingPts = synthesized.pts;
+					existingCxns = synthesized.cxns;
+					if (synthesized.extraConnections.length > 0) {
+						desiredConnections = [...(desiredConnections ?? []), ...synthesized.extraConnections];
 					}
 				}
 
-				// Rebuild dgm:cxnLst from the connection data
-				if (smartArtData.connections && smartArtData.connections.length > 0) {
-					const cxnListKey = Object.keys(dataModel).find(
-						(k) => this.compatibilityService.getXmlLocalName(k) === 'cxnLst',
-					);
-					if (cxnListKey) {
-						const cxnList = dataModel[cxnListKey] as XmlObject;
-						const cxnKey = Object.keys(cxnList || {}).find(
-							(k) => this.compatibilityService.getXmlLocalName(k) === 'cxn',
-						);
-						if (cxnKey) {
-							cxnList[cxnKey] = buildSmartArtConnectionXml(smartArtData.connections);
-						}
-					}
+				// Surgically merge the node data into the EXISTING dgm:ptLst so
+				// presentation points (type="pres"), the doc point, and every
+				// point's prSet / spPr / extLst survive the round-trip.
+				if (ptKey && ptList) {
+					ptList[ptKey] = mergeSmartArtPointXml(existingPts, smartArtData.nodes);
+				}
+
+				// Surgically merge dgm:cxnLst so each unchanged connection keeps its
+				// required @_modelId (and parTransId / sibTransId / presId) instead
+				// of being rebuilt from scratch and losing them.
+				if (cxnKey && cxnList && desiredConnections && desiredConnections.length > 0) {
+					cxnList[cxnKey] = mergeSmartArtConnectionXml(existingCxns, desiredConnections);
 				}
 
 				// Persist chrome (background / outline) onto dgm:bg and
@@ -126,11 +153,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				console.warn(`Failed to save SmartArt data at ${dataPartPath}:`, e);
 			}
 
-			// Regenerate the colours and quick-style diagram parts so a
-			// colour-scheme or style change persists across a round-trip
-			// instead of PowerPoint re-deriving the old values on open.
+			// Regenerate the colours diagram part so a colour-scheme change
+			// persists across a round-trip instead of PowerPoint re-deriving
+			// the old values on open.
 			await this.regenerateSmartArtColorPart(slidePath, smartArtData);
-			await this.regenerateSmartArtQuickStylePart(slidePath, smartArtData);
 		}
 
 		this.pendingSmartArtUpdates = undefined;
@@ -161,30 +187,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				applySmartArtColorTransform(colorsDef, transform, (k) =>
 					this.compatibilityService.getXmlLocalName(k),
 				),
-		);
-	}
-
-	/**
-	 * Merge the in-memory quick style back into `ppt/diagrams/quickStyles*.xml`.
-	 *
-	 * Resolves the part via the SmartArt `styleRelId` relationship, merges
-	 * surgically, and skips gracefully when the rel or part is absent. No-op
-	 * when the in-memory data carries no quick style.
-	 */
-	protected async regenerateSmartArtQuickStylePart(
-		slidePath: string,
-		smartArtData: SmartArtPptxElement['smartArtData'],
-	): Promise<void> {
-		const quickStyle = smartArtData?.quickStyle;
-		if (!smartArtData?.styleRelId || !quickStyle) {
-			return;
-		}
-		await this.mergeSmartArtDiagramPart(
-			slidePath,
-			smartArtData.styleRelId,
-			'styleDef',
-			'quick style',
-			(styleDef) => applySmartArtQuickStyle(styleDef, quickStyle),
 		);
 	}
 

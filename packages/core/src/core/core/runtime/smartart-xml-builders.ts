@@ -4,6 +4,7 @@ import type {
 	PptxSmartArtConnection,
 	PptxSmartArtTextRun,
 } from '../../types/smart-art';
+import { generateFontGuid } from '../../utils/font-deobfuscation';
 import { applySmartArtNodeStyleToPoint } from './smartart-style-xml';
 
 /**
@@ -37,14 +38,14 @@ function pointModelId(pt: XmlObject): string {
 }
 
 /** True when a parsed `dgm:pt` is a user-editable content point. */
-function isContentPoint(pt: XmlObject): boolean {
+export function isContentPoint(pt: XmlObject): boolean {
 	return !NON_CONTENT_POINT_TYPES.has(pointType(pt));
 }
 
 /**
  * Build the `dgm:t` text body for a SmartArt content point.
  */
-function buildPointText(text: string): XmlObject {
+export function buildPointText(text: string): XmlObject {
 	return {
 		'a:bodyPr': {},
 		'a:lstStyle': {},
@@ -85,7 +86,7 @@ function buildMultiRunParagraph(runs: PptxSmartArtTextRun[]): XmlObject {
  * `node.text` diverges from the joined run text, so we fall back to the
  * single-run path and do not resurrect stale runs.
  */
-function shouldRebuildFromRuns(node: PptxSmartArtNode): node is PptxSmartArtNode & {
+export function shouldRebuildFromRuns(node: PptxSmartArtNode): node is PptxSmartArtNode & {
 	runs: PptxSmartArtTextRun[];
 } {
 	const runs = node.runs;
@@ -102,7 +103,7 @@ function shouldRebuildFromRuns(node: PptxSmartArtNode): node is PptxSmartArtNode
 /**
  * Build a `dgm:t` text body from preserved per-run text + properties.
  */
-function buildPointFromRuns(runs: PptxSmartArtTextRun[]): XmlObject {
+export function buildPointFromRuns(runs: PptxSmartArtTextRun[]): XmlObject {
 	return {
 		'a:bodyPr': {},
 		'a:lstStyle': {},
@@ -296,11 +297,134 @@ export function mergeSmartArtPointXml(
 }
 
 /**
+ * Generate a `{GUID}`-formatted id matching the format PowerPoint uses for
+ * `dgm:pt`/`dgm:cxn` `@_modelId` values. Every `dgm:cxn` requires a unique
+ * `@_modelId`, just like `dgm:pt` does.
+ */
+export function newSmartArtGuid(): string {
+	return `{${generateFontGuid()}}`;
+}
+
+/**
  * Build XML connection-node objects (`dgm:cxn`) from in-memory connections.
+ *
+ * NOT used for the round-trip save path (which uses
+ * {@link mergeSmartArtConnectionXml} to preserve each existing connection's
+ * `modelId` / `parTransId` / `sibTransId` / `presId`). It remains for callers
+ * that synthesise a brand-new connection list from scratch.
  */
 export function buildSmartArtConnectionXml(connections: PptxSmartArtConnection[]): XmlObject[] {
 	return connections.map((conn) => {
 		const cxnNode: XmlObject = {
+			'@_modelId': newSmartArtGuid(),
+			'@_srcId': conn.sourceId,
+			'@_destId': conn.destId,
+		};
+		if (conn.type) {
+			cxnNode['@_type'] = conn.type;
+		}
+		if (conn.srcOrd !== undefined) {
+			cxnNode['@_srcOrd'] = String(conn.srcOrd);
+		}
+		if (conn.destOrd !== undefined) {
+			cxnNode['@_destOrd'] = String(conn.destOrd);
+		}
+		return cxnNode;
+	});
+}
+
+/**
+ * Normalise a connection `@_type` for identity matching. `parOf` is the
+ * schema default when `@_type` is omitted (real PowerPoint files always omit
+ * it for parent/child edges), but the in-memory node-ops helpers
+ * (`smartart-editing-node-ops.ts`) stamp new parent/child connections with an
+ * explicit `type: 'parOf'`. Without this normalisation those connections
+ * never match their on-disk counterpart by identity.
+ */
+function normalizeConnType(type: string | undefined): string {
+	return type && type !== 'parOf' ? type : '';
+}
+
+/** Build a lookup key identifying a connection's identity for merge matching. */
+function connectionKey(conn: {
+	srcId: string;
+	destId: string;
+	type?: string;
+	srcOrd?: number;
+	destOrd?: number;
+}): string {
+	return [
+		conn.srcId,
+		conn.destId,
+		normalizeConnType(conn.type),
+		conn.srcOrd ?? '',
+		conn.destOrd ?? '',
+	].join(' ');
+}
+
+/**
+ * Surgically merge in-memory connections into the EXISTING parsed
+ * `dgm:cxn` list, preserving every unchanged connection's `@_modelId` and any
+ * other attributes (`parTransId`, `sibTransId`, `presId`, etc.) verbatim.
+ *
+ * `dgm:cxn/@_modelId` is REQUIRED per ECMA-376 (`CT_Connection`): rebuilding
+ * the list from scratch with only `srcId`/`destId`/`type`/`srcOrd`/`destOrd`
+ * (as {@link buildSmartArtConnectionXml} does) drops it on every connection,
+ * which PowerPoint rejects as a corrupt file.
+ *
+ * Existing connections are matched to desired connections by identity
+ * (srcId + destId + type + srcOrd + destOrd), which is exactly how the loader
+ * derives {@link PptxSmartArtConnection} from a parsed `dgm:cxn` in the first
+ * place, so an unedited connection always matches itself and is preserved
+ * verbatim. Only genuinely new connections (from node add / promote / demote)
+ * get a freshly generated `modelId`.
+ *
+ * @param existingCxns Parsed `dgm:cxn` objects from the loaded data model.
+ * @param connections Current in-memory connections.
+ * @returns A new ordered array of `dgm:cxn` objects for the saved data model.
+ */
+export function mergeSmartArtConnectionXml(
+	existingCxns: XmlObject[],
+	connections: PptxSmartArtConnection[],
+): XmlObject[] {
+	const existingByKey = new Map<string, XmlObject[]>();
+	for (const cxn of existingCxns) {
+		if (!cxn || typeof cxn !== 'object') {
+			continue;
+		}
+		const srcOrdRaw = parseInt(String(cxn['@_srcOrd'] ?? ''), 10);
+		const destOrdRaw = parseInt(String(cxn['@_destOrd'] ?? ''), 10);
+		const key = connectionKey({
+			srcId: String(cxn['@_srcId'] || ''),
+			destId: String(cxn['@_destId'] || ''),
+			type: cxn['@_type'] ? String(cxn['@_type']) : undefined,
+			srcOrd: Number.isFinite(srcOrdRaw) ? srcOrdRaw : undefined,
+			destOrd: Number.isFinite(destOrdRaw) ? destOrdRaw : undefined,
+		});
+		const queue = existingByKey.get(key);
+		if (queue) {
+			queue.push(cxn);
+		} else {
+			existingByKey.set(key, [cxn]);
+		}
+	}
+
+	return connections.map((conn) => {
+		const key = connectionKey({
+			srcId: conn.sourceId,
+			destId: conn.destId,
+			type: conn.type,
+			srcOrd: conn.srcOrd,
+			destOrd: conn.destOrd,
+		});
+		const queue = existingByKey.get(key);
+		const match = queue?.shift();
+		if (match) {
+			return match;
+		}
+
+		const cxnNode: XmlObject = {
+			'@_modelId': newSmartArtGuid(),
 			'@_srcId': conn.sourceId,
 			'@_destId': conn.destId,
 		};

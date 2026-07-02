@@ -68,18 +68,18 @@ describe('applySmartArtColorTransform', () => {
 		expect(applySmartArtColorTransform(def, undefined, localName)).toBeFalsy();
 	});
 
-	it('refreshes the colorsDef title from name', () => {
+	it('does not write a @_title attribute (title is a CT_ColorTransform child element, not an attribute)', () => {
 		const def = parseColorsDef();
 		const changed = applySmartArtColorTransform(
 			def,
 			{ name: 'Colorful Accent', fillColors: [], lineColors: [] },
 			localName,
 		);
-		expect(changed).toBeTruthy();
-		expect(def['@_title']).toBe('Colorful Accent');
+		expect(changed).toBeFalsy();
+		expect(def['@_title']).toBe('Original');
 	});
 
-	it('does not report change when title is unchanged and no colours', () => {
+	it('does not report change when there are no colours to merge', () => {
 		const def = parseColorsDef();
 		const changed = applySmartArtColorTransform(
 			def,
@@ -150,7 +150,7 @@ describe('applySmartArtColorTransform', () => {
 		const xml = builder.build({ 'dgm:colorsDef': def });
 		const reparsed = parser.parse(xml) as XmlObject;
 		const rt = reparsed['dgm:colorsDef'] as XmlObject;
-		expect(rt['@_title']).toBe('RT');
+		expect(rt['@_title']).toBe('Original');
 		expect(fillVal(labelAt(rt, 0))).toBe('FF0000');
 		expect(lineVal(labelAt(rt, 1))).toBe('FFFF00');
 		expect(rt['dgm:extLst']).toBeDefined();

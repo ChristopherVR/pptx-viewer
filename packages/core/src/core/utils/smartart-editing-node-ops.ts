@@ -12,19 +12,43 @@
  */
 
 import type { PptxSmartArtData, PptxSmartArtNode } from '../types';
+import { generateFontGuid } from './font-deobfuscation';
 
 // ── ID generation ────────────────────────────────────────────────────────
 
-let editNodeCounter = 0;
-
-/** Generate a unique model ID for a new SmartArt node. */
+/**
+ * Generate a unique model ID for a new SmartArt node.
+ *
+ * Must match the `{GUID}` format ("{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}")
+ * every `dgm:pt`/`dgm:cxn` `@_modelId` uses in a real PowerPoint file. A save
+ * with a differently-formatted id (e.g. a plain informal string) is
+ * schema-valid XML but PowerPoint's loader still rejects the file as corrupt
+ * on open -- confirmed empirically via PowerPoint COM automation.
+ */
 function nextModelId(): string {
-	return `smartart-node-${Date.now()}-${++editNodeCounter}`;
+	return `{${generateFontGuid()}}`;
 }
 
-/** Reset the edit counter (useful in tests). */
-export function resetSmartArtEditCounter(): void {
-	editNodeCounter = 0;
+/** No-op kept for API compatibility; id generation no longer needs a counter. */
+export function resetSmartArtEditCounter(): void {}
+
+/**
+ * The id nodes use as `parentId` when they have no visible parent within the
+ * array -- i.e. the diagram's root/doc point id. Existing top-level nodes
+ * (parsed from a real file) already carry this as their own `parentId`; a
+ * brand-new top-level node needs the same value so the save pipeline can
+ * anchor it under the same root when writing the diagram XML back out
+ * (see `synthesizeNewSmartArtStructuralPoints` in core's save runtime).
+ * Returns `undefined` when the diagram has no nodes yet to infer it from.
+ */
+function findRootParentId(nodes: PptxSmartArtNode[]): string | undefined {
+	const nodeIds = new Set(nodes.map((n) => n.id));
+	for (const node of nodes) {
+		if (node.parentId && !nodeIds.has(node.parentId)) {
+			return node.parentId;
+		}
+	}
+	return undefined;
 }
 
 // ── Node CRUD operations ─────────────────────────────────────────────────
@@ -43,12 +67,14 @@ export function addSmartArtNode(
 ): PptxSmartArtData {
 	const newId = nextModelId();
 
-	// Determine parent from the sibling node
+	// Determine parent from the sibling node, falling back to the diagram's
+	// root id for a genuinely top-level addition (no sibling to anchor to).
 	let parentId: string | undefined;
 	if (afterNodeId) {
 		const sibling = data.nodes.find((n) => n.id === afterNodeId);
 		parentId = sibling?.parentId;
 	}
+	parentId ??= findRootParentId(data.nodes);
 
 	const newNode: PptxSmartArtNode = {
 		id: newId,
@@ -289,7 +315,10 @@ export function demoteSmartArtNode(data: PptxSmartArtData, nodeId: string): Pptx
 /**
  * Add a new node as a child of a given parent.
  *
- * If `parentId` is undefined, the node is added as a root-level item.
+ * If `parentId` is undefined, the node is added as a root-level item, using
+ * the diagram's own root/doc id (inferred from an existing top-level node)
+ * so it ends up as a sibling of the other top-level items rather than an
+ * unparented node the save pipeline can't anchor into the diagram XML.
  * If `text` is undefined, a default label is generated.
  *
  * Returns a new PptxSmartArtData with the node inserted and
@@ -300,26 +329,27 @@ export function addSmartArtNodeAsChild(
 	parentId?: string,
 	text?: string,
 ): PptxSmartArtData {
+	const resolvedParentId = parentId ?? findRootParentId(data.nodes);
 	const newId = nextModelId();
 	const label = text ?? `Item ${data.nodes.length + 1}`;
 
 	const newNode: PptxSmartArtNode = {
 		id: newId,
 		text: label,
-		parentId,
+		parentId: resolvedParentId,
 	};
 
 	const nodes = [...data.nodes, newNode];
 
 	// Add a connection from parent to the new node
 	const connections = [...(data.connections ?? [])];
-	if (parentId) {
+	if (resolvedParentId) {
 		const maxSrcOrd = connections
-			.filter((c) => c.sourceId === parentId)
+			.filter((c) => c.sourceId === resolvedParentId)
 			.reduce((max, c) => Math.max(max, c.srcOrd ?? 0), -1);
 
 		connections.push({
-			sourceId: parentId,
+			sourceId: resolvedParentId,
 			destId: newId,
 			type: 'parOf',
 			srcOrd: maxSrcOrd + 1,

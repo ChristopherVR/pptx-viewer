@@ -12,6 +12,7 @@ import {
 	buildSmartArtPointXml,
 	buildSmartArtConnectionXml,
 	mergeSmartArtPointXml,
+	mergeSmartArtConnectionXml,
 } from './smartart-xml-builders';
 
 // ---------------------------------------------------------------------------
@@ -142,6 +143,16 @@ describe('buildSmartArtConnectionXml', () => {
 		expect(result[0]['@_destId']).toBe('dst1');
 	});
 
+	it('should always include a unique @_modelId (required by CT_Connection)', () => {
+		const result = buildSmartArtConnectionXml([
+			{ sourceId: 'a', destId: 'b' },
+			{ sourceId: 'b', destId: 'c' },
+		]);
+		expect(result[0]['@_modelId']).toMatch(/^\{[0-9A-F-]{36}\}$/u);
+		expect(result[1]['@_modelId']).toMatch(/^\{[0-9A-F-]{36}\}$/u);
+		expect(result[0]['@_modelId']).not.toBe(result[1]['@_modelId']);
+	});
+
 	it('should include @_type when type is set', () => {
 		const result = buildSmartArtConnectionXml([{ sourceId: 'a', destId: 'b', type: 'parOf' }]);
 		expect(result[0]['@_type']).toBe('parOf');
@@ -195,13 +206,14 @@ describe('buildSmartArtConnectionXml', () => {
 				destOrd: 2,
 			},
 		]);
-		expect(result[0]).toStrictEqual({
+		expect(result[0]).toMatchObject({
 			'@_srcId': 'src',
 			'@_destId': 'dst',
 			'@_type': 'sibTrans',
 			'@_srcOrd': '1',
 			'@_destOrd': '2',
 		});
+		expect(result[0]['@_modelId']).toMatch(/^\{[0-9A-F-]{36}\}$/u);
 	});
 
 	it('should handle connection type "presOf"', () => {
@@ -434,6 +446,79 @@ describe('mergeSmartArtPointXml', () => {
 });
 
 // ---------------------------------------------------------------------------
+// mergeSmartArtConnectionXml: surgical round-trip merge
+// ---------------------------------------------------------------------------
+
+describe('mergeSmartArtConnectionXml', () => {
+	/** A realistic dgm:cxn, as PowerPoint emits it: modelId + parTransId + sibTransId. */
+	const EXISTING_CXNS: XmlObject[] = [
+		{
+			'@_modelId': '{cxn-A}',
+			'@_srcId': 'doc',
+			'@_destId': '100',
+			'@_srcOrd': '0',
+			'@_destOrd': '0',
+			'@_parTransId': '{par-A}',
+			'@_sibTransId': '{sib-A}',
+		},
+		{
+			'@_modelId': '{cxn-B}',
+			'@_type': 'presOf',
+			'@_srcId': 'doc',
+			'@_destId': 'pres-1',
+			'@_srcOrd': '0',
+			'@_destOrd': '0',
+			'@_presId': 'urn:layout/default',
+		},
+	];
+
+	it('preserves an unchanged connection verbatim, including @_modelId', () => {
+		const merged = mergeSmartArtConnectionXml(EXISTING_CXNS, [
+			{ sourceId: 'doc', destId: '100', srcOrd: 0, destOrd: 0 },
+			{ sourceId: 'doc', destId: 'pres-1', type: 'presOf', srcOrd: 0, destOrd: 0 },
+		]);
+		expect(merged[0]).toBe(EXISTING_CXNS[0]);
+		expect(merged[0]['@_modelId']).toBe('{cxn-A}');
+		expect(merged[0]['@_parTransId']).toBe('{par-A}');
+		expect(merged[1]['@_modelId']).toBe('{cxn-B}');
+		expect(merged[1]['@_presId']).toBe('urn:layout/default');
+	});
+
+	it('drops a connection whose identity is no longer in the desired list', () => {
+		const merged = mergeSmartArtConnectionXml(EXISTING_CXNS, [
+			{ sourceId: 'doc', destId: '100', srcOrd: 0, destOrd: 0 },
+		]);
+		expect(merged).toHaveLength(1);
+		expect(merged[0]['@_modelId']).toBe('{cxn-A}');
+	});
+
+	it('synthesises a fresh @_modelId for a genuinely new connection', () => {
+		const merged = mergeSmartArtConnectionXml(EXISTING_CXNS, [
+			{ sourceId: 'doc', destId: '100', srcOrd: 0, destOrd: 0 },
+			{ sourceId: 'doc', destId: 'pres-1', type: 'presOf', srcOrd: 0, destOrd: 0 },
+			{ sourceId: '100', destId: '200', type: 'parOf', srcOrd: 0, destOrd: 0 },
+		]);
+		expect(merged).toHaveLength(3);
+		expect(merged[2]['@_modelId']).toMatch(/^\{[0-9A-F-]{36}\}$/u);
+		expect(merged[2]['@_srcId']).toBe('100');
+		expect(merged[2]['@_destId']).toBe('200');
+	});
+
+	it('round-trips through build -> parse without losing required attributes', () => {
+		const merged = mergeSmartArtConnectionXml(EXISTING_CXNS, [
+			{ sourceId: 'doc', destId: '100', srcOrd: 0, destOrd: 0 },
+			{ sourceId: 'doc', destId: 'pres-1', type: 'presOf', srcOrd: 0, destOrd: 0 },
+		]);
+		const xml = builder.build({ 'dgm:cxnLst': { 'dgm:cxn': merged } });
+		const reparsed = parser.parse(xml) as XmlObject;
+		const cxnLst = reparsed['dgm:cxnLst'] as XmlObject;
+		const cxns = cxnLst['dgm:cxn'] as XmlObject[];
+		expect(cxns.every((c) => Boolean(c['@_modelId']))).toBeTruthy();
+		expect(cxns[0]['@_parTransId']).toBe('{par-A}');
+	});
+});
+
+// ---------------------------------------------------------------------------
 // Full editing round-trip: parse ptLst -> node-ops -> merge -> assert
 // ---------------------------------------------------------------------------
 
@@ -469,10 +554,11 @@ describe('smartArt editing round-trip via node-ops + merge', () => {
 		// prSet on the surviving original content point is intact.
 		expect(ptById(merged, '100')?.['dgm:prSet']).toBeDefined();
 
-		// The newly added node appears with its text.
+		// The newly added node appears with its text under a freshly generated id.
 		const added = merged.find(
-			(pt) => textOf(pt) === 'Third' && String(pt['@_modelId']).startsWith('smartart-node-'),
+			(pt) => textOf(pt) === 'Third' && pt['@_modelId'] !== '100' && pt['@_modelId'] !== '200',
 		);
 		expect(added).toBeDefined();
+		expect(added?.['@_modelId']).toMatch(/^\{[0-9A-F-]{36}\}$/u);
 	});
 });

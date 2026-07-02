@@ -83,9 +83,11 @@ function applyColorToList(list: XmlObject, value: string, getLocalName: LocalNam
  * `fillClrLst` / `linClrLst`): for the i-th label with a fill list, the first
  * fill colour is overwritten with `fillColors[i]`; likewise for line colours.
  * Labels without a corresponding list, and lists with no in-memory colour at
- * that index, are left untouched. The `colorsDef/@_title` is refreshed from
- * `name` when present. Everything else (uniqueId, ext lists, effect refs,
- * per-label attributes) is preserved verbatim.
+ * that index, are left untouched. Everything else (uniqueId, title/desc, ext
+ * lists, effect refs, per-label attributes) is preserved verbatim -- `title`
+ * is a `CT_ColorTransform` CHILD ELEMENT (`<dgm:title val="..."/>`) per
+ * ECMA-376, not an attribute, and nothing in the editing UI ever renames a
+ * colour scheme, so it is never rewritten here.
  *
  * @returns true when at least one field was written, false when nothing
  *          changed (so the caller can skip rewriting the part).
@@ -100,13 +102,6 @@ export function applySmartArtColorTransform(
 	}
 
 	let mutated = false;
-
-	if (transform.name && transform.name.length > 0) {
-		if (colorsDef['@_title'] !== transform.name) {
-			colorsDef['@_title'] = transform.name;
-			mutated = true;
-		}
-	}
 
 	const styleLblKey = findKey(colorsDef, 'styleLbl', getLocalName);
 	if (!styleLblKey) {

@@ -6,6 +6,7 @@ import type {
 } from '../../types';
 import { MAX_SMARTART_NODES } from '../builders/smart-art-text-helpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtParsing';
+import { isContentPoint } from './smartart-xml-builders';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	public async getSmartArtDataForGraphicFrame(
@@ -42,7 +43,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const { parsedConnections, parentByNodeId } = this.parseSmartArtConnections(dataModel);
 
 		// ── Parse nodes ──────────────────────────────────────────────────
+		// Every user-editable content point (`type="node"`/`"asst"`, or no
+		// `@_type`) must survive into `nodes`, even ones the user never typed
+		// into (empty `[Text]` placeholders). Dropping empty-text points here
+		// desyncs them from `dgm:cxnLst`, which still references their ids on
+		// save via `mergeSmartArtPointXml` -- producing a `dgm:ptLst` missing
+		// points that `dgm:cxnLst` dangles a reference to, which PowerPoint
+		// rejects as a corrupt file. Structural points (doc/pres/parTrans/
+		// sibTrans) are excluded; those are preserved verbatim on save instead.
 		const nodes = points
+			.filter(isContentPoint)
 			.map((point) => {
 				const pointId = String(point?.['@_modelId'] || '').trim();
 				if (pointId.length === 0) {
@@ -53,9 +63,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				const textValues: string[] = [];
 				this.collectLocalTextValues(point, 't', textValues);
 				const resolvedText = textValues.find((entry) => entry.trim().length > 0);
-				if (!resolvedText) {
-					return null;
-				}
 
 				// Capture per-run formatting so a load -> edit -> save round-trip
 				// keeps a node's individual runs (bold / colour / size) instead of
@@ -68,7 +75,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 				return {
 					id: pointId,
-					text: resolvedText.trim(),
+					text: resolvedText ? resolvedText.trim() : '',
 					parentId: parentByNodeId.get(pointId),
 					nodeType,
 					runs,
