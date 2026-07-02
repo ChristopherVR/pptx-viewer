@@ -6,6 +6,15 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [Unreleased]
 
+### Bug Fixes
+
+- **core:** Clear stale drawing shapes when switching smartart layout (by @ChristopherVR) ([c62959f](https://github.com/ChristopherVR/pptx-viewer/commit/c62959fab17e6cddea4ddb379f1add580aae1fd0))
+- **react:** Keep smartart style-bar popover open on hover, align text editor (by @ChristopherVR) ([e615f4f](https://github.com/ChristopherVR/pptx-viewer/commit/e615f4f944a5ad22a47ddd058ea8f6f23998211b))
+- **react:** Propagate drawing-shape clear and add missing smartart thumbnails (by @ChristopherVR) ([cffde54](https://github.com/ChristopherVR/pptx-viewer/commit/cffde54ae1c4c30b1bb2d95127379db4007a44d6))
+- **vue:** Propagate cleared drawing shapes when switching smartart layout (by @ChristopherVR) ([9c18b08](https://github.com/ChristopherVR/pptx-viewer/commit/9c18b08844736865494f602d44f9b089a004aa4f))
+
+## [1.1.78](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.78) - 2026-07-02
+
 ### Features
 
 - **react:** Wire inline Ctrl/Cmd+B/I/U formatting shortcuts (by @ChristopherVR) ([09aac24](https://github.com/ChristopherVR/pptx-viewer/commit/09aac24d130a9cfccfc343461471041db549dc4f))
