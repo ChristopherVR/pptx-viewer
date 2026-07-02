@@ -1,7 +1,13 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig((options) => ({
-	entry: ['src/index.ts', 'src/theme/index.ts', 'src/loader/index.ts', 'src/smartart-3d/index.ts'],
+	entry: [
+		'src/index.ts',
+		'src/theme/index.ts',
+		'src/loader/index.ts',
+		'src/smartart-3d/index.ts',
+		'src/i18n/index.ts',
+	],
 	format: ['esm', 'cjs'],
 	dts: true,
 	splitting: false,

@@ -51,6 +51,11 @@
 			"types": "./dist/smartart-3d/index.d.ts",
 			"import": "./dist/smartart-3d/index.mjs",
 			"require": "./dist/smartart-3d/index.js"
+		},
+		"./i18n": {
+			"types": "./dist/i18n/index.d.ts",
+			"import": "./dist/i18n/index.mjs",
+			"require": "./dist/i18n/index.js"
 		}
 	},
 	"scripts": {
