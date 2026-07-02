@@ -357,6 +357,15 @@ describe('switchSmartArtLayout', () => {
 		const result = switchSmartArtLayout(baseData, 'list');
 		expect(result.nodes).toBe(baseData.nodes);
 	});
+
+	it('clears stale pre-computed drawing shapes so the renderer reflows the new layout', () => {
+		const withShapes: PptxSmartArtData = {
+			...baseData,
+			drawingShapes: [{ id: 'reflow-process-1', x: 0, y: 0, width: 10, height: 10, text: 'A' }],
+		};
+		const result = switchSmartArtLayout(withShapes, 'cycle');
+		expect(result.drawingShapes).toBeUndefined();
+	});
 });
 
 // ---------------------------------------------------------------------------

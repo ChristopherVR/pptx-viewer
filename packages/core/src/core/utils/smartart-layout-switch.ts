@@ -57,6 +57,11 @@ export function switchSmartArtLayout(
 		resolvedLayoutType: newLayoutType,
 		// Clear the named layout preset — switching category invalidates it
 		layout: undefined,
+		// Clear stale pre-computed drawing shapes from the old layout so the
+		// reflow pipeline (rebuildDrawingShapesIfCleared) regenerates them for
+		// the new layout type; otherwise the renderer keeps preferring the old
+		// shapes and the switch has no visible effect.
+		drawingShapes: undefined,
 		// Preserve everything else: nodes, connections, colours, styles, chrome, etc.
 	};
 }
