@@ -274,10 +274,14 @@ export function useSmartArtEditing(input: UseSmartArtEditingInput): SmartArtEdit
 			return;
 		}
 		const updated = switchSmartArtLayout(smartArtData.value, layout);
+		// drawingShapes must be forwarded (cleared to undefined) so the reflow
+		// pipeline regenerates shapes for the new layout instead of keeping the
+		// old layout's stale shapes.
 		patchData({
 			layoutType: updated.layoutType,
 			resolvedLayoutType: updated.resolvedLayoutType,
 			layout: updated.layout,
+			drawingShapes: updated.drawingShapes,
 		});
 	}
 
