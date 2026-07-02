@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils';
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import ChartPanel from './ChartPanel.vue';
 
@@ -123,12 +123,21 @@ describe('chartPanel', () => {
 		expect(wrapper.findAll('[data-testid="chart-series-color"]')).toHaveLength(2);
 	});
 
-	it('picking a series colour emits chartData with that colour set on the series', async () => {
-		const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
-		await wrapper.get('[data-testid="chart-series-color"]').setValue('#ff0000');
+	it('picking a series colour emits chartData with that colour set on the series (debounced)', async () => {
+		vi.useFakeTimers();
+		try {
+			const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
+			await wrapper.get('[data-testid="chart-series-color"]').setValue('#ff0000');
 
-		const next = lastChartData(wrapper.emitted('update'));
-		expect(next.series[0].color).toBe('#ff0000');
+			// The commit is debounced: nothing is emitted until the timer fires.
+			expect(wrapper.emitted('update')).toBeUndefined();
+			vi.runAllTimers();
+
+			const next = lastChartData(wrapper.emitted('update'));
+			expect(next.series[0].color).toBe('#ff0000');
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	it('does not mutate the original element when picking a colour', async () => {
@@ -261,5 +270,84 @@ describe('chartPanel', () => {
 
 		const next = lastChartData(wrapper.emitted('update'));
 		expect(next.series[0].dataPoints?.find((p) => p.idx === 1)?.spPr?.fillColor).toBe('#abcdef');
+	});
+
+	// ── Data grid + summary ────────────────────────────────────────────
+
+	it('renders a data summary line reporting series and category counts', () => {
+		const wrapper = mount(ChartPanel, {
+			props: {
+				element: chartElement({
+					series: [
+						{ name: 'A', values: [1, 2, 3] },
+						{ name: 'B', values: [4, 5, 6] },
+					],
+				}),
+			},
+		});
+		expect(wrapper.get('[data-testid="chart-data-summary"]').text()).toBe(
+			'2 series · 3 categories',
+		);
+	});
+
+	it('editing a grid value emits chartData with the new numeric value', async () => {
+		const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
+		await wrapper.findAll('[data-testid="chart-grid-value"]')[1].setValue('99');
+
+		const next = lastChartData(wrapper.emitted('update'));
+		expect(next.series[0].values[1]).toBe(99);
+	});
+
+	it('renaming a series via the grid header emits chartData with the new name', async () => {
+		const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
+		await wrapper.get('[data-testid="chart-grid-series-name"]').setValue('Profit');
+
+		const next = lastChartData(wrapper.emitted('update'));
+		expect(next.series[0].name).toBe('Profit');
+	});
+
+	it('adding a series appends a zero-filled series matching the category count', async () => {
+		const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
+		await wrapper.get('[data-testid="chart-add-series"]').trigger('click');
+
+		const next = lastChartData(wrapper.emitted('update'));
+		expect(next.series).toHaveLength(2);
+		expect(next.series[1].values).toStrictEqual([0, 0, 0]);
+	});
+
+	it('adding a category appends a label and a zero to each series', async () => {
+		const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
+		await wrapper.get('[data-testid="chart-add-category"]').trigger('click');
+
+		const next = lastChartData(wrapper.emitted('update'));
+		expect(next.categories).toHaveLength(4);
+		expect(next.series[0].values).toHaveLength(4);
+	});
+
+	it('removing a category drops it and its values from every series', async () => {
+		const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
+		await wrapper.findAll('[data-testid="chart-remove-category"]')[0].trigger('click');
+
+		const next = lastChartData(wrapper.emitted('update'));
+		expect(next.categories).toStrictEqual(['Feb', 'Mar']);
+		expect(next.series[0].values).toStrictEqual([20, 30]);
+	});
+
+	// ── Per-point label + marker overrides ─────────────────────────────
+
+	it('applies a per-point label text override', async () => {
+		const wrapper = mount(ChartPanel, { props: { element: chartElement({ chartType: 'pie' }) } });
+		await wrapper.findAll('[data-testid="chart-point-label"]')[0].setValue('Peak');
+
+		const next = lastChartData(wrapper.emitted('update'));
+		expect(next.series[0].dataLabels?.find((l) => l.idx === 0)?.text).toBe('Peak');
+	});
+
+	it('toggling a per-point marker override adds a marker to that point', async () => {
+		const wrapper = mount(ChartPanel, { props: { element: chartElement({ chartType: 'line' }) } });
+		await wrapper.findAll('[data-testid="chart-point-marker-toggle"]')[0].setValue(true);
+
+		const next = lastChartData(wrapper.emitted('update'));
+		expect(next.series[0].dataPoints?.find((p) => p.idx === 0)?.marker?.symbol).toBe('circle');
 	});
 });

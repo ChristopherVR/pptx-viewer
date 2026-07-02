@@ -3,6 +3,8 @@ import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 import { computed } from 'vue';
 
+import QuickStylesGallery from './QuickStylesGallery.vue';
+
 /**
  * EffectsPanel: element opacity plus outer-shadow and outer-glow controls.
  *
@@ -202,6 +204,8 @@ function onGlowRadius(value: string): void {
 		</label>
 
 		<template v-if="isShapeLike">
+			<QuickStylesGallery @select="emitShapeStyle" />
+
 			<div class="pptx-vue-effects-section flex flex-col gap-2">
 				<label class="pptx-vue-effects-check inline-flex items-center gap-2 text-foreground">
 					<input

@@ -17,6 +17,7 @@ const props = defineProps<{
 const emit = defineEmits<{
 	setPointFill: [seriesIndex: number, pointIndex: number, color: string | null];
 	setPointExplosion: [seriesIndex: number, pointIndex: number, explosion: number | null];
+	setPointLabel: [seriesIndex: number, pointIndex: number, text: string | null];
 }>();
 
 const seriesIndex = ref(0);
@@ -29,6 +30,15 @@ const showExplosion = computed(() => EXPLOSION_SUPPORTED_TYPES.has(props.chartTy
 
 function pointFor(idx: number): PptxChartDataPoint | undefined {
 	return activeSeries.value?.dataPoints?.find((p) => p.idx === idx);
+}
+
+function labelFor(idx: number): string {
+	return activeSeries.value?.dataLabels?.find((l) => l.idx === idx)?.text ?? '';
+}
+
+function onLabel(event: Event, idx: number): void {
+	const raw = (event.target as HTMLInputElement).value;
+	emit('setPointLabel', activeIndex.value, idx, raw === '' ? null : raw);
 }
 
 function onSeriesPick(event: Event): void {
@@ -86,6 +96,16 @@ function onExplosion(event: Event, idx: number): void {
 				class="flex items-center gap-2 text-[11px]"
 			>
 				<span class="flex-1 truncate" :title="cat">{{ cat }}</span>
+
+				<input
+					type="text"
+					data-testid="chart-point-label"
+					class="w-20 bg-muted border border-border rounded px-1.5 py-0.5 text-[11px]"
+					:value="labelFor(idx)"
+					placeholder="Auto"
+					title="Label text"
+					@input="onLabel($event, idx)"
+				/>
 
 				<input
 					type="color"

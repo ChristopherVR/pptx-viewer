@@ -1,7 +1,11 @@
 <script setup lang="ts">
-import type { PptxElement, TextStyle } from 'pptx-viewer-core';
+import type { PptxElement, PptxTextWarpPreset, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 import { computed } from 'vue';
+
+import Text3DProperties from './Text3DProperties.vue';
+import TextEffectsPanel from './TextEffectsPanel.vue';
+import TextWarpGallery from './TextWarpGallery.vue';
 
 /**
  * TextPanel: typography inspector for the Vue `pptx-vue-viewer` editor.
@@ -103,6 +107,14 @@ function setAlign(value: AlignValue): void {
 
 function setVAlign(value: VAlignValue): void {
 	patchTextStyle({ vAlign: value });
+}
+
+function onWarpSelect(preset: PptxTextWarpPreset | undefined): void {
+	patchTextStyle({ textWarpPreset: preset });
+}
+
+function onTextEffectPatch(patch: Partial<TextStyle>): void {
+	patchTextStyle(patch);
 }
 </script>
 

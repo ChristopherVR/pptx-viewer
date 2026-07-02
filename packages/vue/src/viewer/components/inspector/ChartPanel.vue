@@ -4,10 +4,13 @@ import { GROUPING_OPTIONS, GROUPING_SUPPORTED_TYPES, CHART_TYPE_OPTIONS } from '
 import { computed } from 'vue';
 
 import { useChartEditing } from '../../composables/useChartEditing';
+import { useDebouncedCallback } from '../../composables/useDebouncedCallback';
 import ChartAxisOptions from './ChartAxisOptions.vue';
 import ChartAxisStyleOptions from './ChartAxisStyleOptions.vue';
 import ChartComboTypeOptions from './ChartComboTypeOptions.vue';
+import ChartDataGrid from './ChartDataGrid.vue';
 import ChartDataLabelOptions from './ChartDataLabelOptions.vue';
+import ChartDataPointMarkerOptions from './ChartDataPointMarkerOptions.vue';
 import ChartDataPointOptions from './ChartDataPointOptions.vue';
 import ChartDisplayOptions from './ChartDisplayOptions.vue';
 import ChartErrorBarOptions from './ChartErrorBarOptions.vue';
@@ -61,6 +64,13 @@ function emitChartData(next: PptxChartData): void {
 
 const editing = useChartEditing(chartElement, chartData, emitChartData);
 
+// Series colour commits are debounced (~180ms) so dragging through the native
+// colour picker collapses into one history-friendly update, matching React.
+const commitSeriesColor = useDebouncedCallback(
+	(index: number, color: string) => editing.setSeriesColor(index, color),
+	180,
+);
+
 function onTypeChange(event: Event): void {
 	editing.patchChartData({ chartType: (event.target as HTMLSelectElement).value as PptxChartType });
 }
@@ -76,10 +86,11 @@ function onGroupingChange(event: Event): void {
 }
 
 function onSeriesColorInput(event: Event, index: number): void {
-	editing.setSeriesColor(index, (event.target as HTMLInputElement).value);
+	commitSeriesColor(index, (event.target as HTMLInputElement).value);
 }
 
 function onClearSeriesColor(index: number): void {
+	commitSeriesColor.cancel();
 	editing.setSeriesColor(index, null);
 }
 
@@ -171,6 +182,14 @@ const CONTROL =
 				:series="series"
 				@set-point-fill="editing.setPointFill"
 				@set-point-explosion="editing.setPointExplosion"
+				@set-point-label="editing.setPointLabel"
+			/>
+
+			<ChartDataPointMarkerOptions
+				:chart-type="chartData.chartType"
+				:categories="categories"
+				:series="series"
+				@set-point-marker="editing.setPointMarker"
 			/>
 
 			<ChartTrendlineOptions
@@ -212,6 +231,18 @@ const CONTROL =
 					</button>
 				</div>
 			</div>
+
+			<ChartDataGrid
+				:series="series"
+				:categories="categories"
+				@update-series="editing.updateSeries"
+				@update-category-label="editing.updateCategoryLabel"
+				@update-value="editing.updateValue"
+				@add-series="editing.addSeries"
+				@remove-series="editing.removeSeries"
+				@add-category="editing.addCategory"
+				@remove-category="editing.removeCategory"
+			/>
 		</template>
 	</div>
 </template>

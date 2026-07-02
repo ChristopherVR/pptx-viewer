@@ -9,6 +9,7 @@ import ChartPanel from './ChartPanel.vue';
 import EffectsPanel from './EffectsPanel.vue';
 import FillPanel from './FillPanel.vue';
 import ImagePanel from './ImagePanel.vue';
+import MediaPropertiesPanel from './MediaPropertiesPanel.vue';
 import SmartArtPropertiesPanel from './SmartArtPropertiesPanel.vue';
 import StrokePanel from './StrokePanel.vue';
 import TablePanel from './TablePanel.vue';
@@ -34,6 +35,7 @@ const isImage = computed(() => isImageLikeElement(props.element));
 const isTable = computed(() => props.element.type === 'table');
 const isChart = computed(() => props.element.type === 'chart');
 const isSmartArt = computed(() => props.element.type === 'smartArt');
+const isMedia = computed(() => props.element.type === 'media');
 
 function relay(patch: Partial<PptxElement>): void {
 	emit('update', patch);
@@ -89,6 +91,15 @@ function relay(patch: Partial<PptxElement>): void {
 				Chart
 			</h3>
 			<ChartPanel :element="element" @update="relay" />
+		</div>
+
+		<div v-if="isMedia" class="pptx-vue-inspector-section py-2 border-b border-border">
+			<h3
+				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+			>
+				Media
+			</h3>
+			<MediaPropertiesPanel :element="element" :can-edit="props.canEdit" @update="relay" />
 		</div>
 
 		<div class="pptx-vue-inspector-section py-2 border-b border-border">

@@ -25,12 +25,19 @@ import type {
 	PptxChartType,
 } from 'pptx-viewer-core';
 import {
+	chartDataAddCategory,
+	chartDataAddSeries,
 	chartDataChangeType,
+	chartDataRemoveCategory,
+	chartDataRemoveSeries,
+	chartDataUpdatePoint,
 	setChartAxisGridlineStyle,
 	setChartAxisLogScale,
 	setChartAxisTitleStyle,
 	setChartDataPointExplosion,
 	setChartDataPointFill,
+	setChartDataPointLabel,
+	setChartDataPointMarker,
 	setChartSeriesChartType,
 	setChartSeriesMarker,
 } from 'pptx-viewer-core';
@@ -87,6 +94,19 @@ export interface ChartEditing {
 	setSeriesType: (index: number, seriesType: PptxChartType | null) => void;
 	setPointFill: (seriesIndex: number, pointIndex: number, color: string | null) => void;
 	setPointExplosion: (seriesIndex: number, pointIndex: number, explosion: number | null) => void;
+	setPointMarker: (seriesIndex: number, pointIndex: number, marker: ChartMarkerEdit | null) => void;
+	setPointLabel: (seriesIndex: number, pointIndex: number, text: string | null) => void;
+	/** Patch a single series (e.g. rename) in place, preserving the rest. */
+	updateSeries: (index: number, patch: Partial<PptxChartSeries>) => void;
+	/** Rename one category label. */
+	updateCategoryLabel: (catIndex: number, value: string) => void;
+	/** Set one numeric value from a raw input string (ignored if not finite). */
+	updateValue: (seriesIndex: number, catIndex: number, raw: string) => void;
+	/** Append an empty series/category, or remove one by index. */
+	addSeries: () => void;
+	removeSeries: (seriesIndex: number) => void;
+	addCategory: () => void;
+	removeCategory: (catIndex: number) => void;
 }
 
 /**
@@ -155,6 +175,63 @@ export function useChartEditing(
 	const setSeriesColor = (index: number, color: string | null): void =>
 		updateSeries(index, { color: color ?? undefined });
 
+	const updateCategoryLabel = (catIndex: number, value: string): void => {
+		const data = chartData.value;
+		if (!data) {
+			return;
+		}
+		patchChartData({ categories: data.categories.map((c, i) => (i === catIndex ? value : c)) });
+	};
+
+	const updateValue = (seriesIndex: number, catIndex: number, raw: string): void => {
+		const data = chartData.value;
+		if (!data) {
+			return;
+		}
+		const num = Number.parseFloat(raw);
+		if (!Number.isFinite(num)) {
+			return;
+		}
+		replaceChartData(chartDataUpdatePoint(data, seriesIndex, catIndex, num));
+	};
+
+	const addCategory = (): void => {
+		const data = chartData.value;
+		if (!data) {
+			return;
+		}
+		replaceChartData(chartDataAddCategory(data, `Cat ${data.categories.length + 1}`));
+	};
+
+	const removeCategory = (catIndex: number): void => {
+		const data = chartData.value;
+		if (!data || data.categories.length <= 1) {
+			return;
+		}
+		replaceChartData(chartDataRemoveCategory(data, catIndex));
+	};
+
+	const addSeries = (): void => {
+		const data = chartData.value;
+		if (!data) {
+			return;
+		}
+		replaceChartData(
+			chartDataAddSeries(data, {
+				name: `Series ${data.series.length + 1}`,
+				values: data.categories.map(() => 0),
+			}),
+		);
+	};
+
+	const removeSeries = (seriesIndex: number): void => {
+		const data = chartData.value;
+		if (!data || data.series.length <= 1) {
+			return;
+		}
+		replaceChartData(chartDataRemoveSeries(data, seriesIndex));
+	};
+
 	const setSeriesTrendline = (index: number, trendline: PptxChartTrendline | null): void =>
 		updateSeries(index, { trendlines: trendline ? [trendline] : [] });
 
@@ -198,5 +275,18 @@ export function useChartEditing(
 			applyChartOp((el) => setChartDataPointFill(el, seriesIndex, pointIndex, color)),
 		setPointExplosion: (seriesIndex, pointIndex, explosion) =>
 			applyChartOp((el) => setChartDataPointExplosion(el, seriesIndex, pointIndex, explosion)),
+		setPointMarker: (seriesIndex, pointIndex, marker) =>
+			applyChartOp((el) => setChartDataPointMarker(el, seriesIndex, pointIndex, marker)),
+		setPointLabel: (seriesIndex, pointIndex, text) =>
+			applyChartOp((el) =>
+				setChartDataPointLabel(el, seriesIndex, pointIndex, text !== null ? { text } : null),
+			),
+		updateSeries,
+		updateCategoryLabel,
+		updateValue,
+		addSeries,
+		removeSeries,
+		addCategory,
+		removeCategory,
 	};
 }

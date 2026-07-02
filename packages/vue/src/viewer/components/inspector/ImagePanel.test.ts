@@ -47,43 +47,50 @@ describe('imagePanel', () => {
 		expect(events?.at(-1)?.[0]).toStrictEqual({ altText: 'logo' });
 	});
 
-	it('emits the full merged imageEffects sub-object on brightness change', async () => {
+	it('relays the full merged imageEffects sub-object on brightness change', async () => {
 		const wrapper = mount(ImagePanel, {
 			props: {
 				element: imageEl({ imageEffects: { contrast: 25 } } as Partial<PptxElement>),
 			},
 		});
-		const brightness = wrapper.get('input[type="range"]');
+		// The brightness slider lives in the child ImageAdjustmentsPanel; its
+		// first range input is Brightness. ImagePanel relays the child's patch.
+		const brightness = wrapper.get('.pptx-vue-image-adjust__slider input[type="range"]');
 		await brightness.setValue('40');
 
 		const events = wrapper.emitted('update');
 		expect(events?.at(-1)?.[0]).toStrictEqual({ imageEffects: { contrast: 25, brightness: 40 } });
 	});
 
-	it('reflects existing effect values on the sliders', () => {
+	it('toggles grayscale into the merged imageEffects sub-object', async () => {
 		const wrapper = mount(ImagePanel, {
 			props: {
-				element: imageEl({
-					imageEffects: { brightness: -30, contrast: 10, saturation: 50 },
-				} as Partial<PptxElement>),
+				element: imageEl({ imageEffects: { contrast: 10 } } as Partial<PptxElement>),
 			},
 		});
-		const ranges = wrapper.findAll('input[type="range"]');
-		expect((ranges[0].element as HTMLInputElement).value).toBe('-30');
-		expect((ranges[1].element as HTMLInputElement).value).toBe('10');
-		expect((ranges[2].element as HTMLInputElement).value).toBe('50');
+		const grayscale = wrapper.get('.pptx-vue-image-panel__grayscale');
+		await grayscale.setValue(true);
+
+		const events = wrapper.emitted('update');
+		expect(events?.at(-1)?.[0]).toStrictEqual({ imageEffects: { contrast: 10, grayscale: true } });
 	});
 
-	it('hides reset until effects exist and clears them when clicked', async () => {
-		const without = mount(ImagePanel, { props: { element: imageEl() } });
-		expect(without.find('.pptx-vue-image-panel__reset').exists()).toBeFalsy();
+	it('hides Reset Picture until an effect or crop exists and clears everything when clicked', async () => {
+		const clean = mount(ImagePanel, { props: { element: imageEl() } });
+		expect(clean.find('.pptx-vue-image-panel__reset-picture').exists()).toBeFalsy();
 
-		const withFx = mount(ImagePanel, {
+		const dirty = mount(ImagePanel, {
 			props: { element: imageEl({ imageEffects: { brightness: 5 } } as Partial<PptxElement>) },
 		});
-		const reset = withFx.get('.pptx-vue-image-panel__reset');
+		const reset = dirty.get('.pptx-vue-image-panel__reset-picture');
 		await reset.trigger('click');
-		const events = withFx.emitted('update');
-		expect(events?.at(-1)?.[0]).toStrictEqual({ imageEffects: undefined });
+		const events = dirty.emitted('update');
+		expect(events?.at(-1)?.[0]).toStrictEqual({
+			imageEffects: undefined,
+			cropLeft: 0,
+			cropTop: 0,
+			cropRight: 0,
+			cropBottom: 0,
+		});
 	});
 });
