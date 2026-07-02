@@ -1,5 +1,5 @@
 import { hasTextProperties } from 'pptx-viewer-core';
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 /** useCanvasInteractions: Canvas interaction handlers for the PowerPoint editor. */
 import { useRef } from 'react';
 
@@ -299,6 +299,13 @@ export function useCanvasInteractions(
 		ops.updateElementById(elementId, updates);
 	};
 
+	// Apply an inline-editing text-style toggle (Ctrl/Cmd+B/I/U) to the selected
+	// element. Routes through the same updateSelectedTextStyle path as the
+	// toolbar, so it hits history/dirty marking and remaps rich segments.
+	const handleFormatText = (updates: Partial<TextStyle>) => {
+		ops.updateSelectedTextStyle(updates);
+	};
+
 	const handleAdjustmentPointerDown = (elementId: string, e: React.MouseEvent) => {
 		e.stopPropagation();
 		const el = elementLookup.get(elementId);
@@ -335,6 +342,7 @@ export function useCanvasInteractions(
 		handleAdjustmentPointerDown,
 		handleRotate,
 		handleUpdateSmartArtElement,
+		handleFormatText,
 		handleInlineEditCommit,
 	};
 }

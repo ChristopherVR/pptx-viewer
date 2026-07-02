@@ -77,6 +77,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		onTableCellSelect,
 		onCommitCellEdit,
 		onUpdateSmartArtElement,
+		onFormatText,
 		onResizeTableColumns,
 		onResizeTableRow,
 		findHighlights,
@@ -333,6 +334,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 					tableStyleContext,
 					canEditSmartArt,
 					onUpdateSmartArtElement: smartArtUpdateHandler,
+					onFormatText,
 				})}
 				{(el.actionClick || el.actionHover) && canInteract && (
 					<ActionIndicator

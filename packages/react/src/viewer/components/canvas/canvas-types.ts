@@ -6,6 +6,7 @@ import type {
 	PptxSlide,
 	InkPptxElement,
 	ShapePptxElement,
+	TextStyle,
 } from 'pptx-viewer-core';
 import React from 'react';
 
@@ -104,6 +105,12 @@ export interface SlideCanvasProps {
 	 * + dirty marking). When absent, inline SmartArt editing is disabled.
 	 */
 	onUpdateSmartArtElement?: (elementId: string, updates: Partial<PptxElement>) => void;
+	/**
+	 * Apply a text-style toggle (Ctrl/Cmd+B/I/U) to the element being
+	 * inline-edited. Routed to the same updateSelectedTextStyle path as the
+	 * toolbar. When absent, the inline formatting shortcuts are inert.
+	 */
+	onFormatText?: (updates: Partial<TextStyle>) => void;
 	/** Called when table column widths are resized. */
 	onResizeTableColumns?: (elementId: string, newWidths: number[]) => void;
 	/** Called when a table row is resized. */

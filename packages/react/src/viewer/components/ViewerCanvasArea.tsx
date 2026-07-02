@@ -303,6 +303,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 					}
 					onCommitCellEdit={tableOps.handleCommitCellEdit}
 					onUpdateSmartArtElement={canvasHandlers.handleUpdateSmartArtElement}
+					onFormatText={canvasHandlers.handleFormatText}
 					onResizeTableColumns={tableOps.handleResizeTableColumns}
 					onResizeTableRow={tableOps.handleResizeTableRow}
 					findResults={findReplace.findResults}

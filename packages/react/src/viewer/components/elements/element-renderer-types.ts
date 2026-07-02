@@ -1,4 +1,4 @@
-import type { PptxAction, PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxAction, PptxElement, PptxSlide, TextStyle } from 'pptx-viewer-core';
 
 import type { ShapeAdjustmentHandleDescriptor, TableCellEditorState } from '../../types';
 import type { ElementAnimationState } from '../../utils/animation-timeline';
@@ -63,6 +63,11 @@ export interface ElementRendererProps {
 	 * absent, inline SmartArt editing is disabled.
 	 */
 	onUpdateSmartArtElement?: (elementId: string, updates: Partial<PptxElement>) => void;
+	/**
+	 * Apply a text-style toggle (Ctrl/Cmd+B/I/U) while this element is being
+	 * inline-edited. When absent, the inline formatting shortcuts are inert.
+	 */
+	onFormatText?: (updates: Partial<TextStyle>) => void;
 	onResizeTableColumns?: (elementId: string, newWidths: number[]) => void;
 	onResizeTableRow?: (elementId: string, rowIndex: number, newHeight: number) => void;
 	/** Per-segment highlight ranges produced by Find & Replace. */
