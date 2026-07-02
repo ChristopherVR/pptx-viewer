@@ -158,7 +158,7 @@ function close(): void {
 					"
 					@click="selectCategory(cat.id)"
 				>
-					{{ cat.label }}
+					{{ t(cat.labelKey) }}
 				</button>
 			</nav>
 
@@ -194,7 +194,7 @@ function close(): void {
 						</span>
 						<span
 							class="pptx-vue-smartart-tile-label text-center text-[10px] leading-tight text-foreground"
-							>{{ preset.label }}</span
+							>{{ t(preset.labelKey) }}</span
 						>
 					</button>
 				</div>

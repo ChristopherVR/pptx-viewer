@@ -59,7 +59,7 @@ function onPosition(event: Event): void {
 					:checked="labels[opt.key] ?? false"
 					@change="onContentToggle($event, opt.key)"
 				/>
-				<span class="text-[11px]">{{ opt.label }}</span>
+				<span class="text-[11px]">{{ t(opt.labelKey) }}</span>
 			</label>
 
 			<label class="flex items-center gap-2 text-[11px]">
@@ -71,7 +71,7 @@ function onPosition(event: Event): void {
 					@change="onPosition"
 				>
 					<option v-for="opt in DATA_LABEL_POSITION_OPTIONS" :key="opt.value" :value="opt.value">
-						{{ opt.label }}
+						{{ t(opt.labelKey) }}
 					</option>
 				</select>
 			</label>

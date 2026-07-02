@@ -123,7 +123,7 @@ const CONTROL =
 					@change="onTypeChange"
 				>
 					<option v-for="opt in CHART_TYPE_OPTIONS" :key="opt.value" :value="opt.value">
-						{{ opt.label }}
+						{{ t(opt.labelKey) }}
 					</option>
 				</select>
 			</label>
@@ -149,7 +149,7 @@ const CONTROL =
 					@change="onGroupingChange"
 				>
 					<option v-for="opt in GROUPING_OPTIONS" :key="opt.value" :value="opt.value">
-						{{ opt.label }}
+						{{ t(opt.labelKey) }}
 					</option>
 				</select>
 			</label>

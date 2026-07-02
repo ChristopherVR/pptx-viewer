@@ -115,7 +115,7 @@ const GRID_KINDS: ReadonlyArray<{ which: 'major' | 'minor'; labelKey: string }> 
 			{{ t('pptx.chart.axisStyling') }}
 		</div>
 		<div v-for="row in rows" :key="row.type" class="space-y-1.5">
-			<div class="text-[11px] font-medium">{{ row.label }}</div>
+			<div class="text-[11px] font-medium">{{ t(row.labelKey) }}</div>
 			<div class="space-y-1.5 ml-2">
 				<div v-if="row.hasScale" class="flex items-center gap-2">
 					<label class="flex items-center gap-2 cursor-pointer">
@@ -215,7 +215,7 @@ const GRID_KINDS: ReadonlyArray<{ which: 'major' | 'minor'; labelKey: string }> 
 							@change="onGridDash($event, row, kind.which)"
 						>
 							<option v-for="opt in GRIDLINE_DASH_OPTIONS" :key="opt.value" :value="opt.value">
-								{{ opt.label }}
+								{{ t(opt.labelKey) }}
 							</option>
 						</select>
 					</div>

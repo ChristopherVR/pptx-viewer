@@ -104,7 +104,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 			{{ t('pptx.chart.axes') }}
 		</div>
 		<div v-for="row in rows" :key="row.type" class="space-y-1.5">
-			<div class="text-[11px] font-medium">{{ row.label }}</div>
+			<div class="text-[11px] font-medium">{{ t(row.labelKey) }}</div>
 
 			<div v-if="row.hasScale" class="space-y-1.5 ml-2">
 				<label
@@ -134,7 +134,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 						@change="onDisplayUnits($event, row.type)"
 					>
 						<option v-for="opt in DISPLAY_UNITS_OPTIONS" :key="opt.value" :value="opt.value">
-							{{ opt.label }}
+							{{ t(opt.labelKey) }}
 						</option>
 					</select>
 				</label>
@@ -176,7 +176,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 						@change="onTickPos($event, row.type)"
 					>
 						<option v-for="opt in TICK_LABEL_POSITION_OPTIONS" :key="opt.value" :value="opt.value">
-							{{ opt.label }}
+							{{ t(opt.labelKey) }}
 						</option>
 					</select>
 				</label>

@@ -70,7 +70,7 @@ function onLegendPosition(event: Event): void {
 					@change="onLegendPosition"
 				>
 					<option v-for="opt in LEGEND_POSITION_OPTIONS" :key="opt.value" :value="opt.value">
-						{{ opt.label }}
+						{{ t(opt.labelKey) }}
 					</option>
 				</select>
 			</label>

@@ -64,7 +64,7 @@ function onFill(event: Event, index: number): void {
 						@change="onSymbol($event, i)"
 					>
 						<option v-for="opt in MARKER_SYMBOL_OPTIONS" :key="opt.value" :value="opt.value">
-							{{ opt.label }}
+							{{ t(opt.labelKey) }}
 						</option>
 					</select>
 				</div>

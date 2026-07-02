@@ -69,7 +69,7 @@ function onFlag(
 						@change="onType($event, i, firstTrendline(s))"
 					>
 						<option v-for="opt in TRENDLINE_TYPE_OPTIONS" :key="opt.value" :value="opt.value">
-							{{ opt.label }}
+							{{ t(opt.labelKey) }}
 						</option>
 					</select>
 				</div>

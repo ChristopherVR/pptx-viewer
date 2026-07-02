@@ -52,7 +52,7 @@ function onChange(event: Event, index: number): void {
 					@change="onChange($event, i)"
 				>
 					<option v-for="opt in COMBO_SERIES_TYPE_OPTIONS" :key="opt.value" :value="opt.value">
-						{{ opt.label }}
+						{{ t(opt.labelKey) }}
 					</option>
 				</select>
 			</div>

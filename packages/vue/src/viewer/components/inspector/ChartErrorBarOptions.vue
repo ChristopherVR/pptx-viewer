@@ -87,7 +87,7 @@ function onAmount(event: Event, index: number, bars: PptxChartErrBars): void {
 						@change="onValType($event, i, firstBars(s))"
 					>
 						<option v-for="opt in ERROR_BAR_VALTYPE_OPTIONS" :key="opt.value" :value="opt.value">
-							{{ opt.label }}
+							{{ t(opt.labelKey) }}
 						</option>
 					</select>
 				</div>
@@ -100,7 +100,7 @@ function onAmount(event: Event, index: number, bars: PptxChartErrBars): void {
 						@change="onBarType($event, i, firstBars(s)!)"
 					>
 						<option v-for="opt in ERROR_BAR_TYPE_OPTIONS" :key="opt.value" :value="opt.value">
-							{{ opt.label }}
+							{{ t(opt.labelKey) }}
 						</option>
 					</select>
 					<input
