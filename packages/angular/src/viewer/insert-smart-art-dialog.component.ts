@@ -66,7 +66,7 @@ export interface SmartArtInsertEvent {
 							[attr.aria-pressed]="activeCategory() === cat.id"
 							(click)="selectCategory(cat.id)"
 						>
-							{{ cat.label }}
+							{{ cat.labelKey | translate }}
 						</button>
 					}
 				</nav>
@@ -85,14 +85,14 @@ export interface SmartArtInsertEvent {
 								class="pptx-sa-insert__cell"
 								[class.is-selected]="selectedLayout() === preset.layout"
 								[attr.aria-selected]="selectedLayout() === preset.layout"
-								[title]="preset.label"
+								[title]="preset.labelKey | translate"
 								(click)="selectLayout(preset.layout)"
 								(dblclick)="confirmLayout(preset.layout)"
 							>
 								<span class="pptx-sa-insert__thumb">
 									<pptx-smart-art-preview [layout]="preset.layout" />
 								</span>
-								<span class="pptx-sa-insert__cell-label">{{ preset.label }}</span>
+								<span class="pptx-sa-insert__cell-label">{{ preset.labelKey | translate }}</span>
 							</button>
 						}
 					</div>

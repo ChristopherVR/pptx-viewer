@@ -159,7 +159,7 @@ const AXIS_DEFS: ReadonlyArray<{ type: PptxChartAxisType; labelKey: string; hasS
 											(change)="onGridlineDash(row.type, which, $event)"
 										>
 											@for (opt of dashOptions; track opt.value) {
-												<option [value]="opt.value">{{ opt.label }}</option>
+												<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
 											}
 										</select>
 									</div>

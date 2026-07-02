@@ -45,7 +45,7 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 								(change)="onType(i, s, $event)"
 							>
 								@for (opt of typeOptions; track opt.value) {
-									<option [value]="opt.value">{{ opt.label }}</option>
+									<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
 								}
 							</select>
 						</div>

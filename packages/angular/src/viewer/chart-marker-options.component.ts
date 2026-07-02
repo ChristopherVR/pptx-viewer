@@ -45,7 +45,7 @@ import { numFromEvent, selectValue, stringFromEvent } from './chart-event-helper
 								(change)="onSymbol(i, $event)"
 							>
 								@for (opt of symbolOptions; track opt.value) {
-									<option [value]="opt.value">{{ opt.label }}</option>
+									<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
 								}
 							</select>
 						</div>

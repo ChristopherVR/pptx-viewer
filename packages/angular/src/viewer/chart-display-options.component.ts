@@ -61,7 +61,7 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 							(change)="onLegendPosition($event)"
 						>
 							@for (opt of legendPositions; track opt.value) {
-								<option [value]="opt.value">{{ opt.label }}</option>
+								<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
 							}
 						</select>
 					</label>
