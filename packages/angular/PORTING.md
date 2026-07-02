@@ -191,6 +191,24 @@ specs React passes).
 > Protect / Embed Fonts / Version History, Slide Show-tab Set Up Show, Review-tab
 > Compare, View-tab Shortcuts.
 >
+> **Recently closed** (2026-07-02): **table editing parity** on the shared
+> `pptx-viewer-shared` table modules: a signal-based `table-selection.service`
+> (single cell + Shift+Click rectangular ranges, shared canvas/inspector),
+> `table-cell-formatting.component` (font size / colour / background / B/I/U /
+> alignment / per-edge borders), `table-cell-advanced-fill.component`
+> (solid / gradient / pattern + margins), cursor-anchored and range merge/split,
+> merge-AWARE structural insert/delete in all four directions (`table-data-helpers`
+> previously destroyed every merge on any structural change - silent data loss,
+> now regression-tested), `table-properties.component` (header row, banding with
+> cycles, first/last emphasis, `TABLE_STYLE_PRESETS`, numeric sizes) with banding
+> and diagonal borders now actually rendered, `table-resize-overlay.component`
+> drag handles, and table entries in the editor context menu.
+>
+> **Recently closed** (2026-07-02): **inline formatting shortcuts**: the
+> slide-canvas inline `<textarea>` editor now handles Ctrl/Cmd+B/I/U, emitting a
+> `textFormat` event the viewer applies via `textStylePatch` +
+> `EditorStateService.updateElement` (undoable), matching React and Vue.
+>
 > **Recently closed** (2026-06-27): **eyedropper fallback** (`eyedropper.ts` now
 > adds `sampleColorFromSlide` + a one-shot click-to-sample `pickColorByClickFallback`
 > used when the native `EyeDropper` API is absent, wired into `onToggleEyedropper`)

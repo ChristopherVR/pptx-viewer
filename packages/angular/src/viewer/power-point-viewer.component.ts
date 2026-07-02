@@ -25,6 +25,7 @@ import type {
 	PptxSlide,
 	PptxTableData,
 	PptxThemePreset,
+	TextStyle,
 } from 'pptx-viewer-core';
 
 import type { ViewerTheme } from '../internal/shared';
@@ -74,6 +75,7 @@ import type { CopiedFormat } from './format-painter';
 import { HyperlinkDialogComponent } from './hyperlink-dialog.component';
 import { InsertSmartArtDialogComponent } from './insert-smart-art-dialog.component';
 import type { SmartArtInsertEvent } from './insert-smart-art-dialog.component';
+import { textStylePatch } from './inspector-helpers';
 import { InspectorPanelComponent } from './inspector-panel.component';
 import { IsMobileService } from './is-mobile';
 import { LoadContentService } from './load-content.service';
@@ -350,6 +352,7 @@ const ZOOM_MAX = 3;
 							(textEditStart)="onTextEditStart($event.id)"
 							(textCommit)="onTextCommit($event)"
 							(textCancel)="editingId.set(null)"
+							(textFormat)="onTextFormat($event)"
 							(inkStrokeComplete)="onInkStrokeComplete($event)"
 							(eraserHit)="onEraserHit($event)"
 							(cellCommit)="onTableCellCommit($event)"
@@ -1580,6 +1583,22 @@ export class PowerPointViewerComponent {
 			return;
 		}
 		this.editingId.set(id);
+	}
+
+	/** Apply a Ctrl/Cmd+B/I/U toggle from the inline editor (undoable). */
+	protected onTextFormat(event: { id: string; updates: Partial<TextStyle> }): void {
+		if (!this.canEdit()) {
+			return;
+		}
+		const element = this.activeSlide()?.elements.find((el) => el.id === event.id);
+		if (!element) {
+			return;
+		}
+		this.editor.updateElement(
+			this.activeSlideIndex(),
+			event.id,
+			textStylePatch(element, event.updates),
+		);
 	}
 
 	/** Presentation exited with ink on it: offer the keep/discard prompt. */

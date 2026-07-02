@@ -14,7 +14,13 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
-import type { InkPptxElement, PptxElement, PptxSlide, PptxTableData } from 'pptx-viewer-core';
+import type {
+	InkPptxElement,
+	PptxElement,
+	PptxSlide,
+	PptxTableData,
+	TextStyle,
+} from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
@@ -628,6 +634,8 @@ export class SlideCanvasComponent {
 	readonly textCommit = output<{ id: string; text: string }>();
 	/** Emitted when an inline edit is cancelled (Escape). */
 	readonly textCancel = output<void>();
+	/** Emitted on Ctrl/Cmd+B/I/U while inline-editing (parity with React/Vue). */
+	readonly textFormat = output<{ id: string; updates: Partial<TextStyle> }>();
 	/** Emitted during a rotate gesture with the new rotation (degrees). */
 	readonly rotateUpdate = output<{ id: string; rotation: number }>();
 	/** Emitted on marquee release with the ids of enclosed/overlapping elements. */
@@ -1068,6 +1076,16 @@ export class SlideCanvasComponent {
 
 	onEditorKeydown(event: KeyboardEvent): void {
 		const editor = event.target as HTMLTextAreaElement;
+		// Inline formatting shortcuts (Ctrl/Cmd + B/I/U), matching React/Vue.
+		if ((event.ctrlKey || event.metaKey) && !event.shiftKey) {
+			const key = event.key.toLowerCase();
+			if (key === 'b' || key === 'i' || key === 'u') {
+				event.preventDefault();
+				event.stopPropagation();
+				this.emitTextFormat(key);
+				return;
+			}
+		}
 		if (event.key === 'Escape') {
 			event.preventDefault();
 			this.editCancelled = true;
@@ -1076,6 +1094,24 @@ export class SlideCanvasComponent {
 			event.preventDefault();
 			editor.blur();
 		}
+	}
+
+	/** Toggle bold/italic/underline for the element under inline edit. */
+	private emitTextFormat(key: 'b' | 'i' | 'u'): void {
+		const id = this.editingId();
+		const el = id ? this.allElements().find((e) => e.id === id) : undefined;
+		if (!id || !el) {
+			return;
+		}
+		const styled = el as { textSegments?: Array<{ style?: TextStyle }>; textStyle?: TextStyle };
+		const ts = styled.textSegments?.[0]?.style ?? styled.textStyle;
+		const updates: Partial<TextStyle> =
+			key === 'b'
+				? { bold: !ts?.bold }
+				: key === 'i'
+					? { italic: !ts?.italic }
+					: { underline: !ts?.underline };
+		this.textFormat.emit({ id, updates });
 	}
 
 	commitText(event: Event, id: string): void {
