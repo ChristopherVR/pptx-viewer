@@ -15,9 +15,12 @@ import { X } from 'lucide-vue-next';
  */
 import type { PptxThemePreset } from 'pptx-viewer-core';
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { GALLERY_THEME_PRESETS } from './theme-gallery-presets';
 import ThemeThumbnail from './ThemeThumbnail.vue';
+
+const { t } = useI18n();
 
 const props = withDefaults(
 	defineProps<{ open: boolean; activeName?: string; canEdit?: boolean }>(),
@@ -55,7 +58,7 @@ function handleApply(): void {
 			<button
 				type="button"
 				class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
-				aria-label="Close"
+				:aria-label="t('common.close')"
 				@click="emit('close')"
 			/>
 
@@ -64,20 +67,22 @@ function handleApply(): void {
 				<div
 					class="bg-background border border-border rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col"
 					role="dialog"
-					aria-label="Theme gallery"
+					:aria-label="t('powerpoint.toolbar.themes.gallery.ariaLabel')"
 				>
 					<!-- Header -->
 					<div class="flex items-center justify-between px-6 py-4 border-b border-border">
 						<div>
-							<h2 class="text-lg font-semibold text-foreground">Themes</h2>
+							<h2 class="text-lg font-semibold text-foreground">
+								{{ t('powerpoint.toolbar.themes.gallery.title') }}
+							</h2>
 							<p class="text-xs text-muted-foreground mt-0.5">
-								Pick a built-in theme to recolour every slide in the deck.
+								{{ t('powerpoint.toolbar.themes.gallery.description') }}
 							</p>
 						</div>
 						<button
 							type="button"
 							class="p-2 rounded hover:bg-accent transition-colors"
-							aria-label="Close"
+							:aria-label="t('common.close')"
 							@click="emit('close')"
 						>
 							<X class="w-5 h-5" />
@@ -104,7 +109,7 @@ function handleApply(): void {
 							class="px-3 py-1.5 rounded bg-accent hover:bg-accent/80 text-xs font-medium text-foreground transition-colors"
 							@click="emit('close')"
 						>
-							Cancel
+							{{ t('common.cancel') }}
 						</button>
 						<button
 							type="button"
@@ -112,7 +117,7 @@ function handleApply(): void {
 							class="px-3 py-1.5 rounded bg-primary hover:bg-primary/80 text-xs font-medium text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
 							@click="handleApply"
 						>
-							Apply
+							{{ t('common.apply') }}
 						</button>
 					</div>
 				</div>

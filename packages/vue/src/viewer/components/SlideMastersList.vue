@@ -18,9 +18,12 @@
 import type { PptxSlide, PptxSlideMaster, PptxSlideLayout } from 'pptx-viewer-core';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { CanvasSize } from '../types';
 import SlideStage from './SlideStage.vue';
+
+const { t } = useI18n();
 
 const props = defineProps<{
 	slideMasters: PptxSlideMaster[];
@@ -112,7 +115,9 @@ function isLayoutActive(masterIdx: number, layoutIdx: number): boolean {
 						:scale="masterScale"
 					/>
 				</div>
-				<span class="pptx-vue-masters-list__label">{{ master.name || 'Slide Master' }}</span>
+				<span class="pptx-vue-masters-list__label">{{
+					master.name || t('pptx.master.title')
+				}}</span>
 			</div>
 
 			<div v-if="(master.layouts?.length ?? 0) > 0" class="pptx-vue-masters-list__layouts">
@@ -136,14 +141,14 @@ function isLayoutActive(masterIdx: number, layoutIdx: number): boolean {
 						/>
 					</div>
 					<span class="pptx-vue-masters-list__label pptx-vue-masters-list__label--layout">
-						{{ layout.name || 'Layout' }}
+						{{ layout.name || t('pptx.master.layout') }}
 					</span>
 				</div>
 			</div>
 		</div>
 
 		<div v-if="slideMasters.length === 0" class="pptx-vue-masters-list__empty">
-			No slide masters
+			{{ t('pptx.master.noSlideMasters') }}
 		</div>
 	</div>
 </template>

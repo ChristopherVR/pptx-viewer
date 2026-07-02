@@ -14,6 +14,7 @@
  */
 import type { PptxCustomShow, PptxSlide } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
 	/** All custom shows. */
@@ -38,6 +39,8 @@ const emit = defineEmits<{
 	/** Move a slide within a show's order. */
 	'move-slide': [showId: string, from: number, to: number];
 }>();
+
+const { t } = useI18n();
 
 const newName = ref('');
 const renameDraft = ref('');
@@ -71,7 +74,7 @@ function isSlideInShow(slide: PptxSlide): boolean {
 }
 
 function slideLabel(slide: PptxSlide, index: number): string {
-	return slide.name?.trim() || `Slide ${slide.slideNumber || index + 1}`;
+	return slide.name?.trim() || t('pptx.notes.slideN', { n: slide.slideNumber || index + 1 });
 }
 
 function onCreate(): void {
@@ -105,18 +108,22 @@ function onToggleSlide(slide: PptxSlide): void {
 <template>
 	<div class="pptx-vue-custom-shows flex flex-col gap-2 p-2.5 text-xs text-foreground">
 		<header class="pptx-vue-cs-header flex items-center">
-			<h3 class="pptx-vue-cs-title m-0 text-[13px] font-semibold">Custom shows</h3>
+			<h3 class="pptx-vue-cs-title m-0 text-[13px] font-semibold">
+				{{ t('pptx.customShows.title') }}
+			</h3>
 		</header>
 
 		<!-- Show list + create -->
 		<div class="pptx-vue-cs-list-row flex items-center gap-1.5">
 			<select
 				class="pptx-vue-cs-select min-w-0 flex-1 rounded border border-border bg-popover px-1.5 py-1 text-xs text-foreground"
-				aria-label="Custom show"
+				:aria-label="t('pptx.customShows.selectLabel')"
 				:value="props.activeShowId ?? ''"
 				@change="emit('select', ($event.target as HTMLSelectElement).value)"
 			>
-				<option v-if="props.customShows.length === 0" value="" disabled>No custom shows</option>
+				<option v-if="props.customShows.length === 0" value="" disabled>
+					{{ t('pptx.customShows.none') }}
+				</option>
 				<option v-for="show in props.customShows" :key="show.id" :value="show.id">
 					{{ show.name }} ({{ show.slideRIds.length }})
 				</option>
@@ -126,19 +133,19 @@ function onToggleSlide(slide: PptxSlide): void {
 				v-if="activeShow"
 				type="button"
 				class="pptx-vue-cs-btn shrink-0 cursor-pointer rounded border border-border bg-muted px-2 py-1 text-xs text-foreground hover:bg-accent"
-				title="Rename show"
+				:title="t('pptx.customShows.renameShow')"
 				@click="startRename"
 			>
-				Rename
+				{{ t('pptx.sections.rename') }}
 			</button>
 			<button
 				v-if="activeShow"
 				type="button"
 				class="pptx-vue-cs-btn pptx-vue-cs-btn--danger shrink-0 cursor-pointer rounded border border-border bg-muted px-2 py-1 text-xs text-foreground hover:border-destructive hover:text-destructive"
-				title="Delete show"
+				:title="t('pptx.customShows.deleteShow')"
 				@click="emit('delete', activeShow.id)"
 			>
-				Delete
+				{{ t('pptx.sections.delete') }}
 			</button>
 		</div>
 
@@ -147,7 +154,7 @@ function onToggleSlide(slide: PptxSlide): void {
 				v-model="renameDraft"
 				class="pptx-vue-cs-input min-w-0 flex-1 rounded border border-border bg-popover px-1.5 py-1 text-xs text-foreground"
 				type="text"
-				aria-label="New show name"
+				:aria-label="t('pptx.customShows.renameNameLabel')"
 				@keydown.enter.prevent="commitRename"
 				@keydown.escape.prevent="isRenaming = false"
 			/>
@@ -156,7 +163,7 @@ function onToggleSlide(slide: PptxSlide): void {
 				class="pptx-vue-cs-btn shrink-0 cursor-pointer rounded border border-border bg-muted px-2 py-1 text-xs text-foreground hover:bg-accent"
 				@click="commitRename"
 			>
-				Save
+				{{ t('pptx.comments.save') }}
 			</button>
 		</div>
 
@@ -165,14 +172,14 @@ function onToggleSlide(slide: PptxSlide): void {
 				v-model="newName"
 				class="pptx-vue-cs-input min-w-0 flex-1 rounded border border-border bg-popover px-1.5 py-1 text-xs text-foreground"
 				type="text"
-				placeholder="New show name"
-				aria-label="New custom show name"
+				:placeholder="t('pptx.customShows.newShowPlaceholder')"
+				:aria-label="t('pptx.customShows.newShowNameLabel')"
 			/>
 			<button
 				type="submit"
 				class="pptx-vue-cs-btn shrink-0 cursor-pointer rounded border border-border bg-muted px-2 py-1 text-xs text-foreground hover:bg-accent"
 			>
-				Create
+				{{ t('pptx.customShows.create') }}
 			</button>
 		</form>
 
@@ -181,7 +188,7 @@ function onToggleSlide(slide: PptxSlide): void {
 			<p
 				class="pptx-vue-cs-section-label mt-1.5 mb-0.5 text-[10px] uppercase tracking-wide text-muted-foreground"
 			>
-				Slides in show
+				{{ t('pptx.customShows.slidesInShow') }}
 			</p>
 			<ol class="pptx-vue-cs-order m-0 flex list-none flex-col gap-0.5 p-0">
 				<li
@@ -196,8 +203,8 @@ function onToggleSlide(slide: PptxSlide): void {
 					<button
 						type="button"
 						class="pptx-vue-cs-mini inline-flex h-[18px] w-[18px] cursor-pointer items-center justify-center rounded-sm border border-border bg-transparent p-0 text-[9px] text-muted-foreground enabled:hover:bg-muted enabled:hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-						title="Move up"
-						aria-label="Move up"
+						:title="t('pptx.sections.moveUp')"
+						:aria-label="t('pptx.sections.moveUp')"
 						:disabled="i === 0"
 						@click="emit('move-slide', activeShow.id, i, i - 1)"
 					>
@@ -206,8 +213,8 @@ function onToggleSlide(slide: PptxSlide): void {
 					<button
 						type="button"
 						class="pptx-vue-cs-mini inline-flex h-[18px] w-[18px] cursor-pointer items-center justify-center rounded-sm border border-border bg-transparent p-0 text-[9px] text-muted-foreground enabled:hover:bg-muted enabled:hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-						title="Move down"
-						aria-label="Move down"
+						:title="t('pptx.sections.moveDown')"
+						:aria-label="t('pptx.sections.moveDown')"
 						:disabled="i === orderedShowSlides.length - 1"
 						@click="emit('move-slide', activeShow.id, i, i + 1)"
 					>
@@ -218,14 +225,14 @@ function onToggleSlide(slide: PptxSlide): void {
 					v-if="orderedShowSlides.length === 0"
 					class="pptx-vue-cs-empty px-1 py-0.5 italic text-muted-foreground"
 				>
-					No slides yet — add them below.
+					{{ t('pptx.customShows.noSlidesYet') }}
 				</li>
 			</ol>
 
 			<p
 				class="pptx-vue-cs-section-label mt-1.5 mb-0.5 text-[10px] uppercase tracking-wide text-muted-foreground"
 			>
-				All slides
+				{{ t('pptx.customShows.allSlides') }}
 			</p>
 			<ul class="pptx-vue-cs-all m-0 flex list-none flex-col gap-0.5 p-0">
 				<li

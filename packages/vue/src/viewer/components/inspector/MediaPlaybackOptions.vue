@@ -10,6 +10,7 @@
  */
 import type { MediaPptxElement, PptxElement } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
 	element: MediaPptxElement;
@@ -19,6 +20,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
 }>();
+
+const { t } = useI18n();
 
 const SPEED_OPTIONS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
 
@@ -93,10 +96,10 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 
 <template>
 	<div :class="CARD">
-		<div :class="HEADING">Playback</div>
+		<div :class="HEADING">{{ t('pptx.media.playback') }}</div>
 
 		<label :class="ROW">
-			<span :class="LABEL">Volume</span>
+			<span :class="LABEL">{{ t('pptx.media.volume') }}</span>
 			<div class="flex items-center gap-1 flex-1 max-w-[140px]">
 				<input
 					type="range"
@@ -115,7 +118,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 		</label>
 
 		<label :class="ROW">
-			<span :class="LABEL">Speed</span>
+			<span :class="LABEL">{{ t('pptx.media.speed') }}</span>
 			<select
 				:class="[INPUT, 'max-w-[100px]']"
 				:disabled="!canEdit"
@@ -128,7 +131,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 
 		<div class="grid grid-cols-2 gap-1.5">
 			<label class="flex flex-col gap-0.5">
-				<span :class="LABEL">Fade in (s)</span>
+				<span :class="LABEL">{{ t('pptx.media.fadeIn') }}</span>
 				<input
 					type="number"
 					min="0"
@@ -140,7 +143,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 				/>
 			</label>
 			<label class="flex flex-col gap-0.5">
-				<span :class="LABEL">Fade out (s)</span>
+				<span :class="LABEL">{{ t('pptx.media.fadeOut') }}</span>
 				<input
 					type="number"
 					min="0"
@@ -154,7 +157,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 		</div>
 
 		<label :class="ROW">
-			<span :class="LABEL">Loop</span>
+			<span :class="LABEL">{{ t('pptx.media.loop') }}</span>
 			<input
 				type="checkbox"
 				:disabled="!canEdit"
@@ -164,20 +167,20 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 		</label>
 
 		<label :class="ROW">
-			<span :class="LABEL">Start</span>
+			<span :class="LABEL">{{ t('pptx.media.startTrigger') }}</span>
 			<select
 				class="text-[11px] bg-transparent border border-border rounded px-1 py-0.5"
 				:disabled="!canEdit"
 				:value="element.autoPlay ? 'auto' : 'onClick'"
 				@change="onStartTrigger"
 			>
-				<option value="onClick">On click</option>
-				<option value="auto">Automatically</option>
+				<option value="onClick">{{ t('pptx.media.startOnClick') }}</option>
+				<option value="auto">{{ t('pptx.media.startAutomatically') }}</option>
 			</select>
 		</label>
 
 		<label v-if="isAudio" :class="ROW">
-			<span :class="LABEL">Play across slides</span>
+			<span :class="LABEL">{{ t('pptx.media.playAcrossSlides') }}</span>
 			<input
 				type="checkbox"
 				:disabled="!canEdit"
@@ -187,7 +190,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 		</label>
 
 		<label :class="ROW">
-			<span :class="LABEL">Full screen</span>
+			<span :class="LABEL">{{ t('pptx.media.fullScreen') }}</span>
 			<input
 				type="checkbox"
 				:disabled="!canEdit"
@@ -197,7 +200,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 		</label>
 
 		<label :class="ROW">
-			<span :class="LABEL">Hide when not playing</span>
+			<span :class="LABEL">{{ t('pptx.media.hideWhenNotPlaying') }}</span>
 			<input
 				type="checkbox"
 				:disabled="!canEdit"

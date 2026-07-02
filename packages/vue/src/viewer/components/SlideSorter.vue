@@ -17,11 +17,14 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import type { CSSProperties } from 'vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { CanvasSize } from '../types';
 import ContextMenu from './ContextMenu.vue';
 import type { ContextMenuItem } from './ContextMenu.vue';
 import SlideStage from './SlideStage.vue';
+
+const { t } = useI18n();
 
 const props = defineProps<{
 	slides: PptxSlide[];
@@ -114,10 +117,10 @@ function openContextMenu(index: number, event: MouseEvent): void {
 const contextItems = computed<ContextMenuItem[]>(() => {
 	const hidden = props.slides[contextMenu.value.index]?.hidden ?? false;
 	return [
-		{ id: 'duplicate', label: 'Duplicate slide' },
-		{ id: 'toggle-hidden', label: hidden ? 'Show slide' : 'Hide slide' },
+		{ id: 'duplicate', label: t('pptx.slideMenu.duplicate') },
+		{ id: 'toggle-hidden', label: hidden ? t('pptx.slideMenu.show') : t('pptx.slideMenu.hide') },
 		{ id: 'sep', label: '', separator: true },
-		{ id: 'delete', label: 'Delete slide' },
+		{ id: 'delete', label: t('pptx.slideMenu.delete') },
 	];
 });
 
@@ -167,13 +170,13 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-	<div class="pptx-vue-sorter" role="dialog" aria-label="Slide sorter">
+	<div class="pptx-vue-sorter" role="dialog" :aria-label="t('pptx.slideSorter.title')">
 		<header class="pptx-vue-sorter-head">
-			<h2 class="pptx-vue-sorter-title">Slide sorter</h2>
+			<h2 class="pptx-vue-sorter-title">{{ t('pptx.slideSorter.title') }}</h2>
 			<button
 				type="button"
 				class="pptx-vue-sorter-close"
-				aria-label="Close slide sorter"
+				:aria-label="t('pptx.slideSorter.close')"
 				@click="emit('close')"
 			>
 				×
@@ -192,7 +195,7 @@ onBeforeUnmount(() => {
 				}"
 				draggable="true"
 				:data-index="index"
-				:aria-label="`Slide ${index + 1}`"
+				:aria-label="t('pptx.notes.slideN', { n: index + 1 })"
 				:aria-current="index === activeIndex ? 'true' : undefined"
 				@click="onSelect(index)"
 				@contextmenu="openContextMenu(index, $event)"
@@ -210,7 +213,9 @@ onBeforeUnmount(() => {
 					/>
 				</div>
 				<span class="pptx-vue-sorter-index">{{ index + 1 }}</span>
-				<span v-if="slide.hidden" class="pptx-vue-sorter-hidden">Hidden</span>
+				<span v-if="slide.hidden" class="pptx-vue-sorter-hidden">{{
+					t('pptx.slideSorter.hidden')
+				}}</span>
 			</div>
 		</div>
 

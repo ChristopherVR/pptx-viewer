@@ -22,6 +22,9 @@
  * pinned with `position: fixed; bottom: 0`, respecting the iOS safe-area inset.
  */
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{
 	/** Zero-based index of the active slide. */
@@ -99,14 +102,14 @@ const MOBILE_LABEL =
 	<nav
 		class="pptx-vue-mobile-bar fixed bottom-0 left-0 right-0 z-40 flex items-stretch justify-between overflow-hidden p-1 pb-[max(env(safe-area-inset-bottom),0.25rem)] border-t border-border bg-secondary/90 backdrop-blur-md"
 		:style="barStyle"
-		aria-label="Slide controls"
+		:aria-label="t('pptx.mobileBar.slideControls')"
 	>
 		<button
 			type="button"
 			class="pptx-vue-mobile-btn"
 			:class="MOBILE_BTN"
 			:disabled="atStart"
-			aria-label="Previous slide"
+			:aria-label="t('pptx.mobileBar.previousSlide')"
 			@click="emit('prev')"
 		>
 			<span aria-hidden="true">‹</span>
@@ -121,7 +124,7 @@ const MOBILE_LABEL =
 			class="pptx-vue-mobile-btn"
 			:class="MOBILE_BTN"
 			:disabled="atEnd"
-			aria-label="Next slide"
+			:aria-label="t('pptx.mobileBar.nextSlide')"
 			@click="emit('next')"
 		>
 			<span aria-hidden="true">›</span>
@@ -136,13 +139,16 @@ const MOBILE_LABEL =
 			type="button"
 			class="pptx-vue-mobile-btn"
 			:class="MOBILE_BTN"
-			aria-label="Zoom out"
+			:aria-label="t('pptx.statusBar.zoomOut')"
 			@click="emit('zoom-out')"
 		>
 			<span aria-hidden="true">−</span>
 		</button>
 
-		<span class="pptx-vue-mobile-zoom" :class="MOBILE_LABEL" aria-label="Zoom level"
+		<span
+			class="pptx-vue-mobile-zoom"
+			:class="MOBILE_LABEL"
+			:aria-label="t('pptx.mobileBar.zoomLevel')"
 			>{{ zoomPercent }}%</span
 		>
 
@@ -150,7 +156,7 @@ const MOBILE_LABEL =
 			type="button"
 			class="pptx-vue-mobile-btn"
 			:class="MOBILE_BTN"
-			aria-label="Zoom in"
+			:aria-label="t('pptx.statusBar.zoomIn')"
 			@click="emit('zoom-in')"
 		>
 			<span aria-hidden="true">+</span>
@@ -165,7 +171,7 @@ const MOBILE_LABEL =
 			type="button"
 			class="pptx-vue-mobile-btn pptx-vue-mobile-present !text-primary"
 			:class="MOBILE_BTN"
-			aria-label="Present"
+			:aria-label="t('pptx.mobileBar.present')"
 			@click="emit('present')"
 		>
 			<span aria-hidden="true">▶</span>
@@ -175,8 +181,8 @@ const MOBILE_LABEL =
 			type="button"
 			class="pptx-vue-mobile-btn"
 			:class="MOBILE_BTN"
-			aria-label="Slides"
-			title="Slides panel"
+			:aria-label="t('pptx.sections.slides')"
+			:title="t('pptx.mobileBar.slidesPanel')"
 			@click="emit('slides')"
 		>
 			<span aria-hidden="true">▦</span>
@@ -187,8 +193,8 @@ const MOBILE_LABEL =
 			type="button"
 			class="pptx-vue-mobile-btn"
 			:class="MOBILE_BTN"
-			aria-label="Insert"
-			title="Insert"
+			:aria-label="t('pptx.mobileBar.insert')"
+			:title="t('pptx.mobileBar.insert')"
 			@click="emit('insert')"
 		>
 			<span aria-hidden="true">＋</span>
@@ -199,8 +205,8 @@ const MOBILE_LABEL =
 			type="button"
 			class="pptx-vue-mobile-btn"
 			:class="MOBILE_BTN"
-			aria-label="Format"
-			title="Format / properties"
+			:aria-label="t('pptx.arrange.format')"
+			:title="t('pptx.mobileBar.formatTitle')"
 			@click="emit('format')"
 		>
 			<span aria-hidden="true">⚙</span>
@@ -211,8 +217,8 @@ const MOBILE_LABEL =
 			type="button"
 			class="pptx-vue-mobile-btn relative"
 			:class="MOBILE_BTN"
-			aria-label="Comments"
-			title="Comments"
+			:aria-label="t('pptx.toolbar.comments')"
+			:title="t('pptx.toolbar.comments')"
 			@click="emit('comments')"
 		>
 			<span aria-hidden="true">💬</span>
@@ -228,8 +234,8 @@ const MOBILE_LABEL =
 			type="button"
 			class="pptx-vue-mobile-btn"
 			:class="MOBILE_BTN"
-			aria-label="Save"
-			title="Save (.pptx)"
+			:aria-label="t('pptx.comments.save')"
+			:title="t('pptx.mobileBar.saveTitle')"
 			@click="emit('save')"
 		>
 			<span aria-hidden="true">⤓</span>
@@ -239,7 +245,7 @@ const MOBILE_LABEL =
 			type="button"
 			class="pptx-vue-mobile-btn"
 			:class="MOBILE_BTN"
-			aria-label="Notes"
+			:aria-label="t('pptx.notes.title')"
 			@click="emit('notes')"
 		>
 			<span aria-hidden="true">📝</span>
@@ -249,7 +255,7 @@ const MOBILE_LABEL =
 			type="button"
 			class="pptx-vue-mobile-btn"
 			:class="MOBILE_BTN"
-			aria-label="More actions"
+			:aria-label="t('pptx.mobileBar.moreActions')"
 			@click="emit('menu')"
 		>
 			<span aria-hidden="true">⋯</span>

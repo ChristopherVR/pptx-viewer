@@ -17,6 +17,7 @@
  */
 import type { MediaPptxElement, PptxElement } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import {
 	clamp,
@@ -38,6 +39,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
 }>();
+
+const { t } = useI18n();
 
 const media = computed<MediaPptxElement | null>(() =>
 	props.element.type === 'media' ? props.element : null,
@@ -148,9 +151,9 @@ const BTN = 'rounded bg-muted hover:bg-accent px-2 py-1 text-[11px] transition-c
 <template>
 	<div v-if="media" class="pptx-vue-media-panel space-y-3">
 		<div :class="CARD">
-			<div :class="HEADING">Media</div>
+			<div :class="HEADING">{{ t('pptx.media.title') }}</div>
 			<div class="text-[11px] text-muted-foreground">
-				{{ isVideo ? 'Video clip' : 'Audio clip' }}
+				{{ isVideo ? t('pptx.media.videoClip') : t('pptx.media.audioClip') }}
 			</div>
 
 			<div v-if="previewSrc" class="space-y-1">
@@ -184,10 +187,10 @@ const BTN = 'rounded bg-muted hover:bg-accent px-2 py-1 text-[11px] transition-c
 					<button
 						type="button"
 						:class="BTN"
-						:title="isPlaying ? 'Pause' : 'Play'"
+						:title="isPlaying ? t('pptx.media.pause') : t('pptx.media.play')"
 						@click="togglePlay"
 					>
-						{{ isPlaying ? 'Pause' : 'Play' }}
+						{{ isPlaying ? t('pptx.media.pause') : t('pptx.media.play') }}
 					</button>
 					<span class="text-[10px] text-muted-foreground tabular-nums">
 						{{ formatTime(currentTime) }} / {{ formatTime(duration) }}
@@ -209,10 +212,10 @@ const BTN = 'rounded bg-muted hover:bg-accent px-2 py-1 text-[11px] transition-c
 		</div>
 
 		<div :class="CARD">
-			<div :class="HEADING">Trim</div>
+			<div :class="HEADING">{{ t('pptx.media.trim') }}</div>
 			<div class="grid grid-cols-2 gap-1.5">
 				<label class="flex flex-col gap-0.5">
-					<span :class="LABEL">Start (mm:ss)</span>
+					<span :class="LABEL">{{ t('pptx.media.trimStartTime') }}</span>
 					<input
 						type="text"
 						:class="INPUT"
@@ -223,7 +226,7 @@ const BTN = 'rounded bg-muted hover:bg-accent px-2 py-1 text-[11px] transition-c
 					/>
 				</label>
 				<label class="flex flex-col gap-0.5">
-					<span :class="LABEL">End (mm:ss)</span>
+					<span :class="LABEL">{{ t('pptx.media.trimEndTime') }}</span>
 					<input
 						type="text"
 						:class="INPUT"
@@ -235,7 +238,7 @@ const BTN = 'rounded bg-muted hover:bg-accent px-2 py-1 text-[11px] transition-c
 				</label>
 			</div>
 			<div :class="ROW">
-				<span :class="LABEL">Trimmed duration</span>
+				<span :class="LABEL">{{ t('pptx.media.trimmedDuration') }}</span>
 				<span class="text-[11px] tabular-nums font-medium">{{ trimmedLabel }}</span>
 			</div>
 			<div v-if="trimError" class="text-[10px] text-red-400">{{ trimError }}</div>
@@ -245,7 +248,7 @@ const BTN = 'rounded bg-muted hover:bg-accent px-2 py-1 text-[11px] transition-c
 				:class="[BTN, 'w-full text-center']"
 				@click="resetTrim"
 			>
-				Reset trim
+				{{ t('pptx.media.resetTrim') }}
 			</button>
 		</div>
 

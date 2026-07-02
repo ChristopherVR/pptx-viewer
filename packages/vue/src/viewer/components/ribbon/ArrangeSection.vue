@@ -8,6 +8,7 @@
 import { ChevronDown, ChevronUp, ClipboardPaste, Copy, Paintbrush, Trash2 } from 'lucide-vue-next';
 import type { PptxElement } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import { gB, gL, grp, ic, pill, ALIGN_BTNS, DISTRIBUTE_BTNS } from './ribbon-constants';
@@ -35,6 +36,8 @@ interface Props {
 
 const props = defineProps<Props>();
 
+const { t } = useI18n();
+
 const hasSel = computed(() => Boolean(props.selectedElement));
 const canMut = computed(() => hasSel.value && props.canEdit);
 </script>
@@ -47,7 +50,7 @@ const canMut = computed(() => hasSel.value && props.canEdit);
 			type="button"
 			:class="i < ALIGN_BTNS.length - 1 ? gB : gL"
 			:disabled="!canMut"
-			:title="`Align ${a.k}`"
+			:title="t('pptx.arrange.align', { direction: a.k })"
 			@click="props.onAlignElements(a.k)"
 		>
 			<component :is="a.icon" :class="[ic, a.rotate && 'rotate-90']" />
@@ -60,21 +63,23 @@ const canMut = computed(() => hasSel.value && props.canEdit);
 			type="button"
 			:class="i < DISTRIBUTE_BTNS.length - 1 ? gB : gL"
 			:disabled="!props.canEdit || !props.canDistribute"
-			:title="`Distribute ${d.k}`"
+			:title="t('pptx.arrange.distribute' + d.k.charAt(0).toUpperCase() + d.k.slice(1))"
 			@click="props.onDistributeElements(d.k)"
 		>
 			<component :is="d.icon" :class="ic" />
 		</button>
 	</div>
 	<div :class="grp">
-		<button :class="gB" :disabled="!hasSel" title="Copy" @click="props.onCopy">
+		<button :class="gB" :disabled="!hasSel" :title="t('pptx.arrange.copy')" @click="props.onCopy">
 			<Copy :class="ic" />
 		</button>
-		<button :class="gB" :disabled="!canMut" title="Cut" @click="props.onCut">Cut</button>
+		<button :class="gB" :disabled="!canMut" :title="t('pptx.arrange.cut')" @click="props.onCut">
+			{{ t('pptx.arrange.cut') }}
+		</button>
 		<button
 			:class="gL"
 			:disabled="!props.clipboardPayload || !props.canEdit"
-			title="Paste"
+			:title="t('pptx.arrange.paste')"
 			@click="props.onPaste"
 		>
 			<ClipboardPaste :class="ic" />
@@ -91,37 +96,37 @@ const canMut = computed(() => hasSel.value && props.canEdit);
 		:class="
 			cn(pill, props.formatPainterActive ? 'bg-amber-600 hover:bg-amber-500 text-amber-50' : '')
 		"
-		title="Format Painter"
+		:title="t('pptx.arrange.formatPainter')"
 		@click="props.onToggleFormatPainter"
 	>
 		<Paintbrush :class="ic" />
-		Format
+		{{ t('pptx.arrange.format') }}
 	</button>
 	<div :class="grp">
 		<button
 			type="button"
 			:class="gB"
 			:disabled="!canMut"
-			title="Flip Horizontally"
+			:title="t('pptx.arrange.flipHorizontally')"
 			@click="props.onFlip('horizontal')"
 		>
-			Flip H
+			{{ t('pptx.arrange.flipH') }}
 		</button>
 		<button
 			type="button"
 			:class="gL"
 			:disabled="!canMut"
-			title="Flip Vertically"
+			:title="t('pptx.arrange.flipVertically')"
 			@click="props.onFlip('vertical')"
 		>
-			Flip V
+			{{ t('pptx.arrange.flipV') }}
 		</button>
 	</div>
 	<div :class="grp">
 		<button
 			:class="gB"
 			:disabled="!canMut"
-			title="Send Backward"
+			:title="t('pptx.arrange.sendBackward')"
 			@click="props.onMoveLayer('backward')"
 		>
 			<ChevronDown :class="ic" />
@@ -129,7 +134,7 @@ const canMut = computed(() => hasSel.value && props.canEdit);
 		<button
 			:class="gB"
 			:disabled="!canMut"
-			title="Bring Forward"
+			:title="t('pptx.arrange.bringForward')"
 			@click="props.onMoveLayer('forward')"
 		>
 			<ChevronUp :class="ic" />
@@ -137,31 +142,36 @@ const canMut = computed(() => hasSel.value && props.canEdit);
 		<button
 			:class="gB"
 			:disabled="!canMut"
-			title="Send to Back"
+			:title="t('pptx.arrange.sendToBack')"
 			@click="props.onMoveLayerToEdge('back')"
 		>
-			Back
+			{{ t('pptx.arrange.back') }}
 		</button>
 		<button
 			:class="gL"
 			:disabled="!canMut"
-			title="Bring to Front"
+			:title="t('pptx.arrange.bringToFront')"
 			@click="props.onMoveLayerToEdge('front')"
 		>
-			Front
+			{{ t('pptx.arrange.front') }}
 		</button>
 	</div>
-	<button :class="pill" :disabled="!canMut" title="Duplicate" @click="props.onDuplicate">
+	<button
+		:class="pill"
+		:disabled="!canMut"
+		:title="t('pptx.arrange.duplicate')"
+		@click="props.onDuplicate"
+	>
 		<Copy :class="ic" />
-		Duplicate
+		{{ t('pptx.arrange.duplicate') }}
 	</button>
 	<button
 		:disabled="!canMut"
 		class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-red-700/80 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-xs transition-colors"
-		title="Delete"
+		:title="t('pptx.arrange.delete')"
 		@click="props.onDelete"
 	>
 		<Trash2 :class="ic" />
-		Delete
+		{{ t('pptx.arrange.delete') }}
 	</button>
 </template>

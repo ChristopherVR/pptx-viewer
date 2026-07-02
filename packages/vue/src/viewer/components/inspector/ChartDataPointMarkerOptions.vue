@@ -7,6 +7,7 @@ import type {
 } from 'pptx-viewer-core';
 import { MARKER_SUPPORTED_TYPES, MARKER_SYMBOL_OPTIONS } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { ChartMarkerEdit } from '../../composables/useChartEditing';
 
@@ -28,6 +29,8 @@ const emit = defineEmits<{
 
 // Concrete symbols only (drop the '' auto sentinel used by the series picker).
 const SYMBOL_OPTIONS = MARKER_SYMBOL_OPTIONS.filter((o) => o.value !== '');
+
+const { t } = useI18n();
 
 const seriesIndex = ref(0);
 
@@ -78,11 +81,11 @@ function onFill(event: Event, idx: number): void {
 		class="pptx-vue-chart-card rounded border border-border bg-card p-2 space-y-2"
 	>
 		<div class="pptx-vue-chart-heading text-[11px] uppercase tracking-wide text-muted-foreground">
-			Point markers
+			{{ t('pptx.chart.pointMarkers') }}
 		</div>
 
 		<label v-if="props.series.length > 1" class="flex items-center gap-2 text-[11px]">
-			<span class="w-12 text-muted-foreground shrink-0">Series</span>
+			<span class="w-12 text-muted-foreground shrink-0">{{ t('pptx.chart.series') }}</span>
 			<select
 				class="pptx-vue-chart-input flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full"
 				data-testid="chart-point-marker-series"
@@ -106,7 +109,7 @@ function onFill(event: Event, idx: number): void {
 							:checked="pointFor(idx)?.marker !== undefined"
 							@change="onToggle($event, idx)"
 						/>
-						<span class="text-muted-foreground">Override</span>
+						<span class="text-muted-foreground">{{ t('pptx.chart.markerOverride') }}</span>
 					</label>
 				</div>
 
@@ -128,8 +131,8 @@ function onFill(event: Event, idx: number): void {
 						data-testid="chart-point-marker-size"
 						class="w-14 bg-muted border border-border rounded px-1.5 py-0.5 text-[11px]"
 						:value="pointFor(idx)?.marker?.size ?? ''"
-						placeholder="Auto"
-						title="Marker size"
+						:placeholder="t('pptx.chart.auto')"
+						:title="t('pptx.chart.markerSize')"
 						@input="onSize($event, idx)"
 					/>
 					<input
@@ -137,7 +140,7 @@ function onFill(event: Event, idx: number): void {
 						data-testid="chart-point-marker-fill"
 						class="h-6 w-8 cursor-pointer rounded border border-border bg-transparent"
 						:value="pointFor(idx)?.marker?.spPr?.fillColor ?? '#4472c4'"
-						title="Marker fill"
+						:title="t('pptx.chart.markerFill')"
 						@input="onFill($event, idx)"
 					/>
 				</div>

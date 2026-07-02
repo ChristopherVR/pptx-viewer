@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import type { PptxCustomProperty } from 'pptx-viewer-core';
+import { useI18n } from 'vue-i18n';
 
 /** Available custom-property VT type options (text / number / date / yes-no). */
-const CUSTOM_PROPERTY_TYPES: Array<{ value: string; label: string }> = [
-	{ value: 'lpwstr', label: 'Text' },
-	{ value: 'i4', label: 'Number' },
-	{ value: 'filetime', label: 'Date' },
-	{ value: 'bool', label: 'Yes/No' },
+const CUSTOM_PROPERTY_TYPES: Array<{ value: string; labelKey: string }> = [
+	{ value: 'lpwstr', labelKey: 'pptx.documentProperties.custom.typeText' },
+	{ value: 'i4', labelKey: 'pptx.documentProperties.custom.typeNumber' },
+	{ value: 'filetime', labelKey: 'pptx.documentProperties.custom.typeDate' },
+	{ value: 'bool', labelKey: 'pptx.documentProperties.custom.typeYesNo' },
 ];
 
 /**
@@ -26,6 +27,8 @@ const emit = defineEmits<{
 	/** Fired with the full updated list on any add/remove/edit. */
 	(e: 'update', next: PptxCustomProperty[]): void;
 }>();
+
+const { t } = useI18n();
 
 function handleAdd(): void {
 	emit('update', [...props.customProperties, { name: '', value: '', type: 'lpwstr' }]);
@@ -65,15 +68,15 @@ function valueInputType(type: string): string {
 <template>
 	<div class="pptx-vue-docprops-custom flex flex-col gap-3">
 		<p class="pptx-vue-docprops-custom-desc text-xs text-muted-foreground">
-			Custom properties let you store additional metadata with the presentation.
+			{{ t('pptx.documentProperties.custom.description') }}
 		</p>
 
 		<div
 			class="pptx-vue-docprops-custom-head grid grid-cols-[1fr_1fr_100px_32px] items-center gap-1 px-1 text-[11px] font-medium text-muted-foreground"
 		>
-			<span>Name</span>
-			<span>Value</span>
-			<span>Type</span>
+			<span>{{ t('pptx.documentProperties.custom.name') }}</span>
+			<span>{{ t('pptx.documentProperties.custom.value') }}</span>
+			<span>{{ t('pptx.documentProperties.custom.type') }}</span>
 			<span />
 		</div>
 
@@ -86,7 +89,7 @@ function valueInputType(type: string): string {
 				<input
 					type="text"
 					class="pptx-vue-docprops-custom-input w-full rounded border border-border bg-muted px-2 py-1 text-xs text-foreground placeholder-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-					placeholder="Name"
+					:placeholder="t('pptx.documentProperties.custom.namePlaceholder')"
 					:value="prop.name"
 					@input="onNameInput(index, $event)"
 				/>
@@ -96,14 +99,14 @@ function valueInputType(type: string): string {
 					:value="prop.value"
 					@change="onValueInput(index, $event)"
 				>
-					<option value="true">Yes</option>
-					<option value="false">No</option>
+					<option value="true">{{ t('pptx.documentProperties.custom.yes') }}</option>
+					<option value="false">{{ t('pptx.documentProperties.custom.no') }}</option>
 				</select>
 				<input
 					v-else
 					:type="valueInputType(prop.type)"
 					class="pptx-vue-docprops-custom-input w-full rounded border border-border bg-muted px-2 py-1 text-xs text-foreground placeholder-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-					placeholder="Value"
+					:placeholder="t('pptx.documentProperties.custom.valuePlaceholder')"
 					:value="prop.value"
 					@input="onValueInput(index, $event)"
 				/>
@@ -113,13 +116,13 @@ function valueInputType(type: string): string {
 					@change="onTypeInput(index, $event)"
 				>
 					<option v-for="opt in CUSTOM_PROPERTY_TYPES" :key="opt.value" :value="opt.value">
-						{{ opt.label }}
+						{{ t(opt.labelKey) }}
 					</option>
 				</select>
 				<button
 					type="button"
 					class="pptx-vue-docprops-custom-delete inline-flex h-6 w-6 items-center justify-center rounded p-0 text-base leading-none text-muted-foreground transition-colors hover:bg-red-500/20 hover:text-red-400"
-					aria-label="Delete property"
+					:aria-label="t('pptx.documentProperties.custom.deleteProperty')"
 					@click="handleDelete(index)"
 				>
 					&times;
@@ -131,7 +134,7 @@ function valueInputType(type: string): string {
 			v-if="customProperties.length === 0"
 			class="pptx-vue-docprops-custom-empty py-4 text-center text-xs text-muted-foreground/60"
 		>
-			No custom properties yet.
+			{{ t('pptx.documentProperties.custom.empty') }}
 		</p>
 
 		<button
@@ -139,7 +142,7 @@ function valueInputType(type: string): string {
 			class="pptx-vue-docprops-custom-add inline-flex items-center gap-1.5 self-start rounded-md border border-border px-2.5 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
 			@click="handleAdd"
 		>
-			+ Add property
+			{{ t('pptx.documentProperties.custom.addProperty') }}
 		</button>
 	</div>
 </template>

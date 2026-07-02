@@ -14,6 +14,9 @@
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import type { CSSProperties } from 'vue';
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = withDefaults(
 	defineProps<{
@@ -144,7 +147,7 @@ function onKeydown(event: KeyboardEvent): void {
 		contenteditable="true"
 		:spellcheck="props.spellCheck"
 		role="textbox"
-		aria-label="Edit text"
+		:aria-label="t('pptx.inlineEditor.editText')"
 		:style="editorStyle"
 		@input="onInput"
 		@blur="onBlur"

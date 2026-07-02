@@ -2,13 +2,14 @@
 import type { PptxTableCellStyle } from 'pptx-viewer-core';
 import { FILL_MODE_OPTIONS, GRADIENT_TYPE_OPTIONS, PATTERN_OPTIONS } from 'pptx-viewer-shared';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * TableCellAdvancedFill: Vue port of React's inspector
  * `TableCellAdvancedFill.tsx`. Advanced (gradient / pattern) cell fill controls
  * plus cell margins. Fill-mode, gradient-type and pattern-preset option lists
- * come from `pptx-viewer-shared` (`render/table-advanced-fill.ts`); the i18n
- * keys are mapped to plain English labels to match the Vue viewer's copy.
+ * come from `pptx-viewer-shared` (`render/table-advanced-fill.ts`); their i18n
+ * keys are resolved via vue-i18n's `t()` against the host dictionary.
  */
 const props = defineProps<{
 	cellStyle: PptxTableCellStyle;
@@ -19,23 +20,13 @@ const emit = defineEmits<{
 	update: [patch: Partial<PptxTableCellStyle>];
 }>();
 
-const FILL_MODE_LABELS: Record<string, string> = {
-	'pptx.table.fillSolid': 'Solid',
-	'pptx.table.fillGradient': 'Gradient',
-	'pptx.table.fillPattern': 'Pattern',
-	'pptx.table.fillNone': 'None',
-};
-
-const GRADIENT_TYPE_LABELS: Record<string, string> = {
-	'pptx.table.gradientLinear': 'Linear',
-	'pptx.table.gradientRadial': 'Radial',
-};
+const { t } = useI18n();
 
 const MARGIN_FIELDS: Array<[keyof PptxTableCellStyle, string]> = [
-	['marginTop', 'Top'],
-	['marginBottom', 'Bottom'],
-	['marginLeft', 'Left'],
-	['marginRight', 'Right'],
+	['marginTop', 'pptx.table.marginTop'],
+	['marginBottom', 'pptx.table.marginBottom'],
+	['marginLeft', 'pptx.table.marginLeft'],
+	['marginRight', 'pptx.table.marginRight'],
 ];
 
 const fillMode = computed(() => props.cellStyle.fillMode ?? 'solid');
@@ -82,7 +73,7 @@ function addStop(): void {
 <template>
 	<div class="flex flex-col gap-2">
 		<label class="flex flex-col gap-1">
-			<span class="text-[11px] text-muted-foreground">Fill type</span>
+			<span class="text-[11px] text-muted-foreground">{{ t('pptx.table.fillMode') }}</span>
 			<select
 				class="w-full rounded border border-border bg-muted px-2 py-1 text-[11px]"
 				:disabled="!canEdit"
@@ -90,7 +81,7 @@ function addStop(): void {
 				@change="onFillModeChange"
 			>
 				<option v-for="opt in FILL_MODE_OPTIONS" :key="opt.value ?? ''" :value="opt.value ?? ''">
-					{{ FILL_MODE_LABELS[opt.i18nKey] ?? opt.i18nKey }}
+					{{ t(opt.i18nKey) }}
 				</option>
 			</select>
 		</label>
@@ -99,7 +90,7 @@ function addStop(): void {
 		<div v-if="fillMode === 'gradient'" class="flex flex-col gap-1.5">
 			<div class="grid grid-cols-2 gap-1.5">
 				<label class="flex flex-col gap-0.5">
-					<span class="text-[11px] text-muted-foreground">Gradient</span>
+					<span class="text-[11px] text-muted-foreground">{{ t('pptx.table.gradientType') }}</span>
 					<select
 						class="w-full rounded border border-border bg-muted px-2 py-1 text-[11px]"
 						:disabled="!canEdit"
@@ -111,12 +102,12 @@ function addStop(): void {
 						"
 					>
 						<option v-for="o in GRADIENT_TYPE_OPTIONS" :key="o.value" :value="o.value">
-							{{ GRADIENT_TYPE_LABELS[o.i18nKey] ?? o.i18nKey }}
+							{{ t(o.i18nKey) }}
 						</option>
 					</select>
 				</label>
 				<label v-if="gradientType === 'linear'" class="flex flex-col gap-0.5">
-					<span class="text-[11px] text-muted-foreground">Angle</span>
+					<span class="text-[11px] text-muted-foreground">{{ t('pptx.table.gradientAngle') }}</span>
 					<input
 						type="number"
 						class="w-full rounded border border-border bg-muted px-1.5 py-0.5 text-[11px]"
@@ -133,7 +124,7 @@ function addStop(): void {
 				</label>
 			</div>
 
-			<span class="text-[11px] text-muted-foreground">Colour stops</span>
+			<span class="text-[11px] text-muted-foreground">{{ t('pptx.table.gradientStops') }}</span>
 			<div v-for="(stop, idx) in gradientStops" :key="idx" class="flex items-center gap-1">
 				<input
 					type="color"
@@ -159,14 +150,14 @@ function addStop(): void {
 				:disabled="!canEdit"
 				@click="addStop"
 			>
-				Add stop
+				{{ t('pptx.table.gradientAddStop') }}
 			</button>
 		</div>
 
 		<!-- Pattern controls -->
 		<div v-else-if="fillMode === 'pattern'" class="flex flex-col gap-1.5">
 			<label class="flex flex-col gap-0.5">
-				<span class="text-[11px] text-muted-foreground">Pattern</span>
+				<span class="text-[11px] text-muted-foreground">{{ t('pptx.table.patternPreset') }}</span>
 				<select
 					class="w-full rounded border border-border bg-muted px-2 py-1 text-[11px]"
 					:disabled="!canEdit"
@@ -180,7 +171,9 @@ function addStop(): void {
 			</label>
 			<div class="grid grid-cols-2 gap-1.5">
 				<label class="flex flex-col gap-0.5">
-					<span class="text-[11px] text-muted-foreground">Foreground</span>
+					<span class="text-[11px] text-muted-foreground">{{
+						t('pptx.table.patternForeground')
+					}}</span>
 					<input
 						type="color"
 						class="h-7 w-full cursor-pointer rounded border border-border bg-transparent"
@@ -192,7 +185,9 @@ function addStop(): void {
 					/>
 				</label>
 				<label class="flex flex-col gap-0.5">
-					<span class="text-[11px] text-muted-foreground">Background</span>
+					<span class="text-[11px] text-muted-foreground">{{
+						t('pptx.table.patternBackground')
+					}}</span>
 					<input
 						type="color"
 						class="h-7 w-full cursor-pointer rounded border border-border bg-transparent"
@@ -208,10 +203,12 @@ function addStop(): void {
 
 		<!-- Cell margins -->
 		<div class="flex flex-col gap-1">
-			<span class="text-[11px] uppercase tracking-wide text-muted-foreground">Margins</span>
+			<span class="text-[11px] uppercase tracking-wide text-muted-foreground">{{
+				t('pptx.table.margins')
+			}}</span>
 			<div class="grid grid-cols-2 gap-1.5">
-				<label v-for="[key, label] in MARGIN_FIELDS" :key="key" class="flex flex-col gap-0.5">
-					<span class="text-[11px] text-muted-foreground">{{ label }}</span>
+				<label v-for="[key, i18nKey] in MARGIN_FIELDS" :key="key" class="flex flex-col gap-0.5">
+					<span class="text-[11px] text-muted-foreground">{{ t(i18nKey) }}</span>
 					<input
 						type="number"
 						class="w-full rounded border border-border bg-muted px-1.5 py-0.5 text-[11px]"

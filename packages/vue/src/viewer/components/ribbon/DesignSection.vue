@@ -7,6 +7,7 @@
  * strings are copied verbatim, callbacks arrive as function props.
  */
 import { Monitor, PaintBucket, Palette, Pencil } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import { ics, pill, SEP } from './ribbon-constants';
@@ -23,6 +24,8 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const { t } = useI18n();
 </script>
 
 <template>
@@ -30,20 +33,20 @@ const props = defineProps<Props>();
 	<button
 		:disabled="!props.canEdit"
 		:class="cn(pill, props.isThemeGalleryOpen ? 'bg-primary hover:bg-primary/80 text-white' : '')"
-		title="Browse and apply built-in themes"
+		:title="t('pptx.design.browseThemesTooltip')"
 		@click="props.onToggleThemeGallery()"
 	>
 		<Palette :class="ics" />
-		Browse Themes
+		{{ t('pptx.design.browseThemes') }}
 	</button>
 	<button
 		:disabled="!props.canEdit"
 		:class="cn(pill, props.isThemeEditorOpen ? 'bg-primary hover:bg-primary/80 text-white' : '')"
-		title="Edit presentation theme colors and fonts"
+		:title="t('pptx.design.editThemeTooltip')"
 		@click="props.onToggleThemeEditor()"
 	>
 		<Pencil :class="ics" />
-		Edit Theme
+		{{ t('pptx.design.editTheme') }}
 	</button>
 
 	<div :class="SEP" />
@@ -52,19 +55,19 @@ const props = defineProps<Props>();
 	<button
 		v-if="props.onOpenDocumentProperties"
 		:class="pill"
-		title="Change slide dimensions (16:9, 4:3, custom)"
+		:title="t('pptx.design.slideSizeTooltip')"
 		@click="props.onOpenDocumentProperties()"
 	>
 		<Monitor :class="ics" />
-		Slide Size
+		{{ t('pptx.design.slideSize') }}
 	</button>
 	<button
 		v-if="props.onToggleInspector"
 		:class="cn(pill, props.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '')"
-		title="Open inspector to edit slide background"
+		:title="t('pptx.design.formatBackgroundTooltip')"
 		@click="props.onToggleInspector()"
 	>
 		<PaintBucket :class="ics" />
-		Format Background
+		{{ t('pptx.design.formatBackground') }}
 	</button>
 </template>

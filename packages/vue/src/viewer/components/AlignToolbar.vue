@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AlignEdge, DistributeAxis } from 'pptx-viewer-shared';
+import { useI18n } from 'vue-i18n';
 
 /**
  * AlignToolbar: a compact, purely presentational button row for the editor's
@@ -31,18 +32,20 @@ const emit = defineEmits<{
 	ungroup: [];
 }>();
 
+const { t } = useI18n();
+
 interface AlignButton {
 	edge: AlignEdge;
-	label: string;
+	labelKey: string;
 }
 
 const alignButtons: readonly AlignButton[] = [
-	{ edge: 'left', label: 'Align left' },
-	{ edge: 'centerH', label: 'Align centre (horizontal)' },
-	{ edge: 'right', label: 'Align right' },
-	{ edge: 'top', label: 'Align top' },
-	{ edge: 'middle', label: 'Align middle (vertical)' },
-	{ edge: 'bottom', label: 'Align bottom' },
+	{ edge: 'left', labelKey: 'pptx.align.left' },
+	{ edge: 'centerH', labelKey: 'pptx.align.centerH' },
+	{ edge: 'right', labelKey: 'pptx.align.right' },
+	{ edge: 'top', labelKey: 'pptx.align.top' },
+	{ edge: 'middle', labelKey: 'pptx.align.middle' },
+	{ edge: 'bottom', labelKey: 'pptx.align.bottom' },
 ];
 
 /**
@@ -57,7 +60,7 @@ const ALIGN_BTN =
 	<div
 		class="pptx-vue-align-toolbar inline-flex items-center gap-0.5 p-1 rounded-md bg-card border border-border text-foreground shadow-sm"
 		role="toolbar"
-		aria-label="Align and distribute"
+		:aria-label="t('pptx.align.toolbarLabel')"
 	>
 		<button
 			v-for="btn in alignButtons"
@@ -65,8 +68,8 @@ const ALIGN_BTN =
 			type="button"
 			class="pptx-vue-align-btn"
 			:class="ALIGN_BTN"
-			:title="btn.label"
-			:aria-label="btn.label"
+			:title="t(btn.labelKey)"
+			:aria-label="t(btn.labelKey)"
 			@click="emit('align', btn.edge)"
 		>
 			<!-- Horizontal-axis aligns: a vertical guide line + a bar. -->
@@ -133,8 +136,8 @@ const ALIGN_BTN =
 			type="button"
 			class="pptx-vue-align-btn"
 			:class="ALIGN_BTN"
-			title="Distribute horizontally"
-			aria-label="Distribute horizontally"
+			:title="t('pptx.align.distributeHorizontally')"
+			:aria-label="t('pptx.align.distributeHorizontally')"
 			@click="emit('distribute', 'horizontal')"
 		>
 			<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
@@ -147,8 +150,8 @@ const ALIGN_BTN =
 			type="button"
 			class="pptx-vue-align-btn"
 			:class="ALIGN_BTN"
-			title="Distribute vertically"
-			aria-label="Distribute vertically"
+			:title="t('pptx.align.distributeVertically')"
+			:aria-label="t('pptx.align.distributeVertically')"
 			@click="emit('distribute', 'vertical')"
 		>
 			<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
@@ -164,8 +167,8 @@ const ALIGN_BTN =
 			type="button"
 			class="pptx-vue-align-btn"
 			:class="ALIGN_BTN"
-			title="Group"
-			aria-label="Group"
+			:title="t('pptx.align.group')"
+			:aria-label="t('pptx.align.group')"
 			:disabled="!canGroup"
 			@click="emit('group')"
 		>
@@ -188,8 +191,8 @@ const ALIGN_BTN =
 			type="button"
 			class="pptx-vue-align-btn"
 			:class="ALIGN_BTN"
-			title="Ungroup"
-			aria-label="Ungroup"
+			:title="t('pptx.align.ungroup')"
+			:aria-label="t('pptx.align.ungroup')"
 			:disabled="!canUngroup"
 			@click="emit('ungroup')"
 		>

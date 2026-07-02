@@ -8,6 +8,7 @@
  */
 import type { PptxTheme, PptxThemeColorScheme, PptxThemeFontScheme } from 'pptx-viewer-core';
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{ theme: PptxTheme | undefined; canEdit: boolean }>();
 
@@ -18,19 +19,21 @@ const emit = defineEmits<{
 	close: [];
 }>();
 
-const COLOR_SLOTS: ReadonlyArray<{ key: keyof PptxThemeColorScheme; label: string }> = [
-	{ key: 'dk1', label: 'Dark 1' },
-	{ key: 'lt1', label: 'Light 1' },
-	{ key: 'dk2', label: 'Dark 2' },
-	{ key: 'lt2', label: 'Light 2' },
-	{ key: 'accent1', label: 'Accent 1' },
-	{ key: 'accent2', label: 'Accent 2' },
-	{ key: 'accent3', label: 'Accent 3' },
-	{ key: 'accent4', label: 'Accent 4' },
-	{ key: 'accent5', label: 'Accent 5' },
-	{ key: 'accent6', label: 'Accent 6' },
-	{ key: 'hlink', label: 'Hyperlink' },
-	{ key: 'folHlink', label: 'Followed Link' },
+const { t } = useI18n();
+
+const COLOR_SLOTS: ReadonlyArray<{ key: keyof PptxThemeColorScheme; labelKey: string }> = [
+	{ key: 'dk1', labelKey: 'pptx.themeEditor.colorDark1' },
+	{ key: 'lt1', labelKey: 'pptx.themeEditor.colorLight1' },
+	{ key: 'dk2', labelKey: 'pptx.themeEditor.colorDark2' },
+	{ key: 'lt2', labelKey: 'pptx.themeEditor.colorLight2' },
+	{ key: 'accent1', labelKey: 'pptx.themeEditor.colorAccent1' },
+	{ key: 'accent2', labelKey: 'pptx.themeEditor.colorAccent2' },
+	{ key: 'accent3', labelKey: 'pptx.themeEditor.colorAccent3' },
+	{ key: 'accent4', labelKey: 'pptx.themeEditor.colorAccent4' },
+	{ key: 'accent5', labelKey: 'pptx.themeEditor.colorAccent5' },
+	{ key: 'accent6', labelKey: 'pptx.themeEditor.colorAccent6' },
+	{ key: 'hlink', labelKey: 'pptx.themeEditor.colorHyperlink' },
+	{ key: 'folHlink', labelKey: 'pptx.themeEditor.colorFollowedLink' },
 ];
 
 /** A sensible default Office scheme used to fill any missing slots. */
@@ -89,15 +92,15 @@ function apply(): void {
 	<aside
 		class="fixed right-0 top-0 z-[1090] flex h-full w-72 flex-col gap-2 overflow-y-auto border-l border-border bg-card p-3 text-xs text-foreground shadow-2xl"
 		role="dialog"
-		aria-label="Theme editor"
+		:aria-label="t('pptx.themeEditor.panelLabel')"
 	>
 		<div class="flex items-center justify-between">
-			<h3 class="text-sm font-semibold text-foreground">Edit Theme</h3>
+			<h3 class="text-sm font-semibold text-foreground">{{ t('pptx.themeEditor.title') }}</h3>
 			<button
 				type="button"
 				class="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-				title="Close"
-				aria-label="Close theme editor"
+				:title="t('pptx.themeEditor.close')"
+				:aria-label="t('pptx.themeEditor.close')"
 				@click="emit('close')"
 			>
 				✕
@@ -105,7 +108,9 @@ function apply(): void {
 		</div>
 
 		<label class="flex flex-col gap-1">
-			<span class="text-[11px] uppercase tracking-wide text-muted-foreground">Theme name</span>
+			<span class="text-[11px] uppercase tracking-wide text-muted-foreground">
+				{{ t('pptx.themeEditor.themeName') }}
+			</span>
 			<input
 				v-model="themeName"
 				type="text"
@@ -115,13 +120,15 @@ function apply(): void {
 		</label>
 
 		<div class="flex flex-col gap-1">
-			<span class="text-[11px] uppercase tracking-wide text-muted-foreground">Scheme colours</span>
+			<span class="text-[11px] uppercase tracking-wide text-muted-foreground">
+				{{ t('pptx.themeEditor.colorScheme') }}
+			</span>
 			<div class="grid grid-cols-2 gap-1.5">
 				<label
 					v-for="slot in COLOR_SLOTS"
 					:key="slot.key"
 					class="flex items-center gap-1.5"
-					:title="slot.label"
+					:title="t(slot.labelKey)"
 				>
 					<input
 						type="color"
@@ -130,13 +137,15 @@ function apply(): void {
 						class="h-6 w-6 shrink-0 cursor-pointer rounded border border-border bg-transparent p-0"
 						@input="onColor(slot.key, $event)"
 					/>
-					<span class="truncate text-[10px] text-muted-foreground">{{ slot.label }}</span>
+					<span class="truncate text-[10px] text-muted-foreground">{{ t(slot.labelKey) }}</span>
 				</label>
 			</div>
 		</div>
 
 		<label class="flex flex-col gap-1">
-			<span class="text-[11px] uppercase tracking-wide text-muted-foreground">Heading font</span>
+			<span class="text-[11px] uppercase tracking-wide text-muted-foreground">
+				{{ t('pptx.themeEditor.headingFont') }}
+			</span>
 			<input
 				v-model="majorFont"
 				type="text"
@@ -145,7 +154,9 @@ function apply(): void {
 			/>
 		</label>
 		<label class="flex flex-col gap-1">
-			<span class="text-[11px] uppercase tracking-wide text-muted-foreground">Body font</span>
+			<span class="text-[11px] uppercase tracking-wide text-muted-foreground">
+				{{ t('pptx.themeEditor.bodyFont') }}
+			</span>
 			<input
 				v-model="minorFont"
 				type="text"
@@ -161,7 +172,7 @@ function apply(): void {
 				class="flex-1 rounded bg-primary px-2 py-1.5 text-xs font-medium text-white hover:bg-primary/90 disabled:opacity-40"
 				@click="apply"
 			>
-				Apply to Presentation
+				{{ t('pptx.themeEditor.applyToPresentation') }}
 			</button>
 			<button
 				type="button"
@@ -169,7 +180,7 @@ function apply(): void {
 				class="rounded border border-border bg-muted px-2 py-1.5 text-xs hover:bg-accent disabled:opacity-40"
 				@click="reset"
 			>
-				Reset
+				{{ t('pptx.themeEditor.reset') }}
 			</button>
 		</div>
 	</aside>

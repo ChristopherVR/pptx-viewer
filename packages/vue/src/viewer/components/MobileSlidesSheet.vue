@@ -13,10 +13,13 @@
  * it already wires for the desktop rail.
  */
 import type { PptxSlide } from 'pptx-viewer-core';
+import { useI18n } from 'vue-i18n';
 
 import type { CanvasSize } from '../types';
 import MobileSheet from './MobileSheet.vue';
 import SlidesPaneSidebar from './SlidesPaneSidebar.vue';
+
+const { t } = useI18n();
 
 const props = defineProps<{
 	open: boolean;
@@ -45,7 +48,7 @@ function onSelect(index: number): void {
 </script>
 
 <template>
-	<MobileSheet :open="props.open" title="Slides" @close="emit('close')">
+	<MobileSheet :open="props.open" :title="t('pptx.sections.slides')" @close="emit('close')">
 		<SlidesPaneSidebar
 			:slides="props.slides"
 			:active-index="props.activeIndex"

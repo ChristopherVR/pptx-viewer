@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxElement, PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import {
 	applyDeleteColumn,
@@ -35,6 +36,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
 }>();
+
+const { t } = useI18n();
 
 const isTable = computed(() => props.element.type === 'table');
 
@@ -127,33 +130,33 @@ function mergeSelected(): void {
 <template>
 	<div class="pptx-vue-table-panel flex flex-col gap-3 text-xs">
 		<p v-if="!isTable" class="text-[11px] text-muted-foreground">
-			Select a table to edit its rows and columns.
+			{{ t('pptx.table.selectTablePrompt') }}
 		</p>
 		<p v-else-if="!tableData" class="text-[11px] text-muted-foreground">
-			This table has no editable cell data.
+			{{ t('pptx.table.noEditableData') }}
 		</p>
 		<template v-else>
 			<div class="flex gap-4 text-[11px] text-muted-foreground">
-				<span>Rows: {{ rowCount }}</span>
-				<span>Columns: {{ colCount }}</span>
+				<span>{{ t('pptx.table.rowsCount', { count: rowCount }) }}</span>
+				<span>{{ t('pptx.table.columnsCount', { count: colCount }) }}</span>
 			</div>
 
 			<div class="flex flex-col gap-1">
-				<div class="text-[11px] font-medium">Rows</div>
+				<div class="text-[11px] font-medium">{{ t('pptx.table.rows') }}</div>
 				<div class="flex flex-wrap gap-1">
 					<button
 						type="button"
 						class="min-w-0 flex-1 rounded border border-border bg-muted px-2 py-1 text-[11px] transition-colors hover:bg-accent"
 						@click="insertRow('above')"
 					>
-						Insert above
+						{{ t('pptx.table.insertAbove') }}
 					</button>
 					<button
 						type="button"
 						class="min-w-0 flex-1 rounded border border-border bg-muted px-2 py-1 text-[11px] transition-colors hover:bg-accent"
 						@click="insertRow('below')"
 					>
-						Insert below
+						{{ t('pptx.table.insertBelow') }}
 					</button>
 					<button
 						type="button"
@@ -161,27 +164,27 @@ function mergeSelected(): void {
 						:disabled="!canDeleteRow"
 						@click="deleteRow"
 					>
-						Delete row
+						{{ t('pptx.table.deleteRow') }}
 					</button>
 				</div>
 			</div>
 
 			<div class="flex flex-col gap-1">
-				<div class="text-[11px] font-medium">Columns</div>
+				<div class="text-[11px] font-medium">{{ t('pptx.table.columns') }}</div>
 				<div class="flex flex-wrap gap-1">
 					<button
 						type="button"
 						class="min-w-0 flex-1 rounded border border-border bg-muted px-2 py-1 text-[11px] transition-colors hover:bg-accent"
 						@click="insertColumn('left')"
 					>
-						Insert left
+						{{ t('pptx.table.insertLeft') }}
 					</button>
 					<button
 						type="button"
 						class="min-w-0 flex-1 rounded border border-border bg-muted px-2 py-1 text-[11px] transition-colors hover:bg-accent"
 						@click="insertColumn('right')"
 					>
-						Insert right
+						{{ t('pptx.table.insertRight') }}
 					</button>
 					<button
 						type="button"
@@ -189,7 +192,7 @@ function mergeSelected(): void {
 						:disabled="!canDeleteColumn"
 						@click="deleteColumn"
 					>
-						Delete column
+						{{ t('pptx.table.deleteColumn') }}
 					</button>
 				</div>
 			</div>
@@ -200,7 +203,7 @@ function mergeSelected(): void {
 				class="rounded border border-border bg-muted px-2 py-1 text-[11px] transition-colors hover:bg-accent"
 				@click="mergeSelected"
 			>
-				Merge selected cells
+				{{ t('pptx.table.mergeSelected') }}
 			</button>
 
 			<TableStyleOptions :table-data="tableData" :can-edit="true" @update="patchTableData" />

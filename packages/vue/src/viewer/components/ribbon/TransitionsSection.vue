@@ -9,6 +9,7 @@ import { Copy, PanelRight, Play } from 'lucide-vue-next';
  * `useState` for the selected preset / duration becomes local `ref`s.
  */
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import { ic, ics, pill, SEP } from './ribbon-constants';
@@ -32,15 +33,17 @@ interface Props {
 
 const props = defineProps<Props>();
 
+const { t } = useI18n();
+
 const selected = ref('none');
 const duration = ref('00.50');
 </script>
 
 <template>
 	<!-- Preview -->
-	<button type="button" :class="pill" title="Preview transition">
+	<button type="button" :class="pill" :title="t('pptx.transitions.previewTooltip')">
 		<Play :class="ics" />
-		Preview
+		{{ t('pptx.transitions.preview') }}
 	</button>
 
 	<div :class="SEP" />
@@ -70,21 +73,21 @@ const duration = ref('00.50');
 
 	<!-- Duration -->
 	<label class="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-		<span class="whitespace-nowrap">Duration:</span>
+		<span class="whitespace-nowrap">{{ t('pptx.transitions.duration') }}</span>
 		<input
 			v-model="duration"
 			type="text"
 			class="w-14 px-1.5 py-1 rounded border border-border bg-muted text-xs text-foreground text-center"
-			title="Transition duration in seconds"
+			:title="t('pptx.transitions.durationTooltip')"
 		/>
 	</label>
 
 	<div :class="SEP" />
 
 	<!-- Apply to All -->
-	<button type="button" :class="pill" title="Apply transition to all slides">
+	<button type="button" :class="pill" :title="t('pptx.transitions.applyToAllTooltip')">
 		<Copy :class="ics" />
-		Apply to All
+		{{ t('pptx.headerFooter.applyToAll') }}
 	</button>
 
 	<div :class="SEP" />
@@ -93,10 +96,10 @@ const duration = ref('00.50');
 	<button
 		type="button"
 		:class="cn(pill, props.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '')"
-		title="Open Inspector for full transition options"
+		:title="t('pptx.transitions.inspectorTooltip')"
 		@click="props.onToggleInspector()"
 	>
 		<PanelRight :class="ic" />
-		Inspector
+		{{ t('pptx.transitions.inspector') }}
 	</button>
 </template>

@@ -2,6 +2,7 @@
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * FillPanel: shape fill controls (mode, solid colour, opacity).
@@ -19,6 +20,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
 }>();
+
+const { t } = useI18n();
 
 type FillMode = 'none' | 'solid' | 'gradient';
 
@@ -67,25 +70,25 @@ function onOpacity(value: string): void {
 <template>
 	<div class="pptx-vue-fill flex flex-col gap-2 text-xs">
 		<p v-if="!applicable" class="pptx-vue-fill-note text-muted-foreground italic">
-			No fill options
+			{{ t('pptx.fill.noOptions') }}
 		</p>
 
 		<template v-else>
 			<label class="pptx-vue-fill-field flex flex-col gap-1">
-				<span class="pptx-vue-fill-label text-muted-foreground">Fill</span>
+				<span class="pptx-vue-fill-label text-muted-foreground">{{ t('pptx.fill.fill') }}</span>
 				<select
 					class="pptx-vue-fill-select bg-muted border border-border rounded px-2 py-1"
 					:value="fillMode"
 					@change="onMode(($event.target as HTMLSelectElement).value)"
 				>
-					<option value="none">None</option>
-					<option value="solid">Solid</option>
-					<option value="gradient">Gradient</option>
+					<option value="none">{{ t('pptx.fill.none') }}</option>
+					<option value="solid">{{ t('pptx.fill.solid') }}</option>
+					<option value="gradient">{{ t('pptx.fill.gradient') }}</option>
 				</select>
 			</label>
 
 			<label v-if="fillMode === 'solid'" class="pptx-vue-fill-field flex flex-col gap-1">
-				<span class="pptx-vue-fill-label text-muted-foreground">Color</span>
+				<span class="pptx-vue-fill-label text-muted-foreground">{{ t('pptx.fill.color') }}</span>
 				<input
 					type="color"
 					class="pptx-vue-fill-color w-full h-8 p-0 bg-muted border border-border rounded"
@@ -95,9 +98,9 @@ function onOpacity(value: string): void {
 			</label>
 
 			<label v-if="fillMode === 'solid'" class="pptx-vue-fill-field flex flex-col gap-1">
-				<span class="pptx-vue-fill-label text-muted-foreground"
-					>Opacity ({{ fillOpacityPercent }}%)</span
-				>
+				<span class="pptx-vue-fill-label text-muted-foreground">{{
+					t('pptx.fill.opacityPercent', { value: fillOpacityPercent })
+				}}</span>
 				<input
 					type="range"
 					class="pptx-vue-fill-range w-full accent-primary"

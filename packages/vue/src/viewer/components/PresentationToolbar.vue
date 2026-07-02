@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import {
 	formatSlideCounter,
@@ -44,6 +45,8 @@ const emit = defineEmits<{
 	(e: 'clear-annotations' | 'end-presentation' | 'toggle-presenter-view'): void;
 	(e: 'move', direction: 1 | -1): void;
 }>();
+
+const { t } = useI18n();
 
 const showPenColors = ref(false);
 const showHighlighterColors = ref(false);
@@ -158,8 +161,8 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			class="pptx-vue-ptb-btn"
 			:class="NAV_BTN_CLASS"
 			:disabled="atFirst"
-			title="Previous slide"
-			aria-label="Previous slide"
+			:title="t('pptx.mobileBar.previousSlide')"
+			:aria-label="t('pptx.mobileBar.previousSlide')"
 			@click="emit('move', -1)"
 		>
 			‹
@@ -176,8 +179,8 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			class="pptx-vue-ptb-btn"
 			:class="NAV_BTN_CLASS"
 			:disabled="atLast"
-			title="Next slide"
-			aria-label="Next slide"
+			:title="t('pptx.mobileBar.nextSlide')"
+			:aria-label="t('pptx.mobileBar.nextSlide')"
 			@click="emit('move', 1)"
 		>
 			›
@@ -188,7 +191,7 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 		<!-- Elapsed timer -->
 		<div
 			class="pptx-vue-ptb-timer flex select-none items-center gap-1.5 px-1 font-mono text-xs tabular-nums text-white/60"
-			title="Elapsed"
+			:title="t('pptx.mpresenter.elapsed')"
 		>
 			<span>⏱</span>
 			<span>{{ elapsedText }}</span>
@@ -200,8 +203,8 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 		<button
 			type="button"
 			:class="toolClass('laser')"
-			title="Laser pointer"
-			aria-label="Laser pointer"
+			:title="t('pptx.presentation.laserPointer')"
+			:aria-label="t('pptx.presentation.laserPointer')"
 			@click="handleToolClick('laser')"
 		>
 			◉
@@ -212,8 +215,8 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			<button
 				type="button"
 				:class="toolClass('pen')"
-				title="Pen"
-				aria-label="Pen"
+				:title="t('pptx.presentation.pen')"
+				:aria-label="t('pptx.presentation.pen')"
 				@click="handleToolClick('pen')"
 				@contextmenu="onPenContextMenu"
 			>
@@ -226,8 +229,8 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			<button
 				type="button"
 				class="pptx-vue-ptb-caret -ml-1 flex h-9 w-[18px] items-center justify-center rounded-r-md text-white/50 transition-colors hover:bg-white/10 hover:text-white"
-				title="Pen — colour"
-				aria-label="Pen colour"
+				:title="t('pptx.presentationToolbar.penColor')"
+				:aria-label="t('pptx.presentationToolbar.penColor')"
 				@click="togglePenColors"
 			>
 				▾
@@ -245,7 +248,7 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 						penColor === color ? 'pptx-vue-ptb-color--active border-white' : 'border-white/20'
 					"
 					:style="{ backgroundColor: color }"
-					:aria-label="`Pen colour ${color}`"
+					:aria-label="t('pptx.presentationToolbar.penColorValue', { color })"
 					@click="pickPenColor(color)"
 				/>
 			</div>
@@ -256,8 +259,8 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			<button
 				type="button"
 				:class="toolClass('highlighter')"
-				title="Highlighter"
-				aria-label="Highlighter"
+				:title="t('pptx.presentation.highlighter')"
+				:aria-label="t('pptx.presentation.highlighter')"
 				@click="handleToolClick('highlighter')"
 				@contextmenu="onHighlighterContextMenu"
 			>
@@ -270,8 +273,8 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 			<button
 				type="button"
 				class="pptx-vue-ptb-caret -ml-1 flex h-9 w-[18px] items-center justify-center rounded-r-md text-white/50 transition-colors hover:bg-white/10 hover:text-white"
-				title="Highlighter — colour"
-				aria-label="Highlighter colour"
+				:title="t('pptx.presentationToolbar.highlighterColor')"
+				:aria-label="t('pptx.presentationToolbar.highlighterColor')"
 				@click="toggleHighlighterColors"
 			>
 				▾
@@ -291,7 +294,7 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 							: 'border-white/20'
 					"
 					:style="{ backgroundColor: color }"
-					:aria-label="`Highlighter colour ${color}`"
+					:aria-label="t('pptx.presentationToolbar.highlighterColorValue', { color })"
 					@click="pickHighlighterColor(color)"
 				/>
 			</div>
@@ -301,8 +304,8 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 		<button
 			type="button"
 			:class="toolClass('eraser')"
-			title="Eraser"
-			aria-label="Eraser"
+			:title="t('pptx.presentation.eraser')"
+			:aria-label="t('pptx.presentation.eraser')"
 			@click="handleToolClick('eraser')"
 		>
 			⌫
@@ -318,8 +321,8 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 					: 'cursor-not-allowed text-white/30'
 			"
 			:disabled="!hasAnnotations"
-			title="Clear annotations"
-			aria-label="Clear annotations"
+			:title="t('pptx.presentationToolbar.clearAnnotations')"
+			:aria-label="t('pptx.presentationToolbar.clearAnnotations')"
 			@click="hasAnnotations && emit('clear-annotations')"
 		>
 			🗑
@@ -337,8 +340,8 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 					? 'pptx-vue-ptb-btn--active bg-white/25 text-white'
 					: 'text-white/70 hover:bg-white/10 hover:text-white'
 			"
-			title="Presenter view"
-			aria-label="Presenter view"
+			:title="t('pptx.presentationToolbar.presenterView')"
+			:aria-label="t('pptx.presentationToolbar.presenterView')"
 			@click="emit('toggle-presenter-view')"
 		>
 			▥
@@ -348,8 +351,8 @@ function toolClass(tool: PresentationTool): Array<string | Record<string, boolea
 		<button
 			type="button"
 			class="pptx-vue-ptb-btn pptx-vue-ptb-btn--end flex h-9 w-9 items-center justify-center rounded-md text-white/70 transition-colors hover:bg-white/10 hover:text-red-400"
-			title="End presentation"
-			aria-label="End presentation"
+			:title="t('pptx.presenter.endPresentation')"
+			:aria-label="t('pptx.presenter.endPresentation')"
 			@click="emit('end-presentation')"
 		>
 			✕

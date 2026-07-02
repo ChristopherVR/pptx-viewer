@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ShapeStyle } from 'pptx-viewer-core';
 import { SHAPE_QUICK_STYLES } from 'pptx-viewer-shared';
+import { useI18n } from 'vue-i18n';
 
 /**
  * QuickStylesGallery: a 6-column swatch grid over the shared
@@ -14,6 +15,8 @@ import { SHAPE_QUICK_STYLES } from 'pptx-viewer-shared';
 defineEmits<{
 	select: [style: Partial<ShapeStyle>];
 }>();
+
+const { t } = useI18n();
 
 function swatchBackground(style: Partial<ShapeStyle>): string {
 	return style.fillGradient || style.fillColor || 'transparent';
@@ -39,7 +42,9 @@ function swatchBorder(style: Partial<ShapeStyle>): string | undefined {
 
 <template>
 	<div class="pptx-vue-quickstyles flex flex-col gap-1">
-		<span class="pptx-vue-quickstyles-label text-muted-foreground">Quick Styles</span>
+		<span class="pptx-vue-quickstyles-label text-muted-foreground">{{
+			t('pptx.shape.quickStyles')
+		}}</span>
 		<div class="pptx-vue-quickstyles-grid grid grid-cols-6 gap-1">
 			<button
 				v-for="(qs, idx) in SHAPE_QUICK_STYLES"

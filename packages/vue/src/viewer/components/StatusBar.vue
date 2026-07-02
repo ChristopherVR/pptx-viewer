@@ -10,9 +10,12 @@
  */
 import { Columns2, Minus, Monitor, Plus, Presentation, StickyNote } from 'lucide-vue-next';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../utils';
 import type { AutosaveStatus } from '../composables/useAutosave';
+
+const { t } = useI18n();
 
 const props = defineProps<{
 	slideCount: number;
@@ -43,15 +46,15 @@ const vb =
 
 const statusText = computed(() => {
 	if (props.autosaveStatus === 'saving') {
-		return 'Saving…';
+		return t('pptx.autosave.saving');
 	}
 	if (props.autosaveStatus === 'error') {
-		return 'Autosave error';
+		return t('pptx.autosave.error');
 	}
 	if (props.autosaveStatus === 'saved') {
-		return 'Saved';
+		return t('pptx.autosave.saved', { time: '' }).trim();
 	}
-	return props.isDirty ? 'Unsaved changes' : 'All saved';
+	return props.isDirty ? t('pptx.statusBar.unsavedChanges') : t('pptx.statusBar.allSaved');
 });
 </script>
 
@@ -63,14 +66,17 @@ const statusText = computed(() => {
 		<span class="shrink-0">
 			{{
 				props.slideCount > 0
-					? `Slide ${Math.min(props.activeSlideIndex + 1, props.slideCount)} of ${props.slideCount}`
-					: 'No slides'
+					? t('pptx.statusBar.slideOf', {
+							current: Math.min(props.activeSlideIndex + 1, props.slideCount),
+							total: props.slideCount,
+						})
+					: t('pptx.statusBar.noSlides')
 			}}
 		</span>
 
 		<div class="w-px h-3 bg-border/40 mx-1 max-md:hidden" />
 
-		<span class="shrink-0 max-md:hidden text-[10px]">English (U.S.)</span>
+		<span class="shrink-0 max-md:hidden text-[10px]">{{ t('pptx.statusBar.language') }}</span>
 
 		<div class="w-px h-3 bg-border/60 mx-1 max-md:hidden" />
 
@@ -99,12 +105,12 @@ const statusText = computed(() => {
 			:class="
 				cn(vb, 'flex items-center gap-1 text-[10px]', props.isNotesExpanded && 'text-primary')
 			"
-			title="Toggle notes"
-			aria-label="Toggle notes"
+			:title="t('pptx.statusBar.toggleNotes')"
+			:aria-label="t('pptx.statusBar.toggleNotes')"
 			@click="emit('toggle-notes')"
 		>
 			<StickyNote class="w-3 h-3" />
-			<span class="max-md:hidden">Notes</span>
+			<span class="max-md:hidden">{{ t('pptx.notes.title') }}</span>
 		</button>
 
 		<div class="w-px h-3 bg-border/60 mx-0.5" />
@@ -114,8 +120,8 @@ const statusText = computed(() => {
 			<button
 				type="button"
 				:class="cn(vb, props.mode === 'edit' && 'text-primary')"
-				title="Normal view"
-				aria-label="Normal view"
+				:title="t('pptx.statusBar.normalView')"
+				:aria-label="t('pptx.statusBar.normalView')"
 				@click="emit('set-mode', 'edit')"
 			>
 				<Monitor class="w-3.5 h-3.5" />
@@ -123,8 +129,8 @@ const statusText = computed(() => {
 			<button
 				type="button"
 				:class="vb"
-				title="Slide sorter"
-				aria-label="Slide sorter"
+				:title="t('pptx.statusBar.slideSorter')"
+				:aria-label="t('pptx.statusBar.slideSorter')"
 				@click="emit('toggle-slide-sorter')"
 			>
 				<Columns2 class="w-3.5 h-3.5" />
@@ -132,8 +138,8 @@ const statusText = computed(() => {
 			<button
 				type="button"
 				:class="cn(vb, props.mode === 'present' && 'text-primary')"
-				title="Slide show"
-				aria-label="Slide show"
+				:title="t('pptx.statusBar.slideShow')"
+				:aria-label="t('pptx.statusBar.slideShow')"
 				@click="emit('set-mode', 'present')"
 			>
 				<Presentation class="w-3.5 h-3.5" />
@@ -147,8 +153,8 @@ const statusText = computed(() => {
 				<button
 					type="button"
 					:class="vb"
-					title="Zoom out"
-					aria-label="Zoom out"
+					:title="t('pptx.statusBar.zoomOut')"
+					:aria-label="t('pptx.statusBar.zoomOut')"
 					@click="emit('zoom-out')"
 				>
 					<Minus class="w-3 h-3" />
@@ -156,7 +162,7 @@ const statusText = computed(() => {
 				<button
 					type="button"
 					class="px-1.5 py-0.5 rounded-sm hover:bg-accent/60 text-[10px] text-muted-foreground tabular-nums min-w-[3rem] text-center transition-colors"
-					title="Zoom to fit"
+					:title="t('pptx.statusBar.zoomToFit')"
 					@click="emit('zoom-to-fit')"
 				>
 					{{ Math.round((props.scale ?? 1) * 100) }}%
@@ -164,8 +170,8 @@ const statusText = computed(() => {
 				<button
 					type="button"
 					:class="vb"
-					title="Zoom in"
-					aria-label="Zoom in"
+					:title="t('pptx.statusBar.zoomIn')"
+					:aria-label="t('pptx.statusBar.zoomIn')"
 					@click="emit('zoom-in')"
 				>
 					<Plus class="w-3 h-3" />

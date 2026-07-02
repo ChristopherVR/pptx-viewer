@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 /**
  * ArrangeButtonGroup: Arrange / selection actions extracted from EditorToolbar
  * to keep EditorToolbar.vue under the 300-LOC limit.
@@ -19,6 +20,8 @@ interface Props {
 
 defineProps<Props>();
 
+const { t } = useI18n();
+
 defineEmits<{
 	'toggle-format-painter': [];
 	'duplicate-selected': [];
@@ -29,7 +32,11 @@ defineEmits<{
 </script>
 
 <template>
-	<div class="pptx-vue-tb-group flex items-center gap-1" role="group" aria-label="Arrange">
+	<div
+		class="pptx-vue-tb-group flex items-center gap-1"
+		role="group"
+		:aria-label="t('pptx.arrange.groupLabel')"
+	>
 		<button
 			type="button"
 			class="pptx-vue-tb-btn pptx-vue-tb-painter"
@@ -39,8 +46,8 @@ defineEmits<{
 			]"
 			data-testid="format-painter-toggle"
 			:data-active="formatPainterActive ? 'true' : 'false'"
-			aria-label="Format painter"
-			title="Format painter"
+			:aria-label="t('pptx.arrange.formatPainter')"
+			:title="t('pptx.arrange.formatPainter')"
 			:disabled="!canActivateFormatPainter && !formatPainterActive"
 			@click="$emit('toggle-format-painter')"
 		>
@@ -50,8 +57,8 @@ defineEmits<{
 			type="button"
 			class="pptx-vue-tb-btn"
 			:class="TB_BTN"
-			aria-label="Duplicate selection"
-			title="Duplicate"
+			:aria-label="t('pptx.arrange.duplicateSelection')"
+			:title="t('pptx.arrange.duplicate')"
 			:disabled="!hasSelection"
 			@click="$emit('duplicate-selected')"
 		>
@@ -80,8 +87,8 @@ defineEmits<{
 			type="button"
 			class="pptx-vue-tb-btn"
 			:class="TB_BTN"
-			aria-label="Bring forward"
-			title="Bring forward"
+			:aria-label="t('pptx.arrange.bringForward')"
+			:title="t('pptx.arrange.bringForward')"
 			:disabled="!hasSelection"
 			@click="$emit('bring-forward')"
 		>
@@ -103,8 +110,8 @@ defineEmits<{
 			type="button"
 			class="pptx-vue-tb-btn"
 			:class="TB_BTN"
-			aria-label="Send backward"
-			title="Send backward"
+			:aria-label="t('pptx.arrange.sendBackward')"
+			:title="t('pptx.arrange.sendBackward')"
 			:disabled="!hasSelection"
 			@click="$emit('send-backward')"
 		>
@@ -126,8 +133,8 @@ defineEmits<{
 			type="button"
 			class="pptx-vue-tb-btn pptx-vue-tb-danger hover:!text-destructive"
 			:class="TB_BTN"
-			aria-label="Delete selection"
-			title="Delete"
+			:aria-label="t('pptx.arrange.deleteSelection')"
+			:title="t('pptx.arrange.delete')"
 			:disabled="!hasSelection"
 			@click="$emit('delete-selected')"
 		>

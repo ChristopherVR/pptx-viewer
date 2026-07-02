@@ -10,18 +10,21 @@
  */
 import type { PptxNotesMaster } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
 	notesMaster: PptxNotesMaster | undefined;
 }>();
 
-const PLACEHOLDER_LABELS: Record<string, string> = {
-	body: 'Notes Body',
-	sldImg: 'Slide Image',
-	hdr: 'Header',
-	ftr: 'Footer',
-	dt: 'Date',
-	sldNum: 'Page Number',
+const { t } = useI18n();
+
+const placeholderLabelKeys: Record<string, string> = {
+	body: 'pptx.notesMaster.phNotesBody',
+	sldImg: 'pptx.notesMaster.phSlideImage',
+	hdr: 'pptx.field.header',
+	ftr: 'pptx.field.footer',
+	dt: 'pptx.notesMaster.phDate',
+	sldNum: 'pptx.notesMaster.phPageNumber',
 };
 
 interface PlaceholderLabel {
@@ -38,7 +41,7 @@ const placeholderLabels = computed<PlaceholderLabel[]>(() => {
 	return placeholders.map((ph) => ({
 		type: ph.type,
 		idx: ph.idx,
-		label: PLACEHOLDER_LABELS[ph.type] ?? ph.type,
+		label: placeholderLabelKeys[ph.type] ? t(placeholderLabelKeys[ph.type]!) : ph.type,
 	}));
 });
 </script>
@@ -49,12 +52,12 @@ const placeholderLabels = computed<PlaceholderLabel[]>(() => {
 		class="pptx-vue-notes-master-panel__empty"
 		data-testid="notes-master-panel-empty"
 	>
-		No notes master
+		{{ t('pptx.notesMaster.empty') }}
 	</div>
 
 	<div v-else class="pptx-vue-notes-master-panel">
 		<section class="pptx-vue-notes-master-panel__card">
-			<div class="pptx-vue-notes-master-panel__heading">Background</div>
+			<div class="pptx-vue-notes-master-panel__heading">{{ t('pptx.notesMaster.background') }}</div>
 			<div
 				class="pptx-vue-notes-master-panel__swatch"
 				data-testid="notes-master-bg-swatch"
@@ -63,7 +66,9 @@ const placeholderLabels = computed<PlaceholderLabel[]>(() => {
 		</section>
 
 		<section class="pptx-vue-notes-master-panel__card">
-			<div class="pptx-vue-notes-master-panel__heading">Placeholders</div>
+			<div class="pptx-vue-notes-master-panel__heading">
+				{{ t('pptx.notesMaster.placeholders') }}
+			</div>
 			<div v-if="placeholderLabels.length > 0" class="pptx-vue-notes-master-panel__list">
 				<div
 					v-for="ph in placeholderLabels"
@@ -75,7 +80,9 @@ const placeholderLabels = computed<PlaceholderLabel[]>(() => {
 					{{ ph.label }}
 				</div>
 			</div>
-			<div v-else class="pptx-vue-notes-master-panel__muted">No placeholders</div>
+			<div v-else class="pptx-vue-notes-master-panel__muted">
+				{{ t('pptx.notesMaster.noPlaceholders') }}
+			</div>
 		</section>
 	</div>
 </template>

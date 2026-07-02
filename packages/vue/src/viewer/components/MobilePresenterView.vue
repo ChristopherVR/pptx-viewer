@@ -9,6 +9,7 @@ import {
 	mobileSlideCounter,
 } from 'pptx-viewer-shared';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { notesSegmentsToSpans } from '../composables/presenter-view-utils';
 import type { CanvasSize } from '../types';
@@ -40,6 +41,8 @@ const emit = defineEmits<{
 	(e: 'move', direction: 1 | -1): void;
 	(e: 'exit'): void;
 }>();
+
+const { t } = useI18n();
 
 // -- Live elapsed timer (1 Hz tick) -----------------------------------------
 const now = ref(Date.now());
@@ -108,7 +111,7 @@ const thumbFrameStyle = computed(() => ({
 		v-if="!currentSlide"
 		class="pptx-vue-mpresenter pptx-vue-mpresenter--empty absolute inset-0 z-50 flex items-center justify-center bg-card text-muted-foreground"
 	>
-		No slides to present.
+		{{ t('pptx.mpresenter.noSlides') }}
 	</div>
 	<div
 		v-else
@@ -119,15 +122,17 @@ const thumbFrameStyle = computed(() => ({
 			class="pptx-vue-mpresenter-header flex items-center justify-between gap-2 border-b border-border/60 px-4 py-2"
 		>
 			<div class="flex flex-col">
-				<span class="text-[10px] uppercase tracking-wider text-muted-foreground">Elapsed</span>
+				<span class="text-[10px] uppercase tracking-wider text-muted-foreground">{{
+					t('pptx.mpresenter.elapsed')
+				}}</span>
 				<span class="font-mono text-lg tabular-nums text-primary">{{ elapsedText }}</span>
 			</div>
 			<span class="font-mono text-sm tabular-nums text-foreground">{{ counterText }}</span>
 			<button
 				type="button"
 				class="pptx-vue-mpresenter-exit flex h-11 w-11 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-				title="End presentation"
-				aria-label="End presentation"
+				:title="t('pptx.presenter.endPresentation')"
+				:aria-label="t('pptx.presenter.endPresentation')"
 				@click="emit('exit')"
 			>
 				&times;
@@ -150,9 +155,9 @@ const thumbFrameStyle = computed(() => ({
 		<div
 			class="pptx-vue-mpresenter-next flex items-center gap-3 border-b border-border/60 px-4 py-2"
 		>
-			<span class="whitespace-nowrap text-[10px] uppercase tracking-wider text-muted-foreground"
-				>Next slide</span
-			>
+			<span class="whitespace-nowrap text-[10px] uppercase tracking-wider text-muted-foreground">{{
+				t('pptx.mobileBar.nextSlide')
+			}}</span>
 			<div
 				v-if="nextSlide"
 				class="relative flex-shrink-0 overflow-hidden rounded border border-border/30"
@@ -169,14 +174,14 @@ const thumbFrameStyle = computed(() => ({
 				v-else
 				class="flex h-12 flex-1 items-center justify-center rounded border border-border/30 bg-muted/40 text-[10px] italic text-muted-foreground"
 			>
-				End of presentation
+				{{ t('pptx.mpresenter.endOfPresentation') }}
 			</div>
 		</div>
 
 		<!-- Speaker notes (scrollable) -->
 		<div class="pptx-vue-mpresenter-notes flex flex-1 min-h-0 flex-col px-4 py-2">
 			<div class="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-				Speaker notes
+				{{ t('pptx.presenter.speakerNotes') }}
 			</div>
 			<div
 				class="flex-1 overflow-y-auto whitespace-pre-wrap rounded border border-border/30 bg-muted/40 px-3 py-2 text-[15px] leading-relaxed text-foreground"
@@ -188,7 +193,7 @@ const thumbFrameStyle = computed(() => ({
 					</template>
 				</template>
 				<template v-else-if="hasPlainNotes">{{ notesText }}</template>
-				<span v-else class="italic text-muted-foreground">No notes for this slide.</span>
+				<span v-else class="italic text-muted-foreground">{{ t('pptx.mpresenter.noNotes') }}</span>
 			</div>
 		</div>
 
@@ -200,21 +205,21 @@ const thumbFrameStyle = computed(() => ({
 				type="button"
 				class="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded bg-muted text-sm transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
 				:disabled="atFirst"
-				title="Previous slide"
-				aria-label="Previous slide"
+				:title="t('pptx.mobileBar.previousSlide')"
+				:aria-label="t('pptx.mobileBar.previousSlide')"
 				@click="emit('move', -1)"
 			>
-				‹ Prev
+				‹ {{ t('pptx.mpresenter.prev') }}
 			</button>
 			<button
 				type="button"
 				class="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded bg-muted text-sm transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
 				:disabled="atLast"
-				title="Next slide"
-				aria-label="Next slide"
+				:title="t('pptx.mobileBar.nextSlide')"
+				:aria-label="t('pptx.mobileBar.nextSlide')"
 				@click="emit('move', 1)"
 			>
-				Next ›
+				{{ t('pptx.mpresenter.next') }} ›
 			</button>
 		</div>
 	</div>

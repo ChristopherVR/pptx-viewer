@@ -2,6 +2,7 @@
 import type { ChartPptxElement, PptxChartData, PptxChartType, PptxElement } from 'pptx-viewer-core';
 import { GROUPING_OPTIONS, GROUPING_SUPPORTED_TYPES, CHART_TYPE_OPTIONS } from 'pptx-viewer-shared';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { useChartEditing } from '../../composables/useChartEditing';
 import { useDebouncedCallback } from '../../composables/useDebouncedCallback';
@@ -37,6 +38,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
 }>();
+
+const { t } = useI18n();
 
 const DEFAULT_SERIES_COLOR = '#4472c4';
 
@@ -103,16 +106,16 @@ const CONTROL =
 <template>
 	<div class="pptx-vue-chart-panel flex flex-col gap-3 p-3 text-xs">
 		<p v-if="!isChart" class="pptx-vue-chart-muted text-muted-foreground italic">
-			Select a chart to edit its properties.
+			{{ t('pptx.chart.selectPrompt') }}
 		</p>
 
 		<p v-else-if="!chartData" class="pptx-vue-chart-muted text-muted-foreground italic">
-			This chart has no editable data.
+			{{ t('pptx.chart.noEditableData') }}
 		</p>
 
 		<template v-else>
 			<label :class="FIELD">
-				<span :class="LABEL">Chart type</span>
+				<span :class="LABEL">{{ t('pptx.chart.type') }}</span>
 				<select
 					:class="['pptx-vue-chart-select', CONTROL]"
 					data-testid="chart-type"
@@ -126,19 +129,19 @@ const CONTROL =
 			</label>
 
 			<label :class="FIELD">
-				<span :class="LABEL">Title</span>
+				<span :class="LABEL">{{ t('pptx.chart.title') }}</span>
 				<input
 					:class="['pptx-vue-chart-input', CONTROL]"
 					data-testid="chart-title"
 					type="text"
 					:value="currentTitle"
-					placeholder="Chart title"
+					:placeholder="t('pptx.chart.titlePlaceholder')"
 					@input="onTitleInput"
 				/>
 			</label>
 
 			<label v-if="showGrouping" :class="FIELD">
-				<span :class="LABEL">Grouping</span>
+				<span :class="LABEL">{{ t('pptx.chart.grouping') }}</span>
 				<select
 					:class="['pptx-vue-chart-select', CONTROL]"
 					data-testid="chart-grouping"
@@ -205,7 +208,7 @@ const CONTROL =
 			/>
 
 			<div v-if="series.length > 0" :class="FIELD">
-				<span :class="LABEL">Series colours</span>
+				<span :class="LABEL">{{ t('pptx.chart.seriesColors') }}</span>
 				<div
 					v-for="(s, si) in series"
 					:key="`${s.name}-${si}`"
@@ -217,14 +220,14 @@ const CONTROL =
 						class="pptx-vue-chart-swatch h-6 w-8 cursor-pointer rounded border border-border bg-muted p-0"
 						data-testid="chart-series-color"
 						:value="s.color || DEFAULT_SERIES_COLOR"
-						:aria-label="`${s.name} colour`"
+						:aria-label="t('pptx.chart.seriesColor', { name: s.name })"
 						@input="onSeriesColorInput($event, si)"
 					/>
 					<button
 						v-if="s.color"
 						type="button"
 						class="pptx-vue-chart-clear text-muted-foreground hover:text-red-400 shrink-0"
-						title="Clear series colour"
+						:title="t('pptx.chart.clearSeriesColor')"
 						@click="onClearSeriesColor(si)"
 					>
 						&times;

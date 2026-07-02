@@ -9,6 +9,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { getContainerStyle, getImageSrc } from '../composables/element-style';
 
@@ -18,6 +19,8 @@ const props = defineProps<{
 	zIndex: number;
 	interactive?: boolean;
 }>();
+
+const { t } = useI18n();
 
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
@@ -68,6 +71,6 @@ const mediaKind = computed(() =>
 			alt=""
 			style="width: 100%; height: 100%; object-fit: contain; display: block"
 		/>
-		<div v-else class="pptx-vue-placeholder">Media</div>
+		<div v-else class="pptx-vue-placeholder">{{ t('pptx.element.mediaPlaceholder') }}</div>
 	</div>
 </template>

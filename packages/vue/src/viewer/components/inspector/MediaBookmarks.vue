@@ -10,6 +10,7 @@
  */
 import type { MediaBookmark, PptxElement } from 'pptx-viewer-core';
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { formatTime, generateBookmarkId, sortBookmarks } from '../../composables/useMediaEditing';
 
@@ -24,10 +25,13 @@ const emit = defineEmits<{
 	seek: [time: number];
 }>();
 
+const { t } = useI18n();
+
 const newLabel = ref('');
 
 function addBookmark(): void {
-	const label = newLabel.value.trim() || `Bookmark ${props.bookmarks.length + 1}`;
+	const label =
+		newLabel.value.trim() || `${t('pptx.media.bookmark')} ${props.bookmarks.length + 1}`;
 	const next: MediaBookmark = {
 		id: generateBookmarkId(),
 		time: props.currentTime,
@@ -55,7 +59,7 @@ const BTN = 'rounded bg-muted hover:bg-accent px-2 py-1 text-[11px] transition-c
 
 <template>
 	<div :class="CARD">
-		<div :class="HEADING">Bookmarks</div>
+		<div :class="HEADING">{{ t('pptx.media.bookmarks') }}</div>
 
 		<div v-if="bookmarks.length > 0" class="space-y-1 max-h-32 overflow-y-auto">
 			<div
@@ -66,7 +70,7 @@ const BTN = 'rounded bg-muted hover:bg-accent px-2 py-1 text-[11px] transition-c
 				<button
 					type="button"
 					class="text-primary hover:text-primary/80 truncate flex-1 text-left"
-					title="Seek to bookmark"
+					:title="t('pptx.media.seekToBookmark')"
 					@click="onSeek(bmk.time)"
 				>
 					{{ bmk.label }}
@@ -78,7 +82,7 @@ const BTN = 'rounded bg-muted hover:bg-accent px-2 py-1 text-[11px] transition-c
 					v-if="canEdit"
 					type="button"
 					class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity"
-					title="Remove"
+					:title="t('pptx.media.removeBookmark')"
 					@click="removeBookmark(bmk.id)"
 				>
 					&times;
@@ -90,12 +94,14 @@ const BTN = 'rounded bg-muted hover:bg-accent px-2 py-1 text-[11px] transition-c
 			<input
 				type="text"
 				:class="INPUT"
-				placeholder="Bookmark label"
+				:placeholder="t('pptx.media.bookmarkLabel')"
 				:value="newLabel"
 				@input="newLabel = ($event.target as HTMLInputElement).value"
 				@keydown.enter.prevent="addBookmark"
 			/>
-			<button type="button" :class="BTN" title="Add bookmark" @click="addBookmark">+</button>
+			<button type="button" :class="BTN" :title="t('pptx.media.addBookmark')" @click="addBookmark">
+				+
+			</button>
 		</div>
 	</div>
 </template>

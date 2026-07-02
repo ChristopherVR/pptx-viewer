@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { List, Pipette } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
 
 /**
  * ViewSection: the Vue 3 port of React's `toolbar/ViewSection.tsx`. Renders the
@@ -38,25 +39,34 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const { t } = useI18n();
 </script>
 
 <template>
 	<!-- Presentation Views group -->
 	<div class="flex flex-col items-center gap-0.5">
 		<div class="flex items-center gap-0.5">
-			<button :class="pill" title="Normal view">Normal</button>
+			<button :class="pill" :title="t('pptx.statusBar.normalView')">
+				{{ t('pptx.view.normal') }}
+			</button>
 			<button
 				v-if="props.onToggleSlideSorter"
 				:class="pill"
-				title="Slide Sorter view"
+				:title="t('pptx.view.slideSorterTooltip')"
 				@click="props.onToggleSlideSorter()"
 			>
-				Slide Sorter
+				{{ t('pptx.slideSorter.title') }}
 			</button>
-			<button v-else :class="pill" title="Slide Sorter view">Slide Sorter</button>
-			<button :class="pill" title="Reading View">Reading View</button>
+			<button v-else :class="pill" :title="t('pptx.view.slideSorterTooltip')">
+				{{ t('pptx.slideSorter.title') }}
+			</button>
+			<button :class="pill" :title="t('pptx.view.readingView')">
+				{{ t('pptx.view.readingView') }}
+			</button>
 		</div>
-		<span class="text-[9px] text-muted-foreground leading-none">Presentation Views</span>
+		<span class="text-[9px] text-muted-foreground leading-none">{{
+			t('pptx.view.presentationViews')
+		}}</span>
 	</div>
 	<div :class="SEP" />
 
@@ -66,13 +76,15 @@ const props = defineProps<Props>();
 			<button
 				:disabled="!props.canEdit"
 				:class="pill"
-				title="Edit slide masters and layouts"
+				:title="t('pptx.view.slideMasterTooltip')"
 				@click="props.onEnterMasterView()"
 			>
-				Slide Master
+				{{ t('pptx.master.title') }}
 			</button>
 		</div>
-		<span class="text-[9px] text-muted-foreground leading-none">Master Views</span>
+		<span class="text-[9px] text-muted-foreground leading-none">{{
+			t('pptx.view.masterViews')
+		}}</span>
 	</div>
 	<div :class="SEP" />
 
@@ -82,33 +94,35 @@ const props = defineProps<Props>();
 			<button
 				v-if="props.onZoomToFit"
 				:class="pill"
-				title="Zoom to fit slide in window"
+				:title="t('pptx.view.zoomToFitTooltip')"
 				@click="props.onZoomToFit()"
 			>
-				Zoom to Fit
+				{{ t('pptx.view.zoomToFit') }}
 			</button>
 		</div>
-		<span class="text-[9px] text-muted-foreground leading-none">Zoom</span>
+		<span class="text-[9px] text-muted-foreground leading-none">{{
+			t('pptx.slideSorter.zoom')
+		}}</span>
 	</div>
 	<div :class="SEP" />
 
 	<button
 		:disabled="!props.canEdit"
 		:class="cn(pill, props.editTemplateMode ? 'bg-amber-600 hover:bg-amber-500 text-amber-50' : '')"
-		title="Toggle template/master element editing"
+		:title="t('pptx.view.templateEditingTooltip')"
 		@click="props.onSetEditTemplateMode(!props.editTemplateMode)"
 	>
-		{{ props.editTemplateMode ? 'Templates On' : 'Templates Off' }}
+		{{ props.editTemplateMode ? t('pptx.view.templatesOn') : t('pptx.view.templatesOff') }}
 	</button>
 	<button
 		v-if="props.onToggleSelectionPane"
 		type="button"
 		:class="cn(pill, props.isSelectionPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '')"
-		title="Selection Pane"
+		:title="t('pptx.selectionPane.title')"
 		@click="props.onToggleSelectionPane()"
 	>
 		<List :class="ic" />
-		Selection
+		{{ t('pptx.view.selection') }}
 	</button>
 	<button
 		v-if="props.onToggleEyedropper"
@@ -117,47 +131,51 @@ const props = defineProps<Props>();
 		:class="
 			cn(pill, props.eyedropperActive ? 'bg-purple-600 hover:bg-purple-500 text-purple-50' : '')
 		"
-		title="Eyedropper — sample a colour from the slide"
+		:title="t('pptx.view.eyedropperTooltip')"
 		@click="props.onToggleEyedropper()"
 	>
 		<Pipette :class="ic" />
-		Eyedropper
+		{{ t('pptx.view.eyedropper') }}
 	</button>
 	<button
 		:class="cn(pill, props.showGrid ? 'bg-primary text-white' : '')"
-		title="Toggle Grid"
+		:title="t('pptx.grid.toggleGrid')"
 		@click="props.onSetShowGrid(!props.showGrid)"
 	>
-		Grid
+		{{ t('pptx.grid.grid') }}
 	</button>
 	<button
 		:class="cn(pill, props.showRulers ? 'bg-primary text-white' : '')"
-		title="Toggle Rulers"
+		:title="t('pptx.ruler.toggleRulers')"
 		@click="props.onSetShowRulers(!props.showRulers)"
 	>
-		Rulers
+		{{ t('pptx.ruler.rulers') }}
 	</button>
 	<button
 		:class="cn(pill, props.snapToGrid ? 'bg-primary text-white' : '')"
-		title="Snap to grid"
+		:title="t('pptx.grid.snapToGrid')"
 		@click="props.onSetSnapToGrid(!props.snapToGrid)"
 	>
-		Snap to Grid
+		{{ t('pptx.grid.snapToGrid') }}
 	</button>
 	<button
 		:class="cn(pill, props.snapToShape ? 'bg-primary text-white' : '')"
-		title="Snap to shape"
+		:title="t('pptx.grid.snapToShape')"
 		@click="props.onSetSnapToShape(!props.snapToShape)"
 	>
-		Snap to Shape
+		{{ t('pptx.grid.snapToShape') }}
 	</button>
-	<button :class="pill" title="Add horizontal guide" @click="props.onAddGuide('h')">H Guide</button>
-	<button :class="pill" title="Add vertical guide" @click="props.onAddGuide('v')">V Guide</button>
+	<button :class="pill" :title="t('pptx.view.addHorizontalGuide')" @click="props.onAddGuide('h')">
+		{{ t('pptx.view.hGuide') }}
+	</button>
+	<button :class="pill" :title="t('pptx.view.addVerticalGuide')" @click="props.onAddGuide('v')">
+		{{ t('pptx.view.vGuide') }}
+	</button>
 	<button
 		:class="cn(pill, props.spellCheckEnabled ? 'bg-primary text-white' : '')"
-		title="Toggle spell check"
+		:title="t('pptx.view.toggleSpellCheck')"
 		@click="props.onSetSpellCheckEnabled(!props.spellCheckEnabled)"
 	>
-		Spell
+		{{ t('pptx.view.spell') }}
 	</button>
 </template>

@@ -7,6 +7,7 @@ import {
 	ERROR_BAR_VALUE_TYPES,
 } from 'pptx-viewer-shared';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * ChartErrorBarOptions: per-series error bars (value type, direction, amount).
@@ -21,6 +22,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	setErrorBars: [index: number, errBars: PptxChartErrBars | null];
 }>();
+
+const { t } = useI18n();
 
 const visible = computed(
 	() => ERROR_BAR_SUPPORTED_TYPES.has(props.chartType) && props.series.length > 0,
@@ -71,7 +74,7 @@ function onAmount(event: Event, index: number, bars: PptxChartErrBars): void {
 		class="pptx-vue-chart-card rounded border border-border bg-card p-2 space-y-2"
 	>
 		<div class="pptx-vue-chart-heading text-[11px] uppercase tracking-wide text-muted-foreground">
-			Error bars
+			{{ t('pptx.chart.errorBars') }}
 		</div>
 		<div class="space-y-2">
 			<div v-for="(s, i) in props.series" :key="`${s.name}-${i}`" class="space-y-1">
@@ -106,7 +109,7 @@ function onAmount(event: Event, index: number, bars: PptxChartErrBars): void {
 						data-testid="chart-error-bar-amount"
 						class="pptx-vue-chart-input flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full"
 						:value="firstBars(s)!.val ?? ''"
-						placeholder="Amount"
+						:placeholder="t('pptx.chart.errorBarAmount')"
 						@input="onAmount($event, i, firstBars(s)!)"
 					/>
 				</div>

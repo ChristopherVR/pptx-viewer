@@ -22,6 +22,7 @@ import {
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { gB, gL, grp, FMT, ATXT, pill, ic, SEP } from './ribbon-constants';
 import type { TableCellEditorState } from './ribbon-types';
@@ -34,6 +35,8 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const { t } = useI18n();
 
 /**
  * Returns the text style currently in effect for toolbar toggles:
@@ -261,7 +264,7 @@ function handleAlignClick(t: string): void {
 					type="button"
 					:disabled="!canMut"
 					:class="gB"
-					title="Increase Font Size"
+					:title="t('pptx.text.increaseFontSize')"
 					@mousedown.prevent
 					@click="handleIncreaseFontSize"
 				>
@@ -271,7 +274,7 @@ function handleAlignClick(t: string): void {
 					type="button"
 					:disabled="!canMut"
 					:class="gB"
-					title="Decrease Font Size"
+					:title="t('pptx.text.decreaseFontSize')"
 					@mousedown.prevent
 					@click="handleDecreaseFontSize"
 				>
@@ -281,7 +284,7 @@ function handleAlignClick(t: string): void {
 					type="button"
 					:disabled="!canMut"
 					:class="gL"
-					title="Clear Formatting"
+					:title="t('pptx.text.clearFormatting')"
 					@mousedown.prevent
 					@click="handleClearFormatting"
 				>
@@ -295,7 +298,7 @@ function handleAlignClick(t: string): void {
 					type="button"
 					:disabled="!canMut"
 					:class="pill"
-					title="Font Color"
+					:title="t('pptx.text.fontColor')"
 					@mousedown.prevent
 				>
 					<svg
@@ -337,7 +340,7 @@ function handleAlignClick(t: string): void {
 							@mousedown.prevent
 							@click="colorInputRef?.click()"
 						>
-							Custom colour...
+							{{ t('pptx.text.customColour') }}
 						</button>
 						<input
 							ref="colorInputRef"
@@ -356,7 +359,7 @@ function handleAlignClick(t: string): void {
 					type="button"
 					:disabled="!canMut"
 					:class="pill"
-					title="Text Highlight Color"
+					:title="t('pptx.text.highlightColor')"
 					@mousedown.prevent
 				>
 					<Highlighter :class="ic" />
@@ -388,7 +391,7 @@ function handleAlignClick(t: string): void {
 							@mousedown.prevent
 							@click="highlightInputRef?.click()"
 						>
-							Custom colour...
+							{{ t('pptx.text.customColour') }}
 						</button>
 						<input
 							ref="highlightInputRef"
@@ -401,7 +404,7 @@ function handleAlignClick(t: string): void {
 				</div>
 			</div>
 		</div>
-		<span class="text-[9px] text-muted-foreground leading-none">Font</span>
+		<span class="text-[9px] text-muted-foreground leading-none">{{ t('pptx.text.font') }}</span>
 	</div>
 
 	<div :class="SEP" />
@@ -415,7 +418,7 @@ function handleAlignClick(t: string): void {
 					type="button"
 					:disabled="!canMut"
 					:class="gB"
-					title="Bullet List"
+					:title="t('pptx.text.bulletList')"
 					@mousedown.prevent
 					@click="handleBulletList"
 				>
@@ -425,7 +428,7 @@ function handleAlignClick(t: string): void {
 					type="button"
 					:disabled="!canMut"
 					:class="gL"
-					title="Numbered List"
+					:title="t('pptx.text.numberedList')"
 					@mousedown.prevent
 					@click="handleNumberedList"
 				>
@@ -439,7 +442,7 @@ function handleAlignClick(t: string): void {
 					type="button"
 					:disabled="!canMut"
 					:class="gB"
-					title="Decrease Indent"
+					:title="t('pptx.text.decreaseIndent')"
 					@mousedown.prevent
 					@click="handleDecreaseIndent"
 				>
@@ -449,7 +452,7 @@ function handleAlignClick(t: string): void {
 					type="button"
 					:disabled="!canMut"
 					:class="gL"
-					title="Increase Indent"
+					:title="t('pptx.text.increaseIndent')"
 					@mousedown.prevent
 					@click="handleIncreaseIndent"
 				>
@@ -473,6 +476,8 @@ function handleAlignClick(t: string): void {
 				</button>
 			</div>
 		</div>
-		<span class="text-[9px] text-muted-foreground leading-none">Paragraph</span>
+		<span class="text-[9px] text-muted-foreground leading-none">{{
+			t('pptx.text.paragraph')
+		}}</span>
 	</div>
 </template>

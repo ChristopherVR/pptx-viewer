@@ -23,6 +23,8 @@ import type {
 	PptxHandoutMaster,
 	MasterViewTab,
 } from 'pptx-viewer-core';
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { CanvasSize } from '../types';
 import HandoutMasterPanel from './HandoutMasterPanel.vue';
@@ -49,17 +51,19 @@ const emit = defineEmits<{
 	'handout-slides-per-page-change': [count: number];
 }>();
 
-const TABS: { key: MasterViewTab; label: string }[] = [
-	{ key: 'slides', label: 'Slides' },
-	{ key: 'notes', label: 'Notes' },
-	{ key: 'handout', label: 'Handout' },
-];
+const { t } = useI18n();
 
-const TITLES: Record<MasterViewTab, string> = {
-	slides: 'Slide Masters',
-	notes: 'Notes Master',
-	handout: 'Handout Master',
-};
+const TABS = computed<{ key: MasterViewTab; label: string }[]>(() => [
+	{ key: 'slides', label: t('pptx.sections.slides') },
+	{ key: 'notes', label: t('pptx.notes.title') },
+	{ key: 'handout', label: t('pptx.masterView.tabHandout') },
+]);
+
+const TITLES = computed<Record<MasterViewTab, string>>(() => ({
+	slides: t('pptx.masterView.slideMastersTitle'),
+	notes: t('pptx.masterView.notesMasterTitle'),
+	handout: t('pptx.masterView.handoutMasterTitle'),
+}));
 </script>
 
 <template>
@@ -69,8 +73,8 @@ const TITLES: Record<MasterViewTab, string> = {
 			<button
 				type="button"
 				class="pptx-vue-master-sidebar__collapse"
-				title="Collapse master pane"
-				aria-label="Collapse master pane"
+				:title="t('pptx.masterView.collapse')"
+				:aria-label="t('pptx.masterView.collapse')"
 				data-testid="master-collapse"
 				@click="emit('collapse')"
 			>

@@ -6,6 +6,7 @@ import type {
 	PptxSlide,
 } from 'pptx-viewer-core';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { computeDocumentStatistics } from '../composables/useDocumentStatistics';
 import type { DocumentStatistics } from '../composables/useDocumentStatistics';
@@ -66,10 +67,12 @@ const emit = defineEmits<{
 	(e: 'close'): void;
 }>();
 
-const TABS: Array<{ id: TabId; label: string }> = [
-	{ id: 'general', label: 'General' },
-	{ id: 'statistics', label: 'Statistics' },
-	{ id: 'custom', label: 'Custom' },
+const { t } = useI18n();
+
+const TABS: Array<{ id: TabId; labelKey: string }> = [
+	{ id: 'general', labelKey: 'pptx.documentProperties.tabs.general' },
+	{ id: 'statistics', labelKey: 'pptx.documentProperties.tabs.statistics' },
+	{ id: 'custom', labelKey: 'pptx.documentProperties.tabs.custom' },
 ];
 
 const activeTab = ref<TabId>('general');
@@ -160,7 +163,11 @@ function handleSave(): void {
 </script>
 
 <template>
-	<ModalDialog :open="open" title="Document properties" @close="emit('close')">
+	<ModalDialog
+		:open="open"
+		:title="t('pptx.documentProperties.dialogTitle')"
+		@close="emit('close')"
+	>
 		<div class="pptx-vue-docprops flex min-w-[360px] flex-col gap-3 max-md:min-w-0">
 			<div class="pptx-vue-docprops-tabs flex border-b border-border/60" role="tablist">
 				<button
@@ -177,7 +184,7 @@ function handleSave(): void {
 					"
 					@click="activeTab = tab.id"
 				>
-					{{ tab.label }}
+					{{ t(tab.labelKey) }}
 				</button>
 			</div>
 
@@ -209,7 +216,7 @@ function handleSave(): void {
 				class="pptx-vue-docprops-btn rounded-md border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
 				@click="emit('close')"
 			>
-				Cancel
+				{{ t('pptx.comments.cancel') }}
 			</button>
 			<button
 				type="button"
@@ -217,7 +224,7 @@ function handleSave(): void {
 				:disabled="!isDirty"
 				@click="handleSave"
 			>
-				Save
+				{{ t('pptx.comments.save') }}
 			</button>
 		</template>
 	</ModalDialog>

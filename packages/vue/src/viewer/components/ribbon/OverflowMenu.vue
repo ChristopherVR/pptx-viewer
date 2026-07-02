@@ -7,6 +7,7 @@
  * `onSetOverflowMenuOpen`) exactly as React, and each OV key maps to its handler.
  */
 import { Ellipsis } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import { ic, ics, OV } from './ribbon-constants';
@@ -15,6 +16,7 @@ import type { RibbonProps } from './ribbon-types';
 interface Props extends RibbonProps {}
 
 const props = defineProps<Props>();
+const { t } = useI18n();
 
 function ovAct(k: string): void {
 	props.onSetOverflowMenuOpen(false);
@@ -51,8 +53,8 @@ function ovAct(k: string): void {
 					props.isOverflowMenuOpen ? 'bg-primary/80 text-white' : 'bg-muted hover:bg-accent',
 				)
 			"
-			title="More actions"
-			aria-label="More actions"
+			:title="t('pptx.overflow.moreActions')"
+			:aria-label="t('pptx.overflow.moreActions')"
 			@click="props.onSetOverflowMenuOpen(!props.isOverflowMenuOpen)"
 		>
 			<Ellipsis :class="ic" />
@@ -61,7 +63,7 @@ function ovAct(k: string): void {
 			<button
 				type="button"
 				class="fixed inset-0 z-40"
-				aria-label="Close menu"
+				:aria-label="t('pptx.overflow.closeMenu')"
 				@click="props.onSetOverflowMenuOpen(false)"
 			/>
 			<div

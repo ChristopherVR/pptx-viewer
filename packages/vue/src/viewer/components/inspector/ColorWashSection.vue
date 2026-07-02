@@ -2,6 +2,7 @@
 import type { PptxElement, PptxImageEffects } from 'pptx-viewer-core';
 import { normalizeHexColor } from 'pptx-viewer-shared';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { DEFAULT_COLOR_WASH, mergeEffectsPatch } from '../../composables/useImageEditing';
 import DebouncedColorInput from './DebouncedColorInput.vue';
@@ -18,6 +19,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
 }>();
+
+const { t } = useI18n();
 
 const wash = computed(() => props.fx?.colorWash);
 const washColor = computed<string>(() =>
@@ -51,17 +54,21 @@ function onOpacity(event: Event): void {
 <template>
 	<div class="pptx-vue-color-wash flex flex-col gap-1 text-[11px]">
 		<label class="flex items-center justify-between gap-2">
-			<span class="font-semibold text-muted-foreground">Colour wash</span>
+			<span class="font-semibold text-muted-foreground">{{ t('pptx.image.colorWash') }}</span>
 			<input type="checkbox" :checked="Boolean(wash)" @change="onToggle" />
 		</label>
 
 		<div v-if="wash" class="grid grid-cols-2 gap-1.5">
 			<label class="flex items-center gap-2">
-				<span class="text-muted-foreground">Colour</span>
-				<DebouncedColorInput :value="washColor" aria-label="Wash colour" @commit="onColor" />
+				<span class="text-muted-foreground">{{ t('pptx.image.washColor') }}</span>
+				<DebouncedColorInput
+					:value="washColor"
+					:aria-label="t('pptx.image.washColorAria')"
+					@commit="onColor"
+				/>
 			</label>
 			<label class="flex flex-col gap-1">
-				<span class="text-muted-foreground">Opacity</span>
+				<span class="text-muted-foreground">{{ t('pptx.image.washOpacity') }}</span>
 				<input
 					type="range"
 					class="w-full accent-primary"

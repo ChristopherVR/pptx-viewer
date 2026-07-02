@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { ElementChange, SlideDiff } from '../composables/slide-compare';
 import type { CanvasSize } from '../types';
@@ -26,6 +27,8 @@ const emit = defineEmits<{
 	(e: 'accept' | 'reject', index: number): void;
 }>();
 
+const { t } = useI18n();
+
 const expanded = ref(props.diff.status === 'changed');
 
 const isResolved = computed(() => props.accepted || props.rejected);
@@ -37,13 +40,13 @@ const slideNumber = computed(() =>
 const statusLabel = computed(() => {
 	switch (props.diff.status) {
 		case 'added':
-			return 'Added';
+			return t('pptx.compare.statusAdded');
 		case 'removed':
-			return 'Removed';
+			return t('pptx.compare.statusRemoved');
 		case 'changed':
-			return 'Changed';
+			return t('pptx.compare.statusChanged');
 		default:
-			return 'Unchanged';
+			return t('pptx.compare.statusUnchanged');
 	}
 });
 
@@ -140,7 +143,9 @@ function toggle(): void {
 			<span class="pptx-vue-diff-caret flex-shrink-0 text-muted-foreground">{{
 				expanded ? '▾' : '▸'
 			}}</span>
-			<span class="pptx-vue-diff-slide-no">Slide {{ slideNumber }}</span>
+			<span class="pptx-vue-diff-slide-no">{{
+				t('pptx.compare.slideNumber', { number: slideNumber })
+			}}</span>
 			<span
 				class="pptx-vue-diff-status rounded-full px-2 py-0.5 text-[10px] font-medium"
 				:class="[statusClass, statusBadgeClass]"
@@ -162,7 +167,7 @@ function toggle(): void {
 						: ['pptx-vue-diff-resolution--rejected', 'text-muted-foreground']
 				"
 			>
-				{{ accepted ? 'Accepted' : 'Rejected' }}
+				{{ accepted ? t('pptx.compare.accepted') : t('pptx.compare.rejected') }}
 			</span>
 		</button>
 
@@ -170,7 +175,7 @@ function toggle(): void {
 			<div class="pptx-vue-diff-thumbs flex gap-2">
 				<div v-if="diff.baseSlide" class="pptx-vue-diff-thumb-col flex-1">
 					<div class="pptx-vue-diff-thumb-label mb-1 text-[10px] text-muted-foreground">
-						Current
+						{{ t('pptx.compare.current') }}
 					</div>
 					<div
 						class="pptx-vue-diff-thumb overflow-hidden rounded border border-border"
@@ -186,7 +191,7 @@ function toggle(): void {
 				</div>
 				<div v-if="diff.compareSlide" class="pptx-vue-diff-thumb-col flex-1">
 					<div class="pptx-vue-diff-thumb-label mb-1 text-[10px] text-muted-foreground">
-						Incoming
+						{{ t('pptx.compare.incoming') }}
 					</div>
 					<div
 						class="pptx-vue-diff-thumb overflow-hidden rounded border"
@@ -228,14 +233,14 @@ function toggle(): void {
 					class="pptx-vue-diff-btn pptx-vue-diff-btn--accept inline-flex cursor-pointer items-center gap-1 rounded bg-green-700/80 px-2.5 py-1 text-[11px] text-green-50 transition-colors hover:bg-green-600"
 					@click="emit('accept', diffIndex)"
 				>
-					Accept
+					{{ t('pptx.compare.accept') }}
 				</button>
 				<button
 					type="button"
 					class="pptx-vue-diff-btn pptx-vue-diff-btn--reject inline-flex cursor-pointer items-center gap-1 rounded bg-accent px-2.5 py-1 text-[11px] text-foreground transition-colors hover:bg-accent/80"
 					@click="emit('reject', diffIndex)"
 				>
-					Reject
+					{{ t('pptx.compare.reject') }}
 				</button>
 			</div>
 		</div>

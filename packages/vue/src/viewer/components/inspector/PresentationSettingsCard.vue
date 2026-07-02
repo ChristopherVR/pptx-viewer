@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PptxPresentationProperties } from 'pptx-viewer-core';
+import { useI18n } from 'vue-i18n';
 
 /**
  * PresentationSettingsCard: deck-wide slide-show / print settings, shown in the
@@ -20,6 +21,8 @@ const emit = defineEmits<{
 	update: [patch: Partial<PptxPresentationProperties>];
 }>();
 
+const { t } = useI18n();
+
 function onNumber(e: Event): number {
 	return Number((e.target as HTMLInputElement).value);
 }
@@ -28,7 +31,7 @@ function onNumber(e: Event): number {
 <template>
 	<div class="space-y-1.5 text-[11px]">
 		<label class="flex items-center justify-between gap-2">
-			<span class="text-muted-foreground">Show type</span>
+			<span class="text-muted-foreground">{{ t('pptx.presentationSettings.showType') }}</span>
 			<select
 				class="w-28 rounded border border-border bg-muted px-2 py-1 text-xs"
 				:disabled="!props.canEdit"
@@ -42,14 +45,16 @@ function onNumber(e: Event): number {
 					})
 				"
 			>
-				<option value="presented">Presented</option>
-				<option value="browsed">Browsed</option>
-				<option value="kiosk">Kiosk</option>
+				<option value="presented">{{ t('pptx.presentationSettings.showTypePresented') }}</option>
+				<option value="browsed">{{ t('pptx.presentationSettings.showTypeBrowsed') }}</option>
+				<option value="kiosk">{{ t('pptx.presentationSettings.showTypeKiosk') }}</option>
 			</select>
 		</label>
 
 		<label class="flex items-center justify-between gap-2">
-			<span class="text-muted-foreground">Loop continuously</span>
+			<span class="text-muted-foreground">{{
+				t('pptx.presentationSettings.loopContinuously')
+			}}</span>
 			<input
 				type="checkbox"
 				:disabled="!props.canEdit"
@@ -59,7 +64,7 @@ function onNumber(e: Event): number {
 		</label>
 
 		<label class="flex items-center justify-between gap-2">
-			<span class="text-muted-foreground">Show narration</span>
+			<span class="text-muted-foreground">{{ t('pptx.presentationSettings.showNarration') }}</span>
 			<input
 				type="checkbox"
 				:disabled="!props.canEdit"
@@ -69,7 +74,7 @@ function onNumber(e: Event): number {
 		</label>
 
 		<label class="flex items-center justify-between gap-2">
-			<span class="text-muted-foreground">Show animation</span>
+			<span class="text-muted-foreground">{{ t('pptx.presentationSettings.showAnimation') }}</span>
 			<input
 				type="checkbox"
 				:disabled="!props.canEdit"
@@ -79,7 +84,7 @@ function onNumber(e: Event): number {
 		</label>
 
 		<label class="flex items-center justify-between gap-2">
-			<span class="text-muted-foreground">Frame slides</span>
+			<span class="text-muted-foreground">{{ t('pptx.presentationSettings.frameSlides') }}</span>
 			<input
 				type="checkbox"
 				:disabled="!props.canEdit"
@@ -89,7 +94,7 @@ function onNumber(e: Event): number {
 		</label>
 
 		<label class="flex items-center justify-between gap-2">
-			<span class="text-muted-foreground">Slides / page</span>
+			<span class="text-muted-foreground">{{ t('pptx.presentationSettings.slidesPerPage') }}</span>
 			<input
 				type="number"
 				:min="1"

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { clampPercent } from 'pptx-viewer-shared';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * ExportProgressModal - a centered, non-dismissable overlay shown while a
@@ -29,6 +30,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	(e: 'cancel'): void;
 }>();
+
+const { t } = useI18n();
 
 const clampedProgress = computed(() => clampPercent(props.progress));
 
@@ -59,7 +62,7 @@ function onCancel(): void {
 				</div>
 
 				<div class="mb-4 flex items-center justify-between text-xs text-muted-foreground">
-					<span>{{ statusMessage ?? 'Processing...' }}</span>
+					<span>{{ statusMessage ?? t('pptx.export.processing') }}</span>
 					<span class="tabular-nums">{{ clampedProgress }}%</span>
 				</div>
 
@@ -69,7 +72,7 @@ function onCancel(): void {
 						class="rounded-md border border-border bg-muted px-4 py-1.5 text-xs text-foreground transition-colors hover:bg-accent"
 						@click="onCancel"
 					>
-						Cancel
+						{{ t('pptx.export.cancel') }}
 					</button>
 				</div>
 			</div>

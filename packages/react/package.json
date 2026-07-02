@@ -49,6 +49,11 @@
 			"import": "./dist/viewer/index.mjs",
 			"require": "./dist/viewer/index.js"
 		},
+		"./i18n": {
+			"types": "./dist/i18n.d.ts",
+			"import": "./dist/i18n.mjs",
+			"require": "./dist/i18n.js"
+		},
 		"./styles": "./dist/pptx-viewer.css",
 		"./styles.css": "./dist/pptx-viewer.css",
 		"./theme.css": "./src/styles/theme.css"

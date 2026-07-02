@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ShieldCheck } from 'lucide-vue-next';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * SignatureStatusBadge: a small chrome badge indicating the document is
@@ -17,6 +18,8 @@ const emit = defineEmits<{
 	click: [];
 }>();
 
+const { t } = useI18n();
+
 const visible = computed(() => props.hasSignatures && props.signatureCount > 0);
 </script>
 
@@ -25,10 +28,10 @@ const visible = computed(() => props.hasSignatures && props.signatureCount > 0);
 		v-if="visible"
 		type="button"
 		class="inline-flex items-center gap-1 rounded-md border border-green-700/40 bg-green-900/30 px-2 py-0.5 text-[11px] font-medium text-green-300 transition-colors hover:bg-green-900/50"
-		:title="`${props.signatureCount} digital signature(s)`"
+		:title="t('pptx.digitalSignatures.badgeTitle', { count: props.signatureCount })"
 		@click="emit('click')"
 	>
 		<ShieldCheck class="h-3.5 w-3.5" />
-		<span>Signed</span>
+		<span>{{ t('pptx.digitalSignatures.badgeSigned') }}</span>
 	</button>
 </template>

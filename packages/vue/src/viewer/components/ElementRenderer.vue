@@ -4,6 +4,7 @@ import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import { buildParagraphs, buildTextBody3DSceneStyle, hasTextWarp } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import {
 	getContainerStyle,
@@ -57,6 +58,8 @@ const props = defineProps<{
 	 */
 	templateEditing?: boolean;
 }>();
+
+const { t } = useI18n();
 
 /** Host opt-in to the Three.js SmartArt renderer (provided by PowerPointViewer). */
 const smartArt3D = useSmartArt3D();
@@ -159,7 +162,11 @@ const showLinkTooltip = computed(
 		Boolean(linkAction.value?.url || linkAction.value?.tooltip || linkAction.value?.action),
 );
 const linkTooltipLabel = computed(
-	() => linkAction.value?.tooltip || linkAction.value?.url || linkAction.value?.action || 'Link',
+	() =>
+		linkAction.value?.tooltip ||
+		linkAction.value?.url ||
+		linkAction.value?.action ||
+		t('pptx.element.linkFallback'),
 );
 </script>
 

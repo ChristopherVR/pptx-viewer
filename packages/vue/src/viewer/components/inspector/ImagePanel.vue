@@ -2,6 +2,7 @@
 import type { PptxElement, PptxImageEffects } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { getImageEffects, mergeEffectsPatch } from '../../composables/useImageEditing';
 import ArtisticEffectsGallery from './ArtisticEffectsGallery.vue';
@@ -27,6 +28,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
 }>();
+
+const { t } = useI18n();
 
 const isImage = computed(() => isImageLikeElement(props.element));
 
@@ -82,19 +85,19 @@ function onResetPicture(): void {
 <template>
 	<div class="pptx-vue-image-panel flex flex-col gap-3 text-[11px]">
 		<p v-if="!isImage" class="pptx-vue-image-panel__note text-muted-foreground">
-			No image properties for this element.
+			{{ t('pptx.image.noImageProperties') }}
 		</p>
 
 		<template v-else>
 			<label class="pptx-vue-image-panel__field flex flex-col gap-1">
-				<span class="pptx-vue-image-panel__label font-semibold text-muted-foreground"
-					>Alt text</span
-				>
+				<span class="pptx-vue-image-panel__label font-semibold text-muted-foreground">{{
+					t('pptx.image.altText')
+				}}</span>
 				<input
 					type="text"
 					class="pptx-vue-image-panel__input w-full bg-muted border border-border rounded px-1.5 py-1 text-[11px]"
 					:value="altText"
-					placeholder="Describe this image"
+					:placeholder="t('pptx.image.altTextPlaceholder')"
 					@input="onAltInput"
 				/>
 			</label>
@@ -104,7 +107,7 @@ function onResetPicture(): void {
 			<ImageAdjustmentsPanel :fx="effects" @update="relay" />
 
 			<label class="pptx-vue-image-panel__field flex items-center justify-between gap-2">
-				<span class="font-semibold text-muted-foreground">Grayscale</span>
+				<span class="font-semibold text-muted-foreground">{{ t('pptx.image.grayscale') }}</span>
 				<input
 					class="pptx-vue-image-panel__grayscale"
 					type="checkbox"
@@ -127,7 +130,7 @@ function onResetPicture(): void {
 				class="pptx-vue-image-panel__reset-picture w-full rounded border border-border bg-muted hover:bg-accent px-2 py-1 transition-colors"
 				@click="onResetPicture"
 			>
-				Reset Picture
+				{{ t('pptx.image.resetImage') }}
 			</button>
 		</template>
 	</div>

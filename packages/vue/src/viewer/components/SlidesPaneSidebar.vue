@@ -15,6 +15,7 @@ import { EyeOff, MessageSquare, Plus } from 'lucide-vue-next';
  */
 import type { PptxSlide } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../utils';
 import type { CanvasSize } from '../types';
@@ -44,6 +45,8 @@ const emit = defineEmits<{
 	'toggle-hidden': [index: number];
 }>();
 
+const { t } = useI18n();
+
 const scale = computed(() => props.thumbWidth / Math.max(1, props.canvasSize.width));
 const previewHeight = computed(() =>
 	Math.max(56, Math.round(props.canvasSize.height * scale.value)),
@@ -72,12 +75,14 @@ const menu = ref<{ open: boolean; x: number; y: number; index: number }>({
 	index: -1,
 });
 const menuItems = computed<ContextMenuItem[]>(() => [
-	{ id: 'duplicate', label: 'Duplicate slide' },
-	{ id: 'delete', label: 'Delete slide', disabled: props.slides.length <= 1 },
+	{ id: 'duplicate', label: t('pptx.slideMenu.duplicate') },
+	{ id: 'delete', label: t('pptx.slideMenu.delete'), disabled: props.slides.length <= 1 },
 	{ id: 'sep', label: '', separator: true },
 	{
 		id: 'toggle-hidden',
-		label: props.slides[menu.value.index]?.hidden ? 'Show slide' : 'Hide slide',
+		label: props.slides[menu.value.index]?.hidden
+			? t('pptx.slideMenu.show')
+			: t('pptx.slideMenu.hide'),
 	},
 ]);
 function onContextMenu(e: MouseEvent, index: number): void {
@@ -106,7 +111,7 @@ function onMenuSelect(id: string): void {
 <template>
 	<aside
 		role="navigation"
-		aria-label="Slides"
+		:aria-label="t('pptx.sections.slides')"
 		class="flex h-full flex-col border-r border-border bg-secondary/30 shrink-0"
 		:style="{ width: `${thumbWidth + 46}px` }"
 	>
@@ -123,7 +128,7 @@ function onMenuSelect(id: string): void {
 					)
 				"
 				:draggable="canEdit"
-				:aria-label="`Slide ${index + 1}`"
+				:aria-label="t('pptx.notes.slideN', { n: index + 1 })"
 				:aria-current="index === activeIndex ? 'true' : undefined"
 				@click="emit('select', index)"
 				@contextmenu="onContextMenu($event, index)"
@@ -185,7 +190,7 @@ function onMenuSelect(id: string): void {
 				@click="emit('add-slide')"
 			>
 				<Plus class="h-3 w-3" />
-				Add slide
+				{{ t('pptx.slideMenu.addSlide') }}
 			</button>
 		</div>
 

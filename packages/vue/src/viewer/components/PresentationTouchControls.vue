@@ -18,8 +18,11 @@
  * (`packages/react/src/viewer/components/PresentationTouchControls.tsx`).
  */
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { useIsMobile } from '../composables/useIsMobile';
+
+const { t } = useI18n();
 
 const props = defineProps<{
 	/** Zero-based index of the current presentation slide. */
@@ -50,7 +53,7 @@ const counterLabel = computed(() =>
 		<button
 			type="button"
 			class="pptx-vue-pt-btn pptx-vue-pt-close"
-			aria-label="Exit presentation"
+			:aria-label="t('pptx.presenter.endPresentation')"
 			@click.stop="emit('end')"
 			@touchend.stop.prevent="emit('end')"
 		>
@@ -61,7 +64,7 @@ const counterLabel = computed(() =>
 		<button
 			type="button"
 			class="pptx-vue-pt-btn pptx-vue-pt-prev"
-			aria-label="Previous slide"
+			:aria-label="t('pptx.mobileBar.previousSlide')"
 			:disabled="atFirst"
 			@click.stop="emit('move', -1)"
 			@touchend.stop.prevent="emit('move', -1)"
@@ -73,7 +76,7 @@ const counterLabel = computed(() =>
 		<button
 			type="button"
 			class="pptx-vue-pt-btn pptx-vue-pt-next"
-			aria-label="Next slide"
+			:aria-label="t('pptx.mobileBar.nextSlide')"
 			:disabled="atLast"
 			@click.stop="emit('move', 1)"
 			@touchend.stop.prevent="emit('move', 1)"

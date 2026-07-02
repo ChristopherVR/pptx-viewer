@@ -8,6 +8,8 @@
  * The shared `DRAW_TOOLS` table supplies lucide icon component refs, rendered via
  * `<component :is="…" />`.
  */
+import { useI18n } from 'vue-i18n';
+
 import { cn } from '../../../utils';
 import { DRAW_TOOLS, gB, gL, grp, ic } from './ribbon-constants';
 import type { DrawingTool } from './ribbon-types';
@@ -22,6 +24,8 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const { t } = useI18n();
 </script>
 
 <template>
@@ -43,8 +47,11 @@ const props = defineProps<Props>();
 		</button>
 	</div>
 	<div class="inline-flex items-center gap-2 text-xs">
-		<label class="inline-flex items-center gap-1 text-muted-foreground" title="Pen colour">
-			Colour
+		<label
+			class="inline-flex items-center gap-1 text-muted-foreground"
+			:title="t('pptx.draw.penColour')"
+		>
+			{{ t('pptx.draw.colour') }}
 			<input
 				type="color"
 				:value="props.drawingColor"
@@ -52,8 +59,11 @@ const props = defineProps<Props>();
 				@input="props.onSetDrawingColor(($event.target as HTMLInputElement).value)"
 			/>
 		</label>
-		<label class="inline-flex items-center gap-1 text-muted-foreground" title="Stroke width">
-			Width
+		<label
+			class="inline-flex items-center gap-1 text-muted-foreground"
+			:title="t('pptx.draw.strokeWidth')"
+		>
+			{{ t('pptx.draw.width') }}
 			<input
 				type="range"
 				:min="1"

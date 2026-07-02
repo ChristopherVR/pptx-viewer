@@ -21,6 +21,7 @@
  */
 import { Download, Menu, Presentation, Redo, Share2, Undo } from 'lucide-vue-next';
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../utils';
 import MobileMenuSheet from './MobileMenuSheet.vue';
@@ -29,6 +30,8 @@ import type { RibbonProps } from './ribbon/ribbon-types';
 interface Props extends RibbonProps {}
 
 const props = defineProps<Props>();
+
+const { t } = useI18n();
 
 const menuOpen = ref(false);
 
@@ -42,7 +45,7 @@ const BTN =
 <template>
 	<div
 		role="toolbar"
-		aria-label="Toolbar"
+		:aria-label="t('pptx.mobileToolbar.toolbar')"
 		class="relative z-20 flex min-h-[52px] items-center gap-1 border-b border-border bg-secondary/50 px-2 py-1 pt-[max(env(safe-area-inset-top),0px)]"
 	>
 		<!-- Menu (opens the section sheet) -->
@@ -50,8 +53,8 @@ const BTN =
 			v-if="showEdit()"
 			type="button"
 			:class="BTN"
-			title="Menu"
-			aria-label="Menu"
+			:title="t('pptx.mobileMenu.title')"
+			:aria-label="t('pptx.mobileMenu.title')"
 			@click="menuOpen = true"
 		>
 			<Menu class="h-5 w-5" />
@@ -63,8 +66,8 @@ const BTN =
 				type="button"
 				:disabled="!props.canUndo"
 				:class="BTN"
-				title="Undo"
-				aria-label="Undo"
+				:title="t('pptx.toolbar.undo')"
+				:aria-label="t('pptx.toolbar.undo')"
 				@click="props.onUndo()"
 			>
 				<Undo class="h-5 w-5" />
@@ -73,8 +76,8 @@ const BTN =
 				type="button"
 				:disabled="!props.canRedo"
 				:class="BTN"
-				title="Redo"
-				aria-label="Redo"
+				:title="t('pptx.toolbar.redo')"
+				:aria-label="t('pptx.toolbar.redo')"
 				@click="props.onRedo()"
 			>
 				<Redo class="h-5 w-5" />
@@ -84,7 +87,13 @@ const BTN =
 		<div class="flex-1" />
 
 		<!-- Save: reachable without digging into Menu, even in view-only mode -->
-		<button type="button" :class="BTN" title="Save" aria-label="Save" @click="props.onSaveAsPptx()">
+		<button
+			type="button"
+			:class="BTN"
+			:title="t('pptx.comments.save')"
+			:aria-label="t('pptx.comments.save')"
+			@click="props.onSaveAsPptx()"
+		>
 			<Download class="h-5 w-5" />
 		</button>
 
@@ -92,8 +101,8 @@ const BTN =
 		<button
 			type="button"
 			:class="cn(BTN, 'text-primary')"
-			title="Present"
-			aria-label="Present"
+			:title="t('pptx.mobileBar.present')"
+			:aria-label="t('pptx.mobileBar.present')"
 			@click="props.onSetMode('present')"
 		>
 			<Presentation class="h-5 w-5" />
@@ -104,8 +113,8 @@ const BTN =
 			v-if="showEdit()"
 			type="button"
 			:class="cn(BTN, 'bg-primary px-3 text-white hover:bg-primary/90')"
-			title="Share"
-			aria-label="Share"
+			:title="t('pptx.toolbar.share')"
+			:aria-label="t('pptx.toolbar.share')"
 			@click="(props.onOpenShareDialog ?? props.onPackageForSharing)()"
 		>
 			<Share2 class="h-4 w-4" />

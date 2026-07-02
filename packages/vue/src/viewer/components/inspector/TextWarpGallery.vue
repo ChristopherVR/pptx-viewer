@@ -2,6 +2,7 @@
 import type { PptxTextWarpPreset, TextStyle } from 'pptx-viewer-core';
 import { TEXT_WARP_PRESETS, warpPreviewPath } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * TextWarpGallery: collapsible gallery of text-warp presets, sourced from the
@@ -17,6 +18,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	select: [preset: PptxTextWarpPreset | undefined];
 }>();
+
+const { t } = useI18n();
 
 const expanded = ref(false);
 
@@ -39,7 +42,7 @@ function pick(value: PptxTextWarpPreset): void {
 			class="pptx-vue-textwarp-toggle flex w-full items-center justify-between text-[11px] uppercase tracking-wide text-muted-foreground"
 			@click="expanded = !expanded"
 		>
-			<span>Text Warp</span>
+			<span>{{ t('pptx.textWarp.title') }}</span>
 			<span class="text-muted-foreground">{{ expanded ? '-' : '+' }}</span>
 		</button>
 

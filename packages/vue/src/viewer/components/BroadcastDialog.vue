@@ -24,6 +24,7 @@ import { DEFAULT_BROADCAST_SERVER_URL, generateBroadcastRoomId } from 'pptx-view
  *  - `close` : the dialog was dismissed.
  */
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import ModalDialog from './ModalDialog.vue';
 
@@ -50,6 +51,8 @@ const emit = defineEmits<{
 	close: [];
 }>();
 
+const { t } = useI18n();
+
 const roomId = ref('');
 const serverUrl = ref(DEFAULT_BROADCAST_SERVER_URL);
 const copied = ref(false);
@@ -71,7 +74,9 @@ const canStart = computed(
 	() => roomId.value.trim().length > 0 && serverUrl.value.trim().length > 0,
 );
 
-const title = computed(() => (props.active ? 'Broadcasting' : 'Broadcast to a live audience'));
+const title = computed(() =>
+	props.active ? t('pptx.broadcast.titleBroadcasting') : t('pptx.broadcast.titleStart'),
+);
 
 function onClose(): void {
 	emit('close');
@@ -114,7 +119,7 @@ function onCopyLink(): void {
 		<!-- Active: share the follow link + stop control -->
 		<div v-if="props.active" class="pptx-vue-broadcast flex flex-col gap-4">
 			<p class="pptx-vue-broadcast-desc text-[13px] leading-relaxed text-muted-foreground">
-				Your broadcast is live. Share this link so viewers can follow along.
+				{{ t('pptx.broadcast.liveDescription') }}
 			</p>
 
 			<div class="pptx-vue-broadcast-field flex flex-col gap-1.5">
@@ -122,7 +127,7 @@ function onCopyLink(): void {
 					for="pptx-vue-broadcast-viewer-url"
 					class="pptx-vue-broadcast-label text-[12px] font-medium text-foreground"
 				>
-					Viewer link
+					{{ t('pptx.broadcast.viewerLink') }}
 				</label>
 				<div class="pptx-vue-broadcast-link-row flex items-center gap-2">
 					<input
@@ -139,11 +144,11 @@ function onCopyLink(): void {
 						:disabled="!canCopy || !props.viewerUrl"
 						@click="onCopyLink"
 					>
-						{{ copied ? 'Copied' : 'Copy link' }}
+						{{ copied ? t('pptx.share.copied') : t('pptx.broadcast.copyLinkButton') }}
 					</button>
 				</div>
 				<p class="pptx-vue-broadcast-hint text-[11px] text-muted-foreground">
-					Viewers opening this link will follow your slides.
+					{{ t('pptx.broadcast.viewerFollowHint') }}
 				</p>
 			</div>
 
@@ -152,14 +157,14 @@ function onCopyLink(): void {
 				class="pptx-vue-broadcast-stop w-full rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-[12px] font-medium text-red-400 transition-colors hover:bg-red-500/20"
 				@click="onStop"
 			>
-				Stop broadcast
+				{{ t('pptx.broadcast.stopBroadcast') }}
 			</button>
 		</div>
 
 		<!-- Idle: configure + start a broadcast -->
 		<div v-else class="pptx-vue-broadcast flex flex-col gap-4">
 			<p class="pptx-vue-broadcast-desc text-[13px] leading-relaxed text-muted-foreground">
-				Start a one-way broadcast. You drive the slides; viewers follow along from a shareable link.
+				{{ t('pptx.broadcast.startDescription') }}
 			</p>
 
 			<div class="pptx-vue-broadcast-field flex flex-col gap-1.5">
@@ -167,7 +172,7 @@ function onCopyLink(): void {
 					for="pptx-vue-broadcast-room-id"
 					class="pptx-vue-broadcast-label text-[12px] font-medium text-foreground"
 				>
-					Room ID
+					{{ t('pptx.broadcast.roomId') }}
 				</label>
 				<input
 					id="pptx-vue-broadcast-room-id"
@@ -183,7 +188,7 @@ function onCopyLink(): void {
 					for="pptx-vue-broadcast-server-url"
 					class="pptx-vue-broadcast-label text-[12px] font-medium text-foreground"
 				>
-					Server URL
+					{{ t('pptx.broadcast.serverUrl') }}
 				</label>
 				<input
 					id="pptx-vue-broadcast-server-url"
@@ -201,7 +206,7 @@ function onCopyLink(): void {
 				class="pptx-vue-broadcast-btn rounded bg-muted px-3 py-1.5 text-[12px] text-foreground transition-colors hover:bg-accent"
 				@click="onClose"
 			>
-				Close
+				{{ t('pptx.broadcast.close') }}
 			</button>
 			<button
 				v-if="!props.active"
@@ -210,7 +215,7 @@ function onCopyLink(): void {
 				:disabled="!canStart"
 				@click="onStart"
 			>
-				Start broadcast
+				{{ t('pptx.broadcast.startBroadcast') }}
 			</button>
 		</template>
 	</ModalDialog>

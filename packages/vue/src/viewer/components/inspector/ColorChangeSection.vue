@@ -2,6 +2,7 @@
 import type { PptxElement, PptxImageEffects } from 'pptx-viewer-core';
 import { normalizeHexColor } from 'pptx-viewer-shared';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { DEFAULT_CLR_CHANGE, mergeEffectsPatch } from '../../composables/useImageEditing';
 import DebouncedColorInput from './DebouncedColorInput.vue';
@@ -18,6 +19,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
 }>();
+
+const { t } = useI18n();
 
 const cc = computed(() => props.fx?.clrChange);
 const clrFrom = computed<string>(() =>
@@ -61,26 +64,30 @@ function onTransparent(event: Event): void {
 <template>
 	<div class="pptx-vue-color-change flex flex-col gap-1 text-[11px]">
 		<label class="flex items-center justify-between gap-2">
-			<span class="font-semibold text-muted-foreground">Recolour</span>
+			<span class="font-semibold text-muted-foreground">{{ t('pptx.image.colorChange') }}</span>
 			<input type="checkbox" :checked="Boolean(cc)" @change="onToggle" />
 		</label>
 
 		<div v-if="cc" class="grid grid-cols-2 gap-1.5">
 			<label class="flex items-center gap-2">
-				<span class="text-muted-foreground">From</span>
-				<DebouncedColorInput :value="clrFrom" aria-label="Recolour from" @commit="onFrom" />
+				<span class="text-muted-foreground">{{ t('pptx.image.colorChangeFrom') }}</span>
+				<DebouncedColorInput
+					:value="clrFrom"
+					:aria-label="t('pptx.image.recolourFromAria')"
+					@commit="onFrom"
+				/>
 			</label>
 			<label class="flex items-center gap-2">
-				<span class="text-muted-foreground">To</span>
+				<span class="text-muted-foreground">{{ t('pptx.image.colorChangeTo') }}</span>
 				<DebouncedColorInput
 					:value="clrTo"
 					:disabled="toTransparent"
-					aria-label="Recolour to"
+					:aria-label="t('pptx.image.recolourToAria')"
 					@commit="onTo"
 				/>
 			</label>
 			<label class="col-span-2 flex items-center justify-between gap-2">
-				<span class="text-muted-foreground">Make target transparent</span>
+				<span class="text-muted-foreground">{{ t('pptx.image.colorChangeTransparent') }}</span>
 				<input type="checkbox" :checked="toTransparent" @change="onTransparent" />
 			</label>
 		</div>

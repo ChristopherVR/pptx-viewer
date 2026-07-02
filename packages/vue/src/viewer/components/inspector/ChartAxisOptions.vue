@@ -6,6 +6,7 @@ import {
 	TICK_LABEL_POSITION_OPTIONS,
 } from 'pptx-viewer-shared';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * ChartAxisOptions: per-axis scale (min/max/major/minor), display units, axis
@@ -22,6 +23,8 @@ const emit = defineEmits<{
 		patch: Partial<PptxChartAxisFormatting>,
 	];
 }>();
+
+const { t } = useI18n();
 
 type AxisRow = (typeof EDITABLE_AXIS_ROWS)[number] & { axis: PptxChartAxisFormatting };
 
@@ -82,11 +85,11 @@ function onGridline(
 	emit('updateAxis', axisType, { [key]: (event.target as HTMLInputElement).checked });
 }
 
-const SCALE_FIELDS: ReadonlyArray<{ key: ScaleKey; label: string }> = [
-	{ key: 'min', label: 'Min' },
-	{ key: 'max', label: 'Max' },
-	{ key: 'majorUnit', label: 'Major' },
-	{ key: 'minorUnit', label: 'Minor' },
+const SCALE_FIELDS: ReadonlyArray<{ key: ScaleKey; labelKey: string }> = [
+	{ key: 'min', labelKey: 'pptx.chart.min' },
+	{ key: 'max', labelKey: 'pptx.chart.max' },
+	{ key: 'majorUnit', labelKey: 'pptx.chart.majorUnit' },
+	{ key: 'minorUnit', labelKey: 'pptx.chart.minorUnit' },
 ];
 
 const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full';
@@ -98,7 +101,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 		class="pptx-vue-chart-card rounded border border-border bg-card p-2 space-y-2"
 	>
 		<div class="pptx-vue-chart-heading text-[11px] uppercase tracking-wide text-muted-foreground">
-			Axes
+			{{ t('pptx.chart.axes') }}
 		</div>
 		<div v-for="row in rows" :key="row.type" class="space-y-1.5">
 			<div class="text-[11px] font-medium">{{ row.label }}</div>
@@ -109,19 +112,21 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 					:key="field.key"
 					class="flex items-center gap-2 text-[11px]"
 				>
-					<span class="w-16 text-muted-foreground shrink-0">{{ field.label }}</span>
+					<span class="w-16 text-muted-foreground shrink-0">{{ t(field.labelKey) }}</span>
 					<input
 						type="number"
 						:class="INPUT"
 						data-testid="chart-axis-scale"
 						:value="row.axis[field.key] ?? ''"
-						placeholder="Auto"
+						:placeholder="t('pptx.chart.auto')"
 						@input="onNumber($event, row.type, field.key)"
 					/>
 				</label>
 
 				<label class="flex items-center gap-2 text-[11px]">
-					<span class="w-16 text-muted-foreground shrink-0">Units</span>
+					<span class="w-16 text-muted-foreground shrink-0">{{
+						t('pptx.chart.displayUnits')
+					}}</span>
 					<select
 						:class="INPUT"
 						data-testid="chart-axis-display-units"
@@ -137,19 +142,21 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 
 			<div class="space-y-1.5 ml-2">
 				<label class="flex items-center gap-2 text-[11px]">
-					<span class="w-16 text-muted-foreground shrink-0">Title</span>
+					<span class="w-16 text-muted-foreground shrink-0">{{ t('pptx.chart.axisTitle') }}</span>
 					<input
 						type="text"
 						:class="INPUT"
 						data-testid="chart-axis-title"
 						:value="row.axis.titleText ?? ''"
-						placeholder="Axis title"
+						:placeholder="t('pptx.chart.axisTitlePlaceholder')"
 						@input="onTitle($event, row.type)"
 					/>
 				</label>
 
 				<label class="flex items-center gap-2 text-[11px]">
-					<span class="w-16 text-muted-foreground shrink-0">Format</span>
+					<span class="w-16 text-muted-foreground shrink-0">{{
+						t('pptx.chart.numberFormat')
+					}}</span>
 					<input
 						type="text"
 						:class="INPUT"
@@ -161,7 +168,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 				</label>
 
 				<label class="flex items-center gap-2 text-[11px]">
-					<span class="w-16 text-muted-foreground shrink-0">Ticks</span>
+					<span class="w-16 text-muted-foreground shrink-0">{{ t('pptx.chart.tickLabels') }}</span>
 					<select
 						:class="INPUT"
 						data-testid="chart-axis-tick-pos"
@@ -182,7 +189,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 						:checked="row.axis.majorGridlines ?? false"
 						@change="onGridline($event, row.type, 'majorGridlines')"
 					/>
-					<span class="text-[11px]">Major gridlines</span>
+					<span class="text-[11px]">{{ t('pptx.chart.majorGridlines') }}</span>
 				</label>
 				<label class="flex items-center gap-2 cursor-pointer">
 					<input
@@ -192,7 +199,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 						:checked="row.axis.minorGridlines ?? false"
 						@change="onGridline($event, row.type, 'minorGridlines')"
 					/>
-					<span class="text-[11px]">Minor gridlines</span>
+					<span class="text-[11px]">{{ t('pptx.chart.minorGridlines') }}</span>
 				</label>
 			</div>
 		</div>

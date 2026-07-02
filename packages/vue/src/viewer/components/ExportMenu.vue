@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * ExportMenu: a small dropdown offering PNG (current slide), PDF, animated GIF
@@ -13,6 +14,8 @@ const emit = defineEmits<{
 	'export-gif': [];
 	'export-webm': [];
 }>();
+
+const { t } = useI18n();
 
 const open = ref(false);
 
@@ -45,7 +48,7 @@ function choose(kind: 'png' | 'pdf' | 'gif' | 'webm'): void {
 			:disabled="exporting"
 			aria-haspopup="menu"
 			:aria-expanded="open"
-			:title="exporting ? 'Exporting…' : 'Export'"
+			:title="exporting ? t('pptx.export.exporting') : t('pptx.export.export')"
 			@click="toggle"
 		>
 			{{ exporting ? '…' : '⬇' }}
@@ -61,7 +64,7 @@ function choose(kind: 'png' | 'pdf' | 'gif' | 'webm'): void {
 				class="block w-full rounded px-2.5 py-1.5 text-left text-xs hover:bg-accent cursor-pointer"
 				@click="choose('png')"
 			>
-				PNG (current slide)
+				{{ t('pptx.export.pngCurrentSlide') }}
 			</button>
 			<button
 				type="button"
@@ -69,7 +72,7 @@ function choose(kind: 'png' | 'pdf' | 'gif' | 'webm'): void {
 				class="block w-full rounded px-2.5 py-1.5 text-left text-xs hover:bg-accent cursor-pointer"
 				@click="choose('pdf')"
 			>
-				PDF (all slides)
+				{{ t('pptx.export.pdfAllSlides') }}
 			</button>
 			<button
 				type="button"
@@ -77,7 +80,7 @@ function choose(kind: 'png' | 'pdf' | 'gif' | 'webm'): void {
 				class="block w-full rounded px-2.5 py-1.5 text-left text-xs hover:bg-accent cursor-pointer"
 				@click="choose('gif')"
 			>
-				GIF (animated)
+				{{ t('pptx.export.gifAnimated') }}
 			</button>
 			<button
 				type="button"
@@ -85,7 +88,7 @@ function choose(kind: 'png' | 'pdf' | 'gif' | 'webm'): void {
 				class="block w-full rounded px-2.5 py-1.5 text-left text-xs hover:bg-accent cursor-pointer"
 				@click="choose('webm')"
 			>
-				WebM (video)
+				{{ t('pptx.export.webmVideo') }}
 			</button>
 		</div>
 	</div>

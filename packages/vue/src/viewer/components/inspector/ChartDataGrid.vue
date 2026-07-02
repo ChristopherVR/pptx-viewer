@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxChartSeries } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * ChartDataGrid: an editable spreadsheet-style grid of the chart's underlying
@@ -27,8 +28,11 @@ const emit = defineEmits<{
 	removeCategory: [catIndex: number];
 }>();
 
+const { t } = useI18n();
+
 const summary = computed(
-	() => `${props.series.length} series · ${props.categories.length} categories`,
+	() =>
+		`${props.series.length} ${t('pptx.chart.series')} · ${props.categories.length} ${t('pptx.chart.categories')}`,
 );
 
 function onSeriesName(event: Event, index: number): void {
@@ -53,24 +57,26 @@ const BTN =
 	<div class="pptx-vue-chart-card rounded border border-border bg-card p-2 space-y-2">
 		<div class="flex items-center justify-between">
 			<div class="pptx-vue-chart-heading text-[11px] uppercase tracking-wide text-muted-foreground">
-				Data
+				{{ t('pptx.chart.data') }}
 			</div>
 			<div class="flex gap-1">
 				<button
 					type="button"
 					:class="BTN"
 					data-testid="chart-add-category"
+					:title="t('pptx.chart.addCategory')"
 					@click="emit('addCategory')"
 				>
-					+ Cat
+					+ {{ t('pptx.chart.cat') }}
 				</button>
 				<button
 					type="button"
 					:class="BTN"
 					data-testid="chart-add-series"
+					:title="t('pptx.chart.addSeries')"
 					@click="emit('addSeries')"
 				>
-					+ Series
+					+ {{ t('pptx.chart.seriesShort') }}
 				</button>
 			</div>
 		</div>
@@ -105,7 +111,7 @@ const BTN =
 									type="button"
 									class="text-muted-foreground hover:text-red-400 shrink-0"
 									data-testid="chart-remove-series"
-									title="Remove series"
+									:title="t('pptx.chart.removeSeries')"
 									@click="emit('removeSeries', si)"
 								>
 									&times;
@@ -130,7 +136,7 @@ const BTN =
 									type="button"
 									class="text-muted-foreground hover:text-red-400 shrink-0"
 									data-testid="chart-remove-category"
-									title="Remove category"
+									:title="t('pptx.chart.removeCategory')"
 									@click="emit('removeCategory', ci)"
 								>
 									&times;

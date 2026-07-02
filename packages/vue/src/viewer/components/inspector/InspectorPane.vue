@@ -2,6 +2,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties, isImageLikeElement } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import AnimationPanel from './AnimationPanel.vue';
 import ArrangePanel from './ArrangePanel.vue';
@@ -29,6 +30,8 @@ import TextPanel from './TextPanel.vue';
 const props = defineProps<{ element: PptxElement; mobile?: boolean; canEdit?: boolean }>();
 const emit = defineEmits<{ update: [patch: Partial<PptxElement>] }>();
 
+const { t } = useI18n();
+
 const isShape = computed(() => hasShapeProperties(props.element));
 const isText = computed(() => hasTextProperties(props.element));
 const isImage = computed(() => isImageLikeElement(props.element));
@@ -46,13 +49,13 @@ function relay(patch: Partial<PptxElement>): void {
 	<aside
 		class="pptx-vue-inspector overflow-y-auto bg-card box-border px-3 pb-8 text-xs text-foreground"
 		:class="mobile ? 'w-full pt-1' : 'w-60 flex-[0_0_15rem] border-l border-border pt-2'"
-		aria-label="Properties"
+		:aria-label="t('pptx.inspector.properties')"
 	>
 		<div class="pptx-vue-inspector-section py-2 border-b border-border">
 			<h3
 				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
 			>
-				Arrange
+				{{ t('pptx.inspector.arrange') }}
 			</h3>
 			<ArrangePanel :element="element" :can-edit="props.canEdit" @update="relay" />
 		</div>
@@ -61,7 +64,7 @@ function relay(patch: Partial<PptxElement>): void {
 			<h3
 				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
 			>
-				Text
+				{{ t('pptx.inspector.text') }}
 			</h3>
 			<TextPanel :element="element" @update="relay" />
 		</div>
@@ -70,7 +73,7 @@ function relay(patch: Partial<PptxElement>): void {
 			<h3
 				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
 			>
-				Image
+				{{ t('pptx.inspector.image') }}
 			</h3>
 			<ImagePanel :element="element" @update="relay" />
 		</div>
@@ -79,7 +82,7 @@ function relay(patch: Partial<PptxElement>): void {
 			<h3
 				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
 			>
-				Table
+				{{ t('pptx.inspector.table') }}
 			</h3>
 			<TablePanel :element="element" @update="relay" />
 		</div>
@@ -88,7 +91,7 @@ function relay(patch: Partial<PptxElement>): void {
 			<h3
 				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
 			>
-				Chart
+				{{ t('pptx.inspector.chart') }}
 			</h3>
 			<ChartPanel :element="element" @update="relay" />
 		</div>
@@ -97,7 +100,7 @@ function relay(patch: Partial<PptxElement>): void {
 			<h3
 				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
 			>
-				Media
+				{{ t('pptx.inspector.media') }}
 			</h3>
 			<MediaPropertiesPanel :element="element" :can-edit="props.canEdit" @update="relay" />
 		</div>
@@ -106,7 +109,7 @@ function relay(patch: Partial<PptxElement>): void {
 			<h3
 				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
 			>
-				Animations
+				{{ t('pptx.inspector.animations') }}
 			</h3>
 			<AnimationPanel :element="element" @update="relay" />
 		</div>
@@ -115,7 +118,7 @@ function relay(patch: Partial<PptxElement>): void {
 			<h3
 				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
 			>
-				SmartArt
+				{{ t('pptx.inspector.smartArt') }}
 			</h3>
 			<SmartArtPropertiesPanel :element="element" @update="relay" />
 		</div>
@@ -124,7 +127,7 @@ function relay(patch: Partial<PptxElement>): void {
 			<h3
 				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
 			>
-				Fill
+				{{ t('pptx.inspector.fill') }}
 			</h3>
 			<FillPanel :element="element" @update="relay" />
 		</div>
@@ -133,7 +136,7 @@ function relay(patch: Partial<PptxElement>): void {
 			<h3
 				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
 			>
-				Line
+				{{ t('pptx.inspector.line') }}
 			</h3>
 			<StrokePanel :element="element" @update="relay" />
 		</div>
@@ -142,7 +145,7 @@ function relay(patch: Partial<PptxElement>): void {
 			<h3
 				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
 			>
-				Effects
+				{{ t('pptx.inspector.effects') }}
 			</h3>
 			<EffectsPanel :element="element" @update="relay" />
 		</div>

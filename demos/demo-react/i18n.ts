@@ -7,7 +7,7 @@
  * (e.g. "pptx.sections.addSlide" → "Add Slide").
  */
 import { createInstance } from 'i18next';
-import { keyToLabel, translationsEn } from 'pptx-viewer-shared/i18n';
+import { keyToLabel, translationsEn } from 'pptx-react-viewer/i18n';
 import { initReactI18next } from 'react-i18next';
 
 const i18nInstance = createInstance();

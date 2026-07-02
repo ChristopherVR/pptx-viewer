@@ -10,12 +10,15 @@
  */
 import type { PptxSlide } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = withDefaults(defineProps<{ slide: PptxSlide | undefined; canEdit?: boolean }>(), {
 	canEdit: true,
 });
 
 const emit = defineEmits<{ update: [patch: Partial<PptxSlide>] }>();
+
+const { t } = useI18n();
 
 const fileInput = ref<HTMLInputElement | null>(null);
 
@@ -63,13 +66,15 @@ function clearBackground(): void {
 <template>
 	<div class="space-y-2">
 		<label class="flex items-center gap-2 text-[11px]">
-			<span class="w-10 shrink-0 text-muted-foreground">Colour</span>
+			<span class="w-10 shrink-0 text-muted-foreground">{{
+				t('pptx.slideBackground.colour')
+			}}</span>
 			<input
 				type="color"
 				:value="colorValue"
 				:disabled="!canEdit"
 				class="h-6 w-8 cursor-pointer rounded border border-border bg-muted"
-				aria-label="Slide background colour"
+				:aria-label="t('pptx.slideBackground.colourAriaLabel')"
 				@change="onColorChange"
 			/>
 			<span class="truncate text-[10px] text-muted-foreground">{{
@@ -79,7 +84,9 @@ function clearBackground(): void {
 
 		<div class="space-y-1">
 			<div class="flex items-center gap-2 text-[11px]">
-				<span class="w-10 shrink-0 text-muted-foreground">Image</span>
+				<span class="w-10 shrink-0 text-muted-foreground">{{
+					t('pptx.slideBackground.image')
+				}}</span>
 				<input
 					ref="fileInput"
 					type="file"
@@ -94,21 +101,25 @@ function clearBackground(): void {
 					:disabled="!canEdit"
 					@click="fileInput?.click()"
 				>
-					{{ backgroundImage ? 'Replace Image' : 'Choose Image' }}
+					{{
+						backgroundImage
+							? t('pptx.slideBackground.replaceImage')
+							: t('pptx.slideBackground.chooseImage')
+					}}
 				</button>
 			</div>
 			<div v-if="backgroundImage" class="relative mt-1">
 				<img
 					:src="backgroundImage"
-					alt="Background preview"
+					:alt="t('pptx.slideBackground.backgroundPreview')"
 					class="h-16 w-full rounded border border-border object-cover"
 				/>
 				<button
 					type="button"
 					class="absolute right-0.5 top-0.5 rounded bg-background/80 p-0.5 text-[10px] transition-colors hover:bg-red-700 disabled:opacity-50"
 					:disabled="!canEdit"
-					title="Remove background image"
-					aria-label="Remove background image"
+					:title="t('pptx.slideBackground.removeBackgroundImage')"
+					:aria-label="t('pptx.slideBackground.removeBackgroundImage')"
 					@click="removeImage"
 				>
 					X
@@ -123,7 +134,7 @@ function clearBackground(): void {
 			:disabled="!canEdit"
 			@click="clearBackground"
 		>
-			Clear Background
+			{{ t('pptx.slideBackground.clearBackground') }}
 		</button>
 	</div>
 </template>

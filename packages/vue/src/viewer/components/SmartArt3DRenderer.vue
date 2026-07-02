@@ -31,6 +31,7 @@ import type { SmartArt3DModel } from 'pptx-viewer-shared';
 import type { SmartArt3DHandle } from 'pptx-viewer-shared/smartart-3d';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { CSSProperties } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { getContainerStyle } from '../composables/element-style';
 import { inlineEditorRect, useSmartArtInlineEditState } from '../composables/smartart-inline-edit';
@@ -43,6 +44,8 @@ const props = defineProps<{
 	mediaDataUrls?: Map<string, string>;
 	zIndex: number;
 }>();
+
+const { t } = useI18n();
 
 const PALETTES: Record<SmartArtColorScheme, string[]> = {
 	colorful1: ['#3b82f6', '#22c55e', '#f97316', '#eab308', '#a855f7', '#ec4899'],
@@ -221,7 +224,7 @@ onBeforeUnmount(() => {
 				v-model="editState.draft.value"
 				class="pptx-vue-smartart-3d-editor"
 				spellcheck="false"
-				aria-label="Edit SmartArt node text"
+				:aria-label="t('pptx.smartArt.editNodeText')"
 				:style="{
 					left: `${editState.rect.value.left}px`,
 					top: `${editState.rect.value.top}px`,

@@ -49,6 +49,7 @@ export default defineConfig({
 				find: 'pptx-viewer-shared/smartart-3d',
 				replacement: pkg('shared', 'src', 'smartart-3d', 'index.ts'),
 			},
+			{ find: 'pptx-viewer-shared/i18n', replacement: pkg('shared', 'src', 'i18n', 'index.ts') },
 			{ find: 'pptx-viewer-shared', replacement: pkg('shared', 'src', 'index.ts') },
 		],
 	},

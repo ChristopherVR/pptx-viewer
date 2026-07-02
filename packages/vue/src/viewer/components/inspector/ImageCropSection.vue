@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxElement } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import {
 	CROP_SIDES,
@@ -24,6 +25,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
 }>();
+
+const { t } = useI18n();
 
 const sides = CROP_SIDES;
 
@@ -72,7 +75,7 @@ function onReplaceImage(event: Event): void {
 		<label
 			class="pptx-vue-image-crop__replace w-full text-center rounded border border-border bg-muted hover:bg-accent px-2 py-1 cursor-pointer transition-colors"
 		>
-			Replace Image
+			{{ t('pptx.image.replaceImage') }}
 			<input
 				type="file"
 				class="hidden"
@@ -106,7 +109,7 @@ function onReplaceImage(event: Event): void {
 			class="pptx-vue-image-crop__reset w-full rounded border border-border bg-muted hover:bg-accent px-2 py-1 transition-colors"
 			@click="onResetCrop"
 		>
-			Reset Crop
+			{{ t('pptx.image.resetCrop') }}
 		</button>
 	</div>
 </template>

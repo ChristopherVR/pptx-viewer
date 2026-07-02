@@ -8,6 +8,7 @@
  * `useAutosave`.
  */
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { AutosaveStatus } from '../composables/useAutosave';
 
@@ -15,6 +16,8 @@ const props = defineProps<{
 	status: AutosaveStatus;
 	isDirty: boolean;
 }>();
+
+const { t } = useI18n();
 
 type Tone = 'idle' | 'saving' | 'saved' | 'error' | 'dirty';
 
@@ -37,15 +40,15 @@ const tone = computed<Tone>(() => {
 const label = computed(() => {
 	switch (tone.value) {
 		case 'saving':
-			return 'Saving…';
+			return t('pptx.autosave.saving');
 		case 'error':
-			return 'Save failed';
+			return t('pptx.autosave.saveFailed');
 		case 'dirty':
-			return 'Unsaved changes';
+			return t('pptx.statusBar.unsavedChanges');
 		case 'saved':
-			return 'Saved';
+			return t('pptx.autosave.savedShort');
 		default:
-			return 'All changes saved';
+			return t('pptx.autosave.allChangesSaved');
 	}
 });
 

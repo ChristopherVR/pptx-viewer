@@ -2,6 +2,7 @@
 import type { PptxChartMarkerSymbol, PptxChartSeries, PptxChartType } from 'pptx-viewer-core';
 import { MARKER_SUPPORTED_TYPES, MARKER_SYMBOL_OPTIONS } from 'pptx-viewer-shared';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { ChartMarkerEdit } from '../../composables/useChartEditing';
 
@@ -18,6 +19,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	setMarker: [index: number, marker: ChartMarkerEdit | null];
 }>();
+
+const { t } = useI18n();
 
 const visible = computed(
 	() => MARKER_SUPPORTED_TYPES.has(props.chartType) && props.series.length > 0,
@@ -48,7 +51,7 @@ function onFill(event: Event, index: number): void {
 		class="pptx-vue-chart-card rounded border border-border bg-card p-2 space-y-2"
 	>
 		<div class="pptx-vue-chart-heading text-[11px] uppercase tracking-wide text-muted-foreground">
-			Markers
+			{{ t('pptx.chart.markers') }}
 		</div>
 		<div class="space-y-2">
 			<div v-for="(s, i) in props.series" :key="`${s.name}-${i}`" class="space-y-1">
@@ -68,7 +71,7 @@ function onFill(event: Event, index: number): void {
 
 				<div v-if="s.marker && s.marker.symbol !== 'none'" class="flex items-center gap-3 ml-2">
 					<label class="flex items-center gap-1 text-[11px]">
-						<span class="text-muted-foreground">Size</span>
+						<span class="text-muted-foreground">{{ t('pptx.chart.markerSize') }}</span>
 						<input
 							type="number"
 							min="2"
@@ -76,12 +79,12 @@ function onFill(event: Event, index: number): void {
 							data-testid="chart-marker-size"
 							class="w-14 bg-muted border border-border rounded px-1.5 py-0.5"
 							:value="s.marker.size ?? ''"
-							placeholder="Auto"
+							:placeholder="t('pptx.chart.auto')"
 							@input="onSize($event, i)"
 						/>
 					</label>
 					<label class="flex items-center gap-1 text-[11px]">
-						<span class="text-muted-foreground">Fill</span>
+						<span class="text-muted-foreground">{{ t('pptx.chart.markerFill') }}</span>
 						<input
 							type="color"
 							data-testid="chart-marker-fill"

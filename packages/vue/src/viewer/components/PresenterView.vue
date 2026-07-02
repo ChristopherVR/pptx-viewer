@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxSlide } from 'pptx-viewer-core';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import {
 	clampNotesFontSize,
@@ -38,6 +39,8 @@ const emit = defineEmits<{
 	(e: 'move', direction: 1 | -1): void;
 	(e: 'exit'): void;
 }>();
+
+const { t } = useI18n();
 
 // -- Live clock -------------------------------------------------------------
 const now = ref(Date.now());
@@ -131,7 +134,7 @@ const previewMainFrameStyle = computed(() => ({
 		v-if="!currentSlide"
 		class="pptx-vue-presenter pptx-vue-presenter--empty absolute inset-0 z-50 flex items-center justify-center bg-card text-muted-foreground"
 	>
-		No slides to present.
+		{{ t('pptx.mpresenter.noSlides') }}
 	</div>
 	<div
 		v-else
@@ -156,7 +159,9 @@ const previewMainFrameStyle = computed(() => ({
 				<div
 					class="pptx-vue-presenter-slide-label mt-3 select-none font-mono text-xs tabular-nums text-white/50"
 				>
-					Slide {{ currentSlideIndex + 1 }} of {{ slides.length }}
+					{{
+						t('pptx.statusBar.slideOf', { current: currentSlideIndex + 1, total: slides.length })
+					}}
 				</div>
 			</div>
 
@@ -171,7 +176,7 @@ const previewMainFrameStyle = computed(() => ({
 					<div class="pptx-vue-presenter-time flex flex-col">
 						<span
 							class="pptx-vue-presenter-label text-[10px] uppercase tracking-wider text-muted-foreground"
-							>Current time</span
+							>{{ t('pptx.presenterView.currentTime') }}</span
 						>
 						<span class="pptx-vue-presenter-clock font-mono text-lg tabular-nums text-foreground">{{
 							clockText
@@ -182,7 +187,7 @@ const previewMainFrameStyle = computed(() => ({
 					>
 						<span
 							class="pptx-vue-presenter-label text-[10px] uppercase tracking-wider text-muted-foreground"
-							>Elapsed</span
+							>{{ t('pptx.mpresenter.elapsed') }}</span
 						>
 						<span class="pptx-vue-presenter-elapsed font-mono text-lg tabular-nums text-primary">{{
 							elapsedText
@@ -191,8 +196,8 @@ const previewMainFrameStyle = computed(() => ({
 					<button
 						type="button"
 						class="pptx-vue-presenter-icon-btn flex h-7 w-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-						title="End presentation"
-						aria-label="End presentation"
+						:title="t('pptx.presenter.endPresentation')"
+						:aria-label="t('pptx.presenter.endPresentation')"
 						@click="emit('exit')"
 					>
 						&times;
@@ -207,10 +212,10 @@ const previewMainFrameStyle = computed(() => ({
 						type="button"
 						class="pptx-vue-presenter-nav-btn inline-flex items-center gap-1.5 rounded bg-muted px-3 py-1.5 text-xs transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
 						:disabled="atFirst"
-						title="Previous slide"
+						:title="t('pptx.mobileBar.previousSlide')"
 						@click="emit('move', -1)"
 					>
-						‹ Prev
+						‹ {{ t('pptx.mpresenter.prev') }}
 					</button>
 					<span class="pptx-vue-presenter-counter font-mono text-sm tabular-nums text-foreground">
 						{{ currentSlideIndex + 1 }} / {{ slides.length }}
@@ -219,10 +224,10 @@ const previewMainFrameStyle = computed(() => ({
 						type="button"
 						class="pptx-vue-presenter-nav-btn inline-flex items-center gap-1.5 rounded bg-muted px-3 py-1.5 text-xs transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
 						:disabled="atLast"
-						title="Next slide"
+						:title="t('pptx.mobileBar.nextSlide')"
 						@click="emit('move', 1)"
 					>
-						Next ›
+						{{ t('pptx.mpresenter.next') }} ›
 					</button>
 				</div>
 
@@ -231,7 +236,7 @@ const previewMainFrameStyle = computed(() => ({
 					<div
 						class="pptx-vue-presenter-label mb-2 text-[10px] uppercase tracking-wider text-muted-foreground"
 					>
-						Next slide
+						{{ t('pptx.mobileBar.nextSlide') }}
 					</div>
 					<div
 						v-if="nextSlide"
@@ -249,7 +254,7 @@ const previewMainFrameStyle = computed(() => ({
 						v-else
 						class="pptx-vue-presenter-preview-empty mt-2 flex h-16 items-center justify-center rounded border border-border/30 bg-muted/40 text-xs italic text-muted-foreground"
 					>
-						End of presentation
+						{{ t('pptx.mpresenter.endOfPresentation') }}
 					</div>
 				</div>
 
@@ -259,15 +264,15 @@ const previewMainFrameStyle = computed(() => ({
 						<div
 							class="pptx-vue-presenter-label text-[10px] uppercase tracking-wider text-muted-foreground"
 						>
-							Speaker notes
+							{{ t('pptx.presenter.speakerNotes') }}
 						</div>
 						<div class="pptx-vue-presenter-font-ctl flex items-center gap-1">
 							<button
 								type="button"
 								class="pptx-vue-presenter-font-btn rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
 								:disabled="notesFontSize <= NOTES_FONT_SIZE_MIN"
-								title="Decrease font size"
-								aria-label="Decrease font size"
+								:title="t('pptx.presenterView.decreaseFontSize')"
+								:aria-label="t('pptx.presenterView.decreaseFontSize')"
 								@click="decreaseNotesFontSize"
 							>
 								−
@@ -280,8 +285,8 @@ const previewMainFrameStyle = computed(() => ({
 								type="button"
 								class="pptx-vue-presenter-font-btn rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
 								:disabled="notesFontSize >= NOTES_FONT_SIZE_MAX"
-								title="Increase font size"
-								aria-label="Increase font size"
+								:title="t('pptx.presenterView.increaseFontSize')"
+								:aria-label="t('pptx.presenterView.increaseFontSize')"
 								@click="increaseNotesFontSize"
 							>
 								+
@@ -299,9 +304,9 @@ const previewMainFrameStyle = computed(() => ({
 							</template>
 						</template>
 						<template v-else-if="hasPlainNotes">{{ notesText }}</template>
-						<span v-else class="pptx-vue-presenter-notes-empty italic text-muted-foreground"
-							>No notes for this slide.</span
-						>
+						<span v-else class="pptx-vue-presenter-notes-empty italic text-muted-foreground">{{
+							t('pptx.mpresenter.noNotes')
+						}}</span>
 					</div>
 				</div>
 			</div>
@@ -314,8 +319,10 @@ const previewMainFrameStyle = computed(() => ({
 			:aria-valuenow="Math.round(timerProgress)"
 			:aria-valuemin="0"
 			:aria-valuemax="100"
-			aria-label="Timer progress"
-			:title="`${elapsedText} (segment ${timerSegment + 1})`"
+			:aria-label="t('pptx.presenterView.timerProgress')"
+			:title="
+				t('pptx.presenterView.timerTitle', { elapsed: elapsedText, segment: timerSegment + 1 })
+			"
 		>
 			<div
 				class="pptx-vue-presenter-progress-fill h-full bg-primary transition-[width] duration-1000 ease-linear"

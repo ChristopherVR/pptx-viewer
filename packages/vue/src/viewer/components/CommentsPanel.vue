@@ -2,6 +2,7 @@
 import type { PptxComment } from 'pptx-viewer-core';
 import { formatCommentTimestamp } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * CommentsPanel: side panel listing the active slide's comments.
@@ -24,6 +25,8 @@ const emit = defineEmits<{
 	resolve: [id: string];
 	reply: [payload: { parentId: string; text: string }];
 }>();
+
+const { t } = useI18n();
 
 const draft = ref('');
 
@@ -67,12 +70,14 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 <template>
 	<aside
 		class="pptx-comments-panel flex h-full min-h-0 w-full flex-col border-l border-border bg-card text-foreground"
-		aria-label="Slide comments"
+		:aria-label="t('pptx.comments.slideComments')"
 	>
 		<header
 			class="pptx-comments-panel__header flex items-center justify-between border-b border-border px-4 py-3"
 		>
-			<h2 class="pptx-comments-panel__title m-0 text-sm font-semibold">Comments</h2>
+			<h2 class="pptx-comments-panel__title m-0 text-sm font-semibold">
+				{{ t('pptx.toolbar.comments') }}
+			</h2>
 			<span
 				class="pptx-comments-panel__count text-xs text-muted-foreground"
 				data-testid="comment-count"
@@ -94,7 +99,7 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 			>
 				<div class="pptx-comments-panel__meta mb-1 flex items-baseline justify-between gap-2">
 					<span class="pptx-comments-panel__author text-[13px] font-semibold">{{
-						comment.author || 'Unknown'
+						comment.author || t('pptx.comments.unknownAuthor')
 					}}</span>
 					<time
 						v-if="formatTimestamp(comment.createdAt)"
@@ -119,7 +124,9 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 						:data-comment-id="reply.id"
 					>
 						<div class="mb-0.5 flex items-baseline justify-between gap-2">
-							<span class="text-[12px] font-semibold">{{ reply.author || 'Unknown' }}</span>
+							<span class="text-[12px] font-semibold">{{
+								reply.author || t('pptx.comments.unknownAuthor')
+							}}</span>
 							<time
 								v-if="formatTimestamp(reply.createdAt)"
 								class="text-[11px] text-muted-foreground"
@@ -139,7 +146,7 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 						:aria-pressed="comment.resolved ? 'true' : 'false'"
 						@click="emit('resolve', comment.id)"
 					>
-						{{ comment.resolved ? 'Reopen' : 'Resolve' }}
+						{{ comment.resolved ? t('pptx.comments.reopen') : t('pptx.comments.resolve') }}
 					</button>
 					<button
 						type="button"
@@ -147,16 +154,16 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 						:data-comment-id="comment.id"
 						@click="startReply(comment.id)"
 					>
-						Reply
+						{{ t('pptx.comments.reply') }}
 					</button>
 					<button
 						type="button"
 						class="pptx-comments-panel__action pptx-comments-panel__action--danger cursor-pointer rounded-md border border-border bg-transparent px-2 py-1 text-xs text-red-400 hover:bg-muted"
 						:data-comment-id="comment.id"
-						aria-label="Remove comment"
+						:aria-label="t('pptx.comments.removeComment')"
 						@click="emit('remove', comment.id)"
 					>
-						Remove
+						{{ t('pptx.comments.remove') }}
 					</button>
 				</div>
 
@@ -166,8 +173,8 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 						v-model="replyDrafts[comment.id]"
 						class="w-full resize-y rounded-md border border-border bg-background p-2 text-[12px] text-foreground"
 						rows="2"
-						placeholder="Write a reply…"
-						aria-label="Write a reply"
+						:placeholder="t('pptx.comments.replyPlaceholder')"
+						:aria-label="t('pptx.comments.replyLabel')"
 					></textarea>
 					<div class="flex justify-end gap-2">
 						<button
@@ -175,7 +182,7 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 							class="cursor-pointer rounded-md border border-border bg-transparent px-2 py-1 text-xs text-foreground hover:bg-muted"
 							@click="replyingTo = null"
 						>
-							Cancel
+							{{ t('pptx.comments.cancel') }}
 						</button>
 						<button
 							type="button"
@@ -183,7 +190,7 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 							:disabled="(replyDrafts[comment.id] ?? '').trim().length === 0"
 							@click="submitReply(comment.id)"
 						>
-							Reply
+							{{ t('pptx.comments.reply') }}
 						</button>
 					</div>
 				</div>
@@ -195,7 +202,7 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 			class="pptx-comments-panel__empty flex-1 p-4 text-[13px] text-muted-foreground"
 			data-testid="comments-empty"
 		>
-			No comments on this slide yet.
+			{{ t('pptx.comments.noCommentsSlide') }}
 		</p>
 
 		<form
@@ -204,16 +211,16 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 		>
 			<label
 				class="pptx-comments-panel__compose-label text-xs font-semibold"
-				:title="`Commenting as ${props.authorName}`"
+				:title="t('pptx.comments.commentingAs', { name: props.authorName })"
 			>
-				Add comment
+				{{ t('pptx.comments.addComment') }}
 			</label>
 			<textarea
 				v-model="draft"
 				class="pptx-comments-panel__textarea w-full resize-y rounded-md border border-border bg-background p-2 text-[13px] text-foreground"
 				rows="3"
-				placeholder="Write a comment…"
-				aria-label="Add comment"
+				:placeholder="t('pptx.comments.addCommentPlaceholder')"
+				:aria-label="t('pptx.comments.addComment')"
 			></textarea>
 			<button
 				type="submit"
@@ -221,7 +228,7 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 				:disabled="!canAdd"
 				data-testid="add-comment"
 			>
-				Add comment
+				{{ t('pptx.comments.addComment') }}
 			</button>
 		</form>
 	</aside>

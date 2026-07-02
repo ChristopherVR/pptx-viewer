@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-core';
+import { useI18n } from 'vue-i18n';
 
 /**
  * ShowSlidesFieldset: which slides a slide show includes (all, a from/to
@@ -18,6 +19,8 @@ const emit = defineEmits<{
 	update: [patch: Partial<PptxPresentationProperties>];
 }>();
 
+const { t } = useI18n();
+
 function setFrom(value: string): void {
 	emit('update', { showSlidesFrom: Math.max(1, Number.parseInt(value, 10) || 1) });
 }
@@ -32,7 +35,7 @@ function setTo(value: string): void {
 <template>
 	<fieldset class="space-y-1.5">
 		<legend class="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-			Show slides
+			{{ t('pptx.slideShow.showSlides') }}
 		</legend>
 
 		<label class="flex cursor-pointer items-center gap-2">
@@ -44,7 +47,7 @@ function setTo(value: string): void {
 				:checked="showSlidesMode === 'all'"
 				@change="emit('update', { showSlidesMode: 'all' })"
 			/>
-			<span>All slides</span>
+			<span>{{ t('pptx.slideShow.allSlides') }}</span>
 		</label>
 
 		<label class="flex cursor-pointer items-center gap-2">
@@ -62,11 +65,11 @@ function setTo(value: string): void {
 					})
 				"
 			/>
-			<span>From / to</span>
+			<span>{{ t('pptx.slideShow.fromTo') }}</span>
 		</label>
 		<div v-if="showSlidesMode === 'range'" class="ml-6 flex items-center gap-2">
 			<label class="flex items-center gap-1">
-				<span class="text-muted-foreground">From</span>
+				<span class="text-muted-foreground">{{ t('pptx.slideShow.from') }}</span>
 				<input
 					type="number"
 					:min="1"
@@ -77,7 +80,7 @@ function setTo(value: string): void {
 				/>
 			</label>
 			<label class="flex items-center gap-1">
-				<span class="text-muted-foreground">To</span>
+				<span class="text-muted-foreground">{{ t('pptx.slideShow.to') }}</span>
 				<input
 					type="number"
 					:min="1"
@@ -104,7 +107,7 @@ function setTo(value: string): void {
 						})
 					"
 				/>
-				<span>Custom show</span>
+				<span>{{ t('pptx.slideShow.customShow') }}</span>
 			</label>
 			<div v-if="showSlidesMode === 'customShow'" class="ml-6">
 				<select

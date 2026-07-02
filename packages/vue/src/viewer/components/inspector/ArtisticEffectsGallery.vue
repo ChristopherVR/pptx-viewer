@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxElement, PptxImageEffects } from 'pptx-viewer-core';
 import { ARTISTIC_EFFECTS } from 'pptx-viewer-shared';
+import { useI18n } from 'vue-i18n';
 
 import { humanizeEffectLabel, mergeEffectsPatch } from '../../composables/useImageEditing';
 
@@ -18,6 +19,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
 }>();
+
+const { t } = useI18n();
 
 const effects = ARTISTIC_EFFECTS;
 
@@ -54,7 +57,7 @@ function onPick(effectName: string): void {
 
 <template>
 	<div class="pptx-vue-artistic flex flex-col gap-1 text-[11px]">
-		<span class="text-muted-foreground">Artistic effects</span>
+		<span class="text-muted-foreground">{{ t('pptx.image.artisticEffects') }}</span>
 		<div class="pptx-vue-artistic__grid grid grid-cols-4 gap-1">
 			<button
 				v-for="[effectName, tKey, cssFilter] in effects"

@@ -14,6 +14,8 @@
  * The Arrange group is extracted into ArrangeButtonGroup.vue to keep this
  * file under the 300-LOC limit.
  */
+import { useI18n } from 'vue-i18n';
+
 import ArrangeButtonGroup from './ArrangeButtonGroup.vue';
 
 /** Shape presets offered by the Insert group. Mirrors React's `newShapeType`. */
@@ -51,12 +53,14 @@ const emit = defineEmits<{
 	'toggle-format-painter': [];
 }>();
 
+const { t } = useI18n();
+
 /** Shape presets rendered as a small button cluster in the Insert group. */
-const SHAPE_PRESETS: ReadonlyArray<{ preset: ShapePreset; label: string }> = [
-	{ preset: 'rect', label: 'Rectangle' },
-	{ preset: 'ellipse', label: 'Ellipse' },
-	{ preset: 'roundRect', label: 'Rounded rectangle' },
-	{ preset: 'triangle', label: 'Triangle' },
+const SHAPE_PRESETS: ReadonlyArray<{ preset: ShapePreset; labelKey: string }> = [
+	{ preset: 'rect', labelKey: 'pptx.editorToolbar.shapeRectangle' },
+	{ preset: 'ellipse', labelKey: 'pptx.editorToolbar.shapeEllipse' },
+	{ preset: 'roundRect', labelKey: 'pptx.editorToolbar.shapeRoundedRectangle' },
+	{ preset: 'triangle', labelKey: 'pptx.editorToolbar.shapeTriangle' },
 ];
 
 /**
@@ -76,20 +80,20 @@ const TB_BTN =
 	<div
 		class="pptx-vue-editor-toolbar flex flex-nowrap items-center gap-1.5 px-2 py-1 border-b border-border bg-secondary/50 overflow-x-auto scrollbar-none"
 		role="toolbar"
-		aria-label="Editing toolbar"
+		:aria-label="t('pptx.editorToolbar.label')"
 	>
 		<!-- History: always visible (core undo / redo). -->
 		<div
 			class="pptx-vue-tb-group flex shrink-0 items-center gap-1"
 			role="group"
-			aria-label="History"
+			:aria-label="t('pptx.editorToolbar.history')"
 		>
 			<button
 				type="button"
 				class="pptx-vue-tb-btn"
 				:class="TB_BTN"
-				aria-label="Undo"
-				title="Undo"
+				:aria-label="t('pptx.toolbar.undo')"
+				:title="t('pptx.toolbar.undo')"
 				:disabled="!props.canUndo"
 				@click="emit('undo')"
 			>
@@ -108,8 +112,8 @@ const TB_BTN =
 				type="button"
 				class="pptx-vue-tb-btn"
 				:class="TB_BTN"
-				aria-label="Redo"
-				title="Redo"
+				:aria-label="t('pptx.toolbar.redo')"
+				:title="t('pptx.toolbar.redo')"
 				:disabled="!props.canRedo"
 				@click="emit('redo')"
 			>
@@ -129,13 +133,17 @@ const TB_BTN =
 		<span class="pptx-vue-tb-sep w-px shrink-0 self-stretch bg-border/40 mx-1" aria-hidden="true" />
 
 		<!-- Zoom: always visible. -->
-		<div class="pptx-vue-tb-group flex shrink-0 items-center gap-1" role="group" aria-label="Zoom">
+		<div
+			class="pptx-vue-tb-group flex shrink-0 items-center gap-1"
+			role="group"
+			:aria-label="t('pptx.slideSorter.zoom')"
+		>
 			<button
 				type="button"
 				class="pptx-vue-tb-btn"
 				:class="TB_BTN"
-				aria-label="Zoom out"
-				title="Zoom out"
+				:aria-label="t('pptx.statusBar.zoomOut')"
+				:title="t('pptx.statusBar.zoomOut')"
 				@click="emit('zoom-out')"
 			>
 				<span aria-hidden="true">−</span>
@@ -144,8 +152,8 @@ const TB_BTN =
 				type="button"
 				class="pptx-vue-tb-btn pptx-vue-tb-zoom tabular-nums text-[0.85rem]"
 				:class="TB_BTN"
-				aria-label="Reset zoom to 100%"
-				title="Reset zoom"
+				:aria-label="t('pptx.editorToolbar.resetZoomTo100')"
+				:title="t('pptx.editorToolbar.resetZoom')"
 				@click="emit('zoom-reset')"
 			>
 				{{ props.zoomPercent }}%
@@ -154,8 +162,8 @@ const TB_BTN =
 				type="button"
 				class="pptx-vue-tb-btn"
 				:class="TB_BTN"
-				aria-label="Zoom in"
-				title="Zoom in"
+				:aria-label="t('pptx.statusBar.zoomIn')"
+				:title="t('pptx.statusBar.zoomIn')"
 				@click="emit('zoom-in')"
 			>
 				<span aria-hidden="true">+</span>
@@ -170,14 +178,14 @@ const TB_BTN =
 		<div
 			class="pptx-vue-tb-group flex shrink-0 items-center gap-1"
 			role="group"
-			aria-label="Insert"
+			:aria-label="t('pptx.editorToolbar.insert')"
 		>
 			<button
 				type="button"
 				class="pptx-vue-tb-btn pptx-vue-tb-text font-bold font-serif"
 				:class="TB_BTN"
-				aria-label="Add text box"
-				title="Add text box"
+				:aria-label="t('pptx.editorToolbar.addTextBox')"
+				:title="t('pptx.editorToolbar.addTextBox')"
 				@click="emit('add-text')"
 			>
 				<span aria-hidden="true">T</span>
@@ -188,8 +196,8 @@ const TB_BTN =
 				type="button"
 				class="pptx-vue-tb-btn max-sm:hidden"
 				:class="TB_BTN"
-				:aria-label="`Add ${s.label}`"
-				:title="`Add ${s.label}`"
+				:aria-label="t('pptx.editorToolbar.addShape', { shape: t(s.labelKey) })"
+				:title="t('pptx.editorToolbar.addShape', { shape: t(s.labelKey) })"
 				@click="emit('add-shape', s.preset)"
 			>
 				<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">

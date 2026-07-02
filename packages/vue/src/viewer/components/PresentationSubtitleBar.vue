@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * PresentationSubtitleBar - live subtitle/caption bar shown during presentation
@@ -55,6 +56,8 @@ interface WindowWithSpeechRecognition {
 const props = defineProps<{
 	visible: boolean;
 }>();
+
+const { t } = useI18n();
 
 const captionText = ref('');
 const supportState = ref<'unknown' | 'supported' | 'unsupported'>('unknown');
@@ -144,9 +147,9 @@ onBeforeUnmount(stopRecognition);
 
 const renderedText = computed<string>(() => {
 	if (supportState.value === 'unsupported') {
-		return 'Live captions are not supported in this browser.';
+		return t('pptx.subtitles.notSupported');
 	}
-	return captionText.value.length > 0 ? captionText.value : 'Listening…';
+	return captionText.value.length > 0 ? captionText.value : t('pptx.subtitles.listening');
 });
 </script>
 

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
+
 /**
  * SlidesPaneControls - compact button row for slide-level editing.
  *
@@ -18,19 +20,21 @@ const emit = defineEmits<{
 	duplicate: [];
 	delete: [];
 }>();
+
+const { t } = useI18n();
 </script>
 
 <template>
 	<div
 		class="pptx-vue-slides-controls flex items-center gap-1 border-t border-border bg-card p-1.5"
 		role="toolbar"
-		aria-label="Slide actions"
+		:aria-label="t('pptx.slideMenu.slideActions')"
 	>
 		<button
 			type="button"
 			class="pptx-vue-slides-controls__btn inline-flex flex-1 cursor-pointer items-center justify-center gap-1 rounded border border-border bg-secondary px-2 py-1.5 text-xs leading-none text-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-45"
-			title="Add slide"
-			aria-label="Add slide"
+			:title="t('pptx.slideMenu.addSlide')"
+			:aria-label="t('pptx.slideMenu.addSlide')"
 			@click="emit('add')"
 		>
 			<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
@@ -42,14 +46,16 @@ const emit = defineEmits<{
 					stroke-linecap="round"
 				/>
 			</svg>
-			<span class="pptx-vue-slides-controls__label whitespace-nowrap">Add</span>
+			<span class="pptx-vue-slides-controls__label whitespace-nowrap">{{
+				t('pptx.slideMenu.add')
+			}}</span>
 		</button>
 
 		<button
 			type="button"
 			class="pptx-vue-slides-controls__btn inline-flex flex-1 cursor-pointer items-center justify-center gap-1 rounded border border-border bg-secondary px-2 py-1.5 text-xs leading-none text-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-45"
-			title="Duplicate slide"
-			aria-label="Duplicate slide"
+			:title="t('pptx.slideMenu.duplicate')"
+			:aria-label="t('pptx.slideMenu.duplicate')"
 			@click="emit('duplicate')"
 		>
 			<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
@@ -71,14 +77,16 @@ const emit = defineEmits<{
 					stroke-linecap="round"
 				/>
 			</svg>
-			<span class="pptx-vue-slides-controls__label whitespace-nowrap">Duplicate</span>
+			<span class="pptx-vue-slides-controls__label whitespace-nowrap">{{
+				t('pptx.arrange.duplicate')
+			}}</span>
 		</button>
 
 		<button
 			type="button"
 			class="pptx-vue-slides-controls__btn pptx-vue-slides-controls__btn--danger inline-flex flex-1 cursor-pointer items-center justify-center gap-1 rounded border border-border bg-secondary px-2 py-1.5 text-xs leading-none text-foreground transition-colors hover:border-destructive hover:bg-muted hover:text-destructive focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-45"
-			title="Delete slide"
-			aria-label="Delete slide"
+			:title="t('pptx.slideMenu.delete')"
+			:aria-label="t('pptx.slideMenu.delete')"
 			:disabled="!canDelete"
 			@click="canDelete && emit('delete')"
 		>
@@ -92,7 +100,9 @@ const emit = defineEmits<{
 					stroke-linejoin="round"
 				/>
 			</svg>
-			<span class="pptx-vue-slides-controls__label whitespace-nowrap">Delete</span>
+			<span class="pptx-vue-slides-controls__label whitespace-nowrap">{{
+				t('pptx.arrange.delete')
+			}}</span>
 		</button>
 	</div>
 </template>

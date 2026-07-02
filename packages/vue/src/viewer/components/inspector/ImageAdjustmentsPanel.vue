@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxElement, PptxImageEffects } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { mergeEffectsPatch } from '../../composables/useImageEditing';
 
@@ -19,6 +20,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
 }>();
+
+const { t } = useI18n();
 
 const brightness = computed<number>(() => props.fx?.brightness ?? 0);
 const contrast = computed<number>(() => props.fx?.contrast ?? 0);
@@ -58,7 +61,7 @@ function onResetThreshold(): void {
 <template>
 	<div class="pptx-vue-image-adjust flex flex-col gap-2 text-[11px]">
 		<label class="pptx-vue-image-adjust__slider grid grid-cols-[72px_1fr_36px] items-center gap-2">
-			<span class="text-muted-foreground">Brightness</span>
+			<span class="text-muted-foreground">{{ t('pptx.imageAdjustments.brightness') }}</span>
 			<input
 				type="range"
 				class="w-full accent-primary"
@@ -72,7 +75,7 @@ function onResetThreshold(): void {
 		</label>
 
 		<label class="pptx-vue-image-adjust__slider grid grid-cols-[72px_1fr_36px] items-center gap-2">
-			<span class="text-muted-foreground">Contrast</span>
+			<span class="text-muted-foreground">{{ t('pptx.imageAdjustments.contrast') }}</span>
 			<input
 				type="range"
 				class="w-full accent-primary"
@@ -86,7 +89,7 @@ function onResetThreshold(): void {
 		</label>
 
 		<label class="pptx-vue-image-adjust__slider grid grid-cols-[72px_1fr_36px] items-center gap-2">
-			<span class="text-muted-foreground">Saturation</span>
+			<span class="text-muted-foreground">{{ t('pptx.image.saturation') }}</span>
 			<input
 				type="range"
 				class="w-full accent-primary"
@@ -100,19 +103,21 @@ function onResetThreshold(): void {
 		</label>
 
 		<div class="pptx-vue-image-adjust__head flex items-center justify-between pt-1">
-			<span class="font-semibold text-muted-foreground">Transparency and threshold</span>
+			<span class="font-semibold text-muted-foreground">{{
+				t('pptx.imageAdjustments.title')
+			}}</span>
 			<button
 				v-if="hasThreshold"
 				type="button"
 				class="pptx-vue-image-adjust__reset rounded border border-border bg-muted hover:bg-accent px-1.5 py-0.5 text-[10px] transition-colors"
 				@click="onResetThreshold"
 			>
-				Reset
+				{{ t('pptx.imageAdjustments.reset') }}
 			</button>
 		</div>
 
 		<label class="pptx-vue-image-adjust__slider grid grid-cols-[72px_1fr_36px] items-center gap-2">
-			<span class="text-muted-foreground">Transparency</span>
+			<span class="text-muted-foreground">{{ t('pptx.imageAdjustments.transparency') }}</span>
 			<input
 				type="range"
 				class="w-full accent-primary"
@@ -126,7 +131,7 @@ function onResetThreshold(): void {
 		</label>
 
 		<label class="pptx-vue-image-adjust__slider grid grid-cols-[72px_1fr_36px] items-center gap-2">
-			<span class="text-muted-foreground">Bi-level</span>
+			<span class="text-muted-foreground">{{ t('pptx.imageAdjustments.biLevelThreshold') }}</span>
 			<input
 				type="range"
 				class="w-full accent-primary"

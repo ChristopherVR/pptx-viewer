@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PptxTableData } from 'pptx-viewer-core';
+import { useI18n } from 'vue-i18n';
 
 /**
  * TableSizePanel: Vue port of the column-width and row-height numeric controls
@@ -15,6 +16,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	update: [patch: Partial<PptxTableData>];
 }>();
+
+const { t } = useI18n();
 
 function setColumnWidth(index: number, percent: number): void {
 	const td = props.tableData;
@@ -59,14 +62,14 @@ function evenRows(): void {
 	<div class="flex flex-col gap-2">
 		<div class="flex flex-col gap-1">
 			<div class="flex items-center justify-between">
-				<span class="text-[11px] font-medium">Column widths</span>
+				<span class="text-[11px] font-medium">{{ t('pptx.table.columnWidths') }}</span>
 				<button
 					type="button"
 					class="rounded border border-border bg-muted px-2 py-0.5 text-[11px] hover:bg-accent disabled:opacity-50"
 					:disabled="!canEdit"
 					@click="evenColumns"
 				>
-					Even
+					{{ t('pptx.table.even') }}
 				</button>
 			</div>
 			<label
@@ -90,14 +93,14 @@ function evenRows(): void {
 
 		<div class="flex flex-col gap-1">
 			<div class="flex items-center justify-between">
-				<span class="text-[11px] font-medium">Row heights</span>
+				<span class="text-[11px] font-medium">{{ t('pptx.table.rowHeights') }}</span>
 				<button
 					type="button"
 					class="rounded border border-border bg-muted px-2 py-0.5 text-[11px] hover:bg-accent disabled:opacity-50"
 					:disabled="!canEdit"
 					@click="evenRows"
 				>
-					Even
+					{{ t('pptx.table.even') }}
 				</button>
 			</div>
 			<label

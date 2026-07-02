@@ -5,6 +5,7 @@ import type {
 	AccessibilityIssueType,
 } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * AccessibilityPanel: lists accessibility issues for the current
@@ -26,22 +27,24 @@ const emit = defineEmits<{
 	'select-slide': [index: number];
 }>();
 
+const { t } = useI18n();
+
 /** Severity groups in display order. */
 const SEVERITY_GROUPS: readonly AccessibilityIssueSeverity[] = ['error', 'warning', 'tip'];
 
-const SEVERITY_LABELS: Record<AccessibilityIssueSeverity, string> = {
-	error: 'Errors',
-	warning: 'Warnings',
-	tip: 'Tips',
+const SEVERITY_LABEL_KEYS: Record<AccessibilityIssueSeverity, string> = {
+	error: 'pptx.accessibility.severityErrors',
+	warning: 'pptx.accessibility.severityWarnings',
+	tip: 'pptx.accessibility.severityTips',
 };
 
-const TYPE_LABELS: Record<AccessibilityIssueType, string> = {
-	missingAltText: 'Missing alt text',
-	missingSlideTitle: 'Missing slide title',
-	lowContrast: 'Low contrast',
-	complexTable: 'Complex table',
-	duplicateTitle: 'Duplicate title',
-	blankSlide: 'Blank slide',
+const TYPE_LABEL_KEYS: Record<AccessibilityIssueType, string> = {
+	missingAltText: 'pptx.accessibility.typeMissingAltText',
+	missingSlideTitle: 'pptx.accessibility.typeMissingSlideTitle',
+	lowContrast: 'pptx.accessibility.typeLowContrast',
+	complexTable: 'pptx.accessibility.typeComplexTable',
+	duplicateTitle: 'pptx.accessibility.typeDuplicateTitle',
+	blankSlide: 'pptx.accessibility.typeBlankSlide',
 };
 
 interface IssueGroup {
@@ -53,7 +56,7 @@ interface IssueGroup {
 const groups = computed<IssueGroup[]>(() =>
 	SEVERITY_GROUPS.map((severity) => ({
 		severity,
-		label: SEVERITY_LABELS[severity],
+		label: t(SEVERITY_LABEL_KEYS[severity]),
 		issues: props.issues.filter((issue) => issue.severity === severity),
 	})).filter((group) => group.issues.length > 0),
 );
@@ -61,7 +64,7 @@ const groups = computed<IssueGroup[]>(() =>
 const hasIssues = computed(() => props.issues.length > 0);
 
 function typeLabel(type: AccessibilityIssueType): string {
-	return TYPE_LABELS[type];
+	return t(TYPE_LABEL_KEYS[type]);
 }
 
 /** Stable-ish key for v-for; issues have no id of their own. */
@@ -77,10 +80,12 @@ function onSelect(issue: AccessibilityIssue): void {
 <template>
 	<section
 		class="pptx-vue-a11y-panel flex flex-col gap-3 bg-popover p-3 text-sm text-foreground"
-		aria-label="Accessibility checker"
+		:aria-label="t('pptx.accessibility.title')"
 	>
 		<header class="pptx-vue-a11y-panel__header flex items-center justify-between gap-2">
-			<h2 class="pptx-vue-a11y-panel__title m-0 text-base font-semibold">Accessibility</h2>
+			<h2 class="pptx-vue-a11y-panel__title m-0 text-base font-semibold">
+				{{ t('pptx.accessibility.heading') }}
+			</h2>
 			<span
 				class="pptx-vue-a11y-panel__count min-w-6 rounded-full bg-muted px-1.5 py-px text-center text-xs font-semibold text-muted-foreground"
 				>{{ issues.length }}</span
@@ -88,9 +93,11 @@ function onSelect(issue: AccessibilityIssue): void {
 		</header>
 
 		<div v-if="!hasIssues" class="pptx-vue-a11y-panel__empty px-2 py-6 text-center text-green-400">
-			<p class="pptx-vue-a11y-panel__empty-title m-0 mb-1 font-semibold">No issues found</p>
+			<p class="pptx-vue-a11y-panel__empty-title m-0 mb-1 font-semibold">
+				{{ t('pptx.accessibility.noIssuesFound') }}
+			</p>
 			<p class="pptx-vue-a11y-panel__empty-hint m-0 text-[0.8125rem] text-muted-foreground">
-				This presentation passes all accessibility checks.
+				{{ t('pptx.accessibility.allChecksPass') }}
 			</p>
 		</div>
 
@@ -137,9 +144,9 @@ function onSelect(issue: AccessibilityIssue): void {
 								typeLabel(issue.type)
 							}}</span>
 							<span class="pptx-vue-a11y-issue__message text-foreground">{{ issue.message }}</span>
-							<span class="pptx-vue-a11y-issue__slide text-xs text-muted-foreground"
-								>Slide {{ issue.slideIndex + 1 }}</span
-							>
+							<span class="pptx-vue-a11y-issue__slide text-xs text-muted-foreground">{{
+								t('pptx.notes.slideN', { n: issue.slideIndex + 1 })
+							}}</span>
 						</button>
 					</li>
 				</ul>

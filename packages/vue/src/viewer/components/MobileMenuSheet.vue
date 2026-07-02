@@ -30,7 +30,8 @@ import {
 	Wand,
 } from 'lucide-vue-next';
 import type { Component } from 'vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../utils';
 import MobileSheet from './MobileSheet.vue';
@@ -58,20 +59,22 @@ interface Props extends RibbonProps {
 const props = defineProps<Props>();
 const emit = defineEmits<{ close: [] }>();
 
-const MENU_ITEMS: Array<{ key: MenuKey; label: string; icon: Component }> = [
-	{ key: 'home', label: 'Home', icon: ClipboardList },
-	{ key: 'insert', label: 'Insert', icon: Plus },
-	{ key: 'text', label: 'Text', icon: Type },
-	{ key: 'draw', label: 'Draw', icon: Paintbrush },
-	{ key: 'arrange', label: 'Arrange', icon: Shapes },
-	{ key: 'design', label: 'Design', icon: LayoutGrid },
-	{ key: 'transitions', label: 'Transitions', icon: Sparkles },
-	{ key: 'animations', label: 'Animations', icon: Wand },
-	{ key: 'slideShow', label: 'Slide Show', icon: Presentation },
-	{ key: 'review', label: 'Review', icon: TextCursorInput },
-	{ key: 'view', label: 'View', icon: Settings },
-	{ key: 'file', label: 'File', icon: FileIcon },
-];
+const { t } = useI18n();
+
+const MENU_ITEMS = computed<Array<{ key: MenuKey; label: string; icon: Component }>>(() => [
+	{ key: 'home', label: t('pptx.ribbon.home'), icon: ClipboardList },
+	{ key: 'insert', label: t('pptx.ribbon.insert'), icon: Plus },
+	{ key: 'text', label: t('pptx.ribbon.text'), icon: Type },
+	{ key: 'draw', label: t('pptx.ribbon.draw'), icon: Paintbrush },
+	{ key: 'arrange', label: t('pptx.ribbon.arrange'), icon: Shapes },
+	{ key: 'design', label: t('pptx.ribbon.design'), icon: LayoutGrid },
+	{ key: 'transitions', label: t('pptx.ribbon.transitions'), icon: Sparkles },
+	{ key: 'animations', label: t('pptx.ribbon.animations'), icon: Wand },
+	{ key: 'slideShow', label: t('pptx.ribbon.slideShow'), icon: Presentation },
+	{ key: 'review', label: t('pptx.ribbon.review'), icon: TextCursorInput },
+	{ key: 'view', label: t('pptx.ribbon.view'), icon: Settings },
+	{ key: 'file', label: t('pptx.ribbon.file'), icon: FileIcon },
+]);
 
 const active = ref<MenuKey | null>('home');
 function toggle(key: MenuKey): void {
@@ -83,7 +86,7 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 </script>
 
 <template>
-	<MobileSheet :open="props.open" title="Menu" @close="emit('close')">
+	<MobileSheet :open="props.open" :title="t('pptx.mobileMenu.title')" @close="emit('close')">
 		<div class="flex flex-col">
 			<!-- Section chips: wrap so every section stays reachable without
 			     horizontal scrolling (mirrors React's wrapping chip row). -->
@@ -290,7 +293,9 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 					/>
 				</div>
 
-				<p v-else class="py-8 text-center text-sm text-muted-foreground">Select a section above</p>
+				<p v-else class="py-8 text-center text-sm text-muted-foreground">
+					{{ t('pptx.mobileMenu.selectSection') }}
+				</p>
 			</div>
 		</div>
 	</MobileSheet>

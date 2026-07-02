@@ -2,6 +2,7 @@
 import type { PptxElement, PptxTextWarpPreset, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import Text3DProperties from './Text3DProperties.vue';
 import TextEffectsPanel from './TextEffectsPanel.vue';
@@ -30,6 +31,8 @@ const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
 }>();
 
+const { t } = useI18n();
+
 const FONT_OPTIONS: ReadonlyArray<string> = [
 	'Arial',
 	'Calibri',
@@ -40,27 +43,28 @@ const FONT_OPTIONS: ReadonlyArray<string> = [
 	'Verdana',
 ];
 
-const ALIGN_OPTIONS: ReadonlyArray<{ value: AlignValue; label: string }> = [
-	{ value: 'left', label: 'Left' },
-	{ value: 'center', label: 'Center' },
-	{ value: 'right', label: 'Right' },
-	{ value: 'justify', label: 'Justify' },
+const ALIGN_OPTIONS: ReadonlyArray<{ value: AlignValue; labelKey: string }> = [
+	{ value: 'left', labelKey: 'pptx.textPanel.alignLeft' },
+	{ value: 'center', labelKey: 'pptx.textPanel.alignCenter' },
+	{ value: 'right', labelKey: 'pptx.textPanel.alignRight' },
+	{ value: 'justify', labelKey: 'pptx.textPanel.alignJustify' },
 ];
 
-const VALIGN_OPTIONS: ReadonlyArray<{ value: VAlignValue; label: string }> = [
-	{ value: 'top', label: 'Top' },
-	{ value: 'middle', label: 'Middle' },
-	{ value: 'bottom', label: 'Bottom' },
+const VALIGN_OPTIONS: ReadonlyArray<{ value: VAlignValue; labelKey: string }> = [
+	{ value: 'top', labelKey: 'pptx.textPanel.valignTop' },
+	{ value: 'middle', labelKey: 'pptx.textPanel.valignMiddle' },
+	{ value: 'bottom', labelKey: 'pptx.textPanel.valignBottom' },
 ];
 
 const TOGGLES: ReadonlyArray<{
 	key: 'bold' | 'italic' | 'underline' | 'strikethrough';
 	label: string;
+	titleKey: string;
 }> = [
-	{ key: 'bold', label: 'B' },
-	{ key: 'italic', label: 'I' },
-	{ key: 'underline', label: 'U' },
-	{ key: 'strikethrough', label: 'S' },
+	{ key: 'bold', label: 'B', titleKey: 'pptx.textPanel.bold' },
+	{ key: 'italic', label: 'I', titleKey: 'pptx.textPanel.italic' },
+	{ key: 'underline', label: 'U', titleKey: 'pptx.textPanel.underline' },
+	{ key: 'strikethrough', label: 'S', titleKey: 'pptx.textPanel.strikethrough' },
 ];
 
 const applicable = computed(() => hasTextProperties(props.element));
@@ -123,22 +127,24 @@ function onTextEffectPatch(patch: Partial<TextStyle>): void {
 		<h3
 			class="pptx-vue-text-title text-xs font-semibold uppercase tracking-wide text-muted-foreground"
 		>
-			Text
+			{{ t('pptx.textPanel.title') }}
 		</h3>
 
 		<p v-if="!applicable" class="pptx-vue-text-muted text-xs text-muted-foreground">
-			This element has no text properties.
+			{{ t('pptx.textPanel.noTextProperties') }}
 		</p>
 
 		<div v-else class="pptx-vue-text-fields flex flex-col gap-2">
 			<label class="pptx-vue-text-field flex flex-col gap-1">
-				<span class="pptx-vue-text-label text-muted-foreground">Font</span>
+				<span class="pptx-vue-text-label text-muted-foreground">{{
+					t('pptx.textPanel.font')
+				}}</span>
 				<select
 					class="pptx-vue-text-input w-full bg-muted border border-border rounded px-2 py-1"
 					:value="fontFamily"
 					@change="onFontFamily"
 				>
-					<option value="">Default</option>
+					<option value="">{{ t('pptx.textPanel.default') }}</option>
 					<option v-for="font in FONT_OPTIONS" :key="font" :value="font">
 						{{ font }}
 					</option>
@@ -150,7 +156,9 @@ function onTextEffectPatch(patch: Partial<TextStyle>): void {
 
 			<div class="pptx-vue-text-row grid grid-cols-2 gap-2">
 				<label class="pptx-vue-text-field flex flex-col gap-1">
-					<span class="pptx-vue-text-label text-muted-foreground">Size (pt)</span>
+					<span class="pptx-vue-text-label text-muted-foreground">{{
+						t('pptx.textPanel.size')
+					}}</span>
 					<input
 						type="number"
 						class="pptx-vue-text-input w-full bg-muted border border-border rounded px-2 py-1"
@@ -161,7 +169,9 @@ function onTextEffectPatch(patch: Partial<TextStyle>): void {
 					/>
 				</label>
 				<label class="pptx-vue-text-field flex flex-col gap-1">
-					<span class="pptx-vue-text-label text-muted-foreground">Color</span>
+					<span class="pptx-vue-text-label text-muted-foreground">{{
+						t('pptx.textPanel.color')
+					}}</span>
 					<input
 						type="color"
 						class="pptx-vue-text-color w-full h-8 bg-muted border border-border rounded p-0.5"
@@ -172,29 +182,33 @@ function onTextEffectPatch(patch: Partial<TextStyle>): void {
 			</div>
 
 			<div class="pptx-vue-text-field flex flex-col gap-1">
-				<span class="pptx-vue-text-label text-muted-foreground">Style</span>
+				<span class="pptx-vue-text-label text-muted-foreground">{{
+					t('pptx.textPanel.style')
+				}}</span>
 				<div class="pptx-vue-text-toggles flex flex-wrap gap-1">
 					<button
-						v-for="t in TOGGLES"
-						:key="t.key"
+						v-for="tg in TOGGLES"
+						:key="tg.key"
 						type="button"
 						class="pptx-vue-text-toggle min-w-8 rounded border border-border px-2 py-1 transition-colors"
 						:class="
-							isActive(t.key)
+							isActive(tg.key)
 								? 'pptx-vue-text-toggle-active bg-primary text-white font-semibold'
 								: 'bg-muted hover:bg-accent'
 						"
-						:aria-pressed="isActive(t.key)"
-						:title="t.key"
-						@click="toggle(t.key)"
+						:aria-pressed="isActive(tg.key)"
+						:title="t(tg.titleKey)"
+						@click="toggle(tg.key)"
 					>
-						{{ t.label }}
+						{{ tg.label }}
 					</button>
 				</div>
 			</div>
 
 			<div class="pptx-vue-text-field flex flex-col gap-1">
-				<span class="pptx-vue-text-label text-muted-foreground">Horizontal Align</span>
+				<span class="pptx-vue-text-label text-muted-foreground">
+					{{ t('pptx.textPanel.horizontalAlign') }}
+				</span>
 				<div class="pptx-vue-text-toggles flex flex-wrap gap-1">
 					<button
 						v-for="opt in ALIGN_OPTIONS"
@@ -207,16 +221,18 @@ function onTextEffectPatch(patch: Partial<TextStyle>): void {
 								: 'bg-muted hover:bg-accent'
 						"
 						:aria-pressed="align === opt.value"
-						:title="opt.value"
+						:title="t(opt.labelKey)"
 						@click="setAlign(opt.value)"
 					>
-						{{ opt.label }}
+						{{ t(opt.labelKey) }}
 					</button>
 				</div>
 			</div>
 
 			<div class="pptx-vue-text-field flex flex-col gap-1">
-				<span class="pptx-vue-text-label text-muted-foreground">Vertical Align</span>
+				<span class="pptx-vue-text-label text-muted-foreground">
+					{{ t('pptx.textPanel.verticalAlign') }}
+				</span>
 				<div class="pptx-vue-text-toggles flex flex-wrap gap-1">
 					<button
 						v-for="opt in VALIGN_OPTIONS"
@@ -229,10 +245,10 @@ function onTextEffectPatch(patch: Partial<TextStyle>): void {
 								: 'bg-muted hover:bg-accent'
 						"
 						:aria-pressed="vAlign === opt.value"
-						:title="opt.value"
+						:title="t(opt.labelKey)"
 						@click="setVAlign(opt.value)"
 					>
-						{{ opt.label }}
+						{{ t(opt.labelKey) }}
 					</button>
 				</div>
 			</div>

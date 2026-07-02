@@ -8,6 +8,7 @@
  * `<div :class="SEP" />`.
  */
 import type { PptxCustomShow } from 'pptx-viewer-core';
+import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import { SEP } from './ribbon-constants';
@@ -25,6 +26,7 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const { t } = useI18n();
 
 function onSelectChange(e: Event): void {
 	const value = (e.target as HTMLSelectElement).value;
@@ -38,11 +40,11 @@ function onSelectChange(e: Event): void {
 		<select
 			:value="props.activeCustomShowId ?? ''"
 			class="h-6 px-1.5 text-[11px] rounded bg-muted text-foreground border border-border hover:bg-accent transition-colors cursor-pointer"
-			title="Custom show"
-			aria-label="Select custom show"
+			:title="t('pptx.customShows.customShowTooltip')"
+			:aria-label="t('pptx.customShows.selectCustomShow')"
 			@change="onSelectChange"
 		>
-			<option value="">All Slides</option>
+			<option value="">{{ t('pptx.customShows.allSlides') }}</option>
 			<option v-for="cs in props.customShows" :key="cs.id" :value="cs.id">
 				{{ cs.name }}
 			</option>
@@ -51,27 +53,27 @@ function onSelectChange(e: Event): void {
 			<button
 				type="button"
 				class="px-2 py-1 rounded bg-muted hover:bg-accent text-[11px] transition-colors"
-				title="Create custom show"
+				:title="t('pptx.customShows.createTooltip')"
 				@click="props.onCreateCustomShow()"
 			>
-				+ Show
+				{{ t('pptx.customShows.addShow') }}
 			</button>
 			<template v-if="props.activeCustomShowId">
 				<button
 					type="button"
 					class="px-2 py-1 rounded bg-muted hover:bg-accent text-[11px] transition-colors"
-					title="Rename active custom show"
+					:title="t('pptx.customShows.renameTooltip')"
 					@click="props.onRenameActiveCustomShow()"
 				>
-					Rename
+					{{ t('pptx.sections.rename') }}
 				</button>
 				<button
 					type="button"
 					class="px-2 py-1 rounded bg-red-700/80 hover:bg-red-600 text-[11px] transition-colors"
-					title="Delete active custom show"
+					:title="t('pptx.customShows.deleteTooltip')"
 					@click="props.onDeleteActiveCustomShow()"
 				>
-					Delete
+					{{ t('pptx.sections.delete') }}
 				</button>
 				<button
 					type="button"
@@ -83,10 +85,14 @@ function onSelectChange(e: Event): void {
 								: 'bg-muted hover:bg-accent',
 						)
 					"
-					title="Include/exclude current slide in active custom show"
+					:title="t('pptx.customShows.toggleSlideTooltip')"
 					@click="props.onToggleCurrentSlideInActiveShow()"
 				>
-					{{ props.isCurrentSlideInActiveShow ? 'In Show' : 'Add Slide' }}
+					{{
+						props.isCurrentSlideInActiveShow
+							? t('pptx.customShows.inShow')
+							: t('pptx.customShows.addSlide')
+					}}
 				</button>
 			</template>
 		</template>
@@ -96,10 +102,10 @@ function onSelectChange(e: Event): void {
 		<button
 			type="button"
 			class="px-2 py-1 rounded bg-muted hover:bg-accent text-[11px] transition-colors"
-			title="Create custom show"
+			:title="t('pptx.customShows.createTooltip')"
 			@click="props.onCreateCustomShow()"
 		>
-			+ Show
+			{{ t('pptx.customShows.addShow') }}
 		</button>
 	</template>
 </template>

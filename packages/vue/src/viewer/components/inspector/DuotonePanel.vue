@@ -2,6 +2,7 @@
 import type { PptxElement, PptxImageEffects } from 'pptx-viewer-core';
 import { DUOTONE_PRESETS, normalizeHexColor } from 'pptx-viewer-shared';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import {
 	DEFAULT_DUOTONE,
@@ -22,6 +23,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
 }>();
+
+const { t } = useI18n();
 
 const duotone = computed(() => props.fx?.duotone);
 const shadow = computed<string>(() =>
@@ -50,25 +53,29 @@ function onHighlight(hex: string): void {
 
 <template>
 	<div class="pptx-vue-duotone flex flex-col gap-2 text-[11px]">
-		<span class="font-semibold text-muted-foreground">Duotone</span>
+		<span class="font-semibold text-muted-foreground">{{ t('pptx.image.duotone') }}</span>
 
 		<div class="flex items-center gap-3">
 			<label class="flex items-center gap-1.5">
-				<span class="text-muted-foreground">Shadows</span>
-				<DebouncedColorInput :value="shadow" aria-label="Duotone shadows" @commit="onShadow" />
+				<span class="text-muted-foreground">{{ t('pptx.image.duotoneShadows') }}</span>
+				<DebouncedColorInput
+					:value="shadow"
+					:aria-label="t('pptx.image.duotoneShadowsAria')"
+					@commit="onShadow"
+				/>
 			</label>
 			<label class="flex items-center gap-1.5">
-				<span class="text-muted-foreground">Highlights</span>
+				<span class="text-muted-foreground">{{ t('pptx.image.duotoneHighlights') }}</span>
 				<DebouncedColorInput
 					:value="highlight"
-					aria-label="Duotone highlights"
+					:aria-label="t('pptx.image.duotoneHighlightsAria')"
 					@commit="onHighlight"
 				/>
 			</label>
 		</div>
 
 		<div class="flex flex-col gap-1">
-			<span class="text-[10px] text-muted-foreground">Presets</span>
+			<span class="text-[10px] text-muted-foreground">{{ t('pptx.image.duotonePresets') }}</span>
 			<div class="pptx-vue-duotone__grid grid grid-cols-4 gap-1">
 				<button
 					v-for="preset in DUOTONE_PRESETS"
@@ -95,7 +102,7 @@ function onHighlight(hex: string): void {
 			class="pptx-vue-duotone__clear w-full rounded border border-border bg-muted px-2 py-1 hover:bg-accent transition-colors"
 			@click="clear"
 		>
-			Clear duotone
+			{{ t('pptx.image.duotoneClear') }}
 		</button>
 	</div>
 </template>

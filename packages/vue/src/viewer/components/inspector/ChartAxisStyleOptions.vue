@@ -2,6 +2,7 @@
 import type { PptxChartAxisFormatting } from 'pptx-viewer-core';
 import { EDITABLE_AXIS_ROWS, GRIDLINE_DASH_OPTIONS } from 'pptx-viewer-shared';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type {
 	ChartAxisTitleStyleEdit,
@@ -30,6 +31,8 @@ const emit = defineEmits<{
 		edit: ChartGridlineStyleEdit,
 	];
 }>();
+
+const { t } = useI18n();
 
 type AxisRow = (typeof EDITABLE_AXIS_ROWS)[number] & { axis: PptxChartAxisFormatting };
 
@@ -97,9 +100,9 @@ function onGridDash(event: Event, row: AxisRow, which: 'major' | 'minor'): void 
 }
 
 const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full';
-const GRID_KINDS: ReadonlyArray<{ which: 'major' | 'minor'; label: string }> = [
-	{ which: 'major', label: 'Major gridlines' },
-	{ which: 'minor', label: 'Minor gridlines' },
+const GRID_KINDS: ReadonlyArray<{ which: 'major' | 'minor'; labelKey: string }> = [
+	{ which: 'major', labelKey: 'pptx.chart.majorGridlines' },
+	{ which: 'minor', labelKey: 'pptx.chart.minorGridlines' },
 ];
 </script>
 
@@ -109,7 +112,7 @@ const GRID_KINDS: ReadonlyArray<{ which: 'major' | 'minor'; label: string }> = [
 		class="pptx-vue-chart-card rounded border border-border bg-card p-2 space-y-2"
 	>
 		<div class="pptx-vue-chart-heading text-[11px] uppercase tracking-wide text-muted-foreground">
-			Axis styling
+			{{ t('pptx.chart.axisStyling') }}
 		</div>
 		<div v-for="row in rows" :key="row.type" class="space-y-1.5">
 			<div class="text-[11px] font-medium">{{ row.label }}</div>
@@ -123,14 +126,14 @@ const GRID_KINDS: ReadonlyArray<{ which: 'major' | 'minor'; label: string }> = [
 							:checked="row.axis.logScale ?? false"
 							@change="onLogToggle($event, row)"
 						/>
-						<span class="text-[11px]">Log scale</span>
+						<span class="text-[11px]">{{ t('pptx.chart.logScale') }}</span>
 					</label>
 					<input
 						v-if="row.axis.logScale"
 						type="number"
 						min="2"
 						data-testid="chart-axis-log-base"
-						title="Log base"
+						:title="t('pptx.chart.logBase')"
 						class="w-16 bg-muted border border-border rounded px-1.5 py-0.5 text-[11px]"
 						:value="row.axis.logBase ?? 10"
 						@input="onLogBase($event, row)"
@@ -138,12 +141,12 @@ const GRID_KINDS: ReadonlyArray<{ which: 'major' | 'minor'; label: string }> = [
 				</div>
 
 				<div class="flex items-center gap-2 text-[11px]">
-					<span class="w-12 text-muted-foreground shrink-0">Title font</span>
+					<span class="w-12 text-muted-foreground shrink-0">{{ t('pptx.chart.titleFont') }}</span>
 					<input
 						type="text"
 						:class="INPUT"
 						data-testid="chart-axis-title-font"
-						placeholder="Auto"
+						:placeholder="t('pptx.chart.auto')"
 						:value="row.axis.fontFamily ?? ''"
 						@input="onFontFamily($event, row)"
 					/>
@@ -152,10 +155,10 @@ const GRID_KINDS: ReadonlyArray<{ which: 'major' | 'minor'; label: string }> = [
 						min="4"
 						max="96"
 						data-testid="chart-axis-title-size"
-						title="Font size"
+						:title="t('pptx.chart.fontSize')"
 						class="w-14 bg-muted border border-border rounded px-1.5 py-0.5"
 						:value="row.axis.fontSize ?? ''"
-						placeholder="Auto"
+						:placeholder="t('pptx.chart.auto')"
 						@input="onFontSize($event, row)"
 					/>
 				</div>
@@ -168,10 +171,10 @@ const GRID_KINDS: ReadonlyArray<{ which: 'major' | 'minor'; label: string }> = [
 							:checked="row.axis.fontBold ?? false"
 							@change="onBold($event, row)"
 						/>
-						<span>Bold</span>
+						<span>{{ t('pptx.chart.bold') }}</span>
 					</label>
 					<label class="flex items-center gap-1">
-						<span class="text-muted-foreground">Colour</span>
+						<span class="text-muted-foreground">{{ t('pptx.chart.titleColor') }}</span>
 						<input
 							type="color"
 							data-testid="chart-axis-title-color"
@@ -184,11 +187,11 @@ const GRID_KINDS: ReadonlyArray<{ which: 'major' | 'minor'; label: string }> = [
 
 				<template v-for="kind in GRID_KINDS" :key="kind.which">
 					<div v-if="gridEnabled(row, kind.which)" class="flex items-center gap-2 text-[11px]">
-						<span class="w-12 text-muted-foreground shrink-0">{{ kind.label }}</span>
+						<span class="w-12 text-muted-foreground shrink-0">{{ t(kind.labelKey) }}</span>
 						<input
 							type="color"
 							data-testid="chart-gridline-color"
-							title="Gridline colour"
+							:title="t('pptx.chart.gridlineColor')"
 							class="h-6 w-8 cursor-pointer rounded border border-border bg-transparent"
 							:value="gridSpPr(row, kind.which)?.strokeColor ?? '#d9d9d9'"
 							@input="onGridColor($event, row, kind.which)"
@@ -198,16 +201,16 @@ const GRID_KINDS: ReadonlyArray<{ which: 'major' | 'minor'; label: string }> = [
 							min="0.25"
 							step="0.25"
 							data-testid="chart-gridline-width"
-							title="Gridline width"
+							:title="t('pptx.chart.gridlineWidth')"
 							class="w-14 bg-muted border border-border rounded px-1.5 py-0.5"
 							:value="gridSpPr(row, kind.which)?.strokeWidth ?? ''"
-							placeholder="Auto"
+							:placeholder="t('pptx.chart.auto')"
 							@input="onGridWidth($event, row, kind.which)"
 						/>
 						<select
 							:class="INPUT"
 							data-testid="chart-gridline-dash"
-							title="Gridline dash"
+							:title="t('pptx.chart.gridlineDash')"
 							:value="gridSpPr(row, kind.which)?.strokeDashStyle ?? ''"
 							@change="onGridDash($event, row, kind.which)"
 						>

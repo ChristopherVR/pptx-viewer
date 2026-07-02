@@ -11,6 +11,7 @@ import { setSmartArtNodeStyle } from 'pptx-viewer-core';
 import { buildSmartArtA11y, shouldCommitSmartArtNodeText } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, nextTick, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { getContainerStyle } from '../composables/element-style';
 import {
@@ -54,6 +55,8 @@ const props = defineProps<{
 	mediaDataUrls?: Map<string, string>;
 	zIndex: number;
 }>();
+
+const { t } = useI18n();
 
 // ── Palette / style helpers (ported from smartart-helpers.tsx) ───────────────
 
@@ -420,7 +423,9 @@ function onEditorKeydown(event: KeyboardEvent): void {
 			@mouseleave="onMouseLeave"
 		>
 			<!-- Empty / no-data placeholder -->
-			<div v-if="isEmpty" class="pptx-vue-smartart-placeholder">SmartArt</div>
+			<div v-if="isEmpty" class="pptx-vue-smartart-placeholder">
+				{{ t('pptx.smartArt.placeholder') }}
+			</div>
 
 			<!-- Pre-computed drawing shapes (preferred path) -->
 			<svg
@@ -626,7 +631,7 @@ function onEditorKeydown(event: KeyboardEvent): void {
 				v-model="edit.draft.value"
 				class="pptx-vue-smartart-node-editor"
 				spellcheck="false"
-				aria-label="Edit SmartArt node text"
+				:aria-label="t('pptx.smartArt.editNodeText')"
 				:style="{
 					left: `${edit.rect.value.left}px`,
 					top: `${edit.rect.value.top}px`,

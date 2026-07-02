@@ -2,6 +2,7 @@
 import { Lock, LockOpen } from 'lucide-vue-next';
 import type { PptxElement, PptxShapeLocks } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * ArrangePanel: position, size, rotation, flip controls and element lock toggle.
@@ -18,6 +19,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
 }>();
+
+const { t } = useI18n();
 
 const x = computed(() => Math.round(props.element.x ?? 0));
 const y = computed(() => Math.round(props.element.y ?? 0));
@@ -86,11 +89,11 @@ function onFlipVertical(checked: boolean): void {
 <template>
 	<div class="pptx-vue-arrange flex flex-col gap-2 text-xs">
 		<div class="flex items-center justify-between">
-			<span class="text-muted-foreground font-medium">Position &amp; Size</span>
+			<span class="text-muted-foreground font-medium">{{ t('pptx.arrange.positionSize') }}</span>
 			<button
 				type="button"
 				:disabled="!props.canEdit"
-				:title="isLocked ? 'Unlock element' : 'Lock element'"
+				:title="isLocked ? t('pptx.arrange.unlockElement') : t('pptx.arrange.lockElement')"
 				:aria-pressed="isLocked"
 				class="p-1 rounded hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
 				@click="toggleLock"
@@ -101,7 +104,7 @@ function onFlipVertical(checked: boolean): void {
 		</div>
 		<div class="pptx-vue-arrange-grid grid grid-cols-2 gap-2">
 			<label class="pptx-vue-arrange-field flex flex-col gap-1">
-				<span class="pptx-vue-arrange-label text-muted-foreground">X</span>
+				<span class="pptx-vue-arrange-label text-muted-foreground">{{ t('pptx.arrange.x') }}</span>
 				<input
 					type="number"
 					class="pptx-vue-arrange-input bg-muted border border-border rounded px-2 py-1"
@@ -110,7 +113,7 @@ function onFlipVertical(checked: boolean): void {
 				/>
 			</label>
 			<label class="pptx-vue-arrange-field flex flex-col gap-1">
-				<span class="pptx-vue-arrange-label text-muted-foreground">Y</span>
+				<span class="pptx-vue-arrange-label text-muted-foreground">{{ t('pptx.arrange.y') }}</span>
 				<input
 					type="number"
 					class="pptx-vue-arrange-input bg-muted border border-border rounded px-2 py-1"
@@ -119,7 +122,9 @@ function onFlipVertical(checked: boolean): void {
 				/>
 			</label>
 			<label class="pptx-vue-arrange-field flex flex-col gap-1">
-				<span class="pptx-vue-arrange-label text-muted-foreground">Width</span>
+				<span class="pptx-vue-arrange-label text-muted-foreground">{{
+					t('pptx.arrange.width')
+				}}</span>
 				<input
 					type="number"
 					class="pptx-vue-arrange-input bg-muted border border-border rounded px-2 py-1"
@@ -129,7 +134,9 @@ function onFlipVertical(checked: boolean): void {
 				/>
 			</label>
 			<label class="pptx-vue-arrange-field flex flex-col gap-1">
-				<span class="pptx-vue-arrange-label text-muted-foreground">Height</span>
+				<span class="pptx-vue-arrange-label text-muted-foreground">{{
+					t('pptx.arrange.height')
+				}}</span>
 				<input
 					type="number"
 					class="pptx-vue-arrange-input bg-muted border border-border rounded px-2 py-1"
@@ -141,7 +148,9 @@ function onFlipVertical(checked: boolean): void {
 		</div>
 
 		<label class="pptx-vue-arrange-field flex flex-col gap-1">
-			<span class="pptx-vue-arrange-label text-muted-foreground">Rotation</span>
+			<span class="pptx-vue-arrange-label text-muted-foreground">{{
+				t('pptx.arrange.rotation')
+			}}</span>
 			<input
 				type="number"
 				class="pptx-vue-arrange-input bg-muted border border-border rounded px-2 py-1"
@@ -157,7 +166,7 @@ function onFlipVertical(checked: boolean): void {
 					:checked="flipHorizontal"
 					@change="onFlipHorizontal(($event.target as HTMLInputElement).checked)"
 				/>
-				Flip Horizontally
+				{{ t('pptx.arrange.flipHorizontally') }}
 			</label>
 			<label class="pptx-vue-arrange-check inline-flex items-center gap-2 text-foreground">
 				<input
@@ -165,7 +174,7 @@ function onFlipVertical(checked: boolean): void {
 					:checked="flipVertical"
 					@change="onFlipVertical(($event.target as HTMLInputElement).checked)"
 				/>
-				Flip Vertically
+				{{ t('pptx.arrange.flipVertically') }}
 			</label>
 		</div>
 	</div>

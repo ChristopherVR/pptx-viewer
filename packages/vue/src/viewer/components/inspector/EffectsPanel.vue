@@ -2,6 +2,7 @@
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import QuickStylesGallery from './QuickStylesGallery.vue';
 
@@ -34,6 +35,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
 }>();
+
+const { t } = useI18n();
 
 // Defaults mirror the React effect configs.
 const DEFAULT_SHADOW_COLOR = '#000000';
@@ -190,9 +193,9 @@ function onGlowRadius(value: string): void {
 <template>
 	<div class="pptx-vue-effects flex flex-col gap-3 text-xs">
 		<label class="pptx-vue-effects-field flex flex-col gap-1">
-			<span class="pptx-vue-effects-label text-muted-foreground"
-				>Opacity ({{ opacityPercent }}%)</span
-			>
+			<span class="pptx-vue-effects-label text-muted-foreground">{{
+				t('pptx.effects.opacityPercent', { value: opacityPercent })
+			}}</span>
 			<input
 				type="range"
 				class="pptx-vue-effects-range w-full accent-primary"
@@ -213,12 +216,14 @@ function onGlowRadius(value: string): void {
 						:checked="shadowOn"
 						@change="onToggleShadow(($event.target as HTMLInputElement).checked)"
 					/>
-					Outer Shadow
+					{{ t('pptx.effects.outerShadow') }}
 				</label>
 
 				<div v-if="shadowOn" class="pptx-vue-effects-grid grid grid-cols-2 gap-2">
 					<label class="pptx-vue-effects-field flex flex-col gap-1">
-						<span class="pptx-vue-effects-label text-muted-foreground">Color</span>
+						<span class="pptx-vue-effects-label text-muted-foreground">{{
+							t('pptx.effects.color')
+						}}</span>
 						<input
 							type="color"
 							class="pptx-vue-effects-color w-full h-7 p-0 bg-muted border border-border rounded"
@@ -227,7 +232,9 @@ function onGlowRadius(value: string): void {
 						/>
 					</label>
 					<label class="pptx-vue-effects-field flex flex-col gap-1">
-						<span class="pptx-vue-effects-label text-muted-foreground">Blur</span>
+						<span class="pptx-vue-effects-label text-muted-foreground">{{
+							t('pptx.effects.blur')
+						}}</span>
 						<input
 							type="number"
 							class="pptx-vue-effects-input bg-muted border border-border rounded px-2 py-1"
@@ -238,7 +245,9 @@ function onGlowRadius(value: string): void {
 						/>
 					</label>
 					<label class="pptx-vue-effects-field flex flex-col gap-1">
-						<span class="pptx-vue-effects-label text-muted-foreground">Distance</span>
+						<span class="pptx-vue-effects-label text-muted-foreground">{{
+							t('pptx.effects.distance')
+						}}</span>
 						<input
 							type="number"
 							class="pptx-vue-effects-input bg-muted border border-border rounded px-2 py-1"
@@ -249,7 +258,9 @@ function onGlowRadius(value: string): void {
 						/>
 					</label>
 					<label class="pptx-vue-effects-field flex flex-col gap-1">
-						<span class="pptx-vue-effects-label text-muted-foreground">Angle</span>
+						<span class="pptx-vue-effects-label text-muted-foreground">{{
+							t('pptx.effects.angle')
+						}}</span>
 						<input
 							type="number"
 							class="pptx-vue-effects-input bg-muted border border-border rounded px-2 py-1"
@@ -269,12 +280,14 @@ function onGlowRadius(value: string): void {
 						:checked="glowOn"
 						@change="onToggleGlow(($event.target as HTMLInputElement).checked)"
 					/>
-					Outer Glow
+					{{ t('pptx.effects.outerGlow') }}
 				</label>
 
 				<div v-if="glowOn" class="pptx-vue-effects-grid grid grid-cols-2 gap-2">
 					<label class="pptx-vue-effects-field flex flex-col gap-1">
-						<span class="pptx-vue-effects-label text-muted-foreground">Color</span>
+						<span class="pptx-vue-effects-label text-muted-foreground">{{
+							t('pptx.effects.color')
+						}}</span>
 						<input
 							type="color"
 							class="pptx-vue-effects-color w-full h-7 p-0 bg-muted border border-border rounded"
@@ -283,7 +296,9 @@ function onGlowRadius(value: string): void {
 						/>
 					</label>
 					<label class="pptx-vue-effects-field flex flex-col gap-1">
-						<span class="pptx-vue-effects-label text-muted-foreground">Radius</span>
+						<span class="pptx-vue-effects-label text-muted-foreground">{{
+							t('pptx.effects.radius')
+						}}</span>
 						<input
 							type="number"
 							class="pptx-vue-effects-input bg-muted border border-border rounded px-2 py-1"
@@ -298,7 +313,7 @@ function onGlowRadius(value: string): void {
 		</template>
 
 		<p v-else class="pptx-vue-effects-note text-muted-foreground italic">
-			Shadow and glow are only available on shape-like elements.
+			{{ t('pptx.effects.shapeOnlyNote') }}
 		</p>
 	</div>
 </template>

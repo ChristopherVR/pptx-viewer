@@ -21,6 +21,7 @@ import {
 	Share2,
 	Undo,
 } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import CustomShowsControls from './CustomShowsControls.vue';
@@ -32,6 +33,7 @@ import type { RibbonProps } from './ribbon-types';
 interface Props extends RibbonProps {}
 
 const props = defineProps<Props>();
+const { t } = useI18n();
 
 const qab =
 	'p-1 max-md:p-2 max-md:min-h-[40px] max-md:min-w-[40px] rounded-sm transition-colors hover:bg-accent/60 disabled:opacity-40 disabled:cursor-not-allowed active:scale-90 active:opacity-70';
@@ -44,8 +46,8 @@ const qab =
 			v-if="props.mode !== 'present'"
 			type="button"
 			:class="cn(qab, !props.isSidebarCollapsed ? 'text-foreground' : 'text-muted-foreground')"
-			title="Toggle slides panel"
-			aria-label="Toggle slides panel"
+			:title="t('pptx.toolbar.toggleSlidesPanel')"
+			:aria-label="t('pptx.toolbar.toggleSlidesPanel')"
 			@click="props.onToggleSidebar()"
 		>
 			<PanelLeft :class="ic" />
@@ -55,8 +57,12 @@ const qab =
 			type="button"
 			:disabled="!props.canEdit || !props.canUndo"
 			:class="cn(qab, 'text-muted-foreground')"
-			:title="props.undoLabel ? `Undo ${props.undoLabel}` : 'Undo'"
-			aria-label="Undo"
+			:title="
+				props.undoLabel
+					? t('pptx.toolbar.undoAction', { action: props.undoLabel })
+					: t('pptx.toolbar.undo')
+			"
+			:aria-label="t('pptx.toolbar.undo')"
 			@click="props.onUndo()"
 		>
 			<Undo :class="ics" />
@@ -65,8 +71,12 @@ const qab =
 			type="button"
 			:disabled="!props.canEdit || !props.canRedo"
 			:class="cn(qab, 'text-muted-foreground')"
-			:title="props.redoLabel ? `Redo ${props.redoLabel}` : 'Redo'"
-			aria-label="Redo"
+			:title="
+				props.redoLabel
+					? t('pptx.toolbar.redoAction', { action: props.redoLabel })
+					: t('pptx.toolbar.redo')
+			"
+			:aria-label="t('pptx.toolbar.redo')"
 			@click="props.onRedo()"
 		>
 			<Redo :class="ics" />
@@ -81,8 +91,8 @@ const qab =
 					props.findReplaceOpen ? 'text-foreground' : 'text-muted-foreground',
 				)
 			"
-			title="Find & Replace"
-			aria-label="Find & Replace"
+			:title="t('pptx.findReplace.title')"
+			:aria-label="t('pptx.findReplace.title')"
 			@click="props.onToggleFindReplace()"
 		>
 			<Search :class="ics" />
@@ -102,8 +112,8 @@ const qab =
 					props.isCommentsPanelOpen ? 'text-foreground' : 'text-muted-foreground',
 				)
 			"
-			title="Comments"
-			aria-label="Comments"
+			:title="t('pptx.toolbar.comments')"
+			:aria-label="t('pptx.toolbar.comments')"
 			@click="props.onToggleComments?.()"
 		>
 			<MessageSquare :class="ics" />
@@ -146,20 +156,20 @@ const qab =
 			v-if="props.mode === 'edit' || props.mode === 'master'"
 			type="button"
 			class="relative inline-flex items-center gap-1 px-2.5 py-1 rounded-sm text-[11px] font-medium transition-colors bg-primary hover:bg-primary/90 text-white"
-			title="Share"
-			aria-label="Share"
+			:title="t('pptx.toolbar.share')"
+			:aria-label="t('pptx.toolbar.share')"
 			@click="(props.onOpenShareDialog ?? props.onPackageForSharing)()"
 		>
 			<Share2 class="w-3 h-3" />
-			<span class="max-md:hidden">Share</span>
+			<span class="max-md:hidden">{{ t('pptx.toolbar.share') }}</span>
 		</button>
 
 		<button
 			v-if="props.mode === 'edit' || props.mode === 'master'"
 			type="button"
 			:class="cn(qab, props.isInspectorPaneOpen ? 'text-foreground' : 'text-muted-foreground')"
-			title="Toggle inspector"
-			aria-label="Toggle inspector"
+			:title="t('pptx.toolbar.toggleInspector')"
+			:aria-label="t('pptx.toolbar.toggleInspector')"
 			@click="props.onToggleInspector()"
 		>
 			<PanelRight :class="ic" />
@@ -169,8 +179,8 @@ const qab =
 		<button
 			type="button"
 			:class="cn(qab, 'text-muted-foreground')"
-			title="Settings & shortcuts"
-			aria-label="Settings"
+			:title="t('pptx.toolbar.settingsShortcuts')"
+			:aria-label="t('pptx.toolbar.settings')"
 			@click="(props.onOpenSettings ?? props.onToggleShortcuts)()"
 		>
 			<Settings :class="ics" />
@@ -180,7 +190,7 @@ const qab =
 			v-if="!props.canEdit"
 			class="inline-flex items-center px-2 py-0.5 rounded-sm bg-amber-600/90 text-[10px] text-amber-50"
 		>
-			Read-only
+			{{ t('pptx.toolbar.readOnly') }}
 		</span>
 		<OverflowMenu v-bind="props" />
 	</div>

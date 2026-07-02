@@ -4,6 +4,7 @@ import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
 import type { OmmlNode } from 'pptx-viewer-shared';
 import { convertLatexToOmml, convertOmmlToLatex, convertOmmlToMathMl } from 'pptx-viewer-shared';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import ModalDialog from './ModalDialog.vue';
 
@@ -42,25 +43,27 @@ const emit = defineEmits<{
 	(e: 'close'): void;
 }>();
 
-/** Pre-built equation templates (LaTeX + label). */
+const { t } = useI18n();
+
+/** Pre-built equation templates (LaTeX + i18n label key). */
 interface EquationTemplate {
-	label: string;
+	i18nKey: string;
 	latex: string;
 }
 
 const TEMPLATES: EquationTemplate[] = [
-	{ label: 'Fraction', latex: '\\frac{a}{b}' },
-	{ label: 'Quadratic', latex: 'x=\\frac{-b\\pm\\sqrt{b^{2}-4ac}}{2a}' },
-	{ label: 'Pythagorean', latex: 'a^{2}+b^{2}=c^{2}' },
-	{ label: 'Sum', latex: '\\sum_{i=1}^{n}{a_{i}}' },
-	{ label: 'Integral', latex: '\\int_{a}^{b}{f(x)}dx' },
-	{ label: 'Square Root', latex: '\\sqrt{x^{2}+y^{2}}' },
-	{ label: 'Limit', latex: '\\lim_{x\\to\\infty}{f(x)}' },
-	{ label: "Euler's", latex: 'e^{i\\pi}+1=0' },
-	{ label: 'Matrix 2x2', latex: '\\left[a,b;c,d\\right]' },
-	{ label: 'Binomial', latex: '\\left(a+b\\right)^{n}' },
-	{ label: 'Derivative', latex: '\\frac{dy}{dx}' },
-	{ label: 'Trig Identity', latex: '\\sin^{2}\\theta+\\cos^{2}\\theta=1' },
+	{ i18nKey: 'pptx.equation.template.fraction', latex: '\\frac{a}{b}' },
+	{ i18nKey: 'pptx.equation.template.quadratic', latex: 'x=\\frac{-b\\pm\\sqrt{b^{2}-4ac}}{2a}' },
+	{ i18nKey: 'pptx.equation.template.pythagorean', latex: 'a^{2}+b^{2}=c^{2}' },
+	{ i18nKey: 'pptx.equation.template.sum', latex: '\\sum_{i=1}^{n}{a_{i}}' },
+	{ i18nKey: 'pptx.equation.template.integral', latex: '\\int_{a}^{b}{f(x)}dx' },
+	{ i18nKey: 'pptx.equation.template.squareRoot', latex: '\\sqrt{x^{2}+y^{2}}' },
+	{ i18nKey: 'pptx.equation.template.limit', latex: '\\lim_{x\\to\\infty}{f(x)}' },
+	{ i18nKey: 'pptx.equation.template.euler', latex: 'e^{i\\pi}+1=0' },
+	{ i18nKey: 'pptx.equation.template.matrix', latex: '\\left[a,b;c,d\\right]' },
+	{ i18nKey: 'pptx.equation.template.binomial', latex: '\\left(a+b\\right)^{n}' },
+	{ i18nKey: 'pptx.equation.template.derivative', latex: '\\frac{dy}{dx}' },
+	{ i18nKey: 'pptx.equation.template.trigIdentity', latex: '\\sin^{2}\\theta+\\cos^{2}\\theta=1' },
 ];
 
 /**
@@ -203,7 +206,11 @@ function onTextareaKeydown(event: KeyboardEvent): void {
 </script>
 
 <template>
-	<ModalDialog :open="open" :title="isEditing ? 'Edit Equation' : 'Insert Equation'" @close="close">
+	<ModalDialog
+		:open="open"
+		:title="isEditing ? t('pptx.equation.editTitle') : t('pptx.equation.insertTitle')"
+		@close="close"
+	>
 		<div class="pptx-vue-equation-editor flex w-[min(82vw,600px)] flex-col gap-3.5">
 			<!-- Live preview -->
 			<div
@@ -218,15 +225,15 @@ function onTextareaKeydown(event: KeyboardEvent): void {
 					v-else
 					class="pptx-vue-equation-preview-empty text-[13px] italic text-muted-foreground"
 				>
-					Equation preview will appear here
+					{{ t('pptx.equation.previewPlaceholder') }}
 				</span>
 			</div>
 
 			<!-- LaTeX input -->
 			<label class="pptx-vue-equation-field flex flex-col gap-1">
-				<span class="pptx-vue-equation-label text-xs font-medium text-muted-foreground"
-					>LaTeX Input</span
-				>
+				<span class="pptx-vue-equation-label text-xs font-medium text-muted-foreground">{{
+					t('pptx.equation.latexInput')
+				}}</span>
 				<textarea
 					v-model="latex"
 					class="pptx-vue-equation-textarea w-full resize-y rounded border border-border bg-background px-2.5 py-2 font-mono text-[13px] text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
@@ -235,16 +242,16 @@ function onTextareaKeydown(event: KeyboardEvent): void {
 					placeholder="\frac{a}{b} + \sqrt{c}"
 					@keydown="onTextareaKeydown"
 				/>
-				<span class="pptx-vue-equation-hint text-[11px] text-muted-foreground"
-					>Use LaTeX syntax. Ctrl+Enter to insert.</span
-				>
+				<span class="pptx-vue-equation-hint text-[11px] text-muted-foreground">{{
+					t('pptx.equation.latexHint')
+				}}</span>
 			</label>
 
 			<!-- Templates -->
 			<div class="pptx-vue-equation-templates-wrap flex flex-col gap-1.5">
-				<span class="pptx-vue-equation-label text-xs font-medium text-muted-foreground"
-					>Common Templates</span
-				>
+				<span class="pptx-vue-equation-label text-xs font-medium text-muted-foreground">{{
+					t('pptx.equation.templates')
+				}}</span>
 				<div class="pptx-vue-equation-templates grid grid-cols-4 gap-1.5">
 					<button
 						v-for="(tmpl, idx) in TEMPLATES"
@@ -256,7 +263,7 @@ function onTextareaKeydown(event: KeyboardEvent): void {
 								? 'pptx-vue-equation-template--active border-primary bg-primary/10'
 								: 'border-border bg-muted/40 hover:bg-accent/60'
 						"
-						:title="tmpl.label"
+						:title="t(tmpl.i18nKey)"
 						@click="selectTemplate(tmpl.latex)"
 					>
 						<span
@@ -265,7 +272,7 @@ function onTextareaKeydown(event: KeyboardEvent): void {
 						/>
 						<span
 							class="pptx-vue-equation-template-label w-full truncate text-center text-[10px] text-muted-foreground"
-							>{{ tmpl.label }}</span
+							>{{ t(tmpl.i18nKey) }}</span
 						>
 					</button>
 				</div>
@@ -278,7 +285,7 @@ function onTextareaKeydown(event: KeyboardEvent): void {
 				class="pptx-vue-equation-btn pptx-vue-equation-btn--secondary rounded border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
 				@click="close"
 			>
-				Cancel
+				{{ t('pptx.equation.cancel') }}
 			</button>
 			<button
 				type="button"
@@ -286,7 +293,7 @@ function onTextareaKeydown(event: KeyboardEvent): void {
 				:disabled="!hasContent"
 				@click="confirm"
 			>
-				{{ isEditing ? 'Update' : 'Insert' }}
+				{{ isEditing ? t('pptx.equation.update') : t('pptx.equation.insert') }}
 			</button>
 		</template>
 	</ModalDialog>

@@ -12,6 +12,7 @@ import { ChevronDown, ClipboardPaste, Copy, Paintbrush, Plus, Scissors } from 'l
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import {
@@ -45,6 +46,8 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const { t } = useI18n();
 
 function extractFontInfo(element?: PptxElement | null): { fontFamily: string; fontSize: string } {
 	const defaults = { fontFamily: 'Segoe UI', fontSize: '24' };
@@ -125,7 +128,7 @@ function handlePickSize(s: number): void {
 				type="button"
 				:disabled="!props.clipboardPayload || !props.canEdit"
 				:class="gB"
-				title="Paste"
+				:title="t('pptx.arrange.paste')"
 				@click="props.onPaste()"
 			>
 				<ClipboardPaste :class="ic" />
@@ -134,7 +137,7 @@ function handlePickSize(s: number): void {
 				type="button"
 				:disabled="!props.canEdit"
 				:class="cn(gB, cutFeedback && 'bg-green-600/20 text-green-400')"
-				title="Cut"
+				:title="t('pptx.arrange.cut')"
 				@click="handleCut()"
 			>
 				<Scissors :class="ic" />
@@ -142,7 +145,7 @@ function handlePickSize(s: number): void {
 			<button
 				type="button"
 				:class="cn(gB, copiedFeedback && 'bg-green-600/20 text-green-400')"
-				title="Copy"
+				:title="t('pptx.arrange.copy')"
 				@click="handleCopy()"
 			>
 				<Copy :class="ic" />
@@ -158,13 +161,15 @@ function handlePickSize(s: number): void {
 				:class="
 					cn(gL, props.formatPainterActive ? 'bg-amber-600 hover:bg-amber-500 text-amber-50' : '')
 				"
-				title="Format Painter"
+				:title="t('pptx.arrange.formatPainter')"
 				@click="props.onToggleFormatPainter()"
 			>
 				<Paintbrush :class="ic" />
 			</button>
 		</div>
-		<span class="text-[9px] text-muted-foreground leading-none">Clipboard</span>
+		<span class="text-[9px] text-muted-foreground leading-none">{{
+			t('pptx.home.clipboard')
+		}}</span>
 	</div>
 
 	<div :class="SEP" />
@@ -178,18 +183,18 @@ function handlePickSize(s: number): void {
 				:class="
 					cn(pill, 'whitespace-nowrap', props.layoutOptions.length > 0 ? 'rounded-r-none' : '')
 				"
-				title="New Slide"
+				:title="t('pptx.home.newSlide')"
 				@click="handleNewSlide()"
 			>
 				<Plus :class="ic" />
-				New Slide
+				{{ t('pptx.home.newSlide') }}
 			</button>
 			<button
 				v-if="props.layoutOptions.length > 0"
 				type="button"
 				:disabled="!props.canEdit"
 				class="inline-flex items-center justify-center self-stretch px-1 rounded-r bg-muted hover:bg-accent text-xs transition-colors border-l border-border/40 active:scale-95 active:opacity-80"
-				title="Choose layout"
+				:title="t('pptx.home.chooseLayout')"
 				@click="layoutMenu.toggle()"
 			>
 				<ChevronDown class="w-3 h-3" />
@@ -211,7 +216,9 @@ function handlePickSize(s: number): void {
 				</div>
 			</div>
 		</div>
-		<span class="text-[9px] text-muted-foreground leading-none">Slides</span>
+		<span class="text-[9px] text-muted-foreground leading-none">{{
+			t('pptx.sections.slides')
+		}}</span>
 	</div>
 
 	<div :class="SEP" />
@@ -273,7 +280,7 @@ function handlePickSize(s: number): void {
 				</div>
 			</div>
 		</div>
-		<span class="text-[9px] text-muted-foreground leading-none">Font</span>
+		<span class="text-[9px] text-muted-foreground leading-none">{{ t('pptx.home.font') }}</span>
 	</div>
 
 	<div :class="SEP" />

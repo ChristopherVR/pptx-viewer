@@ -16,6 +16,7 @@ import {
 	hasNonTrivialOverride,
 } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = withDefaults(
 	defineProps<{ slide: PptxSlide | undefined; theme?: PptxTheme; canEdit?: boolean }>(),
@@ -23,6 +24,8 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{ update: [patch: Partial<PptxSlide>] }>();
+
+const { t } = useI18n();
 
 /** Friendly labels for the 12 colour-map aliases. */
 const ALIAS_LABELS: Record<ColorMapAliasKey, string> = {
@@ -84,7 +87,7 @@ function onAliasChange(alias: ColorMapAliasKey, event: Event): void {
 	<div class="space-y-2">
 		<label class="inline-flex items-center gap-2 text-xs">
 			<input type="checkbox" :disabled="!canEdit" :checked="isActive" @change="onToggle" />
-			Enable theme colour override
+			{{ t('pptx.themeOverride.enableOverride') }}
 		</label>
 
 		<div v-if="isActive" class="space-y-1.5">

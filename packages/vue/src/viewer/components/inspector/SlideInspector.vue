@@ -20,6 +20,7 @@ import type {
 } from 'pptx-viewer-core';
 import { TRANSITION_VALID_DIRECTIONS } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import SlideTransitionPanel from '../SlideTransitionPanel.vue';
 import DirectionPicker from './DirectionPicker.vue';
@@ -51,6 +52,8 @@ const emit = defineEmits<{
 	'slide-update': [patch: Partial<PptxSlide>];
 	'presentation-update': [patch: Partial<PptxPresentationProperties>];
 }>();
+
+const { t } = useI18n();
 
 /** A real (non-"none") transition is set on this slide. */
 const hasTransition = computed(
@@ -99,13 +102,13 @@ function onAdvanceChange(e: Event): void {
 	<aside
 		class="pptx-vue-inspector overflow-y-auto bg-card box-border px-3 pb-8 text-xs text-foreground"
 		:class="mobile ? 'w-full pt-1' : 'w-60 flex-[0_0_15rem] border-l border-border pt-2'"
-		aria-label="Slide properties"
+		:aria-label="t('pptx.slideInspector.slideProperties')"
 	>
 		<div class="pptx-vue-inspector-section py-2 border-b border-border">
 			<h3
 				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
 			>
-				Background
+				{{ t('pptx.slideInspector.background') }}
 			</h3>
 			<SlideBackgroundPanel
 				:slide="slide"
@@ -118,7 +121,7 @@ function onAdvanceChange(e: Event): void {
 			<h3
 				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
 			>
-				Theme Colours
+				{{ t('pptx.slideInspector.themeColours') }}
 			</h3>
 			<SlideThemeOverridePanel
 				:slide="slide"
@@ -132,12 +135,12 @@ function onAdvanceChange(e: Event): void {
 			<h3
 				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
 			>
-				Slide Transition
+				{{ t('pptx.slideInspector.slideTransition') }}
 			</h3>
 			<SlideTransitionPanel :slide="slide" @update="(t) => emit('transition-update', t)" />
 
 			<div v-if="showDirection" class="mt-2 space-y-1 px-2.5">
-				<span class="text-xs text-muted-foreground">Direction</span>
+				<span class="text-xs text-muted-foreground">{{ t('pptx.slideInspector.direction') }}</span>
 				<DirectionPicker
 					:directions="validDirections"
 					:value="slide?.transition?.direction"
@@ -146,7 +149,9 @@ function onAdvanceChange(e: Event): void {
 			</div>
 
 			<div v-if="hasTransition && usesOrientation" class="mt-2 space-y-1 px-2.5">
-				<span class="text-xs text-muted-foreground">Orientation</span>
+				<span class="text-xs text-muted-foreground">{{
+					t('pptx.slideInspector.orientation')
+				}}</span>
 				<div class="flex gap-1">
 					<button
 						v-for="o in ['horz', 'vert'] as const"
@@ -161,13 +166,15 @@ function onAdvanceChange(e: Event): void {
 						:aria-pressed="orient === o"
 						@click="patchTransition({ orient: o })"
 					>
-						{{ o === 'horz' ? 'Horizontal' : 'Vertical' }}
+						{{
+							o === 'horz' ? t('pptx.slideInspector.horizontal') : t('pptx.slideInspector.vertical')
+						}}
 					</button>
 				</div>
 			</div>
 
 			<label v-if="isWheel" class="mt-2 flex flex-col gap-1 px-2.5">
-				<span class="text-xs text-muted-foreground">Spokes</span>
+				<span class="text-xs text-muted-foreground">{{ t('pptx.slideInspector.spokes') }}</span>
 				<input
 					type="number"
 					min="1"
@@ -189,7 +196,7 @@ function onAdvanceChange(e: Event): void {
 					:checked="advanceOnClick"
 					@change="onAdvanceChange"
 				/>
-				Advance on click
+				{{ t('pptx.slideInspector.advanceOnClick') }}
 			</label>
 		</div>
 
@@ -200,7 +207,7 @@ function onAdvanceChange(e: Event): void {
 			<h3
 				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
 			>
-				Presentation
+				{{ t('pptx.slideInspector.presentation') }}
 			</h3>
 			<PresentationSettingsCard
 				:presentation-properties="presentationProperties"

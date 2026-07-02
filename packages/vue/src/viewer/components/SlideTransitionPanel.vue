@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxSlide, PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * SlideTransitionPanel - lets the user pick the transition effect and duration
@@ -16,6 +17,8 @@ const props = defineProps<{ slide: PptxSlide | undefined }>();
 const emit = defineEmits<{
 	update: [transition: PptxSlideTransition | undefined];
 }>();
+
+const { t } = useI18n();
 
 /**
  * The complete set of transition effects from the core `PptxTransitionType`
@@ -124,16 +127,16 @@ function onDurationChange(event: Event): void {
 <template>
 	<div class="pptx-vue-transition-panel flex flex-col gap-2.5 p-2.5 text-xs text-foreground">
 		<label class="pptx-vue-transition-panel__field flex flex-col gap-1">
-			<span class="pptx-vue-transition-panel__label font-medium text-muted-foreground"
-				>Transition</span
-			>
+			<span class="pptx-vue-transition-panel__label font-medium text-muted-foreground">{{
+				t('pptx.transition.label')
+			}}</span>
 			<select
 				class="pptx-vue-transition-panel__select rounded border border-border bg-popover px-1.5 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
 				:value="selectedType"
 				data-testid="transition-type"
 				@change="onTypeChange"
 			>
-				<option :value="NONE_VALUE">None</option>
+				<option :value="NONE_VALUE">{{ t('pptx.transition.none') }}</option>
 				<option v-for="type in TRANSITION_TYPES" :key="type" :value="type">
 					{{ type }}
 				</option>
@@ -141,9 +144,9 @@ function onDurationChange(event: Event): void {
 		</label>
 
 		<label class="pptx-vue-transition-panel__field flex flex-col gap-1">
-			<span class="pptx-vue-transition-panel__label font-medium text-muted-foreground"
-				>Duration (ms)</span
-			>
+			<span class="pptx-vue-transition-panel__label font-medium text-muted-foreground">{{
+				t('pptx.transition.duration')
+			}}</span>
 			<input
 				class="pptx-vue-transition-panel__duration rounded border border-border bg-popover px-1.5 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
 				type="number"

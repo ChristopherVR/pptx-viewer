@@ -3,6 +3,7 @@ import type { PptxElement, ZoomPptxElement } from 'pptx-viewer-core';
 import { isZoomElement } from 'pptx-viewer-core';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { getContainerStyle } from '../composables/element-style';
 import { injectZoomNavigation } from '../composables/zoom-navigation';
@@ -30,6 +31,8 @@ const props = defineProps<{
 	zIndex: number;
 }>();
 
+const { t } = useI18n();
+
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
 );
@@ -44,7 +47,9 @@ const targetSlideIndex = computed(() => zoom.value?.targetSlideIndex ?? 0);
 const zoomType = computed<'slide' | 'section'>(() => zoom.value?.zoomType ?? 'slide');
 const targetSectionId = computed<string | undefined>(() => zoom.value?.targetSectionId);
 
-const badgeText = computed(() => (zoomType.value === 'section' ? 'Section Zoom' : 'Slide Zoom'));
+const badgeText = computed(() =>
+	zoomType.value === 'section' ? t('pptx.zoom.sectionZoom') : t('pptx.zoom.slideZoom'),
+);
 
 // Resolve the target slide descriptor (when the viewer provides a lookup) so the
 // fallback tile mirrors React's `ZoomSlideThumbnail`: the target slide's real
@@ -57,17 +62,19 @@ const thumbnailStyle = computed<CSSProperties>(() => ({
 }));
 const slideLabel = computed(() =>
 	targetInfo.value?.slideNumber !== undefined
-		? `Slide ${targetInfo.value.slideNumber}`
-		: `Slide ${targetSlideIndex.value + 1}`,
+		? t('pptx.notes.slideN', { n: targetInfo.value.slideNumber })
+		: t('pptx.notes.slideN', { n: targetSlideIndex.value + 1 }),
 );
 const sectionLabel = computed(() => targetInfo.value?.sectionName ?? targetSectionId.value);
 
 const ariaLabel = computed(() => {
-	const base = `Zoom to slide ${targetSlideIndex.value + 1}`;
 	if (zoomType.value === 'section' && targetSectionId.value) {
-		return `${base} (section: ${targetSectionId.value})`;
+		return t('pptx.zoom.ariaLabelSection', {
+			number: targetSlideIndex.value + 1,
+			section: targetSectionId.value,
+		});
 	}
-	return base;
+	return t('pptx.zoom.ariaLabel', { number: targetSlideIndex.value + 1 });
 });
 
 // Present only inside a running presentation; absent (static tile) otherwise.

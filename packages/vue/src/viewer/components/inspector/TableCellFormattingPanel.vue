@@ -2,6 +2,7 @@
 import type { PptxTableCellStyle, PptxTableData } from 'pptx-viewer-core';
 import { computeMergeCellDown, computeMergeCellRight, computeSplitCell } from 'pptx-viewer-shared';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import DebouncedColorInput from './DebouncedColorInput.vue';
 import TableCellAdvancedFill from './TableCellAdvancedFill.vue';
@@ -26,6 +27,8 @@ const emit = defineEmits<{
 	update: [patch: Partial<PptxTableData>];
 }>();
 
+const { t } = useI18n();
+
 const cell = computed(() => props.tableData.rows[props.rowIndex]?.cells[props.columnIndex]);
 const cs = computed<PptxTableCellStyle>(() => cell.value?.style ?? {});
 
@@ -45,14 +48,14 @@ const V_ALIGN: Array<['top' | 'middle' | 'bottom', string]> = [
 	['bottom', 'B'],
 ];
 const EDGE_BORDERS: Array<[string, keyof PptxTableCellStyle, keyof PptxTableCellStyle]> = [
-	['Top', 'borderTopColor', 'borderTopWidth'],
-	['Bottom', 'borderBottomColor', 'borderBottomWidth'],
-	['Left', 'borderLeftColor', 'borderLeftWidth'],
-	['Right', 'borderRightColor', 'borderRightWidth'],
+	['pptx.table.borderTop', 'borderTopColor', 'borderTopWidth'],
+	['pptx.table.borderBottom', 'borderBottomColor', 'borderBottomWidth'],
+	['pptx.table.borderLeft', 'borderLeftColor', 'borderLeftWidth'],
+	['pptx.table.borderRight', 'borderRightColor', 'borderRightWidth'],
 ];
 const DIAG_BORDERS: Array<[string, keyof PptxTableCellStyle, keyof PptxTableCellStyle]> = [
-	['Diagonal ↘', 'borderDiagDownColor', 'borderDiagDownWidth'],
-	['Diagonal ↗', 'borderDiagUpColor', 'borderDiagUpWidth'],
+	['pptx.table.borderDiagDown', 'borderDiagDownColor', 'borderDiagDownWidth'],
+	['pptx.table.borderDiagUp', 'borderDiagUpColor', 'borderDiagUpWidth'],
 ];
 
 /** Fallback a possibly-missing hex to a default so the colour swatch shows. */
@@ -102,11 +105,11 @@ function split(): void {
 <template>
 	<div v-if="cell" class="flex flex-col gap-2">
 		<div class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-			Cell {{ rowIndex + 1 }}, {{ columnIndex + 1 }}
+			{{ t('pptx.table.cell', { row: rowIndex + 1, col: columnIndex + 1 }) }}
 		</div>
 
 		<label class="flex items-center gap-2 text-[11px]">
-			<span class="w-14 text-muted-foreground">Font size</span>
+			<span class="w-14 text-muted-foreground">{{ t('pptx.table.fontSize') }}</span>
 			<input
 				type="number"
 				class="flex-1 rounded border border-border bg-muted px-1.5 py-0.5 text-[11px]"
@@ -120,20 +123,20 @@ function split(): void {
 
 		<div class="grid grid-cols-2 gap-1.5">
 			<label class="flex flex-col gap-1">
-				<span class="text-[11px] text-muted-foreground">Colour</span>
+				<span class="text-[11px] text-muted-foreground">{{ t('pptx.table.color') }}</span>
 				<DebouncedColorInput
 					:value="hex(cs.color, '#000000')"
 					:disabled="!canEdit"
-					aria-label="Cell text colour"
+					:aria-label="t('pptx.tableCell.textColorAria')"
 					@commit="updateCellStyle({ color: $event })"
 				/>
 			</label>
 			<label class="flex flex-col gap-1">
-				<span class="text-[11px] text-muted-foreground">Background</span>
+				<span class="text-[11px] text-muted-foreground">{{ t('pptx.table.background') }}</span>
 				<DebouncedColorInput
 					:value="hex(cs.backgroundColor, '#ffffff')"
 					:disabled="!canEdit"
-					aria-label="Cell background colour"
+					:aria-label="t('pptx.tableCell.backgroundColorAria')"
 					@commit="updateCellStyle({ backgroundColor: $event })"
 				/>
 			</label>
@@ -184,19 +187,19 @@ function split(): void {
 		</div>
 
 		<div class="flex flex-col gap-1.5">
-			<span class="text-[11px] text-muted-foreground">Borders</span>
+			<span class="text-[11px] text-muted-foreground">{{ t('pptx.table.cellBorders') }}</span>
 			<div class="grid grid-cols-2 gap-1.5">
 				<div
 					v-for="[edge, colorKey, widthKey] in [...EDGE_BORDERS, ...DIAG_BORDERS]"
 					:key="edge"
 					class="flex flex-col gap-0.5"
 				>
-					<span class="text-[10px] text-muted-foreground">{{ edge }}</span>
+					<span class="text-[10px] text-muted-foreground">{{ t(edge) }}</span>
 					<div class="flex items-center gap-1">
 						<DebouncedColorInput
 							:value="hex(cs[colorKey] as string | undefined, '#374151')"
 							:disabled="!canEdit"
-							:aria-label="`${edge} border colour`"
+							:aria-label="t('pptx.tableCell.edgeBorderColorAria', { edge: t(edge) })"
 							@commit="updateCellStyle({ [colorKey]: $event })"
 						/>
 						<input
@@ -222,7 +225,7 @@ function split(): void {
 				:disabled="!canEdit"
 				@click="mergeRight"
 			>
-				Merge →
+				{{ t('pptx.table.mergeRight') }}
 			</button>
 			<button
 				type="button"
@@ -230,7 +233,7 @@ function split(): void {
 				:disabled="!canEdit"
 				@click="mergeDown"
 			>
-				Merge ↓
+				{{ t('pptx.table.mergeDown') }}
 			</button>
 			<button
 				type="button"
@@ -238,7 +241,7 @@ function split(): void {
 				:disabled="!canEdit"
 				@click="split"
 			>
-				Split
+				{{ t('pptx.table.split') }}
 			</button>
 		</div>
 	</div>

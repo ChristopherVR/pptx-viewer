@@ -2,6 +2,7 @@
 import type { PptxChartDataPoint, PptxChartSeries, PptxChartType } from 'pptx-viewer-core';
 import { EXPLOSION_SUPPORTED_TYPES } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * ChartDataPointOptions: per-data-point fill override + pie/doughnut slice
@@ -19,6 +20,8 @@ const emit = defineEmits<{
 	setPointExplosion: [seriesIndex: number, pointIndex: number, explosion: number | null];
 	setPointLabel: [seriesIndex: number, pointIndex: number, text: string | null];
 }>();
+
+const { t } = useI18n();
 
 const seriesIndex = ref(0);
 
@@ -72,11 +75,11 @@ function onExplosion(event: Event, idx: number): void {
 		class="pptx-vue-chart-card rounded border border-border bg-card p-2 space-y-2"
 	>
 		<div class="pptx-vue-chart-heading text-[11px] uppercase tracking-wide text-muted-foreground">
-			Data points
+			{{ t('pptx.chart.dataPoints') }}
 		</div>
 
 		<label v-if="props.series.length > 1" class="flex items-center gap-2 text-[11px]">
-			<span class="w-12 text-muted-foreground shrink-0">Series</span>
+			<span class="w-12 text-muted-foreground shrink-0">{{ t('pptx.chart.series') }}</span>
 			<select
 				class="pptx-vue-chart-input flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full"
 				data-testid="chart-point-series"
@@ -102,8 +105,8 @@ function onExplosion(event: Event, idx: number): void {
 					data-testid="chart-point-label"
 					class="w-20 bg-muted border border-border rounded px-1.5 py-0.5 text-[11px]"
 					:value="labelFor(idx)"
-					placeholder="Auto"
-					title="Label text"
+					:placeholder="t('pptx.chart.auto')"
+					:title="t('pptx.chart.pointLabelOverride')"
 					@input="onLabel($event, idx)"
 				/>
 
@@ -111,6 +114,7 @@ function onExplosion(event: Event, idx: number): void {
 					type="color"
 					data-testid="chart-point-fill"
 					class="h-6 w-8 cursor-pointer rounded border border-border bg-transparent"
+					:title="t('pptx.chart.pointFill')"
 					:value="pointFor(idx)?.spPr?.fillColor ?? activeSeries?.color ?? '#4472c4'"
 					@input="onFill($event, idx)"
 				/>
@@ -119,7 +123,7 @@ function onExplosion(event: Event, idx: number): void {
 					type="button"
 					data-testid="chart-point-fill-clear"
 					class="text-muted-foreground hover:text-foreground"
-					title="Clear point fill"
+					:title="t('pptx.chart.pointFillClear')"
 					@click="onClearFill(idx)"
 				>
 					&times;
@@ -134,7 +138,7 @@ function onExplosion(event: Event, idx: number): void {
 					class="w-14 bg-muted border border-border rounded px-1.5 py-0.5"
 					:value="pointFor(idx)?.explosion ?? ''"
 					placeholder="0"
-					title="Slice explosion"
+					:title="t('pptx.chart.pointExplosion')"
 					@input="onExplosion($event, idx)"
 				/>
 			</div>

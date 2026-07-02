@@ -6,6 +6,8 @@
  * live in the status bar). A faithful, mechanical port for visual + behavioral
  * parity: class strings are copied verbatim, callbacks arrive as function props.
  */
+import { useI18n } from 'vue-i18n';
+
 import PresentDropdown from './PresentDropdown.vue';
 import type { ViewerMode } from './ribbon-types';
 
@@ -22,6 +24,7 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const { t } = useI18n();
 </script>
 
 <template>
@@ -29,15 +32,15 @@ const props = defineProps<Props>();
 		<span
 			class="inline-flex items-center px-2 py-0.5 rounded-sm bg-amber-600/90 text-[10px] text-amber-50"
 		>
-			Master View
+			{{ t('pptx.mode.masterView') }}
 		</span>
 		<button
 			type="button"
 			class="px-2 py-0.5 rounded-sm hover:bg-accent text-[10px] text-foreground transition-colors"
-			title="Close master view"
+			:title="t('pptx.mode.closeMasterViewTooltip')"
 			@click="props.onCloseMasterView()"
 		>
-			Close
+			{{ t('pptx.slideSorter.close') }}
 		</button>
 	</div>
 	<!-- Present dropdown only; view mode buttons moved to status bar -->

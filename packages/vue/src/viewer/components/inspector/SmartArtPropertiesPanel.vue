@@ -8,6 +8,7 @@ import type {
 	SmartArtStyle,
 } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import {
 	SMARTART_COLOR_SCHEMES,
@@ -42,6 +43,8 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{ update: [patch: Partial<PptxElement>] }>();
+
+const { t } = useI18n();
 
 const editable = computed(() => props.canEdit !== false);
 
@@ -92,10 +95,10 @@ function onRegisterInput(nodeId: string, el: HTMLInputElement | null): void {
 		class="pptx-vue-smartart-panel flex flex-col gap-2 text-xs"
 		data-testid="smartart-panel"
 		role="group"
-		aria-label="SmartArt properties"
+		:aria-label="t('pptx.smartart.title')"
 	>
 		<p v-if="!isSmartArt" class="text-muted-foreground italic">
-			Select a SmartArt graphic to edit its properties.
+			{{ t('pptx.smartArt.selectPrompt') }}
 		</p>
 
 		<template v-else>
@@ -106,11 +109,11 @@ function onRegisterInput(nodeId: string, el: HTMLInputElement | null): void {
 			/>
 
 			<label class="flex flex-col gap-1 text-[11px]">
-				<span class="text-muted-foreground">Colour scheme</span>
+				<span class="text-muted-foreground">{{ t('pptx.smartart.colorScheme') }}</span>
 				<select
 					class="flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full"
 					data-testid="smartart-color-scheme"
-					aria-label="Colour scheme"
+					:aria-label="t('pptx.smartart.colorScheme')"
 					:disabled="!editable"
 					:value="editing.colorScheme.value"
 					@change="onColorSchemeChange"
@@ -120,8 +123,8 @@ function onRegisterInput(nodeId: string, el: HTMLInputElement | null): void {
 			</label>
 
 			<div class="flex flex-col gap-1 text-[11px]">
-				<span class="text-muted-foreground">Style</span>
-				<div class="flex gap-1" role="group" aria-label="SmartArt style">
+				<span class="text-muted-foreground">{{ t('pptx.smartart.style') }}</span>
+				<div class="flex gap-1" role="group" :aria-label="t('pptx.smartart.style')">
 					<button
 						v-for="s in styleOptions"
 						:key="s"
@@ -144,7 +147,7 @@ function onRegisterInput(nodeId: string, el: HTMLInputElement | null): void {
 
 			<div class="flex items-center justify-between">
 				<span class="text-[11px] text-muted-foreground">
-					Text pane ({{ editing.nodes.value.length }})
+					{{ t('pptx.smartart.textPane') }} ({{ editing.nodes.value.length }})
 				</span>
 				<button
 					type="button"
@@ -154,7 +157,7 @@ function onRegisterInput(nodeId: string, el: HTMLInputElement | null): void {
 					:title="addDisabled ? editing.boundsHint.value : undefined"
 					@click="editing.addItem()"
 				>
-					Add item
+					{{ t('pptx.smartart.addItem') }}
 				</button>
 			</div>
 
@@ -199,12 +202,11 @@ function onRegisterInput(nodeId: string, el: HTMLInputElement | null): void {
 				role="note"
 				data-testid="smartart-extra-connections"
 			>
-				This diagram has {{ editing.extraConnections.value }} extra connection(s) that the text pane
-				does not edit.
+				{{ t('pptx.smartart.extraConnections', { count: editing.extraConnections.value }) }}
 			</div>
 
 			<p class="text-[9px] text-muted-foreground mt-1">
-				Enter adds an item, Backspace removes an empty one, Tab demotes, Shift+Tab promotes.
+				{{ t('pptx.smartart.tabHint') }}
 			</p>
 		</template>
 	</div>

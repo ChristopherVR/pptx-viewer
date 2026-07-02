@@ -21,6 +21,7 @@
  */
 import type { PptxSlide } from 'pptx-viewer-core';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import ModalDialog from './ModalDialog.vue';
 import {
@@ -53,6 +54,8 @@ const emit = defineEmits<{
 	print: [settings: PrintSettings];
 	close: [];
 }>();
+
+const { t } = useI18n();
 
 // ── State ──────────────────────────────────────────────────────────────
 const printWhat = ref<PrintWhat>('slides');
@@ -131,7 +134,7 @@ function confirmPrint(): void {
 </script>
 
 <template>
-	<ModalDialog :open="open" title="Print" @close="close">
+	<ModalDialog :open="open" :title="t('pptx.print.title')" @close="close">
 		<div class="pptx-vue-print-body flex min-w-[480px] gap-5 max-md:min-w-0 max-md:flex-col">
 			<PrintSettingsPanel
 				:print-what="printWhat"
@@ -162,14 +165,14 @@ function confirmPrint(): void {
 				<span
 					class="pptx-vue-print-preview-title text-[10px] uppercase tracking-wide text-muted-foreground"
 				>
-					Preview
+					{{ t('pptx.animations.preview') }}
 				</span>
 
 				<div
 					v-if="previewSlideIndices.length === 0"
 					class="pptx-vue-print-preview-empty flex h-full items-center justify-center text-xs text-muted-foreground"
 				>
-					No slides
+					{{ t('pptx.statusBar.noSlides') }}
 				</div>
 
 				<!-- Handout grid preview -->
@@ -211,22 +214,31 @@ function confirmPrint(): void {
 
 		<template #footer>
 			<span class="pptx-vue-print-estimate mr-auto text-xs text-muted-foreground">
-				{{ pageCount }} {{ pageCount === 1 ? 'page' : 'pages' }} · {{ slideCount }}
-				{{ slideCount === 1 ? 'slide' : 'slides' }}
+				{{
+					pageCount === 1
+						? t('pptx.print.page', { count: pageCount })
+						: t('pptx.print.pages', { count: pageCount })
+				}}
+				·
+				{{
+					slideCount === 1
+						? t('pptx.print.slide', { count: slideCount })
+						: t('pptx.print.slides', { count: slideCount })
+				}}
 			</span>
 			<button
 				type="button"
 				class="pptx-vue-print-btn pptx-vue-print-btn--secondary rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 				@click="close"
 			>
-				Cancel
+				{{ t('pptx.share.cancel') }}
 			</button>
 			<button
 				type="button"
 				class="pptx-vue-print-btn pptx-vue-print-btn--primary rounded-lg bg-primary px-4 py-2 text-sm text-white transition-colors hover:bg-primary/90"
 				@click="confirmPrint"
 			>
-				Print
+				{{ t('pptx.print.printButton') }}
 			</button>
 		</template>
 	</ModalDialog>

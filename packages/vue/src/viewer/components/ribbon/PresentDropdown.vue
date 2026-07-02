@@ -17,6 +17,7 @@ import {
 	Radio,
 	Settings,
 } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import { useDropdown } from './use-dropdown';
@@ -33,6 +34,7 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const { t } = useI18n();
 
 const dd = useDropdown();
 </script>
@@ -48,10 +50,10 @@ const dd = useDropdown();
 						props.isActive ? 'bg-primary text-white' : 'hover:bg-accent text-foreground',
 					)
 				"
-				title="Present (fullscreen)"
+				:title="t('pptx.present.presentTooltip')"
 				@click="props.onPresent()"
 			>
-				Present
+				{{ t('pptx.present.present') }}
 			</button>
 			<button
 				type="button"
@@ -61,8 +63,8 @@ const dd = useDropdown();
 						dd.open.value ? 'bg-primary text-white' : 'hover:bg-accent text-foreground',
 					)
 				"
-				title="Presentation options"
-				aria-label="Presentation options"
+				:title="t('pptx.present.optionsTooltip')"
+				:aria-label="t('pptx.present.optionsTooltip')"
 				@click="dd.toggle()"
 			>
 				<ChevronDown class="w-3 h-3" />
@@ -72,7 +74,7 @@ const dd = useDropdown();
 			<button
 				type="button"
 				class="fixed inset-0 z-40"
-				aria-label="Close menu"
+				:aria-label="t('pptx.overflow.closeMenu')"
 				@click="dd.close()"
 			/>
 			<div
@@ -87,7 +89,7 @@ const dd = useDropdown();
 					"
 				>
 					<Play class="w-3.5 h-3.5 text-muted-foreground" />
-					Present
+					{{ t('pptx.present.present') }}
 				</button>
 				<button
 					v-if="props.onPresenterView"
@@ -99,7 +101,7 @@ const dd = useDropdown();
 					"
 				>
 					<Monitor class="w-3.5 h-3.5 text-muted-foreground" />
-					Presenter View
+					{{ t('pptx.slideShow.presenterView') }}
 				</button>
 				<button
 					v-if="props.onRehearse"
@@ -111,7 +113,7 @@ const dd = useDropdown();
 					"
 				>
 					<Clock class="w-3.5 h-3.5 text-muted-foreground" />
-					Rehearse Timings
+					{{ t('pptx.slideShow.rehearseTimings') }}
 				</button>
 				<!-- Slide Show settings divider -->
 				<div class="my-1 border-t border-border/60" />
@@ -125,7 +127,7 @@ const dd = useDropdown();
 					"
 				>
 					<Settings class="w-3.5 h-3.5 text-muted-foreground" />
-					Set Up Slide Show
+					{{ t('pptx.slideShow.setUp') }}
 				</button>
 				<button
 					v-if="props.onBroadcast"
@@ -137,7 +139,7 @@ const dd = useDropdown();
 					"
 				>
 					<Radio class="w-3.5 h-3.5 text-muted-foreground" />
-					Present Online
+					{{ t('pptx.present.presentOnline') }}
 				</button>
 				<button
 					v-if="props.onToggleSubtitles"
@@ -149,7 +151,7 @@ const dd = useDropdown();
 					"
 				>
 					<Captions class="w-3.5 h-3.5 text-muted-foreground" />
-					<span class="flex-1 text-left">Subtitles</span>
+					<span class="flex-1 text-left">{{ t('pptx.slideShow.subtitles') }}</span>
 					<Check v-if="props.showSubtitles" class="w-3 h-3 text-primary" />
 				</button>
 			</div>

@@ -2,6 +2,7 @@
 import type { PptxElement, ShapeStyle, StrokeDashType } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * StrokePanel: line/border inspector for the Vue `pptx-vue-viewer` editor.
@@ -22,13 +23,15 @@ const emit = defineEmits<{
 	update: [patch: Partial<PptxElement>];
 }>();
 
-const DASH_OPTIONS: ReadonlyArray<{ value: StrokeDashType; label: string }> = [
-	{ value: 'solid', label: 'Solid' },
-	{ value: 'dash', label: 'Dash' },
-	{ value: 'dot', label: 'Dot' },
-	{ value: 'dashDot', label: 'Dash Dot' },
-	{ value: 'sysDash', label: 'System Dash' },
-	{ value: 'sysDot', label: 'System Dot' },
+const { t } = useI18n();
+
+const DASH_OPTIONS: ReadonlyArray<{ value: StrokeDashType; i18nKey: string }> = [
+	{ value: 'solid', i18nKey: 'pptx.stroke.dashSolid' },
+	{ value: 'dash', i18nKey: 'pptx.stroke.dashDash' },
+	{ value: 'dot', i18nKey: 'pptx.stroke.dashDot' },
+	{ value: 'dashDot', i18nKey: 'pptx.stroke.dashDashDot' },
+	{ value: 'sysDash', i18nKey: 'pptx.stroke.dashSysDash' },
+	{ value: 'sysDot', i18nKey: 'pptx.stroke.dashSysDot' },
 ];
 
 const applicable = computed(() => hasShapeProperties(props.element));
@@ -64,16 +67,18 @@ function onDash(event: Event): void {
 		<h3
 			class="pptx-vue-stroke-title text-xs font-semibold uppercase tracking-wide text-muted-foreground"
 		>
-			Line
+			{{ t('pptx.stroke.line') }}
 		</h3>
 
 		<p v-if="!applicable" class="pptx-vue-stroke-muted text-xs text-muted-foreground">
-			This element has no border properties.
+			{{ t('pptx.stroke.noBorderProperties') }}
 		</p>
 
 		<div v-else class="pptx-vue-stroke-fields flex flex-col gap-2">
 			<label class="pptx-vue-stroke-field flex flex-col gap-1">
-				<span class="pptx-vue-stroke-label text-muted-foreground">Color</span>
+				<span class="pptx-vue-stroke-label text-muted-foreground">{{
+					t('pptx.stroke.color')
+				}}</span>
 				<input
 					type="color"
 					class="pptx-vue-stroke-color w-full h-8 bg-muted border border-border rounded p-0.5"
@@ -83,7 +88,9 @@ function onDash(event: Event): void {
 			</label>
 
 			<label class="pptx-vue-stroke-field flex flex-col gap-1">
-				<span class="pptx-vue-stroke-label text-muted-foreground">Width (px)</span>
+				<span class="pptx-vue-stroke-label text-muted-foreground">{{
+					t('pptx.stroke.widthPx')
+				}}</span>
 				<input
 					type="number"
 					class="pptx-vue-stroke-input w-full bg-muted border border-border rounded px-2 py-1"
@@ -95,14 +102,14 @@ function onDash(event: Event): void {
 			</label>
 
 			<label class="pptx-vue-stroke-field flex flex-col gap-1">
-				<span class="pptx-vue-stroke-label text-muted-foreground">Dash</span>
+				<span class="pptx-vue-stroke-label text-muted-foreground">{{ t('pptx.stroke.dash') }}</span>
 				<select
 					class="pptx-vue-stroke-input w-full bg-muted border border-border rounded px-2 py-1"
 					:value="strokeDash"
 					@change="onDash"
 				>
 					<option v-for="opt in DASH_OPTIONS" :key="opt.value" :value="opt.value">
-						{{ opt.label }}
+						{{ t(opt.i18nKey) }}
 					</option>
 				</select>
 			</label>

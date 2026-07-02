@@ -2,6 +2,7 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type { CSSProperties } from 'vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { RULER_THICKNESS } from '../composables/ruler-utils';
 import type { CanvasSize } from '../types';
@@ -43,6 +44,8 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{ 'update:fitScale': [number] }>();
+
+const { t } = useI18n();
 
 const scale = computed(() => props.zoom ?? 1);
 
@@ -107,7 +110,7 @@ watch(() => [props.canvasSize.width, props.canvasSize.height], recomputeFit);
 			:style="wrapperStyle"
 			role="region"
 			aria-roledescription="slide"
-			aria-label="Slide"
+			:aria-label="t('pptx.canvas.slide')"
 		>
 			<RulerStrips v-if="showRulers" :canvas-size="canvasSize" :scale="scale" />
 			<SlideStage

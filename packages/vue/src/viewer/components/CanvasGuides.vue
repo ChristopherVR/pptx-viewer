@@ -9,7 +9,11 @@
  * bounding rect (the guide div's `offsetParent`) divided by `scale`. Double-click
  * removes a guide.
  */
+import { useI18n } from 'vue-i18n';
+
 import type { Guide } from '../composables/guides';
+
+const { t } = useI18n();
 
 const props = defineProps<{ guides: Guide[]; scale: number }>();
 
@@ -81,7 +85,7 @@ function onPointerUp(e: PointerEvent): void {
 						cursor: 'col-resize',
 					}
 		"
-		title="Drag guide. Double-click to remove."
+		:title="t('pptx.guides.dragHint')"
 		@pointerdown="onPointerDown($event, guide)"
 		@pointermove="onPointerMove"
 		@pointerup="onPointerUp"

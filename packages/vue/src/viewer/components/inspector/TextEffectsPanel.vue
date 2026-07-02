@@ -2,6 +2,7 @@
 import type { TextStyle } from 'pptx-viewer-core';
 import { normalizeHexColor } from 'pptx-viewer-shared';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import {
 	CLEAR_TEXT_GLOW,
@@ -27,6 +28,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	update: [patch: Partial<TextStyle>];
 }>();
+
+const { t } = useI18n();
 
 function apply(patch: Partial<TextStyle>): void {
 	emit('update', patch);
@@ -64,7 +67,9 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 
 <template>
 	<div class="pptx-vue-texteffects mt-2 rounded border border-border bg-card p-2 space-y-2">
-		<div class="text-[11px] uppercase tracking-wide text-muted-foreground">Text Effects</div>
+		<div class="text-[11px] uppercase tracking-wide text-muted-foreground">
+			{{ t('pptx.textEffects.title') }}
+		</div>
 
 		<!-- Text Shadow -->
 		<div class="space-y-1.5">
@@ -74,11 +79,11 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 					:checked="hasShadow"
 					@change="toggleShadow(($event.target as HTMLInputElement).checked)"
 				/>
-				Text Shadow
+				{{ t('pptx.textEffects.shadow') }}
 			</label>
 			<div v-if="hasShadow" class="grid grid-cols-2 gap-2 pl-4">
 				<label class="flex flex-col gap-1">
-					<span class="text-muted-foreground">Color</span>
+					<span class="text-muted-foreground">{{ t('pptx.textEffects.color') }}</span>
 					<input
 						type="color"
 						:class="COLOR_CLS"
@@ -87,7 +92,7 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 					/>
 				</label>
 				<label class="flex flex-col gap-1">
-					<span class="text-muted-foreground">Opacity</span>
+					<span class="text-muted-foreground">{{ t('pptx.textEffects.opacity') }}</span>
 					<input
 						type="number"
 						min="0"
@@ -99,7 +104,7 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 					/>
 				</label>
 				<label class="flex flex-col gap-1">
-					<span class="text-muted-foreground">Blur</span>
+					<span class="text-muted-foreground">{{ t('pptx.textEffects.blur') }}</span>
 					<input
 						type="number"
 						min="0"
@@ -111,7 +116,7 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 					/>
 				</label>
 				<label class="flex flex-col gap-1">
-					<span class="text-muted-foreground">Offset X</span>
+					<span class="text-muted-foreground">{{ t('pptx.textEffects.offsetX') }}</span>
 					<input
 						type="number"
 						min="-50"
@@ -123,7 +128,7 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 					/>
 				</label>
 				<label class="flex flex-col gap-1">
-					<span class="text-muted-foreground">Offset Y</span>
+					<span class="text-muted-foreground">{{ t('pptx.textEffects.offsetY') }}</span>
 					<input
 						type="number"
 						min="-50"
@@ -145,11 +150,11 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 					:checked="hasGlow"
 					@change="toggleGlow(($event.target as HTMLInputElement).checked)"
 				/>
-				Text Glow
+				{{ t('pptx.textEffects.glow') }}
 			</label>
 			<div v-if="hasGlow" class="grid grid-cols-2 gap-2 pl-4">
 				<label class="flex flex-col gap-1">
-					<span class="text-muted-foreground">Color</span>
+					<span class="text-muted-foreground">{{ t('pptx.textEffects.color') }}</span>
 					<input
 						type="color"
 						:class="COLOR_CLS"
@@ -158,7 +163,7 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 					/>
 				</label>
 				<label class="flex flex-col gap-1">
-					<span class="text-muted-foreground">Opacity</span>
+					<span class="text-muted-foreground">{{ t('pptx.textEffects.opacity') }}</span>
 					<input
 						type="number"
 						min="0"
@@ -170,7 +175,7 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 					/>
 				</label>
 				<label class="flex flex-col gap-1">
-					<span class="text-muted-foreground">Size</span>
+					<span class="text-muted-foreground">{{ t('pptx.textEffects.size') }}</span>
 					<input
 						type="number"
 						min="1"
@@ -192,11 +197,11 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 					:checked="hasReflection"
 					@change="toggleReflection(($event.target as HTMLInputElement).checked)"
 				/>
-				Text Reflection
+				{{ t('pptx.textEffects.reflection') }}
 			</label>
 			<div v-if="hasReflection" class="grid grid-cols-2 gap-2 pl-4">
 				<label class="flex flex-col gap-1">
-					<span class="text-muted-foreground">Blur</span>
+					<span class="text-muted-foreground">{{ t('pptx.textEffects.blur') }}</span>
 					<input
 						type="number"
 						min="0"
@@ -208,7 +213,7 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 					/>
 				</label>
 				<label class="flex flex-col gap-1">
-					<span class="text-muted-foreground">Offset</span>
+					<span class="text-muted-foreground">{{ t('pptx.textEffects.offset') }}</span>
 					<input
 						type="number"
 						min="0"
@@ -220,7 +225,7 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 					/>
 				</label>
 				<label class="flex flex-col gap-1">
-					<span class="text-muted-foreground">Start Opacity</span>
+					<span class="text-muted-foreground">{{ t('pptx.textEffects.startOpacity') }}</span>
 					<input
 						type="number"
 						min="0"
@@ -232,7 +237,7 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 					/>
 				</label>
 				<label class="flex flex-col gap-1">
-					<span class="text-muted-foreground">End Opacity</span>
+					<span class="text-muted-foreground">{{ t('pptx.textEffects.endOpacity') }}</span>
 					<input
 						type="number"
 						min="0"

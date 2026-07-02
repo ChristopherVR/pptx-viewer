@@ -2,6 +2,7 @@
 import type { PptxChartDataLabelOptions, PptxChartStyle } from 'pptx-viewer-core';
 import { DATA_LABEL_CONTENT_OPTIONS, DATA_LABEL_POSITION_OPTIONS } from 'pptx-viewer-shared';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * ChartDataLabelOptions: data-label content flags + position. Only rendered once
@@ -15,6 +16,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	update: [patch: Partial<PptxChartStyle>];
 }>();
+
+const { t } = useI18n();
 
 const visible = computed(() => Boolean(props.style?.hasDataLabels));
 const labels = computed<PptxChartDataLabelOptions>(() => props.style?.dataLabels ?? {});
@@ -41,7 +44,7 @@ function onPosition(event: Event): void {
 		class="pptx-vue-chart-card rounded border border-border bg-card p-2 space-y-2"
 	>
 		<div class="pptx-vue-chart-heading text-[11px] uppercase tracking-wide text-muted-foreground">
-			Data labels
+			{{ t('pptx.chart.dataLabels') }}
 		</div>
 		<div class="space-y-1.5">
 			<label
@@ -60,7 +63,7 @@ function onPosition(event: Event): void {
 			</label>
 
 			<label class="flex items-center gap-2 text-[11px]">
-				<span class="w-16 text-muted-foreground shrink-0">Position</span>
+				<span class="w-16 text-muted-foreground shrink-0">{{ t('pptx.chart.labelPosition') }}</span>
 				<select
 					class="pptx-vue-chart-input flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full"
 					data-testid="chart-data-label-position"

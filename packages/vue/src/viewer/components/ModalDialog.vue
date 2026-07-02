@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { useSheetDismissDrag } from '../composables/useSheetDismissDrag';
 
@@ -30,6 +31,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	(e: 'close'): void;
 }>();
+
+const { t } = useI18n();
 
 function requestClose(): void {
 	emit('close');
@@ -127,7 +130,7 @@ onBeforeUnmount(() => {
 					<button
 						type="button"
 						class="pptx-vue-modal-close inline-flex h-6 w-6 items-center justify-center rounded text-lg leading-none text-muted-foreground hover:bg-muted hover:text-foreground max-md:h-11 max-md:w-11 max-md:text-2xl"
-						aria-label="Close"
+						:aria-label="t('pptx.settings.close')"
 						@click="requestClose"
 					>
 						&times;

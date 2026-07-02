@@ -8,6 +8,7 @@
 import { ChevronDown, PanelRight, Play, Sparkles, Trash2 } from 'lucide-vue-next';
 import type { PptxElement } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import { ic, pill, SEP } from './ribbon-constants';
@@ -26,6 +27,8 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const { t } = useI18n();
 
 /* Preset categories shown in the "Add Animation" dropdown. */
 const ANIMATION_PRESETS = [
@@ -75,20 +78,25 @@ function handlePreview(): void {
 		type="button"
 		:disabled="disabled"
 		:class="cn(pill, previewActive ? 'bg-primary hover:bg-primary/80 text-white' : '')"
-		title="Preview the selected animation"
+		:title="t('pptx.animations.previewTooltip')"
 		@click="handlePreview"
 	>
 		<Play :class="ic" />
-		Preview
+		{{ t('pptx.animations.preview') }}
 	</button>
 
 	<div :class="SEP" />
 
 	<!-- Add Animation dropdown -->
 	<div class="relative group">
-		<button type="button" :disabled="disabled" :class="pill" title="Add an animation">
+		<button
+			type="button"
+			:disabled="disabled"
+			:class="pill"
+			:title="t('pptx.animations.addTooltip')"
+		>
 			<Sparkles :class="ic" />
-			Add Animation
+			{{ t('pptx.animations.addAnimation') }}
 			<ChevronDown class="w-3 h-3" />
 		</button>
 		<div class="absolute left-0 top-full z-50 hidden group-hover:flex flex-col w-44 pt-1">
@@ -97,7 +105,7 @@ function handlePreview(): void {
 					<div
 						class="px-3 pt-1.5 pb-0.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider"
 					>
-						{{ group.group }}
+						{{ t('pptx.animations.group.' + group.group.toLowerCase()) }}
 					</div>
 					<button
 						v-for="item in group.items"
@@ -105,7 +113,11 @@ function handlePreview(): void {
 						type="button"
 						:disabled="disabled"
 						class="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-						:title="`Apply ${item.label}`"
+						:title="
+							t('pptx.animations.applyAnimation', {
+								name: t('pptx.animations.preset.' + item.value),
+							})
+						"
 						@click="
 							props.onAddAnimation?.(
 								item.value,
@@ -113,7 +125,7 @@ function handlePreview(): void {
 							)
 						"
 					>
-						{{ item.label }}
+						{{ t('pptx.animations.preset.' + item.value) }}
 					</button>
 				</template>
 			</div>
@@ -127,11 +139,11 @@ function handlePreview(): void {
 		type="button"
 		:disabled="disabled"
 		:class="pill"
-		title="Remove all animations from the selected element"
+		:title="t('pptx.animations.removeTooltip')"
 		@click="props.onRemoveAnimation"
 	>
 		<Trash2 :class="ic" />
-		Remove
+		{{ t('pptx.animations.remove') }}
 	</button>
 
 	<div :class="SEP" />
@@ -140,10 +152,10 @@ function handlePreview(): void {
 	<button
 		type="button"
 		:class="cn(pill, props.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '')"
-		title="Open the animation panel"
+		:title="t('pptx.animations.openPanelTooltip')"
 		@click="(props.onOpenAnimationPanel ?? props.onToggleInspector)()"
 	>
 		<PanelRight :class="ic" />
-		Animation Panel
+		{{ t('pptx.animations.animationPanel') }}
 	</button>
 </template>

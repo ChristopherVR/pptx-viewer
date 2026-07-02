@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { BevelPresetType } from 'pptx-viewer-core';
 import { BEVEL_PRESETS } from 'pptx-viewer-shared';
+import { useI18n } from 'vue-i18n';
 
 import { clamp, emuToPt } from '../../composables/useTextEffects';
 
@@ -22,6 +23,8 @@ const emit = defineEmits<{
 	widthChange: [value: number];
 	heightChange: [value: number];
 }>();
+
+const { t } = useI18n();
 
 const INPUT_CLS = 'bg-muted border border-border rounded px-2 py-1';
 
@@ -47,7 +50,7 @@ function onHeight(event: Event): void {
 		<span class="text-[11px] text-muted-foreground">{{ props.label }}</span>
 		<div class="grid grid-cols-3 gap-2">
 			<label class="flex flex-col gap-1">
-				<span class="text-muted-foreground">Type</span>
+				<span class="text-muted-foreground">{{ t('pptx.text3d.type') }}</span>
 				<select :class="INPUT_CLS" :value="props.bevelType ?? 'none'" @change="onType">
 					<option v-for="opt in BEVEL_PRESETS" :key="opt.value" :value="opt.value">
 						{{ opt.label }}
@@ -55,7 +58,7 @@ function onHeight(event: Event): void {
 				</select>
 			</label>
 			<label class="flex flex-col gap-1">
-				<span class="text-muted-foreground">Width</span>
+				<span class="text-muted-foreground">{{ t('pptx.text3d.width') }}</span>
 				<input
 					type="number"
 					min="0"
@@ -67,7 +70,7 @@ function onHeight(event: Event): void {
 				/>
 			</label>
 			<label class="flex flex-col gap-1">
-				<span class="text-muted-foreground">Height</span>
+				<span class="text-muted-foreground">{{ t('pptx.text3d.height') }}</span>
 				<input
 					type="number"
 					min="0"

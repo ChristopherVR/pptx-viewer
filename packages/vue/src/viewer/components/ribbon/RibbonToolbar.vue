@@ -13,6 +13,7 @@
  * shell always renders the desktop ribbon (the host hides it on mobile).
  */
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import AnimationsSection from './AnimationsSection.vue';
@@ -34,6 +35,7 @@ import ViewSection from './ViewSection.vue';
 interface Props extends RibbonProps {}
 
 const props = defineProps<Props>();
+const { t } = useI18n();
 
 const showRibbon = computed(() => props.mode === 'edit' || props.mode === 'master');
 const s = computed(() => props.toolbarSection);
@@ -44,7 +46,7 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 <template>
 	<div
 		role="toolbar"
-		aria-label="Presentation toolbar"
+		:aria-label="t('pptx.ribbon.toolbarLabel')"
 		class="relative z-20 border-b border-border bg-secondary/50 overflow-visible"
 	>
 		<!-- Quick Access Row -->
@@ -80,7 +82,7 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				type="button"
 				class="mr-1 rounded px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
 				:aria-pressed="!props.isCompactToolbarOpen"
-				:title="props.isCompactToolbarOpen ? 'Collapse the ribbon' : 'Expand the ribbon'"
+				:title="props.isCompactToolbarOpen ? t('pptx.ribbon.collapse') : t('pptx.ribbon.expand')"
 				@click="props.onToggleCompactToolbar"
 			>
 				{{ props.isCompactToolbarOpen ? '▴' : '▾' }}
@@ -264,18 +266,18 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				<button
 					type="button"
 					:class="pill"
-					title="Keyboard shortcuts"
+					:title="t('pptx.settings.keyboardShortcuts')"
 					@click="props.onToggleShortcuts()"
 				>
-					Keyboard Shortcuts
+					{{ t('pptx.settings.keyboardShortcuts') }}
 				</button>
 				<button
 					type="button"
 					:class="pill"
-					title="Accessibility check"
+					:title="t('pptx.ribbon.accessibilityTooltip')"
 					@click="props.onRunAccessibilityCheck()"
 				>
-					Accessibility
+					{{ t('pptx.ribbon.accessibility') }}
 				</button>
 			</template>
 		</div>

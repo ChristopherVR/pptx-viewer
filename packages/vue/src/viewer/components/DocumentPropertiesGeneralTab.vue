@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PptxCoreProperties } from 'pptx-viewer-core';
+import { useI18n } from 'vue-i18n';
 
 /**
  * Editable core-property keys surfaced on the General tab. `manager` and
@@ -16,17 +17,17 @@ export type GeneralCoreKey =
 
 interface GeneralField {
 	key: GeneralCoreKey;
-	label: string;
+	labelKey: string;
 	multiline?: boolean;
 }
 
 const CORE_FIELDS: GeneralField[] = [
-	{ key: 'title', label: 'Title' },
-	{ key: 'subject', label: 'Subject' },
-	{ key: 'creator', label: 'Author' },
-	{ key: 'keywords', label: 'Keywords' },
-	{ key: 'description', label: 'Comments', multiline: true },
-	{ key: 'category', label: 'Category' },
+	{ key: 'title', labelKey: 'pptx.documentProperties.summary.title' },
+	{ key: 'subject', labelKey: 'pptx.documentProperties.summary.subject' },
+	{ key: 'creator', labelKey: 'pptx.documentProperties.summary.author' },
+	{ key: 'keywords', labelKey: 'pptx.documentProperties.summary.keywords' },
+	{ key: 'description', labelKey: 'pptx.documentProperties.summary.description', multiline: true },
+	{ key: 'category', labelKey: 'pptx.documentProperties.summary.category' },
 ];
 
 /**
@@ -44,6 +45,8 @@ const props = defineProps<{
 	/** Draft company (app property). */
 	company: string;
 }>();
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
 	/** Fired when a core-property field changes. */
@@ -81,7 +84,7 @@ function onCompanyInput(event: Event): void {
 				:for="`pptx-vue-docprops-${field.key}`"
 				class="pptx-vue-docprops-label text-xs font-medium text-foreground"
 			>
-				{{ field.label }}
+				{{ t(field.labelKey) }}
 			</label>
 			<textarea
 				v-if="field.multiline"
@@ -105,7 +108,7 @@ function onCompanyInput(event: Event): void {
 			<label
 				for="pptx-vue-docprops-manager"
 				class="pptx-vue-docprops-label text-xs font-medium text-foreground"
-				>Manager</label
+				>{{ t('pptx.documentProperties.summary.manager') }}</label
 			>
 			<input
 				id="pptx-vue-docprops-manager"
@@ -120,7 +123,7 @@ function onCompanyInput(event: Event): void {
 			<label
 				for="pptx-vue-docprops-company"
 				class="pptx-vue-docprops-label text-xs font-medium text-foreground"
-				>Company</label
+				>{{ t('pptx.documentProperties.summary.company') }}</label
 			>
 			<input
 				id="pptx-vue-docprops-company"

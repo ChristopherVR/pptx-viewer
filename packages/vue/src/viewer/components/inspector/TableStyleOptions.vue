@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxTableCellStyle, PptxTableData } from 'pptx-viewer-core';
 import { TABLE_STYLE_PRESETS } from 'pptx-viewer-shared';
+import { useI18n } from 'vue-i18n';
 
 /**
  * TableStyleOptions: Vue port of the structure/style toggles + quick-style
@@ -17,13 +18,15 @@ const emit = defineEmits<{
 	update: [patch: Partial<PptxTableData>];
 }>();
 
+const { t } = useI18n();
+
 const TOGGLES: Array<[keyof PptxTableData, string]> = [
-	['bandedRows', 'Banded rows'],
-	['firstRowHeader', 'Header row'],
-	['bandedColumns', 'Banded columns'],
-	['firstCol', 'First column'],
-	['lastCol', 'Last column'],
-	['lastRow', 'Last row'],
+	['bandedRows', 'pptx.table.bandedRows'],
+	['firstRowHeader', 'pptx.table.headerRow'],
+	['bandedColumns', 'pptx.table.bandedColumns'],
+	['firstCol', 'pptx.table.firstColumn'],
+	['lastCol', 'pptx.table.lastColumn'],
+	['lastRow', 'pptx.table.lastRow'],
 ];
 
 function toggle(key: keyof PptxTableData, event: Event): void {
@@ -77,10 +80,10 @@ function applyPreset(preset: (typeof TABLE_STYLE_PRESETS)[number]): void {
 					:checked="Boolean(tableData[key])"
 					@change="toggle(key, $event)"
 				/>
-				<span>{{ label }}</span>
+				<span>{{ t(label) }}</span>
 			</label>
 			<label v-if="tableData.bandedRows" class="mt-1 flex items-center gap-2 text-[11px]">
-				<span class="text-muted-foreground">Row band cycle</span>
+				<span class="text-muted-foreground">{{ t('pptx.table.bandRowCycle') }}</span>
 				<input
 					type="number"
 					class="w-14 rounded border border-border bg-background px-1 py-0.5 text-[11px]"
@@ -92,7 +95,7 @@ function applyPreset(preset: (typeof TABLE_STYLE_PRESETS)[number]): void {
 				/>
 			</label>
 			<label v-if="tableData.bandedColumns" class="mt-1 flex items-center gap-2 text-[11px]">
-				<span class="text-muted-foreground">Column band cycle</span>
+				<span class="text-muted-foreground">{{ t('pptx.table.bandColCycle') }}</span>
 				<input
 					type="number"
 					class="w-14 rounded border border-border bg-background px-1 py-0.5 text-[11px]"
@@ -106,7 +109,7 @@ function applyPreset(preset: (typeof TABLE_STYLE_PRESETS)[number]): void {
 		</div>
 
 		<div class="flex flex-col gap-1">
-			<span class="text-[11px] font-medium">Style presets</span>
+			<span class="text-[11px] font-medium">{{ t('pptx.table.stylePresets') }}</span>
 			<div class="grid grid-cols-3 gap-1.5">
 				<button
 					v-for="preset in TABLE_STYLE_PRESETS"

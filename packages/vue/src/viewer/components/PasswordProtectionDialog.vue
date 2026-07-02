@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import ModalDialog from './ModalDialog.vue';
 
@@ -19,6 +20,8 @@ const emit = defineEmits<{
 	removePassword: [];
 	close: [];
 }>();
+
+const { t } = useI18n();
 
 const password = ref('');
 const confirmPassword = ref('');
@@ -69,21 +72,27 @@ const strengthColors = [
 	'bg-lime-500',
 	'bg-green-500',
 ];
-const strengthLabels = ['Very weak', 'Weak', 'Fair', 'Strong', 'Very strong'];
-const strengthLabel = computed(() => (password.value ? strengthLabels[strength.value] : ''));
+const strengthLabels = computed(() => [
+	t('pptx.password.strengthVeryWeak'),
+	t('pptx.password.strengthWeak'),
+	t('pptx.password.strengthFair'),
+	t('pptx.password.strengthStrong'),
+	t('pptx.password.strengthVeryStrong'),
+]);
+const strengthLabel = computed(() => (password.value ? strengthLabels.value[strength.value] : ''));
 
 function onSubmit(): void {
 	error.value = '';
 	if (!password.value) {
-		error.value = 'Enter a password.';
+		error.value = t('pptx.password.errorEnter');
 		return;
 	}
 	if (password.value !== confirmPassword.value) {
-		error.value = 'Passwords do not match.';
+		error.value = t('pptx.password.errorMismatch');
 		return;
 	}
 	if (password.value.length < 4) {
-		error.value = 'Password must be at least 4 characters.';
+		error.value = t('pptx.password.errorTooShort');
 		return;
 	}
 	emit('setPassword', password.value);
@@ -97,27 +106,27 @@ function onRemove(): void {
 </script>
 
 <template>
-	<ModalDialog :open="props.open" title="Protect Presentation" @close="emit('close')">
+	<ModalDialog :open="props.open" :title="t('pptx.password.title')" @close="emit('close')">
 		<div class="space-y-4">
 			<div
 				v-if="props.isCurrentlyProtected"
 				class="flex items-center gap-2 rounded-lg border border-green-700/40 bg-green-900/30 px-3 py-2"
 			>
-				<span class="text-xs text-green-300">This presentation is password-protected.</span>
+				<span class="text-xs text-green-300">{{ t('pptx.password.protectedNotice') }}</span>
 			</div>
 
 			<p class="text-xs text-muted-foreground">
-				Set a password so only people who know it can open this presentation.
+				{{ t('pptx.password.description') }}
 			</p>
 
 			<div>
-				<label class="mb-1 block text-xs text-foreground">Password</label>
+				<label class="mb-1 block text-xs text-foreground">{{ t('pptx.password.password') }}</label>
 				<div class="relative">
 					<input
 						v-model="password"
 						:type="showPassword ? 'text' : 'password'"
 						class="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
-						placeholder="Enter password"
+						:placeholder="t('pptx.password.enterPassword')"
 						@input="error = ''"
 					/>
 					<button
@@ -125,7 +134,7 @@ function onRemove(): void {
 						class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-xs text-muted-foreground hover:text-foreground"
 						@click="showPassword = !showPassword"
 					>
-						{{ showPassword ? 'Hide' : 'Show' }}
+						{{ showPassword ? t('pptx.password.hide') : t('pptx.password.show') }}
 					</button>
 				</div>
 			</div>
@@ -143,12 +152,14 @@ function onRemove(): void {
 			</div>
 
 			<div>
-				<label class="mb-1 block text-xs text-foreground">Confirm password</label>
+				<label class="mb-1 block text-xs text-foreground">{{
+					t('pptx.password.confirmPassword')
+				}}</label>
 				<input
 					v-model="confirmPassword"
 					:type="showPassword ? 'text' : 'password'"
 					class="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
-					placeholder="Re-enter password"
+					:placeholder="t('pptx.password.reenterPassword')"
 					@input="error = ''"
 				/>
 			</div>
@@ -163,21 +174,25 @@ function onRemove(): void {
 				class="mr-auto text-xs text-red-400 transition-colors hover:text-red-300"
 				@click="onRemove"
 			>
-				Remove password
+				{{ t('pptx.password.removePassword') }}
 			</button>
 			<button
 				type="button"
 				class="rounded-lg border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
 				@click="emit('close')"
 			>
-				Cancel
+				{{ t('pptx.share.cancel') }}
 			</button>
 			<button
 				type="button"
 				class="rounded-lg bg-primary px-3 py-1.5 text-xs text-white transition-colors hover:bg-primary/80"
 				@click="onSubmit"
 			>
-				{{ props.isCurrentlyProtected ? 'Update password' : 'Set password' }}
+				{{
+					props.isCurrentlyProtected
+						? t('pptx.password.updatePassword')
+						: t('pptx.password.setPassword')
+				}}
 			</button>
 		</template>
 	</ModalDialog>

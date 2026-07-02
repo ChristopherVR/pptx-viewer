@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { formatVersionTimestamp as formatTimestamp } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { SlideVersion } from '../composables/useVersionHistory';
 import type { CanvasSize } from '../types';
@@ -34,6 +35,8 @@ const emit = defineEmits<{
 	(e: 'restore' | 'delete' | 'compare', id: string): void;
 }>();
 
+const { t } = useI18n();
+
 /** Id of the version currently expanded for preview, or `null`. */
 const previewId = ref<string | null>(null);
 
@@ -63,11 +66,13 @@ function togglePreview(id: string): void {
 		<header
 			class="pptx-vue-version-header flex items-center justify-between border-b border-border px-3.5 py-2.5"
 		>
-			<h3 class="pptx-vue-version-title m-0 text-sm font-semibold">Version history</h3>
+			<h3 class="pptx-vue-version-title m-0 text-sm font-semibold">
+				{{ t('pptx.versionHistory.title') }}
+			</h3>
 			<button
 				type="button"
 				class="pptx-vue-version-close inline-flex h-6 w-6 items-center justify-center rounded p-0 text-lg leading-none text-muted-foreground hover:bg-accent hover:text-foreground"
-				aria-label="Close"
+				:aria-label="t('common.close')"
 				@click="emit('close')"
 			>
 				&times;
@@ -79,7 +84,7 @@ function togglePreview(id: string): void {
 				v-if="orderedVersions.length === 0"
 				class="pptx-vue-version-empty m-0 px-3.5 py-8 text-center text-xs text-muted-foreground"
 			>
-				No versions saved yet
+				{{ t('pptx.versionHistory.noVersionsYet') }}
 			</p>
 
 			<div
@@ -100,8 +105,8 @@ function togglePreview(id: string): void {
 							version.label
 						}}</span>
 						<span class="pptx-vue-version-sub text-[10px] text-muted-foreground">
-							{{ formatTimestamp(version.timestamp) }} · {{ version.slideCount }}
-							{{ version.slideCount === 1 ? 'slide' : 'slides' }}
+							{{ formatTimestamp(version.timestamp) }} ·
+							{{ t('pptx.versionHistory.slideCount', { count: version.slideCount }) }}
 						</span>
 					</span>
 				</button>
@@ -127,21 +132,21 @@ function togglePreview(id: string): void {
 						class="pptx-vue-version-btn pptx-vue-version-btn--primary inline-flex cursor-pointer items-center rounded bg-primary/20 px-2.5 py-1 text-[11px] text-primary transition-colors hover:bg-primary/30"
 						@click="emit('restore', version.id)"
 					>
-						Restore
+						{{ t('pptx.versionHistory.restore') }}
 					</button>
 					<button
 						type="button"
 						class="pptx-vue-version-btn inline-flex cursor-pointer items-center rounded bg-muted px-2.5 py-1 text-[11px] text-foreground transition-colors hover:bg-accent"
 						@click="emit('compare', version.id)"
 					>
-						Compare
+						{{ t('pptx.versionHistory.compare') }}
 					</button>
 					<button
 						type="button"
 						class="pptx-vue-version-btn pptx-vue-version-btn--danger inline-flex cursor-pointer items-center rounded bg-red-600/20 px-2.5 py-1 text-[11px] text-red-400 transition-colors hover:bg-red-600/30"
 						@click="emit('delete', version.id)"
 					>
-						Delete
+						{{ t('common.delete') }}
 					</button>
 				</div>
 			</div>

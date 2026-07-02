@@ -13,8 +13,11 @@
  * scrollable and sized via dvh so it survives the mobile address-bar collapse.
  */
 import { onBeforeUnmount, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { useSheetDismissDrag } from '../composables/useSheetDismissDrag';
+
+const { t } = useI18n();
 
 const props = defineProps<{ open: boolean; title?: string }>();
 const emit = defineEmits<{ close: [] }>();
@@ -43,7 +46,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
 		<!-- Backdrop -->
 		<button
 			type="button"
-			aria-label="Close"
+			:aria-label="t('pptx.settings.close')"
 			class="absolute inset-0 border-0 bg-black/40 backdrop-blur-[2px]"
 			@click="emit('close')"
 		/>

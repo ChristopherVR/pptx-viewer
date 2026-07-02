@@ -2,6 +2,7 @@
 import type { PptxChartSeries, PptxChartType } from 'pptx-viewer-core';
 import { COMBO_SERIES_TYPE_OPTIONS, COMBO_SUPPORTED_TYPES } from 'pptx-viewer-shared';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * ChartComboTypeOptions: per-series chart-type override for combo charts.
@@ -16,6 +17,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	setSeriesType: [index: number, seriesType: PptxChartType | null];
 }>();
+
+const { t } = useI18n();
 
 const visible = computed(
 	() => COMBO_SUPPORTED_TYPES.has(props.chartType) && props.series.length >= 2,
@@ -33,7 +36,7 @@ function onChange(event: Event, index: number): void {
 		class="pptx-vue-chart-card rounded border border-border bg-card p-2 space-y-2"
 	>
 		<div class="pptx-vue-chart-heading text-[11px] uppercase tracking-wide text-muted-foreground">
-			Combo types
+			{{ t('pptx.chart.comboTypes') }}
 		</div>
 		<div class="space-y-1.5">
 			<div

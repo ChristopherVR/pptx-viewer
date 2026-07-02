@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxChartStyle } from 'pptx-viewer-core';
 import { LEGEND_POSITION_OPTIONS } from 'pptx-viewer-shared';
+import { useI18n } from 'vue-i18n';
 
 /**
  * ChartDisplayOptions: chart-level display toggles (title / legend visibility +
@@ -14,6 +15,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	update: [patch: Partial<PptxChartStyle>];
 }>();
+
+const { t } = useI18n();
 
 function patch(p: Partial<PptxChartStyle>): void {
 	emit('update', p);
@@ -31,7 +34,7 @@ function onLegendPosition(event: Event): void {
 <template>
 	<div class="pptx-vue-chart-card rounded border border-border bg-card p-2 space-y-2">
 		<div class="pptx-vue-chart-heading text-[11px] uppercase tracking-wide text-muted-foreground">
-			Display
+			{{ t('pptx.chart.display') }}
 		</div>
 		<div class="space-y-1.5">
 			<label class="flex items-center gap-2 cursor-pointer">
@@ -42,7 +45,7 @@ function onLegendPosition(event: Event): void {
 					:checked="props.style?.hasTitle ?? false"
 					@change="onCheckbox($event, 'hasTitle')"
 				/>
-				<span class="text-[11px]">Show title</span>
+				<span class="text-[11px]">{{ t('pptx.chart.showTitle') }}</span>
 			</label>
 
 			<label class="flex items-center gap-2 cursor-pointer">
@@ -53,11 +56,13 @@ function onLegendPosition(event: Event): void {
 					:checked="props.style?.hasLegend ?? false"
 					@change="onCheckbox($event, 'hasLegend')"
 				/>
-				<span class="text-[11px]">Show legend</span>
+				<span class="text-[11px]">{{ t('pptx.chart.showLegend') }}</span>
 			</label>
 
 			<label v-if="props.style?.hasLegend" class="flex items-center gap-2 text-[11px] ml-4">
-				<span class="w-12 text-muted-foreground shrink-0">Position</span>
+				<span class="w-12 text-muted-foreground shrink-0">{{
+					t('pptx.chart.legendPosition')
+				}}</span>
 				<select
 					class="pptx-vue-chart-input flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full"
 					data-testid="chart-legend-position"
@@ -78,7 +83,7 @@ function onLegendPosition(event: Event): void {
 					:checked="props.style?.hasGridlines ?? false"
 					@change="onCheckbox($event, 'hasGridlines')"
 				/>
-				<span class="text-[11px]">Show gridlines</span>
+				<span class="text-[11px]">{{ t('pptx.chart.showGridlines') }}</span>
 			</label>
 
 			<label class="flex items-center gap-2 cursor-pointer">
@@ -89,7 +94,7 @@ function onLegendPosition(event: Event): void {
 					:checked="props.style?.hasDataLabels ?? false"
 					@change="onCheckbox($event, 'hasDataLabels')"
 				/>
-				<span class="text-[11px]">Show data labels</span>
+				<span class="text-[11px]">{{ t('pptx.chart.showDataLabels') }}</span>
 			</label>
 		</div>
 	</div>

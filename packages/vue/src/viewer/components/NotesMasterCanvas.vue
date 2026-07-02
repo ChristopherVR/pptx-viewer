@@ -17,6 +17,7 @@
 import type { PptxNotesMaster } from 'pptx-viewer-core';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { CanvasSize } from '../types';
 
@@ -29,19 +30,21 @@ const props = defineProps<{
 	slideNumber?: number;
 }>();
 
+const { t } = useI18n();
+
 /** Standard notes page proportions: US Letter portrait (7.5 x 10 inches). */
 const DEFAULT_NOTES_WIDTH = 720;
 const DEFAULT_NOTES_HEIGHT = 960;
 
 /** Placeholder type → human-readable label. */
-const PLACEHOLDER_LABELS: Record<string, string> = {
-	sldImg: 'Slide Image',
-	body: 'Notes Body',
-	hdr: 'Header',
-	ftr: 'Footer',
-	dt: 'Date',
-	sldNum: 'Page Number',
-};
+const PLACEHOLDER_LABELS = computed<Record<string, string>>(() => ({
+	sldImg: t('pptx.notesMaster.phSlideImage'),
+	body: t('pptx.notesMaster.phNotesBody'),
+	hdr: t('pptx.field.header'),
+	ftr: t('pptx.field.footer'),
+	dt: t('pptx.notesMaster.phDate'),
+	sldNum: t('pptx.notesMaster.phPageNumber'),
+}));
 
 /** Default layout positions (fraction of page) for known placeholder types. */
 const DEFAULT_POSITIONS: Record<string, { x: number; y: number; w: number; h: number }> = {
@@ -107,7 +110,7 @@ function hasPosition(type: string): boolean {
 }
 
 function labelFor(type: string): string {
-	return PLACEHOLDER_LABELS[type] ?? type;
+	return PLACEHOLDER_LABELS.value[type] ?? type;
 }
 
 function regionKind(type: string): 'slide' | 'body' | 'plain' {
@@ -128,7 +131,7 @@ function regionKind(type: string): 'slide' | 'body' | 'plain' {
 			class="pptx-vue-notes-master-canvas__empty"
 			data-testid="notes-master-empty"
 		>
-			No notes master
+			{{ t('pptx.notesMaster.empty') }}
 		</div>
 
 		<div
@@ -155,13 +158,17 @@ function regionKind(type: string): 'slide' | 'body' | 'plain' {
 						v-if="ph.type === 'sldImg' && slideThumbnail"
 						class="pptx-vue-notes-master-canvas__slide-img"
 						:src="slideThumbnail"
-						:alt="slideNumber ? `Slide ${slideNumber}` : 'Slide'"
+						:alt="
+							slideNumber
+								? t('pptx.notes.slideN', { n: slideNumber })
+								: t('pptx.notesMaster.slideAlt')
+						"
 					/>
 					<div
 						v-else-if="ph.type === 'body' && notesText !== undefined"
 						class="pptx-vue-notes-master-canvas__body-text"
 					>
-						{{ notesText || 'No notes' }}
+						{{ notesText || t('pptx.notes.noNotes') }}
 					</div>
 					<span v-else-if="ph.type === 'sldNum' && slideNumber !== undefined">{{
 						slideNumber

@@ -6,6 +6,7 @@ import type {
 	SmartArtPptxElement,
 } from 'pptx-viewer-core';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import ModalDialog from './ModalDialog.vue';
 import type { SmartArtCategory } from './smart-art-presets';
@@ -39,6 +40,8 @@ const emit = defineEmits<{
 	/** Emitted when the dialog should close without inserting. */
 	(e: 'close'): void;
 }>();
+
+const { t } = useI18n();
 
 const activeCategory = ref<SmartArtCategory>('list');
 const selectedLayout = ref<SmartArtLayout | null>(null);
@@ -134,14 +137,14 @@ function close(): void {
 </script>
 
 <template>
-	<ModalDialog :open="open" title="Insert SmartArt" @close="close">
+	<ModalDialog :open="open" :title="t('pptx.smartArt.insertTitle')" @close="close">
 		<div
 			class="pptx-vue-smartart-dialog flex h-[min(60vh,440px)] w-[min(78vw,600px)] gap-3 max-md:h-[min(60dvh,440px)] max-md:w-full"
 		>
 			<!-- Category sidebar -->
 			<nav
 				class="pptx-vue-smartart-sidebar flex w-[130px] flex-shrink-0 flex-col gap-0.5 border-r border-border pr-2"
-				aria-label="SmartArt categories"
+				:aria-label="t('pptx.smartArt.categoriesLabel')"
 			>
 				<button
 					v-for="cat in CATEGORIES"
@@ -164,7 +167,7 @@ function close(): void {
 				<div
 					class="pptx-vue-smartart-gallery grid flex-1 grid-cols-3 gap-2 overflow-y-auto pr-1"
 					role="listbox"
-					aria-label="SmartArt layouts"
+					:aria-label="t('pptx.smartArt.layoutsLabel')"
 				>
 					<button
 						v-for="preset in filteredPresets"
@@ -200,15 +203,15 @@ function close(): void {
 					v-if="selectedLayout"
 					class="pptx-vue-smartart-nodes flex flex-shrink-0 flex-col gap-1"
 				>
-					<span class="pptx-vue-smartart-nodes-label text-xs font-medium text-muted-foreground"
-						>Nodes (one per line)</span
-					>
+					<span class="pptx-vue-smartart-nodes-label text-xs font-medium text-muted-foreground">{{
+						t('pptx.smartArt.nodesLabel')
+					}}</span>
 					<textarea
 						v-model="nodeText"
 						class="pptx-vue-smartart-textarea w-full resize-y rounded border border-border bg-background px-2.5 py-2 text-[13px] text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
 						rows="5"
 						spellcheck="false"
-						placeholder="Item 1&#10;Item 2&#10;Item 3"
+						:placeholder="t('pptx.smartArt.nodesPlaceholder')"
 					/>
 				</label>
 			</div>
@@ -220,7 +223,7 @@ function close(): void {
 				class="pptx-vue-smartart-btn pptx-vue-smartart-btn--secondary rounded border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
 				@click="close"
 			>
-				Cancel
+				{{ t('pptx.share.cancel') }}
 			</button>
 			<button
 				type="button"
@@ -228,7 +231,7 @@ function close(): void {
 				:disabled="!canInsert"
 				@click="insert"
 			>
-				Insert
+				{{ t('pptx.smartArt.insert') }}
 			</button>
 		</template>
 	</ModalDialog>

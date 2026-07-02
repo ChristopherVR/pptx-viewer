@@ -39,6 +39,7 @@ import {
 } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import type { Component } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { grp, ic, pill } from './ribbon-constants';
 import type { SupportedShapeType } from './ribbon-types';
@@ -60,6 +61,8 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const { t } = useI18n();
 
 const canEdit = computed(() => props.canEdit);
 
@@ -208,15 +211,20 @@ function previewTime(): string {
 </script>
 
 <template>
-	<button :disabled="!canEdit" :class="pill" title="Add text box" @click="props.onAddTextBox()">
+	<button
+		:disabled="!canEdit"
+		:class="pill"
+		:title="t('pptx.insert.addTextBox')"
+		@click="props.onAddTextBox()"
+	>
 		<Type :class="ic" />
-		Text
+		{{ t('pptx.insert.text') }}
 	</button>
 	<div :class="grp">
 		<select
 			:value="props.newShapeType"
 			class="bg-transparent py-1.5 pl-2 pr-1 outline-none text-xs"
-			title="Shape type"
+			:title="t('pptx.insert.shapeType')"
 			@change="
 				props.onSetNewShapeType(($event.target as HTMLSelectElement).value as SupportedShapeType)
 			"
@@ -228,7 +236,7 @@ function previewTime(): string {
 		<button
 			:disabled="!canEdit"
 			class="inline-flex items-center gap-1.5 px-2.5 py-1.5 border-l border-border hover:bg-accent transition-colors text-xs"
-			title="Add shape"
+			:title="t('pptx.insert.addShape')"
 			@click="props.onAddShape()"
 		>
 			<component
@@ -237,36 +245,41 @@ function previewTime(): string {
 				:class="activeShapePreset.iconClass"
 			/>
 			<Square v-else :class="ic" />
-			Shape
+			{{ t('pptx.insert.shape') }}
 		</button>
 	</div>
 	<button
 		:disabled="!canEdit"
 		:class="pill"
-		title="Insert image"
+		:title="t('pptx.insert.insertImage')"
 		@click="props.onOpenImagePicker()"
 	>
 		<Image :class="ic" />
-		Image
+		{{ t('pptx.insert.image') }}
 	</button>
 	<button
 		:disabled="!canEdit"
 		:class="pill"
-		title="Insert audio or video"
+		:title="t('pptx.insert.insertMedia')"
 		@click="props.onOpenMediaPicker()"
 	>
 		<Video :class="ic" />
-		Media
+		{{ t('pptx.insert.media') }}
 	</button>
-	<button :disabled="!canEdit" :class="pill" title="Insert table" @click="props.onAddTable()">
+	<button
+		:disabled="!canEdit"
+		:class="pill"
+		:title="t('pptx.insert.insertTable')"
+		@click="props.onAddTable()"
+	>
 		<Database :class="ic" />
-		Table
+		{{ t('pptx.insert.table') }}
 	</button>
 	<div v-if="props.onAddChart" :class="grp">
 		<select
 			:value="newChartType"
 			class="bg-transparent py-1.5 pl-2 pr-1 outline-none text-xs"
-			title="Chart type"
+			:title="t('pptx.insert.chartType')"
 			@change="newChartType = ($event.target as HTMLSelectElement).value as PptxChartType"
 		>
 			<option v-for="ct in chartTypes" :key="ct.type" :value="ct.type" class="bg-background">
@@ -276,7 +289,7 @@ function previewTime(): string {
 		<button
 			:disabled="!canEdit"
 			class="inline-flex items-center gap-1.5 px-2.5 py-1.5 border-l border-border hover:bg-accent transition-colors text-xs"
-			title="Insert chart"
+			:title="t('pptx.insert.insertChart')"
 			@click="props.onAddChart(newChartType)"
 		>
 			<svg
@@ -293,14 +306,24 @@ function previewTime(): string {
 				<rect x="12" y="7" width="3" height="10" />
 				<rect x="17" y="13" width="3" height="4" />
 			</svg>
-			Chart
+			{{ t('pptx.insert.chart') }}
 		</button>
 	</div>
-	<button :disabled="!canEdit" :class="pill" title="Insert SmartArt" @click="props.onAddSmartArt()">
+	<button
+		:disabled="!canEdit"
+		:class="pill"
+		:title="t('pptx.insert.insertSmartArt')"
+		@click="props.onAddSmartArt()"
+	>
 		<Layers :class="ic" />
-		SmartArt
+		{{ t('pptx.insert.smartArt') }}
 	</button>
-	<button :disabled="!canEdit" :class="pill" title="Insert Equation" @click="props.onAddEquation()">
+	<button
+		:disabled="!canEdit"
+		:class="pill"
+		:title="t('pptx.insert.insertEquation')"
+		@click="props.onAddEquation()"
+	>
 		<svg
 			:class="ic"
 			viewBox="0 0 24 24"
@@ -312,11 +335,16 @@ function previewTime(): string {
 		>
 			<path d="M4 17h6M7 14v6M14 7l4.5 10M15.5 14h5" />
 		</svg>
-		Equation
+		{{ t('pptx.insert.equation') }}
 	</button>
 	<!-- Action Buttons dropdown -->
 	<div class="relative group">
-		<button type="button" :disabled="!canEdit" :class="pill" title="Insert action button">
+		<button
+			type="button"
+			:disabled="!canEdit"
+			:class="pill"
+			:title="t('pptx.insert.insertActionButton')"
+		>
 			<svg
 				:class="ic"
 				viewBox="0 0 24 24"
@@ -329,7 +357,7 @@ function previewTime(): string {
 				<rect x="3" y="3" width="18" height="18" rx="2" />
 				<path d="M13 7l4 5-4 5" />
 			</svg>
-			Action
+			{{ t('pptx.insert.action') }}
 			<ChevronDown class="w-3 h-3" />
 		</button>
 		<div class="absolute left-0 top-full z-50 hidden group-hover:flex flex-col w-40 pt-1">
@@ -360,7 +388,7 @@ function previewTime(): string {
 	</div>
 	<!-- Insert Field dropdown -->
 	<div v-if="props.onInsertField" class="relative group">
-		<button type="button" :disabled="!canEdit" :class="pill" title="Insert Field">
+		<button type="button" :disabled="!canEdit" :class="pill" :title="t('pptx.field.insertField')">
 			<svg
 				:class="ic"
 				viewBox="0 0 24 24"
@@ -373,7 +401,7 @@ function previewTime(): string {
 				<path d="M4 7h16M4 12h10M4 17h12" />
 				<circle cx="19" cy="15" r="3" />
 			</svg>
-			Field
+			{{ t('pptx.field.field') }}
 			<ChevronDown class="w-3 h-3" />
 		</button>
 		<div class="absolute left-0 top-full z-50 hidden group-hover:flex flex-col w-44 pt-1">
@@ -384,7 +412,7 @@ function previewTime(): string {
 					class="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors"
 					@click="props.onInsertField('slidenum')"
 				>
-					Slide Number
+					{{ t('pptx.field.slideNumber') }}
 				</button>
 				<button
 					type="button"
@@ -392,7 +420,7 @@ function previewTime(): string {
 					class="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors"
 					@click="openDatePicker"
 				>
-					Date &amp; Time
+					{{ t('pptx.field.dateTime') }}
 				</button>
 				<button
 					type="button"
@@ -400,7 +428,7 @@ function previewTime(): string {
 					class="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors"
 					@click="props.onInsertField('header')"
 				>
-					Header
+					{{ t('pptx.field.header') }}
 				</button>
 				<button
 					type="button"
@@ -408,7 +436,7 @@ function previewTime(): string {
 					class="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors"
 					@click="props.onInsertField('footer')"
 				>
-					Footer
+					{{ t('pptx.field.footer') }}
 				</button>
 			</div>
 		</div>
@@ -421,7 +449,7 @@ function previewTime(): string {
 		@mousedown="onBackdropMouseDown"
 	>
 		<div class="rounded-lg border border-border bg-popover shadow-2xl p-4 w-72 space-y-3">
-			<div class="text-sm font-medium text-foreground">Date &amp; Time</div>
+			<div class="text-sm font-medium text-foreground">{{ t('pptx.field.dateTime') }}</div>
 			<input
 				type="datetime-local"
 				class="w-full rounded border border-border bg-muted px-2.5 py-1.5 text-xs text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-none"
@@ -429,7 +457,9 @@ function previewTime(): string {
 				@input="datePickerValue = ($event.target as HTMLInputElement).value"
 			/>
 			<div>
-				<label class="block text-[11px] text-muted-foreground mb-1">Format</label>
+				<label class="block text-[11px] text-muted-foreground mb-1">{{
+					t('pptx.field.format', 'Format')
+				}}</label>
 				<select
 					class="w-full rounded border border-border bg-muted px-2.5 py-1.5 text-xs text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-none"
 					:value="dateFormat"
@@ -448,14 +478,14 @@ function previewTime(): string {
 					class="px-3 py-1.5 text-xs rounded border border-border text-foreground hover:bg-muted transition-colors"
 					@click="datePickerOpen = false"
 				>
-					Cancel
+					{{ t('pptx.common.cancel', 'Cancel') }}
 				</button>
 				<button
 					type="button"
 					class="px-3 py-1.5 text-xs rounded bg-primary text-white hover:bg-primary/90 transition-colors"
 					@click="confirmDatePicker"
 				>
-					Insert
+					{{ t('pptx.common.insert', 'Insert') }}
 				</button>
 			</div>
 		</div>

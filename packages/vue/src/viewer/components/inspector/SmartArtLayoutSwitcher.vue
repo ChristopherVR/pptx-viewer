@@ -2,6 +2,7 @@
 import type { SmartArtLayoutType } from 'pptx-viewer-core';
 import { SWITCHABLE_LAYOUT_TYPES } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { smartArtLayoutLabel } from '../../composables/useSmartArtEditing';
 
@@ -21,6 +22,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{ switch: [layout: SmartArtLayoutType] }>();
 
+const { t } = useI18n();
+
 const layouts = computed<readonly SmartArtLayoutType[]>(() => SWITCHABLE_LAYOUT_TYPES);
 
 function labelFor(layout: SmartArtLayoutType): string {
@@ -37,7 +40,7 @@ function onSwitch(layout: SmartArtLayoutType): void {
 
 <template>
 	<div class="pptx-vue-smartart-layouts space-y-1.5">
-		<span class="text-[11px] text-muted-foreground">Switch layout</span>
+		<span class="text-[11px] text-muted-foreground">{{ t('pptx.smartart.switchLayout') }}</span>
 		<div class="grid grid-cols-3 gap-1.5" data-testid="smartart-layouts">
 			<button
 				v-for="layout in layouts"

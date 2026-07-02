@@ -11,6 +11,7 @@ import {
 import type { ResolvedOleType } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { getContainerStyle } from '../composables/element-style';
 
@@ -32,6 +33,8 @@ const props = defineProps<{
 	mediaDataUrls?: Map<string, string>;
 	zIndex: number;
 }>();
+
+const { t } = useI18n();
 
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
@@ -357,20 +360,20 @@ const placeholderStyle = computed<CSSProperties>(() => ({
 				class="pptx-vue-ole-action"
 				:href="embeddedData"
 				:download="downloadName"
-				:aria-label="`Download ${downloadName}`"
-				:title="`Download ${downloadName}`"
+				:aria-label="t('pptx.ole.downloadName', { name: downloadName })"
+				:title="t('pptx.ole.downloadName', { name: downloadName })"
 			>
-				Download
+				{{ t('pptx.ole.download') }}
 			</a>
 			<button
 				v-if="canOpenInBrowser"
 				type="button"
 				class="pptx-vue-ole-action"
-				:aria-label="`Open ${downloadName}`"
-				:title="`Open ${downloadName}`"
+				:aria-label="t('pptx.ole.openName', { name: downloadName })"
+				:title="t('pptx.ole.openName', { name: downloadName })"
 				@click="openEmbedded"
 			>
-				Open
+				{{ t('pptx.ole.open') }}
 			</button>
 		</div>
 	</div>

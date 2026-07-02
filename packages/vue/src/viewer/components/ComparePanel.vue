@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { CompareResult } from '../composables/slide-compare';
 import type { CanvasSize } from '../types';
@@ -28,6 +29,8 @@ const emit = defineEmits<{
 	(e: 'close' | 'accept-all'): void;
 	(e: 'accept-slide' | 'reject-slide', diffIndex: number): void;
 }>();
+
+const { t } = useI18n();
 
 const accepted = ref<Record<number, boolean>>({});
 const rejected = ref<Record<number, boolean>>({});
@@ -78,17 +81,22 @@ function handleAcceptAll(): void {
 		>
 			<div>
 				<h3 class="pptx-vue-compare-title m-0 text-sm font-medium text-foreground">
-					Compare versions
+					{{ t('pptx.compare.title') }}
 				</h3>
 				<p class="pptx-vue-compare-summary mt-0.5 text-[11px] text-muted-foreground">
-					{{ compareResult.addedCount }} added · {{ compareResult.removedCount }} removed ·
-					{{ compareResult.changedCount }} changed
+					{{
+						t('pptx.compare.summary', {
+							added: compareResult.addedCount,
+							removed: compareResult.removedCount,
+							changed: compareResult.changedCount,
+						})
+					}}
 				</p>
 			</div>
 			<button
 				type="button"
 				class="pptx-vue-compare-close inline-flex h-6 w-6 items-center justify-center rounded p-0 text-lg leading-none text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-				aria-label="Close"
+				:aria-label="t('pptx.compare.close')"
 				@click="emit('close')"
 			>
 				&times;
@@ -104,7 +112,7 @@ function handleAcceptAll(): void {
 				class="pptx-vue-compare-accept-all inline-flex cursor-pointer items-center gap-1.5 rounded bg-green-700/80 px-3 py-1.5 text-xs text-green-50 transition-colors hover:bg-green-600"
 				@click="handleAcceptAll"
 			>
-				Accept all
+				{{ t('pptx.compare.acceptAll') }}
 			</button>
 		</div>
 
@@ -113,7 +121,7 @@ function handleAcceptAll(): void {
 				v-if="nonTrivialCount === 0"
 				class="pptx-vue-compare-empty m-0 py-8 text-center text-xs text-muted-foreground"
 			>
-				No differences
+				{{ t('pptx.compare.noDifferences') }}
 			</p>
 			<template v-else>
 				<SlideDiffRow

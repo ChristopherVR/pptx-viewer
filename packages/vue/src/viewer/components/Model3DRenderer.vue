@@ -2,6 +2,7 @@
 import type { Model3DPptxElement, PptxElement } from 'pptx-viewer-core';
 import type { CSSProperties } from 'vue';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { getContainerStyle } from '../composables/element-style';
 import { useModel3dScene } from '../composables/useModel3dScene';
@@ -26,6 +27,8 @@ const props = defineProps<{
 	mediaDataUrls?: Map<string, string>;
 	zIndex: number;
 }>();
+
+const { t } = useI18n();
 
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
@@ -79,7 +82,7 @@ const showPoster = computed(() => !mounted.value);
 			<img
 				v-if="posterSrc"
 				:src="posterSrc"
-				alt="3D Model"
+				:alt="t('pptx.model3d.label')"
 				class="pptx-vue-model3d-poster"
 				draggable="false"
 			/>
@@ -102,7 +105,7 @@ const showPoster = computed(() => !mounted.value);
 					<polyline points="3.27 6.96 12 12.01 20.73 6.96" />
 					<line x1="12" y1="22.08" x2="12" y2="12" />
 				</svg>
-				<span>3D Model</span>
+				<span>{{ t('pptx.model3d.label') }}</span>
 			</div>
 		</template>
 	</div>

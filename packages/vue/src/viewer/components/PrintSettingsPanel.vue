@@ -6,6 +6,9 @@
  * (`PrintDialog`) owns all state via `v-model`-style props + `update:*` emits.
  * Hand-written scoped CSS (no Tailwind), class names prefixed `pptx-vue-`.
  */
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
 import { HANDOUT_OPTIONS } from './print-dialog-types';
 import type {
 	HandoutSlidesPerPage,
@@ -14,6 +17,8 @@ import type {
 	PrintSlideRange,
 	PrintWhat,
 } from './print-dialog-types';
+
+const { t } = useI18n();
 
 const props = defineProps<{
 	printWhat: PrintWhat;
@@ -39,18 +44,18 @@ const emit = defineEmits<{
 	'update:customTo': [value: number];
 }>();
 
-const PRINT_WHAT_OPTIONS: { value: PrintWhat; label: string }[] = [
-	{ value: 'slides', label: 'Full-page slides' },
-	{ value: 'handouts', label: 'Handouts' },
-	{ value: 'notes', label: 'Notes pages' },
-	{ value: 'outline', label: 'Outline' },
-];
+const PRINT_WHAT_OPTIONS = computed<{ value: PrintWhat; label: string }[]>(() => [
+	{ value: 'slides', label: t('pptx.print.whatFullPage') },
+	{ value: 'handouts', label: t('pptx.print.whatHandouts') },
+	{ value: 'notes', label: t('pptx.print.whatNotes') },
+	{ value: 'outline', label: t('pptx.print.whatOutline') },
+]);
 
-const COLOR_OPTIONS: { value: PrintColorMode; label: string }[] = [
-	{ value: 'color', label: 'Color' },
-	{ value: 'grayscale', label: 'Grayscale' },
-	{ value: 'blackAndWhite', label: 'Black & white' },
-];
+const COLOR_OPTIONS = computed<{ value: PrintColorMode; label: string }[]>(() => [
+	{ value: 'color', label: t('pptx.print.colorColor') },
+	{ value: 'grayscale', label: t('pptx.print.colorGrayscale') },
+	{ value: 'blackAndWhite', label: t('pptx.print.colorBlackWhite') },
+]);
 
 function parseRangeInput(raw: string): number {
 	return Math.max(1, Number.parseInt(raw, 10) || 1);
@@ -72,7 +77,7 @@ function onCustomToInput(event: Event): void {
 			<legend
 				class="pptx-vue-print-legend mb-2 p-0 text-xs font-medium uppercase tracking-wide text-muted-foreground"
 			>
-				Print what
+				{{ t('pptx.print.legendPrintWhat') }}
 			</legend>
 			<div class="pptx-vue-print-grid grid grid-cols-2 gap-2">
 				<label
@@ -105,7 +110,7 @@ function onCustomToInput(event: Event): void {
 			<legend
 				class="pptx-vue-print-legend mb-2 p-0 text-xs font-medium uppercase tracking-wide text-muted-foreground"
 			>
-				Slides per page
+				{{ t('pptx.print.legendSlidesPerPage') }}
 			</legend>
 			<div class="pptx-vue-print-chips flex flex-wrap gap-1.5">
 				<button
@@ -130,7 +135,7 @@ function onCustomToInput(event: Event): void {
 			<legend
 				class="pptx-vue-print-legend mb-2 p-0 text-xs font-medium uppercase tracking-wide text-muted-foreground"
 			>
-				Slide range
+				{{ t('pptx.print.legendSlideRange') }}
 			</legend>
 			<div class="pptx-vue-print-stack flex flex-col gap-2">
 				<label
@@ -148,7 +153,7 @@ function onCustomToInput(event: Event): void {
 						:checked="props.slideRange === 'all'"
 						@change="emit('update:slideRange', 'all')"
 					/>
-					All slides ({{ props.totalSlides }})
+					{{ t('pptx.print.rangeAll', { count: props.totalSlides }) }}
 				</label>
 				<label
 					class="pptx-vue-print-card flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors"
@@ -165,7 +170,7 @@ function onCustomToInput(event: Event): void {
 						:checked="props.slideRange === 'current'"
 						@change="emit('update:slideRange', 'current')"
 					/>
-					Current slide ({{ props.activeSlideIndex + 1 }})
+					{{ t('pptx.print.rangeCurrent', { count: props.activeSlideIndex + 1 }) }}
 				</label>
 				<label
 					class="pptx-vue-print-card flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors"
@@ -182,13 +187,15 @@ function onCustomToInput(event: Event): void {
 						:checked="props.slideRange === 'custom'"
 						@change="emit('update:slideRange', 'custom')"
 					/>
-					Custom range
+					{{ t('pptx.print.rangeCustom') }}
 				</label>
 				<div
 					v-if="props.slideRange === 'custom'"
 					class="pptx-vue-print-range flex items-center gap-2 pl-6"
 				>
-					<span class="pptx-vue-print-range-label text-xs text-muted-foreground">From</span>
+					<span class="pptx-vue-print-range-label text-xs text-muted-foreground">{{
+						t('pptx.print.from')
+					}}</span>
 					<input
 						type="number"
 						:min="1"
@@ -197,7 +204,9 @@ function onCustomToInput(event: Event): void {
 						class="pptx-vue-print-number w-16 rounded border border-border bg-background px-2 py-1 text-sm text-foreground"
 						@input="onCustomFromInput"
 					/>
-					<span class="pptx-vue-print-range-label text-xs text-muted-foreground">To</span>
+					<span class="pptx-vue-print-range-label text-xs text-muted-foreground">{{
+						t('pptx.print.to')
+					}}</span>
 					<input
 						type="number"
 						:min="1"
@@ -218,7 +227,7 @@ function onCustomToInput(event: Event): void {
 			<legend
 				class="pptx-vue-print-legend mb-2 p-0 text-xs font-medium uppercase tracking-wide text-muted-foreground"
 			>
-				Orientation
+				{{ t('pptx.print.legendOrientation') }}
 			</legend>
 			<div class="pptx-vue-print-row flex flex-wrap gap-2">
 				<label
@@ -236,7 +245,7 @@ function onCustomToInput(event: Event): void {
 						:checked="props.orientation === 'landscape'"
 						@change="emit('update:orientation', 'landscape')"
 					/>
-					Landscape
+					{{ t('pptx.print.landscape') }}
 				</label>
 				<label
 					class="pptx-vue-print-card flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors"

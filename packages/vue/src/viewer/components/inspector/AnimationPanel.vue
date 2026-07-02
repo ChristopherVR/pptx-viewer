@@ -14,6 +14,7 @@ import {
 	ooxmlToPresetName,
 } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * Resolve an editor catalog id (e.g. `entr.10`) to the real `PptxAnimationPreset`
@@ -68,14 +69,16 @@ const emit = defineEmits<{
 	update: [patch: Partial<AnimatableElement>];
 }>();
 
+const { t } = useI18n();
+
 // ── Category → core preset catalog ──
 
 type AnimationUiCategory = 'entrance' | 'emphasis' | 'exit';
 
-const CATEGORY_OPTIONS: ReadonlyArray<{ value: AnimationUiCategory; label: string }> = [
-	{ value: 'entrance', label: 'Entrance' },
-	{ value: 'emphasis', label: 'Emphasis' },
-	{ value: 'exit', label: 'Exit' },
+const CATEGORY_OPTIONS: ReadonlyArray<{ value: AnimationUiCategory; labelKey: string }> = [
+	{ value: 'entrance', labelKey: 'pptx.animation.entrance' },
+	{ value: 'emphasis', labelKey: 'pptx.animation.emphasis' },
+	{ value: 'exit', labelKey: 'pptx.animation.exit' },
 ];
 
 const PRESETS_BY_CATEGORY: Readonly<Record<AnimationUiCategory, AnimationPresetInfo[]>> = {
@@ -85,10 +88,10 @@ const PRESETS_BY_CATEGORY: Readonly<Record<AnimationUiCategory, AnimationPresetI
 };
 
 // Real `PptxAnimationTrigger` values for the supported "Start" options.
-const TRIGGER_OPTIONS: ReadonlyArray<{ value: PptxAnimationTrigger; label: string }> = [
-	{ value: 'onClick', label: 'On click' },
-	{ value: 'withPrevious', label: 'With previous' },
-	{ value: 'afterPrevious', label: 'After previous' },
+const TRIGGER_OPTIONS: ReadonlyArray<{ value: PptxAnimationTrigger; labelKey: string }> = [
+	{ value: 'onClick', labelKey: 'pptx.animation.trigger.onClick' },
+	{ value: 'withPrevious', labelKey: 'pptx.animation.trigger.withPrevious' },
+	{ value: 'afterPrevious', labelKey: 'pptx.animation.trigger.afterPrevious' },
 ];
 
 // ── Current animations ──
@@ -98,14 +101,16 @@ const currentAnimations = computed<PptxElementAnimation[]>(() => props.element.a
 function presetLabel(anim: PptxElementAnimation): string {
 	const presetId = anim.entrance ?? anim.emphasis ?? anim.exit;
 	if (!presetId) {
-		return 'Animation';
+		return t('pptx.animation.animation');
 	}
 	const info = getAnimationPresetInfo(presetId);
 	return info?.label ?? presetId;
 }
 
 function triggerLabel(trigger: PptxAnimationTrigger | undefined): string {
-	return TRIGGER_OPTIONS.find((o) => o.value === trigger)?.label ?? 'On click';
+	const key =
+		TRIGGER_OPTIONS.find((o) => o.value === trigger)?.labelKey ?? 'pptx.animation.trigger.onClick';
+	return t(key);
 }
 
 // ── Add-animation form state ──
@@ -169,7 +174,7 @@ function removeAnimation(index: number): void {
 		class="pptx-vue-anim-panel flex flex-col gap-2 rounded-md border border-border bg-card p-2 text-xs"
 	>
 		<div class="pptx-vue-anim-heading text-[11px] uppercase tracking-wide text-muted-foreground">
-			Animations
+			{{ t('pptx.animation.title') }}
 		</div>
 
 		<ul
@@ -192,43 +197,49 @@ function removeAnimation(index: number): void {
 				<button
 					type="button"
 					class="pptx-vue-anim-remove inline-flex items-center justify-center w-5 h-5 p-0 rounded border-none bg-transparent text-muted-foreground text-base leading-none cursor-pointer transition-colors hover:bg-destructive/10 hover:text-destructive"
-					:aria-label="`Remove ${presetLabel(anim)}`"
-					title="Remove animation"
+					:aria-label="t('pptx.animation.removeNamed', { name: presetLabel(anim) })"
+					:title="t('pptx.animation.remove')"
 					@click="removeAnimation(index)"
 				>
 					×
 				</button>
 			</li>
 		</ul>
-		<p v-else class="pptx-vue-anim-empty text-muted-foreground">No animations</p>
+		<p v-else class="pptx-vue-anim-empty text-muted-foreground">
+			{{ t('pptx.animation.noAnimations') }}
+		</p>
 
 		<div class="pptx-vue-anim-add flex flex-col gap-1.5 pt-2 border-t border-border">
 			<div
 				class="pptx-vue-anim-add-title text-[11px] uppercase tracking-wide text-muted-foreground"
 			>
-				Add animation
+				{{ t('pptx.animation.addAnimation') }}
 			</div>
 
 			<label class="pptx-vue-anim-field flex flex-col gap-1">
-				<span class="pptx-vue-anim-label text-muted-foreground">Category</span>
+				<span class="pptx-vue-anim-label text-muted-foreground">{{
+					t('pptx.animation.category')
+				}}</span>
 				<select
 					v-model="category"
 					class="pptx-vue-anim-select w-full bg-muted border border-border rounded px-2 py-1"
-					aria-label="Animation category"
+					:aria-label="t('pptx.animation.categoryAria')"
 					@change="onCategoryChange"
 				>
 					<option v-for="opt in CATEGORY_OPTIONS" :key="opt.value" :value="opt.value">
-						{{ opt.label }}
+						{{ t(opt.labelKey) }}
 					</option>
 				</select>
 			</label>
 
 			<label class="pptx-vue-anim-field flex flex-col gap-1">
-				<span class="pptx-vue-anim-label text-muted-foreground">Effect</span>
+				<span class="pptx-vue-anim-label text-muted-foreground">{{
+					t('pptx.animation.effect')
+				}}</span>
 				<select
 					v-model="presetId"
 					class="pptx-vue-anim-select w-full bg-muted border border-border rounded px-2 py-1"
-					aria-label="Animation preset"
+					:aria-label="t('pptx.animation.presetAria')"
 				>
 					<option v-for="preset in presetChoices" :key="preset.presetId" :value="preset.presetId">
 						{{ preset.label }}
@@ -237,14 +248,16 @@ function removeAnimation(index: number): void {
 			</label>
 
 			<label class="pptx-vue-anim-field flex flex-col gap-1">
-				<span class="pptx-vue-anim-label text-muted-foreground">Start</span>
+				<span class="pptx-vue-anim-label text-muted-foreground">{{
+					t('pptx.animation.start')
+				}}</span>
 				<select
 					v-model="trigger"
 					class="pptx-vue-anim-select w-full bg-muted border border-border rounded px-2 py-1"
-					aria-label="Animation trigger"
+					:aria-label="t('pptx.animation.triggerAria')"
 				>
 					<option v-for="opt in TRIGGER_OPTIONS" :key="opt.value" :value="opt.value">
-						{{ opt.label }}
+						{{ t(opt.labelKey) }}
 					</option>
 				</select>
 			</label>
@@ -255,7 +268,7 @@ function removeAnimation(index: number): void {
 				:disabled="!presetId"
 				@click="addAnimation"
 			>
-				Add animation
+				{{ t('pptx.animation.addAnimation') }}
 			</button>
 		</div>
 	</div>

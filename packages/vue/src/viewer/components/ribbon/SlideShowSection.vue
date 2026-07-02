@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Captions, Cast, Clock, Monitor, Play, Settings } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import { ic, pill, SEP } from './ribbon-constants';
@@ -25,42 +26,63 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const { t } = useI18n();
 </script>
 
 <template>
-	<button :class="pill" title="Start slide show from beginning" @click="props.onSetMode('present')">
+	<button
+		:class="pill"
+		:title="t('pptx.slideShow.fromBeginningTooltip')"
+		@click="props.onSetMode('present')"
+	>
 		<Play :class="ic" />
-		From Beginning
+		{{ t('pptx.slideShow.fromBeginning') }}
 	</button>
-	<button :class="pill" title="Start slide show from current slide" @click="props.onPresent()">
+	<button :class="pill" :title="t('pptx.slideShow.fromCurrentTooltip')" @click="props.onPresent()">
 		<Play :class="ic" />
-		From Current Slide
+		{{ t('pptx.slideShow.fromCurrent') }}
 	</button>
 	<div :class="SEP" />
-	<button :class="pill" title="Presenter view" @click="props.onEnterPresenterView()">
+	<button
+		:class="pill"
+		:title="t('pptx.slideShow.presenterViewTooltip')"
+		@click="props.onEnterPresenterView()"
+	>
 		<Monitor :class="ic" />
-		Presenter View
+		{{ t('pptx.slideShow.presenterView') }}
 	</button>
-	<button :class="pill" title="Rehearse timings" @click="props.onEnterRehearsalMode()">
+	<button
+		:class="pill"
+		:title="t('pptx.slideShow.rehearseTimingsTooltip')"
+		@click="props.onEnterRehearsalMode()"
+	>
 		<Clock :class="ic" />
-		Rehearse Timings
+		{{ t('pptx.slideShow.rehearseTimings') }}
 	</button>
 	<div :class="SEP" />
-	<button :class="pill" title="Set up slide show" @click="props.onOpenSetUpSlideShow()">
+	<button
+		:class="pill"
+		:title="t('pptx.slideShow.setUpTooltip')"
+		@click="props.onOpenSetUpSlideShow()"
+	>
 		<Settings :class="ic" />
-		Set Up Slide Show
+		{{ t('pptx.slideShow.setUp') }}
 	</button>
-	<button :class="pill" title="Broadcast slide show" @click="props.onOpenBroadcastDialog()">
+	<button
+		:class="pill"
+		:title="t('pptx.slideShow.broadcastTooltip')"
+		@click="props.onOpenBroadcastDialog()"
+	>
 		<Cast :class="ic" />
-		Broadcast
+		{{ t('pptx.slideShow.broadcast') }}
 	</button>
 	<div :class="SEP" />
 	<button
 		:class="cn(pill, props.showSubtitles ? 'bg-primary hover:bg-primary/80 text-white' : '')"
-		title="Toggle subtitles"
+		:title="t('pptx.slideShow.subtitlesTooltip')"
 		@click="props.onToggleSubtitles()"
 	>
 		<Captions :class="ic" />
-		Subtitles
+		{{ t('pptx.slideShow.subtitles') }}
 	</button>
 </template>

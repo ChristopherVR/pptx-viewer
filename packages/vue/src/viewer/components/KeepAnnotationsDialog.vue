@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { PenTool, Trash2 } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
 
 import ModalDialog from './ModalDialog.vue';
+
+const { t } = useI18n();
 
 /**
  * KeepAnnotationsDialog: shown when the presenter exits a slide show that still
@@ -21,14 +24,18 @@ const emit = defineEmits<{
 </script>
 
 <template>
-	<ModalDialog :open="props.open" title="Keep your annotations?" @close="emit('discard')">
+	<ModalDialog :open="props.open" :title="t('pptx.keepAnnotations.title')" @close="emit('discard')">
 		<div class="flex items-start gap-3">
 			<div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
 				<PenTool class="h-5 w-5 text-primary" />
 			</div>
 			<p class="text-sm text-muted-foreground">
-				You drew {{ props.annotationCount }} annotation(s) across {{ props.slideCount }}
-				slide(s). Keep them as ink on the slides, or discard them?
+				{{
+					t('pptx.keepAnnotations.body', {
+						count: props.annotationCount,
+						slideCount: props.slideCount,
+					})
+				}}
 			</p>
 		</div>
 
@@ -39,7 +46,7 @@ const emit = defineEmits<{
 				@click="emit('discard')"
 			>
 				<Trash2 class="h-4 w-4" />
-				Discard
+				{{ t('pptx.keepAnnotations.discard') }}
 			</button>
 			<button
 				type="button"
@@ -47,7 +54,7 @@ const emit = defineEmits<{
 				@click="emit('keep')"
 			>
 				<PenTool class="h-4 w-4" />
-				Keep
+				{{ t('pptx.keepAnnotations.keep') }}
 			</button>
 		</template>
 	</ModalDialog>

@@ -9,6 +9,7 @@ import type { ConnectionStatus } from 'pptx-viewer-shared';
  * Mirrors the React `CollaborationStatusIndicator.tsx` contract.
  */
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
 	/** Current WebSocket connection status. */
@@ -16,6 +17,8 @@ const props = defineProps<{
 	/** Number of connected participants (including the local user). */
 	connectedCount: number;
 }>();
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
 	/** The user asked to retry after a connection error. */
@@ -25,18 +28,26 @@ const emit = defineEmits<{
 interface StatusStyle {
 	dot: string;
 	text: string;
-	label: string;
+	labelKey: string;
 }
 
 const STATUS_STYLES: Record<ConnectionStatus, StatusStyle> = {
-	connected: { dot: 'bg-green-400', text: 'text-green-400', label: 'Connected' },
+	connected: {
+		dot: 'bg-green-400',
+		text: 'text-green-400',
+		labelKey: 'pptx.collaboration.status.connected',
+	},
 	connecting: {
 		dot: 'bg-yellow-400 animate-pulse',
 		text: 'text-yellow-400',
-		label: 'Connecting...',
+		labelKey: 'pptx.collaboration.status.connecting',
 	},
-	disconnected: { dot: 'bg-gray-500', text: 'text-gray-500', label: 'Disconnected' },
-	error: { dot: 'bg-red-400', text: 'text-red-400', label: 'Connection error' },
+	disconnected: {
+		dot: 'bg-gray-500',
+		text: 'text-gray-500',
+		labelKey: 'pptx.collaboration.status.disconnected',
+	},
+	error: { dot: 'bg-red-400', text: 'text-red-400', labelKey: 'pptx.collaboration.status.error' },
 };
 
 const style = computed<StatusStyle>(() => STATUS_STYLES[props.status]);
@@ -44,13 +55,18 @@ const style = computed<StatusStyle>(() => STATUS_STYLES[props.status]);
 const text = computed<string>(() => {
 	if (props.status === 'connected') {
 		const count = props.connectedCount;
-		return count === 1 ? '1 person here' : `${count} people here`;
+		return count === 1
+			? t('pptx.collaboration.onePersonHere')
+			: t('pptx.collaboration.peopleHere', { count });
 	}
-	return style.value.label;
+	return t(style.value.labelKey);
 });
 
-const ariaLabel = computed<string>(
-	() => `Collaboration: ${style.value.label}, ${props.connectedCount} connected`,
+const ariaLabel = computed<string>(() =>
+	t('pptx.collaboration.statusAriaLabel', {
+		status: t(style.value.labelKey),
+		count: props.connectedCount,
+	}),
 );
 </script>
 
@@ -66,10 +82,10 @@ const ariaLabel = computed<string>(
 			v-if="props.status === 'error'"
 			type="button"
 			class="text-[10px] text-blue-400 underline underline-offset-2 transition-colors hover:text-blue-300"
-			aria-label="Retry connection"
+			:aria-label="t('pptx.collaboration.retryConnection')"
 			@click="emit('retry')"
 		>
-			Retry
+			{{ t('pptx.collaboration.retry') }}
 		</button>
 	</div>
 </template>

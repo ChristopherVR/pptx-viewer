@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxSlide } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import NotesToolbar from './NotesToolbar.vue';
 import { useNotesEditor } from './useNotesEditor';
@@ -42,6 +43,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	update: [notes: string];
 }>();
+
+const { t } = useI18n();
 
 const collapsed = ref(false);
 
@@ -91,7 +94,7 @@ function toggle(): void {
 			:aria-expanded="!collapsed"
 			@click="toggle"
 		>
-			<span class="pptx-vue-notes-title select-none">Speaker notes</span>
+			<span class="pptx-vue-notes-title select-none">{{ t('pptx.presenter.speakerNotes') }}</span>
 			<span class="pptx-vue-notes-chevron text-xs text-muted-foreground" aria-hidden="true">{{
 				collapsed ? '▸' : '▾'
 			}}</span>
@@ -123,7 +126,7 @@ function toggle(): void {
 				:contenteditable="hasSlide"
 				role="textbox"
 				aria-multiline="true"
-				aria-label="Speaker notes"
+				:aria-label="t('pptx.presenter.speakerNotes')"
 				class="pptx-vue-notes-rich box-border min-h-20 w-full resize-y overflow-auto rounded-md border border-border/50 bg-muted/60 p-2 text-[0.8125rem] leading-relaxed text-foreground focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/30"
 				@input="onRichInput"
 				@keydown="onRichKeydown"
@@ -138,8 +141,8 @@ function toggle(): void {
 				name="slide-notes"
 				class="pptx-vue-notes-textarea box-border min-h-20 w-full resize-y rounded-md border border-border/50 bg-muted/60 p-2 text-[0.8125rem] leading-relaxed text-foreground transition-colors placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-60"
 				:disabled="!hasSlide"
-				:placeholder="hasSlide ? 'Add speaker notes…' : 'No slide selected'"
-				aria-label="Speaker notes"
+				:placeholder="hasSlide ? t('pptx.notes.addSpeakerNotes') : t('pptx.notes.noSlide')"
+				:aria-label="t('pptx.presenter.speakerNotes')"
 				spellcheck="true"
 				@change="onPlainCommit"
 				@blur="onPlainCommit"

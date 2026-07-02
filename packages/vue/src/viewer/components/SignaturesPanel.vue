@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import type { ParsedSignature, SignatureStatus } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { useSignatures } from '../composables/useSignatures';
+
+const { t } = useI18n();
 
 /**
  * SignaturesPanel - read-only digital-signature status panel.
@@ -23,11 +26,11 @@ const { isSigned, status, overall } = useSignatures(() => props.signatures);
 const headerLabel = computed<string>(() => {
 	switch (overall.value) {
 		case 'invalid':
-			return 'Invalid signature';
+			return t('pptx.digitalSignatures.invalidHeader');
 		case 'signed':
-			return 'Signed';
+			return t('pptx.digitalSignatures.headerSigned');
 		default:
-			return 'Not signed';
+			return t('pptx.digitalSignatures.notSigned');
 	}
 });
 
@@ -35,15 +38,15 @@ const headerLabel = computed<string>(() => {
 function statusLabel(s: SignatureStatus): string {
 	switch (s) {
 		case 'valid':
-			return 'Valid';
+			return t('pptx.digitalSignatures.statusValid');
 		case 'invalid':
-			return 'Invalid';
+			return t('pptx.digitalSignatures.statusInvalid');
 		case 'expired':
-			return 'Expired';
+			return t('pptx.digitalSignatures.statusExpired');
 		case 'unknownCA':
-			return 'Unknown certificate authority';
+			return t('pptx.digitalSignatures.statusUnknownCA');
 		default:
-			return 'Unverified';
+			return t('pptx.digitalSignatures.statusUnverified');
 	}
 }
 
@@ -85,7 +88,7 @@ function signatureKey(sig: ParsedSignature, index: number): string {
 <template>
 	<section
 		class="pptx-vue-signatures overflow-hidden rounded-lg border border-border bg-popover text-[13px] text-foreground"
-		aria-label="Digital signatures"
+		:aria-label="t('pptx.digitalSignatures.ariaLabel')"
 	>
 		<header
 			class="pptx-vue-signatures__header flex items-center gap-2 border-b border-border px-3 py-2.5 font-semibold"
@@ -104,13 +107,12 @@ function signatureKey(sig: ParsedSignature, index: number): string {
 			/>
 			<span class="pptx-vue-signatures__title flex-1">{{ headerLabel }}</span>
 			<span v-if="isSigned" class="pptx-vue-signatures__count text-xs font-normal opacity-80">
-				{{ props.signatures.length }}
-				signature{{ props.signatures.length === 1 ? '' : 's' }}
+				{{ t('pptx.digitalSignatures.signatureCount', { count: props.signatures.length }) }}
 			</span>
 		</header>
 
 		<p v-if="!isSigned" class="pptx-vue-signatures__empty m-0 px-3 py-3.5 text-muted-foreground">
-			This presentation has no digital signatures.
+			{{ t('pptx.digitalSignatures.noSignatures') }}
 		</p>
 
 		<ul v-else class="pptx-vue-signatures__list m-0 list-none p-0">
@@ -150,20 +152,20 @@ function signatureKey(sig: ParsedSignature, index: number): string {
 					class="pptx-vue-signatures__meta m-0 mt-1.5 grid grid-cols-[auto_1fr] gap-x-2.5 gap-y-0.5 text-xs text-muted-foreground [&_dd]:m-0 [&_dd]:break-words [&_dt]:font-medium [&_dt]:text-muted-foreground"
 				>
 					<template v-if="sig.certificate?.issuer">
-						<dt>Issuer</dt>
+						<dt>{{ t('pptx.digitalSignatures.issuer') }}</dt>
 						<dd>{{ sig.certificate.issuer }}</dd>
 					</template>
 					<template v-if="sig.certificate?.serialNumber">
-						<dt>Serial</dt>
+						<dt>{{ t('pptx.digitalSignatures.serial') }}</dt>
 						<dd>{{ sig.certificate.serialNumber }}</dd>
 					</template>
 					<template v-if="timestamp(sig)">
-						<dt>Signed</dt>
+						<dt>{{ t('pptx.digitalSignatures.headerSigned') }}</dt>
 						<dd>{{ timestamp(sig) }}</dd>
 					</template>
 					<template v-if="!sig.certificate">
-						<dt>Certificate</dt>
-						<dd>Not available</dd>
+						<dt>{{ t('pptx.digitalSignatures.certificate') }}</dt>
+						<dd>{{ t('pptx.digitalSignatures.notAvailable') }}</dd>
 					</template>
 				</dl>
 			</li>

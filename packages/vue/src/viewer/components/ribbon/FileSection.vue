@@ -21,6 +21,7 @@ import {
 	Type,
 	Video,
 } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
 
 import { ic, pill, SEP } from './ribbon-constants';
 
@@ -45,71 +46,76 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const { t } = useI18n();
 </script>
 
 <template>
 	<!-- Open another presentation -->
 	<template v-if="props.onOpenFile">
-		<button :class="pill" title="Open another presentation" @click="props.onOpenFile()">
+		<button :class="pill" :title="t('pptx.file.openTooltip')" @click="props.onOpenFile()">
 			<FolderOpen :class="ic" />
-			Open
+			{{ t('pptx.file.open') }}
 		</button>
 		<div :class="SEP" />
 	</template>
 
 	<!-- Save & Export -->
-	<button :class="pill" title="Save as Presentation (.pptx)" @click="props.onSaveAsPptx()">
+	<button :class="pill" :title="t('pptx.file.saveAsPptxTooltip')" @click="props.onSaveAsPptx()">
 		<Download :class="ic" />
-		Save .pptx
+		{{ t('pptx.file.saveAsPptx') }}
 	</button>
-	<button :class="pill" title="Save as Slide Show (.ppsx)" @click="props.onSaveAsPpsx()">
+	<button :class="pill" :title="t('pptx.file.saveAsPpsxTooltip')" @click="props.onSaveAsPpsx()">
 		<Play :class="ic" />
-		Save .ppsx
+		{{ t('pptx.file.saveAsPpsx') }}
 	</button>
 	<button
 		v-if="props.hasMacros"
 		:class="pill"
-		title="Save as Macro-Enabled (.pptm)"
+		:title="t('pptx.file.saveAsPptmTooltip')"
 		@click="props.onSaveAsPptm()"
 	>
 		<FileText :class="ic" />
-		Save .pptm
+		{{ t('pptx.file.saveAsPptm') }}
 	</button>
-	<button :class="pill" title="Package for Sharing" @click="props.onPackageForSharing()">
+	<button :class="pill" :title="t('pptx.file.packageTooltip')" @click="props.onPackageForSharing()">
 		<Package :class="ic" />
-		Package
+		{{ t('pptx.file.package') }}
 	</button>
 
 	<div :class="SEP" />
 
 	<!-- Export -->
-	<button :class="pill" title="Export as PNG" @click="props.onExportPng()">
+	<button :class="pill" :title="t('pptx.file.exportPngTooltip')" @click="props.onExportPng()">
 		<Download :class="ic" />
-		PNG
+		{{ t('pptx.file.png') }}
 	</button>
-	<button :class="pill" title="Export as PDF" @click="props.onExportPdf()">
+	<button :class="pill" :title="t('pptx.file.exportPdfTooltip')" @click="props.onExportPdf()">
 		<FileText :class="ic" />
-		PDF
+		{{ t('pptx.file.pdf') }}
 	</button>
-	<button :class="pill" title="Export as Video" @click="props.onExportVideo()">
+	<button :class="pill" :title="t('pptx.file.exportVideoTooltip')" @click="props.onExportVideo()">
 		<Video :class="ic" />
-		Video
+		{{ t('pptx.file.video') }}
 	</button>
-	<button :class="pill" title="Export as GIF" @click="props.onExportGif()">
+	<button :class="pill" :title="t('pptx.file.exportGifTooltip')" @click="props.onExportGif()">
 		<Image :class="ic" />
-		GIF
+		{{ t('pptx.file.gif') }}
 	</button>
-	<button :class="pill" title="Copy Slide as Image" @click="props.onCopySlideAsImage()">
+	<button
+		:class="pill"
+		:title="t('pptx.file.copyImageTooltip')"
+		@click="props.onCopySlideAsImage()"
+	>
 		<Copy :class="ic" />
-		Copy Image
+		{{ t('pptx.file.copyImage') }}
 	</button>
 
 	<div :class="SEP" />
 
 	<!-- Print -->
-	<button :class="pill" title="Print" @click="props.onPrint()">
+	<button :class="pill" :title="t('pptx.print.printButton')" @click="props.onPrint()">
 		<Printer :class="ic" />
-		Print
+		{{ t('pptx.print.printButton') }}
 	</button>
 
 	<div :class="SEP" />
@@ -118,37 +124,37 @@ const props = defineProps<Props>();
 	<button
 		v-if="props.onOpenDocumentProperties"
 		:class="pill"
-		title="Document Properties"
+		:title="t('pptx.file.documentPropertiesTooltip')"
 		@click="props.onOpenDocumentProperties()"
 	>
 		<Info :class="ic" />
-		Properties
+		{{ t('pptx.file.properties') }}
 	</button>
 	<button
 		v-if="props.onOpenPasswordProtection"
 		:class="pill"
-		title="Protect Presentation"
+		:title="t('pptx.file.protectTooltip')"
 		@click="props.onOpenPasswordProtection()"
 	>
 		<Lock :class="ic" />
-		Protect
+		{{ t('pptx.file.protect') }}
 	</button>
 	<button
 		v-if="props.onOpenFontEmbedding"
 		:class="pill"
-		title="Embed Fonts"
+		:title="t('pptx.file.embedFontsTooltip')"
 		@click="props.onOpenFontEmbedding()"
 	>
 		<Type :class="ic" />
-		Fonts
+		{{ t('pptx.file.fonts') }}
 	</button>
 	<button
 		v-if="props.onOpenDigitalSignatures"
 		:class="pill"
-		title="Digital Signatures"
+		:title="t('pptx.file.digitalSignaturesTooltip')"
 		@click="props.onOpenDigitalSignatures()"
 	>
 		<ShieldAlert :class="ic" />
-		Signatures
+		{{ t('pptx.file.signatures') }}
 	</button>
 </template>

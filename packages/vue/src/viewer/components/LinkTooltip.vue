@@ -7,6 +7,10 @@
  * group-hover for zero-state display: the parent element must carry the
  * `group/link` class.
  */
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
+
 defineProps<{
 	/** The link URL or tooltip text to display. */
 	label: string;
@@ -22,7 +26,7 @@ defineProps<{
 		<div class="rounded border border-border bg-popover px-2.5 py-1.5 shadow-lg">
 			<div class="truncate text-xs text-foreground">{{ label }}</div>
 			<div class="mt-0.5 text-[10px] text-muted-foreground">
-				{{ hasUrl ? 'Ctrl+Click to follow link' : 'Active in presentation mode' }}
+				{{ hasUrl ? t('pptx.linkTooltip.followLink') : t('pptx.linkTooltip.presentationMode') }}
 			</div>
 		</div>
 	</div>
