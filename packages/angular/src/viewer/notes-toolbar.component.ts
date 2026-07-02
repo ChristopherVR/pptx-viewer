@@ -23,7 +23,8 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
-import type { NotesInlineCommand, NotesParagraphCommand } from 'pptx-viewer-shared';
+
+import type { NotesInlineCommand, NotesParagraphCommand } from '../internal/shared';
 
 /** A toolbar button's emitted intent. */
 type ToolbarAction =

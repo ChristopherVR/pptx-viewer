@@ -191,6 +191,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return this.masterCache.get(masterPath)!;
 		}
 
+		// Namespace generated element IDs with the owning master part so that
+		// e.g. slideMaster1's first picture doesn't collide with slideMaster2's
+		// (indexInType is only unique within a single master's own spTree).
+		const masterToken =
+			masterPath
+				.split('/')
+				.pop()
+				?.replace(/\.xml$/u, '') ?? masterPath;
+
 		try {
 			const masterXmlStr = await this.zip.file(masterPath)?.async('string');
 			if (!masterXmlStr) {
@@ -262,11 +271,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					if (spPr?.['a:blipFill']) {
 						element = await this.parseShapeWithImageFill(
 							shape,
-							`master-shape-img-${entry.indexInType}`,
+							`master-shape-img-${masterToken}-${entry.indexInType}`,
 							masterPath,
 						);
 					} else {
-						element = this.parseShape(shape, `master-shape-${entry.indexInType}`, masterPath);
+						element = this.parseShape(
+							shape,
+							`master-shape-${masterToken}-${entry.indexInType}`,
+							masterPath,
+						);
 					}
 
 					if (element) {
@@ -281,7 +294,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					}
 					const element = await this.parsePicture(
 						pic,
-						`master-pic-${entry.indexInType}`,
+						`master-pic-${masterToken}-${entry.indexInType}`,
 						masterPath,
 					);
 					if (element) {
@@ -296,7 +309,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					}
 					const element = this.parseGraphicFrame(
 						frame,
-						`master-frame-${entry.indexInType}`,
+						`master-frame-${masterToken}-${entry.indexInType}`,
 						masterPath,
 					);
 					if (element) {
