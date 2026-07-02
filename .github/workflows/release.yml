@@ -62,6 +62,7 @@ jobs:
           bun run --filter 'pptx-viewer-core' build
           bun run --filter 'pptx-viewer-shared' build
           bun run --filter 'pptx-viewer-mcp' build
+          bun run --filter '@christophervr/pptx-viewer' build
 
       # Framework bindings: each can fail without blocking the others.
       - name: Build React
@@ -89,7 +90,7 @@ jobs:
       - name: Generate per-package changelogs
         if: steps.plan.outputs.any_changed == 'true'
         run: |
-          for key in core react vue angular tools; do
+          for key in core react vue angular tools cli; do
             release=$(node -p "require('./release-plan.json').packages.$key.release")
             [ "$release" = "true" ] || continue
             dir=$(node -p "require('./release-plan.json').packages.$key.dir")
@@ -143,7 +144,7 @@ jobs:
           COMMIT=$(git rev-parse HEAD)
           CORE_VERSION=$(node -p "require('./release-plan.json').coreVersion")
           RELEASED_KEYS=""
-          for key in core react vue angular tools; do
+          for key in core react vue angular tools cli; do
             release=$(node -p "require('./release-plan.json').packages.$key.release")
             [ "$release" = "true" ] || continue
 
@@ -228,7 +229,6 @@ jobs:
   #
   # Packages published per core release:
   #   pptx-viewer-core       https://www.npmjs.com/package/pptx-viewer-core
-  #   @christophervr/pptx-viewer  https://www.npmjs.com/package/@christophervr/pptx-viewer
   publish:
     needs: [release]
     # `always()` lets this job run even when `release` was skipped (manual dispatch).
@@ -297,6 +297,7 @@ jobs:
           bun run --filter 'pptx-viewer-core' build
           bun run --filter 'pptx-viewer-shared' build
           bun run --filter 'pptx-viewer-mcp' build
+          bun run --filter '@christophervr/pptx-viewer' build
 
       # Build only the framework bindings that need to be published.
       - name: Build released framework packages
@@ -362,6 +363,7 @@ jobs:
               pptx-vue-viewer)     KEY="vue"     ;;
               pptx-angular-viewer) KEY="angular" ;;
               pptx-viewer-mcp)     KEY="tools"   ;;
+              @christophervr/pptx-viewer) KEY="cli"  ;;
               *)
                 echo "::error::Unknown package name: $NAME (from tag: $TAG)"
                 exit 1
@@ -384,7 +386,6 @@ jobs:
 
             case "$key" in
               # https://www.npmjs.com/package/pptx-viewer-core
-              # https://www.npmjs.com/package/@christophervr/pptx-viewer
               core)
                 npm pkg set version="$VERSION" --prefix packages/core
 
@@ -393,19 +394,6 @@ jobs:
                   echo "pptx-viewer-core@$VERSION already published, skipping"
                 else
                   (cd packages/core && npm publish --provenance --access public)
-                fi
-
-                # Always publish the scoped alias alongside core so both
-                # package names stay in sync at the same version.
-                # NOTE: configure OIDC trusted publishing for @christophervr/pptx-viewer
-                # on npmjs.com pointing to this workflow file.
-                SCOPED_EXISTING=$(npm view @christophervr/pptx-viewer@"$VERSION" version 2>/dev/null || echo "")
-                if [ "$SCOPED_EXISTING" = "$VERSION" ]; then
-                  echo "@christophervr/pptx-viewer@$VERSION already published, skipping"
-                else
-                  npm pkg set name="@christophervr/pptx-viewer" --prefix packages/core
-                  (cd packages/core && npm publish --provenance --access public)
-                  npm pkg set name="pptx-viewer-core" --prefix packages/core
                 fi
                 ;;
 
@@ -488,6 +476,17 @@ jobs:
                   echo "pptx-viewer-mcp@$VERSION already published, skipping"
                 else
                   (cd packages/tools && npm publish --provenance --access public)
+                fi
+                ;;
+
+              # https://www.npmjs.com/package/@christophervr/pptx-viewer
+              cli)
+                npm pkg set version="$VERSION" --prefix packages/cli
+                EXISTING=$(npm view @christophervr/pptx-viewer@"$VERSION" version 2>/dev/null || echo "")
+                if [ "$EXISTING" = "$VERSION" ]; then
+                  echo "@christophervr/pptx-viewer@$VERSION already published, skipping"
+                else
+                  (cd packages/cli && npm publish --provenance --access public)
                 fi
                 ;;
             esac

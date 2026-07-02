@@ -78,6 +78,12 @@ const PACKAGES = {
 		packDir: 'packages/tools',
 		triggers: [],
 	},
+	cli: {
+		dir: 'packages/cli',
+		npm: '@christophervr/pptx-viewer',
+		packDir: 'packages/cli',
+		triggers: [],
+	},
 };
 
 function git(args) {

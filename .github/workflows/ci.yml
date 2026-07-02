@@ -36,6 +36,7 @@ jobs:
           bun run --filter 'pptx-viewer-core' build
           bun run --filter 'pptx-viewer-shared' build
           bun run --filter 'pptx-viewer-mcp' build
+          bun run --filter '@christophervr/pptx-viewer' build
 
       # Framework bindings — each can fail independently without blocking others.
       - name: Build React
@@ -214,6 +215,30 @@ jobs:
 
       - name: Test tools
         run: cd packages/tools && bun vitest run --reporter=verbose --reporter=github-actions
+
+  test-cli:
+    needs: build
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: build-output
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Test @christophervr/pptx-viewer
+        run: cd packages/cli && bun vitest run --reporter=verbose --reporter=github-actions
 
   test-vue:
     needs: build
