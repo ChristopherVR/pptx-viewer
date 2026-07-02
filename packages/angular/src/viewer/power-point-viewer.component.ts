@@ -14,6 +14,7 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { applyThemeToData, hasShapeProperties } from 'pptx-viewer-core';
 import type {
 	InkPptxElement,
@@ -194,21 +195,22 @@ const ZOOM_MAX = 3;
 		CustomShowsComponent,
 		InsertSmartArtDialogComponent,
 		ViewerExtraDialogsComponent,
+		TranslatePipe,
 	],
 	template: `
 		<div class="pptx-ng-viewer" [ngClass]="class()" [ngStyle]="rootStyle()">
 			@if (loader.loading()) {
 				<div class="pptx-ng-state pptx-ng-loading">
 					<div class="pptx-ng-spinner" aria-hidden="true"></div>
-					<p>Loading presentation…</p>
+					<p>{{ 'pptx.viewer.loading' | translate }}</p>
 				</div>
 			} @else if (loader.isEncrypted()) {
 				<div class="pptx-ng-state pptx-ng-error">
-					<p>This presentation is password-protected and cannot be opened.</p>
+					<p>{{ 'pptx.viewer.encrypted' | translate }}</p>
 				</div>
 			} @else if (loader.error()) {
 				<div class="pptx-ng-state pptx-ng-error">
-					<p>Failed to load presentation.</p>
+					<p>{{ 'pptx.viewer.loadError' | translate }}</p>
 					<pre class="pptx-ng-error-detail">{{ loader.error() }}</pre>
 				</div>
 			} @else {
@@ -307,7 +309,7 @@ const ZOOM_MAX = 3;
 							(select)="goTo($event)"
 						/>
 					} @else if (!canEdit()) {
-						<nav class="pptx-ng-thumbnails" aria-label="Slides">
+						<nav class="pptx-ng-thumbnails" [attr.aria-label]="'pptx.sections.slides' | translate">
 							@for (slide of displaySlides(); track slide.id; let i = $index) {
 								<button
 									type="button"
@@ -362,7 +364,7 @@ const ZOOM_MAX = 3;
 							<pptx-collaboration-cursors [cursors]="collab.cursors()" [zoom]="zoom()" />
 						}
 						@if (showNotes() && !mobile.isMobile()) {
-							<aside class="pptx-ng-notes" aria-label="Speaker notes">
+							<aside class="pptx-ng-notes" [attr.aria-label]="'pptx.notes.speakerNotes' | translate">
 								<pptx-notes-panel
 									[slide]="activeSlide()"
 									(update)="onNotesUpdate($event)"
@@ -380,7 +382,7 @@ const ZOOM_MAX = 3;
 					@if (visibleInspectorKind(); as kind) {
 						<aside
 							class="pptx-ng-inspector-host"
-							[attr.aria-label]="inspectorLabel()"
+							[attr.aria-label]="inspectorLabel() | translate"
 							[style.transform]="
 								inspectorDragY() > 0 ? 'translateY(' + inspectorDragY() + 'px)' : null
 							"
@@ -439,9 +441,9 @@ const ZOOM_MAX = 3;
 									@if (activeSlide(); as sl) {
 										@if (slidePropsKey(); as key) {
 											<div class="pptx-ng-slide-props" [attr.data-slide-key]="key">
-												<h2 class="pptx-ng-notes-title">Slide</h2>
+												<h2 class="pptx-ng-notes-title">{{ 'pptx.viewer.slide' | translate }}</h2>
 												<label class="pptx-ng-prop-row">
-													<span>Background</span>
+													<span>{{ 'pptx.viewer.background' | translate }}</span>
 													<input
 														type="color"
 														[attr.value]="sl.backgroundColor || '#ffffff'"
@@ -449,10 +451,10 @@ const ZOOM_MAX = 3;
 													/>
 												</label>
 												<label class="pptx-ng-prop-row pptx-ng-prop-col">
-													<span>Notes</span>
+													<span>{{ 'pptx.notes.title' | translate }}</span>
 													<textarea
 														rows="5"
-														placeholder="Speaker notes…"
+														[attr.placeholder]="'pptx.viewer.speakerNotesPlaceholder' | translate"
 														(change)="onSlideNotes($event)"
 														(blur)="onSlideNotes($event)"
 														>{{ sl.notes || '' }}</textarea
@@ -975,21 +977,21 @@ export class PowerPointViewerComponent {
 		this.mobile.isMobile() && this.mobileInspectorHidden() ? null : this.inspectorContent(),
 	);
 
-	/** Accessible label for the inspector host, by active content. */
+	/** Accessible-label translation key for the inspector host, by active content. */
 	protected readonly inspectorLabel = computed(() => {
 		switch (this.inspectorContent()) {
 			case 'accessibility':
-				return 'Accessibility checker';
+				return 'pptx.accessibility.title';
 			case 'signatures':
-				return 'Digital signatures';
+				return 'pptx.viewer.digitalSignatures';
 			case 'comments':
-				return 'Comments';
+				return 'pptx.toolbar.comments';
 			case 'selection':
-				return 'Selection pane';
+				return 'pptx.selectionPane.title';
 			case 'element':
-				return 'Element properties';
+				return 'pptx.viewer.elementProperties';
 			case 'slide':
-				return 'Slide properties';
+				return 'pptx.viewer.slideProperties';
 			default:
 				return '';
 		}
