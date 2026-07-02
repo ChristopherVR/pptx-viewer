@@ -7,6 +7,13 @@ import { SmartArtInlineNodeEditor } from './SmartArtInlineNodeEditor';
 import { SmartArtNodeStyleBar } from './SmartArtNodeStyleBar';
 import { NODE_ID_ATTR, findNodeIdFromEvent, useSmartArtHoverState } from './useSmartArtHoverState';
 
+// ── Constants ───────────────────────────────────────────────────────────────
+
+/** Comfortable click/edit margin added around the tight text bounding box. */
+const EDITOR_PADDING = 4;
+/** Matches SmartArtNodeText's line-height multiplier so wrapping lines up. */
+const LINE_HEIGHT_RATIO = 1.2;
+
 // ── Props ───────────────────────────────────────────────────────────────────
 
 interface SmartArtEditableLayerProps {
@@ -53,7 +60,15 @@ export function SmartArtEditableLayer({
 	children,
 }: SmartArtEditableLayerProps): React.ReactNode {
 	const containerRef = React.useRef<HTMLDivElement | null>(null);
-	const [edit, setEdit] = React.useState<{ nodeId: string; rect: InlineEditRect } | null>(null);
+	// Anchors the style-bar popover; mousemove events landing inside it must not
+	// clear the hover state, or the popover would unmount as soon as the
+	// pointer reaches the swatches it needs to be clicked.
+	const styleBarRef = React.useRef<HTMLDivElement | null>(null);
+	const [edit, setEdit] = React.useState<{
+		nodeId: string;
+		rect: InlineEditRect;
+		fontSize?: number;
+	} | null>(null);
 
 	const { hoveredNodeId, hoveredNodeRect, handleMouseMove, clearHover } =
 		useSmartArtHoverState(containerRef);
@@ -69,12 +84,32 @@ export function SmartArtEditableLayer({
 			if (!nodeId) {
 				return;
 			}
-			const rect = computeInlineEditorRect(
-				nodeEl.getBoundingClientRect(),
-				container.getBoundingClientRect(),
-			);
+			// Prefer the actual rendered <text> element's tight bounding box over
+			// the node group's box: several layouts (gear, timeline, ...) tag a
+			// group that also contains non-text decoration (stems, dots, teeth)
+			// whose box is much larger than, and offset from, where the text
+			// itself is drawn. Falls back to the group box when there's no text
+			// node yet (e.g. an empty node being given its first label).
+			const textEl = nodeEl.querySelector('text');
+			const textRect = textEl?.getBoundingClientRect();
+			const hasTextRect = textRect !== undefined && textRect.width > 0 && textRect.height > 0;
+			const sourceRect = hasTextRect ? textRect : nodeEl.getBoundingClientRect();
+			const rect = computeInlineEditorRect(sourceRect, container.getBoundingClientRect());
+			const paddedRect: InlineEditRect = {
+				left: rect.left - EDITOR_PADDING,
+				top: rect.top - EDITOR_PADDING,
+				width: rect.width + EDITOR_PADDING * 2,
+				height: rect.height + EDITOR_PADDING * 2,
+			};
+			// Approximate the on-screen font size from the measured text box so
+			// the overlay's typography doesn't visibly jump relative to the
+			// rendered text underneath (each layout picks its own per-node size).
+			const lineCount = Math.max(1, textEl?.querySelectorAll('tspan').length ?? 1);
+			const fontSize = hasTextRect
+				? Math.max(8, textRect.height / (lineCount * LINE_HEIGHT_RATIO))
+				: undefined;
 			clearHover();
-			setEdit({ nodeId, rect });
+			setEdit({ nodeId, rect: paddedRect, fontSize });
 		},
 		[clearHover],
 	);
@@ -97,7 +132,7 @@ export function SmartArtEditableLayer({
 			ref={containerRef}
 			className='relative h-full w-full'
 			style={{ cursor: hoveredNodeId ? 'text' : undefined }}
-			onMouseMove={handleMouseMove}
+			onMouseMove={(e) => handleMouseMove(e, styleBarRef)}
 			onMouseLeave={clearHover}
 			// Editing is a deliberate double-click; single clicks still select /
 			// drag the SmartArt element via the parent handlers.
@@ -115,6 +150,7 @@ export function SmartArtEditableLayer({
 			{children}
 			{showStyleBar && (
 				<div
+					ref={styleBarRef}
 					style={{
 						position: 'absolute',
 						left: hoveredNodeRect.left + hoveredNodeRect.width - 120,
@@ -133,6 +169,7 @@ export function SmartArtEditableLayer({
 					key={edit.nodeId}
 					initialText={initialText}
 					rect={edit.rect}
+					fontSize={edit.fontSize}
 					onCommit={(text) => {
 						onCommitNodeText(edit.nodeId, text);
 						setEdit(null);

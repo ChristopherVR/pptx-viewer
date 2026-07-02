@@ -3,11 +3,22 @@ import React from 'react';
 
 // ── Props ───────────────────────────────────────────────────────────────────
 
+/** Matches SmartArtNodeText's line-height multiplier so wrapping lines up. */
+const LINE_HEIGHT_RATIO = 1.2;
+/** Fallback used when the caller couldn't measure the underlying rendered text. */
+const DEFAULT_FONT_SIZE = 12;
+
 interface SmartArtInlineNodeEditorProps {
 	/** Initial text shown when the editor opens. */
 	initialText: string;
 	/** Editor box, in coordinates relative to the SmartArt container. */
 	rect: InlineEditRect;
+	/**
+	 * Font size (px) measured from the underlying rendered SVG text, so the
+	 * overlay's typography matches it instead of a fixed guess. Falls back to
+	 * {@link DEFAULT_FONT_SIZE} when unavailable (e.g. an empty node).
+	 */
+	fontSize?: number;
 	/** Commit the current value (Enter / blur / click-away). */
 	onCommit: (text: string) => void;
 	/** Discard the edit (Escape). */
@@ -28,6 +39,7 @@ interface SmartArtInlineNodeEditorProps {
 export function SmartArtInlineNodeEditor({
 	initialText,
 	rect,
+	fontSize = DEFAULT_FONT_SIZE,
 	onCommit,
 	onCancel,
 }: SmartArtInlineNodeEditorProps): React.ReactElement {
@@ -66,12 +78,14 @@ export function SmartArtInlineNodeEditor({
 			value={value}
 			aria-label='Edit SmartArt node text'
 			spellCheck={false}
-			className='absolute z-20 resize-none rounded-sm border border-primary bg-white/95 text-center text-[12px] leading-tight text-black shadow outline-none'
+			className='absolute z-20 resize-none rounded-sm border border-primary bg-white/95 text-center text-black shadow outline-none'
 			style={{
 				left: rect.left,
 				top: rect.top,
 				width: rect.width,
 				height: rect.height,
+				fontSize,
+				lineHeight: `${fontSize * LINE_HEIGHT_RATIO}px`,
 			}}
 			onChange={(e) => setValue(e.target.value)}
 			// Stop canvas-level selection / drag handlers from firing on the editor.

@@ -39,8 +39,18 @@ export interface SmartArtHoverState {
 	hoveredNodeId: string | null;
 	/** Container-local bounding rect of the hovered node, or null when none. */
 	hoveredNodeRect: InlineEditRect | null;
-	/** mousemove handler to attach to the container div. */
-	handleMouseMove: (e: React.MouseEvent<HTMLDivElement>) => void;
+	/**
+	 * mousemove handler to attach to the container div.
+	 *
+	 * `ignoreRef`, when given, names an element (e.g. a popover anchored to the
+	 * hovered node, like the style bar) whose own bounds should not clear the
+	 * hover state - the pointer is still "on" the hovered node as far as the UI
+	 * is concerned while it sits over that element.
+	 */
+	handleMouseMove: (
+		e: React.MouseEvent<HTMLDivElement>,
+		ignoreRef?: React.RefObject<HTMLElement | null>,
+	) => void;
 	/** Clears both hoveredNodeId and hoveredNodeRect (use on mouseleave or editor open). */
 	clearHover: () => void;
 }
@@ -58,31 +68,60 @@ export function useSmartArtHoverState(
 ): SmartArtHoverState {
 	const [hoveredNodeId, setHoveredNodeId] = React.useState<string | null>(null);
 	const [hoveredNodeRect, setHoveredNodeRect] = React.useState<InlineEditRect | null>(null);
+	// Pending "leave" timeout: gives the pointer a brief grace period to reach a
+	// popover anchored to the node (e.g. crossing the small visual gap between a
+	// node and its floating style bar) without the hover state clearing first.
+	const hideTimeoutRef = React.useRef<number | null>(null);
+
+	const cancelPendingHide = React.useCallback((): void => {
+		if (hideTimeoutRef.current !== null) {
+			window.clearTimeout(hideTimeoutRef.current);
+			hideTimeoutRef.current = null;
+		}
+	}, []);
 
 	const handleMouseMove = React.useCallback(
-		(e: React.MouseEvent<HTMLDivElement>): void => {
+		(
+			e: React.MouseEvent<HTMLDivElement>,
+			ignoreRef?: React.RefObject<HTMLElement | null>,
+		): void => {
 			const nodeEl = findNodeIdFromEvent(e.target);
-			const nodeId = nodeEl?.getAttribute(NODE_ID_ATTR) ?? null;
-			setHoveredNodeId(nodeId);
 			const container = containerRef.current;
 			if (nodeEl && container) {
+				cancelPendingHide();
+				setHoveredNodeId(nodeEl.getAttribute(NODE_ID_ATTR));
 				setHoveredNodeRect(
 					computeInlineEditorRect(
 						nodeEl.getBoundingClientRect(),
 						container.getBoundingClientRect(),
 					),
 				);
-			} else {
-				setHoveredNodeRect(null);
+				return;
 			}
+			// Pointer is over a popover anchored to the currently-hovered node
+			// (not the node itself) - keep the existing hover state so the
+			// popover doesn't unmount out from under the pointer.
+			if (ignoreRef?.current && e.target instanceof Node && ignoreRef.current.contains(e.target)) {
+				cancelPendingHide();
+				return;
+			}
+			cancelPendingHide();
+			hideTimeoutRef.current = window.setTimeout(() => {
+				setHoveredNodeId(null);
+				setHoveredNodeRect(null);
+				hideTimeoutRef.current = null;
+			}, 150);
 		},
-		[containerRef],
+		[containerRef, cancelPendingHide],
 	);
 
 	const clearHover = React.useCallback((): void => {
+		cancelPendingHide();
 		setHoveredNodeId(null);
 		setHoveredNodeRect(null);
-	}, []);
+	}, [cancelPendingHide]);
+
+	React.useEffect(() => cancelPendingHide, [cancelPendingHide]);
 
 	return { hoveredNodeId, hoveredNodeRect, handleMouseMove, clearHover };
 }
