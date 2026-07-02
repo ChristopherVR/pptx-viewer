@@ -243,6 +243,7 @@ export const translationsEn: Record<string, string> = {
 
 	// Field insertion
 	'pptx.field.field': 'Field',
+	'pptx.field.format': 'Format',
 	'pptx.field.insertField': 'Insert Field',
 	'pptx.field.slideNumber': 'Slide Number',
 	'pptx.field.dateTime': 'Date/Time',
@@ -836,6 +837,405 @@ export const translationsEn: Record<string, string> = {
 	'pptx.presentationSettings.showAnimation': 'Show animation',
 	'pptx.presentationSettings.frameSlides': 'Frame slides',
 	'pptx.presentationSettings.slidesPerPage': 'Slides / page',
+
+	// Theme gallery (additions)
+	'powerpoint.toolbar.themes.gallery.importTheme': 'Import Theme',
+
+	// Action buttons
+	'pptx.action.onClick': 'On Click',
+	'pptx.action.onHover': 'On Hover',
+	'pptx.action.title': 'Action',
+
+	// Animation (property-panel additions)
+	'pptx.animation.delay': 'Delay (ms)',
+	'pptx.animation.direction': 'Direction',
+	'pptx.animation.duration': 'Duration (ms)',
+	'pptx.animation.moveDown': 'Move down',
+	'pptx.animation.moveUp': 'Move up',
+	'pptx.animation.none': 'None',
+	'pptx.animation.preview': 'Preview',
+	'pptx.animation.repeatCount': 'Repeat count',
+	'pptx.animation.repeatUntil': 'Repeat until',
+	'pptx.animation.sequence': 'Sequence',
+	'pptx.animation.timeline': 'Timeline',
+	'pptx.animation.timelineBar': 'Timeline bar',
+	'pptx.animation.timing': 'Timing',
+	'pptx.animation.timingCurve': 'Timing curve',
+	'pptx.animation.trigger': 'Trigger',
+	'pptx.animation.trigger.selectShape': 'Select a shape',
+	'pptx.animation.trigger.shapeLabel': 'Trigger shape',
+
+	// Chart (additions)
+	'pptx.chart.heading': 'Chart',
+
+	// Comments (additions)
+	'pptx.comments.addOnElement': 'Add a comment on {{element}}...',
+	'pptx.comments.addPlaceholder': 'Add a comment...',
+	'pptx.comments.addReply': 'Reply',
+	'pptx.comments.repliesCount': '{{count}} replies',
+	'pptx.comments.replyPlaceholder': 'Reply to {{author}}...',
+	'pptx.comments.slideComments': 'Slide comments',
+
+	// Common (pptx-prefixed namespace - distinct from the bare common.* used elsewhere)
+	'pptx.common.cancel': 'Cancel',
+	'pptx.common.insert': 'Insert',
+
+	// Compare (additions)
+	'pptx.compare.acceptAll': 'Accept All',
+	'pptx.compare.close': 'Close',
+	'pptx.compare.noDifferences': 'No differences',
+	'pptx.compare.summary': '{{added}} added, {{removed}} removed, {{changed}} changed',
+	'pptx.compare.title': 'Compare',
+
+	// Context menu
+	'pptx.contextMenu.addComment': 'Add Comment',
+	'pptx.contextMenu.bringForward': 'Bring Forward',
+	'pptx.contextMenu.bringToFront': 'Bring to Front',
+	'pptx.contextMenu.copy': 'Copy',
+	'pptx.contextMenu.cut': 'Cut',
+	'pptx.contextMenu.delete': 'Delete',
+	'pptx.contextMenu.deleteColumn': 'Delete Column',
+	'pptx.contextMenu.deleteRow': 'Delete Row',
+	'pptx.contextMenu.duplicate': 'Duplicate',
+	'pptx.contextMenu.editHyperlink': 'Edit Hyperlink',
+	'pptx.contextMenu.group': 'Group',
+	'pptx.contextMenu.insertColumnLeft': 'Insert Column Left',
+	'pptx.contextMenu.insertColumnRight': 'Insert Column Right',
+	'pptx.contextMenu.insertRowAbove': 'Insert Row Above',
+	'pptx.contextMenu.insertRowBelow': 'Insert Row Below',
+	'pptx.contextMenu.mergeCells': 'Merge Right',
+	'pptx.contextMenu.mergeSelectedCells': 'Merge Selected Cells',
+	'pptx.contextMenu.paste': 'Paste',
+	'pptx.contextMenu.sendBackward': 'Send Backward',
+	'pptx.contextMenu.sendToBack': 'Send to Back',
+	'pptx.contextMenu.splitCell': 'Split Cell',
+	'pptx.contextMenu.ungroup': 'Ungroup',
+
+	// Digital signatures (additions)
+	'pptx.digitalSignatures.badge': 'Signed',
+	'pptx.digitalSignatures.editWarning':
+		'Editing this presentation will invalidate its digital signatures.',
+	'pptx.digitalSignatures.signed': 'This presentation is digitally signed.',
+	'pptx.digitalSignatures.title': 'Digital Signatures',
+
+	// Document properties
+	'pptx.documentProperties.custom.addProperty': 'Add Property',
+	'pptx.documentProperties.custom.deleteProperty': 'Delete property',
+	'pptx.documentProperties.custom.description':
+		'Add custom properties to store additional metadata with this presentation.',
+	'pptx.documentProperties.custom.empty': 'No custom properties.',
+	'pptx.documentProperties.custom.name': 'Name',
+	'pptx.documentProperties.custom.namePlaceholder': 'Property name',
+	'pptx.documentProperties.custom.no': 'No',
+	'pptx.documentProperties.custom.type': 'Type',
+	'pptx.documentProperties.custom.value': 'Value',
+	'pptx.documentProperties.custom.valuePlaceholder': 'Property value',
+	'pptx.documentProperties.custom.yes': 'Yes',
+	'pptx.documentProperties.dialogTitle': 'Document Properties',
+	'pptx.documentProperties.statistics.hoursMinutes': '{{hours}}h {{minutes}}m',
+	'pptx.documentProperties.statistics.notAvailable': 'N/A',
+
+	// Equation editor
+	'pptx.equation.cancel': 'Cancel',
+	'pptx.equation.editTitle': 'Edit Equation',
+	'pptx.equation.insert': 'Insert',
+	'pptx.equation.insertTitle': 'Insert Equation',
+	'pptx.equation.latexHint': 'Use LaTeX syntax. Ctrl+Enter to insert.',
+	'pptx.equation.latexInput': 'LaTeX Input',
+	'pptx.equation.previewPlaceholder': 'Equation preview will appear here',
+	'pptx.equation.templates': 'Common Templates',
+	'pptx.equation.update': 'Update',
+
+	// Font embedding
+	'pptx.fonts.embedDescription':
+		'Embed fonts used in this presentation so they display correctly on other devices.',
+	'pptx.fonts.embedFonts': 'Embed Fonts',
+	'pptx.fonts.embedded': 'Embedded',
+	'pptx.fonts.enableEmbedding': 'Enable font embedding',
+	'pptx.fonts.missingWarning': '{{count}} font(s) could not be found and will not be embedded.',
+	'pptx.fonts.notFound': 'Not found',
+	'pptx.fonts.scanning': 'Scanning fonts...',
+	'pptx.fonts.usedFonts': 'Used Fonts',
+
+	// Hyperlink dialog
+	'pptx.hyperlink.actionEndShow': 'End Show',
+	'pptx.hyperlink.actionFirstSlide': 'First Slide',
+	'pptx.hyperlink.actionLabel': 'Action',
+	'pptx.hyperlink.actionLastSlide': 'Last Slide',
+	'pptx.hyperlink.actionNextSlide': 'Next Slide',
+	'pptx.hyperlink.actionPrevSlide': 'Previous Slide',
+	'pptx.hyperlink.editTitle': 'Edit Hyperlink',
+	'pptx.hyperlink.emailLabel': 'Email address',
+	'pptx.hyperlink.fileLabel': 'File path',
+	'pptx.hyperlink.slideLabel': 'Slide number',
+	'pptx.hyperlink.slideRange': 'Enter a number between 1 and {{max}}.',
+	'pptx.hyperlink.subjectLabel': 'Subject',
+	'pptx.hyperlink.tabAction': 'Action',
+	'pptx.hyperlink.tabEmail': 'Email',
+	'pptx.hyperlink.tabFile': 'File',
+	'pptx.hyperlink.tabSlide': 'Slide',
+	'pptx.hyperlink.tabUrl': 'URL',
+	'pptx.hyperlink.tooltipLabel': 'Screen tip',
+	'pptx.hyperlink.urlLabel': 'Address',
+
+	// Image (additions)
+	'pptx.image.properties': 'Image Properties',
+	'pptx.imageAdjustments.biLevelDescription':
+		'Converts the image to black and white at the chosen threshold.',
+
+	// Inspector (additions)
+	'pptx.inspector.layerOrder': 'Layer Order',
+	'pptx.inspector.lock': 'Lock',
+	'pptx.inspector.unlock': 'Unlock',
+
+	// Slide master / handout master / notes master
+	'pptx.master.collapseMasterPane': 'Collapse pane',
+	'pptx.master.handoutBackground': 'Background',
+	'pptx.master.handoutMasterTitle': 'Handout Master',
+	'pptx.master.handoutPlaceholders': 'Placeholders',
+	'pptx.master.handoutSlideSlot': 'Slide {{number}}',
+	'pptx.master.handoutSlidesPerPage': 'Slides per page',
+	'pptx.master.noHandoutMaster': 'No handout master',
+	'pptx.master.noNotesMaster': 'No notes master',
+	'pptx.master.noPlaceholders': 'No placeholders',
+	'pptx.master.notesMasterBackground': 'Background',
+	'pptx.master.notesMasterBody': 'Body',
+	'pptx.master.notesMasterDate': 'Date',
+	'pptx.master.notesMasterFooter': 'Footer',
+	'pptx.master.notesMasterHeader': 'Header',
+	'pptx.master.notesMasterPageNumber': 'Page Number',
+	'pptx.master.notesMasterPlaceholders': 'Placeholders',
+	'pptx.master.notesMasterSlideImage': 'Slide Image',
+	'pptx.master.notesMasterTitle': 'Notes Master',
+
+	// Media properties (additions)
+	'pptx.media.duration': 'Duration',
+	'pptx.media.filePath': 'File path',
+	'pptx.media.format': 'Format',
+	'pptx.media.info': 'Media info',
+	'pptx.media.posterFrame': 'Poster frame',
+	'pptx.media.resolution': 'Resolution',
+
+	// Notes rich-text toolbar
+	'pptx.notes.bold': 'Bold',
+	'pptx.notes.bulletList': 'Bullet list',
+	'pptx.notes.indent': 'Increase indent',
+	'pptx.notes.insertLink': 'Insert link',
+	'pptx.notes.italic': 'Italic',
+	'pptx.notes.linkDisplayText': 'Display text',
+	'pptx.notes.linkUrl': 'URL',
+	'pptx.notes.numberedList': 'Numbered list',
+	'pptx.notes.outdent': 'Decrease indent',
+	'pptx.notes.plainEditor': 'Plain editor',
+	'pptx.notes.print': 'Print',
+	'pptx.notes.printNotes': 'Print notes',
+	'pptx.notes.richEditor': 'Rich editor',
+	'pptx.notes.strikethrough': 'Strikethrough',
+	'pptx.notes.toggleRichPlainEditor': 'Toggle rich/plain text editor',
+	'pptx.notes.underline': 'Underline',
+
+	// OLE object properties
+	'pptx.ole.embedded': 'Embedded',
+	'pptx.ole.fileName': 'File Name',
+	'pptx.ole.linkStatus': 'Link Status',
+	'pptx.ole.linked': 'Linked',
+	'pptx.ole.title': 'OLE Object',
+	'pptx.ole.type': 'Type',
+
+	// Presentation mode (annotations-on-exit prompt)
+	'pptx.presentation.clearAnnotations': 'Clear Annotations',
+	'pptx.presentation.discardAnnotations': 'Discard Annotations',
+	'pptx.presentation.keepAnnotations': 'Keep Annotations',
+	'pptx.presentation.keepAnnotationsDescription':
+		'You made {{count}} annotations on {{slides}} slides. Would you like to keep them?',
+	'pptx.presentation.keepAnnotationsTitle': 'Keep Annotations?',
+
+	// Presenter view
+	'pptx.presenter.closeAudienceWindow': 'Close Audience Window',
+	'pptx.presenter.currentTime': 'Current Time',
+	'pptx.presenter.decreaseFontSize': 'Decrease Font Size',
+	'pptx.presenter.elapsed': 'Elapsed',
+	'pptx.presenter.endOfPresentation': 'End of Presentation',
+	'pptx.presenter.increaseFontSize': 'Increase Font Size',
+	'pptx.presenter.next': 'Next',
+	'pptx.presenter.nextSlide': 'Next Slide',
+	'pptx.presenter.noSlides': 'No slides',
+	'pptx.presenter.openAudienceWindow': 'Open Audience Window',
+	'pptx.presenter.presenterView': 'Presenter View (N)',
+	'pptx.presenter.prev': 'Prev',
+	'pptx.presenter.previousSlide': 'Previous Slide',
+	'pptx.presenter.slideLabel': 'Slide {{current}} of {{total}}',
+	'pptx.presenter.timerProgress': 'Timer Progress',
+
+	// Print dialog
+	'pptx.print.allSlides': 'All Slides',
+	'pptx.print.blackAndWhite': 'Black and White',
+	'pptx.print.color': 'Color',
+	'pptx.print.colorMode': 'Color Mode',
+	'pptx.print.currentSlide': 'Current Slide',
+	'pptx.print.customRange': 'Custom Range',
+	'pptx.print.frameSlides': 'Frame Slides',
+	'pptx.print.from': 'From',
+	'pptx.print.fullPageSlides': 'Full Page Slides',
+	'pptx.print.grayscale': 'Grayscale',
+	'pptx.print.handout.slideAlt': 'Slide {{number}}',
+	'pptx.print.handouts': 'Handouts',
+	'pptx.print.landscape': 'Landscape',
+	'pptx.print.notes.noNotes': 'No notes',
+	'pptx.print.notes.slideAlt': 'Slide {{number}}',
+	'pptx.print.notesPages': 'Notes Pages',
+	'pptx.print.orientation': 'Orientation',
+	'pptx.print.outline': 'Outline',
+	'pptx.print.pageEstimate': '{{pages}} pages, {{slides}} slides',
+	'pptx.print.portrait': 'Portrait',
+	'pptx.print.preview.morePages': '+{{count}} more pages',
+	'pptx.print.preview.noSlides': 'No slides to preview',
+	'pptx.print.preview.title': 'Preview',
+	'pptx.print.printWhat': 'Print What',
+	'pptx.print.slideRange': 'Slide Range',
+	'pptx.print.slidesPerPage': 'Slides Per Page',
+	'pptx.print.to': 'To',
+
+	// Rehearse timings
+	'pptx.rehearse.discard': 'Discard',
+	'pptx.rehearse.pause': 'Pause',
+	'pptx.rehearse.resume': 'Resume',
+	'pptx.rehearse.saveTimings': 'Save Timings',
+	'pptx.rehearse.slide': 'Slide',
+	'pptx.rehearse.slideTime': 'Slide Time',
+	'pptx.rehearse.summaryTitle': 'Rehearsal Timings',
+	'pptx.rehearse.time': 'Time',
+	'pptx.rehearse.totalPresentationTime': 'Total presentation time',
+	'pptx.rehearse.totalTime': 'Total Time',
+
+	// Password protection
+	'pptx.security.confirmPassword': 'Confirm Password',
+	'pptx.security.confirmPasswordPlaceholder': 'Re-enter password',
+	'pptx.security.currentlyProtected': 'This presentation is password protected.',
+	'pptx.security.description':
+		'Set a password to encrypt this presentation. You will need it to open the file.',
+	'pptx.security.errorPasswordMismatch': 'Passwords do not match.',
+	'pptx.security.errorPasswordRequired': 'Please enter a password.',
+	'pptx.security.errorPasswordTooShort': 'Password must be at least 4 characters.',
+	'pptx.security.password': 'Password',
+	'pptx.security.passwordPlaceholder': 'Enter password',
+	'pptx.security.protectPresentation': 'Protect Presentation',
+	'pptx.security.removePassword': 'Remove Password',
+	'pptx.security.setPassword': 'Set Password',
+	'pptx.security.strengthFair': 'Fair',
+	'pptx.security.strengthStrong': 'Strong',
+	'pptx.security.strengthVeryStrong': 'Very Strong',
+	'pptx.security.strengthVeryWeak': 'Very Weak',
+	'pptx.security.strengthWeak': 'Weak',
+	'pptx.security.updatePassword': 'Update Password',
+
+	// Shape (additions)
+	'pptx.shape.fillStroke': 'Fill & Stroke',
+	'pptx.shape.type': 'Shape Type',
+
+	// Set Up Slide Show dialog
+	'pptx.slideShow.advanceSlides': 'Advance Slides',
+	'pptx.slideShow.browsedAtKiosk': 'Browsed at a kiosk (full screen)',
+	'pptx.slideShow.browsedByIndividual': 'Browsed by an individual (window)',
+	'pptx.slideShow.manually': 'Manually',
+	'pptx.slideShow.presentedBySpeaker': 'Presented by a speaker (full screen)',
+	'pptx.slideShow.setUpTitle': 'Set Up Show',
+	'pptx.slideShow.showType': 'Show Type',
+	'pptx.slideShow.useTimings': 'Using timings, if present',
+
+	// Slide size dialog
+	'pptx.slideSize.height': 'Height',
+	'pptx.slideSize.presets': 'Preset sizes...',
+	'pptx.slideSize.title': 'Slide Size',
+	'pptx.slideSize.width': 'Width',
+
+	// Slide sorter context menu
+	'pptx.slideSorter.contextMenu.copy': 'Copy',
+	'pptx.slideSorter.contextMenu.delete': 'Delete',
+	'pptx.slideSorter.contextMenu.duplicate': 'Duplicate',
+	'pptx.slideSorter.contextMenu.hideSlides': 'Hide Slides',
+	'pptx.slideSorter.contextMenu.paste': 'Paste',
+	'pptx.slideSorter.contextMenu.showSlides': 'Show Slides',
+
+	// SmartArt (additions)
+	'pptx.smartart.cancel': 'Cancel',
+	'pptx.smartart.close': 'Close',
+	'pptx.smartart.insert': 'Insert',
+	'pptx.smartart.insertTitle': 'Insert SmartArt',
+
+	// Live captions
+	'pptx.subtitles.listening': 'Listening…',
+	'pptx.subtitles.notSupported': 'Subtitles are not supported in this browser.',
+
+	// Table (additions)
+	'pptx.table.background': 'Background',
+	'pptx.table.bandColCycle': 'Column band size',
+	'pptx.table.bandRowCycle': 'Row band size',
+	'pptx.table.cell': 'Cell R{{row}} C{{col}}',
+	'pptx.table.cellBorders': 'Cell borders',
+	'pptx.table.color': 'Text',
+	'pptx.table.columnWidths': 'Column widths',
+	'pptx.table.even': 'Even',
+	'pptx.table.fillMode': 'Fill mode',
+	'pptx.table.fontSize': 'Size',
+	'pptx.table.gradientAddStop': 'Add stop',
+	'pptx.table.gradientAngle': 'Angle',
+	'pptx.table.gradientStops': 'Stops',
+	'pptx.table.gradientType': 'Type',
+	'pptx.table.margins': 'Margins',
+	'pptx.table.mergeDown': 'Merge down',
+	'pptx.table.mergeRight': 'Merge right',
+	'pptx.table.patternBackground': 'Background',
+	'pptx.table.patternForeground': 'Foreground',
+	'pptx.table.patternPreset': 'Pattern',
+	'pptx.table.rowHeights': 'Row heights',
+	'pptx.table.rowsColumns': '{{rows}} rows × {{cols}} columns',
+	'pptx.table.split': 'Split',
+	'pptx.table.stylePresets': 'Style presets',
+	'pptx.table.title': 'Table',
+
+	// Document tags
+	'pptx.tags.addTag': 'Add tag',
+	'pptx.tags.deleteTag': 'Delete tag',
+	'pptx.tags.name': 'Name',
+	'pptx.tags.noTags': 'No tags',
+	'pptx.tags.title': 'Tags',
+	'pptx.tags.value': 'Value',
+
+	// Text panel (additions)
+	'pptx.text.title': 'Text',
+	'pptx.text3d.bevelBottom': 'Bottom Bevel',
+	'pptx.text3d.bevelHeight': 'Bevel Height',
+	'pptx.text3d.bevelTop': 'Top Bevel',
+	'pptx.text3d.bevelType': 'Bevel Type',
+	'pptx.text3d.bevelWidth': 'Bevel Width',
+	'pptx.text3d.extrusionColor': 'Color',
+	'pptx.text3d.extrusionDepth': 'Depth (pt)',
+
+	// Theme editor (additions)
+	'pptx.themeEditor.bodySample': 'Body text',
+	'pptx.themeEditor.fonts': 'Fonts',
+	'pptx.themeEditor.headingSample': 'Heading',
+	'pptx.themeEditor.presetThemes': 'Preset themes',
+	'pptx.themeEditor.preview': 'Preview',
+	'pptx.themeEditor.themeNamePlaceholder': 'Theme name',
+
+	// Theme override
+	'pptx.themeOverride.enableOverride': 'Override theme for this slide',
+	'pptx.themeOverride.heading': 'Theme Override',
+
+	// Toolbar (additions)
+	'pptx.toolbar.present': 'Present',
+	'pptx.toolbar.save': 'Save',
+
+	// Slide transitions (additions)
+	'pptx.transition.advanceOnClick': 'Advance on click',
+	'pptx.transition.direction': 'Direction',
+	'pptx.transition.orientation': 'Orientation',
+	'pptx.transition.preview': 'Preview',
+	'pptx.transition.sound': 'Sound',
+	'pptx.transition.spokes': 'Spokes',
+	'pptx.transition.type': 'Type',
 };
 
 /**
