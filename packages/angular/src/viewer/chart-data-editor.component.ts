@@ -30,6 +30,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { ChartPptxElement } from 'pptx-viewer-core';
 
 import { AdvancedChartEditorComponent } from './advanced-chart-editor.component';
@@ -47,48 +48,48 @@ import {
 @Component({
 	selector: 'pptx-chart-data-editor',
 	standalone: true,
-	imports: [AdvancedChartEditorComponent],
+	imports: [AdvancedChartEditorComponent, TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
-		<section class="pptx-chart-editor" aria-label="Chart data editor">
+		<section class="pptx-chart-editor" [attr.aria-label]="'pptx.chart.data' | translate">
 			<header class="pptx-chart-editor__header">
-				<h3 class="pptx-chart-editor__heading">Chart Data</h3>
+				<h3 class="pptx-chart-editor__heading">{{ 'pptx.chart.data' | translate }}</h3>
 
 				@if (canEdit()) {
 					<div class="pptx-chart-editor__actions">
 						<button
 							type="button"
 							class="pptx-chart-editor__btn"
-							title="Add category"
+							[title]="'pptx.chart.addCategory' | translate"
 							(click)="onAddCategory()"
 						>
-							+ Cat
+							+ {{ 'pptx.chart.cat' | translate }}
 						</button>
 						<button
 							type="button"
 							class="pptx-chart-editor__btn pptx-chart-editor__btn--danger"
 							[disabled]="catCount() <= 1"
-							title="Remove last category"
+							[title]="'pptx.chart.removeLastCategory' | translate"
 							(click)="onRemoveLastCategory()"
 						>
-							- Cat
+							- {{ 'pptx.chart.cat' | translate }}
 						</button>
 						<button
 							type="button"
 							class="pptx-chart-editor__btn"
-							title="Add series"
+							[title]="'pptx.chart.addSeries' | translate"
 							(click)="onAddSeries()"
 						>
-							+ Series
+							+ {{ 'pptx.chart.seriesShort' | translate }}
 						</button>
 						<button
 							type="button"
 							class="pptx-chart-editor__btn pptx-chart-editor__btn--danger"
 							[disabled]="seriesCount() <= 1"
-							title="Remove last series"
+							[title]="'pptx.chart.removeLastSeries' | translate"
 							(click)="onRemoveLastSeries()"
 						>
-							- Series
+							- {{ 'pptx.chart.seriesShort' | translate }}
 						</button>
 					</div>
 				}
@@ -115,7 +116,7 @@ import {
 											<button
 												type="button"
 												class="pptx-chart-editor__remove-btn"
-												title="Remove series {{ si + 1 }}"
+												[title]="'pptx.chart.removeSeries' | translate"
 												(click)="onRemoveSeries(si)"
 											>
 												×
@@ -128,15 +129,21 @@ import {
 												class="pptx-chart-editor__color-input"
 												[disabled]="!canEdit()"
 												[value]="s.color || '#4472c4'"
-												title="Series {{ si + 1 }} colour"
-												aria-label="Series {{ si + 1 }} colour"
+												[title]="
+													'pptx.chart.seriesColor'
+														| translate: { name: s.name || 'Series ' + (si + 1) }
+												"
+												[attr.aria-label]="
+													'pptx.chart.seriesColor'
+														| translate: { name: s.name || 'Series ' + (si + 1) }
+												"
 												(input)="onSeriesColorChange($event, si)"
 											/>
 											@if (canEdit() && s.color) {
 												<button
 													type="button"
 													class="pptx-chart-editor__remove-btn"
-													title="Clear series {{ si + 1 }} colour"
+													[title]="'pptx.chart.clearSeriesColor' | translate"
 													(click)="onClearSeriesColor(si)"
 												>
 													×
@@ -164,7 +171,7 @@ import {
 												<button
 													type="button"
 													class="pptx-chart-editor__remove-btn"
-													title="Remove category {{ ci + 1 }}"
+													[title]="'pptx.chart.removeCategory' | translate"
 													(click)="onRemoveCategory(ci)"
 												>
 													×
@@ -195,7 +202,7 @@ import {
 					(elementChange)="elementChange.emit($event)"
 				/>
 			} @else {
-				<p class="pptx-chart-editor__empty">No chart data available.</p>
+				<p class="pptx-chart-editor__empty">{{ 'pptx.chart.noData' | translate }}</p>
 			}
 		</section>
 	`,

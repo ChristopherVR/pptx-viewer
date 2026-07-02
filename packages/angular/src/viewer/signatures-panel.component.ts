@@ -20,6 +20,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { ParsedSignature } from 'pptx-viewer-core';
 
 import {
@@ -38,8 +39,9 @@ import {
 	selector: 'pptx-signatures-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
-		<section class="pptx-ng-signatures" aria-label="Digital signatures">
+		<section class="pptx-ng-signatures" [attr.aria-label]="'pptx.signatures.ariaLabel' | translate">
 			<header
 				class="pptx-ng-signatures__header"
 				[class]="'pptx-ng-signatures__header--' + overall()"
@@ -52,7 +54,7 @@ import {
 			</header>
 
 			@if (!signed()) {
-				<p class="pptx-ng-signatures__empty">This presentation has no digital signatures.</p>
+				<p class="pptx-ng-signatures__empty">{{ 'pptx.signatures.empty' | translate }}</p>
 			} @else {
 				<ul class="pptx-ng-signatures__list">
 					@for (sig of signatures(); track key(sig, $index)) {
@@ -69,20 +71,20 @@ import {
 
 							<dl class="pptx-ng-signatures__meta">
 								@if (sig.certificate?.issuer; as issuer) {
-									<dt>Issuer</dt>
+									<dt>{{ 'pptx.signatures.issuer' | translate }}</dt>
 									<dd>{{ issuer }}</dd>
 								}
 								@if (sig.certificate?.serialNumber; as serial) {
-									<dt>Serial</dt>
+									<dt>{{ 'pptx.signatures.serial' | translate }}</dt>
 									<dd>{{ serial }}</dd>
 								}
 								@if (timestamp(sig); as ts) {
-									<dt>Signed</dt>
+									<dt>{{ 'pptx.signatures.signed' | translate }}</dt>
 									<dd>{{ ts }}</dd>
 								}
 								@if (!sig.certificate) {
-									<dt>Certificate</dt>
-									<dd>Not available</dd>
+									<dt>{{ 'pptx.signatures.certificate' | translate }}</dt>
+									<dd>{{ 'pptx.signatures.notAvailable' | translate }}</dd>
 								}
 							</dl>
 						</li>

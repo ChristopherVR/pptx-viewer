@@ -1,5 +1,6 @@
 import { NgStyle } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import type { CanvasSize } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
@@ -33,24 +34,28 @@ const THUMB_W = 150;
 	selector: 'pptx-slides-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle, SlideCanvasComponent],
+	imports: [NgStyle, SlideCanvasComponent, TranslatePipe],
 	template: `
 		<div class="pptx-ng-spanel">
 			<!-- Scrollable slide list -->
-			<div class="pptx-ng-spanel-scroll" role="listbox" aria-label="Slides">
+			<div
+				class="pptx-ng-spanel-scroll"
+				role="listbox"
+				[attr.aria-label]="'pptx.sections.slides' | translate"
+			>
 				@for (slide of editor.slides(); track slide.id; let i = $index) {
 					<div
 						class="pptx-ng-spanel-card"
 						[class.is-active]="i === activeIndex()"
 						role="option"
 						[attr.aria-selected]="i === activeIndex()"
-						[attr.aria-label]="'Slide ' + (i + 1)"
+						[attr.aria-label]="'pptx.notes.slideN' | translate: { n: i + 1 }"
 					>
 						<!-- Thumbnail (clickable to select) -->
 						<button
 							type="button"
 							class="pptx-ng-spanel-thumb-btn"
-							[attr.aria-label]="'Go to slide ' + (i + 1)"
+							[attr.aria-label]="'pptx.slidesPanel.goToSlide' | translate: { n: i + 1 }"
 							(click)="select.emit(i)"
 						>
 							<!-- Clipping wrapper: neutralises the 1rem auto margin from SlideCanvas -->
@@ -75,13 +80,13 @@ const THUMB_W = 150;
 						<div
 							class="pptx-ng-spanel-actions"
 							role="toolbar"
-							[attr.aria-label]="'Slide ' + (i + 1) + ' actions'"
+							[attr.aria-label]="'pptx.slidesPanel.slideActions' | translate: { n: i + 1 }"
 						>
 							<button
 								type="button"
 								class="pptx-ng-spanel-action"
-								title="Duplicate slide"
-								aria-label="Duplicate"
+								[title]="'pptx.slidesPanel.duplicateSlide' | translate"
+								[attr.aria-label]="'pptx.arrange.duplicate' | translate"
 								(click)="onDuplicate(i)"
 							>
 								⧉
@@ -89,8 +94,8 @@ const THUMB_W = 150;
 							<button
 								type="button"
 								class="pptx-ng-spanel-action"
-								title="Delete slide"
-								aria-label="Delete"
+								[title]="'pptx.slidesPanel.deleteSlide' | translate"
+								[attr.aria-label]="'pptx.arrange.delete' | translate"
 								[disabled]="editor.slides().length <= 1"
 								(click)="onDelete(i)"
 							>
@@ -99,8 +104,8 @@ const THUMB_W = 150;
 							<button
 								type="button"
 								class="pptx-ng-spanel-action"
-								title="Move up"
-								aria-label="Move up"
+								[title]="'pptx.sections.moveUp' | translate"
+								[attr.aria-label]="'pptx.sections.moveUp' | translate"
 								[disabled]="i === 0"
 								(click)="onMoveUp(i)"
 							>
@@ -109,8 +114,8 @@ const THUMB_W = 150;
 							<button
 								type="button"
 								class="pptx-ng-spanel-action"
-								title="Move down"
-								aria-label="Move down"
+								[title]="'pptx.sections.moveDown' | translate"
+								[attr.aria-label]="'pptx.sections.moveDown' | translate"
 								[disabled]="i === editor.slides().length - 1"
 								(click)="onMoveDown(i)"
 							>
@@ -126,10 +131,10 @@ const THUMB_W = 150;
 				<button
 					type="button"
 					class="pptx-ng-spanel-add"
-					aria-label="Add slide"
+					[attr.aria-label]="'pptx.sections.addSlide' | translate"
 					(click)="onAddSlide()"
 				>
-					＋ Add slide
+					＋ {{ 'pptx.sections.addSlide' | translate }}
 				</button>
 			</footer>
 		</div>

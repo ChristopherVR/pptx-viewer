@@ -24,6 +24,7 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import { searchSlides } from './slide-search';
@@ -32,17 +33,22 @@ import type { SlideSearchMatch } from './slide-search';
 @Component({
 	selector: 'pptx-find-bar',
 	standalone: true,
+	imports: [TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
-		<div class="pptx-find-bar" role="search" aria-label="Find in slides">
+		<div
+			class="pptx-find-bar"
+			role="search"
+			[attr.aria-label]="'pptx.findBar.ariaLabel' | translate"
+		>
 			<!-- Input row -->
 			<div class="pptx-find-bar__row">
 				<input
 					#queryInput
 					class="pptx-find-bar__input"
 					type="search"
-					placeholder="Find in slides…"
-					aria-label="Search query"
+					[placeholder]="'pptx.findBar.placeholder' | translate"
+					[attr.aria-label]="'pptx.findBar.searchQuery' | translate"
 					[value]="query()"
 					(input)="onInput($event)"
 					(keydown.enter)="next()"
@@ -51,12 +57,17 @@ import type { SlideSearchMatch } from './slide-search';
 				<span class="pptx-find-bar__count" aria-live="polite" aria-atomic="true">
 					@if (query().trim()) {
 						@if (totalMatches() === 0) {
-							No results
+							{{ 'pptx.findBar.noResults' | translate }}
 						} @else {
-							{{ activeMatchDisplay() }} / {{ totalMatches() }} result{{
-								totalMatches() === 1 ? '' : 's'
+							{{
+								'pptx.findBar.resultsSummary'
+									| translate
+										: {
+												current: activeMatchDisplay(),
+												total: totalMatches(),
+												slides: matches().length,
+										  }
 							}}
-							across {{ matches().length }} slide{{ matches().length === 1 ? '' : 's' }}
 						}
 					}
 				</span>
@@ -64,7 +75,7 @@ import type { SlideSearchMatch } from './slide-search';
 				<button
 					type="button"
 					class="pptx-find-bar__btn"
-					aria-label="Previous match"
+					[attr.aria-label]="'pptx.findReplace.previousMatch' | translate"
 					[disabled]="totalMatches() === 0"
 					(click)="prev()"
 				>
@@ -74,7 +85,7 @@ import type { SlideSearchMatch } from './slide-search';
 				<button
 					type="button"
 					class="pptx-find-bar__btn"
-					aria-label="Next match"
+					[attr.aria-label]="'pptx.findReplace.nextMatch' | translate"
 					[disabled]="totalMatches() === 0"
 					(click)="next()"
 				>
@@ -84,7 +95,7 @@ import type { SlideSearchMatch } from './slide-search';
 				<button
 					type="button"
 					class="pptx-find-bar__btn pptx-find-bar__btn--close"
-					aria-label="Close find bar"
+					[attr.aria-label]="'pptx.findBar.close' | translate"
 					(click)="close()"
 				>
 					&#10005;
@@ -93,7 +104,10 @@ import type { SlideSearchMatch } from './slide-search';
 
 			<!-- Snippet preview for the active match -->
 			@if (activeSnippet()) {
-				<div class="pptx-find-bar__snippet" aria-label="Match context">
+				<div
+					class="pptx-find-bar__snippet"
+					[attr.aria-label]="'pptx.findBar.matchContext' | translate"
+				>
 					{{ activeSnippet() }}
 				</div>
 			}

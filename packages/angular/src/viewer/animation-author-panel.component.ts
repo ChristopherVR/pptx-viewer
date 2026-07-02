@@ -26,6 +26,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	PptxAnimationDirection,
 	PptxAnimationPreset,
@@ -70,26 +71,29 @@ import {
 	selector: 'pptx-animation-author-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
-		<aside class="pptx-ng-anim" aria-label="Animation properties">
+		<aside class="pptx-ng-anim" [attr.aria-label]="'pptx.animations.propertiesLabel' | translate">
 			<!-- ── Header ───────────────────────────────────────────────────── -->
 			<div class="pptx-ng-anim__header">
-				<span class="pptx-ng-anim__title">Animation</span>
+				<span class="pptx-ng-anim__title">{{ 'pptx.animations.animation' | translate }}</span>
 				@if (currentHasAnimation()) {
 					<button
 						type="button"
 						class="pptx-ng-anim__remove-btn"
-						title="Remove animation from this element"
+						[title]="'pptx.animations.removeFromElement' | translate"
 						(click)="onRemove()"
 					>
-						✕ Remove
+						✕ {{ 'pptx.animations.remove' | translate }}
 					</button>
 				}
 			</div>
 
 			<!-- ── Entrance preset ──────────────────────────────────────────── -->
 			<section class="pptx-ng-anim__section">
-				<label class="pptx-ng-anim__label" for="anim-entrance">Entrance</label>
+				<label class="pptx-ng-anim__label" for="anim-entrance">{{
+					'pptx.animations.group.entrance' | translate
+				}}</label>
 				<select
 					id="anim-entrance"
 					class="pptx-ng-anim__select"
@@ -97,7 +101,7 @@ import {
 					[value]="current()?.entrance ?? 'none'"
 					(change)="onEntranceChange($event)"
 				>
-					<option value="none">— None —</option>
+					<option value="none">{{ 'pptx.animations.noneOption' | translate }}</option>
 					@for (opt of entrancePresets; track opt.value) {
 						<option [value]="opt.value">{{ opt.label }}</option>
 					}
@@ -106,7 +110,9 @@ import {
 
 			<!-- ── Emphasis preset ──────────────────────────────────────────── -->
 			<section class="pptx-ng-anim__section">
-				<label class="pptx-ng-anim__label" for="anim-emphasis">Emphasis</label>
+				<label class="pptx-ng-anim__label" for="anim-emphasis">{{
+					'pptx.animations.group.emphasis' | translate
+				}}</label>
 				<select
 					id="anim-emphasis"
 					class="pptx-ng-anim__select"
@@ -114,7 +120,7 @@ import {
 					[value]="current()?.emphasis ?? 'none'"
 					(change)="onEmphasisChange($event)"
 				>
-					<option value="none">— None —</option>
+					<option value="none">{{ 'pptx.animations.noneOption' | translate }}</option>
 					@for (opt of emphasisPresets; track opt.value) {
 						<option [value]="opt.value">{{ opt.label }}</option>
 					}
@@ -123,7 +129,9 @@ import {
 
 			<!-- ── Exit preset ──────────────────────────────────────────────── -->
 			<section class="pptx-ng-anim__section">
-				<label class="pptx-ng-anim__label" for="anim-exit">Exit</label>
+				<label class="pptx-ng-anim__label" for="anim-exit">{{
+					'pptx.animations.group.exit' | translate
+				}}</label>
 				<select
 					id="anim-exit"
 					class="pptx-ng-anim__select"
@@ -131,7 +139,7 @@ import {
 					[value]="current()?.exit ?? 'none'"
 					(change)="onExitChange($event)"
 				>
-					<option value="none">— None —</option>
+					<option value="none">{{ 'pptx.animations.noneOption' | translate }}</option>
 					@for (opt of exitPresets; track opt.value) {
 						<option [value]="opt.value">{{ opt.label }}</option>
 					}
@@ -143,7 +151,7 @@ import {
 				<!-- ── Direction picker (directional presets only) ──────────── -->
 				@if (currentShowDirection()) {
 					<section class="pptx-ng-anim__section">
-						<span class="pptx-ng-anim__label">Direction</span>
+						<span class="pptx-ng-anim__label">{{ 'pptx.animations.direction' | translate }}</span>
 						<div class="pptx-ng-anim__direction-grid">
 							@for (opt of directionOptions; track opt.value) {
 								<button
@@ -163,7 +171,9 @@ import {
 
 				<!-- ── Sequence ─────────────────────────────────────────────── -->
 				<section class="pptx-ng-anim__section">
-					<label class="pptx-ng-anim__label" for="anim-sequence">Sequence</label>
+					<label class="pptx-ng-anim__label" for="anim-sequence">{{
+						'pptx.animations.sequence' | translate
+					}}</label>
 					<select
 						id="anim-sequence"
 						class="pptx-ng-anim__select"
@@ -178,11 +188,13 @@ import {
 				</section>
 
 				<!-- ── Timing heading ────────────────────────────────────────── -->
-				<div class="pptx-ng-anim__subheading">Timing</div>
+				<div class="pptx-ng-anim__subheading">{{ 'pptx.animations.timing' | translate }}</div>
 
 				<!-- ── Trigger ──────────────────────────────────────────────── -->
 				<section class="pptx-ng-anim__section">
-					<label class="pptx-ng-anim__label" for="anim-trigger">Trigger</label>
+					<label class="pptx-ng-anim__label" for="anim-trigger">{{
+						'pptx.animations.trigger' | translate
+					}}</label>
 					<select
 						id="anim-trigger"
 						class="pptx-ng-anim__select"
@@ -199,7 +211,9 @@ import {
 				<!-- ── Trigger shape (onShapeClick only) ─────────────────────── -->
 				@if (current()?.trigger === 'onShapeClick') {
 					<section class="pptx-ng-anim__section">
-						<label class="pptx-ng-anim__label" for="anim-trigger-shape"> Trigger shape </label>
+						<label class="pptx-ng-anim__label" for="anim-trigger-shape">{{
+							'pptx.animations.triggerShape' | translate
+						}}</label>
 						<select
 							id="anim-trigger-shape"
 							class="pptx-ng-anim__select"
@@ -207,7 +221,7 @@ import {
 							[value]="current()?.triggerShapeId ?? ''"
 							(change)="onTriggerShapeChange($event)"
 						>
-							<option value="">— Select shape —</option>
+							<option value="">{{ 'pptx.animations.selectShapeOption' | translate }}</option>
 							@for (el of otherElements(); track el.id) {
 								<option [value]="el.id">{{ el.id }}</option>
 							}
@@ -219,7 +233,9 @@ import {
 				<section class="pptx-ng-anim__section">
 					@if (elementKey(); as key) {
 						<div [attr.data-el-key]="key">
-							<label class="pptx-ng-anim__label" for="anim-duration"> Duration (ms) </label>
+							<label class="pptx-ng-anim__label" for="anim-duration">{{
+								'pptx.animations.durationMs' | translate
+							}}</label>
 							<input
 								id="anim-duration"
 								class="pptx-ng-anim__input"
@@ -240,7 +256,9 @@ import {
 				<section class="pptx-ng-anim__section">
 					@if (elementKey(); as key) {
 						<div [attr.data-el-key]="key">
-							<label class="pptx-ng-anim__label" for="anim-delay"> Delay (ms) </label>
+							<label class="pptx-ng-anim__label" for="anim-delay">{{
+								'pptx.animations.delayMs' | translate
+							}}</label>
 							<input
 								id="anim-delay"
 								class="pptx-ng-anim__input"
@@ -259,7 +277,9 @@ import {
 
 				<!-- ── Timing curve ──────────────────────────────────────────── -->
 				<section class="pptx-ng-anim__section">
-					<label class="pptx-ng-anim__label" for="anim-timing-curve"> Timing curve </label>
+					<label class="pptx-ng-anim__label" for="anim-timing-curve">{{
+						'pptx.animations.timingCurve' | translate
+					}}</label>
 					<select
 						id="anim-timing-curve"
 						class="pptx-ng-anim__select"
@@ -277,7 +297,9 @@ import {
 				<section class="pptx-ng-anim__section">
 					@if (elementKey(); as key) {
 						<div [attr.data-el-key]="key">
-							<label class="pptx-ng-anim__label" for="anim-repeat-count"> Repeat </label>
+							<label class="pptx-ng-anim__label" for="anim-repeat-count">{{
+								'pptx.animations.repeat' | translate
+							}}</label>
 							<input
 								id="anim-repeat-count"
 								class="pptx-ng-anim__input"
@@ -296,7 +318,9 @@ import {
 
 				<!-- ── Repeat mode ───────────────────────────────────────────── -->
 				<section class="pptx-ng-anim__section">
-					<label class="pptx-ng-anim__label" for="anim-repeat-mode"> Repeat until </label>
+					<label class="pptx-ng-anim__label" for="anim-repeat-mode">{{
+						'pptx.animations.repeatUntil' | translate
+					}}</label>
 					<select
 						id="anim-repeat-mode"
 						class="pptx-ng-anim__select"
@@ -312,25 +336,27 @@ import {
 
 				<!-- ── Order controls ────────────────────────────────────────── -->
 				<section class="pptx-ng-anim__section">
-					<span class="pptx-ng-anim__label">Order ({{ orderLabel() }})</span>
+					<span class="pptx-ng-anim__label">{{
+						'pptx.animations.order' | translate: { value: orderLabel() }
+					}}</span>
 					<div class="pptx-ng-anim__row">
 						<button
 							type="button"
 							class="pptx-ng-anim__order-btn"
 							[disabled]="!canEdit()"
-							title="Move earlier"
+							[title]="'pptx.animations.moveEarlier' | translate"
 							(click)="onMoveUp()"
 						>
-							↑ Earlier
+							↑ {{ 'pptx.animations.earlier' | translate }}
 						</button>
 						<button
 							type="button"
 							class="pptx-ng-anim__order-btn"
 							[disabled]="!canEdit()"
-							title="Move later"
+							[title]="'pptx.animations.moveLater' | translate"
 							(click)="onMoveDown()"
 						>
-							↓ Later
+							↓ {{ 'pptx.animations.later' | translate }}
 						</button>
 					</div>
 				</section>

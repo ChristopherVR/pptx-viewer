@@ -13,6 +13,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, effect, input, output, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxCoreProperties } from 'pptx-viewer-core';
 
 import { ModalDialogComponent } from './modal-dialog.component';
@@ -27,12 +28,18 @@ import type { DocumentProperties } from './properties-dialog-helpers';
 	selector: 'pptx-properties-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent],
+	imports: [ModalDialogComponent, TranslatePipe],
 	template: `
-		<pptx-modal-dialog [open]="open()" title="Document properties" (close)="close.emit()">
+		<pptx-modal-dialog
+			[open]="open()"
+			[title]="'pptx.documentProperties.dialogTitle' | translate"
+			(close)="close.emit()"
+		>
 			<div class="pptx-ng-props-form">
 				<div class="pptx-ng-props-field">
-					<label for="pptx-ng-props-title" class="pptx-ng-props-label">Title</label>
+					<label for="pptx-ng-props-title" class="pptx-ng-props-label">{{
+						'pptx.documentProperties.summary.title' | translate
+					}}</label>
 					<input
 						id="pptx-ng-props-title"
 						type="text"
@@ -43,7 +50,9 @@ import type { DocumentProperties } from './properties-dialog-helpers';
 				</div>
 
 				<div class="pptx-ng-props-field">
-					<label for="pptx-ng-props-creator" class="pptx-ng-props-label">Author</label>
+					<label for="pptx-ng-props-creator" class="pptx-ng-props-label">{{
+						'pptx.documentProperties.summary.author' | translate
+					}}</label>
 					<input
 						id="pptx-ng-props-creator"
 						type="text"
@@ -54,7 +63,9 @@ import type { DocumentProperties } from './properties-dialog-helpers';
 				</div>
 
 				<div class="pptx-ng-props-field">
-					<label for="pptx-ng-props-subject" class="pptx-ng-props-label">Subject</label>
+					<label for="pptx-ng-props-subject" class="pptx-ng-props-label">{{
+						'pptx.documentProperties.summary.subject' | translate
+					}}</label>
 					<input
 						id="pptx-ng-props-subject"
 						type="text"
@@ -65,7 +76,9 @@ import type { DocumentProperties } from './properties-dialog-helpers';
 				</div>
 
 				<div class="pptx-ng-props-field">
-					<label for="pptx-ng-props-keywords" class="pptx-ng-props-label">Keywords</label>
+					<label for="pptx-ng-props-keywords" class="pptx-ng-props-label">{{
+						'pptx.documentProperties.summary.keywords' | translate
+					}}</label>
 					<input
 						id="pptx-ng-props-keywords"
 						type="text"
@@ -77,24 +90,30 @@ import type { DocumentProperties } from './properties-dialog-helpers';
 
 				<div class="pptx-ng-props-meta">
 					<div class="pptx-ng-props-meta-row">
-						<span class="pptx-ng-props-meta-label">Created</span>
+						<span class="pptx-ng-props-meta-label">{{
+							'pptx.documentProperties.created' | translate
+						}}</span>
 						<span class="pptx-ng-props-meta-value">{{ createdDisplay() }}</span>
 					</div>
 					<div class="pptx-ng-props-meta-row">
-						<span class="pptx-ng-props-meta-label">Modified</span>
+						<span class="pptx-ng-props-meta-label">{{
+							'pptx.documentProperties.modified' | translate
+						}}</span>
 						<span class="pptx-ng-props-meta-value">{{ modifiedDisplay() }}</span>
 					</div>
 				</div>
 			</div>
 
 			<div footer>
-				<button type="button" class="pptx-ng-props-btn" (click)="close.emit()">Cancel</button>
+				<button type="button" class="pptx-ng-props-btn" (click)="close.emit()">
+					{{ 'pptx.common.cancel' | translate }}
+				</button>
 				<button
 					type="button"
 					class="pptx-ng-props-btn pptx-ng-props-btn-primary"
 					(click)="handleSave()"
 				>
-					Save
+					{{ 'pptx.common.save' | translate }}
 				</button>
 			</div>
 		</pptx-modal-dialog>

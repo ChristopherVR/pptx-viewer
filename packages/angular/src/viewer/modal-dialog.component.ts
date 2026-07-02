@@ -35,6 +35,7 @@ import {
 	output,
 	signal,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { IsMobileService } from './is-mobile';
 
@@ -53,6 +54,7 @@ export function modalPanelClass(isMobile: boolean): string {
 	selector: 'pptx-modal-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	providers: [IsMobileService],
 	template: `
 		@if (open()) {
@@ -85,7 +87,7 @@ export function modalPanelClass(isMobile: boolean): string {
 						<button
 							type="button"
 							class="pptx-ng-modal-close"
-							aria-label="Close"
+							[attr.aria-label]="'pptx.common.close' | translate"
 							(click)="requestClose()"
 						>
 							&times;

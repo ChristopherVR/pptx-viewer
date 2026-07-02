@@ -11,15 +11,17 @@
  */
 
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-core';
 
 @Component({
 	selector: 'pptx-show-slides-fieldset',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		<fieldset class="pptx-ng-sss-fieldset">
-			<legend class="pptx-ng-sss-legend">Show slides</legend>
+			<legend class="pptx-ng-sss-legend">{{ 'pptx.slideShow.showSlides' | translate }}</legend>
 
 			<!-- All -->
 			<label class="pptx-ng-sss-option">
@@ -31,7 +33,7 @@ import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-cor
 					[checked]="showSlidesMode() === 'all'"
 					(change)="patch.emit({ showSlidesMode: 'all' })"
 				/>
-				<span>All slides</span>
+				<span>{{ 'pptx.slideShow.allSlides' | translate }}</span>
 			</label>
 
 			<!-- Range -->
@@ -44,12 +46,12 @@ import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-cor
 					[checked]="showSlidesMode() === 'range'"
 					(change)="onSelectRange()"
 				/>
-				<span>From:</span>
+				<span>{{ 'pptx.slideShow.fromTo' | translate }}</span>
 			</label>
 			@if (showSlidesMode() === 'range') {
 				<div class="pptx-ng-sss-range">
 					<label class="pptx-ng-sss-range-field">
-						<span class="pptx-ng-sss-range-label">From:</span>
+						<span class="pptx-ng-sss-range-label">{{ 'pptx.slideShow.from' | translate }}</span>
 						<input
 							type="number"
 							class="pptx-ng-sss-number"
@@ -60,7 +62,7 @@ import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-cor
 						/>
 					</label>
 					<label class="pptx-ng-sss-range-field">
-						<span class="pptx-ng-sss-range-label">To:</span>
+						<span class="pptx-ng-sss-range-label">{{ 'pptx.slideShow.to' | translate }}</span>
 						<input
 							type="number"
 							class="pptx-ng-sss-number"
@@ -84,7 +86,7 @@ import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-cor
 						[checked]="showSlidesMode() === 'customShow'"
 						(change)="onSelectCustomShow()"
 					/>
-					<span>Custom show</span>
+					<span>{{ 'pptx.slideShow.customShow' | translate }}</span>
 				</label>
 				@if (showSlidesMode() === 'customShow') {
 					<div class="pptx-ng-sss-custom">

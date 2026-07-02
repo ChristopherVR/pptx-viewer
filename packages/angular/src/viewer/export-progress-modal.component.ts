@@ -24,12 +24,14 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { clampPercent } from '../internal/shared';
 
 @Component({
 	selector: 'pptx-export-progress-modal',
 	standalone: true,
+	imports: [TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
 		@if (open()) {
@@ -47,13 +49,13 @@ import { clampPercent } from '../internal/shared';
 					</div>
 
 					<div class="pptx-ng-export-progress__status">
-						<span>{{ statusMessage() || 'Processing...' }}</span>
+						<span>{{ statusMessage() || ('pptx.export.processing' | translate) }}</span>
 						<span class="pptx-ng-export-progress__pct">{{ clampedProgress() }}%</span>
 					</div>
 
 					<div class="pptx-ng-export-progress__actions">
 						<button type="button" class="pptx-ng-export-progress__btn" (click)="cancel.emit()">
-							Cancel
+							{{ 'pptx.export.cancel' | translate }}
 						</button>
 					</div>
 				</div>

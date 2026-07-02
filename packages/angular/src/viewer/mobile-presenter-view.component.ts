@@ -9,6 +9,7 @@ import {
 	output,
 	signal,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
@@ -47,7 +48,7 @@ const CLOCK_TICK_MS = 1000;
 	selector: 'pptx-mobile-presenter-view',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle, SlideCanvasComponent],
+	imports: [NgStyle, SlideCanvasComponent, TranslatePipe],
 	styles: `
 		:host {
 			position: absolute;
@@ -227,7 +228,7 @@ const CLOCK_TICK_MS = 1000;
 			<!-- Header: elapsed + counter + exit -->
 			<div class="pptx-ng-mpresenter-header">
 				<div>
-					<div class="pptx-ng-mpresenter-label">Elapsed</div>
+					<div class="pptx-ng-mpresenter-label">{{ 'pptx.presenter.elapsed' | translate }}</div>
 					<div class="pptx-ng-mpresenter-elapsed">{{ elapsedLabel() }}</div>
 				</div>
 				<span class="pptx-ng-mpresenter-counter">{{ counterLabel() }}</span>
@@ -235,8 +236,8 @@ const CLOCK_TICK_MS = 1000;
 					type="button"
 					class="pptx-ng-mpresenter-exit"
 					(click)="exit.emit()"
-					aria-label="End presentation"
-					title="End presentation"
+					[attr.aria-label]="'pptx.presenter.endPresentation' | translate"
+					[title]="'pptx.presenter.endPresentation' | translate"
 				>
 					&#x2715;
 				</button>
@@ -275,7 +276,7 @@ const CLOCK_TICK_MS = 1000;
 
 			<!-- Speaker notes (scrollable) -->
 			<div class="pptx-ng-mpresenter-notes">
-				<div class="pptx-ng-mpresenter-label">Speaker notes</div>
+				<div class="pptx-ng-mpresenter-label">{{ 'pptx.presenter.speakerNotes' | translate }}</div>
 				<div class="pptx-ng-mpresenter-notes-body">
 					@if (notes().hasRichNotes) {
 						@for (seg of notes().segments; track seg.key) {
@@ -288,7 +289,9 @@ const CLOCK_TICK_MS = 1000;
 					} @else if (notes().hasAnyNotes) {
 						{{ notes().plainText }}
 					} @else {
-						<span class="pptx-ng-mpresenter-notes-empty">No notes for this slide.</span>
+						<span class="pptx-ng-mpresenter-notes-empty">{{
+							'pptx.presenter.noNotes' | translate
+						}}</span>
 					}
 				</div>
 			</div>
@@ -300,20 +303,20 @@ const CLOCK_TICK_MS = 1000;
 					class="pptx-ng-mpresenter-navbtn"
 					(click)="movePresentationSlide.emit(-1)"
 					[disabled]="atFirst()"
-					aria-label="Previous slide"
-					title="Previous slide"
+					[attr.aria-label]="'pptx.presenter.previousSlide' | translate"
+					[title]="'pptx.presenter.previousSlide' | translate"
 				>
-					&#x2039; Prev
+					&#x2039; {{ 'pptx.presenter.prev' | translate }}
 				</button>
 				<button
 					type="button"
 					class="pptx-ng-mpresenter-navbtn"
 					(click)="movePresentationSlide.emit(1)"
 					[disabled]="atLast()"
-					aria-label="Next slide"
-					title="Next slide"
+					[attr.aria-label]="'pptx.presenter.nextSlidePreview' | translate"
+					[title]="'pptx.presenter.nextSlidePreview' | translate"
 				>
-					Next &#x203A;
+					{{ 'pptx.presenter.next' | translate }} &#x203A;
 				</button>
 			</div>
 		} @else {

@@ -12,7 +12,8 @@
  * favour of the English fallback copy.
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { ModalDialogComponent } from './modal-dialog.component';
 
@@ -20,26 +21,33 @@ import { ModalDialogComponent } from './modal-dialog.component';
 	selector: 'pptx-keep-annotations-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent],
+	imports: [ModalDialogComponent, TranslatePipe],
 	template: `
 		<pptx-modal-dialog
 			[open]="open()"
-			title="&#128393; Keep Ink Annotations?"
+			[title]="'pptx.keepAnnotations.title' | translate"
 			(close)="discard.emit()"
 		>
 			<div class="pptx-ng-keep">
 				<div class="pptx-ng-keep-badge">&#128393;</div>
-				<p class="pptx-ng-keep-desc">{{ description() }}</p>
+				<p class="pptx-ng-keep-desc">
+					{{
+						'pptx.keepAnnotations.description'
+							| translate: { count: annotationCount(), slides: slideCount() }
+					}}
+				</p>
 			</div>
 
 			<div footer>
-				<button type="button" class="pptx-ng-keep-btn" (click)="discard.emit()">Discard</button>
+				<button type="button" class="pptx-ng-keep-btn" (click)="discard.emit()">
+					{{ 'pptx.keepAnnotations.discard' | translate }}
+				</button>
 				<button
 					type="button"
 					class="pptx-ng-keep-btn pptx-ng-keep-btn-primary"
 					(click)="keep.emit()"
 				>
-					Keep
+					{{ 'pptx.keepAnnotations.keep' | translate }}
 				</button>
 			</div>
 		</pptx-modal-dialog>
@@ -117,12 +125,4 @@ export class KeepAnnotationsDialogComponent {
 
 	/** Fired when the user discards the annotations (also on dismiss). */
 	readonly discard = output<void>();
-
-	readonly description = computed(() => {
-		const count = this.annotationCount();
-		const slides = this.slideCount();
-		const annNoun = count === 1 ? 'ink annotation' : 'ink annotations';
-		const slideNoun = slides === 1 ? 'slide' : 'slides';
-		return `You made ${count} ${annNoun} across ${slides} ${slideNoun}. Keep them as ink on the slides, or discard?`;
-	});
 }

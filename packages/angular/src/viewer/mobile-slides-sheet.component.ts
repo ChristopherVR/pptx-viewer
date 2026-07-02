@@ -26,6 +26,7 @@
 
 import { NgStyle } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
@@ -40,22 +41,28 @@ const THUMB_W = 160;
 	selector: 'pptx-mobile-slides-sheet',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle, MobileSheetComponent, SlideCanvasComponent],
+	imports: [NgStyle, MobileSheetComponent, SlideCanvasComponent, TranslatePipe],
 	template: `
 		<pptx-mobile-sheet
 			[open]="open()"
-			title="Slides"
+			[title]="'pptx.sections.slides' | translate"
 			[heightFraction]="0.7"
 			(closed)="closed.emit()"
 		>
 			<!-- Slide count summary -->
 			<p class="pptx-ng-mslides-count" aria-live="polite">
-				{{ slides().length }} slide{{ slides().length === 1 ? '' : 's' }} &nbsp;&mdash;&nbsp; slide
-				{{ activeIndex() + 1 }} active
+				{{
+					'pptx.mobileSlides.summary'
+						| translate: { count: slides().length, active: activeIndex() + 1 }
+				}}
 			</p>
 
 			<!-- Grid of thumbnails -->
-			<div class="pptx-ng-mslides-grid" role="listbox" aria-label="Slides">
+			<div
+				class="pptx-ng-mslides-grid"
+				role="listbox"
+				[attr.aria-label]="'pptx.sections.slides' | translate"
+			>
 				@for (slide of slides(); track slide.id; let i = $index) {
 					<button
 						type="button"
@@ -63,7 +70,7 @@ const THUMB_W = 160;
 						[class.is-active]="i === activeIndex()"
 						role="option"
 						[attr.aria-selected]="i === activeIndex()"
-						[attr.aria-label]="'Slide ' + (i + 1)"
+						[attr.aria-label]="'pptx.notes.slideN' | translate: { n: i + 1 }"
 						(click)="onThumbClick(i)"
 					>
 						<!-- Thumbnail clipping wrapper -->

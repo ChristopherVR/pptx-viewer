@@ -29,6 +29,7 @@ import {
 	input,
 	signal,
 } from '@angular/core';
+import { translate } from '@ngx-translate/core';
 
 import {
 	captionDisplayText,
@@ -98,8 +99,12 @@ export class PresentationSubtitleBarComponent implements OnChanges {
 	private readonly _captionText = signal<string>('');
 	private readonly _supportState = signal<SpeechSupportState>('unknown');
 
+	/** Reactive translated caption strings (used inside the recognition wiring). */
+	private readonly listeningLabel = translate('pptx.subtitles.listening');
+	private readonly notSupportedLabel = translate('pptx.subtitles.notSupported');
+
 	/** The text string rendered in the caption bar. */
-	protected readonly displayText = signal<string>('Listening…');
+	protected readonly displayText = signal<string>(this.listeningLabel());
 
 	// ------------------------------------------------------------------
 	// Recognition lifecycle bookkeeping
@@ -218,8 +223,8 @@ export class PresentationSubtitleBarComponent implements OnChanges {
 		const text = captionDisplayText(
 			this._supportState(),
 			this._captionText(),
-			'Subtitles not supported in this browser.',
-			'Listening…',
+			this.notSupportedLabel(),
+			this.listeningLabel(),
 		);
 		this.displayText.set(text);
 	}

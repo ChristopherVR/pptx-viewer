@@ -12,6 +12,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	ChartPptxElement,
 	PptxChartSeries,
@@ -28,10 +29,11 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 	selector: 'pptx-chart-trendline-options',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		@if (supported()) {
-			<section class="pptx-chart-card" aria-label="Trendline options">
-				<h4 class="pptx-chart-card__heading">Trendlines</h4>
+			<section class="pptx-chart-card" [attr.aria-label]="'pptx.chart.trendlines' | translate">
+				<h4 class="pptx-chart-card__heading">{{ 'pptx.chart.trendlines' | translate }}</h4>
 				@for (s of series(); track $index; let i = $index) {
 					<div class="pptx-chart-card__group">
 						<div class="pptx-chart-card__row">
@@ -57,7 +59,7 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 										[checked]="tl.displayEq ?? false"
 										(change)="onToggleEq(i, tl, $event)"
 									/>
-									<span>Equation</span>
+									<span>{{ 'pptx.chart.trendlineEquation' | translate }}</span>
 								</label>
 								<label class="pptx-chart-card__check">
 									<input
@@ -66,7 +68,7 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 										[checked]="tl.displayRSq ?? false"
 										(change)="onToggleRSq(i, tl, $event)"
 									/>
-									<span>R-squared</span>
+									<span>{{ 'pptx.chart.trendlineRSquared' | translate }}</span>
 								</label>
 							</div>
 						}

@@ -30,14 +30,15 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { MobileSheetComponent } from './mobile-sheet.component';
 
 /** Descriptor for a single menu row. */
 interface MenuRow {
 	key: string;
-	label: string;
-	sublabel?: string;
+	labelKey: string;
+	sublabelKey?: string;
 	/** SVG path data (24 × 24 view-box). */
 	svgPath: string;
 	disabled?: boolean;
@@ -50,11 +51,11 @@ interface MenuRow {
 	selector: 'pptx-mobile-menu-sheet',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [MobileSheetComponent],
+	imports: [MobileSheetComponent, TranslatePipe],
 	template: `
 		<pptx-mobile-sheet
 			[open]="open()"
-			title="Actions"
+			[title]="'pptx.mobileMenu.title' | translate"
 			[heightFraction]="0.72"
 			(closed)="closed.emit()"
 		>
@@ -68,7 +69,7 @@ interface MenuRow {
 							[class.is-danger]="row.danger"
 							[disabled]="row.disabled"
 							role="menuitem"
-							[attr.aria-label]="row.label"
+							[attr.aria-label]="row.labelKey | translate"
 							(click)="onRowClick(row)"
 						>
 							<span class="pptx-ng-mmenu-icon" aria-hidden="true">
@@ -87,9 +88,9 @@ interface MenuRow {
 								</svg>
 							</span>
 							<span class="pptx-ng-mmenu-text">
-								<span class="pptx-ng-mmenu-label">{{ row.label }}</span>
-								@if (row.sublabel) {
-									<span class="pptx-ng-mmenu-sublabel">{{ row.sublabel }}</span>
+								<span class="pptx-ng-mmenu-label">{{ row.labelKey | translate }}</span>
+								@if (row.sublabelKey) {
+									<span class="pptx-ng-mmenu-sublabel">{{ row.sublabelKey | translate }}</span>
 								}
 							</span>
 							@if (row.active) {
@@ -278,7 +279,7 @@ export class MobileMenuSheetComponent {
 				? [
 						{
 							key: 'insert-text',
-							label: 'Insert text box',
+							labelKey: 'pptx.mobileMenu.insertTextBox',
 							svgPath: 'M12 5v14 M5 12h14',
 							disabled: noSlides,
 							emit: () => this.insertText.emit(),
@@ -288,21 +289,21 @@ export class MobileMenuSheetComponent {
 			// ── Navigation ──────────────────────────────────────────────────────
 			{
 				key: 'find',
-				label: 'Find in slides',
+				labelKey: 'pptx.mobileMenu.find',
 				svgPath: 'M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z',
 				disabled: noSlides,
 				emit: () => this.openFind.emit(),
 			},
 			{
 				key: 'sorter',
-				label: 'Slide sorter',
+				labelKey: 'pptx.mobileMenu.sorter',
 				svgPath: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
 				disabled: noSlides,
 				emit: () => this.openSorter.emit(),
 			},
 			{
 				key: 'notes',
-				label: 'Speaker notes',
+				labelKey: 'pptx.mobileMenu.speakerNotes',
 				svgPath:
 					'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z',
 				disabled: noSlides,
@@ -312,7 +313,7 @@ export class MobileMenuSheetComponent {
 			// ── Presentation ────────────────────────────────────────────────────
 			{
 				key: 'present',
-				label: 'Present',
+				labelKey: 'pptx.mobileMenu.present',
 				svgPath: 'M5 3l14 9-14 9V3z',
 				disabled: noSlides,
 				emit: () => this.present.emit(),
@@ -320,8 +321,8 @@ export class MobileMenuSheetComponent {
 			// ── Export ──────────────────────────────────────────────────────────
 			{
 				key: 'export-png',
-				label: 'Export as PNG',
-				sublabel: 'Current slide',
+				labelKey: 'pptx.mobileMenu.exportPng',
+				sublabelKey: 'pptx.mobileMenu.currentSlide',
 				svgPath:
 					'M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2l1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z',
 				disabled: noSlides || exp,
@@ -329,8 +330,8 @@ export class MobileMenuSheetComponent {
 			},
 			{
 				key: 'export-pdf',
-				label: exp ? 'Exporting…' : 'Export as PDF',
-				sublabel: 'All slides',
+				labelKey: exp ? 'pptx.mobileMenu.exporting' : 'pptx.mobileMenu.exportPdf',
+				sublabelKey: 'pptx.mobileMenu.allSlides',
 				svgPath:
 					'M7 21h10a2 2 0 0 0 2-2V9.414a1 1 0 0 0-.293-.707l-5.414-5.414A1 1 0 0 0 12.586 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z',
 				disabled: noSlides || exp,
@@ -338,8 +339,8 @@ export class MobileMenuSheetComponent {
 			},
 			{
 				key: 'export-gif',
-				label: 'Export as GIF',
-				sublabel: 'Animated',
+				labelKey: 'pptx.mobileMenu.exportGif',
+				sublabelKey: 'pptx.mobileMenu.animated',
 				svgPath:
 					'M15 10l4.553-2.069A1 1 0 0 1 21 8.82v6.36a1 1 0 0 1-1.447.889L15 14M3 8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z',
 				disabled: noSlides || exp,
@@ -347,8 +348,8 @@ export class MobileMenuSheetComponent {
 			},
 			{
 				key: 'export-video',
-				label: 'Export as Video',
-				sublabel: 'MP4',
+				labelKey: 'pptx.mobileMenu.exportVideo',
+				sublabelKey: 'pptx.mobileMenu.mp4',
 				svgPath:
 					'M15 10l4.553-2.069A1 1 0 0 1 21 8.82v6.36a1 1 0 0 1-1.447.889L15 14M3 8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z',
 				disabled: noSlides || exp,
@@ -357,23 +358,23 @@ export class MobileMenuSheetComponent {
 			// ── File ────────────────────────────────────────────────────────────
 			{
 				key: 'open-file',
-				label: 'Open',
-				sublabel: '.pptx',
+				labelKey: 'pptx.mobileMenu.open',
+				sublabelKey: 'pptx.mobileMenu.pptxExt',
 				svgPath: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z',
 				disabled: false,
 				emit: () => this.openFile.emit(),
 			},
 			{
 				key: 'save-pptx',
-				label: 'Save',
-				sublabel: '.pptx',
+				labelKey: 'pptx.mobileMenu.save',
+				sublabelKey: 'pptx.mobileMenu.pptxExt',
 				svgPath: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3',
 				disabled: noSlides,
 				emit: () => this.savePptx.emit(),
 			},
 			{
 				key: 'print',
-				label: 'Print',
+				labelKey: 'pptx.mobileMenu.print',
 				svgPath:
 					'M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6v-8z',
 				disabled: noSlides,

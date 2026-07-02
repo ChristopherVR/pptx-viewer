@@ -30,6 +30,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	PptxSmartArtData,
 	PptxSmartArtNode,
@@ -77,14 +78,19 @@ import {
 	selector: 'pptx-smart-art-properties',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
-		<section class="pptx-sa-props" aria-label="SmartArt properties">
-			<h3 class="pptx-sa-props__heading">SmartArt</h3>
+		<section class="pptx-sa-props" [attr.aria-label]="'pptx.smartart.title' | translate">
+			<h3 class="pptx-sa-props__heading">{{ 'pptx.smartart.title' | translate }}</h3>
 
 			<!-- ── Layout switcher ──────────────────────────────────────────── -->
 			<div class="pptx-sa-props__field">
-				<span class="pptx-sa-props__label">Layout</span>
-				<div class="pptx-sa-props__layouts" role="group" aria-label="Switch layout">
+				<span class="pptx-sa-props__label">{{ 'pptx.smartart.layout' | translate }}</span>
+				<div
+					class="pptx-sa-props__layouts"
+					role="group"
+					[attr.aria-label]="'pptx.smartart.switchLayout' | translate"
+				>
 					@for (layout of layoutTypes; track layout) {
 						<button
 							type="button"
@@ -102,7 +108,7 @@ import {
 
 			<!-- ── Colour scheme ────────────────────────────────────────────── -->
 			<label class="pptx-sa-props__field">
-				<span class="pptx-sa-props__label">Color scheme</span>
+				<span class="pptx-sa-props__label">{{ 'pptx.smartart.colorScheme' | translate }}</span>
 				<select
 					class="pptx-sa-props__select"
 					[disabled]="!canEdit()"
@@ -117,8 +123,12 @@ import {
 
 			<!-- ── Style intensity ──────────────────────────────────────────── -->
 			<div class="pptx-sa-props__field">
-				<span class="pptx-sa-props__label">Style</span>
-				<div class="pptx-sa-props__styles" role="group" aria-label="Style intensity">
+				<span class="pptx-sa-props__label">{{ 'pptx.smartart.style' | translate }}</span>
+				<div
+					class="pptx-sa-props__styles"
+					role="group"
+					[attr.aria-label]="'pptx.smartart.style' | translate"
+				>
 					@for (styleOpt of styleOptions; track styleOpt) {
 						<button
 							type="button"
@@ -136,15 +146,17 @@ import {
 
 			<!-- ── Text pane / node list ────────────────────────────────────── -->
 			<div class="pptx-sa-props__pane-header">
-				<span class="pptx-sa-props__label">Text pane ({{ nodes().length }})</span>
+				<span class="pptx-sa-props__label"
+					>{{ 'pptx.smartart.textPane' | translate }} ({{ nodes().length }})</span
+				>
 				<button
 					type="button"
 					class="pptx-sa-props__btn"
 					[disabled]="!canEdit() || !canAddItem()"
-					[title]="canAddItem() ? 'Add item' : boundsHint()"
+					[title]="canAddItem() ? ('pptx.smartart.addItem' | translate) : boundsHint()"
 					(click)="onAddItem()"
 				>
-					+ Item
+					+ {{ 'pptx.smartart.item' | translate }}
 				</button>
 			</div>
 
@@ -165,7 +177,7 @@ import {
 							class="pptx-sa-props__node-input"
 							[disabled]="!canEdit()"
 							[value]="node.text"
-							placeholder="Type here"
+							[attr.placeholder]="'pptx.smartart.typeHere' | translate"
 							(change)="onNodeText($event, node.id)"
 							(keydown)="onNodeKeydown($event, node.id)"
 						/>
@@ -174,17 +186,17 @@ import {
 								<button
 									type="button"
 									class="pptx-sa-props__icon"
-									title="Add sub-item"
+									[title]="'pptx.smartart.addSubItem' | translate"
 									[disabled]="!canEdit()"
 									(click)="onAddSubItem(node.id)"
 								>
-									+Sub
+									+{{ 'pptx.smartart.subItemShort' | translate }}
 								</button>
 							}
 							<button
 								type="button"
 								class="pptx-sa-props__icon"
-								title="Promote"
+								[title]="'pptx.smartart.promote' | translate"
 								[disabled]="!canEdit() || isChild(node) === false"
 								(click)="onPromote(node.id)"
 							>
@@ -193,7 +205,7 @@ import {
 							<button
 								type="button"
 								class="pptx-sa-props__icon"
-								title="Demote"
+								[title]="'pptx.smartart.demote' | translate"
 								[disabled]="!canEdit()"
 								(click)="onDemote(node.id)"
 							>
@@ -202,7 +214,7 @@ import {
 							<button
 								type="button"
 								class="pptx-sa-props__icon"
-								title="Move up"
+								[title]="'pptx.smartart.moveUp' | translate"
 								[disabled]="!canEdit()"
 								(click)="onMoveUp(node.id)"
 							>
@@ -211,7 +223,7 @@ import {
 							<button
 								type="button"
 								class="pptx-sa-props__icon"
-								title="Move down"
+								[title]="'pptx.smartart.moveDown' | translate"
 								[disabled]="!canEdit()"
 								(click)="onMoveDown(node.id)"
 							>
@@ -220,7 +232,11 @@ import {
 							<button
 								type="button"
 								class="pptx-sa-props__icon pptx-sa-props__icon--danger"
-								[title]="!isChild(node) && !canRemoveItem() ? boundsHint() : 'Remove'"
+								[title]="
+									!isChild(node) && !canRemoveItem()
+										? boundsHint()
+										: ('pptx.smartart.remove' | translate)
+								"
 								[disabled]="
 									!canEdit() || nodes().length <= 1 || (!isChild(node) && !canRemoveItem())
 								"
@@ -232,8 +248,10 @@ import {
 
 						<!-- Per-node style overrides: fill, font colour, bold, italic. -->
 						<div class="pptx-sa-props__node-style">
-							<label class="pptx-sa-props__swatch" title="Node fill colour">
-								<span class="pptx-sa-props__swatch-label">Fill</span>
+							<label class="pptx-sa-props__swatch" [title]="'pptx.smartart.nodeFill' | translate">
+								<span class="pptx-sa-props__swatch-label">{{
+									'pptx.smartart.fill' | translate
+								}}</span>
 								<input
 									type="color"
 									class="pptx-sa-props__color"
@@ -242,8 +260,10 @@ import {
 									(change)="onNodeFillColor($event, node.id)"
 								/>
 							</label>
-							<label class="pptx-sa-props__swatch" title="Node font colour">
-								<span class="pptx-sa-props__swatch-label">Font</span>
+							<label class="pptx-sa-props__swatch" [title]="'pptx.smartart.nodeFont' | translate">
+								<span class="pptx-sa-props__swatch-label">{{
+									'pptx.smartart.font' | translate
+								}}</span>
 								<input
 									type="color"
 									class="pptx-sa-props__color"
@@ -255,7 +275,7 @@ import {
 							<button
 								type="button"
 								class="pptx-sa-props__icon pptx-sa-props__style-toggle"
-								title="Bold"
+								[title]="'pptx.smartart.bold' | translate"
 								[class.is-active]="nodeIsBold(node)"
 								[attr.aria-pressed]="nodeIsBold(node)"
 								[disabled]="!canEdit()"
@@ -266,7 +286,7 @@ import {
 							<button
 								type="button"
 								class="pptx-sa-props__icon pptx-sa-props__style-toggle"
-								title="Italic"
+								[title]="'pptx.smartart.italic' | translate"
 								[class.is-active]="nodeIsItalic(node)"
 								[attr.aria-pressed]="nodeIsItalic(node)"
 								[disabled]="!canEdit()"
@@ -279,7 +299,7 @@ import {
 				}
 			</ul>
 
-			<p class="pptx-sa-props__hint">Tab to demote, Shift+Tab to promote.</p>
+			<p class="pptx-sa-props__hint">{{ 'pptx.smartart.tabHint' | translate }}</p>
 		</section>
 	`,
 	styles: `

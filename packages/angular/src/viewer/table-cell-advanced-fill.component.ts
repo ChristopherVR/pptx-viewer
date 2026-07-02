@@ -12,6 +12,7 @@
  * reflects the change immediately.
  */
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxTableCellStyle } from 'pptx-viewer-core';
 
 import { FILL_MODE_OPTIONS, GRADIENT_TYPE_OPTIONS, PATTERN_OPTIONS } from '../internal/shared';
@@ -23,10 +24,11 @@ type GradientStop = { color: string; position: number };
 	selector: 'pptx-table-cell-advanced-fill',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		<div class="pptx-tcaf">
 			<label class="pptx-tcaf__field">
-				<span class="pptx-tcaf__lbl">Fill</span>
+				<span class="pptx-tcaf__lbl">{{ 'pptx.table.fillMode' | translate }}</span>
 				<select
 					class="pptx-tcaf__sel"
 					[disabled]="!canEdit()"
@@ -34,7 +36,7 @@ type GradientStop = { color: string; position: number };
 					(change)="onFillModeChange($event)"
 				>
 					@for (opt of fillModes; track opt.value) {
-						<option [value]="opt.value">{{ opt.label }}</option>
+						<option [value]="opt.value">{{ opt.i18nKey | translate }}</option>
 					}
 				</select>
 			</label>
@@ -42,7 +44,7 @@ type GradientStop = { color: string; position: number };
 			@if (fillMode() === 'gradient') {
 				<div class="pptx-tcaf__group">
 					<label class="pptx-tcaf__field">
-						<span class="pptx-tcaf__lbl">Type</span>
+						<span class="pptx-tcaf__lbl">{{ 'pptx.table.gradientType' | translate }}</span>
 						<select
 							class="pptx-tcaf__sel"
 							[disabled]="!canEdit()"
@@ -50,13 +52,13 @@ type GradientStop = { color: string; position: number };
 							(change)="onGradTypeChange($event)"
 						>
 							@for (opt of gradientTypes; track opt.value) {
-								<option [value]="opt.value">{{ opt.label }}</option>
+								<option [value]="opt.value">{{ opt.i18nKey | translate }}</option>
 							}
 						</select>
 					</label>
 					@if (gradType() === 'linear') {
 						<label class="pptx-tcaf__field">
-							<span class="pptx-tcaf__lbl">Angle</span>
+							<span class="pptx-tcaf__lbl">{{ 'pptx.table.gradientAngle' | translate }}</span>
 							<input
 								type="number"
 								class="pptx-tcaf__num"
@@ -68,7 +70,7 @@ type GradientStop = { color: string; position: number };
 							/>
 						</label>
 					}
-					<span class="pptx-tcaf__lbl">Stops</span>
+					<span class="pptx-tcaf__lbl">{{ 'pptx.table.gradientStops' | translate }}</span>
 					@for (stop of stops(); track $index; let i = $index) {
 						<div class="pptx-tcaf__stop">
 							<input
@@ -96,7 +98,7 @@ type GradientStop = { color: string; position: number };
 						[disabled]="!canEdit()"
 						(click)="onAddStop()"
 					>
-						+ Add stop
+						{{ 'pptx.table.gradientAddStop' | translate }}
 					</button>
 				</div>
 			}
@@ -104,7 +106,7 @@ type GradientStop = { color: string; position: number };
 			@if (fillMode() === 'pattern') {
 				<div class="pptx-tcaf__group">
 					<label class="pptx-tcaf__field">
-						<span class="pptx-tcaf__lbl">Pattern</span>
+						<span class="pptx-tcaf__lbl">{{ 'pptx.table.patternPreset' | translate }}</span>
 						<select
 							class="pptx-tcaf__sel"
 							[disabled]="!canEdit()"
@@ -118,7 +120,7 @@ type GradientStop = { color: string; position: number };
 					</label>
 					<div class="pptx-tcaf__grid2">
 						<label class="pptx-tcaf__field">
-							<span class="pptx-tcaf__lbl">Foreground</span>
+							<span class="pptx-tcaf__lbl">{{ 'pptx.table.patternForeground' | translate }}</span>
 							<input
 								type="color"
 								class="pptx-tcaf__color"
@@ -128,7 +130,7 @@ type GradientStop = { color: string; position: number };
 							/>
 						</label>
 						<label class="pptx-tcaf__field">
-							<span class="pptx-tcaf__lbl">Background</span>
+							<span class="pptx-tcaf__lbl">{{ 'pptx.table.patternBackground' | translate }}</span>
 							<input
 								type="color"
 								class="pptx-tcaf__color"
@@ -144,7 +146,7 @@ type GradientStop = { color: string; position: number };
 			<div class="pptx-tcaf__grid2">
 				@for (m of margins; track m.key) {
 					<label class="pptx-tcaf__field">
-						<span class="pptx-tcaf__lbl">{{ m.label }}</span>
+						<span class="pptx-tcaf__lbl">{{ m.label | translate }}</span>
 						<input
 							type="number"
 							class="pptx-tcaf__num"
@@ -230,21 +232,21 @@ export class TableCellAdvancedFillComponent {
 
 	protected readonly fillModes = FILL_MODE_OPTIONS.map((o) => ({
 		value: o.value ?? 'solid',
-		label: fillModeLabel(o.value),
+		i18nKey: o.i18nKey,
 	}));
 	protected readonly gradientTypes = GRADIENT_TYPE_OPTIONS.map((o) => ({
 		value: o.value,
-		label: o.value === 'radial' ? 'Radial' : 'Linear',
+		i18nKey: o.i18nKey,
 	}));
 	protected readonly patterns = PATTERN_OPTIONS;
 	protected readonly margins: ReadonlyArray<{
 		key: 'marginTop' | 'marginBottom' | 'marginLeft' | 'marginRight';
 		label: string;
 	}> = [
-		{ key: 'marginTop', label: 'Margin top' },
-		{ key: 'marginBottom', label: 'Margin bottom' },
-		{ key: 'marginLeft', label: 'Margin left' },
-		{ key: 'marginRight', label: 'Margin right' },
+		{ key: 'marginTop', label: 'pptx.table.marginTop' },
+		{ key: 'marginBottom', label: 'pptx.table.marginBottom' },
+		{ key: 'marginLeft', label: 'pptx.table.marginLeft' },
+		{ key: 'marginRight', label: 'pptx.table.marginRight' },
 	];
 
 	protected readonly fillMode = computed(() => this.cellStyle().fillMode ?? 'solid');
@@ -351,19 +353,6 @@ export class TableCellAdvancedFillComponent {
 }
 
 // ── Module-private helpers ───────────────────────────────────────────────────
-
-function fillModeLabel(value: PptxTableCellStyle['fillMode']): string {
-	switch (value) {
-		case 'gradient':
-			return 'Gradient';
-		case 'pattern':
-			return 'Pattern';
-		case 'none':
-			return 'None';
-		default:
-			return 'Solid';
-	}
-}
 
 function selectValue(event: Event): string {
 	const t = event.target;

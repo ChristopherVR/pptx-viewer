@@ -30,6 +30,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 /** Which mobile sheet/panel is currently active (highlights its button). */
 export type MobileBarSheet = 'slides' | 'inspector' | 'comments' | 'notes' | null;
@@ -37,7 +38,7 @@ export type MobileBarSheet = 'slides' | 'inspector' | 'comments' | 'notes' | nul
 /** Internal action descriptor used to build the bar. */
 interface BarAction {
 	key: NonNullable<MobileBarSheet> | 'insert';
-	label: string;
+	labelKey: string;
 	/** SVG path data for the icon (24 × 24 view-box). */
 	svgPath: string;
 	disabled: boolean;
@@ -49,16 +50,17 @@ interface BarAction {
 @Component({
 	selector: 'pptx-mobile-bottom-bar',
 	standalone: true,
+	imports: [TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
-		<nav class="pptx-ng-mbar" aria-label="Editor actions">
+		<nav class="pptx-ng-mbar" [attr.aria-label]="'pptx.mobileBar.ariaLabel' | translate">
 			@for (action of actions(); track action.key) {
 				<button
 					type="button"
 					class="pptx-ng-mbar-btn"
 					[class.is-active]="action.active"
 					[attr.aria-pressed]="action.active ? true : null"
-					[attr.aria-label]="action.label"
+					[attr.aria-label]="action.labelKey | translate"
 					[disabled]="action.disabled"
 					(click)="action.emit()"
 				>
@@ -75,7 +77,7 @@ interface BarAction {
 					>
 						<path [attr.d]="action.svgPath" />
 					</svg>
-					<span class="pptx-ng-mbar-label">{{ action.label }}</span>
+					<span class="pptx-ng-mbar-label">{{ action.labelKey | translate }}</span>
 					@if (action.badge && action.badge > 0) {
 						<span class="pptx-ng-mbar-badge" aria-hidden="true">
 							{{ action.badge > 99 ? '99+' : action.badge }}
@@ -233,7 +235,7 @@ export class MobileBottomBarComponent {
 		return [
 			{
 				key: 'slides',
-				label: 'Slides',
+				labelKey: 'pptx.sections.slides',
 				// Layers icon
 				svgPath: 'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5',
 				disabled: noSlides,
@@ -242,7 +244,7 @@ export class MobileBottomBarComponent {
 			},
 			{
 				key: 'insert',
-				label: 'Insert',
+				labelKey: 'pptx.editorToolbar.insert',
 				// Plus icon
 				svgPath: 'M12 5v14 M5 12h14',
 				disabled: noSlides,
@@ -251,7 +253,7 @@ export class MobileBottomBarComponent {
 			},
 			{
 				key: 'inspector',
-				label: 'Format',
+				labelKey: 'pptx.arrange.format',
 				// Sliders icon
 				svgPath: 'M4 21v-7 M4 10V3 M12 21v-9 M12 8V3 M20 21v-5 M20 12V3 M1 14h6 M9 8h6 M17 16h6',
 				disabled: noSlides,
@@ -260,7 +262,7 @@ export class MobileBottomBarComponent {
 			},
 			{
 				key: 'comments',
-				label: 'Comments',
+				labelKey: 'pptx.toolbar.comments',
 				// Message-square icon
 				svgPath: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',
 				disabled: noSlides,
@@ -270,7 +272,7 @@ export class MobileBottomBarComponent {
 			},
 			{
 				key: 'notes',
-				label: 'Notes',
+				labelKey: 'pptx.notes.title',
 				// Note / document-text icon
 				svgPath:
 					'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M8 13h8 M8 17h5',

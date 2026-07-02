@@ -21,6 +21,7 @@ import {
 	output,
 	signal,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import type { CollaborationConfig } from '../internal/shared';
 import { canUseClipboard } from './broadcast-helpers';
@@ -32,11 +33,11 @@ import type { ShareDefaults } from './share-helpers';
 	selector: 'pptx-share-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent],
+	imports: [ModalDialogComponent, TranslatePipe],
 	template: `
 		<pptx-modal-dialog
 			[open]="open()"
-			[title]="active() ? 'Collaboration active' : 'Share'"
+			[title]="(active() ? 'pptx.share.activeTitle' : 'pptx.toolbar.share') | translate"
 			(close)="close.emit()"
 		>
 			@if (active()) {
@@ -44,16 +45,27 @@ import type { ShareDefaults } from './share-helpers';
 					<div class="pptx-ng-share-status-row">
 						<span class="pptx-ng-share-status-dot" [class.is-on]="connected()"></span>
 						<span class="pptx-ng-share-status-text">
-							{{ connected() ? 'Connected' : 'Connecting' }}
+							{{
+								(connected() ? 'pptx.collaboration.status.connected' : 'pptx.share.connecting')
+									| translate
+							}}
 						</span>
 						<span class="pptx-ng-share-count">
-							{{ userCount() }} {{ userCount() === 1 ? 'participant' : 'participants' }}
+							{{ userCount() }}
+							{{
+								(userCount() === 1
+									? 'pptx.share.participantSingular'
+									: 'pptx.share.participantPlural'
+								) | translate
+							}}
 						</span>
 					</div>
 
 					@if (shareUrl()) {
 						<div class="pptx-ng-share-field">
-							<label class="pptx-ng-share-label">Share link</label>
+							<label class="pptx-ng-share-label">{{
+								'pptx.share.shareLinkLabel' | translate
+							}}</label>
 							<div class="pptx-ng-share-link-row">
 								<input
 									class="pptx-ng-share-input"
@@ -68,54 +80,60 @@ import type { ShareDefaults } from './share-helpers';
 									[disabled]="!canCopy()"
 									(click)="onCopyLink()"
 								>
-									{{ copied() ? 'Copied' : 'Copy link' }}
+									{{ (copied() ? 'pptx.share.copied' : 'pptx.share.copyLinkButton') | translate }}
 								</button>
 							</div>
-							<p class="pptx-ng-share-hint">Anyone with this link can join and edit with you.</p>
+							<p class="pptx-ng-share-hint">{{ 'pptx.share.copyLinkHint' | translate }}</p>
 						</div>
 					}
 
 					<button type="button" class="pptx-ng-share-stop" (click)="handleStop()">
-						Stop sharing
+						{{ 'pptx.share.stopSharingButton' | translate }}
 					</button>
 				</div>
 			} @else {
 				<div class="pptx-ng-share-form">
 					<p class="pptx-ng-share-desc">
-						Start a real-time session and invite others to edit with you.
+						{{ 'pptx.share.formDescription' | translate }}
 					</p>
 
 					<div class="pptx-ng-share-field">
-						<label for="pptx-ng-share-room" class="pptx-ng-share-label">Room ID</label>
+						<label for="pptx-ng-share-room" class="pptx-ng-share-label">{{
+							'pptx.share.roomId' | translate
+						}}</label>
 						<input
 							id="pptx-ng-share-room"
 							type="text"
 							class="pptx-ng-share-input"
-							placeholder="my-presentation"
+							[attr.placeholder]="'pptx.share.roomIdPlaceholder' | translate"
 							[value]="roomId()"
 							(input)="roomId.set(asValue($event))"
 						/>
 					</div>
 
 					<div class="pptx-ng-share-field">
-						<label for="pptx-ng-share-name" class="pptx-ng-share-label">Your name</label>
+						<label for="pptx-ng-share-name" class="pptx-ng-share-label">{{
+							'pptx.share.yourName' | translate
+						}}</label>
 						<input
 							id="pptx-ng-share-name"
 							type="text"
 							class="pptx-ng-share-input"
-							placeholder="Jane Doe"
+							[attr.placeholder]="'pptx.share.yourNamePlaceholder' | translate"
 							[value]="userName()"
 							(input)="userName.set(asValue($event))"
 						/>
 					</div>
 
 					<div class="pptx-ng-share-field">
-						<label for="pptx-ng-share-server" class="pptx-ng-share-label">Server URL</label>
+						<label for="pptx-ng-share-server" class="pptx-ng-share-label">{{
+							'pptx.share.serverUrl' | translate
+						}}</label>
 						<input
 							id="pptx-ng-share-server"
 							type="text"
 							class="pptx-ng-share-input"
-							placeholder="wss://collab.example.com"
+							[attr.placeholder]="'pptx.share.serverPlaceholder' | translate"
 							[value]="serverUrl()"
 							(input)="serverUrl.set(asValue($event))"
 						/>
@@ -125,7 +143,7 @@ import type { ShareDefaults } from './share-helpers';
 
 			<div footer>
 				<button type="button" class="pptx-ng-share-btn" (click)="close.emit()">
-					{{ active() ? 'Close' : 'Cancel' }}
+					{{ (active() ? 'pptx.common.close' : 'pptx.common.cancel') | translate }}
 				</button>
 				@if (!active()) {
 					<button
@@ -134,7 +152,7 @@ import type { ShareDefaults } from './share-helpers';
 						[disabled]="!canStart()"
 						(click)="handleStart()"
 					>
-						Start sharing
+						{{ 'pptx.share.startSharingButton' | translate }}
 					</button>
 				}
 			</div>

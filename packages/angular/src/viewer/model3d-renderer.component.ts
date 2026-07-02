@@ -11,6 +11,7 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
 // Type-only import of the shared scene controller; the implementation (which
@@ -53,7 +54,7 @@ type MountFn = typeof MountModel3D;
 	selector: 'pptx-model3d-renderer',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle],
+	imports: [NgStyle, TranslatePipe],
 	template: `
 		<div
 			class="pptx-ng-element pptx-ng-model3d"
@@ -65,7 +66,7 @@ type MountFn = typeof MountModel3D;
 			} @else if (vm().posterSrc) {
 				<img
 					[src]="vm().posterSrc"
-					alt="3D Model"
+					[alt]="'pptx.model3d.label' | translate"
 					draggable="false"
 					style="width:100%;height:100%;object-fit:contain;pointer-events:none;user-select:none;display:block"
 				/>
@@ -91,7 +92,7 @@ type MountFn = typeof MountModel3D;
 						<polyline points="3.27 6.96 12 12.01 20.73 6.96" />
 						<line x1="12" y1="22.08" x2="12" y2="12" />
 					</svg>
-					<span>3D Model</span>
+					<span>{{ 'pptx.model3d.label' | translate }}</span>
 				</div>
 			}
 		</div>

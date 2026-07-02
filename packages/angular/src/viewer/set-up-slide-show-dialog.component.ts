@@ -23,6 +23,7 @@ import {
 	output,
 	signal,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-core';
 
 import { ModalDialogComponent } from './modal-dialog.component';
@@ -33,13 +34,22 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 	selector: 'pptx-set-up-slide-show-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent, ShowSlidesFieldsetComponent, ShowOptionsFieldsetComponent],
+	imports: [
+		ModalDialogComponent,
+		ShowSlidesFieldsetComponent,
+		ShowOptionsFieldsetComponent,
+		TranslatePipe,
+	],
 	template: `
-		<pptx-modal-dialog [open]="open()" title="Set Up Slide Show" (close)="onClose()">
+		<pptx-modal-dialog
+			[open]="open()"
+			[title]="'pptx.slideShow.setUpTitle' | translate"
+			(close)="onClose()"
+		>
 			<div class="pptx-ng-sss-body">
 				<!-- Show type -->
 				<fieldset class="pptx-ng-sss-fieldset">
-					<legend class="pptx-ng-sss-legend">Show type</legend>
+					<legend class="pptx-ng-sss-legend">{{ 'pptx.slideShow.showType' | translate }}</legend>
 					<label class="pptx-ng-sss-option">
 						<input
 							type="radio"
@@ -49,7 +59,7 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 							[checked]="showType() === 'presented'"
 							(change)="update({ showType: 'presented' })"
 						/>
-						<span>Presented by a speaker</span>
+						<span>{{ 'pptx.slideShow.presentedBySpeaker' | translate }}</span>
 					</label>
 					<label class="pptx-ng-sss-option">
 						<input
@@ -60,7 +70,7 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 							[checked]="showType() === 'browsed'"
 							(change)="update({ showType: 'browsed' })"
 						/>
-						<span>Browsed by an individual</span>
+						<span>{{ 'pptx.slideShow.browsedByIndividual' | translate }}</span>
 					</label>
 					<label class="pptx-ng-sss-option">
 						<input
@@ -71,7 +81,7 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 							[checked]="showType() === 'kiosk'"
 							(change)="update({ showType: 'kiosk', loopContinuously: true })"
 						/>
-						<span>Browsed at a kiosk</span>
+						<span>{{ 'pptx.slideShow.browsedAtKiosk' | translate }}</span>
 					</label>
 				</fieldset>
 
@@ -85,7 +95,7 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 
 				<!-- Advance slides -->
 				<fieldset class="pptx-ng-sss-fieldset">
-					<legend class="pptx-ng-sss-legend">Advance slides</legend>
+					<legend class="pptx-ng-sss-legend">{{ 'pptx.slideShow.advanceSlides' | translate }}</legend>
 					<label class="pptx-ng-sss-option">
 						<input
 							type="radio"
@@ -95,7 +105,7 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 							[checked]="(draft().advanceMode ?? 'manual') === 'manual'"
 							(change)="update({ advanceMode: 'manual' })"
 						/>
-						<span>Manually</span>
+						<span>{{ 'pptx.slideShow.manually' | translate }}</span>
 					</label>
 					<label class="pptx-ng-sss-option">
 						<input
@@ -106,7 +116,7 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 							[checked]="draft().advanceMode === 'useTimings'"
 							(change)="update({ advanceMode: 'useTimings' })"
 						/>
-						<span>Use timings</span>
+						<span>{{ 'pptx.slideShow.useTimings' | translate }}</span>
 					</label>
 				</fieldset>
 
@@ -114,13 +124,15 @@ import { ShowSlidesFieldsetComponent } from './show-slides-fieldset.component';
 			</div>
 
 			<div footer>
-				<button type="button" class="pptx-ng-sss-btn" (click)="onClose()">Cancel</button>
+				<button type="button" class="pptx-ng-sss-btn" (click)="onClose()">
+					{{ 'pptx.common.cancel' | translate }}
+				</button>
 				<button
 					type="button"
 					class="pptx-ng-sss-btn pptx-ng-sss-btn-primary"
 					(click)="onOk()"
 				>
-					OK
+					{{ 'pptx.common.ok' | translate }}
 				</button>
 			</div>
 		</pptx-modal-dialog>

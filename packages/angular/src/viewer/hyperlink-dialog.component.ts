@@ -22,6 +22,7 @@ import {
 	output,
 	signal,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
 import {
@@ -36,12 +37,18 @@ import { ModalDialogComponent } from './modal-dialog.component';
 	selector: 'pptx-hyperlink-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent],
+	imports: [ModalDialogComponent, TranslatePipe],
 	template: `
-		<pptx-modal-dialog [open]="open()" title="Hyperlink" (close)="onClose()">
+		<pptx-modal-dialog
+			[open]="open()"
+			[title]="'pptx.hyperlinkDialog.title' | translate"
+			(close)="onClose()"
+		>
 			<div class="pptx-ng-hyperlink-form">
 				<label class="pptx-ng-hyperlink-field">
-					<span class="pptx-ng-hyperlink-label">Address</span>
+					<span class="pptx-ng-hyperlink-label">{{
+						'pptx.hyperlinkDialog.address' | translate
+					}}</span>
 					<input
 						type="url"
 						class="pptx-ng-hyperlink-input"
@@ -53,11 +60,13 @@ import { ModalDialogComponent } from './modal-dialog.component';
 				</label>
 
 				<label class="pptx-ng-hyperlink-field">
-					<span class="pptx-ng-hyperlink-label">Tooltip</span>
+					<span class="pptx-ng-hyperlink-label">{{
+						'pptx.hyperlinkDialog.tooltip' | translate
+					}}</span>
 					<input
 						type="text"
 						class="pptx-ng-hyperlink-input"
-						placeholder="Shown on hover (optional)"
+						[placeholder]="'pptx.hyperlinkDialog.tooltipPlaceholder' | translate"
 						[value]="tooltip()"
 						(input)="tooltip.set(asValue($event))"
 						(keydown.enter)="onEnter($event)"
@@ -72,7 +81,7 @@ import { ModalDialogComponent } from './modal-dialog.component';
 						class="pptx-ng-hyperlink-btn pptx-ng-hyperlink-btn--ghost"
 						(click)="clear()"
 					>
-						Remove link
+						{{ 'pptx.hyperlinkDialog.removeLink' | translate }}
 					</button>
 				}
 				<button
@@ -80,14 +89,14 @@ import { ModalDialogComponent } from './modal-dialog.component';
 					class="pptx-ng-hyperlink-btn pptx-ng-hyperlink-btn--secondary"
 					(click)="onClose()"
 				>
-					Cancel
+					{{ 'pptx.hyperlinkDialog.cancel' | translate }}
 				</button>
 				<button
 					type="button"
 					class="pptx-ng-hyperlink-btn pptx-ng-hyperlink-btn--primary"
 					(click)="apply()"
 				>
-					Apply
+					{{ 'pptx.hyperlinkDialog.apply' | translate }}
 				</button>
 			</div>
 		</pptx-modal-dialog>

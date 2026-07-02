@@ -13,6 +13,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { ChartPptxElement, PptxChartSeries, PptxChartType } from 'pptx-viewer-core';
 
 import { COMBO_SERIES_TYPE_OPTIONS, COMBO_SUPPORTED_TYPES } from '../internal/shared';
@@ -24,10 +25,11 @@ import { selectValue } from './chart-event-helpers';
 	selector: 'pptx-chart-combo-type-options',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		@if (supported()) {
-			<section class="pptx-chart-card" aria-label="Combo type options">
-				<h4 class="pptx-chart-card__heading">Combo Types</h4>
+			<section class="pptx-chart-card" [attr.aria-label]="'pptx.chart.comboTypes' | translate">
+				<h4 class="pptx-chart-card__heading">{{ 'pptx.chart.comboTypes' | translate }}</h4>
 				<div class="pptx-chart-card__group">
 					@for (s of series(); track $index; let i = $index) {
 						<div class="pptx-chart-card__row">

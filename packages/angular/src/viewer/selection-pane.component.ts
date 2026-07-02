@@ -12,6 +12,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
 /** Unicode icon by element type (no Lucide dependency in Angular). */
@@ -44,10 +45,11 @@ function elementLabel(el: PptxElement): string {
 	selector: 'pptx-selection-pane',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
-		<aside class="pptx-ng-sel-pane" aria-label="Selection pane">
+		<aside class="pptx-ng-sel-pane" [attr.aria-label]="'pptx.selectionPane.title' | translate">
 			<header class="pptx-ng-sel-pane__header">
-				<h2 class="pptx-ng-sel-pane__title">Selection Pane</h2>
+				<h2 class="pptx-ng-sel-pane__title">{{ 'pptx.selectionPane.title' | translate }}</h2>
 				<span class="pptx-ng-sel-pane__count">{{ elements().length }}</span>
 			</header>
 
@@ -72,8 +74,15 @@ function elementLabel(el: PptxElement): string {
 								<button
 									type="button"
 									class="pptx-ng-sel-pane__btn"
-									[attr.aria-label]="el.hidden ? 'Show element' : 'Hide element'"
-									[title]="el.hidden ? 'Show' : 'Hide'"
+									[attr.aria-label]="
+										(el.hidden
+											? 'pptx.selectionPane.showElement'
+											: 'pptx.selectionPane.hideElement'
+										) | translate
+									"
+									[title]="
+										(el.hidden ? 'pptx.selectionPane.show' : 'pptx.selectionPane.hide') | translate
+									"
 									(click)="toggleHidden.emit(el.id)"
 								>
 									{{ el.hidden ? '🙈' : '👁' }}
@@ -81,8 +90,8 @@ function elementLabel(el: PptxElement): string {
 								<button
 									type="button"
 									class="pptx-ng-sel-pane__btn"
-									aria-label="Bring forward"
-									title="Bring forward"
+									[attr.aria-label]="'pptx.arrange.bringForward' | translate"
+									[title]="'pptx.arrange.bringForward' | translate"
 									(click)="bringForward.emit(el.id)"
 								>
 									↑
@@ -90,8 +99,8 @@ function elementLabel(el: PptxElement): string {
 								<button
 									type="button"
 									class="pptx-ng-sel-pane__btn"
-									aria-label="Send backward"
-									title="Send backward"
+									[attr.aria-label]="'pptx.arrange.sendBackward' | translate"
+									[title]="'pptx.arrange.sendBackward' | translate"
 									(click)="sendBackward.emit(el.id)"
 								>
 									↓
@@ -101,7 +110,7 @@ function elementLabel(el: PptxElement): string {
 					}
 				</ul>
 			} @else {
-				<p class="pptx-ng-sel-pane__empty">No elements on this slide.</p>
+				<p class="pptx-ng-sel-pane__empty">{{ 'pptx.selectionPane.emptySlide' | translate }}</p>
 			}
 		</aside>
 	`,

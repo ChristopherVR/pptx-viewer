@@ -12,6 +12,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import type { CustomShow } from './custom-shows-helpers';
@@ -20,6 +21,7 @@ import type { CustomShow } from './custom-shows-helpers';
 	selector: 'pptx-custom-shows',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		@if (open()) {
 			<!-- Backdrop -->
@@ -33,11 +35,13 @@ import type { CustomShow } from './custom-shows-helpers';
 				aria-labelledby="pptx-cs-title"
 			>
 				<header class="pptx-ng-cs-header">
-					<h2 id="pptx-cs-title" class="pptx-ng-cs-title">Custom Shows</h2>
+					<h2 id="pptx-cs-title" class="pptx-ng-cs-title">
+						{{ 'pptx.customShows.title' | translate }}
+					</h2>
 					<button
 						type="button"
 						class="pptx-ng-cs-close"
-						aria-label="Close custom shows dialog"
+						[attr.aria-label]="'pptx.customShows.closeDialog' | translate"
 						(click)="close.emit()"
 					>
 						✕
@@ -48,7 +52,7 @@ import type { CustomShow } from './custom-shows-helpers';
 					<!-- Existing shows list -->
 					<section class="pptx-ng-cs-section">
 						<h3 class="pptx-ng-cs-section-title">
-							Saved Shows
+							{{ 'pptx.customShows.savedShows' | translate }}
 							@if (customShows().length > 0) {
 								<span class="pptx-ng-cs-badge">{{ customShows().length }}</span>
 							}
@@ -68,7 +72,7 @@ import type { CustomShow } from './custom-shows-helpers';
 													type="text"
 													class="pptx-ng-cs-input"
 													[value]="editDraftName()"
-													aria-label="Edit show name"
+													[attr.aria-label]="'pptx.customShows.editNameLabel' | translate"
 													(input)="onEditNameInput($event)"
 												/>
 												<button
@@ -77,14 +81,14 @@ import type { CustomShow } from './custom-shows-helpers';
 													[disabled]="!canSaveEdit()"
 													(click)="saveEdit(show.id)"
 												>
-													Save
+													{{ 'pptx.customShows.save' | translate }}
 												</button>
 												<button
 													type="button"
 													class="pptx-ng-cs-btn"
 													(click)="editingShowId.set(null)"
 												>
-													Cancel
+													{{ 'pptx.customShows.cancel' | translate }}
 												</button>
 											</div>
 											<!-- Slide picker for edit -->
@@ -104,8 +108,9 @@ import type { CustomShow } from './custom-shows-helpers';
 											<div class="pptx-ng-cs-show-info">
 												<span class="pptx-ng-cs-show-name">{{ show.name }}</span>
 												<span class="pptx-ng-cs-show-meta">
-													{{ show.slideIds.length }} slide{{
-														show.slideIds.length === 1 ? '' : 's'
+													{{
+														'pptx.customShows.slideCount'
+															| translate: { count: show.slideIds.length }
 													}}
 												</span>
 											</div>
@@ -115,29 +120,35 @@ import type { CustomShow } from './custom-shows-helpers';
 													class="pptx-ng-cs-btn"
 													[class.pptx-ng-cs-btn--active]="show.id === activeCustomShowId()"
 													[title]="
-														show.id === activeCustomShowId()
-															? 'Unset active show'
-															: 'Set as active show'
+														(show.id === activeCustomShowId()
+															? 'pptx.customShows.unsetActive'
+															: 'pptx.customShows.setActive'
+														) | translate
 													"
 													(click)="onToggleActive(show.id)"
 												>
-													{{ show.id === activeCustomShowId() ? '★ Active' : '☆ Set Active' }}
+													{{
+														(show.id === activeCustomShowId()
+															? 'pptx.customShows.active'
+															: 'pptx.customShows.setActiveShort'
+														) | translate
+													}}
 												</button>
 												<button
 													type="button"
 													class="pptx-ng-cs-btn"
-													title="Edit show"
+													[title]="'pptx.customShows.editShow' | translate"
 													(click)="startEdit(show)"
 												>
-													Edit
+													{{ 'pptx.customShows.edit' | translate }}
 												</button>
 												<button
 													type="button"
 													class="pptx-ng-cs-btn pptx-ng-cs-btn--danger"
-													title="Delete show"
+													[title]="'pptx.customShows.deleteShow' | translate"
 													(click)="remove.emit(show.id)"
 												>
-													Delete
+													{{ 'pptx.customShows.delete' | translate }}
 												</button>
 											</div>
 										}
@@ -145,20 +156,20 @@ import type { CustomShow } from './custom-shows-helpers';
 								}
 							</ul>
 						} @else {
-							<p class="pptx-ng-cs-empty">No custom shows yet. Create one below.</p>
+							<p class="pptx-ng-cs-empty">{{ 'pptx.customShows.empty' | translate }}</p>
 						}
 					</section>
 
 					<!-- Create new show form -->
 					<section class="pptx-ng-cs-section">
-						<h3 class="pptx-ng-cs-section-title">Create New Show</h3>
+						<h3 class="pptx-ng-cs-section-title">{{ 'pptx.customShows.createNew' | translate }}</h3>
 						<div class="pptx-ng-cs-create-form">
 							<input
 								type="text"
 								class="pptx-ng-cs-input"
-								placeholder="Show name…"
+								[placeholder]="'pptx.customShows.namePlaceholder' | translate"
 								[value]="draftName()"
-								aria-label="New show name"
+								[attr.aria-label]="'pptx.customShows.newNameLabel' | translate"
 								(input)="onDraftNameInput($event)"
 							/>
 
@@ -183,14 +194,16 @@ import type { CustomShow } from './custom-shows-helpers';
 								[disabled]="!canCreate()"
 								(click)="submitCreate()"
 							>
-								Create Show
+								{{ 'pptx.customShows.create' | translate }}
 							</button>
 						</div>
 					</section>
 				</div>
 
 				<footer class="pptx-ng-cs-footer">
-					<button type="button" class="pptx-ng-cs-btn" (click)="close.emit()">Close</button>
+					<button type="button" class="pptx-ng-cs-btn" (click)="close.emit()">
+						{{ 'pptx.customShows.close' | translate }}
+					</button>
 				</footer>
 			</div>
 		}

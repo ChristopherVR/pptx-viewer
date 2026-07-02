@@ -11,6 +11,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { ChartPptxElement, PptxChartLegendPosition } from 'pptx-viewer-core';
 
 import { LEGEND_POSITION_OPTIONS } from '../internal/shared';
@@ -23,9 +24,10 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 	selector: 'pptx-chart-display-options',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
-		<section class="pptx-chart-card" aria-label="Chart display options">
-			<h4 class="pptx-chart-card__heading">Display</h4>
+		<section class="pptx-chart-card" [attr.aria-label]="'pptx.chart.display' | translate">
+			<h4 class="pptx-chart-card__heading">{{ 'pptx.chart.display' | translate }}</h4>
 			<div class="pptx-chart-card__group">
 				<label class="pptx-chart-card__check">
 					<input
@@ -34,7 +36,7 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 						[checked]="style().hasTitle ?? false"
 						(change)="onToggleTitle($event)"
 					/>
-					<span>Show title</span>
+					<span>{{ 'pptx.chart.showTitle' | translate }}</span>
 				</label>
 
 				<label class="pptx-chart-card__check">
@@ -44,12 +46,14 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 						[checked]="style().hasLegend ?? false"
 						(change)="onToggleLegend($event)"
 					/>
-					<span>Show legend</span>
+					<span>{{ 'pptx.chart.showLegend' | translate }}</span>
 				</label>
 
 				@if (style().hasLegend) {
 					<label class="pptx-chart-card__row pptx-chart-card__group--indent">
-						<span class="pptx-chart-card__label">Position</span>
+						<span class="pptx-chart-card__label">{{
+							'pptx.chart.legendPosition' | translate
+						}}</span>
 						<select
 							class="pptx-chart-card__input"
 							[disabled]="!canEdit()"
@@ -70,7 +74,7 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 						[checked]="style().hasGridlines ?? false"
 						(change)="onToggleGridlines($event)"
 					/>
-					<span>Show gridlines</span>
+					<span>{{ 'pptx.chart.showGridlines' | translate }}</span>
 				</label>
 
 				<label class="pptx-chart-card__check">
@@ -80,7 +84,7 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 						[checked]="style().hasDataLabels ?? false"
 						(change)="onToggleDataLabels($event)"
 					/>
-					<span>Show data labels</span>
+					<span>{{ 'pptx.chart.showDataLabels' | translate }}</span>
 				</label>
 			</div>
 		</section>

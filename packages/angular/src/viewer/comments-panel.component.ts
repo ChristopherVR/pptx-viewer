@@ -23,6 +23,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxComment } from 'pptx-viewer-core';
 import { formatCommentTimestamp } from 'pptx-viewer-core';
 
@@ -30,10 +31,11 @@ import { formatCommentTimestamp } from 'pptx-viewer-core';
 	selector: 'pptx-comments-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
-		<aside class="pptx-ng-comments" aria-label="Slide comments">
+		<aside class="pptx-ng-comments" [attr.aria-label]="'pptx.comments.slideComments' | translate">
 			<header class="pptx-ng-comments__header">
-				<h2 class="pptx-ng-comments__title">Comments</h2>
+				<h2 class="pptx-ng-comments__title">{{ 'pptx.toolbar.comments' | translate }}</h2>
 				<span class="pptx-ng-comments__count" data-testid="comment-count">
 					{{ comments().length }}
 				</span>
@@ -48,7 +50,9 @@ import { formatCommentTimestamp } from 'pptx-viewer-core';
 							[attr.data-comment-id]="comment.id"
 						>
 							<div class="pptx-ng-comments__meta">
-								<span class="pptx-ng-comments__author">{{ comment.author || 'Unknown' }}</span>
+								<span class="pptx-ng-comments__author">{{
+									comment.author || ('pptx.comments.unknownAuthor' | translate)
+								}}</span>
 								@if (formatTimestamp(comment.createdAt); as ts) {
 									<time class="pptx-ng-comments__time">{{ ts }}</time>
 								}
@@ -62,16 +66,19 @@ import { formatCommentTimestamp } from 'pptx-viewer-core';
 									[attr.aria-pressed]="comment.resolved ? 'true' : 'false'"
 									(click)="resolve.emit(comment.id)"
 								>
-									{{ comment.resolved ? 'Reopen' : 'Resolve' }}
+									{{
+										(comment.resolved ? 'pptx.comments.reopen' : 'pptx.comments.resolve')
+											| translate
+									}}
 								</button>
 								<button
 									type="button"
 									class="pptx-ng-comments__action pptx-ng-comments__action--danger"
 									[attr.data-comment-id]="comment.id"
-									aria-label="Remove comment"
+									[attr.aria-label]="'pptx.comments.removeComment' | translate"
 									(click)="remove.emit(comment.id)"
 								>
-									Remove
+									{{ 'pptx.comments.remove' | translate }}
 								</button>
 							</div>
 						</li>
@@ -79,19 +86,22 @@ import { formatCommentTimestamp } from 'pptx-viewer-core';
 				</ul>
 			} @else {
 				<p class="pptx-ng-comments__empty" data-testid="comments-empty">
-					No comments on this slide yet.
+					{{ 'pptx.comments.noneOnSlide' | translate }}
 				</p>
 			}
 
 			<form class="pptx-ng-comments__compose" (submit)="submit($event)">
-				<label class="pptx-ng-comments__compose-label" [title]="'Commenting as ' + authorName()">
-					Add comment
+				<label
+					class="pptx-ng-comments__compose-label"
+					[title]="'pptx.comments.commentingAs' | translate: { name: authorName() }"
+				>
+					{{ 'pptx.comments.addComment' | translate }}
 				</label>
 				<textarea
 					class="pptx-ng-comments__textarea"
 					rows="3"
-					placeholder="Write a comment…"
-					aria-label="Add comment"
+					[placeholder]="'pptx.comments.writePlaceholder' | translate"
+					[attr.aria-label]="'pptx.comments.addComment' | translate"
 					[value]="draft()"
 					(input)="onDraftInput($event)"
 				></textarea>
@@ -101,7 +111,7 @@ import { formatCommentTimestamp } from 'pptx-viewer-core';
 					[disabled]="!canAdd()"
 					data-testid="add-comment"
 				>
-					Add comment
+					{{ 'pptx.comments.addComment' | translate }}
 				</button>
 			</form>
 		</aside>

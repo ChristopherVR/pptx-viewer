@@ -1,5 +1,18 @@
-import { ChangeDetectionStrategy, Component, computed, effect, signal } from '@angular/core';
-import { isAudienceTab, loadAudienceContent, PowerPointViewerComponent } from 'pptx-angular-viewer';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	effect,
+	inject,
+	signal,
+} from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
+import {
+	isAudienceTab,
+	loadAudienceContent,
+	PowerPointViewerComponent,
+	translationsEn,
+} from 'pptx-angular-viewer';
 import type { CollaborationConfig, ViewerTheme } from 'pptx-angular-viewer';
 import { PptxHandler } from 'pptx-viewer-core';
 import 'pptx-angular-viewer/styles';
@@ -106,6 +119,8 @@ export class AppComponent {
 	);
 
 	constructor() {
+		inject(TranslateService).setTranslation('en', translationsEn);
+
 		this.autoConnectFromUrl();
 		this.joinFromUrl();
 		void this.loadAudienceTab();

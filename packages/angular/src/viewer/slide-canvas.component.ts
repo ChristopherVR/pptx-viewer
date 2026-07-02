@@ -14,6 +14,7 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	InkPptxElement,
 	PptxElement,
@@ -157,7 +158,7 @@ function plainText(el: PptxElement): string {
 	selector: 'pptx-slide-canvas',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle, ElementRendererComponent],
+	imports: [NgStyle, ElementRendererComponent, TranslatePipe],
 	styles: [
 		`
 			/*
@@ -271,7 +272,7 @@ function plainText(el: PptxElement): string {
 						<div
 							class="pptx-ng-rotate-handle"
 							role="button"
-							aria-label="Rotate"
+							[attr.aria-label]="'pptx.canvas.rotate' | translate"
 							[style.left.px]="rh.left"
 							[style.top.px]="rh.top"
 							[style.width.px]="rh.size"
@@ -291,7 +292,7 @@ function plainText(el: PptxElement): string {
 						<div
 							class="pptx-ng-adjust-handle"
 							role="button"
-							aria-label="Adjust shape"
+							[attr.aria-label]="'pptx.canvas.adjustShape' | translate"
 							[style.left.px]="ah.left"
 							[style.top.px]="ah.top"
 							[style.width.px]="ah.size"
@@ -407,7 +408,7 @@ function plainText(el: PptxElement): string {
 								[style.cursor]="g.axis === 'x' ? 'col-resize' : 'row-resize'"
 								(pointerdown)="onGuidePointerDown($event, g.id, g.axis)"
 								(dblclick)="onGuideDoubleClick($event, g.id)"
-								title="Drag to move guide. Double-click to remove."
+								[title]="'pptx.canvas.guideTooltip' | translate"
 							></div>
 						}
 					}

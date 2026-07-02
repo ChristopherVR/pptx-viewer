@@ -12,6 +12,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { SHORTCUT_REFERENCE_ITEMS } from './shortcut-reference';
 
@@ -19,13 +20,14 @@ import { SHORTCUT_REFERENCE_ITEMS } from './shortcut-reference';
 	selector: 'pptx-shortcut-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		@if (open()) {
 			<div class="pptx-ng-shortcuts" data-pptx-shortcuts-panel="true">
 				<div class="pptx-ng-shortcuts-header">
-					<span class="pptx-ng-shortcuts-title">Keyboard shortcuts</span>
+					<span class="pptx-ng-shortcuts-title">{{ 'pptx.shortcuts.title' | translate }}</span>
 					<button type="button" class="pptx-ng-shortcuts-close" (click)="close.emit()">
-						Close
+						{{ 'pptx.common.close' | translate }}
 					</button>
 				</div>
 				<div class="pptx-ng-shortcuts-list">

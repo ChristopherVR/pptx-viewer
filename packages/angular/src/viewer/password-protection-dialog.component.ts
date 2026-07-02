@@ -14,6 +14,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, effect, input, output, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { ModalDialogComponent } from './modal-dialog.component';
 import { validatePassword } from './password-protection-helpers';
@@ -23,40 +24,48 @@ import { PasswordStrengthMeterComponent } from './password-strength-meter.compon
 	selector: 'pptx-password-protection-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent, PasswordStrengthMeterComponent],
+	imports: [ModalDialogComponent, PasswordStrengthMeterComponent, TranslatePipe],
 	template: `
-		<pptx-modal-dialog [open]="open()" title="Protect Presentation" (close)="onClose()">
+		<pptx-modal-dialog
+			[open]="open()"
+			[title]="'pptx.security.protectPresentation' | translate"
+			(close)="onClose()"
+		>
 			<div class="pptx-ng-pw">
 				@if (isCurrentlyProtected()) {
 					<div class="pptx-ng-pw-banner">
 						<span class="pptx-ng-pw-banner-icon">&#128274;</span>
-						<span>This presentation is currently password protected.</span>
+						<span>{{ 'pptx.security.currentlyProtected' | translate }}</span>
 					</div>
 				}
 
 				<p class="pptx-ng-pw-desc">
-					Set a password to encrypt this presentation. Anyone opening the file will need to enter
-					it.
+					{{ 'pptx.security.description' | translate }}
 				</p>
 
 				<div class="pptx-ng-pw-field">
-					<label for="pptx-ng-pw-password" class="pptx-ng-pw-label">Password</label>
+					<label for="pptx-ng-pw-password" class="pptx-ng-pw-label">{{
+						'pptx.security.password' | translate
+					}}</label>
 					<div class="pptx-ng-pw-input-wrap">
 						<input
 							id="pptx-ng-pw-password"
 							class="pptx-ng-pw-input"
 							[type]="showPassword() ? 'text' : 'password'"
-							placeholder="Enter a password"
+							[attr.placeholder]="'pptx.security.passwordPlaceholder' | translate"
 							[value]="password()"
 							(input)="onPasswordInput($event)"
 						/>
 						<button
 							type="button"
 							class="pptx-ng-pw-toggle"
-							[attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+							[attr.aria-label]="
+								(showPassword() ? 'pptx.security.hidePassword' : 'pptx.security.showPassword')
+									| translate
+							"
 							(click)="showPassword.set(!showPassword())"
 						>
-							{{ showPassword() ? 'Hide' : 'Show' }}
+							{{ (showPassword() ? 'pptx.security.hide' : 'pptx.security.show') | translate }}
 						</button>
 					</div>
 				</div>
@@ -64,12 +73,14 @@ import { PasswordStrengthMeterComponent } from './password-strength-meter.compon
 				<pptx-password-strength-meter [password]="password()" />
 
 				<div class="pptx-ng-pw-field">
-					<label for="pptx-ng-pw-confirm" class="pptx-ng-pw-label">Confirm password</label>
+					<label for="pptx-ng-pw-confirm" class="pptx-ng-pw-label">{{
+						'pptx.security.confirmPassword' | translate
+					}}</label>
 					<input
 						id="pptx-ng-pw-confirm"
 						class="pptx-ng-pw-input"
 						[type]="showPassword() ? 'text' : 'password'"
-						placeholder="Re-enter the password"
+						[attr.placeholder]="'pptx.security.confirmPasswordPlaceholder' | translate"
 						[value]="confirmPassword()"
 						(input)="onConfirmInput($event)"
 					/>
@@ -84,14 +95,21 @@ import { PasswordStrengthMeterComponent } from './password-strength-meter.compon
 				<div class="pptx-ng-pw-footer-left">
 					@if (isCurrentlyProtected()) {
 						<button type="button" class="pptx-ng-pw-remove" (click)="onRemove()">
-							Remove password
+							{{ 'pptx.security.removePassword' | translate }}
 						</button>
 					}
 				</div>
 				<div class="pptx-ng-pw-footer-right">
-					<button type="button" class="pptx-ng-pw-btn" (click)="onClose()">Cancel</button>
+					<button type="button" class="pptx-ng-pw-btn" (click)="onClose()">
+						{{ 'pptx.common.cancel' | translate }}
+					</button>
 					<button type="button" class="pptx-ng-pw-btn pptx-ng-pw-btn-primary" (click)="onSubmit()">
-						{{ isCurrentlyProtected() ? 'Update Password' : 'Set Password' }}
+						{{
+							(isCurrentlyProtected()
+								? 'pptx.security.updatePassword'
+								: 'pptx.security.setPassword'
+							) | translate
+						}}
 					</button>
 				</div>
 			</div>

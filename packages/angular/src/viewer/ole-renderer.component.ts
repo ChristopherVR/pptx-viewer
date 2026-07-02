@@ -1,5 +1,6 @@
 import { NgStyle } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { OlePptxElement, PptxElement } from 'pptx-viewer-core';
 
 import { getContainerStyle } from './element-style';
@@ -35,7 +36,7 @@ import type { OleActionModel, ResolvedOleType } from './ole-renderer-helpers';
 	selector: 'pptx-ole-renderer',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle],
+	imports: [NgStyle, TranslatePipe],
 	template: `
 		<div
 			class="pptx-ng-element pptx-ng-ole"
@@ -304,10 +305,12 @@ import type { OleActionModel, ResolvedOleType } from './ole-renderer-helpers';
 						class="pptx-ng-ole-action"
 						[href]="actions().downloadHref"
 						[attr.download]="actions().downloadFileName"
-						[attr.aria-label]="'Download ' + actions().downloadFileName"
+						[attr.aria-label]="
+							'pptx.ole.downloadFileAria' | translate: { file: actions().downloadFileName }
+						"
 						(click)="$event.stopPropagation()"
 					>
-						Download
+						{{ 'pptx.ole.download' | translate }}
 					</a>
 					@if (actions().canOpen) {
 						<a
@@ -315,10 +318,12 @@ import type { OleActionModel, ResolvedOleType } from './ole-renderer-helpers';
 							[href]="actions().downloadHref"
 							target="_blank"
 							rel="noopener noreferrer"
-							[attr.aria-label]="'Open ' + actions().downloadFileName + ' in a new tab'"
+							[attr.aria-label]="
+								'pptx.ole.openFileAria' | translate: { file: actions().downloadFileName }
+							"
 							(click)="$event.stopPropagation()"
 						>
-							Open
+							{{ 'pptx.ole.open' | translate }}
 						</a>
 					}
 				</div>

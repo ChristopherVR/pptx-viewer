@@ -13,5 +13,8 @@ import '@angular/compiler';
 import { bootstrapApplication } from '@angular/platform-browser';
 
 import { AppComponent } from './app.component';
+import { i18nProviders } from './i18n';
 
-bootstrapApplication(AppComponent).catch((err) => console.error(err));
+bootstrapApplication(AppComponent, { providers: [i18nProviders] }).catch((err) =>
+	console.error(err),
+);

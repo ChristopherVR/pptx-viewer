@@ -21,6 +21,7 @@ import {
 	output,
 	signal,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { scanAvailableFonts } from './font-embedding-helpers';
 import { FontEmbeddingListComponent } from './font-embedding-list.component';
@@ -30,13 +31,16 @@ import { ModalDialogComponent } from './modal-dialog.component';
 	selector: 'pptx-font-embedding-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent, FontEmbeddingListComponent],
+	imports: [ModalDialogComponent, FontEmbeddingListComponent, TranslatePipe],
 	template: `
-		<pptx-modal-dialog [open]="open()" title="Embed Fonts" (close)="close.emit()">
+		<pptx-modal-dialog
+			[open]="open()"
+			[title]="'pptx.fontEmbedding.title' | translate"
+			(close)="close.emit()"
+		>
 			<div class="pptx-ng-fonts">
 				<p class="pptx-ng-fonts-desc">
-					Embed the fonts used by this presentation so it renders correctly on devices that do not
-					have them installed.
+					{{ 'pptx.fontEmbedding.description' | translate }}
 				</p>
 
 				<label class="pptx-ng-fonts-toggle">
@@ -49,7 +53,9 @@ import { ModalDialogComponent } from './modal-dialog.component';
 						/>
 						<span class="pptx-ng-fonts-switch-knob" [class.is-on]="embedFontsEnabled()"></span>
 					</span>
-					<span class="pptx-ng-fonts-toggle-label">Embed fonts when saving</span>
+					<span class="pptx-ng-fonts-toggle-label">{{
+						'pptx.fontEmbedding.embedWhenSaving' | translate
+					}}</span>
 				</label>
 
 				<pptx-font-embedding-list
@@ -62,7 +68,9 @@ import { ModalDialogComponent } from './modal-dialog.component';
 			</div>
 
 			<div footer>
-				<button type="button" class="pptx-ng-fonts-done" (click)="close.emit()">Done</button>
+				<button type="button" class="pptx-ng-fonts-done" (click)="close.emit()">
+					{{ 'pptx.fontEmbedding.done' | translate }}
+				</button>
 			</div>
 		</pptx-modal-dialog>
 	`,

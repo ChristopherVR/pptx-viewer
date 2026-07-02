@@ -11,19 +11,23 @@
  */
 
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 @Component({
 	selector: 'pptx-font-embedding-list',
 	standalone: true,
+	imports: [TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
 		<div class="pptx-ng-fonts-section">
-			<h3 class="pptx-ng-fonts-section-title">Used fonts ({{ usedFontFamilies().length }})</h3>
+			<h3 class="pptx-ng-fonts-section-title">
+				{{ 'pptx.fontEmbedding.usedFonts' | translate: { count: usedFontFamilies().length } }}
+			</h3>
 
 			@if (scanning()) {
 				<div class="pptx-ng-fonts-scanning">
 					<span class="pptx-ng-fonts-spinner"></span>
-					<span>Scanning fonts...</span>
+					<span>{{ 'pptx.fontEmbedding.scanning' | translate }}</span>
 				</div>
 			} @else {
 				<div class="pptx-ng-fonts-list">
@@ -32,12 +36,20 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 							<span class="pptx-ng-fonts-name">{{ family }}</span>
 							<div class="pptx-ng-fonts-status">
 								@if (embeddedSet().has(family)) {
-									<span class="pptx-ng-fonts-badge">Embedded</span>
+									<span class="pptx-ng-fonts-badge">{{
+										'pptx.fontEmbedding.embedded' | translate
+									}}</span>
 								}
 								@if (availableFamilies().has(family)) {
-									<span class="pptx-ng-fonts-check" aria-label="Available">&#10003;</span>
+									<span
+										class="pptx-ng-fonts-check"
+										[attr.aria-label]="'pptx.fontEmbedding.available' | translate"
+										>&#10003;</span
+									>
 								} @else {
-									<span class="pptx-ng-fonts-missing">Not found</span>
+									<span class="pptx-ng-fonts-missing">{{
+										'pptx.fontEmbedding.notFound' | translate
+									}}</span>
 								}
 							</div>
 						</div>
@@ -48,7 +60,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 		@if (missingCount() > 0 && !scanning()) {
 			<p class="pptx-ng-fonts-warning">
-				{{ missingCount() }} {{ missingCount() === 1 ? 'font' : 'fonts' }} not found
+				{{ 'pptx.fontEmbedding.missingWarning' | translate: { count: missingCount() } }}
 			</p>
 		}
 	`,

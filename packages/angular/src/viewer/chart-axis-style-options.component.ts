@@ -14,6 +14,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	ChartPptxElement,
 	PptxChartAxisFormatting,
@@ -27,28 +28,29 @@ import { boolFromEvent, numFromEvent, selectValue, stringFromEvent } from './cha
 
 interface AxisRow {
 	type: PptxChartAxisType;
-	label: string;
+	labelKey: string;
 	hasScale: boolean;
 	axis: PptxChartAxisFormatting;
 }
 
-const AXIS_DEFS: ReadonlyArray<{ type: PptxChartAxisType; label: string; hasScale: boolean }> = [
-	{ type: 'valAx', label: 'Value axis', hasScale: true },
-	{ type: 'dateAx', label: 'Date axis', hasScale: true },
-	{ type: 'catAx', label: 'Category axis', hasScale: false },
+const AXIS_DEFS: ReadonlyArray<{ type: PptxChartAxisType; labelKey: string; hasScale: boolean }> = [
+	{ type: 'valAx', labelKey: 'pptx.chart.valueAxis', hasScale: true },
+	{ type: 'dateAx', labelKey: 'pptx.chart.dateAxis', hasScale: true },
+	{ type: 'catAx', labelKey: 'pptx.chart.categoryAxis', hasScale: false },
 ];
 
 @Component({
 	selector: 'pptx-chart-axis-style-options',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		@if (rows().length > 0) {
-			<section class="pptx-chart-card" aria-label="Axis styling">
-				<h4 class="pptx-chart-card__heading">Axis Styling</h4>
+			<section class="pptx-chart-card" [attr.aria-label]="'pptx.chart.axisStyling' | translate">
+				<h4 class="pptx-chart-card__heading">{{ 'pptx.chart.axisStyling' | translate }}</h4>
 				@for (row of rows(); track row.type) {
 					<div class="pptx-chart-card__group">
-						<div class="pptx-chart-card__subhead">{{ row.label }}</div>
+						<div class="pptx-chart-card__subhead">{{ row.labelKey | translate }}</div>
 						<div class="pptx-chart-card__group pptx-chart-card__group--indent">
 							@if (row.hasScale) {
 								<div class="pptx-chart-card__row">
@@ -59,14 +61,14 @@ const AXIS_DEFS: ReadonlyArray<{ type: PptxChartAxisType; label: string; hasScal
 											[checked]="row.axis.logScale ?? false"
 											(change)="onLogScale(row.type, row.axis, $event)"
 										/>
-										<span>Logarithmic scale</span>
+										<span>{{ 'pptx.chart.logScale' | translate }}</span>
 									</label>
 									@if (row.axis.logScale) {
 										<input
 											type="number"
 											min="2"
 											class="pptx-chart-card__input pptx-chart-card__input--num"
-											title="Log base"
+											[title]="'pptx.chart.logBase' | translate"
 											[disabled]="!canEdit()"
 											[value]="row.axis.logBase ?? 10"
 											(change)="onLogBase(row.type, $event)"
@@ -76,11 +78,11 @@ const AXIS_DEFS: ReadonlyArray<{ type: PptxChartAxisType; label: string; hasScal
 							}
 
 							<div class="pptx-chart-card__row">
-								<span class="pptx-chart-card__label">Title font</span>
+								<span class="pptx-chart-card__label">{{ 'pptx.chart.titleFont' | translate }}</span>
 								<input
 									type="text"
 									class="pptx-chart-card__input"
-									placeholder="Auto"
+									[placeholder]="'pptx.chart.auto' | translate"
 									[disabled]="!canEdit()"
 									[value]="row.axis.fontFamily ?? ''"
 									(change)="onTitleFont(row.type, $event)"
@@ -90,8 +92,8 @@ const AXIS_DEFS: ReadonlyArray<{ type: PptxChartAxisType; label: string; hasScal
 									min="4"
 									max="96"
 									class="pptx-chart-card__input pptx-chart-card__input--num"
-									title="Font size"
-									placeholder="Auto"
+									[title]="'pptx.chart.fontSize' | translate"
+									[placeholder]="'pptx.chart.auto' | translate"
 									[disabled]="!canEdit()"
 									[value]="row.axis.fontSize ?? ''"
 									(change)="onTitleSize(row.type, $event)"
@@ -105,9 +107,11 @@ const AXIS_DEFS: ReadonlyArray<{ type: PptxChartAxisType; label: string; hasScal
 										[checked]="row.axis.fontBold ?? false"
 										(change)="onTitleBold(row.type, $event)"
 									/>
-									<span>Bold</span>
+									<span>{{ 'pptx.chart.bold' | translate }}</span>
 								</label>
-								<span class="pptx-chart-card__label">Colour</span>
+								<span class="pptx-chart-card__label">{{
+									'pptx.chart.titleColor' | translate
+								}}</span>
 								<input
 									type="color"
 									class="pptx-chart-card__color"
@@ -121,12 +125,17 @@ const AXIS_DEFS: ReadonlyArray<{ type: PptxChartAxisType; label: string; hasScal
 								@if (gridlineEnabled(row.axis, which)) {
 									<div class="pptx-chart-card__row">
 										<span class="pptx-chart-card__label">
-											{{ which === 'major' ? 'Major lines' : 'Minor lines' }}
+											{{
+												(which === 'major'
+													? 'pptx.chart.majorGridlines'
+													: 'pptx.chart.minorGridlines'
+												) | translate
+											}}
 										</span>
 										<input
 											type="color"
 											class="pptx-chart-card__color"
-											title="Gridline colour"
+											[title]="'pptx.chart.gridlineColor' | translate"
 											[disabled]="!canEdit()"
 											[value]="gridlineSpPr(row.axis, which)?.strokeColor ?? '#d9d9d9'"
 											(input)="onGridlineColor(row.type, which, $event)"
@@ -136,15 +145,15 @@ const AXIS_DEFS: ReadonlyArray<{ type: PptxChartAxisType; label: string; hasScal
 											min="0.25"
 											step="0.25"
 											class="pptx-chart-card__input pptx-chart-card__input--num"
-											title="Gridline width"
-											placeholder="Auto"
+											[title]="'pptx.chart.gridlineWidth' | translate"
+											[placeholder]="'pptx.chart.auto' | translate"
 											[disabled]="!canEdit()"
 											[value]="gridlineSpPr(row.axis, which)?.strokeWidth ?? ''"
 											(change)="onGridlineWidth(row.type, which, $event)"
 										/>
 										<select
 											class="pptx-chart-card__input"
-											title="Gridline dash"
+											[title]="'pptx.chart.gridlineDash' | translate"
 											[disabled]="!canEdit()"
 											[value]="gridlineSpPr(row.axis, which)?.strokeDashStyle ?? ''"
 											(change)="onGridlineDash(row.type, which, $event)"

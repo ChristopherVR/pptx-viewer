@@ -13,6 +13,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	ChartPptxElement,
 	PptxChartDataPoint,
@@ -29,14 +30,15 @@ import { numFromEvent, selectValue, stringFromEvent } from './chart-event-helper
 	selector: 'pptx-chart-datapoint-options',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		@if (categories().length > 0 && series().length > 0) {
-			<section class="pptx-chart-card" aria-label="Data point options">
-				<h4 class="pptx-chart-card__heading">Data Points</h4>
+			<section class="pptx-chart-card" [attr.aria-label]="'pptx.chart.dataPoints' | translate">
+				<h4 class="pptx-chart-card__heading">{{ 'pptx.chart.dataPoints' | translate }}</h4>
 
 				@if (series().length > 1) {
 					<label class="pptx-chart-card__row">
-						<span class="pptx-chart-card__label">Series</span>
+						<span class="pptx-chart-card__label">{{ 'pptx.chart.series' | translate }}</span>
 						<select
 							class="pptx-chart-card__input"
 							[disabled]="!canEdit()"
@@ -57,7 +59,7 @@ import { numFromEvent, selectValue, stringFromEvent } from './chart-event-helper
 							<input
 								type="color"
 								class="pptx-chart-card__color"
-								title="Point fill"
+								[title]="'pptx.chart.pointFill' | translate"
 								[disabled]="!canEdit()"
 								[value]="pointFill(ci)"
 								(input)="onFill(ci, $event)"
@@ -66,7 +68,7 @@ import { numFromEvent, selectValue, stringFromEvent } from './chart-event-helper
 								<button
 									type="button"
 									class="pptx-chart-card__clear"
-									title="Clear point fill"
+									[title]="'pptx.chart.pointFillClear' | translate"
 									[disabled]="!canEdit()"
 									(click)="onClearFill(ci)"
 								>
@@ -79,7 +81,7 @@ import { numFromEvent, selectValue, stringFromEvent } from './chart-event-helper
 									min="0"
 									max="100"
 									class="pptx-chart-card__input pptx-chart-card__input--num"
-									title="Slice explosion"
+									[title]="'pptx.chart.pointExplosion' | translate"
 									placeholder="0"
 									[disabled]="!canEdit()"
 									[value]="pointAt(ci)?.explosion ?? ''"

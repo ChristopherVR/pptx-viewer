@@ -34,6 +34,7 @@ import {
 	output,
 	signal,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import { IsMobileService } from './is-mobile';
@@ -60,7 +61,7 @@ export function printDialogClass(isMobile: boolean): string {
 	selector: 'pptx-print-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [PrintSettingsPanelComponent],
+	imports: [PrintSettingsPanelComponent, TranslatePipe],
 	providers: [IsMobileService],
 	template: `
 		<div
@@ -68,17 +69,17 @@ export function printDialogClass(isMobile: boolean): string {
 			[class.is-mobile]="mobile.isMobile()"
 			role="dialog"
 			aria-modal="true"
-			aria-label="Print"
+			[attr.aria-label]="'pptx.print.title' | translate"
 			(click)="onBackdropClick($event)"
 		>
 			<div [class]="dialogClass()">
 				<!-- Header -->
 				<div class="pptx-ng-print-dialog__header">
-					<h2 class="pptx-ng-print-dialog__title">Print</h2>
+					<h2 class="pptx-ng-print-dialog__title">{{ 'pptx.print.title' | translate }}</h2>
 					<button
 						type="button"
 						class="pptx-ng-print-dialog__icon-btn"
-						aria-label="Close"
+						[attr.aria-label]="'pptx.common.close' | translate"
 						(click)="onCancel()"
 					>
 						&#10005;
@@ -98,20 +99,20 @@ export function printDialogClass(isMobile: boolean): string {
 				<!-- Footer -->
 				<div class="pptx-ng-print-dialog__footer">
 					<span class="pptx-ng-print-dialog__estimate">
-						{{ pageCount() }} page{{ pageCount() === 1 ? '' : 's' }} · {{ slideCount() }} slide{{
-							slideCount() === 1 ? '' : 's'
+						{{
+							'pptx.print.pageEstimate' | translate: { pages: pageCount(), slides: slideCount() }
 						}}
 					</span>
 					<div class="pptx-ng-print-dialog__actions">
 						<button type="button" class="pptx-ng-print-dialog__btn" (click)="onCancel()">
-							Cancel
+							{{ 'pptx.common.cancel' | translate }}
 						</button>
 						<button
 							type="button"
 							class="pptx-ng-print-dialog__btn pptx-ng-print-dialog__btn--primary"
 							(click)="onConfirm()"
 						>
-							Print
+							{{ 'pptx.print.printButton' | translate }}
 						</button>
 					</div>
 				</div>

@@ -13,6 +13,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	ChartAxisEdit,
 	ChartPptxElement,
@@ -26,51 +27,52 @@ import { setAxis } from './chart-advanced-helpers';
 import { CHART_EDITOR_STYLES } from './chart-editor-styles';
 import { boolFromEvent, numFromEvent, selectValue, stringFromEvent } from './chart-event-helpers';
 
-/** Axis kinds the inspector exposes, with their label and whether they scale. */
+/** Axis kinds the inspector exposes, with their label key and whether they scale. */
 interface AxisRow {
 	type: PptxChartAxisType;
-	label: string;
+	labelKey: string;
 	hasScale: boolean;
 	axis: PptxChartAxisFormatting;
 }
 
-const AXIS_DEFS: ReadonlyArray<{ type: PptxChartAxisType; label: string; hasScale: boolean }> = [
-	{ type: 'valAx', label: 'Value axis', hasScale: true },
-	{ type: 'dateAx', label: 'Date axis', hasScale: true },
-	{ type: 'catAx', label: 'Category axis', hasScale: false },
+const AXIS_DEFS: ReadonlyArray<{ type: PptxChartAxisType; labelKey: string; hasScale: boolean }> = [
+	{ type: 'valAx', labelKey: 'pptx.chart.valueAxis', hasScale: true },
+	{ type: 'dateAx', labelKey: 'pptx.chart.dateAxis', hasScale: true },
+	{ type: 'catAx', labelKey: 'pptx.chart.categoryAxis', hasScale: false },
 ];
 
-/** Numeric scale fields, paired with their label, rendered for scaled axes. */
+/** Numeric scale fields, paired with their label key, rendered for scaled axes. */
 const SCALE_FIELDS: ReadonlyArray<{
 	key: 'min' | 'max' | 'majorUnit' | 'minorUnit';
-	label: string;
+	labelKey: string;
 }> = [
-	{ key: 'min', label: 'Minimum' },
-	{ key: 'max', label: 'Maximum' },
-	{ key: 'majorUnit', label: 'Major unit' },
-	{ key: 'minorUnit', label: 'Minor unit' },
+	{ key: 'min', labelKey: 'pptx.chart.min' },
+	{ key: 'max', labelKey: 'pptx.chart.max' },
+	{ key: 'majorUnit', labelKey: 'pptx.chart.majorUnit' },
+	{ key: 'minorUnit', labelKey: 'pptx.chart.minorUnit' },
 ];
 
 @Component({
 	selector: 'pptx-chart-axis-options',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		@if (rows().length > 0) {
-			<section class="pptx-chart-card" aria-label="Axis options">
-				<h4 class="pptx-chart-card__heading">Axes</h4>
+			<section class="pptx-chart-card" [attr.aria-label]="'pptx.chart.axes' | translate">
+				<h4 class="pptx-chart-card__heading">{{ 'pptx.chart.axes' | translate }}</h4>
 				@for (row of rows(); track row.type) {
 					<div class="pptx-chart-card__group">
-						<div class="pptx-chart-card__subhead">{{ row.label }}</div>
+						<div class="pptx-chart-card__subhead">{{ row.labelKey | translate }}</div>
 						<div class="pptx-chart-card__group pptx-chart-card__group--indent">
 							@if (row.hasScale) {
 								@for (field of scaleFields; track field.key) {
 									<label class="pptx-chart-card__row">
-										<span class="pptx-chart-card__label">{{ field.label }}</span>
+										<span class="pptx-chart-card__label">{{ field.labelKey | translate }}</span>
 										<input
 											type="number"
 											class="pptx-chart-card__input"
-											placeholder="Auto"
+											[placeholder]="'pptx.chart.auto' | translate"
 											[disabled]="!canEdit()"
 											[value]="numValue(row.axis, field.key)"
 											(change)="onScaleField(row.type, field.key, $event)"
@@ -78,7 +80,9 @@ const SCALE_FIELDS: ReadonlyArray<{
 									</label>
 								}
 								<label class="pptx-chart-card__row">
-									<span class="pptx-chart-card__label">Display units</span>
+									<span class="pptx-chart-card__label">{{
+										'pptx.chart.displayUnits' | translate
+									}}</span>
 									<select
 										class="pptx-chart-card__input"
 										[disabled]="!canEdit()"
@@ -93,11 +97,11 @@ const SCALE_FIELDS: ReadonlyArray<{
 							}
 
 							<label class="pptx-chart-card__row">
-								<span class="pptx-chart-card__label">Axis title</span>
+								<span class="pptx-chart-card__label">{{ 'pptx.chart.axisTitle' | translate }}</span>
 								<input
 									type="text"
 									class="pptx-chart-card__input"
-									placeholder="Axis title"
+									[placeholder]="'pptx.chart.axisTitlePlaceholder' | translate"
 									[disabled]="!canEdit()"
 									[value]="row.axis.titleText ?? ''"
 									(change)="onTitleText(row.type, $event)"
@@ -105,7 +109,9 @@ const SCALE_FIELDS: ReadonlyArray<{
 							</label>
 
 							<label class="pptx-chart-card__row">
-								<span class="pptx-chart-card__label">Number format</span>
+								<span class="pptx-chart-card__label">{{
+									'pptx.chart.numberFormat' | translate
+								}}</span>
 								<input
 									type="text"
 									class="pptx-chart-card__input"
@@ -117,7 +123,9 @@ const SCALE_FIELDS: ReadonlyArray<{
 							</label>
 
 							<label class="pptx-chart-card__row">
-								<span class="pptx-chart-card__label">Tick labels</span>
+								<span class="pptx-chart-card__label">{{
+									'pptx.chart.tickLabels' | translate
+								}}</span>
 								<select
 									class="pptx-chart-card__input"
 									[disabled]="!canEdit()"
@@ -137,7 +145,7 @@ const SCALE_FIELDS: ReadonlyArray<{
 									[checked]="row.axis.majorGridlines ?? false"
 									(change)="onGridlines(row.type, 'major', $event)"
 								/>
-								<span>Major gridlines</span>
+								<span>{{ 'pptx.chart.majorGridlines' | translate }}</span>
 							</label>
 							<label class="pptx-chart-card__check">
 								<input
@@ -146,7 +154,7 @@ const SCALE_FIELDS: ReadonlyArray<{
 									[checked]="row.axis.minorGridlines ?? false"
 									(change)="onGridlines(row.type, 'minor', $event)"
 								/>
-								<span>Minor gridlines</span>
+								<span>{{ 'pptx.chart.minorGridlines' | translate }}</span>
 							</label>
 						</div>
 					</div>

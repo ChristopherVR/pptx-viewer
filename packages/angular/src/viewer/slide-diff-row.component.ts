@@ -14,6 +14,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import type { CanvasSize, SlideDiff } from '../internal/shared';
 import { SlideDiffChangesComponent } from './slide-diff-changes.component';
@@ -24,14 +25,16 @@ import { SlideDiffThumbnailsComponent } from './slide-diff-thumbnails.component'
 	selector: 'pptx-slide-diff-row',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [SlideDiffThumbnailsComponent, SlideDiffChangesComponent],
+	imports: [SlideDiffThumbnailsComponent, SlideDiffChangesComponent, TranslatePipe],
 	template: `
 		@if (diff().status !== 'unchanged') {
 			<div class="pptx-ng-diff-row" [class.is-resolved]="isResolved()">
 				<!-- Header (toggles expand) -->
 				<button type="button" class="pptx-ng-diff-head" (click)="toggle()">
 					<span class="pptx-ng-diff-chevron">{{ expanded() ? '▾' : '▸' }}</span>
-					<span class="pptx-ng-diff-slide">Slide {{ slideNumber() }}</span>
+					<span class="pptx-ng-diff-slide">{{
+						'pptx.compare.slideNumber' | translate: { number: slideNumber() }
+					}}</span>
 					<span class="pptx-ng-diff-pill" [attr.data-status]="diff().status">
 						{{ statusLabel() }}
 					</span>
@@ -41,7 +44,7 @@ import { SlideDiffThumbnailsComponent } from './slide-diff-thumbnails.component'
 					<span class="pptx-ng-diff-spacer"></span>
 					@if (isResolved()) {
 						<span class="pptx-ng-diff-tag" [class.is-accepted]="accepted()">
-							{{ accepted() ? 'Accepted' : 'Rejected' }}
+							{{ (accepted() ? 'pptx.compare.accepted' : 'pptx.compare.rejected') | translate }}
 						</span>
 					}
 				</button>
@@ -66,14 +69,14 @@ import { SlideDiffThumbnailsComponent } from './slide-diff-thumbnails.component'
 									class="pptx-ng-diff-btn is-accept"
 									(click)="accept.emit(diffIndex())"
 								>
-									✓ Accept
+									✓ {{ 'pptx.compare.accept' | translate }}
 								</button>
 								<button
 									type="button"
 									class="pptx-ng-diff-btn is-reject"
 									(click)="reject.emit(diffIndex())"
 								>
-									✕ Reject
+									✕ {{ 'pptx.compare.reject' | translate }}
 								</button>
 							</div>
 						}

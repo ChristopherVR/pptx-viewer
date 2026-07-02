@@ -10,15 +10,17 @@
  */
 
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxPresentationProperties } from 'pptx-viewer-core';
 
 @Component({
 	selector: 'pptx-show-options-fieldset',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		<fieldset class="pptx-ng-sss-fieldset">
-			<legend class="pptx-ng-sss-legend">Show options</legend>
+			<legend class="pptx-ng-sss-legend">{{ 'pptx.slideShow.showOptions' | translate }}</legend>
 
 			<label class="pptx-ng-sss-option">
 				<input
@@ -27,7 +29,7 @@ import type { PptxPresentationProperties } from 'pptx-viewer-core';
 					[checked]="!!draft().loopContinuously"
 					(change)="patch.emit({ loopContinuously: isChecked($event) })"
 				/>
-				<span>Loop continuously until Esc</span>
+				<span>{{ 'pptx.slideShow.loopContinuously' | translate }}</span>
 			</label>
 
 			<label class="pptx-ng-sss-option">
@@ -37,7 +39,7 @@ import type { PptxPresentationProperties } from 'pptx-viewer-core';
 					[checked]="draft().showWithNarration === false"
 					(change)="patch.emit({ showWithNarration: !isChecked($event) })"
 				/>
-				<span>Show without narration</span>
+				<span>{{ 'pptx.slideShow.showWithoutNarration' | translate }}</span>
 			</label>
 
 			<label class="pptx-ng-sss-option">
@@ -47,7 +49,7 @@ import type { PptxPresentationProperties } from 'pptx-viewer-core';
 					[checked]="draft().showWithAnimation === false"
 					(change)="patch.emit({ showWithAnimation: !isChecked($event) })"
 				/>
-				<span>Show without animation</span>
+				<span>{{ 'pptx.slideShow.showWithoutAnimation' | translate }}</span>
 			</label>
 
 			<label class="pptx-ng-sss-option">
@@ -57,7 +59,7 @@ import type { PptxPresentationProperties } from 'pptx-viewer-core';
 					[checked]="!!draft().showSubtitles"
 					(change)="patch.emit({ showSubtitles: isChecked($event) })"
 				/>
-				<span>Show subtitles</span>
+				<span>{{ 'pptx.slideShow.showSubtitles' | translate }}</span>
 			</label>
 		</fieldset>
 	`,

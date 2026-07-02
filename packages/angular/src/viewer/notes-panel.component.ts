@@ -37,6 +37,7 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
 
 import type { NotesInlineCommand, NotesParagraphCommand } from '../internal/shared';
@@ -61,7 +62,7 @@ import { NotesToolbarComponent } from './notes-toolbar.component';
 	selector: 'pptx-notes-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NotesToolbarComponent],
+	imports: [NotesToolbarComponent, TranslatePipe],
 	template: `
 		<section class="pptx-ng-notes-panel" [attr.data-collapsed]="collapsed()">
 			<button
@@ -70,7 +71,7 @@ import { NotesToolbarComponent } from './notes-toolbar.component';
 				[attr.aria-expanded]="!collapsed()"
 				(click)="toggle()"
 			>
-				<span class="pptx-ng-notes-label">Speaker notes</span>
+				<span class="pptx-ng-notes-label">{{ 'pptx.notes.speakerNotes' | translate }}</span>
 				<span class="pptx-ng-notes-chevron" aria-hidden="true">{{ collapsed() ? '▸' : '▾' }}</span>
 			</button>
 
@@ -98,7 +99,7 @@ import { NotesToolbarComponent } from './notes-toolbar.component';
 						[attr.contenteditable]="slide() ? 'true' : 'false'"
 						role="textbox"
 						aria-multiline="true"
-						aria-label="Speaker notes"
+						[attr.aria-label]="'pptx.notes.speakerNotes' | translate"
 						(input)="onRichInput()"
 						(keydown)="onRichKeydown($event)"
 						(blur)="onRichInput()"
@@ -111,8 +112,10 @@ import { NotesToolbarComponent } from './notes-toolbar.component';
 						class="pptx-ng-notes-textarea"
 						[hidden]="showRich()"
 						[disabled]="!slide()"
-						[attr.placeholder]="slide() ? 'Add speaker notes…' : 'No slide selected'"
-						aria-label="Speaker notes"
+						[attr.placeholder]="
+							(slide() ? 'pptx.notes.addSpeakerNotes' : 'pptx.notes.noSlide') | translate
+						"
+						[attr.aria-label]="'pptx.notes.speakerNotes' | translate"
 						spellcheck="true"
 						(change)="onPlainCommit($event)"
 						(blur)="onPlainCommit($event)"

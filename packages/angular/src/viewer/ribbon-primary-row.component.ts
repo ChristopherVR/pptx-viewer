@@ -16,6 +16,7 @@
  */
 import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { EditorStateService } from './editor-state.service';
 
@@ -23,7 +24,7 @@ import { EditorStateService } from './editor-state.service';
 	selector: 'pptx-ribbon-primary-row',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgClass],
+	imports: [NgClass, TranslatePipe],
 	template: `
 		<div class="flex items-center gap-0.5 px-1.5 py-0.5">
 			<!-- Left: slides pane toggle + undo/redo + find -->
@@ -31,8 +32,8 @@ import { EditorStateService } from './editor-state.service';
 				type="button"
 				class="pptx-rb-icon"
 				[ngClass]="sidebarCollapsed() ? 'text-muted-foreground' : 'text-foreground'"
-				title="Toggle slides panel"
-				aria-label="Toggle slides panel"
+				[title]="'pptx.toolbar.toggleSlidesPanel' | translate"
+				[attr.aria-label]="'pptx.toolbar.toggleSlidesPanel' | translate"
 				(click)="toggleSidebar.emit()"
 			>
 				⫐

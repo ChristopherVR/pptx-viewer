@@ -20,6 +20,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { HANDOUT_OPTIONS } from './print-helpers';
 import type {
@@ -34,11 +35,12 @@ import type {
 	selector: 'pptx-print-settings-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		<div class="pptx-ng-print-settings">
 			<!-- Print What -->
 			<fieldset class="pptx-ng-print-settings__group">
-				<legend class="pptx-ng-print-settings__legend">Print what</legend>
+				<legend class="pptx-ng-print-settings__legend">{{ 'pptx.print.printWhat' | translate }}</legend>
 				<div class="pptx-ng-print-settings__grid2">
 					@for (opt of printWhatOptions; track opt.value) {
 						<button
@@ -47,7 +49,7 @@ import type {
 							[class.pptx-ng-print-settings__card--active]="settings().printWhat === opt.value"
 							(click)="emit({ printWhat: opt.value })"
 						>
-							{{ opt.label }}
+							{{ opt.labelKey | translate }}
 						</button>
 					}
 				</div>
@@ -56,7 +58,9 @@ import type {
 			<!-- Handout slides per page -->
 			@if (settings().printWhat === 'handouts') {
 				<fieldset class="pptx-ng-print-settings__group">
-					<legend class="pptx-ng-print-settings__legend">Slides per page</legend>
+					<legend class="pptx-ng-print-settings__legend">
+						{{ 'pptx.print.slidesPerPage' | translate }}
+					</legend>
 					<div class="pptx-ng-print-settings__chips">
 						@for (n of handoutOptions; track n) {
 							<button
@@ -74,7 +78,7 @@ import type {
 
 			<!-- Slide range -->
 			<fieldset class="pptx-ng-print-settings__group">
-				<legend class="pptx-ng-print-settings__legend">Slide range</legend>
+				<legend class="pptx-ng-print-settings__legend">{{ 'pptx.print.slideRange' | translate }}</legend>
 				<div class="pptx-ng-print-settings__stack">
 					<button
 						type="button"
@@ -82,7 +86,7 @@ import type {
 						[class.pptx-ng-print-settings__card--active]="settings().slideRange === 'all'"
 						(click)="emit({ slideRange: 'all' })"
 					>
-						All slides ({{ totalSlides() }})
+						{{ 'pptx.print.allSlides' | translate }} ({{ totalSlides() }})
 					</button>
 					<button
 						type="button"
@@ -90,7 +94,7 @@ import type {
 						[class.pptx-ng-print-settings__card--active]="settings().slideRange === 'current'"
 						(click)="emit({ slideRange: 'current' })"
 					>
-						Current slide ({{ activeSlideIndex() + 1 }})
+						{{ 'pptx.print.currentSlide' | translate }} ({{ activeSlideIndex() + 1 }})
 					</button>
 					<button
 						type="button"
@@ -98,11 +102,11 @@ import type {
 						[class.pptx-ng-print-settings__card--active]="settings().slideRange === 'custom'"
 						(click)="emit({ slideRange: 'custom' })"
 					>
-						Custom range
+						{{ 'pptx.print.customRange' | translate }}
 					</button>
 					@if (settings().slideRange === 'custom') {
 						<div class="pptx-ng-print-settings__range">
-							<span class="pptx-ng-print-settings__range-label">From</span>
+							<span class="pptx-ng-print-settings__range-label">{{ 'pptx.print.from' | translate }}</span>
 							<input
 								class="pptx-ng-print-settings__number"
 								type="number"
@@ -111,7 +115,7 @@ import type {
 								[value]="settings().customRangeFrom"
 								(change)="onRangeChange($event, 'from')"
 							/>
-							<span class="pptx-ng-print-settings__range-label">To</span>
+							<span class="pptx-ng-print-settings__range-label">{{ 'pptx.print.to' | translate }}</span>
 							<input
 								class="pptx-ng-print-settings__number"
 								type="number"
@@ -128,7 +132,7 @@ import type {
 			<!-- Orientation (full-page slides only) -->
 			@if (settings().printWhat === 'slides') {
 				<fieldset class="pptx-ng-print-settings__group">
-					<legend class="pptx-ng-print-settings__legend">Orientation</legend>
+					<legend class="pptx-ng-print-settings__legend">{{ 'pptx.print.orientation' | translate }}</legend>
 					<div class="pptx-ng-print-settings__chips">
 						@for (o of orientationOptions; track o.value) {
 							<button
@@ -137,7 +141,7 @@ import type {
 								[class.pptx-ng-print-settings__card--active]="settings().orientation === o.value"
 								(click)="emit({ orientation: o.value })"
 							>
-								{{ o.label }}
+								{{ o.labelKey | translate }}
 							</button>
 						}
 					</div>
@@ -146,7 +150,7 @@ import type {
 
 			<!-- Colour mode -->
 			<fieldset class="pptx-ng-print-settings__group">
-				<legend class="pptx-ng-print-settings__legend">Colour mode</legend>
+				<legend class="pptx-ng-print-settings__legend">{{ 'pptx.print.colorMode' | translate }}</legend>
 				<div class="pptx-ng-print-settings__chips">
 					@for (c of colorModeOptions; track c.value) {
 						<button
@@ -155,7 +159,7 @@ import type {
 							[class.pptx-ng-print-settings__card--active]="settings().colorMode === c.value"
 							(click)="emit({ colorMode: c.value })"
 						>
-							{{ c.label }}
+							{{ c.labelKey | translate }}
 						</button>
 					}
 				</div>
@@ -168,7 +172,7 @@ import type {
 					[checked]="settings().frameSlides"
 					(change)="onFrameChange($event)"
 				/>
-				<span>Frame slides</span>
+				<span>{{ 'pptx.print.frameSlides' | translate }}</span>
 			</label>
 		</div>
 	`,
@@ -331,22 +335,22 @@ export class PrintSettingsPanelComponent {
 
 	protected readonly handoutOptions: HandoutSlidesPerPage[] = HANDOUT_OPTIONS;
 
-	protected readonly printWhatOptions: { value: PrintWhat; label: string }[] = [
-		{ value: 'slides', label: 'Full-page slides' },
-		{ value: 'handouts', label: 'Handouts' },
-		{ value: 'notes', label: 'Notes pages' },
-		{ value: 'outline', label: 'Outline' },
+	protected readonly printWhatOptions: { value: PrintWhat; labelKey: string }[] = [
+		{ value: 'slides', labelKey: 'pptx.print.fullPageSlides' },
+		{ value: 'handouts', labelKey: 'pptx.print.handouts' },
+		{ value: 'notes', labelKey: 'pptx.print.notesPages' },
+		{ value: 'outline', labelKey: 'pptx.print.outline' },
 	];
 
-	protected readonly orientationOptions: { value: PrintOrientation; label: string }[] = [
-		{ value: 'landscape', label: 'Landscape' },
-		{ value: 'portrait', label: 'Portrait' },
+	protected readonly orientationOptions: { value: PrintOrientation; labelKey: string }[] = [
+		{ value: 'landscape', labelKey: 'pptx.print.landscape' },
+		{ value: 'portrait', labelKey: 'pptx.print.portrait' },
 	];
 
-	protected readonly colorModeOptions: { value: PrintColorMode; label: string }[] = [
-		{ value: 'color', label: 'Color' },
-		{ value: 'grayscale', label: 'Grayscale' },
-		{ value: 'blackAndWhite', label: 'Black & white' },
+	protected readonly colorModeOptions: { value: PrintColorMode; labelKey: string }[] = [
+		{ value: 'color', labelKey: 'pptx.print.color' },
+		{ value: 'grayscale', labelKey: 'pptx.print.grayscale' },
+		{ value: 'blackAndWhite', labelKey: 'pptx.print.blackAndWhite' },
 	];
 
 	/** Emit a settings patch. */

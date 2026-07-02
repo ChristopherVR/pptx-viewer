@@ -27,6 +27,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxAnimationTrigger, PptxElementAnimation } from 'pptx-viewer-core';
 import { getAnimationPresetInfo } from 'pptx-viewer-core';
 
@@ -70,6 +71,7 @@ function triggerLabel(trigger: PptxAnimationTrigger | undefined): string {
 	selector: 'pptx-animation-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	styles: `
 		.pptx-ng-anim-panel {
 			display: flex;
@@ -184,7 +186,7 @@ function triggerLabel(trigger: PptxAnimationTrigger | undefined): string {
 	template: `
 		<div class="pptx-ng-anim-panel">
 			<div class="pptx-ng-anim-heading">
-				<span>Animations</span>
+				<span>{{ 'pptx.animations.animations' | translate }}</span>
 				<span class="pptx-ng-anim-progress">{{ step() }} / {{ stepCount() }}</span>
 			</div>
 
@@ -195,7 +197,7 @@ function triggerLabel(trigger: PptxAnimationTrigger | undefined): string {
 						class="pptx-ng-anim-btn pptx-ng-anim-btn--primary"
 						(click)="pauseRequested.emit()"
 					>
-						Pause
+						{{ 'pptx.animations.pause' | translate }}
 					</button>
 				} @else {
 					<button
@@ -204,7 +206,7 @@ function triggerLabel(trigger: PptxAnimationTrigger | undefined): string {
 						[disabled]="isComplete()"
 						(click)="playRequested.emit()"
 					>
-						Play
+						{{ 'pptx.animations.play' | translate }}
 					</button>
 				}
 				<button
@@ -213,7 +215,7 @@ function triggerLabel(trigger: PptxAnimationTrigger | undefined): string {
 					[disabled]="isComplete()"
 					(click)="stepRequested.emit()"
 				>
-					Step
+					{{ 'pptx.animations.step' | translate }}
 				</button>
 				<button
 					type="button"
@@ -221,7 +223,7 @@ function triggerLabel(trigger: PptxAnimationTrigger | undefined): string {
 					[disabled]="step() === 0"
 					(click)="resetRequested.emit()"
 				>
-					Reset
+					{{ 'pptx.animations.reset' | translate }}
 				</button>
 			</div>
 
@@ -244,7 +246,7 @@ function triggerLabel(trigger: PptxAnimationTrigger | undefined): string {
 					}
 				</ul>
 			} @else {
-				<p class="pptx-ng-anim-empty">No animations</p>
+				<p class="pptx-ng-anim-empty">{{ 'pptx.animations.noAnimations' | translate }}</p>
 			}
 		</div>
 	`,

@@ -22,6 +22,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { AccessibilityIssue, AccessibilityIssueType } from 'pptx-viewer-core';
 
 import { groupIssuesBySeverity, issueTrackKey, issueTypeLabel } from './accessibility-helpers';
@@ -31,18 +32,21 @@ import type { AccessibilityIssueGroup } from './accessibility-helpers';
 	selector: 'pptx-accessibility-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
-		<section class="pptx-ng-a11y-panel" aria-label="Accessibility checker">
+		<section class="pptx-ng-a11y-panel" [attr.aria-label]="'pptx.accessibility.title' | translate">
 			<header class="pptx-ng-a11y-panel__header">
-				<h2 class="pptx-ng-a11y-panel__title">Accessibility</h2>
+				<h2 class="pptx-ng-a11y-panel__title">{{ 'pptx.accessibility.heading' | translate }}</h2>
 				<span class="pptx-ng-a11y-panel__count">{{ issues().length }}</span>
 			</header>
 
 			@if (!hasIssues()) {
 				<div class="pptx-ng-a11y-panel__empty">
-					<p class="pptx-ng-a11y-panel__empty-title">No issues found</p>
+					<p class="pptx-ng-a11y-panel__empty-title">
+						{{ 'pptx.accessibility.noIssuesFound' | translate }}
+					</p>
 					<p class="pptx-ng-a11y-panel__empty-hint">
-						This presentation passes all accessibility checks.
+						{{ 'pptx.accessibility.noIssuesHint' | translate }}
 					</p>
 				</div>
 			} @else {
@@ -67,9 +71,9 @@ import type { AccessibilityIssueGroup } from './accessibility-helpers';
 										>
 											<span class="pptx-ng-a11y-issue__type">{{ typeLabel(issue.type) }}</span>
 											<span class="pptx-ng-a11y-issue__message">{{ issue.message }}</span>
-											<span class="pptx-ng-a11y-issue__slide"
-												>Slide {{ issue.slideIndex + 1 }}</span
-											>
+											<span class="pptx-ng-a11y-issue__slide">{{
+												'pptx.notes.slideN' | translate: { n: issue.slideIndex + 1 }
+											}}</span>
 										</button>
 									</li>
 								}

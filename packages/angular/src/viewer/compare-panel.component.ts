@@ -13,6 +13,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import type { CanvasSize, CompareResult } from '../internal/shared';
 import { SlideDiffRowComponent } from './slide-diff-row.component';
@@ -21,24 +22,31 @@ import { SlideDiffRowComponent } from './slide-diff-row.component';
 	selector: 'pptx-compare-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [SlideDiffRowComponent],
+	imports: [SlideDiffRowComponent, TranslatePipe],
 	template: `
 		@if (open() && compareResult(); as result) {
 			<div class="pptx-ng-compare">
 				<!-- Header -->
 				<div class="pptx-ng-compare-head">
 					<div>
-						<h3 class="pptx-ng-compare-title">Compare Presentations</h3>
+						<h3 class="pptx-ng-compare-title">{{ 'pptx.compare.title' | translate }}</h3>
 						<p class="pptx-ng-compare-summary">
-							{{ result.addedCount }} added, {{ result.removedCount }} removed,
-							{{ result.changedCount }} changed
+							{{
+								'pptx.compare.summary'
+									| translate
+										: {
+												added: result.addedCount,
+												removed: result.removedCount,
+												changed: result.changedCount,
+										  }
+							}}
 						</p>
 					</div>
 					<button
 						type="button"
 						class="pptx-ng-compare-close"
-						title="Close"
-						aria-label="Close compare panel"
+						[title]="'pptx.compare.close' | translate"
+						[attr.aria-label]="'pptx.compare.closePanel' | translate"
 						(click)="close.emit()"
 					>
 						✕
@@ -49,7 +57,7 @@ import { SlideDiffRowComponent } from './slide-diff-row.component';
 				@if (nonTrivialCount() > 0) {
 					<div class="pptx-ng-compare-acceptall">
 						<button type="button" class="pptx-ng-compare-acceptall-btn" (click)="handleAcceptAll()">
-							✓ Accept all
+							✓ {{ 'pptx.compare.acceptAll' | translate }}
 						</button>
 					</div>
 				}
@@ -57,7 +65,7 @@ import { SlideDiffRowComponent } from './slide-diff-row.component';
 				<!-- Diff list -->
 				<div class="pptx-ng-compare-list">
 					@if (nonTrivialCount() === 0) {
-						<div class="pptx-ng-compare-empty">No differences</div>
+						<div class="pptx-ng-compare-empty">{{ 'pptx.compare.noDifferences' | translate }}</div>
 					} @else {
 						@for (diff of result.diffs; track $index; let i = $index) {
 							<pptx-slide-diff-row

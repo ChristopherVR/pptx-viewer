@@ -22,6 +22,7 @@ import {
 	output,
 	signal,
 } from '@angular/core';
+import { TranslatePipe, translate } from '@ngx-translate/core';
 
 import {
 	buildBroadcastConfig,
@@ -36,7 +37,7 @@ import { ModalDialogComponent } from './modal-dialog.component';
 	selector: 'pptx-broadcast-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent],
+	imports: [ModalDialogComponent, TranslatePipe],
 	template: `
 		<pptx-modal-dialog [open]="open()" [title]="dialogTitle()" (close)="onClose()">
 			@if (active()) {
@@ -45,20 +46,25 @@ import { ModalDialogComponent } from './modal-dialog.component';
 					<div class="pptx-ng-broadcast-status-row">
 						<span class="pptx-ng-broadcast-status-dot" [class.is-on]="connected()"></span>
 						<span class="pptx-ng-broadcast-status-text">
-							{{ connected() ? 'Broadcasting' : 'Connecting' }}
+							{{
+								(connected()
+									? 'pptx.broadcast.broadcastingTitle'
+									: 'pptx.broadcast.statusConnecting'
+								) | translate
+							}}
 						</span>
 						<span class="pptx-ng-broadcast-count">
-							{{ viewerCount() }} {{ viewerCount() === 1 ? 'viewer' : 'viewers' }}
+							{{ 'pptx.broadcast.viewerCount' | translate: { count: viewerCount() } }}
 						</span>
 					</div>
 
 					<p class="pptx-ng-broadcast-desc">
-						Your broadcast is live. Share this link so viewers can follow along.
+						{{ 'pptx.broadcast.liveDesc' | translate }}
 					</p>
 
 					<div class="pptx-ng-broadcast-field">
 						<label for="pptx-ng-broadcast-viewer-url" class="pptx-ng-broadcast-label">
-							Viewer link
+							{{ 'pptx.broadcast.viewerLink' | translate }}
 						</label>
 						<div class="pptx-ng-broadcast-link-row">
 							<input
@@ -75,31 +81,32 @@ import { ModalDialogComponent } from './modal-dialog.component';
 								[disabled]="!canCopy() || !viewerUrl()"
 								(click)="onCopyLink()"
 							>
-								{{ copied() ? 'Copied' : 'Copy link' }}
+								{{ (copied() ? 'pptx.share.copied' : 'pptx.broadcast.copyLinkBtn') | translate }}
 							</button>
 						</div>
-						<p class="pptx-ng-broadcast-hint">Viewers opening this link will follow your slides.</p>
+						<p class="pptx-ng-broadcast-hint">{{ 'pptx.broadcast.viewerHint' | translate }}</p>
 					</div>
 
 					<button type="button" class="pptx-ng-broadcast-stop" (click)="onStop()">
-						Stop broadcast
+						{{ 'pptx.broadcast.stopBroadcast' | translate }}
 					</button>
 				</div>
 			} @else {
 				<!-- Idle: configure + start a broadcast -->
 				<div class="pptx-ng-broadcast">
 					<p class="pptx-ng-broadcast-desc">
-						Start a one-way broadcast. You drive the slides; viewers follow along from a shareable
-						link.
+						{{ 'pptx.broadcast.idleDesc' | translate }}
 					</p>
 
 					<div class="pptx-ng-broadcast-field">
-						<label for="pptx-ng-broadcast-room-id" class="pptx-ng-broadcast-label">Room ID</label>
+						<label for="pptx-ng-broadcast-room-id" class="pptx-ng-broadcast-label">{{
+							'pptx.broadcast.roomId' | translate
+						}}</label>
 						<input
 							id="pptx-ng-broadcast-room-id"
 							class="pptx-ng-broadcast-input"
 							type="text"
-							placeholder="broadcast-abc123"
+							[placeholder]="'pptx.broadcast.roomIdPlaceholder' | translate"
 							[value]="roomId()"
 							(input)="roomId.set(asValue($event))"
 						/>
@@ -107,13 +114,13 @@ import { ModalDialogComponent } from './modal-dialog.component';
 
 					<div class="pptx-ng-broadcast-field">
 						<label for="pptx-ng-broadcast-server-url" class="pptx-ng-broadcast-label">
-							Server URL
+							{{ 'pptx.broadcast.serverUrl' | translate }}
 						</label>
 						<input
 							id="pptx-ng-broadcast-server-url"
 							class="pptx-ng-broadcast-input"
 							type="text"
-							placeholder="ws://localhost:1234"
+							[placeholder]="'pptx.broadcast.serverUrlPlaceholder' | translate"
 							[value]="serverUrl()"
 							(input)="serverUrl.set(asValue($event))"
 						/>
@@ -122,7 +129,9 @@ import { ModalDialogComponent } from './modal-dialog.component';
 			}
 
 			<div footer>
-				<button type="button" class="pptx-ng-broadcast-btn" (click)="onClose()">Close</button>
+				<button type="button" class="pptx-ng-broadcast-btn" (click)="onClose()">
+					{{ 'pptx.share.close' | translate }}
+				</button>
 				@if (!active()) {
 					<button
 						type="button"
@@ -130,7 +139,7 @@ import { ModalDialogComponent } from './modal-dialog.component';
 						[disabled]="!canStart()"
 						(click)="onStart()"
 					>
-						Start broadcast
+						{{ 'pptx.broadcast.startBroadcast' | translate }}
 					</button>
 				}
 			</div>
@@ -305,8 +314,11 @@ export class BroadcastDialogComponent {
 		canStartBroadcast({ roomId: this.roomId(), serverUrl: this.serverUrl() }),
 	);
 
+	private readonly broadcastingTitle = translate('pptx.broadcast.broadcastingTitle');
+	private readonly startTitle = translate('pptx.broadcast.startTitle');
+
 	readonly dialogTitle = computed(() =>
-		this.active() ? 'Broadcasting' : 'Broadcast to a live audience',
+		this.active() ? this.broadcastingTitle() : this.startTitle(),
 	);
 
 	readonly canCopy = computed(() =>

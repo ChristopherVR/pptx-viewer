@@ -19,6 +19,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { newShapeElement, newTextElement } from './editor-insert';
 import { EditorStateService } from './editor-state.service';
@@ -26,17 +27,28 @@ import { EditorStateService } from './editor-state.service';
 @Component({
 	selector: 'pptx-editor-toolbar',
 	standalone: true,
+	imports: [TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
-		<div class="pptx-ng-toolbar" role="toolbar" aria-label="Editor toolbar">
+		<div
+			class="pptx-ng-toolbar"
+			role="toolbar"
+			[attr.aria-label]="'pptx.editorToolbar.ariaLabel' | translate"
+		>
 			<!-- ── Insert group ──────────────────────────────────────────────────── -->
-			<div class="pptx-ng-toolbar__group" role="group" aria-label="Insert">
-				<span class="pptx-ng-toolbar__group-label">Insert</span>
+			<div
+				class="pptx-ng-toolbar__group"
+				role="group"
+				[attr.aria-label]="'pptx.editorToolbar.insert' | translate"
+			>
+				<span class="pptx-ng-toolbar__group-label">{{
+					'pptx.editorToolbar.insert' | translate
+				}}</span>
 
 				<button
 					type="button"
 					class="pptx-ng-toolbar__btn"
-					title="Insert Text Box"
+					[title]="'pptx.editorToolbar.insertTextBox' | translate"
 					(click)="onInsertText()"
 				>
 					T
@@ -45,7 +57,7 @@ import { EditorStateService } from './editor-state.service';
 				<button
 					type="button"
 					class="pptx-ng-toolbar__btn"
-					title="Insert Rectangle"
+					[title]="'pptx.editorToolbar.insertRectangle' | translate"
 					(click)="onInsertShape('rect')"
 				>
 					▭
@@ -54,7 +66,7 @@ import { EditorStateService } from './editor-state.service';
 				<button
 					type="button"
 					class="pptx-ng-toolbar__btn"
-					title="Insert Ellipse"
+					[title]="'pptx.editorToolbar.insertEllipse' | translate"
 					(click)="onInsertShape('ellipse')"
 				>
 					⬭
@@ -63,7 +75,7 @@ import { EditorStateService } from './editor-state.service';
 				<button
 					type="button"
 					class="pptx-ng-toolbar__btn"
-					title="Insert Line"
+					[title]="'pptx.editorToolbar.insertLine' | translate"
 					(click)="onInsertShape('line')"
 				>
 					╱
@@ -74,13 +86,19 @@ import { EditorStateService } from './editor-state.service';
 			<div class="pptx-ng-toolbar__divider" role="separator" aria-orientation="vertical"></div>
 
 			<!-- ── Arrange / Selection group ─────────────────────────────────────── -->
-			<div class="pptx-ng-toolbar__group" role="group" aria-label="Arrange">
-				<span class="pptx-ng-toolbar__group-label">Arrange</span>
+			<div
+				class="pptx-ng-toolbar__group"
+				role="group"
+				[attr.aria-label]="'pptx.editorToolbar.arrange' | translate"
+			>
+				<span class="pptx-ng-toolbar__group-label">{{
+					'pptx.editorToolbar.arrange' | translate
+				}}</span>
 
 				<button
 					type="button"
 					class="pptx-ng-toolbar__btn"
-					title="Duplicate"
+					[title]="'pptx.arrange.duplicate' | translate"
 					[disabled]="!editor.hasSelection()"
 					(click)="editor.duplicateSelected(slideIndex())"
 				>
@@ -90,7 +108,7 @@ import { EditorStateService } from './editor-state.service';
 				<button
 					type="button"
 					class="pptx-ng-toolbar__btn pptx-ng-toolbar__btn--danger"
-					title="Delete"
+					[title]="'pptx.arrange.delete' | translate"
 					[disabled]="!editor.hasSelection()"
 					(click)="editor.deleteSelected(slideIndex())"
 				>
@@ -100,7 +118,7 @@ import { EditorStateService } from './editor-state.service';
 				<button
 					type="button"
 					class="pptx-ng-toolbar__btn"
-					title="Bring to Front"
+					[title]="'pptx.contextMenu.bringToFront' | translate"
 					[disabled]="!editor.hasSelection()"
 					(click)="editor.bringSelectedToFront(slideIndex())"
 				>
@@ -110,7 +128,7 @@ import { EditorStateService } from './editor-state.service';
 				<button
 					type="button"
 					class="pptx-ng-toolbar__btn"
-					title="Send to Back"
+					[title]="'pptx.contextMenu.sendToBack' | translate"
 					[disabled]="!editor.hasSelection()"
 					(click)="editor.sendSelectedToBack(slideIndex())"
 				>
@@ -120,7 +138,7 @@ import { EditorStateService } from './editor-state.service';
 				<button
 					type="button"
 					class="pptx-ng-toolbar__btn"
-					title="Bring Forward"
+					[title]="'pptx.contextMenu.bringForward' | translate"
 					[disabled]="!editor.hasSelection()"
 					(click)="editor.bringSelectedForward(slideIndex())"
 				>
@@ -130,7 +148,7 @@ import { EditorStateService } from './editor-state.service';
 				<button
 					type="button"
 					class="pptx-ng-toolbar__btn"
-					title="Send Backward"
+					[title]="'pptx.contextMenu.sendBackward' | translate"
 					[disabled]="!editor.hasSelection()"
 					(click)="editor.sendSelectedBackward(slideIndex())"
 				>
@@ -139,7 +157,7 @@ import { EditorStateService } from './editor-state.service';
 				<button
 					type="button"
 					class="pptx-ng-toolbar__btn"
-					title="Group"
+					[title]="'pptx.contextMenu.group' | translate"
 					[disabled]="!canGroup()"
 					(click)="editor.groupSelected(slideIndex())"
 				>
@@ -148,7 +166,7 @@ import { EditorStateService } from './editor-state.service';
 				<button
 					type="button"
 					class="pptx-ng-toolbar__btn"
-					title="Ungroup"
+					[title]="'pptx.contextMenu.ungroup' | translate"
 					[disabled]="!canUngroup()"
 					(click)="editor.ungroupSelected(slideIndex())"
 				>
@@ -158,12 +176,18 @@ import { EditorStateService } from './editor-state.service';
 
 			<div class="pptx-ng-toolbar__divider" role="separator" aria-orientation="vertical"></div>
 
-			<div class="pptx-ng-toolbar__group" role="group" aria-label="Align">
-				<span class="pptx-ng-toolbar__group-label">Align</span>
+			<div
+				class="pptx-ng-toolbar__group"
+				role="group"
+				[attr.aria-label]="'pptx.editorToolbar.align' | translate"
+			>
+				<span class="pptx-ng-toolbar__group-label">{{
+					'pptx.editorToolbar.align' | translate
+				}}</span>
 				<button
 					type="button"
 					class="pptx-ng-toolbar__btn"
-					title="Align Left"
+					[title]="'pptx.editorToolbar.alignLeft' | translate"
 					[disabled]="!canAlign()"
 					(click)="editor.alignSelected(slideIndex(), 'left')"
 				>
@@ -172,7 +196,7 @@ import { EditorStateService } from './editor-state.service';
 				<button
 					type="button"
 					class="pptx-ng-toolbar__btn"
-					title="Align Centre"
+					[title]="'pptx.editorToolbar.alignCenter' | translate"
 					[disabled]="!canAlign()"
 					(click)="editor.alignSelected(slideIndex(), 'centerH')"
 				>
@@ -181,7 +205,7 @@ import { EditorStateService } from './editor-state.service';
 				<button
 					type="button"
 					class="pptx-ng-toolbar__btn"
-					title="Align Right"
+					[title]="'pptx.editorToolbar.alignRight' | translate"
 					[disabled]="!canAlign()"
 					(click)="editor.alignSelected(slideIndex(), 'right')"
 				>
@@ -190,7 +214,7 @@ import { EditorStateService } from './editor-state.service';
 				<button
 					type="button"
 					class="pptx-ng-toolbar__btn"
-					title="Align Top"
+					[title]="'pptx.editorToolbar.alignTop' | translate"
 					[disabled]="!canAlign()"
 					(click)="editor.alignSelected(slideIndex(), 'top')"
 				>
@@ -199,7 +223,7 @@ import { EditorStateService } from './editor-state.service';
 				<button
 					type="button"
 					class="pptx-ng-toolbar__btn"
-					title="Align Middle"
+					[title]="'pptx.editorToolbar.alignMiddle' | translate"
 					[disabled]="!canAlign()"
 					(click)="editor.alignSelected(slideIndex(), 'middle')"
 				>
@@ -208,7 +232,7 @@ import { EditorStateService } from './editor-state.service';
 				<button
 					type="button"
 					class="pptx-ng-toolbar__btn"
-					title="Align Bottom"
+					[title]="'pptx.editorToolbar.alignBottom' | translate"
 					[disabled]="!canAlign()"
 					(click)="editor.alignSelected(slideIndex(), 'bottom')"
 				>
@@ -217,7 +241,7 @@ import { EditorStateService } from './editor-state.service';
 				<button
 					type="button"
 					class="pptx-ng-toolbar__btn"
-					title="Distribute Horizontally"
+					[title]="'pptx.arrange.distributeHorizontal' | translate"
 					[disabled]="!canDistribute()"
 					(click)="editor.distributeSelected(slideIndex(), 'horizontal')"
 				>
@@ -226,7 +250,7 @@ import { EditorStateService } from './editor-state.service';
 				<button
 					type="button"
 					class="pptx-ng-toolbar__btn"
-					title="Distribute Vertically"
+					[title]="'pptx.arrange.distributeVertical' | translate"
 					[disabled]="!canDistribute()"
 					(click)="editor.distributeSelected(slideIndex(), 'vertical')"
 				>

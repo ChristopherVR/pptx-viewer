@@ -12,6 +12,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	ChartPptxElement,
 	PptxChartMarkerSymbol,
@@ -28,10 +29,11 @@ import { numFromEvent, selectValue, stringFromEvent } from './chart-event-helper
 	selector: 'pptx-chart-marker-options',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		@if (supported()) {
-			<section class="pptx-chart-card" aria-label="Marker options">
-				<h4 class="pptx-chart-card__heading">Markers</h4>
+			<section class="pptx-chart-card" [attr.aria-label]="'pptx.chart.markers' | translate">
+				<h4 class="pptx-chart-card__heading">{{ 'pptx.chart.markers' | translate }}</h4>
 				@for (s of series(); track $index; let i = $index) {
 					<div class="pptx-chart-card__group">
 						<div class="pptx-chart-card__row">
@@ -50,18 +52,22 @@ import { numFromEvent, selectValue, stringFromEvent } from './chart-event-helper
 
 						@if (s.marker && s.marker.symbol !== 'none') {
 							<div class="pptx-chart-card__row pptx-chart-card__group--indent">
-								<span class="pptx-chart-card__label">Size</span>
+								<span class="pptx-chart-card__label">{{
+									'pptx.chart.markerSize' | translate
+								}}</span>
 								<input
 									type="number"
 									min="2"
 									max="72"
 									class="pptx-chart-card__input pptx-chart-card__input--num"
-									placeholder="Auto"
+									[placeholder]="'pptx.chart.auto' | translate"
 									[disabled]="!canEdit()"
 									[value]="s.marker.size ?? ''"
 									(change)="onSize(i, $event)"
 								/>
-								<span class="pptx-chart-card__label">Fill</span>
+								<span class="pptx-chart-card__label">{{
+									'pptx.chart.markerFill' | translate
+								}}</span>
 								<input
 									type="color"
 									class="pptx-chart-card__color"

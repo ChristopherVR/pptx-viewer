@@ -9,6 +9,7 @@ import {
 	output,
 	signal,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
@@ -66,7 +67,7 @@ const CLOCK_TICK_MS = 1000;
 	selector: 'pptx-presenter-view',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle, SlideCanvasComponent],
+	imports: [NgStyle, SlideCanvasComponent, TranslatePipe],
 	styles: `
 		:host {
 			position: absolute;
@@ -315,11 +316,13 @@ const CLOCK_TICK_MS = 1000;
 					<!-- Header: clock + elapsed + window/exit -->
 					<div class="pptx-ng-presenter-header">
 						<div>
-							<div class="pptx-ng-presenter-label">Current time</div>
+							<div class="pptx-ng-presenter-label">
+								{{ 'pptx.presenter.currentTime' | translate }}
+							</div>
 							<div class="pptx-ng-presenter-clock">{{ clockLabel() }}</div>
 						</div>
 						<div>
-							<div class="pptx-ng-presenter-label">Elapsed</div>
+							<div class="pptx-ng-presenter-label">{{ 'pptx.presenter.elapsed' | translate }}</div>
 							<div class="pptx-ng-presenter-clock pptx-ng-presenter-elapsed">
 								{{ elapsedLabel() }}
 							</div>
@@ -330,9 +333,17 @@ const CLOCK_TICK_MS = 1000;
 								class="pptx-ng-presenter-iconbtn"
 								(click)="onToggleAudienceWindow()"
 								[attr.aria-label]="
-									isAudienceWindowOpen() ? 'Close audience window' : 'Open audience window'
+									(isAudienceWindowOpen()
+										? 'pptx.presenter.closeAudienceWindow'
+										: 'pptx.presenter.openAudienceWindow'
+									) | translate
 								"
-								[title]="isAudienceWindowOpen() ? 'Close audience window' : 'Open audience window'"
+								[title]="
+									(isAudienceWindowOpen()
+										? 'pptx.presenter.closeAudienceWindow'
+										: 'pptx.presenter.openAudienceWindow'
+									) | translate
+								"
 							>
 								{{ isAudienceWindowOpen() ? '▣' : '□' }}
 							</button>
@@ -340,8 +351,8 @@ const CLOCK_TICK_MS = 1000;
 								type="button"
 								class="pptx-ng-presenter-iconbtn"
 								(click)="exit.emit()"
-								aria-label="End presentation"
-								title="End presentation"
+								[attr.aria-label]="'pptx.presenter.endPresentation' | translate"
+								[title]="'pptx.presenter.endPresentation' | translate"
 							>
 								&#x2715;
 							</button>
@@ -355,9 +366,9 @@ const CLOCK_TICK_MS = 1000;
 							class="pptx-ng-presenter-navbtn"
 							(click)="movePresentationSlide.emit(-1)"
 							[disabled]="currentSlideIndex() === 0"
-							title="Previous slide"
+							[title]="'pptx.presenter.previousSlide' | translate"
 						>
-							&#x2039; Prev
+							&#x2039; {{ 'pptx.presenter.prev' | translate }}
 						</button>
 						<span class="pptx-ng-presenter-counter">{{ counterLabel() }}</span>
 						<button
@@ -365,15 +376,17 @@ const CLOCK_TICK_MS = 1000;
 							class="pptx-ng-presenter-navbtn"
 							(click)="movePresentationSlide.emit(1)"
 							[disabled]="currentSlideIndex() >= slides().length - 1"
-							title="Next slide"
+							[title]="'pptx.presenter.nextSlide' | translate"
 						>
-							Next &#x203A;
+							{{ 'pptx.presenter.next' | translate }} &#x203A;
 						</button>
 					</div>
 
 					<!-- Next slide preview -->
 					<div class="pptx-ng-presenter-next">
-						<div class="pptx-ng-presenter-label" style="margin-bottom:0.5rem;">Next slide</div>
+						<div class="pptx-ng-presenter-label" style="margin-bottom:0.5rem;">
+							{{ 'pptx.presenter.nextSlidePreview' | translate }}
+						</div>
 						@if (nextPreviewSlide(); as next) {
 							<pptx-slide-canvas
 								[slide]="next"
@@ -383,22 +396,26 @@ const CLOCK_TICK_MS = 1000;
 								[interactive]="false"
 							/>
 						} @else {
-							<div class="pptx-ng-presenter-next-empty">End of presentation</div>
+							<div class="pptx-ng-presenter-next-empty">
+								{{ 'pptx.presenter.endOfPresentation' | translate }}
+							</div>
 						}
 					</div>
 
 					<!-- Speaker notes -->
 					<div class="pptx-ng-presenter-notes">
 						<div class="pptx-ng-presenter-notes-head">
-							<div class="pptx-ng-presenter-label">Speaker notes</div>
+							<div class="pptx-ng-presenter-label">
+								{{ 'pptx.presenter.speakerNotes' | translate }}
+							</div>
 							<div class="pptx-ng-presenter-notes-size">
 								<button
 									type="button"
 									class="pptx-ng-presenter-iconbtn"
 									(click)="decreaseNotesFontSize()"
 									[disabled]="notesFontSize() <= NOTES_FONT_SIZE_MIN"
-									aria-label="Decrease font size"
-									title="Decrease font size"
+									[attr.aria-label]="'pptx.presenter.decreaseFontSize' | translate"
+									[title]="'pptx.presenter.decreaseFontSize' | translate"
 								>
 									&#x2212;
 								</button>
@@ -408,8 +425,8 @@ const CLOCK_TICK_MS = 1000;
 									class="pptx-ng-presenter-iconbtn"
 									(click)="increaseNotesFontSize()"
 									[disabled]="notesFontSize() >= NOTES_FONT_SIZE_MAX"
-									aria-label="Increase font size"
-									title="Increase font size"
+									[attr.aria-label]="'pptx.presenter.increaseFontSize' | translate"
+									[title]="'pptx.presenter.increaseFontSize' | translate"
 								>
 									&#x2b;
 								</button>
@@ -427,7 +444,9 @@ const CLOCK_TICK_MS = 1000;
 							} @else if (notes().hasAnyNotes) {
 								{{ notes().plainText }}
 							} @else {
-								<span class="pptx-ng-presenter-notes-empty">No notes for this slide.</span>
+								<span class="pptx-ng-presenter-notes-empty">
+									{{ 'pptx.presenter.noNotes' | translate }}
+								</span>
 							}
 						</div>
 					</div>
@@ -441,12 +460,12 @@ const CLOCK_TICK_MS = 1000;
 				[attr.aria-valuenow]="progressValue()"
 				aria-valuemin="0"
 				aria-valuemax="100"
-				aria-label="Presentation timer"
+				[attr.aria-label]="'pptx.presenter.timerProgress' | translate"
 			>
 				<div class="pptx-ng-presenter-progress-fill" [style.width.%]="timerPercent()"></div>
 			</div>
 		} @else {
-			<div class="pptx-ng-presenter-empty">No slides to present.</div>
+			<div class="pptx-ng-presenter-empty">{{ 'pptx.presenter.noSlides' | translate }}</div>
 		}
 	`,
 })

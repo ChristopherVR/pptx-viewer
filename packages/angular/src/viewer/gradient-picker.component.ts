@@ -18,6 +18,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
 import {
@@ -32,29 +33,34 @@ import type { GradientState, GradientStop } from './gradient-picker-helpers';
 @Component({
 	selector: 'pptx-gradient-picker',
 	standalone: true,
+	imports: [TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
 		<div class="pptx-ng-grad">
-			<h4 class="pptx-ng-grad__heading">Gradient Fill</h4>
+			<h4 class="pptx-ng-grad__heading">{{ 'pptx.gradient.heading' | translate }}</h4>
 
 			<!-- ── Type ────────────────────────────────────────────────── -->
 			<div class="pptx-ng-grad__row">
-				<label class="pptx-ng-grad__label" for="grad-type">Type</label>
+				<label class="pptx-ng-grad__label" for="grad-type">{{
+					'pptx.gradient.type' | translate
+				}}</label>
 				<select
 					id="grad-type"
 					class="pptx-ng-grad__select"
 					[value]="state().type"
 					(change)="onTypeChange($event)"
 				>
-					<option value="linear">Linear</option>
-					<option value="radial">Radial</option>
+					<option value="linear">{{ 'pptx.gradient.linear' | translate }}</option>
+					<option value="radial">{{ 'pptx.gradient.radial' | translate }}</option>
 				</select>
 			</div>
 
 			<!-- ── Angle (linear only) ──────────────────────────────────── -->
 			@if (state().type === 'linear') {
 				<div class="pptx-ng-grad__row">
-					<label class="pptx-ng-grad__label" for="grad-angle">Angle°</label>
+					<label class="pptx-ng-grad__label" for="grad-angle">{{
+						'pptx.gradient.angle' | translate
+					}}</label>
 					<input
 						id="grad-angle"
 						class="pptx-ng-grad__input pptx-ng-grad__input--number"
@@ -81,7 +87,7 @@ import type { GradientState, GradientStop } from './gradient-picker-helpers';
 			<div class="pptx-ng-grad__preview" [style.background]="previewCss()" aria-hidden="true"></div>
 
 			<!-- ── Stops ────────────────────────────────────────────────── -->
-			<div class="pptx-ng-grad__stops-heading">Stops</div>
+			<div class="pptx-ng-grad__stops-heading">{{ 'pptx.gradient.stops' | translate }}</div>
 			@for (stop of state().stops; track $index) {
 				<div class="pptx-ng-grad__stop-row">
 					<span class="pptx-ng-grad__stop-idx">{{ $index + 1 }}</span>
@@ -93,7 +99,9 @@ import type { GradientState, GradientStop } from './gradient-picker-helpers';
 						(change)="onStopColorChange($event, $index)"
 					/>
 
-					<label class="pptx-ng-grad__label" [for]="'grad-stop-pos-' + $index">Pos</label>
+					<label class="pptx-ng-grad__label" [for]="'grad-stop-pos-' + $index">{{
+						'pptx.gradient.position' | translate
+					}}</label>
 					<input
 						[id]="'grad-stop-pos-' + $index"
 						class="pptx-ng-grad__input pptx-ng-grad__input--number"
@@ -122,7 +130,7 @@ import type { GradientState, GradientStop } from './gradient-picker-helpers';
 					<button
 						type="button"
 						class="pptx-ng-grad__btn pptx-ng-grad__btn--remove"
-						title="Remove stop"
+						[title]="'pptx.gradient.removeStop' | translate"
 						(click)="onRemoveStop($index)"
 					>
 						×
@@ -132,7 +140,7 @@ import type { GradientState, GradientStop } from './gradient-picker-helpers';
 
 			<!-- ── Add stop ─────────────────────────────────────────────── -->
 			<button type="button" class="pptx-ng-grad__btn pptx-ng-grad__btn--add" (click)="onAddStop()">
-				Add Stop
+				{{ 'pptx.gradient.addStop' | translate }}
 			</button>
 		</div>
 	`,

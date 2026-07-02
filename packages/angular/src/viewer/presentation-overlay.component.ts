@@ -15,6 +15,7 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
@@ -74,6 +75,7 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 		PresentationTransitionOverlayComponent,
 		PresentationAnnotationOverlayComponent,
 		PresentationSubtitleBarComponent,
+		TranslatePipe,
 	],
 	providers: [AnimationPlaybackService, PresentationAnnotationsService, ZoomNavigationService],
 	styles: `
@@ -178,12 +180,16 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 			<pptx-presentation-subtitle-bar [visible]="subtitlesVisible()" />
 
 			<!-- Annotation tool toolbar (bottom-centre). -->
-			<div class="pptx-ng-presentation-tools" role="toolbar" aria-label="Annotation tools">
+			<div
+				class="pptx-ng-presentation-tools"
+				role="toolbar"
+				[attr.aria-label]="'pptx.presentation.annotationTools' | translate"
+			>
 				<button
 					type="button"
 					[class.is-active]="annotations.tool() === 'pen'"
 					(click)="selectTool('pen')"
-					aria-label="Pen"
+					[attr.aria-label]="'pptx.presentation.pen' | translate"
 				>
 					✎
 				</button>
@@ -191,7 +197,7 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 					type="button"
 					[class.is-active]="annotations.tool() === 'highlighter'"
 					(click)="selectTool('highlighter')"
-					aria-label="Highlighter"
+					[attr.aria-label]="'pptx.presentation.highlighter' | translate"
 				>
 					▭
 				</button>
@@ -199,7 +205,7 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 					type="button"
 					[class.is-active]="annotations.tool() === 'eraser'"
 					(click)="selectTool('eraser')"
-					aria-label="Eraser"
+					[attr.aria-label]="'pptx.presentation.eraser' | translate"
 				>
 					⌫
 				</button>
@@ -207,18 +213,22 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 					type="button"
 					[class.is-active]="annotations.tool() === 'laser'"
 					(click)="selectTool('laser')"
-					aria-label="Laser pointer"
+					[attr.aria-label]="'pptx.presentation.laserPointer' | translate"
 				>
 					•
 				</button>
-				<button type="button" (click)="annotations.clearAnnotations()" aria-label="Clear ink">
+				<button
+					type="button"
+					(click)="annotations.clearAnnotations()"
+					[attr.aria-label]="'pptx.presentation.clearAnnotations' | translate"
+				>
 					🗑
 				</button>
 				<button
 					type="button"
 					[class.is-active]="subtitlesVisible()"
 					(click)="toggleSubtitles()"
-					aria-label="Live captions"
+					[attr.aria-label]="'pptx.presentation.liveCaptions' | translate"
 				>
 					CC
 				</button>
@@ -231,7 +241,7 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 				[ngStyle]="closeButtonStyle"
 				(click)="onClose($event)"
 				(touchend)="onCloseTouch($event)"
-				aria-label="End presentation"
+				[attr.aria-label]="'pptx.presenter.endPresentation' | translate"
 			>
 				&#x2715;
 			</button>
@@ -243,7 +253,7 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 				[ngStyle]="prevButtonStyle"
 				(click)="onPrev($event)"
 				(touchend)="onPrevTouch($event)"
-				aria-label="Previous slide"
+				[attr.aria-label]="'pptx.presenter.previousSlide' | translate"
 			>
 				&#x2039;
 			</button>
@@ -253,7 +263,7 @@ import { ZoomNavigationService } from './zoom-navigation.service';
 				[ngStyle]="nextButtonStyle"
 				(click)="onNext($event)"
 				(touchend)="onNextTouch($event)"
-				aria-label="Next slide"
+				[attr.aria-label]="'pptx.presenter.nextSlide' | translate"
 			>
 				&#x203A;
 			</button>

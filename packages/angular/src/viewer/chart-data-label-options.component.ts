@@ -13,6 +13,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { ChartPptxElement, PptxChartDataLabelOptions } from 'pptx-viewer-core';
 
 import type { ChartDataLabelContentKey } from '../internal/shared';
@@ -25,10 +26,11 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 	selector: 'pptx-chart-data-label-options',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		@if (style().hasDataLabels) {
-			<section class="pptx-chart-card" aria-label="Data label options">
-				<h4 class="pptx-chart-card__heading">Data Labels</h4>
+			<section class="pptx-chart-card" [attr.aria-label]="'pptx.chart.dataLabels' | translate">
+				<h4 class="pptx-chart-card__heading">{{ 'pptx.chart.dataLabels' | translate }}</h4>
 				<div class="pptx-chart-card__group">
 					@for (opt of contentOptions; track opt.key) {
 						<label class="pptx-chart-card__check">
@@ -43,7 +45,7 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 					}
 
 					<label class="pptx-chart-card__row">
-						<span class="pptx-chart-card__label">Position</span>
+						<span class="pptx-chart-card__label">{{ 'pptx.chart.labelPosition' | translate }}</span>
 						<select
 							class="pptx-chart-card__input"
 							[disabled]="!canEdit()"

@@ -13,6 +13,7 @@
  * `elementChange`, which the inspector commits as one undoable history entry.
  */
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxTableCellStyle, PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 
 import { TableCellAdvancedFillComponent } from './table-cell-advanced-fill.component';
@@ -47,16 +48,19 @@ type NumKey =
 	selector: 'pptx-table-cell-formatting',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [TableCellAdvancedFillComponent],
+	imports: [TableCellAdvancedFillComponent, TranslatePipe],
 	template: `
 		@if (cell(); as c) {
 			<div class="pptx-tcf">
 				<div class="pptx-tcf__heading">
-					Cell R{{ sel()!.rowIndex + 1 }} · C{{ sel()!.columnIndex + 1 }}
+					{{
+						'pptx.table.cell'
+							| translate: { row: sel()!.rowIndex + 1, col: sel()!.columnIndex + 1 }
+					}}
 				</div>
 
 				<label class="pptx-tcf__field">
-					<span class="pptx-tcf__lbl">Font size</span>
+					<span class="pptx-tcf__lbl">{{ 'pptx.table.fontSize' | translate }}</span>
 					<input
 						type="number"
 						class="pptx-tcf__num"
@@ -70,7 +74,7 @@ type NumKey =
 
 				<div class="pptx-tcf__grid2">
 					<label class="pptx-tcf__field">
-						<span class="pptx-tcf__lbl">Color</span>
+						<span class="pptx-tcf__lbl">{{ 'pptx.table.color' | translate }}</span>
 						<input
 							type="color"
 							class="pptx-tcf__color"
@@ -80,7 +84,7 @@ type NumKey =
 						/>
 					</label>
 					<label class="pptx-tcf__field">
-						<span class="pptx-tcf__lbl">Fill</span>
+						<span class="pptx-tcf__lbl">{{ 'pptx.table.background' | translate }}</span>
 						<input
 							type="color"
 							class="pptx-tcf__color"
@@ -139,11 +143,11 @@ type NumKey =
 					}
 				</div>
 
-				<span class="pptx-tcf__lbl">Cell borders</span>
+				<span class="pptx-tcf__lbl">{{ 'pptx.table.cellBorders' | translate }}</span>
 				<div class="pptx-tcf__grid2">
 					@for (edge of borderEdges; track edge.label) {
 						<div class="pptx-tcf__field">
-							<span class="pptx-tcf__lbl">{{ edge.label }}</span>
+							<span class="pptx-tcf__lbl">{{ edge.label | translate }}</span>
 							<input
 								type="color"
 								class="pptx-tcf__color"
@@ -166,13 +170,13 @@ type NumKey =
 
 				<div class="pptx-tcf__btns">
 					<button type="button" class="pptx-tcf__btn" [disabled]="!canEdit()" (click)="onMergeRight()">
-						Merge →
+						{{ 'pptx.table.mergeRight' | translate }}
 					</button>
 					<button type="button" class="pptx-tcf__btn" [disabled]="!canEdit()" (click)="onMergeDown()">
-						Merge ↓
+						{{ 'pptx.table.mergeDown' | translate }}
 					</button>
 					<button type="button" class="pptx-tcf__btn" [disabled]="!canEdit()" (click)="onSplit()">
-						Split
+						{{ 'pptx.table.split' | translate }}
 					</button>
 					@if (hasRange()) {
 						<button
@@ -181,7 +185,7 @@ type NumKey =
 							[disabled]="!canEdit()"
 							(click)="onMergeRange()"
 						>
-							Merge selected
+							{{ 'pptx.table.mergeSelected' | translate }}
 						</button>
 					}
 				</div>
@@ -296,10 +300,14 @@ export class TableCellFormattingComponent {
 		colorKey: 'borderTopColor' | 'borderBottomColor' | 'borderLeftColor' | 'borderRightColor';
 		widthKey: 'borderTopWidth' | 'borderBottomWidth' | 'borderLeftWidth' | 'borderRightWidth';
 	}> = [
-		{ label: 'Top', colorKey: 'borderTopColor', widthKey: 'borderTopWidth' },
-		{ label: 'Bottom', colorKey: 'borderBottomColor', widthKey: 'borderBottomWidth' },
-		{ label: 'Left', colorKey: 'borderLeftColor', widthKey: 'borderLeftWidth' },
-		{ label: 'Right', colorKey: 'borderRightColor', widthKey: 'borderRightWidth' },
+		{ label: 'pptx.table.borderTop', colorKey: 'borderTopColor', widthKey: 'borderTopWidth' },
+		{
+			label: 'pptx.table.borderBottom',
+			colorKey: 'borderBottomColor',
+			widthKey: 'borderBottomWidth',
+		},
+		{ label: 'pptx.table.borderLeft', colorKey: 'borderLeftColor', widthKey: 'borderLeftWidth' },
+		{ label: 'pptx.table.borderRight', colorKey: 'borderRightColor', widthKey: 'borderRightWidth' },
 	];
 
 	/** The selection when it targets THIS element, else null. */

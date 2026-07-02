@@ -12,7 +12,8 @@
  * fallback copy.
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { ModalDialogComponent } from './modal-dialog.component';
 
@@ -20,33 +21,39 @@ import { ModalDialogComponent } from './modal-dialog.component';
 	selector: 'pptx-signature-stripped-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent],
+	imports: [ModalDialogComponent, TranslatePipe],
 	template: `
 		<pptx-modal-dialog
 			[open]="open()"
-			title="&#9888; Signatures Will Be Removed"
+			[title]="'pptx.digitalSignatures.strippedTitle' | translate"
 			(close)="cancel.emit()"
 		>
 			<div class="pptx-ng-sig">
 				<div class="pptx-ng-sig-callout">
 					<span class="pptx-ng-sig-icon">&#9888;</span>
 					<div class="pptx-ng-sig-text">
-						<p class="pptx-ng-sig-message">{{ message() }}</p>
+						<p class="pptx-ng-sig-message">
+							{{
+								'pptx.digitalSignatures.strippedMessage' | translate: { count: signatureCount() }
+							}}
+						</p>
 						<p class="pptx-ng-sig-warning">
-							This change cannot be undone. The signatures will not be restored when you save.
+							{{ 'pptx.digitalSignatures.editWarning' | translate }}
 						</p>
 					</div>
 				</div>
 			</div>
 
 			<div footer>
-				<button type="button" class="pptx-ng-sig-btn" (click)="cancel.emit()">Cancel</button>
+				<button type="button" class="pptx-ng-sig-btn" (click)="cancel.emit()">
+					{{ 'common.cancel' | translate }}
+				</button>
 				<button
 					type="button"
 					class="pptx-ng-sig-btn pptx-ng-sig-btn-danger"
 					(click)="confirm.emit()"
 				>
-					Remove and Continue
+					{{ 'pptx.digitalSignatures.strippedConfirm' | translate }}
 				</button>
 			</div>
 		</pptx-modal-dialog>
@@ -134,10 +141,4 @@ export class SignatureStrippedDialogComponent {
 
 	/** Fired when the user backs out (also on dismiss). */
 	readonly cancel = output<void>();
-
-	readonly message = computed(() => {
-		const count = this.signatureCount();
-		const noun = count === 1 ? 'digital signature' : 'digital signatures';
-		return `Editing this presentation will invalidate and remove ${count} ${noun}.`;
-	});
 }

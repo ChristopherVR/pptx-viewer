@@ -31,6 +31,7 @@ import {
 	output,
 	signal,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 /** Drag-down distance in pixels that triggers dismissal. */
 const DISMISS_THRESHOLD = 120;
@@ -39,20 +40,20 @@ const DISMISS_THRESHOLD = 120;
 	selector: 'pptx-mobile-sheet',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle],
+	imports: [NgStyle, TranslatePipe],
 	template: `
 		@if (open()) {
 			<div
 				class="pptx-ng-msheet-root"
 				role="dialog"
 				aria-modal="true"
-				[attr.aria-label]="title() || 'Sheet'"
+				[attr.aria-label]="title() || ('pptx.mobileSheet.ariaLabel' | translate)"
 			>
 				<!-- Backdrop -->
 				<button
 					type="button"
 					class="pptx-ng-msheet-backdrop"
-					aria-label="Close"
+					[attr.aria-label]="'pptx.mobileSheet.close' | translate"
 					(click)="closed.emit()"
 				></button>
 

@@ -10,6 +10,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import type { CanvasSize, SlideDiff } from '../internal/shared';
 import { SlideCanvasComponent } from './slide-canvas.component';
@@ -22,12 +23,12 @@ const THUMB_W = 180;
 	selector: 'pptx-slide-diff-thumbnails',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [SlideCanvasComponent],
+	imports: [SlideCanvasComponent, TranslatePipe],
 	template: `
 		<div class="pptx-ng-diff-thumbs">
 			@if (diff().baseSlide; as base) {
 				<div class="pptx-ng-diff-thumb-col">
-					<div class="pptx-ng-diff-thumb-label">Current</div>
+					<div class="pptx-ng-diff-thumb-label">{{ 'pptx.compare.current' | translate }}</div>
 					<div
 						class="pptx-ng-diff-thumb-clip"
 						[style.width.px]="THUMB_W"
@@ -48,7 +49,7 @@ const THUMB_W = 180;
 			}
 			@if (diff().compareSlide; as incoming) {
 				<div class="pptx-ng-diff-thumb-col">
-					<div class="pptx-ng-diff-thumb-label">Incoming</div>
+					<div class="pptx-ng-diff-thumb-label">{{ 'pptx.compare.incoming' | translate }}</div>
 					<div
 						class="pptx-ng-diff-thumb-clip"
 						[attr.data-status]="diff().status"

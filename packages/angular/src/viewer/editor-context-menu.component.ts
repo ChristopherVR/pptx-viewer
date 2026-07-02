@@ -36,6 +36,7 @@ import {
 	input,
 	output,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { TablePptxElement } from 'pptx-viewer-core';
 
 import { EditorStateService } from './editor-state.service';
@@ -55,9 +56,14 @@ import { TableSelectionService } from './table-selection.service';
 @Component({
 	selector: 'pptx-editor-context-menu',
 	standalone: true,
+	imports: [TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
-		<ul class="pptx-ctx__menu" role="menu" aria-label="Context menu">
+		<ul
+			class="pptx-ctx__menu"
+			role="menu"
+			[attr.aria-label]="'pptx.contextMenu.ariaLabel' | translate"
+		>
 			<!-- ── Clipboard ─────────────────────────────────────────────────────── -->
 			<li role="none">
 				<button
@@ -67,7 +73,7 @@ import { TableSelectionService } from './table-selection.service';
 					[disabled]="!editor.hasSelection()"
 					(click)="onCut()"
 				>
-					Cut
+					{{ 'pptx.contextMenu.cut' | translate }}
 				</button>
 			</li>
 			<li role="none">
@@ -78,7 +84,7 @@ import { TableSelectionService } from './table-selection.service';
 					[disabled]="!editor.hasSelection()"
 					(click)="onCopy()"
 				>
-					Copy
+					{{ 'pptx.contextMenu.copy' | translate }}
 				</button>
 			</li>
 			<li role="none">
@@ -89,7 +95,7 @@ import { TableSelectionService } from './table-selection.service';
 					[disabled]="!editor.hasClipboard()"
 					(click)="onPaste()"
 				>
-					Paste
+					{{ 'pptx.contextMenu.paste' | translate }}
 				</button>
 			</li>
 
@@ -105,7 +111,7 @@ import { TableSelectionService } from './table-selection.service';
 					[disabled]="!editor.hasSelection()"
 					(click)="onDuplicate()"
 				>
-					Duplicate
+					{{ 'pptx.contextMenu.duplicate' | translate }}
 				</button>
 			</li>
 			<li role="none">
@@ -116,7 +122,7 @@ import { TableSelectionService } from './table-selection.service';
 					[disabled]="!editor.hasSelection()"
 					(click)="onDelete()"
 				>
-					Delete
+					{{ 'pptx.contextMenu.delete' | translate }}
 				</button>
 			</li>
 
@@ -132,7 +138,7 @@ import { TableSelectionService } from './table-selection.service';
 					[disabled]="!editor.hasSelection()"
 					(click)="onBringToFront()"
 				>
-					Bring to Front
+					{{ 'pptx.contextMenu.bringToFront' | translate }}
 				</button>
 			</li>
 			<li role="none">
@@ -143,7 +149,7 @@ import { TableSelectionService } from './table-selection.service';
 					[disabled]="!editor.hasSelection()"
 					(click)="onSendToBack()"
 				>
-					Send to Back
+					{{ 'pptx.contextMenu.sendToBack' | translate }}
 				</button>
 			</li>
 			<li role="none">
@@ -154,7 +160,7 @@ import { TableSelectionService } from './table-selection.service';
 					[disabled]="!editor.hasSelection()"
 					(click)="onBringForward()"
 				>
-					Bring Forward
+					{{ 'pptx.contextMenu.bringForward' | translate }}
 				</button>
 			</li>
 			<li role="none">
@@ -165,7 +171,7 @@ import { TableSelectionService } from './table-selection.service';
 					[disabled]="!editor.hasSelection()"
 					(click)="onSendBackward()"
 				>
-					Send Backward
+					{{ 'pptx.contextMenu.sendBackward' | translate }}
 				</button>
 			</li>
 
@@ -174,22 +180,22 @@ import { TableSelectionService } from './table-selection.service';
 				<li role="separator" class="pptx-ctx__divider"></li>
 				<li role="none">
 					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onInsertRowAbove()">
-						Insert Row Above
+						{{ 'pptx.contextMenu.insertRowAbove' | translate }}
 					</button>
 				</li>
 				<li role="none">
 					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onInsertRowBelow()">
-						Insert Row Below
+						{{ 'pptx.contextMenu.insertRowBelow' | translate }}
 					</button>
 				</li>
 				<li role="none">
 					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onInsertColLeft()">
-						Insert Column Left
+						{{ 'pptx.contextMenu.insertColumnLeft' | translate }}
 					</button>
 				</li>
 				<li role="none">
 					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onInsertColRight()">
-						Insert Column Right
+						{{ 'pptx.contextMenu.insertColumnRight' | translate }}
 					</button>
 				</li>
 				<li role="none">
@@ -199,7 +205,7 @@ import { TableSelectionService } from './table-selection.service';
 						role="menuitem"
 						(click)="onDeleteRow()"
 					>
-						Delete Row
+						{{ 'pptx.contextMenu.deleteRow' | translate }}
 					</button>
 				</li>
 				<li role="none">
@@ -209,7 +215,7 @@ import { TableSelectionService } from './table-selection.service';
 						role="menuitem"
 						(click)="onDeleteColumn()"
 					>
-						Delete Column
+						{{ 'pptx.contextMenu.deleteColumn' | translate }}
 					</button>
 				</li>
 				<li role="separator" class="pptx-ctx__divider"></li>
@@ -221,23 +227,23 @@ import { TableSelectionService } from './table-selection.service';
 							role="menuitem"
 							(click)="onMergeSelected()"
 						>
-							Merge Selected Cells
+							{{ 'pptx.contextMenu.mergeSelectedCells' | translate }}
 						</button>
 					</li>
 				}
 				<li role="none">
 					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onMergeRight()">
-						Merge Right
+						{{ 'pptx.table.mergeRight' | translate }}
 					</button>
 				</li>
 				<li role="none">
 					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onMergeDown()">
-						Merge Down
+						{{ 'pptx.table.mergeDown' | translate }}
 					</button>
 				</li>
 				<li role="none">
 					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onSplitCell()">
-						Split Cell
+						{{ 'pptx.contextMenu.splitCell' | translate }}
 					</button>
 				</li>
 			}

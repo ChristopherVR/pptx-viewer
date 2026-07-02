@@ -15,6 +15,7 @@
  * through the parent (matching the ribbon's existing inline insert handlers).
  */
 import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 
 import { ACTION_BUTTON_PRESETS, buildActionButtonElement } from '../internal/shared';
@@ -53,10 +54,15 @@ function newFieldGuid(): string {
 	selector: 'pptx-ribbon-insert-fields',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		<!-- Action Buttons dropdown (hover-reveal, mirrors React/Vue) -->
 		<div class="group relative">
-			<button type="button" class="pptx-rb-pill" title="Insert action button">
+			<button
+				type="button"
+				class="pptx-rb-pill"
+				[title]="'pptx.ribbon.insertActionButton' | translate"
+			>
 				<svg
 					class="h-3.5 w-3.5"
 					viewBox="0 0 24 24"
@@ -69,7 +75,7 @@ function newFieldGuid(): string {
 					<rect x="3" y="3" width="18" height="18" rx="2" />
 					<path d="M13 7l4 5-4 5" />
 				</svg>
-				Action ▾
+				{{ 'pptx.ribbon.action' | translate }} ▾
 			</button>
 			<div class="absolute left-0 top-full z-50 hidden w-44 pt-1 group-hover:block">
 				<div class="rounded-lg border border-border bg-card py-1 shadow-2xl">
@@ -100,7 +106,7 @@ function newFieldGuid(): string {
 
 		<!-- Insert Field dropdown -->
 		<div class="group relative">
-			<button type="button" class="pptx-rb-pill" title="Insert field">
+			<button type="button" class="pptx-rb-pill" [title]="'pptx.field.insertField' | translate">
 				<svg
 					class="h-3.5 w-3.5"
 					viewBox="0 0 24 24"
@@ -113,7 +119,7 @@ function newFieldGuid(): string {
 					<path d="M4 7h16M4 12h10M4 17h12" />
 					<circle cx="19" cy="15" r="3" />
 				</svg>
-				Field ▾
+				{{ 'pptx.field.field' | translate }} ▾
 			</button>
 			<div class="absolute left-0 top-full z-50 hidden w-44 pt-1 group-hover:block">
 				<div class="rounded-lg border border-border bg-card py-1 shadow-2xl">
@@ -122,28 +128,28 @@ function newFieldGuid(): string {
 						class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
 						(click)="insertField('slidenum')"
 					>
-						Slide Number
+						{{ 'pptx.field.slideNumber' | translate }}
 					</button>
 					<button
 						type="button"
 						class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
 						(click)="openDatePicker()"
 					>
-						Date &amp; Time
+						{{ 'pptx.field.dateAndTime' | translate }}
 					</button>
 					<button
 						type="button"
 						class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
 						(click)="insertField('header')"
 					>
-						Header
+						{{ 'pptx.field.header' | translate }}
 					</button>
 					<button
 						type="button"
 						class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
 						(click)="insertField('footer')"
 					>
-						Footer
+						{{ 'pptx.field.footer' | translate }}
 					</button>
 				</div>
 			</div>
@@ -156,7 +162,9 @@ function newFieldGuid(): string {
 				(mousedown)="onBackdropMouseDown($event)"
 			>
 				<div class="w-72 space-y-3 rounded-lg border border-border bg-card p-4 shadow-2xl">
-					<div class="text-sm font-medium text-foreground">Date &amp; Time</div>
+					<div class="text-sm font-medium text-foreground">
+						{{ 'pptx.field.dateAndTime' | translate }}
+					</div>
 					<input
 						type="datetime-local"
 						class="w-full rounded border border-border bg-muted px-2.5 py-1.5 text-xs text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
@@ -164,7 +172,9 @@ function newFieldGuid(): string {
 						(input)="datePickerValue.set($any($event.target).value)"
 					/>
 					<div>
-						<label class="mb-1 block text-[11px] text-muted-foreground">Format</label>
+						<label class="mb-1 block text-[11px] text-muted-foreground">{{
+							'pptx.field.format' | translate
+						}}</label>
 						<select
 							class="w-full rounded border border-border bg-muted px-2.5 py-1.5 text-xs text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
 							[value]="dateFormat()"
@@ -183,14 +193,14 @@ function newFieldGuid(): string {
 							class="rounded border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
 							(click)="datePickerOpen.set(false)"
 						>
-							Cancel
+							{{ 'pptx.common.cancel' | translate }}
 						</button>
 						<button
 							type="button"
 							class="rounded bg-primary px-3 py-1.5 text-xs text-primary-foreground transition-colors hover:bg-primary/90"
 							(click)="confirmDatePicker()"
 						>
-							Insert
+							{{ 'pptx.common.insert' | translate }}
 						</button>
 					</div>
 				</div>

@@ -19,6 +19,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
 import {
@@ -43,6 +44,7 @@ import type { EffectsState } from './effects-helpers';
 @Component({
 	selector: 'pptx-effects-panel',
 	standalone: true,
+	imports: [TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
 		<div class="pptx-ng-fx">
@@ -55,11 +57,15 @@ import type { EffectsState } from './effects-helpers';
 						[checked]="state().outerShadow.enabled"
 						(change)="onOuterShadowToggle($event)"
 					/>
-					<span class="pptx-ng-fx__section-title">Outer Shadow</span>
+					<span class="pptx-ng-fx__section-title">{{
+						'pptx.effects.outerShadow' | translate
+					}}</span>
 				</label>
 				@if (state().outerShadow.enabled) {
 					<div class="pptx-ng-fx__fields" [attr.data-el-key]="elementKey()">
-						<label class="pptx-ng-fx__label" for="fx-os-color">Color</label>
+						<label class="pptx-ng-fx__label" for="fx-os-color">{{
+							'pptx.effects.color' | translate
+						}}</label>
 						<input
 							id="fx-os-color"
 							class="pptx-ng-fx__color"
@@ -67,7 +73,9 @@ import type { EffectsState } from './effects-helpers';
 							[value]="state().outerShadow.color"
 							(change)="onOuterShadowField('color', $event)"
 						/>
-						<label class="pptx-ng-fx__label" for="fx-os-opacity">Opacity</label>
+						<label class="pptx-ng-fx__label" for="fx-os-opacity">{{
+							'pptx.effects.opacity' | translate
+						}}</label>
 						<input
 							id="fx-os-opacity"
 							class="pptx-ng-fx__input pptx-ng-fx__input--number"
@@ -79,7 +87,9 @@ import type { EffectsState } from './effects-helpers';
 							[value]="state().outerShadow.opacity"
 							(change)="onOuterShadowField('opacity', $event)"
 						/>
-						<label class="pptx-ng-fx__label" for="fx-os-blur">Blur</label>
+						<label class="pptx-ng-fx__label" for="fx-os-blur">{{
+							'pptx.effects.blur' | translate
+						}}</label>
 						<input
 							id="fx-os-blur"
 							class="pptx-ng-fx__input pptx-ng-fx__input--number"
@@ -90,7 +100,9 @@ import type { EffectsState } from './effects-helpers';
 							[value]="state().outerShadow.blur"
 							(change)="onOuterShadowField('blur', $event)"
 						/>
-						<label class="pptx-ng-fx__label" for="fx-os-angle">Angle°</label>
+						<label class="pptx-ng-fx__label" for="fx-os-angle">{{
+							'pptx.effects.angle' | translate
+						}}</label>
 						<input
 							id="fx-os-angle"
 							class="pptx-ng-fx__input pptx-ng-fx__input--number"
@@ -101,7 +113,9 @@ import type { EffectsState } from './effects-helpers';
 							[value]="state().outerShadow.angle"
 							(change)="onOuterShadowField('angle', $event)"
 						/>
-						<label class="pptx-ng-fx__label" for="fx-os-dist">Dist</label>
+						<label class="pptx-ng-fx__label" for="fx-os-dist">{{
+							'pptx.effects.distance' | translate
+						}}</label>
 						<input
 							id="fx-os-dist"
 							class="pptx-ng-fx__input pptx-ng-fx__input--number"
@@ -126,11 +140,15 @@ import type { EffectsState } from './effects-helpers';
 						[checked]="state().innerShadow.enabled"
 						(change)="onInnerShadowToggle($event)"
 					/>
-					<span class="pptx-ng-fx__section-title">Inner Shadow</span>
+					<span class="pptx-ng-fx__section-title">{{
+						'pptx.effects.innerShadow' | translate
+					}}</span>
 				</label>
 				@if (state().innerShadow.enabled) {
 					<div class="pptx-ng-fx__fields" [attr.data-el-key]="elementKey()">
-						<label class="pptx-ng-fx__label" for="fx-is-color">Color</label>
+						<label class="pptx-ng-fx__label" for="fx-is-color">{{
+							'pptx.effects.color' | translate
+						}}</label>
 						<input
 							id="fx-is-color"
 							class="pptx-ng-fx__color"
@@ -138,7 +156,9 @@ import type { EffectsState } from './effects-helpers';
 							[value]="state().innerShadow.color"
 							(change)="onInnerShadowField('color', $event)"
 						/>
-						<label class="pptx-ng-fx__label" for="fx-is-opacity">Opacity</label>
+						<label class="pptx-ng-fx__label" for="fx-is-opacity">{{
+							'pptx.effects.opacity' | translate
+						}}</label>
 						<input
 							id="fx-is-opacity"
 							class="pptx-ng-fx__input pptx-ng-fx__input--number"
@@ -150,7 +170,9 @@ import type { EffectsState } from './effects-helpers';
 							[value]="state().innerShadow.opacity"
 							(change)="onInnerShadowField('opacity', $event)"
 						/>
-						<label class="pptx-ng-fx__label" for="fx-is-blur">Blur</label>
+						<label class="pptx-ng-fx__label" for="fx-is-blur">{{
+							'pptx.effects.blur' | translate
+						}}</label>
 						<input
 							id="fx-is-blur"
 							class="pptx-ng-fx__input pptx-ng-fx__input--number"
@@ -161,7 +183,9 @@ import type { EffectsState } from './effects-helpers';
 							[value]="state().innerShadow.blur"
 							(change)="onInnerShadowField('blur', $event)"
 						/>
-						<label class="pptx-ng-fx__label" for="fx-is-ox">X</label>
+						<label class="pptx-ng-fx__label" for="fx-is-ox">{{
+							'pptx.effects.offsetX' | translate
+						}}</label>
 						<input
 							id="fx-is-ox"
 							class="pptx-ng-fx__input pptx-ng-fx__input--number"
@@ -172,7 +196,9 @@ import type { EffectsState } from './effects-helpers';
 							[value]="state().innerShadow.offsetX"
 							(change)="onInnerShadowField('offsetX', $event)"
 						/>
-						<label class="pptx-ng-fx__label" for="fx-is-oy">Y</label>
+						<label class="pptx-ng-fx__label" for="fx-is-oy">{{
+							'pptx.effects.offsetY' | translate
+						}}</label>
 						<input
 							id="fx-is-oy"
 							class="pptx-ng-fx__input pptx-ng-fx__input--number"
@@ -196,11 +222,13 @@ import type { EffectsState } from './effects-helpers';
 						[checked]="state().glow.enabled"
 						(change)="onGlowToggle($event)"
 					/>
-					<span class="pptx-ng-fx__section-title">Glow</span>
+					<span class="pptx-ng-fx__section-title">{{ 'pptx.effects.glow' | translate }}</span>
 				</label>
 				@if (state().glow.enabled) {
 					<div class="pptx-ng-fx__fields" [attr.data-el-key]="elementKey()">
-						<label class="pptx-ng-fx__label" for="fx-glow-color">Color</label>
+						<label class="pptx-ng-fx__label" for="fx-glow-color">{{
+							'pptx.effects.color' | translate
+						}}</label>
 						<input
 							id="fx-glow-color"
 							class="pptx-ng-fx__color"
@@ -208,7 +236,9 @@ import type { EffectsState } from './effects-helpers';
 							[value]="state().glow.color"
 							(change)="onGlowField('color', $event)"
 						/>
-						<label class="pptx-ng-fx__label" for="fx-glow-radius">Size</label>
+						<label class="pptx-ng-fx__label" for="fx-glow-radius">{{
+							'pptx.effects.size' | translate
+						}}</label>
 						<input
 							id="fx-glow-radius"
 							class="pptx-ng-fx__input pptx-ng-fx__input--number"
@@ -219,7 +249,9 @@ import type { EffectsState } from './effects-helpers';
 							[value]="state().glow.radius"
 							(change)="onGlowField('radius', $event)"
 						/>
-						<label class="pptx-ng-fx__label" for="fx-glow-opacity">Opacity</label>
+						<label class="pptx-ng-fx__label" for="fx-glow-opacity">{{
+							'pptx.effects.opacity' | translate
+						}}</label>
 						<input
 							id="fx-glow-opacity"
 							class="pptx-ng-fx__input pptx-ng-fx__input--number"
@@ -244,11 +276,13 @@ import type { EffectsState } from './effects-helpers';
 						[checked]="state().reflection.enabled"
 						(change)="onReflectionToggle($event)"
 					/>
-					<span class="pptx-ng-fx__section-title">Reflection</span>
+					<span class="pptx-ng-fx__section-title">{{ 'pptx.effects.reflection' | translate }}</span>
 				</label>
 				@if (state().reflection.enabled) {
 					<div class="pptx-ng-fx__fields" [attr.data-el-key]="elementKey()">
-						<label class="pptx-ng-fx__label" for="fx-ref-blur">Blur</label>
+						<label class="pptx-ng-fx__label" for="fx-ref-blur">{{
+							'pptx.effects.blur' | translate
+						}}</label>
 						<input
 							id="fx-ref-blur"
 							class="pptx-ng-fx__input pptx-ng-fx__input--number"
@@ -260,7 +294,9 @@ import type { EffectsState } from './effects-helpers';
 							[value]="state().reflection.blurRadius"
 							(change)="onReflectionField('blurRadius', $event)"
 						/>
-						<label class="pptx-ng-fx__label" for="fx-ref-so">Start%</label>
+						<label class="pptx-ng-fx__label" for="fx-ref-so">{{
+							'pptx.effects.startPercent' | translate
+						}}</label>
 						<input
 							id="fx-ref-so"
 							class="pptx-ng-fx__input pptx-ng-fx__input--number"
@@ -271,7 +307,9 @@ import type { EffectsState } from './effects-helpers';
 							[value]="state().reflection.startOpacity"
 							(change)="onReflectionField('startOpacity', $event)"
 						/>
-						<label class="pptx-ng-fx__label" for="fx-ref-eo">End%</label>
+						<label class="pptx-ng-fx__label" for="fx-ref-eo">{{
+							'pptx.effects.endPercent' | translate
+						}}</label>
 						<input
 							id="fx-ref-eo"
 							class="pptx-ng-fx__input pptx-ng-fx__input--number"
@@ -282,7 +320,9 @@ import type { EffectsState } from './effects-helpers';
 							[value]="state().reflection.endOpacity"
 							(change)="onReflectionField('endOpacity', $event)"
 						/>
-						<label class="pptx-ng-fx__label" for="fx-ref-dist">Dist</label>
+						<label class="pptx-ng-fx__label" for="fx-ref-dist">{{
+							'pptx.effects.distance' | translate
+						}}</label>
 						<input
 							id="fx-ref-dist"
 							class="pptx-ng-fx__input pptx-ng-fx__input--number"
@@ -293,7 +333,9 @@ import type { EffectsState } from './effects-helpers';
 							[value]="state().reflection.distance"
 							(change)="onReflectionField('distance', $event)"
 						/>
-						<label class="pptx-ng-fx__label" for="fx-ref-dir">Dir°</label>
+						<label class="pptx-ng-fx__label" for="fx-ref-dir">{{
+							'pptx.effects.direction' | translate
+						}}</label>
 						<input
 							id="fx-ref-dir"
 							class="pptx-ng-fx__input pptx-ng-fx__input--number"
@@ -317,11 +359,13 @@ import type { EffectsState } from './effects-helpers';
 						[checked]="state().softEdge.enabled"
 						(change)="onSoftEdgeToggle($event)"
 					/>
-					<span class="pptx-ng-fx__section-title">Soft Edge</span>
+					<span class="pptx-ng-fx__section-title">{{ 'pptx.effects.softEdge' | translate }}</span>
 				</label>
 				@if (state().softEdge.enabled) {
 					<div class="pptx-ng-fx__fields" [attr.data-el-key]="elementKey()">
-						<label class="pptx-ng-fx__label" for="fx-se-radius">Radius</label>
+						<label class="pptx-ng-fx__label" for="fx-se-radius">{{
+							'pptx.effects.radius' | translate
+						}}</label>
 						<input
 							id="fx-se-radius"
 							class="pptx-ng-fx__input pptx-ng-fx__input--number"

@@ -31,11 +31,13 @@
  */
 
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 @Component({
 	selector: 'pptx-mobile-toolbar',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		<div class="pptx-ng-mtoolbar" role="toolbar" aria-label="Toolbar">
 			@if (canEdit()) {
@@ -44,8 +46,8 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 					class="pptx-ng-mtoolbar-btn"
 					[class.is-active]="menuOpen()"
 					[attr.aria-pressed]="menuOpen() ? true : null"
-					aria-label="Menu"
-					title="Menu"
+					[attr.aria-label]="'pptx.mobileToolbar.menu' | translate"
+					[title]="'pptx.mobileToolbar.menu' | translate"
 					(click)="toggleMenu.emit()"
 				>
 					<svg
@@ -66,8 +68,8 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 				<button
 					type="button"
 					class="pptx-ng-mtoolbar-btn"
-					aria-label="Undo"
-					title="Undo"
+					[attr.aria-label]="'pptx.toolbar.undo' | translate"
+					[title]="'pptx.toolbar.undo' | translate"
 					[disabled]="!canUndo()"
 					(click)="undo.emit()"
 				>
@@ -89,8 +91,8 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 				<button
 					type="button"
 					class="pptx-ng-mtoolbar-btn"
-					aria-label="Redo"
-					title="Redo"
+					[attr.aria-label]="'pptx.toolbar.redo' | translate"
+					[title]="'pptx.toolbar.redo' | translate"
 					[disabled]="!canRedo()"
 					(click)="redo.emit()"
 				>
@@ -120,8 +122,8 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 			<button
 				type="button"
 				class="pptx-ng-mtoolbar-btn"
-				aria-label="Save"
-				title="Save"
+				[attr.aria-label]="'pptx.toolbar.save' | translate"
+				[title]="'pptx.toolbar.save' | translate"
 				(click)="save.emit()"
 			>
 				<svg
@@ -142,8 +144,8 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 			<button
 				type="button"
 				class="pptx-ng-mtoolbar-btn pptx-ng-mtoolbar-present"
-				aria-label="Present"
-				title="Present"
+				[attr.aria-label]="'pptx.toolbar.present' | translate"
+				[title]="'pptx.toolbar.present' | translate"
 				[disabled]="!canPresent()"
 				(click)="present.emit()"
 			>

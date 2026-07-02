@@ -12,6 +12,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { ModalDialogComponent } from './modal-dialog.component';
 
@@ -19,24 +20,29 @@ import { ModalDialogComponent } from './modal-dialog.component';
 	selector: 'pptx-encrypted-file-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent],
+	imports: [ModalDialogComponent, TranslatePipe],
 	template: `
-		<pptx-modal-dialog [open]="open()" title="Encrypted File" (close)="close.emit()">
+		<pptx-modal-dialog
+			[open]="open()"
+			[title]="'pptx.encryptedFile.title' | translate"
+			(close)="close.emit()"
+		>
 			<div class="pptx-ng-enc">
 				<div class="pptx-ng-enc-callout">
 					<span class="pptx-ng-enc-icon">&#128274;</span>
 					<div class="pptx-ng-enc-text">
-						<p class="pptx-ng-enc-message">This presentation is encrypted and cannot be opened.</p>
+						<p class="pptx-ng-enc-message">{{ 'pptx.encryptedFile.message' | translate }}</p>
 						<p class="pptx-ng-enc-instructions">
-							Please open the file in PowerPoint, remove the password protection, and save an
-							unencrypted copy before loading it here.
+							{{ 'pptx.encryptedFile.instructions' | translate }}
 						</p>
 					</div>
 				</div>
 			</div>
 
 			<div footer>
-				<button type="button" class="pptx-ng-enc-btn" (click)="close.emit()">Close</button>
+				<button type="button" class="pptx-ng-enc-btn" (click)="close.emit()">
+					{{ 'pptx.encryptedFile.close' | translate }}
+				</button>
 			</div>
 		</pptx-modal-dialog>
 	`,

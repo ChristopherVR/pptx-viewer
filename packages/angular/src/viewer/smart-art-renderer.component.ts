@@ -12,6 +12,7 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 import { setSmartArtNodeStyle } from 'pptx-viewer-core';
 
@@ -72,7 +73,7 @@ import {
 	selector: 'pptx-smart-art-renderer',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle],
+	imports: [NgStyle, TranslatePipe],
 	template: `
 		<div
 			class="pptx-ng-element pptx-ng-smartart"
@@ -89,7 +90,9 @@ import {
 				(mouseleave)="onMouseLeave()"
 			>
 				@if (isEmpty()) {
-					<div class="pptx-ng-smartart-placeholder">SmartArt</div>
+					<div class="pptx-ng-smartart-placeholder">
+						{{ 'pptx.smartart.placeholder' | translate }}
+					</div>
 				} @else if (hasDrawingShapes()) {
 					<svg
 						class="pptx-ng-smartart-svg"
@@ -248,7 +251,9 @@ import {
 						}
 					</svg>
 				} @else {
-					<div class="pptx-ng-smartart-placeholder">SmartArt</div>
+					<div class="pptx-ng-smartart-placeholder">
+						{{ 'pptx.smartart.placeholder' | translate }}
+					</div>
 				}
 
 				@if (canEditNodes() && hoveredNodeId() && !editState() && styleBarStyle()) {
@@ -262,7 +267,7 @@ import {
 							<button
 								type="button"
 								class="pptx-ng-smartart-swatch"
-								[attr.aria-label]="'Set fill to ' + color"
+								[attr.aria-label]="'pptx.smartart.setFillTo' | translate: { color: color }"
 								[style.background]="color"
 								(click)="handleChangeNodeStyle(hoveredNodeId()!, color)"
 							></button>
@@ -404,6 +409,7 @@ export class SmartArtRendererComponent {
 	 */
 	private readonly editor = inject(EditorStateService, { optional: true });
 	private readonly injector = inject(Injector);
+	private readonly translate = inject(TranslateService);
 
 	/** The node currently being edited on the canvas, or null. */
 	protected readonly editState = signal<InlineEditState | null>(null);
@@ -659,7 +665,9 @@ export class SmartArtRendererComponent {
 		} as Partial<PptxElement>);
 		// Announce the commit to assistive technology via the polite live region.
 		this.liveMessage.set(
-			text.trim().length > 0 ? `Node updated to ${text.trim()}` : 'Node cleared',
+			text.trim().length > 0
+				? this.translate.instant('pptx.smartart.nodeUpdated', { text: text.trim() })
+				: this.translate.instant('pptx.smartart.nodeCleared'),
 		);
 	}
 

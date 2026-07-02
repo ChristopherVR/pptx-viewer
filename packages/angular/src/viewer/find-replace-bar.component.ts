@@ -39,6 +39,7 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 // ---------------------------------------------------------------------------
 // Event payload types
@@ -64,17 +65,22 @@ export interface ReplaceEvent {
 @Component({
 	selector: 'pptx-find-replace-bar',
 	standalone: true,
+	imports: [TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
-		<div class="pptx-frb" role="dialog" aria-label="Find and replace">
+		<div
+			class="pptx-frb"
+			role="dialog"
+			[attr.aria-label]="'pptx.findReplace.ariaLabel' | translate"
+		>
 			<!-- ── Find row ───────────────────────────────────────────────── -->
 			<div class="pptx-frb__row">
 				<input
 					#findInput
 					class="pptx-frb__input"
 					type="search"
-					placeholder="Find…"
-					aria-label="Find query"
+					[placeholder]="'pptx.findReplace.findPlaceholder' | translate"
+					[attr.aria-label]="'pptx.findReplace.searchText' | translate"
 					[value]="query()"
 					(input)="onQueryInput($event)"
 					(keydown.enter)="navigate.emit(1)"
@@ -85,10 +91,10 @@ export interface ReplaceEvent {
 					type="button"
 					class="pptx-frb__btn"
 					[class.pptx-frb__btn--active]="matchCase()"
-					aria-label="Match case"
+					[attr.aria-label]="'pptx.findReplace.matchCase' | translate"
 					[attr.aria-pressed]="matchCase()"
 					(click)="toggleCase()"
-					title="Match case"
+					[title]="'pptx.findReplace.matchCase' | translate"
 				>
 					Aa
 				</button>
@@ -97,9 +103,12 @@ export interface ReplaceEvent {
 				<span class="pptx-frb__count" aria-live="polite" aria-atomic="true">
 					@if (query().trim()) {
 						@if (matchCount() === 0) {
-							No results
+							{{ 'pptx.findReplace.noMatches' | translate }}
 						} @else {
-							{{ displayIndex() }} / {{ matchCount() }}
+							{{
+								'pptx.findReplace.matchCount'
+									| translate: { current: displayIndex(), total: matchCount() }
+							}}
 						}
 					}
 				</span>
@@ -107,7 +116,7 @@ export interface ReplaceEvent {
 				<button
 					type="button"
 					class="pptx-frb__btn"
-					aria-label="Previous match"
+					[attr.aria-label]="'pptx.findReplace.previousMatch' | translate"
 					[disabled]="matchCount() === 0"
 					(click)="navigate.emit(-1)"
 				>
@@ -117,7 +126,7 @@ export interface ReplaceEvent {
 				<button
 					type="button"
 					class="pptx-frb__btn"
-					aria-label="Next match"
+					[attr.aria-label]="'pptx.findReplace.nextMatch' | translate"
 					[disabled]="matchCount() === 0"
 					(click)="navigate.emit(1)"
 				>
@@ -127,7 +136,7 @@ export interface ReplaceEvent {
 				<button
 					type="button"
 					class="pptx-frb__btn pptx-frb__btn--close"
-					aria-label="Close find and replace"
+					[attr.aria-label]="'pptx.findReplace.closeAriaLabel' | translate"
 					(click)="close.emit()"
 				>
 					&#10005;
@@ -139,8 +148,8 @@ export interface ReplaceEvent {
 				<input
 					class="pptx-frb__input"
 					type="text"
-					placeholder="Replace with…"
-					aria-label="Replacement text"
+					[placeholder]="'pptx.findReplace.replacePlaceholder' | translate"
+					[attr.aria-label]="'pptx.findReplace.replacementText' | translate"
 					[value]="replacement()"
 					(input)="onReplacementInput($event)"
 					(keydown.enter)="emitReplaceOne()"
@@ -151,9 +160,9 @@ export interface ReplaceEvent {
 					class="pptx-frb__action-btn"
 					[disabled]="matchCount() === 0"
 					(click)="emitReplaceOne()"
-					aria-label="Replace current match"
+					[attr.aria-label]="'pptx.findReplace.replaceCurrent' | translate"
 				>
-					Replace
+					{{ 'pptx.findReplace.replace' | translate }}
 				</button>
 
 				<button
@@ -161,9 +170,9 @@ export interface ReplaceEvent {
 					class="pptx-frb__action-btn"
 					[disabled]="matchCount() === 0"
 					(click)="emitReplaceAll()"
-					aria-label="Replace all matches"
+					[attr.aria-label]="'pptx.findReplace.replaceAllMatches' | translate"
 				>
-					Replace All
+					{{ 'pptx.findReplace.replaceAll' | translate }}
 				</button>
 			</div>
 		</div>

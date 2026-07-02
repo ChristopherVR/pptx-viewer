@@ -23,6 +23,7 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import type { NotesInlineCommand, NotesParagraphCommand } from '../internal/shared';
 
@@ -34,7 +35,7 @@ type ToolbarAction =
 	| { kind: 'print' };
 
 interface ToolbarButton {
-	label: string;
+	labelKey: string;
 	path: string;
 	action: ToolbarAction;
 	/** Start a new visual group (left divider) before this button. */
@@ -45,16 +46,17 @@ interface ToolbarButton {
 	selector: 'pptx-notes-toolbar',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		<div class="pptx-ng-notes-toolbar" role="toolbar" aria-label="Notes formatting">
 			<div class="pptx-ng-notes-tb-group">
-				@for (btn of buttons; track btn.label) {
+				@for (btn of buttons; track btn.labelKey) {
 					<button
 						type="button"
 						class="pptx-ng-notes-tb-btn"
 						[class.has-divider]="btn.group"
-						[title]="btn.label"
-						[attr.aria-label]="btn.label"
+						[title]="btn.labelKey | translate"
+						[attr.aria-label]="btn.labelKey | translate"
 						(click)="run(btn.action)"
 					>
 						<svg
@@ -76,20 +78,22 @@ interface ToolbarButton {
 				@if (showLinkPopover()) {
 					<div class="pptx-ng-notes-link-popover">
 						<form (submit)="submitLink($event)">
-							<label class="pptx-ng-notes-link-label">Link URL</label>
+							<label class="pptx-ng-notes-link-label">{{ 'pptx.notes.linkUrl' | translate }}</label>
 							<input
 								#linkUrlInput
 								class="pptx-ng-notes-link-input"
 								type="text"
-								placeholder="https://..."
+								[attr.placeholder]="'pptx.notes.linkUrlPlaceholder' | translate"
 								[value]="linkUrl()"
 								(input)="linkUrl.set(asValue($event))"
 							/>
-							<label class="pptx-ng-notes-link-label">Display text</label>
+							<label class="pptx-ng-notes-link-label">{{
+								'pptx.notes.linkDisplayText' | translate
+							}}</label>
 							<input
 								class="pptx-ng-notes-link-input"
 								type="text"
-								placeholder="Display text"
+								[attr.placeholder]="'pptx.notes.linkDisplayText' | translate"
 								[value]="linkText()"
 								(input)="linkText.set(asValue($event))"
 							/>
@@ -99,9 +103,11 @@ interface ToolbarButton {
 									class="pptx-ng-notes-link-cancel"
 									(click)="closeLinkPopover.emit()"
 								>
-									Cancel
+									{{ 'pptx.common.cancel' | translate }}
 								</button>
-								<button type="submit" class="pptx-ng-notes-link-insert">Insert link</button>
+								<button type="submit" class="pptx-ng-notes-link-insert">
+									{{ 'pptx.notes.insertLink' | translate }}
+								</button>
 							</div>
 						</form>
 					</div>
@@ -111,10 +117,13 @@ interface ToolbarButton {
 			<button
 				type="button"
 				class="pptx-ng-notes-tb-toggle"
-				[title]="isRichEnabled() ? 'Switch to plain editor' : 'Switch to rich editor'"
+				[title]="
+					(isRichEnabled() ? 'pptx.notes.switchToPlainEditor' : 'pptx.notes.switchToRichEditor')
+						| translate
+				"
 				(click)="toggleRich.emit()"
 			>
-				{{ isRichEnabled() ? 'Plain' : 'Rich' }}
+				{{ (isRichEnabled() ? 'pptx.notes.plainEditor' : 'pptx.notes.richEditor') | translate }}
 			</button>
 		</div>
 	`,
@@ -239,55 +248,55 @@ export class NotesToolbarComponent {
 	/** Lucide-style icon paths, kept inline so the toolbar has no icon dependency. */
 	protected readonly buttons: readonly ToolbarButton[] = [
 		{
-			label: 'Bold',
+			labelKey: 'pptx.notes.bold',
 			action: { kind: 'inline', cmd: 'bold' },
 			path: 'M6 4h8a4 4 0 0 1 0 8H6z M6 12h9a4 4 0 0 1 0 8H6z',
 		},
 		{
-			label: 'Italic',
+			labelKey: 'pptx.notes.italic',
 			action: { kind: 'inline', cmd: 'italic' },
 			path: 'M19 4h-9 M14 20H5 M15 4 9 20',
 		},
 		{
-			label: 'Underline',
+			labelKey: 'pptx.notes.underline',
 			action: { kind: 'inline', cmd: 'underline' },
 			path: 'M6 4v6a6 6 0 0 0 12 0V4 M4 20h16',
 		},
 		{
-			label: 'Strikethrough',
+			labelKey: 'pptx.notes.strikethrough',
 			action: { kind: 'inline', cmd: 'strikeThrough' },
 			path: 'M16 4H9a3 3 0 0 0-2.83 4 M14 12a4 4 0 0 1 0 8H6 M4 12h16',
 		},
 		{
-			label: 'Bulleted list',
+			labelKey: 'pptx.notes.bulletList',
 			action: { kind: 'para', cmd: 'bullet' },
 			path: 'M8 6h13 M8 12h13 M8 18h13 M3 6h.01 M3 12h.01 M3 18h.01',
 			group: true,
 		},
 		{
-			label: 'Numbered list',
+			labelKey: 'pptx.notes.numberedList',
 			action: { kind: 'para', cmd: 'numbered' },
 			path: 'M10 6h11 M10 12h11 M10 18h11 M4 6h1v4 M4 10h2 M6 18H4c0-1 2-1.5 2-2.5S5 14 4 14',
 		},
 		{
-			label: 'Increase indent',
+			labelKey: 'pptx.notes.indent',
 			action: { kind: 'para', cmd: 'indent' },
 			path: 'm3 8 4 4-4 4 M11 12h10 M11 6h10 M11 18h10',
 			group: true,
 		},
 		{
-			label: 'Decrease indent',
+			labelKey: 'pptx.notes.outdent',
 			action: { kind: 'para', cmd: 'outdent' },
 			path: 'm7 8-4 4 4 4 M11 12h10 M11 6h10 M11 18h10',
 		},
 		{
-			label: 'Insert link',
+			labelKey: 'pptx.notes.insertLink',
 			action: { kind: 'link' },
 			path: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71 M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71',
 			group: true,
 		},
 		{
-			label: 'Print notes',
+			labelKey: 'pptx.notes.printNotes',
 			action: { kind: 'print' },
 			path: 'M6 9V2h12v7 M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2 M6 14h12v8H6z',
 		},

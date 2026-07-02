@@ -13,12 +13,13 @@ import { NgClass } from '@angular/common';
  * zoom live here (not in the top bar), matching React.
  */
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 @Component({
 	selector: 'pptx-status-bar',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgClass],
+	imports: [NgClass, TranslatePipe],
 	template: `
 		<div
 			class="flex w-full items-center gap-1 border-t border-border bg-secondary/50 px-2 py-0.5 text-[10px] text-muted-foreground"
@@ -27,17 +28,20 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 			<span class="shrink-0">
 				{{
 					slideCount() > 0
-						? 'Slide ' + min(slideIndex() + 1, slideCount()) + ' of ' + slideCount()
-						: 'No slides'
+						? ('pptx.statusBar.slideOf'
+							| translate: { current: min(slideIndex() + 1, slideCount()), total: slideCount() })
+						: ('pptx.statusBar.noSlides' | translate)
 				}}
 			</span>
 
 			<div class="mx-1 h-3 w-px bg-border/40"></div>
-			<span class="shrink-0 text-[10px]">English (U.S.)</span>
+			<span class="shrink-0 text-[10px]">{{ 'pptx.statusBar.language' | translate }}</span>
 
 			@if (canEdit()) {
 				<div class="mx-1 h-3 w-px bg-border/60"></div>
-				<span class="shrink-0">{{ dirty() ? 'Unsaved changes' : 'All saved' }}</span>
+				<span class="shrink-0">{{
+					(dirty() ? 'pptx.statusBar.unsavedChanges' : 'pptx.statusBar.allSaved') | translate
+				}}</span>
 			}
 
 			<!-- Center spacer -->
@@ -48,12 +52,12 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 				type="button"
 				class="flex items-center gap-1 rounded-sm p-1 text-[10px] text-muted-foreground transition-colors hover:bg-accent/60"
 				[ngClass]="notesOpen() ? 'text-primary' : ''"
-				title="Speaker notes"
-				aria-label="Toggle speaker notes"
+				[title]="'pptx.statusBar.toggleNotes' | translate"
+				[attr.aria-label]="'pptx.statusBar.toggleNotes' | translate"
 				(click)="toggleNotes.emit()"
 			>
 				<span aria-hidden="true">🗒</span>
-				<span>Notes</span>
+				<span>{{ 'pptx.notes.title' | translate }}</span>
 			</button>
 
 			<div class="mx-0.5 h-3 w-px bg-border/60"></div>
@@ -64,8 +68,8 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 					type="button"
 					class="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent/60"
 					[ngClass]="isNormal() ? 'text-primary' : ''"
-					title="Normal view"
-					aria-label="Normal view"
+					[title]="'pptx.statusBar.normalView' | translate"
+					[attr.aria-label]="'pptx.statusBar.normalView' | translate"
 					(click)="normalView.emit()"
 				>
 					<span aria-hidden="true">🖵</span>
@@ -74,8 +78,8 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 					type="button"
 					class="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent/60"
 					[ngClass]="sorterActive() ? 'text-primary' : ''"
-					title="Slide sorter"
-					aria-label="Slide sorter"
+					[title]="'pptx.statusBar.slideSorter' | translate"
+					[attr.aria-label]="'pptx.statusBar.slideSorter' | translate"
 					(click)="openSorter.emit()"
 				>
 					<span aria-hidden="true">▦</span>
@@ -85,8 +89,8 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 					class="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent/60"
 					[ngClass]="presenting() ? 'text-primary' : ''"
 					[disabled]="slideCount() === 0"
-					title="Slide show"
-					aria-label="Slide show"
+					[title]="'pptx.statusBar.slideShow' | translate"
+					[attr.aria-label]="'pptx.statusBar.slideShow' | translate"
 					(click)="slideShow.emit()"
 				>
 					<span aria-hidden="true">▶</span>
@@ -99,8 +103,8 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 				<button
 					type="button"
 					class="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent/60"
-					title="Zoom out"
-					aria-label="Zoom out"
+					[title]="'pptx.statusBar.zoomOut' | translate"
+					[attr.aria-label]="'pptx.statusBar.zoomOut' | translate"
 					(click)="zoomOut.emit()"
 				>
 					<span aria-hidden="true">−</span>
@@ -108,7 +112,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 				<button
 					type="button"
 					class="min-w-[3rem] rounded-sm px-1.5 py-0.5 text-center text-[10px] tabular-nums text-muted-foreground transition-colors hover:bg-accent/60"
-					title="Reset zoom"
+					[title]="'pptx.statusBar.zoomToFit' | translate"
 					(click)="zoomReset.emit()"
 				>
 					{{ zoomPercent() }}%
@@ -116,8 +120,8 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 				<button
 					type="button"
 					class="rounded-sm p-1 text-muted-foreground transition-colors hover:bg-accent/60"
-					title="Zoom in"
-					aria-label="Zoom in"
+					[title]="'pptx.statusBar.zoomIn' | translate"
+					[attr.aria-label]="'pptx.statusBar.zoomIn' | translate"
 					(click)="zoomIn.emit()"
 				>
 					<span aria-hidden="true">+</span>

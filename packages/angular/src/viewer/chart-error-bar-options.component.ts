@@ -13,6 +13,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	ChartPptxElement,
 	PptxChartErrBars,
@@ -34,10 +35,11 @@ import { numFromEvent, selectValue } from './chart-event-helpers';
 	selector: 'pptx-chart-error-bar-options',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [TranslatePipe],
 	template: `
 		@if (supported()) {
-			<section class="pptx-chart-card" aria-label="Error bar options">
-				<h4 class="pptx-chart-card__heading">Error Bars</h4>
+			<section class="pptx-chart-card" [attr.aria-label]="'pptx.chart.errorBars' | translate">
+				<h4 class="pptx-chart-card__heading">{{ 'pptx.chart.errorBars' | translate }}</h4>
 				@for (s of series(); track $index; let i = $index) {
 					<div class="pptx-chart-card__group">
 						<div class="pptx-chart-card__row">
@@ -70,7 +72,7 @@ import { numFromEvent, selectValue } from './chart-event-helpers';
 									<input
 										type="number"
 										class="pptx-chart-card__input pptx-chart-card__input--num"
-										placeholder="Amount"
+										[placeholder]="'pptx.chart.errorBarAmount' | translate"
 										[disabled]="!canEdit()"
 										[value]="bars.val ?? ''"
 										(change)="onValue(i, bars, $event)"

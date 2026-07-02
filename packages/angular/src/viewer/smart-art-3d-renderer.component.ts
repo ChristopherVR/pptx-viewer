@@ -13,6 +13,7 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, SmartArtColorScheme, SmartArtStyle } from 'pptx-viewer-core';
 
 import { buildSmartArt3DModel, computeSmartArtLayout } from '../internal/shared';
@@ -58,7 +59,7 @@ const PALETTES: Record<SmartArtColorScheme, string[]> = {
 	selector: 'pptx-smart-art-3d-renderer',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle, SmartArtRendererComponent],
+	imports: [NgStyle, SmartArtRendererComponent, TranslatePipe],
 	template: `
 		@if (useFallback()) {
 			<pptx-smart-art-renderer [element]="element()" [zIndex]="zIndex()" />
@@ -85,7 +86,7 @@ const PALETTES: Record<SmartArtColorScheme, string[]> = {
 							[style.height.px]="editState()!.box.height"
 							[value]="editState()!.text"
 							spellcheck="false"
-							aria-label="Edit SmartArt node text"
+							[attr.aria-label]="'pptx.smartart.editNodeText' | translate"
 							(input)="updateDraft($event)"
 							(blur)="commitEdit()"
 							(keydown)="onEditorKeydown($event)"

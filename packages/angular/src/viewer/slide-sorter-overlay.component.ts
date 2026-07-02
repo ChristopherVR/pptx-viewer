@@ -7,6 +7,7 @@ import {
 	input,
 	output,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
@@ -45,7 +46,7 @@ const GRID_GAP = 16;
 	selector: 'pptx-slide-sorter-overlay',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle, SlideCanvasComponent],
+	imports: [NgStyle, SlideCanvasComponent, TranslatePipe],
 	template: `
 		<!-- Backdrop -->
 		<div class="pptx-ng-sorter-backdrop" (click)="onBackdropClick($event)">
@@ -53,12 +54,14 @@ const GRID_GAP = 16;
 			<div class="pptx-ng-sorter-panel" (click)="$event.stopPropagation()">
 				<!-- Header -->
 				<header class="pptx-ng-sorter-header">
-					<h2 class="pptx-ng-sorter-title">Slide Sorter</h2>
-					<span class="pptx-ng-sorter-count">{{ slides().length }} slides</span>
+					<h2 class="pptx-ng-sorter-title">{{ 'pptx.slideSorter.title' | translate }}</h2>
+					<span class="pptx-ng-sorter-count">{{
+						'pptx.slideSorter.slideCount' | translate: { count: slides().length }
+					}}</span>
 					<button
 						type="button"
 						class="pptx-ng-sorter-close"
-						aria-label="Close slide sorter"
+						[attr.aria-label]="'pptx.slideSorter.close' | translate"
 						(click)="closed.emit()"
 					>
 						<svg
@@ -88,7 +91,7 @@ const GRID_GAP = 16;
 								class="pptx-ng-sorter-cell"
 								[class.is-active]="i === activeIndex()"
 								[class.is-hidden]="isHiddenSlide(slide)"
-								[attr.aria-label]="'Slide ' + (i + 1)"
+								[attr.aria-label]="'pptx.notes.slideN' | translate: { n: i + 1 }"
 								[attr.aria-current]="i === activeIndex() ? 'true' : null"
 								(click)="onThumbClick(i)"
 							>
