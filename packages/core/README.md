@@ -4,8 +4,6 @@
 [![license](https://img.shields.io/npm/l/pptx-viewer-core.svg)](https://github.com/ChristopherVR/pptx-viewer/blob/main/LICENSE)
 [![types](https://img.shields.io/npm/types/pptx-viewer-core.svg)](https://www.npmjs.com/package/pptx-viewer-core)
 
-> **Also published as [`@christophervr/pptx-viewer`](https://www.npmjs.com/package/@christophervr/pptx-viewer)** -- the two package names are identical releases of the same code. Use whichever name you prefer; they are always published together and kept in sync.
-
 > A TypeScript library that **reads, creates, edits, and saves** PowerPoint (`.pptx`) files. It runs in the browser and in Node.js, with no native or system dependencies.
 
 Hand it the bytes of a `.pptx` file and it gives you back a structured, fully typed object that describes every slide: text, shapes, images, charts, tables, and more. Change anything in that object and write it back to a valid `.pptx`. You can also build new presentations from scratch with a simple chainable API, or turn a deck into Markdown.
@@ -20,11 +18,9 @@ There is no UI here: this is the engine on its own. Use it directly when you nee
 
 ```bash
 npm install pptx-viewer-core
-# required companions:
-npm install jszip fast-xml-parser
 ```
 
-> Two packages are always needed alongside it: **jszip** (a `.pptx` is a ZIP file, and this reads and writes that container) and **fast-xml-parser** (the slides inside are XML, and this reads and writes it). Password protection and digital signatures need a few extra packages (`node-forge`, `xml-crypto`, `@xmldom/xmldom`), but only if you actually use those features.
+> That's it, nothing else to install. **jszip** (a `.pptx` is a ZIP file, and this reads and writes that container) and **fast-xml-parser** (the slides inside are XML, and this reads and writes it) are regular dependencies of `pptx-viewer-core`, so your package manager pulls them in automatically. Password protection and digital signatures need a few extra packages (`node-forge`, `xml-crypto`, `@xmldom/xmldom`), but only if you actually use those features.
 
 ## What it does
 

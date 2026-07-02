@@ -8,7 +8,7 @@
 
 ![The pptx-react-viewer editor: ribbon toolbar, slide thumbnails, and a slide rendered on the canvas](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/editor.png)
 
-Slides render with real **HTML/CSS** (not `<canvas>`), so text stays crisp at any zoom, is selectable and screen-reader accessible, and every element is directly editable. The parsing/editing engine ([`pptx-viewer-core`](https://www.npmjs.com/package/pptx-viewer-core), also published as [`@christophervr/pptx-viewer`](https://www.npmjs.com/package/@christophervr/pptx-viewer) -- the two names are identical releases) is **bundled in**, so you install just one package.
+Slides render with real **HTML/CSS** (not `<canvas>`), so text stays crisp at any zoom, is selectable and screen-reader accessible, and every element is directly editable. The parsing/editing engine ([`pptx-viewer-core`](https://www.npmjs.com/package/pptx-viewer-core)) is **bundled in**, so you install just one package.
 
 <samp>**[▶️ Try the live demo](https://christophervr.github.io/pptx-viewer/demo/)** · **[📦 npm](https://www.npmjs.com/package/pptx-react-viewer)** · **[📖 Full docs](https://christophervr.github.io/pptx-viewer/)** · **[🧩 Core SDK](https://www.npmjs.com/package/pptx-viewer-core)**</samp>
 
