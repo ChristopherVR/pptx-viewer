@@ -38,7 +38,8 @@ import {
 	viewChild,
 } from '@angular/core';
 import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
-import type { NotesInlineCommand, NotesParagraphCommand } from 'pptx-viewer-shared';
+
+import type { NotesInlineCommand, NotesParagraphCommand } from '../internal/shared';
 import {
 	DEBOUNCE_MS,
 	applyInlineCommand,
@@ -53,8 +54,7 @@ import {
 	resolveNotesSegments,
 	segmentsToEditorHtml,
 	segmentsToPlainText,
-} from 'pptx-viewer-shared';
-
+} from '../internal/shared';
 import { NotesToolbarComponent } from './notes-toolbar.component';
 
 @Component({
