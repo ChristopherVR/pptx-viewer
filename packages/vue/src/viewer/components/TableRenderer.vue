@@ -24,8 +24,10 @@ import { computed, nextTick, ref, watch } from 'vue';
 
 import { getContainerStyle } from '../composables/element-style';
 import { injectTableCellEdit } from '../composables/table-edit';
+import { injectTableSelection, useTableCellSelection } from '../composables/table-selection';
 import { injectTableTheme, resolveTableTheme } from '../composables/table-theme';
 import { DEFAULT_TEXT_COLOR } from '../constants';
+import TableResizeOverlay from './TableResizeOverlay.vue';
 
 /**
  * TableRenderer - Vue port of the React table renderer
@@ -44,8 +46,9 @@ import { DEFAULT_TEXT_COLOR } from '../constants';
  *  - rich per-run cell text via optional `CellTextRun[]` on cells
  *  - diagonal cell borders via an SVG overlay
  *
- * Not ported (editing concerns, see PORTING.md): resize handles, inline cell
- * editing, cell selection, and the raw-OOXML render path.
+ * Editing affordances (inline cell text edit, cell selection + Shift+range
+ * highlight, and column/row drag-resize handles) are layered on when an edit
+ * context is provided. The raw-OOXML render path is not ported (see PORTING.md).
  */
 const props = defineProps<{
 	element: PptxElement;
@@ -253,6 +256,33 @@ function runStyle(run: CellTextRun): TableCellCss {
 
 const cellEdit = injectTableCellEdit();
 
+// Cell selection + resize context (provided at the viewer root; absent in a
+// read-only viewer). `useTableCellSelection` derives the per-cell highlight
+// state and the click handler; the injected context also carries the resize
+// commit callbacks driven by the overlay.
+const tableSelectionCtx = injectTableSelection();
+const cellSelection = useTableCellSelection(
+	() => props.element.id,
+	() => tableData.value,
+);
+
+/** Single click selects a cell; Shift+click extends a rectangular range. */
+function onCellClick(event: MouseEvent, cell: RenderableCell): void {
+	if (!editingEnabled.value) {
+		return;
+	}
+	event.stopPropagation();
+	cellSelection.selectCell(cell.rowIndex, cell.colIndex, event.shiftKey);
+}
+
+function onResizeColumns(widths: number[]): void {
+	tableSelectionCtx?.resizeColumns(props.element.id, widths);
+}
+
+function onResizeRow(rowIndex: number, height: number): void {
+	tableSelectionCtx?.resizeRow(props.element.id, rowIndex, height);
+}
+
 /** The cell currently being edited (original grid coords), or null. */
 const editingCell = ref<{ rowIndex: number; colIndex: number } | null>(null);
 /** Live text for the active edit, seeded from the cell on entry. */
@@ -334,97 +364,115 @@ watch(editingCell, (cell) => {
 		:style="containerStyle"
 		:data-element-id="element.id"
 	>
-		<table class="pptx-vue-table__grid">
-			<colgroup v-if="columnPercentages.length > 0">
-				<col
-					v-for="(width, ci) in columnPercentages"
-					:key="`${element.id}-col-${ci}`"
-					:style="{ width }"
-				/>
-			</colgroup>
-			<tbody>
-				<tr
-					v-for="row in rows"
-					:key="row.key"
-					:style="row.height ? { height: `${row.height}px` } : undefined"
-				>
-					<td
-						v-for="cell in row.cells"
-						:key="cell.key"
-						class="pptx-vue-table__cell"
-						:colspan="cell.colSpan"
-						:rowspan="cell.rowSpan"
-						:style="tdStyle(cell)"
-						@dblclick="onCellDblClick($event, cell)"
+		<TableResizeOverlay
+			:column-widths="tableData.columnWidths"
+			:editable="editingEnabled"
+			@resize-columns="onResizeColumns"
+			@resize-row="onResizeRow"
+		>
+			<table class="pptx-vue-table__grid">
+				<colgroup v-if="columnPercentages.length > 0">
+					<col
+						v-for="(width, ci) in columnPercentages"
+						:key="`${element.id}-col-${ci}`"
+						:style="{ width }"
+					/>
+				</colgroup>
+				<tbody>
+					<tr
+						v-for="row in rows"
+						:key="row.key"
+						:style="row.height ? { height: `${row.height}px` } : undefined"
 					>
-						<svg
-							v-if="cell.diagonals"
-							class="pptx-vue-table__diag"
-							aria-hidden="true"
-							preserveAspectRatio="none"
+						<td
+							v-for="cell in row.cells"
+							:key="cell.key"
+							class="pptx-vue-table__cell"
+							:class="{
+								'pptx-vue-table__cell--selected': cellSelection.isCellSelected(
+									cell.rowIndex,
+									cell.colIndex,
+								),
+								'pptx-vue-table__cell--in-selection':
+									cellSelection.isCellInSelection(cell.rowIndex, cell.colIndex) &&
+									!cellSelection.isCellSelected(cell.rowIndex, cell.colIndex),
+								'pptx-vue-table__cell--editable': editingEnabled,
+							}"
+							:colspan="cell.colSpan"
+							:rowspan="cell.rowSpan"
+							:style="tdStyle(cell)"
+							@click="onCellClick($event, cell)"
+							@dblclick="onCellDblClick($event, cell)"
 						>
-							<line
-								v-if="cell.diagonals.diagDownColor && cell.diagonals.diagDownWidth"
-								x1="0"
-								y1="0"
-								x2="100%"
-								y2="100%"
-								:stroke="cell.diagonals.diagDownColor"
-								:stroke-width="cell.diagonals.diagDownWidth"
-							/>
-							<line
-								v-if="cell.diagonals.diagUpColor && cell.diagonals.diagUpWidth"
-								x1="0"
-								y1="100%"
-								x2="100%"
-								y2="0"
-								:stroke="cell.diagonals.diagUpColor"
-								:stroke-width="cell.diagonals.diagUpWidth"
-							/>
-						</svg>
+							<svg
+								v-if="cell.diagonals"
+								class="pptx-vue-table__diag"
+								aria-hidden="true"
+								preserveAspectRatio="none"
+							>
+								<line
+									v-if="cell.diagonals.diagDownColor && cell.diagonals.diagDownWidth"
+									x1="0"
+									y1="0"
+									x2="100%"
+									y2="100%"
+									:stroke="cell.diagonals.diagDownColor"
+									:stroke-width="cell.diagonals.diagDownWidth"
+								/>
+								<line
+									v-if="cell.diagonals.diagUpColor && cell.diagonals.diagUpWidth"
+									x1="0"
+									y1="100%"
+									x2="100%"
+									y2="0"
+									:stroke="cell.diagonals.diagUpColor"
+									:stroke-width="cell.diagonals.diagUpWidth"
+								/>
+							</svg>
 
-						<!--
+							<!--
 							Inline cell editor: a double-tap / double-click enters edit
 							mode (edit context provided). The input MUST stop propagation
 							of pointerdown/mousedown/click/dblclick so that on touch the
 							canvas stage's pointer handler does not steal focus and discard
 							the edit (mirrors React TableCellInput + Angular TableRenderer).
 						-->
-						<input
-							v-if="isEditing(cell)"
-							:ref="setCellInput"
-							v-model="editText"
-							type="text"
-							class="pptx-vue-table__cell-input"
-							@pointerdown.stop
-							@mousedown.stop
-							@click.stop
-							@dblclick.stop
-							@blur="commitCellEdit"
-							@keydown="onCellInputKeydown"
-						/>
-						<!--
+							<input
+								v-if="isEditing(cell)"
+								:ref="setCellInput"
+								v-model="editText"
+								type="text"
+								class="pptx-vue-table__cell-input"
+								@pointerdown.stop
+								@mousedown.stop
+								@click.stop
+								@dblclick.stop
+								@blur="commitCellEdit"
+								@keydown="onCellInputKeydown"
+							/>
+							<!--
 							Rich per-run text: when `textRuns` is present each run is
 							a styled <span>. Paragraph breaks become block-level <div>s;
 							line breaks become <br> within a paragraph.
 						-->
-						<template v-else-if="cell.textRuns">
-							<template v-for="(run, ri) in cell.textRuns" :key="`${cell.key}-run-${ri}`">
-								<div v-if="run.isParagraphBreak" class="pptx-vue-table__para-break" />
-								<br v-else-if="run.isLineBreak" />
-								<span v-else class="pptx-vue-table__run" :style="runStyle(run)">{{
-									run.text
-								}}</span>
+							<template v-else-if="cell.textRuns">
+								<template v-for="(run, ri) in cell.textRuns" :key="`${cell.key}-run-${ri}`">
+									<div v-if="run.isParagraphBreak" class="pptx-vue-table__para-break" />
+									<br v-else-if="run.isLineBreak" />
+									<span v-else class="pptx-vue-table__run" :style="runStyle(run)">{{
+										run.text
+									}}</span>
+								</template>
 							</template>
-						</template>
-						<!--
+							<!--
 							Plain-text fallback: rendered when no per-run data is available.
 						-->
-						<span v-else class="pptx-vue-table__text">{{ cell.text }}</span>
-					</td>
-				</tr>
-			</tbody>
-		</table>
+							<span v-else class="pptx-vue-table__text">{{ cell.text }}</span>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</TableResizeOverlay>
 	</div>
 </template>
 
@@ -448,6 +496,21 @@ watch(editingCell, (cell) => {
 	white-space: pre-wrap;
 	word-break: break-word;
 	overflow-wrap: break-word;
+}
+
+.pptx-vue-table__cell--editable {
+	cursor: cell;
+}
+
+.pptx-vue-table__cell--selected {
+	outline: 2px solid rgb(59 130 246);
+	outline-offset: -2px;
+}
+
+.pptx-vue-table__cell--in-selection {
+	background-color: rgba(59, 130, 246, 0.15);
+	outline: 1px solid rgba(96, 165, 250, 0.5);
+	outline-offset: -1px;
 }
 
 .pptx-vue-table__diag {

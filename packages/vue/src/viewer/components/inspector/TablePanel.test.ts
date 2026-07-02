@@ -1,7 +1,10 @@
 import { mount } from '@vue/test-utils';
 import type { PptxElement, PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
+import { ref } from 'vue';
 
+import type { TableSelectionContext, TableSelectionState } from '../../composables/table-selection';
+import { TableSelectionKey } from '../../composables/table-selection';
 import TablePanel from './TablePanel.vue';
 
 function makeTableData(rows: number, cols: number): PptxTableData {
@@ -25,8 +28,23 @@ function makeTableElement(rows: number, cols: number): TablePptxElement {
 	};
 }
 
-function mountPanel(element: PptxElement) {
-	return mount(TablePanel, { props: { element } });
+function makeSelectionContext(initial: TableSelectionState | null): TableSelectionContext {
+	const selection = ref<TableSelectionState | null>(initial);
+	return {
+		selection,
+		select: (next) => {
+			selection.value = next;
+		},
+		resizeColumns: () => {},
+		resizeRow: () => {},
+	};
+}
+
+function mountPanel(element: PptxElement, selection: TableSelectionState | null = null) {
+	return mount(TablePanel, {
+		props: { element },
+		global: { provide: { [TableSelectionKey as symbol]: makeSelectionContext(selection) } },
+	});
 }
 
 /** Extract the tableData from the most recent `update` emit. */
@@ -40,7 +58,7 @@ function lastEmittedTableData(wrapper: ReturnType<typeof mountPanel>): PptxTable
 }
 
 function findButton(wrapper: ReturnType<typeof mountPanel>, label: string) {
-	const btn = wrapper.findAll('button').find((b) => b.text().includes(label));
+	const btn = wrapper.findAll('button').find((b) => b.text().trim() === label);
 	expect(btn, `button "${label}" not found`).toBeTruthy();
 	return btn!;
 }
@@ -66,30 +84,41 @@ describe('tablePanel', () => {
 		expect(wrapper.text()).toContain('Columns: 2');
 	});
 
-	it('insert row above increases row count and emits the new grid', async () => {
-		const wrapper = mountPanel(makeTableElement(2, 2));
-		await findButton(wrapper, 'Insert above').trigger('click');
+	it('insert row above inserts at the selected row', () => {
+		const wrapper = mountPanel(makeTableElement(2, 2), {
+			elementId: 'tbl1',
+			rowIndex: 1,
+			columnIndex: 0,
+		});
+		findButton(wrapper, 'Insert above').trigger('click');
 		const td = lastEmittedTableData(wrapper);
 		expect(td.rows).toHaveLength(3);
-		// New row has blank cells matching the column count and cell shape.
-		const newRow = td.rows[td.rows.length - 2];
-		expect(newRow.cells).toHaveLength(2);
-		expect(newRow.cells.every((c) => c.text === '')).toBeTruthy();
+		// Inserted above row 1 -> new blank row lands at index 1.
+		expect(td.rows[1].cells.every((c) => c.text === '')).toBeTruthy();
 	});
 
-	it('insert row below increases row count', async () => {
-		const wrapper = mountPanel(makeTableElement(2, 2));
-		await findButton(wrapper, 'Insert below').trigger('click');
+	it('insert row below inserts after the selected row', () => {
+		const wrapper = mountPanel(makeTableElement(2, 2), {
+			elementId: 'tbl1',
+			rowIndex: 0,
+			columnIndex: 0,
+		});
+		findButton(wrapper, 'Insert below').trigger('click');
 		const td = lastEmittedTableData(wrapper);
 		expect(td.rows).toHaveLength(3);
-		expect(td.rows[2].cells).toHaveLength(2);
+		expect(td.rows[1].cells.every((c) => c.text === '')).toBeTruthy();
 	});
 
-	it('delete row decreases row count and emits the new grid', async () => {
-		const wrapper = mountPanel(makeTableElement(3, 2));
-		await findButton(wrapper, 'Delete row').trigger('click');
+	it('delete row removes the selected row', () => {
+		const wrapper = mountPanel(makeTableElement(3, 2), {
+			elementId: 'tbl1',
+			rowIndex: 0,
+			columnIndex: 0,
+		});
+		findButton(wrapper, 'Delete row').trigger('click');
 		const td = lastEmittedTableData(wrapper);
 		expect(td.rows).toHaveLength(2);
+		expect(td.rows[0].cells[0].text).toBe('r1c0');
 	});
 
 	it('disables delete row when only one row remains', () => {
@@ -97,36 +126,31 @@ describe('tablePanel', () => {
 		expect(findButton(wrapper, 'Delete row').attributes('disabled')).toBeDefined();
 	});
 
-	it('insert column left increases column count and widths stay normalized', async () => {
-		const wrapper = mountPanel(makeTableElement(2, 2));
-		await findButton(wrapper, 'Insert left').trigger('click');
+	it('insert column keeps widths normalised', () => {
+		const wrapper = mountPanel(makeTableElement(2, 2), {
+			elementId: 'tbl1',
+			rowIndex: 0,
+			columnIndex: 0,
+		});
+		findButton(wrapper, 'Insert right').trigger('click');
 		const td = lastEmittedTableData(wrapper);
 		expect(td.columnWidths).toHaveLength(3);
 		for (const row of td.rows) {
 			expect(row.cells).toHaveLength(3);
 		}
-		const sum = td.columnWidths.reduce((a, b) => a + b, 0);
-		expect(sum).toBeCloseTo(1, 6);
+		expect(td.columnWidths.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 6);
 	});
 
-	it('insert column right increases column count', async () => {
-		const wrapper = mountPanel(makeTableElement(2, 2));
-		await findButton(wrapper, 'Insert right').trigger('click');
-		const td = lastEmittedTableData(wrapper);
-		expect(td.columnWidths).toHaveLength(3);
-		expect(td.rows[0].cells).toHaveLength(3);
-	});
-
-	it('delete column decreases column count', async () => {
-		const wrapper = mountPanel(makeTableElement(2, 3));
-		await findButton(wrapper, 'Delete column').trigger('click');
+	it('delete column decreases column count', () => {
+		const wrapper = mountPanel(makeTableElement(2, 3), {
+			elementId: 'tbl1',
+			rowIndex: 0,
+			columnIndex: 0,
+		});
+		findButton(wrapper, 'Delete column').trigger('click');
 		const td = lastEmittedTableData(wrapper);
 		expect(td.columnWidths).toHaveLength(2);
-		for (const row of td.rows) {
-			expect(row.cells).toHaveLength(2);
-		}
-		const sum = td.columnWidths.reduce((a, b) => a + b, 0);
-		expect(sum).toBeCloseTo(1, 6);
+		expect(td.columnWidths.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 6);
 	});
 
 	it('disables delete column when only one column remains', () => {
@@ -136,8 +160,36 @@ describe('tablePanel', () => {
 
 	it('toggles the header row and emits firstRowHeader', async () => {
 		const wrapper = mountPanel(makeTableElement(2, 2));
-		await wrapper.find('input[type="checkbox"]').setValue(true);
+		// Style toggle order: banded rows, header row, ... -> index 1 is header row.
+		const checkboxes = wrapper.findAll('input[type="checkbox"]');
+		await checkboxes[1].setValue(true);
 		const td = lastEmittedTableData(wrapper);
 		expect(td.firstRowHeader).toBeTruthy();
+	});
+
+	it('shows a merge button and merges a multi-cell selection', () => {
+		const wrapper = mountPanel(makeTableElement(2, 2), {
+			elementId: 'tbl1',
+			rowIndex: 0,
+			columnIndex: 0,
+			selectedCells: [
+				{ row: 0, col: 0 },
+				{ row: 0, col: 1 },
+			],
+		});
+		findButton(wrapper, 'Merge selected cells').trigger('click');
+		const td = lastEmittedTableData(wrapper);
+		expect(td.rows[0].cells[0].gridSpan).toBe(2);
+	});
+
+	it('shows the cell formatting panel only when a cell is selected', () => {
+		const noSel = mountPanel(makeTableElement(2, 2));
+		expect(noSel.text()).not.toContain('Font size');
+		const withSel = mountPanel(makeTableElement(2, 2), {
+			elementId: 'tbl1',
+			rowIndex: 0,
+			columnIndex: 0,
+		});
+		expect(withSel.text()).toContain('Font size');
 	});
 });

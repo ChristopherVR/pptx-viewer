@@ -36,6 +36,9 @@ import type {
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 	PptxThemePreset,
+	PptxTableCellStyle,
+	PptxTableData,
+	TablePptxElement,
 	TextStyle,
 } from 'pptx-viewer-core';
 import type { AlignEdge, DistributeAxis } from 'pptx-viewer-shared';
@@ -50,6 +53,7 @@ import {
 	isTemplateElementId,
 	openPptxFile,
 	setCellText,
+	strokeToInkElement,
 	ungroupElements,
 } from 'pptx-viewer-shared';
 import { computed, nextTick, provide, ref, toRef, watch } from 'vue';
@@ -60,6 +64,7 @@ import BroadcastDialog from './components/BroadcastDialog.vue';
 import CanvasGuides from './components/CanvasGuides.vue';
 import CollaborationCursors from './components/CollaborationCursors.vue';
 import CollaborationStatusIndicator from './components/CollaborationStatusIndicator.vue';
+import CommentMarkersOverlay from './components/CommentMarkersOverlay.vue';
 import CommentsPanel from './components/CommentsPanel.vue';
 import ComparePanel from './components/ComparePanel.vue';
 import ContextMenu from './components/ContextMenu.vue';
@@ -73,6 +78,7 @@ import EquationEditorDialog from './components/EquationEditorDialog.vue';
 import ExportProgressModal from './components/ExportProgressModal.vue';
 import FindReplaceBar from './components/FindReplaceBar.vue';
 import FollowModeBar from './components/FollowModeBar.vue';
+import FontEmbeddingPanel from './components/FontEmbeddingPanel.vue';
 import GridOverlay from './components/GridOverlay.vue';
 import HeaderFooterPanel from './components/HeaderFooterPanel.vue';
 import HyperlinkDialog from './components/HyperlinkDialog.vue';
@@ -88,6 +94,7 @@ import MobileSlidesSheet from './components/MobileSlidesSheet.vue';
 import MobileToolbar from './components/MobileToolbar.vue';
 import ModalDialog from './components/ModalDialog.vue';
 import NotesPanel from './components/NotesPanel.vue';
+import PasswordProtectionDialog from './components/PasswordProtectionDialog.vue';
 import PresentationMode from './components/PresentationMode.vue';
 import PrintDialog from './components/PrintDialog.vue';
 import RemoteSelectionOverlay from './components/RemoteSelectionOverlay.vue';
@@ -95,16 +102,21 @@ import type {
 	DrawingTool,
 	RibbonProps,
 	SupportedShapeType,
+	TableCellEditorState,
 	ToolbarSection,
 	ViewerMode,
 } from './components/ribbon/ribbon-types';
 import RibbonToolbar from './components/ribbon/RibbonToolbar.vue';
 import SectionList from './components/SectionList.vue';
 import SelectionOverlay from './components/SelectionOverlay.vue';
+import SelectionPane from './components/SelectionPane.vue';
 import SettingsDialog from './components/SettingsDialog.vue';
+import SetUpSlideShowDialog from './components/SetUpSlideShowDialog.vue';
 import ShareDialog from './components/ShareDialog.vue';
 import ShortcutPanel from './components/ShortcutPanel.vue';
 import SignaturesPanel from './components/SignaturesPanel.vue';
+import SignatureStatusBadge from './components/SignatureStatusBadge.vue';
+import SignatureStrippedDialog from './components/SignatureStrippedDialog.vue';
 import SlideCanvas from './components/SlideCanvas.vue';
 import SlideSorter from './components/SlideSorter.vue';
 import SlidesPaneSidebar from './components/SlidesPaneSidebar.vue';
@@ -135,6 +147,18 @@ import { SmartArtNodeEditKey } from './composables/smartart-node-edit';
 import { snapBox } from './composables/snap';
 import { computeSnapToShape } from './composables/snap-shape';
 import { TableCellEditKey } from './composables/table-edit';
+import {
+	applyDeleteColumn,
+	applyDeleteRow,
+	applyInsertColumn,
+	applyInsertRow,
+	applyMergeDown,
+	applyMergeRight,
+	applyMergeSelected,
+	applySplitCell,
+} from './composables/table-mutations';
+import type { TableSelectionState } from './composables/table-selection';
+import { provideTableSelection } from './composables/table-selection';
 import { TableThemeKey } from './composables/table-theme';
 import {
 	buildSaveSlides,
@@ -157,6 +181,7 @@ import { useKeyboardInsets } from './composables/useKeyboardInsets';
 import { useKeyboardShortcuts } from './composables/useKeyboardShortcuts';
 import { useLoadContent } from './composables/useLoadContent';
 import { useMediaExport } from './composables/useMediaExport';
+import type { SlideAnnotationMap } from './composables/usePresentationAnnotations';
 import { usePrint } from './composables/usePrint';
 import { useSectionOperations } from './composables/useSectionOperations';
 import { useSignatures } from './composables/useSignatures';
@@ -240,6 +265,7 @@ const {
 	layoutOptions,
 	sections,
 	customShows,
+	presentationProperties,
 	headerFooter,
 	notesMaster,
 	handoutMaster,
@@ -292,6 +318,38 @@ provide(FieldContextKey, () => {
 provide(TableCellEditKey, {
 	canEdit: () => props.canEdit && !presenting.value,
 	commit: commitTableCell,
+});
+
+// Table cell selection + drag-resize context for `TableRenderer` / `TablePanel`.
+// The reactive selection drives the inspector's cell formatting + merge-aware
+// structural ops and the canvas highlight; resize callbacks commit new column
+// widths / row heights through the history-tracked editor op. Closures run
+// post-setup, so referencing `ops` / `findActiveElement` here is safe.
+const tableSelection = ref<TableSelectionState | null>(null);
+function resizeTableColumns(elementId: string, widths: number[]): void {
+	const el = findActiveElement(elementId);
+	if (!props.canEdit || !el || el.type !== 'table' || !el.tableData) {
+		return;
+	}
+	ops.updateElement(elementId, {
+		tableData: { ...el.tableData, columnWidths: widths },
+	} as Partial<PptxElement>);
+}
+function resizeTableRow(elementId: string, rowIndex: number, height: number): void {
+	const el = findActiveElement(elementId);
+	if (!props.canEdit || !el || el.type !== 'table' || !el.tableData) {
+		return;
+	}
+	const rows = el.tableData.rows.map((r, i) => (i === rowIndex ? { ...r, height } : r));
+	ops.updateElement(elementId, { tableData: { ...el.tableData, rows } } as Partial<PptxElement>);
+}
+provideTableSelection({
+	selection: tableSelection,
+	select: (next) => {
+		tableSelection.value = next;
+	},
+	resizeColumns: resizeTableColumns,
+	resizeRow: resizeTableRow,
 });
 
 // Inline SmartArt node-text and per-node fill editing context.
@@ -459,6 +517,15 @@ const selectedElements = computed<PptxElement[]>(() => {
 	const slideHits = (activeSlide.value?.elements ?? []).filter((el) => ids.has(el.id));
 	const templateHits = activeTemplateElements.value.filter((el) => ids.has(el.id));
 	return [...templateHits, ...slideHits];
+});
+
+// Drop the table cell selection once its owning table is no longer selected, so
+// a stale highlight / inspector cell doesn't linger on the next selection.
+watch(selectedElementIds, (ids) => {
+	const sel = tableSelection.value;
+	if (sel && !ids.includes(sel.elementId)) {
+		tableSelection.value = null;
+	}
 });
 
 // Slides re-merged with their template (master/layout) layer in front of (behind)
@@ -1147,8 +1214,42 @@ const presenting = ref(false);
 function startPresenting(): void {
 	presenting.value = true;
 }
-function onPresentClose(): void {
+function onPresentClose(payload?: { annotations: SlideAnnotationMap }): void {
 	presenting.value = false;
+	const map = payload?.annotations;
+	if (!map || map.size === 0) {
+		return;
+	}
+	// Persist kept ink annotations as `ink` elements on their slides. Strokes
+	// are converted with the shared `strokeToInkElement` helper (highlighter when
+	// the stroke is translucent), appended per slide, and committed as a single
+	// history-tracked change so the whole batch undoes together.
+	let mutated = false;
+	const nextSlides = slides.value.map((slide, index) => {
+		const strokes = map.get(index);
+		if (!strokes || strokes.length === 0) {
+			return slide;
+		}
+		const inkElements = strokes
+			.map((stroke) =>
+				strokeToInkElement({
+					points: stroke.points,
+					color: stroke.color,
+					width: stroke.width,
+					tool: stroke.opacity < 1 ? 'highlighter' : 'pen',
+				}),
+			)
+			.filter((el): el is NonNullable<typeof el> => el !== null);
+		if (inkElements.length === 0) {
+			return slide;
+		}
+		mutated = true;
+		return { ...slide, elements: [...slide.elements, ...inkElements] };
+	});
+	if (mutated) {
+		history.pushHistory();
+		slides.value = nextSlides;
+	}
 }
 function onPresentSlideChange(index: number): void {
 	activeSlideIndex.value = index;
@@ -1161,22 +1262,78 @@ const contextMenu = ref<{ open: boolean; x: number; y: number; elementId: string
 	y: 0,
 	elementId: null,
 });
-const contextItems = computed<ContextMenuItem[]>(() => [
-	{ id: 'cut', label: 'Cut' },
-	{ id: 'copy', label: 'Copy' },
-	{ id: 'paste', label: 'Paste', disabled: !hasClipboard.value },
-	{ id: 'sep1', label: '', separator: true },
-	{ id: 'duplicate', label: 'Duplicate' },
-	{ id: 'delete', label: 'Delete' },
-	{ id: 'sep2', label: '', separator: true },
-	{ id: 'bring-forward', label: 'Bring forward' },
-	{ id: 'send-backward', label: 'Send backward' },
-	{ id: 'sep3', label: '', separator: true },
-	{ id: 'group', label: 'Group', disabled: !canGroup.value },
-	{ id: 'ungroup', label: 'Ungroup', disabled: !canUngroup.value },
-	{ id: 'sep4', label: '', separator: true },
-	{ id: 'hyperlink', label: 'Hyperlink…' },
-]);
+/**
+ * The table element under the context menu, when it is a table whose selected
+ * cell is known: gates the row/column/merge entries. Mirrors React's ContextMenu
+ * `isTable` / `hasMultiCellSelection` / `isMergedCell` derivation.
+ */
+const contextTable = computed(() => {
+	const id = contextMenu.value.elementId;
+	const el = id ? findActiveElement(id) : undefined;
+	if (!el || el.type !== 'table' || !el.tableData) {
+		return null;
+	}
+	const sel =
+		tableSelection.value && tableSelection.value.elementId === el.id ? tableSelection.value : null;
+	if (!sel) {
+		return null;
+	}
+	const cell = el.tableData.rows[sel.rowIndex]?.cells[sel.columnIndex];
+	const isMerged = Boolean(cell && ((cell.gridSpan ?? 1) > 1 || (cell.rowSpan ?? 1) > 1));
+	const hasMulti = Array.isArray(sel.selectedCells) && sel.selectedCells.length >= 2;
+	return { el, sel, isMerged, hasMulti };
+});
+
+const contextItems = computed<ContextMenuItem[]>(() => {
+	const items: ContextMenuItem[] = [
+		{ id: 'cut', label: 'Cut' },
+		{ id: 'copy', label: 'Copy' },
+		{ id: 'paste', label: 'Paste', disabled: !hasClipboard.value },
+		{ id: 'sep1', label: '', separator: true },
+		{ id: 'duplicate', label: 'Duplicate' },
+		{ id: 'delete', label: 'Delete' },
+		{ id: 'sep2', label: '', separator: true },
+		{ id: 'bring-forward', label: 'Bring forward' },
+		{ id: 'send-backward', label: 'Send backward' },
+		{ id: 'sep3', label: '', separator: true },
+		{ id: 'group', label: 'Group', disabled: !canGroup.value },
+		{ id: 'ungroup', label: 'Ungroup', disabled: !canUngroup.value },
+		{ id: 'sep4', label: '', separator: true },
+		{ id: 'hyperlink', label: 'Hyperlink…' },
+	];
+	const tbl = contextTable.value;
+	if (tbl) {
+		items.push(
+			{ id: 'sep-table', label: '', separator: true },
+			{ id: 'table-insert-row-above', label: 'Insert row above' },
+			{ id: 'table-insert-row-below', label: 'Insert row below' },
+			{ id: 'table-delete-row', label: 'Delete row' },
+			{ id: 'table-insert-col-left', label: 'Insert column left' },
+			{ id: 'table-insert-col-right', label: 'Insert column right' },
+			{ id: 'table-delete-col', label: 'Delete column' },
+			{ id: 'sep-table-merge', label: '', separator: true },
+		);
+		if (tbl.hasMulti) {
+			items.push({ id: 'table-merge-selected', label: 'Merge selected cells' });
+		} else if (tbl.isMerged) {
+			items.push({ id: 'table-split', label: 'Split cell' });
+		} else {
+			items.push(
+				{ id: 'table-merge-right', label: 'Merge cells' },
+				{ id: 'table-merge-down', label: 'Merge down' },
+			);
+		}
+	}
+	return items;
+});
+
+/** Apply a table op result (or no-op when null) to the context-menu table. */
+function applyContextTableData(next: PptxTableData | null): void {
+	const tbl = contextTable.value;
+	if (tbl && next) {
+		ops.updateElement(tbl.el.id, { tableData: next } as Partial<PptxElement>);
+	}
+}
 function onCanvasContextMenu(event: MouseEvent): void {
 	if (!props.canEdit) {
 		return;
@@ -1231,6 +1388,54 @@ function onContextSelect(actionId: string): void {
 			break;
 		case 'hyperlink':
 			openHyperlinkDialog(target);
+			break;
+		default:
+			onContextTableSelect(actionId);
+			break;
+	}
+}
+
+/** Handle the table-specific context-menu entries (row / column / merge / split). */
+function onContextTableSelect(actionId: string): void {
+	const tbl = contextTable.value;
+	if (!tbl) {
+		return;
+	}
+	const td = tbl.el.tableData;
+	if (!td) {
+		return;
+	}
+	const { rowIndex, columnIndex } = tbl.sel;
+	switch (actionId) {
+		case 'table-insert-row-above':
+			applyContextTableData(applyInsertRow(td, rowIndex, 'above'));
+			break;
+		case 'table-insert-row-below':
+			applyContextTableData(applyInsertRow(td, rowIndex, 'below'));
+			break;
+		case 'table-delete-row':
+			applyContextTableData(applyDeleteRow(td, rowIndex));
+			break;
+		case 'table-insert-col-left':
+			applyContextTableData(applyInsertColumn(td, columnIndex, 'left'));
+			break;
+		case 'table-insert-col-right':
+			applyContextTableData(applyInsertColumn(td, columnIndex, 'right'));
+			break;
+		case 'table-delete-col':
+			applyContextTableData(applyDeleteColumn(td, columnIndex));
+			break;
+		case 'table-merge-right':
+			applyContextTableData(applyMergeRight(td, rowIndex, columnIndex));
+			break;
+		case 'table-merge-down':
+			applyContextTableData(applyMergeDown(td, rowIndex, columnIndex));
+			break;
+		case 'table-merge-selected':
+			applyContextTableData(applyMergeSelected(td, tbl.sel.selectedCells));
+			break;
+		case 'table-split':
+			applyContextTableData(applySplitCell(td, rowIndex, columnIndex));
 			break;
 	}
 }
@@ -1552,6 +1757,10 @@ const commentsApi = useComments({
 	activeSlideIndex,
 	authorName: authorNameRef,
 });
+/** Open the comments panel and focus the deck on the marker's slide. */
+function onCommentMarkerClick(_id: string): void {
+	showComments.value = true;
+}
 /** Commit a new comment array for the active slide (history-aware). */
 function commitComments(next: ReturnType<typeof commentsApi.addComment>): void {
 	if (!next) {
@@ -1638,6 +1847,23 @@ function onCollabPointerMove(event: PointerEvent): void {
 // ── Digital signatures ────────────────────────────────────────────────
 const showSignatures = ref(false);
 const signaturesApi = useSignatures(signatures);
+const hasDigitalSignatures = computed(() => signatures.value.length > 0);
+// Warn once, on the first edit of a signed deck, that saving strips signatures
+// (mirrors React's useViewerDialogs signature-strip effect).
+const showSignatureStripped = ref(false);
+const signatureStripAcknowledged = ref(false);
+watch(
+	() => autosave.isDirty.value,
+	(dirty) => {
+		if (dirty && hasDigitalSignatures.value && !signatureStripAcknowledged.value) {
+			showSignatureStripped.value = true;
+		}
+	},
+);
+function onAckSignatureStripped(): void {
+	signatureStripAcknowledged.value = true;
+	showSignatureStripped.value = false;
+}
 
 // ── Broadcast ─────────────────────────────────────────────────────────
 const broadcastOpen = ref(false);
@@ -1667,6 +1893,103 @@ function onBroadcastStop(): void {
 	collab.stop();
 	emit('stop-collaboration');
 	broadcastOpen.value = false;
+}
+
+// ── Set Up Slide Show ─────────────────────────────────────────────────
+// Edits a draft copy of the presentation-level properties; on save we commit
+// the new properties. `saveAs` forwards `presentationProperties` to
+// `handler.save`, so the change round-trips into the saved `.pptx` (same
+// persist-via-refs pattern as document properties).
+const showSetUpSlideShow = ref(false);
+function onSaveSlideShowSettings(next: typeof presentationProperties.value): void {
+	presentationProperties.value = next;
+	showSubtitles.value = Boolean(next.showSubtitles);
+}
+/** Merge a partial presentation-properties patch (from the slide inspector). */
+function onPresentationPropertiesUpdate(patch: Partial<typeof presentationProperties.value>): void {
+	presentationProperties.value = { ...presentationProperties.value, ...patch };
+}
+
+// ── Password protection ───────────────────────────────────────────────
+// Mirrors React: the password lives in host state; encryption on save is not
+// wired in either binding, so this only tracks the protected flag + secret.
+const showPasswordDialog = ref(false);
+const isPasswordProtected = ref(false);
+const presentationPassword = ref<string | null>(null);
+function onSetPassword(password: string): void {
+	presentationPassword.value = password;
+	isPasswordProtected.value = true;
+}
+function onRemovePassword(): void {
+	presentationPassword.value = null;
+	isPasswordProtected.value = false;
+}
+
+// ── Font embedding ────────────────────────────────────────────────────
+const showFontEmbedding = ref(false);
+const embedFontsEnabled = ref(false);
+/** Unique font families used across every slide, sorted (mirrors React collectUsedFonts). */
+const usedFontFamilies = computed<string[]>(() => {
+	const fonts = new Set<string>();
+	const collect = (el: PptxElement): void => {
+		if (hasTextProperties(el)) {
+			if (el.textStyle?.fontFamily) {
+				fonts.add(el.textStyle.fontFamily);
+			}
+			for (const seg of el.textSegments ?? []) {
+				if (seg.style?.fontFamily) {
+					fonts.add(seg.style.fontFamily);
+				}
+			}
+		}
+		if (el.type === 'group' && el.children) {
+			for (const child of el.children) {
+				collect(child);
+			}
+		}
+	};
+	for (const slide of slides.value) {
+		for (const el of slide.elements ?? []) {
+			collect(el);
+		}
+	}
+	return Array.from(fonts).sort();
+});
+const embeddedFontNames = computed(() => embeddedFonts.value.map((f) => f.name));
+
+// ── Selection pane (View ▸ Selection Pane) ────────────────────────────
+const showSelectionPane = ref(false);
+function onSelectionPaneSelect(id: string): void {
+	selectedElementIds.value = [id];
+}
+function onSelectionPaneToggleVisibility(id: string): void {
+	const el = findActiveElement(id);
+	if (el) {
+		ops.updateElement(id, { hidden: !el.hidden } as Partial<PptxElement>);
+	}
+}
+function onSelectionPaneReorder(payload: { from: number; to: number }): void {
+	const el = activeSlide.value?.elements[payload.from];
+	if (el) {
+		ops.reorder(el.id, payload.to);
+	}
+}
+
+// ── Subtitles toggle (Slide Show ▸ Subtitles) ─────────────────────────
+const showSubtitles = ref(false);
+watch(
+	() => presentationProperties.value.showSubtitles,
+	(value) => {
+		showSubtitles.value = Boolean(value);
+	},
+	{ immediate: true },
+);
+function onToggleSubtitles(): void {
+	showSubtitles.value = !showSubtitles.value;
+	presentationProperties.value = {
+		...presentationProperties.value,
+		showSubtitles: showSubtitles.value,
+	};
 }
 
 // ── Responsive / mobile chrome ────────────────────────────────────────
@@ -2194,13 +2517,57 @@ function toShapePreset(t: SupportedShapeType): ShapePreset {
 }
 
 /** Apply a character/paragraph style patch to the selected text element. */
+/**
+ * The active table cell selection remapped to the ribbon's `TableCellEditorState`
+ * shape, but only when the selected element is the table that owns the selection.
+ * Feeds the ribbon Text section so cell-cell toggles read the cell's own style.
+ */
+const activeTableSelection = computed<TableCellEditorState | null>(() => {
+	const sel = tableSelection.value;
+	const el = selectedElements.value[0];
+	if (!sel || !el || el.type !== 'table' || sel.elementId !== el.id) {
+		return null;
+	}
+	return { elementId: sel.elementId, rowIndex: sel.rowIndex, columnIndex: sel.columnIndex };
+});
+
+/** Apply a text-style delta to the selected table cell (ribbon Text section). */
+function applyCellTextStyle(el: TablePptxElement, updates: Partial<TextStyle>): void {
+	const sel = tableSelection.value;
+	if (!props.canEdit || !el.tableData || !sel || sel.elementId !== el.id) {
+		return;
+	}
+	const { rowIndex, columnIndex } = sel;
+	const rows = el.tableData.rows.map((row, ri) =>
+		ri !== rowIndex
+			? row
+			: {
+					...row,
+					cells: row.cells.map((c, ci) =>
+						ci !== columnIndex
+							? c
+							: { ...c, style: { ...c.style, ...updates } as PptxTableCellStyle },
+					),
+				},
+	);
+	ops.updateElement(el.id, { tableData: { ...el.tableData, rows } } as Partial<PptxElement>);
+}
+
 function ribbonUpdateTextStyle(updates: Partial<TextStyle>): void {
 	const id = selectedElementIds.value[0];
 	if (!id) {
 		return;
 	}
 	const el = activeSlide.value?.elements.find((e) => e.id === id);
-	if (!el || !hasTextProperties(el)) {
+	if (!el) {
+		return;
+	}
+	// Tables route to the selected cell's style; other elements to their textStyle.
+	if (el.type === 'table') {
+		applyCellTextStyle(el, updates);
+		return;
+	}
+	if (!hasTextProperties(el)) {
 		return;
 	}
 	const textStyle = { ...el.textStyle, ...updates };
@@ -2262,7 +2629,7 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	redoLabel: undefined,
 	findReplaceOpen: findOpen.value,
 	selectedElement: selectedElements.value[0] ?? null,
-	tableEditorState: null,
+	tableEditorState: activeTableSelection.value,
 	editTemplateMode: editTemplateMode.value,
 	newShapeType: newShapeType.value,
 	activeTool: activeTool.value,
@@ -2286,9 +2653,9 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	slideCommentCount: activeComments.value.length,
 	formatPainterActive: formatPainterActive.value,
 	canActivateFormatPainter: canActivateFormatPainter.value,
-	isSelectionPaneOpen: false,
+	isSelectionPaneOpen: showSelectionPane.value,
 	eyedropperActive: false,
-	showSubtitles: false,
+	showSubtitles: showSubtitles.value,
 	activeSlide: activeSlide.value,
 
 	onSetMode: (m) => {
@@ -2439,11 +2806,15 @@ const ribbonProps = computed<RibbonProps>(() => ({
 	onToggleVersionHistory: () => {
 		showVersionHistory.value = true;
 	},
-	onOpenPasswordProtection: undefined,
+	onOpenPasswordProtection: () => {
+		showPasswordDialog.value = true;
+	},
 	onOpenDocumentProperties: () => {
 		propertiesOpen.value = true;
 	},
-	onOpenFontEmbedding: undefined,
+	onOpenFontEmbedding: () => {
+		showFontEmbedding.value = true;
+	},
 	onOpenDigitalSignatures: () => {
 		showSignatures.value = true;
 	},
@@ -2466,13 +2837,17 @@ const ribbonProps = computed<RibbonProps>(() => ({
 		showComments.value = !showComments.value;
 	},
 	onToggleFormatPainter: toggleFormatPainter,
-	onToggleSelectionPane: undefined,
+	onToggleSelectionPane: () => {
+		showSelectionPane.value = !showSelectionPane.value;
+	},
 	onToggleEyedropper: undefined,
-	onOpenSetUpSlideShow: undefined,
+	onOpenSetUpSlideShow: () => {
+		showSetUpSlideShow.value = true;
+	},
 	onOpenBroadcastDialog: () => {
 		broadcastOpen.value = true;
 	},
-	onToggleSubtitles: undefined,
+	onToggleSubtitles,
 	onTransitionChange,
 	onApplyTransitionToAll,
 }));
@@ -2614,6 +2989,13 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					>
 						<!-- Dot grid overlay (View ▸ Grid): sits over content, under selection -->
 						<GridOverlay :canvas-size="canvasSize" :visible="showGrid && !presenting" />
+						<!-- Numbered comment markers (click to open the comments panel) -->
+						<CommentMarkersOverlay
+							v-if="props.canEdit && !presenting && activeComments.length > 0"
+							:comments="activeComments"
+							:canvas-size="canvasSize"
+							@marker-click="onCommentMarkerClick"
+						/>
 						<!-- Draggable H/V alignment guides (View ▸ Guides) -->
 						<CanvasGuides
 							v-if="props.canEdit && !presenting"
@@ -2691,9 +3073,11 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					v-else-if="props.canEdit && !isMobile && inspectorOpen && slideCount > 0"
 					:slide="activeSlide"
 					:theme="pptxTheme"
+					:presentation-properties="presentationProperties"
 					:can-edit="props.canEdit"
 					@transition-update="applySlideTransition"
 					@slide-update="applySlideBackgroundPatch"
+					@presentation-update="onPresentationPropertiesUpdate"
 				/>
 
 				<!-- Accessibility checker -->
@@ -2711,10 +3095,36 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					@add="(t) => commitComments(commentsApi.addComment(t))"
 					@remove="(id) => commitComments(commentsApi.removeComment(id))"
 					@resolve="(id) => commitComments(commentsApi.resolveComment(id))"
+					@reply="(p) => commitComments(commentsApi.replyToComment(p.parentId, p.text))"
 				/>
+
+				<!-- Signed-document badge (opens the signatures panel). -->
+				<div
+					v-if="hasDigitalSignatures && !isMobile"
+					class="pointer-events-auto absolute right-2 top-2 z-50"
+				>
+					<SignatureStatusBadge
+						:has-signatures="hasDigitalSignatures"
+						:signature-count="signatures.length"
+						@click="showSignatures = true"
+					/>
+				</div>
 
 				<!-- Digital signatures -->
 				<SignaturesPanel v-if="showSignatures" :signatures="signatures" />
+
+				<!-- Selection pane (View ▸ Selection Pane): object list + z-order +
+				     visibility over the active slide's elements. -->
+				<SelectionPane
+					v-if="props.canEdit && !isMobile && showSelectionPane"
+					:elements="activeSlide?.elements ?? []"
+					:selected-ids="selectedElementIds"
+					:can-edit="props.canEdit"
+					@select="onSelectionPaneSelect"
+					@toggle-visibility="onSelectionPaneToggleVisibility"
+					@reorder="onSelectionPaneReorder"
+					@close="showSelectionPane = false"
+				/>
 
 				<!-- Collaboration follow-mode -->
 				<FollowModeBar
@@ -2802,6 +3212,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 			<HyperlinkDialog
 				:open="hyperlinkOpen"
 				:element="hyperlinkTarget"
+				:slide-count="slideCount"
 				@save="onHyperlinkSave"
 				@close="hyperlinkOpen = false"
 			/>
@@ -2897,6 +3308,43 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				@close="broadcastOpen = false"
 			/>
 
+			<!-- Slide Show ▸ Set Up Slide Show -->
+			<SetUpSlideShowDialog
+				:open="showSetUpSlideShow"
+				:properties="presentationProperties"
+				:custom-shows="customShows"
+				:slide-count="slideCount"
+				@save="onSaveSlideShowSettings"
+				@close="showSetUpSlideShow = false"
+			/>
+
+			<!-- File ▸ Protect Presentation -->
+			<PasswordProtectionDialog
+				:open="showPasswordDialog"
+				:is-currently-protected="isPasswordProtected"
+				@set-password="onSetPassword"
+				@remove-password="onRemovePassword"
+				@close="showPasswordDialog = false"
+			/>
+
+			<!-- File ▸ Embed Fonts -->
+			<FontEmbeddingPanel
+				:open="showFontEmbedding"
+				:embed-fonts-enabled="embedFontsEnabled"
+				:used-font-families="usedFontFamilies"
+				:embedded-fonts="embeddedFontNames"
+				@toggle-embed-fonts="embedFontsEnabled = $event"
+				@close="showFontEmbedding = false"
+			/>
+
+			<!-- First-edit warning: saving a signed deck strips its signatures. -->
+			<SignatureStrippedDialog
+				:open="showSignatureStripped"
+				:signature-count="signatures.length"
+				@confirm="onAckSignatureStripped"
+				@cancel="onAckSignatureStripped"
+			/>
+
 			<!-- Mobile bottom bar -->
 			<MobileBottomBar
 				v-if="isMobile"
@@ -2970,9 +3418,11 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					mobile
 					:slide="activeSlide"
 					:theme="pptxTheme"
+					:presentation-properties="presentationProperties"
 					:can-edit="props.canEdit"
 					@transition-update="applySlideTransition"
 					@slide-update="applySlideBackgroundPatch"
+					@presentation-update="onPresentationPropertiesUpdate"
 				/>
 				<p v-else class="px-4 py-6 text-center text-xs text-muted-foreground">No slide selected.</p>
 			</MobileSheet>
@@ -2990,6 +3440,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 					@add="(t) => commitComments(commentsApi.addComment(t))"
 					@remove="(id) => commitComments(commentsApi.removeComment(id))"
 					@resolve="(id) => commitComments(commentsApi.resolveComment(id))"
+					@reply="(p) => commitComments(commentsApi.replyToComment(p.parentId, p.text))"
 				/>
 			</MobileSheet>
 
@@ -3026,8 +3477,12 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 			:canvas-size="canvasSize"
 			:media-data-urls="mediaDataUrls"
 			:active-index="activeSlideIndex"
+			:can-edit="props.canEdit"
 			@select="onSorterSelect"
 			@reorder="onSorterReorder"
+			@duplicate="(i) => slideOps.duplicateSlide(i)"
+			@delete="(i) => slideOps.deleteSlide(i)"
+			@toggle-hidden="toggleSlideHidden"
 			@close="showSorter = false"
 		/>
 

@@ -9,11 +9,41 @@ import type {
 } from 'pptx-viewer-core';
 import type { CellTextRun } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
+import { ref } from 'vue';
 
 import type { TableCellEditContext } from '../composables/table-edit';
 import { TableCellEditKey } from '../composables/table-edit';
+import type { TableSelectionContext, TableSelectionState } from '../composables/table-selection';
+import { TableSelectionKey } from '../composables/table-selection';
 import { TableThemeKey } from '../composables/table-theme';
 import TableRenderer from './TableRenderer.vue';
+
+/** Mount with both edit + selection contexts so cell selection is active. */
+function mountSelectable(tableData: PptxTableData): {
+	wrapper: ReturnType<typeof mount>;
+	selection: TableSelectionContext['selection'];
+} {
+	const selectionRef = ref<TableSelectionState | null>(null);
+	const editCtx: TableCellEditContext = { canEdit: () => true, commit: vi.fn() };
+	const selCtx: TableSelectionContext = {
+		selection: selectionRef,
+		select: (next) => {
+			selectionRef.value = next;
+		},
+		resizeColumns: vi.fn(),
+		resizeRow: vi.fn(),
+	};
+	const wrapper = mount(TableRenderer, {
+		props: { element: table(tableData), zIndex: 0 },
+		global: {
+			provide: {
+				[TableCellEditKey as symbol]: editCtx,
+				[TableSelectionKey as symbol]: selCtx,
+			},
+		},
+	});
+	return { wrapper, selection: selectionRef };
+}
 
 /** Mount with an injected cell-edit context (commit spy + canEdit gate). */
 function mountEditable(
@@ -550,5 +580,43 @@ describe('tableRenderer', () => {
 		expect(firstRowStyle).not.toContain('rgba(217, 226, 243');
 		// Should contain a hex colour (the tinted accent1).
 		expect(firstRowStyle).toMatch(/background-color: #[0-9A-Fa-f]{6}/u);
+	});
+
+	// ── Cell selection + resize ──────────────────────────────────────────────
+
+	it('selects a cell on click and marks it selected', async () => {
+		const { wrapper, selection } = mountSelectable(basicGrid);
+		await wrapper.findAll('td')[1].trigger('click'); // row 0, col 1
+		expect(selection.value).toMatchObject({ elementId: 'tbl 1', rowIndex: 0, columnIndex: 1 });
+		expect(wrapper.findAll('td')[1].classes()).toContain('pptx-vue-table__cell--selected');
+	});
+
+	it('extends a rectangular selection on shift+click', async () => {
+		const { wrapper, selection } = mountSelectable(basicGrid);
+		await wrapper.findAll('td')[0].trigger('click'); // anchor row 0, col 0
+		await wrapper.findAll('td')[3].trigger('click', { shiftKey: true }); // row 1, col 1
+		expect(selection.value?.selectedCells).toHaveLength(4);
+		// Non-anchor cells in the rect get the in-selection highlight.
+		expect(wrapper.findAll('td')[3].classes()).toContain('pptx-vue-table__cell--in-selection');
+	});
+
+	it('does not select cells when no selection context is provided', async () => {
+		const commit = vi.fn();
+		const wrapper = mount(TableRenderer, {
+			props: { element: table(basicGrid), zIndex: 0 },
+			global: { provide: { [TableCellEditKey as symbol]: { canEdit: () => true, commit } } },
+		});
+		await wrapper.findAll('td')[0].trigger('click');
+		expect(wrapper.findAll('td')[0].classes()).not.toContain('pptx-vue-table__cell--selected');
+	});
+
+	it('renders column + row resize handles when editable', () => {
+		const { wrapper } = mountSelectable(basicGrid);
+		expect(wrapper.find('.pptx-vue-table-resize__col').exists()).toBeTruthy();
+	});
+
+	it('does not render resize handles in a read-only viewer', () => {
+		const wrapper = mount(TableRenderer, { props: { element: table(basicGrid), zIndex: 0 } });
+		expect(wrapper.find('.pptx-vue-table-resize__col').exists()).toBeFalsy();
 	});
 });
