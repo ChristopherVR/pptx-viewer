@@ -26,6 +26,7 @@ import {
 	output,
 	signal,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { SmartArtLayout } from 'pptx-viewer-core';
 
 import { CATEGORIES } from '../internal/shared';
@@ -44,12 +45,19 @@ export interface SmartArtInsertEvent {
 	selector: 'pptx-insert-smart-art-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent, SmartArtPreviewComponent],
+	imports: [ModalDialogComponent, SmartArtPreviewComponent, TranslatePipe],
 	template: `
-		<pptx-modal-dialog [open]="open()" title="Insert SmartArt" (close)="close.emit()">
+		<pptx-modal-dialog
+			[open]="open()"
+			[title]="'pptx.insertSmartArt.title' | translate"
+			(close)="close.emit()"
+		>
 			<div class="pptx-sa-insert">
 				<!-- Category sidebar -->
-				<nav class="pptx-sa-insert__sidebar" aria-label="SmartArt categories">
+				<nav
+					class="pptx-sa-insert__sidebar"
+					[attr.aria-label]="'pptx.insertSmartArt.categories' | translate"
+				>
 					@for (cat of categories; track cat.id) {
 						<button
 							type="button"
@@ -65,7 +73,11 @@ export interface SmartArtInsertEvent {
 
 				<!-- Gallery + node text -->
 				<div class="pptx-sa-insert__main">
-					<div class="pptx-sa-insert__gallery" role="listbox" aria-label="SmartArt layouts">
+					<div
+						class="pptx-sa-insert__gallery"
+						role="listbox"
+						[attr.aria-label]="'pptx.insertSmartArt.layouts' | translate"
+					>
 						@for (preset of filteredPresets(); track preset.layout) {
 							<button
 								type="button"
@@ -86,7 +98,9 @@ export interface SmartArtInsertEvent {
 					</div>
 
 					<label class="pptx-sa-insert__text">
-						<span class="pptx-sa-insert__text-label">Items (one per line)</span>
+						<span class="pptx-sa-insert__text-label">{{
+							'pptx.insertSmartArt.itemsLabel' | translate
+						}}</span>
 						<textarea
 							class="pptx-sa-insert__textarea"
 							rows="4"
@@ -99,14 +113,16 @@ export interface SmartArtInsertEvent {
 			</div>
 
 			<div footer class="pptx-sa-insert__footer">
-				<button type="button" class="pptx-sa-insert__btn" (click)="close.emit()">Cancel</button>
+				<button type="button" class="pptx-sa-insert__btn" (click)="close.emit()">
+					{{ 'pptx.insertSmartArt.cancel' | translate }}
+				</button>
 				<button
 					type="button"
 					class="pptx-sa-insert__btn pptx-sa-insert__btn--primary"
 					[disabled]="selectedLayout() === null"
 					(click)="confirm()"
 				>
-					Insert
+					{{ 'pptx.insertSmartArt.insert' | translate }}
 				</button>
 			</div>
 		</pptx-modal-dialog>

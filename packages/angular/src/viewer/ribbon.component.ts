@@ -28,6 +28,7 @@ import {
 	output,
 	signal,
 } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	PptxAnimationPreset,
 	PptxChartType,
@@ -70,23 +71,23 @@ type RibbonTab =
 
 interface TabDef {
 	id: RibbonTab;
-	label: string;
+	labelKey: string;
 }
 
 const TABS: readonly TabDef[] = [
-	{ id: 'file', label: 'File' },
-	{ id: 'home', label: 'Home' },
-	{ id: 'insert', label: 'Insert' },
-	{ id: 'text', label: 'Text' },
-	{ id: 'draw', label: 'Draw' },
-	{ id: 'arrange', label: 'Arrange' },
-	{ id: 'design', label: 'Design' },
-	{ id: 'transitions', label: 'Transitions' },
-	{ id: 'animations', label: 'Animations' },
-	{ id: 'slideShow', label: 'Slide Show' },
-	{ id: 'review', label: 'Review' },
-	{ id: 'view', label: 'View' },
-	{ id: 'help', label: 'Help' },
+	{ id: 'file', labelKey: 'pptx.ribbon.tab.file' },
+	{ id: 'home', labelKey: 'pptx.ribbon.tab.home' },
+	{ id: 'insert', labelKey: 'pptx.ribbon.tab.insert' },
+	{ id: 'text', labelKey: 'pptx.ribbon.tab.text' },
+	{ id: 'draw', labelKey: 'pptx.ribbon.tab.draw' },
+	{ id: 'arrange', labelKey: 'pptx.ribbon.tab.arrange' },
+	{ id: 'design', labelKey: 'pptx.ribbon.tab.design' },
+	{ id: 'transitions', labelKey: 'pptx.ribbon.tab.transitions' },
+	{ id: 'animations', labelKey: 'pptx.ribbon.tab.animations' },
+	{ id: 'slideShow', labelKey: 'pptx.ribbon.tab.slideShow' },
+	{ id: 'review', labelKey: 'pptx.ribbon.tab.review' },
+	{ id: 'view', labelKey: 'pptx.ribbon.tab.view' },
+	{ id: 'help', labelKey: 'pptx.ribbon.tab.help' },
 ];
 
 /** Drawing tool IDs (mirrors React DRAW_TOOLS). */
@@ -94,32 +95,32 @@ type DrawTool = 'select' | 'pen' | 'highlighter' | 'eraser' | 'freeform';
 
 interface DrawToolDef {
 	id: DrawTool;
-	label: string;
+	labelKey: string;
 	icon: string;
 }
 
 const DRAW_TOOLS: readonly DrawToolDef[] = [
-	{ id: 'select', label: 'Select', icon: '↖' },
-	{ id: 'pen', label: 'Pen', icon: '✏' },
-	{ id: 'highlighter', label: 'Highlighter', icon: 'Hl' },
-	{ id: 'eraser', label: 'Eraser', icon: '⌫' },
-	{ id: 'freeform', label: 'Freeform', icon: '∿' },
+	{ id: 'select', labelKey: 'pptx.ribbon.tool.select', icon: '↖' },
+	{ id: 'pen', labelKey: 'pptx.ribbon.tool.pen', icon: '✏' },
+	{ id: 'highlighter', labelKey: 'pptx.ribbon.tool.highlighter', icon: 'Hl' },
+	{ id: 'eraser', labelKey: 'pptx.ribbon.tool.eraser', icon: '⌫' },
+	{ id: 'freeform', labelKey: 'pptx.ribbon.tool.freeform', icon: '∿' },
 ];
 
 /**
  * Transition presets shown in the Transitions ribbon tab (mirrors React
  * `TRANSITION_PRESETS` in `DesignTransitionsReviewSection.tsx`).
  */
-const TRANSITION_PRESETS: ReadonlyArray<{ value: PptxTransitionType; label: string }> = [
-	{ value: 'none', label: 'None' },
-	{ value: 'fade', label: 'Fade' },
-	{ value: 'push', label: 'Push' },
-	{ value: 'wipe', label: 'Wipe' },
-	{ value: 'split', label: 'Split' },
-	{ value: 'reveal', label: 'Reveal' },
-	{ value: 'cut', label: 'Cut' },
-	{ value: 'cover', label: 'Cover' },
-	{ value: 'uncover', label: 'Uncover' },
+const TRANSITION_PRESETS: ReadonlyArray<{ value: PptxTransitionType; labelKey: string }> = [
+	{ value: 'none', labelKey: 'pptx.ribbon.transition.none' },
+	{ value: 'fade', labelKey: 'pptx.ribbon.transition.fade' },
+	{ value: 'push', labelKey: 'pptx.ribbon.transition.push' },
+	{ value: 'wipe', labelKey: 'pptx.ribbon.transition.wipe' },
+	{ value: 'split', labelKey: 'pptx.ribbon.transition.split' },
+	{ value: 'reveal', labelKey: 'pptx.ribbon.transition.reveal' },
+	{ value: 'cut', labelKey: 'pptx.ribbon.transition.cut' },
+	{ value: 'cover', labelKey: 'pptx.ribbon.transition.cover' },
+	{ value: 'uncover', labelKey: 'pptx.ribbon.transition.uncover' },
 ];
 
 /** Font families offered in the Home tab (mirrors React). */
@@ -187,7 +188,13 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 	selector: 'pptx-ribbon',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgClass, NgTemplateOutlet, RibbonPrimaryRowComponent, RibbonInsertFieldsComponent],
+	imports: [
+		NgClass,
+		NgTemplateOutlet,
+		RibbonPrimaryRowComponent,
+		RibbonInsertFieldsComponent,
+		TranslatePipe,
+	],
 	template: `
 		<div
 			role="toolbar"
@@ -237,7 +244,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 								: 'text-muted-foreground hover:bg-accent/30 hover:text-foreground'
 						"
 					>
-						{{ t.label }}
+						{{ t.labelKey | translate }}
 					</button>
 				}
 				<div class="flex-1"></div>
@@ -245,7 +252,10 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 					type="button"
 					class="mr-1 rounded px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
 					[attr.aria-pressed]="!ribbonExpanded()"
-					[title]="ribbonExpanded() ? 'Collapse the ribbon' : 'Expand the ribbon'"
+					[title]="
+						(ribbonExpanded() ? 'pptx.ribbon.collapseRibbon' : 'pptx.ribbon.expandRibbon')
+							| translate
+					"
 					(click)="ribbonExpanded.set(!ribbonExpanded())"
 				>
 					{{ ribbonExpanded() ? '▴' : '▾' }}
@@ -263,18 +273,18 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 							type="button"
 							class="pptx-rb-pill"
 							(click)="openFile.emit()"
-							title="Open another presentation"
+							[title]="'pptx.ribbon.openAnotherPresentation' | translate"
 						>
-							Open
+							{{ 'pptx.ribbon.open' | translate }}
 						</button>
 						<button
 							type="button"
 							class="pptx-rb-pill"
 							[disabled]="slideCount() === 0"
 							(click)="save.emit()"
-							title="Save as .pptx"
+							[title]="'pptx.ribbon.saveAsPptx' | translate"
 						>
-							Save
+							{{ 'pptx.toolbar.save' | translate }}
 						</button>
 						<span class="pptx-rb-sep"></span>
 						<div class="pptx-rb-grp">
@@ -283,7 +293,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 								class="pptx-rb-gb"
 								[disabled]="exporting() || slideCount() === 0"
 								(click)="exportPng.emit()"
-								title="Export current slide as PNG"
+								[title]="'pptx.ribbon.exportCurrentSlidePng' | translate"
 							>
 								PNG
 							</button>
@@ -292,16 +302,16 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 								class="pptx-rb-gb"
 								[disabled]="exporting() || slideCount() === 0"
 								(click)="exportPdf.emit()"
-								title="Export deck as PDF"
+								[title]="'pptx.ribbon.exportDeckPdf' | translate"
 							>
-								{{ exporting() ? 'Exporting…' : 'PDF' }}
+								{{ exporting() ? ('pptx.ribbon.exporting' | translate) : 'PDF' }}
 							</button>
 							<button
 								type="button"
 								class="pptx-rb-gb"
 								[disabled]="exporting() || slideCount() === 0"
 								(click)="exportGif.emit()"
-								title="Export as GIF"
+								[title]="'pptx.ribbon.exportGifTitle' | translate"
 							>
 								GIF
 							</button>
@@ -310,68 +320,79 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 								class="pptx-rb-gl"
 								[disabled]="exporting() || slideCount() === 0"
 								(click)="exportVideo.emit()"
-								title="Export as WebM video"
+								[title]="'pptx.ribbon.exportWebmVideo' | translate"
 							>
 								Video
 							</button>
 						</div>
 						<span class="pptx-rb-sep"></span>
-						<button type="button" class="pptx-rb-pill" (click)="print.emit()">Print</button>
-						<button type="button" class="pptx-rb-pill" (click)="info.emit()">Properties</button>
-						<button type="button" class="pptx-rb-pill" (click)="signatures.emit()">
-							Signatures
+						<button type="button" class="pptx-rb-pill" (click)="print.emit()">
+							{{ 'pptx.print.printButton' | translate }}
 						</button>
-						<button type="button" class="pptx-rb-pill" (click)="replace.emit()">Replace</button>
+						<button type="button" class="pptx-rb-pill" (click)="info.emit()">
+							{{ 'pptx.ribbon.properties' | translate }}
+						</button>
+						<button type="button" class="pptx-rb-pill" (click)="signatures.emit()">
+							{{ 'pptx.ribbon.signatures' | translate }}
+						</button>
+						<button type="button" class="pptx-rb-pill" (click)="replace.emit()">
+							{{ 'pptx.ribbon.replace' | translate }}
+						</button>
 						<span class="pptx-rb-sep"></span>
 						<button
 							type="button"
 							class="pptx-rb-pill"
-							title="Protect with a password"
+							[title]="'pptx.ribbon.protectWithPassword' | translate"
 							(click)="openPassword.emit()"
 						>
-							Protect
+							{{ 'pptx.ribbon.protect' | translate }}
 						</button>
 						<button
 							type="button"
 							class="pptx-rb-pill"
-							title="Manage embedded fonts"
+							[title]="'pptx.ribbon.manageEmbeddedFonts' | translate"
 							(click)="openFontEmbedding.emit()"
 						>
-							Embed Fonts
+							{{ 'pptx.ribbon.embedFonts' | translate }}
 						</button>
 						<button
 							type="button"
 							class="pptx-rb-pill"
-							title="Browse saved versions"
+							[title]="'pptx.ribbon.browseSavedVersions' | translate"
 							(click)="openVersionHistory.emit()"
 						>
-							Version History
+							{{ 'pptx.ribbon.versionHistory' | translate }}
 						</button>
 					}
 					@case ('home') {
 						<!-- Clipboard -->
 						<div class="flex flex-col items-center gap-0.5">
 							<div class="pptx-rb-grp">
-								<button type="button" class="pptx-rb-gb" title="Paste" (click)="paste()">
-									Paste
+								<button
+									type="button"
+									class="pptx-rb-gb"
+									[title]="'pptx.arrange.paste' | translate"
+									(click)="paste()"
+								>
+									{{ 'pptx.arrange.paste' | translate }}
 								</button>
 								<button
 									type="button"
 									class="pptx-rb-gb"
-									title="Cut"
+									[title]="'pptx.arrange.cut' | translate"
 									[disabled]="!hasSel()"
 									(click)="cut()"
 								>
-									Cut
+									{{ 'pptx.arrange.cut' | translate }}
 								</button>
 								<button
 									type="button"
 									class="pptx-rb-gb"
-									title="Copy"
+									[title]="'pptx.arrange.copy' | translate"
 									[disabled]="!hasSel()"
 									(click)="copy()"
 								>
-									Copy
+									{{ 'pptx.arrange.copy' | translate }}
 								</button>
 								<button
 									type="button"
@@ -380,13 +401,15 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 									[attr.data-active]="formatPainterActive() ? 'true' : 'false'"
 									[ngClass]="formatPainterActive() ? 'bg-primary text-primary-foreground' : ''"
 									[disabled]="!canActivateFormatPainter() && !formatPainterActive()"
-									title="Format painter"
+									[title]="'pptx.arrange.formatPainter' | translate"
 									(click)="toggleFormatPainter.emit()"
 								>
-									Painter
+									{{ 'pptx.ribbon.painter' | translate }}
 								</button>
 							</div>
-							<span class="text-[9px] leading-none text-muted-foreground">Clipboard</span>
+							<span class="text-[9px] leading-none text-muted-foreground">
+								{{ 'pptx.ribbon.clipboard' | translate }}
+							</span>
 						</div>
 						<span class="pptx-rb-sep"></span>
 						<!-- Slides -->
@@ -395,21 +418,23 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 								<button
 									type="button"
 									class="pptx-rb-gb"
-									title="New slide"
+									[title]="'pptx.ribbon.newSlide' | translate"
 									(click)="editor.addSlide(slideIndex())"
 								>
-									＋ Slide
+									＋ {{ 'pptx.ribbon.slide' | translate }}
 								</button>
 								<button
 									type="button"
 									class="pptx-rb-gl"
-									title="Duplicate slide"
+									[title]="'pptx.ribbon.duplicateSlide' | translate"
 									(click)="editor.duplicateSlide(slideIndex())"
 								>
-									Duplicate
+									{{ 'pptx.arrange.duplicate' | translate }}
 								</button>
 							</div>
-							<span class="text-[9px] leading-none text-muted-foreground">Slides</span>
+							<span class="text-[9px] leading-none text-muted-foreground">
+								{{ 'pptx.sections.slides' | translate }}
+							</span>
 						</div>
 						<span class="pptx-rb-sep"></span>
 						<!-- Font -->
@@ -417,50 +442,69 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 							<div class="flex items-center gap-1">
 								<ng-container [ngTemplateOutlet]="fontControls" />
 							</div>
-							<span class="text-[9px] leading-none text-muted-foreground">Font</span>
+							<span class="text-[9px] leading-none text-muted-foreground">
+								{{ 'pptx.ribbon.font' | translate }}
+							</span>
 						</div>
 						<span class="pptx-rb-sep"></span>
 						<!-- Paragraph -->
 						<div class="flex flex-col items-center gap-0.5">
 							<ng-container [ngTemplateOutlet]="paragraphControls" />
-							<span class="text-[9px] leading-none text-muted-foreground">Paragraph</span>
+							<span class="text-[9px] leading-none text-muted-foreground">
+								{{ 'pptx.ribbon.paragraph' | translate }}
+							</span>
 						</div>
 					}
 					@case ('insert') {
 						<!-- Shapes group -->
 						<div class="pptx-rb-grp">
-							<button type="button" class="pptx-rb-gb" (click)="insertText()" title="Text box">
-								Text Box
+							<button
+								type="button"
+								class="pptx-rb-gb"
+								(click)="insertText()"
+								[title]="'pptx.ribbon.textBox' | translate"
+							>
+								{{ 'pptx.ribbon.textBox' | translate }}
 							</button>
 							<button
 								type="button"
 								class="pptx-rb-gb"
 								(click)="insertShape('rect')"
-								title="Rectangle"
+								[title]="'pptx.ribbon.rectangle' | translate"
 							>
-								▭ Rect
+								▭ {{ 'pptx.ribbon.rect' | translate }}
 							</button>
 							<button
 								type="button"
 								class="pptx-rb-gb"
 								(click)="insertShape('ellipse')"
-								title="Ellipse"
+								[title]="'pptx.ribbon.ellipse' | translate"
 							>
-								◯ Ellipse
+								◯ {{ 'pptx.ribbon.ellipse' | translate }}
 							</button>
-							<button type="button" class="pptx-rb-gb" (click)="insertShape('line')" title="Line">
-								／ Line
+							<button
+								type="button"
+								class="pptx-rb-gb"
+								(click)="insertShape('line')"
+								[title]="'pptx.ribbon.line' | translate"
+							>
+								／ {{ 'pptx.ribbon.line' | translate }}
 							</button>
-							<button type="button" class="pptx-rb-gb" (click)="insertImage()" title="Insert image">
-								🖼 Image
+							<button
+								type="button"
+								class="pptx-rb-gb"
+								(click)="insertImage()"
+								[title]="'pptx.ribbon.insertImage' | translate"
+							>
+								🖼 {{ 'pptx.ribbon.image' | translate }}
 							</button>
 							<button
 								type="button"
 								class="pptx-rb-gl"
 								(click)="insertMedia()"
-								title="Insert audio or video"
+								[title]="'pptx.ribbon.insertMedia' | translate"
 							>
-								🎬 Media
+								🎬 {{ 'pptx.ribbon.media' | translate }}
 							</button>
 						</div>
 						<span class="pptx-rb-sep"></span>
@@ -470,21 +514,21 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 								type="button"
 								class="pptx-rb-gb"
 								(click)="insertTable()"
-								title="Insert 3×3 table"
+								[title]="'pptx.ribbon.insertTable' | translate"
 							>
-								⊞ Table
+								⊞ {{ 'pptx.ribbon.table' | translate }}
 							</button>
 							<button
 								type="button"
 								class="pptx-rb-gb"
 								(click)="insertSmartArt()"
-								title="Insert SmartArt diagram"
+								[title]="'pptx.ribbon.insertSmartArt' | translate"
 							>
-								◈ SmartArt
+								◈ {{ 'pptx.ribbon.smartArt' | translate }}
 							</button>
 							<select
 								class="pptx-rb-gl"
-								title="Chart type"
+								[title]="'pptx.ribbon.chartType' | translate"
 								[value]="newChartType()"
 								(change)="setNewChartType($event)"
 							>
@@ -492,16 +536,21 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 									<option [value]="ct.type">{{ ct.label }}</option>
 								}
 							</select>
-							<button type="button" class="pptx-rb-gb" (click)="insertChart()" title="Insert chart">
-								▥ Chart
+							<button
+								type="button"
+								class="pptx-rb-gb"
+								(click)="insertChart()"
+								[title]="'pptx.ribbon.insertChart' | translate"
+							>
+								▥ {{ 'pptx.ribbon.chart' | translate }}
 							</button>
 							<button
 								type="button"
 								class="pptx-rb-gl"
 								(click)="insertEquation()"
-								title="Insert equation (E = mc²)"
+								[title]="'pptx.ribbon.insertEquation' | translate"
 							>
-								∑ Equation
+								∑ {{ 'pptx.ribbon.equation' | translate }}
 							</button>
 						</div>
 						<span class="pptx-rb-sep"></span>
@@ -520,37 +569,37 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 								type="button"
 								class="pptx-rb-gb"
 								[disabled]="!hasSel()"
-								title="Bring to front"
+								[title]="'pptx.arrange.bringToFront' | translate"
 								(click)="editor.bringSelectedToFront(slideIndex())"
 							>
-								Front
+								{{ 'pptx.arrange.front' | translate }}
 							</button>
 							<button
 								type="button"
 								class="pptx-rb-gb"
 								[disabled]="!hasSel()"
-								title="Send to back"
+								[title]="'pptx.arrange.sendToBack' | translate"
 								(click)="editor.sendSelectedToBack(slideIndex())"
 							>
-								Back
+								{{ 'pptx.arrange.back' | translate }}
 							</button>
 							<button
 								type="button"
 								class="pptx-rb-gb"
 								[disabled]="!hasSel()"
-								title="Bring forward"
+								[title]="'pptx.arrange.bringForward' | translate"
 								(click)="editor.bringSelectedForward(slideIndex())"
 							>
-								Fwd
+								{{ 'pptx.ribbon.fwd' | translate }}
 							</button>
 							<button
 								type="button"
 								class="pptx-rb-gl"
 								[disabled]="!hasSel()"
-								title="Send backward"
+								[title]="'pptx.arrange.sendBackward' | translate"
 								(click)="editor.sendSelectedBackward(slideIndex())"
 							>
-								Bwd
+								{{ 'pptx.ribbon.bwd' | translate }}
 							</button>
 						</div>
 						<span class="pptx-rb-sep"></span>
@@ -560,7 +609,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 								type="button"
 								class="pptx-rb-gb"
 								[disabled]="!hasSel()"
-								title="Align left"
+								[title]="'pptx.ribbon.alignLeft' | translate"
 								(click)="editor.alignSelected(slideIndex(), 'left')"
 							>
 								⇤
@@ -569,7 +618,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 								type="button"
 								class="pptx-rb-gb"
 								[disabled]="!hasSel()"
-								title="Align center"
+								[title]="'pptx.ribbon.alignCenter' | translate"
 								(click)="editor.alignSelected(slideIndex(), 'centerH')"
 							>
 								⇔
@@ -578,7 +627,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 								type="button"
 								class="pptx-rb-gb"
 								[disabled]="!hasSel()"
-								title="Align right"
+								[title]="'pptx.ribbon.alignRight' | translate"
 								(click)="editor.alignSelected(slideIndex(), 'right')"
 							>
 								⇥
@@ -587,7 +636,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 								type="button"
 								class="pptx-rb-gb"
 								[disabled]="!hasSel()"
-								title="Align top"
+								[title]="'pptx.ribbon.alignTop' | translate"
 								(click)="editor.alignSelected(slideIndex(), 'top')"
 							>
 								⤒
@@ -596,7 +645,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 								type="button"
 								class="pptx-rb-gb"
 								[disabled]="!hasSel()"
-								title="Align middle"
+								[title]="'pptx.ribbon.alignMiddle' | translate"
 								(click)="editor.alignSelected(slideIndex(), 'middle')"
 							>
 								⇕
@@ -605,7 +654,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 								type="button"
 								class="pptx-rb-gl"
 								[disabled]="!hasSel()"
-								title="Align bottom"
+								[title]="'pptx.ribbon.alignBottom' | translate"
 								(click)="editor.alignSelected(slideIndex(), 'bottom')"
 							>
 								⤓
@@ -618,7 +667,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 								type="button"
 								class="pptx-rb-gb"
 								[disabled]="!canDistribute()"
-								title="Distribute horizontally"
+								[title]="'pptx.ribbon.distributeHorizontally' | translate"
 								(click)="editor.distributeSelected(slideIndex(), 'horizontal')"
 							>
 								&#x2194; H
@@ -627,7 +676,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 								type="button"
 								class="pptx-rb-gl"
 								[disabled]="!canDistribute()"
-								title="Distribute vertically"
+								[title]="'pptx.ribbon.distributeVertically' | translate"
 								(click)="editor.distributeSelected(slideIndex(), 'vertical')"
 							>
 								&#x2195; V
@@ -640,22 +689,27 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 								type="button"
 								class="pptx-rb-gb"
 								[disabled]="!hasSel()"
-								title="Copy"
+								[title]="'pptx.arrange.copy' | translate"
 								(click)="copy()"
 							>
-								Copy
+								{{ 'pptx.arrange.copy' | translate }}
 							</button>
 							<button
 								type="button"
 								class="pptx-rb-gb"
 								[disabled]="!hasSel()"
-								title="Cut"
+								[title]="'pptx.arrange.cut' | translate"
 								(click)="cut()"
 							>
-								Cut
+								{{ 'pptx.arrange.cut' | translate }}
 							</button>
-							<button type="button" class="pptx-rb-gl" title="Paste" (click)="paste()">
-								Paste
+							<button
+								type="button"
+								class="pptx-rb-gl"
+								[title]="'pptx.arrange.paste' | translate"
+								(click)="paste()"
+							>
+								{{ 'pptx.arrange.paste' | translate }}
 							</button>
 						</div>
 						<span class="pptx-rb-sep"></span>
@@ -668,28 +722,28 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 								[attr.data-active]="formatPainterActive() ? 'true' : 'false'"
 								[ngClass]="formatPainterActive() ? 'bg-primary text-primary-foreground' : ''"
 								[disabled]="!canActivateFormatPainter() && !formatPainterActive()"
-								title="Format painter"
+								[title]="'pptx.arrange.formatPainter' | translate"
 								(click)="toggleFormatPainter.emit()"
 							>
-								Painter
+								{{ 'pptx.ribbon.painter' | translate }}
 							</button>
 							<button
 								type="button"
 								class="pptx-rb-gb"
 								[disabled]="!hasSel()"
-								title="Flip horizontally"
+								[title]="'pptx.arrange.flipHorizontally' | translate"
 								(click)="flipSelected('horizontal')"
 							>
-								Flip H
+								{{ 'pptx.arrange.flipH' | translate }}
 							</button>
 							<button
 								type="button"
 								class="pptx-rb-gl"
 								[disabled]="!hasSel()"
-								title="Flip vertically"
+								[title]="'pptx.arrange.flipVertically' | translate"
 								(click)="flipSelected('vertical')"
 							>
-								Flip V
+								{{ 'pptx.arrange.flipV' | translate }}
 							</button>
 						</div>
 						<span class="pptx-rb-sep"></span>
@@ -699,37 +753,37 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 								type="button"
 								class="pptx-rb-gb"
 								[disabled]="!hasSel()"
-								title="Group"
+								[title]="'pptx.ribbon.group' | translate"
 								(click)="editor.groupSelected(slideIndex())"
 							>
-								Group
+								{{ 'pptx.ribbon.group' | translate }}
 							</button>
 							<button
 								type="button"
 								class="pptx-rb-gb"
 								[disabled]="!hasSel()"
-								title="Ungroup"
+								[title]="'pptx.ribbon.ungroup' | translate"
 								(click)="editor.ungroupSelected(slideIndex())"
 							>
-								Ungroup
+								{{ 'pptx.ribbon.ungroup' | translate }}
 							</button>
 							<button
 								type="button"
 								class="pptx-rb-gb"
 								[disabled]="!hasSel()"
-								title="Duplicate"
+								[title]="'pptx.arrange.duplicate' | translate"
 								(click)="editor.duplicateSelected(slideIndex())"
 							>
-								Duplicate
+								{{ 'pptx.arrange.duplicate' | translate }}
 							</button>
 							<button
 								type="button"
 								class="pptx-rb-gl"
 								[disabled]="!hasSel()"
-								title="Delete"
+								[title]="'pptx.arrange.delete' | translate"
 								(click)="editor.deleteSelected(slideIndex())"
 							>
-								Delete
+								{{ 'pptx.arrange.delete' | translate }}
 							</button>
 						</div>
 					}
@@ -740,7 +794,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 							[disabled]="slideCount() === 0"
 							(click)="present.emit()"
 						>
-							From Beginning
+							{{ 'pptx.ribbon.fromBeginning' | translate }}
 						</button>
 						<button
 							type="button"
@@ -748,50 +802,62 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 							[disabled]="slideCount() === 0"
 							(click)="presenter.emit()"
 						>
-							Presenter View
+							{{ 'pptx.ribbon.presenterView' | translate }}
 						</button>
-						<button type="button" class="pptx-rb-pill" (click)="broadcast.emit()">Broadcast</button>
+						<button type="button" class="pptx-rb-pill" (click)="broadcast.emit()">
+							{{ 'pptx.ribbon.broadcast' | translate }}
+						</button>
 						<button type="button" class="pptx-rb-pill" (click)="openCustomShows.emit()">
-							Custom Shows
+							{{ 'pptx.ribbon.customShowsButton' | translate }}
 						</button>
 						<button
 							type="button"
 							class="pptx-rb-pill"
-							title="Set up how the show runs"
+							[title]="'pptx.ribbon.setUpShowTitle' | translate"
 							(click)="openSetUpSlideShow.emit()"
 						>
-							Set Up Show
+							{{ 'pptx.ribbon.setUpShow' | translate }}
 						</button>
 					}
 					@case ('review') {
-						<button type="button" class="pptx-rb-pill" (click)="comments.emit()">Comments</button>
-						<button type="button" class="pptx-rb-pill" (click)="a11y.emit()">Accessibility</button>
+						<button type="button" class="pptx-rb-pill" (click)="comments.emit()">
+							{{ 'pptx.toolbar.comments' | translate }}
+						</button>
+						<button type="button" class="pptx-rb-pill" (click)="a11y.emit()">
+							{{ 'pptx.ribbon.accessibility' | translate }}
+						</button>
 						<button
 							type="button"
 							class="pptx-rb-pill"
-							title="Compare with another presentation"
+							[title]="'pptx.ribbon.compareTitle' | translate"
 							(click)="openCompare.emit()"
 						>
-							Compare
+							{{ 'pptx.ribbon.compare' | translate }}
 						</button>
 						@if (hasSel()) {
-							<button type="button" class="pptx-rb-pill" (click)="link.emit()">Link</button>
+							<button type="button" class="pptx-rb-pill" (click)="link.emit()">
+								{{ 'pptx.ribbon.link' | translate }}
+							</button>
 						}
 					}
 					@case ('view') {
 						<!-- Presentation views -->
 						<button type="button" class="pptx-rb-pill" (click)="openSorter.emit()">
-							Slide Sorter
+							{{ 'pptx.slideSorter.title' | translate }}
 						</button>
-						<button type="button" class="pptx-rb-pill" (click)="toggleNotes.emit()">Notes</button>
-						<button type="button" class="pptx-rb-pill" (click)="print.emit()">Print</button>
+						<button type="button" class="pptx-rb-pill" (click)="toggleNotes.emit()">
+							{{ 'pptx.notes.title' | translate }}
+						</button>
+						<button type="button" class="pptx-rb-pill" (click)="print.emit()">
+							{{ 'pptx.print.printButton' | translate }}
+						</button>
 						<button
 							type="button"
 							class="pptx-rb-pill"
-							title="Keyboard shortcut reference"
+							[title]="'pptx.ribbon.shortcutsTitle' | translate"
 							(click)="openShortcuts.emit()"
 						>
-							Shortcuts
+							{{ 'pptx.ribbon.shortcuts' | translate }}
 						</button>
 						<span class="pptx-rb-sep"></span>
 						<!-- Show / Hide overlays -->
@@ -799,46 +865,46 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 							type="button"
 							class="pptx-rb-pill"
 							[ngClass]="showGrid() ? 'bg-primary text-primary-foreground' : ''"
-							title="Toggle grid overlay"
+							[title]="'pptx.ribbon.toggleGridOverlay' | translate"
 							(click)="toggleGrid.emit()"
 						>
-							Grid
+							{{ 'pptx.grid.grid' | translate }}
 						</button>
 						<button
 							type="button"
 							class="pptx-rb-pill"
 							[ngClass]="showRulers() ? 'bg-primary text-primary-foreground' : ''"
-							title="Toggle rulers"
+							[title]="'pptx.ruler.toggleRulers' | translate"
 							(click)="toggleRulers.emit()"
 						>
-							Rulers
+							{{ 'pptx.ruler.rulers' | translate }}
 						</button>
 						<button
 							type="button"
 							class="pptx-rb-pill"
 							[ngClass]="showGuides() ? 'bg-primary text-primary-foreground' : ''"
-							title="Toggle center guide lines"
+							[title]="'pptx.ribbon.toggleGuides' | translate"
 							(click)="toggleGuides.emit()"
 						>
-							Guides
+							{{ 'pptx.ribbon.guides' | translate }}
 						</button>
 						<span class="pptx-rb-sep"></span>
 						<button
 							type="button"
 							class="pptx-rb-pill"
-							title="Show/hide the Selection pane"
+							[title]="'pptx.ribbon.toggleSelectionPane' | translate"
 							(click)="toggleSelectionPane.emit()"
 						>
-							Selection Pane
+							{{ 'pptx.selectionPane.title' | translate }}
 						</button>
 						<button
 							type="button"
 							class="pptx-rb-pill"
 							[ngClass]="snapToGrid() ? 'bg-primary text-primary-foreground' : ''"
-							title="Snap elements to grid while moving"
+							[title]="'pptx.ribbon.snapToGridTitle' | translate"
 							(click)="toggleSnapToGrid.emit()"
 						>
-							Snap to Grid
+							{{ 'pptx.grid.snapToGrid' | translate }}
 						</button>
 						<span class="pptx-rb-sep"></span>
 						<button
@@ -846,20 +912,23 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 							class="pptx-rb-pill"
 							[disabled]="!canEdit()"
 							[ngClass]="editor.editTemplateMode() ? 'pptx-rb-template-active' : ''"
-							title="Edit inherited master/layout (template) elements"
+							[title]="'pptx.ribbon.editTemplateTitle' | translate"
 							(click)="editor.setEditTemplateMode(!editor.editTemplateMode())"
 						>
-							{{ editor.editTemplateMode() ? 'Templates On' : 'Templates Off' }}
+							{{
+								(editor.editTemplateMode() ? 'pptx.ribbon.templatesOn' : 'pptx.ribbon.templatesOff')
+									| translate
+							}}
 						</button>
 						<span class="pptx-rb-sep"></span>
 						<button
 							type="button"
 							class="pptx-rb-pill"
 							[ngClass]="eyedropperActive() ? 'pptx-rb-eyedropper-active' : ''"
-							title="Pick colour from screen (EyeDropper)"
+							[title]="'pptx.ribbon.eyedropperTitle' | translate"
 							(click)="toggleEyedropper.emit()"
 						>
-							Eyedropper
+							{{ 'pptx.ribbon.eyedropper' | translate }}
 						</button>
 					}
 					@case ('draw') {
@@ -877,7 +946,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 									type="button"
 									[class]="last ? 'pptx-rb-gl' : 'pptx-rb-gb'"
 									[ngClass]="activeTool() === tool.id ? 'bg-primary text-primary-foreground' : ''"
-									[title]="tool.label"
+									[title]="tool.labelKey | translate"
 									(click)="setDrawTool(tool.id)"
 								>
 									{{ tool.icon }}
@@ -888,9 +957,9 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 						<!-- Colour + width -->
 						<label
 							class="inline-flex items-center gap-1 text-xs text-muted-foreground"
-							title="Pen colour"
+							[title]="'pptx.ribbon.penColour' | translate"
 						>
-							Colour
+							{{ 'pptx.ribbon.colour' | translate }}
 							<input
 								type="color"
 								[value]="drawingColor()"
@@ -901,9 +970,9 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 						<span class="pptx-rb-sep"></span>
 						<label
 							class="inline-flex items-center gap-1 text-xs text-muted-foreground"
-							title="Stroke width"
+							[title]="'pptx.ribbon.strokeWidth' | translate"
 						>
-							Width
+							{{ 'pptx.ribbon.width' | translate }}
 							<input
 								type="range"
 								min="1"
@@ -921,36 +990,36 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 							type="button"
 							class="pptx-rb-pill"
 							[ngClass]="themeGalleryOpen() ? 'bg-primary text-primary-foreground' : ''"
-							title="Browse and apply built-in themes"
+							[title]="'pptx.ribbon.browseThemesTitle' | translate"
 							(click)="toggleThemeGallery.emit()"
 						>
-							Browse Themes
+							{{ 'pptx.ribbon.browseThemes' | translate }}
 						</button>
 						<button
 							type="button"
 							class="pptx-rb-pill"
-							title="Edit theme — theme editor not yet ported"
+							[title]="'pptx.ribbon.editThemeTitle' | translate"
 							(click)="info.emit()"
 						>
-							Edit Theme
+							{{ 'pptx.ribbon.editTheme' | translate }}
 						</button>
 						<span class="pptx-rb-sep"></span>
 						<!-- Customize -->
 						<button
 							type="button"
 							class="pptx-rb-pill"
-							title="Slide size / document properties"
+							[title]="'pptx.ribbon.slideSizeTitle' | translate"
 							(click)="info.emit()"
 						>
-							Slide Size
+							{{ 'pptx.ribbon.slideSize' | translate }}
 						</button>
 						<button
 							type="button"
 							class="pptx-rb-pill"
-							title="Format slide background — opens the Inspector"
+							[title]="'pptx.ribbon.formatBackgroundTitle' | translate"
 							(click)="toggleInspector.emit()"
 						>
-							Format Background
+							{{ 'pptx.ribbon.formatBackground' | translate }}
 						</button>
 					}
 					@case ('transitions') {
@@ -958,10 +1027,10 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 						<button
 							type="button"
 							class="pptx-rb-pill"
-							title="Preview transition"
+							[title]="'pptx.ribbon.previewTransition' | translate"
 							(click)="present.emit()"
 						>
-							▶ Preview
+							▶ {{ 'pptx.ribbon.preview' | translate }}
 						</button>
 						<span class="pptx-rb-sep"></span>
 						<!-- Preset gallery -->
@@ -976,16 +1045,18 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 											? 'border-primary bg-primary/10 font-medium text-primary'
 											: 'border-border bg-muted text-foreground hover:bg-accent'
 									"
-									[title]="t.label + ' transition'"
+									[title]="
+										'pptx.ribbon.transitionTitle' | translate: { name: t.labelKey | translate }
+									"
 								>
-									{{ t.label }}
+									{{ t.labelKey | translate }}
 								</button>
 							}
 						</div>
 						<span class="pptx-rb-sep"></span>
 						<!-- Duration -->
 						<label class="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-							<span class="whitespace-nowrap">Duration:</span>
+							<span class="whitespace-nowrap">{{ 'pptx.ribbon.duration' | translate }}</span>
 							<input
 								type="number"
 								min="0"
@@ -994,7 +1065,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 								[value]="transitionDurationSec()"
 								(change)="onTransitionDurationChange($event)"
 								class="pptx-rb-select w-16 text-center"
-								title="Transition duration in seconds"
+								[title]="'pptx.ribbon.transitionDurationTitle' | translate"
 							/>
 							<span>s</span>
 						</label>
@@ -1003,20 +1074,20 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 						<button
 							type="button"
 							class="pptx-rb-pill"
-							title="Apply transition to all slides"
+							[title]="'pptx.ribbon.applyTransitionToAll' | translate"
 							(click)="applyTransitionToAll()"
 						>
-							⧉ Apply to All
+							⧉ {{ 'pptx.headerFooter.applyToAll' | translate }}
 						</button>
 						<span class="pptx-rb-sep"></span>
 						<!-- Inspector -->
 						<button
 							type="button"
 							class="pptx-rb-pill"
-							title="Open Inspector for full transition options"
+							[title]="'pptx.ribbon.openInspectorTransitions' | translate"
 							(click)="toggleInspector.emit()"
 						>
-							▤ Inspector
+							▤ {{ 'pptx.ribbon.inspector' | translate }}
 						</button>
 					}
 					@case ('animations') {
@@ -1025,10 +1096,10 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 							type="button"
 							class="pptx-rb-pill"
 							[disabled]="!hasSel()"
-							title="Preview animation for selected element"
+							[title]="'pptx.animations.previewTooltip' | translate"
 							(click)="present.emit()"
 						>
-							▶ Preview
+							▶ {{ 'pptx.animations.preview' | translate }}
 						</button>
 						<span class="pptx-rb-sep"></span>
 						<!-- Add Animation dropdown (hover-reveal, mirrors React pattern) -->
@@ -1037,9 +1108,9 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 								type="button"
 								class="pptx-rb-pill"
 								[disabled]="!hasSel()"
-								title="Add an animation to the selected element"
+								[title]="'pptx.animations.addTooltip' | translate"
 							>
-								✨ Add Animation ▾
+								✨ {{ 'pptx.animations.addAnimation' | translate }} ▾
 							</button>
 							<!-- Dropdown panel: shown on group hover -->
 							<div class="absolute left-0 top-full z-50 hidden w-44 pt-1 group-hover:block">
@@ -1048,7 +1119,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 									<div
 										class="px-3 pb-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
 									>
-										Entrance
+										{{ 'pptx.animations.group.entrance' | translate }}
 									</div>
 									@for (item of entrancePresets; track item.value) {
 										<button
@@ -1065,7 +1136,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 									<div
 										class="px-3 pb-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
 									>
-										Emphasis
+										{{ 'pptx.animations.group.emphasis' | translate }}
 									</div>
 									@for (item of emphasisPresets; track item.value) {
 										<button
@@ -1082,7 +1153,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 									<div
 										class="px-3 pb-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
 									>
-										Exit
+										{{ 'pptx.animations.group.exit' | translate }}
 									</div>
 									@for (item of exitPresets; track item.value) {
 										<button
@@ -1104,24 +1175,26 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 							type="button"
 							class="pptx-rb-pill"
 							[disabled]="!hasSel()"
-							title="Remove all animations from the selected element"
+							[title]="'pptx.animations.removeTooltip' | translate"
 							(click)="removeAnim()"
 						>
-							✕ Remove Animation
+							✕ {{ 'pptx.ribbon.removeAnimation' | translate }}
 						</button>
 						<span class="pptx-rb-sep"></span>
 						<!-- Animation Panel -->
 						<button
 							type="button"
 							class="pptx-rb-pill"
-							title="Open Animation Inspector panel"
+							[title]="'pptx.animations.openPanelTooltip' | translate"
 							(click)="toggleInspector.emit()"
 						>
-							▤ Animation Panel
+							▤ {{ 'pptx.animations.animationPanel' | translate }}
 						</button>
 					}
 					@case ('help') {
-						<button type="button" class="pptx-rb-pill" (click)="a11y.emit()">Accessibility</button>
+						<button type="button" class="pptx-rb-pill" (click)="a11y.emit()">
+							{{ 'pptx.ribbon.accessibility' | translate }}
+						</button>
 					}
 				}
 			</div>
@@ -1132,7 +1205,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 			<div class="flex items-center gap-1">
 				<select
 					class="pptx-rb-select w-28"
-					aria-label="Font family"
+					[attr.aria-label]="'pptx.ribbon.fontFamily' | translate"
 					[disabled]="!isText()"
 					(change)="setFontFamily($event)"
 				>
@@ -1142,7 +1215,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 				</select>
 				<select
 					class="pptx-rb-select w-14"
-					aria-label="Font size"
+					[attr.aria-label]="'pptx.ribbon.fontSize' | translate"
 					[disabled]="!isText()"
 					(change)="setFontSize($event)"
 				>
@@ -1156,7 +1229,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 					type="button"
 					class="pptx-rb-gb"
 					[disabled]="!isText()"
-					title="Grow font"
+					[title]="'pptx.ribbon.growFont' | translate"
 					(click)="stepFontSize(1)"
 				>
 					A▴
@@ -1165,7 +1238,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 					type="button"
 					class="pptx-rb-gb"
 					[disabled]="!isText()"
-					title="Shrink font"
+					[title]="'pptx.ribbon.shrinkFont' | translate"
 					(click)="stepFontSize(-1)"
 				>
 					A▾
@@ -1174,7 +1247,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 					type="button"
 					class="pptx-rb-gl"
 					[disabled]="!isText()"
-					title="Clear formatting"
+					[title]="'pptx.ribbon.clearFormatting' | translate"
 					(click)="clearFormatting()"
 				>
 					⌫
@@ -1186,7 +1259,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 					class="pptx-rb-gb font-bold"
 					[disabled]="!isText()"
 					[ngClass]="curStyle()?.bold ? 'bg-accent' : ''"
-					title="Bold"
+					[title]="'pptx.notes.bold' | translate"
 					(click)="toggleStyle('bold')"
 				>
 					B
@@ -1196,7 +1269,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 					class="pptx-rb-gb italic"
 					[disabled]="!isText()"
 					[ngClass]="curStyle()?.italic ? 'bg-accent' : ''"
-					title="Italic"
+					[title]="'pptx.notes.italic' | translate"
 					(click)="toggleStyle('italic')"
 				>
 					I
@@ -1206,7 +1279,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 					class="pptx-rb-gb underline"
 					[disabled]="!isText()"
 					[ngClass]="curStyle()?.underline ? 'bg-accent' : ''"
-					title="Underline"
+					[title]="'pptx.notes.underline' | translate"
 					(click)="toggleStyle('underline')"
 				>
 					U
@@ -1216,7 +1289,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 					class="pptx-rb-gl line-through"
 					[disabled]="!isText()"
 					[ngClass]="curStyle()?.strikethrough ? 'bg-accent' : ''"
-					title="Strikethrough"
+					[title]="'pptx.notes.strikethrough' | translate"
 					(click)="toggleStyle('strikethrough')"
 				>
 					S
@@ -1228,7 +1301,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 					type="button"
 					class="pptx-rb-pill"
 					[disabled]="!isText()"
-					title="Font colour"
+					[title]="'pptx.ribbon.fontColour' | translate"
 					(mousedown)="$event.preventDefault()"
 				>
 					<svg
@@ -1257,7 +1330,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 											: 'border-border'
 									"
 									[style.background]="c"
-									[attr.aria-label]="'Font colour ' + c"
+									[attr.aria-label]="'pptx.ribbon.fontColourValue' | translate: { color: c }"
 									(mousedown)="$event.preventDefault()"
 									(click)="setColor(c)"
 								></button>
@@ -1266,7 +1339,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 						<label
 							class="block w-full cursor-pointer py-1 text-center text-[10px] text-muted-foreground transition-colors hover:text-foreground"
 						>
-							Custom colour...
+							{{ 'pptx.ribbon.customColour' | translate }}
 							<input
 								type="color"
 								class="sr-only"
@@ -1283,7 +1356,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 					type="button"
 					class="pptx-rb-pill"
 					[disabled]="!isText()"
-					title="Text highlight colour"
+					[title]="'pptx.ribbon.textHighlightColour' | translate"
 					(mousedown)="$event.preventDefault()"
 				>
 					<span class="font-bold">🖍</span>
@@ -1302,7 +1375,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 											: 'border-border'
 									"
 									[style.background]="c"
-									[attr.aria-label]="'Highlight colour ' + c"
+									[attr.aria-label]="'pptx.ribbon.highlightColourValue' | translate: { color: c }"
 									(mousedown)="$event.preventDefault()"
 									(click)="setHighlight(c)"
 								></button>
@@ -1311,7 +1384,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 						<label
 							class="block w-full cursor-pointer py-1 text-center text-[10px] text-muted-foreground transition-colors hover:text-foreground"
 						>
-							Custom colour...
+							{{ 'pptx.ribbon.customColour' | translate }}
 							<input
 								type="color"
 								class="sr-only"
@@ -1332,7 +1405,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 					class="pptx-rb-gb"
 					[disabled]="!isText()"
 					[ngClass]="curStyle()?.listType === 'bullet' ? 'bg-accent' : ''"
-					title="Bullet list"
+					[title]="'pptx.ribbon.bulletList' | translate"
 					(click)="toggleList('bullet')"
 				>
 					•≡
@@ -1342,7 +1415,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 					class="pptx-rb-gl"
 					[disabled]="!isText()"
 					[ngClass]="curStyle()?.listType === 'numbered' ? 'bg-accent' : ''"
-					title="Numbered list"
+					[title]="'pptx.notes.numberedList' | translate"
 					(click)="toggleList('numbered')"
 				>
 					1.≡
@@ -1354,7 +1427,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 					type="button"
 					class="pptx-rb-gb"
 					[disabled]="!isText()"
-					title="Decrease indent"
+					[title]="'pptx.notes.outdent' | translate"
 					(click)="changeIndent(-24)"
 				>
 					⇤
@@ -1363,7 +1436,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 					type="button"
 					class="pptx-rb-gl"
 					[disabled]="!isText()"
-					title="Increase indent"
+					[title]="'pptx.notes.indent' | translate"
 					(click)="changeIndent(24)"
 				>
 					⇥
@@ -1376,7 +1449,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 					class="pptx-rb-gb"
 					[disabled]="!isText()"
 					[ngClass]="curStyle()?.align === 'left' ? 'bg-accent' : ''"
-					title="Align left"
+					[title]="'pptx.ribbon.alignLeft' | translate"
 					(click)="setAlign('left')"
 				>
 					⯇
@@ -1386,7 +1459,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 					class="pptx-rb-gb"
 					[disabled]="!isText()"
 					[ngClass]="curStyle()?.align === 'center' ? 'bg-accent' : ''"
-					title="Align center"
+					[title]="'pptx.ribbon.alignCenter' | translate"
 					(click)="setAlign('center')"
 				>
 					≡
@@ -1396,7 +1469,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 					class="pptx-rb-gb"
 					[disabled]="!isText()"
 					[ngClass]="curStyle()?.align === 'right' ? 'bg-accent' : ''"
-					title="Align right"
+					[title]="'pptx.ribbon.alignRight' | translate"
 					(click)="setAlign('right')"
 				>
 					⯈
@@ -1406,7 +1479,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 					class="pptx-rb-gl"
 					[disabled]="!isText()"
 					[ngClass]="curStyle()?.align === 'justify' ? 'bg-accent' : ''"
-					title="Justify"
+					[title]="'pptx.ribbon.justify' | translate"
 					(click)="setAlign('justify')"
 				>
 					☰
@@ -1573,7 +1646,7 @@ export class RibbonComponent {
 	protected readonly transitionDurationSec = signal<number>(0.5);
 
 	protected readonly activeTabLabel = computed(
-		() => TABS.find((t) => t.id === this.activeTab())?.label ?? '',
+		() => TABS.find((t) => t.id === this.activeTab())?.labelKey ?? '',
 	);
 
 	protected hasSel(): boolean {

@@ -42,7 +42,7 @@ import { EditorStateService } from './editor-state.service';
 			<button
 				type="button"
 				class="pptx-rb-icon"
-				aria-label="Undo"
+				[attr.aria-label]="'pptx.toolbar.undo' | translate"
 				[disabled]="!canEdit() || !editor.canUndo()"
 				(click)="editor.undo()"
 			>
@@ -51,7 +51,7 @@ import { EditorStateService } from './editor-state.service';
 			<button
 				type="button"
 				class="pptx-rb-icon"
-				aria-label="Redo"
+				[attr.aria-label]="'pptx.toolbar.redo' | translate"
 				[disabled]="!canEdit() || !editor.canRedo()"
 				(click)="editor.redo()"
 			>
@@ -61,8 +61,8 @@ import { EditorStateService } from './editor-state.service';
 				type="button"
 				class="pptx-rb-icon"
 				[ngClass]="findOpen() ? 'text-foreground' : 'text-muted-foreground'"
-				title="Find and replace"
-				aria-label="Find and replace"
+				[title]="'pptx.toolbar.findAndReplace' | translate"
+				[attr.aria-label]="'pptx.toolbar.findAndReplace' | translate"
 				(click)="toggleFind.emit()"
 			>
 				⌕
@@ -76,8 +76,8 @@ import { EditorStateService } from './editor-state.service';
 				type="button"
 				class="pptx-rb-icon relative"
 				[ngClass]="commentsOpen() ? 'text-foreground' : 'text-muted-foreground'"
-				title="Comments"
-				aria-label="Comments"
+				[title]="'pptx.toolbar.comments' | translate"
+				[attr.aria-label]="'pptx.toolbar.comments' | translate"
 				(click)="toggleComments.emit()"
 			>
 				💬
@@ -97,14 +97,14 @@ import { EditorStateService } from './editor-state.service';
 					[disabled]="slideCount() === 0"
 					(click)="present.emit()"
 				>
-					▶ Present
+					▶ {{ 'pptx.toolbar.present' | translate }}
 				</button>
 				<button
 					type="button"
 					class="pptx-rb-pill rounded-l-none border-l border-border/40 px-1"
 					[attr.aria-expanded]="presentMenuOpen()"
-					title="Slide show options"
-					aria-label="Slide show options"
+					[title]="'pptx.ribbon.slideShowOptions' | translate"
+					[attr.aria-label]="'pptx.ribbon.slideShowOptions' | translate"
 					(click)="presentMenuOpen.set(!presentMenuOpen())"
 				>
 					▾
@@ -118,7 +118,7 @@ import { EditorStateService } from './editor-state.service';
 								[disabled]="slideCount() === 0"
 								(click)="present.emit(); presentMenuOpen.set(false)"
 							>
-								From Beginning
+								{{ 'pptx.ribbon.fromBeginning' | translate }}
 							</button>
 							<button
 								type="button"
@@ -126,14 +126,14 @@ import { EditorStateService } from './editor-state.service';
 								[disabled]="slideCount() === 0"
 								(click)="presenter.emit(); presentMenuOpen.set(false)"
 							>
-								Presenter View
+								{{ 'pptx.ribbon.presenterView' | translate }}
 							</button>
 							<button
 								type="button"
 								class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
 								(click)="broadcast.emit(); presentMenuOpen.set(false)"
 							>
-								Broadcast
+								{{ 'pptx.ribbon.broadcast' | translate }}
 							</button>
 						</div>
 					</div>
@@ -143,11 +143,11 @@ import { EditorStateService } from './editor-state.service';
 			<button
 				type="button"
 				class="pptx-rb-pill"
-				title="Custom shows"
-				aria-label="Custom shows"
+				[title]="'pptx.ribbon.customShows' | translate"
+				[attr.aria-label]="'pptx.ribbon.customShows' | translate"
 				(click)="openCustomShows.emit()"
 			>
-				＋ Show
+				＋ {{ 'pptx.ribbon.show' | translate }}
 			</button>
 
 			<span class="mx-1 h-5 w-px self-center bg-border/50"></span>
@@ -158,19 +158,24 @@ import { EditorStateService } from './editor-state.service';
 				[ngClass]="
 					collabConnected() ? 'bg-green-600 hover:bg-green-500' : 'bg-primary hover:bg-primary/90'
 				"
-				title="Share for collaboration"
-				aria-label="Share"
+				[title]="'pptx.ribbon.shareForCollaboration' | translate"
+				[attr.aria-label]="'pptx.toolbar.share' | translate"
 				(click)="share.emit()"
 			>
-				⇪ {{ collabConnected() ? 'Sharing (' + connectedCount() + ')' : 'Share' }}
+				⇪
+				{{
+					collabConnected()
+						? ('pptx.toolbar.sharingCount' | translate: { count: connectedCount() })
+						: ('pptx.toolbar.share' | translate)
+				}}
 			</button>
 
 			<button
 				type="button"
 				class="pptx-rb-icon"
 				[ngClass]="inspectorOpen() ? 'text-foreground' : 'text-muted-foreground'"
-				title="Toggle inspector"
-				aria-label="Toggle inspector"
+				[title]="'pptx.toolbar.toggleInspector' | translate"
+				[attr.aria-label]="'pptx.toolbar.toggleInspector' | translate"
 				(click)="toggleInspector.emit()"
 			>
 				⫏
@@ -182,8 +187,8 @@ import { EditorStateService } from './editor-state.service';
 					type="button"
 					class="pptx-rb-icon text-muted-foreground"
 					[attr.aria-expanded]="overflowOpen()"
-					title="More actions"
-					aria-label="More actions"
+					[title]="'pptx.ribbon.moreActions' | translate"
+					[attr.aria-label]="'pptx.ribbon.moreActions' | translate"
 					(click)="overflowOpen.set(!overflowOpen())"
 				>
 					⋯
@@ -201,7 +206,7 @@ import { EditorStateService } from './editor-state.service';
 										[disabled]="item.needsSlides && slideCount() === 0"
 										(click)="onOverflow(item.key)"
 									>
-										{{ item.label }}
+										{{ item.labelKey | translate }}
 									</button>
 								}
 							}
@@ -249,18 +254,18 @@ export class RibbonPrimaryRowComponent {
 	/** Overflow menu items (mirrors React's File/overflow actions that exist here). */
 	protected readonly overflowItems: ReadonlyArray<{
 		key: string;
-		label: string;
+		labelKey: string;
 		needsSlides?: boolean;
 	}> = [
-		{ key: 'png', label: 'Export as PNG', needsSlides: true },
-		{ key: 'pdf', label: 'Export as PDF', needsSlides: true },
-		{ key: 'video', label: 'Export as Video', needsSlides: true },
-		{ key: 'gif', label: 'Export as GIF', needsSlides: true },
-		{ key: 'save', label: 'Save (.pptx)', needsSlides: true },
-		{ key: '---0', label: '' },
-		{ key: 'print', label: 'Print' },
-		{ key: 'info', label: 'Document Properties' },
-		{ key: 'a11y', label: 'Accessibility Check' },
+		{ key: 'png', labelKey: 'pptx.ribbon.exportPng', needsSlides: true },
+		{ key: 'pdf', labelKey: 'pptx.ribbon.exportPdf', needsSlides: true },
+		{ key: 'video', labelKey: 'pptx.ribbon.exportVideo', needsSlides: true },
+		{ key: 'gif', labelKey: 'pptx.ribbon.exportGif', needsSlides: true },
+		{ key: 'save', labelKey: 'pptx.ribbon.savePptx', needsSlides: true },
+		{ key: '---0', labelKey: '' },
+		{ key: 'print', labelKey: 'pptx.print.printButton' },
+		{ key: 'info', labelKey: 'pptx.ribbon.documentProperties' },
+		{ key: 'a11y', labelKey: 'pptx.ribbon.accessibilityCheck' },
 	];
 
 	protected onOverflow(key: string): void {

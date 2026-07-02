@@ -258,7 +258,9 @@ const CLOCK_TICK_MS = 1000;
 
 			<!-- Next thumbnail -->
 			<div class="pptx-ng-mpresenter-next">
-				<span class="pptx-ng-mpresenter-label">Next slide</span>
+				<span class="pptx-ng-mpresenter-label">{{
+					'pptx.presenter.nextSlidePreview' | translate
+				}}</span>
 				@if (nextPreviewSlide(); as next) {
 					<div class="pptx-ng-mpresenter-thumb" [ngStyle]="thumbStyle()">
 						<pptx-slide-canvas
@@ -270,7 +272,9 @@ const CLOCK_TICK_MS = 1000;
 						/>
 					</div>
 				} @else {
-					<div class="pptx-ng-mpresenter-next-empty">End of presentation</div>
+					<div class="pptx-ng-mpresenter-next-empty">
+						{{ 'pptx.presenter.endOfPresentation' | translate }}
+					</div>
 				}
 			</div>
 
@@ -320,7 +324,7 @@ const CLOCK_TICK_MS = 1000;
 				</button>
 			</div>
 		} @else {
-			<div class="pptx-ng-mpresenter-empty">No slides to present.</div>
+			<div class="pptx-ng-mpresenter-empty">{{ 'pptx.presenter.noSlides' | translate }}</div>
 		}
 	`,
 })

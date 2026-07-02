@@ -16,6 +16,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	ChartPptxElement,
 	PptxElement,
@@ -64,6 +65,7 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 		ChartDataEditorComponent,
 		SmartArtPropertiesComponent,
 		AnimationAuthorPanelComponent,
+		TranslatePipe,
 	],
 	providers: [IsMobileService],
 	template: `
@@ -76,14 +78,19 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 			mid-edit: the caret stays put and the on-screen keyboard does not dismiss.
 			All commits happen on (change) (blur), reading event.target.value.
 		-->
-		<aside [class]="inspectorClass()" aria-label="Element properties">
+		<aside
+			[class]="inspectorClass()"
+			[attr.aria-label]="'pptx.inspector.elementProperties' | translate"
+		>
 			<!-- ── Transform: Position & Size ─────────────────────────────────── -->
 			<section class="pptx-ng-inspector__section">
-				<h3 class="pptx-ng-inspector__heading">Transform</h3>
+				<h3 class="pptx-ng-inspector__heading">{{ 'pptx.inspector.transform' | translate }}</h3>
 
 				@if (elementKey(); as key) {
 					<div class="pptx-ng-inspector__row" [attr.data-el-key]="key">
-						<label class="pptx-ng-inspector__label" for="insp-x">X</label>
+						<label class="pptx-ng-inspector__label" for="insp-x">{{
+							'pptx.inspector.x' | translate
+						}}</label>
 						<input
 							id="insp-x"
 							class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
@@ -92,7 +99,9 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 							[value]="seed().x"
 							(change)="onPositionChange($event, 'x')"
 						/>
-						<label class="pptx-ng-inspector__label" for="insp-y">Y</label>
+						<label class="pptx-ng-inspector__label" for="insp-y">{{
+							'pptx.inspector.y' | translate
+						}}</label>
 						<input
 							id="insp-y"
 							class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
@@ -104,7 +113,9 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 					</div>
 
 					<div class="pptx-ng-inspector__row">
-						<label class="pptx-ng-inspector__label" for="insp-w">W</label>
+						<label class="pptx-ng-inspector__label" for="insp-w">{{
+							'pptx.inspector.w' | translate
+						}}</label>
 						<input
 							id="insp-w"
 							class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
@@ -114,7 +125,9 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 							[value]="seed().width"
 							(change)="onSizeChange($event, 'width')"
 						/>
-						<label class="pptx-ng-inspector__label" for="insp-h">H</label>
+						<label class="pptx-ng-inspector__label" for="insp-h">{{
+							'pptx.inspector.h' | translate
+						}}</label>
 						<input
 							id="insp-h"
 							class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
@@ -127,7 +140,9 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 					</div>
 
 					<div class="pptx-ng-inspector__row">
-						<label class="pptx-ng-inspector__label" for="insp-rot">Rot°</label>
+						<label class="pptx-ng-inspector__label" for="insp-rot">{{
+							'pptx.inspector.rotation' | translate
+						}}</label>
 						<input
 							id="insp-rot"
 							class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
@@ -136,7 +151,9 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 							[value]="seed().rotation"
 							(change)="onRotationChange($event)"
 						/>
-						<label class="pptx-ng-inspector__label" for="insp-opacity">Opacity</label>
+						<label class="pptx-ng-inspector__label" for="insp-opacity">{{
+							'pptx.inspector.opacity' | translate
+						}}</label>
 						<input
 							id="insp-opacity"
 							class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
@@ -155,11 +172,13 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 			<!-- ── Shape fill & stroke (shape-style elements only) ────────────── -->
 			@if (hasShape()) {
 				<section class="pptx-ng-inspector__section">
-					<h3 class="pptx-ng-inspector__heading">Fill &amp; Stroke</h3>
+					<h3 class="pptx-ng-inspector__heading">{{ 'pptx.inspector.fillStroke' | translate }}</h3>
 
 					@if (elementKey(); as key) {
 						<div class="pptx-ng-inspector__row" [attr.data-el-key]="key">
-							<label class="pptx-ng-inspector__label" for="insp-fill">Fill</label>
+							<label class="pptx-ng-inspector__label" for="insp-fill">{{
+								'pptx.inspector.fill' | translate
+							}}</label>
 							<input
 								id="insp-fill"
 								class="pptx-ng-inspector__color"
@@ -167,7 +186,9 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 								[value]="seed().fillColor"
 								(change)="onFillColorChange($event)"
 							/>
-							<label class="pptx-ng-inspector__label" for="insp-stroke">Stroke</label>
+							<label class="pptx-ng-inspector__label" for="insp-stroke">{{
+								'pptx.inspector.stroke' | translate
+							}}</label>
 							<input
 								id="insp-stroke"
 								class="pptx-ng-inspector__color"
@@ -183,11 +204,13 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 			<!-- ── Text style (text-bearing elements only) ─────────────────────── -->
 			@if (hasText()) {
 				<section class="pptx-ng-inspector__section">
-					<h3 class="pptx-ng-inspector__heading">Text</h3>
+					<h3 class="pptx-ng-inspector__heading">{{ 'pptx.inspector.text' | translate }}</h3>
 
 					@if (elementKey(); as key) {
 						<div class="pptx-ng-inspector__row" [attr.data-el-key]="key">
-							<label class="pptx-ng-inspector__label" for="insp-text-color">Color</label>
+							<label class="pptx-ng-inspector__label" for="insp-text-color">{{
+								'pptx.inspector.color' | translate
+							}}</label>
 							<input
 								id="insp-text-color"
 								class="pptx-ng-inspector__color"
@@ -195,7 +218,9 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 								[value]="seed().textColor"
 								(change)="onTextColorChange($event)"
 							/>
-							<label class="pptx-ng-inspector__label" for="insp-font-size">Size</label>
+							<label class="pptx-ng-inspector__label" for="insp-font-size">{{
+								'pptx.inspector.size' | translate
+							}}</label>
 							<input
 								id="insp-font-size"
 								class="pptx-ng-inspector__input pptx-ng-inspector__input--number"
@@ -213,7 +238,7 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 							type="button"
 							class="pptx-ng-inspector__toggle"
 							[class.is-active]="currentBold()"
-							aria-label="Bold"
+							[attr.aria-label]="'pptx.inspector.bold' | translate"
 							(click)="onBoldToggle()"
 						>
 							<strong>B</strong>
@@ -222,7 +247,7 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 							type="button"
 							class="pptx-ng-inspector__toggle"
 							[class.is-active]="currentItalic()"
-							aria-label="Italic"
+							[attr.aria-label]="'pptx.inspector.italic' | translate"
 							(click)="onItalicToggle()"
 						>
 							<em>I</em>
@@ -231,7 +256,7 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 							type="button"
 							class="pptx-ng-inspector__toggle"
 							[class.is-active]="currentUnderline()"
-							aria-label="Underline"
+							[attr.aria-label]="'pptx.inspector.underline' | translate"
 							(click)="onUnderlineToggle()"
 						>
 							<span style="text-decoration:underline">U</span>
@@ -246,16 +271,18 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 					class="pptx-ng-inspector__row"
 					style="justify-content:space-between;margin-bottom:0.35rem"
 				>
-					<h3 class="pptx-ng-inspector__heading" style="margin:0">Arrange</h3>
+					<h3 class="pptx-ng-inspector__heading" style="margin:0">
+						{{ 'pptx.editorToolbar.arrange' | translate }}
+					</h3>
 					<button
 						type="button"
 						class="pptx-ng-inspector__btn"
 						style="flex:0 0 auto;padding:2px 6px"
 						[attr.aria-pressed]="isLocked()"
-						[title]="isLocked() ? 'Unlock element' : 'Lock element'"
+						[title]="(isLocked() ? 'pptx.inspector.unlock' : 'pptx.inspector.lock') | translate"
 						(click)="onLockToggle()"
 					>
-						{{ isLocked() ? 'Locked' : 'Lock' }}
+						{{ (isLocked() ? 'pptx.inspector.locked' : 'pptx.inspector.lock') | translate }}
 					</button>
 				</div>
 
@@ -263,23 +290,23 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 					<button
 						type="button"
 						class="pptx-ng-inspector__btn"
-						title="Bring to Front"
+						[title]="'pptx.contextMenu.bringToFront' | translate"
 						(click)="editor.bringSelectedToFront(slideIndex())"
 					>
-						Front
+						{{ 'pptx.arrange.front' | translate }}
 					</button>
 					<button
 						type="button"
 						class="pptx-ng-inspector__btn"
-						title="Send to Back"
+						[title]="'pptx.contextMenu.sendToBack' | translate"
 						(click)="editor.sendSelectedToBack(slideIndex())"
 					>
-						Back
+						{{ 'pptx.arrange.back' | translate }}
 					</button>
 					<button
 						type="button"
 						class="pptx-ng-inspector__btn"
-						title="Bring Forward"
+						[title]="'pptx.contextMenu.bringForward' | translate"
 						(click)="editor.bringSelectedForward(slideIndex())"
 					>
 						↑
@@ -287,7 +314,7 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 					<button
 						type="button"
 						class="pptx-ng-inspector__btn"
-						title="Send Backward"
+						[title]="'pptx.contextMenu.sendBackward' | translate"
 						(click)="editor.sendSelectedBackward(slideIndex())"
 					>
 						↓
@@ -298,13 +325,17 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 			<!-- ── Advanced: gradient fill (shape-style elements) ─────────────── -->
 			@if (hasShape()) {
 				<details class="pptx-ng-inspector__details">
-					<summary class="pptx-ng-inspector__summary">Gradient fill</summary>
+					<summary class="pptx-ng-inspector__summary">
+						{{ 'pptx.inspector.gradientFill' | translate }}
+					</summary>
 					<pptx-gradient-picker [element]="el()" (patch)="onPatch($event)" />
 				</details>
 
 				<!-- ── Advanced: effects (shadow / glow / reflection / soft edge) ── -->
 				<details class="pptx-ng-inspector__details">
-					<summary class="pptx-ng-inspector__summary">Effects</summary>
+					<summary class="pptx-ng-inspector__summary">
+						{{ 'pptx.inspector.effects' | translate }}
+					</summary>
 					<pptx-effects-panel [element]="el()" (patch)="onPatch($event)" />
 				</details>
 			}
@@ -312,7 +343,9 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 			<!-- ── Advanced: text (spacing / alignment / direction) ───────────── -->
 			@if (hasText()) {
 				<details class="pptx-ng-inspector__details">
-					<summary class="pptx-ng-inspector__summary">Text — advanced</summary>
+					<summary class="pptx-ng-inspector__summary">
+						{{ 'pptx.inspector.textAdvanced' | translate }}
+					</summary>
 					<pptx-text-advanced-panel [element]="el()" (patch)="onPatch($event)" />
 				</details>
 			}
@@ -320,19 +353,25 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 			<!-- ── Table data editor ──────────────────────────────────────────── -->
 			@if (tableEl(); as t) {
 				<details class="pptx-ng-inspector__details">
-					<summary class="pptx-ng-inspector__summary">Table data</summary>
+					<summary class="pptx-ng-inspector__summary">
+						{{ 'pptx.inspector.tableData' | translate }}
+					</summary>
 					<pptx-table-data-editor [element]="t" (elementChange)="onElementReplace($event)" />
 				</details>
 
 				<!-- ── Table style (structure, presets, widths, heights) ─────────── -->
 				<details class="pptx-ng-inspector__details">
-					<summary class="pptx-ng-inspector__summary">Table style</summary>
+					<summary class="pptx-ng-inspector__summary">
+						{{ 'pptx.inspector.tableStyle' | translate }}
+					</summary>
 					<pptx-table-properties [element]="t" (elementChange)="onElementReplace($event)" />
 				</details>
 
 				<!-- ── Selected cell formatting ─────────────────────────────────── -->
 				<details class="pptx-ng-inspector__details" open>
-					<summary class="pptx-ng-inspector__summary">Cell formatting</summary>
+					<summary class="pptx-ng-inspector__summary">
+						{{ 'pptx.inspector.cellFormatting' | translate }}
+					</summary>
 					<pptx-table-cell-formatting [element]="t" (elementChange)="onElementReplace($event)" />
 				</details>
 			}
@@ -340,7 +379,9 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 			<!-- ── Chart data editor ──────────────────────────────────────────── -->
 			@if (chartEl(); as c) {
 				<details class="pptx-ng-inspector__details">
-					<summary class="pptx-ng-inspector__summary">Chart data</summary>
+					<summary class="pptx-ng-inspector__summary">
+						{{ 'pptx.inspector.chartData' | translate }}
+					</summary>
 					<pptx-chart-data-editor [element]="c" (elementChange)="onElementReplace($event)" />
 				</details>
 			}
@@ -357,7 +398,9 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 
 			<!-- ── Animation authoring ────────────────────────────────────────── -->
 			<details class="pptx-ng-inspector__details">
-				<summary class="pptx-ng-inspector__summary">Animation</summary>
+				<summary class="pptx-ng-inspector__summary">
+					{{ 'pptx.inspector.animation' | translate }}
+				</summary>
 				<pptx-animation-author-panel
 					[element]="el()"
 					[slideIndex]="slideIndex()"
@@ -374,14 +417,14 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 						class="pptx-ng-inspector__btn"
 						(click)="editor.duplicateSelected(slideIndex())"
 					>
-						Duplicate
+						{{ 'pptx.arrange.duplicate' | translate }}
 					</button>
 					<button
 						type="button"
 						class="pptx-ng-inspector__btn pptx-ng-inspector__btn--danger"
 						(click)="editor.deleteSelected(slideIndex())"
 					>
-						Delete
+						{{ 'pptx.arrange.delete' | translate }}
 					</button>
 				</div>
 			</section>

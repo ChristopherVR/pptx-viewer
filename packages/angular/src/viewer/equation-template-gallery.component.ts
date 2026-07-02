@@ -13,28 +13,50 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import type { SafeHtml } from '@angular/platform-browser';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { latexToMathml, TEMPLATES } from './equation-editor-helpers';
 import type { EquationTemplate } from './equation-editor-helpers';
 
+/**
+ * Maps each built-in template's English label to its shared i18n key (the same
+ * keys the React equation editor uses), so the gallery renders localized labels
+ * without changing the framework-agnostic TEMPLATES list.
+ */
+const TEMPLATE_I18N_KEYS: Record<string, string> = {
+	Fraction: 'pptx.equation.template.fraction',
+	Quadratic: 'pptx.equation.template.quadratic',
+	Pythagorean: 'pptx.equation.template.pythagorean',
+	Sum: 'pptx.equation.template.sum',
+	Integral: 'pptx.equation.template.integral',
+	'Square Root': 'pptx.equation.template.squareRoot',
+	Limit: 'pptx.equation.template.limit',
+	"Euler's": 'pptx.equation.template.euler',
+	'Matrix 2x2': 'pptx.equation.template.matrix',
+	Binomial: 'pptx.equation.template.binomial',
+	Derivative: 'pptx.equation.template.derivative',
+	'Trig Identity': 'pptx.equation.template.trigIdentity',
+};
+
 @Component({
 	selector: 'pptx-equation-template-gallery',
 	standalone: true,
+	imports: [TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
 		<div class="pptx-ng-eq-field">
-			<h3 class="pptx-ng-eq-templates-title">Common Templates</h3>
+			<h3 class="pptx-ng-eq-templates-title">{{ 'pptx.equation.templates' | translate }}</h3>
 			<div class="pptx-ng-eq-grid">
 				@for (tmpl of templates; track tmpl.latex) {
 					<button
 						type="button"
 						class="pptx-ng-eq-template"
 						[class.is-active]="activeLatex() === tmpl.latex"
-						[title]="tmpl.label"
+						[title]="tmpl.i18nKey | translate"
 						(click)="select.emit(tmpl.latex)"
 					>
 						<span class="pptx-ng-eq-template-math" [innerHTML]="tmpl.mathml"></span>
-						<span class="pptx-ng-eq-template-label">{{ tmpl.label }}</span>
+						<span class="pptx-ng-eq-template-label">{{ tmpl.i18nKey | translate }}</span>
 					</button>
 				}
 			</div>
@@ -111,9 +133,11 @@ export class EquationTemplateGalleryComponent {
 	private readonly sanitizer = inject(DomSanitizer);
 
 	/** Templates with pre-computed MathML previews (built once). */
-	protected readonly templates: ReadonlyArray<EquationTemplate & { mathml: SafeHtml }> =
-		TEMPLATES.map((tmpl) => ({
-			...tmpl,
-			mathml: this.sanitizer.bypassSecurityTrustHtml(latexToMathml(tmpl.latex)),
-		}));
+	protected readonly templates: ReadonlyArray<
+		EquationTemplate & { mathml: SafeHtml; i18nKey: string }
+	> = TEMPLATES.map((tmpl) => ({
+		...tmpl,
+		mathml: this.sanitizer.bypassSecurityTrustHtml(latexToMathml(tmpl.latex)),
+		i18nKey: TEMPLATE_I18N_KEYS[tmpl.label] ?? tmpl.label,
+	}));
 }

@@ -34,6 +34,7 @@ import {
 } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import type { SafeHtml } from '@angular/platform-browser';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { convertLatexToOmml, convertOmmlToLatex } from '../internal/shared';
 import { latexToMathml } from './equation-editor-helpers';
@@ -44,22 +45,26 @@ import { ModalDialogComponent } from './modal-dialog.component';
 	selector: 'pptx-equation-editor-dialog',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [ModalDialogComponent, EquationTemplateGalleryComponent],
+	imports: [ModalDialogComponent, EquationTemplateGalleryComponent, TranslatePipe],
 	template: `
-		<pptx-modal-dialog [open]="open()" [title]="dialogTitle()" (close)="close.emit()">
+		<pptx-modal-dialog [open]="open()" [title]="dialogTitle() | translate" (close)="close.emit()">
 			<div class="pptx-ng-eq">
 				<!-- Live preview -->
 				<div class="pptx-ng-eq-preview">
 					@if (hasContent()) {
 						<div class="pptx-ng-eq-math" [innerHTML]="previewMathml()"></div>
 					} @else {
-						<span class="pptx-ng-eq-placeholder">Equation preview will appear here</span>
+						<span class="pptx-ng-eq-placeholder">{{
+							'pptx.equation.previewPlaceholder' | translate
+						}}</span>
 					}
 				</div>
 
 				<!-- LaTeX input -->
 				<div class="pptx-ng-eq-field">
-					<label class="pptx-ng-eq-label" for="pptx-ng-eq-latex">LaTeX Input</label>
+					<label class="pptx-ng-eq-label" for="pptx-ng-eq-latex">{{
+						'pptx.equation.latexInput' | translate
+					}}</label>
 					<textarea
 						id="pptx-ng-eq-latex"
 						class="pptx-ng-eq-textarea"
@@ -69,21 +74,23 @@ import { ModalDialogComponent } from './modal-dialog.component';
 						(input)="latex.set(asValue($event))"
 						(keydown)="onKeyDown($event)"
 					></textarea>
-					<p class="pptx-ng-eq-hint">Use LaTeX syntax. Ctrl+Enter to insert.</p>
+					<p class="pptx-ng-eq-hint">{{ 'pptx.equation.latexHint' | translate }}</p>
 				</div>
 
 				<pptx-equation-template-gallery [activeLatex]="latex()" (select)="latex.set($event)" />
 			</div>
 
 			<div footer>
-				<button type="button" class="pptx-ng-eq-btn" (click)="close.emit()">Cancel</button>
+				<button type="button" class="pptx-ng-eq-btn" (click)="close.emit()">
+					{{ 'pptx.equation.cancel' | translate }}
+				</button>
 				<button
 					type="button"
 					class="pptx-ng-eq-btn pptx-ng-eq-btn-primary"
 					[disabled]="!hasContent()"
 					(click)="onInsert()"
 				>
-					{{ isEditing() ? 'Update' : 'Insert' }}
+					{{ (isEditing() ? 'pptx.equation.update' : 'pptx.equation.insert') | translate }}
 				</button>
 			</div>
 		</pptx-modal-dialog>
@@ -198,7 +205,9 @@ export class EquationEditorDialogComponent {
 	readonly isEditing = computed(() => this.existingOmml() !== null);
 
 	/** Header title: edit vs insert. */
-	readonly dialogTitle = computed(() => (this.isEditing() ? 'Edit Equation' : 'Insert Equation'));
+	readonly dialogTitle = computed(() =>
+		this.isEditing() ? 'pptx.equation.editTitle' : 'pptx.equation.insertTitle',
+	);
 
 	/** Live OMML compiled from the current LaTeX ({} on failure / empty input). */
 	private readonly omml = computed<Record<string, unknown>>(() => {
