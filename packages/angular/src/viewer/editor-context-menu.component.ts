@@ -29,14 +29,28 @@
 import {
 	ChangeDetectionStrategy,
 	Component,
+	computed,
 	ElementRef,
 	HostListener,
 	inject,
 	input,
 	output,
 } from '@angular/core';
+import type { TablePptxElement } from 'pptx-viewer-core';
 
 import { EditorStateService } from './editor-state.service';
+import {
+	insertColumn,
+	insertRow,
+	mergeDown,
+	mergeRight,
+	mergeSelection,
+	removeColumn,
+	removeRow,
+	splitCursorCell,
+} from './table-data-helpers';
+import type { TableCellSelection } from './table-selection.service';
+import { TableSelectionService } from './table-selection.service';
 
 @Component({
 	selector: 'pptx-editor-context-menu',
@@ -154,6 +168,79 @@ import { EditorStateService } from './editor-state.service';
 					Send Backward
 				</button>
 			</li>
+
+			<!-- Table row/column/merge actions (only when a table cell is selected) -->
+			@if (tableCtx(); as tc) {
+				<li role="separator" class="pptx-ctx__divider"></li>
+				<li role="none">
+					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onInsertRowAbove()">
+						Insert Row Above
+					</button>
+				</li>
+				<li role="none">
+					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onInsertRowBelow()">
+						Insert Row Below
+					</button>
+				</li>
+				<li role="none">
+					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onInsertColLeft()">
+						Insert Column Left
+					</button>
+				</li>
+				<li role="none">
+					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onInsertColRight()">
+						Insert Column Right
+					</button>
+				</li>
+				<li role="none">
+					<button
+						type="button"
+						class="pptx-ctx__item pptx-ctx__item--danger"
+						role="menuitem"
+						(click)="onDeleteRow()"
+					>
+						Delete Row
+					</button>
+				</li>
+				<li role="none">
+					<button
+						type="button"
+						class="pptx-ctx__item pptx-ctx__item--danger"
+						role="menuitem"
+						(click)="onDeleteColumn()"
+					>
+						Delete Column
+					</button>
+				</li>
+				<li role="separator" class="pptx-ctx__divider"></li>
+				@if (tc.sel.selectedCells && tc.sel.selectedCells.length >= 2) {
+					<li role="none">
+						<button
+							type="button"
+							class="pptx-ctx__item"
+							role="menuitem"
+							(click)="onMergeSelected()"
+						>
+							Merge Selected Cells
+						</button>
+					</li>
+				}
+				<li role="none">
+					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onMergeRight()">
+						Merge Right
+					</button>
+				</li>
+				<li role="none">
+					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onMergeDown()">
+						Merge Down
+					</button>
+				</li>
+				<li role="none">
+					<button type="button" class="pptx-ctx__item" role="menuitem" (click)="onSplitCell()">
+						Split Cell
+					</button>
+				</li>
+			}
 		</ul>
 	`,
 	styles: `
@@ -237,7 +324,29 @@ export class EditorContextMenuComponent {
 	readonly closed = output<void>();
 
 	protected readonly editor = inject(EditorStateService);
+	private readonly tableSelection = inject(TableSelectionService, { optional: true });
 	private readonly host = inject(ElementRef) as ElementRef<HTMLElement>;
+
+	/**
+	 * The table element + cell selection the menu should act on, or null when the
+	 * current selection is not a single table with a selected cell. Drives the
+	 * table row/column/merge section of the menu.
+	 */
+	protected readonly tableCtx = computed<{
+		element: TablePptxElement;
+		sel: TableCellSelection;
+	} | null>(() => {
+		const sel = this.tableSelection?.selection();
+		if (!sel) {
+			return null;
+		}
+		const slide = this.editor.slides()[this.slideIndex()];
+		const el = slide?.elements.find((e) => e.id === sel.elementId);
+		if (!el || el.type !== 'table') {
+			return null;
+		}
+		return { element: el, sel };
+	});
 
 	// ── Close triggers ───────────────────────────────────────────────────────
 
@@ -301,6 +410,59 @@ export class EditorContextMenuComponent {
 
 	protected onSendBackward(): void {
 		this.editor.sendSelectedBackward(this.slideIndex());
+		this.closed.emit();
+	}
+
+	// ── Table row / column / merge actions ─────────────────────────────────────
+
+	protected onInsertRowAbove(): void {
+		this.applyTable((el, sel) => insertRow(el, sel.rowIndex, 'above'));
+	}
+	protected onInsertRowBelow(): void {
+		this.applyTable((el, sel) => insertRow(el, sel.rowIndex, 'below'));
+	}
+	protected onInsertColLeft(): void {
+		this.applyTable((el, sel) => insertColumn(el, sel.columnIndex, 'left'));
+	}
+	protected onInsertColRight(): void {
+		this.applyTable((el, sel) => insertColumn(el, sel.columnIndex, 'right'));
+	}
+	protected onDeleteRow(): void {
+		this.applyTable((el, sel) => removeRow(el, sel.rowIndex));
+	}
+	protected onDeleteColumn(): void {
+		this.applyTable((el, sel) => removeColumn(el, sel.columnIndex));
+	}
+	protected onMergeRight(): void {
+		this.applyTable((el, sel) => mergeRight(el, sel.rowIndex, sel.columnIndex));
+	}
+	protected onMergeDown(): void {
+		this.applyTable((el, sel) => mergeDown(el, sel.rowIndex, sel.columnIndex));
+	}
+	protected onSplitCell(): void {
+		this.applyTable((el, sel) => splitCursorCell(el, sel.rowIndex, sel.columnIndex));
+	}
+	protected onMergeSelected(): void {
+		this.applyTable((el, sel) => (sel.selectedCells ? mergeSelection(el, sel.selectedCells) : el));
+	}
+
+	/**
+	 * Run a pure table transform on the current table context and commit the
+	 * result through the editor (one undoable history entry), then close the menu.
+	 */
+	private applyTable(
+		op: (element: TablePptxElement, sel: TableCellSelection) => TablePptxElement,
+	): void {
+		const ctx = this.tableCtx();
+		if (!ctx) {
+			return;
+		}
+		const updated = op(ctx.element, ctx.sel);
+		if (updated.tableData) {
+			this.editor.updateElement(this.slideIndex(), ctx.element.id, {
+				tableData: updated.tableData,
+			});
+		}
 		this.closed.emit();
 	}
 }

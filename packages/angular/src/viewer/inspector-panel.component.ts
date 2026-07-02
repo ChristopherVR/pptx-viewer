@@ -45,7 +45,9 @@ import {
 } from './inspector-helpers';
 import { IsMobileService } from './is-mobile';
 import { SmartArtPropertiesComponent } from './smart-art-properties.component';
+import { TableCellFormattingComponent } from './table-cell-formatting.component';
 import { TableDataEditorComponent } from './table-data-editor.component';
+import { TablePropertiesComponent } from './table-properties.component';
 import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 
 @Component({
@@ -57,6 +59,8 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 		EffectsPanelComponent,
 		TextAdvancedPanelComponent,
 		TableDataEditorComponent,
+		TablePropertiesComponent,
+		TableCellFormattingComponent,
 		ChartDataEditorComponent,
 		SmartArtPropertiesComponent,
 		AnimationAuthorPanelComponent,
@@ -318,6 +322,18 @@ import { TextAdvancedPanelComponent } from './text-advanced-panel.component';
 				<details class="pptx-ng-inspector__details">
 					<summary class="pptx-ng-inspector__summary">Table data</summary>
 					<pptx-table-data-editor [element]="t" (elementChange)="onElementReplace($event)" />
+				</details>
+
+				<!-- ── Table style (structure, presets, widths, heights) ─────────── -->
+				<details class="pptx-ng-inspector__details">
+					<summary class="pptx-ng-inspector__summary">Table style</summary>
+					<pptx-table-properties [element]="t" (elementChange)="onElementReplace($event)" />
+				</details>
+
+				<!-- ── Selected cell formatting ─────────────────────────────────── -->
+				<details class="pptx-ng-inspector__details" open>
+					<summary class="pptx-ng-inspector__summary">Cell formatting</summary>
+					<pptx-table-cell-formatting [element]="t" (elementChange)="onElementReplace($event)" />
 				</details>
 			}
 

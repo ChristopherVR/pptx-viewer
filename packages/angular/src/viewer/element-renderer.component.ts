@@ -1,6 +1,6 @@
 import { NgStyle } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
-import type { PptxElement, TextSegment } from 'pptx-viewer-core';
+import type { PptxElement, PptxTableData, TextSegment } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
 import {
@@ -228,6 +228,7 @@ interface Paragraph {
 						[element]="element()"
 						[editable]="interactive() && editable()"
 						(cellCommit)="cellCommit.emit({ id: element().id, commit: $event })"
+						(tableChange)="tableChange.emit($event)"
 					/>
 				</div>
 			}
@@ -471,6 +472,9 @@ export class ElementRendererComponent {
 
 	/** Emitted when a table cell's text edit is committed. */
 	readonly cellCommit = output<{ id: string; commit: TableCellCommit }>();
+
+	/** Emitted when a structural table change (drag-resize) should be persisted. */
+	readonly tableChange = output<{ id: string; tableData: PptxTableData }>();
 
 	/** Duotone SVG `<filter>` descriptor for this element, if any. */
 	readonly duotoneFilter = computed(() => getDuotoneFilterDef(this.element()));

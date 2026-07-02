@@ -1,228 +1,157 @@
 /**
- * table-data-helpers.ts: Pure immutable helpers for table data editing.
+ * table-data-helpers.ts: Element-level immutable helpers for table data editing.
  *
- * Ported from the React inspector's table editing logic in:
- *   packages/react/src/viewer/components/inspector/table-cell-merge-helpers.ts
- *   packages/react/src/viewer/components/inspector/TablePropertiesPanel.tsx
+ * Thin wrappers that lift the framework-agnostic `PptxTableData` transforms in
+ * `pptx-viewer-shared` up to the `TablePptxElement` level (so the inspector and
+ * context menu can hand a whole element to the editor). Every function returns a
+ * new element and leaves the input unchanged.
  *
- * All functions return new objects and leave the input unchanged.
- * Merged-cell invariants (hMerge / vMerge / gridSpan / rowSpan) are
- * honoured: mutating rows/columns that touch a merge group resets the
- * affected cells to un-merged single-occupancy cells to keep the grid
- * consistent.
+ * Unlike the previous conservative implementation (which cleared ALL merges on
+ * any structural change), these delegate to the shared merge-AWARE operations:
+ *   - `insertTableRow` / `deleteTableRow`       (render/table-layout)
+ *   - `insertTableColumn` / `deleteTableColumn`  (render/table-layout)
+ *   - `mergeCells` / `splitCell`                 (render/table-merge)
+ *   - `computeMergeCellRight` / `computeMergeCellDown` / `computeSplitCell`
+ *                                                (render/table-cell-merge)
+ * so existing merge spans are preserved / adjusted rather than destroyed.
  *
  * @module angular-viewer/table-data-helpers
  */
 
-import type {
-	PptxTableCell,
-	PptxTableData,
-	PptxTableRow,
-	TablePptxElement,
-} from 'pptx-viewer-core';
+import type { PptxTableData, TablePptxElement } from 'pptx-viewer-core';
+
+import type { CellCoord } from '../internal/shared';
+import {
+	computeMergeCellDown,
+	computeMergeCellRight,
+	computeSplitCell,
+	deleteTableColumn,
+	deleteTableRow,
+	insertTableColumn,
+	insertTableRow,
+	mergeCells,
+	splitCell,
+} from '../internal/shared';
 
 // `setCellText` is the framework-agnostic single-cell text edit. It lives in
-// `pptx-viewer-shared` (`render/table-cell-edit`) so the three bindings share
-// one copy; Angular consumes the vendored, inlined copy under
-// `../internal/shared-src`. Re-exported here so existing consumers and the
-// colocated test keep importing it from this module unchanged.
-export { setCellText } from '../internal/shared-src/render/table-cell-edit';
+// `pptx-viewer-shared` (`render/table-cell-edit`); re-exported here so existing
+// consumers and the colocated test keep importing it from this module unchanged.
+export { setCellText } from '../internal/shared';
+
+export type { CellCoord };
 
 // ---------------------------------------------------------------------------
-// Internal utilities
-// ---------------------------------------------------------------------------
-
-/** Create a plain, empty cell. */
-function emptyCell(): PptxTableCell {
-	return { text: '' };
-}
-
-/**
- * Return a copy of a cell with all merge-related fields stripped.
- * Used when structural changes invalidate merge state.
- */
-function unmergedCell(cell: PptxTableCell): PptxTableCell {
-	return { text: cell.text, style: cell.style };
-}
-
-/**
- * Return true when the cell participates in any merge (as a master, a
- * horizontal continuation, or a vertical continuation).
- */
-function isMergeParticipant(cell: PptxTableCell): boolean {
-	return (
-		(cell.gridSpan !== undefined && cell.gridSpan > 1) ||
-		(cell.rowSpan !== undefined && cell.rowSpan > 1) ||
-		cell.hMerge === true ||
-		cell.vMerge === true
-	);
-}
-
-/**
- * Reset every cell in the rows array that participates in a merge to a
- * plain unmerged cell.  Used as a conservative safety step when a
- * structural row/column add or remove could corrupt an existing merge.
- */
-function clearAllMerges(rows: readonly PptxTableRow[]): PptxTableRow[] {
-	return rows.map((row) => ({
-		...row,
-		cells: row.cells.map((cell) => (isMergeParticipant(cell) ? unmergedCell(cell) : { ...cell })),
-	}));
-}
-
-// ---------------------------------------------------------------------------
-// addTableRow
+// Internal utility
 // ---------------------------------------------------------------------------
 
 /**
- * Return a new `TablePptxElement` with a blank row inserted after
- * `afterRowIndex`.
- *
- * Any existing merge state that could be corrupted by the insertion is
- * cleared from the entire table (conservative but always safe).
- *
- * @param element - The source table element (not mutated).
- * @param afterRowIndex - Insert after this zero-based row index.
- *   Pass `-1` to insert before the first row.
- * @returns A new `TablePptxElement` with the row added.
- *
- * @example
- * ```ts
- * const updated = addTableRow(el, 0); // insert after row 0
- * ```
+ * Apply a pure `PptxTableData → PptxTableData` transform to an element's table
+ * data, returning a new element. Returns the element unchanged when it has no
+ * table data or the transform is a no-op (returns the same reference).
  */
-export function addTableRow(element: TablePptxElement, afterRowIndex: number): TablePptxElement {
+function withTableData(
+	element: TablePptxElement,
+	transform: (data: PptxTableData) => PptxTableData,
+): TablePptxElement {
 	const tableData = element.tableData;
 	if (!tableData) {
 		return element;
 	}
-	const colCount = tableData.columnWidths.length;
-	const newRow: PptxTableRow = {
-		cells: Array.from({ length: colCount }, () => emptyCell()),
-	};
-	const cleaned = clearAllMerges(tableData.rows);
-	const next: PptxTableRow[] = [...cleaned];
-	next.splice(afterRowIndex + 1, 0, newRow);
-	return { ...element, tableData: { ...tableData, rows: next } };
+	const next = transform(tableData);
+	if (next === tableData) {
+		return element;
+	}
+	return { ...element, tableData: next };
 }
 
 // ---------------------------------------------------------------------------
-// removeTableRow
+// Structural row / column operations (merge-aware)
 // ---------------------------------------------------------------------------
 
 /**
- * Return a new `TablePptxElement` with the row at `rowIndex` removed.
- *
- * Requires at least 2 rows; returns the element unchanged if the table
- * already has only one row.  Merge state is cleared from the entire table
- * to avoid orphaned merge markers.
- *
- * @param element - The source table element (not mutated).
- * @param rowIndex - Zero-based index of the row to remove.
- * @returns A new `TablePptxElement`, or the original if removal is not
- *   possible.
- *
- * @example
- * ```ts
- * const updated = removeTableRow(el, 2);
- * ```
+ * Insert a blank row above or below `rowIdx`, growing any vertical merge spans
+ * that straddle the insertion point (delegates to the shared `insertTableRow`).
  */
-export function removeTableRow(element: TablePptxElement, rowIndex: number): TablePptxElement {
-	const tableData = element.tableData;
-	if (!tableData || tableData.rows.length <= 1) {
-		return element;
-	}
-	const cleaned = clearAllMerges(tableData.rows);
-	const rows = cleaned.filter((_, i) => i !== rowIndex);
-	return { ...element, tableData: { ...tableData, rows } };
+export function insertRow(
+	element: TablePptxElement,
+	rowIdx: number,
+	position: 'above' | 'below',
+): TablePptxElement {
+	return withTableData(element, (td) => insertTableRow(td, rowIdx, position));
+}
+
+/**
+ * Delete the row at `rowIdx`, adjusting vertical merge spans. No-op (element
+ * returned unchanged) when the table has a single row.
+ */
+export function removeRow(element: TablePptxElement, rowIdx: number): TablePptxElement {
+	return withTableData(element, (td) => deleteTableRow(td, rowIdx));
+}
+
+/**
+ * Insert a blank column left or right of `colIdx`, splitting the source column's
+ * width and growing horizontal merge spans (delegates to `insertTableColumn`).
+ */
+export function insertColumn(
+	element: TablePptxElement,
+	colIdx: number,
+	position: 'left' | 'right',
+): TablePptxElement {
+	return withTableData(element, (td) => insertTableColumn(td, colIdx, position));
+}
+
+/**
+ * Delete the column at `colIdx`, adjusting horizontal merge spans and
+ * renormalising widths. No-op when the table has a single column.
+ */
+export function removeColumn(element: TablePptxElement, colIdx: number): TablePptxElement {
+	return withTableData(element, (td) => deleteTableColumn(td, colIdx));
 }
 
 // ---------------------------------------------------------------------------
-// addTableColumn
+// Merge / split operations
 // ---------------------------------------------------------------------------
 
-/**
- * Return a new `TablePptxElement` with a blank column inserted after
- * `afterColIndex`.
- *
- * The new column is given an equal share of the total width (i.e. column
- * widths are renormalised so they still sum to 1).  Merge state is cleared.
- *
- * @param element - The source table element (not mutated).
- * @param afterColIndex - Insert after this zero-based column index.
- *   Pass `-1` to insert before the first column.
- * @returns A new `TablePptxElement` with the column added.
- *
- * @example
- * ```ts
- * const updated = addTableColumn(el, 1); // insert after column 1
- * ```
- */
-export function addTableColumn(element: TablePptxElement, afterColIndex: number): TablePptxElement {
-	const tableData = element.tableData;
-	if (!tableData) {
-		return element;
-	}
-	const oldCount = tableData.columnWidths.length;
-	const newCount = oldCount + 1;
-	// Equal-width distribution
-	const newWidths = Array.from({ length: newCount }, () => 1 / newCount);
+/** Merge a rectangular selection of cells into their top-left anchor. */
+export function mergeSelection(element: TablePptxElement, cells: CellCoord[]): TablePptxElement {
+	return withTableData(element, (td) => mergeCells(cells, td));
+}
 
-	const cleaned = clearAllMerges(tableData.rows);
-	const rows = cleaned.map((row) => {
-		const cells = [...row.cells];
-		cells.splice(afterColIndex + 1, 0, emptyCell());
-		return { ...row, cells };
+/** Split the merged cell anchored at `(row, col)` back into individual cells. */
+export function splitMergedCell(
+	element: TablePptxElement,
+	row: number,
+	col: number,
+): TablePptxElement {
+	return withTableData(element, (td) => splitCell(row, col, td));
+}
+
+/** Merge the cursor cell with its right-hand neighbour (no-op when invalid). */
+export function mergeRight(element: TablePptxElement, row: number, col: number): TablePptxElement {
+	return withTableData(element, (td) => {
+		const rows = computeMergeCellRight(td, row, col);
+		return rows ? { ...td, rows } : td;
 	});
-
-	return {
-		...element,
-		tableData: { ...tableData, columnWidths: newWidths, rows },
-	};
 }
 
-// ---------------------------------------------------------------------------
-// removeTableColumn
-// ---------------------------------------------------------------------------
+/** Merge the cursor cell with the cell below it (no-op when invalid). */
+export function mergeDown(element: TablePptxElement, row: number, col: number): TablePptxElement {
+	return withTableData(element, (td) => {
+		const rows = computeMergeCellDown(td, row, col);
+		return rows ? { ...td, rows } : td;
+	});
+}
 
-/**
- * Return a new `TablePptxElement` with the column at `colIndex` removed.
- *
- * Requires at least 2 columns; returns the element unchanged if the table
- * already has only one column.  Column widths are renormalised to sum to 1
- * after removal.  Merge state is cleared.
- *
- * @param element - The source table element (not mutated).
- * @param colIndex - Zero-based index of the column to remove.
- * @returns A new `TablePptxElement`, or the original if removal is not
- *   possible.
- *
- * @example
- * ```ts
- * const updated = removeTableColumn(el, 0);
- * ```
- */
-export function removeTableColumn(element: TablePptxElement, colIndex: number): TablePptxElement {
-	const tableData = element.tableData;
-	if (!tableData || tableData.columnWidths.length <= 1) {
-		return element;
-	}
-
-	// Remove the width entry and renormalise
-	const filteredWidths = tableData.columnWidths.filter((_, i) => i !== colIndex);
-	const total = filteredWidths.reduce((s, w) => s + w, 0);
-	const newWidths = total > 0 ? filteredWidths.map((w) => w / total) : filteredWidths;
-
-	const cleaned = clearAllMerges(tableData.rows);
-	const rows = cleaned.map((row) => ({
-		...row,
-		cells: row.cells.filter((_, ci) => ci !== colIndex),
-	}));
-
-	return {
-		...element,
-		tableData: { ...tableData, columnWidths: newWidths, rows },
-	};
+/** Split the merged cursor cell (no-op when the cell is not merged). */
+export function splitCursorCell(
+	element: TablePptxElement,
+	row: number,
+	col: number,
+): TablePptxElement {
+	return withTableData(element, (td) => {
+		const rows = computeSplitCell(td, row, col);
+		return rows ? { ...td, rows } : td;
+	});
 }
 
 // ---------------------------------------------------------------------------
@@ -230,12 +159,8 @@ export function removeTableColumn(element: TablePptxElement, colIndex: number): 
 // ---------------------------------------------------------------------------
 
 /**
- * Return a new `TablePptxElement` with arbitrary `PptxTableData` fields
- * merged in.  Use for banding flags, style ID, etc.
- *
- * @param element - The source table element (not mutated).
- * @param patch - Partial `PptxTableData` fields to merge.
- * @returns A new `TablePptxElement`.
+ * Return a new `TablePptxElement` with arbitrary `PptxTableData` fields merged
+ * in. Use for banding flags, style presets, column widths, row heights, etc.
  */
 export function patchTableData(
 	element: TablePptxElement,

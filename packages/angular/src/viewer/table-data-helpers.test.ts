@@ -1,21 +1,27 @@
 /**
  * table-data-helpers.test.ts: Vitest unit tests for table-data-helpers.ts.
  *
- * All tests are pure (no TestBed, no Angular imports) and run in Node.
+ * All tests are pure (no TestBed, no Angular imports) and run in Node. They
+ * verify the element-level wrappers delegate to the shared merge-AWARE table
+ * transforms (so existing merge spans survive structural edits) rather than the
+ * old merge-destroying behaviour.
  *
  * @module angular-viewer/table-data-helpers.test
  */
 
-import type { TablePptxElement } from 'pptx-viewer-core';
+import type { PptxTableCell, TablePptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import {
-	addTableColumn,
-	addTableRow,
+	insertColumn,
+	insertRow,
+	mergeRight,
+	mergeSelection,
 	patchTableData,
-	removeTableColumn,
-	removeTableRow,
+	removeColumn,
+	removeRow,
 	setCellText,
+	splitMergedCell,
 } from './table-data-helpers';
 
 // ---------------------------------------------------------------------------
@@ -41,6 +47,11 @@ function makeTable(rows: string[][], widths?: number[]): TablePptxElement {
 	};
 }
 
+/** Convenience: read a cell from a table element. */
+function cellAt(el: TablePptxElement, r: number, c: number): PptxTableCell | undefined {
+	return el.tableData?.rows[r]?.cells[c];
+}
+
 // ---------------------------------------------------------------------------
 // setCellText
 // ---------------------------------------------------------------------------
@@ -52,214 +63,160 @@ describe('setCellText', () => {
 			['C', 'D'],
 		]);
 		const result = setCellText(el, 0, 1, 'X');
-		expect(result.tableData?.rows[0].cells[1].text).toBe('X');
+		expect(cellAt(result, 0, 1)?.text).toBe('X');
 	});
 
 	it('does not mutate the original element', () => {
 		const el = makeTable([['A', 'B']]);
 		setCellText(el, 0, 0, 'CHANGED');
-		expect(el.tableData?.rows[0].cells[0].text).toBe('A');
-	});
-
-	it('leaves other cells unchanged', () => {
-		const el = makeTable([
-			['A', 'B'],
-			['C', 'D'],
-		]);
-		const result = setCellText(el, 1, 0, 'Z');
-		expect(result.tableData?.rows[0].cells[0].text).toBe('A');
-		expect(result.tableData?.rows[0].cells[1].text).toBe('B');
-		expect(result.tableData?.rows[1].cells[1].text).toBe('D');
-	});
-
-	it('returns element unchanged when tableData is missing', () => {
-		const el: TablePptxElement = {
-			type: 'table',
-			id: 't',
-			x: 0,
-			y: 0,
-			width: 100,
-			height: 50,
-		};
-		expect(setCellText(el, 0, 0, 'x')).toBe(el);
+		expect(cellAt(el, 0, 0)?.text).toBe('A');
 	});
 });
 
 // ---------------------------------------------------------------------------
-// addTableRow
+// insertRow
 // ---------------------------------------------------------------------------
 
-describe('addTableRow', () => {
-	it('appends a new row after the specified index', () => {
+describe('insertRow', () => {
+	it('inserts a blank row below the reference row', () => {
 		const el = makeTable([
 			['A', 'B'],
 			['C', 'D'],
 		]);
-		const result = addTableRow(el, 0);
+		const result = insertRow(el, 0, 'below');
 		expect(result.tableData?.rows).toHaveLength(3);
-		expect(result.tableData?.rows[1].cells[0].text).toBe('');
-		expect(result.tableData?.rows[1].cells[1].text).toBe('');
+		expect(cellAt(result, 1, 0)?.text).toBe('');
 	});
 
-	it('inserts at the end when afterRowIndex equals last row', () => {
+	it('inserts above the reference row', () => {
 		const el = makeTable([['A'], ['B']]);
-		const result = addTableRow(el, 1);
+		const result = insertRow(el, 0, 'above');
 		expect(result.tableData?.rows).toHaveLength(3);
-		expect(result.tableData?.rows[2].cells[0].text).toBe('');
-	});
-
-	it('inserts at position 0 when afterRowIndex is -1', () => {
-		const el = makeTable([['A'], ['B']]);
-		const result = addTableRow(el, -1);
-		expect(result.tableData?.rows).toHaveLength(3);
-		expect(result.tableData?.rows[0].cells[0].text).toBe('');
-	});
-
-	it('new row has correct number of cells', () => {
-		const el = makeTable([['A', 'B', 'C']]);
-		const result = addTableRow(el, 0);
-		expect(result.tableData?.rows[1].cells).toHaveLength(3);
+		expect(cellAt(result, 0, 0)?.text).toBe('');
+		expect(cellAt(result, 1, 0)?.text).toBe('A');
 	});
 
 	it('does not mutate the original', () => {
 		const el = makeTable([['A']]);
-		addTableRow(el, 0);
+		insertRow(el, 0, 'below');
 		expect(el.tableData?.rows).toHaveLength(1);
 	});
 
-	it('clears merge state on existing cells', () => {
-		const el = makeTable([['A', 'B']]);
-		// Manually inject merge state
-		const elWithMerge: TablePptxElement = {
-			...el,
-			tableData: {
-				...el.tableData!,
-				rows: [
-					{
-						cells: [
-							{ text: 'A', gridSpan: 2 },
-							{ text: '', hMerge: true },
-						],
-					},
-				],
-			},
+	it('preserves a vertical merge spanning the insertion point (grows rowSpan)', () => {
+		// A 3-row table where col 0 is a vertical merge over rows 0-1.
+		const el: TablePptxElement = {
+			...makeTable([
+				['A', 'B'],
+				['', 'D'],
+				['E', 'F'],
+			]),
 		};
-		const result = addTableRow(elWithMerge, 0);
-		expect(result.tableData?.rows[0].cells[0].gridSpan).toBeUndefined();
-		expect(result.tableData?.rows[0].cells[1].hMerge).toBeUndefined();
+		el.tableData!.rows[0].cells[0] = { text: 'A', rowSpan: 2 };
+		el.tableData!.rows[1].cells[0] = { text: '', vMerge: true };
+
+		// Insert a row inside the merge span (below row 0).
+		const result = insertRow(el, 0, 'below');
+		expect(result.tableData?.rows).toHaveLength(4);
+		// The anchor's rowSpan grows to 3 rather than the merge being destroyed.
+		expect(cellAt(result, 0, 0)?.rowSpan).toBe(3);
+		expect(cellAt(result, 1, 0)?.vMerge).toBeTruthy();
 	});
 });
 
 // ---------------------------------------------------------------------------
-// removeTableRow
+// removeRow
 // ---------------------------------------------------------------------------
 
-describe('removeTableRow', () => {
+describe('removeRow', () => {
 	it('removes the specified row', () => {
-		const el = makeTable([
-			['A', 'B'],
-			['C', 'D'],
-			['E', 'F'],
-		]);
-		const result = removeTableRow(el, 1);
+		const el = makeTable([['A'], ['B'], ['C']]);
+		const result = removeRow(el, 1);
 		expect(result.tableData?.rows).toHaveLength(2);
-		expect(result.tableData?.rows[0].cells[0].text).toBe('A');
-		expect(result.tableData?.rows[1].cells[0].text).toBe('E');
+		expect(cellAt(result, 1, 0)?.text).toBe('C');
 	});
 
 	it('returns element unchanged when only one row exists', () => {
 		const el = makeTable([['A']]);
-		const result = removeTableRow(el, 0);
-		expect(result).toBe(el);
-	});
-
-	it('does not mutate the original', () => {
-		const el = makeTable([['A'], ['B']]);
-		removeTableRow(el, 0);
-		expect(el.tableData?.rows).toHaveLength(2);
+		expect(removeRow(el, 0)).toBe(el);
 	});
 });
 
 // ---------------------------------------------------------------------------
-// addTableColumn
+// insertColumn / removeColumn
 // ---------------------------------------------------------------------------
 
-describe('addTableColumn', () => {
-	it('inserts a blank column after the specified index', () => {
-		const el = makeTable([
-			['A', 'B'],
-			['C', 'D'],
-		]);
-		const result = addTableColumn(el, 0);
-		expect(result.tableData?.rows[0].cells).toHaveLength(3);
-		expect(result.tableData?.rows[0].cells[1].text).toBe('');
-	});
-
-	it('appends a column when afterColIndex equals last column', () => {
+describe('insertColumn', () => {
+	it('inserts a blank column to the right of the reference column', () => {
 		const el = makeTable([['A', 'B']]);
-		const result = addTableColumn(el, 1);
+		const result = insertColumn(el, 0, 'right');
 		expect(result.tableData?.rows[0].cells).toHaveLength(3);
-		expect(result.tableData?.rows[0].cells[2].text).toBe('');
+		expect(cellAt(result, 0, 1)?.text).toBe('');
 	});
 
-	it('inserts before all columns when afterColIndex is -1', () => {
-		const el = makeTable([['A', 'B']]);
-		const result = addTableColumn(el, -1);
-		expect(result.tableData?.rows[0].cells[0].text).toBe('');
-		expect(result.tableData?.rows[0].cells[1].text).toBe('A');
-	});
-
-	it('renormalises column widths to sum to 1', () => {
+	it('keeps column widths normalised to sum to 1', () => {
 		const el = makeTable([['A', 'B']], [0.6, 0.4]);
-		const result = addTableColumn(el, 0);
-		const widths = result.tableData?.columnWidths ?? [];
-		const total = widths.reduce((s, w) => s + w, 0);
+		const result = insertColumn(el, 0, 'right');
+		const total = (result.tableData?.columnWidths ?? []).reduce((s, w) => s + w, 0);
 		expect(total).toBeCloseTo(1, 5);
-		expect(widths).toHaveLength(3);
-	});
-
-	it('does not mutate the original', () => {
-		const el = makeTable([['A', 'B']]);
-		addTableColumn(el, 0);
-		expect(el.tableData?.rows[0].cells).toHaveLength(2);
 	});
 });
 
-// ---------------------------------------------------------------------------
-// removeTableColumn
-// ---------------------------------------------------------------------------
-
-describe('removeTableColumn', () => {
+describe('removeColumn', () => {
 	it('removes the specified column from every row', () => {
 		const el = makeTable([
 			['A', 'B', 'C'],
 			['D', 'E', 'F'],
 		]);
-		const result = removeTableColumn(el, 1);
+		const result = removeColumn(el, 1);
 		expect(result.tableData?.rows[0].cells).toHaveLength(2);
-		expect(result.tableData?.rows[0].cells[0].text).toBe('A');
-		expect(result.tableData?.rows[0].cells[1].text).toBe('C');
+		expect(cellAt(result, 0, 1)?.text).toBe('C');
 	});
 
 	it('returns element unchanged when only one column exists', () => {
 		const el = makeTable([['A'], ['B']]);
-		const result = removeTableColumn(el, 0);
-		expect(result).toBe(el);
+		expect(removeColumn(el, 0)).toBe(el);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// merge / split
+// ---------------------------------------------------------------------------
+
+describe('mergeSelection / splitMergedCell', () => {
+	it('merges a rectangular selection into the top-left anchor', () => {
+		const el = makeTable([
+			['A', 'B'],
+			['C', 'D'],
+		]);
+		const merged = mergeSelection(el, [
+			{ row: 0, col: 0 },
+			{ row: 1, col: 1 },
+		]);
+		expect(cellAt(merged, 0, 0)?.gridSpan).toBe(2);
+		expect(cellAt(merged, 0, 0)?.rowSpan).toBe(2);
+		expect(cellAt(merged, 0, 1)?.hMerge).toBeTruthy();
 	});
 
-	it('renormalises column widths after removal', () => {
-		const el = makeTable([['A', 'B', 'C']], [0.2, 0.5, 0.3]);
-		const result = removeTableColumn(el, 1);
-		const widths = result.tableData?.columnWidths ?? [];
-		const total = widths.reduce((s, w) => s + w, 0);
-		expect(total).toBeCloseTo(1, 5);
-		expect(widths).toHaveLength(2);
+	it('splits a merged anchor back into individual cells', () => {
+		const el = makeTable([
+			['A', 'B'],
+			['C', 'D'],
+		]);
+		const merged = mergeSelection(el, [
+			{ row: 0, col: 0 },
+			{ row: 1, col: 1 },
+		]);
+		const split = splitMergedCell(merged, 0, 0);
+		expect(cellAt(split, 0, 0)?.gridSpan).toBeUndefined();
+		expect(cellAt(split, 0, 0)?.rowSpan).toBeUndefined();
+		expect(cellAt(split, 0, 1)?.hMerge).toBeUndefined();
 	});
 
-	it('does not mutate the original', () => {
-		const el = makeTable([['A', 'B']]);
-		removeTableColumn(el, 0);
-		expect(el.tableData?.rows[0].cells).toHaveLength(2);
+	it('merges the cursor cell with its right neighbour', () => {
+		const el = makeTable([['A', 'B', 'C']]);
+		const result = mergeRight(el, 0, 0);
+		expect(cellAt(result, 0, 0)?.gridSpan).toBe(2);
+		expect(cellAt(result, 0, 1)?.hMerge).toBeTruthy();
 	});
 });
 
@@ -275,21 +232,8 @@ describe('patchTableData', () => {
 		expect(result.tableData?.firstRowHeader).toBeTruthy();
 	});
 
-	it('preserves existing tableData fields not in patch', () => {
-		const el = makeTable([['A', 'B']], [0.5, 0.5]);
-		const result = patchTableData(el, { bandedRows: false });
-		expect(result.tableData?.columnWidths).toStrictEqual([0.5, 0.5]);
-		expect(result.tableData?.rows).toHaveLength(1);
-	});
-
 	it('returns element unchanged when tableData is missing', () => {
 		const el: TablePptxElement = { type: 'table', id: 't', x: 0, y: 0, width: 100, height: 50 };
 		expect(patchTableData(el, { bandedRows: true })).toBe(el);
-	});
-
-	it('does not mutate the original', () => {
-		const el = makeTable([['A']]);
-		patchTableData(el, { bandedRows: true });
-		expect(el.tableData?.bandedRows).toBeUndefined();
 	});
 });

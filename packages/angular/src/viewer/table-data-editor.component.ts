@@ -28,16 +28,17 @@
  * @module angular-viewer/table-data-editor
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import type { TablePptxElement } from 'pptx-viewer-core';
 
 import {
-	addTableColumn,
-	addTableRow,
-	removeTableColumn,
-	removeTableRow,
+	insertColumn,
+	insertRow,
+	removeColumn,
+	removeRow,
 	setCellText,
 } from './table-data-helpers';
+import { TableSelectionService } from './table-selection.service';
 
 @Component({
 	selector: 'pptx-table-data-editor',
@@ -138,6 +139,7 @@ import {
 										class="pptx-tbl-editor__input"
 										[disabled]="!canEdit()"
 										[value]="cell.text"
+										(focus)="onCellFocus(ri, ci)"
 										(change)="onCellChange($event, ri, ci)"
 									/>
 								</div>
@@ -292,6 +294,9 @@ export class TableDataEditorComponent {
 	/** Emits the updated element after any edit operation. */
 	readonly elementChange = output<TablePptxElement>();
 
+	/** Shared cell selection (drives the cell-formatting panel + context menu). */
+	private readonly selection = inject(TableSelectionService, { optional: true });
+
 	// ── Computed helpers ────────────────────────────────────────────────────
 
 	protected readonly rows = computed(() => this.element().tableData?.rows ?? []);
@@ -311,9 +316,14 @@ export class TableDataEditorComponent {
 		this.elementChange.emit(setCellText(this.element(), rowIndex, colIndex, text));
 	}
 
+	/** Focusing a cell selects it so the cell-formatting panel targets it. */
+	protected onCellFocus(rowIndex: number, colIndex: number): void {
+		this.selection?.selectCell(this.element().id, rowIndex, colIndex);
+	}
+
 	protected onAddRow(): void {
 		const last = this.rowCount() - 1;
-		this.elementChange.emit(addTableRow(this.element(), last));
+		this.elementChange.emit(insertRow(this.element(), Math.max(0, last), 'below'));
 	}
 
 	protected onRemoveLastRow(): void {
@@ -321,16 +331,16 @@ export class TableDataEditorComponent {
 		if (last < 0) {
 			return;
 		}
-		this.elementChange.emit(removeTableRow(this.element(), last));
+		this.elementChange.emit(removeRow(this.element(), last));
 	}
 
 	protected onRemoveRow(rowIndex: number): void {
-		this.elementChange.emit(removeTableRow(this.element(), rowIndex));
+		this.elementChange.emit(removeRow(this.element(), rowIndex));
 	}
 
 	protected onAddColumn(): void {
 		const last = this.colCount() - 1;
-		this.elementChange.emit(addTableColumn(this.element(), last));
+		this.elementChange.emit(insertColumn(this.element(), Math.max(0, last), 'right'));
 	}
 
 	protected onRemoveLastColumn(): void {
@@ -338,11 +348,11 @@ export class TableDataEditorComponent {
 		if (last < 0) {
 			return;
 		}
-		this.elementChange.emit(removeTableColumn(this.element(), last));
+		this.elementChange.emit(removeColumn(this.element(), last));
 	}
 
 	protected onRemoveColumn(colIndex: number): void {
-		this.elementChange.emit(removeTableColumn(this.element(), colIndex));
+		this.elementChange.emit(removeColumn(this.element(), colIndex));
 	}
 }
 

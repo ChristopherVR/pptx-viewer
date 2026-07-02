@@ -14,7 +14,7 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
-import type { InkPptxElement, PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { InkPptxElement, PptxElement, PptxSlide, PptxTableData } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
@@ -204,6 +204,7 @@ function plainText(el: PptxElement): string {
 							[fieldContext]="fieldContext()"
 							[editTemplateMode]="editTemplateMode()"
 							(cellCommit)="cellCommit.emit($event)"
+							(tableChange)="tableChange.emit($event)"
 						/>
 					}
 					@for (element of elements(); track element.id; let i = $index) {
@@ -219,6 +220,7 @@ function plainText(el: PptxElement): string {
 							[fieldContext]="fieldContext()"
 							[editTemplateMode]="false"
 							(cellCommit)="cellCommit.emit($event)"
+							(tableChange)="tableChange.emit($event)"
 						/>
 					}
 					@for (box of selectionBoxes(); track box.id) {
@@ -636,6 +638,8 @@ export class SlideCanvasComponent {
 	readonly eraserHit = output<string>();
 	/** Emitted when a table cell's inline text edit commits. */
 	readonly cellCommit = output<{ id: string; commit: TableCellCommit }>();
+	/** Emitted when a structural table change (drag-resize) should be persisted. */
+	readonly tableChange = output<{ id: string; tableData: PptxTableData }>();
 
 	private drag: DragState | null = null;
 	private editCancelled = false;
