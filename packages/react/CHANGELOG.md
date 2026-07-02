@@ -8,6 +8,7 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Bug Fixes
 
+- **core:** Correct install docs and drop the retired @christophervr/pptx-viewer alias (by @ChristopherVR) ([6544b4e](https://github.com/ChristopherVR/pptx-viewer/commit/6544b4eaf086945ecd8a18b877de5a483032aa14))
 - **core,angular:** Revert xmldom to 0.8.x and fix shared import specifiers (by @ChristopherVR) ([29eda31](https://github.com/ChristopherVR/pptx-viewer/commit/29eda3119836559b63bc08733dd9dd6398a69c8d))
 
 ## [1.1.64](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.64) - 2026-06-27

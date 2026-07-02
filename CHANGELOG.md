@@ -6,18 +6,56 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [Unreleased]
 
+### Features
+
+- **react:** Wire inline Ctrl/Cmd+B/I/U formatting shortcuts (by @ChristopherVR) ([09aac24](https://github.com/ChristopherVR/pptx-viewer/commit/09aac24d130a9cfccfc343461471041db549dc4f))
+- **vue:** Inline Ctrl/Cmd+B/I/U formatting shortcuts (by @ChristopherVR) ([7b83ced](https://github.com/ChristopherVR/pptx-viewer/commit/7b83cedd042225072b6837f1198d9f9599b9d314))
+- **angular:** Inline Ctrl/Cmd+B/I/U formatting shortcuts (by @ChristopherVR) ([f633ad5](https://github.com/ChristopherVR/pptx-viewer/commit/f633ad568cc3dafbea2bf13187f59d1260dc50bf))
+
+### Bug Fixes
+
+- Build issue (by @ChristopherVR) ([08a0d2c](https://github.com/ChristopherVR/pptx-viewer/commit/08a0d2cf3f9bcc2193aaa5fc451e8286b0330b71))
+
+### Documentation
+
+- Refresh parity and limitations pages (by @ChristopherVR) ([6659359](https://github.com/ChristopherVR/pptx-viewer/commit/6659359cf19df130cea8bd30d224b2fa2f5c598b))
+
+### Dependencies
+
+- **deps:** Resync bun.lock with the reverted xmldom@0.8.x pin (by @ChristopherVR) ([aa5013e](https://github.com/ChristopherVR/pptx-viewer/commit/aa5013e86bb2326d86c5f0c943e2ba4161068b32))
+
+## [1.1.77](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.77) - 2026-07-02
+
 ### Bug Fixes
 
 - **core:** Namespace layout/master element ids by owning part (by @ChristopherVR) ([baa499c](https://github.com/ChristopherVR/pptx-viewer/commit/baa499c8ae82ed89db3a1743f78704b862597380))
 
 ## [1.1.76](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.76) - 2026-07-02
 
+### Features
+
+- **shared:** Moved additional table rendering logic into the shared package (by @ChristopherVR) ([5a24ab0](https://github.com/ChristopherVR/pptx-viewer/commit/5a24ab02f60addf7019e8d93a02285caa18a99fb))
+- **shared:** Image artistic-effect preset catalogue (by @ChristopherVR) ([4d3dc81](https://github.com/ChristopherVR/pptx-viewer/commit/4d3dc81191d5cd4d55a97cece42e1c744774b01e))
+- **vue:** Media, chart-data, image, and text-effects inspector parity (by @ChristopherVR) ([ecfa548](https://github.com/ChristopherVR/pptx-viewer/commit/ecfa54882d1ff50d6b7349cbffb3a0e7c48f94bd))
+- **vue:** Dialog, panel, and canvas-overlay parity (by @ChristopherVR) ([89aef1e](https://github.com/ChristopherVR/pptx-viewer/commit/89aef1e1c81e087fd841026f65e5db6daa7452d8))
+- **vue:** Table editing parity (by @ChristopherVR) ([b4a0082](https://github.com/ChristopherVR/pptx-viewer/commit/b4a00825e83ffb10a8491a66b28fd2475057e891))
+- **angular:** Secondary dialog and panel suite (by @ChristopherVR) ([aeb9083](https://github.com/ChristopherVR/pptx-viewer/commit/aeb90839707c051c97856eaa800ae0fe38f62314))
+- **angular:** Table editing parity (by @ChristopherVR) ([d9cfda4](https://github.com/ChristopherVR/pptx-viewer/commit/d9cfda4cef9707ad629b22423555b4b2b5b88341))
+- **cli:** Add interactive @christophervr/pptx-viewer installer (by @ChristopherVR) ([4df680d](https://github.com/ChristopherVR/pptx-viewer/commit/4df680d9791d18e38c0f413420e8e1e5f9f2907e))
+
 ### Bug Fixes
 
 - **core,react:** Correct test regressions from bad find-replace and stale factory expectations (by @ChristopherVR) ([661505b](https://github.com/ChristopherVR/pptx-viewer/commit/661505b4ff5b90991df3b0f8fe2a85664e8ce5a0))
 - **shared:** Emit --color-_ and --radius-_ tokens directly from themeToCssVars (by @adamschoenemann) ([519fae5](https://github.com/ChristopherVR/pptx-viewer/commit/519fae5b1ab65f2c0d5b6b5b7fc7703038f8e645))
 - Format issues (by @ChristopherVR) ([bbf874d](https://github.com/ChristopherVR/pptx-viewer/commit/bbf874dda638932d6a435b28238cd822176d1cd6))
+- **core:** Xmldom 0.9 type compatibility in signature-node (by @ChristopherVR) ([ad514e8](https://github.com/ChristopherVR/pptx-viewer/commit/ad514e83c70b9de1c143918f96317c250ecccff3))
+- **react:** Wire inline SmartArt editing through the canvas render chain (by @ChristopherVR) ([c2a953d](https://github.com/ChristopherVR/pptx-viewer/commit/c2a953d8629b78f6d7878097e71f7ab09a3349d7))
+- **core:** Correct install docs and drop the retired @christophervr/pptx-viewer alias (by @ChristopherVR) ([6544b4e](https://github.com/ChristopherVR/pptx-viewer/commit/6544b4eaf086945ecd8a18b877de5a483032aa14))
 - **core,angular:** Revert xmldom to 0.8.x and fix shared import specifiers (by @ChristopherVR) ([29eda31](https://github.com/ChristopherVR/pptx-viewer/commit/29eda3119836559b63bc08733dd9dd6398a69c8d))
+
+### Refactor
+
+- **react:** Consume shared table and style-preset modules (by @ChristopherVR) ([6d3b437](https://github.com/ChristopherVR/pptx-viewer/commit/6d3b4377f0f2873ecc786464f510dcf3a75453e2))
 
 ## [1.1.75](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.75) - 2026-06-27
 

@@ -4,11 +4,22 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.54](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.54) - 2026-07-02
+
+### Features
+
+- **angular:** Inline Ctrl/Cmd+B/I/U formatting shortcuts (by @ChristopherVR) ([f633ad5](https://github.com/ChristopherVR/pptx-viewer/commit/f633ad568cc3dafbea2bf13187f59d1260dc50bf))
+
 ## [1.1.52](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.52) - 2026-07-02
+
+### Features
+
+- **angular:** Secondary dialog and panel suite (by @ChristopherVR) ([aeb9083](https://github.com/ChristopherVR/pptx-viewer/commit/aeb90839707c051c97856eaa800ae0fe38f62314))
 
 ### Bug Fixes
 
 - Format issues (by @ChristopherVR) ([bbf874d](https://github.com/ChristopherVR/pptx-viewer/commit/bbf874dda638932d6a435b28238cd822176d1cd6))
+- **core:** Correct install docs and drop the retired @christophervr/pptx-viewer alias (by @ChristopherVR) ([6544b4e](https://github.com/ChristopherVR/pptx-viewer/commit/6544b4eaf086945ecd8a18b877de5a483032aa14))
 - **core,angular:** Revert xmldom to 0.8.x and fix shared import specifiers (by @ChristopherVR) ([29eda31](https://github.com/ChristopherVR/pptx-viewer/commit/29eda3119836559b63bc08733dd9dd6398a69c8d))
 
 ## [1.1.51](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.51) - 2026-06-27

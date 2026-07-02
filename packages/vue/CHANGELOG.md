@@ -4,10 +4,21 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.78](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.78) - 2026-07-02
+
+### Features
+
+- **vue:** Inline Ctrl/Cmd+B/I/U formatting shortcuts (by @ChristopherVR) ([7b83ced](https://github.com/ChristopherVR/pptx-viewer/commit/7b83cedd042225072b6837f1198d9f9599b9d314))
+
 ## [1.1.76](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.76) - 2026-07-02
+
+### Features
+
+- **vue:** Dialog, panel, and canvas-overlay parity (by @ChristopherVR) ([89aef1e](https://github.com/ChristopherVR/pptx-viewer/commit/89aef1e1c81e087fd841026f65e5db6daa7452d8))
 
 ### Bug Fixes
 
+- **core:** Correct install docs and drop the retired @christophervr/pptx-viewer alias (by @ChristopherVR) ([6544b4e](https://github.com/ChristopherVR/pptx-viewer/commit/6544b4eaf086945ecd8a18b877de5a483032aa14))
 - **core,angular:** Revert xmldom to 0.8.x and fix shared import specifiers (by @ChristopherVR) ([29eda31](https://github.com/ChristopherVR/pptx-viewer/commit/29eda3119836559b63bc08733dd9dd6398a69c8d))
 
 ## [1.1.73](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.73) - 2026-06-27
