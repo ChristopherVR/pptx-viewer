@@ -32,6 +32,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return this.layoutCache.get(layoutPath)!;
 		}
 
+		// Namespace generated element IDs with the owning layout part so that
+		// e.g. slideLayout4's first picture doesn't collide with slideLayout7's
+		// (indexInType is only unique within a single layout's own spTree).
+		const layoutToken =
+			layoutPath
+				.split('/')
+				.pop()
+				?.replace(/\.xml$/u, '') ?? layoutPath;
+
 		try {
 			const layoutXmlStr = await this.zip.file(layoutPath)?.async('string');
 			if (!layoutXmlStr) {
@@ -112,11 +121,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					if (spPr && xmlChild(spPr, 'a:blipFill')) {
 						element = await this.parseShapeWithImageFill(
 							shape,
-							`layout-shape-img-${entry.indexInType}`,
+							`layout-shape-img-${layoutToken}-${entry.indexInType}`,
 							layoutPath,
 						);
 					} else {
-						element = this.parseShape(shape, `layout-shape-${entry.indexInType}`, layoutPath);
+						element = this.parseShape(
+							shape,
+							`layout-shape-${layoutToken}-${entry.indexInType}`,
+							layoutPath,
+						);
 					}
 
 					if (element) {
@@ -131,7 +144,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					}
 					const element = await this.parsePicture(
 						pic,
-						`layout-pic-${entry.indexInType}`,
+						`layout-pic-${layoutToken}-${entry.indexInType}`,
 						layoutPath,
 					);
 					if (element) {
@@ -146,7 +159,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					}
 					const element = this.parseGraphicFrame(
 						frame,
-						`layout-frame-${entry.indexInType}`,
+						`layout-frame-${layoutToken}-${entry.indexInType}`,
 						layoutPath,
 					);
 					if (element) {
