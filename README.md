@@ -9,6 +9,7 @@
 [![pptx-vue-viewer](https://img.shields.io/npm/v/pptx-vue-viewer?label=pptx-vue-viewer)](https://www.npmjs.com/package/pptx-vue-viewer)
 [![pptx-angular-viewer](https://img.shields.io/npm/v/pptx-angular-viewer?label=pptx-angular-viewer)](https://www.npmjs.com/package/pptx-angular-viewer)
 [![pptx-viewer-mcp](https://img.shields.io/npm/v/pptx-viewer-mcp?label=pptx-viewer-mcp)](https://www.npmjs.com/package/pptx-viewer-mcp)
+[![@christophervr/pptx-viewer](https://img.shields.io/npm/v/%40christophervr%2Fpptx-viewer?label=npx%20installer)](https://www.npmjs.com/package/@christophervr/pptx-viewer)
 
 > A TypeScript toolkit to **parse, render, edit, present, and convert** Microsoft PowerPoint (`.pptx`) files - in the browser **and** Node.js. No PowerPoint install, no server round-trips, no native dependencies.
 
@@ -31,6 +32,24 @@ Works with **React 19**, **Vue 3**, and **Angular** out of the box. The core eng
 ---
 
 ## Which package do I install?
+
+### Fastest path: the interactive installer
+
+```bash
+npx @christophervr/pptx-viewer@latest
+```
+
+Asks what you're building (React, Vue, Angular, the headless core engine, and/or the MCP server - pick more than one if you like), then either installs the right package(s) plus their required companions into the current project, or scaffolds a brand-new starter app for you using the framework's own official tooling (`create-vite` / `@angular/cli`). It also detects your package manager (`bun`, `pnpm`, `yarn`, `npm`) and checks framework-version compatibility before touching anything.
+
+Non-interactive form for scripts/CI:
+
+```bash
+npx @christophervr/pptx-viewer@latest --target react,mcp --yes
+```
+
+See [packages/cli](packages/cli/README.md) for the full flag reference. If you'd rather install a package by hand, or aren't set up for `npx`, use the table below.
+
+### Install by hand
 
 The UI packages **bundle the core engine**, so for an app you install exactly one package - no separate `pptx-viewer-core` required.
 
@@ -70,16 +89,18 @@ packages/
   vue/               pptx-vue-viewer      - Vue 3 viewer/editor component
   angular/           pptx-angular-viewer  - Angular viewer/editor component
   tools/             pptx-viewer-mcp      - CLI / MCP server and tool functions for AI agents
+  cli/               @christophervr/pptx-viewer - Interactive npx installer/scaffolder for all of the above
 ```
 
-| Package                                      | npm                                                                                                               | Description                                                                                              | README                                      |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| **[pptx-viewer-core](packages/core/)**       | [![npm](https://img.shields.io/npm/v/pptx-viewer-core.svg)](https://www.npmjs.com/package/pptx-viewer-core)       | Core PPTX engine - parse, create, edit, serialize, and convert PowerPoint files. Framework-agnostic.     | [Documentation](packages/core/README.md)    |
-| **[pptx-viewer-shared](packages/shared/)**   | _(internal - not published)_                                                                                      | Framework-agnostic viewer logic (theme, load helpers, types) shared by the React, Vue, and Angular UIs.  | [Documentation](packages/shared/README.md)  |
-| **[pptx-react-viewer](packages/react/)**     | [![npm](https://img.shields.io/npm/v/pptx-react-viewer.svg)](https://www.npmjs.com/package/pptx-react-viewer)     | React-based PowerPoint viewer, editor, and presenter with toolbar, inspector, collaboration, and export. | [Documentation](packages/react/README.md)   |
-| **[pptx-vue-viewer](packages/vue/)**         | [![npm](https://img.shields.io/npm/v/pptx-vue-viewer.svg)](https://www.npmjs.com/package/pptx-vue-viewer)         | Vue 3 PowerPoint viewer/editor component. Feature-equivalent counterpart of the React package.           | [Documentation](packages/vue/README.md)     |
-| **[pptx-angular-viewer](packages/angular/)** | [![npm](https://img.shields.io/npm/v/pptx-angular-viewer.svg)](https://www.npmjs.com/package/pptx-angular-viewer) | Angular PowerPoint viewer/editor component. Feature-equivalent counterpart of the React package.         | [Documentation](packages/angular/README.md) |
-| **[pptx-viewer-mcp](packages/tools/)**       | [![npm](https://img.shields.io/npm/v/pptx-viewer-mcp.svg)](https://www.npmjs.com/package/pptx-viewer-mcp)         | CLI / MCP server and pure tool functions for AI agents to parse, edit, and convert PPTX files.           | [Documentation](packages/tools/README.md)   |
+| Package                                         | npm                                                                                                                                 | Description                                                                                              | README                                      |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| **[pptx-viewer-core](packages/core/)**          | [![npm](https://img.shields.io/npm/v/pptx-viewer-core.svg)](https://www.npmjs.com/package/pptx-viewer-core)                         | Core PPTX engine - parse, create, edit, serialize, and convert PowerPoint files. Framework-agnostic.     | [Documentation](packages/core/README.md)    |
+| **[pptx-viewer-shared](packages/shared/)**      | _(internal - not published)_                                                                                                        | Framework-agnostic viewer logic (theme, load helpers, types) shared by the React, Vue, and Angular UIs.  | [Documentation](packages/shared/README.md)  |
+| **[pptx-react-viewer](packages/react/)**        | [![npm](https://img.shields.io/npm/v/pptx-react-viewer.svg)](https://www.npmjs.com/package/pptx-react-viewer)                       | React-based PowerPoint viewer, editor, and presenter with toolbar, inspector, collaboration, and export. | [Documentation](packages/react/README.md)   |
+| **[pptx-vue-viewer](packages/vue/)**            | [![npm](https://img.shields.io/npm/v/pptx-vue-viewer.svg)](https://www.npmjs.com/package/pptx-vue-viewer)                           | Vue 3 PowerPoint viewer/editor component. Feature-equivalent counterpart of the React package.           | [Documentation](packages/vue/README.md)     |
+| **[pptx-angular-viewer](packages/angular/)**    | [![npm](https://img.shields.io/npm/v/pptx-angular-viewer.svg)](https://www.npmjs.com/package/pptx-angular-viewer)                   | Angular PowerPoint viewer/editor component. Feature-equivalent counterpart of the React package.         | [Documentation](packages/angular/README.md) |
+| **[pptx-viewer-mcp](packages/tools/)**          | [![npm](https://img.shields.io/npm/v/pptx-viewer-mcp.svg)](https://www.npmjs.com/package/pptx-viewer-mcp)                           | CLI / MCP server and pure tool functions for AI agents to parse, edit, and convert PPTX files.           | [Documentation](packages/tools/README.md)   |
+| **[@christophervr/pptx-viewer](packages/cli/)** | [![npm](https://img.shields.io/npm/v/%40christophervr%2Fpptx-viewer.svg)](https://www.npmjs.com/package/@christophervr/pptx-viewer) | Interactive `npx` installer: picks and installs the right package(s) above, or scaffolds a new app.      | [Documentation](packages/cli/README.md)     |
 
 ### Dependency Graph
 
@@ -121,12 +142,24 @@ pptx-angular-viewer ┘                        ├── pptx-viewer-core
 
 ## Getting Started
 
-### Prerequisites
+### Using pptx-viewer in your own app
+
+```bash
+npx @christophervr/pptx-viewer@latest
+```
+
+This is the fastest way in: pick React, Vue, Angular, the core engine, and/or the MCP server, and it installs into your current project or scaffolds a new one. See [Which package do I install?](#which-package-do-i-install) above for details, or install a package directly with `npm i pptx-react-viewer` / `pptx-vue-viewer` / `pptx-angular-viewer` / `pptx-viewer-core` / `pptx-viewer-mcp`.
+
+### Contributing to this repo
+
+Building `pptx-viewer` itself (not just consuming it) requires cloning the monorepo:
+
+#### Prerequisites
 
 - [Bun](https://bun.sh/) (package manager and runtime)
 - Node.js 18+ (for TypeScript compilation)
 
-### Installation
+#### Installation
 
 ```bash
 # Clone the repository
