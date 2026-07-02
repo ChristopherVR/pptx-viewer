@@ -103,7 +103,7 @@ import {
 				>
 					<option value="none">{{ 'pptx.animations.noneOption' | translate }}</option>
 					@for (opt of entrancePresets; track opt.value) {
-						<option [value]="opt.value">{{ opt.label }}</option>
+						<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
 					}
 				</select>
 			</section>
@@ -122,7 +122,7 @@ import {
 				>
 					<option value="none">{{ 'pptx.animations.noneOption' | translate }}</option>
 					@for (opt of emphasisPresets; track opt.value) {
-						<option [value]="opt.value">{{ opt.label }}</option>
+						<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
 					}
 				</select>
 			</section>
@@ -141,7 +141,7 @@ import {
 				>
 					<option value="none">{{ 'pptx.animations.noneOption' | translate }}</option>
 					@for (opt of exitPresets; track opt.value) {
-						<option [value]="opt.value">{{ opt.label }}</option>
+						<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
 					}
 				</select>
 			</section>
@@ -159,7 +159,7 @@ import {
 									class="pptx-ng-anim__dir-btn"
 									[class.is-active]="current()?.direction === opt.value"
 									[disabled]="!canEdit()"
-									[title]="opt.label"
+									[title]="opt.labelKey | translate"
 									(click)="onDirectionChange(opt.value)"
 								>
 									{{ opt.arrow }}
@@ -182,7 +182,7 @@ import {
 						(change)="onSequenceChange($event)"
 					>
 						@for (opt of sequenceOptions; track opt.value) {
-							<option [value]="opt.value">{{ opt.label }}</option>
+							<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
 						}
 					</select>
 				</section>
@@ -203,7 +203,7 @@ import {
 						(change)="onTriggerChange($event)"
 					>
 						@for (opt of triggerOptions; track opt.value) {
-							<option [value]="opt.value">{{ opt.label }}</option>
+							<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
 						}
 					</select>
 				</section>
@@ -288,7 +288,7 @@ import {
 						(change)="onTimingCurveChange($event)"
 					>
 						@for (opt of timingCurveOptions; track opt.value) {
-							<option [value]="opt.value">{{ opt.label }}</option>
+							<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
 						}
 					</select>
 				</section>
@@ -329,7 +329,7 @@ import {
 						(change)="onRepeatModeChange($event)"
 					>
 						@for (opt of repeatModeOptions; track opt.value) {
-							<option [value]="opt.value">{{ opt.label }}</option>
+							<option [value]="opt.value">{{ opt.labelKey | translate }}</option>
 						}
 					</select>
 				</section>
