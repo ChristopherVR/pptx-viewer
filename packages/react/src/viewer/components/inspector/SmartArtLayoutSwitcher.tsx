@@ -58,11 +58,14 @@ export function SmartArtLayoutSwitcher({
 		}
 
 		const updated = switchSmartArtLayout(smartArtData, newLayout);
-		// Only send the diff fields that changed
+		// Only send the diff fields that changed. drawingShapes must be forwarded
+		// (cleared to undefined) so the reflow pipeline regenerates shapes for
+		// the new layout instead of keeping the old layout's stale shapes.
 		onUpdateSmartArt({
 			layoutType: updated.layoutType,
 			resolvedLayoutType: updated.resolvedLayoutType,
 			layout: updated.layout,
+			drawingShapes: updated.drawingShapes,
 		});
 	};
 
