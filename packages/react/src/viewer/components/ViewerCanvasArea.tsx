@@ -302,6 +302,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 						s.setTableEditorState(cell ? ({ ...cell, elementId } as TableCellEditorState) : null)
 					}
 					onCommitCellEdit={tableOps.handleCommitCellEdit}
+					onUpdateSmartArtElement={canvasHandlers.handleUpdateSmartArtElement}
 					onResizeTableColumns={tableOps.handleResizeTableColumns}
 					onResizeTableRow={tableOps.handleResizeTableRow}
 					findResults={findReplace.findResults}

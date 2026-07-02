@@ -3,16 +3,13 @@ import type {
 	GroupPptxElement,
 	Model3DPptxElement,
 	OlePptxElement,
-	PptxElement,
 	PptxSlide,
-	TextStyle,
 	ZoomPptxElement,
 } from 'pptx-viewer-core';
 import { hasTextProperties, isInkElement, getLinkedTextBoxSegments } from 'pptx-viewer-core';
 import React from 'react';
 
 import { DEFAULT_TEXT_COLOR } from '../../constants';
-import type { TableCellEditorState } from '../../types';
 import {
 	cn,
 	getTextCompensationTransform,
@@ -25,13 +22,10 @@ import {
 	shouldRenderFallbackLabel,
 	getElementLabel,
 } from '../../utils';
-import type { ElementAnimationState } from '../../utils/animation-timeline';
-import type { TableStyleContext } from '../../utils/table-parse';
 import { buildTextBody3DSceneStyle } from '../../utils/text-effects';
-import type { FieldSubstitutionContext } from '../../utils/text-field-substitution';
-import type { ElementFindHighlights } from '../../utils/text-segment-helpers';
 import { shouldUseSvgWarp, WarpedText } from '../../utils/text-warp';
 import { ActionButtonGlyphOverlay, isActionButtonShape } from './ActionButtonGlyphOverlay';
+import type { RenderBodyOptions } from './element-body-types';
 import { renderImg } from './ImageRenderer';
 import { renderInk, renderGroup, renderContentPart } from './InkGroupRenderers';
 import { InlineTextEditor } from './InlineTextEditor';
@@ -40,56 +34,50 @@ import { OleRenderer } from './OleRenderer';
 import { SmartArtElement } from './SmartArtElement';
 import { ZoomElementRenderer } from './ZoomElementRenderer';
 
-export function renderBody(
-	el: PptxElement,
-	isImg: boolean,
-	isEditing: boolean,
-	editText: string,
-	spellCheck: boolean,
-	txtSE: TextStyle | undefined,
-	txtS: React.CSSProperties,
-	vecShape: React.ReactNode,
-	imgStyle: React.CSSProperties,
-	imgFilter: string | undefined,
-	imgOpacity: number | undefined,
-	imgAlt: string,
-	isTxtEl: boolean,
-	media: Map<string, string>,
-	tableSt: TableCellEditorState | null | undefined,
-	isSel: boolean,
-	doInk: boolean,
-	doGrp: boolean,
-	onEditChange: (t: string) => void,
-	onCommit: () => void,
-	onCancel: () => void,
-	onCellSel?: (c: TableCellEditorState | null) => void,
-	onCellCommit?: (rowIndex: number, colIndex: number, text: string) => void,
-	onColResize?: (newWidths: number[]) => void,
-	onRowResize?: (rowIndex: number, newHeight: number) => void,
-	findHl?: ElementFindHighlights,
-	onHyperlinkClick?: (url: string) => void,
-	isPresentationPassive?: boolean,
-	handleMediaPlayStateChange?: (isPlaying: boolean) => void,
-	presentationElementStates?: ReadonlyMap<string, ElementAnimationState>,
-	/** All elements on the current slide, used for linked text box overflow distribution. */
-	slideElements?: readonly PptxElement[],
-	/** All slides in the presentation, used for zoom element thumbnails. */
-	allSlides?: readonly PptxSlide[],
-	/** Callback fired when a zoom element is clicked in presentation mode. */
-	onZoomClick?: (targetSlideIndex: number, returnSlideIndex: number) => void,
-	/** Index of the slide that contains the current element (for zoom return navigation). */
-	sourceSlideIndex?: number,
-	/** Context for text field placeholder substitution (slide number, header/footer, etc.). */
-	fieldContext?: FieldSubstitutionContext,
-	/** Theme + table style map for resolving table band/header colours. */
-	tableStyleContext?: TableStyleContext,
-	/** Callback for inline formatting (Ctrl+B/I/U while editing). */
-	onFormatText?: (updates: Partial<TextStyle>) => void,
-	/** Whether inline SmartArt node editing is permitted for this element. */
-	canEditSmartArt?: boolean,
-	/** Commit a SmartArt node text edit (scoped to this element). */
-	onUpdateSmartArtElement?: (updates: Partial<PptxElement>) => void,
-): React.ReactNode {
+export type { RenderBodyOptions } from './element-body-types';
+
+export function renderBody(options: RenderBodyOptions): React.ReactNode {
+	const {
+		el,
+		isImg,
+		isEditing,
+		editText,
+		spellCheck,
+		txtSE,
+		txtS,
+		vecShape,
+		imgStyle,
+		imgFilter,
+		imgOpacity,
+		imgAlt,
+		isTxtEl,
+		media,
+		tableSt,
+		isSel,
+		doInk,
+		doGrp,
+		onEditChange,
+		onCommit,
+		onCancel,
+		onCellSel,
+		onCellCommit,
+		onColResize,
+		onRowResize,
+		findHl,
+		onHyperlinkClick,
+		isPresentationPassive,
+		handleMediaPlayStateChange,
+		presentationElementStates,
+		slideElements,
+		allSlides,
+		onZoomClick,
+		sourceSlideIndex,
+		fieldContext,
+		tableStyleContext,
+		onFormatText,
+		canEditSmartArt,
+		onUpdateSmartArtElement,
+	} = options;
 	if (el.type === 'model3d') {
 		return (
 			<Model3DRenderer

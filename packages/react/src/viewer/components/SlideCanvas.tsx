@@ -58,6 +58,7 @@ export function SlideCanvas({
 	onInlineEditCancel,
 	onTableCellSelect,
 	onCommitCellEdit,
+	onUpdateSmartArtElement,
 	onResizeTableColumns,
 	onResizeTableRow,
 	findResults,
@@ -103,6 +104,7 @@ export function SlideCanvas({
 		stableInlineEditCancel,
 		stableTableCellSelect,
 		stableCommitCellEdit,
+		stableUpdateSmartArtElement,
 		stableResizeTableColumns,
 		stableResizeTableRow,
 	} = useStableCallbacks({
@@ -118,6 +120,7 @@ export function SlideCanvas({
 		onInlineEditCancel,
 		onTableCellSelect,
 		onCommitCellEdit,
+		onUpdateSmartArtElement,
 		onResizeTableColumns,
 		onResizeTableRow,
 	});
@@ -282,6 +285,7 @@ export function SlideCanvas({
 							onInlineEditChange={stableInlineEditChange}
 							onInlineEditCommit={stableInlineEditCommit}
 							onInlineEditCancel={stableInlineEditCancel}
+							onUpdateSmartArtElement={stableUpdateSmartArtElement}
 							onActionClick={onActionClick}
 							onHyperlinkClick={onHyperlinkClick}
 							animationState={presentationElementStates?.get(element.id)}
@@ -330,6 +334,7 @@ export function SlideCanvas({
 							onInlineEditChange={stableInlineEditChange}
 							onInlineEditCommit={stableInlineEditCommit}
 							onInlineEditCancel={stableInlineEditCancel}
+							onUpdateSmartArtElement={stableUpdateSmartArtElement}
 							onTableCellSelect={stableTableCellSelect}
 							onCommitCellEdit={stableCommitCellEdit}
 							onResizeTableColumns={stableResizeTableColumns}

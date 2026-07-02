@@ -98,6 +98,12 @@ export interface SlideCanvasProps {
 	) => void;
 	/** Called when an edited table cell should be committed. */
 	onCommitCellEdit?: (elementId: string, rowIndex: number, colIndex: number, text: string) => void;
+	/**
+	 * Commit a partial update to a SmartArt element from inline (on-canvas) node
+	 * editing. Routed to the same element-update path the inspector uses (undo/redo
+	 * + dirty marking). When absent, inline SmartArt editing is disabled.
+	 */
+	onUpdateSmartArtElement?: (elementId: string, updates: Partial<PptxElement>) => void;
 	/** Called when table column widths are resized. */
 	onResizeTableColumns?: (elementId: string, newWidths: number[]) => void;
 	/** Called when a table row is resized. */

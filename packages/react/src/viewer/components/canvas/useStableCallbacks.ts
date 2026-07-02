@@ -1,3 +1,4 @@
+import type { PptxElement } from 'pptx-viewer-core';
 import React, { useCallback, useRef } from 'react';
 
 import type { TableCellEditorState } from '../../types';
@@ -22,6 +23,7 @@ interface ParentCallbacks {
 		elementId: string,
 	) => void;
 	onCommitCellEdit?: (elementId: string, rowIndex: number, colIndex: number, text: string) => void;
+	onUpdateSmartArtElement?: (elementId: string, updates: Partial<PptxElement>) => void;
 	onResizeTableColumns?: (elementId: string, newWidths: number[]) => void;
 	onResizeTableRow?: (elementId: string, rowIndex: number, newHeight: number) => void;
 }
@@ -45,6 +47,7 @@ export interface StableCallbacks {
 		colIndex: number,
 		text: string,
 	) => void;
+	stableUpdateSmartArtElement: (elementId: string, updates: Partial<PptxElement>) => void;
 	stableResizeTableColumns: (elementId: string, newWidths: number[]) => void;
 	stableResizeTableRow: (elementId: string, rowIndex: number, newHeight: number) => void;
 }
@@ -94,6 +97,12 @@ export function useStableCallbacks(callbacks: ParentCallbacks): StableCallbacks 
 		[],
 	);
 
+	const stableUpdateSmartArtElement = useCallback(
+		(elementId: string, updates: Partial<PptxElement>) =>
+			cbRef.current.onUpdateSmartArtElement?.(elementId, updates),
+		[],
+	);
+
 	const stableResizeTableColumns = useCallback(
 		(elementId: string, newWidths: number[]) =>
 			cbRef.current.onResizeTableColumns?.(elementId, newWidths),
@@ -116,6 +125,7 @@ export function useStableCallbacks(callbacks: ParentCallbacks): StableCallbacks 
 		stableInlineEditCancel,
 		stableTableCellSelect,
 		stableCommitCellEdit,
+		stableUpdateSmartArtElement,
 		stableResizeTableColumns,
 		stableResizeTableRow,
 	};

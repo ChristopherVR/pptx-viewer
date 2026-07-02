@@ -350,8 +350,10 @@ describe('canvasInteractionHandlers type', () => {
 			handleCanvasMouseDown: vi.fn<() => void>(),
 			handleResizePointerDown: vi.fn<() => void>(),
 			handleAdjustmentPointerDown: vi.fn<() => void>(),
+			handleRotate: vi.fn<() => void>(),
+			handleUpdateSmartArtElement: vi.fn<() => void>(),
 			handleInlineEditCommit: vi.fn<() => void>(),
 		};
-		expect(Object.keys(handlers)).toHaveLength(8);
+		expect(Object.keys(handlers)).toHaveLength(10);
 	});
 });

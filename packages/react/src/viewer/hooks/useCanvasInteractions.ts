@@ -289,6 +289,16 @@ export function useCanvasInteractions(
 		history.markDirty();
 	};
 
+	// Commit an inline (on-canvas) SmartArt node edit. Routes through the same
+	// element-update path (updateElementById) the inspector uses, so edits get
+	// undo/redo history and dirty marking for the save round-trip.
+	const handleUpdateSmartArtElement = (elementId: string, updates: Partial<PptxElement>) => {
+		if (!elementLookup.has(elementId)) {
+			return;
+		}
+		ops.updateElementById(elementId, updates);
+	};
+
 	const handleAdjustmentPointerDown = (elementId: string, e: React.MouseEvent) => {
 		e.stopPropagation();
 		const el = elementLookup.get(elementId);
@@ -324,6 +334,7 @@ export function useCanvasInteractions(
 		handleResizePointerDown,
 		handleAdjustmentPointerDown,
 		handleRotate,
+		handleUpdateSmartArtElement,
 		handleInlineEditCommit,
 	};
 }

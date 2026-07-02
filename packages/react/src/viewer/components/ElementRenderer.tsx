@@ -76,6 +76,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		onInlineEditCancel,
 		onTableCellSelect,
 		onCommitCellEdit,
+		onUpdateSmartArtElement,
 		onResizeTableColumns,
 		onResizeTableRow,
 		findHighlights,
@@ -104,6 +105,10 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 			: undefined;
 		const rowResizeHandler = onResizeTableRow
 			? (rowIndex: number, newHeight: number) => onResizeTableRow(el.id, rowIndex, newHeight)
+			: undefined;
+		// Create element-scoped SmartArt update handler (inline on-canvas node edits).
+		const smartArtUpdateHandler = onUpdateSmartArtElement
+			? (updates: Partial<PptxElement>) => onUpdateSmartArtElement(el.id, updates)
 			: undefined;
 		const { hf, fc, sw, sc } = shapeParams(el);
 		const elementLocks = el.locks;
@@ -153,6 +158,10 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		const effectiveCanInteract = canInteract && !elementLocks?.noSelect;
 		const effectiveShowResizeHandles = showResizeHandles && !elementLocks?.noResize;
 		const effectiveIsInlineEditing = isInlineEditing && !elementLocks?.noTextEdit;
+		// Inline SmartArt node editing follows the same gate as text editing: the
+		// element must be interactive (so not presentation/passive) and not text-
+		// locked. The leaf additionally requires the update handler to be present.
+		const canEditSmartArt = effectiveCanInteract && !elementLocks?.noTextEdit;
 
 		// Elements with actions or hyperlinks should be clickable even when not
 		// in editing mode (e.g. during presentation mode).
@@ -285,44 +294,46 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 			>
 				{renderDagDuotoneFilterForElement(el)}
 				{extrusionData.hasExtrusion && <Extrusion3DOverlay data={extrusionData} />}
-				{renderBody(
+				{renderBody({
 					el,
 					isImg,
-					effectiveIsInlineEditing,
-					inlineEditingText,
-					spellCheckEnabled,
+					isEditing: effectiveIsInlineEditing,
+					editText: inlineEditingText,
+					spellCheck: spellCheckEnabled,
 					txtSE,
-					ts,
-					vs,
-					getImageRenderStyle(el),
-					getImageEffectsFilter(el),
-					getImageEffectsOpacity(el),
-					imageAltText,
-					isTxt,
-					mediaDataUrls,
-					tableEditorState,
-					isSelected,
+					txtS: ts,
+					vecShape: vs,
+					imgStyle: getImageRenderStyle(el),
+					imgFilter: getImageEffectsFilter(el),
+					imgOpacity: getImageEffectsOpacity(el),
+					imgAlt: imageAltText,
+					isTxtEl: isTxt,
+					media: mediaDataUrls,
+					tableSt: tableEditorState,
+					isSel: isSelected,
 					doInk,
 					doGrp,
-					onInlineEditChange,
-					onInlineEditCommit,
-					onInlineEditCancel,
-					cellSelectHandler,
-					cellCommitHandler,
-					colResizeHandler,
-					rowResizeHandler,
-					findHighlights,
+					onEditChange: onInlineEditChange,
+					onCommit: onInlineEditCommit,
+					onCancel: onInlineEditCancel,
+					onCellSel: cellSelectHandler,
+					onCellCommit: cellCommitHandler,
+					onColResize: colResizeHandler,
+					onRowResize: rowResizeHandler,
+					findHl: findHighlights,
 					onHyperlinkClick,
 					isPresentationPassive,
 					handleMediaPlayStateChange,
 					presentationElementStates,
-					activeSlide?.elements,
+					slideElements: activeSlide?.elements,
 					allSlides,
 					onZoomClick,
 					sourceSlideIndex,
 					fieldContext,
 					tableStyleContext,
-				)}
+					canEditSmartArt,
+					onUpdateSmartArtElement: smartArtUpdateHandler,
+				})}
 				{(el.actionClick || el.actionHover) && canInteract && (
 					<ActionIndicator
 						clickTooltip={el.actionClick?.tooltip}
