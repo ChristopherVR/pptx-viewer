@@ -53,6 +53,36 @@ Ship a Vue 3 package, **`pptx-vue-viewer`** (npm), feature-equivalent to the Rea
 >   `SignatureStatusBadge.vue` (signed-doc pill), and `SignatureStrippedDialog.vue`
 >   (first-edit warning on a signed deck).
 
+> **Recently closed (2026-07-02): table editing parity pass.** Table editing now
+> matches React on the shared `pptx-viewer-shared` table modules:
+>
+> - **Selection**: real cell selection with Shift+Click rectangular ranges
+>   (`composables/table-selection.ts`, provide/inject from the viewer root),
+>   replacing the previously hardwired-null `tableEditorState`; selected cells
+>   highlight in `TableRenderer.vue`.
+> - **Cell formatting**: `TableCellFormattingPanel.vue` (font size, colour,
+>   background, B/I/U, alignment, per-edge + diagonal borders) and
+>   `TableCellAdvancedFill.vue` (solid / gradient / pattern + margins); the
+>   ribbon text-style path now reaches table cells.
+> - **Merge / split**: cursor-anchored and range merges via the shared
+>   `table-merge` / `table-cell-merge` helpers.
+> - **Structural ops**: merge-aware insert/delete row/column in all four
+>   directions (`composables/table-mutations.ts`), replacing the
+>   last-row/column-only operations.
+> - **Table style options**: `TableStyleOptions.vue` (header row, banding with
+>   cycles, first/last column emphasis, `TABLE_STYLE_PRESETS`), plus numeric
+>   size controls (`TableSizePanel.vue`) and a drag-resize overlay
+>   (`TableResizeOverlay.vue`) on the shared resize math.
+> - **Context menu**: table row/column/merge entries when a table cell is
+>   selected.
+
+> **Recently closed (2026-07-02): inline formatting shortcuts.**
+> `InlineTextEditor.vue` now handles Ctrl/Cmd+B/I/U while editing text on the
+> canvas, emitting a `format` toggle the viewer applies through the ribbon
+> text-style path (undoable). This matches the React inline editor, whose own
+> shortcuts were wired end-to-end the same day (they existed in the leaf
+> component but had no provider).
+
 The Vue port covers essentially the full React surface (**1528 vue unit tests
 green**, e2e green on react/vue/angular). Done and verified live:
 

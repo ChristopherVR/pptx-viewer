@@ -3038,6 +3038,7 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 							@change="(t) => (inlineEditingText = t)"
 							@commit="commitInlineEdit"
 							@cancel="cancelInlineEdit"
+							@format="ribbonUpdateTextStyle"
 						/>
 						<CollaborationCursors
 							v-if="collabActive"

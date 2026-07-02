@@ -11,7 +11,7 @@
  * The host commits the typed text back onto the element's rich `textSegments`
  * (via `remapTextToSegments`) so per-run styling is preserved.
  */
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import type { CSSProperties } from 'vue';
 import { computed, onMounted, ref } from 'vue';
 
@@ -28,6 +28,8 @@ const emit = defineEmits<{
 	change: [text: string];
 	commit: [];
 	cancel: [];
+	/** Ctrl/Cmd+B/I/U formatting toggle while editing (parity with React). */
+	format: [updates: Partial<TextStyle>];
 }>();
 
 const editorRef = ref<HTMLDivElement | null>(null);
@@ -100,7 +102,33 @@ function onBlur(): void {
 	emit('commit');
 }
 
+/** The style the B/I/U toggles read their current state from. */
+function currentTextStyle(): TextStyle | undefined {
+	const el = props.element as {
+		textSegments?: Array<{ style?: TextStyle }>;
+		textStyle?: TextStyle;
+	};
+	return el.textSegments?.[0]?.style ?? el.textStyle;
+}
+
 function onKeydown(event: KeyboardEvent): void {
+	// Inline formatting shortcuts (Ctrl/Cmd + B/I/U), matching the React editor.
+	if ((event.ctrlKey || event.metaKey) && !event.shiftKey) {
+		const key = event.key.toLowerCase();
+		if (key === 'b' || key === 'i' || key === 'u') {
+			event.preventDefault();
+			event.stopPropagation();
+			const ts = currentTextStyle();
+			if (key === 'b') {
+				emit('format', { bold: !ts?.bold });
+			} else if (key === 'i') {
+				emit('format', { italic: !ts?.italic });
+			} else {
+				emit('format', { underline: !ts?.underline });
+			}
+			return;
+		}
+	}
 	if (event.key === 'Escape') {
 		event.preventDefault();
 		emit('cancel');
