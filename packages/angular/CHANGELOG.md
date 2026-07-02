@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.52](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.52) - 2026-07-02
+
+### Bug Fixes
+
+- Format issues (by @ChristopherVR) ([bbf874d](https://github.com/ChristopherVR/pptx-viewer/commit/bbf874dda638932d6a435b28238cd822176d1cd6))
+- **core,angular:** Revert xmldom to 0.8.x and fix shared import specifiers (by @ChristopherVR) ([29eda31](https://github.com/ChristopherVR/pptx-viewer/commit/29eda3119836559b63bc08733dd9dd6398a69c8d))
+
 ## [1.1.51](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.51) - 2026-06-27
 
 ### Bug Fixes

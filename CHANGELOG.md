@@ -6,6 +6,15 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [Unreleased]
 
+### Bug Fixes
+
+- **core,react:** Correct test regressions from bad find-replace and stale factory expectations (by @ChristopherVR) ([661505b](https://github.com/ChristopherVR/pptx-viewer/commit/661505b4ff5b90991df3b0f8fe2a85664e8ce5a0))
+- **shared:** Emit --color-_ and --radius-_ tokens directly from themeToCssVars (by @adamschoenemann) ([519fae5](https://github.com/ChristopherVR/pptx-viewer/commit/519fae5b1ab65f2c0d5b6b5b7fc7703038f8e645))
+- Format issues (by @ChristopherVR) ([bbf874d](https://github.com/ChristopherVR/pptx-viewer/commit/bbf874dda638932d6a435b28238cd822176d1cd6))
+- **core,angular:** Revert xmldom to 0.8.x and fix shared import specifiers (by @ChristopherVR) ([29eda31](https://github.com/ChristopherVR/pptx-viewer/commit/29eda3119836559b63bc08733dd9dd6398a69c8d))
+
+## [1.1.75](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.75) - 2026-06-27
+
 ### Features
 
 - **angular:** Collaboration host API, audience exports, ribbon + theme parity (by @ChristopherVR) ([961ac76](https://github.com/ChristopherVR/pptx-viewer/commit/961ac76f7a20f0290af65a731054f43551c3357a))
