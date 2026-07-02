@@ -1,5 +1,5 @@
 /**
- * table-style-presets.ts — framework-agnostic table style preset catalogue.
+ * table-style-presets.ts - framework-agnostic table style preset catalogue.
  *
  * Pure data: the quick-style swatches (light / medium / dark families) shown in
  * every binding's table properties panel. Each preset carries the header fill /

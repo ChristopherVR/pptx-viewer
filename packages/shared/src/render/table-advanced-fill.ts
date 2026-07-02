@@ -1,5 +1,5 @@
 /**
- * table-advanced-fill.ts — framework-agnostic option lists + shared class tokens
+ * table-advanced-fill.ts - framework-agnostic option lists + shared class tokens
  * for the advanced (gradient / pattern) table-cell fill inspector.
  *
  * Pure data: the fill-mode and gradient-type value lists (value + i18n key, no

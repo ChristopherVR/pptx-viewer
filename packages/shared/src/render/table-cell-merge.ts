@@ -1,5 +1,5 @@
 /**
- * table-cell-merge.ts — framework-agnostic cursor-anchored cell merge helpers.
+ * table-cell-merge.ts - framework-agnostic cursor-anchored cell merge helpers.
  *
  * These complement the selection-rectangle operations in `table-merge.ts`.
  * Where `mergeCells` / `splitCell` operate on an arbitrary rectangular

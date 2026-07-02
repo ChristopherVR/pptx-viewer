@@ -1,5 +1,5 @@
 /**
- * table-resize.ts — framework-agnostic table drag-resize geometry.
+ * table-resize.ts - framework-agnostic table drag-resize geometry.
  *
  * The pure math behind the column / row drag handles: cumulative column-boundary
  * positions, redistributing two adjacent column proportions by a drag delta
