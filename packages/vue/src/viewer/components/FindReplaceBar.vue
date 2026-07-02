@@ -8,11 +8,14 @@
  * listens for the navigation/replace/close intents as emits.
  */
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
 	matchCount: number;
 	currentIndex: number;
 }>();
+
+const { t } = useI18n();
 
 const query = defineModel<string>('query', { default: '' });
 const replacement = defineModel<string>('replacement', { default: '' });
@@ -55,8 +58,8 @@ const FR_BTN =
 				type="text"
 				class="pptx-vue-fr-input"
 				:class="FR_INPUT"
-				placeholder="Find"
-				aria-label="Find"
+				:placeholder="t('pptx.findReplace.findPlaceholder')"
+				:aria-label="t('pptx.findReplace.searchText')"
 				@keydown.enter.prevent="emit('next')"
 				@keydown.esc.prevent="emit('close')"
 			/>
@@ -69,8 +72,8 @@ const FR_BTN =
 				type="button"
 				class="pptx-vue-fr-btn"
 				:class="FR_BTN"
-				title="Previous match"
-				aria-label="Previous match"
+				:title="t('pptx.findReplace.previousMatch')"
+				:aria-label="t('pptx.findReplace.previousMatch')"
 				:disabled="!hasMatches"
 				@click="emit('prev')"
 			>
@@ -80,8 +83,8 @@ const FR_BTN =
 				type="button"
 				class="pptx-vue-fr-btn"
 				:class="FR_BTN"
-				title="Next match"
-				aria-label="Next match"
+				:title="t('pptx.findReplace.nextMatch')"
+				:aria-label="t('pptx.findReplace.nextMatch')"
 				:disabled="!hasMatches"
 				@click="emit('next')"
 			>
@@ -89,7 +92,7 @@ const FR_BTN =
 			</button>
 			<label
 				class="pptx-vue-fr-case inline-flex items-center gap-1 select-none cursor-pointer"
-				title="Match case"
+				:title="t('pptx.findReplace.matchCase')"
 			>
 				<input v-model="matchCase" type="checkbox" />
 				<span>Aa</span>
@@ -98,8 +101,8 @@ const FR_BTN =
 				type="button"
 				class="pptx-vue-fr-btn pptx-vue-fr-close text-[1.1rem]"
 				:class="FR_BTN"
-				title="Close"
-				aria-label="Close find and replace"
+				:title="t('pptx.findReplace.close')"
+				:aria-label="t('pptx.findReplace.closeAriaLabel')"
 				@click="emit('close')"
 			>
 				×
@@ -111,8 +114,8 @@ const FR_BTN =
 				type="text"
 				class="pptx-vue-fr-input"
 				:class="FR_INPUT"
-				placeholder="Replace"
-				aria-label="Replace"
+				:placeholder="t('pptx.findReplace.replacePlaceholder')"
+				:aria-label="t('pptx.findReplace.replacementText')"
 				@keydown.enter.prevent="emit('replace')"
 				@keydown.esc.prevent="emit('close')"
 			/>
@@ -123,7 +126,7 @@ const FR_BTN =
 				:disabled="!hasMatches"
 				@click="emit('replace')"
 			>
-				Replace
+				{{ t('pptx.findReplace.replace') }}
 			</button>
 			<button
 				type="button"
@@ -132,7 +135,7 @@ const FR_BTN =
 				:disabled="!hasMatches"
 				@click="emit('replace-all')"
 			>
-				Replace All
+				{{ t('pptx.findReplace.replaceAll') }}
 			</button>
 		</div>
 	</div>

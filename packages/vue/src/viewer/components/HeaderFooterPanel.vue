@@ -16,10 +16,13 @@
  */
 import type { PptxHeaderFooter } from 'pptx-viewer-core';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
 	headerFooter: PptxHeaderFooter | undefined;
 }>();
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
 	update: [next: PptxHeaderFooter];
@@ -66,13 +69,17 @@ function onDateText(event: Event): void {
 </script>
 
 <template>
-	<div class="pptx-vue-header-footer-panel" role="dialog" aria-label="Header and footer">
+	<div
+		class="pptx-vue-header-footer-panel"
+		role="dialog"
+		:aria-label="t('pptx.headerFooter.panelLabel')"
+	>
 		<header class="pptx-vue-header-footer-panel__header">
-			<h2 class="pptx-vue-header-footer-panel__title">Header &amp; Footer</h2>
+			<h2 class="pptx-vue-header-footer-panel__title">{{ t('pptx.headerFooter.title') }}</h2>
 			<button
 				type="button"
 				class="pptx-vue-header-footer-panel__close"
-				aria-label="Close"
+				:aria-label="t('pptx.headerFooter.close')"
 				data-testid="header-footer-close"
 				@click="emit('close')"
 			>
@@ -88,7 +95,7 @@ function onDateText(event: Event): void {
 					:checked="showDateTime"
 					@change="onToggleDateTime"
 				/>
-				<span>Date and time</span>
+				<span>{{ t('pptx.headerFooter.dateAndTime') }}</span>
 			</label>
 
 			<div v-if="showDateTime" class="pptx-vue-header-footer-panel__sub">
@@ -99,13 +106,13 @@ function onDateText(event: Event): void {
 						:checked="dateTimeAuto"
 						@change="onToggleDateAuto"
 					/>
-					<span>Update automatically</span>
+					<span>{{ t('pptx.headerFooter.updateAutomatically') }}</span>
 				</label>
 				<input
 					v-if="!dateTimeAuto"
 					type="text"
 					class="pptx-vue-header-footer-panel__input"
-					placeholder="Fixed date"
+					:placeholder="t('pptx.headerFooter.fixedDate')"
 					data-testid="hf-date-text"
 					:value="value.dateTimeText ?? ''"
 					@input="onDateText"
@@ -119,7 +126,7 @@ function onDateText(event: Event): void {
 					:checked="showSlideNumber"
 					@change="onToggleSlideNumber"
 				/>
-				<span>Slide number</span>
+				<span>{{ t('pptx.headerFooter.slideNumber') }}</span>
 			</label>
 
 			<label class="pptx-vue-header-footer-panel__row">
@@ -129,14 +136,14 @@ function onDateText(event: Event): void {
 					:checked="showHeader"
 					@change="onToggleHeader"
 				/>
-				<span>Header</span>
+				<span>{{ t('pptx.field.header') }}</span>
 			</label>
 
 			<div v-if="showHeader" class="pptx-vue-header-footer-panel__sub">
 				<input
 					type="text"
 					class="pptx-vue-header-footer-panel__input"
-					placeholder="Header text"
+					:placeholder="t('pptx.headerFooter.headerText')"
 					data-testid="hf-header-text"
 					:value="value.headerText ?? ''"
 					@input="onHeaderText"
@@ -150,14 +157,14 @@ function onDateText(event: Event): void {
 					:checked="showFooter"
 					@change="onToggleFooter"
 				/>
-				<span>Footer</span>
+				<span>{{ t('pptx.headerFooter.footer') }}</span>
 			</label>
 
 			<div v-if="showFooter" class="pptx-vue-header-footer-panel__sub">
 				<input
 					type="text"
 					class="pptx-vue-header-footer-panel__input"
-					placeholder="Footer text"
+					:placeholder="t('pptx.headerFooter.footerPlaceholder')"
 					data-testid="hf-footer-text"
 					:value="value.footerText ?? ''"
 					@input="onFooterText"

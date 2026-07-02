@@ -2,6 +2,7 @@
 import type { PptxCoreProperties } from 'pptx-viewer-core';
 import { formatIsoDate as formatDate } from 'pptx-viewer-shared';
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import ModalDialog from './ModalDialog.vue';
 
@@ -37,6 +38,8 @@ const emit = defineEmits<{
 	/** Fired when the dialog is dismissed. */
 	(e: 'close'): void;
 }>();
+
+const { t } = useI18n();
 
 const title = ref('');
 const creator = ref('');
@@ -80,11 +83,11 @@ function handleSave(): void {
 </script>
 
 <template>
-	<ModalDialog :open="open" title="Document properties" @close="emit('close')">
+	<ModalDialog :open="open" :title="t('pptx.properties.title')" @close="emit('close')">
 		<div class="pptx-vue-props-form flex flex-col gap-3">
 			<div class="pptx-vue-props-field flex flex-col gap-1.5">
 				<label for="pptx-vue-props-title" class="pptx-vue-props-label text-xs text-foreground">
-					Title
+					{{ t('pptx.properties.titleLabel') }}
 				</label>
 				<input
 					id="pptx-vue-props-title"
@@ -96,7 +99,7 @@ function handleSave(): void {
 
 			<div class="pptx-vue-props-field flex flex-col gap-1.5">
 				<label for="pptx-vue-props-creator" class="pptx-vue-props-label text-xs text-foreground">
-					Author
+					{{ t('pptx.properties.author') }}
 				</label>
 				<input
 					id="pptx-vue-props-creator"
@@ -108,7 +111,7 @@ function handleSave(): void {
 
 			<div class="pptx-vue-props-field flex flex-col gap-1.5">
 				<label for="pptx-vue-props-subject" class="pptx-vue-props-label text-xs text-foreground">
-					Subject
+					{{ t('pptx.properties.subject') }}
 				</label>
 				<input
 					id="pptx-vue-props-subject"
@@ -120,7 +123,7 @@ function handleSave(): void {
 
 			<div class="pptx-vue-props-field flex flex-col gap-1.5">
 				<label for="pptx-vue-props-keywords" class="pptx-vue-props-label text-xs text-foreground">
-					Keywords
+					{{ t('pptx.properties.keywords') }}
 				</label>
 				<input
 					id="pptx-vue-props-keywords"
@@ -132,13 +135,17 @@ function handleSave(): void {
 
 			<div class="pptx-vue-props-meta flex flex-col gap-1.5 border-t border-border pt-2">
 				<div class="pptx-vue-props-meta-row flex justify-between text-xs">
-					<span class="pptx-vue-props-meta-label text-muted-foreground">Created</span>
+					<span class="pptx-vue-props-meta-label text-muted-foreground">{{
+						t('pptx.properties.created')
+					}}</span>
 					<span class="pptx-vue-props-meta-value text-foreground">
 						{{ formatDate(properties.created) }}
 					</span>
 				</div>
 				<div class="pptx-vue-props-meta-row flex justify-between text-xs">
-					<span class="pptx-vue-props-meta-label text-muted-foreground">Modified</span>
+					<span class="pptx-vue-props-meta-label text-muted-foreground">{{
+						t('pptx.properties.modified')
+					}}</span>
 					<span class="pptx-vue-props-meta-value text-foreground">
 						{{ formatDate(properties.modified) }}
 					</span>
@@ -152,14 +159,14 @@ function handleSave(): void {
 				class="pptx-vue-props-btn rounded-lg border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
 				@click="emit('close')"
 			>
-				Cancel
+				{{ t('pptx.share.cancel') }}
 			</button>
 			<button
 				type="button"
 				class="pptx-vue-props-btn pptx-vue-props-btn-primary rounded-lg bg-primary px-3 py-1.5 text-xs text-white transition-colors hover:bg-primary/80"
 				@click="handleSave"
 			>
-				Save
+				{{ t('pptx.comments.save') }}
 			</button>
 		</template>
 	</ModalDialog>

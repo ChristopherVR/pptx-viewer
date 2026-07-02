@@ -15,6 +15,7 @@
 import type { PptxHandoutMaster } from 'pptx-viewer-core';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { CanvasSize } from '../types';
 
@@ -25,6 +26,8 @@ const props = defineProps<{
 	slideThumbnails?: string[];
 	pageNumber?: number;
 }>();
+
+const { t } = useI18n();
 
 /** US Letter portrait page proportions (7.5 x 10 inches at 96 dpi). */
 const PAGE_WIDTH = 720;
@@ -149,11 +152,11 @@ function thumbnailFor(index: number): string | undefined {
 }
 
 function slotLabel(index: number): string {
-	return `Slide ${index + 1}`;
+	return t('pptx.notes.slideN', { n: index + 1 });
 }
 
 const pageNumberLabel = computed(() =>
-	props.pageNumber !== undefined ? String(props.pageNumber) : 'Page Number',
+	props.pageNumber !== undefined ? String(props.pageNumber) : t('pptx.handout.pageNumber'),
 );
 </script>
 
@@ -164,7 +167,7 @@ const pageNumberLabel = computed(() =>
 			class="pptx-vue-handout-master-canvas__empty"
 			data-testid="handout-master-empty"
 		>
-			No handout master
+			{{ t('pptx.handout.noMaster') }}
 		</div>
 
 		<div
@@ -193,26 +196,28 @@ const pageNumberLabel = computed(() =>
 					:src="thumbnailFor(i)"
 					:alt="slotLabel(i)"
 				/>
-				<span v-else class="pptx-vue-handout-master-canvas__slot-label">Slide {{ i + 1 }}</span>
+				<span v-else class="pptx-vue-handout-master-canvas__slot-label">{{
+					t('pptx.notes.slideN', { n: i + 1 })
+				}}</span>
 			</div>
 
 			<div
 				class="pptx-vue-handout-master-canvas__corner pptx-vue-handout-master-canvas__corner--tl"
 				:style="{ fontSize: cornerFontSize }"
 			>
-				Header
+				{{ t('pptx.field.header') }}
 			</div>
 			<div
 				class="pptx-vue-handout-master-canvas__corner pptx-vue-handout-master-canvas__corner--tr"
 				:style="{ fontSize: cornerFontSize }"
 			>
-				Date
+				{{ t('pptx.handout.cornerDate') }}
 			</div>
 			<div
 				class="pptx-vue-handout-master-canvas__corner pptx-vue-handout-master-canvas__corner--bl"
 				:style="{ fontSize: cornerFontSize }"
 			>
-				Footer
+				{{ t('pptx.field.footer') }}
 			</div>
 			<div
 				class="pptx-vue-handout-master-canvas__corner pptx-vue-handout-master-canvas__corner--br"

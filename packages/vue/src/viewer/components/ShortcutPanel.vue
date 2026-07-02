@@ -11,6 +11,7 @@
  * Presentational: the parent owns the `open` flag and handles `close`.
  */
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { SHORTCUT_CATALOG, groupShortcutCatalog } from '../composables/useKeyboardShortcuts';
 import type { ShortcutDefinition } from '../composables/useKeyboardShortcuts';
@@ -24,6 +25,8 @@ const props = defineProps<{
 const emit = defineEmits<{
 	(e: 'close'): void;
 }>();
+
+const { t } = useI18n();
 
 /** Live filter query over the shortcut descriptions + combos. */
 const query = ref('');
@@ -101,7 +104,7 @@ function requestClose(): void {
 </script>
 
 <template>
-	<ModalDialog :open="open" title="Keyboard shortcuts" @close="requestClose">
+	<ModalDialog :open="open" :title="t('pptx.settings.keyboardShortcuts')" @close="requestClose">
 		<div
 			class="pptx-vue-shortcuts flex min-w-[18rem] flex-col gap-3"
 			data-pptx-shortcuts-panel="true"
@@ -110,8 +113,8 @@ function requestClose(): void {
 				v-model="query"
 				type="text"
 				class="pptx-vue-shortcuts-search w-full rounded border border-border bg-muted px-2.5 py-1.5 text-foreground outline-none focus:ring-1 focus:ring-primary"
-				placeholder="Search shortcuts…"
-				aria-label="Search shortcuts"
+				:placeholder="t('pptx.shortcuts.searchPlaceholder')"
+				:aria-label="t('pptx.shortcuts.searchLabel')"
 			/>
 
 			<div
@@ -146,7 +149,7 @@ function requestClose(): void {
 			</div>
 
 			<p v-else class="pptx-vue-shortcuts-empty px-2 py-3 text-[13px] text-muted-foreground">
-				No shortcuts match “{{ query }}”.
+				{{ t('pptx.shortcuts.noResults', { query }) }}
 			</p>
 		</div>
 	</ModalDialog>

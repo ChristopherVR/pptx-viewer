@@ -1,5 +1,9 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
+
 import { formatRehearseMs } from '../composables/useRehearseTimings';
+
+const { t } = useI18n();
 
 /**
  * RehearseTimingsHud - floating timing overlay shown during rehearsal mode.
@@ -29,7 +33,7 @@ const emit = defineEmits<{
 		data-testid="rehearse-hud"
 	>
 		<div class="pptx-vue-rehearse-col flex flex-col text-xs leading-tight">
-			<span class="pptx-vue-rehearse-label text-white/60">Slide time</span>
+			<span class="pptx-vue-rehearse-label text-white/60">{{ t('pptx.rehearse.slideTime') }}</span>
 			<span
 				class="pptx-vue-rehearse-value text-lg font-mono tabular-nums"
 				data-testid="rehearse-slide-time"
@@ -39,7 +43,7 @@ const emit = defineEmits<{
 		</div>
 		<div class="pptx-vue-rehearse-divider w-px h-8 bg-white/20" />
 		<div class="pptx-vue-rehearse-col flex flex-col text-xs leading-tight">
-			<span class="pptx-vue-rehearse-label text-white/60">Total time</span>
+			<span class="pptx-vue-rehearse-label text-white/60">{{ t('pptx.rehearse.totalTime') }}</span>
 			<span
 				class="pptx-vue-rehearse-value text-lg font-mono tabular-nums"
 				data-testid="rehearse-total-time"
@@ -50,8 +54,8 @@ const emit = defineEmits<{
 		<button
 			type="button"
 			class="pptx-vue-rehearse-pause ml-1 flex items-center justify-center rounded p-1.5 text-sm transition-colors hover:bg-white/20"
-			:title="paused ? 'Resume' : 'Pause'"
-			:aria-label="paused ? 'Resume' : 'Pause'"
+			:title="paused ? t('pptx.rehearse.resume') : t('pptx.rehearse.pause')"
+			:aria-label="paused ? t('pptx.rehearse.resume') : t('pptx.rehearse.pause')"
 			@click="emit('toggle-pause')"
 		>
 			{{ paused ? '▶' : '⏸' }}

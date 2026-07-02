@@ -33,6 +33,7 @@ import {
 } from 'pptx-viewer-shared';
 import type { InteractionBox, ResizeHandleId } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import {
 	getDraggedShapeAdjustmentValue,
@@ -59,6 +60,8 @@ export interface AdjustPayload {
 	id: string;
 	value: number;
 }
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
 	transformStart: [payload: { id: string }];
@@ -435,7 +438,7 @@ function adjustHandleStyle(box: SelectedBox): Record<string, string> {
 				type="button"
 				class="pptx-vue-rotate-knob"
 				:style="rotateKnobStyle(box)"
-				aria-label="Rotate element"
+				:aria-label="t('pptx.selectionOverlay.rotate')"
 				@pointerdown="(e) => beginGesture('rotate', box.id, e)"
 			/>
 
@@ -448,7 +451,7 @@ function adjustHandleStyle(box: SelectedBox): Record<string, string> {
 				:class="`pptx-vue-resize-${meta.id}`"
 				:data-handle="meta.id"
 				:style="handleStyle(meta, box)"
-				:aria-label="`Resize ${meta.id}`"
+				:aria-label="t('pptx.selectionOverlay.resize', { handle: meta.id })"
 				@pointerdown="(e) => beginGesture('resize', box.id, e, meta.id)"
 			/>
 
@@ -458,7 +461,7 @@ function adjustHandleStyle(box: SelectedBox): Record<string, string> {
 				type="button"
 				class="pptx-vue-adjust-handle"
 				:style="adjustHandleStyle(box)"
-				aria-label="Adjust shape"
+				:aria-label="t('pptx.selectionOverlay.adjust')"
 				@pointerdown="(e) => beginAdjust(box.id, e)"
 			/>
 		</div>

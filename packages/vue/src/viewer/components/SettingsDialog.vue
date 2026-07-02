@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import ModalDialog from './ModalDialog.vue';
 import type { ViewerSettings } from './viewer-settings';
@@ -38,6 +39,8 @@ const emit = defineEmits<{
 
 type SettingsTab = 'general' | 'shortcuts';
 
+const { t } = useI18n();
+
 const activeTab = ref<SettingsTab>('general');
 
 /** Local working copy, re-seeded from `settings` on open. */
@@ -57,8 +60,8 @@ const toggles = SETTING_TOGGLES;
 const shortcuts = SHORTCUT_REFERENCE_ITEMS;
 
 const tabs = computed<Array<{ id: SettingsTab; label: string }>>(() => [
-	{ id: 'general', label: 'General' },
-	{ id: 'shortcuts', label: 'Keyboard shortcuts' },
+	{ id: 'general', label: t('pptx.settings.general') },
+	{ id: 'shortcuts', label: t('pptx.settings.keyboardShortcuts') },
 ]);
 
 function toggle(key: keyof ViewerSettings): void {
@@ -73,7 +76,7 @@ function close(): void {
 </script>
 
 <template>
-	<ModalDialog :open="open" title="Settings" @close="close">
+	<ModalDialog :open="open" :title="t('pptx.settings.title')" @close="close">
 		<div class="pptx-vue-settings flex min-w-[320px] flex-col">
 			<div class="pptx-vue-settings-tabs mb-2 flex gap-1 border-b border-border" role="tablist">
 				<button
@@ -150,7 +153,7 @@ function close(): void {
 				class="pptx-vue-settings-btn pptx-vue-settings-btn--primary rounded border border-transparent bg-primary px-3 py-1.5 text-xs text-white hover:bg-primary/90"
 				@click="close"
 			>
-				Done
+				{{ t('pptx.settings.done') }}
 			</button>
 		</template>
 	</ModalDialog>

@@ -19,6 +19,7 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import type { ComponentPublicInstance, CSSProperties } from 'vue';
 import { computed, nextTick, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { SectionGroup } from '../composables/useSectionOperations';
 import type { CanvasSize } from '../types';
@@ -53,6 +54,8 @@ const emit = defineEmits<{
 	/** Add a new section after the given slide index. */
 	'add-section': [afterSlideIndex: number];
 }>();
+
+const { t } = useI18n();
 
 /** Fixed thumbnail width (px); height derives from the canvas aspect ratio. */
 const TILE_WIDTH = 168;
@@ -138,7 +141,7 @@ function lastSlideIndex(group: SectionGroup): number {
 }
 
 function slideLabel(slide: PptxSlide, index: number): string {
-	return `Slide ${slide.slideNumber || index + 1}`;
+	return t('pptx.notes.slideN', { n: slide.slideNumber || index + 1 });
 }
 </script>
 
@@ -158,7 +161,9 @@ function slideLabel(slide: PptxSlide, index: number): string {
 					type="button"
 					class="pptx-vue-section-toggle inline-flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded border-none bg-transparent px-1.5 py-1 text-[11px] uppercase tracking-wide text-muted-foreground hover:bg-muted hover:text-foreground"
 					:aria-expanded="!isCollapsed(group)"
-					:title="isCollapsed(group) ? 'Expand section' : 'Collapse section'"
+					:title="
+						isCollapsed(group) ? t('pptx.sectionList.expand') : t('pptx.sectionList.collapse')
+					"
 					@click="onHeaderClick(group)"
 					@dblclick.stop="startRename(group.section.id, group.section.name)"
 				>
@@ -208,8 +213,8 @@ function slideLabel(slide: PptxSlide, index: number): string {
 					<button
 						type="button"
 						class="pptx-vue-section-action inline-flex h-[18px] w-[18px] cursor-pointer items-center justify-center rounded-sm border border-transparent bg-transparent p-0 text-[10px] leading-none text-muted-foreground hover:bg-muted hover:text-foreground"
-						title="Move section up"
-						aria-label="Move section up"
+						:title="t('pptx.sectionList.moveUp')"
+						:aria-label="t('pptx.sectionList.moveUp')"
 						@click="emit('move-up', group.section.id)"
 					>
 						▲
@@ -217,8 +222,8 @@ function slideLabel(slide: PptxSlide, index: number): string {
 					<button
 						type="button"
 						class="pptx-vue-section-action inline-flex h-[18px] w-[18px] cursor-pointer items-center justify-center rounded-sm border border-transparent bg-transparent p-0 text-[10px] leading-none text-muted-foreground hover:bg-muted hover:text-foreground"
-						title="Move section down"
-						aria-label="Move section down"
+						:title="t('pptx.sectionList.moveDown')"
+						:aria-label="t('pptx.sectionList.moveDown')"
 						@click="emit('move-down', group.section.id)"
 					>
 						▼
@@ -226,8 +231,8 @@ function slideLabel(slide: PptxSlide, index: number): string {
 					<button
 						type="button"
 						class="pptx-vue-section-action pptx-vue-section-action--danger inline-flex h-[18px] w-[18px] cursor-pointer items-center justify-center rounded-sm border border-transparent bg-transparent p-0 text-[10px] leading-none text-muted-foreground hover:bg-muted hover:text-destructive"
-						title="Delete section"
-						aria-label="Delete section"
+						:title="t('pptx.sectionList.deleteSection')"
+						:aria-label="t('pptx.sectionList.deleteSection')"
 						@click="emit('delete', group.section.id)"
 					>
 						×
@@ -282,10 +287,14 @@ function slideLabel(slide: PptxSlide, index: number): string {
 				v-if="props.canEdit !== false && lastSlideIndex(group) >= 0"
 				type="button"
 				class="pptx-vue-section-add mb-1 ml-7 mr-1 mt-0 cursor-pointer self-start rounded border border-dashed border-border bg-transparent px-1.5 py-0.5 text-[10px] text-muted-foreground hover:border-primary hover:text-foreground"
-				:title="sectionCount === 0 ? 'Add section' : 'Add section here'"
+				:title="
+					sectionCount === 0
+						? t('pptx.sectionList.addSection')
+						: t('pptx.sectionList.addSectionHere')
+				"
 				@click="emit('add-section', lastSlideIndex(group))"
 			>
-				+ Add section
+				+ {{ t('pptx.sectionList.addSection') }}
 			</button>
 		</div>
 	</div>

@@ -3,6 +3,7 @@ import { Eye, EyeOff, GripVertical } from 'lucide-vue-next';
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 /**
  * SelectionPane: lists every element on the active slide with visibility
@@ -24,27 +25,30 @@ const emit = defineEmits<{
 	close: [];
 }>();
 
-const TYPE_LABELS: Record<string, string> = {
-	text: 'Text Box',
-	shape: 'Shape',
-	connector: 'Connector',
-	image: 'Image',
-	picture: 'Picture',
-	chart: 'Chart',
-	table: 'Table',
-	smartArt: 'SmartArt',
-	media: 'Media',
-	group: 'Group',
-	ink: 'Ink',
-	ole: 'Object',
-	unknown: 'Object',
+const { t } = useI18n();
+
+const TYPE_LABEL_KEYS: Record<string, string> = {
+	text: 'pptx.elementType.textBox',
+	shape: 'pptx.elementType.shape',
+	connector: 'pptx.elementType.connector',
+	image: 'pptx.elementType.image',
+	picture: 'pptx.elementType.picture',
+	chart: 'pptx.elementType.chart',
+	table: 'pptx.elementType.table',
+	smartArt: 'pptx.elementType.smartArt',
+	media: 'pptx.elementType.media',
+	group: 'pptx.elementType.group',
+	ink: 'pptx.elementType.ink',
+	ole: 'pptx.elementType.object',
+	unknown: 'pptx.elementType.object',
 };
 
 function displayName(element: PptxElement, index: number): string {
 	if (hasTextProperties(element) && element.text && element.text.trim().length > 0) {
 		return element.text.trim().slice(0, 32);
 	}
-	return `${TYPE_LABELS[element.type] ?? 'Object'} ${index + 1}`;
+	const typeKey = TYPE_LABEL_KEYS[element.type] ?? 'pptx.elementType.object';
+	return t('pptx.selectionPane.elementLabel', { type: t(typeKey), number: index + 1 });
 }
 
 // Top-most element first (reverse of paint order), matching PowerPoint.
@@ -83,11 +87,11 @@ function onDrop(targetIndex: number): void {
 <template>
 	<div class="flex h-full w-56 flex-col border-l border-border bg-popover">
 		<div class="flex items-center justify-between border-b border-border px-3 py-2">
-			<span class="text-xs font-medium text-foreground">Selection</span>
+			<span class="text-xs font-medium text-foreground">{{ t('pptx.selectionPane.heading') }}</span>
 			<button
 				type="button"
 				class="text-xs text-muted-foreground hover:text-foreground"
-				title="Close"
+				:title="t('pptx.selectionPane.close')"
 				@click="emit('close')"
 			>
 				&times;
@@ -95,7 +99,7 @@ function onDrop(targetIndex: number): void {
 		</div>
 		<div class="flex-1 overflow-y-auto py-1">
 			<div v-if="rows.length === 0" class="px-3 py-4 text-xs italic text-muted-foreground">
-				No objects on this slide.
+				{{ t('pptx.selectionPane.noObjects') }}
 			</div>
 			<div
 				v-for="{ element, index } in rows"
@@ -126,7 +130,7 @@ function onDrop(targetIndex: number): void {
 				<button
 					type="button"
 					class="flex-shrink-0 text-muted-foreground hover:text-foreground"
-					:title="element.hidden ? 'Show' : 'Hide'"
+					:title="element.hidden ? t('pptx.selectionPane.show') : t('pptx.selectionPane.hide')"
 					@click.stop="emit('toggle-visibility', element.id)"
 				>
 					<EyeOff v-if="element.hidden" class="h-3.5 w-3.5" />

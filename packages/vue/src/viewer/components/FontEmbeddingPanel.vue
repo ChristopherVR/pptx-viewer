@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import ModalDialog from './ModalDialog.vue';
 
@@ -20,6 +21,8 @@ const emit = defineEmits<{
 	toggleEmbedFonts: [enabled: boolean];
 	close: [];
 }>();
+
+const { t } = useI18n();
 
 const availableFamilies = ref<Set<string>>(new Set());
 const scanning = ref(false);
@@ -72,11 +75,10 @@ const missingCount = computed(
 </script>
 
 <template>
-	<ModalDialog :open="props.open" title="Embed Fonts" @close="emit('close')">
+	<ModalDialog :open="props.open" :title="t('pptx.fontEmbedding.title')" @close="emit('close')">
 		<div class="space-y-4">
 			<p class="text-xs text-muted-foreground">
-				Embed the fonts used in this presentation so it looks the same on machines that do not have
-				them installed.
+				{{ t('pptx.fontEmbedding.description') }}
 			</p>
 
 			<label class="flex cursor-pointer items-center gap-3">
@@ -96,15 +98,15 @@ const missingCount = computed(
 						:class="props.embedFontsEnabled ? 'translate-x-4' : ''"
 					/>
 				</div>
-				<span class="text-xs text-foreground">Embed fonts in the file</span>
+				<span class="text-xs text-foreground">{{ t('pptx.fontEmbedding.embedInFile') }}</span>
 			</label>
 
 			<div class="space-y-1">
 				<h3 class="text-xs font-medium text-foreground">
-					Used fonts ({{ props.usedFontFamilies.length }})
+					{{ t('pptx.fontEmbedding.usedFonts', { count: props.usedFontFamilies.length }) }}
 				</h3>
 				<div v-if="scanning" class="flex items-center justify-center gap-2 py-4">
-					<span class="text-xs text-muted-foreground">Scanning available fonts...</span>
+					<span class="text-xs text-muted-foreground">{{ t('pptx.fontEmbedding.scanning') }}</span>
 				</div>
 				<div v-else class="max-h-[280px] space-y-1 overflow-y-auto">
 					<div
@@ -118,25 +120,27 @@ const missingCount = computed(
 								v-if="embeddedSet.has(family)"
 								class="rounded border border-green-700/40 bg-green-900/40 px-1.5 py-0.5 text-[10px] text-green-400"
 							>
-								Embedded
+								{{ t('pptx.fontEmbedding.embedded') }}
 							</span>
 							<span v-if="availableFamilies.has(family)" class="text-[10px] text-green-400">
-								Available
+								{{ t('pptx.fontEmbedding.available') }}
 							</span>
-							<span v-else class="text-[10px] text-yellow-400">Not found</span>
+							<span v-else class="text-[10px] text-yellow-400">{{
+								t('pptx.fontEmbedding.notFound')
+							}}</span>
 						</div>
 					</div>
 					<p
 						v-if="props.usedFontFamilies.length === 0"
 						class="px-3 py-2 text-xs italic text-muted-foreground"
 					>
-						No custom fonts detected in this presentation.
+						{{ t('pptx.fontEmbedding.noCustomFonts') }}
 					</p>
 				</div>
 			</div>
 
 			<p v-if="missingCount > 0 && !scanning" class="text-[11px] text-yellow-400/80">
-				{{ missingCount }} font(s) are not available locally and may not render exactly.
+				{{ t('pptx.fontEmbedding.missingWarning', { count: missingCount }) }}
 			</p>
 		</div>
 
@@ -146,7 +150,7 @@ const missingCount = computed(
 				class="rounded-lg bg-primary px-3 py-1.5 text-xs text-white transition-colors hover:bg-primary/80"
 				@click="emit('close')"
 			>
-				Done
+				{{ t('pptx.fontEmbedding.done') }}
 			</button>
 		</template>
 	</ModalDialog>

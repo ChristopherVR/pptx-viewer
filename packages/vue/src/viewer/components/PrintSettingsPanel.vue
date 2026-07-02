@@ -262,7 +262,7 @@ function onCustomToInput(event: Event): void {
 						:checked="props.orientation === 'portrait'"
 						@change="emit('update:orientation', 'portrait')"
 					/>
-					Portrait
+					{{ t('pptx.print.portrait') }}
 				</label>
 			</div>
 		</fieldset>
@@ -272,7 +272,7 @@ function onCustomToInput(event: Event): void {
 			<legend
 				class="pptx-vue-print-legend mb-2 p-0 text-xs font-medium uppercase tracking-wide text-muted-foreground"
 			>
-				Color mode
+				{{ t('pptx.print.legendColorMode') }}
 			</legend>
 			<div class="pptx-vue-print-row flex flex-wrap gap-2">
 				<label
@@ -307,7 +307,7 @@ function onCustomToInput(event: Event): void {
 				:checked="props.frameSlides"
 				@change="emit('update:frameSlides', ($event.target as HTMLInputElement).checked)"
 			/>
-			<span>Frame slides</span>
+			<span>{{ t('pptx.print.frameSlides') }}</span>
 		</label>
 	</div>
 </template>

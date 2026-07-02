@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { CollaborationConfig } from 'pptx-viewer-shared';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import ModalDialog from './ModalDialog.vue';
 
@@ -29,6 +30,8 @@ const emit = defineEmits<{
 	/** Fired when the dialog is dismissed. */
 	close: [];
 }>();
+
+const { t } = useI18n();
 
 const roomId = ref('');
 const userName = ref('');
@@ -77,25 +80,25 @@ function handleStop(): void {
 <template>
 	<ModalDialog
 		:open="open"
-		:title="active ? 'Collaboration active' : 'Share'"
+		:title="active ? t('pptx.share.collaborationActive') : t('pptx.toolbar.share')"
 		@close="emit('close')"
 	>
 		<div v-if="active" class="pptx-vue-share-active flex flex-col gap-4">
 			<p class="pptx-vue-share-desc text-[13px] leading-relaxed text-muted-foreground">
-				A collaboration session is currently active.
+				{{ t('pptx.share.activeDescription') }}
 			</p>
 			<button
 				type="button"
 				class="pptx-vue-share-stop w-full rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-[12px] font-medium text-red-400 transition-colors hover:bg-red-500/20"
 				@click="handleStop"
 			>
-				Stop sharing
+				{{ t('pptx.share.stopSharing') }}
 			</button>
 		</div>
 
 		<div v-else class="pptx-vue-share-form flex flex-col gap-4">
 			<p class="pptx-vue-share-desc text-[13px] leading-relaxed text-muted-foreground">
-				Start a real-time session and invite others to edit with you.
+				{{ t('pptx.share.formDescription') }}
 			</p>
 
 			<div class="pptx-vue-share-field flex flex-col gap-1.5">
@@ -103,7 +106,7 @@ function handleStop(): void {
 					for="pptx-vue-share-room"
 					class="pptx-vue-share-label text-[12px] font-medium text-foreground"
 				>
-					Room ID
+					{{ t('pptx.share.roomId') }}
 				</label>
 				<input
 					id="pptx-vue-share-room"
@@ -119,7 +122,7 @@ function handleStop(): void {
 					for="pptx-vue-share-name"
 					class="pptx-vue-share-label text-[12px] font-medium text-foreground"
 				>
-					Your name
+					{{ t('pptx.share.yourName') }}
 				</label>
 				<input
 					id="pptx-vue-share-name"
@@ -135,14 +138,14 @@ function handleStop(): void {
 					for="pptx-vue-share-server"
 					class="pptx-vue-share-label text-[12px] font-medium text-foreground"
 				>
-					Server URL
+					{{ t('pptx.share.serverUrl') }}
 				</label>
 				<input
 					id="pptx-vue-share-server"
 					v-model="serverUrl"
 					type="text"
 					class="pptx-vue-share-input w-full rounded border border-border bg-background px-3 py-1.5 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-					placeholder="wss://collab.example.com"
+					:placeholder="t('pptx.share.serverPlaceholder')"
 				/>
 			</div>
 		</div>
@@ -153,7 +156,7 @@ function handleStop(): void {
 				class="pptx-vue-share-btn rounded bg-muted px-3 py-1.5 text-[12px] text-foreground transition-colors hover:bg-accent"
 				@click="emit('close')"
 			>
-				{{ active ? 'Close' : 'Cancel' }}
+				{{ active ? t('pptx.share.close') : t('pptx.share.cancel') }}
 			</button>
 			<button
 				v-if="!active"
@@ -162,7 +165,7 @@ function handleStop(): void {
 				:disabled="!canStart"
 				@click="handleStart"
 			>
-				Start sharing
+				{{ t('pptx.share.startSharing') }}
 			</button>
 		</template>
 	</ModalDialog>

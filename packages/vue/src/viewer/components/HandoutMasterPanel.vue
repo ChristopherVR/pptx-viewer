@@ -11,6 +11,7 @@
  * Emits : `slides-per-page-change: [count: number]`
  */
 import type { PptxHandoutMaster } from 'pptx-viewer-core';
+import { useI18n } from 'vue-i18n';
 
 defineProps<{
 	handoutMaster: PptxHandoutMaster | undefined;
@@ -21,6 +22,8 @@ const emit = defineEmits<{
 	'slides-per-page-change': [count: number];
 }>();
 
+const { t } = useI18n();
+
 const SLIDES_PER_PAGE_OPTIONS: readonly number[] = [1, 2, 3, 4, 6, 9];
 </script>
 
@@ -30,12 +33,14 @@ const SLIDES_PER_PAGE_OPTIONS: readonly number[] = [1, 2, 3, 4, 6, 9];
 		class="pptx-vue-handout-master-panel__empty"
 		data-testid="handout-master-panel-empty"
 	>
-		No handout master
+		{{ t('pptx.handout.noMaster') }}
 	</div>
 
 	<div v-else class="pptx-vue-handout-master-panel">
 		<section class="pptx-vue-handout-master-panel__card">
-			<div class="pptx-vue-handout-master-panel__heading">Slides per page</div>
+			<div class="pptx-vue-handout-master-panel__heading">
+				{{ t('pptx.handout.slidesPerPage') }}
+			</div>
 			<div class="pptx-vue-handout-master-panel__grid">
 				<button
 					v-for="count in SLIDES_PER_PAGE_OPTIONS"
@@ -52,7 +57,9 @@ const SLIDES_PER_PAGE_OPTIONS: readonly number[] = [1, 2, 3, 4, 6, 9];
 		</section>
 
 		<section class="pptx-vue-handout-master-panel__card">
-			<div class="pptx-vue-handout-master-panel__heading">Background</div>
+			<div class="pptx-vue-handout-master-panel__heading">
+				{{ t('pptx.handout.background') }}
+			</div>
 			<div
 				class="pptx-vue-handout-master-panel__swatch"
 				data-testid="handout-master-bg-swatch"
@@ -64,7 +71,9 @@ const SLIDES_PER_PAGE_OPTIONS: readonly number[] = [1, 2, 3, 4, 6, 9];
 			v-if="handoutMaster.placeholders && handoutMaster.placeholders.length > 0"
 			class="pptx-vue-handout-master-panel__card"
 		>
-			<div class="pptx-vue-handout-master-panel__heading">Placeholders</div>
+			<div class="pptx-vue-handout-master-panel__heading">
+				{{ t('pptx.handout.placeholders') }}
+			</div>
 			<div class="pptx-vue-handout-master-panel__list">
 				<div
 					v-for="ph in handoutMaster.placeholders"

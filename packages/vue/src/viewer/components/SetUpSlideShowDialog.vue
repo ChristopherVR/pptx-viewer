@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxCustomShow, PptxPresentationProperties } from 'pptx-viewer-core';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import ModalDialog from './ModalDialog.vue';
 import ShowOptionsFieldset from './ShowOptionsFieldset.vue';
@@ -26,6 +27,8 @@ const emit = defineEmits<{
 	save: [properties: PptxPresentationProperties];
 	close: [];
 }>();
+
+const { t } = useI18n();
 
 const draft = ref<PptxPresentationProperties>({ ...props.properties });
 
@@ -57,19 +60,19 @@ function onSave(): void {
 	emit('close');
 }
 
-const showTypes = [
-	['presented', 'Presented by a speaker (full screen)'],
-	['browsed', 'Browsed by an individual (window)'],
-	['kiosk', 'Browsed at a kiosk (full screen)'],
-] as const;
+const showTypes = computed<Array<['presented' | 'browsed' | 'kiosk', string]>>(() => [
+	['presented', t('pptx.slideShow.typePresented')],
+	['browsed', t('pptx.slideShow.typeBrowsed')],
+	['kiosk', t('pptx.slideShow.typeKiosk')],
+]);
 </script>
 
 <template>
-	<ModalDialog :open="props.open" title="Set Up Slide Show" @close="emit('close')">
+	<ModalDialog :open="props.open" :title="t('pptx.slideShow.title')" @close="emit('close')">
 		<div class="flex flex-col gap-5 text-[12px] text-foreground">
 			<fieldset class="space-y-1.5">
 				<legend class="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-					Show type
+					{{ t('pptx.slideShow.legendShowType') }}
 				</legend>
 				<label
 					v-for="[value, label] in showTypes"
@@ -98,7 +101,7 @@ const showTypes = [
 
 			<fieldset class="space-y-1.5">
 				<legend class="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-					Advance slides
+					{{ t('pptx.slideShow.legendAdvance') }}
 				</legend>
 				<label class="flex cursor-pointer items-center gap-2">
 					<input
@@ -109,7 +112,7 @@ const showTypes = [
 						:checked="(draft.advanceMode ?? 'manual') === 'manual'"
 						@change="update({ advanceMode: 'manual' })"
 					/>
-					<span>Manually</span>
+					<span>{{ t('pptx.slideShow.advanceManual') }}</span>
 				</label>
 				<label class="flex cursor-pointer items-center gap-2">
 					<input
@@ -120,7 +123,7 @@ const showTypes = [
 						:checked="draft.advanceMode === 'useTimings'"
 						@change="update({ advanceMode: 'useTimings' })"
 					/>
-					<span>Using timings, if present</span>
+					<span>{{ t('pptx.slideShow.advanceTimings') }}</span>
 				</label>
 			</fieldset>
 
@@ -133,14 +136,14 @@ const showTypes = [
 				class="rounded bg-muted px-3 py-1.5 text-[12px] text-foreground transition-colors hover:bg-accent"
 				@click="emit('close')"
 			>
-				Cancel
+				{{ t('pptx.share.cancel') }}
 			</button>
 			<button
 				type="button"
 				class="rounded bg-primary px-3 py-1.5 text-[12px] text-white transition-colors hover:bg-primary/80"
 				@click="onSave"
 			>
-				OK
+				{{ t('pptx.slideShow.ok') }}
 			</button>
 		</template>
 	</ModalDialog>

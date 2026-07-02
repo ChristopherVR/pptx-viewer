@@ -11,6 +11,7 @@
  * peer's colour; the followed peer is highlighted with a "Stop" affordance.
  */
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { RemotePresence } from '../composables/useCollaboration';
 
@@ -25,6 +26,8 @@ const emit = defineEmits<{
 	/** Follow the given peer, or `null` to stop following. */
 	(e: 'follow', clientId: number | null): void;
 }>();
+
+const { t } = useI18n();
 
 /** First-letter / two-char initials for the avatar chip. */
 function initials(name: string): string {
@@ -62,17 +65,18 @@ function stopFollowing(): void {
 			class="pptx-vue-follow-status inline-flex items-center gap-1.5 whitespace-nowrap text-muted-foreground"
 		>
 			<template v-if="followedPeer">
-				Following <strong class="text-foreground">{{ followedPeer.userName }}</strong>
+				{{ t('pptx.followMode.following') }}
+				<strong class="text-foreground">{{ followedPeer.userName }}</strong>
 				<button
 					type="button"
 					class="pptx-vue-follow-stop cursor-pointer rounded-md border border-border bg-transparent px-2 py-0.5 text-[11px] text-foreground hover:bg-muted"
-					title="Stop following"
+					:title="t('pptx.followMode.stopFollowing')"
 					@click="stopFollowing"
 				>
-					Stop
+					{{ t('pptx.followMode.stop') }}
 				</button>
 			</template>
-			<template v-else> Follow a collaborator </template>
+			<template v-else> {{ t('pptx.followMode.followCollaborator') }} </template>
 		</span>
 		<ul class="pptx-vue-follow-list m-0 flex list-none items-center gap-1.5 p-0">
 			<li v-for="peer in props.presences" :key="peer.clientId">
@@ -86,8 +90,8 @@ function stopFollowing(): void {
 					:aria-pressed="peer.clientId === props.followedClientId"
 					:title="
 						peer.clientId === props.followedClientId
-							? `Stop following ${peer.userName}`
-							: `Follow ${peer.userName}`
+							? t('pptx.followMode.stopFollowingUser', { name: peer.userName })
+							: t('pptx.followMode.followUser', { name: peer.userName })
 					"
 					@click="toggleFollow(peer.clientId)"
 				>

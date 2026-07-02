@@ -2,6 +2,7 @@
 import { elementActionToPptxAction, pptxActionToElementAction } from 'pptx-viewer-core';
 import type { ElementActionType, PptxAction, PptxElement } from 'pptx-viewer-core';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import ModalDialog from './ModalDialog.vue';
 
@@ -33,15 +34,17 @@ const emit = defineEmits<{
 	(e: 'close'): void;
 }>();
 
-const ACTION_TYPES: Array<{ value: ElementActionType; label: string }> = [
-	{ value: 'none', label: 'None' },
-	{ value: 'url', label: 'Go to URL' },
-	{ value: 'slide', label: 'Go to Slide' },
-	{ value: 'firstSlide', label: 'First Slide' },
-	{ value: 'lastSlide', label: 'Last Slide' },
-	{ value: 'prevSlide', label: 'Previous Slide' },
-	{ value: 'nextSlide', label: 'Next Slide' },
-	{ value: 'endShow', label: 'End Show' },
+const { t } = useI18n();
+
+const ACTION_TYPES: Array<{ value: ElementActionType; labelKey: string }> = [
+	{ value: 'none', labelKey: 'pptx.hyperlink.actionNone' },
+	{ value: 'url', labelKey: 'pptx.hyperlink.actionUrl' },
+	{ value: 'slide', labelKey: 'pptx.hyperlink.actionSlide' },
+	{ value: 'firstSlide', labelKey: 'pptx.hyperlink.actionFirstSlide' },
+	{ value: 'lastSlide', labelKey: 'pptx.hyperlink.actionLastSlide' },
+	{ value: 'prevSlide', labelKey: 'pptx.hyperlink.actionPrevSlide' },
+	{ value: 'nextSlide', labelKey: 'pptx.hyperlink.actionNextSlide' },
+	{ value: 'endShow', labelKey: 'pptx.hyperlink.actionEndShow' },
 ];
 
 const actionType = ref<ElementActionType>('url');
@@ -127,48 +130,56 @@ const inputCls =
 </script>
 
 <template>
-	<ModalDialog :open="open" title="Hyperlink" @close="close">
+	<ModalDialog :open="open" :title="t('pptx.hyperlink.title')" @close="close">
 		<div class="pptx-vue-hyperlink-form flex min-w-[280px] flex-col gap-3">
 			<label class="flex flex-col gap-1">
-				<span class="text-xs font-medium text-muted-foreground">Link to</span>
+				<span class="text-xs font-medium text-muted-foreground">{{
+					t('pptx.hyperlink.linkTo')
+				}}</span>
 				<select v-model="actionType" :class="inputCls">
 					<option v-for="opt in ACTION_TYPES" :key="opt.value" :value="opt.value">
-						{{ opt.label }}
+						{{ t(opt.labelKey) }}
 					</option>
 				</select>
 			</label>
 
 			<label v-if="actionType === 'url'" class="flex flex-col gap-1">
-				<span class="text-xs font-medium text-muted-foreground">Address</span>
+				<span class="text-xs font-medium text-muted-foreground">{{
+					t('pptx.hyperlink.urlLabel')
+				}}</span>
 				<input
 					v-model="url"
 					type="url"
 					:class="inputCls"
-					placeholder="https://example.com"
+					:placeholder="t('pptx.hyperlink.urlPlaceholder')"
 					@keydown.enter.prevent="save"
 				/>
 			</label>
 
 			<label v-else-if="actionType === 'slide'" class="flex flex-col gap-1">
-				<span class="text-xs font-medium text-muted-foreground">Slide number</span>
+				<span class="text-xs font-medium text-muted-foreground">{{
+					t('pptx.hyperlink.slideLabel')
+				}}</span>
 				<input
 					v-model.number="slideNumber"
 					type="number"
 					:min="1"
 					:max="props.slideCount ?? undefined"
 					:class="inputCls"
-					placeholder="Slide number (1-based)"
+					:placeholder="t('pptx.hyperlink.slidePlaceholder')"
 					@keydown.enter.prevent="save"
 				/>
 			</label>
 
 			<label class="flex flex-col gap-1">
-				<span class="text-xs font-medium text-muted-foreground">Tooltip</span>
+				<span class="text-xs font-medium text-muted-foreground">{{
+					t('pptx.hyperlink.tooltipLabel')
+				}}</span>
 				<input
 					v-model="tooltip"
 					type="text"
 					:class="inputCls"
-					placeholder="Shown on hover (optional)"
+					:placeholder="t('pptx.hyperlink.tooltipPlaceholder')"
 					@keydown.enter.prevent="save"
 				/>
 			</label>
@@ -181,21 +192,21 @@ const inputCls =
 				class="mr-auto rounded border border-transparent px-3 py-1.5 text-xs text-destructive hover:bg-muted"
 				@click="clear"
 			>
-				Remove link
+				{{ t('pptx.hyperlink.removeLink') }}
 			</button>
 			<button
 				type="button"
 				class="rounded border border-border px-3 py-1.5 text-xs text-foreground hover:bg-muted"
 				@click="close"
 			>
-				Cancel
+				{{ t('pptx.comments.cancel') }}
 			</button>
 			<button
 				type="button"
 				class="rounded border border-transparent bg-primary px-3 py-1.5 text-xs text-white hover:bg-primary/90"
 				@click="save"
 			>
-				Apply
+				{{ t('pptx.hyperlink.apply') }}
 			</button>
 		</template>
 	</ModalDialog>
