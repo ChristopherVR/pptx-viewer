@@ -1,3 +1,9 @@
+import {
+	computeColumnBoundaries,
+	computeResizedColumnWidths,
+	computeResizedRowHeight,
+	DEFAULT_ROW_HEIGHT,
+} from 'pptx-viewer-shared';
 import React, { useRef, useEffect, useMemo, useLayoutEffect, useState, useCallback } from 'react';
 
 /**
@@ -31,15 +37,7 @@ export function TableResizeOverlay({
 	} | null>(null);
 
 	// Column boundary positions (cumulative percentages)
-	const colBoundaries = useMemo(() => {
-		const result: number[] = [];
-		let cum = 0;
-		for (let i = 0; i < columnWidths.length - 1; i++) {
-			cum += columnWidths[i];
-			result.push(cum * 100);
-		}
-		return result;
-	}, [columnWidths]);
+	const colBoundaries = useMemo(() => computeColumnBoundaries(columnWidths), [columnWidths]);
 
 	// Measure row boundaries after layout
 	const measureRows = useCallback(() => {
@@ -96,20 +94,15 @@ export function TableResizeOverlay({
 			const rect = containerRef.current.getBoundingClientRect();
 
 			if (drag.type === 'col' && drag.initialWidths && onResizeColumns) {
-				const deltaX = e.clientX - drag.startPos;
-				const deltaProp = deltaX / rect.width;
-				const idx = drag.index;
-				const newWidths = [...drag.initialWidths];
-				newWidths[idx] = Math.max(0.03, drag.initialWidths[idx] + deltaProp);
-				newWidths[idx + 1] = Math.max(0.03, drag.initialWidths[idx + 1] - deltaProp);
-				// Normalise so they sum to 1
-				const sum = newWidths.reduce((a, b) => a + b, 0);
-				const normed = newWidths.map((w) => w / sum);
-				onResizeColumns(normed);
+				const deltaProp = (e.clientX - drag.startPos) / rect.width;
+				onResizeColumns(computeResizedColumnWidths(drag.initialWidths, drag.index, deltaProp));
 			} else if (drag.type === 'row' && onResizeRow) {
 				const deltaY = e.clientY - drag.startPos;
-				const newHeight = Math.max(16, (drag.initialRowHeight ?? 32) + deltaY);
-				onResizeRow(drag.index, Math.round(newHeight));
+				const newHeight = computeResizedRowHeight(
+					drag.initialRowHeight ?? DEFAULT_ROW_HEIGHT,
+					deltaY,
+				);
+				onResizeRow(drag.index, newHeight);
 			}
 
 			drag.handleEl.style.transform = '';
@@ -149,7 +142,7 @@ export function TableResizeOverlay({
 		e.stopPropagation();
 		const table = containerRef.current?.querySelector('table');
 		const tr = table?.querySelectorAll('tbody > tr')[index];
-		const actualHeight = (tr as HTMLElement)?.offsetHeight ?? 32;
+		const actualHeight = (tr as HTMLElement)?.offsetHeight ?? DEFAULT_ROW_HEIGHT;
 		document.body.style.cursor = 'row-resize';
 		document.body.style.userSelect = 'none';
 		dragRef.current = {
