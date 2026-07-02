@@ -13,6 +13,7 @@ import {
 import { injectFieldContext, resolveFieldContext } from '../composables/field-context';
 import { useSmartArt3D } from '../composables/smart-art-3d';
 import { build3DExtrusionData } from '../composables/visual-3d';
+import ActionButtonGlyphOverlay from './ActionButtonGlyphOverlay.vue';
 import ChartRenderer from './ChartRenderer.vue';
 import ConnectorRenderer from './ConnectorRenderer.vue';
 import DuotoneFilterDefs from './DuotoneFilterDefs.vue';
@@ -21,6 +22,7 @@ import ElementMediaBox from './ElementMediaBox.vue';
 import EquationRenderer from './EquationRenderer.vue';
 import Extrusion3DOverlay from './Extrusion3DOverlay.vue';
 import InkRenderer from './InkRenderer.vue';
+import LinkTooltip from './LinkTooltip.vue';
 import Model3DRenderer from './Model3DRenderer.vue';
 import OleRenderer from './OleRenderer.vue';
 import SlideTextBlock from './SlideTextBlock.vue';
@@ -143,6 +145,22 @@ const hasText = computed(() =>
 
 /** Affordance class toggled on for editable template (master/layout) elements. */
 const templateClass = computed(() => (props.templateEditing ? 'pptx-vue-template-editing' : null));
+
+/**
+ * Element-level click action (`actionClick`), when present. Drives the on-canvas
+ * link tooltip (and the `group/link` hover container). Mirrors React's
+ * `ElementRenderer`, which shows a styled {@link LinkTooltip} for any element
+ * carrying an action in an interactive tree.
+ */
+const linkAction = computed(() => props.element.actionClick);
+const showLinkTooltip = computed(
+	() =>
+		props.interactive === true &&
+		Boolean(linkAction.value?.url || linkAction.value?.tooltip || linkAction.value?.action),
+);
+const linkTooltipLabel = computed(
+	() => linkAction.value?.tooltip || linkAction.value?.url || linkAction.value?.action || 'Link',
+);
 </script>
 
 <template>
@@ -254,15 +272,23 @@ const templateClass = computed(() => (props.templateEditing ? 'pptx-vue-template
 	<div
 		v-else-if="isShapeLike"
 		class="pptx-vue-element pptx-vue-shape"
-		:class="templateClass"
+		:class="[templateClass, showLinkTooltip ? 'group/link' : null]"
 		:style="shapeDivStyle"
 		:data-element-id="element.id"
 		:data-pptx-element="interactive ? 'true' : undefined"
 	>
 		<DuotoneFilterDefs :element="element" />
 		<Extrusion3DOverlay v-if="extrusionData.hasExtrusion" :data="extrusionData" />
+		<!-- Action-button glyph (home/help/sound/arrows/...); self-hides for non-buttons. -->
+		<ActionButtonGlyphOverlay :element="element" />
 		<WordArtText v-if="isWarpedText" :element="element" :z-index="0" />
 		<SlideTextBlock v-else-if="hasText" :paragraphs="paragraphs" :text-style="textStyle" />
+		<!-- On-canvas hyperlink / action tooltip (edit-mode hover). -->
+		<LinkTooltip
+			v-if="showLinkTooltip"
+			:label="linkTooltipLabel"
+			:has-url="Boolean(linkAction?.url)"
+		/>
 	</div>
 
 	<!-- Fallback placeholder for not-yet-ported element types -->

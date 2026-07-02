@@ -13,8 +13,48 @@ Ship a Vue 3 package, **`pptx-vue-viewer`** (npm), feature-equivalent to the Rea
 
 ## Status: **component- and feature-level parity is reached**
 
-The Vue port covers essentially the full React surface (**1302 vue + 310 shared
-unit tests green**, e2e green on react/vue/angular). Done and verified live:
+> **Correction (2026-07-02):** the blanket "full parity" claim below overstated a
+> few dialog / panel / overlay surfaces that were actually still stubbed. Those
+> gaps are now closed (see _Recently closed_ immediately below); the historical
+> prose is kept for context but should be read through that lens.
+
+> **Recently closed (2026-07-02): dialog / panel / overlay parity pass.**
+> Ported the remaining chrome that was threaded-but-inert or missing:
+>
+> - **Set Up Slide Show** (`SetUpSlideShowDialog.vue` + `ShowSlidesFieldset.vue`
+>   - `ShowOptionsFieldset.vue`): show type / slide range / advance mode / loop /
+>     narration / animation / subtitles / pen colour. `presentationProperties` is
+>     now parsed in `useLoadContent` and forwarded to `handler.save`, so settings
+>     round-trip. Wired via `onOpenSetUpSlideShow`.
+> - **Selection Pane** (`SelectionPane.vue`): object list with visibility toggle
+>   and drag z-order over the active slide's elements, routed through
+>   `useEditorOperations` (`updateElement { hidden }` / `reorder`). Wired via
+>   `onToggleSelectionPane` + `isSelectionPaneOpen`.
+> - **Password protection** (`PasswordProtectionDialog.vue`) and **font
+>   embedding** (`FontEmbeddingPanel.vue`), matching React's host-state model
+>   (`usedFontFamilies` computed on the deck). Wired via `onOpenPasswordProtection`
+>   / `onOpenFontEmbedding`.
+> - **Keep-annotations-on-exit** (`KeepAnnotationsDialog.vue`): `PresentationMode`
+>   prompts on exit when ink exists and emits the per-slide stroke map; the host
+>   converts strokes via the shared `strokeToInkElement` (highlighter when
+>   translucent) and appends `ink` elements per slide (one undoable batch).
+> - **Action settings**: `HyperlinkDialog.vue` gained an action-type selector
+>   (URL / go-to-slide / first / last / prev / next / end-show) via the core
+>   `pptxActionToElementAction` / `elementActionToPptxAction`; on-canvas
+>   `ActionButtonGlyphOverlay.vue` glyphs + `LinkTooltip.vue` render in
+>   `ElementRenderer`.
+> - **Comments**: on-canvas `CommentMarkersOverlay.vue` (numbered dots via shared
+>   `getCommentMarkerPosition`) + threaded replies (`useComments.replyToComment`
+>   nesting into `PptxComment.replies`, rendered/composed in `CommentsPanel.vue`).
+> - **Slide sorter**: right-click context menu (reusing `ContextMenu.vue`:
+>   duplicate / hide-show / delete) + keyboard shortcuts (Delete, Ctrl+D, Esc) +
+>   hidden-slide badge.
+> - **Minor**: `PresentationSettingsCard.vue` in `SlideInspector`,
+>   `SignatureStatusBadge.vue` (signed-doc pill), and `SignatureStrippedDialog.vue`
+>   (first-edit warning on a signed deck).
+
+The Vue port covers essentially the full React surface (**1528 vue unit tests
+green**, e2e green on react/vue/angular). Done and verified live:
 
 - **Rendering**: every element type: text (rich runs), shapes (preset clip-path
   cascade, fill/stroke), images, tables (merges, banding, `tableStyleMap` GUIDs,

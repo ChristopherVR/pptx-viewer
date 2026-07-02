@@ -12,6 +12,7 @@ import type {
 	PptxHeaderFooter,
 	PptxLayoutOption,
 	PptxNotesMaster,
+	PptxPresentationProperties,
 	PptxSaveFormat,
 	PptxSection,
 	PptxSlide,
@@ -123,6 +124,8 @@ export interface UseLoadContentResult {
 	sections: ShallowRef<PptxSection[]>;
 	/** Named custom slide shows (`p:custShowLst`), empty when none. */
 	customShows: ShallowRef<PptxCustomShow[]>;
+	/** Presentation-level slide-show properties (`presentationPr.xml`); reactive so Set Up Slide Show persists. */
+	presentationProperties: ShallowRef<PptxPresentationProperties>;
 	/** Presentation-level header/footer settings, or `undefined`. */
 	headerFooter: ShallowRef<PptxHeaderFooter | undefined>;
 	/** Parsed notes master, or `undefined` when absent. */
@@ -161,6 +164,7 @@ export function useLoadContent(
 	const tableStyleMap = shallowRef<ParsedTableStyleMap | undefined>(undefined);
 	const sections = shallowRef<PptxSection[]>([]);
 	const customShows = shallowRef<PptxCustomShow[]>([]);
+	const presentationProperties = shallowRef<PptxPresentationProperties>({});
 	const headerFooter = shallowRef<PptxHeaderFooter | undefined>(undefined);
 	const notesMaster = shallowRef<PptxNotesMaster | undefined>(undefined);
 	const handoutMaster = shallowRef<PptxHandoutMaster | undefined>(undefined);
@@ -350,6 +354,7 @@ export function useLoadContent(
 			tableStyleMap.value = parsed.tableStyleMap;
 			sections.value = parsed.sections ?? [];
 			customShows.value = parsed.customShows ?? [];
+			presentationProperties.value = parsed.presentationProperties ?? {};
 			headerFooter.value = parsed.headerFooter;
 			notesMaster.value = parsed.notesMaster;
 			handoutMaster.value = parsed.handoutMaster;
@@ -386,6 +391,7 @@ export function useLoadContent(
 			appProperties: appProperties.value,
 			sections: sections.value,
 			customShows: customShows.value,
+			presentationProperties: presentationProperties.value,
 			headerFooter: headerFooter.value,
 			outputFormat: format,
 		});
@@ -432,6 +438,7 @@ export function useLoadContent(
 		tableStyleMap,
 		sections,
 		customShows,
+		presentationProperties,
 		headerFooter,
 		notesMaster,
 		handoutMaster,

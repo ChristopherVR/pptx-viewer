@@ -12,6 +12,7 @@
  * it is a display-only change); so is the transition preview animation.
  */
 import type {
+	PptxPresentationProperties,
 	PptxSlide,
 	PptxSlideTransition,
 	PptxTheme,
@@ -22,6 +23,7 @@ import { computed } from 'vue';
 
 import SlideTransitionPanel from '../SlideTransitionPanel.vue';
 import DirectionPicker from './DirectionPicker.vue';
+import PresentationSettingsCard from './PresentationSettingsCard.vue';
 import SlideBackgroundPanel from './SlideBackgroundPanel.vue';
 import SlideThemeOverridePanel from './SlideThemeOverridePanel.vue';
 
@@ -37,6 +39,7 @@ const props = withDefaults(
 	defineProps<{
 		slide: PptxSlide | undefined;
 		theme?: PptxTheme;
+		presentationProperties?: PptxPresentationProperties;
 		mobile?: boolean;
 		canEdit?: boolean;
 	}>(),
@@ -46,6 +49,7 @@ const props = withDefaults(
 const emit = defineEmits<{
 	'transition-update': [transition: PptxSlideTransition | undefined];
 	'slide-update': [patch: Partial<PptxSlide>];
+	'presentation-update': [patch: Partial<PptxPresentationProperties>];
 }>();
 
 /** A real (non-"none") transition is set on this slide. */
@@ -187,6 +191,22 @@ function onAdvanceChange(e: Event): void {
 				/>
 				Advance on click
 			</label>
+		</div>
+
+		<div
+			v-if="presentationProperties"
+			class="pptx-vue-inspector-section py-2 border-b border-border"
+		>
+			<h3
+				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+			>
+				Presentation
+			</h3>
+			<PresentationSettingsCard
+				:presentation-properties="presentationProperties"
+				:can-edit="canEdit"
+				@update="(patch) => emit('presentation-update', patch)"
+			/>
 		</div>
 	</aside>
 </template>

@@ -7,9 +7,11 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useAnimationPlayback } from '../composables/useAnimationPlayback';
 import { useIsMobile } from '../composables/useIsMobile';
 import { usePresentationAnnotations } from '../composables/usePresentationAnnotations';
+import type { SlideAnnotationMap } from '../composables/usePresentationAnnotations';
 import { useTouchGestures } from '../composables/useTouchGestures';
 import { provideZoomNavigation } from '../composables/zoom-navigation';
 import type { CanvasSize } from '../types';
+import KeepAnnotationsDialog from './KeepAnnotationsDialog.vue';
 import MobilePresenterView from './MobilePresenterView.vue';
 import PresentationAnnotationOverlay from './PresentationAnnotationOverlay.vue';
 import PresentationSubtitleBar from './PresentationSubtitleBar.vue';
@@ -47,7 +49,12 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-	(e: 'close'): void;
+	/**
+	 * Exit the show. When the presenter chose to keep ink annotations, the
+	 * per-slide stroke map is attached so the host can persist them as ink
+	 * elements (mirrors the Angular binding's exit contract).
+	 */
+	(e: 'close', payload?: { annotations: SlideAnnotationMap }): void;
 	(e: 'slide-change', index: number): void;
 }>();
 
@@ -150,7 +157,28 @@ function prev(): void {
 	goTo(currentIndex.value - 1);
 }
 
+/**
+ * Request exit. When ink annotations were drawn, prompt to keep or discard them
+ * (KeepAnnotationsDialog) before leaving; otherwise exit immediately.
+ */
 function close(): void {
+	if (annotations.hasAnyAnnotations.value) {
+		showKeepPrompt.value = true;
+		return;
+	}
+	emit('close');
+}
+
+/** Keep: hand the per-slide stroke map to the host, which persists it as ink. */
+function onKeepAnnotations(): void {
+	const map: SlideAnnotationMap = new Map(annotations.allSlideAnnotations.value);
+	showKeepPrompt.value = false;
+	emit('close', { annotations: map });
+}
+
+/** Discard: drop the strokes and exit without persisting. */
+function onDiscardAnnotations(): void {
+	showKeepPrompt.value = false;
 	emit('close');
 }
 
@@ -171,6 +199,19 @@ const annotations = usePresentationAnnotations({
 	isActive: () => true,
 	activeSlideIndex: currentIndex,
 });
+
+/** Whether the keep-or-discard-annotations prompt is showing (set on exit). */
+const showKeepPrompt = ref(false);
+/** Total stroke count across all slides, for the prompt copy. */
+const annotationCount = computed(() => {
+	let total = 0;
+	for (const strokes of annotations.allSlideAnnotations.value.values()) {
+		total += strokes.length;
+	}
+	return total;
+});
+/** Number of slides that carry at least one stroke, for the prompt copy. */
+const annotatedSlideCount = computed(() => annotations.allSlideAnnotations.value.size);
 
 /**
  * Tap-to-advance, but only when no drawing tool is armed and the presenter
@@ -451,6 +492,15 @@ onBeforeUnmount(() => {
 				:total-slides="slides.length"
 				@move="onToolbarMove"
 				@end="close"
+			/>
+
+			<!-- Keep-or-discard ink annotations on exit. -->
+			<KeepAnnotationsDialog
+				:open="showKeepPrompt"
+				:annotation-count="annotationCount"
+				:slide-count="annotatedSlideCount"
+				@keep="onKeepAnnotations"
+				@discard="onDiscardAnnotations"
 			/>
 		</div>
 	</Teleport>

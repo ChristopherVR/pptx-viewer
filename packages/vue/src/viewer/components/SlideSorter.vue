@@ -16,9 +16,11 @@
  */
 import type { PptxSlide } from 'pptx-viewer-core';
 import type { CSSProperties } from 'vue';
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 import type { CanvasSize } from '../types';
+import ContextMenu from './ContextMenu.vue';
+import type { ContextMenuItem } from './ContextMenu.vue';
 import SlideStage from './SlideStage.vue';
 
 const props = defineProps<{
@@ -26,11 +28,15 @@ const props = defineProps<{
 	canvasSize: CanvasSize;
 	mediaDataUrls: Map<string, string>;
 	activeIndex: number;
+	canEdit?: boolean;
 }>();
 
 const emit = defineEmits<{
 	select: [index: number];
 	reorder: [from: number, to: number];
+	duplicate: [index: number];
+	delete: [index: number];
+	'toggle-hidden': [index: number];
 	close: [];
 }>();
 
@@ -87,6 +93,77 @@ function onDragEnd(): void {
 	dragIndex.value = null;
 	dragOverIndex.value = null;
 }
+
+// ── Context menu (right-click a tile) ─────────────────────────────────
+const contextMenu = ref<{ open: boolean; x: number; y: number; index: number }>({
+	open: false,
+	x: 0,
+	y: 0,
+	index: 0,
+});
+
+function openContextMenu(index: number, event: MouseEvent): void {
+	if (!props.canEdit) {
+		return;
+	}
+	event.preventDefault();
+	emit('select', index);
+	contextMenu.value = { open: true, x: event.clientX, y: event.clientY, index };
+}
+
+const contextItems = computed<ContextMenuItem[]>(() => {
+	const hidden = props.slides[contextMenu.value.index]?.hidden ?? false;
+	return [
+		{ id: 'duplicate', label: 'Duplicate slide' },
+		{ id: 'toggle-hidden', label: hidden ? 'Show slide' : 'Hide slide' },
+		{ id: 'sep', label: '', separator: true },
+		{ id: 'delete', label: 'Delete slide' },
+	];
+});
+
+function onContextSelect(id: string): void {
+	const index = contextMenu.value.index;
+	contextMenu.value.open = false;
+	if (id === 'duplicate') {
+		emit('duplicate', index);
+	} else if (id === 'toggle-hidden') {
+		emit('toggle-hidden', index);
+	} else if (id === 'delete') {
+		emit('delete', index);
+	}
+}
+
+// ── Keyboard shortcuts (Delete / Ctrl+D / Escape) ─────────────────────
+function onKeyDown(event: KeyboardEvent): void {
+	if (contextMenu.value.open) {
+		contextMenu.value.open = false;
+	}
+	const isCtrl = event.ctrlKey || event.metaKey;
+	if (event.key === 'Escape') {
+		event.stopPropagation();
+		emit('close');
+		return;
+	}
+	if (!props.canEdit) {
+		return;
+	}
+	if (event.key === 'Delete' || event.key === 'Backspace') {
+		event.preventDefault();
+		emit('delete', props.activeIndex);
+		return;
+	}
+	if (isCtrl && (event.key === 'd' || event.key === 'D')) {
+		event.preventDefault();
+		emit('duplicate', props.activeIndex);
+	}
+}
+
+onMounted(() => {
+	window.addEventListener('keydown', onKeyDown);
+});
+onBeforeUnmount(() => {
+	window.removeEventListener('keydown', onKeyDown);
+});
 </script>
 
 <template>
@@ -118,6 +195,7 @@ function onDragEnd(): void {
 				:aria-label="`Slide ${index + 1}`"
 				:aria-current="index === activeIndex ? 'true' : undefined"
 				@click="onSelect(index)"
+				@contextmenu="openContextMenu(index, $event)"
 				@dragstart="onDragStart(index, $event)"
 				@dragover="onDragOver(index, $event)"
 				@drop="onDrop(index, $event)"
@@ -132,8 +210,18 @@ function onDragEnd(): void {
 					/>
 				</div>
 				<span class="pptx-vue-sorter-index">{{ index + 1 }}</span>
+				<span v-if="slide.hidden" class="pptx-vue-sorter-hidden">Hidden</span>
 			</div>
 		</div>
+
+		<ContextMenu
+			:open="contextMenu.open"
+			:x="contextMenu.x"
+			:y="contextMenu.y"
+			:items="contextItems"
+			@select="onContextSelect"
+			@close="contextMenu.open = false"
+		/>
 	</div>
 </template>
 
@@ -232,5 +320,20 @@ function onDragEnd(): void {
 	color: #f3f4f6;
 	background: rgba(0, 0, 0, 0.55);
 	border-radius: 0.2rem;
+}
+
+.pptx-vue-sorter-hidden {
+	position: absolute;
+	top: 0.25rem;
+	left: 0.35rem;
+	padding: 0 0.3rem;
+	font-size: 0.65rem;
+	color: #f3f4f6;
+	background: rgba(0, 0, 0, 0.65);
+	border-radius: 0.2rem;
+}
+
+.pptx-vue-sorter-tile.is-hidden .pptx-vue-sorter-stage {
+	opacity: 0.5;
 }
 </style>

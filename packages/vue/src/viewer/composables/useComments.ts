@@ -56,6 +56,14 @@ export interface UseCommentsResult {
 	 * @returns the NEW full comment array, or `null` when nothing changed.
 	 */
 	resolveComment: (id: string) => PptxComment[] | null;
+	/**
+	 * Append a threaded reply to the comment `parentId` on the active slide. The
+	 * reply is nested inside the parent's `replies` array and stamped with
+	 * `threadId = parentId` (mirroring React's `handleSubmitReply`).
+	 * @returns the NEW full comment array, or `null` when the text is blank or
+	 *   the parent is not found.
+	 */
+	replyToComment: (parentId: string, text: string) => PptxComment[] | null;
 }
 
 /** Generate a stable, collision-resistant comment id. */
@@ -115,5 +123,31 @@ export function useComments(options: UseCommentsOptions): UseCommentsResult {
 		return next;
 	};
 
-	return { slideComments, addComment, removeComment, resolveComment };
+	const replyToComment = (parentId: string, text: string): PptxComment[] | null => {
+		const trimmed = text.trim();
+		if (trimmed.length === 0) {
+			return null;
+		}
+		const existing = slideComments.value;
+		const parent = existing.find((comment) => comment.id === parentId);
+		if (!parent) {
+			return null;
+		}
+		const reply: PptxComment = {
+			id: generateCommentId(),
+			text: trimmed,
+			author: toValue(options.authorName),
+			createdAt: new Date().toISOString(),
+			threadId: parentId,
+			parentId,
+			...(parent.elementId ? { elementId: parent.elementId } : {}),
+		};
+		return existing.map((comment) =>
+			comment.id === parentId
+				? { ...comment, replies: [...(comment.replies ?? []), reply] }
+				: comment,
+		);
+	};
+
+	return { slideComments, addComment, removeComment, resolveComment, replyToComment };
 }

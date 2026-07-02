@@ -1,72 +1,76 @@
 <script setup lang="ts">
-import type { PptxAction, PptxElement } from 'pptx-viewer-core';
+import { elementActionToPptxAction, pptxActionToElementAction } from 'pptx-viewer-core';
+import type { ElementActionType, PptxAction, PptxElement } from 'pptx-viewer-core';
 import { computed, ref, watch } from 'vue';
 
 import ModalDialog from './ModalDialog.vue';
 
 /**
- * HyperlinkDialog: set or clear an element's click hyperlink.
+ * HyperlinkDialog: set, change, or clear an element's click action.
  *
- * Mirrors the React app's hyperlink editing, which stores the link on the
- * element-level `actionClick` field (a `PptxAction`). The core type for that
- * field is:
+ * The action is stored on the element-level `actionClick` field (a
+ * `PptxAction`, mirroring the OOXML `ppaction://` scheme). Beyond a plain URL,
+ * this dialog also exposes the navigation action verbs (go to a specific slide,
+ * first / last / previous / next slide, end show), converting to/from the
+ * high-level `ElementAction` shape with the core
+ * `pptxActionToElementAction` / `elementActionToPptxAction` helpers, matching
+ * the React `ActionSettingsPanel`. A tooltip applies to any action type.
  *
- * ```ts
- * interface PptxAction {
- *   url?: string;      // resolved external URL / file path
- *   tooltip?: string;  // hover tooltip text
- *   action?: string;   // OOXML ppaction verb (slide jumps etc.), preserved
- *   // …rId, soundRId, targetSlideIndex, highlightClick
- * }
- * ```
- *
- * This dialog edits the simple URL + tooltip pair (the common case). It reads
- * the element's current `actionClick.url` / `actionClick.tooltip`, lets the
- * user change or clear them, and emits a `save` patch shaped as
- * `{ actionClick: PptxAction | undefined }`:
- *  - **Set:** `{ actionClick: { url, tooltip, action } }` (any preexisting
- *    `action` verb on the element is preserved so slide-jump links survive).
- *  - **Clear:** `{ actionClick: undefined }`.
- *
- * Apply the patch with the editor's element-update op, e.g.
- * `ops.updateElement(element.id, patch)`.
- *
- * Note: PowerPoint can also place hyperlinks on individual text runs
- * (`TextSegment.hyperlink: string` + `TextSegment.hyperlinkTooltip: string`).
- * This dialog deliberately targets the element-level `actionClick` to match the
- * React implementation; a run-level editor would instead emit a patch updating
- * `textSegments[].hyperlink`.
+ * Emits a `save` patch shaped as `{ actionClick: PptxAction | undefined }`
+ * (undefined clears the action); apply it with `ops.updateElement(id, patch)`.
  */
 const props = defineProps<{
 	/** Whether the dialog is open. */
 	open: boolean;
-	/** The element whose hyperlink is being edited, or `null`. */
+	/** The element whose action is being edited, or `null`. */
 	element: PptxElement | null;
+	/** Total slide count, for the "go to slide" number field bounds. */
+	slideCount?: number;
 }>();
 
 const emit = defineEmits<{
-	/** Emitted when the user applies a change. Payload is a merge patch. */
 	(e: 'save', patch: Partial<PptxElement>): void;
-	/** Emitted when the dialog should close without saving. */
 	(e: 'close'): void;
 }>();
 
+const ACTION_TYPES: Array<{ value: ElementActionType; label: string }> = [
+	{ value: 'none', label: 'None' },
+	{ value: 'url', label: 'Go to URL' },
+	{ value: 'slide', label: 'Go to Slide' },
+	{ value: 'firstSlide', label: 'First Slide' },
+	{ value: 'lastSlide', label: 'Last Slide' },
+	{ value: 'prevSlide', label: 'Previous Slide' },
+	{ value: 'nextSlide', label: 'Next Slide' },
+	{ value: 'endShow', label: 'End Show' },
+];
+
+const actionType = ref<ElementActionType>('url');
 const url = ref('');
 const tooltip = ref('');
+const slideNumber = ref(1);
 
-/** Whether the current element already has a hyperlink set. */
-const hasExistingLink = computed(() => Boolean(props.element?.actionClick?.url));
+const hasExistingLink = computed(() => Boolean(props.element?.actionClick));
 
-/**
- * Re-seed the local form from the element each time the dialog opens (or the
- * target element changes while open).
- */
+// Seed the form from the element's current click action each time the dialog
+// opens (or the target element changes while open).
 watch(
 	[() => props.open, () => props.element],
 	([isOpen]) => {
-		if (isOpen) {
-			url.value = props.element?.actionClick?.url ?? '';
-			tooltip.value = props.element?.actionClick?.tooltip ?? '';
+		if (!isOpen) {
+			return;
+		}
+		const action = props.element?.actionClick;
+		tooltip.value = action?.tooltip ?? '';
+		if (action) {
+			const ea = pptxActionToElementAction(action, 'click');
+			actionType.value = ea.type;
+			url.value = ea.type === 'url' ? (ea.url ?? action.url ?? '') : '';
+			slideNumber.value =
+				ea.type === 'slide' ? (ea.slideIndex ?? action.targetSlideIndex ?? 0) + 1 : 1;
+		} else {
+			actionType.value = 'url';
+			url.value = '';
+			slideNumber.value = 1;
 		}
 	},
 	{ immediate: true },
@@ -81,21 +85,29 @@ function save(): void {
 		close();
 		return;
 	}
-	const trimmedUrl = url.value.trim();
-	const trimmedTooltip = tooltip.value.trim();
-
-	if (trimmedUrl === '') {
-		// Empty URL → clear the hyperlink entirely.
+	if (actionType.value === 'none') {
 		emit('save', { actionClick: undefined });
 		close();
 		return;
 	}
 
-	// Preserve any existing OOXML action verb (e.g. slide-jump) on the element.
-	const existing = props.element.actionClick;
+	const pptxAction = elementActionToPptxAction({
+		trigger: 'click',
+		type: actionType.value,
+		url: actionType.value === 'url' ? url.value.trim() : undefined,
+		slideIndex: actionType.value === 'slide' ? Math.max(0, slideNumber.value - 1) : undefined,
+	});
+
+	// A URL action with an empty address clears the link entirely.
+	if (!pptxAction || (actionType.value === 'url' && !url.value.trim())) {
+		emit('save', { actionClick: undefined });
+		close();
+		return;
+	}
+
+	const trimmedTooltip = tooltip.value.trim();
 	const actionClick: PptxAction = {
-		...existing,
-		url: trimmedUrl,
+		...pptxAction,
 		tooltip: trimmedTooltip === '' ? undefined : trimmedTooltip,
 	};
 	emit('save', { actionClick });
@@ -103,37 +115,59 @@ function save(): void {
 }
 
 function clear(): void {
+	actionType.value = 'none';
 	url.value = '';
 	tooltip.value = '';
 	emit('save', { actionClick: undefined });
 	close();
 }
+
+const inputCls =
+	'w-full rounded border border-border bg-background px-2.5 py-1.5 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary';
 </script>
 
 <template>
 	<ModalDialog :open="open" title="Hyperlink" @close="close">
 		<div class="pptx-vue-hyperlink-form flex min-w-[280px] flex-col gap-3">
-			<label class="pptx-vue-hyperlink-field flex flex-col gap-1">
-				<span class="pptx-vue-hyperlink-label text-xs font-medium text-muted-foreground">
-					Address
-				</span>
+			<label class="flex flex-col gap-1">
+				<span class="text-xs font-medium text-muted-foreground">Link to</span>
+				<select v-model="actionType" :class="inputCls">
+					<option v-for="opt in ACTION_TYPES" :key="opt.value" :value="opt.value">
+						{{ opt.label }}
+					</option>
+				</select>
+			</label>
+
+			<label v-if="actionType === 'url'" class="flex flex-col gap-1">
+				<span class="text-xs font-medium text-muted-foreground">Address</span>
 				<input
 					v-model="url"
 					type="url"
-					class="pptx-vue-hyperlink-input w-full rounded border border-border bg-background px-2.5 py-1.5 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
+					:class="inputCls"
 					placeholder="https://example.com"
 					@keydown.enter.prevent="save"
 				/>
 			</label>
 
-			<label class="pptx-vue-hyperlink-field flex flex-col gap-1">
-				<span class="pptx-vue-hyperlink-label text-xs font-medium text-muted-foreground">
-					Tooltip
-				</span>
+			<label v-else-if="actionType === 'slide'" class="flex flex-col gap-1">
+				<span class="text-xs font-medium text-muted-foreground">Slide number</span>
+				<input
+					v-model.number="slideNumber"
+					type="number"
+					:min="1"
+					:max="props.slideCount ?? undefined"
+					:class="inputCls"
+					placeholder="Slide number (1-based)"
+					@keydown.enter.prevent="save"
+				/>
+			</label>
+
+			<label class="flex flex-col gap-1">
+				<span class="text-xs font-medium text-muted-foreground">Tooltip</span>
 				<input
 					v-model="tooltip"
 					type="text"
-					class="pptx-vue-hyperlink-input w-full rounded border border-border bg-background px-2.5 py-1.5 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
+					:class="inputCls"
 					placeholder="Shown on hover (optional)"
 					@keydown.enter.prevent="save"
 				/>
@@ -144,21 +178,21 @@ function clear(): void {
 			<button
 				v-if="hasExistingLink"
 				type="button"
-				class="pptx-vue-hyperlink-btn pptx-vue-hyperlink-btn--ghost mr-auto rounded border border-transparent px-3 py-1.5 text-xs text-destructive hover:bg-muted"
+				class="mr-auto rounded border border-transparent px-3 py-1.5 text-xs text-destructive hover:bg-muted"
 				@click="clear"
 			>
 				Remove link
 			</button>
 			<button
 				type="button"
-				class="pptx-vue-hyperlink-btn pptx-vue-hyperlink-btn--secondary rounded border border-border px-3 py-1.5 text-xs text-foreground hover:bg-muted"
+				class="rounded border border-border px-3 py-1.5 text-xs text-foreground hover:bg-muted"
 				@click="close"
 			>
 				Cancel
 			</button>
 			<button
 				type="button"
-				class="pptx-vue-hyperlink-btn pptx-vue-hyperlink-btn--primary rounded border border-transparent bg-primary px-3 py-1.5 text-xs text-white hover:bg-primary/90"
+				class="rounded border border-transparent bg-primary px-3 py-1.5 text-xs text-white hover:bg-primary/90"
 				@click="save"
 			>
 				Apply
