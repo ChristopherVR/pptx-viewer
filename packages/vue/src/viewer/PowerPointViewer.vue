@@ -131,6 +131,7 @@ import { useIsMobile } from './composables/useIsMobile';
 import { useKeyboardInsets } from './composables/useKeyboardInsets';
 import { useLoadContent } from './composables/useLoadContent';
 import { useMediaExport } from './composables/useMediaExport';
+import { useMobileChrome } from './composables/useMobileChrome';
 import type { SlideAnnotationMap } from './composables/usePresentationAnnotations';
 import { usePrint } from './composables/usePrint';
 import { RIBBON_ALIGN, toShapePreset, useRibbonActions } from './composables/useRibbonActions';
@@ -1170,32 +1171,15 @@ useTouchGestures({
 		},
 	},
 });
-const mobileNotesOpen = ref(false);
-/** Mobile-only bottom sheets for panels that are right-rail sidebars on desktop. */
-const mobileInspectorOpen = ref(false);
-const mobileCommentsOpen = ref(false);
-/** Mobile-only slide-rail sheet (the slides panel is a left rail on desktop). */
-const mobileSlidesOpen = ref(false);
-
-/** Open one mobile sheet at a time so they don't stack over each other. */
-function openMobileSheet(which: 'slides' | 'format' | 'comments' | 'notes'): void {
-	mobileSlidesOpen.value = which === 'slides';
-	mobileInspectorOpen.value = which === 'format';
-	mobileCommentsOpen.value = which === 'comments';
-	mobileNotesOpen.value = which === 'notes';
-}
-
-/**
- * Quick-insert from the mobile bottom bar: a text box is the most common
- * starter element on a phone; the full Insert section lives in the top-bar
- * Menu sheet. Mirrors React's MobileBottomBar `onOpenInsert`.
- */
-function mobileQuickInsert(): void {
-	addText();
-}
-function present(): void {
-	presenting.value = true;
-}
+const {
+	mobileSlidesOpen,
+	mobileInspectorOpen,
+	mobileCommentsOpen,
+	mobileNotesOpen,
+	openMobileSheet,
+	mobileQuickInsert,
+	present,
+} = useMobileChrome({ presenting, addText });
 
 // ── Document properties dialog ────────────────────────────────────────
 const propertiesOpen = ref(false);
