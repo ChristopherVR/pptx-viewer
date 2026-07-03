@@ -1,6 +1,8 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 
+import ComparePanel from './components/ComparePanel.vue';
+import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
 import PowerPointViewer from './PowerPointViewer.vue';
 
 /**
@@ -29,5 +31,17 @@ describe('powerPointViewer editing wiring', () => {
 		expect(undo.attributes('disabled')).toBeDefined();
 		// The format-painter hook the e2e contract depends on is present.
 		expect(ribbon.find('[data-testid="format-painter-toggle"]').exists()).toBeTruthy();
+	});
+
+	// Regression test: File ▸ Version History and its restore/compare view were
+	// fully wired up (state, ribbon action, restore/compare handlers) but the
+	// two panels were never mounted in the template, so the feature was
+	// unreachable. Both panels gate their own root element on an `open` prop,
+	// so they should always be present in the tree (just hidden) once mounted.
+	it('mounts the version-history and compare panels', async () => {
+		const wrapper = mount(PowerPointViewer, { props: { canEdit: true } });
+		await flushPromises();
+		expect(wrapper.findComponent(VersionHistoryPanel).exists()).toBeTruthy();
+		expect(wrapper.findComponent(ComparePanel).exists()).toBeTruthy();
 	});
 });

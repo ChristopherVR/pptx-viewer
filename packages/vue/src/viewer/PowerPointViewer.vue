@@ -1581,6 +1581,28 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				@close="propertiesOpen = false"
 			/>
 
+			<!-- File ▸ Version History -->
+			<VersionHistoryPanel
+				:open="showVersionHistory"
+				:versions="versionHistory.versions.value"
+				:canvas-size="canvasSize"
+				:media-data-urls="mediaDataUrls"
+				@close="showVersionHistory = false"
+				@restore="onVersionRestore"
+				@delete="onVersionDelete"
+				@compare="onVersionCompare"
+			/>
+
+			<!-- Version history ▸ compare against current -->
+			<ComparePanel
+				:open="showCompare"
+				:compare-result="compareResult"
+				:canvas-size="canvasSize"
+				:media-data-urls="mediaDataUrls"
+				@close="onCompareClose"
+				@accept-all="onCompareAcceptAll"
+			/>
+
 			<!-- Print -->
 			<PrintDialog
 				:open="printer.isPrintDialogOpen.value"
