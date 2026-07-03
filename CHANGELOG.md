@@ -8,6 +8,16 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **shared:** Gate the first collaborative doc write on provider sync (by @ChristopherVR) ([f68aa79](https://github.com/ChristopherVR/pptx-viewer/commit/f68aa79242e0cfdabc7a701d4b58bf124c483c02))
+
+### Bug Fixes
+
+- **angular:** Apply display:contents to 3 more multi-root components (by @ChristopherVR) ([d3641fd](https://github.com/ChristopherVR/pptx-viewer/commit/d3641fda45426cdeafb7058a98d6cfc8efa026c7))
+
+## [1.1.83](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.83) - 2026-07-03
+
+### Features
+
 - **shared:** Granular CRDT reconciliation and serverless collab transport (by @ChristopherVR) ([acf5087](https://github.com/ChristopherVR/pptx-viewer/commit/acf5087737f26da507f4237d490927c6d22bbb5b))
 - **react:** P2P webrtc transport, granular sync, write-back, follow mode (by @ChristopherVR) ([fdbad55](https://github.com/ChristopherVR/pptx-viewer/commit/fdbad55843b76e335ac7f2d545947e8c1b252e84))
 - **vue:** Interoperable presence schema, webrtc transport, granular sync (by @ChristopherVR) ([9b53df5](https://github.com/ChristopherVR/pptx-viewer/commit/9b53df5e9487c5fbb16e78f40f5e746752eb4574))
