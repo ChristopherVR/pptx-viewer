@@ -38,8 +38,7 @@ import type { Box, ResizeHandle } from './drag-resize';
 import { ElementRendererComponent } from './element-renderer.component';
 import type { StyleMap } from './element-style';
 import { FieldContextService } from './field-context.service';
-import { pointsToSvgPathD, strokeToInkElement } from './ink-drawing-helpers';
-import type { InkPoint } from './ink-drawing-helpers';
+import { InkDrawingService } from './ink-drawing.service';
 import { generateRulerTicks, RULER_THICKNESS } from './ruler-ticks';
 import type { RulerTick } from './ruler-ticks';
 import { getSlideBackgroundStyle } from './slide-background';
@@ -119,7 +118,7 @@ function plainText(el: PptxElement): string {
 	selector: 'pptx-slide-canvas',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	providers: [CanvasFitService],
+	providers: [CanvasFitService, InkDrawingService],
 	imports: [NgStyle, ElementRendererComponent, TranslatePipe],
 	styles: [
 		`
@@ -380,7 +379,7 @@ function plainText(el: PptxElement): string {
 						pointer-events:none so it never intercepts element gestures.
 						No data-pptx-element / aria-roledescription / data-pptx-viewport.
 					-->
-					@if (inkActiveSignal() && liveInkPath() && drawTool() !== 'select') {
+					@if (inkDrawing.active() && inkDrawing.liveInkPath() && drawTool() !== 'select') {
 						<svg
 							class="pptx-ng-ink-preview"
 							aria-hidden="true"
@@ -389,7 +388,7 @@ function plainText(el: PptxElement): string {
 							style="position:absolute;inset:0;pointer-events:none;z-index:70"
 						>
 							<path
-								[attr.d]="liveInkPath()"
+								[attr.d]="inkDrawing.liveInkPath()"
 								fill="none"
 								[attr.stroke]="drawColor()"
 								[attr.stroke-width]="drawWidth()"
@@ -635,13 +634,8 @@ export class SlideCanvasComponent {
 	 */
 	readonly rulerGuides = signal<readonly RulerGuide[]>([]);
 
-	// ── Ink drawing state ─────────────────────────────────────────────────────
-	/** Accumulated points for the stroke currently being drawn. */
-	private inkPoints: InkPoint[] = [];
-	/** Whether a freehand stroke is in progress. Signal for template reactivity. */
-	readonly inkActiveSignal = signal(false);
-	/** SVG path `d` for the live stroke preview (updated on every pointer move). */
-	readonly liveInkPath = signal<string>('');
+	/** Per-instance pen/highlighter/freeform/eraser drawing controller. */
+	protected readonly inkDrawing = inject(InkDrawingService);
 
 	private readonly textEditor = viewChild<ElementRef<HTMLTextAreaElement>>('textEditor');
 	private readonly stageRef = viewChild<ElementRef<HTMLElement>>('stage');
@@ -714,6 +708,20 @@ export class SlideCanvasComponent {
 				observer.observe(el);
 				destroyRef.onDestroy(() => observer.disconnect());
 			}
+		});
+
+		// Wire the ink-drawing controller's accessors + emitters (the stage
+		// element, effective scale, and all-elements accessors, plus the two
+		// outputs it completes, all live on this component).
+		this.inkDrawing.bind({
+			stageElement: () => this.stageRef()?.nativeElement,
+			effectiveScale: () => this.effectiveScale(),
+			elements: () => this.elements(),
+			drawTool: () => this.drawTool(),
+			drawColor: () => this.drawColor(),
+			drawWidth: () => this.drawWidth(),
+			emitInkStrokeComplete: (ink) => this.inkStrokeComplete.emit(ink),
+			emitEraserHit: (id) => this.eraserHit.emit(id),
 		});
 	}
 
@@ -863,47 +871,8 @@ export class SlideCanvasComponent {
 		// ── DRAW BRANCH: must come before the select/marquee/drag path ─────────
 		// When a draw tool is active, pointer gestures capture strokes; none of
 		// the select/marquee/drag logic should run.
-		if (this.drawTool() !== 'select') {
-			const stage = this.stageRef()?.nativeElement;
-			if (!stage) {
-				return;
-			}
-			const rect = stage.getBoundingClientRect();
-			const zoom = this.effectiveScale() || 1;
-			const pt: InkPoint = {
-				x: (event.clientX - rect.left) / zoom,
-				y: (event.clientY - rect.top) / zoom,
-			};
-
-			if (this.drawTool() === 'eraser') {
-				// Find ink elements whose bounding box (+ 15px hit radius) contains
-				// the pointer. Iterate in reverse so the topmost element wins.
-				const HIT_RADIUS = 15;
-				const allElements = this.elements();
-				for (let i = allElements.length - 1; i >= 0; i--) {
-					const el = allElements[i];
-					if (el.type !== 'ink') {
-						continue;
-					}
-					if (
-						pt.x >= el.x - HIT_RADIUS &&
-						pt.x <= el.x + el.width + HIT_RADIUS &&
-						pt.y >= el.y - HIT_RADIUS &&
-						pt.y <= el.y + el.height + HIT_RADIUS
-					) {
-						this.eraserHit.emit(el.id);
-						break;
-					}
-				}
-				return;
-			}
-
-			// pen / highlighter / freeform: begin stroke
-			event.preventDefault();
-			(event.target as Element | null)?.setPointerCapture?.(event.pointerId);
-			this.inkPoints = [pt];
-			this.inkActiveSignal.set(true);
-			this.liveInkPath.set(pointsToSvgPathD(this.inkPoints));
+		if (this.inkDrawing.isDrawToolActive()) {
+			this.inkDrawing.handleStagePointerDown(event);
 			return;
 		}
 		// ── END DRAW BRANCH ─────────────────────────────────────────────────────
@@ -1141,19 +1110,7 @@ export class SlideCanvasComponent {
 
 		// ── DRAW BRANCH ───────────────────────────────────────────────────────
 		// When a stroke is in progress, consume all pointer-move events for drawing.
-		if (this.inkActiveSignal()) {
-			const stage = this.stageRef()?.nativeElement;
-			if (!stage) {
-				return;
-			}
-			const rect = stage.getBoundingClientRect();
-			const zoom = this.effectiveScale() || 1;
-			const pt: InkPoint = {
-				x: (event.clientX - rect.left) / zoom,
-				y: (event.clientY - rect.top) / zoom,
-			};
-			this.inkPoints.push(pt);
-			this.liveInkPath.set(pointsToSvgPathD(this.inkPoints));
+		if (this.inkDrawing.handlePointerMove(event)) {
 			return;
 		}
 		// ── END DRAW BRANCH ───────────────────────────────────────────────────
@@ -1290,22 +1247,7 @@ export class SlideCanvasComponent {
 
 		// ── DRAW BRANCH ───────────────────────────────────────────────────────
 		// Finalise the stroke and emit the completed ink element.
-		if (this.inkActiveSignal()) {
-			this.inkActiveSignal.set(false);
-			const tool = this.drawTool();
-			const resolvedTool: 'pen' | 'highlighter' | 'freeform' =
-				tool === 'highlighter' ? 'highlighter' : tool === 'freeform' ? 'freeform' : 'pen';
-			const ink = strokeToInkElement({
-				points: this.inkPoints,
-				color: this.drawColor(),
-				width: this.drawWidth(),
-				tool: resolvedTool,
-			});
-			if (ink) {
-				this.inkStrokeComplete.emit(ink);
-			}
-			this.inkPoints = [];
-			this.liveInkPath.set('');
+		if (this.inkDrawing.handlePointerUp()) {
 			return;
 		}
 		// ── END DRAW BRANCH ───────────────────────────────────────────────────
