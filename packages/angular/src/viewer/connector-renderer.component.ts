@@ -26,7 +26,7 @@ import { ConnectorTextOverlayComponent } from './connector-text-overlay.componen
  * Compound (double/triple) lines render as parallel strands and line caps map
  * from `a:ln/@cap`; both derive from the shared connector geometry.
  *
- * Not yet ported (TODO, see PORTING.md): line shadows/glow.
+ * Not yet ported (TODO): line shadows/glow.
  */
 @Component({
 	selector: 'pptx-connector-renderer',

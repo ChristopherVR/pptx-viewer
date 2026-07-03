@@ -2,7 +2,7 @@
  * Unit tests for the per-run text-effect wiring in `ElementRendererComponent`.
  *
  * The Angular compiler / TestBed needs `@analogjs/vite-plugin-angular` (a
- * follow-up; see PORTING.md), so the component is not instantiated here.
+ * follow-up), so the component is not instantiated here.
  * Instead, like the other `*.component.test.ts` files, this exercises the pure
  * shared builders the renderer's `runStyleFromSegment` / `scene3dStyle` consume
  * from `../internal/shared`, asserting they produce a neutral CSS record that

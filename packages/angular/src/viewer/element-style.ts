@@ -30,7 +30,8 @@ import { getResolvedShapeClipPath } from './shape-geometry';
  * and paint text boxes, basic preset shapes, images, and image/gradient fills
  * (the latter via the parser's prebuilt CSS gradient string). Advanced visuals
  * (the structured gradient builder, pattern fills, custom geometry clip-paths,
- * shadows, 3D, image effects, text warp) are tracked in PORTING.md.
+ * shadows, 3D, image effects, text warp) are handled by the shared render
+ * modules (`pptx-viewer-shared`) consumed from the renderer components.
  *
  * Long term the *logic* here is a shared-extraction candidate; only the
  * return type (CSS map shape) differs per framework, so a future refactor

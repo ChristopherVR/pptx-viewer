@@ -3,7 +3,7 @@
  * drives the inspector's responsive (full-width bottom-sheet) branch.
  *
  * No Angular TestBed: the component-rendering path needs
- * `@analogjs/vite-plugin-angular` (a follow-up, see PORTING.md), so the mobile
+ * `@analogjs/vite-plugin-angular` (a follow-up), so the mobile
  * layout decision is factored into the pure `inspectorRootClass` helper and
  * tested directly here, matching the rest of the Angular package's convention.
  *

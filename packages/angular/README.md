@@ -194,8 +194,7 @@ polish/cosmetic, not behavioural gaps:
   image otherwise (the same as the React package).
 
 The `pptx-viewer-core` engine parses all element data, so you can access it from
-the model even where the UI does not expose it yet. Progress and design notes live
-in [`PORTING.md`](./PORTING.md).
+the model even where the UI does not expose it yet.
 
 ## Build (contributing)
 

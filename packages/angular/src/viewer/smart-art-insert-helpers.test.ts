@@ -1,7 +1,7 @@
 /**
  * Tests for the Angular "Insert SmartArt" dialog logic.
  *
- * The Angular package's vitest setup has no Angular compiler (see PORTING.md),
+ * The Angular package's vitest setup has no Angular compiler,
  * so the dialog component itself is not exercised via TestBed. These tests
  * target the pure helper layer (`smart-art-insert-helpers.ts`), which carries
  * 100% of the dialog's non-presentational behaviour: category filtering, preset

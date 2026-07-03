@@ -21,7 +21,7 @@ import type { InkStroke } from './ink-renderer-helpers';
  * radii follow the per-point pressure, matching React's `renderInk`. Strokes
  * without pressure variation degrade to a plain constant-width `<path>`.
  *
- * Not ported (TODO, see PORTING.md): ink replay animation and the
+ * Not ported (TODO): ink replay animation and the
  * highlighter/eraser tool blend modes.
  *
  * All non-trivial pure computation lives in `ink-renderer-helpers.ts` (no

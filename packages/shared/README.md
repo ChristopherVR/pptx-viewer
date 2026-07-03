@@ -11,17 +11,17 @@ canonical copy of cross-framework logic instead of three drifting duplicates.
 
 ## What lives here
 
-| Area                                                                                | Status | Notes                                                                         |
-| ----------------------------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------- |
-| `theme/` — `ViewerTheme` types, default palette, `themeToCssVars`, `defaultCssVars` | ✅     | Extracted from `packages/react/src/theme`. React/Vue now re-export from here. |
-| color resolution (`color-core`, `color-gradient`, `color-patterns`)                 | ☐      | Extraction candidate                                                          |
-| geometry / clip-paths (`geometry*`, `resolved-shape-clip-path`)                     | ☐      | Extraction candidate                                                          |
-| connector routing (`connector-router*`)                                             | ☐      | Extraction candidate                                                          |
-| animation timeline engine (`animation-*` non-JSX)                                   | ☐      | Extraction candidate                                                          |
-| table-merge math, morph matching, export data helpers                               | ☐      | Extraction candidate                                                          |
+| Area          | Notes                                                                                                                                                                                                                                                                                                  |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `theme/`      | `ViewerTheme` types, default palette, `themeToCssVars`, `defaultCssVars`                                                                                                                                                                                                                               |
+| `loader/`     | Load-pipeline helpers (media/image collection, guides)                                                                                                                                                                                                                                                 |
+| `render/`     | The bulk of the package: colour/gradient/pattern resolution, shape geometry and clip-paths, connector routing/styling, animation engine, table math, chart view-models, text/bullets/warp, OMML/LaTeX, visual effects, export data, collaboration (Yjs sync/merge/presence), i18n dictionary, and more |
+| `smartart-3d` | Opt-in vanilla-three 3D SmartArt renderer (subpath export)                                                                                                                                                                                                                                             |
+| `i18n`        | Translation dictionary + helpers (subpath export)                                                                                                                                                                                                                                                      |
+| root          | Public viewer types (`CanvasSize`, `CollaborationConfig`, …) and scalar defaults                                                                                                                                                                                                                       |
 
-See `packages/angular/PORTING.md` and `packages/vue/PORTING.md` for the full
-extraction plan and the conventions every binding follows.
+When adding a feature to any binding, put the framework-agnostic logic here
+first and have each binding import it (see the root `CLAUDE.md` conventions).
 
 ## Usage
 

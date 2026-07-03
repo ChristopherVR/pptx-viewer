@@ -6,7 +6,7 @@
  * viewer's zoom range, and `attachTouchGestures`, which wires real DOM touch
  * listeners onto an element and tears them down again. happy-dom supplies the
  * `EventTarget` / `addEventListener` plumbing, so no Angular TestBed is needed
- * (the plain vitest environment has no JIT compiler; see PORTING.md).
+ * (the plain vitest environment has no JIT compiler).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

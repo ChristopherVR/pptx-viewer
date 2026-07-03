@@ -3,10 +3,9 @@
  * PowerPointViewer: Vue port of the React `PowerPointViewer.tsx`.
  *
  * Top-level orchestrator that loads `.pptx` bytes and renders the slides with
- * navigation and zoom. This is the viewer-first milestone of the port: the
- * React component additionally composes a full editor (toolbar, inspector
- * panels, dialogs, presentation mode, collaboration, export). The roadmap and
- * per-area status live in `packages/vue/PORTING.md`.
+ * navigation and zoom, composing the full editor (toolbar, inspector panels,
+ * dialogs, presentation mode, collaboration, export) like its React
+ * counterpart.
  *
  * Conventions vs. React:
  *  - `forwardRef` handle  → `defineExpose` ({@link PowerPointViewerExpose}).

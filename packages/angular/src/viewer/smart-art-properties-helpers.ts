@@ -7,7 +7,7 @@
  * `editor-insert.ts` (sourced from `pptx-viewer-core`). Keeping this logic out of
  * the component lets it be unit-tested in plain vitest (the Angular package's
  * vitest setup has no Angular compiler, so TestBed component tests are not
- * available - see PORTING.md).
+ * available).
  *
  * Mirrors the React inspector:
  *   packages/react/src/viewer/components/inspector/SmartArtPropertiesPanel.tsx

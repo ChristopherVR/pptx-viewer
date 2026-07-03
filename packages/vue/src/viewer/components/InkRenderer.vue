@@ -30,7 +30,7 @@ import { DEFAULT_STROKE_COLOR } from '../constants';
  * maths), matching React. Strokes without pressure data degrade to plain
  * constant-width `<path>`s.
  *
- * Not ported (TODO, see PORTING.md): ink replay animation and the
+ * Not ported (TODO): ink replay animation and the
  * highlighter/eraser tool blend modes.
  */
 const props = defineProps<{

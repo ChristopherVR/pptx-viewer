@@ -108,8 +108,7 @@ interface Paragraph {
  * ElementRendererComponent: Angular port of the React `ElementRenderer.tsx`
  * and the Vue `ElementRenderer.vue`.
  *
- * Renders a single slide element by its `type` discriminant (viewer-first
- * subset):
+ * Renders a single slide element by its `type` discriminant:
  *  - `text` / `shape`    → positioned box with fill/stroke + rich text + effects
  *  - `connector`         → SVG straight/bent/curved connector
  *  - `chart`             → inline-SVG chart (bar/line/area/pie/scatter)
@@ -117,14 +116,13 @@ interface Paragraph {
  *  - `smartArt`          → SVG drawing-shapes / node-text fallback
  *  - `ink`               → SVG ink strokes
  *  - `ole`               → embedded-object preview / icon
- *  - `model3d`           → poster / placeholder (no three.js)
+ *  - `model3d`           → interactive three.js scene when the optional
+ *                          `three` peer is present, else poster / placeholder
  *  - `zoom`              → slide/section zoom thumbnail
  *  - `picture` / `image` → `<img>`
  *  - `media`             → native `<video>`/`<audio>` playback, poster fallback
  *  - `group`             → recursive children (self-referencing selector)
- *  - everything else     → labelled placeholder (TODO, see PORTING.md)
- *
- * Interaction (selection, resize, inline editing) is not yet ported.
+ *  - everything else     → labelled placeholder (defensive fallback)
  */
 @Component({
 	selector: 'pptx-element-renderer',

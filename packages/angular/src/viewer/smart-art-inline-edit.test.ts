@@ -3,7 +3,7 @@
  *
  * These back the renderer's double-click-to-edit flow. The renderer component
  * itself cannot be mounted under the package's vitest setup (no Angular
- * compiler - see PORTING.md), so the testable logic lives in
+ * compiler), so the testable logic lives in
  * `smart-art-inline-edit.ts` and is exercised directly here: key -> node-id
  * parsing, per-kind editor geometry, the seed-state builder, the commit wrapper
  * (which must route through the same core op the inspector uses), and the

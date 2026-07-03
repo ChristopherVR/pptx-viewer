@@ -118,10 +118,9 @@ const ZOOM_MAX = 3;
  * and Vue `PowerPointViewer.vue`.
  *
  * Top-level orchestrator that loads `.pptx` bytes and renders the slides with
- * navigation and zoom. This is the viewer-first milestone of the port: the
- * React component additionally composes a full editor (toolbar, inspector
- * panels, dialogs, presentation mode, collaboration, export). The roadmap and
- * per-area status live in `packages/angular/PORTING.md`.
+ * navigation and zoom, composing the full editor (toolbar, inspector panels,
+ * dialogs, presentation mode, collaboration, export) like its React and Vue
+ * counterparts.
  *
  * Conventions vs. React/Vue:
  *  - React `forwardRef` handle / Vue `defineExpose` → public {@link getContent}

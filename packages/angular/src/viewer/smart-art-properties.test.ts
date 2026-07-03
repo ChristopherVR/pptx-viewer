@@ -1,7 +1,7 @@
 /**
  * Tests for the Angular SmartArt inspector logic.
  *
- * The Angular package's vitest setup has no Angular compiler (see PORTING.md),
+ * The Angular package's vitest setup has no Angular compiler,
  * so component/TestBed rendering is not exercised here. Instead these tests
  * target the pure helper layer in `smart-art-properties-helpers.ts` plus the
  * `editor-insert.ts` re-exports of the core editing ops, which together carry

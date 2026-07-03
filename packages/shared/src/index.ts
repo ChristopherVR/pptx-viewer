@@ -11,10 +11,9 @@
  *   - loader:    load-pipeline helpers (media/image collection, guides).
  *   - types:     CanvasSize, CollaborationConfig, CollaborationRole.
  *   - constants: scalar viewer defaults (canvas size, fallback colours).
- *
- * Roadmap (see packages/angular/PORTING.md and packages/vue/PORTING.md):
- *   color resolution, geometry/clip-paths, connector routing, animation
- *   timeline engine, table-merge math, morph matching, export data helpers.
+ *   - render:    the bulk of the shared logic (colour/geometry/connector/
+ *                animation/table/chart/text/effects/collaboration/i18n).
+ *   - export:    export data helpers.
  */
 export * from './theme';
 export * from './loader';

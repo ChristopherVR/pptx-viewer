@@ -212,8 +212,7 @@ The only differences from React are the CSS-rendering approximations the two
 share by design (see the root README's Limitations: `backdrop-filter` and path
 gradients are approximated on screen, and a few effects flatten in raster export).
 The `pptx-viewer-core` engine parses all slide data, so anything not surfaced in
-the UI is still readable from the model. Progress and design notes live in
-[`PORTING.md`](./PORTING.md).
+the UI is still readable from the model.
 
 ## Build (contributing)
 

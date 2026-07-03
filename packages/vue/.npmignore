@@ -3,6 +3,5 @@ tsconfig.json
 tsconfig.build.json
 vite.config.ts
 vitest.config.ts
-PORTING.md
 *.test.ts
 .gitignore

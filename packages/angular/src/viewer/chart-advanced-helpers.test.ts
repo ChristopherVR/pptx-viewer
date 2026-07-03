@@ -5,8 +5,7 @@
  * components (title/legend/data-labels/axis/trendline/error-bars/data-point
  * labels). Each control component routes its edits through one of these, so the
  * tests here assert the behaviour the controls rely on without needing the
- * Angular compiler / TestBed (unavailable in the plain vitest env, see
- * PORTING.md).
+ * Angular compiler / TestBed (unavailable in the plain vitest env).
  *
  * @module angular-viewer/chart-advanced-helpers.test
  */

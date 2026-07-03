@@ -70,10 +70,9 @@ async function parseSignaturesFromBuffer(buffer: ArrayBuffer): Promise<ParsedSig
  *    cancellation token plus `onScopeDispose` for unmount cleanup.
  *  - State setters become returned `ref`s mutated in place.
  *
- * This is the viewer-first subset; the React hook also populated ~25 extra
- * pieces of presentation metadata (sections, custom shows, embedded fonts,
- * digital signatures, etc.). Those are tracked in PORTING.md and should be
- * added here as the corresponding features are ported.
+ * Originally the viewer-first subset of the React hook; the extra pieces of
+ * presentation metadata (sections, custom shows, embedded fonts, digital
+ * signatures, etc.) were added alongside the corresponding features.
  */
 export interface UseLoadContentResult {
 	/** Parsed slides (with image Blob URLs patched in), template elements removed. */

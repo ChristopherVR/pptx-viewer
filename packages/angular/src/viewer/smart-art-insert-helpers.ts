@@ -7,7 +7,7 @@
  * building the SmartArt element payload from a chosen preset, hierarchy
  * parenting) is delegated to the pure functions below so they can be unit-tested
  * in plain vitest (the Angular package's vitest setup has no Angular compiler,
- * so component / TestBed tests are not available - see PORTING.md).
+ * so component / TestBed tests are not available).
  *
  * The preset catalogue itself is the framework-agnostic, vendored
  * `pptx-viewer-shared` source of truth (`render/smart-art-presets`), consumed

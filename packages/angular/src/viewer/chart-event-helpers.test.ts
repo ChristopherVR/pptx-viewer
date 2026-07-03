@@ -3,7 +3,7 @@
  *
  * The chart inspector control components read DOM values exclusively through
  * these helpers, so testing them validates the value extraction the controls
- * depend on. Pure DOM, no Angular compiler / TestBed (see PORTING.md).
+ * depend on. Pure DOM, no Angular compiler / TestBed.
  *
  * @module angular-viewer/chart-event-helpers.test
  */

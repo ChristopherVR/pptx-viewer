@@ -188,7 +188,7 @@ describe('accessibilityService', () => {
 //
 // The `AccessibilityPanelComponent` is a thin shell over these pure functions;
 // testing them here keeps the suite TestBed-free (component tests need the
-// Angular compiler; a follow-up, see PORTING.md).
+// Angular compiler; a follow-up).
 // ---------------------------------------------------------------------------
 
 describe('groupIssuesBySeverity', () => {

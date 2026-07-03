@@ -35,10 +35,9 @@ import type { CanvasSize } from '../internal/shared';
  * Provide it at the component level so its lifetime tracks the host viewer:
  * `@Component({ providers: [LoadContentService] })`.
  *
- * This is the viewer-first subset; the React hook also populated ~25 extra
- * pieces of presentation metadata (sections, custom shows, embedded fonts,
- * digital signatures, …). Those are tracked in PORTING.md and added here as
- * the corresponding features are ported.
+ * Originally the viewer-first subset of the React hook; the extra pieces of
+ * presentation metadata (sections, custom shows, embedded fonts, digital
+ * signatures, …) were added alongside the corresponding features.
  */
 @Injectable()
 export class LoadContentService {

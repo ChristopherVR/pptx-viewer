@@ -28,7 +28,6 @@ const GRID_GAP = 16;
  * Escape or clicking the ✕ button emits `closed`.
  *
  * Viewer-first scope: no drag-reorder, no context menu, no section grouping.
- * Those features are tracked in PORTING.md.
  *
  * Usage:
  * ```html

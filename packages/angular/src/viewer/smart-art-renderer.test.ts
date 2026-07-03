@@ -3,7 +3,7 @@
  * engine.
  *
  * Angular component tests cannot use TestBed here (the project has no
- * `@analogjs/vite-plugin-angular` setup yet — see PORTING.md), so instead of
+ * `@analogjs/vite-plugin-angular` setup yet), so instead of
  * mounting the component we exercise the exact shared-engine call the component
  * makes (`computeSmartArtLayout` via the vendored `../internal/shared` barrel,
  * with the same inputs the component passes) and assert the returned

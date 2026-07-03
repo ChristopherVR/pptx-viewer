@@ -33,11 +33,8 @@ import { getComputed3dStyle, merge3dStyle } from './visual-3d';
  * renderVectorShape, buildCssGradientFromShapeStyle, image-effects, …). It is
  * enough to faithfully position and paint text boxes, basic preset shapes, and
  * images. Advanced visuals (gradients, custom geometry clip-paths, shadows,
- * 3D, image effects, text warp) are tracked in PORTING.md.
- *
- * Long-term these helpers (and their richer React counterparts) should be
- * hoisted into a shared, framework-agnostic package so all three UI bindings
- * reuse one implementation.
+ * 3D, image effects, text warp) are handled by the shared render modules
+ * (`pptx-viewer-shared`) consumed from the renderer components.
  */
 
 /**

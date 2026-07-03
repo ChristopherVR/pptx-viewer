@@ -151,8 +151,8 @@ function plainText(el: PptxElement): string {
  * Renders the active slide as a fixed-size stage scaled by `zoom`, with each
  * element absolutely positioned. When `editable`, supports click-to-select
  * (event delegation), selection outlines, and pointer drag-to-move / resize
- * handles. Rulers, grid, guides, marquee, and collaboration overlays are
- * tracked in PORTING.md.
+ * handles, plus the rulers, grid, guides, marquee, and collaboration
+ * overlays.
  */
 @Component({
 	selector: 'pptx-slide-canvas',

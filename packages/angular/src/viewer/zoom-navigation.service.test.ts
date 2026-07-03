@@ -3,7 +3,7 @@
  *
  * The service is a plain DI-injectable with no Angular dependency in its
  * behaviour, so it is exercised directly (no TestBed; component/TestBed tests
- * are a follow-up, see PORTING.md).
+ * are a follow-up).
  */
 import { describe, expect, it, vi } from 'vitest';
 

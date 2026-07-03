@@ -2,7 +2,7 @@
  * Unit tests for the colour-change (`<a:clrChange>`) image effect.
  *
  * Two layers are covered without TestBed (the Angular compiler / TestBed needs
- * `@analogjs/vite-plugin-angular`, a follow-up; see PORTING.md), mirroring the
+ * `@analogjs/vite-plugin-angular`, a follow-up), mirroring the
  * pure-helper style of the other `*.component.test.ts` files:
  *
  *  1. `getClrChangeParams` - the pure extraction helper used by the renderer to

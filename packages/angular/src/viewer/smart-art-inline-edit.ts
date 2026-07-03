@@ -5,7 +5,7 @@
  * its text directly on the diagram. Everything that can be expressed as a pure
  * function lives here so it can be unit-tested in plain vitest (the Angular
  * package's vitest setup has no Angular compiler, so component/TestBed tests are
- * not available - see PORTING.md). The component
+ * not available). The component
  * (`smart-art-renderer.component.ts`) stays thin: it owns only the edit-state
  * signal, the positioned `<textarea>`, and the call into the existing commit
  * path (`EditorStateService.updateElement`, the same channel the inspector's

@@ -212,7 +212,7 @@ export function connectorBendFraction(element: PptxElement): number {
  * for straight connectors (which render as a `<line>`). Endpoints are already
  * flip-adjusted by the caller.
  *
- * Viewer-first approximation (full A* routing is a TODO, see PORTING.md):
+ * Viewer-first approximation (full A* routing is a TODO):
  *  - **bent**: orthogonal elbow polyline. `bentConnector2` is a single L-bend;
  *    `bentConnector3..5` route through a vertical mid-axis at `bend`.
  *  - **curved**: `curvedConnector2` is a quadratic Bezier; `curvedConnector3..5`
