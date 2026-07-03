@@ -6,7 +6,11 @@
  * @module collaboration/types
  */
 
-import type { CollaborationRole } from 'pptx-viewer-shared';
+import type {
+	CollaborationConfig,
+	CollaborationRole,
+	CollaborationTransport,
+} from 'pptx-viewer-shared';
 import type { Doc as YDoc } from 'yjs';
 
 // ---------------------------------------------------------------------------
@@ -27,25 +31,14 @@ import type { Doc as YDoc } from 'yjs';
  * canonical union (`'owner' | 'collaborator' | 'viewer'`). The session
  * "owner" is the broadcaster: whoever starts a broadcast owns the session,
  * and followers join as viewers.
+ *
+ * {@link CollaborationConfig} is the canonical shared shape: it carries the
+ * websocket/webrtc `transport`, optional webrtc `signaling` list, and the
+ * elected-writer `onWriteBack` / `writeBackDebounceMs` fields in addition to
+ * the room/user identity. The React binding accepts it verbatim via the
+ * `collaboration` prop.
  */
-export type { CollaborationRole };
-
-export interface CollaborationConfig {
-	/** Unique identifier for the collaboration room (alphanumeric, hyphens, underscores). */
-	roomId: string;
-	/** WebSocket server URL for the Yjs provider (e.g. "wss://collab.example.com"). */
-	serverUrl: string;
-	/** Display name for the local user. */
-	userName: string;
-	/** Avatar URL for the local user (optional). */
-	userAvatar?: string;
-	/** Hex colour for the local user's cursor/presence indicator. */
-	userColor?: string;
-	/** Optional authentication token sent with the WebSocket handshake. */
-	authToken?: string;
-	/** Role in the session: defaults to `'collaborator'`. */
-	role?: CollaborationRole;
-}
+export type { CollaborationConfig, CollaborationRole, CollaborationTransport };
 
 // ---------------------------------------------------------------------------
 // Connection state

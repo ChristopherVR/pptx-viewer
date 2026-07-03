@@ -12,7 +12,7 @@ import {
 } from 'react-icons/lu';
 
 import { cn } from '../../utils';
-import { useCollaboration } from '../collaboration';
+import { useCollaboration, UserAvatarBar } from '../collaboration';
 import { CustomShowsControls } from './CustomShowsControls';
 import { ModeSwitcher } from './ModeSwitcher';
 import { OverflowMenu } from './OverflowMenu';
@@ -130,32 +130,16 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 					<button
 						type='button'
 						onClick={p.onOpenShareDialog}
-						className='flex items-center -space-x-1.5 mx-1 rounded-sm px-1 py-0.5 hover:bg-accent/60 transition-colors cursor-pointer'
+						className='mx-1 rounded-sm px-1 py-0.5 hover:bg-accent/60 transition-colors cursor-pointer'
 						title={t('pptx.toolbar.sharingUsers', { count: collab.connectedCount })}
 					>
-						{collab.remoteUsers.slice(0, 4).map((user) => (
-							<div
-								key={user.clientId}
-								className='w-6 h-6 rounded-full border-2 border-background flex items-center justify-center text-[8px] font-semibold text-white shrink-0'
-								style={{ backgroundColor: user.userColor }}
-								title={user.userName}
-							>
-								{user.userAvatar ? (
-									<img
-										src={user.userAvatar}
-										alt={user.userName}
-										className='w-full h-full rounded-full object-cover'
-									/>
-								) : (
-									user.userName.slice(0, 2).toUpperCase()
-								)}
-							</div>
-						))}
-						{collab.remoteUsers.length > 4 && (
-							<div className='w-6 h-6 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[8px] text-muted-foreground shrink-0'>
-								+{collab.remoteUsers.length - 4}
-							</div>
-						)}
+						<UserAvatarBar
+							remoteUsers={collab.remoteUsers}
+							localUserName={collab.config.userName}
+							localUserColor={collab.config.userColor ?? '#6366f1'}
+							localUserAvatar={collab.config.userAvatar}
+							status={collab.status}
+						/>
 					</button>
 				)}
 

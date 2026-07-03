@@ -10,8 +10,13 @@
  */
 
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import type { CollaborationConfig, YjsFactories } from 'pptx-viewer-shared';
-import { writeSlidesToYDoc, readSlidesFromYDoc, observeYDocSlides } from 'pptx-viewer-shared';
+import type { CollaborationConfig, YjsFactories, YTransactionLike } from 'pptx-viewer-shared';
+import {
+	reconcileSlidesInYDoc,
+	LOCAL_SYNC_ORIGIN,
+	readSlidesFromYDoc,
+	observeYDocSlides,
+} from 'pptx-viewer-shared';
 import { useCallback, useEffect, useRef } from 'react';
 import type { Doc as YDoc } from 'yjs';
 
@@ -119,10 +124,13 @@ export function useYjsDocumentSync({
 
 		void (async () => {
 			const factories = await getFactories();
-			writeSlidesToYDoc(
+			// Granular reconcile: mutate only what changed, tagged with
+			// LOCAL_SYNC_ORIGIN so our own remote-observer skips the echo.
+			reconcileSlidesInYDoc(
 				slides,
-				doc as unknown as Parameters<typeof writeSlidesToYDoc>[1],
+				doc as unknown as Parameters<typeof reconcileSlidesInYDoc>[1],
 				factories,
+				LOCAL_SYNC_ORIGIN,
 			);
 			scheduleWriteBack();
 		})();
@@ -134,7 +142,14 @@ export function useYjsDocumentSync({
 			return;
 		}
 
-		const handleChange = () => {
+		const handleChange = (_events?: unknown, transaction?: YTransactionLike) => {
+			// Skip our own local-sync writes: the reconcile pass tags its
+			// transaction with LOCAL_SYNC_ORIGIN, so echoing it back into React
+			// state would be redundant (the JSON dedupe below is a secondary
+			// guard for any untagged writes).
+			if (transaction?.origin === LOCAL_SYNC_ORIGIN) {
+				return;
+			}
 			const remoteSlides = readSlidesFromYDoc(
 				doc as unknown as Parameters<typeof readSlidesFromYDoc>[0],
 			);

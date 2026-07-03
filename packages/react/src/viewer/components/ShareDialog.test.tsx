@@ -41,6 +41,9 @@ vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 				'pptx.share.serverLabel': 'Collaboration Server',
 				'pptx.share.serverPlaceholder': 'wss://collab.example.com',
 				'pptx.share.serverHint': 'Enter the WebSocket URL of a y-websocket server.',
+				'pptx.share.p2pHint':
+					'Peer-to-peer mode: same-browser tabs always connect; other devices use WebRTC signaling.',
+				'pptx.share.p2pServerValue': 'Peer-to-peer (no server)',
 				'pptx.share.shareLink': 'Share Link',
 				'pptx.share.copyUrl': 'Copy URL',
 				'pptx.share.copyLink': 'Copy link to clipboard',
@@ -184,6 +187,53 @@ describe('shareDialog - start button validation', () => {
 		expect(match).not.toBeNull();
 		// The matched button should not have disabled="" attribute
 		expect(match![0]).not.toContain('disabled=""');
+	});
+
+	it('enables start button with an empty server (peer-to-peer)', () => {
+		const html = render(
+			React.createElement(
+				ShareDialog,
+				createProps({ defaultRoomId: 'p2p-room', defaultUserName: 'Alice', defaultServerUrl: '' }),
+			),
+		);
+		const startBtnRegex = /<button[^>]*>Start Sharing<\/button>/u;
+		const match = html.match(startBtnRegex);
+		expect(match).not.toBeNull();
+		expect(match![0]).not.toContain('disabled=""');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 2b. Peer-to-peer (serverless) mode
+// ---------------------------------------------------------------------------
+describe('shareDialog - peer-to-peer mode', () => {
+	it('shows the P2P hint when the server field is empty', () => {
+		const html = render(React.createElement(ShareDialog, createProps({ defaultServerUrl: '' })));
+		expect(html).toContain('Peer-to-peer mode');
+	});
+
+	it('shows the y-websocket server hint when a server URL is set', () => {
+		const html = render(
+			React.createElement(
+				ShareDialog,
+				createProps({ defaultServerUrl: 'wss://server.example.com' }),
+			),
+		);
+		expect(html).toContain('y-websocket server');
+		expect(html).not.toContain('Peer-to-peer mode');
+	});
+
+	it('shows the peer-to-peer server value in the active session for a webrtc session', () => {
+		mockCollabValue = createConnectedCollab({
+			config: {
+				roomId: 'p2p-room',
+				serverUrl: '',
+				transport: 'webrtc',
+				userName: 'Alice',
+			},
+		});
+		const html = render(React.createElement(ShareDialog, createProps()));
+		expect(html).toContain('Peer-to-peer (no server)');
 	});
 });
 

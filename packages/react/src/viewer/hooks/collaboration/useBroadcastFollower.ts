@@ -24,6 +24,11 @@ export interface UseBroadcastFollowerInput {
 	setActiveSlideIndex: (index: number) => void;
 	/** Total number of slides (for bounds checking). */
 	slideCount: number;
+	/**
+	 * When true, auto-follow stands down (e.g. the local user is manually
+	 * following a specific peer via the follow bar). Defaults to false.
+	 */
+	paused?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -35,11 +40,12 @@ export function useBroadcastFollower({
 	activeSlideIndex,
 	setActiveSlideIndex,
 	slideCount,
+	paused = false,
 }: UseBroadcastFollowerInput): void {
 	const lastBroadcasterSlide = useRef(-1);
 
 	useEffect(() => {
-		if (!collab) {
+		if (!collab || paused) {
 			return;
 		}
 
@@ -72,5 +78,5 @@ export function useBroadcastFollower({
 		if (targetSlide !== activeSlideIndex) {
 			setActiveSlideIndex(targetSlide);
 		}
-	}, [collab, activeSlideIndex, setActiveSlideIndex, slideCount]);
+	}, [collab, activeSlideIndex, setActiveSlideIndex, slideCount, paused]);
 }

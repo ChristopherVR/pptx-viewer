@@ -9,6 +9,7 @@
  *
  * @module ShareDialog
  */
+import { resolveTransportForServerUrl } from 'pptx-viewer-shared';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuCopy, LuCheck, LuUsers, LuWifi, LuWifiOff } from 'react-icons/lu';
@@ -27,6 +28,31 @@ function getInitials(name: string): string {
 		return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 	}
 	return name.slice(0, 2).toUpperCase();
+}
+
+/** Whether a session config uses the serverless peer-to-peer transport. */
+function isP2P(config: { transport?: string; serverUrl?: string }): boolean {
+	return config.transport === 'webrtc' || !config.serverUrl?.trim();
+}
+
+/**
+ * Build the shareable join link. A peer-to-peer (webrtc) session carries
+ * `transport=webrtc` instead of a `server=` parameter.
+ */
+function buildCollabShareUrl(config: {
+	roomId: string;
+	serverUrl?: string;
+	transport?: string;
+}): string {
+	if (typeof window === 'undefined') {
+		return config.roomId;
+	}
+	const base = `${window.location.origin}${window.location.pathname}`;
+	const room = encodeURIComponent(config.roomId);
+	if (isP2P(config)) {
+		return `${base}?room=${room}&transport=webrtc`;
+	}
+	return `${base}?room=${room}&server=${encodeURIComponent(config.serverUrl ?? '')}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -118,11 +144,7 @@ export function ShareDialog({
 
 	const handleCopyRoomId = useCallback(() => {
 		const config = activeCollaboration ?? { roomId, serverUrl };
-		const shareUrl =
-			typeof window !== 'undefined'
-				? `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(config.roomId)}&server=${encodeURIComponent(config.serverUrl)}`
-				: config.roomId;
-		void navigator.clipboard.writeText(shareUrl).then(() => {
+		void navigator.clipboard.writeText(buildCollabShareUrl(config)).then(() => {
 			setCopied(true);
 			setTimeout(() => setCopied(false), 2000);
 			return undefined;
@@ -133,15 +155,18 @@ export function ShareDialog({
 		if (!roomId.trim() || !userName.trim()) {
 			return;
 		}
+		const trimmedServer = serverUrl.trim();
 		onStartCollaboration?.({
 			roomId: roomId.trim(),
-			serverUrl: serverUrl.trim(),
+			serverUrl: trimmedServer,
 			userName: userName.trim(),
+			// A blank server selects the serverless peer-to-peer transport.
+			transport: resolveTransportForServerUrl(trimmedServer),
 		});
 	}, [roomId, userName, serverUrl, onStartCollaboration]);
 
-	const canStart =
-		roomId.trim().length > 0 && userName.trim().length > 0 && serverUrl.trim().length > 0;
+	// The server URL is optional: leaving it blank starts a peer-to-peer session.
+	const canStart = roomId.trim().length > 0 && userName.trim().length > 0;
 
 	if (!open) {
 		return null;
@@ -354,8 +379,10 @@ function StartSessionForm({
 				/>
 			</div>
 
-			{/* y-websocket server hint */}
-			<p className='text-[11px] text-muted-foreground'>{t('pptx.share.serverHint')}</p>
+			{/* Server hint: blank server switches to serverless peer-to-peer mode. */}
+			<p className='text-[11px] text-muted-foreground'>
+				{serverUrl.trim().length === 0 ? t('pptx.share.p2pHint') : t('pptx.share.serverHint')}
+			</p>
 		</div>
 	);
 }
@@ -408,9 +435,7 @@ function ActiveSessionView({
 				</label>
 				<div className='flex items-center gap-2'>
 					<div className='flex-1 px-3 py-1.5 rounded border border-border bg-background text-[11px] text-foreground select-all font-mono truncate'>
-						{typeof window !== 'undefined'
-							? `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(collab.config.roomId)}&server=${encodeURIComponent(collab.config.serverUrl)}`
-							: collab.config.roomId}
+						{buildCollabShareUrl(collab.config)}
 					</div>
 					<button
 						type='button'
@@ -442,7 +467,9 @@ function ActiveSessionView({
 				</span>
 				<span>
 					{t('pptx.share.server')}{' '}
-					<code className='font-mono text-foreground'>{collab.config.serverUrl}</code>
+					<code className='font-mono text-foreground'>
+						{isP2P(collab.config) ? t('pptx.share.p2pServerValue') : collab.config.serverUrl}
+					</code>
 				</span>
 			</div>
 

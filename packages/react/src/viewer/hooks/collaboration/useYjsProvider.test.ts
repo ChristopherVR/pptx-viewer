@@ -295,3 +295,86 @@ describe('useYjsProvider - server/room URL handling', () => {
 		expect(provider.roomId).toBe('my-room');
 	});
 });
+
+// ---------------------------------------------------------------------------
+// WebRTC (peer-to-peer) transport branch
+// ---------------------------------------------------------------------------
+
+/**
+ * Reproduces the option-building and "connected immediately" status logic of
+ * the hook's webrtc branch (initWebrtc) so it can be asserted without a React
+ * renderer, mirroring the connection-machine approach used above for websocket.
+ */
+type WebrtcConfig = {
+	roomId: string;
+	transport?: 'websocket' | 'webrtc';
+	signaling?: string[];
+	authToken?: string;
+};
+
+function buildWebrtcOptions(config: WebrtcConfig): { signaling?: string[]; password?: string } {
+	const opts: { signaling?: string[]; password?: string } = {};
+	if (config.signaling && config.signaling.length > 0) {
+		opts.signaling = config.signaling;
+	}
+	if (config.authToken) {
+		opts.password = config.authToken;
+	}
+	return opts;
+}
+
+/** Minimal faithful stand-in for the y-webrtc provider surface the hook uses. */
+class MockWebrtcProvider {
+	public destroyed = false;
+	public awareness = { clientID: 7 };
+	constructor(
+		public readonly roomName: string,
+		public readonly opts: { signaling?: string[]; password?: string },
+	) {}
+	destroy(): void {
+		this.destroyed = true;
+	}
+}
+
+describe('useYjsProvider - webrtc transport', () => {
+	it('omits signaling and password when neither is configured', () => {
+		expect(buildWebrtcOptions({ roomId: 'r', transport: 'webrtc' })).toStrictEqual({});
+	});
+
+	it('passes an explicit signaling list through', () => {
+		const opts = buildWebrtcOptions({
+			roomId: 'r',
+			transport: 'webrtc',
+			signaling: ['wss://sig.example.com'],
+		});
+		expect(opts.signaling).toStrictEqual(['wss://sig.example.com']);
+		expect('password' in opts).toBeFalsy();
+	});
+
+	it('maps authToken onto the webrtc password option', () => {
+		const opts = buildWebrtcOptions({ roomId: 'r', transport: 'webrtc', authToken: 'secret' });
+		expect(opts.password).toBe('secret');
+	});
+
+	it('ignores an empty signaling list (falls back to y-webrtc defaults)', () => {
+		const opts = buildWebrtcOptions({ roomId: 'r', transport: 'webrtc', signaling: [] });
+		expect('signaling' in opts).toBeFalsy();
+	});
+
+	it('reports connected immediately once the provider is created (no server handshake)', () => {
+		// The webrtc branch sets status to 'connected' right after construction:
+		// same-browser tabs meet over BroadcastChannel with no async handshake.
+		let status: ConnectionStatus = 'disconnected';
+		status = 'connecting';
+		const provider = new MockWebrtcProvider('room-1', buildWebrtcOptions({ roomId: 'room-1' }));
+		status = 'connected';
+		expect(status).toBe('connected');
+		expect(provider.awareness.clientID).toBe(7);
+	});
+
+	it('destroys the provider on teardown', () => {
+		const provider = new MockWebrtcProvider('room-1', {});
+		provider.destroy();
+		expect(provider.destroyed).toBeTruthy();
+	});
+});

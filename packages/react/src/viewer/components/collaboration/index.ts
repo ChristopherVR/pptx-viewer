@@ -12,6 +12,9 @@ export type { RemoteUserCursorsProps } from './RemoteUserCursors';
 export { UserAvatarBar } from './UserAvatarBar';
 export type { UserAvatarBarProps } from './UserAvatarBar';
 
+export { FollowModeBar } from './FollowModeBar';
+export type { FollowModeBarProps } from './FollowModeBar';
+
 export { CollaborationStatusIndicator } from './CollaborationStatusIndicator';
 export type { CollaborationStatusIndicatorProps } from './CollaborationStatusIndicator';
 

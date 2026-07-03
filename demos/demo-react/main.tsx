@@ -9,6 +9,7 @@ import {
 	PowerPointViewer,
 	isAudienceTab,
 	loadAudienceContent,
+	storeAudienceContent,
 } from '../../packages/react/src/viewer';
 import type { CollaborationConfig } from '../../packages/react/src/viewer';
 import i18nInstance from './i18n'; // Initialises i18next before any component renders
@@ -21,16 +22,52 @@ import './app.css';
 // params. Untrusted servers can still be used via the explicit Share dialog,
 // but a crafted ?server=... must never silently fetch or POST a presentation.
 const TRUSTED_COLLAB_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
+
+// A deploy can configure its own y-websocket relay at build time; that host is
+// then trusted for URL-driven auto-join / file fetch (see isTrustedServerUrl).
+const CONFIGURED_SERVER_URL = import.meta.env.VITE_COLLAB_SERVER_URL?.trim() ?? '';
+
 function isTrustedServerUrl(url: string): boolean {
 	try {
 		const u = new URL(url);
 		if (u.protocol !== 'ws:' && u.protocol !== 'wss:') {
 			return false;
 		}
-		return TRUSTED_COLLAB_HOSTS.includes(u.hostname);
+		if (TRUSTED_COLLAB_HOSTS.includes(u.hostname)) {
+			return true;
+		}
+		// Also trust the developer-configured relay host: a deploy that pins its
+		// own server is trusting it, so same-host auto-join / fetch is safe.
+		if (CONFIGURED_SERVER_URL) {
+			try {
+				return new URL(CONFIGURED_SERVER_URL).host === u.host;
+			} catch {
+				return false;
+			}
+		}
+		return false;
 	} catch {
 		return false;
 	}
+}
+
+/** Random hex colour for a local presence cursor. */
+function randomCursorColor(): string {
+	return `#${Math.floor(Math.random() * 0xffffff)
+		.toString(16)
+		.padStart(6, '0')}`;
+}
+
+/** Parse a comma-separated `?signaling=` list into a clean URL array. */
+function parseSignaling(raw: string | null): string[] | undefined {
+	if (!raw) {
+		return undefined;
+	}
+	const list = raw
+		.split(',')
+		.map((s) => s.trim())
+		.filter(Boolean);
+	return list.length > 0 ? list : undefined;
 }
 
 // ── Default collaboration server resolution ─────────────────────────────────
@@ -47,8 +84,6 @@ function isTrustedServerUrl(url: string): boolean {
 //     user is prompted to paste their own wss:// server.
 //
 // A deploy can always override the default by setting VITE_COLLAB_SERVER_URL.
-const CONFIGURED_SERVER_URL = import.meta.env.VITE_COLLAB_SERVER_URL?.trim() ?? '';
-
 function isLocalhostOrigin(): boolean {
 	if (typeof window === 'undefined') {
 		return true;
@@ -382,6 +417,18 @@ function App() {
 	);
 	// eslint-disable-next-line react/hook-use-state
 	const [urlName] = useState(() => new URLSearchParams(window.location.search).get('name'));
+	// Serverless peer-to-peer join: `?transport=webrtc` (+ optional
+	// `?signaling=a,b`). No server, so no trusted-host check and no file fetch.
+	// eslint-disable-next-line react/hook-use-state
+	const [urlTransport] = useState(() =>
+		new URLSearchParams(window.location.search).get('transport'),
+	);
+	// eslint-disable-next-line react/hook-use-state
+	const [urlSignaling] = useState(() =>
+		new URLSearchParams(window.location.search).get('signaling'),
+	);
+	const isWebrtcJoin = urlTransport === 'webrtc';
+	const signalingList = useMemo(() => parseSignaling(urlSignaling), [urlSignaling]);
 	// Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`.
 	// eslint-disable-next-line react/hook-use-state
 	const [smartArt3D] = useState(
@@ -418,66 +465,116 @@ function App() {
 	// ── Collaboration ────────────────────────────────────────────────────
 	const [collaborationConfig, setCollaborationConfig] = useState<CollaborationConfig | null>(null);
 
-	// Auto-connect if room is in URL (collaboration mode) — only if server is trusted
+	// Auto-connect if room is in URL (collaboration mode). Peer-to-peer joins
+	// (transport=webrtc) need no server and skip the trusted-host check.
 	useEffect(() => {
-		if (urlRoom && !collaborationConfig && isTrustedServerUrl(urlServer)) {
+		if (!urlRoom || collaborationConfig) {
+			return;
+		}
+		if (isWebrtcJoin) {
+			setCollaborationConfig({
+				roomId: urlRoom,
+				serverUrl: '',
+				transport: 'webrtc',
+				signaling: signalingList,
+				userName: urlName ?? autoName,
+				userColor: randomCursorColor(),
+			});
+		} else if (isTrustedServerUrl(urlServer)) {
 			setCollaborationConfig({
 				roomId: urlRoom,
 				serverUrl: urlServer,
 				userName: urlName ?? autoName,
-				userColor: `#${Math.floor(Math.random() * 0xffffff)
-					.toString(16)
-					.padStart(6, '0')}`,
+				userColor: randomCursorColor(),
 			});
-		} else if (urlRoom && !isTrustedServerUrl(urlServer)) {
+		} else {
 			console.warn(
 				`Ignoring ?room= auto-connect because ?server=${urlServer} is not in the trusted-host allowlist. Use the Share dialog to connect explicitly.`,
 			);
 		}
-	}, [urlRoom, urlServer, urlName, autoName, collaborationConfig]);
+	}, [urlRoom, urlServer, urlName, autoName, collaborationConfig, isWebrtcJoin, signalingList]);
 
-	// Auto-connect if broadcast is in URL (viewer mode) — only if server is trusted
+	// Auto-connect if broadcast is in URL (viewer mode). Peer-to-peer joins need
+	// no server and skip the trusted-host check.
 	useEffect(() => {
-		if (urlBroadcast && !collaborationConfig && isTrustedServerUrl(urlServer)) {
+		if (!urlBroadcast || collaborationConfig) {
+			return;
+		}
+		if (isWebrtcJoin) {
+			setCollaborationConfig({
+				roomId: urlBroadcast,
+				serverUrl: '',
+				transport: 'webrtc',
+				signaling: signalingList,
+				userName: urlName ?? autoName,
+				userColor: randomCursorColor(),
+				role: 'viewer',
+			});
+		} else if (isTrustedServerUrl(urlServer)) {
 			setCollaborationConfig({
 				roomId: urlBroadcast,
 				serverUrl: urlServer,
 				userName: urlName ?? autoName,
-				userColor: `#${Math.floor(Math.random() * 0xffffff)
-					.toString(16)
-					.padStart(6, '0')}`,
+				userColor: randomCursorColor(),
 				role: 'viewer',
 			});
-		} else if (urlBroadcast && !isTrustedServerUrl(urlServer)) {
+		} else {
 			console.warn(
 				`Ignoring ?broadcast= auto-connect because ?server=${urlServer} is not in the trusted-host allowlist.`,
 			);
 		}
-	}, [urlBroadcast, urlServer, urlName, autoName, collaborationConfig]);
+	}, [
+		urlBroadcast,
+		urlServer,
+		urlName,
+		autoName,
+		collaborationConfig,
+		isWebrtcJoin,
+		signalingList,
+	]);
 
 	const handleStartCollaboration = useCallback(
 		(config: CollaborationConfig) => {
 			setCollaborationConfig(config);
-			// Update URL with room/broadcast info for sharing
+			// A broadcast is a one-way session started from the Broadcast dialog
+			// (role 'owner', or a `broadcast-` room id); everything else is a
+			// two-way collaboration. There is no 'broadcaster' role.
+			const isBroadcast = config.role === 'owner' || config.roomId.startsWith('broadcast-');
+			const webrtc = isP2PConfig(config);
+
+			// Rewrite the URL so it can be copied to invite others.
 			const url = new URL(window.location.href);
-			if (config.role === 'broadcaster') {
-				url.searchParams.set('broadcast', config.roomId);
-			} else {
-				url.searchParams.set('room', config.roomId);
+			for (const key of ['room', 'broadcast', 'server', 'transport', 'signaling']) {
+				url.searchParams.delete(key);
 			}
-			url.searchParams.set('server', config.serverUrl);
+			url.searchParams.set(isBroadcast ? 'broadcast' : 'room', config.roomId);
+			if (webrtc) {
+				url.searchParams.set('transport', 'webrtc');
+				if (config.signaling?.length) {
+					url.searchParams.set('signaling', config.signaling.join(','));
+				}
+			} else {
+				url.searchParams.set('server', config.serverUrl);
+			}
 			window.history.replaceState({}, '', url.toString());
-			// Upload PPTX content to the collab server so joiners can download it.
-			// Restricted to trusted hosts to prevent crafted ?server= URLs from
-			// exfiltrating user content.
-			if (content && isTrustedServerUrl(config.serverUrl)) {
-				const httpUrl = config.serverUrl.replace(/^ws/u, 'http');
-				void fetch(`${httpUrl}/file/${encodeURIComponent(config.roomId)}`, {
-					method: 'POST',
-					body: content,
-				}).catch(() => {
-					/* server may not support file storage — fall back silently */
+
+			if (content) {
+				// P2P has no file server, so stash the deck in IndexedDB for
+				// same-browser joiner tabs to pick up (the Y.Doc still syncs edits).
+				void storeAudienceContent(content).catch(() => {
+					/* IndexedDB unavailable: joiners fall back to Y.Doc sync */
 				});
+				// A trusted y-websocket relay can also host the file for other devices.
+				// Restricted to trusted hosts so a crafted ?server= cannot exfiltrate.
+				if (!webrtc && isTrustedServerUrl(config.serverUrl)) {
+					const httpUrl = config.serverUrl.replace(/^ws/u, 'http');
+					void fetch(`${httpUrl}/file/${encodeURIComponent(config.roomId)}`, {
+						method: 'POST',
+						body: content,
+					}).catch(() => {
+						/* server may not support file storage: fall back silently */
+					});
+				}
 			}
 		},
 		[content],
@@ -489,10 +586,9 @@ function App() {
 		setUrlBroadcast(null);
 		// Remove room/broadcast from URL
 		const url = new URL(window.location.href);
-		url.searchParams.delete('room');
-		url.searchParams.delete('broadcast');
-		url.searchParams.delete('server');
-		url.searchParams.delete('name');
+		for (const key of ['room', 'broadcast', 'server', 'transport', 'signaling', 'name']) {
+			url.searchParams.delete(key);
+		}
 		window.history.replaceState({}, '', url.toString());
 	}, []);
 
@@ -502,6 +598,12 @@ function App() {
 	const joinRoomId = urlRoom ?? urlBroadcast;
 	useEffect(() => {
 		if (!joinRoomId || content) {
+			return;
+		}
+		// Peer-to-peer join: there is no file server. The viewer is bootstrapped
+		// below (IndexedDB or a blank deck) and the Y.Doc late-joiner sync fills
+		// in the host's slides.
+		if (isWebrtcJoin) {
 			return;
 		}
 		if (!isTrustedServerUrl(urlServer)) {
@@ -533,29 +635,48 @@ function App() {
 		return () => {
 			cancelled = true;
 		};
-	}, [joinRoomId, urlServer, content, urlBroadcast]);
+	}, [joinRoomId, urlServer, content, urlBroadcast, isWebrtcJoin]);
 
-	// Fallback: try IndexedDB if server download didn't work (same-browser tabs)
+	// Fallback: try IndexedDB (same-browser tabs). For a peer-to-peer join with
+	// no local copy, bootstrap a blank deck so the viewer (and its webrtc
+	// provider) mount; the Y.Doc late-joiner sync then replaces the slides with
+	// the host's deck.
 	useEffect(() => {
 		if (!joinRoomId || content) {
 			return;
 		}
 		let cancelled = false;
 		const timer = setTimeout(() => {
-			void loadAudienceContent().then((bytes) => {
-				if (cancelled || !bytes) {
-					return undefined;
+			void (async () => {
+				const bytes = await loadAudienceContent();
+				if (cancelled) {
+					return;
 				}
-				setContent(bytes);
-				setFileName('Collaboration Session');
-				return undefined;
-			});
+				if (bytes) {
+					setContent(bytes);
+					setFileName(urlBroadcast ? 'Broadcast Session' : 'Collaboration Session');
+					return;
+				}
+				if (!isWebrtcJoin) {
+					return;
+				}
+				const { handler, data } = await PptxHandler.createBlank({
+					title: 'Collaboration Session',
+					initialSlideCount: 1,
+				});
+				const blank = await handler.save(data.slides);
+				if (cancelled) {
+					return;
+				}
+				setContent(blank);
+				setFileName(urlBroadcast ? 'Broadcast Session' : 'Collaboration Session');
+			})();
 		}, 1500);
 		return () => {
 			cancelled = true;
 			clearTimeout(timer);
 		};
-	}, [joinRoomId, content]);
+	}, [joinRoomId, content, isWebrtcJoin, urlBroadcast]);
 
 	// When opened as an audience tab, load the PPTX content from IndexedDB
 	useEffect(() => {
@@ -579,13 +700,14 @@ function App() {
 	// Update document title when in collaboration/broadcast mode
 	useEffect(() => {
 		if (collaborationConfig && content) {
-			const prefix =
-				collaborationConfig.role === 'broadcaster'
-					? '[Broadcasting]'
-					: collaborationConfig.role === 'viewer'
-						? '[Watching]'
-						: '[Collab]';
-			document.title = `${prefix} ${fileName} — PPTX Viewer`;
+			const isBroadcast =
+				collaborationConfig.role === 'owner' || collaborationConfig.roomId.startsWith('broadcast-');
+			const prefix = isBroadcast
+				? '[Broadcasting]'
+				: collaborationConfig.role === 'viewer'
+					? '[Watching]'
+					: '[Collab]';
+			document.title = `${prefix} ${fileName} - PPTX Viewer`;
 		}
 	}, [collaborationConfig, content, fileName]);
 

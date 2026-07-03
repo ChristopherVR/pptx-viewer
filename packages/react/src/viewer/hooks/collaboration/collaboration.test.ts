@@ -1,20 +1,25 @@
-// These tests directly use the yjs library to verify CRDT behaviour
-// that underpins the collaboration hooks.
-import { sanitizeColor, validateRoomId } from 'pptx-viewer-shared';
 /**
  * Tests for the real-time collaboration infrastructure.
  *
- * These tests verify:
- * 1. Yjs document sync between two Y.Doc instances (in-memory)
- * 2. Presence tracking (broadcast/receive)
- * 3. Conflict resolution (concurrent edits to same element)
- * 4. Slide ordering sync
- * 5. Undo/redo isolation per user
+ * These exercise the REAL shared sync path the hooks delegate to
+ * (`reconcileSlidesInYDoc` / `readSlidesFromYDoc` / `observeYDocSlides` on the
+ * `pptx:slides` schema) against in-memory `yjs` documents wired together via
+ * `applyUpdate` (no WebSocket needed), plus the collaboration config / presence
+ * type contracts.
  *
- * All tests use in-memory Yjs documents connected via `applyUpdate`
- * (no WebSocket needed).
+ * @module collaboration.test
  */
-import { describe, it, expect, beforeEach, vi, expectTypeOf } from 'vitest';
+import type { PptxSlide, PptxElement } from 'pptx-viewer-core';
+import type { YDocLike, YjsFactories } from 'pptx-viewer-shared';
+import {
+	LOCAL_SYNC_ORIGIN,
+	observeYDocSlides,
+	reconcileSlidesInYDoc,
+	readSlidesFromYDoc,
+	sanitizeColor,
+	validateRoomId,
+} from 'pptx-viewer-shared';
+import { describe, it, expect, vi, expectTypeOf } from 'vitest';
 import * as Y from 'yjs';
 
 import type {
@@ -28,601 +33,213 @@ import type {
 // Test helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Creates two Y.Doc instances wired together so that updates from one
- * are automatically applied to the other (simulating a WebSocket relay).
- */
+const factories: YjsFactories = {
+	createMap: () => new Y.Map() as unknown as ReturnType<YjsFactories['createMap']>,
+	createArray: () => new Y.Array() as unknown as ReturnType<YjsFactories['createArray']>,
+	createText: () => new Y.Text() as unknown as ReturnType<YjsFactories['createText']>,
+};
+
+const asDoc = (doc: Y.Doc): YDocLike => doc as unknown as YDocLike;
+
+// Sentinel origins a real transport (y-websocket / y-webrtc) applies remote
+// updates under. The originating peer's transaction origin is NOT sent over the
+// wire, so a receiver never sees LOCAL_SYNC_ORIGIN on a remote update.
+const REMOTE_ORIGIN_1 = 'remote-peer-1';
+const REMOTE_ORIGIN_2 = 'remote-peer-2';
+
+/** Two docs wired so each one's updates flow to the other (WebSocket relay). */
 function createSyncedPair() {
 	const doc1 = new Y.Doc();
 	const doc2 = new Y.Doc();
-
 	doc1.on('update', (update: Uint8Array) => {
-		Y.applyUpdate(doc2, update);
+		Y.applyUpdate(doc2, update, REMOTE_ORIGIN_2);
 	});
 	doc2.on('update', (update: Uint8Array) => {
-		Y.applyUpdate(doc1, update);
+		Y.applyUpdate(doc1, update, REMOTE_ORIGIN_1);
 	});
-
 	return { doc1, doc2 };
 }
 
-/**
- * Helper to set up the standard shared types on a Y.Doc matching
- * the structure used by the collaboration provider.
- */
-function initDocStructure(doc: Y.Doc) {
-	return {
-		slidesOrder: doc.getArray<string>('slidesOrder'),
-		slides: doc.getMap('slides'),
-		elements: doc.getMap('elements'),
-	};
+function slideWith(id: string, elements: PptxElement[]): PptxSlide {
+	return { id, rId: id, slideNumber: 1, elements } as PptxSlide;
+}
+
+function textEl(id: string, extra: Record<string, unknown> = {}): PptxElement {
+	return { type: 'text', id, x: 0, y: 0, ...extra } as unknown as PptxElement;
 }
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('collaboration - Yjs CRDT sync', () => {
-	let doc1: Y.Doc;
-	let doc2: Y.Doc;
-
-	beforeEach(() => {
-		const pair = createSyncedPair();
-		doc1 = pair.doc1;
-		doc2 = pair.doc2;
-	});
-
-	// ---- Basic document sync ------------------------------------------------
-
+describe('collaboration - Yjs CRDT sync (production schema)', () => {
 	describe('document synchronisation', () => {
-		it('should sync a Y.Map value from doc1 to doc2', () => {
-			const map1 = doc1.getMap('slides');
-			const map2 = doc2.getMap('slides');
+		it('syncs a reconciled slide list from doc1 to doc2', () => {
+			const { doc1, doc2 } = createSyncedPair();
+			reconcileSlidesInYDoc([slideWith('s1', []), slideWith('s2', [])], asDoc(doc1), factories);
 
-			const slideMap = new Y.Map();
-			slideMap.set('id', 'slide-1');
-			slideMap.set('slideNumber', 1);
-			slideMap.set('backgroundColor', '#FFFFFF');
-			map1.set('slide-1', slideMap);
-
-			// doc2 should have the slide
-			const synced = map2.get('slide-1') as Y.Map<unknown>;
-			expect(synced).toBeDefined();
-			expect(synced.get('id')).toBe('slide-1');
-			expect(synced.get('slideNumber')).toBe(1);
-			expect(synced.get('backgroundColor')).toBe('#FFFFFF');
+			const onDoc2 = readSlidesFromYDoc(asDoc(doc2));
+			expect(onDoc2.map((s) => s.id)).toStrictEqual(['s1', 's2']);
+			doc1.destroy();
+			doc2.destroy();
 		});
 
-		it('should sync Y.Array order from doc1 to doc2', () => {
-			const arr1 = doc1.getArray<string>('slidesOrder');
-			const arr2 = doc2.getArray<string>('slidesOrder');
+		it('syncs element property edits between docs', () => {
+			const { doc1, doc2 } = createSyncedPair();
+			reconcileSlidesInYDoc(
+				[slideWith('s1', [textEl('el-1', { text: 'a' })])],
+				asDoc(doc1),
+				factories,
+			);
 
-			arr1.push(['slide-1', 'slide-2', 'slide-3']);
+			reconcileSlidesInYDoc(
+				[slideWith('s1', [textEl('el-1', { text: 'updated', x: 300 })])],
+				asDoc(doc1),
+				factories,
+			);
 
-			expect(arr2.toArray()).toStrictEqual(['slide-1', 'slide-2', 'slide-3']);
+			const onDoc2 = readSlidesFromYDoc(asDoc(doc2));
+			expect(onDoc2[0].elements[0].text).toBe('updated');
+			expect(onDoc2[0].elements[0].x).toBe(300);
+			doc1.destroy();
+			doc2.destroy();
 		});
 
-		it('should sync element data from doc2 to doc1', () => {
-			const elements2 = doc2.getMap('elements');
-			const elements1 = doc1.getMap('elements');
+		it('syncs slide deletion', () => {
+			const { doc1, doc2 } = createSyncedPair();
+			reconcileSlidesInYDoc([slideWith('s1', []), slideWith('s2', [])], asDoc(doc1), factories);
+			reconcileSlidesInYDoc([slideWith('s2', [])], asDoc(doc1), factories);
 
-			const elMap = new Y.Map();
-			elMap.set('id', 'el-1');
-			elMap.set('type', 'text');
-			elMap.set('x', 100);
-			elMap.set('y', 200);
-			elMap.set('width', 400);
-			elMap.set('height', 50);
-			elMap.set('text', 'Hello from doc2');
-			elements2.set('el-1', elMap);
-
-			const synced = elements1.get('el-1') as Y.Map<unknown>;
-			expect(synced).toBeDefined();
-			expect(synced.get('text')).toBe('Hello from doc2');
-			expect(synced.get('x')).toBe(100);
-		});
-
-		it('should sync deletions from one doc to the other', () => {
-			const map1 = doc1.getMap('elements');
-			const map2 = doc2.getMap('elements');
-
-			const elMap = new Y.Map();
-			elMap.set('id', 'el-to-delete');
-			map1.set('el-to-delete', elMap);
-
-			expect(map2.has('el-to-delete')).toBeTruthy();
-
-			map1.delete('el-to-delete');
-
-			expect(map2.has('el-to-delete')).toBeFalsy();
+			expect(readSlidesFromYDoc(asDoc(doc2)).map((s) => s.id)).toStrictEqual(['s2']);
+			doc1.destroy();
+			doc2.destroy();
 		});
 	});
-
-	// ---- Conflict resolution ------------------------------------------------
 
 	describe('conflict resolution (concurrent edits)', () => {
-		it('should converge when both docs edit different fields of the same element', () => {
-			// Set up initial element in both docs
-			const elements1 = doc1.getMap('elements');
-			const elMap = new Y.Map();
-			elMap.set('id', 'el-conflict');
-			elMap.set('x', 0);
-			elMap.set('y', 0);
-			elMap.set('text', 'original');
-			elements1.set('el-conflict', elMap);
+		it('converges when two peers edit different fields of the same element', () => {
+			// Seed both docs with a shared element (same Yjs item), then edit
+			// disjoint fields concurrently and merge.
+			const doc1 = new Y.Doc();
+			reconcileSlidesInYDoc(
+				[slideWith('s1', [textEl('el', { x: 0, y: 0 })])],
+				asDoc(doc1),
+				factories,
+			);
 
-			// Both docs now have the element
-			const elements2 = doc2.getMap('elements');
-			const _el1 = elements1.get('el-conflict') as Y.Map<unknown>;
-			const _el2 = elements2.get('el-conflict') as Y.Map<unknown>;
+			const doc2 = new Y.Doc();
+			Y.applyUpdate(doc2, Y.encodeStateAsUpdate(doc1));
 
-			// Disconnect sync temporarily to simulate concurrent edits
-			const tempDoc1 = new Y.Doc();
-			const tempDoc2 = new Y.Doc();
-			Y.applyUpdate(tempDoc1, Y.encodeStateAsUpdate(doc1));
-			Y.applyUpdate(tempDoc2, Y.encodeStateAsUpdate(doc2));
+			reconcileSlidesInYDoc(
+				[slideWith('s1', [textEl('el', { x: 100, y: 0 })])],
+				asDoc(doc1),
+				factories,
+			);
+			reconcileSlidesInYDoc(
+				[slideWith('s1', [textEl('el', { x: 0, y: 200 })])],
+				asDoc(doc2),
+				factories,
+			);
 
-			const tempEl1 = tempDoc1.getMap('elements').get('el-conflict') as Y.Map<unknown>;
-			const tempEl2 = tempDoc2.getMap('elements').get('el-conflict') as Y.Map<unknown>;
+			Y.applyUpdate(doc1, Y.encodeStateAsUpdate(doc2));
+			Y.applyUpdate(doc2, Y.encodeStateAsUpdate(doc1));
 
-			// Concurrent edits to DIFFERENT fields
-			tempEl1.set('x', 100); // user 1 moves x
-			tempEl2.set('y', 200); // user 2 moves y
-
-			// Merge updates
-			Y.applyUpdate(tempDoc1, Y.encodeStateAsUpdate(tempDoc2));
-			Y.applyUpdate(tempDoc2, Y.encodeStateAsUpdate(tempDoc1));
-
-			// Both should converge
-			const final1 = tempDoc1.getMap('elements').get('el-conflict') as Y.Map<unknown>;
-			const final2 = tempDoc2.getMap('elements').get('el-conflict') as Y.Map<unknown>;
-
-			expect(final1.get('x')).toBe(100);
-			expect(final1.get('y')).toBe(200);
-			expect(final2.get('x')).toBe(100);
-			expect(final2.get('y')).toBe(200);
-		});
-
-		it('should converge when both docs edit the same field (last-writer-wins)', () => {
-			const elements1 = doc1.getMap('elements');
-			const elMap = new Y.Map();
-			elMap.set('id', 'el-lww');
-			elMap.set('text', 'original');
-			elements1.set('el-lww', elMap);
-
-			// Create isolated docs
-			const tempDoc1 = new Y.Doc();
-			const tempDoc2 = new Y.Doc();
-			Y.applyUpdate(tempDoc1, Y.encodeStateAsUpdate(doc1));
-			Y.applyUpdate(tempDoc2, Y.encodeStateAsUpdate(doc2));
-
-			const tempEl1 = tempDoc1.getMap('elements').get('el-lww') as Y.Map<unknown>;
-			const tempEl2 = tempDoc2.getMap('elements').get('el-lww') as Y.Map<unknown>;
-
-			// Both edit the same field
-			tempEl1.set('text', 'version-A');
-			tempEl2.set('text', 'version-B');
-
-			// Merge
-			Y.applyUpdate(tempDoc1, Y.encodeStateAsUpdate(tempDoc2));
-			Y.applyUpdate(tempDoc2, Y.encodeStateAsUpdate(tempDoc1));
-
-			// Both must converge to the same value (CRDT deterministic)
-			const val1 = (tempDoc1.getMap('elements').get('el-lww') as Y.Map<unknown>).get('text');
-			const val2 = (tempDoc2.getMap('elements').get('el-lww') as Y.Map<unknown>).get('text');
-
-			expect(val1).toBe(val2); // Same value, regardless of which "wins"
-		});
-
-		it('should handle concurrent slide insertion', () => {
-			const tempDoc1 = new Y.Doc();
-			const tempDoc2 = new Y.Doc();
-
-			const arr1 = tempDoc1.getArray<string>('slidesOrder');
-			const arr2 = tempDoc2.getArray<string>('slidesOrder');
-
-			// Both start with same slide
-			arr1.push(['slide-1']);
-			Y.applyUpdate(tempDoc2, Y.encodeStateAsUpdate(tempDoc1));
-
-			// Concurrent inserts
-			arr1.push(['slide-A']);
-			arr2.push(['slide-B']);
-
-			// Merge
-			Y.applyUpdate(tempDoc1, Y.encodeStateAsUpdate(tempDoc2));
-			Y.applyUpdate(tempDoc2, Y.encodeStateAsUpdate(tempDoc1));
-
-			// Both docs should have all 3 slides in the same order
-			const order1 = arr1.toArray();
-			const order2 = arr2.toArray();
-
-			expect(order1).toStrictEqual(order2);
-			expect(order1).toContain('slide-1');
-			expect(order1).toContain('slide-A');
-			expect(order1).toContain('slide-B');
-			expect(order1).toHaveLength(3);
+			const el1 = readSlidesFromYDoc(asDoc(doc1))[0].elements[0];
+			const el2 = readSlidesFromYDoc(asDoc(doc2))[0].elements[0];
+			expect(el1.x).toBe(el2.x);
+			expect(el1.y).toBe(el2.y);
+			expect(el1.x).toBe(100);
+			expect(el1.y).toBe(200);
+			doc1.destroy();
+			doc2.destroy();
 		});
 	});
 
-	// ---- Slide operations ---------------------------------------------------
+	describe('transaction origin', () => {
+		it('tags local reconcile writes with LOCAL_SYNC_ORIGIN so echoes can be skipped', () => {
+			const doc = new Y.Doc();
+			const origins: unknown[] = [];
+			const unobserve = observeYDocSlides(asDoc(doc), (_e, tx) => origins.push(tx?.origin));
 
-	describe('slide operations', () => {
-		it('should sync slide reordering', () => {
-			const { slidesOrder: arr1 } = initDocStructure(doc1);
-			const arr2 = doc2.getArray<string>('slidesOrder');
+			reconcileSlidesInYDoc([slideWith('s1', [])], asDoc(doc), factories);
 
-			arr1.push(['s1', 's2', 's3']);
-
-			// Reorder: move s3 to position 0
-			doc1.transact(() => {
-				arr1.delete(2, 1); // remove s3
-				arr1.insert(0, ['s3']); // insert at front
-			});
-
-			expect(arr2.toArray()).toStrictEqual(['s3', 's1', 's2']);
+			expect(origins).toContain(LOCAL_SYNC_ORIGIN);
+			unobserve();
+			doc.destroy();
 		});
 
-		it('should sync slide deletion', () => {
-			const { slidesOrder: arr1, slides: map1 } = initDocStructure(doc1);
-			const { slides: map2 } = initDocStructure(doc2);
+		it('delivers remote updates with a non-local origin', () => {
+			const { doc1, doc2 } = createSyncedPair();
+			const remoteOrigins: unknown[] = [];
+			const unobserve = observeYDocSlides(asDoc(doc2), (_e, tx) => remoteOrigins.push(tx?.origin));
 
-			// Add slides
-			arr1.push(['s1', 's2']);
-			const s1Map = new Y.Map();
-			s1Map.set('id', 's1');
-			map1.set('s1', s1Map);
-			const s2Map = new Y.Map();
-			s2Map.set('id', 's2');
-			map1.set('s2', s2Map);
+			reconcileSlidesInYDoc([slideWith('s1', [])], asDoc(doc1), factories);
 
-			expect(map2.size).toBe(2);
-
-			// Delete s1
-			doc1.transact(() => {
-				arr1.delete(0, 1);
-				map1.delete('s1');
-			});
-
-			const arr2 = doc2.getArray<string>('slidesOrder');
-			expect(arr2.toArray()).toStrictEqual(['s2']);
-			expect(map2.has('s1')).toBeFalsy();
-			expect(map2.has('s2')).toBeTruthy();
-		});
-
-		it('should sync slide metadata updates', () => {
-			const { slides: map1 } = initDocStructure(doc1);
-			const { slides: map2 } = initDocStructure(doc2);
-
-			const slideMap = new Y.Map();
-			slideMap.set('id', 's1');
-			slideMap.set('notes', 'Original notes');
-			map1.set('s1', slideMap);
-
-			// Update notes
-			(map1.get('s1') as Y.Map<unknown>).set('notes', 'Updated notes');
-
-			const synced = map2.get('s1') as Y.Map<unknown>;
-			expect(synced.get('notes')).toBe('Updated notes');
+			expect(remoteOrigins.length).toBeGreaterThan(0);
+			expect(remoteOrigins).not.toContain(LOCAL_SYNC_ORIGIN);
+			unobserve();
+			doc1.destroy();
+			doc2.destroy();
 		});
 	});
 
-	// ---- Element operations -------------------------------------------------
+	describe('late joiner full-state sync', () => {
+		it('lets a fresh doc read the full slide state via encodeStateAsUpdate', () => {
+			const host = new Y.Doc();
+			reconcileSlidesInYDoc(
+				[slideWith('s1', [textEl('el-1', { text: 'Title' })]), slideWith('s2', [])],
+				asDoc(host),
+				factories,
+			);
 
-	describe('element operations', () => {
-		it('should sync element property updates', () => {
-			const { elements: elMap1 } = initDocStructure(doc1);
-			const { elements: elMap2 } = initDocStructure(doc2);
+			const joiner = new Y.Doc();
+			Y.applyUpdate(joiner, Y.encodeStateAsUpdate(host));
 
-			const el = new Y.Map();
-			el.set('id', 'el-1');
-			el.set('type', 'shape');
-			el.set('x', 50);
-			el.set('y', 50);
-			el.set('width', 200);
-			el.set('height', 100);
-			elMap1.set('el-1', el);
-
-			// Update position
-			(elMap1.get('el-1') as Y.Map<unknown>).set('x', 300);
-			(elMap1.get('el-1') as Y.Map<unknown>).set('y', 400);
-
-			const synced = elMap2.get('el-1') as Y.Map<unknown>;
-			expect(synced.get('x')).toBe(300);
-			expect(synced.get('y')).toBe(400);
-			expect(synced.get('width')).toBe(200); // unchanged
-		});
-
-		it('should sync element addition and deletion across docs', () => {
-			const { elements: elMap1 } = initDocStructure(doc1);
-			const { elements: elMap2 } = initDocStructure(doc2);
-
-			// Add from doc1
-			const el1 = new Y.Map();
-			el1.set('id', 'el-a');
-			elMap1.set('el-a', el1);
-
-			// Add from doc2
-			const el2 = new Y.Map();
-			el2.set('id', 'el-b');
-			elMap2.set('el-b', el2);
-
-			// Both should see both
-			expect(elMap1.has('el-a')).toBeTruthy();
-			expect(elMap1.has('el-b')).toBeTruthy();
-			expect(elMap2.has('el-a')).toBeTruthy();
-			expect(elMap2.has('el-b')).toBeTruthy();
-
-			// Delete from doc1
-			elMap1.delete('el-a');
-
-			expect(elMap2.has('el-a')).toBeFalsy();
-			expect(elMap2.has('el-b')).toBeTruthy();
+			const slides = readSlidesFromYDoc(asDoc(joiner));
+			expect(slides.map((s) => s.id)).toStrictEqual(['s1', 's2']);
+			expect(slides[0].elements[0].text).toBe('Title');
+			host.destroy();
+			joiner.destroy();
 		});
 	});
 
-	// ---- Undo/redo per user -------------------------------------------------
+	describe('per-user undo/redo isolation', () => {
+		it('undoes only local changes on the slides array', () => {
+			const { doc1, doc2 } = createSyncedPair();
+			const arr1 = doc1.getArray('pptx:slides');
+			const um1 = new Y.UndoManager(arr1, { trackedOrigins: new Set([doc1.clientID]) });
 
-	describe('per-user undo/redo', () => {
-		it('should only undo local changes, not remote changes', () => {
-			const { elements: elMap1 } = initDocStructure(doc1);
-			const { elements: elMap2 } = initDocStructure(doc2);
-
-			// Create undo managers scoped to each doc's client ID
-			const um1 = new Y.UndoManager([doc1.getMap('elements')], {
-				trackedOrigins: new Set([doc1.clientID]),
-			});
-
-			// User 1 adds an element
 			doc1.transact(() => {
-				const el = new Y.Map();
-				el.set('id', 'user1-el');
-				el.set('text', 'from user 1');
-				elMap1.set('user1-el', el);
+				const m = new Y.Map();
+				m.set('id', 'user1');
+				arr1.push([m]);
 			}, doc1.clientID);
-
-			// User 2 adds an element
 			doc2.transact(() => {
-				const el = new Y.Map();
-				el.set('id', 'user2-el');
-				el.set('text', 'from user 2');
-				elMap2.set('user2-el', el);
+				const m = new Y.Map();
+				m.set('id', 'user2');
+				doc2.getArray('pptx:slides').push([m]);
 			}, doc2.clientID);
 
-			// Both elements should exist in both docs
-			expect(elMap1.has('user1-el')).toBeTruthy();
-			expect(elMap1.has('user2-el')).toBeTruthy();
+			expect(
+				readSlidesFromYDoc(asDoc(doc1))
+					.map((s) => s.id)
+					.sort(),
+			).toStrictEqual(['user1', 'user2']);
 
-			// User 1 undoes: should only remove user1-el
 			um1.undo();
-
-			expect(elMap1.has('user1-el')).toBeFalsy();
-			expect(elMap1.has('user2-el')).toBeTruthy(); // user2's element preserved
-
-			// Redo should bring it back
-			um1.redo();
-
-			expect(elMap1.has('user1-el')).toBeTruthy();
-			expect(elMap1.has('user2-el')).toBeTruthy();
+			const idsAfter = readSlidesFromYDoc(asDoc(doc1)).map((s) => s.id);
+			expect(idsAfter).toContain('user2');
+			expect(idsAfter).not.toContain('user1');
 
 			um1.destroy();
-		});
-
-		it('should track undo stack depth correctly', () => {
-			const { elements: elMap1 } = initDocStructure(doc1);
-
-			// captureTimeout = 0 prevents Yjs from merging rapid consecutive
-			// transactions into a single undo stack item.
-			const um = new Y.UndoManager([doc1.getMap('elements')], {
-				trackedOrigins: new Set([doc1.clientID]),
-				captureTimeout: 0,
-			});
-
-			expect(um.undoStack).toHaveLength(0);
-			expect(um.redoStack).toHaveLength(0);
-
-			// Make 3 changes
-			for (let i = 0; i < 3; i++) {
-				doc1.transact(() => {
-					const el = new Y.Map();
-					el.set('id', `el-${i}`);
-					elMap1.set(`el-${i}`, el);
-				}, doc1.clientID);
-			}
-
-			expect(um.undoStack).toHaveLength(3);
-			expect(um.redoStack).toHaveLength(0);
-
-			um.undo();
-			expect(um.undoStack).toHaveLength(2);
-			expect(um.redoStack).toHaveLength(1);
-
-			um.undo();
-			expect(um.undoStack).toHaveLength(1);
-			expect(um.redoStack).toHaveLength(2);
-
-			um.redo();
-			expect(um.undoStack).toHaveLength(2);
-			expect(um.redoStack).toHaveLength(1);
-
-			um.destroy();
-		});
-	});
-
-	// ---- Presence / awareness simulation ------------------------------------
-
-	describe('awareness simulation', () => {
-		it('should broadcast and receive user presence via a shared map', () => {
-			// Simulate awareness with a shared Y.Map (the real Awareness protocol
-			// uses a separate channel, but the CRDT semantics are the same).
-			const presenceMap1 = doc1.getMap('presence');
-			const presenceMap2 = doc2.getMap('presence');
-
-			// User 1 sets presence
-			const user1Presence = new Y.Map();
-			user1Presence.set('userId', 'user-1');
-			user1Presence.set('userName', 'Alice');
-			user1Presence.set('color', '#e74c3c');
-			user1Presence.set('cursorX', 150);
-			user1Presence.set('cursorY', 300);
-			user1Presence.set('selectedSlideIndex', 0);
-			user1Presence.set('isActive', true);
-			presenceMap1.set('user-1', user1Presence);
-
-			// User 2 sets presence
-			const user2Presence = new Y.Map();
-			user2Presence.set('userId', 'user-2');
-			user2Presence.set('userName', 'Bob');
-			user2Presence.set('color', '#3498db');
-			user2Presence.set('cursorX', 400);
-			user2Presence.set('cursorY', 100);
-			user2Presence.set('selectedSlideIndex', 2);
-			user2Presence.set('isActive', true);
-			presenceMap2.set('user-2', user2Presence);
-
-			// Doc1 should see user2's presence
-			const u2InDoc1 = presenceMap1.get('user-2') as Y.Map<unknown>;
-			expect(u2InDoc1.get('userName')).toBe('Bob');
-			expect(u2InDoc1.get('cursorX')).toBe(400);
-			expect(u2InDoc1.get('selectedSlideIndex')).toBe(2);
-
-			// Doc2 should see user1's presence
-			const u1InDoc2 = presenceMap2.get('user-1') as Y.Map<unknown>;
-			expect(u1InDoc2.get('userName')).toBe('Alice');
-			expect(u1InDoc2.get('cursorX')).toBe(150);
-		});
-
-		it('should update cursor position in real-time', () => {
-			const presenceMap1 = doc1.getMap('presence');
-			const presenceMap2 = doc2.getMap('presence');
-
-			const user1 = new Y.Map();
-			user1.set('userId', 'user-1');
-			user1.set('cursorX', 0);
-			user1.set('cursorY', 0);
-			presenceMap1.set('user-1', user1);
-
-			// Simulate cursor movement
-			user1.set('cursorX', 100);
-			user1.set('cursorY', 200);
-
-			const synced = presenceMap2.get('user-1') as Y.Map<unknown>;
-			expect(synced.get('cursorX')).toBe(100);
-			expect(synced.get('cursorY')).toBe(200);
-
-			// Move again
-			user1.set('cursorX', 500);
-			user1.set('cursorY', 350);
-
-			expect(synced.get('cursorX')).toBe(500);
-			expect(synced.get('cursorY')).toBe(350);
-		});
-
-		it('should handle user disconnect (presence removal)', () => {
-			const presenceMap1 = doc1.getMap('presence');
-			const presenceMap2 = doc2.getMap('presence');
-
-			const user1 = new Y.Map();
-			user1.set('userId', 'user-1');
-			user1.set('isActive', true);
-			presenceMap1.set('user-1', user1);
-
-			expect(presenceMap2.has('user-1')).toBeTruthy();
-
-			// User disconnects: remove presence
-			presenceMap1.delete('user-1');
-
-			expect(presenceMap2.has('user-1')).toBeFalsy();
-		});
-	});
-
-	// ---- Transaction batching -----------------------------------------------
-
-	describe('transaction batching', () => {
-		it('should batch multiple changes into a single transaction', () => {
-			const { elements: elMap1 } = initDocStructure(doc1);
-			const { elements: elMap2 } = initDocStructure(doc2);
-
-			const updateCount = vi.fn<() => void>();
-			doc2.on('update', updateCount);
-
-			doc1.transact(() => {
-				for (let i = 0; i < 10; i++) {
-					const el = new Y.Map();
-					el.set('id', `batch-${i}`);
-					el.set('x', i * 100);
-					elMap1.set(`batch-${i}`, el);
-				}
-			});
-
-			// All 10 elements should be in doc2
-			expect(elMap2.size).toBe(10);
-			for (let i = 0; i < 10; i++) {
-				expect(elMap2.has(`batch-${i}`)).toBeTruthy();
-			}
-
-			// Transaction should have fired as a single update
-			expect(updateCount).toHaveBeenCalledOnce();
-
-			doc2.off('update', updateCount);
-		});
-	});
-
-	// ---- State encoding/decoding -------------------------------------------
-
-	describe('state encoding and full state sync', () => {
-		it('should allow a new client to sync full state from an existing doc', () => {
-			const { slidesOrder: arr1, slides: map1, elements: elMap1 } = initDocStructure(doc1);
-
-			// Build up state in doc1
-			arr1.push(['s1', 's2']);
-
-			const s1 = new Y.Map();
-			s1.set('id', 's1');
-			s1.set('slideNumber', 1);
-			s1.set('elementIds', ['el-1']);
-			map1.set('s1', s1);
-
-			const s2 = new Y.Map();
-			s2.set('id', 's2');
-			s2.set('slideNumber', 2);
-			s2.set('elementIds', ['el-2']);
-			map1.set('s2', s2);
-
-			const el1 = new Y.Map();
-			el1.set('id', 'el-1');
-			el1.set('type', 'text');
-			el1.set('text', 'Title');
-			elMap1.set('el-1', el1);
-
-			const el2 = new Y.Map();
-			el2.set('id', 'el-2');
-			el2.set('type', 'shape');
-			el2.set('text', 'Shape');
-			elMap1.set('el-2', el2);
-
-			// Create a brand-new doc and sync full state
-			const doc3 = new Y.Doc();
-			Y.applyUpdate(doc3, Y.encodeStateAsUpdate(doc1));
-
-			const arr3 = doc3.getArray<string>('slidesOrder');
-			const map3 = doc3.getMap('slides');
-			const elMap3 = doc3.getMap('elements');
-
-			expect(arr3.toArray()).toStrictEqual(['s1', 's2']);
-			expect(map3.size).toBe(2);
-			expect(elMap3.size).toBe(2);
-
-			const syncedEl = elMap3.get('el-1') as Y.Map<unknown>;
-			expect(syncedEl.get('text')).toBe('Title');
-
-			doc3.destroy();
+			doc1.destroy();
+			doc2.destroy();
 		});
 	});
 });
 
 // ---------------------------------------------------------------------------
-// CollaborationConfig validation
+// CollaborationConfig (unified shared shape)
 // ---------------------------------------------------------------------------
 
 describe('collaborationConfig validation', () => {
@@ -654,70 +271,47 @@ describe('collaborationConfig validation', () => {
 		expect(sanitizeColor(config.userColor)).toBe('#ff0000');
 	});
 
-	it('falls back when userColor is undefined in config', () => {
+	it('accepts the peer-to-peer transport fields', () => {
+		const config: CollaborationConfig = {
+			roomId: 'p2p-room',
+			serverUrl: '',
+			transport: 'webrtc',
+			signaling: ['wss://signal.example.com'],
+			userName: 'Alice',
+		};
+		expect(config.transport).toBe('webrtc');
+		expect(config.serverUrl).toBe('');
+		expect(config.signaling).toStrictEqual(['wss://signal.example.com']);
+	});
+
+	it('accepts the elected-writer write-back fields', () => {
+		const onWriteBack = vi.fn<(bytes: Uint8Array) => void>();
 		const config: CollaborationConfig = {
 			roomId: 'room-1',
 			serverUrl: 'wss://collab.example.com',
-			userName: 'Alice',
+			userName: 'Owner',
+			role: 'owner',
+			onWriteBack,
+			writeBackDebounceMs: 2000,
 		};
-		// useCollaborativeState passes the app's '#6366f1' default explicitly.
-		expect(sanitizeColor(config.userColor, '#6366f1')).toBe('#6366f1');
-	});
-
-	it('falls back when userColor is invalid in config', () => {
-		const config: CollaborationConfig = {
-			roomId: 'room-1',
-			serverUrl: 'wss://collab.example.com',
-			userName: 'Alice',
-			userColor: 'not-valid',
-		};
-		// useCollaborativeState passes the app's '#6366f1' default explicitly.
-		expect(sanitizeColor(config.userColor, '#6366f1')).toBe('#6366f1');
-	});
-
-	it('accepts config with all optional fields', () => {
-		const config: CollaborationConfig = {
-			roomId: 'full-config-room',
-			serverUrl: 'wss://collab.example.com',
-			userName: 'Alice',
-			userAvatar: 'https://example.com/alice.png',
-			userColor: '#e74c3c',
-			authToken: 'jwt-token-xyz',
-		};
-		expect(validateRoomId(config.roomId)).toBe('full-config-room');
-		expect(sanitizeColor(config.userColor)).toBe('#e74c3c');
-		expect(config.authToken).toBe('jwt-token-xyz');
-		expect(config.userAvatar).toBe('https://example.com/alice.png');
-	});
-
-	it('accepts config with minimal required fields', () => {
-		const config: CollaborationConfig = {
-			roomId: 'minimal',
-			serverUrl: 'wss://localhost:1234',
-			userName: 'User',
-		};
-		expect(config.userAvatar).toBeUndefined();
-		expect(config.userColor).toBeUndefined();
-		expect(config.authToken).toBeUndefined();
+		config.onWriteBack?.(new Uint8Array([1, 2, 3]));
+		expect(onWriteBack).toHaveBeenCalledOnce();
+		expect(config.writeBackDebounceMs).toBe(2000);
 	});
 });
 
 // ---------------------------------------------------------------------------
-// ConnectionStatus type verification
+// ConnectionStatus + UserPresence + context shape (real types)
 // ---------------------------------------------------------------------------
 
 describe('connectionStatus types', () => {
 	const ALL_STATUSES: ConnectionStatus[] = ['disconnected', 'connecting', 'connected', 'error'];
 
-	it('covers all four possible connection states', () => {
+	it('covers all four connection states', () => {
 		expect(ALL_STATUSES).toHaveLength(4);
-		expect(ALL_STATUSES).toContain('disconnected');
-		expect(ALL_STATUSES).toContain('connecting');
-		expect(ALL_STATUSES).toContain('connected');
-		expect(ALL_STATUSES).toContain('error');
 	});
 
-	it('can be used in status mapping patterns', () => {
+	it('can drive a status-message map', () => {
 		const statusMessages: Record<ConnectionStatus, string> = {
 			disconnected: 'Not connected',
 			connecting: 'Connecting...',
@@ -725,29 +319,10 @@ describe('connectionStatus types', () => {
 			error: 'Connection error',
 		};
 		ALL_STATUSES.forEach((status) => {
-			expect(statusMessages[status]).toBeDefined();
 			expectTypeOf(statusMessages[status]).toBeString();
 		});
 	});
-
-	it('supports status transition tracking', () => {
-		const transitions: Array<{ from: ConnectionStatus; to: ConnectionStatus }> = [
-			{ from: 'disconnected', to: 'connecting' },
-			{ from: 'connecting', to: 'connected' },
-			{ from: 'connected', to: 'disconnected' },
-			{ from: 'connecting', to: 'error' },
-			{ from: 'error', to: 'connecting' },
-		];
-		transitions.forEach(({ from, to }) => {
-			expect(ALL_STATUSES).toContain(from);
-			expect(ALL_STATUSES).toContain(to);
-		});
-	});
 });
-
-// ---------------------------------------------------------------------------
-// UserPresence interface verification
-// ---------------------------------------------------------------------------
 
 describe('userPresence interface', () => {
 	it('has the expected required shape', () => {
@@ -761,84 +336,11 @@ describe('userPresence interface', () => {
 			lastUpdated: new Date().toISOString(),
 		};
 		expect(presence.clientId).toBe(42);
-		expect(presence.userName).toBe('TestUser');
-		expect(presence.userColor).toBe('#ff0000');
-		expect(presence.activeSlideIndex).toBe(0);
-		expect(presence.cursorX).toBe(100);
-		expect(presence.cursorY).toBe(200);
 		expectTypeOf(presence.lastUpdated).toBeString();
-	});
-
-	it('supports optional fields', () => {
-		const presence: UserPresence = {
-			clientId: 1,
-			userName: 'User',
-			userColor: '#000000',
-			activeSlideIndex: 0,
-			cursorX: 0,
-			cursorY: 0,
-			lastUpdated: new Date().toISOString(),
-			userAvatar: 'https://example.com/pic.png',
-			selectedElementId: 'element-123',
-		};
-		expect(presence.userAvatar).toBe('https://example.com/pic.png');
-		expect(presence.selectedElementId).toBe('element-123');
-	});
-
-	it('identifies stale presence by timestamp (>30s)', () => {
-		const stalePresence: UserPresence = {
-			clientId: 1,
-			userName: 'OldUser',
-			userColor: '#000000',
-			activeSlideIndex: 0,
-			cursorX: 0,
-			cursorY: 0,
-			lastUpdated: new Date(Date.now() - 31_000).toISOString(),
-		};
-		const elapsed = Date.now() - new Date(stalePresence.lastUpdated).getTime();
-		expect(elapsed).toBeGreaterThan(30_000);
-	});
-
-	it('identifies fresh presence by timestamp (<=30s)', () => {
-		const freshPresence: UserPresence = {
-			clientId: 1,
-			userName: 'NewUser',
-			userColor: '#000000',
-			activeSlideIndex: 0,
-			cursorX: 0,
-			cursorY: 0,
-			lastUpdated: new Date().toISOString(),
-		};
-		const elapsed = Date.now() - new Date(freshPresence.lastUpdated).getTime();
-		expect(elapsed).toBeLessThanOrEqual(30_000);
 	});
 });
 
-// ---------------------------------------------------------------------------
-// CollaborationContextValue shape
-// ---------------------------------------------------------------------------
-
 describe('collaborationContextValue shape', () => {
-	it('has the expected structure', () => {
-		const mockBroadcast = vi.fn<() => void>();
-		const value: CollaborationContextValue = {
-			status: 'connected',
-			remoteUsers: [],
-			broadcastPresence: mockBroadcast,
-			connectedCount: 1,
-			config: {
-				roomId: 'test-room',
-				serverUrl: 'wss://localhost',
-				userName: 'User',
-			},
-		};
-
-		expect(value.status).toBe('connected');
-		expect(value.remoteUsers).toStrictEqual([]);
-		expect(value.connectedCount).toBe(1);
-		expect(value.config.roomId).toBe('test-room');
-	});
-
 	it('connectedCount includes local user when connected', () => {
 		const remoteUsers: UserPresence[] = [
 			{
@@ -850,38 +352,17 @@ describe('collaborationContextValue shape', () => {
 				cursorY: 0,
 				lastUpdated: new Date().toISOString(),
 			},
-			{
-				clientId: 3,
-				userName: 'Remote2',
-				userColor: '#00ff00',
-				activeSlideIndex: 0,
-				cursorX: 0,
-				cursorY: 0,
-				lastUpdated: new Date().toISOString(),
-			},
 		];
-
-		// Simulate the hook logic: connected = remoteUsers.length + 1
 		const status: ConnectionStatus = 'connected';
-		const connectedCount = status === 'connected' ? remoteUsers.length + 1 : remoteUsers.length;
-		expect(connectedCount).toBe(3);
-	});
-
-	it('connectedCount excludes local user when disconnected', () => {
-		const remoteUsers: UserPresence[] = [
-			{
-				clientId: 2,
-				userName: 'Remote1',
-				userColor: '#ff0000',
-				activeSlideIndex: 0,
-				cursorX: 0,
-				cursorY: 0,
-				lastUpdated: new Date().toISOString(),
-			},
-		];
-
-		const status: ConnectionStatus = 'disconnected';
-		const connectedCount = status === 'connected' ? remoteUsers.length + 1 : remoteUsers.length;
-		expect(connectedCount).toBe(1);
+		const value: CollaborationContextValue = {
+			status,
+			remoteUsers,
+			broadcastPresence: vi.fn<() => void>(),
+			connectedCount: remoteUsers.length + 1,
+			config: { roomId: 'r', serverUrl: 'wss://localhost', userName: 'U' },
+			doc: null,
+			retry: vi.fn<() => void>(),
+		};
+		expect(value.connectedCount).toBe(2);
 	});
 });

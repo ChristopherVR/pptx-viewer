@@ -2,6 +2,7 @@ import {
 	DEFAULT_BROADCAST_SERVER_URL,
 	buildBroadcastViewerUrl,
 	generateBroadcastRoomId,
+	resolveTransportForServerUrl,
 } from 'pptx-viewer-shared';
 /**
  * BroadcastDialog: Modal dialog for starting / managing a live broadcast.
@@ -129,11 +130,14 @@ export function BroadcastDialog({
 		if (!roomId.trim() || !userName.trim()) {
 			return;
 		}
+		const trimmedServer = serverUrl.trim();
 		onStartBroadcast?.({
 			roomId: roomId.trim(),
-			serverUrl: serverUrl.trim(),
+			serverUrl: trimmedServer,
 			userName: userName.trim(),
 			role: 'owner',
+			// A blank server broadcasts over the serverless peer-to-peer transport.
+			transport: resolveTransportForServerUrl(trimmedServer),
 		});
 		// Enter presentation mode after a short delay for connection
 		setTimeout(() => {
@@ -147,8 +151,8 @@ export function BroadcastDialog({
 		onClose();
 	}, [onStopBroadcast, onClose]);
 
-	const canStart =
-		roomId.trim().length > 0 && userName.trim().length > 0 && serverUrl.trim().length > 0;
+	// The server URL is optional: leaving it blank broadcasts peer-to-peer.
+	const canStart = roomId.trim().length > 0 && userName.trim().length > 0;
 
 	if (!open) {
 		return null;
@@ -328,7 +332,7 @@ function StartBroadcastForm({
 			</div>
 
 			<p className='text-[11px] text-muted-foreground/70 leading-relaxed'>
-				{t('pptx.broadcast.hint')}
+				{serverUrl.trim().length === 0 ? t('pptx.broadcast.p2pHint') : t('pptx.broadcast.hint')}
 			</p>
 		</div>
 	);

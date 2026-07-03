@@ -1,8 +1,11 @@
 /**
- * useYjsProvider: Manages the Yjs document and WebSocket provider lifecycle.
+ * useYjsProvider: Manages the Yjs document and provider lifecycle.
  *
- * Creates a Y.Doc and connects via WebSocketProvider to the collaboration
- * server. Exposes connection status and cleanup on unmount.
+ * Creates a Y.Doc and connects via one of two transports:
+ *  - `websocket` (default): WebSocketProvider against `config.serverUrl`.
+ *  - `webrtc`: peer-to-peer WebrtcProvider (no document server); usable from
+ *    static hosting. Same-browser tabs sync over BroadcastChannel.
+ * Exposes connection status and cleanup on unmount.
  *
  * This hook is intentionally thin: it only manages the transport layer.
  * Application-level collaboration logic lives in useCollaborativeState
@@ -13,10 +16,17 @@
 import { CONNECTION_TIMEOUT_MS, isMixedContentBlocked, validateRoomId } from 'pptx-viewer-shared';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Awareness } from 'y-protocols/awareness';
+import type { WebrtcProvider } from 'y-webrtc';
 import type { WebsocketProvider } from 'y-websocket';
 import type { Doc as YDoc } from 'yjs';
 
 import type { CollaborationConfig, ConnectionStatus } from './types';
+
+/**
+ * The two provider transports share only the surface this hook relies on:
+ * an `awareness` instance and a `destroy()` teardown method.
+ */
+type CollabProvider = WebsocketProvider | WebrtcProvider;
 
 // Re-export the upstream type aliases for downstream consumers.
 export type { YDoc, Awareness };
@@ -80,12 +90,71 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 		cleanupRef.current = null;
 	}, []);
 
+	// Build the teardown closure shared by both transports: destroy the
+	// provider + doc and reset all published state.
+	const buildCleanup = useCallback(
+		(provider: CollabProvider, yDoc: YDoc) => () => {
+			provider.destroy();
+			yDoc.destroy();
+			setDoc(null);
+			setAwareness(null);
+			setClientId(null);
+			setStatus('disconnected');
+		},
+		[],
+	);
+
+	const initWebrtc = useCallback(async () => {
+		setStatus('connecting');
+		try {
+			// Dynamic imports: zero bundle cost when unused.
+			const [Y, { WebrtcProvider }] = await Promise.all([import('yjs'), import('y-webrtc')]);
+
+			const yDoc: YDoc = new Y.Doc();
+			// Only pass options that are actually set; y-webrtc applies its own
+			// defaults (public signaling list, no password) when a key is absent.
+			const opts: { signaling?: string[]; password?: string } = {};
+			if (config.signaling && config.signaling.length > 0) {
+				opts.signaling = config.signaling;
+			}
+			if (config.authToken) {
+				opts.password = config.authToken;
+			}
+			const provider = new WebrtcProvider(validateRoomId(config.roomId), yDoc, opts);
+
+			setDoc(yDoc);
+			setAwareness(provider.awareness);
+			setClientId(provider.awareness.clientID);
+			// P2P has no server handshake to await: same-browser tabs meet over
+			// BroadcastChannel immediately, so treat the provider as connected
+			// once created. Late-joiner Y.Doc sync fills in the document.
+			setStatus('connected');
+
+			cleanupRef.current = buildCleanup(provider, yDoc);
+		} catch (err) {
+			console.warn(
+				'[pptx-viewer] WebRTC collaboration packages not available:',
+				err instanceof Error ? err.message : err,
+			);
+			setStatus('error');
+		}
+	}, [config.roomId, config.authToken, config.signaling, buildCleanup]);
+
 	const init = useCallback(async () => {
-		// Clean up any previous connection before starting a new one
+		// Clean up any previous connection before starting a new one.
+		// y-webrtc throws if the same room is opened twice in one page, so the
+		// previous provider must be destroyed before creating the next.
 		teardown();
 
 		// Validate room ID before connecting
 		const roomId = validateRoomId(config.roomId);
+
+		// Serverless peer-to-peer transport: no server URL, no mixed-content
+		// concern (WebRTC signaling is wss://), no connection timeout.
+		if (config.transport === 'webrtc') {
+			await initWebrtc();
+			return;
+		}
 
 		// Fail fast on mixed content: an https page cannot open a ws:// socket.
 		// Surface the error immediately rather than hanging until the timeout.
@@ -171,7 +240,7 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 			);
 			setStatus('error');
 		}
-	}, [config.roomId, config.serverUrl, config.authToken, teardown]);
+	}, [config.roomId, config.serverUrl, config.authToken, config.transport, initWebrtc, teardown]);
 
 	useEffect(() => {
 		init();

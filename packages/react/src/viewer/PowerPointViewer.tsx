@@ -20,7 +20,7 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
  * applications can call `getContent()` to retrieve the current file bytes.
  */
 import { openPptxFile } from 'pptx-viewer-shared';
-import { forwardRef, useCallback, useEffect, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
 
 import { ViewerThemeProvider, useThemeStyle } from '../theme';
 // Components
@@ -37,6 +37,7 @@ import {
 	CollaborationProvider,
 	useCollaboration,
 	CollaborationStatusIndicator,
+	FollowModeBar,
 } from './components/collaboration';
 import { SmartArt3DContext } from './components/elements/smart-art-3d-context';
 import { MobileChromeOverlay } from './components/mobile/MobileChromeOverlay';
@@ -45,7 +46,8 @@ import { ViewerDialogGroup } from './components/ViewerDialogGroup';
 import { ViewerMainContent } from './components/ViewerMainContent';
 import { ViewerPresentationLayer } from './components/ViewerPresentationLayer';
 import { ViewerToolbarSection } from './components/ViewerToolbarSection';
-import { useYjsDocumentSync, useBroadcastFollower } from './hooks/collaboration';
+import { useYjsDocumentSync, useBroadcastFollower, useFollowMode } from './hooks/collaboration';
+import type { CollaborationConfig } from './hooks/collaboration';
 import { useDerivedSlideState } from './hooks/useDerivedSlideState';
 import { useEditorHistory } from './hooks/useEditorHistory';
 import { useEditorOperations } from './hooks/useEditorOperations';
@@ -639,8 +641,10 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 								slides={slides}
 								templateElementsBySlideId={templateElementsBySlideId}
 								setSlides={state.setSlides}
+								config={collaboration}
+								content={content}
 							/>
-							<BroadcastFollowerSync
+							<CollaborationFollowLayer
 								activeSlideIndex={activeSlideIndex}
 								setActiveSlideIndex={state.setActiveSlideIndex}
 								slideCount={slides.length}
@@ -688,27 +692,49 @@ function CollaborationDocumentSync({
 	slides,
 	templateElementsBySlideId,
 	setSlides,
+	config,
+	content,
 }: {
 	slides: PptxSlide[];
 	templateElementsBySlideId: Record<string, PptxElement[]>;
 	setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
+	config?: CollaborationConfig;
+	content: ArrayBuffer | Uint8Array | null;
 }) {
 	const collab = useCollaboration();
+	// Retain the loaded source bytes so the elected writer (role 'owner') can
+	// re-serialize a durable PPTX snapshot for `onWriteBack`. A ref keeps the
+	// latest buffer without re-subscribing the sync effect on every edit.
+	const contentRef = useRef(content);
+	contentRef.current = content;
+	const getSourceBytes = useCallback((): Uint8Array | null => {
+		const bytes = contentRef.current;
+		if (!bytes) {
+			return null;
+		}
+		return bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+	}, []);
+
 	useYjsDocumentSync({
 		doc: collab?.doc ?? null,
 		slides,
 		templateElementsBySlideId,
 		setSlides,
 		isConnected: collab?.status === 'connected',
+		config,
+		getSourceBytes,
 	});
 	return null;
 }
 
 /**
- * Auto-follows the broadcaster's active slide when the local user is a viewer.
+ * Follow-mode layer: renders the manual {@link FollowModeBar} (click a peer to
+ * mirror their active slide) and keeps the one-way broadcast auto-follow alive.
+ * Manual follow takes precedence: while the local user is following a peer, the
+ * broadcaster auto-follow stands down so the two do not fight over navigation.
  * Must be rendered inside a `CollaborationProvider`.
  */
-function BroadcastFollowerSync({
+function CollaborationFollowLayer({
 	activeSlideIndex,
 	setActiveSlideIndex,
 	slideCount,
@@ -718,11 +744,32 @@ function BroadcastFollowerSync({
 	slideCount: number;
 }) {
 	const collab = useCollaboration();
-	useBroadcastFollower({
+	const { followedClientId, followUser } = useFollowMode({
 		collab,
 		activeSlideIndex,
 		setActiveSlideIndex,
 		slideCount,
 	});
-	return null;
+	useBroadcastFollower({
+		collab,
+		activeSlideIndex,
+		setActiveSlideIndex,
+		slideCount,
+		paused: followedClientId !== null,
+	});
+
+	if (!collab) {
+		return null;
+	}
+	return (
+		<div className='pointer-events-none fixed inset-x-0 top-2 z-[1100] flex justify-center px-2'>
+			<div className='pointer-events-auto'>
+				<FollowModeBar
+					presences={collab.remoteUsers}
+					followedClientId={followedClientId}
+					onFollow={followUser}
+				/>
+			</div>
+		</div>
+	);
 }
