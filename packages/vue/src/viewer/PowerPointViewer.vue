@@ -12,7 +12,7 @@
  *  - function-prop callbacks → emits ({@link PowerPointViewerEmits}).
  *  - `theme` context      → `provideViewerTheme` + `useThemeStyle`.
  */
-import { cloneElement, createEditorId, updateSmartArtNodeText } from 'pptx-viewer-core';
+import { cloneElement, createEditorId } from 'pptx-viewer-core';
 import type { PptxElement, PptxSaveFormat, PptxSlide } from 'pptx-viewer-core';
 import { isTemplateElementId, openPptxFile, strokeToInkElement } from 'pptx-viewer-shared';
 import { computed, provide, ref, toRef, watch } from 'vue';
@@ -76,10 +76,6 @@ import ThemeGallery from './components/ThemeGallery.vue';
 import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
 import { FieldContextKey, resolveSlideTitle } from './composables/field-context';
 import { SmartArt3DKey } from './composables/smart-art-3d';
-import { SmartArtNodeEditKey } from './composables/smartart-node-edit';
-import { TableCellEditKey } from './composables/table-edit';
-import type { TableSelectionState } from './composables/table-selection';
-import { provideTableSelection } from './composables/table-selection';
 import { TableThemeKey } from './composables/table-theme';
 import { buildSaveSlides, isElementIdInteractive } from './composables/template-editing';
 import { useAccessibility } from './composables/useAccessibility';
@@ -122,6 +118,8 @@ import { useSignatureWorkflow } from './composables/useSignatureWorkflow';
 import { useSlideMutations } from './composables/useSlideMutations';
 import { useSlideOperations } from './composables/useSlideOperations';
 import { useSlideShowSettings } from './composables/useSlideShowSettings';
+import { useSmartArtNodeEditContext } from './composables/useSmartArtNodeEditContext';
+import { useTableCellEditingContext } from './composables/useTableCellEditingContext';
 import { useThemeEditing } from './composables/useThemeEditing';
 import { useTouchGestures } from './composables/useTouchGestures';
 import { useVersionHistoryWiring } from './composables/useVersionHistoryWiring';
@@ -235,75 +233,27 @@ provide(FieldContextKey, () => {
 	};
 });
 
-// Inline table-cell editing context for `TableRenderer` (double-tap a cell ->
-// inline input -> commit). The closures run post-setup, so referencing the
-// later-declared `ops`/`presenting`/`commitTableCell` is safe.
-provide(TableCellEditKey, {
-	canEdit: () => props.canEdit && !presenting.value,
-	commit: (elementId: string, rowIndex: number, colIndex: number, text: string) =>
+// Inline table-cell editing + table cell selection/resize contexts for
+// `TableRenderer` / `TablePanel`. Dependencies that don't exist yet at this
+// point in setup (`ops`, `presenting`, `commitTableCell`) are passed as
+// wrapper closures, deferred until actually called (same forward-reference
+// pattern used throughout this component).
+const { tableSelection } = useTableCellEditingContext({
+	canEdit: () => props.canEdit,
+	canEditInline: () => props.canEdit && !presenting.value,
+	findActiveElement,
+	updateElement: (id, patch) => ops.updateElement(id, patch),
+	commitTableCell: (elementId, rowIndex, colIndex, text) =>
 		commitTableCell(elementId, rowIndex, colIndex, text),
 });
 
-// Table cell selection + drag-resize context for `TableRenderer` / `TablePanel`.
-// The reactive selection drives the inspector's cell formatting + merge-aware
-// structural ops and the canvas highlight; resize callbacks commit new column
-// widths / row heights through the history-tracked editor op. Closures run
-// post-setup, so referencing `ops` / `findActiveElement` here is safe.
-const tableSelection = ref<TableSelectionState | null>(null);
-function resizeTableColumns(elementId: string, widths: number[]): void {
-	const el = findActiveElement(elementId);
-	if (!props.canEdit || !el || el.type !== 'table' || !el.tableData) {
-		return;
-	}
-	ops.updateElement(elementId, {
-		tableData: { ...el.tableData, columnWidths: widths },
-	} as Partial<PptxElement>);
-}
-function resizeTableRow(elementId: string, rowIndex: number, height: number): void {
-	const el = findActiveElement(elementId);
-	if (!props.canEdit || !el || el.type !== 'table' || !el.tableData) {
-		return;
-	}
-	const rows = el.tableData.rows.map((r, i) => (i === rowIndex ? { ...r, height } : r));
-	ops.updateElement(elementId, { tableData: { ...el.tableData, rows } } as Partial<PptxElement>);
-}
-provideTableSelection({
-	selection: tableSelection,
-	select: (next) => {
-		tableSelection.value = next;
-	},
-	resizeColumns: resizeTableColumns,
-	resizeRow: resizeTableRow,
-});
-
-// Inline SmartArt node-text and per-node fill editing context.
-// Mirrors the TableCellEditKey pattern above. Closures run post-setup,
-// so referencing the later-declared `ops`, `presenting`, and
-// `findActiveElement` is safe.
-provide(SmartArtNodeEditKey, {
-	canEdit: () => props.canEdit && !presenting.value,
-	commit: (elementId: string, nodeId: string, text: string): void => {
-		if (!props.canEdit) {
-			return;
-		}
-		const el = findActiveElement(elementId);
-		if (!el || el.type !== 'smartArt') {
-			return;
-		}
-		const data = el.smartArtData;
-		if (!data) {
-			return;
-		}
-		ops.updateElement(elementId, {
-			smartArtData: updateSmartArtNodeText(data, nodeId, text),
-		} as Partial<PptxElement>);
-	},
-	commitStyle: (elementId: string, patch: Partial<PptxElement>): void => {
-		if (!props.canEdit) {
-			return;
-		}
-		ops.updateElement(elementId, patch);
-	},
+// Inline SmartArt node-text and per-node fill editing context. Mirrors the
+// table-cell context above (same forward-reference / wrapper-closure pattern).
+useSmartArtNodeEditContext({
+	canEdit: () => props.canEdit,
+	canEditInline: () => props.canEdit && !presenting.value,
+	findActiveElement,
+	updateElement: (id, patch) => ops.updateElement(id, patch),
 });
 
 // Inject embedded fonts as @font-face (side effect; auto-cleaned on unmount).
