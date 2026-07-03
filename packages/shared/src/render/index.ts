@@ -471,6 +471,11 @@ export * from './accessibility-issues';
 export * from './accessibility';
 // Freehand ink: points -> SVG path `d`, completed-stroke -> `InkPptxElement`.
 export * from './ink-drawing';
+// Ink rendering maths: SVG-path point extraction, pressure-sensitive circle
+// generation (per-point pressure/width -> variable-width stroke), and replay
+// (stroke-dashoffset reveal) animation styles. Pure; each binding renders the
+// resulting circles/paths. React + Vue + Angular ink renderers consume this.
+export * from './ink-rendering';
 // Mobile chrome sheet state machine + bottom-bar action descriptors.
 export * from './mobile-chrome';
 // Gradient-picker editor model: read `GradientState` off an element + build

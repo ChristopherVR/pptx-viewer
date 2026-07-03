@@ -50,4 +50,53 @@ describe('inkRenderer', () => {
 		});
 		expect(wrapper.find('svg').exists()).toBeFalsy();
 	});
+
+	it('renders pressure-sensitive circles when inkPointPressures vary', () => {
+		const wrapper = mount(InkRenderer, {
+			props: {
+				element: ink({
+					inkPaths: ['M0 0 L50 0 L100 0'],
+					inkColors: ['#ff0000'],
+					inkWidths: [3],
+					inkOpacities: [1],
+					inkPointPressures: [[0.2, 0.6, 0.9]],
+				}),
+				zIndex: 1,
+			},
+		});
+		// No plain <path> for the pressure stroke; a <g> of <circle>s instead.
+		expect(wrapper.findAll('path')).toHaveLength(0);
+		const circles = wrapper.findAll('circle');
+		expect(circles).toHaveLength(3);
+		expect(circles[0].attributes('fill')).toBe('#ff0000');
+		// Higher pressure at the end yields a larger radius than the start.
+		const r0 = parseFloat(circles[0].attributes('r') ?? '0');
+		const r2 = parseFloat(circles[2].attributes('r') ?? '0');
+		expect(r2).toBeGreaterThan(r0);
+	});
+
+	it('keeps per-path strokes as plain paths (per-path widths are not pressure)', () => {
+		const wrapper = mount(InkRenderer, {
+			props: { element: ink(), zIndex: 1 },
+		});
+		expect(wrapper.findAll('path')).toHaveLength(2);
+		expect(wrapper.findAll('circle')).toHaveLength(0);
+	});
+
+	it('treats uniform inkPointPressures as a plain constant-width path', () => {
+		const wrapper = mount(InkRenderer, {
+			props: {
+				element: ink({
+					inkPaths: ['M0 0 L50 0 L100 0'],
+					inkColors: ['#0000ff'],
+					inkWidths: [3],
+					inkOpacities: [1],
+					inkPointPressures: [[0.5, 0.5, 0.5]],
+				}),
+				zIndex: 1,
+			},
+		});
+		expect(wrapper.findAll('path')).toHaveLength(1);
+		expect(wrapper.findAll('circle')).toHaveLength(0);
+	});
 });

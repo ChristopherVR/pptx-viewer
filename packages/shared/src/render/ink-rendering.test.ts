@@ -422,7 +422,7 @@ describe('iNK_REPLAY_KEYFRAMES', () => {
 	});
 
 	it('should be a valid @keyframes block', () => {
-		expect(INK_REPLAY_KEYFRAMES).toMatch(/^@keyframes\s+\S+\s*\{/);
+		expect(INK_REPLAY_KEYFRAMES).toMatch(/^@keyframes\s+\S+\s*\{/u);
 		expect(INK_REPLAY_KEYFRAMES).toContain('from');
 		expect(INK_REPLAY_KEYFRAMES).toContain('to');
 	});
