@@ -14,7 +14,6 @@
  */
 import { cloneElement, createEditorId, updateSmartArtNodeText } from 'pptx-viewer-core';
 import type { PptxElement, PptxSaveFormat, PptxSlide } from 'pptx-viewer-core';
-import type { DistributeAxis } from 'pptx-viewer-shared';
 import {
 	downloadBlob,
 	isTemplateElementId,
@@ -61,12 +60,6 @@ import PasswordProtectionDialog from './components/PasswordProtectionDialog.vue'
 import PresentationMode from './components/PresentationMode.vue';
 import PrintDialog from './components/PrintDialog.vue';
 import RemoteSelectionOverlay from './components/RemoteSelectionOverlay.vue';
-import type {
-	DrawingTool,
-	RibbonProps,
-	SupportedShapeType,
-	ToolbarSection,
-} from './components/ribbon/ribbon-types';
 import RibbonToolbar from './components/ribbon/RibbonToolbar.vue';
 import SectionList from './components/SectionList.vue';
 import SelectionOverlay from './components/SelectionOverlay.vue';
@@ -127,7 +120,8 @@ import { useMultiSelectOps } from './composables/useMultiSelectOps';
 import { usePasswordProtection } from './composables/usePasswordProtection';
 import type { SlideAnnotationMap } from './composables/usePresentationAnnotations';
 import { usePrint } from './composables/usePrint';
-import { RIBBON_ALIGN, toShapePreset, useRibbonActions } from './composables/useRibbonActions';
+import { useRibbonActions } from './composables/useRibbonActions';
+import { useRibbonProps } from './composables/useRibbonProps';
 import { useRibbonUiState } from './composables/useRibbonUiState';
 import { useSectionOperations } from './composables/useSectionOperations';
 import { useSelectionPaneWiring } from './composables/useSelectionPaneWiring';
@@ -1260,243 +1254,108 @@ const { ribbonMode, activeTableSelection, ribbonUpdateTextStyle, ribbonFlip, rib
 		ops,
 	});
 
-const ribbonProps = computed<RibbonProps>(() => ({
-	mode: ribbonMode.value,
-	canEdit: props.canEdit,
-	isNarrowViewport: isMobile.value,
-	isSidebarCollapsed: sidebarCollapsed.value,
-	isInspectorPaneOpen: inspectorOpen.value,
-	isCompactToolbarOpen: ribbonExpanded.value,
-	toolbarSection: toolbarSection.value,
-	scale: zoom.value,
-	canUndo: history.canUndo.value,
-	canRedo: history.canRedo.value,
-	undoLabel: undefined,
-	redoLabel: undefined,
-	findReplaceOpen: findOpen.value,
-	selectedElement: selectedElements.value[0] ?? null,
-	tableEditorState: activeTableSelection.value,
-	editTemplateMode: editTemplateMode.value,
-	newShapeType: newShapeType.value,
-	activeTool: activeTool.value,
-	drawingColor: drawingColor.value,
-	drawingWidth: drawingWidth.value,
-	clipboardPayload: clipboard.value ? { kind: 'element' } : null,
-	spellCheckEnabled: spellCheckEnabled.value,
-	showGrid: showGrid.value,
-	showRulers: showRulers.value,
-	snapToGrid: snapToGrid.value,
-	snapToShape: snapToShape.value,
-	isOverflowMenuOpen: overflowOpen.value,
-	layoutOptions: layoutOptions.value,
-	customShows: customShows.value,
-	activeCustomShowId: activeCustomShowId.value,
-	isCurrentSlideInActiveShow: isCurrentSlideInActiveShow.value,
-	hasMacros: false,
-	isThemeEditorOpen: themeEditorOpen.value,
-	isThemeGalleryOpen: themeGalleryOpen.value,
-	isCommentsPanelOpen: showComments.value,
-	slideCommentCount: activeComments.value.length,
-	formatPainterActive: formatPainterActive.value,
-	canActivateFormatPainter: canActivateFormatPainter.value,
-	isSelectionPaneOpen: showSelectionPane.value,
-	eyedropperActive: false,
-	showSubtitles: showSubtitles.value,
-	activeSlide: activeSlide.value,
-
-	onSetMode: (m) => {
-		if (m === 'present') {
-			startPresenting();
-		} else {
-			presenting.value = false;
-		}
-	},
-	onToggleSidebar: () => {
-		sidebarCollapsed.value = !sidebarCollapsed.value;
-	},
-	onToggleInspector: () => {
-		inspectorOpen.value = !inspectorOpen.value;
-	},
-	onOpenAnimationPanel: () => {
-		toolbarSection.value = 'animations';
-	},
+const ribbonProps = useRibbonProps({
+	ribbonMode,
+	canEdit: () => props.canEdit,
+	isMobile,
+	sidebarCollapsed,
+	inspectorOpen,
+	ribbonExpanded,
+	toolbarSection,
+	zoom,
+	canUndo: history.canUndo,
+	canRedo: history.canRedo,
+	findOpen,
+	selectedElements,
+	activeTableSelection,
+	editTemplateMode,
+	newShapeType,
+	activeTool,
+	drawingColor,
+	drawingWidth,
+	clipboard,
+	spellCheckEnabled,
+	showGrid,
+	showRulers,
+	snapToGrid,
+	snapToShape,
+	overflowOpen,
+	layoutOptions,
+	customShows,
+	activeCustomShowId,
+	isCurrentSlideInActiveShow,
+	themeEditorOpen,
+	themeGalleryOpen,
+	showComments,
+	activeComments,
+	formatPainterActive,
+	canActivateFormatPainter,
+	showSelectionPane,
+	showSubtitles,
+	activeSlide,
+	presenting,
+	canDistribute,
+	shareOpen,
+	showShortcuts,
+	showSettings,
+	showA11y,
+	showSorter,
+	showCustomShows,
+	showVersionHistory,
+	showPasswordDialog,
+	propertiesOpen,
+	showFontEmbedding,
+	showSignatures,
+	showMasterView,
+	showSetUpSlideShow,
+	broadcastOpen,
+	showInsertSmartArt,
+	showEquationEditor,
+	startPresenting,
 	onAddAnimation,
 	onRemoveAnimation,
-	onToggleCompactToolbar: () => {
-		ribbonExpanded.value = !ribbonExpanded.value;
-	},
-	onSetToolbarSection: (sec) => {
-		toolbarSection.value = sec;
-	},
-	onZoomIn: zoomIn,
-	onZoomOut: zoomOut,
-	onZoomToFit: zoomReset,
-	onUndo: history.undo,
-	onRedo: history.redo,
-	onToggleFindReplace: () => {
-		findOpen.value = !findOpen.value;
-	},
-	onSetNewShapeType: (t) => {
-		newShapeType.value = t;
-	},
-	onAddTextBox: addText,
-	onAddShape: () => addShape(toShapePreset(newShapeType.value)),
-	onAddTable: addTable,
-	onAddChart: addChart,
-	onAddSmartArt: () => {
-		showInsertSmartArt.value = true;
-	},
-	onAddEquation: () => {
-		showEquationEditor.value = true;
-	},
-	onAddActionButton: addActionButton,
-	onInsertField: undefined,
-	onOpenImagePicker: openImagePicker,
-	onOpenMediaPicker: openMediaPicker,
-	onSetActiveTool: (t) => {
-		activeTool.value = t;
-	},
-	onSetDrawingColor: (c) => {
-		drawingColor.value = c;
-	},
-	onSetDrawingWidth: (w) => {
-		drawingWidth.value = w;
-	},
-	onSetEditTemplateMode: (mode: boolean) => {
-		editTemplateMode.value = mode;
-	},
-	onSetSpellCheckEnabled: (enabled) => {
-		spellCheckEnabled.value = enabled;
-	},
-	onSetShowGrid: (enabled) => {
-		showGrid.value = enabled;
-	},
-	onSetShowRulers: (enabled) => {
-		showRulers.value = enabled;
-	},
-	onSetSnapToGrid: (enabled) => {
-		snapToGrid.value = enabled;
-	},
-	onSetSnapToShape: (enabled) => {
-		snapToShape.value = enabled;
-	},
-	onAddGuide: addGuide,
-	onAlignElements: (edge) => {
-		const e = RIBBON_ALIGN[edge];
-		if (e) {
-			onAlign(e);
-		}
-	},
-	onDistributeElements: (axis) => {
-		if (axis === 'horizontal' || axis === 'vertical') {
-			onDistribute(axis as DistributeAxis);
-		}
-	},
-	canDistribute: canDistribute.value,
-	onCopy: copySelected,
-	onCut: cutSelected,
-	onPaste: pasteElement,
-	onFlip: ribbonFlip,
-	onMoveLayer: (dir) => {
-		if (dir === 'forward' || dir === 'up' || dir === 'front') {
-			bringForward();
-		} else {
-			sendBackward();
-		}
-	},
-	onMoveLayerToEdge: ribbonMoveToEdge,
-	onDuplicate: duplicateSelected,
-	onDelete: deleteSelected,
-	onOpenFile: handleOpenFile,
+	zoomIn,
+	zoomOut,
+	zoomReset,
+	undo: history.undo,
+	redo: history.redo,
+	addText,
+	addShape,
+	addTable,
+	addChart,
+	addActionButton,
+	openImagePicker,
+	openMediaPicker,
+	addGuide,
+	onAlign,
+	onDistribute,
+	copySelected,
+	cutSelected,
+	pasteElement,
+	ribbonFlip,
+	bringForward,
+	sendBackward,
+	ribbonMoveToEdge,
+	duplicateSelected,
+	deleteSelected,
+	handleOpenFile,
 	onExportPng,
 	onExportPdf,
-	onExportVideo: onExportWebm,
+	onExportWebm,
 	onExportGif,
-	onPackageForSharing: () => {
-		shareOpen.value = true;
-	},
-	onOpenShareDialog: () => {
-		shareOpen.value = true;
-	},
-	onSaveAsPptx: () => void downloadAs('pptx'),
-	onSaveAsPpsx: () => void downloadAs('ppsx'),
-	onSaveAsPptm: () => void downloadAs('pptm'),
-	onCopySlideAsImage: () => void onCopySlideAsImage(),
-	onPrint: printer.openPrintDialog,
-	onToggleShortcuts: () => {
-		showShortcuts.value = !showShortcuts.value;
-	},
-	onOpenSettings: () => {
-		showSettings.value = true;
-	},
-	onRunAccessibilityCheck: () => {
-		showA11y.value = true;
-	},
-	onToggleSlideSorter: () => {
-		showSorter.value = true;
-	},
-	onUpdateTextStyle: ribbonUpdateTextStyle,
-	onSetOverflowMenuOpen: (o) => {
-		overflowOpen.value = o;
-	},
-	onInsertSlideFromLayout: (path, name) => void insertSlideFromLayout(path, name),
-	onSetActiveCustomShowId: (id) => {
-		activeCustomShowId.value = id;
-	},
-	onCreateCustomShow: () => {
-		showCustomShows.value = true;
-	},
+	downloadAs,
+	onCopySlideAsImage,
+	openPrintDialog: printer.openPrintDialog,
+	ribbonUpdateTextStyle,
+	insertSlideFromLayout,
 	onRenameActiveCustomShow,
 	onDeleteActiveCustomShow,
 	onToggleCurrentSlideInActiveShow,
-	onToggleVersionHistory: () => {
-		showVersionHistory.value = true;
-	},
-	onOpenPasswordProtection: () => {
-		showPasswordDialog.value = true;
-	},
-	onOpenDocumentProperties: () => {
-		propertiesOpen.value = true;
-	},
-	onOpenFontEmbedding: () => {
-		showFontEmbedding.value = true;
-	},
-	onOpenDigitalSignatures: () => {
-		showSignatures.value = true;
-	},
-	onEnterMasterView: () => {
-		showMasterView.value = true;
-	},
-	onCloseMasterView: () => {
-		showMasterView.value = false;
-	},
-	onEnterPresenterView: undefined,
-	onEnterRehearsalMode: undefined,
-	onToggleThemeEditor: () => {
-		themeEditorOpen.value = !themeEditorOpen.value;
-	},
-	onToggleThemeGallery: () => {
-		themeGalleryOpen.value = !themeGalleryOpen.value;
-	},
-	onCompare: undefined,
-	onToggleComments: () => {
-		showComments.value = !showComments.value;
-	},
-	onToggleFormatPainter: toggleFormatPainter,
-	onToggleSelectionPane: () => {
-		showSelectionPane.value = !showSelectionPane.value;
-	},
-	onToggleEyedropper: undefined,
-	onOpenSetUpSlideShow: () => {
-		showSetUpSlideShow.value = true;
-	},
-	onOpenBroadcastDialog: () => {
-		broadcastOpen.value = true;
-	},
+	toggleFormatPainter,
 	onToggleSubtitles,
 	onTransitionChange,
 	onApplyTransitionToAll,
-}));
+});
 
 // ── Imperative surface (mirrors the React forwardRef handle) ──────────
 defineExpose<PowerPointViewerExpose>({ getContent });
