@@ -36,7 +36,6 @@ import {
 	downloadBlob,
 	isTemplateElementId,
 	openPptxFile,
-	setCellText,
 	strokeToInkElement,
 } from 'pptx-viewer-shared';
 import { computed, nextTick, provide, ref, toRef, watch } from 'vue';
@@ -108,13 +107,6 @@ import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
 import { DEFAULT_VIEWER_SETTINGS } from './components/viewer-settings';
 import type { ViewerSettings } from './components/viewer-settings';
 import { FieldContextKey, resolveSlideTitle } from './composables/field-context';
-import {
-	applyFormatToElement,
-	copyFormatFromElement,
-	hasCopyableFormat,
-} from './composables/format-painter';
-import type { CopiedFormat } from './composables/format-painter';
-import { remapTextToSegments } from './composables/remap-text';
 import { compareSlides } from './composables/slide-compare';
 import type { CompareResult } from './composables/slide-compare';
 import { SmartArt3DKey } from './composables/smart-art-3d';
@@ -143,6 +135,8 @@ import { useEmbeddedFonts } from './composables/useEmbeddedFonts';
 import { useExport } from './composables/useExport';
 import { useExportProgress } from './composables/useExportProgress';
 import { useFindReplace } from './composables/useFindReplace';
+import { useFormatPainter } from './composables/useFormatPainter';
+import { useInlineEditing } from './composables/useInlineEditing';
 import { useIsMobile } from './composables/useIsMobile';
 import { useKeyboardInsets } from './composables/useKeyboardInsets';
 import { useKeyboardShortcuts } from './composables/useKeyboardShortcuts';
@@ -273,10 +267,11 @@ provide(FieldContextKey, () => {
 
 // Inline table-cell editing context for `TableRenderer` (double-tap a cell ->
 // inline input -> commit). The closures run post-setup, so referencing the
-// later-declared `ops`/`presenting` is safe.
+// later-declared `ops`/`presenting`/`commitTableCell` is safe.
 provide(TableCellEditKey, {
 	canEdit: () => props.canEdit && !presenting.value,
-	commit: commitTableCell,
+	commit: (elementId: string, rowIndex: number, colIndex: number, text: string) =>
+		commitTableCell(elementId, rowIndex, colIndex, text),
 });
 
 // Table cell selection + drag-resize context for `TableRenderer` / `TablePanel`.
@@ -519,29 +514,28 @@ function clearSelection(): void {
 }
 
 // ── Format painter ────────────────────────────────────────────────────
-// Arm by copying the selected element's format; the next element click applies
-// it. Escape or an empty-canvas click cancels (mirrors React's painter).
-const formatPainterActive = ref(false);
-const copiedFormat = ref<CopiedFormat | null>(null);
-const canActivateFormatPainter = computed(
-	() => selectedElements.value.length === 1 && hasCopyableFormat(selectedElements.value[0]),
-);
-function toggleFormatPainter(): void {
-	if (formatPainterActive.value) {
-		cancelFormatPainter();
-		return;
-	}
-	const source = selectedElements.value[0];
-	if (!source || !hasCopyableFormat(source)) {
-		return;
-	}
-	copiedFormat.value = copyFormatFromElement(source);
-	formatPainterActive.value = true;
-}
-function cancelFormatPainter(): void {
-	formatPainterActive.value = false;
-	copiedFormat.value = null;
-}
+const {
+	formatPainterActive,
+	canActivateFormatPainter,
+	toggleFormatPainter,
+	cancelFormatPainter,
+	applyFormatToTarget,
+} = useFormatPainter({ selectedElements, findActiveElement, ops });
+
+// ── Inline text editing ───────────────────────────────────────────────
+// Entered by tapping an already-selected element (SelectionOverlay emits
+// `requestEdit`). Commits on blur, on selecting another element, or on an
+// empty-canvas tap; the typed text is remapped back onto the rich segments.
+const {
+	inlineEditingElementId,
+	inlineEditingText,
+	inlineEditingElement,
+	enterInlineEdit,
+	commitInlineEdit,
+	cancelInlineEdit,
+	commitTableCell,
+} = useInlineEditing({ canEdit: () => props.canEdit, findActiveElement, ops });
+
 /** Escape: disarm the painter first, otherwise clear the selection. */
 function onEscape(): void {
 	if (inlineEditingElementId.value) {
@@ -553,91 +547,6 @@ function onEscape(): void {
 		return;
 	}
 	clearSelection();
-}
-
-// ── Inline text editing ───────────────────────────────────────────────
-// Entered by tapping an already-selected element (SelectionOverlay emits
-// `requestEdit`). Commits on blur, on selecting another element, or on an
-// empty-canvas tap; the typed text is remapped back onto the rich segments.
-const inlineEditingElementId = ref<string | null>(null);
-const inlineEditingText = ref('');
-const inlineEditingElement = computed<PptxElement | undefined>(() =>
-	inlineEditingElementId.value ? findActiveElement(inlineEditingElementId.value) : undefined,
-);
-function enterInlineEdit(id: string): void {
-	const el = findActiveElement(id);
-	// Only elements that carry text (text boxes / shapes) get the element-level
-	// inline text editor, and only when text editing is not locked. Mirrors
-	// React's gate (useCanvasInteractions: `hasTextProperties(el) &&
-	// !el.locks?.noTextEdit`). Without this, tapping a selected table opened the
-	// whole-table text editor and masked the per-cell <td> editor.
-	if (!el || !hasTextProperties(el) || el.locks?.noTextEdit) {
-		return;
-	}
-	inlineEditingElementId.value = id;
-	inlineEditingText.value = (el as { text?: string }).text ?? '';
-}
-function commitInlineEdit(): void {
-	const id = inlineEditingElementId.value;
-	if (!id) {
-		return;
-	}
-	const el = findActiveElement(id) as
-		| (PptxElement & { textSegments?: unknown; textStyle?: unknown })
-		| undefined;
-	const text = inlineEditingText.value;
-	inlineEditingElementId.value = null;
-	if (el) {
-		const segments = remapTextToSegments(
-			text,
-			(el.textSegments as Parameters<typeof remapTextToSegments>[1]) ?? undefined,
-			(el.textStyle as Parameters<typeof remapTextToSegments>[2]) ?? undefined,
-		);
-		ops.updateElement(id, { text, textSegments: segments } as Partial<PptxElement>);
-	}
-}
-function cancelInlineEdit(): void {
-	inlineEditingElementId.value = null;
-}
-/**
- * Commit an inline table-cell edit: resolve the table element, apply the
- * immutable `setCellText` update, and record it through the history-tracked
- * editor op so undo/redo works (mirrors React/Angular cell-commit handlers).
- */
-function commitTableCell(
-	elementId: string,
-	rowIndex: number,
-	colIndex: number,
-	text: string,
-): void {
-	if (!props.canEdit) {
-		return;
-	}
-	const el = findActiveElement(elementId);
-	if (!el || el.type !== 'table') {
-		return;
-	}
-	const updated = setCellText(el, rowIndex, colIndex, text);
-	ops.updateElement(elementId, { tableData: updated.tableData } as Partial<PptxElement>);
-}
-/** Apply the copied format to a target element (shape/text style only). */
-function applyFormatToTarget(id: string): void {
-	const format = copiedFormat.value;
-	const target = findActiveElement(id);
-	if (!format || !target) {
-		return;
-	}
-	const updated = applyFormatToElement(target, format) as unknown as Record<string, unknown>;
-	const patch: Record<string, unknown> = {};
-	if (format.shapeStyle && updated.shapeStyle !== undefined) {
-		patch.shapeStyle = updated.shapeStyle;
-	}
-	if (format.textStyle && updated.textStyle !== undefined) {
-		patch.textStyle = updated.textStyle;
-	}
-	if (Object.keys(patch).length > 0) {
-		ops.updateElement(id, patch as Partial<PptxElement>);
-	}
 }
 
 /** Click-to-select via event delegation (elements render `data-element-id`). */
