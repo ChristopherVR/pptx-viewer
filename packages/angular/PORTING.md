@@ -157,46 +157,45 @@ The remaining items are **quality/refactor debts, cosmetic polish, and two
 small rendering-depth gaps, not broad behavioural gaps** - Angular is at
 functional parity (28/0 e2e, the same shared specs React passes).
 
-> **Audit correction (2026-07-03):** a parity re-check found item 2 below
-> (shared-logic extraction) is already **CLOSED** and stale in this doc: all
-> nine named modules (`format-painter`, `omml-to-mathml`,
-> `color-gradient`/`color-patterns`, `visual-effects`, `shape-geometry`,
-> `text-bullets`, `ink-drawing-helpers`, `snap-guides`) are thin re-export
-> shims into `pptx-viewer-shared` in all three bindings - no duplicated logic
-> remains. Item 1's LOC estimate was also understated; corrected below. Two
-> real rendering-depth gaps (pressure-sensitive ink, connector compound
-> lines/caps) and a real behavioural gap (media playback) surfaced during the
-> same audit and are added below as items 4-6. The `&amp;` double-encoding
-> note that used to sit at the bottom of this file was fixed in core (commit
-> 3c86556) and has been removed.
+> **Audit + fix pass (2026-07-03):** a parity re-check found item 2 below
+> (shared-logic extraction) already **closed** and stale: all nine named
+> modules (`format-painter`, `omml-to-mathml`, `color-gradient`/
+> `color-patterns`, `visual-effects`, `shape-geometry`, `text-bullets`,
+> `ink-drawing-helpers`, `snap-guides`) are thin re-export shims into
+> `pptx-viewer-shared` in all three bindings - no duplicated logic remains.
+> Three real gaps found in the same audit (pressure-sensitive ink, connector
+> compound lines/caps, media playback) were then fixed: **ink** now renders
+> true variable-width strokes (commit `c99807f`), **connectors** render
+> compound double/triple lines and line caps via new shared
+> `connector-style.ts`/`connector-path.ts` helpers (commit `44176f6`), and
+> **media** elements play back real `<video>`/`<audio>` via a new
+> `media-renderer.component.ts` (commit `bca9960`). Item 1's file-size debt
+> also got a partial pass: `ribbon.component.ts` 1978 -> 467 LOC (commit
+> `6b748b6`) and `power-point-viewer.component.ts` 2356 -> 1775 LOC (commit
+> `b48ce45`), both fully verified (typecheck/AOT build/test/lint green, no
+> behaviour change). The `&amp;` double-encoding note that used to sit at the
+> bottom of this file was fixed in core (commit 3c86556) and has been removed.
 
-1. **File-size debt (CLAUDE.md ≤ 300 LOC rule).** Worse than previously
-   documented. Actual current LOC: `power-point-viewer.component.ts` **2356**,
-   `ribbon.component.ts` **1978**, `slide-canvas.component.ts` **1524**,
-   `custom-shows.component.ts` 572, plus `inspector-panel.component.ts` 964,
-   `animation-author-panel.component.ts` 796, `presentation-overlay.component.ts`
-   755, `smart-art-renderer.component.ts` 744, `smart-art-properties.component.ts`
-   668, `effects-panel.component.ts` 648, `element-renderer.component.ts` 643,
-   `editor-state.service.ts` 637. (Vendored `internal/shared-src` files mirror
-   `packages/shared/src/render` byte-for-byte and don't count as Angular-specific
-   debt.) Angular's components are the worst offenders in the monorepo, but
-   Vue's `PowerPointViewer.vue` (**3501 LOC**) is worse than any single Angular
+1. **File-size debt (CLAUDE.md ≤ 300 LOC rule).** Partially closed (see above).
+   Remaining offenders: `power-point-viewer.component.ts` **1775** (still
+   above target; six services already extracted - `viewer-export`,
+   `viewer-find-replace`, `viewer-custom-shows`,
+   `viewer-collaboration-session`, `viewer-format-painter`,
+   `viewer-keyboard` - further reduction is a follow-up, not urgent),
+   `slide-canvas.component.ts` **1524**, `custom-shows.component.ts` 572, plus
+   `inspector-panel.component.ts` 964, `animation-author-panel.component.ts`
+   796, `presentation-overlay.component.ts` 755, `smart-art-renderer.component.ts`
+   744, `smart-art-properties.component.ts` 668, `effects-panel.component.ts`
+   648, `editor-state.service.ts` 637. (Vendored `internal/shared-src` files
+   mirror `packages/shared/src/render` byte-for-byte and don't count as
+   Angular-specific debt.) Vue's `PowerPointViewer.vue` (2680 LOC after its own
+   2026-07-03 pass, previously 3501) remains larger than any single Angular
    file - this is cross-framework debt, not an Angular-specific or
-   parity-blocking gap. Large mechanical refactor (AOT-template risk), do as a
-   dedicated, verified pass.
+   parity-blocking gap.
 2. ~~Shared-logic extraction~~ - **closed**, see audit correction above.
 3. **Cosmetic pixel depth.** Control styling uses the shared Tailwind tokens but
    is not pixel-identical to every React control (spacing, icons, split-button
    affordances, dropdown chrome). A per-tab visual-diff pass would close it.
-4. **Pressure-sensitive ink strokes.** `ink-renderer.component.ts:19` degrades
-   to fixed-width; React renders true variable-width strokes from stroke
-   pressure data.
-5. **Connector line depth.** `connector-renderer.component.ts:27` is missing
-   compound (double/triple) line rendering and line-cap styles that React
-   supports.
-6. **Media playback.** `element-renderer.component.ts:122,124` renders only a
-   poster/preview image for audio/video elements; React plays them back for
-   real. Not previously documented as a gap.
 
 > **Recently closed** (2026-07-02): the **secondary dialog suite** that was
 > previously absent (the earlier "whole surface" parity claim overstated this).

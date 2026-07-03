@@ -118,33 +118,27 @@ green**, e2e green on react/vue/angular). Done and verified live:
 Everything below is **depth/fidelity**, not missing surface. Ordered roughly by
 user-visible impact.
 
-> **Audit correction (2026-07-03):** a parity re-check verified this whole
-> section against current code. Three previously-listed rows were stale and
-> already closed: **master/template editing** is fully wired
-> (`isElementIdInteractive` / `isTemplateElementId` gate pointer
-> hit-testing/drag/marquee; `updateElementById` routes template-id edits;
-> `buildSaveSlides` merges them back into the real save path -
+> **Audit + fix pass (2026-07-03):** a parity re-check found this whole section
+> stale. Three rows were already closed in code: **master/template editing**
+> is fully wired (`isElementIdInteractive` / `isTemplateElementId` gate
+> pointer hit-testing/drag/marquee; `updateElementById` routes template-id
+> edits; `buildSaveSlides` merges them back into the real save path -
 > `useLoadContent.ts:388`, `useCollaboration.ts:203`); the **`&` -> `&amp;`
-> double-encoding bug** was fixed in core (commit 3c86556,
-> `packages/core/src/core/utils/xml-entities.ts` +
-> `amp-entity-roundtrip.test.ts`); and the **shared-extraction candidates**
-> (GIF encoder, color/connector-router/animation-engine utils) are already
-> hoisted into `pptx-viewer-shared`, with every binding consuming thin
-> re-export shims. All three are removed below. Two real rendering gaps
-> (pressure-sensitive ink, connector shadow/glow) surfaced during the same
-> audit and are tracked below instead.
+> double-encoding bug** was fixed in core (commit 3c86556); and the
+> **shared-extraction candidates** (GIF encoder, color/connector-router/
+> animation-engine utils) are already hoisted into `pptx-viewer-shared`. Two
+> real rendering gaps found in the same audit were then fixed: **pressure-
+> sensitive ink strokes** now render true variable-width strokes (shared
+> `render/ink-rendering.ts`, consumed by `InkRenderer.vue`, commit `d745a31`)
+> and **connector shadow/glow** now renders via the shared `visual-effects.ts`
+> helpers (commit `3f94c6d`). No rows remain in this table.
 
 ### Rendering fidelity
 
-| Gap                                | Where                      | Notes                                                                                                    |
-| ---------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------- |
-| **Pressure-sensitive ink strokes** | `InkRenderer.vue:19`       | Degrades gracefully to fixed-width; React renders true variable-width strokes from stroke pressure data. |
-| **Connector shadow/glow**          | `ConnectorRenderer.vue:36` | Shape shadow/glow effects aren't applied to connector lines yet.                                         |
-
-Beyond those two, no known rendering-fidelity gaps remain vs React. The only
-other differences are the CSS-rendering approximations shared with React by
-design (`backdrop-filter` and path gradients approximated on screen; some
-effects flatten in raster export), documented in the root README.
+No known rendering-fidelity gaps remain vs React. The only differences are the
+CSS-rendering approximations shared with React by design (`backdrop-filter`
+and path gradients approximated on screen; some effects flatten in raster
+export), documented in the root README.
 
 > **Recently closed** (2026-06-27, second pass): **zoom target thumbnail**
 > (`composables/zoom-target.ts` provide/inject feeds `ZoomRenderer.vue` the target
@@ -170,26 +164,25 @@ effects flatten in raster export), documented in the root README.
 
 ### Editing / chrome depth
 
-| Gap                            | Where                           | Notes                                                                                                                                                                                                                                                                                    |
-| ------------------------------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Master/template editing**    | `onSetEditTemplateMode` (no-op) | Needs the edit-routing pipeline that sends edits to template/master elements (React gates pointer handlers on `editTemplateMode`). The flag stays a no-op until this lands; toggling it alone would mislead.                                                                             |
-| **Slide-properties inspector** | `inspector/SlideInspector.vue`  | Background (colour/image/clear), transition (type/duration/advance + direction/orientation/spokes), and per-slide theme colour override (`clrMapOverride`) are done. Deferred: slide size (display-only, does not persist to save in React either) and the transition preview animation. |
-| **`onToggleCompactToolbar`**   | ribbon                          | Trivial: currently has **no ribbon consumer**; wire a consumer or drop the prop. Not a real gap.                                                                                                                                                                                         |
+| Gap                            | Where                          | Notes                                                                                                                                                                                                                                                                                                             |
+| ------------------------------ | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Slide-properties inspector** | `inspector/SlideInspector.vue` | Background (colour/image/clear), transition (type/duration/advance + direction/orientation/spokes), and per-slide theme colour override (`clrMapOverride`) are done. Deferred: slide size (display-only, does not persist to save in React either - not a Vue-specific gap) and the transition preview animation. |
+| **`onToggleCompactToolbar`**   | ribbon                         | Trivial: currently has **no ribbon consumer**; wire a consumer or drop the prop. Not a real gap.                                                                                                                                                                                                                  |
+
+Master/template editing, shared-code extraction, and the `&` -> `&amp;`
+double-encoding bug were previously listed here as open; all three are
+closed - see the audit-correction note above.
 
 ### Infrastructure (not user-facing parity)
 
 - **Fine-grained CRDT collaboration**: current model is whole-doc last-write-wins
   with presence/follow on top; conflict-resolving merge is the depth item.
-- **Shared-code extraction**: pure framework-agnostic helpers should keep moving
-  from `packages/vue/.../composables` into `pptx-viewer-shared/render` so React/
-  Angular reuse them. Outstanding candidates: the vendored **GIF encoder** (each
-  binding carries a copy), plus color/connector-router/animation-engine utils not
-  yet hoisted. Internal dedup, not parity-blocking. See _Shared-code model_ below.
-
-### Known cross-framework bug (not Vue-specific)
-
-- **`&` renders as `&amp;`** in slide text (double-encoding) on **both** React and
-  Vue: a `pptx-viewer-core` text-decoding issue. Fix belongs in core.
+- **File-size debt (CLAUDE.md ≤300 LOC rule)**: `PowerPointViewer.vue` was the
+  worst offender in the repo at 3501 LOC; a 2026-07-03 pass extracted six
+  composables (`useElementInsertion`, `useElementDrag`, `useContextMenu`,
+  `useSlideMutations`, `useAlignGroup`, `useRibbonActions`), bringing it to
+  2680 LOC (-23%). Still above the 300-LOC target; further extraction is a
+  follow-up, not urgent.
 
 ## Conventions (React → Vue 3)
 
