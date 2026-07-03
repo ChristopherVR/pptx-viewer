@@ -29,6 +29,15 @@ export interface CollabProviderHandle {
 	onStatus: (cb: (connected: boolean) => void) => void;
 	/** Whether the transport reports a connection immediately after creation. */
 	connectedNow: boolean;
+	/**
+	 * Subscribe to the provider's initial-document-sync confirmation. Websocket
+	 * fires reliably once the server sync completes; webrtc only fires when a
+	 * peer syncs with us (a lone fresh-room peer never receives one, so callers
+	 * pair this with a grace timer, see the shared createSyncGate).
+	 */
+	onSynced: (cb: () => void) => void;
+	/** Whether the provider already reports its initial sync as complete. */
+	syncedNow: boolean;
 	/** Tear the provider down (disconnect + destroy). */
 	destroy: () => void;
 }
@@ -56,6 +65,13 @@ export async function createCollabProvider(
 			awareness: provider.awareness as unknown as AwarenessLike,
 			onStatus: (cb) => provider.on('status', (event) => cb(Boolean(event.connected))),
 			connectedNow: true,
+			onSynced: (cb) =>
+				provider.on('synced', (event: { synced?: boolean }) => {
+					if (event?.synced !== false) {
+						cb();
+					}
+				}),
+			syncedNow: false,
 			destroy: () => provider.destroy(),
 		};
 	}
@@ -75,6 +91,13 @@ export async function createCollabProvider(
 				}
 			}),
 		connectedNow: provider.wsconnected,
+		onSynced: (cb) =>
+			provider.on('sync', (isSynced: boolean) => {
+				if (isSynced) {
+					cb();
+				}
+			}),
+		syncedNow: provider.synced,
 		destroy: () => {
 			provider.disconnect();
 			provider.destroy();

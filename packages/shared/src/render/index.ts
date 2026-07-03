@@ -306,6 +306,9 @@ export * from './collaboration-sync';
 // Granular local -> Y.Doc reconciliation (per-slide/element/field diffing,
 // origin-tagged transactions). Prefer over writeSlidesToYDoc for live editing.
 export * from './collaboration-reconcile';
+// First-write gate: block local doc writes until the provider's initial sync
+// (or a grace period) so late joiners never seed placeholder content.
+export * from './collaboration-sync-gate';
 export * from './slide-compare';
 // Morph (PowerPoint Morph transition) — pure element-matching, SVG-path /
 // colour interpolation, text tokenisation, and CSS keyframe generation. The

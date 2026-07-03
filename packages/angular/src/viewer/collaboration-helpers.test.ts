@@ -305,6 +305,7 @@ const { hoisted } = vi.hoisted(() => ({
 		awarenessStates: new Map<number, Record<string, unknown>>(),
 		awarenessChange: null as null | (() => void),
 		statusCb: null as null | ((p: { status?: string }) => void),
+		syncCb: null as null | ((p: unknown) => void),
 	},
 }));
 
@@ -415,8 +416,12 @@ function makeMockAwareness(): {
 vi.mock(import('y-websocket'), () => ({
 	WebsocketProvider: class {
 		awareness = makeMockAwareness();
-		on(_e: string, cb: (p: { status?: string }) => void) {
-			hoisted.statusCb = cb;
+		on(e: string, cb: (p: never) => void) {
+			if (e === 'status') {
+				hoisted.statusCb = cb as (p: { status?: string }) => void;
+			} else if (e === 'sync' || e === 'synced') {
+				hoisted.syncCb = cb as (p: unknown) => void;
+			}
 		}
 		disconnect() {}
 		destroy() {}
@@ -464,6 +469,7 @@ describe('collaborationService', () => {
 		hoisted.awarenessStates.clear();
 		hoisted.awarenessChange = null;
 		hoisted.statusCb = null;
+		hoisted.syncCb = null;
 	}
 
 	it('connects, reflects status, and maps remote presence to cursors', async () => {
@@ -506,14 +512,20 @@ describe('collaborationService', () => {
 		destroy();
 	});
 
-	it('broadcasts local slides via pptx:slides Y.Array', async () => {
+	it('broadcasts local slides via pptx:slides Y.Array once the sync gate opens', async () => {
 		reset();
 		const onRemoteSlides = vi.fn();
 		const { svc, destroy } = makeService();
 		await svc.connect(config, { onRemoteSlides });
 
-		// broadcastSlides calls writeSlidesToYDoc which populates the Y.Array.
+		// Before the provider confirms its initial sync, broadcasts are deferred
+		// (the pending deck is captured, not written).
 		svc.broadcastSlides([slide('1'), slide('2')]);
+		expect(hoisted.slidesArray?.length ?? 0).toBe(0);
+
+		// The provider's sync confirmation opens the gate and flushes the
+		// pending deck into the Y.Array.
+		hoisted.syncCb?.(true);
 		expect(hoisted.slidesArray?.length).toBeGreaterThan(0);
 
 		destroy();

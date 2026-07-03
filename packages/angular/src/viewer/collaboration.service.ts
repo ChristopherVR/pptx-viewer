@@ -28,6 +28,8 @@ import type {
 import {
 	CONNECTION_TIMEOUT_MS,
 	LOCAL_SYNC_ORIGIN,
+	YDOC_SLIDES_KEY,
+	createSyncGate,
 	derivePresenceList,
 	isMixedContentBlocked,
 	observeYDocSlides,
@@ -100,6 +102,14 @@ export class CollaborationService {
 	private connectTimer: ReturnType<typeof setTimeout> | null = null;
 	private unobserveSlides: (() => void) | null = null;
 	private readonly writeBack = new WriteBackScheduler();
+	/**
+	 * First-write gate: local broadcasts are suppressed (captured as pending)
+	 * until the provider confirms its initial sync or the grace period lifts
+	 * the gate, so a late joiner never seeds its placeholder deck into a room
+	 * whose real content has not arrived yet.
+	 */
+	private readonly syncGate = createSyncGate(() => this.flushPendingBroadcast());
+	private pendingBroadcast: readonly PptxSlide[] | null = null;
 
 	private onRemoteSlides: ((slides: PptxSlide[]) => void) | null = null;
 	private canvasWidth = DEFAULT_CANVAS_BOUND;
@@ -179,6 +189,8 @@ export class CollaborationService {
 			this.awareness.on('update', this.refreshPresence);
 
 			this.wireStatus(config);
+			this.syncGate.reset();
+			this.wireSynced();
 
 			this.unobserveSlides = observeYDocSlides(this.ydoc, (_events, transaction) =>
 				this.onRemoteChange(transaction),
@@ -239,6 +251,51 @@ export class CollaborationService {
 		}, CONNECTION_TIMEOUT_MS);
 	}
 
+	/**
+	 * Open the first-write gate on the provider's initial-sync confirmation.
+	 * y-websocket emits 'sync' with a boolean; y-webrtc emits 'synced' with an
+	 * object carrying a `synced` flag (and only once a peer syncs, hence the
+	 * grace timer). Listen to both; opening is idempotent.
+	 */
+	private wireSynced(): void {
+		const provider = this.provider;
+		if (!provider) {
+			return;
+		}
+		const handle = (payload: unknown): void => {
+			const flag = payload as boolean | { synced?: boolean } | undefined;
+			const isSynced = typeof flag === 'boolean' ? flag : flag?.synced !== false;
+			if (isSynced) {
+				this.syncGate.open();
+			}
+		};
+		provider.on('sync', handle);
+		provider.on('synced', handle);
+		if (provider.synced === true) {
+			this.syncGate.open();
+		} else {
+			this.syncGate.arm();
+		}
+	}
+
+	/**
+	 * Perform the deferred first broadcast once the gate opens. When the doc is
+	 * still empty (fresh room, or nobody else present), clear the baseline so
+	 * the pending deck actually seeds it; when remote content already arrived,
+	 * the pending deck matches the applied baseline and the write is a no-op.
+	 */
+	private flushPendingBroadcast(): void {
+		const pending = this.pendingBroadcast;
+		this.pendingBroadcast = null;
+		if (!pending || !this.ydoc || !this.yFactories) {
+			return;
+		}
+		if (this.ydoc.getArray(YDOC_SLIDES_KEY).length === 0) {
+			this.lastSynced = '';
+		}
+		this.broadcastSlides(pending);
+	}
+
 	/** Handle a remote Y.Doc change, skipping our own local-origin transactions. */
 	private onRemoteChange(transaction?: YTransactionLike): void {
 		if (transaction?.origin === LOCAL_SYNC_ORIGIN || this.applyingRemote || !this.ydoc) {
@@ -259,6 +316,8 @@ export class CollaborationService {
 
 	disconnect(): void {
 		this.clearConnectTimer();
+		this.syncGate.reset();
+		this.pendingBroadcast = null;
 		this.writeBack.cancel();
 		this.unobserveSlides?.();
 		this.unobserveSlides = null;
@@ -304,6 +363,12 @@ export class CollaborationService {
 
 	broadcastSlides(slides: readonly PptxSlide[]): void {
 		if (!this.ydoc || !this.yFactories || this.applyingRemote || slides.length === 0) {
+			return;
+		}
+		if (!this.syncGate.isOpen()) {
+			// Defer until the initial sync confirms; the gate flushes the latest
+			// pending deck when it opens.
+			this.pendingBroadcast = slides;
 			return;
 		}
 		const s = JSON.stringify(slides);

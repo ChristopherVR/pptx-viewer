@@ -8,6 +8,7 @@
 import type { CollaborationConfig, YjsFactories, YDocLike } from 'pptx-viewer-shared';
 import {
 	CONNECTION_TIMEOUT_MS,
+	createSyncGate,
 	DEFAULT_CURSOR_COLOR,
 	isMixedContentBlocked,
 	LOCAL_SYNC_ORIGIN,
@@ -79,6 +80,28 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 		getTemplateElements: options.getTemplateElements,
 	});
 
+	/** Write the current local slides into the doc (granular, echo-deduped). */
+	function flushLocalSlides(): void {
+		if (!currentYDoc || !yFactories || applyingRemote) {
+			return;
+		}
+		const s = JSON.stringify(options.slides.value);
+		if (s === lastSynced) {
+			return;
+		}
+		lastSynced = s;
+		reconcileSlidesInYDoc(options.slides.value, currentYDoc, yFactories);
+		if (lastConfig) {
+			writeBack.schedule(lastConfig);
+		}
+	}
+
+	// First-write gate: until the provider confirms its initial sync (or the
+	// grace period elapses for a lone webrtc peer), local slides must not seed
+	// the doc, or a late joiner's bootstrap deck would merge into the room's
+	// real content. Opening the gate performs the deferred first write.
+	const syncGate = createSyncGate(flushLocalSlides);
+
 	function clearTimers(): void {
 		if (connectTimer !== null) {
 			clearTimeout(connectTimer);
@@ -145,6 +168,16 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 			awareness = provider.awareness;
 			selfId = awareness.clientID ?? -1;
 
+			// Gate local writes on the provider's initial sync; the grace timer
+			// covers a lone webrtc peer that never receives a sync event.
+			syncGate.reset();
+			provider.onSynced(() => syncGate.open());
+			if (provider.syncedNow) {
+				syncGate.open();
+			} else {
+				syncGate.arm();
+			}
+
 			publisher = createPresencePublisher(awareness, {
 				userName: config.userName,
 				userColor: options.userColor ?? config.userColor ?? DEFAULT_CURSOR_COLOR,
@@ -200,19 +233,13 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 			});
 
 			// Broadcast local slide edits granularly (diff by id, one transaction).
+			// Suppressed until the sync gate opens; the gate flushes on open.
 			stopWatch = watch(
 				options.slides,
 				() => {
-					if (!currentYDoc || !yFactories || applyingRemote) {
-						return;
+					if (syncGate.isOpen()) {
+						flushLocalSlides();
 					}
-					const s = JSON.stringify(options.slides.value);
-					if (s === lastSynced) {
-						return;
-					}
-					lastSynced = s;
-					reconcileSlidesInYDoc(options.slides.value, currentYDoc, yFactories);
-					writeBack.schedule(config);
 				},
 				{ deep: false },
 			);
@@ -228,6 +255,7 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 
 	function stop(): void {
 		clearTimers();
+		syncGate.reset();
 		unobserveSlides?.();
 		unobserveSlides = null;
 		stopWatch?.();

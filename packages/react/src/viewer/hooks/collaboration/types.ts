@@ -96,6 +96,11 @@ export interface CollaborationContextValue {
 	config: CollaborationConfig;
 	/** The Yjs document (for document sync). */
 	doc: YDoc | null;
+	/**
+	 * Whether the provider completed its initial document sync (or the
+	 * first-write grace period elapsed). Local doc writes are gated on this.
+	 */
+	synced: boolean;
 	/** Manually retry the WebSocket connection after a timeout or error. */
 	retry: () => void;
 }

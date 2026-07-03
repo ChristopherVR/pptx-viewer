@@ -32,6 +32,15 @@ export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'er
 /** Maximum time (ms) to wait for an initial WebSocket connection before giving up. */
 export const CONNECTION_TIMEOUT_MS = 30_000;
 
+/**
+ * Grace period (ms) before the first local doc write when the provider has not
+ * signalled initial sync. Websocket providers emit 'synced' reliably; webrtc
+ * only syncs once a peer is present, so a lone (fresh-room) peer seeds the doc
+ * after this delay instead. Gating the first write prevents a late joiner's
+ * bootstrap deck from merging into a room whose real content has not arrived.
+ */
+export const INITIAL_SYNC_GRACE_MS = 3_000;
+
 /** Heartbeat interval (ms): re-publish presence so peers don't time us out. */
 export const PRESENCE_HEARTBEAT_MS = 10_000;
 

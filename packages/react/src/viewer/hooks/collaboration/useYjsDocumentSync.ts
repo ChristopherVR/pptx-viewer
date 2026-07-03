@@ -35,6 +35,13 @@ export interface UseYjsDocumentSyncInput {
 	setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
 	/** Whether collaboration is active (status === 'connected'). */
 	isConnected: boolean;
+	/**
+	 * Whether the provider completed its initial document sync. Local -> doc
+	 * writes are gated on this so a late joiner never seeds its bootstrap deck
+	 * into a room whose real content has not arrived yet. Defaults to true for
+	 * callers that manage sync readiness themselves.
+	 */
+	isSynced?: boolean;
 	/** Collaboration config (for role and write-back). */
 	config?: Pick<CollaborationConfig, 'role' | 'onWriteBack' | 'writeBackDebounceMs'>;
 	/**
@@ -50,6 +57,7 @@ export function useYjsDocumentSync({
 	templateElementsBySlideId,
 	setSlides,
 	isConnected,
+	isSynced = true,
 	config,
 	getSourceBytes,
 }: UseYjsDocumentSyncInput): void {
@@ -110,9 +118,13 @@ export function useYjsDocumentSync({
 		}, debounceMs);
 	}, [doc, config, getSourceBytes, templateElementsBySlideId]);
 
-	// Sync local slide changes -> Y.Doc
+	// Sync local slide changes -> Y.Doc. Gated on isSynced: until the provider
+	// confirms its initial sync (or the grace period lifts the gate), local
+	// state must not seed the doc, or a late joiner's bootstrap deck would
+	// merge into the room's real content. When the gate opens this effect
+	// re-runs and performs the (possibly first) write.
 	useEffect(() => {
-		if (!isConnected || !doc || isApplyingRemoteRef.current || slides.length === 0) {
+		if (!isConnected || !isSynced || !doc || isApplyingRemoteRef.current || slides.length === 0) {
 			return;
 		}
 
@@ -134,7 +146,7 @@ export function useYjsDocumentSync({
 			);
 			scheduleWriteBack();
 		})();
-	}, [doc, slides, isConnected, getFactories, scheduleWriteBack]);
+	}, [doc, slides, isConnected, isSynced, getFactories, scheduleWriteBack]);
 
 	// Sync remote Y.Doc changes -> local state
 	useEffect(() => {

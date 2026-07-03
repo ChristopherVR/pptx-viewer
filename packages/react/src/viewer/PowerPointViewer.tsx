@@ -721,6 +721,7 @@ function CollaborationDocumentSync({
 		templateElementsBySlideId,
 		setSlides,
 		isConnected: collab?.status === 'connected',
+		isSynced: collab?.synced ?? true,
 		config,
 		getSourceBytes,
 	});

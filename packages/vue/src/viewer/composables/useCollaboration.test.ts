@@ -22,6 +22,7 @@ const { state } = vi.hoisted(() => ({
 		awarenessStates: new Map<number, Record<string, unknown>>(),
 		awarenessChange: null as null | (() => void),
 		statusCb: null as null | ((p: { status?: string }) => void),
+		syncCb: null as null | ((isSynced: boolean) => void),
 		webrtcCreated: 0,
 		lastTransactionOrigin: undefined as unknown,
 	},
@@ -129,8 +130,13 @@ vi.mock(import('y-websocket'), () => ({
 	WebsocketProvider: class {
 		awareness = awarenessSurface;
 		wsconnected = false;
-		on(_e: string, cb: (p: { status?: string }) => void) {
-			state.statusCb = cb;
+		synced = false;
+		on(e: string, cb: (p: never) => void) {
+			if (e === 'status') {
+				state.statusCb = cb as (p: { status?: string }) => void;
+			} else if (e === 'sync' || e === 'synced') {
+				state.syncCb = cb as (isSynced: boolean) => void;
+			}
 		}
 		disconnect() {}
 		destroy() {}
@@ -302,10 +308,15 @@ describe('useCollaboration', () => {
 		const collab = scope.run(() => useCollaboration({ slides, onRemoteSlides }))!;
 		await collab.start(config);
 
-		// Trigger local slide change.
+		// Local edits are deferred until the provider confirms its initial sync
+		// (first-write gate), so nothing lands in the Y.Array yet.
 		slides.value = [slide('1'), slide('2')];
 		await Promise.resolve();
 		await Promise.resolve();
+		expect(state.slidesArray?.length ?? 0).toBe(0);
+
+		// The provider sync confirmation opens the gate and flushes the deck.
+		state.syncCb?.(true);
 		// reconcileSlidesInYDoc should have seeded the Y.Array in a transaction
 		// tagged with the local-sync origin so peers can skip the echo.
 		expect(state.slidesArray?.length).toBeGreaterThan(0);

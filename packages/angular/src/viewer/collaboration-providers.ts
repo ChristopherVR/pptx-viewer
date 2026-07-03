@@ -41,6 +41,8 @@ export interface ProviderLike {
 	on: (event: string, cb: (payload: Record<string, unknown>) => void) => void;
 	/** y-websocket only: true once the socket is open. */
 	wsconnected?: boolean;
+	/** y-websocket only: true once the initial server document sync completed. */
+	synced?: boolean;
 }
 
 /** Everything a freshly-created transport hands back to the service. */

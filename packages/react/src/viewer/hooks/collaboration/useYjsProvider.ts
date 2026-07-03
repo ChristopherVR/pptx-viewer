@@ -13,7 +13,12 @@
  *
  * @module collaboration/useYjsProvider
  */
-import { CONNECTION_TIMEOUT_MS, isMixedContentBlocked, validateRoomId } from 'pptx-viewer-shared';
+import {
+	CONNECTION_TIMEOUT_MS,
+	INITIAL_SYNC_GRACE_MS,
+	isMixedContentBlocked,
+	validateRoomId,
+} from 'pptx-viewer-shared';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Awareness } from 'y-protocols/awareness';
 import type { WebrtcProvider } from 'y-webrtc';
@@ -52,6 +57,15 @@ export interface UseYjsProviderResult {
 	doc: YDoc | null;
 	/** Local awareness client ID. */
 	clientId: number | null;
+	/**
+	 * Whether the provider completed its initial document sync. Local doc
+	 * writes should be gated on this so a late joiner never seeds its
+	 * bootstrap deck into a room whose content has not arrived yet. Websocket
+	 * flips it on the provider's 'synced' event; webrtc flips it on peer sync
+	 * or after {@link INITIAL_SYNC_GRACE_MS} (a lone fresh-room peer never
+	 * receives a sync event).
+	 */
+	synced: boolean;
 	/** Manually retry the connection after a timeout or error. */
 	retry: () => void;
 }
@@ -76,19 +90,45 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 	const [awareness, setAwareness] = useState<Awareness | null>(null);
 	const [doc, setDoc] = useState<YDoc | null>(null);
 	const [clientId, setClientId] = useState<number | null>(null);
+	const [synced, setSynced] = useState(false);
 
 	// Keep a ref to cleanup functions so we can teardown on unmount or config change
 	const cleanupRef = useRef<(() => void) | null>(null);
 	const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const syncGraceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	const clearSyncGrace = useCallback(() => {
+		if (syncGraceRef.current) {
+			clearTimeout(syncGraceRef.current);
+			syncGraceRef.current = null;
+		}
+	}, []);
+
+	/** Mark initial sync complete (idempotent) and stop the grace timer. */
+	const markSynced = useCallback(() => {
+		clearSyncGrace();
+		setSynced(true);
+	}, [clearSyncGrace]);
+
+	/** Lift the write gate after the grace period even without a sync event. */
+	const armSyncGrace = useCallback(() => {
+		clearSyncGrace();
+		syncGraceRef.current = setTimeout(() => {
+			syncGraceRef.current = null;
+			setSynced(true);
+		}, INITIAL_SYNC_GRACE_MS);
+	}, [clearSyncGrace]);
 
 	const teardown = useCallback(() => {
 		if (timeoutRef.current) {
 			clearTimeout(timeoutRef.current);
 			timeoutRef.current = null;
 		}
+		clearSyncGrace();
+		setSynced(false);
 		cleanupRef.current?.();
 		cleanupRef.current = null;
-	}, []);
+	}, [clearSyncGrace]);
 
 	// Build the teardown closure shared by both transports: destroy the
 	// provider + doc and reset all published state.
@@ -130,7 +170,22 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 			// once created. Late-joiner Y.Doc sync fills in the document.
 			setStatus('connected');
 
-			cleanupRef.current = buildCleanup(provider, yDoc);
+			// y-webrtc only emits 'synced' when a peer syncs with us; a lone
+			// fresh-room peer never gets one, so the grace timer lifts the
+			// first-write gate for that case.
+			const handleSynced = (event: { synced?: boolean }) => {
+				if (event?.synced !== false) {
+					markSynced();
+				}
+			};
+			provider.on('synced', handleSynced);
+			armSyncGrace();
+
+			const baseCleanup = buildCleanup(provider, yDoc);
+			cleanupRef.current = () => {
+				provider.off('synced', handleSynced);
+				baseCleanup();
+			};
 		} catch (err) {
 			console.warn(
 				'[pptx-viewer] WebRTC collaboration packages not available:',
@@ -138,7 +193,7 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 			);
 			setStatus('error');
 		}
-	}, [config.roomId, config.authToken, config.signaling, buildCleanup]);
+	}, [config.roomId, config.authToken, config.signaling, buildCleanup, armSyncGrace, markSynced]);
 
 	const init = useCallback(async () => {
 		// Clean up any previous connection before starting a new one.
@@ -188,16 +243,31 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 						timeoutRef.current = null;
 					}
 					setStatus('connected');
+					// Defensive: if the server never sends the initial sync
+					// confirmation, lift the first-write gate after the grace period.
+					armSyncGrace();
 				} else if (event.status === 'disconnected') {
 					setStatus('disconnected');
 				}
 			};
 
+			// y-websocket confirms the initial server sync via its 'sync' event.
+			const handleSynced = (isSynced: boolean) => {
+				if (isSynced) {
+					markSynced();
+				}
+			};
+
 			provider.on('status', handleStatus);
+			provider.on('sync', handleSynced);
 
 			if (provider.wsconnected) {
 				connected = true;
 				setStatus('connected');
+				armSyncGrace();
+			}
+			if (provider.synced) {
+				markSynced();
 			}
 
 			// Start connection timeout: if we don't connect within the limit,
@@ -207,6 +277,7 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 					timeoutRef.current = null;
 					if (!connected) {
 						provider.off('status', handleStatus);
+						provider.off('sync', handleSynced);
 						provider.destroy();
 						yDoc.destroy();
 						setDoc(null);
@@ -225,6 +296,7 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 			// Store cleanup
 			cleanupRef.current = () => {
 				provider.off('status', handleStatus);
+				provider.off('sync', handleSynced);
 				provider.destroy();
 				yDoc.destroy();
 				setDoc(null);
@@ -240,7 +312,16 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 			);
 			setStatus('error');
 		}
-	}, [config.roomId, config.serverUrl, config.authToken, config.transport, initWebrtc, teardown]);
+	}, [
+		config.roomId,
+		config.serverUrl,
+		config.authToken,
+		config.transport,
+		initWebrtc,
+		teardown,
+		armSyncGrace,
+		markSynced,
+	]);
 
 	useEffect(() => {
 		init();
@@ -251,5 +332,5 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 		init();
 	}, [init]);
 
-	return { status, awareness, doc, clientId, retry };
+	return { status, awareness, doc, clientId, synced, retry };
 }
