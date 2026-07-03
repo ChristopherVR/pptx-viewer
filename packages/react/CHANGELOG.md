@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.74](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.74) - 2026-07-03
+
+### Dependencies
+
+- **deps:** Declare yjs, y-websocket, and y-webrtc across bindings (by @ChristopherVR) ([27a2849](https://github.com/ChristopherVR/pptx-viewer/commit/27a2849da755a0902296dcd59557c1329a1cbadf))
+
 ## [1.1.73](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@1.1.73) - 2026-07-03
 
 ### Features

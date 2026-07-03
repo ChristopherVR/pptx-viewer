@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.83](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.83) - 2026-07-03
+
+### Features
+
+- **vue:** Interoperable presence schema, webrtc transport, granular sync (by @ChristopherVR) ([9b53df5](https://github.com/ChristopherVR/pptx-viewer/commit/9b53df5e9487c5fbb16e78f40f5e746752eb4574))
+
+### Dependencies
+
+- **deps:** Declare yjs, y-websocket, and y-webrtc across bindings (by @ChristopherVR) ([27a2849](https://github.com/ChristopherVR/pptx-viewer/commit/27a2849da755a0902296dcd59557c1329a1cbadf))
+
 ## [1.1.81](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.81) - 2026-07-03
 
 ### Features

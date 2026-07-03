@@ -6,6 +6,25 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [Unreleased]
 
+### Features
+
+- **shared:** Granular CRDT reconciliation and serverless collab transport (by @ChristopherVR) ([acf5087](https://github.com/ChristopherVR/pptx-viewer/commit/acf5087737f26da507f4237d490927c6d22bbb5b))
+- **react:** P2P webrtc transport, granular sync, write-back, follow mode (by @ChristopherVR) ([fdbad55](https://github.com/ChristopherVR/pptx-viewer/commit/fdbad55843b76e335ac7f2d545947e8c1b252e84))
+- **vue:** Interoperable presence schema, webrtc transport, granular sync (by @ChristopherVR) ([9b53df5](https://github.com/ChristopherVR/pptx-viewer/commit/9b53df5e9487c5fbb16e78f40f5e746752eb4574))
+- **angular:** Wire collaboration end-to-end (by @ChristopherVR) ([0498cea](https://github.com/ChristopherVR/pptx-viewer/commit/0498cea40ac10e08069f560be0a1cea6f92a8721))
+- **angular:** Rewire collaboration onto the split viewer services (by @ChristopherVR) ([22b2544](https://github.com/ChristopherVR/pptx-viewer/commit/22b2544ed9823f0c7e27ed02728b841bf1f4cc8d))
+
+### Documentation
+
+- **tools:** Note the codec schema diverges from the viewer sync layout (by @ChristopherVR) ([7ba5d9e](https://github.com/ChristopherVR/pptx-viewer/commit/7ba5d9ef76e95cb255f591b1483fcdab9fc824b9))
+- Document serverless P2P collaboration and refresh the roadmap (by @ChristopherVR) ([2332cf1](https://github.com/ChristopherVR/pptx-viewer/commit/2332cf14b7f98ed641c3c4b367fdbb122e29c8d2))
+
+### Dependencies
+
+- **deps:** Declare yjs, y-websocket, and y-webrtc across bindings (by @ChristopherVR) ([27a2849](https://github.com/ChristopherVR/pptx-viewer/commit/27a2849da755a0902296dcd59557c1329a1cbadf))
+
+## [1.1.82](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.82) - 2026-07-03
+
 ### Testing
 
 - **e2e:** Add cross-framework ribbon-tab layout parity check (by @ChristopherVR) ([8116ce3](https://github.com/ChristopherVR/pptx-viewer/commit/8116ce3bcfa0ba041c8a69507b5e192150a9dcc3))

@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.59](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.59) - 2026-07-03
+
+### Features
+
+- **angular:** Wire collaboration end-to-end (by @ChristopherVR) ([0498cea](https://github.com/ChristopherVR/pptx-viewer/commit/0498cea40ac10e08069f560be0a1cea6f92a8721))
+
+### Dependencies
+
+- **deps:** Declare yjs, y-websocket, and y-webrtc across bindings (by @ChristopherVR) ([27a2849](https://github.com/ChristopherVR/pptx-viewer/commit/27a2849da755a0902296dcd59557c1329a1cbadf))
+
 ## [1.1.57](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.57) - 2026-07-03
 
 ### Features
