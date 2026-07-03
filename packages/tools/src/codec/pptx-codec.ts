@@ -15,6 +15,11 @@ export const ORIGIN_FILE_LOAD = 'file-load';
  *     Each slide Y.Map: scalar fields + `_`-prefixed JSON blobs + `elements` Y.Array<Y.Map>
  *     Each element Y.Map: scalar fields + `_`-prefixed JSON blobs + `textBody` Y.Text
  *     textBody Y.Text: one delta op per TextSegment (see text-body-codec.ts)
+ *
+ * NOTE: the viewer bindings' sync schema (pptx-viewer-shared
+ * collaboration-sync.ts) uses SHORT complex-field key prefixes (`_ts`, `_tr`)
+ * while this codec uses long ones (`_textStyle`, `_transition`). The two doc
+ * layouts are similar but NOT interchangeable on the same Y.Doc.
  */
 export interface FormatCodec {
 	readonly formatId: string;
