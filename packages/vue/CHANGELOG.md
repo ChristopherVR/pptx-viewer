@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
+## [1.1.86](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.86) - 2026-07-03
+
+### Documentation
+
+- **vue,angular:** Correct stale parity-tracker claims (by @ChristopherVR) ([54c4f05](https://github.com/ChristopherVR/pptx-viewer/commit/54c4f0540e33692d82f961c96d8a1818c8678751))
+
 ## [1.1.85](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.85) - 2026-07-03
 
 ### Testing

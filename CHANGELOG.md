@@ -8,6 +8,25 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Features
 
+- **shared:** Character-level merge of concurrent text-run edits (by @ChristopherVR) ([dec527e](https://github.com/ChristopherVR/pptx-viewer/commit/dec527e871108a736d42137c499e76ae556a8e39))
+
+### Bug Fixes
+
+- **react:** Repoint/add missing document-properties, master, media-trim, and transition i18n keys (by @ChristopherVR) ([a933471](https://github.com/ChristopherVR/pptx-viewer/commit/a933471791cadcabce2c536603f96ce915eeb581))
+
+### Documentation
+
+- **roadmap:** Refresh statuses; C3 char-level text merge done (by @ChristopherVR) ([634ab6b](https://github.com/ChristopherVR/pptx-viewer/commit/634ab6b4f3c4a97513ded0b71a815e91ccc7cca2))
+- **vue,angular:** Correct stale parity-tracker claims (by @ChristopherVR) ([54c4f05](https://github.com/ChristopherVR/pptx-viewer/commit/54c4f0540e33692d82f961c96d8a1818c8678751))
+
+### Chores
+
+- **shared,vue:** Remove dead TODO markers referencing removed chart code (by @ChristopherVR) ([6e20b26](https://github.com/ChristopherVR/pptx-viewer/commit/6e20b2630a94a8a2095a2c0b8d52c7172b001332))
+
+## [1.1.85](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.85) - 2026-07-03
+
+### Features
+
 - **shared:** Add 141 i18n keys missing across Vue and Angular (by @ChristopherVR) ([ab9e9a0](https://github.com/ChristopherVR/pptx-viewer/commit/ab9e9a0756bc6d73c93442eb2be2475d073ad714))
 - **shared:** Add 112 more i18n keys referenced indirectly via labelKey (by @ChristopherVR) ([108cd7c](https://github.com/ChristopherVR/pptx-viewer/commit/108cd7c3e8298cb7f21bcd1ac653726a8254ad6f))
 
