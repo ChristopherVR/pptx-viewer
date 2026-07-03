@@ -16,6 +16,7 @@ import { isTextElement, patchTextStyle, textStyleOf } from './ribbon-text-helper
 	selector: 'pptx-ribbon-paragraph-controls',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	host: { class: 'contents' },
 	imports: [NgClass, TranslatePipe],
 	template: `
 		<!-- List style: bullets + numbering -->

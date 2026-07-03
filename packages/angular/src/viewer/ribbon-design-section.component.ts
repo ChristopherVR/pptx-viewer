@@ -11,6 +11,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 	selector: 'pptx-ribbon-design-section',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	host: { class: 'contents' },
 	imports: [NgClass, TranslatePipe],
 	template: `
 		<!-- Themes -->

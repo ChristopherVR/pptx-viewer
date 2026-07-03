@@ -14,6 +14,7 @@ import { EditorStateService } from './editor-state.service';
 	selector: 'pptx-ribbon-view-section',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	host: { class: 'contents' },
 	imports: [NgClass, TranslatePipe],
 	template: `
 		<!-- Presentation views -->

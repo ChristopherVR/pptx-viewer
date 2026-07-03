@@ -17,6 +17,7 @@ import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.co
 	selector: 'pptx-ribbon-home-section',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	host: { class: 'contents' },
 	imports: [NgClass, TranslatePipe, RibbonFontControlsComponent, RibbonParagraphControlsComponent],
 	template: `
 		<!-- Clipboard -->

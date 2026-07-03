@@ -43,6 +43,7 @@ function imageDimensions(dataUrl: string): Promise<{ width: number; height: numb
 	selector: 'pptx-ribbon-insert-section',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	host: { class: 'contents' },
 	imports: [TranslatePipe, RibbonInsertFieldsComponent],
 	template: `
 		<!-- Shapes group -->

@@ -35,6 +35,7 @@ const TRANSITION_PRESETS: ReadonlyArray<{ value: PptxTransitionType; labelKey: s
 	selector: 'pptx-ribbon-transitions-section',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	host: { class: 'contents' },
 	imports: [NgClass, TranslatePipe],
 	template: `
 		<!-- Preview (fires existing presentation present path; no separate preview API yet) -->

@@ -39,6 +39,7 @@ const DRAW_TOOLS: readonly DrawToolDef[] = [
 	selector: 'pptx-ribbon-draw-section',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	host: { class: 'contents' },
 	imports: [NgClass, TranslatePipe],
 	template: `
 		<!--

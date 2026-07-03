@@ -55,6 +55,29 @@
 	}
 }
 
+/* Ribbon tab-section / multi-group custom elements render several sibling
+   group <div>s that must lay out as direct children of the ribbon content
+   row's `flex flex-nowrap` container (ribbon.component.ts). `host: { class:
+   'contents' }` in the @Component decorator does not survive ng-packagr's
+   partial-ivy output through every Angular linker (some drop host metadata
+   entirely), so set it here instead: a plain CSS selector no compiler step
+   can drop. Single-root components (ribbon-font-controls, ribbon-color-
+   popover) already lay themselves out internally and are excluded. */
+pptx-ribbon-file-section,
+pptx-ribbon-home-section,
+pptx-ribbon-insert-section,
+pptx-ribbon-arrange-section,
+pptx-ribbon-slideshow-section,
+pptx-ribbon-review-section,
+pptx-ribbon-view-section,
+pptx-ribbon-draw-section,
+pptx-ribbon-design-section,
+pptx-ribbon-transitions-section,
+pptx-ribbon-animations-section,
+pptx-ribbon-paragraph-controls {
+	display: contents;
+}
+
 .pptx-ng-viewer {
 	--pptx-background: #030712;
 	--pptx-foreground: #f3f4f6;

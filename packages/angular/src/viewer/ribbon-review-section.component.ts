@@ -12,6 +12,7 @@ import { EditorStateService } from './editor-state.service';
 	selector: 'pptx-ribbon-review-section',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	host: { class: 'contents' },
 	imports: [TranslatePipe],
 	template: `
 		<button type="button" class="pptx-rb-pill" (click)="comments.emit()">

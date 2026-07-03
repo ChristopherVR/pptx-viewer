@@ -24,6 +24,7 @@ import { EditorStateService } from './editor-state.service';
 	selector: 'pptx-ribbon-animations-section',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	host: { class: 'contents' },
 	imports: [TranslatePipe],
 	template: `
 		<!-- Preview: plays presentation from this slide; no element-only preview API yet -->
