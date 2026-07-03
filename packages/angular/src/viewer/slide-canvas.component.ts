@@ -25,6 +25,7 @@ import type {
 import { hasTextProperties } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
+import { CanvasFitService } from './canvas-fit.service';
 import {
 	applyMove,
 	applyResize,
@@ -118,6 +119,7 @@ function plainText(el: PptxElement): string {
 	selector: 'pptx-slide-canvas',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	providers: [CanvasFitService],
 	imports: [NgStyle, ElementRendererComponent, TranslatePipe],
 	styles: [
 		`
@@ -645,21 +647,15 @@ export class SlideCanvasComponent {
 	private readonly stageRef = viewChild<ElementRef<HTMLElement>>('stage');
 	private readonly viewportRef = viewChild<ElementRef<HTMLElement>>('viewport');
 
-	/**
-	 * Auto-fit scale (≤ 1): how much the fixed-size slide must shrink to fit the
-	 * scroll viewport. The authored slide is e.g. 1280×720, which overflows a
-	 * phone; without this it renders off-screen at `zoom=1`. Mirrors the React
-	 * viewer's `fitScale * scale` model (useZoomViewport.ts) so "100%" means "fit
-	 * to viewport". Measured from the viewport via ResizeObserver below.
-	 */
-	private readonly fitScale = signal(1);
+	/** Per-instance auto-fit scale measurement (see {@link CanvasFitService}). */
+	private readonly canvasFit = inject(CanvasFitService);
 
 	/**
 	 * The on-screen scale used for ALL rendering and pointer→stage coordinate
 	 * math: the user's zoom folded with the auto-fit. The parent keeps showing the
 	 * raw user zoom as the percentage, so this stays internal to the canvas.
 	 */
-	private readonly effectiveScale = computed(() => this.fitScale() * this.zoom());
+	private readonly effectiveScale = computed(() => this.canvasFit.fitScale() * this.zoom());
 
 	/** The editing id we've already initialised the textarea for, to avoid re-seeding its value mid-edit. */
 	private seededEditId: string | null = null;
@@ -694,50 +690,31 @@ export class SlideCanvasComponent {
 			editor.nativeElement.setSelectionRange(end, end);
 		});
 
+		// Wire the fit-scale measurement accessors (viewport element, autoFit,
+		// canvasSize all live on this component).
+		this.canvasFit.bind({
+			autoFit: () => this.autoFit(),
+			viewportElement: () => this.viewportRef()?.nativeElement,
+			canvasSize: () => this.canvasSize(),
+		});
+
 		// Re-fit whenever the authored slide size changes (e.g. switching decks).
 		effect(() => {
 			this.canvasSize();
-			this.recomputeFit();
+			this.canvasFit.recompute();
 		});
 
 		// Observe the viewport so the slide re-fits on container resize / rotation.
 		const destroyRef = inject(DestroyRef);
 		afterNextRender(() => {
-			this.recomputeFit();
+			this.canvasFit.recompute();
 			const el = this.viewportRef()?.nativeElement;
 			if (typeof ResizeObserver !== 'undefined' && el) {
-				const observer = new ResizeObserver(() => this.recomputeFit());
+				const observer = new ResizeObserver(() => this.canvasFit.recompute());
 				observer.observe(el);
 				destroyRef.onDestroy(() => observer.disconnect());
 			}
 		});
-	}
-
-	/**
-	 * Compute the largest scale (≤ 1) at which the whole slide fits the viewport,
-	 * reserving the 1rem gutter + drop shadow. Sets fitScale to 1 when unmeasured.
-	 */
-	private recomputeFit(): void {
-		// Thumbnail consumers manage their own scale via `zoom`; keep fit at 1 so
-		// the two scales don't compound.
-		if (!this.autoFit()) {
-			this.fitScale.set(1);
-			return;
-		}
-		const el = this.viewportRef()?.nativeElement;
-		const size = this.canvasSize();
-		if (!el || !size.width || !size.height) {
-			this.fitScale.set(1);
-			return;
-		}
-		const availW = Math.max(el.clientWidth - 16, 0);
-		const availH = Math.max(el.clientHeight - 32, 0);
-		if (!availW || !availH) {
-			this.fitScale.set(1);
-			return;
-		}
-		const fit = Math.min(availW / size.width, availH / size.height, 1);
-		this.fitScale.set(fit > 0 ? fit : 1);
 	}
 
 	readonly elements = computed(() => this.slide()?.elements ?? []);
