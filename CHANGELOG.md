@@ -6,6 +6,12 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [Unreleased]
 
+### Styling
+
+- **react:** Fix pre-existing oxfmt formatting violation (by @ChristopherVR) ([8ef5da9](https://github.com/ChristopherVR/pptx-viewer/commit/8ef5da9dcb436307c3c6f1a0a81055fc8fe63eea))
+
+## [1.1.91](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.91) - 2026-07-03
+
 ### Bug Fixes
 
 - **vue:** Repair merge corruption in PowerPointViewer.vue, wire up Insert Equation (by @ChristopherVR) ([e3e780b](https://github.com/ChristopherVR/pptx-viewer/commit/e3e780b2a9a88fd9cc5c12c6d59826bfa9a94c1a))
