@@ -54,6 +54,7 @@ import {
 	selector: 'pptx-viewer-extra-dialogs',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	host: { class: 'contents' },
 	imports: [
 		EquationEditorDialogComponent,
 		SetUpSlideShowDialogComponent,

@@ -18,6 +18,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 	standalone: true,
 	imports: [TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	host: { class: 'contents' },
 	template: `
 		<div class="pptx-ng-fonts-section">
 			<h3 class="pptx-ng-fonts-section-title">

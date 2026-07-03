@@ -82,6 +82,21 @@ pptx-ribbon-font-controls {
 	display: contents;
 }
 
+/* Non-ribbon custom elements that likewise render 2+ top-level sibling roots
+   and so must not become one opaque box in their parent's flex/grid flow. Same
+   `host: { class: 'contents' }` fix as above, mirrored here for the same
+   linker-drops-host-metadata defense-in-depth reasoning:
+   - pptx-viewer-extra-dialogs: 10 sibling dialog/panel tags, placed directly in
+     the `display: flex` .pptx-ng-viewer root.
+   - pptx-font-embedding-list: "used fonts" section + a separate missing-count
+     <p> sibling.
+   - pptx-element-renderer: element branch + a sibling duotone <filter> <svg>. */
+pptx-viewer-extra-dialogs,
+pptx-font-embedding-list,
+pptx-element-renderer {
+	display: contents;
+}
+
 .pptx-ng-viewer {
 	--pptx-background: #030712;
 	--pptx-foreground: #f3f4f6;

@@ -130,6 +130,7 @@ interface Paragraph {
 	selector: 'pptx-element-renderer',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	host: { class: 'contents' },
 	imports: [
 		NgStyle,
 		ConnectorRendererComponent,
