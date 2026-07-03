@@ -19,12 +19,8 @@ import type { Page } from '@playwright/test';
 const deck = resolve(fileURLToPath(new URL('../.github/assets/sample-deck.pptx', import.meta.url)));
 const shotDir = fileURLToPath(new URL('../test-results/mobile-tablet-landscape/', import.meta.url));
 
-// React + Angular emit the same mobile chrome (Editor actions bar, Menu
-// button). Vue's mobile chrome differs, so scope the skip to vue.
-// oxlint-disable-next-line no-empty-pattern -- Playwright requires the first beforeEach arg to be a destructuring pattern
-test.beforeEach(({}, testInfo) => {
-	test.skip(testInfo.project.name === 'vue', 'Vue mobile chrome differs');
-});
+// React, Vue, and Angular all emit the same mobile chrome (Editor actions
+// bar, Menu button), so this spec runs unmodified against every project.
 
 async function load(page: Page): Promise<void> {
 	await page.goto('/');

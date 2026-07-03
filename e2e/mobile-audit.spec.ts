@@ -18,13 +18,9 @@ import type { Page } from '@playwright/test';
 
 test.use({ ...devices['Pixel 7'] });
 
-// React + Angular emit the same mobile chrome contract (Toolbar role, Editor
-// actions nav, Slides/Insert/Format/Comments/Notes bar, menu sheet). Vue has a
-// different mobile shell, so scope the skip to vue only.
-// oxlint-disable-next-line no-empty-pattern -- Playwright requires the first beforeEach arg to be a destructuring pattern
-test.beforeEach(({}, testInfo) => {
-	test.skip(testInfo.project.name === 'vue', 'Vue mobile chrome differs');
-});
+// React, Vue, and Angular all emit the same mobile chrome contract (Toolbar
+// role, Editor actions nav, Slides/Insert/Format/Comments/Notes bar, menu
+// sheet), so this spec runs unmodified against every project.
 
 const deck = resolve(fileURLToPath(new URL('../.github/assets/sample-deck.pptx', import.meta.url)));
 // Screenshots are debug artifacts; write them under the gitignored test-results dir.
