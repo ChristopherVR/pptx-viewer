@@ -340,7 +340,41 @@ const fallbackNodeIds = computed<string[]>(() =>
 const edit = useSmartArtInlineEditState();
 const rootEl = ref<HTMLElement | null>(null);
 const editorEl = ref<HTMLTextAreaElement | null>(null);
-const { hoveredNodeId, hoveredNodeRect, onMouseMove, onMouseLeave } = useSmartArtHoverRect(rootEl);
+// Anchors the style-bar popover; mousemove events landing inside it must not
+// clear the hover state, or the popover would unmount as soon as the pointer
+// reaches the swatches it needs to be clicked.
+const styleBarEl = ref<HTMLElement | null>(null);
+const {
+	hoveredNodeId,
+	hoveredNodeRect,
+	onMouseMove: onHoverMouseMove,
+	onMouseLeave,
+} = useSmartArtHoverRect(rootEl);
+
+function onMouseMove(event: MouseEvent): void {
+	onHoverMouseMove(event, styleBarEl.value);
+}
+
+/** Approximate rendered size of the style bar (6 swatches + padding/border). */
+const STYLE_BAR_WIDTH = 168;
+const STYLE_BAR_HEIGHT = 40;
+
+/** Style-bar position, clamped so it stays within the chrome's clipped bounds. */
+const styleBarStyle = computed<CSSProperties | undefined>(() => {
+	const rect = hoveredNodeRect.value;
+	const container = rootEl.value;
+	if (!rect || !container) {
+		return undefined;
+	}
+	const maxLeft = Math.max(0, container.clientWidth - STYLE_BAR_WIDTH);
+	const maxTop = Math.max(0, container.clientHeight - STYLE_BAR_HEIGHT);
+	return {
+		position: 'absolute',
+		left: `${Math.min(maxLeft, Math.max(0, rect.left + rect.width - STYLE_BAR_WIDTH))}px`,
+		top: `${Math.min(maxTop, Math.max(0, rect.top - 22))}px`,
+		zIndex: 25,
+	};
+});
 
 /**
  * Enter edit mode for a node. Projects the double-clicked SVG node's on-screen
@@ -612,17 +646,16 @@ function onEditorKeydown(event: KeyboardEvent): void {
 			</svg>
 
 			<!-- Per-node fill colour picker (hover swatch bar, edit mode only) -->
-			<SmartArtNodeStyleBar
+			<div
 				v-if="editable && hoveredNodeId && !edit.isEditing.value && hoveredNodeRect"
-				:palette="palette"
-				:style="{
-					position: 'absolute',
-					left: `${Math.max(0, (hoveredNodeRect?.left ?? 0) + (hoveredNodeRect?.width ?? 0) - 120)}px`,
-					top: `${Math.max(0, (hoveredNodeRect?.top ?? 0) - 22)}px`,
-					zIndex: 25,
-				}"
-				@pick-fill="handleChangeNodeStyle(hoveredNodeId!, $event)"
-			/>
+				ref="styleBarEl"
+				:style="styleBarStyle"
+			>
+				<SmartArtNodeStyleBar
+					:palette="palette"
+					@pick-fill="handleChangeNodeStyle(hoveredNodeId!, $event)"
+				/>
+			</div>
 
 			<!-- Inline node text editor overlay (edit mode only) -->
 			<textarea

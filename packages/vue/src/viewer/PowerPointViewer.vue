@@ -26,6 +26,7 @@ import type {
 	PptxHeaderFooter,
 	PptxSaveFormat,
 	PptxSlide,
+	PptxSmartArtData,
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 	PptxThemePreset,
@@ -36,6 +37,8 @@ import {
 	downloadBlob,
 	isTemplateElementId,
 	openPptxFile,
+	rebuildDrawingShapesIfCleared,
+	resolvePalette,
 	setCellText,
 	strokeToInkElement,
 } from 'pptx-viewer-shared';
@@ -315,6 +318,12 @@ provideTableSelection({
 // Mirrors the TableCellEditKey pattern above. Closures run post-setup,
 // so referencing the later-declared `ops`, `presenting`, and
 // `findActiveElement` is safe.
+//
+// Both commit paths reflow `drawingShapes` back from the layout engine when
+// the edit op clears them (every text/style edit does) via
+// `rebuildDrawingShapesIfCleared` -- otherwise the renderer falls back to the
+// generic SVG layout for every node (not just the edited one) the moment any
+// single node is edited.
 provide(SmartArtNodeEditKey, {
 	canEdit: () => props.canEdit && !presenting.value,
 	commit: (elementId: string, nodeId: string, text: string): void => {
@@ -329,12 +338,33 @@ provide(SmartArtNodeEditKey, {
 		if (!data) {
 			return;
 		}
-		ops.updateElement(elementId, {
-			smartArtData: updateSmartArtNodeText(data, nodeId, text),
-		} as Partial<PptxElement>);
+		const next = updateSmartArtNodeText(data, nodeId, text);
+		const reflowed = rebuildDrawingShapesIfCleared(
+			next,
+			next.layout,
+			resolvePalette(next),
+			next.style ?? 'flat',
+			elementId,
+			{ width: el.width, height: el.height },
+		);
+		ops.updateElement(elementId, { smartArtData: reflowed } as Partial<PptxElement>);
 	},
 	commitStyle: (elementId: string, patch: Partial<PptxElement>): void => {
 		if (!props.canEdit) {
+			return;
+		}
+		const el = findActiveElement(elementId);
+		const next = (patch as { smartArtData?: PptxSmartArtData }).smartArtData;
+		if (el && el.type === 'smartArt' && next) {
+			const reflowed = rebuildDrawingShapesIfCleared(
+				next,
+				next.layout,
+				resolvePalette(next),
+				next.style ?? 'flat',
+				elementId,
+				{ width: el.width, height: el.height },
+			);
+			ops.updateElement(elementId, { ...patch, smartArtData: reflowed } as Partial<PptxElement>);
 			return;
 		}
 		ops.updateElement(elementId, patch);
@@ -2562,6 +2592,13 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				:embedded-fonts="embeddedFontNames"
 				@toggle-embed-fonts="embedFontsEnabled = $event"
 				@close="showFontEmbedding = false"
+			/>
+
+			<!-- Insert ▸ SmartArt -->
+			<InsertSmartArtDialog
+				:open="showInsertSmartArt"
+				@insert="onInsertElement"
+				@close="showInsertSmartArt = false"
 			/>
 
 			<!-- First-edit warning: saving a signed deck strips its signatures. -->

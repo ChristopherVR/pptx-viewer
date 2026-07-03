@@ -16,6 +16,8 @@ import type {
 	SmartArtLayoutType,
 	SmartArtStyle,
 } from 'pptx-viewer-core';
+import { rebuildDrawingShapesIfCleared, resolvePalette } from 'pptx-viewer-shared';
+import type { BoundingBox } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
@@ -74,6 +76,13 @@ export interface UseSmartArtEditingInput {
 	smartArtData: ComputedRef<PptxSmartArtData>;
 	/** Apply a shallow element patch (typically `ops.updateElement`-backed). */
 	apply: (patch: Partial<PptxElement>) => void;
+	/**
+	 * Owning element id + pixel box, used to reflow `drawingShapes` back from the
+	 * layout engine whenever an edit clears them (see `rebuildDrawingShapesIfCleared`).
+	 * Omit only in tests that don't care about post-edit rendering.
+	 */
+	elementId?: string;
+	box?: ComputedRef<BoundingBox | undefined>;
 }
 
 export interface SmartArtEditingApi {
@@ -154,9 +163,25 @@ export function useSmartArtEditing(input: UseSmartArtEditingInput): SmartArtEdit
 	// Refocus the node input after a structural edit (React `pendingFocusId`).
 	const { pendingFocusId, setInputEl, focusNode } = useSmartArtFocus();
 
-	/** Emit a whole new SmartArt-data object as the element patch. */
+	/**
+	 * Emit a whole new SmartArt-data object as the element patch, reflowing
+	 * `drawingShapes` back from the layout engine first if the edit cleared them
+	 * (every structural/text/style op does) -- otherwise the renderer falls back
+	 * to the generic SVG layout for every node, not just the edited one.
+	 */
 	function applyData(next: PptxSmartArtData, focusId?: string): void {
-		apply({ smartArtData: next } as Partial<PptxElement>);
+		const box = input.box?.value;
+		const reflowed = box
+			? rebuildDrawingShapesIfCleared(
+					next,
+					next.layout,
+					resolvePalette(next),
+					next.style ?? 'flat',
+					input.elementId ?? 'smartart',
+					box,
+				)
+			: next;
+		apply({ smartArtData: reflowed } as Partial<PptxElement>);
 		focusNode(focusId);
 	}
 

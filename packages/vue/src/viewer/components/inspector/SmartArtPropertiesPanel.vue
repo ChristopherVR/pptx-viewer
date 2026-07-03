@@ -59,9 +59,13 @@ const isSmartArt = computed(
 	() => props.element.type === 'smartArt' && Boolean(props.element.smartArtData),
 );
 
+const box = computed(() => ({ width: props.element.width, height: props.element.height }));
+
 const editing = useSmartArtEditing({
 	smartArtData,
 	apply: (patch) => emit('update', patch),
+	elementId: props.element.id,
+	box,
 });
 
 const colorSchemes = SMARTART_COLOR_SCHEMES;

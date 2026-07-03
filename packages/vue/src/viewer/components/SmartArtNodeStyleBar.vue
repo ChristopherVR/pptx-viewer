@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="flex gap-1 px-1.5 py-1 bg-white/90 shadow-sm rounded-full border border-border"
+		class="flex gap-1.5 px-2 py-1.5 bg-white/90 shadow-sm rounded-full border border-border"
 		@mousedown.stop
 		@click.stop
 	>
@@ -9,7 +9,7 @@
 			:key="color"
 			type="button"
 			:aria-label="t('pptx.smartArt.setFill', { color })"
-			class="w-3.5 h-3.5 rounded-full border border-black/10 hover:scale-125 transition-transform"
+			class="w-5 h-5 rounded-full border border-black/10 hover:scale-125 transition-transform"
 			:style="{ background: color }"
 			@click="$emit('pickFill', color)"
 		/>
