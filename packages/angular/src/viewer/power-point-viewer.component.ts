@@ -79,6 +79,7 @@ import { ViewerCollaborationSessionService } from './viewer-collaboration-sessio
 import { ViewerCompareService } from './viewer-compare.service';
 import { ViewerCustomShowsService } from './viewer-custom-shows.service';
 import { ViewerDialogsService } from './viewer-dialogs.service';
+import { ViewerDocumentPropertiesService } from './viewer-document-properties.service';
 import { ViewerExportService } from './viewer-export.service';
 import { ViewerExtraDialogsComponent } from './viewer-extra-dialogs.component';
 import { ViewerFileIOService } from './viewer-file-io.service';
@@ -134,6 +135,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		ViewerCollaborationSessionService,
 		ViewerCanvasEditingService,
 		ViewerCollabCursorService,
+		ViewerDocumentPropertiesService,
 		ViewerFileIOService,
 		ViewerFormatPainterService,
 		ViewerInspectorPanelService,
@@ -231,12 +233,12 @@ import { ZoomTargetService } from './zoom-target.service';
 					(broadcast)="session.showBroadcast.set(true)"
 					(openFile)="fileIO.openFile()"
 					(save)="fileIO.saveAsPptx()"
-					(info)="showProperties.set(true)"
+					(info)="docProperties.showProperties.set(true)"
 					(print)="print.openDialog()"
 					(comments)="inspectorPanel.togglePanel('comments')"
 					(signatures)="inspectorPanel.togglePanel('signatures')"
 					(a11y)="inspectorPanel.togglePanel('accessibility')"
-					(link)="showHyperlink.set(true)"
+					(link)="docProperties.showHyperlink.set(true)"
 					(openSorter)="showSorter.set(true)"
 					(toggleNotes)="mobileSheetSvc.toggleNotes()"
 					(toggleFormatPainter)="formatPainter.toggle()"
@@ -581,10 +583,10 @@ import { ZoomTargetService } from './zoom-target.service';
 			/>
 
 			<pptx-properties-dialog
-				[open]="showProperties()"
-				[properties]="coreProperties()"
-				(save)="onPropertiesSave($event)"
-				(close)="showProperties.set(false)"
+				[open]="docProperties.showProperties()"
+				[properties]="docProperties.coreProperties()"
+				(save)="docProperties.onPropertiesSave($event)"
+				(close)="docProperties.showProperties.set(false)"
 			/>
 
 			<!-- Secondary dialogs / side panels (equation, set-up show, password,
@@ -600,10 +602,10 @@ import { ZoomTargetService } from './zoom-target.service';
 
 			@if (canEdit()) {
 				<pptx-hyperlink-dialog
-					[open]="showHyperlink()"
+					[open]="docProperties.showHyperlink()"
 					[element]="selectedElement()"
-					(save)="onHyperlinkSave($event)"
-					(close)="showHyperlink.set(false)"
+					(save)="docProperties.onHyperlinkSave($event)"
+					(close)="docProperties.showHyperlink.set(false)"
 				/>
 			}
 
@@ -844,6 +846,7 @@ export class PowerPointViewerComponent {
 	protected readonly themeGallery = inject(ViewerThemeGalleryService);
 	protected readonly canvasEditing = inject(ViewerCanvasEditingService);
 	protected readonly collabCursor = inject(ViewerCollabCursorService);
+	protected readonly docProperties = inject(ViewerDocumentPropertiesService);
 
 	/** Handle on the secondary-dialog host (keep-annotations prompt). */
 	private readonly extraDialogs = viewChild(ViewerExtraDialogsComponent);
@@ -924,21 +927,10 @@ export class PowerPointViewerComponent {
 		}
 		return null;
 	});
-	/** Document-properties (Info) dialog visibility. */
-	protected readonly showProperties = signal(false);
-	/** Hyperlink-edit dialog visibility. */
-	protected readonly showHyperlink = signal(false);
-	/** Local overrides applied to document properties via the Info dialog. */
-	private readonly coreOverride = signal<Partial<PptxCoreProperties>>({});
 	/** Comments on the active slide. */
 	protected readonly activeComments = computed<PptxComment[]>(
 		() => this.activeSlide()?.comments ?? [],
 	);
-	/** Document core properties (loaded, with any in-session edits merged in). */
-	protected readonly coreProperties = computed<PptxCoreProperties>(() => ({
-		...(this.loader.coreProperties() ?? {}),
-		...this.coreOverride(),
-	}));
 	/** Whether the dot-grid overlay is visible on the editor canvas. */
 	protected readonly showGrid = signal(false);
 	/** Whether ruler strips are visible on the editor canvas. */
@@ -1218,6 +1210,15 @@ export class PowerPointViewerComponent {
 			canvasSize: () => this.loader.canvasSize(),
 			activeSlideIndex: () => this.activeSlideIndex(),
 		});
+
+		// Hand the document-properties controller the accessors/emitter it alone
+		// needs from the component.
+		this.docProperties.bind({
+			canEdit: () => this.canEdit(),
+			selectedElement: () => this.selectedElement(),
+			activeSlideIndex: () => this.activeSlideIndex(),
+			emitPropertiesChange: (patch) => this.propertiesChange.emit(patch),
+		});
 	}
 
 	/**
@@ -1294,30 +1295,6 @@ export class PowerPointViewerComponent {
 		if (next) {
 			this.editor.updateSlide(this.activeSlideIndex(), { comments: next });
 		}
-	}
-
-	/**
-	 * Persist a document-properties edit from the Info dialog. Gated on
-	 * {@link canEdit}: viewers may inspect properties but not mutate them
-	 * (mirrors the comments / hyperlink edit paths).
-	 */
-	onPropertiesSave(patch: Partial<PptxCoreProperties>): void {
-		if (!this.canEdit()) {
-			this.showProperties.set(false);
-			return;
-		}
-		this.coreOverride.update((current) => ({ ...current, ...patch }));
-		this.propertiesChange.emit(patch);
-		this.showProperties.set(false);
-	}
-
-	/** Apply a hyperlink edit to the selected element (one history entry). */
-	onHyperlinkSave(patch: Partial<PptxElement>): void {
-		const el = this.selectedElement();
-		if (el) {
-			this.editor.updateElement(this.activeSlideIndex(), el.id, patch);
-		}
-		this.showHyperlink.set(false);
 	}
 
 	// ── Insert SmartArt ────────────────────────────────────────────────────────
