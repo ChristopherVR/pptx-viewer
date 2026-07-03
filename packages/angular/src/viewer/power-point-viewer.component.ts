@@ -101,6 +101,7 @@ import { ViewerExportService } from './viewer-export.service';
 import { ViewerExtraDialogsComponent } from './viewer-extra-dialogs.component';
 import { ViewerFindReplaceService } from './viewer-find-replace.service';
 import { ViewerFormatPainterService } from './viewer-format-painter.service';
+import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 import { ViewerKeyboardService } from './viewer-keyboard.service';
 import { ViewerMobileSheetService } from './viewer-mobile-sheet.service';
 import { ViewerPresentationModeService } from './viewer-presentation-mode.service';
@@ -148,6 +149,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		ViewerCustomShowsService,
 		ViewerCollaborationSessionService,
 		ViewerFormatPainterService,
+		ViewerInspectorPanelService,
 		ViewerKeyboardService,
 		ViewerMobileSheetService,
 		ViewerPresentationModeService,
@@ -222,8 +224,8 @@ import { ZoomTargetService } from './zoom-target.service';
 					[canActivateFormatPainter]="formatPainter.canActivate()"
 					[exporting]="xport.exporting()"
 					[sidebarCollapsed]="slidesPanelCollapsed()"
-					[inspectorOpen]="inspectorPaneOpen()"
-					[commentsOpen]="activePanel() === 'comments'"
+					[inspectorOpen]="inspectorPanel.inspectorPaneOpen()"
+					[commentsOpen]="inspectorPanel.activePanel() === 'comments'"
 					[commentCount]="activeComments().length"
 					[findOpen]="findReplace.showFind() || findReplace.showFindReplace()"
 					[collabConnected]="collab.connected()"
@@ -243,9 +245,9 @@ import { ZoomTargetService } from './zoom-target.service';
 					(save)="saveAsPptx()"
 					(info)="showProperties.set(true)"
 					(print)="print.openDialog()"
-					(comments)="togglePanel('comments')"
-					(signatures)="togglePanel('signatures')"
-					(a11y)="togglePanel('accessibility')"
+					(comments)="inspectorPanel.togglePanel('comments')"
+					(signatures)="inspectorPanel.togglePanel('signatures')"
+					(a11y)="inspectorPanel.togglePanel('accessibility')"
 					(link)="showHyperlink.set(true)"
 					(openSorter)="showSorter.set(true)"
 					(toggleNotes)="mobileSheetSvc.toggleNotes()"
@@ -255,7 +257,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					(exportGif)="xport.exportGif()"
 					(exportVideo)="xport.exportVideo()"
 					(replace)="findReplace.openFindReplace()"
-					(toggleInspector)="activePanel.set(null)"
+					(toggleInspector)="inspectorPanel.activePanel.set(null)"
 					(drawToolChange)="onDrawToolChange($event)"
 					[showGrid]="showGrid()"
 					[showRulers]="showRulers()"
@@ -269,7 +271,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					(toggleEyedropper)="formatPainter.toggleEyedropper()"
 					[themeGalleryOpen]="showThemeGallery()"
 					(toggleThemeGallery)="showThemeGallery.update(v => !v)"
-					(toggleSelectionPane)="togglePanel('selection')"
+					(toggleSelectionPane)="inspectorPanel.togglePanel('selection')"
 					(openCustomShows)="customShowsCtl.showDialog.set(true)"
 					(openSmartArtDialog)="showSmartArtInsert.set(true)"
 					(openEquationDialog)="dialogs.openEquationInsert()"
@@ -388,25 +390,26 @@ import { ZoomTargetService } from './zoom-target.service';
 					<!--
 						Single inspector host for every right-rail panel. On mobile it docks
 						full-width below the canvas and is swipe-dismissable (the grab handle
-						feeds onInspectorPointerDown/Move/Up); a downward swipe past the
-						threshold sets mobileInspectorHidden so the user reclaims the canvas.
+						feeds inspectorPanel.inspectorDrag's onPointerDown/Move/Up); a downward
+						swipe past the threshold sets mobileInspectorHidden so the user
+						reclaims the canvas.
 					-->
-					@if (visibleInspectorKind(); as kind) {
+					@if (inspectorPanel.visibleInspectorKind(); as kind) {
 						<aside
 							class="pptx-ng-inspector-host"
-							[attr.aria-label]="inspectorLabel() | translate"
+							[attr.aria-label]="inspectorPanel.inspectorLabel() | translate"
 							[style.transform]="
-								inspectorDragY() > 0 ? 'translateY(' + inspectorDragY() + 'px)' : null
+								inspectorPanel.inspectorDrag.dragY() > 0 ? 'translateY(' + inspectorPanel.inspectorDrag.dragY() + 'px)' : null
 							"
-							[style.transition]="inspectorDragging() ? 'none' : 'transform 150ms ease-out'"
+							[style.transition]="inspectorPanel.inspectorDrag.dragging() ? 'none' : 'transform 150ms ease-out'"
 						>
 							<!-- Swipe-down-to-dismiss grab handle (mobile only; hidden on desktop). -->
 							<div
 								class="pptx-ng-idrawer-grab"
-								(pointerdown)="onInspectorPointerDown($event)"
-								(pointermove)="onInspectorPointerMove($event)"
-								(pointerup)="onInspectorPointerUp($event)"
-								(pointercancel)="onInspectorPointerUp($event)"
+								(pointerdown)="inspectorPanel.inspectorDrag.onPointerDown($event)"
+								(pointermove)="inspectorPanel.inspectorDrag.onPointerMove($event)"
+								(pointerup)="inspectorPanel.inspectorDrag.onPointerUp($event)"
+								(pointercancel)="inspectorPanel.inspectorDrag.onPointerUp($event)"
 							>
 								<div class="pptx-ng-idrawer-handle"></div>
 							</div>
@@ -755,7 +758,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					(openSlides)="mobileSheetSvc.mobileSheet.set(mobileSheetSvc.mobileSheet() === 'slides' ? null : 'slides')"
 					(insert)="mobileSheetSvc.onMobileInsert()"
 					(openFormat)="onMobileFormat()"
-					(openComments)="togglePanel('comments')"
+					(openComments)="inspectorPanel.togglePanel('comments')"
 					(notes)="mobileSheetSvc.toggleNotes()"
 				/>
 			}
@@ -849,6 +852,7 @@ export class PowerPointViewerComponent {
 	private readonly touchGestures = inject(ViewerTouchGesturesService);
 	protected readonly presentationMode = inject(ViewerPresentationModeService);
 	protected readonly mobileSheetSvc = inject(ViewerMobileSheetService);
+	protected readonly inspectorPanel = inject(ViewerInspectorPanelService);
 
 	/** Handle on the secondary-dialog host (keep-annotations prompt). */
 	private readonly extraDialogs = viewChild(ViewerExtraDialogsComponent);
@@ -918,79 +922,6 @@ export class PowerPointViewerComponent {
 	/** Active ink stroke width in stage pixels. */
 	protected readonly activeDrawWidth = signal<number>(3);
 
-	/** Active right-docked tool panel (comments / accessibility / selection), or null. */
-	protected readonly activePanel = signal<
-		'comments' | 'accessibility' | 'signatures' | 'selection' | null
-	>(null);
-
-	/**
-	 * Which panel the single inspector host should show, applying the original
-	 * first-match precedence (explicit tool panels → element → slide default).
-	 * `accessibility`/`signatures` render regardless of edit mode; the rest need
-	 * `canEdit`.
-	 */
-	protected readonly inspectorContent = computed<
-		'accessibility' | 'signatures' | 'comments' | 'selection' | 'element' | 'slide' | null
-	>(() => {
-		const panel = this.activePanel();
-		if (panel === 'accessibility') {
-			return 'accessibility';
-		}
-		if (panel === 'signatures') {
-			return 'signatures';
-		}
-		if (!this.canEdit()) {
-			return null;
-		}
-		if (panel === 'comments') {
-			return 'comments';
-		}
-		if (panel === 'selection') {
-			return 'selection';
-		}
-		if (this.selectedElement()) {
-			return 'element';
-		}
-		if (this.activeSlide()) {
-			return 'slide';
-		}
-		return null;
-	});
-
-	/**
-	 * Whether the right-docked inspector is showing the format panel (element or
-	 * slide properties). Drives the top-bar inspector-toggle active state.
-	 */
-	protected readonly inspectorPaneOpen = computed<boolean>(() => {
-		const content = this.inspectorContent();
-		return content === 'element' || content === 'slide';
-	});
-
-	/** Inspector content, but null on mobile once the user has swiped it away. */
-	protected readonly visibleInspectorKind = computed(() =>
-		this.mobile.isMobile() && this.mobileInspectorHidden() ? null : this.inspectorContent(),
-	);
-
-	/** Accessible-label translation key for the inspector host, by active content. */
-	protected readonly inspectorLabel = computed(() => {
-		switch (this.inspectorContent()) {
-			case 'accessibility':
-				return 'pptx.accessibility.title';
-			case 'signatures':
-				return 'pptx.viewer.digitalSignatures';
-			case 'comments':
-				return 'pptx.toolbar.comments';
-			case 'selection':
-				return 'pptx.selectionPane.title';
-			case 'element':
-				return 'pptx.viewer.elementProperties';
-			case 'slide':
-				return 'pptx.viewer.slideProperties';
-			default:
-				return '';
-		}
-	});
-
 	/**
 	 * Which mobile bottom-bar slot is currently "active" (highlighted). The
 	 * comments panel maps to the Comments slot; an open notes strip maps to
@@ -1001,7 +932,7 @@ export class PowerPointViewerComponent {
 		if (this.mobileSheetSvc.mobileSheet() === 'slides') {
 			return 'slides';
 		}
-		if (this.activePanel() === 'comments') {
+		if (this.inspectorPanel.activePanel() === 'comments') {
 			return 'comments';
 		}
 		if (this.mobileSheetSvc.showNotes()) {
@@ -1108,7 +1039,7 @@ export class PowerPointViewerComponent {
 		// it on mobile — tapping a shape to edit it should surface its properties.
 		effect(() => {
 			if (this.selectedElement()) {
-				this.mobileInspectorHidden.set(false);
+				this.inspectorPanel.mobileInspectorHidden.set(false);
 			}
 		});
 
@@ -1287,6 +1218,14 @@ export class PowerPointViewerComponent {
 			slideCount: () => this.slideCount(),
 			activeSlideIndex: () => this.activeSlideIndex(),
 		});
+
+		// Hand the inspector-panel controller the accessors its content
+		// precedence needs from the component.
+		this.inspectorPanel.bind({
+			canEdit: () => this.canEdit(),
+			selectedElement: () => this.selectedElement(),
+			activeSlide: () => this.activeSlide(),
+		});
 	}
 
 	/**
@@ -1453,45 +1392,6 @@ export class PowerPointViewerComponent {
 		})();
 	}
 
-	// ── Mobile inspector (Format/Comments/Selection/…) swipe-to-dismiss ─────────
-	// The inspector host docks in-flow below the canvas on mobile (same keyboard-
-	// reachability reason as the notes sheet), so the swipe gesture is wired here.
-	/** True once the user swiped the inspector away on mobile (until reopened). */
-	protected readonly mobileInspectorHidden = signal(false);
-	/** Live downward drag offset for the inspector host (px; 0 when idle). */
-	protected readonly inspectorDragY = signal(0);
-	/** True while an inspector-host drag is in progress. */
-	protected readonly inspectorDragging = signal(false);
-	private inspectorDragStartY: number | null = null;
-
-	protected onInspectorPointerDown(event: PointerEvent): void {
-		this.inspectorDragStartY = event.clientY;
-		this.inspectorDragging.set(true);
-		(event.target as HTMLElement).setPointerCapture?.(event.pointerId);
-	}
-
-	protected onInspectorPointerMove(event: PointerEvent): void {
-		if (this.inspectorDragStartY === null) {
-			return;
-		}
-		this.inspectorDragY.set(Math.max(0, event.clientY - this.inspectorDragStartY));
-	}
-
-	protected onInspectorPointerUp(event: PointerEvent): void {
-		if (this.inspectorDragStartY === null) {
-			return;
-		}
-		const delta = event.clientY - this.inspectorDragStartY;
-		this.inspectorDragStartY = null;
-		this.inspectorDragging.set(false);
-		(event.target as HTMLElement).releasePointerCapture?.(event.pointerId);
-		if (delta > 120) {
-			this.mobileInspectorHidden.set(true);
-			this.activePanel.set(null);
-		}
-		this.inspectorDragY.set(0);
-	}
-
 	/**
 	 * Mobile "Format" slot: surface the inspector for the current selection. The
 	 * inspector renders inline (below the canvas) whenever an element is selected
@@ -1500,17 +1400,10 @@ export class PowerPointViewerComponent {
 	 * instead).
 	 */
 	protected onMobileFormat(): void {
-		this.activePanel.set(null);
+		this.inspectorPanel.activePanel.set(null);
 		this.mobileSheetSvc.mobileSheet.set(null);
 		// Reopen the inspector if a prior swipe-down had dismissed it.
-		this.mobileInspectorHidden.set(false);
-	}
-
-	/** Toggle a right-docked tool panel (clicking the active one closes it). */
-	togglePanel(panel: 'comments' | 'accessibility' | 'signatures' | 'selection'): void {
-		this.activePanel.update((current) => (current === panel ? null : panel));
-		// Tapping a panel button re-opens the host even after a swipe-dismiss.
-		this.mobileInspectorHidden.set(false);
+		this.inspectorPanel.mobileInspectorHidden.set(false);
 	}
 
 	/** Receive draw-tool state changes from the ribbon Draw tab. */
