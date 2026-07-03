@@ -102,7 +102,7 @@ const MOBILE_LABEL =
 	<nav
 		class="pptx-vue-mobile-bar fixed bottom-0 left-0 right-0 z-40 flex items-stretch justify-between overflow-hidden p-1 pb-[max(env(safe-area-inset-bottom),0.25rem)] border-t border-border bg-secondary/90 backdrop-blur-md"
 		:style="barStyle"
-		:aria-label="t('pptx.mobileBar.slideControls')"
+		:aria-label="t('pptx.mobileBar.ariaLabel')"
 	>
 		<button
 			type="button"

@@ -53,8 +53,8 @@ const BTN =
 			v-if="showEdit()"
 			type="button"
 			:class="BTN"
-			:title="t('pptx.mobileMenu.title')"
-			:aria-label="t('pptx.mobileMenu.title')"
+			:title="t('pptx.mobileToolbar.menu')"
+			:aria-label="t('pptx.mobileToolbar.menu')"
 			@click="menuOpen = true"
 		>
 			<Menu class="h-5 w-5" />
