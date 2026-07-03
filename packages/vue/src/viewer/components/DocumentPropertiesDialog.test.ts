@@ -96,7 +96,7 @@ describe('documentPropertiesDialog', () => {
 		const customTab = wrapper.findAll('button').find((b) => b.text() === 'Custom');
 		await customTab!.trigger('click');
 
-		const addButton = wrapper.findAll('button').find((b) => b.text().includes('Add property'));
+		const addButton = wrapper.findAll('button').find((b) => b.text().includes('Add Property'));
 		await addButton!.trigger('click');
 
 		const nameInput = wrapper.findAll('input[type="text"]')[0];

@@ -32,7 +32,7 @@ describe('themeEditorPanel', () => {
 
 	it('emits apply with the edited colour scheme, fonts, and name', async () => {
 		const wrapper = mount(ThemeEditorPanel, { props: { theme, canEdit: true } });
-		await wrapper.find('button[aria-label="Close theme editor"]').exists();
+		await wrapper.find('button[aria-label="Close"]').exists();
 		const applyBtn = wrapper
 			.findAll('button')
 			.find((b) => b.text().includes('Apply to Presentation'))!;
@@ -49,7 +49,7 @@ describe('themeEditorPanel', () => {
 
 	it('emits close from the header button', async () => {
 		const wrapper = mount(ThemeEditorPanel, { props: { theme, canEdit: true } });
-		await wrapper.get('button[aria-label="Close theme editor"]').trigger('click');
+		await wrapper.get('button[aria-label="Close"]').trigger('click');
 		expect(wrapper.emitted('close')).toHaveLength(1);
 	});
 });

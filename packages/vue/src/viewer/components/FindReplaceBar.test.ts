@@ -22,14 +22,14 @@ describe('findReplaceBar', () => {
 
 	it('updates the query model when typing', async () => {
 		const wrapper = mountBar();
-		const input = wrapper.find('input[aria-label="Find"]');
+		const input = wrapper.find('input[aria-label="Search text"]');
 		await input.setValue('hello');
 		expect(wrapper.emitted('update:query')?.at(-1)).toStrictEqual(['hello']);
 	});
 
 	it('updates the replacement model when typing', async () => {
 		const wrapper = mountBar();
-		const input = wrapper.find('input[aria-label="Replace"]');
+		const input = wrapper.find('input[aria-label="Replacement text"]');
 		await input.setValue('world');
 		expect(wrapper.emitted('update:replacement')?.at(-1)).toStrictEqual(['world']);
 	});

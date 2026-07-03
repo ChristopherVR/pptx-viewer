@@ -286,7 +286,7 @@ describe('chartPanel', () => {
 			},
 		});
 		expect(wrapper.get('[data-testid="chart-data-summary"]').text()).toBe(
-			'2 series · 3 categories',
+			'2 Series · 3 Categories',
 		);
 	});
 

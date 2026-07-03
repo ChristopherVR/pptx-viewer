@@ -78,7 +78,7 @@ describe('settingsDialog', () => {
 			attachTo: document.body,
 		});
 
-		clickText('Keyboard shortcuts');
+		clickText('Keyboard Shortcuts');
 		await wrapper.vm.$nextTick();
 
 		expect(document.body.textContent).toContain('Undo');

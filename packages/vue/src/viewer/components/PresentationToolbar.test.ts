@@ -39,7 +39,7 @@ describe('presentationToolbar', () => {
 	it('emits set-tool when an annotation tool is clicked', async () => {
 		const wrapper = mountToolbar();
 		// Find the laser button by aria-label.
-		const laser = wrapper.find('[aria-label="Laser pointer"]');
+		const laser = wrapper.find('[aria-label="Laser Pointer"]');
 		await laser.trigger('click');
 		expect(wrapper.emitted('set-tool')?.[0]).toStrictEqual(['laser']);
 	});
