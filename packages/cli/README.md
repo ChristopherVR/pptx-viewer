@@ -19,17 +19,20 @@ This is what you get one `npx` away: a working `.pptx` viewer/editor, wired up i
 npx @christophervr/pptx-viewer@latest
 ```
 
-It first asks what you're building (multiple choice, comma-separated):
+It first asks what you're building with an arrow-key checklist (`↑`/`↓` to move, `space` to toggle, `a` to select all, `enter` to confirm):
 
 ```
 What are you building with pptx-viewer? (you can pick more than one)
+(↑/↓ move, space toggle, a select all, enter confirm)
 
-  1) React - pptx-react-viewer, a viewer/editor component for a React 19 app
-  2) Vue - pptx-vue-viewer, a viewer/editor component for a Vue 3.5+ app
-  3) Angular - pptx-angular-viewer, a viewer/editor component for an Angular 22+ app
-  4) Core engine only - pptx-viewer-core, the framework-agnostic SDK, no UI
-  5) MCP server - pptx-viewer-mcp, PowerPoint editing tools for AI agents
+❯ ◉ React - pptx-react-viewer, a viewer/editor component for a React 19 app
+  ◯ Vue - pptx-vue-viewer, a viewer/editor component for a Vue 3.5+ app
+  ◯ Angular - pptx-angular-viewer, a viewer/editor component for an Angular 22+ app
+  ◯ Core engine only - pptx-viewer-core, the framework-agnostic SDK, no UI
+  ◯ MCP server - pptx-viewer-mcp, PowerPoint editing tools for AI agents
 ```
+
+The whole flow is colour-highlighted (current row, confirmations, warnings, errors) and falls back to a plain numbered prompt in shells without raw keyboard input (piped stdin, some CI runners) or when `NO_COLOR`/a non-TTY output disables colour.
 
 Picking more than one is fine, for example React plus the MCP server to get both a viewer and AI-agent tooling in the same repo. `pptx-viewer-mcp` never gets installed as a dependency: since it's meant to be launched by an MCP client via `npx`, this just prints the client config to paste in.
 
@@ -42,7 +45,7 @@ If you picked React, Vue, or Angular and a `package.json` already exists in the 
 When exactly one UI framework is selected, you're asked how to set it up:
 
 - **Install here** adds the package(s) to the project in the current directory (a `package.json` must already exist; run `npm init -y` first if not).
-- **Scaffold a new project** bootstraps a brand-new starter app in its own folder, using the framework's own official scaffolding tool ([`create-vite`](https://www.npmjs.com/package/create-vite) for React/Vue, [`@angular/cli`](https://www.npmjs.com/package/@angular/cli) for Angular), then wires in a minimal working `PowerPointViewer` example and installs the viewer package on top.
+- **Scaffold a new project** bootstraps a brand-new starter app in its own folder, using the framework's own official scaffolding tool ([`create-vite`](https://www.npmjs.com/package/create-vite) for React/Vue, [`@angular/cli`](https://www.npmjs.com/package/@angular/cli) for Angular), then wires in a working `PowerPointViewer` example (same pattern as the [live demos](https://christophervr.github.io/pptx-viewer/demo/): open an existing `.pptx`, or click "New Presentation" to build a blank deck with `PptxHandler.createBlank` and start editing right away) and installs the viewer package plus `pptx-viewer-core` on top.
 
 Scaffolding is only offered for a single framework at a time; if you select more than one UI framework together, the CLI installs into the current project instead.
 

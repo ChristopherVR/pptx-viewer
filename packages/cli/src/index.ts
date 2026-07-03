@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 
 import { parseArgs } from './args';
 import type { ParsedArgs } from './args';
+import { bold, cyan, dim, gray, green, red, yellow } from './colors';
 import { checkCompat } from './compat';
 import { detectPackageManager, installCommand } from './package-manager';
 import { confirm, input, multiSelect, selectOption } from './prompt';
@@ -12,30 +13,35 @@ import { sanitizeProjectName, scaffoldProject } from './scaffold';
 import { TARGETS } from './targets';
 import type { Target } from './targets';
 
+function printBanner(): void {
+	console.log(`\n${bold(cyan('pptx-viewer'))} ${dim('· interactive installer')}`);
+}
+
 function printUsage(): void {
+	printBanner();
 	console.log(`
-@christophervr/pptx-viewer - interactive installer for the pptx-viewer packages
+${bold('Usage:')} npx @christophervr/pptx-viewer [options]
 
-Usage: npx @christophervr/pptx-viewer [options]
+${bold('Options:')}
+  ${cyan('--target <ids>')}  Skip the picker; comma-separated, any of: ${TARGETS.map((t) => t.id).join(', ')}
+  ${cyan('--scaffold')}      Bootstrap a brand-new starter project instead of installing here
+  ${cyan('--dir <name>')}    Project directory name for --scaffold
+  ${cyan('--pm <manager>')}  Package manager to use: bun, pnpm, yarn, npm (default: auto-detected)
+  ${cyan('--yes, -y')}       Skip confirmation prompts
+  ${cyan('--help, -h')}      Show this help
 
-Options:
-  --target <ids>  Skip the picker; comma-separated, any of: ${TARGETS.map((t) => t.id).join(', ')}
-  --scaffold      Bootstrap a brand-new starter project instead of installing here
-  --dir <name>    Project directory name for --scaffold
-  --pm <manager>  Package manager to use: bun, pnpm, yarn, npm (default: auto-detected)
-  --yes, -y       Skip confirmation prompts
-  --help, -h      Show this help
-
-Examples:
-  npx @christophervr/pptx-viewer
-  npx @christophervr/pptx-viewer --target react,mcp --yes
-  npx @christophervr/pptx-viewer --target react --scaffold --dir my-app --yes
+${bold('Examples:')}
+  ${gray('npx @christophervr/pptx-viewer')}
+  ${gray('npx @christophervr/pptx-viewer --target react,mcp --yes')}
+  ${gray('npx @christophervr/pptx-viewer --target react --scaffold --dir my-app --yes')}
 `);
 }
 
 async function resolveTargets(requested: string | undefined): Promise<Target[]> {
 	if (requested) {
-		return findTargetsByIds(parseTargetIds(requested));
+		const targets = findTargetsByIds(parseTargetIds(requested));
+		console.log(`${green('✔')} ${targets.map((t) => t.label).join(', ')}`);
+		return targets;
 	}
 	if (!process.stdin.isTTY) {
 		throw new Error('Not running in a terminal: pass --target explicitly (see --help).');
@@ -53,7 +59,7 @@ async function confirmCompat(cwd: string, targets: Target[]): Promise<boolean> {
 		if (result.compatible) {
 			continue;
 		}
-		console.log(`\nWarning: ${result.message}`);
+		console.log(`\n${yellow('Warning:')} ${result.message}`);
 		if (process.stdin.isTTY) {
 			const proceed = await confirm('Continue anyway?');
 			if (!proceed) {
@@ -85,7 +91,7 @@ async function resolveScaffoldChoice(
 
 	if (scaffoldable.length > 1) {
 		console.log(
-			'\nScaffolding a new project only supports one UI framework at a time; installing instead.',
+			`\n${dim('Scaffolding a new project only supports one UI framework at a time; installing instead.')}`,
 		);
 		return { useScaffold: false };
 	}
@@ -126,12 +132,12 @@ async function runScaffoldMode(
 	const pm = args.pm ?? detectPackageManager(cwd);
 
 	console.log(
-		`\nAbout to scaffold "${projectName}" with ${recipe.command} (${target.label}), then install with ${pm}.\n`,
+		`\n${bold('About to scaffold')} "${cyan(projectName)}" with ${recipe.command} (${target.label}), then install with ${pm}.\n`,
 	);
 	if (!args.yes && process.stdin.isTTY) {
 		const proceed = await confirm('Continue?');
 		if (!proceed) {
-			console.log('\nSkipped.');
+			console.log(`\n${dim('Skipped.')}`);
 			return;
 		}
 	}
@@ -139,13 +145,13 @@ async function runScaffoldMode(
 	const result = await scaffoldProject(recipe, projectName, pm, cwd);
 	if (!result.patchedFile) {
 		console.log(
-			`\nScaffolded the project, but could not find an entry file to wire up automatically. ` +
+			`\n${yellow('Scaffolded the project, but could not find an entry file to wire up automatically.')} ` +
 				`See the quick-start snippet below and add it yourself.`,
 		);
 	}
 
 	console.log(
-		`\nDone. Next steps:\n\n  cd ${projectName}\n  ${pm} run dev\n\n${target.nextSteps}\n`,
+		`\n${green('✔')} ${bold('Done.')} Next steps:\n\n  ${cyan(`cd ${projectName}`)}\n  ${cyan(`${pm} run dev`)}\n\n${target.nextSteps}\n`,
 	);
 	for (const configTarget of configTargets) {
 		console.log(`${configTarget.nextSteps}\n`);
@@ -167,20 +173,20 @@ async function runInstallMode(
 
 		const proceedPastCompat = await confirmCompat(cwd, installTargets);
 		if (!proceedPastCompat) {
-			console.log('\nAborted.');
+			console.log(`\n${red('Aborted.')}`);
 			return;
 		}
 
 		const packages = mergePackages(installTargets);
 		const pm = args.pm ?? detectPackageManager(cwd);
 		const [command, cmdArgs] = installCommand(pm, packages);
-		console.log(`\nAbout to run: ${command} ${cmdArgs.join(' ')}\n`);
+		console.log(`\n${bold('About to run:')} ${cyan(`${command} ${cmdArgs.join(' ')}`)}\n`);
 
 		if (!args.yes && process.stdin.isTTY) {
 			const proceed = await confirm('Install now?');
 			if (!proceed) {
 				console.log(
-					`\nSkipped. Run this yourself when ready:\n  ${command} ${cmdArgs.join(' ')}\n`,
+					`\n${dim('Skipped.')} Run this yourself when ready:\n  ${cyan(`${command} ${cmdArgs.join(' ')}`)}\n`,
 				);
 				return;
 			}
@@ -191,7 +197,7 @@ async function runInstallMode(
 			throw new Error(`${command} exited with code ${exitCode}`);
 		}
 
-		console.log(`\nDone. Next steps:`);
+		console.log(`\n${green('✔')} ${bold('Done.')} Next steps:`);
 		for (const target of installTargets) {
 			console.log(`\n${target.nextSteps}\n`);
 		}
@@ -209,8 +215,8 @@ async function main(): Promise<void> {
 		return;
 	}
 
+	printBanner();
 	const targets = await resolveTargets(args.target);
-	console.log(`\nSelected: ${targets.map((t) => t.label).join(', ')}`);
 
 	const installTargets = targets.filter((t) => t.mode === 'install');
 	const configTargets = targets.filter((t) => t.mode === 'print-config');
@@ -227,6 +233,6 @@ async function main(): Promise<void> {
 
 main().catch((err: unknown) => {
 	const message = err instanceof Error ? err.message : String(err);
-	console.error(`Error: ${message}`);
+	console.error(`${red('✘ Error:')} ${message}`);
 	process.exit(1);
 });

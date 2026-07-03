@@ -35,23 +35,52 @@ export interface Target {
 	scaffold?: ScaffoldRecipe;
 }
 
-const REACT_APP_TSX = `import { useState } from 'react';
+// Mirrors the demo apps (demos/demo-react, demo-vue, demo-angular): a picker
+// to open an existing .pptx, or a "New Presentation" button that hands the
+// viewer a freshly built blank deck via PptxHandler.createBlank, so the
+// scaffolded app actually shows a working PowerPoint presentation right away
+// instead of a bare, empty file input.
+const REACT_APP_TSX = `import { useCallback, useState } from 'react';
+import { PptxHandler } from 'pptx-viewer-core';
 import { PowerPointViewer } from 'pptx-react-viewer';
 import 'pptx-react-viewer/styles';
 
 export default function App() {
-	const [content, setContent] = useState<ArrayBuffer | null>(null);
+	const [content, setContent] = useState<Uint8Array | null>(null);
 
-	const onPick = (e: React.ChangeEvent<HTMLInputElement>) =>
-		e.target.files?.[0]?.arrayBuffer().then(setContent);
+	const loadFile = useCallback((file: File) => {
+		const reader = new FileReader();
+		reader.onload = () => setContent(new Uint8Array(reader.result as ArrayBuffer));
+		reader.readAsArrayBuffer(file);
+	}, []);
+
+	const newPresentation = useCallback(async () => {
+		const { handler, data } = await PptxHandler.createBlank({
+			title: 'Untitled Presentation',
+			initialSlideCount: 1,
+		});
+		setContent(await handler.save(data.slides));
+	}, []);
+
+	if (content) {
+		return (
+			<div style={{ height: '100vh' }}>
+				<PowerPointViewer content={content} canEdit />
+			</div>
+		);
+	}
 
 	return (
-		<div style={{ height: '100vh' }}>
-			{content ? (
-				<PowerPointViewer content={content} canEdit />
-			) : (
-				<input type="file" accept=".pptx" onChange={onPick} />
-			)}
+		<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, height: '100vh' }}>
+			<input
+				type="file"
+				accept=".pptx"
+				onChange={(e) => {
+					const file = e.target.files?.[0];
+					if (file) loadFile(file);
+				}}
+			/>
+			<button onClick={() => void newPresentation()}>or create a New Presentation</button>
 		</div>
 	);
 }
@@ -59,26 +88,45 @@ export default function App() {
 
 const VUE_APP_VUE = `<script setup lang="ts">
 import { ref } from 'vue';
+import { PptxHandler } from 'pptx-viewer-core';
 import { PowerPointViewer } from 'pptx-vue-viewer';
 import 'pptx-vue-viewer/styles';
 
 const content = ref<Uint8Array>();
 
+function loadFile(file: File) {
+	const reader = new FileReader();
+	reader.onload = () => (content.value = new Uint8Array(reader.result as ArrayBuffer));
+	reader.readAsArrayBuffer(file);
+}
+
 function onPick(e: Event) {
 	const file = (e.target as HTMLInputElement).files?.[0];
-	file?.arrayBuffer().then((buf) => (content.value = new Uint8Array(buf)));
+	if (file) loadFile(file);
+}
+
+async function newPresentation() {
+	const { handler, data } = await PptxHandler.createBlank({
+		title: 'Untitled Presentation',
+		initialSlideCount: 1,
+	});
+	content.value = await handler.save(data.slides);
 }
 </script>
 
 <template>
-	<div style="height: 100vh">
-		<PowerPointViewer v-if="content" :content="content" style="height: 100%" />
-		<input v-else type="file" accept=".pptx" @change="onPick" />
+	<div v-if="content" style="height: 100vh">
+		<PowerPointViewer :content="content" can-edit style="height: 100%" />
+	</div>
+	<div v-else style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; height: 100vh">
+		<input type="file" accept=".pptx" @change="onPick" />
+		<button @click="newPresentation">or create a New Presentation</button>
 	</div>
 </template>
 `;
 
 const ANGULAR_APP_TS = `import { Component, signal } from '@angular/core';
+import { PptxHandler } from 'pptx-viewer-core';
 import { PowerPointViewerComponent } from 'pptx-angular-viewer';
 
 @Component({
@@ -86,23 +134,34 @@ import { PowerPointViewerComponent } from 'pptx-angular-viewer';
 	standalone: true,
 	imports: [PowerPointViewerComponent],
 	template: \`
-		<div style="height: 100vh">
-			@if (content(); as c) {
-				<pptx-power-point-viewer [content]="c" style="height: 100%" />
-			} @else {
+		@if (content(); as c) {
+			<div style="height: 100vh">
+				<pptx-power-point-viewer [content]="c" [canEdit]="true" style="height: 100%" />
+			</div>
+		} @else {
+			<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; height: 100vh">
 				<input type="file" accept=".pptx" (change)="onPick($event)" />
-			}
-		</div>
+				<button (click)="newPresentation()">or create a New Presentation</button>
+			</div>
+		}
 	\`,
 })
 export class App {
-	content = signal<ArrayBuffer | null>(null);
+	content = signal<ArrayBuffer | Uint8Array | null>(null);
 
 	async onPick(e: Event) {
 		const file = (e.target as HTMLInputElement).files?.[0];
 		if (file) {
 			this.content.set(await file.arrayBuffer());
 		}
+	}
+
+	async newPresentation() {
+		const { handler, data } = await PptxHandler.createBlank({
+			title: 'Untitled Presentation',
+			initialSlideCount: 1,
+		});
+		this.content.set(await handler.save(data.slides));
 	}
 }
 `;
@@ -138,6 +197,7 @@ Docs: https://www.npmjs.com/package/pptx-react-viewer`,
 			args: (dir) => [dir, '--template', 'react-ts'],
 			extraPackages: [
 				'pptx-react-viewer',
+				'pptx-viewer-core',
 				'framer-motion',
 				'lucide-react',
 				'react-icons',
@@ -171,7 +231,7 @@ Docs: https://www.npmjs.com/package/pptx-vue-viewer`,
 		scaffold: {
 			command: 'create-vite@latest',
 			args: (dir) => [dir, '--template', 'vue-ts'],
-			extraPackages: ['pptx-vue-viewer', 'jszip', 'fast-xml-parser'],
+			extraPackages: ['pptx-vue-viewer', 'pptx-viewer-core', 'jszip', 'fast-xml-parser'],
 			entryCandidates: ['src/App.vue'],
 			entryContent: VUE_APP_VUE,
 		},
@@ -192,7 +252,7 @@ Docs: https://www.npmjs.com/package/pptx-angular-viewer`,
 		scaffold: {
 			command: '@angular/cli@latest',
 			args: (dir) => ['new', dir, '--standalone', '--skip-git', '--style=css', '--skip-install'],
-			extraPackages: ['pptx-angular-viewer'],
+			extraPackages: ['pptx-angular-viewer', 'pptx-viewer-core'],
 			// Angular v20+ generates `app.ts`; older schematics generate `app.component.ts`.
 			entryCandidates: ['src/app/app.ts', 'src/app/app.component.ts'],
 			entryContent: ANGULAR_APP_TS,

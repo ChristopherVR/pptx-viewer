@@ -1,14 +1,15 @@
 import { createInterface } from 'node:readline/promises';
 
-interface Choice {
-	label: string;
-	description: string;
-}
+import { bold, cyan, dim, green } from './colors';
+import { runMenu } from './interactive-menu';
+import type { MenuChoice } from './interactive-menu';
 
 /**
  * Parse a multi-select answer like `"1,3"`, `"1 3"`, or `"all"`/`"a"` into
  * zero-based, deduplicated indices. Returns `null` if any token is out of
- * range or unparseable, so the caller can re-prompt.
+ * range or unparseable, so the caller can re-prompt. Used as the fallback
+ * text prompt when the arrow-key menu isn't available (piped stdin, some
+ * CI shells).
  */
 export function parseSelection(answer: string, count: number): number[] | null {
 	const trimmed = answer.trim().toLowerCase();
@@ -30,17 +31,16 @@ export function parseSelection(answer: string, count: number): number[] | null {
 	return [...indices].sort((a, b) => a - b);
 }
 
-function printOptions(options: Choice[]): void {
+function printOptions(options: MenuChoice[]): void {
 	options.forEach((opt, i) => {
-		console.log(`  ${i + 1}) ${opt.label} - ${opt.description}`);
+		console.log(`  ${cyan(`${i + 1})`)} ${bold(opt.label)} ${dim(`- ${opt.description}`)}`);
 	});
 }
 
-/** Ask the user to pick one of `options` by number. Re-prompts on an invalid answer. */
-export async function selectOption<T extends Choice>(question: string, options: T[]): Promise<T> {
+/** Numbered text fallback for environments without raw-mode keyboard input. */
+async function selectByNumber<T extends MenuChoice>(options: T[]): Promise<T> {
 	const rl = createInterface({ input: process.stdin, output: process.stdout });
 	try {
-		console.log(`\n${question}\n`);
 		printOptions(options);
 		for (;;) {
 			const answer = (await rl.question(`\nEnter a number (1-${options.length}): `)).trim();
@@ -55,11 +55,10 @@ export async function selectOption<T extends Choice>(question: string, options: 
 	}
 }
 
-/** Ask the user to pick one or more of `options` by number (comma/space-separated, or "all"). */
-export async function multiSelect<T extends Choice>(question: string, options: T[]): Promise<T[]> {
+/** Numbered text fallback for environments without raw-mode keyboard input. */
+async function selectManyByNumber<T extends MenuChoice>(options: T[]): Promise<T[]> {
 	const rl = createInterface({ input: process.stdin, output: process.stdout });
 	try {
-		console.log(`\n${question}\n`);
 		printOptions(options);
 		for (;;) {
 			const answer = await rl.question(
@@ -76,11 +75,41 @@ export async function multiSelect<T extends Choice>(question: string, options: T
 	}
 }
 
+/** Ask the user to pick one of `options` with an arrow-key menu (numbered fallback otherwise). */
+export async function selectOption<T extends MenuChoice>(
+	question: string,
+	options: T[],
+): Promise<T> {
+	console.log(`\n${bold(question)}`);
+	const picked = await runMenu(options, false);
+	if (!picked) {
+		return selectByNumber(options);
+	}
+	const choice = options[picked[0]];
+	console.log(`${green('✔')} ${choice.label}`);
+	return choice;
+}
+
+/** Ask the user to pick one or more of `options` with an arrow-key checklist (numbered fallback otherwise). */
+export async function multiSelect<T extends MenuChoice>(
+	question: string,
+	options: T[],
+): Promise<T[]> {
+	console.log(`\n${bold(question)}`);
+	const picked = await runMenu(options, true);
+	if (!picked) {
+		return selectManyByNumber(options);
+	}
+	const choices = picked.map((i) => options[i]);
+	console.log(`${green('✔')} ${choices.map((c) => c.label).join(', ')}`);
+	return choices;
+}
+
 /** Ask a yes/no question. Defaults to yes on an empty answer. */
 export async function confirm(question: string): Promise<boolean> {
 	const rl = createInterface({ input: process.stdin, output: process.stdout });
 	try {
-		const answer = (await rl.question(`${question} (Y/n): `)).trim().toLowerCase();
+		const answer = (await rl.question(`${bold(question)} ${dim('(Y/n)')} `)).trim().toLowerCase();
 		return answer === '' || answer === 'y' || answer === 'yes';
 	} finally {
 		rl.close();
@@ -91,7 +120,7 @@ export async function confirm(question: string): Promise<boolean> {
 export async function input(question: string, defaultValue: string): Promise<string> {
 	const rl = createInterface({ input: process.stdin, output: process.stdout });
 	try {
-		const answer = (await rl.question(`${question} (${defaultValue}): `)).trim();
+		const answer = (await rl.question(`${bold(question)} ${dim(`(${defaultValue})`)} `)).trim();
 		return answer === '' ? defaultValue : answer;
 	} finally {
 		rl.close();
