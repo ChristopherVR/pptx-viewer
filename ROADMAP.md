@@ -6,8 +6,10 @@ from. React (`packages/react`) is the reference; Vue and Angular are ports.
 
 Status legend: ✅ done · 🟡 partial · ❌ missing.
 
-Progress: M1-M5 and C1-C2 are shipped across React, Vue, and Angular. Only C3
-(collaboration hardening) remains, gated on a design decision.
+Progress: M1-M5 and C1-C4 are shipped across React, Vue, and Angular. Of C3
+(collaboration hardening), granular CRDT merging, elected-writer write-back,
+and a serverless transport are done; server-side auth + persistence remain a
+deployment concern (see `demos/collab-server-hocuspocus.example.mjs`).
 
 ## Mobile / touch
 
@@ -57,25 +59,41 @@ appear to stall on a phone. Add progress + cancel on mobile.
 
 ### C1. Vue collaboration port
 
-Vue accepts the `collaboration` prop and emits `start/stop-collaboration` but has
-no Yjs wiring. Port React's collaboration: provider, document sync, presence,
-remote cursors, status indicator.
+Provider, document sync, presence, remote cursors, selection overlay, follow
+mode, and status indicator are ported; the awareness wire format matches the
+React/Angular nested `presence` schema so cross-framework sessions interop.
 
 - React ref: `packages/react/src/viewer/hooks/collaboration/*`,
   `packages/react/src/viewer/components/collaboration/*`
-- React ✅ · Vue ❌ · Angular 🟡
+- React ✅ · Vue ✅ · Angular ✅
 
 ### C2. Angular collaboration dialog UIs
 
-`CollaborationService` + cursors exist, but the Share/Broadcast dialog UIs to
-start/join a session are not fully wired.
+Share/Broadcast dialogs are wired to `CollaborationService`, and the component
+now drives the service end-to-end: document sync both ways, cursor + selection
+publishing, remote selection overlay, follow mode, connect timeout/retry.
 
-- React ✅ · Vue ❌ · Angular 🟡
+- React ✅ · Vue ✅ · Angular ✅
 
-### C3. Collaboration hardening (design needed)
+### C3. Collaboration hardening
 
-Per-field CRDT instead of last-write-wins JSON blobs; server auth + persistence
-(the demo server has neither); reconcile the Y.Doc with the `.pptx` save
-pipeline. Larger design effort, not auto-started.
+Done: granular per-slide/element/field CRDT reconciliation
+(`reconcileSlidesInYDoc` in `pptx-viewer-shared`, replacing whole-array
+last-write-wins), origin-tagged transactions for echo suppression, and
+elected-writer (`role: 'owner'`) PPTX write-back wired in all bindings.
+Remaining (deployment concern, not library code): server-side auth +
+persistence for self-hosted relays (see
+`demos/collab-server-hocuspocus.example.mjs`), and character-level merging of
+concurrent edits to the SAME text run (currently per-element granularity).
 
-- Cross-cutting · needs a design decision first.
+- Cross-cutting · library-side done, server-side is per-deployment.
+
+### C4. Serverless (static-host) collaboration transport
+
+`transport: 'webrtc'` (y-webrtc) in all three bindings: leaving the server URL
+empty in the Share/Broadcast dialogs starts a peer-to-peer session. Tabs in the
+same browser connect via BroadcastChannel with no infrastructure at all (this
+is what the GitHub Pages demos use); cross-device peers meet through WebRTC
+signaling servers (`signaling` config / `?signaling=` demo URL param).
+
+- React ✅ · Vue ✅ · Angular ✅

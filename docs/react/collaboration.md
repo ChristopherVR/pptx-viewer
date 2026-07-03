@@ -5,16 +5,20 @@ description: Real-time multi-user co-editing for PowerPointViewer via Yjs CRDT -
 
 # Collaboration
 
-`PowerPointViewer` supports real-time, multi-user editing built on **Yjs** (a CRDT) with WebSocket
-transport. When enabled, it adds CRDT-based document sync, live remote cursors, user presence
-indicators, and avatars. In single-user mode none of this is loaded.
+`PowerPointViewer` supports real-time, multi-user editing built on **Yjs** (a CRDT) with either a
+WebSocket transport (`y-websocket`, needs a server) or a serverless peer-to-peer transport
+(`y-webrtc`). When enabled, it adds granular CRDT document sync (per slide / element / field), live
+remote cursors, selection highlights, user presence indicators, avatars, and follow mode. In
+single-user mode none of this is loaded.
 
 ::: info Optional dependencies
-Collaboration requires the `yjs` and `y-websocket` peer dependencies. The viewer works fully without
-them - it simply runs single-user. Install them only when you need co-editing:
+Collaboration requires the `yjs` dependency plus the provider for your transport: `y-websocket`
+(server-based) or `y-webrtc` (peer-to-peer). The viewer works fully without them - it simply runs
+single-user. Install them only when you need co-editing:
 
 ```bash
-npm i yjs y-websocket
+npm i yjs y-websocket   # server-based
+npm i yjs y-webrtc      # serverless peer-to-peer
 ```
 
 :::
@@ -41,35 +45,57 @@ const config: CollaborationConfig = {
 ## `CollaborationConfig`
 
 ```ts
-type CollaborationRole = 'collaborator' | 'broadcaster' | 'viewer';
+type CollaborationRole = 'owner' | 'collaborator' | 'viewer';
+type CollaborationTransport = 'websocket' | 'webrtc';
 
 interface CollaborationConfig {
 	/** Unique room id (alphanumeric, hyphens, underscores). */
 	roomId: string;
-	/** WebSocket URL for the Yjs provider, e.g. "wss://collab.example.com". */
+	/** WebSocket URL for the Yjs provider, e.g. "wss://collab.example.com". Ignored for webrtc. */
 	serverUrl: string;
+	/** Transport - 'websocket' (default) or serverless 'webrtc'. */
+	transport?: CollaborationTransport;
+	/** WebRTC signaling server URLs (webrtc transport only). */
+	signaling?: string[];
 	/** Display name for the local user. */
 	userName: string;
 	/** Avatar URL for the local user (optional). */
 	userAvatar?: string;
 	/** Hex colour for the local user's cursor / presence indicator. */
 	userColor?: string;
-	/** Optional auth token sent with the WebSocket handshake. */
+	/** Optional auth token sent with the WebSocket handshake / used as the webrtc room password. */
 	authToken?: string;
 	/** Session role - defaults to 'collaborator'. */
 	role?: CollaborationRole;
+	/** Elected-writer persistence: the 'owner' peer receives debounced PPTX snapshots. */
+	onWriteBack?: (bytes: Uint8Array) => void;
+	/** Debounce (ms) between the last change and onWriteBack. Default 5000. */
+	writeBackDebounceMs?: number;
 }
 ```
 
-| Field        | Type                | Required | Notes                                                                                         |
-| ------------ | ------------------- | -------- | --------------------------------------------------------------------------------------------- |
-| `roomId`     | `string`            | yes      | Sanitized; restrict to alphanumeric / `-` / `_`.                                              |
-| `serverUrl`  | `string`            | yes      | `y-websocket` server URL.                                                                     |
-| `userName`   | `string`            | yes      | Local user's display name; also used as comment/annotation author when `authorName` is unset. |
-| `userAvatar` | `string`            | no       | Validated avatar URL.                                                                         |
-| `userColor`  | `string`            | no       | Hex colour for the user's cursor ring.                                                        |
-| `authToken`  | `string`            | no       | Sent with the WebSocket handshake.                                                            |
-| `role`       | `CollaborationRole` | no       | `'collaborator'` (default), `'broadcaster'`, or `'viewer'`.                                   |
+| Field                 | Type                     | Required | Notes                                                                                           |
+| --------------------- | ------------------------ | -------- | ----------------------------------------------------------------------------------------------- |
+| `roomId`              | `string`                 | yes      | Sanitized; restrict to alphanumeric / `-` / `_`.                                                |
+| `serverUrl`           | `string`                 | yes      | `y-websocket` server URL; may be `''` when `transport: 'webrtc'`.                               |
+| `transport`           | `CollaborationTransport` | no       | `'websocket'` (default) or `'webrtc'` (serverless P2P).                                         |
+| `signaling`           | `string[]`               | no       | y-webrtc signaling URLs; defaults to y-webrtc's public list.                                    |
+| `userName`            | `string`                 | yes      | Local user's display name; also used as comment/annotation author when `authorName` is unset.   |
+| `userAvatar`          | `string`                 | no       | Validated avatar URL.                                                                           |
+| `userColor`           | `string`                 | no       | Hex colour for the user's cursor ring.                                                          |
+| `authToken`           | `string`                 | no       | WebSocket handshake param / webrtc room password.                                               |
+| `role`                | `CollaborationRole`      | no       | `'owner'`, `'collaborator'` (default), or `'viewer'`.                                           |
+| `onWriteBack`         | `(bytes) => void`        | no       | Only fires for the `'owner'` peer: debounced serialized PPTX snapshots for durable persistence. |
+| `writeBackDebounceMs` | `number`                 | no       | Default 5000 ms.                                                                                |
+
+### Serverless peer-to-peer mode
+
+With `transport: 'webrtc'` no document server is needed: peers exchange updates directly over
+WebRTC, and tabs in the **same browser** connect through BroadcastChannel even with no network at
+all. This is how the hosted GitHub Pages demos collaborate. Cross-device sessions meet through
+WebRTC signaling servers (metadata only - document data never passes through them); supply your own
+via `signaling` for production use. In the built-in Share/Broadcast dialogs, leaving the server URL
+empty selects this transport.
 
 ::: warning Input is sanitized
 Room ids, user names, avatar URLs, cursor positions, and presence data pass through sanitization in
@@ -145,6 +171,10 @@ See [Hooks › Collaboration hooks](/react/hooks#collaboration-hooks) for the ho
 
 ## Server side
 
-You need a running `y-websocket` server (or compatible Yjs provider) reachable at `serverUrl`. For
-the server-side document codec used to encode/decode the shared PPTX state, see the MCP package at
-[/packages/mcp](/packages/mcp).
+With the default `websocket` transport you need a running `y-websocket` server (or compatible Yjs
+provider) reachable at `serverUrl`; see `demos/collab-server-hocuspocus.example.mjs` for a
+production-style starting point with auth and persistence hooks. With `transport: 'webrtc'` no
+document server is required.
+
+The MCP package ships its own server-side Yjs codec ([/packages/mcp](/packages/mcp)); note its Y.Doc
+key layout differs from the viewer bindings' sync schema, so the two cannot share one Y.Doc.

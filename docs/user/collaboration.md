@@ -32,6 +32,13 @@ Exactly how you join depends on your app's setup. Common patterns:
 
 Once connected, anyone else in the same room is collaborating with you on the same presentation.
 
+::: tip No server? Peer-to-peer mode
+In the Share and Broadcast dialogs you can leave the **server address empty** to start a
+**peer-to-peer** session. Browser tabs on the same device always find each other; people on other
+devices connect directly to you through public WebRTC signaling servers. The hosted demo runs
+this way - try opening the same room in two tabs.
+:::
+
 ## Presence and identity
 
 - Your **display name** identifies you to others (it appears on your cursor and avatar). If you didn't set one, the app uses a default.

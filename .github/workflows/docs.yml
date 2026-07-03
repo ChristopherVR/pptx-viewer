@@ -69,12 +69,17 @@ jobs:
         continue-on-error: true
 
       # Build each demo; skip silently if its library did not build.
+      # VITE_COLLAB_SERVER_URL (optional repo variable COLLAB_SERVER_URL) points
+      # the deployed demos at a hosted wss:// y-websocket relay. Without it the
+      # demos fall back to serverless peer-to-peer (y-webrtc) collaboration,
+      # which works from static hosting.
       - name: Build React demo
         if: steps.build-react.outcome == 'success'
         run: bun run --filter 'pptx-react-demo' build
         continue-on-error: true
         env:
           DEMO_BASE: /pptx-viewer/demo/
+          VITE_COLLAB_SERVER_URL: ${{ vars.COLLAB_SERVER_URL }}
 
       - name: Build Vue demo
         if: steps.build-vue.outcome == 'success'
@@ -82,6 +87,7 @@ jobs:
         continue-on-error: true
         env:
           DEMO_BASE: /pptx-viewer/demo-vue/
+          VITE_COLLAB_SERVER_URL: ${{ vars.COLLAB_SERVER_URL }}
 
       - name: Build Angular demo
         if: steps.build-angular.outcome == 'success'
@@ -89,6 +95,7 @@ jobs:
         continue-on-error: true
         env:
           DEMO_BASE: /pptx-viewer/demo-angular/
+          VITE_COLLAB_SERVER_URL: ${{ vars.COLLAB_SERVER_URL }}
 
       # Fold whichever demos succeeded into the docs artifact. Missing dists are
       # skipped gracefully so the page still deploys with whatever is available.
