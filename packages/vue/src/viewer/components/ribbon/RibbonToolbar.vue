@@ -46,7 +46,7 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 <template>
 	<div
 		role="toolbar"
-		:aria-label="t('pptx.ribbon.toolbarLabel')"
+		aria-label="Presentation toolbar"
 		class="relative z-20 border-b border-border bg-secondary/50 overflow-visible"
 	>
 		<!-- Quick Access Row -->
@@ -82,7 +82,11 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				type="button"
 				class="mr-1 rounded px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
 				:aria-pressed="!props.isCompactToolbarOpen"
-				:title="props.isCompactToolbarOpen ? t('pptx.ribbon.collapse') : t('pptx.ribbon.expand')"
+				:title="
+					props.isCompactToolbarOpen
+						? t('pptx.ribbon.collapseRibbon')
+						: t('pptx.ribbon.expandRibbon')
+				"
 				@click="props.onToggleCompactToolbar"
 			>
 				{{ props.isCompactToolbarOpen ? '▴' : '▾' }}
@@ -274,7 +278,7 @@ const showText = computed(() => s.value === 'home' || s.value === 'text');
 				<button
 					type="button"
 					:class="pill"
-					:title="t('pptx.ribbon.accessibilityTooltip')"
+					:title="t('pptx.ribbon.accessibilityCheck')"
 					@click="props.onRunAccessibilityCheck()"
 				>
 					{{ t('pptx.ribbon.accessibility') }}
