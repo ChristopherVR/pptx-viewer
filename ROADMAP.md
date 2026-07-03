@@ -6,54 +6,52 @@ from. React (`packages/react`) is the reference; Vue and Angular are ports.
 
 Status legend: ✅ done · 🟡 partial · ❌ missing.
 
-Progress: M1-M5 and C1-C4 are shipped across React, Vue, and Angular. Of C3
-(collaboration hardening), granular CRDT merging, elected-writer write-back,
-and a serverless transport are done; server-side auth + persistence remain a
-deployment concern (see `demos/collab-server-hocuspocus.example.mjs`).
+Progress: M1-M5 and C1-C4 are shipped across React, Vue, and Angular,
+including character-level merging of concurrent edits to the same text run
+(C3). The only remaining C3 item is server-side auth + persistence, which is a
+deployment concern (see `demos/collab-server-hocuspocus.example.mjs`), not
+library code.
 
 ## Mobile / touch
 
-### M1. Vue mobile editing chrome (priority)
+### M1. Vue mobile editing chrome
 
-Vue has editing and a generic `MobileSheet`, but no mobile toolbar or menus, so
-on a phone the desktop ribbon is hidden (`max-md:hidden`) and Insert/Format/
-Design/File are unreachable. Port React's mobile chrome to Vue:
-`MobileToolbar`, `MobileMenuSheet`, `MobileSlidesSheet`, `MobileChromeOverlay`,
-`MobileBottomBar` (edit actions, not just nav).
+Mobile chrome (toolbar, menu/slides sheets, chrome overlay, bottom bar with
+edit actions) is ported to all bindings; Insert/Format/Design/File are
+reachable on phones everywhere.
 
 - React ref: `packages/react/src/viewer/components/mobile/*`
-- React 🟡(reference) · Vue ❌ · Angular ✅
+- React ✅ · Vue ✅ · Angular ✅
 
 ### M2. Responsive mobile dialogs
 
-Dialogs are swipe-dismissable but still centered/fixed-width; on small phones
-they are cramped. Make them adapt (full-width / bottom-sheet) under the mobile
-breakpoint across all bindings (React per-dialog or a shared shell; Vue/Angular
-via the shared `ModalDialog`).
+Dialogs adapt (full-width / bottom-sheet) under the mobile breakpoint across
+all bindings (React via `MobileDismissSheet` + per-dialog handling, Vue/Angular
+via the shared `ModalDialog` shell).
 
-- React 🟡 · Vue 🟡 · Angular 🟡
+- React ✅ · Vue ✅ · Angular ✅
 
 ### M3. Mobile presenter view
 
-`PresenterView` assumes dual-screen. Add a phone-adapted presenter layout
-(current + next, notes, timer) or a clear mobile fallback.
+Phone-adapted presenter layout (current + next, notes, timer) shipped as
+`MobilePresenterView` in all three bindings.
 
-- React ❌ · Vue ❌ · Angular ❌
+- React ✅ · Vue ✅ · Angular ✅
 
 ### M4. Virtual-keyboard layout reflow
 
-The on-screen keyboard is detected (`isVirtualKeyboardOpen`) but nothing reflows;
-it can cover the canvas or bottom bar. Adjust chrome / scroll the active edit
-target into view when the keyboard opens.
+Keyboard insets are tracked (shared `mobile-keyboard.ts`, per-binding
+`useKeyboardInsets` equivalents) and chrome reflows / the active edit target
+scrolls into view when the on-screen keyboard opens.
 
-- React 🟡 · Vue 🟡 · Angular 🟡
+- React ✅ · Vue ✅ · Angular ✅
 
 ### M5. Mobile export progress UX
 
-PNG/PDF/GIF/video export has no progress/streaming affordance; large exports can
-appear to stall on a phone. Add progress + cancel on mobile.
+PNG/PDF/GIF/video export reports progress with cancel support (shared
+`export-progress.ts`, `ExportProgressModal` equivalents per binding).
 
-- React 🟡 · Vue 🟡 · Angular 🟡
+- React ✅ · Vue ✅ · Angular ✅
 
 ## Collaboration
 
@@ -79,12 +77,14 @@ publishing, remote selection overlay, follow mode, connect timeout/retry.
 
 Done: granular per-slide/element/field CRDT reconciliation
 (`reconcileSlidesInYDoc` in `pptx-viewer-shared`, replacing whole-array
-last-write-wins), origin-tagged transactions for echo suppression, and
-elected-writer (`role: 'owner'`) PPTX write-back wired in all bindings.
+last-write-wins), origin-tagged transactions for echo suppression,
+elected-writer (`role: 'owner'`) PPTX write-back wired in all bindings, and
+character-level merging of concurrent edits to the same text run
+(`collaboration-text-merge.ts`: minimal in-place Y.Text diffs instead of
+per-element replacement, so simultaneous typing in one text box converges).
 Remaining (deployment concern, not library code): server-side auth +
 persistence for self-hosted relays (see
-`demos/collab-server-hocuspocus.example.mjs`), and character-level merging of
-concurrent edits to the SAME text run (currently per-element granularity).
+`demos/collab-server-hocuspocus.example.mjs`).
 
 - Cross-cutting · library-side done, server-side is per-deployment.
 
