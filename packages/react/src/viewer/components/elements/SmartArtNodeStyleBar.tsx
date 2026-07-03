@@ -27,7 +27,7 @@ export function SmartArtNodeStyleBar({
 }: SmartArtNodeStyleBarProps): React.ReactElement {
 	return (
 		<div
-			className='flex gap-1 px-1.5 py-1 bg-white/90 shadow-sm rounded-full border border-border'
+			className='flex gap-1.5 px-2 py-1.5 bg-white/90 shadow-sm rounded-full border border-border'
 			onMouseDown={(e) => e.stopPropagation()}
 			onClick={(e) => e.stopPropagation()}
 		>
@@ -36,7 +36,11 @@ export function SmartArtNodeStyleBar({
 					key={color}
 					type='button'
 					aria-label={`Set fill to ${color}`}
-					className='w-3.5 h-3.5 rounded-full border border-black/10 hover:scale-125 transition-transform'
+					// Sized generously (not the historical 14px) because this popover
+					// lives inside the slide canvas's zoom transform: at typical
+					// zoom-out levels a small swatch shrinks to just a few real
+					// on-screen pixels and becomes nearly unclickable.
+					className='w-5 h-5 rounded-full border border-black/10 hover:scale-125 transition-transform'
 					style={{ background: color }}
 					onClick={() => onPickFill(color)}
 				/>

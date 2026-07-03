@@ -13,6 +13,9 @@ import { NODE_ID_ATTR, findNodeIdFromEvent, useSmartArtHoverState } from './useS
 const EDITOR_PADDING = 4;
 /** Matches SmartArtNodeText's line-height multiplier so wrapping lines up. */
 const LINE_HEIGHT_RATIO = 1.2;
+/** Approximate rendered size of the style bar (6 swatches + padding/border). */
+const STYLE_BAR_WIDTH = 168;
+const STYLE_BAR_HEIGHT = 40;
 
 // ── Props ───────────────────────────────────────────────────────────────────
 
@@ -148,22 +151,37 @@ export function SmartArtEditableLayer({
 				<style>{`[data-smartart-node-id]:hover { outline: 2px solid rgba(96,165,250,0.6); outline-offset: 1px; }`}</style>
 			)}
 			{children}
-			{showStyleBar && (
-				<div
-					ref={styleBarRef}
-					style={{
-						position: 'absolute',
-						left: hoveredNodeRect.left + hoveredNodeRect.width - 120,
-						top: Math.max(0, hoveredNodeRect.top - 22),
-						zIndex: 10,
-					}}
-				>
-					<SmartArtNodeStyleBar
-						palette={palette}
-						onPickFill={(color) => onChangeNodeStyle(hoveredNodeId, color)}
-					/>
-				</div>
-			)}
+			{showStyleBar &&
+				(() => {
+					const container = containerRef.current;
+					const maxLeft = Math.max(
+						0,
+						(container?.clientWidth ?? STYLE_BAR_WIDTH) - STYLE_BAR_WIDTH,
+					);
+					const maxTop = Math.max(
+						0,
+						(container?.clientHeight ?? STYLE_BAR_HEIGHT) - STYLE_BAR_HEIGHT,
+					);
+					return (
+						<div
+							ref={styleBarRef}
+							style={{
+								position: 'absolute',
+								left: Math.min(
+									maxLeft,
+									Math.max(0, hoveredNodeRect.left + hoveredNodeRect.width - STYLE_BAR_WIDTH),
+								),
+								top: Math.min(maxTop, Math.max(0, hoveredNodeRect.top - 22)),
+								zIndex: 10,
+							}}
+						>
+							<SmartArtNodeStyleBar
+								palette={palette}
+								onPickFill={(color) => onChangeNodeStyle(hoveredNodeId, color)}
+							/>
+						</div>
+					);
+				})()}
 			{edit && (
 				<SmartArtInlineNodeEditor
 					key={edit.nodeId}
