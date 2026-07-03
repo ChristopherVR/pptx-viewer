@@ -29,7 +29,12 @@ import type {
 } from 'pptx-viewer-core';
 
 import type { ViewerTheme } from '../internal/shared';
-import { openPptxFile } from '../internal/shared';
+import {
+	BROADCAST_THROTTLE_MS,
+	clampCursorPosition,
+	openPptxFile,
+	presenceToCursors,
+} from '../internal/shared';
 import { themeStyle } from '../theme/viewer-theme';
 import { AccessibilityPanelComponent } from './accessibility-panel.component';
 import { AccessibilityService } from './accessibility.service';
@@ -53,6 +58,7 @@ import { ExportService } from './export.service';
 import { FieldContextService } from './field-context.service';
 import { FindBarComponent } from './find-bar.component';
 import { FindReplaceBarComponent } from './find-replace-bar.component';
+import { FollowModeBarComponent } from './follow-mode-bar.component';
 import { HyperlinkDialogComponent } from './hyperlink-dialog.component';
 import { InsertSmartArtDialogComponent } from './insert-smart-art-dialog.component';
 import type { SmartArtInsertEvent } from './insert-smart-art-dialog.component';
@@ -74,6 +80,7 @@ import { PresenterWindowService } from './presenter-window.service';
 import { PrintDialogComponent } from './print-dialog.component';
 import { PrintService } from './print.service';
 import { PropertiesDialogComponent } from './properties-dialog.component';
+import { RemoteSelectionOverlayComponent } from './remote-selection-overlay.component';
 import { RibbonComponent } from './ribbon.component';
 import { SelectionPaneComponent } from './selection-pane.component';
 import { ShareDialogComponent } from './share-dialog.component';
@@ -169,6 +176,8 @@ const ZOOM_MAX = 3;
 		SignaturesPanelComponent,
 		AccessibilityPanelComponent,
 		CollaborationCursorsComponent,
+		RemoteSelectionOverlayComponent,
+		FollowModeBarComponent,
 		PropertiesDialogComponent,
 		HyperlinkDialogComponent,
 		PrintDialogComponent,
@@ -313,7 +322,7 @@ const ZOOM_MAX = 3;
 						</nav>
 					}
 
-					<main class="pptx-ng-main" #mainEl>
+					<main class="pptx-ng-main" #mainEl (pointermove)="onCollabPointerMove($event)">
 						<pptx-slide-canvas
 							[slide]="activeSlide()"
 							[canvasSize]="loader.canvasSize()"
@@ -351,7 +360,22 @@ const ZOOM_MAX = 3;
 							(tableChange)="onTableChange($event)"
 						/>
 						@if (collab.connected()) {
-							<pptx-collaboration-cursors [cursors]="collab.cursors()" [zoom]="zoom()" />
+							<pptx-collaboration-cursors [cursors]="collabCursors()" [zoom]="zoom()" />
+							<pptx-remote-selection-overlay
+								[presences]="collab.presence()"
+								[elements]="activeSlide()?.elements ?? []"
+								[activeSlideIndex]="activeSlideIndex()"
+								[zoom]="zoom()"
+							/>
+						}
+						@if (collab.active() && collab.presence().length > 0) {
+							<div class="pptx-ng-collab-follow">
+								<pptx-follow-mode-bar
+									[presences]="collab.presence()"
+									[followedClientId]="collab.followedClientId()"
+									(follow)="collab.followUser($event)"
+								/>
+							</div>
 						}
 						@if (showNotes() && !mobile.isMobile()) {
 							<aside class="pptx-ng-notes" [attr.aria-label]="'pptx.notes.speakerNotes' | translate">
@@ -617,6 +641,7 @@ const ZOOM_MAX = 3;
 				[connected]="collab.connected()"
 				[userCount]="collab.connectedCount()"
 				[shareUrl]="session.shareUrl()"
+				[p2p]="session.activeSessionP2p()"
 				[defaults]="session.shareDialogDefaults()"
 				(start)="session.onShareStart($event)"
 				(stop)="session.onShareStop()"
@@ -629,6 +654,7 @@ const ZOOM_MAX = 3;
 				[connected]="collab.connected()"
 				[viewerCount]="collab.presence().length"
 				[viewerUrl]="session.broadcastViewerUrl()"
+				[p2p]="session.activeSessionP2p()"
 				[defaults]="{ serverUrl: shareDefaults()?.serverUrl }"
 				(start)="session.onBroadcastStart($event)"
 				(stop)="session.onBroadcastStop()"
@@ -867,6 +893,16 @@ export class PowerPointViewerComponent {
 
 	protected readonly zoom = signal(1);
 	protected readonly zoomPercent = computed(() => Math.round(this.zoom() * 100));
+
+	/**
+	 * Remote cursors filtered to the slide the local user is viewing, so peers'
+	 * cursors only appear on the shared slide (mirrors React/Vue).
+	 */
+	protected readonly collabCursors = computed(() =>
+		presenceToCursors(this.collab.presence(), this.activeSlideIndex()),
+	);
+	/** Timestamp of the last cursor broadcast (throttle gate). */
+	private lastCursorBroadcast = 0;
 
 	/** Fullscreen presentation-mode overlay visibility. */
 	protected readonly presenting = signal(false);
@@ -1135,6 +1171,52 @@ export class PowerPointViewerComponent {
 			this.session.syncHostConfig(this.collaboration());
 		});
 
+		// Push local slide edits into the shared Y.Doc (reconcile-based; the
+		// service guards against echoing remote-applied changes and against
+		// clobbering with an empty deck). A broadcast `viewer` never writes, so a
+		// follow-along joiner cannot overwrite the presenter's deck.
+		effect(() => {
+			const slides = this.editor.slides();
+			if (this.collab.active() && this.collab.activeRole() !== 'viewer') {
+				this.collab.broadcastSlides(slides);
+			}
+		});
+
+		// Publish the local selection so peers can draw remote selection boxes.
+		effect(() => {
+			const ids = this.editor.selectedIds();
+			if (this.collab.active()) {
+				this.collab.setSelection(ids[0], this.activeSlideIndex());
+			}
+		});
+
+		// Publish the local active slide so followers navigate with us.
+		effect(() => {
+			const index = this.activeSlideIndex();
+			if (this.collab.active()) {
+				this.collab.setActiveSlide(index);
+			}
+		});
+
+		// Follow mode: mirror the followed peer's active slide.
+		effect(() => {
+			const target = this.collab.followedSlideIndex();
+			if (target !== null) {
+				this.goTo(target);
+			}
+		});
+
+		// Broadcast auto-follow: a `viewer` tracks the broadcaster (owner) peer.
+		effect(() => {
+			if (this.collab.activeRole() !== 'viewer') {
+				return;
+			}
+			const target = this.collab.broadcasterSlideIndex();
+			if (target !== null) {
+				this.goTo(target);
+			}
+		});
+
 		// Hand the export/print orchestrator the live navigation signal + deck
 		// accessors + stage resolver so it can flip the stage and capture slides.
 		this.xport.bind({
@@ -1159,6 +1241,10 @@ export class PowerPointViewerComponent {
 			authorName: () => this.authorName(),
 			shareDefaults: () => this.shareDefaults(),
 			getTemplateElements: () => this.editor.templateElementsBySlideId(),
+			applyRemoteSlides: (slides) => this.editor.applyRemoteSlides(slides),
+			canvasSize: () => this.loader.canvasSize(),
+			getSourceBytes: () => this.currentSourceBytes(),
+			currentSlides: () => this.editor.slides(),
 			emitStart: (config) => this.startCollaboration.emit(config),
 			emitStop: () => this.stopCollaboration.emit(),
 		});
@@ -1221,6 +1307,42 @@ export class PowerPointViewerComponent {
 	}
 	goNext(): void {
 		this.goTo(this.activeSlideIndex() + 1);
+	}
+
+	/**
+	 * Publish the local cursor while the pointer moves over the canvas. Throttled
+	 * to {@link BROADCAST_THROTTLE_MS}; coordinates are mapped from client space
+	 * into unscaled slide space (dividing by zoom, matching the cursor overlay)
+	 * and clamped to the canvas bounds.
+	 */
+	protected onCollabPointerMove(event: PointerEvent): void {
+		if (!this.collab.active()) {
+			return;
+		}
+		const now = Date.now();
+		if (now - this.lastCursorBroadcast < BROADCAST_THROTTLE_MS) {
+			return;
+		}
+		this.lastCursorBroadcast = now;
+		const host = this.mainEl()?.nativeElement;
+		if (!host) {
+			return;
+		}
+		const rect = host.getBoundingClientRect();
+		const zoom = this.zoom() || 1;
+		const size = this.loader.canvasSize();
+		const x = clampCursorPosition((event.clientX - rect.left) / zoom, 0, size.width);
+		const y = clampCursorPosition((event.clientY - rect.top) / zoom, 0, size.height);
+		this.collab.setCursor(x, y, this.activeSlideIndex());
+	}
+
+	/** The loaded source `.pptx` bytes (for elected-writer write-back), if any. */
+	private currentSourceBytes(): Uint8Array | null {
+		const content = this.contentOverride() ?? this.content();
+		if (!content) {
+			return null;
+		}
+		return content instanceof Uint8Array ? content : new Uint8Array(content);
 	}
 
 	// ── Theme gallery (Design tab) ─────────────────────────────────────────────

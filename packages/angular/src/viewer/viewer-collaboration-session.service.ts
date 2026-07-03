@@ -16,10 +16,12 @@
  */
 
 import { computed, inject, Injectable, signal } from '@angular/core';
+import type { PptxSlide } from 'pptx-viewer-core';
 
 import type { BroadcastConfig } from './broadcast-helpers';
 import { buildBroadcastViewerUrl } from './broadcast-helpers';
 import { CollaborationService } from './collaboration.service';
+import type { ConnectOptions } from './collaboration.service';
 import { buildShareUrl } from './share-helpers';
 import type { TemplateElementsBySlideId } from './template-mode';
 import type { CollaborationConfig } from './types';
@@ -36,6 +38,14 @@ interface CollaborationSessionHost {
 	readonly authorName: () => string | undefined;
 	readonly shareDefaults: () => ShareDefaults | undefined;
 	readonly getTemplateElements: () => TemplateElementsBySlideId;
+	/** Apply a remote peer's slide set to the editable deck (echo-guarded in the service). */
+	readonly applyRemoteSlides: (slides: PptxSlide[]) => void;
+	/** Current slide-canvas size (presence bounds). */
+	readonly canvasSize: () => { width: number; height: number };
+	/** The loaded source `.pptx` bytes for elected-writer write-back, if any. */
+	readonly getSourceBytes: () => Uint8Array | null;
+	/** The current editable deck (seeds the sync baseline after connecting). */
+	readonly currentSlides: () => readonly PptxSlide[];
 	readonly emitStart: (config: CollaborationConfig) => void;
 	readonly emitStop: () => void;
 }
@@ -89,6 +99,38 @@ export class ViewerCollaborationSessionService {
 			: '';
 	});
 
+	/** Whether the active session is serverless (peer-to-peer / webrtc). */
+	readonly activeSessionP2p = computed<boolean>(
+		() => (this.activeSession()?.serverUrl ?? '').trim().length === 0 && this.collab.active(),
+	);
+
+	/**
+	 * Assemble the {@link ConnectOptions} shared by every connect call site: apply
+	 * remote slides to the editor, size the presence bounds to the canvas, and
+	 * expose the source bytes + separated template elements for write-back.
+	 */
+	private connectOptions(): ConnectOptions {
+		const host = this.requireHost();
+		const size = host.canvasSize();
+		return {
+			onRemoteSlides: (slides) => host.applyRemoteSlides(slides),
+			canvasWidth: size.width,
+			canvasHeight: size.height,
+			getSourceBytes: () => host.getSourceBytes(),
+			getTemplateElements: () => host.getTemplateElements(),
+		};
+	}
+
+	/**
+	 * Connect and immediately seed the sync baseline with the current deck, so a
+	 * joiner whose deck is still a placeholder never broadcasts (and overwrites)
+	 * the shared document before the first remote sync arrives.
+	 */
+	private connectWithBaseline(config: CollaborationConfig): void {
+		void this.collab.connect(config, this.connectOptions());
+		this.collab.seedBaseline(this.requireHost().currentSlides());
+	}
+
 	/**
 	 * Seed values for the Share dialog: the host-supplied `shareDefaults`, with
 	 * `userName` falling back to `authorName` (then "You") so the local user's
@@ -110,9 +152,7 @@ export class ViewerCollaborationSessionService {
 	syncHostConfig(config: CollaborationConfig | undefined): void {
 		if (config) {
 			this.activeSession.set({ roomId: config.roomId, serverUrl: config.serverUrl });
-			void this.collab.connect(config, {
-				getTemplateElements: () => this.requireHost().getTemplateElements(),
-			});
+			this.connectWithBaseline(config);
 		} else {
 			this.collab.disconnect();
 			this.activeSession.set(null);
@@ -132,9 +172,7 @@ export class ViewerCollaborationSessionService {
 			roomId: collaboratorConfig.roomId,
 			serverUrl: collaboratorConfig.serverUrl,
 		});
-		void this.collab.connect(collaboratorConfig, {
-			getTemplateElements: () => host.getTemplateElements(),
-		});
+		this.connectWithBaseline(collaboratorConfig);
 		host.emitStart(collaboratorConfig);
 	}
 
@@ -150,13 +188,12 @@ export class ViewerCollaborationSessionService {
 		const collabConfig: CollaborationConfig = {
 			roomId: config.roomId,
 			serverUrl: config.serverUrl,
+			transport: config.transport,
 			userName: host.authorName() ?? 'Presenter',
 			role: 'owner',
 		};
 		this.activeSession.set({ roomId: config.roomId, serverUrl: config.serverUrl });
-		void this.collab.connect(collabConfig, {
-			getTemplateElements: () => host.getTemplateElements(),
-		});
+		this.connectWithBaseline(collabConfig);
 		host.emitStart(collabConfig);
 	}
 
