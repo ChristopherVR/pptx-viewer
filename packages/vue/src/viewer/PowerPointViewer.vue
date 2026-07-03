@@ -102,8 +102,6 @@ import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
 import { DEFAULT_VIEWER_SETTINGS } from './components/viewer-settings';
 import type { ViewerSettings } from './components/viewer-settings';
 import { FieldContextKey, resolveSlideTitle } from './composables/field-context';
-import { compareSlides } from './composables/slide-compare';
-import type { CompareResult } from './composables/slide-compare';
 import { SmartArt3DKey } from './composables/smart-art-3d';
 import { SmartArtNodeEditKey } from './composables/smartart-node-edit';
 import { TableCellEditKey } from './composables/table-edit';
@@ -121,7 +119,7 @@ import { useAutosave } from './composables/useAutosave';
 import { useCollaboration } from './composables/useCollaboration';
 import { useComments } from './composables/useComments';
 import { useContextMenu } from './composables/useContextMenu';
-import { useCustomShows } from './composables/useCustomShows';
+import { useCustomShowsWiring } from './composables/useCustomShowsWiring';
 import { useEditorHistory } from './composables/useEditorHistory';
 import { useEditorOperations } from './composables/useEditorOperations';
 import { useElementDrag } from './composables/useElementDrag';
@@ -143,12 +141,12 @@ import { usePrint } from './composables/usePrint';
 import { RIBBON_ALIGN, toShapePreset, useRibbonActions } from './composables/useRibbonActions';
 import { useRibbonUiState } from './composables/useRibbonUiState';
 import { useSectionOperations } from './composables/useSectionOperations';
-import { useSignatures } from './composables/useSignatures';
+import { useSignatureWorkflow } from './composables/useSignatureWorkflow';
 import { useSlideMutations } from './composables/useSlideMutations';
 import { useSlideOperations } from './composables/useSlideOperations';
 import { useThemeEditing } from './composables/useThemeEditing';
 import { useTouchGestures } from './composables/useTouchGestures';
-import { useVersionHistory } from './composables/useVersionHistory';
+import { useVersionHistoryWiring } from './composables/useVersionHistoryWiring';
 import { provideZoomTargetLookup, toZoomTargetInfo } from './composables/zoom-target';
 import type {
 	CollaborationConfig,
@@ -1097,25 +1095,13 @@ function onCollabPointerMove(event: PointerEvent): void {
 }
 
 // ── Digital signatures ────────────────────────────────────────────────
-const showSignatures = ref(false);
-const signaturesApi = useSignatures(signatures);
-const hasDigitalSignatures = computed(() => signatures.value.length > 0);
-// Warn once, on the first edit of a signed deck, that saving strips signatures
-// (mirrors React's useViewerDialogs signature-strip effect).
-const showSignatureStripped = ref(false);
-const signatureStripAcknowledged = ref(false);
-watch(
-	() => autosave.isDirty.value,
-	(dirty) => {
-		if (dirty && hasDigitalSignatures.value && !signatureStripAcknowledged.value) {
-			showSignatureStripped.value = true;
-		}
-	},
-);
-function onAckSignatureStripped(): void {
-	signatureStripAcknowledged.value = true;
-	showSignatureStripped.value = false;
-}
+const {
+	showSignatures,
+	signaturesApi,
+	hasDigitalSignatures,
+	showSignatureStripped,
+	onAckSignatureStripped,
+} = useSignatureWorkflow({ signatures, isDirty: autosave.isDirty });
 
 // ── Broadcast ─────────────────────────────────────────────────────────
 const broadcastOpen = ref(false);
@@ -1374,101 +1360,38 @@ const mergedSlidesBySection = computed(() =>
 );
 
 // ── Custom shows ──────────────────────────────────────────────────────
-const showCustomShows = ref(false);
-const activeCustomShowId = ref<string | null>(null);
-const customShowOps = useCustomShows({
+const {
+	showCustomShows,
+	activeCustomShowId,
+	customShowOps,
+	isCurrentSlideInActiveShow,
+	onCreateCustomShow,
+	onDeleteCustomShow,
+	onRenameActiveCustomShow,
+	onDeleteActiveCustomShow,
+	onToggleCurrentSlideInActiveShow,
+} = useCustomShowsWiring({
 	customShows,
 	slides,
 	activeSlideIndex,
+	activeSlide,
 	pushHistory: history.pushHistory,
 });
-function onCreateCustomShow(name: string): void {
-	activeCustomShowId.value = customShowOps.createCustomShow(name);
-}
-function onDeleteCustomShow(showId: string): void {
-	customShowOps.deleteCustomShow(showId);
-	if (activeCustomShowId.value === showId) {
-		activeCustomShowId.value = null;
-	}
-}
-
-/** The active slide's relationship id (custom shows reference slides by rId). */
-const activeSlideRId = computed(() => (activeSlide.value as { rId?: string } | undefined)?.rId);
-/** Whether the active slide is part of the active custom show (ribbon toggle state). */
-const isCurrentSlideInActiveShow = computed(() => {
-	const id = activeCustomShowId.value;
-	const rId = activeSlideRId.value;
-	if (id === null || rId === undefined) {
-		return false;
-	}
-	return customShows.value.find((s) => s.id === id)?.slideRIds.includes(rId) ?? false;
-});
-/** Rename the active custom show (Slide Show ribbon). */
-function onRenameActiveCustomShow(): void {
-	const id = activeCustomShowId.value;
-	if (id === null) {
-		return;
-	}
-	const show = customShows.value.find((s) => s.id === id);
-	const next = window.prompt('Rename custom show', show?.name ?? '')?.trim();
-	if (next) {
-		customShowOps.renameCustomShow(id, next);
-	}
-}
-/** Delete the active custom show after confirmation (Slide Show ribbon). */
-function onDeleteActiveCustomShow(): void {
-	const id = activeCustomShowId.value;
-	if (id === null) {
-		return;
-	}
-	const show = customShows.value.find((s) => s.id === id);
-	if (window.confirm(`Delete custom show "${show?.name ?? ''}"?`)) {
-		onDeleteCustomShow(id);
-	}
-}
-/** Add/remove the active slide from the active custom show (Slide Show ribbon). */
-function onToggleCurrentSlideInActiveShow(): void {
-	const id = activeCustomShowId.value;
-	const rId = activeSlideRId.value;
-	if (id === null || rId === undefined) {
-		return;
-	}
-	customShowOps.toggleSlideInShow(id, rId);
-}
 
 // ── Version history + compare ─────────────────────────────────────────
 // Snapshots accrue on each autosave (see the autosave `onSave` below).
-const versionHistory = useVersionHistory({ slides, pushHistory: history.pushHistory });
-const showVersionHistory = ref(false);
-const compareResult = ref<CompareResult | null>(null);
-const compareVersionId = ref<string | null>(null);
-const showCompare = computed(() => compareResult.value !== null);
-function onVersionRestore(id: string): void {
-	versionHistory.restore(id);
-	showVersionHistory.value = false;
-}
-function onVersionDelete(id: string): void {
-	versionHistory.remove(id);
-}
-function onVersionCompare(id: string): void {
-	const version = versionHistory.versions.value.find((v) => v.id === id);
-	if (!version) {
-		return;
-	}
-	compareVersionId.value = id;
-	compareResult.value = compareSlides(version.slides, slides.value);
-}
-function onCompareClose(): void {
-	compareResult.value = null;
-	compareVersionId.value = null;
-}
-function onCompareAcceptAll(): void {
-	if (compareVersionId.value) {
-		versionHistory.restore(compareVersionId.value);
-	}
-	onCompareClose();
-	showVersionHistory.value = false;
-}
+const {
+	versionHistory,
+	showVersionHistory,
+	compareResult,
+	compareVersionId,
+	showCompare,
+	onVersionRestore,
+	onVersionDelete,
+	onVersionCompare,
+	onCompareClose,
+	onCompareAcceptAll,
+} = useVersionHistoryWiring({ slides, pushHistory: history.pushHistory });
 
 // ── Insert SmartArt / equation ────────────────────────────────────────
 const showInsertSmartArt = ref(false);
