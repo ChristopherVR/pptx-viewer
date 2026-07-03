@@ -4,7 +4,7 @@ All notable changes to this project are documented here.
 This file is generated from [Conventional Commits](https://www.conventionalcommits.org)
 by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
-## [Unreleased]
+## [1.1.87](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.87) - 2026-07-03
 
 ### Features
 
