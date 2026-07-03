@@ -134,7 +134,7 @@ export function InsertSmartArtDialog({
 											{getPreviewForLayout(preset.layout)}
 										</div>
 										<span className='text-[10px] text-foreground text-center leading-tight'>
-											{preset.label}
+											{t(preset.labelKey)}
 										</span>
 									</button>
 								))}
