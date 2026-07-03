@@ -108,11 +108,7 @@ import { TableCellEditKey } from './composables/table-edit';
 import type { TableSelectionState } from './composables/table-selection';
 import { provideTableSelection } from './composables/table-selection';
 import { TableThemeKey } from './composables/table-theme';
-import {
-	buildSaveSlides,
-	isElementIdInteractive,
-	setTemplateElements,
-} from './composables/template-editing';
+import { buildSaveSlides, isElementIdInteractive } from './composables/template-editing';
 import { useAccessibility } from './composables/useAccessibility';
 import { useAlignGroup } from './composables/useAlignGroup';
 import { useAutosave } from './composables/useAutosave';
@@ -121,6 +117,7 @@ import { useComments } from './composables/useComments';
 import { useContextMenu } from './composables/useContextMenu';
 import { useCustomShowsWiring } from './composables/useCustomShowsWiring';
 import { useEditorHistory } from './composables/useEditorHistory';
+import { useEditorKeyboard } from './composables/useEditorKeyboard';
 import { useEditorOperations } from './composables/useEditorOperations';
 import { useElementDrag } from './composables/useElementDrag';
 import { useElementInsertion } from './composables/useElementInsertion';
@@ -133,7 +130,6 @@ import { useInkDrawing } from './composables/useInkDrawing';
 import { useInlineEditing } from './composables/useInlineEditing';
 import { useIsMobile } from './composables/useIsMobile';
 import { useKeyboardInsets } from './composables/useKeyboardInsets';
-import { useKeyboardShortcuts } from './composables/useKeyboardShortcuts';
 import { useLoadContent } from './composables/useLoadContent';
 import { useMediaExport } from './composables/useMediaExport';
 import type { SlideAnnotationMap } from './composables/usePresentationAnnotations';
@@ -1419,101 +1415,28 @@ function sendBackward(): void {
 // A config-driven registry (mirrors React `useKeyboardShortcuts`) replaces the
 // old ad-hoc Ctrl+Z/Y/Delete handling. Find (Ctrl+F) and the shortcut-help
 // overlay (Ctrl+/) are handled in `onEditorKeydown` before delegating.
-const showShortcuts = ref(false);
-
-/** Select every element on the active slide. */
-function selectAllElements(): void {
-	selectedElementIds.value = (activeSlide.value?.elements ?? []).map((e) => e.id);
-}
-/** Copy the first selected element to the in-memory clipboard. */
-function copySelected(): void {
-	const id = selectedElementIds.value[0];
-	if (id) {
-		copyElement(id);
-	}
-}
-/** Cut the first selected element to the in-memory clipboard. */
-function cutSelected(): void {
-	const id = selectedElementIds.value[0];
-	if (id) {
-		cutElement(id);
-	}
-}
-/** Nudge every selected element by (dx, dy) px as one history entry. */
-function nudgeSelected(dx: number, dy: number): void {
-	if (selectedElementIds.value.length === 0) {
-		return;
-	}
-	const index = activeSlideIndex.value;
-	const slide = slides.value[index];
-	if (!slide) {
-		return;
-	}
-	const ids = new Set(selectedElementIds.value);
-	// Partition into template ids (master-/layout- prefix) and normal slide ids so
-	// the nudge routes through the correct store for each group. Without this split
-	// a selected template element is silently skipped (it lives in the template
-	// store, not in slide.elements) and the arrow-key move is lost.
-	const templateIds = new Set([...ids].filter((id) => isTemplateElementId(id)));
-	const slideIds = new Set([...ids].filter((id) => !isTemplateElementId(id)));
-	history.pushHistory();
-	if (templateIds.size > 0) {
-		const current = templateElementsBySlideId.value[slide.id];
-		if (current) {
-			templateElementsBySlideId.value = setTemplateElements(
-				templateElementsBySlideId.value,
-				slide.id,
-				current.map((el) => (templateIds.has(el.id) ? { ...el, x: el.x + dx, y: el.y + dy } : el)),
-			);
-		}
-	}
-	if (slideIds.size > 0) {
-		const nextSlides = slides.value.slice();
-		nextSlides[index] = {
-			...slide,
-			elements: slide.elements.map((el) =>
-				slideIds.has(el.id) ? { ...el, x: el.x + dx, y: el.y + dy } : el,
-			),
-		};
-		slides.value = nextSlides;
-	}
-}
-
-const shortcuts = useKeyboardShortcuts({
-	actions: {
-		undo: history.undo,
-		redo: history.redo,
-		copy: copySelected,
-		cut: cutSelected,
-		paste: pasteElement,
-		duplicate: duplicateSelected,
-		delete: deleteSelected,
-		selectAll: selectAllElements,
-		nudge: nudgeSelected,
-		prevSlide: goPrev,
-		nextSlide: goNext,
-		escape: onEscape,
-	},
+const { showShortcuts, shortcuts, onEditorKeydown, copySelected, cutSelected } = useEditorKeyboard({
 	canEdit: () => props.canEdit,
 	hasSelection,
-	isPresenting: presenting,
+	presenting,
+	findOpen,
+	selectedElementIds,
+	activeSlide,
+	activeSlideIndex,
+	slides,
+	templateElementsBySlideId,
+	pushHistory: history.pushHistory,
+	undo: history.undo,
+	redo: history.redo,
+	copyElement,
+	cutElement,
+	pasteElement,
+	duplicateSelected,
+	deleteSelected,
+	goPrev,
+	goNext,
+	onEscape,
 });
-
-/** Root keydown: Find / shortcut-help first, then the shortcut registry. */
-function onEditorKeydown(event: KeyboardEvent): void {
-	const mod = event.ctrlKey || event.metaKey;
-	if (props.canEdit && mod && event.key.toLowerCase() === 'f') {
-		event.preventDefault();
-		findOpen.value = !findOpen.value;
-		return;
-	}
-	if (mod && event.key === '/') {
-		event.preventDefault();
-		showShortcuts.value = !showShortcuts.value;
-		return;
-	}
-	shortcuts.handleKeyDown(event);
-}
 
 // ── Office-style ribbon wiring (RibbonToolbar ← React Toolbar.tsx) ────────
 // The desktop chrome is the full Office ribbon. This block adapts the host's
