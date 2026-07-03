@@ -47,7 +47,6 @@ import {
 import { CommentsPanelComponent } from './comments-panel.component';
 import { CustomShowsComponent } from './custom-shows.component';
 import { EditorContextMenuComponent } from './editor-context-menu.component';
-import { newTextElement } from './editor-insert';
 import { EditorStateService } from './editor-state.service';
 import { EditorToolbarComponent } from './editor-toolbar.component';
 import { EmbeddedFontsService } from './embedded-fonts.service';
@@ -103,6 +102,7 @@ import { ViewerExtraDialogsComponent } from './viewer-extra-dialogs.component';
 import { ViewerFindReplaceService } from './viewer-find-replace.service';
 import { ViewerFormatPainterService } from './viewer-format-painter.service';
 import { ViewerKeyboardService } from './viewer-keyboard.service';
+import { ViewerMobileSheetService } from './viewer-mobile-sheet.service';
 import { ViewerPresentationModeService } from './viewer-presentation-mode.service';
 import { ViewerTouchGesturesService } from './viewer-touch-gestures.service';
 import { ViewerZoomService } from './viewer-zoom.service';
@@ -149,6 +149,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		ViewerCollaborationSessionService,
 		ViewerFormatPainterService,
 		ViewerKeyboardService,
+		ViewerMobileSheetService,
 		ViewerPresentationModeService,
 		ViewerTouchGesturesService,
 		ViewerZoomService,
@@ -247,7 +248,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					(a11y)="togglePanel('accessibility')"
 					(link)="showHyperlink.set(true)"
 					(openSorter)="showSorter.set(true)"
-					(toggleNotes)="toggleNotes()"
+					(toggleNotes)="mobileSheetSvc.toggleNotes()"
 					(toggleFormatPainter)="formatPainter.toggle()"
 					(exportPng)="xport.exportPng()"
 					(exportPdf)="xport.exportPdf()"
@@ -287,8 +288,8 @@ import { ZoomTargetService } from './zoom-target.service';
 						[canUndo]="editor.canUndo()"
 						[canRedo]="editor.canRedo()"
 						[canPresent]="slideCount() > 0"
-						[menuOpen]="mobileSheet() === 'menu'"
-						(toggleMenu)="mobileSheet.set(mobileSheet() === 'menu' ? null : 'menu')"
+						[menuOpen]="mobileSheetSvc.mobileSheet() === 'menu'"
+						(toggleMenu)="mobileSheetSvc.mobileSheet.set(mobileSheetSvc.mobileSheet() === 'menu' ? null : 'menu')"
 						(undo)="editor.undo()"
 						(redo)="editor.redo()"
 						(save)="saveAsPptx()"
@@ -374,7 +375,7 @@ import { ZoomTargetService } from './zoom-target.service';
 								/>
 							</div>
 						}
-						@if (showNotes() && !mobile.isMobile()) {
+						@if (mobileSheetSvc.showNotes() && !mobile.isMobile()) {
 							<aside class="pptx-ng-notes" [attr.aria-label]="'pptx.notes.speakerNotes' | translate">
 								<pptx-notes-panel
 									[slide]="activeSlide()"
@@ -486,11 +487,11 @@ import { ZoomTargetService } from './zoom-target.service';
 						[slideCount]="slideCount()"
 						[canEdit]="canEdit()"
 						[dirty]="editor.dirty()"
-						[notesOpen]="showNotes()"
+						[notesOpen]="mobileSheetSvc.showNotes()"
 						[zoomPercent]="zoomSvc.zoomPercent()"
 						[sorterActive]="showSorter()"
 						[presenting]="presentationMode.presenting()"
-						(toggleNotes)="toggleNotes()"
+						(toggleNotes)="mobileSheetSvc.toggleNotes()"
 						(normalView)="showSorter.set(false)"
 						(openSorter)="showSorter.set(true)"
 						(slideShow)="presentationMode.present()"
@@ -682,26 +683,26 @@ import { ZoomTargetService } from './zoom-target.service';
 			<!-- ── Mobile chrome (narrow / touch viewports only) ─────────────── -->
 			@if (mobile.isMobile() && !loader.loading() && !loader.error()) {
 				<pptx-mobile-slides-sheet
-					[open]="mobileSheet() === 'slides'"
+					[open]="mobileSheetSvc.mobileSheet() === 'slides'"
 					[slides]="displaySlidesMut()"
 					[canvasSize]="loader.canvasSize()"
 					[mediaDataUrls]="loader.mediaDataUrls()"
 					[activeIndex]="activeSlideIndex()"
 					(jumpToSlide)="goTo($event)"
-					(closed)="mobileSheet.set(null)"
+					(closed)="mobileSheetSvc.mobileSheet.set(null)"
 				/>
 
 				<pptx-mobile-menu-sheet
-					[open]="mobileSheet() === 'menu'"
+					[open]="mobileSheetSvc.mobileSheet() === 'menu'"
 					[slideCount]="slideCount()"
 					[exporting]="xport.exporting()"
-					[showNotes]="showNotes()"
+					[showNotes]="mobileSheetSvc.showNotes()"
 					[canEdit]="canEdit()"
-					(closed)="mobileSheet.set(null)"
+					(closed)="mobileSheetSvc.mobileSheet.set(null)"
 					(openFind)="findReplace.showFind.set(true)"
 					(openSorter)="showSorter.set(true)"
-					(toggleNotes)="toggleNotes()"
-					(insertText)="onMobileInsert()"
+					(toggleNotes)="mobileSheetSvc.toggleNotes()"
+					(insertText)="mobileSheetSvc.onMobileInsert()"
 					(present)="presentationMode.present()"
 					(openFile)="openFile()"
 					(savePptx)="saveAsPptx()"
@@ -720,20 +721,20 @@ import { ZoomTargetService } from './zoom-target.service';
 				     the visual viewport ends up below the document on mobile (100vh layout
 				     viewport < dynamic viewport), leaving its textarea unreachable to taps.
 				     Mirrors React, where the notes panel is a flow sibling below the canvas. -->
-				@if (showNotes()) {
+				@if (mobileSheetSvc.showNotes()) {
 					<div
 						class="pptx-ng-mobile-notes-sheet"
-						[style.transform]="notesDragY() > 0 ? 'translateY(' + notesDragY() + 'px)' : null"
-						[style.transition]="notesDragging() ? 'none' : 'transform 150ms ease-out'"
+						[style.transform]="mobileSheetSvc.notesDrag.dragY() > 0 ? 'translateY(' + mobileSheetSvc.notesDrag.dragY() + 'px)' : null"
+						[style.transition]="mobileSheetSvc.notesDrag.dragging() ? 'none' : 'transform 150ms ease-out'"
 					>
 						<!-- Swipe-down-to-dismiss grab handle (kept in-flow so the keyboard
 						     can't push the textarea out of reach). -->
 						<div
 							class="pptx-ng-mnotes-grab"
-							(pointerdown)="onNotesPointerDown($event)"
-							(pointermove)="onNotesPointerMove($event)"
-							(pointerup)="onNotesPointerUp($event)"
-							(pointercancel)="onNotesPointerUp($event)"
+							(pointerdown)="mobileSheetSvc.notesDrag.onPointerDown($event)"
+							(pointermove)="mobileSheetSvc.notesDrag.onPointerMove($event)"
+							(pointerup)="mobileSheetSvc.notesDrag.onPointerUp($event)"
+							(pointercancel)="mobileSheetSvc.notesDrag.onPointerUp($event)"
 						>
 							<div class="pptx-ng-mnotes-handle"></div>
 						</div>
@@ -751,11 +752,11 @@ import { ZoomTargetService } from './zoom-target.service';
 					[slideCount]="slideCount()"
 					[commentCount]="activeComments().length"
 					[activeSheet]="mobileBarSheet()"
-					(openSlides)="mobileSheet.set(mobileSheet() === 'slides' ? null : 'slides')"
-					(insert)="onMobileInsert()"
+					(openSlides)="mobileSheetSvc.mobileSheet.set(mobileSheetSvc.mobileSheet() === 'slides' ? null : 'slides')"
+					(insert)="mobileSheetSvc.onMobileInsert()"
 					(openFormat)="onMobileFormat()"
 					(openComments)="togglePanel('comments')"
-					(notes)="toggleNotes()"
+					(notes)="mobileSheetSvc.toggleNotes()"
 				/>
 			}
 		</div>
@@ -847,6 +848,7 @@ export class PowerPointViewerComponent {
 	protected readonly zoomSvc = inject(ViewerZoomService);
 	private readonly touchGestures = inject(ViewerTouchGesturesService);
 	protected readonly presentationMode = inject(ViewerPresentationModeService);
+	protected readonly mobileSheetSvc = inject(ViewerMobileSheetService);
 
 	/** Handle on the secondary-dialog host (keep-annotations prompt). */
 	private readonly extraDialogs = viewChild(ViewerExtraDialogsComponent);
@@ -903,10 +905,6 @@ export class PowerPointViewerComponent {
 
 	/** Slide-sorter grid overlay visibility. */
 	protected readonly showSorter = signal(false);
-	/** Open mobile bottom-sheet (slides / menu), or null. */
-	protected readonly mobileSheet = signal<'slides' | 'menu' | null>(null);
-	/** Speaker-notes strip visibility. */
-	protected readonly showNotes = signal(false);
 	/** Whether the left slides panel is collapsed (top-bar sidebar toggle). */
 	protected readonly slidesPanelCollapsed = signal(false);
 
@@ -1000,13 +998,13 @@ export class PowerPointViewerComponent {
 	 * selected the inspector (Format) is showing inline so it maps to inspector.
 	 */
 	protected readonly mobileBarSheet = computed<MobileBarSheet>(() => {
-		if (this.mobileSheet() === 'slides') {
+		if (this.mobileSheetSvc.mobileSheet() === 'slides') {
 			return 'slides';
 		}
 		if (this.activePanel() === 'comments') {
 			return 'comments';
 		}
-		if (this.showNotes()) {
+		if (this.mobileSheetSvc.showNotes()) {
 			return 'notes';
 		}
 		if (this.selectedElement()) {
@@ -1281,6 +1279,14 @@ export class PowerPointViewerComponent {
 			canEdit: () => this.canEdit(),
 			promptKeepAnnotations: (map) => this.extraDialogs()?.promptKeepAnnotations(map),
 		});
+
+		// Hand the mobile-sheet controller the accessors its quick-insert action
+		// needs from the component.
+		this.mobileSheetSvc.bind({
+			canEdit: () => this.canEdit(),
+			slideCount: () => this.slideCount(),
+			activeSlideIndex: () => this.activeSlideIndex(),
+		});
 	}
 
 	/**
@@ -1429,11 +1435,6 @@ export class PowerPointViewerComponent {
 	protected onRestoreVersion(bytes: Uint8Array): void {
 		this.contentOverride.set(bytes);
 	}
-	/** Toggle the speaker-notes strip. */
-	toggleNotes(): void {
-		this.showNotes.update((v) => !v);
-	}
-
 	/**
 	 * File ▸ Open: host override (`onOpenFile` input) takes precedence; otherwise
 	 * a built-in native picker loads the chosen presentation in place.
@@ -1450,43 +1451,6 @@ export class PowerPointViewerComponent {
 				this.contentOverride.set(new Uint8Array(picked.buffer));
 			}
 		})();
-	}
-
-	// ── Mobile notes swipe-to-dismiss ─────────────────────────────────────────
-	// The notes sheet stays in normal flow (see template/CSS notes), so the drag
-	// gesture is wired here rather than via the fixed-overlay `pptx-mobile-sheet`.
-	/** Live downward drag offset for the notes sheet (px; 0 when idle). */
-	protected readonly notesDragY = signal(0);
-	/** True while a notes-sheet drag is in progress (disables the snap-back transition). */
-	protected readonly notesDragging = signal(false);
-	private notesDragStartY: number | null = null;
-
-	protected onNotesPointerDown(event: PointerEvent): void {
-		this.notesDragStartY = event.clientY;
-		this.notesDragging.set(true);
-		(event.target as HTMLElement).setPointerCapture?.(event.pointerId);
-	}
-
-	protected onNotesPointerMove(event: PointerEvent): void {
-		if (this.notesDragStartY === null) {
-			return;
-		}
-		this.notesDragY.set(Math.max(0, event.clientY - this.notesDragStartY));
-	}
-
-	protected onNotesPointerUp(event: PointerEvent): void {
-		if (this.notesDragStartY === null) {
-			return;
-		}
-		const delta = event.clientY - this.notesDragStartY;
-		this.notesDragStartY = null;
-		this.notesDragging.set(false);
-		(event.target as HTMLElement).releasePointerCapture?.(event.pointerId);
-		// 120 px matches `pptx-mobile-sheet`'s DISMISS_THRESHOLD for consistency.
-		if (delta > 120) {
-			this.showNotes.set(false);
-		}
-		this.notesDragY.set(0);
 	}
 
 	// ── Mobile inspector (Format/Comments/Selection/…) swipe-to-dismiss ─────────
@@ -1529,20 +1493,6 @@ export class PowerPointViewerComponent {
 	}
 
 	/**
-	 * Mobile quick-insert: drop a text box on the active slide. Mirrors React's
-	 * mobile bottom-bar "Insert" slot (a text box is the most common starter
-	 * element on a phone; the full Insert section lives in the top-bar menu).
-	 */
-	protected onMobileInsert(): void {
-		if (!this.canEdit() || this.slideCount() === 0) {
-			return;
-		}
-		// Close any open mobile sheet so the new element is visible on the canvas.
-		this.mobileSheet.set(null);
-		this.editor.addElement(this.activeSlideIndex(), newTextElement());
-	}
-
-	/**
 	 * Mobile "Format" slot: surface the inspector for the current selection. The
 	 * inspector renders inline (below the canvas) whenever an element is selected
 	 * and no other right-docked panel is open, so closing any open panel reveals
@@ -1551,7 +1501,7 @@ export class PowerPointViewerComponent {
 	 */
 	protected onMobileFormat(): void {
 		this.activePanel.set(null);
-		this.mobileSheet.set(null);
+		this.mobileSheetSvc.mobileSheet.set(null);
 		// Reopen the inspector if a prior swipe-down had dismissed it.
 		this.mobileInspectorHidden.set(false);
 	}
