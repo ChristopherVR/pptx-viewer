@@ -8,9 +8,9 @@ Status legend: ✅ done · 🟡 partial · ❌ missing.
 
 Progress: M1-M5 and C1-C4 are shipped across React, Vue, and Angular,
 including character-level merging of concurrent edits to the same text run and
-reference relay servers with token auth + persistence (C3). Nothing on this
-roadmap remains open; wiring a production credential backend (JWT / session
-validation) into the reference servers is inherently per-deployment.
+reference relay servers with JWT auth (short-lived per-user tokens, room
+binding, server-enforced viewer role) + persistence (C3). Nothing on this
+roadmap remains open.
 
 ## Mobile / touch
 
@@ -83,14 +83,15 @@ character-level merging of concurrent edits to the same text run
 (`collaboration-text-merge.ts`: minimal in-place Y.Text diffs instead of
 per-element replacement, so simultaneous typing in one text box converges).
 Server-side auth + persistence: two reference relays ship in `demos/` -
-`collab-server.example.mjs` (zero-dependency Bun server; `?token=` allowlist
-auth enforced at the websocket handshake, per-room Y.Doc snapshots restored
-across restarts; verified end-to-end against the y-websocket clients) and
-`collab-server-hocuspocus.example.mjs` (same contract on Node/Hocuspocus with
-SQLite persistence). Swapping the token allowlist for a real credential
-backend (JWT / session lookup) is per-deployment by nature.
+`collab-server.example.mjs` (zero-dependency Bun server; real JWT auth with
+short-lived HS256 tokens verifying exp/room/sub claims plus a dev allowlist
+mode, both enforced at the websocket handshake; `role: 'viewer'` tokens get
+read-only connections whose document writes are dropped at the relay;
+per-room Y.Doc snapshots restored across restarts; all verified end-to-end
+against the y-websocket clients) and `collab-server-hocuspocus.example.mjs`
+(same contract on Node/Hocuspocus with SQLite persistence).
 
-- Cross-cutting · ✅ done (credential backends are per-deployment).
+- Cross-cutting · ✅ done.
 
 ### C4. Serverless (static-host) collaboration transport
 

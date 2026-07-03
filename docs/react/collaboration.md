@@ -175,13 +175,21 @@ With the default `websocket` transport you need a running `y-websocket`-compatib
 at `serverUrl`. Two production-shaped reference servers ship in `demos/`:
 
 - **`demos/collab-server.example.mjs`** - zero-dependency Bun server (uses the repo's existing
-  `yjs` / `y-protocols` / `lib0`). Token auth: set `COLLAB_AUTH_TOKENS=a,b,c` and connections whose
-  `authToken` is not in the allowlist are rejected with 401 at the websocket handshake. File
-  persistence: each room's Y.Doc is snapshotted to `COLLAB_DATA_DIR` (debounced plus on last
+  `yjs` / `y-protocols` / `lib0`). Auth has two modes, both validated at the websocket handshake
+  (401 before upgrade):
+
+  - **JWT mode** (production): set `COLLAB_AUTH_JWT_SECRET` and have your app server mint
+    short-lived HS256 tokens (one `createHmac` call, minting snippet in the example header).
+    Verified claims: `exp` (required), `room` (token only opens that room), `sub` (user id), and
+    `role` - a `role: 'viewer'` token gets a **read-only connection**: the relay drops its document
+    writes, so the viewer role is enforced server-side rather than trusting client-side `canEdit`.
+  - **Allowlist mode** (dev): `COLLAB_AUTH_TOKENS=a,b,c` static tokens.
+
+  File persistence: each room's Y.Doc is snapshotted to `COLLAB_DATA_DIR` (debounced plus on last
   disconnect) and restored on the next join, so documents survive server restarts.
 
   ```bash
-  COLLAB_AUTH_TOKENS=secret bun demos/collab-server.example.mjs
+  COLLAB_AUTH_JWT_SECRET=change-me bun demos/collab-server.example.mjs
   ```
 
 - **`demos/collab-server-hocuspocus.example.mjs`** - the same contract on a Node/Hocuspocus stack
@@ -192,8 +200,8 @@ at `serverUrl`. Two production-shaped reference servers ship in `demos/`:
 
 Both validate the token every binding sends: `authToken` in `CollaborationConfig` becomes the
 `?token=` query parameter on the websocket handshake. In production, terminate TLS in front of the
-relay (`wss://`) and swap the static allowlist for short-lived per-user tokens (JWT / session
-lookup) minted by your app server.
+relay (`wss://`) and prefer the JWT mode with short TTLs - tokens travel in the URL query, so keep
+them short-lived and avoid logging request URLs upstream.
 
 With `transport: 'webrtc'` no document server is required.
 

@@ -8,7 +8,14 @@
  *  - AUTH: clients send `authToken` in CollaborationConfig; every binding
  *    forwards it as a `?token=` query parameter on the websocket handshake.
  *    The server rejects the connection with 401 before the upgrade when the
- *    token is not in the allowlist.
+ *    token fails validation. Two modes:
+ *      JWT mode (production): set COLLAB_AUTH_JWT_SECRET and mint short-lived
+ *      HS256 tokens from your app server. Verified claims: `exp` (required),
+ *      `room` (optional: token only opens that room), `role` (optional:
+ *      'viewer' makes the connection READ-ONLY - the relay drops its document
+ *      writes, so client-side canEdit is enforced, not just advisory), `sub`
+ *      (user id, logged). Minting is one HMAC call, see mintCollabToken below.
+ *      Allowlist mode (dev): set COLLAB_AUTH_TOKENS=a,b,c instead.
  *  - PERSISTENCE: each room's Y.Doc is loaded from disk on first join and
  *    snapshotted (debounced, plus on last disconnect) so documents survive
  *    server restarts.
@@ -17,26 +24,41 @@
  * server and the yjs / y-protocols / lib0 packages already present.
  *
  * Run (from the repo root):
- *   COLLAB_AUTH_TOKENS=secret1,secret2 bun demos/collab-server.example.mjs
+ *   COLLAB_AUTH_JWT_SECRET=change-me bun demos/collab-server.example.mjs
  *
  * Environment:
- *   PORT                websocket port (default 1234)
- *   COLLAB_AUTH_TOKENS  comma-separated allowed tokens. UNSET = auth is
- *                       DISABLED (open relay) - fine for local dev only.
- *   COLLAB_DATA_DIR     snapshot directory (default ./collab-data).
- *                       Set to '-' to disable persistence.
+ *   PORT                    websocket port (default 1234)
+ *   COLLAB_AUTH_JWT_SECRET  HS256 secret; enables JWT mode (takes precedence)
+ *   COLLAB_AUTH_TOKENS      comma-separated static tokens (allowlist mode).
+ *                           BOTH unset = auth DISABLED (local dev only).
+ *   COLLAB_DATA_DIR         snapshot directory (default ./collab-data).
+ *                           Set to '-' to disable persistence.
  *
  * Then point every viewer client at:
  *   serverUrl: 'ws://localhost:1234'
  *   roomId:    '<document-id>'
- *   authToken: 'secret1'
+ *   authToken: '<jwt-or-static-token>'
  *
- * Production notes: terminate TLS in front of this (wss://), prefer
- * short-lived per-user tokens minted by your app server over a static shared
- * secret (swap `isAuthorized` for a JWT verify), and keep the data dir on
- * durable storage.
+ * Mint tokens in your app server (Node/Bun, no library needed):
+ *
+ *   import { createHmac } from 'node:crypto';
+ *   const b64u = (s) => Buffer.from(s).toString('base64url');
+ *   function mintCollabToken(secret, { sub, room, role, ttlSeconds = 900 }) {
+ *     const header = b64u(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+ *     const payload = b64u(JSON.stringify({
+ *       sub, room, role, exp: Math.floor(Date.now() / 1000) + ttlSeconds,
+ *     }));
+ *     const sig = createHmac('sha256', secret)
+ *       .update(`${header}.${payload}`).digest('base64url');
+ *     return `${header}.${payload}.${sig}`;
+ *   }
+ *
+ * Production notes: terminate TLS in front of this (wss://) and keep the
+ * data dir on durable storage. Tokens travel in the URL query, so keep TTLs
+ * short and avoid logging request URLs upstream.
  */
 
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -47,6 +69,7 @@ import * as syncProtocol from 'y-protocols/sync';
 import * as Y from 'yjs';
 
 const PORT = Number(process.env.PORT ?? 1234);
+const JWT_SECRET = process.env.COLLAB_AUTH_JWT_SECRET ?? '';
 const AUTH_TOKENS = new Set(
 	(process.env.COLLAB_AUTH_TOKENS ?? '')
 		.split(',')
@@ -153,12 +176,61 @@ function getRoom(name) {
 	return room;
 }
 
-function isAuthorized(url) {
-	if (AUTH_TOKENS.size === 0) {
-		return true;
+const b64urlToBuffer = (s) => Buffer.from(s, 'base64url');
+
+/**
+ * Verify an HS256 JWT: signature (constant-time), then `exp`. Returns the
+ * payload claims, or null when invalid.
+ */
+function verifyJwtHS256(token, secret) {
+	const parts = token.split('.');
+	if (parts.length !== 3) {
+		return null;
 	}
-	// Swap this allowlist check for a JWT verify / session lookup in production.
-	return AUTH_TOKENS.has(url.searchParams.get('token') ?? '');
+	try {
+		const [head, body, sig] = parts;
+		const header = JSON.parse(b64urlToBuffer(head).toString());
+		if (header.alg !== 'HS256') {
+			return null;
+		}
+		const expected = createHmac('sha256', secret).update(`${head}.${body}`).digest();
+		const actual = b64urlToBuffer(sig);
+		if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
+			return null;
+		}
+		const claims = JSON.parse(b64urlToBuffer(body).toString());
+		if (typeof claims.exp !== 'number' || claims.exp * 1000 <= Date.now()) {
+			return null;
+		}
+		return claims;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Authenticate a handshake. Returns a session ({ userId, readOnly }) or null
+ * to reject with 401.
+ */
+function authorize(url, roomName) {
+	const token = url.searchParams.get('token') ?? '';
+	if (JWT_SECRET) {
+		const claims = verifyJwtHS256(token, JWT_SECRET);
+		if (!claims) {
+			return null;
+		}
+		if (typeof claims.room === 'string' && claims.room !== roomName) {
+			return null;
+		}
+		return {
+			userId: typeof claims.sub === 'string' ? claims.sub : 'unknown',
+			readOnly: claims.role === 'viewer',
+		};
+	}
+	if (AUTH_TOKENS.size > 0) {
+		return AUTH_TOKENS.has(token) ? { userId: 'shared-token-user', readOnly: false } : null;
+	}
+	return { userId: 'anonymous', readOnly: false };
 }
 
 const server = Bun.serve({
@@ -169,10 +241,11 @@ const server = Bun.serve({
 		if (!ROOM_NAME_RE.test(roomName)) {
 			return new Response('invalid room name', { status: 400 });
 		}
-		if (!isAuthorized(url)) {
+		const session = authorize(url, roomName);
+		if (!session) {
 			return new Response('unauthorized', { status: 401 });
 		}
-		if (srv.upgrade(req, { data: { roomName } })) {
+		if (srv.upgrade(req, { data: { roomName, session } })) {
 			return undefined;
 		}
 		return new Response('pptx-viewer collab relay: connect via websocket', { status: 426 });
@@ -207,7 +280,26 @@ const server = Bun.serve({
 				case MESSAGE_SYNC: {
 					const enc = encoding.createEncoder();
 					encoding.writeVarUint(enc, MESSAGE_SYNC);
-					syncProtocol.readSyncMessage(decoder, enc, room.doc, ws);
+					const syncType = decoding.readVarUint(decoder);
+					// Read-only sessions may still request state (step 1), but their
+					// document writes (step 2 / update) are dropped at the relay:
+					// `role: 'viewer'` is enforced here, not just in the client UI.
+					if (ws.data.session.readOnly && syncType !== syncProtocol.messageYjsSyncStep1) {
+						break;
+					}
+					switch (syncType) {
+						case syncProtocol.messageYjsSyncStep1:
+							syncProtocol.readSyncStep1(decoder, enc, room.doc);
+							break;
+						case syncProtocol.messageYjsSyncStep2:
+							syncProtocol.readSyncStep2(decoder, room.doc, ws);
+							break;
+						case syncProtocol.messageYjsUpdate:
+							syncProtocol.readUpdate(decoder, room.doc, ws);
+							break;
+						default:
+							break;
+					}
 					if (encoding.length(enc) > 1) {
 						ws.send(encoding.toUint8Array(enc));
 					}
@@ -253,8 +345,12 @@ setInterval(() => {
 	}
 }, PING_INTERVAL_MS);
 
+const authMode = JWT_SECRET
+	? 'jwt'
+	: AUTH_TOKENS.size > 0
+		? `allowlist (${AUTH_TOKENS.size} token(s))`
+		: 'DISABLED';
 console.log(
 	`[collab] listening on ws://localhost:${server.port} ` +
-		`(auth: ${AUTH_TOKENS.size > 0 ? `${AUTH_TOKENS.size} token(s)` : 'DISABLED'}, ` +
-		`persistence: ${PERSIST ? DATA_DIR : 'DISABLED'})`,
+		`(auth: ${authMode}, persistence: ${PERSIST ? DATA_DIR : 'DISABLED'})`,
 );
