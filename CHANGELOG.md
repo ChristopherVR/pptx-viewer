@@ -8,6 +8,15 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ### Bug Fixes
 
+- **vue:** Repair merge corruption in PowerPointViewer.vue, wire up Insert Equation (by @ChristopherVR) ([e3e780b](https://github.com/ChristopherVR/pptx-viewer/commit/e3e780b2a9a88fd9cc5c12c6d59826bfa9a94c1a))
+
+## [1.1.90](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.90) - 2026-07-03
+
+### Bug Fixes
+
+- **react:** Enlarge SmartArt colour-swatch hit targets and clamp popover position (by @ChristopherVR) ([4a14788](https://github.com/ChristopherVR/pptx-viewer/commit/4a14788f32fa04349289f4d5a771ff0adbabee89))
+- **vue:** Fix SmartArt colour-scoping, hover popover, and dead Insert SmartArt wiring (by @ChristopherVR) ([51167ce](https://github.com/ChristopherVR/pptx-viewer/commit/51167ce1ef5c994bd687101860460b1ee65c6063))
+- **angular:** Fix SmartArt colour-scoping and hover popover unclickability (by @ChristopherVR) ([555c018](https://github.com/ChristopherVR/pptx-viewer/commit/555c018bca8f157e25af29facd23dbf93fb0dbb4))
 - **vue:** Mount the version-history and compare panels (by @ChristopherVR) ([064ff67](https://github.com/ChristopherVR/pptx-viewer/commit/064ff672337dd3d261589c7d3a44acb727500622))
 
 ### Refactor
