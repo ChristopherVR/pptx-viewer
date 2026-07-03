@@ -28,6 +28,7 @@ import type { StyleMap } from './element-style';
 import { EquationRendererComponent } from './equation-renderer.component';
 import { resolveHyperlinkHref } from './hyperlink';
 import { InkRendererComponent } from './ink-renderer.component';
+import { MediaRendererComponent } from './media-renderer.component';
 import { Model3DRendererComponent } from './model3d-renderer.component';
 import { OleRendererComponent } from './ole-renderer.component';
 import { SmartArt3DRendererComponent } from './smart-art-3d-renderer.component';
@@ -119,7 +120,7 @@ interface Paragraph {
  *  - `model3d`           → poster / placeholder (no three.js)
  *  - `zoom`              → slide/section zoom thumbnail
  *  - `picture` / `image` → `<img>`
- *  - `media`             → poster frame (`<img>`); playback TODO
+ *  - `media`             → native `<video>`/`<audio>` playback, poster fallback
  *  - `group`             → recursive children (self-referencing selector)
  *  - everything else     → labelled placeholder (TODO, see PORTING.md)
  *
@@ -137,6 +138,7 @@ interface Paragraph {
 		SmartArtRendererComponent,
 		SmartArt3DRendererComponent,
 		InkRendererComponent,
+		MediaRendererComponent,
 		OleRendererComponent,
 		Model3DRendererComponent,
 		ZoomRendererComponent,
@@ -272,27 +274,13 @@ interface Paragraph {
 				</div>
 			}
 			@case (element().type === 'media') {
-				<div
-					class="pptx-ng-element pptx-ng-media"
-					[ngStyle]="containerStyle()"
-					[attr.data-element-id]="element().id"
-					[attr.data-pptx-element]="interactive() ? 'true' : null"
-				>
-					@if (imageSrc(); as src) {
-						@if (clrChangeParams(); as cc) {
-							<pptx-color-changed-image
-								[src]="src"
-								[clrChange]="cc"
-								alt=""
-								imgClass="pptx-ng-img"
-							/>
-						} @else {
-							<img [src]="src" alt="" class="pptx-ng-img" />
-						}
-					} @else {
-						<div class="pptx-ng-placeholder">{{ placeholderLabel() }}</div>
-					}
-				</div>
+				<pptx-media-renderer
+					[element]="element()"
+					[mediaDataUrls]="mediaDataUrls()"
+					[zIndex]="zIndex()"
+					[interactive]="interactive()"
+					[placeholderLabel]="placeholderLabel()"
+				/>
 			}
 			@case (isShapeLike()) {
 				<div
