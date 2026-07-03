@@ -1663,7 +1663,7 @@ const sidebarCollapsed = ref(false);
 const ribbonExpanded = ref(true);
 const overflowOpen = ref(false);
 /** Status-bar Notes toggle: expands/collapses the desktop notes panel. */
-const notesExpanded = ref(true);
+const notesExpanded = ref(false);
 /** View-tab dot-grid overlay (snap-to-grid state lives in useElementDrag). */
 const showGrid = ref(false);
 /** View ▸ Rulers: horizontal/vertical rulers along the slide edges. */
