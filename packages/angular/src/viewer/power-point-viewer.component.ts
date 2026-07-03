@@ -71,7 +71,6 @@ import { MobilePresenterViewComponent } from './mobile-presenter-view.component'
 import { MobileSlidesSheetComponent } from './mobile-slides-sheet.component';
 import { MobileToolbarComponent } from './mobile-toolbar.component';
 import { NotesPanelComponent } from './notes-panel.component';
-import type { SlideAnnotationMap } from './presentation-annotations-helpers';
 import { PresentationOverlayComponent } from './presentation-overlay.component';
 import { PresenterViewComponent } from './presenter-view.component';
 import { PresenterWindowService } from './presenter-window.service';
@@ -104,6 +103,7 @@ import { ViewerExtraDialogsComponent } from './viewer-extra-dialogs.component';
 import { ViewerFindReplaceService } from './viewer-find-replace.service';
 import { ViewerFormatPainterService } from './viewer-format-painter.service';
 import { ViewerKeyboardService } from './viewer-keyboard.service';
+import { ViewerPresentationModeService } from './viewer-presentation-mode.service';
 import { ViewerTouchGesturesService } from './viewer-touch-gestures.service';
 import { ViewerZoomService } from './viewer-zoom.service';
 import { ZoomTargetService } from './zoom-target.service';
@@ -149,6 +149,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		ViewerCollaborationSessionService,
 		ViewerFormatPainterService,
 		ViewerKeyboardService,
+		ViewerPresentationModeService,
 		ViewerTouchGesturesService,
 		ViewerZoomService,
 	],
@@ -233,8 +234,8 @@ import { ZoomTargetService } from './zoom-target.service';
 					(zoomOut)="zoomSvc.zoomOut()"
 					(zoomReset)="zoomSvc.zoomReset()"
 					(find)="findReplace.showFind.set(true)"
-					(present)="present()"
-					(presenter)="presentPresenter()"
+					(present)="presentationMode.present()"
+					(presenter)="presentationMode.presentPresenter()"
 					(share)="session.showShare.set(true)"
 					(broadcast)="session.showBroadcast.set(true)"
 					(openFile)="openFile()"
@@ -291,7 +292,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						(undo)="editor.undo()"
 						(redo)="editor.redo()"
 						(save)="saveAsPptx()"
-						(present)="present()"
+						(present)="presentationMode.present()"
 					/>
 				}
 
@@ -488,11 +489,11 @@ import { ZoomTargetService } from './zoom-target.service';
 						[notesOpen]="showNotes()"
 						[zoomPercent]="zoomSvc.zoomPercent()"
 						[sorterActive]="showSorter()"
-						[presenting]="presenting()"
+						[presenting]="presentationMode.presenting()"
 						(toggleNotes)="toggleNotes()"
 						(normalView)="showSorter.set(false)"
 						(openSorter)="showSorter.set(true)"
-						(slideShow)="present()"
+						(slideShow)="presentationMode.present()"
 						(zoomIn)="zoomSvc.zoomIn()"
 						(zoomOut)="zoomSvc.zoomOut()"
 						(zoomReset)="zoomSvc.zoomReset()"
@@ -511,19 +512,19 @@ import { ZoomTargetService } from './zoom-target.service';
 				/>
 			}
 
-			@if (presenting()) {
+			@if (presentationMode.presenting()) {
 				<pptx-presentation-overlay
 					[slides]="customShowsCtl.presentationSlides()"
 					[canvasSize]="loader.canvasSize()"
 					[mediaDataUrls]="loader.mediaDataUrls()"
 					[startIndex]="customShowsCtl.presentationStartIndex()"
-					(indexChange)="onPresentationIndexChange($event)"
-					(annotationsExit)="onPresentationAnnotationsExit($event)"
-					(closed)="presenting.set(false)"
+					(indexChange)="presentationMode.onPresentationIndexChange($event)"
+					(annotationsExit)="presentationMode.onPresentationAnnotationsExit($event)"
+					(closed)="presentationMode.presenting.set(false)"
 				/>
 			}
 
-			@if (presentingPresenter()) {
+			@if (presentationMode.presentingPresenter()) {
 				@if (mobile.isMobile()) {
 					<!-- Single-column mobile presenter layout (phones / landscape phones). -->
 					<pptx-mobile-presenter-view
@@ -531,9 +532,9 @@ import { ZoomTargetService } from './zoom-target.service';
 						[currentSlideIndex]="activeSlideIndex()"
 						[canvasSize]="loader.canvasSize()"
 						[mediaDataUrls]="loader.mediaDataUrls()"
-						[presentationStartTime]="presenterStartTime()"
+						[presentationStartTime]="presentationMode.presenterStartTime()"
 						(movePresentationSlide)="goTo(activeSlideIndex() + $event)"
-						(exit)="exitPresenter()"
+						(exit)="presentationMode.exitPresenter()"
 					/>
 				} @else {
 					<pptx-presenter-view
@@ -541,12 +542,12 @@ import { ZoomTargetService } from './zoom-target.service';
 						[currentSlideIndex]="activeSlideIndex()"
 						[canvasSize]="loader.canvasSize()"
 						[mediaDataUrls]="loader.mediaDataUrls()"
-						[presentationStartTime]="presenterStartTime()"
+						[presentationStartTime]="presentationMode.presenterStartTime()"
 						[isAudienceWindowOpen]="presenterWindow.isAudienceWindowOpen()"
 						(movePresentationSlide)="goTo(activeSlideIndex() + $event)"
-						(openAudienceWindow)="openAudienceWindow()"
+						(openAudienceWindow)="presentationMode.openAudienceWindow()"
 						(closeAudienceWindow)="presenterWindow.closeAudienceWindow()"
-						(exit)="exitPresenter()"
+						(exit)="presentationMode.exitPresenter()"
 					/>
 				}
 			}
@@ -701,7 +702,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					(openSorter)="showSorter.set(true)"
 					(toggleNotes)="toggleNotes()"
 					(insertText)="onMobileInsert()"
-					(present)="present()"
+					(present)="presentationMode.present()"
 					(openFile)="openFile()"
 					(savePptx)="saveAsPptx()"
 					(exportPng)="xport.exportPng()"
@@ -845,6 +846,7 @@ export class PowerPointViewerComponent {
 	private readonly keyboard = inject(ViewerKeyboardService);
 	protected readonly zoomSvc = inject(ViewerZoomService);
 	private readonly touchGestures = inject(ViewerTouchGesturesService);
+	protected readonly presentationMode = inject(ViewerPresentationModeService);
 
 	/** Handle on the secondary-dialog host (keep-annotations prompt). */
 	private readonly extraDialogs = viewChild(ViewerExtraDialogsComponent);
@@ -899,12 +901,6 @@ export class PowerPointViewerComponent {
 	/** Timestamp of the last cursor broadcast (throttle gate). */
 	private lastCursorBroadcast = 0;
 
-	/** Fullscreen presentation-mode overlay visibility. */
-	protected readonly presenting = signal(false);
-	/** Presenter-view (speaker) overlay visibility. */
-	protected readonly presentingPresenter = signal(false);
-	/** Epoch ms when presenter view started (drives the elapsed timer). */
-	protected readonly presenterStartTime = signal<number | null>(null);
 	/** Slide-sorter grid overlay visibility. */
 	protected readonly showSorter = signal(false);
 	/** Open mobile bottom-sheet (slides / menu), or null. */
@@ -1256,7 +1252,7 @@ export class PowerPointViewerComponent {
 		// on (the @HostListener stays on the component).
 		this.keyboard.bind({
 			canEdit: () => this.canEdit(),
-			presenting: () => this.presenting(),
+			presenting: () => this.presentationMode.presenting(),
 			activeSlideIndex: () => this.activeSlideIndex(),
 		});
 
@@ -1264,11 +1260,26 @@ export class PowerPointViewerComponent {
 		// to the canvas host once it is rendered.
 		this.touchGestures.setup(() => this.mainEl()?.nativeElement, {
 			canEdit: () => this.canEdit(),
-			presenting: () => this.presenting(),
+			presenting: () => this.presentationMode.presenting(),
 			selectedElement: () => this.selectedElement(),
 			goPrev: () => this.goPrev(),
 			goNext: () => this.goNext(),
 			setContextMenuPos: (pos) => this.contextMenuPos.set(pos),
+		});
+
+		// Hand the presentation-mode controller the few accessors it alone needs
+		// from the component (active-slide-index get/set, editing/selection
+		// clearing, the source bytes for the audience hand-off, and the
+		// keep-annotations prompt trigger on the extra-dialogs host).
+		this.presentationMode.bind({
+			slideCount: () => this.slideCount(),
+			activeSlideIndex: () => this.activeSlideIndex(),
+			setActiveSlideIndex: (index) => this.activeSlideIndex.set(index),
+			clearEditing: () => this.editingId.set(null),
+			clearSelection: () => this.editor.clearSelection(),
+			sourceContent: () => this.contentOverride() ?? this.content(),
+			canEdit: () => this.canEdit(),
+			promptKeepAnnotations: (map) => this.extraDialogs()?.promptKeepAnnotations(map),
 		});
 	}
 
@@ -1378,56 +1389,6 @@ export class PowerPointViewerComponent {
 		this.showThemeGallery.set(false);
 	}
 
-	/** Open the fullscreen presentation overlay from the current slide. */
-	present(): void {
-		if (this.slideCount() > 0) {
-			// Deselect first so no edit chrome (selection outline / resize + rotate
-			// "Adjust shape" handles) leaks over the slideshow.
-			this.editor.clearSelection();
-			this.editingId.set(null);
-			this.presenting.set(true);
-		}
-	}
-
-	/**
-	 * Map a presentation-overlay index back to the full-deck `activeSlideIndex`.
-	 * The overlay's index is relative to {@link presentationSlides} (a custom show
-	 * may filter/reorder the deck), so resolve by slide id to keep the editor
-	 * selection correct when the show closes.
-	 */
-	onPresentationIndexChange(index: number): void {
-		const target = this.customShowsCtl.presentationSlides()[index];
-		if (!target) {
-			return;
-		}
-		const fullIndex = this.loader.slides().findIndex((s) => s.id === target.id);
-		this.activeSlideIndex.set(fullIndex >= 0 ? fullIndex : index);
-	}
-
-	/**
-	 * Open a separate audience tab and hand off the deck via the shared
-	 * IndexedDB store. Mirrors React's presenter "open audience window".
-	 */
-	openAudienceWindow(): void {
-		const content = this.contentOverride() ?? this.content();
-		this.presenterWindow.openAudienceWindow(content, this.activeSlideIndex());
-	}
-
-	/** Open the presenter (speaker) view: current+next slide, notes, timer. */
-	presentPresenter(): void {
-		if (this.slideCount() > 0) {
-			this.presenterStartTime.set(Date.now());
-			this.presentingPresenter.set(true);
-		}
-	}
-
-	/** Close the presenter view (and any audience overlay/window it opened). */
-	exitPresenter(): void {
-		this.presentingPresenter.set(false);
-		this.presenting.set(false);
-		this.presenterWindow.closeAudienceWindow();
-	}
-
 	/** Review ▸ Compare: pick a `.pptx` and diff it against the current deck. */
 	protected onOpenCompare(): void {
 		this.compareSvc.startCompare();
@@ -1462,13 +1423,6 @@ export class PowerPointViewerComponent {
 			event.id,
 			textStylePatch(element, event.updates),
 		);
-	}
-
-	/** Presentation exited with ink on it: offer the keep/discard prompt. */
-	protected onPresentationAnnotationsExit(map: SlideAnnotationMap): void {
-		if (this.canEdit()) {
-			this.extraDialogs()?.promptKeepAnnotations(map);
-		}
 	}
 
 	/** Swap the deck for a restored version-history snapshot. */
