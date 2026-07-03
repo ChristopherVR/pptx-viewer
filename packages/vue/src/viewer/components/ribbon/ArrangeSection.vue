@@ -63,7 +63,7 @@ const canMut = computed(() => hasSel.value && props.canEdit);
 			type="button"
 			:class="i < DISTRIBUTE_BTNS.length - 1 ? gB : gL"
 			:disabled="!props.canEdit || !props.canDistribute"
-			:title="t('pptx.arrange.distribute' + d.k.charAt(0).toUpperCase() + d.k.slice(1))"
+			:title="t('pptx.ribbon.distribute' + d.k.charAt(0).toUpperCase() + d.k.slice(1) + 'ly')"
 			@click="props.onDistributeElements(d.k)"
 		>
 			<component :is="d.icon" :class="ic" />

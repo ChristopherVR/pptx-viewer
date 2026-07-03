@@ -71,6 +71,6 @@ const mediaKind = computed(() =>
 			alt=""
 			style="width: 100%; height: 100%; object-fit: contain; display: block"
 		/>
-		<div v-else class="pptx-vue-placeholder">{{ t('pptx.element.mediaPlaceholder') }}</div>
+		<div v-else class="pptx-vue-placeholder">{{ t('pptx.elementType.media') }}</div>
 	</div>
 </template>

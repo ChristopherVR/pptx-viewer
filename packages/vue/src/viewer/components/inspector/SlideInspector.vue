@@ -102,13 +102,13 @@ function onAdvanceChange(e: Event): void {
 	<aside
 		class="pptx-vue-inspector overflow-y-auto bg-card box-border px-3 pb-8 text-xs text-foreground"
 		:class="mobile ? 'w-full pt-1' : 'w-60 flex-[0_0_15rem] border-l border-border pt-2'"
-		:aria-label="t('pptx.slideInspector.slideProperties')"
+		:aria-label="t('pptx.viewer.slideProperties')"
 	>
 		<div class="pptx-vue-inspector-section py-2 border-b border-border">
 			<h3
 				class="pptx-vue-inspector-title mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
 			>
-				{{ t('pptx.slideInspector.background') }}
+				{{ t('pptx.viewer.background') }}
 			</h3>
 			<SlideBackgroundPanel
 				:slide="slide"
@@ -140,7 +140,7 @@ function onAdvanceChange(e: Event): void {
 			<SlideTransitionPanel :slide="slide" @update="(t) => emit('transition-update', t)" />
 
 			<div v-if="showDirection" class="mt-2 space-y-1 px-2.5">
-				<span class="text-xs text-muted-foreground">{{ t('pptx.slideInspector.direction') }}</span>
+				<span class="text-xs text-muted-foreground">{{ t('pptx.transition.direction') }}</span>
 				<DirectionPicker
 					:directions="validDirections"
 					:value="slide?.transition?.direction"
@@ -149,9 +149,7 @@ function onAdvanceChange(e: Event): void {
 			</div>
 
 			<div v-if="hasTransition && usesOrientation" class="mt-2 space-y-1 px-2.5">
-				<span class="text-xs text-muted-foreground">{{
-					t('pptx.slideInspector.orientation')
-				}}</span>
+				<span class="text-xs text-muted-foreground">{{ t('pptx.transition.orientation') }}</span>
 				<div class="flex gap-1">
 					<button
 						v-for="o in ['horz', 'vert'] as const"
@@ -174,7 +172,7 @@ function onAdvanceChange(e: Event): void {
 			</div>
 
 			<label v-if="isWheel" class="mt-2 flex flex-col gap-1 px-2.5">
-				<span class="text-xs text-muted-foreground">{{ t('pptx.slideInspector.spokes') }}</span>
+				<span class="text-xs text-muted-foreground">{{ t('pptx.transition.spokes') }}</span>
 				<input
 					type="number"
 					min="1"
@@ -196,7 +194,7 @@ function onAdvanceChange(e: Event): void {
 					:checked="advanceOnClick"
 					@change="onAdvanceChange"
 				/>
-				{{ t('pptx.slideInspector.advanceOnClick') }}
+				{{ t('pptx.transition.advanceOnClick') }}
 			</label>
 		</div>
 

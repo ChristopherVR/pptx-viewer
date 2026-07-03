@@ -174,7 +174,7 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 						class="w-full resize-y rounded-md border border-border bg-background p-2 text-[12px] text-foreground"
 						rows="2"
 						:placeholder="t('pptx.comments.replyPlaceholder')"
-						:aria-label="t('pptx.comments.replyLabel')"
+						:aria-label="t('pptx.comments.reply')"
 					></textarea>
 					<div class="flex justify-end gap-2">
 						<button
@@ -202,7 +202,7 @@ const formatTimestamp = (value: string | undefined): string => formatCommentTime
 			class="pptx-comments-panel__empty flex-1 p-4 text-[13px] text-muted-foreground"
 			data-testid="comments-empty"
 		>
-			{{ t('pptx.comments.noCommentsSlide') }}
+			{{ t('pptx.comments.noneOnSlide') }}
 		</p>
 
 		<form

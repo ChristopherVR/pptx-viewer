@@ -31,9 +31,9 @@ const emit = defineEmits<{
 			</div>
 			<p class="text-sm text-muted-foreground">
 				{{
-					t('pptx.keepAnnotations.body', {
+					t('pptx.keepAnnotations.description', {
 						count: props.annotationCount,
-						slideCount: props.slideCount,
+						slides: props.slideCount,
 					})
 				}}
 			</p>

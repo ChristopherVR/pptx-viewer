@@ -80,7 +80,7 @@ const TB_BTN =
 	<div
 		class="pptx-vue-editor-toolbar flex flex-nowrap items-center gap-1.5 px-2 py-1 border-b border-border bg-secondary/50 overflow-x-auto scrollbar-none"
 		role="toolbar"
-		:aria-label="t('pptx.editorToolbar.label')"
+		:aria-label="t('pptx.editorToolbar.ariaLabel')"
 	>
 		<!-- History: always visible (core undo / redo). -->
 		<div

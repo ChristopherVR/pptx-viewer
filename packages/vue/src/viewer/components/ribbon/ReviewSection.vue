@@ -55,10 +55,10 @@ const { t } = useI18n();
 		v-if="props.onCompare"
 		:disabled="!props.canEdit"
 		:class="pill"
-		:title="t('pptx.review.compareTooltip')"
+		:title="t('pptx.ribbon.compareTitle')"
 		@click="props.onCompare()"
 	>
 		<GitCompare :class="ic" />
-		{{ t('pptx.review.compare') }}
+		{{ t('pptx.ribbon.compare') }}
 	</button>
 </template>

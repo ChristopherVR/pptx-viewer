@@ -138,12 +138,12 @@ function handleHighlightChange(highlightColor: string): void {
 	props.onUpdateTextStyle({ highlightColor });
 }
 
-function handleFmtClick(t: string): void {
+function handleFmtClick(fmt: string): void {
 	if (!canFormat.value || !props.selectedElement) {
 		return;
 	}
 	const ts = effectiveTs.value;
-	switch (t) {
+	switch (fmt) {
 		case 'Bold':
 			props.onUpdateTextStyle({ bold: !ts?.bold });
 			break;
@@ -222,7 +222,7 @@ function handleIncreaseIndent(): void {
 	props.onUpdateTextStyle({ paragraphMarginLeft: current + 24 });
 }
 
-function handleAlignClick(t: string): void {
+function handleAlignClick(label: string): void {
 	if (!canFormat.value) {
 		return;
 	}
@@ -232,7 +232,7 @@ function handleAlignClick(t: string): void {
 		'Align right': 'right',
 		Justify: 'justify',
 	};
-	const align = alignMap[t];
+	const align = alignMap[label];
 	if (align) {
 		props.onUpdateTextStyle({ align });
 	}
@@ -340,7 +340,7 @@ function handleAlignClick(t: string): void {
 							@mousedown.prevent
 							@click="colorInputRef?.click()"
 						>
-							{{ t('pptx.text.customColour') }}
+							{{ t('pptx.ribbon.customColour') }}
 						</button>
 						<input
 							ref="colorInputRef"
@@ -391,7 +391,7 @@ function handleAlignClick(t: string): void {
 							@mousedown.prevent
 							@click="highlightInputRef?.click()"
 						>
-							{{ t('pptx.text.customColour') }}
+							{{ t('pptx.ribbon.customColour') }}
 						</button>
 						<input
 							ref="highlightInputRef"
@@ -404,7 +404,7 @@ function handleAlignClick(t: string): void {
 				</div>
 			</div>
 		</div>
-		<span class="text-[9px] text-muted-foreground leading-none">{{ t('pptx.text.font') }}</span>
+		<span class="text-[9px] text-muted-foreground leading-none">{{ t('pptx.ribbon.font') }}</span>
 	</div>
 
 	<div :class="SEP" />
@@ -477,7 +477,7 @@ function handleAlignClick(t: string): void {
 			</div>
 		</div>
 		<span class="text-[9px] text-muted-foreground leading-none">{{
-			t('pptx.text.paragraph')
+			t('pptx.ribbon.paragraph')
 		}}</span>
 	</div>
 </template>

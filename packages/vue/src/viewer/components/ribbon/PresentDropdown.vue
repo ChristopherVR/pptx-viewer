@@ -53,7 +53,7 @@ const dd = useDropdown();
 				:title="t('pptx.present.presentTooltip')"
 				@click="props.onPresent()"
 			>
-				{{ t('pptx.present.present') }}
+				{{ t('pptx.toolbar.present') }}
 			</button>
 			<button
 				type="button"
@@ -89,7 +89,7 @@ const dd = useDropdown();
 					"
 				>
 					<Play class="w-3.5 h-3.5 text-muted-foreground" />
-					{{ t('pptx.present.present') }}
+					{{ t('pptx.toolbar.present') }}
 				</button>
 				<button
 					v-if="props.onPresenterView"

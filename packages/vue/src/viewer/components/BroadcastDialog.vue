@@ -83,7 +83,7 @@ const canStart = computed(() => roomId.value.trim().length > 0);
 const isPeerToPeer = computed(() => resolveTransportForServerUrl(serverUrl.value) === 'webrtc');
 
 const title = computed(() =>
-	props.active ? t('pptx.broadcast.titleBroadcasting') : t('pptx.broadcast.titleStart'),
+	props.active ? t('pptx.broadcast.broadcastingTitle') : t('pptx.broadcast.startTitle'),
 );
 
 function onClose(): void {
@@ -132,7 +132,7 @@ function onCopyLink(): void {
 		<!-- Active: share the follow link + stop control -->
 		<div v-if="props.active" class="pptx-vue-broadcast flex flex-col gap-4">
 			<p class="pptx-vue-broadcast-desc text-[13px] leading-relaxed text-muted-foreground">
-				{{ t('pptx.broadcast.liveDescription') }}
+				{{ t('pptx.broadcast.liveDesc') }}
 			</p>
 
 			<div class="pptx-vue-broadcast-field flex flex-col gap-1.5">
@@ -157,11 +157,11 @@ function onCopyLink(): void {
 						:disabled="!canCopy || !props.viewerUrl"
 						@click="onCopyLink"
 					>
-						{{ copied ? t('pptx.share.copied') : t('pptx.broadcast.copyLinkButton') }}
+						{{ copied ? t('pptx.share.copied') : t('pptx.broadcast.copyLinkBtn') }}
 					</button>
 				</div>
 				<p class="pptx-vue-broadcast-hint text-[11px] text-muted-foreground">
-					{{ t('pptx.broadcast.viewerFollowHint') }}
+					{{ t('pptx.broadcast.viewerHint') }}
 				</p>
 				<p
 					v-if="isPeerToPeer"
@@ -183,7 +183,7 @@ function onCopyLink(): void {
 		<!-- Idle: configure + start a broadcast -->
 		<div v-else class="pptx-vue-broadcast flex flex-col gap-4">
 			<p class="pptx-vue-broadcast-desc text-[13px] leading-relaxed text-muted-foreground">
-				{{ t('pptx.broadcast.startDescription') }}
+				{{ t('pptx.broadcast.idleDesc') }}
 			</p>
 
 			<div class="pptx-vue-broadcast-field flex flex-col gap-1.5">
@@ -231,7 +231,7 @@ function onCopyLink(): void {
 				class="pptx-vue-broadcast-btn rounded bg-muted px-3 py-1.5 text-[12px] text-foreground transition-colors hover:bg-accent"
 				@click="onClose"
 			>
-				{{ t('pptx.broadcast.close') }}
+				{{ t('pptx.common.close') }}
 			</button>
 			<button
 				v-if="!props.active"

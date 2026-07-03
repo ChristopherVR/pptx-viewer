@@ -117,7 +117,7 @@ function onToggleSlide(slide: PptxSlide): void {
 		<div class="pptx-vue-cs-list-row flex items-center gap-1.5">
 			<select
 				class="pptx-vue-cs-select min-w-0 flex-1 rounded border border-border bg-popover px-1.5 py-1 text-xs text-foreground"
-				:aria-label="t('pptx.customShows.selectLabel')"
+				:aria-label="t('pptx.customShows.selectCustomShow')"
 				:value="props.activeShowId ?? ''"
 				@change="emit('select', ($event.target as HTMLSelectElement).value)"
 			>
@@ -172,8 +172,8 @@ function onToggleSlide(slide: PptxSlide): void {
 				v-model="newName"
 				class="pptx-vue-cs-input min-w-0 flex-1 rounded border border-border bg-popover px-1.5 py-1 text-xs text-foreground"
 				type="text"
-				:placeholder="t('pptx.customShows.newShowPlaceholder')"
-				:aria-label="t('pptx.customShows.newShowNameLabel')"
+				:placeholder="t('pptx.customShows.namePlaceholder')"
+				:aria-label="t('pptx.customShows.newNameLabel')"
 			/>
 			<button
 				type="submit"

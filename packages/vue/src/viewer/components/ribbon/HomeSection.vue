@@ -168,7 +168,7 @@ function handlePickSize(s: number): void {
 			</button>
 		</div>
 		<span class="text-[9px] text-muted-foreground leading-none">{{
-			t('pptx.home.clipboard')
+			t('pptx.ribbon.clipboard')
 		}}</span>
 	</div>
 
@@ -280,7 +280,7 @@ function handlePickSize(s: number): void {
 				</div>
 			</div>
 		</div>
-		<span class="text-[9px] text-muted-foreground leading-none">{{ t('pptx.home.font') }}</span>
+		<span class="text-[9px] text-muted-foreground leading-none">{{ t('pptx.ribbon.font') }}</span>
 	</div>
 
 	<div :class="SEP" />

@@ -53,8 +53,8 @@ function ovAct(k: string): void {
 					props.isOverflowMenuOpen ? 'bg-primary/80 text-white' : 'bg-muted hover:bg-accent',
 				)
 			"
-			:title="t('pptx.overflow.moreActions')"
-			:aria-label="t('pptx.overflow.moreActions')"
+			:title="t('pptx.ribbon.moreActions')"
+			:aria-label="t('pptx.ribbon.moreActions')"
 			@click="props.onSetOverflowMenuOpen(!props.isOverflowMenuOpen)"
 		>
 			<Ellipsis :class="ic" />

@@ -41,9 +41,9 @@ const duration = ref('00.50');
 
 <template>
 	<!-- Preview -->
-	<button type="button" :class="pill" :title="t('pptx.transitions.previewTooltip')">
+	<button type="button" :class="pill" :title="t('pptx.ribbon.previewTransition')">
 		<Play :class="ics" />
-		{{ t('pptx.transitions.preview') }}
+		{{ t('pptx.ribbon.preview') }}
 	</button>
 
 	<div :class="SEP" />
@@ -73,19 +73,19 @@ const duration = ref('00.50');
 
 	<!-- Duration -->
 	<label class="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-		<span class="whitespace-nowrap">{{ t('pptx.transitions.duration') }}</span>
+		<span class="whitespace-nowrap">{{ t('pptx.ribbon.duration') }}</span>
 		<input
 			v-model="duration"
 			type="text"
 			class="w-14 px-1.5 py-1 rounded border border-border bg-muted text-xs text-foreground text-center"
-			:title="t('pptx.transitions.durationTooltip')"
+			:title="t('pptx.ribbon.transitionDurationTitle')"
 		/>
 	</label>
 
 	<div :class="SEP" />
 
 	<!-- Apply to All -->
-	<button type="button" :class="pill" :title="t('pptx.transitions.applyToAllTooltip')">
+	<button type="button" :class="pill" :title="t('pptx.ribbon.applyTransitionToAll')">
 		<Copy :class="ics" />
 		{{ t('pptx.headerFooter.applyToAll') }}
 	</button>
@@ -96,10 +96,10 @@ const duration = ref('00.50');
 	<button
 		type="button"
 		:class="cn(pill, props.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '')"
-		:title="t('pptx.transitions.inspectorTooltip')"
+		:title="t('pptx.ribbon.openInspectorTransitions')"
 		@click="props.onToggleInspector()"
 	>
 		<PanelRight :class="ic" />
-		{{ t('pptx.transitions.inspector') }}
+		{{ t('pptx.ribbon.inspector') }}
 	</button>
 </template>

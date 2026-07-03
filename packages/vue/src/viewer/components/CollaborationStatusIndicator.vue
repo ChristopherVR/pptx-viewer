@@ -82,7 +82,7 @@ const ariaLabel = computed<string>(() =>
 			v-if="props.status === 'error'"
 			type="button"
 			class="text-[10px] text-blue-400 underline underline-offset-2 transition-colors hover:text-blue-300"
-			:aria-label="t('pptx.collaboration.retryConnection')"
+			:aria-label="t('pptx.collaboration.retry')"
 			@click="emit('retry')"
 		>
 			{{ t('pptx.collaboration.retry') }}

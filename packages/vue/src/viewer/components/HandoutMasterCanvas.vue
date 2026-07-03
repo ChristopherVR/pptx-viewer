@@ -167,7 +167,7 @@ const pageNumberLabel = computed(() =>
 			class="pptx-vue-handout-master-canvas__empty"
 			data-testid="handout-master-empty"
 		>
-			{{ t('pptx.handout.noMaster') }}
+			{{ t('pptx.master.noHandoutMaster') }}
 		</div>
 
 		<div

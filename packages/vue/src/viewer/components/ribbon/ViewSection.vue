@@ -112,7 +112,7 @@ const { t } = useI18n();
 		:title="t('pptx.view.templateEditingTooltip')"
 		@click="props.onSetEditTemplateMode(!props.editTemplateMode)"
 	>
-		{{ props.editTemplateMode ? t('pptx.view.templatesOn') : t('pptx.view.templatesOff') }}
+		{{ props.editTemplateMode ? t('pptx.ribbon.templatesOn') : t('pptx.ribbon.templatesOff') }}
 	</button>
 	<button
 		v-if="props.onToggleSelectionPane"
@@ -135,7 +135,7 @@ const { t } = useI18n();
 		@click="props.onToggleEyedropper()"
 	>
 		<Pipette :class="ic" />
-		{{ t('pptx.view.eyedropper') }}
+		{{ t('pptx.ribbon.eyedropper') }}
 	</button>
 	<button
 		:class="cn(pill, props.showGrid ? 'bg-primary text-white' : '')"

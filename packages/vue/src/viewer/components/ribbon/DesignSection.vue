@@ -33,11 +33,11 @@ const { t } = useI18n();
 	<button
 		:disabled="!props.canEdit"
 		:class="cn(pill, props.isThemeGalleryOpen ? 'bg-primary hover:bg-primary/80 text-white' : '')"
-		:title="t('pptx.design.browseThemesTooltip')"
+		:title="t('pptx.ribbon.browseThemesTitle')"
 		@click="props.onToggleThemeGallery()"
 	>
 		<Palette :class="ics" />
-		{{ t('pptx.design.browseThemes') }}
+		{{ t('pptx.ribbon.browseThemes') }}
 	</button>
 	<button
 		:disabled="!props.canEdit"
@@ -46,7 +46,7 @@ const { t } = useI18n();
 		@click="props.onToggleThemeEditor()"
 	>
 		<Pencil :class="ics" />
-		{{ t('pptx.design.editTheme') }}
+		{{ t('pptx.ribbon.editTheme') }}
 	</button>
 
 	<div :class="SEP" />
@@ -59,7 +59,7 @@ const { t } = useI18n();
 		@click="props.onOpenDocumentProperties()"
 	>
 		<Monitor :class="ics" />
-		{{ t('pptx.design.slideSize') }}
+		{{ t('pptx.ribbon.slideSize') }}
 	</button>
 	<button
 		v-if="props.onToggleInspector"
@@ -68,6 +68,6 @@ const { t } = useI18n();
 		@click="props.onToggleInspector()"
 	>
 		<PaintBucket :class="ics" />
-		{{ t('pptx.design.formatBackground') }}
+		{{ t('pptx.ribbon.formatBackground') }}
 	</button>
 </template>

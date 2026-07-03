@@ -136,8 +136,8 @@ const ALIGN_BTN =
 			type="button"
 			class="pptx-vue-align-btn"
 			:class="ALIGN_BTN"
-			:title="t('pptx.align.distributeHorizontally')"
-			:aria-label="t('pptx.align.distributeHorizontally')"
+			:title="t('pptx.ribbon.distributeHorizontally')"
+			:aria-label="t('pptx.ribbon.distributeHorizontally')"
 			@click="emit('distribute', 'horizontal')"
 		>
 			<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
@@ -150,8 +150,8 @@ const ALIGN_BTN =
 			type="button"
 			class="pptx-vue-align-btn"
 			:class="ALIGN_BTN"
-			:title="t('pptx.align.distributeVertically')"
-			:aria-label="t('pptx.align.distributeVertically')"
+			:title="t('pptx.ribbon.distributeVertically')"
+			:aria-label="t('pptx.ribbon.distributeVertically')"
 			@click="emit('distribute', 'vertical')"
 		>
 			<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
@@ -167,8 +167,8 @@ const ALIGN_BTN =
 			type="button"
 			class="pptx-vue-align-btn"
 			:class="ALIGN_BTN"
-			:title="t('pptx.align.group')"
-			:aria-label="t('pptx.align.group')"
+			:title="t('pptx.ribbon.group')"
+			:aria-label="t('pptx.ribbon.group')"
 			:disabled="!canGroup"
 			@click="emit('group')"
 		>
@@ -191,8 +191,8 @@ const ALIGN_BTN =
 			type="button"
 			class="pptx-vue-align-btn"
 			:class="ALIGN_BTN"
-			:title="t('pptx.align.ungroup')"
-			:aria-label="t('pptx.align.ungroup')"
+			:title="t('pptx.ribbon.ungroup')"
+			:aria-label="t('pptx.ribbon.ungroup')"
 			:disabled="!canUngroup"
 			@click="emit('ungroup')"
 		>

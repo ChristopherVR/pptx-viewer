@@ -42,13 +42,13 @@ const label = computed(() => {
 		case 'saving':
 			return t('pptx.autosave.saving');
 		case 'error':
-			return t('pptx.autosave.saveFailed');
+			return t('pptx.autosave.error');
 		case 'dirty':
 			return t('pptx.statusBar.unsavedChanges');
 		case 'saved':
 			return t('pptx.autosave.savedShort');
 		default:
-			return t('pptx.autosave.allChangesSaved');
+			return t('pptx.statusBar.allSaved');
 	}
 });
 

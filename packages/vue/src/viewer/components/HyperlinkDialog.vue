@@ -130,7 +130,7 @@ const inputCls =
 </script>
 
 <template>
-	<ModalDialog :open="open" :title="t('pptx.hyperlink.title')" @close="close">
+	<ModalDialog :open="open" :title="t('pptx.hyperlinkDialog.title')" @close="close">
 		<div class="pptx-vue-hyperlink-form flex min-w-[280px] flex-col gap-3">
 			<label class="flex flex-col gap-1">
 				<span class="text-xs font-medium text-muted-foreground">{{
@@ -166,7 +166,7 @@ const inputCls =
 					:min="1"
 					:max="props.slideCount ?? undefined"
 					:class="inputCls"
-					:placeholder="t('pptx.hyperlink.slidePlaceholder')"
+					:placeholder="t('pptx.hyperlink.slideLabel')"
 					@keydown.enter.prevent="save"
 				/>
 			</label>
@@ -179,7 +179,7 @@ const inputCls =
 					v-model="tooltip"
 					type="text"
 					:class="inputCls"
-					:placeholder="t('pptx.hyperlink.tooltipPlaceholder')"
+					:placeholder="t('pptx.hyperlinkDialog.tooltipPlaceholder')"
 					@keydown.enter.prevent="save"
 				/>
 			</label>
@@ -192,7 +192,7 @@ const inputCls =
 				class="mr-auto rounded border border-transparent px-3 py-1.5 text-xs text-destructive hover:bg-muted"
 				@click="clear"
 			>
-				{{ t('pptx.hyperlink.removeLink') }}
+				{{ t('pptx.hyperlinkDialog.removeLink') }}
 			</button>
 			<button
 				type="button"
@@ -206,7 +206,7 @@ const inputCls =
 				class="rounded border border-transparent bg-primary px-3 py-1.5 text-xs text-white hover:bg-primary/90"
 				@click="save"
 			>
-				{{ t('pptx.hyperlink.apply') }}
+				{{ t('pptx.hyperlinkDialog.apply') }}
 			</button>
 		</template>
 	</ModalDialog>

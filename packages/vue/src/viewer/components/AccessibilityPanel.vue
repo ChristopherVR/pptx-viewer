@@ -97,7 +97,7 @@ function onSelect(issue: AccessibilityIssue): void {
 				{{ t('pptx.accessibility.noIssuesFound') }}
 			</p>
 			<p class="pptx-vue-a11y-panel__empty-hint m-0 text-[0.8125rem] text-muted-foreground">
-				{{ t('pptx.accessibility.allChecksPass') }}
+				{{ t('pptx.accessibility.noIssuesHint') }}
 			</p>
 		</div>
 

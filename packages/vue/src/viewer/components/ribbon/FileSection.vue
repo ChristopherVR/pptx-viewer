@@ -52,9 +52,13 @@ const { t } = useI18n();
 <template>
 	<!-- Open another presentation -->
 	<template v-if="props.onOpenFile">
-		<button :class="pill" :title="t('pptx.file.openTooltip')" @click="props.onOpenFile()">
+		<button
+			:class="pill"
+			:title="t('pptx.ribbon.openAnotherPresentation')"
+			@click="props.onOpenFile()"
+		>
 			<FolderOpen :class="ic" />
-			{{ t('pptx.file.open') }}
+			{{ t('pptx.ribbon.open') }}
 		</button>
 		<div :class="SEP" />
 	</template>
@@ -85,19 +89,19 @@ const { t } = useI18n();
 	<div :class="SEP" />
 
 	<!-- Export -->
-	<button :class="pill" :title="t('pptx.file.exportPngTooltip')" @click="props.onExportPng()">
+	<button :class="pill" :title="t('pptx.ribbon.exportPng')" @click="props.onExportPng()">
 		<Download :class="ic" />
 		{{ t('pptx.file.png') }}
 	</button>
-	<button :class="pill" :title="t('pptx.file.exportPdfTooltip')" @click="props.onExportPdf()">
+	<button :class="pill" :title="t('pptx.ribbon.exportPdf')" @click="props.onExportPdf()">
 		<FileText :class="ic" />
 		{{ t('pptx.file.pdf') }}
 	</button>
-	<button :class="pill" :title="t('pptx.file.exportVideoTooltip')" @click="props.onExportVideo()">
+	<button :class="pill" :title="t('pptx.ribbon.exportVideo')" @click="props.onExportVideo()">
 		<Video :class="ic" />
 		{{ t('pptx.file.video') }}
 	</button>
-	<button :class="pill" :title="t('pptx.file.exportGifTooltip')" @click="props.onExportGif()">
+	<button :class="pill" :title="t('pptx.ribbon.exportGif')" @click="props.onExportGif()">
 		<Image :class="ic" />
 		{{ t('pptx.file.gif') }}
 	</button>
@@ -124,25 +128,25 @@ const { t } = useI18n();
 	<button
 		v-if="props.onOpenDocumentProperties"
 		:class="pill"
-		:title="t('pptx.file.documentPropertiesTooltip')"
+		:title="t('pptx.ribbon.documentProperties')"
 		@click="props.onOpenDocumentProperties()"
 	>
 		<Info :class="ic" />
-		{{ t('pptx.file.properties') }}
+		{{ t('pptx.ribbon.properties') }}
 	</button>
 	<button
 		v-if="props.onOpenPasswordProtection"
 		:class="pill"
-		:title="t('pptx.file.protectTooltip')"
+		:title="t('pptx.security.protectPresentation')"
 		@click="props.onOpenPasswordProtection()"
 	>
 		<Lock :class="ic" />
-		{{ t('pptx.file.protect') }}
+		{{ t('pptx.ribbon.protect') }}
 	</button>
 	<button
 		v-if="props.onOpenFontEmbedding"
 		:class="pill"
-		:title="t('pptx.file.embedFontsTooltip')"
+		:title="t('pptx.ribbon.embedFonts')"
 		@click="props.onOpenFontEmbedding()"
 	>
 		<Type :class="ic" />
@@ -151,10 +155,10 @@ const { t } = useI18n();
 	<button
 		v-if="props.onOpenDigitalSignatures"
 		:class="pill"
-		:title="t('pptx.file.digitalSignaturesTooltip')"
+		:title="t('pptx.digitalSignatures.title')"
 		@click="props.onOpenDigitalSignatures()"
 	>
 		<ShieldAlert :class="ic" />
-		{{ t('pptx.file.signatures') }}
+		{{ t('pptx.ribbon.signatures') }}
 	</button>
 </template>

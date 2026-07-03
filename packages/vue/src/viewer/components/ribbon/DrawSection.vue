@@ -49,9 +49,9 @@ const { t } = useI18n();
 	<div class="inline-flex items-center gap-2 text-xs">
 		<label
 			class="inline-flex items-center gap-1 text-muted-foreground"
-			:title="t('pptx.draw.penColour')"
+			:title="t('pptx.ribbon.penColour')"
 		>
-			{{ t('pptx.draw.colour') }}
+			{{ t('pptx.ribbon.colour') }}
 			<input
 				type="color"
 				:value="props.drawingColor"
@@ -61,9 +61,9 @@ const { t } = useI18n();
 		</label>
 		<label
 			class="inline-flex items-center gap-1 text-muted-foreground"
-			:title="t('pptx.draw.strokeWidth')"
+			:title="t('pptx.ribbon.strokeWidth')"
 		>
-			{{ t('pptx.draw.width') }}
+			{{ t('pptx.ribbon.width') }}
 			<input
 				type="range"
 				:min="1"

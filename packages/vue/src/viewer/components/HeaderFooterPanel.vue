@@ -72,7 +72,7 @@ function onDateText(event: Event): void {
 	<div
 		class="pptx-vue-header-footer-panel"
 		role="dialog"
-		:aria-label="t('pptx.headerFooter.panelLabel')"
+		:aria-label="t('pptx.headerFooter.title')"
 	>
 		<header class="pptx-vue-header-footer-panel__header">
 			<h2 class="pptx-vue-header-footer-panel__title">{{ t('pptx.headerFooter.title') }}</h2>

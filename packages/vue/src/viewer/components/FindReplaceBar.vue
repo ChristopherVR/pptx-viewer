@@ -101,7 +101,7 @@ const FR_BTN =
 				type="button"
 				class="pptx-vue-fr-btn pptx-vue-fr-close text-[1.1rem]"
 				:class="FR_BTN"
-				:title="t('pptx.findReplace.close')"
+				:title="t('pptx.findReplace.closeEscape')"
 				:aria-label="t('pptx.findReplace.closeAriaLabel')"
 				@click="emit('close')"
 			>

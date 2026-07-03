@@ -48,7 +48,7 @@ function choose(kind: 'png' | 'pdf' | 'gif' | 'webm'): void {
 			:disabled="exporting"
 			aria-haspopup="menu"
 			:aria-expanded="open"
-			:title="exporting ? t('pptx.export.exporting') : t('pptx.export.export')"
+			:title="exporting ? t('pptx.ribbon.exporting') : t('pptx.export.export')"
 			@click="toggle"
 		>
 			{{ exporting ? '…' : '⬇' }}

@@ -67,7 +67,7 @@ function onDash(event: Event): void {
 		<h3
 			class="pptx-vue-stroke-title text-xs font-semibold uppercase tracking-wide text-muted-foreground"
 		>
-			{{ t('pptx.stroke.line') }}
+			{{ t('pptx.inspector.line') }}
 		</h3>
 
 		<p v-if="!applicable" class="pptx-vue-stroke-muted text-xs text-muted-foreground">
@@ -77,7 +77,7 @@ function onDash(event: Event): void {
 		<div v-else class="pptx-vue-stroke-fields flex flex-col gap-2">
 			<label class="pptx-vue-stroke-field flex flex-col gap-1">
 				<span class="pptx-vue-stroke-label text-muted-foreground">{{
-					t('pptx.stroke.color')
+					t('pptx.inspector.color')
 				}}</span>
 				<input
 					type="color"

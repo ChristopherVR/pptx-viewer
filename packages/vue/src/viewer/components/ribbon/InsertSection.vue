@@ -218,7 +218,7 @@ function previewTime(): string {
 		@click="props.onAddTextBox()"
 	>
 		<Type :class="ic" />
-		{{ t('pptx.insert.text') }}
+		{{ t('pptx.ribbon.text') }}
 	</button>
 	<div :class="grp">
 		<select
@@ -251,20 +251,20 @@ function previewTime(): string {
 	<button
 		:disabled="!canEdit"
 		:class="pill"
-		:title="t('pptx.insert.insertImage')"
+		:title="t('pptx.ribbon.insertImage')"
 		@click="props.onOpenImagePicker()"
 	>
 		<Image :class="ic" />
-		{{ t('pptx.insert.image') }}
+		{{ t('pptx.ribbon.image') }}
 	</button>
 	<button
 		:disabled="!canEdit"
 		:class="pill"
-		:title="t('pptx.insert.insertMedia')"
+		:title="t('pptx.ribbon.insertMedia')"
 		@click="props.onOpenMediaPicker()"
 	>
 		<Video :class="ic" />
-		{{ t('pptx.insert.media') }}
+		{{ t('pptx.ribbon.media') }}
 	</button>
 	<button
 		:disabled="!canEdit"
@@ -273,13 +273,13 @@ function previewTime(): string {
 		@click="props.onAddTable()"
 	>
 		<Database :class="ic" />
-		{{ t('pptx.insert.table') }}
+		{{ t('pptx.ribbon.table') }}
 	</button>
 	<div v-if="props.onAddChart" :class="grp">
 		<select
 			:value="newChartType"
 			class="bg-transparent py-1.5 pl-2 pr-1 outline-none text-xs"
-			:title="t('pptx.insert.chartType')"
+			:title="t('pptx.ribbon.chartType')"
 			@change="newChartType = ($event.target as HTMLSelectElement).value as PptxChartType"
 		>
 			<option v-for="ct in chartTypes" :key="ct.type" :value="ct.type" class="bg-background">
@@ -289,7 +289,7 @@ function previewTime(): string {
 		<button
 			:disabled="!canEdit"
 			class="inline-flex items-center gap-1.5 px-2.5 py-1.5 border-l border-border hover:bg-accent transition-colors text-xs"
-			:title="t('pptx.insert.insertChart')"
+			:title="t('pptx.ribbon.insertChart')"
 			@click="props.onAddChart(newChartType)"
 		>
 			<svg
@@ -306,7 +306,7 @@ function previewTime(): string {
 				<rect x="12" y="7" width="3" height="10" />
 				<rect x="17" y="13" width="3" height="4" />
 			</svg>
-			{{ t('pptx.insert.chart') }}
+			{{ t('pptx.ribbon.chart') }}
 		</button>
 	</div>
 	<button
@@ -316,7 +316,7 @@ function previewTime(): string {
 		@click="props.onAddSmartArt()"
 	>
 		<Layers :class="ic" />
-		{{ t('pptx.insert.smartArt') }}
+		{{ t('pptx.ribbon.smartArt') }}
 	</button>
 	<button
 		:disabled="!canEdit"
@@ -335,7 +335,7 @@ function previewTime(): string {
 		>
 			<path d="M4 17h6M7 14v6M14 7l4.5 10M15.5 14h5" />
 		</svg>
-		{{ t('pptx.insert.equation') }}
+		{{ t('pptx.ribbon.equation') }}
 	</button>
 	<!-- Action Buttons dropdown -->
 	<div class="relative group">
@@ -343,7 +343,7 @@ function previewTime(): string {
 			type="button"
 			:disabled="!canEdit"
 			:class="pill"
-			:title="t('pptx.insert.insertActionButton')"
+			:title="t('pptx.ribbon.insertActionButton')"
 		>
 			<svg
 				:class="ic"
@@ -357,7 +357,7 @@ function previewTime(): string {
 				<rect x="3" y="3" width="18" height="18" rx="2" />
 				<path d="M13 7l4 5-4 5" />
 			</svg>
-			{{ t('pptx.insert.action') }}
+			{{ t('pptx.ribbon.action') }}
 			<ChevronDown class="w-3 h-3" />
 		</button>
 		<div class="absolute left-0 top-full z-50 hidden group-hover:flex flex-col w-40 pt-1">

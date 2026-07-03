@@ -33,13 +33,13 @@ const SLIDES_PER_PAGE_OPTIONS: readonly number[] = [1, 2, 3, 4, 6, 9];
 		class="pptx-vue-handout-master-panel__empty"
 		data-testid="handout-master-panel-empty"
 	>
-		{{ t('pptx.handout.noMaster') }}
+		{{ t('pptx.master.noHandoutMaster') }}
 	</div>
 
 	<div v-else class="pptx-vue-handout-master-panel">
 		<section class="pptx-vue-handout-master-panel__card">
 			<div class="pptx-vue-handout-master-panel__heading">
-				{{ t('pptx.handout.slidesPerPage') }}
+				{{ t('pptx.master.handoutSlidesPerPage') }}
 			</div>
 			<div class="pptx-vue-handout-master-panel__grid">
 				<button
@@ -58,7 +58,7 @@ const SLIDES_PER_PAGE_OPTIONS: readonly number[] = [1, 2, 3, 4, 6, 9];
 
 		<section class="pptx-vue-handout-master-panel__card">
 			<div class="pptx-vue-handout-master-panel__heading">
-				{{ t('pptx.handout.background') }}
+				{{ t('pptx.master.handoutBackground') }}
 			</div>
 			<div
 				class="pptx-vue-handout-master-panel__swatch"
@@ -72,7 +72,7 @@ const SLIDES_PER_PAGE_OPTIONS: readonly number[] = [1, 2, 3, 4, 6, 9];
 			class="pptx-vue-handout-master-panel__card"
 		>
 			<div class="pptx-vue-handout-master-panel__heading">
-				{{ t('pptx.handout.placeholders') }}
+				{{ t('pptx.master.handoutPlaceholders') }}
 			</div>
 			<div class="pptx-vue-handout-master-panel__list">
 				<div
