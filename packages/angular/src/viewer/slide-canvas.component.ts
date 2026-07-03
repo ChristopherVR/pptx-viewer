@@ -26,14 +26,7 @@ import { hasTextProperties } from 'pptx-viewer-core';
 
 import type { CanvasSize } from '../internal/shared';
 import { CanvasFitService } from './canvas-fit.service';
-import {
-	applyMove,
-	applyResize,
-	handleAnchor,
-	handleCursor,
-	marqueeHitIds,
-	RESIZE_HANDLES,
-} from './drag-resize';
+import { applyMove, applyResize, marqueeHitIds } from './drag-resize';
 import type { Box, ResizeHandle } from './drag-resize';
 import { ElementRendererComponent } from './element-renderer.component';
 import type { StyleMap } from './element-style';
@@ -42,6 +35,13 @@ import { InkDrawingService } from './ink-drawing.service';
 import { RulerGuidesService } from './ruler-guides.service';
 import { generateRulerTicks, RULER_THICKNESS } from './ruler-ticks';
 import type { RulerTick } from './ruler-ticks';
+import {
+	computeCornerHandle,
+	computeHandleBoxes,
+	computeSelectionBoxes,
+	computeSingleSelected,
+	resolveInteractiveElementId,
+} from './selection-geometry';
 import { getSlideBackgroundStyle } from './slide-background';
 import { isViewportBackgroundPressTarget } from './slide-canvas-helpers';
 import { computeSnap, snapToGridStep } from './snap-guides';
@@ -756,62 +756,36 @@ export class SlideCanvasComponent {
 	);
 
 	/** Bounding boxes (stage coords) for the selected elements. */
-	readonly selectionBoxes = computed(() => {
-		const selected = new Set(this.selectedIds());
-		if (selected.size === 0) {
-			return [];
-		}
-		return this.allElements()
-			.filter((el) => selected.has(el.id))
-			.map((el) => ({ id: el.id, x: el.x, y: el.y, width: el.width, height: el.height }));
-	});
+	readonly selectionBoxes = computed(() =>
+		computeSelectionBoxes(this.allElements(), this.selectedIds()),
+	);
 
 	/** The single selected element's box, or null when 0 or >1 are selected. */
-	readonly singleSelected = computed<(Box & { id: string }) | null>(() => {
-		const ids = this.selectedIds();
-		if (ids.length !== 1) {
-			return null;
-		}
-		const el = this.allElements().find((e) => e.id === ids[0]);
-		return el ? { id: el.id, x: el.x, y: el.y, width: el.width, height: el.height } : null;
-	});
+	readonly singleSelected = computed<(Box & { id: string }) | null>(() =>
+		computeSingleSelected(this.allElements(), this.selectedIds()),
+	);
 
 	/** Resize-handle render boxes (stage coords) for the single selection. */
-	readonly handleBoxes = computed(() => {
-		if (!this.editable()) {
-			return [];
-		}
-		const box = this.singleSelected();
-		if (!box) {
-			return [];
-		}
-		const size = HANDLE_SCREEN_PX / (this.effectiveScale() || 1);
-		return RESIZE_HANDLES.map((handle) => {
-			const { fx, fy } = handleAnchor(handle);
-			return {
-				handle,
-				left: box.x + fx * box.width - size / 2,
-				top: box.y + fy * box.height - size / 2,
-				size,
-				cursor: handleCursor(handle),
-			};
-		});
-	});
+	readonly handleBoxes = computed(() =>
+		computeHandleBoxes(
+			this.singleSelected(),
+			this.editable(),
+			HANDLE_SCREEN_PX,
+			this.effectiveScale(),
+		),
+	);
 
 	/** Rotation-handle box (stage coords) above the single selection, or null. */
-	readonly rotateHandle = computed(() => {
-		if (!this.editable()) {
-			return null;
-		}
-		const box = this.singleSelected();
-		if (!box) {
-			return null;
-		}
-		const zoom = this.effectiveScale() || 1;
-		const size = HANDLE_SCREEN_PX / zoom;
-		const offset = 24 / zoom;
-		return { left: box.x + box.width / 2 - size / 2, top: box.y - offset - size / 2, size };
-	});
+	readonly rotateHandle = computed(() =>
+		computeCornerHandle(
+			this.singleSelected(),
+			this.editable(),
+			HANDLE_SCREEN_PX,
+			24,
+			this.effectiveScale(),
+			'top-center',
+		),
+	);
 
 	/**
 	 * Shape-adjustment-handle box (stage coords) for the single selection, or
@@ -819,38 +793,23 @@ export class SlideCanvasComponent {
 	 * resize/rotate handles. Selection-only + editable-only, so it vanishes in
 	 * presentation alongside the rest of the edit chrome.
 	 */
-	readonly adjustHandle = computed(() => {
-		if (!this.editable()) {
-			return null;
-		}
-		const box = this.singleSelected();
-		if (!box) {
-			return null;
-		}
-		const zoom = this.effectiveScale() || 1;
-		const size = HANDLE_SCREEN_PX / zoom;
-		const offset = 16 / zoom;
-		return { left: box.x - offset - size / 2, top: box.y - offset - size / 2, size };
-	});
+	readonly adjustHandle = computed(() =>
+		computeCornerHandle(
+			this.singleSelected(),
+			this.editable(),
+			HANDLE_SCREEN_PX,
+			16,
+			this.effectiveScale(),
+			'top-left',
+		),
+	);
 
 	/**
 	 * Resolve the id of the interactive element under a pointer target, or null.
-	 * An element host carries `data-element-id`, but template (master/layout)
-	 * elements are only interactive while editTemplateMode is on; when off they
-	 * are reported as null so the canvas treats them as background (no
-	 * select/drag/context-menu/inline-edit).
+	 * See {@link resolveInteractiveElementId}.
 	 */
 	private interactiveElementIdAt(target: EventTarget | null): string | null {
-		const host = (target as HTMLElement | null)?.closest('[data-element-id]') as HTMLElement | null;
-		const id = host?.getAttribute('data-element-id');
-		if (!id) {
-			return null;
-		}
-		const el = this.allElements().find((e) => e.id === id);
-		if (!el) {
-			return null;
-		}
-		return isElementInteractive(el, true, this.editTemplateMode()) ? id : null;
+		return resolveInteractiveElementId(target, this.allElements(), this.editTemplateMode());
 	}
 
 	onStagePointerDown(event: PointerEvent): void {
