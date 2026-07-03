@@ -13,16 +13,13 @@ import {
 	viewChild,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-import { applyThemeToData } from 'pptx-viewer-core';
 import type {
 	InkPptxElement,
 	PptxComment,
 	PptxCoreProperties,
-	PptxData,
 	PptxElement,
 	PptxSlide,
 	PptxTableData,
-	PptxThemePreset,
 	TextStyle,
 } from 'pptx-viewer-core';
 
@@ -101,6 +98,7 @@ import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 import { ViewerKeyboardService } from './viewer-keyboard.service';
 import { ViewerMobileSheetService } from './viewer-mobile-sheet.service';
 import { ViewerPresentationModeService } from './viewer-presentation-mode.service';
+import { ViewerThemeGalleryService } from './viewer-theme-gallery.service';
 import { ViewerTouchGesturesService } from './viewer-touch-gestures.service';
 import { ViewerZoomService } from './viewer-zoom.service';
 import { ZoomTargetService } from './zoom-target.service';
@@ -150,6 +148,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		ViewerKeyboardService,
 		ViewerMobileSheetService,
 		ViewerPresentationModeService,
+		ViewerThemeGalleryService,
 		ViewerTouchGesturesService,
 		ViewerZoomService,
 	],
@@ -266,8 +265,8 @@ import { ZoomTargetService } from './zoom-target.service';
 					(toggleGuides)="showGuides.update(v => !v)"
 					(toggleSnapToGrid)="snapToGrid.update(v => !v)"
 					(toggleEyedropper)="formatPainter.toggleEyedropper()"
-					[themeGalleryOpen]="showThemeGallery()"
-					(toggleThemeGallery)="showThemeGallery.update(v => !v)"
+					[themeGalleryOpen]="themeGallery.showThemeGallery()"
+					(toggleThemeGallery)="themeGallery.showThemeGallery.update(v => !v)"
 					(toggleSelectionPane)="inspectorPanel.togglePanel('selection')"
 					(openCustomShows)="customShowsCtl.showDialog.set(true)"
 					(openSmartArtDialog)="showSmartArtInsert.set(true)"
@@ -583,10 +582,10 @@ import { ZoomTargetService } from './zoom-target.service';
 			}
 
 			<pptx-theme-gallery
-				[open]="showThemeGallery()"
-				[activeName]="activeThemeName()"
-				(applyTheme)="applyThemePreset($event)"
-				(close)="showThemeGallery.set(false)"
+				[open]="themeGallery.showThemeGallery()"
+				[activeName]="themeGallery.activeThemeName()"
+				(applyTheme)="themeGallery.applyThemePreset($event)"
+				(close)="themeGallery.showThemeGallery.set(false)"
 			/>
 
 			<pptx-properties-dialog
@@ -850,6 +849,7 @@ export class PowerPointViewerComponent {
 	protected readonly mobileSheetSvc = inject(ViewerMobileSheetService);
 	protected readonly inspectorPanel = inject(ViewerInspectorPanelService);
 	protected readonly fileIO = inject(ViewerFileIOService);
+	protected readonly themeGallery = inject(ViewerThemeGalleryService);
 
 	/** Handle on the secondary-dialog host (keep-annotations prompt). */
 	private readonly extraDialogs = viewChild(ViewerExtraDialogsComponent);
@@ -967,14 +967,8 @@ export class PowerPointViewerComponent {
 	protected readonly showGuides = signal(false);
 	/** Whether snap-to-grid is active on the editor canvas. */
 	protected readonly snapToGrid = signal(false);
-	/** Whether the theme-gallery overlay is visible (Design → Browse Themes). */
-	protected readonly showThemeGallery = signal(false);
 	/** Whether the Insert SmartArt gallery dialog is open. */
 	protected readonly showSmartArtInsert = signal(false);
-	/** The `name` property of the loaded deck's theme (for check-mark in gallery). */
-	protected readonly activeThemeName = computed<string | undefined>(
-		() => this.loader.theme()?.name,
-	);
 	/**
 	 * Stable, always-truthy key for the slide-properties form. Changes only when
 	 * the active slide changes, so the `@if` recreates (and reseeds) the
@@ -1275,37 +1269,6 @@ export class PowerPointViewerComponent {
 		const x = clampCursorPosition((event.clientX - rect.left) / zoom, 0, size.width);
 		const y = clampCursorPosition((event.clientY - rect.top) / zoom, 0, size.height);
 		this.collab.setCursor(x, y, this.activeSlideIndex());
-	}
-
-	// ── Theme gallery (Design tab) ─────────────────────────────────────────────
-
-	/**
-	 * Apply a built-in theme preset to the whole deck.
-	 *
-	 * Mirrors Vue's `applyThemePreset()`: re-resolves slide colours via core's
-	 * pure `applyThemeToData`, then writes the updated slides + theme metadata
-	 * into `EditorStateService` as a single undoable entry.  Also refreshes the
-	 * `loader.themeColorMap` so subsequent theme switches start from the correct
-	 * baseline.
-	 */
-	applyThemePreset(preset: PptxThemePreset): void {
-		const currentSlides = this.editor.slides();
-		const result = applyThemeToData(
-			{
-				slides: [...currentSlides],
-				theme: this.loader.theme() ?? {},
-				themeColorMap: this.loader.themeColorMap() ?? {},
-			} as unknown as PptxData,
-			preset.colorScheme,
-			preset.fontScheme,
-			preset.name,
-		);
-		// Write slides back through the editor (records undo history).
-		this.editor.applyReplacement(result.slides, `Apply theme "${preset.name}"`);
-		// Update the loader's theme signals so the check-mark and future switches are correct.
-		this.loader.theme.set(result.theme);
-		this.loader.themeColorMap.set(result.themeColorMap);
-		this.showThemeGallery.set(false);
 	}
 
 	/** Review ▸ Compare: pick a `.pptx` and diff it against the current deck. */
