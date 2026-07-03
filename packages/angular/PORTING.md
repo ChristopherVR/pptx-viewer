@@ -177,9 +177,10 @@ functional parity (28/0 e2e, the same shared specs React passes).
 > bottom of this file was fixed in core (commit 3c86556) and has been removed.
 
 1. **File-size debt (CLAUDE.md ≤ 300 LOC rule).** Partially closed (see above).
-   Remaining offenders: `power-point-viewer.component.ts` **1775** (still
-   above target; six services already extracted - `viewer-export`,
-   `viewer-find-replace`, `viewer-custom-shows`,
+   Remaining offenders: `power-point-viewer.component.ts` (grown back to
+   **~1900** LOC as later features, e.g. collaboration wiring, landed on top
+   of the `b48ce45` reduction; still above target; six services already
+   extracted - `viewer-export`, `viewer-find-replace`, `viewer-custom-shows`,
    `viewer-collaboration-session`, `viewer-format-painter`,
    `viewer-keyboard` - further reduction is a follow-up, not urgent),
    `slide-canvas.component.ts` **1524**, `custom-shows.component.ts` 572, plus
@@ -188,10 +189,10 @@ functional parity (28/0 e2e, the same shared specs React passes).
    744, `smart-art-properties.component.ts` 668, `effects-panel.component.ts`
    648, `editor-state.service.ts` 637. (Vendored `internal/shared-src` files
    mirror `packages/shared/src/render` byte-for-byte and don't count as
-   Angular-specific debt.) Vue's `PowerPointViewer.vue` (2680 LOC after its own
-   2026-07-03 pass, previously 3501) remains larger than any single Angular
-   file - this is cross-framework debt, not an Angular-specific or
-   parity-blocking gap.
+   Angular-specific debt.) Vue's `PowerPointViewer.vue` (similarly around
+   2700 LOC and moving; see `packages/vue/PORTING.md`) remains larger than any
+   single Angular file - this is cross-framework debt, not an Angular-specific
+   or parity-blocking gap.
 2. ~~Shared-logic extraction~~ - **closed**, see audit correction above.
 3. **Cosmetic pixel depth.** Control styling uses the shared Tailwind tokens but
    is not pixel-identical to every React control (spacing, icons, split-button
@@ -218,10 +219,10 @@ functional parity (28/0 e2e, the same shared specs React passes).
 > `collaboration-writeback`). Dialogs accept an optional (blank = P2P) server URL
 > with the `pptx.{share,broadcast}.p2p*` hints; the demo joins P2P via
 > `?transport=webrtc[&signaling=…]`, skipping the trusted-host check and file
-> fetch and bootstrapping a placeholder deck for Y.Doc late-joiner sync.
-> Caveat: the `pptx.followMode.*` i18n keys are not yet in the shared
-> translations (they fall back to key-derived labels via the demo's
-> MissingTranslationHandler); adding them to `pptx-viewer-shared` is a follow-up.
+> fetch and bootstrapping a placeholder deck for Y.Doc late-joiner sync. The
+> `pptx.followMode.*` i18n keys (`following`, `stop`, `stopFollowing`,
+> `followCollaborator`, `followUser`, `stopFollowingUser`) now live in
+> `pptx-viewer-shared`'s translations, closing the earlier gap noted here.
 >
 > **Recently closed** (2026-07-02): the **secondary dialog suite** that was
 > previously absent (the earlier "whole surface" parity claim overstated this).

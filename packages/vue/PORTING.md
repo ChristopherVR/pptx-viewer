@@ -167,11 +167,13 @@ export), documented in the root README.
 | Gap                            | Where                          | Notes                                                                                                                                                                                                                                                                                                             |
 | ------------------------------ | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Slide-properties inspector** | `inspector/SlideInspector.vue` | Background (colour/image/clear), transition (type/duration/advance + direction/orientation/spokes), and per-slide theme colour override (`clrMapOverride`) are done. Deferred: slide size (display-only, does not persist to save in React either - not a Vue-specific gap) and the transition preview animation. |
-| **`onToggleCompactToolbar`**   | ribbon                         | Trivial: currently has **no ribbon consumer**; wire a consumer or drop the prop. Not a real gap.                                                                                                                                                                                                                  |
 
 Master/template editing, shared-code extraction, and the `&` -> `&amp;`
 double-encoding bug were previously listed here as open; all three are
-closed - see the audit-correction note above.
+closed - see the audit-correction note above. `onToggleCompactToolbar` is
+also closed: `RibbonToolbar.vue:90` wires `@click="props.onToggleCompactToolbar"`
+and `PowerPointViewer.vue` supplies the handler, so it is no longer an
+orphaned prop.
 
 ### Infrastructure (not user-facing parity)
 
@@ -180,9 +182,11 @@ closed - see the audit-correction note above.
 - **File-size debt (CLAUDE.md ≤300 LOC rule)**: `PowerPointViewer.vue` was the
   worst offender in the repo at 3501 LOC; a 2026-07-03 pass extracted six
   composables (`useElementInsertion`, `useElementDrag`, `useContextMenu`,
-  `useSlideMutations`, `useAlignGroup`, `useRibbonActions`), bringing it to
-  2680 LOC (-23%). Still above the 300-LOC target; further extraction is a
-  follow-up, not urgent.
+  `useSlideMutations`, `useAlignGroup`, `useRibbonActions`), bringing it down
+  from that peak (it currently sits around 2700 LOC and continues to move as
+  further extraction happens). Still above the 300-LOC target; further
+  extraction is a follow-up, not urgent, and may be in progress in a parallel
+  session, so treat any specific figure here as a snapshot, not a guarantee.
 
 ## Conventions (React → Vue 3)
 
