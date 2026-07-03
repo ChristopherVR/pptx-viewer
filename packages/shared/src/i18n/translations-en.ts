@@ -29,6 +29,9 @@ export const translationsEn: Record<string, string> = {
 	'pptx.autosave.justNow': 'just now',
 	'pptx.autosave.oneMinAgo': '1 min ago',
 	'pptx.autosave.minutesAgo': '{{count}} min ago',
+	'pptx.autosave.saveFailed': 'Save failed',
+	'pptx.autosave.savedShort': 'Saved',
+	'pptx.autosave.allChangesSaved': 'All changes saved',
 
 	// Toolbar
 	'pptx.toolbar.toggleSlidesPanel': 'Toggle slides panel',
@@ -155,7 +158,18 @@ export const translationsEn: Record<string, string> = {
 	'pptx.collaboration.youLabel': '{{name}} (you)',
 	'pptx.collaboration.usersConnected': '{{count}} user(s) connected',
 	'pptx.collaboration.moreUsers': '{{count}} more user(s)',
+	'pptx.collaboration.onePersonHere': '1 person here',
+	'pptx.collaboration.peopleHere': '{{count}} people here',
 	'pptx.collaboration.retry': 'Retry',
+	'pptx.collaboration.retryConnection': 'Retry connection',
+
+	// Follow mode
+	'pptx.followMode.following': 'Following',
+	'pptx.followMode.stop': 'Stop',
+	'pptx.followMode.stopFollowing': 'Stop following',
+	'pptx.followMode.followCollaborator': 'Follow a collaborator',
+	'pptx.followMode.followUser': 'Follow {{name}}',
+	'pptx.followMode.stopFollowingUser': 'Stop following {{name}}',
 
 	// Share dialog
 	'pptx.share.title': 'Share Presentation',

@@ -13,6 +13,8 @@
  * time, never at module eval.
  */
 
+import type { CollaborationTransport } from '../types';
+
 /** Default y-websocket server URL used when no default is supplied. */
 export const DEFAULT_BROADCAST_SERVER_URL = 'ws://localhost:1234';
 
@@ -26,6 +28,18 @@ export interface BroadcastDefaults {
 export interface BroadcastConfig {
 	roomId: string;
 	serverUrl: string;
+	/** Derived from serverUrl: empty server means peer-to-peer (webrtc). */
+	transport?: CollaborationTransport;
+}
+
+/**
+ * Resolve the transport implied by a server-URL form field: a blank server
+ * URL selects the serverless y-webrtc transport (peers meet via WebRTC
+ * signaling plus same-browser BroadcastChannel); anything else is a
+ * y-websocket server URL.
+ */
+export function resolveTransportForServerUrl(serverUrl: string): CollaborationTransport {
+	return serverUrl.trim().length === 0 ? 'webrtc' : 'websocket';
 }
 
 /** Generate a fresh, broadcast-scoped room id (`broadcast-<suffix>`). */
@@ -45,25 +59,35 @@ export function seedBroadcastFields(defaults?: BroadcastDefaults): BroadcastConf
 	};
 }
 
-/** Whether both required fields are non-blank (after trimming). */
+/**
+ * Whether the form can start: the room id is required; the server URL may be
+ * blank, which selects the serverless webrtc transport.
+ */
 export function canStartBroadcast(fields: BroadcastConfig): boolean {
-	return fields.roomId.trim().length > 0 && fields.serverUrl.trim().length > 0;
+	return fields.roomId.trim().length > 0;
 }
 
 /**
  * Assemble a {@link BroadcastConfig} from the (trimmed) form fields, or `null`
- * when incomplete.
+ * when incomplete. A blank server URL yields `transport: 'webrtc'`.
  */
 export function buildBroadcastConfig(fields: BroadcastConfig): BroadcastConfig | null {
 	if (!canStartBroadcast(fields)) {
 		return null;
 	}
-	return { roomId: fields.roomId.trim(), serverUrl: fields.serverUrl.trim() };
+	const serverUrl = fields.serverUrl.trim();
+	return {
+		roomId: fields.roomId.trim(),
+		serverUrl,
+		transport: resolveTransportForServerUrl(serverUrl),
+	};
 }
 
 /**
  * Build the shareable viewer follow-link for a broadcast. Returns just the
  * room id when no `origin`/`pathname` are available (non-browser environments).
+ * A blank server URL produces a `transport=webrtc` link instead of a
+ * `server=` parameter.
  */
 export function buildBroadcastViewerUrl(
 	roomId: string,
@@ -74,7 +98,11 @@ export function buildBroadcastViewerUrl(
 		return roomId;
 	}
 	const room = encodeURIComponent(roomId);
-	const server = encodeURIComponent(serverUrl);
+	const trimmed = serverUrl.trim();
+	if (trimmed.length === 0) {
+		return `${location.origin}${location.pathname}?broadcast=${room}&transport=webrtc`;
+	}
+	const server = encodeURIComponent(trimmed);
 	return `${location.origin}${location.pathname}?broadcast=${room}&server=${server}`;
 }
 

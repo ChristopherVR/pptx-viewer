@@ -303,6 +303,9 @@ export * from './hyperlink-security';
 // awareness lifecycle stays in each binding.
 export * from './collaboration-presence';
 export * from './collaboration-sync';
+// Granular local -> Y.Doc reconciliation (per-slide/element/field diffing,
+// origin-tagged transactions). Prefer over writeSlidesToYDoc for live editing.
+export * from './collaboration-reconcile';
 export * from './slide-compare';
 // Morph (PowerPoint Morph transition) — pure element-matching, SVG-path /
 // colour interpolation, text tokenisation, and CSS keyframe generation. The

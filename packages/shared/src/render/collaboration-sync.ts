@@ -5,41 +5,52 @@
  * Exports:
  *  - Structural Yjs interfaces (no hard yjs import - bindings pass live instances)
  *  - YjsFactories: factory interface bindings implement using `new Y.Map()` etc.
- *  - encodeTextBody / decodeTextBody: TextSegment[] <-> YTextLike delta
  *  - writeElementToYMap / readElementFromYMap: PptxElement <-> YMapLike
  *  - writeSlideToYMap / readSlideFromYMap: PptxSlide <-> YMapLike
  *  - writeSlidesToYDoc / readSlidesFromYDoc: PptxSlide[] <-> Y.Doc
  *  - observeYDocSlides: register a change listener on the pptx:slides array
+ *  - re-exports of the text codec (collaboration-text-codec.ts)
  *
- * Y.Doc schema (matches pptx-codec.ts in packages/tools):
+ * Y.Doc schema:
  *   pptx:slides  - Y.Array of slide Y.Maps
  *   Each slide Y.Map has scalar keys + `_`-prefixed JSON blobs + `elements`
  *   Each element Y.Map has scalar keys + `_`-prefixed JSON blobs + `textBody`
  *   textBody is a Y.Text with one delta-op per TextSegment
+ *
+ * NOTE: packages/tools' pptx-codec.ts implements a similar schema but with
+ * different complex-field key prefixes (e.g. `_textStyle` vs `_ts` here); the
+ * two doc layouts are NOT interchangeable on the same Y.Doc.
+ *
+ * Prefer `reconcileSlidesInYDoc` (collaboration-reconcile.ts) over
+ * `writeSlidesToYDoc` for live editing: it updates only what changed instead
+ * of replacing the whole slides array, so concurrent edits merge per
+ * slide/element/field rather than colliding at document granularity.
  */
 
 import type { PptxSlide, PptxElement } from 'pptx-viewer-core';
+
+import type { YTextLike } from './collaboration-text-codec';
+import { encodeTextBody, decodeTextBody, isYTextLike } from './collaboration-text-codec';
+
+export * from './collaboration-text-codec';
 
 // ---------------------------------------------------------------------------
 // Structural Yjs interfaces (no 'yjs' import; bindings supply live instances)
 // ---------------------------------------------------------------------------
 
-export interface DeltaOp {
-	insert?: unknown;
-	attributes?: Record<string, unknown>;
-}
-
-export interface YTextLike {
-	insert: (index: number, text: string, attrs?: Record<string, string>) => void;
-	toDelta: () => DeltaOp[];
-	toString: () => string;
-}
-
 export interface YMapLike {
 	get: (key: string) => unknown;
 	set: (key: string, value: unknown) => void;
+	delete: (key: string) => void;
 	forEach: (cb: (value: unknown, key: string) => void) => void;
 }
+
+/** Shape of the Yjs transaction passed to (deep) observers. */
+export interface YTransactionLike {
+	origin?: unknown;
+}
+
+export type YDeepObserver = (events?: unknown, transaction?: YTransactionLike) => void;
 
 export interface YArrayLike {
 	readonly length: number;
@@ -50,8 +61,8 @@ export interface YArrayLike {
 	toArray: () => unknown[];
 	observe: (handler: () => void) => void;
 	unobserve: (handler: () => void) => void;
-	observeDeep: (handler: () => void) => void;
-	unobserveDeep: (handler: () => void) => void;
+	observeDeep: (handler: YDeepObserver) => void;
+	unobserveDeep: (handler: YDeepObserver) => void;
 }
 
 export interface YDocLike {
@@ -67,13 +78,13 @@ export interface YjsFactories {
 }
 
 // ---------------------------------------------------------------------------
-// Y.Doc schema constants (mirror of pptx-codec.ts)
+// Y.Doc schema constants
 // ---------------------------------------------------------------------------
 
 export const YDOC_SLIDES_KEY = 'pptx:slides';
 export const YDOC_META_KEY = 'pptx:meta';
 
-const SCALAR_ELEMENT_KEYS = new Set([
+export const SCALAR_ELEMENT_KEYS: ReadonlySet<string> = new Set([
 	'id',
 	'type',
 	'x',
@@ -102,7 +113,7 @@ const SCALAR_ELEMENT_KEYS = new Set([
 	'promptText',
 ]);
 
-const COMPLEX_ELEMENT_FIELDS: Record<string, string> = {
+export const COMPLEX_ELEMENT_FIELDS: Readonly<Record<string, string>> = {
 	textStyle: '_ts',
 	shapeStyle: '_ss',
 	shapeAdjustments: '_sa',
@@ -129,7 +140,7 @@ const REV_COMPLEX_ELEMENT: Record<string, string> = Object.fromEntries(
 	Object.entries(COMPLEX_ELEMENT_FIELDS).map(([k, v]) => [v, k]),
 );
 
-const SCALAR_SLIDE_KEYS = new Set([
+export const SCALAR_SLIDE_KEYS: ReadonlySet<string> = new Set([
 	'id',
 	'rId',
 	'sourceSlideId',
@@ -148,7 +159,7 @@ const SCALAR_SLIDE_KEYS = new Set([
 	'isDirty',
 ]);
 
-const COMPLEX_SLIDE_FIELDS: Record<string, string> = {
+export const COMPLEX_SLIDE_FIELDS: Readonly<Record<string, string>> = {
 	transition: '_tr',
 	animations: '_an',
 	nativeAnimations: '_na',
@@ -165,183 +176,6 @@ const COMPLEX_SLIDE_FIELDS: Record<string, string> = {
 const REV_COMPLEX_SLIDE: Record<string, string> = Object.fromEntries(
 	Object.entries(COMPLEX_SLIDE_FIELDS).map(([k, v]) => [v, k]),
 );
-
-// ---------------------------------------------------------------------------
-// Text-body encode/decode (TextSegment[] <-> YTextLike delta)
-// ---------------------------------------------------------------------------
-
-function buildSegmentAttrs(seg: Record<string, unknown>): Record<string, string> {
-	const a: Record<string, string> = {};
-	const style = seg.style;
-	if (style && typeof style === 'object' && Object.keys(style).length > 0) {
-		a.s = JSON.stringify(style);
-	}
-	if (seg.isParagraphBreak) {
-		a.pb = '1';
-	}
-	if (seg.isLineBreak) {
-		a.lb = '1';
-	}
-	if (seg.bulletInfo) {
-		a.bi = JSON.stringify(seg.bulletInfo);
-	}
-	if (seg.paragraphLevel !== undefined) {
-		a.pl = String(seg.paragraphLevel);
-	}
-	if (seg.endParaRunProperties) {
-		a.pr = JSON.stringify(seg.endParaRunProperties);
-	}
-	if (typeof seg.fieldType === 'string') {
-		a.ft = seg.fieldType;
-	}
-	if (typeof seg.fieldGuid === 'string') {
-		a.fg = seg.fieldGuid;
-	}
-	if (seg.fieldGuidAttr === 'uuid' || seg.fieldGuidAttr === 'id') {
-		a.fga = seg.fieldGuidAttr;
-	}
-	if (seg.fieldParagraphPropertiesXml) {
-		a.fp = JSON.stringify(seg.fieldParagraphPropertiesXml);
-	}
-	if (seg.equationXml) {
-		a.eq = JSON.stringify(seg.equationXml);
-	}
-	if (typeof seg.equationNumber === 'string') {
-		a.en = seg.equationNumber;
-	}
-	if (seg.breakRunProperties) {
-		a.br = JSON.stringify(seg.breakRunProperties);
-	}
-	if (typeof seg.rubyText === 'string') {
-		a.rt = seg.rubyText;
-	}
-	if (typeof seg.rubyAlignment === 'string') {
-		a.ra = seg.rubyAlignment;
-	}
-	if (seg.rubyFontSize !== undefined) {
-		a.rfs = String(seg.rubyFontSize);
-	}
-	if (seg.rubyStyle) {
-		a.rs = JSON.stringify(seg.rubyStyle);
-	}
-	return a;
-}
-
-export function encodeTextBody(segments: unknown[], ytext: YTextLike): void {
-	let offset = 0;
-	for (const raw of segments) {
-		const seg = raw as Record<string, unknown>;
-		const attrs = buildSegmentAttrs(seg);
-		const hasAttrs = Object.keys(attrs).length > 0;
-		if (seg.isParagraphBreak === true || seg.isLineBreak === true) {
-			ytext.insert(offset, '\n', hasAttrs ? attrs : undefined);
-			offset += 1;
-		} else if (typeof seg.text === 'string' && seg.text.length > 0) {
-			ytext.insert(offset, seg.text, hasAttrs ? attrs : undefined);
-			offset += seg.text.length;
-		} else {
-			// Empty non-break run: use zero-width space to hold attributes
-			ytext.insert(offset, '​', hasAttrs ? attrs : undefined);
-			offset += 1;
-		}
-	}
-}
-
-export function decodeTextBody(ytext: YTextLike): Record<string, unknown>[] {
-	const delta = ytext.toDelta();
-	const segments: Record<string, unknown>[] = [];
-	for (const op of delta) {
-		if (typeof op.insert !== 'string' || op.insert === '') {
-			continue;
-		}
-		const a = (op.attributes ?? {}) as Record<string, string>;
-		const seg: Record<string, unknown> = { text: '', style: {} };
-		if (a.s) {
-			try {
-				seg.style = JSON.parse(a.s);
-			} catch {
-				seg.style = {};
-			}
-		}
-		if (a.pb === '1') {
-			seg.isParagraphBreak = true;
-		}
-		if (a.lb === '1') {
-			seg.isLineBreak = true;
-		}
-		if (a.bi) {
-			try {
-				seg.bulletInfo = JSON.parse(a.bi);
-			} catch {
-				/* skip */
-			}
-		}
-		if (a.pl !== undefined) {
-			seg.paragraphLevel = Number(a.pl);
-		}
-		if (a.pr) {
-			try {
-				seg.endParaRunProperties = JSON.parse(a.pr);
-			} catch {
-				/* skip */
-			}
-		}
-		if (a.ft) {
-			seg.fieldType = a.ft;
-		}
-		if (a.fg) {
-			seg.fieldGuid = a.fg;
-		}
-		if (a.fga === 'uuid' || a.fga === 'id') {
-			seg.fieldGuidAttr = a.fga;
-		}
-		if (a.fp) {
-			try {
-				seg.fieldParagraphPropertiesXml = JSON.parse(a.fp);
-			} catch {
-				/* skip */
-			}
-		}
-		if (a.eq) {
-			try {
-				seg.equationXml = JSON.parse(a.eq);
-			} catch {
-				/* skip */
-			}
-		}
-		if (a.en) {
-			seg.equationNumber = a.en;
-		}
-		if (a.br) {
-			try {
-				seg.breakRunProperties = JSON.parse(a.br);
-			} catch {
-				/* skip */
-			}
-		}
-		if (a.rt) {
-			seg.rubyText = a.rt;
-		}
-		if (a.ra) {
-			seg.rubyAlignment = a.ra;
-		}
-		if (a.rfs !== undefined) {
-			seg.rubyFontSize = Number(a.rfs);
-		}
-		if (a.rs) {
-			try {
-				seg.rubyStyle = JSON.parse(a.rs);
-			} catch {
-				/* skip */
-			}
-		}
-		if (op.insert !== '\n' && op.insert !== '​') {
-			seg.text = op.insert;
-		}
-		segments.push(seg);
-	}
-	return segments;
-}
 
 // ---------------------------------------------------------------------------
 // Element serialization
@@ -369,14 +203,6 @@ export function writeElementToYMap(
 			ymap.set(COMPLEX_ELEMENT_FIELDS[key], JSON.stringify(value));
 		}
 	}
-}
-
-function isYTextLike(value: unknown): value is YTextLike {
-	return (
-		typeof value === 'object' &&
-		value !== null &&
-		typeof (value as YTextLike).toDelta === 'function'
-	);
 }
 
 export function readElementFromYMap(ymap: YMapLike): PptxElement {
@@ -457,6 +283,11 @@ export function readSlideFromYMap(ymap: YMapLike): PptxSlide {
 // Y.Doc-level helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Replace the full slides array in the Y.Doc. Coarse: prefer
+ * `reconcileSlidesInYDoc` for live editing; this remains suitable for
+ * one-shot seeding of an empty document.
+ */
 export function writeSlidesToYDoc(
 	slides: PptxSlide[],
 	ydoc: YDocLike,
@@ -485,7 +316,13 @@ export function readSlidesFromYDoc(ydoc: YDocLike): PptxSlide[] {
 	return slides;
 }
 
-export function observeYDocSlides(ydoc: YDocLike, onChange: () => void): () => void {
+/**
+ * Observe (deeply) the pptx:slides array. The handler receives the Yjs
+ * events plus the transaction, so callers can skip their own writes by
+ * checking `transaction.origin` (see LOCAL_SYNC_ORIGIN in
+ * collaboration-reconcile.ts).
+ */
+export function observeYDocSlides(ydoc: YDocLike, onChange: YDeepObserver): () => void {
 	const arr = ydoc.getArray(YDOC_SLIDES_KEY);
 	arr.observeDeep(onChange);
 	return () => arr.unobserveDeep(onChange);

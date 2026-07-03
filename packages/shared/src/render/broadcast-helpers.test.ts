@@ -13,6 +13,7 @@ import {
 	canStartBroadcast,
 	canUseClipboard,
 	generateBroadcastRoomId,
+	resolveTransportForServerUrl,
 	seedBroadcastFields,
 } from './broadcast-helpers';
 
@@ -49,19 +50,37 @@ describe('seedBroadcastFields', () => {
 	});
 });
 
+describe('resolveTransportForServerUrl', () => {
+	it('maps a blank server URL to webrtc and anything else to websocket', () => {
+		expect(resolveTransportForServerUrl('')).toBe('webrtc');
+		expect(resolveTransportForServerUrl('   ')).toBe('webrtc');
+		expect(resolveTransportForServerUrl('ws://s')).toBe('websocket');
+		expect(resolveTransportForServerUrl('wss://collab.example.com')).toBe('websocket');
+	});
+});
+
 describe('canStartBroadcast', () => {
-	it('requires both fields non-blank', () => {
+	it('requires a room id; a blank server URL is allowed (P2P)', () => {
 		expect(canStartBroadcast({ roomId: 'r', serverUrl: 'ws://s' })).toBeTruthy();
 		expect(canStartBroadcast({ roomId: '', serverUrl: 'ws://s' })).toBeFalsy();
-		expect(canStartBroadcast({ roomId: 'r', serverUrl: '  ' })).toBeFalsy();
+		expect(canStartBroadcast({ roomId: 'r', serverUrl: '  ' })).toBeTruthy();
 	});
 });
 
 describe('buildBroadcastConfig', () => {
-	it('assembles a trimmed config', () => {
+	it('assembles a trimmed config with the derived transport', () => {
 		expect(buildBroadcastConfig({ roomId: '  room  ', serverUrl: '  ws://s  ' })).toStrictEqual({
 			roomId: 'room',
 			serverUrl: 'ws://s',
+			transport: 'websocket',
+		});
+	});
+
+	it('selects the webrtc transport when the server URL is blank', () => {
+		expect(buildBroadcastConfig({ roomId: 'room', serverUrl: '  ' })).toStrictEqual({
+			roomId: 'room',
+			serverUrl: '',
+			transport: 'webrtc',
 		});
 	});
 
@@ -77,6 +96,14 @@ describe('buildBroadcastViewerUrl', () => {
 			pathname: '/',
 		});
 		expect(url).toBe('https://app.test/?broadcast=room-1&server=ws%3A%2F%2Fx');
+	});
+
+	it('builds a ?broadcast=&transport=webrtc link when the server URL is blank', () => {
+		const url = buildBroadcastViewerUrl('room-1', '  ', {
+			origin: 'https://app.test',
+			pathname: '/',
+		});
+		expect(url).toBe('https://app.test/?broadcast=room-1&transport=webrtc');
 	});
 
 	it('falls back to the room id without a location', () => {
