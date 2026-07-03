@@ -84,6 +84,7 @@
 		"tsup": "^8.5.1",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.9",
+		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.0.0",
 		"yjs": "^13.6.31"
 	},
@@ -101,6 +102,7 @@
 	},
 	"optionalDependencies": {
 		"three": "^0.185.0",
+		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.0.0",
 		"yjs": "^13.6.31"
 	}

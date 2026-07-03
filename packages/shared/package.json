@@ -76,7 +76,8 @@
 		"three": "^0.185.0",
 		"tsup": "^8.5.1",
 		"typescript": "^6.0.3",
-		"vitest": "^4.1.9"
+		"vitest": "^4.1.9",
+		"yjs": "^13.6.31"
 	},
 	"peerDependencies": {
 		"pptx-viewer-core": "workspace:*",

@@ -92,7 +92,10 @@
 		"vite": "^8.0.16",
 		"vite-plugin-dts": "^5.0.3",
 		"vitest": "^4.1.9",
-		"vue-tsc": "^3.3.5"
+		"vue-tsc": "^3.3.5",
+		"y-webrtc": "^10.3.0",
+		"y-websocket": "^3.0.0",
+		"yjs": "^13.6.31"
 	},
 	"peerDependencies": {
 		"fast-xml-parser": "^5.8.0",
@@ -108,6 +111,7 @@
 	},
 	"optionalDependencies": {
 		"three": "^0.185.0",
+		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.0.0",
 		"yjs": "^13.6.31"
 	}
