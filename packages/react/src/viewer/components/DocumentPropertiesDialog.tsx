@@ -46,10 +46,10 @@ const SUMMARY_FIELDS: Array<{
 	labelKey: string;
 	multiline?: boolean;
 }> = [
-	{ key: 'title', labelKey: 'pptx.documentProperties.summary.title' },
-	{ key: 'subject', labelKey: 'pptx.documentProperties.summary.subject' },
-	{ key: 'creator', labelKey: 'pptx.documentProperties.summary.author' },
-	{ key: 'keywords', labelKey: 'pptx.documentProperties.summary.keywords' },
+	{ key: 'title', labelKey: 'pptx.properties.titleLabel' },
+	{ key: 'subject', labelKey: 'pptx.properties.subject' },
+	{ key: 'creator', labelKey: 'pptx.properties.author' },
+	{ key: 'keywords', labelKey: 'pptx.properties.keywords' },
 	{
 		key: 'description',
 		labelKey: 'pptx.documentProperties.summary.description',
@@ -155,7 +155,7 @@ export function DocumentPropertiesDialog({
 	}
 
 	const TABS: Array<{ id: TabId; labelKey: string }> = [
-		{ id: 'summary', labelKey: 'pptx.documentProperties.tabs.summary' },
+		{ id: 'summary', labelKey: 'pptx.documentProperties.tabs.general' },
 		{ id: 'custom', labelKey: 'pptx.documentProperties.tabs.custom' },
 		{ id: 'statistics', labelKey: 'pptx.documentProperties.tabs.statistics' },
 	];

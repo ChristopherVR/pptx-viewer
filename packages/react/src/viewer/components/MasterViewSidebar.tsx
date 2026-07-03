@@ -19,9 +19,9 @@ import { SlideMastersList } from './SlideMastersList';
 // ---------------------------------------------------------------------------
 
 const TABS: { key: MasterViewTab; labelKey: string }[] = [
-	{ key: 'slides', labelKey: 'pptx.master.tabSlides' },
-	{ key: 'notes', labelKey: 'pptx.master.tabNotes' },
-	{ key: 'handout', labelKey: 'pptx.master.tabHandout' },
+	{ key: 'slides', labelKey: 'pptx.sections.slides' },
+	{ key: 'notes', labelKey: 'pptx.notes.title' },
+	{ key: 'handout', labelKey: 'pptx.masterView.tabHandout' },
 ];
 
 // ---------------------------------------------------------------------------

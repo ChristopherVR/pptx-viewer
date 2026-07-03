@@ -101,7 +101,11 @@ export function SlideTransitionSection({
 										: 'bg-muted border-border hover:bg-accent'
 								}`}
 							>
-								{t(o === 'horz' ? 'pptx.transition.horizontal' : 'pptx.transition.vertical')}
+								{t(
+									o === 'horz'
+										? 'pptx.slideInspector.horizontal'
+										: 'pptx.slideInspector.vertical',
+								)}
 							</button>
 						))}
 					</div>

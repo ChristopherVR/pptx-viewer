@@ -86,12 +86,12 @@ const STATISTICS_FIELDS: StatisticsField[] = [
 	},
 	{
 		key: 'company',
-		labelKey: 'pptx.documentProperties.statistics.company',
+		labelKey: 'pptx.documentProperties.summary.company',
 		editable: true,
 	},
 	{
 		key: 'manager',
-		labelKey: 'pptx.documentProperties.statistics.manager',
+		labelKey: 'pptx.documentProperties.summary.manager',
 		editable: true,
 	},
 ];
