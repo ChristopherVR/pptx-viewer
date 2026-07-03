@@ -13,7 +13,6 @@
  *  - `theme` context      → `provideViewerTheme` + `useThemeStyle`.
  */
 import {
-	applyThemeToData,
 	cloneElement,
 	createEditorId,
 	hasTextProperties,
@@ -21,14 +20,10 @@ import {
 } from 'pptx-viewer-core';
 import type {
 	MasterViewTab,
-	PptxData,
 	PptxElement,
 	PptxHeaderFooter,
 	PptxSaveFormat,
 	PptxSlide,
-	PptxThemeColorScheme,
-	PptxThemeFontScheme,
-	PptxThemePreset,
 } from 'pptx-viewer-core';
 import type { CollaborationTransport, DistributeAxis } from 'pptx-viewer-shared';
 import {
@@ -136,6 +131,7 @@ import { useExport } from './composables/useExport';
 import { useExportProgress } from './composables/useExportProgress';
 import { useFindReplace } from './composables/useFindReplace';
 import { useFormatPainter } from './composables/useFormatPainter';
+import { useInkDrawing } from './composables/useInkDrawing';
 import { useInlineEditing } from './composables/useInlineEditing';
 import { useIsMobile } from './composables/useIsMobile';
 import { useKeyboardInsets } from './composables/useKeyboardInsets';
@@ -145,10 +141,12 @@ import { useMediaExport } from './composables/useMediaExport';
 import type { SlideAnnotationMap } from './composables/usePresentationAnnotations';
 import { usePrint } from './composables/usePrint';
 import { RIBBON_ALIGN, toShapePreset, useRibbonActions } from './composables/useRibbonActions';
+import { useRibbonUiState } from './composables/useRibbonUiState';
 import { useSectionOperations } from './composables/useSectionOperations';
 import { useSignatures } from './composables/useSignatures';
 import { useSlideMutations } from './composables/useSlideMutations';
 import { useSlideOperations } from './composables/useSlideOperations';
+import { useThemeEditing } from './composables/useThemeEditing';
 import { useTouchGestures } from './composables/useTouchGestures';
 import { useVersionHistory } from './composables/useVersionHistory';
 import { provideZoomTargetLookup, toZoomTargetInfo } from './composables/zoom-target';
@@ -1600,132 +1598,41 @@ function onEditorKeydown(event: KeyboardEvent): void {
 // host does not yet expose (drawing tools, grid/ruler/snap, theme gallery,
 // flip, action buttons, layout gallery) are wired as no-ops for now; the
 // ribbon renders faithfully and the core actions are live.
-const toolbarSection = ref<ToolbarSection>('home');
-const newShapeType = ref<SupportedShapeType>('rect');
-const activeTool = ref<DrawingTool>('select');
-const drawingColor = ref('#000000');
-const drawingWidth = ref(2);
-const inspectorOpen = ref(true);
-/** Left slides-rail collapse (Quick-Access sidebar toggle). */
-const sidebarCollapsed = ref(false);
-/** Ribbon content expanded (true) vs collapsed to just the tab bar (false). */
-const ribbonExpanded = ref(true);
-const overflowOpen = ref(false);
-/** Status-bar Notes toggle: expands/collapses the desktop notes panel. */
-const notesExpanded = ref(false);
-/** View-tab dot-grid overlay (snap-to-grid state lives in useElementDrag). */
-const showGrid = ref(false);
-/** View ▸ Rulers: horizontal/vertical rulers along the slide edges. */
-const showRulers = ref(false);
-/** View ▸ Spell: draw the browser's native spell-check squiggles while editing. */
-const spellCheckEnabled = ref(true);
-/** Design ▸ Themes gallery overlay. */
-const themeGalleryOpen = ref(false);
+const {
+	toolbarSection,
+	newShapeType,
+	activeTool,
+	drawingColor,
+	drawingWidth,
+	inspectorOpen,
+	sidebarCollapsed,
+	ribbonExpanded,
+	overflowOpen,
+	notesExpanded,
+	showGrid,
+	showRulers,
+	spellCheckEnabled,
+	themeGalleryOpen,
+	themeEditorOpen,
+} = useRibbonUiState();
 
-/** A pen/highlighter/eraser tool is armed (Draw tab) → ink capture is active. */
-const drawingActive = computed(
-	() => props.canEdit && !presenting.value && activeTool.value !== 'select',
-);
-/** Turn a captured stroke into an `ink` element (no select, keep drawing). */
-function addInkStroke(payload: {
-	points: Array<{ x: number; y: number }>;
-	color: string;
-	width: number;
-	tool: string;
-}): void {
-	const pts = payload.points;
-	if (pts.length < 2) {
-		return;
-	}
-	const isHl = payload.tool === 'highlighter';
-	const strokeW = isHl ? payload.width * 3 : payload.width;
-	const pad = Math.max(2, strokeW);
-	const xs = pts.map((p) => p.x);
-	const ys = pts.map((p) => p.y);
-	const minX = Math.min(...xs) - pad;
-	const minY = Math.min(...ys) - pad;
-	const maxX = Math.max(...xs) + pad;
-	const maxY = Math.max(...ys) + pad;
-	const d = `M ${pts.map((p) => `${(p.x - minX).toFixed(1)} ${(p.y - minY).toFixed(1)}`).join(' L ')}`;
-	const el = {
-		id: createEditorId('ink'),
-		type: 'ink',
-		x: minX,
-		y: minY,
-		width: maxX - minX,
-		height: maxY - minY,
-		inkPaths: [d],
-		inkColors: [payload.color],
-		inkWidths: [strokeW],
-		inkOpacities: [isHl ? 0.4 : 1],
-		inkTool: payload.tool,
-	} as unknown as PptxElement;
-	ops.addElement(el);
-	selectedElementIds.value = [];
-}
-/** Eraser: remove the top-most ink element whose box contains the point. */
-function eraseInkAt(point: { x: number; y: number }): void {
-	const slide = activeSlide.value;
-	if (!slide) {
-		return;
-	}
-	for (let i = slide.elements.length - 1; i >= 0; i--) {
-		const el = slide.elements[i];
-		if (
-			el.type === 'ink' &&
-			point.x >= el.x &&
-			point.x <= el.x + el.width &&
-			point.y >= el.y &&
-			point.y <= el.y + el.height
-		) {
-			ops.removeElement(el.id);
-			return;
-		}
-	}
-}
-/** Design ▸ Theme editor overlay. */
-const themeEditorOpen = ref(false);
+const { drawingActive, addInkStroke, eraseInkAt } = useInkDrawing({
+	canEdit: () => props.canEdit,
+	presenting,
+	activeTool,
+	activeSlide,
+	selectedElementIds,
+	ops,
+});
 
-/**
- * Re-theme the whole deck via core's pure `applyThemeToData` (re-resolves slide
- * colours against the new scheme) and write the new slides/theme/colour-map back
- * (history-aware). The active colour scheme is provided to tables via
- * `pptxTheme`, so banding updates too.
- */
-function applyTheme(
-	colorScheme: PptxThemeColorScheme,
-	fontScheme: PptxThemeFontScheme | undefined,
-	name: string,
-): void {
-	history.pushHistory();
-	const result = applyThemeToData(
-		{
-			slides: slides.value,
-			theme: pptxTheme.value,
-			themeColorMap: themeColorMap.value,
-		} as unknown as PptxData,
-		colorScheme,
-		fontScheme,
-		name,
-	);
-	slides.value = result.slides;
-	pptxTheme.value = result.theme;
-	themeColorMap.value = result.themeColorMap;
-}
-/** Apply a built-in theme preset (Design ▸ Themes gallery). */
-function applyThemePreset(preset: PptxThemePreset): void {
-	applyTheme(preset.colorScheme, preset.fontScheme, preset.name);
-	themeGalleryOpen.value = false;
-}
-/** Apply edited theme colours/fonts/name (Design ▸ Edit theme). */
-function applyThemeEdit(payload: {
-	colorScheme: PptxThemeColorScheme;
-	fontScheme: PptxThemeFontScheme;
-	name: string;
-}): void {
-	applyTheme(payload.colorScheme, payload.fontScheme, payload.name);
-	themeEditorOpen.value = false;
-}
+const { applyTheme, applyThemePreset, applyThemeEdit } = useThemeEditing({
+	slides,
+	pptxTheme,
+	themeColorMap,
+	pushHistory: history.pushHistory,
+	themeGalleryOpen,
+	themeEditorOpen,
+});
 
 const { ribbonMode, activeTableSelection, ribbonUpdateTextStyle, ribbonFlip, ribbonMoveToEdge } =
 	useRibbonActions({
