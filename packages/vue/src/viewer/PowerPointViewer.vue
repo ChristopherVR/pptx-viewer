@@ -12,19 +12,8 @@
  *  - function-prop callbacks → emits ({@link PowerPointViewerEmits}).
  *  - `theme` context      → `provideViewerTheme` + `useThemeStyle`.
  */
-import {
-	cloneElement,
-	createEditorId,
-	hasTextProperties,
-	updateSmartArtNodeText,
-} from 'pptx-viewer-core';
-import type {
-	MasterViewTab,
-	PptxElement,
-	PptxHeaderFooter,
-	PptxSaveFormat,
-	PptxSlide,
-} from 'pptx-viewer-core';
+import { cloneElement, createEditorId, updateSmartArtNodeText } from 'pptx-viewer-core';
+import type { PptxElement, PptxSaveFormat, PptxSlide } from 'pptx-viewer-core';
 import type { DistributeAxis } from 'pptx-viewer-shared';
 import {
 	downloadBlob,
@@ -46,7 +35,6 @@ import ComparePanel from './components/ComparePanel.vue';
 import ContextMenu from './components/ContextMenu.vue';
 import CustomShowsPanel from './components/CustomShowsPanel.vue';
 import DocumentPropertiesDialog from './components/DocumentPropertiesDialog.vue';
-import type { DocumentPropertiesSavePatch } from './components/DocumentPropertiesDialog.vue';
 import DrawingOverlay from './components/DrawingOverlay.vue';
 import type { ShapePreset } from './components/EditorToolbar.vue';
 import EquationEditorDialog from './components/EquationEditorDialog.vue';
@@ -98,8 +86,6 @@ import SnapLinesOverlay from './components/SnapLinesOverlay.vue';
 import StatusBar from './components/StatusBar.vue';
 import ThemeGallery from './components/ThemeGallery.vue';
 import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
-import { DEFAULT_VIEWER_SETTINGS } from './components/viewer-settings';
-import type { ViewerSettings } from './components/viewer-settings';
 import { FieldContextKey, resolveSlideTitle } from './composables/field-context';
 import { SmartArt3DKey } from './composables/smart-art-3d';
 import { SmartArtNodeEditKey } from './composables/smartart-node-edit';
@@ -115,6 +101,7 @@ import { useCollaborationWiring } from './composables/useCollaborationWiring';
 import { useComments } from './composables/useComments';
 import { useContextMenu } from './composables/useContextMenu';
 import { useCustomShowsWiring } from './composables/useCustomShowsWiring';
+import { useDocumentPropertiesDialog } from './composables/useDocumentPropertiesDialog';
 import { useEditorHistory } from './composables/useEditorHistory';
 import { useEditorKeyboard } from './composables/useEditorKeyboard';
 import { useEditorOperations } from './composables/useEditorOperations';
@@ -124,25 +111,34 @@ import { useEmbeddedFonts } from './composables/useEmbeddedFonts';
 import { useExport } from './composables/useExport';
 import { useExportProgress } from './composables/useExportProgress';
 import { useFindReplace } from './composables/useFindReplace';
+import { useFontEmbedding } from './composables/useFontEmbedding';
 import { useFormatPainter } from './composables/useFormatPainter';
+import { useHeaderFooterDialog } from './composables/useHeaderFooterDialog';
 import { useInkDrawing } from './composables/useInkDrawing';
 import { useInlineEditing } from './composables/useInlineEditing';
+import { useInsertElementDialogs } from './composables/useInsertElementDialogs';
 import { useIsMobile } from './composables/useIsMobile';
 import { useKeyboardInsets } from './composables/useKeyboardInsets';
 import { useLoadContent } from './composables/useLoadContent';
+import { useMasterViewState } from './composables/useMasterViewState';
 import { useMediaExport } from './composables/useMediaExport';
 import { useMobileChrome } from './composables/useMobileChrome';
+import { useMultiSelectOps } from './composables/useMultiSelectOps';
+import { usePasswordProtection } from './composables/usePasswordProtection';
 import type { SlideAnnotationMap } from './composables/usePresentationAnnotations';
 import { usePrint } from './composables/usePrint';
 import { RIBBON_ALIGN, toShapePreset, useRibbonActions } from './composables/useRibbonActions';
 import { useRibbonUiState } from './composables/useRibbonUiState';
 import { useSectionOperations } from './composables/useSectionOperations';
+import { useSelectionPaneWiring } from './composables/useSelectionPaneWiring';
 import { useSignatureWorkflow } from './composables/useSignatureWorkflow';
 import { useSlideMutations } from './composables/useSlideMutations';
 import { useSlideOperations } from './composables/useSlideOperations';
+import { useSlideShowSettings } from './composables/useSlideShowSettings';
 import { useThemeEditing } from './composables/useThemeEditing';
 import { useTouchGestures } from './composables/useTouchGestures';
 import { useVersionHistoryWiring } from './composables/useVersionHistoryWiring';
+import { useViewerSettingsDialog } from './composables/useViewerSettingsDialog';
 import { provideZoomTargetLookup, toZoomTargetInfo } from './composables/zoom-target';
 import type { PowerPointViewerEmits, PowerPointViewerExpose, PowerPointViewerProps } from './types';
 
@@ -631,29 +627,11 @@ const {
 	pushHistory: history.pushHistory,
 	handler,
 });
-function deleteSelected(): void {
-	for (const id of [...selectedElementIds.value]) {
-		ops.removeElement(id);
-	}
-	clearSelection();
-}
-function duplicateSelected(): void {
-	const next: string[] = [];
-	for (const id of [...selectedElementIds.value]) {
-		const newId = ops.duplicateElement(id);
-		if (newId) {
-			next.push(newId);
-		}
-	}
-	if (next.length > 0) {
-		selectedElementIds.value = next;
-	}
-}
-function bringForward(): void {
-	for (const id of [...selectedElementIds.value]) {
-		ops.bringForward(id);
-	}
-}
+const { deleteSelected, duplicateSelected, bringForward, sendBackward } = useMultiSelectOps({
+	selectedElementIds,
+	ops,
+	clearSelection,
+});
 
 // Inspector targets a single selected element; multi-select hides it.
 const inspectorElement = computed<PptxElement | undefined>(() =>
@@ -1034,102 +1012,38 @@ const {
 	onAckSignatureStripped,
 } = useSignatureWorkflow({ signatures, isDirty: autosave.isDirty });
 
-// ── Set Up Slide Show ─────────────────────────────────────────────────
-// Edits a draft copy of the presentation-level properties; on save we commit
-// the new properties. `saveAs` forwards `presentationProperties` to
-// `handler.save`, so the change round-trips into the saved `.pptx` (same
-// persist-via-refs pattern as document properties).
-const showSetUpSlideShow = ref(false);
-function onSaveSlideShowSettings(next: typeof presentationProperties.value): void {
-	presentationProperties.value = next;
-	showSubtitles.value = Boolean(next.showSubtitles);
-}
-/** Merge a partial presentation-properties patch (from the slide inspector). */
-function onPresentationPropertiesUpdate(patch: Partial<typeof presentationProperties.value>): void {
-	presentationProperties.value = { ...presentationProperties.value, ...patch };
-}
+// ── Set Up Slide Show + Subtitles ──────────────────────────────────────
+const {
+	showSetUpSlideShow,
+	showSubtitles,
+	onSaveSlideShowSettings,
+	onPresentationPropertiesUpdate,
+	onToggleSubtitles,
+} = useSlideShowSettings({ presentationProperties });
 
 // ── Password protection ───────────────────────────────────────────────
-// Mirrors React: the password lives in host state; encryption on save is not
-// wired in either binding, so this only tracks the protected flag + secret.
-const showPasswordDialog = ref(false);
-const isPasswordProtected = ref(false);
-const presentationPassword = ref<string | null>(null);
-function onSetPassword(password: string): void {
-	presentationPassword.value = password;
-	isPasswordProtected.value = true;
-}
-function onRemovePassword(): void {
-	presentationPassword.value = null;
-	isPasswordProtected.value = false;
-}
+const {
+	showPasswordDialog,
+	isPasswordProtected,
+	presentationPassword,
+	onSetPassword,
+	onRemovePassword,
+} = usePasswordProtection();
 
 // ── Font embedding ────────────────────────────────────────────────────
-const showFontEmbedding = ref(false);
-const embedFontsEnabled = ref(false);
-/** Unique font families used across every slide, sorted (mirrors React collectUsedFonts). */
-const usedFontFamilies = computed<string[]>(() => {
-	const fonts = new Set<string>();
-	const collect = (el: PptxElement): void => {
-		if (hasTextProperties(el)) {
-			if (el.textStyle?.fontFamily) {
-				fonts.add(el.textStyle.fontFamily);
-			}
-			for (const seg of el.textSegments ?? []) {
-				if (seg.style?.fontFamily) {
-					fonts.add(seg.style.fontFamily);
-				}
-			}
-		}
-		if (el.type === 'group' && el.children) {
-			for (const child of el.children) {
-				collect(child);
-			}
-		}
-	};
-	for (const slide of slides.value) {
-		for (const el of slide.elements ?? []) {
-			collect(el);
-		}
-	}
-	return Array.from(fonts).sort();
-});
-const embeddedFontNames = computed(() => embeddedFonts.value.map((f) => f.name));
+const { showFontEmbedding, embedFontsEnabled, usedFontFamilies, embeddedFontNames } =
+	useFontEmbedding({
+		slides,
+		embeddedFonts,
+	});
 
 // ── Selection pane (View ▸ Selection Pane) ────────────────────────────
-const showSelectionPane = ref(false);
-function onSelectionPaneSelect(id: string): void {
-	selectedElementIds.value = [id];
-}
-function onSelectionPaneToggleVisibility(id: string): void {
-	const el = findActiveElement(id);
-	if (el) {
-		ops.updateElement(id, { hidden: !el.hidden } as Partial<PptxElement>);
-	}
-}
-function onSelectionPaneReorder(payload: { from: number; to: number }): void {
-	const el = activeSlide.value?.elements[payload.from];
-	if (el) {
-		ops.reorder(el.id, payload.to);
-	}
-}
-
-// ── Subtitles toggle (Slide Show ▸ Subtitles) ─────────────────────────
-const showSubtitles = ref(false);
-watch(
-	() => presentationProperties.value.showSubtitles,
-	(value) => {
-		showSubtitles.value = Boolean(value);
-	},
-	{ immediate: true },
-);
-function onToggleSubtitles(): void {
-	showSubtitles.value = !showSubtitles.value;
-	presentationProperties.value = {
-		...presentationProperties.value,
-		showSubtitles: showSubtitles.value,
-	};
-}
+const {
+	showSelectionPane,
+	onSelectionPaneSelect,
+	onSelectionPaneToggleVisibility,
+	onSelectionPaneReorder,
+} = useSelectionPaneWiring({ findActiveElement, activeSlide, selectedElementIds, ops });
 
 // ── Responsive / mobile chrome ────────────────────────────────────────
 // The viewer root element drives breakpoints from the CONTAINER width (so an
@@ -1182,39 +1096,25 @@ const {
 } = useMobileChrome({ presenting, addText });
 
 // ── Document properties dialog ────────────────────────────────────────
-const propertiesOpen = ref(false);
-function onPropertiesSave(patch: DocumentPropertiesSavePatch): void {
-	// Persist the edited core / custom / app properties; `getContent` forwards
-	// all three to `handler.save`, so they round-trip into the saved `.pptx`.
-	coreProperties.value = { ...coreProperties.value, ...patch.core };
-	customProperties.value = patch.custom;
-	if (patch.app) {
-		appProperties.value = { ...appProperties.value, ...patch.app };
-	}
-	propertiesOpen.value = false;
-}
+const { propertiesOpen, onPropertiesSave } = useDocumentPropertiesDialog({
+	coreProperties,
+	customProperties,
+	appProperties,
+});
 
 // ── Master view (slide / notes / handout masters) ─────────────────────
-const showMasterView = ref(false);
-const masterViewTab = ref<MasterViewTab>('slides');
-const activeMasterIndex = ref(0);
-const activeLayoutIndex = ref<number | null>(null);
-const handoutSlidesPerPage = ref(6);
-function onSelectMaster(index: number): void {
-	activeMasterIndex.value = index;
-	activeLayoutIndex.value = null;
-}
-function onSelectLayout(masterIndex: number, layoutIndex: number): void {
-	activeMasterIndex.value = masterIndex;
-	activeLayoutIndex.value = layoutIndex;
-}
+const {
+	showMasterView,
+	masterViewTab,
+	activeMasterIndex,
+	activeLayoutIndex,
+	handoutSlidesPerPage,
+	onSelectMaster,
+	onSelectLayout,
+} = useMasterViewState();
 
 // ── Header / footer dialog ────────────────────────────────────────────
-const showHeaderFooter = ref(false);
-function onHeaderFooterUpdate(next: PptxHeaderFooter): void {
-	headerFooter.value = next;
-	showHeaderFooter.value = false;
-}
+const { showHeaderFooter, onHeaderFooterUpdate } = useHeaderFooterDialog({ headerFooter });
 
 // ── Sections (group the slide rail) ───────────────────────────────────
 const sectionOps = useSectionOperations({
@@ -1268,26 +1168,13 @@ const {
 } = useVersionHistoryWiring({ slides, pushHistory: history.pushHistory });
 
 // ── Insert SmartArt / equation ────────────────────────────────────────
-const showInsertSmartArt = ref(false);
-const showEquationEditor = ref(false);
-function onInsertElement(element: PptxElement): void {
-	ops.addElement(element);
-	selectedElementIds.value = [element.id];
-	showInsertSmartArt.value = false;
-	showEquationEditor.value = false;
-}
+const { showInsertSmartArt, showEquationEditor, onInsertElement } = useInsertElementDialogs({
+	ops,
+	selectedElementIds,
+});
 
 // ── Viewer settings ───────────────────────────────────────────────────
-const showSettings = ref(false);
-const viewerSettings = ref<ViewerSettings>({ ...DEFAULT_VIEWER_SETTINGS });
-function onSettingsUpdate(next: ViewerSettings): void {
-	viewerSettings.value = next;
-}
-function sendBackward(): void {
-	for (const id of [...selectedElementIds.value]) {
-		ops.sendBackward(id);
-	}
-}
+const { showSettings, viewerSettings, onSettingsUpdate } = useViewerSettingsDialog();
 
 // ── Keyboard shortcuts ────────────────────────────────────────────────
 // A config-driven registry (mirrors React `useKeyboardShortcuts`) replaces the
