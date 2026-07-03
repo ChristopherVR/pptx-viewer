@@ -6,6 +6,12 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [Unreleased]
 
+### Testing
+
+- **e2e:** Add cross-framework ribbon-tab layout parity check (by @ChristopherVR) ([8116ce3](https://github.com/ChristopherVR/pptx-viewer/commit/8116ce3bcfa0ba041c8a69507b5e192150a9dcc3))
+
+## [1.1.58](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@1.1.58) - 2026-07-03
+
 ### Bug Fixes
 
 - **angular:** Stop Insert tab's Action/Field controls wrapping to a new row (by @ChristopherVR) ([300c4d8](https://github.com/ChristopherVR/pptx-viewer/commit/300c4d8dd1f914d6899867d9e6a9c8ff5b627b45))
