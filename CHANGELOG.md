@@ -6,6 +6,13 @@ by [git-cliff](https://git-cliff.org); do not edit it by hand.
 
 ## [Unreleased]
 
+### Bug Fixes
+
+- **angular:** Stop Insert tab's Action/Field controls wrapping to a new row (by @ChristopherVR) ([300c4d8](https://github.com/ChristopherVR/pptx-viewer/commit/300c4d8dd1f914d6899867d9e6a9c8ff5b627b45))
+- **angular:** Stop Home tab's Font group wrapping to 3 rows, fix Paragraph too (by @ChristopherVR) ([e404d5b](https://github.com/ChristopherVR/pptx-viewer/commit/e404d5b4b957d1e48fad03a8924061911e7a76a3))
+
+## [1.1.81](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@1.1.81) - 2026-07-03
+
 ### Features
 
 - Document localization and add demo language pickers (by @ChristopherVR) ([a07ad82](https://github.com/ChristopherVR/pptx-viewer/commit/a07ad8279e906590e0392d19cd1637855012a80e))
