@@ -17,7 +17,6 @@ import {
 	cloneElement,
 	createEditorId,
 	hasTextProperties,
-	updateSmartArtNodeText,
 } from 'pptx-viewer-core';
 import type {
 	MasterViewTab,
@@ -26,7 +25,6 @@ import type {
 	PptxHeaderFooter,
 	PptxSaveFormat,
 	PptxSlide,
-	PptxSmartArtData,
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 	PptxThemePreset,
@@ -37,16 +35,10 @@ import {
 	downloadBlob,
 	isTemplateElementId,
 	openPptxFile,
-	rebuildDrawingShapesIfCleared,
-	resolvePalette,
 	setCellText,
 	strokeToInkElement,
 } from 'pptx-viewer-shared';
 import { computed, nextTick, provide, ref, toRef, watch } from 'vue';
-import { cloneElement, createEditorId } from 'pptx-viewer-core';
-import type { PptxElement, PptxSaveFormat, PptxSlide } from 'pptx-viewer-core';
-import { isTemplateElementId, openPptxFile } from 'pptx-viewer-shared';
-import { computed, provide, ref, toRef, watch } from 'vue';
 
 import { provideViewerTheme, useThemeStyle } from '../theme';
 import AccessibilityPanel from './components/AccessibilityPanel.vue';
@@ -278,93 +270,6 @@ const { tableSelection } = useTableCellEditingContext({
 		commitTableCell(elementId, rowIndex, colIndex, text),
 });
 
-// Table cell selection + drag-resize context for `TableRenderer` / `TablePanel`.
-// The reactive selection drives the inspector's cell formatting + merge-aware
-// structural ops and the canvas highlight; resize callbacks commit new column
-// widths / row heights through the history-tracked editor op. Closures run
-// post-setup, so referencing `ops` / `findActiveElement` here is safe.
-const tableSelection = ref<TableSelectionState | null>(null);
-function resizeTableColumns(elementId: string, widths: number[]): void {
-	const el = findActiveElement(elementId);
-	if (!props.canEdit || !el || el.type !== 'table' || !el.tableData) {
-		return;
-	}
-	ops.updateElement(elementId, {
-		tableData: { ...el.tableData, columnWidths: widths },
-	} as Partial<PptxElement>);
-}
-function resizeTableRow(elementId: string, rowIndex: number, height: number): void {
-	const el = findActiveElement(elementId);
-	if (!props.canEdit || !el || el.type !== 'table' || !el.tableData) {
-		return;
-	}
-	const rows = el.tableData.rows.map((r, i) => (i === rowIndex ? { ...r, height } : r));
-	ops.updateElement(elementId, { tableData: { ...el.tableData, rows } } as Partial<PptxElement>);
-}
-provideTableSelection({
-	selection: tableSelection,
-	select: (next) => {
-		tableSelection.value = next;
-	},
-	resizeColumns: resizeTableColumns,
-	resizeRow: resizeTableRow,
-});
-
-// Inline SmartArt node-text and per-node fill editing context.
-// Mirrors the TableCellEditKey pattern above. Closures run post-setup,
-// so referencing the later-declared `ops`, `presenting`, and
-// `findActiveElement` is safe.
-//
-// Both commit paths reflow `drawingShapes` back from the layout engine when
-// the edit op clears them (every text/style edit does) via
-// `rebuildDrawingShapesIfCleared` -- otherwise the renderer falls back to the
-// generic SVG layout for every node (not just the edited one) the moment any
-// single node is edited.
-provide(SmartArtNodeEditKey, {
-	canEdit: () => props.canEdit && !presenting.value,
-	commit: (elementId: string, nodeId: string, text: string): void => {
-		if (!props.canEdit) {
-			return;
-		}
-		const el = findActiveElement(elementId);
-		if (!el || el.type !== 'smartArt') {
-			return;
-		}
-		const data = el.smartArtData;
-		if (!data) {
-			return;
-		}
-		const next = updateSmartArtNodeText(data, nodeId, text);
-		const reflowed = rebuildDrawingShapesIfCleared(
-			next,
-			next.layout,
-			resolvePalette(next),
-			next.style ?? 'flat',
-			elementId,
-			{ width: el.width, height: el.height },
-		);
-		ops.updateElement(elementId, { smartArtData: reflowed } as Partial<PptxElement>);
-	},
-	commitStyle: (elementId: string, patch: Partial<PptxElement>): void => {
-		if (!props.canEdit) {
-			return;
-		}
-		const el = findActiveElement(elementId);
-		const next = (patch as { smartArtData?: PptxSmartArtData }).smartArtData;
-		if (el && el.type === 'smartArt' && next) {
-			const reflowed = rebuildDrawingShapesIfCleared(
-				next,
-				next.layout,
-				resolvePalette(next),
-				next.style ?? 'flat',
-				elementId,
-				{ width: el.width, height: el.height },
-			);
-			ops.updateElement(elementId, { ...patch, smartArtData: reflowed } as Partial<PptxElement>);
-			return;
-		}
-		ops.updateElement(elementId, patch);
-	},
 // Inline SmartArt node-text and per-node fill editing context. Mirrors the
 // table-cell context above (same forward-reference / wrapper-closure pattern).
 useSmartArtNodeEditContext({
@@ -1825,6 +1730,13 @@ defineExpose<PowerPointViewerExpose>({ getContent });
 				:open="showInsertSmartArt"
 				@insert="onInsertElement"
 				@close="showInsertSmartArt = false"
+			/>
+
+			<!-- Insert ▸ Equation -->
+			<EquationEditorDialog
+				:open="showEquationEditor"
+				@insert="onInsertElement"
+				@close="showEquationEditor = false"
 			/>
 
 			<!-- First-edit warning: saving a signed deck strips its signatures. -->

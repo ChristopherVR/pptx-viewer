@@ -1,5 +1,6 @@
 import { updateSmartArtNodeText } from 'pptx-viewer-core';
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, PptxSmartArtData } from 'pptx-viewer-core';
+import { rebuildDrawingShapesIfCleared, resolvePalette } from 'pptx-viewer-shared';
 import { provide } from 'vue';
 
 import { SmartArtNodeEditKey } from './smartart-node-edit';
@@ -21,9 +22,26 @@ export interface UseSmartArtNodeEditContextInput {
  * history-tracked `updateElement` op the inspector uses. Mirrors the
  * `TableCellEditKey` pattern in `useTableCellEditingContext`. Extracted
  * verbatim from `PowerPointViewer.vue`.
+ *
+ * Both commit paths reflow `drawingShapes` back from the layout engine when
+ * the edit op clears them (every text/style edit does) via
+ * `rebuildDrawingShapesIfCleared` -- otherwise the renderer falls back to the
+ * generic SVG layout for every node (not just the edited one) the moment any
+ * single node is edited.
  */
 export function useSmartArtNodeEditContext(input: UseSmartArtNodeEditContextInput): void {
 	const { canEdit, findActiveElement, updateElement, canEditInline } = input;
+
+	function reflow(el: PptxElement, data: PptxSmartArtData): PptxSmartArtData {
+		return rebuildDrawingShapesIfCleared(
+			data,
+			data.layout,
+			resolvePalette(data),
+			data.style ?? 'flat',
+			el.id,
+			{ width: el.width, height: el.height },
+		);
+	}
 
 	provide(SmartArtNodeEditKey, {
 		canEdit: canEditInline,
@@ -40,11 +58,17 @@ export function useSmartArtNodeEditContext(input: UseSmartArtNodeEditContextInpu
 				return;
 			}
 			updateElement(elementId, {
-				smartArtData: updateSmartArtNodeText(data, nodeId, text),
+				smartArtData: reflow(el, updateSmartArtNodeText(data, nodeId, text)),
 			} as Partial<PptxElement>);
 		},
 		commitStyle: (elementId: string, patch: Partial<PptxElement>): void => {
 			if (!canEdit()) {
+				return;
+			}
+			const el = findActiveElement(elementId);
+			const next = (patch as { smartArtData?: PptxSmartArtData }).smartArtData;
+			if (el && el.type === 'smartArt' && next) {
+				updateElement(elementId, { ...patch, smartArtData: reflow(el, next) });
 				return;
 			}
 			updateElement(elementId, patch);
