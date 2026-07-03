@@ -179,6 +179,25 @@ async function save() {
 `provideViewerTheme`, `useViewerTheme`, and the `ViewerTheme` / `CanvasSize` /
 `CollaborationConfig` types.
 
+## Localization (i18n)
+
+UI labels go through [vue-i18n](https://vue-i18n.intlify.dev/) with dotted keys such as `pptx.statusBar.allSaved`. Create a `vue-i18n` instance with `createI18n()` and install it as a plugin (the demo's `src/i18n.ts` shows a minimal config, including a `missing` handler that derives Title Case labels for any key you don't explicitly translate):
+
+```ts
+import { translationsEn, keyToLabel } from 'pptx-vue-viewer/i18n';
+import { createI18n } from 'vue-i18n';
+
+const i18n = createI18n({
+	legacy: false,
+	locale: 'en',
+	fallbackLocale: 'en',
+	messages: { en: translationsEn },
+	missing: (_locale, key) => keyToLabel(key),
+});
+```
+
+Switch languages with `i18n.global.locale.value = 'fr'`. `pptx-vue-viewer/i18n` also exports a `TranslationKey` type for type-checking a new locale dictionary (`Record<TranslationKey, string>`) at compile time. See the [Localization guide](https://christophervr.github.io/pptx-viewer/guide/localization) for the full picture across all three bindings and how to contribute a translation upstream; the live demo's language picker is a working reference.
+
 ## Limitations
 
 The Vue package is at functional parity with the React package across the

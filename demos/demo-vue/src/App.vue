@@ -17,6 +17,10 @@ import {
 	resolveAutoRoomId,
 	resolveDefaultServerUrl,
 } from './collab';
+import i18n from './i18n';
+import LanguagePicker from './LanguagePicker.vue';
+import type { LanguageCode } from './languages';
+import { languageKeys } from './languages';
 import ThemePicker from './ThemePicker.vue';
 import { themes } from './themes';
 
@@ -48,6 +52,32 @@ function setTheme(key: string): void {
 	themeKey.value = key;
 	try {
 		localStorage.setItem('pptx-demo-theme', key);
+	} catch {
+		/* ignore */
+	}
+}
+
+// ── Language ────────────────────────────────────────────────────────────────
+function readStoredLanguage(): LanguageCode {
+	try {
+		const stored = localStorage.getItem('pptx-demo-lang');
+		return stored && languageKeys.includes(stored as LanguageCode)
+			? (stored as LanguageCode)
+			: 'en';
+	} catch {
+		return 'en';
+	}
+}
+
+const languageKey = ref<LanguageCode>(readStoredLanguage());
+watchEffect(() => {
+	i18n.global.locale.value = languageKey.value;
+});
+
+function setLanguage(code: LanguageCode): void {
+	languageKey.value = code;
+	try {
+		localStorage.setItem('pptx-demo-lang', code);
 	} catch {
 		/* ignore */
 	}
@@ -299,6 +329,7 @@ function browse(): void {
 <template>
 	<div v-if="content" class="demo-shell">
 		<ThemePicker :current="themeKey" @change="setTheme" />
+		<LanguagePicker :current="languageKey" @change="setLanguage" />
 		<PowerPointViewer
 			:content="content"
 			:theme="currentPreset.theme"
@@ -315,6 +346,7 @@ function browse(): void {
 
 	<div v-else class="demo-stage">
 		<ThemePicker :current="themeKey" @change="setTheme" />
+		<LanguagePicker :current="languageKey" @change="setLanguage" />
 		<div
 			class="demo-dropzone"
 			role="button"

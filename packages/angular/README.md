@@ -161,6 +161,23 @@ async save() {
 `LoadContentService`, `provideViewerTheme`, `VIEWER_THEME`, and the
 `ViewerTheme` / `CanvasSize` / `CollaborationConfig` types.
 
+## Localization (i18n)
+
+UI labels go through [@ngx-translate/core](https://github.com/ngx-translate/core) with dotted keys such as `pptx.statusBar.allSaved`. Provide it with `provideTranslateService()` (the demo's `src/i18n.ts` shows a minimal config, including a `MissingTranslationHandler` that derives Title Case labels for any key you don't explicitly translate):
+
+```ts
+import { translationsEn, keyToLabel } from 'pptx-angular-viewer';
+import { inject } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
+
+// register the English dictionary, e.g. in your root component
+inject(TranslateService).setTranslation('en', translationsEn);
+// later, to switch:
+inject(TranslateService).use('fr');
+```
+
+Unlike React/Vue, `translationsEn`, `keyToLabel`, and the `TranslationKey` type (for type-checking a new locale dictionary as `Record<TranslationKey, string>`) are exported from the package **root**, not an `/i18n` subpath. See the [Localization guide](https://christophervr.github.io/pptx-viewer/guide/localization) for the full picture across all three bindings and how to contribute a translation upstream; the live demo's language picker is a working reference.
+
 ## Limitations
 
 The Angular package has reached functional parity with the React package: all 11

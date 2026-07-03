@@ -176,9 +176,12 @@ export const translationsEn: Record<string, string> = {
 	'pptx.share.displayName': 'Your Display Name',
 	'pptx.share.namePlaceholder': 'e.g. Alice',
 	'pptx.share.serverLabel': 'Collaboration Server',
-	'pptx.share.serverPlaceholder': 'wss://collab.example.com',
+	'pptx.share.serverPlaceholder': 'wss://collab.example.com (empty = peer-to-peer)',
 	'pptx.share.serverHint':
-		'Enter the WebSocket URL of a y-websocket server. Use a secure wss:// URL when sharing from an https:// page.',
+		'Enter the WebSocket URL of a y-websocket server (secure wss:// when sharing from an https:// page), or leave empty for serverless peer-to-peer mode.',
+	'pptx.share.p2pHint':
+		'Peer-to-peer mode: tabs in the same browser always connect; other devices connect through public WebRTC signaling servers.',
+	'pptx.share.p2pServerValue': 'Peer-to-peer (no server)',
 	'pptx.share.shareLink': 'Share Link',
 	'pptx.share.copyLink': 'Copy share link',
 	'pptx.share.copied': 'Copied',
@@ -300,6 +303,9 @@ export const translationsEn: Record<string, string> = {
 	'pptx.broadcast.sessionName': 'Broadcast Session',
 	'pptx.broadcast.displayName': 'Presenter Name',
 	'pptx.broadcast.serverLabel': 'Collaboration Server',
+	'pptx.broadcast.p2pHint':
+		'Leave the server empty for serverless peer-to-peer broadcasting: same-browser tabs always connect; other devices connect through public WebRTC signaling servers.',
+	'pptx.broadcast.p2pServerValue': 'Peer-to-peer (no server)',
 	'pptx.broadcast.hint':
 		'Viewers can join using the link shown after starting. They will follow your slides automatically.',
 	'pptx.broadcast.startBroadcast': 'Start Broadcast',
@@ -1953,6 +1959,14 @@ export const translationsEn: Record<string, string> = {
 	'pptx.animation.sequence.byWord': 'By Word',
 	'pptx.animation.sequence.byLetter': 'By Letter',
 };
+
+/**
+ * Every key in the English dictionary. A new locale dictionary typed as
+ * `Record<TranslationKey, string>` gets a compile error for any key it's
+ * missing or misspells, so translation contributions stay complete without a
+ * separate parity test.
+ */
+export type TranslationKey = keyof typeof translationsEn;
 
 /**
  * Convert a dotted translation key to a human-readable label when no

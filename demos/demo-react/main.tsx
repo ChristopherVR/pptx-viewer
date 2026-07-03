@@ -1,4 +1,3 @@
-import './i18n'; // Initialise i18next before any component renders
 import { PptxHandler } from 'pptx-viewer-core';
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
@@ -12,6 +11,8 @@ import {
 	loadAudienceContent,
 } from '../../packages/react/src/viewer';
 import type { CollaborationConfig } from '../../packages/react/src/viewer';
+import i18nInstance from './i18n'; // Initialises i18next before any component renders
+import { LanguagePicker } from './LanguagePicker';
 
 import './app.css';
 
@@ -359,6 +360,13 @@ function App() {
 			return 'dark';
 		}
 	});
+	const [languageKey, setLanguageKey] = useState<string>(() => {
+		try {
+			return localStorage.getItem('pptx-demo-lang') ?? 'en';
+		} catch {
+			return 'en';
+		}
+	});
 
 	// ── URL-based collaboration / broadcast join ────────────────────────
 	const [urlRoom, setUrlRoom] = useState(() =>
@@ -595,6 +603,19 @@ function App() {
 		}
 	}, []);
 
+	useEffect(() => {
+		void i18nInstance.changeLanguage(languageKey);
+	}, [languageKey]);
+
+	const handleLanguageChange = useCallback((code: string) => {
+		setLanguageKey(code);
+		try {
+			localStorage.setItem('pptx-demo-lang', code);
+		} catch {
+			/* ignore */
+		}
+	}, []);
+
 	const handleFile = useCallback((file: File) => {
 		setFileName(file.name);
 		const reader = new FileReader();
@@ -649,6 +670,7 @@ function App() {
 		return (
 			<div className='h-[100dvh] w-screen'>
 				<ThemePicker current={themeKey} onChange={handleThemeChange} />
+				<LanguagePicker current={languageKey} onChange={handleLanguageChange} />
 				<PowerPointViewer
 					content={content}
 					canEdit
@@ -673,6 +695,7 @@ function App() {
 	return (
 		<div className='flex items-center justify-center h-[100dvh] w-screen bg-background text-foreground'>
 			<ThemePicker current={themeKey} onChange={handleThemeChange} />
+			<LanguagePicker current={languageKey} onChange={handleLanguageChange} />
 			<div
 				className='max-w-[900px] w-full border-2 border-dashed border-border rounded-xl p-12 text-center cursor-pointer transition-colors hover:border-primary hover:bg-accent'
 				onDrop={handleDrop}

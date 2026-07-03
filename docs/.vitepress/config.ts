@@ -83,6 +83,7 @@ export default defineConfig({
 						{ text: 'Architecture', link: '/guide/architecture' },
 						{ text: 'Core Concepts', link: '/guide/concepts' },
 						{ text: 'The PptxData Model', link: '/guide/data-model' },
+						{ text: 'Localization (i18n)', link: '/guide/localization' },
 						{ text: 'Limitations', link: '/guide/limitations' },
 					],
 				},

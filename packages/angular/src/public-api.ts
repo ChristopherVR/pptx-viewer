@@ -9,3 +9,4 @@ export * from './viewer';
 export * from './theme';
 export { cn, type ClassValue } from './utils';
 export { keyToLabel, translationsEn } from './internal/shared-src/i18n';
+export type { TranslationKey } from './internal/shared-src/i18n';

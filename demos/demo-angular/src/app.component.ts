@@ -25,6 +25,9 @@ import {
 	resolveDefaultServerUrl,
 } from './collab-utils';
 import { DropzoneComponent } from './dropzone.component';
+import { translationsEs, translationsFr } from './i18n-locales';
+import { LanguagePickerComponent } from './language-picker.component';
+import { persistLanguageKey, restoreLanguageKey } from './languages';
 import { ThemePickerComponent } from './theme-picker.component';
 import { persistThemeKey, restoreThemeKey, THEMES } from './themes';
 
@@ -41,7 +44,12 @@ type DemoContent = Uint8Array | ArrayBuffer;
 	selector: 'app-root',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [PowerPointViewerComponent, ThemePickerComponent, DropzoneComponent],
+	imports: [
+		PowerPointViewerComponent,
+		ThemePickerComponent,
+		LanguagePickerComponent,
+		DropzoneComponent,
+	],
 	styles: [
 		`
 			:host {
@@ -64,6 +72,7 @@ type DemoContent = Uint8Array | ArrayBuffer;
 	],
 	template: `
 		<app-theme-picker [current]="themeKey()" (themeChange)="onThemeChange($event)" />
+		<app-language-picker [current]="languageKey()" (languageChange)="onLanguageChange($event)" />
 
 		@if (content()) {
 			<div class="demo-viewer-host">
@@ -96,7 +105,9 @@ export class AppComponent {
 	readonly content = signal<DemoContent | null>(null);
 	readonly fileName = signal<string>('');
 	readonly themeKey = signal<string>(restoreThemeKey());
+	readonly languageKey = signal<string>(restoreLanguageKey());
 	readonly isBusy = signal<boolean>(false);
+	private readonly translate = inject(TranslateService);
 
 	private readonly params = new URLSearchParams(window.location.search);
 	/** Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`. */
@@ -119,7 +130,10 @@ export class AppComponent {
 	);
 
 	constructor() {
-		inject(TranslateService).setTranslation('en', translationsEn);
+		this.translate.setTranslation('en', translationsEn);
+		this.translate.setTranslation('fr', translationsFr);
+		this.translate.setTranslation('es', translationsEs);
+		this.translate.use(this.languageKey());
 
 		this.autoConnectFromUrl();
 		this.joinFromUrl();
@@ -144,6 +158,12 @@ export class AppComponent {
 	onThemeChange(key: string): void {
 		this.themeKey.set(key);
 		persistThemeKey(key);
+	}
+
+	onLanguageChange(code: string): void {
+		this.languageKey.set(code);
+		persistLanguageKey(code);
+		this.translate.use(code);
 	}
 
 	onDirtyChange(dirty: boolean): void {
