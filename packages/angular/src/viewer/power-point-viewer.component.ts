@@ -27,12 +27,7 @@ import type {
 } from 'pptx-viewer-core';
 
 import type { ViewerTheme } from '../internal/shared';
-import {
-	BROADCAST_THROTTLE_MS,
-	clampCursorPosition,
-	openPptxFile,
-	presenceToCursors,
-} from '../internal/shared';
+import { BROADCAST_THROTTLE_MS, clampCursorPosition, presenceToCursors } from '../internal/shared';
 import { themeStyle } from '../theme/viewer-theme';
 import { AccessibilityPanelComponent } from './accessibility-panel.component';
 import { AccessibilityService } from './accessibility.service';
@@ -99,6 +94,7 @@ import { ViewerCustomShowsService } from './viewer-custom-shows.service';
 import { ViewerDialogsService } from './viewer-dialogs.service';
 import { ViewerExportService } from './viewer-export.service';
 import { ViewerExtraDialogsComponent } from './viewer-extra-dialogs.component';
+import { ViewerFileIOService } from './viewer-file-io.service';
 import { ViewerFindReplaceService } from './viewer-find-replace.service';
 import { ViewerFormatPainterService } from './viewer-format-painter.service';
 import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
@@ -148,6 +144,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		ViewerFindReplaceService,
 		ViewerCustomShowsService,
 		ViewerCollaborationSessionService,
+		ViewerFileIOService,
 		ViewerFormatPainterService,
 		ViewerInspectorPanelService,
 		ViewerKeyboardService,
@@ -241,8 +238,8 @@ import { ZoomTargetService } from './zoom-target.service';
 					(presenter)="presentationMode.presentPresenter()"
 					(share)="session.showShare.set(true)"
 					(broadcast)="session.showBroadcast.set(true)"
-					(openFile)="openFile()"
-					(save)="saveAsPptx()"
+					(openFile)="fileIO.openFile()"
+					(save)="fileIO.saveAsPptx()"
 					(info)="showProperties.set(true)"
 					(print)="print.openDialog()"
 					(comments)="inspectorPanel.togglePanel('comments')"
@@ -294,7 +291,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						(toggleMenu)="mobileSheetSvc.mobileSheet.set(mobileSheetSvc.mobileSheet() === 'menu' ? null : 'menu')"
 						(undo)="editor.undo()"
 						(redo)="editor.redo()"
-						(save)="saveAsPptx()"
+						(save)="fileIO.saveAsPptx()"
 						(present)="presentationMode.present()"
 					/>
 				}
@@ -707,8 +704,8 @@ import { ZoomTargetService } from './zoom-target.service';
 					(toggleNotes)="mobileSheetSvc.toggleNotes()"
 					(insertText)="mobileSheetSvc.onMobileInsert()"
 					(present)="presentationMode.present()"
-					(openFile)="openFile()"
-					(savePptx)="saveAsPptx()"
+					(openFile)="fileIO.openFile()"
+					(savePptx)="fileIO.saveAsPptx()"
 					(exportPng)="xport.exportPng()"
 					(exportPdf)="xport.exportPdf()"
 					(exportGif)="xport.exportGif()"
@@ -830,7 +827,6 @@ export class PowerPointViewerComponent {
 	readonly stopCollaboration = output<void>();
 
 	protected readonly loader = inject(LoadContentService);
-	private readonly exportSvc = inject(ExportService);
 	protected readonly editor = inject(EditorStateService);
 	private readonly fonts = inject(EmbeddedFontsService);
 	protected readonly collab = inject(CollaborationService);
@@ -853,6 +849,7 @@ export class PowerPointViewerComponent {
 	protected readonly presentationMode = inject(ViewerPresentationModeService);
 	protected readonly mobileSheetSvc = inject(ViewerMobileSheetService);
 	protected readonly inspectorPanel = inject(ViewerInspectorPanelService);
+	protected readonly fileIO = inject(ViewerFileIOService);
 
 	/** Handle on the secondary-dialog host (keep-annotations prompt). */
 	private readonly extraDialogs = viewChild(ViewerExtraDialogsComponent);
@@ -1001,13 +998,6 @@ export class PowerPointViewerComponent {
 		);
 	});
 
-	/**
-	 * Built-in File ▸ Open override of the `content` input. The native picker
-	 * sets this to swap the deck in place; a fresh `content` input clears it so
-	 * external reloads always win.
-	 */
-	private readonly contentOverride = signal<Uint8Array | ArrayBuffer | null>(null);
-
 	constructor() {
 		// Surface the `smartArt3D` opt-in to the element dispatcher via the
 		// viewer-scoped SmartArt3DService.
@@ -1018,13 +1008,12 @@ export class PowerPointViewerComponent {
 		// A new host `content` input supersedes any in-place picked file.
 		effect(() => {
 			this.content();
-			this.contentOverride.set(null);
+			this.fileIO.contentOverride.set(null);
 		});
 
 		// Load whenever the active content (picked override, else input) changes.
 		effect(() => {
-			const content = this.contentOverride() ?? this.content();
-			void this.loader.load(content);
+			void this.loader.load(this.fileIO.activeContent());
 		});
 
 		// Reset to the first slide and seed the editable deck whenever a new
@@ -1163,7 +1152,7 @@ export class PowerPointViewerComponent {
 			getTemplateElements: () => this.editor.templateElementsBySlideId(),
 			applyRemoteSlides: (slides) => this.editor.applyRemoteSlides(slides),
 			canvasSize: () => this.loader.canvasSize(),
-			getSourceBytes: () => this.currentSourceBytes(),
+			getSourceBytes: () => this.fileIO.sourceBytes(),
 			currentSlides: () => this.editor.slides(),
 			emitStart: (config) => this.startCollaboration.emit(config),
 			emitStop: () => this.stopCollaboration.emit(),
@@ -1206,7 +1195,7 @@ export class PowerPointViewerComponent {
 			setActiveSlideIndex: (index) => this.activeSlideIndex.set(index),
 			clearEditing: () => this.editingId.set(null),
 			clearSelection: () => this.editor.clearSelection(),
-			sourceContent: () => this.contentOverride() ?? this.content(),
+			sourceContent: () => this.fileIO.activeContent(),
 			canEdit: () => this.canEdit(),
 			promptKeepAnnotations: (map) => this.extraDialogs()?.promptKeepAnnotations(map),
 		});
@@ -1226,6 +1215,18 @@ export class PowerPointViewerComponent {
 			selectedElement: () => this.selectedElement(),
 			activeSlide: () => this.activeSlide(),
 		});
+
+		// Hand the file-IO controller the accessors it alone needs from the
+		// component (canEdit, the host `content` input, the File ▸ Open override,
+		// the editor's slides + template elements, and the contentChange emitter).
+		this.fileIO.bind({
+			canEdit: () => this.canEdit(),
+			content: () => this.content(),
+			onOpenFile: () => this.onOpenFile(),
+			slides: () => this.editor.slides(),
+			templateElementsBySlideId: () => this.editor.templateElementsBySlideId(),
+			emitContentChange: (bytes) => this.contentChange.emit(bytes),
+		});
 	}
 
 	/**
@@ -1233,25 +1234,7 @@ export class PowerPointViewerComponent {
 	 * When editing, this serialises the editor's edited deck so changes persist.
 	 */
 	async getContent(): Promise<Uint8Array> {
-		const data = this.canEdit()
-			? await this.loader.saveSlides(
-					buildSaveSlides(this.editor.slides(), this.editor.templateElementsBySlideId()),
-				)
-			: await this.loader.getContent();
-		// Mirror React's imperative handle: serialising the deck also notifies the
-		// host so listeners wired to (contentChange) receive the latest bytes.
-		this.contentChange.emit(data);
-		return data;
-	}
-
-	/**
-	 * Serialise the current deck and trigger a browser download of the `.pptx`.
-	 * Surfaced on the mobile toolbar so saving is reachable without the desktop
-	 * ribbon's File tab.
-	 */
-	async saveAsPptx(): Promise<void> {
-		const bytes = await this.getContent();
-		this.exportSvc.savePptx(bytes, 'presentation.pptx');
+		return this.fileIO.getContent();
 	}
 
 	goTo(index: number): void {
@@ -1292,15 +1275,6 @@ export class PowerPointViewerComponent {
 		const x = clampCursorPosition((event.clientX - rect.left) / zoom, 0, size.width);
 		const y = clampCursorPosition((event.clientY - rect.top) / zoom, 0, size.height);
 		this.collab.setCursor(x, y, this.activeSlideIndex());
-	}
-
-	/** The loaded source `.pptx` bytes (for elected-writer write-back), if any. */
-	private currentSourceBytes(): Uint8Array | null {
-		const content = this.contentOverride() ?? this.content();
-		if (!content) {
-			return null;
-		}
-		return content instanceof Uint8Array ? content : new Uint8Array(content);
 	}
 
 	// ── Theme gallery (Design tab) ─────────────────────────────────────────────
@@ -1372,24 +1346,7 @@ export class PowerPointViewerComponent {
 
 	/** Swap the deck for a restored version-history snapshot. */
 	protected onRestoreVersion(bytes: Uint8Array): void {
-		this.contentOverride.set(bytes);
-	}
-	/**
-	 * File ▸ Open: host override (`onOpenFile` input) takes precedence; otherwise
-	 * a built-in native picker loads the chosen presentation in place.
-	 */
-	openFile(): void {
-		const override = this.onOpenFile();
-		if (override) {
-			override();
-			return;
-		}
-		void (async () => {
-			const picked = await openPptxFile();
-			if (picked) {
-				this.contentOverride.set(new Uint8Array(picked.buffer));
-			}
-		})();
+		this.fileIO.contentOverride.set(bytes);
 	}
 
 	/**
