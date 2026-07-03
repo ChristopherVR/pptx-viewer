@@ -51,6 +51,11 @@ function isTrustedServerUrl(url: string): boolean {
 	}
 }
 
+/** Whether a session config uses the serverless peer-to-peer (webrtc) transport. */
+function isP2PConfig(config: CollaborationConfig): boolean {
+	return config.transport === 'webrtc' || config.serverUrl.trim().length === 0;
+}
+
 /** Random hex colour for a local presence cursor. */
 function randomCursorColor(): string {
 	return `#${Math.floor(Math.random() * 0xffffff)
@@ -568,9 +573,11 @@ function App() {
 				// Restricted to trusted hosts so a crafted ?server= cannot exfiltrate.
 				if (!webrtc && isTrustedServerUrl(config.serverUrl)) {
 					const httpUrl = config.serverUrl.replace(/^ws/u, 'http');
+					// Copy into a fresh Uint8Array so TS sees a BodyInit-compatible
+					// Uint8Array<ArrayBuffer> (the source may be ArrayBufferLike-backed).
 					void fetch(`${httpUrl}/file/${encodeURIComponent(config.roomId)}`, {
 						method: 'POST',
-						body: content,
+						body: new Uint8Array(content),
 					}).catch(() => {
 						/* server may not support file storage: fall back silently */
 					});
