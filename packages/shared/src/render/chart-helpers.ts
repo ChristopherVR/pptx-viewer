@@ -6,15 +6,15 @@ import type {
 } from 'pptx-viewer-core';
 
 /**
- * Framework-agnostic chart helpers — a focused Vue port of the React package's
+ * Framework-agnostic chart helpers, a focused Vue port of the React package's
  * `viewer/utils/chart-helpers.ts`, `chart-layout.ts`, and
  * `chart-style-palettes.ts`.
  *
- * Only the pieces the common-type renderers (bar / column / stacked / line /
- * area / pie / doughnut) and the shared chrome need are ported here. Advanced
- * features (log axes, secondary axes, display units, data tables, overlays)
- * are intentionally omitted — see the `// TODO(vue):` markers in
- * `ChartRenderer.vue`.
+ * This module only covers the common-type renderers (bar / column / stacked /
+ * line / area / pie / doughnut) and the shared chrome. Advanced axis/overlay
+ * features (log axes, secondary axes, display units, trendlines, error bars,
+ * data tables) live in `chart-axis.ts` / `chart-axis-render.ts` /
+ * `chart-cartesian.ts` and are consumed via `chart/ChartViewModelSvg.vue`.
  *
  * These small pure helpers are an extraction candidate: long-term they (and
  * their React counterparts) should live in a shared, framework-agnostic

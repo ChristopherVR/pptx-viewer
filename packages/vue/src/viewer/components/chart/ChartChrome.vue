@@ -9,9 +9,11 @@ import { computed } from 'vue';
  * title, gridlines, value axis, zero line, category axis, and legend.
  *
  * Rendered inside the parent chart `<svg>` (so it emits a `<g>` group, not a
- * standalone svg). Secondary axes, display-unit labels, log-scale ticks, and
- * overlays (trendlines / error bars / drop / hi-low lines) are not ported;
- * see the `// TODO(vue):` markers in ChartRenderer.vue.
+ * standalone svg). This component covers the common chrome only; secondary
+ * axes, display-unit labels, log-scale ticks, and overlays (trendlines /
+ * error bars / drop / hi-low lines) are handled separately by
+ * `chart/ChartViewModelSvg.vue` via the shared `chart-axis*` / `chart-cartesian`
+ * modules.
  */
 const props = defineProps<{
 	chartData: PptxChartData;
