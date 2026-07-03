@@ -28,6 +28,7 @@ import type {
 } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 
+import { rebuildDrawingShapesIfCleared, resolvePalette } from '../internal/shared';
 import { AnimationAuthorPanelComponent } from './animation-author-panel.component';
 import { ChartDataEditorComponent } from './chart-data-editor.component';
 import { EditorStateService } from './editor-state.service';
@@ -772,8 +773,21 @@ export class InspectorPanelComponent {
 	 * identically.
 	 */
 	protected onSmartArtDataChange(smartArtData: PptxSmartArtData): void {
-		this.editor.updateElement(this.slideIndex(), this.el().id, {
+		// Reflow `drawingShapes` back from the layout engine when the edit cleared
+		// them (every structural/text/style op does) -- otherwise the renderer
+		// falls back to the generic SVG layout for every node, not just the one
+		// just edited.
+		const el = this.el();
+		const reflowed = rebuildDrawingShapesIfCleared(
 			smartArtData,
+			smartArtData.layout,
+			resolvePalette(smartArtData),
+			smartArtData.style ?? 'flat',
+			el.id,
+			{ width: el.width, height: el.height },
+		);
+		this.editor.updateElement(this.slideIndex(), el.id, {
+			smartArtData: reflowed,
 		} as Partial<PptxElement>);
 	}
 

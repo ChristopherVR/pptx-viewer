@@ -4,6 +4,7 @@ import {
 	ChangeDetectionStrategy,
 	Component,
 	computed,
+	DestroyRef,
 	effect,
 	ElementRef,
 	inject,
@@ -13,7 +14,7 @@ import {
 	viewChild,
 } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, PptxSmartArtData } from 'pptx-viewer-core';
 import { setSmartArtNodeStyle } from 'pptx-viewer-core';
 
 import {
@@ -21,6 +22,7 @@ import {
 	computeInlineEditorRect,
 	computeSmartArtLayout,
 	flattenNodes,
+	rebuildDrawingShapesIfCleared,
 	resolveDrawingShapeNodeId,
 } from '../internal/shared';
 import type {
@@ -258,6 +260,7 @@ import {
 
 				@if (canEditNodes() && hoveredNodeId() && !editState() && styleBarStyle()) {
 					<div
+						#styleBar
 						class="pptx-ng-smartart-style-bar"
 						[ngStyle]="styleBarStyle()!"
 						(mousedown)="$event.stopPropagation()"
@@ -373,11 +376,22 @@ import {
 		.pptx-ng-smartart-style-bar {
 			position: absolute;
 			pointer-events: auto;
+			display: flex;
+			gap: 6px;
+			padding: 6px 8px;
+			background: rgba(255, 255, 255, 0.9);
+			border: 1px solid var(--border, #e2e8f0);
+			border-radius: 9999px;
+			box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 		}
 
+		/* Sized generously (not the historical 14px) because this popover lives
+		   inside the slide canvas's zoom transform: at typical zoom-out levels a
+		   small swatch shrinks to just a few real on-screen pixels and becomes
+		   nearly unclickable. */
 		.pptx-ng-smartart-swatch {
-			width: 14px;
-			height: 14px;
+			width: 20px;
+			height: 20px;
 			border-radius: 50%;
 			border: 1px solid rgba(0, 0, 0, 0.1);
 			cursor: pointer;
@@ -421,6 +435,16 @@ export class SmartArtRendererComponent {
 	private readonly smartartContainer = viewChild<ElementRef>('smartartContainer');
 
 	/**
+	 * The mounted style-bar popover, if any. Mousemove events landing inside it
+	 * must not clear hover state, or the popover would unmount as soon as the
+	 * pointer reaches the swatches it needs to be clicked.
+	 */
+	private readonly styleBar = viewChild<ElementRef>('styleBar');
+
+	/** Pending "leave" timeout: grace period for the pointer to reach the style bar. */
+	private hideTimeout: ReturnType<typeof setTimeout> | null = null;
+
+	/**
 	 * Guards against a cancel-triggered DOM-removal blur committing the edit.
 	 * Set to true before programmatic cancellation; reset to false on each new edit.
 	 */
@@ -430,6 +454,7 @@ export class SmartArtRendererComponent {
 	readonly canEditNodes = computed(() => this.editable() && this.editor !== null);
 
 	constructor() {
+		inject(DestroyRef).onDestroy(() => this.cancelPendingHide());
 		// Focus + select-all the editor as soon as it mounts (mirrors the table
 		// renderer's cell-input effect).
 		effect(() => {
@@ -661,7 +686,7 @@ export class SmartArtRendererComponent {
 			return;
 		}
 		editor.updateElement(slideIndex, this.element().id, {
-			smartArtData: next,
+			smartArtData: this.reflow(next),
 		} as Partial<PptxElement>);
 		// Announce the commit to assistive technology via the polite live region.
 		this.liveMessage.set(
@@ -673,15 +698,26 @@ export class SmartArtRendererComponent {
 
 	// ── Style bar & hover tracking ────────────────────────────────────────
 
+	/** Approximate rendered size of the style bar (6 swatches + padding/border). */
+	private static readonly STYLE_BAR_WIDTH = 168;
+	private static readonly STYLE_BAR_HEIGHT = 40;
+
+	/** Grace period (ms) before clearing hover state once the pointer leaves the
+	 * node, so it can cross the small visual gap to the style bar. */
+	private static readonly HIDE_GRACE_MS = 150;
+
 	protected readonly styleBarStyle = computed<Record<string, string> | null>(() => {
 		const rect = this.hoveredNodeRect();
-		if (!rect) {
+		const cnt = this.smartartContainer()?.nativeElement as HTMLElement | undefined;
+		if (!rect || !cnt) {
 			return null;
 		}
+		const maxLeft = Math.max(0, cnt.clientWidth - SmartArtRendererComponent.STYLE_BAR_WIDTH);
+		const maxTop = Math.max(0, cnt.clientHeight - SmartArtRendererComponent.STYLE_BAR_HEIGHT);
 		return {
 			position: 'absolute',
-			left: `${Math.max(0, rect.left + rect.width - 120)}px`,
-			top: `${Math.max(0, rect.top - 22)}px`,
+			left: `${Math.min(maxLeft, Math.max(0, rect.left + rect.width - SmartArtRendererComponent.STYLE_BAR_WIDTH))}px`,
+			top: `${Math.min(maxTop, Math.max(0, rect.top - 22))}px`,
 			'z-index': '25',
 		};
 	});
@@ -692,18 +728,44 @@ export class SmartArtRendererComponent {
 		}
 		const nodeEl = this.findNodeEl(event.target as EventTarget);
 		const cnt = this.smartartContainer()?.nativeElement as HTMLElement | undefined;
-		const id = nodeEl?.getAttribute('data-smartart-node-id') ?? null;
-		this.hoveredNodeId.set(id);
-		this.hoveredNodeRect.set(
-			id && nodeEl && cnt
-				? computeInlineEditorRect(nodeEl.getBoundingClientRect(), cnt.getBoundingClientRect())
-				: null,
-		);
+		if (nodeEl && cnt) {
+			this.cancelPendingHide();
+			const id = nodeEl.getAttribute('data-smartart-node-id');
+			this.hoveredNodeId.set(id);
+			this.hoveredNodeRect.set(
+				id
+					? computeInlineEditorRect(nodeEl.getBoundingClientRect(), cnt.getBoundingClientRect())
+					: null,
+			);
+			return;
+		}
+		// Pointer may be over the style-bar popover anchored to the currently
+		// hovered node (not the node itself) - keep the hover state so the
+		// popover doesn't unmount out from under the pointer.
+		const styleBarEl = this.styleBar()?.nativeElement as HTMLElement | undefined;
+		if (styleBarEl && event.target instanceof Node && styleBarEl.contains(event.target)) {
+			this.cancelPendingHide();
+			return;
+		}
+		this.cancelPendingHide();
+		this.hideTimeout = setTimeout(() => {
+			this.hoveredNodeId.set(null);
+			this.hoveredNodeRect.set(null);
+			this.hideTimeout = null;
+		}, SmartArtRendererComponent.HIDE_GRACE_MS);
 	}
 
 	protected onMouseLeave(): void {
+		this.cancelPendingHide();
 		this.hoveredNodeId.set(null);
 		this.hoveredNodeRect.set(null);
+	}
+
+	private cancelPendingHide(): void {
+		if (this.hideTimeout !== null) {
+			clearTimeout(this.hideTimeout);
+			this.hideTimeout = null;
+		}
 	}
 
 	private findNodeEl(target: EventTarget | null): Element | null {
@@ -731,8 +793,25 @@ export class SmartArtRendererComponent {
 			return;
 		}
 		this.editor.updateElement(slideIndex, this.element().id, {
-			smartArtData: next,
+			smartArtData: this.reflow(next),
 		} as Partial<PptxElement>);
+	}
+
+	/**
+	 * Reflow `drawingShapes` back from the shared layout engine when an edit op
+	 * cleared them (every text/style edit does) -- otherwise the renderer falls
+	 * back to the generic SVG layout for every node, not just the edited one.
+	 */
+	private reflow(data: PptxSmartArtData): PptxSmartArtData {
+		const el = this.element();
+		return rebuildDrawingShapesIfCleared(
+			data,
+			data.layout,
+			resolvePalette(data),
+			data.style ?? 'flat',
+			el.id,
+			{ width: el.width, height: el.height },
+		);
 	}
 
 	// ── Empty / no-data state ──────────────────────────────────────────────
